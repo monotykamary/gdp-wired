@@ -1,5 +1,5 @@
 import {expect,test} from 'bun:test'
-import {all,get,ite,less,n,same,type Machine,x} from './machine.ts'
+import {all,any,atMost,get,ite,less,n,not,same,type E,type Machine,x} from './machine.ts'
 import {type CountCert,type CountDecl} from '../kernel/kernel.ts'
 import {countLawSeeds,countRowBridges,independentCountInstances,fieldLawBridges,focusCountCert,rowKeyNames} from './count-focused.ts'
 
@@ -29,13 +29,13 @@ test('algebraic selection reserves union bounds and their row identities within 
   const reads:CountCert['reads']=names.map((map,i)=>[`r${i}`,map,n(0)])
   const make=(wit:string,terms:[number,string][]):CountCert['insts'][number]=>({wit,below:n(4),terms,unit:0})
   const noise=Array.from({length:20},(_,i)=>make(`noise${i}`,[[1,'r7'],[-1,'r5'],[-1,'r6']]))
-  const identities=[make('partitionA',[[1,'r5'],[-1,'r2'],[-1,'r3']]),make('partitionB',[[1,'r6'],[-1,'r4'],[-1,'r3']])]
+  const identities=[make('partitionA',[[1,'r5'],[-1,'r2'],[-1,'r3']]),make('partitionB',[[1,'r6'],[-1,'r4'],[-1,'r3']]),make('requestPartition',[[1,'r1'],[-1,'r5'],[-1,'r6']])]
   const union=make('union',[[1,'r0'],[1,'r1'],[-1,'r2'],[-1,'r3'],[-1,'r4']])
   const full={reads,insts:[...noise,...identities,union]},selected=focusCountCert(m,decls,full,{algebraic:true,carried:'Incoming'})
-  expect(selected.insts).toHaveLength(16)
+  expect(selected.insts).toHaveLength(5)
   expect(selected.insts).toContain(union)
   for(const identity of identities)expect(selected.insts).toContain(identity)
-  expect(full.insts).toHaveLength(23)
+  expect(full.insts).toHaveLength(24)
   expect(focusCountCert(m,decls,full).insts).toEqual([])
 })
 
@@ -82,6 +82,23 @@ test('targeted carried-set comparisons omit unrelated row reads',()=>{
   expect(focusCountCert(m,decls,full,{structural:false,targets:[x('wanted')]}).insts).toEqual([full.insts[0]!])
 })
 
+test('algebraic focus keeps equivalent pre-count views but not different rows',()=>{
+  const at=(row:ReturnType<typeof x>)=>get('Cells',{op:'add',a:{op:'mul',k:64,a:row},b:x('cell')})
+  const m:Machine={name:'equivalent views',params:[],inputs:['source'],state:{},maps:{Cells:0},step:{}},base={j:'row',key:'cell',below:n(4)}
+  const decls:CountDecl[]=[{...base,map:'InputView',body:at(x('source'))},{...base,map:'RowView',body:at(x('row'))}]
+  const instance={wit:'point',below:n(4),unit:0,terms:[[1,'input'],[-1,'row']] as [number,string][]},full:Pick<CountCert,'reads'|'insts'>={reads:[['input','InputView',n(0)],['row','RowView',x('source')]],insts:[instance]}
+  expect(focusCountCert(m,decls,full,{structural:false,algebraic:true}).insts).toEqual([instance])
+  expect(focusCountCert(m,decls,{...full,reads:[full.reads[0]!,['row','RowView',x('other')]]},{structural:false,algebraic:true}).insts).toEqual([])
+})
+
+test('a carried subset can target its declared input-keyed row view',()=>{
+  const cell=x('cell'),key={op:'add' as const,a:{op:'mul' as const,k:64,a:x('source')},b:cell},body=get('Rows',key)
+  const m:Machine={name:'input-keyed view',params:[],inputs:['source'],inputMaps:['Incoming'],state:{},maps:{Rows:0},step:{flags:{subset:{op:'all',key:'cell',c:any(not(same(get('Incoming',cell),n(1))),same(body,n(1)))}}}}
+  const base={j:'unused',key:'cell',below:n(4)},decls:CountDecl[]=[{...base,map:'Carried',body:get('Incoming',cell)},{...base,map:'SourceSize',body}]
+  const instance={wit:'point',below:n(4),unit:0,terms:[[1,'carried'],[-1,'view']] as [number,string][]},full:Pick<CountCert,'reads'|'insts'>={reads:[['carried','Carried',n(0)],['view','SourceSize',n(0)]],insts:[instance]}
+  expect(focusCountCert(m,decls,full,{structural:false}).insts).toEqual([instance])
+})
+
 test('request frames propose only same-shaped carried-region comparisons',()=>{
   const m:Machine={name:'request frame',params:[],inputs:[],inputMaps:['Incoming'],state:{},maps:{Stored:0},step:{}}
   const base={j:'row',key:'cell',below:n(4)},decls:CountDecl[]=[{...base,map:'Size',body:get('Stored',x('cell'))},{...base,map:'Size#',body:get('Stored',x('cell'))},{...base,map:'ProposedSize',body:get('Incoming',x('cell'))}]
@@ -90,6 +107,43 @@ test('request frames propose only same-shaped carried-region comparisons',()=>{
   const insts=focusCountCert(m,decls,full,{structural:false,requestFrames:true}).insts
   expect(insts.map(i=>i.terms)).toEqual([[[1,'next'],[-1,'request']],[[1,'request'],[-1,'next']]])
   expect(insts.every(i=>i.unit===0&&i.wit&&i.below.op==='const')).toBe(true)
+})
+
+test('request frames normalize equality and threshold membership indicators',()=>{
+  const m:Machine={name:'mixed indicators',params:[],inputs:[],inputMaps:['Incoming'],state:{},maps:{Stored:0},step:{}}
+  const base={j:'row',key:'cell',below:n(4)},stored=ite(same(get('Stored',x('cell')),n(1)),n(1),n(0)),incoming=ite(atMost(n(1),get('Incoming',x('cell'))),n(1),n(0))
+  const decls:CountDecl[]=[{...base,map:'Size',body:stored},{...base,map:'Size#',body:stored},{...base,map:'ProposedSize',body:incoming}]
+  const full:Pick<CountCert,'reads'|'insts'>={reads:[['old','Size',n(0)],['next','Size#',n(0)],['request','ProposedSize',n(0)]],insts:[]}
+  const insts=focusCountCert(m,decls,full,{structural:false,requestFrames:true}).insts
+  expect(insts.map(i=>i.terms)).toEqual([[[1,'next'],[-1,'request']],[[1,'request'],[-1,'next']]])
+})
+
+test('frames retain a structural range bound between two post counts',()=>{
+  const m:Machine={name:'post range',params:[],inputs:[],state:{},maps:{Members:0,Ready:0},step:{}}
+  const a=same(get('Members',x('cell')),n(1)),b=same(get('Ready',x('cell')),n(1)),base={j:'row',key:'cell',below:n(4)}
+  const decls:CountDecl[]=[{...base,map:'Small#',body:ite(all(a,b),n(1),n(0))},{...base,map:'Large#',body:ite(a,n(1),n(0))}]
+  const forward={wit:'w0',below:n(4),unit:0,terms:[[1,'small'],[-1,'large']] as [number,string][]},back={...forward,wit:'w1',terms:[[1,'large'],[-1,'small']] as [number,string][]}
+  const full:Pick<CountCert,'reads'|'insts'>={reads:[['small','Small#',n(0)],['large','Large#',n(0)]],insts:[forward,back]}
+  expect(focusCountCert(m,decls,full,{structural:false}).insts).toEqual([])
+  const selected=focusCountCert(m,decls,full,{structural:false,frames:true}).insts
+  expect(selected).toContainEqual(forward)
+  expect(selected).not.toContainEqual(back)
+})
+
+test('request partition identities outrank misleading triples within sixteen algebraic slots',()=>{
+  const cell=x('cell'),a=same(get('Members',cell),n(1)),b=same(get('Incoming',cell),n(1)),base={j:'row',key:'cell',below:n(4)}
+  const m:Machine={name:'partition priority',params:[],inputs:[],inputMaps:['Incoming','Quorum'],state:{},maps:{Members:0},step:{}}
+  const bodies:Record<string,E>={X:ite(a,n(1),n(0)),S:get('Incoming',cell),Q:get('Quorum',cell),OutsideX:ite(all(a,not(b)),n(1),n(0)),Both:ite(all(a,b),n(1),n(0)),OutsideS:ite(all(b,not(a)),n(1),n(0))}
+  for(let i=0;i<8;i++)bodies[`Post${i}#`]=n(1)
+  for(let i=0;i<20;i++)bodies[`Bad${i}`]=bodies.OutsideX!
+  const decls:CountDecl[]=Object.entries(bodies).map(([map,body])=>({...base,map,body}))
+  const reads:CountCert['reads']=decls.map(d=>[d.map,d.map,n(0)]),make=(wit:string,terms:[number,string][])=>({wit,below:n(4),unit:0,terms})
+  const unions=Array.from({length:8},(_,i)=>make(`union${i}`,[[1,`Post${i}#`],[1,'Q'],[-1,'OutsideX'],[-1,'Both'],[-1,'OutsideS']]))
+  const falseTriples=Array.from({length:20},(_,i)=>make(`wrong${i}`,[[1,'S'],[-1,`Bad${i}`],[-1,'Both']]))
+  const identities=[make('S+',[[1,'S'],[-1,'OutsideS'],[-1,'Both']]),make('S-',[[ -1,'S'],[1,'OutsideS'],[1,'Both']]),make('X+',[[1,'X'],[-1,'OutsideX'],[-1,'Both']]),make('X-',[[-1,'X'],[1,'OutsideX'],[1,'Both']])]
+  const selected=focusCountCert(m,decls,{reads,insts:[...unions,...falseTriples,...identities]},{structural:false,algebraic:true})
+  expect(selected.insts).toHaveLength(16)
+  for(const identity of identities)expect(selected.insts).toContainEqual(identity)
 })
 
 test('post remainder and carried set propose a three-term coverage certificate',()=>{

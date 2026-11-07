@@ -1,6 +1,6 @@
 import {expect,test} from 'bun:test'
 import {get,minus,n,same,x} from '../../core/machine.ts'
-import {check} from '../../kernel/kernel.ts'
+import {canon,check,linear,type Path} from '../../kernel/kernel.ts'
 import {clock,grow} from '../../kernel/prove.ts'
 import {liftCountProxies} from './lift-count-proxies.ts'
 test('count proxies lift through explicit read equalities without whole-goal search',()=>{
@@ -22,6 +22,14 @@ for(const bindings of [true,false])test(`composite count terms ${bindings?'lift'
  const out=grow(part,new Map(),{nodes:0,until:clock()+500})
  expect('tree'in out).toBe(true)
  if('tree'in out){const proof=liftCountProxies(part,whole,out.tree,[['leftCount','Rows',n(0)],['rightCount','Rows',n(1)]]);if(bindings){expect(proof).toBeDefined();if(proof)expect(check(whole,proof)).toBe(true)}else expect(proof).toBeUndefined()}
+})
+test('numeric count bindings retain constraints in an existing guard path',()=>{
+ const r=x('count'),cell=get('Rows',n(0)),lin=linear(cell,new Map())!,path:Path=new Map([[canon(lin),{lin,holds:true}]])
+ const part={name:'numeric guarded count',hyps:[same(r,cell),{op:'<=' as const,a:n(1),b:r}]},whole={name:'original guarded count',hyps:[same(r,cell),{op:'<=' as const,a:n(1),b:cell}]}
+ const out=grow(part,path,{nodes:0,until:clock()+500})
+ expect('tree'in out).toBe(true)
+ if('tree'in out){const tree=liftCountProxies(part,whole,out.tree,[['count','Rows',n(0)]],path,path);expect(tree).toBeDefined();if(tree)expect(check(whole,tree,path)).toBe(true)}
+ expect('tree'in grow({name:'disconnected',hyps:[{op:'<=' as const,a:n(1),b:r}]},path,{nodes:0,until:clock()+500})).toBe(false)
 })
 for(const guarded of [true,false])test(`count proxy domain guards ${guarded?'are checked':'cannot be assumed'}`,()=>{
  const r=x('count'),key=x('key'),cell=get('Rows',key)

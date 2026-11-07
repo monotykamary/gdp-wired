@@ -2,7 +2,7 @@
 // set's per-member bound. The suggestion is untrusted; every cut is reconstructed
 // and the complete result is checked against the original counted goal.
 import {type C,type Machine,same,walkOnce,x} from '../../core/machine.ts'
-import {type CountCert,type CountDecl,type Goal,type Path,type Tree,canon,check,linear,substC,substE,truth} from '../../kernel/kernel.ts'
+import {type CountCert,type CountDecl,type Goal,type Path,type Tree,canon,check,columnTerm,linear,substC,substE,truth} from '../../kernel/kernel.ts'
 import {countsForReads} from '../../core/count-facts.ts'
 import {refuteFast,sub} from '../../core/solver.ts'
 import {liftCountProxies} from './lift-count-proxies.ts'
@@ -12,11 +12,20 @@ import {foldPath} from './fold-path.ts'
 import {booleanCore} from './boolean-core.ts'
 import {proveRowCases,rowPairs} from './row-cases.ts'
 import {activeCarried} from './action-guard.ts'
-import {frameLemmas} from './frame-lemmas.ts'
 import {atPoint,clock,grow,rowsAt,widen,withDeadline} from '../../kernel/prove.ts'
 import {modelSequence} from '../../kernel/model-sequence.ts'
 import {REFUTED} from '../../kernel/cdcl.ts'
 type Proposal=Pick<CountCert,'reads'|'insts'>
+// Bridge only cells used by the incoming path, including cells hidden inside
+// natural-subtraction columns. Other count terms are already rewritten in g.
+export function countBindingsAt(reads:CountCert['reads'],root:Path):C[]{
+ const columns=new Set([...root.values()].flatMap(p=>Object.keys(p.lin)))
+ for(const name of columns){const e=columnTerm(name);if(e)walkOnce(e,(o:any)=>{
+  if(o.op==='var')columns.add(o.name)
+  if(o.op==='get')for(const key of Object.keys(linear(o,root)??{}))columns.add(key)
+ })}
+ return reads.flatMap(([id,map,key])=>{const cell={op:'get' as const,map,key},lin=linear(cell,root);return lin&&Object.keys(lin).some(k=>columns.has(k))?[same(x(id),cell)]:[]})
+}
 export function fieldBounds(m:Machine,ds:CountDecl[],cert:Proposal):C[]{
  const key=x('$member'),bounds:{a:unknown,b:any,guard:C}[]=[]
  for(const [name,q] of Object.entries(m.step.flags??{}))if(q.op==='all')walkOnce(substC(q.c,{vars:{[q.key]:key},maps:{},flags:{}}),(c:any)=>{
@@ -40,7 +49,7 @@ export function fieldBounds(m:Machine,ds:CountDecl[],cert:Proposal):C[]{
  const focused=out.filter(c=>c.op==='<='&&c.a.op==='if'&&targets.has(JSON.stringify(c.a.then)))
  return (focused.length?focused:out).slice(0,4)
 }
-export function fieldBoundLemmas(m:Machine,ds:CountDecl[],g:Goal,cert:Proposal,until:number,trace:object[],onModel?:(goal:Goal,witness:Record<string,number>)=>boolean,root:Path=new Map(),options:{splitRows?:boolean}={}):Tree|undefined{
+export function fieldBoundLemmas(m:Machine,ds:CountDecl[],g:Goal,cert:Proposal,until:number,trace:object[],onModel?:(goal:Goal,witness:Record<string,number>)=>boolean,root:Path=new Map(),options:{splitRows?:boolean,deferCheck?:boolean}={}):Tree|undefined{
  const seq=modelSequence(root),ctx:C[]=[],path:Path=new Map(root),lemmas:{split:Record<string,number>,no:Tree}[]=[]
  const rowPlan=options.splitRows!==false&&process.env.LAB_ROW_SPLIT==='1'?rowPairs(m,cert):[]
  let arithmetic:Tree|undefined
@@ -132,16 +141,46 @@ export function fieldBoundLemmas(m:Machine,ds:CountDecl[],g:Goal,cert:Proposal,u
  if(process.env.LAB_COUNT_LEMMAS==='1'){
   const carriedMaps=activeCarried(m,root),countMaps=new Set(cert.reads.map(r=>r[1])),countIds=new Set(cert.reads.map(r=>r[0])),wits=new Set(cert.insts.map(i=>i.wit)),raw=g.hyps.slice(0,g.hyps.length-cert.insts.length)
   const pieces=(c:C)=>piecesAt(c,root)
+  const alias=(inst:Proposal['insts'][number]):boolean=>{if(inst.unit!==0||inst.terms.length!==2||inst.terms.some(([,id])=>postIds.has(id)))return false;const a=cs.get(inst.terms[0]![1]),b=cs.get(inst.terms[1]![1]);return !!a&&!!b&&JSON.stringify(view(a.body))===JSON.stringify(view(b.body))}
+  const requestFrame=(inst:Proposal['insts'][number]):boolean=>inst.terms.length===2&&inst.terms.some(([,id])=>postIds.has(id))&&inst.terms.some(([,id])=>{const c=cs.get(id),b=c&&view(c.body);return b?.op==='get'&&(m.inputMaps??[]).includes(b.map)})
+  const frame=(inst:Proposal['insts'][number]):boolean=>{
+   if(inst.terms.length!==2)return false
+   const [a,b]=inst.terms.map(([,id])=>cert.reads.find(r=>r[0]===id))
+   return !!a&&!!b&&a[1].replace(/#$/,'')===b[1].replace(/#$/,'')&&a[1].endsWith('#')!==b[1].endsWith('#')&&JSON.stringify(a[2])===JSON.stringify(b[2])
+  }
   const selected=(inst:Proposal['insts'][number]):boolean=>{
    if(inst.unit!==0||rowPlan.length&&inst.terms.some(([,id])=>postIds.has(id)))return false
    const carried=inst.terms.some(([k,id])=>{const c=cs.get(id),b=c&&view(c.body);return k===1&&b?.op==='get'&&carriedMaps.has(b.map)})
    if(inst.terms.length===3||inst.terms.length===5&&carried)return true
    if(inst.terms.length!==2)return false
    const [a,b]=inst.terms.map(([,id])=>cert.reads.find(r=>r[0]===id))
-   return carried||process.env.LAB_POST_SUBSETS==='1'&&!!a&&!!b&&a[1].endsWith('#')&&!b[1].endsWith('#')||!!a&&!!b&&a[1].replace(/#$/,'')===b[1].replace(/#$/,'')&&a[1].endsWith('#')!==b[1].endsWith('#')&&JSON.stringify(a[2])===JSON.stringify(b[2])
+   return carried||alias(inst)||frame(inst)||!!a&&!!b&&a[1].endsWith('#')&&b[1].endsWith('#')||process.env.LAB_REQUEST_FRAMES==='1'&&requestFrame(inst)||process.env.LAB_POST_SUBSETS==='1'&&!!a&&!!b&&a[1].endsWith('#')&&!b[1].endsWith('#')
   }
-  for(const [index,inst] of cert.insts.entries()){
-   if(clock()>=until)break
+  const pure=(c:C):boolean=>{let skip=false;walkLive(c,root,(o:any)=>{if(o.op==='get'||o.op==='var'&&wits.has(o.name))skip=true});return !skip}
+  const maps=Object.fromEntries([...countMaps].map(map=>[map,(key:any)=>{const r=cert.reads.find(r=>r[1]===map&&JSON.stringify(r[2])===JSON.stringify(key));return r?x(r[0]):{op:'get' as const,map,key}}]))
+  const flags=Object.fromEntries(Object.keys(m.step.flags??{}).map(name=>[name,{op:'flag' as const,name}]))
+  const numericBase=raw.map(c=>substC(c,{vars:{},maps,flags})).flatMap(c=>pieces(c)).filter(pure)
+  // The source path can mention count cells inside a guard or natural
+  // subtraction. Keep their explicit bindings instead of disconnecting it
+  // from the rewritten numeric hypotheses. Source transport checks every
+  // required equality and its read-domain guard.
+  const numericBindings=countBindingsAt(cert.reads,root)
+  const finish=()=>{
+   if(arithmetic||clock()>=until)return
+   const numeric:Goal={...g,hyps:[...numericBase,...numericBindings,...ctx.filter(pure)]},begun=clock(),q=seq(numeric,Math.min(until,clock()+200))
+   trace.push({stage:'count-arithmetic',hyps:numeric.hyps.length,ms:Math.round(clock()-begun),outcome:'tree'in q?'tree':q.stuck,core:q.core?.length,...(!('tree'in q)&&q.stuck==='sat'?{model:q.witness}:{})})
+   let proof='tree'in q?q.tree:undefined
+   if(!proof&&!('tree'in q)&&q.why===REFUTED&&q.core?.length){
+    const reduced={...numeric,hyps:q.core.map(i=>numeric.hyps[i]!)},out=grow(reduced,root,{nodes:0,until:Math.min(until,clock()+400),units:false})
+    if('tree'in out)proof=widen(reduced,numeric,out.tree,{},root,root)
+   }
+   const lifted=proof&&liftCountProxies(numeric,g,proof,cert.reads,root,path,event=>trace.push({stage:'count-transport',...event}))
+   if(lifted&&check(g,lifted,path))arithmetic=lifted
+  }
+  const rank=(inst:Proposal['insts'][number])=>requestFrame(inst)||alias(inst)?0:inst.terms.length===2&&inst.terms.every(([,id])=>postIds.has(id))?1:frame(inst)?2:inst.terms.length===5?3:inst.terms.length===3?4:5
+  finish()
+  for(const [index,inst]of [...cert.insts.entries()].sort((a,b)=>rank(a[1])-rank(b[1]))){
+   if(arithmetic||clock()>=until)break
    if(!selected(inst))continue
    const h=g.hyps[raw.length+index];if(h?.op!=='or'||h.xs[0]?.op!=='<=')continue
    const good=h.xs[0];if(truth(good,path)===true)continue
@@ -149,38 +188,21 @@ export function fieldBoundLemmas(m:Machine,ds:CountDecl[],g:Goal,cert:Proposal,u
    const relevant=raw.flatMap(c=>pieces(c)).filter(c=>{let skip=false;walkLive(c,root,(o:any)=>{if(o.op==='get'&&countMaps.has(o.map)||o.op==='var'&&(countIds.has(o.name)||wits.has(o.name)&&o.name!==inst.wit))skip=true});return !skip})
    const part={...g,hyps:[...relevant,...ctx,h,{op:'not' as const,x:good}]},started=clock(),proof=solve(part,150),lifted=proof&&widen(part,g,proof,{},root,noPath),no=lifted&&check(g,lifted,noPath)?lifted:undefined
    trace.push({stage:'count-lemma',index,arity:inst.terms.length,terms:inst.terms,ms:Math.round(clock()-started),checked:!!no})
-   if(no){lemmas.push({split,no});ctx.push(good);path.set(canon(split),{lin:split,holds:true})}
+   if(no){lemmas.push({split,no});ctx.push(good);path.set(canon(split),{lin:split,holds:true});finish()}
   }
-  const pure=(c:C):boolean=>{let skip=false;walkLive(c,root,(o:any)=>{if(o.op==='get'||o.op==='var'&&wits.has(o.name))skip=true});return !skip}
-  const maps=Object.fromEntries([...countMaps].map(map=>[map,(key:any)=>{const r=cert.reads.find(r=>r[1]===map&&JSON.stringify(r[2])===JSON.stringify(key));return r?x(r[0]):{op:'get' as const,map,key}}]))
-  const flags=Object.fromEntries(Object.keys(m.step.flags??{}).map(name=>[name,{op:'flag' as const,name}]))
-  const numeric:Goal={...g,hyps:[...raw.map(c=>substC(c,{vars:{},maps,flags})).flatMap(c=>pieces(c)).filter(pure),...ctx.filter(pure)]},begun=clock(),q=seq(numeric,Math.min(until,clock()+200))
-  trace.push({stage:'count-arithmetic',hyps:numeric.hyps.length,ms:Math.round(clock()-begun),outcome:'tree'in q?'tree':q.stuck,core:q.core?.length,...(!('tree'in q)&&q.stuck==='sat'?{model:q.witness}:{})})
-  let proof='tree'in q?q.tree:undefined
-  if(!proof&&!('tree'in q)&&q.why===REFUTED&&q.core?.length){
-   const reduced={...numeric,hyps:q.core.map(i=>numeric.hyps[i]!)},out=grow(reduced,root,{nodes:0,until:Math.min(until,clock()+400),units:false})
-   if('tree'in out)proof=widen(reduced,numeric,out.tree,{},root,root)
-  }
-  const lifted=proof&&liftCountProxies(numeric,g,proof,cert.reads,root,path,event=>trace.push({stage:'count-transport',...event}))
-  if(lifted&&check(g,lifted,path))arithmetic=lifted
+  finish()
  }
  if(clock()>=until)return undefined
  const part={...g,hyps:[...g.hyps,...ctx]},start=clock()
  let tree=arithmetic
  if(!tree&&rowPlan.length){
   trace.push({stage:'row-pairs',pairs:rowPlan})
-  tree=proveRowCases(g,path,rowPlan,until,(branch,end)=>{
-   if(rowPlan.every(([a,b])=>truth(same(a,b),branch)===false)){
-    const frame=frameLemmas(g,cert,Math.min(end,clock()+500),trace,branch,{stopAfterFailed:2,boolean:true})
-    trace.push({stage:'unchanged-row-frame',checked:!!frame})
-    if(frame)return frame
-   }
-   return fieldBoundLemmas(m,ds,g,cert,end,trace,onModel,branch,{splitRows:false})
-  },e=>trace.push(e))
+  tree=proveRowCases(g,path,rowPlan,until,(branch,end)=>fieldBoundLemmas(m,ds,g,cert,end,trace,onModel,branch,{splitRows:false,deferCheck:true}),e=>trace.push(e))
  }
  if(!tree){const proof=solve(part,Math.max(150,until-clock()-200),true);tree=proof&&widen(part,g,proof,{},root,path)}
  trace.push({stage:'field-bound-conclusion',facts:lemmas.length,ms:Math.round(clock()-start),proved:!!tree})
  if(!tree)return undefined
  for(const {split,no} of lemmas.reverse())tree={split,yes:tree,no}
- return check(g,tree,root)?tree:undefined
+ // The row combiner checks a deferred child immediately at this same path.
+ return options.deferCheck||check(g,tree,root)?tree:undefined
 }

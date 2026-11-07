@@ -135,7 +135,12 @@ export function focusCountCert(m: Machine, decls: CountDecl[], full: Pick<CountC
   }
   // Reserve existing slots for disjoint-union bounds: a prefix of partition
   // identities must not starve the five-term family that uses those identities.
-  const eligible=options.algebraic?full.insts.filter(q=>q.unit===0&&q.terms.length>=3&&q.terms.length<=5&&q.terms.every(([k])=>Math.abs(k)===1)):[]
+  const algebraicSeen=new Set<string>()
+  const eligible=options.algebraic?full.insts.filter(q=>{
+    if(q.unit!==0||q.terms.length<3||q.terms.length>5||!q.terms.every(([k])=>Math.abs(k)===1))return false
+    const id=text({below:q.below,unit:q.unit,terms:[...q.terms].sort((a,b)=>a[1].localeCompare(b[1])||a[0]-b[0])})
+    if(algebraicSeen.has(id))return false;algebraicSeen.add(id);return true
+  }):[]
   const unionPriority=(q:CountCert['insts'][number]):number=>{
     const positive=q.terms.filter(([k])=>k===1).map(([,id])=>id)
     const post=positive.some(id=>full.reads.some(r=>r[0]===id&&r[1].endsWith('#')))
@@ -143,9 +148,23 @@ export function focusCountCert(m: Machine, decls: CountDecl[], full: Pick<CountC
     return post&&carried?(q.terms.filter(([k])=>k===-1).every(([,id])=>stored.has(id))?2:1):0
   }
   const unions=eligible.filter(q=>q.terms.length===5).sort((a,b)=>unionPriority(b)-unionPriority(a)).slice(0,8)
-  const preferred=unions.filter(q=>unionPriority(q)===2),regions=new Set((preferred.length?preferred:unions).flatMap(q=>q.terms.filter(([k])=>k===-1).map(([,id])=>id)))
+  const regions=new Set(unions.flatMap(q=>q.terms.filter(([k])=>k===-1).map(([,id])=>id)))
+  const requestSizes=new Set([...bodies].filter(([,b])=>{const e=indicator(b);return e.op==='get'&&inputs.has(e.map)}).map(([id])=>id))
   const overlap=(q:CountCert['insts'][number])=>q.terms.filter(([,id])=>regions.has(id)).length
-  const identities=eligible.filter(q=>q.terms.length!==5).sort((a,b)=>overlap(b)-overlap(a))
+  // Prioritize actual pointwise Boolean identities, not every triple that
+  // happens to mention an input size. This only ranks untrusted proposals.
+  const booleanIdentity=(q:CountCert['insts'][number]):boolean=>{
+    const ps=q.terms.map(([,id])=>{const b=bodies.get(id);return b&&predicate(b)})
+    if(ps.some(p=>!p))return false
+    const atoms=new Map<string,number>(),atom=(c:C)=>text(member(c)??c)
+    const visit=(c:C):void=>{if(c.op==='and'||c.op==='or')c.xs.forEach(visit);else if(c.op==='not')visit(c.x);else if(!atoms.has(atom(c)))atoms.set(atom(c),atoms.size)}
+    ps.forEach(p=>visit(p!));if(atoms.size>8)return false
+    const value=(c:C,bits:number):boolean=>c.op==='and'?c.xs.every(p=>value(p,bits)):c.op==='or'?c.xs.some(p=>value(p,bits)):c.op==='not'?!value(c.x,bits):!!(bits&(1<<atoms.get(atom(c))!))
+    for(let bits=0;bits<1<<atoms.size;bits++)if(q.terms.reduce((sum,[k],i)=>sum+k*(value(ps[i]!,bits)?1:0),0)!==0)return false
+    return true
+  }
+  const identityPriority=(q:CountCert['insts'][number])=>(booleanIdentity(q)?100:0)+overlap(q)+(q.terms.some(([,id])=>requestSizes.has(id))?10:0)
+  const identities=eligible.filter(q=>q.terms.length!==5).map(q=>({q,rank:identityPriority(q)})).sort((a,b)=>b.rank-a.rank).map(({q})=>q)
   const algebraic=new Set([...unions,...identities.slice(0,16-unions.length)])
   const insts=full.insts.filter(q=>{
     if(options.frames&&q.unit===0&&q.terms.length===3){
@@ -165,11 +184,12 @@ export function focusCountCert(m: Machine, decls: CountDecl[], full: Pick<CountC
     const a=bodies.get(positive),b=bodies.get(negative)
     if(!a||!b) return false
     if(text(indicator(a))===text(indicator(b))) return true
+    if(options.algebraic&&text(indicator(a))===text(indicator(b)))return true
     const pa=predicate(a),pb=predicate(b)
     if(pa&&pb) {
       const have=new Set(conjuncts(pa)),need=new Set(conjuncts(pb))
       if(have.size===need.size&&[...need].every(p=>have.has(p)))return true
-      if(options.structural!==false&&[...need].every(p=>have.has(p)))return true
+      if((options.structural!==false||options.frames&&full.reads.some(r=>r[0]===positive&&r[1].endsWith('#'))&&full.reads.some(r=>r[0]===negative&&r[1].endsWith('#')))&&[...need].every(p=>have.has(p)))return true
     }
     if(options.frames&&stored.has(negative)&&full.reads.some(r=>r[0]===positive&&r[1].endsWith('#'))){
       const members=(c:C):E[]=>c.op==='and'?c.xs.flatMap(members):member(c)?[member(c)!]:[]
@@ -179,14 +199,14 @@ export function focusCountCert(m: Machine, decls: CountDecl[], full: Pick<CountC
       if(present)return true
     }
     const source=indicator(a)
-    if(source.op!=='get'||!inputs.has(source.map)||!stored.has(negative)||options.carried&&source.map!==options.carried)return false
+    if(source.op!=='get'||!inputs.has(source.map)||options.carried&&source.map!==options.carried)return false
     if(options.targets?.length){
       const targetNames=new Set(options.targets.flatMap(t=>t.op==='var'?[t.name]:[]));let relevant=false
       walkOnce(b,(o:any)=>{if(o.op==='var'&&targetNames.has(o.name))relevant=true})
       if(!relevant)return false
     }
     const view=views.get(source.map)
-    if(!view?.size)return true
+    if(!view?.size)return stored.has(negative)
     let matches=false
     walkOnce(b,(o:any)=>{if(o.op==='get'&&view.has(text(o)))matches=true})
     return matches
@@ -217,7 +237,7 @@ export function focusCountCert(m: Machine, decls: CountDecl[], full: Pick<CountC
           const d=decls.find(d=>d.map===read[1]),count=byId.get(read[0]);if(!d||!count||text(count.below)!==text(c.below))continue
           let carried=false
           walkOnce(d.body,(o:any)=>{if(o.op==='get'&&inputs.has(o.map)&&(!options.carried||o.map===options.carried))carried=true})
-          if(!carried||text(shape(d.body))!==text(shape(beforeDecl.body)))continue
+          if(!carried||text(shape(indicator(d.body)))!==text(shape(indicator(beforeDecl.body))))continue
           add([[1,after[0]],[-1,read[0]]],c.below)
           add([[1,read[0]],[-1,after[0]]],c.below)
         }

@@ -918,3 +918,40 @@ across 24 files**, and `check.log` reports zero warnings/errors (953 files).
 All probes retain the 5,000-ms counted goal cap, 250-ms Boolean helper cap, and
 60,000-ms diagnostic wall guard. **The complete given hand set and downstream
 gates remain unpassed.**
+
+### Step 1b: request frames, numeric aliases, and capped partition selection
+
+The copied-row cardinality now receives both checked comparisons with the
+request-set cardinality. Membership syntax is normalized before selecting these
+request-frame proposals. A structural post-count range bound is retained too.
+The next numeric models identified disconnected original guard count cells,
+missing request partitions, and an input-keyed row view rejected as non-stored.
+The numeric slice now keeps only read bindings reached from its incoming path
+(including natural-subtraction columns); source transport still checks their
+read domains. A binding that substitutes to zero is reconstructed from opposite
+source rows with positive weights. The initial zero-weight attempt failed the
+checker and its new regression, and was replaced, not accepted.
+
+The existing sixteen algebraic slots now deduplicate equivalent proposals and
+rank pointwise Boolean partition identities ahead of unrelated triples. Request
+partitions and exact pre-count aliases are retained without increasing the cap.
+Carried-set comparisons also recognize their declared input-keyed row views.
+Every resulting count cut and complete source tree remains kernel-checked.
+
+Pre-rebase baseline: `request-frames-v6/reconfig.log` remains unknown at **5,028
+counted ms / 31,645 wall ms**. `leader.log` remains unknown at **5,009 counted ms /
+35,037 wall ms**; its equal-row class checks in 417 counted ms, but the next class
+hits its 1,500-ms slice. Neither full branch nor the given hand set is proved.
+These are diagnostic placements, not timing-gate runs. All original time limits
+remain unchanged. Earlier request-frame iterations and the minimal proxy-path
+fixture are retained as diagnostics.
+
+`step1-request-check-v2/tests.log`: **226 tests / 4,452 assertions**, all passing
+across 24 files. `check.log`: TypeScript and type-aware lint pass, zero warnings
+or errors on 954 files. The request-frame batch separately passes 49 focused
+tests. Section 1.5 was reread and no design falsifier has appeared.
+
+Coordinator update: checkpoint this work, then rebase onto Track P **699b5160**,
+keeping both lanes' changes. After the rebase, repeat static checks, focused tests
+and this step-1 replay; future merge gates also require paxos_epr 3/3 and paired
+IC3Syn 29×3 against **699b5160**, not main. Those post-rebase gates are pending.

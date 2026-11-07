@@ -46,6 +46,15 @@ export function liftCountProxies(part:Goal,whole:Goal,tree:Tree,reads:CountCert[
     const desired=replace(row.lin,target);if(!desired)return undefined
     const direct=exact.get(canon(desired))
     if(direct!==undefined){indices.push(input(direct));continue}
+    // A retained read binding becomes 0 <= 0 under the substitution. The
+    // recipe language requires positive weights, so use opposite source
+    // equality rows rather than a zero-weight combine or a new axiom.
+    if(!Object.keys(desired).length){
+     const a=rw.findIndex(r=>exact.has(canon(scale(r.lin,-1))))
+     if(a<0){diagnose?.({reason:'missing-zero-row'});return undefined}
+     const b=exact.get(canon(scale(rw[a]!.lin,-1)))!,left=input(a),right=input(b)
+     steps.push({kind:'combine',a:left,b:right,ma:1,mb:1});indices.push(steps.length-1);continue
+    }
     const base=normalized.get(canon(row.lin));if(base===undefined){diagnose?.({reason:'missing-row',row:row.lin,desired});return undefined}
     let at=input(base),value=rw[base]!.lin
     for(const [id,e]of aliases){

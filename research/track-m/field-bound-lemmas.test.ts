@@ -1,8 +1,15 @@
 import {expect,test} from 'bun:test'
-import {type C,type Machine,all,any,atMost,get,ite,less,n,not,plus,same,times,x} from '../../core/machine.ts'
-import {canon,check,checkMC,mcGoal,type CountCert,type Path} from '../../kernel/kernel.ts'
+import {type C,type Machine,all,any,atMost,get,ite,less,minus,n,not,plus,same,times,x} from '../../core/machine.ts'
+import {canon,check,checkMC,linear,mcGoal,type CountCert,type Path} from '../../kernel/kernel.ts'
 import {clock} from '../../kernel/prove.ts'
-import {fieldBoundLemmas,fieldBounds} from './field-bound-lemmas.ts'
+import {countBindingsAt,fieldBoundLemmas,fieldBounds} from './field-bound-lemmas.ts'
+
+test('numeric count bridges include nested path cells but omit unrelated reads',()=>{
+ const a=get('Left',n(0)),b=get('Right',n(0)),lin=linear(minus(a,b),new Map())!,root:Path=new Map([[canon(lin),{lin,holds:true}]])
+ const reads:CountCert['reads']=[['a','Left',n(0)],['b','Right',n(0)],['unused','Right',n(1)],['other','Other',n(0)]]
+ expect(countBindingsAt(reads,root)).toEqual([same(x('a'),a),same(x('b'),b)])
+ expect(countBindingsAt(reads,new Map())).toEqual([])
+})
 
 test('strict successor member bounds suggest checked field ceilings without protocol names',()=>{
  const m:Machine={name:'ceilings',params:[],inputs:['source'],inputMaps:['Selected'],state:{},maps:{Clock:0,Epoch:0},step:{flags:{eligible:{op:'all',key:'v',c:less(get('Clock',x('v')),plus(get('Clock',x('source')),n(1)))}}}}
