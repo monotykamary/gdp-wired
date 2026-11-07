@@ -981,3 +981,39 @@ The original strict Paxos harness passes **3/3** on the merged tree
 all three jobs ran alone on their VMs with no co-tenants. These results protect
 Track P's target on this tree. The paired IC3Syn 29×3 comparison against 699b5160
 has not yet run and remains a merge gate, along with the unfinished MLDR gates.
+
+### Step 1b: natural-subtraction cases and the shorter partition basis
+
+Two clamping-threshold proposals now give an ordinary checked arithmetic tree
+for the overlap contradiction. The new helper is research-only and opt-in, with
+at most two splits and the unchanged 400-ms arithmetic recovery allowance.
+The initial tiny fixture omitted the original guard expression, leaving its
+path-only term columns uninterpreted; it was corrected to include that source
+guard and explicit natural-number premises. The missing-union negative still
+fails, as required. No term definition or arithmetic fact was trusted.
+
+The full inventory exposed two redundant four-term identities taking the slots
+needed by `cfgSize(a) = xm(a,i) + xn(a,i)`. Shorter three-term identities now take
+precedence within the same sixteen algebraic slots. An adversarial regression
+checks this against longer true identities and unrelated candidate noise.
+
+`natural-cases-v3` checks all three logical reconfiguration row classes in one
+ordering, then runs out of the goal allowance while covering the opposite
+ordering. Its complete source goal is still not proved. Deferring duplicate
+row-tree checks to the composing field proof preserves the final kernel check
+and a negative regression rejects an unchecked deferred proposal. The v4 full
+results remain unknown: reconfiguration 5,106 counted ms / 45,368 wall ms;
+leader 5,000 counted ms / 39,489 wall ms. Earlier v2/v3 receipts independently
+check the leader's equal and different/equal row classes. These are not timing
+gate successes.
+
+`active-rows-v1` is explicitly assumption-scoped. Its last reconfiguration row
+checks at 1,963 counted ms; the leader's last row is still unknown. A portable
+three-hypothesis Boolean frame core was captured for the latter; the next
+hypothesis is a missing witness-related source premise in the reduced core.
+A bulky Boolean dump exceeded the log tail in v2, so v3/v4 disable only that dump
+and retain complete bounded verdicts.
+
+`natural-checks-v1`: **229 Track M tests / 4,464 assertions** and **67 Track P
+tests / 1,071 assertions** pass. TypeScript and type-aware lint report zero
+warnings/errors across 1,016 files. Step 1 and the paired 29×3 gate remain open.

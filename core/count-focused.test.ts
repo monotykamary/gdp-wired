@@ -134,16 +134,19 @@ test('request partition identities outrank misleading triples within sixteen alg
   const cell=x('cell'),a=same(get('Members',cell),n(1)),b=same(get('Incoming',cell),n(1)),base={j:'row',key:'cell',below:n(4)}
   const m:Machine={name:'partition priority',params:[],inputs:[],inputMaps:['Incoming','Quorum'],state:{},maps:{Members:0},step:{}}
   const bodies:Record<string,E>={X:ite(a,n(1),n(0)),S:get('Incoming',cell),Q:get('Quorum',cell),OutsideX:ite(all(a,not(b)),n(1),n(0)),Both:ite(all(a,b),n(1),n(0)),OutsideS:ite(all(b,not(a)),n(1),n(0))}
+  for(let i=0;i<2;i++)bodies[`Alias${i}`]=bodies.X!
   for(let i=0;i<8;i++)bodies[`Post${i}#`]=n(1)
   for(let i=0;i<20;i++)bodies[`Bad${i}`]=bodies.OutsideX!
   const decls:CountDecl[]=Object.entries(bodies).map(([map,body])=>({...base,map,body}))
   const reads:CountCert['reads']=decls.map(d=>[d.map,d.map,n(0)]),make=(wit:string,terms:[number,string][])=>({wit,below:n(4),unit:0,terms})
   const unions=Array.from({length:8},(_,i)=>make(`union${i}`,[[1,`Post${i}#`],[1,'Q'],[-1,'OutsideX'],[-1,'Both'],[-1,'OutsideS']]))
   const falseTriples=Array.from({length:20},(_,i)=>make(`wrong${i}`,[[1,'S'],[-1,`Bad${i}`],[-1,'Both']]))
-  const identities=[make('S+',[[1,'S'],[-1,'OutsideS'],[-1,'Both']]),make('S-',[[ -1,'S'],[1,'OutsideS'],[1,'Both']]),make('X+',[[1,'X'],[-1,'OutsideX'],[-1,'Both']]),make('X-',[[-1,'X'],[1,'OutsideX'],[1,'Both']])]
-  const selected=focusCountCert(m,decls,{reads,insts:[...unions,...falseTriples,...identities]},{structural:false,algebraic:true})
+  const identities=[make('S+',[[1,'S'],[-1,'OutsideS'],[-1,'Both']]),make('S-',[[ -1,'S'],[1,'OutsideS'],[1,'Both']]),make('X+',[[1,'X'],[-1,'OutsideX'],[-1,'Both']]),make('X-',[[-1,'X'],[1,'OutsideX'],[1,'Both']]),...['Alias0','Alias1'].flatMap(id=>[make(`${id}+`,[[1,id],[-1,'OutsideX'],[-1,'Both']]),make(`${id}-`,[[-1,id],[1,'OutsideX'],[1,'Both']])])]
+  const longer=[make('long+',[[1,'X'],[-1,'S'],[-1,'OutsideX'],[1,'OutsideS']]),make('long-',[[-1,'X'],[1,'S'],[1,'OutsideX'],[-1,'OutsideS']])]
+  const selected=focusCountCert(m,decls,{reads,insts:[...unions,...falseTriples,...longer,...identities]},{structural:false,algebraic:true})
   expect(selected.insts).toHaveLength(16)
   for(const identity of identities)expect(selected.insts).toContainEqual(identity)
+  for(const identity of longer)expect(selected.insts).not.toContainEqual(identity)
 })
 
 test('post remainder and carried set propose a three-term coverage certificate',()=>{

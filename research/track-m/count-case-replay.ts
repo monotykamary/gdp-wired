@@ -3,11 +3,12 @@
 // checks the combined tree against the original, unspecialized goal.
 import {readFileSync} from 'node:fs'
 import {type C,type E,walkOnce,x} from '../../core/machine.ts'
-import {type Goal,type Instances,type Path,type Tree,canon,check,checkMC,countedObligations,foldPinned,mcGoal,plainOf,substC} from '../../kernel/kernel.ts'
+import {type Goal,type Instances,type Path,type Tree,canon,check,checkMC,countedObligations,foldPinned,linear,mcGoal,plainOf,substC} from '../../kernel/kernel.ts'
 import {atPoint,clock,counted,eprScope,fullRate,fullWork,grow,modelInstances,widen,withDeadline,withWall} from '../../kernel/prove.ts'
 import {modelSequence} from '../../kernel/model-sequence.ts'
 import {mldrHandSet} from '../protocols/ic3syn/mldr2-probe.ts'
 import {REFUTED} from '../../kernel/cdcl.ts'
+import {sub} from '../../core/solver.ts'
 import {patternsOf} from '../../kernel/epr.ts'
 import {certFor} from '../../core/counts.ts'
 import {appendCountCert} from '../../core/count-cert-grow.ts'
@@ -49,7 +50,8 @@ mark('certificate-ready')
 if(process.env.LAB_SKIP_COVERS==='1')cert.insts=cert.insts.filter(i=>i.terms.length!==3)
 if(process.env.LAB_DESCRIBE_ONLY==='1'){
  const pool=certFor(base.goal,base.decls,true,1000)
- console.log(JSON.stringify({reads:cert.reads,selected:cert.insts,pool:pool.insts.filter(i=>i.terms.length>=3)}))
+ const ids=process.env.LAB_BODY_IDS?.split(',')
+ console.log(JSON.stringify({reads:cert.reads,selected:cert.insts,pool:pool.insts.filter(i=>i.terms.length>=3),...(ids?{bodies:countsForReads(base.decls,cert.reads)?.filter(c=>ids.includes(c.v))}:{})}))
  process.exit(0)
 }
 mark('seeding-witness-flags')
@@ -170,6 +172,17 @@ const result=withWall(start+Math.min(60000,Number(process.env.LAB_WALL_MS??10000
     const a=`${law.forall}#`,b=law.keys?.[0],actor='i',eq=(key:string)=>{const l={[key]:1,[actor]:-1},r={[actor]:1,[key]:-1};root.set(canon(l),{lin:l,holds:true});root.set(canon(r),{lin:r,holds:true})},gt=(key:string)=>{const l={'1':1,[actor]:1,[key]:-1};root.set(canon(l),{lin:l,holds:true})}
     if(row==='equal')eq(a)
     else{gt(a);if(b){if(row==='new-term')eq(b);else gt(b)}}
+    if(process.env.LAB_ACTIVE_ROW==='1'){
+     const hold=(c:C):void=>{
+      if(c.op==='and'){c.xs.forEach(hold);return}
+      if(c.op==='='){hold({op:'<=',a:c.a,b:c.b});hold({op:'<=',a:c.b,b:c.a});return}
+      if(c.op!=='<'&&c.op!=='<=')throw new Error('nonlinear diagnostic guard')
+      const a=linear(c.a,root),b=linear(c.b,root);if(!a||!b)throw new Error('guard is not linearizable')
+      const lin=sub(a,b);if(c.op==='<')lin['1']=(lin['1']??0)+1
+      root.set(canon(lin),{lin,holds:true})
+     }
+     hold(guard)
+    }
    }
    const found=guardCases(m,base.decls,rooted?goal:pinned,cert,guard,end,trace,rooted?0:conditions.length,root)
    if(found){tree=rooted?found:widen(pinned,goal,found,{},new Map(),path);proofGoal=goal}
@@ -290,4 +303,4 @@ const result=withWall(start+Math.min(60000,Number(process.env.LAB_WALL_MS??10000
  return {complete:!!tree,branches:trees.map((t,i)=>!!t&&check(goal,t,branchRoots[i]!)),groundChecked:!!tree&&check(goal,tree),checked:!!tree&&checkMC(base.goal.hyps,base.decls,{...cert,tree})}
  })
 },true))
-console.log(JSON.stringify({file,law:law.name,diagnosticAssumptions:[...activation?['existing leader activation; no unrestricted proof unless rebase checks']:[],...process.env.LAB_ROW_CASE?['row-case assumptions; not an unrestricted proof']:[]],...result,counted:Math.round((fullWork()-w)/fullRate),wall:Math.round(performance.now()-start),insts:cert.insts.length,trace,...(cores.length?{cores}:{})}))
+console.log(JSON.stringify({file,law:law.name,diagnosticAssumptions:[...activation?['existing leader activation; no unrestricted proof unless rebase checks']:[],...process.env.LAB_ROW_CASE?['row-case assumptions; not an unrestricted proof']:[],...process.env.LAB_ACTIVE_ROW?['active action guard assumed for row diagnostic']:[]],...result,counted:Math.round((fullWork()-w)/fullRate),wall:Math.round(performance.now()-start),insts:cert.insts.length,trace,...(cores.length?{cores}:{})}))

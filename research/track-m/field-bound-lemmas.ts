@@ -11,6 +11,7 @@ import {carriedCase} from './carried-case.ts'
 import {foldPath} from './fold-path.ts'
 import {booleanCore} from './boolean-core.ts'
 import {proveRowCases,rowPairs} from './row-cases.ts'
+import {proveNaturalCases} from './natural-cases.ts'
 import {activeCarried} from './action-guard.ts'
 import {atPoint,clock,grow,rowsAt,widen,withDeadline} from '../../kernel/prove.ts'
 import {modelSequence} from '../../kernel/model-sequence.ts'
@@ -174,6 +175,7 @@ export function fieldBoundLemmas(m:Machine,ds:CountDecl[],g:Goal,cert:Proposal,u
     const reduced={...numeric,hyps:q.core.map(i=>numeric.hyps[i]!)},out=grow(reduced,root,{nodes:0,until:Math.min(until,clock()+400),units:false})
     if('tree'in out)proof=widen(reduced,numeric,out.tree,{},root,root)
    }
+   if(!proof&&process.env.LAB_NAT_CASES==='1'&&!('tree'in q)&&q.stuck==='unknown')proof=proveNaturalCases(numeric,root,Math.min(until,clock()+400),trace)
    const lifted=proof&&liftCountProxies(numeric,g,proof,cert.reads,root,path,event=>trace.push({stage:'count-transport',...event}))
    if(lifted&&check(g,lifted,path))arithmetic=lifted
   }
@@ -197,7 +199,7 @@ export function fieldBoundLemmas(m:Machine,ds:CountDecl[],g:Goal,cert:Proposal,u
  let tree=arithmetic
  if(!tree&&rowPlan.length){
   trace.push({stage:'row-pairs',pairs:rowPlan})
-  tree=proveRowCases(g,path,rowPlan,until,(branch,end)=>fieldBoundLemmas(m,ds,g,cert,end,trace,onModel,branch,{splitRows:false,deferCheck:true}),e=>trace.push(e))
+  tree=proveRowCases(g,path,rowPlan,until,(branch,end)=>fieldBoundLemmas(m,ds,g,cert,end,trace,onModel,branch,{splitRows:false,deferCheck:true}),e=>trace.push(e),{deferToCaller:true})
  }
  if(!tree){const proof=solve(part,Math.max(150,until-clock()-200),true);tree=proof&&widen(part,g,proof,{},root,path)}
  trace.push({stage:'field-bound-conclusion',facts:lemmas.length,ms:Math.round(clock()-start),proved:!!tree})

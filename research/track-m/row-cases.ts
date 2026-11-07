@@ -14,7 +14,7 @@ export function rowPairs(m:Machine,cert:Pick<CountCert,'reads'>):RowPair[]{
  if(read)walkOnce(read[2],(o:any)=>{if(o.op==='var'&&!inputs.has(o.name)&&!m.params.includes(o.name))names.add(o.name)})
  return [...names].slice(0,2).map(name=>[x(name),x(actor)] as const)
 }
-export function proveRowCases(g:Goal,root:Path,pairs:RowPair[],until:number,prove:(path:Path,until:number)=>Tree|undefined,trace?:(e:object)=>void):Tree|undefined{
+export function proveRowCases(g:Goal,root:Path,pairs:RowPair[],until:number,prove:(path:Path,until:number)=>Tree|undefined,trace?:(e:object)=>void,options:{deferToCaller?:boolean}={}):Tree|undefined{
  if(!pairs.length||clock()>=until)return undefined
  const cache=new Map<string,{path:Path,tree:Tree}>()
  const leaf=(path:Path,key:string):Tree|undefined=>{
@@ -24,9 +24,9 @@ export function proveRowCases(g:Goal,root:Path,pairs:RowPair[],until:number,prov
    const t=withDeadline(Math.min(until,clock()+50),()=>widen(g,g,old.tree,{},old.path,path))
    if(t&&check(g,t,path)){trace?.({stage:'row-case',key,cached:true,ms:Math.round(clock()-begun),checked:true});return t}
   }
-  const t=prove(path,Math.min(until,clock()+1500)),checked=!!t&&check(g,t,path)
-  trace?.({stage:'row-case',key,cached:false,ms:Math.round(clock()-begun),checked})
-  if(!t||!checked)return undefined
+  const t=prove(path,Math.min(until,clock()+1500)),accepted=!!t&&(options.deferToCaller||check(g,t,path))
+  trace?.({stage:'row-case',key,cached:false,ms:Math.round(clock()-begun),checked:!options.deferToCaller&&accepted,proposed:!!t,deferred:!!options.deferToCaller})
+  if(!t||!accepted)return undefined
   cache.set(key,{path:new Map(path),tree:t});return t
  }
  const split=(pair:RowPair,path:Path,yes:(p:Path)=>Tree|undefined,no:(p:Path)=>Tree|undefined):Tree|undefined=>{
@@ -46,5 +46,6 @@ export function proveRowCases(g:Goal,root:Path,pairs:RowPair[],until:number,prov
  // must cover every secondary key. The other two logical cases are shared
  // between the less-than and greater-than representations of disequality.
  const out=split(pairs[0]!,root,p=>leaf(p,'equal'),p=>pairs.length<2?leaf(p,'different'):split(pairs[1]!,p,q=>leaf(q,'different/equal'),q=>leaf(q,'different/different')))
- return out&&check(g,out,root)?out:undefined
+ // A composing caller may check this entire proposal after adding its cuts.
+ return options.deferToCaller?out:out&&check(g,out,root)?out:undefined
 }

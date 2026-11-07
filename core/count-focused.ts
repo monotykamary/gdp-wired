@@ -163,7 +163,7 @@ export function focusCountCert(m: Machine, decls: CountDecl[], full: Pick<CountC
     for(let bits=0;bits<1<<atoms.size;bits++)if(q.terms.reduce((sum,[k],i)=>sum+k*(value(ps[i]!,bits)?1:0),0)!==0)return false
     return true
   }
-  const identityPriority=(q:CountCert['insts'][number])=>(booleanIdentity(q)?100:0)+overlap(q)+(q.terms.some(([,id])=>requestSizes.has(id))?10:0)
+  const identityPriority=(q:CountCert['insts'][number])=>(booleanIdentity(q)?q.terms.length===3?200:100:0)+overlap(q)+(q.terms.some(([,id])=>requestSizes.has(id))?10:0)
   const identities=eligible.filter(q=>q.terms.length!==5).map(q=>({q,rank:identityPriority(q)})).sort((a,b)=>b.rank-a.rank).map(({q})=>q)
   const algebraic=new Set([...unions,...identities.slice(0,16-unions.length)])
   const insts=full.insts.filter(q=>{
