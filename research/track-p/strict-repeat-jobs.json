@@ -1,24 +1,24 @@
 [
  {
   "name": "paxos-r1",
-  "cmd": "bun install --frozen-lockfile >/dev/null && timeout -s KILL 60s bun research/protocols/ic3syn/run.ts --ms 60000 --only paxos_epr --skip broken; s=$?; echo STRICT_EXIT=$s; exit $s",
-  "timeout": 90,
+  "cmd": "echo SETUP_START=$(date +%s%3N); bun install --frozen-lockfile >/dev/null; setup=$?; echo SETUP_EXIT=$setup; [ \"$setup\" = 0 ] || exit \"$setup\"; echo HARNESS_START=$(date +%s%3N); timeout -s KILL 60s bun research/protocols/ic3syn/run.ts --ms 60000 --only paxos_epr --skip broken; s=$?; echo HARNESS_END=$(date +%s%3N); echo STRICT_EXIT=$s; exit $s",
+  "timeout": 150,
   "timing": true,
   "cpu": 4,
   "memory": 14336
  },
  {
   "name": "paxos-r2",
-  "cmd": "bun install --frozen-lockfile >/dev/null && timeout -s KILL 60s bun research/protocols/ic3syn/run.ts --ms 60000 --only paxos_epr --skip broken; s=$?; echo STRICT_EXIT=$s; exit $s",
-  "timeout": 90,
+  "cmd": "echo SETUP_START=$(date +%s%3N); bun install --frozen-lockfile >/dev/null; setup=$?; echo SETUP_EXIT=$setup; [ \"$setup\" = 0 ] || exit \"$setup\"; echo HARNESS_START=$(date +%s%3N); timeout -s KILL 60s bun research/protocols/ic3syn/run.ts --ms 60000 --only paxos_epr --skip broken; s=$?; echo HARNESS_END=$(date +%s%3N); echo STRICT_EXIT=$s; exit $s",
+  "timeout": 150,
   "timing": true,
   "cpu": 4,
   "memory": 14336
  },
  {
   "name": "paxos-r3",
-  "cmd": "bun install --frozen-lockfile >/dev/null && timeout -s KILL 60s bun research/protocols/ic3syn/run.ts --ms 60000 --only paxos_epr --skip broken; s=$?; echo STRICT_EXIT=$s; exit $s",
-  "timeout": 90,
+  "cmd": "echo SETUP_START=$(date +%s%3N); bun install --frozen-lockfile >/dev/null; setup=$?; echo SETUP_EXIT=$setup; [ \"$setup\" = 0 ] || exit \"$setup\"; echo HARNESS_START=$(date +%s%3N); timeout -s KILL 60s bun research/protocols/ic3syn/run.ts --ms 60000 --only paxos_epr --skip broken; s=$?; echo HARNESS_END=$(date +%s%3N); echo STRICT_EXIT=$s; exit $s",
+  "timeout": 150,
   "timing": true,
   "cpu": 4,
   "memory": 14336
