@@ -1,0 +1,3 @@
+[
+{"name":"family38","cmd":"bun install --frozen-lockfile >/dev/null && PROFILE=1 bun research/track-p/production-replay.ts research/track-p/input","timeout":180,"cpu":4,"memory":14336}
+]

@@ -1,0 +1,5 @@
+[
+{"name":"full-context","cmd":"bun install --frozen-lockfile >/dev/null && bun research/track-p/context-probe.ts research/track-p/input full 7 10 11 14 17 33 45 66","timeout":90,"cpu":2,"memory":4096},
+{"name":"law-relevance","cmd":"bun install --frozen-lockfile >/dev/null && GDP_COUNTS_RELEVANCE=1 bun research/track-p/context-probe.ts research/track-p/input relevant 7 10 11 14 17 33 45 66","timeout":90,"cpu":2,"memory":4096},
+{"name":"source-core","cmd":"bun install --frozen-lockfile >/dev/null && bun research/track-p/context-probe.ts research/track-p/input core","timeout":90,"cpu":2,"memory":4096}
+]

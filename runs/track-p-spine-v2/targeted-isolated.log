@@ -1,0 +1,76 @@
+bun test v1.4.3 (c6da4a4d3)
+
+--- stderr ---
+
+core/count-support.test.ts:
+(pass) v4 single complete root reads retain every guard across unrelated names and radices [21.08ms]
+(pass) free transition reads close whole guarded laws and their exact primitive ranges [9.52ms]
+(pass) root flag arguments retain fixed state/input coordinates without asserting aliases [2.05ms]
+(pass) root and free transition ranges precede ambient read slots [2.89ms]
+(pass) count pool keys ignore primitive and duplicate growth but retain exact reads and definitions [0.31ms]
+(pass) v4 selected single-read triples exclude stale, unselected and captured witnesses [5.89ms]
+(pass) v4 complete matches precede optional exhaustion without minting work or source slots [5.13ms]
+(pass) v4 incomplete or fixed-coordinate matches are never labelled complete [0.50ms]
+(pass) bound-only projection keeps NONALIAS satisfiable [24.41ms]
+(pass) vacuous query binder is definition-derived [0.57ms]
+(pass) selected witness joins reject stale and wrong-map sources [3.77ms]
+(pass) affine remainder preserves exact polynomial [0.60ms]
+(pass) stable selected closure rejects capture and alias [5.11ms]
+(pass) current target kind instances retain guards [3.92ms]
+(pass) current flag terms retain flag-false guards [4.20ms]
+(pass) own PRE instances retain count anchors [2.18ms]
+(pass) remaining-coordinate proposals never assert alias [39.66ms]
+(pass) generic root-linked terms retain anchors and cross the real early phase gate [11.06ms]
+(pass) full source occupancy replaces only structurally true slots; substantive slots refuse [2.85ms]
+(pass) replacement of a new source slot reuses its debit; an initial slot cannot mint capacity at cap64 [8.33ms]
+(pass) pre-existing CTI tuples do not consume the new source-proposal budget or trigger a new global refusal [5.69ms]
+(pass) selection covers both concrete root keys before redundant and keyless differences [5.85ms]
+(pass) definition-linked PRE candidates, reservation and ten/1000 limits [12.40ms]
+(pass) regenerated cold binders cannot steal a selected witness owner [3.40ms]
+(pass) present vacuous source survives an idempotent second seed [0.39ms]
+(pass) picked selected view falls back without renaming or extending a budget; captured views reject [0.79ms]
+(pass) cold range reads cannot fill count-pass slots before current selected-body reads [3.40ms]
+(pass) sparse generation counts no-op read/read pairs and exits before cap-zero/full-source work [23.25ms]
+(pass) pool enumeration has finite work even when cubic candidates never admit [65.88ms]
+(pass) affine-alias picks unconditionally select one kernel-valid representative [1.95ms]
+(pass) per-law slots cover distinct real roots without symmetric or unrelated-value backfill [13.64ms]
+(pass) v2 pattern reuse saves actual work only within the same bounded attempt [22.76ms]
+(pass) v2 no-POST pools skip only impossible narrow triples and retain one shared meter [5.19ms]
+(pass) v3 existing overlap and exact projection survive pair dominance with both root keys [20.38ms]
+(pass) v3 first coverage of ten required root keys cannot be displaced by overlap triples [3.87ms]
+(pass) v3 irrelevant, wrong-bound, wrong-key and POST lifts do not outrank required differences [26.88ms]
+(pass) v3 overlap priority retains exhausted/deadline refusal and the shared generation meter [4.22ms]
+(pass) count-pool invalidation follows only count-dependent flags, including quantified bodies and cycles [0.46ms]
+(pass) seeded upper bound starts with nonincrease and one relevant overlap, not pool fillers [26.79ms]
+(pass) selected affine remainder matching ignores unused pool reads and keeps the complete original law [1.28ms]
+(pass) keyless stored-copy bounds prioritize both retained and incoming counts [61.97ms]
+(pass) semantic aliases select one live representative across PRE/POST and reordered keys [15.02ms]
+
+core/scan-prefix.test.ts:
+(pass) syntax candidates survive systematic renaming and ignore unrelated or nonincrementing counters [10.26ms]
+(pass) multiple structural matches have stable distinct names [2.31ms]
+(pass) automatic instances check generic prefix; broken row check rejects the same certificate [394.59ms]
+
+core/relevance.test.ts:
+(pass) relevance tiers preserve source hypotheses, order and the negative conclusion [4.89ms]
+(pass) law support expands count definitions and ignores coincident binder names [1.19ms]
+(pass) small goals are unchanged; relevance cannot manufacture an assumption [2.13ms]
+
+core/carry.test.ts:
+(pass) range and frame proposals preserve source guards, bounds and renaming [26.90ms]
+(pass) scan candidates are generic, bounded, and reject changed counters and row guards [1.62ms]
+cyclic: {"kind":"machine","name":"framed snapshot control","cert":true,"usual":true,"cyclic":true,"ms":719,"usualMs":49,"route":"translated","leaves":327,"regrown":16,"splits":222,"carried":2,"uncarried":0,"cached":0}
+(pass) ordinary range/frame filtering and native closure original [3769.87ms]
+cyclic: {"kind":"machine","name":"framed storedRows control","cert":true,"usual":true,"cyclic":true,"ms":850,"usualMs":51,"route":"translated","leaves":327,"regrown":16,"splits":222,"carried":2,"uncarried":0,"cached":0}
+(pass) ordinary range/frame filtering and native closure renamed [3940.98ms]
+(pass) point-guard derives exact source coefficients, domains and capture-free tuple [9.57ms]
+(pass) point-guard refuses missing, disjunctive, resettable, projecting and quantified guards [2.81ms]
+(pass) point-guard shares unchanged proposal and generation caps [11.75ms]
+
+core/counts-preflight.test.ts:
+(pass) bounded relevance preflight lifts a proof and never promotes a subset model [53.98ms]
+
+ 56 pass
+ 0 fail
+ 967 expect() calls
+Ran 56 tests across 5 files. [8.84s]

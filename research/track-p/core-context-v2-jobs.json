@@ -1,0 +1,5 @@
+[
+{"name":"core-779","cmd":"bun install --frozen-lockfile >/dev/null && bun research/track-p/context-probe.ts research/track-p/input core","timeout":90,"cpu":2,"memory":4096},
+{"name":"c11-core-control","cmd":"bun install --frozen-lockfile >/dev/null && REPLAY_MS=1500 bun research/track-p/context-probe.ts research/track-p/input core 11","timeout":30,"cpu":2,"memory":4096},
+{"name":"caller-dependencies","cmd":"bun install --frozen-lockfile >/dev/null && bun research/track-p/context-probe.ts research/track-p/input full 7","timeout":30,"cpu":2,"memory":4096}
+]

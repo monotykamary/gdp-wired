@@ -412,6 +412,26 @@ export function reservePool(goal:Goal,decls:CountDecl[],pool:ReturnType<typeof g
  }
  const full={...pool.full,reads,insts:[...pool.full.insts]},oldReads=new Map(previous.reads.map(r=>[r[0],r])),nowReads=new Map(full.reads.map(r=>[json([r[1],keyId(r[2])]),r])),oldDecls=new Map(previousDecls.map(d=>[d.map,d])),nowDecls=new Map(decls.map(d=>[d.map,d])),currentIds=new Set(ids(full)),oldIds=ids(previous),pending:CountCert['insts']=[],rebindings:unknown[]=[]
  for(const r of preserved)nowReads.set(json([r[1],keyId(r[2])]),r)
+ const renamed:{key:string,from:string,to:string}[]=[]
+ if(owner){
+  const protectedWits=new Map<string,string>(),protect=(key:string,wit:string)=>{const old=protectedWits.get(wit);if(old!==undefined&&old!==key)throw new UnsupportedCountProposal('reservation different witness owner');protectedWits.set(wit,key)}
+  for(const [key,lease]of owner.leases)protect(key,lease.wit)
+  for(const key of chosen)if(key.startsWith('i')){const at=oldIds.indexOf(key)-(previous.picks?.length??0);protect(key,requireValue(previous.insts[at],'selected owner').wit)}
+  for(const wit of protectedWits.keys())fresh.add(wit)
+  for(const name of owner.reserved)fresh.add(name)
+  let dependencies:Set<string>|undefined
+  // Regeneration may assign an old owner's spelling to a different cold entry.
+  // Rename only that independent binder, never a live owner or a referenced term.
+  for(const [at,i]of full.insts.entries()){
+   reservationOpen();const owned=protectedWits.get(i.wit)
+   if(owned===undefined)continue
+   const key='i'+instId(i,full.reads);if(owned===key)continue
+   dependencies??=sourceNames([full.reads,full.picks,full.insts.map(j=>j.below)],reservationOpen)
+   if(dependencies.has(i.wit))throw new UnsupportedCountProposal('reservation cold witness dependency')
+   let wit:string;do{reservationOpen();wit='w$'+state.next++}while(fresh.has(wit));fresh.add(wit)
+   full.insts[at]={...i,wit};renamed.push({key,from:i.wit,to:wit})
+  }
+ }
  for(const key of chosen){
   reservationOpen()
   if(!key.startsWith('i')){if(!currentIds.has(key))throw new UnsupportedCountProposal('unresolved reservation: selected pick missing');continue}
@@ -461,7 +481,7 @@ export function reservePool(goal:Goal,decls:CountDecl[],pool:ReturnType<typeof g
   owner.leases=leases
   for(const key of state.inserted.keys())if(!chosen.has(key))state.inserted.delete(key)
  }
- return {full:next,record:{cap,chosen:chosen.size,baseSize:full.insts.length,finalSize:insts.length,preservedReads:preserved,rebindings,inserted:inserted.map(i=>({key:'i'+instId(i,full.reads),instance:i})),evicted:evicted.map(i=>({key:'i'+instId(i,full.reads),instance:i})),reified:inserted.length,unselectedTailOnly:true}}
+ return {full:next,record:{cap,chosen:chosen.size,renamed,baseSize:full.insts.length,finalSize:insts.length,preservedReads:preserved,rebindings,inserted:inserted.map(i=>({key:'i'+instId(i,full.reads),instance:i})),evicted:evicted.map(i=>({key:'i'+instId(i,full.reads),instance:i})),reified:inserted.length,unselectedTailOnly:true}}
 }
 
 const canonJSON=(v:unknown):string=>JSON.stringify(v,(_k,x)=>x&&typeof x==='object'&&!Array.isArray(x)?Object.fromEntries(Object.entries(x).sort(([a],[b])=>a.localeCompare(b))):x)

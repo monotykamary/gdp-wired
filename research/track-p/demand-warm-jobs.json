@@ -1,0 +1,4 @@
+[
+{"name":"warm-needed","cmd":"bun install --frozen-lockfile >/dev/null && WARM_SUPPORT=1 bun research/track-p/demand-admission.ts research/track-p/input needed used","timeout":120,"cpu":2,"memory":4096},
+{"name":"warm-full","cmd":"bun install --frozen-lockfile >/dev/null && WARM_SUPPORT=1 bun research/track-p/demand-admission.ts research/track-p/input full used","timeout":120,"cpu":2,"memory":4096}
+]

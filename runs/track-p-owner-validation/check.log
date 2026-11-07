@@ -1,0 +1,5 @@
+Found 0 warnings and 0 errors.
+Finished in 105.7s on 936 files with 100 rules using 2 threads.
+
+--- stderr ---
+$ tsc -p . && oxlint --type-aware --deny-warnings --disable-nested-config

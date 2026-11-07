@@ -2,8 +2,8 @@
 import {readFileSync,writeFileSync} from 'node:fs'
 import {createHash} from 'node:crypto'
 type Q={kind:string,name:string,hyps:number,ms:number,work:number,outcome:string,why?:string}
-const root='runs/track-p-fast-v1',text=(path:string)=>readFileSync(path,'utf8')
-const ledger=text(root+'/dump/queries.jsonl'),qs=ledger.trim().split('\n').map(l=>JSON.parse(l) as Q),log=text(root+'/capture.log')
+const root=process.argv[2]??'runs/track-p-fast-v1',logFile=process.argv[3]??'capture.log',text=(path:string)=>readFileSync(path,'utf8')
+const ledger=text(root+'/dump/queries.jsonl'),qs=ledger.trim().split('\n').map(l=>JSON.parse(l) as Q),log=text(root+'/'+logFile)
 const result=JSON.parse(log.split('\n').find(l=>l.startsWith('{"id":"paxos_epr"'))!) as {search:{ms:number}}
 const aggregate=(rows:Q[])=>({queries:rows.length,wallMs:rows.reduce((n,q)=>n+q.ms,0),work:rows.reduce((n,q)=>n+q.work,0)})
 const attempts=[...log.matchAll(/^counts: try (.+?) \| ls (\d+) pass (\d+) ms ([\d.]+) took ([\d.]+) wall ([\d.]+)(.*?) -> (.+)$/gm)].map(m=>({name:m[1]!,laws:+m[2]!,pass:+m[3]!,budget:+m[4]!,countedMs:+m[5]!,wallMs:+m[6]!,phases:m[7]!,outcome:m[8]!}))

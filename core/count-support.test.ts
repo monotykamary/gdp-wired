@@ -5,7 +5,7 @@ import {type CountDecl, type CountCert, type Goal, assumed, check, checkMC, mcGo
 import {grow, clock, counted, fullRate, withWall, withDeadline} from '../kernel/prove.ts'
 import {modelSequence} from '../kernel/model-sequence.ts'
 import {linOfE, canon} from './solver.ts'
-import {countPoolKey, rootFlagMatches, keyId, countedInstanceSources, completeReadMatches, projectBoundCoordinate, genuinelyKeyless, vacuousCountBinder, seedVacuousCounts, sparseReadInstances, matchAffineRemainder, stableState, stableSelected, bareRangeMap, targetKindMatches, seededBoundMaps, targetFlagMatches, ownPREMatches, remainingCoordinateProposals, grammarPool, reservePool, ids, polaritySelection, prepareSupport, sourceBoundMaps, selectedCertificate, chosenView, candidateWork, instId, smallSelection, UnsupportedCountProposal} from './count-support.ts'
+import {countPoolKey, rootFlagMatches, keyId, countedInstanceSources, completeReadMatches, projectBoundCoordinate, genuinelyKeyless, vacuousCountBinder, seedVacuousCounts, sparseReadInstances, matchAffineRemainder, stableState, stableSelected, bareRangeMap, targetKindMatches, seededBoundMaps, targetFlagMatches, ownPREMatches, remainingCoordinateProposals, grammarPool, reservationState, reservePool, ids, polaritySelection, prepareSupport, sourceBoundMaps, selectedCertificate, chosenView, candidateWork, instId, smallSelection, UnsupportedCountProposal} from './count-support.ts'
 
 test('v4 single complete root reads retain every guard across unrelated names and radices',()=>{
  for(const base of [17,83])for(const prefix of ['cedar_','other_']){
@@ -427,6 +427,18 @@ test('definition-linked PRE candidates, reservation and ten/1000 limits', () => 
  expect(()=>reservePool(g,ds.map(d=>d.map==='missing'?{...d,body:k(0)}:d),truncated,previous,ds,chosen,{next:1000,inserted:new Map()},1000)).toThrow()
  const large:Goal={name:'large pool',hyps:Array.from({length:55},(_,i)=>same(cell('target',k(i)),k(0)))}
  expect(grammarPool(large,ds,1000).full.insts.length).toBe(1000)
+})
+
+test('regenerated cold binders cannot steal a selected witness owner',()=>{
+ const z:E={op:'const',value:0},one:E={op:'const',value:1},five:E={op:'const',value:5},g:Goal={name:'owned pool',hyps:[same(z,z)]},ds:CountDecl[]=[{map:'count',j:'j',key:'k',below:five,body:get('cells',x('k'))}]
+ const reads:CountCert['reads']=[['a','count',z],['b','count',one]],selected:CountCert['insts'][number]={wit:'leased',below:five,terms:[[1,'a']],unit:0},cold:CountCert['insts'][number]={wit:'leased',below:five,terms:[[1,'b']],unit:0},previous={reads:[reads[0]!],insts:[selected],picks:[]},chosen=new Set(ids(previous)),base=grammarPool(g,ds),pool={...base,full:{...base.full,reads,insts:[cold],wits:['leased'],picks:[]}}
+ const state=reservationState(g,[g,ds],1000),r=reservePool(g,ds,pool,previous,ds,chosen,state)
+ expect(r.record.renamed).toHaveLength(1);expect(r.full.insts.find(i=>i.terms[0]?.[1]==='a')?.wit).toBe('leased');expect(r.full.insts.find(i=>i.terms[0]?.[1]==='b')?.wit).not.toBe('leased');expect(pool.full.insts[0]!.wit).toBe('leased');expect(mcGoal(g.hyps,ds,r.full)).toBeDefined()
+ const dependent={...pool,full:{...pool.full,picks:[['b',[x('leased')]]] as [string,E[]][]}}
+ expect(()=>reservePool(g,ds,dependent,previous,ds,chosen,reservationState(g,[g,ds],1000))).toThrow('cold witness dependency')
+ const duplicate={...previous,reads,insts:[selected,cold]}
+ expect(()=>reservePool(g,ds,pool,duplicate,ds,new Set(ids(duplicate)),reservationState(g,[g,ds],1000))).toThrow(UnsupportedCountProposal)
+ expect(()=>reservePool(g,ds,pool,previous,ds,chosen,reservationState(g,[g,ds,x('leased')],1000))).toThrow('owned witness capture/source')
 })
 
 test('present vacuous source survives an idempotent second seed',()=>{

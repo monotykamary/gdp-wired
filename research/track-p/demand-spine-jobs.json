@@ -1,0 +1,3 @@
+[
+{"name":"spine-needed","cmd":"bun install --frozen-lockfile >/dev/null && DEFINITION_SPINE=1 bun research/track-p/demand-admission.ts research/track-p/input needed used","timeout":120,"cpu":2,"memory":4096}
+]
