@@ -2,7 +2,7 @@
 
 Base: `40693c7a`; branch: `claude/track-paxos`.
 
-**Status: stopped at a measured search wall; original production target NOT proven and not eligible to merge.** Final type/lint and targeted regression validation passed; the production target remains blocked by checked fast-loop evidence. No gate success is inferred from scheduler exit status.
+**Status: active follow-up; original production target NOT proven and not eligible to merge.** The initial checkpoint below is retained as history. Work continues with exported check-only certificates, full wall-time accounting, six minimal-certificate diffs, and per-phase profiling. No gate success is inferred from scheduler exit status.
 
 ## Implementation
 
@@ -82,6 +82,39 @@ Final source tree `28dca86ad30b`, `runs/track-p-final-validation/`:
 - The residual wall is now explicit: the generic search still fails on a 99-hypothesis C11 context while a source-bound 32-hypothesis certificate checks. The five other open family obligations in the complete v5 replay also prevent family admission. Hypothesis-pruning experiments did not turn those into checked production proofs.
 
 No final-run timing is used as benchmark evidence because that validation shared its large VM.
+
+## Follow-up: certificates and 89.328-second wall-time accounting
+
+Both requested certificates are exported to `runs/track-p-certs/{c9,c11}/{goal.json,proof.json}` in the C14 pack format. Fresh boat check-only replay returned true for both, with `searchWork: 0`, no nonzero search costs, and witness-removal controls rejected. C9 has 17 encoded hypotheses; C11 has 32. Hashes and source bindings are in that directory.
+
+The original `DUMP_MIN=0` ledger contains **713 root queries**. `research/query/dump.ts` records wall milliseconds, and the root hooks suppress nested logging; these totals are disjoint. Exact accounting source: `runs/track-p-fast-v1/timing-accounting.json` (ledger SHA256 `c2b2ba00d188f9c1698448f7b89368fbe143fe5a53859d7c06ffff86e7762c37`).
+
+| Root outcome | Queries | Total wall ms |
+|---|---:|---:|
+| proved (`tree`) | 148 | 1,379 |
+| unknown | 107 | 7,347 |
+| SAT | 458 | 47,516 |
+| all roots | 713 | 56,242 |
+| outside root queries | — | 33,086 |
+
+549 model queries consumed 54,862ms; 164 grow queries consumed 1,380ms. Thus the six open STEPs' failed proof attempts are **not the entire overshoot**: SAT/model search and time outside the root queries dominate. The 187 traced per-law attempts total 73,060ms, comprising 56,242ms in root queries and 16,818ms between/around their queries. Another 16,268ms lies outside those traced attempts.
+
+**Generation of the 19 laws was not wall-timestamped in this capture.** The log's `candidates at 0 ms` uses the counted `clock()`, not wall time, and cannot support a zero-generation-time claim. The 16,268ms outside attempts includes generation, early small-state work and other admission/control overhead; it cannot honestly be assigned to generation alone. A generation-only replay will measure these phases explicitly without rerunning full production.
+
+| Rank | Ledger index (zero based) | Kind / recorded name | Hyps | Outcome | Wall ms |
+|---:|---:|---|---:|---|---:|
+| 1 | 459 | model / counted | 122 | unknown | 2,068 |
+| 2 | 362 | model / counted | 318 | SAT | 1,967 |
+| 3 | 157 | model / counted | 289 | SAT | 1,728 |
+| 4 | 453 | model / counted | 279 | SAT | 1,727 |
+| 5 | 474 | model / counted | 223 | SAT | 1,357 |
+| 6 | 329 | model / counted | 219 | SAT | 1,258 |
+| 7 | 419 | model / counted | 252 | SAT | 1,244 |
+| 8 | 471 | model / counted | 195 | SAT | 1,157 |
+| 9 | 122 | model / counted | 152 | SAT | 1,138 |
+| 10 | 340 | model / counted | 238 | SAT | 997 |
+
+The dump records these goals as `counted`; it does not preserve their owning law name. The ledger indices above identify them exactly. No invented law attribution or retrospective generation timestamp is used.
 
 ## Gates and disposition
 

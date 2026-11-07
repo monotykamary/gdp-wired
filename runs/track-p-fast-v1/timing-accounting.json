@@ -1,0 +1,152 @@
+{
+  "runWallMs": 89328,
+  "queryLedgerSHA256": "c2b2ba00d188f9c1698448f7b89368fbe143fe5a53859d7c06ffff86e7762c37",
+  "rootQueries": 713,
+  "queryWallMs": 56242,
+  "byOutcome": {
+    "tree": {
+      "queries": 148,
+      "wallMs": 1379,
+      "work": 770833
+    },
+    "unknown": {
+      "queries": 107,
+      "wallMs": 7347,
+      "work": 21109285
+    },
+    "sat": {
+      "queries": 458,
+      "wallMs": 47516,
+      "work": 105742239
+    }
+  },
+  "byKind": {
+    "model": {
+      "queries": 549,
+      "wallMs": 54862,
+      "work": 126851524
+    },
+    "grow": {
+      "queries": 164,
+      "wallMs": 1380,
+      "work": 770833
+    }
+  },
+  "outsideQueriesMs": 33086,
+  "traceAttempts": 187,
+  "tracedAttemptWallMs": 73060,
+  "outsideTracedAttemptsMs": 16268,
+  "insideAttemptsOutsideQueriesMs": 16818,
+  "generationWallMs": null,
+  "generationObservation": "Not wall-timestamped in this retained run. candidates at 0 ms uses counted clock(), not performance.now(); do not infer zero wall time.",
+  "top10": [
+    {
+      "index": 459,
+      "kind": "model",
+      "name": "counted",
+      "hyps": 122,
+      "ms": 2068,
+      "work": 3253259,
+      "outcome": "unknown",
+      "why": "time"
+    },
+    {
+      "index": 362,
+      "kind": "model",
+      "name": "counted",
+      "hyps": 318,
+      "ms": 1967,
+      "work": 2246506,
+      "outcome": "sat",
+      "why": "a model"
+    },
+    {
+      "index": 157,
+      "kind": "model",
+      "name": "counted",
+      "hyps": 289,
+      "ms": 1728,
+      "work": 2570355,
+      "outcome": "sat",
+      "why": "a model"
+    },
+    {
+      "index": 453,
+      "kind": "model",
+      "name": "counted",
+      "hyps": 279,
+      "ms": 1727,
+      "work": 2517568,
+      "outcome": "sat",
+      "why": "a model"
+    },
+    {
+      "index": 474,
+      "kind": "model",
+      "name": "counted",
+      "hyps": 223,
+      "ms": 1357,
+      "work": 495402,
+      "outcome": "sat",
+      "why": "a model"
+    },
+    {
+      "index": 329,
+      "kind": "model",
+      "name": "counted",
+      "hyps": 219,
+      "ms": 1258,
+      "work": 2814135,
+      "outcome": "sat",
+      "why": "a model"
+    },
+    {
+      "index": 419,
+      "kind": "model",
+      "name": "counted",
+      "hyps": 252,
+      "ms": 1244,
+      "work": 10626271,
+      "outcome": "sat",
+      "why": "a model"
+    },
+    {
+      "index": 471,
+      "kind": "model",
+      "name": "counted",
+      "hyps": 195,
+      "ms": 1157,
+      "work": 2429859,
+      "outcome": "sat",
+      "why": "a model"
+    },
+    {
+      "index": 122,
+      "kind": "model",
+      "name": "counted",
+      "hyps": 152,
+      "ms": 1138,
+      "work": 2976208,
+      "outcome": "sat",
+      "why": "a model"
+    },
+    {
+      "index": 340,
+      "kind": "model",
+      "name": "counted",
+      "hyps": 238,
+      "ms": 997,
+      "work": 2369280,
+      "outcome": "sat",
+      "why": "a model"
+    }
+  ],
+  "openStepQueries": {
+    "7": [],
+    "10": [],
+    "11": [],
+    "17": [],
+    "33": [],
+    "66": []
+  }
+}
