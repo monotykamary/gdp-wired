@@ -955,3 +955,29 @@ Coordinator update: checkpoint this work, then rebase onto Track P **699b5160**,
 keeping both lanes' changes. After the rebase, repeat static checks, focused tests
 and this step-1 replay; future merge gates also require paxos_epr 3/3 and paired
 IC3Syn 29×3 against **699b5160**, not main. Those post-rebase gates are pending.
+
+### Track P integration checkpoint (2026-11-08)
+
+The pre-rebase checkpoint was `a8d69064`; the replayed commit is `de9dbdd9`.
+`claude/track-mldr` now descends from **699b5160**. Conflicts were resolved by
+retaining both lanes: Track P's support/carry/relevance modules are byte-for-byte
+unchanged from the base, its supported preflight/direct proofs and goal-local
+helper contexts remain, and its deadline checks also bound Track M's additional
+partition/union proposals and packed-key witness scans. Both lanes' test lists
+and reports are retained.
+
+`rebase-check-v1` passes TypeScript and type-aware lint (zero warnings/errors,
+1,014 files), **226 Track M tests / 4,452 assertions** and **67 Track P tests /
+1,071 assertions**. `rebase-request-v1` repeats the same branch proof status and
+counted work as the pre-rebase baseline: reconfiguration **5,028 counted ms**,
+leader **5,009 counted ms**, neither source goal proved. Their diagnostic wall
+times were 25,755 and 29,323 ms; this wall reduction is not a closed proof gap.
+The leader's equal-row class still checks in 417 counted ms and the next class
+still exhausts its 1,502-ms slice. No step-one completion is claimed.
+
+The original strict Paxos harness passes **3/3** on the merged tree
+(`rebase-paxos-v1/paxos-r{1,2,3}.log`): all return `search.verdict = proven` and
+`STRICT_EXIT=0`. Measured harness wall times are **26.690 s, 23.451 s, 29.947 s**;
+all three jobs ran alone on their VMs with no co-tenants. These results protect
+Track P's target on this tree. The paired IC3Syn 29×3 comparison against 699b5160
+has not yet run and remains a merge gate, along with the unfinished MLDR gates.
