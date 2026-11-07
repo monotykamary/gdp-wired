@@ -1,0 +1,7 @@
+[infer join engine] {"wall":0,"eUntil":14129}
+[infer join small instance] {"states":576,"bfs":263,"params":4,"symmetric":"","ms":2018,"took":2018}
+[infer join pool] {"made":42,"left":42,"states":86,"ms":3858,"real":10605}
+BROKEN_EXIT=137
+
+--- stderr ---
+bash: line 1: 161471 Killed                  GDP_INFER_TRACE=2 timeout -s KILL 60 bun research/protocols/ic3syn/run.ts --ms 60000 --only 'paxos_epr' --skip 'search' 2> /tmp/err.log

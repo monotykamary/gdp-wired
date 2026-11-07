@@ -1,0 +1,2 @@
+{"id":"two_phase_commit","ic3syn":"i4-two-phase-commit","broken":{"bug":"go1 without every yes vote","verdict":"refuted","goal":"commit and abort agree @step","stuck":"sat","run":6,"ms":19,"work":0,"full":0}}
+BROKEN_EXIT=0

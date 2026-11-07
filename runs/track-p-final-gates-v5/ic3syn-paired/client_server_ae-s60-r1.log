@@ -1,0 +1,20 @@
+PAIR begin side=cand id=client_server_ae run=1
+{"id":"client_server_ae","ic3syn":"pyv-client-server-ae","search":{"verdict":"proven","found":["every x, y with x < 64 ∧ y < 64: never ResponseSent[64·y + x] is 0 and 1 <= ResponseReceived[64·y + x]","every x, y with x < 64 ∧ y < 64: never 1 <= ResponseSent[64·y + x] and started is 0","every x, y with x < 64 ∧ y < 64: never 1 <= ResponseReceived[64·y + x] and started is 0","every x, y with x <= 63 ∧ y < 64: never 1 <= RequestSent[64·y + x] and started is 0"],"ms":25426,"work":1017296,"full":595146}}
+[infer join engine] {"wall":0,"eUntil":55089}
+[infer join small instance] {"states":1912,"bfs":1912,"params":1,"symmetric":"ResponseSent$w:1,ResponseSent$w:0","ms":956,"took":956}
+[infer join pool] {"made":4,"left":4,"states":300,"ms":168,"real":4808}
+[infer join enumerated] {"views":7,"cubes":4,"ms":2444}
+[infer join enumerated] {"round":0,"cubes":4,"real":0,"unsure":0,"caller":0,"diagrams":0,"ms":3672}
+[infer join set] {"cubes":4,"exists":0,"proven":1,"ms":909,"at":""}
+[infer join end] {"rounds":0,"set":0,"why":"inductive","cone":4,"ms":9123,"real":11432,"v":4581,"now":24994,"full":595146,"epr":25526,"erows":554679,"etries":86921,"tries":16104,"rows":1539156,"evals":27961785,"work":873378}
+PAIR end side=cand exit=0
+PAIR begin side=base id=client_server_ae run=1
+{"id":"client_server_ae","ic3syn":"pyv-client-server-ae","search":{"verdict":"proven","found":["every x, y with x < 64 ∧ y < 64: never ResponseSent[64·y + x] is 0 and 1 <= ResponseReceived[64·y + x]","every x, y with x < 64 ∧ y < 64: never 1 <= ResponseSent[64·y + x] and started is 0","every x, y with x < 64 ∧ y < 64: never 1 <= ResponseReceived[64·y + x] and started is 0","every x, y with x <= 63 ∧ y < 64: never 1 <= RequestSent[64·y + x] and started is 0"],"ms":25640,"work":1017296,"full":595146}}
+[infer join engine] {"wall":0,"eUntil":55128}
+[infer join small instance] {"states":1912,"bfs":1912,"params":1,"symmetric":"ResponseSent$w:1,ResponseSent$w:0","ms":956,"took":956}
+[infer join pool] {"made":4,"left":4,"states":300,"ms":168,"real":3834}
+[infer join enumerated] {"views":7,"cubes":4,"ms":2444}
+[infer join enumerated] {"round":0,"cubes":4,"real":0,"unsure":0,"caller":0,"diagrams":0,"ms":3672}
+[infer join set] {"cubes":4,"exists":0,"proven":1,"ms":909,"at":""}
+[infer join end] {"rounds":0,"set":0,"why":"inductive","cone":4,"ms":5897,"real":7875,"v":4581,"now":24994,"full":595146,"epr":25526,"erows":554679,"etries":86921,"tries":16104,"rows":1539156,"evals":27961785,"work":873378}
+PAIR end side=base exit=0

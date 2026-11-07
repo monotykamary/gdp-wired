@@ -1,0 +1,309 @@
+{
+  "checked": "2026-11-07T21:47:56.725Z",
+  "passes": true,
+  "errors": [],
+  "ic3syn": {
+    "pairs": 87,
+    "cand": 84,
+    "base": 81,
+    "regressions": [],
+    "gains": [
+      "paxos_epr-s60-r1.log",
+      "paxos_epr-s60-r2.log",
+      "paxos_epr-s60-r3.log"
+    ],
+    "protocols": [
+      {
+        "id": "client_server_ae",
+        "runs": 3,
+        "cand": 3,
+        "base": 3
+      },
+      {
+        "id": "client_server_db_ae",
+        "runs": 3,
+        "cand": 3,
+        "base": 3
+      },
+      {
+        "id": "consensus",
+        "runs": 3,
+        "cand": 3,
+        "base": 3
+      },
+      {
+        "id": "consensus_epr",
+        "runs": 3,
+        "cand": 3,
+        "base": 3
+      },
+      {
+        "id": "consensus_forall",
+        "runs": 3,
+        "cand": 3,
+        "base": 3
+      },
+      {
+        "id": "consensus_wo_decide",
+        "runs": 3,
+        "cand": 3,
+        "base": 3
+      },
+      {
+        "id": "firewall",
+        "runs": 3,
+        "cand": 3,
+        "base": 3
+      },
+      {
+        "id": "learning_switch",
+        "runs": 3,
+        "cand": 3,
+        "base": 3
+      },
+      {
+        "id": "learning_switch_i4",
+        "runs": 3,
+        "cand": 3,
+        "base": 3
+      },
+      {
+        "id": "lock_server",
+        "runs": 3,
+        "cand": 3,
+        "base": 3
+      },
+      {
+        "id": "lockserv",
+        "runs": 3,
+        "cand": 3,
+        "base": 3
+      },
+      {
+        "id": "lockserv_automaton",
+        "runs": 3,
+        "cand": 3,
+        "base": 3
+      },
+      {
+        "id": "majorityset_leader_election",
+        "runs": 3,
+        "cand": 3,
+        "base": 3
+      },
+      {
+        "id": "mldr",
+        "runs": 3,
+        "cand": 0,
+        "base": 0
+      },
+      {
+        "id": "naive_consensus",
+        "runs": 3,
+        "cand": 3,
+        "base": 3
+      },
+      {
+        "id": "paxos_epr",
+        "runs": 3,
+        "cand": 3,
+        "base": 0
+      },
+      {
+        "id": "quorum_leader_election",
+        "runs": 3,
+        "cand": 3,
+        "base": 3
+      },
+      {
+        "id": "sharded_kv",
+        "runs": 3,
+        "cand": 3,
+        "base": 3
+      },
+      {
+        "id": "sharded_kv_no_lost_keys",
+        "runs": 3,
+        "cand": 3,
+        "base": 3
+      },
+      {
+        "id": "simple",
+        "runs": 3,
+        "cand": 3,
+        "base": 3
+      },
+      {
+        "id": "simple_decentralized_lock",
+        "runs": 3,
+        "cand": 3,
+        "base": 3
+      },
+      {
+        "id": "simple_election",
+        "runs": 3,
+        "cand": 3,
+        "base": 3
+      },
+      {
+        "id": "simple_regular",
+        "runs": 3,
+        "cand": 3,
+        "base": 3
+      },
+      {
+        "id": "tcommit",
+        "runs": 3,
+        "cand": 3,
+        "base": 3
+      },
+      {
+        "id": "toy_consensus",
+        "runs": 3,
+        "cand": 3,
+        "base": 3
+      },
+      {
+        "id": "toy_consensus_epr",
+        "runs": 3,
+        "cand": 3,
+        "base": 3
+      },
+      {
+        "id": "toy_consensus_forall",
+        "runs": 3,
+        "cand": 3,
+        "base": 3
+      },
+      {
+        "id": "two_phase_commit",
+        "runs": 3,
+        "cand": 3,
+        "base": 3
+      },
+      {
+        "id": "twophase",
+        "runs": 3,
+        "cand": 3,
+        "base": 3
+      }
+    ]
+  },
+  "duoai": {
+    "pairs": 10,
+    "cand": 10,
+    "base": 10,
+    "regressions": [],
+    "gains": [],
+    "protocols": [
+      {
+        "id": "consensus_wo_decide",
+        "runs": 1,
+        "cand": 1,
+        "base": 1
+      },
+      {
+        "id": "decentralized_lock",
+        "runs": 1,
+        "cand": 1,
+        "base": 1
+      },
+      {
+        "id": "distributed_lock",
+        "runs": 1,
+        "cand": 1,
+        "base": 1
+      },
+      {
+        "id": "lock_server_async",
+        "runs": 1,
+        "cand": 1,
+        "base": 1
+      },
+      {
+        "id": "lock_server_sync",
+        "runs": 1,
+        "cand": 1,
+        "base": 1
+      },
+      {
+        "id": "ring_leader_election",
+        "runs": 1,
+        "cand": 1,
+        "base": 1
+      },
+      {
+        "id": "sharded_key_value_store",
+        "runs": 1,
+        "cand": 1,
+        "base": 1
+      },
+      {
+        "id": "ticket_lock",
+        "runs": 1,
+        "cand": 1,
+        "base": 1
+      },
+      {
+        "id": "toy_consensus_forall",
+        "runs": 1,
+        "cand": 1,
+        "base": 1
+      },
+      {
+        "id": "two_phase_commit",
+        "runs": 1,
+        "cand": 1,
+        "base": 1
+      }
+    ]
+  },
+  "broken": {
+    "total": 29,
+    "proven": [],
+    "refuted": 11,
+    "unknown": 16,
+    "timeouts": 2
+  },
+  "shards": {
+    "directory": "runs/track-p-final-gates-v5/shard",
+    "rows": [
+      {
+        "name": "shard-1",
+        "exit": 0,
+        "seconds": 391.88
+      },
+      {
+        "name": "shard-2",
+        "exit": 0,
+        "seconds": 576.68
+      },
+      {
+        "name": "shard-3",
+        "exit": 0,
+        "seconds": 360.67
+      },
+      {
+        "name": "shard-4",
+        "exit": 0,
+        "seconds": 198.92
+      },
+      {
+        "name": "shard-5",
+        "exit": 0,
+        "seconds": 464.16
+      },
+      {
+        "name": "shard-6",
+        "exit": 0,
+        "seconds": 468.4
+      },
+      {
+        "name": "shard-7",
+        "exit": 0,
+        "seconds": 219.88
+      }
+    ],
+    "tests": 746
+  }
+}

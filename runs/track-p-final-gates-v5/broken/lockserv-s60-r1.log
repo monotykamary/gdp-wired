@@ -1,0 +1,2 @@
+{"id":"lockserv","ic3syn":"pyv-lockserv","broken":{"bug":"recv_lock without server_holds_lock","verdict":"refuted","goal":"one holder @step","stuck":"sat","run":24,"ms":253,"work":7848,"full":19202}}
+BROKEN_EXIT=0

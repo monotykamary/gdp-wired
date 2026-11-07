@@ -2,7 +2,43 @@
 
 Base: `40693c7a`; branch: `claude/track-paxos`.
 
-**Status: the original production target passes all three strict 60-second repeats; the first paired IC3Syn gate found six protocol regressions, now under fast-loop investigation.** The initial failures below are retained as history. The engine uses no injected historical law, trusted-checker change, or larger proof budget. No gate success is inferred from scheduler exit status.
+**Status: Track P is complete. All required acceptance gates pass on engine commit `699b5160938737deb7776a65858617e19a1fc13f`, against main `40693c7a`.** No historical law was injected into production, no original law or model was changed, and no trusted-checker logic or proof budget was weakened. Earlier failures and then-current hypotheses remain below as chronological history; they are not the final disposition.
+
+## Final acceptance
+
+All substantive execution was on boat. Strict target and paired protocol jobs used isolated large VMs; the original target harness was killed at 60 seconds, with dependency setup outside that limit.
+
+| Gate | Final result |
+| --- | --- |
+| `bun run check` | Passed, zero errors/warnings |
+| Original no-write Paxos harness, three strict 60-second repeats | **proven: 21,248ms / 25,728ms / 26,500ms**, 25 checked laws each |
+| Paired IC3Syn, 29 protocols x 3 | **84/87 candidate vs 81/87 main; no lost proof in any pair**; all three gains are Paxos |
+| DuoAI, ten pairs | **10/10 on both sides**, no losses |
+| 29 broken variants | **None proven**: 11 refuted, 16 unknown, 2 strict timeouts |
+| Seven isolated test shards | **746 tests passed**, all seven shards exit 0 |
+| Quick bar, all ten groups | **Wrong 0, solid losses 0**; complete coverage, no failed group launches |
+| Quick-bar additional checks | 332/332 DAG goals; one-vCPU jobs fail on neither side; **6/6 Lean certificate checks** |
+| Refreshed exact production family replay | **38/38 obligations checked; `closedFamily: true`** |
+| Refreshed exported C9 / C11 certificates | Both check with **search work 0**; removing a witness rejects each certificate |
+
+The checked fast loop also still generates all **19/19 reference formulas** from the production model; no fixture is supplied to the integrated target harness. The final generic changes separate primitive-only proposals from real count/global support, preserve the ordinary search when that support is absent, and use a goal-local source context for required helpers as well as callers. Each proof is lifted and checked in its full context; the retained family is checked as a whole.
+
+Reproduction and receipts:
+
+```
+bash research/track-p/run-gates.sh 699b5160938737deb7776a65858617e19a1fc13f /tmp/gdp-track-p-main-40693c7 runs/track-p-final-gates-v5
+supercomputer run --jobs research/track-p/final-evidence-jobs.json --out runs/track-p-final-evidence --class gate --vm-type large --data runs/track-p-data:research/track-p/input --data runs/track-p-certs:research/track-p/cert-input
+bun runs/track-p-final-gates-v5/verify.ts
+```
+
+- `runs/track-p-final-gates-v5/acceptance.json`: checked aggregate verdict and SHA256 manifest; `verify.ts` rechecks the recorded evidence without search.
+- `runs/track-p-final-gates-v5/coordinator.log`: complete ordered-gate receipt; per-job logs, placements, and summaries are alongside it.
+- `runs/track-p-final-gates-v5/quick-bar/{REPORT.md,report.json}`: retained full bar comparison. Original detailed bar data: `/Users/monotykamary/VCS/working-remote/open-source/gdp-wired/runs/bar/runs/track-p-final-699b5160/`.
+- `runs/track-p-final-evidence/`: fresh family and zero-search certificate rechecks.
+- `runs/track-p-certs/{c9,c11}/{goal.json,proof.json}`: requested standalone authentication files.
+
+Implementation remains on `claude/track-paxos`; no main-branch merge or publish action was taken. The final evidence commit changes only reporting/manifests relative to the tested engine. No owned shell tasks remain active. The implementation and all failed intermediate controls follow below.
+
 
 ## Implementation
 

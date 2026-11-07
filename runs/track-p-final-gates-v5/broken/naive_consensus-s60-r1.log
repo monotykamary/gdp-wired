@@ -1,0 +1,2 @@
+{"id":"naive_consensus","ic3syn":"ex-naive-consensus","broken":{"bug":"cast_vote twice","verdict":"unknown","why":"a law fails on the small instances","found":["every Vote cell is a value of its kind","every Voted cell is a value of its kind","every Decide cell is a value of its kind","every Decision cell is a value of its kind","one value decided"],"ms":5663,"work":0,"full":0}}
+BROKEN_EXIT=0

@@ -1,0 +1,6 @@
+PAIR begin side=base id=tcommit run=2
+{"id":"tcommit","ic3syn":"tla-tcommit","search":{"verdict":"proven","ms":288,"work":11200,"full":120024}}
+PAIR end side=base exit=0
+PAIR begin side=cand id=tcommit run=2
+{"id":"tcommit","ic3syn":"tla-tcommit","search":{"verdict":"proven","ms":407,"work":11200,"full":120024}}
+PAIR end side=cand exit=0

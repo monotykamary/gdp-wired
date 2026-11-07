@@ -1,0 +1,8 @@
+PAIR begin side=cand id=lock_server_sync run=1
+{"id":"lock_server_sync","search":{"verdict":"proven","found":["every x, y with x < 64 ∧ y < 64: Semaphore[y] + Link[64·x + y] <= 1"],"ms":3724}}
+[infer join end] {"rounds":3,"set":20,"why":"inductive","cone":1,"ms":325,"real":1581,"v":4092,"now":9271,"full":21364,"epr":0,"erows":400116,"etries":0,"tries":16198,"rows":32016,"evals":78904417,"work":46481}
+PAIR end side=cand exit=0
+PAIR begin side=base id=lock_server_sync run=1
+{"id":"lock_server_sync","search":{"verdict":"proven","found":["every x, y with x < 64 ∧ y < 64: Semaphore[y] + Link[64·x + y] <= 1"],"ms":3995}}
+[infer join end] {"rounds":3,"set":20,"why":"inductive","cone":1,"ms":343,"real":1634,"v":4092,"now":9271,"full":21364,"epr":0,"erows":400116,"etries":0,"tries":16198,"rows":32016,"evals":78904417,"work":46481}
+PAIR end side=base exit=0
