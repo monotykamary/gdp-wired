@@ -7,8 +7,9 @@ import {modelSequence} from '../../kernel/model-sequence.ts'
 import {REFUTED} from '../../kernel/cdcl.ts'
 import {liftCountProxies} from './lift-count-proxies.ts'
 import {piecesAt,walkLive} from './live-dependencies.ts'
+import {booleanCore} from './boolean-core.ts'
 type Proposal=Pick<CountCert,'reads'|'insts'>
-export function frameLemmas(g:Goal,cert:Proposal,until:number,trace:object[],root:Path=new Map(),options:{stopAfterFailed?:number}={}):Tree|undefined {
+export function frameLemmas(g:Goal,cert:Proposal,until:number,trace:object[],root:Path=new Map(),options:{stopAfterFailed?:number,boolean?:boolean}={}):Tree|undefined {
  let failed=0
  const seq=modelSequence(root),base=g.hyps.slice(0,g.hyps.length-cert.insts.length),ctx:C[]=[],path:Path=new Map(root),lemmas:{split:Record<string,number>,no:Tree}[]=[]
  const reads=new Map(cert.reads.map(r=>[r[0],r])),maps=new Set(cert.reads.map(r=>r[1])),wits=new Set(cert.insts.map(i=>i.wit))
@@ -33,7 +34,9 @@ export function frameLemmas(g:Goal,cert:Proposal,until:number,trace:object[],roo
   const q=seq(goal,Math.min(until,clock()+limit))
   if('tree'in q)return q.tree
   if(q.why!==REFUTED||!q.core?.length)return undefined
-  const reduced={...goal,hyps:q.core.map(i=>goal.hyps[i]!)},out=grow(reduced,root,{nodes:0,until:Math.min(until,clock()+200),units:false})
+  const reduced={...goal,hyps:q.core.map(i=>goal.hyps[i]!)}
+  if(options.boolean&&q.core.length<=8){const tree=booleanCore(reduced,root,wits,Math.min(until,clock()+100),trace);if(tree)return widen(reduced,goal,tree,{},root,root)}
+  const out=grow(reduced,root,{nodes:0,until:Math.min(until,clock()+200),units:false})
   return 'tree'in out?widen(reduced,goal,out.tree,{},root,root):undefined
  }
  for(const [i,instance] of cert.insts.entries()){

@@ -1,7 +1,7 @@
 // Checked field-ceiling cuts suggested by a counted predicate and a carried
 // set's per-member bound. The suggestion is untrusted; every cut is reconstructed
 // and the complete result is checked against the original counted goal.
-import {type C,type Machine,walkOnce,x} from '../../core/machine.ts'
+import {type C,type Machine,same,walkOnce,x} from '../../core/machine.ts'
 import {type CountCert,type CountDecl,type Goal,type Path,type Tree,canon,check,linear,substC,substE,truth} from '../../kernel/kernel.ts'
 import {countsForReads} from '../../core/count-facts.ts'
 import {refuteFast,sub} from '../../core/solver.ts'
@@ -12,6 +12,7 @@ import {foldPath} from './fold-path.ts'
 import {booleanCore} from './boolean-core.ts'
 import {proveRowCases,rowPairs} from './row-cases.ts'
 import {activeCarried} from './action-guard.ts'
+import {frameLemmas} from './frame-lemmas.ts'
 import {atPoint,clock,grow,rowsAt,widen,withDeadline} from '../../kernel/prove.ts'
 import {modelSequence} from '../../kernel/model-sequence.ts'
 import {REFUTED} from '../../kernel/cdcl.ts'
@@ -168,7 +169,14 @@ export function fieldBoundLemmas(m:Machine,ds:CountDecl[],g:Goal,cert:Proposal,u
  let tree=arithmetic
  if(!tree&&rowPlan.length){
   trace.push({stage:'row-pairs',pairs:rowPlan})
-  tree=proveRowCases(g,path,rowPlan,until,(branch,end)=>fieldBoundLemmas(m,ds,g,cert,end,trace,onModel,branch,{splitRows:false}),e=>trace.push(e))
+  tree=proveRowCases(g,path,rowPlan,until,(branch,end)=>{
+   if(rowPlan.every(([a,b])=>truth(same(a,b),branch)===false)){
+    const frame=frameLemmas(g,cert,Math.min(end,clock()+500),trace,branch,{stopAfterFailed:2,boolean:true})
+    trace.push({stage:'unchanged-row-frame',checked:!!frame})
+    if(frame)return frame
+   }
+   return fieldBoundLemmas(m,ds,g,cert,end,trace,onModel,branch,{splitRows:false})
+  },e=>trace.push(e))
  }
  if(!tree){const proof=solve(part,Math.max(150,until-clock()-200),true);tree=proof&&widen(part,g,proof,{},root,path)}
  trace.push({stage:'field-bound-conclusion',facts:lemmas.length,ms:Math.round(clock()-start),proved:!!tree})

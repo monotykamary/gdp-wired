@@ -885,3 +885,36 @@ lint with zero warnings/errors (952 files). `row-keys-v1/tests.log` separately
 passes all 18 directly affected tests. Section 1.5 was reread: its completed
 bounded induction and encoding checks still support I-A/P*, with no stated
 fallback triggered. **Step 1 and every downstream gate remain open.**
+
+### Step 1b: checked source facts and witness-domain cuts (2026-11-08)
+
+The residual Q2 union core now checks in isolation at **181 counted ms**, within
+its unchanged 250-ms helper bound (`boolean-replay-v6/replay.log`, guided mode).
+The score, membership-first, and key-first controls still fail. The decisive
+proposals are checked cuts for the source's own forced facts and for arithmetic
+row-update guards implied by the row equality and witness domain. These do not
+consume the eight Boolean-candidate slots. Discovery still reads the original
+syntax: pinning a nonlinear fact must not hide the membership conditions inside
+it. Every opposite branch and the final source tree are checked by the kernel.
+
+Portable captures now include the semantic expressions behind process-local
+term columns. The first replay without these definitions failed with an unknown
+term column; that invocation is not counted as a proof result. The corrected
+replay re-registers the expressions and renames the captured path consistently.
+The negative regressions continue to reject a missing subset premise and an
+unjustified row equality. A frame's new Boolean helper is opt-in; enabling it on
+the previously working inactive-frame probe was tested, failed, and reverted.
+
+`row-frames-v3/reconfig.log` checks the Q2/request-row five-term cut in the actual
+branch at 284 counted ms, including source transport. The full reconfiguration
+branch remains unknown: the current certificate has no pair equating the copied
+row's post-cardinality with the parameter set's cardinality. The existing
+request-frame proposal option is the next item to exercise. The leader's first
+two row classes still check; its final class reaches the unchanged 60-second
+wall guard, so no complete branch or law is claimed.
+
+Validation: `step1-domain-check-v1/tests.log` passes **219 tests / 4,433 assertions
+across 24 files**, and `check.log` reports zero warnings/errors (953 files).
+All probes retain the 5,000-ms counted goal cap, 250-ms Boolean helper cap, and
+60,000-ms diagnostic wall guard. **The complete given hand set and downstream
+gates remain unpassed.**
