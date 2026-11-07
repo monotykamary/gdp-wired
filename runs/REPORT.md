@@ -294,8 +294,9 @@ The separated supervisor confirmed one genuine 60-second harness timeout, alongs
 # Track M — implementation log (2026-11-07)
 
 Base: `40693c7a`, branch `claude/track-mldr`, worktree `gdp-wired-trackM`.
-All substantive computation below ran on boat. No kernel, Lean, proof-budget, or
-safety-law change has been made. This is **not** a completed target/gate claim.
+All substantive computation below ran on boat. No trusted-checker, Lean,
+proof-budget, or safety-law change has been made. The untrusted search/proposal
+code is changing. This is **not** a completed target/gate claim.
 
 ## Diagnosis
 
@@ -468,3 +469,276 @@ ac85e04a15c1e25b2c8acc2c1352f138cd3564ce2a98cc2aa63dc9a92071dc4e  research/proto
 edf4b396e249396d8c5d29507ec7e923aa43702efbb235b1b2a55e15681d3f80  runs/track-m/region-fix-v1/check.log
 d21ef126ad3cb849b2c102ebe68c3a37b6bb53a46b89688c6f7919bc3035acff  runs/track-m/region-fix-v1/given.log
 ```
+
+## Fable design — Step 1 in progress (not passed)
+
+Step 0 is commit `938ee238`. Section 1.5 now reports zero bounded CTIs and
+zero encoding mismatches for I-A/I-B, including P*. None of the stated
+fallback triggers has fired. These bounded checks are not an induction proof.
+
+The initial explicit I-A run is `runs/track-m/pstar-hand-v1/given.log`:
+`GDP_COUNTS_GIVEN=1`, 900,000 ms overall. Four laws are kept: Inv866,
+Config-cell kind, p1 and p2. Safety, Inv3915, Inv1758, Inv2973 and Inv* remain
+unknown; **the step-1 gate is not passed**. The captured queries and input
+are in `runs/track-m/pstar-goals-v1/`.
+
+Controlled standalone replays of the five final step goals at 5,000 ms counted
+all remain unknown (`runs/track-m/pstar-replay-v1/`). Their sizes are 203, 237,
+304, 334 and 243 hypotheses, respectively. The overlap goal has 293,249 AST
+nodes: the current lazy pool is too large to assume that adding more instances
+will improve its five-second result.
+
+A concrete missing proposal is universal flag instances at selected count
+witnesses. `core/count-witness-flags.ts` proposes those instances without changing
+the checker. Its isolated regression passes (one test, seven assertions,
+`runs/track-m/witness-unit-v1/witness-unit.log`). But adding all relevant flags
+to the captured safety and overlap goals does **not** close either in five
+seconds. The safety goal grows from 203 to 505 hypotheses; overlap from 334 to
+1,329. Adding the goal's own induction instance also does not close them.
+Receipts: `runs/track-m/witness-flags-v1/{safety,overlap}.log`. Broad seeding has
+therefore **not** been wired into production search.
+
+Next controlled experiments are checked action-first splits and the design's
+minimal four-comparison safety certificate plus structural read instantiation.
+They are research probes, not new trusted rules or claimed proofs.
+
+The minimal safety query now **checks in 500 ms counted**, with 98 hypotheses
+and four CInsts plus their witness flags (`runs/track-m/minimal-safety-v1/minimal.log`).
+Without witness flags it is satisfiable; broad structural read instantiation grows
+it to 1,605 hypotheses and leaves it unknown. This checks a conditional induction
+goal, **not** the whole hand set. A protocol-independent focused selector and
+cold-start count-law bridge seeding are being tested before integration.
+
+The focused suite in `count-proposals-v3` passed; its static job failed because
+vendor snapshots were omitted from that boat upload, not because of a reported
+Track M type error. The Track M `vendor/` directories turned out to be empty;
+validation now uses the populated `../gdp-wired/vendor:vendor` data path. Superseded
+queued snapshots were cancelled by exact task ID.
+
+The generic single-carried-set family reproduces the safety proof in **622 ms
+counted**, 103 hypotheses and five CInsts (family 0 in
+`runs/track-m/focused-families-v2/families.log`). The other family is satisfiable;
+Inv3915 and Inv1758 are not yet proved by this replay. A broader cold-start
+selector still timed out or returned small abstraction models. In particular,
+the row-agreement capture has Inv* instances at rows `a` and `j`, but **none at
+request row `i`**. The next refinement supplies those request-to-goal bridges
+without enumerating unrelated row tuples.
+
+Arithmetic-only quantified variables now remain numeric constants even when a
+boundary equals a row key's current model value. The new aliasing regression and
+related tests pass: 14 passed, zero failed (`runs/track-m/model-alias-v2/models.log`).
+
+`GDP_COUNTS_FOCUS=1` enables an experimental, ordinary-kernel-checked small-certificate
+recovery before growing a widened goal. It is off by default. The bounded
+60,000-ms hand-set diagnostic (`focused-hand-v1/given.log`) keeps Safety through
+this path: 539 ms profiled in recovery, after the main attempt reached its
+5,001-ms decision cap. Inv3915, Inv1758, Inv2973 and Inv* remain unknown and the
+whole call ends at its 120-second wall guard. **Step 1 is still not passed.**
+
+The populated-vendor validation (`count-proposals-v6`) passes `bun run check`
+(zero warnings/errors, 918 files) and **76 tests**, zero failures. These receipts
+precede the latest focused-bridge and carried-flag refinements.
+
+Action-local replays (`count-cases-v1/cases.log`) isolate Inv3915's remaining
+failure to BecomeLeader; the other seven branches produce trees within a total
+3,281 ms counted. Inv1758 still fails at Copy, BecomeLeader, Reconfig and
+SendConfig under this five-second combined budget. These are partial trees,
+not a checked combined proof. The next replay asks action-local models for
+ordinary field-law instances and rebases all branch proofs before checking the
+unchanged combined obligation.
+
+The newest snapshot passes TypeScript and four focused regressions in
+`typecheck-v1` (including column preservation). Starting from only structural
+bridges reduces the two field goals to **83 / 97 hypotheses** (`cold-cases-v1`).
+The row-agreement BecomeLeader branch now yields a tree, but the entire law is
+still incomplete. In `core-cases-v1/cold.log`, CDCL refutes Inv3915's BecomeLeader
+branch in **199 ms**, returning a 22-hypothesis core; reconstruction of that core
+still times out. Thus that particular branch now has enough logical instances
+for the decision procedure, but has not produced a checked proof. The next
+controlled comparison enables the existing `atPoint` proof-search mode, which
+these counted replays did not inherit. No new trusted rule or larger budget is
+used.
+
+`pointed-cases-v1/cold.log` constructs all eight Inv3915 branch trees in
+**1,486 ms counted**, and conclusion-last ordering constructs them in 2,325 ms
+(`ordered-cases-v1`). Both combined certificates were **rejected**, not proofs.
+The replay was rebasing conditional trees as though their source path were empty;
+that call now retains the source path. The revised replay checks each branch,
+the combined ground tree, and the counted certificate separately. This is a
+research-harness correction, not a checker change.
+
+The corrected run **passes**: `pointed-cases-v2/cold.log` has all eight branches,
+the combined ground tree, and `checkMC` true for Inv3915, in **1,398 ms counted**.
+The standalone path-rebasing regression passes as well (`path-test-v1`). This
+verified recovery is now integrated behind the existing opt-in focus flag; its
+real hand-set run and new positive/negative boundary tests are running. Inv1758,
+Inv2973, and Inv* still block Step 1. No Step 1 commit or later-step claim yet.
+
+The integrated `focused-hand-v2` diagnostic keeps both Safety and Inv3915. It
+still returns `proven: false`; the full attempts also exceed the desired
+five-second step budget, even where the focused recovery itself is below it.
+`typecheck-v2` passes TypeScript and seven focused tests. This is not the final
+validation snapshot.
+
+`row-cores-v1` isolates the remaining row-agreement actions. The SendConfig
+branch checks in **1,177 ms counted** (722 ms model/core query, 455 ms tree
+reconstruction). Reconfig is refuted by CDCL with an 11-hypothesis core but is
+not reconstructed within budget. Reordering that fixed core ten ways does not
+produce a checked Reconfig proof (`row-order-v2`); the copy core checks in every
+ordering. Explicit row-alias splits also do not close Reconfig (`row-alias-v1`).
+
+The count-law probes expose further missing proposals: packed count-key
+coordinates were omitting the second row from phase-law bridges; higher-arity
+count laws need copied-row instances that preserve their arithmetic witnesses;
+and the focused selector was dropping all three-/five-term partition and union
+instances. New proposals address these structurally, without adding axioms.
+Broad post-frame/structural pools still overwhelm the counted goals
+(`count-frames-v1` through `v4`, `count-algebra-v1`); several runs hit the existing
+10-second wall guard before spending the full five-second counted allowance.
+Their missing final branch trees are not proofs or invariant counterexamples.
+A grow-returned count model is now recorded in `count-models-min-v1`, but asking
+more instances there still does not close the hand set. New partition regression
+and type checks were run in `proposal-tests-v1`: all 14 tests passed, and two
+TypeScript diagnostics in the research replay result type were fixed.
+`proposal-tests-v2` then passed both TypeScript and the expanded focused tests.
+The Step 1 gate remains open.
+
+The row-agreement proof is now complete: `row-rebase-diagnostic-v1` checks all
+eight branches, the combined ground tree, and `checkMC`, at **3,739 ms counted**
+and 25,198 ms wall. This explicitly labeled diagnostic kept the 5,000-ms counted
+limit but allowed up to 60 s wall to isolate rebasing overhead; production
+budgets were not changed. Disabling redundant unit discovery only for the
+point-guided reconstruction was decisive. Branch-local instance sets keep the
+SendConfig core small; all used instances are merged before the final check.
+`saturated-cases-v1/rows.log` also checks the full row certificate at **3,716 ms
+counted**, 17,740 ms wall, using ordinary linear proof branches for added action
+bounds. Neither result is a full hand-set proof or a downstream gate pass.
+
+A separate encoding audit found the research hand-set probe still used Ov_uw.
+The design prefers the equivalent Ov_h with explicit half-cardinality premises.
+The probe now exposes a reusable research builder with Ov_h by default and
+retains Ov_uw under `LAB_OVERLAP_FORM=uw`. `canonical-capture-v1` contains the
+fresh Ov_h fixtures. `canonical-replay-v2/rows.log` checks all eight row branches
+and the combined `checkMC` certificate at **3,716 ms counted**, 17,517 ms wall.
+The two count laws still fail: Inv2973 closes no complete action branch and
+Inv* closes five of eight in that replay. Safety and protocol transitions are
+unchanged. The two encodings were also compared with actual majority-quorum
+intersections for all 1,024 pairs of subsets of a five-element universe; the
+machine and every other hand law agree up to hygienic bound-variable names.
+
+`canonical-coarse-v1` and `canonical-stutter-v1` isolate the remaining gap.
+Inv*'s UpdateTerms branch checks at 229 ms counted, but BecomeLeader first asks
+for an Inv2973 instance at a self-pair with numerical half witnesses. A fixed
+focused certificate does not initially name those new count reads. The research
+replay now has opt-in identity-preserving certificate growth (`LAB_GROW_CERT`),
+which appends new reads/witnesses rather than renumbering ones used by earlier
+branches. `count-progress-v1/grow.log` exercises it without completing the
+leader branch; no Step 1 pass is claimed.
+
+A separate opt-in frame-lemma experiment factors each candidate count-frame
+inequality into an ordinary proof-tree split, retaining its checked pointwise
+alternative. The initial full-context version timed out on every attempted
+frame (`count-progress-v1/frame.log`). A narrowed field context checks the
+UpdateTerms overlap branch at **1,072 ms counted** (`count-progress-v2/frame.log`);
+folding its exact action first lowers that to **763 ms counted**, 8,210 ms wall
+(`pinned-frames-v1/stutter.log`). Every folded proof is transported back to the
+original goal/path before checking. Plain action folding also checks Inv*'s
+first four action branches in 107–162 counted ms each (`pinned-cases-v1/all.log`).
+Neither experiment yet checks a whole count law; full replays still run out of
+budget. A single shared counted deadline now bounds implicit widening searches
+as well as explicit queries.
+
+The canonical encoding, arithmetic-witness filtering, stable certificate growth,
+Boolean partitions, self-intersection view matching, frame proof, and proof-path
+regressions pass the focused tests and TypeScript in `proposal-tests-v5`.
+`frame-tests-v1` separately checks both Boolean partition directions and the
+positive/negative frame-proof cases. New post-count subset proposals and pinned
+model-query experiments remain under validation. These are untrusted proposals,
+not new axioms or production budget changes. **Step 1 remains the gate; no
+subsequent step is passed.**
+
+### Step 1a: integrated non-count laws recovered (2026-11-08)
+
+`integrated-row-v3/row.log` checks both the start and step obligations for
+Inv1758 through `proveFocusedCounts` and `checkMC`, at **3,717 counted ms**.
+The integration discrepancies were instance ordering and point-guidance scope:
+small extracted cores need point reconstruction, but the full fallback needs
+ordinary reconstruction. The same compact proof is not obtained by turning
+point guidance on everywhere. `core/count-cases.ts` exposes this as an untrusted
+strategy option, with scope-restoration and satisfiable-goal negative tests.
+
+The real `GDP_COUNTS_GIVEN=1 GDP_COUNTS_FOCUS=1` search initially consumed the
+row's share in broad MBQI before invoking recovery (`focused-hand-v3`). Moving
+the opt-in non-count recovery ahead of that broad search fixes this integration
+problem. `focused-hand-v4/given.log` retains all seven non-count laws:
+
+| Law | counted attempt ms | result |
+| --- | ---: | --- |
+| Config kind | 5 | kept |
+| one primary per term | 532 | kept |
+| Inv866 | 181 | kept |
+| Inv3915 | 2,352 | kept |
+| Inv1758 | 3,713 | kept |
+| p1 | 861 | kept |
+| p2 | 67 | kept |
+
+The overall result is still **not proven**, naming only Inv2973 and Inv*.
+Those two attempts still exceed the desired per-goal bound and remain unknown.
+`proposal-tests-v7` passes TypeScript and **27 tests / 2,154 assertions**. The
+production strategy remains opt-in until the full hand-set and paired gates pass.
+
+`count-model-audit-v4` records a concrete BecomeLeader model with the candidate
+row aliased to the leader row, an abstract row size of one, and several distinct
+known members. Two missing proposal shapes are now explicit: a three-term
+post-remainder + carried-set / stored-row cover, and C3 lower bounds from the
+model's distinct known members. The former is retained by the focused selector;
+the latter is exercised by `model-count-picks.ts`, prioritizing pre-state rows
+and retaining symbolic member witnesses. Its test checks both a valid distinct-
+member proof and rejection when the members alias. `model-picks-v1/v2` and
+`field-bounds-v1/picks.log` do not yet close the branch.
+
+A separate research-only field-ceiling cut experiment derives candidate bounds
+from a strict-successor per-member guard and an ordered count predicate. Its
+cuts are never trusted: every accepted cut must have an ordinary reconstructed
+proof and the final tree must check against the original goal. The first two
+experiments do not prove the cuts within their query windows; further narrowing
+is in progress. No complete count-law proof is claimed.
+
+Fable's now-completed Section 1.5 confirms both hand sets on the bounded checks
+and P* against TLC. None of its stated design falsifiers fired, so the prescribed
+fallback is not indicated. **Step 1 remains the gate.** Step 0 is committed as
+`938ee238`; no Step 1 completion commit or downstream gate claim has been made.
+
+### Step 1a checkpoint and Step 1b proposal audit (2026-11-08)
+
+`step1a-checkpoint-v1` repeats the real given-hand-set run and retains the same
+seven non-count laws, including Inv1758 at **3,713 counted ms**. Both count laws
+remain unknown (16,943 and 18,477 counted attempt ms); the complete hand set is
+not proven and does not satisfy the five-second target. This checkpoints the
+passed **sub-step 1a**, not Step 1 or any downstream gate.
+
+Validation: `step1a-checkpoint-v1/check.log` passes `bun run check` with zero
+warnings/errors; `tests.log` passes **31 tests / 2,171 assertions**. The exact
+vendor gitlinks were staged from the initialized main worktree using
+`--data /Users/monotykamary/VCS/working-remote/open-source/gdp-wired/vendor:vendor`.
+The initial fresh-VM check lacked these uninitialized submodule contents
+(`proposal-tests-v8`); a remote Git fetch timed out (`check-v1`). With the pinned
+sources staged, `check-v2` exposed two unnecessary quote escapes in the research
+member picker; those are fixed, and `check-v3` plus the checkpoint check pass.
+No type-check exclusions or production budgets changed.
+
+The subsequent count audit found a concrete selection bug:
+`count-inventory-v1/inventory.log` contains **90 five-term candidates, zero
+selected**. Earlier partition identities occupied all 16 algebraic slots. The
+selector now reserves slots for union bounds and prioritizes their matching
+partitions **within the same 16-slot cap**. Its regression is included in the
+passing checkpoint tests.
+
+Research-only cut factoring verifies six directed partition cuts in **23–34
+counted ms each** and the required five-term union in **50 counted ms** under the
+explicit active-leader guard (`symbolic-overlap-v7/active.log`). These cuts are
+individually checked against their original goal and current path. The full
+count obligation still times out. The Ov_uw symbolic-witness probes remain
+separate from the default Ov_h hand set; active-only probes are explicitly
+labeled and are not accepted as unrestricted proofs. The incomplete probes
+remain outside the Step 1a implementation checkpoint.

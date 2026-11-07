@@ -25,9 +25,9 @@ const units: Unit[] = [
     gdp.test.ts datatypes.test.ts lemmas.test.ts discover.test.ts infer.test.ts cyclic.test.ts cycles.test.ts
     nonterm.test.ts data.test.ts data-synth.test.ts hypothesis.test.ts seqs.test.ts abstract.test.ts search.test.ts invoices.test.ts
     folds.test.ts trees.test.ts pairs.test.ts chart.test.ts xstate.test.ts extract.test.ts extract-standalone.test.ts extract-standalone-prototype.test.ts extract-standalone-regression.test.ts extract-py.test.ts extract-py-mro.test.ts extract-py-hasattr.test.ts extract-orm.test.ts extract-py-orm.test.ts sol-concrete.test.ts effect.test.ts
-    effect-schedule.test.ts effect-stm.test.ts effect-queue.test.ts effect-schema.test.ts calendar.test.ts count-facts.test.ts count-witness.test.ts field-laws.test.ts bitsets.test.ts sample-cache.test.ts small-laws.test.ts cube-width.test.ts exists-support.test.ts carry.test.ts scan-prefix.test.ts
+    effect-schedule.test.ts effect-stm.test.ts effect-queue.test.ts effect-schema.test.ts calendar.test.ts count-facts.test.ts count-witness.test.ts count-unions.test.ts count-witness-flags.test.ts count-focused.test.ts count-cases.test.ts count-cert-grow.test.ts field-laws.test.ts bitsets.test.ts sample-cache.test.ts small-laws.test.ts cube-width.test.ts exists-support.test.ts carry.test.ts scan-prefix.test.ts
     count-support.test.ts count-admission.test.ts counts-preflight.test.ts relevance.test.ts support-order.test.ts`),
-  ...tests('kernel', 'tamper.test.ts refusals.test.ts steplaw.test.ts sets.test.ts cdcl.test.ts tuples.test.ts epr-clock.test.ts epr-image.test.ts triggers.test.ts share.test.ts model-sequence.test.ts'),
+  ...tests('kernel', 'tamper.test.ts refusals.test.ts steplaw.test.ts sets.test.ts cdcl.test.ts tuples.test.ts epr-clock.test.ts epr-image.test.ts triggers.test.ts share.test.ts model-sequence.test.ts model-values.test.ts prove-paths.test.ts'),
   ...tests('research/query', 'goal-pack.test.ts'),
   ...tests('research/protocols/ic3syn', 'mldr.test.ts'),
   ...tests('research/audit', 'inventory.test.ts'),

@@ -1,0 +1,81 @@
+// Untrusted recovery from an oversized counted goal. Each returned certificate
+// is an ordinary counted proof, checked by the caller's existing kernel gate.
+import {type E,type Law,type Machine,walkOnce,x} from './machine.ts'
+import {type CountCert,type CountDecl,type Goal,type Instances,countedObligations,mcGoal} from '../kernel/kernel.ts'
+import {clock,grow} from '../kernel/prove.ts'
+import {countLawSeeds,countRowBridges,fieldLawBridges,focusCountCert,rowKeyNames} from './count-focused.ts'
+import {seedCountWitnessFlags} from './count-witness-flags.ts'
+import {proveCountCases} from './count-cases.ts'
+
+export type FocusedCountProof={instances:Instances,certs:Record<string,CountCert>}
+export function proveFocusedCounts(m:Machine,laws:Law[],law:Law,at:Instances,until:number,propose:(goal:Goal,decls:CountDecl[])=>Pick<CountCert,'reads'|'insts'>,trace?:(event:Record<string,unknown>)=>void):FocusedCountProof|undefined {
+  if(!m.inputMaps?.length||clock()>=until)return undefined
+  let clean:Instances={}
+  for(const [name,terms] of Object.entries(at)){
+    const l=laws.find(l=>l.name===name),arity=l?1+(l.keys?.length??0):1,keep:E[]=[]
+    for(let i=0;i<terms.length;i+=arity){
+      const tuple=terms.slice(i,i+arity);let witness=false
+      walkOnce(tuple,(o:any)=>{if(o.op==='var'&&/^w(?:\$\d+|\?)/.test(o.name))witness=true})
+      if(!witness)keep.push(...tuple)
+    }
+    clean[name]=keep
+  }
+  if(law.forall){
+    const tuple=[x(`${law.forall}#`),...(law.keys??[]).map(x)],had=clean[law.name]??[],arity=tuple.length
+    if(!Array.from({length:Math.floor(had.length/arity)},(_,i)=>JSON.stringify(had.slice(i*arity,(i+1)*arity))).includes(JSON.stringify(tuple)))clean[law.name]=[...had,...tuple]
+  }
+  const names=[law.forall,...law.keys??[]],own=names.filter((n):n is string=>!!n).map((n,i)=>x(i===0?`${n}#`:n)),scalar=rowKeyNames(m,law)
+  let targetCounts=false
+  walkOnce(law.holds,(o:any)=>{if(o.op==='get'){if(o.key.op==='var')scalar.add(o.key.name);if(m.counts?.[o.map])targetCounts=true}})
+  const rows=own.filter((_,i)=>scalar.has(names[i]!)),request=m.inputs.filter(name=>Object.values(m.counts??{}).some(d=>![d.j,d.lo,d.key].includes(name)&&JSON.stringify([d.below,d.body]).includes(`"name":${JSON.stringify(name)}`))).map(x)
+  clean=countLawSeeds(m,laws,clean,rows.length?rows:own,request,!targetCounts)
+  clean=fieldLawBridges(m,laws,clean,rows.length?rows:own,request,own.length===3?own[2]:undefined)
+  clean=countRowBridges(m,law,clean,own,request)
+  const index=laws.findIndex(l=>l.name===law.name)
+  for(const carried of m.inputMaps){
+    if(clock()>=until)return undefined
+    let instances=clean
+    const build=()=>countedObligations(m,laws,{[law.name]:instances},index).map(({goal,decls})=>({goal,decls,cert:focusCountCert(m,decls,propose(goal,decls),{carried,structural:false,targets:!targetCounts?rows:undefined})}))
+    let packets=build()
+    const seeded=seedCountWitnessFlags(m,instances,packets,true)
+    if(seeded!==instances){instances=seeded;packets=build()}
+    const rowGoal=!targetCounts&&own.length===3
+    const certs:Record<string,CountCert>={};let complete=!rowGoal
+    const quickUntil=Math.min(until,clock()+1000)
+    for(const {goal,decls,cert} of rowGoal?[]:packets){
+      const g=mcGoal(goal.hyps,decls,cert)
+      if(!g){complete=false;break}
+      const result=grow({...g,name:goal.name},new Map(),{nodes:0,until:quickUntil})
+      if(!('tree'in result)){complete=false;break}
+      certs[goal.name]={...cert,tree:result.tree}
+    }
+    if(complete)return {instances,certs}
+    if(clock()>=until)continue
+    let cold:Instances={}
+    cold=countLawSeeds(m,laws,cold,rows.length?rows:own,request,!targetCounts)
+    cold=fieldLawBridges(m,laws,cold,rows.length?rows:own,request,own.length===3?own[2]:undefined)
+    if(law.forall)cold[law.name]=[...cold[law.name]??[],...own]
+    cold=countRowBridges(m,law,cold,own,request)
+    instances=cold;packets=build()
+    const flags=seedCountWitnessFlags(m,instances,packets,true)
+    if(flags!==instances){instances=flags;packets=build()}
+    const step=packets.find(p=>p.goal.name.endsWith('@step'))
+    if(!step)continue
+    const result=proveCountCases(m,laws,instances,step.cert,until,next=>{
+      instances=next
+      return countedObligations(m,laws,{[law.name]:next},index).find(p=>p.goal.name.endsWith('@step'))!
+    },!targetCounts&&own.length===3?{localModels:true,saturate:true,queryMs:1000,coreLimit:16,units:false,corePointOnly:true,trace}:trace?{trace}:undefined)
+    if(!result)continue
+    instances=result.instances;packets=build()
+    const combined:Record<string,CountCert>={[step.goal.name]:result.cert}
+    let closed=true
+    for(const p of packets){
+      if(p.goal.name===step.goal.name)continue
+      const g=mcGoal(p.goal.hyps,p.decls,p.cert),out=g&&grow({...g,name:p.goal.name},new Map(),{nodes:0,until})
+      if(!out||!('tree'in out)){closed=false;break}
+      combined[p.goal.name]={...p.cert,tree:out.tree}
+    }
+    if(closed)return {instances,certs:combined}
+  }
+  return undefined
+}

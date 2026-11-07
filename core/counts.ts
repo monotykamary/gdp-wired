@@ -26,6 +26,8 @@ import {relevantGoals, relevantLaws} from './relevance.ts'
 import {countPoolKey, countSignature, grammarPool, ids, polaritySelection, readTuples, refinementSignature, reservationReadClosure, reservationState, reservePool, prepareSupport, smallSelection, sparseReadInstances, sourceContext, coarseContext, selectedCertificate, chosenView, candidateWork, stableState, UnsupportedCountProposal} from './count-support.ts'
 import {fieldLaws} from './field-laws.ts'
 import {countsForReads, proposeCountFacts} from './count-facts.ts'
+import {proposeCountUnions} from './count-unions.ts'
+import {proveFocusedCounts} from './count-focus-proof.ts'
 import {smallOf, trueSmall} from './exists.ts'
 import {env} from './solver.ts'
 
@@ -233,6 +235,10 @@ export function certFor(goal: {hyps: C[]}, decls: {map: string, below: E, j: str
         if ((!!more && insts.length >= cap) || !tick()) break
         if (q.terms.length >= 3) add(q.terms, q.unit, q.below)
       }
+      const heads = named.filter(r => ranked(r)).sort((a, b) => Number(post(b)) - Number(post(a)))
+      const carried = named.filter(r => !post(r) && keyless(r[1]))
+      const pairs: [string, string][] = heads.flatMap(a => carried.filter(b => b !== a && bound(a) === bound(b)).map(b => [a[0], b[0]] as [string, string]))
+      for (const q of proposeCountUnions(cs, pairs, Math.min(cap, 128))) { if ((!!more && insts.length >= cap) || !tick()) break; add(q.terms, q.unit, q.below) }
     }
     pairs: for (const a of named) for (const c of named) {
       if ((!!more && insts.length >= cap) || !tick()) break pairs
@@ -583,6 +589,13 @@ export function countedAttempts(m: Machine, caller: Law[], support: Set<Law>, un
     const attemptEnd = Math.min(until,clock()+ms)
     const ts = terms(law), id = `${pass} ${law.name}`, cti = models.get(id)
     const supported = ls.some(l => support.has(l)), modelLaws = supportOrder(ls, caller, support, true)
+    // Start bounded field/row recovery before a growing model-instantiation
+    // context consumes the law's share. This remains opt-in and returns only
+    // ordinary certificates accepted by the same final checkCountedLaws gate.
+    if (!pass && env.GDP_COUNTS_FOCUS === '1' && m.inputMaps?.length && !reads(law.holds, isCount).size) {
+      const focused = ptime('focused', () => proveFocusedCounts(m, ls, law, {}, Math.min(until, clock() + Math.min(ms, 5000)), (g, ds) => certFor(g, ds, true, pool)))
+      if (focused) return {proof: focused}
+    }
     // (the model broken: the attempt starts at the instances it asks for, its last attempt's and the tuples the new laws
     // break it at, where the rounds of models would lead it again)
     let seed: Instances | undefined
@@ -734,8 +747,9 @@ export function countedAttempts(m: Machine, caller: Law[], support: Set<Law>, un
           if (tree) { direct = {gg: step.gg, tree}; break }
         }
         observe(step, 'query')
-        const q = ptime('decide', () => decideStep(step.gg!, Math.min(until, clock() + Math.min(2 * ms, 5_000))))
+        const q0 = clock(), q = ptime('decide', () => decideStep(step.gg!, Math.min(until, clock() + Math.min(2 * ms, 5_000))))
         observe(step, 'decision:' + ('tree' in q ? 'tree' : q.why === REFUTED ? 'refuted' : q.stuck))
+        if (env.GDP_COUNTS_TRACE?.includes('2')) console.error(`counts: decide ${pass} ${step.goal.name}: ${'tree' in q ? 'proven' : q.stuck} ${step.gg.hyps.length} hyps ${Math.round(clock() - q0)} ms`)
         if ('tree' in q) { direct = {gg: step.gg, tree: q.tree}; break }
         if (q.why === REFUTED && q.core) {
           const gg = step.gg, last = gg.hyps.length - 1, used = new Set(q.core.map(h => json(gg.hyps[h]))), cut: Instances = {}
@@ -755,24 +769,32 @@ export function countedAttempts(m: Machine, caller: Law[], support: Set<Law>, un
         tally('#rounds'); tally('#hyps', step.gg.hyps.length)
         if (lz && !asked) { built = build(); continue }
         if (!asked) {
-          if (countsDump.on && pass && dumped < Number(env.GDP_COUNTS_DUMP_N ?? 3)) { dumped++; countsDump.on({law: law.name, goal: step.goal.name, ls: ls.map(l => l.name), stuck: 'sat', witness: q.witness, reads: step.c.reads, insts: step.c.insts, hyps: step.gg.hyps}) }
+          if (countsDump.on && pass && dumped < Number(env.GDP_COUNTS_DUMP_N ?? 3)) { dumped++; countsDump.on({law: law.name, goal: step.goal.name, ls: ls.map(l => l.name), stuck: 'sat', witness: q.witness, reads: step.c.reads, insts: step.c.insts, hyps: step.gg.hyps, base: step.goal, decls: step.decls, cert: step.c, at, laws: ls, wide, pass}) }
           if (pass && !wide && houdini && 'loose' in step.c && (step.c.loose || isCaller) && more()) { wide = true; widened.add(law.name); built = build(); continue }
           return refuted(step.gg, q.witness)
         }
         at = asked
         built = build()
       }
+      // A wide pool can obscure a short subset proof. Retry only ordinary
+      // witness-bearing certificates with the warmed law instances; the final
+      // checkCountedLaws gate is unchanged. Opt-in until the paired gates pass.
+      if (pass && wide && env.GDP_COUNTS_FOCUS === '1' && clock() < until) {
+        const focused = ptime('focused', () => proveFocusedCounts(m, ls, law, at, Math.min(until, clock() + Math.min(ms, 5000)), (g, ds) => certFor(g, ds, true, pool)))
+        if (focused) return {proof: focused}
+      }
       // (whether a goal reads a count: if none does, pass 1's goals are pass 0's)
       if (!pass) counted = built.some(b => certFor(b.goal, b.decls).reads.length)
       const certs: Record<string, CountCert> = {}
       let again = false
-      for (const {goal, c, gg} of built) {
+      for (const {goal, decls, c, gg} of built) {
         const t0 = clock(), viaPart = gg && part?.gg === gg ? ptime('part', () => {
           const o1 = grow(part!.core, new Map(), {nodes: 0, until: Math.min(until, clock() + Math.max(ms, 2_000))}), w = 'tree' in o1 ? widen(part!.core, gg, o1.tree) : undefined
           return w ? {tree: w, nodes: 0} : undefined
         }) : undefined
         const o = (direct && direct.gg === gg ? {tree: direct.tree, nodes: 0} : undefined) ?? viaPart ?? (gg && ptime(`grow${(gg.hyps.length > 300 ? '>300' : '')}`, () => grow(gg, new Map(), {nodes: 0, until: Math.min(until, clock() + ms)})))
         if (gg && o && !('tree' in o)) observe(built.find(b => b.gg === gg)!, o.stuck, 'witness' in o ? o.witness : undefined)
+        if (countsDump.on && gg && o && !('tree' in o) && gg.hyps.length > Number(env.GDP_COUNTS_DUMP_MIN ?? 300) && dumped < Number(env.GDP_COUNTS_DUMP_N ?? 3)) { dumped++; countsDump.on({law: law.name, goal: goal.name, ls: ls.map(l => l.name), stuck: (o as {stuck?: string}).stuck, hyps: gg.hyps, base: goal, decls, cert: c, at, laws: ls, wide, pass, ...('witness' in o ? {witness: o.witness} : {})}) }
         if (env.GDP_COUNTS_TRACE?.includes('2')) console.error(`counts: ${ls.length === 1 ? 'alone' : `with ${ls.length}`} ${pass} ${goal.name}: ${o && 'tree' in o ? 'proven' : gg ? (o as {stuck?: string}).stuck : 'no read'} ${gg?.hyps.length ?? 0} hyps (insts ${'insts' in c ? c.insts.length : 0} picks ${'picks' in c ? c.picks.length : 0}${wide ? ' wide' : ''}${built.find(b => b.gg === gg)?.pool ? ` of ${built.find(b => b.gg === gg)!.pool!.keys.length}` : ''}) ${Math.round(clock() - t0)} ms`)
         // (the tree search's model of the step goal: the instances it asks for, as the CDCL search's, and the goals again)
         if (gg && o && !('tree' in o) && o.stuck === 'sat' && o.witness && gg === built.at(-1)!.gg && more()) {
