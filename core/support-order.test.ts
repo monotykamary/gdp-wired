@@ -27,10 +27,10 @@ test('stale support cannot grant priority time to unresolved callers',()=>{
  expect(supportBudget(60,10,activeSupport(set,active)&&[a,b].includes(a))).toBe(20)
 })
 
-test('count scheduling requires an active count-dependent source, not a primitive implication',()=>{
+test('count scheduling requires count or global-state context, not a primitive implication',()=>{
  for(const prefix of ['first_','renamed_']){
   const map=prefix+'cells',count=prefix+'number',caller=law(prefix+'caller'),noise=law(prefix+'noise'),primitive:Law={name:prefix+'primitive',forall:'k',holds:{op:'=',a:get(map,x('k')),b:n(0)}},source:Law={name:prefix+'source',forall:'k',holds:{op:'<=',a:get(count,x('k')),b:n(3)}}
-  const m:Machine={name:prefix,params:[],inputs:[],state:{},maps:{[map]:0},counts:{[count]:{j:'k',key:'q',below:n(3),body:get(map,x('q'))}},step:{}}
+  const m:Machine={name:prefix,params:[],inputs:[],state:{mode:n(0)},maps:{[map]:0},counts:{[count]:{j:'k',key:'q',below:n(3),body:get(map,x('q'))}},step:{}}
   const plain=[caller,noise,primitive],support=new Set([primitive]),a=countSupportContext(m,[caller],plain,support)
   expect(a.laws).toEqual([caller,noise]);expect(a.support.size).toBe(0);expect(plain).toContain(primitive);expect(support.has(primitive)).toBe(true)
   const full=[...plain,source],mixed=new Set([primitive,source]),b=countSupportContext(m,[caller],full,mixed)
@@ -38,6 +38,10 @@ test('count scheduling requires an active count-dependent source, not a primitiv
   expect(countSupportContext(m,[primitive],plain,support).laws).toContain(primitive)
   expect(countSupportContext(m,[caller],plain,new Set([primitive,source])).support.size).toBe(0)
   expect(countSupportContext(m,[caller],plain,new Set()).laws).toBe(plain)
+  const global:Law={name:prefix+'global context',holds:{op:'=',a:x('mode'),b:n(0)}},withGlobal=[...plain,global],globalSupport=new Set([primitive,global])
+  expect(countSupportContext(m,[caller],withGlobal,globalSupport).laws).toBe(withGlobal)
+  expect(countSupportContext(m,[caller],withGlobal,globalSupport).support).toBe(globalSupport)
+  expect(countSupportContext(m,[caller],[...plain,noise],new Set([primitive,noise])).support.size).toBe(0)
  }
 })
 

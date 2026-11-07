@@ -365,10 +365,10 @@ export function cone<P>(m: Machine, set: Law[], attempt: (law: Law, ls: Law[], m
 // --- the counted search ----------------------------------------------------------------------------------------------
 // Scheduling only. Candidate membership never authorizes an assumption or a result.
 export const activeSupport = (set: Law[], support: Set<Law>): boolean => set.some(l => support.has(l))
-// Count-specific scheduling needs a count-dependent source, not merely any
-// generated implication. Otherwise first preserve the ordinary candidate family.
+// Count-specific scheduling needs count or global-state context, not merely a
+// primitive pointwise implication. Otherwise preserve the ordinary family first.
 export function countSupportContext(m:Machine,caller:Law[],set:Law[],support:Set<Law>):{laws:Law[],support:Set<Law>}{
-  if(!activeSupport(set,support)||set.some(l=>support.has(l)&&reads(l.holds,map=>!!m.counts?.[map]).size))return {laws:set,support}
+  if(!activeSupport(set,support)||set.some(l=>support.has(l)&&(reads(l.holds,map=>!!m.counts?.[map]).size||!l.forall&&some(l.holds,node=>node.op==='var'&&typeof node.name==='string'&&Object.hasOwn(m.state,node.name)&&!l.some?.includes(node.name)))))return {laws:set,support}
   return {laws:set.filter(l=>caller.includes(l)||!support.has(l)),support:new Set()}
 }
 export function supportOrder(set: Law[], caller: Law[], support: Set<Law>, forModels = false): Law[] {
