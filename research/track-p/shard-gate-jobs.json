@@ -1,0 +1,51 @@
+[
+ {
+  "name": "shard-1",
+  "cmd": "bun install --frozen-lockfile >/dev/null && bun scripts/test-shards.ts --shard 1/7",
+  "timeout": 1800,
+  "cpu": 4,
+  "memory": 8192
+ },
+ {
+  "name": "shard-2",
+  "cmd": "bun install --frozen-lockfile >/dev/null && bun scripts/test-shards.ts --shard 2/7",
+  "timeout": 1800,
+  "cpu": 4,
+  "memory": 8192
+ },
+ {
+  "name": "shard-3",
+  "cmd": "bun install --frozen-lockfile >/dev/null && bun scripts/test-shards.ts --shard 3/7",
+  "timeout": 1800,
+  "cpu": 4,
+  "memory": 8192
+ },
+ {
+  "name": "shard-4",
+  "cmd": "bun install --frozen-lockfile >/dev/null && bun scripts/test-shards.ts --shard 4/7",
+  "timeout": 1800,
+  "cpu": 4,
+  "memory": 8192
+ },
+ {
+  "name": "shard-5",
+  "cmd": "bun install --frozen-lockfile >/dev/null && bun scripts/test-shards.ts --shard 5/7",
+  "timeout": 1800,
+  "cpu": 4,
+  "memory": 8192
+ },
+ {
+  "name": "shard-6",
+  "cmd": "bun install --frozen-lockfile >/dev/null && bun scripts/test-shards.ts --shard 6/7",
+  "timeout": 1800,
+  "cpu": 4,
+  "memory": 8192
+ },
+ {
+  "name": "shard-7",
+  "cmd": "bun install --frozen-lockfile >/dev/null && bun scripts/test-shards.ts --shard 7/7",
+  "timeout": 1800,
+  "cpu": 4,
+  "memory": 8192
+ }
+]

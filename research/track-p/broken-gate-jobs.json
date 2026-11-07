@@ -1,0 +1,263 @@
+[
+ {
+  "name": "consensus-s60-r1",
+  "cmd": "bun install --frozen-lockfile >/dev/null && GDP_INFER_TRACE=2 timeout -s KILL 60 bun research/protocols/ic3syn/run.ts --ms 60000 --only 'consensus' --skip 'search' 2>/tmp/err.log; s=$?; grep -E 'small instance|join (enumerated|end|failed|exists|set|cone|td|houdini|engine|ic3|undecided|pool|filter)' /tmp/err.log | cut -c1-300 | tail -c 60000; tail -c 2000 /tmp/err.log | grep -iE 'error|throw' | tail -5; echo BROKEN_EXIT=$s; if [ \"$s\" = 0 ] || [ \"$s\" = 124 ] || [ \"$s\" = 137 ]; then exit 0; else exit \"$s\"; fi",
+  "timeout": 90,
+  "vm_type": "large",
+  "cpu": 4,
+  "memory": 14336,
+  "timing": true
+ },
+ {
+  "name": "tcommit-s60-r1",
+  "cmd": "bun install --frozen-lockfile >/dev/null && GDP_INFER_TRACE=2 timeout -s KILL 60 bun research/protocols/ic3syn/run.ts --ms 60000 --only 'tcommit' --skip 'search' 2>/tmp/err.log; s=$?; grep -E 'small instance|join (enumerated|end|failed|exists|set|cone|td|houdini|engine|ic3|undecided|pool|filter)' /tmp/err.log | cut -c1-300 | tail -c 60000; tail -c 2000 /tmp/err.log | grep -iE 'error|throw' | tail -5; echo BROKEN_EXIT=$s; if [ \"$s\" = 0 ] || [ \"$s\" = 124 ] || [ \"$s\" = 137 ]; then exit 0; else exit \"$s\"; fi",
+  "timeout": 90,
+  "vm_type": "large",
+  "cpu": 4,
+  "memory": 14336,
+  "timing": true
+ },
+ {
+  "name": "lock_server-s60-r1",
+  "cmd": "bun install --frozen-lockfile >/dev/null && GDP_INFER_TRACE=2 timeout -s KILL 60 bun research/protocols/ic3syn/run.ts --ms 60000 --only 'lock_server' --skip 'search' 2>/tmp/err.log; s=$?; grep -E 'small instance|join (enumerated|end|failed|exists|set|cone|td|houdini|engine|ic3|undecided|pool|filter)' /tmp/err.log | cut -c1-300 | tail -c 60000; tail -c 2000 /tmp/err.log | grep -iE 'error|throw' | tail -5; echo BROKEN_EXIT=$s; if [ \"$s\" = 0 ] || [ \"$s\" = 124 ] || [ \"$s\" = 137 ]; then exit 0; else exit \"$s\"; fi",
+  "timeout": 90,
+  "vm_type": "large",
+  "cpu": 4,
+  "memory": 14336,
+  "timing": true
+ },
+ {
+  "name": "quorum_leader_election-s60-r1",
+  "cmd": "bun install --frozen-lockfile >/dev/null && GDP_INFER_TRACE=2 timeout -s KILL 60 bun research/protocols/ic3syn/run.ts --ms 60000 --only 'quorum_leader_election' --skip 'search' 2>/tmp/err.log; s=$?; grep -E 'small instance|join (enumerated|end|failed|exists|set|cone|td|houdini|engine|ic3|undecided|pool|filter)' /tmp/err.log | cut -c1-300 | tail -c 60000; tail -c 2000 /tmp/err.log | grep -iE 'error|throw' | tail -5; echo BROKEN_EXIT=$s; if [ \"$s\" = 0 ] || [ \"$s\" = 124 ] || [ \"$s\" = 137 ]; then exit 0; else exit \"$s\"; fi",
+  "timeout": 90,
+  "vm_type": "large",
+  "cpu": 4,
+  "memory": 14336,
+  "timing": true
+ },
+ {
+  "name": "toy_consensus_forall-s60-r1",
+  "cmd": "bun install --frozen-lockfile >/dev/null && GDP_INFER_TRACE=2 timeout -s KILL 60 bun research/protocols/ic3syn/run.ts --ms 60000 --only 'toy_consensus_forall' --skip 'search' 2>/tmp/err.log; s=$?; grep -E 'small instance|join (enumerated|end|failed|exists|set|cone|td|houdini|engine|ic3|undecided|pool|filter)' /tmp/err.log | cut -c1-300 | tail -c 60000; tail -c 2000 /tmp/err.log | grep -iE 'error|throw' | tail -5; echo BROKEN_EXIT=$s; if [ \"$s\" = 0 ] || [ \"$s\" = 124 ] || [ \"$s\" = 137 ]; then exit 0; else exit \"$s\"; fi",
+  "timeout": 90,
+  "vm_type": "large",
+  "cpu": 4,
+  "memory": 14336,
+  "timing": true
+ },
+ {
+  "name": "simple-s60-r1",
+  "cmd": "bun install --frozen-lockfile >/dev/null && GDP_INFER_TRACE=2 timeout -s KILL 60 bun research/protocols/ic3syn/run.ts --ms 60000 --only 'simple' --skip 'search' 2>/tmp/err.log; s=$?; grep -E 'small instance|join (enumerated|end|failed|exists|set|cone|td|houdini|engine|ic3|undecided|pool|filter)' /tmp/err.log | cut -c1-300 | tail -c 60000; tail -c 2000 /tmp/err.log | grep -iE 'error|throw' | tail -5; echo BROKEN_EXIT=$s; if [ \"$s\" = 0 ] || [ \"$s\" = 124 ] || [ \"$s\" = 137 ]; then exit 0; else exit \"$s\"; fi",
+  "timeout": 90,
+  "vm_type": "large",
+  "cpu": 4,
+  "memory": 14336,
+  "timing": true
+ },
+ {
+  "name": "simple_regular-s60-r1",
+  "cmd": "bun install --frozen-lockfile >/dev/null && GDP_INFER_TRACE=2 timeout -s KILL 60 bun research/protocols/ic3syn/run.ts --ms 60000 --only 'simple_regular' --skip 'search' 2>/tmp/err.log; s=$?; grep -E 'small instance|join (enumerated|end|failed|exists|set|cone|td|houdini|engine|ic3|undecided|pool|filter)' /tmp/err.log | cut -c1-300 | tail -c 60000; tail -c 2000 /tmp/err.log | grep -iE 'error|throw' | tail -5; echo BROKEN_EXIT=$s; if [ \"$s\" = 0 ] || [ \"$s\" = 124 ] || [ \"$s\" = 137 ]; then exit 0; else exit \"$s\"; fi",
+  "timeout": 90,
+  "vm_type": "large",
+  "cpu": 4,
+  "memory": 14336,
+  "timing": true
+ },
+ {
+  "name": "lockserv_automaton-s60-r1",
+  "cmd": "bun install --frozen-lockfile >/dev/null && GDP_INFER_TRACE=2 timeout -s KILL 60 bun research/protocols/ic3syn/run.ts --ms 60000 --only 'lockserv_automaton' --skip 'search' 2>/tmp/err.log; s=$?; grep -E 'small instance|join (enumerated|end|failed|exists|set|cone|td|houdini|engine|ic3|undecided|pool|filter)' /tmp/err.log | cut -c1-300 | tail -c 60000; tail -c 2000 /tmp/err.log | grep -iE 'error|throw' | tail -5; echo BROKEN_EXIT=$s; if [ \"$s\" = 0 ] || [ \"$s\" = 124 ] || [ \"$s\" = 137 ]; then exit 0; else exit \"$s\"; fi",
+  "timeout": 90,
+  "vm_type": "large",
+  "cpu": 4,
+  "memory": 14336,
+  "timing": true
+ },
+ {
+  "name": "sharded_kv-s60-r1",
+  "cmd": "bun install --frozen-lockfile >/dev/null && GDP_INFER_TRACE=2 timeout -s KILL 60 bun research/protocols/ic3syn/run.ts --ms 60000 --only 'sharded_kv' --skip 'search' 2>/tmp/err.log; s=$?; grep -E 'small instance|join (enumerated|end|failed|exists|set|cone|td|houdini|engine|ic3|undecided|pool|filter)' /tmp/err.log | cut -c1-300 | tail -c 60000; tail -c 2000 /tmp/err.log | grep -iE 'error|throw' | tail -5; echo BROKEN_EXIT=$s; if [ \"$s\" = 0 ] || [ \"$s\" = 124 ] || [ \"$s\" = 137 ]; then exit 0; else exit \"$s\"; fi",
+  "timeout": 90,
+  "vm_type": "large",
+  "cpu": 4,
+  "memory": 14336,
+  "timing": true
+ },
+ {
+  "name": "sharded_kv_no_lost_keys-s60-r1",
+  "cmd": "bun install --frozen-lockfile >/dev/null && GDP_INFER_TRACE=2 timeout -s KILL 60 bun research/protocols/ic3syn/run.ts --ms 60000 --only 'sharded_kv_no_lost_keys' --skip 'search' 2>/tmp/err.log; s=$?; grep -E 'small instance|join (enumerated|end|failed|exists|set|cone|td|houdini|engine|ic3|undecided|pool|filter)' /tmp/err.log | cut -c1-300 | tail -c 60000; tail -c 2000 /tmp/err.log | grep -iE 'error|throw' | tail -5; echo BROKEN_EXIT=$s; if [ \"$s\" = 0 ] || [ \"$s\" = 124 ] || [ \"$s\" = 137 ]; then exit 0; else exit \"$s\"; fi",
+  "timeout": 90,
+  "vm_type": "large",
+  "cpu": 4,
+  "memory": 14336,
+  "timing": true
+ },
+ {
+  "name": "lockserv-s60-r1",
+  "cmd": "bun install --frozen-lockfile >/dev/null && GDP_INFER_TRACE=2 timeout -s KILL 60 bun research/protocols/ic3syn/run.ts --ms 60000 --only 'lockserv' --skip 'search' 2>/tmp/err.log; s=$?; grep -E 'small instance|join (enumerated|end|failed|exists|set|cone|td|houdini|engine|ic3|undecided|pool|filter)' /tmp/err.log | cut -c1-300 | tail -c 60000; tail -c 2000 /tmp/err.log | grep -iE 'error|throw' | tail -5; echo BROKEN_EXIT=$s; if [ \"$s\" = 0 ] || [ \"$s\" = 124 ] || [ \"$s\" = 137 ]; then exit 0; else exit \"$s\"; fi",
+  "timeout": 90,
+  "vm_type": "large",
+  "cpu": 4,
+  "memory": 14336,
+  "timing": true
+ },
+ {
+  "name": "twophase-s60-r1",
+  "cmd": "bun install --frozen-lockfile >/dev/null && GDP_INFER_TRACE=2 timeout -s KILL 60 bun research/protocols/ic3syn/run.ts --ms 60000 --only 'twophase' --skip 'search' 2>/tmp/err.log; s=$?; grep -E 'small instance|join (enumerated|end|failed|exists|set|cone|td|houdini|engine|ic3|undecided|pool|filter)' /tmp/err.log | cut -c1-300 | tail -c 60000; tail -c 2000 /tmp/err.log | grep -iE 'error|throw' | tail -5; echo BROKEN_EXIT=$s; if [ \"$s\" = 0 ] || [ \"$s\" = 124 ] || [ \"$s\" = 137 ]; then exit 0; else exit \"$s\"; fi",
+  "timeout": 90,
+  "vm_type": "large",
+  "cpu": 4,
+  "memory": 14336,
+  "timing": true
+ },
+ {
+  "name": "simple_decentralized_lock-s60-r1",
+  "cmd": "bun install --frozen-lockfile >/dev/null && GDP_INFER_TRACE=2 timeout -s KILL 60 bun research/protocols/ic3syn/run.ts --ms 60000 --only 'simple_decentralized_lock' --skip 'search' 2>/tmp/err.log; s=$?; grep -E 'small instance|join (enumerated|end|failed|exists|set|cone|td|houdini|engine|ic3|undecided|pool|filter)' /tmp/err.log | cut -c1-300 | tail -c 60000; tail -c 2000 /tmp/err.log | grep -iE 'error|throw' | tail -5; echo BROKEN_EXIT=$s; if [ \"$s\" = 0 ] || [ \"$s\" = 124 ] || [ \"$s\" = 137 ]; then exit 0; else exit \"$s\"; fi",
+  "timeout": 90,
+  "vm_type": "large",
+  "cpu": 4,
+  "memory": 14336,
+  "timing": true
+ },
+ {
+  "name": "two_phase_commit-s60-r1",
+  "cmd": "bun install --frozen-lockfile >/dev/null && GDP_INFER_TRACE=2 timeout -s KILL 60 bun research/protocols/ic3syn/run.ts --ms 60000 --only 'two_phase_commit' --skip 'search' 2>/tmp/err.log; s=$?; grep -E 'small instance|join (enumerated|end|failed|exists|set|cone|td|houdini|engine|ic3|undecided|pool|filter)' /tmp/err.log | cut -c1-300 | tail -c 60000; tail -c 2000 /tmp/err.log | grep -iE 'error|throw' | tail -5; echo BROKEN_EXIT=$s; if [ \"$s\" = 0 ] || [ \"$s\" = 124 ] || [ \"$s\" = 137 ]; then exit 0; else exit \"$s\"; fi",
+  "timeout": 90,
+  "vm_type": "large",
+  "cpu": 4,
+  "memory": 14336,
+  "timing": true
+ },
+ {
+  "name": "consensus_wo_decide-s60-r1",
+  "cmd": "bun install --frozen-lockfile >/dev/null && GDP_INFER_TRACE=2 timeout -s KILL 60 bun research/protocols/ic3syn/run.ts --ms 60000 --only 'consensus_wo_decide' --skip 'search' 2>/tmp/err.log; s=$?; grep -E 'small instance|join (enumerated|end|failed|exists|set|cone|td|houdini|engine|ic3|undecided|pool|filter)' /tmp/err.log | cut -c1-300 | tail -c 60000; tail -c 2000 /tmp/err.log | grep -iE 'error|throw' | tail -5; echo BROKEN_EXIT=$s; if [ \"$s\" = 0 ] || [ \"$s\" = 124 ] || [ \"$s\" = 137 ]; then exit 0; else exit \"$s\"; fi",
+  "timeout": 90,
+  "vm_type": "large",
+  "cpu": 4,
+  "memory": 14336,
+  "timing": true
+ },
+ {
+  "name": "consensus_forall-s60-r1",
+  "cmd": "bun install --frozen-lockfile >/dev/null && GDP_INFER_TRACE=2 timeout -s KILL 60 bun research/protocols/ic3syn/run.ts --ms 60000 --only 'consensus_forall' --skip 'search' 2>/tmp/err.log; s=$?; grep -E 'small instance|join (enumerated|end|failed|exists|set|cone|td|houdini|engine|ic3|undecided|pool|filter)' /tmp/err.log | cut -c1-300 | tail -c 60000; tail -c 2000 /tmp/err.log | grep -iE 'error|throw' | tail -5; echo BROKEN_EXIT=$s; if [ \"$s\" = 0 ] || [ \"$s\" = 124 ] || [ \"$s\" = 137 ]; then exit 0; else exit \"$s\"; fi",
+  "timeout": 90,
+  "vm_type": "large",
+  "cpu": 4,
+  "memory": 14336,
+  "timing": true
+ },
+ {
+  "name": "naive_consensus-s60-r1",
+  "cmd": "bun install --frozen-lockfile >/dev/null && GDP_INFER_TRACE=2 timeout -s KILL 60 bun research/protocols/ic3syn/run.ts --ms 60000 --only 'naive_consensus' --skip 'search' 2>/tmp/err.log; s=$?; grep -E 'small instance|join (enumerated|end|failed|exists|set|cone|td|houdini|engine|ic3|undecided|pool|filter)' /tmp/err.log | cut -c1-300 | tail -c 60000; tail -c 2000 /tmp/err.log | grep -iE 'error|throw' | tail -5; echo BROKEN_EXIT=$s; if [ \"$s\" = 0 ] || [ \"$s\" = 124 ] || [ \"$s\" = 137 ]; then exit 0; else exit \"$s\"; fi",
+  "timeout": 90,
+  "vm_type": "large",
+  "cpu": 4,
+  "memory": 14336,
+  "timing": true
+ },
+ {
+  "name": "client_server_ae-s60-r1",
+  "cmd": "bun install --frozen-lockfile >/dev/null && GDP_INFER_TRACE=2 timeout -s KILL 60 bun research/protocols/ic3syn/run.ts --ms 60000 --only 'client_server_ae' --skip 'search' 2>/tmp/err.log; s=$?; grep -E 'small instance|join (enumerated|end|failed|exists|set|cone|td|houdini|engine|ic3|undecided|pool|filter)' /tmp/err.log | cut -c1-300 | tail -c 60000; tail -c 2000 /tmp/err.log | grep -iE 'error|throw' | tail -5; echo BROKEN_EXIT=$s; if [ \"$s\" = 0 ] || [ \"$s\" = 124 ] || [ \"$s\" = 137 ]; then exit 0; else exit \"$s\"; fi",
+  "timeout": 90,
+  "vm_type": "large",
+  "cpu": 4,
+  "memory": 14336,
+  "timing": true
+ },
+ {
+  "name": "client_server_db_ae-s60-r1",
+  "cmd": "bun install --frozen-lockfile >/dev/null && GDP_INFER_TRACE=2 timeout -s KILL 60 bun research/protocols/ic3syn/run.ts --ms 60000 --only 'client_server_db_ae' --skip 'search' 2>/tmp/err.log; s=$?; grep -E 'small instance|join (enumerated|end|failed|exists|set|cone|td|houdini|engine|ic3|undecided|pool|filter)' /tmp/err.log | cut -c1-300 | tail -c 60000; tail -c 2000 /tmp/err.log | grep -iE 'error|throw' | tail -5; echo BROKEN_EXIT=$s; if [ \"$s\" = 0 ] || [ \"$s\" = 124 ] || [ \"$s\" = 137 ]; then exit 0; else exit \"$s\"; fi",
+  "timeout": 90,
+  "vm_type": "large",
+  "cpu": 4,
+  "memory": 14336,
+  "timing": true
+ },
+ {
+  "name": "simple_election-s60-r1",
+  "cmd": "bun install --frozen-lockfile >/dev/null && GDP_INFER_TRACE=2 timeout -s KILL 60 bun research/protocols/ic3syn/run.ts --ms 60000 --only 'simple_election' --skip 'search' 2>/tmp/err.log; s=$?; grep -E 'small instance|join (enumerated|end|failed|exists|set|cone|td|houdini|engine|ic3|undecided|pool|filter)' /tmp/err.log | cut -c1-300 | tail -c 60000; tail -c 2000 /tmp/err.log | grep -iE 'error|throw' | tail -5; echo BROKEN_EXIT=$s; if [ \"$s\" = 0 ] || [ \"$s\" = 124 ] || [ \"$s\" = 137 ]; then exit 0; else exit \"$s\"; fi",
+  "timeout": 90,
+  "vm_type": "large",
+  "cpu": 4,
+  "memory": 14336,
+  "timing": true
+ },
+ {
+  "name": "toy_consensus_epr-s60-r1",
+  "cmd": "bun install --frozen-lockfile >/dev/null && GDP_INFER_TRACE=2 timeout -s KILL 60 bun research/protocols/ic3syn/run.ts --ms 60000 --only 'toy_consensus_epr' --skip 'search' 2>/tmp/err.log; s=$?; grep -E 'small instance|join (enumerated|end|failed|exists|set|cone|td|houdini|engine|ic3|undecided|pool|filter)' /tmp/err.log | cut -c1-300 | tail -c 60000; tail -c 2000 /tmp/err.log | grep -iE 'error|throw' | tail -5; echo BROKEN_EXIT=$s; if [ \"$s\" = 0 ] || [ \"$s\" = 124 ] || [ \"$s\" = 137 ]; then exit 0; else exit \"$s\"; fi",
+  "timeout": 90,
+  "vm_type": "large",
+  "cpu": 4,
+  "memory": 14336,
+  "timing": true
+ },
+ {
+  "name": "toy_consensus-s60-r1",
+  "cmd": "bun install --frozen-lockfile >/dev/null && GDP_INFER_TRACE=2 timeout -s KILL 60 bun research/protocols/ic3syn/run.ts --ms 60000 --only 'toy_consensus' --skip 'search' 2>/tmp/err.log; s=$?; grep -E 'small instance|join (enumerated|end|failed|exists|set|cone|td|houdini|engine|ic3|undecided|pool|filter)' /tmp/err.log | cut -c1-300 | tail -c 60000; tail -c 2000 /tmp/err.log | grep -iE 'error|throw' | tail -5; echo BROKEN_EXIT=$s; if [ \"$s\" = 0 ] || [ \"$s\" = 124 ] || [ \"$s\" = 137 ]; then exit 0; else exit \"$s\"; fi",
+  "timeout": 90,
+  "vm_type": "large",
+  "cpu": 4,
+  "memory": 14336,
+  "timing": true
+ },
+ {
+  "name": "firewall-s60-r1",
+  "cmd": "bun install --frozen-lockfile >/dev/null && GDP_INFER_TRACE=2 timeout -s KILL 60 bun research/protocols/ic3syn/run.ts --ms 60000 --only 'firewall' --skip 'search' 2>/tmp/err.log; s=$?; grep -E 'small instance|join (enumerated|end|failed|exists|set|cone|td|houdini|engine|ic3|undecided|pool|filter)' /tmp/err.log | cut -c1-300 | tail -c 60000; tail -c 2000 /tmp/err.log | grep -iE 'error|throw' | tail -5; echo BROKEN_EXIT=$s; if [ \"$s\" = 0 ] || [ \"$s\" = 124 ] || [ \"$s\" = 137 ]; then exit 0; else exit \"$s\"; fi",
+  "timeout": 90,
+  "vm_type": "large",
+  "cpu": 4,
+  "memory": 14336,
+  "timing": true
+ },
+ {
+  "name": "majorityset_leader_election-s60-r1",
+  "cmd": "bun install --frozen-lockfile >/dev/null && GDP_INFER_TRACE=2 timeout -s KILL 60 bun research/protocols/ic3syn/run.ts --ms 60000 --only 'majorityset_leader_election' --skip 'search' 2>/tmp/err.log; s=$?; grep -E 'small instance|join (enumerated|end|failed|exists|set|cone|td|houdini|engine|ic3|undecided|pool|filter)' /tmp/err.log | cut -c1-300 | tail -c 60000; tail -c 2000 /tmp/err.log | grep -iE 'error|throw' | tail -5; echo BROKEN_EXIT=$s; if [ \"$s\" = 0 ] || [ \"$s\" = 124 ] || [ \"$s\" = 137 ]; then exit 0; else exit \"$s\"; fi",
+  "timeout": 90,
+  "vm_type": "large",
+  "cpu": 4,
+  "memory": 14336,
+  "timing": true
+ },
+ {
+  "name": "consensus_epr-s60-r1",
+  "cmd": "bun install --frozen-lockfile >/dev/null && GDP_INFER_TRACE=2 timeout -s KILL 60 bun research/protocols/ic3syn/run.ts --ms 60000 --only 'consensus_epr' --skip 'search' 2>/tmp/err.log; s=$?; grep -E 'small instance|join (enumerated|end|failed|exists|set|cone|td|houdini|engine|ic3|undecided|pool|filter)' /tmp/err.log | cut -c1-300 | tail -c 60000; tail -c 2000 /tmp/err.log | grep -iE 'error|throw' | tail -5; echo BROKEN_EXIT=$s; if [ \"$s\" = 0 ] || [ \"$s\" = 124 ] || [ \"$s\" = 137 ]; then exit 0; else exit \"$s\"; fi",
+  "timeout": 90,
+  "vm_type": "large",
+  "cpu": 4,
+  "memory": 14336,
+  "timing": true
+ },
+ {
+  "name": "learning_switch-s60-r1",
+  "cmd": "bun install --frozen-lockfile >/dev/null && GDP_INFER_TRACE=2 timeout -s KILL 60 bun research/protocols/ic3syn/run.ts --ms 60000 --only 'learning_switch' --skip 'search' 2>/tmp/err.log; s=$?; grep -E 'small instance|join (enumerated|end|failed|exists|set|cone|td|houdini|engine|ic3|undecided|pool|filter)' /tmp/err.log | cut -c1-300 | tail -c 60000; tail -c 2000 /tmp/err.log | grep -iE 'error|throw' | tail -5; echo BROKEN_EXIT=$s; if [ \"$s\" = 0 ] || [ \"$s\" = 124 ] || [ \"$s\" = 137 ]; then exit 0; else exit \"$s\"; fi",
+  "timeout": 90,
+  "vm_type": "large",
+  "cpu": 4,
+  "memory": 14336,
+  "timing": true
+ },
+ {
+  "name": "learning_switch_i4-s60-r1",
+  "cmd": "bun install --frozen-lockfile >/dev/null && GDP_INFER_TRACE=2 timeout -s KILL 60 bun research/protocols/ic3syn/run.ts --ms 60000 --only 'learning_switch_i4' --skip 'search' 2>/tmp/err.log; s=$?; grep -E 'small instance|join (enumerated|end|failed|exists|set|cone|td|houdini|engine|ic3|undecided|pool|filter)' /tmp/err.log | cut -c1-300 | tail -c 60000; tail -c 2000 /tmp/err.log | grep -iE 'error|throw' | tail -5; echo BROKEN_EXIT=$s; if [ \"$s\" = 0 ] || [ \"$s\" = 124 ] || [ \"$s\" = 137 ]; then exit 0; else exit \"$s\"; fi",
+  "timeout": 90,
+  "vm_type": "large",
+  "cpu": 4,
+  "memory": 14336,
+  "timing": true
+ },
+ {
+  "name": "paxos_epr-s60-r1",
+  "cmd": "bun install --frozen-lockfile >/dev/null && GDP_INFER_TRACE=2 timeout -s KILL 60 bun research/protocols/ic3syn/run.ts --ms 60000 --only 'paxos_epr' --skip 'search' 2>/tmp/err.log; s=$?; grep -E 'small instance|join (enumerated|end|failed|exists|set|cone|td|houdini|engine|ic3|undecided|pool|filter)' /tmp/err.log | cut -c1-300 | tail -c 60000; tail -c 2000 /tmp/err.log | grep -iE 'error|throw' | tail -5; echo BROKEN_EXIT=$s; if [ \"$s\" = 0 ] || [ \"$s\" = 124 ] || [ \"$s\" = 137 ]; then exit 0; else exit \"$s\"; fi",
+  "timeout": 90,
+  "vm_type": "large",
+  "cpu": 4,
+  "memory": 14336,
+  "timing": true
+ },
+ {
+  "name": "mldr-s60-r1",
+  "cmd": "bun install --frozen-lockfile >/dev/null && GDP_INFER_TRACE=2 timeout -s KILL 60 bun research/protocols/ic3syn/run.ts --ms 60000 --only 'mldr' --skip 'search' 2>/tmp/err.log; s=$?; grep -E 'small instance|join (enumerated|end|failed|exists|set|cone|td|houdini|engine|ic3|undecided|pool|filter)' /tmp/err.log | cut -c1-300 | tail -c 60000; tail -c 2000 /tmp/err.log | grep -iE 'error|throw' | tail -5; echo BROKEN_EXIT=$s; if [ \"$s\" = 0 ] || [ \"$s\" = 124 ] || [ \"$s\" = 137 ]; then exit 0; else exit \"$s\"; fi",
+  "timeout": 90,
+  "vm_type": "large",
+  "cpu": 4,
+  "memory": 14336,
+  "timing": true
+ }
+]

@@ -1,0 +1,92 @@
+[
+ {
+  "name": "lock_server_sync-s60-r1",
+  "cmd": "set -e; root=$PWD; base=$(cd 'base' && pwd); bun install --frozen-lockfile >/dev/null 2>&1; (cd \"$base\" && bun install --frozen-lockfile >/dev/null 2>&1); set +e; failed=0; for side in cand base; do dir=$root; [ \"$side\" = base ] && dir=$base; echo \"PAIR begin side=$side id=lock_server_sync run=1\"; (cd \"$dir\" && GDP_INFER_TRACE=2 timeout -s KILL 60 bun research/protocols/run.ts --ms 60000 --only 'lock_server_sync' --skip 'broken,given') > /tmp/pair-$side.out 2>/tmp/pair-$side.err; s=$?; cat /tmp/pair-$side.out; grep -E 'small instance|join (enumerated|end|failed|exists|set|cone|td|houdini|engine|ic3|undecided|pool|filter)' /tmp/pair-$side.err | cut -c1-300 | tail -c 60000; tail -c 2000 /tmp/pair-$side.err | grep -iE 'error|throw' | tail -5; echo \"PAIR end side=$side exit=$s\"; if [ $s -ne 0 ] && [ $s -ne 124 ] && [ $s -ne 137 ]; then failed=1; fi; done; exit $failed",
+  "timeout": 300,
+  "vm_type": "large",
+  "cpu": 4,
+  "memory": 14336,
+  "timing": true
+ },
+ {
+  "name": "lock_server_async-s60-r1",
+  "cmd": "set -e; root=$PWD; base=$(cd 'base' && pwd); bun install --frozen-lockfile >/dev/null 2>&1; (cd \"$base\" && bun install --frozen-lockfile >/dev/null 2>&1); set +e; failed=0; for side in cand base; do dir=$root; [ \"$side\" = base ] && dir=$base; echo \"PAIR begin side=$side id=lock_server_async run=1\"; (cd \"$dir\" && GDP_INFER_TRACE=2 timeout -s KILL 60 bun research/protocols/run.ts --ms 60000 --only 'lock_server_async' --skip 'broken,given') > /tmp/pair-$side.out 2>/tmp/pair-$side.err; s=$?; cat /tmp/pair-$side.out; grep -E 'small instance|join (enumerated|end|failed|exists|set|cone|td|houdini|engine|ic3|undecided|pool|filter)' /tmp/pair-$side.err | cut -c1-300 | tail -c 60000; tail -c 2000 /tmp/pair-$side.err | grep -iE 'error|throw' | tail -5; echo \"PAIR end side=$side exit=$s\"; if [ $s -ne 0 ] && [ $s -ne 124 ] && [ $s -ne 137 ]; then failed=1; fi; done; exit $failed",
+  "timeout": 300,
+  "vm_type": "large",
+  "cpu": 4,
+  "memory": 14336,
+  "timing": true
+ },
+ {
+  "name": "decentralized_lock-s60-r1",
+  "cmd": "set -e; root=$PWD; base=$(cd 'base' && pwd); bun install --frozen-lockfile >/dev/null 2>&1; (cd \"$base\" && bun install --frozen-lockfile >/dev/null 2>&1); set +e; failed=0; for side in cand base; do dir=$root; [ \"$side\" = base ] && dir=$base; echo \"PAIR begin side=$side id=decentralized_lock run=1\"; (cd \"$dir\" && GDP_INFER_TRACE=2 timeout -s KILL 60 bun research/protocols/run.ts --ms 60000 --only 'decentralized_lock' --skip 'broken,given') > /tmp/pair-$side.out 2>/tmp/pair-$side.err; s=$?; cat /tmp/pair-$side.out; grep -E 'small instance|join (enumerated|end|failed|exists|set|cone|td|houdini|engine|ic3|undecided|pool|filter)' /tmp/pair-$side.err | cut -c1-300 | tail -c 60000; tail -c 2000 /tmp/pair-$side.err | grep -iE 'error|throw' | tail -5; echo \"PAIR end side=$side exit=$s\"; if [ $s -ne 0 ] && [ $s -ne 124 ] && [ $s -ne 137 ]; then failed=1; fi; done; exit $failed",
+  "timeout": 300,
+  "vm_type": "large",
+  "cpu": 4,
+  "memory": 14336,
+  "timing": true
+ },
+ {
+  "name": "distributed_lock-s60-r1",
+  "cmd": "set -e; root=$PWD; base=$(cd 'base' && pwd); bun install --frozen-lockfile >/dev/null 2>&1; (cd \"$base\" && bun install --frozen-lockfile >/dev/null 2>&1); set +e; failed=0; for side in cand base; do dir=$root; [ \"$side\" = base ] && dir=$base; echo \"PAIR begin side=$side id=distributed_lock run=1\"; (cd \"$dir\" && GDP_INFER_TRACE=2 timeout -s KILL 60 bun research/protocols/run.ts --ms 60000 --only 'distributed_lock' --skip 'broken,given') > /tmp/pair-$side.out 2>/tmp/pair-$side.err; s=$?; cat /tmp/pair-$side.out; grep -E 'small instance|join (enumerated|end|failed|exists|set|cone|td|houdini|engine|ic3|undecided|pool|filter)' /tmp/pair-$side.err | cut -c1-300 | tail -c 60000; tail -c 2000 /tmp/pair-$side.err | grep -iE 'error|throw' | tail -5; echo \"PAIR end side=$side exit=$s\"; if [ $s -ne 0 ] && [ $s -ne 124 ] && [ $s -ne 137 ]; then failed=1; fi; done; exit $failed",
+  "timeout": 300,
+  "vm_type": "large",
+  "cpu": 4,
+  "memory": 14336,
+  "timing": true
+ },
+ {
+  "name": "two_phase_commit-s60-r1",
+  "cmd": "set -e; root=$PWD; base=$(cd 'base' && pwd); bun install --frozen-lockfile >/dev/null 2>&1; (cd \"$base\" && bun install --frozen-lockfile >/dev/null 2>&1); set +e; failed=0; for side in cand base; do dir=$root; [ \"$side\" = base ] && dir=$base; echo \"PAIR begin side=$side id=two_phase_commit run=1\"; (cd \"$dir\" && GDP_INFER_TRACE=2 timeout -s KILL 60 bun research/protocols/run.ts --ms 60000 --only 'two_phase_commit' --skip 'broken,given') > /tmp/pair-$side.out 2>/tmp/pair-$side.err; s=$?; cat /tmp/pair-$side.out; grep -E 'small instance|join (enumerated|end|failed|exists|set|cone|td|houdini|engine|ic3|undecided|pool|filter)' /tmp/pair-$side.err | cut -c1-300 | tail -c 60000; tail -c 2000 /tmp/pair-$side.err | grep -iE 'error|throw' | tail -5; echo \"PAIR end side=$side exit=$s\"; if [ $s -ne 0 ] && [ $s -ne 124 ] && [ $s -ne 137 ]; then failed=1; fi; done; exit $failed",
+  "timeout": 300,
+  "vm_type": "large",
+  "cpu": 4,
+  "memory": 14336,
+  "timing": true
+ },
+ {
+  "name": "ticket_lock-s60-r1",
+  "cmd": "set -e; root=$PWD; base=$(cd 'base' && pwd); bun install --frozen-lockfile >/dev/null 2>&1; (cd \"$base\" && bun install --frozen-lockfile >/dev/null 2>&1); set +e; failed=0; for side in cand base; do dir=$root; [ \"$side\" = base ] && dir=$base; echo \"PAIR begin side=$side id=ticket_lock run=1\"; (cd \"$dir\" && GDP_INFER_TRACE=2 timeout -s KILL 60 bun research/protocols/run.ts --ms 60000 --only 'ticket_lock' --skip 'broken,given') > /tmp/pair-$side.out 2>/tmp/pair-$side.err; s=$?; cat /tmp/pair-$side.out; grep -E 'small instance|join (enumerated|end|failed|exists|set|cone|td|houdini|engine|ic3|undecided|pool|filter)' /tmp/pair-$side.err | cut -c1-300 | tail -c 60000; tail -c 2000 /tmp/pair-$side.err | grep -iE 'error|throw' | tail -5; echo \"PAIR end side=$side exit=$s\"; if [ $s -ne 0 ] && [ $s -ne 124 ] && [ $s -ne 137 ]; then failed=1; fi; done; exit $failed",
+  "timeout": 300,
+  "vm_type": "large",
+  "cpu": 4,
+  "memory": 14336,
+  "timing": true
+ },
+ {
+  "name": "toy_consensus_forall-s60-r1",
+  "cmd": "set -e; root=$PWD; base=$(cd 'base' && pwd); bun install --frozen-lockfile >/dev/null 2>&1; (cd \"$base\" && bun install --frozen-lockfile >/dev/null 2>&1); set +e; failed=0; for side in cand base; do dir=$root; [ \"$side\" = base ] && dir=$base; echo \"PAIR begin side=$side id=toy_consensus_forall run=1\"; (cd \"$dir\" && GDP_INFER_TRACE=2 timeout -s KILL 60 bun research/protocols/run.ts --ms 60000 --only 'toy_consensus_forall' --skip 'broken,given') > /tmp/pair-$side.out 2>/tmp/pair-$side.err; s=$?; cat /tmp/pair-$side.out; grep -E 'small instance|join (enumerated|end|failed|exists|set|cone|td|houdini|engine|ic3|undecided|pool|filter)' /tmp/pair-$side.err | cut -c1-300 | tail -c 60000; tail -c 2000 /tmp/pair-$side.err | grep -iE 'error|throw' | tail -5; echo \"PAIR end side=$side exit=$s\"; if [ $s -ne 0 ] && [ $s -ne 124 ] && [ $s -ne 137 ]; then failed=1; fi; done; exit $failed",
+  "timeout": 300,
+  "vm_type": "large",
+  "cpu": 4,
+  "memory": 14336,
+  "timing": true
+ },
+ {
+  "name": "consensus_wo_decide-s60-r1",
+  "cmd": "set -e; root=$PWD; base=$(cd 'base' && pwd); bun install --frozen-lockfile >/dev/null 2>&1; (cd \"$base\" && bun install --frozen-lockfile >/dev/null 2>&1); set +e; failed=0; for side in cand base; do dir=$root; [ \"$side\" = base ] && dir=$base; echo \"PAIR begin side=$side id=consensus_wo_decide run=1\"; (cd \"$dir\" && GDP_INFER_TRACE=2 timeout -s KILL 60 bun research/protocols/run.ts --ms 60000 --only 'consensus_wo_decide' --skip 'broken,given') > /tmp/pair-$side.out 2>/tmp/pair-$side.err; s=$?; cat /tmp/pair-$side.out; grep -E 'small instance|join (enumerated|end|failed|exists|set|cone|td|houdini|engine|ic3|undecided|pool|filter)' /tmp/pair-$side.err | cut -c1-300 | tail -c 60000; tail -c 2000 /tmp/pair-$side.err | grep -iE 'error|throw' | tail -5; echo \"PAIR end side=$side exit=$s\"; if [ $s -ne 0 ] && [ $s -ne 124 ] && [ $s -ne 137 ]; then failed=1; fi; done; exit $failed",
+  "timeout": 300,
+  "vm_type": "large",
+  "cpu": 4,
+  "memory": 14336,
+  "timing": true
+ },
+ {
+  "name": "ring_leader_election-s60-r1",
+  "cmd": "set -e; root=$PWD; base=$(cd 'base' && pwd); bun install --frozen-lockfile >/dev/null 2>&1; (cd \"$base\" && bun install --frozen-lockfile >/dev/null 2>&1); set +e; failed=0; for side in cand base; do dir=$root; [ \"$side\" = base ] && dir=$base; echo \"PAIR begin side=$side id=ring_leader_election run=1\"; (cd \"$dir\" && GDP_INFER_TRACE=2 timeout -s KILL 60 bun research/protocols/run.ts --ms 60000 --only 'ring_leader_election' --skip 'broken,given') > /tmp/pair-$side.out 2>/tmp/pair-$side.err; s=$?; cat /tmp/pair-$side.out; grep -E 'small instance|join (enumerated|end|failed|exists|set|cone|td|houdini|engine|ic3|undecided|pool|filter)' /tmp/pair-$side.err | cut -c1-300 | tail -c 60000; tail -c 2000 /tmp/pair-$side.err | grep -iE 'error|throw' | tail -5; echo \"PAIR end side=$side exit=$s\"; if [ $s -ne 0 ] && [ $s -ne 124 ] && [ $s -ne 137 ]; then failed=1; fi; done; exit $failed",
+  "timeout": 300,
+  "vm_type": "large",
+  "cpu": 4,
+  "memory": 14336,
+  "timing": true
+ },
+ {
+  "name": "sharded_key_value_store-s60-r1",
+  "cmd": "set -e; root=$PWD; base=$(cd 'base' && pwd); bun install --frozen-lockfile >/dev/null 2>&1; (cd \"$base\" && bun install --frozen-lockfile >/dev/null 2>&1); set +e; failed=0; for side in cand base; do dir=$root; [ \"$side\" = base ] && dir=$base; echo \"PAIR begin side=$side id=sharded_key_value_store run=1\"; (cd \"$dir\" && GDP_INFER_TRACE=2 timeout -s KILL 60 bun research/protocols/run.ts --ms 60000 --only 'sharded_key_value_store' --skip 'broken,given') > /tmp/pair-$side.out 2>/tmp/pair-$side.err; s=$?; cat /tmp/pair-$side.out; grep -E 'small instance|join (enumerated|end|failed|exists|set|cone|td|houdini|engine|ic3|undecided|pool|filter)' /tmp/pair-$side.err | cut -c1-300 | tail -c 60000; tail -c 2000 /tmp/pair-$side.err | grep -iE 'error|throw' | tail -5; echo \"PAIR end side=$side exit=$s\"; if [ $s -ne 0 ] && [ $s -ne 124 ] && [ $s -ne 137 ]; then failed=1; fi; done; exit $failed",
+  "timeout": 300,
+  "vm_type": "large",
+  "cpu": 4,
+  "memory": 14336,
+  "timing": true
+ }
+]
