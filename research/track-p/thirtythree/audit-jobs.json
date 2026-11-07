@@ -1,0 +1,1 @@
+[{"name":"check","cmd":"bun install --frozen-lockfile >/dev/null && bun research/track-p/thirtythree/check.ts","timeout":60},{"name":"audit","cmd":"bun install --frozen-lockfile >/dev/null && bun research/track-p/thirtythree/audit.ts","timeout":60}]

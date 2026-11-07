@@ -1,0 +1,1 @@
+[{"name":"recheck","cmd":"bun research/track-p/ten-sixtysix/recheck.ts","timeout":30},{"name":"audit-types","cmd":"bun install --frozen-lockfile >/dev/null && bunx --no-install tsc --noEmit --target esnext --module esnext --moduleResolution bundler --skipLibCheck --allowImportingTsExtensions research/track-p/audit-support.ts","timeout":90}]

@@ -1,0 +1,1 @@
+{"targetIndex":10,"phase":"step","familyIndices":[2,3,4,7,9,10,11,13,14,17,33,45,61,64,66,70,71,73,74],"fixtureSHA256":"ee4bee5547e52dc7222e210f1a188e9adb1b81fe542eb01396cacba26e7007f1","countedMs":1500,"wallMs":2500,"instances":{"Decision keeps members's bound through members$Decision":[{"op":"var","name":"a$c#"},{"op":"var","name":"b$c"}]}}

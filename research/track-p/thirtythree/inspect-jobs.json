@@ -1,0 +1,1 @@
+[{"name":"inspect","cmd":"bun install --frozen-lockfile >/dev/null && bun research/track-p/thirtythree/inspect.ts","timeout":60}]

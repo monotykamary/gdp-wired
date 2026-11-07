@@ -1,0 +1,10 @@
+import {readFileSync} from 'node:fs';
+import {createHash} from 'node:crypto';
+import {countedObligations,mcGoal,checkMC} from '../../../kernel/kernel.ts';
+import {work,costs} from '../../../core/solver.ts';
+const root='research/track-p/thirtythree/evidence/',load=(s:string)=>JSON.parse(readFileSync(s,'utf8')),sha=(s:string)=>createHash('sha256').update(s).digest('hex');
+const bytes=readFileSync('research/track-p/input/family.json','utf8'),f=JSON.parse(bytes),g=load(root+'goal.json'),p=load(root+'proof.json'),s=load(root+'source.json');
+const row=countedObligations(f.machine,s.familyIndices.map((i:number)=>f.laws[i]),{[f.laws[33].name]:s.instances},s.familyIndices.indexOf(33))[1]!;
+const rebuilt=mcGoal(row.goal.hyps,row.decls,p),rawMatches=JSON.stringify(row.goal)===JSON.stringify(g.raw),declsMatch=JSON.stringify(row.decls)===JSON.stringify(g.decls),encodedMatches=JSON.stringify(rebuilt)===JSON.stringify(g.gg),checked=checkMC(g.raw.hyps,g.decls,p);
+const result={checked,rawMatches,declsMatch,encodedMatches,fixtureHashMatches:sha(bytes)===s.fixtureSHA256,searchWork:work.n,nonzeroSearchCosts:Object.fromEntries(Object.entries(costs).filter(([,n])=>n!==0)),rawHyps:g.raw.hyps.length,encodedHyps:g.gg.hyps.length,reads:p.reads.length,insts:p.insts.length,goalSHA256:sha(readFileSync(root+'goal.json','utf8')),proofSHA256:sha(readFileSync(root+'proof.json','utf8')),kernelSHA256:sha(readFileSync('kernel/kernel.ts','utf8'))};
+console.log(JSON.stringify(result));if(!checked||!rawMatches||!declsMatch||!encodedMatches||!result.fixtureHashMatches||work.n!==0||Object.keys(result.nonzeroSearchCosts).length)throw Error('zero-search original-source verification failed');
