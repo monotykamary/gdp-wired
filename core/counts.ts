@@ -365,6 +365,12 @@ export function cone<P>(m: Machine, set: Law[], attempt: (law: Law, ls: Law[], m
 // --- the counted search ----------------------------------------------------------------------------------------------
 // Scheduling only. Candidate membership never authorizes an assumption or a result.
 export const activeSupport = (set: Law[], support: Set<Law>): boolean => set.some(l => support.has(l))
+// Count-specific scheduling needs a count-dependent source, not merely any
+// generated implication. Otherwise first preserve the ordinary candidate family.
+export function countSupportContext(m:Machine,caller:Law[],set:Law[],support:Set<Law>):{laws:Law[],support:Set<Law>}{
+  if(!activeSupport(set,support)||set.some(l=>support.has(l)&&reads(l.holds,map=>!!m.counts?.[map]).size))return {laws:set,support}
+  return {laws:set.filter(l=>caller.includes(l)||!support.has(l)),support:new Set()}
+}
 export function supportOrder(set: Law[], caller: Law[], support: Set<Law>, forModels = false): Law[] {
   if (forModels && !activeSupport(set, support)) return set
   if (!activeSupport(set, support)) return [...set.filter(l => !caller.includes(l)), ...set.filter(l => caller.includes(l))]
@@ -399,7 +405,9 @@ function searchCounted0(m0: Machine, g: ReturnType<typeof guardLaws>, m: Machine
   let set = env.GDP_COUNTS_GIVEN === '1' ? [...caller] : [...caller, ...candidates(m0, m, caller, caller, g.laws, ms, until, support)]
   countsDump.on?.({phase: 'candidates', machine: m, laws: set})
   if (env.GDP_COUNTS_TRACE) console.error(`counts: candidates at ${Math.round(clock() - t1)} ms: ${set.map(l => l.name).join('; ')}`)
-  return admitCountedFamily(m,caller,set,support,until)
+  const context=countSupportContext(m,caller,set,support),result=admitCountedFamily(m,caller,context.laws,context.support,until)
+  // Primitive proposals can widen a failed baseline search, never replace its first attempt.
+  return result.proven||context.laws.length===set.length||clock()>=until?result:admitCountedFamily(m,caller,set,context.support,until)
 }
 
 // Candidate scheduling only. Every returned family still goes through finish.

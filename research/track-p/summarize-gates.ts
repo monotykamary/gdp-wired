@@ -26,7 +26,9 @@ function paired(suite:string,expected:number){
  const protocols=[...new Set(rows.map(r=>r.id))].sort().map(id=>{const ps=rows.filter(r=>r.id===id);return {id,runs:ps.length,cand:ps.filter(p=>proven(p.cand)).length,base:ps.filter(p=>proven(p.base)).length}})
  return {pairs:rows.length,cand:rows.filter(p=>proven(p.cand)).length,base:rows.filter(p=>proven(p.base)).length,regressions:regressions.map(p=>p.name),gains:gains.map(p=>p.name),protocols}
 }
-const ic3syn=paired('ic3syn-paired',87),duoai=paired('duoai-paired',10)
+const ic3syn=paired('ic3syn-paired',87)
+if(process.argv.includes('--ic3syn')){console.log(JSON.stringify({errors,ic3syn}));process.exit(errors.length||ic3syn.regressions.length?1:0)}
+const duoai=paired('duoai-paired',10)
 if(process.argv.includes('--pairs')){console.log(JSON.stringify({errors,ic3syn,duoai}));process.exit(errors.length||ic3syn.regressions.length||duoai.regressions.length?1:0)}
 const broken={total:0,proven:[] as string[],refuted:0,unknown:0,timeouts:0}
 for(const name of logs(root+'/broken')){
@@ -43,7 +45,7 @@ if(shardRows.length!==7||shardRows.some(r=>r.exit!==0))errors.push('shards: inco
 const passes=logs(shardDir).reduce((n,f)=>n+[...readFileSync(shardDir+'/'+f,'utf8').matchAll(/^\s*(\d+) pass\s*$/gm)].reduce((s,m)=>s+Number(m[1]),0),0)
 const out={checked:new Date().toISOString(),passes:!errors.length&&!ic3syn.regressions.length&&!duoai.regressions.length&&!broken.proven.length,errors,ic3syn,duoai,broken,shards:{directory:shardDir,rows:shardRows,tests:passes}}
 writeFileSync(root+'/summary.json',JSON.stringify(out,null,2)+'\n')
-const md=['# Track P gate verdicts','',`- IC3Syn: candidate ${ic3syn.cand}/${ic3syn.pairs}, base ${ic3syn.base}/${ic3syn.pairs}; pair losses ${ic3syn.regressions.length}.`,`- DuoAI: candidate ${duoai.cand}/${duoai.pairs}, base ${duoai.base}/${duoai.pairs}; pair losses ${duoai.regressions.length}.`,`- Broken: ${broken.proven.length} proven; ${broken.refuted} refuted, ${broken.unknown} unknown, ${broken.timeouts} strict timeouts.`,`- Shards: ${shardRows.filter(r=>r.exit===0).length}/7 passed; ${passes} Bun tests.`,`- Errors: ${errors.length}.`,'','| Suite | Protocol | Candidate | Base |','| --- | --- | ---: | ---: |',...[['IC3Syn',ic3syn],['DuoAI',duoai]].flatMap(([suite,data])=>(data as typeof ic3syn).protocols.map(p=>`| ${suite} | ${p.id} | ${p.cand}/${p.runs} | ${p.base}/${p.runs} |`))]
+const md=['# Track P gate verdicts','',`- IC3Syn: candidate ${ic3syn.cand}/${ic3syn.pairs}, base ${ic3syn.base}/${ic3syn.pairs}; pair losses ${ic3syn.regressions.length}.`,`- DuoAI: candidate ${duoai.cand}/${duoai.pairs}, base ${duoai.base}/${duoai.pairs}; pair losses ${duoai.regressions.length}.`,`- Broken: ${broken.proven.length} proven; ${broken.refuted} refuted, ${broken.unknown} unknown, ${broken.timeouts} strict timeouts.`,`- Shards: ${shardRows.filter(r=>r.exit===0).length}/7 passed; ${passes} Bun tests.`,`- Errors: ${errors.length}.`,'','| Suite | Protocol | Candidate | Base |','| --- | --- | ---: | ---: |',...([['IC3Syn',ic3syn],['DuoAI',duoai]]as const).flatMap(([suite,data])=>data.protocols.map(p=>`| ${suite} | ${p.id} | ${p.cand}/${p.runs} | ${p.base}/${p.runs} |`))]
 writeFileSync(root+'/SUMMARY.md',md.join('\n')+'\n')
 console.log(JSON.stringify(out))
 if(!out.passes)process.exitCode=1

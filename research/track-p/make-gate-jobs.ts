@@ -1,4 +1,5 @@
 // Prepare project gate manifests; no prover work runs here.
+export {}
 const make=(args:string[])=>{
  const out=Bun.spawnSync(['bun','research/protocols/ic3syn/jobs.ts',...args],{stdout:'pipe',stderr:'pipe'})
  if(out.exitCode)throw new Error(out.stderr.toString())
