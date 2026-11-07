@@ -17,13 +17,13 @@
 //      checks the final set. The ∃ search still uses `cone`: relative induction from already-kept candidates.
 import {type C, type E, type Law, type Machine} from './machine.ts'
 import {type CountCert, type CountInst, type Goal, type Instances, type MapRead, assumed, checkCountedLaws, checkMC, countedObligations, mcGoal, scope, substC, substE} from '../kernel/kernel.ts'
-import {brokenOf, clock, counted, fullRate, grow, modelInstances, wallAt, widen, withDeadline, withWall} from '../kernel/prove.ts'
+import {brokenOf, clock, counted, fullRate, grow, modelInstances, wallAt, widen, usedHyps, withDeadline, withWall} from '../kernel/prove.ts'
 import {REFUTED, cdclStats} from '../kernel/cdcl.ts'
 import {modelSequence} from '../kernel/model-sequence.ts'
 import {inferLaws} from './infer.ts'
 import {carryCandidates, scanPrefixes} from './carry.ts'
 import {relevantGoals, relevantLaws} from './relevance.ts'
-import {countPoolKey, countSignature, grammarPool, ids, polaritySelection, readTuples, refinementSignature, reservationReadClosure, reservationState, reservePool, prepareSupport, smallSelection, sparseReadInstances, sourceContext, selectedCertificate, chosenView, candidateWork, stableState, UnsupportedCountProposal} from './count-support.ts'
+import {countPoolKey, countSignature, grammarPool, ids, polaritySelection, readTuples, refinementSignature, reservationReadClosure, reservationState, reservePool, prepareSupport, smallSelection, sparseReadInstances, sourceContext, coarseContext, selectedCertificate, chosenView, candidateWork, stableState, UnsupportedCountProposal} from './count-support.ts'
 import {smallOf, trueSmall} from './exists.ts'
 import {env} from './solver.ts'
 
@@ -399,6 +399,13 @@ function searchCounted0(m0: Machine, g: ReturnType<typeof guardLaws>, m: Machine
   let set = env.GDP_COUNTS_GIVEN === '1' ? [...caller] : [...caller, ...candidates(m0, m, caller, caller, g.laws, ms, until, support)]
   countsDump.on?.({phase: 'candidates', machine: m, laws: set})
   if (env.GDP_COUNTS_TRACE) console.error(`counts: candidates at ${Math.round(clock() - t1)} ms: ${set.map(l => l.name).join('; ')}`)
+  return admitCountedFamily(m,caller,set,support,until)
+}
+
+// Candidate scheduling only. Every returned family still goes through finish.
+export function admitCountedFamily(m:Machine,caller:Law[],initial:Law[],support:Set<Law>,until:number):Counted {
+  if(!caller.every(l=>initial.includes(l)))return {proven:false,laws:initial,m,why:'missing caller'}
+  let set=initial.slice()
   const attempts = countedAttempts(m, caller, support, until), traced = attempts.traced
   const isCount = (mp: string) => !!m.counts?.[mp]
   // Prove the proposed set together. A preliminary cone reproved many helpers in
@@ -453,7 +460,60 @@ function searchCounted0(m0: Machine, g: ReturnType<typeof guardLaws>, m: Machine
     }
     return {proven: false, laws: set, m, why: 'time'}
   }
-  return join()
+  const dependencies=(owner:Law,proof:Proof,context:Law[]):Set<string>=>{
+    const conservative=()=>new Set(context.filter(l=>!l.forall||proof.instances[l.name]?.length).map(l=>l.name)),used=new Set<string>()
+    for(const {goal,decls}of countedObligations(m,context,{[owner.name]:proof.instances},context.indexOf(owner))){
+      const cert=proof.certs[goal.name]
+      if(!cert)return conservative()
+      const expanded=mcGoal(goal.hyps,decls,cert),refs=expanded&&usedHyps(expanded,cert.tree)
+      if(!refs)return conservative()
+      for(const index of refs)if(index<goal.hyps.length)used.add(json(goal.hyps[index]))
+    }
+    return new Set(context.filter(l=>assumed([l],proof.instances).some(h=>used.has(json(h)))).map(l=>l.name))
+  }
+  const demand=():Counted=>{
+    const known=new Map<string,{proof:Proof,context:Law[],deps:Set<string>}>()
+    attempts.houdini=true
+    while(clock()<until){
+      if(!activeSupport(set,support))return join()
+      const required=new Set(caller.map(l=>l.name)),available=new Set(set.map(l=>l.name))
+      for(const name of required){const saved=known.get(name);if(saved)for(const dep of saved.deps)if(available.has(dep))required.add(dep)}
+      const law=supportOrder(set,caller,support).find(l=>required.has(l.name)&&!known.has(l.name))
+      if(!law){
+        const kept=set.filter(l=>required.has(l.name)),instances:Record<string,Instances>={},certs:Record<string,CountCert>={}
+        for(const l of kept){
+          const saved=known.get(l.name)!
+          instances[l.name]=saved.proof.instances
+          const src=countedObligations(m,saved.context,{[l.name]:saved.proof.instances},saved.context.indexOf(l)),dst=countedObligations(m,kept,{[l.name]:saved.proof.instances},kept.indexOf(l))
+          for(let i=0;i<dst.length;i++){
+            const cert=saved.proof.certs[src[i]!.goal.name]
+            if(!cert)return join()
+            const a=mcGoal(src[i]!.goal.hyps,src[i]!.decls,cert),b=mcGoal(dst[i]!.goal.hyps,dst[i]!.decls,cert),tree=a&&b&&widen(a,b,cert.tree)
+            if(!tree)return join()
+            certs[dst[i]!.goal.name]={...cert,tree}
+          }
+        }
+        return finish(kept,{instances,certs})
+      }
+      const remaining=until-clock(),share=remaining/Math.max(1,set.length-known.size),allotted=supportBudget(remaining,share,caller.includes(law),support.has(law)&&!caller.includes(law)),stop=Math.min(until,clock()+Math.min(allotted,5000)),wall=performance.now()+4800
+      const countFirst=env.GDP_COUNTS_COUNT_FIRST!=='0'&&(reads(law.holds,isCount).size>0||!!law.keys?.length)
+      const ask=(context:Law[]):Tried<Proof>=>withWall(wall,()=>withDeadline(stop,()=>{
+        const pass:0|1=countFirst?1:0
+        let result=traced(law,context,pass,Math.min(allotted,Math.max(0,stop-clock())))
+        if(!('proof'in result)&&(countFirst||attempts.counted)&&clock()<stop)result=traced(law,context,pass?0:1,Math.min(allotted,Math.max(0,stop-clock())))
+        return result
+      }))
+      let context=caller.includes(law)?coarseContext(m,set,caller,support):set,result=ask(context)
+      if(!('proof'in result)&&context.length<set.length&&clock()<stop){context=set;result=ask(context)}
+      countsDump.on?.({phase:'demand-attempt',law:law.name,context:context.length,required:required.size,known:known.size,outcome:'proof'in result?'proof':result.stuck})
+      if('proof'in result){known.set(law.name,{proof:result.proof,context:context.slice(),deps:dependencies(law,result.proof,context)});continue}
+      if(caller.includes(law))return join()
+      set=set.filter(l=>l!==law)
+      for(const [name,saved]of known)if(saved.deps.has(law.name))known.delete(name)
+    }
+    return {proven:false,laws:set,m,why:'time'}
+  }
+  return activeSupport(set,support)?demand():join()
 }
 
 type Proof = {instances: Instances, certs: Record<string, CountCert>}

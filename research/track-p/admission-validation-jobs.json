@@ -1,0 +1,5 @@
+[
+{"name":"check","cmd":"bun install --frozen-lockfile >/dev/null && bun run check","timeout":240,"cpu":4,"memory":4096},
+{"name":"tests","cmd":"bun install --frozen-lockfile >/dev/null && bun test core/count-admission.test.ts core/support-order.test.ts core/count-support.test.ts core/counts-preflight.test.ts core/relevance.test.ts","timeout":120,"cpu":2,"memory":4096},
+{"name":"family38","cmd":"bun install --frozen-lockfile >/dev/null && PROFILE=1 bun research/track-p/production-replay.ts research/track-p/input","timeout":120,"cpu":2,"memory":4096}
+]

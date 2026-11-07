@@ -1064,6 +1064,13 @@ export function sparseReadInstances(m: Machine, laws: Law[], own: Law, at: Insta
   budget.mark('sources:end')
   return {...rest, added: [...added, ...rest.added], completeMatches, readKindMatches, termProposals, vacuousTermProposals, ownMatches, priorityMatches, rootFlags, flagMatches, kindMatches, summary: {...rest.summary, foundationBarrier:false, cap, completeReadAdmissions, liveReadAdmissions, livePairWork:liveMatches.summary.livePairWork+rest.summary.livePairWork, livePairExhausted:liveMatches.summary.livePairExhausted||rest.summary.livePairExhausted, readKindAdmissions, termProposalAdmissions, ownPREAdmissions, flagAdmissions, sharedGlobalBudget: true, generationWork:{...budget.state}}}
 }
+// Caller search keeps actual source roles and avoids high-arity/free-state
+// empirical guesses first. This is a context proposal, never an assumption.
+export function coarseContext(m:Machine,laws:Law[],caller:Law[],support:ReadonlySet<Law>):Law[]{
+ const width=Math.max(1,...Object.values(m.step.maps??{}).map(w=>'each'in w?0:names(w.key).size))
+ return laws.filter(l=>{if(caller.includes(l)||support.has(l))return true;const rs=readTuples(l.holds);if(rs.some(([map])=>!!m.counts?.[map]))return true;const bound=new Set([l.forall,...l.keys??[],...l.some??[]]),free=[...names(l.holds)].filter(v=>!bound.has(v)&&Object.hasOwn(m.state,v));return !free.length&&rs.length>=2&&bound.size<=width})
+}
+
 // Search context only, never an admitted invariant. Keep exact source laws and
 // order; every successful certificate must be widened and checked on the whole.
 export function sourceContext(m:Machine,laws:Law[],target:Law,support:ReadonlySet<Law>):Law[]{

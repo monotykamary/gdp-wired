@@ -6,6 +6,7 @@ import {checkCountedLaws,countedObligations,mcGoal,assumed} from '../../kernel/k
 import {clock,counted,fullRate,withDeadline,withWall,widen,usedHyps} from '../../kernel/prove.ts'
 import {readTuples} from '../../core/count-support.ts'
 import {protocols} from '../protocols/ic3syn/models.ts'
+import {coarseContext} from './coarse-context.ts'
 const data=JSON.parse(readFileSync(process.argv[2]!+'/production.json','utf8')) as {machine:Machine,laws:Law[]},m=data.machine,all=data.laws,p=protocols.find(p=>p.id==='paxos_epr')!,r=p.make(),names=new Set([...r.kindLaws(),...p.laws(r)].map(l=>l.name)),caller=all.filter(l=>names.has(l.name)),support=new Set(all.filter(l=>l.name.startsWith('carry:')||l.name.startsWith('scan-prefix:'))),narrow=process.argv[3]==='needed',precise=process.argv[4]==='used',warm=process.env.WARM_SUPPORT==='1',spine=process.env.DEFINITION_SPINE==='1'
 const foundation=new Set(all.filter(l=>!l.keys?.length&&readTuples(l.holds).some(([map])=>!!m.counts?.[map])))
 const sources=new Set(all.filter(l=>{
@@ -40,11 +41,12 @@ const result=withWall(start+60000,()=>counted(fullRate,()=>{
   }
   const law=todo[0]!,bounded=activeSupport(universe,support),share=(until-clock())/Math.max(1,universe.length-proofs.size),allotted=supportBudget(until-clock(),share,bounded&&caller.includes(law),support.has(law)&&!caller.includes(law)),end=Math.min(until,clock()+(bounded?Math.min(allotted,5000):allotted)),wall=Math.min(start+60000,performance.now()+4800)
   let out:any,context=universe
-  const ask=(ls:Law[],limit:number)=>withWall(wall,()=>withDeadline(limit,()=>{let q=attempts.traced(law,ls,0,Math.min(allotted,Math.max(0,limit-clock())));if(!('proof'in q)&&attempts.counted&&clock()<limit)q=attempts.traced(law,ls,1,Math.min(allotted,Math.max(0,limit-clock())));return q}))
+  const ask=(ls:Law[],limit:number)=>withWall(wall,()=>withDeadline(limit,()=>{const first:0|1=bounded&&(readTuples(law.holds).some(([map])=>!!m.counts?.[map])||!!law.keys?.length)?1:0;let q=attempts.traced(law,ls,first,Math.min(allotted,Math.max(0,limit-clock())));if(!('proof'in q)&&(first||attempts.counted)&&clock()<limit)q=attempts.traced(law,ls,first?0:1,Math.min(allotted,Math.max(0,limit-clock())));return q}))
+  if(process.env.CORE_CALLERS==='1'&&caller.includes(law)){context=coarseContext(m,universe,caller,support);out=ask(context,end)}
   if(narrow&&!caller.includes(law)&&required.size<universe.length){context=universe.filter(l=>required.has(l.name)||spine&&(support.has(l)||sources.has(l)));out=ask(context,Math.min(end,clock()+(end-clock())/3))}
   if(!out||!('proof'in out)){context=universe;out=ask(universe,end)}
   const deps='proof'in out?uses(out.proof,context,law):[]
-  const event={law:law.name,budget:allotted,contextNames:context.map(l=>l.name),requiredNames:[...required],dependencies:deps,outcome:'proof'in out?'proof':out.stuck,context:context.length,required:required.size,kept:proofs.size,ms:performance.now()-start};events.push(event);console.log(JSON.stringify(event))
+  const event={law:law.name,budget:allotted,contextNames:context.map(l=>l.name),requiredNames:[...required],dependencies:deps,outcome:'proof'in out?'proof':out.stuck,context:context.length,required:required.size,kept:proofs.size,ms:performance.now()-start};events.push(event);console.log(JSON.stringify({...event,contextNames:undefined,requiredNames:undefined}))
   if('proof'in out){proofs.set(law.name,{proof:out.proof,laws:context.slice(),deps});continue}
   if(caller.includes(law))return {checked:false,why:'caller failed',law:law.name}
   universe=universe.filter(l=>l!==law)

@@ -1,0 +1,4 @@
+[
+{"name":"precise","cmd":"bun install --frozen-lockfile >/dev/null && bun research/track-p/demand-admission.ts research/track-p/input all used","timeout":90,"cpu":4,"memory":4096},
+{"name":"conservative","cmd":"bun install --frozen-lockfile >/dev/null && bun research/track-p/demand-admission.ts research/track-p/input all","timeout":90,"cpu":4,"memory":4096}
+]

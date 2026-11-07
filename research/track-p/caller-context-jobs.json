@@ -1,0 +1,3 @@
+[
+{"name":"caller","cmd":"bun install --frozen-lockfile >/dev/null && REPLAY_MS=5000 TARGET_INDEX=7 COUNT_FIRST=1 CONTEXT_CONTROL=1 OMIT_LAWS=research/track-p/input/omitted.json bun research/track-p/contamination.ts research/track-p/input 4","timeout":120,"cpu":4,"memory":8192}
+]
