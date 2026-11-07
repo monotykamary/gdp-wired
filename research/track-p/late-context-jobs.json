@@ -1,0 +1,4 @@
+[
+{"name":"c11","cmd":"bun install --frozen-lockfile >/dev/null && REPLAY_MS=387 COUNT_FIRST=1 CONTEXT_CONTROL=1 bun research/track-p/contamination.ts research/track-p/input 4","timeout":90,"cpu":2,"memory":4096},
+{"name":"c45","cmd":"bun install --frozen-lockfile >/dev/null && REPLAY_MS=387 TARGET_INDEX=45 COUNT_FIRST=1 CONTEXT_CONTROL=1 bun research/track-p/contamination.ts research/track-p/input 4","timeout":90,"cpu":2,"memory":4096}
+]

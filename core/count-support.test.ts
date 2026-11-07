@@ -5,7 +5,17 @@ import {type CountDecl, type CountCert, type Goal, assumed, check, checkMC, mcGo
 import {grow, clock, counted, fullRate, withWall, withDeadline} from '../kernel/prove.ts'
 import {modelSequence} from '../kernel/model-sequence.ts'
 import {linOfE, canon} from './solver.ts'
-import {countPoolKey, rootFlagMatches, keyId, countedInstanceSources, completeReadMatches, projectBoundCoordinate, genuinelyKeyless, vacuousCountBinder, seedVacuousCounts, sparseReadInstances, matchAffineRemainder, stableState, stableSelected, bareRangeMap, targetKindMatches, seededBoundMaps, targetFlagMatches, ownPREMatches, remainingCoordinateProposals, grammarPool, reservationState, reservePool, ids, polaritySelection, prepareSupport, sourceBoundMaps, selectedCertificate, chosenView, candidateWork, instId, smallSelection, UnsupportedCountProposal} from './count-support.ts'
+import {countPoolKey, rootFlagMatches, keyId, countedInstanceSources, completeReadMatches, projectBoundCoordinate, genuinelyKeyless, vacuousCountBinder, seedVacuousCounts, sparseReadInstances, matchAffineRemainder, stableState, stableSelected, bareRangeMap, targetKindMatches, seededBoundMaps, targetFlagMatches, ownPREMatches, remainingCoordinateProposals, grammarPool, reservationState, reservePool, ids, polaritySelection, prepareSupport, sourceBoundMaps, selectedCertificate, chosenView, candidateWork, instId, smallSelection, UnsupportedCountProposal, sourceContext} from './count-support.ts'
+
+test('source contexts keep original definition support and unary guards without protocol names',()=>{
+ for(const prefix of ['fir','renamed'])for(const radix of [7,19]){
+  const n=(value:number):E=>({op:'const',value}),mp=(name:string)=>prefix+name,read=(name:string,key:E)=>get(mp(name),key),ge=(e:E):C=>({op:'<=',a:n(1),b:e}),pack=(a:E,b:E):E=>({op:'add',a:{op:'mul',k:radix,a},b})
+  const m:Machine={name:prefix,params:[],inputs:['a','b'],state:{mode:n(0)},maps:{[mp('main')]:0,[mp('needed')]:0,[mp('noise')]:0},counts:{[mp('score')]:{j:'arg',key:'w',below:n(radix),body:read('needed',pack(x('arg'),x('w')))},[mp('whole')]:{j:'unused',key:'w',below:n(radix),body:read('noise',x('w'))},[mp('irrelevant')]:{j:'arg',key:'w',below:n(radix),body:read('noise',pack(x('arg'),x('w')))}},step:{maps:{[mp('main')]:{key:pack(x('a'),x('b')),value:n(0)}}}}
+  const target:Law={name:prefix+' target',forall:'p',holds:{op:'and',xs:[ge(read('score',x('p'))),ge(read('main',x('p')))]}},needed:Law={name:prefix+' needed',forall:'p',holds:ge(read('needed',x('p')))},relation:Law={name:prefix+' direct',forall:'p',keys:['q'],holds:{op:'and',xs:[ge(read('main',x('p'))),ge(read('needed',x('q')))]}},derived:Law={...relation,name:prefix+' derived'},guard:Law={name:prefix+' guard',forall:'p',holds:{op:'or',xs:[{op:'not',x:ge(read('needed',x('p')))},{op:'<=',a:n(0),b:x('mode')}]}},keyless:Law={name:prefix+' keyless source',forall:'p',holds:ge(read('whole',x('p')))},noise:Law={name:prefix+' unrelated',forall:'p',holds:ge(read('noise',x('p')))},stateNoise:Law={name:prefix+' state guess',forall:'p',holds:{op:'and',xs:[ge(read('needed',x('p'))),{op:'=',a:x('mode'),b:n(0)}]}},wide:Law={name:prefix+' wide',forall:'p',keys:['q','r'],holds:ge(read('needed',pack(x('p'),x('q'))))},otherCount:Law={name:prefix+' other count',forall:'p',holds:ge(read('irrelevant',x('p')))}
+  const laws=[noise,target,derived,needed,stateNoise,relation,wide,guard,otherCount,keyless],before=JSON.stringify(laws),selected=sourceContext(m,laws,target,new Set([derived,guard]))
+  expect(selected).toEqual([target,needed,relation,guard,keyless]);expect(sourceContext(m,laws,relation,new Set([derived,guard]))).toEqual([needed,relation,guard]);expect(selected.every(l=>laws.includes(l))).toBe(true);expect(JSON.stringify(laws)).toBe(before)
+ }
+})
 
 test('v4 single complete root reads retain every guard across unrelated names and radices',()=>{
  for(const base of [17,83])for(const prefix of ['cedar_','other_']){
@@ -150,14 +160,27 @@ if(genuinelyKeyless({...base,base:37,lo:'lo',body:get('Cells',x('lo'))}))throw E
 
 test("selected witness joins reject stale and wrong-map sources", () => {
 const n=(value:number):E=>({op:'const',value}),key=(a:E,b:E):E=>({op:'add',a:{op:'mul',k:17,a},b}),positive=(map:string,k:E):C=>({op:'<=',a:n(1),b:get(map,k)}),rows:unknown[]=[]
-for(const live of ['arbitraryWitness','anotherLive'])for(const mode of ['positive','no-write-anchor','different-witness','not-live','wrong-map'] as const){
- const actual=mode==='not-live'?'unselected':live,right=mode==='different-witness'?'other':actual,high=mode==='no-write-anchor'?'unrelatedHigh':'fixed',m:Machine={name:'join test',params:[],inputs:['inputLow'],state:{fixed:n(0)},step:{maps:{Own:{key:key(x('fixed'),x('inputLow')),value:n(1)}}}},own:Law={name:'own',forall:'ownKey',holds:positive('Own',key(x('ownKey'),x('otherOwn')))},l:Law={name:'relation',forall:'node',keys:['hi','lo'],holds:{op:'or',xs:[not(positive('Promise',key(x('hi'),x('node')))),positive('Departed',key(x('node'),x('lo')))]}},c:Pick<CountCert,'reads'|'insts'>={reads:[['read','Count',n(0)]],insts:[{wit:live,below:n(5),terms:[[1,'read']],unit:0}]},g={name:'goal',hyps:[positive(mode==='wrong-map'?'Different':'Promise',key(x(high),x(actual))),positive('Departed',key(x(right),x('low')))]},r=sparseReadInstances(m,[l],own,{},g,c,64),wanted=[x(live),x(high),x('low')],found=r.added.find(a=>a.law===l.name&&JSON.stringify(a.tuple)===JSON.stringify(wanted)),expected=mode==='positive'||mode==='no-write-anchor'
+for(const live of ['arbitraryWitness','anotherLive'])for(const mode of ['positive','no-write-anchor','same-map','different-witness','not-live','wrong-map'] as const){
+ const actual=mode==='not-live'?'unselected':live,right=mode==='different-witness'?'other':actual,high=mode==='no-write-anchor'?'unrelatedHigh':'fixed',second=mode==='same-map'?'Promise':'Departed',m:Machine={name:'join test',params:[],inputs:['inputLow'],state:{fixed:n(0)},step:{maps:{Own:{key:key(x('fixed'),x('inputLow')),value:n(1)}}}},own:Law={name:'own',forall:'ownKey',holds:positive('Own',key(x('ownKey'),x('otherOwn')))},l:Law={name:'relation',forall:'node',keys:['hi','lo'],holds:{op:'or',xs:[not(positive('Promise',key(x('hi'),x('node')))),positive(second,key(x('node'),x('lo')))]}},c:Pick<CountCert,'reads'|'insts'>={reads:[['read','Count',n(0)]],insts:[{wit:live,below:n(5),terms:[[1,'read']],unit:0}]},g={name:'goal',hyps:[positive(mode==='wrong-map'?'Different':'Promise',key(x(high),x(actual))),positive(second,key(x(right),x('low')))]},r=sparseReadInstances(m,[l],own,{},g,c,64),wanted=[x(live),x(high),x('low')],found=r.added.find(a=>a.law===l.name&&JSON.stringify(a.tuple)===JSON.stringify(wanted)),expected=mode==='positive'||mode==='no-write-anchor'||mode==='same-map'
  if(!!found!==expected||r.summary.livePairWork>4096||r.added.length>64||r.added.some(a=>!a.coherent))throw Error('live join '+mode)
  if(found&&(!found.sources.every(p=>p.source.kind==='read'&&p.sameMap)||found.sources.length!==2))throw Error('not own-map reads')
+ if(expected&&mode!=='same-map')expect(sparseReadInstances(m,[l],own,{},g,c,1).added.some(a=>a.law===l.name&&JSON.stringify(a.tuple)===JSON.stringify(wanted))).toBe(true)
  rows.push({live,mode,expected,found,summary:r.summary})
 }
 
 }, 5000)
+
+test('count preparation reserves the same global budget for actual selected witnesses',()=>{
+ const n=(value:number):E=>({op:'const',value}),own:Law={name:'root',forall:'key',holds:{op:'<=',a:get('bits',x('key')),b:n(1)}},ranges:Law[]=Array.from({length:80},(_,i)=>({name:'source '+i,forall:'key',holds:{op:'<=',a:get('bits',x('key')),b:n(1)}})),laws=[own,...ranges],m:Machine={name:'reservation control',params:[],inputs:[],state:{},maps:{bits:0},counts:{members:{j:'unused',key:'j',below:n(5),body:get('bits',x('j'))}},step:{}}
+ const prepared=prepareSupport(m,laws,own,{},1)
+ expect(prepared.seedCount).toBe(32)
+ expect(Object.values(prepared.at).reduce((n,ts)=>n+ts.length,0)).toBe(32)
+ const ds:CountDecl[]=[{map:'members',j:'unused',key:'j',below:n(5),body:get('bits',x('j'))}],cert={reads:[['read','members',n(0)]] as CountCert['reads'],insts:[{wit:'live',below:n(5),terms:[[1,'read']] as [number,string][],unit:0}]},goal=mcGoal([],ds,cert)!,late=sparseReadInstances(m,laws,own,prepared.at,goal,cert,64-prepared.seedCount,undefined,ds)
+ expect(late.added).toHaveLength(32)
+ expect(late.added.map(p=>p.tuple)).toEqual(Array.from({length:32},()=>[x('live')]))
+ expect(prepared.seedCount+late.added.length).toBe(64)
+ expect(Object.values(late.at).every(ts=>ts.length<=4)).toBe(true)
+})
 
 test("affine remainder preserves exact polynomial", () => {
 const k=(value:number):E=>({op:'const',value}),mul=(n:number,e:E):E=>({op:'mul',k:n,a:e}),add=(a:E,b:E):E=>({op:'add',a,b}),rows:unknown[]=[]
@@ -362,19 +385,19 @@ test('full source occupancy replaces only structurally true slots; substantive s
  expect(expired.replacements).toHaveLength(0);expect(expired.at).toEqual(original);expect(expired.generationWork.deadline).toBe(true)
 })
 
-test('replacement of a new source slot reuses its debit; an initial slot cannot mint capacity at cap64',()=>{
+test('replacement reuses a cold source debit without exceeding the reserved initial cap',()=>{
  const n=(value:number):E=>({op:'const',value}),le=(a:E,b:E):C=>({op:'<=',a,b}),pack=(a:E,b:E):E=>({op:'add',a:{op:'mul',k:29,a},b})
  const own:Law={name:'root',forall:'u',keys:['v'],holds:le(n(1),get('cells',pack(x('u'),x('v'))))}
  const law:Law={name:'unique',forall:'a',keys:['b','c'],holds:{op:'or',xs:[same(x('b'),x('c')),not({op:'and',xs:[le(n(1),get('cells',pack(x('a'),x('b')))),le(n(1),get('cells',pack(x('a'),x('c'))))]})]}}
  const countLaws:Law[]=Array.from({length:64},(_,i)=>({name:'budget'+i,forall:'unused',holds:{op:'or',xs:[same(n(0),n(0)),le(get('T',x('unused')),n(3))]}}))
  const m:Machine={name:'debit provenance',params:[],inputs:['row','value'],state:{},maps:{cells:0},step:{maps:{cells:{key:pack(x('row'),x('value')),value:n(1)}}},counts:{T:{j:'j',key:'k',below:n(3),body:n(0)}}}
  const laws=[...countLaws,law,own],produced=prepareSupport(m,laws,own,{},1)
- expect(produced.seedCount).toBe(64);expect(produced.replacements.length).toBeGreaterThan(0)
+ expect(produced.seedCount).toBe(32);expect(produced.replacements.length).toBeGreaterThan(0)
  expect(produced.replacements.every(r=>r.origin==='new-source'&&r.admissionDebit===0)).toBe(true)
  const tupleCount=laws.reduce((s,l)=>s+(produced.at[l.name]?.length??0)/(1+(l.keys?.length??0)),0)
- expect(tupleCount).toBe(64)
+ expect(tupleCount).toBe(32)
  const initial={[law.name]:Array.from({length:4},(_,i)=>[n(i),n(i),n(i)]).flat()},blocked=prepareSupport(m,laws,own,initial,1)
- expect(blocked.seedCount).toBe(64);expect(blocked.at[law.name]).toEqual(initial[law.name]);expect(blocked.replacements).toHaveLength(0)
+ expect(blocked.seedCount).toBe(32);expect(blocked.at[law.name]).toEqual(initial[law.name]);expect(blocked.replacements).toHaveLength(0)
 })
 
 test('pre-existing CTI tuples do not consume the new source-proposal budget or trigger a new global refusal',()=>{
@@ -435,7 +458,11 @@ test('regenerated cold binders cannot steal a selected witness owner',()=>{
  const state=reservationState(g,[g,ds],1000),r=reservePool(g,ds,pool,previous,ds,chosen,state)
  expect(r.record.renamed).toHaveLength(1);expect(r.full.insts.find(i=>i.terms[0]?.[1]==='a')?.wit).toBe('leased');expect(r.full.insts.find(i=>i.terms[0]?.[1]==='b')?.wit).not.toBe('leased');expect(pool.full.insts[0]!.wit).toBe('leased');expect(mcGoal(g.hyps,ds,r.full)).toBeDefined()
  const dependent={...pool,full:{...pool.full,picks:[['b',[x('leased')]]] as [string,E[]][]}}
- expect(()=>reservePool(g,ds,dependent,previous,ds,chosen,reservationState(g,[g,ds],1000))).toThrow('cold witness dependency')
+ const safelyDropped=reservePool(g,ds,dependent,previous,ds,chosen,reservationState(g,[g,ds],1000))
+ expect(safelyDropped.record.quarantined).toEqual([cold]);expect(safelyDropped.full.insts).toEqual([selected]);expect(mcGoal(g.hyps,ds,safelyDropped.full)).toBeDefined()
+ const twoOwners={...previous,reads,insts:[selected,{...cold,wit:'secondOwner'}]}
+ const canonical=reservePool(g,ds,dependent,twoOwners,ds,new Set(ids(twoOwners)),reservationState(g,[g,ds],1000))
+ expect(canonical.full.insts.map(i=>i.wit)).toEqual(['leased','secondOwner']);expect(mcGoal(g.hyps,ds,canonical.full)).toBeDefined()
  const duplicate={...previous,reads,insts:[selected,cold]}
  expect(()=>reservePool(g,ds,pool,duplicate,ds,new Set(ids(duplicate)),reservationState(g,[g,ds],1000))).toThrow(UnsupportedCountProposal)
  expect(()=>reservePool(g,ds,pool,previous,ds,chosen,reservationState(g,[g,ds,x('leased')],1000))).toThrow('owned witness capture/source')

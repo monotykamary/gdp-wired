@@ -410,10 +410,13 @@ export function reservePool(goal:Goal,decls:CountDecl[],pool:ReturnType<typeof g
   if(names([goal.hyps,decls.map(d=>[d.body,d.below]),reads.map(r=>r[2])],reservationOpen).has(current[0])||decls.some(d=>[d.j,d.lo,d.key].includes(current![0])))throw new UnsupportedCountProposal('reservation read capture')
   preserved.push(current)
  }
- const full={...pool.full,reads,insts:[...pool.full.insts]},oldReads=new Map(previous.reads.map(r=>[r[0],r])),nowReads=new Map(full.reads.map(r=>[json([r[1],keyId(r[2])]),r])),oldDecls=new Map(previousDecls.map(d=>[d.map,d])),nowDecls=new Map(decls.map(d=>[d.map,d])),currentIds=new Set(ids(full)),oldIds=ids(previous),pending:CountCert['insts']=[],rebindings:unknown[]=[]
+ const full={...pool.full,reads,insts:[...pool.full.insts]},oldReads=new Map(previous.reads.map(r=>[r[0],r])),nowReads=new Map(full.reads.map(r=>[json([r[1],keyId(r[2])]),r])),oldDecls=new Map(previousDecls.map(d=>[d.map,d])),nowDecls=new Map(decls.map(d=>[d.map,d])),fullIds=ids(full),currentIds=new Set(fullIds),oldIds=ids(previous),pending:CountCert['insts']=[],rebindings:unknown[]=[]
  for(const r of preserved)nowReads.set(json([r[1],keyId(r[2])]),r)
- const renamed:{key:string,from:string,to:string}[]=[]
+ const renamed:{key:string,from:string,to:string}[]=[],quarantined:{index:number,instance:CountInst}[]=[]
  if(owner){
+  // Regenerated representatives do not own selected binder names. Restore
+  // those entries from the prior checked semantic selection below instead.
+  full.insts=full.insts.filter((_,i)=>{const key=fullIds[(full.picks?.length??0)+i]!;if(!chosen.has(key))return true;currentIds.delete(key);return false})
   const protectedWits=new Map<string,string>(),protect=(key:string,wit:string)=>{const old=protectedWits.get(wit);if(old!==undefined&&old!==key)throw new UnsupportedCountProposal('reservation different witness owner');protectedWits.set(wit,key)}
   for(const [key,lease]of owner.leases)protect(key,lease.wit)
   for(const key of chosen)if(key.startsWith('i')){const at=oldIds.indexOf(key)-(previous.picks?.length??0);protect(key,requireValue(previous.insts[at],'selected owner').wit)}
@@ -427,10 +430,16 @@ export function reservePool(goal:Goal,decls:CountDecl[],pool:ReturnType<typeof g
    if(owned===undefined)continue
    const key='i'+instId(i,full.reads);if(owned===key)continue
    dependencies??=sourceNames([full.reads,full.picks,full.insts.map(j=>j.below)],reservationOpen)
-   if(dependencies.has(i.wit))throw new UnsupportedCountProposal('reservation cold witness dependency')
+   if(dependencies.has(i.wit)){
+    if(chosen.has(key)||owner.leases.has(key))throw new UnsupportedCountProposal('reservation cold witness dependency')
+    // A dependent cold proposal cannot be renamed. Drop only that unselected
+    // entry; live owners and every read/pick term retain their exact spelling.
+    quarantined.push({index:at,instance:i});continue
+   }
    let wit:string;do{reservationOpen();wit='w$'+state.next++}while(fresh.has(wit));fresh.add(wit)
    full.insts[at]={...i,wit};renamed.push({key,from:i.wit,to:wit})
   }
+  if(quarantined.length){const removed=new Set(quarantined.map(q=>q.index));full.insts=full.insts.filter((_,i)=>!removed.has(i))}
  }
  for(const key of chosen){
   reservationOpen()
@@ -481,7 +490,7 @@ export function reservePool(goal:Goal,decls:CountDecl[],pool:ReturnType<typeof g
   owner.leases=leases
   for(const key of state.inserted.keys())if(!chosen.has(key))state.inserted.delete(key)
  }
- return {full:next,record:{cap,chosen:chosen.size,renamed,baseSize:full.insts.length,finalSize:insts.length,preservedReads:preserved,rebindings,inserted:inserted.map(i=>({key:'i'+instId(i,full.reads),instance:i})),evicted:evicted.map(i=>({key:'i'+instId(i,full.reads),instance:i})),reified:inserted.length,unselectedTailOnly:true}}
+ return {full:next,record:{cap,chosen:chosen.size,renamed,quarantined:quarantined.map(q=>q.instance),baseSize:full.insts.length,finalSize:insts.length,preservedReads:preserved,rebindings,inserted:inserted.map(i=>({key:'i'+instId(i,full.reads),instance:i})),evicted:evicted.map(i=>({key:'i'+instId(i,full.reads),instance:i})),reified:inserted.length,unselectedTailOnly:true}}
 }
 
 const canonJSON=(v:unknown):string=>JSON.stringify(v,(_k,x)=>x&&typeof x==='object'&&!Array.isArray(x)?Object.fromEntries(Object.entries(x).sort(([a],[b])=>a.localeCompare(b))):x)
@@ -560,7 +569,7 @@ function emptyReadResult(at: Instances, cap: number) {
  return {at,added:[] as Choice[],proposals:[] as unknown[],mixed:[] as Choice[],summary:{livePairWork:0,livePairLimit:4096,livePairExhausted:false,anchors:[] as Source[],candidates:0,mixedAlternatives:0,admitted:0,perLawLimit:4,cap,rawFocusSupplied:false,selectedWitnesses:[] as string[],directCountMaps:[] as string[],writeVariables:[] as string[],allTuplesGenuinePRE:true,noMixedTupleAdmitted:true}}
 }
 
-function baseReadInstances(m:Machine,laws:Law[],own:Law,at:Instances,goal:Goal,cert:Pick<CountCert,'reads'|'insts'>,cap=64,rawNegatedPost?:C,more:()=>boolean=candidateWork().tick){
+function baseReadInstances(m:Machine,laws:Law[],own:Law,at:Instances,goal:Goal,cert:Pick<CountCert,'reads'|'insts'>,cap=64,rawNegatedPost?:C,more:()=>boolean=candidateWork().tick,mode:'all'|'live'|'cold'='all',pairBudget={work:0}){
  const boundedReads=(v:unknown)=>readTuples(v,more)
  if(cap<=0)return emptyReadResult(at,cap)
  const ks=vars(own),ownTerms=ks.map((n,i):E=>({op:'var',name:i===0?n+'#':n})),ownBody=substC(own.holds,{vars:Object.fromEntries(ks.map((n,i)=>[n,ownTerms[i]!])),maps:{},flags:{}})
@@ -576,7 +585,7 @@ function baseReadInstances(m:Machine,laws:Law[],own:Law,at:Instances,goal:Goal,c
   if(!l.forall||(at[l.name]?.length??0)/(1+(l.keys?.length??0))>=4)continue
   const ns=vars(l),oneKey=projectionEligible(m,l,more);if((ns.length<2&&!oneKey)||l===own)continue
   const pats=lawReads(l,more).filter(([,key])=>[...names(key)].filter(n=>ns.includes(n)).length>=(oneKey?1:2)),partials:Partial[]=[]
-  for(const pattern of pats)for(const source of [...anchors,...actual.filter(s=>s.map===pattern[0])]){
+  for(const pattern of pats)for(const source of [...(mode==='live'?[]:anchors),...actual.filter(s=>s.map===pattern[0]&&(mode!=='live'||[...names(s.key)].some(n=>selectedWitnesses.has(n))))]){
    if(!more())break sourceLaws
    const sameMap=source.map===pattern[0];if(oneKey&&!sameMap)continue
    const binding=matchRead(pattern[1],source.key,ns)
@@ -586,9 +595,9 @@ function baseReadInstances(m:Machine,laws:Law[],own:Law,at:Instances,goal:Goal,c
    else if(oneKey&&sameMap){const projection=projectBoundCoordinate(m,pattern[1],source.key,ns[0]!);if(projection)partials.push({binding:projection.binding,source,pattern,sameMap,projection})}
   }
   const seen=new Set<string>(),countLaw=lawReads(l,more).some(([mp])=>!!m.counts?.[mp])
-  const add=(binding:Binding,sources:Partial[],conflicts:string[])=>{if(!ns.every(n=>binding[n]))return;const tuple=ns.map(n=>binding[n]!),id=json([conflicts.length?'mixed':'coherent',tuple]);if(seen.has(id))return;seen.add(id);const s=score(tuple,sources);const joined=!conflicts.length&&sources.length===2&&sources.every(p=>p.source.kind==='read'&&p.sameMap&&!p.projection)&&Object.entries(sources[0]!.binding).some(([slot,e])=>e.op==='var'&&selectedWitnesses.has(e.name)&&json(e)===json(sources[1]!.binding[slot]));if(s<100&&!joined&&!sources.some(x=>x.source.kind==='own')&&!sources.some(x=>x.remainder)&&!(oneKey&&tuple.some(t=>t.op==='var'&&selectedWitnesses.has(t.name))&&sources.some(p=>p.source.kind==='read'&&p.sameMap)))return;const c:Choice={law:l.name,tuple,sources,coherent:!conflicts.length,conflicts,score:s,countLaw};(conflicts.length?mixed:candidates).push(c)}
+  const add=(binding:Binding,sources:Partial[],conflicts:string[])=>{if(!ns.every(n=>binding[n]))return;const tuple=ns.map(n=>binding[n]!),id=json([conflicts.length?'mixed':'coherent',tuple]);if(seen.has(id))return;seen.add(id);const s=score(tuple,sources);const joined=!conflicts.length&&sources.length===2&&sources.every(p=>p.source.kind==='read'&&p.sameMap&&!p.projection)&&Object.entries(sources[0]!.binding).some(([slot,e])=>e.op==='var'&&selectedWitnesses.has(e.name)&&json(e)===json(sources[1]!.binding[slot]));if(mode==='live'&&(!joined||sources[0]!.pattern[0]===sources[1]!.pattern[0]))return;if(s<100&&!joined&&!sources.some(x=>x.source.kind==='own')&&!sources.some(x=>x.remainder)&&!(oneKey&&tuple.some(t=>t.op==='var'&&selectedWitnesses.has(t.name))&&sources.some(p=>p.source.kind==='read'&&p.sameMap)))return;const c:Choice={law:l.name,tuple,sources,coherent:!conflicts.length,conflicts,score:s,countLaw};(conflicts.length?mixed:candidates).push(c)}
   for(const p of partials){if(!more())break sourceLaws;add(p.binding,[p],[])}
-  for(let i=0;i<partials.length;i++)for(let j=i+1;j<partials.length;j++){
+  if(mode!=='live')for(let i=0;i<partials.length;i++)for(let j=i+1;j<partials.length;j++){
    if(!more())break sourceLaws
    const a=partials[i]!,b=partials[j]!;if(a.source.kind==='read'&&b.source.kind==='read')continue
    const overlap=Object.keys(a.binding).filter(n=>b.binding[n]&&json(a.binding[n])!==json(b.binding[n]))
@@ -601,15 +610,17 @@ function baseReadInstances(m:Machine,laws:Law[],own:Law,at:Instances,goal:Goal,c
   const paired=new Set<string>()
   livePairs: for(const bucket of buckets.values())for(let i=0;i<bucket.length;i++)for(let j=i+1;j<bucket.length;j++){
    if(!more())break sourceLaws
-   if(livePairWork>=livePairLimit){livePairExhausted=true;break livePairs}
-   const a=bucket[i]!,b=bucket[j]!,id=json([indices.get(a),indices.get(b)]);if(paired.has(id))continue;paired.add(id);livePairWork++
+   const a=bucket[i]!,b=bucket[j]!,sameMap=a.pattern[0]===b.pattern[0]
+   if(mode==='live'&&sameMap||mode==='cold'&&!sameMap)continue
+   if(pairBudget.work>=livePairLimit){livePairExhausted=true;break livePairs}
+   const id=json([indices.get(a),indices.get(b)]);if(paired.has(id))continue;paired.add(id);livePairWork++;pairBudget.work++
    const overlap=Object.keys(a.binding).filter(n=>b.binding[n]&&json(a.binding[n])!==json(b.binding[n]));if(overlap.length)continue
    add({...a.binding,...b.binding},[a,b],[])
   }
  }
  const out:Instances={...at},added:Choice[]=[]
  const append=(c:Choice)=>{if(added.length>=cap)return;const n=c.tuple.length,had=out[c.law]??[];if(!n||had.length%n||had.length/n>=4)return;for(let i=0;i<had.length;i+=n)if(json(had.slice(i,i+n))===json(c.tuple))return;out[c.law]=[...had,...c.tuple];added.push(c)}
- if(own.forall)append({law:own.name,tuple:ownTerms,sources:[],coherent:true,conflicts:[],score:Infinity,countLaw:false})
+ if(mode!=='live'&&own.forall)append({law:own.name,tuple:ownTerms,sources:[],coherent:true,conflicts:[],score:Infinity,countLaw:false})
  const existed=(c:Choice)=>{const old=at[c.law]??[],n=c.tuple.length;for(let i=0;i<old.length;i+=n)if(json(old.slice(i,i+n))===json(c.tuple))return true;return false}
  const witnessComplete=(c:Choice)=>c.coherent&&(c.sources.some(p=>p.source.kind==='read'&&p.sameMap&&!p.projection&&Object.keys(p.binding).length===c.tuple.length&&[...names(p.source.key)].some(n=>selectedWitnesses.has(n)))||c.sources.length===2&&c.sources.every(p=>p.source.kind==='read'&&p.sameMap&&!p.projection)&&Object.entries(c.sources[0]!.binding).some(([slot,e])=>e.op==='var'&&selectedWitnesses.has(e.name)&&json(e)===json(c.sources[1]!.binding[slot])))
  const ownAnchor=(c:Choice)=>c.coherent&&c.sources.some(p=>p.source.kind==='own')
@@ -991,16 +1002,30 @@ export function sparseReadInstances(m: Machine, laws: Law[], own: Law, at: Insta
   cap = Math.max(0, Math.min(64, cap))
   const slots = (l:Law) => !!l.forall && (at[l.name]?.length??0)/(1+(l.keys?.length??0)) < 4
   const available = cap>0 && (laws.some(slots) || slots(own) || Object.keys(m.step.flags??{}).length>0)
-  const more=budget.tick, sources=available?laws.filter(l=>!l.forall||slots(l)):[]
+  const more=budget.tick,pairBudget={work:0}, sources=available?laws.filter(l=>!l.forall||slots(l)):[]
+  // Reify indispensable own PRE/flag bindings before deriving downstream reads.
+  // They often expose the very second read required by a live witness join.
+  const foundationalOwn=available&&cert.insts.length?ownPREMatches(m,sources,own,decls,cert,rawPost,sourceMaps,preHyps,more):undefined
+  const foundationalRoot=available&&cert.insts.length?rootFlagMatches(m,own,more):undefined
+  const foundationalFlags=foundationalRoot?[...foundationalRoot,...targetFlagMatches(m,decls,cert,rawPost,sourceMaps,more)]:undefined
+  if(foundationalFlags&&foundationalOwn){
+   const next={...at},found:Choice[]=[]
+   const add=(p:{law:string,tuple:E[]})=>{const width=p.tuple.length,old=next[p.law]??[];if(!width||old.length%width||old.length/width>=4||found.length>=cap)return;for(let i=0;i<old.length;i+=width)if(json(old.slice(i,i+width))===json(p.tuple))return;next[p.law]=[...old,...p.tuple];found.push({law:p.law,tuple:p.tuple,coherent:true,conflicts:[],score:Infinity,countLaw:false,sources:[]})}
+   for(const p of foundationalFlags)add(p)
+   const flagAdmissions=found.length
+   for(const p of foundationalOwn)add(p)
+   if(found.length){const empty=emptyReadResult(next,cap);budget.mark('sources:foundation');return {...empty,added:found,completeMatches:[],readKindMatches:[],termProposals:[],vacuousTermProposals:[],ownMatches:foundationalOwn,priorityMatches:[],rootFlags:foundationalRoot??[],flagMatches:foundationalFlags,kindMatches:[],summary:{...empty.summary,foundationBarrier:true,completeReadAdmissions:0,liveReadAdmissions:0,readKindAdmissions:0,termProposalAdmissions:0,ownPREAdmissions:found.length-flagAdmissions,flagAdmissions,sharedGlobalBudget:true,generationWork:{...budget.state}}}}
+  }
   const completeMatches = available?completeReadMatches(m, sources, own, decls, cert, more, completePriority==='current'):[]
   budget.mark('sources:complete')
+  const liveMatches=available&&cert.insts.length?baseReadInstances(m,sources,own,at,goal,cert,cap,rawPost,more,'live',pairBudget):emptyReadResult(at,cap)
   const readKindMatches = available?primitiveReadKinds(m,sources,completeMatches.map(p=>p.premise),more):[]
   const termProposals = available?remainingCoordinateProposals(m, sources, decls, cert, rawPost, sourceMaps, preHyps, more, own):[]
   budget.mark('sources:terms')
-  const ownMatches = available?ownPREMatches(m, sources, own, decls, cert, rawPost, sourceMaps, preHyps, more):[]
+  const ownMatches = foundationalOwn??(available?ownPREMatches(m, sources, own, decls, cert, rawPost, sourceMaps, preHyps, more):[])
   const priorityMatches = available?targetReadMatches(m, sources.filter(l => l !== own), decls, cert, rawPost, sourceMaps, more):[]
-  const rootFlags = available?rootFlagMatches(m,own,more):[]
-  const flagMatches = available?[...rootFlags,...targetFlagMatches(m, decls, cert, rawPost, sourceMaps, more)]:[]
+  const rootFlags = foundationalRoot??(available?rootFlagMatches(m,own,more):[])
+  const flagMatches = foundationalFlags??(available?[...rootFlags,...targetFlagMatches(m, decls, cert, rawPost, sourceMaps, more)]:[])
   const kindMatches = available?targetKindMatches(m, sources, decls, cert, rawPost, sourceMaps, more):[]
   const out: Instances = {...at}, added: Choice[] = []
   const append = (p: {law: string, tuple: E[]}, coherent = true) => {
@@ -1012,17 +1037,21 @@ export function sparseReadInstances(m: Machine, laws: Law[], own: Law, at: Insta
     out[p.law] = [...old, ...p.tuple]
     added.push({law: p.law, tuple: p.tuple, coherent, conflicts: [], score: Infinity, countLaw: false, sources: []})
   }
-  for (const p of completeMatches) append(p)
-  const completeReadAdmissions = added.length
+  for (const p of completeMatches) if(p.source.kind==='selected')append(p)
+  const beforeLive=added.length
+  for(const p of liveMatches.added){const before=added.length;append(p);if(added.length>before)added[added.length-1]=p}
+  const liveReadAdmissions=added.length-beforeLive
+  for (const p of completeMatches) if(p.source.kind!=='selected')append(p)
+  const completeReadAdmissions = added.length-liveReadAdmissions
   for(const p of readKindMatches)append(p)
   const readKindAdmissions = added.length - completeReadAdmissions
   const vacuousTermProposals:TermProposal[]=[],writeAnchored=new Set(termProposals.filter(p=>p.ownWriteKeyMatch).map(p=>p.law))
   // Deduplication must not backfill its freed slots with lower-quality cold
   // sources when the current obligation supplies an exact write-key donor.
   for (const p of termProposals) {if(structuralTruth(p.premise,more)===true)vacuousTermProposals.push(p);else if(p.ownWriteKeyMatch||!writeAnchored.has(p.law))append(p, false)}
-  const termProposalAdmissions = added.length - completeReadAdmissions - readKindAdmissions
+  const termProposalAdmissions = added.length - completeReadAdmissions - readKindAdmissions - liveReadAdmissions
   for (const p of ownMatches) append(p)
-  const ownPREAdmissions = added.length - completeReadAdmissions - readKindAdmissions - termProposalAdmissions
+  const ownPREAdmissions = added.length - completeReadAdmissions - readKindAdmissions - termProposalAdmissions - liveReadAdmissions
   for (const p of priorityMatches) append(p)
   const beforeFlags = added.length
   for (const p of flagMatches) append(p)
@@ -1031,10 +1060,30 @@ export function sparseReadInstances(m: Machine, laws: Law[], own: Law, at: Insta
   // Do not refill deduplicated preferred-source slots through the generic
   // partial-read fallback. Exact matches above remain eligible on every pass.
   const restSources=sources.filter(l=>!writeAnchored.has(l.name))
-  const rest = available?baseReadInstances(m, restSources, own, added.length ? out : at, goal, cert, cap - added.length, rawPost, more):emptyReadResult(at,cap)
+  const rest = available?baseReadInstances(m, restSources, own, added.length ? out : at, goal, cert, cap - added.length, rawPost, more,'cold',pairBudget):emptyReadResult(at,cap)
   budget.mark('sources:end')
-  return {...rest, added: [...added, ...rest.added], completeMatches, readKindMatches, termProposals, vacuousTermProposals, ownMatches, priorityMatches, rootFlags, flagMatches, kindMatches, summary: {...rest.summary, cap, completeReadAdmissions, readKindAdmissions, termProposalAdmissions, ownPREAdmissions, flagAdmissions, sharedGlobalBudget: true, generationWork:{...budget.state}}}
+  return {...rest, added: [...added, ...rest.added], completeMatches, readKindMatches, termProposals, vacuousTermProposals, ownMatches, priorityMatches, rootFlags, flagMatches, kindMatches, summary: {...rest.summary, foundationBarrier:false, cap, completeReadAdmissions, liveReadAdmissions, livePairWork:liveMatches.summary.livePairWork+rest.summary.livePairWork, livePairExhausted:liveMatches.summary.livePairExhausted||rest.summary.livePairExhausted, readKindAdmissions, termProposalAdmissions, ownPREAdmissions, flagAdmissions, sharedGlobalBudget: true, generationWork:{...budget.state}}}
 }
+// Search context only, never an admitted invariant. Keep exact source laws and
+// order; every successful certificate must be widened and checked on the whole.
+export function sourceContext(m:Machine,laws:Law[],target:Law,support:ReadonlySet<Law>):Law[]{
+ const width=Math.max(1,...Object.values(m.step.maps??{}).map(w=>'each'in w?0:names(w.key).size))
+ const maps=(value:unknown)=>new Set(readTuples(value).map(([map])=>map)),demand=maps(target.holds)
+ for(const map of demand){const d=m.counts?.[map];if(d)for(const dep of maps([d.body,d.below]))demand.add(dep)}
+ const countDemand=[...demand].some(map=>!!m.counts?.[map])
+ const arity=(l:Law)=>Number(!!l.forall)+(l.keys?.length??0),signature=(l:Law)=>json([arity(l),[...maps(l.holds)].sort()])
+ const direct=new Set(laws.filter(l=>!support.has(l)&&readTuples(l.holds).every(([map])=>!m.counts?.[map])).map(signature))
+ return laws.filter(l=>{
+  if(l===target)return true
+  const reads=readTuples(l.holds)
+  if(support.has(l))return maps(l.holds).size<2||!direct.has(signature(l))
+  if(!reads.length)return true
+  if(reads.some(([map])=>!!m.counts?.[map]))return reads.some(([map])=>!!m.counts?.[map]&&(demand.has(map)||countDemand&&genuinelyKeyless(m.counts[map]!)))
+  const bound=new Set([l.forall,...l.keys??[],...l.some??[]]);if(arity(l)>width||[...names(l.holds)].some(v=>!bound.has(v)&&Object.hasOwn(m.state,v)))return false
+  return reads.every(([map])=>demand.has(map))
+ })
+}
+
 export const countSignature = (c: Pick<CountCert, 'reads' | 'insts' | 'picks'>) => json([
   c.reads.map(r => [r[1], keyId(r[2])]).sort((a, b) => json(a).localeCompare(json(b))), ids(c).sort()])
 export const refinementSignature = (goal: Goal, c: Pick<CountCert, 'reads' | 'insts' | 'picks'>) => json([
@@ -1063,11 +1112,12 @@ export function sourceBoundMaps(m: Machine, laws: Law[], at: Instances, more:()=
 // refinement in the target attempt. No fresh fuel is created by a source phase.
 export function prepareSupport(m: Machine, laws: Law[], own: Law, initial: Instances, pass: 0 | 1, budget=candidateWork()) {
   const more=budget.tick;budget.mark('prepare:begin')
+  const limit=pass?32:64 // Keep half of the same 64 slots for actual selected witnesses.
   let at: Instances = {...initial}, seedCount = 0
   const newSources=new Set<string>()
   const append = (name: string, tuple: E[]) => {
     const old=at[name]??[],width=tuple.length
-    if(!width||seedCount>=64||old.length%width||old.length/width>=4)return
+    if(!width||seedCount>=limit||old.length%width||old.length/width>=4)return
     for(let i=0;i<old.length;i+=width)if(json(old.slice(i,i+width))===json(tuple))return
     at[name]=[...old,...tuple];newSources.add(json([name,tuple]));seedCount++
   }
@@ -1079,7 +1129,7 @@ export function prepareSupport(m: Machine, laws: Law[], own: Law, initial: Insta
    const reads=[...readTuples(root,more),...transitionReads(m,own,more).map(s=>s.read),...readTuples(cold.goal.hyps,more)]
    for(const l of laws){if(seedCount>=64||!more())break;const map=bareRangeMap(m,l,more);if(map)for(const [mp,key]of reads){if(!more()||seedCount>=64)break;if(mp===map)append(l.name,[key])}}
   }
-  if(pass){const seeded=seedVacuousCounts(m,laws,at,64-seedCount,more);at=seeded.at;seedCount+=seeded.added.length;for(const s of seeded.added)newSources.add(json([s.law,s.tuple]))}
+  if(pass){const seeded=seedVacuousCounts(m,laws,at,limit-seedCount,more);at=seeded.at;seedCount+=seeded.added.length;for(const s of seeded.added)newSources.add(json([s.law,s.tuple]))}
   const sourceMaps=sourceBoundMaps(m,laws,at,more)
   budget.mark('prepare:seeded')
   const cold=row(),empty={reads:[],insts:[],picks:[],wits:[],loose:false},cert=empty,goal=mcGoal(cold.goal.hyps,cold.decls,cert)
@@ -1088,7 +1138,7 @@ export function prepareSupport(m: Machine, laws: Law[], own: Law, initial: Insta
   if(goal&&more()){
    // Complete root/free-transition bindings and their exact range laws may
    // enter early. Count witnesses are deferred until a live view is selected.
-   const seeds=sparseReadInstances(m,laws,own,at,goal,cert,64-seedCount,cold.goal.hyps.at(-1),cold.decls,sourceMaps,cold.goal.hyps.slice(0,-1),budget,'root')
+   const seeds=sparseReadInstances(m,laws,own,at,goal,cert,limit-seedCount,cold.goal.hyps.at(-1),cold.decls,sourceMaps,cold.goal.hyps.slice(0,-1),budget,'root')
    const roots=new Set([...seeds.completeMatches.filter(p=>p.source.kind!=='selected'),...seeds.readKindMatches,...seeds.rootFlags].map(p=>json([p.law,p.tuple])))
    const proposals=new Map(seeds.termProposals.map(p=>[json([p.law,p.tuple]),p]))
    for(const s of seeds.added){
@@ -1113,7 +1163,7 @@ export function prepareSupport(m: Machine, laws: Law[], own: Law, initial: Insta
    })
    budget.mark('prepare:revisit')
    const current=eligible.some(l=>!!l.forall)?row():undefined,proposals=current?remainingCoordinateProposals(m,eligible,current.decls,cert,current.goal.hyps.at(-1),sourceMaps,current.goal.hyps.slice(0,-1),more,own):[]
-   const priority=prioritizeTerms(laws,at,proposals,64-seedCount,newSources,more)
+   const priority=prioritizeTerms(laws,at,proposals,limit-seedCount,newSources,more)
    at=priority.at;seedCount+=priority.admissionCount;termAdmissions.push(...priority.added,...priority.replacements.map(r=>r.replacement));replacements.push(...priority.replacements)
   }
   const finalSourceMaps=replacements.length?sourceBoundMaps(m,laws,at,more):sourceMaps

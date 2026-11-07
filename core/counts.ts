@@ -16,14 +16,14 @@
 //      support survives. Avoid proving the same helpers in several preliminary cone contexts; checkCountedLaws
 //      checks the final set. The ∃ search still uses `cone`: relative induction from already-kept candidates.
 import {type C, type E, type Law, type Machine} from './machine.ts'
-import {type CountCert, type CountInst, type Goal, type Instances, type MapRead, assumed, checkCountedLaws, countedObligations, mcGoal, scope, substC, substE} from '../kernel/kernel.ts'
+import {type CountCert, type CountInst, type Goal, type Instances, type MapRead, assumed, checkCountedLaws, checkMC, countedObligations, mcGoal, scope, substC, substE} from '../kernel/kernel.ts'
 import {brokenOf, clock, counted, fullRate, grow, modelInstances, wallAt, widen, withDeadline, withWall} from '../kernel/prove.ts'
 import {REFUTED, cdclStats} from '../kernel/cdcl.ts'
 import {modelSequence} from '../kernel/model-sequence.ts'
 import {inferLaws} from './infer.ts'
 import {carryCandidates, scanPrefixes} from './carry.ts'
 import {relevantGoals, relevantLaws} from './relevance.ts'
-import {countPoolKey, countSignature, grammarPool, ids, polaritySelection, readTuples, refinementSignature, reservationReadClosure, reservationState, reservePool, prepareSupport, smallSelection, sparseReadInstances, selectedCertificate, chosenView, candidateWork, stableState, UnsupportedCountProposal} from './count-support.ts'
+import {countPoolKey, countSignature, grammarPool, ids, polaritySelection, readTuples, refinementSignature, reservationReadClosure, reservationState, reservePool, prepareSupport, smallSelection, sparseReadInstances, sourceContext, selectedCertificate, chosenView, candidateWork, stableState, UnsupportedCountProposal} from './count-support.ts'
 import {smallOf, trueSmall} from './exists.ts'
 import {env} from './solver.ts'
 
@@ -433,7 +433,7 @@ function searchCounted0(m0: Machine, g: ReturnType<typeof guardLaws>, m: Machine
           const ms = Math.min(allotted, Math.max(0, (boundedSupport ? supportUntil : until) - clock()))
           return boundedSupport ? withWall(supportWall, () => withDeadline(supportUntil, () => traced(law, set, pass, ms))) : traced(law, set, pass, ms)
         }
-        const countFirst = env.GDP_COUNTS_COUNT_FIRST === '1' && reads(law.holds, isCount).size > 0
+        const countFirst = (env.GDP_COUNTS_COUNT_FIRST === '1' || boundedSupport && env.GDP_COUNTS_COUNT_FIRST !== '0') && (reads(law.holds, isCount).size > 0 || boundedSupport && !!law.keys?.length)
         let r: Tried<Proof> = was ? {proof: was} : ask(countFirst ? 1 : 0)
         if (!('proof' in r) && (countFirst || attempts.counted)) r = ask(countFirst ? 0 : 1)
         if (!('proof' in r)) { failed.add(law.name); continue }
@@ -572,7 +572,7 @@ export function countedAttempts(m: Machine, caller: Law[], support: Set<Law>, un
         const previous = countSignature(step.c)
         at = seeds.at; seedCount += seeds.added.length
         built = rawBuild()
-        if (countSignature(built.at(-1)!.c) !== previous) break
+        if (countSignature(built.at(-1)!.c) !== previous && !seeds.summary.foundationBarrier) break
       }
       return built
     }
@@ -698,8 +698,10 @@ export function countedAttempts(m: Machine, caller: Law[], support: Set<Law>, un
       // Probe only strict subsets, within the existing attempt's allowance. A
       // subset model is not a verdict: failure always widens to the full set.
       // Kept certificates must be lifted to that full set's exact row layout.
-      if (env.GDP_COUNTS_RELEVANCE === '1') for (const local of relevantLaws(m, ls, law, support)) {
-        const slice = Math.max(0, Math.min(ms / 6, end - clock()))
+      const focused = pass && ls.some(l=>support.has(l)) && (reads(law.holds,isCount).size || !caller.includes(law) && !!law.keys?.length) ? sourceContext(m,ls,law,support) : ls
+      const contexts = [...(focused.length<ls.length ? [{local:focused,fraction:1,kind:'source-context'}] : []), ...(env.GDP_COUNTS_RELEVANCE==='1'?relevantLaws(m,ls,law,support).map(local=>({local,fraction:1/6,kind:'relevance'})):[])]
+      for (const {local,fraction,kind} of contexts) {
+        const slice = Math.max(0, Math.min(ms * fraction, end - clock()))
         if (!slice) break
         let probe: Tried<Proof>
         try { probe = withDeadline(clock() + slice, () => attempt(law, local, pass, slice)) } catch (error) {
@@ -717,11 +719,13 @@ export function countedAttempts(m: Machine, caller: Law[], support: Set<Law>, un
           const pg = mcGoal(part.goal.hyps, part.decls, c), wg = mcGoal(whole.goal.hyps, whole.decls, c)
           const tree = pg && wg && withDeadline(end, () => widen(pg, wg, c.tree))
           if (!tree) { complete = false; break }
-          certs[whole.goal.name] = {...c, tree}
+          const lifted = {...c, tree}
+          if(!checkMC(whole.goal.hyps,whole.decls,lifted)){complete=false;break}
+          certs[whole.goal.name] = lifted
         }
         if (complete) {
           r = {proof: {instances: probe.proof.instances, certs}}
-          countsDump.on?.({phase: 'relevance-proof', law: law.name, local: local.length, whole: ls.length})
+          countsDump.on?.({phase: kind+'-proof', law: law.name, local: local.length, whole: ls.length})
           return r
         }
       }

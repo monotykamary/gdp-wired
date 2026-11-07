@@ -1,0 +1,6 @@
+[
+{"name":"part-0","cmd":"bun install --frozen-lockfile >/dev/null && bun research/track-p/contamination.ts research/track-p/input 0","timeout":120,"cpu":2,"memory":3072},
+{"name":"part-1","cmd":"bun install --frozen-lockfile >/dev/null && bun research/track-p/contamination.ts research/track-p/input 1","timeout":120,"cpu":2,"memory":3072},
+{"name":"part-2","cmd":"bun install --frozen-lockfile >/dev/null && bun research/track-p/contamination.ts research/track-p/input 2","timeout":120,"cpu":2,"memory":3072},
+{"name":"part-3","cmd":"bun install --frozen-lockfile >/dev/null && bun research/track-p/contamination.ts research/track-p/input 3","timeout":120,"cpu":2,"memory":3072}
+]

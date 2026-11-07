@@ -1,0 +1,5 @@
+[
+{"name":"anchored","cmd":"bun install --frozen-lockfile >/dev/null && bun research/track-p/anchored-replay.ts research/track-p/input anchored","timeout":90,"cpu":2,"memory":4096},
+{"name":"hinted","cmd":"bun install --frozen-lockfile >/dev/null && bun research/track-p/anchored-replay.ts research/track-p/input hinted","timeout":90,"cpu":2,"memory":4096},
+{"name":"wrong","cmd":"bun install --frozen-lockfile >/dev/null && bun research/track-p/anchored-replay.ts research/track-p/input wrong","timeout":90,"cpu":2,"memory":4096}
+]
