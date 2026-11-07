@@ -1,0 +1,4 @@
+[
+{"name":"c45-full","cmd":"bun install --frozen-lockfile >/dev/null && PROFILE=1 bun research/track-p/production-replay.ts research/track-p/input 45","timeout":30,"cpu":2,"memory":4096},
+{"name":"c45-relevant","cmd":"bun install --frozen-lockfile >/dev/null && GDP_COUNTS_RELEVANCE=1 PROFILE=1 bun research/track-p/production-replay.ts research/track-p/input 45","timeout":30,"cpu":2,"memory":4096}
+]

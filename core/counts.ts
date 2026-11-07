@@ -22,7 +22,7 @@ import {REFUTED, cdclStats} from '../kernel/cdcl.ts'
 import {modelSequence} from '../kernel/model-sequence.ts'
 import {inferLaws} from './infer.ts'
 import {carryCandidates, scanPrefixes} from './carry.ts'
-import {relevantLaws} from './relevance.ts'
+import {relevantGoals, relevantLaws} from './relevance.ts'
 import {countPoolKey, countSignature, grammarPool, ids, polaritySelection, readTuples, refinementSignature, reservationReadClosure, reservationState, reservePool, prepareSupport, smallSelection, sparseReadInstances, selectedCertificate, chosenView, candidateWork, stableState, UnsupportedCountProposal} from './count-support.ts'
 import {smallOf, trueSmall} from './exists.ts'
 import {env} from './solver.ts'
@@ -617,13 +617,30 @@ export function countedAttempts(m: Machine, caller: Law[], support: Set<Law>, un
     //     up at once (no tree to grow); the rounds within the attempt's time (a second at least, as the kernel's
     //     withModels gives its later rounds), past which the goal is unknown;
     //   - unknown: the goals grown as they are.
+    let preflighted = false
     for (;;) {
       let part: {gg: Goal, core: Goal} | undefined
+      let direct: {gg: Goal, tree: CountCert['tree']} | undefined
       for (;;) {
         const step = built.at(-1)
         if (!step?.gg) break
+        if (supported && !preflighted && !step.c.insts.length) {
+          preflighted = true
+          const small = relevantGoals(step.gg)[0] ?? step.gg, end = Math.min(until, clock() + ms / 6)
+          // A bounded proof attempt precedes model construction. A subset model
+          // says nothing about the whole goal; only a widened tree is reusable.
+          const tree = ptime('preflight', () => withDeadline(end, () => {
+            const quick = grow(small, new Map(), {nodes: 0, until: end})
+            return 'tree' in quick ? widen(small, step.gg!, quick.tree) : undefined
+          }))
+          observe(step, tree ? 'preflight-proven' : 'preflight-miss')
+          if (tree) { direct = {gg: step.gg, tree}; break }
+        }
+        observe(step, 'query')
         const q = ptime('decide', () => decideStep(step.gg!, Math.min(until, clock() + Math.min(2 * ms, 5_000))))
-        if (!('tree' in q) && q.why === REFUTED && q.core) {
+        observe(step, 'decision:' + ('tree' in q ? 'tree' : q.why === REFUTED ? 'refuted' : q.stuck))
+        if ('tree' in q) { direct = {gg: step.gg, tree: q.tree}; break }
+        if (q.why === REFUTED && q.core) {
           const gg = step.gg, last = gg.hyps.length - 1, used = new Set(q.core.map(h => json(gg.hyps[h]))), cut: Instances = {}
           for (const [name, ts2] of Object.entries(at)) {
             const l = ls.find(x => x.name === name), n = l ? 1 + (l.keys?.length ?? 0) : 0
@@ -634,7 +651,7 @@ export function countedAttempts(m: Machine, caller: Law[], support: Set<Law>, un
           part = {gg: built.at(-1)!.gg!, core: {name: gg.name, hyps: (q.core.includes(last) ? q.core : [...q.core, last]).map(h => gg.hyps[h]!)}}
           break
         }
-        if ('tree' in q || q.stuck !== 'sat' || !q.witness) break
+        if (q.stuck !== 'sat' || !q.witness) break
         observe(step, 'model', q.witness)
         if (!more()) return {stuck: 'unknown'}
         const asked = ptime('mbqi', () => modelInstances(m, modelLaws, at, step.gg!, q.witness!)), lz = breaks(step, q.witness) || (!asked && breaks(step, q.witness, true))
@@ -657,7 +674,7 @@ export function countedAttempts(m: Machine, caller: Law[], support: Set<Law>, un
           const o1 = grow(part!.core, new Map(), {nodes: 0, until: Math.min(until, clock() + Math.max(ms, 2_000))}), w = 'tree' in o1 ? widen(part!.core, gg, o1.tree) : undefined
           return w ? {tree: w, nodes: 0} : undefined
         }) : undefined
-        const o = viaPart ?? (gg && ptime(`grow${(gg.hyps.length > 300 ? '>300' : '')}`, () => grow(gg, new Map(), {nodes: 0, until: Math.min(until, clock() + ms)})))
+        const o = (direct && direct.gg === gg ? {tree: direct.tree, nodes: 0} : undefined) ?? viaPart ?? (gg && ptime(`grow${(gg.hyps.length > 300 ? '>300' : '')}`, () => grow(gg, new Map(), {nodes: 0, until: Math.min(until, clock() + ms)})))
         if (gg && o && !('tree' in o)) observe(built.find(b => b.gg === gg)!, o.stuck, 'witness' in o ? o.witness : undefined)
         if (env.GDP_COUNTS_TRACE?.includes('2')) console.error(`counts: ${ls.length === 1 ? 'alone' : `with ${ls.length}`} ${pass} ${goal.name}: ${o && 'tree' in o ? 'proven' : gg ? (o as {stuck?: string}).stuck : 'no read'} ${gg?.hyps.length ?? 0} hyps (insts ${'insts' in c ? c.insts.length : 0} picks ${'picks' in c ? c.picks.length : 0}${wide ? ' wide' : ''}${built.find(b => b.gg === gg)?.pool ? ` of ${built.find(b => b.gg === gg)!.pool!.keys.length}` : ''}) ${Math.round(clock() - t0)} ms`)
         // (the tree search's model of the step goal: the instances it asks for, as the CDCL search's, and the goals again)

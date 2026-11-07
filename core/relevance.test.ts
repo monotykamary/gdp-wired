@@ -20,6 +20,8 @@ test('law support expands count definitions and ignores coincident binder names'
  const laws=[target,...Array.from({length:40},(_,i):Law=>({name:'noise '+i,forall:'i',holds:cell('noise'+i)})),support]
  const tiers=relevantLaws(machine,laws,target)
  expect(tiers.map(t=>t.length)).toEqual([12,24])
+ const medium=[target,...laws.slice(1,18),support],mediumTiers=relevantLaws(machine,medium,target)
+ expect(mediumTiers.map(t=>t.length)).toEqual([12]);expect(mediumTiers[0]).toContain(target);expect(mediumTiers[0]).toContain(support)
  for(const t of tiers){expect(t).toContain(target);expect(t).toContain(support);expect(t.every(l=>laws.includes(l))).toBe(true);expect(t.map(l=>laws.indexOf(l))).toEqual(t.map(l=>laws.indexOf(l)).sort((a,b)=>a-b))}
 })
 test('small goals are unchanged; relevance cannot manufacture an assumption',()=>{

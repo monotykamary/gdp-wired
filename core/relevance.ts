@@ -23,7 +23,7 @@ const overlap = (a: Set<string>, b: Set<string>) => [...a].filter(x => b.has(x))
 // Count definitions participate through their actual read maps. Binder names
 // never create relevance merely because two independent laws spell them alike.
 export function relevantLaws(m: Machine, laws: Law[], target: Law, structural: ReadonlySet<Law> = new Set()): Law[][] {
-  if (laws.length <= 24) return []
+  if (laws.length <= 12) return []
   const ofLaw = (law: Law) => {
     const f = footprint(law.holds), bound = new Set([law.forall, ...(law.keys ?? []), ...(law.some ?? [])])
     for (const v of f.vars) if (bound.has(v) || !Object.hasOwn(m.state, v)) f.vars.delete(v)

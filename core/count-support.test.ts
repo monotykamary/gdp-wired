@@ -54,6 +54,14 @@ test('root flag arguments retain fixed state/input coordinates without asserting
  expect(JSON.stringify(bounded.premise)).toContain('cursor');expect(JSON.stringify(bounded.premise)).not.toContain('node#');expect(other.tuple).toEqual([x('column')]);expect(JSON.stringify(other.premise)).toContain('request')
 })
 
+test('root and free transition ranges precede ambient read slots',()=>{
+ const k=(value:number):E=>({op:'const',value}),get=(map:string,key:E):E=>({op:'get',map,key}),le=(a:E,b:E):C=>({op:'<=',a,b})
+ const m:Machine={name:'root range priority',params:['p0','p1','p2','p3','p4'],inputs:['write'],state:{},maps:{cells:0,other:0},step:{maps:{cells:{key:x('write'),value:get('cells',x('write'))}}}}
+ const ambient:Law={name:'ambient',holds:{op:'and',xs:m.params.map(p=>le(get('cells',x(p)),k(1)))}},range:Law={name:'cell kind',forall:'k',holds:le(get('cells',x('k')),k(1))},own:Law={name:'root relation',forall:'node',holds:le(get('cells',x('node')),get('other',x('node')))}
+ const r=prepareSupport(m,[ambient,range,own],own,{},0),terms=r.at[range.name]!
+ expect(terms.slice(0,2)).toEqual([x('node#'),x('write')]);expect(terms.length).toBeLessThanOrEqual(4);expect(r.seedCount).toBeLessThanOrEqual(64)
+})
+
 test('count pool keys ignore primitive and duplicate growth but retain exact reads and definitions',()=>{
  const n=(value:number):E=>({op:'const',value}),le=(a:E,b:E):C=>({op:'<=',a,b}),read=get('count',x('key')),post=not(le(read,n(3))),goal:Goal={name:'pool',hyps:[le(read,n(4)),post]}
  const decls:CountDecl[]=[{map:'count',j:'key',key:'item',below:n(8),body:get('cells',x('item'))}],base=countPoolKey(goal,decls)

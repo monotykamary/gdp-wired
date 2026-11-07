@@ -16,4 +16,6 @@ The selected-count path can use actual seeded bounds to start with relevant exis
 
 See `runs/REPORT.md` for measured successes, failures, and unpassed gates. Checked standalone C9/C11 certificates establish derivability, not production success.
 
-Experimental production switches (off unless enabled): `GDP_COUNTS_RELEVANCE=1` probes small law contexts and lifts certificates to the full context; `GDP_COUNTS_COUNT_FIRST=1` gives count-reading laws their counted pass first, within the same per-law/outer allowance.
+Supported attempts now try one bounded goal-level relevance proof before model construction when no count witness is active. Only a tree widened to the exact whole goal is retained; subset models are ignored. This shares, rather than extends, the existing deadline.
+
+Additional experimental production switches (off unless enabled): `GDP_COUNTS_RELEVANCE=1` probes small law contexts and lifts certificates to the full context; `GDP_COUNTS_COUNT_FIRST=1` gives count-reading laws their counted pass first, within the same per-law/outer allowance.

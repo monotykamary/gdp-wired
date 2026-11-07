@@ -1052,7 +1052,13 @@ export function prepareSupport(m: Machine, laws: Law[], own: Law, initial: Insta
     at[name]=[...old,...tuple];newSources.add(json([name,tuple]));seedCount++
   }
   const row = () => countedObligations(m,laws,{[own.name]:at},laws.indexOf(own)).at(-1)!
-  if(!pass){const cold=row(),reads=readTuples(cold.goal.hyps,more);for(const l of laws){if(seedCount>=64||!more())break;const map=bareRangeMap(m,l,more);if(map)for(const [mp,key]of reads){if(!more()||seedCount>=64)break;if(mp===map)append(l.name,[key])}}}
+  if(!pass){
+   const cold=row(),ns=vars(own),root=substC(own.holds,{vars:Object.fromEntries(ns.map((n,i)=>[n,x(i===0?n+'#':n)])),maps:{},flags:{}})
+   // The root and its reachable free transition reads claim range slots before
+   // ambient scalar/flag witnesses. All terms still instantiate original laws.
+   const reads=[...readTuples(root,more),...transitionReads(m,own,more).map(s=>s.read),...readTuples(cold.goal.hyps,more)]
+   for(const l of laws){if(seedCount>=64||!more())break;const map=bareRangeMap(m,l,more);if(map)for(const [mp,key]of reads){if(!more()||seedCount>=64)break;if(mp===map)append(l.name,[key])}}
+  }
   if(pass){const seeded=seedVacuousCounts(m,laws,at,64-seedCount,more);at=seeded.at;seedCount+=seeded.added.length;for(const s of seeded.added)newSources.add(json([s.law,s.tuple]))}
   const sourceMaps=sourceBoundMaps(m,laws,at,more)
   budget.mark('prepare:seeded')
