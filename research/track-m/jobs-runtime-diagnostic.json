@@ -1,0 +1,9 @@
+[
+  {
+    "name": "imports",
+    "cmd": "set -e; date -Is; echo processes; ps -eo pid,ppid,etime,pcpu,comm,args --sort=-pcpu | head -n 18; echo install; bun install --frozen-lockfile >/dev/null; echo installed; timeout 12s bun -e 'console.error(\"start\"); await import(\"./core/machine.ts\"); console.error(\"machine\"); await import(\"./kernel/kernel.ts\"); console.error(\"kernel\"); await import(\"./kernel/prove.ts\"); console.error(\"prove\"); await import(\"./research/track-m/lift-count-proxies.ts\"); console.error(\"lift\"); await import(\"./research/track-m/boolean-core.ts\"); console.error(\"boolean\"); await import(\"./research/track-m/field-bound-lemmas.ts\"); console.error(\"field\");'; echo done",
+    "cpu": 2,
+    "memory": 4000,
+    "timeout": 30
+  }
+]

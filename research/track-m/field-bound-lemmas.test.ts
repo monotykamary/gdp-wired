@@ -1,6 +1,6 @@
 import {expect,test} from 'bun:test'
 import {type C,type Machine,all,any,atMost,get,ite,less,n,not,plus,same,times,x} from '../../core/machine.ts'
-import {check,checkMC,mcGoal,type CountCert} from '../../kernel/kernel.ts'
+import {canon,check,checkMC,mcGoal,type CountCert,type Path} from '../../kernel/kernel.ts'
 import {clock} from '../../kernel/prove.ts'
 import {fieldBoundLemmas,fieldBounds} from './field-bound-lemmas.ts'
 
@@ -12,6 +12,15 @@ test('strict successor member bounds suggest checked field ceilings without prot
  expect(fieldBoundLemmas(m,ds,{name:'empty',hyps:[]},cert,clock()+1000,[])).toBeUndefined()
  const goal={name:'ceiling',hyps:[same(x('?eligible'),n(1)),less(x('target'),n(4)),good,less(get('Clock',x('source')),get('Epoch',x('target')))]},tree=fieldBoundLemmas(m,ds,goal,cert,clock()+1000,[])
  expect(tree).toBeDefined();if(tree)expect(check(goal,tree)).toBe(true)
+})
+
+test('equal row keys produce checked count-read alias cuts',()=>{
+ const m:Machine={name:'aliases',params:[],inputs:['a','i'],state:{},step:{}},ds=[{map:'Size',j:'row',key:'k',below:n(4),body:n(1)}]
+ const cert:Pick<CountCert,'reads'|'insts'>={reads:[['left','Size',x('a')],['right','Size',x('i')]],insts:[]},g=mcGoal([less(get('Size',x('a')),get('Size',x('i')))],ds,cert)!
+ const root:Path=new Map();for(const lin of [{a:1,i:-1},{a:-1,i:1}])root.set(canon(lin),{lin,holds:true})
+ const events:object[]=[],tree=fieldBoundLemmas(m,ds,g,cert,clock()+1000,events,undefined,root)
+ expect(events.some(e=>(e as any).stage==='read-alias'&&(e as any).checked)).toBe(true)
+ expect(tree).toBeDefined();if(tree)expect(check(g,tree,root)).toBe(true)
 })
 
 test('ceiling slices keep carried membership encoded as 1 <= the set cell',()=>{

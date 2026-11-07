@@ -785,3 +785,65 @@ No time budget was increased and no native refutation was accepted as proof.
 is not proven, and candidate-generation/3-by-60-second/merge gates have not
 been attempted as passed. This checkpoint preserves validated generic fixes
 and the exact reconstruction blocker, not completion of Step 1b.
+
+### Step 1b continuation — checked Boolean cores and row-local count proofs
+
+The six-hypothesis union core now has an ordinary checked proof. The untrusted
+`boolean-core.ts` helper proposes bounded Boolean membership cases, uses linear
+recipes or bounded ordinary search at their leaves, and checks the resulting
+tree. It introduces no trusted rule. A standalone source-verified replay took
+132 counted ms (`boolean-core-v3`). In the original, unpinned leader phase,
+closing the phase path under the remaining constant upper bounds prevents
+inactive later actions from leaving spurious offset reads. The five-term cut
+then checks in 144 counted ms (`saturated-guard-v1`), although the complete
+activation goal in that run remains unproved at its original 5,000 ms cap.
+
+The remaining arithmetic models identify two additional needs: equal-row
+cardinality reads must agree, and a post-state bad-quorum count on an unchanged
+row is bounded by that row's old-membership count. The latter CInst was already
+in the proposal pool; the research proof selector had skipped cross-declaration
+post/pre pairs. The selector now considers it. Equal-key read cuts are proved
+from the two actual read bindings, transported without fresh whole-goal search,
+and checked against the original goal. Composite count terms, including natural
+subtraction, are also transported through explicit bindings; missing bindings
+and missing domain premises are still rejected by regression tests.
+
+`startup-progress-v1/new-term.log` proves the hardest explicit leader-row case
+(a > i, j = i) at **2,599 counted ms**, with 47 count instances. Both equal-key
+read cuts check, the residual arithmetic core has 15 hypotheses, and its
+transport checks all three count-read domain guards. This is a **diagnostic
+row case**, not a whole-law proof: the output labels its extra assumptions and
+sets the unrestricted `checked` result to false. The earlier unchanged-target
+row case (`leader-rows-v1/frame.log`) checks at 1,883 counted ms. A generic,
+checked row-case combiner has unit coverage; its integration, factoring common
+cuts before all row cases, is still being tested on the full original phase.
+
+Validation: `count-regression-v5/tests.log` passes **208 tests / 4,411
+assertions across 23 files**, including the new Boolean, composite-transport,
+row-case, and equal-key-read tests. Its isolated large VM placement is recorded
+in `placement.json`. `progress-v1/check.log` passes the full TypeScript and
+lint gate, zero warnings/errors (950 files), after `prepare-vendors.sh` restores
+the pinned vendor revisions. `checkpoint-check-v1/check.log` repeats the full
+check at the checkpoint source and also passes with zero warnings/errors.
+The initial unprepared full check failed on absent
+vendor trees and found one research helper's extra `withDeadline` argument;
+that argument was corrected before the passing full check.
+
+Several diagnostic runs hit their finite job deadlines before printing a proof
+result; these are not counted as proof failures or successes. The runner's
+command allowance is its job timeout minus 30 seconds: the first short runtime
+isolation batch accidentally supplied too small a job timeout and was rejected
+before executing its probes. The corrected `runtime-isolation-v2` passes the
+basic and composite proxy probes, both Boolean tests, and the field-ceiling
+probe. `runtime-diagnostic-v2` independently checks all relevant imports.
+An asynchronous snapshot also lost a scratch file while indexing; subsequent
+runs wait for the source-manifest receipt before further edits. The runner
+replaces stderr on process timeout, so progress diagnostics now use stdout;
+missing stderr markers alone do not identify a startup stall. The factored
+proof diagnostic retains its 5,000 ms counted and 60,000 ms internal wall
+limits; its outer runner allowance includes setup and result-collection time.
+
+**Step 1 is still open.** No count law or complete given hand set is newly
+accepted. The 3-by-60-second, candidate-generation, and downstream merge gates
+remain unpassed. All new proof search remains untrusted and every accepted
+recipe is checked by the existing kernel; no proof budget was increased.

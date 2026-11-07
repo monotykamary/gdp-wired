@@ -18,13 +18,19 @@ import {fieldBoundLemmas} from './field-bound-lemmas.ts'
 import {guardCases} from './guard-cases.ts'
 import {countLawSeeds,countRowBridges,independentCountInstances,fieldLawBridges,focusCountCert,rowKeyNames} from '../../core/count-focused.ts'
 import {seedCountWitnessFlags} from '../../core/count-witness-flags.ts'
-const [file,input]=process.argv.slice(2),d=JSON.parse(readFileSync(file!,'utf8')),{m}=JSON.parse(readFileSync(input!,'utf8')),laws=process.env.LAB_SYMBOLIC_OVERLAP==='1'?d.laws.map((l:any)=>l.name.startsWith('Inv2973')?mldrHandSet('star','uw').laws.find(q=>q.name===l.name)!:l):d.laws,index=laws.findIndex((l:any)=>l.name===d.law),law=laws[index]
+const mark=(stage:string)=>{if(process.env.LAB_PROGRESS==='1')console.log(`${stage} ${Math.round(performance.now())}`)}
+mark('entry-loaded')
+const [file,input]=process.argv.slice(2),d=JSON.parse(readFileSync(file!,'utf8')),{m}=JSON.parse(readFileSync(input!,'utf8'))
+mark('input-loaded')
+const laws=process.env.LAB_SYMBOLIC_OVERLAP==='1'?d.laws.map((l:any)=>l.name.startsWith('Inv2973')?mldrHandSet('star','uw').laws.find(q=>q.name===l.name)!:l):d.laws,index=laws.findIndex((l:any)=>l.name===d.law),law=laws[index]
+mark('laws-ready')
 let at:Instances={}
 for(const [name,values] of Object.entries(d.at) as [string,E[]][]){const n=1+(laws.find((l:any)=>l.name===name)?.keys?.length??0),keep:E[]=[];for(let i=0;i<values.length;i+=n){const tuple=values.slice(i,i+n);if(!/"name":"w(?:\$\d+|\?)/.test(JSON.stringify(tuple)))keep.push(...tuple)}at[name]=keep}
 if(process.env.LAB_FOCUS_COLD==='1')at={}
 const names=[law.forall,...law.keys??[]],own:E[]=[x(`${law.forall}#`),...(law.keys??[]).map(x)],scalar=rowKeyNames(m,law)
 let countedTarget=false;walkOnce(law.holds,(o:any)=>{if(o.op==='get'&&m.counts[o.map])countedTarget=true})
 const rows=own.filter((_,i)=>scalar.has(names[i])),request:E[]=m.inputs.filter((name:string)=>Object.values(m.counts??{}).some((c:any)=>![c.j,c.lo,c.key].includes(name)&&JSON.stringify([c.below,c.body]).includes(`"name":${JSON.stringify(name)}`))).map(x)
+mark('seeding-instances')
 at=countLawSeeds(m,laws,at,rows.length?rows:own,request,!countedTarget);at=fieldLawBridges(m,laws,at,rows.length?rows:own,request,own.length===3?own[2]:undefined);at[law.name]=[...at[law.name]??[],...own];at=countRowBridges(m,law,at,own,request)
 // Diagnostic only: the design also permits Ov_uw. Its numeric keys can be
 // instantiated by the actual excess-over-outside counts, not guessed halves.
@@ -33,18 +39,24 @@ if(process.env.LAB_SYMBOLIC_OVERLAP==='1'){
  const excess=(count:E,outside:E):E=>({op:'sub',a:count,b:outside})
  at[ov.name]=[a,b,excess(read('bq#',pk(a,j)),read('xm',pk(a,b))),excess(read('inS',{op:'const',value:0}),read('xm',pk(b,a)))]
 }
+mark('building-obligations')
 let base=countedObligations(m,laws,{[law.name]:at},index).find(g=>g.goal.name.endsWith('@step'))!
 const focusOptions={carried:m.inputMaps[0],targets:!countedTarget&&process.env.LAB_TARGET_COUNTS==='1'?rows:undefined,algebraic:process.env.LAB_ALGEBRAIC==='1',requestFrames:process.env.LAB_REQUEST_FRAMES==='1',structural:countedTarget&&process.env.LAB_STRUCT_COUNTS==='1',frames:process.env.LAB_FRAME_COUNTS==='1'}
+mark('building-certificate')
 const cert={...focusCountCert(m,base.decls,certFor(base.goal,base.decls,true,1000),focusOptions),picks:[] as [string,E[]][]}
+mark('certificate-ready')
 if(process.env.LAB_SKIP_COVERS==='1')cert.insts=cert.insts.filter(i=>i.terms.length!==3)
 if(process.env.LAB_DESCRIBE_ONLY==='1'){
  const pool=certFor(base.goal,base.decls,true,1000)
  console.log(JSON.stringify({reads:cert.reads,selected:cert.insts,pool:pool.insts.filter(i=>i.terms.length>=3)}))
  process.exit(0)
 }
+mark('seeding-witness-flags')
 at=seedCountWitnessFlags(m,at,[{decls:base.decls,cert}],true)
 base=countedObligations(m,laws,{[law.name]:at},index).find(g=>g.goal.name.endsWith('@step'))!
+mark('building-counted-goal')
 let goal:Goal={...mcGoal(base.goal.hyps,base.decls,cert)!,name:base.goal.name},plain=goal.hyps.slice(0,goal.hyps.length-cert.insts.length)
+mark('counted-goal-ready')
 const order=(hyps:C[]):C[]=>{if(process.env.LAB_CONCLUSION_LAST!=='1')return hyps;const i=hyps.indexOf(base.goal.hyps.at(-1)!);return i<0?hyps:[...hyps.slice(0,i),...hyps.slice(i+1),hyps[i]!] }
 const fieldLaws=laws.filter((l:any)=>{let count=false;walkOnce(l.holds,(o:any)=>{if(o.op==='get'&&m.counts[o.map])count=true});return !count})
 const initialAt=at,allAt:Instances={...at},packetCache=new Map<string,{base:typeof base,goal:Goal,plain:C[]}>()
@@ -81,6 +93,7 @@ walkOnce([m.step,m.assume],(o:any)=>{if(o.op!=='=')return;const [a,b]=o.a.op==='
 const choice=[...values].filter(([,v])=>v.size>2).sort((a,b)=>b[1].size-a[1].size)[0]
 if(!choice)throw new Error('No finite-choice scalar')
 const [name,vs]=choice,cuts=[...vs].sort((a,b)=>a-b).filter(v=>v>=Number(process.env.LAB_FIRST_CUT??-Infinity)),path:Path=new Map(),conditions:C[]=[],records:({goal:Goal,tree:Tree,path:Path,from?:Path}|undefined)[]=[],trace:object[]=[],cores:object[]=[]
+if(process.env.LAB_PROGRESS==='1'){console.log('replay-ready');const push=trace.push.bind(trace);trace.push=(...events:object[])=>{for(const event of events){const e=event as any;console.log(JSON.stringify({stage:e.stage,index:e.index,left:e.left,right:e.right,key:e.key,cached:e.cached,pairs:e.pairs,ms:e.ms,checked:e.checked,proved:e.proved,wall:Math.round(performance.now())}))}return push(...events)}}
 const splitAt=(value:number):Record<string,number>=>value?{[name]:1,'1':-value}:{[name]:1}
 const branches:{prefix:C[],path:Path}[]=[],branchRoots:Path[]=[],tailCuts:number[][]=[]
 const seq=modelSequence(), refine=process.env.LAB_CASE_REFINE==='1'
@@ -151,9 +164,16 @@ const result=withWall(start+Math.min(60000,Number(process.env.LAB_WALL_MS??10000
   if(!tree&&process.env.LAB_GUARD_CASES==='1'){
    const part={name:goal.name,hyps:order([...prefix,...goal.hyps])},pins:[string,number][]=value===undefined?[]:[[name,value]]
    const rooted=process.env.LAB_GUARD_PATH==='1',pinned={...part,hyps:part.hyps.map(c=>foldPinned(c,pins))},guard=foldPinned(substC(m.step.flags.leads,{vars:{},maps:{},flags:{canVote:{op:'=',a:x('?canVote'),b:{op:'const',value:1}}}}),rooted?[]:pins),begun=clock()
-   const found=guardCases(m,base.decls,rooted?goal:pinned,cert,guard,end,trace,rooted?0:conditions.length,rooted?new Map(path):new Map())
+   const root=rooted?new Map(path):new Map(),row=process.env.LAB_ROW_CASE
+   if(row){
+    const a=`${law.forall}#`,b=law.keys?.[0],actor='i',eq=(key:string)=>{const l={[key]:1,[actor]:-1},r={[actor]:1,[key]:-1};root.set(canon(l),{lin:l,holds:true});root.set(canon(r),{lin:r,holds:true})},gt=(key:string)=>{const l={'1':1,[actor]:1,[key]:-1};root.set(canon(l),{lin:l,holds:true})}
+    if(row==='equal')eq(a)
+    else{gt(a);if(b){if(row==='new-term')eq(b);else gt(b)}}
+   }
+   const found=guardCases(m,base.decls,rooted?goal:pinned,cert,guard,end,trace,rooted?0:conditions.length,root)
    if(found){tree=rooted?found:widen(pinned,goal,found,{},new Map(),path);proofGoal=goal}
    trace.push({value,stage:'guard-result',ms:Math.round(clock()-begun),sourceChecked:!!found,proved:!!tree})
+   if(process.env.LAB_ROW_CASE)return {complete:false,branches:[],groundChecked:false,checked:false,diagnosticRow:process.env.LAB_ROW_CASE,diagnosticChecked:!!found}
   }
   if(!tree&&process.env.LAB_FIELD_BOUNDS==='1'){
    const part={name:goal.name,hyps:order([...prefix,...goal.hyps])},pinned=process.env.LAB_BOUND_PIN==='1'&&value!==undefined?{...part,hyps:part.hyps.map(c=>foldPinned(c,[[name,value]]))}:part,start=clock(),found=fieldBoundLemmas(m,base.decls,pinned,cert,end,trace,process.env.LAB_BOUND_MODELS==='1'?(part,witness)=>{
@@ -269,4 +289,4 @@ const result=withWall(start+Math.min(60000,Number(process.env.LAB_WALL_MS??10000
  return {complete:!!tree,branches:trees.map((t,i)=>!!t&&check(goal,t,branchRoots[i]!)),groundChecked:!!tree&&check(goal,tree),checked:!!tree&&checkMC(base.goal.hyps,base.decls,{...cert,tree})}
  })
 },true))
-console.log(JSON.stringify({file,law:law.name,diagnosticAssumptions:activation?['existing leader activation; no unrestricted proof unless rebase checks']:[],...result,counted:Math.round((fullWork()-w)/fullRate),wall:Math.round(performance.now()-start),insts:cert.insts.length,trace,...(cores.length?{cores}:{})}))
+console.log(JSON.stringify({file,law:law.name,diagnosticAssumptions:[...activation?['existing leader activation; no unrestricted proof unless rebase checks']:[],...process.env.LAB_ROW_CASE?['row-case assumptions; not an unrestricted proof']:[]],...result,counted:Math.round((fullWork()-w)/fullRate),wall:Math.round(performance.now()-start),insts:cert.insts.length,trace,...(cores.length?{cores}:{})}))

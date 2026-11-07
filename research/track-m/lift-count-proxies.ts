@@ -2,15 +2,23 @@
 // Unlike widen's fallback this never launches a fresh whole-goal search.
 import {type E,walkOnce} from '../../core/machine.ts'
 import {type Lin,type Step,add,scale,solve,sub} from '../../core/solver.ts'
-import {type CountCert,type Goal,type Path,type Tree,canon,check,linear} from '../../kernel/kernel.ts'
+import {type CountCert,type Goal,type Path,type Tree,canon,check,columnTerm,linear,substE} from '../../kernel/kernel.ts'
 import {rowsAt} from '../../kernel/prove.ts'
 
 export function liftCountProxies(part:Goal,whole:Goal,tree:Tree,reads:CountCert['reads'],pp:Path=new Map(),wp:Path=new Map(),diagnose?:(event:object)=>void):Tree|undefined{
  const aliases=new Map<string,E>(reads.map(([id,map,key])=>[id,{op:'get',map,key}]))
+ const substitutions=Object.fromEntries(aliases),terms=new Map<string,E|undefined>()
+ const remapTerm=(name:string):E|undefined=>{
+  if(terms.has(name))return terms.get(name)
+  const term=columnTerm(name);let uses=false
+  if(term)walkOnce(term,(o:any)=>{if(o.op==='var'&&aliases.has(o.name))uses=true})
+  const mapped=term&&uses?substE(term,{vars:substitutions,maps:{},flags:{}}):undefined
+  terms.set(name,mapped);return mapped
+ }
  const replace=(lin:Lin,path:Path):Lin|undefined=>{
   let out:Lin={}
   for(const [name,coefficient] of Object.entries(lin)){
-   const e=aliases.get(name),value=e?linear(e,path):{[name]:1}
+   const e=aliases.get(name)??remapTerm(name),value=e?linear(e,path):{[name]:1}
    if(!value||!e&&[...aliases.keys()].some(id=>name.includes(id)))return undefined
    out=add(out,scale(value,coefficient))
   }

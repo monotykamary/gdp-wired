@@ -2,14 +2,16 @@
 // set's per-member bound. The suggestion is untrusted; every cut is reconstructed
 // and the complete result is checked against the original counted goal.
 import {type C,type Machine,walkOnce,x} from '../../core/machine.ts'
-import {type CountCert,type CountDecl,type Goal,type Path,type Tree,canon,check,linear,substC,substE} from '../../kernel/kernel.ts'
+import {type CountCert,type CountDecl,type Goal,type Path,type Tree,canon,check,linear,substC,substE,truth} from '../../kernel/kernel.ts'
 import {countsForReads} from '../../core/count-facts.ts'
-import {sub} from '../../core/solver.ts'
+import {refuteFast,sub} from '../../core/solver.ts'
 import {liftCountProxies} from './lift-count-proxies.ts'
 import {piecesAt,walkLive} from './live-dependencies.ts'
 import {carriedCase} from './carried-case.ts'
 import {foldPath} from './fold-path.ts'
-import {atPoint,clock,grow,widen,withDeadline} from '../../kernel/prove.ts'
+import {booleanCore} from './boolean-core.ts'
+import {proveRowCases,rowPairs} from './row-cases.ts'
+import {atPoint,clock,grow,rowsAt,widen,withDeadline} from '../../kernel/prove.ts'
 import {modelSequence} from '../../kernel/model-sequence.ts'
 import {REFUTED} from '../../kernel/cdcl.ts'
 type Proposal=Pick<CountCert,'reads'|'insts'>
@@ -35,7 +37,7 @@ export function fieldBounds(m:Machine,ds:CountDecl[],cert:Proposal):C[]{
  const focused=out.filter(c=>c.op==='<='&&c.a.op==='if'&&targets.has(JSON.stringify(c.a.then)))
  return (focused.length?focused:out).slice(0,4)
 }
-export function fieldBoundLemmas(m:Machine,ds:CountDecl[],g:Goal,cert:Proposal,until:number,trace:object[],onModel?:(goal:Goal,witness:Record<string,number>)=>boolean,root:Path=new Map()):Tree|undefined{
+export function fieldBoundLemmas(m:Machine,ds:CountDecl[],g:Goal,cert:Proposal,until:number,trace:object[],onModel?:(goal:Goal,witness:Record<string,number>)=>boolean,root:Path=new Map(),options:{splitRows?:boolean}={}):Tree|undefined{
  const seq=modelSequence(root),ctx:C[]=[],path:Path=new Map(root),lemmas:{split:Record<string,number>,no:Tree}[]=[]
  let arithmetic:Tree|undefined
  const postMaps=new Set(cert.reads.filter(r=>r[1].endsWith('#')).map(r=>r[1])),postIds=new Set(cert.reads.filter(r=>r[1].endsWith('#')).map(r=>r[0]))
@@ -84,10 +86,12 @@ export function fieldBoundLemmas(m:Machine,ds:CountDecl[],g:Goal,cert:Proposal,u
   try{
    const deadline=Math.min(until,clock()+(finish?Math.max(0,until-clock()):250))
    if(!finish&&root.size>0&&q.core&&q.core.length<=8){
-    const start=clock(),folded=foldPath(reduced,root),out=grow(folded.goal,root,{nodes:0,until:deadline,units:false})
+    const start=clock(),folded=foldPath(reduced,root),out=grow(folded.goal,root,{nodes:0,until:Math.min(deadline,clock()+25),units:false})
     const lifted='tree'in out?withDeadline(deadline,()=>widen(folded.goal,reduced,out.tree,folded.opaque,root,root)):undefined
     trace.push({stage:'folded-core',aliases:Object.keys(folded.opaque).length,ms:Math.round(clock()-start),sourceChecked:'tree'in out,lifted:!!lifted})
     if(lifted)return widen(reduced,goal,lifted,{},root,root)
+    const direct=booleanCore(reduced,root,new Set(cert.insts.map(i=>i.wit)),deadline,trace)
+    if(direct)return widen(reduced,goal,direct,{},root,root)
    }
    const split=!finish&&root.size>0&&q.core&&q.core.length<=8?carriedCase(reduced,root,m.inputMaps??[],new Set(cert.insts.map(i=>i.wit)),deadline,trace):undefined
    if(split)return widen(reduced,goal,split,{},root,root)
@@ -95,8 +99,26 @@ export function fieldBoundLemmas(m:Machine,ds:CountDecl[],g:Goal,cert:Proposal,u
    return 'tree'in out?widen(reduced,goal,out.tree,{},root,root):undefined
   }finally{atPoint.on=before}
  }
+ for(let i=0;i<cert.reads.length;i++)for(let j=i+1;j<cert.reads.length;j++){
+  const a=cert.reads[i]!,b=cert.reads[j]!
+  if(a[1]!==b[1]||truth({op:'=',a:a[2],b:b[2]},root)!==true)continue
+  for(const [left,right]of [[a[0],b[0]],[b[0],a[0]]]){
+   if(clock()>=until)break
+   const split=sub({[left!]:1},{[right!]:1});if(path.get(canon(split))?.holds===true)continue
+   const noPath=new Map(path).set(canon(split),{lin:split,holds:false}),begun=clock()
+   trace.push({stage:'read-alias-start',left,right})
+   const bindings=g.hyps.filter(c=>c.op==='='&&[[c.a,c.b],[c.b,c.a]].some(([v,e])=>v?.op==='var'&&[left,right].includes(v.name)&&e?.op==='get'&&e.map===a[1]))
+   if(bindings.length!==2)continue
+   const small:Goal={name:'equal-key count reads',hyps:bindings},out=refuteFast(rowsAt(small,noPath),256)
+   const local:Tree|undefined=out?.kind==='refuted'?{leaf:out.steps}:undefined
+   const no=local&&check(small,local,noPath)?liftCountProxies(small,g,local,[],noPath,noPath):undefined,checked=!!no&&check(g,no,noPath)
+   trace.push({stage:'read-alias',left,right,ms:Math.round(clock()-begun),checked})
+   if(checked&&no){lemmas.push({split,no});ctx.push({op:'<=',a:x(left!),b:x(right!)});path.set(canon(split),{lin:split,holds:true})}
+  }
+ }
  for(const good of fieldBounds(m,ds,cert)){
   if(good.op!=='<='||clock()>=until)break
+  if(truth(good,path)===true)continue
   const a=linear(good.a,root),b=linear(good.b,root);if(!a||!b)continue
   const split=sub(a,b),noPath=new Map(path).set(canon(split),{lin:split,holds:false}),start=clock()
   const facts=narrow(good),part={...g,hyps:[...facts,...ctx,{op:'not' as const,x:good}]},proof=solve(part,250),lifted=proof&&widen(part,g,proof,{},root,noPath),no=lifted&&check(g,lifted,noPath)?lifted:undefined
@@ -112,13 +134,14 @@ export function fieldBoundLemmas(m:Machine,ds:CountDecl[],g:Goal,cert:Proposal,u
    if(inst.terms.length===3||inst.terms.length===5&&carried)return true
    if(inst.terms.length!==2)return false
    const [a,b]=inst.terms.map(([,id])=>cert.reads.find(r=>r[0]===id))
-   return carried||!!a&&!!b&&a[1].replace(/#$/,'')===b[1].replace(/#$/,'')&&a[1].endsWith('#')!==b[1].endsWith('#')&&JSON.stringify(a[2])===JSON.stringify(b[2])
+   return carried||process.env.LAB_POST_SUBSETS==='1'&&!!a&&!!b&&a[1].endsWith('#')&&!b[1].endsWith('#')||!!a&&!!b&&a[1].replace(/#$/,'')===b[1].replace(/#$/,'')&&a[1].endsWith('#')!==b[1].endsWith('#')&&JSON.stringify(a[2])===JSON.stringify(b[2])
   }
   for(const [index,inst] of cert.insts.entries()){
    if(clock()>=until)break
    if(!selected(inst))continue
    const h=g.hyps[raw.length+index];if(h?.op!=='or'||h.xs[0]?.op!=='<=')continue
-   const good=h.xs[0],split=Object.fromEntries(inst.terms.map(([n,v])=>[v,n])),noPath=new Map(path).set(canon(split),{lin:split,holds:false})
+   const good=h.xs[0];if(truth(good,path)===true)continue
+   const split=Object.fromEntries(inst.terms.map(([n,v])=>[v,n])),noPath=new Map(path).set(canon(split),{lin:split,holds:false})
    const relevant=raw.flatMap(c=>pieces(c)).filter(c=>{let skip=false;walkLive(c,root,(o:any)=>{if(o.op==='get'&&countMaps.has(o.map)||o.op==='var'&&(countIds.has(o.name)||wits.has(o.name)&&o.name!==inst.wit))skip=true});return !skip})
    const part={...g,hyps:[...relevant,...ctx,h,{op:'not' as const,x:good}]},started=clock(),proof=solve(part,150),lifted=proof&&widen(part,g,proof,{},root,noPath),no=lifted&&check(g,lifted,noPath)?lifted:undefined
    trace.push({stage:'count-lemma',index,arity:inst.terms.length,terms:inst.terms,ms:Math.round(clock()-started),checked:!!no})
@@ -134,12 +157,17 @@ export function fieldBoundLemmas(m:Machine,ds:CountDecl[],g:Goal,cert:Proposal,u
    const reduced={...numeric,hyps:q.core.map(i=>numeric.hyps[i]!)},out=grow(reduced,root,{nodes:0,until:Math.min(until,clock()+400),units:false})
    if('tree'in out)proof=widen(reduced,numeric,out.tree,{},root,root)
   }
-  const lifted=proof&&liftCountProxies(numeric,g,proof,cert.reads,root,path)
+  const lifted=proof&&liftCountProxies(numeric,g,proof,cert.reads,root,path,event=>trace.push({stage:'count-transport',...event}))
   if(lifted&&check(g,lifted,path))arithmetic=lifted
  }
- if(!lemmas.length||clock()>=until)return undefined
- const part={...g,hyps:[...g.hyps,...ctx]},start=clock(),proof=arithmetic?undefined:solve(part,Math.max(150,until-clock()-200),true)
- let tree=arithmetic??(proof&&widen(part,g,proof,{},root,path))
+ if(clock()>=until)return undefined
+ const part={...g,hyps:[...g.hyps,...ctx]},start=clock()
+ let tree=arithmetic
+ if(!tree&&options.splitRows!==false&&process.env.LAB_ROW_SPLIT==='1'){
+  const pairs=rowPairs(m,cert);trace.push({stage:'row-pairs',pairs})
+  tree=proveRowCases(g,path,pairs,until,(branch,end)=>fieldBoundLemmas(m,ds,g,cert,end,trace,onModel,branch,{splitRows:false}),e=>trace.push(e))
+ }
+ if(!tree){const proof=solve(part,Math.max(150,until-clock()-200),true);tree=proof&&widen(part,g,proof,{},root,path)}
  trace.push({stage:'field-bound-conclusion',facts:lemmas.length,ms:Math.round(clock()-start),proved:!!tree})
  if(!tree)return undefined
  for(const {split,no} of lemmas.reverse())tree={split,yes:tree,no}
