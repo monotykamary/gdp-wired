@@ -5,7 +5,7 @@ import {type CountDecl, type CountCert, type Goal, assumed, check, checkMC, mcGo
 import {grow, clock, counted, fullRate, withWall, withDeadline} from '../kernel/prove.ts'
 import {modelSequence} from '../kernel/model-sequence.ts'
 import {linOfE, canon} from './solver.ts'
-import {countedInstanceSources, completeReadMatches, projectBoundCoordinate, genuinelyKeyless, vacuousCountBinder, seedVacuousCounts, sparseReadInstances, matchAffineRemainder, stableState, stableSelected, bareRangeMap, targetKindMatches, seededBoundMaps, targetFlagMatches, ownPREMatches, remainingCoordinateProposals, grammarPool, reservePool, ids, polaritySelection, prepareSupport, sourceBoundMaps, selectedCertificate, chosenView, candidateWork, instId, smallSelection, UnsupportedCountProposal} from './count-support.ts'
+import {countPoolKey, rootFlagMatches, keyId, countedInstanceSources, completeReadMatches, projectBoundCoordinate, genuinelyKeyless, vacuousCountBinder, seedVacuousCounts, sparseReadInstances, matchAffineRemainder, stableState, stableSelected, bareRangeMap, targetKindMatches, seededBoundMaps, targetFlagMatches, ownPREMatches, remainingCoordinateProposals, grammarPool, reservePool, ids, polaritySelection, prepareSupport, sourceBoundMaps, selectedCertificate, chosenView, candidateWork, instId, smallSelection, UnsupportedCountProposal} from './count-support.ts'
 
 test('v4 single complete root reads retain every guard across unrelated names and radices',()=>{
  for(const base of [17,83])for(const prefix of ['cedar_','other_']){
@@ -20,6 +20,47 @@ test('v4 single complete root reads retain every guard across unrelated names an
   // Only these complete root bindings may cross the early primitive filter.
   expect(prepareSupport(m,[law,own],own,{},1).at[law.name]).toEqual(wanted.flat())
  }
+})
+
+test('free transition reads close whole guarded laws and their exact primitive ranges',()=>{
+ for(const base of [17,83])for(const prefix of ['beech_','renamed_']){
+  const n=(value:number):E=>({op:'const',value}),v=(name:string)=>x(prefix+name),pack=(a:E,b:E):E=>({op:'add',a:{op:'mul',k:base,a},b}),triple=(a:E,b:E,c:E)=>pack(pack(a,b),c),le=(a:E,b:E):C=>({op:'<=',a,b}),lt=(a:E,b:E):C=>({op:'<',a,b})
+  const source:Law={name:prefix+'guarded source',forall:prefix+'i',keys:[prefix+'j',prefix+'k'],holds:{op:'or',xs:[not({op:'and',xs:[lt(v('i'),v('size')),lt(v('j'),n(base)),lt(v('k'),n(base))]}),not(le(n(1),get(prefix+'cells',triple(v('i'),v('j'),v('k'))))),le(n(1),get(prefix+'chosen',pack(v('j'),v('k'))))]}}
+  const kind:Law={name:prefix+'guarded kind',forall:prefix+'key',holds:{op:'or',xs:[not(lt(v('key'),n(base*base))),le(get(prefix+'chosen',v('key')),n(1))]}},own:Law={name:prefix+'scalar target',holds:le(v('remembered'),n(1))}
+  const m:Machine={name:prefix+'machine',params:[prefix+'size'],inputs:['sender','round','value'].map(k=>prefix+k),state:{[prefix+'remembered']:n(0)},maps:{[prefix+'cells']:0,[prefix+'chosen']:0},step:{state:{[prefix+'remembered']:{op:'if',c:{op:'flag',name:prefix+'enabled'},then:n(1),else:v('remembered')}},flags:{[prefix+'ready']:le(n(1),get(prefix+'cells',triple(v('sender'),v('round'),v('value')))),[prefix+'enabled']:{op:'flag',name:prefix+'ready'},[prefix+'disconnected']:le(n(1),get(prefix+'cells',triple(v('round'),v('sender'),v('value'))))}}}
+  const laws=[source,kind,own],empty={reads:[],insts:[]},result=sparseReadInstances(m,laws,own,{}, {name:'scalar',hyps:[]},empty),wanted=[v('sender'),v('round'),v('value')]
+  const match=result.completeMatches.find(p=>p.law===source.name)!
+  expect(match.tuple).toEqual(wanted);expect(match.source.kind).toBe('transition');expect(match.source.path).toEqual(['step','flags',prefix+'ready','b'])
+  expect(match.premise).toEqual(assumed([source],{[source.name]:wanted})[0]!);expect(match.premise.op).toBe('or')
+  expect(result.at[source.name]).toEqual(wanted);expect(result.at[kind.name]).toEqual([pack(v('round'),v('value'))])
+  expect(result.readKindMatches.find(p=>p.law===kind.name)!.premise).toEqual(assumed([kind],{[kind.name]:[pack(v('round'),v('value'))]})[0]!)
+  const early=prepareSupport(m,laws,own,{},1);expect(early.at[source.name]).toEqual(wanted);expect(early.at[kind.name]).toEqual([pack(v('round'),v('value'))])
+  const quantified:Machine={...m,step:{...m.step,flags:{...m.step.flags,[prefix+'enabled']:{op:'all',key:prefix+'sender',c:le(n(1),get(prefix+'cells',triple(v('sender'),v('round'),v('value'))))}}}}
+  expect(completeReadMatches(quantified,[source],own,[],empty)).toHaveLength(0)
+  const captured:Machine={...m,step:{...m.step,flags:{...m.step.flags,[prefix+'enabled']:le(n(1),get(prefix+'cells',triple(v('notGlobal'),v('round'),v('value'))))}}}
+  expect(completeReadMatches(captured,[source],own,[],empty)).toHaveLength(0)
+ }
+})
+
+test('root flag arguments retain fixed state/input coordinates without asserting aliases',()=>{
+ const n=(value:number):E=>({op:'const',value}),pack=(a:E,b:E):E=>({op:'add',a:{op:'mul',k:37,a},b}),le=(a:E,b:E):C=>({op:'<=',a,b})
+ const q:C={op:'all',key:'tail',c:le(get('cells',pack(pack(x('cursor'),n(0)),x('tail'))),n(1))}
+ const p:C={op:'all',key:'value',c:le(get('chosen',pack(x('request'),x('value'))),n(1))}
+ const m:Machine={name:'flag argument projection',params:[],inputs:['request'],state:{cursor:n(0)},maps:{cells:0,chosen:0},step:{flags:{bounded:q,other:p}}}
+ const own:Law={name:'guarded root',forall:'node',keys:['row','column'],holds:{op:'and',xs:[le(get('cells',pack(pack(x('node'),x('row')),x('column'))),n(1)),le(get('chosen',pack(x('row'),x('column'))),n(1))]}}
+ const matches=rootFlagMatches(m,own),bounded=matches.find(p=>p.law==='?bounded')!,other=matches.find(p=>p.law==='?other')!
+ expect(keyId(bounded.tuple[0]!)).toBe(keyId(pack(x('row'),x('column'))));expect(bounded.matchingOnly.cursor).toEqual(x('node#'))
+ expect(bounded.premise).toEqual({op:'or',xs:[same(x('?bounded'),n(0)),substC(q.c,{vars:{tail:bounded.tuple[0]!},maps:{},flags:{}})]})
+ expect(JSON.stringify(bounded.premise)).toContain('cursor');expect(JSON.stringify(bounded.premise)).not.toContain('node#');expect(other.tuple).toEqual([x('column')]);expect(JSON.stringify(other.premise)).toContain('request')
+})
+
+test('count pool keys ignore primitive and duplicate growth but retain exact reads and definitions',()=>{
+ const n=(value:number):E=>({op:'const',value}),le=(a:E,b:E):C=>({op:'<=',a,b}),read=get('count',x('key')),post=not(le(read,n(3))),goal:Goal={name:'pool',hyps:[le(read,n(4)),post]}
+ const decls:CountDecl[]=[{map:'count',j:'key',key:'item',below:n(8),body:get('cells',x('item'))}],base=countPoolKey(goal,decls)
+ expect(countPoolKey({...goal,hyps:[le(get('other',x('fresh')),n(1)),...goal.hyps]},decls)).toBe(base)
+ expect(countPoolKey({...goal,hyps:[le(read,n(7)),...goal.hyps]},decls)).toBe(base)
+ expect(countPoolKey({...goal,hyps:[le(get('count',{op:'add',a:x('key'),b:n(0)}),n(7)),...goal.hyps]},decls)).not.toBe(base)
+ expect(countPoolKey(goal,[{...decls[0]!,body:get('other',x('item'))}])).not.toBe(base)
 })
 
 test('v4 selected single-read triples exclude stale, unselected and captured witnesses',()=>{
@@ -101,8 +142,8 @@ if(genuinelyKeyless({...base,base:37,lo:'lo',body:get('Cells',x('lo'))}))throw E
 
 test("selected witness joins reject stale and wrong-map sources", () => {
 const n=(value:number):E=>({op:'const',value}),key=(a:E,b:E):E=>({op:'add',a:{op:'mul',k:17,a},b}),positive=(map:string,k:E):C=>({op:'<=',a:n(1),b:get(map,k)}),rows:unknown[]=[]
-for(const live of ['arbitraryWitness','anotherLive'])for(const mode of ['positive','different-witness','not-live','wrong-map'] as const){
- const actual=mode==='not-live'?'unselected':live,right=mode==='different-witness'?'other':actual,m:Machine={name:'join test',params:[],inputs:['inputLow'],state:{fixed:n(0)},step:{maps:{Own:{key:key(x('fixed'),x('inputLow')),value:n(1)}}}},own:Law={name:'own',forall:'ownKey',holds:positive('Own',key(x('ownKey'),x('otherOwn')))},l:Law={name:'relation',forall:'node',keys:['hi','lo'],holds:{op:'or',xs:[not(positive('Promise',key(x('hi'),x('node')))),positive('Departed',key(x('node'),x('lo')))]}},c:Pick<CountCert,'reads'|'insts'>={reads:[['read','Count',n(0)]],insts:[{wit:live,below:n(5),terms:[[1,'read']],unit:0}]},g={name:'goal',hyps:[positive(mode==='wrong-map'?'Different':'Promise',key(x('fixed'),x(actual))),positive('Departed',key(x(right),x('low')))]},r=sparseReadInstances(m,[l],own,{},g,c,64),wanted=[x(live),x('fixed'),x('low')],found=r.added.find(a=>a.law===l.name&&JSON.stringify(a.tuple)===JSON.stringify(wanted)),expected=mode==='positive'
+for(const live of ['arbitraryWitness','anotherLive'])for(const mode of ['positive','no-write-anchor','different-witness','not-live','wrong-map'] as const){
+ const actual=mode==='not-live'?'unselected':live,right=mode==='different-witness'?'other':actual,high=mode==='no-write-anchor'?'unrelatedHigh':'fixed',m:Machine={name:'join test',params:[],inputs:['inputLow'],state:{fixed:n(0)},step:{maps:{Own:{key:key(x('fixed'),x('inputLow')),value:n(1)}}}},own:Law={name:'own',forall:'ownKey',holds:positive('Own',key(x('ownKey'),x('otherOwn')))},l:Law={name:'relation',forall:'node',keys:['hi','lo'],holds:{op:'or',xs:[not(positive('Promise',key(x('hi'),x('node')))),positive('Departed',key(x('node'),x('lo')))]}},c:Pick<CountCert,'reads'|'insts'>={reads:[['read','Count',n(0)]],insts:[{wit:live,below:n(5),terms:[[1,'read']],unit:0}]},g={name:'goal',hyps:[positive(mode==='wrong-map'?'Different':'Promise',key(x(high),x(actual))),positive('Departed',key(x(right),x('low')))]},r=sparseReadInstances(m,[l],own,{},g,c,64),wanted=[x(live),x(high),x('low')],found=r.added.find(a=>a.law===l.name&&JSON.stringify(a.tuple)===JSON.stringify(wanted)),expected=mode==='positive'||mode==='no-write-anchor'
  if(!!found!==expected||r.summary.livePairWork>4096||r.added.length>64||r.added.some(a=>!a.coherent))throw Error('live join '+mode)
  if(found&&(!found.sources.every(p=>p.source.kind==='read'&&p.sameMap)||found.sources.length!==2))throw Error('not own-map reads')
  rows.push({live,mode,expected,found,summary:r.summary})

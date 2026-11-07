@@ -1,6 +1,6 @@
 import {readFileSync} from 'node:fs'
 const read=(p:string)=>{const t=readFileSync(p,'utf8');return JSON.parse(t.split('\n').find(l=>l.startsWith('{'))!)}
-const root='runs/track-p-six',fixture=read('runs/track-p-data/family.json'),names=new Map(fixture.laws.map((l:any,i:number)=>[l.name,i]))
+const root='runs/track-p-six',fixture=read('runs/track-p-data/family.json'),names=new Map<string,number>(fixture.laws.map((l:any,i:number):[string,number]=>[l.name,i]))
 const e=(v:any):string=>v.op==='var'?v.name:v.op==='const'?String(v.value):v.op==='mul'?`${v.k}*(${e(v.a)})`:v.op==='add'?`(${e(v.a)}+${e(v.b)})`:v.op==='sub'?`(${e(v.a)}-${e(v.b)})`:v.op==='get'?`${v.map}[${e(v.key)}]`:JSON.stringify(v)
 const data=[
  [7,read(root+'/seven-seventeen/c7/generic-all.json').trace.at(-1).extras],

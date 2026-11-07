@@ -2,8 +2,6 @@ import {readFileSync} from 'node:fs';
 import {createHash} from 'node:crypto';
 import {countedObligations,mcGoal,checkMC} from '../../../kernel/kernel.ts';
 import {grow,clock,withWall,withDeadline,counted,fullRate} from '../../../kernel/prove.ts';
-import {relevantGoals} from '../../../core/relevance.ts';
-import {widen} from '../../../kernel/prove.ts';
 const fixture=readFileSync('research/track-p/input/family.json','utf8'),{machine:m,laws}=JSON.parse(fixture),index=Number(process.argv[2]);
 const ids=[2,3,4,7,9,10,11,13,14,17,33,45,61,64,66,70,71,73,74],family=ids.map(i=>laws[i]);
 const V=(name:string):any=>({op:'var',name}),K=(value:number):any=>({op:'const',value}),A=(a:any,b:any):any=>({op:'add',a,b}),M=(k:number,a:any):any=>({op:'mul',k,a}),key=(a:any,b:any)=>A(M(64,a),b);

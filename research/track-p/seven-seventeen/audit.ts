@@ -1,8 +1,8 @@
 import {readFileSync} from 'node:fs';
 import {createHash} from 'node:crypto';
 import {auditSupport} from '../audit-support.ts';
-import {countedObligations,mcGoal,checkMC,substE} from '../../../kernel/kernel.ts';
-import {candidateWork,prepareSupport,sparseReadInstances,instId,keyId} from '../../../core/count-support.ts';
+import {countedObligations,mcGoal,checkMC} from '../../../kernel/kernel.ts';
+import {candidateWork,prepareSupport,sparseReadInstances,keyId} from '../../../core/count-support.ts';
 const index=Number(process.argv[2]),dir=`research/track-p/seven-seventeen/saved/c${index}/`;
 const file=readFileSync('research/track-p/input/family.json','utf8'),{machine:m,laws}=JSON.parse(file),source=JSON.parse(readFileSync(dir+'source.json','utf8')),proof=JSON.parse(readFileSync(dir+'proof.json','utf8')),saved=JSON.parse(readFileSync(dir+'goal.json','utf8')),family=source.familyIndices.map((i:number)=>laws[i]),own=laws[index];
 const {goal,decls}=countedObligations(m,family,{[own.name]:source.instances},family.indexOf(own))[1]!;

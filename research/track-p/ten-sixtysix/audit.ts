@@ -5,7 +5,7 @@ import {countedObligations,mcGoal,checkMC} from '../../../kernel/kernel.ts';
 import {candidateWork,prepareSupport,sparseReadInstances,instId,keyId} from '../../../core/count-support.ts';
 import {grow,clock,withWall,withDeadline,counted,fullRate} from '../../../kernel/prove.ts';
 const d=JSON.parse(readFileSync('research/track-p/input/family.json','utf8')),idx=Number(process.argv[2]),flags=process.argv[3]==='none'?'none':'all',path='research/track-p/ten-sixtysix/input/c'+idx+'/',source=JSON.parse(readFileSync(path+'source.json','utf8')),hand=JSON.parse(readFileSync(path+'proof.json','utf8')),m=d.machine,family=source.familyIndices.map((i:number)=>d.laws[i]),own=d.laws[idx];
-const required=source.instances,empty={reads:[],insts:[],picks:[]},actual=auditSupport(m,family,own,required,hand,flags);
+const required=source.instances,actual=auditSupport(m,family,own,required,hand,flags);
 const rows=(at:any)=>Object.entries(at).flatMap(([name,values]:any)=>{const l=family.find((l:any)=>l.name===name),width=name.startsWith('?')?1:1+(l?.keys?.length??0);return Array.from({length:values.length/width},(_,i)=>({name,tuple:values.slice(i*width,(i+1)*width)}));});
 const rowId=(r:any)=>JSON.stringify([r.name,r.tuple.map(keyId)]),requiredRows=rows(required),expected=new Set(requiredRows.map(rowId));
 const handIds=new Set(hand.insts.map((i:any)=>instId(i,hand.reads))),countDiff=(c:any)=>({missing:hand.insts.filter((i:any)=>!new Set(c.insts.map((j:any)=>instId(j,c.reads))).has(instId(i,hand.reads))),extras:c.insts.filter((i:any)=>!handIds.has(instId(i,c.reads)))});

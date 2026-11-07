@@ -1,0 +1,95 @@
+
+  x eslint(no-unused-vars): Identifier 'relevantGoals' is imported but never used.
+   ,-[research/track-p/seven-seventeen/hand.ts:5:9]
+ 4 | import {grow,clock,withWall,withDeadline,counted,fullRate} from '../../../kernel/prove.ts';
+ 5 | import {relevantGoals} from '../../../core/relevance.ts';
+   :         ^^^^^^|^^^^^^
+   :               `-- 'relevantGoals' is imported here
+ 6 | import {widen} from '../../../kernel/prove.ts';
+   `----
+  help: Consider removing this import.
+
+  x eslint(no-unused-vars): Identifier 'widen' is imported but never used.
+   ,-[research/track-p/seven-seventeen/hand.ts:6:9]
+ 5 | import {relevantGoals} from '../../../core/relevance.ts';
+ 6 | import {widen} from '../../../kernel/prove.ts';
+   :         ^^|^^
+   :           `-- 'widen' is imported here
+ 7 | const fixture=readFileSync('research/track-p/input/family.json','utf8'),{machine:m,laws}=JSON.parse(fixture),index=Number(process.argv[2]);
+   `----
+  help: Consider removing this import.
+
+  x eslint(no-unused-vars): Identifier 'substE' is imported but never used.
+   ,-[research/track-p/seven-seventeen/audit.ts:4:43]
+ 3 | import {auditSupport} from '../audit-support.ts';
+ 4 | import {countedObligations,mcGoal,checkMC,substE} from '../../../kernel/kernel.ts';
+   :                                           ^^^|^^
+   :                                              `-- 'substE' is imported here
+ 5 | import {candidateWork,prepareSupport,sparseReadInstances,instId,keyId} from '../../../core/count-support.ts';
+   `----
+  help: Consider removing this import.
+
+  x eslint(no-unused-vars): Identifier 'instId' is imported but never used.
+   ,-[research/track-p/seven-seventeen/audit.ts:5:58]
+ 4 | import {countedObligations,mcGoal,checkMC,substE} from '../../../kernel/kernel.ts';
+ 5 | import {candidateWork,prepareSupport,sparseReadInstances,instId,keyId} from '../../../core/count-support.ts';
+   :                                                          ^^^|^^
+   :                                                             `-- 'instId' is imported here
+ 6 | const index=Number(process.argv[2]),dir=`research/track-p/seven-seventeen/saved/c${index}/`;
+   `----
+  help: Consider removing this import.
+
+  x eslint(no-unused-vars): Variable 'empty' is declared but never used. Unused variables should start with a '_'.
+   ,-[research/track-p/ten-sixtysix/audit.ts:8:33]
+ 7 | const d=JSON.parse(readFileSync('research/track-p/input/family.json','utf8')),idx=Number(process.argv[2]),flags=process.argv[3]==='none'?'none':'all',path='research/track-p/ten-sixtysix/input/c'+idx+'/',source=JSON.parse(readFileSync(path+'source.json','utf8')),hand=JSON.parse(readFileSync(path+'proof.json','utf8')),m=d.machine,family=source.familyIndices.map((i:number)=>d.laws[i]),own=d.laws[idx];
+ 8 | const required=source.instances,empty={reads:[],insts:[],picks:[]},actual=auditSupport(m,family,own,required,hand,flags);
+   :                                 ^^|^^
+   :                                   `-- 'empty' is declared here
+ 9 | const rows=(at:any)=>Object.entries(at).flatMap(([name,values]:any)=>{const l=family.find((l:any)=>l.name===name),width=name.startsWith('?')?1:1+(l?.keys?.length??0);return Array.from({length:values.length/width},(_,i)=>({name,tuple:values.slice(i*width,(i+1)*width)}));});
+   `----
+  help: Consider removing this declaration.
+
+  x eslint(no-unused-vars): Variable 'K' is declared but never used. Unused variables should start with a '_'.
+   ,-[research/track-p/thirtythree/probe.ts:6:46]
+ 5 | const ids=[2,3,4,7,9,10,11,13,14,17,33,45,61,64,66,70,71,73,74],family=ids.map(i=>laws[i]),own=laws[33];
+ 6 | const V=(name:string):any=>({op:'var',name}),K=(value:number):any=>({op:'const',value}),A=(a:any,b:any):any=>({op:'add',a,b}),M=(k:number,a:any):any=>({op:'mul',k,a});
+   :                                              |
+   :                                              `-- 'K' is declared here
+ 7 | const a=V('key1$enum#'),b=V('key2$enum'),c=V('key3$enum'),pr=V('pr'),pv=V('pv');
+   `----
+  help: Consider removing this declaration.
+
+  x eslint(no-unused-vars): Variable 'pr' is declared but never used. Unused variables should start with a '_'.
+   ,-[research/track-p/thirtythree/probe.ts:7:59]
+ 6 | const V=(name:string):any=>({op:'var',name}),K=(value:number):any=>({op:'const',value}),A=(a:any,b:any):any=>({op:'add',a,b}),M=(k:number,a:any):any=>({op:'mul',k,a});
+ 7 | const a=V('key1$enum#'),b=V('key2$enum'),c=V('key3$enum'),pr=V('pr'),pv=V('pv');
+   :                                                           ^|
+   :                                                            `-- 'pr' is declared here
+ 8 | const base:any={[own.name]:[a,b,c],[laws[61].name]:[b,c]};
+   `----
+  help: Consider removing this declaration.
+
+  x eslint(no-unused-vars): Variable 'pv' is declared but never used. Unused variables should start with a '_'.
+   ,-[research/track-p/thirtythree/probe.ts:7:70]
+ 6 | const V=(name:string):any=>({op:'var',name}),K=(value:number):any=>({op:'const',value}),A=(a:any,b:any):any=>({op:'add',a,b}),M=(k:number,a:any):any=>({op:'mul',k,a});
+ 7 | const a=V('key1$enum#'),b=V('key2$enum'),c=V('key3$enum'),pr=V('pr'),pv=V('pv');
+   :                                                                      ^|
+   :                                                                       `-- 'pv' is declared here
+ 8 | const base:any={[own.name]:[a,b,c],[laws[61].name]:[b,c]};
+   `----
+  help: Consider removing this declaration.
+
+  x typescript(restrict-plus-operands): Invalid operand of type 'unknown' for a '+' operation.
+    ,-[research/track-p/extra-ledger.ts:14:232]
+ 13 | console.log('# Six STEP emitter audit: every extra PRE tuple\n\nHistorical emitter-only, all-input-flag/polarity-selector audit of ad4fe53e10f783a7e7b095eb3170203a5e5d83e1b239e4c39c47f2bae7850e5f. This is not the full production selector/reservation path. Full phase and semantic-witness mappings remain in the linked per-target JSON files documented by `runs/REPORT.md`. A failed or SAT partial request is not a reachable protocol counterexample.\n\nNames `C<i>` refer to indices in the unchanged original family fixture. Witness spelling is local to each audit; it does not add an equality.\n')
+ 14 | for(const [index,extras]of data){console.log(`## C${index}: ${extras.length} extra tuples\n\n| Source law/flag | Exact tuple in final observed audit phase |\n|---|---|`);for(const x of extras)console.log(`| ${names.has(x.name)?'C'+names.get(x.name):'`'+x.name+'`'} | \`${x.tuple.map(e).join(', ')}\` |`);if(index!==66)console.log('')}
+    :                                                                                                                                                                                                                                        ^^^^^^^^^^^^^^^^^
+    `----
+  help: Operands must each be a number or string, allowing a string + any of: `any`, `boolean`, `null`, `RegExp`, `undefined`.
+
+Found 0 warnings and 9 errors.
+Finished in 31.6s on 929 files with 100 rules using 2 threads.
+
+--- stderr ---
+$ tsc -p . && oxlint --type-aware --deny-warnings --disable-nested-config
+error: script "check" exited with code 1

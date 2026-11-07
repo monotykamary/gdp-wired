@@ -1,0 +1,11 @@
+bun test v1.4.3 (c6da4a4d3)
+
+--- stderr ---
+
+core/count-support.test.ts:
+(pass) selected witness joins reject stale and wrong-map sources [5.26ms]
+
+ 1 pass
+ 39 filtered out
+ 0 fail
+Ran 1 test across 1 file. [35.00ms]

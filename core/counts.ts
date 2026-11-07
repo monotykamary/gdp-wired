@@ -23,7 +23,7 @@ import {modelSequence} from '../kernel/model-sequence.ts'
 import {inferLaws} from './infer.ts'
 import {carryCandidates, scanPrefixes} from './carry.ts'
 import {relevantLaws} from './relevance.ts'
-import {countedInstanceSources, countSignature, grammarPool, ids, polaritySelection, readTuples, refinementSignature, reservationReadClosure, reservationState, reservePool, prepareSupport, smallSelection, sparseReadInstances, selectedCertificate, chosenView, candidateWork, stableState, UnsupportedCountProposal} from './count-support.ts'
+import {countPoolKey, countSignature, grammarPool, ids, polaritySelection, readTuples, refinementSignature, reservationReadClosure, reservationState, reservePool, prepareSupport, smallSelection, sparseReadInstances, selectedCertificate, chosenView, candidateWork, stableState, UnsupportedCountProposal} from './count-support.ts'
 import {smallOf, trueSmall} from './exists.ts'
 import {env} from './solver.ts'
 
@@ -399,6 +399,68 @@ function searchCounted0(m0: Machine, g: ReturnType<typeof guardLaws>, m: Machine
   let set = env.GDP_COUNTS_GIVEN === '1' ? [...caller] : [...caller, ...candidates(m0, m, caller, caller, g.laws, ms, until, support)]
   countsDump.on?.({phase: 'candidates', machine: m, laws: set})
   if (env.GDP_COUNTS_TRACE) console.error(`counts: candidates at ${Math.round(clock() - t1)} ms: ${set.map(l => l.name).join('; ')}`)
+  const attempts = countedAttempts(m, caller, support, until), traced = attempts.traced
+  const isCount = (mp: string) => !!m.counts?.[mp]
+  // Prove the proposed set together. A preliminary cone reproved many helpers in
+  // several smaller contexts before asking these same induction goals. Houdini
+  // drops failed helpers and carries proofs whose instantiated support survives.
+  // Every returned set still passes checkCountedLaws, including all caller laws.
+  const finish = (ls: Law[], proof: {instances: Record<string, Instances>, certs: Record<string, CountCert>}): Counted => {
+    if (!ptime('kernel', () => checkCountedLaws(m, ls, proof))) return {proven: false, laws: ls, m, why: 'the kernel refused the set'}
+    // Output-only observation, after the unchanged checker accepts every obligation.
+    countsDump.on?.({phase: 'closed-family', machine: m, laws: ls, proof, checked: true})
+    return {proven: true, laws: ls, m, proof}
+  }
+  const join = (kept = new Map<string, Proof>()): Counted => {
+    const keptProof = () => ({instances: Object.fromEntries([...kept].map(([n, pr]) => [n, pr.instances])), certs: Object.assign({}, ...[...kept.values()].map(pr => pr.certs))})
+    if (caller.every(l => kept.has(l.name))) return finish(set.filter(l => kept.has(l.name)), keptProof())
+    // (each law without a carried proof an even share of what is left a round)
+    let carried = new Map<string, Proof>()
+    attempts.houdini = true
+    for (let round = 0; clock() < until; round++) {
+      const {instances, certs} = keptProof()
+      const failed = new Set<string>(), proofs = new Map<string, Proof>(), share = (until - clock()) / Math.max(1, set.filter(l => !kept.has(l.name) && !carried.has(l.name)).length)
+      // Structural supports first; no-support scheduling is unchanged.
+      for (const law of supportOrder(set, caller, support)) {
+        if (clock() > until) return {proven: false, laws: set, m, why: 'time'}
+        if (kept.has(law.name)) continue
+        const was = carried.get(law.name)
+        const structural = support.has(law) && !caller.includes(law)
+        const boundedSupport = activeSupport(set, support)
+        const allotted = supportBudget(until - clock(), share, boundedSupport && caller.includes(law), structural)
+        const supportUntil = Math.min(until, clock() + (boundedSupport ? Math.min(allotted, 5_000) : allotted)), supportWall = performance.now() + 4_800
+        const ask = (pass: 0 | 1): Tried<Proof> => {
+          const ms = Math.min(allotted, Math.max(0, (boundedSupport ? supportUntil : until) - clock()))
+          return boundedSupport ? withWall(supportWall, () => withDeadline(supportUntil, () => traced(law, set, pass, ms))) : traced(law, set, pass, ms)
+        }
+        const countFirst = env.GDP_COUNTS_COUNT_FIRST === '1' && reads(law.holds, isCount).size > 0
+        let r: Tried<Proof> = was ? {proof: was} : ask(countFirst ? 1 : 0)
+        if (!('proof' in r) && (countFirst || attempts.counted)) r = ask(countFirst ? 0 : 1)
+        if (!('proof' in r)) { failed.add(law.name); continue }
+        proofs.set(law.name, r.proof)
+        instances[law.name] = r.proof.instances
+        Object.assign(certs, r.proof.certs)
+      }
+      if (env.GDP_COUNTS_TRACE) console.error(`counts: round ${round}: ${set.length} laws, ${kept.size} kept, ${carried.size} carried, failed ${[...failed].join('; ').slice(0, 600)}`)
+      if (!failed.size) return finish(set, {instances, certs})
+      const next = set.filter(l => !failed.has(l.name) || caller.includes(l))
+      // (only callers fail: drop nothing more, give up)
+      if (next.length === set.length) return {proven: false, laws: set, m, why: `not proven: ${[...failed].join(', ')}`}
+      // (a proof that assumes no law dropped at any key is one over the rest: its goals are the same; the kernel checks all)
+      const dropped = set.filter(l => !next.includes(l))
+      carried = new Map([...proofs].filter(([, pr]) => dropped.every(d => d.forall && !pr.instances[d.name]?.length)))
+      set = next
+    }
+    return {proven: false, laws: set, m, why: 'time'}
+  }
+  return join()
+}
+
+type Proof = {instances: Instances, certs: Record<string, CountCert>}
+// The production attempt also serves the fixed-family research replay. Candidate
+// generation and scheduling stay outside; inference, selection, reservation and
+// all budget checks have exactly one implementation.
+export function countedAttempts(m: Machine, caller: Law[], support: Set<Law>, until: number) {
   // (the law's own names and the request's values that key a map: an action's value keys none)
   const keys0 = [...[...reads([m.step, m.assume ?? null], () => true).values()].map(([, key]) => key), ...Object.values(m.step.maps ?? {}).flatMap(w => ('each' in w ? [] : [w.key]))]
   const keyed = m.inputs.filter(i => keys0.some(key => mentions(key, i))).map(v)
@@ -434,7 +496,9 @@ function searchCounted0(m0: Machine, g: ReturnType<typeof guardLaws>, m: Machine
       if (!(seed = ptime('mbqi', () => modelInstances(m, modelLaws, at0, cti.gg, cti.w)))) return {stuck: 'sat'}
     }
     const refuted = (gg: Goal, w: Record<string, number>): Tried<Proof> => { models.set(id, {gg, w, at, ls: new Set(ls.map(l => l.name))}); return {stuck: 'sat'} }
-    let at: Instances = seed ?? Object.fromEntries(Object.entries(m.step.flags ?? {}).flatMap(([f, q]) => (q.op === 'all' && !q.keys?.length ? [[`?${f}`, ts]] : [])))
+    // Supported obligations seed quantified flags only at demanded source terms.
+    // Ordinary MBQI remains the fallback; arbitrary inputs are not initial witnesses.
+    let at: Instances = seed ?? (supported ? {} : Object.fromEntries(Object.entries(m.step.flags ?? {}).flatMap(([f, q]) => (q.op === 'all' && !q.keys?.length ? [[`?${f}`, ts]] : []))))
     const obligations = (i: Instances) => ptime('encode', () => countedObligations(m, ls, {[law.name]: i}, ls.indexOf(law)))
     // (`wide`: the count instances widened once, where a model is left that the narrow ones and the laws don't refute, for
     // a caller's law or where a read is in none of them: the cone's many refuted candidates keep the narrow ones)
@@ -457,7 +521,6 @@ function searchCounted0(m0: Machine, g: ReturnType<typeof guardLaws>, m: Machine
     type Selection = {chosen: Set<string>, cap: number, previous: Pick<CountCert, 'reads' | 'insts' | 'picks'>, decls: Parameters<typeof certFor>[1], reserve: ReturnType<typeof reservationState>, stable: ReturnType<typeof stableState>}
     const selections = new Map<string, Selection>()
     const poolCache = new Map<string, {key: string, value: ReturnType<typeof grammarPool>}>()
-    const countSources = countedInstanceSources(m, ls)
     const rawBuild = () => obligations(at).map(({goal, decls}) => {
       if (pass && supported && lazyMode === 'wide') {
         if (generation.state.deadline || performance.now() >= wallAt()) throw new UnsupportedCountProposal('reservation deadline')
@@ -467,7 +530,7 @@ function searchCounted0(m0: Machine, g: ReturnType<typeof guardLaws>, m: Machine
         // the proposal pool while only those instances grow; retained picks
         // are still reified against this goal, and additional picks may wait
         // for failure-driven widening. This caches proposals, never a proof.
-        const key = json(Object.entries(at).filter(([name]) => countSources.has(name)))
+        const key = countPoolKey(goal, decls)
         const cached = poolCache.get(goal.name)
         const pool0 = cached?.key === key ? cached.value : grammarPool(goal, decls, pool, generation)
         if (cached?.key !== key) poolCache.set(goal.name, {key, value: pool0})
@@ -655,57 +718,5 @@ function searchCounted0(m0: Machine, g: ReturnType<typeof guardLaws>, m: Machine
     if (env.GDP_COUNTS_TRACE?.includes('3')) console.error(`counts: try ${law.name.slice(0, 50)} | ls ${ls.length} pass ${pass} ms ${Math.round(ms)} took ${Math.round(clock() - t0)} wall ${Math.round(performance.now() - w0)} [${Object.entries(cprof).filter(([k2, x]) => x - (p0[k2] ?? 0) >= 1).map(([k2, x]) => `${k2} ${Math.round(x - (p0[k2] ?? 0))}`).join(' ')}] -> ${'proof' in r ? 'kept' : r.stuck}`)
     return r
   }
-  // Prove the proposed set together. A preliminary cone reproved many helpers in
-  // several smaller contexts before asking these same induction goals. Houdini
-  // drops failed helpers and carries proofs whose instantiated support survives.
-  // Every returned set still passes checkCountedLaws, including all caller laws.
-  const finish = (ls: Law[], proof: {instances: Record<string, Instances>, certs: Record<string, CountCert>}): Counted => {
-    if (!ptime('kernel', () => checkCountedLaws(m, ls, proof))) return {proven: false, laws: ls, m, why: 'the kernel refused the set'}
-    // Output-only observation, after the unchanged checker accepts every obligation.
-    countsDump.on?.({phase: 'closed-family', machine: m, laws: ls, proof, checked: true})
-    return {proven: true, laws: ls, m, proof}
-  }
-  const join = (kept = new Map<string, Proof>()): Counted => {
-    const keptProof = () => ({instances: Object.fromEntries([...kept].map(([n, pr]) => [n, pr.instances])), certs: Object.assign({}, ...[...kept.values()].map(pr => pr.certs))})
-    if (caller.every(l => kept.has(l.name))) return finish(set.filter(l => kept.has(l.name)), keptProof())
-    // (each law without a carried proof an even share of what is left a round)
-    let carried = new Map<string, Proof>()
-    houdini = true
-    for (let round = 0; clock() < until; round++) {
-      const {instances, certs} = keptProof()
-      const failed = new Set<string>(), proofs = new Map<string, Proof>(), share = (until - clock()) / Math.max(1, set.filter(l => !kept.has(l.name) && !carried.has(l.name)).length)
-      // Structural supports first; no-support scheduling is unchanged.
-      for (const law of supportOrder(set, caller, support)) {
-        if (clock() > until) return {proven: false, laws: set, m, why: 'time'}
-        if (kept.has(law.name)) continue
-        const was = carried.get(law.name)
-        const structural = support.has(law) && !caller.includes(law)
-        const boundedSupport = activeSupport(set, support)
-        const allotted = supportBudget(until - clock(), share, boundedSupport && caller.includes(law), structural)
-        const supportUntil = Math.min(until, clock() + (boundedSupport ? Math.min(allotted, 5_000) : allotted)), supportWall = performance.now() + 4_800
-        const ask = (pass: 0 | 1): Tried<Proof> => {
-          const ms = Math.min(allotted, Math.max(0, (boundedSupport ? supportUntil : until) - clock()))
-          return boundedSupport ? withWall(supportWall, () => withDeadline(supportUntil, () => traced(law, set, pass, ms))) : traced(law, set, pass, ms)
-        }
-        const countFirst = env.GDP_COUNTS_COUNT_FIRST === '1' && reads(law.holds, isCount).size > 0
-        let r: Tried<Proof> = was ? {proof: was} : ask(countFirst ? 1 : 0)
-        if (!('proof' in r) && (countFirst || counted)) r = ask(countFirst ? 0 : 1)
-        if (!('proof' in r)) { failed.add(law.name); continue }
-        proofs.set(law.name, r.proof)
-        instances[law.name] = r.proof.instances
-        Object.assign(certs, r.proof.certs)
-      }
-      if (env.GDP_COUNTS_TRACE) console.error(`counts: round ${round}: ${set.length} laws, ${kept.size} kept, ${carried.size} carried, failed ${[...failed].join('; ').slice(0, 600)}`)
-      if (!failed.size) return finish(set, {instances, certs})
-      const next = set.filter(l => !failed.has(l.name) || caller.includes(l))
-      // (only callers fail: drop nothing more, give up)
-      if (next.length === set.length) return {proven: false, laws: set, m, why: `not proven: ${[...failed].join(', ')}`}
-      // (a proof that assumes no law dropped at any key is one over the rest: its goals are the same; the kernel checks all)
-      const dropped = set.filter(l => !next.includes(l))
-      carried = new Map([...proofs].filter(([, pr]) => dropped.every(d => d.forall && !pr.instances[d.name]?.length)))
-      set = next
-    }
-    return {proven: false, laws: set, m, why: 'time'}
-  }
-  return join()
+  return {traced, get counted() { return counted }, set houdini(value: boolean) { houdini = value }}
 }

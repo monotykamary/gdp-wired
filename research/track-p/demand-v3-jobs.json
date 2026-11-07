@@ -1,0 +1,5 @@
+[
+{"name":"check","cmd":"bun install --frozen-lockfile >/dev/null && bun run check","timeout":180,"timing":true},
+{"name":"support-tests","cmd":"bun install --frozen-lockfile >/dev/null && bun test core/count-support.test.ts core/relevance.test.ts kernel/cdcl.test.ts","timeout":90,"timing":true},
+{"name":"family38","cmd":"bun install --frozen-lockfile >/dev/null && PROFILE=1 bun research/track-p/production-replay.ts research/track-p/input","timeout":90,"timing":true}
+]

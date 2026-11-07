@@ -43,6 +43,14 @@ const duplicateTerm=(law:Law|undefined,old:E[],tuple:E[]):boolean=>{
 // Instance changes matter to a count-read pool only when their law/flag can
 // introduce a count read. Follow flag references to a fixed point, including
 // reads under quantified flags; primitive flags must not invalidate the pool.
+// A proposal cache depends on exact raw count-read spellings and definitions,
+// not on which PRE tuple first exposed an already-present read. A hit never
+// reuses a verdict: reservation and reification still inspect the current goal.
+export function countPoolKey(goal:Goal,decls:CountDecl[]){
+ const maps=new Set(decls.map(d=>d.map)),reads=readTuples(goal.hyps).filter(([map])=>maps.has(map)).map(read=>json(read)).sort()
+ return json([decls,reads,goal.hyps.at(-1)])
+}
+
 export function countedInstanceSources(m:Machine,laws:Law[]):Set<string>{
  const analyze=(value:unknown)=>{
   let count=false;const flags=new Set<string>()
@@ -558,7 +566,7 @@ function baseReadInstances(m:Machine,laws:Law[],own:Law,at:Instances,goal:Goal,c
    else if(oneKey&&sameMap){const projection=projectBoundCoordinate(m,pattern[1],source.key,ns[0]!);if(projection)partials.push({binding:projection.binding,source,pattern,sameMap,projection})}
   }
   const seen=new Set<string>(),countLaw=lawReads(l,more).some(([mp])=>!!m.counts?.[mp])
-  const add=(binding:Binding,sources:Partial[],conflicts:string[])=>{if(!ns.every(n=>binding[n]))return;const tuple=ns.map(n=>binding[n]!),id=json([conflicts.length?'mixed':'coherent',tuple]);if(seen.has(id))return;seen.add(id);const s=score(tuple,sources);if(s<100&&!sources.some(x=>x.source.kind==='own')&&!sources.some(x=>x.remainder)&&!(oneKey&&tuple.some(t=>t.op==='var'&&selectedWitnesses.has(t.name))&&sources.some(p=>p.source.kind==='read'&&p.sameMap)))return;const c:Choice={law:l.name,tuple,sources,coherent:!conflicts.length,conflicts,score:s,countLaw};(conflicts.length?mixed:candidates).push(c)}
+  const add=(binding:Binding,sources:Partial[],conflicts:string[])=>{if(!ns.every(n=>binding[n]))return;const tuple=ns.map(n=>binding[n]!),id=json([conflicts.length?'mixed':'coherent',tuple]);if(seen.has(id))return;seen.add(id);const s=score(tuple,sources);const joined=!conflicts.length&&sources.length===2&&sources.every(p=>p.source.kind==='read'&&p.sameMap&&!p.projection)&&Object.entries(sources[0]!.binding).some(([slot,e])=>e.op==='var'&&selectedWitnesses.has(e.name)&&json(e)===json(sources[1]!.binding[slot]));if(s<100&&!joined&&!sources.some(x=>x.source.kind==='own')&&!sources.some(x=>x.remainder)&&!(oneKey&&tuple.some(t=>t.op==='var'&&selectedWitnesses.has(t.name))&&sources.some(p=>p.source.kind==='read'&&p.sameMap)))return;const c:Choice={law:l.name,tuple,sources,coherent:!conflicts.length,conflicts,score:s,countLaw};(conflicts.length?mixed:candidates).push(c)}
   for(const p of partials){if(!more())break sourceLaws;add(p.binding,[p],[])}
   for(let i=0;i<partials.length;i++)for(let j=i+1;j<partials.length;j++){
    if(!more())break sourceLaws
@@ -641,6 +649,26 @@ export function targetKindMatches(m:Machine,laws:Law[],decls:CountDecl[],cert:Pi
  return out
 }
 
+// Root reads propose arguments to quantified flags. Temporary bindings of fixed
+// globals select the argument only; the emitted flag body retains those globals.
+export function rootFlagMatches(m:Machine,own:Law,more:()=>boolean=candidateWork().tick){
+ const ns=vars(own),binding=Object.fromEntries(ns.map((n,i)=>[n,x(i===0?n+'#':n)])),root=substC(own.holds,{vars:binding,maps:{},flags:{}}),rootReads=readTuples(root,more),live=names(root),globals=new Set([...m.params,...m.inputs,...Object.keys(m.state)])
+ const out:{law:string,tuple:E[],map:string,pattern:E,actual:E,matchingOnly:Record<string,E>,premise:C}[]=[],seen=new Set<string>()
+ for(const [name,q]of Object.entries(m.step.flags??{})){
+  if(!more())return out;if(q.op!=='all'||q.keys?.length)continue
+  for(const [map,pattern]of readTuples(q.c,more))for(const [actualMap,actual]of rootReads){
+   if(!more())return out;if(map!==actualMap)continue
+   const fixed=[...names(pattern)].filter(n=>n!==q.key&&globals.has(n)),binders=[q.key,...fixed]
+   const matching=matchRead(pattern,actual,binders)??matchAffineRemainder(pattern,actual,binders,live)?.binding,term=matching?.[q.key]
+   if(!matching||!term||keyId(substE(pattern,{vars:matching,maps:{},flags:{}}))!==keyId(actual))continue
+   const law='?'+name,id=json([law,keyId(term)]);if(seen.has(id))continue;seen.add(id)
+   const originalBody=substC(q.c,{vars:{[q.key]:term},maps:{},flags:{}})
+   out.push({law,tuple:[term],map,pattern,actual,matchingOnly:matching,premise:{op:'or',xs:[{op:'=',a:x(law),b:{op:'const',value:0}},originalBody]}})
+  }
+ }
+ return out
+}
+
 export function targetFlagMatches(m:Machine,decls:CountDecl[],cert:Pick<CountCert,'reads'|'insts'>,rawPost:C|undefined,sourceMaps:ReadonlySet<string>,more:()=>boolean=candidateWork().tick){
  const boundedReads=(value:unknown)=>readTuples(value,more)
  const out:{law:string,tuple:E[],witness:string,map:string,pattern:E,actual:E,matchingOnly:Record<string,E>,fixed:{name:string,coefficient:number}[],domain:C,premise:C}[]=[],seen=new Set<string>()
@@ -694,7 +722,46 @@ export function targetReadMatches(m:Machine,laws:Law[],decls:CountDecl[],cert:Pi
  return out
 }
 
-export type CompleteReadMatch={kind:'complete-coherent-read',coherentReadMatch:true,law:string,tuple:E[],source:{kind:'root'|'selected',read:[string,E],witness?:string},pattern:E,binding:Record<string,E>,premise:C}
+// Actual free PRE reads reachable from the target's updates. Quantified bodies
+// and bulk-map binders are not free sources; disconnected flag definitions are
+// not traversed. This proposes terms only, never a transition or packed equality.
+export function transitionReads(m:Machine,own:Law,more:()=>boolean=candidateWork().tick){
+ const out:{read:[string,E],path:string[],freeNames:string[]}[]=[],seen=new Set<string>(),flags=new Set<string>()
+ const globals=new Set([...m.params,...m.inputs,...Object.keys(m.state)]),variables=names(own.holds),maps=new Set(readTuples(own.holds,more).map(([map])=>map)),expanded=new Set<string>()
+ for(const map of maps){
+  if(!more())return out
+  const d=m.counts?.[map];if(!d||expanded.has(map))continue;expanded.add(map)
+  for(const [source]of readTuples(d.body,more))maps.add(source)
+ }
+ const visit=(value:unknown,path:string[]):void=>{
+  if(!more()||!value||typeof value!=='object')return
+  if(Array.isArray(value)){value.forEach((v,i)=>visit(v,[...path,String(i)]));return}
+  const o=value as Record<string,unknown>
+  if(o.op==='all')return
+  if(o.op==='flag'&&typeof o.name==='string'&&!flags.has(o.name)){
+   flags.add(o.name);visit(m.step.flags?.[o.name],['step','flags',o.name])
+  }
+  if(o.op==='get'&&typeof o.map==='string'&&o.key){
+   const key=o.key as E,freeNames=[...names(key)],id=readKey(o.map,key)
+   if(freeNames.every(n=>globals.has(n))&&!seen.has(id)){seen.add(id);out.push({read:[o.map,key],path,freeNames})}
+  }
+  for(const [key,v]of Object.entries(o))if(v&&typeof v==='object')visit(v,[...path,key])
+ }
+ for(const [name,value]of Object.entries(m.step.state??{}))if(variables.has(name))visit(value,['step','state',name])
+ for(const [map,update]of Object.entries(m.step.maps??{}))if(maps.has(map)&&!('each'in update))visit(update,['step','maps',map])
+ return out
+}
+function primitiveReadKinds(m:Machine,laws:Law[],values:unknown,more:()=>boolean){
+ const out:{law:string,tuple:E[],map:string,premise:C}[]=[],seen=new Set<string>(),byMap=new Map<string,Law[]>()
+ for(const law of laws){if(!more())return out;const map=bareRangeMap(m,law,more);if(map){const rows=byMap.get(map)??[];rows.push(law);byMap.set(map,rows)}}
+ for(const [map,key]of readTuples(values,more))for(const law of byMap.get(map)??[]){
+  if(!more())return out;const id=json([law.name,keyId(key)]);if(seen.has(id))continue;seen.add(id)
+  out.push({law:law.name,tuple:[key],map,premise:substC(law.holds,{vars:{[law.forall!]:key},maps:{},flags:{}})})
+ }
+ return out
+}
+
+export type CompleteReadMatch={kind:'complete-coherent-read',coherentReadMatch:true,law:string,tuple:E[],source:{kind:'root'|'selected'|'transition',read:[string,E],witness?:string,path?:string[],freeNames?:string[]},pattern:E,binding:Record<string,E>,premise:C}
 // A SINGLE actual primitive read binds every coordinate. Index before optional
 // partial-coordinate/pair exploration; no invented terms, projections or aliases.
 export function completeReadMatches(m:Machine,laws:Law[],own:Law,decls:CountDecl[],cert:Pick<CountCert,'reads'|'insts'>,more:()=>boolean=candidateWork().tick,includeSelected=true):CompleteReadMatch[]{
@@ -723,6 +790,7 @@ export function completeReadMatches(m:Machine,laws:Law[],own:Law,decls:CountDecl
   // Root-bound keys, not every cold constant/range read embedded in the law.
   if(primitive(read[0])&&rootNames.some(n=>hasVar(read[1],n)))match({kind:'root',read})
  }
+ for(const source of transitionReads(m,own,more)){if(!more())return out;if(primitive(source.read[0]))match({kind:'transition',...source})}
  if(!includeSelected)return out
  const needed=new Set(cert.insts.flatMap(i=>i.terms.map(([,id])=>id))),liveReads=cert.reads.filter(([id])=>needed.has(id))
  const witnesses=new Set(cert.insts.map(i=>i.wit)),reserved=new Set([...m.params,...m.inputs,...Object.keys(m.state),...names(root)])
@@ -906,11 +974,13 @@ export function sparseReadInstances(m: Machine, laws: Law[], own: Law, at: Insta
   const more=budget.tick, sources=available?laws.filter(l=>!l.forall||slots(l)):[]
   const completeMatches = available?completeReadMatches(m, sources, own, decls, cert, more, completePriority==='current'):[]
   budget.mark('sources:complete')
+  const readKindMatches = available?primitiveReadKinds(m,sources,completeMatches.map(p=>p.premise),more):[]
   const termProposals = available?remainingCoordinateProposals(m, sources, decls, cert, rawPost, sourceMaps, preHyps, more, own):[]
   budget.mark('sources:terms')
   const ownMatches = available?ownPREMatches(m, sources, own, decls, cert, rawPost, sourceMaps, preHyps, more):[]
   const priorityMatches = available?targetReadMatches(m, sources.filter(l => l !== own), decls, cert, rawPost, sourceMaps, more):[]
-  const flagMatches = available?targetFlagMatches(m, decls, cert, rawPost, sourceMaps, more):[]
+  const rootFlags = available?rootFlagMatches(m,own,more):[]
+  const flagMatches = available?[...rootFlags,...targetFlagMatches(m, decls, cert, rawPost, sourceMaps, more)]:[]
   const kindMatches = available?targetKindMatches(m, sources, decls, cert, rawPost, sourceMaps, more):[]
   const out: Instances = {...at}, added: Choice[] = []
   const append = (p: {law: string, tuple: E[]}, coherent = true) => {
@@ -924,13 +994,15 @@ export function sparseReadInstances(m: Machine, laws: Law[], own: Law, at: Insta
   }
   for (const p of completeMatches) append(p)
   const completeReadAdmissions = added.length
+  for(const p of readKindMatches)append(p)
+  const readKindAdmissions = added.length - completeReadAdmissions
   const vacuousTermProposals:TermProposal[]=[],writeAnchored=new Set(termProposals.filter(p=>p.ownWriteKeyMatch).map(p=>p.law))
   // Deduplication must not backfill its freed slots with lower-quality cold
   // sources when the current obligation supplies an exact write-key donor.
   for (const p of termProposals) {if(structuralTruth(p.premise,more)===true)vacuousTermProposals.push(p);else if(p.ownWriteKeyMatch||!writeAnchored.has(p.law))append(p, false)}
-  const termProposalAdmissions = added.length - completeReadAdmissions
+  const termProposalAdmissions = added.length - completeReadAdmissions - readKindAdmissions
   for (const p of ownMatches) append(p)
-  const ownPREAdmissions = added.length - completeReadAdmissions - termProposalAdmissions
+  const ownPREAdmissions = added.length - completeReadAdmissions - readKindAdmissions - termProposalAdmissions
   for (const p of priorityMatches) append(p)
   const beforeFlags = added.length
   for (const p of flagMatches) append(p)
@@ -941,7 +1013,7 @@ export function sparseReadInstances(m: Machine, laws: Law[], own: Law, at: Insta
   const restSources=sources.filter(l=>!writeAnchored.has(l.name))
   const rest = available?baseReadInstances(m, restSources, own, added.length ? out : at, goal, cert, cap - added.length, rawPost, more):emptyReadResult(at,cap)
   budget.mark('sources:end')
-  return {...rest, added: [...added, ...rest.added], completeMatches, termProposals, vacuousTermProposals, ownMatches, priorityMatches, flagMatches, kindMatches, summary: {...rest.summary, cap, completeReadAdmissions, termProposalAdmissions, ownPREAdmissions, flagAdmissions, sharedGlobalBudget: true, generationWork:{...budget.state}}}
+  return {...rest, added: [...added, ...rest.added], completeMatches, readKindMatches, termProposals, vacuousTermProposals, ownMatches, priorityMatches, rootFlags, flagMatches, kindMatches, summary: {...rest.summary, cap, completeReadAdmissions, readKindAdmissions, termProposalAdmissions, ownPREAdmissions, flagAdmissions, sharedGlobalBudget: true, generationWork:{...budget.state}}}
 }
 export const countSignature = (c: Pick<CountCert, 'reads' | 'insts' | 'picks'>) => json([
   c.reads.map(r => [r[1], keyId(r[2])]).sort((a, b) => json(a).localeCompare(json(b))), ids(c).sort()])
@@ -984,14 +1056,14 @@ export function prepareSupport(m: Machine, laws: Law[], own: Law, initial: Insta
   if(pass){const seeded=seedVacuousCounts(m,laws,at,64-seedCount,more);at=seeded.at;seedCount+=seeded.added.length;for(const s of seeded.added)newSources.add(json([s.law,s.tuple]))}
   const sourceMaps=sourceBoundMaps(m,laws,at,more)
   budget.mark('prepare:seeded')
-  const cold=row(),empty={reads:[],insts:[],picks:[],wits:[],loose:false},cert=pass?certFor(cold.goal,cold.decls,false,10,more):empty,goal=mcGoal(cold.goal.hyps,cold.decls,cert)
+  const cold=row(),empty={reads:[],insts:[],picks:[],wits:[],loose:false},cert=empty,goal=mcGoal(cold.goal.hyps,cold.decls,cert)
   budget.mark('prepare:certificate')
   const termAdmissions:TermProposal[]=[],replacements:ReturnType<typeof prioritizeTerms>['replacements']=[]
   if(goal&&more()){
-   // Only complete ROOT bindings are admitted early. A certFor cold witness is
-   // not the later selected witness; it must never occupy these primitive slots.
+   // Complete root/free-transition bindings and their exact range laws may
+   // enter early. Count witnesses are deferred until a live view is selected.
    const seeds=sparseReadInstances(m,laws,own,at,goal,cert,64-seedCount,cold.goal.hyps.at(-1),cold.decls,sourceMaps,cold.goal.hyps.slice(0,-1),budget,'root')
-   const roots=new Set(seeds.completeMatches.filter(p=>p.source.kind==='root').map(p=>json([p.law,p.tuple])))
+   const roots=new Set([...seeds.completeMatches.filter(p=>p.source.kind!=='selected'),...seeds.readKindMatches,...seeds.rootFlags].map(p=>json([p.law,p.tuple])))
    const proposals=new Map(seeds.termProposals.map(p=>[json([p.law,p.tuple]),p]))
    for(const s of seeds.added){
     const proposal=proposals.get(json([s.law,s.tuple]))
