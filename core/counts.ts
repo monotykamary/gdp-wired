@@ -485,6 +485,7 @@ export function countedAttempts(m: Machine, caller: Law[], support: Set<Law>, un
     // A cached model can return before the no-count optimization below. A helper
     // without count reads must not suppress the next law's counting-lemma pass.
     if (!pass) counted = true
+    const attemptEnd = Math.min(until,clock()+ms)
     const ts = terms(law), id = `${pass} ${law.name}`, cti = models.get(id)
     const supported = ls.some(l => support.has(l)), modelLaws = supportOrder(ls, caller, support, true)
     // (the model broken: the attempt starts at the instances it asks for, its last attempt's and the tuples the new laws
@@ -626,8 +627,9 @@ export function countedAttempts(m: Machine, caller: Law[], support: Set<Law>, un
         if (!step?.gg) break
         if (supported && !preflighted && !step.c.insts.length) {
           preflighted = true
-          const small = relevantGoals(step.gg)[0] ?? step.gg, end = Math.min(until, clock() + ms / 6)
-          // A bounded proof attempt precedes model construction. A subset model
+          const directSmall = step.gg.hyps.length<=64, small = directSmall?step.gg:relevantGoals(step.gg)[0]??step.gg, end = Math.min(attemptEnd, clock() + (directSmall?ms:ms/6))
+          // Small already-reified goals use direct tree search before model
+          // construction; neither branch may outlive the original attempt. A subset model
           // says nothing about the whole goal; only a widened tree is reusable.
           const tree = ptime('preflight', () => withDeadline(end, () => {
             const quick = grow(small, new Map(), {nodes: 0, until: end})
