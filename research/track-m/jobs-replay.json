@@ -1,0 +1,4 @@
+[
+ {"name":"nonempty","cmd":"bun install --frozen-lockfile >/dev/null && python3 research/track-m/unpack-goals.py replay-input/given.log /tmp/track-m-replay && LAB_MS=7500 LAB_MODES=grow bun research/query/wide-lab.ts /tmp/track-m-replay/10.json", "timeout":45},
+ {"name":"row-agreement","cmd":"bun install --frozen-lockfile >/dev/null && python3 research/track-m/unpack-goals.py replay-input/given.log /tmp/track-m-replay && LAB_MS=7500 LAB_MODES=grow bun research/query/wide-lab.ts /tmp/track-m-replay/3.json", "timeout":45}
+]

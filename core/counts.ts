@@ -24,6 +24,8 @@ import {inferLaws} from './infer.ts'
 import {carryCandidates, scanPrefixes} from './carry.ts'
 import {relevantGoals, relevantLaws} from './relevance.ts'
 import {countPoolKey, countSignature, grammarPool, ids, polaritySelection, readTuples, refinementSignature, reservationReadClosure, reservationState, reservePool, prepareSupport, smallSelection, sparseReadInstances, sourceContext, coarseContext, selectedCertificate, chosenView, candidateWork, stableState, UnsupportedCountProposal} from './count-support.ts'
+import {fieldLaws} from './field-laws.ts'
+import {countsForReads, proposeCountFacts} from './count-facts.ts'
 import {smallOf, trueSmall} from './exists.ts'
 import {env} from './solver.ts'
 
@@ -220,6 +222,18 @@ export function certFor(goal: {hyps: C[]}, decls: {map: string, below: E, j: str
   }
   if (wide) {
     insts.splice(10); wits.splice(10)
+    // Reuse Boolean-region identities among the actual declared counts. They
+    // are ordinary witness certificates, not arithmetic assumptions. Preserve
+    // the narrow prefix and prioritize missing multi-count partitions before
+    // the generic pair pool; the existing cap and time budget are unchanged.
+    const cs = countsForReads(decls, named)
+    if (cs && tick()) {
+      const facts = proposeCountFacts(cs, goal, {maxFacts: Math.min(cap, 256), reserved: wits})
+      for (const q of facts.insts) {
+        if ((!!more && insts.length >= cap) || !tick()) break
+        if (q.terms.length >= 3) add(q.terms, q.unit, q.below)
+      }
+    }
     pairs: for (const a of named) for (const c of named) {
       if ((!!more && insts.length >= cap) || !tick()) break pairs
       if (a !== c && bound(a) === bound(c) && !(post(c) && !post(a))) add([[1, a[0]], [-1, c[0]]], 0, byMap.get(a[1])!.below)
@@ -235,13 +249,26 @@ export function certFor(goal: {hyps: C[]}, decls: {map: string, below: E, j: str
     }
   }
   const picks: [string, E[]][] = []
+  // A counted member can be one component of a tuple/packed key, not only
+  // the whole map key. These are candidate naturals, never inverse-function
+  // axioms: mcGoal/checkMC still check the count body at every picked key.
+  const memberKeys = (pattern: E, term: E, key: string): E[] => {
+    if (pattern.op === 'var') return pattern.name === key ? [term] : []
+    if (pattern.op !== term.op) return []
+    const p = pattern as unknown as Record<string, E>, t = term as unknown as Record<string, E>
+    return ['a', 'b', 'key', 'then', 'else'].flatMap(k => p[k] && t[k] ? memberKeys(p[k]!, t[k]!, key) : [])
+  }
   if (wide) for (const r of named) {
     if (!tick()) break
-    const d = byMap.get(r[1])!, at = [...reads(d.body, () => true, new Map(), more).values()].filter(([, key]) => json(key) === json(v(d.key))).map(([mp]) => mp)
+    const d = byMap.get(r[1])!, at = [...reads(d.body, () => true, new Map(), more).values()].filter(([, key]) => mentions(key, d.key))
     if (!at.length) continue
-    const gs = [...new Map([...reads(goal.hyps, mp => at.includes(mp), new Map(), more).values()].map(([, t]) => [json(t), t] as [string, E])).values()].filter(t => !mentions(t, d.key))
+    // (the key terms the goal reads those maps at, and the witnesses of the instances that name this count: a member the
+    // counting lemma found is a key too; three of each first, six at most)
+    const candidates = [...reads(goal.hyps, mp => at.some(([p]) => p === mp), new Map(), more).values()].flatMap(([mp, t]) => at.filter(([p]) => p === mp).flatMap(([, pattern]) => memberKeys(pattern, t, d.key)))
+    const gs = [...new Map(candidates.map(t => [json(t), t] as [string, E])).values()].filter(t => !mentions(t, d.key))
     const ws = insts.slice(0, cap).filter(i => i.terms.some(([, x]) => x === r[0])).map(i => v(i.wit)), ts0 = [...gs.slice(0, 3), ...ws.slice(0, 3), ...gs.slice(3), ...ws.slice(3)]
     const ts = [...new Map(ts0.map(t => [json(t), t] as [string, E])).values()].slice(0, 6)
+    for (const t of ts) picks.push([r[0], [t]])
     for (let i = 0; i < ts.length; i++) for (let j = i + 1; j < ts.length; j++) picks.push([r[0], [ts[i]!, ts[j]!]])
     if (ts.length > 2) picks.push([r[0], ts])
   }
@@ -299,7 +326,7 @@ export function candidates(src: Parameters<typeof inferLaws>[0], m: Machine, cal
     const w: Law = {...c, name: name === c.name ? `${c.name} (any ${shown.join(', ')})` : name, holds: {op: 'or', xs: c.holds.xs.map(d => (d.op === 'not' ? {op: 'not', x: {op: 'and', xs: conjs(d.x).filter(keep)}} : d))}}
     return trueAll(w) ? w : c
   }
-  const cubes = cubes0.map(loosened)
+  const cubes = cubes0.map(loosened), fields = fieldLaws(m)
   if (env.GDP_COUNTS_TRACE) console.error(`counts: small ${states.map(({sts}) => sts.length).join('/')}; cubes ${cubes.length} in ${Math.round(clock() - t1)} ms: ${cubes.map(l => l.name).join('; ')}`)
   // (a candidate whose every conjunct a law before it states, its keys named apart by place, is not proposed again: a
   // cell's maximum its kind's law states, a cube a guard's)
@@ -310,11 +337,11 @@ export function candidates(src: Parameters<typeof inferLaws>[0], m: Machine, cal
   for (const l of caller) for (const q of parts(l)) said.add(q)
   const prefixes = scanPrefixes(m, [...caller, ...kinds, ...guarded, ...rowLaws, ...cubes])
   const admit = (l: Law) => { const ps = parts(l); if (ps.every(q => said.has(q)) || !trueAll(l)) return false; for (const q of ps) said.add(q); return true }
-  const out = ptime('filter', () => [...kinds, ...guarded, ...rowLaws, ...prefixes, ...cubes].filter(admit))
+  const out = ptime('filter', () => [...kinds, ...guarded, ...rowLaws, ...fields, ...prefixes, ...cubes].filter(admit))
   const carried = carryCandidates(m, [...caller, ...kinds, ...guarded, ...rowLaws, ...cubes])
   out.push(...ptime('filter', () => carried.filter(admit)))
   for (const l of out) if (prefixes.includes(l) || carried.includes(l)) support.add(l)
-  if (env.GDP_COUNTS_TRACE) console.error(`counts: ${kinds.length + guarded.length + rowLaws.length + prefixes.length + carried.length + cubes.length - out.length} candidates said before or false on the small instances`)
+  if (env.GDP_COUNTS_TRACE) console.error(`counts: ${kinds.length + guarded.length + rowLaws.length + fields.length + prefixes.length + carried.length + cubes.length - out.length} candidates said before or false on the small instances`)
   return out
 }
 

@@ -288,3 +288,156 @@ The role change passes **57 tests / 1,005 assertions**, and the captured Paxos a
 The direct-count-only role test was too narrow: all three renewed strict target runs timed out. The target's essential scan/global guards support count proofs through global state and quantified definitions, without directly reading a declared count. The refined, still generic role test therefore keeps a count read **or a non-pointwise mutable-global-state condition**. Constant tautologies do not qualify. The frozen replay now goes through the production role selector, avoiding the earlier test blind spot. All six regressed families check with that selector (`runs/track-p-global-context-regressions/`), while the full 77-candidate target retains its structured support and checks a 26-law family (`runs/track-p-global-context-validation/`). Type/lint and the targeted tests pass. The complete sequential gate run will be repeated on this refinement. Its first restart passed the full check and returned target proofs at 21,212ms and 32,236ms with identical search work; one worker hit its outer 60-second cap without a verdict. The worker cap incorrectly included dependency installation as well as the inner strict harness limit. The supervisor now leaves setup overhead outside that inner limit and logs setup/harness boundaries; the actual harness is still killed at exactly 60 seconds. No assumption is made that the missing verdict was a proof.
 
 The separated supervisor confirmed one genuine 60-second harness timeout, alongside two proofs; setup took under one second. Current generation-only controls account for **21.5–34.4 seconds**, dominated by small-state sampling (9.9–16.2s) and cube inference (10.5–16.9s), with zero root proof queries and all 19 formulas still generated. Frozen admission profiles showed repeated broad helper attempts consuming additional time. Applying the same goal-local coarse context to each required helper, always including that helper and retaining full-context fallback, closes **25 checked laws in 27 attempts** rather than 26 in 33. Three research controls took **6.4s, 7.8s and 13.2s**; the exact production replay took **10.4s**. The unchanged checker accepts the smaller family. Type/lint and 57 tests / 1,011 assertions pass (`runs/track-p-helper-context-validation/`). No budget or sampling coverage was changed.
+
+---
+
+# Track M — implementation log (2026-11-07)
+
+Base: `40693c7a`, branch `claude/track-mldr`, worktree `gdp-wired-trackM`.
+All substantive computation below ran on boat. No kernel, Lean, proof-budget, or
+safety-law change has been made. This is **not** a completed target/gate claim.
+
+## Diagnosis
+
+The production capture at `../gdp-wired/runs/claude-capture-v1/out/mldr-capture.log`
+contains 23 laws, ending unknown on `one primary per term`. Its candidates express
+kind/range and zero/nonzero cubes, but not the published relational/count family.
+
+Published reference: Endive `8b6f2abd1988eeb308f965813635e9871f253e2d`,
+`MongoLoglessDynamicRaft_IndProofs.tla`. Source receipt:
+`runs/track-m/diagnosis-v2/source.log`. The archived translation and Step 0 report
+were recovered on boat from `gdp-wired-paused-20261103` /
+`gdp-wired-dbae-astra.tgz`, SHA256
+`f9cc6b4b98e70c6c7d7f799e56086295f89e3655c2e89e8e195eda3c1f993556`.
+Correct-path receipt: `runs/track-m/atomic-v1/published.log`.
+
+| Clause | Shape required | Candidate status |
+|---|---|---|
+| TypeOK | role range; positive metadata; nonempty initialized rows | kinds cover role; remaining floors/cardinality not all generated |
+| Safety | two primaries at equal current term have the same key | unchanged caller law |
+| Inv866 | role-guarded equality of two numeric fields at one key | new generic field family |
+| Inv3915 | role guard + equal first field across keys implies second-field order | new generic field family |
+| Inv1758 | equal two-field metadata tuple implies equality of relation rows | new generic tuple-row family |
+| Inv2973 | two active relation rows have overlapping majorities; inactive alternative determined by an ordered-field-qualified count | missing generic count/disjunction family |
+| Inv3246 | every majority of an active row meets a field-order-qualified subset, equivalently a cardinality bound | missing generic count/disjunction family |
+
+The row predicate is a three-key universal formula, not a Boolean two-literal
+cube. The last two clauses need state count definitions as well as new laws.
+All proposed field/row laws still pass sample filtering and ordinary checked
+induction; no published law is imported into the engine.
+
+## Port correction
+
+`research/track-m/port-audit.ts` executes the old port's real transition function:
+init; `pick S={0}`; `copy i=0`. Equal config terms/versions then coexist with rows
+`{0}` and `{}`, so Inv1758 is false. Receipt:
+`runs/track-m/port-audit-v1/phase-counterexample.log` (also reproduced in focused
+suite). Historical factory is kept only in `research/track-m/phased-mldr.ts`.
+
+The old port's projected BFS nevertheless has 5,362 states / 18,327 nonstutter
+edges, 0 bad states, while the broken variant reaches 5 bad states:
+`runs/track-m/diagnosis-v2/port.log`. Therefore projected correspondence alone did
+not establish that intermediate auxiliary states satisfy source invariants.
+
+New `research/protocols/ic3syn/mldr.ts` uses native tuple relation keys, one atomic
+Init request, and one step per subsequent source action. `models.ts` uses it
+through the original harness and updates only MLDR's request enumeration and
+projection. Source fields reset together at Init; no source invariant is assumed.
+The strict-majority broken variant remains. `runs/track-m/atomic-v2/tlc.log`
+confirms TLC and the new port both have **5,362 states / 18,327 edges / depth 10**,
+with no bad state. The new port has only 5,363 raw states (one dummy plus source
+states); the broken variant reaches 5 bad states at depth 3.
+
+## Tests and failures
+
+- `runs/track-m/diagnosis-v2/fields.log`: 63 initial field templates, 5 survive
+  samples (32/1,504 states); direct field equality and its two order consequences
+  were checked. The printed `proven:true` there concerned **kind laws plus generated
+  helpers only, not safety**. That diagnostic no longer runs a full search.
+- `runs/track-m/focused-v1/tests.log`: **8 tests pass**, 0 fail, 39 expectations.
+  Covers positive checked field proof, broken write rejection, scope/capture,
+  deterministic generation, ambiguous-domain refusal, row candidates, atomic
+  initialization, actual majority election, and the broken-majority control.
+- `runs/track-m/focused-v1/check.log`: **`bun run check` passes** (0 warnings/errors).
+  Vendor sources are supplied from the pinned main submodules using `--data`.
+- Earlier static check failed because the initial worktree snapshot contained no
+  vendor submodule sources (`diagnosis-v2/check.log`). Not an engine regression.
+- First new-port correspondence attempt stopped before TLC: the runner already
+  mounts `/src/gdp-wired` read-only, so creating a symlink there was wrong
+  (`atomic-v1/tlc.log`). Retried without the symlink.
+- `atomic-v1/check.log`: typecheck passed; type-aware lint subprocess was SIGKILLed.
+  `focused-v1/check.log` subsequently passed. A latest-tree retry requests 4 CPUs /
+  14 GB explicitly.
+- `published-v1/given.log`: research audit failed to parse (extra parenthesis);
+  no proof result. Fixed, and shell changed to `set -e` so packaging cannot mask
+  this failure. The next attempt exposed missing count references in law scope;
+  explicit `MapRef`s fixed that research-only construction error. Completed
+  audits and their failures are below.
+
+## Final diagnostic / named wall
+
+The five published clauses are translated only in `research/track-m/published.ts`
+for a given-family inductiveness diagnostic (`GDP_COUNTS_GIVEN=1`, ordinary
+`proveRule(..., {search:false})`). Note: the existing counted branch of proveRule
+still invokes counted search even with `search:false`; GIVEN disables extra
+candidates, not checking. The final fixture also includes explicit TypeOK role,
+relation range/domain, positive version and initialized nonempty configuration
+clauses. These are research callers only, never engine facts.
+
+`diagnostic-v3/given.log` showed all eight then-supplied clauses true on 141/1,767
+sample states but no checked full family. A concrete completeness bug was isolated:
+`certFor` found known count members only at whole map keys, not in tuple key
+components, and proposed no singleton lower bounds. `count-witness-red` fails that
+specific test. The implemented structural member-key proposal plus singleton
+picks passes it through **checkMC**, while the wrong-row negative case stays
+unprovable. This changes only untrusted certificate proposals.
+
+- `witness-fix-v1`: full static check and **59 focused tests pass**. The complete
+  11-clause given family still fails safety/Inv1758/Inv3915/Inv2973/Inv3246; importantly,
+  **nonempty configuration after Init now proves**, unlike before the fix.
+- `region-fix-v1`: integrate existing untrusted Boolean-region **three-count
+  partition** certificates into the wide pool (same cap, same budget, unchanged
+  checker). Static check and **60 tests / 957 expectations pass**; includes the
+  new checked partition identity and frozen count/countermodel fixtures. The same
+  five target obligations remain open.
+- `replay-v1/nonempty.log`: old captured 51-hypothesis goal is SAT in 157 ms;
+  it lacks the newly generated picks. `replay-v1/row-agreement.log`: old captured
+  251-hypothesis Inv1758 goal remains unknown after its 7,500-ms counted allowance
+  (1,876,416 work). These are standalone `grow` replays, not protocol reruns.
+- Final production-family diagnostics: safety reaches 13 model rounds / 1,480
+  accumulated hypotheses before unknown; Inv1758 reaches 802, Inv3915 1,006,
+  Inv3246 599. Inv2973 still leaves a SAT augmented goal. None of those SAT
+  abstraction models is claimed to be a reachable protocol counterexample.
+
+**Named wall:** with the port corrected and the published family supplied, the
+existing bounded count/quantifier-instantiation path still does not discharge
+that family. The missing automatic active-row/quorum candidate families cannot
+alone close production until these explicit-family obligations flip. Further
+work must target those captured count/instantiation goals, not increase budgets,
+weaken safety, or assert the family as facts.
+
+Final static/test receipt: `runs/track-m/region-fix-v1/check.log`.
+Final failed-family receipt: `runs/track-m/region-fix-v1/given.log`.
+Correspondence receipt: `runs/track-m/atomic-v2/tlc.log`.
+Each run includes its jobs, placement and summary; relevant shipped tree hashes
+are `93566a56f012` (diagnostic-v3), `412bf2630610` (witness fix), and
+`b5f644aaf280` (partition fix). Raw failing goal archives are embedded as xz/base64
+in the given logs, unpackable with `research/track-m/unpack-goals.py`.
+
+No `MLDR-DESIGN.md` was present in the shared handoff at the last check. Full 3x60s
+production and paired IC3Syn/DuoAI/broken/shards/bar merge gates are **not passed
+or claimed**; per the handoff they were not launched without a target proof.
+Track M is blocked, not merge-ready. No changes were made to main or other
+worktrees, and no trusted checker/Lean change, external solver or budget increase
+was made.
+
+### SHA256 receipts
+
+```text
+4046c3bb72374cb3622ca429917a7a9156c3ba04823908fe6b10277c516957d1  core/counts.ts
+5ddbfd84053b0a3ced4970fc986dc364f445d946db0f75124a903a7266c0d67f  core/field-laws.ts
+ac85e04a15c1e25b2c8acc2c1352f138cd3564ce2a98cc2aa63dc9a92071dc4e  research/protocols/ic3syn/mldr.ts
+71acbf0f40bc86c1e37f9f28bca5ac6dc77f0245aa0faa5aa141608a9bff1b9a  runs/track-m/atomic-v2/tlc.log
+edf4b396e249396d8c5d29507ec7e923aa43702efbb235b1b2a55e15681d3f80  runs/track-m/region-fix-v1/check.log
+d21ef126ad3cb849b2c102ebe68c3a37b6bb53a46b89688c6f7919bc3035acff  runs/track-m/region-fix-v1/given.log
+```

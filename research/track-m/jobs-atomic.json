@@ -1,0 +1,5 @@
+[
+ {"name":"tlc","cmd":"bun install --frozen-lockfile >/dev/null && python3 -m pip install -q --target /tmp/track-m-tlcdeps modal && mkdir -p /src && ln -sfn \"$PWD\" /src/gdp-wired && PYTHONPATH=/tmp/track-m-tlcdeps python3 -c 'import json; from research.protocols.ic3syn.tlc import one; print(json.dumps(one.local(\"mldr\", 180000)))'", "timeout":600},
+ {"name":"check","cmd":"bun install --frozen-lockfile >/dev/null && bun run check && bun test core/field-laws.test.ts", "timeout":240},
+ {"name":"published","cmd":"python3 research/track-m/archive.py","timeout":180}
+]

@@ -1,0 +1,4 @@
+[
+ {"name":"check", "cmd":"bun install --frozen-lockfile >/dev/null && bun run check", "timeout":180},
+ {"name":"fields", "cmd":"bun install --frozen-lockfile >/dev/null && GDP_COUNTS_TRACE=3 bun research/track-m/fields.ts", "timeout":180}
+]
