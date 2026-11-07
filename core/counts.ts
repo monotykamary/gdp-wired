@@ -511,7 +511,7 @@ export function admitCountedFamily(m:Machine,caller:Law[],initial:Law[],support:
         if(!('proof'in result)&&(countFirst||attempts.counted)&&clock()<stop)result=traced(law,context,pass?0:1,Math.min(allotted,Math.max(0,stop-clock())))
         return result
       }))
-      let context=caller.includes(law)?coarseContext(m,set,caller,support):set,result=ask(context)
+      let context=coarseContext(m,set,[...caller,law],support),result=ask(context)
       if(!('proof'in result)&&context.length<set.length&&clock()<stop){context=set;result=ask(context)}
       countsDump.on?.({phase:'demand-attempt',law:law.name,context:context.length,required:required.size,known:known.size,outcome:'proof'in result?'proof':result.stuck})
       if('proof'in result){known.set(law.name,{proof:result.proof,context:context.slice(),deps:dependencies(law,result.proof,context)});continue}

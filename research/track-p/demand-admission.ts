@@ -42,7 +42,7 @@ const result=withWall(start+60000,()=>counted(fullRate,()=>{
   const law=todo[0]!,bounded=activeSupport(universe,support),share=(until-clock())/Math.max(1,universe.length-proofs.size),allotted=supportBudget(until-clock(),share,bounded&&caller.includes(law),support.has(law)&&!caller.includes(law)),end=Math.min(until,clock()+(bounded?Math.min(allotted,5000):allotted)),wall=Math.min(start+60000,performance.now()+4800)
   let out:any,context=universe
   const ask=(ls:Law[],limit:number)=>withWall(wall,()=>withDeadline(limit,()=>{const first:0|1=bounded&&(readTuples(law.holds).some(([map])=>!!m.counts?.[map])||!!law.keys?.length)?1:0;let q=attempts.traced(law,ls,first,Math.min(allotted,Math.max(0,limit-clock())));if(!('proof'in q)&&(first||attempts.counted)&&clock()<limit)q=attempts.traced(law,ls,first?0:1,Math.min(allotted,Math.max(0,limit-clock())));return q}))
-  if(process.env.CORE_CALLERS==='1'&&caller.includes(law)){context=coarseContext(m,universe,caller,support);out=ask(context,end)}
+  if(process.env.CORE_HELPERS==='1'||process.env.CORE_CALLERS==='1'&&caller.includes(law)){context=coarseContext(m,universe,[...caller,law],support);out=ask(context,end)}
   if(narrow&&!caller.includes(law)&&required.size<universe.length){context=universe.filter(l=>required.has(l.name)||spine&&(support.has(l)||sources.has(l)));out=ask(context,Math.min(end,clock()+(end-clock())/3))}
   if(!out||!('proof'in out)){context=universe;out=ask(universe,end)}
   const deps='proof'in out?uses(out.proof,context,law):[]
