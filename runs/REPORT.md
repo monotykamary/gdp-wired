@@ -742,3 +742,46 @@ count obligation still times out. The Ov_uw symbolic-witness probes remain
 separate from the default Ov_h hand set; active-only probes are explicitly
 labeled and are not accepted as unrestricted proofs. The incomplete probes
 remain outside the Step 1a implementation checkpoint.
+
+### Step 1b research checkpoint — bounded pool and checked proof transport
+
+The second bounded-selection issue is now fixed: per-positive-pair primitive
+covers are interleaved with relational union covers, so a preceding irrelevant
+pair cannot starve the carried set's three-term self-row cover. The existing
+pool cap is unchanged. `modelSequence` also accepts an immutable copied path;
+tests verify that subsequent caller mutation and empty-path queries cannot
+inherit the path's assumptions. These are untrusted proposal/query changes,
+not changes to the trusted kernel.
+
+`count-regression-v4` passes **201 tests across 21 files** and `bun run check`
+(type checking plus type-aware lint: zero warnings/errors, 945 files). The
+pinned vendor gitlinks were staged exactly as for Step 1a. The narrower
+`fold-path-v1` suite passes 27 tests; `path-guard-v5`'s test job timed out before
+printing a test result, so that receipt is not counted as validation.
+
+Research helpers now construct explicit linear recipes through count-read
+bindings, including their lower-coordinate domain guards. Missing bindings
+and missing domain assumptions are rejected. A single checked inactive-frame
+proof can be reused across all failed activation conditions. In
+`shared-guard-v1`, the active leaf checks in **3,615 counted ms**, and the
+complete *pinned* activation tree checks after 221 ms of shared inactive work;
+its transport to the original unpinned phase still fails at the 5,000 ms cap.
+This is not an unrestricted law proof.
+
+The direct original-path experiment avoids that transport. It exposed a real
+slice omission: the active assumption `S subset X` was lost together with a
+count comparison inside an operation-guarded conjunction. Path-aware
+conjunct extraction restores it; the two carried-subset cuts (indices 35/36)
+then check. The remaining five-term cut (index 12) reaches a native refutation
+with **six hypotheses**, but does not reconstruct a checked tree in the
+existing **250 ms local allowance**. `union-core-v1` reproduces this failure
+for all eight raw/folded, ordinary/carried-first, unit-order variants. The
+exact core and path are `runs/track-m/union-core.json`; the replay command is
+in `research/track-m/jobs-union-core.json` (stage its containing directory as
+`replay-input`). `jobs-fold-path.json` reproduces the direct full-phase probe.
+No time budget was increased and no native refutation was accepted as proof.
+
+**Step 1 remains open.** Neither count law is accepted as proved, the hand set
+is not proven, and candidate-generation/3-by-60-second/merge gates have not
+been attempted as passed. This checkpoint preserves validated generic fixes
+and the exact reconstruction blocker, not completion of Step 1b.

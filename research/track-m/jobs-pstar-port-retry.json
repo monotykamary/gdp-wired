@@ -1,0 +1,6 @@
+[
+ {"name":"check","cmd":"bun install --frozen-lockfile >/dev/null && bun run check && bun test research/protocols/ic3syn/mldr.test.ts", "cpu":4,"memory":14000,"timeout":300},
+ {"name":"capture","cmd":"bun install --frozen-lockfile >/dev/null; if timeout 320s env GDP_COUNTS_TRACE=1 DUMP_DIR=/tmp/pstar-dump DUMP_MIN=0 DUMP_N=100000 bun --preload ./research/query/dump.ts research/protocols/ic3syn/run.ts --ms 60000 --only mldr --skip broken; then code=0; else code=$?; fi; echo CAPTURE_EXIT=$code; if test -f /tmp/pstar-dump/queries.jsonl; then wc -l /tmp/pstar-dump/queries.jsonl; fi", "cpu":4,"memory":14000,"timeout":360},
+ {"name":"stages","cmd":"bun install --frozen-lockfile >/dev/null && bun research/track-m/pstar-candidates.ts", "cpu":4,"memory":14000,"timeout":360},
+ {"name":"model-values-red","cmd":"bun install --frozen-lockfile >/dev/null && bun test kernel/model-values.test.ts", "cpu":4,"memory":14000,"timeout":60}
+]

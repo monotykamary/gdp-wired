@@ -2,7 +2,7 @@
 // Two positive counts may be disjoint inside one set or a union of three
 // Venn regions. No disjointness/coverage fact is assumed here: a generated
 // instance keeps its witness alternative, checked by the ordinary kernel.
-import {type C, type E, x} from './machine.ts'
+import {type C, type E, walkOnce, x} from './machine.ts'
 import {type Count, type CountInst, substE} from '../kernel/kernel.ts'
 
 type Bool = boolean | {atom: string} | {not: Bool} | {and: Bool[]} | {or: Bool[]}
@@ -72,9 +72,27 @@ export function proposeCountUnions(counts: Count[], pairs: [string, string][], m
     }
     const triples = [...regions.values()].filter(rs => rs.has(2) && rs.has(4) && rs.has(8)).map(rs => [rs.get(2)!, rs.get(4)!, rs.get(8)!])
     const positive = pairs.flatMap(([a, b]) => byName.has(a) && byName.has(b) && a !== b ? [[byName.get(a)!, byName.get(b)!] as [Count, Count]] : [])
-    // Reserve room for both shapes, rather than letting all the singleton covers
-    // precede the five-term certificate a relational union needs.
-    for (const [a, b] of positive) for (const cover of triples) add(a, b, cover)
+    // Interleave useful singleton covers with relational unions per positive
+    // pair. A global five-term prefix can otherwise consume the whole budget
+    // before the actual carried set gets its three-term self-row cover.
+    const normalized=new Map(cs.map(c=>[c.v,substE(c.body,{vars:{[c.key]:x('union$key')},maps:{},flags:{}})]))
+    const primitive=(e:E):E|undefined=>{
+      if(e.op==='get')return e
+      if(e.op!=='if'||e.then.op!=='const'||e.then.value!==1||e.else.op!=='const'||e.else.value!==0)return undefined
+      const c=e.c
+      if(c.op==='='&&c.a.op==='get'&&c.b.op==='const'&&c.b.value===1)return c.a
+      if(c.op==='='&&c.b.op==='get'&&c.a.op==='const'&&c.a.value===1)return c.b
+      if(c.op==='<='&&c.a.op==='const'&&c.a.value===1&&c.b.op==='get')return c.b
+      if(c.op==='<'&&c.a.op==='const'&&c.a.value===0&&c.b.op==='get')return c.b
+      return undefined
+    }
+    for(const [a,b] of positive){
+      if(out.length>=maxFacts)break
+      const members=new Set<string>()
+      for(const c of [a,b])walkOnce(normalized.get(c.v),(o:any)=>{if(o.op==='get')members.add(key(o))})
+      for(const c of cs){const view=primitive(normalized.get(c.v)!);if(view&&members.has(key(view)))add(a,b,[c])}
+      for(const cover of triples)add(a,b,cover)
+    }
     for (const [a, b] of positive) for (const c of cs) add(a, b, [c])
   }
   return out

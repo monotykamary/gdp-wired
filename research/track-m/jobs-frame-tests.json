@@ -1,0 +1,1 @@
+[{"name":"tests","cmd":"bun install --frozen-lockfile >/dev/null && bun test core/count-cert-grow.test.ts core/count-unions.test.ts research/track-m/frame-lemmas.test.ts research/track-m/overlap-encoding.test.ts", "cpu":1,"memory":4000,"timeout":90}]

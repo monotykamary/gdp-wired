@@ -1,0 +1,1 @@
+[{"name":"inventory","cmd":"set -e; bun install --frozen-lockfile >/dev/null; LAB_SYMBOLIC_OVERLAP=1 LAB_ALGEBRAIC=1 LAB_FRAME_COUNTS=1 LAB_DESCRIBE_ONLY=1 bun research/track-m/count-case-replay.ts replay-input/quorum.json replay-input/input.json", "cpu":1,"memory":4000,"timeout":45}]

@@ -1,0 +1,1 @@
+[{"name":"row","cmd":"bun install --frozen-lockfile >/dev/null && bun research/track-m/verify-focused.ts replay-input/input.json Inv1758", "cpu":1,"memory":4000,"timeout":90},{"name":"tests","cmd":"bun install --frozen-lockfile >/dev/null && bun test core/count-cases.test.ts core/count-focused.test.ts kernel/prove-paths.test.ts", "cpu":1,"memory":4000,"timeout":90}]

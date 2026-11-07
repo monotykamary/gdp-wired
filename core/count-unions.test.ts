@@ -38,6 +38,17 @@ test('Boolean indicators retain partition identities without a global atom table
   }
 })
 
+test('a bounded pool shares cover slots across positive pairs',()=>{
+  const k=x('member'),a=same(get('A',k),n(1)),b=same(get('B',k),n(1)),v=same(get('Vote',k),n(1)),base={j:'row',key:'member',below:n(4)}
+  const bit=(c:Parameters<typeof ite>[0])=>ite(c,n(1),n(0))
+  const defs=[['Post#',bit(all(a,not(v)))],['Noise',get('NoiseMap',k)],['Set',get('Input',k)],['SizeA',bit(a)],['SizeB',bit(b)],['Left',bit(all(a,not(b)))],['Both',bit(all(a,b))],['Right',bit(all(not(a),b))]] as const
+  const ds=defs.map(([map,body])=>({...base,map,body})),reads: [string,string,ReturnType<typeof n>][] = defs.map(([map])=>[map,map,n(0)])
+  const cs=countsForReads(ds,reads)!,insts=proposeCountUnions(cs,[['Post#','Noise'],['Post#','Set']],12)
+  expect(insts.length).toBeLessThanOrEqual(12)
+  expect(insts.some(i=>JSON.stringify(i.terms)===JSON.stringify([[1,'Post#'],[1,'Set'],[-1,'SizeA']]))).toBe(true)
+  expect(insts.some(i=>i.terms.length===5&&i.terms.some(([k,id])=>k===1&&id==='Set'))).toBe(true)
+})
+
 test('a five-term single-witness certificate bounds disjoint subsets by a relational union', () => {
   const k = x('member'), a = same(get('A', k), n(1)), b = same(get('B', k), n(1)), v = same(get('Vote', k), n(1))
   const base = {j: 'unused', key: 'member', below: n(4)}, bit = (c: Parameters<typeof ite>[0]) => ite(c, n(1), n(0))
