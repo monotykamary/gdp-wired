@@ -1,0 +1,211 @@
+{
+  "passed": true,
+  "candidates": 24,
+  "candidateHash": "5e7acd1171d499bb2e2a21c326c0ca8013d98f8ab18c2bab9401d527de63e4e8",
+  "pairs": [
+    {
+      "repeat": 1,
+      "parentMs": 20724.380812,
+      "candidateMs": 11135.0041,
+      "ratio": 0.5372900739959632,
+      "parentGenerationMs": 15308.695312999998,
+      "candidateGenerationMs": 5952.734971999999
+    },
+    {
+      "repeat": 2,
+      "parentMs": 19667.606460000003,
+      "candidateMs": 10589.015829,
+      "ratio": 0.5383988056978846,
+      "parentGenerationMs": 14573.263057,
+      "candidateGenerationMs": 5483.456504
+    },
+    {
+      "repeat": 3,
+      "parentMs": 19413.455627000003,
+      "candidateMs": 10263.142308,
+      "ratio": 0.528661280360934,
+      "parentGenerationMs": 14333.534484,
+      "candidateGenerationMs": 5175.719566000001
+    }
+  ],
+  "meanParentMs": 19935.147633,
+  "meanCandidateMs": 10662.387412333335,
+  "reduction": 0.46514630297078097,
+  "families": [
+    {
+      "name": "guard-laws",
+      "parentMs": 0.7352100000000021,
+      "candidateMs": 0.978467000000002,
+      "produced": 9,
+      "retained": []
+    },
+    {
+      "name": "small-warmup",
+      "parentMs": 5045.5120289999995,
+      "candidateMs": 5071.263447,
+      "produced": 0,
+      "retained": []
+    },
+    {
+      "name": "small-states",
+      "parentMs": 0.03310200000032637,
+      "candidateMs": 0.03898399999980029,
+      "produced": 0,
+      "retained": []
+    },
+    {
+      "name": "map-bounds",
+      "parentMs": 3.8112160000000586,
+      "candidateMs": 2.0157249999992928,
+      "produced": 5,
+      "retained": [
+        "Config at most 1",
+        "CT at most 44",
+        "St at most 1",
+        "CV at most 2",
+        "CfgT at most 44"
+      ]
+    },
+    {
+      "name": "row-laws",
+      "parentMs": 0.11651899999924353,
+      "candidateMs": 0.07301699999970879,
+      "produced": 0,
+      "retained": []
+    },
+    {
+      "name": "cubes",
+      "parentMs": 14417.747668,
+      "candidateMs": 5081.085354,
+      "produced": 14,
+      "retained": [
+        "every x with x < size: never Config[x] is 0 and 1 <= St[x]",
+        "every x with x < size: never CT[x] is 0 and 1 <= St[x]",
+        "every x with x < size: never 1 <= CT[x] and CV[x] is 0",
+        "every x with x < size: never 1 <= CT[x] and started is 0",
+        "every x with x < size: never 1 <= St[x] and CV[x] is 0",
+        "every x with x < size: never 1 <= St[x] and CfgT[x] is 0",
+        "every x with x < size: never 1 <= St[x] and started is 0",
+        "every x with x < size: never CV[x] is 0 and 1 <= CfgT[x]",
+        "every x with x < size: never CV[x] is 0 and 1 <= started",
+        "every x with x < size: never 1 <= CfgT[x] and started is 0",
+        "every x, y with x < size ∧ y < size ∧ ¬(x = y): never 1 <= CT[x] and CV[y] is 0",
+        "every x, y with x < size ∧ y < size ∧ ¬(x = y): never 1 <= St[x] and CV[y] is 0",
+        "every x, y with x < size ∧ y < size ∧ ¬(x = y): never CV[x] is 0 and 1 <= CfgT[y]"
+      ]
+    },
+    {
+      "name": "loosen-cubes",
+      "parentMs": 0.13015400000222144,
+      "candidateMs": 0.1424879999995028,
+      "produced": 14,
+      "retained": [
+        "every x with x < size: never Config[x] is 0 and 1 <= St[x]",
+        "every x with x < size: never CT[x] is 0 and 1 <= St[x]",
+        "every x with x < size: never 1 <= CT[x] and CV[x] is 0",
+        "every x with x < size: never 1 <= CT[x] and started is 0",
+        "every x with x < size: never 1 <= St[x] and CV[x] is 0",
+        "every x with x < size: never 1 <= St[x] and CfgT[x] is 0",
+        "every x with x < size: never 1 <= St[x] and started is 0",
+        "every x with x < size: never CV[x] is 0 and 1 <= CfgT[x]",
+        "every x with x < size: never CV[x] is 0 and 1 <= started",
+        "every x with x < size: never 1 <= CfgT[x] and started is 0",
+        "every x, y with x < size ∧ y < size ∧ ¬(x = y): never 1 <= CT[x] and CV[y] is 0",
+        "every x, y with x < size ∧ y < size ∧ ¬(x = y): never 1 <= St[x] and CV[y] is 0",
+        "every x, y with x < size ∧ y < size ∧ ¬(x = y): never CV[x] is 0 and 1 <= CfgT[y]"
+      ]
+    },
+    {
+      "name": "field-laws",
+      "parentMs": 0.7465620000002673,
+      "candidateMs": 0.7235079999991285,
+      "produced": 63,
+      "retained": [
+        "fields: St[a]=1 -> CT[a]=CT[b] -> CV[b]<=CV[a]",
+        "fields: St[a]=1 -> CT[a]=CfgT[a]",
+        "fields: St[a]=1 -> CT[a]<=CfgT[a]",
+        "fields: St[a]=1 -> CT[a]=CT[b] -> CfgT[b]<=CfgT[a]",
+        "fields: St[a]=1 -> CfgT[a]<=CT[a]",
+        "fields: St[a]=1 -> CfgT[a]=CfgT[b] -> CV[b]<=CV[a]"
+      ]
+    },
+    {
+      "name": "scan-prefixes",
+      "parentMs": 0.1920109999991837,
+      "candidateMs": 0.19009700000060548,
+      "produced": 0,
+      "retained": []
+    },
+    {
+      "name": "admission",
+      "parentMs": 52.619408999998996,
+      "candidateMs": 51.44803999999931,
+      "produced": 24,
+      "retained": [
+        "Config at most 1",
+        "CT at most 44",
+        "St at most 1",
+        "CV at most 2",
+        "CfgT at most 44",
+        "fields: St[a]=1 -> CT[a]=CT[b] -> CV[b]<=CV[a]",
+        "fields: St[a]=1 -> CT[a]=CfgT[a]",
+        "fields: St[a]=1 -> CT[a]<=CfgT[a]",
+        "fields: St[a]=1 -> CT[a]=CT[b] -> CfgT[b]<=CfgT[a]",
+        "fields: St[a]=1 -> CfgT[a]<=CT[a]",
+        "fields: St[a]=1 -> CfgT[a]=CfgT[b] -> CV[b]<=CV[a]",
+        "every x with x < size: never Config[x] is 0 and 1 <= St[x]",
+        "every x with x < size: never CT[x] is 0 and 1 <= St[x]",
+        "every x with x < size: never 1 <= CT[x] and CV[x] is 0",
+        "every x with x < size: never 1 <= CT[x] and started is 0",
+        "every x with x < size: never 1 <= St[x] and CV[x] is 0",
+        "every x with x < size: never 1 <= St[x] and CfgT[x] is 0",
+        "every x with x < size: never 1 <= St[x] and started is 0",
+        "every x with x < size: never CV[x] is 0 and 1 <= CfgT[x]",
+        "every x with x < size: never CV[x] is 0 and 1 <= started",
+        "every x with x < size: never 1 <= CfgT[x] and started is 0",
+        "every x, y with x < size ∧ y < size ∧ ¬(x = y): never 1 <= CT[x] and CV[y] is 0",
+        "every x, y with x < size ∧ y < size ∧ ¬(x = y): never 1 <= St[x] and CV[y] is 0",
+        "every x, y with x < size ∧ y < size ∧ ¬(x = y): never CV[x] is 0 and 1 <= CfgT[y]"
+      ]
+    },
+    {
+      "name": "carry-laws",
+      "parentMs": 1.4688079999978072,
+      "candidateMs": 1.4904480000004696,
+      "produced": 0,
+      "retained": []
+    },
+    {
+      "name": "generation",
+      "parentMs": 14477.488549000002,
+      "candidateMs": 5137.765687,
+      "produced": 24,
+      "retained": [
+        "Config at most 1",
+        "CT at most 44",
+        "St at most 1",
+        "CV at most 2",
+        "CfgT at most 44",
+        "fields: St[a]=1 -> CT[a]=CT[b] -> CV[b]<=CV[a]",
+        "fields: St[a]=1 -> CT[a]=CfgT[a]",
+        "fields: St[a]=1 -> CT[a]<=CfgT[a]",
+        "fields: St[a]=1 -> CT[a]=CT[b] -> CfgT[b]<=CfgT[a]",
+        "fields: St[a]=1 -> CfgT[a]<=CT[a]",
+        "fields: St[a]=1 -> CfgT[a]=CfgT[b] -> CV[b]<=CV[a]",
+        "every x with x < size: never Config[x] is 0 and 1 <= St[x]",
+        "every x with x < size: never CT[x] is 0 and 1 <= St[x]",
+        "every x with x < size: never 1 <= CT[x] and CV[x] is 0",
+        "every x with x < size: never 1 <= CT[x] and started is 0",
+        "every x with x < size: never 1 <= St[x] and CV[x] is 0",
+        "every x with x < size: never 1 <= St[x] and CfgT[x] is 0",
+        "every x with x < size: never 1 <= St[x] and started is 0",
+        "every x with x < size: never CV[x] is 0 and 1 <= CfgT[x]",
+        "every x with x < size: never CV[x] is 0 and 1 <= started",
+        "every x with x < size: never 1 <= CfgT[x] and started is 0",
+        "every x, y with x < size ∧ y < size ∧ ¬(x = y): never 1 <= CT[x] and CV[y] is 0",
+        "every x, y with x < size ∧ y < size ∧ ¬(x = y): never 1 <= St[x] and CV[y] is 0",
+        "every x, y with x < size ∧ y < size ∧ ¬(x = y): never CV[x] is 0 and 1 <= CfgT[y]"
+      ]
+    }
+  ]
+}

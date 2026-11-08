@@ -1,0 +1,42 @@
+{
+  "status": "incomplete: final Paxos/IC3Syn and broken gates pending",
+  "baseline": "6a3874d3",
+  "parent": "3394e14c",
+  "engine": [
+    "6a8792d3",
+    "f00e3642",
+    "cd38afa5",
+    "d9345b9c",
+    "f51e8996"
+  ],
+  "files": [
+    {
+      "path": "runs/REPORT.md",
+      "sha256": "1144dc1f200a896f6cda1113ac6b7d38bbe561dbf227d9f2940efd6ca176b79b"
+    },
+    {
+      "path": "runs/track-gen-scheduler-blocker.md",
+      "sha256": "69f373136dc7b73834cf8160572019a3cfa61694352990f9e599fa6f7a3e7d21"
+    },
+    {
+      "path": "runs/track-gen-final-replays-v1/generation-verified.json",
+      "sha256": "a38de87c9a325700c2e24df714b7bcfcd839e2cd4425d988df9c41eaec8e5723"
+    },
+    {
+      "path": "runs/track-gen-final-replays-v1/probes-verified.json",
+      "sha256": "9b36467993e9fa55b513bfb3b3e1bc5f08bbb58c34a933bb5304dbf12bfe7e14"
+    },
+    {
+      "path": "runs/track-gen-prefix-check-v1/probes-verified.json",
+      "sha256": "439d29410201614ad66a8fb39e40eb0603a287712fa42126aa6076d95a045c57"
+    },
+    {
+      "path": "runs/track-gen-gates-v3/ic3syn/partial.json",
+      "sha256": "0037b08778f6151697d3331514eae775e7df0b5ecfaa5ba9a495d4a826605976"
+    },
+    {
+      "path": "runs/track-gen-gates-v2/broken/verified.json",
+      "sha256": "6684467b2901477259c3616bd4530ce813059e82e7983e5e21ff5585dfe7edf7"
+    }
+  ]
+}

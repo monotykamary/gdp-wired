@@ -1,0 +1,1049 @@
+{
+  "complete": false,
+  "rows": [
+    {
+      "name": "mldr-s60-r3",
+      "code": 0,
+      "seconds": 67.11,
+      "vm": "bx_27ffycju",
+      "run_name": "mldr-s60-r3",
+      "placement": {
+        "vm": "bx_27ffycju",
+        "type": "large",
+        "cpu": "AMD Ryzen 9 9950X 16-Core Processor",
+        "vcpus": 8,
+        "vm_vcpus": 8,
+        "exclusive": true,
+        "co_tenants": 0
+      }
+    },
+    {
+      "name": "paxos_epr-s60-r2",
+      "code": 0,
+      "seconds": 83.53,
+      "vm": "bx_2bk563py",
+      "run_name": "paxos_epr-s60-r2",
+      "placement": {
+        "vm": "bx_2bk563py",
+        "type": "large",
+        "cpu": "AMD EPYC 4585PX 16-Core Processor",
+        "vcpus": 8,
+        "vm_vcpus": 8,
+        "exclusive": true,
+        "co_tenants": 0
+      }
+    },
+    {
+      "name": "paxos_epr-s60-r1",
+      "code": 0,
+      "seconds": 68.79,
+      "vm": "bx_27ffycju",
+      "run_name": "paxos_epr-s60-r1",
+      "placement": {
+        "vm": "bx_27ffycju",
+        "type": "large",
+        "cpu": "AMD Ryzen 9 9950X 16-Core Processor",
+        "vcpus": 8,
+        "vm_vcpus": 8,
+        "exclusive": true,
+        "co_tenants": 0
+      }
+    },
+    {
+      "name": "sharded_kv_no_lost_keys-s60-r1",
+      "code": 0,
+      "seconds": 18.48,
+      "vm": "bx_2bk563py",
+      "run_name": "sharded_kv_no_lost_keys-s60-r1",
+      "placement": {
+        "vm": "bx_2bk563py",
+        "type": "large",
+        "cpu": "AMD EPYC 4585PX 16-Core Processor",
+        "vcpus": 8,
+        "vm_vcpus": 8,
+        "exclusive": true,
+        "co_tenants": 0
+      }
+    },
+    {
+      "name": "paxos_epr-s60-r3",
+      "code": 0,
+      "seconds": 59.56,
+      "vm": "bx_27ffycju",
+      "run_name": "paxos_epr-s60-r3",
+      "placement": {
+        "vm": "bx_27ffycju",
+        "type": "large",
+        "cpu": "AMD Ryzen 9 9950X 16-Core Processor",
+        "vcpus": 8,
+        "vm_vcpus": 8,
+        "exclusive": true,
+        "co_tenants": 0
+      }
+    },
+    {
+      "name": "learning_switch-s60-r3",
+      "code": 0,
+      "seconds": 27.66,
+      "vm": "bx_27ffycju",
+      "run_name": "learning_switch-s60-r3",
+      "placement": {
+        "vm": "bx_27ffycju",
+        "type": "large",
+        "cpu": "AMD Ryzen 9 9950X 16-Core Processor",
+        "vcpus": 8,
+        "vm_vcpus": 8,
+        "exclusive": true,
+        "co_tenants": 0
+      }
+    },
+    {
+      "name": "sharded_kv-s60-r3",
+      "code": 0,
+      "seconds": 40.52,
+      "vm": "bx_2bk563py",
+      "run_name": "sharded_kv-s60-r3",
+      "placement": {
+        "vm": "bx_2bk563py",
+        "type": "large",
+        "cpu": "AMD EPYC 4585PX 16-Core Processor",
+        "vcpus": 8,
+        "vm_vcpus": 8,
+        "exclusive": true,
+        "co_tenants": 0
+      }
+    },
+    {
+      "name": "sharded_kv-s60-r2",
+      "code": 0,
+      "seconds": 29.77,
+      "vm": "bx_27ffycju",
+      "run_name": "sharded_kv-s60-r2",
+      "placement": {
+        "vm": "bx_27ffycju",
+        "type": "large",
+        "cpu": "AMD Ryzen 9 9950X 16-Core Processor",
+        "vcpus": 8,
+        "vm_vcpus": 8,
+        "exclusive": true,
+        "co_tenants": 0
+      }
+    },
+    {
+      "name": "learning_switch_i4-s60-r2",
+      "code": 0,
+      "seconds": 31.17,
+      "vm": "bx_27ffycju",
+      "run_name": "learning_switch_i4-s60-r2",
+      "placement": {
+        "vm": "bx_27ffycju",
+        "type": "large",
+        "cpu": "AMD Ryzen 9 9950X 16-Core Processor",
+        "vcpus": 8,
+        "vm_vcpus": 8,
+        "exclusive": true,
+        "co_tenants": 0
+      }
+    },
+    {
+      "name": "mldr-s60-r2",
+      "code": 0,
+      "seconds": 82.04,
+      "vm": "bx_2bk563py",
+      "run_name": "mldr-s60-r2",
+      "placement": {
+        "vm": "bx_2bk563py",
+        "type": "large",
+        "cpu": "AMD EPYC 4585PX 16-Core Processor",
+        "vcpus": 8,
+        "vm_vcpus": 8,
+        "exclusive": true,
+        "co_tenants": 0
+      }
+    },
+    {
+      "name": "learning_switch_i4-s60-r1",
+      "code": 0,
+      "seconds": 31.69,
+      "vm": "bx_27ffycju",
+      "run_name": "learning_switch_i4-s60-r1",
+      "placement": {
+        "vm": "bx_27ffycju",
+        "type": "large",
+        "cpu": "AMD Ryzen 9 9950X 16-Core Processor",
+        "vcpus": 8,
+        "vm_vcpus": 8,
+        "exclusive": true,
+        "co_tenants": 0
+      }
+    },
+    {
+      "name": "consensus_forall-s60-r3",
+      "code": 0,
+      "seconds": 47.2,
+      "vm": "bx_27ffycju",
+      "run_name": "consensus_forall-s60-r3",
+      "placement": {
+        "vm": "bx_27ffycju",
+        "type": "large",
+        "cpu": "AMD Ryzen 9 9950X 16-Core Processor",
+        "vcpus": 8,
+        "vm_vcpus": 8,
+        "exclusive": true,
+        "co_tenants": 0
+      }
+    },
+    {
+      "name": "learning_switch_i4-s60-r3",
+      "code": 0,
+      "seconds": 31.08,
+      "vm": "bx_27ffycju",
+      "run_name": "learning_switch_i4-s60-r3",
+      "placement": {
+        "vm": "bx_27ffycju",
+        "type": "large",
+        "cpu": "AMD Ryzen 9 9950X 16-Core Processor",
+        "vcpus": 8,
+        "vm_vcpus": 8,
+        "exclusive": true,
+        "co_tenants": 0
+      }
+    },
+    {
+      "name": "firewall-s60-r3",
+      "code": 0,
+      "seconds": 45.85,
+      "vm": "bx_2bk563py",
+      "run_name": "firewall-s60-r3",
+      "placement": {
+        "vm": "bx_2bk563py",
+        "type": "large",
+        "cpu": "AMD EPYC 4585PX 16-Core Processor",
+        "vcpus": 8,
+        "vm_vcpus": 8,
+        "exclusive": true,
+        "co_tenants": 0
+      }
+    },
+    {
+      "name": "consensus_forall-s60-r2",
+      "code": 0,
+      "seconds": 47.88,
+      "vm": "bx_27ffycju",
+      "run_name": "consensus_forall-s60-r2",
+      "placement": {
+        "vm": "bx_27ffycju",
+        "type": "large",
+        "cpu": "AMD Ryzen 9 9950X 16-Core Processor",
+        "vcpus": 8,
+        "vm_vcpus": 8,
+        "exclusive": true,
+        "co_tenants": 0
+      }
+    },
+    {
+      "name": "firewall-s60-r2",
+      "code": 0,
+      "seconds": 43.6,
+      "vm": "bx_2bk563py",
+      "run_name": "firewall-s60-r2",
+      "placement": {
+        "vm": "bx_2bk563py",
+        "type": "large",
+        "cpu": "AMD EPYC 4585PX 16-Core Processor",
+        "vcpus": 8,
+        "vm_vcpus": 8,
+        "exclusive": true,
+        "co_tenants": 0
+      }
+    },
+    {
+      "name": "learning_switch-s60-r2",
+      "code": 0,
+      "seconds": 27.27,
+      "vm": "bx_27ffycju",
+      "run_name": "learning_switch-s60-r2",
+      "placement": {
+        "vm": "bx_27ffycju",
+        "type": "large",
+        "cpu": "AMD Ryzen 9 9950X 16-Core Processor",
+        "vcpus": 8,
+        "vm_vcpus": 8,
+        "exclusive": true,
+        "co_tenants": 0
+      }
+    },
+    {
+      "name": "consensus_wo_decide-s60-r1",
+      "code": 0,
+      "seconds": 30.51,
+      "vm": "bx_27ffycju",
+      "run_name": "consensus_wo_decide-s60-r1",
+      "placement": {
+        "vm": "bx_27ffycju",
+        "type": "large",
+        "cpu": "AMD Ryzen 9 9950X 16-Core Processor",
+        "vcpus": 8,
+        "vm_vcpus": 8,
+        "exclusive": true,
+        "co_tenants": 0
+      }
+    },
+    {
+      "name": "consensus_epr-s60-r2",
+      "code": 0,
+      "seconds": 46.27,
+      "vm": "bx_2bk563py",
+      "run_name": "consensus_epr-s60-r2",
+      "placement": {
+        "vm": "bx_2bk563py",
+        "type": "large",
+        "cpu": "AMD EPYC 4585PX 16-Core Processor",
+        "vcpus": 8,
+        "vm_vcpus": 8,
+        "exclusive": true,
+        "co_tenants": 0
+      }
+    },
+    {
+      "name": "consensus_wo_decide-s60-r3",
+      "code": 0,
+      "seconds": 30.4,
+      "vm": "bx_27ffycju",
+      "run_name": "consensus_wo_decide-s60-r3",
+      "placement": {
+        "vm": "bx_27ffycju",
+        "type": "large",
+        "cpu": "AMD Ryzen 9 9950X 16-Core Processor",
+        "vcpus": 8,
+        "vm_vcpus": 8,
+        "exclusive": true,
+        "co_tenants": 0
+      }
+    },
+    {
+      "name": "twophase-s60-r3",
+      "code": 0,
+      "seconds": 28.11,
+      "vm": "bx_2bk563py",
+      "run_name": "twophase-s60-r3",
+      "placement": {
+        "vm": "bx_2bk563py",
+        "type": "large",
+        "cpu": "AMD EPYC 4585PX 16-Core Processor",
+        "vcpus": 8,
+        "vm_vcpus": 8,
+        "exclusive": true,
+        "co_tenants": 0
+      }
+    },
+    {
+      "name": "client_server_db_ae-s60-r3",
+      "code": 0,
+      "seconds": 24.44,
+      "vm": "bx_27ffycju",
+      "run_name": "client_server_db_ae-s60-r3",
+      "placement": {
+        "vm": "bx_27ffycju",
+        "type": "large",
+        "cpu": "AMD Ryzen 9 9950X 16-Core Processor",
+        "vcpus": 8,
+        "vm_vcpus": 8,
+        "exclusive": true,
+        "co_tenants": 0
+      }
+    },
+    {
+      "name": "client_server_db_ae-s60-r2",
+      "code": 0,
+      "seconds": 24.56,
+      "vm": "bx_27ffycju",
+      "run_name": "client_server_db_ae-s60-r2",
+      "placement": {
+        "vm": "bx_27ffycju",
+        "type": "large",
+        "cpu": "AMD Ryzen 9 9950X 16-Core Processor",
+        "vcpus": 8,
+        "vm_vcpus": 8,
+        "exclusive": true,
+        "co_tenants": 0
+      }
+    },
+    {
+      "name": "consensus_epr-s60-r3",
+      "code": 0,
+      "seconds": 51.38,
+      "vm": "bx_2bk563py",
+      "run_name": "consensus_epr-s60-r3",
+      "placement": {
+        "vm": "bx_2bk563py",
+        "type": "large",
+        "cpu": "AMD EPYC 4585PX 16-Core Processor",
+        "vcpus": 8,
+        "vm_vcpus": 8,
+        "exclusive": true,
+        "co_tenants": 0
+      }
+    },
+    {
+      "name": "client_server_ae-s60-r2",
+      "code": 0,
+      "seconds": 18.81,
+      "vm": "bx_27ffycju",
+      "run_name": "client_server_ae-s60-r2",
+      "placement": {
+        "vm": "bx_27ffycju",
+        "type": "large",
+        "cpu": "AMD Ryzen 9 9950X 16-Core Processor",
+        "vcpus": 8,
+        "vm_vcpus": 8,
+        "exclusive": true,
+        "co_tenants": 0
+      }
+    },
+    {
+      "name": "twophase-s60-r2",
+      "code": 0,
+      "seconds": 27.11,
+      "vm": "bx_2bk563py",
+      "run_name": "twophase-s60-r2",
+      "placement": {
+        "vm": "bx_2bk563py",
+        "type": "large",
+        "cpu": "AMD EPYC 4585PX 16-Core Processor",
+        "vcpus": 8,
+        "vm_vcpus": 8,
+        "exclusive": true,
+        "co_tenants": 0
+      }
+    },
+    {
+      "name": "client_server_db_ae-s60-r1",
+      "code": 0,
+      "seconds": 24.73,
+      "vm": "bx_27ffycju",
+      "run_name": "client_server_db_ae-s60-r1",
+      "placement": {
+        "vm": "bx_27ffycju",
+        "type": "large",
+        "cpu": "AMD Ryzen 9 9950X 16-Core Processor",
+        "vcpus": 8,
+        "vm_vcpus": 8,
+        "exclusive": true,
+        "co_tenants": 0
+      }
+    },
+    {
+      "name": "simple_regular-s60-r2",
+      "code": 0,
+      "seconds": 25.35,
+      "vm": "bx_2bk563py",
+      "run_name": "simple_regular-s60-r2",
+      "placement": {
+        "vm": "bx_2bk563py",
+        "type": "large",
+        "cpu": "AMD EPYC 4585PX 16-Core Processor",
+        "vcpus": 8,
+        "vm_vcpus": 8,
+        "exclusive": true,
+        "co_tenants": 0
+      }
+    },
+    {
+      "name": "simple_regular-s60-r3",
+      "code": 0,
+      "seconds": 21.75,
+      "vm": "bx_27ffycju",
+      "run_name": "simple_regular-s60-r3",
+      "placement": {
+        "vm": "bx_27ffycju",
+        "type": "large",
+        "cpu": "AMD Ryzen 9 9950X 16-Core Processor",
+        "vcpus": 8,
+        "vm_vcpus": 8,
+        "exclusive": true,
+        "co_tenants": 0
+      }
+    },
+    {
+      "name": "client_server_ae-s60-r3",
+      "code": 0,
+      "seconds": 26.9,
+      "vm": "bx_2bk563py",
+      "run_name": "client_server_ae-s60-r3",
+      "placement": {
+        "vm": "bx_2bk563py",
+        "type": "large",
+        "cpu": "AMD EPYC 4585PX 16-Core Processor",
+        "vcpus": 8,
+        "vm_vcpus": 8,
+        "exclusive": true,
+        "co_tenants": 0
+      }
+    },
+    {
+      "name": "consensus_wo_decide-s60-r2",
+      "code": 0,
+      "seconds": 31.02,
+      "vm": "bx_27ffycju",
+      "run_name": "consensus_wo_decide-s60-r2",
+      "placement": {
+        "vm": "bx_27ffycju",
+        "type": "large",
+        "cpu": "AMD Ryzen 9 9950X 16-Core Processor",
+        "vcpus": 8,
+        "vm_vcpus": 8,
+        "exclusive": true,
+        "co_tenants": 0
+      }
+    },
+    {
+      "name": "simple-s60-r3",
+      "code": 0,
+      "seconds": 20.42,
+      "vm": "bx_2bk563py",
+      "run_name": "simple-s60-r3",
+      "placement": {
+        "vm": "bx_2bk563py",
+        "type": "large",
+        "cpu": "AMD EPYC 4585PX 16-Core Processor",
+        "vcpus": 8,
+        "vm_vcpus": 8,
+        "exclusive": true,
+        "co_tenants": 0
+      }
+    },
+    {
+      "name": "sharded_kv_no_lost_keys-s60-r2",
+      "code": 0,
+      "seconds": 13.08,
+      "vm": "bx_27ffycju",
+      "run_name": "sharded_kv_no_lost_keys-s60-r2",
+      "placement": {
+        "vm": "bx_27ffycju",
+        "type": "large",
+        "cpu": "AMD Ryzen 9 9950X 16-Core Processor",
+        "vcpus": 8,
+        "vm_vcpus": 8,
+        "exclusive": true,
+        "co_tenants": 0
+      }
+    },
+    {
+      "name": "two_phase_commit-s60-r1",
+      "code": 0,
+      "seconds": 18.93,
+      "vm": "bx_2bk563py",
+      "run_name": "two_phase_commit-s60-r1",
+      "placement": {
+        "vm": "bx_2bk563py",
+        "type": "large",
+        "cpu": "AMD EPYC 4585PX 16-Core Processor",
+        "vcpus": 8,
+        "vm_vcpus": 8,
+        "exclusive": true,
+        "co_tenants": 0
+      }
+    },
+    {
+      "name": "two_phase_commit-s60-r2",
+      "code": 0,
+      "seconds": 13.68,
+      "vm": "bx_27ffycju",
+      "run_name": "two_phase_commit-s60-r2",
+      "placement": {
+        "vm": "bx_27ffycju",
+        "type": "large",
+        "cpu": "AMD Ryzen 9 9950X 16-Core Processor",
+        "vcpus": 8,
+        "vm_vcpus": 8,
+        "exclusive": true,
+        "co_tenants": 0
+      }
+    },
+    {
+      "name": "two_phase_commit-s60-r3",
+      "code": 0,
+      "seconds": 16.22,
+      "vm": "bx_2bk563py",
+      "run_name": "two_phase_commit-s60-r3",
+      "placement": {
+        "vm": "bx_2bk563py",
+        "type": "large",
+        "cpu": "AMD EPYC 4585PX 16-Core Processor",
+        "vcpus": 8,
+        "vm_vcpus": 8,
+        "exclusive": true,
+        "co_tenants": 0
+      }
+    }
+  ],
+  "summary": [
+    {
+      "name": "mldr-s60-r3",
+      "cand": {
+        "verdict": "unknown",
+        "ms": 43939,
+        "exit": 0
+      },
+      "base": {
+        "verdict": "unknown",
+        "ms": 22185,
+        "exit": 0
+      }
+    },
+    {
+      "name": "paxos_epr-s60-r2",
+      "base": {
+        "verdict": "proven",
+        "ms": 22669,
+        "exit": 0
+      },
+      "cand": {
+        "exit": 137
+      }
+    },
+    {
+      "name": "paxos_epr-s60-r1",
+      "cand": {
+        "verdict": "unknown",
+        "ms": 49403,
+        "exit": 0
+      },
+      "base": {
+        "verdict": "proven",
+        "ms": 18325,
+        "exit": 0
+      }
+    },
+    {
+      "name": "sharded_kv_no_lost_keys-s60-r1",
+      "cand": {
+        "verdict": "proven",
+        "ms": 8960,
+        "exit": 0
+      },
+      "base": {
+        "verdict": "proven",
+        "ms": 8592,
+        "exit": 0
+      }
+    },
+    {
+      "name": "paxos_epr-s60-r3",
+      "cand": {
+        "verdict": "unknown",
+        "ms": 41722,
+        "exit": 0
+      },
+      "base": {
+        "verdict": "proven",
+        "ms": 16681,
+        "exit": 0
+      }
+    },
+    {
+      "name": "learning_switch-s60-r3",
+      "cand": {
+        "verdict": "proven",
+        "ms": 13211,
+        "exit": 0
+      },
+      "base": {
+        "verdict": "proven",
+        "ms": 13347,
+        "exit": 0
+      }
+    },
+    {
+      "name": "sharded_kv-s60-r3",
+      "cand": {
+        "verdict": "proven",
+        "ms": 19992,
+        "exit": 0
+      },
+      "base": {
+        "verdict": "proven",
+        "ms": 19608,
+        "exit": 0
+      }
+    },
+    {
+      "name": "sharded_kv-s60-r2",
+      "base": {
+        "verdict": "proven",
+        "ms": 14195,
+        "exit": 0
+      },
+      "cand": {
+        "verdict": "proven",
+        "ms": 14552,
+        "exit": 0
+      }
+    },
+    {
+      "name": "learning_switch_i4-s60-r2",
+      "base": {
+        "verdict": "proven",
+        "ms": 15270,
+        "exit": 0
+      },
+      "cand": {
+        "verdict": "proven",
+        "ms": 15022,
+        "exit": 0
+      }
+    },
+    {
+      "name": "mldr-s60-r2",
+      "base": {
+        "verdict": "unknown",
+        "ms": 27691,
+        "exit": 0
+      },
+      "cand": {
+        "verdict": "unknown",
+        "ms": 53440,
+        "exit": 0
+      }
+    },
+    {
+      "name": "learning_switch_i4-s60-r1",
+      "cand": {
+        "verdict": "proven",
+        "ms": 15033,
+        "exit": 0
+      },
+      "base": {
+        "verdict": "proven",
+        "ms": 15638,
+        "exit": 0
+      }
+    },
+    {
+      "name": "consensus_forall-s60-r3",
+      "cand": {
+        "verdict": "proven",
+        "ms": 30807,
+        "exit": 0
+      },
+      "base": {
+        "verdict": "proven",
+        "ms": 15240,
+        "exit": 0
+      }
+    },
+    {
+      "name": "learning_switch_i4-s60-r3",
+      "cand": {
+        "verdict": "proven",
+        "ms": 15016,
+        "exit": 0
+      },
+      "base": {
+        "verdict": "proven",
+        "ms": 14951,
+        "exit": 0
+      }
+    },
+    {
+      "name": "firewall-s60-r3",
+      "cand": {
+        "verdict": "proven",
+        "ms": 20055,
+        "exit": 0
+      },
+      "base": {
+        "verdict": "proven",
+        "ms": 24807,
+        "exit": 0
+      }
+    },
+    {
+      "name": "consensus_forall-s60-r2",
+      "base": {
+        "verdict": "proven",
+        "ms": 15091,
+        "exit": 0
+      },
+      "cand": {
+        "verdict": "proven",
+        "ms": 31497,
+        "exit": 0
+      }
+    },
+    {
+      "name": "firewall-s60-r2",
+      "base": {
+        "verdict": "proven",
+        "ms": 23727,
+        "exit": 0
+      },
+      "cand": {
+        "verdict": "proven",
+        "ms": 18951,
+        "exit": 0
+      }
+    },
+    {
+      "name": "learning_switch-s60-r2",
+      "base": {
+        "verdict": "proven",
+        "ms": 13060,
+        "exit": 0
+      },
+      "cand": {
+        "verdict": "proven",
+        "ms": 13239,
+        "exit": 0
+      }
+    },
+    {
+      "name": "consensus_wo_decide-s60-r1",
+      "cand": {
+        "verdict": "proven",
+        "ms": 20971,
+        "exit": 0
+      },
+      "base": {
+        "verdict": "proven",
+        "ms": 8475,
+        "exit": 0
+      }
+    },
+    {
+      "name": "consensus_epr-s60-r2",
+      "base": {
+        "verdict": "proven",
+        "ms": 14639,
+        "exit": 0
+      },
+      "cand": {
+        "verdict": "proven",
+        "ms": 30748,
+        "exit": 0
+      }
+    },
+    {
+      "name": "consensus_wo_decide-s60-r3",
+      "cand": {
+        "verdict": "proven",
+        "ms": 21160,
+        "exit": 0
+      },
+      "base": {
+        "verdict": "proven",
+        "ms": 8254,
+        "exit": 0
+      }
+    },
+    {
+      "name": "twophase-s60-r3",
+      "cand": {
+        "verdict": "proven",
+        "ms": 13888,
+        "exit": 0
+      },
+      "base": {
+        "verdict": "proven",
+        "ms": 13332,
+        "exit": 0
+      }
+    },
+    {
+      "name": "client_server_db_ae-s60-r3",
+      "cand": {
+        "verdict": "proven",
+        "ms": 11812,
+        "exit": 0
+      },
+      "base": {
+        "verdict": "proven",
+        "ms": 11614,
+        "exit": 0
+      }
+    },
+    {
+      "name": "client_server_db_ae-s60-r2",
+      "base": {
+        "verdict": "proven",
+        "ms": 11629,
+        "exit": 0
+      },
+      "cand": {
+        "verdict": "proven",
+        "ms": 11864,
+        "exit": 0
+      }
+    },
+    {
+      "name": "consensus_epr-s60-r3",
+      "cand": {
+        "verdict": "proven",
+        "ms": 35852,
+        "exit": 0
+      },
+      "base": {
+        "verdict": "proven",
+        "ms": 14638,
+        "exit": 0
+      }
+    },
+    {
+      "name": "client_server_ae-s60-r2",
+      "base": {
+        "verdict": "proven",
+        "ms": 8348,
+        "exit": 0
+      },
+      "cand": {
+        "verdict": "proven",
+        "ms": 9351,
+        "exit": 0
+      }
+    },
+    {
+      "name": "twophase-s60-r2",
+      "base": {
+        "verdict": "proven",
+        "ms": 12813,
+        "exit": 0
+      },
+      "cand": {
+        "verdict": "proven",
+        "ms": 13405,
+        "exit": 0
+      }
+    },
+    {
+      "name": "client_server_db_ae-s60-r1",
+      "cand": {
+        "verdict": "proven",
+        "ms": 11724,
+        "exit": 0
+      },
+      "base": {
+        "verdict": "proven",
+        "ms": 11829,
+        "exit": 0
+      }
+    },
+    {
+      "name": "simple_regular-s60-r2",
+      "base": {
+        "verdict": "proven",
+        "ms": 12314,
+        "exit": 0
+      },
+      "cand": {
+        "verdict": "proven",
+        "ms": 12197,
+        "exit": 0
+      }
+    },
+    {
+      "name": "simple_regular-s60-r3",
+      "cand": {
+        "verdict": "proven",
+        "ms": 10277,
+        "exit": 0
+      },
+      "base": {
+        "verdict": "proven",
+        "ms": 10437,
+        "exit": 0
+      }
+    },
+    {
+      "name": "client_server_ae-s60-r3",
+      "cand": {
+        "verdict": "proven",
+        "ms": 13051,
+        "exit": 0
+      },
+      "base": {
+        "verdict": "proven",
+        "ms": 12945,
+        "exit": 0
+      }
+    },
+    {
+      "name": "consensus_wo_decide-s60-r2",
+      "base": {
+        "verdict": "proven",
+        "ms": 8323,
+        "exit": 0
+      },
+      "cand": {
+        "verdict": "proven",
+        "ms": 21701,
+        "exit": 0
+      }
+    },
+    {
+      "name": "simple-s60-r3",
+      "cand": {
+        "verdict": "proven",
+        "ms": 9743,
+        "exit": 0
+      },
+      "base": {
+        "verdict": "proven",
+        "ms": 9791,
+        "exit": 0
+      }
+    },
+    {
+      "name": "sharded_kv_no_lost_keys-s60-r2",
+      "base": {
+        "verdict": "proven",
+        "ms": 5861,
+        "exit": 0
+      },
+      "cand": {
+        "verdict": "proven",
+        "ms": 6043,
+        "exit": 0
+      }
+    },
+    {
+      "name": "two_phase_commit-s60-r1",
+      "cand": {
+        "verdict": "proven",
+        "ms": 9427,
+        "exit": 0
+      },
+      "base": {
+        "verdict": "proven",
+        "ms": 8563,
+        "exit": 0
+      }
+    },
+    {
+      "name": "two_phase_commit-s60-r2",
+      "base": {
+        "verdict": "proven",
+        "ms": 6398,
+        "exit": 0
+      },
+      "cand": {
+        "verdict": "proven",
+        "ms": 6400,
+        "exit": 0
+      }
+    },
+    {
+      "name": "two_phase_commit-s60-r3",
+      "cand": {
+        "verdict": "proven",
+        "ms": 8558,
+        "exit": 0
+      },
+      "base": {
+        "verdict": "proven",
+        "ms": 6816,
+        "exit": 0
+      }
+    }
+  ]
+}

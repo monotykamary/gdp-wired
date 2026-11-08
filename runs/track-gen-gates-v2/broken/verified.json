@@ -1,0 +1,179 @@
+{
+  "total": 29,
+  "noneProven": true,
+  "rows": [
+    {
+      "file": "simple_decentralized_lock-s60-r1.log",
+      "id": "simple_decentralized_lock",
+      "exit": 0,
+      "verdict": "refuted"
+    },
+    {
+      "file": "learning_switch_i4-s60-r1.log",
+      "id": "learning_switch_i4",
+      "exit": 0,
+      "verdict": "unknown"
+    },
+    {
+      "file": "lockserv_automaton-s60-r1.log",
+      "id": "lockserv_automaton",
+      "exit": 0,
+      "verdict": "refuted"
+    },
+    {
+      "file": "twophase-s60-r1.log",
+      "id": "twophase",
+      "exit": 0,
+      "verdict": "refuted"
+    },
+    {
+      "file": "sharded_kv_no_lost_keys-s60-r1.log",
+      "exit": 137,
+      "verdict": "timeout"
+    },
+    {
+      "file": "client_server_ae-s60-r1.log",
+      "id": "client_server_ae",
+      "exit": 0,
+      "verdict": "unknown"
+    },
+    {
+      "file": "toy_consensus-s60-r1.log",
+      "id": "toy_consensus",
+      "exit": 0,
+      "verdict": "unknown"
+    },
+    {
+      "file": "sharded_kv-s60-r1.log",
+      "id": "sharded_kv",
+      "exit": 0,
+      "verdict": "refuted"
+    },
+    {
+      "file": "client_server_db_ae-s60-r1.log",
+      "id": "client_server_db_ae",
+      "exit": 0,
+      "verdict": "unknown"
+    },
+    {
+      "file": "naive_consensus-s60-r1.log",
+      "id": "naive_consensus",
+      "exit": 0,
+      "verdict": "unknown"
+    },
+    {
+      "file": "consensus-s60-r1.log",
+      "id": "consensus",
+      "exit": 0,
+      "verdict": "refuted"
+    },
+    {
+      "file": "quorum_leader_election-s60-r1.log",
+      "id": "quorum_leader_election",
+      "exit": 0,
+      "verdict": "unknown"
+    },
+    {
+      "file": "mldr-s60-r1.log",
+      "id": "mldr",
+      "exit": 0,
+      "verdict": "unknown"
+    },
+    {
+      "file": "consensus_epr-s60-r1.log",
+      "id": "consensus_epr",
+      "exit": 0,
+      "verdict": "unknown"
+    },
+    {
+      "file": "majorityset_leader_election-s60-r1.log",
+      "id": "majorityset_leader_election",
+      "exit": 0,
+      "verdict": "unknown"
+    },
+    {
+      "file": "tcommit-s60-r1.log",
+      "id": "tcommit",
+      "exit": 0,
+      "verdict": "refuted"
+    },
+    {
+      "file": "two_phase_commit-s60-r1.log",
+      "id": "two_phase_commit",
+      "exit": 0,
+      "verdict": "refuted"
+    },
+    {
+      "file": "firewall-s60-r1.log",
+      "id": "firewall",
+      "exit": 0,
+      "verdict": "unknown"
+    },
+    {
+      "file": "lock_server-s60-r1.log",
+      "id": "lock_server",
+      "exit": 0,
+      "verdict": "refuted"
+    },
+    {
+      "file": "toy_consensus_forall-s60-r1.log",
+      "id": "toy_consensus_forall",
+      "exit": 0,
+      "verdict": "unknown"
+    },
+    {
+      "file": "consensus_wo_decide-s60-r1.log",
+      "id": "consensus_wo_decide",
+      "exit": 0,
+      "verdict": "unknown"
+    },
+    {
+      "file": "simple-s60-r1.log",
+      "id": "simple",
+      "exit": 0,
+      "verdict": "refuted"
+    },
+    {
+      "file": "paxos_epr-s60-r1.log",
+      "id": "paxos_epr",
+      "exit": 0,
+      "verdict": "unknown"
+    },
+    {
+      "file": "learning_switch-s60-r1.log",
+      "id": "learning_switch",
+      "exit": 0,
+      "verdict": "unknown"
+    },
+    {
+      "file": "simple_regular-s60-r1.log",
+      "id": "simple_regular",
+      "exit": 0,
+      "verdict": "refuted"
+    },
+    {
+      "file": "consensus_forall-s60-r1.log",
+      "id": "consensus_forall",
+      "exit": 0,
+      "verdict": "unknown"
+    },
+    {
+      "file": "toy_consensus_epr-s60-r1.log",
+      "id": "toy_consensus_epr",
+      "exit": 0,
+      "verdict": "unknown"
+    },
+    {
+      "file": "simple_election-s60-r1.log",
+      "id": "simple_election",
+      "exit": 0,
+      "verdict": "unknown"
+    },
+    {
+      "file": "lockserv-s60-r1.log",
+      "id": "lockserv",
+      "exit": 0,
+      "verdict": "refuted"
+    }
+  ]
+}

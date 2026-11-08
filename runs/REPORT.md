@@ -1,5 +1,7 @@
 # Track P report
 
+Current assignment: [Track Gen — production invariant-generation cost](#track-gen).
+
 Base: `40693c7a`; branch: `claude/track-paxos`.
 
 **Status: the original production target passes all three strict 60-second repeats; the first paired IC3Syn gate found six protocol regressions, now under fast-loop investigation.** The initial failures below are retained as history. The engine uses no injected historical law, trusted-checker change, or larger proof budget. No gate success is inferred from scheduler exit status.
@@ -2617,3 +2619,209 @@ a reversed-order/full-suite follow-up; they are not statistical confidence
 intervals. Tests: 44 row-equivalence/kernel/path/mirror tests pass, including
 structural sharing and ordered-path separation; type/lint 0 warnings/errors.
 Generator optimization is the next phase; no new open-law derivation was added.
+
+<a id="track-gen"></a>
+
+## Track Gen — production invariant-generation cost
+
+Base: **`3394e14c`**, carrying Track M's engine; branch **`claude/track-gen`**.
+Comparison main: **`6a3874d3`**. Engine commits: **`6a8792d3`**, **`f00e3642`**, **`cd38afa5`**.
+
+**Status: generation reduction verified; inherited ring-leader regression fixed. The partial IC3Syn v3 matrix found three Paxos losses. Untouched Track M parent also times out; scalar reuse is now conservative, but inherited count-certificate generation remains under isolation. Global gates were stopped pending that repair; final acceptance has not passed.**
+No full MLDR proof, merge, or new open-law derivation is claimed.
+
+### Generic changes and scope
+
+1. `core/sample-step.ts` compiles hot random-walk steps using the existing
+   persistent compiler and compiled request predicates. Cold/unsupported
+   machines retain the interpreter. The random draws, request decisions,
+   sample order and counted work are unchanged.
+2. Cube-only inference now reuses reachable rows already provided by its caller.
+   With statically Boolean scalar control, it skips the redundant initial
+   random walk before its own small instance and data filter. Numeric scalar
+   transitions, normal inference, absent rows and empty rows retain the original
+   sampling path. All candidate generators are still called;
+   there are no protocol-name tests, generator exclusions or increased budgets.
+3. `kernel/model-values.ts` retains symbolic domains for naturals used as
+   function arguments, as it already does for map keys. Arithmetic-only
+   variables still receive the same ordered boundary proposals. This repairs
+   a main-relative regression inherited from Track M, not a row-code change.
+
+`kernel/prove.ts`, row construction, the trusted kernel, laws and proof budgets
+are unchanged from the Track M base. No external solver is used.
+
+### Matched generation timing
+
+Final source: `runs/track-gen-final-replays-v1/`, snapshot **`6d30a10eb75c`**:
+all children on **one AMD Ryzen 9 9950X VM**, four-CPU affinity **0–3**,
+zero co-tenants. Each child is a fresh process; installation is outside the
+measurement. These are internal generation-wall measurements (including
+`smallOf` warmup), not full-harness or startup-inclusive proof times.
+
+| Repeat/order | Parent generation incl. warmup | Candidate | Candidate generation alone, excluding warmup |
+| --- | ---: | ---: | ---: |
+| 1, parent first | 20.724 s | 11.135 s | 5.953 s |
+| 2, candidate first | 19.668 s | 10.589 s | 5.483 s |
+| 3, parent first | 19.413 s | 10.263 s | 5.176 s |
+| Mean | **19.935 s** | **10.662 s** | **5.537 s** |
+
+Mean wall reduction: **46.51%**. Every repeat, and both separately instrumented
+runs, produce the identical **24 candidates in the identical order**, SHA256
+`5e7acd1171d499bb2e2a21c326c0ca8013d98f8ab18c2bab9401d527de63e4e8`.
+The generated set was not substituted with a hand-written family.
+
+### Per-generator attribution and proof use
+
+The last two same-VM runs instrument generation only, without wrapping or
+editing the kernel/row code. Full formulas, names and exact milliseconds are
+in `records.json` and `generation-verified.json` in the validation directory.
+
+| Generator | Parent ms | Candidate ms | Produced / retained | Direct match among the two checked probes' used premises |
+| --- | ---: | ---: | ---: | --- |
+| Guard laws | 0.735 | 0.978 | 9 / 0 | None retained |
+| Map bounds | 3.811 | 2.016 | 5 / 5 | None |
+| Row laws | 0.117 | 0.073 | 0 / 0 | No output on this input; still called |
+| Field laws | 0.747 | 0.724 | 63 / 6 | `fields: St[a]=1 -> CT[a]=CfgT[a]`, in both |
+| Scan prefixes | 0.192 | 0.190 | 0 / 0 | No output on this input; still called |
+| Cubes | **14,417.748** | **5,081.085** | 14 / 13 | None as a direct premise; see context distinction below |
+| Carry laws | 1.469 | 1.490 | 0 / 0 | No output on this input; still called |
+
+Cube guard-loosening is a separate **0.130 → 0.142 ms** transformation of the
+same 14 cubes, not another 14 generated candidates. Small-state warmup is
+**5,045.512 → 5,071.263 ms**; admission/filtering is **52.619 → 51.448 ms**.
+These are not added to the inclusive generation total twice.
+The earlier trace had **627,047 random requests / 6,615 trials / 64 samples**.
+The shared-row trace reads **1,251 provided states, zero trials, zero requests**.
+The cube engine's own small-instance/data-filter work remains enabled.
+
+**Proof-context distinction:** the production-generated pipeline has no final
+MLDR proof to attribute. The five probes instead use Track M's frozen supplied
+invariant context (input SHA256
+`4be076f22a8fec41083719358b3518a83b23add5c3dfd26017f772404e7dac24`).
+For each successful probe, `usedHyps` traces the checked certificate back to the
+actual original law instances; missing analysis is never interpreted as zero
+use. Matching to generated formulas permits only bound-variable renaming,
+conjunction/disjunction ordering and equality symmetry, not unproved implication.
+
+- **One primary:** uses itself, `Inv866`, and `Inv*`.
+- **Inv3915:** uses itself, one primary, `Inv866`, `Inv*`, and
+  `p2: before start no terms and no primary`.
+- `Inv866` matches the field candidate named above. The other supplied premises
+  are not exact generated candidates. In particular, `p2` is a bundled law,
+  not a claim that the certificate used three separately generated cubes.
+- **Inv1758, Inv2973, Inv*** have no complete certificates: their final-proof
+  generator use is **unknown**, not zero. The whole invariant family is not
+  proved merely because two relative obligations check.
+
+### Gates and current validation
+
+- `bun run check`: passed on the final engine and tooling, zero warnings/errors (1,090 files); receipt: `track-gen-final-check-v2/`.
+- Focused cube-row, sampler, compiler, inference and model-value suites: **18 passed,
+  0 failed, 75,019 assertions**. This includes absent/empty-row fallbacks,
+  unchanged cube output on an independent small machine, persistence and
+  count-backed request checks.
+- Final-source paired replay (`track-gen-final-replays-v1/probes-verified.json`): all five
+  verdicts, counted-work totals and used law instances are identical to the
+  parent. One primary and Inv3915 check; Inv1758, Inv2973 and Inv* remain
+  unknown. Their counted ms are respectively 984.464, 972.813, 5,000.273,
+  5,396.452 and 5,137.436. No timeout or failed probe is called a proof.
+- Final-source DuoAI: **10/10 candidate and 10/10 main**, zero lost proofs.
+- IC3Syn v3 was stopped after 36 completed pairs exposed **three Paxos losses**.
+  `track-gen-gates-v3/ic3syn/partial.json` and all completed raw logs are retained.
+  The untouched parent also times out; legacy rows and suppressing extra numeric
+  value proposals alone do not restore it. New count-certificate controls are
+  pending. The v3 broken batch had no placements and was closed, not counted as
+  a pass. All final global gates remain required after the repair.
+
+The earlier row-reuse series (`track-gen-reuse-validation-v1/`) reduced mean
+generation wall by 48.86%; the 46.51% figure above is the fresh final-source
+series, not a selected best repeat. Neither series claims that the complete
+MLDR production harness now fits 60 seconds. The five probes are separate
+fresh-process relative-obligation checks.
+
+The initial sampler-only timing series was not accepted as a reliable speedup:
+it had large warmup variation and two slower total-wall comparisons. It is
+retained in `track-gen-generation-pairs-v1/`. The first unit/check attempt had
+an invalid test-only count body (a condition instead of a numeric term), fixed
+before the successful runs; production code was not altered to accommodate it.
+The incomplete v1 gate batches were deliberately stopped when row reuse became
+the final candidate. Their scheduler batches were explicitly closed after
+inspection showed that cancelling the local waiters had not removed the old
+queue. They are not acceptance evidence. The v2 probe batch had zero placements
+and was closed and resubmitted as the same jobs in the interactive lane (v3).
+
+### Inherited ring-leader regression and isolated repair
+
+The first full DuoAI comparison was **9/10 candidate vs 10/10 main**.
+Untouched main and parent controls on the same isolated VM establish that the
+loss predates this track: main checks in **17.161 s**, while untouched parent
+`3394e14c` returns unknown in **45.306 s**. Both compiled and interpreted
+samplers return unknown (45.934 s and 44.937 s). Reusing legacy rows alone
+also remains unknown (46.651 s); suppressing only the new model-value
+proposals restores the proof (18.028 s), as does suppressing those proposals
+and row sharing together (17.253 s). Thus neither sampling nor row reuse is
+the cause. Full controls are in `track-gen-ring-{control,base,isolate}-v1/`.
+
+The new value helper was converting function-argument domains into model
+constants because a bare key equality suggested an arithmetic boundary.
+Commit `cd38afa5` retains symbolic function-key domains while leaving actual
+arithmetic-only witnesses unchanged. Frozen key/value regression tests pass;
+the ordinary full ring proof checks in **18.237 s** with row sharing enabled.
+Type/lint and nine focused tests (6,922 assertions) pass in
+`track-gen-model-value-fix-v1/`. No production row or trusted-checker code
+was edited. The superseded IC3 v2 batch was stopped and explicitly closed;
+its automatically queued retry was also stopped/closed. Partial v2 results
+are not final acceptance evidence.
+
+### Inherited Paxos loss: controlled localization
+
+The partial IC3Syn comparison preserves all 36 completed pairs in
+`track-gen-gates-v3/ic3syn/`; all three losses are Paxos. The untouched
+Track M parent also hits the strict 60-second stop, so this is not attributed
+to the generation optimization. Scalar-state exploration is nevertheless
+now preserved for numeric controls (commit `d9345b9c`). Four independent
+cube-row tests pass, including the new numeric and Boolean cases.
+
+Controls in `track-gen-paxos-isolate-v1/` remain unknown with legacy rows
+(39.499 s) or with extra arithmetic-value proposals suppressed (42.675 s).
+The current path is unknown in 43.586 s. In contrast, same-VM controls in
+`track-gen-paxos-cert-control-v1/` prove with only the new structured-fact
+insertion removed (31.426 s), with that insertion and singleton picks removed
+(28.706 s), or with the complete legacy certificate generator (27.291 s).
+Removing singleton picks alone still hits 60 seconds. This localizes the
+problem to displacement of the existing bounded witness prefix by the new
+structured facts, not to row construction.
+
+The prefix-first, capacity-aware repair is committed as `f51e8996`; its patch
+is also saved in `track-gen-prefix-proposal.diff`. It retains both structured generators and
+the same cap, constructs their tail only if slots remain, and has a frozen
+16-entry legacy-prefix regression. The existing checked three-count and
+five-count identity tests still pass; 16 focused tests / 43 assertions pass.
+The five post-ordering MLDR verdicts and exact used-law instances match the
+parent (`track-gen-prefix-check-v1/probes-verified.json`). Their counted work
+is not identical: candidate ms are 984.669, 973.236, 5000.781, 5234.405 and
+5137.436. This is recorded explicitly, not mislabelled as zero work change.
+The first combined validation had a test typing error, then passed all tests
+but was killed during Paxos; the next proof was never placed before its
+wrapper expired. The standalone proof validation remains pending. On inspection, four large
+workers have occupied gate slots although no live batch reports a running
+item, and the marked proof check has zero placements. The read-only diagnosis
+is in `track-gen-scheduler-blocker.md`; no shared scheduler or other client
+was restarted or modified.
+
+### Reproduction
+
+```sh
+bash research/track-gen/prepare-data.sh
+supercomputer run --jobs research/track-gen/reuse-validation-jobs.json \
+  --out runs/track-gen-reproduce --class gate --vm-type large --timing \
+  --data runs/track-gen-data:replay-input
+bun research/track-gen/check-generation.ts runs/track-gen-reuse-validation-v1
+bun research/track-gen/analyze-profiles.ts runs track-gen-probes-v3
+bun research/track-gen/check-gates.ts runs/track-gen-gates-v2
+```
+
+The same `--data` and isolated-VM options apply to `ic3syn-jobs.json`,
+`duoai-jobs.json` and `probe-jobs.json`; `broken-jobs.json` requires no data
+archive. The baseline archives are rebuilt from immutable commits in this
+checkout, never by editing another worktree.
