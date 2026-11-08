@@ -6,9 +6,9 @@ import {sourceProofMemo} from './source-memo.ts'
 const contradiction:Goal={name:'false',hyps:[atMost(n(1),n(0))]}
 const proof=(g:Goal,p:Path)=>{const out=grow(g,p,{nodes:0,until:clock()+1000});if(!('tree'in out))throw new Error('fixture must refute');return out.tree}
 test('source memo reuses only a transported tree at the same logical path',()=>{
- const memo=sourceProofMemo(),a={a:1},b={b:1},p:Path=new Map([[canon(a),{lin:a,holds:true}],[canon(b),{lin:b,holds:false}]]),tree=proof(contradiction,p)
- memo.put(contradiction,p,tree)
- const reordered=new Map([...p].reverse()),copy={...contradiction,hyps:[...contradiction.hyps]},got=memo.get(copy,reordered,clock()+1000)
+ const goal:Goal={name:'conditional',hyps:[atMost(x('amount'),n(0))]},memo=sourceProofMemo(),a={amount:-1,'1':1},b={b:1},p:Path=new Map([[canon(a),{lin:a,holds:true}],[canon(b),{lin:b,holds:false}]]),tree=proof(goal,p)
+ memo.put(goal,p,tree)
+ const reordered=new Map([...p].reverse()),copy={...goal,hyps:[...goal.hyps]},got=memo.get(copy,reordered,clock()+1000)
  expect(got).toBeDefined();if(got)expect(check(copy,got,reordered)).toBe(true)
  expect(memo.get(copy,new Map(),clock()+1000)).toBeUndefined()
  expect(memo.get(copy,reordered,clock()-1)).toBeUndefined()
@@ -30,6 +30,16 @@ test('source memo tries an exact match beyond two geometrically nearer paths',()
  for(const k of [2,3]){const nearer:Path=new Map([bound(k)]);memo.put(goal,nearer,proof(goal,nearer))}
  const got=memo.get(goal,destination,clock()+1000)
  expect(got).toBeDefined();if(got)expect(check(goal,got,destination)).toBe(true)
+})
+
+test('shared source scopes reuse exact rows despite different enclosing hypotheses',()=>{
+ const scope={},common=atMost(x('amount'),n(0)),need=atMost(n(1),x('amount'))
+ const source:Goal={name:'first law',hyps:[{op:'and',xs:[common,atMost(n(0),x('unused'))]},need]},target:Goal={name:'second law',hyps:[need,common]},path:Path=new Map()
+ sourceProofMemo(scope).put(source,path,proof(source,path))
+ const tree=sourceProofMemo(scope).get(target,path,clock()+1000)
+ expect(tree).toBeDefined();if(tree)expect(check(target,tree)).toBe(true)
+ expect(sourceProofMemo({}).get(target,path,clock()+1000)).toBeUndefined()
+ expect(sourceProofMemo(scope).get({name:'possible',hyps:[need]},path,clock()+1000)).toBeUndefined()
 })
 
 test('source memo cannot turn a changed satisfiable goal into a checked proof',()=>{

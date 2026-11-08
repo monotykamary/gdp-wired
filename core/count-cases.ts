@@ -117,7 +117,7 @@ export function proveCountCases(m:Machine,laws:Law[],at:Instances,cert:Pick<Coun
   const fallbackTree=fallbackResult?.kind==='refuted'?{leaf:fallbackResult.steps}:undefined,needed=fallbackTree?usedHyps(goal,fallbackTree,fallbackPath):new Set<number>()
   const fallback=fallbackTree?{goal,tree:fallbackTree,indices:cert.insts.flatMap((_,i)=>needed.has(goal.hyps.length-cert.insts.length+i)?[i]:[])}:undefined
   options.trace?.({stage:'case-fallback',proposed:!!fallback})
-  const memo=sourceProofMemo(),initial=at,merged:Instances={...at},previous=atPoint.on;atPoint.on=!options.corePointOnly
+  const memo=sourceProofMemo(m,packet.goal.name),initial=at,merged:Instances={...at},previous=atPoint.on;atPoint.on=!options.corePointOnly
   const coreGrow=(g:Goal,end:number)=>{const before=atPoint.on;atPoint.on=true;try{return grow(g,new Map(),{nodes:0,until:end,units:options.units})}finally{atPoint.on=before}}
   try {
     for(const [i,value] of [...cuts,undefined].entries()){

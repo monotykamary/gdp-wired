@@ -6,8 +6,8 @@ import {type Lin,type Step,add,scale} from '../solver.ts'
 import {times} from '../../kernel/reader.ts'
 import {type Goal,type Path,type Tree,canon,canonFlip,cellParts,columnTerm,factorsOf,isCell,linear,substE} from '../../kernel/kernel.ts'
 import {late,rowsAt} from '../../kernel/prove.ts'
-export function renameProof(goal:Goal,tree:Tree,from:Path,to:Path,names:Record<string,string>,until:number,target:Goal=goal):Tree|undefined{
- const vars=Object.fromEntries(Object.entries(names).map(([a,b])=>[a,x(b)])),terms=new WeakMap<E,E>(),indices=new WeakMap<object,Map<string,number>>()
+export function renameProof(goal:Goal,tree:Tree,from:Path,to:Path,names:Record<string,string>,until:number,target:Goal=goal,indices:WeakMap<object,Map<string,number>>=new WeakMap()):Tree|undefined{
+ const vars=Object.fromEntries(Object.entries(names).map(([a,b])=>[a,x(b)])),terms=new WeakMap<E,E>()
  const renamed=(e:E):E=>{let next=terms.get(e);if(!next){next=substE(e,{vars,maps:{},flags:{}});terms.set(e,next)}return next}
  const form=(lin:Lin,path:Path):Lin|undefined=>{
   let out:Lin={}
