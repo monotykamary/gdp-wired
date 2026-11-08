@@ -86,7 +86,7 @@ function fieldBoundLemmasImpl(m:Machine,ds:CountDecl[],g:Goal,cert:Proposal,unti
   trace.push({stage:'field-row-pairs',pairs:rowPlan})
   return proveRowCases(g,root,rowPlan,until,(branch,end)=>{
    const cached=options.memo?.get(g,branch,end);if(cached){trace.push({stage:'source-memo',scope:'field-row'});return cached}
-   const tree=fieldCase(m,g,cert,options.fieldClaim,branch,Math.min(end,clock()+80),e=>trace.push(e))??fieldBoundLemmas(m,ds,g,cert,end,trace,onModel,branch,{...options,splitRows:false,deferCheck:true})
+   const tree=fieldCase(m,g,cert,options.fieldClaim,branch,end,e=>trace.push(e))??fieldBoundLemmas(m,ds,g,cert,end,trace,onModel,branch,{...options,splitRows:false,deferCheck:true})
    if(tree)options.memo?.put(g,branch,tree)
    return tree
   },e=>trace.push(e),{deferToCaller:!!options.deferCheck,splitEqual:copiesRows(m,root)})
@@ -189,6 +189,18 @@ function fieldBoundLemmasImpl(m:Machine,ds:CountDecl[],g:Goal,cert:Proposal,unti
   trace.push({stage:'field-domain',domain,direct:direct?.kind==='refuted',ms:Math.round(clock()-start),...verdict(no)})
   if(no){lemmas.push({split,no});ctx.push(domain);path.set(canon(split),{lin:split,holds:true})}
  }
+ const finishField=():Tree|undefined=>{
+  if(postIds.size||!options.fieldClaim||!lemmas.length||clock()>=until)return undefined
+  const offset=g.hyps.length-cert.insts.length,part={...g,hyps:[...g.hyps.slice(0,offset),...ctx,...g.hyps.slice(offset)]}
+  const field=fieldCase(m,part,cert,options.fieldClaim,path,Math.min(until,clock()+150),e=>trace.push(e))
+  let tree=field&&widen(part,g,field,{},path,path)
+  trace.push({stage:'field-ceiling-conclusion',facts:lemmas.length,proposed:!!tree})
+  if(tree){
+   for(const {split,no} of [...lemmas].reverse())tree={split,yes:tree,no}
+   if(options.deferCheck||check(g,tree,root))return tree
+  }
+  return undefined
+ }
  const activeCeilings=new Set(ceilings.flatMap(good=>good.op==='<='&&good.a.op==='if'&&truth(good.a.c,path)===true?[JSON.stringify([good.a.then,good.b])]:[]))
  for(const good of ceilings){
   if(good.op==='<='&&good.a.op==='if'&&truth(good.a.c,path)!==true&&activeCeilings.has(JSON.stringify([good.a.then,good.b])))continue
@@ -198,18 +210,12 @@ function fieldBoundLemmasImpl(m:Machine,ds:CountDecl[],g:Goal,cert:Proposal,unti
   const split=sub(a,b),noPath=new Map(path).set(canon(split),{lin:split,holds:false}),start=clock()
   const facts=narrow(good),part={...g,hyps:[...facts,...ctx,{op:'not' as const,x:good}]},proof=solve(part,250),lifted=proof&&widen(part,g,proof,{},root,noPath),no=accept(lifted,noPath)
   trace.push({stage:'field-bound',bound:good,ms:Math.round(clock()-start),proved:!!no,...verdict(no)})
-  if(no){lemmas.push({split,no});ctx.push(good);path.set(canon(split),{lin:split,holds:true})}
- }
- if(!postIds.size&&options.fieldClaim&&lemmas.length&&clock()<until){
-  const offset=g.hyps.length-cert.insts.length,part={...g,hyps:[...g.hyps.slice(0,offset),...ctx,...g.hyps.slice(offset)]}
-  const field=fieldCase(m,part,cert,options.fieldClaim,path,Math.min(until,clock()+150),e=>trace.push(e))
-  let tree=field&&widen(part,g,field,{},path,path)
-  trace.push({stage:'field-ceiling-conclusion',facts:lemmas.length,proposed:!!tree})
-  if(tree){
-   for(const {split,no} of [...lemmas].reverse())tree={split,yes:tree,no}
-   if(options.deferCheck||check(g,tree,root))return tree
+  if(no){
+   lemmas.push({split,no});ctx.push(good);path.set(canon(split),{lin:split,holds:true})
+   const field=finishField();if(field)return field
   }
  }
+ const field=finishField();if(field)return field
  {
   const carriedMaps=activeCarried(m,root),countMaps=new Set(cert.reads.map(r=>r[1])),countIds=new Set(cert.reads.map(r=>r[0])),wits=new Set(cert.insts.map(i=>i.wit)),raw=g.hyps.slice(0,g.hyps.length-cert.insts.length)
   const pieces=(c:C)=>piecesAt(c,root)

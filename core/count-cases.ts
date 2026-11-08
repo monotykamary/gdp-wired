@@ -15,6 +15,7 @@ import {appendCountCert} from './count-cert-grow.ts'
 import {independentCountInstances} from './count-focused.ts'
 import {fieldCase} from './count-recovery/field-case.ts'
 import {sourceProofMemo} from './count-recovery/source-memo.ts'
+import {activeWriteKey,rowPairs} from './count-recovery/row-cases.ts'
 
 type Packet={goal:Goal,decls:CountDecl[]}
 export function finiteCountChoice(m:Machine):[string,Set<number>]|undefined{
@@ -125,7 +126,8 @@ export function proveCountCases(m:Machine,laws:Law[],at:Instances,cert:Pick<Coun
       if(options.localModels){at=initial;if(!rebuild())return undefined}
       let tree:Tree|undefined,source:Goal|undefined,from:Path|undefined,indices=cert.insts.map((_,j)=>j)
       const caseEnd=Math.min(until,clock()+Math.max(600,(until-clock())/(cuts.length+1-i)))
-      tree=fieldCase(m,goal,cert,packet.goal.hyps.at(-1),path,Math.min(caseEnd,clock()+150),e=>options.trace?.({value,...e}))
+      const claim=packet.goal.hyps.at(-1),rowDependent=activeWriteKey(m,path)!==undefined&&rowPairs(m,cert,path,claim).length>0
+      tree=rowDependent?undefined:fieldCase(m,goal,cert,claim,path,Math.min(caseEnd,clock()+150),e=>options.trace?.({value,...e}))
       if(tree){source=goal;from=new Map(path)}
       const guard=actionGuard(m,name,value)
       if(!tree&&guard){

@@ -59,6 +59,19 @@ test('equal per-member fields also suggest checked ceiling candidates',()=>{
  expect(fieldBoundLemmas(m,ds,{name:'no premises',hyps:[]},cert,clock()+1000,[])).toBeUndefined()
 })
 
+test('a sufficient field ceiling closes before unrelated ceiling proposals',()=>{
+ const member=(key:ReturnType<typeof x>)=>atMost(n(1),get('Selected',key)),ind=(c:C)=>ite(c,n(1),n(0)),bound=less(get('Clock',x('v')),plus(get('Clock',x('source')),n(1)))
+ const guarded={op:'all' as const,key:'v',c:any(not(member(x('v'))),bound)}
+ const m:Machine={name:'first sufficient ceiling',params:[],inputs:['source'],inputMaps:['Selected'],state:{},maps:{Clock:0,Epoch:0,A:0},step:{flags:{eligible:guarded,unrelated:guarded}}}
+ const ds=[{map:'Votes',j:'row',key:'k',below:n(3),body:ind(member(x('k')))},{map:'Size',j:'row',key:'k',below:n(3),body:ind(same(get('A',x('k')),n(1)))},{map:'InputSize',j:'row',key:'k',below:n(3),body:ind(same(get('A',x('k')),n(1)))},{map:'Bad',j:'row',key:'k',below:n(3),body:ind(all(same(get('A',x('k')),n(1)),less(get('Clock',x('k')),get('Epoch',x('row')))))}]
+ const cert:Pick<CountCert,'reads'|'insts'>={reads:[['votes','Votes',n(0)],['size','Size',n(0)],['inputsize','InputSize',n(0)],['bad','Bad',x('target')]],insts:[{wit:'probe',below:n(3),unit:0,terms:[[1,'votes'],[-1,'bad']]},{wit:'shadow',below:n(3),unit:0,terms:[[1,'size'],[-1,'inputsize']]}]}
+ const claim=not(atMost(get('Epoch',x('target')),get('Clock',x('source')))),hyps=[same(x('?eligible'),n(1)),less(x('target'),n(3)),less(get('InputSize',n(0)),times(2,get('Votes',n(0)))),atMost(times(2,get('Bad',x('target'))),get('Size',n(0))),claim,any(not(less(x('probe'),n(3))),not(member(x('probe'))),all(less(get('Clock',x('probe')),plus(get('Clock',x('source')),n(1))),same(get('A',x('probe')),n(1))))]
+ const goal=mcGoal(hyps,ds,cert)!,events:any[]=[],tree=fieldBoundLemmas(m,ds,goal,cert,clock()+2000,events,undefined,new Map(),{fieldClaim:claim})
+ expect(tree).toBeDefined();if(tree)expect(checkMC(hyps,ds,{...cert,tree})).toBe(true)
+ expect(events.filter(e=>e.stage==='field-bound')).toHaveLength(1)
+ expect(events.some(e=>e.stage==='field-ceiling-conclusion'&&e.proposed)).toBe(true)
+})
+
 test('equal row keys produce checked count-read alias cuts',()=>{
  const m:Machine={name:'aliases',params:[],inputs:['a','i'],state:{},step:{}},ds=[{map:'Size',j:'row',key:'k',below:n(4),body:n(1)}]
  const cert:Pick<CountCert,'reads'|'insts'>={reads:[['left','Size',x('a')],['right','Size',x('i')]],insts:[]},g=mcGoal([less(get('Size',x('a')),get('Size',x('i')))],ds,cert)!

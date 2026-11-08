@@ -1,0 +1,37 @@
+[
+  {
+    "name": "pick-row",
+    "cmd": "set -e; bun install --frozen-lockfile >/dev/null; bun research/track-m/point-source.ts replay-input/input.json 0",
+    "cpu": 4,
+    "memory": 8000,
+    "timeout": 120
+  },
+  {
+    "name": "copy-row",
+    "cmd": "set -e; bun install --frozen-lockfile >/dev/null; bun research/track-m/point-source.ts replay-input/input.json 1",
+    "cpu": 4,
+    "memory": 8000,
+    "timeout": 120
+  },
+  {
+    "name": "copy-above",
+    "cmd": "set -e; bun install --frozen-lockfile >/dev/null; bun research/track-m/point-source.ts replay-input/input.json 1 above",
+    "cpu": 4,
+    "memory": 8000,
+    "timeout": 120
+  },
+  {
+    "name": "copy-below",
+    "cmd": "set -e; bun install --frozen-lockfile >/dev/null; bun research/track-m/point-source.ts replay-input/input.json 1 below",
+    "cpu": 4,
+    "memory": 8000,
+    "timeout": 120
+  },
+  {
+    "name": "send-equal",
+    "cmd": "set -e; bun install --frozen-lockfile >/dev/null; bun research/track-m/point-source.ts replay-input/input.json 6",
+    "cpu": 4,
+    "memory": 8000,
+    "timeout": 120
+  }
+]

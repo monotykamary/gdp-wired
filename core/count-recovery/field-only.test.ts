@@ -1,9 +1,9 @@
 import {expect,test} from 'bun:test'
 import {type Machine,all,any,atMost,get,ite,less,minus,n,not,plus,same,times,x} from '../machine.ts'
-import {type CountCert,type Path,canon,check,mcGoal} from '../../kernel/kernel.ts'
+import {type CountCert,type Path,canon,check,linear,mcGoal} from '../../kernel/kernel.ts'
 import {clock,grow,widen} from '../../kernel/prove.ts'
 import {fieldOnlyGoal} from './field-only.ts'
-import {fieldCase} from './field-case.ts'
+import {fieldCase,fieldDirection} from './field-case.ts'
 const m:Machine={name:'field projection',params:[],inputs:[],state:{},counts:{Rows:{j:'r',key:'k',below:n(2),body:n(1)}},step:{}}
 const cert:Pick<CountCert,'reads'|'insts'>={reads:[['amount','Rows',n(0)]],insts:[]}
 test('field projection only weakens premises and transports a checked proof',()=>{
@@ -28,6 +28,21 @@ test('packed copy fields reconstruct their equal-key core under row equalities',
  for(const lin of [{a:1,i:-1},{i:1,a:-1},{b:1,i:-1},{i:1,b:-1}] as Record<string,number>[])path.set(canon(lin),{lin,holds:true})
  const tree=fieldCase(m,g,{reads:[],insts:[]},claim,path,clock()+1000)
  expect(tree).toBeDefined();if(tree)expect(check(g,tree,path)).toBe(true)
+})
+
+test('shifted copy fields prove both natural-subtraction directions',()=>{
+ const m:Machine={name:'shifted copy',params:['size'],inputs:['i','j'],state:{},maps:{Config:0},step:{}},a=x('a'),b=x('b'),i=x('i'),j=x('j'),c=x('c'),size=x('size'),index=(r:typeof a)=>plus(times(64,r),c)
+ const cell=(r:typeof a)=>{const key=index(r),inside=all(atMost(times(64,j),key),less(key,plus(times(64,j),n(64)))),forward=atMost(j,i);return ite(any(all(inside,any(all(forward,same(get('Config',plus(key,times(64,minus(i,j)))),n(1))),all(not(forward),same(get('Config',minus(key,times(64,minus(j,i)))),n(1))))),all(not(inside),same(get('Config',key),n(1)))),n(1),n(0))}
+ const claim=not(any(not(all(less(a,size),less(b,size),less(c,size))),same(cell(a),cell(b)))),g={name:'shifted',hyps:[all(atMost(n(1),size),atMost(size,n(64))),claim]},path:Path=new Map(),events:Record<string,unknown>[]=[]
+ for(const lin of [{a:1,j:-1},{j:1,a:-1},{b:1,j:-1},{j:1,b:-1}] as Record<string,number>[])path.set(canon(lin),{lin,holds:true})
+ const tree=fieldCase(m,g,{reads:[],insts:[]},claim,path,clock()+1500,event=>events.push(event))
+ expect(tree).toBeDefined();if(tree)expect(check(g,tree,path)).toBe(true)
+ expect(events.some(event=>event.stage==='field-natural-direction'&&event.proposed)).toBe(true)
+ // A forced cell comparison still needs the choices inside its read key.
+ const forced=atMost(n(1),cell(a)),value=linear(cell(a),path)!,lin=Object.fromEntries(Object.entries(value).map(([key,n])=>[key,-n]))
+ lin['1']=(lin['1']??0)+1
+ const forcedPath=new Map(path).set(canon(lin),{lin,holds:true})
+ expect(fieldDirection(forced,forcedPath)).toBeDefined()
 })
 
 test('field projection does not strengthen disjunctions or discard a counted conclusion',()=>{

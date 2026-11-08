@@ -1892,3 +1892,169 @@ All **119 production-derivation tests, 296 Track M/count/port tests and
 67 Track P tests** pass; type/lint reports zero warnings/errors. The original
 whole-law allowance remains 5,000 counted ms, stopping overshoots are not
 passes, and no trusted rule or Track K change has been made.
+
+#### Ordered recovery: first sufficient ceiling, remaining shifted row
+
+`ordered-recovery-v6`, batch `20261108-123050-5c3aeh`, tree `6332c4c5f089`,
+tries the field conclusion immediately after each new ceiling and avoids
+an undivided field search before a known live row update. Inv1758 now
+constructs the leader and reconfiguration action candidates on the first
+pass and the copy action on retry. Send's shifted copied row remains open.
+
+| Complete hand-set law | Proved / checked | Counted ms | In-process wall s |
+| --- | --- | ---: | ---: |
+| one primary per term | **yes / yes** | **3,112** | **3.458** |
+| Inv3915: primary newest | **yes / yes** | **2,050** | **3.288** |
+| Inv1758: row agreement | no / no | 5,015 | 5.134 |
+| Inv2973: quorum overlap | no / no | 5,001 | 13.854 |
+| Inv*: quorum term backing | no / no | 5,101 | 17.294 |
+
+The v6 full validation has 119 production-derivation, 296 Track M and
+67 Track P tests passing, with type/lint clean. A separately added regression
+(`ordered-ceiling-regression-v1`, tree `ede8373f4a65`) failed its expected
+single-ceiling assertion: it incorrectly passed a positive claim absent
+from the source hypotheses instead of the actual negative conclusion.
+The subsequent snapshot fixes this test contract rather than weakening its
+assertion; the source proof and early-stop assertion are both retained.
+
+The current-packet point diagnostics (`ordered-point-source-v2`, batch
+`20261108-122809-lmkt3b`, tree `6be3c84b1962`) check pick, equal-row copy,
+both copy ordering halves, and equal-row send individually. They use the
+current default field-guard seeds and are not whole-law certificates.
+Send's remaining different-row branch contains guarded natural subtraction
+in a shifted read key. The next attempt explicitly proves both scalar
+subtraction directions before doing the same packed-key reconstruction.
+
+#### Rejected broad direction discovery
+
+`ordered-recovery-v7`, batch `20261108-123420-gtregl`, tree `637319e886f6`,
+validates both new regressions (121 production-derivation tests) and retains
+the two complete laws, but broad scalar-subtraction discovery regresses
+Inv1758 by splitting directions in unrelated premises. This is not retained
+as the search policy: the next snapshot restricts discovery to shifted read
+keys in the live field conclusion. Track M and P remain 296/67 tests passing;
+type/lint is clean.
+
+| Complete hand-set law | Proved / checked | Counted ms | In-process wall s |
+| --- | --- | ---: | ---: |
+| one primary per term | yes / yes | 3,112 | 3.392 |
+| Inv3915: primary newest | yes / yes | 2,050 | 4.494 |
+| Inv1758: row agreement | no / no | 5,014 | 10.509 |
+| Inv2973: quorum overlap | no / no | 5,001 | 13.366 |
+| Inv*: quorum term backing | no / no | 5,101 | 13.788 |
+
+#### Live-key direction discovery: no whole-law gain yet
+
+`ordered-recovery-v8`, batch `20261108-123847-gemmbg`, tree `9dbf79d9f298`,
+restores the successful action candidates by restricting direction discovery
+to live conclusion read keys. It does not close Inv1758: the field row's
+80 ms sublimit expires while reconstructing both shifted-key directions,
+then the remaining row share goes to irrelevant ceiling attempts. The
+next change routes that existing row share to the shifted-key field proof;
+the global 5,000 counted-ms allowance is unchanged.
+
+| Complete hand-set law | Proved / checked | Counted ms | In-process wall s |
+| --- | --- | ---: | ---: |
+| one primary per term | yes / yes | 3,112 | 5.805 |
+| Inv3915: primary newest | yes / yes | 2,050 | 7.036 |
+| Inv1758: row agreement | no / no | 5,015 | 16.812 |
+| Inv2973: quorum overlap | no / no | 5,001 | 26.521 |
+| Inv*: quorum term backing | no / no | 5,101 | 29.205 |
+
+All 121 production-derivation, 296 Track M and 67 Track P tests pass and
+type/lint is clean. The wall-time variation relative to v6/v7 is retained
+rather than selecting only a faster replay; counted work is almost unchanged.
+
+#### Shifted-row allocation and the remaining traversal gap
+
+`ordered-recovery-v9`, batch `20261108-124250-d1d3fy`, tree `6ce8d8351915`,
+routes the existing row allowance to shifted-key reconstruction instead of
+ending it at the local 80 ms sublimit. This alone gives no complete-law gain.
+The remaining discovery gap is a forced field comparison: ordinary live
+premise traversal prunes its operands, even when conditional read keys
+inside those operands still need reconstruction. The next snapshot shares
+the existing choice-aware traversal used by Boolean-core reconstruction
+and adds an explicit forced-comparison regression assertion.
+
+| Complete hand-set law | Proved / checked | Counted ms | In-process wall s |
+| --- | --- | ---: | ---: |
+| one primary per term | yes / yes | 3,112 | 8.450 |
+| Inv3915: primary newest | yes / yes | 2,050 | 4.565 |
+| Inv1758: row agreement | no / no | 5,014 | 13.449 |
+| Inv2973: quorum overlap | no / no | 5,001 | 44.626 |
+| Inv*: quorum term backing | no / no | 5,101 | 23.986 |
+
+Validation remains 121/296/67 tests passing, type/lint clean. No completed
+certificate is claimed for any of the three open laws, and the timing
+overshoots are failures under the original allowance.
+
+#### Choice-aware discovery: source-claim scope still insufficient
+
+`ordered-recovery-v10`, batch `20261108-124602-ua2w5e`, tree `2cb219674fd9`,
+passes the forced-comparison regression but still does not close the send
+row. This falsifies the expectation that changing the source-claim walker
+alone would suffice. The needed shifted read occurs in the expanded field
+projection's support as well as its conclusion. The next attempt discovers
+directions only after obtaining that projection's refuted core and returns
+satisfiable projections to the count-backed derivation immediately, rather
+than spending the rest of their row allowance on a futile field-only grow.
+
+| Complete hand-set law | Proved / checked | Counted ms | In-process wall s |
+| --- | --- | ---: | ---: |
+| one primary per term | yes / yes | 3,112 | 7.960 |
+| Inv3915: primary newest | yes / yes | 2,050 | 6.710 |
+| Inv1758: row agreement | no / no | 5,014 | 12.498 |
+| Inv2973: quorum overlap | no / no | 5,001 | 47.639 |
+| Inv*: quorum term backing | no / no | 5,101 | 30.855 |
+
+All 121/296/67 tests and type/lint pass. The batch's nine independent jobs
+are diagnostic measurements, not a passed whole-protocol 60-second gate.
+
+#### Latest: core-directed field reconstruction (two of five complete)
+
+`ordered-recovery-v11`, batch `20261108-125401-9308mw`, tree `2a9c27828091`,
+uses the actual refuted field core to choose natural directions. A satisfiable
+field projection is handed back immediately to count-backed recovery instead
+of consuming the row share in generic field growth. This is the retained
+production default, with no feature flag or protocol-name dispatch.
+
+| Complete hand-set law | Proved / checked | Counted ms | In-process wall s | First remaining derivation |
+| --- | --- | ---: | ---: | --- |
+| one primary per term | **yes / yes** | **2,420** | **4.467** | — |
+| Inv3915: primary newest | **yes / yes** | **1,936** | **4.536** | — |
+| Inv1758: row agreement | no / no | 5,015 | 9.222 | Different/equal send row; shifted-key source reconstruction after the mirrored equal/different rows |
+| Inv2973: quorum overlap | no / no | 5,001 | 29.930 | Inactive-frame arithmetic closure and its source-instance composition |
+| Inv*: quorum term backing | no / no | 5,101 | 27.299 | Copy, send-terms and leader witness-chain composition |
+
+Inv1758's setup, copy (on retry), leader and reconfiguration action candidates
+now compose. Send constructs the equal/equal row and both ordering halves of
+the equal/different row. The first still-open row is its mirror,
+`different/equal`; later rows are not thereby established. The candidate
+checks recorded as `deferred:true` are **not** individually accepted complete
+certificates. The whole-law result remains false, as shown above.
+
+The isolated point diagnostic checks source proofs for setup, equal copy,
+both copy ordering halves, and equal-row send. It does not supply an
+independent complete Inv1758 proof. The next useful target is generic checked
+transport/reuse of the mirrored send-row derivation, not a larger allowance.
+
+Validation on the retained snapshot: **121 production-derivation tests,
+296 Track M/count/port tests and 67 Track P tests pass**; type/lint reports
+zero warnings/errors. Both new source-checking regressions pass. No trusted
+kernel, invariant, law, outer proof allowance or Track K code changed. There
+has been no Track K rebase. The all-laws-kept, whole-protocol 3×60-second and
+downstream gates remain unpassed.
+
+Reproduce the complete-law matrix and validation:
+
+```sh
+supercomputer run --jobs research/track-m/jobs-production-derivations-final.json \
+  --out runs/track-m/ordered-recovery-v11-replay \
+  --class interactive --timing --vm-type large \
+  --data runs/track-m/canonical-capture-v1/fixtures:replay-input
+```
+
+Point diagnostics use `research/track-m/jobs-point-source.json` with the same
+fixture mount. Full results, including failed intermediate attempts, remain
+under `runs/track-m/ordered-recovery-v{3,4,5,6,7,8,9,10,11}/` and
+`runs/track-m/ordered-point-source-v2/`.

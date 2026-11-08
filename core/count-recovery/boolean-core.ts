@@ -12,7 +12,7 @@ import {wallTree,check,refuteFast,grow,rowsAt} from './ops.ts'
 // Unlike dependency slicing, proof-case discovery must still enter the
 // operands of a comparison already forced true: its conditional columns
 // can remain inconsistent until their own guards have been decided.
-function walkChoices(root:unknown,path:Path,visit:(value:any)=>void):void{
+export function walkChoices(root:unknown,path:Path,visit:(value:any)=>void):void{
  const goals=new WeakSet<object>(),conditions=new WeakSet<object>()
  const go=(value:any,condition=false):void=>{
   const seen=condition?conditions:goals
