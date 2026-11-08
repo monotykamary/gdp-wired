@@ -2736,3 +2736,134 @@ ordinary full subtree. Tests include a source whose used row is nested in a
 larger conjunction and a target that contains just that row, plus unrelated
 scopes and a satisfiable target. Its benefit and verdicts are pending the
 remote receipt. No new open-law derivation is claimed.
+
+#### Post-merge row-only paired verdicts
+
+`paired-rows-post-merge-v1` completed all 116 side/phase records. Both sides
+prove **27/29** correct protocols and refute **11/29** broken variants; no
+proved correct protocol or refuted negative control is lost. All 27 non-Paxos
+protocols have matching phase statuses. **Do not call this a clean strict-wall
+conservation pass:** `paxos_epr` returns unknown on the control (58.094 s correct,
+55.992 s broken), but the shared-row side is killed at the unchanged outer
+60-second cap in both phases. Its two timeout deltas remain failures. The
+correct MLDR variant is unknown on both sides, at 51.355/50.075 s control/shared;
+the broken variant is also unknown on both (small-instance failure). The
+correctly invoked original production pipeline in `post-pipeline-v1` returns
+**unproved/unchecked** at **47.846 s**. It is not an all-laws-kept success.
+
+#### Source-context v1: real hits, not yet a wall win
+
+The finer-grained transport has **33 foreign-context hits in 1,256 attempts**,
+with the same 2/5 complete-law verdicts. Hits by law: 1, 7, 21, 1, 3. These are
+not yet attributed as cross-*law* rather than cross-context; the next probe
+records the original obligation name. Counted work drops from 984/973 to
+948/835 ms for the two complete laws, but no open law completes.
+
+| Source-context v1 | Control wall s | Shared-context wall s |
+| --- | ---: | ---: |
+| One primary | 2.595 | 3.040 |
+| Inv3915 | 3.628 | 3.011 |
+| Inv1758 | 7.976 | 7.555 |
+| Inv2973 | 27.965 | 28.514 |
+| Inv* | 24.002 | 25.100 |
+| **Sum** | **66.168** | **67.222** |
+
+The **+1.055 s** total cost is explicit, not a claimed speedup. All 110 targeted
+source/row tests and type/lint pass. The candidate remains uncommitted. Its
+next experiment shares immutable destination-row indices between transport
+attempts (instead of rebuilding an index for each of the 1,256 candidates),
+compares source off / source on / source+indices on the same VM, and includes
+a reversed-order strict-60-second Paxos pair. No timeout has been raised.
+
+#### Source-context v2: useful cross-law transport, reverse confirmation pending
+
+The same-VM three-way comparison preserves all five verdicts. **Six of the
+33 successful transports cross original law/@step obligation names** (0, 3,
+1, 1, 1 respectively). The complete ordinary subtrees are emitted and checked;
+this is not a trusted lemma or symmetry rule. Sharing the destination-row
+index removes repeated full-table scans during unsuccessful candidate matches.
+
+| Law | Source off s | Source on, local indices s | Source on, shared indices s |
+| --- | ---: | ---: | ---: |
+| One primary | 3.136 | 2.991 | 2.782 |
+| Inv3915 | 3.455 | 3.137 | 2.897 |
+| Inv1758 | 7.420 | 6.668 | 6.740 |
+| Inv2973 | 28.090 | 26.995 | 18.606 |
+| Inv* | 22.524 | 23.457 | 20.430 |
+| **Total** | **64.626** | **63.250** | **51.456** |
+
+The -13.170 s comparison is a measured pair, not a hardware-independent
+percentage or a successful family gate. A reverse-order pair is now running.
+All 110 targeted tests and type/lint pass. No additional hard law closes.
+
+The reversed strict Paxos control again times out on the shared-row correct
+run; the baseline correct run returns unknown in 57.245 s. Both broken runs
+time out in this repeat. This **does not clear** the earlier strict-wall
+regression. A separate cache-retention diagnostic keeps the original internal
+60-second allowance but allows up to 90 seconds solely to observe and record
+an overrun; anything beyond 60 seconds remains a failure, never a success or
+budget extension. Its purpose is to locate the row-cache cost before changing
+any retention policy.
+
+#### Reverse source confirmation and memory hypothesis
+
+`cache-budget-profile-v1/reverse-family.log` runs the source/index candidate
+first and the control second: **40.972 versus 43.035 s** for the five laws,
+with identical verdicts and the same 33/6 context/cross-law hit counts. This
+confirms a gain in reverse order, but the gain is smaller than the first
+51.456/64.626 s comparison; both are reported rather than selecting the best.
+
+Its non-gate Paxos diagnostic actually finishes inside 60 s on both sides
+(58.417 s off, 57.580 s on), so wall variability is real. Nevertheless it
+records **869,623 retained constraints in 8,192 entries** and **1.366 GB RSS**
+with sharing, versus **648 MB RSS** without it. The prior strict timeout
+failures are not erased by this diagnostic. The next candidate bounds
+retention by 250,000 constraints as well as 8,192 entries, independent of any
+law or protocol; eviction only triggers rebuilding ordinary rows. It changes
+no proof/search allowance. An isolated strict Paxos pair and a paired family
+retention test results are recorded below.
+
+#### Weighted row retention and latest validation
+
+`weighted-row-cache-v1` preserves the 33 source-context hits, six cross-law
+hits, counted work and all five verdicts. Retaining at most 250,000 constraint
+rows reduces the final cached set from **777,400 to 249,995 constraints**;
+five-law wall is **57.526 → 56.803 s** on that matched run. The live-heap
+observation falls from 2.115 to 1.485 GB, but RSS does **not** fall (3.741 vs
+3.811 GB); no RSS-saving claim is made. The weighted-LRU tests cover
+replacement, recency, oversized entries, zero-weight entries and invalid
+budgets. The strict Paxos repeat returns unknown on both sides in both phases
+(correct: 40.025/42.249 s baseline/candidate; broken: 39.324/43.584 s). This
+successful repeat does not erase the historical timeouts.
+
+`final-sharing-v1` passes **373 proof/kernel/source/cache tests**, **57 selected
+support/admission tests**, and clean type/lint. Its slower placement produces
+the following actual five-law family (the machine and caches are shared):
+
+| Law | Proved / checked | Counted ms | Wall s |
+| --- | --- | ---: | ---: |
+| One primary | yes / yes | 948 | 2.663 |
+| Inv3915 | yes / yes | 835 | 2.593 |
+| Inv1758 | no / no | 5,000 | 8.527 |
+| Inv2973 | no / no | 5,396 | 32.199 |
+| Inv* | no / no | 5,137 | 25.138 |
+| **Family total** | **2/5** | — | **71.122** |
+
+The actual generated-law production replay is **unproved/unchecked** and takes
+**68.913 s**. Its inner wall observation overruns 60 seconds during synchronous
+work; this is a failure, **not** an accepted extension. Thus the latest absolute
+measurement still does not fit the whole-MLDR budget, despite the matched
+relative wins above. It is not legitimate to substitute the faster 40.972 s
+sample for this failed run. Production generation remains with the other lane.
+The remaining Inv1758 row is still the alternate active equal/different
+ordering half; no new hard-law derivation was added while chasing cache cost.
+
+A final 29-protocol paired experiment (`paired-final-sharing-v1`, submission
+class with isolated timing) now compares the original row/source-cache paths
+against both retained optimizations. It is pending; all broad preservation
+claims remain tied to their earlier exact snapshots until this receipt is
+scored, including the strict timeouts.
+
+The validated source-context and weighted-retention implementations are now
+committed as `67110163` and `0813bfb3`. The earlier rejected whole-hypothesis
+cache remains only an archived experiment. Generation source is unchanged.

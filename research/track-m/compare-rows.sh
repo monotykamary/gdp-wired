@@ -11,7 +11,7 @@ for phase in search broken; do
     rows=1; [ "$side" = base ] && rows=0
     echo "PAIR begin side=$side phase=$phase id=$id"
     set +e
-    GDP_ROWS_SHARED="$rows" GDP_COUNT_LEMMA_CUTS=0 taskset -c 0-3 timeout -s KILL 60 bun research/protocols/ic3syn/run.ts --ms 60000 --only "$id" --skip "$skip" >/tmp/track-m-pair.out 2>/tmp/track-m-pair.err
+    GDP_ROWS_SHARED="$rows" GDP_SOURCE_CONTEXTS="$rows" GDP_COUNT_LEMMA_CUTS=0 taskset -c 0-3 timeout -s KILL 60 bun research/protocols/ic3syn/run.ts --ms 60000 --only "$id" --skip "$skip" >/tmp/track-m-pair.out 2>/tmp/track-m-pair.err
     status=$?
     set -e
     cat /tmp/track-m-pair.out
