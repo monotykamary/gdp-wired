@@ -1,7 +1,7 @@
 // Deterministic postprocessing only; no searches are run here.
 import {readFileSync,writeFileSync} from 'node:fs'
 import {type Law} from '../../core/machine.ts'
-const root=process.argv[2]??'runs',probeDir=process.argv[3]??'track-gen-probes-v2',lines=(file:string)=>readFileSync(file,'utf8').split('\n')
+const root=process.argv[2]??'runs',probeDir=process.argv[3]??'track-gen-final-replays-v1',lines=(file:string)=>readFileSync(file,'utf8').split('\n')
 function normal(l:Law):string{
  const vars=new Map([l.forall,...l.keys??[]].filter((v):v is string=>!!v).map((v,i)=>[v,`$${i}`]))
  const go=(x:any):any=>{
