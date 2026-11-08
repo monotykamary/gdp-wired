@@ -25,7 +25,7 @@ const proofPath=(lemma:Pick<LemmaCut,'when'|'cut'>):Path=>{
  }
  return path
 }
-export function deriveClosure(m:Machine,ds:CountDecl[],g:Goal,cert:Packet,root:Path,until:number,trace:any[]){
+export function deriveClosure(m:Machine,ds:CountDecl[],g:Goal,cert:Packet,root:Path,until:number,trace:any[],profile=false){
  const start=clock(),saved:Saved[]=[],raw=g.hyps.slice(0,-cert.insts.length),postIds=new Set(cert.reads.filter(r=>r[1].endsWith('#')).map(r=>r[0]))
  const countIds=new Set(cert.reads.map(r=>r[0])),countMaps=new Set(cert.reads.map(r=>r[1])),wits=new Set(cert.insts.map(q=>q.wit))
  const alive=()=>clock()<until&&!pastWall(),when=[...root.values()].map(a=>a.holds?a.lin:flip(a.lin))
@@ -131,16 +131,25 @@ export function deriveClosure(m:Machine,ds:CountDecl[],g:Goal,cert:Packet,root:P
    const relevant=raw.flatMap(c=>piecesAt(c,path)).filter(c=>{let skip=false;walkLive(c,path,(o:any)=>{if(o.op==='get'&&countMaps.has(o.map)||o.op==='var'&&(countIds.has(o.name)||wits.has(o.name)&&o.name!==inst.wit))skip=true});return !skip})
    const part={...g,hyps:[...relevant,h,negative]},tiny={...g,hyps:[h,negative]}
    const source=inst.terms.length===3&&inst.terms.every(([,id])=>!postIds.has(id))?tiny:sourceScalarContext({name:g.name,hyps:raw},part,new Set([...m.params,...m.inputs,...Object.keys(m.state)]),path)
+   const pointStart=profile?performance.now():0,pointWork=profile?clock():0
    const events:any[]=[],point=modelSequence(path)(source,Math.min(end,clock()+8))
+   const pointWallMs=profile?performance.now()-pointStart:0,pointCountedMs=profile?clock()-pointWork:0
+   let reconstructionGoal:Goal|undefined,booleanWallMs=0,booleanCountedMs=0,transportWallMs=0
    let tree:Tree|undefined='tree'in point?point.tree:undefined
    if(!tree&&!('tree'in point)&&point.stuck!=='sat'&&clock()<end){
     const reduced=point.why===REFUTED&&point.core?.length?{...source,hyps:point.core.map(i=>source.hyps[i]!)}:source
+    reconstructionGoal=reduced
+    const booleanStart=profile?performance.now():0,booleanWork=profile?clock():0
     const proposed=booleanCore(reduced,path,new Set([inst.wit]),end,events,{extended:true,scalarGuards:true,deferCheck:true,model:true})
+    booleanWallMs=profile?performance.now()-booleanStart:0;booleanCountedMs=profile?clock()-booleanWork:0
+    const transportStart=profile?performance.now():0
     tree=proposed&&transport(reduced,source,proposed,path,path)
+    transportWallMs=profile?performance.now()-transportStart:0
    }
+   const admissionStart=profile?performance.now():0
    const checked=!!tree&&admit(good,source,tree,path,index)
    if(checked){closed.add(index);added++}
-   trace.push({stage:'phase-b',round:rounds,index,arity:inst.terms.length,wit:inst.wit,terms:inst.terms,ms:clock()-begun,checked,sourceHyps:source.hyps.length,pointOutcome:'tree'in point?'tree':point.stuck,events})
+   trace.push({stage:'phase-b',round:rounds,index,arity:inst.terms.length,wit:inst.wit,terms:inst.terms,ms:clock()-begun,checked,sourceHyps:source.hyps.length,pointOutcome:'tree'in point?'tree':point.stuck,events,...(profile?{profile:{source,path:[...path],reconstructionGoal,pointCoreSize:point.core?.length,pointWhy:point.why,pointWallMs,pointCountedMs,booleanWallMs,booleanCountedMs,transportWallMs,admissionWallMs:performance.now()-admissionStart}}:{})})
   }
   trace.push({stage:'round',round:rounds,added,closed:closed.size,remaining:pool.length-closed.size,expired:!alive()})
   if(!added){fixedPoint=alive();break}

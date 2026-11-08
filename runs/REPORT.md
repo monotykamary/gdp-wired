@@ -4042,3 +4042,148 @@ research files (`closure-falsification-check-v1/research-check.log`).
 The accepted runtime remains `fd2d1dcb`, and the complete hard-law status
 remains **3/5**, with no new conservation gate claimed or needed for this
 unpromoted research prototype.
+
+## Section 6 input: exact profiles of the nineteen unknown sources
+
+**Observation only; no default-path change.** `closure-source-profile-v1`
+repeats only the original equal-row Inv* case on an exclusive pinned large
+worker. Profiling records the source before the first point query, its entry
+path, the reconstruction input, and opaque-column meanings. All thirty
+attempted source indices, all nineteen unknown indices, their coefficient
+vectors, their hypothesis counts, and the final **1500.1317484** counted-unit
+result match v3. `profile-closure-sources.ts` asserts these identities rather
+than associating profiles by approximate names.
+
+### Meaning of the table
+
+- `Hyps` is the actual source-query size; reconstruction receives the same
+  number of hypotheses in **all nineteen** cases. No core was obtained.
+- Every source contains **one count-instance clause**, its own member witness,
+  and **six auxiliary flag-witness variables**: `w?all$1`, `w?all$2`, `w?all$3`,
+  `w?allCopied`, `w?canVote`, and `w?noneCopied`. No other count-instance
+  member occurs in these sources. Thus one count instance does **not** mean
+  only one ground member is mentioned.
+- `AST nodes / ifs` counts serialized `op` occurrences, including repeated
+  expressions and inactive branches. It is not a count of unique DAG nodes
+  or of branches the solver necessarily explores.
+- The candidate lists its proxy-count reads. `raw` lists additional/direct
+  count-map accesses remaining inside the source formula, including accesses
+  in update guards; a raw read may duplicate a proxy already in the candidate.
+  These are the complete count reads in the source hypotheses, not a claim
+  that the inherited path contains no other proved count facts.
+- Every initial point query returns **unknown, `why: "time"`**, with no core
+  and no SAT model. `Boolean` is the following `booleanCore` attempt, not
+  kernel checking time. Units below are measured, including boundary overrun,
+  rather than rounded caps.
+
+Count legend (`a = a$#`, `j' = j$`; the entry path pins both to writer `i`):
+
+| IDs | Count reads |
+|---|---|
+| `r0`, `r1` | post `bq(a,j')`, post `cfgSize(a)` |
+| `r3`, `r4` | `inS`, `inQ2` |
+| `r5`, `r6`, `r7` | `xNotS`, `xAndS`, `sNotX` |
+| `r8` | pre `cfgSize(a)` |
+| `r11`, `r13`, `r14` | pre `bq(i,i)`, `bq(a,i)`, `bq(i,a)` |
+| `r16`, `r17`, `r19` | pre `bq(i,j')`, `bq(a,j')`, `bq(a,0)` |
+
+| Index / witness | Hyps | Count instances | AST nodes / ifs | Candidate; direct count reads | Point / Boolean units |
+|---|---:|---:|---:|---|---:|
+| 1 / `w$17` | 32 | 1 | 2933 / 52 | `r0 −r8 ≤ 0`; raw: r6, r5, r7 | 8.06 / 26.00 |
+| 2 / `w$22` | 32 | 1 | 2981 / 52 | `r0 −r13 ≤ 0`; raw: r6, r5, r7 | 8.15 / 26.14 |
+| 3 / `w$26` | 32 | 1 | 2981 / 52 | `r0 −r17 ≤ 0`; raw: r6, r5, r7 | 8.15 / 26.14 |
+| 4 / `w$28` | 32 | 1 | 2981 / 52 | `r0 −r19 ≤ 0`; raw: r6, r5, r7 | 8.15 / 26.14 |
+| 5 / `w$36` | 32 | 1 | 1199 / 6 | `r1 −r8 ≤ 0`; raw: r6, r5, r7 | 8.04 / 26.53 |
+| 6 / `w$41` | 32 | 1 | 1247 / 6 | `r1 −r13 ≤ 0`; raw: r6, r5, r7 | 8.12 / 26.78 |
+| 7 / `w$45` | 32 | 1 | 1247 / 6 | `r1 −r17 ≤ 0`; raw: r6, r5, r7 | 8.12 / 27.04 |
+| 8 / `w$47` | 32 | 1 | 1247 / 6 | `r1 −r19 ≤ 0`; raw: r6, r5, r7 | 8.12 / 26.92 |
+| 19 / `w$84` | 32 | 1 | 416 / 4 | `r4 −r5 ≤ 0`; raw: none | 8.06 / 26.95 |
+| 20 / `w$85` | 32 | 1 | 414 / 4 | `r4 −r6 ≤ 0`; raw: none | 8.06 / 27.13 |
+| 21 / `w$86` | 32 | 1 | 416 / 4 | `r4 −r7 ≤ 0`; raw: none | 8.01 / 26.95 |
+| 22 / `w$90` | 32 | 1 | 452 / 4 | `r4 −r11 ≤ 0`; raw: none | 8.03 / 26.56 |
+| 24 / `w$93` | 32 | 1 | 452 / 4 | `r4 −r14 ≤ 0`; raw: none | 8.04 / 27.13 |
+| 25 / `w$95` | 32 | 1 | 452 / 4 | `r4 −r16 ≤ 0`; raw: none | 8.04 / 26.98 |
+| 36 / `w$562` | 32 | 1 | 2963 / 54 | `r0 +r3 −r8 ≤ 0`; raw: r6, r5, r7 | 8.26 / 22.82 |
+| 38 / `w$565` | 34 | 1 | 3002 / 54 | `r0 +r4 −r8 ≤ 0`; raw: r6, r5, r7 | 8.37 / 23.67 |
+| 39 / `w$566` | 34 | 1 | 3108 / 58 | `r0 +r4 −r7 −r5 −r6 ≤ 0`; raw: r6, r5, r7 | 8.77 / 146.92 |
+| 41 / `w$582` | 32 | 1 | 1229 / 8 | `r1 +r3 −r8 ≤ 0`; raw: r6, r5, r7 | 8.00 / 24.36 |
+| 43 / `w$584` | 34 | 1 | 1268 / 8 | `r1 +r4 −r8 ≤ 0`; raw: r6, r5, r7 | 8.02 / 25.71 |
+
+The nineteen failed source attempts consume **771.432 counted units**:
+**154.557** in initial point queries and **616.875** in Boolean reconstruction
+attempts. This is over half the global 1,500-unit window, before charging the
+684.894-unit scalar-prerequisite phase. Neither a cheap SAT rejection nor a
+refuted core was available to prune these nineteen attempts.
+
+Post-state sources have 1,199–3,108 AST nodes and carry raw `r5/r6/r7` reads
+inside their predicates. But the six simpler `r4` sources (19–25, excluding
+the proved 23) also time out with only **414–452 nodes / four conditionals**.
+The larger post-state syntax is observable overhead, **not a sufficient
+explanation of every unknown**. All sources retain the six auxiliary
+flag-witness variables, including `CV` facts for the copy flags.
+
+### Union 39: exact witness goal and unfinished branch
+
+`closure-source-profile-v1/union-39.json` contains the full query, source
+entry path, reconstructed-input goal, decoded opaque columns, and the last
+Boolean path. Its count-instance member is **`w$566`**; the numeric candidate
+reads precisely `r0,r4,r5,r6,r7`. The raw update-guard reads are again
+`xNotS[0]`, `xAndS[0]`, and `sNotX[0]`.
+
+| Source component | Hypothesis indices | Size |
+|---|---|---:|
+| Scalar, field, flag, and domain context | 0–31 | 357 AST nodes |
+| Single count-instance clause | 32 | **2,711 AST nodes**, **58 `if` nodes**, 382 field/count-map read occurrences |
+| Negated numeric candidate | 33 | 40 AST nodes |
+| Total | 0–33 | **34 hypotheses, one count instance, 3,108 AST nodes** |
+
+The source already contains `a$# < size` and `j$ < size` (hypotheses 30–31).
+Its inherited path contains both checked guarded ceiling columns:
+
+```text
+if(committedQuorum && i  < size, CfgT[i],  0) <= CT[i]
+if(committedQuorum && j' < size, CfgT[j'], 0) <= CT[i]
+```
+
+The point query times out at **8.774 counted units** (20.897 ms wall); the
+Boolean attempt consumes **146.923 units** (423.953 ms wall). Neither returns
+a tree or a model; transport/admission do not perform a proof on this source.
+It is inaccurate to call this a missing-domain counterexample or a proved
+UNSAT source awaiting only certificate reconstruction.
+
+A concrete feature of the **last unfinished Boolean branch** is now checked
+by the static profiler against four exact saved atoms:
+
+```text
+entry path:  a$# - i <= 0  and  i - a$# <= 0
+last branch: S[w$566] <= 0
+             S[64*a$# - 64*i + w$566] >= 1
+```
+
+The two entry inequalities imply `a$# = i`, so the two `S` keys are equal.
+Consequently this particular recorded branch is inconsistent. It is **not**
+a SAT countermodel and does not identify a missing ceiling. It exposes an
+unfinished packed-key/read-congruence obligation for Section 6 to inspect;
+closing that branch alone would not establish the whole union or the
+1,500-unit gate.
+
+Reproduce the source capture and static table:
+
+```sh
+supercomputer run --jobs research/track-m/jobs-closure-source-profile.json \
+  --out runs/track-m/closure-source-profile-replay --class interactive \
+  --timing --vm-type large \
+  --data runs/track-m/canonical-capture-v1/fixtures:replay-input \
+  --data runs/track-m/core-chain-trace-v1:trace-input
+bun research/track-m/profile-closure-sources.ts \
+  runs/track-m/closure-source-profile-replay \
+  runs/track-m/closure-falsification-v3/summary.json
+```
+
+The profile log retains the gzip/base64 capture of **all thirty source
+queries**. `profile.json` contains the nineteen-row metadata and per-hypothesis
+union statistics; `union-39.json` is the directly readable witness handoff.
+Narrow type-aware lint passes on all three research files. The remote static
+replay reproduces `profile.json`, `union-39.json`, and `table.md` byte for byte
+(`closure-source-profile-check-v1/source-profile-check.log`).
+No new proof outcome, default optimization, or conservation gate is claimed.
