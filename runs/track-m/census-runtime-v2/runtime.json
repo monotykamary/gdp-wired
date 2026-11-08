@@ -1,0 +1,19 @@
+{
+  "bun": "1.4.3",
+  "bunRevision": "c6da4a4d3010e5553438c60f6bd76d981976867c",
+  "execPath": "/home/user/.bun/bin/bun",
+  "architecture": "x64",
+  "inputSha256": "4be076f22a8fec41083719358b3518a83b23add5c3dfd26017f772404e7dac24",
+  "environment": {
+    "NODE_OPTIONS": null,
+    "BUN_OPTIONS": null,
+    "JSC_useJIT": null,
+    "JSC_useDFGJIT": null,
+    "JSC_useFTLJIT": null,
+    "JSC_useConcurrentJIT": null,
+    "GDP_ROWS_SHARED": null,
+    "GDP_ROWS_UNWEIGHTED": null,
+    "GDP_COUNTS_FOCUS": null
+  },
+  "runs": 8
+}

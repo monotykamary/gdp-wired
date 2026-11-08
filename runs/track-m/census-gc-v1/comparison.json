@@ -1,0 +1,412 @@
+{
+  "productionEqual": true,
+  "installedProductionEqual": true,
+  "allVerdictsChecked": true,
+  "workExactAcrossRuns": true,
+  "profiledCallCountsExact": true,
+  "runs": 8,
+  "comparisons": [
+    {
+      "id": "d1",
+      "variant": "tf1-profile",
+      "law": "one primary per term",
+      "wallMs": 2996.143618,
+      "kernelMs": 1653.1334190000002,
+      "countedUnits": 926.6334919999999,
+      "kernelRatioToA1": 1,
+      "rootChecks": 3
+    },
+    {
+      "id": "d1",
+      "variant": "tf1-profile",
+      "law": "Inv3915: one config term, the primary newest",
+      "wallMs": 3513.655214,
+      "kernelMs": 2254.9226080000003,
+      "countedUnits": 872.3352536000001,
+      "kernelRatioToA1": 1,
+      "rootChecks": 3
+    },
+    {
+      "id": "d1",
+      "variant": "tf1-profile",
+      "law": "Inv1758: one version and term, one config",
+      "wallMs": 16772.091635,
+      "kernelMs": 8823.887385000009,
+      "countedUnits": 4310.4753532,
+      "kernelRatioToA1": 1,
+      "rootChecks": 3
+    },
+    {
+      "id": "c1",
+      "variant": "tf1-profile",
+      "law": "one primary per term",
+      "wallMs": 3139.130012,
+      "kernelMs": 1722.8896519999998,
+      "countedUnits": 926.6334919999999,
+      "kernelRatioToA1": 1.0421963721731522,
+      "rootChecks": 3
+    },
+    {
+      "id": "c1",
+      "variant": "tf1-profile",
+      "law": "Inv3915: one config term, the primary newest",
+      "wallMs": 4080.079647,
+      "kernelMs": 2492.8612990000047,
+      "countedUnits": 872.3352536000001,
+      "kernelRatioToA1": 1.105519670677764,
+      "rootChecks": 3
+    },
+    {
+      "id": "c1",
+      "variant": "tf1-profile",
+      "law": "Inv1758: one version and term, one config",
+      "wallMs": 17600.843182999997,
+      "kernelMs": 8838.020691000003,
+      "countedUnits": 4310.4753532,
+      "kernelRatioToA1": 1.0016017096981564,
+      "rootChecks": 3
+    },
+    {
+      "id": "c2",
+      "variant": "tf1-profile",
+      "law": "one primary per term",
+      "wallMs": 2707.264567,
+      "kernelMs": 1505.9418609999998,
+      "countedUnits": 926.6334919999999,
+      "kernelRatioToA1": 0.9109620818814259,
+      "rootChecks": 3
+    },
+    {
+      "id": "c2",
+      "variant": "tf1-profile",
+      "law": "Inv3915: one config term, the primary newest",
+      "wallMs": 3445.7854279999997,
+      "kernelMs": 2239.7986050000013,
+      "countedUnits": 872.3352536000001,
+      "kernelRatioToA1": 0.9932928948663949,
+      "rootChecks": 3
+    },
+    {
+      "id": "c2",
+      "variant": "tf1-profile",
+      "law": "Inv1758: one version and term, one config",
+      "wallMs": 17113.10093,
+      "kernelMs": 8778.600179999992,
+      "countedUnits": 4310.4753532,
+      "kernelRatioToA1": 0.9948676583206397,
+      "rootChecks": 3
+    },
+    {
+      "id": "d2",
+      "variant": "tf1-profile",
+      "law": "one primary per term",
+      "wallMs": 3273.7515200000003,
+      "kernelMs": 1672.7579820000003,
+      "countedUnits": 926.6334919999999,
+      "kernelRatioToA1": 1.01187113077169,
+      "rootChecks": 3
+    },
+    {
+      "id": "d2",
+      "variant": "tf1-profile",
+      "law": "Inv3915: one config term, the primary newest",
+      "wallMs": 3677.4828379999994,
+      "kernelMs": 2350.7747150000014,
+      "countedUnits": 872.3352536000001,
+      "kernelRatioToA1": 1.0425079364852423,
+      "rootChecks": 3
+    },
+    {
+      "id": "d2",
+      "variant": "tf1-profile",
+      "law": "Inv1758: one version and term, one config",
+      "wallMs": 16329.526747,
+      "kernelMs": 8044.129779000032,
+      "countedUnits": 4310.4753532,
+      "kernelRatioToA1": 0.9116310564745521,
+      "rootChecks": 3
+    },
+    {
+      "id": "d3",
+      "variant": "census-extras",
+      "law": "one primary per term",
+      "wallMs": 2350.889715,
+      "kernelMs": 1261.371459,
+      "countedUnits": 926.6334919999999,
+      "kernelRatioToA1": 0.7630185467807059,
+      "rootChecks": 3
+    },
+    {
+      "id": "d3",
+      "variant": "census-extras",
+      "law": "Inv3915: one config term, the primary newest",
+      "wallMs": 2772.12915,
+      "kernelMs": 1762.0215439999997,
+      "countedUnits": 872.3352536000001,
+      "kernelRatioToA1": 0.7814110948857893,
+      "rootChecks": 3
+    },
+    {
+      "id": "d3",
+      "variant": "census-extras",
+      "law": "Inv1758: one version and term, one config",
+      "wallMs": 14192.870918,
+      "kernelMs": 7672.4517429999805,
+      "countedUnits": 4310.4753532,
+      "kernelRatioToA1": 0.8695092546220174,
+      "rootChecks": 3
+    },
+    {
+      "id": "c3",
+      "variant": "census-extras",
+      "law": "one primary per term",
+      "wallMs": 2464.834366,
+      "kernelMs": 1306.34373,
+      "countedUnits": 926.6334919999999,
+      "kernelRatioToA1": 0.7902228065719116,
+      "rootChecks": 3
+    },
+    {
+      "id": "c3",
+      "variant": "census-extras",
+      "law": "Inv3915: one config term, the primary newest",
+      "wallMs": 2955.375029,
+      "kernelMs": 1887.214872999998,
+      "countedUnits": 872.3352536000001,
+      "kernelRatioToA1": 0.8369311063291258,
+      "rootChecks": 3
+    },
+    {
+      "id": "c3",
+      "variant": "census-extras",
+      "law": "Inv1758: one version and term, one config",
+      "wallMs": 14787.514048,
+      "kernelMs": 8016.803878000008,
+      "countedUnits": 4310.4753532,
+      "kernelRatioToA1": 0.9085342466663857,
+      "rootChecks": 3
+    },
+    {
+      "id": "c4",
+      "variant": "census-extras",
+      "law": "one primary per term",
+      "wallMs": 2750.802646,
+      "kernelMs": 1557.9022229999998,
+      "countedUnits": 926.6334919999999,
+      "kernelRatioToA1": 0.9423935207494584,
+      "rootChecks": 3
+    },
+    {
+      "id": "c4",
+      "variant": "census-extras",
+      "law": "Inv3915: one config term, the primary newest",
+      "wallMs": 3050.6700140000003,
+      "kernelMs": 1964.1288880000006,
+      "countedUnits": 872.3352536000001,
+      "kernelRatioToA1": 0.8710404876121586,
+      "rootChecks": 3
+    },
+    {
+      "id": "c4",
+      "variant": "census-extras",
+      "law": "Inv1758: one version and term, one config",
+      "wallMs": 18387.592246,
+      "kernelMs": 9895.076644999994,
+      "countedUnits": 4310.4753532,
+      "kernelRatioToA1": 1.121396524373252,
+      "rootChecks": 3
+    },
+    {
+      "id": "d4",
+      "variant": "census-extras",
+      "law": "one primary per term",
+      "wallMs": 3069.9062559999998,
+      "kernelMs": 1562.2986719999997,
+      "countedUnits": 926.6334919999999,
+      "kernelRatioToA1": 0.9450529848613504,
+      "rootChecks": 3
+    },
+    {
+      "id": "d4",
+      "variant": "census-extras",
+      "law": "Inv3915: one config term, the primary newest",
+      "wallMs": 3339.8561969999996,
+      "kernelMs": 2129.675578000001,
+      "countedUnits": 872.3352536000001,
+      "kernelRatioToA1": 0.9444561735486404,
+      "rootChecks": 3
+    },
+    {
+      "id": "d4",
+      "variant": "census-extras",
+      "law": "Inv1758: one version and term, one config",
+      "wallMs": 15911.070519,
+      "kernelMs": 8176.649783000019,
+      "countedUnits": 4310.4753532,
+      "kernelRatioToA1": 0.9266493809632874,
+      "rootChecks": 3
+    }
+  ],
+  "processes": [
+    {
+      "id": "d1",
+      "variant": "tf1-profile",
+      "cpuSeconds": 29.48,
+      "userSeconds": 28.12,
+      "systemSeconds": 1.36,
+      "lawWallSeconds": 23.281890467000004,
+      "calibrationBefore": {
+        "wallMs": 27.345733999999993,
+        "cpuMs": 28.309,
+        "sha256": "16c7f1d8a38b4b84560e558ab03b13c82e2ff374d87eaacb4df22f03604e7a4f",
+        "bytes": 67108864
+      },
+      "calibrationAfter": {
+        "wallMs": 27.270189999999275,
+        "cpuMs": 27.275,
+        "sha256": "16c7f1d8a38b4b84560e558ab03b13c82e2ff374d87eaacb4df22f03604e7a4f",
+        "bytes": 67108864
+      }
+    },
+    {
+      "id": "c1",
+      "variant": "tf1-profile",
+      "cpuSeconds": 31.18,
+      "userSeconds": 29.55,
+      "systemSeconds": 1.63,
+      "lawWallSeconds": 24.820052842,
+      "calibrationBefore": {
+        "wallMs": 26.33752699999968,
+        "cpuMs": 26.333,
+        "sha256": "16c7f1d8a38b4b84560e558ab03b13c82e2ff374d87eaacb4df22f03604e7a4f",
+        "bytes": 67108864
+      },
+      "calibrationAfter": {
+        "wallMs": 28.465052000006835,
+        "cpuMs": 28.434,
+        "sha256": "16c7f1d8a38b4b84560e558ab03b13c82e2ff374d87eaacb4df22f03604e7a4f",
+        "bytes": 67108864
+      }
+    },
+    {
+      "id": "c2",
+      "variant": "tf1-profile",
+      "cpuSeconds": 29.2,
+      "userSeconds": 27.82,
+      "systemSeconds": 1.38,
+      "lawWallSeconds": 23.266150925,
+      "calibrationBefore": {
+        "wallMs": 27.51191999999719,
+        "cpuMs": 27.508,
+        "sha256": "16c7f1d8a38b4b84560e558ab03b13c82e2ff374d87eaacb4df22f03604e7a4f",
+        "bytes": 67108864
+      },
+      "calibrationAfter": {
+        "wallMs": 30.78335299999162,
+        "cpuMs": 31.154,
+        "sha256": "16c7f1d8a38b4b84560e558ab03b13c82e2ff374d87eaacb4df22f03604e7a4f",
+        "bytes": 67108864
+      }
+    },
+    {
+      "id": "d2",
+      "variant": "tf1-profile",
+      "cpuSeconds": 29.54,
+      "userSeconds": 28.3,
+      "systemSeconds": 1.24,
+      "lawWallSeconds": 23.280761105,
+      "calibrationBefore": {
+        "wallMs": 28.92513400000462,
+        "cpuMs": 28.921,
+        "sha256": "16c7f1d8a38b4b84560e558ab03b13c82e2ff374d87eaacb4df22f03604e7a4f",
+        "bytes": 67108864
+      },
+      "calibrationAfter": {
+        "wallMs": 26.107520000005024,
+        "cpuMs": 26.088,
+        "sha256": "16c7f1d8a38b4b84560e558ab03b13c82e2ff374d87eaacb4df22f03604e7a4f",
+        "bytes": 67108864
+      }
+    },
+    {
+      "id": "d3",
+      "variant": "census-extras",
+      "cpuSeconds": 24.29,
+      "userSeconds": 23.46,
+      "systemSeconds": 0.83,
+      "lawWallSeconds": 19.315889783,
+      "calibrationBefore": {
+        "wallMs": 27.027115000004414,
+        "cpuMs": 27.022,
+        "sha256": "16c7f1d8a38b4b84560e558ab03b13c82e2ff374d87eaacb4df22f03604e7a4f",
+        "bytes": 67108864
+      },
+      "calibrationAfter": {
+        "wallMs": 27.72138799999084,
+        "cpuMs": 28.172,
+        "sha256": "16c7f1d8a38b4b84560e558ab03b13c82e2ff374d87eaacb4df22f03604e7a4f",
+        "bytes": 67108864
+      }
+    },
+    {
+      "id": "c3",
+      "variant": "census-extras",
+      "cpuSeconds": 25.46,
+      "userSeconds": 24.55,
+      "systemSeconds": 0.91,
+      "lawWallSeconds": 20.207723443,
+      "calibrationBefore": {
+        "wallMs": 26.36230500000238,
+        "cpuMs": 26.358,
+        "sha256": "16c7f1d8a38b4b84560e558ab03b13c82e2ff374d87eaacb4df22f03604e7a4f",
+        "bytes": 67108864
+      },
+      "calibrationAfter": {
+        "wallMs": 27.48024499998428,
+        "cpuMs": 27.467,
+        "sha256": "16c7f1d8a38b4b84560e558ab03b13c82e2ff374d87eaacb4df22f03604e7a4f",
+        "bytes": 67108864
+      }
+    },
+    {
+      "id": "c4",
+      "variant": "census-extras",
+      "cpuSeconds": 30.619999999999997,
+      "userSeconds": 29.29,
+      "systemSeconds": 1.33,
+      "lawWallSeconds": 24.189064906,
+      "calibrationBefore": {
+        "wallMs": 27.835000999999465,
+        "cpuMs": 27.832,
+        "sha256": "16c7f1d8a38b4b84560e558ab03b13c82e2ff374d87eaacb4df22f03604e7a4f",
+        "bytes": 67108864
+      },
+      "calibrationAfter": {
+        "wallMs": 26.653019000019412,
+        "cpuMs": 26.652,
+        "sha256": "16c7f1d8a38b4b84560e558ab03b13c82e2ff374d87eaacb4df22f03604e7a4f",
+        "bytes": 67108864
+      }
+    },
+    {
+      "id": "d4",
+      "variant": "census-extras",
+      "cpuSeconds": 28.330000000000002,
+      "userSeconds": 27.32,
+      "systemSeconds": 1.01,
+      "lawWallSeconds": 22.320832971999998,
+      "calibrationBefore": {
+        "wallMs": 26.656686999980593,
+        "cpuMs": 26.653,
+        "sha256": "16c7f1d8a38b4b84560e558ab03b13c82e2ff374d87eaacb4df22f03604e7a4f",
+        "bytes": 67108864
+      },
+      "calibrationAfter": {
+        "wallMs": 28.17339399998309,
+        "cpuMs": 28.17,
+        "sha256": "16c7f1d8a38b4b84560e558ab03b13c82e2ff374d87eaacb4df22f03604e7a4f",
+        "bytes": 67108864
+      }
+    }
+  ]
+}

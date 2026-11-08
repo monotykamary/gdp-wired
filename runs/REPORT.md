@@ -5054,3 +5054,39 @@ by this comparison alone; JIT/GC isolation is being measured separately.
 
 Evidence: **runs/track-m/census-integrity-v1/README.md**, source hashes,
 **comparison.json**, raw receipts, telemetry and placement. Production unchanged.
+
+### Runtime follow-up — no unique historical cause isolated
+
+Two further complete eight-process experiments use the same exclusive VM:
+**census-runtime-v2** isolates concurrent JIT, FTL and concurrent GC;
+**census-gc-v1** interleaves default/GC-off/GC-off/default on both meters.
+All **72/72** law results across the three complete batches check, with exact
+counted-work and instrumented-call-count agreement.
+
+Disabling concurrent JIT leaves Inv1758 at **12.364 / 6.947 s**. Disabling FTL
+leaves it at **8.679 / 10.465 s**. An initially fast GC-off pair does not survive
+the interleaved discriminator: GC-off Inv1758 means are **4.4% / 13.0% slower**
+than default on the T-F1 / census meters. No unique JIT/GC culprit is established.
+
+Sampled CPU time is concentrated in the unchanged kernel's `decide`, `truthOf`
+and `truth`, not the census callbacks. These explain *where* current time is
+spent, not why the historical run was slow. Current guest telemetry does not
+show CPU-quota throttling; it cannot rule out physical-host contention, and the
+historical Bun revision / JIT / GC / host state was not recorded.
+
+**The exact historical 3–5x cause remains unresolved.** What is established:
+no production-code or snapshot-install change, no consistent T-F1 wrapper
+penalty, and substantial within-revision wall variability. Do not use those
+isolated historical numbers as a source-regression ratio or normalize them by
+an assumed factor. Future timing claims need matched repeats and their spread.
+
+Retention caveats are explicit: the first runtime attempt lost its complete
+summary to full CPU profiles and is excluded; the GC batch retains all structured
+measurements but lacks three verbose raw trial logs. Both are documented, and
+the harness now places essential structured receipts last. Full evidence and
+validation are under **runs/track-m/census-{integrity,runtime,gc}-***.
+
+Final validation on the same exclusive VM passes TypeScript, type-aware lint,
+**12 tests / 18 assertions**, and the independent aggregate audit of all
+**72 checked results**. The audit lists the six missing raw files explicitly.
+Production sources remain unchanged; Gate 1 remains **3/5**.

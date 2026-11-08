@@ -1,0 +1,9 @@
+[
+  {
+    "name": "runtime-controls",
+    "cmd": "bash research/track-m/run-census-runtime.sh",
+    "cpu": 8,
+    "memory": 14336,
+    "timeout": 900
+  }
+]

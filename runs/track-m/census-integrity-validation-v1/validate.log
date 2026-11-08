@@ -1,0 +1,46 @@
+Found 0 warnings and 0 errors.
+Finished in 28.6s on 1196 files with 100 rules using 8 threads.
+bun test v1.4.3 (c6da4a4d3)
+{
+  "runs": 24,
+  "lawResults": 72,
+  "checked": 72,
+  "inputSha256": "4be076f22a8fec41083719358b3518a83b23add5c3dfd26017f772404e7dac24",
+  "bunRevision": "c6da4a4d3010e5553438c60f6bd76d981976867c",
+  "vm": "bx_3kjzmmhv",
+  "productionEqual": true,
+  "countedWorkExact": true,
+  "profiledCallCountsExact": true,
+  "rawMissing": [
+    "gc-result/c1.log",
+    "gc-result/c1.stderr.log",
+    "gc-result/c2.log",
+    "gc-result/c2.stderr.log",
+    "gc-result/c3.log",
+    "gc-result/c3.stderr.log"
+  ]
+}
+
+--- stderr ---
+$ tsc -p . && oxlint --type-aware --deny-warnings --disable-nested-config
+
+research/track-m/phase-census-meter.test.ts:
+(pass) wall phases are exclusive and kernel work is not double counted [3.74ms]
+(pass) phase-local solver work remains charged to its phase [1.12ms]
+(pass) cut-use audit distinguishes offered, core and checked proof references [2.16ms]
+
+research/track-m/census-integrity-audit.test.ts:
+(pass) measurement integrity > timing may vary without changing work [3.38ms]
+(pass) measurement integrity > reject changed counted work [1.40ms]
+(pass) measurement integrity > reject changed checker counts [0.10ms]
+(pass) measurement integrity > reject extra instrumented sites [4.91ms]
+(pass) measurement integrity > reject unchecked results [0.75ms]
+(pass) measurement integrity > reject incomplete runs [0.10ms]
+(pass) measurement integrity > reject changed installed source [0.04ms]
+(pass) measurement integrity > reject reordered laws [0.05ms]
+(pass) measurement integrity > plain controls still require equal work [0.08ms]
+
+ 12 pass
+ 0 fail
+ 18 expect() calls
+Ran 12 tests across 2 files. [72.00ms]

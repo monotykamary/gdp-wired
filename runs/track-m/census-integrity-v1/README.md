@@ -76,3 +76,7 @@ listed revisions (all top-level entries except `runs`), then run
 `research/track-m/jobs-census-integrity.json` through `supercomputer --timing`
 with `integrity-input` and the canonical fixture mounted as `replay-input`.
 No production source or default is changed by this experiment.
+
+Follow-up: `../census-runtime-v2/` and `../census-gc-v1/` do not isolate a unique
+JIT/GC cause. The exact historical 3–5x gap remains unresolved; final aggregate
+validation is in `../census-integrity-validation-v1/validate.log`.
