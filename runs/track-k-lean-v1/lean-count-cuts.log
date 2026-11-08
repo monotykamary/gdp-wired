@@ -1,0 +1,35 @@
+Count.lean:270:17: error(lean.unknownIdentifier): Unknown identifier `eval`
+Count.lean:270:33: error(lean.unknownIdentifier): Unknown identifier `eval`
+Count.lean:276:8: error: Tactic `introN` failed: There are no additional binders or `let` bindings in the goal to introduce
+
+tab : List VDef
+hyps : List C
+env : Nat → Nat
+maps : Nat → Nat → Nat
+x : List Int
+hM : Model tab env maps x
+hH : ∀ (c : C), c ∈ hyps → evalC env maps c = true
+l : CutLemma
+hck : checkLemma tab hyps l = true
+⊢ CutHolds l x
+Count.lean:298:14: error(lean.unknownIdentifier): Unknown identifier `eval`
+Count.lean:298:34: error: Function expected at
+  hL l hlm
+but this term has type
+  CutHolds l x
+
+Note: Expected a function because this term is being applied to the argument
+  (fun w hw =>
+    by
+    have hd : dec path w = some true := by
+      simpa only [lemmaActive, List.all_eq_true, beq_iff_eq] using (List.all_eq_true.mp hactive w hw)
+    have := dec_sound hP hd
+    simpa using this)
+Count.lean:312:18: error(lean.unknownIdentifier): Unknown identifier `eval`
+'Kern.exists_lt_of_sumBelow_lt' depends on axioms: [propext, Classical.choice, Quot.sound]
+'Kern.pigeonhole' depends on axioms: [propext, Classical.choice, Quot.sound]
+'Kern.majorities_meet' depends on axioms: [propext, Classical.choice, Quot.sound]
+'Kern.quorums_meet_outside' depends on axioms: [propext, Classical.choice, Quot.sound]
+'Kern.lemma_sound' depends on axioms: [propext, sorryAx]
+'Kern.goalLemmas_sound' depends on axioms: [propext, sorryAx, Classical.choice, Quot.sound]
+'Kern.counted_sound' depends on axioms: [propext, sorryAx, Classical.choice, Quot.sound]

@@ -1,0 +1,143 @@
+'Kern.exists_lt_of_sumBelow_lt' depends on axioms: [propext, Classical.choice, Quot.sound]
+'Kern.pigeonhole' depends on axioms: [propext, Classical.choice, Quot.sound]
+'Kern.majorities_meet' depends on axioms: [propext, Classical.choice, Quot.sound]
+'Kern.quorums_meet_outside' depends on axioms: [propext, Classical.choice, Quot.sound]
+'Kern.lemma_sound' depends on axioms: [propext, Classical.choice, Quot.sound]
+'Kern.goalLemmas_sound' depends on axioms: [propext, Classical.choice, Quot.sound]
+'Kern.counted_sound' depends on axioms: [propext, Classical.choice, Quot.sound]
+CountMachine.lean:155:55: warning: This simp argument is unused:
+  decide_eq_true_eq
+
+Hint: Omit it from the simp argument list.
+  [apply] simp only [bne_iff_ne, ne_eq] at hne
+
+Note: This linter can be disabled with `set_option linter.unusedSimpArgs false`
+CountMachine.lean:368:17: warning: `if_neg` has been deprecated: Use `ite_eq_right` instead
+CountMachine.lean:368:28: warning: `if_neg` has been deprecated: Use `ite_eq_right` instead
+CountMachine.lean:367:16: warning: This simp argument is unused:
+  h2
+
+Hint: Omit it from the simp argument list.
+  [apply] simp [h1]
+
+Note: This linter can be disabled with `set_option linter.unusedSimpArgs false`
+CountMachine.lean:376:8: warning: `if_neg` has been deprecated: Use `ite_eq_right` instead
+CountMachine.lean:391:8: warning: `if_neg` has been deprecated: Use `ite_eq_right` instead
+CountMachine.lean:415:19: warning: `if_neg` has been deprecated: Use `ite_eq_right` instead
+CountMachine.lean:415:30: warning: `if_neg` has been deprecated: Use `ite_eq_right` instead
+CountMachine.lean:414:14: warning: This simp argument is unused:
+  h1
+
+Hint: Omit it from the simp argument list.
+  [apply] simp [h2]
+
+Note: This linter can be disabled with `set_option linter.unusedSimpArgs false`
+CountMachine.lean:633:12: warning: `if_neg` has been deprecated: Use `ite_eq_right` instead
+CountMachine.lean:870:8: warning: `dif_pos` has been deprecated: Use `dite_eq_left` instead
+CountMachine.lean:876:8: warning: `dif_neg` has been deprecated: Use `dite_eq_right` instead
+CountMachine.lean:1085:19: warning: This simp argument is unused:
+  List.contains_iff_mem
+
+Hint: Omit it from the simp argument list.
+  [apply] simp [hg]
+
+Note: This linter can be disabled with `set_option linter.unusedSimpArgs false`
+CountMachine.lean:1159:23: warning: This simp argument is unused:
+  beq_self_eq_true
+
+Hint: Omit it from the simp argument list.
+  [apply] simp only [ha, beq_iff_eq, ite_false]
+
+Note: This linter can be disabled with `set_option linter.unusedSimpArgs false`
+CountMachine.lean:1282:16: warning: `if_neg` has been deprecated: Use `ite_eq_right` instead
+CountMachine.lean:1298:22: warning: `if_neg` has been deprecated: Use `ite_eq_right` instead
+CountMachine.lean:1308:26: warning: `if_neg` has been deprecated: Use `ite_eq_right` instead
+CountMachine.lean:1309:26: warning: `if_neg` has been deprecated: Use `ite_eq_right` instead
+CountMachine.lean:1318:71: warning: This simp argument is unused:
+  List.mem_singleton
+
+Hint: Omit it from the simp argument list.
+  [apply] simp only [cStartGoal, sStartGoal, List.mem_append, List.mem_cons, List.not_mem_nil, or_false] at hc
+
+Note: This linter can be disabled with `set_option linter.unusedSimpArgs false`
+CountMachine.lean:1364:95: warning: This simp argument is unused:
+  List.contains_iff_mem
+
+Hint: Omit it from the simp argument list.
+  [apply] simp [withCarried, hc]
+
+Note: This linter can be disabled with `set_option linter.unusedSimpArgs false`
+CountMachine.lean:1365:67: warning: This simp argument is unused:
+  List.contains_iff_mem
+
+Hint: Omit it from the simp argument list.
+  [apply] simp [withCarried, hc]
+
+Note: This linter can be disabled with `set_option linter.unusedSimpArgs false`
+CountMachine.lean:1376:23: warning: Variable name `mp` is not explicitly referenced.
+
+Hint: The binding can be removed (if unused) or named `_` (if used implicitly). Alternatively, prefix the name with `_` to silence this warning:
+  [apply] _mp
+
+Note: This linter can be disabled with `set_option linter.unusedVariables false`
+CountMachine.lean:1379:23: warning: Variable name `mp` is not explicitly referenced.
+
+Hint: The binding can be removed (if unused) or named `_` (if used implicitly). Alternatively, prefix the name with `_` to silence this warning:
+  [apply] _mp
+
+Note: This linter can be disabled with `set_option linter.unusedVariables false`
+CountMachine.lean:1473:52: warning: `if_neg` has been deprecated: Use `ite_eq_right` instead
+CountMachine.lean:1474:53: warning: `if_neg` has been deprecated: Use `ite_eq_right` instead
+CountMachine.lean:1500:12: warning: `if_neg` has been deprecated: Use `ite_eq_right` instead
+CountMachine.lean:1521:19: warning: `if_neg` has been deprecated: Use `ite_eq_right` instead
+CountMachine.lean:1695:24: warning: `if_neg` has been deprecated: Use `ite_eq_right` instead
+CountMachine.lean:1697:12: warning: `if_neg` has been deprecated: Use `ite_eq_right` instead
+CountMachine.lean:1714:40: warning: `if_neg` has been deprecated: Use `ite_eq_right` instead
+CountMachine.lean:1715:40: warning: `if_neg` has been deprecated: Use `ite_eq_right` instead
+CountMachine.lean:1724:23: warning: `if_neg` has been deprecated: Use `ite_eq_right` instead
+CountMachine.lean:1744:38: warning: `if_neg` has been deprecated: Use `ite_eq_right` instead
+CountMachine.lean:1747:43: warning: `if_neg` has been deprecated: Use `ite_eq_right` instead
+CountMachine.lean:1763:81: warning: `if_neg` has been deprecated: Use `ite_eq_right` instead
+CountMachine.lean:1768:81: warning: `if_neg` has been deprecated: Use `ite_eq_right` instead
+CountMachine.lean:1776:25: warning: `if_neg` has been deprecated: Use `ite_eq_right` instead
+CountMachine.lean:1776:54: warning: `if_neg` has been deprecated: Use `ite_eq_right` instead
+CountMachine.lean:1815:43: warning: `if_neg` has been deprecated: Use `ite_eq_right` instead
+CountMachine.lean:1819:75: warning: `if_neg` has been deprecated: Use `ite_eq_right` instead
+CountMachine.lean:1591:25: warning: This simp argument is unused:
+  List.contains_iff_mem
+
+Hint: Omit it from the simp argument list.
+  [apply] simp [withCarried, hx]
+
+Note: This linter can be disabled with `set_option linter.unusedSimpArgs false`
+CountMachine.lean:1604:25: warning: This simp argument is unused:
+  List.contains_iff_mem
+
+Hint: Omit it from the simp argument list.
+  [apply] simp [withCarried, hnc]
+
+Note: This linter can be disabled with `set_option linter.unusedSimpArgs false`
+CountMachine.lean:1748:69: warning: This simp argument is unused:
+  List.mem_singleton
+
+Hint: Omit it from the simp argument list.
+  [apply] simp only [cStepGoal, sStepGoal, List.mem_append, List.mem_cons, List.not_mem_nil, or_false,
+    List.mem_map] at hc
+
+Note: This linter can be disabled with `set_option linter.unusedSimpArgs false`
+CountMachine.lean:1795:29: warning: This simp argument is unused:
+  List.contains_iff_mem
+
+Hint: Omit it from the simp argument list.
+  [apply] simp [withCarried, hc]
+
+Note: This linter can be disabled with `set_option linter.unusedSimpArgs false`
+CountMachine.lean:1843:47: warning: `if_neg` has been deprecated: Use `ite_eq_right` instead
+CountMachine.lean:1847:47: warning: `if_neg` has been deprecated: Use `ite_eq_right` instead
+CountMachine.lean:1850:129: warning: `if_neg` has been deprecated: Use `ite_eq_right` instead
+CountMachine.lean:1899:28: warning: `if_neg` has been deprecated: Use `ite_eq_right` instead
+CountMachine.lean:1924:6: warning: `if_pos` has been deprecated: Use `ite_eq_left` instead
+'Kern.mc_sound' depends on axioms: [propext, Classical.choice, Quot.sound]
+'Kern.cmachine_sound' depends on axioms: [propext, Classical.choice, Quot.sound]
+'Kern.counts_exist' depends on axioms: [propext, Classical.choice, Quot.sound]
+'Kern.pickHyp_true' depends on axioms: [propext, Classical.choice, Quot.sound]
