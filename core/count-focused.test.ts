@@ -1,8 +1,33 @@
 import {expect,test} from 'bun:test'
 import {all,any,atMost,get,ite,less,n,not,same,type E,type Machine,x} from './machine.ts'
 import {type CountCert,type CountDecl} from '../kernel/kernel.ts'
-import {countLawSeeds,countRowBridges,fieldGuardSeeds,independentCountInstances,fieldLawBridges,focusCountCert,copyCountSubset,rowKeyNames} from './count-focused.ts'
+import {countLawSeeds,countRowBridges,fieldGuardSeeds,independentCountInstances,fieldLawBridges,focusCountCert,copyCountSubset,rowKeyNames,demandCountCert} from './count-focused.ts'
 
+for(const viaFlag of [false,true])test(`goal demand ${viaFlag?'follows a named flag to':'uses a primitive read for'} a missing pre-state union`,()=>{
+ const member=x('member'),a=same(get('A',member),n(1)),b=same(get('B',member),n(1)),v=same(get('Vote',member),n(1)),bit=(c:Parameters<typeof ite>[0])=>ite(c,n(1),n(0)),base={j:'row',key:'member',below:n(4)}
+ const selected=viaFlag?same(x('?selected'),n(1)):v,body=bit(all(a,not(selected))),ds:CountDecl[]=[{...base,map:'Remaining',body},{...base,map:'Remaining#',body},{...base,map:'Limit',body:n(1)},{...base,map:'Incoming',body:get('Vote',member)},{...base,map:'Left',body:bit(all(a,not(b)))},{...base,map:'Both',body:bit(all(a,b))},{...base,map:'Right',body:bit(all(not(a),b))},{...base,map:'Unrelated',body:get('Noise',member)}]
+ const reads:CountCert['reads']=ds.map((d,i)=>[`r${i}`,d.map,n(0)]),frame={wit:'legacy',below:n(4),terms:[[1,'r0'],[-1,'r1']] as [number,string][],unit:0},full={reads,insts:[frame]},before=JSON.stringify(full)
+ const m:Machine={name:'demand',params:[],inputs:[],state:{},inputMaps:['Vote','Noise'],maps:{A:0,B:0},step:{flags:viaFlag?{selected:v}:{}}},claim=less(get('Limit',n(0)),get('Remaining#',n(0)))
+ const out=demandCountCert(m,ds,full,claim),signature=(terms:[number,string][])=>JSON.stringify([...terms].sort((a,b)=>a[1].localeCompare(b[1])))
+ expect(out.insts).toContain(frame)
+ expect(out.insts.some(q=>q.unit===-1&&signature(q.terms)===signature([[1,'r1']]))).toBe(true)
+ expect(out.insts.some(q=>q.unit===-1&&signature(q.terms)===signature([[1,'r3']]))).toBe(false)
+ expect(out.insts.filter(q=>q!==frame).length).toBeLessThanOrEqual(128)
+ expect(out.insts.some(q=>signature(q.terms)===signature([[1,'r0'],[1,'r3'],[-1,'r4'],[-1,'r5'],[-1,'r6']]))).toBe(true)
+ expect(out.insts.filter(q=>q.terms.length>=3).length).toBeLessThanOrEqual(128)
+ expect(out.insts.every(q=>q.terms.every(([,id])=>id!=='r7'))).toBe(true)
+ expect(new Set(out.insts.map(q=>q.wit)).size).toBe(out.insts.length)
+ expect(JSON.stringify(full)).toBe(before)
+ expect(demandCountCert(m,ds,full,less(n(0),get('Remaining#',n(0))))).toBe(full)
+})
+test('demand discovers post-state Boolean identities without expanding the write',()=>{
+ const member=x('k'),a=same(get('A',member),n(1)),b=same(get('B',member),n(1)),bit=(c:Parameters<typeof ite>[0])=>ite(c,n(1),n(0))
+ const base={j:'row',key:'k',below:n(8)},pre:CountDecl[]=[{...base,map:'sizeA',body:bit(a)},{...base,map:'both',body:bit(all(a,b))},{...base,map:'onlyA',body:bit(all(a,not(b)))}]
+ const ds=[...pre,...pre.map(d=>({...d,map:d.map+'#',body:x('expandedWrite')}))],reads:CountCert['reads']=ds.map((d,i)=>[`p${i}`,d.map,n(0)])
+ const m:Machine={name:'post identities',params:[],inputs:[],state:{},maps:{A:0,B:0},step:{}}
+ const out=demandCountCert(m,ds,{reads,insts:[]},less(get('sizeA#',n(0)),get('both#',n(0))))
+ expect(out.insts.some(q=>q.unit===0&&q.terms.length===3&&q.terms.some(([z,id])=>z===1&&id==='p3')&&q.terms.some(([z,id])=>z===-1&&id==='p4')&&q.terms.some(([z,id])=>z===-1&&id==='p5'))).toBe(true)
+})
 test('field guards receive row instances without adding carried-set witnesses',()=>{
  const m:Machine={name:'setup guard',params:['size'],inputs:['actor'],state:{},maps:{Version:0},inputMaps:['Members'],step:{flags:{uncopied:{op:'all',key:'row',c:any(not(less(x('row'),x('size'))),same(get('Version',x('row')),n(0)))},members:{op:'all',key:'row',c:same(get('Members',x('row')),n(1))}}}}
  const before={'?uncopied':[x('old')]},next=fieldGuardSeeds(m,before,[x('a#'),x('actor'),n(0),x('a#')])

@@ -1,0 +1,15 @@
+
+  x typescript(require-array-sort-compare): Require 'compare' argument.
+    ,-[core/count-cert-transport.test.ts:22:9]
+ 21 |  expect(checkGoalLemmas(goal,cert.tree,cert.lemmas)).toBe(true)
+ 22 |  expect([...countedCertificateHyps(goal,cert)!].sort()).toEqual([0,1,2])
+    :         ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+ 23 | })
+    `----
+
+Found 0 warnings and 1 error.
+Finished in 14.0s on 1153 files with 100 rules using 8 threads.
+
+--- stderr ---
+$ tsc -p . && oxlint --type-aware --deny-warnings --disable-nested-config
+error: script "check" exited with code 1

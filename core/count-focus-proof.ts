@@ -42,7 +42,7 @@ export function proveFocusedCounts(m:Machine,laws:Law[],law:Law,at:Instances,unt
     if(clock()>=until||pastWall())return undefined
     let instances=clean
     const retained=new Map<string,Pick<CountCert,'reads'|'insts'>>()
-    const proposal=(goal:Goal,decls:CountDecl[])=>focusCountCert(m,decls,propose(goal,decls),{carried,structural:false,frames:true,algebraic:true,requestFrames:true,copyFrames:true,targets:!targetCounts?rows:undefined})
+    const proposal=(goal:Goal,decls:CountDecl[])=>focusCountCert(m,decls,propose(goal,decls),{carried,structural:false,frames:true,algebraic:true,requestFrames:true,copyFrames:true,targets:!targetCounts?rows:undefined,claim:goal.hyps.at(-1)})
     const packetsByInstances=new Map<string,{goal:Goal,decls:CountDecl[],cert:Pick<CountCert,'reads'|'insts'>}[]>()
     const build=()=>{
       const key=JSON.stringify(instances),had=packetsByInstances.get(key)

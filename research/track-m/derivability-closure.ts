@@ -149,7 +149,7 @@ export function deriveClosure(m:Machine,ds:CountDecl[],g:Goal,cert:Packet,root:P
    const admissionStart=profile?performance.now():0
    const checked=!!tree&&admit(good,source,tree,path,index)
    if(checked){closed.add(index);added++}
-   trace.push({stage:'phase-b',round:rounds,index,arity:inst.terms.length,wit:inst.wit,terms:inst.terms,ms:clock()-begun,checked,sourceHyps:source.hyps.length,pointOutcome:'tree'in point?'tree':point.stuck,events,...(profile?{profile:{source,path:[...path],reconstructionGoal,pointCoreSize:point.core?.length,pointWhy:point.why,pointWallMs,pointCountedMs,booleanWallMs,booleanCountedMs,transportWallMs,admissionWallMs:performance.now()-admissionStart}}:{})})
+   trace.push({stage:'phase-b',round:rounds,index,arity:inst.terms.length,wit:inst.wit,terms:inst.terms,ms:clock()-begun,checked,sourceHyps:source.hyps.length,pointOutcome:'tree'in point?'tree':point.stuck,events,...(profile?{profile:{source,path:[...path],reconstructionGoal,pointCoreSize:point.core?.length,pointWhy:'tree'in point?undefined:point.why,pointWallMs,pointCountedMs,booleanWallMs,booleanCountedMs,transportWallMs,admissionWallMs:performance.now()-admissionStart}}:{})})
   }
   trace.push({stage:'round',round:rounds,added,closed:closed.size,remaining:pool.length-closed.size,expired:!alive()})
   if(!added){fixedPoint=alive();break}

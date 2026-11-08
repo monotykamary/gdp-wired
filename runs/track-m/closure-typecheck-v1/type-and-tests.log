@@ -1,0 +1,13 @@
+core/count-recovery/derivability-closure.ts(143,24): error TS2345: Argument of type 'Record<string, number> | undefined' is not assignable to parameter of type 'Record<string, number>'.
+  Type 'undefined' is not assignable to type 'Record<string, number>'.
+core/count-recovery/derivability-closure.ts(143,77): error TS2322: Type 'Record<string, number> | undefined' is not assignable to type 'Record<string, number>'.
+  Type 'undefined' is not assignable to type 'Record<string, number>'.
+research/track-m/derivability-closure.ts(152,325): error TS2339: Property 'why' does not exist on type 'Refuted'.
+  Property 'why' does not exist on type '{ tree: Tree; nodes: number; } & { core?: number[] | undefined; dag?: Dag | undefined; assumed?: number[] | undefined; }'.
+research/track-m/section6-isolated.ts(68,119): error TS2339: Property 'why' does not exist on type 'Refuted'.
+  Property 'why' does not exist on type '{ tree: Tree; nodes: number; } & { core?: number[] | undefined; dag?: Dag | undefined; assumed?: number[] | undefined; }'.
+research/track-m/section6-isolated.ts(68,283): error TS2345: Argument of type 'Record<string, number> | undefined' is not assignable to parameter of type 'Record<string, number>'.
+  Type 'undefined' is not assignable to type 'Record<string, number>'.
+
+--- stderr ---
+$ tsc -p . && oxlint --type-aware --deny-warnings --disable-nested-config

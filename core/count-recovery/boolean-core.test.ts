@@ -17,6 +17,14 @@ for(const equal of [true,false])test(`witness key congruence ${equal?'checks a n
  if(equal){expect(tree).toBeDefined();if(tree)expect(check(g,tree,path)).toBe(true)}else expect(tree).toBeUndefined()
 })
 
+test('lowered Boolean writes remain shared membership choices in a partition',()=>{
+ const w=x('w'),choose=less(w,x('edge')),left=ite(choose,get('A',w),get('B',w)),right=ite(choose,get('C',w),get('D',w))
+ const a=same(ite(same(left,n(1)),n(1),n(0)),n(1)),b=same(ite(same(right,n(1)),n(1),n(0)),n(1)),bit=(c:Parameters<typeof ite>[0])=>ite(c,n(1),n(0))
+ const sum=plus(bit(all(a,b)),bit(all(a,not(b)))),head=atMost(x('gap'),n(0)),g={name:'lowered partition',hyps:[any(head,less(bit(a),sum)),not(head)]}
+ expect(booleanCandidates(g,new Map(),new Set(['w']),true).some(p=>JSON.stringify(p.c)===JSON.stringify(a))).toBe(true)
+ const tree=booleanCore(g,new Map(),new Set(['w']),clock()+1000,[],{extended:true})
+ expect(tree).toBeDefined();if(tree)expect(check(g,tree)).toBe(true)
+})
 for(const reverse of [false,true])test(`a partition CInst checks directly in ${reverse?'reverse':'forward'} direction`,()=>{
  const a=same(get('A',x('w')),n(1)),b=same(get('B',x('w')),n(1)),bit=(c:Parameters<typeof ite>[0])=>ite(c,n(1),n(0)),sum=plus(bit(all(a,b)),bit(all(a,not(b)))),whole=bit(a)
  const head=atMost(x('countDifference'),n(0)),bad=reverse?less(whole,sum):less(sum,whole),g={name:'partition',hyps:[any(head,bad),not(head)]}

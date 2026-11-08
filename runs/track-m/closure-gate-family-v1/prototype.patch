@@ -1,0 +1,743 @@
+diff --git a/core/count-demand.test.ts b/core/count-demand.test.ts
+new file mode 100644
+index 00000000..4cbca242
+--- /dev/null
++++ b/core/count-demand.test.ts
+@@ -0,0 +1,171 @@
++import {expect, test} from 'bun:test'
++import {type C, all, get, ite, less, n, not, plus, same, x} from './machine.ts'
++import {type Count, type CountInst, checkCounted, countHyp, countedGoal, countedOk} from '../kernel/kernel.ts'
++import {clock, grow} from '../kernel/prove.ts'
++import {proposeCountDemand} from './count-demand.ts'
++import {proposeCountUnions} from './count-unions.ts'
++
++const bit = (c: C) => ite(c, n(1), n(0))
++const count = (v: string, body: Count['body'], key = 'member', below = n(4)): Count => ({v, body, key, below})
++const at = (map: string, key = 'member') => get(map, x(key))
++const member = (map: string, key = 'member') => same(at(map, key), n(1))
++const termsKey = (terms: [number, string][]) => JSON.stringify([...terms].sort((a, b) => a[1].localeCompare(b[1])))
++const signature = (i: CountInst) => termsKey(i.terms)
++const sum = (names: string[]) => names.reduce((a, name) => plus(a, x(name)), n(0))
++
++function family(prefix: string): Count[] {
++  const a = member(`${prefix}A`), b = member(`${prefix}B`)
++  return [count(`${prefix}left`, bit(all(a, not(b)))), count(`${prefix}both`, bit(all(a, b))), count(`${prefix}right`, bit(all(not(a), b)))]
++}
++function problem(prefix = ''): Count[] {
++  const a = member(`${prefix}A`), b = member(`${prefix}B`), v = member(`${prefix}V`)
++  return [count(`${prefix}remaining`, bit(all(a, not(v)))), count(`${prefix}selected`, bit(all(b, v))), ...family(prefix)]
++}
++const target = (prefix = '') => termsKey([[1, `${prefix}remaining`], [1, `${prefix}selected`], [-1, `${prefix}left`], [-1, `${prefix}both`], [-1, `${prefix}right`]])
++
++function prove(counts: Count[], inst: CountInst, hyps: C[]): void {
++  const g = {name: 'synthetic demand proposal', counts, hyps}
++  expect(countedOk(hyps, counts, [inst])).toBe(true)
++  const goal = countedGoal(g, [inst])!
++  const proof = grow(goal, new Map(), {nodes: 0, until: clock() + 2000})
++  expect('tree' in proof).toBe(true)
++  if ('tree' in proof) expect(checkCounted(g, {insts: [inst], tree: proof.tree})).toBe(true)
++}
++
++test('demand reaches a relevant family beyond 128 irrelevant legacy proposals', () => {
++  const noise = Array.from({length: 9}, (_, i) => [count(`noise${i}x`, at(`NX${i}`)), count(`noise${i}y`, at(`NY${i}`))]).flat()
++  const unrelated = Array.from({length: 15}, (_, i) => family(`unrelated${i}`)).flat()
++  const counts = [...noise, ...unrelated, ...problem()]
++  const pairs: [string, string][] = Array.from({length: 9}, (_, i) => [`noise${i}x`, `noise${i}y`])
++  pairs.push(['remaining', 'selected'])
++  // This is a regression fixture for the old eager pool, not the new algorithm.
++  const legacy = proposeCountUnions(counts, pairs, 4096)
++  expect(legacy.findIndex(i => signature(i) === target())).toBeGreaterThanOrEqual(128)
++  const demand = new Set(['remaining', 'selected'])
++  const insts = proposeCountDemand(counts, demand, {pairs})
++  expect(insts.length).toBeGreaterThan(0)
++  expect(insts.length).toBeLessThanOrEqual(128)
++  expect(insts.some(i => signature(i) === target())).toBe(true)
++  expect(insts.flatMap(i => i.terms.map(([, id]) => id)).every(id => problem().some(c => c.v === id))).toBe(true)
++  // Goal-read mode needs no caller-generated pair pool at all.
++  expect(proposeCountDemand(counts, demand).some(i => signature(i) === target())).toBe(true)
++})
++
++test('late counts are indexed, not clipped to the first 128 inputs', () => {
++  const counts = [...Array.from({length: 50}, (_, i) => family(`noise${i}`)).flat(), ...problem()]
++  const insts = proposeCountDemand(counts, new Set(['remaining']), {pairs: [['remaining', 'selected']]})
++  expect(insts.map(signature)).toEqual([target()])
++})
++
++test('one demanded count finds an undemanded carried partner in a generic 41-read shape', () => {
++  const [remaining, , ...regions] = problem()
++  const counts = [remaining!, ...regions, ...Array.from({length: 12}, (_, i) => family(`unused${i}`)).flat(), count('selected', at('Carried'))]
++  expect(counts).toHaveLength(41)
++  const insts = proposeCountDemand(counts, new Set(['remaining']))
++  expect(insts.length).toBeLessThanOrEqual(128)
++  expect(insts.map(signature)).toContain(target())
++  expect(signature(insts[0]!)).toBe(target())
++  expect(insts.flatMap(i => i.terms).some(([, id]) => id.startsWith('unused'))).toBe(false)
++})
++
++test('positive pairs require a demanded endpoint and a same-bound relevant family', () => {
++  const counts = [...problem(), ...problem('other')]
++  const options = {pairs: [['otherremaining', 'otherselected']] as const}
++  expect(proposeCountDemand(counts, new Set(['remaining']), options)).toEqual([])
++  expect(proposeCountDemand(counts, new Set(['missing']))).toEqual([])
++  expect(proposeCountDemand(counts, new Set())).toEqual([])
++  const wrongBound = problem().map(c => c.v === 'selected' ? {...c, below: n(5)} : c)
++  expect(proposeCountDemand(wrongBound, new Set(['remaining']), {pairs: [['remaining', 'selected']]})).toEqual([])
++})
++
++test('demanded region families may be used even without a shared positive primitive', () => {
++  const counts = [count('p', at('P')), count('q', at('Q')), ...family('wanted'), ...family('unrelated')]
++  const insts = proposeCountDemand(counts, new Set(['p', 'wantedleft']), {pairs: [['p', 'q']]})
++  expect(insts).toHaveLength(1)
++  expect(signature(insts[0]!)).toBe(termsKey([[1, 'p'], [1, 'q'], [-1, 'wantedleft'], [-1, 'wantedboth'], [-1, 'wantedright']]))
++  // This is only a candidate: no pointwise coverage or disjointness is asserted.
++  const h = countHyp(counts, insts[0]!)!
++  expect(h.op).toBe('or')
++  if (h.op === 'or') expect(h.xs[1]!.op).toBe('and')
++})
++
++test('requested indicators normalize member variables and equality orientation; both partitions check', () => {
++  const counts = [
++    count('size', bit(member('A', 'alpha')), 'alpha'),
++    count('left', bit(all(same(n(1), at('A', 'beta')), not(member('B', 'beta')))), 'beta'),
++    count('both', bit(all(member('A', 'gamma'), member('B', 'gamma'))), 'gamma'),
++    ...family('unrelated'),
++  ]
++  const insts = proposeCountDemand(counts, new Set(['size']), {pairs: []})
++  expect(insts).toHaveLength(2)
++  expect(insts.map(i => i.terms)).toEqual([
++    [[1, 'size'], [-1, 'left'], [-1, 'both']],
++    [[-1, 'size'], [1, 'left'], [1, 'both']],
++  ])
++  prove(counts, insts[0]!, [less(sum(['left', 'both']), x('size'))])
++  prove(counts, insts[1]!, [less(x('size'), sum(['left', 'both']))])
++  // A region read requests only partitions that contain that region.
++  expect(proposeCountDemand(counts, new Set(['left']), {pairs: []}).map(signature)).toEqual(insts.map(signature))
++})
++
++test('complement indicators and declared region unions have both partition directions', () => {
++  const counts = [...family(''), count('neither', bit(all(not(member('A')), not(member('B'))))),
++    count('notA', bit(not(member('A')))), count('either', bit({op: 'or', xs: [member('A'), member('B')]}))]
++  const negative = proposeCountDemand(counts, new Set(['notA']), {pairs: []})
++  expect(negative.map(i => i.terms)).toEqual([
++    [[1, 'notA'], [-1, 'neither'], [-1, 'right']], [[-1, 'notA'], [1, 'neither'], [1, 'right']],
++  ])
++  const union = proposeCountDemand(counts, new Set(['either']), {pairs: []})
++  expect(union.map(signature)).toEqual([
++    termsKey([[1, 'either'], [-1, 'left'], [-1, 'both'], [-1, 'right']]),
++    termsKey([[-1, 'either'], [1, 'left'], [1, 'both'], [1, 'right']]),
++  ])
++})
++
++test('a disjoint-cover proposal is admitted by the ordinary checked witness rule', () => {
++  const counts = problem()
++  const inst = proposeCountDemand(counts, new Set(['remaining', 'selected']))[0]!
++  expect(signature(inst)).toBe(target())
++  prove(counts, inst, [less(sum(['left', 'both', 'right']), sum(['remaining', 'selected']))])
++})
++
++test('raw-map partitions keep the witness alternative instead of asserting an axiom', () => {
++  // Fixed cells keep the membership hypotheses independent of the fresh
++  // witness (countedOk must reject any original hypothesis naming it).
++  const a = same(get('A', n(0)), n(1)), b = same(get('B', n(0)), n(1))
++  const counts = [count('size', get('A', n(0))), count('left', bit(all(a, not(b)))), count('both', bit(all(a, b)))]
++  const insts = proposeCountDemand(counts, new Set(['size']), {pairs: []})
++  expect(insts).toHaveLength(2)
++  const inst = insts[0]!, broken = less(sum(['left', 'both']), x('size'))
++  prove(counts, inst, [same(get('A', n(0)), n(1)), broken])
++  const hyps = [same(get('A', n(0)), n(2)), broken]
++  expect(countedOk(hyps, counts, [inst])).toBe(true)
++  const goal = countedGoal({name: 'weighted membership is not a set', counts, hyps}, [inst])!
++  const proof = grow(goal, new Map(), {nodes: 0, until: clock() + 2000})
++  expect('tree' in proof).toBe(false)
++  expect('stuck' in proof && proof.stuck).toBe('sat')
++})
++
++test('witnesses avoid names from unrelated inputs and caller reservations', () => {
++  const counts = [...problem(), count('demand$0', plus(x('demand$1'), n(0)), 'other', n(9))]
++  const insts = proposeCountDemand(counts, new Set(['remaining', 'selected']), {reserved: ['demand$2', 'demand$3']})
++  expect(insts.length).toBeGreaterThan(0)
++  expect(insts.every(i => !['demand$0', 'demand$1', 'demand$2', 'demand$3'].includes(i.wit))).toBe(true)
++  expect(countedOk([same(x('demand$2'), n(1))], counts, insts)).toBe(true)
++  expect(new Set(insts.map(i => i.wit)).size).toBe(insts.length)
++})
++
++test('output and work limits are hard, deterministic, and do not mutate input', () => {
++  const counts = [count('p', at('A')), count('q', at('A')), ...Array.from({length: 140}, (_, i) => count(`cover${i}`, at('A')))]
++  const before = JSON.stringify(counts), demand = new Set(['p', 'q']), pairs = [['p', 'q']] as const
++  const run = (maxFacts: number) => proposeCountDemand(counts, demand, {pairs, maxFacts})
++  expect(run(1000)).toHaveLength(128)
++  expect(run(3)).toHaveLength(3)
++  expect(run(0)).toEqual([])
++  expect(run(Number.NaN)).toEqual([])
++  expect(run(3)).toEqual(run(3))
++  expect(proposeCountDemand(counts, demand, {maxWork: 0})).toEqual([])
++  expect(proposeCountDemand(counts, demand, {maxWork: 20})).toEqual([])
++  expect(JSON.stringify(counts)).toBe(before)
++  expect([...demand]).toEqual(['p', 'q'])
++})
+diff --git a/core/count-demand.ts b/core/count-demand.ts
+new file mode 100644
+index 00000000..d99509e4
+--- /dev/null
++++ b/core/count-demand.ts
+@@ -0,0 +1,262 @@
++// Untrusted, demand-directed proposals for the existing single-witness count rule.
++import {type C, type E, x} from './machine.ts'
++import {type Count, type CountInst, substE} from '../kernel/kernel.ts'
++
++export type CountDemandOptions = {
++  /** Restrict positive pairs to these IDs; at least one ID must be demanded.
++   * Omit to visit demanded/demanded pairs, then raw carried indicators,
++   * then other partners sharing a primitive read with the demanded body. */
++  pairs?: readonly (readonly [string, string])[]
++  /** Output limit, clamped to 128 (default 128). */
++  maxFacts?: number
++  /** Shared scan/AST/search budget, clamped to 1,000,000 (default 200,000).
++   * Exhaustion returns a sound but possibly incomplete prefix, never a fallback pool. */
++  maxWork?: number
++  /** Names already used by goal hypotheses or other certificate witnesses. */
++  reserved?: Iterable<string>
++}
++
++type Bool = boolean | {atom: string} | {not: Bool} | {and: Bool[]} | {or: Bool[]}
++type View = {count: Count, atoms: string[], mask?: number, members: Set<string>, indicator?: string}
++type Family = {atoms: string[], regions: Map<number, View>, members: Set<string>}
++const stable = (v: unknown): string => JSON.stringify(v, (_, a: unknown) => a && typeof a === 'object' && !Array.isArray(a)
++  ? Object.fromEntries(Object.entries(a).sort(([a], [b]) => a.localeCompare(b))) : a)
++const limit = (n: number | undefined, fallback: number, cap: number): number => n === undefined ? fallback
++  : Number.isSafeInteger(n) && n >= 0 ? Math.min(n, cap) : 0
++const evaluate = (b: Bool, values: Map<string, boolean>): boolean => typeof b === 'boolean' ? b
++  : 'atom' in b ? values.get(b.atom)! : 'not' in b ? !evaluate(b.not, values)
++  : 'and' in b ? b.and.every(c => evaluate(c, values)) : b.or.some(c => evaluate(c, values))
++// Equality is symmetric; no arithmetic predicate is identified with membership
++// merely because it agrees on 0/1 values. Raw get bodies remain candidates only.
++const atomKey = (c: C): string => c.op === '=' && stable(c.a) > stable(c.b)
++  ? stable({...c, a: c.b, b: c.a}) : stable(c)
++
++/** Demand is a set of Count.v IDs read by the goal or a numeric refuted core.
++ * This function neither extracts the core nor asserts any returned inequality.
++ * Pass its ordinary CountInsts through countedGoal/mcGoal and checkCounted/checkMC.
++ * Every instance retains the SAME pointwise witness alternative, including raw
++ * map-valued "indicators" and positive pairs that are not actually disjoint.
++ *
++ * Only same-bound groups containing a demanded ID are normalized. Within them,
++ * two-atom truth tables index declared singleton regions (no synthetic counts).
++ * Requested indicators get both partition directions; requested regions also
++ * request identities containing that region. Positive pairs use only singleton
++ * memberships they read, and three-region families selected by demanded regions
++ * or a primitive map read shared with the positive bodies. There is no exhaustive
++ * union pool, no Cartesian product of all positive pairs, and no final slice.
++ *
++ * Work includes every input/AST scan and each candidate visit. Individual input
++ * ASTs are limited to 1024 nodes and depth 64 before recursive normalization;
++ * an incomplete name scan returns [] so witnesses cannot capture unseen names.
++ * Runtime is bounded by maxWork times these fixed local bounds; memory is O(maxWork).
++ * No input-position cap: late demanded families are not discarded at count 128.
++ */
++export function proposeCountDemand(counts: Count[], demanded: ReadonlySet<string>, options: CountDemandOptions = {}): CountInst[] {
++  const cap = limit(options.maxFacts, 128, 128)
++  let work = limit(options.maxWork, 200_000, 1_000_000)
++  const take = (): boolean => work > 0 && (--work >= 0)
++  if (!cap || !work || !demanded.size) return []
++  const used = new Set<string>(), byId = new Map<string, Count>()
++  // Freshness must cover even counts in unrelated families, not only emitted terms.
++  const inspect = (value: unknown): boolean => {
++    const stack: [unknown, number][] = [[value, 0]]
++    let nodes = 0
++    while (stack.length) {
++      if (!take() || ++nodes > 1024) return false
++      const [v, depth] = stack.pop()!
++      if (depth > 64) return false
++      if (typeof v === 'string') used.add(v)
++      else if (v && typeof v === 'object') {
++        for (const child of Object.values(v)) {
++          if (!take()) return false
++          stack.push([child, depth + 1])
++        }
++      }
++    }
++    return true
++  }
++  for (const c of counts) {
++    if (!take() || !inspect(c)) return []
++    if (!byId.has(c.v)) byId.set(c.v, c) // matches kernel findCount
++  }
++  for (const name of options.reserved ?? []) { if (!take()) return []; used.add(name) }
++  let serial = 0
++  const fresh = (): string | undefined => {
++    while (take()) {
++      const name = `demand$${serial++}`
++      if (!used.has(name)) { used.add(name); return name }
++    }
++    return undefined
++  }
++  const member = fresh()
++  if (!member) return []
++  const requested: Count[] = [], bounds = new Set<string>()
++  for (const id of demanded) {
++    if (!take()) return []
++    const c = byId.get(id)
++    if (c) { requested.push(c); bounds.add(stable(c.below)) }
++  }
++  if (!requested.length) return []
++  const groups = new Map<string, Count[]>()
++  // Demand first also chooses the demanded representative of duplicate regions.
++  for (const c of requested) {
++    const key = stable(c.below), group = groups.get(key) ?? []
++    group.push(c); groups.set(key, group)
++  }
++  for (const c of byId.values()) {
++    if (!take()) return []
++    if (demanded.has(c.v)) continue
++    const key = stable(c.below)
++    if (bounds.has(key)) groups.get(key)!.push(c)
++  }
++  const out: CountInst[] = [], emitted = new Set<string>()
++  const emit = (below: E, terms: [number, string][]): void => {
++    if (out.length >= cap || !take()) return
++    // Do not emit identities with self-cancellation or repeated cover IDs.
++    if (new Set(terms.map(([, id]) => id)).size !== terms.length) return
++    const signature = stable([below, [...terms].sort((a, b) => a[1].localeCompare(b[1]))])
++    if (emitted.has(signature)) return
++    const wit = fresh()
++    if (!wit) return
++    emitted.add(signature); out.push({wit, below, terms, unit: 0})
++  }
++  for (const cs of groups.values()) {
++    if (!work || out.length >= cap) break
++    const views = new Map<string, View>(), families = new Map<string, Family>()
++    const indicators = new Map<string, View[]>(), memberships = new Map<string, View[]>()
++    for (const count of cs) {
++      if (!take()) break
++      const e = substE(count.body, {vars: {[count.key]: x(member)}, maps: {}, flags: {}})
++      const members = new Set<string>(), atoms = new Set<string>()
++      const scan = (v: unknown): void => {
++        if (!take() || !v || typeof v !== 'object') return
++        if ('op' in v && v.op === 'get') members.add(stable(v))
++        for (const child of Object.values(v)) scan(child)
++      }
++      scan(e)
++      const cond = (c: C): Bool | undefined => {
++        if (!take() || c.op === 'flag' || c.op === 'all') return undefined
++        if (c.op === 'not') { const b = cond(c.x); return b === undefined ? undefined : {not: b} }
++        if (c.op === 'and' || c.op === 'or') {
++          const bs = c.xs.map(cond)
++          return bs.some(b => b === undefined) ? undefined : {[c.op]: bs as Bool[]} as Bool
++        }
++        const a = atomKey(c); atoms.add(a)
++        return atoms.size > 2 ? undefined : {atom: a}
++      }
++      const body = (v: E): Bool | undefined => {
++        if (!take()) return undefined
++        if (v.op === 'const') return v.value === 0 ? false : v.value === 1 ? true : undefined
++        if (v.op !== 'if') return undefined
++        const c = cond(v.c), a = body(v.then), b = body(v.else)
++        return c === undefined || a === undefined || b === undefined ? undefined
++          : {or: [{and: [c, a]}, {and: [{not: c}, b]}]}
++      }
++      const f = body(e), keys = [...atoms].sort()
++      const view: View = {count, atoms: keys, members}
++      if (f !== undefined && keys.length <= 2) {
++        view.mask = 0
++        for (let bits = 0; bits < 2 ** keys.length; bits++) {
++          if (evaluate(f, new Map(keys.map((k, i) => [k, !!(bits & (1 << i))])))) view.mask |= 1 << bits
++        }
++      }
++      if (!work) break // never use partial metadata
++      if (e.op === 'get') view.indicator = atomKey({op: '=', a: e, b: {op: 'const', value: 1}})
++      else if (keys.length === 1 && (view.mask === 1 || view.mask === 2)) view.indicator = keys[0]
++      views.set(count.v, view)
++      if (view.indicator) {
++        const list = indicators.get(view.indicator) ?? []; list.push(view); indicators.set(view.indicator, list)
++        for (const m of members) { const vs = memberships.get(m) ?? []; vs.push(view); memberships.set(m, vs) }
++      }
++      if (keys.length !== 2 || ![1, 2, 4, 8].includes(view.mask ?? 0)) continue
++      const id = stable(keys), family = families.get(id) ?? {atoms: keys, regions: new Map<number, View>(), members: new Set<string>()}
++      if (!family.regions.has(view.mask!)) family.regions.set(view.mask!, view)
++      for (const m of members) family.members.add(m)
++      families.set(id, family)
++    }
++    const byAtom = new Map<string, Family[]>(), byMember = new Map<string, Family[]>(), demandFamilies = new Set<Family>()
++    for (const family of families.values()) {
++      if (!take()) break
++      for (const atom of family.atoms) { const fs = byAtom.get(atom) ?? []; fs.push(family); byAtom.set(atom, fs) }
++      for (const m of family.members) { const fs = byMember.get(m) ?? []; fs.push(family); byMember.set(m, fs) }
++      if ([...family.regions.values()].some(v => demanded.has(v.count.v))) demandFamilies.add(family)
++    }
++    const partition = (v: View, family: Family, required?: string): void => {
++      if (!take() || out.length + 2 > cap) return
++      let mask: number
++      if (v.indicator) {
++        const index = family.atoms.indexOf(v.indicator)
++        if (index < 0) return
++        const on = v.mask !== 1
++        mask = [0, 1, 2, 3].reduce((m, bits) => !!(bits & (1 << index)) === on ? m | (1 << bits) : m, 0)
++      } else if (stable(v.atoms) === stable(family.atoms) && v.mask !== undefined) mask = v.mask
++      else return
++      const parts: View[] = []
++      for (const bit of [1, 2, 4, 8]) if (mask & bit) {
++        const part = family.regions.get(bit)
++        if (!part) return
++        parts.push(part)
++      }
++      if (parts.length < 2 || (required && !parts.some(p => p.count.v === required))) return
++      for (const sign of [1, -1]) emit(v.count.below, [[sign, v.count.v], ...parts.map(p => [-sign, p.count.v] as [number, string])])
++    }
++    for (const c of requested) {
++      if (!take() || out.length >= cap) break
++      const v = views.get(c.v)
++      if (!v) continue
++      if (v.indicator) for (const f of byAtom.get(v.indicator) ?? []) { if (!work) break; partition(v, f) }
++      else {
++        const f = families.get(stable(v.atoms))
++        if (!f) continue
++        partition(v, f)
++        for (const atom of f.atoms) for (const indicator of indicators.get(atom) ?? []) {
++          if (!work) break
++          partition(indicator, f, c.v)
++        }
++      }
++    }
++    const seenPairs = new Set<string>()
++    const pair = (aId: string, bId: string): void => {
++      if (!take() || out.length >= cap || aId === bId || (!demanded.has(aId) && !demanded.has(bId))) return
++      const a = views.get(aId), b = views.get(bId)
++      if (!a || !b) return
++      const key = stable([aId, bId].sort())
++      if (seenPairs.has(key)) return
++      seenPairs.add(key)
++      const selected = new Set<Family>(), covers = new Set<View>()
++      for (const f of demandFamilies) { if (!take()) return; selected.add(f) }
++      for (const m of new Set([...a.members, ...b.members])) {
++        if (!take()) return
++        for (const f of byMember.get(m) ?? []) { if (!take()) return; selected.add(f) }
++        for (const v of memberships.get(m) ?? []) { if (!take()) return; covers.add(v) }
++      }
++      const add = (cover: View[]): void => emit(a.count.below, [[1, aId], [1, bId], ...cover.map(v => [-1, v.count.v] as [number, string])])
++      // A cover is considered only here, at the requested pair, never pre-expanded.
++      for (const f of selected) {
++        if (!take() || out.length >= cap) return
++        const cover = [2, 4, 8].map(bit => f.regions.get(bit))
++        if (cover.every((v): v is View => v !== undefined)) add(cover)
++      }
++      for (const v of covers) { if (!take() || out.length >= cap) return; add([v]) }
++    }
++    if (options.pairs) {
++      for (const [a, b] of options.pairs) { if (!work || out.length >= cap) break; pair(a, b) }
++    } else {
++      const ds = cs.filter(c => demanded.has(c.v))
++      for (let i = 0; i < ds.length && work && out.length < cap; i++) {
++        for (let j = i + 1; j < ds.length && work && out.length < cap; j++) pair(ds[i]!.v, ds[j]!.v)
++      }
++      // Raw carried indicators are useful partners even when absent from the
++      // goal/core. Visit them before region columns used primarily as covers.
++      // This is an AST-shape choice, independent of map names or read indices.
++      for (const raw of [true, false]) for (const a of ds) for (const b of cs) {
++        if (!take() || out.length >= cap) break
++        if (demanded.has(b.v) || (b.body.op === 'get') !== raw) continue
++        const left = views.get(a.v), right = views.get(b.v)
++        if (!raw && (!left || !right || ![...left.members].some(m => right.members.has(m)))) continue
++        pair(a.v, b.v)
++      }
++    }
++  }
++  return out
++}
+diff --git a/core/count-focus-proof.ts b/core/count-focus-proof.ts
+index 948338b1..d741b787 100644
+--- a/core/count-focus-proof.ts
++++ b/core/count-focus-proof.ts
+@@ -42,7 +42,7 @@ export function proveFocusedCounts(m:Machine,laws:Law[],law:Law,at:Instances,unt
+     if(clock()>=until||pastWall())return undefined
+     let instances=clean
+     const retained=new Map<string,Pick<CountCert,'reads'|'insts'>>()
+-    const proposal=(goal:Goal,decls:CountDecl[])=>focusCountCert(m,decls,propose(goal,decls),{carried,structural:false,frames:true,algebraic:true,requestFrames:true,copyFrames:true,targets:!targetCounts?rows:undefined})
++    const proposal=(goal:Goal,decls:CountDecl[])=>focusCountCert(m,decls,propose(goal,decls),{carried,structural:false,frames:true,algebraic:true,requestFrames:true,copyFrames:true,targets:!targetCounts?rows:undefined,claim:goal.hyps.at(-1)})
+     const packetsByInstances=new Map<string,{goal:Goal,decls:CountDecl[],cert:Pick<CountCert,'reads'|'insts'>}[]>()
+     const build=()=>{
+       const key=JSON.stringify(instances),had=packetsByInstances.get(key)
+diff --git a/core/count-focused.ts b/core/count-focused.ts
+index 239812eb..895f2063 100644
+--- a/core/count-focused.ts
++++ b/core/count-focused.ts
+@@ -113,6 +113,7 @@ export function fieldLawBridges(m:Machine,laws:Law[],at:Instances,own:E[],reques
+ import {type C, type E, type Law, type Machine, walkOnce, x} from './machine.ts'
+ import {type CountCert, type CountDecl, type Instances, substC, substE} from '../kernel/kernel.ts'
+ import {countsForReads} from './count-facts.ts'
++import {proposeCountDemand} from './count-demand.ts'
+ 
+ // An untrusted starting subset for row-copy cases. Keep pre-state partitions
+ // and query-local frames/copies, not every unrelated source tuple. A caller
+@@ -145,7 +146,26 @@ export function copyCountSubset(m:Machine,cert:Pick<CountCert,'reads'|'insts'>):
+   return !!post&&pre[1]===post[1].slice(0,-1)&&keys(post[0],post[2]).has(JSON.stringify(pre[2]))
+  })}
+ }
+-export function focusCountCert(m: Machine, decls: CountDecl[], full: Pick<CountCert,'reads'|'insts'>, options: {carried?: string, structural?: boolean, frames?: boolean, algebraic?: boolean, requestFrames?: boolean, copyFrames?: boolean, targets?: E[]} = {}): Pick<CountCert,'reads'|'insts'> {
++// Generate directly for the conclusion's reads and their pre-state twins.
++// This is separate from certFor's unchanged legacy prefix. At most 128
++// structured proposals survive, and every one keeps its witness alternative.
++export function demandCountCert(m:Machine,decls:CountDecl[],full:Pick<CountCert,'reads'|'insts'>,claim:C):Pick<CountCert,'reads'|'insts'>{
++ const cs=countsForReads(decls,full.reads);if(!cs)return full
++ const wanted=new Set<string>(),reserved=new Set([...m.inputs,...m.params,...Object.keys(m.state),...full.insts.map(q=>q.wit)])
++ walkOnce(claim,(o:any)=>{
++  if(o.op==='var')reserved.add(o.name)
++  if(o.op==='get')for(const read of full.reads)if(read[1]===o.map&&JSON.stringify(read[2])===JSON.stringify(o.key))wanted.add(read[0])
++ })
++ if(wanted.size<2)return full
++ for(const read of full.reads)if(wanted.has(read[0])&&read[1].endsWith('#'))for(const before of full.reads)if(before[1]===read[1].slice(0,-1)&&JSON.stringify(before[2])===JSON.stringify(read[2]))wanted.add(before[0])
++ const proposed=proposeCountDemand(cs,wanted,{reserved});if(!proposed.length)return full
++ const key=(q:CountCert['insts'][number])=>JSON.stringify({below:q.below,unit:q.unit,terms:[...q.terms].sort((a,b)=>a[1].localeCompare(b[1])||a[0]-b[0])}),seen=new Set<string>(),structured:CountCert['insts']=[]
++ for(const q of [...proposed,...full.insts.filter(q=>q.terms.length>=3)]){
++  const id=key(q);if(seen.has(id))continue;seen.add(id);structured.push(q);if(structured.length===128)break
++ }
++ return {reads:full.reads,insts:[...full.insts.filter(q=>q.terms.length<3),...structured]}
++}
++export function focusCountCert(m: Machine, decls: CountDecl[], full: Pick<CountCert,'reads'|'insts'>, options: {carried?: string, structural?: boolean, frames?: boolean, algebraic?: boolean, requestFrames?: boolean, copyFrames?: boolean, targets?: E[], claim?: C} = {}): Pick<CountCert,'reads'|'insts'> {
+   const cs=countsForReads(decls,full.reads)
+   if(!cs) return {reads:full.reads,insts:[]}
+   const inputs=new Set(m.inputMaps??[]), text=(e:unknown)=>JSON.stringify(e)
+@@ -313,5 +333,6 @@ export function focusCountCert(m: Machine, decls: CountDecl[], full: Pick<CountC
+       }
+     }
+   }
+-  return {reads:full.reads,insts}
++  const focused={reads:full.reads,insts}
++  return options.algebraic&&options.claim?demandCountCert(m,decls,focused,options.claim):focused
+ }
+diff --git a/core/count-recovery/derivability-closure.test.ts b/core/count-recovery/derivability-closure.test.ts
+new file mode 100644
+index 00000000..3c656962
+--- /dev/null
++++ b/core/count-recovery/derivability-closure.test.ts
+@@ -0,0 +1,29 @@
++import {expect,test} from 'bun:test'
++import {type Machine,all,get,ite,less,n,not,plus,same,x} from '../machine.ts'
++import {type CountCert,checkMC,mcGoal} from '../../kernel/kernel.ts'
++import {clock} from '../../kernel/prove.ts'
++import {deriveCountClosure} from './derivability-closure.ts'
++
++function fixture(disjoint:boolean){
++ const member=x('member'),a=same(get('A',member),n(1)),b=same(get('B',member),n(1)),vote=same(get('Vote',member),n(1)),bit=(c:Parameters<typeof ite>[0])=>ite(c,n(1),n(0))
++ const d={j:'row',key:'member',below:n(4)},ds=[
++  {...d,map:'Remaining',body:bit(all(a,...disjoint?[not(vote)]:[]))},
++  {...d,map:'Voters',body:bit(all(b,vote))},
++  {...d,map:'Left',body:bit(all(a,not(b)))},
++  {...d,map:'Both',body:bit(all(a,b))},
++  {...d,map:'Right',body:bit(all(not(a),b))},
++ ]
++ const reads:CountCert['reads']=ds.map((c,i)=>[`r${i}`,c.map,n(0)]),insts:CountCert['insts']=[{wit:'w',below:n(4),terms:[[1,'r0'],[1,'r1'],[-1,'r2'],[-1,'r3'],[-1,'r4']],unit:0}]
++ const value=(map:string)=>get(map,n(0)),claim=less(plus(plus(value('Left'),value('Both')),value('Right')),plus(value('Remaining'),value('Voters'))),cert={reads,insts},g=mcGoal([claim],ds,cert)!
++ const m:Machine={name:'disjoint source closure',params:[],inputs:[],state:{},inputMaps:['Vote'],maps:{A:0,B:0,Vote:0},step:{}}
++ return {m,ds,g,cert,claim}
++}
++for(const disjoint of [true,false])test(`closure ${disjoint?'checks a derived union':'does not assume a false union'}`,()=>{
++ const f=fixture(disjoint),events:object[]=[],tree=deriveCountClosure(f.m,f.ds,f.g,f.cert,new Map(),clock()+1500,events,{claim:f.claim})
++ if(disjoint){expect(tree).toBeDefined();if(tree)expect(checkMC([f.claim],f.ds,{...f.cert,tree})).toBe(true);expect(events.some((e:any)=>e.stage==='closure-final'&&e.outcome==='checked')).toBe(true)}
++ else expect(tree).toBeUndefined()
++})
++test('expired closure leaves no proof and never extends its deadline',()=>{
++ const f=fixture(true)
++ expect(deriveCountClosure(f.m,f.ds,f.g,f.cert,new Map(),clock()-1,[],{claim:f.claim})).toBeUndefined()
++})
+diff --git a/core/count-recovery/derivability-closure.ts b/core/count-recovery/derivability-closure.ts
+new file mode 100644
+index 00000000..808fd81d
+--- /dev/null
++++ b/core/count-recovery/derivability-closure.ts
+@@ -0,0 +1,123 @@
++// Untrusted three-phase count recovery. Every accepted cut is inserted as an
++// ordinary checked split; no proposed bound is an assumption in the result.
++import {type C,type Machine,x} from '../machine.ts'
++import {type CountCert,type CountDecl,type Goal,type Path,type Tree,canon,facts,linear,substC,truth} from '../../kernel/kernel.ts'
++import {brokenOf,clock,pastWall,withDeadline} from '../../kernel/prove.ts'
++import {REFUTED} from '../../kernel/cdcl.ts'
++import {scale,sub} from '../solver.ts'
++import {check,grow,modelSequence,refuteFast,rowsAt,widen} from './ops.ts'
++import {fieldBounds,countBindingsAt} from './field-bound-lemmas.ts'
++import {preStateCountSource} from './pre-state-source.ts'
++import {booleanCore} from './boolean-core.ts'
++import {piecesAt,walkLive} from './live-dependencies.ts'
++import {liftCountProxies} from './lift-count-proxies.ts'
++import {proveNaturalCases} from './natural-cases.ts'
++type Packet=Pick<CountCert,'reads'|'insts'>
++type Cut={split:Record<string,number>,no:Tree,when:Record<string,number>[]}
++type SourceModel={witness:string,model:Record<string,number>}
++type Options={claim?:C,fieldSource?:(g:Goal,c:Packet,claim:C,p:Path,end:number)=>Tree|undefined}
++const put=(p:Path,lin:Record<string,number>,holds:boolean):Path=>new Map(p).set(canon(lin),{lin,holds})
++const plain=(lin:Record<string,number>)=>!Object.keys(lin).some(k=>k.startsWith('⟦'))
++const opposite=(a:{lin:Record<string,number>,holds:boolean})=>{if(a.holds)return a.lin;const q=scale(a.lin,-1);q['1']=(q['1']??0)+1;return q}
++const fast=(g:Goal,p:Path):Tree|undefined=>{const q=refuteFast(rowsAt(g,p),256);return q?.kind==='refuted'?{leaf:q.steps}:undefined}
++
++export function deriveCountClosure(m:Machine,ds:CountDecl[],g:Goal,cert:Packet,root:Path,until:number,trace:object[],options:Options={}):Tree|undefined{
++ const raw=g.hyps.slice(0,-cert.insts.length),ids=new Set(cert.reads.map(r=>r[0])),maps=new Set(cert.reads.map(r=>r[1])),wits=new Set(cert.insts.map(q=>q.wit))
++ const wanted=new Set<string>();walkLive(options.claim,root,(o:any)=>{
++  if(o.op==='var'&&ids.has(o.name))wanted.add(o.name)
++  if(o.op==='get')for(const r of cert.reads)if(r[1]===o.map&&JSON.stringify(r[2])===JSON.stringify(o.key))wanted.add(r[0])
++ })
++ // Field-only laws and a lone count keep their established cheap recovery.
++ if(wanted.size<2||!cert.insts.some(q=>q.unit===0&&q.terms.length>=3))return undefined
++ const started=clock(),end=Math.min(until,started+1500),reserve=Math.min(250,Math.max(0,(end-started)/5)),cuts:Cut[]=[],ctx:C[]=[],closed=new Set<number>(),models:SourceModel[]=[]
++ let path=new Map(root)
++ const alive=()=>clock()<end&&!pastWall()
++ const transport=(from:Goal,to:Goal,t:Tree,a:Path,b:Path)=>alive()?withDeadline(end,()=>widen(from,to,t,{},a,b)):undefined
++ const source=(witness?:string):C[]=>raw.flatMap(c=>piecesAt(c,path)).filter(c=>{let skip=false;walkLive(c,path,(o:any)=>{if(o.op==='get'&&maps.has(o.map)||o.op==='var'&&(ids.has(o.name)||wits.has(o.name)&&o.name!==witness))skip=true});return !skip})
++ const accept=(good:Extract<C,{op:'<='}>,from:Goal,tree:Tree,fromPath:Path):boolean=>{
++  const a=linear(good.a,path),b=linear(good.b,path);if(!a||!b)return false
++  const split=sub(a,b);if(!plain(split))return false
++  if(path.get(canon(split))?.holds===true)return true
++  const noPath=put(path,split,false),no=transport(from,g,tree,fromPath,noPath)
++  if(!no)return false
++  cuts.push({split,no,when:[...path.values()].map(opposite)});path=put(path,split,true);ctx.push(good);return true
++ }
++ // A guard is only pinned if the opposite branch is already refuted. If it
++ // cannot be established here, leave that conditional ceiling to another case.
++ const pin=(atom:Record<string,number>):boolean=>{
++  if(path.get(canon(atom))?.holds===true)return true
++  if(!plain(atom))return false
++  const noPath=put(path,atom,false),small={name:g.name,hyps:source()},t=fast(small,noPath),no=t&&transport(small,g,t,noPath,noPath)
++  if(!no)return false
++  cuts.push({split:atom,no,when:[...path.values()].map(opposite)});path=put(path,atom,true);return true
++ }
++ // Phase A: plain cells under explicit, proved guard atoms. Cheap scalar
++ // equalities precede count-source construction and eliminate duplicate cuts.
++ for(const guarded of fieldBounds(m,ds,cert,{claim:options.claim??raw.at(-1),path:root})){
++  if(!alive())break
++  if(guarded.op!=='<=')continue
++  const before=clock(),condition=guarded.a.op==='if'?guarded.a.c:undefined
++  if(condition&&(!facts(condition,path).every(pin)||truth(condition,path)!==true))continue
++  const good:Extract<C,{op:'<='}>={...guarded,a:guarded.a.op==='if'?guarded.a.then:guarded.a}
++  const a=linear(good.a,path),b=linear(good.b,path);if(!a||!b||!plain(sub(a,b))||truth(good,path)===true)continue
++  const noPath=put(path,sub(a,b),false),scalar={name:g.name,hyps:source()},direct=fast(scalar,noPath)
++  let accepted=!!direct&&accept(good,scalar,direct,noPath)
++  if(!accepted&&options.fieldSource&&clock()<end-reserve){
++   const claim:C={op:'not',x:good},prior=preStateCountSource(g,cert,claim,path),limit=Math.min(end-reserve,clock()+250)
++   const tree=options.fieldSource(prior.goal,prior.cert,claim,path,limit)
++   if(tree)accepted=accept(good,prior.goal,tree,path)
++  }
++  trace.push({stage:'closure-scalar',plain:good,checked:accepted,ms:clock()-before})
++ }
++ const basePath=new Map(path),pool=cert.insts.flatMap((q,index)=>q.unit===0&&q.terms.length<=5?[index]:[]),failedAt=new Map<number,number>()
++ let rounds=0
++ // Phase B: one closure over local source facts. A SAT model is reused only
++ // after validating the entire current source with its member renamed.
++ while(clock()<end-reserve&&!pastWall()){
++  const version=ctx.length;let added=0;rounds++
++  for(const index of pool){
++   if(clock()>=end-reserve||pastWall())break
++   if(closed.has(index)||failedAt.get(index)===version)continue
++   const inst=cert.insts[index]!,h=g.hyps[raw.length+index]
++   if(h?.op!=='or'||h.xs[0]?.op!=='<=')continue
++   const good=h.xs[0];if(truth(good,path)===true){closed.add(index);continue}
++   const part:Goal={name:g.name,hyps:[...source(inst.wit),...ctx,h,{op:'not',x:good}]},before=clock()
++   const reused=models.some(saved=>{
++    const renamed={...part,hyps:part.hyps.map(c=>substC(c,{vars:{[inst.wit]:x(saved.witness)},maps:{},flags:{}}))}
++    return brokenOf(renamed)(saved.model).length===0
++   })
++   if(reused){failedAt.set(index,version);trace.push({stage:'closure-source',index,outcome:'reused-model',ms:clock()-before});continue}
++   const limit=Math.min(end-reserve,clock()+(inst.terms.length===5?150:50)),q=modelSequence(basePath)(part,limit)
++   let tree:Tree|undefined='tree'in q?q.tree:undefined
++   if(!tree&&!('tree'in q)&&q.stuck==='sat'){
++    if(brokenOf(part)(q.witness).length===0){models.push({witness:inst.wit,model:q.witness});if(models.length>16)models.shift()}
++   }else if(!tree&&!('tree'in q)&&q.why===REFUTED&&q.core?.length&&q.core.length<=8&&clock()<limit){
++    const small={...part,hyps:q.core.map(i=>part.hyps[i]!)},local=booleanCore(small,basePath,new Set([inst.wit]),limit,trace,{deferCheck:true,extended:true,scalarGuards:true,model:true})
++    if(local)tree=transport(small,part,local,basePath,basePath)
++   }
++   const accepted=!!tree&&accept(good,part,tree,basePath)
++   if(accepted){closed.add(index);added++}else failedAt.set(index,version)
++   trace.push({stage:'closure-source',index,core:q.core?.length,outcome:accepted?'checked':'tree'in q?'untransported':q.stuck,ms:clock()-before})
++  }
++  trace.push({stage:'closure-round',round:rounds,added,closed:closed.size,models:models.length})
++  if(!added)break
++ }
++ // Phase C: the only final numeric query, using proved cuts, never proposals.
++ if(!alive())return undefined
++ const pure=(c:C)=>{let other=false;walkLive(c,path,(o:any)=>{if(o.op==='get'||o.op==='var'&&wits.has(o.name))other=true});return !other}
++ const replacements=Object.fromEntries([...maps].map(map=>[map,(key:any)=>{const r=cert.reads.find(r=>r[1]===map&&JSON.stringify(r[2])===JSON.stringify(key));return r?x(r[0]):{op:'get' as const,map,key}}]))
++ const flags=Object.fromEntries(Object.keys(m.step.flags??{}).map(name=>[name,{op:'flag' as const,name}]))
++ const numeric:Goal={name:g.name,hyps:[...raw.map(c=>substC(c,{vars:{},maps:replacements,flags})).flatMap(c=>piecesAt(c,basePath)).filter(pure),...countBindingsAt(cert.reads,basePath),...ctx.filter(pure)]}
++ const before=clock(),natural=proveNaturalCases(numeric,basePath,end,trace,{deferCheck:true}),q=natural?{tree:natural}:modelSequence(basePath)(numeric,end)
++ let proof:Tree|undefined='tree'in q?q.tree:undefined
++ if(!proof&&!('tree'in q)&&q.why===REFUTED&&q.core?.length){
++  const small={...numeric,hyps:q.core.map(i=>numeric.hyps[i]!)},direct=fast(small,basePath),out=direct?undefined:grow(small,basePath,{nodes:0,until:end,units:false})
++  const local=direct??(out&&'tree'in out?out.tree:undefined)
++  if(local)proof=transport(small,numeric,local,basePath,basePath)
++ }
++ let tree=proof&&liftCountProxies(numeric,g,proof,cert.reads,basePath,path,e=>trace.push({stage:'closure-transport',...e}),{deferCheck:true})
++ for(let i=cuts.length-1;tree&&i>=0;i--)tree={split:cuts[i]!.split,yes:tree,no:cuts[i]!.no}
++ const checked=!!tree&&alive()&&check(g,tree,root)
++ trace.push({stage:'closure-final',hyps:numeric.hyps.length,closed:closed.size,closedIndices:[...closed],rounds,core:q.core?.length,outcome:checked?'checked':'tree'in q?'untransported':q.stuck,reason:'tree'in q?undefined:q.why,ms:clock()-before,total:clock()-started})
++ return checked?tree:undefined
++}
+diff --git a/core/count-recovery/field-bound-lemmas.ts b/core/count-recovery/field-bound-lemmas.ts
+index 49a55ea5..2bb9a6f9 100644
+--- a/core/count-recovery/field-bound-lemmas.ts
++++ b/core/count-recovery/field-bound-lemmas.ts
+@@ -6,6 +6,7 @@ import {type CountCert,type CountDecl,type Goal,type Path,type Tree,canon,column
+ import {countsForReads} from '../count-facts.ts'
+ import {sub} from '../solver.ts'
+ import {liftCountProxies} from './lift-count-proxies.ts'
++import {deriveCountClosure} from './derivability-closure.ts'
+ import {piecesAt,sourceScalarContext,sourceWitnessContext,walkLive} from './live-dependencies.ts'
+ import {carriedCase} from './carried-case.ts'
+ import {foldPath} from './fold-path.ts'
+@@ -76,7 +77,7 @@ export const fieldBoundLemmas:typeof fieldBoundLemmasImpl=(...args)=>wallTree('p
+  if(tree)options.memo?.put(g,path,tree)
+  return tree
+ })
+-function fieldBoundLemmasImpl(m:Machine,ds:CountDecl[],g:Goal,cert:Proposal,until:number,trace:object[],onModel?:(goal:Goal,witness:Record<string,number>)=>boolean,root:Path=new Map(),options:{splitRows?:boolean,deferCheck?:boolean,fieldClaim?:C,memo?:SourceProofMemo,onSourceModel?:(goal:Goal,witness:Record<string,number>,path:Path)=>void}={}):Tree|undefined{
++function fieldBoundLemmasImpl(m:Machine,ds:CountDecl[],g:Goal,cert:Proposal,until:number,trace:object[],onModel?:(goal:Goal,witness:Record<string,number>)=>boolean,root:Path=new Map(),options:{splitRows?:boolean,deferCheck?:boolean,fieldClaim?:C,memo?:SourceProofMemo,closure?:boolean,onSourceModel?:(goal:Goal,witness:Record<string,number>,path:Path)=>void}={}):Tree|undefined{
+  const pointOptions={deferCheck:!!options.deferCheck}
+  const seq=modelSequence(root),ctx:C[]=[],path:Path=new Map(root),lemmas:{split:Record<string,number>,no:Tree}[]=[]
+  const accept=(tree:Tree|undefined,path:Path)=>tree&&(options.deferCheck||check(g,tree,path))?tree:undefined
+@@ -84,6 +85,10 @@ function fieldBoundLemmasImpl(m:Machine,ds:CountDecl[],g:Goal,cert:Proposal,unti
+  const rowPlan=options.splitRows!==false?rowPairs(m,cert,root,options.fieldClaim).slice(0,2):[]
+  let arithmetic:Tree|undefined
+  const postMaps=new Set(cert.reads.filter(r=>r[1].endsWith('#')).map(r=>r[1])),postIds=new Set(cert.reads.filter(r=>r[1].endsWith('#')).map(r=>r[0]))
++ if(options.closure!==false&&!rowPlan.length){
++  const closed=deriveCountClosure(m,ds,g,cert,root,until,trace,{claim:options.fieldClaim,fieldSource:(source,proposal,claim,path,end)=>fieldBoundLemmas(m,ds,source,proposal,end,trace,onModel,path,{...options,closure:false,splitRows:false,deferCheck:true,fieldClaim:claim})})
++  if(closed)return closed
++ }
+  // Split a packed field's guarded column domain once, outside the row cases.
+  // Without it each row repeats the same range reconstruction for copied keys.
+  if(rowPlan.length&&!postIds.size&&options.fieldClaim){
+diff --git a/research/track-m/active-source-probe.ts b/research/track-m/active-source-probe.ts
+index 58e3c7fe..761e1bff 100644
+--- a/research/track-m/active-source-probe.ts
++++ b/research/track-m/active-source-probe.ts
+@@ -106,5 +106,5 @@ for(const [branch,path]of paths.entries()){
+    failed.push({index:event.index,terms:packet.cert.insts[event.index]?.terms,query:query&&{hyps:query.hyps,outcome:query.outcome,model:query.model},suggestedFromFullGoal:valid?Object.fromEntries(Object.entries(valid).flatMap(([name,ts])=>ts.length>(at[name]?.length??0)?[[name,ts.slice(at[name]?.length??0)]]:[])):null})
+   }
+  }
+- console.log(JSON.stringify({diagnostic:true,law:law.name,value,branch,carried,rowMode:process.env.LAB_ROW_MODE,ceilingIndex,ceilings,fieldAttempts:events.filter(e=>e.stage==='field-bound'),failed,sourceAdditions,...(process.env.LAB_SOURCE_TRACE==='1'?{countSteps:events.filter(e=>['count-lemma','needed-lemmas','field-bound-pending-core'].includes(e.stage)),usedCounts:tree?[...usedHyps(goal,tree,path)].filter(i=>i>=goal.hyps.length-packet.cert.insts.length).map(i=>({index:i-goal.hyps.length+packet.cert.insts.length,...packet.cert.insts[i-goal.hyps.length+packet.cert.insts.length]})):[]}:{}),wallMs:performance.now()-start,conditionalTree:!!tree,conditionalChecked:!!tree&&check(goal,tree,path),hyps:goal.hyps.length,instances:packet.cert.insts.length,suggestions,path:[...path],tail:events.slice(-14)}))
++ console.log(JSON.stringify({diagnostic:true,law:law.name,value,branch,carried,rowMode:process.env.LAB_ROW_MODE,ceilingIndex,ceilings,fieldAttempts:events.filter(e=>e.stage==='field-bound'),failed,sourceAdditions,...(process.env.LAB_SOURCE_TRACE==='1'?{countSteps:events.filter(e=>['count-lemma','needed-lemmas','field-bound-pending-core'].includes(e.stage)),closureSteps:events.filter(e=>e.stage.startsWith('closure-')),usedCounts:tree?[...usedHyps(goal,tree,path)].filter(i=>i>=goal.hyps.length-packet.cert.insts.length).map(i=>({index:i-goal.hyps.length+packet.cert.insts.length,...packet.cert.insts[i-goal.hyps.length+packet.cert.insts.length]})):[]}:{}),wallMs:performance.now()-start,conditionalTree:!!tree,conditionalChecked:!!tree&&check(goal,tree,path),hyps:goal.hyps.length,instances:packet.cert.insts.length,suggestions,path:[...path],tail:events.slice(-14)}))
+ }
+diff --git a/research/track-m/jobs-closure-default-probe.json b/research/track-m/jobs-closure-default-probe.json
+new file mode 100644
+index 00000000..08016d0f
+--- /dev/null
++++ b/research/track-m/jobs-closure-default-probe.json
+@@ -0,0 +1,4 @@
++[
++ {"name":"equal-row","cmd":"set -e; bun install --frozen-lockfile >/dev/null; LAB_ROW_MODE=equal LAB_SOURCE_MS=1500 LAB_SOURCE_TRACE=1 bun research/track-m/active-source-probe.ts replay-input/input.json 'Inv*' 5 all","cpu":8,"memory":14336,"timeout":90},
++ {"name":"closure-tests","cmd":"set -e; bun install --frozen-lockfile >/dev/null; bun x oxlint --type-aware --deny-warnings --disable-nested-config core/count-recovery/derivability-closure.ts core/count-recovery/derivability-closure.test.ts; bun test core/count-recovery/derivability-closure.test.ts","cpu":8,"memory":14336,"timeout":90}
++]
+diff --git a/research/track-m/jobs-closure-gate-family.json b/research/track-m/jobs-closure-gate-family.json
+new file mode 100644
+index 00000000..c136e64b
+--- /dev/null
++++ b/research/track-m/jobs-closure-gate-family.json
+@@ -0,0 +1,4 @@
++[
++ {"name":"five-law-family","cmd":"set -e; bun install --frozen-lockfile >/dev/null; TRACK_M_FAMILY_TRACE=1 timeout -s KILL 180 bun research/track-m/profile-family.ts replay-input/input.json","cpu":8,"memory":14336,"timeout":240},
++ {"name":"source-check","cmd":"set -e; bun install --frozen-lockfile >/dev/null; bun x oxlint --type-aware --deny-warnings --disable-nested-config core/count-demand.ts core/count-demand.test.ts core/count-focused.ts core/count-focus-proof.ts core/count-recovery/derivability-closure.ts core/count-recovery/derivability-closure.test.ts core/count-recovery/field-bound-lemmas.ts research/track-m/active-source-probe.ts; bun test core/count-recovery core/count-demand.test.ts core/count-focused.test.ts core/count-cases.test.ts core/count-focus-proof.test.ts","cpu":8,"memory":14336,"timeout":240}
++]
+diff --git a/research/track-m/jobs-closure-implementation-smoke.json b/research/track-m/jobs-closure-implementation-smoke.json
+new file mode 100644
+index 00000000..9fbeac9a
+--- /dev/null
++++ b/research/track-m/jobs-closure-implementation-smoke.json
+@@ -0,0 +1,4 @@
++[
++ {"name":"source-check","cmd":"set -e; bun install --frozen-lockfile >/dev/null; bun x oxlint --type-aware --deny-warnings --disable-nested-config core/count-recovery/derivability-closure.ts core/count-recovery/field-bound-lemmas.ts; bun test core/count-recovery core/count-cases.test.ts core/count-focus-proof.test.ts","cpu":8,"memory":14336,"timeout":240},
++ {"name":"equal-row-closure","cmd":"set -e; bun install --frozen-lockfile >/dev/null; LAB_ROW_MODE=equal LAB_SOURCE_MS=1500 LAB_SOURCE_TRACE=1 bun research/track-m/active-source-probe.ts replay-input/input.json 'Inv*' 5 all","cpu":8,"memory":14336,"timeout":90}
++]

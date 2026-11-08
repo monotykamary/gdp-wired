@@ -17,7 +17,7 @@
 //      checks the final set. The ∃ search still uses `cone`: relative induction from already-kept candidates.
 import {type C, type E, type Law, type Machine} from './machine.ts'
 import {type CountCert, type CountInst, type Goal, type Instances, type MapRead, assumed, checkCountedLaws, checkMC, countedObligations, mcGoal, scope, substC, substE} from '../kernel/kernel.ts'
-import {brokenOf, clock, counted, fullRate, grow, modelInstances, wallAt, widen, usedHyps, withDeadline, withWall} from '../kernel/prove.ts'
+import {brokenOf, clock, counted, fullRate, grow, modelInstances, wallAt, widen, withDeadline, withWall} from '../kernel/prove.ts'
 import {REFUTED, cdclStats} from '../kernel/cdcl.ts'
 import {modelSequence} from '../kernel/model-sequence.ts'
 import {inferLaws} from './infer.ts'
@@ -31,6 +31,7 @@ import {focusedCountRecoveryEnabled,proveFocusedCounts} from './count-focus-proo
 import {smallOf, trueSmall} from './exists.ts'
 import {env} from './solver.ts'
 import {proofOrigins, proposeLemmaCuts} from './lemma-cuts.ts'
+import {countedCertificateHyps,transportCountCertificate} from './count-cert-transport.ts'
 
 // (GDP_COUNTS_PROF: where a counted search's time goes, by phase, on stderr at the end; `countsDump.on`, set by research's
 // profiles: each step goal left unknown or with a model past GDP_COUNTS_DUMP_MIN (300) hypotheses, the first GDP_COUNTS_DUMP_N (3))
@@ -552,7 +553,7 @@ function admitCountedFamily0(m:Machine,caller:Law[],initial:Law[],support:Set<La
     for(const {goal,decls}of countedObligations(m,context,{[owner.name]:proof.instances},context.indexOf(owner))){
       const cert=proof.certs[goal.name]
       if(!cert)return conservative()
-      const expanded=mcGoal(goal.hyps,decls,cert),refs=expanded&&usedHyps(expanded,cert.tree)
+      const expanded=mcGoal(goal.hyps,decls,cert),refs=expanded&&countedCertificateHyps(expanded,cert)
       if(!refs)return conservative()
       for(const index of refs)if(index<goal.hyps.length)used.add(json(goal.hyps[index]))
     }
@@ -575,9 +576,9 @@ function admitCountedFamily0(m:Machine,caller:Law[],initial:Law[],support:Set<La
           for(let i=0;i<dst.length;i++){
             const cert=saved.proof.certs[src[i]!.goal.name]
             if(!cert)return join()
-            const a=mcGoal(src[i]!.goal.hyps,src[i]!.decls,cert),b=mcGoal(dst[i]!.goal.hyps,dst[i]!.decls,cert),tree=a&&b&&widen(a,b,cert.tree)
-            if(!tree)return join()
-            certs[dst[i]!.goal.name]={...cert,tree}
+            const a=mcGoal(src[i]!.goal.hyps,src[i]!.decls,cert),b=mcGoal(dst[i]!.goal.hyps,dst[i]!.decls,cert),lifted=a&&b&&transportCountCertificate(a,b,cert,wallAt())
+            if(!lifted)return join()
+            certs[dst[i]!.goal.name]=lifted
           }
         }
         return finish(kept,{instances,certs})
@@ -882,9 +883,8 @@ export function countedAttempts(m: Machine, caller: Law[], support: Set<Law>, un
           const part = localGoals[i]!, whole = wholeGoals[i]!, c = probe.proof.certs[part.goal.name]
           if (!c) { complete = false; break }
           const pg = mcGoal(part.goal.hyps, part.decls, c), wg = mcGoal(whole.goal.hyps, whole.decls, c)
-          const tree = pg && wg && withDeadline(end, () => widen(pg, wg, c.tree))
-          if (!tree) { complete = false; break }
-          const lifted = {...c, tree}
+          const lifted = pg && wg && withDeadline(end, () => transportCountCertificate(pg,wg,c,wallAt()))
+          if (!lifted) { complete = false; break }
           if(!checkMC(whole.goal.hyps,whole.decls,lifted)){complete=false;break}
           certs[whole.goal.name] = lifted
         }

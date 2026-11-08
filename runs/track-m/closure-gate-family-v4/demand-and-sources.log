@@ -1,0 +1,13 @@
+
+--- stderr ---
+74 | const requested=new Set<string>();walkOnce(packet.goal.hyps.at(-1),(o:any)=>{if(o.op==='get')for(const r of packet.cert.reads)if(r[1]===o.map&&JSON.stringify(r[2])===JSON.stringify(o.key))requested.add(r[0])})
+75 | const counts=countsForReads(packet.decls,packet.cert.reads)!,sizes=counts.map(c=>{let size=0;walkOnce(c,()=>size++);return {id:c.v,size}})
+76 | const started=performance.now(),demand=demandCountCert(m,packet.decls,packet.cert,packet.goal.hyps.at(-1)!)
+77 | const signature=(terms:[number,string][])=>JSON.stringify([...terms].sort((a,b)=>a[1].localeCompare(b[1])))
+78 | const targets:Record<string,[number,string][]>= {R2:[[1,'r$9'],[1,'r$16'],[-1,'r$24'],[-1,'r$25'],[-1,'r$26']],R5X:[[1,'r$7'],[-1,'r$10'],[-1,'r$11']],R5S:[[1,'r$8'],[-1,'r$12'],[-1,'r$11']]}
+79 | for(const [name,terms]of Object.entries(targets))if(!demand.insts.some(q=>signature(q.terms)===signature(terms)))throw new Error('missing demanded '+name)
+                                                                                                                                ^
+error: missing demanded R2
+      at /work/gdp-wired/research/track-m/.demand-187690.ts:79:124
+
+Bun v1.4.3 (Linux x64)

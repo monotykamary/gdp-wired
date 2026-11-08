@@ -4306,3 +4306,195 @@ The two research files pass type-aware lint with zero errors or warnings.
 The earlier v3 **whole-closure** budget failure remains on record; it has not
 yet been rerun with a revised algorithm. The production runtime and **3/5**
 complete hard-law status remain unchanged.
+
+## Default-on closure implementation — gate 1, first iteration
+
+The first implementation adds generic bounded demand proposals in
+`core/count-demand.ts`, wires conclusion-read/pre-state-twin demand into the
+focused packet without changing `certFor`'s legacy ordering, and adds a
+three-phase closure. The structured pool remains capped at **128**. The
+proposer has eleven passing synthetic/kernel-witness tests; the first
+integrated targeted suite and type-aware lint also pass.
+
+**This iteration is not accepted: gate 1 remains 3/5.** The exclusive large VM
+had eight pinned vCPUs and no co-tenants. The full-law results were:
+
+| Law | Proved/checked | Wall | Counted units |
+|---|---|---:|---:|
+| One primary | yes/yes | 2.761 s | 926.633 |
+| Inv3915 | yes/yes | 8.156 s | 960.226 |
+| Inv1758 | yes/yes | 34.077 s | 4,342.879 |
+| Inv2973 | no/no | 23.940 s | 5,234.405 |
+| Inv* | no/no | 22.339 s | 5,137.342 |
+
+Family wall: **91.275 s**. These are measured walls, not a claimed speedup over
+main. Receipts and the exact staged implementation patch are in
+`runs/track-m/closure-gate-family-v1/`.
+
+The earlier exact equal-row Inv* diagnostic **does check** with this iteration:
+**1,222.488 counted units**, 8.590 s for its measured proof call. It closes all
+thirteen required reference facts, including union 39 and frames 69/70, plus
+three extra checked facts. Two natural-subtraction case splits close the final
+arithmetic query. This is a conditional source result, not a full-law proof;
+see `runs/track-m/closure-default-probe-v2/`.
+
+The first integration still ran closure inside row leaves. That does not meet
+Section 5's hoisting requirement and retains repeated work. The next iteration
+moves scalar and pointwise work before row decisions, uses independently
+checked conditional cuts and dependency slicing, and confines row leaves to
+arithmetic over active cuts. No later gate has run: generated production,
+Paxos 3/3 against `6a3874d3`, and the paired 29×3 IC3Syn matrix remain blocked
+by the five-law gate.
+
+### Hoisted closure and conditional-certificate integration — still gated
+
+The follow-up removes ordinary-tree reinlining from the internal count-case
+route. Independently checked, sliced `LemmaCut`s now travel through guard,
+row-cache, and finite-action transport as untrusted proposer metadata; the
+final `CountCert` contains ordinary trees and the existing kernel lemma list.
+No trusted checker or Lean rule changed. Direct standalone Tree APIs retain
+their ordinary-tree default.
+
+The canonical equal-row control checks with this carrier in
+`closure-final-smoke-v3`: **815.910 counted units, 4.075 s wall**. It closes all
+thirteen reference facts (including union 39 and frames 69/70), reaches a
+fixed point, and checks the arithmetic conclusion. This is still a conditional
+source proof, not a complete-law proof. The full repository type/lint gate and
+its targeted suite passed in that snapshot.
+
+The next complete-family receipt, `closure-gate-family-v2`, remains **3/5**:
+
+| Law | Proved / checked | Wall | Counted units |
+|---|---|---:|---:|
+| One primary | yes / yes | 2.273 s | 926.633 |
+| Inv3915 | yes / yes | 2.466 s | 856.955 |
+| Inv1758 | yes / yes | 11.906 s | 4,296.456 |
+| Inv2973 | no / no | 21.380 s | 5,409.351 |
+| Inv* | no / no | 15.868 s | 5,137.029 |
+
+Family wall is **53.896 s**. Type checking and lint pass, but the combined
+suite catches a demand-partner regression: restricting partners to directly
+referenced count IDs loses the primitive carried map and therefore R2. The
+next snapshot's new flag test also exposed the distinction between raw named
+flags and the compiled `?name` representation. Both are being corrected;
+these failed snapshots are not acceptance evidence.
+
+A second substantive omission was identified against Section 6.3: R2 is a
+**conditional** union on a row-field version-order branch, not a theorem of
+every row-alias scope. Generic scalar-scope discovery is being added from
+member/anchor equalities and existing scalar law guards; every resulting
+count cut must still be proved under its condition. Phase C alone branches
+those conditions. The scalar proposer is not a new axiom or a protocol-specific
+version test.
+
+No later acceptance gate has run. The generated production 60-second test,
+Paxos 3/3, and paired IC3Syn 29×3 remain blocked behind a clean five-law gate.
+
+### Complete-certificate integration and written frames — acceptance pending
+
+The candidate now carries independent conditional cuts through full-obligation
+transport and dependency selection, not only through the internal row/guard
+caches. `core/count-cert-transport.ts` preserves the complete certificate and
+its source slices. The unchanged kernel remains the admission authority.
+`core/count-write-frames.ts` discovers bounded, witness-backed proposals from
+actual map-copy value arms, including the lowered Boolean write representation;
+reading an input only in a non-Boolean guard does not make it a copy source.
+The structured union/partition cap remains **128** and `certFor`'s legacy order
+has not been changed.
+
+Completed `closure-final-smoke-v6` checks: full TypeScript/type-aware lint and
+the targeted suite pass. The canonical Inv* conditional source proof checks in
+**1,082.881 counted units, 4.801 s wall**, with seventeen independent cuts and
+a completed fixed point. This is not a complete-law result. The two full active
+source projections still fail within their source budgets; their retained SAT
+models are models of incomplete arithmetic projections, not protocol
+counterexamples.
+
+`closure-gate-family-v4` is another **failed acceptance gate: 3/5**. Each job ran
+alone on a pinned eight-vCPU large VM. Its exact source snapshot is retained in
+that run directory.
+
+| Law | Proved / checked | Wall | Counted units |
+|---|---|---:|---:|
+| One primary | yes / yes | 2.773 s | 926.633 |
+| Inv3915 | yes / yes | 3.062 s | 872.335 |
+| Inv1758 | yes / yes | 14.932 s | 4,310.475 |
+| Inv2973 | no / no | 38.928 s | 5,007.610 |
+| Inv* | no / no | 21.323 s | 5,166.605 |
+
+Family wall: **81.022 s**. The full integration check passes in this snapshot,
+but its demand diagnostic fails: reserving requested Boolean range facts
+exposed that a positive-pair allowance could be consumed by regenerating
+partitions. Consequently R2 fell out of the bounded proposal pool. This is a
+proposal-budget regression, not acceptance evidence. The next revision tests
+pair-only requests, symbolic post-state partition discovery, and copied-size
+bridges without increasing the cap.
+
+Generated production (60 s), Paxos 3/3 against `6a3874d3`, and paired IC3Syn
+29×3 have **not run** for this implementation: they remain gated on 5/5.
+
+### Latest verified candidate — Gate 1 still 3/5
+
+The final checkpoint in `closure-gate-family-v7` includes the corrected
+conditional-scope cache: equal guard paths now use one canonical object, so
+no source query is assigned the colliding `scope = -1` key. The real-packet
+diagnostic explicitly checks this invariant. Unknown or untransported sources
+are no longer reported as a completed fixed point.
+
+Other verified integration details:
+
+- Positive-pair requests do not regenerate the partition prefix; R2 and R5
+  remain discoverable under the unchanged **128** structured-proposal cap.
+- Symbolic post-state shapes are used only for proposing Boolean identities.
+  Every witness is still proved against the original expanded declaration.
+- Written-value proposals include copied row sizes and intersections of two
+  overwritten rows. All directions remain untrusted, bounded proposals.
+- Requested Boolean domain ceilings and field-sensitive zero candidates share
+  the existing structured budget. They are not admitted from syntax alone.
+- Query-first source proofs use a real model allowance, reconstruct only small
+  refuted cores, and reuse a model only where it validates. Reconstruction and
+  arithmetic remain within the caller's existing deadline; the full active
+  probe no longer loses its unused allowance to a second hidden 1,500-unit cap.
+- Declarative containment ranks cheap inclusions before expensive expanded
+  post-state partitions. `certFor`'s legacy order and all trusted rules remain
+  unchanged.
+
+Full TypeScript/type-aware lint passes. The targeted suite passes **221 tests,
+977 assertions, zero failures**. The canonical equal-row Inv* source checks
+with **17 cuts, 920.085 counted units, 4.374 s wall**, including all thirteen
+reference facts and the arithmetic conclusion. It reaches a verified fixed
+point in two rounds and remains below the 1,500-unit pass line. This is a
+conditional source proof, not a complete-law result.
+
+The requested first acceptance gate still fails:
+
+| Law | Proved / checked | Wall | Counted units |
+|---|---|---:|---:|
+| One primary | yes / yes | 2.716 s | 926.633 |
+| Inv3915 | yes / yes | 2.885 s | 872.335 |
+| Inv1758 | yes / yes | 13.413 s | 4,310.475 |
+| Inv2973 | no / no | 32.069 s | 5,002.653 |
+| Inv* | no / no | 35.274 s | 5,161.747 |
+
+**Family wall: 86.359 s; complete-law result: 3/5.** The measurement commands
+exit successfully because they record unsuccessful proof attempts too; their
+exit status is not an acceptance verdict. All three jobs ran alone, with eight
+of eight vCPUs pinned, on the same large VM (see `placement.json`).
+
+The full active probes still stop before closure:
+
+| Active source | Checked cuts | Counted units | Wall | Result |
+|---|---:|---:|---:|---|
+| Inv* | 42 | 4,725.785 | 17.536 s | First arithmetic leaf checks; the next is SAT in the incomplete projection |
+| Inv2973 | 68 | 4,802.068 | 16.717 s | First arithmetic leaf checks; the next is SAT in the incomplete projection |
+
+For Inv*, the unfinished leaf has `a = i`, `j = i` and `CfgT[j] <= CT[i]`.
+For Inv2973 it has `a = i`, `b < i`. Both exhaust the source allowance before
+a fixed point. The exact path, model, candidate catalog and query trace are in
+`demand-and-sources.log`. These models name unresolved proof obligations; they
+are **not protocol counterexamples**.
+
+This implementation is default-on **only on the candidate branch** and is not
+accepted for promotion. The generated-production 60-second test, same-VM
+Paxos 3/3 against `6a3874d3`, and paired IC3Syn 29×3 have **not been run**,
+because the ordered 5/5 gate has not passed. No later gate is claimed.

@@ -6,6 +6,8 @@ import {type CountCert,type CountDecl,type Goal,type Path,type Tree,canon,column
 import {countsForReads} from '../count-facts.ts'
 import {sub} from '../solver.ts'
 import {liftCountProxies} from './lift-count-proxies.ts'
+import {deriveCountClosure} from './derivability-closure.ts'
+import {hasConditionalProof} from './conditional-proof.ts'
 import {piecesAt,sourceScalarContext,sourceWitnessContext,walkLive} from './live-dependencies.ts'
 import {carriedCase} from './carried-case.ts'
 import {foldPath} from './fold-path.ts'
@@ -73,10 +75,10 @@ export const fieldBoundLemmas:typeof fieldBoundLemmasImpl=(...args)=>wallTree('p
  const cached=options.memo?.get(g,path,until)
  if(cached&&(options.deferCheck||check(g,cached,path))){trace.push({stage:'source-memo',scope:'field'});return cached}
  const tree=fieldBoundLemmasImpl(...args)
- if(tree)options.memo?.put(g,path,tree)
+ if(tree&&!hasConditionalProof(tree))options.memo?.put(g,path,tree)
  return tree
 })
-function fieldBoundLemmasImpl(m:Machine,ds:CountDecl[],g:Goal,cert:Proposal,until:number,trace:object[],onModel?:(goal:Goal,witness:Record<string,number>)=>boolean,root:Path=new Map(),options:{splitRows?:boolean,deferCheck?:boolean,fieldClaim?:C,memo?:SourceProofMemo,onSourceModel?:(goal:Goal,witness:Record<string,number>,path:Path)=>void}={}):Tree|undefined{
+function fieldBoundLemmasImpl(m:Machine,ds:CountDecl[],g:Goal,cert:Proposal,until:number,trace:object[],onModel?:(goal:Goal,witness:Record<string,number>)=>boolean,root:Path=new Map(),options:{splitRows?:boolean,deferCheck?:boolean,fieldClaim?:C,memo?:SourceProofMemo,closure?:boolean,conditional?:boolean,onSourceModel?:(goal:Goal,witness:Record<string,number>,path:Path)=>void}={}):Tree|undefined{
  const pointOptions={deferCheck:!!options.deferCheck}
  const seq=modelSequence(root),ctx:C[]=[],path:Path=new Map(root),lemmas:{split:Record<string,number>,no:Tree}[]=[]
  const accept=(tree:Tree|undefined,path:Path)=>tree&&(options.deferCheck||check(g,tree,path))?tree:undefined
@@ -84,6 +86,10 @@ function fieldBoundLemmasImpl(m:Machine,ds:CountDecl[],g:Goal,cert:Proposal,unti
  const rowPlan=options.splitRows!==false?rowPairs(m,cert,root,options.fieldClaim).slice(0,2):[]
  let arithmetic:Tree|undefined
  const postMaps=new Set(cert.reads.filter(r=>r[1].endsWith('#')).map(r=>r[1])),postIds=new Set(cert.reads.filter(r=>r[1].endsWith('#')).map(r=>r[0]))
+ if(options.closure!==false){
+  const closed=deriveCountClosure(m,ds,g,cert,root,until,trace,{claim:options.fieldClaim,pairs:rowPlan,conditional:options.conditional,fieldSource:(source,proposal,claim,path,end)=>fieldBoundLemmas(m,ds,source,proposal,end,trace,onModel,path,{...options,closure:false,splitRows:false,deferCheck:true,fieldClaim:claim})})
+  if(closed)return closed
+ }
  // Split a packed field's guarded column domain once, outside the row cases.
  // Without it each row repeats the same range reconstruction for copied keys.
  if(rowPlan.length&&!postIds.size&&options.fieldClaim){

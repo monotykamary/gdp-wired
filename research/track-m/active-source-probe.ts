@@ -1,7 +1,7 @@
 // Partial active-source diagnostic, not a complete-law or protocol proof.
 import {readFileSync} from 'node:fs'
 import {type C,type Law,type Machine,n,plus,same,walkOnce,x} from '../../core/machine.ts'
-import {type Instances,type Path,canon,countedObligations,linear,mcGoal,truth,check} from '../../kernel/kernel.ts'
+import {type Instances,type Path,canon,countedObligations,linear,mcGoal,truth} from '../../kernel/kernel.ts'
 import {clock,counted,fullRate,modelInstances,usedHyps,withWall} from '../../kernel/prove.ts'
 import {certFor} from '../../core/counts.ts'
 import {countLawSeeds,countRowBridges,fieldLawBridges,focusCountCert,independentCountInstances,rowKeyNames} from '../../core/count-focused.ts'
@@ -11,6 +11,7 @@ import {actionGuard,activeCarried} from '../../core/count-recovery/action-guard.
 import {activeWriteKey,activeWriteRow} from '../../core/count-recovery/row-cases.ts'
 import {fieldBoundLemmas,fieldBounds} from '../../core/count-recovery/field-bound-lemmas.ts'
 import {sourceProofMemo} from '../../core/count-recovery/source-memo.ts'
+import {checkConditionalProof as check,hasConditionalProof} from '../../core/count-recovery/conditional-proof.ts'
 import {sourceWitnessInstances} from '../../core/count-recovery/source-witness-instances.ts'
 import {sub} from '../../core/solver.ts'
 const [file,prefix='Inv2973',valueText='0',carriedArg='first']=process.argv.slice(2),value=Number(valueText)
@@ -26,7 +27,7 @@ at=fieldLawBridges(m,targetCounts?laws.filter(l=>(l.keys?.length??0)===0):laws,a
 if(law.forall)at[law.name]=[...at[law.name]??[],...own]
 at=countRowBridges(m,law,at,own,request)
 const carried=carriedArg==='all'?undefined:carriedArg==='first'?m.inputMaps?.[0]:carriedArg
-const build=()=>{const p=countedObligations(m,laws,{[law.name]:at},index).find(p=>p.goal.name.endsWith('@step'))!;return {...p,cert:focusCountCert(m,p.decls,certFor(p.goal,p.decls,true,1000),{carried,structural:false,frames:true,algebraic:true,requestFrames:true,copyFrames:true,targets:!targetCounts?rows:undefined})}}
+const build=()=>{const p=countedObligations(m,laws,{[law.name]:at},index).find(p=>p.goal.name.endsWith('@step'))!;return {...p,cert:focusCountCert(m,p.decls,certFor(p.goal,p.decls,true,1000),{carried,structural:false,frames:true,algebraic:true,requestFrames:true,copyFrames:true,targets:!targetCounts?rows:undefined,...(process.env.LAB_DEMAND_PROPOSALS==='1'?{claim:p.goal.hyps.at(-1)}:{})})}}
 let packet=build();at=seedCountWitnessFlags(m,at,[packet],true);packet=build()
 if(process.env.LAB_SOURCE_CERT==='1'){console.log(JSON.stringify({reads:packet.cert.reads,insts:packet.cert.insts}));process.exit(0)}
 const choice=finiteCountChoice(m);if(!choice)throw new Error('no choice')
@@ -81,7 +82,7 @@ for(const [branch,path]of paths.entries()){
   const next=modelInstances(m,laws,at,source,witness,8),valid=next&&independentCountInstances(m,laws,at,next,packet.cert.insts.map(i=>i.wit))
   suggestions.push({hyps:source.hyps.length,added:valid?Object.fromEntries(Object.entries(valid).flatMap(([name,ts])=>ts.length>(at[name]?.length??0)?[[name,ts.slice(at[name]?.length??0)]]:[])):null})
   return true
- },path,{deferCheck:true,...(process.env.LAB_ROW_MODE==='equal'?{splitRows:false}:{}),fieldClaim:packet.goal.hyps.at(-1),memo,...(attempt<retries||process.env.LAB_SOURCE_DUMP==='1'?{onSourceModel:(source:any,model:Record<string,number>,sourcePath:Path)=>{
+ },path,{deferCheck:true,conditional:process.env.LAB_CONDITIONAL_PROOF==='1',...(process.env.LAB_ROW_MODE==='equal'?{splitRows:false}:{}),fieldClaim:packet.goal.hyps.at(-1),memo,...(attempt<retries||process.env.LAB_SOURCE_DUMP==='1'?{onSourceModel:(source:any,model:Record<string,number>,sourcePath:Path)=>{
   if(process.env.LAB_SOURCE_DUMP==='1'&&captured.size<8){
    const used=new Set<string>();walkOnce(source.hyps,(o:any)=>{if(o.op==='var')used.add(o.name)})
    const instances=packet.cert.insts.filter(q=>used.has(q.wit)&&(process.env.LAB_SOURCE_DUMP_POST==='1'?q.terms.some(([,id])=>packet.cert.reads.some(r=>r[0]===id&&r[1].endsWith('#'))):q.terms.length>=3)),key=JSON.stringify(source.hyps)
@@ -106,5 +107,6 @@ for(const [branch,path]of paths.entries()){
    failed.push({index:event.index,terms:packet.cert.insts[event.index]?.terms,query:query&&{hyps:query.hyps,outcome:query.outcome,model:query.model},suggestedFromFullGoal:valid?Object.fromEntries(Object.entries(valid).flatMap(([name,ts])=>ts.length>(at[name]?.length??0)?[[name,ts.slice(at[name]?.length??0)]]:[])):null})
   }
  }
- console.log(JSON.stringify({diagnostic:true,law:law.name,value,branch,carried,rowMode:process.env.LAB_ROW_MODE,ceilingIndex,ceilings,fieldAttempts:events.filter(e=>e.stage==='field-bound'),failed,sourceAdditions,...(process.env.LAB_SOURCE_TRACE==='1'?{countSteps:events.filter(e=>['count-lemma','needed-lemmas','field-bound-pending-core'].includes(e.stage)),usedCounts:tree?[...usedHyps(goal,tree,path)].filter(i=>i>=goal.hyps.length-packet.cert.insts.length).map(i=>({index:i-goal.hyps.length+packet.cert.insts.length,...packet.cert.insts[i-goal.hyps.length+packet.cert.insts.length]})):[]}:{}),wallMs:performance.now()-start,conditionalTree:!!tree,conditionalChecked:!!tree&&check(goal,tree,path),hyps:goal.hyps.length,instances:packet.cert.insts.length,suggestions,path:[...path],tail:events.slice(-14)}))
+ if(events.some(e=>e.stage==='closure-source'&&e.scope<0))throw new Error('noncanonical closure scope')
+ console.log(JSON.stringify({diagnostic:true,law:law.name,value,branch,carried,rowMode:process.env.LAB_ROW_MODE,ceilingIndex,ceilings,fieldAttempts:events.filter(e=>e.stage==='field-bound'),failed,sourceAdditions,...(process.env.LAB_SOURCE_TRACE==='1'?{countSteps:events.filter(e=>['count-lemma','needed-lemmas','field-bound-pending-core'].includes(e.stage)),closureSteps:events.filter(e=>e.stage.startsWith('closure-')),usedCounts:tree&&!hasConditionalProof(tree)?[...usedHyps(goal,tree,path)].filter(i=>i>=goal.hyps.length-packet.cert.insts.length).map(i=>({index:i-goal.hyps.length+packet.cert.insts.length,...packet.cert.insts[i-goal.hyps.length+packet.cert.insts.length]})):[]}:{}),wallMs:performance.now()-start,conditionalTree:!!tree,conditionalChecked:!!tree&&check(goal,tree,path),hyps:goal.hyps.length,instances:packet.cert.insts.length,suggestions,path:[...path],tail:events.slice(-14)}))
 }

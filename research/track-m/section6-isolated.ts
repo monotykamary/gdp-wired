@@ -65,7 +65,7 @@ export function starTests(g:Goal,cert:Packet,root:Path,file:string){
  for(const s of unknown){
   const part=goalOf(g,cert,root,s.index,[...ctx,...(ceilingChecked&&guardChecked?[plain]:[])]).goal,t=clock(),w=performance.now()
   const out=modelSequence(guarded)(part,t+50),outcome='tree'in out?'tree':out.stuck
-  results.push({index:s.index,arity:cert.insts[s.index]!.terms.length,wit:s.wit,hyps:part.hyps.length,outcome,why:out.why,coreSize:out.core?.length,countedUnits:clock()-t,wallMs:performance.now()-w,...(!('tree'in out)&&out.stuck==='sat'?{model:out.witness,modelValid:brokenOf(part)(out.witness).length===0}:{})})
+  results.push({index:s.index,arity:cert.insts[s.index]!.terms.length,wit:s.wit,hyps:part.hyps.length,outcome,why:'tree'in out?undefined:out.why,coreSize:out.core?.length,countedUnits:clock()-t,wallMs:performance.now()-w,...(!('tree'in out)&&out.stuck==='sat'&&out.witness?{model:out.witness,modelValid:brokenOf(part)(out.witness).length===0}:{})})
  }
  const first=results.find(r=>r.outcome==='sat'&&r.modelValid),reuse=first?results.filter(r=>r.index!==first.index).map(r=>{
   const part=goalOf(g,cert,root,r.index,[...ctx,...(ceilingChecked&&guardChecked?[plain]:[])]).goal

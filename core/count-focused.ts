@@ -113,6 +113,9 @@ export function fieldLawBridges(m:Machine,laws:Law[],at:Instances,own:E[],reques
 import {type C, type E, type Law, type Machine, walkOnce, x} from './machine.ts'
 import {type CountCert, type CountDecl, type Instances, substC, substE} from '../kernel/kernel.ts'
 import {countsForReads} from './count-facts.ts'
+import {proposeCountDemand} from './count-demand.ts'
+import {proposeWriteCountFrames} from './count-write-frames.ts'
+import {activeWriteRow} from './count-recovery/row-cases.ts'
 
 // An untrusted starting subset for row-copy cases. Keep pre-state partitions
 // and query-local frames/copies, not every unrelated source tuple. A caller
@@ -145,7 +148,96 @@ export function copyCountSubset(m:Machine,cert:Pick<CountCert,'reads'|'insts'>):
   return !!post&&pre[1]===post[1].slice(0,-1)&&keys(post[0],post[2]).has(JSON.stringify(pre[2]))
  })}
 }
-export function focusCountCert(m: Machine, decls: CountDecl[], full: Pick<CountCert,'reads'|'insts'>, options: {carried?: string, structural?: boolean, frames?: boolean, algebraic?: boolean, requestFrames?: boolean, copyFrames?: boolean, targets?: E[]} = {}): Pick<CountCert,'reads'|'insts'> {
+// Generate directly for the conclusion's reads and their pre-state twins.
+// This is separate from certFor's unchanged legacy prefix. At most 128
+// structured proposals survive, and every one keeps its witness alternative.
+export function demandCountCert(m:Machine,decls:CountDecl[],full:Pick<CountCert,'reads'|'insts'>,claim:C):Pick<CountCert,'reads'|'insts'>{
+ const wanted=new Set<string>(),reserved=new Set([...m.inputs,...m.params,...Object.keys(m.state),...full.insts.map(q=>q.wit)])
+ walkOnce(claim,(o:any)=>{
+  if(o.op==='var'){reserved.add(o.name);if(full.reads.some(read=>read[0]===o.name))wanted.add(o.name)}
+  if(o.op==='get')for(const read of full.reads)if(read[1]===o.map&&JSON.stringify(read[2])===JSON.stringify(o.key))wanted.add(read[0])
+ })
+ if(wanted.size<2)return full
+ const cs=countsForReads(decls,full.reads);if(!cs)return full
+ const byId=new Map(cs.map(c=>[c.v,c])),byCell=new Map(full.reads.map(r=>[JSON.stringify([r[1],r[2]]),r[0]])),heads=new Set(wanted),projected=new Set<string>(),actor=activeWriteRow(m,new Map())
+ for(const read of full.reads)if(heads.has(read[0])&&read[1].endsWith('#')){
+  const names=new Set<string>();walkOnce(read[2],(o:any)=>{if(o.op==='var'&&!m.inputs.includes(o.name)&&!m.params.includes(o.name))names.add(o.name)})
+  const vars=[...names];if(actor&&vars.length<=3)for(let mask=1;mask<(1<<vars.length);mask++){
+   const key=substE(read[2],{vars:Object.fromEntries(vars.filter((_,i)=>mask&(1<<i)).map(name=>[name,x(actor)])),maps:{},flags:{}}),id=byCell.get(JSON.stringify([read[1].slice(0,-1),key]))
+   if(id)projected.add(id)
+  }
+  const twin=byCell.get(JSON.stringify([read[1].slice(0,-1),read[2]]));if(twin)heads.add(twin)
+ }
+ for(const id of projected)wanted.add(id)
+ const pending=[...wanted],expanded=new Set<string>(),primitiveMaps=new Set<string>(),expandedFlags=new Set<string>()
+ while(pending.length){
+  const id=pending.shift()!;if(expanded.has(id))continue;expanded.add(id)
+  const add=(id:string|undefined)=>{if(id&&!wanted.has(id)){wanted.add(id);pending.push(id)}}
+  const read=full.reads.find(r=>r[0]===id)
+  if(read?.[1].endsWith('#'))add(byCell.get(JSON.stringify([read[1].slice(0,-1),read[2]])))
+  const depend=(value:unknown):void=>{walkOnce(value,(o:any)=>{
+   if(o.op==='get'){primitiveMaps.add(o.map);add(byCell.get(JSON.stringify([o.map,o.key])))}
+   const name=o.op==='flag'?o.name:o.op==='var'&&o.name.startsWith('?')?o.name.slice(1):undefined
+   if(name&&!expandedFlags.has(name)){expandedFlags.add(name);const flag=m.step.flags?.[name];if(flag)depend(flag)}
+  })}
+  const body=byId.get(id)?.body
+  if(body)depend(body)
+ }
+ // Partition requests and positive-pair requests have separate fair shares.
+ // One early head cannot exhaust all slots before a later demanded head.
+ // Only proposal discovery uses symbolic post-state cells. Expanding a map
+ // write hides Boolean identities behind hundreds of guard atoms; all emitted
+ // witnesses are still proved against the original expanded declarations.
+ const preDecls=new Map(decls.filter(d=>!d.map.endsWith('#')).map(d=>[d.map,d]))
+ const postMaps=Object.fromEntries(Object.keys(m.maps??{}).map(map=>[map,(key:E)=>({op:'get' as const,map:`${map}#`,key})]))
+ const postVars=Object.fromEntries(Object.keys(m.state).map(name=>[name,{op:'var' as const,name:`${name}#`}]))
+ const proposalDecls=decls.map(d=>{
+  const pre=d.map.endsWith('#')?preDecls.get(d.map.slice(0,-1)):undefined
+  return pre&&pre.key===d.key&&pre.j===d.j&&pre.lo===d.lo&&pre.base===d.base?{...d,body:substE(pre.body,{vars:postVars,maps:postMaps,flags:{}})}:d
+ })
+ const proposalCounts=countsForReads(proposalDecls,full.reads)??cs
+ // Domain ceilings for requested Boolean counts share the existing 128 slots.
+ // They remain witness-backed proposals; no range is admitted syntactically.
+ const bounded=(body:E):boolean=>{
+  const todo=[body];let seen=0
+  while(todo.length){const e=todo.pop()!;if(++seen>256)return false;if(e.op==='const'){if(e.value!==0&&e.value!==1)return false}else if(e.op==='if')todo.push(e.then,e.else);else return false}
+  return true
+ }
+ walkOnce([m,decls,full],(o:any)=>{if(o&&typeof o==='object')for(const value of Object.values(o))if(typeof value==='string')reserved.add(value)})
+ const ranges:CountCert['insts']=[];let serial=0
+ for(const count of cs)if(wanted.has(count.v)&&bounded(count.body)&&ranges.length<16){
+  let wit:string;do{wit=`range$${serial++}`}while(reserved.has(wit));reserved.add(wit)
+  ranges.push({wit,below:count.below,terms:[[1,count.v]],unit:-1})
+  const read=full.reads.find(r=>r[0]===count.v),pre=read?.[1].endsWith('#')?preDecls.get(read[1].slice(0,-1)):undefined
+  let fields=false;if(pre)walkOnce(pre.body,(o:any)=>{if(o.op==='<'&&o.a.op==='get'&&o.b.op==='get')fields=true})
+  if(fields&&ranges.length<16){do{wit=`range$${serial++}`}while(reserved.has(wit));reserved.add(wit);ranges.push({wit,below:count.below,terms:[[1,count.v]],unit:0})}
+ }
+ const proposed=[...ranges,...proposeCountDemand(proposalCounts,wanted,{pairs:[],maxFacts:64-ranges.length,reserved})]
+ for(const q of proposed)reserved.add(q.wit)
+ const carriedView=(e:E):E|undefined=>{
+  if(e.op==='get')return e
+  if(e.op!=='if'||e.then.op!=='const'||e.then.value!==1||e.else.op!=='const'||e.else.value!==0)return undefined
+  const c=e.c
+  if(c.op==='='){if(c.a.op==='get'&&c.b.op==='const'&&c.b.value===1)return c.a;if(c.b.op==='get'&&c.a.op==='const'&&c.a.value===1)return c.b}
+  if(c.op==='<='&&c.a.op==='const'&&c.a.value===1&&c.b.op==='get'||c.op==='<'&&c.a.op==='const'&&c.a.value===0&&c.b.op==='get')return c.b
+  return undefined
+ }
+ const carried=cs.filter(c=>{const view=carriedView(c.body);return view?.op==='get'&&(wanted.has(c.v)||primitiveMaps.has(view.map))&&(m.inputMaps??[]).includes(view.map)}),pairs=[...heads].flatMap(head=>carried.filter(c=>c.v!==head).map(c=>[head,c.v] as const))
+ const share=Math.max(1,Math.floor((128-proposed.length)/Math.max(1,pairs.length)))
+ for(const pair of pairs){
+  if(proposed.length>=128)break
+  const batch=proposeCountDemand(proposalCounts,new Set([...pair,...projected]),{pairs:[pair],partitions:false,maxFacts:Math.min(share,128-proposed.length),reserved})
+  for(const q of batch){reserved.add(q.wit);proposed.push(q)}
+ }
+ if(!proposed.length){const frames=proposeWriteCountFrames(m,decls,full,wanted);return frames.length?{reads:full.reads,insts:[...frames,...full.insts]}:full}
+ const key=(q:CountCert['insts'][number])=>JSON.stringify({below:q.below,unit:q.unit,terms:[...q.terms].sort((a,b)=>a[1].localeCompare(b[1])||a[0]-b[0])}),seen=new Set<string>(),structured:CountCert['insts']=[]
+ for(const q of [...proposed,...full.insts.filter(q=>q.terms.length>=3)]){
+  const id=key(q);if(seen.has(id))continue;seen.add(id);structured.push(q);if(structured.length===128)break
+ }
+ const merged={reads:full.reads,insts:[...full.insts.filter(q=>q.terms.length<3),...structured]},frames=proposeWriteCountFrames(m,decls,merged,wanted)
+ return frames.length?{reads:merged.reads,insts:[...frames,...merged.insts]}:merged
+}
+export function focusCountCert(m: Machine, decls: CountDecl[], full: Pick<CountCert,'reads'|'insts'>, options: {carried?: string, structural?: boolean, frames?: boolean, algebraic?: boolean, requestFrames?: boolean, copyFrames?: boolean, targets?: E[], claim?: C} = {}): Pick<CountCert,'reads'|'insts'> {
   const cs=countsForReads(decls,full.reads)
   if(!cs) return {reads:full.reads,insts:[]}
   const inputs=new Set(m.inputMaps??[]), text=(e:unknown)=>JSON.stringify(e)
@@ -313,5 +405,6 @@ export function focusCountCert(m: Machine, decls: CountDecl[], full: Pick<CountC
       }
     }
   }
-  return {reads:full.reads,insts}
+  const focused={reads:full.reads,insts}
+  return options.algebraic&&options.claim?demandCountCert(m,decls,focused,options.claim):focused
 }

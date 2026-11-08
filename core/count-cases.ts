@@ -3,7 +3,7 @@
 // against the unspecialized counted obligation before it is returned.
 import {type C,type Law,type Machine,walkOnce,x} from './machine.ts'
 import {type CountCert,type CountDecl,type Goal,type Instances,type Path,type Tree,boundOf,canon,check,checkMC,linear,mcGoal,truth} from '../kernel/kernel.ts'
-import {atPoint,clock,grow,modelInstances,pastWall,usedHyps,widen,withDeadline} from '../kernel/prove.ts'
+import {atPoint,clock,grow,modelInstances,pastWall,usedHyps,wallAt,widen,withDeadline} from '../kernel/prove.ts'
 import {sub} from './solver.ts'
 import {seedCountWitnessFlags} from './count-witness-flags.ts'
 import {modelSequence} from '../kernel/model-sequence.ts'
@@ -15,6 +15,7 @@ import {appendCountCert} from './count-cert-grow.ts'
 import {independentCountInstances} from './count-focused.ts'
 import {fieldCase} from './count-recovery/field-case.ts'
 import {sourceProofMemo} from './count-recovery/source-memo.ts'
+import {collectConditionalCertificate,hasConditionalProof,transportConditionalProof} from './count-recovery/conditional-proof.ts'
 import {activeWriteKey,rowPairs} from './count-recovery/row-cases.ts'
 import {refuteFast,rowsAt} from './count-recovery/ops.ts'
 
@@ -138,7 +139,7 @@ export function proveCountCases(m:Machine,laws:Law[],at:Instances,cert:Pick<Coun
       if(tree){source=goal;from=new Map(path)}
       const guard=actionGuard(m,name,value)
       if(!tree&&guard){
-       const events:object[]=[],begun=clock(),derived=guardCases(m,packet.decls,goal,cert,guard,caseEnd,events,0,path,{deferCheck:true,claim:packet.goal.hyps.at(-1),memo})
+       const events:object[]=[],begun=clock(),derived=guardCases(m,packet.decls,goal,cert,guard,caseEnd,events,0,path,{deferCheck:true,claim:packet.goal.hyps.at(-1),memo,conditional:true})
        for(const event of events)options.trace?.({value,...event})
        options.trace?.({value,stage:'case-derivations',ms:Math.round(clock()-begun),proposed:!!derived})
        if(derived){tree=derived;source=goal;from=new Map(path)}
@@ -180,7 +181,7 @@ export function proveCountCases(m:Machine,laws:Law[],at:Instances,cert:Pick<Coun
       if(clock()>=until||pastWall())break
       const {prefix,path:p}=branches[i]!,part={name:goal.name,hyps:[...prefix,...goal.hyps]}
       const end=Math.min(until,clock()+(until-clock())/(missing.length-j)),guard=actionGuard(m,name,cuts[i]),events:object[]=[]
-      const derived=guard&&guardCases(m,packet.decls,goal,cert,guard,end,events,0,p,{deferCheck:true,claim:packet.goal.hyps.at(-1),memo})
+      const derived=guard&&guardCases(m,packet.decls,goal,cert,guard,end,events,0,p,{deferCheck:true,claim:packet.goal.hyps.at(-1),memo,conditional:true})
       for(const event of events)options.trace?.({value:cuts[i],...event})
       if(derived){records[i]={goal,tree:derived,path:p,from:p,indices:cert.insts.map((_,j)=>j)};continue}
       const out=grow(part,new Map(),{nodes:0,until:end,units:options.units})
@@ -193,7 +194,7 @@ export function proveCountCases(m:Machine,laws:Law[],at:Instances,cert:Pick<Coun
     if(!rebuild())return undefined
     options.trace?.({stage:'count-cases-certificate',before:cert.insts.length,after:activeCert.insts.length})
     const trees=records.map((r,i)=>{
-      let tree=r&&widen(r.goal,goal,r.tree,{},r.from??new Map(),r.path)
+      let tree=r&&(hasConditionalProof(r.tree)?transportConditionalProof(r.goal,goal,r.tree,r.from??new Map(),r.path,Math.min(wallAt(),performance.now()+Math.max(0,until-clock())*10)):widen(r.goal,goal,r.tree,{},r.from??new Map(),r.path))
       if(!tree)return undefined
       const {root,tails}=branches[i]!
       for(let j=tails.length-1;j>=0;j--){
@@ -207,7 +208,8 @@ export function proveCountCases(m:Machine,laws:Law[],at:Instances,cert:Pick<Coun
     })
     let tree=trees.at(-1)
     for(let i=cuts.length-1;i>=0;i--)tree=tree&&trees[i]?{split:splitAt(cuts[i]!),yes:trees[i]!,no:tree}:undefined
-    const result=tree&&{...activeCert,tree}
+    const combined=tree&&(hasConditionalProof(tree)?collectConditionalCertificate(goal,tree,Math.min(wallAt(),performance.now()+Math.max(0,until-clock())*10)):{tree,lemmas:undefined})
+    const result=combined&&{...activeCert,...combined}
     return result&&checkMC(packet.goal.hyps,packet.decls,result)?{instances:at,cert:result}:undefined
   } finally {atPoint.on=previous}
  })

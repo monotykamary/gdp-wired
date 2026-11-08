@@ -50,6 +50,13 @@ export function booleanCandidates(g:Goal,root:Path,wits:Set<string>,extended=fal
    if(left&&right&&witness)add(o,1000)
   }
   if(!['=','<='].includes(o.op))return
+  // A lowered Boolean map write is still one membership predicate. Prefer
+  // its shared 0/1 value over independently splitting every internal guard.
+  const value=o.op==='='&&o.b.op==='const'&&o.b.value===1?o.a:o.op==='<='&&o.a.op==='const'&&o.a.value===1?o.b:undefined
+  if(extended&&value?.op==='if'&&value.then.op==='const'&&value.then.value===1&&value.else.op==='const'&&value.else.value===0){
+   let hit=false;walkOnce(value,(e:any)=>{if(e.op==='var'&&wits.has(e.name))hit=true})
+   if(hit)add(o,1800)
+  }
   const cell=o.op==='='&&o.a.op==='get'&&o.b.op==='const'&&o.b.value===1?o.a:o.op==='<='&&o.a.op==='const'&&o.a.value===1&&o.b.op==='get'?o.b:undefined
   if(!cell)return
   let hit=false;walkOnce(cell.key,(x:any)=>{if(x.op==='var'&&wits.has(x.name))hit=true})

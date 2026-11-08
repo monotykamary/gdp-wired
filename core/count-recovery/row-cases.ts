@@ -2,10 +2,11 @@
 // every reused recipe is widened and checked at its destination path.
 import {type C,type E,type Machine,n,same,walkOnce,x} from '../machine.ts'
 import {type CountCert,type Goal,type Path,type Tree,canon,linear,substC,substE,truth} from '../../kernel/kernel.ts'
-import {clock,withDeadline} from '../../kernel/prove.ts'
+import {clock,wallAt,withDeadline} from '../../kernel/prove.ts'
 import {scale,sub} from '../solver.ts'
 import {walkLive} from './live-dependencies.ts'
-import {wallTree,check,widen} from './ops.ts'
+import {wallTree,widen} from './ops.ts'
+import {checkConditionalProof as check,hasConditionalProof,transportConditionalProof} from './conditional-proof.ts'
 import {renameProof} from './rename-proof.ts'
 export type RowPair=readonly [E,E]
 // Prefer exact scalar destinations, including constant-index initialization.
@@ -89,13 +90,13 @@ function proveRowCasesImpl(g:Goal,root:Path,pairs:RowPair[],until:number,prove:(
    return score
   }
   if(mirror&&key.includes('/'))for(const old of [...history.get(opposite)??[]].reverse().sort((a,b)=>compatible(b)-compatible(a))){
-   if(compatible(old)<3)continue
+   if(compatible(old)<3||hasConditionalProof(old.tree))continue
    const t=renameProof(g,old.tree,old.path,path,renaming,Math.min(until,clock()+50))
    const accepted=!!t&&(options.deferToCaller||check(g,t,path))
    if(accepted&&t){trace?.({stage:'row-mirror',from:opposite,to:key,ms:Math.round(clock()-begun),checked:!options.deferToCaller,proposed:true,deferred:!!options.deferToCaller});cache.set(key,{path:new Map(path),tree:t});return t}
   }
   if(old){
-   const t=withDeadline(Math.min(until,clock()+50),()=>widen(g,g,old.tree,{},old.path,path))
+   const end=Math.min(until,clock()+50),t=hasConditionalProof(old.tree)?transportConditionalProof(g,g,old.tree,old.path,path,Math.min(wallAt(),performance.now()+Math.max(0,end-clock())*10)):withDeadline(end,()=>widen(g,g,old.tree,{},old.path,path))
    const accepted=!!t&&(options.deferToCaller||check(g,t,path))
    if(accepted&&t){trace?.({stage:'row-case',key,cached:true,ms:Math.round(clock()-begun),checked:!options.deferToCaller,proposed:true,deferred:!!options.deferToCaller});return t}
   }

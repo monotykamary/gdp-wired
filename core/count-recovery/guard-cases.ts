@@ -3,17 +3,18 @@
 import {type C,type Machine,plus,n} from '../machine.ts'
 import {type CountCert,type CountDecl,type Goal,type Path,type Tree,canon,linear,truth} from '../../kernel/kernel.ts'
 import {sub} from '../solver.ts'
-import {atPoint,clock,withDeadline} from '../../kernel/prove.ts'
+import {atPoint,clock,wallAt,withDeadline} from '../../kernel/prove.ts'
 import {fieldBoundLemmas} from './field-bound-lemmas.ts'
 import {frameLemmas} from './frame-lemmas.ts'
 import {fieldCase} from './field-case.ts'
 import {rowPairs} from './row-cases.ts'
 import {type SourceProofMemo} from './source-memo.ts'
-import {wallTree,check,solve,grow,rowsAt,widen} from './ops.ts'
+import {checkConditionalProof as check,hasConditionalProof,transportConditionalProof} from './conditional-proof.ts'
+import {wallTree,solve,grow,rowsAt,widen} from './ops.ts'
 type Proposal=Pick<CountCert,'reads'|'insts'>
 
 export const guardCases:typeof guardCasesImpl=(...args)=>wallTree('guard-case-reconstruction',()=>guardCasesImpl(...args))
-function guardCasesImpl(m:Machine,ds:CountDecl[],g:Goal,cert:Proposal,guard:C,until:number,trace:object[],slot=0,root:Path=new Map(),options:{deferCheck?:boolean,claim?:C,memo?:SourceProofMemo}={}):Tree|undefined{
+function guardCasesImpl(m:Machine,ds:CountDecl[],g:Goal,cert:Proposal,guard:C,until:number,trace:object[],slot=0,root:Path=new Map(),options:{deferCheck?:boolean,claim?:C,memo?:SourceProofMemo,conditional?:boolean}={}):Tree|undefined{
  const deferNested=!!options.deferCheck
  const conditions:C[]=[],booleans=true
  const collect=(c:C):boolean=>{
@@ -44,15 +45,15 @@ function guardCasesImpl(m:Machine,ds:CountDecl[],g:Goal,cert:Proposal,guard:C,un
    if(accepted)return shared
   }
   if(!proof&&!active){const simple=solve(rowsAt(goal,path),500);if(simple.kind==='refuted')proof={leaf:simple.steps}}
-  if(!proof)proof=active?fieldBoundLemmas(m,ds,goal,cert,end,trace,undefined,path,{deferCheck:true,fieldClaim:options.claim,memo:options.memo}):frameLemmas(goal,cert,end,trace,path,{deferCheck:deferNested})
+  if(!proof)proof=active?fieldBoundLemmas(m,ds,goal,cert,end,trace,undefined,path,{deferCheck:true,fieldClaim:options.claim,memo:options.memo,conditional:options.conditional}):frameLemmas(goal,cert,end,trace,path,{deferCheck:deferNested})
   if(!proof&&clock()<end){
    const before=atPoint.on;atPoint.on=false
    try{const out=grow(goal,path,{nodes:0,until:end,units:false});if('tree'in out)proof=out.tree}finally{atPoint.on=before}
   }
   // The complete guard tree below checks active proofs after source transport.
   // Avoid checking the same large active tree before and after that transport.
-  const lifted=proof&&(sourceOnly?proof:widen(goal,g,proof,{},path,path)),accepted=!!lifted&&(active||deferNested||check(g,lifted,path))
-  if(accepted&&lifted)options.memo?.put(g,path,lifted)
+  const lifted=proof&&(sourceOnly?proof:hasConditionalProof(proof)?transportConditionalProof(goal,g,proof,path,path,Math.min(wallAt(),performance.now()+Math.max(0,end-clock())*10)):widen(goal,g,proof,{},path,path)),accepted=!!lifted&&(active||deferNested||check(g,lifted,path))
+  if(accepted&&lifted&&!hasConditionalProof(lifted))options.memo?.put(g,path,lifted)
   if(!active&&accepted&&lifted&&!inactiveLeaf)inactiveLeaf={tree:lifted,path:new Map(path)}
   trace.push({stage:'guard-leaf',active,sourceOnly,hyps:hyps.length,ms:Math.round(clock()-start),checked:!active&&!deferNested&&accepted,proposed:!!proof,transported:!!lifted,deferred:active||deferNested})
   return accepted?lifted:undefined
