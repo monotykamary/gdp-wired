@@ -1284,9 +1284,45 @@ Tree sizes at phase boundaries (totals are work processed, not distinct nodes):
 | Intermediate checks | 122 | 1,484 / 803 | 191 / 96 / 20 |
 | Final source check | 1 | 1,485 / 743 | 1,485 / 743 / 59 |
 
-The eight-action shape survey is running with the individually checked settings.
 Leaf labels are structural provenance, not different trusted rules: a *count-row
 leaf* is below the failing side of a CInst inequality or a split mentioning its
 arbitrary row witness; other leaves are *arithmetic/control*. Both end in ordinary
-linear refutations. For the leader this partition is **597 count-row + 146
-arithmetic/control = 743 leaves**.
+linear refutations. The classification is exhaustive and the two columns sum to
+the leaf count; it is not a count of a new trusted proof rule.
+
+#### All eight action shapes (baseline, before wall optimizations)
+
+`action-profiles-v1` (tree `892586f686fc`) runs all eight **individually** on
+isolated large VMs with their previously checked settings. Every selected source
+branch checks. All rows retain the five-second counted allowance and original
+wall limits. Wall below includes module loading, fixture/build work, proof work,
+and final source checking. No row invokes `checkMC`, because each is an isolated
+action of an incomplete whole-law replay.
+
+| Action | Counted ms | Wall ms | CInsts | Nodes | Leaves | Depth | Count-row leaves | Arithmetic/control leaves |
+| --- | ---: | ---: | ---: | ---: | ---: | ---: | ---: | ---: |
+| 0: pick initial configuration | 627 | 24,405 | 69 | 515 | 258 | 37 | 172 | 86 |
+| 1: copy during setup | 711 | 28,689 | 69 | 525 | 263 | 37 | 172 | 91 |
+| 2: start | 1,276 | 33,381 | 69 | 715 | 358 | 39 | 273 | 85 |
+| 3: update terms | 1,851 | 35,411 | 69 | 839 | 420 | 35 | 354 | 66 |
+| 4: become leader | 2,827 | 47,163 | 53 | 1,485 | 743 | 59 | 597 | 146 |
+| 5: reconfigure | 4,152 | 55,417 | 69 | 1,587 | 794 | 59 | 671 | 123 |
+| 6: send configuration | 2,664 | 53,931 | 17 | 4,359 | 2,180 | 53 | 2,056 | 124 |
+| Remaining/no-op inputs | 316 | 1,905 | 69 | 9 | 5 | 4 | 4 | 1 |
+
+Action 6 uses the explicitly documented 17-instance diagnostic, matching the
+4,359-node reference. It is not a generated production policy; the separately
+checked structural subset has 22 instances. This table is not an assertion that
+all actions fit one shared protocol deadline.
+
+Checking dominates actions 0–5 (approximately 78–85% of wall). In action 6,
+source checks take **32,046 ms**, transport **11,567 ms**, and explicit prover row
+construction **5,508 ms**; these three account for **91.1%** of its wall. The
+remaining/no-op case is already about two seconds. The next work is therefore
+smaller/less-repeated checked reconstructions and source contexts, **not** an
+integration into `count-focus-proof.ts` or any larger search budget.
+
+The profiler's own bookkeeping is 2–21 ms per action; its source-check and
+transport timings are disjoint. Run manifests: `research/track-m/jobs-wall-profile.json`
+and `research/track-m/jobs-action-profiles.json`. Type/lint and all 57 focused
+profiling/helper tests passed in the paired leader batch.
