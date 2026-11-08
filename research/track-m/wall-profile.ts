@@ -42,7 +42,15 @@ export const wallStage=(name:string):void=>{if(wallProfile.enabled)stages.push({
 export const wallSpan=<T>(name:string,f:()=>T):T=>wallProfile.run(name,f)
 function measured<T>(name:string,f:()=>T,tree?:(value:T)=>Tree|undefined):T{const out=wallSpan(name,f);if(tree)wallProfile.sample(name,tree(out));return out}
 export const wallTree=<T extends Tree|undefined>(name:string,f:()=>T):T=>measured(name,f,tree=>tree)
-export const check:typeof kernelCheck=(...args)=>measured('source-check',()=>kernelCheck(...args),()=>args[1])
+const checkSites=new Map<string,{calls:number,wallMs:number,nodes:number,leaves:number}>()
+export const check:typeof kernelCheck=(...args)=>{
+ if(!wallProfile.enabled||process.env.LAB_WALL_CHECK_SITES!=='1')return measured('source-check',()=>kernelCheck(...args),()=>args[1])
+ const site=new Error().stack?.split('\n').find(line=>line.includes('/research/track-m/')&&!line.includes('/wall-profile.ts'))?.trim()??'unknown',started=performance.now()
+ try{return measured('source-check',()=>kernelCheck(...args),()=>args[1])}finally{
+  const elapsed=performance.now()-started,m=treeMetrics(args[1]),old=checkSites.get(site)??{calls:0,wallMs:0,nodes:0,leaves:0}
+  old.calls++;old.wallMs+=elapsed;old.nodes+=m.nodes;old.leaves+=m.leaves;checkSites.set(site,old)
+ }
+}
 export const finalCheck:typeof kernelCheck=(...args)=>measured('final-source-check',()=>kernelCheck(...args),()=>args[1])
 export const checkMC:typeof kernelCheckMC=(...args)=>measured('final-checkMC',()=>kernelCheckMC(...args),()=>args[2].tree)
 export const widen:typeof kernelWiden=(...args)=>measured('transport',()=>kernelWiden(...args),tree=>tree)
@@ -62,5 +70,5 @@ export const modelSequence:typeof sequence=(...args)=>{
 }
 export function wallReport():object{
  const elapsed=performance.now()-boot,buckets=wallProfile.snapshot(),accounted=[...wallProfile.buckets.values()].reduce((n,b)=>n+b.wallMs,0)
- return {enabled:wallProfile.enabled,totalWallMs:Math.round(elapsed*1000)/1000,accountedWallMs:Math.round(accounted*1000)/1000,unattributedWallMs:Math.round((elapsed-accounted)*1000)/1000,stages,buckets,nativeCdcl:{runs:cdclStats.runs,decisions:cdclStats.decisions,setupMs:cdclStats.setupMs,unfoldMs:cdclStats.unfoldMs,leaves:cdclStats.leaves,resolved:cdclStats.resolved}}
+ return {enabled:wallProfile.enabled,...(checkSites.size?{checkSites:Object.fromEntries(checkSites)}:{}),totalWallMs:Math.round(elapsed*1000)/1000,accountedWallMs:Math.round(accounted*1000)/1000,unattributedWallMs:Math.round((elapsed-accounted)*1000)/1000,stages,buckets,nativeCdcl:{runs:cdclStats.runs,decisions:cdclStats.decisions,setupMs:cdclStats.setupMs,unfoldMs:cdclStats.unfoldMs,leaves:cdclStats.leaves,resolved:cdclStats.resolved}}
 }

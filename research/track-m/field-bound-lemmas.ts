@@ -10,6 +10,7 @@ import {piecesAt,sourceScalarContext,sourceWitnessContext,walkLive} from './live
 import {carriedCase} from './carried-case.ts'
 import {foldPath} from './fold-path.ts'
 import {booleanCore} from './boolean-core.ts'
+import {pruneForcedCuts} from './rebase-path.ts'
 import {activeWriteRow,proveRowCases,rowPairs} from './row-cases.ts'
 import {proveNaturalCases} from './natural-cases.ts'
 import {activeCarried} from './action-guard.ts'
@@ -66,6 +67,7 @@ export function emptyCountCandidate(m:Machine,cert:Proposal,inst:Proposal['insts
 }
 export const fieldBoundLemmas:typeof fieldBoundLemmasImpl=(...args)=>wallTree('proposal-control',()=>fieldBoundLemmasImpl(...args))
 function fieldBoundLemmasImpl(m:Machine,ds:CountDecl[],g:Goal,cert:Proposal,until:number,trace:object[],onModel?:(goal:Goal,witness:Record<string,number>)=>boolean,root:Path=new Map(),options:{splitRows?:boolean,deferCheck?:boolean}={}):Tree|undefined{
+ const pointOptions={deferCheck:!!options.deferCheck&&process.env.LAB_DEFER_NESTED_CHECKS==='1'}
  const seq=modelSequence(root),ctx:C[]=[],path:Path=new Map(root),lemmas:{split:Record<string,number>,no:Tree}[]=[]
  const accept=(tree:Tree|undefined,path:Path)=>tree&&(options.deferCheck||check(g,tree,path))?tree:undefined
  const verdict=(tree:Tree|undefined)=>({checked:!options.deferCheck&&!!tree,...(options.deferCheck?{proposed:!!tree,deferred:true}:{})})
@@ -121,13 +123,13 @@ function fieldBoundLemmasImpl(m:Machine,ds:CountDecl[],g:Goal,cert:Proposal,unti
     const lifted='tree'in out?withDeadline(deadline,()=>widen(folded.goal,reduced,out.tree,folded.opaque,root,root)):undefined
     trace.push({stage:'folded-core',aliases:Object.keys(folded.opaque).length,ms:Math.round(clock()-start),sourceChecked:'tree'in out,lifted:!!lifted})
     if(lifted)return widen(reduced,goal,lifted,{},root,root)
-    const direct=booleanCore(reduced,root,new Set(cert.insts.map(i=>i.wit)),deadline,trace)
+    const direct=booleanCore(reduced,root,new Set(cert.insts.map(i=>i.wit)),deadline,trace,pointOptions)
     if(direct)return widen(reduced,goal,direct,{},root,root)
     const contextual=sourceWitnessContext(goal,reduced,new Set(cert.insts.map(i=>i.wit)),root)
     if(contextual!==reduced&&clock()<deadline){
      const extra=contextual.hyps.slice(reduced.hyps.length)
      trace.push({stage:'witness-context',added:extra.length,...(process.env.LAB_CONTEXT_DUMP==='1'?{extra:extra.flatMap(c=>piecesAt(c,root))}:{})})
-     const expanded=booleanCore(contextual,root,new Set(cert.insts.map(i=>i.wit)),deadline,trace)
+     const expanded=booleanCore(contextual,root,new Set(cert.insts.map(i=>i.wit)),deadline,trace,pointOptions)
      if(expanded)return widen(contextual,goal,expanded,{},root,root)
     }
    }
@@ -179,7 +181,7 @@ function fieldBoundLemmasImpl(m:Machine,ds:CountDecl[],g:Goal,cert:Proposal,unti
    if(good.op!=='<='||truth(good,path)===true||clock()>=until)continue
    const left=linear(good.a,path),right=linear(good.b,path);if(!left||!right)continue
    const split=sub(left,right),noPath=new Map(path).set(canon(split),{lin:split,holds:false}),begun=clock(),tiny={name:'field frame',hyps:[{op:'not' as const,x:good}]}
-   const tree=booleanCore(tiny,path,new Set(targets.flatMap(t=>t.op==='get'&&t.key.op==='var'?[t.key.name]:[])),Math.min(until,clock()+80),trace)
+   const tree=booleanCore(tiny,path,new Set(targets.flatMap(t=>t.op==='get'&&t.key.op==='var'?[t.key.name]:[])),Math.min(until,clock()+80),trace,pointOptions)
    const lifted=tree&&widen(tiny,g,tree,{},path,noPath),no=accept(lifted,noPath)
    trace.push({stage:'field-frame',cell:pair.before,ms:Math.round(clock()-begun),...verdict(no)})
    if(no){lemmas.push({split,no});ctx.push(good);path.set(canon(split),{lin:split,holds:true})}
@@ -250,7 +252,7 @@ function fieldBoundLemmasImpl(m:Machine,ds:CountDecl[],g:Goal,cert:Proposal,unti
     const reduced={...numeric,hyps:q.core.map(i=>numeric.hyps[i]!)},out=grow(reduced,root,{nodes:0,until:Math.min(until,clock()+400),units:false})
     if('tree'in out)proof=widen(reduced,numeric,out.tree,{},root,root)
    }
-   if(!proof&&process.env.LAB_NAT_CASES==='1'&&!('tree'in q)&&q.stuck==='unknown')proof=proveNaturalCases(numeric,root,Math.min(until,clock()+400),trace)
+   if(!proof&&process.env.LAB_NAT_CASES==='1'&&!('tree'in q)&&q.stuck==='unknown')proof=proveNaturalCases(numeric,root,Math.min(until,clock()+400),trace,pointOptions)
    const lifted=proof&&liftCountProxies(numeric,g,proof,cert.reads,root,path,event=>trace.push({stage:'count-transport',...event}),options)
    if(lifted)arithmetic=lifted // Checked here, or deferred to the composing caller.
   }
@@ -300,7 +302,7 @@ function fieldBoundLemmasImpl(m:Machine,ds:CountDecl[],g:Goal,cert:Proposal,unti
    const part={...g,hyps:[...relevant,...ctx,h,{op:'not' as const,x:good}]},started=clock()
    let proof:Tree|undefined
    if(inst.terms.length===3&&inst.terms.every(([,id])=>!postIds.has(id))){
-    const tiny={name:g.name,hyps:[h,{op:'not' as const,x:good}]},fast=booleanCore(tiny,root,new Set([inst.wit]),Math.min(until,clock()+30),trace)
+    const tiny={name:g.name,hyps:[h,{op:'not' as const,x:good}]},fast=booleanCore(tiny,root,new Set([inst.wit]),Math.min(until,clock()+30),trace,pointOptions)
     if(fast)proof=widen(tiny,part,fast,{},root,root)
     trace.push({stage:'direct-partition',index,proved:!!proof})
    }
@@ -309,7 +311,7 @@ function fieldBoundLemmasImpl(m:Machine,ds:CountDecl[],g:Goal,cert:Proposal,unti
     // The matching diagonal gets the existing row window; reserve time for
     // arithmetic closure instead of spending it on unrelated copy pairs.
     const copyUntil=diagonalCopy(inst)?Math.max(clock(),until-200):Math.min(until,started+230)
-    const tiny=sourceScalarContext({name:g.name,hyps:raw},{name:g.name,hyps:[h,{op:'not' as const,x:good}]},new Set([...m.params,...m.inputs,...Object.keys(m.state)]),root),fast=booleanCore(tiny,root,new Set([inst.wit]),copyUntil,trace,{model:String(index)===process.env.LAB_COPY_MODEL_INDEX,extended:true,scalarGuards:true})
+    const tiny=sourceScalarContext({name:g.name,hyps:raw},{name:g.name,hyps:[h,{op:'not' as const,x:good}]},new Set([...m.params,...m.inputs,...Object.keys(m.state)]),root),fast=booleanCore(tiny,root,new Set([inst.wit]),copyUntil,trace,{...pointOptions,model:String(index)===process.env.LAB_COPY_MODEL_INDEX,extended:true,scalarGuards:true})
     if(fast)proof=widen(tiny,part,fast,{},root,root)
     trace.push({stage:'direct-copy',index,terms:inst.terms,reads:inst.terms.map(([,id])=>cert.reads.find(r=>r[0]===id)),proved:!!proof})
    }
@@ -331,7 +333,10 @@ function fieldBoundLemmasImpl(m:Machine,ds:CountDecl[],g:Goal,cert:Proposal,unti
  if(!tree){const proof=solve(part,Math.max(150,until-clock()-200),true);tree=proof&&widen(part,g,proof,{},root,path)}
  trace.push({stage:'field-bound-conclusion',facts:lemmas.length,ms:Math.round(clock()-start),proved:!!tree})
  if(!tree)return undefined
- for(const {split,no} of lemmas.reverse())tree={split,yes:tree,no}
+ if(process.env.LAB_PRUNE_LEMMAS==='1'){
+  const pruned=pruneForcedCuts(g,tree,root,lemmas,until);tree=pruned.tree
+  trace.push({stage:'lemma-prune',removed:pruned.removed,kept:lemmas.length-pruned.removed})
+ }else for(const {split,no} of [...lemmas].reverse())tree={split,yes:tree,no}
  // The composing caller must check deferred cuts and children in its full tree.
  if(options.deferCheck)return tree
  const checked=check(g,tree,root)

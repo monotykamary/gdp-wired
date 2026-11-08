@@ -67,7 +67,7 @@ export function booleanCandidates(g:Goal,root:Path,wits:Set<string>,extended=fal
  return [...chosen.values()]
 }
 export const booleanCore:typeof booleanCoreImpl=(...args)=>wallTree('tree-reconstruction',()=>booleanCoreImpl(...args))
-function booleanCoreImpl(g:Goal,root:Path,wits:Set<string>,until:number,trace:object[],options:{model?:boolean,folded?:boolean,extended?:boolean,scalarGuards?:boolean}={}):Tree|undefined{
+function booleanCoreImpl(g:Goal,root:Path,wits:Set<string>,until:number,trace:object[],options:{model?:boolean,folded?:boolean,extended?:boolean,scalarGuards?:boolean,deferCheck?:boolean}={}):Tree|undefined{
  const start=clock(),scalarGuards=options.scalarGuards??false,extended=options.extended??false
  // Lift the goal's own forced linear facts into the path, with a checked
  // opposite branch for every cut. They need not consume the Boolean pool.
@@ -78,7 +78,7 @@ function booleanCoreImpl(g:Goal,root:Path,wits:Set<string>,until:number,trace:ob
   if(clock()>=until)return false
   const other=new Map(pinned).set(id,{lin:split,holds:false}),out=refuteFast(rowsAt(g,other),256)
   const no:Tree|undefined=out?.kind==='refuted'?{leaf:out.steps}:undefined
-  if(!no||!check(g,no,other))return false
+  if(!no||(!options.deferCheck&&!check(g,no,other)))return false
   prefix.push({split,no});pinned=new Map(pinned).set(id,{lin:split,holds:true});return true
  }
  for(let round=0;round<2&&clock()<until;round++)for(const h of g.hyps)for(const split of facts(h,pinned))pin(split)
@@ -101,8 +101,8 @@ function booleanCoreImpl(g:Goal,root:Path,wits:Set<string>,until:number,trace:ob
   const folded=foldPath(g,pinned),begun=clock(),inner=booleanCore(folded.goal,pinned,wits,Math.min(until,clock()+120),trace,{...options,folded:true})
   let lifted=inner&&withDeadline(until,()=>widen(folded.goal,g,inner,folded.opaque,pinned,pinned))
   if(lifted)for(const p of [...prefix].reverse())lifted={split:p.split,yes:lifted,no:p.no}
-  const accepted=!!lifted&&check(g,lifted,root)
-  trace.push({stage:'boolean-fold',aliases:Object.keys(folded.opaque).length,ms:Math.round(clock()-begun),proposed:!!inner,sourceChecked:accepted})
+  const accepted=!!lifted&&(options.deferCheck||check(g,lifted,root))
+  trace.push({stage:'boolean-fold',aliases:Object.keys(folded.opaque).length,ms:Math.round(clock()-begun),proposed:!!inner,sourceChecked:accepted&&!options.deferCheck,deferred:!!options.deferCheck})
   if(accepted)return lifted
  }
  const candidates=booleanCandidates(g,scalarGuards?pinned:root,wits,extended).filter(({c})=>truth(c,pinned)===undefined)
@@ -164,11 +164,11 @@ function booleanCoreImpl(g:Goal,root:Path,wits:Set<string>,until:number,trace:ob
   }
   trace.push({stage:'pin-prune',removed,kept:prefix.length-removed})
  }else if(tree)for(const p of [...prefix].reverse())tree={split:p.split,yes:tree,no:p.no}
- const checked=!!tree&&check(g,tree,root)
- if(!checked&&process.env.LAB_BOOLEAN_DUMP==='1'){
+ const accepted=!!tree&&(options.deferCheck||check(g,tree,root)),checked=accepted&&!options.deferCheck
+ if(!accepted&&process.env.LAB_BOOLEAN_DUMP==='1'){
   const names=new Set([...JSON.stringify([g,[...pinned]]).matchAll(/⟦\d+⟧/g)].map(m=>m[0])),terms=Object.fromEntries([...names].map(name=>[name,columnTerm(name)]))
   trace.push({stage:'boolean-fixture',goal:g,root:[...pinned],wits:[...wits],choices:cs,candidates,terms})
  }
- trace.push({stage:'boolean-core',facts:prefix.length,cuts:cs.length,nodes,leaves,ms:Math.round(clock()-start),checked,...(options.model?{choices:cs.map(c=>({op:c.op,...('a'in c?{a:JSON.stringify(c.a).slice(0,180),b:JSON.stringify(c.b).slice(0,180)}:{})}))}:{}),...(last?{last}:{})})
- return checked?tree:undefined
+ trace.push({stage:'boolean-core',facts:prefix.length,cuts:cs.length,nodes,leaves,ms:Math.round(clock()-start),checked,proposed:!!tree,deferred:!!options.deferCheck,...(options.model?{choices:cs.map(c=>({op:c.op,...('a'in c?{a:JSON.stringify(c.a).slice(0,180),b:JSON.stringify(c.b).slice(0,180)}:{})}))}:{}),...(last?{last}:{})})
+ return accepted?tree:undefined
 }

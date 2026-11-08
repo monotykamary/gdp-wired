@@ -8,10 +8,11 @@ import {REFUTED} from '../../kernel/cdcl.ts'
 import {liftCountProxies} from './lift-count-proxies.ts'
 import {piecesAt,walkLive} from './live-dependencies.ts'
 import {booleanCore} from './boolean-core.ts'
+import {pruneForcedCuts} from './rebase-path.ts'
 import {wallTree,check,grow,widen,modelSequence} from './wall-profile.ts'
 type Proposal=Pick<CountCert,'reads'|'insts'>
 export const frameLemmas:typeof frameLemmasImpl=(...args)=>wallTree('proposal-control',()=>frameLemmasImpl(...args))
-function frameLemmasImpl(g:Goal,cert:Proposal,until:number,trace:object[],root:Path=new Map(),options:{stopAfterFailed?:number,boolean?:boolean}={}):Tree|undefined {
+function frameLemmasImpl(g:Goal,cert:Proposal,until:number,trace:object[],root:Path=new Map(),options:{stopAfterFailed?:number,boolean?:boolean,deferCheck?:boolean}={}):Tree|undefined {
  let failed=0
  const seq=modelSequence(root),base=g.hyps.slice(0,g.hyps.length-cert.insts.length),ctx:C[]=[],path:Path=new Map(root),lemmas:{split:Record<string,number>,no:Tree}[]=[]
  const reads=new Map(cert.reads.map(r=>[r[0],r])),maps=new Set(cert.reads.map(r=>r[1])),wits=new Set(cert.insts.map(i=>i.wit))
@@ -31,13 +32,13 @@ function frameLemmasImpl(g:Goal,cert:Proposal,until:number,trace:object[],root:P
    trace.push({stage:'frame-arithmetic',hyps:hyps.length,ms:Math.round(clock()-start),outcome:'tree'in q?'tree':q.stuck,core:q.core?.length})
    let proof='tree'in q?q.tree:undefined
    if(!proof&&!('tree'in q)&&q.why===REFUTED&&q.core?.length){const reduced={...numeric,hyps:q.core.map(i=>hyps[i]!)},out=grow(reduced,root,{nodes:0,until:Math.min(until,clock()+150),units:false});if('tree'in out)proof=widen(reduced,numeric,out.tree,{},root,root)}
-   if(proof){const lifted=liftCountProxies(numeric,goal,proof,cert.reads,root,root,event=>trace.push({stage:'proxy-lift',...event}));trace.push({stage:'frame-arithmetic-lift',ms:Math.round(clock()-start),proved:!!lifted});if(lifted)return lifted}
+   if(proof){const lifted=liftCountProxies(numeric,goal,proof,cert.reads,root,root,event=>trace.push({stage:'proxy-lift',...event}),options);trace.push({stage:'frame-arithmetic-lift',ms:Math.round(clock()-start),proved:!!lifted});if(lifted)return lifted}
   }
   const q=seq(goal,Math.min(until,clock()+limit))
   if('tree'in q)return q.tree
   if(q.why!==REFUTED||!q.core?.length)return undefined
   const reduced={...goal,hyps:q.core.map(i=>goal.hyps[i]!)}
-  if(options.boolean&&q.core.length<=8){const tree=booleanCore(reduced,root,wits,Math.min(until,clock()+100),trace);if(tree)return widen(reduced,goal,tree,{},root,root)}
+  if(options.boolean&&q.core.length<=8){const tree=booleanCore(reduced,root,wits,Math.min(until,clock()+100),trace,options);if(tree)return widen(reduced,goal,tree,{},root,root)}
   const out=grow(reduced,root,{nodes:0,until:Math.min(until,clock()+200),units:false})
   return 'tree'in out?widen(reduced,goal,out.tree,{},root,root):undefined
  }
@@ -61,6 +62,9 @@ function frameLemmasImpl(g:Goal,cert:Proposal,until:number,trace:object[],root:P
  let tree=found&&widen(part,g,found,{},root,path)
  trace.push({stage:'frame-conclusion',facts:lemmas.length,ms:Math.round(clock()-start),proved:!!tree})
  if(!tree)return undefined
- for(const lemma of [...lemmas].reverse())tree={split:lemma.split,yes:tree,no:lemma.no}
- return check(g,tree,root)?tree:undefined
+ if(process.env.LAB_PRUNE_LEMMAS==='1'){
+  const pruned=pruneForcedCuts(g,tree,root,lemmas,until);tree=pruned.tree
+  trace.push({stage:'frame-prune',removed:pruned.removed,kept:lemmas.length-pruned.removed})
+ }else for(const lemma of [...lemmas].reverse())tree={split:lemma.split,yes:tree,no:lemma.no}
+ return options.deferCheck||check(g,tree,root)?tree:undefined
 }

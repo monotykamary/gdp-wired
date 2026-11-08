@@ -23,12 +23,28 @@ import {seedCountWitnessFlags} from '../../core/count-witness-flags.ts'
 import {finalCheck as check,checkMC,countedObligations,mcGoal,grow,widen,modelSequence,certFor} from './wall-profile.ts'
 import {wallSpan,wallStage,wallReport,wallProfile} from './wall-profile.ts'
 import {countLeafKinds,treeMetrics} from './tree-diagnosis.ts'
+import {thinSource} from './thin-source.ts'
+import {walkLive} from './live-dependencies.ts'
 const mark=(stage:string)=>{wallStage(stage);if(process.env.LAB_PROGRESS==='1')console.log(`${stage} ${Math.round(performance.now())}`)}
 mark('entry-loaded')
 const [file,input]=process.argv.slice(2),[d,{m}]=wallSpan('fixture-read',()=>[JSON.parse(readFileSync(file!,'utf8')),JSON.parse(readFileSync(input!,'utf8'))])
 mark('input-loaded')
 const laws=process.env.LAB_SYMBOLIC_OVERLAP==='1'?d.laws.map((l:any)=>l.name.startsWith('Inv2973')?mldrHandSet('star','uw').laws.find(q=>q.name===l.name)!:l):d.laws,index=laws.findIndex((l:any)=>l.name===d.law),law=laws[index]
 mark('laws-ready')
+const values=new Map<string,Set<number>>()
+walkOnce([m.step,m.assume],(o:any)=>{if(o.op!=='=')return;const [a,b]=o.a.op==='var'?[o.a,o.b]:[o.b,o.a];if(a.op==='var'&&b.op==='const'&&m.inputs.includes(a.name)){const v=values.get(a.name)??new Set<number>();v.add(b.value);values.set(a.name,v)}})
+const choice=[...values].filter(([,v])=>v.size>2).sort((a,b)=>b[1].size-a[1].size)[0]
+if(!choice)throw new Error('No finite-choice scalar')
+const [name,vs]=choice,cuts=[...vs].sort((a,b)=>a-b).filter(v=>v>=Number(process.env.LAB_FIRST_CUT??-Infinity))
+// Only proposal relevance is specialized: the count declarations passed to
+// mcGoal/checkMC remain original, and omitted flag instances weaken the goal.
+const seedPath:Path|undefined=process.env.LAB_LIVE_SEEDS==='1'&&process.env.LAB_CASE!==undefined?new Map():undefined
+if(seedPath){
+ const value=process.env.LAB_CASE==='undefined'?undefined:Number(process.env.LAB_CASE)
+ if(value!==undefined&&!cuts.includes(value))throw new Error('Live seeding needs an existing finite action')
+ for(const v of cuts){const lin=v?{[name]:1,'1':-v}:{[name]:1};seedPath.set(canon(lin),{lin,holds:value!==undefined&&v>=value})}
+}
+const seedOptions=seedPath?{carriedOnly:true,dependencies:(body:E)=>{const maps=new Set<string>();walkLive(body,seedPath,o=>{if(o.op==='get')maps.add(o.map)});return maps}}:{}
 let at:Instances={}
 for(const [name,values] of Object.entries(d.at) as [string,E[]][]){const n=1+(laws.find((l:any)=>l.name===name)?.keys?.length??0),keep:E[]=[];for(let i=0;i<values.length;i+=n){const tuple=values.slice(i,i+n);if(!/"name":"w(?:\$\d+|\?)/.test(JSON.stringify(tuple)))keep.push(...tuple)}at[name]=keep}
 if(process.env.LAB_FOCUS_COLD==='1')at={}
@@ -72,7 +88,7 @@ if(process.env.LAB_DESCRIBE_ONLY==='1'){
  process.exit(0)
 }
 mark('seeding-witness-flags')
-at=wallSpan('instance-generation',()=>seedCountWitnessFlags(m,at,[{decls:base.decls,cert}],true))
+at=wallSpan('instance-generation',()=>seedCountWitnessFlags(m,at,[{decls:base.decls,cert}],true,seedOptions))
 base=countedObligations(m,laws,{[law.name]:at},index).find(g=>g.goal.name.endsWith('@step'))!
 mark('building-counted-goal')
 let goal:Goal={...mcGoal(base.goal.hyps,base.decls,cert)!,name:base.goal.name},plain=goal.hyps.slice(0,goal.hyps.length-cert.insts.length)
@@ -94,7 +110,7 @@ const rebuild=()=>{
    if(!focusOptions.algebraic&&process.env.LAB_GROW_ALGEBRAIC==='1'){const ids=new Set(added.map(r=>r[0]));next.insts=next.insts.filter(i=>i.terms.length<3||i.terms.some(t=>ids.has(t[1])))}
    for(const c of countsForReads(base.decls,added)??[])next.insts.push({wit:'newCount$'+next.insts.length,below:c.below,terms:[[1,c.v]],unit:0})
    if(appendCountCert(cert,next,base.goal.hyps)){
-    packetCache.clear();at=wallSpan('instance-generation',()=>seedCountWitnessFlags(m,at,[{decls:base.decls,cert}],true))
+    packetCache.clear();at=wallSpan('instance-generation',()=>seedCountWitnessFlags(m,at,[{decls:base.decls,cert}],true,seedOptions))
     base=countedObligations(m,laws,{[law.name]:at},index).find(g=>g.goal.name.endsWith('@step'))!
    }
   }
@@ -108,11 +124,7 @@ const refinePicks=(w:Record<string,number>):boolean=>{
  if(!next.length)return false
  cert.picks.push(...next);packetCache.clear();trace.push({stage:'model-picks',picks:next});return true
 }
-const values=new Map<string,Set<number>>()
-walkOnce([m.step,m.assume],(o:any)=>{if(o.op!=='=')return;const [a,b]=o.a.op==='var'?[o.a,o.b]:[o.b,o.a];if(a.op==='var'&&b.op==='const'&&m.inputs.includes(a.name)){const v=values.get(a.name)??new Set<number>();v.add(b.value);values.set(a.name,v)}})
-const choice=[...values].filter(([,v])=>v.size>2).sort((a,b)=>b[1].size-a[1].size)[0]
-if(!choice)throw new Error('No finite-choice scalar')
-const [name,vs]=choice,cuts=[...vs].sort((a,b)=>a-b).filter(v=>v>=Number(process.env.LAB_FIRST_CUT??-Infinity)),path:Path=new Map(),conditions:C[]=[],records:({goal:Goal,tree:Tree,path:Path,from?:Path}|undefined)[]=[],trace:object[]=[],cores:object[]=[]
+const path:Path=new Map(),conditions:C[]=[],records:({goal:Goal,tree:Tree,path:Path,from?:Path}|undefined)[]=[],trace:object[]=[],cores:object[]=[]
 if(process.env.LAB_PROGRESS==='1'){console.log('replay-ready');const push=trace.push.bind(trace);trace.push=(...events:object[])=>{for(const event of events){const e=event as any;console.log(JSON.stringify({stage:e.stage,value:e.value,index:e.index,countRowLeaves:e.countRowLeaves,arithmeticLeaves:e.arithmeticLeaves,left:e.left,right:e.right,key:e.key,cached:e.cached,pairs:e.pairs,nodes:e.nodes,leaves:e.leaves,steps:e.steps,depth:e.depth,unique:e.unique,hyps:e.hyps,facts:e.facts,cuts:e.cuts,ms:e.ms,checked:e.checked,proposed:e.proposed,proved:e.proved,wall:Math.round(performance.now())}))}return push(...events)}}
 const splitAt=(value:number):Record<string,number>=>value?{[name]:1,'1':-value}:{[name]:1}
 const branches:{prefix:C[],path:Path}[]=[],branchRoots:Path[]=[],tailCuts:number[][]=[]
@@ -323,9 +335,20 @@ const result=withWall(start+Math.min(60000,Number(process.env.LAB_WALL_MS??10000
   trace.push({stage:'action-tree',...metrics});return metrics
  })):undefined
  const checked=!!tree&&checkMC(base.goal.hyps,base.decls,{...cert,tree})
+ const partialChecks=tree?[]:trees.map((t,i)=>{
+  if(!t)return false
+  if(process.env.LAB_THIN_SOURCE==='1'){
+   if(process.env.LAB_CASE===undefined)throw new Error('Source thinning diagnostic requires one isolated action')
+   const proposal=thinSource(m,laws,index,at,base,goal,cert,t,branchRoots[i]!,end)
+   const accepted=!!proposal&&check(proposal.goal,proposal.tree,branchRoots[i]!)
+   trace.push({stage:'thin-source',value:cuts[i]??'rest',proposed:!!proposal,checked:accepted,...proposal?.stats})
+   if(accepted)return true
+  }
+  return check(goal,t,branchRoots[i]!)
+ })
  // A complete MC check includes the same ground-tree check. Partial diagnostic
  // runs instead check each available branch against its exact original scope.
- return {complete:!!tree,branches:tree?trees.map(()=>checked):trees.map((t,i)=>!!t&&check(goal,t,branchRoots[i]!)),groundChecked:checked,checked,...(actionTrees?{actionTrees}:{})}
+ return {complete:!!tree,branches:tree?trees.map(()=>checked):partialChecks,groundChecked:checked,checked,...(actionTrees?{actionTrees}:{})}
  })
 },true))
 console.log(JSON.stringify({file,law:law.name,context:thinFields?'thin-field':'full',diagnosticAssumptions:[...activation?['existing leader activation; no unrestricted proof unless rebase checks']:[],...process.env.LAB_ROW_CASE?['row-case assumptions; not an unrestricted proof']:[],...process.env.LAB_ACTIVE_ROW?['active action guard assumed for row diagnostic']:[]],...result,counted:Math.round((fullWork()-w)/fullRate),wall:Math.round(performance.now()-start),insts:cert.insts.length,trace,...(cores.length?{cores}:{})}))

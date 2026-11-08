@@ -30,6 +30,10 @@ test('selected count witnesses receive relevant universal flags, without recursi
   const preferred=seedCountWitnessFlags({...machine,inputMaps:['Q']},at,[{decls,cert}],true)
   expect(preferred['?eligible']).toEqual([x('previous'),x('member')])
   expect(preferred['?targetOnly']).toBeUndefined()
+  const onlyCarried=seedCountWitnessFlags({...machine,inputMaps:['Q']},at,[{decls,cert:{...cert,insts:[{...cert.insts[0]!,terms:[[1,'ra']]}]}}],true,{carriedOnly:true})
+  expect(onlyCarried).toBe(at)
+  const noLiveReads=seedCountWitnessFlags(machine,at,[{decls,cert}],false,{dependencies:()=>new Set()})
+  expect(noLiveReads).toBe(at)
   const hyps = [substC(predicate, {vars:{k:x('member')},maps:{},flags:{}}), less(get('Allowed', n(0)), get('Requested', n(0)))]
   const goal = mcGoal(hyps, decls, cert)!
   const result = grow({name:'subset witness',hyps:goal.hyps}, new Map(), {nodes:0,until:clock()+1500})

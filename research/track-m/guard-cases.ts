@@ -12,6 +12,7 @@ type Proposal=Pick<CountCert,'reads'|'insts'>
 
 export const guardCases:typeof guardCasesImpl=(...args)=>wallTree('guard-case-reconstruction',()=>guardCasesImpl(...args))
 function guardCasesImpl(m:Machine,ds:CountDecl[],g:Goal,cert:Proposal,guard:C,until:number,trace:object[],slot=0,root:Path=new Map(),options:{deferCheck?:boolean}={}):Tree|undefined{
+ const deferNested=!!options.deferCheck&&process.env.LAB_DEFER_NESTED_CHECKS==='1'
  const conditions:C[]=[],booleans=process.env.LAB_BOOLEAN_GUARDS==='1'
  const collect=(c:C):boolean=>{
   if(c.op==='and'||booleans&&c.op==='or')return c.xs.every(collect)
@@ -29,25 +30,25 @@ function guardCasesImpl(m:Machine,ds:CountDecl[],g:Goal,cert:Proposal,guard:C,un
   const assumption=active?guard:{op:'and' as const,xs:hyps},sourceOnly=active&&process.env.LAB_ACTIVE_SOURCE==='1',goal=sourceOnly?g:{...g,hyps:[...g.hyps.slice(0,slot),assumption,...g.hyps.slice(slot)]},start=clock(),end=active?until:Math.min(until,clock()+500)
   let proof:Tree|undefined
   if(!active){
-   if(!attempted){attempted=true;const begun=clock();inactive=frameLemmas(inactiveGoal,cert,end,trace,root,{stopAfterFailed:2});trace.push({stage:'shared-frame',ms:Math.round(clock()-begun),proved:!!inactive})}
-   if(inactive){const shared=widen(inactiveGoal,g,inactive,{},root,path),checked=!!shared&&check(g,shared,path);trace.push({stage:'shared-frame-lift',ms:Math.round(clock()-start),checked});if(checked)return shared}
+   if(!attempted){attempted=true;const begun=clock();inactive=frameLemmas(inactiveGoal,cert,end,trace,root,{stopAfterFailed:2,deferCheck:deferNested});trace.push({stage:'shared-frame',ms:Math.round(clock()-begun),proved:!!inactive})}
+   if(inactive){const shared=widen(inactiveGoal,g,inactive,{},root,path),accepted=!!shared&&(deferNested||check(g,shared,path));trace.push({stage:'shared-frame-lift',ms:Math.round(clock()-start),checked:accepted&&!deferNested,proposed:!!shared,deferred:deferNested});if(accepted)return shared}
   }
   if(!active&&inactiveLeaf){
-   const shared=withDeadline(Math.min(end,clock()+50),()=>widen(g,g,inactiveLeaf!.tree,{},inactiveLeaf!.path,path)),checked=!!shared&&check(g,shared,path)
-   trace.push({stage:'inactive-path-reuse',ms:Math.round(clock()-start),checked})
-   if(checked)return shared
+   const shared=withDeadline(Math.min(end,clock()+50),()=>widen(g,g,inactiveLeaf!.tree,{},inactiveLeaf!.path,path)),accepted=!!shared&&(deferNested||check(g,shared,path))
+   trace.push({stage:'inactive-path-reuse',ms:Math.round(clock()-start),checked:accepted&&!deferNested,proposed:!!shared,deferred:deferNested})
+   if(accepted)return shared
   }
   if(!active){const simple=solve(rowsAt(goal,path),500);if(simple.kind==='refuted')proof={leaf:simple.steps}}
-  if(!proof)proof=active?fieldBoundLemmas(m,ds,goal,cert,end,trace,undefined,path,{deferCheck:true}):frameLemmas(goal,cert,end,trace,path)
+  if(!proof)proof=active?fieldBoundLemmas(m,ds,goal,cert,end,trace,undefined,path,{deferCheck:true}):frameLemmas(goal,cert,end,trace,path,{deferCheck:deferNested})
   if(!proof&&clock()<end){
    const before=atPoint.on;atPoint.on=false
    try{const out=grow(goal,path,{nodes:0,until:end,units:false});if('tree'in out)proof=out.tree}finally{atPoint.on=before}
   }
   // The complete guard tree below checks active proofs after source transport.
   // Avoid checking the same large active tree before and after that transport.
-  const lifted=proof&&(sourceOnly?proof:widen(goal,g,proof,{},path,path)),accepted=!!lifted&&(active||check(g,lifted,path))
+  const lifted=proof&&(sourceOnly?proof:widen(goal,g,proof,{},path,path)),accepted=!!lifted&&(active||deferNested||check(g,lifted,path))
   if(!active&&accepted&&lifted&&!inactiveLeaf)inactiveLeaf={tree:lifted,path:new Map(path)}
-  trace.push({stage:'guard-leaf',active,sourceOnly,hyps:hyps.length,ms:Math.round(clock()-start),checked:!active&&accepted,proposed:!!proof,transported:!!lifted,deferred:active})
+  trace.push({stage:'guard-leaf',active,sourceOnly,hyps:hyps.length,ms:Math.round(clock()-start),checked:!active&&!deferNested&&accepted,proposed:!!proof,transported:!!lifted,deferred:active||deferNested})
   return accepted?lifted:undefined
  }
  const visit=(i:number,hyps:C[],path:Path):Tree|undefined=>{

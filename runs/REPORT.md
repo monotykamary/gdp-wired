@@ -1350,3 +1350,45 @@ modest, **not the few-second target**. The pruner itself takes 48 ms exclusive;
 additional row materialization is visible separately. Type/lint and normal and
 pruning-enabled focused tests pass. This does not authorize integration: final
 checking of the still-large source context remains dominant.
+
+#### Checked source slicing and complete-tree deferral
+
+The fully indexed, hash-audited `wall-staged-v1` run (tree `4c5d46d9c43d`)
+passes **285 Track M tests, 67 Track P tests, and type/lint**. All three leader
+variants still check. The default research control here enables pin pruning,
+source slicing, and explicit nested-check deferral, but not derived-lemma
+pruning or action-live witness seeding.
+
+| Leader variant | Counted ms | End-to-end wall ms | Final source hypotheses / CInsts | Nodes / leaves / depth | Intermediate / final check ms |
+| --- | ---: | ---: | ---: | ---: | ---: |
+| Control | 2,824 | 15,446 | 73 / 23 | 1,415 / 708 / 54 | 39 / 6,010 |
+| Also prune derived lemma cuts | 2,822 | 18,634 | 65 / 20 | 1,127 / 564 / 41 | 41 / 4,903 |
+| Also seed only action-live carried witnesses | 2,752 | 18,876 | 65 / 20 | 1,127 / 564 / 41 | 44 / 5,031 |
+
+Source slicing selects existing count instances, read bindings, universal-flag
+tuples and law tuples from proof support. Its rebuilt source must be a literal
+subset of the original, every retained input row is reindexed exactly, and the
+ordinary kernel checks the resulting tree. A failed proposal falls back to the
+original checked source. It does not introduce a fact or weaken the claimed law.
+The slimmer per-action certificate remains a diagnostic: a complete machine
+certificate must still be assembled and checked by `checkMC`.
+
+Derived-cut pruning saves 144 leaves but spends additional time rebuilding rows,
+so it is **not enabled by default**. Action-live seeding reduces the initial
+source from 286 to 230 hypotheses in this run but does not improve the final
+certificate. It remains an optional candidate-only policy. Nested deferral
+applies only when an enclosing caller explicitly takes responsibility for the
+complete-tree check; intermediate checking falls to about 40 ms, with final
+checking still mandatory. All proof and wall budgets are unchanged.
+
+Two intermediate batches (`wall-deferred-v1`, `wall-live-v1`) failed type checking
+with an obsolete helper arity in their snapshots; their timing comparisons are
+superseded. `wall-lemmas-v1` audited the new count helper but still had an obsolete
+natural-case signature. The fully indexed run above prints all affected helper
+hashes and passes the gate; no success claim relies on those failed snapshots.
+
+This is substantial but still **not a few-second action**, not a complete-law
+proof, and not the 3×60-second protocol gate. The coordinator's next direction is
+to implement Fable's Section 4 core-ranked instance selection as the default in
+`core/count-cases.ts` / `core/count-focus-proof.ts`; no certificate-level trusted
+lemma rule is authorized.

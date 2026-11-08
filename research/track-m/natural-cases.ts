@@ -18,7 +18,7 @@ export function naturalSplits(g:Goal,root:Path):Lin[]{
  return [...splits.values()].slice(0,2)
 }
 
-export function proveNaturalCases(g:Goal,root:Path,until:number,trace:object[]=[]):Tree|undefined{
+export function proveNaturalCases(g:Goal,root:Path,until:number,trace:object[]=[],options:{deferCheck?:boolean}={}):Tree|undefined{
  const splits=naturalSplits(g,root);if(!splits.length)return undefined
  const started=clock()
  const go=(index:number,path:Path):Tree|undefined=>{
@@ -34,7 +34,7 @@ export function proveNaturalCases(g:Goal,root:Path,until:number,trace:object[]=[
   const no=go(index+1,new Map(path).set(id,{lin:split,holds:false}))
   return no?{split,yes,no}:undefined
  }
- const tree=go(0,root),checked=!!tree&&check(g,tree,root)
- trace.push({stage:'natural-cases',cases:splits.length,ms:Math.round(clock()-started),checked})
- return checked?tree:undefined
+ const tree=go(0,root),accepted=!!tree&&(options.deferCheck||check(g,tree,root))
+ trace.push({stage:'natural-cases',cases:splits.length,ms:Math.round(clock()-started),checked:accepted&&!options.deferCheck,proposed:!!tree,deferred:!!options.deferCheck})
+ return accepted?tree:undefined
 }
