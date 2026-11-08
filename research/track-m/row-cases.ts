@@ -1,10 +1,11 @@
 // Untrusted row-equality case proposals. Every ordering branch is covered and
 // every reused recipe is widened and checked at its destination path.
 import {type C,type E,type Machine,n,same,walkOnce,x} from '../../core/machine.ts'
-import {type CountCert,type Goal,type Path,type Tree,canon,check,linear,substC,substE,truth} from '../../kernel/kernel.ts'
-import {clock,widen,withDeadline} from '../../kernel/prove.ts'
+import {type CountCert,type Goal,type Path,type Tree,canon,linear,substC,substE,truth} from '../../kernel/kernel.ts'
+import {clock,withDeadline} from '../../kernel/prove.ts'
 import {scale,sub} from '../../core/solver.ts'
 import {walkLive} from './live-dependencies.ts'
+import {wallTree,check,widen} from './wall-profile.ts'
 export type RowPair=readonly [E,E]
 export function activeWriteRow(m:Machine,root:Path):string|undefined{
  const flags:Record<string,C>={},inputs=new Set(m.inputs),ranks=new Map<string,number>(),seen:object[]=[]
@@ -34,7 +35,8 @@ export function rowPairs(m:Machine,cert:Pick<CountCert,'reads'>,root:Path=new Ma
  if(read)walkOnce(read[2],(o:any)=>{if(o.op==='var'&&!inputs.has(o.name)&&!m.params.includes(o.name))names.add(o.name)})
  return [...names].slice(0,2).map(name=>[x(name),x(actor)] as const)
 }
-export function proveRowCases(g:Goal,root:Path,pairs:RowPair[],until:number,prove:(path:Path,until:number)=>Tree|undefined,trace?:(e:object)=>void,options:{deferToCaller?:boolean,splitEqual?:boolean}={}):Tree|undefined{
+export const proveRowCases:typeof proveRowCasesImpl=(...args)=>wallTree('row-case-reconstruction',()=>proveRowCasesImpl(...args))
+function proveRowCasesImpl(g:Goal,root:Path,pairs:RowPair[],until:number,prove:(path:Path,until:number)=>Tree|undefined,trace?:(e:object)=>void,options:{deferToCaller?:boolean,splitEqual?:boolean}={}):Tree|undefined{
  if(!pairs.length||clock()>=until)return undefined
  const cache=new Map<string,{path:Path,tree:Tree}>()
  const leaf=(path:Path,key:string):Tree|undefined=>{

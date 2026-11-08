@@ -1234,3 +1234,59 @@ small counted induction query. The existing production focused-count recovery
 and a checked whole-law result; summing isolated successes is not a proof.
 Step 1's all-laws-kept and per-goal timing gates remain unpassed, so no later
 family-generation or downstream merge gate was attempted.
+
+### Wall-time profile requested by the coordinator
+
+The integration work is paused until action wall time is small. Research-only
+wrappers measure exclusive wall time (subtracting nested measured phases), with
+CDCL's existing native unfold timer and a preload timestamp that includes module
+loading. They do not replace the checker, change arguments, or change budgets.
+`wall-profile-v1` uses the exact `copy-verification-v1` leader settings on an
+isolated large VM. Profiled/control runs both check action 4, consume **2,827
+counted ms**, and produce the identical final tree: **1,485 nodes, 743 leaves,
+depth 59**. Their replay walls are 43,203 / 41,829 ms, respectively. The profile's
+end-to-end time including loading/output is **43,325 ms** (timing tree
+`c694f86f1242`; placement saved with the run).
+
+| Exclusive phase | Wall ms |
+| --- | ---: |
+| Fixture reading | 0.528 |
+| Instance/certificate generation | 56.225 |
+| Goal construction | 12.028 |
+| CDCL/model/core search | 1,884.107 |
+| Native CDCL DAG unfolding | 0.000 |
+| Direct arithmetic search | 133.779 |
+| Prover row construction outside the above calls | 702.021 |
+| Boolean/tree reconstruction and proposal control | 866.346 |
+| Transport/reindexing | 5,116.291 |
+| Intermediate source checking | 11,656.450 |
+| Final source-tree checking | 22,825.043 |
+| Final checkMC | 0.000 (not called in an isolated, incomplete-law replay) |
+| Profile bookkeeping | 7.229 |
+| Loading/output/unattributed residual | 65.224 |
+
+**Checking is 79.6% of wall time; checking plus transport is 91.4%.** The gap
+between counted time and wall is not expensive fixture construction or native
+CDCL DAG unfolding. The final checker reconstructs rows for all 743 leaves.
+An isolated action is still not a complete MC certificate: its final acceptance
+is the original-goal `check(goal, tree, branchRoot)`; the profile does not pretend
+that `checkMC` ran.
+
+Tree sizes at phase boundaries (totals are work processed, not distinct nodes):
+
+| Phase | Tree calls | Total nodes / leaves processed | Largest tree nodes / leaves / depth |
+| --- | ---: | ---: | ---: |
+| Search-returned trees | 51 | 593 / 322 | 95 / 48 / 14 |
+| Boolean reconstruction | 12 | 596 / 304 | 127 / 64 / 20 |
+| Row-case reconstruction | 1 | 803 / 402 | 803 / 402 / 30 |
+| Guard composition | 1 | 1,481 / 741 | 1,481 / 741 / 57 |
+| Transport | 155 | 4,059 / 2,107 | 1,149 / 575 / 50 |
+| Intermediate checks | 122 | 1,484 / 803 | 191 / 96 / 20 |
+| Final source check | 1 | 1,485 / 743 | 1,485 / 743 / 59 |
+
+The eight-action shape survey is running with the individually checked settings.
+Leaf labels are structural provenance, not different trusted rules: a *count-row
+leaf* is below the failing side of a CInst inequality or a split mentioning its
+arbitrary row witness; other leaves are *arithmetic/control*. Both end in ordinary
+linear refutations. For the leader this partition is **597 count-row + 146
+arithmetic/control = 743 leaves**.

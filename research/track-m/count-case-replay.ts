@@ -3,14 +3,14 @@
 // checks the combined tree against the original, unspecialized goal.
 import {readFileSync} from 'node:fs'
 import {type C,type E,walkOnce,x} from '../../core/machine.ts'
-import {type Goal,type Instances,type Path,type Tree,canon,check,checkMC,countedObligations,foldPinned,linear,mcGoal,plainOf,substC} from '../../kernel/kernel.ts'
-import {atPoint,clock,counted,eprScope,fullRate,fullWork,grow,modelInstances,widen,withDeadline,withWall} from '../../kernel/prove.ts'
-import {modelSequence} from '../../kernel/model-sequence.ts'
+import {type Goal,type Instances,type Path,type Tree,canon,foldPinned,linear,plainOf,substC} from '../../kernel/kernel.ts'
+import {atPoint,clock,counted,eprScope,fullRate,fullWork,modelInstances,withDeadline,withWall} from '../../kernel/prove.ts'
+
 import {mldrHandSet} from '../protocols/ic3syn/mldr2-probe.ts'
 import {REFUTED} from '../../kernel/cdcl.ts'
 import {sub} from '../../core/solver.ts'
 import {patternsOf} from '../../kernel/epr.ts'
-import {certFor} from '../../core/counts.ts'
+
 import {appendCountCert} from '../../core/count-cert-grow.ts'
 import {countsForReads} from '../../core/count-facts.ts'
 import {frameLemmas} from './frame-lemmas.ts'
@@ -20,9 +20,12 @@ import {guardCases} from './guard-cases.ts'
 import {actionGuard} from './action-guard.ts'
 import {countLawSeeds,countRowBridges,independentCountInstances,fieldLawBridges,focusCountCert,copyCountSubset,rowKeyNames} from '../../core/count-focused.ts'
 import {seedCountWitnessFlags} from '../../core/count-witness-flags.ts'
-const mark=(stage:string)=>{if(process.env.LAB_PROGRESS==='1')console.log(`${stage} ${Math.round(performance.now())}`)}
+import {finalCheck as check,checkMC,countedObligations,mcGoal,grow,widen,modelSequence,certFor} from './wall-profile.ts'
+import {wallSpan,wallStage,wallReport,wallProfile} from './wall-profile.ts'
+import {countLeafKinds,treeMetrics} from './tree-diagnosis.ts'
+const mark=(stage:string)=>{wallStage(stage);if(process.env.LAB_PROGRESS==='1')console.log(`${stage} ${Math.round(performance.now())}`)}
 mark('entry-loaded')
-const [file,input]=process.argv.slice(2),d=JSON.parse(readFileSync(file!,'utf8')),{m}=JSON.parse(readFileSync(input!,'utf8'))
+const [file,input]=process.argv.slice(2),[d,{m}]=wallSpan('fixture-read',()=>[JSON.parse(readFileSync(file!,'utf8')),JSON.parse(readFileSync(input!,'utf8'))])
 mark('input-loaded')
 const laws=process.env.LAB_SYMBOLIC_OVERLAP==='1'?d.laws.map((l:any)=>l.name.startsWith('Inv2973')?mldrHandSet('star','uw').laws.find(q=>q.name===l.name)!:l):d.laws,index=laws.findIndex((l:any)=>l.name===d.law),law=laws[index]
 mark('laws-ready')
@@ -40,7 +43,7 @@ const sourceLaws=thinFields?laws.filter((l:any)=>!wideFields.has(l.name)):laws
 if(thinFields)at=Object.fromEntries(Object.entries(at).filter(([name])=>!wideFields.has(name)))
 const rows=own.filter((_,i)=>scalar.has(names[i])),request:E[]=m.inputs.filter((name:string)=>Object.values(m.counts??{}).some((c:any)=>![c.j,c.lo,c.key].includes(name)&&JSON.stringify([c.below,c.body]).includes(`"name":${JSON.stringify(name)}`))).map(x)
 mark('seeding-instances')
-at=countLawSeeds(m,laws,at,rows.length?rows:own,request,!countedTarget,{requestDiagonals:process.env.LAB_REQUEST_DIAGONALS==='1'});at=fieldLawBridges(m,sourceLaws,at,rows.length?rows:own,request,own.length===3?own[2]:undefined);at[law.name]=[...at[law.name]??[],...own];at=countRowBridges(m,law,at,own,request)
+wallSpan('instance-generation',()=>{at=countLawSeeds(m,laws,at,rows.length?rows:own,request,!countedTarget,{requestDiagonals:process.env.LAB_REQUEST_DIAGONALS==='1'});at=fieldLawBridges(m,sourceLaws,at,rows.length?rows:own,request,own.length===3?own[2]:undefined);at[law.name]=[...at[law.name]??[],...own];at=countRowBridges(m,law,at,own,request)})
 // Diagnostic only: the design also permits Ov_uw. Its numeric keys can be
 // instantiated by the actual excess-over-outside counts, not guessed halves.
 if(process.env.LAB_SYMBOLIC_OVERLAP==='1'){
@@ -52,7 +55,7 @@ mark('building-obligations')
 let base=countedObligations(m,laws,{[law.name]:at},index).find(g=>g.goal.name.endsWith('@step'))!
 const focusOptions={carried:process.env.LAB_ALL_CARRIED==='1'?undefined:m.inputMaps[0],targets:!countedTarget&&process.env.LAB_TARGET_COUNTS==='1'?rows:undefined,algebraic:process.env.LAB_ALGEBRAIC==='1',requestFrames:process.env.LAB_REQUEST_FRAMES==='1',copyFrames:process.env.LAB_COPY_FRAMES==='1',structural:countedTarget&&process.env.LAB_STRUCT_COUNTS==='1',frames:process.env.LAB_FRAME_COUNTS==='1'}
 mark('building-certificate')
-const proposed=focusCountCert(m,base.decls,certFor(base.goal,base.decls,true,1000),focusOptions)
+const proposed=wallSpan('instance-generation',()=>focusCountCert(m,base.decls,certFor(base.goal,base.decls,true,1000),focusOptions))
 const cert={...(process.env.LAB_COMPACT_COPY==='1'?copyCountSubset(m,proposed):proposed),picks:[] as [string,E[]][]}
 mark('certificate-ready')
 if(process.env.LAB_SKIP_COVERS==='1')cert.insts=cert.insts.filter(i=>i.terms.length!==3)
@@ -69,7 +72,7 @@ if(process.env.LAB_DESCRIBE_ONLY==='1'){
  process.exit(0)
 }
 mark('seeding-witness-flags')
-at=seedCountWitnessFlags(m,at,[{decls:base.decls,cert}],true)
+at=wallSpan('instance-generation',()=>seedCountWitnessFlags(m,at,[{decls:base.decls,cert}],true))
 base=countedObligations(m,laws,{[law.name]:at},index).find(g=>g.goal.name.endsWith('@step'))!
 mark('building-counted-goal')
 let goal:Goal={...mcGoal(base.goal.hyps,base.decls,cert)!,name:base.goal.name},plain=goal.hyps.slice(0,goal.hyps.length-cert.insts.length)
@@ -91,7 +94,7 @@ const rebuild=()=>{
    if(!focusOptions.algebraic&&process.env.LAB_GROW_ALGEBRAIC==='1'){const ids=new Set(added.map(r=>r[0]));next.insts=next.insts.filter(i=>i.terms.length<3||i.terms.some(t=>ids.has(t[1])))}
    for(const c of countsForReads(base.decls,added)??[])next.insts.push({wit:'newCount$'+next.insts.length,below:c.below,terms:[[1,c.v]],unit:0})
    if(appendCountCert(cert,next,base.goal.hyps)){
-    packetCache.clear();at=seedCountWitnessFlags(m,at,[{decls:base.decls,cert}],true)
+    packetCache.clear();at=wallSpan('instance-generation',()=>seedCountWitnessFlags(m,at,[{decls:base.decls,cert}],true))
     base=countedObligations(m,laws,{[law.name]:at},index).find(g=>g.goal.name.endsWith('@step'))!
    }
   }
@@ -110,7 +113,7 @@ walkOnce([m.step,m.assume],(o:any)=>{if(o.op!=='=')return;const [a,b]=o.a.op==='
 const choice=[...values].filter(([,v])=>v.size>2).sort((a,b)=>b[1].size-a[1].size)[0]
 if(!choice)throw new Error('No finite-choice scalar')
 const [name,vs]=choice,cuts=[...vs].sort((a,b)=>a-b).filter(v=>v>=Number(process.env.LAB_FIRST_CUT??-Infinity)),path:Path=new Map(),conditions:C[]=[],records:({goal:Goal,tree:Tree,path:Path,from?:Path}|undefined)[]=[],trace:object[]=[],cores:object[]=[]
-if(process.env.LAB_PROGRESS==='1'){console.log('replay-ready');const push=trace.push.bind(trace);trace.push=(...events:object[])=>{for(const event of events){const e=event as any;console.log(JSON.stringify({stage:e.stage,index:e.index,left:e.left,right:e.right,key:e.key,cached:e.cached,pairs:e.pairs,nodes:e.nodes,leaves:e.leaves,steps:e.steps,depth:e.depth,unique:e.unique,hyps:e.hyps,facts:e.facts,cuts:e.cuts,ms:e.ms,checked:e.checked,proposed:e.proposed,proved:e.proved,wall:Math.round(performance.now())}))}return push(...events)}}
+if(process.env.LAB_PROGRESS==='1'){console.log('replay-ready');const push=trace.push.bind(trace);trace.push=(...events:object[])=>{for(const event of events){const e=event as any;console.log(JSON.stringify({stage:e.stage,value:e.value,index:e.index,countRowLeaves:e.countRowLeaves,arithmeticLeaves:e.arithmeticLeaves,left:e.left,right:e.right,key:e.key,cached:e.cached,pairs:e.pairs,nodes:e.nodes,leaves:e.leaves,steps:e.steps,depth:e.depth,unique:e.unique,hyps:e.hyps,facts:e.facts,cuts:e.cuts,ms:e.ms,checked:e.checked,proposed:e.proposed,proved:e.proved,wall:Math.round(performance.now())}))}return push(...events)}}
 const splitAt=(value:number):Record<string,number>=>value?{[name]:1,'1':-value}:{[name]:1}
 const branches:{prefix:C[],path:Path}[]=[],branchRoots:Path[]=[],tailCuts:number[][]=[]
 const seq=modelSequence(), refine=process.env.LAB_CASE_REFINE==='1'
@@ -314,10 +317,16 @@ const result=withWall(start+Math.min(60000,Number(process.env.LAB_WALL_MS??10000
  })
  let tree=trees.at(-1)
  for(let i=cuts.length-1;i>=0;i--)tree=tree&&trees[i]?{split:splitAt(cuts[i]!),yes:trees[i]!,no:tree}:undefined
+ const actionTrees=process.env.LAB_TREE_PROFILE==='1'||wallProfile.enabled?wallSpan('instrumentation',()=>trees.map((t,i)=>{
+  if(!t)return undefined
+  const metrics={value:cuts[i]??'rest',...treeMetrics(t),...countLeafKinds(t,cert,branchRoots[i]!)}
+  trace.push({stage:'action-tree',...metrics});return metrics
+ })):undefined
  const checked=!!tree&&checkMC(base.goal.hyps,base.decls,{...cert,tree})
  // A complete MC check includes the same ground-tree check. Partial diagnostic
  // runs instead check each available branch against its exact original scope.
- return {complete:!!tree,branches:tree?trees.map(()=>checked):trees.map((t,i)=>!!t&&check(goal,t,branchRoots[i]!)),groundChecked:checked,checked}
+ return {complete:!!tree,branches:tree?trees.map(()=>checked):trees.map((t,i)=>!!t&&check(goal,t,branchRoots[i]!)),groundChecked:checked,checked,...(actionTrees?{actionTrees}:{})}
  })
 },true))
 console.log(JSON.stringify({file,law:law.name,context:thinFields?'thin-field':'full',diagnosticAssumptions:[...activation?['existing leader activation; no unrestricted proof unless rebase checks']:[],...process.env.LAB_ROW_CASE?['row-case assumptions; not an unrestricted proof']:[],...process.env.LAB_ACTIVE_ROW?['active action guard assumed for row diagnostic']:[]],...result,counted:Math.round((fullWork()-w)/fullRate),wall:Math.round(performance.now()-start),insts:cert.insts.length,trace,...(cores.length?{cores}:{})}))
+if(wallProfile.enabled)console.log(JSON.stringify({wallProfile:wallReport()}))

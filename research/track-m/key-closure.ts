@@ -2,9 +2,11 @@
 // refutation of their opposite branch; the caller checks the combined tree.
 import {type C,type E,walkOnce} from '../../core/machine.ts'
 import {type Goal,type Path,type Tree,canon,facts,truth} from '../../kernel/kernel.ts'
-import {refuteFast,scale} from '../../core/solver.ts'
-import {clock,rowsAt} from '../../kernel/prove.ts'
-export function closeKeyReads(g:Goal,root:Path,reads:{map:string,key:E}[],wits:Set<string>,until:number):{path:Path,cuts:{split:Record<string,number>,no:Tree}[]}{
+import {scale} from '../../core/solver.ts'
+import {clock} from '../../kernel/prove.ts'
+import {wallSpan,refuteFast,rowsAt} from './wall-profile.ts'
+export const closeKeyReads:typeof closeKeyReadsImpl=(...args)=>wallSpan('key-proposals',()=>closeKeyReadsImpl(...args))
+function closeKeyReadsImpl(g:Goal,root:Path,reads:{map:string,key:E}[],wits:Set<string>,until:number):{path:Path,cuts:{split:Record<string,number>,no:Tree}[]}{
  const proposals:C[]=[],seen=new Set<string>(),cuts:{split:Record<string,number>,no:Tree}[]=[],cells=new Map<string,E[]>();let path=root
  const add=(c:C)=>{const id=JSON.stringify(c);if(!seen.has(id)){seen.add(id);proposals.push(c)}}
  const member=(key:E)=>{let hit=false;walkOnce(key,(o:any)=>{if(o.op==='var'&&wits.has(o.name))hit=true});return hit}

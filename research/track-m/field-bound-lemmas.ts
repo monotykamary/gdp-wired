@@ -2,9 +2,9 @@
 // set's per-member bound. The suggestion is untrusted; every cut is reconstructed
 // and the complete result is checked against the original counted goal.
 import {type C,type Machine,same,walkOnce,x} from '../../core/machine.ts'
-import {type CountCert,type CountDecl,type Goal,type Path,type Tree,canon,check,columnTerm,linear,substC,substE,truth} from '../../kernel/kernel.ts'
+import {type CountCert,type CountDecl,type Goal,type Path,type Tree,canon,columnTerm,linear,substC,substE,truth} from '../../kernel/kernel.ts'
 import {countsForReads} from '../../core/count-facts.ts'
-import {refuteFast,sub} from '../../core/solver.ts'
+import {sub} from '../../core/solver.ts'
 import {liftCountProxies} from './lift-count-proxies.ts'
 import {piecesAt,sourceScalarContext,sourceWitnessContext,walkLive} from './live-dependencies.ts'
 import {carriedCase} from './carried-case.ts'
@@ -15,9 +15,10 @@ import {proveNaturalCases} from './natural-cases.ts'
 import {activeCarried} from './action-guard.ts'
 import {diagnoseTree} from './tree-diagnosis.ts'
 import {fieldFrames} from './field-frames.ts'
-import {atPoint,clock,grow,rowsAt,widen,withDeadline} from '../../kernel/prove.ts'
-import {modelSequence} from '../../kernel/model-sequence.ts'
+import {atPoint,clock,withDeadline} from '../../kernel/prove.ts'
+
 import {REFUTED} from '../../kernel/cdcl.ts'
+import {wallTree,check,refuteFast,grow,rowsAt,widen,modelSequence} from './wall-profile.ts'
 type Proposal=Pick<CountCert,'reads'|'insts'>
 // Bridge only cells used by the incoming path, including cells hidden inside
 // natural-subtraction columns. Other count terms are already rewritten in g.
@@ -63,7 +64,8 @@ export function emptyCountCandidate(m:Machine,cert:Proposal,inst:Proposal['insts
  let fields=false;walkOnce(count.body,(o:any)=>{if(o.op==='<'&&o.a.op==='get'&&o.b.op==='get')fields=true})
  return fields
 }
-export function fieldBoundLemmas(m:Machine,ds:CountDecl[],g:Goal,cert:Proposal,until:number,trace:object[],onModel?:(goal:Goal,witness:Record<string,number>)=>boolean,root:Path=new Map(),options:{splitRows?:boolean,deferCheck?:boolean}={}):Tree|undefined{
+export const fieldBoundLemmas:typeof fieldBoundLemmasImpl=(...args)=>wallTree('proposal-control',()=>fieldBoundLemmasImpl(...args))
+function fieldBoundLemmasImpl(m:Machine,ds:CountDecl[],g:Goal,cert:Proposal,until:number,trace:object[],onModel?:(goal:Goal,witness:Record<string,number>)=>boolean,root:Path=new Map(),options:{splitRows?:boolean,deferCheck?:boolean}={}):Tree|undefined{
  const seq=modelSequence(root),ctx:C[]=[],path:Path=new Map(root),lemmas:{split:Record<string,number>,no:Tree}[]=[]
  const accept=(tree:Tree|undefined,path:Path)=>tree&&(options.deferCheck||check(g,tree,path))?tree:undefined
  const verdict=(tree:Tree|undefined)=>({checked:!options.deferCheck&&!!tree,...(options.deferCheck?{proposed:!!tree,deferred:true}:{})})

@@ -1,15 +1,17 @@
 // Research-only activation case splitting. Every leaf is transported back to
 // the original goal/path, and the complete split tree is checked once more.
 import {type C,type Machine,plus,n} from '../../core/machine.ts'
-import {type CountCert,type CountDecl,type Goal,type Path,type Tree,canon,check,linear,truth} from '../../kernel/kernel.ts'
-import {solve,sub} from '../../core/solver.ts'
-import {atPoint,clock,grow,rowsAt,widen,withDeadline} from '../../kernel/prove.ts'
+import {type CountCert,type CountDecl,type Goal,type Path,type Tree,canon,linear,truth} from '../../kernel/kernel.ts'
+import {sub} from '../../core/solver.ts'
+import {atPoint,clock,withDeadline} from '../../kernel/prove.ts'
 import {fieldBoundLemmas} from './field-bound-lemmas.ts'
 import {frameLemmas} from './frame-lemmas.ts'
 import {treeMetrics} from './tree-diagnosis.ts'
+import {wallTree,check,solve,grow,rowsAt,widen} from './wall-profile.ts'
 type Proposal=Pick<CountCert,'reads'|'insts'>
 
-export function guardCases(m:Machine,ds:CountDecl[],g:Goal,cert:Proposal,guard:C,until:number,trace:object[],slot=0,root:Path=new Map(),options:{deferCheck?:boolean}={}):Tree|undefined{
+export const guardCases:typeof guardCasesImpl=(...args)=>wallTree('guard-case-reconstruction',()=>guardCasesImpl(...args))
+function guardCasesImpl(m:Machine,ds:CountDecl[],g:Goal,cert:Proposal,guard:C,until:number,trace:object[],slot=0,root:Path=new Map(),options:{deferCheck?:boolean}={}):Tree|undefined{
  const conditions:C[]=[],booleans=process.env.LAB_BOOLEAN_GUARDS==='1'
  const collect=(c:C):boolean=>{
   if(c.op==='and'||booleans&&c.op==='or')return c.xs.every(collect)

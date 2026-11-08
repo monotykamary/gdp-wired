@@ -1,12 +1,13 @@
 // Untrusted Boolean-core recipe: expose witness membership before unrelated
 // conditional fields. Every terminal branch is an ordinary linear refutation.
 import {type C,type E,same,walkOnce,x} from '../../core/machine.ts'
-import {type Goal,type Path,type Tree,canon,check,columnTerm,facts,linear,truth} from '../../kernel/kernel.ts'
-import {refuteFast,scale,sub} from '../../core/solver.ts'
-import {clock,grow,rowsAt,widen,withDeadline} from '../../kernel/prove.ts'
+import {type Goal,type Path,type Tree,canon,columnTerm,facts,linear,truth} from '../../kernel/kernel.ts'
+import {scale,sub} from '../../core/solver.ts'
+import {clock,withDeadline} from '../../kernel/prove.ts'
 import {walkLive} from './live-dependencies.ts'
 import {foldPath} from './fold-path.ts'
 import {closeKeyReads} from './key-closure.ts'
+import {wallTree,check,refuteFast,grow,rowsAt,widen} from './wall-profile.ts'
 // Unlike dependency slicing, proof-case discovery must still enter the
 // operands of a comparison already forced true: its conditional columns
 // can remain inconsistent until their own guards have been decided.
@@ -64,7 +65,8 @@ export function booleanCandidates(g:Goal,root:Path,wits:Set<string>,extended=fal
  }
  return [...chosen.values()]
 }
-export function booleanCore(g:Goal,root:Path,wits:Set<string>,until:number,trace:object[],options:{model?:boolean,folded?:boolean,extended?:boolean,scalarGuards?:boolean}={}):Tree|undefined{
+export const booleanCore:typeof booleanCoreImpl=(...args)=>wallTree('tree-reconstruction',()=>booleanCoreImpl(...args))
+function booleanCoreImpl(g:Goal,root:Path,wits:Set<string>,until:number,trace:object[],options:{model?:boolean,folded?:boolean,extended?:boolean,scalarGuards?:boolean}={}):Tree|undefined{
  const start=clock(),scalarGuards=options.scalarGuards??false,extended=options.extended??false
  // Lift the goal's own forced linear facts into the path, with a checked
  // opposite branch for every cut. They need not consume the Boolean pool.

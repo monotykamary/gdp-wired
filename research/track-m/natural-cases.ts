@@ -2,8 +2,9 @@
 // The ordinary kernel still checks all leaves and the combined tree.
 import {type E,walkOnce} from '../../core/machine.ts'
 import {type Lin,sub} from '../../core/solver.ts'
-import {type Goal,type Path,type Tree,canon,check,columnTerm,linear,truth} from '../../kernel/kernel.ts'
-import {clock,grow} from '../../kernel/prove.ts'
+import {type Goal,type Path,type Tree,canon,columnTerm,linear,truth} from '../../kernel/kernel.ts'
+import {clock} from '../../kernel/prove.ts'
+import {check,grow} from './wall-profile.ts'
 
 export function naturalSplits(g:Goal,root:Path):Lin[]{
  const expressions:unknown[]=[g.hyps],seen=new Set<string>(),splits=new Map<string,Lin>()

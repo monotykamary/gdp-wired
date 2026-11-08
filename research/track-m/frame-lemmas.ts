@@ -1,15 +1,17 @@
 // Factor valid count-frame inequalities out of a large counted obligation.
 // Every cut is an ordinary checked Tree split; no frame is trusted as a fact.
 import {type C,type E,walkOnce,x} from '../../core/machine.ts'
-import {type CountCert,type Goal,type Path,type Tree,canon,check,substC} from '../../kernel/kernel.ts'
-import {clock,grow,widen} from '../../kernel/prove.ts'
-import {modelSequence} from '../../kernel/model-sequence.ts'
+import {type CountCert,type Goal,type Path,type Tree,canon,substC} from '../../kernel/kernel.ts'
+import {clock} from '../../kernel/prove.ts'
+
 import {REFUTED} from '../../kernel/cdcl.ts'
 import {liftCountProxies} from './lift-count-proxies.ts'
 import {piecesAt,walkLive} from './live-dependencies.ts'
 import {booleanCore} from './boolean-core.ts'
+import {wallTree,check,grow,widen,modelSequence} from './wall-profile.ts'
 type Proposal=Pick<CountCert,'reads'|'insts'>
-export function frameLemmas(g:Goal,cert:Proposal,until:number,trace:object[],root:Path=new Map(),options:{stopAfterFailed?:number,boolean?:boolean}={}):Tree|undefined {
+export const frameLemmas:typeof frameLemmasImpl=(...args)=>wallTree('proposal-control',()=>frameLemmasImpl(...args))
+function frameLemmasImpl(g:Goal,cert:Proposal,until:number,trace:object[],root:Path=new Map(),options:{stopAfterFailed?:number,boolean?:boolean}={}):Tree|undefined {
  let failed=0
  const seq=modelSequence(root),base=g.hyps.slice(0,g.hyps.length-cert.insts.length),ctx:C[]=[],path:Path=new Map(root),lemmas:{split:Record<string,number>,no:Tree}[]=[]
  const reads=new Map(cert.reads.map(r=>[r[0],r])),maps=new Set(cert.reads.map(r=>r[1])),wits=new Set(cert.insts.map(i=>i.wit))

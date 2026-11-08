@@ -3,11 +3,13 @@
 // A deferred result is only a proposal: its composing caller must check the
 // complete tree against the original goal, including these transported leaves.
 import {type E,walkOnce} from '../../core/machine.ts'
-import {type Lin,type Step,add,scale,solve,sub} from '../../core/solver.ts'
-import {type CountCert,type Goal,type Path,type Tree,canon,check,columnTerm,linear,substE} from '../../kernel/kernel.ts'
-import {rowsAt} from '../../kernel/prove.ts'
+import {type Lin,type Step,add,scale,sub} from '../../core/solver.ts'
+import {type CountCert,type Goal,type Path,type Tree,canon,columnTerm,linear,substE} from '../../kernel/kernel.ts'
 
-export function liftCountProxies(part:Goal,whole:Goal,tree:Tree,reads:CountCert['reads'],pp:Path=new Map(),wp:Path=new Map(),diagnose?:(event:object)=>void,options:{deferCheck?:boolean}={}):Tree|undefined{
+import {wallTree,solve,check,rowsAt} from './wall-profile.ts'
+
+export const liftCountProxies:typeof liftCountProxiesImpl=(...args)=>wallTree('transport',()=>liftCountProxiesImpl(...args))
+function liftCountProxiesImpl(part:Goal,whole:Goal,tree:Tree,reads:CountCert['reads'],pp:Path=new Map(),wp:Path=new Map(),diagnose?:(event:object)=>void,options:{deferCheck?:boolean}={}):Tree|undefined{
  const aliases=new Map<string,E>(reads.map(([id,map,key])=>[id,{op:'get',map,key}]))
  const substitutions=Object.fromEntries(aliases),terms=new Map<string,E|undefined>()
  const remapTerm=(name:string):E|undefined=>{

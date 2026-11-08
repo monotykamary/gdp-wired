@@ -1,10 +1,11 @@
 // Untrusted first split for a small count core: carried membership at the
 // certificate's witness, before branching through large post-state terms.
 import {n,type E} from '../../core/machine.ts'
-import {type Goal,type Path,type Tree,canon,check,linear,truth} from '../../kernel/kernel.ts'
+import {type Goal,type Path,type Tree,canon,linear,truth} from '../../kernel/kernel.ts'
 import {sub} from '../../core/solver.ts'
-import {clock,grow} from '../../kernel/prove.ts'
+import {clock} from '../../kernel/prove.ts'
 import {walkLive} from './live-dependencies.ts'
+import {check,grow} from './wall-profile.ts'
 export function carriedCase(g:Goal,root:Path,maps:readonly string[],wits:Set<string>,until:number,trace:object[]):Tree|undefined{
  let cell:E|undefined
  walkLive(g.hyps,root,(o:any)=>{if(!cell&&o.op==='get'&&maps.includes(o.map)&&o.key.op==='var'&&wits.has(o.key.name)&&truth({op:'<=',a:n(1),b:o},root)===undefined)cell=o})
