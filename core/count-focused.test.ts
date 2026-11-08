@@ -1,7 +1,16 @@
 import {expect,test} from 'bun:test'
 import {all,any,atMost,get,ite,less,n,not,same,type E,type Machine,x} from './machine.ts'
 import {type CountCert,type CountDecl} from '../kernel/kernel.ts'
-import {countLawSeeds,countRowBridges,independentCountInstances,fieldLawBridges,focusCountCert,copyCountSubset,rowKeyNames} from './count-focused.ts'
+import {countLawSeeds,countRowBridges,fieldGuardSeeds,independentCountInstances,fieldLawBridges,focusCountCert,copyCountSubset,rowKeyNames} from './count-focused.ts'
+
+test('field guards receive row instances without adding carried-set witnesses',()=>{
+ const m:Machine={name:'setup guard',params:['size'],inputs:['actor'],state:{},maps:{Version:0},inputMaps:['Members'],step:{flags:{uncopied:{op:'all',key:'row',c:any(not(less(x('row'),x('size'))),same(get('Version',x('row')),n(0)))},members:{op:'all',key:'row',c:same(get('Members',x('row')),n(1))}}}}
+ const before={'?uncopied':[x('old')]},next=fieldGuardSeeds(m,before,[x('a#'),x('actor'),n(0),x('a#')])
+ expect(next['?uncopied']).toEqual([x('old'),x('a#'),x('actor'),n(0)])
+ expect(next['?members']).toBeUndefined()
+ expect(before).toEqual({'?uncopied':[x('old')]})
+ expect(fieldGuardSeeds(m,next,[x('a#'),x('actor'),n(0)])).toBe(next)
+})
 
 test('a copy starting subset retains source substitutions without unrelated tuples',()=>{
  const m:Machine={name:'copy subset',params:[],inputs:['source','other'],state:{},step:{}},key=(a:string,b:string):E=>({op:'add',a:{op:'mul',k:64,a:x(a)},b:x(b)})

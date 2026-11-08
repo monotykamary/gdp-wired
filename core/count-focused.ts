@@ -17,6 +17,21 @@ export function countLawSeeds(m: Machine, laws: Law[], at: Instances, own: E[], 
   return out
 }
 
+// Universal field guards need ordinary goal-row instances even when no
+// count witness mentions that row. Do not expand carried-set predicates here.
+export function fieldGuardSeeds(m:Machine,at:Instances,keys:E[]):Instances{
+ let out=at
+ for(const [name,q]of Object.entries(m.step.flags??{})){
+  if(q.op!=='all'||q.keys?.length)continue
+  const maps=new Set<string>();walkOnce(q.c,(o:any)=>{if(o.op==='get')maps.add(o.map)})
+  if(!maps.size||[...maps].some(map=>(m.inputMaps??[]).includes(map)||map in (m.counts??{})))continue
+  const flag=`?${name}`,had=out[flag]??[],seen=new Set(had.map(t=>JSON.stringify(t))),extra:E[]=[]
+  for(const key of keys.slice(0,32)){const id=JSON.stringify(key);if(!seen.has(id)){seen.add(id);extra.push(key)}}
+  if(extra.length){if(out===at)out={...at};out[flag]=[...had,...extra]}
+ }
+ return out
+}
+
 // Coordinates of a count key are row parameters too. Treating only a bare key
 // as a row loses the second row of a packed two-row count; arithmetic witnesses
 // outside read keys are intentionally excluded.

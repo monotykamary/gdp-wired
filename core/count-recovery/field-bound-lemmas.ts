@@ -31,7 +31,7 @@ export function countBindingsAt(reads:CountCert['reads'],root:Path):C[]{
  })}
  return reads.flatMap(([id,map,key])=>{const cell={op:'get' as const,map,key},lin=linear(cell,root);return lin&&Object.keys(lin).some(k=>columns.has(k))?[same(x(id),cell)]:[]})
 }
-export function fieldBounds(m:Machine,ds:CountDecl[],cert:Proposal):C[]{
+export function fieldBounds(m:Machine,ds:CountDecl[],cert:Proposal,options:{claim?:C,path?:Path}={}):C[]{
  const key=x('$member'),bounds:{a:unknown,b:any,guard:C}[]=[]
  for(const [name,q] of Object.entries(m.step.flags??{}))if(q.op==='all')walkOnce(substC(q.c,{vars:{[q.key]:key},maps:{},flags:{}}),(c:any)=>{
   const next=c.op==='<'&&c.b?.op==='add'&&c.b.b.op==='const'&&c.b.b.value===1?c.b.a:undefined
@@ -47,7 +47,9 @@ export function fieldBounds(m:Machine,ds:CountDecl[],cert:Proposal):C[]{
    if(!seen.has(id)){seen.add(id);out.push(candidate)}
   }
  })
- const targets=new Set<string>(),twins=cert.reads.filter(r=>r[1].endsWith('#')).map(([v,map,key])=>[v,map.slice(0,-1),key] as [string,string,typeof key])
+ const explicit=new Set<string>()
+ if(options.claim)walkLive(options.claim,options.path??new Map(),(o:any)=>{if(o.op==='get')explicit.add(JSON.stringify(o))})
+ const targets=new Set<string>(explicit),twins=cert.reads.filter(r=>r[1].endsWith('#')).map(([v,map,key])=>[v,map.slice(0,-1),key] as [string,string,typeof key])
  for(const c of countsForReads(ds,twins)??[])walkOnce(substE(c.body,{vars:{[c.key]:key},maps:{},flags:{}}),(p:any)=>{
   if(p.op==='<'&&bounds.some(b=>JSON.stringify(b.a)===JSON.stringify(p.a)))targets.add(JSON.stringify(p.b))
  })
@@ -55,7 +57,7 @@ export function fieldBounds(m:Machine,ds:CountDecl[],cert:Proposal):C[]{
  // post-count core can omit the actor's own pre-state version entirely.
  walkOnce(m.step.maps,(o:any)=>{if(o.op==='get'&&o.key.op==='var'&&m.inputs.includes(o.key.name))targets.add(JSON.stringify(o))})
  const focused=out.filter(c=>c.op==='<='&&c.a.op==='if'&&targets.has(JSON.stringify(c.a.then)))
- return (focused.length?focused:out).slice(0,4)
+ return (focused.length?focused:out).sort((a,b)=>Number(b.op==='<='&&b.a.op==='if'&&explicit.has(JSON.stringify(b.a.then)))-Number(a.op==='<='&&a.a.op==='if'&&explicit.has(JSON.stringify(a.a.then)))).slice(0,4)
 }
 // A candidate only: the source checker must still prove its count is empty.
 export function emptyCountCandidate(m:Machine,cert:Proposal,inst:Proposal['insts'][number]):boolean{
@@ -82,7 +84,12 @@ function fieldBoundLemmasImpl(m:Machine,ds:CountDecl[],g:Goal,cert:Proposal,unti
  const postMaps=new Set(cert.reads.filter(r=>r[1].endsWith('#')).map(r=>r[1])),postIds=new Set(cert.reads.filter(r=>r[1].endsWith('#')).map(r=>r[0]))
  if(rowPlan.length&&!postIds.size){
   trace.push({stage:'field-row-pairs',pairs:rowPlan})
-  return proveRowCases(g,root,rowPlan,until,(branch,end)=>fieldCase(m,g,cert,options.fieldClaim,branch,Math.min(end,clock()+80),e=>trace.push(e))??fieldBoundLemmas(m,ds,g,cert,end,trace,onModel,branch,{...options,splitRows:false,deferCheck:true}),e=>trace.push(e),{deferToCaller:!!options.deferCheck,splitEqual:copiesRows(m,root)})
+  return proveRowCases(g,root,rowPlan,until,(branch,end)=>{
+   const cached=options.memo?.get(g,branch,end);if(cached){trace.push({stage:'source-memo',scope:'field-row'});return cached}
+   const tree=fieldCase(m,g,cert,options.fieldClaim,branch,Math.min(end,clock()+80),e=>trace.push(e))??fieldBoundLemmas(m,ds,g,cert,end,trace,onModel,branch,{...options,splitRows:false,deferCheck:true})
+   if(tree)options.memo?.put(g,branch,tree)
+   return tree
+  },e=>trace.push(e),{deferToCaller:!!options.deferCheck,splitEqual:copiesRows(m,root)})
  }
  const base=g.hyps.slice(0,g.hyps.length-cert.insts.length).flatMap(c=>piecesAt(c,root)).filter(c=>{let post=false;walkLive(c,root,(o:any)=>{if(o.op==='get'&&postMaps.has(o.map)||o.op==='var'&&postIds.has(o.name))post=true});return !post})
  const cs=new Map((countsForReads(ds,cert.reads)??[]).map(c=>[c.v,{...c,body:substE(c.body,{vars:{[c.key]:x('$member')},maps:{},flags:{}})}]))
@@ -165,7 +172,7 @@ function fieldBoundLemmasImpl(m:Machine,ds:CountDecl[],g:Goal,cert:Proposal,unti
    if(accepted&&no){lemmas.push({split,no});ctx.push({op:'<=',a:x(left!),b:x(right!)});path.set(canon(split),{lin:split,holds:true})}
   }
  }
- const ceilings=fieldBounds(m,ds,cert),domains:C[]=[]
+ const ceilings=fieldBounds(m,ds,cert,{claim:options.fieldClaim,path:root}),domains:C[]=[]
  for(const good of ceilings)if(good.op==='<='&&good.a.op==='if'){
   const parts=good.a.c.op==='and'?good.a.c.xs:[good.a.c]
   for(const c of parts)if(c.op==='<'&&!domains.some(d=>JSON.stringify(c)===JSON.stringify(d)))domains.push(c)
@@ -192,6 +199,16 @@ function fieldBoundLemmasImpl(m:Machine,ds:CountDecl[],g:Goal,cert:Proposal,unti
   const facts=narrow(good),part={...g,hyps:[...facts,...ctx,{op:'not' as const,x:good}]},proof=solve(part,250),lifted=proof&&widen(part,g,proof,{},root,noPath),no=accept(lifted,noPath)
   trace.push({stage:'field-bound',bound:good,ms:Math.round(clock()-start),proved:!!no,...verdict(no)})
   if(no){lemmas.push({split,no});ctx.push(good);path.set(canon(split),{lin:split,holds:true})}
+ }
+ if(!postIds.size&&options.fieldClaim&&lemmas.length&&clock()<until){
+  const offset=g.hyps.length-cert.insts.length,part={...g,hyps:[...g.hyps.slice(0,offset),...ctx,...g.hyps.slice(offset)]}
+  const field=fieldCase(m,part,cert,options.fieldClaim,path,Math.min(until,clock()+150),e=>trace.push(e))
+  let tree=field&&widen(part,g,field,{},path,path)
+  trace.push({stage:'field-ceiling-conclusion',facts:lemmas.length,proposed:!!tree})
+  if(tree){
+   for(const {split,no} of [...lemmas].reverse())tree={split,yes:tree,no}
+   if(options.deferCheck||check(g,tree,root))return tree
+  }
  }
  {
   const carriedMaps=activeCarried(m,root),countMaps=new Set(cert.reads.map(r=>r[1])),countIds=new Set(cert.reads.map(r=>r[0])),wits=new Set(cert.insts.map(i=>i.wit)),raw=g.hyps.slice(0,g.hyps.length-cert.insts.length)

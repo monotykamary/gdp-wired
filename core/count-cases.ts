@@ -141,11 +141,11 @@ export function proveCountCases(m:Machine,laws:Law[],at:Instances,cert:Pick<Coun
        at=seedCountWitnessFlags(m,at,[{decls:packet.decls,cert:slim}],true)
        tree=selected.tree;source=selected.goal;from=new Map(path);indices=selected.indices
       }
-      for(let round=0;!tree&&round<6&&clock()<until;round++){
-        const part={name:goal.name,hyps:[...prefix,...goal.hyps]},start=clock(),q=seq(part,Math.min(until,clock()+(options.queryMs??200)))
+      for(let round=0;!tree&&round<6&&clock()<caseEnd;round++){
+        const part={name:goal.name,hyps:[...prefix,...goal.hyps]},start=clock(),q=seq(part,Math.min(caseEnd,clock()+(options.queryMs??200)))
         options.trace?.({value,stage:'query',round,hyps:part.hyps.length,ms:Math.round(clock()-start),outcome:'tree'in q?'tree':q.stuck,core:q.core?.length})
         if(!('tree'in q)&&q.why===REFUTED&&q.core?.length&&q.core.length<=(options.coreLimit??Infinity)){
-          const core={name:goal.name,hyps:q.core.map(j=>part.hyps[j]!)},out=coreGrow(core,Math.min(until,clock()+Math.max(600,(until-clock())/(cuts.length+1-i))))
+          const core={name:goal.name,hyps:q.core.map(j=>part.hyps[j]!)},out=coreGrow(core,caseEnd)
           options.trace?.({value,stage:'core',hyps:core.hyps.length,outcome:'tree'in out?'tree':out.stuck})
           if('tree'in out){tree=out.tree;source=core}
         }
@@ -155,8 +155,8 @@ export function proveCountCases(m:Machine,laws:Law[],at:Instances,cert:Pick<Coun
         if(!next)break
         at=next;if(!rebuild())return undefined
       }
-      if(!tree){
-        const part={name:goal.name,hyps:[...prefix,...goal.hyps]},out=grow(part,new Map(),{nodes:0,until:Math.min(until,clock()+Math.max(600,(until-clock())/(cuts.length+1-i))),units:options.units})
+      if(!tree&&clock()<caseEnd){
+        const part={name:goal.name,hyps:[...prefix,...goal.hyps]},out=grow(part,new Map(),{nodes:0,until:caseEnd,units:options.units})
         options.trace?.({value,stage:'grow',outcome:'tree'in out?'tree':out.stuck})
         if('tree'in out){tree=out.tree;source=part}
       }

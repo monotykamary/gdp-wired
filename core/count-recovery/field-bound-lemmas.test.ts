@@ -44,6 +44,14 @@ test('ceilings retain input-key fields used by a write beside the post-count tar
  expect(fieldBounds(m,ds,cert)).toEqual([good(x('target')),good(x('source'))])
 })
 
+test('field conclusions retain their own ceiling target beside a write actor',()=>{
+ const m:Machine={name:'rival ceiling',params:[],inputs:['actor'],state:{},maps:{Clock:0,Epoch:0},step:{flags:{eligible:{op:'all',key:'v',c:less(get('Clock',x('v')),plus(get('Clock',x('actor')),n(1)))}},maps:{Epoch:{key:x('actor'),value:plus(get('Epoch',x('actor')),n(1))}}}}
+ const ds=[{map:'Below',j:'row',key:'k',below:n(4),body:ite(less(get('Clock',x('k')),get('Epoch',x('row'))),n(1),n(0))}],cert={reads:[['actor','Below',x('actor')],['rival','Below',x('rival')]] as CountCert['reads'],insts:[]}
+ const result=fieldBounds(m,ds,cert,{claim:less(get('Epoch',x('rival')),get('Clock',x('actor')))})
+ expect(result[0]).toEqual(atMost(ite(all(same(x('?eligible'),n(1)),less(x('rival'),n(4))),get('Epoch',x('rival')),n(0)),get('Clock',x('actor'))))
+ expect(result).toHaveLength(2)
+})
+
 test('equal per-member fields also suggest checked ceiling candidates',()=>{
  const m:Machine={name:'equal ceilings',params:[],inputs:['source'],inputMaps:['Selected'],state:{},maps:{Clock:0,Epoch:0},step:{flags:{committed:{op:'all',key:'v',c:same(get('Clock',x('v')),get('Clock',x('source')))}}}}
  const ds=[{map:'Below',j:'row',key:'k',below:n(4),body:ite(less(get('Clock',x('k')),get('Epoch',x('row'))),n(1),n(0))}],cert:Pick<CountCert,'reads'|'insts'>={reads:[['number','Below',x('target')]],insts:[]}

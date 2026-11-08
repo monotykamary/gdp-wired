@@ -1821,3 +1821,74 @@ SMT-refuted with a two-hypothesis core (size domain and the negated equality
 of copied fields), but ordinary tree growth returns unknown: its packed,
 naturally-subtracted read keys need explicit congruence reconstruction.
 The next change addresses those two independently identified gaps.
+
+#### Ordered recovery: field guard instances and packed-copy cores
+
+`ordered-recovery-v3`, batch `20261108-121944-6yv6rl`, tree `6fe438901cb5`,
+adds ordinary row instances of unary field-only guards and uses the existing
+Boolean/key-closure reconstruction for small refuted cores with packed read
+keys. Pick/setup now returns an action candidate, and the copy's first
+`equal/equal` row now proves. The new packed-copy unit test passes, but this
+snapshot's type check failed because its test's inferred union of linear
+objects contained optional `undefined` entries. The test array is explicitly
+typed as linear maps in the next snapshot. This failed validation is retained
+and is not claimed as a passed code gate.
+
+| Complete hand-set law | Proved / checked | Counted ms | In-process wall s |
+| --- | --- | ---: | ---: |
+| one primary per term | yes / yes | 3,425 | 3.261 |
+| Inv3915: primary newest | yes / yes | 4,537 | 3.592 |
+| Inv1758: row agreement | no / no | 5,003 | 3.715 |
+| Inv2973: quorum overlap | no / no | 5,338 | 24.378 |
+| Inv*: quorum term backing | no / no | 5,001 | 29.501 |
+
+`ordered-recovery-v4`, batch `20261108-122238-gomutu`, tree `b1326a638318`,
+keeps completed field-only row leaves in the source memo, obeys the existing
+per-case slice during first-pass fallback, and includes the actual field
+conclusion's ceiling targets (rather than filtering them out in favor of
+only the write actor). These are proposal/search changes; overall proof
+allowances and the checker are unchanged. In particular, Inv1758 reaches
+all finite action cases rather than exhausting the budget before send.
+
+| Complete hand-set law | Proved / checked | Counted ms | In-process wall s |
+| --- | --- | ---: | ---: |
+| one primary per term | **yes / yes** | **2,318** | **2.802** |
+| Inv3915: primary newest | **yes / yes** | **3,390** | **3.136** |
+| Inv1758: row agreement | no / no | 5,014 | 6.370 |
+| Inv2973: quorum overlap | no / no | 5,001 | 19.381 |
+| Inv*: quorum term backing | no / no | 5,101 | 18.423 |
+
+Validation for v4 passes: **119 production-derivation tests, 296 Track M
+and 67 Track P tests**, type/lint zero warnings/errors. Copy now reuses its
+first two completed rows, but a remaining ordering half and later field
+rows still exhaust their shares. The next attempt skips the redundant
+undivided active field search when row cases are already known, and uses
+newly established field ceilings to close the field conclusion directly.
+The higher-cost counted laws remain unproved; no Track K rebase has occurred.
+
+#### Ordered recovery: close field claims from their ceiling cuts
+
+`ordered-recovery-v5`, batch `20261108-122523-o9fvbb`, tree `7eac21953d5e`,
+skips an undivided active-field attempt when the row case plan is already
+known, and attempts the field conclusion directly after deriving its
+ceiling cuts. The cuts still have their opposite-branch proofs and the
+result is transported and checked against the original source.
+
+| Complete hand-set law | Proved / checked | Counted ms | In-process wall s |
+| --- | --- | ---: | ---: |
+| one primary per term | **yes / yes** | **2,260** | **2.232** |
+| Inv3915: primary newest | **yes / yes** | **2,579** | **2.865** |
+| Inv1758: row agreement | no / no | 5,015 | 6.504 |
+| Inv2973: quorum overlap | no / no | 5,001 | 23.310 |
+| Inv*: quorum term backing | no / no | 5,101 | 15.875 |
+
+Inv3915 now closes the leader action on the first pass. Inv1758 obtains
+both pick and reconfiguration action candidates; copy's remaining ordering
+half, leader, and send still need pointwise closure. Its successful rows
+are retained, not counted as complete-law passes. The next diagnostic
+compares the two copy ordering halves and the equal-row send case.
+
+All **119 production-derivation tests, 296 Track M/count/port tests and
+67 Track P tests** pass; type/lint reports zero warnings/errors. The original
+whole-law allowance remains 5,000 counted ms, stopping overshoots are not
+passes, and no trusted rule or Track K change has been made.

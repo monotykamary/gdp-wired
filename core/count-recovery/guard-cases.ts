@@ -7,6 +7,7 @@ import {atPoint,clock,withDeadline} from '../../kernel/prove.ts'
 import {fieldBoundLemmas} from './field-bound-lemmas.ts'
 import {frameLemmas} from './frame-lemmas.ts'
 import {fieldCase} from './field-case.ts'
+import {rowPairs} from './row-cases.ts'
 import {type SourceProofMemo} from './source-memo.ts'
 import {wallTree,check,solve,grow,rowsAt,widen} from './ops.ts'
 type Proposal=Pick<CountCert,'reads'|'insts'>
@@ -31,7 +32,8 @@ function guardCasesImpl(m:Machine,ds:CountDecl[],g:Goal,cert:Proposal,guard:C,un
   const assumption=active?guard:{op:'and' as const,xs:hyps},sourceOnly=false,goal=sourceOnly?g:{...g,hyps:[...g.hyps.slice(0,slot),assumption,...g.hyps.slice(slot)]},start=clock(),end=active?until:Math.min(until,clock()+500)
   const cached=options.memo?.get(g,path,end)
   if(cached&&(deferNested||check(g,cached,path))){trace.push({stage:'source-memo',scope:'guard',active});return cached}
-  let proof=fieldCase(m,goal,cert,options.claim,path,Math.min(end,clock()+150),e=>trace.push({...e,guardActive:active}))
+  const rowDependent=active&&rowPairs(m,cert,path,options.claim).length>0
+  let proof=rowDependent?undefined:fieldCase(m,goal,cert,options.claim,path,Math.min(end,clock()+150),e=>trace.push({...e,guardActive:active}))
   if(!proof&&!active){
    if(!attempted){attempted=true;const begun=clock();inactive=frameLemmas(inactiveGoal,cert,end,trace,root,{stopAfterFailed:2,deferCheck:deferNested});trace.push({stage:'shared-frame',ms:Math.round(clock()-begun),proved:!!inactive})}
    if(inactive){const shared=widen(inactiveGoal,g,inactive,{},root,path),accepted=!!shared&&(deferNested||check(g,shared,path));trace.push({stage:'shared-frame-lift',ms:Math.round(clock()-start),checked:accepted&&!deferNested,proposed:!!shared,deferred:deferNested});if(accepted)return shared}

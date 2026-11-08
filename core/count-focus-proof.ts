@@ -4,7 +4,7 @@ import {type E,type Law,type Machine,walkOnce,x} from './machine.ts'
 import {type CountCert,type CountDecl,type Goal,type Instances,countedObligations,mcGoal} from '../kernel/kernel.ts'
 import {clock,grow} from '../kernel/prove.ts'
 import {env} from './solver.ts'
-import {countLawSeeds,countRowBridges,fieldLawBridges,focusCountCert,rowKeyNames} from './count-focused.ts'
+import {countLawSeeds,countRowBridges,fieldGuardSeeds,fieldLawBridges,focusCountCert,rowKeyNames} from './count-focused.ts'
 import {seedCountWitnessFlags} from './count-witness-flags.ts'
 import {finiteCountChoice,proveCountCases} from './count-cases.ts'
 
@@ -36,6 +36,7 @@ export function proveFocusedCounts(m:Machine,laws:Law[],law:Law,at:Instances,unt
   clean=countLawSeeds(m,laws,clean,rows.length?rows:own,request,!targetCounts,{requestDiagonals:true})
   clean=fieldLawBridges(m,bridgeLaws,clean,rows.length?rows:own,request,own.length===3?own[2]:undefined)
   clean=countRowBridges(m,law,clean,own,request)
+  if(!targetCounts)clean=fieldGuardSeeds(m,clean,[...rows,...request,{op:'const',value:0}])
   const index=laws.findIndex(l=>l.name===law.name)
   for(const carried of [undefined,...m.inputMaps]){
     if(clock()>=until)return undefined
@@ -69,6 +70,7 @@ export function proveFocusedCounts(m:Machine,laws:Law[],law:Law,at:Instances,unt
     cold=fieldLawBridges(m,bridgeLaws,cold,rows.length?rows:own,request,own.length===3?own[2]:undefined)
     if(law.forall)cold[law.name]=[...cold[law.name]??[],...own]
     cold=countRowBridges(m,law,cold,own,request)
+    if(!targetCounts)cold=fieldGuardSeeds(m,cold,[...rows,...request,{op:'const',value:0}])
     instances=cold;packets=build()
     const flags=seedCountWitnessFlags(m,instances,packets,true)
     if(flags!==instances){instances=flags;packets=build()}
