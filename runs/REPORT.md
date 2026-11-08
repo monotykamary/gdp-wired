@@ -4882,3 +4882,34 @@ are in **`runs/track-m/section7-followup-v3/`**, especially
 **`README-census.md`**, **`Invstar-leaves.json`**, **`results.json`**, and
 **`validation/verify.log`**. Production sources remain unchanged. Gate 1 stays
 at the previously established 3/5; no implementation or new gate was run.
+
+## Section 8 T-A — nonempty Inv* selection, failed requested source proof
+
+Measurement-only on **bx_3kjzmmhv**, exclusive, eight pinned vCPUs. No
+production source, allowance, cap, strategy default, or trusted rule changed.
+
+For the exact second Inv* arithmetic leaf of the hygienic traversal, the
+restricted 32-element pool has **V={27,32,77,84}**. All live variables of the
+goods are explicitly bound. The full 91-element pool has 44 violated goods.
+Fresh source queries for the requested **84 and 77 both return projected SAT**,
+not a checked fact, at **36.647560 / 16.470482 counted units**, respectively.
+In the validated rerun they take **70.484 / 35.682 ms** wall.
+Both models satisfy the source AST and scope under zero completion but omit
+`w?all$1` and `w?all$3`; neither is eligible for explicit-binding model reuse.
+No reuse occurred. These are not protocol counterexamples; 27/32 were not tried.
+The design's predicted proof of 84 was not obtained.
+
+The exact **Inv2973 fourteenth leaf checks with its existing 53 cuts** when
+retried: **26.770835 counted units / 678.389 ms wall**, including the checked
+conditional proof of the original goal. The old attempt had only 13.104 units
+left. No additional cut was required, and there is no SAT model/V on this leaf.
+It is a checked leaf, not an empty-V generator gap or a complete-law proof.
+
+The explicit empty-V stop is not triggered, so subsequent requested tests may
+continue as measurements in order. The implementation pass line is not met:
+the requested Inv* source proof failed. **No implementation or gate rerun.**
+TypeScript, type-aware lint, and five census tests / 15 assertions pass.
+Earlier setup/static-check timeouts are retained, not counted as T-A results.
+
+Evidence: **runs/track-m/section8-ta-v3/README.md**, **results.json**,
+**Invstar-leaf.json**, and the Inv2973 receipt/leaf in **section8-ta-v2/**.

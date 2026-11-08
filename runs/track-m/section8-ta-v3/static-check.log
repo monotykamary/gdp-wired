@@ -1,0 +1,21 @@
+TSC
+LINT
+Found 0 warnings and 0 errors.
+Finished in 29.0s on 1175 files with 100 rules using 8 threads.
+bun test v1.4.3 (c6da4a4d3)
+
+--- stderr ---
+
+research/track-m/phase-census-meter.test.ts:
+(pass) wall phases are exclusive and kernel work is not double counted [0.72ms]
+(pass) phase-local solver work remains charged to its phase [0.32ms]
+(pass) cut-use audit distinguishes offered, core and checked proof references [0.84ms]
+
+research/track-m/section7-followup-meter.test.ts:
+(pass) post-timing audit separates bindings, frames and exact repeated checks [4.58ms]
+(pass) disabled audit does not retain data or change return values [0.20ms]
+
+ 5 pass
+ 0 fail
+ 15 expect() calls
+Ran 5 tests across 2 files. [30.00ms]
