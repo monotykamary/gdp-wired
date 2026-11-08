@@ -2,6 +2,8 @@
 // never reads this WeakMap: only ordinary trees and independent LemmaCuts escape.
 import {type Goal, type LemmaCut, type Path, type Tree, canon, canonFlip, check, checkGoalLemmas, facts, leafConstraintsReusing as rowsAt, lemmaPath} from '../../kernel/kernel.ts'
 import {type Lin, type Step, add, k, scale} from '../solver.ts'
+import {independentHit, rememberIndependent, retargetHit, rememberRetarget, slicedCheck, targetIndex} from './conditional-check-cache.ts'
+export {conditionalProofStats} from './conditional-check-cache.ts'
 
 type Context = {goal: Goal, lemmas: LemmaCut[]}
 const marked = new WeakMap<Tree, Context>()
@@ -51,8 +53,10 @@ function independent(goal: Goal, lemmas: LemmaCut[], until: number): boolean {
   if (!alive(until) || !Array.isArray(lemmas)) return false
   for (const lemma of Array.from(lemmas)) {
     if (!alive(until) || !lemma || !Array.isArray(lemma.when) || !Array.from(lemma.when).every(validLin) || !validLin(lemma.cut)) return false
+    if (independentHit(goal, lemma)) continue
     const local = localGoal(goal, lemma)
     if (!local || !check(local, lemma.tree, proofPath(lemma.when, lemma.cut))) return false
+    rememberIndependent(goal, lemma)
   }
   return alive(until)
 }
@@ -67,7 +71,7 @@ function checked(goal: Goal, tree: Tree, path: Path, until: number): boolean {
       if (!sameGoal(goal, own.goal) || !independent(own.goal, own.lemmas, until)) return false
       context = own
     }
-    if ('leaf' in t) return check(goal, t, lemmaPath(context.lemmas, p)) && alive(until)
+    if ('leaf' in t) return slicedCheck(goal, t, lemmaPath(context.lemmas, p)) && alive(until)
     return legalSplit(t, p) && visit(t.yes, put(p, t.split, true), context)
       && visit(t.no, put(p, t.split, false), context)
   }
@@ -140,22 +144,25 @@ function ordinary(from: Goal, to: Goal, tree: Tree, before: Path, after: Path, u
 // Even an unsliced source proof gets an explicit slice in an enlarged target.
 function retarget(from: Goal, to: Goal, lemmas: LemmaCut[], scope: Path, until: number, onlyMissing = false): LemmaCut[] | undefined {
   if (!independent(from, lemmas, until)) return undefined
-  const out: LemmaCut[] = [], target = new Map<string, number>()
-  for (const [i, hyp] of to.hyps.entries()) {
-    if (!alive(until)) return undefined
-    const key = JSON.stringify(hyp)
-    if (!target.has(key)) target.set(key, i)
-  }
+  const out: LemmaCut[] = [], target = targetIndex(to, until)
+  if (!target) return undefined
   for (const lemma of lemmas) {
     if (!alive(until)) return undefined
-    const source = localGoal(from, lemma)!, slice: number[] = []
+    const source = localGoal(from, lemma)!, slice: number[] = [], texts: string[] = []
     const missing: Goal['hyps'] = []
     for (const hyp of source.hyps) {
       if (!alive(until)) return undefined
-      const i = target.get(JSON.stringify(hyp))
+      const text = JSON.stringify(hyp), i = target.get(text)
+      texts.push(text)
       if (i === undefined) missing.push(hyp)
       else slice.push(i)
     }
+    // A fully mapped transport does not consume the entry scope. Include the
+    // matched content as well as the slice, so different goals cannot alias.
+    // Missing hypotheses and root collection remain exactly scope-sensitive.
+    const key = onlyMissing && !missing.length ? JSON.stringify([slice, texts]) : undefined
+    const cached = key === undefined ? undefined : retargetHit(lemma, key)
+    if (cached) { out.push(cached); continue }
     const when = [...lemma.when]
     for (const atom of !onlyMissing || missing.length ? scope.values() : []) {
       if (!alive(until)) return undefined
@@ -175,7 +182,9 @@ function retarget(from: Goal, to: Goal, lemmas: LemmaCut[], scope: Path, until: 
     const local = {...to, hyps: slice.map(i => to.hyps[i]!)}
     const tree = ordinary(source, local, lemma.tree, proofPath(lemma.when, lemma.cut), path, until)
     if (!tree || !alive(until) || !check(local, tree, proofPath(when, lemma.cut)) || !alive(until)) return undefined
-    out.push({when, cut: lemma.cut, tree, slice})
+    const moved = {when, cut: lemma.cut, tree, slice}
+    if (key !== undefined) rememberRetarget(lemma, key, moved)
+    out.push(moved)
   }
   return alive(until) ? out : undefined
 }

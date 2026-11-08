@@ -2,7 +2,7 @@ import {expect, test} from 'bun:test'
 import {type C, ite, n, not, x} from '../machine.ts'
 import {type Lin, type Step, add, k, scale, sub, v} from '../solver.ts'
 import {type Goal, type LemmaCut, type Path, type Tree, canon, check, checkGoalLemmas, leafConstraintsReusing as rowsAt, lemmaPath} from '../../kernel/kernel.ts'
-import {checkConditionalProof, collectConditionalCertificate, hasConditionalProof, markConditionalProof, transportConditionalProof} from './conditional-proof.ts'
+import {checkConditionalProof, collectConditionalCertificate, conditionalProofStats, hasConditionalProof, markConditionalProof, transportConditionalProof} from './conditional-proof.ts'
 
 const until = (): number => performance.now() + 2000
 const le = (a: string, b: string | number): C => ({op: '<=', a: x(a), b: typeof b === 'number' ? n(b) : x(b)})
@@ -250,6 +250,55 @@ test('ordinary checking retains the kernel constant and repeated split refusals'
   expect(checkConditionalProof(goal, {split: k(0), yes: leaf, no: leaf})).toBe(false)
   const guard = v('g'), branch: Tree = {split: guard, yes: leaf, no: leaf}
   expect(checkConditionalProof(goal, branch, put(new Map(), guard))).toBe(false)
+})
+
+test('retarget cache hits across unrelated scopes and equivalent target objects', () => {
+  const f=fixture(false), before=conditionalProofStats()
+  for(const name of ['left','right','third']){
+    const target:Goal={...f.goal,name,hyps:[...f.goal.hyps]}, path=put(f.scope,v(name))
+    const moved=transportConditionalProof(f.goal,target,f.tree,f.scope,path,until())
+    expect(moved).toBeDefined();expect(checkConditionalProof(target,moved!,path)).toBe(true)
+    const root=transportConditionalProof(target,target,moved!,path,new Map(),until())!
+    const out=collectConditionalCertificate(target,root,until())!
+    expect(checkGoalLemmas(target,out.tree,out.lemmas)).toBe(true)
+  }
+  const after=conditionalProofStats()
+  expect(after.retargetHits-before.retargetHits).toBeGreaterThanOrEqual(2)
+  expect(after.independentHits-before.independentHits).toBeGreaterThan(0)
+})
+
+test('retarget cache distinguishes slice vectors and never covers missing hypotheses', () => {
+  const f=fixture(false), first=transportConditionalProof(f.goal,f.goal,f.tree,f.scope,f.scope,until())!
+  expect(first).toBeDefined()
+  const before=conditionalProofStats(), reordered:Goal={...f.goal,hyps:[f.goal.hyps[1]!,f.goal.hyps[2]!,f.goal.hyps[0]!]}
+  const moved=transportConditionalProof(f.goal,reordered,f.tree,f.scope,f.scope,until())!
+  expect(moved).toBeDefined();expect(checkConditionalProof(reordered,moved,f.scope)).toBe(true)
+  expect(conditionalProofStats().retargetHits-before.retargetHits).toBe(0)
+  const missing:Goal={...f.goal,hyps:[f.goal.hyps[0]!,f.goal.hyps[2]!]}
+  expect(transportConditionalProof(f.goal,missing,f.tree,f.scope,f.scope,until())).toBeUndefined()
+  expect(transportConditionalProof(f.goal,f.goal,f.tree,f.scope,f.scope,performance.now()-1)).toBeUndefined()
+})
+
+test('retarget cache does not alias equal slice vectors with different source content', () => {
+  const f=fixture(false)
+  expect(transportConditionalProof(f.goal,f.goal,f.tree,f.scope,f.scope,until())).toBeDefined()
+  const other:Goal={...f.goal,hyps:[f.goal.hyps[0]!,le('a',1),f.goal.hyps[2]!]}
+  const tree=markConditionalProof(other,{...f.tree},[f.lemma]), before=conditionalProofStats()
+  expect(checkConditionalProof(other,tree,f.scope)).toBe(true)
+  const moved=transportConditionalProof(other,other,tree,f.scope,f.scope,until())
+  expect(moved).toBeDefined();expect(checkConditionalProof(other,moved!,f.scope)).toBe(true)
+  expect(conditionalProofStats().retargetHits-before.retargetHits).toBe(0)
+})
+
+test('warm pre-check caches do not replace final kernel verification', () => {
+  const f=fixture(false)
+  expect(checkConditionalProof(f.goal,f.tree,f.scope)).toBe(true)
+  const root=transportConditionalProof(f.goal,f.goal,f.tree,f.scope,new Map(),until())!
+  const out=collectConditionalCertificate(f.goal,root,until())!
+  expect(checkGoalLemmas(f.goal,out.tree,out.lemmas)).toBe(true)
+  expect(checkGoalLemmas(f.goal,{leaf:[]},out.lemmas)).toBe(false)
+  const corrupt=out.lemmas.map(l=>({...l,tree:{leaf:[]} as Tree}))
+  expect(checkGoalLemmas(f.goal,out.tree,corrupt)).toBe(false)
 })
 
 test('expired absolute wall deadlines never produce certificates', () => {

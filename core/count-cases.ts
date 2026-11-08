@@ -1,6 +1,7 @@
 // Untrusted finite-input case search for a fixed counted certificate. A small
 // model/core query chooses ordinary instances; every combined tree is checked
-// against the unspecialized counted obligation before it is returned.
+// against the unspecialized counted obligation before it is returned, unless
+// an enclosing final-certificate check explicitly defers this pre-check.
 import {type C,type Law,type Machine,walkOnce,x} from './machine.ts'
 import {type CountCert,type CountDecl,type Goal,type Instances,type Path,type Tree,boundOf,canon,check,checkMC,linear,mcGoal,truth} from '../kernel/kernel.ts'
 import {atPoint,clock,grow,modelInstances,pastWall,usedHyps,wallAt,widen,withDeadline} from '../kernel/prove.ts'
@@ -88,7 +89,7 @@ function selectedCase(m:Machine,laws:Law[],at:Instances,cert:Pick<CountCert,'rea
  }
  return undefined
 }
-export type CountCaseOptions={propose?:(goal:Goal,decls:CountDecl[])=>Pick<CountCert,'reads'|'insts'>,localModels?:boolean,saturate?:boolean,queryMs?:number,coreLimit?:number,units?:boolean,corePointOnly?:boolean,trace?:(event:Record<string,unknown>)=>void}
+export type CountCaseOptions={deferCheck?:boolean,propose?:(goal:Goal,decls:CountDecl[])=>Pick<CountCert,'reads'|'insts'>,localModels?:boolean,saturate?:boolean,queryMs?:number,coreLimit?:number,units?:boolean,corePointOnly?:boolean,trace?:(event:Record<string,unknown>)=>void}
 export function proveCountCases(m:Machine,laws:Law[],at:Instances,cert:Pick<CountCert,'reads'|'insts'>,until:number,build:(at:Instances)=>Packet,options:CountCaseOptions={}):{instances:Instances,cert:CountCert}|undefined {
  return withDeadline(until,()=>{
   if(clock()>=until||pastWall())return undefined
@@ -210,7 +211,7 @@ export function proveCountCases(m:Machine,laws:Law[],at:Instances,cert:Pick<Coun
     for(let i=cuts.length-1;i>=0;i--)tree=tree&&trees[i]?{split:splitAt(cuts[i]!),yes:trees[i]!,no:tree}:undefined
     const combined=tree&&(hasConditionalProof(tree)?collectConditionalCertificate(goal,tree,Math.min(wallAt(),performance.now()+Math.max(0,until-clock())*10)):{tree,lemmas:undefined})
     const result=combined&&{...activeCert,...combined}
-    return result&&checkMC(packet.goal.hyps,packet.decls,result)?{instances:at,cert:result}:undefined
+    return result&&(options.deferCheck||checkMC(packet.goal.hyps,packet.decls,result))?{instances:at,cert:result}:undefined
   } finally {atPoint.on=previous}
  })
 }

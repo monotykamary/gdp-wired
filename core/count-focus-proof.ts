@@ -77,10 +77,12 @@ export function proveFocusedCounts(m:Machine,laws:Law[],law:Law,at:Instances,unt
     const step=packets.find(p=>p.goal.name.endsWith('@step'))
     if(!step)continue
     trace?.({stage:'focused-packet',carried:carried??null,hyps:step.goal.hyps.length,insts:step.cert.insts.length,reads:step.cert.reads.length,instances:Object.fromEntries(Object.entries(instances).map(([name,terms])=>[name,terms.length]))})
+    // Still an untrusted proposal: the caller checks the final, transported
+    // certificate with checkMC/checkCountedLaws.
     const result=proveCountCases(m,laws,instances,step.cert,until,next=>{
       instances=next
       return build().find(p=>p.goal.name.endsWith('@step'))!
-    },{propose:proposal,saturate:true,queryMs:200,trace,...(!targetCounts&&own.length===3?{localModels:true,coreLimit:16,units:false,corePointOnly:true}:{})})
+    },{deferCheck:true,propose:proposal,saturate:true,queryMs:200,trace,...(!targetCounts&&own.length===3?{localModels:true,coreLimit:16,units:false,corePointOnly:true}:{})})
     if(!result)continue
     instances=result.instances;retained.set(step.goal.name,result.cert);packetsByInstances.clear();packets=build()
     trace?.({stage:'focused-step-certificate',before:step.cert.insts.length,after:result.cert.insts.length})

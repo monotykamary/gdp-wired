@@ -5135,3 +5135,43 @@ Final validation on the same exclusive VM passes TypeScript, type-aware lint,
 **42 source SAT models plus 14 numeric SAT models** and their **56 full paths**.
 It also verifies the full certificate, numeric goal, active cuts and original
 index mapping against the original packet. See **section9-validation-v2/**.
+
+## Default-on cost wins — F1 / F2 / F3 / T-9C
+
+Landed as one generic engineering change: defer only the focused caller's
+pre-transport counted-certificate check; slice leaf pre-checks with a full-check
+fallback; cache successful independent checks; and cache fully mapped retargets
+by lemma plus target-slice vector and matched content. Missing-hypothesis and
+root-collection paths retain their original scope-sensitive behavior. Final
+kernel admission and the existing family harness are untouched; no cap or
+allowance changes, no later gates.
+
+Six fresh **A1/B1/A2/B2/A3/B3** processes on exclusive **bx_3kjzmmhv**, eight
+pinned vCPUs. A is exact **50109a36**. All **30 verdicts match**: one primary,
+Inv3915 and Inv1758 check; Inv2973 and Inv* remain unproved.
+
+| Law | A counted units, repeats 1/2/3 | B counted units, repeats 1/2/3 | A wall median/max | B wall median/max |
+|---|---|---|---:|---:|
+| one primary | 926.633492 each | identical | 2.405/3.306 s | 1.968/2.967 s |
+| Inv3915 | 872.335254 each | identical | 3.445/5.582 s | 2.178/3.435 s |
+| Inv1758 | 4310.475353 each | identical | 20.427/30.626 s | 12.497/15.252 s |
+| Inv2973 | 5002.653010 / 4837.597574 / 4882.748614 | 5002.653010 each | 60.226/60.529 s | 41.628/53.274 s |
+| Inv* | 5161.293823 / 5161.673620 / 5161.673620 | 3182.585646 / 5160.096021 / 5160.077578 | 51.879/58.342 s | 34.046/60.036 s |
+
+**Wall variance remains.** B1 Inv* is wall-truncated: 3182.586 units is not a work
+saving. A2/A3 Inv2973 are also wall-truncated. B1 is slower than A1 overall;
+medians are not a stable speed ratio or evidence of a 60-second gate pass.
+Inv2973 has no conditional-cache activity, so its wall difference cannot be
+claimed as an F2/F3 saving.
+
+Inv* retarget hits/eligible lookups: **253/322, 506/644, 499/638**. Independent
+hits/lookups: **759/851, 1495/1679, 1495/1679**. The fuller repeats pre-check
+**78,320** total full-goal hypotheses as slices totaling **342 / 340** hypotheses,
+with **zero fallback full checks**. The retarget cache now hits, but the earlier
+>=580-hit prediction is not met. Other laws have zero conditional-cache calls.
+
+Final `bun run check` and **236 tests / 1,056 assertions** pass. An independent
+receipt audit verifies all thirty verdicts and exact baseline/kernel/harness
+identity. Evidence and the patch are in **runs/track-m/cost-wins-interleaved-v1/**;
+final validation is **runs/track-m/cost-wins-final-validation-v1/**. Gate 1's
+record remains 3/5; no later gate was run.

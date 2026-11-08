@@ -82,6 +82,14 @@ test('compact recovery keeps its saturated branches and local model scope checke
   expect(atPoint.on).toBe(before)
 })
 
+test('explicit pre-transport deferral still requires the final kernel check',()=>{
+  const packet={goal:goal(3),decls:[]},cert={reads:[],insts:[]}
+  const result=proveCountCases(m,[],{},cert,clock()+2000,()=>packet,{deferCheck:true})
+  expect(result).toBeDefined()
+  if(result){expect(checkMC(packet.goal.hyps,[],result.cert)).toBe(true);expect(checkMC(packet.goal.hyps,[],{...result.cert,tree:{leaf:[]}})).toBe(false)}
+  expect(proveCountCases(m,[],{},cert,clock()+1000,()=>({goal:goal(6),decls:[]}),{deferCheck:true})).toBeUndefined()
+})
+
 test('finite count recovery does not turn a satisfiable goal into a proof',()=>{
   const before=atPoint.on
   expect(proveCountCases(m,[],{}, {reads:[],insts:[]},clock()+1000,()=>({goal:goal(6),decls:[]}))).toBeUndefined()
