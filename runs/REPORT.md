@@ -1525,3 +1525,113 @@ supercomputer run --jobs research/track-m/jobs-ranked-production.json \
   --out runs/track-m/ranked-production-v2 --class gate --timing --vm-type large \
   --data runs/track-m/canonical-capture-v1/fixtures:replay-input
 ```
+
+#### Production witness-derivation port — `616b0c9c` (not a Step 1 pass)
+
+Ported the research field-bound, Boolean-core, activation-guard, row-case,
+frame, key-closure, natural-case, and exact source-transport helpers into
+`core/count-recovery/`. `core/count-cases.ts` now invokes them by default;
+these files contain no research environment switches and do not import from
+`research/`. The port retains the default arithmetic-core instance selector.
+Request-diagonal seeds and counted-law model refinement now run through the
+existing witness-independence filter. Unchanged obligation builds are reused.
+
+A further production-only gap was visible in the first probes: inactive
+field obligations were exhausting their slices in the full counted context.
+`field-only.ts` weakens premises only, retains the real source conclusion
+(before appended count bindings), and discards count conjuncts only when
+there is no live count in that conclusion under the actual path.
+`field-case.ts` folds that context, obtains a small arithmetic core, and
+transports the candidate back through the fold and the original goal. The
+same attempt now runs inside activation leaves. The original final
+`checkMC` remains mandatory. No law, trusted rule, or budget changed.
+
+The source at this commit was measured by `production-derivations-final-v1`,
+boat batch `20261108-113102-vu3uwa`, tree `f67ce294b6de`. Every job ran alone on
+its VM (`--timing --vm-type large`): AMD Ryzen 9 9950X, 4 pinned vCPUs for the
+law probes. The table is the complete-law result from `verify-focused.ts`,
+not an assertion about individual action candidates. `GDP_COUNTS_GIVEN=1`
+and the original 5,000 counted-ms allowance were used; `checked` is false
+for every row. Small stopping-boundary overshoots are recorded, not accepted
+as satisfying the allowance.
+
+| Complete hand-set law | Proved / checked | Counted ms | In-process wall s |
+| --- | --- | ---: | ---: |
+| one primary per term | no / no | 5,013 | 2.561 |
+| Inv3915: primary newest | no / no | 5,013 | 3.927 |
+| Inv1758: row agreement | no / no | 5,014 | 3.166 |
+| Inv2973: quorum overlap | no / no | 5,338 | 27.623 |
+| Inv*: quorum term backing | no / no | 5,164 | 31.308 |
+
+These wall times are the probe's reported wall field, not the scheduler wait,
+package installation, or total 798-second batch latency. The job-level walls
+are retained in `summary.tsv`; `placement.json` records the isolation label.
+The timings are not a paired speedup claim against earlier VMs.
+
+What is still unavailable in the complete-law derivation:
+
+- **Safety:** candidates now cover all actions except leader (including the
+  send-term action's active and inactive branches). Leader needs the
+  voter-to-`bq[i,b]` containment and the resulting quorum/term contradiction;
+  the active field projection is satisfiable without those counted premises.
+  The `CfgT` ceiling and full active conclusion do not close. A field-only law
+  has no post-count key from which the existing row splitter can discover the
+  leader/other-primary cases.
+- **Inv3915:** the remaining active leader and reconfiguration cases need the
+  same quorum-term ceiling and the functional/ordering argument under row
+  equalities. Send-configuration now obtains field candidates. Again, row
+  discovery was restricted to post-count coordinates.
+- **Inv1758:** start and send-terms obtain field candidates; active setup,
+  copy, leader, and reconfiguration remain open. The needed functional-copy
+  row cases are not discoverable from a post-count read in this field-only
+  conclusion. Later paths are not all visited before the shared allowance.
+- **Inv2973:** 718 source hypotheses / 195 instances / 41 count reads; the
+  inactive-frame path can derive fourteen individual frame candidates but
+  its 19-hypothesis closing core remains open. It stalls before the active
+  overlap argument. No individual-action proof of this law was established
+  by the earlier eight-action matrix (that matrix was for Inv*).
+- **Inv*:** 312 source hypotheses / 73 instances / 20 reads. Pick and start
+  return action candidates; setup-copy, send-terms, and leader remain open
+  in their smaller shared slices. The send-terms trace includes failed
+  cross-row proposals `bq#[a,j] <= bq[j,i]` and `cfgSize[0] <= cfgSize#[a]`;
+  these are not accepted as facts. Leader derives a `CfgT[i] <= CT[i]`
+  ceiling candidate but does not finish its row/disjointness argument.
+  Reconfiguration and send-configuration are not reached in this run.
+
+Thus the shared helper implementations are no longer absent from production,
+but their full source dependencies and row discovery do not yet reproduce the
+standalone Inv* certificates within one law's allowance. Intermediate
+`proposed: true` records are not complete certificates and are not counted as
+kernel passes. The full-law gate is still false, so no original-harness or
+3x60-second claim follows from this port.
+
+Validation at `616b0c9c`: **112 production-derivation tests**, **295 existing
+Track M/count/port tests**, and **67 Track P tests**, each suite passing; the
+suites overlap and these numbers must not be summed as unique tests. Type/lint
+reports zero warnings and errors. The first field-projection attempt exposed
+a regression that retained an excluded witness; counting the certificate's
+read maps as counted expressions fixed it, and the existing slim-certificate
+regression passes in this final batch. Earlier failed attempts and their
+logs remain under `production-derivations-*` and `production-field-retry-v1`.
+
+Audited source hashes from every law log:
+
+- `core/count-cases.ts`: `d02950bf1884257666a9bdfc58bcb77b1301a48c3dcca94a3be43bfa54892322`
+- `core/count-focus-proof.ts`: `9601488d68a5ee3827ee16982397496b65b9a960a2899a84aa4dc8adc6da6ed6`
+- `core/count-recovery/field-bound-lemmas.ts`: `68358811e57199c2749526706432dc588c9f7df8fc255c1efe274b046fb236cf`
+- `core/count-recovery/guard-cases.ts`: `af7eb61331773581e9b37466632ad87fa519f78692b4884a34971feeee93cc4d`
+- `core/count-recovery/field-case.ts`: `ebba85b83df5ef59432c3fd93a267fe71569c7e7c43a13b42982717b3b70d2f5`
+
+Reproduce the five probes and all validations together:
+
+```sh
+supercomputer run --jobs research/track-m/jobs-production-derivations-final.json \
+  --out runs/track-m/production-derivations-final-repro --class interactive \
+  --timing --vm-type large \
+  --data runs/track-m/canonical-capture-v1/fixtures:replay-input
+```
+
+The immediate follow-up adds written-field row discovery when a conclusion
+has no post-count reads, using the actual source claim and the same checked
+row-case transport. Its separate measurement is recorded below; the table
+above is deliberately tied to the already validated commit.
