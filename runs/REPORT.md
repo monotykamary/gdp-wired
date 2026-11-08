@@ -1214,3 +1214,23 @@ recorded options. They have **not** been assembled into a complete Inv* proof,
 the full nine-law given set has **not** passed, and no production 3-by-60-second
 or downstream merge gate is claimed. No trusted-kernel rule, original invariant,
 safety law, or proof budget was changed.
+
+#### Combined-action check after the copy checkpoint
+
+Checkpoint commit: `ba821e48`. `all-actions-v1` removes the isolated action
+selector and enables the already checked empty-count proposals, but retains
+one **5,000-ms counted goal allowance**, the **60,000-ms diagnostic wall guard**,
+and the unchanged external command limit. It is **not complete**: three early
+source trees are proposed, later active cases remain open, and checking the
+available partial branches reaches the external **90-second cutoff** before a
+final result is printed. No proposed tree from that run is counted as a newly
+accepted branch. The source context still has 466 hypotheses. Reproduction:
+`research/track-m/jobs-all-actions.json`, receipt/tree `5e2838a0aa6e`.
+
+This is the remaining evidenced wall: action-specific checked proofs and the
+compact copy selection have not been integrated into a complete, sufficiently
+small counted induction query. The existing production focused-count recovery
+(`core/count-focus-proof.ts` / `core/count-cases.ts`) still needs that integration
+and a checked whole-law result; summing isolated successes is not a proof.
+Step 1's all-laws-kept and per-goal timing gates remain unpassed, so no later
+family-generation or downstream merge gate was attempted.
