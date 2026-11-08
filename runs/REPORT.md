@@ -4632,3 +4632,47 @@ Artifacts: **`runs/track-m/closure-phase-census-v1/`**. Start with `census.json`
 and `candidate-focused-profiled-Invstar-proofs.json`. The raw job log includes
 all restoration/manifests, controls, and full cut/leaf records. Reproduction
 and category definitions are in **`research/track-m/PHASE-CENSUS.md`**.
+
+## Track M — Section 7, T0: reuse anomaly explained before implementation
+
+**T0 is explained, but its predicted refutation is not reproduced.** On the
+same exclusive VM, `bx_3kjzmmhv`, a fresh query for the exact `frame$0` fact
+`bq#[a$#,j$] <= bq[i,i]` returns a validated projected SAT result in **both**
+the canonical equal-row source and the active equal/equal source:
+
+| Matched fact | Packet index | Source hypotheses | Fresh query | Counted units | Query wall |
+|---|---:|---:|---|---:|---:|
+| Canonical `frame$0` | 47 | 41 | SAT | 25.932 | 23.029 ms |
+| Active `frame$0`, scope 7 | 27 | 53 | SAT | 27.741 | 22.981 ms |
+
+The Section 7 anomaly came from comparing **different instances at index 27**.
+Canonical index 27 is the partition `r$2 <= r$5 + r$6`, witness `w$548`;
+canonical index 28 is its reverse. The original v7 log proves those partitions
+with two-hypothesis cores and empty guards. It does **not** prove `frame$0`:
+canonical `frame$0` is index 47, and v7 reports `reused-model` for it. Active
+index 27 is `frame$0`. Matching witness, terms, and read definitions resolves
+the apparent contradiction without a scope-cache change.
+
+The separate missing-binding audit is real and conservative. Requiring every
+live syntactic variable of the renamed source slice to be explicitly present
+rejects **112/112 active Inv* reuses and 77/77 active Inv2973 reuses** (also
+131/131 canonical reuses). Common omissions include `w?all$1` and `w?all$3`.
+`brokenOf` currently supplies zero for missing scalar values via its proxy;
+its empty broken-hypothesis list does not establish explicit binding coverage.
+This audit does not say that all rejected candidates are provable: the fresh
+matched-frame SAT queries above are counterevidence to that stronger claim.
+These are partial source/projection models, not protocol counterexamples.
+
+No production code or reuse policy was changed. Observation hooks retain
+references only during the original proof calls; missing-binding checks and
+fresh queries run afterward. Canonical and active source sizes and the
+131/112/77 reuse counts reproduce v7 exactly. TypeScript/type-aware lint
+passed on the instrumented first run. The first capture queried canonical
+index 27 before the identity mismatch was known; the authoritative frame
+comparison is the later **`section7-t0-matched-v1`** run, not that first query.
+
+Evidence: `runs/track-m/section7-t0-matched-v1/results.json`, its canonical and
+active source snapshots, and `runs/track-m/section7-t0-v1/results.json` for the
+complete missing-binding census. T1–T3 and implementation have not run at
+this checkpoint. Under the coordinator's **“T0 explained”** criterion, the
+next permitted step is the requested T1 wall split—not assuming a proved frame.
