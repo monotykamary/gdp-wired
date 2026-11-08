@@ -5194,3 +5194,24 @@ Verdicts remain 3 checked / 2 unproved; checked-law counted work is identical.
 This sample is close to the original census, not similarly degraded (Inv2973
 +2.9%, Inv* +2.0% wall). It is one calibration, not a stability claim or a gate.
 Evidence: **runs/track-m/section10-calibration-v1/**. No production change.
+
+## Section 10 step 2 — T-10A passes, guard retained
+
+On **bx_25xas5gt**, exclusive eight pinned vCPUs, ran A1/B1/A2/B2/A3/B3. B extends
+the exact captured packet by one freshly seeded `r$4 <= r$16` instance. All three
+B repeats pass: source core **5**, **13.494384 units**; numeric core **4**,
+**18.638819 units**; entire checked branch **33.221761 units**, below 120.
+Admission retains **CT[i] < CfgT[j$]**, op=5 and the committed-quorum flag.
+
+A retains the old gap at **227.664816 units**, wall median/max **0.137/0.142 s**.
+B wall median/max is **0.279/0.525 s**: lower counted work, not a wall speedup;
+variance remains. These are different isolated diagnostics, not law timings.
+Packet regeneration is separately recorded. All three source/numeric proofs,
+all 75 independent-lemma checks, and all 15 control SAT models validate in fresh
+processes. The structural term table is retained and exactly restored. TypeScript
+and lint pass; **39 tests / 261 assertions** pass.
+
+Evidence: **runs/track-m/section10-ta-v7/**, with all six JSON receipts retained
+in one Brotli bundle. Earlier setup failures and the corrected serialization /
+retention failures are documented in its README and retained logs. No production
+change yet. This permits implementation; it is not a completed law or new gate.

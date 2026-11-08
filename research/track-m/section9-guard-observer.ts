@@ -14,10 +14,10 @@ import {proveNaturalCases} from '../../core/count-recovery/natural-cases.ts'
 import {admitConditionalCut} from '../../core/count-recovery/conditional-cuts.ts'
 import {checkConditionalProof,markConditionalProof} from '../../core/count-recovery/conditional-proof.ts'
 import {liftCountProxies} from '../../core/count-recovery/lift-count-proxies.ts'
-type Packet=Pick<CountCert,'reads'|'insts'>
+export type Packet=Pick<CountCert,'reads'|'insts'>
 type Bound={op:'<=',a:E,b:E}
 type Saved={good:Bound,lemma:LemmaCut,index?:number}
-type Context={m:Machine,ds:CountDecl[],g:Goal,cert:Packet,scope:Path,numeric:Goal,available:Saved[],saved:Saved[],q:any,source:(p:Path,w?:string)=>C[],scopesFor:(i:number)=>Path[],numericFor:(p:Path,extra:Saved[])=>Goal}
+export type Context={m:Machine,ds:CountDecl[],g:Goal,cert:Packet,scope:Path,numeric:Goal,available:Saved[],saved:Saved[],q:any,source:(p:Path,w?:string)=>C[],scopesFor:(i:number)=>Path[],numericFor:(p:Path,extra:Saved[])=>Goal}
 const hash=(x:unknown)=>createHash('sha256').update(JSON.stringify(x)).digest('hex')
 const put=(p:Path,lin:Record<string,number>,holds:boolean):Path=>new Map(p).set(canon(lin),{lin,holds})
 const active=(saved:Saved[],p:Path)=>saved.filter(s=>lemmaPath([s.lemma],p)!==p)
@@ -26,14 +26,14 @@ const decide=(lin:Record<string,number>,p:Path)=>p.get(canon(lin))?.holds??(p.ha
 const scopeValid=(p:Path,m:Record<string,number>)=>[...p.values()].every(a=>{if(Object.keys(a.lin).some(k=>k!=='1'&&!Object.hasOwn(m,k)))return false;const n=Object.entries(a.lin).reduce((s,[k,z])=>s+z*(k==='1'?1:m[k]!),0);return a.holds?n<=0:n>0})
 function completed(q:Record<string,number>,g:Goal,p:Path){const model={...q},names=new Set<string>();walkLive(g.hyps,p,(o:any)=>{if(o.op==='var')names.add(o.name)});for(const a of p.values())for(const k of Object.keys(a.lin))if(k!=='1')names.add(k);const zero=[...names].filter(k=>!Object.hasOwn(model,k));for(const k of zero)model[k]=0;return {model,zero,valid:scopeValid(p,model)&&brokenOf(g)(model).length===0}}
 export class GuardObserver{
- private label='';private indices:number[]=[];private contexts:Context[]=[];private full!:Packet
+ protected label='';protected indices:number[]=[];protected contexts:Context[]=[];protected full!:Packet
  begin(label:string,selection:any,full:Packet){this.label=label;this.indices=selection.originalIndices;this.contexts=[];this.full=full}
  capture(c:Context){this.contexts.push({...c,available:c.available.slice(),saved:c.saved.slice()})}
- private pool(c:Context){const counts=countsForReads(c.ds,c.cert.reads);if(!counts)throw new Error('missing count declarations');return c.cert.insts.flatMap((inst,index)=>{const h=countHyp(counts,inst);return inst.terms.length<=5&&h?.op==='or'&&h.xs[0]?.op==='<='?[{index,originalIndex:this.indices[index]!,good:{op:'<=' as const,a:h.xs[0].a,b:h.xs[0].b},inst}]:[]})}
- private attempt(c:Context,originalIndex:number,p:Path,extra:Saved[],end:number){
+ protected pool(c:Context){const counts=countsForReads(c.ds,c.cert.reads);if(!counts)throw new Error('missing count declarations');return c.cert.insts.flatMap((inst,index)=>{const h=countHyp(counts,inst);return inst.terms.length<=5&&h?.op==='or'&&h.xs[0]?.op==='<='?[{index,originalIndex:this.indices[index]!,good:{op:'<=' as const,a:h.xs[0].a,b:h.xs[0].b},inst}]:[]})}
+ protected attempt(c:Context,originalIndex:number,p:Path,extra:Saved[],end:number,queryShare?:number){
   const row=this.pool(c).find(r=>r.originalIndex===originalIndex);if(!row)throw new Error('candidate absent '+originalIndex)
   const available=active([...c.saved,...extra],p),h=c.g.hyps[c.g.hyps.length-c.cert.insts.length+row.index]!,part:Goal={name:c.g.name,hyps:[...c.source(p,row.inst.wit),...available.map(s=>s.good),h,{op:'not',x:row.good}]}
-  const before=fullWork(),start=performance.now(),limit=Math.min(end,clock()+(row.inst.terms.length===5?150:50)),q:any=modelSequence(p)(part,limit)
+  const before=fullWork(),start=performance.now(),limit=Math.min(end,clock()+(queryShare??(row.inst.terms.length===5?150:50))),q:any=modelSequence(p)(part,limit),queryCountedUnits=(fullWork()-before)/fullRate,queryWallMs=performance.now()-start
   let tree:Tree|undefined='tree'in q?q.tree:undefined,proofSource=part
   if(!tree&&q.why===REFUTED&&q.core?.length&&q.core.length<=8&&clock()<end){
    const small={...part,hyps:q.core.map((i:number)=>part.hyps[i]!)},until=Math.min(end,Math.max(limit,clock()+100)),old=atPoint.on;atPoint.on=false
@@ -42,16 +42,16 @@ export class GuardObserver{
   const a=linear(row.good.a,p),b=linear(row.good.b,p),lemma=tree&&a&&b&&admitConditionalCut(c.g,proofSource,tree,p,p,sub(a,b),available.map(s=>s.lemma),performance.now()+1000)
   const value=q.stuck==='sat'&&q.witness?completed(q.witness,part,p):undefined
   const saved=lemma?{good:row.good,lemma,index:row.index}:undefined
-  return {originalIndex,witness:row.inst.wit,outcome:saved?'checked':value?.valid?'sat':q.why===REFUTED?'refuted-unadmitted':q.stuck??'untransported',coreSize:q.core?.length??null,core:q.core??null,coreLimit:8,coreEligible:!!q.core?.length&&q.core.length<=8,countedUnits:(fullWork()-before)/fullRate,wallMs:performance.now()-start,source:part,sourceHash:hash(part),path:[...p],model:value?.model,zeroCompleted:value?.zero,sourceAndScopeValid:value?.valid??false,addedOriginalIndices:extra.map(s=>this.indices[s.index!]),saved,proofSource,tree,query:q}
+  return {originalIndex,witness:row.inst.wit,outcome:saved?'checked':value?.valid?'sat':q.why===REFUTED?'refuted-unadmitted':q.stuck??'untransported',coreSize:q.core?.length??null,core:q.core??null,queryCountedUnits,queryWallMs,coreLimit:8,coreEligible:!!q.core?.length&&q.core.length<=8,countedUnits:(fullWork()-before)/fullRate,wallMs:performance.now()-start,source:part,sourceHash:hash(part),path:[...p],model:value?.model,zeroCompleted:value?.zero,sourceAndScopeValid:value?.valid??false,addedOriginalIndices:extra.map(s=>this.indices[s.index!]),saved,proofSource,tree,query:q}
  }
- private numeric(c:Context,p:Path,extra:Saved[],end:number){
-  const goal=c.numericFor(p,extra),before=fullWork(),start=performance.now(),natural=proveNaturalCases(goal,p,end,[],{deferCheck:true}),q:any=natural?{tree:natural}:modelSequence(p)(goal,end)
+ protected numeric(c:Context,p:Path,extra:Saved[],end:number){
+  const goal=c.numericFor(p,extra),before=fullWork(),start=performance.now(),natural=proveNaturalCases(goal,p,end,[],{deferCheck:true}),q:any=natural?{tree:natural}:modelSequence(p)(goal,end),queryCountedUnits=(fullWork()-before)/fullRate,queryWallMs=performance.now()-start
   let proof:Tree|undefined='tree'in q?q.tree:undefined
   if(!proof&&q.why===REFUTED&&q.core?.length&&clock()<end){const small={...goal,hyps:q.core.map((i:number)=>goal.hyps[i]!)},direct=fast(small,p),out=direct?undefined:grow(small,p,{nodes:0,until:end,units:false}),local=direct??(out&&'tree'in out?out.tree:undefined);if(local)proof=withDeadline(end,()=>widen(small,goal,local,{},p,p))}
   const numericChecked=!!proof&&check(goal,proof,p),available=active([...c.saved,...extra],p),extended=lemmaPath(available.map(s=>s.lemma),p),lifted=numericChecked&&liftCountProxies(goal,c.g,proof!,c.cert.reads,p,extended,undefined,{deferCheck:true}),marked=lifted&&markConditionalProof(c.g,lifted,available.map(s=>s.lemma)),conditionalChecked=!!marked&&checkConditionalProof(c.g,marked,p)
   const value=q.stuck==='sat'&&q.witness?completed(q.witness,goal,p):undefined
   const violated=value?.valid?this.pool(c).filter(r=>brokenOf({name:'pool good',hyps:[r.good]})(value.model).length>0).map(r=>r.originalIndex):undefined
-  return {outcome:conditionalChecked?'checked':value?.valid?'sat':q.why===REFUTED?'refuted-untransported':q.stuck??'untransported',numericChecked,conditionalChecked,goal,path:[...p],model:value?.model,zeroCompleted:value?.zero,validModel:value?.valid??false,violated,query:q,proof:marked,countedUnits:(fullWork()-before)/fullRate,wallMs:performance.now()-start}
+  return {outcome:conditionalChecked?'checked':value?.valid?'sat':q.why===REFUTED?'refuted-untransported':q.stuck??'untransported',numericChecked,conditionalChecked,goal,path:[...p],model:value?.model,zeroCompleted:value?.zero,validModel:value?.valid??false,violated,query:q,numericProof:proof,proof:marked,lemmas:available.map(s=>s.lemma),queryCountedUnits,queryWallMs,countedUnits:(fullWork()-before)/fullRate,wallMs:performance.now()-start}
  }
  private branch(c:Context,name:string,p:Path,end:number,extra:Saved[]){
   const before=fullWork(),start=performance.now(),attempts:ReturnType<GuardObserver['attempt']>[]=[],queries:ReturnType<GuardObserver['numeric']>[]=[],excluded=new Set<number>()

@@ -1,0 +1,46 @@
+{
+  "test": "T-10A",
+  "order": [
+    "A1",
+    "B1",
+    "A2",
+    "B2",
+    "A3",
+    "B3"
+  ],
+  "summary": {
+    "A": {
+      "countedUnits": [
+        227.6648163999999,
+        227.6648163999999,
+        227.6648163999999
+      ],
+      "wallMedianMs": 136.93509000000086,
+      "wallMaxMs": 141.82218900000044,
+      "captureProcessWallMs": [
+        8779.065305,
+        8628.854767,
+        9100.054298999996
+      ],
+      "expected": true
+    },
+    "B": {
+      "countedUnits": [
+        33.22176119999867,
+        33.22176119999867,
+        33.22176119999867
+      ],
+      "wallMedianMs": 279.22686000000067,
+      "wallMaxMs": 525.0309070000003,
+      "captureProcessWallMs": [
+        8596.866917000001,
+        8953.045437999997,
+        10865.302442
+      ],
+      "expected": true
+    }
+  },
+  "pass": true,
+  "implementationAllowed": true,
+  "productionChanged": false
+}

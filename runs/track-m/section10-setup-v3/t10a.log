@@ -1,0 +1,4 @@
+research/track-m/run-section10-ta.ts(6,18): error TS2365: Operator '<=' cannot be applied to types 'number' and 'string | number'.
+
+--- stderr ---
+$ tsc -p . && oxlint --type-aware --deny-warnings --disable-nested-config
