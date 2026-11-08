@@ -3,7 +3,7 @@
 // against the unspecialized counted obligation before it is returned.
 import {type C,type Law,type Machine,walkOnce,x} from './machine.ts'
 import {type CountCert,type CountDecl,type Goal,type Instances,type Path,type Tree,boundOf,canon,check,checkMC,linear,mcGoal,truth} from '../kernel/kernel.ts'
-import {atPoint,clock,grow,modelInstances,usedHyps,widen,withDeadline} from '../kernel/prove.ts'
+import {atPoint,clock,grow,modelInstances,pastWall,usedHyps,widen,withDeadline} from '../kernel/prove.ts'
 import {sub} from './solver.ts'
 import {seedCountWitnessFlags} from './count-witness-flags.ts'
 import {modelSequence} from '../kernel/model-sequence.ts'
@@ -53,7 +53,7 @@ function selectedCase(m:Machine,laws:Law[],at:Instances,cert:Pick<CountCert,'rea
  if(!full||!cert.insts.length)return undefined
  const offset=full.hyps.length-cert.insts.length,base={...full,hyps:full.hyps.slice(0,offset)},excluded=new Set<number>()
  const candidates=cert.insts.flatMap((_,index)=>{const h=full.hyps[offset+index];return h?.op==='or'&&h.xs[0]?.op==='<='?[{index,bound:h.xs[0]}]:[]})
- while(clock()<until){
+ while(clock()<until&&!pastWall()){
   const selected=selectCountBounds(base,candidates.filter(c=>!excluded.has(c.index)),until,{path,queryMs:options.queryMs,trace:options.trace})
   if(!selected||selected.fallback)return undefined
   const chosen=new Set(selected.indices),insts=cert.insts.filter((_,i)=>chosen.has(i)),slim={...cert,insts}
@@ -90,8 +90,9 @@ function selectedCase(m:Machine,laws:Law[],at:Instances,cert:Pick<CountCert,'rea
 export type CountCaseOptions={propose?:(goal:Goal,decls:CountDecl[])=>Pick<CountCert,'reads'|'insts'>,localModels?:boolean,saturate?:boolean,queryMs?:number,coreLimit?:number,units?:boolean,corePointOnly?:boolean,trace?:(event:Record<string,unknown>)=>void}
 export function proveCountCases(m:Machine,laws:Law[],at:Instances,cert:Pick<CountCert,'reads'|'insts'>,until:number,build:(at:Instances)=>Packet,options:CountCaseOptions={}):{instances:Instances,cert:CountCert}|undefined {
  return withDeadline(until,()=>{
+  if(clock()>=until||pastWall())return undefined
   const choice=finiteCountChoice(m)
-  if(!choice||clock()>=until)return undefined
+  if(!choice)return undefined
   const [name,vs]=choice,cuts=[...vs].sort((a,b)=>a-b),path:Path=new Map(),conditions:C[]=[]
   const splitAt=(v:number):Record<string,number>=>v?{[name]:1,'1':-v}:{[name]:1}
   let activeCert=cert,packet=build(at),root=mcGoal(packet.goal.hyps,packet.decls,activeCert)
@@ -121,7 +122,7 @@ export function proveCountCases(m:Machine,laws:Law[],at:Instances,cert:Pick<Coun
   const coreGrow=(g:Goal,end:number)=>{const before=atPoint.on;atPoint.on=true;try{return grow(g,new Map(),{nodes:0,until:end,units:options.units})}finally{atPoint.on=before}}
   try {
     for(const [i,value] of [...cuts,undefined].entries()){
-      if(clock()>=until)return undefined
+      if(clock()>=until||pastWall())return undefined
       const split=value===undefined?undefined:splitAt(value),cut:C|undefined=value===undefined?undefined:{op:'<=',a:x(name),b:{op:'const',value}}
       if(split)path.set(canon(split),{lin:split,holds:true})
       const root=new Map(path),tails=options.saturate&&value!==undefined?cuts.filter(v=>v>value):[]
@@ -149,7 +150,7 @@ export function proveCountCases(m:Machine,laws:Law[],at:Instances,cert:Pick<Coun
        at=seedCountWitnessFlags(m,at,[{decls:packet.decls,cert:slim}],true)
        tree=selected.tree;source=selected.goal;from=new Map(path);indices=selected.indices
       }
-      for(let round=0;!tree&&round<6&&clock()<caseEnd;round++){
+      for(let round=0;!tree&&round<6&&clock()<caseEnd&&!pastWall();round++){
         const part={name:goal.name,hyps:[...prefix,...goal.hyps]},start=clock(),q=seq(part,Math.min(caseEnd,clock()+(options.queryMs??200)))
         options.trace?.({value,stage:'query',round,hyps:part.hyps.length,ms:Math.round(clock()-start),outcome:'tree'in q?'tree':q.stuck,core:q.core?.length})
         if(!('tree'in q)&&q.why===REFUTED&&q.core?.length&&q.core.length<=(options.coreLimit??Infinity)){
@@ -163,7 +164,7 @@ export function proveCountCases(m:Machine,laws:Law[],at:Instances,cert:Pick<Coun
         if(!next)break
         at=next;if(!rebuild())return undefined
       }
-      if(!tree&&clock()<caseEnd){
+      if(!tree&&clock()<caseEnd&&!pastWall()){
         const part={name:goal.name,hyps:[...prefix,...goal.hyps]},out=grow(part,new Map(),{nodes:0,until:caseEnd,units:options.units})
         options.trace?.({value,stage:'grow',outcome:'tree'in out?'tree':out.stuck})
         if('tree'in out){tree=out.tree;source=part}
@@ -176,7 +177,7 @@ export function proveCountCases(m:Machine,laws:Law[],at:Instances,cert:Pick<Coun
     if(options.localModels){at=merged;if(!rebuild())return undefined}
     const missing=records.flatMap((r,i)=>r?[]:[i])
     for(const [j,i] of missing.entries()){
-      if(clock()>=until)break
+      if(clock()>=until||pastWall())break
       const {prefix,path:p}=branches[i]!,part={name:goal.name,hyps:[...prefix,...goal.hyps]}
       const end=Math.min(until,clock()+(until-clock())/(missing.length-j)),guard=actionGuard(m,name,cuts[i]),events:object[]=[]
       const derived=guard&&guardCases(m,packet.decls,goal,cert,guard,end,events,0,p,{deferCheck:true,claim:packet.goal.hyps.at(-1),memo})

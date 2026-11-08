@@ -2,7 +2,7 @@
 // is an ordinary counted proof, checked by the caller's existing kernel gate.
 import {type E,type Law,type Machine,walkOnce,x} from './machine.ts'
 import {type CountCert,type CountDecl,type Goal,type Instances,countedObligations,mcGoal} from '../kernel/kernel.ts'
-import {clock,grow} from '../kernel/prove.ts'
+import {clock,grow,pastWall} from '../kernel/prove.ts'
 import {env} from './solver.ts'
 import {countLawSeeds,countRowBridges,fieldGuardSeeds,fieldLawBridges,focusCountCert,rowKeyNames} from './count-focused.ts'
 import {seedCountWitnessFlags} from './count-witness-flags.ts'
@@ -13,7 +13,7 @@ export type FocusedCountProof={instances:Instances,certs:Record<string,CountCert
 // opt-out, while 1 also enables the legacy non-finite recovery experiment.
 export const focusedCountRecoveryEnabled=(m:Machine,setting:string|undefined=env.GDP_COUNTS_FOCUS):boolean=>setting==='1'||setting!=='0'&&!!finiteCountChoice(m)
 export function proveFocusedCounts(m:Machine,laws:Law[],law:Law,at:Instances,until:number,propose:(goal:Goal,decls:CountDecl[])=>Pick<CountCert,'reads'|'insts'>,trace?:(event:Record<string,unknown>)=>void):FocusedCountProof|undefined {
-  if(!m.inputMaps?.length||clock()>=until)return undefined
+  if(clock()>=until||pastWall()||!m.inputMaps?.length)return undefined
   let clean:Instances={}
   for(const [name,terms] of Object.entries(at)){
     const l=laws.find(l=>l.name===name),arity=l?1+(l.keys?.length??0):1,keep:E[]=[]
@@ -39,7 +39,7 @@ export function proveFocusedCounts(m:Machine,laws:Law[],law:Law,at:Instances,unt
   if(!targetCounts)clean=fieldGuardSeeds(m,clean,[...rows,...request,{op:'const',value:0}])
   const index=laws.findIndex(l=>l.name===law.name)
   for(const carried of [undefined,...m.inputMaps]){
-    if(clock()>=until)return undefined
+    if(clock()>=until||pastWall())return undefined
     let instances=clean
     const retained=new Map<string,Pick<CountCert,'reads'|'insts'>>()
     const proposal=(goal:Goal,decls:CountDecl[])=>focusCountCert(m,decls,propose(goal,decls),{carried,structural:false,frames:true,algebraic:true,requestFrames:true,copyFrames:true,targets:!targetCounts?rows:undefined})
@@ -64,7 +64,7 @@ export function proveFocusedCounts(m:Machine,laws:Law[],law:Law,at:Instances,unt
       certs[goal.name]={...cert,tree:result.tree}
     }
     if(complete)return {instances,certs}
-    if(clock()>=until)continue
+    if(clock()>=until||pastWall())continue
     let cold:Instances={}
     cold=countLawSeeds(m,laws,cold,rows.length?rows:own,request,!targetCounts,{requestDiagonals:true})
     cold=fieldLawBridges(m,bridgeLaws,cold,rows.length?rows:own,request,own.length===3?own[2]:undefined)

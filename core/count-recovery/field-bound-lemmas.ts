@@ -16,7 +16,7 @@ import {selectCountBounds} from '../count-select.ts'
 import {activeWriteRow,proveRowCases,rowPairs} from './row-cases.ts'
 import {proveNaturalCases} from './natural-cases.ts'
 import {activeCarried,copiesRows} from './action-guard.ts'
-import {atPoint,clock,withDeadline} from '../../kernel/prove.ts'
+import {atPoint,clock,pastWall,withDeadline} from '../../kernel/prove.ts'
 
 import {REFUTED} from '../../kernel/cdcl.ts'
 import {wallTree,check,refuteFast,grow,rowsAt,widen,modelSequence} from './ops.ts'
@@ -68,13 +68,15 @@ export function emptyCountCandidate(m:Machine,cert:Proposal,inst:Proposal['insts
  return fields
 }
 export const fieldBoundLemmas:typeof fieldBoundLemmasImpl=(...args)=>wallTree('proposal-control',()=>{
- const [,,g,,until,trace,,path=new Map(),options={}]=args,cached=options.memo?.get(g,path,until)
+ const [,,g,,until,trace,,path=new Map(),options={}]=args
+ if((clock()>=until||pastWall())){trace.push({stage:'source-budget-exhausted'});return undefined}
+ const cached=options.memo?.get(g,path,until)
  if(cached&&(options.deferCheck||check(g,cached,path))){trace.push({stage:'source-memo',scope:'field'});return cached}
  const tree=fieldBoundLemmasImpl(...args)
  if(tree)options.memo?.put(g,path,tree)
  return tree
 })
-function fieldBoundLemmasImpl(m:Machine,ds:CountDecl[],g:Goal,cert:Proposal,until:number,trace:object[],onModel?:(goal:Goal,witness:Record<string,number>)=>boolean,root:Path=new Map(),options:{splitRows?:boolean,deferCheck?:boolean,fieldClaim?:C,memo?:SourceProofMemo}={}):Tree|undefined{
+function fieldBoundLemmasImpl(m:Machine,ds:CountDecl[],g:Goal,cert:Proposal,until:number,trace:object[],onModel?:(goal:Goal,witness:Record<string,number>)=>boolean,root:Path=new Map(),options:{splitRows?:boolean,deferCheck?:boolean,fieldClaim?:C,memo?:SourceProofMemo,onSourceModel?:(goal:Goal,witness:Record<string,number>,path:Path)=>void}={}):Tree|undefined{
  const pointOptions={deferCheck:!!options.deferCheck}
  const seq=modelSequence(root),ctx:C[]=[],path:Path=new Map(root),lemmas:{split:Record<string,number>,no:Tree}[]=[]
  const accept=(tree:Tree|undefined,path:Path)=>tree&&(options.deferCheck||check(g,tree,path))?tree:undefined
@@ -155,6 +157,7 @@ function fieldBoundLemmasImpl(m:Machine,ds:CountDecl[],g:Goal,cert:Proposal,unti
   const budget=limit,started=clock(),q=seq(goal,Math.min(until,clock()+budget))
   trace.push({stage:'field-query',hyps:goal.hyps.length,ms:Math.round(clock()-started),limit:budget,outcome:'tree'in q?'tree':q.stuck,core:q.core?.length,...(!('tree'in q)&&q.stuck==='sat'?{model:q.witness}:{})})
   if('tree'in q)return q.tree
+  if(q.stuck==='sat'&&q.witness)options.onSourceModel?.(goal,q.witness,root)
   if(finish&&q.stuck==='sat'&&q.witness&&onModel?.(goal,q.witness))return undefined
   const reduced=q.why===REFUTED&&q.core?.length?{...goal,hyps:q.core.map(i=>goal.hyps[i]!)}:finish?goal:undefined
   if(!reduced)return undefined
@@ -186,7 +189,7 @@ function fieldBoundLemmasImpl(m:Machine,ds:CountDecl[],g:Goal,cert:Proposal,unti
   const a=cert.reads[i]!,b=cert.reads[j]!
   if(a[1]!==b[1]||truth({op:'=',a:a[2],b:b[2]},root)!==true)continue
   for(const [left,right]of [[a[0],b[0]],[b[0],a[0]]]){
-   if(clock()>=until)break
+   if((clock()>=until||pastWall()))break
    const split=sub({[left!]:1},{[right!]:1});if(path.get(canon(split))?.holds===true)continue
    const noPath=new Map(path).set(canon(split),{lin:split,holds:false}),begun=clock()
    trace.push({stage:'read-alias-start',left,right})
@@ -199,13 +202,14 @@ function fieldBoundLemmasImpl(m:Machine,ds:CountDecl[],g:Goal,cert:Proposal,unti
    if(accepted&&no){lemmas.push({split,no});ctx.push({op:'<=',a:x(left!),b:x(right!)});path.set(canon(split),{lin:split,holds:true})}
   }
  }
+ if((clock()>=until||pastWall()))return undefined
  const ceilings=fieldBounds(m,ds,cert,{claim:options.fieldClaim,path:root}),domains:C[]=[]
  for(const good of ceilings)if(good.op==='<='&&good.a.op==='if'){
   const parts=good.a.c.op==='and'?good.a.c.xs:[good.a.c]
   for(const c of parts)if(c.op==='<'&&!domains.some(d=>JSON.stringify(c)===JSON.stringify(d)))domains.push(c)
  }
  for(const domain of domains){
-  if(truth(domain,path)!==undefined||clock()>=until)continue
+  if(truth(domain,path)!==undefined||(clock()>=until||pastWall()))continue
   if(domain.op!=='<')continue
   const a=linear(domain.a,root),b=linear(domain.b,root);if(!a||!b)continue
   const split=sub(a,b);split['1']=(split['1']??0)+1
@@ -217,7 +221,7 @@ function fieldBoundLemmasImpl(m:Machine,ds:CountDecl[],g:Goal,cert:Proposal,unti
   if(no){lemmas.push({split,no});ctx.push(domain);path.set(canon(split),{lin:split,holds:true})}
  }
  const finishField=():Tree|undefined=>{
-  if(postIds.size||!options.fieldClaim||!lemmas.length||clock()>=until)return undefined
+  if(postIds.size||!options.fieldClaim||!lemmas.length||(clock()>=until||pastWall()))return undefined
   const offset=g.hyps.length-cert.insts.length,part={...g,hyps:[...g.hyps.slice(0,offset),...ctx,...g.hyps.slice(offset)]}
   const field=fieldCase(m,part,cert,options.fieldClaim,path,Math.min(until,clock()+150),e=>trace.push(e))
   let tree=field&&widen(part,g,field,{},path,path)
@@ -231,7 +235,7 @@ function fieldBoundLemmasImpl(m:Machine,ds:CountDecl[],g:Goal,cert:Proposal,unti
  const activeCeilings=new Set(ceilings.flatMap(good=>good.op==='<='&&good.a.op==='if'&&truth(good.a.c,path)===true?[JSON.stringify([good.a.then,good.b])]:[]))
  for(const good of ceilings){
   if(good.op==='<='&&good.a.op==='if'&&truth(good.a.c,path)!==true&&activeCeilings.has(JSON.stringify([good.a.then,good.b])))continue
-  if(good.op!=='<='||clock()>=until)break
+  if(good.op!=='<='||(clock()>=until||pastWall()))break
   if(truth(good,path)===true)continue
   const a=linear(good.a,path),b=linear(good.b,path);if(!a||!b)continue
   const split=sub(a,b),noPath=new Map(path).set(canon(split),{lin:split,holds:false}),start=clock()
@@ -242,6 +246,7 @@ function fieldBoundLemmasImpl(m:Machine,ds:CountDecl[],g:Goal,cert:Proposal,unti
    const field=finishField();if(field)return field
   }
  }
+ if((clock()>=until||pastWall()))return undefined
  const field=finishField();if(field)return field
  {
   const carriedMaps=activeCarried(m,root),countMaps=new Set(cert.reads.map(r=>r[1])),countIds=new Set(cert.reads.map(r=>r[0])),wits=new Set(cert.insts.map(i=>i.wit)),raw=g.hyps.slice(0,g.hyps.length-cert.insts.length)
@@ -289,7 +294,7 @@ function fieldBoundLemmasImpl(m:Machine,ds:CountDecl[],g:Goal,cert:Proposal,unti
   const finish=()=>{
    // The outer row pass adds only pre-state cuts. Defer arithmetic closure to
    // the exhaustive row children, where post-state constraints are available.
-   if(rowPlan.length||arithmetic||clock()>=until)return
+   if(rowPlan.length||arithmetic||(clock()>=until||pastWall()))return
    const numeric:Goal={...g,hyps:[...numericBase,...numericBindings,...ctx.filter(pure)]},begun=clock(),q=seq(numeric,Math.min(until,clock()+200))
    trace.push({stage:'count-arithmetic',hyps:numeric.hyps.length,ms:Math.round(clock()-begun),outcome:'tree'in q?'tree':q.stuck,core:q.core?.length,...(!('tree'in q)&&q.stuck==='sat'?{model:q.witness}:{})})
    let proof='tree'in q?q.tree:undefined
@@ -358,7 +363,7 @@ function fieldBoundLemmasImpl(m:Machine,ds:CountDecl[],g:Goal,cert:Proposal,unti
   let queue=pick(),cursor=0
   while(cursor<queue.length){
    const [index,inst]=queue[cursor++]!
-   if(arithmetic||clock()>=until)break
+   if(arithmetic||(clock()>=until||pastWall()))break
    if(!selected(inst))continue
    const h=g.hyps[raw.length+index];if(h?.op!=='or'||h.xs[0]?.op!=='<=')continue
    const good=h.xs[0];if(truth(good,path)===true)continue
@@ -394,12 +399,12 @@ function fieldBoundLemmasImpl(m:Machine,ds:CountDecl[],g:Goal,cert:Proposal,unti
   }
   finish()
  }
- if(clock()>=until)return undefined
+ if((clock()>=until||pastWall()))return undefined
  const part={...g,hyps:[...g.hyps,...ctx]},start=clock()
  let tree=arithmetic
  if(!tree&&rowPlan.length){
   trace.push({stage:'row-pairs',pairs:rowPlan})
-  tree=proveRowCases(g,path,rowPlan,until,(branch,end)=>fieldBoundLemmas(m,ds,g,cert,end,trace,onModel,branch,{splitRows:false,deferCheck:true,memo:options.memo}),e=>trace.push(e),{deferToCaller:true,splitEqual:copiesRows(m,root)})
+  tree=proveRowCases(g,path,rowPlan,until,(branch,end)=>fieldBoundLemmas(m,ds,g,cert,end,trace,onModel,branch,{splitRows:false,deferCheck:true,memo:options.memo,onSourceModel:options.onSourceModel}),e=>trace.push(e),{deferToCaller:true,splitEqual:copiesRows(m,root)})
  }
  if(!tree){const proof=solve(part,Math.max(150,until-clock()-200),true);tree=proof&&widen(part,g,proof,{},root,path)}
  trace.push({stage:'field-bound-conclusion',facts:lemmas.length,ms:Math.round(clock()-start),proved:!!tree})
