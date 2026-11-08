@@ -2858,11 +2858,38 @@ sample for this failed run. Production generation remains with the other lane.
 The remaining Inv1758 row is still the alternate active equal/different
 ordering half; no new hard-law derivation was added while chasing cache cost.
 
-A final 29-protocol paired experiment (`paired-final-sharing-v1`, submission
-class with isolated timing) now compares the original row/source-cache paths
-against both retained optimizations. It is pending; all broad preservation
-claims remain tied to their earlier exact snapshots until this receipt is
-scored, including the strict timeouts.
+### Final paired conservation result
+
+`paired-final-sharing-v1` (batch `20261108-170027-uoxy4x`, snapshot
+`6930582a3f7b`, submission class, isolated four-CPU child affinity) completed
+all **116 side/phase records**. The source/row baseline and both default-on
+optimizations have **identical outcomes for all 29 correct protocols and all
+29 broken variants**, including strict outer-60-second timeout status.
+
+| Outcome | Baseline | Optimized |
+| --- | ---: | ---: |
+| Correct protocol: proven | 27 | 27 |
+| Correct protocol: unknown | 2 | 2 |
+| Correct protocol: timeout | 0 | 0 |
+| Broken variant: refuted | 11 | 11 |
+| Broken variant: unknown | 17 | 17 |
+| Broken variant: timeout | 1 | 1 |
+
+The matched timeout is the broken `sharded_kv_no_lost_keys` variant; it is
+not an accepted proof or successful negative check. No broken variant is
+proved. Paxos returns unknown on both sides in both phases in this final
+run: correct 40.067/42.908 s and broken 39.282/43.227 s baseline/optimized.
+Those measured overheads and the earlier two timeout regressions remain in
+the journal; this run establishes conservation on this exact snapshot, not
+an assertion that all placements are identical.
+
+The original MLDR search is unknown on both sides: **47.219/45.858 s**
+baseline/optimized. Its broken variant is also unknown on both sides, with
+a small-instance failure. These do not replace the failed **68.913 s**
+production observation above and do not establish a successful MLDR run.
+The final broad preservation comparison passes, while the complete-law gate
+remains **2/5** and the all-laws-kept / strict 3×60-second gates remain
+**unpassed**. All jobs for these reported comparisons have finished.
 
 The validated source-context and weighted-retention implementations are now
 committed as `67110163` and `0813bfb3`. The earlier rejected whole-hypothesis
