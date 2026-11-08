@@ -5175,3 +5175,22 @@ receipt audit verifies all thirty verdicts and exact baseline/kernel/harness
 identity. Evidence and the patch are in **runs/track-m/cost-wins-interleaved-v1/**;
 final validation is **runs/track-m/cost-wins-final-validation-v1/**. Gate 1's
 record remains 3/5; no later gate was run.
+
+## Section 10 step 1 — fresh-VM calibration
+
+Retired **bx_3kjzmmhv** by exact scheduler ID after confirming it was idle; its
+lease was released. A new exclusive large VM, **bx_25xas5gt**, with eight pinned
+vCPUs, ran the requested single uninstrumented census control on exact 50109a36.
+
+| Law | Fresh counted units | Fresh wall | Original census wall | v7 family wall |
+|---|---:|---:|---:|---:|
+| one primary | 926.633492 | 2.029 s | 1.963 s | 2.716 s |
+| Inv3915 | 872.335254 | 2.488 s | 2.323 s | 2.885 s |
+| Inv1758 | 4310.475353 | 12.179 s | 11.604 s | 13.413 s |
+| Inv2973 | 5002.653010 | 25.327 s | 24.619 s | 32.069 s |
+| Inv* | 5161.392998 | 29.857 s | 29.282 s | 35.274 s |
+
+Verdicts remain 3 checked / 2 unproved; checked-law counted work is identical.
+This sample is close to the original census, not similarly degraded (Inv2973
++2.9%, Inv* +2.0% wall). It is one calibration, not a stability claim or a gate.
+Evidence: **runs/track-m/section10-calibration-v1/**. No production change.
