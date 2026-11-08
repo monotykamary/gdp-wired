@@ -1,0 +1,5 @@
+[
+{"name":"check","cmd":"bun install --frozen-lockfile >/dev/null && bun run check","timeout":600,"cpu":4,"memory":8192,"timing":true},
+{"name":"tests","cmd":"bun install --frozen-lockfile >/dev/null && bun test ./core/count-admission.test.ts ./core/support-order.test.ts ./core/count-support.test.ts ./core/counts-preflight.test.ts ./core/relevance.test.ts","timeout":120,"cpu":4,"memory":8192,"timing":true},
+{"name":"paxos-admission","cmd":"bun install --frozen-lockfile >/dev/null && bun research/track-p/admission-replay.ts research/track-p/input","timeout":120,"cpu":4,"memory":8192,"timing":true}
+]

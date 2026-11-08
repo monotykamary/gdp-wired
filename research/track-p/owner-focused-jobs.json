@@ -1,0 +1,4 @@
+[
+{"name":"owner-test","cmd":"bun install --frozen-lockfile >/dev/null && bun test core/count-support.test.ts --test-name-pattern 'regenerated cold'","timeout":90,"cpu":2,"memory":4096},
+{"name":"c11-core","cmd":"bun install --frozen-lockfile >/dev/null && REPLAY_MS=1500 bun research/track-p/context-probe.ts research/track-p/input core 11","timeout":90,"cpu":2,"memory":4096}
+]

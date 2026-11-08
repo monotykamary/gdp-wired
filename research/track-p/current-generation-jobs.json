@@ -1,0 +1,26 @@
+[
+ {
+  "name": "generation-1",
+  "cmd": "bun install --frozen-lockfile >/dev/null && bun research/track-p/generation-timing.ts research/track-p/input/family.json",
+  "timeout": 150,
+  "cpu": 4,
+  "memory": 14336,
+  "timing": true
+ },
+ {
+  "name": "generation-2",
+  "cmd": "bun install --frozen-lockfile >/dev/null && bun research/track-p/generation-timing.ts research/track-p/input/family.json",
+  "timeout": 150,
+  "cpu": 4,
+  "memory": 14336,
+  "timing": true
+ },
+ {
+  "name": "generation-3",
+  "cmd": "bun install --frozen-lockfile >/dev/null && bun research/track-p/generation-timing.ts research/track-p/input/family.json",
+  "timeout": 150,
+  "cpu": 4,
+  "memory": 14336,
+  "timing": true
+ }
+]

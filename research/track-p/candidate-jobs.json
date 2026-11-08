@@ -1,0 +1,1 @@
+[{"name":"candidates","cmd":"bun install --frozen-lockfile >/dev/null && bun research/track-p/candidates.ts research/track-p/input/family.json","timeout":90}]

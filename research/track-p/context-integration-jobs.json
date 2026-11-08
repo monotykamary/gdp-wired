@@ -1,0 +1,5 @@
+[
+{"name":"contexts","cmd":"bun install --frozen-lockfile >/dev/null && COUNT_FIRST=1 CONTEXT_CONTROL=1 bun research/track-p/contamination.ts research/track-p/input 4","timeout":90,"cpu":2,"memory":4096},
+{"name":"family38","cmd":"bun install --frozen-lockfile >/dev/null && PROFILE=1 bun research/track-p/production-replay.ts research/track-p/input","timeout":150,"cpu":2,"memory":4096},
+{"name":"support-tests","cmd":"bun install --frozen-lockfile >/dev/null && bun test core/count-support.test.ts core/relevance.test.ts core/counts-preflight.test.ts","timeout":90,"cpu":2,"memory":4096}
+]

@@ -63,7 +63,7 @@ type Clause = {lits: Map<string, boolean>, node: number, input?: boolean}
 const pointLeaf = env.GDP_CDCL_POINT !== '0'
 const lpFill = Number(env.GDP_CDCL_FILL ?? 8), lpGrow = Number(env.GDP_CDCL_GROW ?? 4), lpBase = Number(env.GDP_CDCL_BASE ?? 500), lpGreedy = Number(env.GDP_CDCL_GREEDY ?? 200), useLp = env.GDP_CDCL_LP !== '0', verify = env.GDP_CDCL_VERIFY === '1'
 // Counters research/step reads (times only while `on`).
-export const cdclStats = {on: false, runs: 0, proven: 0, conflicts: 0, decisions: 0, solveMs: 0, rowsMs: 0, coreMs: 0, unfoldMs: 0, leaves: 0, resolved: 0, coreSize: 0, pathSize: 0, lpMisses: 0, resolved2: 0, unfoldWhy: '', orderMs: 0, boundMs: 0, openMisses: 0, lpMs: 0, lpUnknown: 0, fmCalls: 0, pivots: 0, lpRebuilds: 0, lpRows: 0, lpNnz: 0, lpVars: 0, lpLoad: 0, nodes: 0, boundRounds: 0, fmLeafMs: 0, fmOpenMs: 0, fastMs: 0, missMs: 0}
+export const cdclStats = {on: false, runs: 0, proven: 0, conflicts: 0, decisions: 0, setupMs: 0, propagationMs: 0, firstDecisionMs: 0, firstDecisions: 0, solveMs: 0, rowsMs: 0, coreMs: 0, unfoldMs: 0, leaves: 0, resolved: 0, coreSize: 0, pathSize: 0, lpMisses: 0, resolved2: 0, unfoldWhy: '', orderMs: 0, boundMs: 0, openMisses: 0, lpMs: 0, lpUnknown: 0, fmCalls: 0, pivots: 0, lpRebuilds: 0, lpRows: 0, lpNnz: 0, lpVars: 0, lpLoad: 0, nodes: 0, boundRounds: 0, fmLeafMs: 0, fmOpenMs: 0, fastMs: 0, missMs: 0}
 
 // `opts.model`: only whether the goal has a model is wanted (core/bmc.ts): a refutation isn't unfolded into a tree, its
 // outcome `unknown` with `why` REFUTED; each decision's phase is the simplex's point's (phaseAtPoint; in the tree search too
@@ -100,7 +100,12 @@ export function cdclSession(goal: Goal, root: Path, opts: CdclOptions = {}) {
   // brings it down to its own; each assumption's index by name)
   // (and on each assumption's variable, `aq`, its index this run: the undo's lookup by variable, not by name)
   let aq = 0, aqOf = new Map<string, number>(), aqVars: Var[] = []
-  const st = cdclStats, timing = st.on
+  const st = cdclStats, timing = st.on, setupStarted = timing ? performance.now() : 0
+  let runStarted = 0, sawDecision = false
+  const noteDecision = () => {
+    st.decisions++
+    if (timing && !sawDecision) { sawDecision = true; st.firstDecisions++; st.firstDecisionMs += performance.now() - runStarted }
+  }
   const t = <T>(f: () => T, add: (ms: number) => void): T => { if (!timing) return f(); const t0 = performance.now(); try { return f() } finally { add(performance.now() - t0) } }
   st.runs++
   // (`tv`: the trail's variables, beside their names)
@@ -510,7 +515,7 @@ export function cdclSession(goal: Goal, root: Path, opts: CdclOptions = {}) {
     if (!x) return false
     free--
     if (!x.quiet && sx) phaseAtPoint(x, sx)
-    levels.push(trail.length); st.decisions++
+    levels.push(trail.length); noteDecision()
     assignVar(x, x.phase)
     return true
   }
@@ -546,6 +551,7 @@ export function cdclSession(goal: Goal, root: Path, opts: CdclOptions = {}) {
   const stuck = (kind: 'sat' | 'unknown', why: string, extra: {witness?: Record<string, number>} = {}): Outcome => ({stuck: kind, path: clausal ? new Map() : pathOf(), why, ...extra})
   const run = (b: {nodes: number, until?: number}, w?: number, assume?: Lin | Lin[]): Outcome => {
     budget = b; until = b.until ?? Infinity; wall = w; last = goal.hyps.length - 1
+    if (timing) { runStarted = performance.now(); sawDecision = false }
     restartAt = 32; nRestart = 0; sinceRestart = 0
     listed = Array.isArray(assume)
     assumed = (assume === undefined ? [] : Array.isArray(assume) ? assume : [assume]).map(lin => { const name = ensure(lin); return [name, name === canon(lin)] as [string, boolean] })
@@ -602,7 +608,7 @@ export function cdclSession(goal: Goal, root: Path, opts: CdclOptions = {}) {
     for (;;) {
       if (++budget.nodes > 200_000 || late(until) || (wall !== undefined && performance.now() > wall)) return stuck('unknown', budget.nodes > 200_000 ? 'nodes' : 'time')
       let conflict: Clause | undefined
-      const ci = propagate()
+      const ci = t(propagate, ms => { st.propagationMs += ms })
       let open = -1, wrong = -1
       if (ci === undefined) for (; aq < assumed.length; aq++) { const val = vars.get(assumed[aq]![0])!.val; if (val === !assumed[aq]![1]) { wrong = aq; break } if (val === undefined) { open = aq; break } }
       if (ci !== undefined) conflict = clauses[ci]!
@@ -789,7 +795,7 @@ export function cdclSession(goal: Goal, root: Path, opts: CdclOptions = {}) {
           }
           if (!pick) return verdict?.kind === 'sat' ? stuck('sat', 'a model', {witness: verdict.witness}) : stuck('unknown', 'no split')
           levels.push(trail.length)
-          st.decisions++
+          noteDecision()
           assign(pick, vars.get(pick)!.phase)
           if (clausal && lpSat) free = batch
           continue
@@ -847,6 +853,7 @@ export function cdclSession(goal: Goal, root: Path, opts: CdclOptions = {}) {
   // the clauses learned from it stay consequences of the goal with its gates' definitions, which any model of the rest
   // extends to (a gate its formula's value).
   const retire = (hyp: number) => { for (const ci of byHyp[hyp] ?? []) retired[ci] = true }
+  if (timing) st.setupMs += performance.now() - setupStarted
   return {run, retire}
 }
 

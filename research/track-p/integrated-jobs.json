@@ -1,0 +1,3 @@
+[
+{"name":"paxos-diagnostic","cmd":"bun install --frozen-lockfile >/dev/null && DUMP_DIR=/tmp/track-p-integrated DUMP_ALL=1 DUMP_MIN=0 DUMP_N=100000 GDP_COUNTS_TRACE=3 bun --preload ./research/query/dump.ts --preload ./research/track-p/capture.ts research/protocols/ic3syn/run.ts --ms 60000 --only paxos_epr --skip broken; s=$?; bun research/track-p/pack.ts /tmp/track-p-integrated; exit $s","timeout":180,"timing":true,"cpu":4,"memory":14336}
+]

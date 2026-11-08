@@ -1,0 +1,1 @@
+[{"name":"c11-current-emission","cmd":"bun install --frozen-lockfile >/dev/null && bun research/track-p/audit-support.ts research/track-p/input/family.json research/track-p/input/c11-source.json research/track-p/input/c11-proof.json all","timeout":60}]

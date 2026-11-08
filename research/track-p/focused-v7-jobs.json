@@ -1,0 +1,5 @@
+[
+ {"name":"check", "cmd":"bun install --frozen-lockfile >/dev/null && bun run check", "timeout":240},
+ {"name":"support-tests", "cmd":"bun install --frozen-lockfile >/dev/null && bun test core/relevance.test.ts core/count-support.test.ts core/carry.test.ts core/scan-prefix.test.ts core/support-order.test.ts", "timeout":120},
+ {"name":"family-9-11", "cmd":"bun install --frozen-lockfile >/dev/null && bun research/track-p/family.ts research/track-p/input/family.json 4 19 && bun research/track-p/family.ts research/track-p/input/family.json 6 19", "timeout":90}
+]

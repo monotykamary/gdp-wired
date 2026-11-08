@@ -1,0 +1,6 @@
+import {readFileSync} from 'node:fs';
+import {countedObligations} from '../../../kernel/kernel.ts';
+const {machine:m,laws}=JSON.parse(readFileSync('research/track-p/input/family.json','utf8'));
+const ids=[2,3,4,7,9,10,11,13,14,17,33,45,61,64,66,70,71,73,74],family=ids.map(i=>laws[i]);
+function fmt(v:any):string{if(v===null||typeof v!=='object')return JSON.stringify(v);if(Array.isArray(v))return '['+v.map(fmt).join(', ')+']';switch(v.op){case 'var':return v.name;case 'const':return String(v.value);case 'get':return v.map+'['+fmt(v.key)+']';case 'mul':return v.k+'*'+fmt(v.a);case 'add':case 'sub':case '=':case '<':case '<=':return '('+fmt(v.a)+' '+v.op+' '+fmt(v.b)+')';case 'not':return '!'+fmt(v.x);case 'and':case 'or':return '('+v.xs.map(fmt).join(' '+v.op+' ')+')';case 'if':return 'IF '+fmt(v.c)+' THEN '+fmt(v.then)+' ELSE '+fmt(v.else);default:return '{'+Object.entries(v).map(([k,x])=>k+':'+fmt(x)).join(', ')+'}';}}
+console.log('STEP',fmt(m.step));console.log('ASSUME',fmt(m.assume));for(const i of ids)console.log('LAW',i,JSON.stringify({name:laws[i].name,forall:laws[i].forall,keys:laws[i].keys}),fmt(laws[i].holds));for(const i of [7,17]){const r=countedObligations(m,family,{},ids.indexOf(i))[1]!;console.log('GOAL',i,r.goal.hyps.map(fmt).join('\n'));}

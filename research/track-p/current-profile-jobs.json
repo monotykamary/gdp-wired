@@ -1,0 +1,26 @@
+[
+ {
+  "name": "profile-1",
+  "cmd": "bun install --frozen-lockfile >/dev/null && GDP_COUNTS_TRACE=3 bun research/track-p/admission-replay.ts research/track-p/input",
+  "timeout": 150,
+  "cpu": 4,
+  "memory": 14336,
+  "timing": true
+ },
+ {
+  "name": "profile-2",
+  "cmd": "bun install --frozen-lockfile >/dev/null && GDP_COUNTS_TRACE=3 bun research/track-p/admission-replay.ts research/track-p/input",
+  "timeout": 150,
+  "cpu": 4,
+  "memory": 14336,
+  "timing": true
+ },
+ {
+  "name": "profile-3",
+  "cmd": "bun install --frozen-lockfile >/dev/null && GDP_COUNTS_TRACE=3 bun research/track-p/admission-replay.ts research/track-p/input",
+  "timeout": 150,
+  "cpu": 4,
+  "memory": 14336,
+  "timing": true
+ }
+]

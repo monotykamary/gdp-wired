@@ -1,0 +1,50 @@
+[
+ {
+  "name": "callers-1",
+  "cmd": "bun install --frozen-lockfile >/dev/null && CORE_CALLERS=1 bun research/track-p/demand-admission.ts research/track-p/input full used",
+  "timeout": 150,
+  "cpu": 4,
+  "memory": 14336,
+  "timing": true
+ },
+ {
+  "name": "callers-2",
+  "cmd": "bun install --frozen-lockfile >/dev/null && CORE_CALLERS=1 bun research/track-p/demand-admission.ts research/track-p/input full used",
+  "timeout": 150,
+  "cpu": 4,
+  "memory": 14336,
+  "timing": true
+ },
+ {
+  "name": "callers-3",
+  "cmd": "bun install --frozen-lockfile >/dev/null && CORE_CALLERS=1 bun research/track-p/demand-admission.ts research/track-p/input full used",
+  "timeout": 150,
+  "cpu": 4,
+  "memory": 14336,
+  "timing": true
+ },
+ {
+  "name": "helpers-1",
+  "cmd": "bun install --frozen-lockfile >/dev/null && CORE_HELPERS=1 bun research/track-p/demand-admission.ts research/track-p/input full used",
+  "timeout": 150,
+  "cpu": 4,
+  "memory": 14336,
+  "timing": true
+ },
+ {
+  "name": "helpers-2",
+  "cmd": "bun install --frozen-lockfile >/dev/null && CORE_HELPERS=1 bun research/track-p/demand-admission.ts research/track-p/input full used",
+  "timeout": 150,
+  "cpu": 4,
+  "memory": 14336,
+  "timing": true
+ },
+ {
+  "name": "helpers-3",
+  "cmd": "bun install --frozen-lockfile >/dev/null && CORE_HELPERS=1 bun research/track-p/demand-admission.ts research/track-p/input full used",
+  "timeout": 150,
+  "cpu": 4,
+  "memory": 14336,
+  "timing": true
+ }
+]

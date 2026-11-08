@@ -1,0 +1,4 @@
+[
+{"name":"bridge-controls","cmd":"bun install --frozen-lockfile >/dev/null && bun test core/count-support.test.ts --test-name-pattern 'selected witness joins'","timeout":60,"timing":true},
+{"name":"c11","cmd":"bun install --frozen-lockfile >/dev/null && PROFILE=1 bun research/track-p/production-replay.ts research/track-p/input 11","timeout":60,"timing":true}
+]

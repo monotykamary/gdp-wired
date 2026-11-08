@@ -1,0 +1,1 @@
+[{"name":"c10-all","cmd":"bun research/track-p/ten-sixtysix/audit.ts 10 all","timeout":90},{"name":"c10-none","cmd":"bun research/track-p/ten-sixtysix/audit.ts 10 none","timeout":90},{"name":"c66-all","cmd":"bun research/track-p/ten-sixtysix/audit.ts 66 all","timeout":90},{"name":"c66-none","cmd":"bun research/track-p/ten-sixtysix/audit.ts 66 none","timeout":90}]

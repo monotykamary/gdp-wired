@@ -53,6 +53,9 @@ test('an orphan row is a genuine induction counterexample, not a reachable trace
 test('co-write provenance closes a renamed forwarding pipeline with nothing written', () => {
   const r = pipeline()
   expect(withWall(performance.now() + 60000, () => proveRule(r, [safety(r)], {search: {ms: 60000}}))).toMatchObject({proven: true, checked: true})
+}, 90000)
+
+test('co-write provenance rejects a missing allowing relation', () => {
   const bad = pipeline(true)
   expect(withWall(performance.now() + 15000, () => proveRule(bad, [safety(bad)], {search: {ms: 15000}})).proven).toBe(false)
 }, 90000)

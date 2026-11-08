@@ -1,0 +1,5 @@
+[
+ {"name":"capture", "cmd":"bun install --frozen-lockfile >/dev/null && DUMP_DIR=/tmp/track-p-capture DUMP_ALL=1 DUMP_MIN=0 DUMP_N=100000 GDP_COUNTS_TRACE=3 bun --preload ./research/query/dump.ts --preload ./research/track-p/capture.ts research/protocols/ic3syn/run.ts --ms 60000 --only paxos_epr --skip broken; bun research/track-p/pack.ts /tmp/track-p-capture", "timeout":180},
+ {"name":"replay-0", "cmd":"bun install --frozen-lockfile >/dev/null && bun research/track-p/replay.ts research/track-p/input/baseline 0 2", "timeout":180},
+ {"name":"replay-1", "cmd":"bun install --frozen-lockfile >/dev/null && bun research/track-p/replay.ts research/track-p/input/baseline 1 2", "timeout":180}
+]

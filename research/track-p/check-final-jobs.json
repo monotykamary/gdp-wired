@@ -1,0 +1,3 @@
+[
+{"name":"check","cmd":"echo CHECK_INSTALL_BEGIN; bun install --frozen-lockfile >/dev/null && echo CHECK_BEGIN && bun run check && echo CHECK_COMPLETE","timeout":600,"cpu":2,"memory":4096}
+]

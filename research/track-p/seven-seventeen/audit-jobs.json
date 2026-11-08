@@ -1,0 +1,1 @@
+[{"name":"c7-audit","cmd":"bun research/track-p/seven-seventeen/audit.ts 7","timeout":120},{"name":"c17-audit","cmd":"bun research/track-p/seven-seventeen/audit.ts 17","timeout":120}]

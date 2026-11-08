@@ -1,0 +1,3 @@
+[
+{"name":"precise-core","cmd":"bun install --frozen-lockfile >/dev/null && CORE_CALLERS=1 bun research/track-p/demand-admission.ts research/track-p/input all used","timeout":100,"cpu":4,"memory":8192}
+]

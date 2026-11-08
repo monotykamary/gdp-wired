@@ -1,0 +1,7 @@
+[
+{"name":"c11-legacy","cmd":"bun install --frozen-lockfile >/dev/null && bun research/track-p/profile-step.ts research/track-p/input legacy 11","timeout":30},
+{"name":"c11-retained","cmd":"bun install --frozen-lockfile >/dev/null && bun research/track-p/profile-step.ts research/track-p/input retained 11","timeout":30},
+{"name":"c11-seedless","cmd":"bun install --frozen-lockfile >/dev/null && bun research/track-p/profile-step.ts research/track-p/input seedless 11","timeout":30},
+{"name":"c11-hand","cmd":"bun install --frozen-lockfile >/dev/null && bun research/track-p/profile-step.ts research/track-p/input hand 11","timeout":30},
+{"name":"cdcl-counters","cmd":"bun install --frozen-lockfile >/dev/null && bun test kernel/cdcl.test.ts --test-name-pattern 'optional phase counters'","timeout":30}
+]
