@@ -1,0 +1,16 @@
+main.tar: OK
+
+  x typescript(require-array-sort-compare): Require 'compare' argument.
+    ,-[research/track-m/replay-phase-census.ts:15:92]
+ 14 |   if(valid)checked++
+ 15 |   const ids=row.offered.filter((s:any)=>used.has(s.at)).map((s:any)=>s.id).sort(),expected=[...row.cited].sort()
+    :                                                                                            ^^^^^^^^^^^^^^^^^^^^^
+ 16 |   const same=JSON.stringify(ids)===JSON.stringify(expected)
+    `----
+
+Found 0 warnings and 1 error.
+Finished in 11.6s on 1159 files with 100 rules using 8 threads.
+
+--- stderr ---
+$ tsc -p . && oxlint --type-aware --deny-warnings --disable-nested-config
+error: script "check" exited with code 1

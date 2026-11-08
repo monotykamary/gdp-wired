@@ -4498,3 +4498,137 @@ This implementation is default-on **only on the candidate branch** and is not
 accepted for promotion. The generated-production 60-second test, same-VM
 Paxos 3/3 against `6a3874d3`, and paired IC3Syn 29×3 have **not been run**,
 because the ordered 5/5 gate has not passed. No later gate is claimed.
+
+## Track M — diagnostic phase and cut-use census (candidate `50109a36`)
+
+**Diagnostic only: no search strategy, default, cap, ordering, or trusted rule
+changed. Gate 1 remains 3/5; no subsequent acceptance gate was run.** The hooks
+are installed only in disposable snapshots. Their before/after hashes and
+hash-checked restoration receipts are in the raw log.
+
+All six processes (candidate focused control/profile, candidate native
+control/profile, main native control/profile) ran sequentially in one exclusive
+job on **the same VM as v7, `bx_3kjzmmhv`**, AMD Ryzen 9 9950X, eight of eight
+vCPUs pinned, zero co-tenants. Main was extracted from the checksum-verified
+`6a3874d3f2c6febe40bb14775884cb327a2cce3c` archive. The canonical input, law
+order, shared `withTrees` scope, 5,000-unit allowance, and 60-second per-law wall
+limit are unchanged. No dependency audit runs between laws; all such work is
+deferred until the complete process has finished its measurements.
+
+### Five-law focused path: exclusive wall breakdown
+
+Seconds below; each row is additive apart from rounding. **Kernel time is
+subtracted from its enclosing phase**, not counted twice. C measures numeric
+leaf construction/query/reconstruction; later lifting/transport belongs to
+remaining work. Exact milliseconds, inclusive A/B intervals, per-round times,
+call counts, and checker sites are in `census.json` and the per-law JSON files.
+
+| Law | Demand proposals | A: ceilings | B: closure | C: leaf queries | Kernel checks | Remaining work | Total wall | Checked |
+|---|---:|---:|---:|---:|---:|---:|---:|---|
+| One primary | <0.001 | 0 | 0 | 0 | 1.177 | 0.987 | 2.164 | yes |
+| Inv3915 | 0.030 | 0 | 0 | 0 | 1.575 | 0.870 | 2.475 | yes |
+| Inv1758 | 0.014 | 0 | 0 | 0 | 5.704 | 5.357 | 11.075 | yes |
+| Inv2973 | 0.118 | 0.906 | 2.214 | 0.194 | 0.036 | 21.625 | 25.094 | no |
+| Inv* | 0.034 | 1.598 | 6.290 | 0.171 | 10.379 | 10.726 | 29.198 | no |
+
+The five measured law walls sum to **70.006 s**. The uninstrumented same-job
+control sums to **69.791 s**. These are descriptive single-run timings, not a
+performance acceptance claim against the older 86.359-second v7 measurement.
+
+“Remaining” is explicitly accounted, not hidden overhead:
+
+| Law | Legacy `certFor` proposals | Ordinary search outside A/B/C | Construction, transport, traversal, other |
+|---|---:|---:|---:|
+| One primary | 0.028 | 0.520 | 0.439 |
+| Inv3915 | 0.022 | 0.400 | 0.447 |
+| Inv1758 | 0.024 | 1.765 | 3.568 |
+| Inv2973 | 0.219 | 5.512 | 15.893 |
+| Inv* | 0.242 | 2.477 | 8.007 |
+
+This census does **not** support attributing all of Inv2973's wall to closure:
+A+B+C consume 3.315 s; its largest bucket is construction/transport/other,
+which is not subdivided further here. For Inv1758 there are fourteen early
+closure-entry calls, but **none reaches Phase A**. Its three final `checkMC`
+calls consume 5.701 s inclusive (5.704 s total checker-exclusive time). Thus
+its measured cost is not ceiling generation or closure rounds.
+
+### Cut census, by admitted-cut ID
+
+IDs are local to a law run, `closure-N/cut-M`; conditional copies are distinct
+admissions, not distinct mathematical vectors. “Offered” means actually present
+in a Phase-C numeric hypothesis list. “Referenced” means cited by an independently
+checked numeric proof or the leaf query's refuted core. A SAT/unknown attempt
+without such a certificate has no minimal dependency set: its supplied cuts
+are **offered**, not silently counted as proof-used.
+
+| Law | Admitted (A / B) | Offered to at least one attempted leaf | Proof/core-referenced | Numeric leaves checked / attempted |
+|---|---:|---:|---:|---:|
+| Inv2973 | 49 (2 / 47) | 47 | 0 | 0 / 4 |
+| Inv* | 97 (9 / 88) | 87 | 3 | 12 / 17 |
+
+**Inv2973:** admitted IDs are `closure-1/cut-1..15`,
+`closure-2/cut-1..20`, and `closure-4/cut-1..14`. All are offered except
+`closure-1/cut-1` and `closure-2/cut-1`. No attempted leaf produces a checked
+numeric proof or a refuted core citing any of them. The four leaf outcomes
+are unknown, SAT, SAT, unknown. These projected SAT results are not protocol
+counterexamples.
+
+**Inv*:** admitted IDs are `closure-{1,2,3}/cut-1..23` and
+`closure-{6,7}/cut-1..14`. The exact referenced set is:
+
+- **`closure-1/cut-17`** — cited by `closure-1/leaf-1`;
+- **`closure-2/cut-17`** — cited by `closure-2/leaf-1..6`;
+- **`closure-3/cut-17`** — cited by `closure-3/leaf-1..5`.
+
+Each is candidate index **45**, witness **`frame$18`**, the single-count
+nonnegativity vector **`+r$0 >= 0`** (`unit: 0`), under its recorded guard.
+The proof-reference and core-reference sets coincide. Of 87 offered IDs,
+84 are never cited by any Phase-C proof/core. The ten never-offered IDs are
+`closure-{1,2,3,6}/cut-{1,2}`, `closure-7/cut-1`, and `closure-7/cut-14`.
+The other five attempted leaves are one unknown and four SAT projections.
+
+This is an arithmetic-leaf dependency census, **not a transitive deletion
+proof**: an uncited admission may have supported an earlier A/B source proof.
+No cut was removed, and no claim is made that all 84 uncited admissions can be
+safely skipped. Source-proof and leaf-proof notions are kept separate.
+
+### Inv1758 against main: compare the shared native entry honestly
+
+Main `6a3874d3` predates both `proveFocusedCounts` and `deriveCountClosure`.
+Copying the candidate focused prover into it would not be a main baseline.
+The additional control therefore calls the native entry available on both
+revisions, `countedAttempts(...).traced(...)`, after matched one-primary and
+Inv3915 native warm-ups. A/B/C and demand generation are **not applicable**
+on main, rather than a zero-cost implementation of those phases.
+
+| Inv1758 native entry | Demand / A / B / C | Legacy proposals | Ordinary search | Kernel | Other | Total wall | Checked |
+|---|---|---:|---:|---:|---:|---:|---|
+| Main `6a3874d3` | n/a | 0.002 | 0.190 | 0 | 0.014 | 0.206 | no |
+| Candidate `50109a36` | not reached | 0.002 | 0.189 | 0 | 0.016 | 0.207 | no |
+
+Both native attempts fail to return a proof; their uninstrumented controls
+also fail (0.202 s main, 0.238 s candidate). **These are early unsuccessful
+attempts, not a fast main proof of Inv1758**, and cannot be used as the denominator
+of an 11.075-second successful-proof regression claim. The useful measured
+localization is that the candidate focused path spends 5.704 s checking and
+3.568 s in construction/transport/other, with zero A/B/C work.
+
+### Measurement integrity and artifacts
+
+- All **11 profiled/control pairs** agree on proved/checked outcomes.
+- **10/11** also match counted work exactly. Inv* differs by **+0.400389 units**
+  (5,161.936541 vs 5,161.536152, about **0.0078%**); exact instrumentation
+  neutrality is therefore **not** claimed for that wall-bounded path.
+- All eleven exclusive-phase sums reconcile to wall time within **0.043 ms**.
+- TypeScript and type-aware lint pass with the hooks installed; the three
+  meter tests pass (nine assertions). Independent fresh-process replay checks
+  **12/12 numeric proofs and 12/12 exact cut-ID sets**; its receipt is in
+  `validation/verify-census.log` and `proof-replay.json`.
+- The first preflight caught a missing string-sort comparator; its failed
+  receipt is preserved as `preflight-1.log`, not presented as a successful run.
+
+Artifacts: **`runs/track-m/closure-phase-census-v1/`**. Start with `census.json`,
+`verification.json`, the two `candidate-focused-profiled-Inv*.json` records,
+and `candidate-focused-profiled-Invstar-proofs.json`. The raw job log includes
+all restoration/manifests, controls, and full cut/leaf records. Reproduction
+and category definitions are in **`research/track-m/PHASE-CENSUS.md`**.

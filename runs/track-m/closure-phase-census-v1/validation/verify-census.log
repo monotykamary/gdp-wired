@@ -1,0 +1,17 @@
+Found 0 warnings and 0 errors.
+Finished in 14.6s on 1159 files with 100 rules using 8 threads.
+bun test v1.4.3 (c6da4a4d3)
+{"mode":"phase-census-proof-replay","leaves":12,"checked":12,"exact":12,"failures":[]}
+
+--- stderr ---
+$ tsc -p . && oxlint --type-aware --deny-warnings --disable-nested-config
+
+research/track-m/phase-census-meter.test.ts:
+(pass) wall phases are exclusive and kernel work is not double counted [0.29ms]
+(pass) phase-local solver work remains charged to its phase [0.12ms]
+(pass) cut-use audit distinguishes offered, core and checked proof references [0.52ms]
+
+ 3 pass
+ 0 fail
+ 9 expect() calls
+Ran 3 tests across 1 file. [6.00ms]

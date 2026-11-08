@@ -1,0 +1,3 @@
+[
+ {"name":"phase-census","cmd":"bash research/track-m/run-phase-census.sh","cpu":8,"memory":14336,"timeout":900}
+]
