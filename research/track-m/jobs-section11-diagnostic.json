@@ -1,0 +1,1 @@
+[{"name":"diagnostic","cmd":"set -e; if [ -n \"${GATE_ARCHIVE:-}\" ]; then bun -e 'console.log(JSON.stringify({part:0,data:await Bun.file(process.env.GATE_ARCHIVE+\"/0.txt\").text()}))'; fi; bash research/track-m/run-section11-diagnostic.sh","cpu":8,"memory":14336,"timeout":600}]

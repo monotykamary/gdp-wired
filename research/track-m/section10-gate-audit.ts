@@ -1,6 +1,6 @@
 // Recompute the reported table from the six retained fresh-process receipts.
-export function auditSection10Gate(records:any[],manifest:any){
- if(!manifest.kernelEqual||!manifest.harnessEqual||!String(manifest.baselineCommit).startsWith('50109a36'))throw new Error('baseline/kernel/harness drift')
+export function auditSection10Gate(records:any[],manifest:any,expectedBaseline='50109a36'){
+ if(!manifest.kernelEqual||!manifest.harnessEqual||!String(manifest.baselineCommit).startsWith(expectedBaseline))throw new Error('baseline/kernel/harness drift')
  if(JSON.stringify(records.map(r=>r.id))!==JSON.stringify(['A1','B1','A2','B2','A3','B3']))throw new Error('not three interleaved repeats')
  const names:string[]=records[0].laws.map((l:any)=>l.law)
  if(names.length!==5||new Set(names).size!==5)throw new Error('not five unique laws')

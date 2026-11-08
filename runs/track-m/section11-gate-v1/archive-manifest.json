@@ -1,0 +1,26 @@
+{
+  "artifact": "section10-chunk-manifest",
+  "dir": "/home/user/track-m-s10-receipts-9oEYnh",
+  "parts": 1,
+  "bytes": 11311,
+  "sha256": "329c01dcbd7f312682716b494e50ce3685471f702fa26a0bdc2a4279f16925e9",
+  "files": [
+    "A1.log",
+    "A1.stderr.log",
+    "A2.log",
+    "A2.stderr.log",
+    "A3.log",
+    "A3.stderr.log",
+    "B1.log",
+    "B1.stderr.log",
+    "B2.log",
+    "B2.stderr.log",
+    "B3.log",
+    "B3.stderr.log",
+    "check.log",
+    "manifest.json",
+    "measurements.json",
+    "summary.json",
+    "tests.log"
+  ]
+}

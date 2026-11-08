@@ -8,7 +8,7 @@ import {foldPath} from '../../core/count-recovery/fold-path.ts'
 import {walkLive} from '../../core/count-recovery/live-dependencies.ts'
 import {REFUTED} from '../../kernel/cdcl.ts'
 import {atPoint} from '../../kernel/prove.ts'
-export function analyzeSection10(output:string,record:Pick<typeof d,'frames'|'events'|'captures'|'label'>=d){
+export function analyzeSection10(output:string,record:Pick<typeof d,'frames'|'events'|'captures'|'label'>=d,revision='192ebbe2'){
 // All following work is a separate diagnostic allowance, never the row share.
 const main=new Set(record.frames.filter(f=>f.kind==='closure'&&f.meta.main).map(f=>f.id)),finalCase=record.events.findLast((e:any)=>e.kind==='case-final-results'),target=finalCase?.unresolved[0],stop=record.events.find((e:any)=>e.kind==='stop'&&main.has(e.closure)&&(target===undefined||target==='else'||e.path.filter(([,a]:any)=>Object.keys(a.lin).every(k=>k==='1'||k===finalCase.selector)).every(([,a]:any)=>{const n=(a.lin['1']??0)+(a.lin[finalCase.selector]??0)*target;return a.holds?n<=0:n>0})))
 if(!stop)throw new Error('no first unfinished main subbranch captured')
@@ -36,7 +36,7 @@ for(const index of violated){
  sources.push({index,inst,part,query:initial,outcome:checked?'refuted-checked':validatedModel?'sat-validated':'unknown',units:measured.units,checked,model:validatedModel,reusedDuringProduction:reused.length})
 }
 const columns=[];for(let i=0;;i++){const e=columnTerm(`⟦${i}⟧`);if(e===undefined)break;columns.push(e)}
-const result={revision:'192ebbe2',diagnosticOnly:true,production:{label:record.label,frames:record.frames,events:record.events,captures:record.captures.map(({source:_source,...rest}:any)=>rest)},firstUnfinished:stop,captureId:capture.id,originalNumericQuery:capture.query,originalNumericModel:capture.model,freshDiagnosticNumeric:{allowance:5000,units:probe.units,query:q,model,valid:!!model,checked:numericChecked,violated:model?violated:[]},sourceContext:sourceCapture&&{captureId:sourceCapture.id,path:sourceCapture.path,model:sourceModel,violated,kind:model?'fresh-terminal-model':'last-observed-model'},sources,columns}
+const result={revision,diagnosticOnly:true,production:{label:record.label,frames:record.frames,events:record.events,captures:record.captures.map(({source:_source,...rest}:any)=>rest)},firstUnfinished:stop,captureId:capture.id,originalNumericQuery:capture.query,originalNumericModel:capture.model,freshDiagnosticNumeric:{allowance:5000,units:probe.units,query:q,model,valid:!!model,checked:numericChecked,violated:model?violated:[]},sourceContext:sourceCapture&&{captureId:sourceCapture.id,path:sourceCapture.path,model:sourceModel,violated,kind:model?'fresh-terminal-model':'last-observed-model'},sources,columns}
 writeFileSync(output,JSON.stringify(result,(key,value)=>key==='tree'&&value&&typeof value==='object'?{proofOmitted:true}:value)+'\n')
 console.log(JSON.stringify({diagnosticResult:output,mainClosures:[...main],firstUnfinished:stop,capture:capture.id,numericUnits:probe.units,numericValid:!!model,violated,sources:sources.map(s=>({index:s.index,outcome:s.outcome,units:s.units}))}))
 

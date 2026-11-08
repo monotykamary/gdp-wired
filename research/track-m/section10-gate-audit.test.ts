@@ -7,4 +7,10 @@ test('a missing repeat cannot yield a median-of-three table',()=>expect(()=>audi
 test('nonfinite counted work is rejected',()=>{const rs=records();rs[1]!.laws[0]!.countedMs=NaN;expect(()=>auditSection10Gate(rs,manifest)).toThrow()})
 test('any checked-law loss is a regression',()=>{const rs=records();rs[3]!.laws[1]!.checked=false;expect(auditSection10Gate(rs,manifest).noRegression).toBe(false)})
 test('a checked family beyond sixty seconds does not pass',()=>{const rs=records();for(const r of rs)for(const l of r.laws)l.proven=l.checked=true;rs[5]!.total.wallMs=60001;expect(auditSection10Gate(rs,manifest).gate1ReplayPass).toBe(false)})
+test('a new baseline must be explicitly named, never silently accepted',()=>{
+ const changed={...manifest,baselineCommit:'192ebbe2'}
+ expect(()=>auditSection10Gate(records(),changed)).toThrow()
+ expect(auditSection10Gate(records(),changed,'192ebbe2').baseline).toBe('192ebbe2')
+})
+
 test('kernel drift cannot pass an evidence audit',()=>expect(()=>auditSection10Gate(records(),{...manifest,kernelEqual:false})).toThrow())

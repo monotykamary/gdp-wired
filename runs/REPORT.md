@@ -5328,3 +5328,53 @@ Validation: type/lint pass; **255 tests / 1,215 assertions**; fresh validation o
 refutations were checked during their probes; the model validator does not
 claim to independently replay those proof trees. The empty-core proof is
 independently checked. Gate 1 remains **3/5**, not rerun as a new gate.
+
+## Section 11 — empty-core and allowance fixes
+
+Implementation **5974b916** fixes both defects generically: empty numeric
+REFUTED cores now construct and transport a proof; leafAllowance is the even
+remaining share with remaining/3 as a ceiling. Split children retain one parent
+deadline and unspent allowance remains unspent. Regressions fail on the old
+implementation and pass on the fix. The literal 1,500 row ceiling is unchanged:
+row-cases.ts:103, originating in **616b0c9c**, with no local numeric derivation;
+retain it for the after-MLDR knob census. Kernel and law harness are unchanged.
+
+A = exact **192ebbe2**, B = **5974b916**, order A1/B1/A2/B2/A3/B3 on
+**bx_25xas5gt**, exclusive eight pinned vCPUs. All 30 verdicts are identical:
+**3/5 checked**. Proved-law counted units are unchanged at 947.543254,
+874.116294 and 4312.612601. Inv2973: A 5001.811726 each; B 5108.274084 each.
+Inv*: A 5160.104960 each; B 5162.032223 / 5160.085453 / 5160.085453.
+
+| Wall seconds, median / maximum | A | B |
+|---|---:|---:|
+| one primary | 2.165 / 2.791 | 1.641 / 1.863 |
+| Inv3915 | 2.817 / 3.100 | 2.019 / 2.222 |
+| Inv1758 | 10.756 / 14.541 | 9.796 / 15.345 |
+| Inv2973 | 24.756 / 35.721 | 27.954 / 29.729 |
+| Inv* | 28.417 / 33.017 | 24.863 / 24.912 |
+| family | 68.881 / 89.173 | 67.214 / 72.299 |
+
+B family walls: **72.299 / 67.214 / 61.567 seconds**, all above 60. Variance
+remains material; no stable speed ratio or gate success is claimed.
+
+Post-fix full-family diagnostic:
+- **Inv*** now closes actions 0 and 1; unresolved actions are 3,4,5,6. First
+  unfinished is **op3, a$#=j, j$=j, CT[j]<CT[i]**. Valid numeric model in
+  3.042176 units; 31 violated instances; **4 checked source refutations / 27
+  validated SAT**. Production draw 31.837620, spend 31.863512. Its sole source
+  attempt, index 54, times out; the separate probe validates SAT, not a cut.
+- **Inv2973** remains at **op0, a$#=b$=0**. Production draw 23.787585, spend
+  25.269563 (natural 24.498107 + numeric 0.771456), zero source attempts.
+  A separate numeric replay validates the 101-violation model in 6.874298 units;
+  source probes give **8 checked refutations / 93 validated SAT**.
+
+All exact paths, models, violated sets, source units and conserved row ledgers
+are in **runs/track-m/section11-diagnostic-v2/**. Its Inv* total differs slightly
+from the timed repeats; this is explicitly a separate diagnostic trace, not a
+claim of byte-identical replay. Full timing receipts: **section11-gate-v1/**.
+Final independent raw-log audit and fresh model validation: **section11-validation-v2/**.
+Type/lint and **258 tests / 1,313 assertions** pass. Fresh processes validate
+**120 source SAT models and 2 numeric models**, their paths and all violated
+selections; the 12 refuted source receipts were kernel-checked during probing.
+Earlier audit-only failures are retained; no timed repeat was rerun. All owned
+temporary archives are removed. No later gates or additional strategy changes.
