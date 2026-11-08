@@ -1,0 +1,1 @@
+{"id":"simple_regular","ic3syn":"tla-simpleregular","broken":{"bug":"a2 leaves x = {0, 1}","verdict":"refuted","goal":"some process not done, or some y is 1 @step","stuck":"sat","run":4,"ms":15,"work":0,"full":0}}

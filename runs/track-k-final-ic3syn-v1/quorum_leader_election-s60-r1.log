@@ -1,0 +1,12 @@
+PAIR begin side=cand id=quorum_leader_election run=1
+{"id":"quorum_leader_election","ic3syn":"ex-quorum-leader-election","search":{"verdict":"proven","found":["every IsLeader cell is a value of its kind","one leader","IsLeader keeps members's bound through members$IsLeader","every x with x < size: never Voted[x] is 0 and x + 1 <= Voted[x]","every x, y with x < size ∧ y < size ∧ ¬(x = y): never 1 <= IsLeader[x] and 1 <= IsLeader[y]","every x, y with x < size ∧ y < size ∧ ¬(x = y): never Voted[x] is 0 and y + 1 <= Voted[x]"],"ms":1883,"work":77815,"full":68379}}
+[infer join engine] {"wall":0,"eUntil":13555}
+[infer join small instance] {"states":442,"bfs":369,"params":1,"symmetric":"","ms":1508,"took":1508}
+[infer join pool] {"made":6,"left":6,"states":150,"ms":228,"real":1501}
+PAIR end side=cand exit=0
+PAIR begin side=base id=quorum_leader_election run=1
+{"id":"quorum_leader_election","ic3syn":"ex-quorum-leader-election","search":{"verdict":"proven","found":["every IsLeader cell is a value of its kind","one leader","IsLeader keeps members's bound through members$IsLeader","every x with x < size: never Voted[x] is 0 and x + 1 <= Voted[x]","every x, y with x < size ∧ y < size ∧ ¬(x = y): never 1 <= IsLeader[x] and 1 <= IsLeader[y]","every x, y with x < size ∧ y < size ∧ ¬(x = y): never Voted[x] is 0 and y + 1 <= Voted[x]"],"ms":2103,"work":77815,"full":68379}}
+[infer join engine] {"wall":0,"eUntil":13555}
+[infer join small instance] {"states":442,"bfs":369,"params":1,"symmetric":"","ms":1508,"took":1508}
+[infer join pool] {"made":6,"left":6,"states":150,"ms":228,"real":1693}
+PAIR end side=base exit=0

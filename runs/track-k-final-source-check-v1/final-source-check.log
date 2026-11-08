@@ -1,0 +1,45 @@
+Found 0 warnings and 0 errors.
+Finished in 10.6s on 966 files with 100 rules using 8 threads.
+bun test v1.4.3 (c6da4a4d3)
+
+--- stderr ---
+$ tsc -p . && oxlint --type-aware --deny-warnings --disable-nested-config
+
+core/lemma-cuts.test.ts:
+(pass) repeated forced splits become one independent checked lemma without search [3.15ms]
+(pass) conditional input paths become explicit scope hypotheses and retain needed conditions [1.09ms]
+(pass) forged source provenance cannot become a checked lemma [0.27ms]
+(pass) row-cache hints are keyed by the exact goal and ordered source path [0.56ms]
+(pass) forged matching row hints cannot bypass the trusted checker [0.22ms]
+(pass) compression declines expired work and never certifies a satisfiable changed goal [0.23ms]
+
+kernel/lemma-cut.test.ts:
+(pass) a separately checked conditional lemma closes only below its decision [0.16ms]
+(pass) empty lemma lists preserve the original goal and counted checkers [0.31ms]
+(pass) the actual counted and MC wrappers carry the lemma list [0.14ms]
+(pass) a lemma is checked against exactly its selected hypotheses [0.08ms]
+(pass) non-refuting, self-citing and circular lemma payloads are refused [0.06ms]
+(pass) read capture is still refused with a nonempty valid lemma list [0.56ms]
+(pass) witness capture of parameters, ?flag names and law skolems remains refused [1.65ms]
+(pass) malformed new fields do not grant assumptions or throw [0.03ms]
+
+ 14 pass
+ 0 fail
+ 58 expect() calls
+Ran 14 tests across 2 files. [19.00ms]
+ 5 | import {type E} from '../../core/machine.ts'
+ 6 | import {type Lin} from '../../core/solver.ts'
+ 7 | import {type Goal,type Tree,type LemmaCut,termColumn,checkGoalLemmas} from '../../kernel/kernel.ts'
+ 8 | import {countedToLean} from '../../lean-kernel/emit.ts'
+ 9 | const [file,out]=process.argv.slice(2) as [string,string]
+10 | const pack=JSON.parse(gunzipSync(readFileSync(file)).toString()) as {goal:Goal,tree:Tree,lemmas:LemmaCut[],columns:Record<string,E>}
+                                      ^
+ENOENT: no such file or directory, open 'runs/track-k-shared-proof/certificate.json.gz'
+    path: "runs/track-k-shared-proof/certificate.json.gz",
+ syscall: "open",
+   errno: -2,
+    code: "ENOENT"
+
+      at /work/gdp-wired/research/track-k/check-shared.ts:10:34
+
+Bun v1.4.3 (Linux x64)

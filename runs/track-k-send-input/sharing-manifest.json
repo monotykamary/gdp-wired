@@ -1,0 +1,10 @@
+{
+  "sourceManifest": "041633cfbe79663be0eba501da82421c50e6d03ad1f058ffd2011350ec499c83",
+  "overlays": {
+    "core/lemma-cuts.ts": "af056b6fb138e2e9dee84f7690480fd94de0e0cb38562862398310e1e0f23ede",
+    "kernel/kernel.ts": "6984ace7dea563b38aa93827558cfe209dd4978fb9ab994d92e4c2f8b9966433",
+    "kernel/prove.ts": "a7bd18b9b499c716404e6ce0994dd0be429f993c6904d2c1cfc922072ba916e9",
+    "research/track-m/count-case-replay.ts": "5afb15d46f1bef7e0772de425ed2551f3ebd5b7351eacfd8b66dc2a01755fcd9",
+    "research/track-m/lemma-origin-dump.ts": "32e0cb9fd131a9264013199f32111e47b171e69794fc74de77df40498eecdac2"
+  }
+}

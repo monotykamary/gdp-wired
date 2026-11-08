@@ -1,0 +1,31 @@
+{"id":"learning_switch_i4","ic3syn":"i4-learning-switch","broken":{"bug":"a route learned both ways","verdict":"unknown","goal":"route_tc is transitive @step","stuck":"sat","why":"a model; the search found nothing that proves it in 58871 ms","ms":65614,"work":331304,"full":800837}}
+[infer join engine] {"wall":0,"eUntil":55478}
+[infer join small instance] {"states":759,"bfs":593,"params":1,"symmetric":"","ms":1502,"took":1502}
+[infer join small instance] {"states":1917,"bfs":708,"params":1,"symmetric":"","ms":3010,"took":1508}
+[infer join pool] {"made":600,"left":600,"states":300,"ms":344,"real":15743}
+[infer join enumerated] {"views":12,"cubes":96,"ms":5995}
+[infer join enumerated] {"round":0,"cubes":96,"real":0,"unsure":0,"caller":0,"diagrams":4,"ms":8380}
+[infer join exists] {"law":"none","ms":0}
+[infer join enumerated] {"round":1,"cubes":108,"real":0,"unsure":0,"caller":1,"diagrams":0,"ms":8486}
+[infer join enumerated] {"round":2,"cubes":116,"real":0,"unsure":0,"caller":1,"diagrams":0,"ms":8626}
+[infer join enumerated] {"round":3,"cubes":124,"real":0,"unsure":0,"caller":1,"diagrams":0,"ms":8766}
+[infer join enumerated] {"round":4,"cubes":132,"real":0,"unsure":0,"caller":1,"diagrams":0,"ms":8815}
+[infer join enumerated] {"round":5,"cubes":140,"real":0,"unsure":0,"caller":1,"diagrams":0,"ms":8864}
+[infer join enumerated] {"round":6,"cubes":148,"real":0,"unsure":0,"caller":1,"diagrams":0,"ms":8913}
+[infer join enumerated] {"round":7,"cubes":156,"real":0,"unsure":0,"caller":1,"diagrams":0,"ms":8963}
+[infer join enumerated] {"round":8,"cubes":164,"real":0,"unsure":0,"caller":1,"diagrams":0,"ms":9012}
+[infer join enumerated] {"round":9,"cubes":172,"real":0,"unsure":0,"caller":1,"diagrams":0,"ms":9062}
+[infer join enumerated] {"round":10,"cubes":180,"real":0,"unsure":0,"caller":1,"diagrams":0,"ms":9112}
+[infer join enumerated] {"round":11,"cubes":188,"real":0,"unsure":0,"caller":1,"diagrams":0,"ms":9163}
+[infer join enumerated] {"round":12,"cubes":196,"real":0,"unsure":0,"caller":1,"diagrams":0,"ms":9214}
+[infer join enumerated] {"round":13,"cubes":204,"real":0,"unsure":0,"caller":1,"diagrams":0,"ms":9265}
+[infer join enumerated] {"round":14,"cubes":212,"real":0,"unsure":0,"caller":1,"diagrams":0,"ms":9315}
+[infer join enumerated] {"round":15,"cubes":220,"real":0,"unsure":0,"caller":1,"diagrams":0,"ms":9377}
+[infer join enumerated] {"round":16,"cubes":228,"real":0,"unsure":0,"caller":1,"diagrams":0,"ms":9427}
+[infer join enumerated] {"round":17,"cubes":236,"real":0,"unsure":0,"caller":1,"diagrams":0,"ms":9477}
+[infer join enumerated] {"round":18,"cubes":244,"real":0,"unsure":0,"caller":1,"diagrams":0,"ms":9528}
+[infer join enumerated] {"round":19,"cubes":252,"real":0,"unsure":0,"caller":1,"diagrams":0,"ms":9580}
+[infer join enumerated] {"round":20,"cubes":260,"real":0,"unsure":0,"caller":1,"diagrams":0,"ms":9633}
+[infer join enumerated] {"round":21,"cubes":268,"real":0,"unsure":0,"caller":1,"diagrams":0,"ms":9686}
+[infer join enumerated] {"round":22,"cubes":276,"real":0,"unsure":0,"caller":1,"diagrams":0,"ms":9738}
+[infer join end] {"rounds":0,"set":0,"why":"time","cone":0,"ms":46312,"real":47958,"v":9738,"now":8598,"full":756304,"epr":574184,"erows":198783,"etries":258515,"tries":59642,"rows":7642383,"evals":549897,"work":287311}

@@ -1,0 +1,1 @@
+{"id":"sharded_kv","ic3syn":"pyv-sharded-kv","broken":{"bug":"put without ownership","verdict":"refuted","goal":"one value per key @step","stuck":"sat","run":24,"ms":6472,"work":383184,"full":89678}}

@@ -1,0 +1,551 @@
+{
+  "kind": "paired",
+  "jobs": 87,
+  "repeats": [
+    {
+      "run": 1,
+      "base": 28,
+      "candidate": 28
+    },
+    {
+      "run": 2,
+      "base": 28,
+      "candidate": 28
+    },
+    {
+      "run": 3,
+      "base": 28,
+      "candidate": 28
+    }
+  ],
+  "lost": 0,
+  "paxos": [
+    true,
+    true,
+    true
+  ],
+  "rows": [
+    {
+      "id": "consensus",
+      "run": 1,
+      "base": true,
+      "cand": true
+    },
+    {
+      "id": "consensus",
+      "run": 2,
+      "base": true,
+      "cand": true
+    },
+    {
+      "id": "consensus",
+      "run": 3,
+      "base": true,
+      "cand": true
+    },
+    {
+      "id": "tcommit",
+      "run": 1,
+      "base": true,
+      "cand": true
+    },
+    {
+      "id": "tcommit",
+      "run": 2,
+      "base": true,
+      "cand": true
+    },
+    {
+      "id": "tcommit",
+      "run": 3,
+      "base": true,
+      "cand": true
+    },
+    {
+      "id": "lock_server",
+      "run": 1,
+      "base": true,
+      "cand": true
+    },
+    {
+      "id": "lock_server",
+      "run": 2,
+      "base": true,
+      "cand": true
+    },
+    {
+      "id": "lock_server",
+      "run": 3,
+      "base": true,
+      "cand": true
+    },
+    {
+      "id": "quorum_leader_election",
+      "run": 1,
+      "base": true,
+      "cand": true
+    },
+    {
+      "id": "quorum_leader_election",
+      "run": 2,
+      "base": true,
+      "cand": true
+    },
+    {
+      "id": "quorum_leader_election",
+      "run": 3,
+      "base": true,
+      "cand": true
+    },
+    {
+      "id": "toy_consensus_forall",
+      "run": 1,
+      "base": true,
+      "cand": true
+    },
+    {
+      "id": "toy_consensus_forall",
+      "run": 2,
+      "base": true,
+      "cand": true
+    },
+    {
+      "id": "toy_consensus_forall",
+      "run": 3,
+      "base": true,
+      "cand": true
+    },
+    {
+      "id": "simple",
+      "run": 1,
+      "base": true,
+      "cand": true
+    },
+    {
+      "id": "simple",
+      "run": 2,
+      "base": true,
+      "cand": true
+    },
+    {
+      "id": "simple",
+      "run": 3,
+      "base": true,
+      "cand": true
+    },
+    {
+      "id": "simple_regular",
+      "run": 1,
+      "base": true,
+      "cand": true
+    },
+    {
+      "id": "simple_regular",
+      "run": 2,
+      "base": true,
+      "cand": true
+    },
+    {
+      "id": "simple_regular",
+      "run": 3,
+      "base": true,
+      "cand": true
+    },
+    {
+      "id": "lockserv_automaton",
+      "run": 1,
+      "base": true,
+      "cand": true
+    },
+    {
+      "id": "lockserv_automaton",
+      "run": 2,
+      "base": true,
+      "cand": true
+    },
+    {
+      "id": "lockserv_automaton",
+      "run": 3,
+      "base": true,
+      "cand": true
+    },
+    {
+      "id": "sharded_kv",
+      "run": 1,
+      "base": true,
+      "cand": true
+    },
+    {
+      "id": "sharded_kv",
+      "run": 2,
+      "base": true,
+      "cand": true
+    },
+    {
+      "id": "sharded_kv",
+      "run": 3,
+      "base": true,
+      "cand": true
+    },
+    {
+      "id": "sharded_kv_no_lost_keys",
+      "run": 1,
+      "base": true,
+      "cand": true
+    },
+    {
+      "id": "sharded_kv_no_lost_keys",
+      "run": 2,
+      "base": true,
+      "cand": true
+    },
+    {
+      "id": "sharded_kv_no_lost_keys",
+      "run": 3,
+      "base": true,
+      "cand": true
+    },
+    {
+      "id": "lockserv",
+      "run": 1,
+      "base": true,
+      "cand": true
+    },
+    {
+      "id": "lockserv",
+      "run": 2,
+      "base": true,
+      "cand": true
+    },
+    {
+      "id": "lockserv",
+      "run": 3,
+      "base": true,
+      "cand": true
+    },
+    {
+      "id": "twophase",
+      "run": 1,
+      "base": true,
+      "cand": true
+    },
+    {
+      "id": "twophase",
+      "run": 2,
+      "base": true,
+      "cand": true
+    },
+    {
+      "id": "twophase",
+      "run": 3,
+      "base": true,
+      "cand": true
+    },
+    {
+      "id": "simple_decentralized_lock",
+      "run": 1,
+      "base": true,
+      "cand": true
+    },
+    {
+      "id": "simple_decentralized_lock",
+      "run": 2,
+      "base": true,
+      "cand": true
+    },
+    {
+      "id": "simple_decentralized_lock",
+      "run": 3,
+      "base": true,
+      "cand": true
+    },
+    {
+      "id": "two_phase_commit",
+      "run": 1,
+      "base": true,
+      "cand": true
+    },
+    {
+      "id": "two_phase_commit",
+      "run": 2,
+      "base": true,
+      "cand": true
+    },
+    {
+      "id": "two_phase_commit",
+      "run": 3,
+      "base": true,
+      "cand": true
+    },
+    {
+      "id": "consensus_wo_decide",
+      "run": 1,
+      "base": true,
+      "cand": true
+    },
+    {
+      "id": "consensus_wo_decide",
+      "run": 2,
+      "base": true,
+      "cand": true
+    },
+    {
+      "id": "consensus_wo_decide",
+      "run": 3,
+      "base": true,
+      "cand": true
+    },
+    {
+      "id": "consensus_forall",
+      "run": 1,
+      "base": true,
+      "cand": true
+    },
+    {
+      "id": "consensus_forall",
+      "run": 2,
+      "base": true,
+      "cand": true
+    },
+    {
+      "id": "consensus_forall",
+      "run": 3,
+      "base": true,
+      "cand": true
+    },
+    {
+      "id": "naive_consensus",
+      "run": 1,
+      "base": true,
+      "cand": true
+    },
+    {
+      "id": "naive_consensus",
+      "run": 2,
+      "base": true,
+      "cand": true
+    },
+    {
+      "id": "naive_consensus",
+      "run": 3,
+      "base": true,
+      "cand": true
+    },
+    {
+      "id": "client_server_ae",
+      "run": 1,
+      "base": true,
+      "cand": true
+    },
+    {
+      "id": "client_server_ae",
+      "run": 2,
+      "base": true,
+      "cand": true
+    },
+    {
+      "id": "client_server_ae",
+      "run": 3,
+      "base": true,
+      "cand": true
+    },
+    {
+      "id": "client_server_db_ae",
+      "run": 1,
+      "base": true,
+      "cand": true
+    },
+    {
+      "id": "client_server_db_ae",
+      "run": 2,
+      "base": true,
+      "cand": true
+    },
+    {
+      "id": "client_server_db_ae",
+      "run": 3,
+      "base": true,
+      "cand": true
+    },
+    {
+      "id": "simple_election",
+      "run": 1,
+      "base": true,
+      "cand": true
+    },
+    {
+      "id": "simple_election",
+      "run": 2,
+      "base": true,
+      "cand": true
+    },
+    {
+      "id": "simple_election",
+      "run": 3,
+      "base": true,
+      "cand": true
+    },
+    {
+      "id": "toy_consensus_epr",
+      "run": 1,
+      "base": true,
+      "cand": true
+    },
+    {
+      "id": "toy_consensus_epr",
+      "run": 2,
+      "base": true,
+      "cand": true
+    },
+    {
+      "id": "toy_consensus_epr",
+      "run": 3,
+      "base": true,
+      "cand": true
+    },
+    {
+      "id": "toy_consensus",
+      "run": 1,
+      "base": true,
+      "cand": true
+    },
+    {
+      "id": "toy_consensus",
+      "run": 2,
+      "base": true,
+      "cand": true
+    },
+    {
+      "id": "toy_consensus",
+      "run": 3,
+      "base": true,
+      "cand": true
+    },
+    {
+      "id": "firewall",
+      "run": 1,
+      "base": true,
+      "cand": true
+    },
+    {
+      "id": "firewall",
+      "run": 2,
+      "base": true,
+      "cand": true
+    },
+    {
+      "id": "firewall",
+      "run": 3,
+      "base": true,
+      "cand": true
+    },
+    {
+      "id": "majorityset_leader_election",
+      "run": 1,
+      "base": true,
+      "cand": true
+    },
+    {
+      "id": "majorityset_leader_election",
+      "run": 2,
+      "base": true,
+      "cand": true
+    },
+    {
+      "id": "majorityset_leader_election",
+      "run": 3,
+      "base": true,
+      "cand": true
+    },
+    {
+      "id": "consensus_epr",
+      "run": 1,
+      "base": true,
+      "cand": true
+    },
+    {
+      "id": "consensus_epr",
+      "run": 2,
+      "base": true,
+      "cand": true
+    },
+    {
+      "id": "consensus_epr",
+      "run": 3,
+      "base": true,
+      "cand": true
+    },
+    {
+      "id": "learning_switch",
+      "run": 1,
+      "base": true,
+      "cand": true
+    },
+    {
+      "id": "learning_switch",
+      "run": 2,
+      "base": true,
+      "cand": true
+    },
+    {
+      "id": "learning_switch",
+      "run": 3,
+      "base": true,
+      "cand": true
+    },
+    {
+      "id": "learning_switch_i4",
+      "run": 1,
+      "base": true,
+      "cand": true
+    },
+    {
+      "id": "learning_switch_i4",
+      "run": 2,
+      "base": true,
+      "cand": true
+    },
+    {
+      "id": "learning_switch_i4",
+      "run": 3,
+      "base": true,
+      "cand": true
+    },
+    {
+      "id": "paxos_epr",
+      "run": 1,
+      "base": true,
+      "cand": true
+    },
+    {
+      "id": "paxos_epr",
+      "run": 2,
+      "base": true,
+      "cand": true
+    },
+    {
+      "id": "paxos_epr",
+      "run": 3,
+      "base": true,
+      "cand": true
+    },
+    {
+      "id": "mldr",
+      "run": 1,
+      "base": false,
+      "cand": false
+    },
+    {
+      "id": "mldr",
+      "run": 2,
+      "base": false,
+      "cand": false
+    },
+    {
+      "id": "mldr",
+      "run": 3,
+      "base": false,
+      "cand": false
+    }
+  ]
+}

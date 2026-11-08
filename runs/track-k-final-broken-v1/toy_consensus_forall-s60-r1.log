@@ -1,0 +1,1 @@
+{"id":"toy_consensus_forall","ic3syn":"pyv-toy-consensus-forall","broken":{"bug":"cast_vote without voted","verdict":"unknown","why":"a law fails on the small instances","found":["every Voted cell is a value of its kind","every Decided cell is a value of its kind","one value decided"],"ms":765,"work":0,"full":0}}

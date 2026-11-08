@@ -1,0 +1,26 @@
+PAIR begin side=cand id=decentralized_lock run=1
+{"id":"decentralized_lock","search":{"verdict":"proven","found":["r.law('every k: HasLock[k] <= started', ({started, HasLock}) => forall(k => HasLock.at(k).n.atMost(started)))","r.law('sum$HasLock + sum$Message <= started', ({started, sum$HasLock, sum$Message}) => sum$HasLock.plus(sum$Message).atMost(started))"],"ms":8959}}
+[infer join engine] {"wall":0,"eUntil":55884}
+[infer join small instance] {"states":42,"bfs":42,"params":3,"symmetric":"","ms":14,"took":14}
+[infer join pool] {"made":17,"left":17,"states":88,"ms":79,"real":719}
+[infer join enumerated] {"views":3,"cubes":16,"ms":386}
+[infer join cone] {"round":0,"it":0,"failed":"every x, y, z with x < 64 ∧ y < 64 ∧ ¬(x = y) ∧ z < 64 ∧ ¬(x = z) ∧ ¬(y = z): never 1 <= HasLock[x] ","need":18,"ms":1222}
+[infer join enumerated] {"round":0,"cubes":16,"real":1,"unsure":0,"caller":0,"diagrams":0,"ms":1836}
+[infer join exists] {"law":"none","ms":491}
+[infer join enumerated] {"round":1,"cubes":15,"real":0,"unsure":0,"caller":1,"diagrams":0,"ms":2328}
+[infer join end] {"rounds":1,"set":78,"why":"target","cone":0,"ms":2013,"real":2347,"v":2328,"now":4861,"full":267493,"epr":268718,"erows":567514,"etries":5358,"tries":16036,"rows":511849,"evals":1975608,"work":177127}
+[infer join end] {"rounds":6,"set":144,"why":"inductive","cone":4,"ms":1320,"real":3096,"v":7927,"now":10689,"full":614940,"epr":503131,"erows":534495,"etries":0,"tries":16029,"rows":7387833,"evals":12994562,"work":338209}
+PAIR end side=cand exit=0
+PAIR begin side=base id=decentralized_lock run=1
+{"id":"decentralized_lock","search":{"verdict":"proven","found":["r.law('every k: HasLock[k] <= started', ({started, HasLock}) => forall(k => HasLock.at(k).n.atMost(started)))","r.law('sum$HasLock + sum$Message <= started', ({started, sum$HasLock, sum$Message}) => sum$HasLock.plus(sum$Message).atMost(started))"],"ms":10272}}
+[infer join engine] {"wall":0,"eUntil":55879}
+[infer join small instance] {"states":42,"bfs":42,"params":3,"symmetric":"","ms":14,"took":14}
+[infer join pool] {"made":17,"left":17,"states":88,"ms":79,"real":1002}
+[infer join enumerated] {"views":3,"cubes":16,"ms":386}
+[infer join cone] {"round":0,"it":0,"failed":"every x, y, z with x < 64 ∧ y < 64 ∧ ¬(x = y) ∧ z < 64 ∧ ¬(x = z) ∧ ¬(y = z): never 1 <= HasLock[x] ","need":18,"ms":1222}
+[infer join enumerated] {"round":0,"cubes":16,"real":1,"unsure":0,"caller":0,"diagrams":0,"ms":1836}
+[infer join exists] {"law":"none","ms":491}
+[infer join enumerated] {"round":1,"cubes":15,"real":0,"unsure":0,"caller":1,"diagrams":0,"ms":2328}
+[infer join end] {"rounds":1,"set":78,"why":"target","cone":0,"ms":2655,"real":3114,"v":2328,"now":4861,"full":267493,"epr":268718,"erows":567514,"etries":5358,"tries":16036,"rows":511849,"evals":1975608,"work":177127}
+[infer join end] {"rounds":6,"set":144,"why":"inductive","cone":4,"ms":1321,"real":3259,"v":7927,"now":10689,"full":614940,"epr":503131,"erows":534495,"etries":0,"tries":16029,"rows":7387833,"evals":12994562,"work":338209}
+PAIR end side=base exit=0

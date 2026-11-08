@@ -1,0 +1,12 @@
+PAIR begin side=base id=toy_consensus_forall run=2
+{"id":"toy_consensus_forall","ic3syn":"pyv-toy-consensus-forall","search":{"verdict":"proven","found":["every Voted cell is a value of its kind","every Decided cell is a value of its kind","one value decided","Decided keeps members's bound through members$Decided","every x, y with x < 64 ∧ y < 64 ∧ ¬(x = y): never 1 <= Decided[x] and 1 <= Decided[y]","every x: never Vote[x] is 0 and 1 <= Voted[x]","every x: never Vote[x] is 1 and Voted[x] is 0","every x: never 2 <= Vote[x] and Voted[x] is 0"],"ms":2409,"work":115382,"full":91451}}
+[infer join engine] {"wall":0,"eUntil":13779}
+[infer join small instance] {"states":99,"bfs":99,"params":1,"symmetric":"M:Decided","ms":475,"took":475}
+[infer join pool] {"made":4,"left":4,"states":300,"ms":1095,"real":1794}
+PAIR end side=base exit=0
+PAIR begin side=cand id=toy_consensus_forall run=2
+{"id":"toy_consensus_forall","ic3syn":"pyv-toy-consensus-forall","search":{"verdict":"proven","found":["every Voted cell is a value of its kind","every Decided cell is a value of its kind","one value decided","Decided keeps members's bound through members$Decided","every x, y with x < 64 ∧ y < 64 ∧ ¬(x = y): never 1 <= Decided[x] and 1 <= Decided[y]","every x: never Vote[x] is 0 and 1 <= Voted[x]","every x: never Vote[x] is 1 and Voted[x] is 0","every x: never 2 <= Vote[x] and Voted[x] is 0"],"ms":2278,"work":115382,"full":91451}}
+[infer join engine] {"wall":0,"eUntil":13779}
+[infer join small instance] {"states":99,"bfs":99,"params":1,"symmetric":"M:Decided","ms":475,"took":475}
+[infer join pool] {"made":4,"left":4,"states":300,"ms":1095,"real":1701}
+PAIR end side=cand exit=0

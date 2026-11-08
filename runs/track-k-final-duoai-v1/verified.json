@@ -1,0 +1,75 @@
+{
+  "kind": "paired",
+  "jobs": 10,
+  "repeats": [
+    {
+      "run": 1,
+      "base": 9,
+      "candidate": 10
+    }
+  ],
+  "lost": 0,
+  "paxos": [],
+  "rows": [
+    {
+      "id": "lock_server_sync",
+      "run": 1,
+      "base": true,
+      "cand": true
+    },
+    {
+      "id": "lock_server_async",
+      "run": 1,
+      "base": true,
+      "cand": true
+    },
+    {
+      "id": "decentralized_lock",
+      "run": 1,
+      "base": true,
+      "cand": true
+    },
+    {
+      "id": "distributed_lock",
+      "run": 1,
+      "base": true,
+      "cand": true
+    },
+    {
+      "id": "two_phase_commit",
+      "run": 1,
+      "base": true,
+      "cand": true
+    },
+    {
+      "id": "ticket_lock",
+      "run": 1,
+      "base": true,
+      "cand": true
+    },
+    {
+      "id": "toy_consensus_forall",
+      "run": 1,
+      "base": true,
+      "cand": true
+    },
+    {
+      "id": "consensus_wo_decide",
+      "run": 1,
+      "base": false,
+      "cand": true
+    },
+    {
+      "id": "ring_leader_election",
+      "run": 1,
+      "base": true,
+      "cand": true
+    },
+    {
+      "id": "sharded_key_value_store",
+      "run": 1,
+      "base": true,
+      "cand": true
+    }
+  ]
+}

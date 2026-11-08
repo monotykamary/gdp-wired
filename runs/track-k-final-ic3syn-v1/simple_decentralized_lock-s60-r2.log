@@ -1,0 +1,22 @@
+PAIR begin side=base id=simple_decentralized_lock run=2
+{"id":"simple_decentralized_lock","ic3syn":"ex-simple-decentralized-lock","search":{"verdict":"proven","found":["r.law('sum$HasLock + sum$Message <= started', ({started, sum$HasLock, sum$Message}) => sum$HasLock.plus(sum$Message).atMost(started))"],"ms":6310,"work":241158,"full":351675}}
+[infer join engine] {"wall":0,"eUntil":55895}
+[infer join small instance] {"states":5,"bfs":5,"params":1,"symmetric":"Message:1","ms":2,"took":2}
+[infer join pool] {"made":15,"left":15,"states":5,"ms":3,"real":1040}
+[infer join enumerated] {"views":3,"cubes":14,"ms":238}
+[infer join enumerated] {"round":0,"cubes":14,"real":0,"unsure":0,"caller":0,"diagrams":1,"ms":773}
+[infer join enumerated] {"round":1,"cubes":15,"real":0,"unsure":0,"caller":1,"diagrams":0,"ms":782}
+[infer join end] {"rounds":1,"set":52,"why":"target","cone":0,"ms":1091,"real":1456,"v":782,"now":960,"full":59433,"epr":27628,"erows":544129,"etries":375,"tries":16154,"rows":131376,"evals":1146731,"work":25856}
+[infer join end] {"rounds":5,"set":110,"why":"inductive","cone":3,"ms":997,"real":2023,"v":5503,"now":3020,"full":116489,"epr":36895,"erows":517298,"etries":0,"tries":16184,"rows":2426572,"evals":6998584,"work":74820}
+PAIR end side=base exit=0
+PAIR begin side=cand id=simple_decentralized_lock run=2
+{"id":"simple_decentralized_lock","ic3syn":"ex-simple-decentralized-lock","search":{"verdict":"proven","found":["r.law('sum$HasLock + sum$Message <= started', ({started, sum$HasLock, sum$Message}) => sum$HasLock.plus(sum$Message).atMost(started))"],"ms":6310,"work":241158,"full":351675}}
+[infer join engine] {"wall":0,"eUntil":55885}
+[infer join small instance] {"states":5,"bfs":5,"params":1,"symmetric":"Message:1","ms":2,"took":2}
+[infer join pool] {"made":15,"left":15,"states":5,"ms":3,"real":755}
+[infer join enumerated] {"views":3,"cubes":14,"ms":238}
+[infer join enumerated] {"round":0,"cubes":14,"real":0,"unsure":0,"caller":0,"diagrams":1,"ms":773}
+[infer join enumerated] {"round":1,"cubes":15,"real":0,"unsure":0,"caller":1,"diagrams":0,"ms":782}
+[infer join end] {"rounds":1,"set":52,"why":"target","cone":0,"ms":743,"real":1039,"v":782,"now":960,"full":59433,"epr":27628,"erows":544129,"etries":375,"tries":16154,"rows":131376,"evals":1146731,"work":25856}
+[infer join end] {"rounds":5,"set":110,"why":"inductive","cone":3,"ms":1107,"real":2030,"v":5503,"now":3020,"full":116489,"epr":36895,"erows":517298,"etries":0,"tries":16184,"rows":2426572,"evals":6998584,"work":74820}
+PAIR end side=cand exit=0

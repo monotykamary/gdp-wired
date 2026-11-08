@@ -1,0 +1,12 @@
+PAIR begin side=base id=toy_consensus_epr run=2
+{"id":"toy_consensus_epr","ic3syn":"pyv-toy-consensus-epr","search":{"verdict":"proven","found":["every Voted cell is a value of its kind","every Vote cell is a value of its kind","every Decided cell is a value of its kind","one value decided","Decided keeps members's bound through members$Decided","every x, y with x < 64 ∧ y < 64 ∧ ¬(x = y): never 1 <= Decided[x] and 1 <= Decided[y]","every x, y with x <= 63 ∧ y < 64: never Voted[x] is 0 and 1 <= Vote[64·y + x]","every x, y, z with x <= 63 ∧ y < 64 ∧ z < 64 ∧ ¬(y = z): never 1 <= Vote[64·y + x] and 1 <= Vote[64·z + x]"],"ms":2294,"work":572283,"full":185783}}
+[infer join engine] {"wall":0,"eUntil":13910}
+[infer join small instance] {"states":50,"bfs":50,"params":1,"symmetric":"M:Decided","ms":240,"took":240}
+[infer join pool] {"made":3,"left":3,"states":300,"ms":2389,"real":1608}
+PAIR end side=base exit=0
+PAIR begin side=cand id=toy_consensus_epr run=2
+{"id":"toy_consensus_epr","ic3syn":"pyv-toy-consensus-epr","search":{"verdict":"proven","found":["every Voted cell is a value of its kind","every Vote cell is a value of its kind","every Decided cell is a value of its kind","one value decided","Decided keeps members's bound through members$Decided","every x, y with x < 64 ∧ y < 64 ∧ ¬(x = y): never 1 <= Decided[x] and 1 <= Decided[y]","every x, y with x <= 63 ∧ y < 64: never Voted[x] is 0 and 1 <= Vote[64·y + x]","every x, y, z with x <= 63 ∧ y < 64 ∧ z < 64 ∧ ¬(y = z): never 1 <= Vote[64·y + x] and 1 <= Vote[64·z + x]"],"ms":2066,"work":572283,"full":185783}}
+[infer join engine] {"wall":0,"eUntil":13910}
+[infer join small instance] {"states":50,"bfs":50,"params":1,"symmetric":"M:Decided","ms":240,"took":240}
+[infer join pool] {"made":3,"left":3,"states":300,"ms":2389,"real":1424}
+PAIR end side=cand exit=0

@@ -23,12 +23,17 @@ if(kind==='paired'){
   assert(id&&run&&found.base&&found.cand,`${job.name}: missing paired result`)
   assert(!found.base.error&&!found.cand.error,`${job.name}: protocol error`)
   const base=found.base.search?.verdict==='proven',cand=found.cand.search?.verdict==='proven'
+  if(base)assert(found.base.search.ms<=60000,`${job.name}: baseline exceeded strict budget`)
+  if(cand)assert(found.cand.search.ms<=60000,`${job.name}: candidate exceeded strict budget`)
   assert(!base||cand,`${job.name}: lost a main proof`)
   return {id,run,base,cand}
  })
  assert([87,10].includes(rows.length),'incomplete paired suite')
  const repeats=[...new Set(rows.map(r=>r.run))].sort((a,b)=>a-b).map(run=>({run,base:rows.filter(r=>r.run===run&&r.base).length,candidate:rows.filter(r=>r.run===run&&r.cand).length}))
- const paxos=rows.filter(r=>r.id==='paxos_epr');assert(paxos.every(r=>r.cand),'paxos loss')
+ const count=rows.length===87?29:10
+ assert(repeats.every(r=>rows.filter(x=>x.run===r.run).length===count),'incomplete repeat')
+ assert.equal(new Set(rows.map(r=>r.id)).size,count,'duplicate protocol')
+ const paxos=rows.filter(r=>r.id==='paxos_epr');if(rows.length===87)assert.equal(paxos.length,3);assert(paxos.every(r=>r.cand),'paxos loss')
  result={kind,jobs:jobs.length,repeats,lost:0,paxos:paxos.map(r=>r.cand),rows}
 }else if(kind==='broken'){
  const rows=jobs.flatMap(job=>jsonLines(readFileSync(join(dir,job.name+'.log'),'utf8')).filter(r=>r.id))

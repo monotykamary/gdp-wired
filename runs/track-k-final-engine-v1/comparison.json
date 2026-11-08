@@ -1,0 +1,48 @@
+{
+  "pairs": [
+    {
+      "run": 1,
+      "baseWallMs": 46518,
+      "candidateWallMs": 35964,
+      "baseCheckMs": 29292.103,
+      "candidateCheckMs": 7103.0143830000015,
+      "constructionMs": 8280.117978999999,
+      "nodesBefore": 3163,
+      "nodesAfter": 4919,
+      "mainNodes": 809,
+      "lemmas": 70,
+      "counted": 2753,
+      "improved": true
+    },
+    {
+      "run": 2,
+      "baseWallMs": 39842,
+      "candidateWallMs": 30423,
+      "baseCheckMs": 22853.665,
+      "candidateCheckMs": 5665.947955,
+      "constructionMs": 8255.801669,
+      "nodesBefore": 3163,
+      "nodesAfter": 4919,
+      "mainNodes": 809,
+      "lemmas": 70,
+      "counted": 2753,
+      "improved": true
+    },
+    {
+      "run": 3,
+      "baseWallMs": 49080,
+      "candidateWallMs": 35668,
+      "baseCheckMs": 28239.48,
+      "candidateCheckMs": 8173.4415009999975,
+      "constructionMs": 9015.709363999998,
+      "nodesBefore": 3163,
+      "nodesAfter": 4919,
+      "mainNodes": 809,
+      "lemmas": 70,
+      "counted": 2753,
+      "improved": true
+    }
+  ],
+  "allImproved": true,
+  "scope": "isolated send branch, not a complete MLDR proof"
+}

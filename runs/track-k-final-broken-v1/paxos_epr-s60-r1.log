@@ -1,0 +1,4 @@
+{"id":"paxos_epr","ic3syn":"pyv-paxos-epr","broken":{"bug":"propose without the votes check","verdict":"unknown","why":"not proven: every OneA cell is a value of its kind, every OneB cell is a value of its kind, every Left cell is a value of its kind, every Proposal cell is a value of its kind, every Vote cell is a val","found":["every OneA cell is a value of its kind","every OneB cell is a value of its kind","every Left cell is a value of its kind","every Proposal cell is a value of its kind","every Vote cell is a value of its kind","every Decision cell is a value of its kind","every Qs cell is a value of its kind","one value decided"],"ms":136268,"work":116224097,"full":11425926}}
+[infer join engine] {"wall":0,"eUntil":14129}
+[infer join small instance] {"states":576,"bfs":263,"params":4,"symmetric":"","ms":2018,"took":2018}
+[infer join pool] {"made":42,"left":42,"states":86,"ms":3858,"real":25081}

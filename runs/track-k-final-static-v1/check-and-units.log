@@ -1,0 +1,27 @@
+Found 0 warnings and 0 errors.
+Finished in 131.0s on 960 files with 100 rules using 4 threads.
+bun test v1.4.3 (c6da4a4d3)
+
+--- stderr ---
+$ tsc -p . && oxlint --type-aware --deny-warnings --disable-nested-config
+
+core/lemma-cuts.test.ts:
+(pass) repeated forced splits become one independent checked lemma without search [7.94ms]
+(pass) conditional input paths become explicit scope hypotheses and retain needed conditions [1.89ms]
+(pass) forged source provenance cannot become a checked lemma [0.35ms]
+(pass) compression declines expired work and never certifies a satisfiable changed goal [0.54ms]
+
+kernel/lemma-cut.test.ts:
+(pass) a separately checked conditional lemma closes only below its decision [0.29ms]
+(pass) empty lemma lists preserve the original goal and counted checkers [0.39ms]
+(pass) the actual counted and MC wrappers carry the lemma list [0.17ms]
+(pass) a lemma is checked against exactly its selected hypotheses [0.09ms]
+(pass) non-refuting, self-citing and circular lemma payloads are refused [0.11ms]
+(pass) read capture is still refused with a nonempty valid lemma list [0.89ms]
+(pass) witness capture of parameters, ?flag names and law skolems remains refused [2.59ms]
+(pass) malformed new fields do not grant assumptions or throw [0.06ms]
+
+ 12 pass
+ 0 fail
+ 53 expect() calls
+Ran 12 tests across 2 files. [37.00ms]

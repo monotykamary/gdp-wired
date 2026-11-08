@@ -1,0 +1,12 @@
+PAIR begin side=base id=naive_consensus run=2
+{"id":"naive_consensus","ic3syn":"ex-naive-consensus","search":{"verdict":"proven","found":["every Vote cell is a value of its kind","every Voted cell is a value of its kind","every Decide cell is a value of its kind","every Decision cell is a value of its kind","one value decided","Decide keeps members's bound through members$Decide","every x with x < 64: never Decide[x] is 0 and 1 <= Decision[x]","every x, y with x < 64 ∧ y < 64 ∧ ¬(x = y): never 1 <= Decide[x] and 1 <= Decide[y]","every x, y with x < 64 ∧ y < 64 ∧ ¬(x = y): never 1 <= Decide[x] and 1 <= Decision[y]","every x, y with x < 64 ∧ y < 64 ∧ ¬(x = y): never 1 <= Decision[x] and 1 <= Decision[y]","every x, y with x <= 63 ∧ y < 64: never Voted[x] is 0 and 1 <= Vote[64·y + x]","every x, y, z with x <= 63 ∧ y < 64 ∧ z < 64 ∧ ¬(y = z): never 1 <= Vote[64·y + x] and 1 <= Vote[64·z + x]"],"ms":4611,"work":693719,"full":221514}}
+[infer join engine] {"wall":0,"eUntil":14000}
+[infer join small instance] {"states":59,"bfs":59,"params":1,"symmetric":"M:Decision","ms":283,"took":283}
+[infer join pool] {"made":6,"left":6,"states":300,"ms":2349,"real":3002}
+PAIR end side=base exit=0
+PAIR begin side=cand id=naive_consensus run=2
+{"id":"naive_consensus","ic3syn":"ex-naive-consensus","search":{"verdict":"proven","found":["every Vote cell is a value of its kind","every Voted cell is a value of its kind","every Decide cell is a value of its kind","every Decision cell is a value of its kind","one value decided","Decide keeps members's bound through members$Decide","every x with x < 64: never Decide[x] is 0 and 1 <= Decision[x]","every x, y with x < 64 ∧ y < 64 ∧ ¬(x = y): never 1 <= Decide[x] and 1 <= Decide[y]","every x, y with x < 64 ∧ y < 64 ∧ ¬(x = y): never 1 <= Decide[x] and 1 <= Decision[y]","every x, y with x < 64 ∧ y < 64 ∧ ¬(x = y): never 1 <= Decision[x] and 1 <= Decision[y]","every x, y with x <= 63 ∧ y < 64: never Voted[x] is 0 and 1 <= Vote[64·y + x]","every x, y, z with x <= 63 ∧ y < 64 ∧ z < 64 ∧ ¬(y = z): never 1 <= Vote[64·y + x] and 1 <= Vote[64·z + x]"],"ms":5150,"work":693719,"full":221514}}
+[infer join engine] {"wall":0,"eUntil":14000}
+[infer join small instance] {"states":59,"bfs":59,"params":1,"symmetric":"M:Decision","ms":283,"took":283}
+[infer join pool] {"made":6,"left":6,"states":300,"ms":2349,"real":3383}
+PAIR end side=cand exit=0

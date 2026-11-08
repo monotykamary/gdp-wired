@@ -1,0 +1,239 @@
+bun test v1.4.3 (c6da4a4d3)
+bun test v1.4.3 (c6da4a4d3)
+bun test v1.4.3 (c6da4a4d3)
+ok   length of append: proven, 444 ms (recursion of append on xs)
+ok   append is associative: proven, 1893 ms (recursion of append on xs)
+ok   reverse of reverse: proven, 19572 ms (recursion of reverse on xs; lemmas: reverse(append(list_c3, List.1(n_c1, List.0))) = List.1(n_c1, reverse(list_c3)); reverse(append(list_c3, List.1(0, List.0))) = List.1(0, reverse(list_c3)))
+ok   map fusion: proven, 424 ms (recursion of mapG on xs)
+ok   length of map: proven, 63 ms (recursion of mapF on xs)
+ok   mirror of mirror: proven, 1000 ms (recursion of mirror on t)
+ok   size of mirror: proven, 246 ms (recursion of mirror on t)
+ok   sum of flatten: proven, 16099 ms (recursion of flatten on t; lemmas: sum(append(v0, v1)) = sum(v0) + sum(v1); sum(flatten(v0)) = observer1(v0); sum(append(list1, list2)) = sum(list1) + sum(list2))
+ok   insertion keeps a list sorted: proven, 5568 ms (recursion of sorted on xs)
+ok   insertion adds one of the item: proven, 2276 ms (recursion of insert on xs)
+ok   insertion adds one item: proven, 197 ms (recursion of insert on xs)
+ok   search tree insertion keeps the order: proven, 27196 ms (recursion of bst on t; lemmas: allBelow(tree1, n1) and n2 < n1 implies allBelow(bstInsert(n2, tree1), n1); allAbove(tree1, n1) and n1 < n2 implies allAbove(bstInsert(n2, tree1), n1))
+ok   sum of a flattened rose tree: proven, 7494 ms (mutual structure of t; lemmas: sum(append(v0, v1)) = sum(v0) + sum(v1); sum(fflat(v0)) = observer3(v0); sum(rflat(v0)) = observer2(v0); sum(append(list1, list2)) = sum(list1) + sum(list2))
+ok   size of a mirrored rose tree: proven, 7305 ms (no induction; lemmas: fsize(snoc(v0, v1)) = fsize(v0) + rsize(v1); fsize(fmirror(v0)) = fsize(v0))
+ok   length of a concatenation: proven, 7040 ms (recursion of concat on b; lemmas: len(append(list_c1, list_c3)) = len(list_c1) + len(list_c3); len(append(list_c1, List.0)) = len(list_c1); len(append(list_c2, list_c3)) + 1 = len(list_c2) + 1 + len(list_c3))
+ok   length of n copies: proven, 55 ms (recursion of replicate on n)
+ok   the first n and the rest: proven, 571 ms (recursion of take on n)
+ok   length after dropping n: proven, 273 ms (recursion of len on xs)
+ok   length of a merge: proven, 5568 ms (recursion of merge on xs, ys)
+ok   length of an interleaving: proven, 826 ms (recursion of interleave on xs, ys)
+ok   add3acc adds its three: proven, 92 ms (recursion of add3acc on x, y)
+ok   length of a merge, its measure stated: proven, 5217 ms (recursion of mergeSum on xs, ys)
+ok   quicksort of one item: proven, 684 ms (no induction)
+ok   n is at most n plus m: proven, 66 ms (no induction, through the law n is at most n plus m, said through the built-ins; lemmas: leq is ≤; plus is +)
+ok   n is at most m plus n: proven, 82 ms (no induction, through the law n is at most m plus n, said through the built-ins; lemmas: leq is ≤; plus is +)
+ok   x is at least itself: proven, 25 ms (no induction, through the law x is at least itself, said through the built-ins; lemmas: leq is ≤)
+ok   one more of n after n: proven, 1207 ms (recursion of occurs_bi on xs, through the law one more of n after n, said through the built-ins; lemmas: same is =; occurs is occurs_bi)
+ok   at most zero is zero: proven, 13 ms (no induction)
+ok   length of append (broken): refused, broken at {"xs":"cons(1, nil)","ys":"cons(4, nil)"}
+ok   reverse of reverse (broken): refused, broken at {"xs":"cons(5, nil)"}
+ok   mirror of mirror (broken): refused, broken at {"t":"node(leaf, 0, leaf)"}
+ok   insertion keeps a list sorted (broken): refused, broken at {"x":"2","xs":"cons(0, nil)"}
+ok   search tree insertion keeps the order (broken): refused, broken at {"x":"1","t":"node(node(leaf, 0, leaf), 4, leaf)"}
+ok   search tree insertion keeps the order (broken): refused, broken at {"x":"0","t":"node(leaf, 3, node(leaf, 0, leaf))"}
+ok   sum of a flattened rose tree (broken): refused, broken at {"t":"node(1, nil)"}
+ok   size of a mirrored rose tree (broken): refused, broken at {"t":"node(4, cons(node(0, nil), nil))"}
+ok   length of a concatenation (broken): refused, broken at {"b":"more(cons(3, nil), none)"}
+ok   length of n copies (broken): refused, broken at {"n":"3","x":"1"}
+ok   the first n and the rest (broken): refused, broken at {"n":"0","xs":"cons(3, nil)"}
+ok   length after dropping n (broken): refused, broken at {"n":"0","xs":"cons(3, nil)"}
+ok   length of a merge (broken): refused, broken at {"xs":"cons(2, cons(4, nil))","ys":"cons(0, cons(3, nil))"}
+ok   add3acc adds its three (broken): refused, broken at {"x":"3","y":"1","z":"1"}
+ok   n plus m is at most n (broken): refused, broken at {"n":"3","m":"1"}
+ok   bitonic sort of one item: proven, 270 ms (no induction)
+ok   an integer counted down is never negative: proven, 70 ms (recursion of countDown on x)
+ok   every integer counts down to 0: proven, 31 ms (recursion of reachesZero on x)
+ok   an expression has a token: proven, 51 ms (recursion of tokens on e)
+ok   one run merged is itself: proven, 828 ms (structure of xs)
+ok   a selection sort of one item is itself: proven, 462 ms (no induction)
+ok   a merge sort of one item is itself: proven, 24 ms (no induction)
+ok   mergeStays (doesn't terminate): refused: mergeStay: not structural recursion (no parameter whose field every recursive call passes), and no measure is proven to fall at every call (size(xs): a call of its runs doesn't lower it (from [2,2] to [2,2], the parameters' sizes))
+ok   interleaveSwaps (doesn't terminate): refused: interleaveSwap: not structural recursion (no parameter whose field every recursive call passes), and no measure is proven to fall at every call (size(xs): a call of its runs doesn't lower it (from [2,2] to [2,2], the parameters' sizes))
+ok   add3accKeeps (doesn't terminate): refused: add3accKeep: not structural recursion (no parameter whose field every recursive call passes), and no measure is proven to fall at every call (x: a call of its runs doesn't lower it (from [0,7,2] to [0,7,3], the parameters' sizes); 2·x + y − z + 1990: its call 1 not proven to lower it)
+ok   mergeStatedWrong (doesn't terminate): refused: mergeWrong: not structural recursion (no parameter whose field every recursive call passes; a measure is given), and no measure is proven to fall at every call (size(xs): a call of its runs doesn't lower it (from [2,2] to [2,1], the parameters' sizes))
+ok   intBelow (doesn't terminate): refused: intBelow: not structural recursion (no parameter whose field every recursive call passes), and no measure is proven to fall at every call (toNat(x): a call of its runs doesn't lower it (from [0] to [0], the parameters' sizes))
+ok   intBelowBool (doesn't terminate): refused: intBelowBool: not structural recursion (no parameter whose field every recursive call passes), and no measure is proven to fall at every call (toNat(x): a call of its runs doesn't lower it (from [0] to [0], the parameters' sizes))
+ok   passRound (doesn't terminate): refused: passB: not structural recursion (no parameter whose field every recursive call passes, in its ring passB, passA), and no measure is proven to fall at every call within the ring (passB size(xs), passA size(xs): a call of its runs doesn't lower it (from [2] to [2], the parameters' sizes, passB to passA))
+ok   lowerRaise (doesn't terminate): refused: raiseB: not structural recursion (no parameter whose field every recursive call passes, in its ring raiseB, lowerA), and no measure is proven to fall at every call within the ring (raiseB size(xs), lowerA size(xs): a call of its runs doesn't lower it (from [2] to [3], the parameters' sizes, raiseB to lowerA))
+ok   lateRing (doesn't terminate): refused: lateB: not structural recursion (no parameter whose field every recursive call passes, in its ring lateB, lateA), and no measure is proven to fall at every call within the ring (lateB n + 1, lateA n: its lateA's call 1 not proven to lower it)
+ok   swapRing (doesn't terminate): refused: swapB: not structural recursion (no parameter whose field every recursive call passes, in its ring swapB, swapA), and no measure is proven to fall at every call within the ring (swapB size(xs) + size(ys), swapA size(xs) + size(ys): a call of its runs doesn't lower it (from [2,2] to [2,2], the parameters' sizes, swapB to swapA))
+ok   stepUp (doesn't terminate): refused: oddUp: not structural recursion (no parameter whose field every recursive call passes, in its ring oddUp, evenUp), and no measure is proven to fall at every call within the ring (oddUp −2·n + 2007, evenUp −2·n + 2010: its oddUp's call 1 not proven to lower it)
+ok   nearTail (doesn't terminate): refused: nearTailLoop: not structural recursion (no parameter whose field every recursive call passes), and no measure is proven to fall at every call (size(xs): its call 1 not proven to lower it; out of time)
+ok   nearTailRing (doesn't terminate): refused: nearRingB: not structural recursion (no parameter whose field every recursive call passes, in its ring nearRingB, nearRingA), and no measure is proven to fall at every call within the ring (nearRingB (size(xs), 1), nearRingA (size(xs), 0): its nearRingA's call 1 not proven to lower it; out of time)
+ok   halvesTill9 (doesn't terminate): refused: halvesTill9: not structural recursion (no parameter whose field every recursive call passes), and no measure is proven to fall at every call (size(xs): its call 1 not proven to lower it; out of time)
+ok   guardKeeps (doesn't terminate): refused: readKeeps: not structural recursion (no parameter whose field every recursive call passes), and no measure is proven to fall at every call (size(x): a call of its runs doesn't lower it (from [7] to [7], the parameters' sizes))
+ok   upDown (doesn't terminate): refused: upDown: not structural recursion (no parameter whose field every recursive call passes), and no measure is proven to fall at every call (n: a call of its runs doesn't lower it (from [0] to [1], the parameters' sizes))
+ok   sumStays (doesn't terminate): refused: sumStays: not structural recursion (no parameter whose field every recursive call passes), and no measure is proven to fall at every call (x: a call of its runs doesn't lower it (from [0,7] to [7,6], the parameters' sizes); −x − 3·y + 7041: its call 1 doesn't lower it at {"pred#226":"1"})
+ok   nested (doesn't terminate): refused: nestedLoop: not structural recursion (no parameter whose field every recursive call passes), and no measure is proven to fall at every call (n: a call of its runs doesn't lower it (from [4] to [4], the parameters' sizes))
+ok   nestedBump (doesn't terminate): refused: nestedBump: not structural recursion (no parameter whose field every recursive call passes), and no measure is proven to fall at every call (n: a call of its runs doesn't lower it (from [1] to [1], the parameters' sizes))
+ok   nestedLate (doesn't terminate): refused: nestedLate: not structural recursion (no parameter whose field every recursive call passes), and no measure is proven to fall at every call (n: its call 2 doesn't lower it at {"pred#228":"1","nestedLate#r1":"4"}; n, keeping nestedLate.n <= nestedLate(…) + 5 and nestedLate(…) <= nestedLate.n: its nestedLate's value 2 doesn't keep its invariant at {"pred#228":"5","nestedLate#r1":"4","nestedLate#r2":"0"}; n, keeping nestedLate(…) <= nestedLate.n: its nestedLate's value 3 not proven to keep its invariant)
+ok   nestedGrow (doesn't terminate): refused: nestedGrow: not structural recursion (no parameter whose field every recursive call passes), and no measure is proven to fall at every call (size(xs): its call 2 doesn't lower it at {"head#229":"3","tail#230":"nil","nestedGrow#r2":"cons(0, nil)"}; size(xs), keeping size(nestedGrow(…)) = size(nestedGrow.xs): its nestedGrow's value 3 not proven to keep its invariant; out of time)
+ok   nestedGrowRing (doesn't terminate): refused: nestedGrowB: not structural recursion (no parameter whose field every recursive call passes, in its ring nestedGrowB, nestedGrowA), and no measure is proven to fall at every call within the ring (nestedGrowB (size(xs), 1), nestedGrowA (size(xs), 0): its nestedGrowA's call 2 doesn't lower it at {"head#231":"3","tail#232":"nil","nestedGrowA#r2":"cons(0, nil)"}; nestedGrowB (size(xs), 1), nestedGrowA (size(xs), 0), keeping size(nestedGrowB(…)) = size(nestedGrowB.xs) and size(nestedGrowA(…)) = size(nestedGrowA.xs): its nestedGrowA's value 3 not proven to keep its invariant; out of time)
+ok   foldSwapLate (doesn't terminate): refused: bothLate: not structural recursion (no parameter whose field every recursive call passes, in its ring bothLate, evLate), and no measure is proven to fall at every call within the ring (bothLate (foldForm_0112(f), 1), evLate (foldForm_0112(f), 0): its evLate's call 3 doesn't lower it at {"evLate.k":"5","l#238":"and(atom(2), and(and(atom(5), atom(1)), and(atom(3), atom(5))))","r#239":"and(and(and(atom(3), atom(4)), and(atom(4), atom(4))), not(and(atom(5), atom(2))))"}; bothLate (foldForm_0112(f), 1), evLate (foldForm_0112(f), 0), keeping bothLate.k + 1 <= bothLate(…) and bothLate(…) <= bothLate.k + 21 and evLate.k <= evLate(…) and evLate(…) <= evLate.k + 20: its evLate's call 3 doesn't lower it at {"evLate.k":"5","l#238":"and(atom(2), and(and(atom(5), atom(1)), and(atom(3), atom(5))))","r#239":"and(and(and(atom(3), atom(4)), and(atom(4), atom(4))), not(and(atom(5), atom(2))))"}; bothLate (foldForm_0112(f), 1), evLate (foldForm_0112(f), 0), keeping bothLate(…) <= bothLate.k + 21 and evLate(…) <= evLate.k + 20: its evLate's call 3 doesn't lower it at {"evLate.k":"5","l#238":"and(atom(2), and(and(atom(5), atom(1)), and(atom(3), atom(5))))","r#239":"and(and(and(atom(3), atom(4)), and(atom(4), atom(4))), not(and(atom(5), atom(2))))"})
+ok   intDown (doesn't terminate): refused: intDown: not structural recursion (no parameter whose field every recursive call passes), and no measure is proven to fall at every call (toNat(i): a call of its runs doesn't lower it (from [0] to [0], the parameters' sizes))
+ok   ringStatedWrong (doesn't terminate): refused: statedB: not structural recursion (no parameter whose field every recursive call passes, in its ring statedB, statedA; a measure is given), and no measure is proven to fall at every call within the ring (statedB size(xs), statedA size(xs): a call of its runs doesn't lower it (from [2] to [3], the parameters' sizes, statedB to statedA))
+ok   removeNear (doesn't terminate): refused: ssortNear: not structural recursion (no parameter whose field every recursive call passes), and no measure is proven to fall at every call (size(xs): its call 1 not proven to lower it; out of time)
+ok   takeNear (doesn't terminate): refused: msortNear: not structural recursion (no parameter whose field every recursive call passes), and no measure is proven to fall at every call (size(xs): its call 1 not proven to lower it; out of time)
+bun test v1.4.3 (c6da4a4d3)
+
+--- stderr ---
+$ (cd core) bun test security.test.ts extract-py-hasattr.test.ts bitsets.test.ts lemma-cuts.test.ts
+
+bitsets.test.ts:
+(pass) sample intersections preserve unsigned high bits and do not mutate inputs [0.44ms]
+(pass) existence agrees with exhaustive sample rows, including nonminimal cubes [8.53ms]
+
+extract-py-hasattr.test.ts:
+cyclic: {"kind":"machine","name":"Counter","cert":true,"usual":true,"cyclic":true,"ms":2,"usualMs":1,"route":"translated","leaves":0,"regrown":0,"splits":0,"carried":0,"uncarried":0,"cached":0}
+cyclic: {"kind":"step law","name":"Counter","cert":true,"usual":true,"cyclic":true,"ms":15,"usualMs":4,"route":"translated","leaves":8,"regrown":0,"splits":5,"carried":1,"uncarried":0,"cached":0}
+(pass) hasattr checks a literal instance binding without reading its value [228.31ms]
+cyclic: {"kind":"machine","name":"Counter","cert":true,"usual":true,"cyclic":true,"ms":0,"usualMs":0,"route":"translated","leaves":0,"regrown":0,"splits":0,"carried":0,"uncarried":0,"cached":1}
+cyclic: {"kind":"step law","name":"Counter","cert":true,"usual":true,"cyclic":true,"ms":0,"usualMs":1,"route":"translated","leaves":0,"regrown":0,"splits":0,"carried":0,"uncarried":0,"cached":1}
+(pass) hasattr checks a literal missing binding without reading its value [120.29ms]
+cyclic: {"kind":"machine","name":"Counter","cert":true,"usual":true,"cyclic":true,"ms":0,"usualMs":0,"route":"translated","leaves":0,"regrown":0,"splits":0,"carried":0,"uncarried":0,"cached":1}
+cyclic: {"kind":"step law","name":"Counter","cert":true,"usual":true,"cyclic":true,"ms":0,"usualMs":1,"route":"translated","leaves":0,"regrown":0,"splits":0,"carried":0,"uncarried":0,"cached":1}
+(pass) hasattr checks a literal method binding without reading its value [126.96ms]
+cyclic: {"kind":"machine","name":"Counter","cert":true,"usual":true,"cyclic":true,"ms":0,"usualMs":0,"route":"translated","leaves":0,"regrown":0,"splits":0,"carried":0,"uncarried":0,"cached":1}
+cyclic: {"kind":"step law","name":"Counter","cert":true,"usual":true,"cyclic":true,"ms":0,"usualMs":1,"route":"translated","leaves":0,"regrown":0,"splits":0,"carried":0,"uncarried":0,"cached":1}
+(pass) hasattr checks a literal constant binding without reading its value [107.66ms]
+cyclic: {"kind":"machine","name":"Counter","cert":true,"usual":true,"cyclic":true,"ms":0,"usualMs":0,"route":"translated","leaves":0,"regrown":0,"splits":0,"carried":0,"uncarried":0,"cached":1}
+cyclic: {"kind":"step law","name":"Counter","cert":true,"usual":true,"cyclic":true,"ms":0,"usualMs":1,"route":"translated","leaves":0,"regrown":0,"splits":0,"carried":0,"uncarried":0,"cached":1}
+(pass) hasattr checks a literal collection binding without reading its value [145.49ms]
+cyclic: {"kind":"machine","name":"Counter","cert":true,"usual":true,"cyclic":true,"ms":0,"usualMs":0,"route":"translated","leaves":0,"regrown":0,"splits":0,"carried":0,"uncarried":0,"cached":1}
+cyclic: {"kind":"step law","name":"Counter","cert":true,"usual":true,"cyclic":true,"ms":0,"usualMs":0,"route":"translated","leaves":0,"regrown":0,"splits":0,"carried":0,"uncarried":0,"cached":1}
+(pass) hasattr follows declaration-owned C3 through a diamond [114.97ms]
+(pass) hasattr does not invoke a property, including one raising AttributeError [104.49ms]
+(pass) hasattr refuses unresolved final binding: flag = Descriptor() [34.94ms]
+(pass) hasattr refuses unresolved final binding: flag: object = Descriptor() [41.13ms]
+(pass) hasattr refuses unresolved final binding: flag = alias = Descriptor() [42.02ms]
+(pass) hasattr refuses unresolved final binding: flag, alias = (Descriptor(), 1) [32.53ms]
+cyclic: {"kind":"machine","name":"Counter","cert":true,"usual":true,"cyclic":true,"ms":0,"usualMs":0,"route":"translated","leaves":0,"regrown":0,"splits":0,"carried":0,"uncarried":0,"cached":1}
+cyclic: {"kind":"step law","name":"Counter","cert":true,"usual":true,"cyclic":true,"ms":0,"usualMs":1,"route":"translated","leaves":0,"regrown":0,"splits":0,"carried":0,"uncarried":0,"cached":1}
+cyclic: {"kind":"machine","name":"Counter","cert":true,"usual":true,"cyclic":true,"ms":0,"usualMs":0,"route":"translated","leaves":0,"regrown":0,"splits":0,"carried":0,"uncarried":0,"cached":1}
+cyclic: {"kind":"step law","name":"Counter","cert":true,"usual":true,"cyclic":true,"ms":0,"usualMs":0,"route":"translated","leaves":0,"regrown":0,"splits":0,"carried":0,"uncarried":0,"cached":1}
+(pass) annotation-only and final method definitions preserve presence [205.02ms]
+(pass) overwritten inherited method metadata cannot establish presence [31.55ms]
+(pass) dynamic names, keyword calls and implicit object attributes remain refused [106.13ms]
+(pass) a duplicate final method without annotation clears the earlier return type [37.11ms]
+cyclic: {"kind":"machine","name":"Counter","cert":true,"usual":true,"cyclic":true,"ms":0,"usualMs":0,"route":"translated","leaves":0,"regrown":0,"splits":0,"carried":0,"uncarried":0,"cached":1}
+cyclic: {"kind":"step law","name":"Counter","cert":true,"usual":true,"cyclic":true,"ms":0,"usualMs":1,"route":"translated","leaves":0,"regrown":0,"splits":0,"carried":0,"uncarried":0,"cached":1}
+(pass) the final initializer supplies field types rather than an earlier definition [155.55ms]
+(pass) entry and nested constructors reject __init__ = None [123.23ms]
+(pass) entry and nested constructors reject __init__ = [1] [128.01ms]
+cyclic: {"kind":"machine","name":"Counter","cert":true,"usual":true,"cyclic":true,"ms":0,"usualMs":0,"route":"translated","leaves":0,"regrown":0,"splits":0,"carried":0,"uncarried":0,"cached":1}
+cyclic: {"kind":"step law","name":"Counter","cert":true,"usual":true,"cyclic":true,"ms":0,"usualMs":1,"route":"translated","leaves":0,"regrown":0,"splits":0,"carried":0,"uncarried":0,"cached":1}
+(pass) an inherited initializer and annotation-only declaration still construct [128.25ms]
+(pass) a property constructor is refused [40.12ms]
+(pass) a classmethod constructor is refused [39.62ms]
+(pass) a staticmethod constructor is refused [38.31ms]
+(pass) unknown class construction is refused even with a syntactic initializer [116.38ms]
+(pass) custom allocation and attribute hooks are refused, including inherited hooks [413.71ms]
+
+lemma-cuts.test.ts:
+(pass) repeated forced splits become one independent checked lemma without search [3.11ms]
+(pass) conditional input paths become explicit scope hypotheses and retain needed conditions [1.56ms]
+(pass) forged source provenance cannot become a checked lemma [0.34ms]
+(pass) row-cache hints are keyed by the exact goal and ordered source path [1.71ms]
+(pass) forged matching row hints cannot bypass the trusted checker [0.70ms]
+(pass) compression declines expired work and never certifies a satisfiable changed goal [0.69ms]
+
+security.test.ts:
+cyclic: {"kind":"machine","name":"Vault","cert":true,"usual":true,"cyclic":true,"ms":36,"usualMs":5,"route":"translated","leaves":6,"regrown":0,"splits":3,"carried":1,"uncarried":0,"cached":0}
+cyclic: {"kind":"step law","name":"Vault","cert":true,"usual":true,"cyclic":true,"ms":65,"usualMs":10,"route":"translated","leaves":17,"regrown":0,"splits":10,"carried":1,"uncarried":0,"cached":0}
+(pass) authorization candidates are reviewed policy, never extra assumptions; a stated law breaks with a real run [803.53ms]
+cyclic: {"kind":"machine","name":"Counter","cert":true,"usual":true,"cyclic":true,"ms":12,"usualMs":1,"route":"translated","leaves":5,"regrown":0,"splits":2,"carried":1,"uncarried":0,"cached":0}
+(pass) a broken candidate alone is not a claimed vulnerability or a failing policy [441.13ms]
+(pass) workflow checks the prerequisite BEFORE the effect, not a flag set by the bypass [1171.03ms]
+(pass) quota and ledger laws cover adversarial negative costs as well as over-limit credits [2054.21ms]
+cyclic: {"kind":"machine","name":"Rows","cert":true,"usual":true,"cyclic":true,"ms":228,"usualMs":35,"route":"translated","leaves":93,"regrown":0,"splits":60,"carried":2,"uncarried":0,"cached":0}
+cyclic: {"kind":"step law","name":"Rows","cert":true,"usual":true,"cyclic":true,"ms":230,"usualMs":30,"route":"translated","leaves":89,"regrown":0,"splits":62,"carried":1,"uncarried":0,"cached":0}
+cyclic: {"kind":"machine","name":"Rows","cert":true,"usual":true,"cyclic":true,"ms":0,"usualMs":26,"route":"translated","leaves":0,"regrown":0,"splits":0,"carried":0,"uncarried":0,"cached":1}
+cyclic: {"kind":"step law","name":"Rows","cert":true,"usual":true,"cyclic":true,"ms":242,"usualMs":24,"route":"translated","leaves":95,"regrown":0,"splits":66,"carried":1,"uncarried":0,"cached":0}
+cyclic: {"kind":"machine","name":"Rows","cert":true,"usual":true,"cyclic":true,"ms":466,"usualMs":31,"route":"translated","leaves":284,"regrown":0,"splits":200,"carried":2,"uncarried":0,"cached":0}
+cyclic: {"kind":"step law","name":"Rows","cert":true,"usual":true,"cyclic":false,"ms":256,"usualMs":11,"route":"fallback","leaves":203,"regrown":0,"splits":198,"carried":0,"uncarried":1,"cached":0,"fellBack":"Rows: own rows only (new rows): unknown"}
+cyclic: {"kind":"step law","name":"Rows","uncovered":true,"why":"no cyclic proof found (not translated: Rows: own rows only (new rows): unknown)"}
+(pass) tenant isolation templates cover creation, updates and deletion including a zero-valued foreign row [2890.90ms]
+cyclic: {"kind":"machine","name":"Rows: isolation of the owner","cert":true,"usual":true,"cyclic":true,"ms":2926,"usualMs":119,"route":"translated","leaves":595,"regrown":2,"splits":437,"carried":5,"uncarried":0,"cached":0}
+cyclic: {"kind":"step law","name":"Rows: isolation of the owner","cert":true,"usual":true,"cyclic":false,"ms":265,"usualMs":47,"route":"fallback","leaves":100,"regrown":0,"splits":64,"carried":1,"uncarried":0,"cached":0,"fellBack":"Rows: isolation of the owner: private reads: read_result of B's requests: use of node 15, its rank below: unknown"}
+cyclic: {"kind":"step law","name":"Rows: isolation of the owner","uncovered":true,"why":"no cyclic proof found (not translated: Rows: isolation of the owner: private reads: read_result of B's requests: use of node 15, its rank below: unknown)"}
+(pass) read isolation is two-run noninterference, not absence of foreign writes [4388.96ms]
+(pass) security mode refuses unsupported concurrency rather than proving the atomic handler [189.03ms]
+(pass) a bound key cannot shadow the identity and make isolation vacuous [0.27ms]
+cyclic: {"kind":"machine","name":"Counter","cert":true,"usual":true,"cyclic":true,"ms":12,"usualMs":1,"route":"translated","leaves":5,"regrown":0,"splits":2,"carried":1,"uncarried":0,"cached":0}
+(pass) bad policy names and unsupported code are refused, never proven [309.04ms]
+
+ 41 pass
+ 0 fail
+ 3230 expect() calls
+Ran 41 tests across 4 files. [15.11s]
+$ (cd kernel) bun test tuples.test.ts
+
+tuples.test.ts:
+(pass) tuple linearization and counted radix decoding stay separate in one kernel [0.92ms]
+(pass) a tuple cell is another only when every part is decided equal, both ways [12.03ms]
+(pass) tuples of different lengths: never one cell, never equal part by part [4.27ms]
+(pass) a plain cell and a tuple cell of one map are never claimed equal [1.81ms]
+(pass) projected tuple arity agrees with the linear cell shape, including repeated tails [2.57ms]
+(pass) aliasing: a map read at two shapes is refused; two maps never share a cell [1.16ms]
+(pass) proj: of a non-tuple no linear form; of a 2-tuple its part, never a tuple; of a 3-tuple its rest [6.93ms]
+(pass) names with ⟨ ⟩ | are refused by scope, and have no linear form [4.70ms]
+(pass) a tuple equality: its truth and facts are its parts', positive and negated [14.09ms]
+(pass) scope over tuple keys: what a key at every key may be read as [5.76ms]
+cyclic: {"kind":"machine","name":"diagonal","cert":true,"usual":true,"cyclic":false,"ms":18,"usualMs":0,"route":"fallback","leaves":0,"regrown":1,"splits":1,"carried":0,"uncarried":0,"cached":0,"fellBack":"diagonal: on the diagonal, after a step: not translated"}
+cyclic: {"kind":"machine","name":"diagonal","uncovered":true,"why":"no cyclic proof found (not translated: diagonal: on the diagonal, after a step: not translated)"}
+cyclic: {"kind":"machine","name":"ordered","cert":true,"usual":true,"cyclic":false,"ms":4,"usualMs":0,"route":"fallback","leaves":0,"regrown":1,"splits":1,"carried":0,"uncarried":0,"cached":0,"fellBack":"ordered: ordered, after a step: not translated"}
+cyclic: {"kind":"machine","name":"ordered","uncovered":true,"why":"no cyclic proof found (not translated: ordered: ordered, after a step: not translated)"}
+(pass) a comprehension that writes the tuples it reads: a law proven only if true, the proof the kernel's [162.84ms]
+(pass) the interpreter's relations after random steps are the brute force's sets [417.98ms]
+(pass) a map named with reserved characters spells no other read's column [0.68ms]
+
+ 13 pass
+ 0 fail
+ 191370 expect() calls
+Ran 13 tests across 1 file. [675.00ms]
+$ (cd research/audit) bun test inventory.test.ts
+
+inventory.test.ts:
+(pass) CLI validates arguments, emits metadata artifacts and never executes catalog commands [61.23ms]
+(pass) repository identities accept GitHub metadata, not arbitrary remote addresses [0.48ms]
+(pass) normalizes explicit metadata without executing setup, edits or repro fields [1.18ms]
+(pass) mutable, missing and abbreviated refs stay unresolved; tag case is preserved [0.52ms]
+(pass) deduplicates source identities but preserves every provenance and license declaration [1.82ms]
+(pass) handles target/check/files shapes; invalid paths and missing licenses are not hidden [0.21ms]
+(pass) reader hints are limited to registered exports; unknown formats stay unsupported [0.73ms]
+(pass) counts distinct repos, not source rows or versions, toward the inventory target [23.88ms]
+(pass) SENT preserves dated claims and negative notes without changing current status [0.85ms]
+(pass) no fuzzy document-to-finding associations or SENT authority [0.33ms]
+(pass) CSV quotes commas, quotes, newlines and neutralizes spreadsheet formulas [0.06ms]
+(pass) artifacts are deterministic and SHA256SUMS binds every output other than itself [0.18ms]
+(pass) snapshot validation refuses malformed documents, duplicate paths and path traversal [0.25ms]
+(pass) output is fresh, private, under runs and does not overwrite existing evidence [1.18ms]
+(pass) symlink output ancestors are refused and invalid input creates no result directory [0.28ms]
+
+ 15 pass
+ 0 fail
+ 96 expect() calls
+Ran 15 tests across 1 file. [109.00ms]
+$ bun examples/data.ts
+$ (cd gates) bun test bar-lib.test.ts
+
+bar-lib.test.ts:
+(pass) successful refusals with different diagnostics are not contradictory decisions [0.74ms]
+(pass) opposite decided answers and explicit wrong verdicts are still wrong [0.19ms]
+(pass) broken normalization is idempotent and preserves a wrong proof for calibration [0.48ms]
+(pass) ordinary solid gains and losses retain their meaning [0.20ms]
+(pass) frontier reader preserves timeout details while identifying refusal and detecting a broken proof [1.44ms]
+
+ 5 pass
+ 0 fail
+ 22 expect() calls
+Ran 5 tests across 1 file. [12.00ms]
+   15.1 s  core/security.test.ts core/extract-py-hasattr.test.ts core/bitsets.test.ts core/lemma-cuts.test.ts
+    0.7 s  kernel/tuples.test.ts
+    0.1 s  research/audit/inventory.test.ts
+  262.7 s  examples/data.ts
+    0.0 s  gates/bar-lib.test.ts

@@ -1,0 +1,29 @@
+Error running tsgolint: "exit status: exit status: 1"
+
+--- stderr ---
+$ tsc -p . && oxlint --type-aware --deny-warnings --disable-nested-config
+/work/gdp-wired/node_modules/oxlint-tsgolint/bin/tsgolint.js:18
+    throw e;
+    ^
+
+Error: Command failed: /work/gdp-wired/node_modules/@oxlint-tsgolint/linux-x64/tsgolint headless
+    at genericNodeError (node:internal/errors:984:15)
+    at wrappedFn (node:internal/errors:538:14)
+    at checkExecSyncError (node:child_process:891:11)
+    at Object.execFileSync (node:child_process:927:15)
+    at Object.<anonymous> (/work/gdp-wired/node_modules/oxlint-tsgolint/bin/tsgolint.js:11:17)
+    at Module._compile (node:internal/modules/cjs/loader:1521:14)
+    at Module._extensions..js (node:internal/modules/cjs/loader:1623:10)
+    at Module.load (node:internal/modules/cjs/loader:1266:32)
+    at Module._load (node:internal/modules/cjs/loader:1091:12)
+    at Function.executeUserEntryPoint [as runMain] (node:internal/modules/run_main:164:12) {
+  status: null,
+  signal: 'SIGKILL',
+  output: [ null, null, null ],
+  pid: 486639,
+  stdout: null,
+  stderr: null
+}
+
+Node.js v20.20.2
+error: script "check" exited with code 1

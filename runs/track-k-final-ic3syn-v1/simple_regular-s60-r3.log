@@ -1,0 +1,12 @@
+PAIR begin side=cand id=simple_regular run=3
+{"id":"simple_regular","ic3syn":"tla-simpleregular","search":{"verdict":"proven","found":["X at most 2","Y at most 1","Pc at most 3","every x with x < n: never X[x] is 0 and 1 <= Y[x]","every x with x < n: never X[x] is 0 and Pc[x] is 1","every x with x < n: never X[x] is 0 and Pc[x] is 2","every x with x < n: never X[x] is 0 and 3 <= Pc[x]","every x with x < n: never X[x] is 1 and 1 <= Y[x]","every x with x < n: never X[x] is 1 and Pc[x] is 0","every x with x < n: never X[x] is 1 and Pc[x] is 2","every x with x < n: never X[x] is 1 and 3 <= Pc[x]","every x with x < n: never 2 <= X[x] and Pc[x] is 0","every x with x < n: never 2 <= X[x] and Pc[x] is 1","every x with x < n: never 1 <= Y[x] and Pc[x] is 0","every x with x < n: never 1 <= Y[x] and Pc[x] is 1","every x with x < n: never 1 <= Y[x] and Pc[x] is 2"],"ms":11095,"work":3351851,"full":7790508}}
+[infer join engine] {"wall":0,"eUntil":6771}
+[infer join small instance] {"states":526,"bfs":526,"params":1,"symmetric":"","ms":237,"took":237}
+[infer join pool] {"made":16,"left":16,"states":150,"ms":50,"real":340}
+PAIR end side=cand exit=0
+PAIR begin side=base id=simple_regular run=3
+{"id":"simple_regular","ic3syn":"tla-simpleregular","search":{"verdict":"proven","found":["X at most 2","Y at most 1","Pc at most 3","every x with x < n: never X[x] is 0 and 1 <= Y[x]","every x with x < n: never X[x] is 0 and Pc[x] is 1","every x with x < n: never X[x] is 0 and Pc[x] is 2","every x with x < n: never X[x] is 0 and 3 <= Pc[x]","every x with x < n: never X[x] is 1 and 1 <= Y[x]","every x with x < n: never X[x] is 1 and Pc[x] is 0","every x with x < n: never X[x] is 1 and Pc[x] is 2","every x with x < n: never X[x] is 1 and 3 <= Pc[x]","every x with x < n: never 2 <= X[x] and Pc[x] is 0","every x with x < n: never 2 <= X[x] and Pc[x] is 1","every x with x < n: never 1 <= Y[x] and Pc[x] is 0","every x with x < n: never 1 <= Y[x] and Pc[x] is 1","every x with x < n: never 1 <= Y[x] and Pc[x] is 2"],"ms":11027,"work":3472458,"full":8051367}}
+[infer join engine] {"wall":0,"eUntil":6771}
+[infer join small instance] {"states":526,"bfs":526,"params":1,"symmetric":"","ms":237,"took":237}
+[infer join pool] {"made":16,"left":16,"states":150,"ms":50,"real":390}
+PAIR end side=base exit=0

@@ -1,0 +1,18 @@
+PAIR begin side=cand id=toy_consensus_forall run=1
+{"id":"toy_consensus_forall","search":{"verdict":"proven","found":["every x with x < 64: never 1 <= Decided[x] and started is 0","every x, y, z with x <= 63 ∧ y < 64 ∧ z < 64 ∧ ¬(y = z): never 1 <= Vote[64·y + x] and 1 <= Vote[64·z + x]","every x, y with x <= 63 ∧ y < 64: never Voted[x] is 0 and 1 <= Vote[64·y + x]","every x, y, z with x <= 63 ∧ y < 64 ∧ z < 64 ∧ ¬(y = z): never 1 <= VotingQuorum[x] and 1 <= Decided[y] and 1 <= Vote[64·z + x]","every x, y with x <= 63 ∧ y < 64: never Voted[x] is 0 and 1 <= VotingQuorum[x] and 1 <= Decided[y]","every x, y with x <= 63 ∧ y < 64: never 1 <= VotingQuorum[x] and 1 <= Decided[y] and Vote[64·y + x] is 0"],"ms":6932}}
+[infer join engine] {"wall":0,"eUntil":48895}
+[infer join small instance] {"states":15,"bfs":15,"params":1,"symmetric":"M:Voted,M:Decided","ms":18,"took":18}
+[infer join pool] {"made":10,"left":10,"states":80,"ms":571,"real":3514}
+[infer join enumerated] {"views":5,"cubes":9,"ms":737}
+[infer join cone] {"round":0,"it":0,"cubes":9,"cone":6,"undecided":0,"proven":1,"ms":410,"at":""}
+[infer join end] {"rounds":4,"set":189,"why":"inductive","cone":6,"ms":3388,"real":4404,"v":1236,"now":26313,"full":377399,"epr":71602,"erows":638781,"etries":45072,"tries":16069,"rows":539850,"evals":5506325,"work":1020897}
+PAIR end side=cand exit=0
+PAIR begin side=base id=toy_consensus_forall run=1
+{"id":"toy_consensus_forall","search":{"verdict":"proven","found":["every x with x < 64: never 1 <= Decided[x] and started is 0","every x, y, z with x <= 63 ∧ y < 64 ∧ z < 64 ∧ ¬(y = z): never 1 <= Vote[64·y + x] and 1 <= Vote[64·z + x]","every x, y with x <= 63 ∧ y < 64: never Voted[x] is 0 and 1 <= Vote[64·y + x]","every x, y, z with x <= 63 ∧ y < 64 ∧ z < 64 ∧ ¬(y = z): never 1 <= VotingQuorum[x] and 1 <= Decided[y] and 1 <= Vote[64·z + x]","every x, y with x <= 63 ∧ y < 64: never Voted[x] is 0 and 1 <= VotingQuorum[x] and 1 <= Decided[y]","every x, y with x <= 63 ∧ y < 64: never 1 <= VotingQuorum[x] and 1 <= Decided[y] and Vote[64·y + x] is 0"],"ms":6074}}
+[infer join engine] {"wall":0,"eUntil":48896}
+[infer join small instance] {"states":15,"bfs":15,"params":1,"symmetric":"M:Voted,M:Decided","ms":18,"took":18}
+[infer join pool] {"made":10,"left":10,"states":80,"ms":571,"real":2886}
+[infer join enumerated] {"views":5,"cubes":9,"ms":737}
+[infer join cone] {"round":0,"it":0,"cubes":9,"cone":6,"undecided":0,"proven":1,"ms":410,"at":""}
+[infer join end] {"rounds":4,"set":189,"why":"inductive","cone":6,"ms":2770,"real":3815,"v":1236,"now":26313,"full":377399,"epr":71602,"erows":638781,"etries":45072,"tries":16069,"rows":539850,"evals":5506325,"work":1020897}
+PAIR end side=base exit=0
