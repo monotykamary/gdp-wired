@@ -68,6 +68,24 @@ if(process.env.LAB_SOURCE_CORE){
 }
 const makeGoal=()=>{const original=mcGoal(packet.goal.hyps,packet.decls,packet.cert)!;return {...original,hyps:[guard,...original.hyps]}}
 let goal=makeGoal();const memo=sourceProofMemo(m,law.name)
+const measurement=process.env.LAB_SECTION7_MEASUREMENT
+let selection:unknown
+if(measurement){
+ const {inputs,measureAllAssumed,restrictPool,targetPath}=await import('./section7-demand-measurement.ts')
+ const data=inputs(law.name,packet.cert,goal)
+ if(measurement==='T3'){measureAllAssumed(m,goal,packet.cert,targetPath(paths[0]!,data),data);process.exit(0)}
+ if(measurement!=='T2')throw new Error('unknown section 7 measurement')
+ const before=packet.cert.insts,sourceHypsBefore=packet.goal.hyps.length
+ selection=restrictPool(packet.cert,data)
+ if(process.env.LAB_SECTION7_CLEAN_WITNESSES==='1'){
+  const kept=new Set(packet.cert.insts.map(q=>q.wit)),discard=new Set(before.filter(q=>!kept.has(q.wit)).map(q=>q.wit))
+  at=withoutCountWitnesses(m,laws,at,discard);at=seedCountWitnessFlags(m,at,[packet],true)
+  const clean=countedObligations(m,laws,{[law.name]:at},index).find(p=>p.goal.name.endsWith('@step'))!
+  packet={...packet,...clean};selection={...selection as object,witnessCleanup:true,discardedWitnesses:discard.size,sourceHypsBefore,sourceHypsAfter:packet.goal.hyps.length}
+ }
+ goal=makeGoal()
+ if(process.env.LAB_SECTION7_TARGET==='1')paths.splice(0,paths.length,targetPath(paths[0]!,data))
+}
 for(const [branch,path]of paths.entries()){
  if(process.env.LAB_ROW_MODE==='equal'){
   const writer=activeWriteRow(m,path);if(!writer)throw new Error('no written row')
@@ -86,7 +104,7 @@ for(const [branch,path]of paths.entries()){
   const next=modelInstances(m,laws,at,source,witness,8),valid=next&&independentCountInstances(m,laws,at,next,packet.cert.insts.map(i=>i.wit))
   suggestions.push({hyps:source.hyps.length,added:valid?Object.fromEntries(Object.entries(valid).flatMap(([name,ts])=>ts.length>(at[name]?.length??0)?[[name,ts.slice(at[name]?.length??0)]]:[])):null})
   return true
- },path,{deferCheck:true,conditional:process.env.LAB_CONDITIONAL_PROOF==='1',...(process.env.LAB_ROW_MODE==='equal'?{splitRows:false}:{}),fieldClaim:packet.goal.hyps.at(-1),memo,...(attempt<retries||process.env.LAB_SOURCE_DUMP==='1'?{onSourceModel:(source:any,model:Record<string,number>,sourcePath:Path)=>{
+ },path,{deferCheck:true,conditional:process.env.LAB_CONDITIONAL_PROOF==='1',...(process.env.LAB_ROW_MODE==='equal'||process.env.LAB_SECTION7_TARGET==='1'?{splitRows:false}:{}),fieldClaim:packet.goal.hyps.at(-1),memo,...(attempt<retries||process.env.LAB_SOURCE_DUMP==='1'?{onSourceModel:(source:any,model:Record<string,number>,sourcePath:Path)=>{
   if(process.env.LAB_SOURCE_DUMP==='1'&&captured.size<8){
    const used=new Set<string>();walkOnce(source.hyps,(o:any)=>{if(o.op==='var')used.add(o.name)})
    const instances=packet.cert.insts.filter(q=>used.has(q.wit)&&(process.env.LAB_SOURCE_DUMP_POST==='1'?q.terms.some(([,id])=>packet.cert.reads.some(r=>r[0]===id&&r[1].endsWith('#'))):q.terms.length>=3)),key=JSON.stringify(source.hyps)
@@ -113,7 +131,7 @@ for(const [branch,path]of paths.entries()){
   }
  }
  if(events.some(e=>e.stage==='closure-source'&&e.scope<0))throw new Error('noncanonical closure scope')
- console.log(JSON.stringify({diagnostic:true,law:law.name,value,branch,carried,rowMode:process.env.LAB_ROW_MODE,ceilingIndex,ceilings,fieldAttempts:events.filter(e=>e.stage==='field-bound'),failed,sourceAdditions,...(process.env.LAB_SOURCE_TRACE==='1'?{countSteps:events.filter(e=>['count-lemma','needed-lemmas','field-bound-pending-core'].includes(e.stage)),closureSteps:events.filter(e=>e.stage.startsWith('closure-')),usedCounts:tree&&!hasConditionalProof(tree)?[...usedHyps(goal,tree,path)].filter(i=>i>=goal.hyps.length-packet.cert.insts.length).map(i=>({index:i-goal.hyps.length+packet.cert.insts.length,...packet.cert.insts[i-goal.hyps.length+packet.cert.insts.length]})):[]}:{}),wallMs:performance.now()-start,conditionalTree:!!tree,conditionalChecked:!!tree&&check(goal,tree,path),hyps:goal.hyps.length,instances:packet.cert.insts.length,suggestions,path:[...path],tail:events.slice(-14)}))
+ console.log(JSON.stringify({diagnostic:true,measurement,selection,targetScope:process.env.LAB_SECTION7_TARGET==='1',law:law.name,value,branch,carried,rowMode:process.env.LAB_ROW_MODE,ceilingIndex,ceilings,fieldAttempts:events.filter(e=>e.stage==='field-bound'),failed,sourceAdditions,...(process.env.LAB_SOURCE_TRACE==='1'?{countSteps:events.filter(e=>['count-lemma','needed-lemmas','field-bound-pending-core'].includes(e.stage)),closureSteps:events.filter(e=>e.stage.startsWith('closure-')),usedCounts:tree&&!hasConditionalProof(tree)?[...usedHyps(goal,tree,path)].filter(i=>i>=goal.hyps.length-packet.cert.insts.length).map(i=>({index:i-goal.hyps.length+packet.cert.insts.length,...packet.cert.insts[i-goal.hyps.length+packet.cert.insts.length]})):[]}:{}),wallMs:performance.now()-start,conditionalTree:!!tree,conditionalChecked:!!tree&&check(goal,tree,path),hyps:goal.hyps.length,instances:packet.cert.insts.length,suggestions,path:[...path],tail:events.slice(-14)}))
  section7?.finish()
  if(detailResult)console.log(JSON.stringify({test:'T1-canonical',...detailResult}))
 }

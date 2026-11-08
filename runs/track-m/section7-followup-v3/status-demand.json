@@ -1,0 +1,22 @@
+{
+  "measurementOnly": true,
+  "productionChanged": false,
+  "implementationAuthorized": false,
+  "vm": "bx_3kjzmmhv",
+  "t2": {
+    "literalFilterCloses": false,
+    "hygienicInvstarTargetCloses": true,
+    "invstarTargetCuts": 26,
+    "invstarCutPrediction22Met": false,
+    "completeActiveSourcesClose": false
+  },
+  "t3": {
+    "cheapQueries": true,
+    "expectedCoreMet": false,
+    "actualPools": [
+      91,
+      289
+    ]
+  },
+  "priorT1Pass": false
+}

@@ -4782,3 +4782,52 @@ and static reducer reproduce the attribution.
 
 **Stopped at T1 as requested. T2/T3, generic inversion, admission changes,
 and Gate 1 remain unrun. No per-law allowance or budget increase was used.**
+
+## Track M — Section 7 follow-up: T2/T3 measured, no implementation
+
+Requested measurements on the same exclusive eight-vCPU VM **`bx_3kjzmmhv`**.
+No production code, proposal cap, or budget changed. This is not a Gate 1 rerun.
+
+### T2: the targeted Inv* leaf closes, with 26 cuts
+
+The specified indices plus v7 active indices reduce Inv* from 91 to 32
+instances and Inv2973 from 289 to 58. Literal filtering alone closes neither:
+discarded-witness flag hypotheses remain in the source context. A separate
+research-only control uses the existing witness-cleanup/reseeding helpers,
+reducing source obligations from 378 to 157 and 1010 to 205 hypotheses.
+
+| Hygienic measurement | Result | Admitted cuts | Closure counted units | Diagnostic wall |
+|---|---|---:|---:|---:|
+| Inv*, captured equal/equal target | **Checked; fixed point** | **26** | **596.934** | **2.990 s** |
+| Inv*, full active traversal | Incomplete projected SAT | 28 | 3603.309 | 9.266 s |
+| Inv2973, captured target | Fixed point; incomplete projected SAT | 52 | 1062.136 | 8.039 s |
+| Inv2973, full active traversal | 13 arithmetic leaves check, next unknown | 67 | 5009.202 | 14.999 s |
+
+The important Inv* **conditional leaf closes**, but <=22 cuts and completion
+of its full active diagnostic do not hold. Fresh guard atoms and the captured
+explicit scalar/row atoms define the target; opaque column IDs are not imported.
+This is not a complete-law proof.
+
+Inv2973 R1 (126) checks at **16.927–18.099 counted units**. R2 (272/275) checks
+under `CfgT[y] < CfgT[i]`, or `CfgT[y] <= CfgT[i]` with `CV[y] < CV[i]`, at
+**22.045–25.029 counted units**. It does not fail under every proposed guard.
+These are counted costs, not wall milliseconds. Remaining SAT projections
+are not protocol counterexamples.
+
+### T3: cheap queries, but different cores
+
+| Law | Numeric base + actual pool goods | Query wall | Pool fact in refutation core |
+|---|---:|---:|---|
+| Inv* | 29 + 91 | **15.664 ms** | 54, `range$1`: `r$0 <= 0` |
+| Inv2973 | 38 + **289** | **26.290 ms** | 190, `range$3`: `r$2 <= 0` |
+
+Both refute under the requested time limits, using speculative zero-count
+bounds against the negated target rather than R1/R2. This establishes query
+cheapness, **not** useful selection or source provability. The captured
+Inv2973 packet has 289 eligible `terms.length <= 5` goods, not the design's
+175; no cap was increased.
+
+Evidence: **`runs/track-m/section7-followup-v3/README-demand.md`**,
+**`demand-results.json`**, **`t2-t3.log`**, and **`t2-hygiene.log`**.
+The failed T1 implementation line remains in force. No implementation or
+promotion follows from these measurements.

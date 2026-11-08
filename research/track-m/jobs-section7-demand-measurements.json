@@ -1,0 +1,9 @@
+[
+  {
+    "name": "t2-t3",
+    "cmd": "bash research/track-m/run-section7-demand-measurements.sh",
+    "cpu": 8,
+    "memory": 14336,
+    "timeout": 300
+  }
+]
