@@ -1787,3 +1787,37 @@ The new tests cover reordered paths, changed sources, missing paths, and
 expired lookup deadlines. The original checker must still reject any bad
 proposal. This is **2/5** hard complete-law probes, not Step 1 completion.
 No Track K rebase has occurred.
+
+#### Ordered recovery: constant-index initialization rows
+
+`activeWriteKey` now discovers exact scalar write destinations, including
+literal keys. The pick action writes row `0`; it must not split on the
+unrelated request input `i`. `activeWriteRow` remains available for existing
+string-based ranking, while row-case discovery prefers the exact key.
+
+`ordered-recovery-v2`, batch `20261108-121303-zi5udq`, tree `0930f4754ee5`:
+
+| Complete hand-set law | Proved / checked | Counted ms | In-process wall s |
+| --- | --- | ---: | ---: |
+| one primary per term | yes / yes | 3,399 | 3.188 |
+| Inv3915: primary newest | yes / yes | 4,489 | 7.097 |
+| Inv1758: row agreement | no / no | 5,014 | 5.427 |
+| Inv2973: quorum overlap | no / no | 5,338 | 35.881 |
+| Inv*: quorum term backing | no / no | 5,001 | 17.294 |
+
+The VM placement includes both EPYC 4585PX and Ryzen 9950X hosts. These wall
+times are per-proof measurements, not a paired performance comparison; the
+103-second job-level safety duration included work outside its 3.188-second
+proof interval. Validation: **116 production-derivation tests, 295 Track M
+and 67 Track P tests**, type/lint all passing.
+
+The separate `ordered-point-source-v1` diagnostic rebuilds the cold Inv1758
+packet (166 MC hypotheses, 22 instances) and examines the active setup/copy
+rows without changing production limits. Its pick-row model has
+`?noneCopied = 1`, `b$ = 1`, `size = 2`, but `CV[b$] = 1`: the ordinary
+universal guard instance at the law's row is absent. This is an abstraction
+model, **not** an execution counterexample. The copy row is already
+SMT-refuted with a two-hypothesis core (size domain and the negated equality
+of copied fields), but ordinary tree growth returns unknown: its packed,
+naturally-subtracted read keys need explicit congruence reconstruction.
+The next change addresses those two independently identified gaps.

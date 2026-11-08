@@ -2,7 +2,7 @@ import {expect,test} from 'bun:test'
 import {all,any,atMost,get,ite,less,n,not,plus,same,x,type Machine} from '../machine.ts'
 import {canon,check,type Path} from '../../kernel/kernel.ts'
 import {clock,grow} from '../../kernel/prove.ts'
-import {activeWriteRow,proveRowCases,rowPairs} from './row-cases.ts'
+import {activeWriteKey,activeWriteRow,proveRowCases,rowPairs} from './row-cases.ts'
 test('active writes select the destination row rather than the copied source',()=>{
  const m:Machine={name:'copy row',params:[],inputs:['action','source','destination'],state:{},maps:{Clock:0},step:{flags:{moving:same(x('action'),n(2))},maps:{Clock:{each:'k',value:ite(all({op:'flag',name:'moving'},same(x('k'),x('destination'))),get('Clock',x('source')),get('Clock',x('k')))}}}}
  const at=(value:number):Path=>{const a={action:1,'1':-value},b={action:-1,'1':value};return new Map([[canon(a),{lin:a,holds:true}],[canon(b),{lin:b,holds:true}]])}
@@ -14,6 +14,13 @@ test('Boolean-valued row writes ignore dead arms and membership lookup keys',()=
  const x1={mode:1,'1':-1},x2={mode:-1,'1':1},root:Path=new Map([[canon(x1),{lin:x1,holds:true}],[canon(x2),{lin:x2,holds:true}]])
  expect(activeWriteRow(m,root)).toBe('z')
 })
+test('active constant-index writes split against that index, not an unrelated input',()=>{
+ const m:Machine={name:'initial row',params:[],inputs:['actor'],state:{},maps:{Version:0},step:{maps:{Version:{each:'row',value:ite(same(x('row'),n(0)),n(1),get('Version',x('row')))}}}}
+ const claim=same(get('Version',x('left')),get('Version',x('right')))
+ expect(activeWriteKey(m,new Map())).toEqual(n(0))
+ expect(rowPairs(m,{reads:[]},new Map(),claim)).toEqual([[x('left'),n(0)],[x('right'),n(0)]])
+})
+
 test('field-only conclusions discover row cases without a post-count read',()=>{
  const destination=x('destination'),m:Machine={name:'field copy',params:['size'],inputs:['source','destination'],state:{},maps:{Clock:0,Untouched:0},step:{maps:{Clock:{each:'k',value:ite(same(x('k'),destination),get('Clock',x('source')),get('Clock',x('k')))}}}}
  const claim=same(get('Clock',x('left')),get('Clock',x('right')))
