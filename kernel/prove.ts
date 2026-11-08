@@ -19,6 +19,7 @@ import {REFUTED, growCdcl} from './cdcl.ts'
 import {type Diagram, type Patterns, decide, eprMeter, pastEprCap, patternsOf, withEprCap} from './epr.ts'
 import {projected, tupleParts} from './kernel.ts'
 import {modelValueTerms} from './model-values.ts'
+import {proverRows} from './prover-rows.ts'
 import {type Goal, type Instances, type Liveness, type Loop, type Path, type Seen, type StepLaw, type Tree, assumed, atomOf, boundOf, canon, canonFlip, cellParts, columnTerm, decided, factorsOf, isCell, isMonomial, stepZone, check, checkLaws, checkStepLaws, historyMachine, plainOf, substC, substE, leafConstraints, leafConstraintsReusing, reusing, linear, livenessHelpful, livenessParts, strongly, loopMachine, obligations, plainKey, progressObligations, stepLawObligations, trueC, truth, unreachable, witnessesOf, withProducts} from './kernel.ts'
 
 // The atoms the path leaves open, in evaluation order: deciding any of them makes progress.
@@ -770,7 +771,7 @@ export function rowsAt(goal: Goal, path: Path): ReturnType<typeof leafConstraint
   let id = ''
   for (const [key, a] of path) id += `${a.holds ? '+' : '-'}${key}|`
   let rows = byPath.get(id)
-  if (!rows) { if (byPath.size >= 4096) byPath.clear(); byPath.set(id, (rows = leafConstraintsReusing(goal, path))) }
+  if (!rows) { if (byPath.size >= 4096) byPath.clear(); byPath.set(id, (rows = env.GDP_ROWS_SHARED === '0' ? leafConstraintsReusing(goal, path) : proverRows(goal, path))) }
   return rows
 }
 function lift(goal: Goal, tree: Tree, from: Path, to: Path): Tree | undefined {

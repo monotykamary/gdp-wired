@@ -2508,3 +2508,112 @@ The 49-test group includes the same 4 cost tests. Preliminary `wall-breakdown-v1
 used six CPUs and omitted direct leaf-check timing; `v2` fixed affinity and
 added production controls but still omitted that small verifier path. They
 are retained as diagnostics, not substituted for the final table.
+
+## Row/generator optimization investigation — ordered coordinator follow-up
+
+### Row diagnostics (unchanged baseline)
+
+`rows-before-v1`, four-CPU child affinity `0-3`, batch
+`20261108-145619-vaswmz`, snapshot `07387b52239f`:
+
+| Law | Calls | Distinct goal identities / structural goals | Distinct ordered (goal, path) keys | Exact repeat calls / time | New paths with built prefix / time | Mean ms per call |
+| --- | ---: | ---: | ---: | ---: | ---: | ---: |
+| One primary | 4,648 | 59 / 48 | 2,395 | 2,253 / 0.016 s | 1,011 / 0.171 s | 0.122 |
+| Inv3915 | 4,217 | 78 / 59 | 2,184 | 2,033 / 0.007 s | 901 / 0.204 s | 0.149 |
+| Inv1758 | 23,554 | 212 / 94 | 12,542 | 11,012 / 0.047 s | 1,335 / 0.112 s | 0.086 |
+| Inv2973 | 9,383 | 191 / 155 | 5,185 | 4,198 / 0.015 s | 1,975 / 0.862 s | 1.953 |
+| Inv* | 12,279 | 316 / 210 | 7,073 | 5,206 / 0.020 s | 1,880 / 1.027 s | 0.932 |
+
+Exact repeats are already cheap. Whole-goal structural duplicates account for
+669 and 610 reusable calls in the first two laws, but only **8 and 13** in the
+two hard counting laws. Simply enlarging the exact-key cache cannot recover
+the hard laws' dominant time. Ordering is part of the key: path atoms precede
+hypothesis rows, and proof input indices depend on that order.
+
+A second diagnostic, `rows-cold-v1`, attributes **16.217 of 22.692 s** of
+Inv2973 row time and **9.266 of 11.449 s** of Inv* row time to `facts`.
+Term-row construction adds 0.320 and 1.125 s respectively. Different cold
+runs have substantial wall variation; these are within-run attributions,
+not claims of a regression against the previous VM sample.
+
+The optimization target is therefore **dependency-tracked fact expansion
+shared across hypotheses/goals**, not merely parent-path copies. A child can
+change earlier conditional facts, natural-subtraction bounds and cell equality;
+blindly appending its split atom is incorrect.
+
+### First two candidates and rejected measurement
+
+`rows-shared-v1` tried shared whole-hypothesis facts. `rows-shared-v2` also
+cached Boolean fact subtrees. Both preserve all five proof/check verdicts;
+neither establishes a satisfactory wall improvement yet. The second matched
+pair (seconds; old helper versus candidate):
+
+| Law | Old wall | Candidate wall | Proved / checked on both |
+| --- | ---: | ---: | --- |
+| One primary | 2.248 | 2.171 | yes / yes |
+| Inv3915 | 2.284 | 2.576 | yes / yes |
+| Inv1758 | 5.838 | 5.117 | no / no |
+| Inv2973 | 28.837 | 25.020 | no / no |
+| Inv* | 17.854 | 18.659 | no / no |
+
+The first trial had a test-only TypeScript narrowing error; the second had an
+unused import. Exact-row equivalence and kernel/mirror tests passed; these
+are not clean accepted validation runs. `rows-shared-v3` is **invalid**: a
+concurrent edit introduced a diagnostic import after boat enumerated the
+snapshot but before it read the file, omitting the newly imported module.
+Do not use its failed probes as performance or proof evidence. Subsequent
+launches stage all files and await the immutable `tree` receipt before edits.
+A bounded, multi-page dependency-cache candidate is under test in
+`rows-shared-v4`; no new complete-law certificate has been claimed.
+
+### Generation diagnosis, before optimization
+
+`generators-before-v1` instruments every candidate family rather than removing
+any generator. Standalone generation takes **38.519 s** on this run, with
+**25.354 s** inside the cube generator. Of that, initial random sampling costs
+**19.756 s**: **627,047 requests**, **6,615 trials**, **64 distinct samples**.
+The original production run independently spends **13.876 s** in the same
+sampling stage with exactly those request/trial/sample counts. This is the
+next measured target, after the row optimization is accepted.
+
+Families proposed before filtering: 5 map bounds, 0 row laws, 63 field laws,
+0 scan prefixes, 14 cubes and 0 carry laws. Standalone admission retains 24;
+the original pipeline, whose caller also declares a bound, retains 23 new
+candidates. The raw log records every name. No complete production proof
+exists, so **final-proof generator usage is unknown**, not zero and not an
+argument for dropping a family.
+
+### Accepted row sharing: original builder over canonical immutable expressions
+
+The larger dependency-retention trial (`rows-shared-v4`) passed tests but was
+rejected for wall regressions (Inv2973 29.193 -> 47.526 s; Inv* 27.306 ->
+19.857 s). Flattened fact components (`v5`) also regressed (21.219 -> 28.300 s;
+15.707 -> 18.550 s); its duplicate row builder is **not retained**.
+
+`rows-shared-v6`, snapshot `3c19b01c39f4`, instead interns immutable expression
+subtrees and ordered hypothesis vectors, then calls the **unchanged original
+`leafConstraintsReusing`**. This makes the existing per-expression dependency
+caches useful across freshly reconstructed goals. Exact rows are bounded-LRU
+cached by canonical goal and ordered path, including the actual split atom.
+There is no new arithmetic implementation and no changed trusted checker.
+All scopes persist across retries/laws in the same process. `GDP_ROWS_SHARED=0`
+selects the original implementation solely for paired controls; sharing is on
+by default.
+
+Matched uninstrumented four-CPU child runs on the same VM, seconds:
+
+| Law | Original | Shared expressions / rows | Proved / checked (both) |
+| --- | ---: | ---: | --- |
+| One primary | 3.017 | 2.205 | yes / yes |
+| Inv3915 | 3.273 | 2.254 | yes / yes |
+| Inv1758 | 6.963 | 5.139 | no / no |
+| Inv2973 | 30.858 | 18.149 | no / no |
+| Inv* | 20.485 | 15.125 | no / no |
+| **Sum** | **64.597** | **42.872** | **2/5 complete** |
+
+**All five counted-work totals are identical**, unlike the discarded fact
+builders. Original runs precede candidates in this pair, so these numbers need
+a reversed-order/full-suite follow-up; they are not statistical confidence
+intervals. Tests: 44 row-equivalence/kernel/path/mirror tests pass, including
+structural sharing and ordered-path separation; type/lint 0 warnings/errors.
+Generator optimization is the next phase; no new open-law derivation was added.

@@ -1,0 +1,5 @@
+[
+ {"name":"test","cmd":"set -e; bun install --frozen-lockfile >/dev/null; bun test kernel/prover-rows.test.ts kernel/prove-paths.test.ts kernel/countmachine.test.ts core/count-recovery/rename-proof.test.ts","cpu":4,"memory":10000,"timeout":240},
+ {"name":"compare","cmd":"set -e; bun install --frozen-lockfile >/dev/null; for side in old shared; do for law in 'one primary' Inv3915 Inv1758 Inv2973 'Inv*'; do echo SIDE=$side; GDP_ROWS_SHARED=$([ \"$side\" = old ] && echo 0 || echo 1) taskset -c 0-3 bun research/track-m/profile-production.ts focused replay-input/input.json \"$law\"; done; done","cpu":4,"memory":12000,"timeout":300},
+ {"name":"check","cmd":"set -e; bash research/track-m/prepare-vendors.sh; bun install --frozen-lockfile >/dev/null; bun run check","cpu":4,"memory":10000,"timeout":240}
+]

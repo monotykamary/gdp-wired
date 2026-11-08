@@ -2,6 +2,9 @@
 import {readFileSync} from 'node:fs'
 import {PerformanceObserver} from 'node:perf_hooks'
 import {costMeter,costSpan,type CostPhase} from './cost-meter.ts'
+import {rowMeter} from './row-meter.ts'
+import {generatorStats} from './generator-meter.ts'
+import {rowReuseStats} from '../../kernel/prover-rows.ts'
 import {certFor,candidates,guardLaws} from '../../core/counts.ts'
 import {proveFocusedCounts} from '../../core/count-focus-proof.ts'
 import {countedObligations,checkMC} from '../../kernel/kernel.ts'
@@ -44,4 +47,4 @@ const wallMs=performance.now()-start,spent=process.cpuUsage(cpu),countedMs=(full
 await new Promise<void>(resolve=>setImmediate(resolve));observer?.disconnect()
 const snapshot=costMeter.snapshot(),phases=Object.fromEntries((['generation','search','construction','kernel'] as CostPhase[]).map(k=>[k,snapshot.phases[k]?.exclusiveMs??0])),accounted=Object.values(phases).reduce((a,b)=>a+b,0)
 const affinity=process.platform==='linux'?readFileSync('/proc/self/status','utf8').match(/^Cpus_allowed_list:\s*(.+)$/m)?.[1]?.trim():undefined
-console.log(JSON.stringify({mode,affinity,profiled:costMeter.enabled,...outcome,wallMs,countedMs,cpuMs:{user:spent.user/1000,system:spent.system/1000},phases,idleGcResidualMs:wallMs-accounted,gcObservation:{supported:gcSupported,events:gcEvents,observedMs:gcMs,policy:'GC within a timed scope stays charged to that scope; residual is not a GC-only estimate'},sites:Object.entries(snapshot.sites).sort((a,b)=>b[1].exclusiveMs-a[1].exclusiveMs).slice(0,24),traceEvents:trace.length,tail:trace.slice(-4)}))
+console.log(JSON.stringify({mode,affinity,rowReuse:rowReuseStats,generators:generatorStats,finalProofGeneratorUsage:null,rows:rowMeter.snapshot(),profiled:costMeter.enabled,...outcome,wallMs,countedMs,cpuMs:{user:spent.user/1000,system:spent.system/1000},phases,idleGcResidualMs:wallMs-accounted,gcObservation:{supported:gcSupported,events:gcEvents,observedMs:gcMs,policy:'GC within a timed scope stays charged to that scope; residual is not a GC-only estimate'},sites:Object.entries(snapshot.sites).sort((a,b)=>b[1].exclusiveMs-a[1].exclusiveMs).slice(0,24),traceEvents:trace.length,tail:trace.slice(-4)}))
