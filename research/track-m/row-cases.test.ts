@@ -32,7 +32,8 @@ test('row cases never accept an unchecked leaf',()=>{
 })
 test('deferred row proposals still require the composing kernel check',()=>{
  const g={name:'possible',hyps:[{op:'<=' as const,a:n(0),b:x('a')}]}
- const tree=proveRowCases(g,new Map(),[[x('a'),x('i')]],clock()+1000,()=>({leaf:[]}),undefined,{deferToCaller:true})
+ const events:any[]=[],tree=proveRowCases(g,new Map(),[[x('a'),x('i')],[x('b'),x('i')]],clock()+1000,()=>({leaf:[]}),event=>events.push(event),{deferToCaller:true})
  expect(tree).toBeDefined()
+ expect(events.some(e=>e.cached&&e.proposed&&!e.checked&&e.deferred)).toBe(true)
  if(tree)expect(check(g,tree)).toBe(false)
 })

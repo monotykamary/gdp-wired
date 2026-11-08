@@ -44,7 +44,8 @@ function proveRowCasesImpl(g:Goal,root:Path,pairs:RowPair[],until:number,prove:(
   const begun=clock(),old=cache.get(key)
   if(old){
    const t=withDeadline(Math.min(until,clock()+50),()=>widen(g,g,old.tree,{},old.path,path))
-   if(t&&check(g,t,path)){trace?.({stage:'row-case',key,cached:true,ms:Math.round(clock()-begun),checked:true});return t}
+   const accepted=!!t&&(options.deferToCaller||check(g,t,path))
+   if(accepted&&t){trace?.({stage:'row-case',key,cached:true,ms:Math.round(clock()-begun),checked:!options.deferToCaller,proposed:true,deferred:!!options.deferToCaller});return t}
   }
   const t=prove(path,Math.min(until,clock()+1500)),accepted=!!t&&(options.deferToCaller||check(g,t,path))
   trace?.({stage:'row-case',key,cached:false,ms:Math.round(clock()-begun),checked:!options.deferToCaller&&accepted,proposed:!!t,deferred:!!options.deferToCaller})

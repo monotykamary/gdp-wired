@@ -7,6 +7,7 @@ import {clock,withDeadline} from '../../kernel/prove.ts'
 import {walkLive} from './live-dependencies.ts'
 import {foldPath} from './fold-path.ts'
 import {closeKeyReads} from './key-closure.ts'
+import {rebasePath} from './rebase-path.ts'
 import {wallTree,check,refuteFast,grow,rowsAt,widen} from './wall-profile.ts'
 // Unlike dependency slicing, proof-case discovery must still enter the
 // operands of a comparison already forced true: its conditional columns
@@ -154,7 +155,15 @@ function booleanCoreImpl(g:Goal,root:Path,wits:Set<string>,until:number,trace:ob
   return yes&&no?{split,yes,no}:undefined
  }
  let tree=go(0,pinned)
- if(tree)for(const p of [...prefix].reverse())tree={split:p.split,yes:tree,no:p.no}
+ if(tree&&process.env.LAB_PRUNE_PINS==='1'){
+  const paths:Path[]=[new Map(root)];for(const p of prefix)paths.push(new Map(paths.at(-1)!).set(canon(p.split),{lin:p.split,holds:true}))
+  let removed=0
+  for(let i=prefix.length-1;i>=0;i--){
+   const p=prefix[i]!,shorter=rebasePath(g,tree,paths[i+1]!,paths[i]!,until)
+   if(shorter){tree=shorter;removed++}else tree={split:p.split,yes:tree,no:p.no}
+  }
+  trace.push({stage:'pin-prune',removed,kept:prefix.length-removed})
+ }else if(tree)for(const p of [...prefix].reverse())tree={split:p.split,yes:tree,no:p.no}
  const checked=!!tree&&check(g,tree,root)
  if(!checked&&process.env.LAB_BOOLEAN_DUMP==='1'){
   const names=new Set([...JSON.stringify([g,[...pinned]]).matchAll(/⟦\d+⟧/g)].map(m=>m[0])),terms=Object.fromEntries([...names].map(name=>[name,columnTerm(name)]))

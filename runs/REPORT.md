@@ -1326,3 +1326,27 @@ The profiler's own bookkeeping is 2–21 ms per action; its source-check and
 transport timings are disjoint. Run manifests: `research/track-m/jobs-wall-profile.json`
 and `research/track-m/jobs-action-profiles.json`. Type/lint and all 57 focused
 profiling/helper tests passed in the paired leader batch.
+
+#### First wall optimizations: exact pin reindexing and deferred cache checking
+
+`wall-prune-v1` (tree `2a0a9d5cf8c2`) tests a proposal-only exact row reindexer:
+when a forced numeric split can be removed without losing any row read by the
+proof, reindex the retained child and omit the redundant split. No solver call,
+new inference rule, or budget increase is involved. Failed attempts leave the
+original split intact. `LAB_PRUNE_PINS=1` opts in inside the Boolean helper.
+Cached row trees now honor their existing `deferToCaller` option rather than
+rechecking a subtree that the caller will check again in the complete tree.
+Default nondeferred behavior is unchanged; negative tests show that deferred
+invalid proposals are still rejected by the mandatory final check.
+
+| Leader variant | Counted ms | End-to-end wall ms | Nodes / leaves / depth | Intermediate / final checking ms |
+| --- | ---: | ---: | ---: | ---: |
+| Cache-check deferral only | 2,827 | 41,420 | 1,485 / 743 / 59 | 9,440 / 23,135 |
+| Deferral plus pin pruning | 2,824 | 38,174 | 1,415 / 708 / 54 | 8,886 / 20,734 |
+
+Both source checks pass. The pruner removes 36 local forced splits (35 leaves in
+the final composed tree); 16 local splits remain necessary. The net saving is
+modest, **not the few-second target**. The pruner itself takes 48 ms exclusive;
+additional row materialization is visible separately. Type/lint and normal and
+pruning-enabled focused tests pass. This does not authorize integration: final
+checking of the still-large source context remains dominant.
