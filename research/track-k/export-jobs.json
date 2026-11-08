@@ -1,0 +1,23 @@
+[
+  {
+    "name": "check",
+    "cmd": "bun install --frozen-lockfile >/dev/null && bun run check",
+    "timeout": 300,
+    "cpu": 4,
+    "memory": 8192
+  },
+  {
+    "name": "export-conformance",
+    "cmd": "set -e; bun install --frozen-lockfile >/dev/null; bun lean-kernel/conformance.ts --lemma-cuts > lean-kernel/LemmaConformance.lean; cd lean-kernel; TC=~/.elan/toolchains/leanprover--lean4---v4.34.0; export LEAN_PATH=\"$PWD:$TC/lib/lean\"; \"$TC/bin/lean\" -o Count.olean Count.lean; \"$TC/bin/lean\" -o CountMachine.olean CountMachine.lean; \"$TC/bin/lean\" LemmaConformance.lean",
+    "timeout": 600,
+    "cpu": 4,
+    "memory": 8192
+  },
+  {
+    "name": "mirror-tests",
+    "cmd": "bun install --frozen-lockfile >/dev/null && bun test kernel/lemma-cut.test.ts",
+    "timeout": 90,
+    "cpu": 4,
+    "memory": 8192
+  }
+]

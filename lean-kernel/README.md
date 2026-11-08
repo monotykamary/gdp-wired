@@ -18,6 +18,18 @@ The counted certificate optionally carries `lemmas: {when, cut, tree, slice?}[]`
 | `checkCounted` | `checkCounted`, `counted_sound` | Original counted unsatisfiability statement, extended with an optional lemma list |
 | `checkCountedW`, `checkMC` | `checkCountedW`, `countedW_sound`, `checkMC`, `mc_sound` | Preserve fresh witness/read conditions and the production counted-machine theorem |
 
+Public exports accept already checked counted certificates, without re-running search:
+
+```ts
+const file = toLean([
+  {id: 'counted_goal', countedGoal: goal, certificate: {insts, tree, lemmas}},
+  {id: 'counted_machine', countedMachine: machine, laws, proof: {instances, certs}},
+], {native: false})
+const project = leanProject(file)
+```
+
+`leanProject` includes `Count.lean`, `CountMachine.lean`, and `GhostMap.lean`. `encodeCounted` assigns the main tree and every independent lemma proof one common dependency-ordered table, while preserving each lemma's exact slice and initial path. `conformance.ts --lemma-cuts` checks the shared TypeScript fixtures; adding `--public` exercises `toLean` itself. No lemma is silently dropped when an exporter lacks its source context.
+
 Lean's `checkTLemmas_nil`, `checkGoalLemmas_nil`, `checkCounted_nil`, and `checkCountedW_nil` prove empty-list conservation. The new theorems use only the existing `propext`, `Classical.choice`, and `Quot.sound` axioms. TypeScript additionally rejects malformed JSON-shaped payloads and keeps the original restrictions on constant/repeated splits.
 
 | File | What |

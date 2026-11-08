@@ -4,7 +4,7 @@ Base: `8610af26c16cf8e50b5ec0564a154c6bf358d82c`; branch: `claude/track-kernel`.
 
 ## Status
 
-Steps 1 and 2 pass: the conditional lemma-cut rule is proved in Lean and mirrored in TypeScript. The mirror passes `bun run check` and six focused tests / 27 assertions (`runs/track-k-mirror-v1/`). Empty lists call the exact old checker; duplicate path atoms retain their input rows without changing first-match decisions. Conservativity and the requested semantic refusal classes now pass (steps 3–4). Export conformance, emission, performance measurements, and full trusted-tier gates remain pending.
+Steps 1 and 2 pass: the conditional lemma-cut rule is proved in Lean and mirrored in TypeScript. The mirror passes `bun run check` and six focused tests / 27 assertions (`runs/track-k-mirror-v1/`). Empty lists call the exact old checker; duplicate path atoms retain their input rows without changing first-match decisions. Conservativity and the requested semantic refusal classes now pass (steps 3–4). Export conformance also passes (step 5). Untrusted emission, performance measurements, and full trusted-tier gates remain pending.
 
 The proposed rule and proof obligations are recorded in `research/track-k/README.md`. The first implementation will validate independent lemma trees with the old checker, allow cuts only at paths deciding their full conditions, check slices against the containing goal, and preserve the empty-lemma behavior. It must extend the actual `CountMachine.lean` wrapper as well as `Count.lean`.
 
@@ -33,8 +33,14 @@ Failed controls are retained: v1 exposed an unqualified row-evaluation namespace
 
 `runs/track-k-conservation/` authenticates the coordinator's pinned C14, C9 and C11 goal/proof bytes. All three check with both absent and explicit-empty lemma lists; search work and every search cost remain zero. Three isolated strict-60-second original-harness Paxos runs are proven (job times 20.82s, 20.85s, 28.97s; exact search times are in the JSON logs), each with `STRICT_EXIT=0`.
 
-`runs/track-k-mutants-v3/` passes eight TypeScript tests / 34 assertions and the kernel-reduced Lean examples. Both reject use above or opposite the declared condition, a non-refuting proof, an incorrect or out-of-range slice, circular/self-support, a read capturing a goal variable, and witnesses capturing a parameter, a `?flag`, or a quantified law's skolem. Lean also proves the positive full-machine fixture with nonempty lemmas. Lemma entries themselves bind no reads or witnesses; the containing certificate's original freshness checks remain mandatory.
+`runs/track-k-mutants-v3/` passes eight TypeScript tests / 35 assertions and the kernel-reduced Lean examples. Both reject use above or opposite the declared condition, a non-refuting proof, an incorrect or out-of-range slice, circular/self-support, a read capturing a goal variable, and witnesses capturing a parameter, a `?flag`, or a quantified law's skolem. Lean also proves the positive full-machine fixture with nonempty lemmas. Lemma entries themselves bind no reads or witnesses; the containing certificate's original freshness checks remain mandatory.
 
 The failed v1/v2 controls were fixture errors, not fixed by weakening the checker: the read-extended tree needed its input indices rebound, the count declaration uses `map` rather than `name`, and a skolem-capture test must use an actually quantified law. Lean record-layout mistakes were corrected. No trusted checker changed after the successful conservation replay.
+
+## Step 5: export and conformance
+
+`runs/track-k-export-library-v3/` passes the complete existing counted-example library (20.24s) and expanded conditional-cut conformance (11.16s). The latter includes the actual shared TypeScript fixture, wrong conditions/slices and non-refuting proofs, duplicate path atoms, unconditional cuts, full machine certificates and capture mutants. Both explicit public `toLean` routes compile, and report only `propext`, `Classical.choice`, `Quot.sound`. `leanProject` now ships the counted modules via the generated library.
+
+Main and lemma proofs share a dependency-ordered table; each lemma retains its own original slice and path. New path layouts use checked row lookup rather than mislabeling legacy atom hints. The original count-example generator writes to its directory argument, not stdout; v1 preserves the mistaken driver invocation, repaired in v2/v3. Production export code and all unchanged counted examples pass. The previous mirror/export typecheck reports zero errors/warnings; a fresh public-route typecheck is running with the pinned send baseline.
 
 All substantive builds, tests, and measurements run on boat. Work is confined to this worktree; Track M files remain read-only. Independent review is required before any merge.
