@@ -2356,3 +2356,155 @@ supercomputer run --jobs research/track-m/jobs-production-derivations-final.json
 All jobs for the reported replays have finished. Only validated generic
 source-recovery code and evidence are retained; no kernel, law, invariant,
 external solver, global budget or Track K production integration changed.
+
+## Coordinator wall-budget audit — current strategy does not fit; proof work paused
+
+Requested wall decomposition, on unchanged production source **`af7cb91f`**.
+No further row/source proof changes were made during this audit. The result
+invalidates the earlier attribution of the unproved laws' long wall time to
+kernel checking: their cost is overwhelmingly construction and search.
+
+### Measurement contract and checks
+
+Final evidence: `runs/track-m/wall-breakdown-v3/`, batch
+`20261108-144544-c5oppp`, snapshot `030e2c66b138`.
+All measured child processes ran on VM `bx_27ffycju`, **AMD Ryzen 9 9950X**,
+with **four-CPU affinity `0-3`**, no co-tenants. The scheduler's placement
+lists six CPUs for the parent job; `profile-suite.ts` explicitly restricts
+every measured Bun child to four, and each child's record confirms `0-3`.
+The full process wall is measured around spawning Bun, including module
+startup and output, as required by `research/protocols/ic3syn/README.md`.
+Dependency installation, queueing and instrumentation installation are not
+part of the measured application wall.
+
+Input SHA-256:
+`4be076f22a8fec41083719358b3518a83b23add5c3dfd26017f772404e7dac24`.
+The five focused probes keep their original 5,000 counted-ms allowance and
+60-second wall guard. The original production replay uses `proveRule` on
+`protocols.mldr.make()` and its caller safety law with the original
+60,000-ms search option; `GDP_COUNTS_GIVEN` is unset for generation/admission.
+
+The opt-in research installer changes only disposable remote copies. It
+saves originals and emits before/after SHA-256 hashes for every wrapped
+file. Function bodies, arguments, return values, proof data, cost counters
+and deadlines are unchanged; recursive checker calls use the original
+body rather than adding a timer at every tree node. Neither the production
+kernel nor the production prover imports this instrumentation.
+
+Exclusive nested timers classify:
+
+- **Candidate generation:** count/witness/instance proposals in each focused
+  probe. Production invariant discovery is measured separately, once.
+- **Search:** model/CDCL and arithmetic queries, including fallback search
+  invoked while transporting a tree.
+- **Construction:** goal/row construction, proof transport and control work.
+  DAG unfolding and its leaf reconstruction remain construction, not search.
+- **Kernel:** full-tree and count-certificate checks, **plus direct arithmetic
+  certificate validation** (`core/check.ts:checkRefutation`) used by widening
+  and unfolding. Row creation inside a kernel call stays in the kernel bucket.
+- **Idle/GC residual:** the remainder of full process wall after these exclusive
+  buckets. **Bun reports no supported GC timing events on this VM.** GC/JIT
+  pauses inside a measured phase stay charged to that phase; this residual
+  includes startup/unclassified time and is **not a measurement of total GC**.
+  We do not manufacture a separate GC estimate.
+
+The arithmetic sum uses unrounded times; independently displayed millisecond
+rounding can differ by 0.001 s. No nested time is counted twice.
+
+### One instrumented run per complete law — seconds
+
+| Law | Proved / checked | Candidate gen. | Search | Construction | Kernel | Idle/GC residual | **Sum wall** |
+| --- | --- | ---: | ---: | ---: | ---: | ---: | ---: |
+| One primary per term | yes / yes | 0.028 | 0.439 | 0.567 | 1.080 | 0.036 | **2.150** |
+| Inv3915: primary newest | yes / yes | 0.031 | 0.417 | 0.636 | 1.193 | 0.036 | **2.312** |
+| Inv1758: row agreement | no / no | 0.034 | 2.335 | 2.656 | 0.006 | 0.042 | **5.072** |
+| Inv2973: quorum overlap | no / no | 0.219 | 4.074 | 17.190 | 0.000 | 0.094 | **21.577** |
+| Inv*: quorum term backing | no / no | 0.059 | 3.460 | 12.592 | 0.002 | 0.066 | **16.179** |
+| **Sum of five** | **2/5 complete** | **0.369** | **10.725** | **33.641** | **2.281** | **0.274** | **47.290** |
+
+Counted ms, respectively: **984.464, 972.813, 5,000.273, 5,396.452,
+5,137.436**. The unproved/overshooting probes remain failures.
+
+The original uninstrumented controls on the same VM and affinity took
+**2.178, 2.363, 5.170, 21.861, 16.844 s**, totalling **48.416 s**.
+All five controls and instrumented runs have **identical counted work and
+identical proof/check verdicts**. Their individual wall differences range
+from -1.31% to -3.94%; a single pair is a perturbation check, not a claimed
+statistical speedup.
+
+The decisive construction sites are `kernel/prove.ts:rowsAt`:
+
+| Law | Calls | Exclusive row construction/lookup wall |
+| --- | ---: | ---: |
+| Inv1758 | 23,554 | 1.822 s |
+| Inv2973 | 9,383 | **13.817 s** |
+| Inv* | 12,279 | **10.213 s** |
+
+Those costs occur while building/transporting candidate proofs, before a
+complete certificate exists. They are not final-kernel costs that the current
+Track K admission hook can remove. Kernel time on both hard counting probes
+combined is only **0.002182 s**.
+
+### Production law generation and original end-to-end replay
+
+The independent production-generation run proposes **24 candidates** for the
+original one-caller MLDR problem. Its wall is **22.156 s** (22.117 s generation,
+0.040 s residual); the uninstrumented generation control takes **23.467 s**.
+Both report zero work in the focused probes' `fullWork/fullRate` counter:
+that counter must not be used as a wall estimate for law discovery.
+
+The **actual original generated-law pipeline**, not the supplied hand-set,
+returns **unproved / unchecked**, `not proven: one primary per term`:
+
+| Original pipeline | Generation | Search | Construction | Kernel | Residual | **Sum wall** |
+| --- | ---: | ---: | ---: | ---: | ---: | ---: |
+| Instrumented | 23.683 | 13.915 | 11.443 | 4.350 | 0.061 | **53.451 s** |
+| Uninstrumented control | — | — | — | — | — | **52.152 s** |
+
+Its counted work and verdict also match the control. This is a timed failed
+production run, not evidence that the complete hand-set or generated-law gate
+has passed.
+
+### Budget conclusion and stop decision
+
+The current serial work plan costs **22.156 + 47.290 = 69.446 s**, already
+**9.446 s beyond the entire 60-second allowance**, while three hard laws remain
+unproved. Using the uninstrumented controls gives **71.883 s**, not a fit either.
+Even the unrealistic removal of **all 2.281 s of kernel verification** leaves
+**67.165 s**. Production generation plus the two open counting-law probes alone
+uses **59.912 s**, leaving **0.088 s** for the other three laws and any additional
+work needed to finish the missing certificates.
+
+This addition is an explicit **budget diagnostic for the present serial
+strategy**, not a mathematical lower bound on a redesigned joint solver:
+separate cold processes do not exploit possible cross-law reuse, and the real
+production-generated family differs from the hand-set. The original pipeline's
+independent failure above is the direct end-to-end observation.
+
+**Per the coordinator's condition (3), further row-closing/source-chain changes
+are paused rather than adding more wall.** The next viable plan must first cut
+measured generation and/or row construction/transport costs (or demonstrate
+cross-law reuse), and remeasure every proposed change including any extra wall.
+The remaining ordering half, active source instances and all-laws certificate
+are still open. No 3×60-second success is claimed. Track K remains unmerged.
+
+### Reproduction and validation
+
+```sh
+supercomputer run --jobs research/track-m/jobs-wall-breakdown.json \
+  --out runs/track-m/wall-breakdown-replay --class gate --timing \
+  --vm-type large --data runs/track-m/canonical-capture-v1/fixtures:replay-input
+```
+
+The suite runs uninstrumented controls before installing measurement wrappers
+in its private remote snapshot. The installer requires
+`TRACK_M_DISPOSABLE_PROFILE=1` and a backup directory. Do not run it against a
+production checkout. Raw results, complete wrapper manifests and the profiler
+neutrality tests are in `wall-breakdown-v3/wall-breakdown.log`.
+
+Validation: **4 cost-accounting unit tests and 49 instrumented
+kernel/prover/mirror tests pass**; type/lint reports **0 warnings, 0 errors**.
+The 49-test group includes the same 4 cost tests. Preliminary `wall-breakdown-v1`
+used six CPUs and omitted direct leaf-check timing; `v2` fixed affinity and
+added production controls but still omitted that small verifier path. They
+are retained as diagnostics, not substituted for the final table.
