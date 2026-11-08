@@ -1,0 +1,1 @@
+[{"name":"diagnostic","cmd":"bash research/track-m/run-section10-diagnostic.sh","cpu":8,"memory":14336,"timeout":900}]

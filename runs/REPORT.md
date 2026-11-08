@@ -5278,3 +5278,53 @@ all reported work/median/max numbers, the exact baseline and fixture, and the
 negative gate result. An initial audit-only implicit-any failure is retained
 in final-validation-v1; v2 is corrected. No production code changed after the
 measured commit **192ebbe2**.
+
+## Section 10 follow-up — diagnostic only, important corrections
+
+Same **192ebbe2**, canonical input and **bx_25xas5gt**, exclusive eight pinned
+vCPUs. No core, kernel, harness, cap, allowance or strategy change. No later gate.
+
+**1,500 is a ceiling, not the actual family draw.** The earlier active-op5
+probes received that ceiling in isolation. In the real family Inv* op5 receives
+124.647629 units, spending 126.094380; Inv2973's first op0 row receives
+71.362754, spending 75.807314 before any source attempt. The last atomic query
+can overrun a boundary; it does not receive another allowance.
+
+**The current allocation also has a specification mismatch.** leaf-allowance
+reuses supportBudget's `max(share,R/3)`: R/3 is a floor, not the requested
+ceiling. Existing tests assert 900/9 gives 300. Total is conserved, but the
+requested even-share/third-ceiling structure was not delivered. This diagnostic
+reports the error without changing the strategy.
+
+First leaves still unresolved after fallback:
+
+- **Inv***: op0, a$#=0, j$<0. Draw 191.008012, spent 2.731550. Numeric query is
+  REFUTED with empty core; the `q.core?.length` guard skips proof construction.
+  No terminal model/violated set. A fresh empty-hypothesis proof and transport
+  both check under the unchanged kernel in **0.0098612 units**. No fix included.
+  For context only, the preceding closed row's 31 violated sources give 14
+  checked refutations / 17 validated SAT, all explicitly labeled.
+- **Inv2973**: op0, a$#=b$=0. The original numeric model reproduces in 6.874298
+  units, violating 101 instances. Independent source probes: **8 checked
+  refutations / 93 validated SAT**, all with exact units. The actual row spent
+  49.854090 natural-case + 6.874298 numeric + 19.078926 batch-selection units;
+  zero source attempts. These extra probes are not charged to the row.
+
+The literal cap is in row-cases.ts:103, introduced by **616b0c9c** with no
+adjacent numeric derivation. Exact paths, models, all violated-instance results
+and every row ledger: **runs/track-m/section10-full-diagnostic-v5/**. Its complete
+178 MB decoded trace is retained as a checksum-verified 426,662-byte archive.
+The isolated cap ledgers remain in **section10-diagnostic-v2/** and must not be
+confused with actual family allocation.
+
+Proved-law deltas are fully reconciled in **section10-deep-diagnostic-v1/**.
+One extra retained inclusion adds four downstream hypotheses. One primary:
++20.693282 in four existing model queries, +0.216480 grow = **+20.909762**.
+Inv3915/Inv1758: extra grow node visits only, **+1.781040 / +2.137248**. Query
+counts unchanged; generator calls themselves charge zero counted units.
+
+Validation: type/lint pass; **255 tests / 1,215 assertions**; fresh validation of
+**268 source SAT models / 3 terminal numeric models** and their paths. Source
+refutations were checked during their probes; the model validator does not
+claim to independently replay those proof trees. The empty-core proof is
+independently checked. Gate 1 remains **3/5**, not rerun as a new gate.
