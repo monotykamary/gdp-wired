@@ -2678,11 +2678,13 @@ Cross-law **completed proof** caches were investigated and rejected:
   The five-law total rose from **46.510 to 47.728 s**. Type/lint and exact-row /
   kernel / source-transport tests passed, but the cache is still rejected.
 
-These are complete source proofs with different required assumptions, not
-repeated instances of one reusable theorem. More retention does not fix that
-interface mismatch. A useful cross-law proof cache needs a smaller shared
-lemma contract or a newly proved source decomposition; neither can be claimed
-from a zero-hit cache. **No rejected cache remains in the production path.**
+Those whole-hypothesis cache contracts do not match across the observed
+calls. Zero matches do **not** exclude finer-grained arithmetic-row reuse:
+a large hypothesis may contain an actually shared row among unused conjuncts.
+A useful cache must expose smaller shared contracts or transport the actual
+used rows rather than require each enclosing hypothesis to match. Neither
+benefit can be claimed from the zero-hit caches. **No rejected whole-goal or
+whole-hypothesis cache remains in the production path.**
 The final rejected prototype is archived as
 `research/track-m/rejected-source-sharing.patch.json`; extract its `patchLines`
 with `jq -r '.patchLines|join("\n")'` and apply in a disposable worktree at
@@ -2701,4 +2703,36 @@ cache experiments. `GDP_COUNT_LEMMA_CUTS=1` remains required for emission; it wa
 not enabled by this integration. Kept this report on the modify/delete conflict
 because the coordinator explicitly requires the Track M measurement journal.
 The test-registry conflict retains both tracks' regressions. No generation
-source was edited. Post-merge validation is recorded below when complete.
+source was edited.
+
+`post-merge-v1` confirms **369 proof/kernel/source tests** and **57 selected
+support/admission tests**, all passing, plus clean type/lint. Its five focused
+verdicts are still 2/5; the trailing pipeline invocation used the invalid mode
+`pipeline` and failed as a driver error. It is **not** counted as a successful
+pipeline run. `post-pipeline-v1` reruns the actual `production` mode unchanged.
+
+| Latest retained post-merge law | Proved / checked | Counted ms | Wall s |
+| --- | --- | ---: | ---: |
+| One primary | yes / yes | 984 | 2.178 |
+| Inv3915 | yes / yes | 973 | 2.172 |
+| Inv1758 | no / no | 5,000 | 4.776 |
+| Inv2973 | no / no | 5,396 | 16.508 |
+| Inv* | no / no | 5,137 | 13.626 |
+| **Sum** | **2/5** | — | **39.260** |
+
+These are per-process uninstrumented focused probes, not a generated-law
+family success or a same-VM sum with an earlier generation measurement.
+The row-only 29-protocol paired check after the reviewed merge is separately
+running as `paired-rows-post-merge-v1`; it changes only `GDP_ROWS_SHARED` between
+the sides and pins `GDP_COUNT_LEMMA_CUTS=0` on both. It does not include the
+rejected proof caches, the in-flight finer-grained source-context experiment,
+or the other lane's generation changes.
+
+`source-contexts-v1` is an uncommitted experiment, not an accepted optimization.
+It retains bounded, separate `(goal identity, path)` entries per machine and
+tries exact used-row transport across contexts. This deliberately removes the
+whole-hypothesis filter that yielded no candidates above; every result is an
+ordinary full subtree. Tests include a source whose used row is nested in a
+larger conjunction and a target that contains just that row, plus unrelated
+scopes and a satisfiable target. Its benefit and verdicts are pending the
+remote receipt. No new open-law derivation is claimed.

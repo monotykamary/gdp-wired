@@ -1,0 +1,1 @@
+[{"name":"pipeline","cmd":"set -e; bun install --frozen-lockfile >/dev/null; GDP_COUNT_LEMMA_CUTS=0 taskset -c 0-3 bun research/track-m/profile-production.ts production","cpu":4,"memory":12000,"timeout":150}]
