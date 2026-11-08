@@ -6,13 +6,14 @@ import {type CountCert,type CountDecl,type Goal,type Path,type Tree,canon,check,
 import {countsForReads} from '../../core/count-facts.ts'
 import {refuteFast,sub} from '../../core/solver.ts'
 import {liftCountProxies} from './lift-count-proxies.ts'
-import {piecesAt,walkLive} from './live-dependencies.ts'
+import {piecesAt,sourceWitnessContext,walkLive} from './live-dependencies.ts'
 import {carriedCase} from './carried-case.ts'
 import {foldPath} from './fold-path.ts'
 import {booleanCore} from './boolean-core.ts'
 import {proveRowCases,rowPairs} from './row-cases.ts'
 import {proveNaturalCases} from './natural-cases.ts'
 import {activeCarried} from './action-guard.ts'
+import {diagnoseTree} from './tree-diagnosis.ts'
 import {atPoint,clock,grow,rowsAt,widen,withDeadline} from '../../kernel/prove.ts'
 import {modelSequence} from '../../kernel/model-sequence.ts'
 import {REFUTED} from '../../kernel/cdcl.ts'
@@ -47,11 +48,16 @@ export function fieldBounds(m:Machine,ds:CountDecl[],cert:Proposal):C[]{
  for(const c of countsForReads(ds,twins)??[])walkOnce(substE(c.body,{vars:{[c.key]:key},maps:{},flags:{}}),(p:any)=>{
   if(p.op==='<'&&bounds.some(b=>JSON.stringify(b.a)===JSON.stringify(p.a)))targets.add(JSON.stringify(p.b))
  })
+ // Old input-key values used by writes also need a ceiling: otherwise a
+ // post-count core can omit the actor's own pre-state version entirely.
+ walkOnce(m.step.maps,(o:any)=>{if(o.op==='get'&&o.key.op==='var'&&m.inputs.includes(o.key.name))targets.add(JSON.stringify(o))})
  const focused=out.filter(c=>c.op==='<='&&c.a.op==='if'&&targets.has(JSON.stringify(c.a.then)))
  return (focused.length?focused:out).slice(0,4)
 }
 export function fieldBoundLemmas(m:Machine,ds:CountDecl[],g:Goal,cert:Proposal,until:number,trace:object[],onModel?:(goal:Goal,witness:Record<string,number>)=>boolean,root:Path=new Map(),options:{splitRows?:boolean,deferCheck?:boolean}={}):Tree|undefined{
  const seq=modelSequence(root),ctx:C[]=[],path:Path=new Map(root),lemmas:{split:Record<string,number>,no:Tree}[]=[]
+ const accept=(tree:Tree|undefined,path:Path)=>tree&&(options.deferCheck||check(g,tree,path))?tree:undefined
+ const verdict=(tree:Tree|undefined)=>({checked:!options.deferCheck&&!!tree,...(options.deferCheck?{proposed:!!tree,deferred:true}:{})})
  const rowPlan=options.splitRows!==false&&process.env.LAB_ROW_SPLIT==='1'?rowPairs(m,cert):[]
  let arithmetic:Tree|undefined
  const postMaps=new Set(cert.reads.filter(r=>r[1].endsWith('#')).map(r=>r[1])),postIds=new Set(cert.reads.filter(r=>r[1].endsWith('#')).map(r=>r[0]))
@@ -106,6 +112,13 @@ export function fieldBoundLemmas(m:Machine,ds:CountDecl[],g:Goal,cert:Proposal,u
     if(lifted)return widen(reduced,goal,lifted,{},root,root)
     const direct=booleanCore(reduced,root,new Set(cert.insts.map(i=>i.wit)),deadline,trace)
     if(direct)return widen(reduced,goal,direct,{},root,root)
+    const contextual=sourceWitnessContext(goal,reduced,new Set(cert.insts.map(i=>i.wit)),root)
+    if(contextual!==reduced&&clock()<deadline){
+     const extra=contextual.hyps.slice(reduced.hyps.length)
+     trace.push({stage:'witness-context',added:extra.length,...(process.env.LAB_CONTEXT_DUMP==='1'?{extra:extra.flatMap(c=>piecesAt(c,root))}:{})})
+     const expanded=booleanCore(contextual,root,new Set(cert.insts.map(i=>i.wit)),deadline,trace)
+     if(expanded)return widen(contextual,goal,expanded,{},root,root)
+    }
    }
    const split=!finish&&root.size>0&&q.core&&q.core.length<=8?carriedCase(reduced,root,m.inputMaps??[],new Set(cert.insts.map(i=>i.wit)),deadline,trace):undefined
    if(split)return widen(reduced,goal,split,{},root,root)
@@ -130,13 +143,32 @@ export function fieldBoundLemmas(m:Machine,ds:CountDecl[],g:Goal,cert:Proposal,u
    if(checked&&no){lemmas.push({split,no});ctx.push({op:'<=',a:x(left!),b:x(right!)});path.set(canon(split),{lin:split,holds:true})}
   }
  }
- for(const good of fieldBounds(m,ds,cert)){
+ const ceilings=fieldBounds(m,ds,cert),domains:C[]=[]
+ for(const good of ceilings)if(good.op==='<='&&good.a.op==='if'){
+  const parts=good.a.c.op==='and'?good.a.c.xs:[good.a.c]
+  for(const c of parts)if(c.op==='<'&&!domains.some(d=>JSON.stringify(c)===JSON.stringify(d)))domains.push(c)
+ }
+ for(const domain of domains){
+  if(truth(domain,path)!==undefined||clock()>=until)continue
+  if(domain.op!=='<')continue
+  const a=linear(domain.a,root),b=linear(domain.b,root);if(!a||!b)continue
+  const split=sub(a,b);split['1']=(split['1']??0)+1
+  const noPath=new Map(path).set(canon(split),{lin:split,holds:false}),start=clock()
+  const part={...g,hyps:[...g.hyps.slice(0,g.hyps.length-cert.insts.length),...ctx,{op:'not' as const,x:domain}]},direct=refuteFast(rowsAt(part,root),256)
+  const proof:Tree|undefined=direct?.kind==='refuted'?{leaf:direct.steps}:solve(part,50)
+  const lifted=proof&&widen(part,g,proof,{},root,noPath),no=accept(lifted,noPath)
+  trace.push({stage:'field-domain',domain,direct:direct?.kind==='refuted',ms:Math.round(clock()-start),...verdict(no)})
+  if(no){lemmas.push({split,no});ctx.push(domain);path.set(canon(split),{lin:split,holds:true})}
+ }
+ const activeCeilings=new Set(ceilings.flatMap(good=>good.op==='<='&&good.a.op==='if'&&truth(good.a.c,path)===true?[JSON.stringify([good.a.then,good.b])]:[]))
+ for(const good of ceilings){
+  if(good.op==='<='&&good.a.op==='if'&&truth(good.a.c,path)!==true&&activeCeilings.has(JSON.stringify([good.a.then,good.b])))continue
   if(good.op!=='<='||clock()>=until)break
   if(truth(good,path)===true)continue
-  const a=linear(good.a,root),b=linear(good.b,root);if(!a||!b)continue
+  const a=linear(good.a,path),b=linear(good.b,path);if(!a||!b)continue
   const split=sub(a,b),noPath=new Map(path).set(canon(split),{lin:split,holds:false}),start=clock()
-  const facts=narrow(good),part={...g,hyps:[...facts,...ctx,{op:'not' as const,x:good}]},proof=solve(part,250),lifted=proof&&widen(part,g,proof,{},root,noPath),no=lifted&&check(g,lifted,noPath)?lifted:undefined
-  trace.push({stage:'field-bound',bound:good,ms:Math.round(clock()-start),proved:!!no,checked:!!no})
+  const facts=narrow(good),part={...g,hyps:[...facts,...ctx,{op:'not' as const,x:good}]},proof=solve(part,250),lifted=proof&&widen(part,g,proof,{},root,noPath),no=accept(lifted,noPath)
+  trace.push({stage:'field-bound',bound:good,ms:Math.round(clock()-start),proved:!!no,...verdict(no)})
   if(no){lemmas.push({split,no});ctx.push(good);path.set(canon(split),{lin:split,holds:true})}
  }
  if(process.env.LAB_COUNT_LEMMAS==='1'){
@@ -152,6 +184,15 @@ export function fieldBoundLemmas(m:Machine,ds:CountDecl[],g:Goal,cert:Proposal,u
   const selected=(inst:Proposal['insts'][number]):boolean=>{
    if(inst.unit!==0||rowPlan.length&&inst.terms.some(([,id])=>postIds.has(id)))return false
    const carried=inst.terms.some(([k,id])=>{const c=cs.get(id),b=c&&view(c.body);return k===1&&b?.op==='get'&&carriedMaps.has(b.map)})
+   // Let row cases prove row-dependent carried bounds where their equalities
+   // are known. The complete pool remains available in every row child.
+   if(rowPlan.length&&carried&&inst.terms.length===2){
+    const localRows=new Set(rowPlan.flatMap(([key])=>key.op==='var'?[key.name]:[])),positive=inst.terms.find(([k])=>k===1),negative=inst.terms.find(([k])=>k===-1)
+    const source=positive&&cs.get(positive[1]),target=negative&&cs.get(negative[1]),input=source&&view(source.body)
+    let local=false
+    if(target)walkLive(target.body,root,(o:any)=>{if(o.op==='var'&&localRows.has(o.name)||o.op==='get'&&(m.inputMaps??[]).includes(o.map)&&input?.op==='get'&&o.map!==input.map)local=true})
+    if(local)return false
+   }
    if(inst.terms.length===3||inst.terms.length===5&&carried)return true
    if(inst.terms.length!==2)return false
    const [a,b]=inst.terms.map(([,id])=>cert.reads.find(r=>r[0]===id))
@@ -167,7 +208,9 @@ export function fieldBoundLemmas(m:Machine,ds:CountDecl[],g:Goal,cert:Proposal,u
   // required equality and its read-domain guard.
   const numericBindings=countBindingsAt(cert.reads,root)
   const finish=()=>{
-   if(arithmetic||clock()>=until)return
+   // The outer row pass adds only pre-state cuts. Defer arithmetic closure to
+   // the exhaustive row children, where post-state constraints are available.
+   if(rowPlan.length||arithmetic||clock()>=until)return
    const numeric:Goal={...g,hyps:[...numericBase,...numericBindings,...ctx.filter(pure)]},begun=clock(),q=seq(numeric,Math.min(until,clock()+200))
    trace.push({stage:'count-arithmetic',hyps:numeric.hyps.length,ms:Math.round(clock()-begun),outcome:'tree'in q?'tree':q.stuck,core:q.core?.length,...(!('tree'in q)&&q.stuck==='sat'?{model:q.witness}:{})})
    let proof='tree'in q?q.tree:undefined
@@ -177,9 +220,9 @@ export function fieldBoundLemmas(m:Machine,ds:CountDecl[],g:Goal,cert:Proposal,u
    }
    if(!proof&&process.env.LAB_NAT_CASES==='1'&&!('tree'in q)&&q.stuck==='unknown')proof=proveNaturalCases(numeric,root,Math.min(until,clock()+400),trace)
    const lifted=proof&&liftCountProxies(numeric,g,proof,cert.reads,root,path,event=>trace.push({stage:'count-transport',...event}))
-   if(lifted&&check(g,lifted,path))arithmetic=lifted
+   if(lifted)arithmetic=lifted // liftCountProxies already checks this exact source path.
   }
-  const rank=(inst:Proposal['insts'][number])=>requestFrame(inst)||alias(inst)?0:inst.terms.length===2&&inst.terms.every(([,id])=>postIds.has(id))?1:frame(inst)?2:inst.terms.length===5?3:inst.terms.length===3?4:5
+  const rank=(inst:Proposal['insts'][number])=>requestFrame(inst)||alias(inst)?0:inst.terms.length===2&&inst.terms.every(([,id])=>postIds.has(id))?1:frame(inst)?2:inst.terms.length===3&&inst.terms.every(([,id])=>!postIds.has(id))?3:inst.terms.length===5?4:inst.terms.length===2?5:6
   finish()
   for(const [index,inst]of [...cert.insts.entries()].sort((a,b)=>rank(a[1])-rank(b[1]))){
    if(arithmetic||clock()>=until)break
@@ -188,8 +231,16 @@ export function fieldBoundLemmas(m:Machine,ds:CountDecl[],g:Goal,cert:Proposal,u
    const good=h.xs[0];if(truth(good,path)===true)continue
    const split=Object.fromEntries(inst.terms.map(([n,v])=>[v,n])),noPath=new Map(path).set(canon(split),{lin:split,holds:false})
    const relevant=raw.flatMap(c=>pieces(c)).filter(c=>{let skip=false;walkLive(c,root,(o:any)=>{if(o.op==='get'&&countMaps.has(o.map)||o.op==='var'&&(countIds.has(o.name)||wits.has(o.name)&&o.name!==inst.wit))skip=true});return !skip})
-   const part={...g,hyps:[...relevant,...ctx,h,{op:'not' as const,x:good}]},started=clock(),proof=solve(part,150),lifted=proof&&widen(part,g,proof,{},root,noPath),no=lifted&&check(g,lifted,noPath)?lifted:undefined
-   trace.push({stage:'count-lemma',index,arity:inst.terms.length,terms:inst.terms,ms:Math.round(clock()-started),checked:!!no})
+   const part={...g,hyps:[...relevant,...ctx,h,{op:'not' as const,x:good}]},started=clock()
+   let proof:Tree|undefined
+   if(inst.terms.length===3&&inst.terms.every(([,id])=>!postIds.has(id))){
+    const tiny={name:g.name,hyps:[h,{op:'not' as const,x:good}]},fast=booleanCore(tiny,root,new Set([inst.wit]),Math.min(until,clock()+30),trace)
+    if(fast)proof=widen(tiny,part,fast,{},root,root)
+    trace.push({stage:'direct-partition',index,proved:!!proof})
+   }
+   proof??=solve(part,150)
+   const lifted=proof&&widen(part,g,proof,{},root,noPath),no=accept(lifted,noPath)
+   trace.push({stage:'count-lemma',index,arity:inst.terms.length,terms:inst.terms,ms:Math.round(clock()-started),...verdict(no)})
    if(no){lemmas.push({split,no});ctx.push(good);path.set(canon(split),{lin:split,holds:true});finish()}
   }
   finish()
@@ -205,6 +256,9 @@ export function fieldBoundLemmas(m:Machine,ds:CountDecl[],g:Goal,cert:Proposal,u
  trace.push({stage:'field-bound-conclusion',facts:lemmas.length,ms:Math.round(clock()-start),proved:!!tree})
  if(!tree)return undefined
  for(const {split,no} of lemmas.reverse())tree={split,yes:tree,no}
- // The row combiner checks a deferred child immediately at this same path.
- return options.deferCheck||check(g,tree,root)?tree:undefined
+ // The composing caller must check deferred cuts and children in its full tree.
+ if(options.deferCheck)return tree
+ const checked=check(g,tree,root)
+ if(!checked&&process.env.LAB_TREE_AUDIT==='1')trace.push({stage:'invalid-tree',issue:diagnoseTree(g,tree,root)})
+ return checked?tree:undefined
 }

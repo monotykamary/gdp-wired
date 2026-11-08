@@ -17,6 +17,13 @@ for(const equal of [true,false])test(`witness key congruence ${equal?'checks a n
  if(equal){expect(tree).toBeDefined();if(tree)expect(check(g,tree,path)).toBe(true)}else expect(tree).toBeUndefined()
 })
 
+for(const reverse of [false,true])test(`a partition CInst checks directly in ${reverse?'reverse':'forward'} direction`,()=>{
+ const a=same(get('A',x('w')),n(1)),b=same(get('B',x('w')),n(1)),bit=(c:Parameters<typeof ite>[0])=>ite(c,n(1),n(0)),sum=plus(bit(all(a,b)),bit(all(a,not(b)))),whole=bit(a)
+ const head=atMost(x('countDifference'),n(0)),bad=reverse?less(whole,sum):less(sum,whole),g={name:'partition',hyps:[any(head,bad),not(head)]}
+ const tree=booleanCore(g,new Map(),new Set(['w']),clock()+1000,[])
+ expect(tree).toBeDefined();if(tree)expect(check(g,tree)).toBe(true)
+})
+
 test('a point update proposes its witness-versus-actor equality',()=>{
  const choice=same(x('member'),x('actor')),g={name:'point update',hyps:[less(x('old'),ite(choice,n(0),x('old')))]}
  expect(booleanCandidates(g,new Map(),new Set(['member'])).some(({c})=>JSON.stringify(c)===JSON.stringify(choice))).toBe(true)

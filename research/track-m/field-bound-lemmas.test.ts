@@ -17,8 +17,17 @@ test('strict successor member bounds suggest checked field ceilings without prot
  const good=atMost(ite(all(same(x('?eligible'),n(1)),less(x('target'),n(4))),get('Epoch',x('target')),n(0)),get('Clock',x('source')))
  expect(fieldBounds(m,ds,cert)).toEqual([good])
  expect(fieldBoundLemmas(m,ds,{name:'empty',hyps:[]},cert,clock()+1000,[])).toBeUndefined()
- const goal={name:'ceiling',hyps:[same(x('?eligible'),n(1)),less(x('target'),n(4)),good,less(get('Clock',x('source')),get('Epoch',x('target')))]},tree=fieldBoundLemmas(m,ds,goal,cert,clock()+1000,[])
+ const goal={name:'ceiling',hyps:[same(x('?eligible'),n(1)),less(x('target'),n(4)),good,less(get('Clock',x('source')),get('Epoch',x('target')))]},events:any[]=[],tree=fieldBoundLemmas(m,ds,goal,cert,clock()+1000,events)
+ expect(events.some(e=>e.stage==='field-domain'&&e.checked&&e.direct)).toBe(true)
  expect(tree).toBeDefined();if(tree)expect(check(goal,tree)).toBe(true)
+})
+
+test('ceilings retain input-key fields used by a write beside the post-count target',()=>{
+ const m:Machine={name:'writer ceiling',params:[],inputs:['source'],inputMaps:['Selected'],state:{},maps:{Clock:0,Epoch:0},step:{flags:{eligible:{op:'all',key:'v',c:less(get('Clock',x('v')),plus(get('Clock',x('source')),n(1)))}},maps:{Epoch:{key:x('source'),value:plus(get('Epoch',x('source')),n(1))}}}}
+ const d={j:'row',key:'k',below:n(4),body:ite(less(get('Clock',x('k')),get('Epoch',x('row'))),n(1),n(0))},ds=[{...d,map:'Below'},{...d,map:'Below#'}]
+ const cert={reads:[['target','Below',x('target')],['actor','Below',x('source')],['next','Below#',x('target')]] as CountCert['reads'],insts:[]}
+ const good=(row:ReturnType<typeof x>)=>atMost(ite(all(same(x('?eligible'),n(1)),less(row,n(4))),get('Epoch',row),n(0)),get('Clock',x('source')))
+ expect(fieldBounds(m,ds,cert)).toEqual([good(x('target')),good(x('source'))])
 })
 
 test('equal per-member fields also suggest checked ceiling candidates',()=>{

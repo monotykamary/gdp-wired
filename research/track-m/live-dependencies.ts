@@ -2,7 +2,7 @@
 // established by the caller's checked path need not keep its inactive branches
 // alive, but all returned proof trees still check against the original goal.
 import {type C} from '../../core/machine.ts'
-import {type Path,truth} from '../../kernel/kernel.ts'
+import {type Goal,type Path,truth} from '../../kernel/kernel.ts'
 // Expose conjunctions hidden behind phase implications before dependency
 // filtering. The actual terms are retained, so row transport need not invent
 // identities between rewritten conditional-expression columns.
@@ -16,6 +16,21 @@ export function piecesAt(c:C,path:Path,neg=false):C[]{
   if(open.length===1)return piecesAt(open[0]!,path,neg)
  }
  return [neg?{op:'not',x:c}:c]
+}
+// A proposed small core can omit a witness's source-side guard instance.
+// Re-add only existing hypotheses about witnesses used by that core; never
+// synthesize a guard premise or import an unrelated witness's condition.
+export function sourceWitnessContext(source:Goal,core:Goal,wits:ReadonlySet<string>,path:Path):Goal{
+ const active=new Set<string>()
+ walkLive(core.hyps,path,o=>{if(o.op==='var'&&wits.has(o.name))active.add(o.name)})
+ if(!active.size)return core
+ const extra=source.hyps.filter(c=>{
+  if(core.hyps.includes(c))return false
+  let wanted=false,foreign=false
+  walkLive(c,path,o=>{if(o.op==='var'&&wits.has(o.name)){if(active.has(o.name))wanted=true;else foreign=true}})
+  return wanted&&!foreign
+ })
+ return extra.length?{...core,hyps:[...core.hyps,...extra]}:core
 }
 export function walkLive(root:unknown,path:Path,visit:(value:any)=>void):void{
  const seen=new WeakSet<object>()

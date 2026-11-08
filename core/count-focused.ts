@@ -1,14 +1,14 @@
 // A count cell that is free in the abstraction can make MBQI miss a useful law
 // instance. Bridge the goal's keys with request keys for unary/binary count laws.
 // These are ordinary universal instances, never additional arithmetic facts.
-export function countLawSeeds(m: Machine, laws: Law[], at: Instances, own: E[], request: E[], fromRequestOnly = false): Instances {
+export function countLawSeeds(m: Machine, laws: Law[], at: Instances, own: E[], request: E[], fromRequestOnly = false, options: {requestDiagonals?: boolean} = {}): Instances {
   let out=at
   for(const law of laws) {
     if(!law.forall||(law.keys?.length??0)>1) continue
     let counted=false
     walkOnce(law.holds,(o:any)=>{if(o.op==='get'&&m.counts?.[o.map])counted=true})
     if(!counted) continue
-    const n=1+(law.keys?.length??0), candidates=n===1?[...own,...request].map(x=>[x]):own.flatMap(a=>request.flatMap(b=>fromRequestOnly?[[b,a]]:[[a,b],[b,a]]))
+    const n=1+(law.keys?.length??0), candidates=n===1?[...own,...request].map(x=>[x]):[...options.requestDiagonals?request.map(b=>[b,b]):[],...own.flatMap(a=>request.flatMap(b=>fromRequestOnly?[[b,a]]:[[a,b],[b,a]]))]
     const have=at[law.name]??[], known=new Set<string>()
     for(let i=0;i<have.length;i+=n)known.add(JSON.stringify(have.slice(i,i+n)))
     const extra=candidates.slice(0,32).filter(t=>{const k=JSON.stringify(t);if(known.has(k))return false;known.add(k);return true}).flat()

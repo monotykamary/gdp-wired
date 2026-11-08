@@ -33,7 +33,7 @@ const names=[law.forall,...law.keys??[]],own:E[]=[x(`${law.forall}#`),...(law.ke
 let countedTarget=false;walkOnce(law.holds,(o:any)=>{if(o.op==='get'&&m.counts[o.map])countedTarget=true})
 const rows=own.filter((_,i)=>scalar.has(names[i])),request:E[]=m.inputs.filter((name:string)=>Object.values(m.counts??{}).some((c:any)=>![c.j,c.lo,c.key].includes(name)&&JSON.stringify([c.below,c.body]).includes(`"name":${JSON.stringify(name)}`))).map(x)
 mark('seeding-instances')
-at=countLawSeeds(m,laws,at,rows.length?rows:own,request,!countedTarget);at=fieldLawBridges(m,laws,at,rows.length?rows:own,request,own.length===3?own[2]:undefined);at[law.name]=[...at[law.name]??[],...own];at=countRowBridges(m,law,at,own,request)
+at=countLawSeeds(m,laws,at,rows.length?rows:own,request,!countedTarget,{requestDiagonals:process.env.LAB_REQUEST_DIAGONALS==='1'});at=fieldLawBridges(m,laws,at,rows.length?rows:own,request,own.length===3?own[2]:undefined);at[law.name]=[...at[law.name]??[],...own];at=countRowBridges(m,law,at,own,request)
 // Diagnostic only: the design also permits Ov_uw. Its numeric keys can be
 // instantiated by the actual excess-over-outside counts, not guessed halves.
 if(process.env.LAB_SYMBOLIC_OVERLAP==='1'){

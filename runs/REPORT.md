@@ -1017,3 +1017,50 @@ and retain complete bounded verdicts.
 `natural-checks-v1`: **229 Track M tests / 4,464 assertions** and **67 Track P
 tests / 1,071 assertions** pass. TypeScript and type-aware lint report zero
 warnings/errors across 1,016 files. Step 1 and the paired 29×3 gate remain open.
+
+### Step 1b: actor-diagonal ceilings and a checked leader-action branch
+
+The small failed leader core omitted the active witness's can-vote premise.
+Restoring only existing source hypotheses for that witness is sound, but was
+not sufficient: its next model identified the witness with the actor and left
+the actor's old configuration term above its current term. The certificate had
+no actor/actor instance. `countLawSeeds` now optionally prioritizes request
+self-tuples within the same 32-tuple cap. The corresponding count comparison
+proves the actor's own ceiling, alongside the target-row ceiling. This option
+is currently selected by the research replay, not enabled as production policy.
+
+Field-domain cuts are proved from the source before conditional ceilings are
+linearized. Direct bounded arithmetic proves these domains, and the eight
+pre-state partition instances now check directly without a native query.
+Row-dependent carried comparisons are deferred to row children; duplicate
+conditional ceilings and pre-only arithmetic queries are avoided. Source
+hypotheses are never fabricated. Deferred children/cuts remain proposals until
+the complete guard tree passes the unchanged checker. Negative regressions
+still reject missing subset/union premises and unchecked proposals.
+
+The leader-action entry now checks, including all row orientations and inactive
+guard cases. `deferred-arithmetic-v1` is an isolated, pinned-large run (placement
+recorded, zero co-tenants): **3,626 counted ms / 80,200 wall ms**;
+`branches[4] = true`, `guard-complete.checked = true`. The top-level `checked`
+remains false because this `LAB_CASE=4` run intentionally omits all other action
+entries. This is a checked encoded action branch, not an admitted Inv* law or a
+full hand-set certificate, and its wall cost is still far above the desired
+production cost.
+
+The same isolated batch leaves reconfiguration open at **5,086 counted ms /
+33,166 wall ms**: every row tree is proposed, but final source transport does
+not complete in the allowance. `source-active-v1` tests removing the redundant
+active premise and relying on the original goal/path: leader still checks,
+but reconfiguration's first row then fails. That route remains diagnostic and
+is not the default. Earlier large Boolean dumps exceeding the 400-KB worker
+stdout cap were replaced by bounded premise-delta and tree-rejection traces.
+No missing receipt or timeout is counted as a proof.
+
+`diagonal-checks-v4` passes **236 Track M tests / 4,492 assertions**, **67 Track P
+tests / 1,071 assertions**, and TypeScript/type-aware lint with zero
+warnings/errors on 1,018 files. One earlier shared-VM Track P run timed out two
+five-second carry tests; the unchanged command passed with an isolated CPU
+reservation and in the subsequent complete v2/v3/v4 checks. No timeout or proof
+budget was raised. Step 1, production generation, and the downstream gates
+remain open; the next work is the remaining count proof and its source-context
+cost.

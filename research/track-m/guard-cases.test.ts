@@ -10,13 +10,26 @@ test('activation proofs retain their original non-empty path scope',()=>{
  expect(tree).toBeDefined()
  if(tree)expect(check(g,tree,path)).toBe(true)
 })
+test('source-only activation stays checked and does not mutate its input goal',()=>{
+ const previous=process.env.LAB_ACTIVE_SOURCE
+ try{
+  process.env.LAB_ACTIVE_SOURCE='1'
+  const g={name:'impossible source',hyps:[{op:'<' as const,a:n(1),b:n(0)}]},before=JSON.stringify(g),events:any[]=[]
+  const tree=guardCases(m,[],g,{reads:[],insts:[]},same(x('action'),n(1)),clock()+1000,events)
+  expect(tree).toBeDefined();if(tree)expect(check(g,tree)).toBe(true)
+  expect(events.some(e=>e.stage==='guard-leaf'&&e.active&&e.sourceOnly)).toBe(true)
+  expect(JSON.stringify(g)).toBe(before)
+ }finally{if(previous===undefined)delete process.env.LAB_ACTIVE_SOURCE;else process.env.LAB_ACTIVE_SOURCE=previous}
+})
 test('activation cases cannot turn a satisfiable unrestricted goal into a proof',()=>{
  const g={name:'possible',hyps:[same(x('action'),n(1))]}
  expect(guardCases(m,[],g,{reads:[],insts:[]},same(x('action'),n(1)),clock()+1000,[])).toBeUndefined()
 })
 test('activation case leaves lift to a checked complete tree',()=>{
  const g={name:'impossible',hyps:[{op:'<' as const,a:n(1),b:n(0)}]}
- const tree=guardCases(m,[],g,{reads:[],insts:[]},same(x('action'),n(1)),clock()+1000,[])
+ const events:any[]=[],tree=guardCases(m,[],g,{reads:[],insts:[]},same(x('action'),n(1)),clock()+1000,events)
  expect(tree).toBeDefined()
+ expect(events.some(e=>e.stage==='guard-leaf'&&e.active&&e.deferred&&!e.checked)).toBe(true)
+ expect(events.some(e=>e.stage==='guard-complete'&&e.checked)).toBe(true)
  if(tree)expect(check(g,tree)).toBe(true)
 })
