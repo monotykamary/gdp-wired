@@ -2116,3 +2116,50 @@ Evidence: `runs/track-m/kernel-pair-v1/` (batch
 The first Inv* log reached the 400,000-byte output cap after its second
 pair. Only the missing third pair was rerun, with trace-free output; no
 truncated record was treated as a complete measurement.
+
+#### Second mirror replay
+
+`mirrored-rows-v2`, batch `20261108-132209-f0qm6t`, tree `040f4a1e33c3`,
+retains same-label histories so different/different ordering halves can also
+be swapped. The originally requested different/equal send row is reused;
+a later different/different half still runs out of the current share.
+
+| Complete hand-set law | Proved / checked | Counted ms | In-process wall s |
+| --- | --- | ---: | ---: |
+| one primary per term | yes / yes | 2,314 | 13.322 |
+| Inv3915: primary newest | yes / yes | 1,936 | 10.857 |
+| Inv1758: row agreement | no / no | 5,019 | 14.234 |
+| Inv2973: quorum overlap | no / no | 5,001 | 40.078 |
+| Inv*: quorum term backing | no / no | 5,101 | 33.168 |
+
+The type error is fixed; lint now identifies an unused test variable, removed
+in the next snapshot. Two Track P tests reached their unchanged 5-second test
+timeout on this VM (both reported their checked cyclic certificates before
+termination). They remain failed validation, not accepted passes. No timeout
+is increased. The next replay uses exact row remapping rather than `widen`'s
+fallback search for cache hits, and prioritizes the compatible ordering half.
+
+#### Generic mirror implementation validated
+
+`mirrored-rows-v3`, batch `20261108-133547-s6host`, tree `0437450d1e1f`,
+checks all 126 production-derivation tests, 296 Track M tests, 67 Track P
+tests, and type/lint with zero warnings/errors. The prior two Track P
+timeouts do not recur under the unchanged test timeout.
+
+| Complete hand-set law | Proved / checked | Counted ms | In-process wall s |
+| --- | --- | ---: | ---: |
+| one primary per term | yes / yes | 3,166 | 4.176 |
+| Inv3915: primary newest | yes / yes | 2,370 | 5.645 |
+| Inv1758: row agreement | no / no | 5,014 | 9.589 |
+| Inv2973: quorum overlap | no / no | 5,001 | 19.528 |
+| Inv*: quorum term backing | no / no | 5,100 | 19.441 |
+
+The untrusted mirror is default and protocol-independent. The requested
+send different/equal derivation is now instantiated from its sibling and
+emitted in full, including reindexed ordinary arithmetic leaves. A later
+different/different row still exhausts the whole-law allowance; mirror reuse
+alone is not a complete Inv1758 proof. Exact-only ordinary cache transport
+also costs more search than the older fallback in this replay. The next
+change preserves the old ordinary-cache fallback while trying compatible
+mirrors first, then addresses arithmetic-core selection of source frames
+for the two counted laws. Track K remains excluded from this branch.

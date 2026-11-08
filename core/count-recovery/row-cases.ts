@@ -5,7 +5,8 @@ import {type CountCert,type Goal,type Path,type Tree,canon,linear,substC,substE,
 import {clock,withDeadline} from '../../kernel/prove.ts'
 import {scale,sub} from '../solver.ts'
 import {walkLive} from './live-dependencies.ts'
-import {wallTree,check,widen} from './ops.ts'
+import {wallTree,check} from './ops.ts'
+import {renameProof} from './rename-proof.ts'
 export type RowPair=readonly [E,E]
 // Prefer exact scalar destinations, including constant-index initialization.
 export function activeWriteKey(m:Machine,root:Path):E|undefined{
@@ -62,19 +63,45 @@ export function rowPairs(m:Machine,cert:Pick<CountCert,'reads'>,root:Path=new Ma
 export const proveRowCases:typeof proveRowCasesImpl=(...args)=>wallTree('row-case-reconstruction',()=>proveRowCasesImpl(...args))
 function proveRowCasesImpl(g:Goal,root:Path,pairs:RowPair[],until:number,prove:(path:Path,until:number)=>Tree|undefined,trace?:(e:object)=>void,options:{deferToCaller?:boolean,splitEqual?:boolean}={}):Tree|undefined{
  if(!pairs.length||clock()>=until)return undefined
- const cache=new Map<string,{path:Path,tree:Tree}>()
+ const cache=new Map<string,{path:Path,tree:Tree}>(),history=new Map<string,{path:Path,tree:Tree}[]>()
+ const renaming:Record<string,string>={},pair=pairs.length===2?pairs:undefined
+ let mirror=!!pair
+ if(pair)for(let i=0;i<2;i++){
+  const a=pair[0]![i]!,b=pair[1]![i]!
+  if(JSON.stringify(a)===JSON.stringify(b))continue
+  if(a.op!=='var'||b.op!=='var'||renaming[a.name]&&renaming[a.name]!==b.name||renaming[b.name]&&renaming[b.name]!==a.name){mirror=false;break}
+  renaming[a.name]=b.name;renaming[b.name]=a.name
+ }
  const leaf=(path:Path,key:string):Tree|undefined=>{
   if(clock()>=until)return undefined
   const begun=clock(),old=cache.get(key)
   if(old){
-   const t=withDeadline(Math.min(until,clock()+50),()=>widen(g,g,old.tree,{},old.path,path))
+   const t=withDeadline(Math.min(until,clock()+50),()=>renameProof(g,old.tree,old.path,path,{},Math.min(until,clock()+50)))
    const accepted=!!t&&(options.deferToCaller||check(g,t,path))
    if(accepted&&t){trace?.({stage:'row-case',key,cached:true,ms:Math.round(clock()-begun),checked:!options.deferToCaller,proposed:true,deferred:!!options.deferToCaller});return t}
+  }
+  const opposite=key.split('/').reverse().join('/')
+  const compatible=(old:{path:Path})=>{
+   const vars=Object.fromEntries(Object.entries(renaming).map(([a,b])=>[a,x(b)]));let score=0
+   for(const [a,b]of pairs){
+    const left=linear(a,old.path),right=linear(b,old.path),nextLeft=linear(substE(a,{vars,maps:{},flags:{}}),path),nextRight=linear(substE(b,{vars,maps:{},flags:{}}),path)
+    if(!left||!right||!nextLeft||!nextRight)continue
+    for(const sign of [1,-1]){
+     const source=old.path.get(canon(scale(sub(left,right),sign)))?.holds,target=path.get(canon(scale(sub(nextLeft,nextRight),sign)))?.holds
+     if(source!==undefined&&target!==undefined)score+=source===target?1:-1
+    }
+   }
+   return score
+  }
+  if(mirror&&key.includes('/'))for(const old of [...history.get(opposite)??[]].reverse().sort((a,b)=>compatible(b)-compatible(a))){
+   const t=renameProof(g,old.tree,old.path,path,renaming,Math.min(until,clock()+50))
+   const accepted=!!t&&(options.deferToCaller||check(g,t,path))
+   if(accepted&&t){trace?.({stage:'row-mirror',from:opposite,to:key,ms:Math.round(clock()-begun),checked:!options.deferToCaller,proposed:true,deferred:!!options.deferToCaller});cache.set(key,{path:new Map(path),tree:t});return t}
   }
   const t=prove(path,Math.min(until,clock()+1500)),accepted=!!t&&(options.deferToCaller||check(g,t,path))
   trace?.({stage:'row-case',key,cached:false,ms:Math.round(clock()-begun),checked:!options.deferToCaller&&accepted,proposed:!!t,deferred:!!options.deferToCaller})
   if(!t||!accepted)return undefined
-  cache.set(key,{path:new Map(path),tree:t});return t
+  const entry={path:new Map(path),tree:t};cache.set(key,entry);history.set(key,[...history.get(key)??[],entry]);return t
  }
  const split=(pair:RowPair,path:Path,yes:(p:Path)=>Tree|undefined,no:(p:Path)=>Tree|undefined):Tree|undefined=>{
   const condition:C={op:'=',a:pair[0],b:pair[1]},known=truth(condition,path)

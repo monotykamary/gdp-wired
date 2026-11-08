@@ -39,8 +39,17 @@ test('row copies can split the secondary key in the primary-equal branch too',()
  const g={name:'four cases',hyps:[{op:'<' as const,a:n(1),b:n(0)}]};let calls=0
  const tree=proveRowCases(g,new Map(),[[x('a'),x('destination')],[x('b'),x('destination')]],clock()+1000,(path,until)=>{calls++;const out=grow(g,path,{nodes:0,until});return 'tree'in out?out.tree:undefined},undefined,{splitEqual:true})
  expect(tree).toBeDefined();if(tree)expect(check(g,tree)).toBe(true)
- expect(calls).toBe(4)
+ expect(calls).toBe(3)
 })
+test('mirrored row cases emit full subtrees without rerunning their callback',()=>{
+ const a=x('left'),b=x('right'),g={name:'symmetric cells',hyps:[same(get('V',a),get('V',b)),not(same(get('V',a),get('V',b)))]},events:any[]=[]
+ let calls=0
+ const tree=proveRowCases(g,new Map(),[[a,x('destination')],[b,x('destination')]],clock()+1500,(path,until)=>{calls++;const out=grow(g,path,{nodes:0,until});return 'tree'in out?out.tree:undefined},event=>events.push(event),{splitEqual:true})
+ expect(tree).toBeDefined();if(tree)expect(check(g,tree)).toBe(true)
+ expect(calls).toBe(3)
+ expect(events.some(event=>event.stage==='row-mirror'&&event.from==='equal/different'&&event.to==='different/equal'&&event.checked)).toBe(true)
+})
+
 test('row cases never accept an unchecked leaf',()=>{
  const g={name:'possible',hyps:[{op:'<=' as const,a:n(0),b:x('a')}]}
  expect(proveRowCases(g,new Map(),[[x('a'),x('i')]],clock()+100,()=>({leaf:[]}))).toBeUndefined()
