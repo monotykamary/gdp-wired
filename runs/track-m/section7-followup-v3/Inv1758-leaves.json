@@ -1,0 +1,48 @@
+{
+  "test": "section7-followup-leaves",
+  "law": "Inv1758: one version and term, one config",
+  "calls": 0,
+  "provenance": [],
+  "sameTreeObject": {
+    "calls": 0,
+    "distinct": 0,
+    "repeatedLeaves": 0,
+    "callsOnRepeatedLeaves": 0,
+    "extraChecks": 0,
+    "multiplicities": []
+  },
+  "sameGoalAndTreeObject": {
+    "calls": 0,
+    "distinct": 0,
+    "repeatedLeaves": 0,
+    "callsOnRepeatedLeaves": 0,
+    "extraChecks": 0,
+    "multiplicities": []
+  },
+  "sameExactCheckedLeaf": {
+    "calls": 0,
+    "distinct": 0,
+    "repeatedLeaves": 0,
+    "callsOnRepeatedLeaves": 0,
+    "extraChecks": 0,
+    "multiplicities": []
+  },
+  "sameProblem": {
+    "calls": 0,
+    "distinct": 0,
+    "repeatedLeaves": 0,
+    "callsOnRepeatedLeaves": 0,
+    "extraChecks": 0,
+    "multiplicities": []
+  },
+  "sameCertificate": {
+    "calls": 0,
+    "distinct": 0,
+    "repeatedLeaves": 0,
+    "callsOnRepeatedLeaves": 0,
+    "extraChecks": 0,
+    "multiplicities": []
+  },
+  "rows": [],
+  "auditWallMs": 2.5482219999976223
+}

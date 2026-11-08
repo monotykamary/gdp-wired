@@ -35,6 +35,7 @@ withTrees(()=>{
  }
 })
 census.enabled=false
+if(process.env.LAB_SECTION7_FOLLOWUP==='1'){const {followup}=await import('./section7-followup-meter.ts');for(const audit of followup.audits())console.log(JSON.stringify(audit))}
 let auditWallMs=0
 for(const {record,audit:captured} of results){
  const audit=captured.audit(check,usedHyps);auditWallMs+=audit.wallMs

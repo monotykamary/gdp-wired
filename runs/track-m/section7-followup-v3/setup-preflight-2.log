@@ -1,0 +1,8 @@
+research/track-m/section7-demand-measurement.ts(57,426): error TS2345: Argument of type 'Record<string, number> | undefined' is not assignable to parameter of type 'Record<string, number>'.
+  Type 'undefined' is not assignable to type 'Record<string, number>'.
+research/track-m/section7-demand-measurement.ts(57,561): error TS2345: Argument of type 'Record<string, number> | undefined' is not assignable to parameter of type 'Record<string, number>'.
+  Type 'undefined' is not assignable to type 'Record<string, number>'.
+research/track-m/section7-followup-meter.test.ts(3,14): error TS2459: Module '"../../kernel/kernel.ts"' declares 'C' locally, but it is not exported.
+
+--- stderr ---
+$ tsc -p . && oxlint --type-aware --deny-warnings --disable-nested-config

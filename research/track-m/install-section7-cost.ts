@@ -13,9 +13,22 @@ const targets:Record<string,[string,string][]>= {
  'core/count-recovery/scalar-guards.ts':[['countScalarGuards','scalar-proposal']],
  'core/count-recovery/derivability-closure.ts':[],
 }
+const followup=process.argv.includes('--followup')
+if(followup){
+ targets['kernel/kernel.ts']!.push(['mcGoal','count-goal-build'],['countedObligations','obligation-build'])
+ targets['kernel/prove.ts']!.push(['rowsAt','row-materialization'])
+ targets['core/count-focused.ts']=[['focusCountCert','focused-pool'],['countLawSeeds','instance-seeds'],['countRowBridges','instance-seeds'],['fieldLawBridges','instance-seeds'],['independentCountInstances','instance-validation']]
+ targets['core/count-cases.ts']=[['selectedCase','case-control'],['proveCountCases','case-control'],['withoutCountWitnesses','witness-filter']]
+ targets['core/count-witness-flags.ts']=[['seedCountWitnessFlags','witness-flags']]
+ targets['core/count-write-frames.ts']=[['proposeWriteCountFrames','write-frame-proposal']]
+ targets['core/count-recovery/pre-state-source.ts']=[['preStateCountSource','source-transform']]
+ targets['core/count-recovery/fold-path.ts']=[['foldPath','source-transform']]
+ targets['core/count-recovery/field-case.ts']=[['fieldCase','field-control']]
+}
 for(const [file,specs]of Object.entries(targets)){
  let source=readFileSync(file,'utf8')
  const replace=(a:string,b:string)=>{if(source.split(a).length!==2)throw new Error('nonunique T1 marker: '+a);source=source.replace(a,b)}
+ if(followup&&file==='core/count-recovery/conditional-proof.ts')replace("if ('leaf' in t) return check(goal, t, lemmaPath(context.lemmas, p)) && alive(until)","if ('leaf' in t) return __s7Detail.withLeafContext(goal,t,p,context.lemmas,()=>check(goal, t, lemmaPath(context.lemmas, p))) && alive(until)")
  if(file==='core/count-recovery/conditional-cuts.ts'){
   replace('  if (less.length < when.length) {',"  __s7Detail.run('admitCut.trace-reduction','admission',()=>{\n  if (less.length < when.length) {")
   replace('    const next = proofPath(less, cut), reduced = transport(small, small, proof, base, next, until)', '    const next = proofPath(less, cut), reduced = transport(small, small, proof!, base, next, until)')
@@ -30,7 +43,8 @@ for(const [file,specs]of Object.entries(targets)){
    const renamed=`__s7Original_${name}`;edits.push({start:fn.name.getStart(ast),end:fn.name.end,text:renamed})
    const walk=(n:ts.Node)=>{if(ts.isCallExpression(n)&&ts.isIdentifier(n.expression)&&n.expression.text===name)edits.push({start:n.expression.getStart(ast),end:n.expression.end,text:renamed});ts.forEachChild(n,walk)};walk(fn.body)
    const exported=fn.modifiers?.some(m=>m.kind===ts.SyntaxKind.ExportKeyword)?'export ':''
-   const call=kind==='kernel'?`__s7Detail.kernel('${file}:${name}',args,()=>${renamed}(...args))`:`__s7Detail.run('${file}:${name}','${kind}',()=>${renamed}(...args))`
+   const timed=kind==='kernel'?`__s7Detail.kernel('${file}:${name}',args,()=>${renamed}(...args))`:`__s7Detail.run('${file}:${name}','${kind}',()=>${renamed}(...args))`
+   const call=followup&&name==='mcGoal'?`__s7Followup.noteGoal(args,${timed})`:timed
    edits.push({start:fn.end,end:fn.end,text:`\n${exported}const ${name}:typeof ${renamed}=(...args)=>${call}\n`})
   }else{
    let found=false
@@ -49,7 +63,7 @@ for(const [file,specs]of Object.entries(targets)){
  }
  for(const edit of edits.sort((a,b)=>b.start-a.start))source=source.slice(0,edit.start)+edit.text+source.slice(edit.end)
  let module=relative(dirname(file),'research/track-m/section7-cost-meter.ts');if(!module.startsWith('.'))module='./'+module
- writeFileSync(file,`import {detail as __s7Detail} from '${module}'\n`+source)
+ writeFileSync(file,`import {detail as __s7Detail${followup&&file==='kernel/kernel.ts'?',followup as __s7Followup':''}} from '${module}'\n`+source)
 }
 const file='research/track-m/active-source-probe.ts';let source=readFileSync(file,'utf8')
 source=source.replace('import {fieldBoundLemmas,fieldBounds}', 'import {fieldBoundLemmas as __s7FieldBoundLemmas,fieldBounds}')

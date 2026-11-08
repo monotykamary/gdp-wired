@@ -1,0 +1,15 @@
+{
+  "measurementOnly": true,
+  "productionChanged": false,
+  "vm": "bx_3kjzmmhv",
+  "exclusive": true,
+  "controlVerdictsMatch": 5,
+  "exactCountedMatches": 4,
+  "invstarCountedDelta": 0.3255687999962902,
+  "historicalFullGoalChecks": 136,
+  "replayedFullGoalChecks": 120,
+  "replayedDistinctCheckedLeaves": 88,
+  "replayedLeavesCheckedTwice": 32,
+  "gate1Status": "unchanged: 3/5; not rerun",
+  "implementation": "none"
+}

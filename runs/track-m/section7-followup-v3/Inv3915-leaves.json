@@ -1,0 +1,48 @@
+{
+  "test": "section7-followup-leaves",
+  "law": "Inv3915: one config term, the primary newest",
+  "calls": 0,
+  "provenance": [],
+  "sameTreeObject": {
+    "calls": 0,
+    "distinct": 0,
+    "repeatedLeaves": 0,
+    "callsOnRepeatedLeaves": 0,
+    "extraChecks": 0,
+    "multiplicities": []
+  },
+  "sameGoalAndTreeObject": {
+    "calls": 0,
+    "distinct": 0,
+    "repeatedLeaves": 0,
+    "callsOnRepeatedLeaves": 0,
+    "extraChecks": 0,
+    "multiplicities": []
+  },
+  "sameExactCheckedLeaf": {
+    "calls": 0,
+    "distinct": 0,
+    "repeatedLeaves": 0,
+    "callsOnRepeatedLeaves": 0,
+    "extraChecks": 0,
+    "multiplicities": []
+  },
+  "sameProblem": {
+    "calls": 0,
+    "distinct": 0,
+    "repeatedLeaves": 0,
+    "callsOnRepeatedLeaves": 0,
+    "extraChecks": 0,
+    "multiplicities": []
+  },
+  "sameCertificate": {
+    "calls": 0,
+    "distinct": 0,
+    "repeatedLeaves": 0,
+    "callsOnRepeatedLeaves": 0,
+    "extraChecks": 0,
+    "multiplicities": []
+  },
+  "rows": [],
+  "auditWallMs": 0.6957819999952335
+}

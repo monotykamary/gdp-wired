@@ -4831,3 +4831,54 @@ Evidence: **`runs/track-m/section7-followup-v3/README-demand.md`**,
 **`demand-results.json`**, **`t2-t3.log`**, and **`t2-hygiene.log`**.
 The failed T1 implementation line remains in force. No implementation or
 promotion follows from these measurements.
+
+### Follow-up (b): Inv2973 construction/traversal one level deeper
+
+The prior residual was **9.543 s**; this new same-input replay measures
+**11.024 s** in the same exclusive category. This is not a retrospective
+split of the old time. Counted work matches the control exactly.
+
+| Exclusive category, excluding admission/transport and search | Wall |
+|---|---:|
+| Arithmetic-row materialization in `rowsAt` | **6.004 s** |
+| Remaining case/branch control | **4.633 s** |
+| Focused pool construction | 0.287 s |
+| Count-goal construction | 0.049 s |
+| Field-case control | 0.029 s |
+| Obligation construction | 0.014 s |
+| Witness seeding and other bookkeeping | 0.008 s |
+| **Total** | **11.024 s** |
+
+Thus row materialization accounts for **54.46%**; the still-coarse residual
+case-control category is **42.03%**. Nested inclusive site totals are not
+summed. The latter category is not falsely assigned to one AST operation.
+
+### Follow-up (c): hypotheses and repeated full-goal checks
+
+Each checked goal contains **378 underlying obligation hypotheses + 20
+count-read bindings + 91 count-instance disjunctions**. The 91 split into
+**26 frame clauses and 65 other count clauses**. A separately inserted guard
+makes 490 rather than 489. Of the 378 obligation hypotheses, **341 mention
+count witnesses**, including **126 frame-witness hypotheses**; only 37 are
+witness-free before the guard. These count clauses are not independently
+proved cuts. Proved scalar cuts add **zero goal hypotheses**: they enter the
+path instead (0–23 additional atoms in the audited calls).
+
+The earlier trace had 136 checks but did not record identities. The fresh
+same-input replay records **120** (114 with 490 hypotheses, six with 489),
+spending **5.717 s** in their checker. For exact goal + ordered path + leaf
+certificate identity: **88 distinct leaves, 32 checked twice, 32 extra
+checks**. By object identity separately: 96 leaf objects, 24 used twice.
+These counts describe the new replay, not an invented audit of the old 136.
+
+All five control/profile verdicts agree. Counted work matches exactly for
+four; Inv* differs by **+0.325569 units (0.0063%)**, explicitly preventing an
+exact-trace-equivalence claim. TypeScript, type-aware lint and **five tests /
+15 assertions** pass. Both T3 numeric cores independently check in the kernel
+under their assumed goods; this does not prove the goods themselves.
+
+Complete compressed and decoded receipts, per-call hashes, and verification
+are in **`runs/track-m/section7-followup-v3/`**, especially
+**`README-census.md`**, **`Invstar-leaves.json`**, **`results.json`**, and
+**`validation/verify.log`**. Production sources remain unchanged. Gate 1 stays
+at the previously established 3/5; no implementation or new gate was run.
