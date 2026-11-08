@@ -1,0 +1,1340 @@
+[
+  {
+    "id": "A1",
+    "side": "A",
+    "repeat": 1,
+    "exitCode": 0,
+    "laws": [
+      {
+        "mode": "family",
+        "memory": {
+          "rss": 240664576,
+          "heapUsed": 87552354
+        },
+        "law": "one primary per term",
+        "rowsOn": true,
+        "treesOn": true,
+        "contextsOn": true,
+        "indexOn": true,
+        "proven": true,
+        "checked": true,
+        "wallMs": 1877.812827,
+        "countedMs": 926.6334919999999,
+        "treeHits": 0,
+        "sourceReuse": {
+          "foreignAttempts": 94,
+          "foreignHits": 1,
+          "crossLawHits": 0,
+          "localHits": 41
+        },
+        "rowReuse": {
+          "nodeHits": 11664,
+          "nodeMisses": 2504,
+          "goalHits": 12,
+          "rowsHits": 669,
+          "rowsBuilt": 1714,
+          "rowsEvicted": 0
+        },
+        "phases": {},
+        "sites": {},
+        "cache": null
+      },
+      {
+        "mode": "family",
+        "memory": {
+          "rss": 394584064,
+          "heapUsed": 133925288
+        },
+        "law": "Inv3915: one config term, the primary newest",
+        "rowsOn": true,
+        "treesOn": true,
+        "contextsOn": true,
+        "indexOn": true,
+        "proven": true,
+        "checked": true,
+        "wallMs": 2288.001977,
+        "countedMs": 872.3352536000001,
+        "treeHits": 0,
+        "sourceReuse": {
+          "foreignAttempts": 287,
+          "foreignHits": 5,
+          "crossLawHits": 3,
+          "localHits": 39
+        },
+        "rowReuse": {
+          "nodeHits": 17776,
+          "nodeMisses": 2808,
+          "goalHits": 13,
+          "rowsHits": 610,
+          "rowsBuilt": 1635,
+          "rowsEvicted": 910
+        },
+        "phases": {},
+        "sites": {},
+        "cache": null
+      },
+      {
+        "mode": "family",
+        "memory": {
+          "rss": 1013354496,
+          "heapUsed": 452653820
+        },
+        "law": "Inv1758: one version and term, one config",
+        "rowsOn": true,
+        "treesOn": true,
+        "contextsOn": true,
+        "indexOn": true,
+        "proven": true,
+        "checked": true,
+        "wallMs": 13519.085085000002,
+        "countedMs": 4310.4753532,
+        "treeHits": 0,
+        "sourceReuse": {
+          "foreignAttempts": 677,
+          "foreignHits": 29,
+          "crossLawHits": 1,
+          "localHits": 33
+        },
+        "rowReuse": {
+          "nodeHits": 67765,
+          "nodeMisses": 465,
+          "goalHits": 96,
+          "rowsHits": 528,
+          "rowsBuilt": 14235,
+          "rowsEvicted": 14540
+        },
+        "phases": {},
+        "sites": {},
+        "cache": null
+      },
+      {
+        "mode": "family",
+        "memory": {
+          "rss": 4336943104,
+          "heapUsed": 2572256799
+        },
+        "law": "Inv2973: quorums overlap, or a config disabled",
+        "rowsOn": true,
+        "treesOn": true,
+        "contextsOn": true,
+        "indexOn": true,
+        "proven": false,
+        "checked": false,
+        "wallMs": 35079.300552,
+        "countedMs": 5002.6530103999985,
+        "treeHits": 0,
+        "sourceReuse": {
+          "foreignAttempts": 311,
+          "foreignHits": 0,
+          "crossLawHits": 0,
+          "localHits": 9
+        },
+        "rowReuse": {
+          "nodeHits": 213439,
+          "nodeMisses": 42779,
+          "goalHits": 58,
+          "rowsHits": 0,
+          "rowsBuilt": 7635,
+          "rowsEvicted": 7212
+        },
+        "phases": {},
+        "sites": {},
+        "cache": null
+      },
+      {
+        "mode": "family",
+        "memory": {
+          "rss": 4467224576,
+          "heapUsed": 1541469813
+        },
+        "law": "Inv*: no quorum of a config can still be gathered for a config term held",
+        "rowsOn": true,
+        "treesOn": true,
+        "contextsOn": true,
+        "indexOn": true,
+        "proven": false,
+        "checked": false,
+        "wallMs": 34455.681588,
+        "countedMs": 5161.293822800001,
+        "treeHits": 0,
+        "sourceReuse": {
+          "foreignAttempts": 598,
+          "foreignHits": 0,
+          "crossLawHits": 0,
+          "localHits": 15
+        },
+        "rowReuse": {
+          "nodeHits": 69971,
+          "nodeMisses": 6939,
+          "goalHits": 193,
+          "rowsHits": 0,
+          "rowsBuilt": 7082,
+          "rowsEvicted": 6633
+        },
+        "phases": {},
+        "sites": {},
+        "cache": null
+      }
+    ],
+    "total": {
+      "mode": "family-total",
+      "rowsOn": true,
+      "treesOn": true,
+      "contextsOn": true,
+      "indexOn": true,
+      "wallMs": 87221.91934600001,
+      "treeReuse": {
+        "hits": 0,
+        "kept": 3
+      },
+      "rowReuse": {
+        "nodeHits": 380615,
+        "nodeMisses": 55495,
+        "goalHits": 372,
+        "rowsHits": 1807,
+        "rowsBuilt": 32301,
+        "rowsEvicted": 29295
+      }
+    }
+  },
+  {
+    "id": "B1",
+    "side": "B",
+    "repeat": 1,
+    "exitCode": 0,
+    "laws": [
+      {
+        "mode": "family",
+        "memory": {
+          "rss": 226799616,
+          "heapUsed": 79573329
+        },
+        "law": "one primary per term",
+        "rowsOn": true,
+        "treesOn": true,
+        "contextsOn": true,
+        "indexOn": true,
+        "proven": true,
+        "checked": true,
+        "wallMs": 1542.690128,
+        "countedMs": 947.5432539999999,
+        "treeHits": 0,
+        "sourceReuse": {
+          "foreignAttempts": 94,
+          "foreignHits": 1,
+          "crossLawHits": 0,
+          "localHits": 41
+        },
+        "rowReuse": {
+          "nodeHits": 11843,
+          "nodeMisses": 2578,
+          "goalHits": 12,
+          "rowsHits": 669,
+          "rowsBuilt": 1718,
+          "rowsEvicted": 0
+        },
+        "phases": {},
+        "sites": {},
+        "cache": {
+          "leafChecks": 0,
+          "leafHits": 0,
+          "leafFallbacks": 0,
+          "fullHyps": 0,
+          "sliceHyps": 0,
+          "independentChecks": 0,
+          "independentHits": 0,
+          "retargetChecks": 0,
+          "retargetHits": 0
+        }
+      },
+      {
+        "mode": "family",
+        "memory": {
+          "rss": 382500864,
+          "heapUsed": 148433909
+        },
+        "law": "Inv3915: one config term, the primary newest",
+        "rowsOn": true,
+        "treesOn": true,
+        "contextsOn": true,
+        "indexOn": true,
+        "proven": true,
+        "checked": true,
+        "wallMs": 1837.665579,
+        "countedMs": 874.1162936000002,
+        "treeHits": 0,
+        "sourceReuse": {
+          "foreignAttempts": 287,
+          "foreignHits": 5,
+          "crossLawHits": 3,
+          "localHits": 39
+        },
+        "rowReuse": {
+          "nodeHits": 17959,
+          "nodeMisses": 2878,
+          "goalHits": 13,
+          "rowsHits": 610,
+          "rowsBuilt": 1635,
+          "rowsEvicted": 914
+        },
+        "phases": {},
+        "sites": {},
+        "cache": {
+          "leafChecks": 0,
+          "leafHits": 0,
+          "leafFallbacks": 0,
+          "fullHyps": 0,
+          "sliceHyps": 0,
+          "independentChecks": 0,
+          "independentHits": 0,
+          "retargetChecks": 0,
+          "retargetHits": 0
+        }
+      },
+      {
+        "mode": "family",
+        "memory": {
+          "rss": 986750976,
+          "heapUsed": 406583893
+        },
+        "law": "Inv1758: one version and term, one config",
+        "rowsOn": true,
+        "treesOn": true,
+        "contextsOn": true,
+        "indexOn": true,
+        "proven": true,
+        "checked": true,
+        "wallMs": 8884.572087,
+        "countedMs": 4312.6126011999995,
+        "treeHits": 0,
+        "sourceReuse": {
+          "foreignAttempts": 677,
+          "foreignHits": 29,
+          "crossLawHits": 1,
+          "localHits": 33
+        },
+        "rowReuse": {
+          "nodeHits": 68711,
+          "nodeMisses": 465,
+          "goalHits": 96,
+          "rowsHits": 528,
+          "rowsBuilt": 14235,
+          "rowsEvicted": 14540
+        },
+        "phases": {},
+        "sites": {},
+        "cache": {
+          "leafChecks": 0,
+          "leafHits": 0,
+          "leafFallbacks": 0,
+          "fullHyps": 0,
+          "sliceHyps": 0,
+          "independentChecks": 0,
+          "independentHits": 0,
+          "retargetChecks": 0,
+          "retargetHits": 0
+        }
+      },
+      {
+        "mode": "family",
+        "memory": {
+          "rss": 3451994112,
+          "heapUsed": 1930156076
+        },
+        "law": "Inv2973: quorums overlap, or a config disabled",
+        "rowsOn": true,
+        "treesOn": true,
+        "contextsOn": true,
+        "indexOn": true,
+        "proven": false,
+        "checked": false,
+        "wallMs": 23263.111860000005,
+        "countedMs": 5001.8117256,
+        "treeHits": 0,
+        "sourceReuse": {
+          "foreignAttempts": 296,
+          "foreignHits": 0,
+          "crossLawHits": 0,
+          "localHits": 0
+        },
+        "rowReuse": {
+          "nodeHits": 212632,
+          "nodeMisses": 42745,
+          "goalHits": 42,
+          "rowsHits": 0,
+          "rowsBuilt": 5672,
+          "rowsEvicted": 4434
+        },
+        "phases": {},
+        "sites": {},
+        "cache": {
+          "leafChecks": 0,
+          "leafHits": 0,
+          "leafFallbacks": 0,
+          "fullHyps": 0,
+          "sliceHyps": 0,
+          "independentChecks": 0,
+          "independentHits": 0,
+          "retargetChecks": 0,
+          "retargetHits": 0
+        }
+      },
+      {
+        "mode": "family",
+        "memory": {
+          "rss": 3959001088,
+          "heapUsed": 1121269917
+        },
+        "law": "Inv*: no quorum of a config can still be gathered for a config term held",
+        "rowsOn": true,
+        "treesOn": true,
+        "contextsOn": true,
+        "indexOn": true,
+        "proven": false,
+        "checked": false,
+        "wallMs": 27478.984869,
+        "countedMs": 5160.1049604,
+        "treeHits": 0,
+        "sourceReuse": {
+          "foreignAttempts": 634,
+          "foreignHits": 0,
+          "crossLawHits": 0,
+          "localHits": 15
+        },
+        "rowReuse": {
+          "nodeHits": 70010,
+          "nodeMisses": 6899,
+          "goalHits": 131,
+          "rowsHits": 0,
+          "rowsBuilt": 13673,
+          "rowsEvicted": 14345
+        },
+        "phases": {},
+        "sites": {},
+        "cache": {
+          "leafChecks": 80,
+          "leafHits": 8,
+          "leafFallbacks": 0,
+          "fullHyps": 39160,
+          "sliceHyps": 98,
+          "independentChecks": 102,
+          "independentHits": 90,
+          "retargetChecks": 42,
+          "retargetHits": 33
+        }
+      }
+    ],
+    "total": {
+      "mode": "family-total",
+      "rowsOn": true,
+      "treesOn": true,
+      "contextsOn": true,
+      "indexOn": true,
+      "wallMs": 63009.374056,
+      "treeReuse": {
+        "hits": 0,
+        "kept": 3
+      },
+      "rowReuse": {
+        "nodeHits": 381155,
+        "nodeMisses": 55565,
+        "goalHits": 294,
+        "rowsHits": 1807,
+        "rowsBuilt": 36933,
+        "rowsEvicted": 34233
+      }
+    }
+  },
+  {
+    "id": "A2",
+    "side": "A",
+    "repeat": 2,
+    "exitCode": 0,
+    "laws": [
+      {
+        "mode": "family",
+        "memory": {
+          "rss": 243228672,
+          "heapUsed": 69175993
+        },
+        "law": "one primary per term",
+        "rowsOn": true,
+        "treesOn": true,
+        "contextsOn": true,
+        "indexOn": true,
+        "proven": true,
+        "checked": true,
+        "wallMs": 2317.107769,
+        "countedMs": 926.6334919999999,
+        "treeHits": 0,
+        "sourceReuse": {
+          "foreignAttempts": 94,
+          "foreignHits": 1,
+          "crossLawHits": 0,
+          "localHits": 41
+        },
+        "rowReuse": {
+          "nodeHits": 11664,
+          "nodeMisses": 2504,
+          "goalHits": 12,
+          "rowsHits": 669,
+          "rowsBuilt": 1714,
+          "rowsEvicted": 0
+        },
+        "phases": {},
+        "sites": {},
+        "cache": null
+      },
+      {
+        "mode": "family",
+        "memory": {
+          "rss": 392945664,
+          "heapUsed": 139632678
+        },
+        "law": "Inv3915: one config term, the primary newest",
+        "rowsOn": true,
+        "treesOn": true,
+        "contextsOn": true,
+        "indexOn": true,
+        "proven": true,
+        "checked": true,
+        "wallMs": 2616.4959519999998,
+        "countedMs": 872.3352536000001,
+        "treeHits": 0,
+        "sourceReuse": {
+          "foreignAttempts": 287,
+          "foreignHits": 5,
+          "crossLawHits": 3,
+          "localHits": 39
+        },
+        "rowReuse": {
+          "nodeHits": 17776,
+          "nodeMisses": 2808,
+          "goalHits": 13,
+          "rowsHits": 610,
+          "rowsBuilt": 1635,
+          "rowsEvicted": 910
+        },
+        "phases": {},
+        "sites": {},
+        "cache": null
+      },
+      {
+        "mode": "family",
+        "memory": {
+          "rss": 1016365056,
+          "heapUsed": 474385540
+        },
+        "law": "Inv1758: one version and term, one config",
+        "rowsOn": true,
+        "treesOn": true,
+        "contextsOn": true,
+        "indexOn": true,
+        "proven": true,
+        "checked": true,
+        "wallMs": 12399.206558000002,
+        "countedMs": 4310.4753532,
+        "treeHits": 0,
+        "sourceReuse": {
+          "foreignAttempts": 677,
+          "foreignHits": 29,
+          "crossLawHits": 1,
+          "localHits": 33
+        },
+        "rowReuse": {
+          "nodeHits": 67765,
+          "nodeMisses": 465,
+          "goalHits": 96,
+          "rowsHits": 528,
+          "rowsBuilt": 14235,
+          "rowsEvicted": 14540
+        },
+        "phases": {},
+        "sites": {},
+        "cache": null
+      },
+      {
+        "mode": "family",
+        "memory": {
+          "rss": 3468230656,
+          "heapUsed": 1599581186
+        },
+        "law": "Inv2973: quorums overlap, or a config disabled",
+        "rowsOn": true,
+        "treesOn": true,
+        "contextsOn": true,
+        "indexOn": true,
+        "proven": false,
+        "checked": false,
+        "wallMs": 32390.802958,
+        "countedMs": 5002.6530103999985,
+        "treeHits": 0,
+        "sourceReuse": {
+          "foreignAttempts": 311,
+          "foreignHits": 0,
+          "crossLawHits": 0,
+          "localHits": 9
+        },
+        "rowReuse": {
+          "nodeHits": 213439,
+          "nodeMisses": 42779,
+          "goalHits": 58,
+          "rowsHits": 0,
+          "rowsBuilt": 7635,
+          "rowsEvicted": 7212
+        },
+        "phases": {},
+        "sites": {},
+        "cache": null
+      },
+      {
+        "mode": "family",
+        "memory": {
+          "rss": 4518838272,
+          "heapUsed": 1764088218
+        },
+        "law": "Inv*: no quorum of a config can still be gathered for a config term held",
+        "rowsOn": true,
+        "treesOn": true,
+        "contextsOn": true,
+        "indexOn": true,
+        "proven": false,
+        "checked": false,
+        "wallMs": 36586.723766,
+        "countedMs": 5161.293822800001,
+        "treeHits": 0,
+        "sourceReuse": {
+          "foreignAttempts": 598,
+          "foreignHits": 0,
+          "crossLawHits": 0,
+          "localHits": 15
+        },
+        "rowReuse": {
+          "nodeHits": 69971,
+          "nodeMisses": 6939,
+          "goalHits": 193,
+          "rowsHits": 0,
+          "rowsBuilt": 7082,
+          "rowsEvicted": 6633
+        },
+        "phases": {},
+        "sites": {},
+        "cache": null
+      }
+    ],
+    "total": {
+      "mode": "family-total",
+      "rowsOn": true,
+      "treesOn": true,
+      "contextsOn": true,
+      "indexOn": true,
+      "wallMs": 86312.719859,
+      "treeReuse": {
+        "hits": 0,
+        "kept": 3
+      },
+      "rowReuse": {
+        "nodeHits": 380615,
+        "nodeMisses": 55495,
+        "goalHits": 372,
+        "rowsHits": 1807,
+        "rowsBuilt": 32301,
+        "rowsEvicted": 29295
+      }
+    }
+  },
+  {
+    "id": "B2",
+    "side": "B",
+    "repeat": 2,
+    "exitCode": 0,
+    "laws": [
+      {
+        "mode": "family",
+        "memory": {
+          "rss": 229552128,
+          "heapUsed": 79645679
+        },
+        "law": "one primary per term",
+        "rowsOn": true,
+        "treesOn": true,
+        "contextsOn": true,
+        "indexOn": true,
+        "proven": true,
+        "checked": true,
+        "wallMs": 1661.2970970000001,
+        "countedMs": 947.5432539999999,
+        "treeHits": 0,
+        "sourceReuse": {
+          "foreignAttempts": 94,
+          "foreignHits": 1,
+          "crossLawHits": 0,
+          "localHits": 41
+        },
+        "rowReuse": {
+          "nodeHits": 11843,
+          "nodeMisses": 2578,
+          "goalHits": 12,
+          "rowsHits": 669,
+          "rowsBuilt": 1718,
+          "rowsEvicted": 0
+        },
+        "phases": {},
+        "sites": {},
+        "cache": {
+          "leafChecks": 0,
+          "leafHits": 0,
+          "leafFallbacks": 0,
+          "fullHyps": 0,
+          "sliceHyps": 0,
+          "independentChecks": 0,
+          "independentHits": 0,
+          "retargetChecks": 0,
+          "retargetHits": 0
+        }
+      },
+      {
+        "mode": "family",
+        "memory": {
+          "rss": 383553536,
+          "heapUsed": 119534992
+        },
+        "law": "Inv3915: one config term, the primary newest",
+        "rowsOn": true,
+        "treesOn": true,
+        "contextsOn": true,
+        "indexOn": true,
+        "proven": true,
+        "checked": true,
+        "wallMs": 2006.7099019999998,
+        "countedMs": 874.1162936000002,
+        "treeHits": 0,
+        "sourceReuse": {
+          "foreignAttempts": 287,
+          "foreignHits": 5,
+          "crossLawHits": 3,
+          "localHits": 39
+        },
+        "rowReuse": {
+          "nodeHits": 17959,
+          "nodeMisses": 2878,
+          "goalHits": 13,
+          "rowsHits": 610,
+          "rowsBuilt": 1635,
+          "rowsEvicted": 914
+        },
+        "phases": {},
+        "sites": {},
+        "cache": {
+          "leafChecks": 0,
+          "leafHits": 0,
+          "leafFallbacks": 0,
+          "fullHyps": 0,
+          "sliceHyps": 0,
+          "independentChecks": 0,
+          "independentHits": 0,
+          "retargetChecks": 0,
+          "retargetHits": 0
+        }
+      },
+      {
+        "mode": "family",
+        "memory": {
+          "rss": 1001525248,
+          "heapUsed": 412881480
+        },
+        "law": "Inv1758: one version and term, one config",
+        "rowsOn": true,
+        "treesOn": true,
+        "contextsOn": true,
+        "indexOn": true,
+        "proven": true,
+        "checked": true,
+        "wallMs": 9193.583789,
+        "countedMs": 4312.6126011999995,
+        "treeHits": 0,
+        "sourceReuse": {
+          "foreignAttempts": 677,
+          "foreignHits": 29,
+          "crossLawHits": 1,
+          "localHits": 33
+        },
+        "rowReuse": {
+          "nodeHits": 68711,
+          "nodeMisses": 465,
+          "goalHits": 96,
+          "rowsHits": 528,
+          "rowsBuilt": 14235,
+          "rowsEvicted": 14540
+        },
+        "phases": {},
+        "sites": {},
+        "cache": {
+          "leafChecks": 0,
+          "leafHits": 0,
+          "leafFallbacks": 0,
+          "fullHyps": 0,
+          "sliceHyps": 0,
+          "independentChecks": 0,
+          "independentHits": 0,
+          "retargetChecks": 0,
+          "retargetHits": 0
+        }
+      },
+      {
+        "mode": "family",
+        "memory": {
+          "rss": 3464634368,
+          "heapUsed": 1830865091
+        },
+        "law": "Inv2973: quorums overlap, or a config disabled",
+        "rowsOn": true,
+        "treesOn": true,
+        "contextsOn": true,
+        "indexOn": true,
+        "proven": false,
+        "checked": false,
+        "wallMs": 24623.063088,
+        "countedMs": 5001.8117256,
+        "treeHits": 0,
+        "sourceReuse": {
+          "foreignAttempts": 296,
+          "foreignHits": 0,
+          "crossLawHits": 0,
+          "localHits": 0
+        },
+        "rowReuse": {
+          "nodeHits": 212632,
+          "nodeMisses": 42745,
+          "goalHits": 42,
+          "rowsHits": 0,
+          "rowsBuilt": 5672,
+          "rowsEvicted": 4434
+        },
+        "phases": {},
+        "sites": {},
+        "cache": {
+          "leafChecks": 0,
+          "leafHits": 0,
+          "leafFallbacks": 0,
+          "fullHyps": 0,
+          "sliceHyps": 0,
+          "independentChecks": 0,
+          "independentHits": 0,
+          "retargetChecks": 0,
+          "retargetHits": 0
+        }
+      },
+      {
+        "mode": "family",
+        "memory": {
+          "rss": 3992289280,
+          "heapUsed": 1097729866
+        },
+        "law": "Inv*: no quorum of a config can still be gathered for a config term held",
+        "rowsOn": true,
+        "treesOn": true,
+        "contextsOn": true,
+        "indexOn": true,
+        "proven": false,
+        "checked": false,
+        "wallMs": 29588.945155,
+        "countedMs": 5160.1049604,
+        "treeHits": 0,
+        "sourceReuse": {
+          "foreignAttempts": 634,
+          "foreignHits": 0,
+          "crossLawHits": 0,
+          "localHits": 15
+        },
+        "rowReuse": {
+          "nodeHits": 70010,
+          "nodeMisses": 6899,
+          "goalHits": 131,
+          "rowsHits": 0,
+          "rowsBuilt": 13673,
+          "rowsEvicted": 14345
+        },
+        "phases": {},
+        "sites": {},
+        "cache": {
+          "leafChecks": 80,
+          "leafHits": 8,
+          "leafFallbacks": 0,
+          "fullHyps": 39160,
+          "sliceHyps": 98,
+          "independentChecks": 102,
+          "independentHits": 90,
+          "retargetChecks": 42,
+          "retargetHits": 33
+        }
+      }
+    ],
+    "total": {
+      "mode": "family-total",
+      "rowsOn": true,
+      "treesOn": true,
+      "contextsOn": true,
+      "indexOn": true,
+      "wallMs": 67076.226608,
+      "treeReuse": {
+        "hits": 0,
+        "kept": 3
+      },
+      "rowReuse": {
+        "nodeHits": 381155,
+        "nodeMisses": 55565,
+        "goalHits": 294,
+        "rowsHits": 1807,
+        "rowsBuilt": 36933,
+        "rowsEvicted": 34233
+      }
+    }
+  },
+  {
+    "id": "A3",
+    "side": "A",
+    "repeat": 3,
+    "exitCode": 0,
+    "laws": [
+      {
+        "mode": "family",
+        "memory": {
+          "rss": 238698496,
+          "heapUsed": 83268735
+        },
+        "law": "one primary per term",
+        "rowsOn": true,
+        "treesOn": true,
+        "contextsOn": true,
+        "indexOn": true,
+        "proven": true,
+        "checked": true,
+        "wallMs": 2128.5506920000003,
+        "countedMs": 926.6334919999999,
+        "treeHits": 0,
+        "sourceReuse": {
+          "foreignAttempts": 94,
+          "foreignHits": 1,
+          "crossLawHits": 0,
+          "localHits": 41
+        },
+        "rowReuse": {
+          "nodeHits": 11664,
+          "nodeMisses": 2504,
+          "goalHits": 12,
+          "rowsHits": 669,
+          "rowsBuilt": 1714,
+          "rowsEvicted": 0
+        },
+        "phases": {},
+        "sites": {},
+        "cache": null
+      },
+      {
+        "mode": "family",
+        "memory": {
+          "rss": 396996608,
+          "heapUsed": 130257814
+        },
+        "law": "Inv3915: one config term, the primary newest",
+        "rowsOn": true,
+        "treesOn": true,
+        "contextsOn": true,
+        "indexOn": true,
+        "proven": true,
+        "checked": true,
+        "wallMs": 3803.756882,
+        "countedMs": 872.3352536000001,
+        "treeHits": 0,
+        "sourceReuse": {
+          "foreignAttempts": 287,
+          "foreignHits": 5,
+          "crossLawHits": 3,
+          "localHits": 39
+        },
+        "rowReuse": {
+          "nodeHits": 17776,
+          "nodeMisses": 2808,
+          "goalHits": 13,
+          "rowsHits": 610,
+          "rowsBuilt": 1635,
+          "rowsEvicted": 910
+        },
+        "phases": {},
+        "sites": {},
+        "cache": null
+      },
+      {
+        "mode": "family",
+        "memory": {
+          "rss": 1028464640,
+          "heapUsed": 461574250
+        },
+        "law": "Inv1758: one version and term, one config",
+        "rowsOn": true,
+        "treesOn": true,
+        "contextsOn": true,
+        "indexOn": true,
+        "proven": true,
+        "checked": true,
+        "wallMs": 13527.041875000003,
+        "countedMs": 4310.4753532,
+        "treeHits": 0,
+        "sourceReuse": {
+          "foreignAttempts": 677,
+          "foreignHits": 29,
+          "crossLawHits": 1,
+          "localHits": 33
+        },
+        "rowReuse": {
+          "nodeHits": 67765,
+          "nodeMisses": 465,
+          "goalHits": 96,
+          "rowsHits": 528,
+          "rowsBuilt": 14235,
+          "rowsEvicted": 14540
+        },
+        "phases": {},
+        "sites": {},
+        "cache": null
+      },
+      {
+        "mode": "family",
+        "memory": {
+          "rss": 4358852608,
+          "heapUsed": 2515996614
+        },
+        "law": "Inv2973: quorums overlap, or a config disabled",
+        "rowsOn": true,
+        "treesOn": true,
+        "contextsOn": true,
+        "indexOn": true,
+        "proven": false,
+        "checked": false,
+        "wallMs": 31770.915646,
+        "countedMs": 5002.6530103999985,
+        "treeHits": 0,
+        "sourceReuse": {
+          "foreignAttempts": 311,
+          "foreignHits": 0,
+          "crossLawHits": 0,
+          "localHits": 9
+        },
+        "rowReuse": {
+          "nodeHits": 213439,
+          "nodeMisses": 42779,
+          "goalHits": 58,
+          "rowsHits": 0,
+          "rowsBuilt": 7635,
+          "rowsEvicted": 7212
+        },
+        "phases": {},
+        "sites": {},
+        "cache": null
+      },
+      {
+        "mode": "family",
+        "memory": {
+          "rss": 4498251776,
+          "heapUsed": 1534005277
+        },
+        "law": "Inv*: no quorum of a config can still be gathered for a config term held",
+        "rowsOn": true,
+        "treesOn": true,
+        "contextsOn": true,
+        "indexOn": true,
+        "proven": false,
+        "checked": false,
+        "wallMs": 32339.93109,
+        "countedMs": 5161.9828468,
+        "treeHits": 0,
+        "sourceReuse": {
+          "foreignAttempts": 598,
+          "foreignHits": 0,
+          "crossLawHits": 0,
+          "localHits": 15
+        },
+        "rowReuse": {
+          "nodeHits": 69972,
+          "nodeMisses": 6939,
+          "goalHits": 192,
+          "rowsHits": 0,
+          "rowsBuilt": 7081,
+          "rowsEvicted": 6627
+        },
+        "phases": {},
+        "sites": {},
+        "cache": null
+      }
+    ],
+    "total": {
+      "mode": "family-total",
+      "rowsOn": true,
+      "treesOn": true,
+      "contextsOn": true,
+      "indexOn": true,
+      "wallMs": 83572.490496,
+      "treeReuse": {
+        "hits": 0,
+        "kept": 3
+      },
+      "rowReuse": {
+        "nodeHits": 380616,
+        "nodeMisses": 55495,
+        "goalHits": 371,
+        "rowsHits": 1807,
+        "rowsBuilt": 32300,
+        "rowsEvicted": 29289
+      }
+    }
+  },
+  {
+    "id": "B3",
+    "side": "B",
+    "repeat": 3,
+    "exitCode": 0,
+    "laws": [
+      {
+        "mode": "family",
+        "memory": {
+          "rss": 227524608,
+          "heapUsed": 77809068
+        },
+        "law": "one primary per term",
+        "rowsOn": true,
+        "treesOn": true,
+        "contextsOn": true,
+        "indexOn": true,
+        "proven": true,
+        "checked": true,
+        "wallMs": 1667.425279,
+        "countedMs": 947.5432539999999,
+        "treeHits": 0,
+        "sourceReuse": {
+          "foreignAttempts": 94,
+          "foreignHits": 1,
+          "crossLawHits": 0,
+          "localHits": 41
+        },
+        "rowReuse": {
+          "nodeHits": 11843,
+          "nodeMisses": 2578,
+          "goalHits": 12,
+          "rowsHits": 669,
+          "rowsBuilt": 1718,
+          "rowsEvicted": 0
+        },
+        "phases": {},
+        "sites": {},
+        "cache": {
+          "leafChecks": 0,
+          "leafHits": 0,
+          "leafFallbacks": 0,
+          "fullHyps": 0,
+          "sliceHyps": 0,
+          "independentChecks": 0,
+          "independentHits": 0,
+          "retargetChecks": 0,
+          "retargetHits": 0
+        }
+      },
+      {
+        "mode": "family",
+        "memory": {
+          "rss": 373456896,
+          "heapUsed": 147675658
+        },
+        "law": "Inv3915: one config term, the primary newest",
+        "rowsOn": true,
+        "treesOn": true,
+        "contextsOn": true,
+        "indexOn": true,
+        "proven": true,
+        "checked": true,
+        "wallMs": 1748.6232850000001,
+        "countedMs": 874.1162936000002,
+        "treeHits": 0,
+        "sourceReuse": {
+          "foreignAttempts": 287,
+          "foreignHits": 5,
+          "crossLawHits": 3,
+          "localHits": 39
+        },
+        "rowReuse": {
+          "nodeHits": 17959,
+          "nodeMisses": 2878,
+          "goalHits": 13,
+          "rowsHits": 610,
+          "rowsBuilt": 1635,
+          "rowsEvicted": 914
+        },
+        "phases": {},
+        "sites": {},
+        "cache": {
+          "leafChecks": 0,
+          "leafHits": 0,
+          "leafFallbacks": 0,
+          "fullHyps": 0,
+          "sliceHyps": 0,
+          "independentChecks": 0,
+          "independentHits": 0,
+          "retargetChecks": 0,
+          "retargetHits": 0
+        }
+      },
+      {
+        "mode": "family",
+        "memory": {
+          "rss": 975826944,
+          "heapUsed": 393804369
+        },
+        "law": "Inv1758: one version and term, one config",
+        "rowsOn": true,
+        "treesOn": true,
+        "contextsOn": true,
+        "indexOn": true,
+        "proven": true,
+        "checked": true,
+        "wallMs": 8961.685325,
+        "countedMs": 4312.6126011999995,
+        "treeHits": 0,
+        "sourceReuse": {
+          "foreignAttempts": 677,
+          "foreignHits": 29,
+          "crossLawHits": 1,
+          "localHits": 33
+        },
+        "rowReuse": {
+          "nodeHits": 68711,
+          "nodeMisses": 465,
+          "goalHits": 96,
+          "rowsHits": 528,
+          "rowsBuilt": 14235,
+          "rowsEvicted": 14540
+        },
+        "phases": {},
+        "sites": {},
+        "cache": {
+          "leafChecks": 0,
+          "leafHits": 0,
+          "leafFallbacks": 0,
+          "fullHyps": 0,
+          "sliceHyps": 0,
+          "independentChecks": 0,
+          "independentHits": 0,
+          "retargetChecks": 0,
+          "retargetHits": 0
+        }
+      },
+      {
+        "mode": "family",
+        "memory": {
+          "rss": 3636928512,
+          "heapUsed": 1999113567
+        },
+        "law": "Inv2973: quorums overlap, or a config disabled",
+        "rowsOn": true,
+        "treesOn": true,
+        "contextsOn": true,
+        "indexOn": true,
+        "proven": false,
+        "checked": false,
+        "wallMs": 22781.427549,
+        "countedMs": 5001.8117256,
+        "treeHits": 0,
+        "sourceReuse": {
+          "foreignAttempts": 296,
+          "foreignHits": 0,
+          "crossLawHits": 0,
+          "localHits": 0
+        },
+        "rowReuse": {
+          "nodeHits": 212632,
+          "nodeMisses": 42745,
+          "goalHits": 42,
+          "rowsHits": 0,
+          "rowsBuilt": 5672,
+          "rowsEvicted": 4434
+        },
+        "phases": {},
+        "sites": {},
+        "cache": {
+          "leafChecks": 0,
+          "leafHits": 0,
+          "leafFallbacks": 0,
+          "fullHyps": 0,
+          "sliceHyps": 0,
+          "independentChecks": 0,
+          "independentHits": 0,
+          "retargetChecks": 0,
+          "retargetHits": 0
+        }
+      },
+      {
+        "mode": "family",
+        "memory": {
+          "rss": 3993919488,
+          "heapUsed": 1098058915
+        },
+        "law": "Inv*: no quorum of a config can still be gathered for a config term held",
+        "rowsOn": true,
+        "treesOn": true,
+        "contextsOn": true,
+        "indexOn": true,
+        "proven": false,
+        "checked": false,
+        "wallMs": 27456.540841000002,
+        "countedMs": 5160.1049604,
+        "treeHits": 0,
+        "sourceReuse": {
+          "foreignAttempts": 634,
+          "foreignHits": 0,
+          "crossLawHits": 0,
+          "localHits": 15
+        },
+        "rowReuse": {
+          "nodeHits": 70010,
+          "nodeMisses": 6899,
+          "goalHits": 131,
+          "rowsHits": 0,
+          "rowsBuilt": 13673,
+          "rowsEvicted": 14345
+        },
+        "phases": {},
+        "sites": {},
+        "cache": {
+          "leafChecks": 80,
+          "leafHits": 8,
+          "leafFallbacks": 0,
+          "fullHyps": 39160,
+          "sliceHyps": 98,
+          "independentChecks": 102,
+          "independentHits": 90,
+          "retargetChecks": 42,
+          "retargetHits": 33
+        }
+      }
+    ],
+    "total": {
+      "mode": "family-total",
+      "rowsOn": true,
+      "treesOn": true,
+      "contextsOn": true,
+      "indexOn": true,
+      "wallMs": 62618.031047,
+      "treeReuse": {
+        "hits": 0,
+        "kept": 3
+      },
+      "rowReuse": {
+        "nodeHits": 381155,
+        "nodeMisses": 55565,
+        "goalHits": 294,
+        "rowsHits": 1807,
+        "rowsBuilt": 36933,
+        "rowsEvicted": 34233
+      }
+    }
+  }
+]

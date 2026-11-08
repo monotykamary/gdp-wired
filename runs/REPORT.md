@@ -5240,3 +5240,41 @@ Evidence: **runs/track-m/section10-generator-v2/** and
 **runs/track-m/section10-implementation-v2/**; earlier failed/setup attempts are
 retained. Next is the requested three interleaved five-law repeats, not a later
 gate. No budget was raised to satisfy these negative probe results.
+
+## Section 10 step 4 — three interleaved Gate 1 repeats, still 3/5
+
+A = exact **50109a36**, B core = **192ebbe2**; A1/B1/A2/B2/A3/B3 on the same
+calibrated **bx_25xas5gt**, exclusive eight pinned vCPUs. **All 30 verdicts match**:
+one primary, Inv3915, Inv1758 checked; Inv2973 and Inv* unproved. No later gates.
+The kernel, existing family harness (including final checkMC) and pins match.
+
+| Law | A counted units | B counted units | A wall median/max s | B wall median/max s |
+|---|---:|---:|---:|---:|
+| one primary | 926.633492 | 947.543254 | 2.129 / 2.317 | 1.661 / 1.667 |
+| Inv3915 | 872.335254 | 874.116294 | 2.616 / 3.804 | 1.838 / 2.007 |
+| Inv1758 | 4310.475353 | 4312.612601 | 13.519 / 13.527 | 8.962 / 9.194 |
+| Inv2973 | 5002.653010 | 5001.811726 | 32.391 / 35.079 | 23.263 / 24.623 |
+| Inv* | 5161.293823 / 5161.293823 / 5161.982847 | 5160.104960 | 34.456 / 36.587 | 27.479 / 29.589 |
+
+Except A Inv*, counted values are identical across repeats. The checked laws
+now cost +20.909762 / +1.781040 / +2.137248 units; do not describe this as identical
+work. Both open laws still reach the counted allowance. No law is wall-truncated.
+
+The five-law family is **63.009 / 67.076 / 62.618 seconds** on B (median/max
+**63.009 / 67.076**), versus A median/max **86.313 / 87.222**. This includes prior
+F1/F2/F3 changes, not an isolated Section 10 speedup. **Gate 1 has not passed**:
+two proofs are missing and every B family exceeds 60 s. The original generated
+harness was not run. The active probes still stop within the first shared row
+allowance; the passing T-10A cut has not made the whole traversal fit.
+
+Inv* cache hits in every B: retarget **33/42**, independent **90/102**; 80 sliced
+checks, 39,160 full hypotheses to 98, zero full fallbacks. Smaller traversal is
+not successful proof progress. Full evidence: **runs/track-m/section10-gate-v1/**;
+independent result audit: **runs/track-m/section10-final-validation-v2/**.
+
+Final TypeScript/type-aware lint and **251 tests / 1,208 assertions** pass. The
+independent audit verifies six complete fresh-process records, all 30 verdicts,
+all reported work/median/max numbers, the exact baseline and fixture, and the
+negative gate result. An initial audit-only implicit-any failure is retained
+in final-validation-v1; v2 is corrected. No production code changed after the
+measured commit **192ebbe2**.

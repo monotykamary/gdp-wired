@@ -1,0 +1,489 @@
+{
+  "test": "Section 10 five-law replay",
+  "baseline": "50109a36",
+  "order": [
+    "A1",
+    "B1",
+    "A2",
+    "B2",
+    "A3",
+    "B3"
+  ],
+  "kernelEqual": true,
+  "harnessEqual": true,
+  "laws": [
+    {
+      "law": "one primary per term",
+      "A": {
+        "verdicts": [
+          [
+            true,
+            true
+          ],
+          [
+            true,
+            true
+          ],
+          [
+            true,
+            true
+          ]
+        ],
+        "countedUnits": [
+          926.6334919999999,
+          926.6334919999999,
+          926.6334919999999
+        ],
+        "wallMedianMs": 2128.5506920000003,
+        "wallMaxMs": 2317.107769,
+        "cache": [
+          null,
+          null,
+          null
+        ]
+      },
+      "B": {
+        "verdicts": [
+          [
+            true,
+            true
+          ],
+          [
+            true,
+            true
+          ],
+          [
+            true,
+            true
+          ]
+        ],
+        "countedUnits": [
+          947.5432539999999,
+          947.5432539999999,
+          947.5432539999999
+        ],
+        "wallMedianMs": 1661.2970970000001,
+        "wallMaxMs": 1667.425279,
+        "cache": [
+          {
+            "leafChecks": 0,
+            "leafHits": 0,
+            "leafFallbacks": 0,
+            "fullHyps": 0,
+            "sliceHyps": 0,
+            "independentChecks": 0,
+            "independentHits": 0,
+            "retargetChecks": 0,
+            "retargetHits": 0
+          },
+          {
+            "leafChecks": 0,
+            "leafHits": 0,
+            "leafFallbacks": 0,
+            "fullHyps": 0,
+            "sliceHyps": 0,
+            "independentChecks": 0,
+            "independentHits": 0,
+            "retargetChecks": 0,
+            "retargetHits": 0
+          },
+          {
+            "leafChecks": 0,
+            "leafHits": 0,
+            "leafFallbacks": 0,
+            "fullHyps": 0,
+            "sliceHyps": 0,
+            "independentChecks": 0,
+            "independentHits": 0,
+            "retargetChecks": 0,
+            "retargetHits": 0
+          }
+        ]
+      },
+      "noRegression": true,
+      "verdictsIdentical": true
+    },
+    {
+      "law": "Inv3915: one config term, the primary newest",
+      "A": {
+        "verdicts": [
+          [
+            true,
+            true
+          ],
+          [
+            true,
+            true
+          ],
+          [
+            true,
+            true
+          ]
+        ],
+        "countedUnits": [
+          872.3352536000001,
+          872.3352536000001,
+          872.3352536000001
+        ],
+        "wallMedianMs": 2616.4959519999998,
+        "wallMaxMs": 3803.756882,
+        "cache": [
+          null,
+          null,
+          null
+        ]
+      },
+      "B": {
+        "verdicts": [
+          [
+            true,
+            true
+          ],
+          [
+            true,
+            true
+          ],
+          [
+            true,
+            true
+          ]
+        ],
+        "countedUnits": [
+          874.1162936000002,
+          874.1162936000002,
+          874.1162936000002
+        ],
+        "wallMedianMs": 1837.665579,
+        "wallMaxMs": 2006.7099019999998,
+        "cache": [
+          {
+            "leafChecks": 0,
+            "leafHits": 0,
+            "leafFallbacks": 0,
+            "fullHyps": 0,
+            "sliceHyps": 0,
+            "independentChecks": 0,
+            "independentHits": 0,
+            "retargetChecks": 0,
+            "retargetHits": 0
+          },
+          {
+            "leafChecks": 0,
+            "leafHits": 0,
+            "leafFallbacks": 0,
+            "fullHyps": 0,
+            "sliceHyps": 0,
+            "independentChecks": 0,
+            "independentHits": 0,
+            "retargetChecks": 0,
+            "retargetHits": 0
+          },
+          {
+            "leafChecks": 0,
+            "leafHits": 0,
+            "leafFallbacks": 0,
+            "fullHyps": 0,
+            "sliceHyps": 0,
+            "independentChecks": 0,
+            "independentHits": 0,
+            "retargetChecks": 0,
+            "retargetHits": 0
+          }
+        ]
+      },
+      "noRegression": true,
+      "verdictsIdentical": true
+    },
+    {
+      "law": "Inv1758: one version and term, one config",
+      "A": {
+        "verdicts": [
+          [
+            true,
+            true
+          ],
+          [
+            true,
+            true
+          ],
+          [
+            true,
+            true
+          ]
+        ],
+        "countedUnits": [
+          4310.4753532,
+          4310.4753532,
+          4310.4753532
+        ],
+        "wallMedianMs": 13519.085085000002,
+        "wallMaxMs": 13527.041875000003,
+        "cache": [
+          null,
+          null,
+          null
+        ]
+      },
+      "B": {
+        "verdicts": [
+          [
+            true,
+            true
+          ],
+          [
+            true,
+            true
+          ],
+          [
+            true,
+            true
+          ]
+        ],
+        "countedUnits": [
+          4312.6126011999995,
+          4312.6126011999995,
+          4312.6126011999995
+        ],
+        "wallMedianMs": 8961.685325,
+        "wallMaxMs": 9193.583789,
+        "cache": [
+          {
+            "leafChecks": 0,
+            "leafHits": 0,
+            "leafFallbacks": 0,
+            "fullHyps": 0,
+            "sliceHyps": 0,
+            "independentChecks": 0,
+            "independentHits": 0,
+            "retargetChecks": 0,
+            "retargetHits": 0
+          },
+          {
+            "leafChecks": 0,
+            "leafHits": 0,
+            "leafFallbacks": 0,
+            "fullHyps": 0,
+            "sliceHyps": 0,
+            "independentChecks": 0,
+            "independentHits": 0,
+            "retargetChecks": 0,
+            "retargetHits": 0
+          },
+          {
+            "leafChecks": 0,
+            "leafHits": 0,
+            "leafFallbacks": 0,
+            "fullHyps": 0,
+            "sliceHyps": 0,
+            "independentChecks": 0,
+            "independentHits": 0,
+            "retargetChecks": 0,
+            "retargetHits": 0
+          }
+        ]
+      },
+      "noRegression": true,
+      "verdictsIdentical": true
+    },
+    {
+      "law": "Inv2973: quorums overlap, or a config disabled",
+      "A": {
+        "verdicts": [
+          [
+            false,
+            false
+          ],
+          [
+            false,
+            false
+          ],
+          [
+            false,
+            false
+          ]
+        ],
+        "countedUnits": [
+          5002.6530103999985,
+          5002.6530103999985,
+          5002.6530103999985
+        ],
+        "wallMedianMs": 32390.802958,
+        "wallMaxMs": 35079.300552,
+        "cache": [
+          null,
+          null,
+          null
+        ]
+      },
+      "B": {
+        "verdicts": [
+          [
+            false,
+            false
+          ],
+          [
+            false,
+            false
+          ],
+          [
+            false,
+            false
+          ]
+        ],
+        "countedUnits": [
+          5001.8117256,
+          5001.8117256,
+          5001.8117256
+        ],
+        "wallMedianMs": 23263.111860000005,
+        "wallMaxMs": 24623.063088,
+        "cache": [
+          {
+            "leafChecks": 0,
+            "leafHits": 0,
+            "leafFallbacks": 0,
+            "fullHyps": 0,
+            "sliceHyps": 0,
+            "independentChecks": 0,
+            "independentHits": 0,
+            "retargetChecks": 0,
+            "retargetHits": 0
+          },
+          {
+            "leafChecks": 0,
+            "leafHits": 0,
+            "leafFallbacks": 0,
+            "fullHyps": 0,
+            "sliceHyps": 0,
+            "independentChecks": 0,
+            "independentHits": 0,
+            "retargetChecks": 0,
+            "retargetHits": 0
+          },
+          {
+            "leafChecks": 0,
+            "leafHits": 0,
+            "leafFallbacks": 0,
+            "fullHyps": 0,
+            "sliceHyps": 0,
+            "independentChecks": 0,
+            "independentHits": 0,
+            "retargetChecks": 0,
+            "retargetHits": 0
+          }
+        ]
+      },
+      "noRegression": true,
+      "verdictsIdentical": true
+    },
+    {
+      "law": "Inv*: no quorum of a config can still be gathered for a config term held",
+      "A": {
+        "verdicts": [
+          [
+            false,
+            false
+          ],
+          [
+            false,
+            false
+          ],
+          [
+            false,
+            false
+          ]
+        ],
+        "countedUnits": [
+          5161.293822800001,
+          5161.293822800001,
+          5161.9828468
+        ],
+        "wallMedianMs": 34455.681588,
+        "wallMaxMs": 36586.723766,
+        "cache": [
+          null,
+          null,
+          null
+        ]
+      },
+      "B": {
+        "verdicts": [
+          [
+            false,
+            false
+          ],
+          [
+            false,
+            false
+          ],
+          [
+            false,
+            false
+          ]
+        ],
+        "countedUnits": [
+          5160.1049604,
+          5160.1049604,
+          5160.1049604
+        ],
+        "wallMedianMs": 27478.984869,
+        "wallMaxMs": 29588.945155,
+        "cache": [
+          {
+            "leafChecks": 80,
+            "leafHits": 8,
+            "leafFallbacks": 0,
+            "fullHyps": 39160,
+            "sliceHyps": 98,
+            "independentChecks": 102,
+            "independentHits": 90,
+            "retargetChecks": 42,
+            "retargetHits": 33
+          },
+          {
+            "leafChecks": 80,
+            "leafHits": 8,
+            "leafFallbacks": 0,
+            "fullHyps": 39160,
+            "sliceHyps": 98,
+            "independentChecks": 102,
+            "independentHits": 90,
+            "retargetChecks": 42,
+            "retargetHits": 33
+          },
+          {
+            "leafChecks": 80,
+            "leafHits": 8,
+            "leafFallbacks": 0,
+            "fullHyps": 39160,
+            "sliceHyps": 98,
+            "independentChecks": 102,
+            "independentHits": 90,
+            "retargetChecks": 42,
+            "retargetHits": 33
+          }
+        ]
+      },
+      "noRegression": true,
+      "verdictsIdentical": true
+    }
+  ],
+  "noRegression": true,
+  "allFiveEveryRepeat": false,
+  "under60EveryFamily": false,
+  "gate1ReplayPass": false,
+  "familyWallMs": {
+    "A": [
+      87221.91934600001,
+      86312.719859,
+      83572.490496
+    ],
+    "B": [
+      63009.374056,
+      67076.226608,
+      62618.031047
+    ]
+  },
+  "laterGatesRun": false,
+  "originalGeneratedHarnessRun": false
+}

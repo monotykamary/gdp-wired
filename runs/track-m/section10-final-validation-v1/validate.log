@@ -1,0 +1,5 @@
+research/track-m/section10-gate-audit.ts(15,116): error TS7006: Parameter 'l' implicitly has an 'any' type.
+research/track-m/verify-section10-gate.ts(12,40): error TS7006: Parameter 'v' implicitly has an 'any' type.
+
+--- stderr ---
+$ tsc -p . && oxlint --type-aware --deny-warnings --disable-nested-config
