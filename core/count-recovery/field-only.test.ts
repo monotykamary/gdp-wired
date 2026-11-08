@@ -4,6 +4,7 @@ import {type CountCert,type Path,canon,check,linear,mcGoal} from '../../kernel/k
 import {clock,grow,widen} from '../../kernel/prove.ts'
 import {fieldOnlyGoal} from './field-only.ts'
 import {fieldCase,fieldDirection} from './field-case.ts'
+import {sourceProofMemo} from './source-memo.ts'
 const m:Machine={name:'field projection',params:[],inputs:[],state:{},counts:{Rows:{j:'r',key:'k',below:n(2),body:n(1)}},step:{}}
 const cert:Pick<CountCert,'reads'|'insts'>={reads:[['amount','Rows',n(0)]],insts:[]}
 test('field projection only weakens premises and transports a checked proof',()=>{
@@ -43,6 +44,26 @@ test('shifted copy fields prove both natural-subtraction directions',()=>{
  lin['1']=(lin['1']??0)+1
  const forcedPath=new Map(path).set(canon(lin),{lin,holds:true})
  expect(fieldDirection(forced,forcedPath)).toBeDefined()
+})
+
+test('field arithmetic leaves close before the model query and remain checked',()=>{
+ const cell=get('Value',x('row')),claim=less(n(3),cell),g={name:'linear field',hyps:[atMost(cell,n(3)),claim]},events:Record<string,unknown>[]=[]
+ const tree=fieldCase(m,g,cert,claim,new Map(),clock()+1000,event=>events.push(event))
+ expect(tree).toBeDefined();if(tree)expect(check(g,tree)).toBe(true)
+ expect(events.some(event=>event.stage==='field-case'&&event.outcome==='linear'&&event.proposed)).toBe(true)
+})
+test('field memo transports completed subproofs but refuses missing source support',()=>{
+ const cell=get('Value',x('row')),bound=atMost(cell,n(3)),claim=less(n(3),cell),g={name:'source field',hyps:[bound,claim]},memo=sourceProofMemo(),events:Record<string,unknown>[]=[]
+ const first=fieldCase(m,g,cert,claim,new Map(),clock()+1000,undefined,0,memo)
+ expect(first).toBeDefined()
+ const other={name:'destination field',hyps:[atMost(x('extra'),n(0)),bound,claim]},got=fieldCase(m,other,cert,claim,new Map(),clock()+1000,event=>events.push(event),0,memo)
+ expect(got).toBeDefined();if(got)expect(check(other,got)).toBe(true)
+ expect(events.some(event=>event.stage==='source-memo'&&event.scope==='field-case')).toBe(true)
+ expect(fieldCase(m,{name:'missing bound',hyps:[claim]},cert,claim,new Map(),clock()+300,undefined,0,memo)).toBeUndefined()
+})
+test('field arithmetic shortcut cannot close a satisfiable source',()=>{
+ const cell=get('Value',x('row')),claim=less(n(3),cell),g={name:'possible field',hyps:[atMost(n(0),cell),claim]}
+ expect(fieldCase(m,g,cert,claim,new Map(),clock()+300)).toBeUndefined()
 })
 
 test('field projection does not strengthen disjunctions or discard a counted conclusion',()=>{

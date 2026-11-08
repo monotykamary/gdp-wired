@@ -33,7 +33,7 @@ function guardCasesImpl(m:Machine,ds:CountDecl[],g:Goal,cert:Proposal,guard:C,un
   const cached=options.memo?.get(g,path,end)
   if(cached&&(deferNested||check(g,cached,path))){trace.push({stage:'source-memo',scope:'guard',active});return cached}
   const rowDependent=active&&rowPairs(m,cert,path,options.claim).length>0
-  let proof=rowDependent?undefined:fieldCase(m,goal,cert,options.claim,path,Math.min(end,clock()+150),e=>trace.push({...e,guardActive:active}))
+  let proof=rowDependent?undefined:fieldCase(m,goal,cert,options.claim,path,Math.min(end,clock()+150),e=>trace.push({...e,guardActive:active}),0,options.memo)
   if(!proof&&!active){
    if(!attempted){attempted=true;const begun=clock();inactive=frameLemmas(inactiveGoal,cert,end,trace,root,{stopAfterFailed:2,deferCheck:deferNested});trace.push({stage:'shared-frame',ms:Math.round(clock()-begun),proved:!!inactive})}
    if(inactive){const shared=widen(inactiveGoal,g,inactive,{},root,path),accepted=!!shared&&(deferNested||check(g,shared,path));trace.push({stage:'shared-frame-lift',ms:Math.round(clock()-start),checked:accepted&&!deferNested,proposed:!!shared,deferred:deferNested});if(accepted)return shared}

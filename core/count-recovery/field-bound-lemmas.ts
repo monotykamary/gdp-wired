@@ -100,7 +100,7 @@ function fieldBoundLemmasImpl(m:Machine,ds:CountDecl[],g:Goal,cert:Proposal,unti
    if(a&&b){
     const split=sub(a,b);split['1']=(split['1']??0)+1
     const id=canon(split),negative=new Map(root).set(id,{lin:split,holds:false}),positive=new Map(root).set(id,{lin:split,holds:true})
-    const no=fieldCase(m,g,cert,options.fieldClaim,negative,Math.min(until,clock()+50),e=>trace.push(e))
+    const no=fieldCase(m,g,cert,options.fieldClaim,negative,Math.min(until,clock()+50),e=>trace.push(e),0,options.memo)
     if(no){
      const yes=fieldBoundLemmas(m,ds,g,cert,until,trace,onModel,positive,options),tree=yes?{split,yes,no}:undefined
      trace.push({stage:'field-column-domain',domain,proposed:!!tree})
@@ -113,7 +113,7 @@ function fieldBoundLemmasImpl(m:Machine,ds:CountDecl[],g:Goal,cert:Proposal,unti
   trace.push({stage:'field-row-pairs',pairs:rowPlan})
   return proveRowCases(g,root,rowPlan,until,(branch,end)=>{
    const cached=options.memo?.get(g,branch,end);if(cached){trace.push({stage:'source-memo',scope:'field-row'});return cached}
-   const tree=fieldCase(m,g,cert,options.fieldClaim,branch,end,e=>trace.push(e))??fieldBoundLemmas(m,ds,g,cert,end,trace,onModel,branch,{...options,splitRows:false,deferCheck:true})
+   const tree=fieldCase(m,g,cert,options.fieldClaim,branch,end,e=>trace.push(e),0,options.memo)??fieldBoundLemmas(m,ds,g,cert,end,trace,onModel,branch,{...options,splitRows:false,deferCheck:true})
    if(tree)options.memo?.put(g,branch,tree)
    return tree
   },e=>trace.push(e),{deferToCaller:!!options.deferCheck,splitEqual:copiesRows(m,root)})

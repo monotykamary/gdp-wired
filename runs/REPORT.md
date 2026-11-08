@@ -3096,6 +3096,72 @@ The next generation work must address that cost, not relabel this as a completed
 MLDR proof.
 
 Raw logs, all 87 placements and full `score.json` are in the run directory;
-`score-summary.json` is committed. The next step is the generation-lane merge
-only after its repaired-source gates, then remeasurement of generation/row
-construction and the remaining three complete-law gaps.
+`score-summary.json` is committed. Generation integration remains gated on its repaired-source checks. Per the
+next coordinator instruction, row/proof work resumes meanwhile on the
+`f525d951` production base rather than waiting idle.
+
+## Resumed proof work: third complete law (Inv1758)
+
+A generic arithmetic fast path and exact-row-checked memo reuse of recursive
+field subderivations close both ordering halves of the alternate active send
+guard and its remaining row composition. Full ordinary trees are emitted; no
+trusted rule, invariant, protocol-name branch or allowance changes.
+
+`inv1758-field-memo-v1`: **proved/checked**, **4,221 counted ms / 14.599 s wall**,
+32 recursive field memo hits. `inv1758-complete-v1` repeats this **3/3** at
+**4,221 counted ms**, walls **18.953 / 16.751 / 14.952 s**. The hard-law gate is
+now **3/5**, not an all-laws-kept or whole-protocol pass.
+
+### Updated exclusive wall breakdown
+
+`inv1758-field-memo-v1`, sequential laws on one exclusive large VM, eight
+pinned vCPUs, no co-tenants. Generation here means count/witness candidates,
+not production invariant discovery. Seconds:
+
+| Law | Proved/checked | Generation | Construction | Search | Kernel | Total wall |
+| --- | --- | ---: | ---: | ---: | ---: | ---: |
+| One primary | yes/yes | 0.030 | 0.563 | 0.551 | 2.082 | 3.227 |
+| Inv3915 | yes/yes | 0.024 | 0.758 | 0.506 | 3.680 | 4.967 |
+| Inv1758 | **yes/yes** | 0.031 | 4.543 | 2.000 | **8.588** | **15.163** |
+| Inv2973 | no/no | 0.400 | **20.184** | 4.667 | 0 | 25.251 |
+| Inv* | no/no | 0.060 | **14.508** | 6.443 | 0.002 | 21.012 |
+
+The sum is **69.620 s before production invariant generation**. The new
+complete certificate has a real verifier cost, unlike the earlier failed
+probe; no budget-fit claim is made. Kernel time includes all checks during
+construction and final admission. Inclusive `rowsAt` cost in the counting
+laws remains **14.571 / 10.622 s**, including **10.116 / 8.347 s** in facts.
+This is the next optimization target.
+
+### Track K: a real complete-certificate emission pair
+
+`inv1758-complete-v1/lemma-pair.log` runs emission off, then
+`GDP_COUNT_LEMMA_CUTS=1`, on the same exclusive VM with the unchanged 60-second
+cap. The isolated per-law driver invokes the same `proposeLemmaCuts` entry
+point as `counts.ts:finish`, with production-style provenance collection.
+It does not claim admission of the other unproved laws.
+
+| Measurement | Off | On |
+| --- | ---: | ---: |
+| Complete proved/checked | yes/yes | yes/yes |
+| Counted ms | 4,220.867 | 4,220.867 |
+| Total wall s | **10.436** | **12.499** |
+| Proof construction including internal check, s | 7.606 | 8.296 |
+| Emission s | 0 | **2.253** |
+| Final kernel check s | **2.829** | **1.948** |
+| Proposer calls / accepted cuts | 0 / 0 | **2 / 89** |
+
+The start obligation proposes no cut; the step obligation emits 89, all
+accepted without fallback. Total emitted nodes change **4,539 -> 4,426**
+(main tree 2,577 plus lemma trees). Final checking saves **0.881 s**, but the
+single pair's net wall **increases 2.062 s**. This is now an actual emission
+measurement, unlike the earlier zero-hook probes, but not a net speedup or
+reason to enable the optional flag by default.
+
+Validation: **382 proof/kernel tests, 67 support tests**, clean type/lint.
+New regressions cover fast arithmetic, satisfiable refusal and memo transport
+with missing source support. The fast-path-only trial advanced the frontier
+but did not complete the law; its check was polluted by a standalone `.ts`
+baseline mounted at repository root. The baseline is now `.txt` data and the
+clean completion suite includes the corrected check. Logs and placements are
+retained in the named run directories. Inv2973 and Inv* remain open.
