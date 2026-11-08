@@ -22,6 +22,40 @@ test('zero-coefficient lemma conditions agree with Lean without changing legacy 
   expect(JSON.stringify(zero)).toBe(original)
 })
 
+// Fixed JSON from the unmodified checker: never reconstruct these leaves with a helper under test.
+for (const fixture of frozen) if (fixture.id !== 'zero_coefficient_condition') {
+  test(`frozen reviewer input: ${fixture.id}`, () => {
+    expect(checkGoalLemmas(fixture.goal, fixture.tree, fixture.lemmas)).toBe(fixture.expect)
+    if (fixture.id === 'slice_exact_end') expect(fixture.lemmas[0]!.slice).toEqual([0, fixture.goal.hyps.length])
+    if (fixture.id === 'repeated_split' || fixture.id === 'constant_split') {
+      expect(check(fixture.goal, fixture.tree)).toBe(false)
+      expect(checkGoalLemmas(fixture.goal, fixture.tree, [])).toBe(false)
+    }
+  })
+}
+
+test('eligibility cannot use a preceding cut to enable a second lemma', () => {
+  const path = new Map([['c:1', {lin: {c: 1}, holds: true}]])
+  const first: LemmaCut = {when: [{c: 1}], cut: {a: 1}, tree: {leaf: []}}
+  const second: LemmaCut = {when: [{a: 1}], cut: {b: 1}, tree: {leaf: []}}
+  expect([...lemmaPath([first, second], path).values()]).toEqual([
+    {lin: {a: 1}, holds: true}, {lin: {c: 1}, holds: true},
+  ])
+  expect([...path.entries()]).toEqual([['c:1', {lin: {c: 1}, holds: true}]])
+})
+
+test('cuts precede original rows and duplicate cuts keep their own row positions', () => {
+  const path = new Map([['c:1', {lin: {c: 1}, holds: true}]])
+  const cut: LemmaCut = {when: [], cut: {a: 1}, tree: {leaf: []}}
+  expect([...lemmaPath([cut], path).entries()]).toEqual([
+    ['a:1', {lin: {a: 1}, holds: true}], ['c:1', {lin: {c: 1}, holds: true}],
+  ])
+  expect([...lemmaPath([cut, cut], path).entries()]).toEqual([
+    ['a:1', {lin: {a: 1}, holds: true}], ['@0', {lin: {a: 1}, holds: true}],
+    ['c:1', {lin: {c: 1}, holds: true}],
+  ])
+})
+
 test('a separately checked conditional lemma closes only below its decision', () => {
   expect(checkGoalLemmas(goal, tree, [entry])).toBe(true)
   expect(check(goal, tree)).toBe(false)

@@ -1,0 +1,93 @@
+[
+  {
+    "id": "baseline",
+    "unit": 0,
+    "generation": 0,
+    "lean": 0,
+    "survived": true
+  },
+  {
+    "id": "M01-no-eligibility",
+    "unit": 1,
+    "generation": 1,
+    "lean": null,
+    "survived": false
+  },
+  {
+    "id": "M02-positive-proof-cut",
+    "unit": 1,
+    "generation": 1,
+    "lean": null,
+    "survived": false
+  },
+  {
+    "id": "M03-slice-upper-inclusive",
+    "unit": 0,
+    "generation": 0,
+    "lean": 0,
+    "survived": true
+  },
+  {
+    "id": "M04-eligibility-from-cuts",
+    "unit": 1,
+    "generation": 0,
+    "lean": 0,
+    "survived": false
+  },
+  {
+    "id": "M05-nested-lemma-fallback",
+    "unit": 1,
+    "generation": 0,
+    "lean": 0,
+    "survived": false
+  },
+  {
+    "id": "M06-no-repeated-split-refusal",
+    "unit": 1,
+    "generation": 0,
+    "lean": 0,
+    "survived": false
+  },
+  {
+    "id": "M07-no-constant-split-refusal",
+    "unit": 1,
+    "generation": 0,
+    "lean": 0,
+    "survived": false
+  },
+  {
+    "id": "M08-collapse-duplicates",
+    "unit": 1,
+    "generation": 1,
+    "lean": null,
+    "survived": false
+  },
+  {
+    "id": "M09-path-before-cut",
+    "unit": 1,
+    "generation": 0,
+    "lean": 0,
+    "survived": false
+  },
+  {
+    "id": "M10-ignore-slice",
+    "unit": 1,
+    "generation": 1,
+    "lean": null,
+    "survived": false
+  },
+  {
+    "id": "M11-drop-MC-lemmas",
+    "unit": 1,
+    "generation": 0,
+    "lean": 0,
+    "survived": false
+  },
+  {
+    "id": "M12-no-lemma-proof",
+    "unit": 1,
+    "generation": 1,
+    "lean": null,
+    "survived": false
+  }
+]
