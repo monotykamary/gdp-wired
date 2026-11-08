@@ -1,0 +1,33 @@
+ const finish=(scope:Path,end:number):Tree|undefined=>{
+  if(!alive())return undefined
+  scope=addScope(scope);const before=clock(),scopeKey=JSON.stringify([...scope].map(([id,a])=>[id,a.holds,canon(a.lin)])),excluded=excludedAt.get(scopeKey)??new Set<number>(),tried=triedAt.get(scopeKey)??new Set<number>();excludedAt.set(scopeKey,excluded);triedAt.set(scopeKey,tried)
+  leafEnd=end
+  try{
+   for(let round=0;round<=pool.length&&clock()<end&&alive();round++){
+    rounds++;const available=active(saved,scope),path=scope
+    const numeric:Goal={name:g.name,hyps:[...abstracted.flatMap(c=>piecesAt(c,path)).filter(c=>pure(c,path)),...countBindingsAt(cert.reads,path),...available.map(s=>s.good).filter(c=>pure(c,path))]}
+    const natural=proveNaturalCases(numeric,path,end,trace,{deferCheck:true}),q=natural?{tree:natural}:modelSequence(path)(numeric,end)
+    let proof:Tree|undefined='tree'in q?q.tree:undefined
+    if(!proof&&!('tree'in q)&&q.why===REFUTED&&q.core?.length){const small={...numeric,hyps:q.core.map(i=>numeric.hyps[i]!)},direct=fast(small,path),out=direct?undefined:grow(small,path,{nodes:0,until:end,units:false}),local=direct??(out&&'tree'in out?out.tree:undefined);if(local)proof=transport(small,numeric,local,path,path)}
+    if(proof){
+     const extended=lemmaPath(available.map(s=>s.lemma),scope),lifted=liftCountProxies(numeric,g,proof,cert.reads,path,extended,e=>trace.push({stage:'closure-transport',...e}),{deferCheck:true})
+     const tree=lifted&&(options.conditional?markConditionalProof(g,lifted,available.map(s=>s.lemma)):inlineConditionalCuts(g,g,lifted,extended,scope,available.map(s=>s.lemma),wallEnd(),e=>trace.push({stage:'closure-inline',...e})))
+     trace.push({stage:'closure-final',mode:'model-driven',fixedPoint,hyps:numeric.hyps.length,cuts:available.length,rounds:round+1,closedIndices:available.flatMap(s=>s.index===undefined?[]:[s.index]),outcome:tree?'checked':'untransported',ms:clock()-before,total:clock()-started});return tree
+    }
+    if('tree'in q||q.stuck!=='sat'||!q.witness){trace.push({stage:'closure-final',mode:'model-driven',outcome:'unknown',reason:'tree'in q?'untransported':q.why,path:[...scope],cuts:available.length,ms:clock()-before,total:clock()-started});return undefined}
+    const model={...q.witness},completedZeroNames:string[]=[],violated:number[]=[],missing:{index:number,names:string[]}[]=[]
+    // A fresh numeric valuation may explicitly choose zero for unconstrained pool columns.
+    // Validate the completed valuation; this is never a source-model reuse shortcut.
+    for(const index of pool){const h=g.hyps[raw.length+index];if(h?.op!=='or'||h.xs[0]?.op!=='<=')continue;walkLive(h.xs[0],path,(o:any)=>{if(o.op==='var'&&!Object.hasOwn(model,o.name)){model[o.name]=0;completedZeroNames.push(o.name)}})}
+    const validNumeric=brokenOf(numeric)(model).length===0,validScope=[...path.values()].every(a=>{if(Object.keys(a.lin).some(k=>k!=='1'&&!Object.hasOwn(model,k)))return false;const n=Object.entries(a.lin).reduce((sum,[k,z])=>sum+z*(k==='1'?1:model[k]!),0);return a.holds?n<=0:n>0})
+    if(!validNumeric||!validScope){trace.push({stage:'closure-final',mode:'model-driven',outcome:'unknown',reason:'invalid-numeric-model',validNumeric,validScope,completedZeroNames,model,path:[...scope],ms:clock()-before,total:clock()-started});return undefined}
+    for(const index of pool){const h=g.hyps[raw.length+index];if(h?.op!=='or'||h.xs[0]?.op!=='<=')continue;const good=h.xs[0],names=new Set<string>();walkLive(good,path,(o:any)=>{if(o.op==='var')names.add(o.name)});const absent=[...names].filter(name=>!Object.hasOwn(model,name));if(absent.length){missing.push({index,names:absent});continue}if(brokenOf({name:'pool fact',hyps:[good]})(model).length)violated.push(index)}
+    const pending=violated.filter(index=>!tried.has(index))
+    trace.push({stage:'closure-model-round',round:round+1,scope:scopes.indexOf(scope),violated,pending,excluded:[...excluded],completedZeroNames,missing,cuts:available.length,pool:pool.length})
+    if(missing.length){trace.push({stage:'closure-final',mode:'model-driven',outcome:'unknown',reason:'unbound-pool-variables',model,path:[...scope],missing,ms:clock()-before,total:clock()-started});return undefined}
+    if(!pending.length){fixedPoint=true;trace.push({stage:'closure-final',mode:'model-driven',outcome:'unknown',reason:'no-pool-fact',model,path:[...scope],violated,excluded:[...excluded],cuts:available.length,ms:clock()-before,total:clock()-started});return undefined}
+    for(const index of pending){if(clock()>=end||!alive())break;tried.add(index);if(attempt(index,scope,end))break;excluded.add(index)}
+   }
+   trace.push({stage:'closure-final',mode:'model-driven',outcome:'unknown',reason:'time',path:[...scope],ms:clock()-before,total:clock()-started});return undefined
+  }finally{leafEnd=undefined}
+ }

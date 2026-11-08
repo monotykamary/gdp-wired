@@ -4965,3 +4965,30 @@ provide the predicted final reduction.
 Three tests, TypeScript, and type-aware lint pass. No production change.
 Evidence: **runs/track-m/section8-f23-v1/README.md**, **results.json** and
 its paired raw/decoded profile receipts.
+
+## Section 8 T-8.1 — small total work, but first-leaf share exhausted
+
+The research-only model loop runs over the **complete 91 / 289 instance pools**,
+queries with proved cuts only, and re-queries after each newly proved fact.
+The explicit-binding check guards source-model reuse; no instance is attempted
+twice at one scope. Fresh numeric valuations explicitly complete absent pool
+columns to zero and are validated against the numeric AST and scope before V
+is evaluated. This is not a source-reuse default-zero shortcut.
+
+| Full-pool diagnostic | Cuts | Counted total | Wall | Outcome |
+|---|---:|---:|---:|---|
+| Inv* | 5 | 440.058722 | 0.781 s | First arithmetic leaf: time |
+| Inv2973 | 2 | 352.459662 | 1.329 s | First arithmetic leaf: time |
+
+The unchanged 350-unit leaf share expires at **354.431277 / 352.109316** units
+respectively, including the last atomic operation. Inv* attempts seven source
+facts; Inv2973 attempts two. Both stop in their first equal/equal row scope,
+**before** the later T-A leaves. Neither completes, and neither has an empty
+unexcluded V, so **no generator gap is claimed**. The T-8.1 prediction fails.
+No cap, leaf share, source allowance or overall allowance was raised. Legacy
+fallback after loop failure is excluded from this loop-only measurement.
+
+Both repeated full-pool runs have identical counted totals. TypeScript and
+type-aware lint pass. Exact scopes, model rounds, V/exclusion sets and source
+queries are in **runs/track-m/section8-loop-final-v1/**; earlier restricted
+controls and setup failures are retained. Production remains unchanged.
