@@ -23,7 +23,7 @@ import {modelSequence} from '../kernel/model-sequence.ts'
 import {inferLaws} from './infer.ts'
 import {carryCandidates, scanPrefixes} from './carry.ts'
 import {relevantGoals, relevantLaws} from './relevance.ts'
-import {countPoolKey, countSignature, grammarPool, ids, polaritySelection, readTuples, refinementSignature, reservationReadClosure, reservationState, reservePool, prepareSupport, smallSelection, sparseReadInstances, sourceContext, coarseContext, selectedCertificate, chosenView, candidateWork, stableState, UnsupportedCountProposal} from './count-support.ts'
+import {countPoolKey, countSignature, grammarPool, ids, instId, polaritySelection, readTuples, refinementSignature, reservationReadClosure, reservationState, reservePool, prepareSupport, smallSelection, sparseReadInstances, sourceContext, coarseContext, selectedCertificate, chosenView, candidateWork, stableState, UnsupportedCountProposal} from './count-support.ts'
 import {fieldLaws} from './field-laws.ts'
 import {countsForReads, proposeCountFacts} from './count-facts.ts'
 import {proposeCountUnions} from './count-unions.ts'
@@ -189,7 +189,7 @@ export function guardLaws(m: Machine): {counts: Machine['counts'], laws: Law[]} 
 // The count cells the goal reads (each before the step with its post name's twin), instances over pairs of them with one
 // bound (a count that doesn't drop, +1 and −1; two that meet, +1, +1 and −1), each with a fresh witness; and the laws and
 // quantified flags at the witnesses (returned, for the goal's law's instances).
-export function certFor(goal: {hyps: C[]}, decls: {map: string, below: E, j: string, key: string, body: E}[], wide = false, most = wide ? 24 : 10, more?: () => boolean): {reads: MapRead[], insts: CountInst[], wits: string[], picks: [string, E[]][], loose: boolean} {
+export function certFor(goal: {hyps: C[]}, decls: {map: string, below: E, j: string, key: string, body: E}[], wide = false, most = wide ? 24 : 10, more?: () => boolean, structured = true): {reads: MapRead[], insts: CountInst[], wits: string[], picks: [string, E[]][], loose: boolean} {
   const tick = more ?? (() => true), byMap = new Map(decls.map(d => [d.map, d])), last = goal.hyps.at(-1), lastText = json(last)
   const own = (t: E) => t.op === 'const' || (t.op === 'var' && lastText.includes(`"name":${json(t.name)}`))
   const all0 = [...reads(goal.hyps, mp => byMap.has(mp), new Map(), more).values()], inLast = [...reads(last, mp => byMap.has(mp), new Map(), more).keys()]
@@ -238,10 +238,10 @@ export function certFor(goal: {hyps: C[]}, decls: {map: string, below: E, j: str
       }
     }
     // Structured identities supplement the legacy pool; they must not displace
-    // its witness prefix at the same cap. Both generators still run, and every
-    // appended proposal is checked as an ordinary witness certificate.
+    // its witness prefix at the same cap. Both generators remain available on
+    // expansion; every proposal is checked as an ordinary witness certificate.
     // Do not construct a tail that the unchanged cap would immediately discard.
-    const cs = insts.length < cap ? countsForReads(decls, named) : undefined
+    const cs = structured && insts.length < cap ? countsForReads(decls, named) : undefined
     if (cs && tick()) {
       const facts = proposeCountFacts(cs, goal, {maxFacts: Math.min(cap, 256), reserved: wits})
       for (const q of facts.insts) {
@@ -589,11 +589,14 @@ export function countedAttempts(m: Machine, caller: Law[], support: Set<Law>, un
     const attemptEnd = Math.min(until,clock()+ms)
     const ts = terms(law), id = `${pass} ${law.name}`, cti = models.get(id)
     const supported = ls.some(l => support.has(l)), modelLaws = supportOrder(ls, caller, support, true)
+    let structured = false
     // Start bounded field/row recovery before a growing model-instantiation
     // context consumes the law's share. Finite-input recovery is the default; it returns only
     // ordinary certificates accepted by the same final checkCountedLaws gate.
     if (!pass && focusEnabled && m.inputMaps?.length && !reads(law.holds, isCount).size) {
-      const focused = ptime('focused', () => proveFocusedCounts(m, ls, law, {}, Math.min(until, clock() + Math.min(ms, 5000)), (g, ds) => certFor(g, ds, true, pool)))
+      const focusEnd = Math.min(until, clock() + Math.min(ms, 5000))
+      const focus = (extra: boolean) => ptime('focused', () => proveFocusedCounts(m, ls, law, {}, focusEnd, (g, ds) => certFor(g, ds, true, pool, undefined, extra)))
+      const focused = focus(false) ?? (clock() < focusEnd ? focus(true) : undefined)
       if (focused) return {proof: focused}
     }
     // (the model broken: the attempt starts at the instances it asks for, its last attempt's and the tuples the new laws
@@ -630,6 +633,7 @@ export function countedAttempts(m: Machine, caller: Law[], support: Set<Law>, un
     type Selection = {chosen: Set<string>, cap: number, previous: Pick<CountCert, 'reads' | 'insts' | 'picks'>, decls: Parameters<typeof certFor>[1], reserve: ReturnType<typeof reservationState>, stable: ReturnType<typeof stableState>}
     const selections = new Map<string, Selection>()
     const poolCache = new Map<string, {key: string, value: ReturnType<typeof grammarPool>}>()
+    const legacyEntries = new Map<string, Set<string>>()
     const rawBuild = () => obligations(at).map(({goal, decls}) => {
       if (pass && supported && lazyMode === 'wide') {
         if (generation.state.deadline || performance.now() >= wallAt()) throw new UnsupportedCountProposal('reservation deadline')
@@ -639,14 +643,27 @@ export function countedAttempts(m: Machine, caller: Law[], support: Set<Law>, un
         // the proposal pool while only those instances grow; retained picks
         // are still reified against this goal, and additional picks may wait
         // for failure-driven widening. This caches proposals, never a proof.
-        const key = countPoolKey(goal, decls)
+        const key = `${Number(structured)}:${countPoolKey(goal, decls)}`
         const cached = poolCache.get(goal.name)
-        const pool0 = cached?.key === key ? cached.value : grammarPool(goal, decls, pool, generation)
+        const pool0 = cached?.key === key ? cached.value : grammarPool(goal, decls, pool, generation, structured)
         if (cached?.key !== key) poolCache.set(goal.name, {key, value: pool0})
         if (!selection) {
-          const pick = readTuples(goal.hyps.at(-1), generation.tick).some(([mp]) => mp.endsWith('#') && decls.some(d => d.map === mp))
+          let pick = readTuples(goal.hyps.at(-1), generation.tick).some(([mp]) => mp.endsWith('#') && decls.some(d => d.map === mp))
             ? polaritySelection(goal, decls, pool0, generation, sourceMaps).pick
             : smallSelection(goal, decls, pool0.full, readTuples(law.holds, generation.tick).map(([, key]) => key), none, generation)
+          if (structured) {
+            // A full ordinary selection must not hide the newly requested
+            // family behind its cap again. Seed fresh, small identities at
+            // the root first, within the existing three-read reservation
+            // width; all ordinary candidates remain in the pool.
+            const prior = legacyEntries.get(goal.name) ?? new Set<string>()
+            const root = new Set([...reads(goal.hyps.at(-1), () => true, new Map(), generation.tick).values()].map(json))
+            const byRead = new Map(pool0.full.reads.map(r => [r[0], r]))
+            const score = (i: CountInst) => i.terms.filter(([, id]) => root.has(json(byRead.get(id)?.slice(1)))).length
+            const fresh = pool0.full.insts.filter(i => i.terms.length <= 3 && !prior.has('i' + instId(i, pool0.full.reads))).sort((a, b) => score(b) - score(a))
+            const seen = new Set<string>()
+            pick = {...pick, insts: [...fresh, ...pick.insts].filter(i => { const id = instId(i, pool0.full.reads); return !seen.has(id) && !!seen.add(id) }).slice(0, 10), picks: []}
+          }
           selection = {chosen: new Set(ids(pick)), cap: Math.min(10, pick.insts.length + 2), previous: pick, decls, reserve: reservationState(goal, [m, ls, goal], pool), stable: stableState([m, ls, goal])}
           selections.set(goal.name, selection)
         }
@@ -658,7 +675,7 @@ export function countedAttempts(m: Machine, caller: Law[], support: Set<Law>, un
         selection.previous = full; selection.decls = decls
         return {goal, decls, c, gg, pool: fg ? {fg, keys, wits: [...full.picks.map(() => undefined), ...full.insts.map(i => i.wit)], chosen: selection.chosen, cap: selection.cap} as Pool : undefined}
       }
-      const full = pass ? certFor(goal, decls, wide, wide && lazyMode !== '0' ? pool : undefined) : none
+      const full = pass ? certFor(goal, decls, wide, wide && lazyMode !== '0' ? pool : undefined, undefined, structured) : none
       if (!pass || lazyMode === '0' || (lazyMode === 'wide' && !wide)) return {goal, decls, c: full, gg: ptime('encode', () => mcGoal(goal.hyps, decls, full)), pool: undefined as Pool | undefined}
       const rd = new Map(full.reads.map(r => [r[0], json([r[1], r[2]])]))
       const keys = [...full.picks.map(q => `p${json([rd.get(q[0]), q[1]])}`), ...full.insts.map(i => `i${json([i.terms.map(([z, x]) => [z, rd.get(x)]), i.unit, i.below])}`)]
@@ -717,6 +734,19 @@ export function countedAttempts(m: Machine, caller: Law[], support: Set<Law>, un
       decisions.set(id, (decideStep = modelSequence()))
     }
     const t0 = clock(), more = () => clock() - t0 <= Math.max(ms, 1_000)
+    // Try the established pool first. A failed counted attempt may expand to
+    // structured partitions/unions once, inside the same attempt and budgets.
+    // This defers candidate work, not a generator or a checker obligation.
+    const expandStructured = () => {
+      if (!pass || structured || !built.some(b => b.c.reads.length) || !more()) return false
+      structured = true; wide = true; widened.add(law.name)
+      for (const [name, cached] of poolCache) legacyEntries.set(name, new Set(ids(cached.value.full)))
+      selections.clear(); chosen.clear()
+      tally('#structured')
+      countsDump.on?.({law: law.name, pass, phase: 'structured-expansion'})
+      built = build()
+      return true
+    }
     // The step goal decided first by the CDCL search for a model (its phases the simplex's point: a model is met where the
     // tree search would split on), within 2·ms (5 s at most):
     //   - refuted: the law's instances cut to those its core reads, and the core's hypotheses grown on their own first,
@@ -771,6 +801,7 @@ export function countedAttempts(m: Machine, caller: Law[], support: Set<Law>, un
         if (!asked) {
           if (countsDump.on && pass && dumped < Number(env.GDP_COUNTS_DUMP_N ?? 3)) { dumped++; countsDump.on({law: law.name, goal: step.goal.name, ls: ls.map(l => l.name), stuck: 'sat', witness: q.witness, reads: step.c.reads, insts: step.c.insts, hyps: step.gg.hyps, base: step.goal, decls: step.decls, cert: step.c, at, laws: ls, wide, pass}) }
           if (pass && !wide && houdini && 'loose' in step.c && (step.c.loose || isCaller) && more()) { wide = true; widened.add(law.name); built = build(); continue }
+          if (expandStructured()) continue
           return refuted(step.gg, q.witness)
         }
         at = asked
@@ -780,7 +811,7 @@ export function countedAttempts(m: Machine, caller: Law[], support: Set<Law>, un
       // witness-bearing certificates with the warmed law instances; the final
       // checkCountedLaws gate is unchanged; the same bounded finite-input default applies.
       if (pass && wide && focusEnabled && clock() < until) {
-        const focused = ptime('focused', () => proveFocusedCounts(m, ls, law, at, Math.min(until, clock() + Math.min(ms, 5000)), (g, ds) => certFor(g, ds, true, pool)))
+        const focused = ptime('focused', () => proveFocusedCounts(m, ls, law, at, Math.min(until, clock() + Math.min(ms, 5000)), (g, ds) => certFor(g, ds, true, pool, undefined, structured)))
         if (focused) return {proof: focused}
       }
       // (whether a goal reads a count: if none does, pass 1's goals are pass 0's)
@@ -802,8 +833,14 @@ export function countedAttempts(m: Machine, caller: Law[], support: Set<Law>, un
           if (asked || lz) { if (asked) at = asked; built = build(); again = true; break }
         }
         if (gg && o && !('tree' in o) && o.stuck === 'sat' && o.witness && gg === built.at(-1)!.gg && pass && !wide && houdini && 'loose' in c && (c.loose || isCaller) && more()) { wide = true; widened.add(law.name); built = build(); again = true; break }
-        if (gg && o && !('tree' in o) && o.stuck === 'sat' && o.witness && gg === built.at(-1)!.gg) return refuted(gg, o.witness)
-        if (!o || !('tree' in o)) return {stuck: gg ? (o as {stuck?: string}).stuck ?? '' : ''}
+        if (gg && o && !('tree' in o) && o.stuck === 'sat' && o.witness && gg === built.at(-1)!.gg) {
+          if (expandStructured()) { again = true; break }
+          return refuted(gg, o.witness)
+        }
+        if (!o || !('tree' in o)) {
+          if (expandStructured()) { again = true; break }
+          return {stuck: gg ? (o as {stuck?: string}).stuck ?? '' : ''}
+        }
         certs[goal.name] = {reads: c.reads, insts: c.insts, tree: o.tree, ...('picks' in c && c.picks.length ? {picks: c.picks} : {})}
       }
       if (!again) return {proof: {instances: at, certs}}
