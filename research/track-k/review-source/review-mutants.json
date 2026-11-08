@@ -1,0 +1,14 @@
+[
+{"id":"M01-no-eligibility","old":"const active = lemmas.filter(l => l.when.every(w => decide(w, path) === true))","new":"const active = lemmas"},
+{"id":"M02-positive-proof-cut","old":"prependAtoms([{lin: l.cut, holds: false}, ...l.when.map(lin => ({lin, holds: true}))], new Map())","new":"prependAtoms([{lin: l.cut, holds: true}, ...l.when.map(lin => ({lin, holds: true}))], new Map())"},
+{"id":"M03-slice-upper-inclusive","old":"i >= 0 && i < goal.hyps.length","new":"i >= 0 && i <= goal.hyps.length"},
+{"id":"M04-eligibility-from-cuts","old":"const active = lemmas.filter(l => l.when.every(w => decide(w, path) === true))","new":"const active: LemmaCut[] = []; let available = path; for (const l of lemmas) { if (l.when.every(w => decide(w, available) === true)) { active.push(l); available = prependAtoms([{lin: l.cut, holds: true}], available) } }"},
+{"id":"M05-nested-lemma-fallback","old":"if (!check({...goal, hyps}, l.tree, path)) return false","new":"if (!check({...goal, hyps}, l.tree, path) && !checkGoalLemmas({...goal, hyps}, l.tree, (l.tree as Tree & {lemmas?: LemmaCut[]}).lemmas ?? [])) return false"},
+{"id":"M06-no-repeated-split-refusal","old":"if (path.has(id) || Object.keys(t.split).every(key => key === '1')) return false","new":"if (Object.keys(t.split).every(key => key === '1')) return false"},
+{"id":"M07-no-constant-split-refusal","old":"if (path.has(id) || Object.keys(t.split).every(key => key === '1')) return false","new":"if (path.has(id)) return false"},
+{"id":"M08-collapse-duplicates","old":"out.set(out.has(id) ? `@${duplicate++}` : id, atom)","new":"out.set(id, atom)"},
+{"id":"M09-path-before-cut","old":"[...front, ...path.values()]","new":"[...path.values(), ...front]"},
+{"id":"M10-ignore-slice","old":"const hyps = l.slice === undefined ? goal.hyps : l.slice.map(i => goal.hyps[i]!)","new":"const hyps = goal.hyps"},
+{"id":"M11-drop-MC-lemmas","old":"{insts: k.insts, tree: k.tree, lemmas: k.lemmas}","new":"{insts: k.insts, tree: k.tree}"},
+{"id":"M12-no-lemma-proof","old":"if (!check({...goal, hyps}, l.tree, path)) return false","new":"// mutant: accept lemma without checking its proof"}
+]

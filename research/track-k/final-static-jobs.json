@@ -1,0 +1,54 @@
+[
+  {
+    "name": "check-and-units",
+    "cmd": "bun install --frozen-lockfile >/dev/null && bun run check && bun test core/lemma-cuts.test.ts kernel/lemma-cut.test.ts",
+    "timeout": 300,
+    "cpu": 4,
+    "memory": 8192
+  },
+  {
+    "name": "lean-count-cuts",
+    "cmd": "cd lean-kernel && TC=~/.elan/toolchains/leanprover--lean4---v4.34.0 && export LEAN_PATH=\"$PWD:$TC/lib/lean\" && \"$TC/bin/lean\" -o Count.olean Count.lean && \"$TC/bin/lean\" -o CountMachine.olean CountMachine.lean && \"$TC/bin/lean\" ../research/track-k/LemmaCuts.lean",
+    "timeout": 600,
+    "cpu": 4,
+    "memory": 8192
+  },
+  {
+    "name": "counted-library",
+    "cmd": "set -e; bun install --frozen-lockfile >/dev/null; bun lean-kernel/count-examples.ts lean-kernel; cd lean-kernel; TC=~/.elan/toolchains/leanprover--lean4---v4.34.0; export LEAN_PATH=\"$PWD:$TC/lib/lean\"; for m in Count CountMachine GhostMap; do \"$TC/bin/lean\" -o \"$m.olean\" \"$m.lean\"; done; \"$TC/bin/lean\" CountExamples.lean",
+    "timeout": 900,
+    "cpu": 4,
+    "memory": 8192
+  },
+  {
+    "name": "expanded-conformance",
+    "cmd": "set -e; bun install --frozen-lockfile >/dev/null; bun lean-kernel/conformance.ts --lemma-cuts > lean-kernel/LemmaConformance.lean; bun lean-kernel/conformance.ts --lemma-cuts --public > lean-kernel/PublicLemma.lean; cd lean-kernel; TC=~/.elan/toolchains/leanprover--lean4---v4.34.0; export LEAN_PATH=\"$PWD:$TC/lib/lean\"; for m in Count CountMachine GhostMap; do \"$TC/bin/lean\" -o \"$m.olean\" \"$m.lean\"; done; \"$TC/bin/lean\" LemmaConformance.lean; \"$TC/bin/lean\" PublicLemma.lean",
+    "timeout": 900,
+    "cpu": 4,
+    "memory": 8192
+  },
+  {
+    "name": "c14",
+    "cmd": "bun install --frozen-lockfile >/dev/null && bun research/track-k/check-retained.ts research/track-k/input c14",
+    "timeout": 90,
+    "cpu": 4,
+    "memory": 8192,
+    "timing": true
+  },
+  {
+    "name": "c9",
+    "cmd": "bun install --frozen-lockfile >/dev/null && bun research/track-k/check-retained.ts research/track-k/input c9",
+    "timeout": 90,
+    "cpu": 4,
+    "memory": 8192,
+    "timing": true
+  },
+  {
+    "name": "c11",
+    "cmd": "bun install --frozen-lockfile >/dev/null && bun research/track-k/check-retained.ts research/track-k/input c11",
+    "timeout": 90,
+    "cpu": 4,
+    "memory": 8192,
+    "timing": true
+  }
+]

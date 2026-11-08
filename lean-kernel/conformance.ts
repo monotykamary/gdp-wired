@@ -18,10 +18,66 @@ import type {Loop, QGoal, Recur} from '../kernel/kernel.ts'
 import {canon, checkQTree, checkRecur} from '../kernel/kernel.ts'
 import {growQ} from '../kernel/qprove.ts'
 import {type Rat, q} from '../core/q.ts'
-import type {Lin} from '../core/solver.ts'
+import {type Lin, k} from '../core/solver.ts'
 import {type LeafTamper, qCondLean, qTermLean, qTreeLean, ratLean} from './qlean.ts'
-import {recurCasesLean, recurLean, seedStepProof, smachineToLean} from './emit.ts'
+import {cmachineToLean, countedToLean, encodeCounted, toLean, recurCasesLean, recurLean, seedStepProof, smachineToLean} from './emit.ts'
+import {lemmaCutFixture} from './lemma-cases.ts'
+import {checkCounted, checkCountedLaws, lemmaPath, type LemmaCut} from '../kernel/kernel.ts'
+import {countedProof, toyCounted} from './count-examples.ts'
 import {leanTerms} from './lean-terms.ts'
+
+// The same concrete conditional certificates used by kernel/lemma-cut.test.ts, through the production printer.
+if (process.argv.includes('--lemma-cuts')) {
+  const f = lemmaCutFixture(), g = {...f.goal, counts: []}
+  const cert = {insts: [], tree: f.tree, lemmas: [f.entry]}
+  if (!checkCounted(g, cert)) throw new Error('conditional fixture does not check')
+  const out = [countedToLean('conditional', g, cert), countedToLean('legacy', g, {insts: [], tree: f.legacy})]
+  const enc = encodeCounted('conditional_cases', f.goal, cert, ['a', 'b', 'c'], [])
+  out.push(`def conditional_cases_goal : CGoal := ⟨${enc.hyps}, []⟩`)
+  const mutants: {name: string, lemmas: LemmaCut[]}[] = [
+    {name: 'opposite condition', lemmas: [{...f.entry, when: [f.flip(f.c)]}]},
+    {name: 'non-refuting proof', lemmas: [{...f.entry, tree: {leaf: []}}]},
+    {name: 'different slice', lemmas: [{...f.entry, slice: [0, 3]}]},
+    {name: 'out-of-range slice', lemmas: [{...f.entry, slice: [0, 40]}]},
+  ]
+  for (const c of mutants) {
+    const expected = checkCounted(g, {...cert, lemmas: c.lemmas})
+    if (expected) throw new Error(`mutant accepted: ${c.name}`)
+    out.push(`-- ${c.name}: TypeScript ${expected}\nexample : checkCounted conditional_cases_goal [] ${enc.tab} (${enc.tree}) ${enc.lemmaList(c.lemmas)} = ${expected} := by decide +kernel`)
+  }
+  // Repeated atoms remain separate input rows, exactly as Lean's list path does.
+  const duplicatePath = new Map([[canon(f.a), {lin: f.a, holds: false}], [canon(f.c), {lin: f.c, holds: true}], ['@0', {lin: f.c, holds: true}]])
+  const duplicate = {...f.entry, when: [f.c, f.c], tree: f.leaf({...f.goal, hyps: f.hyps.slice(0, 2)}, duplicatePath, [f.ab, f.b, f.flip(f.a)])}
+  const duplicateCert = {...cert, lemmas: [duplicate]}
+  if (!checkCounted(g, duplicateCert)) throw new Error('duplicate-condition certificate')
+  out.push(countedToLean('duplicate_conditions', g, duplicateCert))
+  const unconditional = {...f.entry, when: [], tree: f.leaf({...f.goal, hyps: f.hyps.slice(0, 2)}, new Map([[canon(f.a), {lin: f.a, holds: false}]]), [f.ab, f.b, f.flip(f.a)])}
+  const rootCert = {insts: [], lemmas: [unconditional], tree: f.leaf(f.goal, lemmaPath([unconditional], new Map()), [f.a, f.flip(f.a)])}
+  if (!checkCounted(g, rootCert)) throw new Error('unconditional certificate')
+  out.push(countedToLean('unconditional_cut', g, rootCert))
+  // Exercise CCert and CEntry export, including the actual machine freshness guards with nonempty lemmas.
+  const toy = toyCounted(), original = countedProof(toy.m, toy.laws, toy.instances, toy.certs)
+  const inactive: LemmaCut = {when: [k(1)], cut: {}, slice: [], tree: {leaf: [{kind: 'input', index: 0}]}}
+  const certs = Object.fromEntries(Object.entries(original).map(([name, c]) => [name, {...c, lemmas: [inactive]}]))
+  if (!checkCountedLaws(toy.m, toy.laws, {instances: toy.instances, certs})) throw new Error('machine lemma certificate')
+  if (process.argv.includes('--public')) {
+    console.log(toLean([
+      {id: 'public_conditional', countedGoal: g, certificate: cert},
+      {id: 'public_counted_machine', countedMachine: toy.m, laws: toy.laws, proof: {instances: toy.instances, certs}},
+    ], {native: false}))
+    process.exit(0)
+  }
+  const tampers = ['size', '?chosen', 'a#'].map(wit => ({what: `captured witness ${wit}`, certs: Object.fromEntries(Object.entries(certs).map(([name, c]) => [name, {...c, insts: c.insts.map((i, j) => j === 0 ? {...i, wit} : i)}]))}))
+  for (const t of tampers) if (checkCountedLaws(toy.m, toy.laws, {instances: toy.instances, certs: t.certs})) throw new Error(t.what)
+  out.push(cmachineToLean('machine_cuts', toy.m, toy.laws, {instances: toy.instances, certs}, tampers))
+  const above = {...cert, tree: f.tree.yes}
+  const aboveEnc = encodeCounted('above', f.goal, above, ['a', 'b', 'c'], [])
+  const expectedAbove = checkCounted(g, above)
+  if (expectedAbove) throw new Error('cut accepted above its condition')
+  out.push(`-- cut cited above its decision: TypeScript ${expectedAbove}\nexample : checkCounted conditional_cases_goal [] ${aboveEnc.tab} (${aboveEnc.tree}) ${aboveEnc.lemmas} = ${expectedAbove} := by decide +kernel`)
+  console.log(`import CountMachine\nopen Kern Cert\nset_option maxRecDepth 100000\nset_option maxHeartbeats 0\n\n${out.join('\n\n')}`)
+  process.exit(0)
+}
 
 reseed(Number(process.env.FUZZ_SEED ?? 4242))
 const nonterm = process.argv.includes('--nonterm'), rationals = process.argv.includes('--rationals'), kind = process.argv.includes('--kind')

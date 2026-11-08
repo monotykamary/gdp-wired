@@ -2693,3 +2693,12 @@ The retained row optimization is validated; a profitable completed-subproof
 reuse mechanism remains **open**, and no new Inv1758/Inv2973/Inv* derivation has
 been added under cover of an optimization. The all-laws and strict 3×60-second
 gates remain unpassed. Generation remains owned by `claude/track-gen`.
+
+### Reviewed Track K integration
+
+Merged the coordinator-approved local main `6a3874d3` after the row and rejected
+cache experiments. `GDP_COUNT_LEMMA_CUTS=1` remains required for emission; it was
+not enabled by this integration. Kept this report on the modify/delete conflict
+because the coordinator explicitly requires the Track M measurement journal.
+The test-registry conflict retains both tracks' regressions. No generation
+source was edited. Post-merge validation is recorded below when complete.

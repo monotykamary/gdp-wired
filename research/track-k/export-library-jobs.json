@@ -1,0 +1,16 @@
+[
+  {
+    "name": "counted-library",
+    "cmd": "set -e; bun install --frozen-lockfile >/dev/null; bun lean-kernel/count-examples.ts lean-kernel; cd lean-kernel; TC=~/.elan/toolchains/leanprover--lean4---v4.34.0; export LEAN_PATH=\"$PWD:$TC/lib/lean\"; for m in Count CountMachine GhostMap; do \"$TC/bin/lean\" -o \"$m.olean\" \"$m.lean\"; done; \"$TC/bin/lean\" CountExamples.lean",
+    "timeout": 900,
+    "cpu": 4,
+    "memory": 8192
+  },
+  {
+    "name": "expanded-conformance",
+    "cmd": "set -e; bun install --frozen-lockfile >/dev/null; bun lean-kernel/conformance.ts --lemma-cuts > lean-kernel/LemmaConformance.lean; bun lean-kernel/conformance.ts --lemma-cuts --public > lean-kernel/PublicLemma.lean; cd lean-kernel; TC=~/.elan/toolchains/leanprover--lean4---v4.34.0; export LEAN_PATH=\"$PWD:$TC/lib/lean\"; for m in Count CountMachine GhostMap; do \"$TC/bin/lean\" -o \"$m.olean\" \"$m.lean\"; done; \"$TC/bin/lean\" LemmaConformance.lean; \"$TC/bin/lean\" PublicLemma.lean",
+    "timeout": 900,
+    "cpu": 4,
+    "memory": 8192
+  }
+]

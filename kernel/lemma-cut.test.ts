@@ -1,0 +1,128 @@
+import {expect, test} from 'bun:test'
+import {readFileSync} from 'node:fs'
+import {type Law, type Machine, atMost, n, x} from '../core/machine.ts'
+import {type Lin, k} from '../core/solver.ts'
+import {lemmaCutFixture} from '../lean-kernel/lemma-cases.ts'
+import {type CountCert, type Goal, type LemmaCut, type Tree, canon, check, checkCounted, checkCountedLaws, checkGoalLemmas, checkMC, countedObligations, leafConstraints, lemmaPath, mcGoal} from './kernel.ts'
+
+const {a, c, hyps, goal, entry, tree, legacy, flip, leaf, yes, no} = lemmaCutFixture()
+const frozen = JSON.parse(readFileSync(new URL('./fixtures/lemma-cut-review.json', import.meta.url), 'utf8')) as
+  {id: string, goal: Goal, tree: Tree, lemmas: LemmaCut[], expect: boolean}[]
+
+test('zero-coefficient lemma conditions agree with Lean without changing legacy paths', () => {
+  const zero = frozen.find(t => t.id === 'zero_coefficient_condition')!
+  expect(zero.expect).toBe(false) // Historical result saved before the fix, not an oracle rebuilt by this checker.
+  const original = JSON.stringify(zero)
+  expect(checkGoalLemmas(zero.goal, zero.tree, zero.lemmas)).toBe(true)
+  expect(checkGoalLemmas(zero.goal, zero.tree, [])).toBe(false)
+  expect(check(zero.goal, zero.tree)).toBe(false)
+  expect(checkGoalLemmas(zero.goal, zero.tree, [{...zero.lemmas[0]!, when: [{'1': -1, z: 0}]}])).toBe(true)
+  expect(checkGoalLemmas(zero.goal, zero.tree, [{...zero.lemmas[0]!, when: [{'1': 1, z: 0}]}])).toBe(false)
+  expect(lemmaPath(zero.lemmas, new Map()).size).toBe(1)
+  expect(JSON.stringify(zero)).toBe(original)
+})
+
+// Fixed JSON from the unmodified checker: never reconstruct these leaves with a helper under test.
+for (const fixture of frozen) if (fixture.id !== 'zero_coefficient_condition') {
+  test(`frozen reviewer input: ${fixture.id}`, () => {
+    expect(checkGoalLemmas(fixture.goal, fixture.tree, fixture.lemmas)).toBe(fixture.expect)
+    if (fixture.id === 'slice_exact_end') expect(fixture.lemmas[0]!.slice).toEqual([0, fixture.goal.hyps.length])
+    if (fixture.id === 'repeated_split' || fixture.id === 'constant_split') {
+      expect(check(fixture.goal, fixture.tree)).toBe(false)
+      expect(checkGoalLemmas(fixture.goal, fixture.tree, [])).toBe(false)
+    }
+  })
+}
+
+test('eligibility cannot use a preceding cut to enable a second lemma', () => {
+  const path = new Map([['c:1', {lin: {c: 1}, holds: true}]])
+  const first: LemmaCut = {when: [{c: 1}], cut: {a: 1}, tree: {leaf: []}}
+  const second: LemmaCut = {when: [{a: 1}], cut: {b: 1}, tree: {leaf: []}}
+  expect([...lemmaPath([first, second], path).values()]).toEqual([
+    {lin: {a: 1}, holds: true}, {lin: {c: 1}, holds: true},
+  ])
+  expect([...path.entries()]).toEqual([['c:1', {lin: {c: 1}, holds: true}]])
+})
+
+test('cuts precede original rows and duplicate cuts keep their own row positions', () => {
+  const path = new Map([['c:1', {lin: {c: 1}, holds: true}]])
+  const cut: LemmaCut = {when: [], cut: {a: 1}, tree: {leaf: []}}
+  expect([...lemmaPath([cut], path).entries()]).toEqual([
+    ['a:1', {lin: {a: 1}, holds: true}], ['c:1', {lin: {c: 1}, holds: true}],
+  ])
+  expect([...lemmaPath([cut, cut], path).entries()]).toEqual([
+    ['a:1', {lin: {a: 1}, holds: true}], ['@0', {lin: {a: 1}, holds: true}],
+    ['c:1', {lin: {c: 1}, holds: true}],
+  ])
+})
+
+test('a separately checked conditional lemma closes only below its decision', () => {
+  expect(checkGoalLemmas(goal, tree, [entry])).toBe(true)
+  expect(check(goal, tree)).toBe(false)
+  expect(checkGoalLemmas(goal, tree, [])).toBe(false)
+  expect(checkGoalLemmas(goal, tree.yes, [entry])).toBe(false)
+  expect(checkGoalLemmas(goal, tree, [{...entry, when: [flip(c)]}])).toBe(false)
+})
+
+test('empty lemma lists preserve the original goal and counted checkers', () => {
+  expect(check(goal, legacy)).toBe(true)
+  expect(checkGoalLemmas(goal, legacy)).toBe(true)
+  expect(checkCounted({...goal, counts: []}, {insts: [], tree: legacy})).toBe(true)
+  expect(checkCounted({...goal, counts: []}, {insts: [], tree: legacy, lemmas: []})).toBe(true)
+  expect(checkMC(hyps, [], {reads: [], insts: [], tree: legacy})).toBe(true)
+  expect(checkMC(hyps, [], {reads: [], insts: [], tree: legacy, lemmas: []})).toBe(true)
+})
+
+test('the actual counted and MC wrappers carry the lemma list', () => {
+  expect(checkCounted({...goal, counts: []}, {insts: [], tree, lemmas: [entry]})).toBe(true)
+  expect(checkMC(hyps, [], {reads: [], insts: [], tree, lemmas: [entry]})).toBe(true)
+})
+
+test('a lemma is checked against exactly its selected hypotheses', () => {
+  expect(checkGoalLemmas(goal, tree, [{...entry, slice: [0, 3]}])).toBe(false)
+  for (const index of [-1, 40, 0.5, NaN, Infinity]) expect(checkGoalLemmas(goal, tree, [{...entry, slice: [0, index]}])).toBe(false)
+})
+
+test('non-refuting, self-citing and circular lemma payloads are refused', () => {
+  expect(checkGoalLemmas(goal, tree, [{...entry, tree: {leaf: []}}])).toBe(false)
+  const self = {...entry, tree: {lemma: 0} as unknown as Tree}
+  expect(checkGoalLemmas(goal, tree, [self])).toBe(false)
+  expect(checkGoalLemmas(goal, tree, [self, {...entry, tree: {lemma: 1} as unknown as Tree}])).toBe(false)
+})
+
+test('read capture is still refused with a nonempty valid lemma list', () => {
+  const decl = {map: 'total', j: 'j', key: 'i', below: n(1), body: n(0)}
+  const cert: CountCert = {reads: [['fresh', 'total', n(0)]], insts: [], tree, lemmas: [entry]}
+  const expanded = mcGoal(hyps, [decl], cert)!
+  cert.tree = {split: c, yes: leaf(expanded, lemmaPath([entry], yes), [a, flip(a)]), no: leaf(expanded, no, [c, flip(c)])}
+  expect(checkMC(hyps, [decl], cert)).toBe(true)
+  const captured: CountCert = {...cert, reads: [['a', 'total', n(0)]]}
+  expect(checkMC(hyps, [decl], captured)).toBe(false)
+})
+
+test('witness capture of parameters, ?flag names and law skolems remains refused', () => {
+  const m: Machine = {name: 'capture control', params: ['p'], inputs: [], state: {}, pre: atMost(x('p'), x('p')), step: {flags: {flag: atMost(n(0), n(0))}}}
+  const laws: Law[] = [{name: 'tautology', forall: 'key', holds: atMost(n(0), n(0))}]
+  const inactive: LemmaCut = {when: [k(1)], cut: {}, slice: [], tree: {leaf: [{kind: 'input', index: 0}]}}
+  const certs: Record<string, CountCert> = {}
+  for (const {goal: g, decls} of countedObligations(m, laws, {})) {
+    const partial = {reads: [], insts: [{wit: 'fresh', below: n(0), terms: [], unit: 0}]} satisfies Omit<CountCert, 'tree'>
+    const expanded = mcGoal(g.hyps, decls, partial)!
+    const index = leafConstraints(expanded, new Map()).findIndex(r => canon(r.lin) === canon(k(1)))
+    expect(index).toBeGreaterThanOrEqual(0)
+    certs[g.name] = {...partial, tree: {leaf: [{kind: 'input', index}]}, lemmas: [inactive]}
+  }
+  expect(checkCountedLaws(m, laws, {instances: {}, certs})).toBe(true)
+  for (const wit of ['p', '?flag', 'key#']) {
+    const changed = Object.fromEntries(Object.entries(certs).map(([name, c]) => [name, {...c, insts: c.insts.map(i => ({...i, wit}))}]))
+    expect(checkCountedLaws(m, laws, {instances: {}, certs: changed})).toBe(false)
+  }
+})
+
+test('malformed new fields do not grant assumptions or throw', () => {
+  expect(checkGoalLemmas(goal, tree, null as unknown as LemmaCut[])).toBe(false)
+  expect(checkGoalLemmas(goal, tree, new Array<LemmaCut>(1))).toBe(false)
+  expect(checkGoalLemmas(goal, tree, [{...entry, when: new Array<Lin>(1)}])).toBe(false)
+  expect(checkGoalLemmas(goal, tree, [{...entry, cut: {a: NaN}}])).toBe(false)
+  expect(checkGoalLemmas(goal, tree, [{...entry, cut: {a: Number.MAX_SAFE_INTEGER + 1}}])).toBe(false)
+})

@@ -1,0 +1,33 @@
+import {readFileSync, writeFileSync, mkdirSync} from 'node:fs'
+import {spawnSync} from 'node:child_process'
+const root = process.cwd(), kernel = root + '/kernel/kernel.ts', original = readFileSync(kernel, 'utf8')
+const mutants = JSON.parse(readFileSync('review-mutants.json','utf8'))
+mkdirSync('review-results', {recursive:true})
+const results: any[] = []
+function run(args: string[], log: string, cwd=root, timeout=240000) {
+  const r = spawnSync(args[0], args.slice(1), {cwd, env:process.env, encoding:'utf8',timeout,maxBuffer:30*1024*1024})
+  const text = (r.stdout ?? '') + (r.stderr ?? '') + (r.error ? String(r.error) : '')
+  writeFileSync(root + '/review-results/' + log,text)
+  return {exit:r.status ?? -1,text}
+}
+for (const m of [{id:'baseline'},...mutants]) {
+  if (m.old && original.split(m.old).length !== 2) throw new Error('anchor not unique '+m.id)
+  writeFileSync(kernel,m.old ? original.replace(m.old,m.new) : original)
+  const unit=run(['bun','test','./kernel/lemma-cut.test.ts'],m.id+'.unit.log')
+  const gen=run(['bun','lean-kernel/conformance.ts','--lemma-cuts'],m.id+'.gen.log')
+  let lean: number | null = null
+  if (gen.exit === 0) {
+    writeFileSync(root+'/lean-kernel/ReviewConformance.lean',gen.text)
+    lean=run(['lean','ReviewConformance.lean'],m.id+'.lean.log',root+'/lean-kernel').exit
+  }
+  const result={id:m.id,unit:unit.exit,generation:gen.exit,lean,survived:unit.exit===0&&gen.exit===0&&lean===0}
+  results.push(result)
+  console.log(JSON.stringify(result))
+  if (unit.exit!==0) console.log(unit.text.slice(-5500))
+  if (gen.exit!==0) console.log(gen.text.slice(-1800))
+  if (lean!==null&&lean!==0) console.log(readFileSync(root+'/review-results/'+m.id+'.lean.log','utf8').slice(-3500))
+  if(m.id==='baseline'&&!result.survived) throw new Error('baseline failed')
+}
+writeFileSync(kernel,original)
+writeFileSync('review-results/results.json',JSON.stringify(results,null,2))
+console.log('ALL_MUTANTS_DONE')

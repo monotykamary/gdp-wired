@@ -1,0 +1,141 @@
+[
+  {
+    "name": "check-and-units",
+    "cmd": "bun install --frozen-lockfile >/dev/null && bun run check && bun test core/lemma-cuts.test.ts kernel/lemma-cut.test.ts",
+    "timeout": 420,
+    "cpu": 8,
+    "memory": 14336
+  },
+  {
+    "name": "lean-count-cuts",
+    "cmd": "cd lean-kernel && TC=~/.elan/toolchains/leanprover--lean4---v4.34.0 && export LEAN_PATH=\"$PWD:$TC/lib/lean\" && \"$TC/bin/lean\" -o Count.olean Count.lean && \"$TC/bin/lean\" -o CountMachine.olean CountMachine.lean && \"$TC/bin/lean\" ../research/track-k/LemmaCuts.lean && \"$TC/bin/lean\" ../research/track-k/ReviewEdges.lean",
+    "timeout": 600,
+    "cpu": 4,
+    "memory": 8192
+  },
+  {
+    "name": "counted-library",
+    "cmd": "set -e; bun install --frozen-lockfile >/dev/null; bun lean-kernel/count-examples.ts lean-kernel; cd lean-kernel; TC=~/.elan/toolchains/leanprover--lean4---v4.34.0; export LEAN_PATH=\"$PWD:$TC/lib/lean\"; for m in Count CountMachine GhostMap; do \"$TC/bin/lean\" -o \"$m.olean\" \"$m.lean\"; done; \"$TC/bin/lean\" CountExamples.lean",
+    "timeout": 900,
+    "cpu": 4,
+    "memory": 8192
+  },
+  {
+    "name": "expanded-conformance",
+    "cmd": "set -e; bun install --frozen-lockfile >/dev/null; bun lean-kernel/conformance.ts --lemma-cuts > lean-kernel/LemmaConformance.lean; bun lean-kernel/conformance.ts --lemma-cuts --public > lean-kernel/PublicLemma.lean; cd lean-kernel; TC=~/.elan/toolchains/leanprover--lean4---v4.34.0; export LEAN_PATH=\"$PWD:$TC/lib/lean\"; for m in Count CountMachine GhostMap; do \"$TC/bin/lean\" -o \"$m.olean\" \"$m.lean\"; done; \"$TC/bin/lean\" LemmaConformance.lean; \"$TC/bin/lean\" PublicLemma.lean",
+    "timeout": 900,
+    "cpu": 4,
+    "memory": 8192
+  },
+  {
+    "name": "c14",
+    "cmd": "bun install --frozen-lockfile >/dev/null && bun research/track-k/check-retained.ts research/track-k/input c14",
+    "timeout": 90,
+    "cpu": 4,
+    "memory": 8192,
+    "timing": true
+  },
+  {
+    "name": "c9",
+    "cmd": "bun install --frozen-lockfile >/dev/null && bun research/track-k/check-retained.ts research/track-k/input c9",
+    "timeout": 90,
+    "cpu": 4,
+    "memory": 8192,
+    "timing": true
+  },
+  {
+    "name": "c11",
+    "cmd": "bun install --frozen-lockfile >/dev/null && bun research/track-k/check-retained.ts research/track-k/input c11",
+    "timeout": 90,
+    "cpu": 4,
+    "memory": 8192,
+    "timing": true
+  },
+  {
+    "name": "paxos-r1",
+    "cmd": "bun install --frozen-lockfile >/dev/null && set -o pipefail; timeout -s KILL 60s bun research/protocols/ic3syn/run.ts --ms 60000 --only paxos_epr --skip broken | tee /tmp/track-k-strict.jsonl; rc=${PIPESTATUS[0]}; echo STRICT_EXIT=$rc; test \"$rc\" -eq 0 && bun -e 'const r=(await Bun.file(\"/tmp/track-k-strict.jsonl\").text()).split(\"\\n\").filter(l=>l.startsWith(\"{\")).map(JSON.parse).find(r=>r.id===\"paxos_epr\");if(r?.search?.verdict!==\"proven\"||r.search.ms>60000)throw Error(\"strict target not proven\");'",
+    "timeout": 150,
+    "cpu": 8,
+    "memory": 14336,
+    "timing": true
+  },
+  {
+    "name": "paxos-r2",
+    "cmd": "bun install --frozen-lockfile >/dev/null && set -o pipefail; timeout -s KILL 60s bun research/protocols/ic3syn/run.ts --ms 60000 --only paxos_epr --skip broken | tee /tmp/track-k-strict.jsonl; rc=${PIPESTATUS[0]}; echo STRICT_EXIT=$rc; test \"$rc\" -eq 0 && bun -e 'const r=(await Bun.file(\"/tmp/track-k-strict.jsonl\").text()).split(\"\\n\").filter(l=>l.startsWith(\"{\")).map(JSON.parse).find(r=>r.id===\"paxos_epr\");if(r?.search?.verdict!==\"proven\"||r.search.ms>60000)throw Error(\"strict target not proven\");'",
+    "timeout": 150,
+    "cpu": 8,
+    "memory": 14336,
+    "timing": true
+  },
+  {
+    "name": "paxos-r3",
+    "cmd": "bun install --frozen-lockfile >/dev/null && set -o pipefail; timeout -s KILL 60s bun research/protocols/ic3syn/run.ts --ms 60000 --only paxos_epr --skip broken | tee /tmp/track-k-strict.jsonl; rc=${PIPESTATUS[0]}; echo STRICT_EXIT=$rc; test \"$rc\" -eq 0 && bun -e 'const r=(await Bun.file(\"/tmp/track-k-strict.jsonl\").text()).split(\"\\n\").filter(l=>l.startsWith(\"{\")).map(JSON.parse).find(r=>r.id===\"paxos_epr\");if(r?.search?.verdict!==\"proven\"||r.search.ms>60000)throw Error(\"strict target not proven\");'",
+    "timeout": 150,
+    "cpu": 8,
+    "memory": 14336,
+    "timing": true
+  },
+  {
+    "name": "test-shard-1",
+    "cmd": "bun install --frozen-lockfile >/dev/null && bun scripts/test-shards.ts --shard 1/7",
+    "timeout": 1800,
+    "cpu": 4,
+    "memory": 14336,
+    "timing": true
+  },
+  {
+    "name": "test-shard-2",
+    "cmd": "bun install --frozen-lockfile >/dev/null && bun scripts/test-shards.ts --shard 2/7",
+    "timeout": 1800,
+    "cpu": 4,
+    "memory": 14336,
+    "timing": true
+  },
+  {
+    "name": "test-shard-3",
+    "cmd": "bun install --frozen-lockfile >/dev/null && bun scripts/test-shards.ts --shard 3/7",
+    "timeout": 1800,
+    "cpu": 4,
+    "memory": 14336,
+    "timing": true
+  },
+  {
+    "name": "test-shard-4",
+    "cmd": "bun install --frozen-lockfile >/dev/null && bun scripts/test-shards.ts --shard 4/7",
+    "timeout": 1800,
+    "cpu": 4,
+    "memory": 14336,
+    "timing": true
+  },
+  {
+    "name": "test-shard-5",
+    "cmd": "bun install --frozen-lockfile >/dev/null && bun scripts/test-shards.ts --shard 5/7",
+    "timeout": 1800,
+    "cpu": 4,
+    "memory": 14336,
+    "timing": true
+  },
+  {
+    "name": "test-shard-6",
+    "cmd": "bun install --frozen-lockfile >/dev/null && bun scripts/test-shards.ts --shard 6/7",
+    "timeout": 1800,
+    "cpu": 4,
+    "memory": 14336,
+    "timing": true
+  },
+  {
+    "name": "test-shard-7",
+    "cmd": "bun install --frozen-lockfile >/dev/null && bun scripts/test-shards.ts --shard 7/7",
+    "timeout": 1800,
+    "cpu": 4,
+    "memory": 14336,
+    "timing": true
+  },
+  {
+    "name": "review-mutants",
+    "cmd": "bash research/track-k/review-mutants.sh",
+    "timeout": 1500,
+    "cpu": 4,
+    "memory": 8192
+  }
+]

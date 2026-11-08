@@ -1,0 +1,65 @@
+import {readFileSync,writeFileSync} from 'node:fs'
+import {canon,checkGoalLemmas,checkCounted,lemmaPath,type Goal,type Tree,type LemmaCut,type Path} from './kernel/kernel.ts'
+import {lemmaCutFixture} from './lean-kernel/lemma-cases.ts'
+import {encodeCounted} from './lean-kernel/emit.ts'
+import {k,v,type Lin} from './core/solver.ts'
+import {n} from './core/machine.ts'
+const input=(index:number)=>({kind:'input' as const,index})
+const combine={kind:'combine' as const,a:0,b:1,ma:1,mb:1}
+if(process.argv.includes('--make')) {
+ const f=lemmaCutFixture(), {a,b,c,ab,flip}=f
+ const inactive={when:[k(1)],cut:{},slice:[],tree:{leaf:[input(0)]}} satisfies LemmaCut
+ const simple:Goal={name:'explicit false',hyps:[{op:'<',a:n(0),b:n(0)}]}
+ const leaf1:Tree={leaf:[input(1)]}, repeated:Tree={split:a,yes:{split:a,yes:leaf1,no:leaf1},no:{split:a,yes:leaf1,no:leaf1}}
+ const constant:Tree={split:k(0),yes:leaf1,no:leaf1}
+ const cutPath:Path=new Map([[canon(a),{lin:a,holds:false}],[canon(c),{lin:c,holds:true}]])
+ const duplicate={...f.entry,slice:[0,0,1],tree:f.leaf({...f.goal,hyps:[f.hyps[0]!,f.hyps[0]!,f.hyps[1]!]},cutPath,[ab,b,flip(a)])}
+ const overlap:LemmaCut={when:[a,a],cut:a,slice:[],tree:{leaf:[input(0),input(1),combine]}}
+ const overlapTree:Tree={split:a,yes:{leaf:[input(2)]},no:{leaf:[input(1)]}}
+ const outer:LemmaCut={when:[],cut:{},tree:{...f.tree,lemmas:[f.entry]} as Tree}
+ const outerMain=f.leaf(f.goal,new Map([['',{lin:{},holds:true}]]),[ab,b,flip(a)])
+ const zero:LemmaCut={...f.entry,when:[{z:0}]}
+ const fresh:LemmaCut={when:[],cut:{unboundWitness:-1},slice:[],tree:{leaf:[input(0),input(1),combine]}}
+ const cases=[
+  {id:'slice_exact_end',goal:f.goal,tree:f.tree,lemmas:[{...f.entry,slice:[0,f.goal.hyps.length]}],expect:false},
+  {id:'duplicate_slice',goal:f.goal,tree:f.tree,lemmas:[duplicate],expect:true,lean:true},
+  {id:'cut_equals_duplicate_when',goal:simple,tree:overlapTree,lemmas:[overlap],expect:true,lean:true},
+  {id:'repeated_split',goal:simple,tree:repeated,lemmas:[inactive],expect:false,lean:true},
+  {id:'constant_split',goal:simple,tree:constant,lemmas:[inactive],expect:false,lean:true},
+  {id:'nested_lemma_tree',goal:f.goal,tree:outerMain,lemmas:[outer],expect:false},
+  {id:'zero_coefficient_condition',goal:f.goal,tree:{leaf:[input(0),input(3),combine]},lemmas:[zero],expect:false},
+  {id:'fresh_unbound_name_is_arbitrary_nat',goal:simple,tree:leaf1,lemmas:[fresh],expect:true,lean:true},
+  {id:'extra_instance_field_grants_nothing',goal:{name:'satisfiable',hyps:[]},tree:{leaf:[input(0)]},lemmas:[{when:[],cut:k(1),slice:[],tree:{leaf:[]},insts:[{wit:'fake',below:n(0),terms:[],unit:1}]}],expect:false},
+  {id:'malformed_null_tree',goal:f.goal,tree:f.tree,lemmas:[{...f.entry,tree:null}],expect:false},
+  {id:'malformed_array_cut',goal:f.goal,tree:f.tree,lemmas:[{...f.entry,cut:[]}],expect:false},
+  {id:'malformed_fractional_when',goal:f.goal,tree:f.tree,lemmas:[{...f.entry,when:[{a:0.25}]}],expect:false},
+  {id:'malformed_sparse_slice',goal:f.goal,tree:f.tree,lemmas:[{...f.entry,slice:[0,null]}],expect:false}
+ ]
+ writeFileSync('review-fixtures.json',JSON.stringify(cases,null,2))
+ let out='import CountMachine\nopen Kern Cert\nset_option maxRecDepth 100000\nset_option maxHeartbeats 0\n'
+ for(const t of cases.filter(x=>x.lean)) {
+  const enc=encodeCounted(t.id,t.goal,t as any,['a','b','c','unboundWitness'],[])
+  out+=`\n-- ${t.id}; independently expected true in Lean\nexample : checkGoalLemmas ⟨${enc.tab}, ${enc.hyps}⟩ (${enc.tree}) ${enc.lemmas} = true := by decide +kernel\n`
+ }
+ // Independent explicit Lean rows, not generated using TypeScript's condition decision.
+ out+=`\ndef zeroRow : Row := ⟨[(3, 0)], 0⟩\ndef zeroLemma : CutLemma := ⟨[zeroRow], lunit 0, .leaf [lsub (lunit 0) (lunit 1), lunit 1, flip (lunit 0)] [.input 0, .input 1, .input 2, .combine 0 1 1 1, .combine 3 2 1 1] [] [], some [0,1]⟩\ndef zeroGoal : Goal := ⟨[.var 0,.var 1,.var 2,.var 3], [.le (.var 0) (.var 1), .le (.var 1) (.const 0), .lt (.const 0) (.var 0), .le (.var 2) (.const 0)]⟩\nexample : lemmaActive [] zeroLemma = true := by decide +kernel\nexample : checkGoalLemmas zeroGoal (.leaf [lunit 0, flip (lunit 0)] [.input 0,.input 1,.combine 0 1 1 1] [] []) [zeroLemma] = true := by decide +kernel\n`
+ writeFileSync('lean-kernel/ReviewEdges.lean',out)
+ process.exit(0)
+}
+const cases=JSON.parse(readFileSync('review-fixtures.json','utf8'))
+for(const t of cases) {
+ let result:unknown
+ try { result=checkGoalLemmas(t.goal,t.tree,t.lemmas) } catch(e) { result='throws: '+e }
+ console.log(JSON.stringify({id:t.id,result,expected:t.expect}))
+ if(t.id==='fresh_unbound_name_is_arbitrary_nat') console.log(JSON.stringify({id:'counted_unbound_name',result:checkCounted({...t.goal,counts:[]},{insts:[],tree:t.tree,lemmas:t.lemmas}),expected:true}))
+}
+const lemma=(when:Lin[],cut:Lin):LemmaCut=>({when,cut,tree:{leaf:[]}})
+const path:Path=new Map([[canon(v('c')),{lin:v('c'),holds:true}]])
+const chain=lemmaPath([lemma([v('c')],v('a')),lemma([v('a')],v('b'))],path)
+console.log(JSON.stringify({id:'eligibility_original_path_only',result:[...chain.values()].map(a=>canon(a.lin)),expected:['a:1','c:1']}))
+const order=lemmaPath([lemma([],v('a'))],path)
+console.log(JSON.stringify({id:'cut_precedes_split',result:[...order.values()].map(a=>canon(a.lin)),expected:['a:1','c:1']}))
+const dup=lemmaPath([lemma([],v('a')),lemma([],v('a'))],path)
+console.log(JSON.stringify({id:'duplicate_cuts_remain_rows',result:[...dup.keys()],expected:['a:1','@0','c:1']}))
+const zero=lemmaPath([lemma([{z:0}],v('a'))],new Map())
+console.log(JSON.stringify({id:'zero_coefficient_eligibility',result:zero.size,expected:0,lean:1}))

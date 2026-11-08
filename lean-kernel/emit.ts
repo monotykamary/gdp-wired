@@ -5,7 +5,7 @@
 import type {C, E, Law, Machine, Recurrence} from '../core/machine.ts'
 import {atMost, n, not, pointWrite} from '../core/machine.ts'
 import {type Lin, type RowSrc, type Step, add, k, scale, sub} from '../core/solver.ts'
-import {type CountCert, type CountedGoal, type CountInst, type Ghosted, countedGoal, countedObligations, countHyps, mcGoal, postName, type Fold, type Goal, type Instances, type KInduction, type Liveness, type Loop, type Path, type Recur, type RecurCases, type StepLaw, type Tree, boundOf, caseGoals, cellParts, check, checkRecur, checkRecurCases, coverGoal, recurGoal, canon, decided, factorsOf, isCell, isMonomial, columnTerm, stateName, termColumn, truth, historyMachine, sumMachine, sumCovers, sumParts, foldObligations, kInductionStart, kInductionSteps, leafConstraints, loopLiveness, loopMachine, linear, livenessHelpful, livenessParts, livenessLevels, livenessRanks, strongly, loopObligations, trueC, obligations, progressObligations, stepLawObligations, substC, witnessesOf, withProducts} from '../kernel/kernel.ts'
+import {type CountCert, type CountedGoal, type CountInst, type LemmaCut, lemmaPath, checkCounted, checkCountedLaws, type Ghosted, countedGoal, countedObligations, countHyps, mcGoal, postName, type Fold, type Goal, type Instances, type KInduction, type Liveness, type Loop, type Path, type Recur, type RecurCases, type StepLaw, type Tree, boundOf, caseGoals, cellParts, check, checkRecur, checkRecurCases, coverGoal, recurGoal, canon, decided, factorsOf, isCell, isMonomial, columnTerm, stateName, termColumn, truth, historyMachine, sumMachine, sumCovers, sumParts, foldObligations, kInductionStart, kInductionSteps, leafConstraints, loopLiveness, loopMachine, linear, livenessHelpful, livenessParts, livenessLevels, livenessRanks, strongly, loopObligations, trueC, obligations, progressObligations, stepLawObligations, substC, witnessesOf, withProducts} from '../kernel/kernel.ts'
 import {chooseLevels, clock, grow, minimal, proveBuilt, proveLaws, proveSetFast, proveStepLaws, withDeadline} from '../kernel/prove.ts'
 import {refinement, refinementSides} from '../core/compose.ts'
 import {exactNat, leanSurface, leanTerms} from './lean-terms.ts'
@@ -86,7 +86,7 @@ function reachedChoices(goal: Goal, leafList: {leaf: Tree & {leaf: Step[], produ
   return out
 }
 
-export function encode(ex: Exported, tamper = false, dropStep = true, globalVars?: string[], globalMaps?: string[], slim = false, reach = false) {
+export function encode(ex: Exported, tamper = false, dropStep = true, globalVars?: string[], globalMaps?: string[], slim = false, reach = false, context: {path?: Path, lemmas?: LemmaCut[], cols?: string[]} = {}) {
   const {goal, tree} = ex
   // `slim`: the table only has the columns Lean reads. Each row a leaf uses has a hint (where Lean looks for it first),
   // and Lean computes only the hinted hypotheses' linear forms (Kernel.lean's srcRows), so the columns are the
@@ -96,7 +96,10 @@ export function encode(ex: Exported, tamper = false, dropStep = true, globalVars
   // hypotheses, so its table is a few columns, not every choice of the node's facts.
   // Each leaf with its path and rows, found once (the passes below and the tree's text read them in the same order).
   const leafList: {leaf: Tree & {leaf: Step[], products?: [number, number][], squares?: Lin[]}, path: Path, base: ReturnType<typeof leafConstraints>}[] = []
-  leaves(tree, new Map(), (leaf, path) => { leafList.push({leaf, path, base: leafConstraints(goal, path)}) })
+  leaves(tree, context.path ?? new Map(), (leaf, path) => {
+    const visible = lemmaPath(context.lemmas ?? [], path)
+    leafList.push({leaf, path: visible, base: leafConstraints(goal, visible)})
+  })
   const reads = new Set<number>(), hintTerms = new Set<string>()
   let whole = !slim
   if (slim) for (const {leaf, base} of leafList) {
@@ -173,7 +176,7 @@ export function encode(ex: Exported, tamper = false, dropStep = true, globalVars
   }
   for (const cell of [...cells].sort((a, b) => depth(a) - depth(b))) place(cell)
   for (const mono of cellMonos) place(mono)
-  const cols = [...vars, ...plainMonos, ...[...terms].sort((a, b) => Number(a.slice(1, -1)) - Number(b.slice(1, -1))), ...late]
+  const cols = context.cols ?? [...vars, ...plainMonos, ...[...terms].sort((a, b) => Number(a.slice(1, -1)) - Number(b.slice(1, -1))), ...late]
   const col = new Map(cols.map((name, j) => [name, j]))
   const maps = globalMaps ?? [...new Set([...[...cells].map(cellMap), ...goal.hyps.flatMap(h => [...JSON.stringify(h).matchAll(/"op":"get","map":"([^"]+)"/g)].map(m => m[1]!))])]
   const dense = (lin: Lin) => {
@@ -234,7 +237,7 @@ export function encode(ex: Exported, tamper = false, dropStep = true, globalVars
     // Each row with where Lean finds it (a hint: missed, Lean looks among all of the leaf's rows).
     const hint = (src?: RowSrc): string => {
       if (!src) return '.any'
-      if ('atom' in src) return `.atom ${path.size - 1 - src.atom}` // Lean's path has the latest decision first
+      if ('atom' in src) return context.path || context.lemmas?.length ? '.any' : `.atom ${path.size - 1 - src.atom}` // Lean's path has the latest decision first
       if ('fact' in src) return `.fact ${src.fact}`
       const j = 'pair' in src ? pairs.indexOf([...src.pair].sort().join('\n')) : col.get('nat' in src ? src.nat : src.term) ?? -1
       return j < 0 ? '.any' : 'pair' in src ? `.eq ${eqAt.get(j)}` : 'nat' in src ? `.nat ${j}` : `.term ${j}`
@@ -247,7 +250,7 @@ export function encode(ex: Exported, tamper = false, dropStep = true, globalVars
     const at2 = list(used.map(u => `(${row(rows[u]!)}, ${hint(base[u]!.src)})`)), rest = `${list(steps)} ${list(keepEqs.map(j => eqs[j]!))} ${list(prods.map(([i, j]) => `(${idx(i)}, ${idx(j)})`))}`
     return squares.length ? `.leafSq ${at2} ${list(squares.map(row))} ${rest}` : `.leafAt ${at2} ${rest}`
   }
-  return {tab: list(tab), tabCols: tab, hyps: list(goal.hyps.map(c)), tree: lean(tree), cols, c, e}
+  return {tab: list(tab), tabCols: tab, hyps: list(goal.hyps.map(c)), tree: lean(tree), cols, c, e, row}
 }
 
 export function goalToLean(ex: Exported, i: number, tamper = false, dropStep = true): string {
@@ -272,13 +275,72 @@ theorem ${name} : ∀ env maps, ¬ ∀ c ∈ ${name}_goal.hyps, evalC env maps c
 // certificates Lean computes to false, as kernel.ts refuses them.
 const varsOfE = (t: E): string[] => [...JSON.stringify(t).matchAll(/"op":"var","name":"([^"]+)"/g)].map(m => m[1]!)
 const mapsOf = (t: E | C): string[] => [...JSON.stringify(t).matchAll(/"op":"get","map":"([^"]+)"/g)].map(m => m[1]!)
-export function countedToLean(id: string, g: CountedGoal, cert: {insts: CountInst[], tree: Tree}, tampered: {what: string, insts: CountInst[]}[] = []): string {
+// Extra row names may appear only in a lemma. Resolve their column dependencies with the same rules as encode.
+function lemmaNames(lemmas: LemmaCut[]): {vars: string[], maps: string[]} {
+  const vars = new Set<string>(), maps = new Set<string>(), seen = new Set<string>()
+  const name = (s: string): void => {
+    if (s === '1' || seen.has(s)) return
+    seen.add(s)
+    if (isMonomial(s)) { factorsOf(s).forEach(name); return }
+    if (isCell(s)) { maps.add(cellMap(s)); cellKeys(s).forEach(row); return }
+    const term = columnTerm(s)
+    if (term) { varsOfE(term).forEach(v => vars.add(v)); mapsOf(term).forEach(m => maps.add(m)); return }
+    vars.add(s)
+  }
+  const row = (r: Lin) => Object.keys(r).forEach(name)
+  const tree = (t: Tree): void => {
+    if ('split' in t) { row(t.split); tree(t.yes); tree(t.no) }
+    else t.squares?.forEach(row)
+  }
+  for (const l of lemmas) { l.when.forEach(row); row(l.cut); tree(l.tree) }
+  return {vars: [...vars], maps: [...maps]}
+}
+
+// Every independent proof uses one common table, but its own exact slice and initial path. Two passes establish
+// the union of dependency-ordered columns before printing any rows. The old path stays unchanged for no lemmas.
+export function encodeCounted(id: string, goal: Goal, cert: {tree: Tree, lemmas?: LemmaCut[]}, vars: string[], maps: string[]) {
+  const ls = cert.lemmas ?? []
+  const sources = ls.map((l, i) => {
+    const path: Path = new Map()
+    let duplicate = 0
+    for (const atom of [{lin: l.cut, holds: false}, ...l.when.map(lin => ({lin, holds: true}))]) {
+      const key = canon(atom.lin)
+      path.set(path.has(key) ? `@${duplicate++}` : key, atom)
+    }
+    const selected = l.slice === undefined ? goal.hyps : l.slice.map(j => {
+      if (!Number.isSafeInteger(j) || j < 0 || j >= goal.hyps.length) throw new Error(`${id}: invalid lemma slice`)
+      return goal.hyps[j]!
+    })
+    return {ex: {name: `${id}: lemma ${i}`, goal: {...goal, hyps: selected}, tree: l.tree}, path}
+  })
+  const main = {name: id, goal, tree: cert.tree}
+  const first = encode(main, false, true, vars, maps, false, false, {lemmas: ls})
+  if (!ls.length) return {...first, lemmas: '[]', lemmaList: (entries: LemmaCut[]) => {
+    if (entries.length) throw new Error(`${id}: no source contexts for added lemmas`)
+    return '[]'
+  }}
+  const initial = sources.map(s => encode(s.ex, false, true, vars, maps, false, false, {path: s.path}))
+  const cols = [...new Set([first, ...initial].flatMap(e => e.cols))]
+  const base = encode(main, false, true, vars, maps, false, false, {lemmas: ls, cols})
+  const proofs = sources.map(s => encode(s.ex, false, true, vars, maps, false, false, {path: s.path, cols}))
+  const lemmaList = (entries: LemmaCut[]) => list(entries.map((l, i) => {
+    const source = sources[i]
+    if (!source) throw new Error(`${id}: no source context for lemma ${i}`)
+    const t = l.tree === ls[i]!.tree ? proofs[i]!.tree
+      : encode({...source.ex, tree: l.tree}, false, true, vars, maps, false, false, {path: source.path, cols}).tree
+    return `⟨${list(l.when.map(base.row))}, ${base.row(l.cut)}, ${t}, ${l.slice === undefined ? 'none' : `some ${list(l.slice.map(String))}`}⟩`
+  }))
+  return {...base, lemmas: lemmaList(ls), lemmaList}
+}
+
+export function countedToLean(id: string, g: CountedGoal, cert: {insts: CountInst[], tree: Tree, lemmas?: LemmaCut[]}, tampered: {what: string, insts: CountInst[]}[] = []): string {
   const goal = countedGoal(g, cert.insts)
   if (!goal) throw new Error(`${id}: an instance names no count of the goal, or a count of another bound`)
-  const vars = [...new Set([...goal.hyps.flatMap(varsOf), ...g.counts.flatMap(cn => [cn.v, cn.key, ...varsOfE(cn.below), ...varsOfE(cn.body)]),
+  const extra = lemmaNames(cert.lemmas ?? [])
+  const vars = [...new Set([...extra.vars, ...goal.hyps.flatMap(varsOf), ...g.counts.flatMap(cn => [cn.v, cn.key, ...varsOfE(cn.below), ...varsOfE(cn.body)]),
     ...[...cert.insts, ...tampered.flatMap(t => t.insts)].flatMap(i => [i.wit, ...varsOfE(i.below)])])]
-  const maps = [...new Set([...goal.hyps, ...g.counts.flatMap(cn => [cn.below, cn.body])].flatMap(mapsOf))]
-  const enc = encode({name: id, goal, tree: cert.tree}, false, true, vars, maps), {e, c} = enc
+  const maps = [...new Set([...extra.maps, ...[...goal.hyps, ...g.counts.flatMap(cn => [cn.below, cn.body])].flatMap(mapsOf)])]
+  const enc = encodeCounted(id, goal, cert, vars, maps), {e, c} = enc
   const ix = (name: string) => vars.indexOf(name)
   const instsLit = (is: CountInst[]) => list(is.map(i => `⟨${ix(i.wit)}, ${e(i.below)}, ${list(i.terms.map(([z, v2]) => `(${int(z)}, ${ix(v2)})`))}, ${int(i.unit)}⟩`))
   return `-- ${g.name}  (variables ${vars.map((v2, j) => `${j} ${v2}`).join(', ')}; maps ${maps.map((m2, j) => `${j} ${m2}`).join(', ')})
@@ -288,13 +350,14 @@ def ${id}_insts : List CInst := ${instsLit(cert.insts)}
 def ${id}_tab : List VDef := ${enc.tab}
 def ${id}_tree : Tree :=
   ${enc.tree}
+def ${id}_lemmas : List CutLemma := ${enc.lemmas}
 -- The instances' hypotheses Lean builds are the ones kernel.ts built.
 example : countHyps ${id}_goal.counts ${id}_insts = some ${list(countHyps(g.counts, cert.insts)!.map(c))} := by ${checkBy}
 /-- ${g.name}: no naturals and maps where each count is its sum satisfy the hypotheses. -/
 theorem ${id} : ∀ ρ M, (∀ cn ∈ ${id}_goal.counts, cn.Holds ρ M) → ¬ ∀ h ∈ ${id}_goal.hyps, evalC ρ M h = true :=
-  counted_sound ${id}_goal ${id}_insts ${id}_tab ${id}_tree (by ${checkBy})${tampered.map(t => `
+  counted_sound ${id}_goal ${id}_insts ${id}_tab ${id}_tree (lemmas := ${id}_lemmas) (by ${checkBy})${tampered.map(t => `
 -- TAMPERED: ${t.what}. Lean computes the check to false, as kernel.ts refuses it.
-example : checkCounted ${id}_goal ${instsLit(t.insts)} ${id}_tab ${id}_tree = false := by ${checkBy}`).join('')}`
+example : checkCounted ${id}_goal ${instsLit(t.insts)} ${id}_tab ${id}_tree ${id}_lemmas = false := by ${checkBy}`).join('')}`
 }
 
 // A machine with counts through CountMachine.lean's cmachine_sound: Lean builds the goals and the counts they declare;
@@ -307,11 +370,12 @@ export function cmachineToLean(id: string, m: Machine, laws: Law[], proof: {inst
   const sm: Machine = {...m, counts: undefined, inputMaps: [...(m.inputMaps ?? []), ...counts.map(([cn]) => cn)]}
   const named = machineNames(sm, laws, [], [], {})
   const allCerts = [proof.certs, ...tampers.map(t => t.certs)]
+  const extra = allCerts.flatMap(cs => Object.values(cs).map(k => lemmaNames(k.lemmas ?? [])))
   const goals = obl.map(o => { const g = mcGoal(o.goal.hyps, o.decls, proof.certs[o.goal.name]!); if (!g) throw new Error(`${id}: ${o.goal.name}: a read of no count`); return g })
   const certVars = allCerts.flatMap(cs => Object.values(cs).flatMap(k => [...k.reads.flatMap(r => [r[0], ...varsOfE(r[2])]), ...k.insts.flatMap(i => [i.wit, ...varsOfE(i.below)]), ...(k.picks ?? []).flatMap(([v2, ks]) => [v2, ...ks.flatMap(varsOfE)])]))
-  const vars = [...new Set([...named.vars, ...counts.flatMap(([, d]) => [d.j, d.lo ?? d.j, d.key, ...varsOfE(d.below), ...varsOfE(d.body)]), ...laws.map(l => (l.forall ? `${l.forall}#` : '#')),
+  const vars = [...new Set([...named.vars, ...extra.flatMap(n => n.vars), ...counts.flatMap(([, d]) => [d.j, d.lo ?? d.j, d.key, ...varsOfE(d.below), ...varsOfE(d.body)]), ...laws.map(l => (l.forall ? `${l.forall}#` : '#')),
     ...goals.flatMap(g => g.hyps.flatMap(varsOf)), ...certVars])]
-  const maps = [...new Set([...named.maps, ...counts.flatMap(([cn]) => [cn, postName(cn)]), ...goals.flatMap(g => g.hyps.flatMap(mapsOf)),
+  const maps = [...new Set([...named.maps, ...extra.flatMap(n => n.maps), ...counts.flatMap(([cn]) => [cn, postName(cn)]), ...goals.flatMap(g => g.hyps.flatMap(mapsOf)),
     ...allCerts.flatMap(cs => Object.values(cs).flatMap(k => [...k.reads.map(r => r[1]), ...(k.picks ?? []).flatMap(([, ks]) => ks.flatMap(mapsOf))]))])]
   const {e, c} = leanTerms(vars, maps, id)
   const ix = (name: string) => { const j = vars.indexOf(name); if (j < 0) throw new Error(`${id}: no variable for ${name}`); return j }
@@ -336,13 +400,14 @@ export function cmachineToLean(id: string, m: Machine, laws: Law[], proof: {inst
   const certLit = (name: string, certs: Record<string, CountCert>) => {
     // (a tampered certificate keeps the table and tree of the one it tampers with)
     const o = obl.find(o2 => o2.goal.name === name)!, k = certs[name]!, k0 = proof.certs[name]!
-    const tt = encode({name: `${id}: ${name}`, goal: mcGoal(o.goal.hyps, o.decls, k0)!, tree: k0.tree}, false, true, vars, maps)
+    const tt = encodeCounted(`${id}: ${name}`, mcGoal(o.goal.hyps, o.decls, k0)!, k0, vars, maps)
     return `⟨${list(o.goal.hyps.map(c))},
   ${list(k.reads.map(r => `(${ix(r[0])}, ${mx(r[1])}, ${e(r[2])})`))},
   ${list(k.insts.map(i => `⟨${ix(i.wit)}, ${e(i.below)}, ${list(i.terms.map(([z, v2]) => `(${int(z)}, ${ix(v2)})`))}, ${int(i.unit)}⟩`))},
   ${tt.tab},
   ${tt.tree},
-  ${list((k.picks ?? []).map(([v2, ks]) => `(${ix(v2)}, ${list(ks.map(e))})`))}⟩`
+  ${list((k.picks ?? []).map(([v2, ks]) => `(${ix(v2)}, ${list(ks.map(e))})`))},
+  ${tt.lemmaList(k.lemmas ?? [])}⟩`
   }
   const entries = (certs: Record<string, CountCert>) => laws.map(law => {
     const inst = proof.instances[law.name] ?? {}
@@ -2007,6 +2072,8 @@ export type LeanItem =
   // A law proven by k-induction (core/kind.ts's search, from k = 1, or at `k`), through KInd.lean's kind_sound, with the
   // laws it assumes (proven inductive as ever); `<id>_kind_holds`.
   | {id: string, kInduction: {machine: Machine, laws: Law[], law: Law, k?: number, ms?: number}}
+  | {id: string, countedGoal: CountedGoal, certificate: {insts: CountInst[], tree: Tree, lemmas?: LemmaCut[]}}
+  | {id: string, countedMachine: Machine, laws: Law[], proof: {instances: Record<string, Instances>, certs: Record<string, CountCert>}}
   | {id: string, goal: Goal}
   // A cyclic proof (kernel/cyclic.ts) through Cyclic.lean's cyclic_sound; each tampered one computed to false.
   // `bridge`: the machine and laws the proof was made from (core/cyclic.ts's machineNodes), so that Bridge.lean's
@@ -2058,7 +2125,15 @@ function toLeanWith(items: LeanItem[], opts: {title?: string}): string {
   }).join('')
   for (let item of items) {
     const id = ident(item.id), tItem = performance.now()
-    if ('machine' in item) {
+    if ('countedGoal' in item) {
+      if (!checkCounted(item.countedGoal, item.certificate)) throw new Error(`${item.id}: counted certificate does not check`)
+      parts.push(countedToLean(id, item.countedGoal, item.certificate))
+      theorems.push(id)
+    } else if ('countedMachine' in item) {
+      if (!checkCountedLaws(item.countedMachine, item.laws, item.proof)) throw new Error(`${item.id}: counted machine certificate does not check`)
+      parts.push(cmachineToLean(id, item.countedMachine, item.laws, item.proof))
+      theorems.push(`${id}_laws`)
+    } else if ('machine' in item) {
       // Laws with "there exists" go in as the kernel proved them (core/exists.ts): the machine with the ghosts their
       // witnesses are, each law with its witness terms in place or over its ghosts, each stated again as ∃ (readable).
       if (item.laws.some(l => l.some?.length)) {
@@ -2144,7 +2219,7 @@ function toLeanWith(items: LeanItem[], opts: {title?: string}): string {
   }
   // The file the items need: Live.lean for a liveness or a loop, Sets.lean (which imports Steps.lean) for any machine.
   return `import History
-${items.some(item => 'machine' in item && item.machine.sums && Object.keys(item.machine.sums).length) ? 'import Sums\n' : ''}${items.some(item => 'neverEnds' in item) ? 'import NonTerm\n' : ''}${items.some(item => 'kInduction' in item) ? 'import KInd\n' : ''}${cycTexts ? 'import BridgeRules\n' : ''}${items.some(item => 'cyclic' in item) ? (items.some(item => 'cyclic' in item && (item.bridge || item.recur || item.fold)) ? 'import Bridge\n' : 'import Cyclic\n') : ''}${items.some(item => 'cyclic' in item && item.data) ? 'import Data\n' : ''}import ${items.some(item => 'refinement' in item) ? 'Refine' : items.some(item => 'machine' in item && (item.ghosts?.length || item.laws.some(l => l.some?.length))) ? 'Ghost' : items.some(item => ('machine' in item && item.liveness?.length) || 'loop' in item) ? 'Live' : items.some(item => 'machine' in item) ? 'Sets' : 'Steps'}
+${items.some(item => 'countedGoal' in item || 'countedMachine' in item) ? 'import CountMachine\n' : ''}${items.some(item => 'machine' in item && item.machine.sums && Object.keys(item.machine.sums).length) ? 'import Sums\n' : ''}${items.some(item => 'neverEnds' in item) ? 'import NonTerm\n' : ''}${items.some(item => 'kInduction' in item) ? 'import KInd\n' : ''}${cycTexts ? 'import BridgeRules\n' : ''}${items.some(item => 'cyclic' in item) ? (items.some(item => 'cyclic' in item && (item.bridge || item.recur || item.fold)) ? 'import Bridge\n' : 'import Cyclic\n') : ''}${items.some(item => 'cyclic' in item && item.data) ? 'import Data\n' : ''}import ${items.some(item => 'refinement' in item) ? 'Refine' : items.some(item => 'machine' in item && (item.ghosts?.length || item.laws.some(l => l.some?.length))) ? 'Ghost' : items.some(item => ('machine' in item && item.liveness?.length) || 'loop' in item) ? 'Live' : items.some(item => 'machine' in item) ? 'Sets' : 'Steps'}
 open Kern Cert
 set_option maxRecDepth 100000
 set_option maxHeartbeats 0

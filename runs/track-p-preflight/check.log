@@ -1,6 +1,0 @@
-core/counts-preflight.test.ts(10,68): error TS2339: Property 'phase' does not exist on type 'object'.
-core/counts-preflight.test.ts(10,95): error TS2339: Property 'phase' does not exist on type 'object'.
-core/counts.ts(677,47): error TS18048: 'direct' is possibly 'undefined'.
-
---- stderr ---
-$ tsc -p . && oxlint --type-aware --deny-warnings --disable-nested-config

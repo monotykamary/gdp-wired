@@ -1,0 +1,25 @@
+[
+  {
+    "name": "share-replay",
+    "cmd": "bun install --frozen-lockfile >/dev/null && bun research/track-k/share-replay.ts runs/track-k/proof/pack.json",
+    "timeout": 180,
+    "cpu": 4,
+    "memory": 8192,
+    "timing": true
+  },
+  {
+    "name": "share-minimize",
+    "cmd": "bun install --frozen-lockfile >/dev/null && LAB_MINIMIZE=1 bun research/track-k/share-replay.ts runs/track-k/proof/pack.json",
+    "timeout": 180,
+    "cpu": 4,
+    "memory": 8192,
+    "timing": true
+  },
+  {
+    "name": "check-and-units",
+    "cmd": "bun install --frozen-lockfile >/dev/null && bun run check && bun test core/lemma-cuts.test.ts kernel/lemma-cut.test.ts",
+    "timeout": 300,
+    "cpu": 4,
+    "memory": 8192
+  }
+]

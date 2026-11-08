@@ -508,6 +508,59 @@ export function check(goal: Goal, tree: Tree, path: Path = new Map()): boolean {
   return check(goal, tree.yes, yes) && check(goal, tree.no, no)
 }
 
+// Count.lean's conditional lemma rule. All rows use the containing goal's columns and witness namespace; a slice
+// selects only that exact goal's hypotheses. A lemma tree is checked by the old checker, with no lemma list.
+// TS acceptance is a strict subset of Lean's: legacy constant/repeated split refusals are intentionally retained.
+export type LemmaCut = {when: Lin[], cut: Lin, tree: Tree, slice?: number[]}
+const lemmaLin = (lin: Lin): boolean => !!lin && typeof lin === 'object' && !Array.isArray(lin)
+  && (Object.getPrototypeOf(lin) === Object.prototype || Object.getPrototypeOf(lin) === null)
+  && Object.values(lin).every(Number.isSafeInteger)
+
+// Lean's path is a list, so repeated atoms remain input rows, with the first deciding lookup. Keep that exact
+// behavior in a Map: noncanonical duplicate keys contain no colon and cannot collide with a nonempty canon(lin).
+function prependAtoms(front: {lin: Lin, holds: boolean}[], path: Path): Path {
+  const out: Path = new Map()
+  let duplicate = 0
+  for (const atom of [...front, ...path.values()]) {
+    const id = canon(atom.lin)
+    out.set(out.has(id) ? `@${duplicate++}` : id, atom)
+  }
+  return out
+}
+
+// Eligibility uses only the original split path, never another cut. The returned path is for a leaf alone.
+export function lemmaPath(lemmas: LemmaCut[], path: Path): Path {
+  // Lean's dec treats all-zero variable coefficients as constant. Normalize only this
+  // new-condition decision boundary: preserve the original proof rows and every legacy path.
+  lemmas = lemmas.map(l => ({...l, when: l.when.map(w =>
+    Object.keys(w).every(key => key === '1' || w[key] === 0) ? k(w['1'] ?? 0) : w)}))
+  const active = lemmas.filter(l => l.when.every(w => decide(w, path) === true))
+  return active.length ? prependAtoms(active.map(l => ({lin: l.cut, holds: true})), path) : path
+}
+
+export function checkGoalLemmas(goal: Goal, tree: Tree, lemmas: LemmaCut[] = []): boolean {
+  if (!Array.isArray(lemmas)) return false
+  if (!lemmas.length) return check(goal, tree) // Exact legacy path, including all old refusal checks.
+  try {
+    if (!Array.from(lemmas).every(l => !!l && typeof l === 'object' && Array.isArray(l.when)
+      && Array.from(l.when).every(lemmaLin) && lemmaLin(l.cut) && !!l.tree && typeof l.tree === 'object'
+      && (l.slice === undefined || Array.isArray(l.slice) && Array.from(l.slice).every(i => Number.isSafeInteger(i) && i >= 0 && i < goal.hyps.length)))) return false
+    for (const l of lemmas) {
+      const hyps = l.slice === undefined ? goal.hyps : l.slice.map(i => goal.hyps[i]!)
+      const path = prependAtoms([{lin: l.cut, holds: false}, ...l.when.map(lin => ({lin, holds: true}))], new Map())
+      if (!check({...goal, hyps}, l.tree, path)) return false
+    }
+    const visit = (t: Tree, path: Path): boolean => {
+      if ('leaf' in t) return check(goal, t, lemmaPath(lemmas, path))
+      const id = canon(t.split)
+      if (path.has(id) || Object.keys(t.split).every(key => key === '1')) return false
+      return visit(t.yes, new Map(path).set(id, {lin: t.split, holds: true}))
+        && visit(t.no, new Map(path).set(id, {lin: t.split, holds: false}))
+    }
+    return visit(tree, new Map())
+  } catch { return false } // Malformed new payloads, including non-tree lemma references, are refusals.
+}
+
 // --- machines ----------------------------------------------------------------------------------------------------------
 
 // Every constant and factor is a natural, so every value a machine computes is one (∸ truncates).
@@ -1850,10 +1903,10 @@ export function countedOk(hyps: C[], cs: Count[], is: CountInst[]): boolean {
 // is a variable; a number 5 would pass `reads` yet be read as the variable "5") and every coefficient a safe integer
 // (Lean's are Int).
 const typed = (is: CountInst[]): boolean => is.every(i => typeof i.wit === 'string' && Number.isSafeInteger(i.unit) && i.terms.every(([z]) => Number.isSafeInteger(z)))
-export function checkCounted(g: CountedGoal, cert: {insts: CountInst[], tree: Tree}): boolean {
+export function checkCounted(g: CountedGoal, cert: {insts: CountInst[], tree: Tree, lemmas?: LemmaCut[]}): boolean {
   if (!(countedOk(g.hyps, g.counts, cert.insts) && typed(cert.insts))) return false
   const goal = countedGoal(g, cert.insts)
-  return goal !== undefined && check(goal, cert.tree)
+  return goal !== undefined && checkGoalLemmas(goal, cert.tree, cert.lemmas)
 }
 // The goal a certificate's tree refutes: the goal's hypotheses, then the instances' (also what the search and the
 // exporter read), or none.
@@ -1870,10 +1923,11 @@ export function countedGoal(g: CountedGoal, insts: CountInst[]): Goal | undefine
 // goal declares the counts it reads (Lean's cStartDecls, cStepDecls): after the start, each state count read across
 // it; at a step, every count as the request carries it, then each state count read across the step (afterDecl). A
 // goal's certificate names the cells it reads (a fresh variable, a count map, a key term) and Count.lean's instances
-// and tree; checkMC is Lean's, line for line (DESIGN.md, gen/laneK2, has the table).
+// and tree. checkMC follows Lean's counted rule, but TS accepts a strict subset: the legacy constant/repeated
+// split refusals remain intentional (lean-kernel/README.md has the counted-certificate mirror contract).
 export type CountDecl = {map: string, j: string, key: string, below: E, body: E, lo?: string, base?: number}
 export type MapRead = [string, string, E]
-export type CountCert = {reads: MapRead[], insts: CountInst[], tree: Tree, picks?: [string, E[]][]}
+export type CountCert = {reads: MapRead[], insts: CountInst[], tree: Tree, picks?: [string, E[]][], lemmas?: LemmaCut[]}
 export const postName = (map: string) => `${map}#`
 const declsOf = (m: Machine): CountDecl[] => Object.entries(m.counts ?? {}).map(([map, c]) => ({map, j: c.j, key: c.key, below: c.below, body: c.body, ...(c.base ? {lo: c.lo, base: c.base} : {})}))
 // A declaration's second parameter (Lean's CDecl.lo, base): one parameter is lo = j, base 0.
@@ -1982,10 +2036,10 @@ const readsTyped = (rs: MapRead[]): boolean => Array.isArray(rs) && rs.every(r =
 const witFreshW = (cs: Count[], is: CountInst[], w: string): boolean =>
   cs.every(c => c.v !== w && !readsVar(c.below, w) && !readsVar(c.body, w)) && is.every(j => !readsVar(j.below, w))
 const countedOkW = (cs: Count[], is: CountInst[]): boolean => { const ws = is.map(i => i.wit); return new Set(ws).size === ws.length && is.every(i => witFreshW(cs, is, i.wit)) }
-function checkCountedW(hyps: C[], cs: Count[], cert: {insts: CountInst[], tree: Tree}): boolean {
+function checkCountedW(hyps: C[], cs: Count[], cert: {insts: CountInst[], tree: Tree, lemmas?: LemmaCut[]}): boolean {
   if (!(countedOkW(cs, cert.insts) && typed(cert.insts))) return false
   const hs = countHyps(cs, cert.insts)
-  return hs !== undefined && check({name: 'counted', hyps: [...hyps, ...hs]}, cert.tree)
+  return hs !== undefined && checkGoalLemmas({name: 'counted', hyps: [...hyps, ...hs]}, cert.tree, cert.lemmas)
 }
 // checkMC: each declaration's j and lo differ from its key, the reads are fresh, no read is a witness or reads one in
 // its key term, and checkCountedW accepts the counted goal they make (the goal's hypotheses, each read variable equal to
@@ -1994,7 +2048,7 @@ export function checkMC(hyps: C[], ds: CountDecl[], k: CountCert): boolean {
   if (!(ds.every(d => d.j !== d.key && loOf(d) !== d.key) && picksTyped(k.picks) && readsTyped(k.reads) && Array.isArray(k.insts) && k.insts.every(i => !!i && safeTerm(i.below)) && readsOk(hyps, ds, k.reads))) return false
   if (!k.reads.every(r => k.insts.every(i => i.wit !== r[0] && !readsVar(r[2], i.wit)))) return false
   const cs = toCounts(ds, k.reads)
-  return cs !== undefined && checkCountedW([...hyps, ...k.reads.map(r => readHyp(ds, r)), ...pickHyps(ds, k.reads, k.picks ?? [])], cs, {insts: k.insts, tree: k.tree})
+  return cs !== undefined && checkCountedW([...hyps, ...k.reads.map(r => readHyp(ds, r)), ...pickHyps(ds, k.reads, k.picks ?? [])], cs, {insts: k.insts, tree: k.tree, lemmas: k.lemmas})
 }
 // The goal a certificate's tree refutes (what the search and the exporter read), or none.
 export function mcGoal(hyps: C[], ds: CountDecl[], k: Pick<CountCert, 'reads' | 'insts' | 'picks'>): Goal | undefined {

@@ -1,0 +1,1440 @@
+[
+  {
+    "id": "slice_exact_end",
+    "goal": {
+      "name": "conditional cut",
+      "hyps": [
+        {
+          "op": "<=",
+          "a": {
+            "op": "var",
+            "name": "a"
+          },
+          "b": {
+            "op": "var",
+            "name": "b"
+          }
+        },
+        {
+          "op": "<=",
+          "a": {
+            "op": "var",
+            "name": "b"
+          },
+          "b": {
+            "op": "const",
+            "value": 0
+          }
+        },
+        {
+          "op": "<",
+          "a": {
+            "op": "const",
+            "value": 0
+          },
+          "b": {
+            "op": "var",
+            "name": "a"
+          }
+        },
+        {
+          "op": "<=",
+          "a": {
+            "op": "var",
+            "name": "c"
+          },
+          "b": {
+            "op": "const",
+            "value": 0
+          }
+        }
+      ]
+    },
+    "tree": {
+      "split": {
+        "c": 1
+      },
+      "yes": {
+        "leaf": [
+          {
+            "kind": "input",
+            "index": 0
+          },
+          {
+            "kind": "input",
+            "index": 4
+          },
+          {
+            "kind": "combine",
+            "a": 0,
+            "b": 1,
+            "ma": 1,
+            "mb": 1
+          }
+        ]
+      },
+      "no": {
+        "leaf": [
+          {
+            "kind": "input",
+            "index": 4
+          },
+          {
+            "kind": "input",
+            "index": 0
+          },
+          {
+            "kind": "combine",
+            "a": 0,
+            "b": 1,
+            "ma": 1,
+            "mb": 1
+          }
+        ]
+      }
+    },
+    "lemmas": [
+      {
+        "when": [
+          {
+            "c": 1
+          }
+        ],
+        "cut": {
+          "a": 1
+        },
+        "slice": [
+          0,
+          4
+        ],
+        "tree": {
+          "leaf": [
+            {
+              "kind": "input",
+              "index": 2
+            },
+            {
+              "kind": "input",
+              "index": 3
+            },
+            {
+              "kind": "input",
+              "index": 0
+            },
+            {
+              "kind": "combine",
+              "a": 0,
+              "b": 1,
+              "ma": 1,
+              "mb": 1
+            },
+            {
+              "kind": "combine",
+              "a": 3,
+              "b": 2,
+              "ma": 1,
+              "mb": 1
+            }
+          ]
+        }
+      }
+    ],
+    "expect": false
+  },
+  {
+    "id": "duplicate_slice",
+    "goal": {
+      "name": "conditional cut",
+      "hyps": [
+        {
+          "op": "<=",
+          "a": {
+            "op": "var",
+            "name": "a"
+          },
+          "b": {
+            "op": "var",
+            "name": "b"
+          }
+        },
+        {
+          "op": "<=",
+          "a": {
+            "op": "var",
+            "name": "b"
+          },
+          "b": {
+            "op": "const",
+            "value": 0
+          }
+        },
+        {
+          "op": "<",
+          "a": {
+            "op": "const",
+            "value": 0
+          },
+          "b": {
+            "op": "var",
+            "name": "a"
+          }
+        },
+        {
+          "op": "<=",
+          "a": {
+            "op": "var",
+            "name": "c"
+          },
+          "b": {
+            "op": "const",
+            "value": 0
+          }
+        }
+      ]
+    },
+    "tree": {
+      "split": {
+        "c": 1
+      },
+      "yes": {
+        "leaf": [
+          {
+            "kind": "input",
+            "index": 0
+          },
+          {
+            "kind": "input",
+            "index": 4
+          },
+          {
+            "kind": "combine",
+            "a": 0,
+            "b": 1,
+            "ma": 1,
+            "mb": 1
+          }
+        ]
+      },
+      "no": {
+        "leaf": [
+          {
+            "kind": "input",
+            "index": 4
+          },
+          {
+            "kind": "input",
+            "index": 0
+          },
+          {
+            "kind": "combine",
+            "a": 0,
+            "b": 1,
+            "ma": 1,
+            "mb": 1
+          }
+        ]
+      }
+    },
+    "lemmas": [
+      {
+        "when": [
+          {
+            "c": 1
+          }
+        ],
+        "cut": {
+          "a": 1
+        },
+        "slice": [
+          0,
+          0,
+          1
+        ],
+        "tree": {
+          "leaf": [
+            {
+              "kind": "input",
+              "index": 2
+            },
+            {
+              "kind": "input",
+              "index": 4
+            },
+            {
+              "kind": "input",
+              "index": 0
+            },
+            {
+              "kind": "combine",
+              "a": 0,
+              "b": 1,
+              "ma": 1,
+              "mb": 1
+            },
+            {
+              "kind": "combine",
+              "a": 3,
+              "b": 2,
+              "ma": 1,
+              "mb": 1
+            }
+          ]
+        }
+      }
+    ],
+    "expect": true,
+    "lean": true
+  },
+  {
+    "id": "cut_equals_duplicate_when",
+    "goal": {
+      "name": "explicit false",
+      "hyps": [
+        {
+          "op": "<",
+          "a": {
+            "op": "const",
+            "value": 0
+          },
+          "b": {
+            "op": "const",
+            "value": 0
+          }
+        }
+      ]
+    },
+    "tree": {
+      "split": {
+        "a": 1
+      },
+      "yes": {
+        "leaf": [
+          {
+            "kind": "input",
+            "index": 2
+          }
+        ]
+      },
+      "no": {
+        "leaf": [
+          {
+            "kind": "input",
+            "index": 1
+          }
+        ]
+      }
+    },
+    "lemmas": [
+      {
+        "when": [
+          {
+            "a": 1
+          },
+          {
+            "a": 1
+          }
+        ],
+        "cut": {
+          "a": 1
+        },
+        "slice": [],
+        "tree": {
+          "leaf": [
+            {
+              "kind": "input",
+              "index": 0
+            },
+            {
+              "kind": "input",
+              "index": 1
+            },
+            {
+              "kind": "combine",
+              "a": 0,
+              "b": 1,
+              "ma": 1,
+              "mb": 1
+            }
+          ]
+        }
+      }
+    ],
+    "expect": true,
+    "lean": true
+  },
+  {
+    "id": "repeated_split",
+    "goal": {
+      "name": "explicit false",
+      "hyps": [
+        {
+          "op": "<",
+          "a": {
+            "op": "const",
+            "value": 0
+          },
+          "b": {
+            "op": "const",
+            "value": 0
+          }
+        }
+      ]
+    },
+    "tree": {
+      "split": {
+        "a": 1
+      },
+      "yes": {
+        "split": {
+          "a": 1
+        },
+        "yes": {
+          "leaf": [
+            {
+              "kind": "input",
+              "index": 1
+            }
+          ]
+        },
+        "no": {
+          "leaf": [
+            {
+              "kind": "input",
+              "index": 1
+            }
+          ]
+        }
+      },
+      "no": {
+        "split": {
+          "a": 1
+        },
+        "yes": {
+          "leaf": [
+            {
+              "kind": "input",
+              "index": 1
+            }
+          ]
+        },
+        "no": {
+          "leaf": [
+            {
+              "kind": "input",
+              "index": 1
+            }
+          ]
+        }
+      }
+    },
+    "lemmas": [
+      {
+        "when": [
+          {
+            "1": 1
+          }
+        ],
+        "cut": {},
+        "slice": [],
+        "tree": {
+          "leaf": [
+            {
+              "kind": "input",
+              "index": 0
+            }
+          ]
+        }
+      }
+    ],
+    "expect": false,
+    "lean": true
+  },
+  {
+    "id": "constant_split",
+    "goal": {
+      "name": "explicit false",
+      "hyps": [
+        {
+          "op": "<",
+          "a": {
+            "op": "const",
+            "value": 0
+          },
+          "b": {
+            "op": "const",
+            "value": 0
+          }
+        }
+      ]
+    },
+    "tree": {
+      "split": {},
+      "yes": {
+        "leaf": [
+          {
+            "kind": "input",
+            "index": 1
+          }
+        ]
+      },
+      "no": {
+        "leaf": [
+          {
+            "kind": "input",
+            "index": 1
+          }
+        ]
+      }
+    },
+    "lemmas": [
+      {
+        "when": [
+          {
+            "1": 1
+          }
+        ],
+        "cut": {},
+        "slice": [],
+        "tree": {
+          "leaf": [
+            {
+              "kind": "input",
+              "index": 0
+            }
+          ]
+        }
+      }
+    ],
+    "expect": false,
+    "lean": true
+  },
+  {
+    "id": "nested_lemma_tree",
+    "goal": {
+      "name": "conditional cut",
+      "hyps": [
+        {
+          "op": "<=",
+          "a": {
+            "op": "var",
+            "name": "a"
+          },
+          "b": {
+            "op": "var",
+            "name": "b"
+          }
+        },
+        {
+          "op": "<=",
+          "a": {
+            "op": "var",
+            "name": "b"
+          },
+          "b": {
+            "op": "const",
+            "value": 0
+          }
+        },
+        {
+          "op": "<",
+          "a": {
+            "op": "const",
+            "value": 0
+          },
+          "b": {
+            "op": "var",
+            "name": "a"
+          }
+        },
+        {
+          "op": "<=",
+          "a": {
+            "op": "var",
+            "name": "c"
+          },
+          "b": {
+            "op": "const",
+            "value": 0
+          }
+        }
+      ]
+    },
+    "tree": {
+      "leaf": [
+        {
+          "kind": "input",
+          "index": 1
+        },
+        {
+          "kind": "input",
+          "index": 2
+        },
+        {
+          "kind": "input",
+          "index": 3
+        },
+        {
+          "kind": "combine",
+          "a": 0,
+          "b": 1,
+          "ma": 1,
+          "mb": 1
+        },
+        {
+          "kind": "combine",
+          "a": 3,
+          "b": 2,
+          "ma": 1,
+          "mb": 1
+        }
+      ]
+    },
+    "lemmas": [
+      {
+        "when": [],
+        "cut": {},
+        "tree": {
+          "split": {
+            "c": 1
+          },
+          "yes": {
+            "leaf": [
+              {
+                "kind": "input",
+                "index": 0
+              },
+              {
+                "kind": "input",
+                "index": 4
+              },
+              {
+                "kind": "combine",
+                "a": 0,
+                "b": 1,
+                "ma": 1,
+                "mb": 1
+              }
+            ]
+          },
+          "no": {
+            "leaf": [
+              {
+                "kind": "input",
+                "index": 4
+              },
+              {
+                "kind": "input",
+                "index": 0
+              },
+              {
+                "kind": "combine",
+                "a": 0,
+                "b": 1,
+                "ma": 1,
+                "mb": 1
+              }
+            ]
+          },
+          "lemmas": [
+            {
+              "when": [
+                {
+                  "c": 1
+                }
+              ],
+              "cut": {
+                "a": 1
+              },
+              "slice": [
+                0,
+                1
+              ],
+              "tree": {
+                "leaf": [
+                  {
+                    "kind": "input",
+                    "index": 2
+                  },
+                  {
+                    "kind": "input",
+                    "index": 3
+                  },
+                  {
+                    "kind": "input",
+                    "index": 0
+                  },
+                  {
+                    "kind": "combine",
+                    "a": 0,
+                    "b": 1,
+                    "ma": 1,
+                    "mb": 1
+                  },
+                  {
+                    "kind": "combine",
+                    "a": 3,
+                    "b": 2,
+                    "ma": 1,
+                    "mb": 1
+                  }
+                ]
+              }
+            }
+          ]
+        }
+      }
+    ],
+    "expect": false
+  },
+  {
+    "id": "zero_coefficient_condition",
+    "goal": {
+      "name": "conditional cut",
+      "hyps": [
+        {
+          "op": "<=",
+          "a": {
+            "op": "var",
+            "name": "a"
+          },
+          "b": {
+            "op": "var",
+            "name": "b"
+          }
+        },
+        {
+          "op": "<=",
+          "a": {
+            "op": "var",
+            "name": "b"
+          },
+          "b": {
+            "op": "const",
+            "value": 0
+          }
+        },
+        {
+          "op": "<",
+          "a": {
+            "op": "const",
+            "value": 0
+          },
+          "b": {
+            "op": "var",
+            "name": "a"
+          }
+        },
+        {
+          "op": "<=",
+          "a": {
+            "op": "var",
+            "name": "c"
+          },
+          "b": {
+            "op": "const",
+            "value": 0
+          }
+        }
+      ]
+    },
+    "tree": {
+      "leaf": [
+        {
+          "kind": "input",
+          "index": 0
+        },
+        {
+          "kind": "input",
+          "index": 3
+        },
+        {
+          "kind": "combine",
+          "a": 0,
+          "b": 1,
+          "ma": 1,
+          "mb": 1
+        }
+      ]
+    },
+    "lemmas": [
+      {
+        "when": [
+          {
+            "z": 0
+          }
+        ],
+        "cut": {
+          "a": 1
+        },
+        "slice": [
+          0,
+          1
+        ],
+        "tree": {
+          "leaf": [
+            {
+              "kind": "input",
+              "index": 2
+            },
+            {
+              "kind": "input",
+              "index": 3
+            },
+            {
+              "kind": "input",
+              "index": 0
+            },
+            {
+              "kind": "combine",
+              "a": 0,
+              "b": 1,
+              "ma": 1,
+              "mb": 1
+            },
+            {
+              "kind": "combine",
+              "a": 3,
+              "b": 2,
+              "ma": 1,
+              "mb": 1
+            }
+          ]
+        }
+      }
+    ],
+    "expect": false
+  },
+  {
+    "id": "fresh_unbound_name_is_arbitrary_nat",
+    "goal": {
+      "name": "explicit false",
+      "hyps": [
+        {
+          "op": "<",
+          "a": {
+            "op": "const",
+            "value": 0
+          },
+          "b": {
+            "op": "const",
+            "value": 0
+          }
+        }
+      ]
+    },
+    "tree": {
+      "leaf": [
+        {
+          "kind": "input",
+          "index": 1
+        }
+      ]
+    },
+    "lemmas": [
+      {
+        "when": [],
+        "cut": {
+          "unboundWitness": -1
+        },
+        "slice": [],
+        "tree": {
+          "leaf": [
+            {
+              "kind": "input",
+              "index": 0
+            },
+            {
+              "kind": "input",
+              "index": 1
+            },
+            {
+              "kind": "combine",
+              "a": 0,
+              "b": 1,
+              "ma": 1,
+              "mb": 1
+            }
+          ]
+        }
+      }
+    ],
+    "expect": true,
+    "lean": true
+  },
+  {
+    "id": "extra_instance_field_grants_nothing",
+    "goal": {
+      "name": "satisfiable",
+      "hyps": []
+    },
+    "tree": {
+      "leaf": [
+        {
+          "kind": "input",
+          "index": 0
+        }
+      ]
+    },
+    "lemmas": [
+      {
+        "when": [],
+        "cut": {
+          "1": 1
+        },
+        "slice": [],
+        "tree": {
+          "leaf": []
+        },
+        "insts": [
+          {
+            "wit": "fake",
+            "below": {
+              "op": "const",
+              "value": 0
+            },
+            "terms": [],
+            "unit": 1
+          }
+        ]
+      }
+    ],
+    "expect": false
+  },
+  {
+    "id": "malformed_null_tree",
+    "goal": {
+      "name": "conditional cut",
+      "hyps": [
+        {
+          "op": "<=",
+          "a": {
+            "op": "var",
+            "name": "a"
+          },
+          "b": {
+            "op": "var",
+            "name": "b"
+          }
+        },
+        {
+          "op": "<=",
+          "a": {
+            "op": "var",
+            "name": "b"
+          },
+          "b": {
+            "op": "const",
+            "value": 0
+          }
+        },
+        {
+          "op": "<",
+          "a": {
+            "op": "const",
+            "value": 0
+          },
+          "b": {
+            "op": "var",
+            "name": "a"
+          }
+        },
+        {
+          "op": "<=",
+          "a": {
+            "op": "var",
+            "name": "c"
+          },
+          "b": {
+            "op": "const",
+            "value": 0
+          }
+        }
+      ]
+    },
+    "tree": {
+      "split": {
+        "c": 1
+      },
+      "yes": {
+        "leaf": [
+          {
+            "kind": "input",
+            "index": 0
+          },
+          {
+            "kind": "input",
+            "index": 4
+          },
+          {
+            "kind": "combine",
+            "a": 0,
+            "b": 1,
+            "ma": 1,
+            "mb": 1
+          }
+        ]
+      },
+      "no": {
+        "leaf": [
+          {
+            "kind": "input",
+            "index": 4
+          },
+          {
+            "kind": "input",
+            "index": 0
+          },
+          {
+            "kind": "combine",
+            "a": 0,
+            "b": 1,
+            "ma": 1,
+            "mb": 1
+          }
+        ]
+      }
+    },
+    "lemmas": [
+      {
+        "when": [
+          {
+            "c": 1
+          }
+        ],
+        "cut": {
+          "a": 1
+        },
+        "slice": [
+          0,
+          1
+        ],
+        "tree": null
+      }
+    ],
+    "expect": false
+  },
+  {
+    "id": "malformed_array_cut",
+    "goal": {
+      "name": "conditional cut",
+      "hyps": [
+        {
+          "op": "<=",
+          "a": {
+            "op": "var",
+            "name": "a"
+          },
+          "b": {
+            "op": "var",
+            "name": "b"
+          }
+        },
+        {
+          "op": "<=",
+          "a": {
+            "op": "var",
+            "name": "b"
+          },
+          "b": {
+            "op": "const",
+            "value": 0
+          }
+        },
+        {
+          "op": "<",
+          "a": {
+            "op": "const",
+            "value": 0
+          },
+          "b": {
+            "op": "var",
+            "name": "a"
+          }
+        },
+        {
+          "op": "<=",
+          "a": {
+            "op": "var",
+            "name": "c"
+          },
+          "b": {
+            "op": "const",
+            "value": 0
+          }
+        }
+      ]
+    },
+    "tree": {
+      "split": {
+        "c": 1
+      },
+      "yes": {
+        "leaf": [
+          {
+            "kind": "input",
+            "index": 0
+          },
+          {
+            "kind": "input",
+            "index": 4
+          },
+          {
+            "kind": "combine",
+            "a": 0,
+            "b": 1,
+            "ma": 1,
+            "mb": 1
+          }
+        ]
+      },
+      "no": {
+        "leaf": [
+          {
+            "kind": "input",
+            "index": 4
+          },
+          {
+            "kind": "input",
+            "index": 0
+          },
+          {
+            "kind": "combine",
+            "a": 0,
+            "b": 1,
+            "ma": 1,
+            "mb": 1
+          }
+        ]
+      }
+    },
+    "lemmas": [
+      {
+        "when": [
+          {
+            "c": 1
+          }
+        ],
+        "cut": [],
+        "slice": [
+          0,
+          1
+        ],
+        "tree": {
+          "leaf": [
+            {
+              "kind": "input",
+              "index": 2
+            },
+            {
+              "kind": "input",
+              "index": 3
+            },
+            {
+              "kind": "input",
+              "index": 0
+            },
+            {
+              "kind": "combine",
+              "a": 0,
+              "b": 1,
+              "ma": 1,
+              "mb": 1
+            },
+            {
+              "kind": "combine",
+              "a": 3,
+              "b": 2,
+              "ma": 1,
+              "mb": 1
+            }
+          ]
+        }
+      }
+    ],
+    "expect": false
+  },
+  {
+    "id": "malformed_fractional_when",
+    "goal": {
+      "name": "conditional cut",
+      "hyps": [
+        {
+          "op": "<=",
+          "a": {
+            "op": "var",
+            "name": "a"
+          },
+          "b": {
+            "op": "var",
+            "name": "b"
+          }
+        },
+        {
+          "op": "<=",
+          "a": {
+            "op": "var",
+            "name": "b"
+          },
+          "b": {
+            "op": "const",
+            "value": 0
+          }
+        },
+        {
+          "op": "<",
+          "a": {
+            "op": "const",
+            "value": 0
+          },
+          "b": {
+            "op": "var",
+            "name": "a"
+          }
+        },
+        {
+          "op": "<=",
+          "a": {
+            "op": "var",
+            "name": "c"
+          },
+          "b": {
+            "op": "const",
+            "value": 0
+          }
+        }
+      ]
+    },
+    "tree": {
+      "split": {
+        "c": 1
+      },
+      "yes": {
+        "leaf": [
+          {
+            "kind": "input",
+            "index": 0
+          },
+          {
+            "kind": "input",
+            "index": 4
+          },
+          {
+            "kind": "combine",
+            "a": 0,
+            "b": 1,
+            "ma": 1,
+            "mb": 1
+          }
+        ]
+      },
+      "no": {
+        "leaf": [
+          {
+            "kind": "input",
+            "index": 4
+          },
+          {
+            "kind": "input",
+            "index": 0
+          },
+          {
+            "kind": "combine",
+            "a": 0,
+            "b": 1,
+            "ma": 1,
+            "mb": 1
+          }
+        ]
+      }
+    },
+    "lemmas": [
+      {
+        "when": [
+          {
+            "a": 0.25
+          }
+        ],
+        "cut": {
+          "a": 1
+        },
+        "slice": [
+          0,
+          1
+        ],
+        "tree": {
+          "leaf": [
+            {
+              "kind": "input",
+              "index": 2
+            },
+            {
+              "kind": "input",
+              "index": 3
+            },
+            {
+              "kind": "input",
+              "index": 0
+            },
+            {
+              "kind": "combine",
+              "a": 0,
+              "b": 1,
+              "ma": 1,
+              "mb": 1
+            },
+            {
+              "kind": "combine",
+              "a": 3,
+              "b": 2,
+              "ma": 1,
+              "mb": 1
+            }
+          ]
+        }
+      }
+    ],
+    "expect": false
+  },
+  {
+    "id": "malformed_sparse_slice",
+    "goal": {
+      "name": "conditional cut",
+      "hyps": [
+        {
+          "op": "<=",
+          "a": {
+            "op": "var",
+            "name": "a"
+          },
+          "b": {
+            "op": "var",
+            "name": "b"
+          }
+        },
+        {
+          "op": "<=",
+          "a": {
+            "op": "var",
+            "name": "b"
+          },
+          "b": {
+            "op": "const",
+            "value": 0
+          }
+        },
+        {
+          "op": "<",
+          "a": {
+            "op": "const",
+            "value": 0
+          },
+          "b": {
+            "op": "var",
+            "name": "a"
+          }
+        },
+        {
+          "op": "<=",
+          "a": {
+            "op": "var",
+            "name": "c"
+          },
+          "b": {
+            "op": "const",
+            "value": 0
+          }
+        }
+      ]
+    },
+    "tree": {
+      "split": {
+        "c": 1
+      },
+      "yes": {
+        "leaf": [
+          {
+            "kind": "input",
+            "index": 0
+          },
+          {
+            "kind": "input",
+            "index": 4
+          },
+          {
+            "kind": "combine",
+            "a": 0,
+            "b": 1,
+            "ma": 1,
+            "mb": 1
+          }
+        ]
+      },
+      "no": {
+        "leaf": [
+          {
+            "kind": "input",
+            "index": 4
+          },
+          {
+            "kind": "input",
+            "index": 0
+          },
+          {
+            "kind": "combine",
+            "a": 0,
+            "b": 1,
+            "ma": 1,
+            "mb": 1
+          }
+        ]
+      }
+    },
+    "lemmas": [
+      {
+        "when": [
+          {
+            "c": 1
+          }
+        ],
+        "cut": {
+          "a": 1
+        },
+        "slice": [
+          0,
+          null
+        ],
+        "tree": {
+          "leaf": [
+            {
+              "kind": "input",
+              "index": 2
+            },
+            {
+              "kind": "input",
+              "index": 3
+            },
+            {
+              "kind": "input",
+              "index": 0
+            },
+            {
+              "kind": "combine",
+              "a": 0,
+              "b": 1,
+              "ma": 1,
+              "mb": 1
+            },
+            {
+              "kind": "combine",
+              "a": 3,
+              "b": 2,
+              "ma": 1,
+              "mb": 1
+            }
+          ]
+        }
+      }
+    ],
+    "expect": false
+  }
+]

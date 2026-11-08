@@ -1,0 +1,9 @@
+[
+  {
+    "name": "freeze-review-inputs",
+    "cpu": 2,
+    "memory": 6144,
+    "timeout": 240,
+    "cmd": "set -euo pipefail; echo '6984ace7dea563b38aa93827558cfe209dd4978fb9ab994d92e4c2f8b9966433  kernel/kernel.ts' | sha256sum -c -; bun install --frozen-lockfile >/dev/null; cp research/track-k/review-source/review-edgecases.ts.txt review-edgecases.ts; bun review-edgecases.ts --make; bun review-edgecases.ts; printf '\\nFROZEN_JSON='; base64 -w0 review-fixtures.json; printf '\\nFROZEN_LEAN='; base64 -w0 lean-kernel/ReviewEdges.lean; printf '\\n'"
+  }
+]

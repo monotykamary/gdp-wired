@@ -1,0 +1,9 @@
+[
+  {
+    "name": "lean-count-baseline",
+    "cmd": "cd lean-kernel && TC=~/.elan/toolchains/leanprover--lean4---v4.34.0 && export LEAN_PATH=\"$PWD:$TC/lib/lean\" && \"$TC/bin/lean\" --version && \"$TC/bin/lean\" -o Count.olean Count.lean",
+    "timeout": 300,
+    "cpu": 4,
+    "memory": 8192
+  }
+]
