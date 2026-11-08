@@ -1479,3 +1479,49 @@ supercomputer run --jobs research/track-m/jobs-ranked-postcheck.json \
 The standalone production-law probes are separate from this matrix. Step 1,
 the three 60-second production repeats, and the downstream merge gates are **not
 claimed passed** by these action proofs.
+
+#### Production-path follow-up: Step 1 is still blocked
+
+`ranked-production-v1` (tree `ad9bd0274a28`) calls the existing
+`verify-focused.ts` against the canonical captured hand-set input, with
+`GDP_COUNTS_GIVEN=1`, the new default core recovery, and the original 5,000 ms
+counted allowance. Unlike the action diagnostics, it asks for a complete
+counted-law certificate and checks it with the original kernel. All five jobs
+finish normally; **none returns a proof**. The counted figures include the
+existing search-clock granularity at the stopping boundary; no allowance was
+raised to accommodate the small overshoot.
+
+| Published obligation | Counted ms | Wall ms | Complete proof / checked |
+| --- | ---: | ---: | --- |
+| one primary per term | 5,005 | 3,914 | no / no |
+| Inv3915: primary newest | 5,008 | 4,107 | no / no |
+| Inv1758: row agreement | 5,006 | 5,277 | no / no |
+| Inv2973: quorum overlap | 5,001 | 4,427 | no / no |
+| Inv*: quorum term backing | 5,006 | 5,574 | no / no |
+
+The traces demonstrate that the default selector is live, not an opt-in-only
+research result. Safety and newest exclude candidate 1, then candidate 2 when
+their actual witness derivations fail, and later stall on the send action's
+ordinary `grow`. Row agreement also excludes candidate 1 and stalls on the
+reconfiguration path. The overlap oracle returns an unknown fallback on its
+16-candidate pool. Quorum term backing reaches a nine-candidate selection,
+excludes candidate 5 after failed derivation, and still leaves the final send
+case open. These are recorded proposal/derivation gaps, not accepted arithmetic
+assumptions. Logs include every selection, exclusion, fallback and final result.
+
+**Remaining wall:** the generic selector and retained certificate do not yet
+supply the research loop's successful field/guard/row witness derivations to the
+ordinary production recovery. The isolated action trees still take tens of
+seconds to reconstruct/check against their sources. Neither that integration
+gap nor the wall cost has been solved by selecting fewer instances. No trusted
+lemma-sharing rule was introduced. Consequently Step 1's all-laws-kept gate,
+the 3x60-second original-harness target, and the downstream merge gates remain
+unpassed; a whole-protocol rerun would not replace these failed fast-loop goals.
+
+Reproduce this follow-up independently of the action benchmarks:
+
+```sh
+supercomputer run --jobs research/track-m/jobs-ranked-production.json \
+  --out runs/track-m/ranked-production-v2 --class gate --timing --vm-type large \
+  --data runs/track-m/canonical-capture-v1/fixtures:replay-input
+```
