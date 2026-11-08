@@ -1,0 +1,16 @@
+bun test v1.4.3 (c6da4a4d3)
+
+--- stderr ---
+
+kernel/lemma-cut.test.ts:
+(pass) a separately checked conditional lemma closes only below its decision [1.16ms]
+(pass) empty lemma lists preserve the original goal and counted checkers [0.35ms]
+(pass) the actual counted and MC wrappers carry the lemma list [0.28ms]
+(pass) a lemma is checked against exactly its selected hypotheses [0.17ms]
+(pass) non-refuting, self-citing and circular lemma payloads are refused [0.33ms]
+(pass) malformed new fields do not grant assumptions or throw [0.04ms]
+
+ 6 pass
+ 0 fail
+ 27 expect() calls
+Ran 6 tests across 1 file. [21.00ms]

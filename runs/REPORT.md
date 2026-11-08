@@ -4,7 +4,7 @@ Base: `8610af26c16cf8e50b5ec0564a154c6bf358d82c`; branch: `claude/track-kernel`.
 
 ## Status
 
-Step 1 passes: the conditional lemma-cut rule is proved in Lean, including the production counted-machine wrapper. `kernel/kernel.ts` is still unchanged. No TypeScript implementation, performance improvement, later gate, or merge is claimed yet.
+Steps 1 and 2 pass: the conditional lemma-cut rule is proved in Lean and mirrored in TypeScript. The mirror passes `bun run check` and six focused tests / 27 assertions (`runs/track-k-mirror-v1/`). Empty lists call the exact old checker; duplicate path atoms retain their input rows without changing first-match decisions. Conservativity replays, the complete mutants and export conformance, emission, performance measurements, and merge gates remain pending.
 
 The proposed rule and proof obligations are recorded in `research/track-k/README.md`. The first implementation will validate independent lemma trees with the old checker, allow cuts only at paths deciding their full conditions, check slices against the containing goal, and preserve the empty-lemma behavior. It must extend the actual `CountMachine.lean` wrapper as well as `Count.lean`.
 
