@@ -3165,3 +3165,32 @@ but did not complete the law; its check was polluted by a standalone `.ts`
 baseline mounted at repository root. The baseline is now `.txt` data and the
 clean completion suite includes the corrected check. Logs and placements are
 retained in the named run directories. Inv2973 and Inv* remain open.
+
+### Subsequent rowsAt experiments: rejected, not shipped
+
+`row-fact-scope-v1` tried a bounded private view so the existing
+`leafConstraintsReusing` fact tries could be shared between canonical goals,
+without changing row arithmetic or the checker. Both paired orders preserve
+all five verdicts and counted work; row-index/source tests and type/lint pass.
+But wall conservation fails, so this code is **not retained**.
+
+| Law | Pair 1 off / on s | Pair 2 off / on s |
+| --- | ---: | ---: |
+| One primary | 3.215 / 2.274 | 2.598 / 2.446 |
+| Inv3915 | 3.114 / 2.233 | 2.893 / 2.459 |
+| Inv1758 | 15.964 / 12.356 | 14.751 / 13.175 |
+| Inv2973 | 22.850 / 21.302 | **22.940 / 29.150** |
+| Inv* | 16.856 / 17.465 | **18.837 / 21.813** |
+
+Shrinking the bound to 1024 hypotheses (`row-fact-scope-v2`) regresses overlap
+further: **25.006 -> 40.065 s** and **18.984 -> 32.514 s** in the two orders.
+The conservative capacity test counts repeated hypotheses toward its reset
+threshold and causes **2,335 scope resets** during overlap. This is a diagnosed
+candidate defect, not an accepted production change. Heap/RSS instrumentation
+is retained; the production builder is restored to the validated implementation.
+The rejected patch is `research/track-m/rejected-row-fact-scope.patch`; apply it
+only to a throwaway tree before using `jobs-row-fact-scope.json` to reproduce.
+The v1 bound is 4096 instead of 1024. These are cost ablations, **not** substitutes
+for the main-baseline protocol gate. All raw logs and placements remain in the
+run directories. Generation integration follows the coordinator's newly
+reported acceptance evidence.

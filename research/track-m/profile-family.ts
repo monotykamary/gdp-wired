@@ -20,8 +20,8 @@ const all=()=>{
    const proof=proveFocusedCounts(m,laws,law,{},clock()+5000,(goal,decls)=>certFor(goal,decls,true,1000),process.env.TRACK_M_FAMILY_TRACE==='1'?event=>trace.push(event):undefined)
    return {proven:!!proof,checked:!!proof&&countedObligations(m,laws,{[law.name]:proof.instances},index).every(p=>!!proof.certs[p.goal.name]&&checkMC(p.goal.hyps,p.decls,proof.certs[p.goal.name]!))}
   }),true))
-  const wallMs=performance.now()-t,snap=costMeter.snapshot()
-  console.log(JSON.stringify({mode:'family',law:law.name,rowsOn,treesOn,contextsOn,indexOn,...result,wallMs,countedMs:(fullWork()-work)/fullRate,treeHits:treeReuseStats.hits-hits,sourceReuse:Object.fromEntries(Object.entries(sourceMemoStats).map(([k,v])=>[k,v-sourceBefore[k as keyof typeof sourceBefore]])),rowReuse:Object.fromEntries(Object.entries(rowReuseStats).map(([k,v])=>[k,v-rowBefore[k as keyof typeof rowBefore]])),phases:snap.phases,sites:snap.sites,...(trace.length?{tail:trace.slice(-16)}:{})}))
+  const wallMs=performance.now()-t,snap=costMeter.snapshot(),memory=process.memoryUsage()
+  console.log(JSON.stringify({mode:'family',memory:{rss:memory.rss,heapUsed:memory.heapUsed},law:law.name,rowsOn,treesOn,contextsOn,indexOn,...result,wallMs,countedMs:(fullWork()-work)/fullRate,treeHits:treeReuseStats.hits-hits,sourceReuse:Object.fromEntries(Object.entries(sourceMemoStats).map(([k,v])=>[k,v-sourceBefore[k as keyof typeof sourceBefore]])),rowReuse:Object.fromEntries(Object.entries(rowReuseStats).map(([k,v])=>[k,v-rowBefore[k as keyof typeof rowBefore]])),phases:snap.phases,sites:snap.sites,...(trace.length?{tail:trace.slice(-16)}:{})}))
  }
 }
 if(treesOn)withTrees(all);else all()

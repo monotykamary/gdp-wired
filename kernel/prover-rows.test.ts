@@ -33,6 +33,14 @@ test('identical immutable goals share row arrays but reordered paths never alias
  row(h,new Map([...p].toReversed()))
 })
 
+test('cross-goal fact scopes retain original fact indices and path dependencies',()=>{
+ const a=x('scope-a'),b=x('scope-b'),h=same(x('scope-result'),ite(atMost(a,b),min(a,b),plus(a,b))),other=less(x('scope-extra'),n(4)),split={'scope-a':1,'scope-b':-1}
+ for(let i=0;i<20;i++)for(const hyps of [[h],[other,h],[h,other]]){
+  const path:Path=new Map([[canon(split),{lin:split,holds:i%2===0}]])
+  row(hyps,path)
+ }
+})
+
 test('more than sixteen decision contexts retain exact facts when revisited',()=>{
  const xs=Array.from({length:6},(_,i)=>x(`v${i}`)),h=[same(x('r'),xs.map(a=>ite(atMost(a,n(0)),n(1),n(2))).reduce((a,b)=>plus(a,b)))]
  const paths=Array.from({length:64},(_,bits):Path=>new Map(xs.map((a,i)=>{const lin={[`v${i}`]:1};return [canon(lin),{lin,holds:!!(bits&(1<<i))}]})))
