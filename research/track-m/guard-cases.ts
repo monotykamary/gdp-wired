@@ -9,9 +9,10 @@ import {frameLemmas} from './frame-lemmas.ts'
 type Proposal=Pick<CountCert,'reads'|'insts'>
 
 export function guardCases(m:Machine,ds:CountDecl[],g:Goal,cert:Proposal,guard:C,until:number,trace:object[],slot=0,root:Path=new Map()):Tree|undefined{
- const conditions:C[]=[]
+ const conditions:C[]=[],booleans=process.env.LAB_BOOLEAN_GUARDS==='1'
  const collect=(c:C):boolean=>{
-  if(c.op==='and')return c.xs.every(collect)
+  if(c.op==='and'||booleans&&c.op==='or')return c.xs.every(collect)
+  if(booleans&&c.op==='not')return collect(c.x)
   if(c.op==='='){conditions.push({op:'<=',a:c.a,b:c.b},{op:'<=',a:c.b,b:c.a});return true}
   if(c.op==='<='){conditions.push(c);return true}
   if(c.op==='<'){conditions.push({op:'<=',a:plus(c.a,n(1)),b:c.b});return true}
@@ -47,15 +48,16 @@ export function guardCases(m:Machine,ds:CountDecl[],g:Goal,cert:Proposal,guard:C
   return accepted?lifted:undefined
  }
  const visit=(i:number,hyps:C[],path:Path):Tree|undefined=>{
-  if(i===conditions.length)return leaf(hyps,path,true)
+  if(booleans){const active=truth(guard,path);if(active!==undefined)return leaf(hyps,path,active);if(i===conditions.length)return undefined}
+  else if(i===conditions.length)return leaf(hyps,path,true)
   if(clock()>=until)return undefined
   const c=conditions[i]!;if(c.op!=='<=')return undefined
   const known=truth(c,path)
   if(known===true)return visit(i+1,[...hyps,c],path)
-  if(known===false)return leaf([...hyps,{op:'not',x:c}],path,false)
+  if(known===false)return booleans?visit(i+1,[...hyps,{op:'not',x:c}],path):leaf([...hyps,{op:'not',x:c}],path,false)
   const a=linear(c.a,path),b=linear(c.b,path);if(!a||!b)return undefined
   const split=sub(a,b),id=canon(split)
-  const noPath=new Map(path).set(id,{lin:split,holds:false}),no=leaf([...hyps,{op:'not',x:c}],noPath,false)
+  const noPath=new Map(path).set(id,{lin:split,holds:false}),no=booleans?visit(i+1,[...hyps,{op:'not',x:c}],noPath):leaf([...hyps,{op:'not',x:c}],noPath,false)
   if(!no)return undefined
   const yesPath=new Map(path).set(id,{lin:split,holds:true}),yes=visit(i+1,[...hyps,c],yesPath)
   return yes?{split,yes,no}:undefined

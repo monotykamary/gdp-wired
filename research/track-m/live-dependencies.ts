@@ -32,6 +32,17 @@ export function sourceWitnessContext(source:Goal,core:Goal,wits:ReadonlySet<stri
  })
  return extra.length?{...core,hyps:[...core.hyps,...extra]}:core
 }
+// Preserve source scalar domains in a small point core. A packed-row proof can
+// need the original size/stride bound even when a numeric core omits it.
+export function sourceScalarContext(source:Goal,core:Goal,names:ReadonlySet<string>,path:Path):Goal{
+ const extra=source.hyps.flatMap(c=>piecesAt(c,path)).filter(c=>{
+  if(core.hyps.includes(c))return false
+  let scalar=true
+  walkLive(c,path,(o:any)=>{if(o.op==='get'||o.op==='flag'||o.op==='all'||o.op==='var'&&!names.has(o.name))scalar=false})
+  return scalar
+ })
+ return extra.length?{...core,hyps:[...core.hyps,...extra]}:core
+}
 export function walkLive(root:unknown,path:Path,visit:(value:any)=>void):void{
  const seen=new WeakSet<object>()
  const go=(value:any):void=>{

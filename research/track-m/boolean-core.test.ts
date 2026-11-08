@@ -24,6 +24,21 @@ for(const reverse of [false,true])test(`a partition CInst checks directly in ${r
  expect(tree).toBeDefined();if(tree)expect(check(g,tree)).toBe(true)
 })
 
+for(const correct of [true,false])test(`packed copy offsets ${correct?'check through their row-order guard':'do not hide a wrong offset'}`,()=>{
+ const source=x('source'),destination=x('destination'),member=x('member'),order=atMost(destination,source),key=plus(times(4,destination),member),offset=times(4,minus(destination,source)),copied=ite(order,plus(key,times(4,minus(source,destination))),minus(key,correct?offset:plus(offset,n(1))))
+ const g={name:'copy offset',hyps:[same(get('Packed',copied),n(1)),same(get('Packed',plus(times(4,source),member)),n(0))]}
+ expect(booleanCandidates(g,new Map(),new Set(['member'])).some(p=>JSON.stringify(p.c)===JSON.stringify(order))).toBe(true)
+ const tree=booleanCore(g,new Map(),new Set(['member']),clock()+1000,[])
+ if(correct){expect(tree).toBeDefined();if(tree)expect(check(g,tree)).toBe(true)}else expect(tree).toBeUndefined()
+})
+
+test('primitive copy guards outrank compound cell-key aliases in the fixed pool',()=>{
+ const w=x('w'),source=x('source'),destination=x('destination'),guard=atMost(destination,source),keyGuard=same(w,destination),compound=plus(times(4,source),w),g={name:'candidate priority',hyps:[same(ite(guard,get('M',w),get('M',compound)),n(1)),same(ite(keyGuard,n(1),n(0)),n(1))]}
+ const candidates=booleanCandidates(g,new Map(),new Set(['w'])),score=(c:unknown)=>candidates.find(p=>JSON.stringify(p.c)===JSON.stringify(c))?.score??0
+ expect(score(guard)).toBeGreaterThan(score(same(w,compound)))
+ expect(score(keyGuard)).toBeGreaterThan(score(same(w,compound)))
+})
+
 test('a point update proposes its witness-versus-actor equality',()=>{
  const choice=same(x('member'),x('actor')),g={name:'point update',hyps:[less(x('old'),ite(choice,n(0),x('old')))]}
  expect(booleanCandidates(g,new Map(),new Set(['member'])).some(({c})=>JSON.stringify(c)===JSON.stringify(choice))).toBe(true)

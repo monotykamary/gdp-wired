@@ -2,8 +2,26 @@ import {expect,test} from 'bun:test'
 import {type C,type Machine,all,any,atMost,get,ite,less,minus,n,not,plus,same,times,x} from '../../core/machine.ts'
 import {canon,check,checkMC,linear,mcGoal,type CountCert,type Path} from '../../kernel/kernel.ts'
 import {clock} from '../../kernel/prove.ts'
-import {countBindingsAt,fieldBoundLemmas,fieldBounds} from './field-bound-lemmas.ts'
+import {countBindingsAt,emptyCountCandidate,fieldBoundLemmas,fieldBounds} from './field-bound-lemmas.ts'
 
+test('empty-count candidates are post-state singleton upper bounds on field comparisons',()=>{
+ const body=ite(less(get('Clock',x('k')),get('Epoch',x('row'))),n(1),n(0)),m:Machine={name:'empty proposals',params:[],inputs:[],state:{},counts:{Below:{j:'row',key:'k',below:n(4),body},Constant:{j:'row',key:'k',below:n(4),body:n(1)}},step:{}}
+ const cert:Pick<CountCert,'reads'|'insts'>={reads:[['pre','Below',x('target')],['post','Below#',x('target')],['other','Constant#',x('target')]],insts:[]},base={wit:'sample',below:n(4),unit:0 as const,terms:[[1,'post']] as [number,string][]}
+ expect(emptyCountCandidate(m,cert,base)).toBe(true)
+ for(const id of ['pre','other'])expect(emptyCountCandidate(m,cert,{...base,terms:[[1,id]]})).toBe(false)
+ expect(emptyCountCandidate(m,cert,{...base,terms:[[-1,'post']]})).toBe(false)
+ expect(emptyCountCandidate(m,cert,{...base,unit:1})).toBe(false)
+})
+for(const zero of [true,false])test(`a singleton empty count ${zero?'checks at a zero threshold':'is not assumed empty'}`,()=>{
+ const previous=process.env.LAB_EMPTY_COUNTS
+ try{
+  process.env.LAB_EMPTY_COUNTS='1'
+  const body=ite(less(get('Clock',x('k')),get('Epoch',x('row'))),n(1),n(0)),m:Machine={name:'empty count',params:[],inputs:['source'],state:{},maps:{Clock:0,Epoch:0},inputMaps:['Selected'],counts:{Below:{j:'row',key:'k',below:n(4),body}},step:{flags:{eligible:{op:'all',key:'v',c:less(get('Clock',x('v')),plus(get('Clock',x('source')),n(1)))}}}}
+  const ds=[{map:'Below',...m.counts!.Below!},{map:'Below#',...m.counts!.Below!}],cert:Pick<CountCert,'reads'|'insts'>={reads:[['pre','Below',x('target')],['post','Below#',x('target')]],insts:[{wit:'sample',below:n(4),unit:0,terms:[[1,'post']]}]}
+  const hyps=[less(x('target'),n(4)),less(n(0),get('Below#',x('target'))),...(zero?[same(get('Epoch',x('target')),n(0))]:[])],goal=mcGoal(hyps,ds,cert)!,tree=fieldBoundLemmas(m,ds,goal,cert,clock()+1500,[])
+  if(zero){expect(tree).toBeDefined();if(tree)expect(checkMC(hyps,ds,{...cert,tree})).toBe(true)}else expect(tree).toBeUndefined()
+ }finally{if(previous===undefined)delete process.env.LAB_EMPTY_COUNTS;else process.env.LAB_EMPTY_COUNTS=previous}
+})
 test('numeric count bridges include nested path cells but omit unrelated reads',()=>{
  const a=get('Left',n(0)),b=get('Right',n(0)),lin=linear(minus(a,b),new Map())!,root:Path=new Map([[canon(lin),{lin,holds:true}]])
  const reads:CountCert['reads']=[['a','Left',n(0)],['b','Right',n(0)],['unused','Right',n(1)],['other','Other',n(0)]]

@@ -1104,3 +1104,51 @@ TypeScript/type-aware lint reports zero warnings/errors on 1,020 files. The
 latest Section 1.5 confirms no design falsifier: P* and the bounded induction
 checks still support I-A. Step 1 remains the gate; no later candidate family
 or downstream merge gate is claimed complete.
+
+### Step 1b: setup emptiness recovered; send copy remains open
+
+The setup models had zero target configuration term but a positive post-state
+count. The ordinary certificate already contained the required singleton
+`+postCount <= 0` CInst; the field helper excluded one-term proposals.
+`LAB_EMPTY_COUNTS=1` now attempts these for post-count definitions with field
+comparisons. `empty-counts-v1` checks setup entries **0 and 1** in **627 / 711
+counted ms**, respectively (31,584 / 35,248 wall ms). A source-level counted
+regression checks the zero-threshold proof and rejects the same conclusion
+without that premise. Seven of eight action entries now have checked encoded
+trees in individual replays, with their recorded options; no combined Inv*
+certificate is claimed.
+
+The remaining send entry exposed three concrete proposal gaps. Its activation
+contains a disjunction, so the conjunction-only guard splitter returned before
+trying it. Boolean guard coverage now follows both branches and checks the
+complete source tree. The row selector then chose the copied **source**, not
+the destination: live Boolean-valued writes must ignore dead arms and must not
+mistake membership-read keys for write-index comparisons. Finally the selected
+certificate lacked `post bq[a,j]` against `pre bq[i,j]` / `pre bq[i,i]`, and
+`post cfgSize[a]` against `pre cfgSize[i]`. `focusCountCert` has an opt-in,
+16-cross-pair-capped same-definition copy family, with both directions as
+ordinary CInsts. The equal-primary row can also split its secondary key.
+These options and their default-preservation/negative tests are checked, but
+are not yet a production policy.
+
+`active-writer-v2` confirms destination selection, and `copy-frames-v1` reaches
+the correct equal/equal row but cannot reconstruct the copy count comparison.
+`copy-model-v1/v2` captures its precise remaining failure: the model can set the
+post indicator to 1 and pre indicator to 0 while source/destination keys are
+fixed. The key-order candidates, source scalar-domain recovery, and direct
+copy-point retries do not yet close it. The opaque column definitions identify
+the unexposed numeric/Boolean indicator conditions as the next diagnostic
+surface; these are not protocol counterexamples or accepted proofs.
+
+`copy-checkpoint-v1` passes **253 Track M tests + 67 Track P tests**, and
+TypeScript/type-aware lint reports zero warnings/errors on 1,020 files.
+Independent rechecks still accept leader and reconfiguration in **2,827 /
+4,152 counted ms** (85,037 / 83,458 wall ms). The long wall times remain a
+problem, not a passing end-to-end timing gate. No budget, trusted-kernel rule,
+safety law, or invariant was weakened.
+
+Coordinator baseline update: remaining gates compare with **main 8610af26**.
+The worktree already includes 699b5160; `git diff 699b5160 8610af26 -- core kernel
+scripts` is empty. The later main commit changes reports/research packaging,
+not the Track P code already present here. Step 1 and all downstream gates
+remain open.

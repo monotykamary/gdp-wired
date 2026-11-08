@@ -2,7 +2,17 @@ import {expect,test} from 'bun:test'
 import {any,atMost,get,ite,less,n,not,same,x} from '../../core/machine.ts'
 import {canon,check,type Path} from '../../kernel/kernel.ts'
 import {clock,grow,widen} from '../../kernel/prove.ts'
-import {piecesAt,sourceWitnessContext,walkLive} from './live-dependencies.ts'
+import {booleanCore} from './boolean-core.ts'
+import {piecesAt,sourceScalarContext,sourceWitnessContext,walkLive} from './live-dependencies.ts'
+for(const bounded of [true,false])test(`scalar context ${bounded?'retains the source stride bound':'does not invent a missing stride bound'}`,()=>{
+ const w=x('w'),size=x('size'),before=get('Source',w),after=ite(less(w,n(4)),before,get('Destination',w)),core={name:'row domain',hyps:[less(w,size),same(after,n(1)),same(before,n(0))]},bound=atMost(size,n(4)),field=same(get('Unrelated',n(0)),n(7)),source={...core,hyps:[...core.hyps,...(bounded?[bound]:[]),field]},snapshot=JSON.stringify(source)
+ const g=sourceScalarContext(source,core,new Set(['size']),new Map())
+ expect(g.hyps.includes(field)).toBe(false)
+ expect(g.hyps.includes(bound)).toBe(bounded)
+ expect(JSON.stringify(source)).toBe(snapshot)
+ const tree=booleanCore(g,new Map(),new Set(['w']),clock()+1000,[])
+ if(bounded){expect(tree).toBeDefined();if(tree){const lifted=widen(g,source,tree,{});expect(lifted&&check(source,lifted)).toBe(true)}}else expect(tree).toBeUndefined()
+})
 test('dependency slices ignore inactive witnesses without rewriting source terms',()=>{
  const term=ite(same(x('op'),n(0)),x('foreignWitness'),x('liveWitness')),before=JSON.stringify(term),lin={op:-1,'1':1},path:Path=new Map([[canon(lin),{lin,holds:true}]])
  const names=(path:Path)=>{const out=new Set<string>();walkLive(term,path,o=>{if(o.op==='var')out.add(o.name)});return [...out].sort()}

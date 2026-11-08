@@ -1,20 +1,40 @@
 // Untrusted row-equality case proposals. Every ordering branch is covered and
 // every reused recipe is widened and checked at its destination path.
-import {type C,type E,type Machine,walkOnce,x} from '../../core/machine.ts'
-import {type CountCert,type Goal,type Path,type Tree,canon,check,linear,truth} from '../../kernel/kernel.ts'
+import {type C,type E,type Machine,n,same,walkOnce,x} from '../../core/machine.ts'
+import {type CountCert,type Goal,type Path,type Tree,canon,check,linear,substC,substE,truth} from '../../kernel/kernel.ts'
 import {clock,widen,withDeadline} from '../../kernel/prove.ts'
 import {scale,sub} from '../../core/solver.ts'
+import {walkLive} from './live-dependencies.ts'
 export type RowPair=readonly [E,E]
-export function rowPairs(m:Machine,cert:Pick<CountCert,'reads'>):RowPair[]{
+export function activeWriteRow(m:Machine,root:Path):string|undefined{
+ const flags:Record<string,C>={},inputs=new Set(m.inputs),ranks=new Map<string,number>(),seen:object[]=[]
+ for(const [name,c]of Object.entries(m.step.flags??{}))flags[name]=c.op==='all'?same(x(`?${name}`),n(1)):substC(c,{vars:{},maps:{},flags})
+ for(const write of Object.values(m.step.maps??{})){
+  if(!('each'in write))continue
+  const body=substE(write.value,{vars:{},maps:{},flags})
+  walkLive(body,root,(o:any)=>{
+   if(o.op!=='if'||truth(o.c,root)!==undefined)return
+   walkLive(o.c,root,(c:any)=>{
+    if(!['=','<','<='].includes(c.op)||truth(c,root)!==undefined)return
+    let indexed=false,cell=false;const found=new Set<string>()
+    walkOnce(c,(e:any)=>{if(e.op==='get')cell=true;if(e.op==='var'){if(e.name===write.each)indexed=true;if(inputs.has(e.name))found.add(e.name)}})
+    if(indexed&&!cell){for(const name of found)ranks.set(name,(ranks.get(name)??0)+1);if(process.env.LAB_WRITER_TRACE==='1'&&seen.length<24)seen.push({index:write.each,inputs:[...found],condition:c})}
+   })
+  })
+ }
+ if(process.env.LAB_WRITER_TRACE==='1')console.error(JSON.stringify({stage:'writer-selection',ranks:[...ranks],seen,flags:Object.fromEntries(Object.entries(flags).map(([name,c])=>[name,truth(c,root)]))}))
+ return [...ranks].sort((a,b)=>b[1]-a[1]||a[0].localeCompare(b[0]))[0]?.[0]
+}
+export function rowPairs(m:Machine,cert:Pick<CountCert,'reads'>,root:Path=new Map()):RowPair[]{
  const ranks=new Map<string,number>(),inputs=new Set(m.inputs)
  walkOnce(m.step.maps,(o:any)=>{if(o.op==='get'&&o.key.op==='var'&&inputs.has(o.key.name))ranks.set(o.key.name,(ranks.get(o.key.name)??0)+1)})
- const actor=[...ranks].sort((a,b)=>b[1]-a[1]||a[0].localeCompare(b[0]))[0]?.[0]
+ const fallback=[...ranks].sort((a,b)=>b[1]-a[1]||a[0].localeCompare(b[0]))[0]?.[0],actor=(process.env.LAB_ACTIVE_WRITER==='1'?activeWriteRow(m,root):undefined)??fallback
  if(!actor)return []
  const names=new Set<string>(),read=cert.reads.find(r=>r[1].endsWith('#'))
  if(read)walkOnce(read[2],(o:any)=>{if(o.op==='var'&&!inputs.has(o.name)&&!m.params.includes(o.name))names.add(o.name)})
  return [...names].slice(0,2).map(name=>[x(name),x(actor)] as const)
 }
-export function proveRowCases(g:Goal,root:Path,pairs:RowPair[],until:number,prove:(path:Path,until:number)=>Tree|undefined,trace?:(e:object)=>void,options:{deferToCaller?:boolean}={}):Tree|undefined{
+export function proveRowCases(g:Goal,root:Path,pairs:RowPair[],until:number,prove:(path:Path,until:number)=>Tree|undefined,trace?:(e:object)=>void,options:{deferToCaller?:boolean,splitEqual?:boolean}={}):Tree|undefined{
  if(!pairs.length||clock()>=until)return undefined
  const cache=new Map<string,{path:Path,tree:Tree}>()
  const leaf=(path:Path,key:string):Tree|undefined=>{
@@ -45,7 +65,7 @@ export function proveRowCases(g:Goal,root:Path,pairs:RowPair[],until:number,prov
  // Try the primary-equal case without a secondary split. Its returned proof
  // must cover every secondary key. The other two logical cases are shared
  // between the less-than and greater-than representations of disequality.
- const out=split(pairs[0]!,root,p=>leaf(p,'equal'),p=>pairs.length<2?leaf(p,'different'):split(pairs[1]!,p,q=>leaf(q,'different/equal'),q=>leaf(q,'different/different')))
+ const out=split(pairs[0]!,root,p=>options.splitEqual&&pairs[1]?split(pairs[1],p,q=>leaf(q,'equal/equal'),q=>leaf(q,'equal/different')):leaf(p,'equal'),p=>pairs.length<2?leaf(p,'different'):split(pairs[1]!,p,q=>leaf(q,'different/equal'),q=>leaf(q,'different/different')))
  // A composing caller may check this entire proposal after adding its cuts.
  return options.deferToCaller?out:out&&check(g,out,root)?out:undefined
 }

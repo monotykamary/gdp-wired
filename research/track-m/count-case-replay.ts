@@ -50,11 +50,12 @@ if(process.env.LAB_SYMBOLIC_OVERLAP==='1'){
 }
 mark('building-obligations')
 let base=countedObligations(m,laws,{[law.name]:at},index).find(g=>g.goal.name.endsWith('@step'))!
-const focusOptions={carried:process.env.LAB_ALL_CARRIED==='1'?undefined:m.inputMaps[0],targets:!countedTarget&&process.env.LAB_TARGET_COUNTS==='1'?rows:undefined,algebraic:process.env.LAB_ALGEBRAIC==='1',requestFrames:process.env.LAB_REQUEST_FRAMES==='1',structural:countedTarget&&process.env.LAB_STRUCT_COUNTS==='1',frames:process.env.LAB_FRAME_COUNTS==='1'}
+const focusOptions={carried:process.env.LAB_ALL_CARRIED==='1'?undefined:m.inputMaps[0],targets:!countedTarget&&process.env.LAB_TARGET_COUNTS==='1'?rows:undefined,algebraic:process.env.LAB_ALGEBRAIC==='1',requestFrames:process.env.LAB_REQUEST_FRAMES==='1',copyFrames:process.env.LAB_COPY_FRAMES==='1',structural:countedTarget&&process.env.LAB_STRUCT_COUNTS==='1',frames:process.env.LAB_FRAME_COUNTS==='1'}
 mark('building-certificate')
 const cert={...focusCountCert(m,base.decls,certFor(base.goal,base.decls,true,1000),focusOptions),picks:[] as [string,E[]][]}
 mark('certificate-ready')
 if(process.env.LAB_SKIP_COVERS==='1')cert.insts=cert.insts.filter(i=>i.terms.length!==3)
+if(process.env.LAB_COMPACT_PROPOSALS==='1'){console.log(JSON.stringify({reads:cert.reads,insts:cert.insts}));process.exit(0)}
 if(process.env.LAB_DESCRIBE_ONLY==='1'){
  const pool=certFor(base.goal,base.decls,true,1000)
  const ids=process.env.LAB_BODY_IDS?.split(',')

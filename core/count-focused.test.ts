@@ -3,6 +3,17 @@ import {all,any,atMost,get,ite,less,n,not,same,type E,type Machine,x} from './ma
 import {type CountCert,type CountDecl} from '../kernel/kernel.ts'
 import {countLawSeeds,countRowBridges,independentCountInstances,fieldLawBridges,focusCountCert,rowKeyNames} from './count-focused.ts'
 
+test('copy-frame proposals compare the same counted definition at different rows within a cap',()=>{
+ const d={j:'row',key:'member',below:n(4),body:ite(same(get('Members',x('row')),n(1)),n(1),n(0))},decls:CountDecl[]=[{map:'Count',...d},{map:'Count#',...d}]
+ const m:Machine={name:'copy frames',params:[],inputs:['source'],state:{},maps:{Members:0},step:{}},reads:CountCert['reads']=[['after','Count#',x('target')],['before','Count',x('target')],['source','Count',x('source')]],full={reads,insts:[]}
+ expect(focusCountCert(m,decls,full).insts).toEqual([])
+ const got=focusCountCert(m,decls,full,{copyFrames:true})
+ expect(got.insts.map(i=>i.terms)).toEqual([[[1,'after'],[-1,'source']],[[1,'source'],[-1,'after']]])
+ expect(full.insts).toEqual([])
+ const many:CountCert['reads']=[reads[0]!,...Array.from({length:20},(_,i)=>[`source${i}`,'Count',x(`row${i}`)] as CountCert['reads'][number])]
+ expect(focusCountCert(m,decls,{reads:many,insts:[]},{copyFrames:true}).insts).toHaveLength(32)
+})
+
 test('focused comparisons follow carried sets and indicator bodies, not names',()=>{
   const member=x('member'), row=x('row'), cell=get('Members',row)
   const base={j:'row',key:'member',below:n(4)}, at=get('Members',x('requestRow'))

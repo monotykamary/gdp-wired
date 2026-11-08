@@ -15,8 +15,9 @@ export function booleanCandidates(g:Goal,root:Path,wits:Set<string>):{c:C,score:
   if(o.op==='='&&o.a.op==='var'&&o.b.op==='var'){
    const a=wits.has(o.a.name),b=wits.has(o.b.name)
    if(!a&&!b)add(o,10)
-   else if(a!==b)add(o,500)
+   else if(a!==b)add(o,1500)
   }
+  if((o.op==='<'||o.op==='<=')&&o.a.op==='var'&&o.b.op==='var'&&o.a.name!==o.b.name&&!wits.has(o.a.name)&&!wits.has(o.b.name))add(o,750)
   if(!['=','<='].includes(o.op))return
   const cell=o.op==='='&&o.a.op==='get'&&o.b.op==='const'&&o.b.value===1?o.a:o.op==='<='&&o.a.op==='const'&&o.a.value===1&&o.b.op==='get'?o.b:undefined
   if(!cell)return
@@ -34,7 +35,7 @@ export function booleanCandidates(g:Goal,root:Path,wits:Set<string>):{c:C,score:
  }
  return [...chosen.values()]
 }
-export function booleanCore(g:Goal,root:Path,wits:Set<string>,until:number,trace:object[]):Tree|undefined{
+export function booleanCore(g:Goal,root:Path,wits:Set<string>,until:number,trace:object[],options:{model?:boolean}={}):Tree|undefined{
  const start=clock()
  // Lift the goal's own forced linear facts into the path, with a checked
  // opposite branch for every cut. They need not consume the Boolean pool.
@@ -71,7 +72,7 @@ export function booleanCore(g:Goal,root:Path,wits:Set<string>,until:number,trace
   if(i===cs.length){
    leaves++;const out=grow(g,path,{nodes:0,until,units:true})
    if('tree'in out)return out.tree
-   last??={path:[...path],outcome:out.stuck};return undefined
+   last??={path:[...path],outcome:out.stuck,...(options.model&&'witness'in out?{model:out.witness,columns:Object.fromEntries(Object.keys(out.witness).filter(name=>name.startsWith('⟦')).slice(0,8).map(name=>[name,columnTerm(name)]))}:{})};return undefined
   }
   const c=cs[i]!,known=truth(c,path)
   if(known!==undefined)return go(i+1,path)
@@ -88,6 +89,6 @@ export function booleanCore(g:Goal,root:Path,wits:Set<string>,until:number,trace
   const names=new Set([...JSON.stringify([g,[...pinned]]).matchAll(/⟦\d+⟧/g)].map(m=>m[0])),terms=Object.fromEntries([...names].map(name=>[name,columnTerm(name)]))
   trace.push({stage:'boolean-fixture',goal:g,root:[...pinned],wits:[...wits],choices:cs,candidates,terms})
  }
- trace.push({stage:'boolean-core',facts:prefix.length,cuts:cs.length,nodes,leaves,ms:Math.round(clock()-start),checked,...(last?{last}:{})})
+ trace.push({stage:'boolean-core',facts:prefix.length,cuts:cs.length,nodes,leaves,ms:Math.round(clock()-start),checked,...(options.model?{choices:cs.map(c=>({op:c.op,...('a'in c?{a:JSON.stringify(c.a).slice(0,180),b:JSON.stringify(c.b).slice(0,180)}:{})}))}:{}),...(last?{last}:{})})
  return checked?tree:undefined
 }

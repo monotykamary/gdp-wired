@@ -99,7 +99,7 @@ import {type C, type E, type Law, type Machine, walkOnce, x} from './machine.ts'
 import {type CountCert, type CountDecl, type Instances, substC, substE} from '../kernel/kernel.ts'
 import {countsForReads} from './count-facts.ts'
 
-export function focusCountCert(m: Machine, decls: CountDecl[], full: Pick<CountCert,'reads'|'insts'>, options: {carried?: string, structural?: boolean, frames?: boolean, algebraic?: boolean, requestFrames?: boolean, targets?: E[]} = {}): Pick<CountCert,'reads'|'insts'> {
+export function focusCountCert(m: Machine, decls: CountDecl[], full: Pick<CountCert,'reads'|'insts'>, options: {carried?: string, structural?: boolean, frames?: boolean, algebraic?: boolean, requestFrames?: boolean, copyFrames?: boolean, targets?: E[]} = {}): Pick<CountCert,'reads'|'insts'> {
   const cs=countsForReads(decls,full.reads)
   if(!cs) return {reads:full.reads,insts:[]}
   const inputs=new Set(m.inputMaps??[]), text=(e:unknown)=>JSON.stringify(e)
@@ -211,7 +211,7 @@ export function focusCountCert(m: Machine, decls: CountDecl[], full: Pick<CountC
     walkOnce(b,(o:any)=>{if(o.op==='get'&&view.has(text(o)))matches=true})
     return matches
   })
-  if(options.frames||options.requestFrames){
+  if(options.frames||options.requestFrames||options.copyFrames){
     const used=new Set([...m.inputs,...m.params,...Object.keys(m.state),...full.insts.map(i=>i.wit),...full.reads.map(r=>r[0])])
     walkOnce(cs,(o:any)=>{if(o.op==='var')used.add(o.name)})
     let serial=0
@@ -221,8 +221,15 @@ export function focusCountCert(m: Machine, decls: CountDecl[], full: Pick<CountC
       insts.push({wit,below,terms,unit:0})
     }
     const byId=new Map(cs.map(c=>[c.v,c]))
+    let copies=0
     for(const after of full.reads.filter(r=>r[1].endsWith('#')).slice(0,16)){
       const c=byId.get(after[0]);if(!c)continue
+      if(options.copyFrames)for(const before of full.reads){
+        if(copies>=16)break
+        const old=byId.get(before[0])
+        if(before[1]!==after[1].slice(0,-1)||text(before[2])===text(after[2])||!old||text(old.below)!==text(c.below))continue
+        add([[1,after[0]],[-1,before[0]]],c.below);add([[1,before[0]],[-1,after[0]]],c.below);copies++
+      }
       if(options.frames)add([[1,after[0]]],c.below)
       const before=full.reads.find(r=>r[1]===after[1].slice(0,-1)&&text(r[2])===text(after[2]))
       if(options.frames&&before&&text(byId.get(before[0])?.below)===text(c.below)){
