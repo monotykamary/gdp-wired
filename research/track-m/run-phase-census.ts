@@ -12,12 +12,13 @@ const {m,laws}=JSON.parse(readFileSync(input,'utf8')) as {m:Machine,laws:Law[]}
 const prefixes=mode==='focused'?['one primary','Inv3915','Inv1758','Inv2973','Inv*']:['one primary','Inv3915','Inv1758']
 const focused=mode==='focused'?(await import('../../core/count-focus-proof.ts')).proveFocusedCounts:undefined
 const profiled=process.env.TRACK_M_PHASE_CENSUS==='1'
+const detail=process.env.LAB_SECTION7_T1==='1'?(await import('./section7-cost-meter.ts')).detail:undefined
 const results:{record:any,audit:PhaseCensus}[]=[]
 withTrees(()=>{
  for(const prefix of prefixes){
   const law=laws.find(l=>l.name.startsWith(prefix));if(!law)throw new Error('missing '+prefix)
   const index=laws.indexOf(law),trace:Record<string,unknown>[]=[]
-  census.enabled=profiled;census.reset()
+  census.enabled=profiled;census.reset();detail?.reset(law.name)
   const start=performance.now(),before=fullWork()
   const verdict=census.run('other','law total',()=>withWall(start+60000,()=>counted(fullRate,()=>{
    const until=clock()+5000
@@ -30,7 +31,7 @@ withTrees(()=>{
   const wallMs=performance.now()-start,countedUnits=(fullWork()-before)/fullRate,snapshot=census.snapshot()
   // Do not check or traverse proof dependencies between laws: that would warm
   // row caches before the next law and invalidate the shared-cache control.
-  results.push({audit:census.capture(),record:{mode:'phase-census',side,entry:mode,profiled,law:law.name,warmup:mode==='native'&&prefix!=='Inv1758',...verdict,wallMs,countedUnits,phases:snapshot.exclusiveMs,accountedMs:Object.values(snapshot.exclusiveMs).reduce((a,b)=>a+b,0),sites:snapshot.sites,traceEvents:trace.length}})
+  results.push({audit:census.capture(),record:{mode:'phase-census',side,entry:mode,profiled,law:law.name,warmup:mode==='native'&&prefix!=='Inv1758',...verdict,wallMs,countedUnits,phases:snapshot.exclusiveMs,accountedMs:Object.values(snapshot.exclusiveMs).reduce((a,b)=>a+b,0),sites:snapshot.sites,traceEvents:trace.length,...(detail?{t1:detail.capture()}:{})}})
  }
 })
 census.enabled=false

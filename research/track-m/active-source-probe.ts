@@ -75,6 +75,8 @@ for(const [branch,path]of paths.entries()){
  }
  const section7=process.env.LAB_SECTION7_T0==='1'?(await import('./section7-observer.ts')).section7:undefined
  section7?.begin(`${law.name}:${process.env.LAB_ROW_MODE??'active'}`,packet.cert)
+ const detail=process.env.LAB_SECTION7_T1==='1'?(await import('./section7-cost-meter.ts')).detail:undefined
+ detail?.reset(`${law.name}:${process.env.LAB_ROW_MODE??'active'}`)
  const events:any[]=[],suggestions:object[]=[],captured=new Set<string>(),start=performance.now()
  let tree:ReturnType<typeof fieldBoundLemmas>
  const retries=process.env.LAB_SOURCE_MODEL_RETRY==='1'?Number(process.env.LAB_SOURCE_MODEL_ROUNDS??2):0,sourceAdditions:object[]=[]
@@ -101,6 +103,7 @@ for(const [branch,path]of paths.entries()){
  sourceAdditions.push({attempt,added:Object.fromEntries(Object.entries(pending).flatMap(([name,ts])=>ts.length>(known[name]?.length??0)?[[name,ts.slice(known[name]?.length??0)]]:[]))})
  const retained=packet.cert;at=pending;packet=build();packet.cert=retained;goal=makeGoal()
  }
+ const detailResult=detail?.capture()
  const failed:any[]=[];let query:any
  for(const event of events){
   if(event.stage==='field-query')query=event
@@ -112,4 +115,5 @@ for(const [branch,path]of paths.entries()){
  if(events.some(e=>e.stage==='closure-source'&&e.scope<0))throw new Error('noncanonical closure scope')
  console.log(JSON.stringify({diagnostic:true,law:law.name,value,branch,carried,rowMode:process.env.LAB_ROW_MODE,ceilingIndex,ceilings,fieldAttempts:events.filter(e=>e.stage==='field-bound'),failed,sourceAdditions,...(process.env.LAB_SOURCE_TRACE==='1'?{countSteps:events.filter(e=>['count-lemma','needed-lemmas','field-bound-pending-core'].includes(e.stage)),closureSteps:events.filter(e=>e.stage.startsWith('closure-')),usedCounts:tree&&!hasConditionalProof(tree)?[...usedHyps(goal,tree,path)].filter(i=>i>=goal.hyps.length-packet.cert.insts.length).map(i=>({index:i-goal.hyps.length+packet.cert.insts.length,...packet.cert.insts[i-goal.hyps.length+packet.cert.insts.length]})):[]}:{}),wallMs:performance.now()-start,conditionalTree:!!tree,conditionalChecked:!!tree&&check(goal,tree,path),hyps:goal.hyps.length,instances:packet.cert.insts.length,suggestions,path:[...path],tail:events.slice(-14)}))
  section7?.finish()
+ if(detailResult)console.log(JSON.stringify({test:'T1-canonical',...detailResult}))
 }

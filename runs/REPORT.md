@@ -4676,3 +4676,109 @@ active source snapshots, and `runs/track-m/section7-t0-v1/results.json` for the
 complete missing-binding census. T1–T3 and implementation have not run at
 this checkpoint. Under the coordinator's **“T0 explained”** criterion, the
 next permitted step is the requested T1 wall split—not assuming a proved frame.
+
+## Track M — Section 7, T1: pass line not met; stop before T2/T3
+
+**T1 fails the requested ≥50% admission/transport condition. No inversion,
+guard-reduction optimization, allowance increase, or other production change
+was implemented. T2, T3, and a new Gate 1 run were not started.** The measurement
+ran on the same exclusive eight-vCPU VM, **`bx_3kjzmmhv`**. All five law verdicts
+and counted-work totals match the profiled `38c17fc4` census exactly.
+
+### Split of the previous “remaining” column
+
+The original remaining walls were 21.625 s for Inv2973 and 10.726 s for Inv*.
+The more detailed rerun measures 22.399 s and 10.988 s respectively. Each row
+below is **exclusive/additive**: a transport inside an ordinary query is
+charged to transport and removed from ordinary search. Admission already
+charged to A/B or kernel is not charged a second time to remaining.
+
+| Law | Cut admission / transport in remaining | Ordinary search, excluding that transport | Legacy proposal generation | Other construction / traversal | Remaining total | Admission / transport share |
+|---|---:|---:|---:|---:|---:|---:|
+| Inv2973 | 8.210 s | 4.355 s | 0.291 s | 9.543 s | 22.399 s | **36.65%** |
+| Inv* | 5.436 s | 1.851 s | 0.067 s | 3.633 s | 10.988 s | **49.47%** |
+
+The fourth column of work is retained explicitly rather than relabeled as
+transport to force a three-way split. This instrumentation covers cut
+admission, cut inlining, exact conditional-proof transport/retargeting,
+count-certificate transport, count-proxy lifting, and `widen`; it does not
+further divide the remaining construction/traversal bucket.
+
+The result also fails for Inv2973 under the broader Section 7 wall-minus-counted
+interpretation: **all** observed admission/transport wall across **every**
+phase, including its kernel work, is only **9.626 s**, versus **21.264 s**
+wall minus counted work (**45.27%**). Charging that entire envelope to the
+uncounted excess is already generous, since some of it is counted work.
+For Inv*, the analogous broad envelope is 15.505 s / 25.237 s = 61.44%; this
+does not rescue the failed Inv2973 condition.
+
+The largest measured transport site for Inv2973 is `widen`: 8.164 s inclusive,
+of which 6.138 s falls in construction/other and 1.641 s inside ordinary
+search. Its 49 admitted cuts cost **1.031 s total** to admit, about **21.0 ms
+per admission**; those costs are already in A/B and checking, not in the
+remaining column. Inv* has 97 admissions costing **4.089 s**, about **42.2 ms
+per admission**. The inferred 175–305 ms per admission was therefore not a
+measurement of admission itself.
+
+### Canonical equal-row source: the admission prediction is falsified
+
+The unchanged canonical source still checks: **17 cuts**, **920.084827 counted
+units**, **4.113171 s wall**. Its wall-minus-counted proxy is **3.193087 s**.
+
+| Measured site | Calls | Inclusive wall |
+|---|---:|---:|
+| Whole `admitConditionalCut` | 17 | **1.201767 s** |
+| Admission `inline` | 17 | 0.109305 s |
+| Dependency scans | 34 | 0.120846 s |
+| Trace-based guard reduction | 17 | 0.063007 s |
+| Per-atom guard-removal loop | 17 | **0.722803 s** |
+| Admission final check | 17 | 0.102425 s |
+| `countScalarGuards` | 73 | 0.043980 s |
+| `source()` | 248 | 0.033019 s |
+| `finish()` | 1 | 0.335785 s |
+
+These site times are nested/inclusive and must **not** be summed. Whole
+admission is **37.64%** of the wall-minus-counted proxy, and the per-atom loop
+is **22.64%**, rather than the predicted ≥70% and ≥50%. Whole admission
+averages **70.7 ms per cut**. This does not establish the required payoff for
+cheapening the guard loop before implementation.
+
+### Why Inv* had 10.4 s of kernel checking
+
+The detailed rerun measures **11.015 s**, in the same category as the prior
+10.379 s. It records **2,162 calls to the ordinary kernel checker**. The
+breakdown is by the immediate caller; these call groups do not overlap:
+
+| Caller | Checks | Goal size | Checker wall |
+|---|---:|---|---:|
+| Conditional-proof region checking | 136 | **489–490 hypotheses**, all leaf roots | **6.808 s** |
+| Rechecking independent conditional-cut proofs | 1,354 | 1–2 hypotheses | **2.447 s** |
+| Conditional-cut retarget validation | 569 | 1–2 hypotheses | **1.298 s** |
+| Admission/inlining validation | 103 | 1–11 hypotheses | **0.462 s** |
+
+The costly part is repeated checking of full-goal arithmetic leaves and
+repeated validation/retargeting of conditional-cut proofs, **not primarily
+the admission guard-minimization loop**. `transportConditionalProof` runs
+12 times and takes 7.436 s inclusive, containing 5.542 s of kernel work;
+this inclusive figure overlaps the table and is not an extra charge.
+
+### Integrity, status, and reproduction
+
+The canonical proof remains checked and the full-family diagnostic remains
+**3/5**, with walls 1.911 / 2.271 / 11.206 / 26.267 / 30.399 s. This is a
+profiling replay, not a new strategy or an acceptance-gate rerun. Counted work
+matches every corresponding row in the previous profiled census exactly.
+TypeScript/type-aware lint and the three measurement tests (nine assertions)
+pass with the instrumentation installed. A first preflight caught a TypeScript
+narrowing issue in the observation wrapper; `preflight-1.log` preserves that
+failed setup, not proof evidence.
+
+The hooks and classification are research-only. Production `core/` and
+`kernel/` remain unchanged; instrumentation is installed only in disposable
+remote snapshots. Raw data, per-law records, canonical site breakdown, and
+computed pass status are under **`runs/track-m/section7-t1-v1/`**, starting
+with **`results.json`** and **`admission-wall.log`**. The checked-in installer
+and static reducer reproduce the attribution.
+
+**Stopped at T1 as requested. T2/T3, generic inversion, admission changes,
+and Gate 1 remain unrun. No per-law allowance or budget increase was used.**

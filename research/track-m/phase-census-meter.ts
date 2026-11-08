@@ -5,6 +5,7 @@ type Closure={id:string,goal:string,cuts:any[],rounds:any[],segments:any[],phase
 type Leaf={id:string,closure:string,path:any,available:any[],numeric?:any,proof?:any,query?:any,transported?:boolean}
 export class PhaseCensus {
  enabled=false
+ onSlice?: (phase:Phase,ms:number)=>void
  readonly totals:Record<Phase,number>={other:0,demand:0,proposals:0,A:0,B:0,C:0,kernel:0,search:0}
  readonly sites=new Map<string,{calls:number,inclusiveMs:number}>()
  readonly closures:Closure[]=[]
@@ -16,7 +17,7 @@ export class PhaseCensus {
  private serial=0
  private rounds=new Map<Closure,{start:number,exclusive:number}>()
  constructor(private now=()=>performance.now()){}
- private tick(){const now=this.now(),top=this.stack.at(-1);if(top)this.totals[top.effective]+=now-this.last;this.last=now;return now}
+ private tick(){const now=this.now(),top=this.stack.at(-1);if(top){const ms=now-this.last;this.totals[top.effective]+=ms;this.onSlice?.(top.effective,ms)}this.last=now;return now}
  private effective(phase:Phase):Phase{const parent=this.stack.at(-1)?.effective;if(parent==='kernel'||phase==='kernel')return 'kernel';return phase==='search'&&parent&&['A','B','C'].includes(parent)?parent:phase}
  private enter(phase:Phase,site:string){const now=this.tick();this.stack.push({phase,effective:this.effective(phase),site,start:now})}
  private leave(){const now=this.tick(),frame=this.stack.pop();if(frame){const stat=this.sites.get(frame.site)??{calls:0,inclusiveMs:0};stat.calls++;stat.inclusiveMs+=now-frame.start;this.sites.set(frame.site,stat)}}
