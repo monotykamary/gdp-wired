@@ -1,0 +1,278 @@
+[
+  {
+    "artifact": "tf1-control.log",
+    "law": "one primary per term",
+    "checked": true,
+    "proven": true,
+    "wallMs": 6788.819104,
+    "countedUnits": 926.6334919999999,
+    "kernelMs": 4415.720167,
+    "checkCalls": [
+      {
+        "site": "kernel/kernel.ts:check",
+        "wallMs": 1920.839692,
+        "cpuMs": 2154.733
+      },
+      {
+        "site": "kernel/kernel.ts:checkMC",
+        "wallMs": 1941.1541470000006,
+        "cpuMs": 2192.319
+      },
+      {
+        "site": "kernel/kernel.ts:check",
+        "wallMs": 0.20059700000001612,
+        "cpuMs": 0.196
+      },
+      {
+        "site": "kernel/kernel.ts:checkMC",
+        "wallMs": 0.27280200000041077,
+        "cpuMs": 0.43
+      },
+      {
+        "site": "kernel/kernel.ts:check",
+        "wallMs": 2471.4071109999995,
+        "cpuMs": 2763.541
+      },
+      {
+        "site": "kernel/kernel.ts:checkMC",
+        "wallMs": 2473.4400849999993,
+        "cpuMs": 2767.263
+      }
+    ],
+    "sites": {
+      "kernel/kernel.ts:check": {
+        "calls": 3,
+        "inclusiveMs": 4392.489167
+      },
+      "kernel/kernel.ts:checkMC": {
+        "calls": 3,
+        "inclusiveMs": 4414.881502
+      }
+    }
+  },
+  {
+    "artifact": "tf1-control.log",
+    "law": "Inv3915: one config term, the primary newest",
+    "checked": true,
+    "proven": true,
+    "wallMs": 11171.886623000002,
+    "countedUnits": 872.3352536000001,
+    "kernelMs": 8443.910166000001,
+    "checkCalls": [
+      {
+        "site": "kernel/kernel.ts:check",
+        "wallMs": 4678.211041999999,
+        "cpuMs": 4868.295
+      },
+      {
+        "site": "kernel/kernel.ts:checkMC",
+        "wallMs": 4682.033365000001,
+        "cpuMs": 4872.128
+      },
+      {
+        "site": "kernel/kernel.ts:check",
+        "wallMs": 0.19547600000078091,
+        "cpuMs": 0.191
+      },
+      {
+        "site": "kernel/kernel.ts:checkMC",
+        "wallMs": 0.293229999999312,
+        "cpuMs": 0.279
+      },
+      {
+        "site": "kernel/kernel.ts:check",
+        "wallMs": 3757.551375000001,
+        "cpuMs": 3940.792
+      },
+      {
+        "site": "kernel/kernel.ts:checkMC",
+        "wallMs": 3761.318782999999,
+        "cpuMs": 3946.498
+      }
+    ],
+    "sites": {
+      "kernel/kernel.ts:check": {
+        "calls": 3,
+        "inclusiveMs": 8435.972632
+      },
+      "kernel/kernel.ts:checkMC": {
+        "calls": 3,
+        "inclusiveMs": 8443.653623
+      }
+    }
+  },
+  {
+    "artifact": "tf1-control.log",
+    "law": "Inv1758: one version and term, one config",
+    "checked": true,
+    "proven": true,
+    "wallMs": 40720.675966,
+    "countedUnits": 4310.4753532,
+    "kernelMs": 27745.558853999933,
+    "checkCalls": [
+      {
+        "site": "kernel/kernel.ts:check",
+        "wallMs": 13426.135697999998,
+        "cpuMs": 13752.326
+      },
+      {
+        "site": "kernel/kernel.ts:checkMC",
+        "wallMs": 13430.078586,
+        "cpuMs": 13758.035
+      },
+      {
+        "site": "kernel/kernel.ts:check",
+        "wallMs": 0.12043599999742582,
+        "cpuMs": 0.119
+      },
+      {
+        "site": "kernel/kernel.ts:checkMC",
+        "wallMs": 0.2021789999998873,
+        "cpuMs": 0.189
+      },
+      {
+        "site": "kernel/kernel.ts:check",
+        "wallMs": 14301.324607000002,
+        "cpuMs": 14587.184
+      },
+      {
+        "site": "kernel/kernel.ts:checkMC",
+        "wallMs": 14304.560516999998,
+        "cpuMs": 14591.552
+      }
+    ],
+    "sites": {
+      "kernel/kernel.ts:check": {
+        "calls": 3,
+        "inclusiveMs": 27727.585288000002
+      },
+      "kernel/kernel.ts:checkMC": {
+        "calls": 3,
+        "inclusiveMs": 27734.854447
+      }
+    }
+  },
+  {
+    "artifact": "tf1-deferred.log",
+    "law": "one primary per term",
+    "checked": true,
+    "proven": true,
+    "wallMs": 5302.9196010000005,
+    "countedUnits": 926.6334919999999,
+    "kernelMs": 2601.250542000001,
+    "checkCalls": [
+      {
+        "site": "kernel/kernel.ts:check",
+        "wallMs": 0.43065699999988283,
+        "cpuMs": 0.409
+      },
+      {
+        "site": "kernel/kernel.ts:checkMC",
+        "wallMs": 1.4220890000001418,
+        "cpuMs": 1.369
+      },
+      {
+        "site": "kernel/kernel.ts:check",
+        "wallMs": 2592.302362,
+        "cpuMs": 2861.495
+      },
+      {
+        "site": "kernel/kernel.ts:checkMC",
+        "wallMs": 2598.725704,
+        "cpuMs": 2876.137
+      }
+    ],
+    "sites": {
+      "kernel/kernel.ts:check": {
+        "calls": 2,
+        "inclusiveMs": 2592.7666849999996
+      },
+      "kernel/kernel.ts:checkMC": {
+        "calls": 2,
+        "inclusiveMs": 2600.160567
+      }
+    }
+  },
+  {
+    "artifact": "tf1-deferred.log",
+    "law": "Inv3915: one config term, the primary newest",
+    "checked": true,
+    "proven": true,
+    "wallMs": 6900.509047,
+    "countedUnits": 872.3352536000001,
+    "kernelMs": 4291.686460000002,
+    "checkCalls": [
+      {
+        "site": "kernel/kernel.ts:check",
+        "wallMs": 0.22548399999959656,
+        "cpuMs": 0.213
+      },
+      {
+        "site": "kernel/kernel.ts:checkMC",
+        "wallMs": 0.3209930000002714,
+        "cpuMs": 0.308
+      },
+      {
+        "site": "kernel/kernel.ts:check",
+        "wallMs": 4258.157315999999,
+        "cpuMs": 4440.211
+      },
+      {
+        "site": "kernel/kernel.ts:checkMC",
+        "wallMs": 4290.563125,
+        "cpuMs": 4510.056
+      }
+    ],
+    "sites": {
+      "kernel/kernel.ts:check": {
+        "calls": 2,
+        "inclusiveMs": 4258.385162999999
+      },
+      "kernel/kernel.ts:checkMC": {
+        "calls": 2,
+        "inclusiveMs": 4290.887144
+      }
+    }
+  },
+  {
+    "artifact": "tf1-deferred.log",
+    "law": "Inv1758: one version and term, one config",
+    "checked": true,
+    "proven": true,
+    "wallMs": 30065.880383,
+    "countedUnits": 4310.4753532,
+    "kernelMs": 15673.944053999963,
+    "checkCalls": [
+      {
+        "site": "kernel/kernel.ts:check",
+        "wallMs": 0.15746500000022934,
+        "cpuMs": 0.155
+      },
+      {
+        "site": "kernel/kernel.ts:checkMC",
+        "wallMs": 0.29595400000107475,
+        "cpuMs": 0.278
+      },
+      {
+        "site": "kernel/kernel.ts:check",
+        "wallMs": 15656.816023999996,
+        "cpuMs": 16013.952
+      },
+      {
+        "site": "kernel/kernel.ts:checkMC",
+        "wallMs": 15661.251885999998,
+        "cpuMs": 16020.053
+      }
+    ],
+    "sites": {
+      "kernel/kernel.ts:check": {
+        "calls": 2,
+        "inclusiveMs": 15656.976193999999
+      },
+      "kernel/kernel.ts:checkMC": {
+        "calls": 2,
+        "inclusiveMs": 15661.549434999997
+      }
+    }
+  }
+]

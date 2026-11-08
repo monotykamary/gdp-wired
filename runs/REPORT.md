@@ -4913,3 +4913,34 @@ Earlier setup/static-check timeouts are retained, not counted as T-A results.
 
 Evidence: **runs/track-m/section8-ta-v3/README.md**, **results.json**,
 **Invstar-leaf.json**, and the Inv2973 receipt/leaf in **section8-ta-v2/**.
+
+## Section 8 T-F1 — one expensive pre-check removed; prediction not met
+
+Committed measurement-only snapshot experiment; the final harness check and
+kernel stay unchanged. All five verdicts match (three checked, two unproved).
+The proved laws' counted work matches exactly. Open-law work does not: the
+unchanged 60-second wall now stops both, so no trace-equivalence is claimed.
+
+Per-call measurements show **two expensive step checks plus a nearly free
+initial check**, not three equal-cost checks. Deferring the pre-transport check
+changes three calls to two, one final check per returned obligation.
+
+| Law | Control kernel | Deferred kernel | Predicted ceiling |
+|---|---:|---:|---:|
+| one primary | 4.416 s | 2.601 s | 0.4 s |
+| Inv3915 | 8.444 s | 4.292 s | 0.5 s |
+| Inv1758 | 27.746 s | 15.674 s | 1.9 s |
+
+The pass line is not met. Absolute CPU/wall costs are also substantially above
+the prior census, for an unestablished reason. The per-call CPU times track
+wall, and a later VM-health probe found no orphan processes or current CPU
+pressure. Do not interpret this as a controlled regression measurement.
+Inv1758 control checkMC calls: **13.430 s / 0.000202 s / 14.305 s**; deferred:
+**0.000296 s / 15.661 s**. The one-third cost assumption is false independently
+of the unexplained absolute slowdown.
+
+Same exclusive **bx_3kjzmmhv**. TypeScript and type-aware lint pass on both
+successful snapshots. Only an outer process timeout was extended after the
+first collection timed out; no law budget, cap, or final-check rule changed.
+Evidence: **runs/track-m/section8-f1-calls-v1/README.md**, **results.json**,
+**section8-f1-v2/** and **section8-health-v1/**. No production implementation.
