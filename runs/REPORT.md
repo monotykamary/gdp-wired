@@ -2189,3 +2189,51 @@ paths. Overlap reaches active count/field source closure after deriving
 all selected inactive frames. Term backing additionally reaches the
 active different/different row and its missing witness chain. These are
 partial candidates, not accepted complete-law certificates.
+
+#### First cross-activation source reuse replay
+
+`activation-reuse-v1`, batch `20261108-135420-89sfw6`, tree `01f1b0b782d0`,
+reuses an already-built subtree across a changed path only after every used
+row matches at the destination. Safety/newest counted work drops to
+1,047/1,089 ms, but limiting candidates to two geometrically nearest paths
+misses the completed active send sibling behind nearer inactive paths.
+The next replay tests more already-proved candidates, still under the same
+deadline; none becomes trusted evidence without ordinary kernel checking.
+
+| Complete hand-set law | Proved / checked | Counted ms | In-process wall s |
+| --- | --- | ---: | ---: |
+| one primary per term | yes / yes | 1,047 | 2.425 |
+| Inv3915: primary newest | yes / yes | 1,089 | 2.732 |
+| Inv1758: row agreement | no / no | 5,014 | 5.985 |
+| Inv2973: quorum overlap | no / no | 5,394 | 35.627 |
+| Inv*: quorum term backing | no / no | 5,138 | 17.229 |
+
+Tests pass; the type/lint job did **not run**, because remote dependency
+installation failed with `ENOENT: failed copying files from cache to
+destination for package effect`. This is recorded as failed validation;
+the full unchanged validation matrix is rerun. The clean isolated Track K
+measurement worktree has been removed; branch tip `5dc10469` retains the
+reproducible measurement code and jobs, with no ancestry into Track M.
+
+#### Exact source reuse validated
+
+`activation-reuse-v2`, batch `20261108-140203-efspur`, tree `4eb1ab84701d`,
+passes 129 production-derivation tests, 296 Track M tests, 67 Track P tests,
+and clean type/lint. The source-cache negative tests reject missing
+assumptions and changed satisfiable goals. Larger candidate coverage does
+not remove the last alternate active send derivation; it needs its own
+source proof rather than an unjustified symmetry shortcut.
+
+| Complete hand-set law | Proved / checked | Counted ms | In-process wall s |
+| --- | --- | ---: | ---: |
+| one primary per term | yes / yes | 1,015 | 2.537 |
+| Inv3915: primary newest | yes / yes | 997 | 3.876 |
+| Inv1758: row agreement | no / no | 5,014 | 6.231 |
+| Inv2973: quorum overlap | no / no | 5,394 | 24.984 |
+| Inv*: quorum term backing | no / no | 5,135 | 30.421 |
+
+The next experiment preproves any arithmetically impossible default input
+branch, retaining its ordinary leaf in the certificate. A proven default
+need not reserve an equal share of the remaining search time. This avoids
+interrupting the last real action only to repeat its partial derivation in
+the recovery pass; it does not change the total counted allowance.

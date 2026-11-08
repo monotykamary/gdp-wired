@@ -6,7 +6,7 @@ import {type Lin,type Step,add,scale} from '../solver.ts'
 import {times} from '../../kernel/reader.ts'
 import {type Goal,type Path,type Tree,canon,canonFlip,cellParts,columnTerm,factorsOf,isCell,linear,substE} from '../../kernel/kernel.ts'
 import {late,rowsAt} from '../../kernel/prove.ts'
-export function renameProof(goal:Goal,tree:Tree,from:Path,to:Path,names:Record<string,string>,until:number):Tree|undefined{
+export function renameProof(goal:Goal,tree:Tree,from:Path,to:Path,names:Record<string,string>,until:number,target:Goal=goal):Tree|undefined{
  const vars=Object.fromEntries(Object.entries(names).map(([a,b])=>[a,x(b)])),terms=new WeakMap<E,E>(),indices=new WeakMap<object,Map<string,number>>()
  const renamed=(e:E):E=>{let next=terms.get(e);if(!next){next=substE(e,{vars,maps:{},flags:{}});terms.set(e,next)}return next}
  const form=(lin:Lin,path:Path):Lin|undefined=>{
@@ -37,7 +37,7 @@ export function renameProof(goal:Goal,tree:Tree,from:Path,to:Path,names:Record<s
    const no=yes&&visit(t.no,new Map(a).set(old,{lin:t.split,holds:false}),new Map(b).set(id,{lin:split,holds:false}))
    return yes&&no?{split,yes,no}:undefined
   }
-  const before=rowsAt(goal,a),after=rowsAt(goal,b)
+  const before=rowsAt(goal,a),after=rowsAt(target,b)
   let at=indices.get(after);if(!at){at=new Map();after.forEach((row,i)=>{const id=canon(row.lin);if(!at!.has(id))at!.set(id,i)});indices.set(after,at)}
   const index=(i:number):number|undefined=>{if(!Number.isInteger(i)||i<0)return undefined;if(i>=before.length)return i-before.length+after.length;const row=form(before[i]!.lin,b);return row&&at!.get(canon(row))}
   const leaf:Step[]=[],products:[number,number][]=[],squares:Lin[]=[]
