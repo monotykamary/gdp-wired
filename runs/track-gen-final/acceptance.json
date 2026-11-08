@@ -1,0 +1,233 @@
+{
+  "schema": 1,
+  "status": "accepted under coordinator policy",
+  "productionRevision": "c7a82a75",
+  "toolingRevision": "2f0535c6",
+  "parent": "3394e14c",
+  "comparisonMain": "6a3874d3",
+  "inheritedRepair": {
+    "original": "f525d951",
+    "cherryPick": "c7a82a75"
+  },
+  "notIncluded": "Track M independent Inv1758 completion 95cc0925",
+  "generation": {
+    "candidates": 24,
+    "hash": "5e7acd1171d499bb2e2a21c326c0ca8013d98f8ab18c2bab9401d527de63e4e8",
+    "parentMs": 22726.086060666665,
+    "candidateMs": 8768.752343000002,
+    "reduction": 0.614154750642409,
+    "includingWarmup": {
+      "parentMs": 29771.26322566667,
+      "candidateMs": 16657.751211,
+      "reduction": 0.4404754986466658
+    },
+    "pairs": [
+      {
+        "repeat": 1,
+        "parentMs": 32123.025138,
+        "candidateMs": 16918.590389999998,
+        "ratio": 0.5266811054475101,
+        "parentGenerationMs": 24800.487638,
+        "candidateGenerationMs": 8394.838818
+      },
+      {
+        "repeat": 2,
+        "parentMs": 27824.391635,
+        "candidateMs": 16555.188297,
+        "ratio": 0.5949883294546289,
+        "parentGenerationMs": 20667.997428,
+        "candidateGenerationMs": 8882.978533000001
+      },
+      {
+        "repeat": 3,
+        "parentMs": 29366.372904,
+        "candidateMs": 16499.474946,
+        "ratio": 0.5618492620773266,
+        "parentGenerationMs": 22709.773116,
+        "candidateGenerationMs": 9028.439678000002
+      }
+    ]
+  },
+  "probes": {
+    "verdictsIdentical": true,
+    "usedPremisesIdentical": true,
+    "proven": [
+      "one primary",
+      "Inv3915"
+    ],
+    "unknown": [
+      "Inv1758",
+      "Inv2973",
+      "Inv*"
+    ],
+    "parentWallMs": 42546.395869,
+    "candidateWallMs": 44056.695267999996,
+    "wholeMldrProven": false
+  },
+  "ic3syn": {
+    "pairs": 87,
+    "candidate": 83,
+    "baseline": 83,
+    "losses": [],
+    "bothSidesTimedOut": [
+      {
+        "id": "paxos_epr",
+        "run": 3
+      }
+    ]
+  },
+  "duoai": {
+    "pairs": 10,
+    "candidate": 10,
+    "baseline": 10,
+    "losses": []
+  },
+  "broken": {
+    "total": 29,
+    "proven": [],
+    "refuted": 11,
+    "unknown": 17,
+    "timeouts": 1
+  },
+  "negative": {
+    "pairs": 87,
+    "baselineRefuted": 33,
+    "candidateRefuted": 33,
+    "refutationLosses": [],
+    "strictCompletionPassed": false,
+    "openCostOnlyDeltas": [
+      {
+        "file": "negative-paxos-r3.log",
+        "base": {
+          "verdict": "unknown",
+          "ms": 52001,
+          "exit": 0
+        },
+        "candidate": {
+          "exit": 137
+        },
+        "status": "OPEN"
+      }
+    ],
+    "policy": "Refutation losses and false proofs block; UNKNOWN-to-timeout cost-only deltas remain OPEN per coordinator."
+  },
+  "shards": [
+    {
+      "shard": 1,
+      "pass": 96,
+      "fail": 0,
+      "skip": 0
+    },
+    {
+      "shard": 2,
+      "pass": 40,
+      "fail": 0,
+      "skip": 0
+    },
+    {
+      "shard": 3,
+      "pass": 237,
+      "fail": 0,
+      "skip": 18
+    },
+    {
+      "shard": 4,
+      "pass": 145,
+      "fail": 0,
+      "skip": 0
+    },
+    {
+      "shard": 5,
+      "pass": 154,
+      "fail": 0,
+      "skip": 0
+    },
+    {
+      "shard": 6,
+      "pass": 166,
+      "fail": 0,
+      "skip": 0
+    },
+    {
+      "shard": 7,
+      "pass": 29,
+      "fail": 0,
+      "skip": 0
+    }
+  ],
+  "check": {
+    "passed": true,
+    "tests": 81,
+    "assertions": 75972,
+    "path": "runs/track-gen-final-source-check-v2"
+  },
+  "placements": {
+    "primary": 136,
+    "negative": 87,
+    "boat": true,
+    "type": "large",
+    "vcpus": 8,
+    "exclusive": true,
+    "coTenants": 0
+  },
+  "cleanup": {
+    "ownedShellTasks": 0,
+    "ownedActiveBatches": 0
+  },
+  "mergePerformed": false,
+  "sourceFiles": [
+    {
+      "path": "core/sample-step.ts",
+      "sha256": "9e7b04f4e16051a0bed330e621fd64a0a624d8661f382f9bc3d06df61519d918"
+    },
+    {
+      "path": "core/sample-step.test.ts",
+      "sha256": "e7266849cf1673f0329af60ca9fe5d1c81bcccbedd3a4225756c19c4da6ab8ae"
+    },
+    {
+      "path": "core/infer.ts",
+      "sha256": "2c2e7ba05e15a4040ba905bf3960dea1f97b7dd0c29577b0e169ae522da9e784"
+    },
+    {
+      "path": "core/cube-rows.test.ts",
+      "sha256": "ac9d640424e7a4aada9def1a0cdd33792248f773c5ca3e99ac9b440bbe5b7252"
+    },
+    {
+      "path": "kernel/model-values.ts",
+      "sha256": "37b5e46dd51168a5aaf5fa5f60e645c40bfe6d4659ce96a622e4a3873caadce1"
+    },
+    {
+      "path": "kernel/model-values.test.ts",
+      "sha256": "928dccc1b750b93c6c0edcf7270d215ea430e004448eb7bc856b8ff9c2d2499a"
+    },
+    {
+      "path": "core/counts.ts",
+      "sha256": "2b92d11285900324b49d45c8492f223421587da0702e686998a847321724b9cc"
+    },
+    {
+      "path": "core/count-support.ts",
+      "sha256": "ba899e820fa3ab6c91adef3af6cdb4d0accfd8ea08228a7d21b5f947917c3a13"
+    },
+    {
+      "path": "core/count-witness.test.ts",
+      "sha256": "54b5598b8e66cd738765c8432ecb91dcfae01413a540e18bc089559fe7d8f1c2"
+    },
+    {
+      "path": "core/counts-structured.test.ts",
+      "sha256": "a701a961d246bc1f1ed38b1dc48b51981ef9c58d9dfdb33699d49eb9ae998432"
+    },
+    {
+      "path": "core/count-recovery-order.test.ts",
+      "sha256": "df98df7a1f2077b1874efbfb5580b606878de12d88b579e96d8772e763f2ca57"
+    },
+    {
+      "path": "scripts/test-shards.ts",
+      "sha256": "ffb87f062ee11287db149af2de9b184d3ebd30172e8d25f18b1ae04584b2e573"
+    },
+    {
+      "path": "research/track-gen/input.json",
+      "sha256": "4be076f22a8fec41083719358b3518a83b23add5c3dfd26017f772404e7dac24"
+    }
+  ],
+  "manifest": "SHA256SUMS"
+}

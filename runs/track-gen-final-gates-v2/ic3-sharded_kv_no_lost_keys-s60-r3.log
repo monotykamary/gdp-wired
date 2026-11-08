@@ -1,0 +1,6 @@
+PAIR begin side=cand id=sharded_kv_no_lost_keys run=3
+{"id":"sharded_kv_no_lost_keys","ic3syn":"pyv-sharded-kv-no-lost-keys","search":{"verdict":"proven","found":["Owner$n below 64","TransferMsg$n21 below 64","TransferMsg$v1 below 64","(¬(started = 0 ∧ Owned[key$2] = 1) ∨ some$1 < 64 ∧ Owner[64·key$2 + some$1] = 1) (5)","Table empty where started = 0 (19)","TransferMsg empty where started = 0 (21)"],"ms":7629,"work":362642,"full":207610}}
+PAIR end side=cand exit=0
+PAIR begin side=base id=sharded_kv_no_lost_keys run=3
+{"id":"sharded_kv_no_lost_keys","ic3syn":"pyv-sharded-kv-no-lost-keys","search":{"verdict":"proven","found":["Owner$n below 64","TransferMsg$n21 below 64","TransferMsg$v1 below 64","(¬(started = 0 ∧ Owned[key$2] = 1) ∨ some$1 < 64 ∧ Owner[64·key$2 + some$1] = 1) (5)","Table empty where started = 0 (19)","TransferMsg empty where started = 0 (21)"],"ms":7403,"work":362642,"full":207610}}
+PAIR end side=base exit=0

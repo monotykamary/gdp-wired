@@ -1,0 +1,6 @@
+PAIR begin side=cand id=twophase run=3
+{"id":"twophase","ic3syn":"tla-twophase","broken":{"bug":"tm_commit before every RM is prepared","verdict":"refuted","goal":"commit and abort exclude @step","stuck":"sat","run":6,"ms":17,"work":0,"full":0}}
+PAIR end side=cand exit=0
+PAIR begin side=base id=twophase run=3
+{"id":"twophase","ic3syn":"tla-twophase","broken":{"bug":"tm_commit before every RM is prepared","verdict":"refuted","goal":"commit and abort exclude @step","stuck":"sat","run":6,"ms":20,"work":0,"full":0}}
+PAIR end side=base exit=0

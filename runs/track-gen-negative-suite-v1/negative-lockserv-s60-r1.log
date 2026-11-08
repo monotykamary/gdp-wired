@@ -1,0 +1,6 @@
+PAIR begin side=cand id=lockserv run=1
+{"id":"lockserv","ic3syn":"pyv-lockserv","broken":{"bug":"recv_lock without server_holds_lock","verdict":"refuted","goal":"one holder @step","stuck":"sat","run":24,"ms":183,"work":7848,"full":19202}}
+PAIR end side=cand exit=0
+PAIR begin side=base id=lockserv run=1
+{"id":"lockserv","ic3syn":"pyv-lockserv","broken":{"bug":"recv_lock without server_holds_lock","verdict":"refuted","goal":"one holder @step","stuck":"sat","run":24,"ms":174,"work":7848,"full":19202}}
+PAIR end side=base exit=0

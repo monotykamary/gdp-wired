@@ -1,0 +1,122 @@
+Found 0 warnings and 0 errors.
+Finished in 14.4s on 1095 files with 100 rules using 8 threads.
+bun test v1.4.3 (c6da4a4d3)
+compiled vs interpreted: 12,913 steps and 2,000 forks agree
+
+--- stderr ---
+$ tsc -p . && oxlint --type-aware --deny-warnings --disable-nested-config
+
+core/count-witness.test.ts:
+(pass) counted tuple members yield a singleton pick, checked by the normal kernel [12.31ms]
+(pass) the wide pool proposes a checked three-count partition identity [237.05ms]
+(pass) structured count identities preserve the frozen legacy witness prefix [1.38ms]
+(pass) a key from another row is only a proposal and cannot certify a false count [4.20ms]
+
+core/compile.test.ts:
+(pass) the generated JavaScript steps as the interpreter does [844.13ms]
+(pass) fastStep forks only accepted requests, after all pre-state reads [0.85ms]
+(pass) a compiled module declares only the helpers it calls [10.01ms]
+
+core/count-support.test.ts:
+(pass) source contexts keep original definition support and unary guards without protocol names [4.73ms]
+(pass) v4 single complete root reads retain every guard across unrelated names and radices [10.75ms]
+(pass) free transition reads close whole guarded laws and their exact primitive ranges [4.46ms]
+(pass) root flag arguments retain fixed state/input coordinates without asserting aliases [0.77ms]
+(pass) root and free transition ranges precede ambient read slots [0.98ms]
+(pass) count pool keys ignore primitive and duplicate growth but retain exact reads and definitions [0.17ms]
+(pass) v4 selected single-read triples exclude stale, unselected and captured witnesses [2.94ms]
+(pass) v4 complete matches precede optional exhaustion without minting work or source slots [2.43ms]
+(pass) v4 incomplete or fixed-coordinate matches are never labelled complete [0.18ms]
+(pass) bound-only projection keeps NONALIAS satisfiable [6.03ms]
+(pass) vacuous query binder is definition-derived [0.33ms]
+(pass) selected witness joins reject stale and wrong-map sources [4.98ms]
+(pass) count preparation reserves the same global budget for actual selected witnesses [5.35ms]
+(pass) affine remainder preserves exact polynomial [0.43ms]
+(pass) stable selected closure rejects capture and alias [2.17ms]
+(pass) current target kind instances retain guards [2.12ms]
+(pass) current flag terms retain flag-false guards [3.18ms]
+(pass) own PRE instances retain count anchors [1.60ms]
+(pass) remaining-coordinate proposals never assert alias [13.62ms]
+(pass) generic root-linked terms retain anchors and cross the real early phase gate [10.31ms]
+(pass) full source occupancy replaces only structurally true slots; substantive slots refuse [1.91ms]
+(pass) replacement reuses a cold source debit without exceeding the reserved initial cap [4.35ms]
+(pass) pre-existing CTI tuples do not consume the new source-proposal budget or trigger a new global refusal [0.97ms]
+(pass) selection covers both concrete root keys before redundant and keyless differences [2.64ms]
+(pass) definition-linked PRE candidates, reservation and ten/1000 limits [12.37ms]
+(pass) regenerated cold binders cannot steal a selected witness owner [2.39ms]
+(pass) present vacuous source survives an idempotent second seed [0.17ms]
+(pass) picked selected view falls back without renaming or extending a budget; captured views reject [0.51ms]
+(pass) cold range reads cannot fill count-pass slots before current selected-body reads [1.81ms]
+(pass) sparse generation counts no-op read/read pairs and exits before cap-zero/full-source work [5.50ms]
+(pass) pool enumeration has finite work even when cubic candidates never admit [45.85ms]
+(pass) affine-alias picks unconditionally select one kernel-valid representative [0.79ms]
+(pass) per-law slots cover distinct real roots without symmetric or unrelated-value backfill [6.69ms]
+(pass) v2 pattern reuse saves actual work only within the same bounded attempt [4.11ms]
+(pass) v2 no-POST pools skip only impossible narrow triples and retain one shared meter [3.15ms]
+(pass) v3 existing overlap and exact projection survive pair dominance with both root keys [10.71ms]
+(pass) v3 first coverage of ten required root keys cannot be displaced by overlap triples [4.06ms]
+(pass) v3 irrelevant, wrong-bound, wrong-key and POST lifts do not outrank required differences [13.47ms]
+(pass) v3 overlap priority retains exhausted/deadline refusal and the shared generation meter [3.90ms]
+(pass) count-pool invalidation follows only count-dependent flags, including quantified bodies and cycles [0.44ms]
+(pass) seeded upper bound starts with nonincrease and one relevant overlap, not pool fillers [15.30ms]
+(pass) selected affine remainder matching ignores unused pool reads and keeps the complete original law [0.59ms]
+(pass) keyless stored-copy bounds prioritize both retained and incoming counts [34.10ms]
+(pass) semantic aliases select one live representative across PRE/POST and reordered keys [6.69ms]
+
+core/infer.test.ts:
+(pass) constants under tuple constructors and projections are sampled, not the selector [0.22ms]
+cyclic: {"kind":"machine","name":"connection pool","cert":true,"usual":true,"cyclic":true,"ms":22,"usualMs":3,"route":"translated","leaves":22,"regrown":0,"splits":6,"carried":2,"uncarried":0,"cached":0}
+cyclic: {"kind":"machine","name":"token bucket","cert":true,"usual":true,"cyclic":true,"ms":12,"usualMs":3,"route":"translated","leaves":19,"regrown":0,"splits":6,"carried":2,"uncarried":0,"cached":0}
+cyclic: {"kind":"machine","name":"lease","cert":true,"usual":true,"cyclic":true,"ms":70,"usualMs":18,"route":"translated","leaves":113,"regrown":0,"splits":19,"carried":2,"uncarried":0,"cached":0}
+(pass) a law that needs an invariant: not proven alone, proven with what the search finds, and the set checks [2217.49ms]
+cyclic: {"kind":"machine","name":"connection pool","cert":true,"usual":true,"cyclic":true,"ms":13,"usualMs":4,"route":"translated","leaves":22,"regrown":0,"splits":6,"carried":2,"uncarried":0,"cached":0}
+cyclic: {"kind":"machine","name":"lease","cert":true,"usual":true,"cyclic":true,"ms":57,"usualMs":17,"route":"translated","leaves":113,"regrown":0,"splits":19,"carried":2,"uncarried":0,"cached":0}
+(pass) what was found reads as the builder call that states it, and that call, written out, proves the law again [1537.54ms]
+cyclic: {"kind":"machine","name":"three accounts","cert":true,"usual":true,"cyclic":true,"ms":26,"usualMs":10,"route":"translated","leaves":43,"regrown":0,"splits":6,"carried":2,"uncarried":0,"cached":0}
+(pass) an invariant over four values (the join: the samples' hull, made inductive): one account within the total paid in [3029.78ms]
+cyclic: {"kind":"machine","name":"in-flight requests","cert":true,"usual":true,"cyclic":true,"ms":14,"usualMs":2,"route":"translated","leaves":20,"regrown":0,"splits":6,"carried":2,"uncarried":0,"cached":0}
+(pass) a machine with no rule: the in-flight bound needs s + 50·p <= b + 150 or tighter [1381.14ms]
+(pass) a false law is answered with the run that breaks it; a law proven alone needs nothing found [4.65ms]
+
+core/count-unions.test.ts:
+(pass) raw indicator partitions keep a checked pointwise alternative [12.19ms]
+(pass) Boolean indicators retain partition identities without a global atom table [7.69ms]
+(pass) a bounded pool shares cover slots across positive pairs [0.97ms]
+(pass) a five-term single-witness certificate bounds disjoint subsets by a relational union [15.47ms]
+
+core/count-focus-proof.test.ts:
+(pass) finite-input focused recovery is the default and keeps an explicit opt-out [0.23ms]
+(pass) focused finite-count recovery keeps the selected step packet instead of rebuilding its full pool [10.77ms]
+
+core/sample-step.test.ts:
+(pass) hot sampler preserves accepted/refused requests, old-state reads and persistence [35.16ms]
+(pass) no assumption keeps flags lazy, and evaluation errors still end a trial [10.16ms]
+(pass) count-backed assumptions keep carried views and dependent flags [17.92ms]
+
+core/counts-structured.test.ts:
+(pass) failed ordinary families can use structured witnesses without accepting a false partition [186.55ms]
+
+core/cube-rows.test.ts:
+(pass) cube-only inference reuses supplied states without another random walk [47.16ms]
+(pass) numeric scalar transitions retain exploration even with supplied rows [431.04ms]
+(pass) Boolean scalar control can reuse supplied reachable rows [24.77ms]
+(pass) absent and empty supplied rows retain random exploration and every cube family [873.00ms]
+
+core/count-recovery-order.test.ts:
+(pass) ordinary checked proposals take priority over deferred count recovery [5.80ms]
+(pass) an unsuccessful ordinary attempt can recover within its remaining allowance [0.08ms]
+(pass) failed recovery preserves the exact ordinary result, including a model outcome [0.03ms]
+(pass) expired attempts never borrow a fresh recovery allowance [0.02ms]
+(pass) deferred recovery uses only the latest warmed proposal context [0.03ms]
+(pass) an ordinary failure without a recovery proposal is unchanged [0.01ms]
+
+kernel/model-values.test.ts:
+(pass) function arguments keep symbolic keys rather than arithmetic neighbours [0.52ms]
+(pass) arithmetic-only boundaries remain available and ordered [0.21ms]
+(pass) an arithmetic witness stays constant when its value equals a row key [1.14ms]
+(pass) model instances obtain arithmetic-only witnesses from comparison boundaries [2.41ms]
+
+ 81 pass
+ 0 fail
+ 75972 expect() calls
+Ran 81 tests across 11 files. [11.28s]

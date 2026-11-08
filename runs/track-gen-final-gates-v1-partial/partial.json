@@ -1,0 +1,248 @@
+{
+  "complete": false,
+  "reason": "mandatory Track M repair f525d951 must be integrated before gates",
+  "batch": "20261108-182650-dcxv1q",
+  "engine": "ecba5321",
+  "rows": [
+    {
+      "name": "generation-pairs",
+      "code": 0,
+      "seconds": 208.98,
+      "vm": "bx_2kmf8w3s",
+      "run_name": "generation-pairs",
+      "placement": {
+        "vm": "bx_2kmf8w3s",
+        "type": "large",
+        "cpu": "AMD EPYC 9455 48-Core Processor",
+        "vcpus": 8,
+        "vm_vcpus": 8,
+        "exclusive": true,
+        "co_tenants": 0
+      }
+    },
+    {
+      "name": "ic3-mldr-s60-r1",
+      "code": 0,
+      "seconds": 105.16,
+      "vm": "bx_3kjzmmhv",
+      "run_name": "ic3-mldr-s60-r1",
+      "placement": {
+        "vm": "bx_3kjzmmhv",
+        "type": "large",
+        "cpu": "AMD EPYC 9455 48-Core Processor",
+        "vcpus": 8,
+        "vm_vcpus": 8,
+        "exclusive": true,
+        "co_tenants": 0
+      }
+    },
+    {
+      "name": "ic3-paxos_epr-s60-r3",
+      "code": 0,
+      "seconds": 66.39,
+      "vm": "bx_3kjzmmhv",
+      "run_name": "ic3-paxos_epr-s60-r3",
+      "placement": {
+        "vm": "bx_3kjzmmhv",
+        "type": "large",
+        "cpu": "AMD EPYC 9455 48-Core Processor",
+        "vcpus": 8,
+        "vm_vcpus": 8,
+        "exclusive": true,
+        "co_tenants": 0
+      }
+    },
+    {
+      "name": "ic3-client_server_db_ae-s60-r2",
+      "code": 0,
+      "seconds": 36.63,
+      "vm": "bx_3kjzmmhv",
+      "run_name": "ic3-client_server_db_ae-s60-r2",
+      "placement": {
+        "vm": "bx_3kjzmmhv",
+        "type": "large",
+        "cpu": "AMD EPYC 9455 48-Core Processor",
+        "vcpus": 8,
+        "vm_vcpus": 8,
+        "exclusive": true,
+        "co_tenants": 0
+      }
+    },
+    {
+      "name": "ic3-mldr-s60-r3",
+      "code": 0,
+      "seconds": 90.95,
+      "vm": "bx_2uat3ctg",
+      "run_name": "ic3-mldr-s60-r3",
+      "placement": {
+        "vm": "bx_2uat3ctg",
+        "type": "large",
+        "cpu": "AMD Ryzen 9 9950X 16-Core Processor",
+        "vcpus": 8,
+        "vm_vcpus": 8,
+        "exclusive": true,
+        "co_tenants": 0
+      }
+    },
+    {
+      "name": "duo-consensus_wo_decide-s60-r1",
+      "code": 0,
+      "seconds": 43.22,
+      "vm": "bx_2uat3ctg",
+      "run_name": "duo-consensus_wo_decide-s60-r1",
+      "placement": {
+        "vm": "bx_2uat3ctg",
+        "type": "large",
+        "cpu": "AMD Ryzen 9 9950X 16-Core Processor",
+        "vcpus": 8,
+        "vm_vcpus": 8,
+        "exclusive": true,
+        "co_tenants": 0
+      }
+    },
+    {
+      "name": "ic3-consensus_forall-s60-r3",
+      "code": 0,
+      "seconds": 70.19,
+      "vm": "bx_3kjzmmhv",
+      "run_name": "ic3-consensus_forall-s60-r3",
+      "placement": {
+        "vm": "bx_3kjzmmhv",
+        "type": "large",
+        "cpu": "AMD EPYC 9455 48-Core Processor",
+        "vcpus": 8,
+        "vm_vcpus": 8,
+        "exclusive": true,
+        "co_tenants": 0
+      }
+    },
+    {
+      "name": "ic3-client_server_db_ae-s60-r3",
+      "code": 0,
+      "seconds": 36.88,
+      "vm": "bx_2uat3ctg",
+      "run_name": "ic3-client_server_db_ae-s60-r3",
+      "placement": {
+        "vm": "bx_2uat3ctg",
+        "type": "large",
+        "cpu": "AMD Ryzen 9 9950X 16-Core Processor",
+        "vcpus": 8,
+        "vm_vcpus": 8,
+        "exclusive": true,
+        "co_tenants": 0
+      }
+    },
+    {
+      "name": "ic3-paxos_epr-s60-r1",
+      "code": 0,
+      "seconds": 52.85,
+      "vm": "bx_2kmf8w3s",
+      "run_name": "ic3-paxos_epr-s60-r1",
+      "placement": {
+        "vm": "bx_2kmf8w3s",
+        "type": "large",
+        "cpu": "AMD EPYC 9455 48-Core Processor",
+        "vcpus": 8,
+        "vm_vcpus": 8,
+        "exclusive": true,
+        "co_tenants": 0
+      }
+    },
+    {
+      "name": "ic3-consensus_forall-s60-r2",
+      "code": 0,
+      "seconds": 67.16,
+      "vm": "bx_3kjzmmhv",
+      "run_name": "ic3-consensus_forall-s60-r2",
+      "placement": {
+        "vm": "bx_3kjzmmhv",
+        "type": "large",
+        "cpu": "AMD EPYC 9455 48-Core Processor",
+        "vcpus": 8,
+        "vm_vcpus": 8,
+        "exclusive": true,
+        "co_tenants": 0
+      }
+    },
+    {
+      "name": "ic3-consensus_wo_decide-s60-r2",
+      "code": 0,
+      "seconds": 35.78,
+      "vm": "bx_2uat3ctg",
+      "run_name": "ic3-consensus_wo_decide-s60-r2",
+      "placement": {
+        "vm": "bx_2uat3ctg",
+        "type": "large",
+        "cpu": "AMD Ryzen 9 9950X 16-Core Processor",
+        "vcpus": 8,
+        "vm_vcpus": 8,
+        "exclusive": true,
+        "co_tenants": 0
+      }
+    },
+    {
+      "name": "ic3-learning_switch_i4-s60-r2",
+      "code": 0,
+      "seconds": 42.07,
+      "vm": "bx_2kmf8w3s",
+      "run_name": "ic3-learning_switch_i4-s60-r2",
+      "placement": {
+        "vm": "bx_2kmf8w3s",
+        "type": "large",
+        "cpu": "AMD EPYC 9455 48-Core Processor",
+        "vcpus": 8,
+        "vm_vcpus": 8,
+        "exclusive": true,
+        "co_tenants": 0
+      }
+    },
+    {
+      "name": "ic3-sharded_kv-s60-r2",
+      "code": 0,
+      "seconds": 50.48,
+      "vm": "bx_3kjzmmhv",
+      "run_name": "ic3-sharded_kv-s60-r2",
+      "placement": {
+        "vm": "bx_3kjzmmhv",
+        "type": "large",
+        "cpu": "AMD EPYC 9455 48-Core Processor",
+        "vcpus": 8,
+        "vm_vcpus": 8,
+        "exclusive": true,
+        "co_tenants": 0
+      }
+    },
+    {
+      "name": "duo-ring_leader_election-s60-r1",
+      "code": 0,
+      "seconds": 40.6,
+      "vm": "bx_2kmf8w3s",
+      "run_name": "duo-ring_leader_election-s60-r1",
+      "placement": {
+        "vm": "bx_2kmf8w3s",
+        "type": "large",
+        "cpu": "AMD EPYC 9455 48-Core Processor",
+        "vcpus": 8,
+        "vm_vcpus": 8,
+        "exclusive": true,
+        "co_tenants": 0
+      }
+    },
+    {
+      "name": "probe-pairs",
+      "code": 0,
+      "seconds": 78.5,
+      "vm": "bx_2uat3ctg",
+      "run_name": "probe-pairs",
+      "placement": {
+        "vm": "bx_2uat3ctg",
+        "type": "large",
+        "cpu": "AMD Ryzen 9 9950X 16-Core Processor",
+        "vcpus": 8,
+        "vm_vcpus": 8,
+        "exclusive": true,
+        "co_tenants": 0
+      }
+    }
+  ]
+}

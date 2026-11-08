@@ -1,0 +1,22 @@
+{
+  "status": "complete",
+  "productionRevision": "c7a82a75",
+  "toolingRevision": "2f0535c6",
+  "activeTasks": [],
+  "finalAcceptance": "runs/track-gen-final/acceptance.json",
+  "openCostOnlyDeltas": [
+    {
+      "file": "negative-paxos-r3.log",
+      "base": {
+        "verdict": "unknown",
+        "ms": 52001,
+        "exit": 0
+      },
+      "candidate": {
+        "exit": 137
+      },
+      "status": "OPEN"
+    }
+  ],
+  "mergePerformed": false
+}

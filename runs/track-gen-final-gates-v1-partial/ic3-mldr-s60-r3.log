@@ -1,0 +1,14 @@
+PAIR begin side=cand id=mldr run=3
+[infer join engine] {"wall":0,"eUntil":14215}
+[infer join small instance] {"states":127,"bfs":86,"params":1,"symmetric":"","ms":1524,"took":1524}
+[infer join pool] {"made":14,"left":14,"states":89,"ms":4223,"real":7620}
+PAIR end side=cand exit=137
+PAIR begin side=base id=mldr run=3
+{"id":"mldr","ic3syn":"mldr","search":{"verdict":"unknown","why":"not proven: one primary per term","found":["every C0 cell is a value of its kind","every Copied cell is a value of its kind","every Config cell is a value of its kind","one primary per term","St at most 1","every x: never 1 <= Config[x] and picked is 0","every x with x < size: never 1 <= C0[x] and picked is 0","every x with x < size: never Copied[x] is 0 and 1 <= CT[x]","every x with x < size: never Copied[x] is 0 and 1 <= St[x]","every x with x < size: never Copied[x] is 0 and 1 <= CfgT[x]","every x with x < size: never Copied[x] is 0 and 1 <= started","every x with x < size: never 1 <= Copied[x] and picked is 0","every x with x < size: never CT[x] is 0 and 1 <= St[x]","every x with x < size: never 1 <= CT[x] and started is 0","every x with x < size: never 1 <= CT[x] and picked is 0","every x with x < size: never 1 <= St[x] and CfgT[x] is 0","every x with x < size: never 1 <= St[x] and started is 0","every x with x < size: never 1 <= St[x] and picked is 0","every x with x < size: never 1 <= CfgT[x] and started is 0","every x with x < size: never 1 <= CfgT[x] and picked is 0","every x, y with x < size ∧ y < size ∧ ¬(x = y): never Copied[x] is 0 and 1 <= CT[y]","every x, y with x < size ∧ y < size ∧ ¬(x = y): never Copied[x] is 0 and 1 <= St[y]","every x, y with x < size ∧ y < size ∧ ¬(x = y): never Copied[x] is 0 and 1 <= CfgT[y]"],"ms":29564,"work":2657026,"full":921136}}
+[infer join engine] {"wall":0,"eUntil":13855}
+[infer join small instance] {"states":165,"bfs":113,"params":1,"symmetric":"M:Config","ms":1524,"took":1524}
+[infer join pool] {"made":20,"left":20,"states":196,"ms":8105,"real":18663}
+PAIR end side=base exit=0
+
+--- stderr ---
+bash: line 1: 151649 Killed                  ( cd "$dir" && GDP_INFER_TRACE=2 timeout -s KILL 60 bun research/protocols/ic3syn/run.ts --ms 60000 --only 'mldr' --skip 'broken' ) > /tmp/pair-$side.out 2> /tmp/pair-$side.err

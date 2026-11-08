@@ -1,42 +1,60 @@
 {
-  "status": "incomplete: final Paxos/IC3Syn and broken gates pending",
-  "baseline": "6a3874d3",
-  "parent": "3394e14c",
-  "engine": [
-    "6a8792d3",
-    "f00e3642",
-    "cd38afa5",
-    "d9345b9c",
-    "f51e8996"
-  ],
-  "files": [
+  "status": "accepted under coordinator policy",
+  "finalAcceptance": "runs/track-gen-final/acceptance.json",
+  "productionRevision": "c7a82a75",
+  "toolingRevision": "2f0535c6",
+  "sourceFiles": [
     {
-      "path": "runs/REPORT.md",
-      "sha256": "1144dc1f200a896f6cda1113ac6b7d38bbe561dbf227d9f2940efd6ca176b79b"
+      "path": "core/sample-step.ts",
+      "sha256": "9e7b04f4e16051a0bed330e621fd64a0a624d8661f382f9bc3d06df61519d918"
     },
     {
-      "path": "runs/track-gen-scheduler-blocker.md",
-      "sha256": "69f373136dc7b73834cf8160572019a3cfa61694352990f9e599fa6f7a3e7d21"
+      "path": "core/sample-step.test.ts",
+      "sha256": "e7266849cf1673f0329af60ca9fe5d1c81bcccbedd3a4225756c19c4da6ab8ae"
     },
     {
-      "path": "runs/track-gen-final-replays-v1/generation-verified.json",
-      "sha256": "a38de87c9a325700c2e24df714b7bcfcd839e2cd4425d988df9c41eaec8e5723"
+      "path": "core/infer.ts",
+      "sha256": "2c2e7ba05e15a4040ba905bf3960dea1f97b7dd0c29577b0e169ae522da9e784"
     },
     {
-      "path": "runs/track-gen-final-replays-v1/probes-verified.json",
-      "sha256": "9b36467993e9fa55b513bfb3b3e1bc5f08bbb58c34a933bb5304dbf12bfe7e14"
+      "path": "core/cube-rows.test.ts",
+      "sha256": "ac9d640424e7a4aada9def1a0cdd33792248f773c5ca3e99ac9b440bbe5b7252"
     },
     {
-      "path": "runs/track-gen-prefix-check-v1/probes-verified.json",
-      "sha256": "439d29410201614ad66a8fb39e40eb0603a287712fa42126aa6076d95a045c57"
+      "path": "kernel/model-values.ts",
+      "sha256": "37b5e46dd51168a5aaf5fa5f60e645c40bfe6d4659ce96a622e4a3873caadce1"
     },
     {
-      "path": "runs/track-gen-gates-v3/ic3syn/partial.json",
-      "sha256": "0037b08778f6151697d3331514eae775e7df0b5ecfaa5ba9a495d4a826605976"
+      "path": "kernel/model-values.test.ts",
+      "sha256": "928dccc1b750b93c6c0edcf7270d215ea430e004448eb7bc856b8ff9c2d2499a"
     },
     {
-      "path": "runs/track-gen-gates-v2/broken/verified.json",
-      "sha256": "6684467b2901477259c3616bd4530ce813059e82e7983e5e21ff5585dfe7edf7"
+      "path": "core/counts.ts",
+      "sha256": "2b92d11285900324b49d45c8492f223421587da0702e686998a847321724b9cc"
+    },
+    {
+      "path": "core/count-support.ts",
+      "sha256": "ba899e820fa3ab6c91adef3af6cdb4d0accfd8ea08228a7d21b5f947917c3a13"
+    },
+    {
+      "path": "core/count-witness.test.ts",
+      "sha256": "54b5598b8e66cd738765c8432ecb91dcfae01413a540e18bc089559fe7d8f1c2"
+    },
+    {
+      "path": "core/counts-structured.test.ts",
+      "sha256": "a701a961d246bc1f1ed38b1dc48b51981ef9c58d9dfdb33699d49eb9ae998432"
+    },
+    {
+      "path": "core/count-recovery-order.test.ts",
+      "sha256": "df98df7a1f2077b1874efbfb5580b606878de12d88b579e96d8772e763f2ca57"
+    },
+    {
+      "path": "scripts/test-shards.ts",
+      "sha256": "ffb87f062ee11287db149af2de9b184d3ebd30172e8d25f18b1ae04584b2e573"
+    },
+    {
+      "path": "research/track-gen/input.json",
+      "sha256": "4be076f22a8fec41083719358b3518a83b23add5c3dfd26017f772404e7dac24"
     }
   ]
 }

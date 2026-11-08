@@ -1,0 +1,32 @@
+PAIR begin side=cand id=firewall run=3
+{"id":"firewall","ic3syn":"pyv-firewall","search":{"verdict":"proven","found":["r.law('every k: started is 0 → Sent[k] <= 0', ({Sent, started}) => forall(k => started.eq(0).implies(Sent.at(k).n.atMost(0))))"],"ms":15272,"work":1350274,"full":1264172}}
+[infer join engine] {"wall":0,"eUntil":55638}
+[infer join small instance] {"states":88,"bfs":88,"params":1,"symmetric":"","ms":40,"took":40}
+[infer join pool] {"made":54,"left":32,"states":421,"ms":395,"real":1288}
+[infer join enumerated] {"views":3,"cubes":6,"ms":638}
+[infer join td] {"phase":"start","made":32,"before":-1709,"td":0,"real":1369,"v":638,"now":2136,"full":38268,"epr":0,"erows":787928,"etries":13715,"tries":16157,"rows":506986,"evals":11506503,"work":28675}
+[infer join td] {"phase":"pool","cubes":30,"td":2099,"real":1988,"v":2737,"now":16014,"full":500078,"epr":0,"erows":787928,"etries":13715,"tries":16157,"rows":506986,"evals":11506503,"work":583792}
+[infer join td] {"phase":"round","round":0,"cubes":30,"asked":30,"second":0,"failed":14,"undecided":3,"ms":5300,"td":7399,"real":5321,"v":8037,"now":20609,"full":745429,"epr":2092339,"erows":787928,"etries":13715,"tries":16157,"rows":506986,"evals":11506503,"work":767572}
+[infer join td] {"phase":"round","round":1,"cubes":16,"asked":0,"second":3,"failed":0,"undecided":3,"ms":250,"td":7649,"real":5487,"v":8287,"now":20934,"full":763586,"epr":2176046,"erows":787928,"etries":13715,"tries":16157,"rows":506986,"evals":11506503,"work":780564}
+[infer join td] {"phase":"cone","fixpoint":16,"undecided":3,"caller":0,"cone":0,"undecidedInCone":0,"ms":1832,"td":9481,"real":6486,"v":10119,"now":20934,"full":763680,"epr":2857488,"erows":834790,"etries":13715,"tries":16157,"rows":506986,"evals":11506503,"work":780581}
+[infer join enumerated] {"round":0,"cubes":6,"real":0,"unsure":0,"caller":0,"diagrams":1,"ms":10219}
+[infer join enumerated] {"round":1,"cubes":16,"real":0,"unsure":0,"caller":1,"diagrams":0,"ms":11124}
+[infer join enumerated] {"round":2,"cubes":17,"real":0,"unsure":0,"caller":1,"diagrams":0,"ms":12087}
+[infer join end] {"rounds":0,"set":0,"why":"time","cone":0,"ms":7640,"real":8281,"v":12087,"now":24732,"full":890158,"epr":3552615,"erows":835090,"etries":13715,"tries":16157,"rows":506986,"evals":11508221,"work":932476}
+PAIR end side=cand exit=0
+PAIR begin side=base id=firewall run=3
+{"id":"firewall","ic3syn":"pyv-firewall","search":{"verdict":"proven","found":["r.law('every k: started is 0 → Sent[k] <= 0', ({Sent, started}) => forall(k => started.eq(0).implies(Sent.at(k).n.atMost(0))))"],"ms":18781,"work":1350274,"full":1264172}}
+[infer join engine] {"wall":0,"eUntil":55636}
+[infer join small instance] {"states":88,"bfs":88,"params":1,"symmetric":"","ms":40,"took":40}
+[infer join pool] {"made":54,"left":32,"states":421,"ms":395,"real":1309}
+[infer join enumerated] {"views":3,"cubes":6,"ms":638}
+[infer join td] {"phase":"start","made":32,"before":-1795,"td":0,"real":1392,"v":638,"now":2136,"full":38268,"epr":0,"erows":787928,"etries":13715,"tries":16157,"rows":506986,"evals":11506503,"work":28675}
+[infer join td] {"phase":"pool","cubes":30,"td":2099,"real":2009,"v":2737,"now":16014,"full":500078,"epr":0,"erows":787928,"etries":13715,"tries":16157,"rows":506986,"evals":11506503,"work":583792}
+[infer join td] {"phase":"round","round":0,"cubes":30,"asked":30,"second":0,"failed":14,"undecided":3,"ms":5300,"td":7399,"real":5409,"v":8037,"now":20609,"full":745429,"epr":2092339,"erows":787928,"etries":13715,"tries":16157,"rows":506986,"evals":11506503,"work":767572}
+[infer join td] {"phase":"round","round":1,"cubes":16,"asked":0,"second":3,"failed":0,"undecided":3,"ms":250,"td":7649,"real":5563,"v":8287,"now":20934,"full":763586,"epr":2176046,"erows":787928,"etries":13715,"tries":16157,"rows":506986,"evals":11506503,"work":780564}
+[infer join td] {"phase":"cone","fixpoint":16,"undecided":3,"caller":0,"cone":0,"undecidedInCone":0,"ms":1832,"td":9481,"real":6779,"v":10119,"now":20934,"full":763680,"epr":2857488,"erows":834790,"etries":13715,"tries":16157,"rows":506986,"evals":11506503,"work":780581}
+[infer join enumerated] {"round":0,"cubes":6,"real":0,"unsure":0,"caller":0,"diagrams":1,"ms":10219}
+[infer join enumerated] {"round":1,"cubes":16,"real":0,"unsure":0,"caller":1,"diagrams":0,"ms":11124}
+[infer join enumerated] {"round":2,"cubes":17,"real":0,"unsure":0,"caller":1,"diagrams":0,"ms":12087}
+[infer join end] {"rounds":0,"set":0,"why":"time","cone":0,"ms":7661,"real":8302,"v":12087,"now":24732,"full":890158,"epr":3552615,"erows":835090,"etries":13715,"tries":16157,"rows":506986,"evals":11508221,"work":932476}
+PAIR end side=base exit=0

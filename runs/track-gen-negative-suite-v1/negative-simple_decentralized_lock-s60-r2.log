@@ -1,0 +1,6 @@
+PAIR begin side=base id=simple_decentralized_lock run=2
+{"id":"simple_decentralized_lock","ic3syn":"ex-simple-decentralized-lock","broken":{"bug":"send keeps the lock","verdict":"refuted","goal":"one node holds the lock @step","stuck":"sat","run":11,"ms":61,"work":159,"full":765}}
+PAIR end side=base exit=0
+PAIR begin side=cand id=simple_decentralized_lock run=2
+{"id":"simple_decentralized_lock","ic3syn":"ex-simple-decentralized-lock","broken":{"bug":"send keeps the lock","verdict":"refuted","goal":"one node holds the lock @step","stuck":"sat","run":11,"ms":55,"work":159,"full":765}}
+PAIR end side=cand exit=0

@@ -1,0 +1,2 @@
+{"id":"mldr","ic3syn":"mldr","broken":{"bug":"become_leader without a majority","verdict":"unknown","why":"a law fails on the small instances","found":["every Config cell is a value of its kind","one primary per term"],"ms":8939,"work":0,"full":0}}
+BROKEN_EXIT=0

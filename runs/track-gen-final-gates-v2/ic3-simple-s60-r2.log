@@ -1,0 +1,12 @@
+PAIR begin side=base id=simple run=2
+{"id":"simple","ic3syn":"tla-simple","search":{"verdict":"proven","found":["X at most 1","Y at most 1","Pc at most 2","every x with x < n: never X[x] is 0 and 1 <= Y[x]","every x with x < n: never X[x] is 0 and Pc[x] is 1","every x with x < n: never X[x] is 0 and 2 <= Pc[x]","every x with x < n: never 1 <= X[x] and Pc[x] is 0","every x with x < n: never 1 <= Y[x] and Pc[x] is 0","every x with x < n: never 1 <= Y[x] and Pc[x] is 1"],"ms":9953,"work":2752876,"full":6170276}}
+[infer join engine] {"wall":0,"eUntil":6734}
+[infer join small instance] {"states":193,"bfs":193,"params":1,"symmetric":"","ms":87,"took":87}
+[infer join pool] {"made":9,"left":9,"states":150,"ms":56,"real":415}
+PAIR end side=base exit=0
+PAIR begin side=cand id=simple run=2
+{"id":"simple","ic3syn":"tla-simple","search":{"verdict":"proven","found":["X at most 1","Y at most 1","Pc at most 2","every x with x < n: never X[x] is 0 and 1 <= Y[x]","every x with x < n: never X[x] is 0 and Pc[x] is 1","every x with x < n: never X[x] is 0 and 2 <= Pc[x]","every x with x < n: never 1 <= X[x] and Pc[x] is 0","every x with x < n: never 1 <= Y[x] and Pc[x] is 0","every x with x < n: never 1 <= Y[x] and Pc[x] is 1"],"ms":9371,"work":2844044,"full":6360254}}
+[infer join engine] {"wall":0,"eUntil":7005}
+[infer join small instance] {"states":193,"bfs":193,"params":1,"symmetric":"","ms":87,"took":87}
+[infer join pool] {"made":9,"left":9,"states":150,"ms":56,"real":72}
+PAIR end side=cand exit=0
