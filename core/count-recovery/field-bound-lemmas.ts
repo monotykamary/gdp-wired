@@ -9,6 +9,7 @@ import {liftCountProxies} from './lift-count-proxies.ts'
 import {piecesAt,sourceScalarContext,sourceWitnessContext,walkLive} from './live-dependencies.ts'
 import {carriedCase} from './carried-case.ts'
 import {foldPath} from './fold-path.ts'
+import {fieldCase} from './field-case.ts'
 import {booleanCore} from './boolean-core.ts'
 import {selectCountBounds} from '../count-select.ts'
 import {activeWriteRow,proveRowCases,rowPairs} from './row-cases.ts'
@@ -74,7 +75,7 @@ function fieldBoundLemmasImpl(m:Machine,ds:CountDecl[],g:Goal,cert:Proposal,unti
  const postMaps=new Set(cert.reads.filter(r=>r[1].endsWith('#')).map(r=>r[1])),postIds=new Set(cert.reads.filter(r=>r[1].endsWith('#')).map(r=>r[0]))
  if(rowPlan.length&&!postIds.size){
   trace.push({stage:'field-row-pairs',pairs:rowPlan})
-  return proveRowCases(g,root,rowPlan,until,(branch,end)=>fieldBoundLemmas(m,ds,g,cert,end,trace,onModel,branch,{...options,splitRows:false,deferCheck:true}),e=>trace.push(e),{deferToCaller:!!options.deferCheck,splitEqual:copiesRows(m,root)})
+  return proveRowCases(g,root,rowPlan,until,(branch,end)=>fieldCase(m,g,cert,options.fieldClaim,branch,Math.min(end,clock()+80),e=>trace.push(e))??fieldBoundLemmas(m,ds,g,cert,end,trace,onModel,branch,{...options,splitRows:false,deferCheck:true}),e=>trace.push(e),{deferToCaller:!!options.deferCheck,splitEqual:copiesRows(m,root)})
  }
  const base=g.hyps.slice(0,g.hyps.length-cert.insts.length).flatMap(c=>piecesAt(c,root)).filter(c=>{let post=false;walkLive(c,root,(o:any)=>{if(o.op==='get'&&postMaps.has(o.map)||o.op==='var'&&postIds.has(o.name))post=true});return !post})
  const cs=new Map((countsForReads(ds,cert.reads)??[]).map(c=>[c.v,{...c,body:substE(c.body,{vars:{[c.key]:x('$member')},maps:{},flags:{}})}]))
