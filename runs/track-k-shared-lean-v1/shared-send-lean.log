@@ -1,0 +1,9 @@
+{"checked":true,"lemmas":70,"leanBytes":1148144,"sha256":"127782c79bb244825e26f52af47f9ae3ef5f88868d121671c3875be7e21bb083"}
+'Kern.exists_lt_of_sumBelow_lt' depends on axioms: [propext, Classical.choice, Quot.sound]
+'Kern.pigeonhole' depends on axioms: [propext, Classical.choice, Quot.sound]
+'Kern.majorities_meet' depends on axioms: [propext, Classical.choice, Quot.sound]
+'Kern.quorums_meet_outside' depends on axioms: [propext, Classical.choice, Quot.sound]
+'Kern.lemma_sound' depends on axioms: [propext, Classical.choice, Quot.sound]
+'Kern.goalLemmas_sound' depends on axioms: [propext, Classical.choice, Quot.sound]
+'Kern.counted_sound' depends on axioms: [propext, Classical.choice, Quot.sound]
+'shared_send' depends on axioms: [propext, Classical.choice, Quot.sound]

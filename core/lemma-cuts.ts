@@ -18,6 +18,32 @@ export function rememberProofOrigin(out: Tree | undefined, part: Goal, tree: Tre
   else if (part.hyps.length < whole.hyps.length) originOf.set(out, {goal: part, tree, path: new Map(path)})
 }
 
+type ProofRows = ReturnType<typeof leafConstraints>
+const rowIds = new WeakMap<Lin, string>(), rowIndexes = new WeakMap<ProofRows, Map<string, number>>()
+const rowId = (lin: Lin): string => {
+  let id = rowIds.get(lin)
+  if (id === undefined) { id = canon(lin); rowIds.set(lin, id) }
+  return id
+}
+const rowIndex = (rows: ProofRows): Map<string, number> => {
+  let at = rowIndexes.get(rows)
+  if (!at) { at = new Map(); rows.forEach((r, i) => { const id = rowId(r.lin); if (!at!.has(id)) at!.set(id, i) }); rowIndexes.set(rows, at) }
+  return at
+}
+const rowsOf = new WeakMap<Tree, {goal: Goal, path: string, rows: ProofRows, atoms?: Set<string>}>()
+const pathKey = (p: Path): string => JSON.stringify([...p].map(([id, a]) => [id, canon(a.lin), a.holds]))
+const savedProofRows = (tree: Tree, goal: Goal, path: Path) => {
+  const old = rowsOf.get(tree)
+  return old?.goal === goal && old.path === pathKey(path) ? old : undefined
+}
+const saveProofRows = (tree: Tree, goal: Goal, path: Path, rows: ProofRows, atoms?: Set<string>): void => {
+  rowsOf.set(tree, {goal, path: pathKey(path), rows, atoms})
+}
+// Hints only: the trusted checker always rebuilds its own rows. Capturing reuses work already done by widen.
+export function rememberProofRows(tree: Tree, goal: Goal, path: Path, rows: ProofRows): void {
+  if (proofOrigins.enabled && 'leaf' in tree) saveProofRows(tree, goal, path, rows)
+}
+
 type Branch = Extract<Tree, {split: Lin}>
 const decide = (lin: Lin, path: Path): boolean | undefined => {
   if (!Object.values(lin).every(Number.isSafeInteger)) return undefined
@@ -49,11 +75,12 @@ function transport(from: Goal, to: Goal, tree: Tree, before: Path, after: Path, 
     const no = yes && transport(from, to, tree.no, put(before, tree.split, false), put(after, tree.split, false), until, missing)
     return yes && no ? {split: tree.split, yes, no} : undefined
   }
-  const old = leafConstraints(from, before), rows = leafConstraints(to, after), at = new Map<string, number>()
-  rows.forEach((r, i) => { if (!at.has(canon(r.lin))) at.set(canon(r.lin), i) })
+  const atoms = new Set<string>()
+  const old = savedProofRows(tree, from, before)?.rows ?? leafConstraints(from, before)
+  const rows = leafConstraints(to, new ObservedPath(after, atoms)), at = rowIndex(rows)
   const index = (i: number): number | undefined => {
     if (i >= old.length) return i - old.length + rows.length
-    const row = old[i], found = row && at.get(canon(row.lin))
+    const row = old[i], found = row && at.get(rowId(row.lin))
     if (row && found === undefined) missing?.(row.lin)
     return found
   }
@@ -67,7 +94,9 @@ function transport(from: Goal, to: Goal, tree: Tree, before: Path, after: Path, 
     if (i === undefined || j === undefined) return undefined
     products.push([i, j])
   }
-  return {leaf, ...(tree.products ? {products} : {}), ...(tree.squares ? {squares: tree.squares} : {})}
+  const out = {leaf, ...(tree.products ? {products} : {}), ...(tree.squares ? {squares: tree.squares} : {})}
+  saveProofRows(out, to, after, rows, atoms)
+  return out
 }
 
 // Observe only lookups; enumerating path rows is not itself a dependence on every path assumption.
@@ -80,7 +109,11 @@ function dependencies(g: Goal, t: Tree, path: Path, facts: Set<number>, atoms: S
   if (performance.now() >= until) return false
   if ('split' in t) return dependencies(g, t.yes, put(path, t.split, true), facts, atoms, until)
     && dependencies(g, t.no, put(path, t.split, false), facts, atoms, until)
-  const observed = new ObservedPath(path, atoms), rows = leafConstraints(g, observed), values = [...path.values()]
+  const observed = new ObservedPath(path, atoms), cached = savedProofRows(t, g, path)
+  const rows = cached?.rows ?? leafConstraints(g, observed), values = [...path.values()]
+  if (cached?.atoms) for (const key of cached.atoms) atoms.add(key)
+  // Prover-captured tables have no new lookup trace. Conservatively retain their source conditions.
+  else if (cached) for (const a of values) { atoms.add(canon(a.lin)); atoms.add(canonFlip(a.lin)) }
   for (const i of [...t.leaf.flatMap(s => s.kind === 'input' ? [s.index] : []), ...(t.products ?? []).flat()]) {
     const src = rows[i]?.src
     if (src && 'fact' in src) facts.add(src.fact)
@@ -106,7 +139,8 @@ function scopeCondition(lin: Lin): C | undefined {
 }
 
 export type SharedCuts = {goal: Goal, tree: Tree, lemmas: LemmaCut[], stats: {before: number, after: number, cuts: number, sourceHyps: number, lemmaHyps: number, mainNodes: number, checkMs: number, buildMs: number}}
-export function shareLemmaCuts(goal: Goal, tree: Tree, options: {path?: Path, until?: number, minNodes?: number, minimizeConditions?: boolean, trace?: (event: Record<string, string | number | boolean>) => void} = {}): SharedCuts | undefined {
+// Candidate construction only. Call shareLemmaCuts or the containing machine checker before admission.
+export function proposeLemmaCuts(goal: Goal, tree: Tree, options: {path?: Path, until?: number, minNodes?: number, minimizeConditions?: boolean, trace?: (event: Record<string, string | number | boolean>) => void} = {}): SharedCuts | undefined {
   const started = performance.now(), root = options.path ?? new Map(), until = options.until ?? Infinity
   const sizes = new WeakMap<Tree, number>(), repeats = new Map<string, number>()
   const measure = (t: Tree): number => {
@@ -232,7 +266,14 @@ export function shareLemmaCuts(goal: Goal, tree: Tree, options: {path?: Path, un
   const after = count(out) + lemmas.reduce((n, l) => n + count(l.tree), 0)
   const workBefore = before * Math.max(1, goal.hyps.length), workAfter = count(out) * Math.max(1, scoped.hyps.length) + lemmas.reduce((n, l) => n + count(l.tree) * Math.max(1, l.slice?.length ?? scoped.hyps.length), 0)
   if (workAfter >= workBefore || performance.now() >= until) { options.trace?.({stage: 'not-cheaper-or-expired', before, after, workBefore, workAfter}); return undefined }
-  const checking = performance.now(), checked = checkGoalLemmas(scoped, out, lemmas), checkMs = performance.now() - checking
-  if (!checked) { options.trace?.({stage: 'kernel-rejected'}); return undefined }
-  return {goal: scoped, tree: out, lemmas, stats: {before, after, cuts: lemmas.length, sourceHyps: goal.hyps.length, lemmaHyps: lemmas.reduce((n, l) => n + (l.slice?.length ?? scoped.hyps.length), 0), mainNodes: count(out), checkMs, buildMs: checking - started}}
+  return {goal: scoped, tree: out, lemmas, stats: {before, after, cuts: lemmas.length, sourceHyps: goal.hyps.length, lemmaHyps: lemmas.reduce((n, l) => n + (l.slice?.length ?? scoped.hyps.length), 0), mainNodes: count(out), checkMs: 0, buildMs: performance.now() - started}}
+}
+
+export function shareLemmaCuts(goal: Goal, tree: Tree, options: Parameters<typeof proposeLemmaCuts>[2] = {}): SharedCuts | undefined {
+  const proposed = proposeLemmaCuts(goal, tree, options)
+  if (!proposed) return undefined
+  const start = performance.now(), checked = checkGoalLemmas(proposed.goal, proposed.tree, proposed.lemmas)
+  if (!checked) { options?.trace?.({stage: 'kernel-rejected'}); return undefined }
+  proposed.stats.checkMs = performance.now() - start
+  return proposed
 }

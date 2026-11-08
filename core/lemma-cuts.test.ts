@@ -2,7 +2,7 @@ import {expect, test} from 'bun:test'
 import {type Goal, type Path, type Tree, canon, check, checkGoalLemmas} from '../kernel/kernel.ts'
 import {v} from './solver.ts'
 import {lemmaCutFixture} from '../lean-kernel/lemma-cases.ts'
-import {shareLemmaCuts, setProofOrigin} from './lemma-cuts.ts'
+import {shareLemmaCuts, setProofOrigin, proofOrigins, rememberProofRows} from './lemma-cuts.ts'
 const f = lemmaCutFixture()
 const put = (p: Path, lin: ReturnType<typeof v>, holds: boolean): Path => new Map(p).set(canon(lin), {lin, holds})
 function repeated(g: Goal, root: Path, choice = f.c): Tree {
@@ -48,6 +48,42 @@ test('forged source provenance cannot become a checked lemma', () => {
   const forged = {goal: {name: 'forged', hyps: []}, tree: {leaf: []}, path: new Map()} satisfies Parameters<typeof setProofOrigin>[1]
   setProofOrigin(t.yes.no, forged); setProofOrigin(t.no.no, forged)
   expect(shareLemmaCuts(g, t, {minNodes: 1})).toBeUndefined()
+})
+
+test('row-cache hints are keyed by the exact goal and ordered source path', () => {
+  const g = {...f.goal, hyps: f.hyps.slice(0, 3)}, t = repeated(g, new Map())
+  const previous = proofOrigins.enabled
+  proofOrigins.enabled = true
+  const visit = (tree: Tree, path: Path): void => {
+    if ('leaf' in tree) { rememberProofRows(tree, {...g}, path, []); return }
+    visit(tree.yes, put(path, tree.split, true)); visit(tree.no, put(path, tree.split, false))
+  }
+  try {
+    visit(t, new Map())
+    const result = shareLemmaCuts(g, t, {minNodes: 1})
+    expect(result).toBeDefined()
+    expect(checkGoalLemmas(result!.goal, result!.tree, result!.lemmas)).toBe(true)
+    const wrongOrder = (tree: Tree, path: Path): void => {
+      if ('leaf' in tree) { rememberProofRows(tree, g, new Map([...path].reverse()), []); return }
+      wrongOrder(tree.yes, put(path, tree.split, true)); wrongOrder(tree.no, put(path, tree.split, false))
+    }
+    wrongOrder(t, new Map())
+    const ordered = shareLemmaCuts(g, t, {minNodes: 1})
+    expect(ordered).toBeDefined()
+    expect(checkGoalLemmas(ordered!.goal, ordered!.tree, ordered!.lemmas)).toBe(true)
+  } finally { proofOrigins.enabled = previous }
+})
+
+test('forged matching row hints cannot bypass the trusted checker', () => {
+  const g = {...f.goal, hyps: f.hyps.slice(0, 3)}, t = repeated(g, new Map())
+  const previous = proofOrigins.enabled
+  proofOrigins.enabled = true
+  const visit = (tree: Tree, path: Path): void => {
+    if ('leaf' in tree) { rememberProofRows(tree, g, path, []); return }
+    visit(tree.yes, put(path, tree.split, true)); visit(tree.no, put(path, tree.split, false))
+  }
+  try { visit(t, new Map()); expect(shareLemmaCuts(g, t, {minNodes: 1})).toBeUndefined() }
+  finally { proofOrigins.enabled = previous }
 })
 
 test('compression declines expired work and never certifies a satisfiable changed goal', () => {

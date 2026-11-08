@@ -26,7 +26,7 @@ import {relevantGoals, relevantLaws} from './relevance.ts'
 import {countPoolKey, countSignature, grammarPool, ids, polaritySelection, readTuples, refinementSignature, reservationReadClosure, reservationState, reservePool, prepareSupport, smallSelection, sparseReadInstances, sourceContext, coarseContext, selectedCertificate, chosenView, candidateWork, stableState, UnsupportedCountProposal} from './count-support.ts'
 import {smallOf, trueSmall} from './exists.ts'
 import {env} from './solver.ts'
-import {proofOrigins, shareLemmaCuts} from './lemma-cuts.ts'
+import {proofOrigins, proposeLemmaCuts} from './lemma-cuts.ts'
 
 // (GDP_COUNTS_PROF: where a counted search's time goes, by phase, on stderr at the end; `countsDump.on`, set by research's
 // profiles: each step goal left unknown or with a model past GDP_COUNTS_DUMP_MIN (300) hypotheses, the first GDP_COUNTS_DUMP_N (3))
@@ -430,13 +430,15 @@ function admitCountedFamily0(m:Machine,caller:Law[],initial:Law[],support:Set<La
   const finish = (ls: Law[], proof: {instances: Record<string, Instances>, certs: Record<string, CountCert>}): Counted => {
     let proposed = proof
     if (env.GDP_COUNT_LEMMA_CUTS === '1') {
-      const end = Math.min(wallAt(), performance.now() + Math.max(0, until - clock()))
+      // This pass performs no search work. Reuse the enclosing wall deadline; outside one,
+      // conservatively cap its wall time by the remaining counted allowance. Neither budget is extended.
+      const wall = wallAt(), end = Number.isFinite(wall) ? wall : performance.now() + Math.max(0, until - clock())
       for (const {goal, decls} of countedObligations(m, ls, proof.instances)) {
         if (performance.now() >= end) break
         const cert = proof.certs[goal.name]
         if (!cert || cert.lemmas?.length) continue
         const expanded = mcGoal(goal.hyps, decls, cert)
-        const shared = expanded && shareLemmaCuts(expanded, cert.tree, {until: end})
+        const shared = expanded && proposeLemmaCuts(expanded, cert.tree, {until: end})
         if (shared) proposed = {...proposed, certs: {...proposed.certs, [goal.name]: {...cert, tree: shared.tree, lemmas: shared.lemmas}}}
       }
     }

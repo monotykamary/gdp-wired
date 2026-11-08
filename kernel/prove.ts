@@ -801,7 +801,7 @@ function lift(goal: Goal, tree: Tree, from: Path, to: Path): Tree | undefined {
   return go(tree, from, to)
 }
 
-import {proofOrigins, rememberProofOrigin} from '../core/lemma-cuts.ts'
+import {rememberProofRows} from '../core/lemma-cuts.ts'
 
 // A tree for a weaker goal (some hypotheses left out, some conjuncts of one left out) made a tree for the whole: at any
 // path a leaf's rows are among the whole goal's (each hypothesis' facts are a hypothesis' own, the cells, terms and
@@ -812,11 +812,6 @@ import {proofOrigins, rememberProofOrigin} from '../core/lemma-cuts.ts'
 // read as the term's linear form at the whole goal's path; a split the whole's path already decides is followed, not
 // made again.
 export function widen(part: Goal, whole: Goal, tree: Tree, opaque: Record<string, E> = {}, pp: Path = new Map(), wp: Path = pp): Tree | undefined {
-  const out = widenTree(part, whole, tree, opaque, pp, wp)
-  if (proofOrigins.enabled && !Object.keys(opaque).length) rememberProofOrigin(out, part, tree, pp, whole)
-  return out
-}
-function widenTree(part: Goal, whole: Goal, tree: Tree, opaque: Record<string, E> = {}, pp: Path = new Map(), wp: Path = pp): Tree | undefined {
   if (pastWall()) return undefined
   const names = Object.keys(opaque)
   const rename = (lin: Lin): Lin | undefined => {
@@ -841,6 +836,7 @@ function widenTree(part: Goal, whole: Goal, tree: Tree, opaque: Record<string, E
   const rp = rowsAt(part, pp)
   if (pastWall()) return undefined
   const rw = rowsAt(whole, wp), at = new Map<string, number>()
+  const remember = (out: Tree): Tree => { rememberProofRows(out, whole, wp, rw); return out }
   rw.forEach((r, i) => { const key = canon(r.lin); if (!at.has(key)) at.set(key, i) })
   const map = (i: number) => { if (i >= rp.length) return i - rp.length + rw.length; const l = rename(rp[i]!.lin); return l && at.get(canon(l)) }
   const leaf: Step[] = [], products: [number, number][] = [], squares = (tree.squares ?? []).map(rename)
@@ -849,9 +845,9 @@ function widenTree(part: Goal, whole: Goal, tree: Tree, opaque: Record<string, E
   for (const [i, j] of ok ? tree.products ?? [] : []) { const pi = map(i), pj = map(j); if (pi === undefined || pj === undefined) { ok = false; break } products.push([pi, pj]) }
   // (renamed, a derivation through products or cuts is replayed: a cut's divisor may not divide the terms' coefficients)
   if (ok && names.length && !checkRefutation(withProducts(rw, products, squares as Lin[]), leaf)) ok = false
-  if (ok) return {leaf, ...(tree.products ? {products} : {}), ...(tree.squares ? {squares: squares as Lin[]} : {})}
+  if (ok) return remember({leaf, ...(tree.products ? {products} : {}), ...(tree.squares ? {squares: squares as Lin[]} : {})})
   const absurd = rw.findIndex(r => Object.keys(r.lin).every(key => key === '1') && (r.lin['1'] ?? 0) > 0)
-  if (absurd >= 0) return {leaf: [{kind: 'input', index: absurd}]}
+  if (absurd >= 0) return remember({leaf: [{kind: 'input', index: absurd}]})
   const out = grow(whole, wp)
   return 'tree' in out ? out.tree : undefined
 }

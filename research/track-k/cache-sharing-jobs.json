@@ -1,0 +1,26 @@
+[
+  {
+    "name": "share-replay",
+    "cmd": "bun install --frozen-lockfile >/dev/null && bun research/track-k/share-replay.ts runs/track-k/proof/pack.json",
+    "timeout": 180,
+    "cpu": 4,
+    "memory": 8192,
+    "timing": true
+  },
+  {
+    "name": "check-and-units",
+    "cmd": "bun install --frozen-lockfile >/dev/null && bun run check && bun test core/lemma-cuts.test.ts kernel/lemma-cut.test.ts",
+    "timeout": 300,
+    "cpu": 4,
+    "memory": 14336,
+    "timing": true
+  },
+  {
+    "name": "live-cache-pilot",
+    "cmd": "set -e; echo \"LIVE begin base\"; (export LAB_LIVE_CUTS=0; set -e; bun install --frozen-lockfile >/dev/null; cd runs/track-k-send-source/snapshot; ln -s ../replay-input replay-input; export LAB_DUMP_PROOF=0 LAB_PACK_SUMMARY=1 LAB_WALL_PROFILE=1 LAB_TREE_PROFILE=1 LAB_DUMP_PROOF=0; sha256sum research/track-m/count-case-replay.ts research/track-m/field-bound-lemmas.ts; LAB_COMPACT_COPY=1 LAB_REQUEST_FRAMES=1 LAB_NAT_CASES=1 LAB_THIN_FIELD_CONTEXT=1 LAB_TREE_AUDIT=1 LAB_REQUEST_DIAGONALS=1 LAB_GUARD_CASES=1 LAB_BOOLEAN_GUARDS=1 LAB_ACTIVE_WRITER=1 LAB_COPY_FRAMES=1 LAB_DIRECT_COPY=1 LAB_ROW_EQUAL_SPLIT=1 LAB_GUARD_PATH=1 LAB_POST_SUBSETS=1 LAB_ROW_SPLIT=1 LAB_PROGRESS=1 LAB_SATURATE=1 LAB_COUNT_LEMMAS=1 LAB_SYMBOLIC_OVERLAP=1 LAB_ALGEBRAIC=1 LAB_BOUND_QUERY_MS=200 LAB_WALL_MS=60000 LAB_CASE=6 LAB_ALL_CARRIED=1 LAB_DECIDE_MS=200 LAB_ALL_MODELS=1 LAB_GROW_CERT=1 LAB_GROW_ALGEBRAIC=1 LAB_FRAME_COUNTS=1 LAB_AT_POINT=1 LAB_CASE_REFINE=1 LAB_FOCUS_COLD=1 bun research/track-m/count-case-replay.ts replay-input/quorum.json replay-input/input.json); echo \"LIVE end base\"; echo \"LIVE begin cuts\"; (export LAB_LIVE_CUTS=1; set -e; bun install --frozen-lockfile >/dev/null; cd runs/track-k-send-source/snapshot; ln -s ../replay-input replay-input; export LAB_DUMP_PROOF=0 LAB_PACK_SUMMARY=1 LAB_WALL_PROFILE=1 LAB_TREE_PROFILE=1 LAB_DUMP_PROOF=0; sha256sum research/track-m/count-case-replay.ts research/track-m/field-bound-lemmas.ts; LAB_COMPACT_COPY=1 LAB_REQUEST_FRAMES=1 LAB_NAT_CASES=1 LAB_THIN_FIELD_CONTEXT=1 LAB_TREE_AUDIT=1 LAB_REQUEST_DIAGONALS=1 LAB_GUARD_CASES=1 LAB_BOOLEAN_GUARDS=1 LAB_ACTIVE_WRITER=1 LAB_COPY_FRAMES=1 LAB_DIRECT_COPY=1 LAB_ROW_EQUAL_SPLIT=1 LAB_GUARD_PATH=1 LAB_POST_SUBSETS=1 LAB_ROW_SPLIT=1 LAB_PROGRESS=1 LAB_SATURATE=1 LAB_COUNT_LEMMAS=1 LAB_SYMBOLIC_OVERLAP=1 LAB_ALGEBRAIC=1 LAB_BOUND_QUERY_MS=200 LAB_WALL_MS=60000 LAB_CASE=6 LAB_ALL_CARRIED=1 LAB_DECIDE_MS=200 LAB_ALL_MODELS=1 LAB_GROW_CERT=1 LAB_GROW_ALGEBRAIC=1 LAB_FRAME_COUNTS=1 LAB_AT_POINT=1 LAB_CASE_REFINE=1 LAB_FOCUS_COLD=1 bun research/track-m/count-case-replay.ts replay-input/quorum.json replay-input/input.json); echo \"LIVE end cuts\"",
+    "timeout": 300,
+    "cpu": 4,
+    "memory": 8192,
+    "timing": true
+  }
+]

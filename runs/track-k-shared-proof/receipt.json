@@ -1,0 +1,16 @@
+{
+  "sha256": "4f5ed02ec55b86bd41342475a5e19012367ed4aec4dc0f92d56bc8ed30ddb26e",
+  "jsonSha256": "17807f19a52bafed9b4893866e8f3cab569e6350da9ac582f8c7b888d3716a56",
+  "bytes": 36617,
+  "jsonBytes": 1382203,
+  "stats": {
+    "before": 3163,
+    "after": 4919,
+    "cuts": 70,
+    "sourceHyps": 172,
+    "lemmaHyps": 295,
+    "mainNodes": 809,
+    "checkMs": 7065.441943999998,
+    "buildMs": 13761.126743
+  }
+}

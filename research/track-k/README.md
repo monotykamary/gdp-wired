@@ -18,7 +18,7 @@ No TypeScript checker modification before these proofs build without sorry or ne
 
 `core/lemma-cuts.ts` extracts repeated forced splits, selects their exact original support, and transports proofs by matching checked rows (no solver calls). Prerequisites are inlined only when their rows are actually required; lemma entries still cannot cite each other. A weighted-context estimate, not raw node count, filters unprofitable results. Every result goes through `checkGoalLemmas` before it can be proposed to production.
 
-The production admission experiment is opt-in with `GDP_COUNT_LEMMA_CUTS=1`. It uses only the current work/wall deadline and retains the old certificate as fallback; `checkCountedLaws` still checks the entire family. Optional pre-widening provenance is untrusted and never consulted by the kernel. The default path remains unchanged while end-to-end performance is measured.
+The production admission experiment is opt-in with `GDP_COUNT_LEMMA_CUTS=1`. It uses only the current work/wall deadline and retains the old certificate as fallback; `checkCountedLaws` still checks the entire family. Optional row tables recorded during proof transport are untrusted, keyed by the exact goal and ordered path, and never consulted by the kernel. The standalone sharing API checks its result; production proposal construction leaves authentication to the complete family checker, avoiding duplicate checks. The default path remains unchanged while end-to-end performance is measured.
 
 Recreate a read-only Track M snapshot and apply the experiment (recording SHA256 manifests):
 
