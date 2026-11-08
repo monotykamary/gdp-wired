@@ -359,6 +359,15 @@ export function candidates(src: Parameters<typeof inferLaws>[0], m: Machine, cal
 // Within two thirds of what is left (the rest the caller's: Houdini, or the whole set's proof), each goal an even share
 // of that over the candidates. `attempt` is the caller's proof: the counted goals, or the kernel's for plain laws.
 export type Tried<P> = {proof: P} | {stuck: string}
+// Recovery proposals must not consume a successful ordinary attempt's allowance.
+// A deferred proposal keeps the latest warmed context, but never extends its deadline.
+export function withDeferredCountRecovery<P>(until: number, attempt: (defer: (recover: () => P | undefined) => void) => Tried<P>): Tried<P> {
+  let recover: (() => P | undefined) | undefined
+  const ordinary = attempt(next => { recover = next })
+  if ('proof' in ordinary || !recover || clock() >= until) return ordinary
+  const proof = recover()
+  return proof === undefined ? ordinary : {proof}
+}
 export function cone<P>(m: Machine, set: Law[], attempt: (law: Law, ls: Law[], ms: number) => Tried<P>, until: number, houdini = false): Map<string, P> {
   const kept = new Map<string, P>(), inCone = (l: Law) => kept.has(l.name), tried = new Map<string, number>(), times = new Map<string, number>(), asked = new Set<string>(), slow = new Set<string>()
   const stopAt = until - (until - clock()) / 3, brief = (stopAt - clock()) / Math.max(1, set.length)
@@ -604,19 +613,16 @@ export function countedAttempts(m: Machine, caller: Law[], support: Set<Law>, un
   // bounded set of sessions; each independently resets unless its hypotheses are
   // still present verbatim. This reuses work, never a verdict from a weaker goal.
   const decisions = new Map<string, ReturnType<typeof modelSequence>>(), focusEnabled=focusedCountRecoveryEnabled(m)
-  const attempt = (law: Law, ls: Law[], pass: 0 | 1, ms: number): Tried<Proof> => {
+  const ordinaryAttempt = (law: Law, ls: Law[], pass: 0 | 1, ms: number, attemptEnd: number, defer: (recover: () => Proof | undefined) => void): Tried<Proof> => {
     // A cached model can return before the no-count optimization below. A helper
     // without count reads must not suppress the next law's counting-lemma pass.
     if (!pass) counted = true
-    const attemptEnd = Math.min(until,clock()+ms)
     const ts = terms(law), id = `${pass} ${law.name}`, cti = models.get(id)
     const supported = ls.some(l => support.has(l)), modelLaws = supportOrder(ls, caller, support, true)
-    // Start bounded field/row recovery before a growing model-instantiation
-    // context consumes the law's share. Finite-input recovery is the default; it returns only
-    // ordinary certificates accepted by the same final checkCountedLaws gate.
+    // Finite-input recovery remains on by default, but ordinary search goes first.
+    // A failed attempt may use the remainder of its original share, never a new one.
     if (!pass && focusEnabled && m.inputMaps?.length && !reads(law.holds, isCount).size) {
-      const focused = ptime('focused', () => proveFocusedCounts(m, ls, law, {}, Math.min(until, clock() + Math.min(ms, 5000)), (g, ds) => certFor(g, ds, true, pool)))
-      if (focused) return {proof: focused}
+      defer(() => ptime('focused', () => proveFocusedCounts(m, ls, law, {}, Math.min(attemptEnd, clock() + Math.min(ms, 5000)), (g, ds) => certFor(g, ds, true, pool))))
     }
     // (the model broken: the attempt starts at the instances it asks for, its last attempt's and the tuples the new laws
     // break it at, where the rounds of models would lead it again)
@@ -801,9 +807,8 @@ export function countedAttempts(m: Machine, caller: Law[], support: Set<Law>, un
       // A wide pool can obscure a short subset proof. Retry only ordinary
       // witness-bearing certificates with the warmed law instances; the final
       // checkCountedLaws gate is unchanged; the same bounded finite-input default applies.
-      if (pass && wide && focusEnabled && clock() < until) {
-        const focused = ptime('focused', () => proveFocusedCounts(m, ls, law, at, Math.min(until, clock() + Math.min(ms, 5000)), (g, ds) => certFor(g, ds, true, pool)))
-        if (focused) return {proof: focused}
+      if (pass && wide && focusEnabled && clock() < attemptEnd) {
+        defer(() => ptime('focused', () => proveFocusedCounts(m, ls, law, at, Math.min(attemptEnd, clock() + Math.min(ms, 5000)), (g, ds) => certFor(g, ds, true, pool))))
       }
       // (whether a goal reads a count: if none does, pass 1's goals are pass 0's)
       if (!pass) counted = built.some(b => certFor(b.goal, b.decls).reads.length)
@@ -830,6 +835,10 @@ export function countedAttempts(m: Machine, caller: Law[], support: Set<Law>, un
       }
       if (!again) return {proof: {instances: at, certs}}
     }
+  }
+  const attempt = (law: Law, ls: Law[], pass: 0 | 1, ms: number): Tried<Proof> => {
+    const end = Math.min(until, clock() + ms)
+    return withDeferredCountRecovery(end, defer => ordinaryAttempt(law, ls, pass, ms, end, defer))
   }
   const traced = (law: Law, ls: Law[], pass: 0 | 1, ms: number): Tried<Proof> => {
     const t0 = clock(), w0 = performance.now(), p0 = {...cprof}
