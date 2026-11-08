@@ -28,5 +28,5 @@ const families=Object.keys(parent.families).map(name=>{
 const average=(xs:number[])=>xs.reduce((a,b)=>a+b,0)/xs.length
 const meanParentMs=average(pairs.map(p=>p.parentMs)),meanCandidateMs=average(pairs.map(p=>p.candidateMs))
 const result={passed:true,candidates:24,candidateHash:expected,pairs,meanParentMs,meanCandidateMs,reduction:1-meanCandidateMs/meanParentMs,families}
-writeFileSync(`${dir}/verified.json`,JSON.stringify(result,null,2)+'\n')
+writeFileSync(`${dir}/generation-verified.json`,JSON.stringify(result,null,2)+'\n')
 console.log(JSON.stringify({...result,families:families.map(f=>({...f,retained:f.retained.length}))}))

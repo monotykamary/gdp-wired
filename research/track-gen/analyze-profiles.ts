@@ -31,5 +31,5 @@ for(const key of new Set(probes.map(p=>p.prefix))){
  const pair=probes.filter(p=>p.prefix===key)
  if(pair.length!==2||pair[0].proven!==pair[1].proven||pair[0].checked!==pair[1].checked||pair[0].countedMs!==pair[1].countedMs||JSON.stringify(pair[0].usage)!==JSON.stringify(pair[1].usage))throw Error(`probe differs: ${key}`)
 }
-writeFileSync(`${root}/${probeDir}/verified.json`,JSON.stringify({identical:true,probes},null,2)+'\n')
+writeFileSync(`${root}/${probeDir}/probes-verified.json`,JSON.stringify({identical:true,probes},null,2)+'\n')
 console.log(JSON.stringify(probes.map(({side,prefix,proven,checked,countedMs,matches})=>({side,prefix,proven,checked,countedMs,matches}))))
