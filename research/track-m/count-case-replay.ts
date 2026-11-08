@@ -18,7 +18,7 @@ import {modelCountPicks} from './model-count-picks.ts'
 import {fieldBoundLemmas} from './field-bound-lemmas.ts'
 import {guardCases} from './guard-cases.ts'
 import {actionGuard} from './action-guard.ts'
-import {countLawSeeds,countRowBridges,independentCountInstances,fieldLawBridges,focusCountCert,rowKeyNames} from '../../core/count-focused.ts'
+import {countLawSeeds,countRowBridges,independentCountInstances,fieldLawBridges,focusCountCert,copyCountSubset,rowKeyNames} from '../../core/count-focused.ts'
 import {seedCountWitnessFlags} from '../../core/count-witness-flags.ts'
 const mark=(stage:string)=>{if(process.env.LAB_PROGRESS==='1')console.log(`${stage} ${Math.round(performance.now())}`)}
 mark('entry-loaded')
@@ -52,9 +52,15 @@ mark('building-obligations')
 let base=countedObligations(m,laws,{[law.name]:at},index).find(g=>g.goal.name.endsWith('@step'))!
 const focusOptions={carried:process.env.LAB_ALL_CARRIED==='1'?undefined:m.inputMaps[0],targets:!countedTarget&&process.env.LAB_TARGET_COUNTS==='1'?rows:undefined,algebraic:process.env.LAB_ALGEBRAIC==='1',requestFrames:process.env.LAB_REQUEST_FRAMES==='1',copyFrames:process.env.LAB_COPY_FRAMES==='1',structural:countedTarget&&process.env.LAB_STRUCT_COUNTS==='1',frames:process.env.LAB_FRAME_COUNTS==='1'}
 mark('building-certificate')
-const cert={...focusCountCert(m,base.decls,certFor(base.goal,base.decls,true,1000),focusOptions),picks:[] as [string,E[]][]}
+const proposed=focusCountCert(m,base.decls,certFor(base.goal,base.decls,true,1000),focusOptions)
+const cert={...(process.env.LAB_COMPACT_COPY==='1'?copyCountSubset(m,proposed):proposed),picks:[] as [string,E[]][]}
 mark('certificate-ready')
 if(process.env.LAB_SKIP_COVERS==='1')cert.insts=cert.insts.filter(i=>i.terms.length!==3)
+if(process.env.LAB_KEEP_INSTS!==undefined){
+ const keep=process.env.LAB_KEEP_INSTS.split(',').map(Number)
+ if(keep.some(i=>!Number.isInteger(i)||i<0||i>=cert.insts.length))throw new Error('Invalid LAB_KEEP_INSTS index')
+ cert.insts=cert.insts.filter((_,i)=>keep.includes(i))
+}
 if(process.env.LAB_COMPACT_PROPOSALS==='1'){console.log(JSON.stringify({reads:cert.reads,insts:cert.insts}));process.exit(0)}
 if(process.env.LAB_DESCRIBE_ONLY==='1'){
  const pool=certFor(base.goal,base.decls,true,1000)
@@ -104,7 +110,7 @@ walkOnce([m.step,m.assume],(o:any)=>{if(o.op!=='=')return;const [a,b]=o.a.op==='
 const choice=[...values].filter(([,v])=>v.size>2).sort((a,b)=>b[1].size-a[1].size)[0]
 if(!choice)throw new Error('No finite-choice scalar')
 const [name,vs]=choice,cuts=[...vs].sort((a,b)=>a-b).filter(v=>v>=Number(process.env.LAB_FIRST_CUT??-Infinity)),path:Path=new Map(),conditions:C[]=[],records:({goal:Goal,tree:Tree,path:Path,from?:Path}|undefined)[]=[],trace:object[]=[],cores:object[]=[]
-if(process.env.LAB_PROGRESS==='1'){console.log('replay-ready');const push=trace.push.bind(trace);trace.push=(...events:object[])=>{for(const event of events){const e=event as any;console.log(JSON.stringify({stage:e.stage,index:e.index,left:e.left,right:e.right,key:e.key,cached:e.cached,pairs:e.pairs,ms:e.ms,checked:e.checked,proved:e.proved,wall:Math.round(performance.now())}))}return push(...events)}}
+if(process.env.LAB_PROGRESS==='1'){console.log('replay-ready');const push=trace.push.bind(trace);trace.push=(...events:object[])=>{for(const event of events){const e=event as any;console.log(JSON.stringify({stage:e.stage,index:e.index,left:e.left,right:e.right,key:e.key,cached:e.cached,pairs:e.pairs,nodes:e.nodes,leaves:e.leaves,steps:e.steps,depth:e.depth,unique:e.unique,hyps:e.hyps,facts:e.facts,cuts:e.cuts,ms:e.ms,checked:e.checked,proposed:e.proposed,proved:e.proved,wall:Math.round(performance.now())}))}return push(...events)}}
 const splitAt=(value:number):Record<string,number>=>value?{[name]:1,'1':-value}:{[name]:1}
 const branches:{prefix:C[],path:Path}[]=[],branchRoots:Path[]=[],tailCuts:number[][]=[]
 const seq=modelSequence(), refine=process.env.LAB_CASE_REFINE==='1'
@@ -192,9 +198,9 @@ const result=withWall(start+Math.min(60000,Number(process.env.LAB_WALL_MS??10000
      hold(guard)
     }
    }
-   const found=guardCases(m,base.decls,rooted?goal:pinned,cert,guard,end,trace,rooted?0:conditions.length,root)
+   const deferred=!process.env.LAB_ROW_CASE,found=guardCases(m,base.decls,rooted?goal:pinned,cert,guard,end,trace,rooted?0:conditions.length,root,{deferCheck:deferred})
    if(found){tree=rooted?found:widen(pinned,goal,found,{},new Map(),path);proofGoal=goal}
-   trace.push({value,stage:'guard-result',ms:Math.round(clock()-begun),sourceChecked:!!found,proved:!!tree})
+   trace.push({value,stage:'guard-result',ms:Math.round(clock()-begun),sourceChecked:!deferred&&!!found,proposed:!!found,proved:!!tree})
    if(process.env.LAB_ROW_CASE)return {complete:false,branches:[],groundChecked:false,checked:false,diagnosticRow:process.env.LAB_ROW_CASE,diagnosticChecked:!!found}
   }
   if(!tree&&process.env.LAB_FIELD_BOUNDS==='1'){
@@ -308,7 +314,10 @@ const result=withWall(start+Math.min(60000,Number(process.env.LAB_WALL_MS??10000
  })
  let tree=trees.at(-1)
  for(let i=cuts.length-1;i>=0;i--)tree=tree&&trees[i]?{split:splitAt(cuts[i]!),yes:trees[i]!,no:tree}:undefined
- return {complete:!!tree,branches:trees.map((t,i)=>!!t&&check(goal,t,branchRoots[i]!)),groundChecked:!!tree&&check(goal,tree),checked:!!tree&&checkMC(base.goal.hyps,base.decls,{...cert,tree})}
+ const checked=!!tree&&checkMC(base.goal.hyps,base.decls,{...cert,tree})
+ // A complete MC check includes the same ground-tree check. Partial diagnostic
+ // runs instead check each available branch against its exact original scope.
+ return {complete:!!tree,branches:tree?trees.map(()=>checked):trees.map((t,i)=>!!t&&check(goal,t,branchRoots[i]!)),groundChecked:checked,checked}
  })
 },true))
 console.log(JSON.stringify({file,law:law.name,context:thinFields?'thin-field':'full',diagnosticAssumptions:[...activation?['existing leader activation; no unrestricted proof unless rebase checks']:[],...process.env.LAB_ROW_CASE?['row-case assumptions; not an unrestricted proof']:[],...process.env.LAB_ACTIVE_ROW?['active action guard assumed for row diagnostic']:[]],...result,counted:Math.round((fullWork()-w)/fullRate),wall:Math.round(performance.now()-start),insts:cert.insts.length,trace,...(cores.length?{cores}:{})}))

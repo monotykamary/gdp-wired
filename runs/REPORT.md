@@ -1152,3 +1152,65 @@ The worktree already includes 699b5160; `git diff 699b5160 8610af26 -- core kern
 scripts` is empty. The later main commit changes reports/research packaging,
 not the Track P code already present here. Step 1 and all downstream gates
 remain open.
+
+### Step 1c: checked copy indicators; source-instance size is decisive
+
+The copy point prover now enters conditional operands even when their enclosing
+comparison is forced, while still pruning inactive condition arms. Arithmetic
+read-key closure emits an ordinary refutation for the opposite of each proposed
+key fact; nothing is assumed by the checker. After key closure, only the unused
+slots in the existing eight-choice pool are refreshed. The copy selector keeps
+unchanged coordinates and shares its existing 16-pair cap across result counts,
+so the larger quorum family cannot starve configuration-size copies. New tests
+cover both directions, packed offsets, missing version guards, and unfair pools.
+
+`copy-frame-points-v1` and `copy-deferred-transport-v1` construct all send row
+cases but reach the external 90-second command cutoff during source checking.
+The latter removes redundant intermediate transport checks only for callers
+that check the complete original-goal tree. Default transport checking remains
+on; a regression explicitly shows that a deferred invalid proposal is rejected
+by the ordinary checker. Search and wall limits were not increased.
+
+`copy-tree-metrics-v1` quantifies the remaining cost: **4,435 nodes / 2,218
+leaves**, with **466 source hypotheses**, before the final source check. It
+still times out, so this is a proposed tree, not an accepted proof. An attempted
+reduction to only conditional-guard cuts passed unit tests but failed the real
+equal/equal copy row (`copy-relevant-pins-v1`); that change was reverted.
+
+A diagnostic keeps only the 17 count instances used by the previous proposal,
+before witness flags and the encoded goal are built. `copy-thin-instances-v1`
+then checks **the complete send action entry**, including all 18 row leaves and
+both activation alternatives: `branches[6] = true`, `guard-complete.checked =
+true`, **2,664 counted ms / 51,578 wall ms**. Its source goal has **140
+hypotheses**; the tree has 4,359 nodes / 2,180 leaves. This is not an admitted
+Inv* law or a whole hand-set certificate: every other action entry is omitted
+in that run. The numeric keep-list is diagnostic, not a production policy. A
+structural copy-key starting subset now replaces that numeric diagnostic:
+`copy-compact-v2` checks the send entry with **22 instances / 172 hypotheses**,
+**3,552 counted ms / 58,805 wall ms**. Sources are inferred from same-map value
+branches, excluding inputs seen only in guards. It retains pre-state partition
+instances, post-empty candidates, same-key frames, and coordinate substitutions
+by one source input. It is an opt-in starting subset, not a replacement for the
+full fallback pool or a claim about every kind of action.
+
+`copy-checkpoint-v2` passed **270 Track M tests + 67 Track P tests**, but its
+leader repeated a whole-tree check and hit the wall cutoff. The replay now
+keeps unchecked proposals distinct from acceptance and delegates to one final
+source/MC check. `copy-verification-v1` checks leader, reconfiguration and the
+numeric-subset send entries at **2,827 / 4,152 / 2,664 counted ms**, respectively;
+wall times are **36,292 / 41,688 / 41,480 ms**. The full, unthinned send still
+hits its 90-second external cutoff; that failed job is not counted as a proof.
+
+Final source validation (`copy-final-checks-v2`, tree `676f0c11613b`): **274 Track
+M tests + 67 Track P tests pass**, and `bun run check` reports **zero warnings /
+errors on 1,022 files**. The structural send receipt is `copy-compact-v2`
+(tree `1db03186879e`). Reproducible job manifests are
+`research/track-m/jobs-copy-checks.json`, `jobs-copy-verification.json`, and
+`jobs-copy-compact.json`; replay data is the unchanged
+`runs/track-m/canonical-capture-v1/fixtures` snapshot.
+
+All eight action entries have now checked in individual replays with their
+recorded options. They have **not** been assembled into a complete Inv* proof,
+the full nine-law given set has **not** passed, and no production 3-by-60-second
+or downstream merge gate is claimed. No trusted-kernel rule, original invariant,
+safety law, or proof budget was changed.

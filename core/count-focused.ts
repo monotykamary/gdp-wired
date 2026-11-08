@@ -99,6 +99,37 @@ import {type C, type E, type Law, type Machine, walkOnce, x} from './machine.ts'
 import {type CountCert, type CountDecl, type Instances, substC, substE} from '../kernel/kernel.ts'
 import {countsForReads} from './count-facts.ts'
 
+// An untrusted starting subset for row-copy cases. Keep pre-state partitions
+// and query-local frames/copies, not every unrelated source tuple. A caller
+// must retain its full pool for fallback and check the resulting certificate.
+export function copyCountSubset(m:Machine,cert:Pick<CountCert,'reads'|'insts'>):Pick<CountCert,'reads'|'insts'>{
+ const reads=new Map(cert.reads.map(r=>[r[0],r])),variants=new Map<string,Set<string>>(),sources=new Set<string>()
+ for(const [map,write]of Object.entries(m.step.maps??{}))if('each'in write){
+  const scan=(e:E):void=>{
+   if(e.op==='if'){scan(e.then);scan(e.else)}
+   else if(e.op==='get'&&e.map===map&&e.key.op==='var'&&m.inputs.includes(e.key.name))sources.add(e.key.name)
+  }
+  scan(write.value)
+ }
+ const keys=(id:string,key:E):Set<string>=>{
+  const prior=variants.get(id);if(prior)return prior
+  const names=new Set<string>();walkOnce(key,(o:any)=>{if(o.op==='var'&&!m.inputs.includes(o.name)&&!m.params.includes(o.name)&&!(o.name in m.state))names.add(o.name)})
+  const vars=[...names],out=new Set([JSON.stringify(key)])
+  if(vars.length<=3)for(const input of sources.size?sources:m.inputs)for(let mask=1;mask<(1<<vars.length);mask++){
+   const substitutions=Object.fromEntries(vars.filter((_,i)=>mask&(1<<i)).map(name=>[name,x(input)]))
+   out.add(JSON.stringify(substE(key,{vars:substitutions,maps:{},flags:{}})))
+  }
+  variants.set(id,out);return out
+ }
+ return {...cert,insts:cert.insts.filter(inst=>{
+  if(inst.terms.length>=3)return inst.terms.length===3&&inst.terms.every(([,id])=>!(reads.get(id)?.[1].endsWith('#')??true))
+  if(inst.terms.length===1)return reads.get(inst.terms[0]![1])?.[1].endsWith('#')??false
+  if(inst.terms.length!==2||!inst.terms.every(([coefficient])=>Math.abs(coefficient)===1))return true
+  const a=reads.get(inst.terms[0]![1]),b=reads.get(inst.terms[1]![1]);if(!a||!b)return true
+  const post=a[1].endsWith('#')?a:b[1].endsWith('#')?b:undefined,pre=post===a?b:a
+  return !!post&&pre[1]===post[1].slice(0,-1)&&keys(post[0],post[2]).has(JSON.stringify(pre[2]))
+ })}
+}
 export function focusCountCert(m: Machine, decls: CountDecl[], full: Pick<CountCert,'reads'|'insts'>, options: {carried?: string, structural?: boolean, frames?: boolean, algebraic?: boolean, requestFrames?: boolean, copyFrames?: boolean, targets?: E[]} = {}): Pick<CountCert,'reads'|'insts'> {
   const cs=countsForReads(decls,full.reads)
   if(!cs) return {reads:full.reads,insts:[]}
@@ -220,16 +251,32 @@ export function focusCountCert(m: Machine, decls: CountDecl[], full: Pick<CountC
       let wit:string;do{wit=`frame$${serial++}`}while(used.has(wit));used.add(wit)
       insts.push({wit,below,terms,unit:0})
     }
-    const byId=new Map(cs.map(c=>[c.v,c]))
-    let copies=0
-    for(const after of full.reads.filter(r=>r[1].endsWith('#')).slice(0,16)){
-      const c=byId.get(after[0]);if(!c)continue
-      if(options.copyFrames)for(const before of full.reads){
-        if(copies>=16)break
-        const old=byId.get(before[0])
-        if(before[1]!==after[1].slice(0,-1)||text(before[2])===text(after[2])||!old||text(old.below)!==text(c.below))continue
-        add([[1,after[0]],[-1,before[0]]],c.below);add([[1,before[0]],[-1,after[0]]],c.below);copies++
+    const byId=new Map(cs.map(c=>[c.v,c])),afters=full.reads.filter(r=>r[1].endsWith('#')).slice(0,16)
+    if(options.copyFrames){
+      // Share the existing cross-row cap between result counts. Prefer the
+      // machine's input keys over unrelated law keys and setup constants.
+      const rank=(key:E):number=>{
+        const names=new Set<string>();walkOnce(key,(o:any)=>{if(o.op==='var')names.add(o.name)})
+        return names.size&&[...names].every(name=>m.inputs.includes(name))?Math.min(...[...names].map(name=>m.inputs.indexOf(name))):[...names].some(name=>m.inputs.includes(name))?100:200
       }
+      const pools=afters.flatMap(after=>{
+        const c=byId.get(after[0]);if(!c)return []
+        const before=full.reads.filter(old=>old[1]===after[1].slice(0,-1)&&text(old[2])!==text(after[2])&&text(byId.get(old[0])?.below)===text(c.below)).sort((a,b)=>rank(a[2])-rank(b[2]))
+        return [{after,c,before}]
+      })
+      let copies=0
+      for(let row=0;copies<16;row++){
+        let found=false
+        for(const pool of pools){
+          const before=pool.before[row];if(!before)continue
+          found=true;add([[1,pool.after[0]],[-1,before[0]]],pool.c.below);add([[1,before[0]],[-1,pool.after[0]]],pool.c.below)
+          if(++copies>=16)break
+        }
+        if(!found)break
+      }
+    }
+    for(const after of afters){
+      const c=byId.get(after[0]);if(!c)continue
       if(options.frames)add([[1,after[0]]],c.below)
       const before=full.reads.find(r=>r[1]===after[1].slice(0,-1)&&text(r[2])===text(after[2]))
       if(options.frames&&before&&text(byId.get(before[0])?.below)===text(c.below)){

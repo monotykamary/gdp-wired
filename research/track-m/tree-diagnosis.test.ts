@@ -2,7 +2,11 @@ import {expect,test} from 'bun:test'
 import {n} from '../../core/machine.ts'
 import {canon} from '../../kernel/kernel.ts'
 import {clock,grow} from '../../kernel/prove.ts'
-import {diagnoseTree} from './tree-diagnosis.ts'
+import {diagnoseTree,treeMetrics} from './tree-diagnosis.ts'
+test('tree metrics distinguish shared objects from expanded proof size',()=>{
+ const leaf={leaf:[{kind:'input' as const,index:0}]},child={split:{x:1},yes:leaf,no:leaf},tree={split:{y:1},yes:child,no:child}
+ expect(treeMetrics(tree)).toEqual({nodes:7,leaves:4,steps:4,depth:2,unique:3})
+})
 test('tree diagnostics name repeated and constant split rejections',()=>{
  const g={name:'empty',hyps:[]},split={x:1},leaf={leaf:[]}
  expect(diagnoseTree(g,{split,yes:leaf,no:leaf},new Map([[canon(split),{lin:split,holds:true}]]))).toMatchObject({kind:'duplicate-split',id:canon(split)})

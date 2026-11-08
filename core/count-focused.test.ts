@@ -1,7 +1,26 @@
 import {expect,test} from 'bun:test'
 import {all,any,atMost,get,ite,less,n,not,same,type E,type Machine,x} from './machine.ts'
 import {type CountCert,type CountDecl} from '../kernel/kernel.ts'
-import {countLawSeeds,countRowBridges,independentCountInstances,fieldLawBridges,focusCountCert,rowKeyNames} from './count-focused.ts'
+import {countLawSeeds,countRowBridges,independentCountInstances,fieldLawBridges,focusCountCert,copyCountSubset,rowKeyNames} from './count-focused.ts'
+
+test('a copy starting subset retains source substitutions without unrelated tuples',()=>{
+ const m:Machine={name:'copy subset',params:[],inputs:['source','other'],state:{},step:{}},key=(a:string,b:string):E=>({op:'add',a:{op:'mul',k:64,a:x(a)},b:x(b)})
+ const reads:CountCert['reads']=[['post','Count#',key('a','b')],['same','Count',key('a','b')],['first','Count',key('source','b')],['second','Count',key('a','source')],['diagonal','Count',key('source','source')],['mixed','Count',key('source','other')],['foreign','Count',key('alien','b')],['request','Request',n(0)]]
+ const names=reads.slice(1).map(r=>r[0]),insts=names.map((id,i)=>({wit:`w${i}`,below:n(4),unit:0,terms:[[1,'post'],[-1,id]] as [number,string][]})),full={reads,insts},before=JSON.stringify(full),out=copyCountSubset(m,full)
+ expect(out.insts.map(i=>i.terms[1]![1])).toEqual(['same','first','second','diagonal'])
+ expect(out.reads).toBe(reads)
+ expect(JSON.stringify(full)).toBe(before)
+})
+
+test('copy source discovery ignores inputs read only by update guards',()=>{
+ const m:Machine={name:'copy roles',params:[],inputs:['source','destination'],state:{},maps:{M:0},step:{maps:{M:{each:'row',value:ite(same(get('M',x('destination')),n(0)),get('M',x('source')),get('M',x('row')))}}}},reads:CountCert['reads']=[['post','C#',x('a')],['source','C',x('source')],['destination','C',x('destination')]],full={reads,insts:['source','destination'].map(id=>({wit:id,below:n(4),unit:0,terms:[[1,'post'],[-1,id]] as [number,string][]}))}
+ expect(copyCountSubset(m,full).insts.map(i=>i.wit)).toEqual(['source'])
+})
+
+test('copy starting subsets preserve algebraic and post-empty proposals',()=>{
+ const m:Machine={name:'algebraic subset',params:[],inputs:[],state:{},step:{}},reads:CountCert['reads']=[['post','Count#',x('a')],['old','Count',x('a')]],make=(terms:[number,string][])=>({wit:'w',below:n(4),unit:0,terms}),full={reads,insts:[make([[1,'post']]),make([[1,'old']]),make([[1,'old'],[-1,'old'],[-1,'old']])]}
+ expect(copyCountSubset(m,full).insts).toEqual([full.insts[0]!,full.insts[2]!])
+})
 
 test('copy-frame proposals compare the same counted definition at different rows within a cap',()=>{
  const d={j:'row',key:'member',below:n(4),body:ite(same(get('Members',x('row')),n(1)),n(1),n(0))},decls:CountDecl[]=[{map:'Count',...d},{map:'Count#',...d}]
@@ -12,6 +31,14 @@ test('copy-frame proposals compare the same counted definition at different rows
  expect(full.insts).toEqual([])
  const many:CountCert['reads']=[reads[0]!,...Array.from({length:20},(_,i)=>[`source${i}`,'Count',x(`row${i}`)] as CountCert['reads'][number])]
  expect(focusCountCert(m,decls,{reads:many,insts:[]},{copyFrames:true}).insts).toHaveLength(32)
+})
+
+test('copy-frame slots are shared across result counts and prioritize input sources',()=>{
+ const d={j:'row',key:'member',below:n(4),body:ite(same(get('Members',x('row')),n(1)),n(1),n(0))},decls:CountDecl[]=['First','Second'].flatMap(map=>[{map,...d},{map:`${map}#`,...d}])
+ const m:Machine={name:'fair copies',params:[],inputs:['source'],state:{},maps:{Members:0},step:{}},reads:CountCert['reads']=[['firstPost','First#',x('target')],['secondPost','Second#',x('target')],...Array.from({length:20},(_,i)=>[`old${i}`,'First',x(`row${i}`)] as CountCert['reads'][number]),['firstSource','First',x('source')],['secondSource','Second',x('source')]]
+ const got=focusCountCert(m,decls,{reads,insts:[]},{copyFrames:true})
+ expect(got.insts.length).toBeLessThanOrEqual(32)
+ for(const [post,source]of [['firstPost','firstSource'],['secondPost','secondSource']])expect(got.insts.some(q=>JSON.stringify(q.terms)===JSON.stringify([[1,post],[-1,source]]))).toBe(true)
 })
 
 test('focused comparisons follow carried sets and indicator bodies, not names',()=>{

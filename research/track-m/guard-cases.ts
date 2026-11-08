@@ -6,9 +6,10 @@ import {solve,sub} from '../../core/solver.ts'
 import {atPoint,clock,grow,rowsAt,widen,withDeadline} from '../../kernel/prove.ts'
 import {fieldBoundLemmas} from './field-bound-lemmas.ts'
 import {frameLemmas} from './frame-lemmas.ts'
+import {treeMetrics} from './tree-diagnosis.ts'
 type Proposal=Pick<CountCert,'reads'|'insts'>
 
-export function guardCases(m:Machine,ds:CountDecl[],g:Goal,cert:Proposal,guard:C,until:number,trace:object[],slot=0,root:Path=new Map()):Tree|undefined{
+export function guardCases(m:Machine,ds:CountDecl[],g:Goal,cert:Proposal,guard:C,until:number,trace:object[],slot=0,root:Path=new Map(),options:{deferCheck?:boolean}={}):Tree|undefined{
  const conditions:C[]=[],booleans=process.env.LAB_BOOLEAN_GUARDS==='1'
  const collect=(c:C):boolean=>{
   if(c.op==='and'||booleans&&c.op==='or')return c.xs.every(collect)
@@ -63,7 +64,9 @@ export function guardCases(m:Machine,ds:CountDecl[],g:Goal,cert:Proposal,guard:C
   return yes?{split,yes,no}:undefined
  }
  const tree=visit(0,[],new Map(root))
- const checked=!!tree&&check(g,tree,root)
- trace.push({stage:'guard-complete',cuts:conditions.length,checked})
- return checked?tree:undefined
+ if(tree&&process.env.LAB_PROGRESS==='1')trace.push({stage:'guard-tree',...treeMetrics(tree),hyps:g.hyps.length})
+ const accepted=!!tree&&(options.deferCheck||check(g,tree,root))
+ trace.push({stage:'guard-complete',cuts:conditions.length,checked:!options.deferCheck&&accepted,...(options.deferCheck?{proposed:!!tree,deferred:true}:{})})
+ // Deferred trees are proposals only; the composing caller must check them.
+ return accepted?tree:undefined
 }

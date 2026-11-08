@@ -31,14 +31,21 @@ test('numeric count bindings retain constraints in an existing guard path',()=>{
  if('tree'in out){const tree=liftCountProxies(part,whole,out.tree,[['count','Rows',n(0)]],path,path);expect(tree).toBeDefined();if(tree)expect(check(whole,tree,path)).toBe(true)}
  expect('tree'in grow({name:'disconnected',hyps:[{op:'<=' as const,a:n(1),b:r}]},path,{nodes:0,until:clock()+500})).toBe(false)
 })
-for(const guarded of [true,false])test(`count proxy domain guards ${guarded?'are checked':'cannot be assumed'}`,()=>{
+test('a deferred transport is not an accepted proof',()=>{
+ const goal={name:'possible',hyps:[same(x('x'),n(0))]},invalid={leaf:[]}
+ expect(liftCountProxies(goal,goal,invalid,[])).toBeUndefined()
+ const proposal=liftCountProxies(goal,goal,invalid,[],new Map(),new Map(),undefined,{deferCheck:true})
+ expect(proposal).toBeDefined()
+ if(proposal)expect(check(goal,proposal)).toBe(false)
+})
+for(const deferred of [false,true])for(const guarded of [true,false])test(`count proxy domain guards ${guarded?'are checked':'cannot be assumed'} (deferred=${deferred})`,()=>{
  const r=x('count'),key=x('key'),cell=get('Rows',key)
  const part={name:'numeric',hyps:[{op:'<=' as const,a:{op:'mul' as const,k:2,a:r},b:n(1)},{op:'<=' as const,a:n(1),b:r}]}
  const whole={name:'guarded original',hyps:[{op:'<=' as const,a:{op:'mul' as const,k:2,a:cell},b:n(1)},{op:'or' as const,xs:[{op:'<=' as const,a:n(4),b:key},same(r,cell)]},{op:'<=' as const,a:n(1),b:r},...(guarded?[{op:'<' as const,a:key,b:n(4)}]:[])]}
  const out=grow(part,new Map(),{nodes:0,until:clock()+500})
  expect('tree'in out).toBe(true)
  if('tree'in out){
-  const proof=liftCountProxies(part,whole,out.tree,[['count','Rows',key]])
+  const proof=liftCountProxies(part,whole,out.tree,[['count','Rows',key]],new Map(),new Map(),undefined,{deferCheck:deferred})
   if(guarded){expect(proof).toBeDefined();if(proof)expect(check(whole,proof)).toBe(true)}
   else expect(proof).toBeUndefined()
  }

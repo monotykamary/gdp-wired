@@ -10,7 +10,7 @@ import {piecesAt,sourceScalarContext,sourceWitnessContext,walkLive} from './live
 import {carriedCase} from './carried-case.ts'
 import {foldPath} from './fold-path.ts'
 import {booleanCore} from './boolean-core.ts'
-import {proveRowCases,rowPairs} from './row-cases.ts'
+import {activeWriteRow,proveRowCases,rowPairs} from './row-cases.ts'
 import {proveNaturalCases} from './natural-cases.ts'
 import {activeCarried} from './action-guard.ts'
 import {diagnoseTree} from './tree-diagnosis.ts'
@@ -147,9 +147,9 @@ export function fieldBoundLemmas(m:Machine,ds:CountDecl[],g:Goal,cert:Proposal,u
    if(bindings.length!==2)continue
    const small:Goal={name:'equal-key count reads',hyps:bindings},out=refuteFast(rowsAt(small,noPath),256)
    const local:Tree|undefined=out?.kind==='refuted'?{leaf:out.steps}:undefined
-   const no=local&&check(small,local,noPath)?liftCountProxies(small,g,local,[],noPath,noPath):undefined,checked=!!no&&check(g,no,noPath)
-   trace.push({stage:'read-alias',left,right,ms:Math.round(clock()-begun),checked})
-   if(checked&&no){lemmas.push({split,no});ctx.push({op:'<=',a:x(left!),b:x(right!)});path.set(canon(split),{lin:split,holds:true})}
+   const no=local&&check(small,local,noPath)?liftCountProxies(small,g,local,[],noPath,noPath,undefined,options):undefined,accepted=!!no&&(options.deferCheck||check(g,no,noPath))
+   trace.push({stage:'read-alias',left,right,ms:Math.round(clock()-begun),checked:!options.deferCheck&&accepted,...(options.deferCheck?{proposed:accepted,deferred:true}:{})})
+   if(accepted&&no){lemmas.push({split,no});ctx.push({op:'<=',a:x(left!),b:x(right!)});path.set(canon(split),{lin:split,holds:true})}
   }
  }
  const ceilings=fieldBounds(m,ds,cert),domains:C[]=[]
@@ -249,10 +249,44 @@ export function fieldBoundLemmas(m:Machine,ds:CountDecl[],g:Goal,cert:Proposal,u
     if('tree'in out)proof=widen(reduced,numeric,out.tree,{},root,root)
    }
    if(!proof&&process.env.LAB_NAT_CASES==='1'&&!('tree'in q)&&q.stuck==='unknown')proof=proveNaturalCases(numeric,root,Math.min(until,clock()+400),trace)
-   const lifted=proof&&liftCountProxies(numeric,g,proof,cert.reads,root,path,event=>trace.push({stage:'count-transport',...event}))
-   if(lifted)arithmetic=lifted // liftCountProxies already checks this exact source path.
+   const lifted=proof&&liftCountProxies(numeric,g,proof,cert.reads,root,path,event=>trace.push({stage:'count-transport',...event}),options)
+   if(lifted)arithmetic=lifted // Checked here, or deferred to the composing caller.
   }
-  const rank=(inst:Proposal['insts'][number])=>process.env.LAB_EMPTY_COUNTS==='1'&&emptyCountCandidate(m,cert,inst)?-1:process.env.LAB_COPY_FRAMES==='1'&&copyFrame(inst)?0:requestFrame(inst)||alias(inst)?0:inst.terms.length===2&&inst.terms.every(([,id])=>postIds.has(id))?1:frame(inst)?2:inst.terms.length===3&&inst.terms.every(([,id])=>!postIds.has(id))?3:inst.terms.length===5?4:inst.terms.length===2?5:6
+  const diagonalCopy=(inst:Proposal['insts'][number]):boolean=>{
+   if(!copyFrame(inst))return false
+   const source=inst.terms.map(([,id])=>cert.reads.find(r=>r[0]===id)).find(r=>r&&!r[1].endsWith('#')),key=source?.[2]
+   if(key?.op==='tup')return JSON.stringify(key.a)===JSON.stringify(key.b)
+   const decl=source&&m.counts?.[source[1]]
+   return key?.op==='add'&&!!decl?.lo&&key.a.op==='mul'&&key.a.k===decl.base&&JSON.stringify(key.a.a)===JSON.stringify(key.b)
+  }
+  const writer=process.env.LAB_ACTIVE_WRITER==='1'?activeWriteRow(m,root):undefined
+  const afterRead=(inst:Proposal['insts'][number])=>inst.terms.map(([,id])=>cert.reads.find(r=>r[0]===id)).find(r=>r?.[1].endsWith('#'))
+  const coordinates=(read:CountCert['reads'][number])=>{
+   const key=read[2],d=m.counts?.[read[1].replace(/#$/,'')]
+   if(key.op==='tup')return [key.a,key.b]
+   if(d?.lo&&key.op==='add'&&key.a.op==='mul'&&key.a.k===d.base)return [key.a.a,key.b]
+   return [key]
+  }
+  const rank=(inst:Proposal['insts'][number]):number=>{
+   if(process.env.LAB_EMPTY_COUNTS==='1'&&emptyCountCandidate(m,cert,inst))return -1
+   const after=afterRead(inst),keys=after&&coordinates(after)
+   if(writer&&frame(inst)&&keys?.every(key=>truth(same(key,x(writer)),root)===false))return -0.75
+   if(process.env.LAB_COPY_FRAMES==='1'&&copyFrame(inst)){
+    if(writer&&keys){
+     const before=inst.terms.map(([,id])=>cert.reads.find(r=>r[0]===id)).find(r=>r&&!r[1].endsWith('#')),oldKeys=before&&coordinates(before)
+     let moved=false,matched=!!oldKeys&&oldKeys.length===keys.length
+     for(let i=0;matched&&i<keys.length;i++){
+      const changed=truth(same(keys[i]!,x(writer)),root),old=oldKeys![i]!
+      if(changed===false&&truth(same(old,keys[i]!),root)!==true)return 0.5
+      if(changed===true){moved=true;matched=old.op==='var'&&m.inputs.includes(old.name)&&old.name!==writer}
+      if(changed===undefined)matched=false
+     }
+     if(matched&&moved)return -0.5
+    }
+    return diagonalCopy(inst)?0.5:0
+   }
+   return requestFrame(inst)||alias(inst)?0:inst.terms.length===2&&inst.terms.every(([,id])=>postIds.has(id))?1:frame(inst)?2:inst.terms.length===3&&inst.terms.every(([,id])=>!postIds.has(id))?3:inst.terms.length===5?4:inst.terms.length===2?5:6
+  }
   finish()
   for(const [index,inst]of [...cert.insts.entries()].sort((a,b)=>rank(a[1])-rank(b[1]))){
    if(arithmetic||clock()>=until)break
@@ -268,12 +302,17 @@ export function fieldBoundLemmas(m:Machine,ds:CountDecl[],g:Goal,cert:Proposal,u
     if(fast)proof=widen(tiny,part,fast,{},root,root)
     trace.push({stage:'direct-partition',index,proved:!!proof})
    }
-   if(process.env.LAB_DIRECT_COPY==='1'&&copyFrame(inst)){
-    const tiny=sourceScalarContext({name:g.name,hyps:raw},{name:g.name,hyps:[h,{op:'not' as const,x:good}]},new Set([...m.params,...m.inputs,...Object.keys(m.state)]),root),fast=booleanCore(tiny,root,new Set([inst.wit]),Math.min(until,clock()+80),trace,{model:String(index)===process.env.LAB_COPY_MODEL_INDEX})
+   const directCopy=process.env.LAB_DIRECT_COPY==='1'&&(copyFrame(inst)||frame(inst))
+   if(directCopy){
+    // The matching diagonal gets the existing row window; reserve time for
+    // arithmetic closure instead of spending it on unrelated copy pairs.
+    const copyUntil=diagonalCopy(inst)?Math.max(clock(),until-200):Math.min(until,started+230)
+    const tiny=sourceScalarContext({name:g.name,hyps:raw},{name:g.name,hyps:[h,{op:'not' as const,x:good}]},new Set([...m.params,...m.inputs,...Object.keys(m.state)]),root),fast=booleanCore(tiny,root,new Set([inst.wit]),copyUntil,trace,{model:String(index)===process.env.LAB_COPY_MODEL_INDEX,extended:true,scalarGuards:true})
     if(fast)proof=widen(tiny,part,fast,{},root,root)
-    trace.push({stage:'direct-copy',index,terms:inst.terms,proved:!!proof})
+    trace.push({stage:'direct-copy',index,terms:inst.terms,reads:inst.terms.map(([,id])=>cert.reads.find(r=>r[0]===id)),proved:!!proof})
    }
-   proof??=solve(part,150)
+   // Reallocate the existing 80 + 150 ms copy window, rather than extend it.
+   proof??=solve(part,directCopy?Math.max(0,230-(clock()-started)):150)
    const lifted=proof&&widen(part,g,proof,{},root,noPath),no=accept(lifted,noPath)
    trace.push({stage:'count-lemma',index,arity:inst.terms.length,terms:inst.terms,ms:Math.round(clock()-started),...verdict(no)})
    if(no){lemmas.push({split,no});ctx.push(good);path.set(canon(split),{lin:split,holds:true});finish()}

@@ -1,11 +1,13 @@
 // Untrusted linear recipe transport through explicit count-read equalities.
 // Unlike widen's fallback this never launches a fresh whole-goal search.
+// A deferred result is only a proposal: its composing caller must check the
+// complete tree against the original goal, including these transported leaves.
 import {type E,walkOnce} from '../../core/machine.ts'
 import {type Lin,type Step,add,scale,solve,sub} from '../../core/solver.ts'
 import {type CountCert,type Goal,type Path,type Tree,canon,check,columnTerm,linear,substE} from '../../kernel/kernel.ts'
 import {rowsAt} from '../../kernel/prove.ts'
 
-export function liftCountProxies(part:Goal,whole:Goal,tree:Tree,reads:CountCert['reads'],pp:Path=new Map(),wp:Path=new Map(),diagnose?:(event:object)=>void):Tree|undefined{
+export function liftCountProxies(part:Goal,whole:Goal,tree:Tree,reads:CountCert['reads'],pp:Path=new Map(),wp:Path=new Map(),diagnose?:(event:object)=>void,options:{deferCheck?:boolean}={}):Tree|undefined{
  const aliases=new Map<string,E>(reads.map(([id,map,key])=>[id,{op:'get',map,key}]))
  const substitutions=Object.fromEntries(aliases),terms=new Map<string,E|undefined>()
  const remapTerm=(name:string):E|undefined=>{
@@ -93,12 +95,12 @@ export function liftCountProxies(part:Goal,whole:Goal,tree:Tree,reads:CountCert[
   if(known===false)return open(i+1,path)
   const badPath=new Map(path).set(id,{lin:split,holds:true}),out=solve(rowsAt(whole,badPath),2000)
   if(out.kind!=='refuted'){diagnose?.({reason:'domain-not-refuted',split});return undefined}
-  const yes:Tree={leaf:out.steps};if(!check(whole,yes,badPath))return undefined
+  const yes:Tree={leaf:out.steps};if(!options.deferCheck&&!check(whole,yes,badPath))return undefined
   if(known===true)return yes
   const no=open(i+1,new Map(path).set(id,{lin:split,holds:false}))
   return no?{split,yes,no}:undefined
  }
- const out=open(0,wp),checked=!!out&&check(whole,out,wp)
- diagnose?.({reason:'complete',guards:all.length,checked})
- return checked?out:undefined
+ const out=open(0,wp),accepted=!!out&&(options.deferCheck||check(whole,out,wp))
+ diagnose?.({reason:'complete',guards:all.length,checked:!options.deferCheck&&accepted,...(options.deferCheck?{proposed:!!out,deferred:true}:{})})
+ return accepted?out:undefined
 }

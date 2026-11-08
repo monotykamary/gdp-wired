@@ -34,11 +34,11 @@ test('activation cases cannot turn a satisfiable unrestricted goal into a proof'
  const g={name:'possible',hyps:[same(x('action'),n(1))]}
  expect(guardCases(m,[],g,{reads:[],insts:[]},same(x('action'),n(1)),clock()+1000,[])).toBeUndefined()
 })
-test('activation case leaves lift to a checked complete tree',()=>{
+for(const deferred of [false,true])test(`activation case leaves lift to a checked complete tree (deferred=${deferred})`,()=>{
  const g={name:'impossible',hyps:[{op:'<' as const,a:n(1),b:n(0)}]}
- const events:any[]=[],tree=guardCases(m,[],g,{reads:[],insts:[]},same(x('action'),n(1)),clock()+1000,events)
+ const events:any[]=[],tree=guardCases(m,[],g,{reads:[],insts:[]},same(x('action'),n(1)),clock()+1000,events,0,new Map(),{deferCheck:deferred})
  expect(tree).toBeDefined()
  expect(events.some(e=>e.stage==='guard-leaf'&&e.active&&e.deferred&&!e.checked)).toBe(true)
- expect(events.some(e=>e.stage==='guard-complete'&&e.checked)).toBe(true)
+ expect(events.some(e=>e.stage==='guard-complete'&&(deferred?e.proposed&&e.deferred&&!e.checked:e.checked))).toBe(true)
  if(tree)expect(check(g,tree)).toBe(true)
 })
