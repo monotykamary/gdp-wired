@@ -1,0 +1,20 @@
+{
+ "paxos": {
+  "vm": "bx_633dfam7",
+  "type": "xlarge",
+  "cpu": "AMD Ryzen 9 9950X 16-Core Processor",
+  "vcpus": 8,
+  "vm_vcpus": 16,
+  "exclusive": true,
+  "co_tenants": 0
+ },
+ "expansion-unit": {
+  "vm": "bx_633dfam7",
+  "type": "xlarge",
+  "cpu": "AMD Ryzen 9 9950X 16-Core Processor",
+  "vcpus": 8,
+  "vm_vcpus": 16,
+  "exclusive": true,
+  "co_tenants": 0
+ }
+}

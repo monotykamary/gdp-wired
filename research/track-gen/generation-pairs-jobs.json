@@ -1,0 +1,1 @@
+[{"name":"generation-pairs","cmd":"bash research/track-gen/generation-pairs.sh","cpu":8,"memory":14336,"timeout":480}]

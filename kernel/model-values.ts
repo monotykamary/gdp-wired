@@ -2,9 +2,19 @@
 // A model supplies the other terms in a linear comparison. Its boundary and
 // neighbours are candidate constants; only the instantiated law is assumed,
 // and the ordinary kernel must still check the resulting proof.
-import {type C, type E} from '../core/machine.ts'
+import {type C, type E, walkOnce} from '../core/machine.ts'
 
 export function modelValueTerms(body: C, name: string, free: ReadonlySet<string>, value: (e: E) => number | undefined): E[] {
+  // Function arguments are keys too. Preserve their existing symbolic domain:
+  // replacing f(k)'s key by an equal-valued constant can lose later instances.
+  // Only a natural never used as a read key gets arithmetic boundary proposals.
+  let keyed = false
+  walkOnce(body, o => {
+    const e = o as E
+    if (e.op !== 'get') return
+    walkOnce(e.key, k => { const part = k as E; if (part.op === 'var' && part.name === name) keyed = true })
+  })
+  if (keyed) return []
   type Linear = {coefficient: number, constant: number}
   const linear = (e: E): Linear | undefined => {
     if (e.op === 'var' && e.name === name) return {coefficient: 1, constant: 0}

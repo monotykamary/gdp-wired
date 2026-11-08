@@ -1,0 +1,6 @@
+[infer join failed] {"why":"Error: law a transfer in flight, or every key owned reads some$3, which it doesn't declare\n    at inScope (/work/gdp-wired/kernel/kernel.ts:710:68)\n    at scope (/work/gdp-wired/kernel/kernel.ts:790:27)\n    at obligations (/work/gdp-wired/kernel/kernel.ts:1112:3)\n    
+[infer join failed] {"why":"Error: law a transfer in flight, or every key owned reads some$3, which it doesn't declare\n    at inScope (/work/gdp-wired/kernel/kernel.ts:710:68)\n    at scope (/work/gdp-wired/kernel/kernel.ts:790:27)\n    at obligations (/work/gdp-wired/kernel/kernel.ts:1112:3)\n    at instancesFor (/work/gdp-wired/kernel/prove.ts:1511:49)\n    at stepWith (/work/gdp-wired/core/infer.ts:1855:91)\n    at inferLawsSearch (/work/gdp-wired/core/infer.ts:3291:45)\n    at withDeadline (/work/gdp-wired/kernel/prove.ts:269:16)\n    at quietly (/work/gdp-wired/core/cyclic.ts:1189:70)\n    at withTrees (/work/gdp-wired/kernel/prove.ts:305:16)\n    at withWall (/work/gdp-wired/kernel/prove.ts:257:16)"}
+BROKEN_EXIT=137
+
+--- stderr ---
+bash: line 1: 51150 Killed                  GDP_INFER_TRACE=2 timeout -s KILL 60 bun research/protocols/ic3syn/run.ts --ms 60000 --only 'sharded_kv_no_lost_keys' --skip 'search' 2> /tmp/err.log

@@ -1,0 +1,46 @@
+PAIR begin side=cand id=learning_switch run=1
+{"id":"learning_switch","ic3syn":"pyv-learning-switch","broken":{"bug":"forward learns without the no-route check","verdict":"unknown","goal":"the table is antisymmetric @step","stuck":"sat","why":"a model; the search found nothing that proves it in 8600 ms","ms":14725,"work":215455,"full":654844}}
+[infer join engine] {"wall":0,"eUntil":55632}
+[infer join small instance] {"states":8011,"bfs":693,"params":1,"symmetric":"","ms":1447,"took":1447}
+[infer join pool] {"made":203,"left":203,"states":150,"ms":400,"real":4320}
+[infer join enumerated] {"views":4,"cubes":18,"ms":3502}
+[infer join houdini] {"cubes":18,"proven":0,"ms":600,"at":"the table is antisymmetric @step","stuck":"sat","why":"a model"}
+[infer join exists] {"law":"none","ms":0}
+[infer join enumerated] {"round":0,"cubes":18,"real":0,"unsure":0,"caller":1,"diagrams":0,"ms":4148}
+[infer join enumerated] {"round":1,"cubes":26,"real":0,"unsure":0,"caller":1,"diagrams":0,"ms":4326}
+[infer join enumerated] {"round":2,"cubes":34,"real":0,"unsure":0,"caller":1,"diagrams":0,"ms":4550}
+[infer join enumerated] {"round":3,"cubes":42,"real":0,"unsure":0,"caller":1,"diagrams":0,"ms":4730}
+[infer join enumerated] {"round":4,"cubes":50,"real":0,"unsure":0,"caller":1,"diagrams":0,"ms":4907}
+[infer join enumerated] {"round":5,"cubes":58,"real":0,"unsure":0,"caller":1,"diagrams":0,"ms":5090}
+[infer join enumerated] {"round":6,"cubes":66,"real":0,"unsure":0,"caller":1,"diagrams":0,"ms":5288}
+[infer join enumerated] {"round":7,"cubes":74,"real":0,"unsure":0,"caller":1,"diagrams":0,"ms":5490}
+[infer join enumerated] {"round":8,"cubes":82,"real":0,"unsure":0,"caller":1,"diagrams":0,"ms":5728}
+[infer join enumerated] {"round":9,"cubes":90,"real":0,"unsure":0,"caller":1,"diagrams":0,"ms":5824}
+[infer join enumerated] {"round":10,"cubes":98,"real":0,"unsure":0,"caller":1,"diagrams":0,"ms":5866}
+[infer join enumerated] {"round":11,"cubes":106,"real":0,"unsure":0,"caller":1,"diagrams":0,"ms":5908}
+[infer join enumerated] {"round":12,"cubes":110,"real":0,"unsure":0,"caller":1,"diagrams":0,"ms":5944}
+[infer join end] {"rounds":0,"set":0,"why":"time","cone":0,"ms":8346,"real":8598,"v":5944,"now":3292,"full":654844,"epr":321555,"erows":142883,"etries":145372,"tries":34142,"rows":1774579,"evals":1053,"work":110938}
+PAIR end side=cand exit=0
+PAIR begin side=base id=learning_switch run=1
+{"id":"learning_switch","ic3syn":"pyv-learning-switch","broken":{"bug":"forward learns without the no-route check","verdict":"unknown","goal":"the table is antisymmetric @step","stuck":"sat","why":"a model; the search found nothing that proves it in 7974 ms","ms":13532,"work":215455,"full":654844}}
+[infer join engine] {"wall":0,"eUntil":55662}
+[infer join small instance] {"states":8011,"bfs":693,"params":1,"symmetric":"","ms":1447,"took":1447}
+[infer join pool] {"made":203,"left":203,"states":150,"ms":400,"real":3879}
+[infer join enumerated] {"views":4,"cubes":18,"ms":3502}
+[infer join houdini] {"cubes":18,"proven":0,"ms":600,"at":"the table is antisymmetric @step","stuck":"sat","why":"a model"}
+[infer join exists] {"law":"none","ms":0}
+[infer join enumerated] {"round":0,"cubes":18,"real":0,"unsure":0,"caller":1,"diagrams":0,"ms":4148}
+[infer join enumerated] {"round":1,"cubes":26,"real":0,"unsure":0,"caller":1,"diagrams":0,"ms":4326}
+[infer join enumerated] {"round":2,"cubes":34,"real":0,"unsure":0,"caller":1,"diagrams":0,"ms":4550}
+[infer join enumerated] {"round":3,"cubes":42,"real":0,"unsure":0,"caller":1,"diagrams":0,"ms":4730}
+[infer join enumerated] {"round":4,"cubes":50,"real":0,"unsure":0,"caller":1,"diagrams":0,"ms":4907}
+[infer join enumerated] {"round":5,"cubes":58,"real":0,"unsure":0,"caller":1,"diagrams":0,"ms":5090}
+[infer join enumerated] {"round":6,"cubes":66,"real":0,"unsure":0,"caller":1,"diagrams":0,"ms":5288}
+[infer join enumerated] {"round":7,"cubes":74,"real":0,"unsure":0,"caller":1,"diagrams":0,"ms":5490}
+[infer join enumerated] {"round":8,"cubes":82,"real":0,"unsure":0,"caller":1,"diagrams":0,"ms":5728}
+[infer join enumerated] {"round":9,"cubes":90,"real":0,"unsure":0,"caller":1,"diagrams":0,"ms":5824}
+[infer join enumerated] {"round":10,"cubes":98,"real":0,"unsure":0,"caller":1,"diagrams":0,"ms":5866}
+[infer join enumerated] {"round":11,"cubes":106,"real":0,"unsure":0,"caller":1,"diagrams":0,"ms":5908}
+[infer join enumerated] {"round":12,"cubes":110,"real":0,"unsure":0,"caller":1,"diagrams":0,"ms":5944}
+[infer join end] {"rounds":0,"set":0,"why":"time","cone":0,"ms":7724,"real":7972,"v":5944,"now":3292,"full":654844,"epr":321555,"erows":142883,"etries":145372,"tries":34142,"rows":1774579,"evals":1053,"work":110938}
+PAIR end side=base exit=0

@@ -1,0 +1,6 @@
+PAIR begin side=cand id=consensus run=1
+{"id":"consensus","ic3syn":"tla-consensus","broken":{"bug":"Next without chosen = {}","verdict":"refuted","goal":"at most one value chosen @step","stuck":"sat","run":2,"ms":4,"work":0,"full":0}}
+PAIR end side=cand exit=0
+PAIR begin side=base id=consensus run=1
+{"id":"consensus","ic3syn":"tla-consensus","broken":{"bug":"Next without chosen = {}","verdict":"refuted","goal":"at most one value chosen @step","stuck":"sat","run":2,"ms":4,"work":0,"full":0}}
+PAIR end side=base exit=0

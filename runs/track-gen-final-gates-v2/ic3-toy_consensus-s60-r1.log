@@ -1,0 +1,12 @@
+PAIR begin side=cand id=toy_consensus run=1
+{"id":"toy_consensus","ic3syn":"ex-toy-consensus","search":{"verdict":"proven","found":["every Decision cell is a value of its kind","one value decided","Decision keeps members's bound through members$Decision","every x, y with x < 64 ∧ y < 64 ∧ ¬(x = y): never 1 <= Decision[x] and 1 <= Decision[y]"],"ms":946,"work":78435,"full":65258}}
+[infer join engine] {"wall":0,"eUntil":14250}
+[infer join small instance] {"states":99,"bfs":99,"params":1,"symmetric":"M:Decision","ms":475,"took":475}
+[infer join pool] {"made":1,"left":1,"states":300,"ms":1085,"real":553}
+PAIR end side=cand exit=0
+PAIR begin side=base id=toy_consensus run=1
+{"id":"toy_consensus","ic3syn":"ex-toy-consensus","search":{"verdict":"proven","found":["every Decision cell is a value of its kind","one value decided","Decision keeps members's bound through members$Decision","every x, y with x < 64 ∧ y < 64 ∧ ¬(x = y): never 1 <= Decision[x] and 1 <= Decision[y]"],"ms":1660,"work":76032,"full":64652}}
+[infer join engine] {"wall":0,"eUntil":13779}
+[infer join small instance] {"states":99,"bfs":99,"params":1,"symmetric":"M:Decision","ms":475,"took":475}
+[infer join pool] {"made":1,"left":1,"states":300,"ms":1085,"real":1289}
+PAIR end side=base exit=0

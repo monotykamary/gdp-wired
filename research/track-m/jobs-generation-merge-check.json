@@ -1,0 +1,1 @@
+[{"name":"merge-check","cmd":"set -e; bash research/track-m/prepare-vendors.sh; bun install --frozen-lockfile >/dev/null; bun test core/count-admission.test.ts core/counts-structured.test.ts core/count-recovery-order.test.ts; bun run check","cpu":8,"memory":14336,"timeout":240}]

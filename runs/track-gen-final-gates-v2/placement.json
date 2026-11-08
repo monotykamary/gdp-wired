@@ -1,0 +1,1226 @@
+{
+ "check-and-tests": {
+  "vm": "bx_4cma575j",
+  "type": "large",
+  "cpu": "",
+  "vcpus": 8,
+  "vm_vcpus": 8,
+  "exclusive": true,
+  "co_tenants": 0
+ },
+ "ic3-paxos_epr-s60-r1": {
+  "vm": "bx_3kjzmmhv",
+  "type": "large",
+  "cpu": "",
+  "vcpus": 8,
+  "vm_vcpus": 8,
+  "exclusive": true,
+  "co_tenants": 0
+ },
+ "ic3-paxos_epr-s60-r2": {
+  "vm": "bx_5f32uf5a",
+  "type": "large",
+  "cpu": "",
+  "vcpus": 8,
+  "vm_vcpus": 8,
+  "exclusive": true,
+  "co_tenants": 0
+ },
+ "ic3-paxos_epr-s60-r3": {
+  "vm": "bx_2hzfj2ah",
+  "type": "large",
+  "cpu": "",
+  "vcpus": 8,
+  "vm_vcpus": 8,
+  "exclusive": true,
+  "co_tenants": 0
+ },
+ "ic3-consensus-s60-r1": {
+  "vm": "bx_395wpmqp",
+  "type": "large",
+  "cpu": "",
+  "vcpus": 8,
+  "vm_vcpus": 8,
+  "exclusive": true,
+  "co_tenants": 0
+ },
+ "ic3-tcommit-s60-r1": {
+  "vm": "bx_5f32uf5a",
+  "type": "large",
+  "cpu": "",
+  "vcpus": 8,
+  "vm_vcpus": 8,
+  "exclusive": true,
+  "co_tenants": 0
+ },
+ "ic3-lock_server-s60-r1": {
+  "vm": "bx_4cma575j",
+  "type": "large",
+  "cpu": "",
+  "vcpus": 8,
+  "vm_vcpus": 8,
+  "exclusive": true,
+  "co_tenants": 0
+ },
+ "ic3-quorum_leader_election-s60-r1": {
+  "vm": "bx_2eg9t59n",
+  "type": "large",
+  "cpu": "",
+  "vcpus": 8,
+  "vm_vcpus": 8,
+  "exclusive": true,
+  "co_tenants": 0
+ },
+ "ic3-toy_consensus_forall-s60-r1": {
+  "vm": "bx_395wpmqp",
+  "type": "large",
+  "cpu": "",
+  "vcpus": 8,
+  "vm_vcpus": 8,
+  "exclusive": true,
+  "co_tenants": 0
+ },
+ "ic3-simple-s60-r1": {
+  "vm": "bx_3kjzmmhv",
+  "type": "large",
+  "cpu": "",
+  "vcpus": 8,
+  "vm_vcpus": 8,
+  "exclusive": true,
+  "co_tenants": 0
+ },
+ "ic3-simple_regular-s60-r1": {
+  "vm": "bx_2eg9t59n",
+  "type": "large",
+  "cpu": "",
+  "vcpus": 8,
+  "vm_vcpus": 8,
+  "exclusive": true,
+  "co_tenants": 0
+ },
+ "ic3-lockserv_automaton-s60-r1": {
+  "vm": "bx_3kjzmmhv",
+  "type": "large",
+  "cpu": "",
+  "vcpus": 8,
+  "vm_vcpus": 8,
+  "exclusive": true,
+  "co_tenants": 0
+ },
+ "ic3-sharded_kv-s60-r1": {
+  "vm": "bx_2uat3ctg",
+  "type": "large",
+  "cpu": "",
+  "vcpus": 8,
+  "vm_vcpus": 8,
+  "exclusive": true,
+  "co_tenants": 0
+ },
+ "ic3-sharded_kv_no_lost_keys-s60-r1": {
+  "vm": "bx_4cma575j",
+  "type": "large",
+  "cpu": "",
+  "vcpus": 8,
+  "vm_vcpus": 8,
+  "exclusive": true,
+  "co_tenants": 0
+ },
+ "ic3-lockserv-s60-r1": {
+  "vm": "bx_3qn8b65a",
+  "type": "large",
+  "cpu": "",
+  "vcpus": 8,
+  "vm_vcpus": 8,
+  "exclusive": true,
+  "co_tenants": 0
+ },
+ "ic3-twophase-s60-r1": {
+  "vm": "bx_3qn8b65a",
+  "type": "large",
+  "cpu": "",
+  "vcpus": 8,
+  "vm_vcpus": 8,
+  "exclusive": true,
+  "co_tenants": 0
+ },
+ "ic3-simple_decentralized_lock-s60-r1": {
+  "vm": "bx_395wpmqp",
+  "type": "large",
+  "cpu": "",
+  "vcpus": 8,
+  "vm_vcpus": 8,
+  "exclusive": true,
+  "co_tenants": 0
+ },
+ "ic3-two_phase_commit-s60-r1": {
+  "vm": "bx_395wpmqp",
+  "type": "large",
+  "cpu": "",
+  "vcpus": 8,
+  "vm_vcpus": 8,
+  "exclusive": true,
+  "co_tenants": 0
+ },
+ "ic3-consensus_wo_decide-s60-r1": {
+  "vm": "bx_2uat3ctg",
+  "type": "large",
+  "cpu": "",
+  "vcpus": 8,
+  "vm_vcpus": 8,
+  "exclusive": true,
+  "co_tenants": 0
+ },
+ "ic3-consensus_forall-s60-r1": {
+  "vm": "bx_3kjzmmhv",
+  "type": "large",
+  "cpu": "",
+  "vcpus": 8,
+  "vm_vcpus": 8,
+  "exclusive": true,
+  "co_tenants": 0
+ },
+ "ic3-naive_consensus-s60-r1": {
+  "vm": "bx_2uat3ctg",
+  "type": "large",
+  "cpu": "",
+  "vcpus": 8,
+  "vm_vcpus": 8,
+  "exclusive": true,
+  "co_tenants": 0
+ },
+ "ic3-client_server_ae-s60-r1": {
+  "vm": "bx_3kjzmmhv",
+  "type": "large",
+  "cpu": "",
+  "vcpus": 8,
+  "vm_vcpus": 8,
+  "exclusive": true,
+  "co_tenants": 0
+ },
+ "ic3-client_server_db_ae-s60-r1": {
+  "vm": "bx_395wpmqp",
+  "type": "large",
+  "cpu": "",
+  "vcpus": 8,
+  "vm_vcpus": 8,
+  "exclusive": true,
+  "co_tenants": 0
+ },
+ "ic3-simple_election-s60-r1": {
+  "vm": "bx_2uat3ctg",
+  "type": "large",
+  "cpu": "",
+  "vcpus": 8,
+  "vm_vcpus": 8,
+  "exclusive": true,
+  "co_tenants": 0
+ },
+ "ic3-toy_consensus_epr-s60-r1": {
+  "vm": "bx_5f32uf5a",
+  "type": "large",
+  "cpu": "",
+  "vcpus": 8,
+  "vm_vcpus": 8,
+  "exclusive": true,
+  "co_tenants": 0
+ },
+ "ic3-toy_consensus-s60-r1": {
+  "vm": "bx_2uat3ctg",
+  "type": "large",
+  "cpu": "",
+  "vcpus": 8,
+  "vm_vcpus": 8,
+  "exclusive": true,
+  "co_tenants": 0
+ },
+ "ic3-firewall-s60-r1": {
+  "vm": "bx_5f32uf5a",
+  "type": "large",
+  "cpu": "",
+  "vcpus": 8,
+  "vm_vcpus": 8,
+  "exclusive": true,
+  "co_tenants": 0
+ },
+ "ic3-majorityset_leader_election-s60-r1": {
+  "vm": "bx_395wpmqp",
+  "type": "large",
+  "cpu": "",
+  "vcpus": 8,
+  "vm_vcpus": 8,
+  "exclusive": true,
+  "co_tenants": 0
+ },
+ "ic3-consensus_epr-s60-r1": {
+  "vm": "bx_395wpmqp",
+  "type": "large",
+  "cpu": "",
+  "vcpus": 8,
+  "vm_vcpus": 8,
+  "exclusive": true,
+  "co_tenants": 0
+ },
+ "ic3-learning_switch-s60-r1": {
+  "vm": "bx_2eg9t59n",
+  "type": "large",
+  "cpu": "",
+  "vcpus": 8,
+  "vm_vcpus": 8,
+  "exclusive": true,
+  "co_tenants": 0
+ },
+ "ic3-learning_switch_i4-s60-r1": {
+  "vm": "bx_395wpmqp",
+  "type": "large",
+  "cpu": "",
+  "vcpus": 8,
+  "vm_vcpus": 8,
+  "exclusive": true,
+  "co_tenants": 0
+ },
+ "ic3-mldr-s60-r1": {
+  "vm": "bx_2eg9t59n",
+  "type": "large",
+  "cpu": "",
+  "vcpus": 8,
+  "vm_vcpus": 8,
+  "exclusive": true,
+  "co_tenants": 0
+ },
+ "ic3-consensus-s60-r2": {
+  "vm": "bx_395wpmqp",
+  "type": "large",
+  "cpu": "",
+  "vcpus": 8,
+  "vm_vcpus": 8,
+  "exclusive": true,
+  "co_tenants": 0
+ },
+ "ic3-tcommit-s60-r2": {
+  "vm": "bx_395wpmqp",
+  "type": "large",
+  "cpu": "",
+  "vcpus": 8,
+  "vm_vcpus": 8,
+  "exclusive": true,
+  "co_tenants": 0
+ },
+ "ic3-lock_server-s60-r2": {
+  "vm": "bx_2eg9t59n",
+  "type": "large",
+  "cpu": "",
+  "vcpus": 8,
+  "vm_vcpus": 8,
+  "exclusive": true,
+  "co_tenants": 0
+ },
+ "ic3-quorum_leader_election-s60-r2": {
+  "vm": "bx_2uat3ctg",
+  "type": "large",
+  "cpu": "",
+  "vcpus": 8,
+  "vm_vcpus": 8,
+  "exclusive": true,
+  "co_tenants": 0
+ },
+ "ic3-toy_consensus_forall-s60-r2": {
+  "vm": "bx_3kjzmmhv",
+  "type": "large",
+  "cpu": "",
+  "vcpus": 8,
+  "vm_vcpus": 8,
+  "exclusive": true,
+  "co_tenants": 0
+ },
+ "ic3-simple-s60-r2": {
+  "vm": "bx_3kjzmmhv",
+  "type": "large",
+  "cpu": "",
+  "vcpus": 8,
+  "vm_vcpus": 8,
+  "exclusive": true,
+  "co_tenants": 0
+ },
+ "ic3-simple_regular-s60-r2": {
+  "vm": "bx_3kjzmmhv",
+  "type": "large",
+  "cpu": "",
+  "vcpus": 8,
+  "vm_vcpus": 8,
+  "exclusive": true,
+  "co_tenants": 0
+ },
+ "ic3-lockserv_automaton-s60-r2": {
+  "vm": "bx_4cma575j",
+  "type": "large",
+  "cpu": "",
+  "vcpus": 8,
+  "vm_vcpus": 8,
+  "exclusive": true,
+  "co_tenants": 0
+ },
+ "ic3-sharded_kv-s60-r2": {
+  "vm": "bx_2kmf8w3s",
+  "type": "large",
+  "cpu": "",
+  "vcpus": 8,
+  "vm_vcpus": 8,
+  "exclusive": true,
+  "co_tenants": 0
+ },
+ "ic3-sharded_kv_no_lost_keys-s60-r2": {
+  "vm": "bx_3qn8b65a",
+  "type": "large",
+  "cpu": "",
+  "vcpus": 8,
+  "vm_vcpus": 8,
+  "exclusive": true,
+  "co_tenants": 0
+ },
+ "ic3-lockserv-s60-r2": {
+  "vm": "bx_3qn8b65a",
+  "type": "large",
+  "cpu": "",
+  "vcpus": 8,
+  "vm_vcpus": 8,
+  "exclusive": true,
+  "co_tenants": 0
+ },
+ "ic3-twophase-s60-r2": {
+  "vm": "bx_5f32uf5a",
+  "type": "large",
+  "cpu": "",
+  "vcpus": 8,
+  "vm_vcpus": 8,
+  "exclusive": true,
+  "co_tenants": 0
+ },
+ "ic3-simple_decentralized_lock-s60-r2": {
+  "vm": "bx_5f32uf5a",
+  "type": "large",
+  "cpu": "",
+  "vcpus": 8,
+  "vm_vcpus": 8,
+  "exclusive": true,
+  "co_tenants": 0
+ },
+ "ic3-two_phase_commit-s60-r2": {
+  "vm": "bx_3kjzmmhv",
+  "type": "large",
+  "cpu": "",
+  "vcpus": 8,
+  "vm_vcpus": 8,
+  "exclusive": true,
+  "co_tenants": 0
+ },
+ "ic3-consensus_wo_decide-s60-r2": {
+  "vm": "bx_2hzfj2ah",
+  "type": "large",
+  "cpu": "",
+  "vcpus": 8,
+  "vm_vcpus": 8,
+  "exclusive": true,
+  "co_tenants": 0
+ },
+ "ic3-consensus_forall-s60-r2": {
+  "vm": "bx_395wpmqp",
+  "type": "large",
+  "cpu": "",
+  "vcpus": 8,
+  "vm_vcpus": 8,
+  "exclusive": true,
+  "co_tenants": 0
+ },
+ "ic3-naive_consensus-s60-r2": {
+  "vm": "bx_3qn8b65a",
+  "type": "large",
+  "cpu": "",
+  "vcpus": 8,
+  "vm_vcpus": 8,
+  "exclusive": true,
+  "co_tenants": 0
+ },
+ "ic3-client_server_ae-s60-r2": {
+  "vm": "bx_4cma575j",
+  "type": "large",
+  "cpu": "",
+  "vcpus": 8,
+  "vm_vcpus": 8,
+  "exclusive": true,
+  "co_tenants": 0
+ },
+ "ic3-client_server_db_ae-s60-r2": {
+  "vm": "bx_4cma575j",
+  "type": "large",
+  "cpu": "",
+  "vcpus": 8,
+  "vm_vcpus": 8,
+  "exclusive": true,
+  "co_tenants": 0
+ },
+ "ic3-simple_election-s60-r2": {
+  "vm": "bx_2eg9t59n",
+  "type": "large",
+  "cpu": "",
+  "vcpus": 8,
+  "vm_vcpus": 8,
+  "exclusive": true,
+  "co_tenants": 0
+ },
+ "ic3-toy_consensus_epr-s60-r2": {
+  "vm": "bx_2eg9t59n",
+  "type": "large",
+  "cpu": "",
+  "vcpus": 8,
+  "vm_vcpus": 8,
+  "exclusive": true,
+  "co_tenants": 0
+ },
+ "ic3-toy_consensus-s60-r2": {
+  "vm": "bx_4cma575j",
+  "type": "large",
+  "cpu": "",
+  "vcpus": 8,
+  "vm_vcpus": 8,
+  "exclusive": true,
+  "co_tenants": 0
+ },
+ "ic3-firewall-s60-r2": {
+  "vm": "bx_5f32uf5a",
+  "type": "large",
+  "cpu": "",
+  "vcpus": 8,
+  "vm_vcpus": 8,
+  "exclusive": true,
+  "co_tenants": 0
+ },
+ "ic3-majorityset_leader_election-s60-r2": {
+  "vm": "bx_2eg9t59n",
+  "type": "large",
+  "cpu": "",
+  "vcpus": 8,
+  "vm_vcpus": 8,
+  "exclusive": true,
+  "co_tenants": 0
+ },
+ "ic3-consensus_epr-s60-r2": {
+  "vm": "bx_3qn8b65a",
+  "type": "large",
+  "cpu": "",
+  "vcpus": 8,
+  "vm_vcpus": 8,
+  "exclusive": true,
+  "co_tenants": 0
+ },
+ "ic3-learning_switch-s60-r2": {
+  "vm": "bx_395wpmqp",
+  "type": "large",
+  "cpu": "",
+  "vcpus": 8,
+  "vm_vcpus": 8,
+  "exclusive": true,
+  "co_tenants": 0
+ },
+ "ic3-learning_switch_i4-s60-r2": {
+  "vm": "bx_2uat3ctg",
+  "type": "large",
+  "cpu": "",
+  "vcpus": 8,
+  "vm_vcpus": 8,
+  "exclusive": true,
+  "co_tenants": 0
+ },
+ "ic3-mldr-s60-r2": {
+  "vm": "bx_2eg9t59n",
+  "type": "large",
+  "cpu": "",
+  "vcpus": 8,
+  "vm_vcpus": 8,
+  "exclusive": true,
+  "co_tenants": 0
+ },
+ "ic3-consensus-s60-r3": {
+  "vm": "bx_2uat3ctg",
+  "type": "large",
+  "cpu": "",
+  "vcpus": 8,
+  "vm_vcpus": 8,
+  "exclusive": true,
+  "co_tenants": 0
+ },
+ "ic3-tcommit-s60-r3": {
+  "vm": "bx_2uat3ctg",
+  "type": "large",
+  "cpu": "",
+  "vcpus": 8,
+  "vm_vcpus": 8,
+  "exclusive": true,
+  "co_tenants": 0
+ },
+ "ic3-lock_server-s60-r3": {
+  "vm": "bx_3kjzmmhv",
+  "type": "large",
+  "cpu": "",
+  "vcpus": 8,
+  "vm_vcpus": 8,
+  "exclusive": true,
+  "co_tenants": 0
+ },
+ "ic3-quorum_leader_election-s60-r3": {
+  "vm": "bx_5f32uf5a",
+  "type": "large",
+  "cpu": "",
+  "vcpus": 8,
+  "vm_vcpus": 8,
+  "exclusive": true,
+  "co_tenants": 0
+ },
+ "ic3-toy_consensus_forall-s60-r3": {
+  "vm": "bx_2uat3ctg",
+  "type": "large",
+  "cpu": "",
+  "vcpus": 8,
+  "vm_vcpus": 8,
+  "exclusive": true,
+  "co_tenants": 0
+ },
+ "ic3-simple-s60-r3": {
+  "vm": "bx_5f32uf5a",
+  "type": "large",
+  "cpu": "",
+  "vcpus": 8,
+  "vm_vcpus": 8,
+  "exclusive": true,
+  "co_tenants": 0
+ },
+ "ic3-simple_regular-s60-r3": {
+  "vm": "bx_3kjzmmhv",
+  "type": "large",
+  "cpu": "",
+  "vcpus": 8,
+  "vm_vcpus": 8,
+  "exclusive": true,
+  "co_tenants": 0
+ },
+ "ic3-lockserv_automaton-s60-r3": {
+  "vm": "bx_5f32uf5a",
+  "type": "large",
+  "cpu": "",
+  "vcpus": 8,
+  "vm_vcpus": 8,
+  "exclusive": true,
+  "co_tenants": 0
+ },
+ "ic3-sharded_kv-s60-r3": {
+  "vm": "bx_4cma575j",
+  "type": "large",
+  "cpu": "",
+  "vcpus": 8,
+  "vm_vcpus": 8,
+  "exclusive": true,
+  "co_tenants": 0
+ },
+ "ic3-sharded_kv_no_lost_keys-s60-r3": {
+  "vm": "bx_3qn8b65a",
+  "type": "large",
+  "cpu": "",
+  "vcpus": 8,
+  "vm_vcpus": 8,
+  "exclusive": true,
+  "co_tenants": 0
+ },
+ "ic3-lockserv-s60-r3": {
+  "vm": "bx_4cma575j",
+  "type": "large",
+  "cpu": "",
+  "vcpus": 8,
+  "vm_vcpus": 8,
+  "exclusive": true,
+  "co_tenants": 0
+ },
+ "ic3-twophase-s60-r3": {
+  "vm": "bx_2hzfj2ah",
+  "type": "large",
+  "cpu": "",
+  "vcpus": 8,
+  "vm_vcpus": 8,
+  "exclusive": true,
+  "co_tenants": 0
+ },
+ "ic3-simple_decentralized_lock-s60-r3": {
+  "vm": "bx_395wpmqp",
+  "type": "large",
+  "cpu": "",
+  "vcpus": 8,
+  "vm_vcpus": 8,
+  "exclusive": true,
+  "co_tenants": 0
+ },
+ "ic3-two_phase_commit-s60-r3": {
+  "vm": "bx_4cma575j",
+  "type": "large",
+  "cpu": "",
+  "vcpus": 8,
+  "vm_vcpus": 8,
+  "exclusive": true,
+  "co_tenants": 0
+ },
+ "ic3-consensus_wo_decide-s60-r3": {
+  "vm": "bx_395wpmqp",
+  "type": "large",
+  "cpu": "",
+  "vcpus": 8,
+  "vm_vcpus": 8,
+  "exclusive": true,
+  "co_tenants": 0
+ },
+ "ic3-consensus_forall-s60-r3": {
+  "vm": "bx_3kjzmmhv",
+  "type": "large",
+  "cpu": "",
+  "vcpus": 8,
+  "vm_vcpus": 8,
+  "exclusive": true,
+  "co_tenants": 0
+ },
+ "ic3-naive_consensus-s60-r3": {
+  "vm": "bx_2eg9t59n",
+  "type": "large",
+  "cpu": "",
+  "vcpus": 8,
+  "vm_vcpus": 8,
+  "exclusive": true,
+  "co_tenants": 0
+ },
+ "ic3-client_server_ae-s60-r3": {
+  "vm": "bx_2uat3ctg",
+  "type": "large",
+  "cpu": "",
+  "vcpus": 8,
+  "vm_vcpus": 8,
+  "exclusive": true,
+  "co_tenants": 0
+ },
+ "ic3-client_server_db_ae-s60-r3": {
+  "vm": "bx_2kmf8w3s",
+  "type": "large",
+  "cpu": "",
+  "vcpus": 8,
+  "vm_vcpus": 8,
+  "exclusive": true,
+  "co_tenants": 0
+ },
+ "ic3-simple_election-s60-r3": {
+  "vm": "bx_3kjzmmhv",
+  "type": "large",
+  "cpu": "",
+  "vcpus": 8,
+  "vm_vcpus": 8,
+  "exclusive": true,
+  "co_tenants": 0
+ },
+ "ic3-toy_consensus_epr-s60-r3": {
+  "vm": "bx_5f32uf5a",
+  "type": "large",
+  "cpu": "",
+  "vcpus": 8,
+  "vm_vcpus": 8,
+  "exclusive": true,
+  "co_tenants": 0
+ },
+ "ic3-toy_consensus-s60-r3": {
+  "vm": "bx_4cma575j",
+  "type": "large",
+  "cpu": "",
+  "vcpus": 8,
+  "vm_vcpus": 8,
+  "exclusive": true,
+  "co_tenants": 0
+ },
+ "ic3-firewall-s60-r3": {
+  "vm": "bx_395wpmqp",
+  "type": "large",
+  "cpu": "",
+  "vcpus": 8,
+  "vm_vcpus": 8,
+  "exclusive": true,
+  "co_tenants": 0
+ },
+ "ic3-majorityset_leader_election-s60-r3": {
+  "vm": "bx_395wpmqp",
+  "type": "large",
+  "cpu": "",
+  "vcpus": 8,
+  "vm_vcpus": 8,
+  "exclusive": true,
+  "co_tenants": 0
+ },
+ "ic3-consensus_epr-s60-r3": {
+  "vm": "bx_2uat3ctg",
+  "type": "large",
+  "cpu": "",
+  "vcpus": 8,
+  "vm_vcpus": 8,
+  "exclusive": true,
+  "co_tenants": 0
+ },
+ "ic3-learning_switch-s60-r3": {
+  "vm": "bx_395wpmqp",
+  "type": "large",
+  "cpu": "",
+  "vcpus": 8,
+  "vm_vcpus": 8,
+  "exclusive": true,
+  "co_tenants": 0
+ },
+ "ic3-learning_switch_i4-s60-r3": {
+  "vm": "bx_4cma575j",
+  "type": "large",
+  "cpu": "",
+  "vcpus": 8,
+  "vm_vcpus": 8,
+  "exclusive": true,
+  "co_tenants": 0
+ },
+ "ic3-mldr-s60-r3": {
+  "vm": "bx_395wpmqp",
+  "type": "large",
+  "cpu": "",
+  "vcpus": 8,
+  "vm_vcpus": 8,
+  "exclusive": true,
+  "co_tenants": 0
+ },
+ "duo-lock_server_sync-s60-r1": {
+  "vm": "bx_2eg9t59n",
+  "type": "large",
+  "cpu": "",
+  "vcpus": 8,
+  "vm_vcpus": 8,
+  "exclusive": true,
+  "co_tenants": 0
+ },
+ "duo-lock_server_async-s60-r1": {
+  "vm": "bx_2eg9t59n",
+  "type": "large",
+  "cpu": "",
+  "vcpus": 8,
+  "vm_vcpus": 8,
+  "exclusive": true,
+  "co_tenants": 0
+ },
+ "duo-decentralized_lock-s60-r1": {
+  "vm": "bx_395wpmqp",
+  "type": "large",
+  "cpu": "",
+  "vcpus": 8,
+  "vm_vcpus": 8,
+  "exclusive": true,
+  "co_tenants": 0
+ },
+ "duo-distributed_lock-s60-r1": {
+  "vm": "bx_3kjzmmhv",
+  "type": "large",
+  "cpu": "",
+  "vcpus": 8,
+  "vm_vcpus": 8,
+  "exclusive": true,
+  "co_tenants": 0
+ },
+ "duo-two_phase_commit-s60-r1": {
+  "vm": "bx_2uat3ctg",
+  "type": "large",
+  "cpu": "",
+  "vcpus": 8,
+  "vm_vcpus": 8,
+  "exclusive": true,
+  "co_tenants": 0
+ },
+ "duo-ticket_lock-s60-r1": {
+  "vm": "bx_2eg9t59n",
+  "type": "large",
+  "cpu": "",
+  "vcpus": 8,
+  "vm_vcpus": 8,
+  "exclusive": true,
+  "co_tenants": 0
+ },
+ "duo-toy_consensus_forall-s60-r1": {
+  "vm": "bx_395wpmqp",
+  "type": "large",
+  "cpu": "",
+  "vcpus": 8,
+  "vm_vcpus": 8,
+  "exclusive": true,
+  "co_tenants": 0
+ },
+ "duo-consensus_wo_decide-s60-r1": {
+  "vm": "bx_2uat3ctg",
+  "type": "large",
+  "cpu": "",
+  "vcpus": 8,
+  "vm_vcpus": 8,
+  "exclusive": true,
+  "co_tenants": 0
+ },
+ "duo-ring_leader_election-s60-r1": {
+  "vm": "bx_3qn8b65a",
+  "type": "large",
+  "cpu": "",
+  "vcpus": 8,
+  "vm_vcpus": 8,
+  "exclusive": true,
+  "co_tenants": 0
+ },
+ "duo-sharded_key_value_store-s60-r1": {
+  "vm": "bx_4cma575j",
+  "type": "large",
+  "cpu": "",
+  "vcpus": 8,
+  "vm_vcpus": 8,
+  "exclusive": true,
+  "co_tenants": 0
+ },
+ "broken-consensus-s60-r1": {
+  "vm": "bx_3kjzmmhv",
+  "type": "large",
+  "cpu": "",
+  "vcpus": 8,
+  "vm_vcpus": 8,
+  "exclusive": true,
+  "co_tenants": 0
+ },
+ "broken-tcommit-s60-r1": {
+  "vm": "bx_3kjzmmhv",
+  "type": "large",
+  "cpu": "",
+  "vcpus": 8,
+  "vm_vcpus": 8,
+  "exclusive": true,
+  "co_tenants": 0
+ },
+ "broken-lock_server-s60-r1": {
+  "vm": "bx_5f32uf5a",
+  "type": "large",
+  "cpu": "",
+  "vcpus": 8,
+  "vm_vcpus": 8,
+  "exclusive": true,
+  "co_tenants": 0
+ },
+ "broken-quorum_leader_election-s60-r1": {
+  "vm": "bx_3kjzmmhv",
+  "type": "large",
+  "cpu": "",
+  "vcpus": 8,
+  "vm_vcpus": 8,
+  "exclusive": true,
+  "co_tenants": 0
+ },
+ "broken-toy_consensus_forall-s60-r1": {
+  "vm": "bx_3kjzmmhv",
+  "type": "large",
+  "cpu": "",
+  "vcpus": 8,
+  "vm_vcpus": 8,
+  "exclusive": true,
+  "co_tenants": 0
+ },
+ "broken-simple-s60-r1": {
+  "vm": "bx_3qn8b65a",
+  "type": "large",
+  "cpu": "",
+  "vcpus": 8,
+  "vm_vcpus": 8,
+  "exclusive": true,
+  "co_tenants": 0
+ },
+ "broken-simple_regular-s60-r1": {
+  "vm": "bx_2uat3ctg",
+  "type": "large",
+  "cpu": "",
+  "vcpus": 8,
+  "vm_vcpus": 8,
+  "exclusive": true,
+  "co_tenants": 0
+ },
+ "broken-lockserv_automaton-s60-r1": {
+  "vm": "bx_2uat3ctg",
+  "type": "large",
+  "cpu": "",
+  "vcpus": 8,
+  "vm_vcpus": 8,
+  "exclusive": true,
+  "co_tenants": 0
+ },
+ "broken-sharded_kv-s60-r1": {
+  "vm": "bx_5f32uf5a",
+  "type": "large",
+  "cpu": "",
+  "vcpus": 8,
+  "vm_vcpus": 8,
+  "exclusive": true,
+  "co_tenants": 0
+ },
+ "broken-sharded_kv_no_lost_keys-s60-r1": {
+  "vm": "bx_4cma575j",
+  "type": "large",
+  "cpu": "",
+  "vcpus": 8,
+  "vm_vcpus": 8,
+  "exclusive": true,
+  "co_tenants": 0
+ },
+ "broken-lockserv-s60-r1": {
+  "vm": "bx_5f32uf5a",
+  "type": "large",
+  "cpu": "",
+  "vcpus": 8,
+  "vm_vcpus": 8,
+  "exclusive": true,
+  "co_tenants": 0
+ },
+ "broken-twophase-s60-r1": {
+  "vm": "bx_395wpmqp",
+  "type": "large",
+  "cpu": "",
+  "vcpus": 8,
+  "vm_vcpus": 8,
+  "exclusive": true,
+  "co_tenants": 0
+ },
+ "broken-simple_decentralized_lock-s60-r1": {
+  "vm": "bx_3kjzmmhv",
+  "type": "large",
+  "cpu": "",
+  "vcpus": 8,
+  "vm_vcpus": 8,
+  "exclusive": true,
+  "co_tenants": 0
+ },
+ "broken-two_phase_commit-s60-r1": {
+  "vm": "bx_3qn8b65a",
+  "type": "large",
+  "cpu": "",
+  "vcpus": 8,
+  "vm_vcpus": 8,
+  "exclusive": true,
+  "co_tenants": 0
+ },
+ "broken-consensus_wo_decide-s60-r1": {
+  "vm": "bx_5f32uf5a",
+  "type": "large",
+  "cpu": "",
+  "vcpus": 8,
+  "vm_vcpus": 8,
+  "exclusive": true,
+  "co_tenants": 0
+ },
+ "broken-consensus_forall-s60-r1": {
+  "vm": "bx_395wpmqp",
+  "type": "large",
+  "cpu": "",
+  "vcpus": 8,
+  "vm_vcpus": 8,
+  "exclusive": true,
+  "co_tenants": 0
+ },
+ "broken-naive_consensus-s60-r1": {
+  "vm": "bx_5f32uf5a",
+  "type": "large",
+  "cpu": "",
+  "vcpus": 8,
+  "vm_vcpus": 8,
+  "exclusive": true,
+  "co_tenants": 0
+ },
+ "broken-client_server_ae-s60-r1": {
+  "vm": "bx_5f32uf5a",
+  "type": "large",
+  "cpu": "",
+  "vcpus": 8,
+  "vm_vcpus": 8,
+  "exclusive": true,
+  "co_tenants": 0
+ },
+ "broken-client_server_db_ae-s60-r1": {
+  "vm": "bx_3qn8b65a",
+  "type": "large",
+  "cpu": "",
+  "vcpus": 8,
+  "vm_vcpus": 8,
+  "exclusive": true,
+  "co_tenants": 0
+ },
+ "broken-simple_election-s60-r1": {
+  "vm": "bx_4cma575j",
+  "type": "large",
+  "cpu": "",
+  "vcpus": 8,
+  "vm_vcpus": 8,
+  "exclusive": true,
+  "co_tenants": 0
+ },
+ "broken-toy_consensus_epr-s60-r1": {
+  "vm": "bx_395wpmqp",
+  "type": "large",
+  "cpu": "",
+  "vcpus": 8,
+  "vm_vcpus": 8,
+  "exclusive": true,
+  "co_tenants": 0
+ },
+ "broken-toy_consensus-s60-r1": {
+  "vm": "bx_395wpmqp",
+  "type": "large",
+  "cpu": "",
+  "vcpus": 8,
+  "vm_vcpus": 8,
+  "exclusive": true,
+  "co_tenants": 0
+ },
+ "broken-firewall-s60-r1": {
+  "vm": "bx_2uat3ctg",
+  "type": "large",
+  "cpu": "",
+  "vcpus": 8,
+  "vm_vcpus": 8,
+  "exclusive": true,
+  "co_tenants": 0
+ },
+ "broken-majorityset_leader_election-s60-r1": {
+  "vm": "bx_5f32uf5a",
+  "type": "large",
+  "cpu": "",
+  "vcpus": 8,
+  "vm_vcpus": 8,
+  "exclusive": true,
+  "co_tenants": 0
+ },
+ "broken-consensus_epr-s60-r1": {
+  "vm": "bx_5f32uf5a",
+  "type": "large",
+  "cpu": "",
+  "vcpus": 8,
+  "vm_vcpus": 8,
+  "exclusive": true,
+  "co_tenants": 0
+ },
+ "broken-learning_switch-s60-r1": {
+  "vm": "bx_2uat3ctg",
+  "type": "large",
+  "cpu": "",
+  "vcpus": 8,
+  "vm_vcpus": 8,
+  "exclusive": true,
+  "co_tenants": 0
+ },
+ "broken-learning_switch_i4-s60-r1": {
+  "vm": "bx_2uat3ctg",
+  "type": "large",
+  "cpu": "",
+  "vcpus": 8,
+  "vm_vcpus": 8,
+  "exclusive": true,
+  "co_tenants": 0
+ },
+ "broken-paxos_epr-s60-r1": {
+  "vm": "bx_4cma575j",
+  "type": "large",
+  "cpu": "",
+  "vcpus": 8,
+  "vm_vcpus": 8,
+  "exclusive": true,
+  "co_tenants": 0
+ },
+ "broken-mldr-s60-r1": {
+  "vm": "bx_3qn8b65a",
+  "type": "large",
+  "cpu": "",
+  "vcpus": 8,
+  "vm_vcpus": 8,
+  "exclusive": true,
+  "co_tenants": 0
+ },
+ "generation-pairs": {
+  "vm": "bx_25xas5gt",
+  "type": "large",
+  "cpu": "",
+  "vcpus": 8,
+  "vm_vcpus": 8,
+  "exclusive": true,
+  "co_tenants": 0
+ },
+ "probe-pairs": {
+  "vm": "bx_2uat3ctg",
+  "type": "large",
+  "cpu": "",
+  "vcpus": 8,
+  "vm_vcpus": 8,
+  "exclusive": true,
+  "co_tenants": 0
+ },
+ "shard-1-of-7": {
+  "vm": "bx_3qn8b65a",
+  "type": "large",
+  "cpu": "",
+  "vcpus": 8,
+  "vm_vcpus": 8,
+  "exclusive": true,
+  "co_tenants": 0
+ },
+ "shard-2-of-7": {
+  "vm": "bx_2uat3ctg",
+  "type": "large",
+  "cpu": "",
+  "vcpus": 8,
+  "vm_vcpus": 8,
+  "exclusive": true,
+  "co_tenants": 0
+ },
+ "shard-3-of-7": {
+  "vm": "bx_2eg9t59n",
+  "type": "large",
+  "cpu": "",
+  "vcpus": 8,
+  "vm_vcpus": 8,
+  "exclusive": true,
+  "co_tenants": 0
+ },
+ "shard-4-of-7": {
+  "vm": "bx_3kjzmmhv",
+  "type": "large",
+  "cpu": "",
+  "vcpus": 8,
+  "vm_vcpus": 8,
+  "exclusive": true,
+  "co_tenants": 0
+ },
+ "shard-5-of-7": {
+  "vm": "bx_4cma575j",
+  "type": "large",
+  "cpu": "",
+  "vcpus": 8,
+  "vm_vcpus": 8,
+  "exclusive": true,
+  "co_tenants": 0
+ },
+ "shard-6-of-7": {
+  "vm": "bx_5f32uf5a",
+  "type": "large",
+  "cpu": "",
+  "vcpus": 8,
+  "vm_vcpus": 8,
+  "exclusive": true,
+  "co_tenants": 0
+ },
+ "shard-7-of-7": {
+  "vm": "bx_395wpmqp",
+  "type": "large",
+  "cpu": "",
+  "vcpus": 8,
+  "vm_vcpus": 8,
+  "exclusive": true,
+  "co_tenants": 0
+ }
+}
