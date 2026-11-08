@@ -3,11 +3,15 @@
 import {type E,type Law,type Machine,walkOnce,x} from './machine.ts'
 import {type CountCert,type CountDecl,type Goal,type Instances,countedObligations,mcGoal} from '../kernel/kernel.ts'
 import {clock,grow} from '../kernel/prove.ts'
+import {env} from './solver.ts'
 import {countLawSeeds,countRowBridges,fieldLawBridges,focusCountCert,rowKeyNames} from './count-focused.ts'
 import {seedCountWitnessFlags} from './count-witness-flags.ts'
-import {proveCountCases} from './count-cases.ts'
+import {finiteCountChoice,proveCountCases} from './count-cases.ts'
 
 export type FocusedCountProof={instances:Instances,certs:Record<string,CountCert>}
+// Normal finite-input machines use the bounded recovery; 0 remains an explicit
+// opt-out, while 1 also enables the legacy non-finite recovery experiment.
+export const focusedCountRecoveryEnabled=(m:Machine,setting:string|undefined=env.GDP_COUNTS_FOCUS):boolean=>setting==='1'||setting!=='0'&&!!finiteCountChoice(m)
 export function proveFocusedCounts(m:Machine,laws:Law[],law:Law,at:Instances,until:number,propose:(goal:Goal,decls:CountDecl[])=>Pick<CountCert,'reads'|'insts'>,trace?:(event:Record<string,unknown>)=>void):FocusedCountProof|undefined {
   if(!m.inputMaps?.length||clock()>=until)return undefined
   let clean:Instances={}
@@ -35,14 +39,15 @@ export function proveFocusedCounts(m:Machine,laws:Law[],law:Law,at:Instances,unt
   for(const carried of m.inputMaps){
     if(clock()>=until)return undefined
     let instances=clean
-    const build=()=>countedObligations(m,laws,{[law.name]:instances},index).map(({goal,decls})=>({goal,decls,cert:focusCountCert(m,decls,propose(goal,decls),{carried,structural:false,targets:!targetCounts?rows:undefined})}))
+    const retained=new Map<string,Pick<CountCert,'reads'|'insts'>>()
+    const build=()=>countedObligations(m,laws,{[law.name]:instances},index).map(({goal,decls})=>({goal,decls,cert:retained.get(goal.name)??focusCountCert(m,decls,propose(goal,decls),{carried,structural:false,targets:!targetCounts?rows:undefined})}))
     let packets=build()
     const seeded=seedCountWitnessFlags(m,instances,packets,true)
     if(seeded!==instances){instances=seeded;packets=build()}
     const rowGoal=!targetCounts&&own.length===3
-    const certs:Record<string,CountCert>={};let complete=!rowGoal
+    const certs:Record<string,CountCert>={};let complete=!rowGoal&&!finiteCountChoice(m)
     const quickUntil=Math.min(until,clock()+1000)
-    for(const {goal,decls,cert} of rowGoal?[]:packets){
+    for(const {goal,decls,cert} of rowGoal||finiteCountChoice(m)?[]:packets){
       const g=mcGoal(goal.hyps,decls,cert)
       if(!g){complete=false;break}
       const result=grow({...g,name:goal.name},new Map(),{nodes:0,until:quickUntil})
@@ -66,7 +71,8 @@ export function proveFocusedCounts(m:Machine,laws:Law[],law:Law,at:Instances,unt
       return countedObligations(m,laws,{[law.name]:next},index).find(p=>p.goal.name.endsWith('@step'))!
     },!targetCounts&&own.length===3?{localModels:true,saturate:true,queryMs:1000,coreLimit:16,units:false,corePointOnly:true,trace}:trace?{trace}:undefined)
     if(!result)continue
-    instances=result.instances;packets=build()
+    instances=result.instances;retained.set(step.goal.name,result.cert);packets=build()
+    trace?.({stage:'focused-step-certificate',before:step.cert.insts.length,after:result.cert.insts.length})
     const combined:Record<string,CountCert>={[step.goal.name]:result.cert}
     let closed=true
     for(const p of packets){

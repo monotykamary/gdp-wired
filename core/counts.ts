@@ -27,7 +27,7 @@ import {countPoolKey, countSignature, grammarPool, ids, polaritySelection, readT
 import {fieldLaws} from './field-laws.ts'
 import {countsForReads, proposeCountFacts} from './count-facts.ts'
 import {proposeCountUnions} from './count-unions.ts'
-import {proveFocusedCounts} from './count-focus-proof.ts'
+import {focusedCountRecoveryEnabled,proveFocusedCounts} from './count-focus-proof.ts'
 import {smallOf, trueSmall} from './exists.ts'
 import {env} from './solver.ts'
 
@@ -581,7 +581,7 @@ export function countedAttempts(m: Machine, caller: Law[], support: Set<Law>, un
   // Cone tiers and Houdini may ask the same law again with more instances. Keep a
   // bounded set of sessions; each independently resets unless its hypotheses are
   // still present verbatim. This reuses work, never a verdict from a weaker goal.
-  const decisions = new Map<string, ReturnType<typeof modelSequence>>()
+  const decisions = new Map<string, ReturnType<typeof modelSequence>>(), focusEnabled=focusedCountRecoveryEnabled(m)
   const attempt = (law: Law, ls: Law[], pass: 0 | 1, ms: number): Tried<Proof> => {
     // A cached model can return before the no-count optimization below. A helper
     // without count reads must not suppress the next law's counting-lemma pass.
@@ -590,9 +590,9 @@ export function countedAttempts(m: Machine, caller: Law[], support: Set<Law>, un
     const ts = terms(law), id = `${pass} ${law.name}`, cti = models.get(id)
     const supported = ls.some(l => support.has(l)), modelLaws = supportOrder(ls, caller, support, true)
     // Start bounded field/row recovery before a growing model-instantiation
-    // context consumes the law's share. This remains opt-in and returns only
+    // context consumes the law's share. Finite-input recovery is the default; it returns only
     // ordinary certificates accepted by the same final checkCountedLaws gate.
-    if (!pass && env.GDP_COUNTS_FOCUS === '1' && m.inputMaps?.length && !reads(law.holds, isCount).size) {
+    if (!pass && focusEnabled && m.inputMaps?.length && !reads(law.holds, isCount).size) {
       const focused = ptime('focused', () => proveFocusedCounts(m, ls, law, {}, Math.min(until, clock() + Math.min(ms, 5000)), (g, ds) => certFor(g, ds, true, pool)))
       if (focused) return {proof: focused}
     }
@@ -778,8 +778,8 @@ export function countedAttempts(m: Machine, caller: Law[], support: Set<Law>, un
       }
       // A wide pool can obscure a short subset proof. Retry only ordinary
       // witness-bearing certificates with the warmed law instances; the final
-      // checkCountedLaws gate is unchanged. Opt-in until the paired gates pass.
-      if (pass && wide && env.GDP_COUNTS_FOCUS === '1' && clock() < until) {
+      // checkCountedLaws gate is unchanged; the same bounded finite-input default applies.
+      if (pass && wide && focusEnabled && clock() < until) {
         const focused = ptime('focused', () => proveFocusedCounts(m, ls, law, at, Math.min(until, clock() + Math.min(ms, 5000)), (g, ds) => certFor(g, ds, true, pool)))
         if (focused) return {proof: focused}
       }
