@@ -801,6 +801,8 @@ function lift(goal: Goal, tree: Tree, from: Path, to: Path): Tree | undefined {
   return go(tree, from, to)
 }
 
+import {proofOrigins, rememberProofOrigin} from '../core/lemma-cuts.ts'
+
 // A tree for a weaker goal (some hypotheses left out, some conjuncts of one left out) made a tree for the whole: at any
 // path a leaf's rows are among the whole goal's (each hypothesis' facts are a hypothesis' own, the cells, terms and
 // naturals they read a subset), so each input is renumbered to the same row there, a square or product past the rows
@@ -810,6 +812,11 @@ function lift(goal: Goal, tree: Tree, from: Path, to: Path): Tree | undefined {
 // read as the term's linear form at the whole goal's path; a split the whole's path already decides is followed, not
 // made again.
 export function widen(part: Goal, whole: Goal, tree: Tree, opaque: Record<string, E> = {}, pp: Path = new Map(), wp: Path = pp): Tree | undefined {
+  const out = widenTree(part, whole, tree, opaque, pp, wp)
+  if (proofOrigins.enabled && !Object.keys(opaque).length) rememberProofOrigin(out, part, tree, pp, whole)
+  return out
+}
+function widenTree(part: Goal, whole: Goal, tree: Tree, opaque: Record<string, E> = {}, pp: Path = new Map(), wp: Path = pp): Tree | undefined {
   if (pastWall()) return undefined
   const names = Object.keys(opaque)
   const rename = (lin: Lin): Lin | undefined => {

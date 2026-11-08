@@ -1,0 +1,34 @@
+[
+  {
+    "name": "paxos-r1",
+    "cmd": "bun install --frozen-lockfile >/dev/null && set -o pipefail; timeout -s KILL 60s bun research/protocols/ic3syn/run.ts --ms 60000 --only paxos_epr --skip broken | tee /tmp/track-k-strict.jsonl; rc=${PIPESTATUS[0]}; echo STRICT_EXIT=$rc; test \"$rc\" -eq 0 && bun -e 'const r=(await Bun.file(\"/tmp/track-k-strict.jsonl\").text()).split(\"\\n\").filter(l=>l.startsWith(\"{\")).map(JSON.parse).find(r=>r.id===\"paxos_epr\");if(r?.search?.verdict!==\"proven\"||r.search.ms>60000)throw Error(\"strict target not proven\");'",
+    "timeout": 150,
+    "cpu": 8,
+    "memory": 14336,
+    "timing": true
+  },
+  {
+    "name": "paxos-r2",
+    "cmd": "bun install --frozen-lockfile >/dev/null && set -o pipefail; timeout -s KILL 60s bun research/protocols/ic3syn/run.ts --ms 60000 --only paxos_epr --skip broken | tee /tmp/track-k-strict.jsonl; rc=${PIPESTATUS[0]}; echo STRICT_EXIT=$rc; test \"$rc\" -eq 0 && bun -e 'const r=(await Bun.file(\"/tmp/track-k-strict.jsonl\").text()).split(\"\\n\").filter(l=>l.startsWith(\"{\")).map(JSON.parse).find(r=>r.id===\"paxos_epr\");if(r?.search?.verdict!==\"proven\"||r.search.ms>60000)throw Error(\"strict target not proven\");'",
+    "timeout": 150,
+    "cpu": 8,
+    "memory": 14336,
+    "timing": true
+  },
+  {
+    "name": "paxos-r3",
+    "cmd": "bun install --frozen-lockfile >/dev/null && set -o pipefail; timeout -s KILL 60s bun research/protocols/ic3syn/run.ts --ms 60000 --only paxos_epr --skip broken | tee /tmp/track-k-strict.jsonl; rc=${PIPESTATUS[0]}; echo STRICT_EXIT=$rc; test \"$rc\" -eq 0 && bun -e 'const r=(await Bun.file(\"/tmp/track-k-strict.jsonl\").text()).split(\"\\n\").filter(l=>l.startsWith(\"{\")).map(JSON.parse).find(r=>r.id===\"paxos_epr\");if(r?.search?.verdict!==\"proven\"||r.search.ms>60000)throw Error(\"strict target not proven\");'",
+    "timeout": 150,
+    "cpu": 8,
+    "memory": 14336,
+    "timing": true
+  },
+  {
+    "name": "paxos-cuts-opt-in",
+    "cmd": "export GDP_COUNT_LEMMA_CUTS=1; bun install --frozen-lockfile >/dev/null && set -o pipefail; timeout -s KILL 60s bun research/protocols/ic3syn/run.ts --ms 60000 --only paxos_epr --skip broken | tee /tmp/track-k-strict.jsonl; rc=${PIPESTATUS[0]}; echo STRICT_EXIT=$rc; test \"$rc\" -eq 0 && bun -e 'const r=(await Bun.file(\"/tmp/track-k-strict.jsonl\").text()).split(\"\\n\").filter(l=>l.startsWith(\"{\")).map(JSON.parse).find(r=>r.id===\"paxos_epr\");if(r?.search?.verdict!==\"proven\"||r.search.ms>60000)throw Error(\"strict target not proven\");'",
+    "timeout": 150,
+    "cpu": 8,
+    "memory": 14336,
+    "timing": true
+  }
+]
