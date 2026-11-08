@@ -236,7 +236,8 @@ export function deriveCountClosure(m:Machine,ds:CountDecl[],g:Goal,cert:Packet,r
    for(let round=0;round<=pool.length&&building();round++){
     rounds++;const available=active(saved,scope),numeric=numericFor(),natural=proveNaturalCases(numeric,scope,end,trace,{deferCheck:true}),q=natural?{tree:natural}:modelSequence(scope)(numeric,end)
     let proof:Tree|undefined='tree'in q?q.tree:undefined
-    if(!proof&&!('tree'in q)&&q.why===REFUTED&&q.core?.length){const small={...numeric,hyps:q.core.map(i=>numeric.hyps[i]!)},direct=fast(small,scope),out=direct?undefined:grow(small,scope,{nodes:0,until:end,units:false}),local=direct??(out&&'tree'in out?out.tree:undefined);if(local)proof=transport(small,numeric,local,scope,scope)}
+    // An empty core refutes the path alone; it still needs a transported proof.
+    if(!proof&&!('tree'in q)&&q.why===REFUTED&&q.core){const small={...numeric,hyps:q.core.map(i=>numeric.hyps[i]!)},direct=fast(small,scope),out=direct?undefined:grow(small,scope,{nodes:0,until:end,units:false}),local=direct??(out&&'tree'in out?out.tree:undefined);if(local)proof=transport(small,numeric,local,scope,scope)}
     if(proof){
      const extended=lemmaPath(available.map(s=>s.lemma),scope),lifted=liftCountProxies(numeric,g,proof,cert.reads,scope,extended,e=>trace.push({stage:'closure-transport',...e}),{deferCheck:true})
      const tree=lifted&&(options.conditional?markConditionalProof(g,lifted,available.map(s=>s.lemma)):inlineConditionalCuts(g,g,lifted,extended,scope,available.map(s=>s.lemma),wallEnd(),e=>trace.push({stage:'closure-inline',...e})))

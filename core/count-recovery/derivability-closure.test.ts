@@ -1,6 +1,8 @@
 import {expect,test} from 'bun:test'
 import {type Machine,all,get,ite,less,n,not,plus,same,x} from '../machine.ts'
-import {type CountCert,checkMC,mcGoal} from '../../kernel/kernel.ts'
+import {type CountCert,type Path,canon,check,checkMC,mcGoal} from '../../kernel/kernel.ts'
+import {REFUTED} from '../../kernel/cdcl.ts'
+import {modelSequence} from './ops.ts'
 import {clock} from '../../kernel/prove.ts'
 import {deriveCountClosure} from './derivability-closure.ts'
 import {collectConditionalCertificate,hasConditionalProof} from './conditional-proof.ts'
@@ -44,6 +46,18 @@ test('separately useful inclusions accumulate when a partial violated set remain
  expect(tree).toBeDefined();if(tree)expect(checkMC([claim],ds,{...cert,tree})).toBe(true)
  expect(events.some((e:any)=>e.stage==='closure-batch-core')).toBe(true)
 })
+test('an empty numeric core closes a contradictory path with a kernel-checked proof',()=>{
+ const f=fixture(true),lin={outside:-1},root:Path=new Map([[canon(lin),{lin,holds:false}]])
+ const query=modelSequence(root)({name:f.g.name,hyps:[]},clock()+100)
+ expect('tree'in query).toBe(false)
+ if('tree'in query)return
+ expect(query.why).toBe(REFUTED);expect(query.core).toEqual([])
+ const events:object[]=[],tree=deriveCountClosure(f.m,f.ds,f.g,f.cert,root,clock()+1500,events,{claim:f.claim})
+ expect(tree).toBeDefined()
+ if(tree)expect(check(f.g,tree,root)).toBe(true)
+ expect(events.some((e:any)=>e.stage==='closure-final'&&e.mode==='model-driven'&&e.outcome==='checked')).toBe(true)
+})
+
 test('expired closure leaves no proof and never extends its deadline',()=>{
  const f=fixture(true)
  expect(deriveCountClosure(f.m,f.ds,f.g,f.cert,new Map(),clock()-1,[],{claim:f.claim})).toBeUndefined()
