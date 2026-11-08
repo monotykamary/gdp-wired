@@ -1,0 +1,4801 @@
+{
+  "status": "failed-1500-unit-pass-line",
+  "defaultChanged": false,
+  "mathematicalRefutation": false,
+  "results": [
+    {
+      "version": 1,
+      "sourceLog": "runs/track-m/closure-falsification-v1/closure-falsification.log",
+      "falsification": true,
+      "law": "Inv*: no quorum of a config can still be gathered for a config term held",
+      "branch": 0,
+      "rowMode": "equal",
+      "budget": 1500,
+      "hyps": 406,
+      "instances": 73,
+      "wallMs": 16263.533999000001,
+      "indices": [
+        0
+      ],
+      "closedIndices": [
+        0
+      ],
+      "pool": 57,
+      "rounds": 1,
+      "fixedPoint": false,
+      "finalOutcome": "not-run",
+      "numericHyps": 0,
+      "arithmeticMs": 0,
+      "countedMs": 1502.2177688,
+      "checked": false,
+      "expired": true,
+      "referenceIndices": [
+        18,
+        9,
+        34,
+        33,
+        32,
+        31,
+        28,
+        27,
+        0,
+        26,
+        39,
+        70,
+        69
+      ],
+      "referenceClosed": [
+        0
+      ],
+      "unions": [
+        {
+          "index": 35,
+          "wit": "w$561",
+          "closed": false
+        },
+        {
+          "index": 37,
+          "wit": "w$563",
+          "closed": false
+        },
+        {
+          "index": 39,
+          "wit": "w$566",
+          "closed": false
+        },
+        {
+          "index": 40,
+          "wit": "w$581",
+          "closed": false
+        },
+        {
+          "index": 42,
+          "wit": "w$583",
+          "closed": false
+        },
+        {
+          "index": 44,
+          "wit": "w$585",
+          "closed": false
+        },
+        {
+          "index": 45,
+          "wit": "w$599",
+          "closed": false
+        },
+        {
+          "index": 46,
+          "wit": "w$601",
+          "closed": false
+        }
+      ],
+      "phaseA": [
+        {
+          "good": {
+            "op": "<=",
+            "a": {
+              "op": "if",
+              "c": {
+                "op": "and",
+                "xs": [
+                  {
+                    "op": "=",
+                    "a": {
+                      "op": "var",
+                      "name": "?canVote"
+                    },
+                    "b": {
+                      "op": "const",
+                      "value": 1
+                    }
+                  },
+                  {
+                    "op": "<",
+                    "a": {
+                      "op": "var",
+                      "name": "i"
+                    },
+                    "b": {
+                      "op": "var",
+                      "name": "size"
+                    }
+                  }
+                ]
+              },
+              "then": {
+                "op": "get",
+                "map": "CfgT",
+                "key": {
+                  "op": "var",
+                  "name": "i"
+                }
+              },
+              "else": {
+                "op": "const",
+                "value": 0
+              }
+            },
+            "b": {
+              "op": "get",
+              "map": "CT",
+              "key": {
+                "op": "var",
+                "name": "i"
+              }
+            }
+          },
+          "sourceHyps": 171,
+          "sourceInsts": 28,
+          "ms": 169.8196568,
+          "checked": true
+        },
+        {
+          "good": {
+            "op": "<=",
+            "a": {
+              "op": "if",
+              "c": {
+                "op": "and",
+                "xs": [
+                  {
+                    "op": "=",
+                    "a": {
+                      "op": "var",
+                      "name": "?committedQuorum"
+                    },
+                    "b": {
+                      "op": "const",
+                      "value": 1
+                    }
+                  },
+                  {
+                    "op": "<",
+                    "a": {
+                      "op": "var",
+                      "name": "i"
+                    },
+                    "b": {
+                      "op": "var",
+                      "name": "size"
+                    }
+                  }
+                ]
+              },
+              "then": {
+                "op": "get",
+                "map": "CfgT",
+                "key": {
+                  "op": "var",
+                  "name": "i"
+                }
+              },
+              "else": {
+                "op": "const",
+                "value": 0
+              }
+            },
+            "b": {
+              "op": "get",
+              "map": "CT",
+              "key": {
+                "op": "var",
+                "name": "i"
+              }
+            }
+          },
+          "sourceHyps": 171,
+          "sourceInsts": 28,
+          "ms": 5.4566284,
+          "checked": true
+        },
+        {
+          "good": {
+            "op": "<=",
+            "a": {
+              "op": "if",
+              "c": {
+                "op": "and",
+                "xs": [
+                  {
+                    "op": "=",
+                    "a": {
+                      "op": "var",
+                      "name": "?canVote"
+                    },
+                    "b": {
+                      "op": "const",
+                      "value": 1
+                    }
+                  },
+                  {
+                    "op": "<",
+                    "a": {
+                      "op": "var",
+                      "name": "j$"
+                    },
+                    "b": {
+                      "op": "var",
+                      "name": "size"
+                    }
+                  }
+                ]
+              },
+              "then": {
+                "op": "get",
+                "map": "CfgT",
+                "key": {
+                  "op": "var",
+                  "name": "j$"
+                }
+              },
+              "else": {
+                "op": "const",
+                "value": 0
+              }
+            },
+            "b": {
+              "op": "get",
+              "map": "CT",
+              "key": {
+                "op": "var",
+                "name": "i"
+              }
+            }
+          },
+          "sourceHyps": 171,
+          "sourceInsts": 28,
+          "ms": 540.9555628,
+          "checked": true
+        },
+        {
+          "good": {
+            "op": "<=",
+            "a": {
+              "op": "if",
+              "c": {
+                "op": "and",
+                "xs": [
+                  {
+                    "op": "=",
+                    "a": {
+                      "op": "var",
+                      "name": "?committedQuorum"
+                    },
+                    "b": {
+                      "op": "const",
+                      "value": 1
+                    }
+                  },
+                  {
+                    "op": "<",
+                    "a": {
+                      "op": "var",
+                      "name": "j$"
+                    },
+                    "b": {
+                      "op": "var",
+                      "name": "size"
+                    }
+                  }
+                ]
+              },
+              "then": {
+                "op": "get",
+                "map": "CfgT",
+                "key": {
+                  "op": "var",
+                  "name": "j$"
+                }
+              },
+              "else": {
+                "op": "const",
+                "value": 0
+              }
+            },
+            "b": {
+              "op": "get",
+              "map": "CT",
+              "key": {
+                "op": "var",
+                "name": "i"
+              }
+            }
+          },
+          "sourceHyps": 171,
+          "sourceInsts": 28,
+          "ms": 533.9867424,
+          "checked": true
+        }
+      ],
+      "roundsLog": [
+        {
+          "stage": "round",
+          "round": 1,
+          "added": 1,
+          "closed": 1,
+          "remaining": 56,
+          "expired": true
+        }
+      ],
+      "attempts": [
+        {
+          "round": 1,
+          "index": 0,
+          "arity": 2,
+          "wit": "w$10",
+          "terms": [
+            [
+              1,
+              "r$0"
+            ],
+            [
+              -1,
+              "r$1"
+            ]
+          ],
+          "checked": true,
+          "ms": 3.0908320000000913,
+          "sourceHyps": 32
+        },
+        {
+          "round": 1,
+          "index": 1,
+          "arity": 2,
+          "wit": "w$17",
+          "terms": [
+            [
+              1,
+              "r$0"
+            ],
+            [
+              -1,
+              "r$8"
+            ]
+          ],
+          "checked": false,
+          "ms": 31.891163200000165,
+          "sourceHyps": 32,
+          "last": {
+            "outcome": "unknown"
+          }
+        },
+        {
+          "round": 1,
+          "index": 2,
+          "arity": 2,
+          "wit": "w$22",
+          "terms": [
+            [
+              1,
+              "r$0"
+            ],
+            [
+              -1,
+              "r$13"
+            ]
+          ],
+          "checked": false,
+          "ms": 32.00276399999984,
+          "sourceHyps": 32,
+          "last": {
+            "outcome": "unknown"
+          }
+        },
+        {
+          "round": 1,
+          "index": 3,
+          "arity": 2,
+          "wit": "w$26",
+          "terms": [
+            [
+              1,
+              "r$0"
+            ],
+            [
+              -1,
+              "r$17"
+            ]
+          ],
+          "checked": false,
+          "ms": 32.00276400000007,
+          "sourceHyps": 32,
+          "last": {
+            "outcome": "unknown"
+          }
+        },
+        {
+          "round": 1,
+          "index": 4,
+          "arity": 2,
+          "wit": "w$28",
+          "terms": [
+            [
+              1,
+              "r$0"
+            ],
+            [
+              -1,
+              "r$19"
+            ]
+          ],
+          "checked": false,
+          "ms": 32.00276399999984,
+          "sourceHyps": 32,
+          "last": {
+            "outcome": "unknown"
+          }
+        },
+        {
+          "round": 1,
+          "index": 5,
+          "arity": 2,
+          "wit": "w$36",
+          "terms": [
+            [
+              1,
+              "r$1"
+            ],
+            [
+              -1,
+              "r$8"
+            ]
+          ],
+          "checked": false,
+          "ms": 32.56070879999993,
+          "sourceHyps": 32,
+          "last": {
+            "outcome": "unknown"
+          }
+        },
+        {
+          "round": 1,
+          "index": 6,
+          "arity": 2,
+          "wit": "w$41",
+          "terms": [
+            [
+              1,
+              "r$1"
+            ],
+            [
+              -1,
+              "r$13"
+            ]
+          ],
+          "checked": false,
+          "ms": 32.89741840000033,
+          "sourceHyps": 32,
+          "last": {
+            "outcome": "unknown"
+          }
+        },
+        {
+          "round": 1,
+          "index": 7,
+          "arity": 2,
+          "wit": "w$45",
+          "terms": [
+            [
+              1,
+              "r$1"
+            ],
+            [
+              -1,
+              "r$17"
+            ]
+          ],
+          "checked": false,
+          "ms": 33.22249039999997,
+          "sourceHyps": 32,
+          "last": {
+            "outcome": "unknown"
+          }
+        },
+        {
+          "round": 1,
+          "index": 8,
+          "arity": 2,
+          "wit": "w$47",
+          "terms": [
+            [
+              1,
+              "r$1"
+            ],
+            [
+              -1,
+              "r$19"
+            ]
+          ],
+          "checked": false,
+          "ms": 22.328273599999648,
+          "sourceHyps": 32,
+          "last": {
+            "outcome": "unknown"
+          }
+        }
+      ],
+      "final": [],
+      "transport": []
+    },
+    {
+      "version": 1,
+      "sourceLog": "runs/track-m/closure-falsification-v1/closure-falsification.log",
+      "falsification": true,
+      "law": "Inv2973: quorums overlap, or a config disabled",
+      "branch": 0,
+      "rowMode": "",
+      "budget": 1500,
+      "hyps": 871,
+      "instances": 175,
+      "wallMs": 7328.005713,
+      "indices": [],
+      "closedIndices": [],
+      "pool": 155,
+      "rounds": 1,
+      "fixedPoint": false,
+      "finalOutcome": "not-run",
+      "numericHyps": 0,
+      "arithmeticMs": 0,
+      "countedMs": 1503.9247128,
+      "checked": false,
+      "expired": true,
+      "referenceIndices": [],
+      "referenceClosed": [],
+      "unions": [],
+      "phaseA": [
+        {
+          "good": {
+            "op": "<=",
+            "a": {
+              "op": "if",
+              "c": {
+                "op": "and",
+                "xs": [
+                  {
+                    "op": "=",
+                    "a": {
+                      "op": "var",
+                      "name": "?canVote"
+                    },
+                    "b": {
+                      "op": "const",
+                      "value": 1
+                    }
+                  },
+                  {
+                    "op": "<",
+                    "a": {
+                      "op": "var",
+                      "name": "i"
+                    },
+                    "b": {
+                      "op": "var",
+                      "name": "size"
+                    }
+                  }
+                ]
+              },
+              "then": {
+                "op": "get",
+                "map": "CfgT",
+                "key": {
+                  "op": "var",
+                  "name": "i"
+                }
+              },
+              "else": {
+                "op": "const",
+                "value": 0
+              }
+            },
+            "b": {
+              "op": "get",
+              "map": "CT",
+              "key": {
+                "op": "var",
+                "name": "i"
+              }
+            }
+          },
+          "sourceHyps": 203,
+          "sourceInsts": 32,
+          "ms": 407.8129608,
+          "checked": true
+        },
+        {
+          "good": {
+            "op": "<=",
+            "a": {
+              "op": "if",
+              "c": {
+                "op": "and",
+                "xs": [
+                  {
+                    "op": "=",
+                    "a": {
+                      "op": "var",
+                      "name": "?committedQuorum"
+                    },
+                    "b": {
+                      "op": "const",
+                      "value": 1
+                    }
+                  },
+                  {
+                    "op": "<",
+                    "a": {
+                      "op": "var",
+                      "name": "i"
+                    },
+                    "b": {
+                      "op": "var",
+                      "name": "size"
+                    }
+                  }
+                ]
+              },
+              "then": {
+                "op": "get",
+                "map": "CfgT",
+                "key": {
+                  "op": "var",
+                  "name": "i"
+                }
+              },
+              "else": {
+                "op": "const",
+                "value": 0
+              }
+            },
+            "b": {
+              "op": "get",
+              "map": "CT",
+              "key": {
+                "op": "var",
+                "name": "i"
+              }
+            }
+          },
+          "sourceHyps": 203,
+          "sourceInsts": 32,
+          "ms": 6.552341200000001,
+          "checked": true
+        }
+      ],
+      "roundsLog": [
+        {
+          "stage": "round",
+          "round": 1,
+          "added": 0,
+          "closed": 0,
+          "remaining": 155,
+          "expired": true
+        }
+      ],
+      "attempts": [
+        {
+          "round": 1,
+          "index": 0,
+          "arity": 2,
+          "wit": "w$22",
+          "terms": [
+            [
+              1,
+              "r$0"
+            ],
+            [
+              -1,
+              "r$13"
+            ]
+          ],
+          "checked": false,
+          "ms": 33.099872000000005,
+          "sourceHyps": 32,
+          "last": {
+            "outcome": "unknown"
+          }
+        },
+        {
+          "round": 1,
+          "index": 1,
+          "arity": 2,
+          "wit": "w$24",
+          "terms": [
+            [
+              1,
+              "r$0"
+            ],
+            [
+              -1,
+              "r$15"
+            ]
+          ],
+          "checked": false,
+          "ms": 33.05959759999996,
+          "sourceHyps": 32,
+          "last": {
+            "outcome": "unknown"
+          }
+        },
+        {
+          "round": 1,
+          "index": 2,
+          "arity": 2,
+          "wit": "w$28",
+          "terms": [
+            [
+              1,
+              "r$0"
+            ],
+            [
+              -1,
+              "r$19"
+            ]
+          ],
+          "checked": false,
+          "ms": 33.39606480000003,
+          "sourceHyps": 32,
+          "last": {
+            "outcome": "unknown"
+          }
+        },
+        {
+          "round": 1,
+          "index": 3,
+          "arity": 2,
+          "wit": "w$29",
+          "terms": [
+            [
+              1,
+              "r$0"
+            ],
+            [
+              -1,
+              "r$20"
+            ]
+          ],
+          "checked": false,
+          "ms": 33.3281968,
+          "sourceHyps": 32,
+          "last": {
+            "outcome": "unknown"
+          }
+        },
+        {
+          "round": 1,
+          "index": 4,
+          "arity": 2,
+          "wit": "w$39",
+          "terms": [
+            [
+              1,
+              "r$0"
+            ],
+            [
+              -1,
+              "r$30"
+            ]
+          ],
+          "checked": false,
+          "ms": 33.42036080000014,
+          "sourceHyps": 32,
+          "last": {
+            "outcome": "unknown"
+          }
+        },
+        {
+          "round": 1,
+          "index": 5,
+          "arity": 2,
+          "wit": "w$40",
+          "terms": [
+            [
+              1,
+              "r$0"
+            ],
+            [
+              -1,
+              "r$31"
+            ]
+          ],
+          "checked": false,
+          "ms": 33.06206519999989,
+          "sourceHyps": 32,
+          "last": {
+            "outcome": "unknown"
+          }
+        },
+        {
+          "round": 1,
+          "index": 6,
+          "arity": 2,
+          "wit": "w$42",
+          "terms": [
+            [
+              1,
+              "r$0"
+            ],
+            [
+              -1,
+              "r$33"
+            ]
+          ],
+          "checked": false,
+          "ms": 33.419820399999935,
+          "sourceHyps": 32,
+          "last": {
+            "outcome": "unknown"
+          }
+        },
+        {
+          "round": 1,
+          "index": 7,
+          "arity": 2,
+          "wit": "w$43",
+          "terms": [
+            [
+              1,
+              "r$0"
+            ],
+            [
+              -1,
+              "r$34"
+            ]
+          ],
+          "checked": false,
+          "ms": 33.35185400000012,
+          "sourceHyps": 32,
+          "last": {
+            "outcome": "unknown"
+          }
+        },
+        {
+          "round": 1,
+          "index": 8,
+          "arity": 2,
+          "wit": "w$46",
+          "terms": [
+            [
+              1,
+              "r$0"
+            ],
+            [
+              -1,
+              "r$37"
+            ]
+          ],
+          "checked": false,
+          "ms": 32.981649599999855,
+          "sourceHyps": 32,
+          "last": {
+            "outcome": "unknown"
+          }
+        },
+        {
+          "round": 1,
+          "index": 9,
+          "arity": 2,
+          "wit": "w$63",
+          "terms": [
+            [
+              1,
+              "r$1"
+            ],
+            [
+              -1,
+              "r$14"
+            ]
+          ],
+          "checked": false,
+          "ms": 33.099872000000005,
+          "sourceHyps": 32,
+          "last": {
+            "outcome": "unknown"
+          }
+        },
+        {
+          "round": 1,
+          "index": 10,
+          "arity": 2,
+          "wit": "w$65",
+          "terms": [
+            [
+              1,
+              "r$1"
+            ],
+            [
+              -1,
+              "r$16"
+            ]
+          ],
+          "checked": false,
+          "ms": 33.059597600000075,
+          "sourceHyps": 32,
+          "last": {
+            "outcome": "unknown"
+          }
+        },
+        {
+          "round": 1,
+          "index": 11,
+          "arity": 2,
+          "wit": "w$68",
+          "terms": [
+            [
+              1,
+              "r$1"
+            ],
+            [
+              -1,
+              "r$19"
+            ]
+          ],
+          "checked": false,
+          "ms": 33.39606479999998,
+          "sourceHyps": 32,
+          "last": {
+            "outcome": "unknown"
+          }
+        },
+        {
+          "round": 1,
+          "index": 12,
+          "arity": 2,
+          "wit": "w$70",
+          "terms": [
+            [
+              1,
+              "r$1"
+            ],
+            [
+              -1,
+              "r$21"
+            ]
+          ],
+          "checked": false,
+          "ms": 33.3281968,
+          "sourceHyps": 32,
+          "last": {
+            "outcome": "unknown"
+          }
+        },
+        {
+          "round": 1,
+          "index": 13,
+          "arity": 2,
+          "wit": "w$73",
+          "terms": [
+            [
+              1,
+              "r$1"
+            ],
+            [
+              -1,
+              "r$24"
+            ]
+          ],
+          "checked": false,
+          "ms": 33.42036080000014,
+          "sourceHyps": 32,
+          "last": {
+            "outcome": "unknown"
+          }
+        },
+        {
+          "round": 1,
+          "index": 14,
+          "arity": 2,
+          "wit": "w$75",
+          "terms": [
+            [
+              1,
+              "r$1"
+            ],
+            [
+              -1,
+              "r$26"
+            ]
+          ],
+          "checked": false,
+          "ms": 33.06206519999989,
+          "sourceHyps": 32,
+          "last": {
+            "outcome": "unknown"
+          }
+        },
+        {
+          "round": 1,
+          "index": 15,
+          "arity": 2,
+          "wit": "w$76",
+          "terms": [
+            [
+              1,
+              "r$1"
+            ],
+            [
+              -1,
+              "r$27"
+            ]
+          ],
+          "checked": false,
+          "ms": 33.41982040000005,
+          "sourceHyps": 32,
+          "last": {
+            "outcome": "unknown"
+          }
+        },
+        {
+          "round": 1,
+          "index": 16,
+          "arity": 2,
+          "wit": "w$78",
+          "terms": [
+            [
+              1,
+              "r$1"
+            ],
+            [
+              -1,
+              "r$29"
+            ]
+          ],
+          "checked": false,
+          "ms": 33.351854,
+          "sourceHyps": 32,
+          "last": {
+            "outcome": "unknown"
+          }
+        },
+        {
+          "round": 1,
+          "index": 17,
+          "arity": 2,
+          "wit": "w$88",
+          "terms": [
+            [
+              1,
+              "r$1"
+            ],
+            [
+              -1,
+              "r$39"
+            ]
+          ],
+          "checked": false,
+          "ms": 32.98164959999974,
+          "sourceHyps": 32,
+          "last": {
+            "outcome": "unknown"
+          }
+        },
+        {
+          "round": 1,
+          "index": 18,
+          "arity": 2,
+          "wit": "w$90",
+          "terms": [
+            [
+              1,
+              "r$2"
+            ],
+            [
+              -1,
+              "r$0"
+            ]
+          ],
+          "checked": false,
+          "ms": 31.83388840000009,
+          "sourceHyps": 32,
+          "last": {
+            "outcome": "unknown"
+          }
+        },
+        {
+          "round": 1,
+          "index": 19,
+          "arity": 2,
+          "wit": "w$102",
+          "terms": [
+            [
+              1,
+              "r$2"
+            ],
+            [
+              -1,
+              "r$13"
+            ]
+          ],
+          "checked": false,
+          "ms": 31.016134400000055,
+          "sourceHyps": 32,
+          "last": {
+            "outcome": "unknown"
+          }
+        },
+        {
+          "round": 1,
+          "index": 20,
+          "arity": 2,
+          "wit": "w$104",
+          "terms": [
+            [
+              1,
+              "r$2"
+            ],
+            [
+              -1,
+              "r$15"
+            ]
+          ],
+          "checked": false,
+          "ms": 31.3428707999999,
+          "sourceHyps": 32,
+          "last": {
+            "outcome": "unknown"
+          }
+        },
+        {
+          "round": 1,
+          "index": 21,
+          "arity": 2,
+          "wit": "w$108",
+          "terms": [
+            [
+              1,
+              "r$2"
+            ],
+            [
+              -1,
+              "r$19"
+            ]
+          ],
+          "checked": false,
+          "ms": 31.083175999999867,
+          "sourceHyps": 32,
+          "last": {
+            "outcome": "unknown"
+          }
+        },
+        {
+          "round": 1,
+          "index": 22,
+          "arity": 2,
+          "wit": "w$109",
+          "terms": [
+            [
+              1,
+              "r$2"
+            ],
+            [
+              -1,
+              "r$20"
+            ]
+          ],
+          "checked": false,
+          "ms": 31.0149636000001,
+          "sourceHyps": 32,
+          "last": {
+            "outcome": "unknown"
+          }
+        },
+        {
+          "round": 1,
+          "index": 23,
+          "arity": 2,
+          "wit": "w$119",
+          "terms": [
+            [
+              1,
+              "r$2"
+            ],
+            [
+              -1,
+              "r$30"
+            ]
+          ],
+          "checked": false,
+          "ms": 31.50599840000018,
+          "sourceHyps": 32,
+          "last": {
+            "outcome": "unknown"
+          }
+        },
+        {
+          "round": 1,
+          "index": 24,
+          "arity": 2,
+          "wit": "w$120",
+          "terms": [
+            [
+              1,
+              "r$2"
+            ],
+            [
+              -1,
+              "r$31"
+            ]
+          ],
+          "checked": false,
+          "ms": 31.206103199999916,
+          "sourceHyps": 32,
+          "last": {
+            "outcome": "unknown"
+          }
+        },
+        {
+          "round": 1,
+          "index": 25,
+          "arity": 2,
+          "wit": "w$122",
+          "terms": [
+            [
+              1,
+              "r$2"
+            ],
+            [
+              -1,
+              "r$33"
+            ]
+          ],
+          "checked": false,
+          "ms": 31.463955199999873,
+          "sourceHyps": 32,
+          "last": {
+            "outcome": "unknown"
+          }
+        },
+        {
+          "round": 1,
+          "index": 26,
+          "arity": 2,
+          "wit": "w$123",
+          "terms": [
+            [
+              1,
+              "r$2"
+            ],
+            [
+              -1,
+              "r$34"
+            ]
+          ],
+          "checked": false,
+          "ms": 31.380047999999988,
+          "sourceHyps": 32,
+          "last": {
+            "outcome": "unknown"
+          }
+        },
+        {
+          "round": 1,
+          "index": 27,
+          "arity": 2,
+          "wit": "w$126",
+          "terms": [
+            [
+              1,
+              "r$2"
+            ],
+            [
+              -1,
+              "r$37"
+            ]
+          ],
+          "checked": false,
+          "ms": 31.551170000000184,
+          "sourceHyps": 32,
+          "last": {
+            "outcome": "unknown"
+          }
+        },
+        {
+          "round": 1,
+          "index": 28,
+          "arity": 2,
+          "wit": "w$131",
+          "terms": [
+            [
+              1,
+              "r$3"
+            ],
+            [
+              -1,
+              "r$1"
+            ]
+          ],
+          "checked": false,
+          "ms": 31.83585640000001,
+          "sourceHyps": 32,
+          "last": {
+            "outcome": "unknown"
+          }
+        },
+        {
+          "round": 1,
+          "index": 29,
+          "arity": 2,
+          "wit": "w$143",
+          "terms": [
+            [
+              1,
+              "r$3"
+            ],
+            [
+              -1,
+              "r$14"
+            ]
+          ],
+          "checked": false,
+          "ms": 31.016134400000055,
+          "sourceHyps": 32,
+          "last": {
+            "outcome": "unknown"
+          }
+        },
+        {
+          "round": 1,
+          "index": 30,
+          "arity": 2,
+          "wit": "w$145",
+          "terms": [
+            [
+              1,
+              "r$3"
+            ],
+            [
+              -1,
+              "r$16"
+            ]
+          ],
+          "checked": false,
+          "ms": 31.3428707999999,
+          "sourceHyps": 32,
+          "last": {
+            "outcome": "unknown"
+          }
+        },
+        {
+          "round": 1,
+          "index": 31,
+          "arity": 2,
+          "wit": "w$148",
+          "terms": [
+            [
+              1,
+              "r$3"
+            ],
+            [
+              -1,
+              "r$19"
+            ]
+          ],
+          "checked": false,
+          "ms": 31.083175999999867,
+          "sourceHyps": 32,
+          "last": {
+            "outcome": "unknown"
+          }
+        },
+        {
+          "round": 1,
+          "index": 32,
+          "arity": 2,
+          "wit": "w$150",
+          "terms": [
+            [
+              1,
+              "r$3"
+            ],
+            [
+              -1,
+              "r$21"
+            ]
+          ],
+          "checked": false,
+          "ms": 31.0149636000001,
+          "sourceHyps": 32,
+          "last": {
+            "outcome": "unknown"
+          }
+        },
+        {
+          "round": 1,
+          "index": 33,
+          "arity": 2,
+          "wit": "w$153",
+          "terms": [
+            [
+              1,
+              "r$3"
+            ],
+            [
+              -1,
+              "r$24"
+            ]
+          ],
+          "checked": false,
+          "ms": 21.629139200000054,
+          "sourceHyps": 32,
+          "last": {
+            "outcome": "unknown"
+          }
+        }
+      ],
+      "final": [],
+      "transport": []
+    },
+    {
+      "version": 2,
+      "sourceLog": "runs/track-m/closure-falsification-v2/closure-falsification.log",
+      "falsification": true,
+      "law": "Inv*: no quorum of a config can still be gathered for a config term held",
+      "branch": 0,
+      "rowMode": "equal",
+      "budget": 1500,
+      "hyps": 406,
+      "instances": 73,
+      "wallMs": 20376.135434000003,
+      "indices": [
+        0,
+        9,
+        18,
+        23,
+        26,
+        27,
+        28
+      ],
+      "closedIndices": [
+        0,
+        9,
+        18,
+        23,
+        26,
+        27,
+        28
+      ],
+      "pool": 57,
+      "rounds": 1,
+      "fixedPoint": false,
+      "finalOutcome": "not-run",
+      "numericHyps": 0,
+      "arithmeticMs": 0,
+      "countedMs": 1208.8492927999998,
+      "checked": false,
+      "expired": true,
+      "referenceIndices": [
+        18,
+        9,
+        34,
+        33,
+        32,
+        31,
+        28,
+        27,
+        0,
+        26,
+        39,
+        70,
+        69
+      ],
+      "referenceClosed": [
+        18,
+        9,
+        28,
+        27,
+        0,
+        26
+      ],
+      "unions": [
+        {
+          "index": 35,
+          "wit": "w$561",
+          "closed": false
+        },
+        {
+          "index": 37,
+          "wit": "w$563",
+          "closed": false
+        },
+        {
+          "index": 39,
+          "wit": "w$566",
+          "closed": false
+        },
+        {
+          "index": 40,
+          "wit": "w$581",
+          "closed": false
+        },
+        {
+          "index": 42,
+          "wit": "w$583",
+          "closed": false
+        },
+        {
+          "index": 44,
+          "wit": "w$585",
+          "closed": false
+        },
+        {
+          "index": 45,
+          "wit": "w$599",
+          "closed": false
+        },
+        {
+          "index": 46,
+          "wit": "w$601",
+          "closed": false
+        }
+      ],
+      "phaseA": [
+        {
+          "good": {
+            "op": "<=",
+            "a": {
+              "op": "if",
+              "c": {
+                "op": "and",
+                "xs": [
+                  {
+                    "op": "=",
+                    "a": {
+                      "op": "var",
+                      "name": "?committedQuorum"
+                    },
+                    "b": {
+                      "op": "const",
+                      "value": 1
+                    }
+                  },
+                  {
+                    "op": "<",
+                    "a": {
+                      "op": "var",
+                      "name": "i"
+                    },
+                    "b": {
+                      "op": "var",
+                      "name": "size"
+                    }
+                  }
+                ]
+              },
+              "then": {
+                "op": "get",
+                "map": "CfgT",
+                "key": {
+                  "op": "var",
+                  "name": "i"
+                }
+              },
+              "else": {
+                "op": "const",
+                "value": 0
+              }
+            },
+            "b": {
+              "op": "get",
+              "map": "CT",
+              "key": {
+                "op": "var",
+                "name": "i"
+              }
+            }
+          },
+          "sourceHyps": 171,
+          "sourceInsts": 28,
+          "ms": 150.9068524,
+          "checked": true
+        },
+        {
+          "good": {
+            "op": "<=",
+            "a": {
+              "op": "if",
+              "c": {
+                "op": "and",
+                "xs": [
+                  {
+                    "op": "=",
+                    "a": {
+                      "op": "var",
+                      "name": "?committedQuorum"
+                    },
+                    "b": {
+                      "op": "const",
+                      "value": 1
+                    }
+                  },
+                  {
+                    "op": "<",
+                    "a": {
+                      "op": "var",
+                      "name": "j$"
+                    },
+                    "b": {
+                      "op": "var",
+                      "name": "size"
+                    }
+                  }
+                ]
+              },
+              "then": {
+                "op": "get",
+                "map": "CfgT",
+                "key": {
+                  "op": "var",
+                  "name": "j$"
+                }
+              },
+              "else": {
+                "op": "const",
+                "value": 0
+              }
+            },
+            "b": {
+              "op": "get",
+              "map": "CT",
+              "key": {
+                "op": "var",
+                "name": "i"
+              }
+            }
+          },
+          "sourceHyps": 171,
+          "sourceInsts": 28,
+          "ms": 533.9867423999999,
+          "checked": true
+        }
+      ],
+      "roundsLog": [
+        {
+          "stage": "round",
+          "round": 1,
+          "added": 7,
+          "closed": 7,
+          "remaining": 50,
+          "expired": true
+        }
+      ],
+      "attempts": [
+        {
+          "round": 1,
+          "index": 0,
+          "arity": 2,
+          "wit": "w$10",
+          "terms": [
+            [
+              1,
+              "r$0"
+            ],
+            [
+              -1,
+              "r$1"
+            ]
+          ],
+          "checked": true,
+          "ms": 11.945265999999947,
+          "sourceHyps": 32
+        },
+        {
+          "round": 1,
+          "index": 1,
+          "arity": 2,
+          "wit": "w$17",
+          "terms": [
+            [
+              1,
+              "r$0"
+            ],
+            [
+              -1,
+              "r$8"
+            ]
+          ],
+          "checked": false,
+          "ms": 34.05544480000003,
+          "sourceHyps": 32,
+          "last": {
+            "outcome": "unknown"
+          }
+        },
+        {
+          "round": 1,
+          "index": 2,
+          "arity": 2,
+          "wit": "w$22",
+          "terms": [
+            [
+              1,
+              "r$0"
+            ],
+            [
+              -1,
+              "r$13"
+            ]
+          ],
+          "checked": false,
+          "ms": 34.29649280000001,
+          "sourceHyps": 32,
+          "last": {
+            "outcome": "unknown"
+          }
+        },
+        {
+          "round": 1,
+          "index": 3,
+          "arity": 2,
+          "wit": "w$26",
+          "terms": [
+            [
+              1,
+              "r$0"
+            ],
+            [
+              -1,
+              "r$17"
+            ]
+          ],
+          "checked": false,
+          "ms": 34.29649280000001,
+          "sourceHyps": 32,
+          "last": {
+            "outcome": "unknown"
+          }
+        },
+        {
+          "round": 1,
+          "index": 4,
+          "arity": 2,
+          "wit": "w$28",
+          "terms": [
+            [
+              1,
+              "r$0"
+            ],
+            [
+              -1,
+              "r$19"
+            ]
+          ],
+          "checked": false,
+          "ms": 34.29649280000001,
+          "sourceHyps": 32,
+          "last": {
+            "outcome": "unknown"
+          }
+        },
+        {
+          "round": 1,
+          "index": 5,
+          "arity": 2,
+          "wit": "w$36",
+          "terms": [
+            [
+              1,
+              "r$1"
+            ],
+            [
+              -1,
+              "r$8"
+            ]
+          ],
+          "checked": false,
+          "ms": 34.563364800000045,
+          "sourceHyps": 32,
+          "last": {
+            "outcome": "unknown"
+          }
+        },
+        {
+          "round": 1,
+          "index": 6,
+          "arity": 2,
+          "wit": "w$41",
+          "terms": [
+            [
+              1,
+              "r$1"
+            ],
+            [
+              -1,
+              "r$13"
+            ]
+          ],
+          "checked": false,
+          "ms": 34.89275359999999,
+          "sourceHyps": 32,
+          "last": {
+            "outcome": "unknown"
+          }
+        },
+        {
+          "round": 1,
+          "index": 7,
+          "arity": 2,
+          "wit": "w$45",
+          "terms": [
+            [
+              1,
+              "r$1"
+            ],
+            [
+              -1,
+              "r$17"
+            ]
+          ],
+          "checked": false,
+          "ms": 35.15728839999997,
+          "sourceHyps": 32,
+          "last": {
+            "outcome": "unknown"
+          }
+        },
+        {
+          "round": 1,
+          "index": 8,
+          "arity": 2,
+          "wit": "w$47",
+          "terms": [
+            [
+              1,
+              "r$1"
+            ],
+            [
+              -1,
+              "r$19"
+            ]
+          ],
+          "checked": false,
+          "ms": 35.03970719999984,
+          "sourceHyps": 32,
+          "last": {
+            "outcome": "unknown"
+          }
+        },
+        {
+          "round": 1,
+          "index": 9,
+          "arity": 2,
+          "wit": "w$57",
+          "terms": [
+            [
+              1,
+              "r$2"
+            ],
+            [
+              -1,
+              "r$12"
+            ]
+          ],
+          "checked": true,
+          "ms": 4.4274044,
+          "sourceHyps": 31
+        },
+        {
+          "round": 1,
+          "index": 18,
+          "arity": 2,
+          "wit": "w$82",
+          "terms": [
+            [
+              1,
+              "r$4"
+            ],
+            [
+              -1,
+              "r$2"
+            ]
+          ],
+          "checked": true,
+          "ms": 7.7413711999998895,
+          "sourceHyps": 32
+        },
+        {
+          "round": 1,
+          "index": 19,
+          "arity": 2,
+          "wit": "w$84",
+          "terms": [
+            [
+              1,
+              "r$4"
+            ],
+            [
+              -1,
+              "r$5"
+            ]
+          ],
+          "checked": false,
+          "ms": 35.00577080000028,
+          "sourceHyps": 32,
+          "last": {
+            "outcome": "unknown"
+          }
+        },
+        {
+          "round": 1,
+          "index": 20,
+          "arity": 2,
+          "wit": "w$85",
+          "terms": [
+            [
+              1,
+              "r$4"
+            ],
+            [
+              -1,
+              "r$6"
+            ]
+          ],
+          "checked": false,
+          "ms": 35.18663679999986,
+          "sourceHyps": 32,
+          "last": {
+            "outcome": "unknown"
+          }
+        },
+        {
+          "round": 1,
+          "index": 21,
+          "arity": 2,
+          "wit": "w$86",
+          "terms": [
+            [
+              1,
+              "r$4"
+            ],
+            [
+              -1,
+              "r$7"
+            ]
+          ],
+          "checked": false,
+          "ms": 34.96066400000018,
+          "sourceHyps": 32,
+          "last": {
+            "outcome": "unknown"
+          }
+        },
+        {
+          "round": 1,
+          "index": 22,
+          "arity": 2,
+          "wit": "w$90",
+          "terms": [
+            [
+              1,
+              "r$4"
+            ],
+            [
+              -1,
+              "r$11"
+            ]
+          ],
+          "checked": false,
+          "ms": 34.5927443999999,
+          "sourceHyps": 32,
+          "last": {
+            "outcome": "unknown"
+          }
+        },
+        {
+          "round": 1,
+          "index": 23,
+          "arity": 2,
+          "wit": "w$91",
+          "terms": [
+            [
+              1,
+              "r$4"
+            ],
+            [
+              -1,
+              "r$12"
+            ]
+          ],
+          "checked": true,
+          "ms": 4.535630800000035,
+          "sourceHyps": 32
+        },
+        {
+          "round": 1,
+          "index": 24,
+          "arity": 2,
+          "wit": "w$93",
+          "terms": [
+            [
+              1,
+              "r$4"
+            ],
+            [
+              -1,
+              "r$14"
+            ]
+          ],
+          "checked": false,
+          "ms": 35.168632000000116,
+          "sourceHyps": 32,
+          "last": {
+            "outcome": "unknown"
+          }
+        },
+        {
+          "round": 1,
+          "index": 25,
+          "arity": 2,
+          "wit": "w$95",
+          "terms": [
+            [
+              1,
+              "r$4"
+            ],
+            [
+              -1,
+              "r$16"
+            ]
+          ],
+          "checked": false,
+          "ms": 35.01518399999986,
+          "sourceHyps": 32,
+          "last": {
+            "outcome": "unknown"
+          }
+        },
+        {
+          "round": 1,
+          "index": 26,
+          "arity": 2,
+          "wit": "w$218",
+          "terms": [
+            [
+              1,
+              "r$12"
+            ],
+            [
+              -1,
+              "r$2"
+            ]
+          ],
+          "checked": true,
+          "ms": 4.441083200000094,
+          "sourceHyps": 31
+        },
+        {
+          "round": 1,
+          "index": 27,
+          "arity": 3,
+          "wit": "w$548",
+          "terms": [
+            [
+              1,
+              "r$2"
+            ],
+            [
+              -1,
+              "r$5"
+            ],
+            [
+              -1,
+              "r$6"
+            ]
+          ],
+          "checked": true,
+          "ms": 2.174900799999932,
+          "sourceHyps": 2
+        },
+        {
+          "round": 1,
+          "index": 28,
+          "arity": 3,
+          "wit": "w$549",
+          "terms": [
+            [
+              -1,
+              "r$2"
+            ],
+            [
+              1,
+              "r$5"
+            ],
+            [
+              1,
+              "r$6"
+            ]
+          ],
+          "checked": true,
+          "ms": 2.1623723999998674,
+          "sourceHyps": 2
+        }
+      ],
+      "final": [],
+      "transport": []
+    },
+    {
+      "version": 2,
+      "sourceLog": "runs/track-m/closure-falsification-v2/closure-falsification.log",
+      "falsification": true,
+      "law": "Inv2973: quorums overlap, or a config disabled",
+      "branch": 0,
+      "rowMode": "",
+      "budget": 1500,
+      "hyps": 871,
+      "instances": 175,
+      "wallMs": 6225.963563,
+      "indices": [],
+      "closedIndices": [],
+      "pool": 155,
+      "rounds": 1,
+      "fixedPoint": false,
+      "finalOutcome": "not-run",
+      "numericHyps": 0,
+      "arithmeticMs": 0,
+      "countedMs": 1500.0201115999998,
+      "checked": false,
+      "expired": true,
+      "referenceIndices": [],
+      "referenceClosed": [],
+      "unions": [],
+      "phaseA": [
+        {
+          "good": {
+            "op": "<=",
+            "a": {
+              "op": "if",
+              "c": {
+                "op": "and",
+                "xs": [
+                  {
+                    "op": "=",
+                    "a": {
+                      "op": "var",
+                      "name": "?committedQuorum"
+                    },
+                    "b": {
+                      "op": "const",
+                      "value": 1
+                    }
+                  },
+                  {
+                    "op": "<",
+                    "a": {
+                      "op": "var",
+                      "name": "i"
+                    },
+                    "b": {
+                      "op": "var",
+                      "name": "size"
+                    }
+                  }
+                ]
+              },
+              "then": {
+                "op": "get",
+                "map": "CfgT",
+                "key": {
+                  "op": "var",
+                  "name": "i"
+                }
+              },
+              "else": {
+                "op": "const",
+                "value": 0
+              }
+            },
+            "b": {
+              "op": "get",
+              "map": "CT",
+              "key": {
+                "op": "var",
+                "name": "i"
+              }
+            }
+          },
+          "sourceHyps": 203,
+          "sourceInsts": 32,
+          "ms": 389.82115719999996,
+          "checked": true
+        }
+      ],
+      "roundsLog": [
+        {
+          "stage": "round",
+          "round": 1,
+          "added": 0,
+          "closed": 0,
+          "remaining": 155,
+          "expired": true
+        }
+      ],
+      "attempts": [
+        {
+          "round": 1,
+          "index": 0,
+          "arity": 2,
+          "wit": "w$22",
+          "terms": [
+            [
+              1,
+              "r$0"
+            ],
+            [
+              -1,
+              "r$13"
+            ]
+          ],
+          "checked": false,
+          "ms": 31.030838000000074,
+          "sourceHyps": 32,
+          "last": {
+            "outcome": "unknown"
+          }
+        },
+        {
+          "round": 1,
+          "index": 1,
+          "arity": 2,
+          "wit": "w$24",
+          "terms": [
+            [
+              1,
+              "r$0"
+            ],
+            [
+              -1,
+              "r$15"
+            ]
+          ],
+          "checked": false,
+          "ms": 31.0437096,
+          "sourceHyps": 32,
+          "last": {
+            "outcome": "unknown"
+          }
+        },
+        {
+          "round": 1,
+          "index": 2,
+          "arity": 2,
+          "wit": "w$28",
+          "terms": [
+            [
+              1,
+              "r$0"
+            ],
+            [
+              -1,
+              "r$19"
+            ]
+          ],
+          "checked": false,
+          "ms": 31.273897999999974,
+          "sourceHyps": 32,
+          "last": {
+            "outcome": "unknown"
+          }
+        },
+        {
+          "round": 1,
+          "index": 3,
+          "arity": 2,
+          "wit": "w$29",
+          "terms": [
+            [
+              1,
+              "r$0"
+            ],
+            [
+              -1,
+              "r$20"
+            ]
+          ],
+          "checked": false,
+          "ms": 31.21791840000003,
+          "sourceHyps": 32,
+          "last": {
+            "outcome": "unknown"
+          }
+        },
+        {
+          "round": 1,
+          "index": 4,
+          "arity": 2,
+          "wit": "w$39",
+          "terms": [
+            [
+              1,
+              "r$0"
+            ],
+            [
+              -1,
+              "r$30"
+            ]
+          ],
+          "checked": false,
+          "ms": 31.24218559999997,
+          "sourceHyps": 32,
+          "last": {
+            "outcome": "unknown"
+          }
+        },
+        {
+          "round": 1,
+          "index": 5,
+          "arity": 2,
+          "wit": "w$40",
+          "terms": [
+            [
+              1,
+              "r$0"
+            ],
+            [
+              -1,
+              "r$31"
+            ]
+          ],
+          "checked": false,
+          "ms": 31.00977480000006,
+          "sourceHyps": 32,
+          "last": {
+            "outcome": "unknown"
+          }
+        },
+        {
+          "round": 1,
+          "index": 6,
+          "arity": 2,
+          "wit": "w$42",
+          "terms": [
+            [
+              1,
+              "r$0"
+            ],
+            [
+              -1,
+              "r$33"
+            ]
+          ],
+          "checked": false,
+          "ms": 31.258307999999943,
+          "sourceHyps": 32,
+          "last": {
+            "outcome": "unknown"
+          }
+        },
+        {
+          "round": 1,
+          "index": 7,
+          "arity": 2,
+          "wit": "w$43",
+          "terms": [
+            [
+              1,
+              "r$0"
+            ],
+            [
+              -1,
+              "r$34"
+            ]
+          ],
+          "checked": false,
+          "ms": 31.202328400000056,
+          "sourceHyps": 32,
+          "last": {
+            "outcome": "unknown"
+          }
+        },
+        {
+          "round": 1,
+          "index": 8,
+          "arity": 2,
+          "wit": "w$46",
+          "terms": [
+            [
+              1,
+              "r$0"
+            ],
+            [
+              -1,
+              "r$37"
+            ]
+          ],
+          "checked": false,
+          "ms": 30.975433199999884,
+          "sourceHyps": 32,
+          "last": {
+            "outcome": "unknown"
+          }
+        },
+        {
+          "round": 1,
+          "index": 9,
+          "arity": 2,
+          "wit": "w$63",
+          "terms": [
+            [
+              1,
+              "r$1"
+            ],
+            [
+              -1,
+              "r$14"
+            ]
+          ],
+          "checked": false,
+          "ms": 31.03083800000013,
+          "sourceHyps": 32,
+          "last": {
+            "outcome": "unknown"
+          }
+        },
+        {
+          "round": 1,
+          "index": 10,
+          "arity": 2,
+          "wit": "w$65",
+          "terms": [
+            [
+              1,
+              "r$1"
+            ],
+            [
+              -1,
+              "r$16"
+            ]
+          ],
+          "checked": false,
+          "ms": 31.043709599999943,
+          "sourceHyps": 32,
+          "last": {
+            "outcome": "unknown"
+          }
+        },
+        {
+          "round": 1,
+          "index": 11,
+          "arity": 2,
+          "wit": "w$68",
+          "terms": [
+            [
+              1,
+              "r$1"
+            ],
+            [
+              -1,
+              "r$19"
+            ]
+          ],
+          "checked": false,
+          "ms": 31.273897999999917,
+          "sourceHyps": 32,
+          "last": {
+            "outcome": "unknown"
+          }
+        },
+        {
+          "round": 1,
+          "index": 12,
+          "arity": 2,
+          "wit": "w$70",
+          "terms": [
+            [
+              1,
+              "r$1"
+            ],
+            [
+              -1,
+              "r$21"
+            ]
+          ],
+          "checked": false,
+          "ms": 31.21791840000003,
+          "sourceHyps": 32,
+          "last": {
+            "outcome": "unknown"
+          }
+        },
+        {
+          "round": 1,
+          "index": 13,
+          "arity": 2,
+          "wit": "w$73",
+          "terms": [
+            [
+              1,
+              "r$1"
+            ],
+            [
+              -1,
+              "r$24"
+            ]
+          ],
+          "checked": false,
+          "ms": 31.242185600000084,
+          "sourceHyps": 32,
+          "last": {
+            "outcome": "unknown"
+          }
+        },
+        {
+          "round": 1,
+          "index": 14,
+          "arity": 2,
+          "wit": "w$75",
+          "terms": [
+            [
+              1,
+              "r$1"
+            ],
+            [
+              -1,
+              "r$26"
+            ]
+          ],
+          "checked": false,
+          "ms": 31.009774799999832,
+          "sourceHyps": 32,
+          "last": {
+            "outcome": "unknown"
+          }
+        },
+        {
+          "round": 1,
+          "index": 15,
+          "arity": 2,
+          "wit": "w$76",
+          "terms": [
+            [
+              1,
+              "r$1"
+            ],
+            [
+              -1,
+              "r$27"
+            ]
+          ],
+          "checked": false,
+          "ms": 31.258308000000056,
+          "sourceHyps": 32,
+          "last": {
+            "outcome": "unknown"
+          }
+        },
+        {
+          "round": 1,
+          "index": 16,
+          "arity": 2,
+          "wit": "w$78",
+          "terms": [
+            [
+              1,
+              "r$1"
+            ],
+            [
+              -1,
+              "r$29"
+            ]
+          ],
+          "checked": false,
+          "ms": 31.202328400000056,
+          "sourceHyps": 32,
+          "last": {
+            "outcome": "unknown"
+          }
+        },
+        {
+          "round": 1,
+          "index": 17,
+          "arity": 2,
+          "wit": "w$88",
+          "terms": [
+            [
+              1,
+              "r$1"
+            ],
+            [
+              -1,
+              "r$39"
+            ]
+          ],
+          "checked": false,
+          "ms": 30.975433199999998,
+          "sourceHyps": 32,
+          "last": {
+            "outcome": "unknown"
+          }
+        },
+        {
+          "round": 1,
+          "index": 18,
+          "arity": 2,
+          "wit": "w$90",
+          "terms": [
+            [
+              1,
+              "r$2"
+            ],
+            [
+              -1,
+              "r$0"
+            ]
+          ],
+          "checked": false,
+          "ms": 30.466831599999978,
+          "sourceHyps": 32,
+          "last": {
+            "outcome": "unknown"
+          }
+        },
+        {
+          "round": 1,
+          "index": 19,
+          "arity": 2,
+          "wit": "w$102",
+          "terms": [
+            [
+              1,
+              "r$2"
+            ],
+            [
+              -1,
+              "r$13"
+            ]
+          ],
+          "checked": false,
+          "ms": 33.738609999999994,
+          "sourceHyps": 32,
+          "last": {
+            "outcome": "unknown"
+          }
+        },
+        {
+          "round": 1,
+          "index": 20,
+          "arity": 2,
+          "wit": "w$104",
+          "terms": [
+            [
+              1,
+              "r$2"
+            ],
+            [
+              -1,
+              "r$15"
+            ]
+          ],
+          "checked": false,
+          "ms": 34.016767999999956,
+          "sourceHyps": 32,
+          "last": {
+            "outcome": "unknown"
+          }
+        },
+        {
+          "round": 1,
+          "index": 21,
+          "arity": 2,
+          "wit": "w$108",
+          "terms": [
+            [
+              1,
+              "r$2"
+            ],
+            [
+              -1,
+              "r$19"
+            ]
+          ],
+          "checked": false,
+          "ms": 34.6009524000001,
+          "sourceHyps": 32,
+          "last": {
+            "outcome": "unknown"
+          }
+        },
+        {
+          "round": 1,
+          "index": 22,
+          "arity": 2,
+          "wit": "w$109",
+          "terms": [
+            [
+              1,
+              "r$2"
+            ],
+            [
+              -1,
+              "r$20"
+            ]
+          ],
+          "checked": false,
+          "ms": 34.543053999999984,
+          "sourceHyps": 32,
+          "last": {
+            "outcome": "unknown"
+          }
+        },
+        {
+          "round": 1,
+          "index": 23,
+          "arity": 2,
+          "wit": "w$119",
+          "terms": [
+            [
+              1,
+              "r$2"
+            ],
+            [
+              -1,
+              "r$30"
+            ]
+          ],
+          "checked": false,
+          "ms": 34.156746399999975,
+          "sourceHyps": 32,
+          "last": {
+            "outcome": "unknown"
+          }
+        },
+        {
+          "round": 1,
+          "index": 24,
+          "arity": 2,
+          "wit": "w$120",
+          "terms": [
+            [
+              1,
+              "r$2"
+            ],
+            [
+              -1,
+              "r$31"
+            ]
+          ],
+          "checked": false,
+          "ms": 33.92364680000014,
+          "sourceHyps": 32,
+          "last": {
+            "outcome": "unknown"
+          }
+        },
+        {
+          "round": 1,
+          "index": 25,
+          "arity": 2,
+          "wit": "w$122",
+          "terms": [
+            [
+              1,
+              "r$2"
+            ],
+            [
+              -1,
+              "r$33"
+            ]
+          ],
+          "checked": false,
+          "ms": 34.549271599999656,
+          "sourceHyps": 32,
+          "last": {
+            "outcome": "unknown"
+          }
+        },
+        {
+          "round": 1,
+          "index": 26,
+          "arity": 2,
+          "wit": "w$123",
+          "terms": [
+            [
+              1,
+              "r$2"
+            ],
+            [
+              -1,
+              "r$34"
+            ]
+          ],
+          "checked": false,
+          "ms": 34.475432400000045,
+          "sourceHyps": 32,
+          "last": {
+            "outcome": "unknown"
+          }
+        },
+        {
+          "round": 1,
+          "index": 27,
+          "arity": 2,
+          "wit": "w$126",
+          "terms": [
+            [
+              1,
+              "r$2"
+            ],
+            [
+              -1,
+              "r$37"
+            ]
+          ],
+          "checked": false,
+          "ms": 34.21723440000028,
+          "sourceHyps": 32,
+          "last": {
+            "outcome": "unknown"
+          }
+        },
+        {
+          "round": 1,
+          "index": 28,
+          "arity": 2,
+          "wit": "w$131",
+          "terms": [
+            [
+              1,
+              "r$3"
+            ],
+            [
+              -1,
+              "r$1"
+            ]
+          ],
+          "checked": false,
+          "ms": 30.470767599999817,
+          "sourceHyps": 32,
+          "last": {
+            "outcome": "unknown"
+          }
+        },
+        {
+          "round": 1,
+          "index": 29,
+          "arity": 2,
+          "wit": "w$143",
+          "terms": [
+            [
+              1,
+              "r$3"
+            ],
+            [
+              -1,
+              "r$14"
+            ]
+          ],
+          "checked": false,
+          "ms": 33.73861000000011,
+          "sourceHyps": 32,
+          "last": {
+            "outcome": "unknown"
+          }
+        },
+        {
+          "round": 1,
+          "index": 30,
+          "arity": 2,
+          "wit": "w$145",
+          "terms": [
+            [
+              1,
+              "r$3"
+            ],
+            [
+              -1,
+              "r$16"
+            ]
+          ],
+          "checked": false,
+          "ms": 34.016767999999956,
+          "sourceHyps": 32,
+          "last": {
+            "outcome": "unknown"
+          }
+        },
+        {
+          "round": 1,
+          "index": 31,
+          "arity": 2,
+          "wit": "w$148",
+          "terms": [
+            [
+              1,
+              "r$3"
+            ],
+            [
+              -1,
+              "r$19"
+            ]
+          ],
+          "checked": false,
+          "ms": 34.60095239999987,
+          "sourceHyps": 32,
+          "last": {
+            "outcome": "unknown"
+          }
+        },
+        {
+          "round": 1,
+          "index": 32,
+          "arity": 2,
+          "wit": "w$150",
+          "terms": [
+            [
+              1,
+              "r$3"
+            ],
+            [
+              -1,
+              "r$21"
+            ]
+          ],
+          "checked": false,
+          "ms": 34.543053999999984,
+          "sourceHyps": 32,
+          "last": {
+            "outcome": "unknown"
+          }
+        },
+        {
+          "round": 1,
+          "index": 33,
+          "arity": 2,
+          "wit": "w$153",
+          "terms": [
+            [
+              1,
+              "r$3"
+            ],
+            [
+              -1,
+              "r$24"
+            ]
+          ],
+          "checked": false,
+          "ms": 34.1567464000002,
+          "sourceHyps": 32,
+          "last": {
+            "outcome": "unknown"
+          }
+        },
+        {
+          "round": 1,
+          "index": 34,
+          "arity": 2,
+          "wit": "w$155",
+          "terms": [
+            [
+              1,
+              "r$3"
+            ],
+            [
+              -1,
+              "r$26"
+            ]
+          ],
+          "checked": false,
+          "ms": 9.474720399999796,
+          "sourceHyps": 32
+        }
+      ],
+      "final": [],
+      "transport": []
+    },
+    {
+      "version": 3,
+      "sourceLog": "runs/track-m/closure-falsification-v3/closure-falsification.log",
+      "falsification": true,
+      "law": "Inv*: no quorum of a config can still be gathered for a config term held",
+      "branch": 0,
+      "rowMode": "equal",
+      "budget": 1500,
+      "hyps": 406,
+      "instances": 73,
+      "wallMs": 11518.69842,
+      "indices": [
+        0,
+        9,
+        18,
+        23,
+        26,
+        27,
+        28,
+        31,
+        32,
+        33,
+        34
+      ],
+      "closedIndices": [
+        0,
+        9,
+        18,
+        23,
+        26,
+        27,
+        28,
+        31,
+        32,
+        33,
+        34
+      ],
+      "pool": 57,
+      "rounds": 1,
+      "fixedPoint": false,
+      "finalOutcome": "not-run",
+      "numericHyps": 0,
+      "arithmeticMs": 0,
+      "countedMs": 1500.1317483999999,
+      "checked": false,
+      "expired": true,
+      "referenceIndices": [
+        18,
+        9,
+        34,
+        33,
+        32,
+        31,
+        28,
+        27,
+        0,
+        26,
+        39,
+        70,
+        69
+      ],
+      "referenceClosed": [
+        18,
+        9,
+        34,
+        33,
+        32,
+        31,
+        28,
+        27,
+        0,
+        26
+      ],
+      "unions": [
+        {
+          "index": 35,
+          "wit": "w$561",
+          "closed": false
+        },
+        {
+          "index": 37,
+          "wit": "w$563",
+          "closed": false
+        },
+        {
+          "index": 39,
+          "wit": "w$566",
+          "closed": false
+        },
+        {
+          "index": 40,
+          "wit": "w$581",
+          "closed": false
+        },
+        {
+          "index": 42,
+          "wit": "w$583",
+          "closed": false
+        },
+        {
+          "index": 44,
+          "wit": "w$585",
+          "closed": false
+        },
+        {
+          "index": 45,
+          "wit": "w$599",
+          "closed": false
+        },
+        {
+          "index": 46,
+          "wit": "w$601",
+          "closed": false
+        }
+      ],
+      "phaseA": [
+        {
+          "good": {
+            "op": "<=",
+            "a": {
+              "op": "if",
+              "c": {
+                "op": "and",
+                "xs": [
+                  {
+                    "op": "=",
+                    "a": {
+                      "op": "var",
+                      "name": "?committedQuorum"
+                    },
+                    "b": {
+                      "op": "const",
+                      "value": 1
+                    }
+                  },
+                  {
+                    "op": "<",
+                    "a": {
+                      "op": "var",
+                      "name": "i"
+                    },
+                    "b": {
+                      "op": "var",
+                      "name": "size"
+                    }
+                  }
+                ]
+              },
+              "then": {
+                "op": "get",
+                "map": "CfgT",
+                "key": {
+                  "op": "var",
+                  "name": "i"
+                }
+              },
+              "else": {
+                "op": "const",
+                "value": 0
+              }
+            },
+            "b": {
+              "op": "get",
+              "map": "CT",
+              "key": {
+                "op": "var",
+                "name": "i"
+              }
+            }
+          },
+          "sourceHyps": 171,
+          "sourceInsts": 28,
+          "ms": 150.9068524,
+          "checked": true
+        },
+        {
+          "good": {
+            "op": "<=",
+            "a": {
+              "op": "if",
+              "c": {
+                "op": "and",
+                "xs": [
+                  {
+                    "op": "=",
+                    "a": {
+                      "op": "var",
+                      "name": "?committedQuorum"
+                    },
+                    "b": {
+                      "op": "const",
+                      "value": 1
+                    }
+                  },
+                  {
+                    "op": "<",
+                    "a": {
+                      "op": "var",
+                      "name": "j$"
+                    },
+                    "b": {
+                      "op": "var",
+                      "name": "size"
+                    }
+                  }
+                ]
+              },
+              "then": {
+                "op": "get",
+                "map": "CfgT",
+                "key": {
+                  "op": "var",
+                  "name": "j$"
+                }
+              },
+              "else": {
+                "op": "const",
+                "value": 0
+              }
+            },
+            "b": {
+              "op": "get",
+              "map": "CT",
+              "key": {
+                "op": "var",
+                "name": "i"
+              }
+            }
+          },
+          "sourceHyps": 171,
+          "sourceInsts": 28,
+          "ms": 533.9867423999999,
+          "checked": true
+        }
+      ],
+      "roundsLog": [
+        {
+          "stage": "round",
+          "round": 1,
+          "added": 11,
+          "closed": 11,
+          "remaining": 46,
+          "expired": true
+        }
+      ],
+      "attempts": [
+        {
+          "round": 1,
+          "index": 0,
+          "arity": 2,
+          "wit": "w$10",
+          "terms": [
+            [
+              1,
+              "r$0"
+            ],
+            [
+              -1,
+              "r$1"
+            ]
+          ],
+          "checked": true,
+          "ms": 11.945265999999947,
+          "sourceHyps": 32
+        },
+        {
+          "round": 1,
+          "index": 1,
+          "arity": 2,
+          "wit": "w$17",
+          "terms": [
+            [
+              1,
+              "r$0"
+            ],
+            [
+              -1,
+              "r$8"
+            ]
+          ],
+          "checked": false,
+          "ms": 34.05544480000003,
+          "sourceHyps": 32,
+          "last": {
+            "outcome": "unknown"
+          }
+        },
+        {
+          "round": 1,
+          "index": 2,
+          "arity": 2,
+          "wit": "w$22",
+          "terms": [
+            [
+              1,
+              "r$0"
+            ],
+            [
+              -1,
+              "r$13"
+            ]
+          ],
+          "checked": false,
+          "ms": 34.29649280000001,
+          "sourceHyps": 32,
+          "last": {
+            "outcome": "unknown"
+          }
+        },
+        {
+          "round": 1,
+          "index": 3,
+          "arity": 2,
+          "wit": "w$26",
+          "terms": [
+            [
+              1,
+              "r$0"
+            ],
+            [
+              -1,
+              "r$17"
+            ]
+          ],
+          "checked": false,
+          "ms": 34.29649280000001,
+          "sourceHyps": 32,
+          "last": {
+            "outcome": "unknown"
+          }
+        },
+        {
+          "round": 1,
+          "index": 4,
+          "arity": 2,
+          "wit": "w$28",
+          "terms": [
+            [
+              1,
+              "r$0"
+            ],
+            [
+              -1,
+              "r$19"
+            ]
+          ],
+          "checked": false,
+          "ms": 34.29649280000001,
+          "sourceHyps": 32,
+          "last": {
+            "outcome": "unknown"
+          }
+        },
+        {
+          "round": 1,
+          "index": 5,
+          "arity": 2,
+          "wit": "w$36",
+          "terms": [
+            [
+              1,
+              "r$1"
+            ],
+            [
+              -1,
+              "r$8"
+            ]
+          ],
+          "checked": false,
+          "ms": 34.563364800000045,
+          "sourceHyps": 32,
+          "last": {
+            "outcome": "unknown"
+          }
+        },
+        {
+          "round": 1,
+          "index": 6,
+          "arity": 2,
+          "wit": "w$41",
+          "terms": [
+            [
+              1,
+              "r$1"
+            ],
+            [
+              -1,
+              "r$13"
+            ]
+          ],
+          "checked": false,
+          "ms": 34.89275359999999,
+          "sourceHyps": 32,
+          "last": {
+            "outcome": "unknown"
+          }
+        },
+        {
+          "round": 1,
+          "index": 7,
+          "arity": 2,
+          "wit": "w$45",
+          "terms": [
+            [
+              1,
+              "r$1"
+            ],
+            [
+              -1,
+              "r$17"
+            ]
+          ],
+          "checked": false,
+          "ms": 35.15728839999997,
+          "sourceHyps": 32,
+          "last": {
+            "outcome": "unknown"
+          }
+        },
+        {
+          "round": 1,
+          "index": 8,
+          "arity": 2,
+          "wit": "w$47",
+          "terms": [
+            [
+              1,
+              "r$1"
+            ],
+            [
+              -1,
+              "r$19"
+            ]
+          ],
+          "checked": false,
+          "ms": 35.03970719999984,
+          "sourceHyps": 32,
+          "last": {
+            "outcome": "unknown"
+          }
+        },
+        {
+          "round": 1,
+          "index": 9,
+          "arity": 2,
+          "wit": "w$57",
+          "terms": [
+            [
+              1,
+              "r$2"
+            ],
+            [
+              -1,
+              "r$12"
+            ]
+          ],
+          "checked": true,
+          "ms": 4.4274044,
+          "sourceHyps": 31
+        },
+        {
+          "round": 1,
+          "index": 18,
+          "arity": 2,
+          "wit": "w$82",
+          "terms": [
+            [
+              1,
+              "r$4"
+            ],
+            [
+              -1,
+              "r$2"
+            ]
+          ],
+          "checked": true,
+          "ms": 7.7413711999998895,
+          "sourceHyps": 32
+        },
+        {
+          "round": 1,
+          "index": 19,
+          "arity": 2,
+          "wit": "w$84",
+          "terms": [
+            [
+              1,
+              "r$4"
+            ],
+            [
+              -1,
+              "r$5"
+            ]
+          ],
+          "checked": false,
+          "ms": 35.00577080000028,
+          "sourceHyps": 32,
+          "last": {
+            "outcome": "unknown"
+          }
+        },
+        {
+          "round": 1,
+          "index": 20,
+          "arity": 2,
+          "wit": "w$85",
+          "terms": [
+            [
+              1,
+              "r$4"
+            ],
+            [
+              -1,
+              "r$6"
+            ]
+          ],
+          "checked": false,
+          "ms": 35.18663679999986,
+          "sourceHyps": 32,
+          "last": {
+            "outcome": "unknown"
+          }
+        },
+        {
+          "round": 1,
+          "index": 21,
+          "arity": 2,
+          "wit": "w$86",
+          "terms": [
+            [
+              1,
+              "r$4"
+            ],
+            [
+              -1,
+              "r$7"
+            ]
+          ],
+          "checked": false,
+          "ms": 34.96066400000018,
+          "sourceHyps": 32,
+          "last": {
+            "outcome": "unknown"
+          }
+        },
+        {
+          "round": 1,
+          "index": 22,
+          "arity": 2,
+          "wit": "w$90",
+          "terms": [
+            [
+              1,
+              "r$4"
+            ],
+            [
+              -1,
+              "r$11"
+            ]
+          ],
+          "checked": false,
+          "ms": 34.5927443999999,
+          "sourceHyps": 32,
+          "last": {
+            "outcome": "unknown"
+          }
+        },
+        {
+          "round": 1,
+          "index": 23,
+          "arity": 2,
+          "wit": "w$91",
+          "terms": [
+            [
+              1,
+              "r$4"
+            ],
+            [
+              -1,
+              "r$12"
+            ]
+          ],
+          "checked": true,
+          "ms": 4.535630800000035,
+          "sourceHyps": 32
+        },
+        {
+          "round": 1,
+          "index": 24,
+          "arity": 2,
+          "wit": "w$93",
+          "terms": [
+            [
+              1,
+              "r$4"
+            ],
+            [
+              -1,
+              "r$14"
+            ]
+          ],
+          "checked": false,
+          "ms": 35.168632000000116,
+          "sourceHyps": 32,
+          "last": {
+            "outcome": "unknown"
+          }
+        },
+        {
+          "round": 1,
+          "index": 25,
+          "arity": 2,
+          "wit": "w$95",
+          "terms": [
+            [
+              1,
+              "r$4"
+            ],
+            [
+              -1,
+              "r$16"
+            ]
+          ],
+          "checked": false,
+          "ms": 35.01518399999986,
+          "sourceHyps": 32,
+          "last": {
+            "outcome": "unknown"
+          }
+        },
+        {
+          "round": 1,
+          "index": 26,
+          "arity": 2,
+          "wit": "w$218",
+          "terms": [
+            [
+              1,
+              "r$12"
+            ],
+            [
+              -1,
+              "r$2"
+            ]
+          ],
+          "checked": true,
+          "ms": 4.441083200000094,
+          "sourceHyps": 31
+        },
+        {
+          "round": 1,
+          "index": 27,
+          "arity": 3,
+          "wit": "w$548",
+          "terms": [
+            [
+              1,
+              "r$2"
+            ],
+            [
+              -1,
+              "r$5"
+            ],
+            [
+              -1,
+              "r$6"
+            ]
+          ],
+          "checked": true,
+          "ms": 2.174900799999932,
+          "sourceHyps": 2
+        },
+        {
+          "round": 1,
+          "index": 28,
+          "arity": 3,
+          "wit": "w$549",
+          "terms": [
+            [
+              -1,
+              "r$2"
+            ],
+            [
+              1,
+              "r$5"
+            ],
+            [
+              1,
+              "r$6"
+            ]
+          ],
+          "checked": true,
+          "ms": 2.1623723999998674,
+          "sourceHyps": 2
+        },
+        {
+          "round": 1,
+          "index": 31,
+          "arity": 3,
+          "wit": "w$554",
+          "terms": [
+            [
+              1,
+              "r$3"
+            ],
+            [
+              -1,
+              "r$7"
+            ],
+            [
+              -1,
+              "r$6"
+            ]
+          ],
+          "checked": true,
+          "ms": 2.121683200000234,
+          "sourceHyps": 2
+        },
+        {
+          "round": 1,
+          "index": 32,
+          "arity": 3,
+          "wit": "w$555",
+          "terms": [
+            [
+              -1,
+              "r$3"
+            ],
+            [
+              1,
+              "r$7"
+            ],
+            [
+              1,
+              "r$6"
+            ]
+          ],
+          "checked": true,
+          "ms": 2.1235651999998026,
+          "sourceHyps": 2
+        },
+        {
+          "round": 1,
+          "index": 33,
+          "arity": 3,
+          "wit": "w$556",
+          "terms": [
+            [
+              1,
+              "r$12"
+            ],
+            [
+              -1,
+              "r$5"
+            ],
+            [
+              -1,
+              "r$6"
+            ]
+          ],
+          "checked": true,
+          "ms": 1.0692320000000564,
+          "sourceHyps": 2
+        },
+        {
+          "round": 1,
+          "index": 34,
+          "arity": 3,
+          "wit": "w$557",
+          "terms": [
+            [
+              -1,
+              "r$12"
+            ],
+            [
+              1,
+              "r$5"
+            ],
+            [
+              1,
+              "r$6"
+            ]
+          ],
+          "checked": true,
+          "ms": 1.0640000000000782,
+          "sourceHyps": 2
+        },
+        {
+          "round": 1,
+          "index": 36,
+          "arity": 3,
+          "wit": "w$562",
+          "terms": [
+            [
+              1,
+              "r$0"
+            ],
+            [
+              1,
+              "r$3"
+            ],
+            [
+              -1,
+              "r$8"
+            ]
+          ],
+          "checked": false,
+          "ms": 31.07593040000006,
+          "sourceHyps": 32,
+          "last": {
+            "outcome": "unknown"
+          }
+        },
+        {
+          "round": 1,
+          "index": 38,
+          "arity": 3,
+          "wit": "w$565",
+          "terms": [
+            [
+              1,
+              "r$0"
+            ],
+            [
+              1,
+              "r$4"
+            ],
+            [
+              -1,
+              "r$8"
+            ]
+          ],
+          "checked": false,
+          "ms": 32.04229519999967,
+          "sourceHyps": 34,
+          "last": {
+            "outcome": "unknown"
+          }
+        },
+        {
+          "round": 1,
+          "index": 39,
+          "arity": 5,
+          "wit": "w$566",
+          "terms": [
+            [
+              1,
+              "r$0"
+            ],
+            [
+              1,
+              "r$4"
+            ],
+            [
+              -1,
+              "r$7"
+            ],
+            [
+              -1,
+              "r$5"
+            ],
+            [
+              -1,
+              "r$6"
+            ]
+          ],
+          "checked": false,
+          "ms": 155.69637760000046,
+          "sourceHyps": 34,
+          "last": {
+            "outcome": "unknown"
+          }
+        },
+        {
+          "round": 1,
+          "index": 41,
+          "arity": 3,
+          "wit": "w$582",
+          "terms": [
+            [
+              1,
+              "r$1"
+            ],
+            [
+              1,
+              "r$3"
+            ],
+            [
+              -1,
+              "r$8"
+            ]
+          ],
+          "checked": false,
+          "ms": 32.3612584,
+          "sourceHyps": 32,
+          "last": {
+            "outcome": "unknown"
+          }
+        },
+        {
+          "round": 1,
+          "index": 43,
+          "arity": 3,
+          "wit": "w$584",
+          "terms": [
+            [
+              1,
+              "r$1"
+            ],
+            [
+              1,
+              "r$4"
+            ],
+            [
+              -1,
+              "r$8"
+            ]
+          ],
+          "checked": false,
+          "ms": 33.72811359999969,
+          "sourceHyps": 34,
+          "last": {
+            "outcome": "unknown"
+          }
+        }
+      ],
+      "final": [],
+      "transport": []
+    },
+    {
+      "version": 3,
+      "sourceLog": "runs/track-m/closure-falsification-v3/closure-falsification.log",
+      "falsification": true,
+      "law": "Inv2973: quorums overlap, or a config disabled",
+      "branch": 0,
+      "rowMode": "",
+      "budget": 1500,
+      "hyps": 871,
+      "instances": 175,
+      "wallMs": 6450.860952,
+      "indices": [],
+      "closedIndices": [],
+      "pool": 155,
+      "rounds": 1,
+      "fixedPoint": false,
+      "finalOutcome": "not-run",
+      "numericHyps": 0,
+      "arithmeticMs": 0,
+      "countedMs": 1500.0201115999998,
+      "checked": false,
+      "expired": true,
+      "referenceIndices": [],
+      "referenceClosed": [],
+      "unions": [],
+      "phaseA": [
+        {
+          "good": {
+            "op": "<=",
+            "a": {
+              "op": "if",
+              "c": {
+                "op": "and",
+                "xs": [
+                  {
+                    "op": "=",
+                    "a": {
+                      "op": "var",
+                      "name": "?committedQuorum"
+                    },
+                    "b": {
+                      "op": "const",
+                      "value": 1
+                    }
+                  },
+                  {
+                    "op": "<",
+                    "a": {
+                      "op": "var",
+                      "name": "i"
+                    },
+                    "b": {
+                      "op": "var",
+                      "name": "size"
+                    }
+                  }
+                ]
+              },
+              "then": {
+                "op": "get",
+                "map": "CfgT",
+                "key": {
+                  "op": "var",
+                  "name": "i"
+                }
+              },
+              "else": {
+                "op": "const",
+                "value": 0
+              }
+            },
+            "b": {
+              "op": "get",
+              "map": "CT",
+              "key": {
+                "op": "var",
+                "name": "i"
+              }
+            }
+          },
+          "sourceHyps": 203,
+          "sourceInsts": 32,
+          "ms": 389.82115719999996,
+          "checked": true
+        }
+      ],
+      "roundsLog": [
+        {
+          "stage": "round",
+          "round": 1,
+          "added": 0,
+          "closed": 0,
+          "remaining": 155,
+          "expired": true
+        }
+      ],
+      "attempts": [
+        {
+          "round": 1,
+          "index": 0,
+          "arity": 2,
+          "wit": "w$22",
+          "terms": [
+            [
+              1,
+              "r$0"
+            ],
+            [
+              -1,
+              "r$13"
+            ]
+          ],
+          "checked": false,
+          "ms": 31.030838000000074,
+          "sourceHyps": 32,
+          "last": {
+            "outcome": "unknown"
+          }
+        },
+        {
+          "round": 1,
+          "index": 1,
+          "arity": 2,
+          "wit": "w$24",
+          "terms": [
+            [
+              1,
+              "r$0"
+            ],
+            [
+              -1,
+              "r$15"
+            ]
+          ],
+          "checked": false,
+          "ms": 31.0437096,
+          "sourceHyps": 32,
+          "last": {
+            "outcome": "unknown"
+          }
+        },
+        {
+          "round": 1,
+          "index": 2,
+          "arity": 2,
+          "wit": "w$28",
+          "terms": [
+            [
+              1,
+              "r$0"
+            ],
+            [
+              -1,
+              "r$19"
+            ]
+          ],
+          "checked": false,
+          "ms": 31.273897999999974,
+          "sourceHyps": 32,
+          "last": {
+            "outcome": "unknown"
+          }
+        },
+        {
+          "round": 1,
+          "index": 3,
+          "arity": 2,
+          "wit": "w$29",
+          "terms": [
+            [
+              1,
+              "r$0"
+            ],
+            [
+              -1,
+              "r$20"
+            ]
+          ],
+          "checked": false,
+          "ms": 31.21791840000003,
+          "sourceHyps": 32,
+          "last": {
+            "outcome": "unknown"
+          }
+        },
+        {
+          "round": 1,
+          "index": 4,
+          "arity": 2,
+          "wit": "w$39",
+          "terms": [
+            [
+              1,
+              "r$0"
+            ],
+            [
+              -1,
+              "r$30"
+            ]
+          ],
+          "checked": false,
+          "ms": 31.24218559999997,
+          "sourceHyps": 32,
+          "last": {
+            "outcome": "unknown"
+          }
+        },
+        {
+          "round": 1,
+          "index": 5,
+          "arity": 2,
+          "wit": "w$40",
+          "terms": [
+            [
+              1,
+              "r$0"
+            ],
+            [
+              -1,
+              "r$31"
+            ]
+          ],
+          "checked": false,
+          "ms": 31.00977480000006,
+          "sourceHyps": 32,
+          "last": {
+            "outcome": "unknown"
+          }
+        },
+        {
+          "round": 1,
+          "index": 6,
+          "arity": 2,
+          "wit": "w$42",
+          "terms": [
+            [
+              1,
+              "r$0"
+            ],
+            [
+              -1,
+              "r$33"
+            ]
+          ],
+          "checked": false,
+          "ms": 31.258307999999943,
+          "sourceHyps": 32,
+          "last": {
+            "outcome": "unknown"
+          }
+        },
+        {
+          "round": 1,
+          "index": 7,
+          "arity": 2,
+          "wit": "w$43",
+          "terms": [
+            [
+              1,
+              "r$0"
+            ],
+            [
+              -1,
+              "r$34"
+            ]
+          ],
+          "checked": false,
+          "ms": 31.202328400000056,
+          "sourceHyps": 32,
+          "last": {
+            "outcome": "unknown"
+          }
+        },
+        {
+          "round": 1,
+          "index": 8,
+          "arity": 2,
+          "wit": "w$46",
+          "terms": [
+            [
+              1,
+              "r$0"
+            ],
+            [
+              -1,
+              "r$37"
+            ]
+          ],
+          "checked": false,
+          "ms": 30.975433199999884,
+          "sourceHyps": 32,
+          "last": {
+            "outcome": "unknown"
+          }
+        },
+        {
+          "round": 1,
+          "index": 9,
+          "arity": 2,
+          "wit": "w$63",
+          "terms": [
+            [
+              1,
+              "r$1"
+            ],
+            [
+              -1,
+              "r$14"
+            ]
+          ],
+          "checked": false,
+          "ms": 31.03083800000013,
+          "sourceHyps": 32,
+          "last": {
+            "outcome": "unknown"
+          }
+        },
+        {
+          "round": 1,
+          "index": 10,
+          "arity": 2,
+          "wit": "w$65",
+          "terms": [
+            [
+              1,
+              "r$1"
+            ],
+            [
+              -1,
+              "r$16"
+            ]
+          ],
+          "checked": false,
+          "ms": 31.043709599999943,
+          "sourceHyps": 32,
+          "last": {
+            "outcome": "unknown"
+          }
+        },
+        {
+          "round": 1,
+          "index": 11,
+          "arity": 2,
+          "wit": "w$68",
+          "terms": [
+            [
+              1,
+              "r$1"
+            ],
+            [
+              -1,
+              "r$19"
+            ]
+          ],
+          "checked": false,
+          "ms": 31.273897999999917,
+          "sourceHyps": 32,
+          "last": {
+            "outcome": "unknown"
+          }
+        },
+        {
+          "round": 1,
+          "index": 12,
+          "arity": 2,
+          "wit": "w$70",
+          "terms": [
+            [
+              1,
+              "r$1"
+            ],
+            [
+              -1,
+              "r$21"
+            ]
+          ],
+          "checked": false,
+          "ms": 31.21791840000003,
+          "sourceHyps": 32,
+          "last": {
+            "outcome": "unknown"
+          }
+        },
+        {
+          "round": 1,
+          "index": 13,
+          "arity": 2,
+          "wit": "w$73",
+          "terms": [
+            [
+              1,
+              "r$1"
+            ],
+            [
+              -1,
+              "r$24"
+            ]
+          ],
+          "checked": false,
+          "ms": 31.242185600000084,
+          "sourceHyps": 32,
+          "last": {
+            "outcome": "unknown"
+          }
+        },
+        {
+          "round": 1,
+          "index": 14,
+          "arity": 2,
+          "wit": "w$75",
+          "terms": [
+            [
+              1,
+              "r$1"
+            ],
+            [
+              -1,
+              "r$26"
+            ]
+          ],
+          "checked": false,
+          "ms": 31.009774799999832,
+          "sourceHyps": 32,
+          "last": {
+            "outcome": "unknown"
+          }
+        },
+        {
+          "round": 1,
+          "index": 15,
+          "arity": 2,
+          "wit": "w$76",
+          "terms": [
+            [
+              1,
+              "r$1"
+            ],
+            [
+              -1,
+              "r$27"
+            ]
+          ],
+          "checked": false,
+          "ms": 31.258308000000056,
+          "sourceHyps": 32,
+          "last": {
+            "outcome": "unknown"
+          }
+        },
+        {
+          "round": 1,
+          "index": 16,
+          "arity": 2,
+          "wit": "w$78",
+          "terms": [
+            [
+              1,
+              "r$1"
+            ],
+            [
+              -1,
+              "r$29"
+            ]
+          ],
+          "checked": false,
+          "ms": 31.202328400000056,
+          "sourceHyps": 32,
+          "last": {
+            "outcome": "unknown"
+          }
+        },
+        {
+          "round": 1,
+          "index": 17,
+          "arity": 2,
+          "wit": "w$88",
+          "terms": [
+            [
+              1,
+              "r$1"
+            ],
+            [
+              -1,
+              "r$39"
+            ]
+          ],
+          "checked": false,
+          "ms": 30.975433199999998,
+          "sourceHyps": 32,
+          "last": {
+            "outcome": "unknown"
+          }
+        },
+        {
+          "round": 1,
+          "index": 18,
+          "arity": 2,
+          "wit": "w$90",
+          "terms": [
+            [
+              1,
+              "r$2"
+            ],
+            [
+              -1,
+              "r$0"
+            ]
+          ],
+          "checked": false,
+          "ms": 30.466831599999978,
+          "sourceHyps": 32,
+          "last": {
+            "outcome": "unknown"
+          }
+        },
+        {
+          "round": 1,
+          "index": 19,
+          "arity": 2,
+          "wit": "w$102",
+          "terms": [
+            [
+              1,
+              "r$2"
+            ],
+            [
+              -1,
+              "r$13"
+            ]
+          ],
+          "checked": false,
+          "ms": 33.738609999999994,
+          "sourceHyps": 32,
+          "last": {
+            "outcome": "unknown"
+          }
+        },
+        {
+          "round": 1,
+          "index": 20,
+          "arity": 2,
+          "wit": "w$104",
+          "terms": [
+            [
+              1,
+              "r$2"
+            ],
+            [
+              -1,
+              "r$15"
+            ]
+          ],
+          "checked": false,
+          "ms": 34.016767999999956,
+          "sourceHyps": 32,
+          "last": {
+            "outcome": "unknown"
+          }
+        },
+        {
+          "round": 1,
+          "index": 21,
+          "arity": 2,
+          "wit": "w$108",
+          "terms": [
+            [
+              1,
+              "r$2"
+            ],
+            [
+              -1,
+              "r$19"
+            ]
+          ],
+          "checked": false,
+          "ms": 34.6009524000001,
+          "sourceHyps": 32,
+          "last": {
+            "outcome": "unknown"
+          }
+        },
+        {
+          "round": 1,
+          "index": 22,
+          "arity": 2,
+          "wit": "w$109",
+          "terms": [
+            [
+              1,
+              "r$2"
+            ],
+            [
+              -1,
+              "r$20"
+            ]
+          ],
+          "checked": false,
+          "ms": 34.543053999999984,
+          "sourceHyps": 32,
+          "last": {
+            "outcome": "unknown"
+          }
+        },
+        {
+          "round": 1,
+          "index": 23,
+          "arity": 2,
+          "wit": "w$119",
+          "terms": [
+            [
+              1,
+              "r$2"
+            ],
+            [
+              -1,
+              "r$30"
+            ]
+          ],
+          "checked": false,
+          "ms": 34.156746399999975,
+          "sourceHyps": 32,
+          "last": {
+            "outcome": "unknown"
+          }
+        },
+        {
+          "round": 1,
+          "index": 24,
+          "arity": 2,
+          "wit": "w$120",
+          "terms": [
+            [
+              1,
+              "r$2"
+            ],
+            [
+              -1,
+              "r$31"
+            ]
+          ],
+          "checked": false,
+          "ms": 33.92364680000014,
+          "sourceHyps": 32,
+          "last": {
+            "outcome": "unknown"
+          }
+        },
+        {
+          "round": 1,
+          "index": 25,
+          "arity": 2,
+          "wit": "w$122",
+          "terms": [
+            [
+              1,
+              "r$2"
+            ],
+            [
+              -1,
+              "r$33"
+            ]
+          ],
+          "checked": false,
+          "ms": 34.549271599999656,
+          "sourceHyps": 32,
+          "last": {
+            "outcome": "unknown"
+          }
+        },
+        {
+          "round": 1,
+          "index": 26,
+          "arity": 2,
+          "wit": "w$123",
+          "terms": [
+            [
+              1,
+              "r$2"
+            ],
+            [
+              -1,
+              "r$34"
+            ]
+          ],
+          "checked": false,
+          "ms": 34.475432400000045,
+          "sourceHyps": 32,
+          "last": {
+            "outcome": "unknown"
+          }
+        },
+        {
+          "round": 1,
+          "index": 27,
+          "arity": 2,
+          "wit": "w$126",
+          "terms": [
+            [
+              1,
+              "r$2"
+            ],
+            [
+              -1,
+              "r$37"
+            ]
+          ],
+          "checked": false,
+          "ms": 34.21723440000028,
+          "sourceHyps": 32,
+          "last": {
+            "outcome": "unknown"
+          }
+        },
+        {
+          "round": 1,
+          "index": 28,
+          "arity": 2,
+          "wit": "w$131",
+          "terms": [
+            [
+              1,
+              "r$3"
+            ],
+            [
+              -1,
+              "r$1"
+            ]
+          ],
+          "checked": false,
+          "ms": 30.470767599999817,
+          "sourceHyps": 32,
+          "last": {
+            "outcome": "unknown"
+          }
+        },
+        {
+          "round": 1,
+          "index": 29,
+          "arity": 2,
+          "wit": "w$143",
+          "terms": [
+            [
+              1,
+              "r$3"
+            ],
+            [
+              -1,
+              "r$14"
+            ]
+          ],
+          "checked": false,
+          "ms": 33.73861000000011,
+          "sourceHyps": 32,
+          "last": {
+            "outcome": "unknown"
+          }
+        },
+        {
+          "round": 1,
+          "index": 30,
+          "arity": 2,
+          "wit": "w$145",
+          "terms": [
+            [
+              1,
+              "r$3"
+            ],
+            [
+              -1,
+              "r$16"
+            ]
+          ],
+          "checked": false,
+          "ms": 34.016767999999956,
+          "sourceHyps": 32,
+          "last": {
+            "outcome": "unknown"
+          }
+        },
+        {
+          "round": 1,
+          "index": 31,
+          "arity": 2,
+          "wit": "w$148",
+          "terms": [
+            [
+              1,
+              "r$3"
+            ],
+            [
+              -1,
+              "r$19"
+            ]
+          ],
+          "checked": false,
+          "ms": 34.60095239999987,
+          "sourceHyps": 32,
+          "last": {
+            "outcome": "unknown"
+          }
+        },
+        {
+          "round": 1,
+          "index": 32,
+          "arity": 2,
+          "wit": "w$150",
+          "terms": [
+            [
+              1,
+              "r$3"
+            ],
+            [
+              -1,
+              "r$21"
+            ]
+          ],
+          "checked": false,
+          "ms": 34.543053999999984,
+          "sourceHyps": 32,
+          "last": {
+            "outcome": "unknown"
+          }
+        },
+        {
+          "round": 1,
+          "index": 33,
+          "arity": 2,
+          "wit": "w$153",
+          "terms": [
+            [
+              1,
+              "r$3"
+            ],
+            [
+              -1,
+              "r$24"
+            ]
+          ],
+          "checked": false,
+          "ms": 34.1567464000002,
+          "sourceHyps": 32,
+          "last": {
+            "outcome": "unknown"
+          }
+        },
+        {
+          "round": 1,
+          "index": 34,
+          "arity": 2,
+          "wit": "w$155",
+          "terms": [
+            [
+              1,
+              "r$3"
+            ],
+            [
+              -1,
+              "r$26"
+            ]
+          ],
+          "checked": false,
+          "ms": 9.474720399999796,
+          "sourceHyps": 32
+        }
+      ],
+      "final": [],
+      "transport": []
+    }
+  ]
+}

@@ -3944,3 +3944,101 @@ supercomputer run --jobs research/track-m/jobs-inv2973-gap-layout.json \
   --out runs/track-m/inv2973-gap-layout-replay --class interactive \
   --data runs/track-m/canonical-capture-v1/fixtures:replay-input
 ```
+
+## Section 5.6 falsification: the 1,500-unit pass line fails
+
+**No production implementation or default-path change follows this test.**
+The research prototype reads the original `active-source-probe.ts` packet
+preparation verbatim, preserving the canonical input and member names. Its
+Inv* packet exactly matches the requested **406 hypotheses / 73 instances**
+and all thirteen signatures from `core-chain-trace-v1/checked-core.json`.
+It uses the existing structural eligibility rules (57 eligible instances),
+not an arithmetic ranking or a known-proof-only subset.
+
+`research/track-m/derivability-closure.ts` implements the proposed experiment:
+scalar prerequisite proofs, a source-by-source closure pass with 30-unit
+limits (150 for five-term instances), independent checked conditional cuts,
+and one final arithmetic query over proved facts. Prerequisites are carried
+with `lemmaPath`; their independent proof trees inline only observed prior
+cut dependencies, since the kernel forbids circular lemma references. A
+successful final result would still have to check against the full original
+goal under the explicit active/equal-row path. None did.
+
+### Final corrected prototype: `closure-falsification-v3`
+
+One job runs both requested cases sequentially, on an exclusive large
+Ryzen 9950X worker with all eight vCPUs pinned. `placement.json` is retained.
+The job itself exits successfully; the **proof tests fail**:
+
+| Captured conditional goal | Hypotheses / instances | Eligible / closed count facts | Reference count facts reached | Counted units | Wall | Final arithmetic query |
+|---|---:|---:|---:|---:|---:|---|
+| Inv*, reconfig, both rows pinned to writer | 406 / 73 | 57 / 11 | 10 / 13 | 1500.132 | 11.519 s | Not reached |
+| Inv2973, active reconfig, no row aliases assumed | 871 / 175 | 155 / 0 | n/a | 1500.020 | 6.451 s | Not reached |
+
+The small counted overshoots are recorded as failures, not extra allowance.
+Neither closure reaches a fixpoint before the window expires. The Inv2973
+packet still has no five-term candidate, as the preceding static audit found.
+No complete law or full MLDR run was performed or newly proved.
+
+### Where the Inv* prediction fails
+
+- Phase A proves two **guarded** ceiling cuts, spending **684.894 counted
+  units** including construction, transport, and checks. The automatic
+  pre-state source has **171 hypotheses / 28 instances**, not the earlier
+  separately cleaned 136-hypothesis diagnostic source. The target cut is
+  `if(committedQuorum && j<size, CfgT[j], 0) <= CT[i]`; its guard must still be
+  related to the source's row-domain facts. The trace does not justify
+  substituting the earlier 9-ms or 136-hypothesis timing for this work.
+- Phase B attempts 30 of the 57 eligible candidates. Eleven close, including
+  all six reference partition directions; **nineteen remain unknown**, rather
+  than returning the cheap SAT counter-witnesses predicted in Section 5.
+  The attempted sources consume **815.238 counted units**.
+- The required union **index 39, witness `w$566`**, is actually attempted:
+  `r$0 + r$4 <= r$7 + r$5 + r$6`, namely post-backing plus Q2 bounded by
+  `sNotX + xNotS + xAndS`. Its **34-hypothesis source** remains unknown after
+  its 150-unit decision/reconstruction window (**155.696 counted units with
+  return overhead**), with the checked guarded ceilings and earlier cuts
+  present. No SAT countermodel is returned for this union.
+- The other missing reference entries, **69 and 70** (`frame$22/23`), are not
+  reached. The final arithmetic query never runs, so it would be incorrect
+  to report that query as either SAT or refuted.
+
+This rejects the current prototype's **in-budget pass prediction**, not the
+mathematical validity of the union, and not every possible implementation of
+derivability closure. There is no observed missing second scalar fact to
+assert: the union's result is unknown, not a model. The next local diagnosis
+is the exact 34-hypothesis source and its ceiling/domain representation;
+reordering guesses or increasing the accepted budget is not a result.
+
+### Preserved prototype corrections, not hidden successes
+
+`v1` blindly sent each source to Boolean reconstruction and proved redundant
+conditional ceilings; it exhausted 1502.218 units after one count fact and
+never reached the union. `v2` deduplicated weaker ceiling guards and used the
+existing tiny-source model/refutation query before reconstruction. It exposed
+an error in the experimental carrier: it inlined *all* prior cut proofs,
+causing unnecessary repeated work, and hit its diagnostic 20-second wall stop
+at 1208.849 counted units. Neither run is a valid pass.
+
+`v3` uses the Section 5 `ObservedPath` dependency discipline, includes product
+row dependencies, and restores the original source helper's 60-second wall
+stop; the fixed **1,500 counted-unit** limit remains unchanged. Its result is
+the table above. Exact v1/v2/v3 prototype patches and unmodified receipts are
+retained, with v3's patch hash. No default prover or kernel file is changed.
+
+Reproduce the final research test:
+
+```sh
+supercomputer run --jobs research/track-m/jobs-closure-falsification.json \
+  --out runs/track-m/closure-falsification-replay --class interactive \
+  --timing --vm-type large \
+  --data runs/track-m/canonical-capture-v1/fixtures:replay-input \
+  --data runs/track-m/core-chain-trace-v1:trace-input
+```
+
+`closure-falsification-v3/summary.json` records all three trial outcomes.
+The narrow type-aware lint check passes with zero warnings and errors on both
+research files (`closure-falsification-check-v1/research-check.log`).
+The accepted runtime remains `fd2d1dcb`, and the complete hard-law status
+remains **3/5**, with no new conservation gate claimed or needed for this
+unpromoted research prototype.
