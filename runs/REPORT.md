@@ -4187,3 +4187,122 @@ Narrow type-aware lint passes on all three research files. The remote static
 replay reproduces `profile.json`, `union-39.json`, and `table.md` byte for byte
 (`closure-source-profile-check-v1/source-profile-check.log`).
 No new proof outcome, default optimization, or conservation gate is claimed.
+
+## Section 6 revised isolated tests: union checks, models are cheap, generators exist
+
+Read Section 6 in the main checkout in full before testing. The three isolated
+steps run on the unchanged canonical fixtures and accepted core/kernel, in
+one exclusive large-VM job with all eight vCPUs pinned. **No default-path or
+`certFor` change is made.** The source-query checks below are conditional
+research results, not a complete-law proof or a new 1,500-unit closure gate.
+
+| Test | Result | Counted units | Wall, excluding fixture preparation |
+|---|---|---:|---:|
+| T1: union 39, plain-cell guarded ceiling, model then core-only reconstruction | **Checked** conditional source proof | **38.630** | **570.758 ms** |
+| T2: 19 original unknown sources, model query only, 50-unit limit each | **18 validated SAT sources; union 39 yields a refuted six-hypothesis core** | **422.973** total | **721.424 ms** total |
+| T3: existing structured generators on the 41-read Inv2973 packet, bypassing the legacy proposal cap | **R2 and both R5 partitions present** | Not metered by the solver clock | **134.410 ms** |
+
+### T1: corrected carrier and production source-query route
+
+The source has **45 hypotheses**: the original scalar/field witness context,
+the eleven previously checked v3 count facts (indices
+`0,9,18,23,26,27,28,31,32,33,34`), and the union clause and its negation.
+Those eleven facts are input to this *isolated* test, not newly assumed facts
+in a complete-law certificate. The full 406-hypothesis/73-instance packet
+is rebuilt verbatim and its instance signatures are checked against the
+captured profile before constructing the production-style part.
+
+The new ceiling cut is exactly:
+
+```text
+CfgT[j$:1] - CT[i:1] <= 0
+```
+
+There is **no opaque column in the cut**. The committed-quorum and `j$ < size`
+guards are in `when`; the missing path guard is independently proved from the
+source before use. A scalar-only source slice proves the ceiling independently
+in **0.037 counted units**, avoiding both the 171-hypothesis count source and
+the duplicate writer ceiling. The ceiling is active on the guarded query path.
+
+The model query consumes **35.016 units**, returning `why: "refuted, not
+unfolded"` with a **six-hypothesis core**. Only that core goes to `booleanCore`,
+which takes **3.530 units**. The reconstructed source tree is checked, then the
+ceiling and guard branches are inlined and checked again under the original
+conditional root. `t1-proof.json` retains this conditional source certificate.
+
+Thus Phase B need not be withdrawn for union 39 on the basis of v3: the revised
+carrier plus production query route produces a checked proof well inside the
+150-unit local window. This test changes both representation and query route;
+it is not a single-variable timing ablation, and it does not by itself prove
+the full law or the whole closure's budget.
+
+### T2: exact source models and the reuse prediction
+
+The 19 profiled unknowns were **not nineteen two-term bounds**. The actual
+split is 14 two-term bounds, four three-term bounds, and the five-term union.
+All nineteen are queried, but the valid union is not counted as a failed SAT
+prediction. Each query receives the production-style part, the eleven checked
+count facts and the plain ceiling hypothesis; there is **no Boolean fallback**.
+
+| Source group | Indices | Result | Per-query counted units |
+|---|---|---|---:|
+| Two-term bounds | 1–8, 19–22, 24–25 | **14/14 SAT**, each model validated on its full source | 12.670–26.785 |
+| Three-term bounds | 36, 38, 41, 43 | **4/4 SAT**, each model validated on its full source | 23.789–29.295 |
+| Five-term union | 39 | Refuted core of size 6; no SAT model | 34.871 |
+
+These are models of the isolated witness sources, **not protocol
+counterexamples**. The source-model validation uses the existing `brokenOf`
+evaluator, not a keyword or syntactic similarity test.
+
+Reusing the **first** model (source 1), with each other source's count witness
+renamed to its witness, satisfies both the local candidate pair and the **full
+source** for **11/18** other queries: `2–8,36,38,41,43`. It does not satisfy
+`19–22,24–25`, or union 39. This misses the design's **at least 15** reuse
+forecast; no multi-model cache or new selection heuristic was implemented.
+The cheap-model premise is confirmed, while the single-model reuse estimate
+needs revision.
+
+### T3: exact generator availability, and a second cap still matters
+
+The existing generators are called directly, not through the legacy pair
+loop: `proposeCountUnions(..., Infinity)` and `proposeCountFacts` at its largest
+supported limits (128 counts, 12 atoms, 4,096 facts). The latter emits 203 facts
+and does **not** hit its fact-count limit; its existing atom-limit skips are
+retained in the log. The union generator emits **4,120 proposals** for the 90
+existing ranked-head/carried pairs.
+
+| Requested relation | Existing generator matches |
+|---|---|
+| R2: `old[b$] + inQ2 <= xn[i,b$] + xm[i,b$] + xm[b$,i]` | `proposeCountUnions`: **`union$678`** |
+| R5: `inX = xNotS + xAndS` | Both directions from **both** generators |
+| R5: `inS = sNotX + xAndS` | Both directions from **`proposeCountUnions`**; not the exact requested coefficient vector from `proposeCountFacts` |
+
+The R2 vector is `+r$16 +r$9 -r$24 -r$25 -r$26`; it is found without adding a
+new rule. The captured focused packet still has 175 instances and **no
+five-term instance**.
+
+**Important additional boundary:** R2 is at zero-based union position **678**.
+Production requests only `min(cap,128)` union proposals. Therefore moving the
+structured tail before the legacy pairs **alone is insufficient**: that
+128-proposal prefix would still omit R2. A generic bounded proposal policy
+must address this as well as the legacy cap; the test does not authorize a
+protocol-specific index or an increased accepted search budget.
+
+Any eventual `certFor` ordering/prefix change remains subject to the requested
+**Paxos 3/3 gate against main `6a3874d3`**, on the exclusive pinned large-VM
+placement, before becoming default. No such change or new Paxos gate was run
+for these isolated tests.
+
+### Evidence and scope
+
+- `research/track-m/section6-isolated.ts`: isolated tests only.
+- `research/track-m/section6-run.ts`: canonical packet-preparation wrapper.
+- `runs/track-m/section6-isolated-v1/section6-isolated.log`: all raw outcomes,
+  source models, and compressed checked T1 source proof.
+- `runs/track-m/section6-isolated-v1/{summary.json,t1-proof.json,prototype.patch,placement.json}`:
+  readable results, exact prototype, and placement.
+
+The two research files pass type-aware lint with zero errors or warnings.
+The earlier v3 **whole-closure** budget failure remains on record; it has not
+yet been rerun with a revised algorithm. The production runtime and **3/5**
+complete hard-law status remain unchanged.
