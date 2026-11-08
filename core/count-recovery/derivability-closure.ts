@@ -1,9 +1,9 @@
-// Untrusted three-phase recovery. Scalar/pointwise facts are prepared once;
-// only the final arithmetic decision is repeated at row leaves. Every cut is
-// independently checked, and the returned tree is checked without new axioms.
+// Untrusted model-driven recovery. Scalar facts are prepared once; numeric
+// countermodels select batches of pointwise facts at bounded row leaves. Every
+// cut and the final tree are independently checked, without new axioms.
 import {type C,type E,type Machine,x} from '../machine.ts'
 import {type CountCert,type CountDecl,type Goal,type LemmaCut,type Path,type Tree,canon,canonFlip,facts,lemmaPath,linear,substC,substE,truth} from '../../kernel/kernel.ts'
-import {atPoint,brokenOf,clock,pastWall,wallAt,withDeadline} from '../../kernel/prove.ts'
+import {atPoint,brokenOf,clock,pastWall,usedHyps,wallAt,withDeadline} from '../../kernel/prove.ts'
 import {REFUTED} from '../../kernel/cdcl.ts'
 import {scale,sub} from '../solver.ts'
 import {check,grow,modelSequence,refuteFast,rowsAt,widen} from './ops.ts'
@@ -20,6 +20,8 @@ import {markConditionalProof,checkConditionalProof} from './conditional-proof.ts
 import {countScalarGuards} from './scalar-guards.ts'
 import {proposeWriteCountFrames} from '../count-write-frames.ts'
 import {countsForReads} from '../count-facts.ts'
+import {memberInclusions} from './member-inclusions.ts'
+import {leafAllowance} from './leaf-allowance.ts'
 type Packet=Pick<CountCert,'reads'|'insts'>
 type Bound={op:'<=',a:E,b:E}
 type Saved={lemma:LemmaCut,good:Bound,index?:number}
@@ -41,9 +43,10 @@ export function deriveCountClosure(m:Machine,ds:CountDecl[],g:Goal,cert:Packet,r
  const raw=g.hyps.slice(0,-cert.insts.length),ids=new Set(cert.reads.map(r=>r[0])),maps=new Set(cert.reads.map(r=>r[1])),wits=new Set(cert.insts.map(q=>q.wit))
  const saved:Saved[]=[],models:SourceModel[]=[],pins:{split:Record<string,number>,no:Tree}[]=[]
  let base=new Map(root)
- const alive=()=>clock()<until&&!pastWall(),building=()=>clock()<buildEnd&&!pastWall()
- const wallEnd=()=>Math.min(wallAt(),performance.now()+Math.min(10000,Math.max(0,until-clock())*10))
- const transport=(from:Goal,to:Goal,t:Tree,a:Path,b:Path)=>alive()?withDeadline(until,()=>widen(from,to,t,{},a,b)):undefined
+ let leafEnd:number|undefined
+ const alive=()=>clock()<until&&!pastWall(),building=()=>clock()<(leafEnd??buildEnd)&&!pastWall()
+ const wallEnd=()=>Math.min(wallAt(),performance.now()+Math.min(10000,Math.max(0,(leafEnd??until)-clock())*10))
+ const transport=(from:Goal,to:Goal,t:Tree,a:Path,b:Path)=>alive()?withDeadline(Math.min(until,leafEnd??until),()=>widen(from,to,t,{},a,b)):undefined
  const sourceCache=new WeakMap<Path,{rows:{c:C,owner?:string}[],views:Map<string|undefined,C[]>}>()
  const source=(path:Path,witness?:string):C[]=>{
   let entry=sourceCache.get(path)
@@ -122,6 +125,7 @@ export function deriveCountClosure(m:Machine,ds:CountDecl[],g:Goal,cert:Packet,r
  const readMap=new Map(cert.reads.map(([id,map])=>[id,map]))
  const frame=(index:number)=>{const q=cert.insts[index]!;if(q.terms.length!==2)return false;const [a,b]=q.terms.map(([,id])=>readMap.get(id));return !!a&&!!b&&(a.endsWith('#')&&a.slice(0,-1)===b||b.endsWith('#')&&b.slice(0,-1)===a)}
  const vector=(q:CountCert['insts'][number])=>JSON.stringify([...q.terms].sort((a,b)=>a[1].localeCompare(b[1])||a[0]-b[0]))
+ const memberHints=new Map<string,C[]>(memberInclusions(m,ds,cert.reads).map(p=>[vector({wit:'',unit:0,below:p.below,terms:[[1,p.positive],[-1,p.negative]]}),p.guards]))
  const bridges=new Set(proposeWriteCountFrames(m,ds,{reads:cert.reads,insts:[]},wanted).map(vector))
  // Inclusion is cheap even when an expanded post partition is not. Rank by
  // declarative membership containment only; the actual witness still proves it.
@@ -155,7 +159,8 @@ export function deriveCountClosure(m:Machine,ds:CountDecl[],g:Goal,cert:Packet,r
   const bridge=bridges.has(vector(cert.insts[index]!)),guarded:Path[]=[],equalRows=rows.filter(scope=>scope!==base&&scope.size<=base.size+2&&pairs.some(([a,b])=>truth({op:'=',a,b},scope)===true))
   const distinctRows=bridge?rows.filter(scope=>{const states=pairs.map(([a,b])=>truth({op:'=',a,b},scope));return states.includes(true)&&states.includes(false)}):[]
   const origins=conditional(index)?[...distinctRows,...equalRows,base]:[base]
-  const proposed=countScalarGuards(m,ds,cert.reads,cert.insts[index]!,base,{name:g.name,hyps:source(base,cert.insts[index]!.wit)}),equal=proposed.filter(guards=>guards.every(c=>c.op==='='))
+  const preferred=memberHints.get(vector(cert.insts[index]!))
+  const proposed=[...(preferred?[preferred]:[]),...countScalarGuards(m,ds,cert.reads,cert.insts[index]!,base,{name:g.name,hyps:source(base,cert.insts[index]!.wit)})].slice(0,8),equal=proposed.filter(guards=>guards.every(c=>c.op==='='))
   const choices=bridge&&equal.length?equal.sort((a,b)=>b.length-a.length):proposed
   for(const guards of choices)for(const origin of origins){
    let scope=new Map(origin),valid=true
@@ -175,55 +180,39 @@ export function deriveCountClosure(m:Machine,ds:CountDecl[],g:Goal,cert:Packet,r
   const unique=new Set<string>(),out=(bridge?[base,...rows,...guarded]:[base,...guarded,...rows]).filter(scope=>{const key=JSON.stringify([...scope].map(([id,a])=>[id,a.holds]));if(unique.has(key))return false;unique.add(key);return true})
   scopeCache.set(index,out);return out
  }
- const failed=new Map<string,number>();let rounds=0,fixedPoint=false
- // Phase B, once: a fixed point of conditional facts. A model can reject a
- // source only after its entire source AND every scope atom validate.
- while(building()){
-  const version=saved.length;let added=0,unresolved=0;rounds++
-  for(const index of pool){
-   if(!building())break
-   for(const scope of scopesFor(index)){
-    if(!building())break
-    const key=`${scopes.indexOf(scope)}:${index}`;if(failed.get(key)===version)continue
-    const inst=cert.insts[index]!,h=g.hyps[raw.length+index];if(h?.op!=='or'||h.xs[0]?.op!=='<=')continue
-    const good:Bound={op:'<=',a:h.xs[0].a,b:h.xs[0].b},available=active(saved,scope),path=scope
-    if(truth(good,lemmaPath(available.map(s=>s.lemma),scope))===true)continue
-    if(scope!==base&&!sourceRows.get(index)!.size&&available.filter(s=>s.index===undefined).every(s=>active([s],base).length>0))continue
-    const part:Goal={name:g.name,hyps:[...source(path,inst.wit),...available.map(s=>s.good),h,{op:'not',x:good}]},before=clock()
-    const reused=models.some(savedModel=>{
-     if(![...path.values()].every(a=>{
-      if(Object.keys(a.lin).some(k=>k!=='1'&&!Object.hasOwn(savedModel.model,k)))return false
-      const value=Object.entries(a.lin).reduce((sum,[k,v])=>sum+v*(k==='1'?1:savedModel.model[k]!),0)
-      return a.holds?value<=0:value>0
-     }))return false
-     const renamed={...part,hyps:part.hyps.map(c=>substC(c,{vars:{[inst.wit]:x(savedModel.witness)},maps:{},flags:{}}))}
-     return brokenOf(renamed)(savedModel.model).length===0
-    })
-    if(reused){failed.set(key,version);trace.push({stage:'closure-source',scope:scopes.indexOf(scope),index,outcome:'reused-model',ms:clock()-before});continue}
-    const queryLimit=Math.min(buildEnd,clock()+(inst.terms.length===5?150:50)),q=modelSequence(path)(part,queryLimit)
-    let tree:Tree|undefined='tree'in q?q.tree:undefined,proofSource=part,validModel=false
-    if(!tree&&!('tree'in q)&&q.stuck==='sat'&&q.witness){
-     if(brokenOf(part)(q.witness).length===0){validModel=true;models.push({witness:inst.wit,model:q.witness});if(models.length>32)models.shift()}
-    }else if(!tree&&!('tree'in q)&&q.why===REFUTED&&q.core?.length&&q.core.length<=8&&building()){
-     const limit=Math.min(buildEnd,Math.max(queryLimit,clock()+100))
-     const small={...part,hyps:q.core.map(i=>part.hyps[i]!)},oldPoint=atPoint.on
-     atPoint.on=false
-     try{
-      let local=booleanCore(small,path,new Set([inst.wit]),limit,trace,{deferCheck:true,extended:true,scalarGuards:true,model:true})
-      if(!local&&clock()<limit){
-       const folded=foldPath(small,path),out=grow(folded.goal,path,{nodes:0,until:Math.min(limit,clock()+25),units:false})
-       local='tree'in out?withDeadline(limit,()=>widen(folded.goal,small,out.tree,folded.opaque,path,path)):undefined
-      }
-      if(local){tree=local;proofSource=small}
-     }finally{atPoint.on=oldPoint}
-    }
-    const accepted=!!tree&&accept(good,proofSource,tree,path,scope,index)
-    if(accepted)added++;else{failed.set(key,version);if(!validModel)unresolved++}
-    trace.push({stage:'closure-source',scope:scopes.indexOf(scope),index,core:q.core?.length,tree:!!tree,outcome:accepted?'checked':'tree'in q?'untransported':q.stuck,ms:clock()-before})
-   }
+ let rounds=0,fixedPoint=false
+ for(const index of pool)scopesFor(index)
+ const excludedAt=new Map<string,Set<number>>(),attempted=new Map<string,{version:number,outcome:'checked'|'sat'|'unknown'}>()
+ const validPoint=(part:Goal,path:Path,point:Record<string,number>):Record<string,number>|undefined=>{
+  const model={...point}
+  walkLive(part.hyps,path,(o:any)=>{if(o.op==='var'&&!Object.hasOwn(model,o.name))model[o.name]=0})
+  for(const atom of path.values())for(const name of Object.keys(atom.lin))if(name!=='1'&&!Object.hasOwn(model,name))model[name]=0
+  if(!Object.values(model).every(Number.isSafeInteger)||brokenOf(part)(model).length)return undefined
+  return [...path.values()].every(a=>{const n=Object.entries(a.lin).reduce((s,[k,z])=>s+z*(k==='1'?1:model[k]!),0);return Number.isFinite(n)&&(a.holds?n<=0:n>0)})?model:undefined
+ }
+ const attempt=(index:number,scope:Path,end:number):'checked'|'sat'|'unknown'=>{
+  if(!building())return 'unknown'
+  scope=addScope(scope)
+  const version=saved.length,key=`${scopes.indexOf(scope)}:${index}`,had=attempted.get(key)
+  if(had?.version===version)return had.outcome
+  const inst=cert.insts[index]!,h=g.hyps[raw.length+index];if(h?.op!=='or'||h.xs[0]?.op!=='<=')return 'unknown'
+  const good:Bound={op:'<=',a:h.xs[0].a,b:h.xs[0].b},available=active(saved,scope),path=scope,before=clock()
+  const part:Goal={name:g.name,hyps:[...source(path,inst.wit),...available.map(s=>s.good),h,{op:'not',x:good}]}
+  const reused=models.some(m=>validPoint({...part,hyps:part.hyps.map(c=>substC(c,{vars:{[inst.wit]:x(m.witness)},maps:{},flags:{}}))},path,m.model)!==undefined)
+  if(reused){attempted.set(key,{version,outcome:'sat'});trace.push({stage:'closure-source',scope:scopes.indexOf(scope),index,outcome:'reused-model',ms:clock()-before});return 'sat'}
+  const queryLimit=Math.min(end,clock()+(inst.terms.length===5?150:50)),q=modelSequence(path)(part,queryLimit)
+  let tree:Tree|undefined='tree'in q?q.tree:undefined,proofSource=part,validModel=false
+  if(!tree&&!('tree'in q)&&q.stuck==='sat'&&q.witness){
+   const model=validPoint(part,path,q.witness)
+   if(model){validModel=true;models.push({witness:inst.wit,model});if(models.length>32)models.shift()}
+  }else if(!tree&&!('tree'in q)&&q.why===REFUTED&&q.core?.length&&q.core.length<=8&&building()){
+   const limit=Math.min(end,Math.max(queryLimit,clock()+100)),small={...part,hyps:q.core.map(i=>part.hyps[i]!)},oldPoint=atPoint.on;atPoint.on=false
+   try{let local=booleanCore(small,path,new Set([inst.wit]),limit,trace,{deferCheck:true,extended:true,scalarGuards:true,model:true});if(!local&&clock()<limit){const folded=foldPath(small,path),out=grow(folded.goal,path,{nodes:0,until:Math.min(limit,clock()+25),units:false});local='tree'in out?withDeadline(limit,()=>widen(folded.goal,small,out.tree,folded.opaque,path,path)):undefined}if(local){tree=local;proofSource=small}}finally{atPoint.on=oldPoint}
   }
-  trace.push({stage:'closure-round',round:rounds,added,unresolved,cuts:saved.length,models:models.length,scopes:scopes.length})
-  if(!added){fixedPoint=building()&&unresolved===0;break}
+  const accepted=!!tree&&accept(good,proofSource,tree,path,scope,index),outcome=accepted?'checked':validModel?'sat':'unknown'
+  attempted.set(key,{version,outcome})
+  trace.push({stage:'closure-source',scope:scopes.indexOf(scope),index,core:'tree'in q?undefined:q.core?.length,tree:!!tree,outcome,ms:clock()-before})
+  return outcome
  }
  // Phase C only: use active proved facts, then decide one numeric goal per
  // leaf. Natural-subtraction splitting is confined to this arithmetic phase.
@@ -231,21 +220,72 @@ export function deriveCountClosure(m:Machine,ds:CountDecl[],g:Goal,cert:Packet,r
  const replacements=Object.fromEntries([...maps].map(map=>[map,(key:any)=>{const r=cert.reads.find(r=>r[1]===map&&JSON.stringify(r[2])===JSON.stringify(key));return r?x(r[0]):{op:'get' as const,map,key}}]))
  const flags=Object.fromEntries(Object.keys(m.step.flags??{}).map(name=>[name,{op:'flag' as const,name}]))
  const abstracted=raw.map(c=>substC(c,{vars:{},maps:replacements,flags}))
- const finish=(scope:Path,end:number):Tree|undefined=>{
+ const finish=(scope:Path,end:number,depth=0):Tree|undefined=>{
   if(!alive())return undefined
-  const available=active(saved,scope),path=scope,before=clock()
-  const numeric:Goal={name:g.name,hyps:[...abstracted.flatMap(c=>piecesAt(c,path)).filter(c=>pure(c,path)),...countBindingsAt(cert.reads,path),...available.map(s=>s.good).filter(c=>pure(c,path))]}
-  const natural=proveNaturalCases(numeric,path,end,trace,{deferCheck:true}),q=natural?{tree:natural}:modelSequence(path)(numeric,end)
-  let proof:Tree|undefined='tree'in q?q.tree:undefined
-  if(!proof&&!('tree'in q)&&q.why===REFUTED&&q.core?.length){
-   const small={...numeric,hyps:q.core.map(i=>numeric.hyps[i]!)},direct=fast(small,path),out=direct?undefined:grow(small,path,{nodes:0,until:end,units:false}),local=direct??(out&&'tree'in out?out.tree:undefined)
-   if(local)proof=transport(small,numeric,local,path,path)
+  scope=addScope(scope)
+  const before=clock(),scopeKey=JSON.stringify([...scope].map(([id,a])=>[id,a.holds])),excluded=excludedAt.get(scopeKey)??new Set<number>(),previousEnd=leafEnd
+  excludedAt.set(scopeKey,excluded);leafEnd=end
+  const numericFor=():Goal=>({name:g.name,hyps:[...abstracted.flatMap(c=>piecesAt(c,scope)).filter(c=>pure(c,scope)),...countBindingsAt(cert.reads,scope),...active(saved,scope).map(s=>s.good).filter(c=>pure(c,scope))]})
+  const stop=(reason:string)=>{trace.push({stage:'closure-final',mode:'model-driven',outcome:'unknown',reason,path:[...scope],cuts:active(saved,scope).length,ms:clock()-before,total:clock()-started});return undefined}
+  const merge=(candidate:Path):Path|undefined=>{
+   const path=new Map(scope)
+   for(const a of candidate.values()){const known=decide(a.lin,path);if(known!==undefined&&known!==a.holds)return undefined;path.set(canon(a.lin),a)}
+   return addScope(path)
   }
-  const extended=lemmaPath(available.map(s=>s.lemma),scope)
-  const lifted=proof&&liftCountProxies(numeric,g,proof,cert.reads,path,extended,e=>trace.push({stage:'closure-transport',...e}),{deferCheck:true})
-  const tree=lifted&&(options.conditional?markConditionalProof(g,lifted,available.map(s=>s.lemma)):inlineConditionalCuts(g,g,lifted,extended,scope,available.map(s=>s.lemma),wallEnd(),e=>trace.push({stage:'closure-inline',...e})))
-  trace.push({stage:'closure-final',fixedPoint,hyps:numeric.hyps.length,cuts:available.length,closedIndices:available.flatMap(s=>s.index===undefined?[]:[s.index]),rounds,core:'tree'in q?undefined:q.core?.length,outcome:tree?'checked':'tree'in q?'untransported':q.stuck,reason:'tree'in q?undefined:q.why,...(!('tree'in q)&&q.stuck==='sat'?{model:q.witness,path:[...scope]}:{}),ms:clock()-before,total:clock()-started})
-  return tree
+  try{
+   for(let round=0;round<=pool.length&&building();round++){
+    rounds++;const available=active(saved,scope),numeric=numericFor(),natural=proveNaturalCases(numeric,scope,end,trace,{deferCheck:true}),q=natural?{tree:natural}:modelSequence(scope)(numeric,end)
+    let proof:Tree|undefined='tree'in q?q.tree:undefined
+    if(!proof&&!('tree'in q)&&q.why===REFUTED&&q.core?.length){const small={...numeric,hyps:q.core.map(i=>numeric.hyps[i]!)},direct=fast(small,scope),out=direct?undefined:grow(small,scope,{nodes:0,until:end,units:false}),local=direct??(out&&'tree'in out?out.tree:undefined);if(local)proof=transport(small,numeric,local,scope,scope)}
+    if(proof){
+     const extended=lemmaPath(available.map(s=>s.lemma),scope),lifted=liftCountProxies(numeric,g,proof,cert.reads,scope,extended,e=>trace.push({stage:'closure-transport',...e}),{deferCheck:true})
+     const tree=lifted&&(options.conditional?markConditionalProof(g,lifted,available.map(s=>s.lemma)):inlineConditionalCuts(g,g,lifted,extended,scope,available.map(s=>s.lemma),wallEnd(),e=>trace.push({stage:'closure-inline',...e})))
+     trace.push({stage:'closure-final',mode:'model-driven',fixedPoint,hyps:numeric.hyps.length,cuts:available.length,rounds:round+1,closedIndices:available.flatMap(s=>s.index===undefined?[]:[s.index]),outcome:tree?'checked':'untransported',ms:clock()-before,total:clock()-started});return tree
+    }
+    if('tree'in q||q.stuck!=='sat'||!q.witness)return stop('no-numeric-model')
+    const point={...q.witness}
+    for(const index of pool){const h=g.hyps[raw.length+index];if(h?.op==='or'&&h.xs[0]?.op==='<=')walkLive(h.xs[0],scope,(o:any)=>{if(o.op==='var'&&!Object.hasOwn(point,o.name))point[o.name]=0})}
+    const model=validPoint(numeric,scope,point);if(!model)return stop('invalid-numeric-model')
+    const violated=pool.filter(index=>{const h=g.hyps[raw.length+index];return h?.op==='or'&&h.xs[0]?.op==='<='&&brokenOf({name:'candidate',hyps:[h.xs[0]]})(model).length>0}),pending=new Set(violated.filter(i=>!excluded.has(i))),startedVersion=saved.length
+    trace.push({stage:'closure-model-round',round:round+1,scope:scopes.indexOf(scope),violated,pending:[...pending],excluded:[...excluded],cuts:available.length,pool:pool.length})
+    if(!pending.size){fixedPoint=true;return stop('no-unexcluded-violated-fact')}
+    while(pending.size&&building()){
+     const indices=[...pending],baseGoal=numericFor(),goods=indices.map(i=>(g.hyps[raw.length+i] as Extract<C,{op:'or'}>).xs[0]!),assumed={...baseGoal,hyps:[...baseGoal.hyps,...goods]},selection=modelSequence(scope)(assumed,end)
+     const core='tree'in selection?[...usedHyps(assumed,selection.tree,scope)]:selection.why===REFUTED?selection.core:undefined
+     const validAssumedModel=!('tree'in selection)&&selection.stuck==='sat'&&selection.witness&&validPoint(assumed,scope,selection.witness)
+     if(!core?.length&&!validAssumedModel)return stop('no-batch-core-or-model')
+     // A partial violated set can leave another numeric model: its members
+     // are still useful cuts against the current model, not a generator gap.
+     const chosen=core?.length?core.filter(i=>i>=baseGoal.hyps.length).map(i=>indices[i-baseGoal.hyps.length]!).filter(i=>i!==undefined):indices
+     trace.push({stage:'closure-batch-core',scope:scopes.indexOf(scope),round:round+1,indices:chosen,core:core?.length,selector:core?.length?'refuted':'sat'})
+     if(!chosen.length){if(saved.length>startedVersion)break;return stop('empty-batch-core')}
+     let changed=false
+     for(const index of chosen){
+      if(!building())break
+      pending.delete(index)
+      const candidates=scopesFor(index).map(merge).filter((p):p is Path=>p!==undefined),hinted=memberHints.has(vector(cert.insts[index]!)),order=hinted?[...candidates.filter(p=>p!==scope),scope]:[scope,...candidates],seen=new Set<Path>();let allSat=true,proved=false
+      for(const path of order){
+       if(seen.has(path))continue;seen.add(path)
+       if(!building()){allSat=false;break}
+       const result=attempt(index,path,end)
+       if(result==='checked'){changed=true;proved=true;break}
+       if(result!=='sat')allSat=false
+      }
+      if(allSat&&!proved)excluded.add(index)
+     }
+     const guard=saved.slice(startedVersion).flatMap(s=>s.lemma.when).find(atom=>scalarAtoms.has(canon(atom))&&decide(atom,scope)===undefined)
+     if(guard){
+      if(depth>=8)return stop('scalar-depth')
+      const yes=scalar(put(scope,guard,true),end,depth+1),no=yes&&scalar(put(scope,guard,false),end,depth+1)
+      trace.push({stage:'closure-model-split',depth,split:guard,proposed:!!yes&&!!no,ms:clock()-before})
+      return yes&&no?{split:guard,yes,no}:undefined
+     }
+     if(changed)break
+    }
+    if(saved.length===startedVersion)return stop(building()?'batch-exhausted':'time')
+   }
+   return stop('time')
+  }finally{leafEnd=previousEnd}
  }
  const scalar=(path:Path,end:number,depth=0):Tree|undefined=>{
   if(!alive())return undefined
@@ -255,12 +295,19 @@ export function deriveCountClosure(m:Machine,ds:CountDecl[],g:Goal,cert:Packet,r
    for(const atom of lemma.when){const id=canon(atom);if(!scalarAtoms.has(id)||decide(atom,path)!==undefined)continue;const old=candidates.get(id);candidates.set(id,{atom,uses:(old?.uses??0)+1})}
   }
   const next=[...candidates.values()].sort((a,b)=>b.uses-a.uses)[0]
-  if(!next||depth>=8)return finish(path,Math.min(end,clock()+350))
+  if(!next||depth>=8)return finish(path,end,depth)
   const yes=scalar(put(path,next.atom,true),end,depth+1),no=yes&&scalar(put(path,next.atom,false),end,depth+1)
   trace.push({stage:'closure-scalar-case',depth,split:next.atom,proposed:!!yes&&!!no})
   return yes&&no?{split:next.atom,yes,no}:undefined
  }
- let tree=pairs.length?proveRowCases(g,base,pairs,until,(path,end)=>scalar(path,end),e=>trace.push(e),{deferToCaller:true,splitEqual:true}):scalar(base,until)
+ let leavesLeft=Math.max(1,complete.length)
+ const atLeaf=(path:Path,end:number):Tree|undefined=>{
+  const before=clock(),remaining=Math.max(0,until-before),draw=leafAllowance(remaining,leavesLeft),stop=Math.min(end,before+draw)
+  trace.push({stage:'closure-leaf-budget',remaining,leavesLeft,draw,granted:Math.max(0,stop-before),end:stop})
+  return scalar(path,stop)
+ }
+ const rowTrace=(event:object)=>{const e=event as {stage?:string};if(e.stage==='row-case'||e.stage==='row-mirror')leavesLeft=Math.max(1,leavesLeft-1);trace.push(event)}
+ let tree=pairs.length?proveRowCases(g,base,pairs,until,atLeaf,rowTrace,{deferToCaller:true,splitEqual:true}):atLeaf(base,until)
  for(let i=pins.length-1;tree&&i>=0;i--)tree={split:pins[i]!.split,yes:tree,no:pins[i]!.no}
  const checked=!!tree&&alive()&&(options.conditional?checkConditionalProof(g,tree,root):check(g,tree,root))
  trace.push({stage:'closure-complete',cuts:saved.length,rounds,fixedPoint,checked,total:clock()-started})

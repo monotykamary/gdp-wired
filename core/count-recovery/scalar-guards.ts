@@ -33,7 +33,7 @@ function scalarHints(goal: Goal): Atom[] {
 
 // Reject cycles and oversized/deep inputs before the recursive AST helpers run.
 // This is a proposal budget, never a claim about the machine's validity.
-function bounded(value: unknown): boolean {
+export function bounded(value: unknown): boolean {
   const active = new WeakSet<object>(), done = new WeakSet<object>()
   let left = 20000
   const visit = (v: unknown, depth: number): boolean => {

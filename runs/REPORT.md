@@ -5215,3 +5215,28 @@ Evidence: **runs/track-m/section10-ta-v7/**, with all six JSON receipts retained
 in one Brotli bundle. Earlier setup failures and the corrected serialization /
 retention failures are documented in its README and retained logs. No production
 change yet. This permits implementation; it is not a completed law or new gate.
+
+## Section 10 step 3 — generic implementation and pre-gate validation
+
+Default-on equality-consequent substitutions now propose ordinary carried-count
+inclusions and preferred scalar scopes. The numeric loop attempts core-selected
+batches, validates zero-completed source models, and retains local guarded
+splits. Split children share a leaf deadline. Leaf draws reuse the exact existing
+`supportBudget` formula, with the existing 1,500-unit row cap still in force.
+F1/F2/F3 remain; the kernel, final certificate admission and all existing source,
+core, depth and total caps are unchanged.
+
+TypeScript/lint and **245 tests / 1,198 assertions** pass. The real fixture emits
+three relevant candidates for Inv* (including r$4 <= r$16 with the predicted
+guard) and four for Inv2973.
+
+**The active T-9D probes do not meet their early-leaf pass lines.** Both start
+with nine row leaves and receive the existing 1,500-unit row share. Inv* admits
+16 cuts and checks one scalar subbranch, then fails to obtain a numeric model
+in the other within that share. Inv2973 admits 25 cuts, then reaches the share.
+This is not a source SAT/generator-gap conclusion or a complete-law proof.
+
+Evidence: **runs/track-m/section10-generator-v2/** and
+**runs/track-m/section10-implementation-v2/**; earlier failed/setup attempts are
+retained. Next is the requested three interleaved five-law repeats, not a later
+gate. No budget was raised to satisfy these negative probe results.

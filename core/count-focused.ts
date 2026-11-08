@@ -116,6 +116,7 @@ import {countsForReads} from './count-facts.ts'
 import {proposeCountDemand} from './count-demand.ts'
 import {proposeWriteCountFrames} from './count-write-frames.ts'
 import {activeWriteRow} from './count-recovery/row-cases.ts'
+import {memberInclusions} from './count-recovery/member-inclusions.ts'
 
 // An untrusted starting subset for row-copy cases. Keep pre-state partitions
 // and query-local frames/copies, not every unrelated source tuple. A caller
@@ -404,6 +405,20 @@ export function focusCountCert(m: Machine, decls: CountDecl[], full: Pick<CountC
         }
       }
     }
+  }
+  // Equality-consequent member facts extend the carried-view family. These
+  // remain ordinary pointwise obligations; guards are only source-scope hints.
+  const inferred=memberInclusions(m,decls,full.reads),reserved=new Set([...m.inputs,...m.params,...Object.keys(m.state),...full.insts.map(q=>q.wit),...full.reads.map(r=>r[0])])
+  walkOnce(cs,(o:any)=>{if(o.op==='var')reserved.add(o.name)})
+  let memberSerial=0
+  for(const p of inferred){
+    if(options.carried&&options.carried!==p.carried)continue
+    const terms:[number,string][]=[[1,p.positive],[-1,p.negative]],signature=JSON.stringify(terms)
+    if(insts.some(q=>q.unit===0&&JSON.stringify(q.terms)===signature))continue
+    const prior=full.insts.find(q=>q.unit===0&&JSON.stringify(q.terms)===signature)
+    if(prior){insts.push(prior);continue}
+    let wit:string;do{wit=`member$${memberSerial++}`}while(reserved.has(wit));reserved.add(wit)
+    insts.push({wit,below:p.below,terms,unit:0})
   }
   const focused={reads:full.reads,insts}
   return options.algebraic&&options.claim?demandCountCert(m,decls,focused,options.claim):focused

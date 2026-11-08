@@ -35,6 +35,15 @@ test('internal closure keeps independent cuts in the final checked certificate',
  expect(combined).toBeDefined()
  if(combined){expect(combined.lemmas.length).toBeGreaterThan(0);expect(checkMC([f.claim],f.ds,{...f.cert,...combined})).toBe(true)}
 })
+test('separately useful inclusions accumulate when a partial violated set remains SAT',()=>{
+ const member=x('k'),bit=(c:Parameters<typeof ite>[0])=>ite(c,n(1),n(0)),a=same(get('A',member),n(1)),b=same(get('B',member),n(1)),c=same(get('C',member),n(1)),d=same(get('D',member),n(1)),base={j:'row',key:'k',below:n(4)}
+ const ds=[{...base,map:'left',body:bit(a)},{...base,map:'right',body:bit(b)},{...base,map:'leftCover',body:bit({op:'or',xs:[a,c]})},{...base,map:'rightCover',body:bit({op:'or',xs:[b,d]})}]
+ const reads:CountCert['reads']=ds.map((v,i)=>[`r${i}`,v.map,n(0)]),insts:CountCert['insts']=[{wit:'u',below:n(4),terms:[[1,'r0'],[-1,'r2']],unit:0},{wit:'v',below:n(4),terms:[[1,'r1'],[-1,'r3']],unit:0},{wit:'identity',below:n(4),terms:[[1,'r0'],[-1,'r0'],[1,'r1'],[-1,'r1']],unit:0}],cert={reads,insts}
+ const value=(map:string)=>get(map,n(0)),claim=less(plus(value('leftCover'),value('rightCover')),plus(value('left'),value('right'))),g=mcGoal([claim],ds,cert)!,m:Machine={name:'two inclusions',params:[],inputs:[],state:{},maps:{A:0,B:0,C:0,D:0},step:{}},events:object[]=[]
+ const tree=deriveCountClosure(m,ds,g,cert,new Map(),clock()+1500,events,{claim})
+ expect(tree).toBeDefined();if(tree)expect(checkMC([claim],ds,{...cert,tree})).toBe(true)
+ expect(events.some((e:any)=>e.stage==='closure-batch-core')).toBe(true)
+})
 test('expired closure leaves no proof and never extends its deadline',()=>{
  const f=fixture(true)
  expect(deriveCountClosure(f.m,f.ds,f.g,f.cert,new Map(),clock()-1,[],{claim:f.claim})).toBeUndefined()

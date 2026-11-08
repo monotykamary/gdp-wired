@@ -26,6 +26,8 @@ import {relevantGoals, relevantLaws} from './relevance.ts'
 import {countPoolKey, countSignature, grammarPool, ids, polaritySelection, readTuples, refinementSignature, reservationReadClosure, reservationState, reservePool, prepareSupport, smallSelection, sparseReadInstances, sourceContext, coarseContext, selectedCertificate, chosenView, candidateWork, stableState, UnsupportedCountProposal} from './count-support.ts'
 import {fieldLaws} from './field-laws.ts'
 import {countsForReads, proposeCountFacts} from './count-facts.ts'
+import {supportBudget} from './support-budget.ts'
+export {supportBudget} from './support-budget.ts'
 import {proposeCountUnions} from './count-unions.ts'
 import {focusedCountRecoveryEnabled,proveFocusedCounts} from './count-focus-proof.ts'
 import {smallOf, trueSmall} from './exists.ts'
@@ -419,9 +421,6 @@ export function supportOrder(set: Law[], caller: Law[], support: Set<Law>, forMo
   if (forModels && !activeSupport(set, support)) return set
   if (!activeSupport(set, support)) return [...set.filter(l => !caller.includes(l)), ...set.filter(l => caller.includes(l))]
   return [...set.filter(l => support.has(l) && !caller.includes(l)), ...set.filter(l => caller.includes(l)), ...set.filter(l => !support.has(l) && !caller.includes(l))]
-}
-export function supportBudget(remaining: number, share: number, priority: boolean, structural = false): number {
-  return Math.max(0, Math.min(remaining, structural ? 5_000 : priority ? Math.max(share, remaining / 3) : share))
 }
 export type Counted = {proven: boolean, laws: Law[], m: Machine, proof?: {instances: Record<string, Instances>, certs: Record<string, CountCert>}, why?: string}
 // On the counted clock (kernel/prove.ts's `counted`, the cost model's work at fullRate a millisecond), as the engine's
