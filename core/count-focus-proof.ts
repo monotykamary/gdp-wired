@@ -32,15 +32,23 @@ export function proveFocusedCounts(m:Machine,laws:Law[],law:Law,at:Instances,unt
   let targetCounts=false
   walkOnce(law.holds,(o:any)=>{if(o.op==='get'){if(o.key.op==='var')scalar.add(o.key.name);if(m.counts?.[o.map])targetCounts=true}})
   const rows=own.filter((_,i)=>scalar.has(names[i]!)),request=m.inputs.filter(name=>Object.values(m.counts??{}).some(d=>![d.j,d.lo,d.key].includes(name)&&JSON.stringify([d.below,d.body]).includes(`"name":${JSON.stringify(name)}`))).map(x)
-  clean=countLawSeeds(m,laws,clean,rows.length?rows:own,request,!targetCounts)
-  clean=fieldLawBridges(m,laws,clean,rows.length?rows:own,request,own.length===3?own[2]:undefined)
+  const bridgeLaws=targetCounts?laws.filter(l=>(l.keys?.length??0)===0):laws
+  clean=countLawSeeds(m,laws,clean,rows.length?rows:own,request,!targetCounts,{requestDiagonals:true})
+  clean=fieldLawBridges(m,bridgeLaws,clean,rows.length?rows:own,request,own.length===3?own[2]:undefined)
   clean=countRowBridges(m,law,clean,own,request)
   const index=laws.findIndex(l=>l.name===law.name)
-  for(const carried of m.inputMaps){
+  for(const carried of [undefined,...m.inputMaps]){
     if(clock()>=until)return undefined
     let instances=clean
     const retained=new Map<string,Pick<CountCert,'reads'|'insts'>>()
-    const build=()=>countedObligations(m,laws,{[law.name]:instances},index).map(({goal,decls})=>({goal,decls,cert:retained.get(goal.name)??focusCountCert(m,decls,propose(goal,decls),{carried,structural:false,targets:!targetCounts?rows:undefined})}))
+    const proposal=(goal:Goal,decls:CountDecl[])=>focusCountCert(m,decls,propose(goal,decls),{carried,structural:false,frames:true,algebraic:true,requestFrames:true,copyFrames:true,targets:!targetCounts?rows:undefined})
+    const packetsByInstances=new Map<string,{goal:Goal,decls:CountDecl[],cert:Pick<CountCert,'reads'|'insts'>}[]>()
+    const build=()=>{
+      const key=JSON.stringify(instances),had=packetsByInstances.get(key)
+      if(had)return had
+      const packets=countedObligations(m,laws,{[law.name]:instances},index).map(({goal,decls})=>({goal,decls,cert:retained.get(goal.name)??proposal(goal,decls)}))
+      packetsByInstances.set(key,packets);return packets
+    }
     let packets=build()
     const seeded=seedCountWitnessFlags(m,instances,packets,true)
     if(seeded!==instances){instances=seeded;packets=build()}
@@ -57,8 +65,8 @@ export function proveFocusedCounts(m:Machine,laws:Law[],law:Law,at:Instances,unt
     if(complete)return {instances,certs}
     if(clock()>=until)continue
     let cold:Instances={}
-    cold=countLawSeeds(m,laws,cold,rows.length?rows:own,request,!targetCounts)
-    cold=fieldLawBridges(m,laws,cold,rows.length?rows:own,request,own.length===3?own[2]:undefined)
+    cold=countLawSeeds(m,laws,cold,rows.length?rows:own,request,!targetCounts,{requestDiagonals:true})
+    cold=fieldLawBridges(m,bridgeLaws,cold,rows.length?rows:own,request,own.length===3?own[2]:undefined)
     if(law.forall)cold[law.name]=[...cold[law.name]??[],...own]
     cold=countRowBridges(m,law,cold,own,request)
     instances=cold;packets=build()
@@ -66,12 +74,13 @@ export function proveFocusedCounts(m:Machine,laws:Law[],law:Law,at:Instances,unt
     if(flags!==instances){instances=flags;packets=build()}
     const step=packets.find(p=>p.goal.name.endsWith('@step'))
     if(!step)continue
+    trace?.({stage:'focused-packet',carried:carried??null,hyps:step.goal.hyps.length,insts:step.cert.insts.length,reads:step.cert.reads.length,instances:Object.fromEntries(Object.entries(instances).map(([name,terms])=>[name,terms.length]))})
     const result=proveCountCases(m,laws,instances,step.cert,until,next=>{
       instances=next
-      return countedObligations(m,laws,{[law.name]:next},index).find(p=>p.goal.name.endsWith('@step'))!
-    },!targetCounts&&own.length===3?{localModels:true,saturate:true,queryMs:1000,coreLimit:16,units:false,corePointOnly:true,trace}:trace?{trace}:undefined)
+      return build().find(p=>p.goal.name.endsWith('@step'))!
+    },{propose:proposal,saturate:true,queryMs:200,trace,...(!targetCounts&&own.length===3?{localModels:true,coreLimit:16,units:false,corePointOnly:true}:{})})
     if(!result)continue
-    instances=result.instances;retained.set(step.goal.name,result.cert);packets=build()
+    instances=result.instances;retained.set(step.goal.name,result.cert);packetsByInstances.clear();packets=build()
     trace?.({stage:'focused-step-certificate',before:step.cert.insts.length,after:result.cert.insts.length})
     const combined:Record<string,CountCert>={[step.goal.name]:result.cert}
     let closed=true

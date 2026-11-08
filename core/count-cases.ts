@@ -3,11 +3,17 @@
 // against the unspecialized counted obligation before it is returned.
 import {type C,type Law,type Machine,walkOnce,x} from './machine.ts'
 import {type CountCert,type CountDecl,type Goal,type Instances,type Path,type Tree,boundOf,canon,check,checkMC,linear,mcGoal,truth} from '../kernel/kernel.ts'
-import {atPoint,clock,grow,modelInstances,usedHyps,widen,withDeadline} from '../kernel/prove.ts'
+import {atPoint,clock,grow,modelInstances,widen,withDeadline} from '../kernel/prove.ts'
 import {sub} from './solver.ts'
 import {seedCountWitnessFlags} from './count-witness-flags.ts'
 import {modelSequence} from '../kernel/model-sequence.ts'
 import {REFUTED} from '../kernel/cdcl.ts'
+import {selectCountBounds} from './count-select.ts'
+import {actionGuard} from './count-recovery/action-guard.ts'
+import {guardCases} from './count-recovery/guard-cases.ts'
+import {appendCountCert} from './count-cert-grow.ts'
+import {independentCountInstances} from './count-focused.ts'
+import {fieldCase} from './count-recovery/field-case.ts'
 
 type Packet={goal:Goal,decls:CountDecl[]}
 export function finiteCountChoice(m:Machine):[string,Set<number>]|undefined{
@@ -21,27 +27,7 @@ export function finiteCountChoice(m:Machine):[string,Set<number>]|undefined{
  return [...values].filter(([,v])=>v.size>2&&v.size<=16).sort((a,b)=>b[1].size-a[1].size)[0]
 }
 
-export type CountBoundCandidate={index:number,bound:C}
-export type CountBoundSelection={indices:number[],assumed:number,fallback:boolean}
-// The arithmetic oracle chooses proposals, never facts. In rank order, add
-// candidate bounds until its refutation core names the ones worth deriving.
-export function selectCountBounds(base:Goal,candidates:CountBoundCandidate[],until:number,options:{path?:Path,queryMs?:number,trace?:(event:Record<string,unknown>)=>void}={}):CountBoundSelection|undefined{
- const path=options.path??new Map(),ask=modelSequence(path),started=clock()
- for(let n=candidates.length?1:0;n<=candidates.length&&clock()<until;n++){
-  const goal={...base,hyps:[...base.hyps,...candidates.slice(0,n).map(c=>c.bound)]},q=ask(goal,Math.min(until,clock()+(options.queryMs??200)))
-  const used='tree'in q?usedHyps(goal,q.tree,path):q.why===REFUTED&&q.core?new Set(q.core):undefined
-  if(used){
-   const indices=candidates.slice(0,n).filter((_,i)=>used.has(base.hyps.length+i)).map(c=>c.index)
-   options.trace?.({stage:'count-core-select',pool:candidates.length,assumed:n,indices,ms:Math.round(clock()-started)})
-   return {indices,assumed:n,fallback:false}
-  }
-  if('tree'in q||q.stuck!=='sat')break
- }
- if(clock()>=until)return undefined
- const indices=candidates.map(c=>c.index)
- options.trace?.({stage:'count-core-select',pool:candidates.length,indices,fallback:true,ms:Math.round(clock()-started)})
- return {indices,assumed:indices.length,fallback:true}
-}
+export {selectCountBounds,type CountBoundCandidate,type CountBoundSelection} from './count-select.ts'
 // Remove whole tuples mentioning count witnesses no longer in the packet.
 // This only weakens the available source context; its proof is checked again.
 export function withoutCountWitnesses(m:Machine,laws:Law[],at:Instances,discard:ReadonlySet<string>):Instances{
@@ -98,7 +84,7 @@ function selectedCase(m:Machine,laws:Law[],at:Instances,cert:Pick<CountCert,'rea
  }
  return undefined
 }
-export type CountCaseOptions={localModels?:boolean,saturate?:boolean,queryMs?:number,coreLimit?:number,units?:boolean,corePointOnly?:boolean,trace?:(event:Record<string,unknown>)=>void}
+export type CountCaseOptions={propose?:(goal:Goal,decls:CountDecl[])=>Pick<CountCert,'reads'|'insts'>,localModels?:boolean,saturate?:boolean,queryMs?:number,coreLimit?:number,units?:boolean,corePointOnly?:boolean,trace?:(event:Record<string,unknown>)=>void}
 export function proveCountCases(m:Machine,laws:Law[],at:Instances,cert:Pick<CountCert,'reads'|'insts'>,until:number,build:(at:Instances)=>Packet,options:CountCaseOptions={}):{instances:Instances,cert:CountCert}|undefined {
  return withDeadline(until,()=>{
   const choice=finiteCountChoice(m)
@@ -108,8 +94,21 @@ export function proveCountCases(m:Machine,laws:Law[],at:Instances,cert:Pick<Coun
   let activeCert=cert,packet=build(at),root=mcGoal(packet.goal.hyps,packet.decls,activeCert)
   if(!root)return undefined
   let goal:Goal={...root,name:packet.goal.name}
-  const rebuild=()=>{packet=build(at);root=mcGoal(packet.goal.hyps,packet.decls,activeCert);if(root)goal={...root,name:packet.goal.name};return !!root}
-  const fields=laws.filter(l=>{let counted=false;walkOnce(l.holds,(o:any)=>{if(o.op==='get'&&m.counts?.[o.map])counted=true});return !counted})
+  const rebuild=()=>{
+   packet=build(at)
+   if(options.propose){
+    const known=new Set(cert.reads.map(r=>JSON.stringify(r.slice(1))))
+    let missing=false
+    walkOnce(packet.goal.hyps,(o:any)=>{if(o.op==='get'&&packet.decls.some(d=>d.map===o.map)&&!known.has(JSON.stringify([o.map,o.key])))missing=true})
+    if(missing&&appendCountCert(cert,options.propose(packet.goal,packet.decls),packet.goal.hyps)){
+     at=seedCountWitnessFlags(m,at,[{decls:packet.decls,cert}],true)
+     packet=build(at)
+    }
+   }
+   root=mcGoal(packet.goal.hyps,packet.decls,activeCert)
+   if(root)goal={...root,name:packet.goal.name}
+   return !!root
+  }
   const seq=modelSequence(),records:({goal:Goal,tree:Tree,path:Path,from?:Path,indices:number[]}|undefined)[]=[],branches:{prefix:C[],path:Path,root:Path,tails:number[]}[]=[]
   const initial=at,merged:Instances={...at},previous=atPoint.on;atPoint.on=!options.corePointOnly
   const coreGrow=(g:Goal,end:number)=>{const before=atPoint.on;atPoint.on=true;try{return grow(g,new Map(),{nodes:0,until:end,units:options.units})}finally{atPoint.on=before}}
@@ -125,8 +124,17 @@ export function proveCountCases(m:Machine,laws:Law[],at:Instances,cert:Pick<Coun
       if(options.localModels){at=initial;if(!rebuild())return undefined}
       let tree:Tree|undefined,source:Goal|undefined,from:Path|undefined,indices=cert.insts.map((_,j)=>j)
       const caseEnd=Math.min(until,clock()+Math.max(600,(until-clock())/(cuts.length+1-i)))
-      const selected=selectedCase(m,laws,at,cert,packet,path,caseEnd,build,options)
-      packet=build(at) // A builder may retain its most recently requested instances.
+      tree=fieldCase(m,goal,cert,packet.goal.hyps.at(-1),path,Math.min(caseEnd,clock()+150),e=>options.trace?.({value,...e}))
+      if(tree){source=goal;from=new Map(path)}
+      const guard=actionGuard(m,name,value)
+      if(!tree&&guard){
+       const events:object[]=[],begun=clock(),derived=guardCases(m,packet.decls,goal,cert,guard,caseEnd,events,0,path,{deferCheck:true,claim:packet.goal.hyps.at(-1)})
+       for(const event of events)options.trace?.({value,...event})
+       options.trace?.({value,stage:'case-derivations',ms:Math.round(clock()-begun),proposed:!!derived})
+       if(derived){tree=derived;source=goal;from=new Map(path)}
+      }
+      const selected=!tree&&selectedCase(m,laws,at,cert,packet,path,caseEnd,build,options)
+      if(!tree)packet=build(at) // Restore a builder after local selection attempts.
       if(selected){
        const kept=new Set(selected.indices),slim={...cert,insts:cert.insts.filter((_,j)=>kept.has(j))}
        at=seedCountWitnessFlags(m,at,[{decls:packet.decls,cert:slim}],true)
@@ -141,7 +149,8 @@ export function proveCountCases(m:Machine,laws:Law[],at:Instances,cert:Pick<Coun
           if('tree'in out){tree=out.tree;source=core}
         }
         if(tree||'tree'in q||q.stuck!=='sat'||!q.witness)break
-        const next=modelInstances(m,fields,at,part,q.witness,8)
+        const proposed=modelInstances(m,laws,at,part,q.witness,8)
+        const next=proposed&&independentCountInstances(m,laws,at,proposed,cert.insts.map(i=>i.wit))
         if(!next)break
         at=next;if(!rebuild())return undefined
       }
@@ -160,7 +169,11 @@ export function proveCountCases(m:Machine,laws:Law[],at:Instances,cert:Pick<Coun
     for(const [j,i] of missing.entries()){
       if(clock()>=until)break
       const {prefix,path:p}=branches[i]!,part={name:goal.name,hyps:[...prefix,...goal.hyps]}
-      const out=grow(part,new Map(),{nodes:0,until:Math.min(until,clock()+(until-clock())/(missing.length-j)),units:options.units})
+      const end=Math.min(until,clock()+(until-clock())/(missing.length-j)),guard=actionGuard(m,name,cuts[i]),events:object[]=[]
+      const derived=guard&&guardCases(m,packet.decls,goal,cert,guard,end,events,0,p,{deferCheck:true,claim:packet.goal.hyps.at(-1)})
+      for(const event of events)options.trace?.({value:cuts[i],...event})
+      if(derived){records[i]={goal,tree:derived,path:p,from:p,indices:cert.insts.map((_,j)=>j)};continue}
+      const out=grow(part,new Map(),{nodes:0,until:end,units:options.units})
       if('tree'in out)records[i]={goal:part,tree:out.tree,path:p,indices:cert.insts.map((_,j)=>j)}
     }
     if(records.some(r=>!r))return undefined

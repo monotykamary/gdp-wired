@@ -16,6 +16,16 @@ test('finite count recovery returns an original-kernel-checked tree and restores
   expect(atPoint.on).toBe(before)
 })
 
+test('finite cases use checked activation and witness derivations without an opt-in',()=>{
+ const machine:Machine={...m,counts:{Rows:{j:'row',key:'member',below:n(2),body:n(0)}},step:{flags:{active:same(action,n(0))}}}
+ const decls:CountDecl[]=[{map:'Rows',...machine.counts!.Rows!}],cert:Pick<CountCert,'reads'|'insts'>={reads:[['r','Rows',n(0)]],insts:[{wit:'memberWitness',below:n(2),terms:[[1,'r']],unit:0}]}
+ const packet={goal:{name:'zero row @step',hyps:[m.assume!,less(n(0),get('Rows',n(0)))]},decls},events:Record<string,unknown>[]=[]
+ const result=proveCountCases(machine,[],{},cert,clock()+2000,()=>packet,{trace:e=>events.push(e)})
+ expect(result).toBeDefined()
+ expect(events.some(e=>e.stage==='case-derivations'&&e.proposed)).toBe(true)
+ if(result)expect(checkMC(packet.goal.hyps,decls,result.cert)).toBe(true)
+})
+
 test('ranked bounds use the arithmetic core rather than every preceding proposal',()=>{
  const base={name:'numeric selection',hyps:[less(n(0),x('needed'))]},candidates=[{index:7,bound:atMost(x('unused'),n(4))},{index:2,bound:atMost(x('needed'),n(0))},{index:9,bound:atMost(x('later'),n(0))}]
  const picked=selectCountBounds(base,candidates,clock()+1000)
