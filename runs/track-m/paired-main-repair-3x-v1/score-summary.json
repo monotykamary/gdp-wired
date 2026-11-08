@@ -1,0 +1,67 @@
+{
+  "baseline": "6a3874d3",
+  "jobs": 87,
+  "phaseComparisons": 174,
+  "matches": 172,
+  "counts": {
+    "search": {
+      "base": {
+        "proven": 84,
+        "unknown": 3
+      },
+      "cand": {
+        "proven": 84,
+        "unknown": 3
+      }
+    },
+    "broken": {
+      "base": {
+        "refuted": 33,
+        "unknown": 51,
+        "timeout": 3
+      },
+      "cand": {
+        "refuted": 33,
+        "unknown": 49,
+        "timeout": 5
+      }
+    }
+  },
+  "regressions": [],
+  "invalid": [],
+  "improvements": [],
+  "costOnly": [
+    {
+      "name": "pair-paxos_epr-r2",
+      "id": "paxos_epr",
+      "phase": "broken",
+      "result": "cost-only",
+      "base": {
+        "verdict": "unknown",
+        "exit": 0,
+        "ms": 53943
+      },
+      "cand": {
+        "verdict": "timeout",
+        "exit": 137
+      }
+    },
+    {
+      "name": "pair-paxos_epr-r3",
+      "id": "paxos_epr",
+      "phase": "broken",
+      "result": "cost-only",
+      "base": {
+        "verdict": "unknown",
+        "exit": 0,
+        "ms": 52191
+      },
+      "cand": {
+        "verdict": "timeout",
+        "exit": 137
+      }
+    }
+  ],
+  "verdictsIdentical": false,
+  "noRegression": true
+}

@@ -28,10 +28,11 @@ export function parsePairLog(text:string,id:string):Pair{
  if(active||['base','cand'].some(s=>['search','broken'].some(p=>!out[s as Side][p as Phase])))throw Error('incomplete pair')
  return out
 }
-export function compareOutcome(phase:Phase,base:Outcome,cand:Outcome):'match'|'improvement'|'regression'|'invalid'{
+export function compareOutcome(phase:Phase,base:Outcome,cand:Outcome):'match'|'improvement'|'regression'|'cost-only'|'invalid'{
  if([base,cand].some(o=>['error','missing','overrun'].includes(o.verdict)))return 'invalid'
  if(phase==='broken'&&cand.verdict==='proven'||phase==='search'&&cand.verdict==='refuted')return 'regression'
  if(base.verdict===cand.verdict)return 'match'
+ if(phase==='broken'&&base.verdict!=='refuted'&&cand.verdict!=='refuted')return 'cost-only'
  if(phase==='search'&&base.verdict==='proven'||phase==='broken'&&base.verdict==='refuted'||cand.verdict==='timeout')return 'regression'
  return 'improvement'
 }
@@ -54,7 +55,8 @@ if(import.meta.main){
   }
  }
  const regressions=comparisons.filter(x=>x.result==='regression'),invalid=comparisons.filter(x=>x.result==='invalid'),improvements=comparisons.filter(x=>x.result==='improvement')
- const summary={baseline:'6a3874d3',jobs:jobs.length,phaseComparisons:comparisons.length,matches:comparisons.filter(x=>x.result==='match').length,counts,regressions,invalid,improvements,verdictsIdentical:comparisons.every(x=>x.result==='match'),noRegression:!regressions.length&&!invalid.length,pairs}
+ const costOnly=comparisons.filter(x=>x.result==='cost-only')
+ const summary={baseline:'6a3874d3',jobs:jobs.length,phaseComparisons:comparisons.length,matches:comparisons.filter(x=>x.result==='match').length,counts,regressions,invalid,improvements,costOnly,verdictsIdentical:comparisons.every(x=>x.result==='match'),noRegression:!regressions.length&&!invalid.length,pairs}
  const text=JSON.stringify(summary,null,2)+'\n';if(output)writeFileSync(output,text)
  console.log(JSON.stringify({...summary,pairs:undefined},null,2))
  if(!summary.noRegression)process.exitCode=1

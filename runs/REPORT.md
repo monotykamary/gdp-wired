@@ -3050,8 +3050,52 @@ anything other than 29 protocols × 3 pairs. Outer timeouts override an emitted
 positive result; an unknown broken variant is never counted as a refutation.
 Five scorer regressions and the full type/lint check pass in `pair-audit-v1`.
 
-The committed repair is **`f525d951`**. Its 29×3 comparison is currently running
-in `paired-main-repair-3x-v1`; no result for that wider gate is yet claimed.
-Generation integration must wait for the generation lane's repaired-source
-gates. The hard MLDR gate remains **2/5**, and no all-laws-kept/3×60-second
-MLDR pass is claimed.
+The committed repair is **`f525d951`**. Generation integration must wait for
+the generation lane's repaired-source gates. The hard MLDR gate remains
+**2/5**, and no all-laws-kept/3×60-second MLDR pass is claimed.
+
+### Main-baseline IC3Syn 29×3 result
+
+`paired-main-repair-3x-v1` has completed **87 same-VM pairs / 174 phase
+comparisons**, each on an exclusive large VM with all eight vCPUs pinned and
+no co-tenants. Pair order is reversed for the second repetition. Baseline
+archive identity is `6a3874d3f2c6febe40bb14775884cb327a2cce3c`, verified by the
+runner's checksum before every job.
+
+The coordinator clarified the merge gate: **no broken variant may be proved,
+and every variant main refutes must still be refuted**. A broken variant that
+is unknown on main and times out on the candidate is an unresolved runtime
+cost, not a lost refutation. Correct protocols remain held against main run by
+run under the strict 60-second cap. The scorer and its regressions implement
+that distinction; timeout records are retained rather than renamed to unknown.
+
+| Outcome across three repetitions | Main | Repair |
+| --- | ---: | ---: |
+| Correct protocol proved and checked | **84 / 87** | **84 / 87** |
+| Correct protocol unknown | 3 / 87 | 3 / 87 |
+| Broken variant refuted | **33 / 87** | **33 / 87** |
+| Broken variant unknown | 51 / 87 | 49 / 87 |
+| Broken variant strict timeout | 3 / 87 | 5 / 87 |
+| Broken variant proved | **0** | **0** |
+
+All 28 protocols main proves remain proved in each repetition; the three
+unknown correct runs are MLDR on both sides. Every main refutation survives.
+**The clarified 29×3 conservation gate passes.** This is **not** a claim of
+identical timings or identical strict status on all unproved negative cases:
+172/174 phase statuses match exactly. The two cost-only differences are broken
+Paxos in repetitions 2 and 3: main unknown at **53.943 / 52.191 s**, candidate
+killed by the unchanged **60 s** outer timeout. They remain part of the open
+Paxos runtime-cost item.
+
+The positive Paxos matrix runs all pass: main **17.402 / 21.437 / 20.913 s**,
+repair **16.373 / 20.763 / 22.899 s**. These mixed later deltas do not establish
+that the earlier same-VM +3–9 s cost has been solved; the unresolved negative
+work still reaches the cap. The generated MLDR pipeline also remains unknown:
+main **23.947 / 19.635 / 23.515 s**, repair **46.712 / 38.998 / 46.405 s**.
+The next generation work must address that cost, not relabel this as a completed
+MLDR proof.
+
+Raw logs, all 87 placements and full `score.json` are in the run directory;
+`score-summary.json` is committed. The next step is the generation-lane merge
+only after its repaired-source gates, then remeasurement of generation/row
+construction and the remaining three complete-law gaps.
