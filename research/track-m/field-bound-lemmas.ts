@@ -11,6 +11,7 @@ import {carriedCase} from './carried-case.ts'
 import {foldPath} from './fold-path.ts'
 import {booleanCore} from './boolean-core.ts'
 import {pruneForcedCuts} from './rebase-path.ts'
+import {selectCountBounds} from '../../core/count-cases.ts'
 import {activeWriteRow,proveRowCases,rowPairs} from './row-cases.ts'
 import {proveNaturalCases} from './natural-cases.ts'
 import {activeCarried} from './action-guard.ts'
@@ -122,21 +123,21 @@ function fieldBoundLemmasImpl(m:Machine,ds:CountDecl[],g:Goal,cert:Proposal,unti
     const start=clock(),folded=foldPath(reduced,root),out=grow(folded.goal,root,{nodes:0,until:Math.min(deadline,clock()+25),units:false})
     const lifted='tree'in out?withDeadline(deadline,()=>widen(folded.goal,reduced,out.tree,folded.opaque,root,root)):undefined
     trace.push({stage:'folded-core',aliases:Object.keys(folded.opaque).length,ms:Math.round(clock()-start),sourceChecked:'tree'in out,lifted:!!lifted})
-    if(lifted)return widen(reduced,goal,lifted,{},root,root)
+    if(lifted)return withDeadline(deadline,()=>widen(reduced,goal,lifted,{},root,root))
     const direct=booleanCore(reduced,root,new Set(cert.insts.map(i=>i.wit)),deadline,trace,pointOptions)
-    if(direct)return widen(reduced,goal,direct,{},root,root)
+    if(direct)return withDeadline(deadline,()=>widen(reduced,goal,direct,{},root,root))
     const contextual=sourceWitnessContext(goal,reduced,new Set(cert.insts.map(i=>i.wit)),root)
     if(contextual!==reduced&&clock()<deadline){
      const extra=contextual.hyps.slice(reduced.hyps.length)
      trace.push({stage:'witness-context',added:extra.length,...(process.env.LAB_CONTEXT_DUMP==='1'?{extra:extra.flatMap(c=>piecesAt(c,root))}:{})})
      const expanded=booleanCore(contextual,root,new Set(cert.insts.map(i=>i.wit)),deadline,trace,pointOptions)
-     if(expanded)return widen(contextual,goal,expanded,{},root,root)
+     if(expanded)return withDeadline(deadline,()=>widen(contextual,goal,expanded,{},root,root))
     }
    }
    const split=!finish&&root.size>0&&q.core&&q.core.length<=8?carriedCase(reduced,root,m.inputMaps??[],new Set(cert.insts.map(i=>i.wit)),deadline,trace):undefined
-   if(split)return widen(reduced,goal,split,{},root,root)
+   if(split)return withDeadline(deadline,()=>widen(reduced,goal,split,{},root,root))
    const out=grow(reduced,root,{nodes:0,until:deadline,units:root.size>0&&!!q.core&&q.core.length<=8})
-   return 'tree'in out?widen(reduced,goal,out.tree,{},root,root):undefined
+   return 'tree'in out?withDeadline(deadline,()=>widen(reduced,goal,out.tree,{},root,root)):undefined
   }finally{atPoint.on=before}
  }
  for(let i=0;i<cert.reads.length;i++)for(let j=i+1;j<cert.reads.length;j++){
@@ -292,7 +293,27 @@ function fieldBoundLemmasImpl(m:Machine,ds:CountDecl[],g:Goal,cert:Proposal,unti
    return requestFrame(inst)||alias(inst)?0:inst.terms.length===2&&inst.terms.every(([,id])=>postIds.has(id))?1:frame(inst)?2:inst.terms.length===3&&inst.terms.every(([,id])=>!postIds.has(id))?3:inst.terms.length===5?4:inst.terms.length===2?5:6
   }
   finish()
-  for(const [index,inst]of [...cert.insts.entries()].sort((a,b)=>rank(a[1])-rank(b[1]))){
+  const ordered=[...cert.insts.entries()].sort((a,b)=>rank(a[1])-rank(b[1])),excluded=new Set<number>(),confirmed=new Set<number>()
+  const boundOf=(index:number):C|undefined=>{const h=g.hyps[raw.length+index];return h?.op==='or'&&h.xs[0]?.op==='<='?h.xs[0]:undefined}
+  let fallbackSelection=false
+  const pick=():typeof ordered=>{
+   const pool=ordered.filter(([index,inst])=>{const good=boundOf(index);return !excluded.has(index)&&!confirmed.has(index)&&selected(inst)&&!!good&&truth(good,path)!==true})
+   // A count-sensitive guard can need shared pre-state support before its
+   // row children have a closing projection. Retain that ranked fallback;
+   // count-free row skeletons need no eager pre-state lemma chain.
+   if(rowPlan.length){fallbackSelection=true;return numericBindings.length?pool:[]}
+   const selection=selectCountBounds({...g,hyps:[...numericBase,...numericBindings,...ctx.filter(pure)]},pool.map(([index])=>({index,bound:boundOf(index)!})),until,{path:root,queryMs:200,trace:event=>trace.push({...event,stage:'needed-lemmas'})})
+   if(!selection)return []
+   fallbackSelection=selection.fallback
+   const needed=new Set(selection.indices)
+   // Selected row-independent identities are cheap prerequisites for harder
+   // copy bounds. Derive them first; the selection's rank order is unchanged.
+   const identity=(inst:Proposal['insts'][number])=>inst.terms.length===3&&inst.terms.every(([,id])=>!postIds.has(id))
+   return pool.filter(([index])=>needed.has(index)).sort((a,b)=>Number(identity(b[1]))-Number(identity(a[1])))
+  }
+  let queue=pick(),cursor=0
+  while(cursor<queue.length){
+   const [index,inst]=queue[cursor++]!
    if(arithmetic||clock()>=until)break
    if(!selected(inst))continue
    const h=g.hyps[raw.length+index];if(h?.op!=='or'||h.xs[0]?.op!=='<=')continue
@@ -317,9 +338,15 @@ function fieldBoundLemmasImpl(m:Machine,ds:CountDecl[],g:Goal,cert:Proposal,unti
    }
    // Reallocate the existing 80 + 150 ms copy window, rather than extend it.
    proof??=solve(part,directCopy?Math.max(0,230-(clock()-started)):150)
-   const lifted=proof&&widen(part,g,proof,{},root,noPath),no=accept(lifted,noPath)
+   const lifted=proof&&withDeadline(Math.min(until,started+(directCopy?230:150)),()=>widen(part,g,proof,{},root,noPath)),no=accept(lifted,noPath)
    trace.push({stage:'count-lemma',index,arity:inst.terms.length,terms:inst.terms,ms:Math.round(clock()-started),...verdict(no)})
-   if(no){lemmas.push({split,no});ctx.push(good);path.set(canon(split),{lin:split,holds:true});finish()}
+   if(no){confirmed.add(index);lemmas.push({split,no});ctx.push(good);path.set(canon(split),{lin:split,holds:true});finish()}
+   else{
+    excluded.add(index)
+    // An unknown oracle already supplied the full ranked fallback. Remove
+    // the failed proposal from that queue rather than repeat the same query.
+    if(!fallbackSelection){queue=pick();cursor=0}
+   }
   }
   finish()
  }

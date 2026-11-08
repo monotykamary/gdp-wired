@@ -1392,3 +1392,90 @@ proof, and not the 3×60-second protocol gate. The coordinator's next direction 
 to implement Fable's Section 4 core-ranked instance selection as the default in
 `core/count-cases.ts` / `core/count-focus-proof.ts`; no certificate-level trusted
 lemma rule is authorized.
+
+#### Arithmetic-core selection in the default finite-input recovery
+
+Core implementation: **55b5846a**. `selectCountBounds` adds candidates in the
+existing certificate order, asks the closing arithmetic for its core, and treats
+that result only as a proposal. `proveCountCases` derives each selected witness
+bound under the real case path; a failed derivation excludes that candidate and
+repeats selection. An unknown arithmetic oracle falls back to the existing
+recovery, not to an assumed bound. The returned certificate contains the union
+of the actually used case instances. Whole tuples for discarded witnesses are
+removed; newly seeded universal-flag tuples for retained witnesses survive.
+`proveFocusedCounts` retains that certificate instead of regenerating the full
+pool. Finite-input recovery now runs by default (`GDP_COUNTS_FOCUS=0` remains an
+explicit opt-out); all proof and wall allowances and the final kernel gate are
+unchanged. The tests cover failed candidates, false laws, whole-tuple removal,
+new flag witnesses, default enablement, and full counted-law certificate checking.
+
+The research loop uses the same arithmetic selector, without `LAB_NEEDED_LEMMAS`
+or a protocol/instance-index list. It also remembers confirmed bounds across
+reselection: re-deriving one on its own false branch was both redundant and a
+source of exhausted attempts. Count-sensitive outer row guards retain their
+ranked pre-state fallback; count-free row skeletons derive no unused outer
+chain. An already-unknown fallback is not queried again after every rejection.
+All of these are untrusted proposal/control changes.
+
+**Final asserted matrix:** `ranked-final-v1`, tree `84b20ff97766`, isolated
+`large` VMs with placement saved in the run. Each action command now ends with
+`assert-action.ts`: it fails unless the selected branch's actual final source
+check is true and counted time is at most 5,000 ms. Shell exit alone is no longer
+mistaken for a successful proof. The following is the raw-source diagnostic,
+without source slicing or nested-check deferral, so it is comparable in shape to
+Section 4's measurement. Wall is the profiler's end-to-end time including loading
+and final source checking, rounded to milliseconds; batch queue time is excluded.
+
+| Action | Counted ms | Wall ms | Nodes | Leaves | Depth | Count-row leaves | Arithmetic/control leaves | Final source check ms |
+| --- | ---: | ---: | ---: | ---: | ---: | ---: | ---: | ---: |
+| 0: pick initial configuration | 558 | 11,134 | 335 | 168 | 27 | 82 | 86 | 4,089 |
+| 1: copy during setup | 616 | 11,895 | 345 | 173 | 27 | 82 | 91 | 4,954 |
+| 2: start | 640 | 12,048 | 399 | 200 | 26 | 115 | 85 | 6,727 |
+| 3: update terms | 1,194 | 15,774 | 551 | 276 | 24 | 210 | 66 | 8,899 |
+| 4: become leader | 3,524 | 35,257 | 1,593 | 797 | 51 | 651 | 146 | 21,134 |
+| 5: reconfigure | 2,997 | 51,569 | 1,327 | 664 | 59 | 541 | 123 | 26,641 |
+| 6: send configuration | 2,753 | 50,900 | 3,163 | 1,582 | 44 | 1,458 | 124 | 26,335 |
+| Remaining/no-op inputs | 316 | 2,957 | 9 | 5 | 4 | 4 | 1 | 249 |
+
+All eight selected branches check. Send exactly reproduces Fable's 3,163-node,
+1,582-leaf result from the structural 22-instance source, versus 4,427 / 2,214
+before selection: 28.6% fewer nodes/leaves. This is not a uniform improvement:
+leader grows from 1,485 / 743 to 1,593 / 797, and its counted time increases.
+Cross-VM wall times are not a paired speedup claim. Final source checking still
+takes 21–27 seconds on the hard actions; this is not the few-second goal and
+cannot establish the whole-protocol 60-second gate. Individual action replays
+do not call `checkMC` on a complete law.
+
+Validation: **294 focused/Track M/port tests, 67 Track P tests**, all passing.
+The matrix's initial type-check job correctly failed because the new standalone
+assertion script lacked module scope for top-level `await`; adding `export {}`
+fixed it. `ranked-postcheck-v1`, tree `2b79b1d05bcc`, passes type/lint with **zero
+warnings and errors**. This utility-only repair does not change the measured
+proof code. The audited hashes in the action logs are:
+
+- `core/count-cases.ts`: `7b728b8a1314dccfeb59e2ab6865c8309522cf1d0b490e4f3bc0ff031708df64`
+- `core/count-focus-proof.ts`: `854f9b4591519418ab52a03cfacf0bb8d19357f4df96aff1cb971f1929c5e1ed`
+- `core/counts.ts`: `9f28e1f73f71b93d04d32e51f81338d77c8e290583ca431cedcbf4471d40e5d6`
+- `research/track-m/field-bound-lemmas.ts`: `b8139b2c8f5cf339302565899da2ff8716c6e2a5c020319d85b60b1ec2e74684`
+
+Failures are retained: `ranked-actions-v1` checks only six actions; leader and
+reconfiguration remain open despite process exit 0. `ranked-retry-v1` still
+repeats confirmed bounds. `ranked-retry-v2` restores leader but reconfiguration
+exhausts its share repeatedly querying an unknown fallback. `ranked-retry-v3`
+checks both after confirmation tracking and fallback reuse. Early retention-test
+fixtures had naming/raw-expression setup errors; the final fixtures pass and
+verify the returned certificates through the original kernel.
+
+Reproduce the asserted matrix and validation:
+
+```sh
+supercomputer run --jobs research/track-m/jobs-ranked-final.json \
+  --out runs/track-m/ranked-final-v2 --class gate --timing --vm-type large \
+  --data runs/track-m/canonical-capture-v1/fixtures:replay-input
+supercomputer run --jobs research/track-m/jobs-ranked-postcheck.json \
+  --out runs/track-m/ranked-postcheck-v2 --class gate --vm-type large
+```
+
+The standalone production-law probes are separate from this matrix. Step 1,
+the three 60-second production repeats, and the downstream merge gates are **not
+claimed passed** by these action proofs.

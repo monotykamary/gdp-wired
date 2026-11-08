@@ -1,0 +1,9 @@
+[
+  {
+    "name": "selection-tests",
+    "cmd": "set -e; bun install --frozen-lockfile >/dev/null; bun test core/count-cases.test.ts core/count-focus-proof.test.ts",
+    "cpu": 2,
+    "memory": 4000,
+    "timeout": 180
+  }
+]
