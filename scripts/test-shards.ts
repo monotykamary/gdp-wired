@@ -28,7 +28,7 @@ const units: Unit[] = [
     effect-schedule.test.ts effect-stm.test.ts effect-queue.test.ts effect-schema.test.ts calendar.test.ts count-facts.test.ts count-witness.test.ts count-unions.test.ts count-witness-flags.test.ts count-focused.test.ts count-cases.test.ts count-focus-proof.test.ts count-cert-grow.test.ts field-laws.test.ts bitsets.test.ts sample-cache.test.ts small-laws.test.ts cube-width.test.ts exists-support.test.ts carry.test.ts scan-prefix.test.ts
     count-support.test.ts count-admission.test.ts counts-preflight.test.ts relevance.test.ts support-order.test.ts`),
   ...tests('core/count-recovery', 'action-guard.test.ts row-cases.test.ts natural-cases.test.ts carried-case.test.ts live-dependencies.test.ts field-bound-lemmas.test.ts boolean-core.test.ts key-closure.test.ts lift-count-proxies.test.ts rebase-path.test.ts fold-path.test.ts frame-lemmas.test.ts guard-cases.test.ts field-only.test.ts source-memo.test.ts'),
-  ...tests('kernel', 'tamper.test.ts refusals.test.ts steplaw.test.ts sets.test.ts cdcl.test.ts tuples.test.ts epr-clock.test.ts epr-image.test.ts triggers.test.ts share.test.ts model-sequence.test.ts model-values.test.ts prove-paths.test.ts'),
+  ...tests('kernel', 'tamper.test.ts refusals.test.ts steplaw.test.ts sets.test.ts cdcl.test.ts tuples.test.ts epr-clock.test.ts epr-image.test.ts triggers.test.ts share.test.ts model-sequence.test.ts model-values.test.ts prove-paths.test.ts prover-rows.test.ts tree-reuse.test.ts'),
   ...tests('research/query', 'goal-pack.test.ts'),
   ...tests('research/protocols/ic3syn', 'mldr.test.ts'),
   ...tests('research/audit', 'inventory.test.ts'),

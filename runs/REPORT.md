@@ -2617,3 +2617,79 @@ a reversed-order/full-suite follow-up; they are not statistical confidence
 intervals. Tests: 44 row-equivalence/kernel/path/mirror tests pass, including
 structural sharing and ordered-path separation; type/lint 0 warnings/errors.
 Generator optimization is the next phase; no new open-law derivation was added.
+
+### Generation work reassigned; existing prototype isolated
+
+Before reassignment, `generation-shared-v2` measured a generic compiled
+sample guard/step prototype: **27.478 -> 24.799 s** generation, cube stage
+20.374 -> 17.362 s, initial sampling 14.415 -> 11.470 s. Both sides perform
+**627,047 requests / 6,615 trials / 64 samples**, and **every ordered candidate
+array and generator-family name array is identical** (24 final candidates).
+Tests and type/lint pass. The preceding v1 had a type-only annotation error,
+fixed before v2; it is not the clean validation result.
+
+The coordinator reassigned item (2) to `claude/track-gen`. That code is isolated
+on **`research/track-m-gen-handoff`**, commit **`9a9886b9`**, based on
+`3394e14c`. It was removed from the Track M worktree without rewriting history.
+No further generation edits are being made here; the other lane may cherry-pick
+or supersede the prototype. Its job and test sources are on that branch.
+
+`paired-rows-generation-v1` is a **pending** 29-protocol/29-broken-variant
+comparison of the immutable pre-reassignment snapshot (including that
+prototype) against `76edf867`. It does not validate subsequent cross-law cache\nscope changes. **It has now completed:** all 29 correct and all 29 broken\nverdicts match baseline. Correct: 27 proven, 2 strict-wall timeouts on both\nsides (Paxos/MLDR). Broken: 11 refuted, 16 unknown, 2 strict-wall timeouts\non both sides; none proven. No result was inferred from a job's exit code.\nThe mixed EPYC 4585PX/Ryzen 9950X placements are valid for verdict pairs on\nthe same VM, but are not used for cross-VM timing claims. The complete run\ntook 951 s and used three boat VMs.\n
+Cross-law work now extends the existing exact-goal, mode-sensitive completed
+root-tree cache over one counted-family search. It never stores unknowns or
+models and does not alter checker admission. `family-sharing-v1` is a pending
+legacy/row-sharing/row-plus-tree experiment. Its first driver iterates the nine
+hand-family laws, including the four easier supports; the next driver explicitly
+filters the five hard targets while keeping all nine as assumptions. Do not
+confuse those populations or their sums.
+
+### Reverse-order row control and cross-law outcome
+
+`rows-reverse-v1` runs the shared implementation **before** the legacy one,
+with cross-source experiments disabled. Same 9950X VM and `0-3` affinity,
+unchanged verdicts and exactly identical counted work:
+
+| Law | Legacy wall s | Shared wall s |
+| --- | ---: | ---: |
+| One primary | 2.275 | 2.250 |
+| Inv3915 | 2.442 | 2.040 |
+| Inv1758 | 5.335 | 5.130 |
+| Inv2973 | 23.674 | 18.467 |
+| Inv* | 18.170 | 15.107 |
+| **Sum** | **51.896** | **42.994** |
+
+The benefit survives reversing the pair. Its magnitude varies with the VM run;
+we claim the matched measurements, not a single universal percentage.
+
+Cross-law **expression/row construction** sharing is retained and on by default.
+Cross-law **completed proof** caches were investigated and rejected:
+
+- `family-sharing-v1`: the existing exact-root tree cache kept 5 proofs but had
+  **zero hits** across the nine-law family. Its total rose from row-sharing-only
+  73.964 s to 78.379 s. No new default tree-cache scope is retained.
+- `source-sharing-v1`: a bounded cache of used-hypothesis source subtrees stored
+  **56** candidates; **zero matched transport attempts/hits**. The five-law
+  total rose from 75.428 to 76.067 s. Tests passed; the initial typecheck lacked
+  an explicit terminal `return undefined`.
+- `source-sharing-v2`: alpha-renaming-aware matching of all used assumptions
+  stored **46** candidates and again produced **zero transport attempts/hits**.
+  The five-law total rose from **46.510 to 47.728 s**. Type/lint and exact-row /
+  kernel / source-transport tests passed, but the cache is still rejected.
+
+These are complete source proofs with different required assumptions, not
+repeated instances of one reusable theorem. More retention does not fix that
+interface mismatch. A useful cross-law proof cache needs a smaller shared
+lemma contract or a newly proved source decomposition; neither can be claimed
+from a zero-hit cache. **No rejected cache remains in the production path.**
+The final rejected prototype is archived as
+`research/track-m/rejected-source-sharing.patch.json`; extract its `patchLines`
+with `jq -r '.patchLines|join("\n")'` and apply in a disposable worktree at
+`3394e14c`, not over current production files. Its archived driver
+selects the five hard targets and retains all nine laws as assumptions.
+
+The retained row optimization is validated; a profitable completed-subproof
+reuse mechanism remains **open**, and no new Inv1758/Inv2973/Inv* derivation has
+been added under cover of an optimization. The all-laws and strict 3×60-second
+gates remain unpassed. Generation remains owned by `claude/track-gen`.

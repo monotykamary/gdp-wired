@@ -288,14 +288,15 @@ export function grow(goal: Goal, path: Path = new Map(), budget?: {nodes: number
   }
   // (a root goal grown before within `withTrees`: its tree again; a tree is the kernel's to check wherever it goes)
   const key = treeCache.on && !path.size && !budget.nodes ? treeKey(goal) : undefined, had = key === undefined ? undefined : treeCache.trees.get(key)
-  if (had) return {tree: had, nodes: 0}
+  if (had) { treeReuseStats.hits++; return {tree: had, nodes: 0} }
   if (key !== undefined) { const out = growKept(goal, path, budget); if ('tree' in out) treeCache.keep(key, out.tree); return out }
   return growKept(goal, path, budget)
 }
 // Trees of root goals kept by their hypotheses (and the search's modes) while `withTrees` runs: core/infer.ts proves each
 // law of a set alone (proveLaw) and then the set as a whole (proveRule), the same goals twice. At most 2,000 trees, and
 // goals of at most 4 MB written out.
-const treeCache = {on: 0, trees: new Map<string, Tree>(), keep(key: string, tree: Tree) { if (this.trees.size >= 2000) this.trees.clear(); this.trees.set(key, tree) }}
+export const treeReuseStats = {hits: 0, kept: 0}
+const treeCache = {on: 0, trees: new Map<string, Tree>(), keep(key: string, tree: Tree) { treeReuseStats.kept++; if (this.trees.size >= 2000) this.trees.clear(); this.trees.set(key, tree) }}
 const treeKey = (goal: Goal): string | undefined => { const text = JSON.stringify(goal.hyps); return text.length > 4_000_000 ? undefined : `${cellProducts.on ? 1 : 0}${unitsNow ? 1 : 0}${text}` }
 // GDP_TREES=0: no tree kept (each goal grown every time it is asked).
 const keepTrees = env.GDP_TREES !== '0'
