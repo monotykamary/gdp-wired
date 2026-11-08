@@ -14,6 +14,7 @@ import {guardCases} from './count-recovery/guard-cases.ts'
 import {appendCountCert} from './count-cert-grow.ts'
 import {independentCountInstances} from './count-focused.ts'
 import {fieldCase} from './count-recovery/field-case.ts'
+import {sourceProofMemo} from './count-recovery/source-memo.ts'
 
 type Packet={goal:Goal,decls:CountDecl[]}
 export function finiteCountChoice(m:Machine):[string,Set<number>]|undefined{
@@ -110,7 +111,7 @@ export function proveCountCases(m:Machine,laws:Law[],at:Instances,cert:Pick<Coun
    return !!root
   }
   const seq=modelSequence(),records:({goal:Goal,tree:Tree,path:Path,from?:Path,indices:number[]}|undefined)[]=[],branches:{prefix:C[],path:Path,root:Path,tails:number[]}[]=[]
-  const initial=at,merged:Instances={...at},previous=atPoint.on;atPoint.on=!options.corePointOnly
+  const memo=sourceProofMemo(),initial=at,merged:Instances={...at},previous=atPoint.on;atPoint.on=!options.corePointOnly
   const coreGrow=(g:Goal,end:number)=>{const before=atPoint.on;atPoint.on=true;try{return grow(g,new Map(),{nodes:0,until:end,units:options.units})}finally{atPoint.on=before}}
   try {
     for(const [i,value] of [...cuts,undefined].entries()){
@@ -128,7 +129,7 @@ export function proveCountCases(m:Machine,laws:Law[],at:Instances,cert:Pick<Coun
       if(tree){source=goal;from=new Map(path)}
       const guard=actionGuard(m,name,value)
       if(!tree&&guard){
-       const events:object[]=[],begun=clock(),derived=guardCases(m,packet.decls,goal,cert,guard,caseEnd,events,0,path,{deferCheck:true,claim:packet.goal.hyps.at(-1)})
+       const events:object[]=[],begun=clock(),derived=guardCases(m,packet.decls,goal,cert,guard,caseEnd,events,0,path,{deferCheck:true,claim:packet.goal.hyps.at(-1),memo})
        for(const event of events)options.trace?.({value,...event})
        options.trace?.({value,stage:'case-derivations',ms:Math.round(clock()-begun),proposed:!!derived})
        if(derived){tree=derived;source=goal;from=new Map(path)}
@@ -170,7 +171,7 @@ export function proveCountCases(m:Machine,laws:Law[],at:Instances,cert:Pick<Coun
       if(clock()>=until)break
       const {prefix,path:p}=branches[i]!,part={name:goal.name,hyps:[...prefix,...goal.hyps]}
       const end=Math.min(until,clock()+(until-clock())/(missing.length-j)),guard=actionGuard(m,name,cuts[i]),events:object[]=[]
-      const derived=guard&&guardCases(m,packet.decls,goal,cert,guard,end,events,0,p,{deferCheck:true,claim:packet.goal.hyps.at(-1)})
+      const derived=guard&&guardCases(m,packet.decls,goal,cert,guard,end,events,0,p,{deferCheck:true,claim:packet.goal.hyps.at(-1),memo})
       for(const event of events)options.trace?.({value:cuts[i],...event})
       if(derived){records[i]={goal,tree:derived,path:p,from:p,indices:cert.insts.map((_,j)=>j)};continue}
       const out=grow(part,new Map(),{nodes:0,until:end,units:options.units})

@@ -1750,3 +1750,40 @@ tests passed, but its new test also contained an invalid `all.in` field
 caught by type checking. The entire uncommitted experiment was removed;
 none of it is in `00070df4`. Its failure receipts are retained, rather
 than reported as a successful validation.
+
+#### Ordered recovery: source-proof reuse closes Inv3915
+
+The next request prioritizes Inv3915, then Inv1758, before the two expensive
+counted laws. Hypothesis: the Inv3915 leader retry repeats completed guard
+and row subproofs, exhausting the shared allowance before composition.
+`source-memo.ts` now keeps those untrusted proposals for one invocation of
+`proveCountCases`. A lookup always uses the existing `widen` to the current
+source and path; a changed or stronger-looking source is not assumed valid.
+The final whole-law `checkMC` remains mandatory. There is no global proof
+cache, trusted rule, or budget increase.
+
+`ordered-recovery-v1`, boat batch `20261108-120710-d0tbh9`, source tree
+`253270669de1`, tests the change with the same canonical input, five-law
+runner and isolated large-VM placement. Eight memo hits occur for safety
+and eight for Inv3915. **Inv3915 now returns a complete checked start and
+step certificate.**
+
+| Complete hand-set law | Proved / checked | Counted ms | In-process wall s |
+| --- | --- | ---: | ---: |
+| one primary per term | **yes / yes** | **3,399** | **3.272** |
+| Inv3915: primary newest | **yes / yes** | **4,489** | **5.050** |
+| Inv1758: row agreement | no / no | 5,025 | 3.675 |
+| Inv2973: quorum overlap | no / no | 5,338 | 22.595 |
+| Inv*: quorum term backing | no / no | 5,164 | 19.719 |
+
+The latter three have no memo hits in this run; their initial failed
+pointwise obligations remain the next work, not solved by reuse. Their
+wall differences are not a paired speedup claim. As before, stopping-clock
+overshoots are failed goals, not permission to increase the allowance.
+
+Validation: **115 production-derivation tests, 295 Track M/count/port tests,
+67 Track P tests**, all pass, and type/lint reports zero warnings/errors.
+The new tests cover reordered paths, changed sources, missing paths, and
+expired lookup deadlines. The original checker must still reject any bad
+proposal. This is **2/5** hard complete-law probes, not Step 1 completion.
+No Track K rebase has occurred.

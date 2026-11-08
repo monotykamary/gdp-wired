@@ -10,6 +10,7 @@ import {piecesAt,sourceScalarContext,sourceWitnessContext,walkLive} from './live
 import {carriedCase} from './carried-case.ts'
 import {foldPath} from './fold-path.ts'
 import {fieldCase} from './field-case.ts'
+import {type SourceProofMemo} from './source-memo.ts'
 import {booleanCore} from './boolean-core.ts'
 import {selectCountBounds} from '../count-select.ts'
 import {activeWriteRow,proveRowCases,rowPairs} from './row-cases.ts'
@@ -64,8 +65,14 @@ export function emptyCountCandidate(m:Machine,cert:Proposal,inst:Proposal['insts
  let fields=false;walkOnce(count.body,(o:any)=>{if(o.op==='<'&&o.a.op==='get'&&o.b.op==='get')fields=true})
  return fields
 }
-export const fieldBoundLemmas:typeof fieldBoundLemmasImpl=(...args)=>wallTree('proposal-control',()=>fieldBoundLemmasImpl(...args))
-function fieldBoundLemmasImpl(m:Machine,ds:CountDecl[],g:Goal,cert:Proposal,until:number,trace:object[],onModel?:(goal:Goal,witness:Record<string,number>)=>boolean,root:Path=new Map(),options:{splitRows?:boolean,deferCheck?:boolean,fieldClaim?:C}={}):Tree|undefined{
+export const fieldBoundLemmas:typeof fieldBoundLemmasImpl=(...args)=>wallTree('proposal-control',()=>{
+ const [,,g,,until,trace,,path=new Map(),options={}]=args,cached=options.memo?.get(g,path,until)
+ if(cached&&(options.deferCheck||check(g,cached,path))){trace.push({stage:'source-memo',scope:'field'});return cached}
+ const tree=fieldBoundLemmasImpl(...args)
+ if(tree)options.memo?.put(g,path,tree)
+ return tree
+})
+function fieldBoundLemmasImpl(m:Machine,ds:CountDecl[],g:Goal,cert:Proposal,until:number,trace:object[],onModel?:(goal:Goal,witness:Record<string,number>)=>boolean,root:Path=new Map(),options:{splitRows?:boolean,deferCheck?:boolean,fieldClaim?:C,memo?:SourceProofMemo}={}):Tree|undefined{
  const pointOptions={deferCheck:!!options.deferCheck}
  const seq=modelSequence(root),ctx:C[]=[],path:Path=new Map(root),lemmas:{split:Record<string,number>,no:Tree}[]=[]
  const accept=(tree:Tree|undefined,path:Path)=>tree&&(options.deferCheck||check(g,tree,path))?tree:undefined
@@ -342,7 +349,7 @@ function fieldBoundLemmasImpl(m:Machine,ds:CountDecl[],g:Goal,cert:Proposal,unti
  let tree=arithmetic
  if(!tree&&rowPlan.length){
   trace.push({stage:'row-pairs',pairs:rowPlan})
-  tree=proveRowCases(g,path,rowPlan,until,(branch,end)=>fieldBoundLemmas(m,ds,g,cert,end,trace,onModel,branch,{splitRows:false,deferCheck:true}),e=>trace.push(e),{deferToCaller:true,splitEqual:copiesRows(m,root)})
+  tree=proveRowCases(g,path,rowPlan,until,(branch,end)=>fieldBoundLemmas(m,ds,g,cert,end,trace,onModel,branch,{splitRows:false,deferCheck:true,memo:options.memo}),e=>trace.push(e),{deferToCaller:true,splitEqual:copiesRows(m,root)})
  }
  if(!tree){const proof=solve(part,Math.max(150,until-clock()-200),true);tree=proof&&widen(part,g,proof,{},root,path)}
  trace.push({stage:'field-bound-conclusion',facts:lemmas.length,ms:Math.round(clock()-start),proved:!!tree})
