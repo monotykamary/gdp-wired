@@ -16,6 +16,16 @@ test('factored frame lemmas produce an ordinary checked count tree',()=>{
  expect(frameLemmas(bad,cert,clock()+400,[])).toBeUndefined()
 })
 
+test('the numeric core selects needed frames before proving unrelated ones',()=>{
+ const pre=ite(same(get('Members',x('cell')),n(1)),n(1),n(0)),base={j:'row',key:'cell',below:n(4)}
+ const ds=[{...base,map:'A',body:pre},{...base,map:'A#',body:ite(same(x('op'),n(1)),n(1),pre)},{...base,map:'B',body:pre},{...base,map:'B#',body:n(1)}]
+ const cert:Pick<CountCert,'reads'|'insts'>={reads:[['a','A',n(0)],['afterA','A#',n(0)],['b','B',n(0)],['afterB','B#',n(0)]],insts:[{wit:'one',below:n(4),unit:0,terms:[[1,'afterA'],[-1,'a']]},{wit:'two',below:n(4),unit:0,terms:[[1,'afterB'],[-1,'b']]}]}
+ const hyps=[same(x('op'),n(0)),less(get('A',n(0)),get('A#',n(0)))],g=mcGoal(hyps,ds,cert)!,trace:any[]=[],tree=frameLemmas(g,cert,clock()+1500,trace)
+ expect(tree).toBeDefined();if(tree)expect(checkMC(hyps,ds,{...cert,tree})).toBe(true)
+ expect(trace.find(e=>e.stage==='frame-core')?.selected).toEqual([0])
+ expect(trace.filter(e=>e.stage==='frame-lemma').map(e=>e.index)).toEqual([0])
+})
+
 test('an unsuccessful shared-frame probe can stop before spending the leaf allowance',()=>{
  const cert:Pick<CountCert,'reads'|'insts'>={reads:[['a','A',n(0)],['afterA','A#',n(0)],['b','B',n(0)],['afterB','B#',n(0)]],insts:[{wit:'one',below:n(4),unit:0,terms:[[1,'afterA'],[-1,'a']]},{wit:'two',below:n(4),unit:0,terms:[[1,'afterB'],[-1,'b']]}]}
  const g={name:'possible',hyps:[any(atMost(x('afterA'),x('a')),less(n(0),n(1))),any(atMost(x('afterB'),x('b')),less(n(0),n(1)))]},trace:object[]=[]

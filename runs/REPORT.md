@@ -2163,3 +2163,29 @@ also costs more search than the older fallback in this replay. The next
 change preserves the old ordinary-cache fallback while trying compatible
 mirrors first, then addresses arithmetic-core selection of source frames
 for the two counted laws. Track K remains excluded from this branch.
+
+#### Core-selected frame instances
+
+`frame-core-v1`, batch `20261108-134922-cflntu`, tree `5703c9be2e15`, passes
+127 production-derivation tests, 296 Track M tests, 67 Track P tests and
+clean type/lint. The arithmetic core selects 9 of 14 overlap frames and
+2 of 4 term-backing frames before constructing their witness branches.
+The inactive shared-frame conclusions now construct and transport; the
+remaining source gap is in active actions, not inactive-frame arithmetic.
+No speculative frame inequality is accepted without its ordinary proof.
+
+| Complete hand-set law | Proved / checked | Counted ms | In-process wall s |
+| --- | --- | ---: | ---: |
+| one primary per term | yes / yes | 2,314 | 3.601 |
+| Inv3915: primary newest | yes / yes | 1,936 | 3.439 |
+| Inv1758: row agreement | no / no | 5,014 | 6.513 |
+| Inv2973: quorum overlap | no / no | 5,000 | 25.070 |
+| Inv*: quorum term backing | no / no | 5,139 | 15.154 |
+
+Inv1758 now completes the first active send guard branch, including the
+mirrored rows; the alternate active guard branch reaches equal/equal with
+only 41 ms remaining. It still needs generic reuse across distinct guard
+paths. Overlap reaches active count/field source closure after deriving
+all selected inactive frames. Term backing additionally reaches the
+active different/different row and its missing witness chain. These are
+partial candidates, not accepted complete-law certificates.

@@ -5,7 +5,7 @@ import {type CountCert,type Goal,type Path,type Tree,canon,linear,substC,substE,
 import {clock,withDeadline} from '../../kernel/prove.ts'
 import {scale,sub} from '../solver.ts'
 import {walkLive} from './live-dependencies.ts'
-import {wallTree,check} from './ops.ts'
+import {wallTree,check,widen} from './ops.ts'
 import {renameProof} from './rename-proof.ts'
 export type RowPair=readonly [E,E]
 // Prefer exact scalar destinations, including constant-index initialization.
@@ -75,11 +75,6 @@ function proveRowCasesImpl(g:Goal,root:Path,pairs:RowPair[],until:number,prove:(
  const leaf=(path:Path,key:string):Tree|undefined=>{
   if(clock()>=until)return undefined
   const begun=clock(),old=cache.get(key)
-  if(old){
-   const t=withDeadline(Math.min(until,clock()+50),()=>renameProof(g,old.tree,old.path,path,{},Math.min(until,clock()+50)))
-   const accepted=!!t&&(options.deferToCaller||check(g,t,path))
-   if(accepted&&t){trace?.({stage:'row-case',key,cached:true,ms:Math.round(clock()-begun),checked:!options.deferToCaller,proposed:true,deferred:!!options.deferToCaller});return t}
-  }
   const opposite=key.split('/').reverse().join('/')
   const compatible=(old:{path:Path})=>{
    const vars=Object.fromEntries(Object.entries(renaming).map(([a,b])=>[a,x(b)]));let score=0
@@ -94,9 +89,15 @@ function proveRowCasesImpl(g:Goal,root:Path,pairs:RowPair[],until:number,prove:(
    return score
   }
   if(mirror&&key.includes('/'))for(const old of [...history.get(opposite)??[]].reverse().sort((a,b)=>compatible(b)-compatible(a))){
+   if(compatible(old)<3)continue
    const t=renameProof(g,old.tree,old.path,path,renaming,Math.min(until,clock()+50))
    const accepted=!!t&&(options.deferToCaller||check(g,t,path))
    if(accepted&&t){trace?.({stage:'row-mirror',from:opposite,to:key,ms:Math.round(clock()-begun),checked:!options.deferToCaller,proposed:true,deferred:!!options.deferToCaller});cache.set(key,{path:new Map(path),tree:t});return t}
+  }
+  if(old){
+   const t=withDeadline(Math.min(until,clock()+50),()=>widen(g,g,old.tree,{},old.path,path))
+   const accepted=!!t&&(options.deferToCaller||check(g,t,path))
+   if(accepted&&t){trace?.({stage:'row-case',key,cached:true,ms:Math.round(clock()-begun),checked:!options.deferToCaller,proposed:true,deferred:!!options.deferToCaller});return t}
   }
   const t=prove(path,Math.min(until,clock()+1500)),accepted=!!t&&(options.deferToCaller||check(g,t,path))
   trace?.({stage:'row-case',key,cached:false,ms:Math.round(clock()-begun),checked:!options.deferToCaller&&accepted,proposed:!!t,deferred:!!options.deferToCaller})
