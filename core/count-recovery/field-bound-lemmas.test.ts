@@ -4,6 +4,17 @@ import {canon,check,checkMC,linear,mcGoal,type CountCert,type Path} from '../../
 import {clock} from '../../kernel/prove.ts'
 import {countBindingsAt,emptyCountCandidate,fieldBoundLemmas,fieldBounds} from './field-bound-lemmas.ts'
 
+test('packed column domains are split once before row reconstruction and checked',()=>{
+ const machine:Machine={name:'guarded columns',params:['size'],inputs:['actor'],state:{},maps:{Tag:0,Cells:0},step:{maps:{Tag:{each:'slot',value:ite(same(x('slot'),x('actor')),n(1),get('Tag',x('slot')))}}}}
+ const a=x('a'),b=x('b'),column=x('column'),size=x('size'),cell=(row:typeof a)=>get('Cells',plus(times(64,row),column))
+ const law=any(not(all(less(a,size),less(b,size),less(column,size))),not(same(get('Tag',a),get('Tag',b))),same(cell(a),cell(b))),claim=not(law)
+ const g={name:'column domain',hyps:[same(cell(a),n(0)),same(cell(b),n(0)),claim]},events:object[]=[]
+ const tree=fieldBoundLemmas(machine,[],g,{reads:[],insts:[]},clock()+1500,events,undefined,new Map(),{fieldClaim:claim})
+ expect(tree).toBeDefined();if(tree)expect(check(g,tree)).toBe(true)
+ expect(events.some((e:any)=>e.stage==='field-column-domain'&&e.proposed)).toBe(true)
+ expect(fieldBoundLemmas(machine,[],{...g,hyps:[claim]},{reads:[],insts:[]},clock()+1000,[],undefined,new Map(),{fieldClaim:claim})).toBeUndefined()
+})
+
 test('empty-count candidates are post-state singleton upper bounds on field comparisons',()=>{
  const body=ite(less(get('Clock',x('k')),get('Epoch',x('row'))),n(1),n(0)),m:Machine={name:'empty proposals',params:[],inputs:[],state:{},counts:{Below:{j:'row',key:'k',below:n(4),body},Constant:{j:'row',key:'k',below:n(4),body:n(1)}},step:{}}
  const cert:Pick<CountCert,'reads'|'insts'>={reads:[['pre','Below',x('target')],['post','Below#',x('target')],['other','Constant#',x('target')]],insts:[]},base={wit:'sample',below:n(4),unit:0 as const,terms:[[1,'post']] as [number,string][]}

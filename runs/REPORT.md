@@ -2237,3 +2237,122 @@ branch, retaining its ordinary leaf in the certificate. A proven default
 need not reserve an equal share of the remaining search time. This avoids
 interrupting the last real action only to repeat its partial derivation in
 the recovery pass; it does not change the total counted allowance.
+
+#### Default-branch preflight: first replay
+
+`fallback-preflight-v1`, batch `20261108-141045-ddez6k`, tree `d135fee5da7d`,
+constructs the default arithmetic leaf on all five inputs. The real send
+branch receives the remaining share rather than repeating its first half.
+It still reaches the allowance during the alternate active equal/different
+ordering half. The preflight initially retained every source instance in
+its metadata, which broke the slim-certificate regression tests; this is
+not accepted. The correction retains only instances actually used by the
+default leaf, without changing the tests' expected slim certificates.
+
+| Complete hand-set law | Proved / checked | Counted ms | In-process wall s |
+| --- | --- | ---: | ---: |
+| one primary per term | yes / yes | 984 | 3.762 |
+| Inv3915: primary newest | yes / yes | 973 | 4.223 |
+| Inv1758: row agreement | no / no | 5,000 | 8.014 |
+| Inv2973: quorum overlap | no / no | 5,396 | 42.122 |
+| Inv*: quorum term backing | no / no | 5,137 | 38.261 |
+
+Type/lint and Track P pass. The failed slim-certificate tests remain
+failures. A second generic change splits a packed field's guarded column
+domain outside row reconstruction, so each copied-row half need not
+rediscover the same range bound. Both branches remain ordinary checked
+subtrees; a missing domain assumption cannot certify a false claim.
+
+#### Guarded column domain: first replay
+
+`column-domain-v1`, batch `20261108-141720-9wyxhw`, tree `e8edfff92d63`,
+restores all 296 Track M regressions, including slim certificates, and
+passes type/lint. The new unit fixture proved its theorem but did not
+exercise row discovery: its direct-key write is now corrected to the
+production `each`/conditional write form. Two unchanged Track P 5-second
+timeouts recur on the slower placement and are recorded as failures.
+
+| Complete hand-set law | Proved / checked | Counted ms | In-process wall s |
+| --- | --- | ---: | ---: |
+| one primary per term | yes / yes | 984 | 7.356 |
+| Inv3915: primary newest | yes / yes | 973 | 2.155 |
+| Inv1758: row agreement | no / no | 5,003 | 10.957 |
+| Inv2973: quorum overlap | no / no | 5,396 | 20.538 |
+| Inv*: quorum term backing | no / no | 5,137 | 15.168 |
+
+A `column < size` cut alone does not simplify packed row ranges. The next
+replay uses the constant stride read from affine packed field keys, when
+available, for the candidate cut. Its false branch must still be derived
+from the original source; the stride is not a new axiom or domain bound.
+
+#### Rejected repeated-boundary replay
+
+`column-domain-v2`, batch `20261108-142340-2nmdh3`, tree `bc42a3e0d3f1`,
+exposed a termination bug in the new optimization: after replacing the
+claim's domain with a packed stride, the same known stride could be split
+again. The new regression timed out at its unchanged 1,500 ms limit. This
+snapshot is **not retained**; the following replay checks the derived
+boundary at the current path before recursing.
+
+| Complete hand-set law | Proved / checked | Counted ms | In-process wall s |
+| --- | --- | ---: | ---: |
+| one primary per term | yes / yes | 984 | 10.381 |
+| Inv3915: primary newest | yes / yes | 973 | 4.900 |
+| Inv1758: row agreement | no / no | 5,000 | 26.099 |
+| Inv2973: quorum overlap | no / no | 5,362 | 62.020 |
+| Inv*: quorum term backing | no / no | 5,137 | 39.684 |
+
+The overlap wall observation exceeds 60 seconds during an uninterruptible
+check; it remains an unproved failed probe, never an accepted wall-budget
+extension. Other tests and type/lint pass, but the domain regression alone
+is sufficient to reject this experimental snapshot.
+
+### Current status: generic mirror and source recovery, 2/5 complete laws
+
+Final replay: `column-domain-v3`, batch `20261108-142710-td8tbx`, tree
+`b60edc7334df`, on the pinned large placements recorded beside its logs.
+All **130 production-derivation tests, 296 Track M tests and 67 Track P
+tests pass**. Type/lint reports zero warnings and zero errors. The prior
+slim-certificate and repeated-boundary failures are fixed; their tests
+remain enabled, not weakened. No test timeout or proof allowance changed.
+
+| Complete hand-set law | Proved / checked | Counted ms | In-process wall s | Remaining production derivation |
+| --- | --- | ---: | ---: | --- |
+| one primary per term | **yes / yes** | **984** | **4.421** | — |
+| Inv3915: primary newest | **yes / yes** | **973** | **4.776** | — |
+| Inv1758: row agreement | no / no | 5,000 | 9.875 | Alternate active send guard: equal/different ordering half, followed by the remaining mirror/row composition. |
+| Inv2973: quorum overlap | no / no | 5,396 | 24.357 | Active-action count/field witness closure; the selected inactive frames now construct and transport. |
+| Inv*: quorum term backing | no / no | 5,137 | 18.517 | Active setup/copy/send/reconfiguration witness chains, including unresolved different/different row closure. |
+
+The specifically requested different/equal mirror is constructed generically
+from the equal/different source subtree. No action name is tested by the
+remapper, no trusted symmetry rule was introduced, and emitted trees contain
+ordinary splits and reindexed arithmetic leaves. Generic positive/negative
+mirror tests and the two complete laws pass the unchanged kernel. **The
+partial Inv1758 send candidates are not represented as a checked complete
+Inv1758 certificate.** Its second active guard still needs its own derivation.
+
+The frame selector derives only inequalities named by the numeric core:
+9/14 for overlap, 2/4 for term backing on the observed inactive paths. Those
+constructed partial source proofs do not constitute whole-law completion.
+The earlier eight-action research matrix covered Inv*, not independently
+completed research proofs of every law in this table. Failure-side counted
+overshoots above 5,000 ms remain failures, never accepted extensions.
+
+Track K is measurement-only: the separate branch tip is `5dc10469`; its
+clean temporary worktree has been removed. Three off/on pairs per law are
+recorded above, with zero proposer calls in all runs. No Track K commit is
+an ancestor of this production branch, and no merge/rebase onto it is made.
+The all-laws-kept, 3×60-second and downstream gates remain **unpassed**.
+
+Reproduce the final matrix:
+
+```sh
+supercomputer run --jobs research/track-m/jobs-production-derivations-final.json \
+  --out runs/track-m/column-domain-v3-replay --class interactive --timing \
+  --vm-type large --data runs/track-m/canonical-capture-v1/fixtures:replay-input
+```
+
+All jobs for the reported replays have finished. Only validated generic
+source-recovery code and evidence are retained; no kernel, law, invariant,
+external solver, global budget or Track K production integration changed.

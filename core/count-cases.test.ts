@@ -9,9 +9,10 @@ const m:Machine={name:'renamed finite choices',params:[],inputs:['action'],state
 const goal=(bound:number):Goal=>({name:'finite choices @step',hyps:[m.assume!,atMost(action,n(2)),same(value,ite(cases[0]!,n(3),ite(cases[1]!,n(4),n(5)))),less(value,n(bound))]})
 
 test('finite count recovery returns an original-kernel-checked tree and restores search scope',()=>{
-  const before=atPoint.on,packet={goal:goal(3),decls:[]},cert={reads:[],insts:[]}
-  const result=proveCountCases(m,[],{},cert,clock()+2000,()=>packet)
+  const before=atPoint.on,packet={goal:goal(3),decls:[]},cert={reads:[],insts:[]},events:Record<string,unknown>[]=[]
+  const result=proveCountCases(m,[],{},cert,clock()+2000,()=>packet,{trace:e=>events.push(e)})
   expect(result).toBeDefined()
+  expect(events.some(e=>e.stage==='case-fallback'&&e.proposed)).toBe(true)
   if(result)expect(checkMC(packet.goal.hyps,[],result.cert)).toBe(true)
   expect(atPoint.on).toBe(before)
 })

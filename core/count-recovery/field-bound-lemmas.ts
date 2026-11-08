@@ -1,7 +1,7 @@
 // Checked field-ceiling cuts suggested by a counted predicate and a carried
 // set's per-member bound. The suggestion is untrusted; every cut is reconstructed
 // and the complete result is checked against the original counted goal.
-import {type C,type Machine,same,walkOnce,x} from '../machine.ts'
+import {type C,type Machine,n,same,walkOnce,x} from '../machine.ts'
 import {type CountCert,type CountDecl,type Goal,type Path,type Tree,canon,columnTerm,linear,substC,substE,truth} from '../../kernel/kernel.ts'
 import {countsForReads} from '../count-facts.ts'
 import {sub} from '../solver.ts'
@@ -82,6 +82,33 @@ function fieldBoundLemmasImpl(m:Machine,ds:CountDecl[],g:Goal,cert:Proposal,unti
  const rowPlan=options.splitRows!==false?rowPairs(m,cert,root,options.fieldClaim).slice(0,2):[]
  let arithmetic:Tree|undefined
  const postMaps=new Set(cert.reads.filter(r=>r[1].endsWith('#')).map(r=>r[1])),postIds=new Set(cert.reads.filter(r=>r[1].endsWith('#')).map(r=>r[0]))
+ // Split a packed field's guarded column domain once, outside the row cases.
+ // Without it each row repeats the same range reconstruction for copied keys.
+ if(rowPlan.length&&!postIds.size&&options.fieldClaim){
+  const rows=new Set(rowPlan.flatMap(([key])=>key.op==='var'?[key.name]:[])),columns=new Set<string>()
+  walkOnce(options.fieldClaim,(o:any)=>{if(o.op==='get'&&o.key.op!=='var')walkOnce(o.key,(k:any)=>{if(k.op==='var'&&!rows.has(k.name)&&!m.inputs.includes(k.name)&&!m.params.includes(k.name))columns.add(k.name)})})
+  const candidates:Extract<C,{a:unknown}>[]=[]
+  walkOnce(options.fieldClaim,(c:any)=>{if(!candidates.length&&c.op==='<'&&c.a.op==='var'&&columns.has(c.a.name)&&truth(c,root)===undefined)candidates.push(c)})
+  let domain=candidates[0]
+  if(domain&&domain.a.op==='var'){
+   const column=domain.a.name,strides:number[]=[]
+   walkOnce(options.fieldClaim,(o:any)=>{if(o.op!=='get')return;const key=linear(o.key,root);if(!key||key[column]!==1)return;for(const row of rows){const width=Math.abs(key[row]??0);if(Number.isInteger(width)&&width>1)strides.push(width)}})
+   if(strides.length)domain={op:'<',a:domain.a,b:n(Math.min(...strides))}
+  }
+  if(domain&&truth(domain,root)===undefined){
+   const a=linear(domain.a,root),b=linear(domain.b,root)
+   if(a&&b){
+    const split=sub(a,b);split['1']=(split['1']??0)+1
+    const id=canon(split),negative=new Map(root).set(id,{lin:split,holds:false}),positive=new Map(root).set(id,{lin:split,holds:true})
+    const no=fieldCase(m,g,cert,options.fieldClaim,negative,Math.min(until,clock()+50),e=>trace.push(e))
+    if(no){
+     const yes=fieldBoundLemmas(m,ds,g,cert,until,trace,onModel,positive,options),tree=yes?{split,yes,no}:undefined
+     trace.push({stage:'field-column-domain',domain,proposed:!!tree})
+     return tree&&(options.deferCheck||check(g,tree,root))?tree:undefined
+    }
+   }
+  }
+ }
  if(rowPlan.length&&!postIds.size){
   trace.push({stage:'field-row-pairs',pairs:rowPlan})
   return proveRowCases(g,root,rowPlan,until,(branch,end)=>{

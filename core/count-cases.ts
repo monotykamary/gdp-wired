@@ -3,7 +3,7 @@
 // against the unspecialized counted obligation before it is returned.
 import {type C,type Law,type Machine,walkOnce,x} from './machine.ts'
 import {type CountCert,type CountDecl,type Goal,type Instances,type Path,type Tree,boundOf,canon,check,checkMC,linear,mcGoal,truth} from '../kernel/kernel.ts'
-import {atPoint,clock,grow,modelInstances,widen,withDeadline} from '../kernel/prove.ts'
+import {atPoint,clock,grow,modelInstances,usedHyps,widen,withDeadline} from '../kernel/prove.ts'
 import {sub} from './solver.ts'
 import {seedCountWitnessFlags} from './count-witness-flags.ts'
 import {modelSequence} from '../kernel/model-sequence.ts'
@@ -16,6 +16,7 @@ import {independentCountInstances} from './count-focused.ts'
 import {fieldCase} from './count-recovery/field-case.ts'
 import {sourceProofMemo} from './count-recovery/source-memo.ts'
 import {activeWriteKey,rowPairs} from './count-recovery/row-cases.ts'
+import {refuteFast,rowsAt} from './count-recovery/ops.ts'
 
 type Packet={goal:Goal,decls:CountDecl[]}
 export function finiteCountChoice(m:Machine):[string,Set<number>]|undefined{
@@ -112,6 +113,10 @@ export function proveCountCases(m:Machine,laws:Law[],at:Instances,cert:Pick<Coun
    return !!root
   }
   const seq=modelSequence(),records:({goal:Goal,tree:Tree,path:Path,from?:Path,indices:number[]}|undefined)[]=[],branches:{prefix:C[],path:Path,root:Path,tails:number[]}[]=[]
+  const fallbackPath:Path=new Map(cuts.map(value=>{const lin=splitAt(value);return [canon(lin),{lin,holds:false}]})),fallbackResult=refuteFast(rowsAt(goal,fallbackPath),256)
+  const fallbackTree=fallbackResult?.kind==='refuted'?{leaf:fallbackResult.steps}:undefined,needed=fallbackTree?usedHyps(goal,fallbackTree,fallbackPath):new Set<number>()
+  const fallback=fallbackTree?{goal,tree:fallbackTree,indices:cert.insts.flatMap((_,i)=>needed.has(goal.hyps.length-cert.insts.length+i)?[i]:[])}:undefined
+  options.trace?.({stage:'case-fallback',proposed:!!fallback})
   const memo=sourceProofMemo(),initial=at,merged:Instances={...at},previous=atPoint.on;atPoint.on=!options.corePointOnly
   const coreGrow=(g:Goal,end:number)=>{const before=atPoint.on;atPoint.on=true;try{return grow(g,new Map(),{nodes:0,until:end,units:options.units})}finally{atPoint.on=before}}
   try {
@@ -123,9 +128,10 @@ export function proveCountCases(m:Machine,laws:Law[],at:Instances,cert:Pick<Coun
       for(const v of tails){const lin=splitAt(v);path.set(canon(lin),{lin,holds:true})}
       const prefix:C[]=[...conditions,...cut?[cut]:[],...tails.map(v=>({op:'<=' as const,a:x(name),b:{op:'const' as const,value:v}}))]
       branches.push({prefix,path:new Map(path),root,tails})
+      if(value===undefined&&fallback){records.push({...fallback,path:new Map(path),from:fallbackPath});continue}
       if(options.localModels){at=initial;if(!rebuild())return undefined}
       let tree:Tree|undefined,source:Goal|undefined,from:Path|undefined,indices=cert.insts.map((_,j)=>j)
-      const caseEnd=Math.min(until,clock()+Math.max(600,(until-clock())/(cuts.length+1-i)))
+      const caseEnd=Math.min(until,clock()+Math.max(600,(until-clock())/(cuts.length+1-i-(fallback?1:0))))
       const claim=packet.goal.hyps.at(-1),rowDependent=activeWriteKey(m,path)!==undefined&&rowPairs(m,cert,path,claim).length>0
       tree=rowDependent?undefined:fieldCase(m,goal,cert,claim,path,Math.min(caseEnd,clock()+150),e=>options.trace?.({value,...e}))
       if(tree){source=goal;from=new Map(path)}
