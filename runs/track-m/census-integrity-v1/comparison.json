@@ -1,0 +1,412 @@
+{
+  "productionEqual": true,
+  "installedProductionEqual": true,
+  "allVerdictsChecked": true,
+  "workExactAcrossRuns": true,
+  "profiledCallCountsExact": true,
+  "runs": 8,
+  "comparisons": [
+    {
+      "id": "a1",
+      "variant": "census-profile",
+      "law": "one primary per term",
+      "wallMs": 5111.8129069999995,
+      "kernelMs": 2982.091982000001,
+      "countedUnits": 926.6334919999999,
+      "kernelRatioToA1": 1,
+      "rootChecks": 3
+    },
+    {
+      "id": "a1",
+      "variant": "census-profile",
+      "law": "Inv3915: one config term, the primary newest",
+      "wallMs": 6679.288393,
+      "kernelMs": 4325.498946999996,
+      "countedUnits": 872.3352536000001,
+      "kernelRatioToA1": 1,
+      "rootChecks": 3
+    },
+    {
+      "id": "a1",
+      "variant": "census-profile",
+      "law": "Inv1758: one version and term, one config",
+      "wallMs": 17524.437038000004,
+      "kernelMs": 9356.695651999993,
+      "countedUnits": 4310.4753532,
+      "kernelRatioToA1": 1,
+      "rootChecks": 3
+    },
+    {
+      "id": "b1",
+      "variant": "tf1-profile",
+      "law": "one primary per term",
+      "wallMs": 2707.9181439999998,
+      "kernelMs": 1455.4900580000005,
+      "countedUnits": 926.6334919999999,
+      "kernelRatioToA1": 0.4880768489990864,
+      "rootChecks": 3
+    },
+    {
+      "id": "b1",
+      "variant": "tf1-profile",
+      "law": "Inv3915: one config term, the primary newest",
+      "wallMs": 3074.8237019999997,
+      "kernelMs": 1863.2449769999998,
+      "countedUnits": 872.3352536000001,
+      "kernelRatioToA1": 0.43075839338540967,
+      "rootChecks": 3
+    },
+    {
+      "id": "b1",
+      "variant": "tf1-profile",
+      "law": "Inv1758: one version and term, one config",
+      "wallMs": 23348.154032,
+      "kernelMs": 14470.993770000001,
+      "countedUnits": 4310.4753532,
+      "kernelRatioToA1": 1.5465923343255081,
+      "rootChecks": 3
+    },
+    {
+      "id": "b2",
+      "variant": "tf1-profile",
+      "law": "one primary per term",
+      "wallMs": 3303.577027,
+      "kernelMs": 1719.031887,
+      "countedUnits": 926.6334919999999,
+      "kernelRatioToA1": 0.5764516645952337,
+      "rootChecks": 3
+    },
+    {
+      "id": "b2",
+      "variant": "tf1-profile",
+      "law": "Inv3915: one config term, the primary newest",
+      "wallMs": 3774.836055,
+      "kernelMs": 2253.861873000001,
+      "countedUnits": 872.3352536000001,
+      "kernelRatioToA1": 0.5210640207329597,
+      "rootChecks": 3
+    },
+    {
+      "id": "b2",
+      "variant": "tf1-profile",
+      "law": "Inv1758: one version and term, one config",
+      "wallMs": 14722.518312,
+      "kernelMs": 7708.392500000018,
+      "countedUnits": 4310.4753532,
+      "kernelRatioToA1": 0.8238370453304581,
+      "rootChecks": 3
+    },
+    {
+      "id": "a2",
+      "variant": "census-profile",
+      "law": "one primary per term",
+      "wallMs": 2207.767712,
+      "kernelMs": 1205.3034550000002,
+      "countedUnits": 926.6334919999999,
+      "kernelRatioToA1": 0.40418050894313423,
+      "rootChecks": 3
+    },
+    {
+      "id": "a2",
+      "variant": "census-profile",
+      "law": "Inv3915: one config term, the primary newest",
+      "wallMs": 2709.623567,
+      "kernelMs": 1736.7130150000007,
+      "countedUnits": 872.3352536000001,
+      "kernelRatioToA1": 0.4015058230922746,
+      "rootChecks": 3
+    },
+    {
+      "id": "a2",
+      "variant": "census-profile",
+      "law": "Inv1758: one version and term, one config",
+      "wallMs": 14112.008559999998,
+      "kernelMs": 7389.468728,
+      "countedUnits": 4310.4753532,
+      "kernelRatioToA1": 0.789751959755205,
+      "rootChecks": 3
+    },
+    {
+      "id": "n1",
+      "variant": "tf1-minimal",
+      "law": "one primary per term",
+      "wallMs": 3122.7915700000003,
+      "kernelMs": 1708.8033780000005,
+      "countedUnits": 926.6334919999999,
+      "kernelRatioToA1": 0.573021686894432,
+      "rootChecks": 3
+    },
+    {
+      "id": "n1",
+      "variant": "tf1-minimal",
+      "law": "Inv3915: one config term, the primary newest",
+      "wallMs": 2950.818552,
+      "kernelMs": 1711.2321840000009,
+      "countedUnits": 872.3352536000001,
+      "kernelRatioToA1": 0.39561498106174486,
+      "rootChecks": 3
+    },
+    {
+      "id": "n1",
+      "variant": "tf1-minimal",
+      "law": "Inv1758: one version and term, one config",
+      "wallMs": 14208.440154,
+      "kernelMs": 7508.762799000013,
+      "countedUnits": 4310.4753532,
+      "kernelRatioToA1": 0.802501553782506,
+      "rootChecks": 3
+    },
+    {
+      "id": "x1",
+      "variant": "census-extras",
+      "law": "one primary per term",
+      "wallMs": 2707.312587,
+      "kernelMs": 1335.1565709999998,
+      "countedUnits": 926.6334919999999,
+      "kernelRatioToA1": 0.44772481166209693,
+      "rootChecks": 3
+    },
+    {
+      "id": "x1",
+      "variant": "census-extras",
+      "law": "Inv3915: one config term, the primary newest",
+      "wallMs": 3456.986989,
+      "kernelMs": 2198.1930420000012,
+      "countedUnits": 872.3352536000001,
+      "kernelRatioToA1": 0.5081940994401548,
+      "rootChecks": 3
+    },
+    {
+      "id": "x1",
+      "variant": "census-extras",
+      "law": "Inv1758: one version and term, one config",
+      "wallMs": 16387.732102,
+      "kernelMs": 8605.423332000006,
+      "countedUnits": 4310.4753532,
+      "kernelRatioToA1": 0.9197075177026408,
+      "rootChecks": 3
+    },
+    {
+      "id": "u1",
+      "variant": "census-plain",
+      "law": "one primary per term",
+      "wallMs": 3567.539346,
+      "kernelMs": 0,
+      "countedUnits": 926.6334919999999,
+      "kernelRatioToA1": 0,
+      "rootChecks": null
+    },
+    {
+      "id": "u1",
+      "variant": "census-plain",
+      "law": "Inv3915: one config term, the primary newest",
+      "wallMs": 3683.6069310000003,
+      "kernelMs": 0,
+      "countedUnits": 872.3352536000001,
+      "kernelRatioToA1": 0,
+      "rootChecks": null
+    },
+    {
+      "id": "u1",
+      "variant": "census-plain",
+      "law": "Inv1758: one version and term, one config",
+      "wallMs": 23720.858256,
+      "kernelMs": 0,
+      "countedUnits": 4310.4753532,
+      "kernelRatioToA1": 0,
+      "rootChecks": null
+    },
+    {
+      "id": "u2",
+      "variant": "tf1-plain",
+      "law": "one primary per term",
+      "wallMs": 3191.766464,
+      "kernelMs": 0,
+      "countedUnits": 926.6334919999999,
+      "kernelRatioToA1": 0,
+      "rootChecks": null
+    },
+    {
+      "id": "u2",
+      "variant": "tf1-plain",
+      "law": "Inv3915: one config term, the primary newest",
+      "wallMs": 3778.857389,
+      "kernelMs": 0,
+      "countedUnits": 872.3352536000001,
+      "kernelRatioToA1": 0,
+      "rootChecks": null
+    },
+    {
+      "id": "u2",
+      "variant": "tf1-plain",
+      "law": "Inv1758: one version and term, one config",
+      "wallMs": 21985.606941000002,
+      "kernelMs": 0,
+      "countedUnits": 4310.4753532,
+      "kernelRatioToA1": 0,
+      "rootChecks": null
+    }
+  ],
+  "processes": [
+    {
+      "id": "a1",
+      "variant": "census-profile",
+      "cpuSeconds": 36.730000000000004,
+      "userSeconds": 35.59,
+      "systemSeconds": 1.14,
+      "lawWallSeconds": 29.315538338000003,
+      "calibrationBefore": {
+        "wallMs": 26.494842,
+        "cpuMs": 27.241,
+        "sha256": "16c7f1d8a38b4b84560e558ab03b13c82e2ff374d87eaacb4df22f03604e7a4f",
+        "bytes": 67108864
+      },
+      "calibrationAfter": {
+        "wallMs": 26.46424300000217,
+        "cpuMs": 26.632,
+        "sha256": "16c7f1d8a38b4b84560e558ab03b13c82e2ff374d87eaacb4df22f03604e7a4f",
+        "bytes": 67108864
+      }
+    },
+    {
+      "id": "b1",
+      "variant": "tf1-profile",
+      "cpuSeconds": 35.42,
+      "userSeconds": 34.35,
+      "systemSeconds": 1.07,
+      "lawWallSeconds": 29.130895878,
+      "calibrationBefore": {
+        "wallMs": 26.134414000000106,
+        "cpuMs": 26.131,
+        "sha256": "16c7f1d8a38b4b84560e558ab03b13c82e2ff374d87eaacb4df22f03604e7a4f",
+        "bytes": 67108864
+      },
+      "calibrationAfter": {
+        "wallMs": 30.67076800000359,
+        "cpuMs": 30.632,
+        "sha256": "16c7f1d8a38b4b84560e558ab03b13c82e2ff374d87eaacb4df22f03604e7a4f",
+        "bytes": 67108864
+      }
+    },
+    {
+      "id": "b2",
+      "variant": "tf1-profile",
+      "cpuSeconds": 28.05,
+      "userSeconds": 27.03,
+      "systemSeconds": 1.02,
+      "lawWallSeconds": 21.800931394,
+      "calibrationBefore": {
+        "wallMs": 29.023968000001332,
+        "cpuMs": 30.128,
+        "sha256": "16c7f1d8a38b4b84560e558ab03b13c82e2ff374d87eaacb4df22f03604e7a4f",
+        "bytes": 67108864
+      },
+      "calibrationAfter": {
+        "wallMs": 30.54595299999346,
+        "cpuMs": 30.83,
+        "sha256": "16c7f1d8a38b4b84560e558ab03b13c82e2ff374d87eaacb4df22f03604e7a4f",
+        "bytes": 67108864
+      }
+    },
+    {
+      "id": "a2",
+      "variant": "census-profile",
+      "cpuSeconds": 24.02,
+      "userSeconds": 23.32,
+      "systemSeconds": 0.7,
+      "lawWallSeconds": 19.029399839,
+      "calibrationBefore": {
+        "wallMs": 29.879311999990023,
+        "cpuMs": 29.872,
+        "sha256": "16c7f1d8a38b4b84560e558ab03b13c82e2ff374d87eaacb4df22f03604e7a4f",
+        "bytes": 67108864
+      },
+      "calibrationAfter": {
+        "wallMs": 28.615497999999207,
+        "cpuMs": 28.538,
+        "sha256": "16c7f1d8a38b4b84560e558ab03b13c82e2ff374d87eaacb4df22f03604e7a4f",
+        "bytes": 67108864
+      }
+    },
+    {
+      "id": "n1",
+      "variant": "tf1-minimal",
+      "cpuSeconds": 26.14,
+      "userSeconds": 25.42,
+      "systemSeconds": 0.72,
+      "lawWallSeconds": 20.282050276,
+      "calibrationBefore": {
+        "wallMs": 29.231394999995246,
+        "cpuMs": 29.228,
+        "sha256": "16c7f1d8a38b4b84560e558ab03b13c82e2ff374d87eaacb4df22f03604e7a4f",
+        "bytes": 67108864
+      },
+      "calibrationAfter": {
+        "wallMs": 26.15628100000322,
+        "cpuMs": 26.599,
+        "sha256": "16c7f1d8a38b4b84560e558ab03b13c82e2ff374d87eaacb4df22f03604e7a4f",
+        "bytes": 67108864
+      }
+    },
+    {
+      "id": "x1",
+      "variant": "census-extras",
+      "cpuSeconds": 28.48,
+      "userSeconds": 27.7,
+      "systemSeconds": 0.78,
+      "lawWallSeconds": 22.552031678,
+      "calibrationBefore": {
+        "wallMs": 26.47640099999262,
+        "cpuMs": 26.475,
+        "sha256": "16c7f1d8a38b4b84560e558ab03b13c82e2ff374d87eaacb4df22f03604e7a4f",
+        "bytes": 67108864
+      },
+      "calibrationAfter": {
+        "wallMs": 28.943491999991238,
+        "cpuMs": 28.941,
+        "sha256": "16c7f1d8a38b4b84560e558ab03b13c82e2ff374d87eaacb4df22f03604e7a4f",
+        "bytes": 67108864
+      }
+    },
+    {
+      "id": "u1",
+      "variant": "census-plain",
+      "cpuSeconds": 37.93,
+      "userSeconds": 36.91,
+      "systemSeconds": 1.02,
+      "lawWallSeconds": 30.972004533,
+      "calibrationBefore": {
+        "wallMs": 28.95364100000006,
+        "cpuMs": 28.947,
+        "sha256": "16c7f1d8a38b4b84560e558ab03b13c82e2ff374d87eaacb4df22f03604e7a4f",
+        "bytes": 67108864
+      },
+      "calibrationAfter": {
+        "wallMs": 29.060050999978557,
+        "cpuMs": 29.061,
+        "sha256": "16c7f1d8a38b4b84560e558ab03b13c82e2ff374d87eaacb4df22f03604e7a4f",
+        "bytes": 67108864
+      }
+    },
+    {
+      "id": "u2",
+      "variant": "tf1-plain",
+      "cpuSeconds": 35.19,
+      "userSeconds": 34.22,
+      "systemSeconds": 0.97,
+      "lawWallSeconds": 28.956230794,
+      "calibrationBefore": {
+        "wallMs": 29.001098999986425,
+        "cpuMs": 28.991,
+        "sha256": "16c7f1d8a38b4b84560e558ab03b13c82e2ff374d87eaacb4df22f03604e7a4f",
+        "bytes": 67108864
+      },
+      "calibrationAfter": {
+        "wallMs": 28.590446999995038,
+        "cpuMs": 28.813,
+        "sha256": "16c7f1d8a38b4b84560e558ab03b13c82e2ff374d87eaacb4df22f03604e7a4f",
+        "bytes": 67108864
+      }
+    }
+  ]
+}

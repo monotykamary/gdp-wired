@@ -5025,3 +5025,32 @@ Inv* source proof, T-F1 and T-F2/F3 missed their ceilings, T-8.1 did not complet
 Inv*, and F4 regressed. **The implementation pass line is not met.**
 No production implementation, default change, cap/allowance increase, trusted
 rule change, or new Gate 1 run. Gate 1 remains at its prior **3/5** result.
+
+## Census / T-F1 measurement integrity — same-VM ABBA controls
+
+Historical revisions **38c17fc4 / bdb9568a**, same captured input, fresh
+processes on exclusive **bx_3kjzmmhv**, eight pinned vCPUs. Production files and
+installed instrumented production files are byte-identical; only diagnostic
+meter/runner code differs. No F1 deferral or other optimization is applied.
+
+| Exclusive kernel seconds | One primary | Inv3915 | Inv1758 |
+|---|---:|---:|---:|
+| Census A1 | 2.982 | 4.325 | 9.357 |
+| T-F1 B1 | 1.455 | 1.863 | 14.471 |
+| T-F1 B2 | 1.719 | 2.254 | 7.708 |
+| Census A2 | 1.205 | 1.737 | 7.389 |
+
+All **24/24** results check, counted units match exactly, and instrumented
+call-site counts match exactly. The same census varies by up to **2.49x**;
+T-F1's Inv1758 varies by **1.88x**. Crossovers (new meter without T-F1 extras,
+old meter with them) do not show a consistent wrapper penalty. Uninstrumented
+controls also retain substantial wall cost.
+
+The native SHA-256 calibration stays at 26.1–30.7 ms, recorded CPU-quota
+throttling is zero and pressure is low. Process CPU varies with runtime wall;
+this is not merely descheduled time. The historical 3–5x difference is **not a
+production-source regression**, but the exact runtime cause is not established
+by this comparison alone; JIT/GC isolation is being measured separately.
+
+Evidence: **runs/track-m/census-integrity-v1/README.md**, source hashes,
+**comparison.json**, raw receipts, telemetry and placement. Production unchanged.

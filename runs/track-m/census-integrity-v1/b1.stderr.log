@@ -1,0 +1,7 @@
+{"progress":"law-start","side":"b1","law":"one primary per term","at":34.425469}
+{"progress":"law-end","side":"b1","law":"one primary per term","wallMs":2707.9181439999998,"countedUnits":926.6334919999999,"verdict":{"proven":true,"checked":true}}
+{"progress":"law-start","side":"b1","law":"Inv3915: one config term, the primary newest","at":2742.847349}
+{"progress":"law-end","side":"b1","law":"Inv3915: one config term, the primary newest","wallMs":3074.8237019999997,"countedUnits":872.3352536000001,"verdict":{"proven":true,"checked":true}}
+{"progress":"law-start","side":"b1","law":"Inv1758: one version and term, one config","at":5817.880425}
+{"progress":"law-end","side":"b1","law":"Inv1758: one version and term, one config","wallMs":23348.154032,"countedUnits":4310.4753532,"verdict":{"proven":true,"checked":true}}
+{"progress":"audit-start","at":29166.24336}
