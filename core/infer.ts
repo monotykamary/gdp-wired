@@ -751,9 +751,15 @@ function inferLawsSearch(target: AnyRule | Machine, laws: Law[], stepLaws: StepL
     samples[i] = s; keys[i] = k; held.add(k)
   }
   for (const st of opts.seen ?? []) if (!m.params.length) keep({params: {}, st})
-  // Cube-only callers already evaluated these reachable states. Reuse them for
-  // the initial views; the ordinary inference and empty-row paths still walk.
-  const supplied = !!opts.cubes && !!opts.rows?.length
+  // Initial scalar bounds come from exploration, not the later small-instance
+  // cube filter. A supplied finite row set cannot replace that exploration for
+  // counters or stored numeric inputs. Boolean control has no missing numeric
+  // levels; keep the original walk for every other scalar transition.
+  const boolControl = (e: E, key: string): boolean => e.op === 'const' ? e.value === 0 || e.value === 1
+    : e.op === 'var' ? e.name === key : e.op === 'if' && boolControl(e.then, key) && boolControl(e.else, key)
+  const finiteControl = Object.entries(m.state).every(([key, initial]) => initial.op === 'const'
+    && (initial.value === 0 || initial.value === 1) && boolControl(m.step.state?.[key] ?? x(key), key))
+  const supplied = !!opts.cubes && !!opts.rows?.length && finiteControl
   if (supplied) for (const row of opts.rows!) keep(row)
   trace('start')
   // Counted: `runs` requests tried at least, and on until as many states as the samples hold were offered (a trial offers
