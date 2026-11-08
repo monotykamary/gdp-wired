@@ -25,13 +25,16 @@ export function activeWriteRow(m:Machine,root:Path):string|undefined{
  }
  return [...ranks].sort((a,b)=>b[1]-a[1]||a[0].localeCompare(b[0]))[0]?.[0]
 }
-export function rowPairs(m:Machine,cert:Pick<CountCert,'reads'>,root:Path=new Map()):RowPair[]{
+export function rowPairs(m:Machine,cert:Pick<CountCert,'reads'>,root:Path=new Map(),fieldClaim?:C):RowPair[]{
  const ranks=new Map<string,number>(),inputs=new Set(m.inputs)
  walkOnce(m.step.maps,(o:any)=>{if(o.op==='get'&&o.key.op==='var'&&inputs.has(o.key.name))ranks.set(o.key.name,(ranks.get(o.key.name)??0)+1)})
  const fallback=[...ranks].sort((a,b)=>b[1]-a[1]||a[0].localeCompare(b[0]))[0]?.[0],actor=activeWriteRow(m,root)??fallback
  if(!actor)return []
  const names=new Set<string>(),read=cert.reads.find(r=>r[1].endsWith('#'))
  if(read)walkOnce(read[2],(o:any)=>{if(o.op==='var'&&!inputs.has(o.name)&&!m.params.includes(o.name))names.add(o.name)})
+ else if(fieldClaim)walkLive(fieldClaim,root,(o:any)=>{
+  if(o.op==='get'&&o.map in (m.step.maps??{})&&o.key.op==='var'&&!inputs.has(o.key.name)&&!m.params.includes(o.key.name))names.add(o.key.name)
+ })
  return [...names].slice(0,2).map(name=>[x(name),x(actor)] as const)
 }
 export const proveRowCases:typeof proveRowCasesImpl=(...args)=>wallTree('row-case-reconstruction',()=>proveRowCasesImpl(...args))

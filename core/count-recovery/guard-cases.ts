@@ -39,7 +39,7 @@ function guardCasesImpl(m:Machine,ds:CountDecl[],g:Goal,cert:Proposal,guard:C,un
    if(accepted)return shared
   }
   if(!proof&&!active){const simple=solve(rowsAt(goal,path),500);if(simple.kind==='refuted')proof={leaf:simple.steps}}
-  if(!proof)proof=active?fieldBoundLemmas(m,ds,goal,cert,end,trace,undefined,path,{deferCheck:true}):frameLemmas(goal,cert,end,trace,path,{deferCheck:deferNested})
+  if(!proof)proof=active?fieldBoundLemmas(m,ds,goal,cert,end,trace,undefined,path,{deferCheck:true,fieldClaim:options.claim}):frameLemmas(goal,cert,end,trace,path,{deferCheck:deferNested})
   if(!proof&&clock()<end){
    const before=atPoint.on;atPoint.on=false
    try{const out=grow(goal,path,{nodes:0,until:end,units:false});if('tree'in out)proof=out.tree}finally{atPoint.on=before}
