@@ -78,6 +78,7 @@ structure CCert where
   tab : List VDef
   tree : Tree
   picks : List (Nat × List E)
+  lemmas : List CutLemma := []
 
 /-! A count at least its body at distinct keys: a read's count picked at key terms (`picks`) gives the hypothesis that,
 where the terms are distinct and below the bound, the count is at least the sum of its body at them (`pickHyp`). It
@@ -223,12 +224,20 @@ def witFreshW (cs : List Count) (is : List CInst) (w : Nat) : Bool :=
 def countedOkW (cs : List Count) (is : List CInst) : Bool :=
   cDistinct (is.map (·.wit)) && is.all (fun i => witFreshW cs is i.wit)
 
-def checkCountedW (hyps : List C) (cs : List Count) (is : List CInst) (tab : List VDef) (t : Tree) : Bool :=
+def checkCountedW (hyps : List C) (cs : List Count) (is : List CInst) (tab : List VDef) (t : Tree) (lemmas : List CutLemma := []) : Bool :=
   countedOkW cs is && match countHyps cs is with
-    | some hs => checkGoal ⟨tab, hyps ++ hs⟩ t
+    | some hs => checkGoalLemmas ⟨tab, hyps ++ hs⟩ t lemmas
     | none => false
 
-theorem countedW_sound (hyps : List C) (cs : List Count) (is : List CInst) (tab : List VDef) (t : Tree) (hck : checkCountedW hyps cs is tab t = true)
+/-- The witness-generalized wrapper conserves the original checker on empty lemma lists. -/
+theorem checkCountedW_nil (hyps : List C) (cs : List Count) (is : List CInst) (tab : List VDef) (t : Tree) :
+    checkCountedW hyps cs is tab t [] = (countedOkW cs is && match countHyps cs is with
+      | some hs => checkGoal ⟨tab, hyps ++ hs⟩ t
+      | none => false) := by
+  simp only [checkCountedW, checkGoalLemmas_nil]
+
+theorem countedW_sound (hyps : List C) (cs : List Count) (is : List CInst) (tab : List VDef) (t : Tree) {lemmas : List CutLemma}
+    (hck : checkCountedW hyps cs is tab t lemmas = true)
     (ρ : Nat → Nat) (M : Nat → Nat → Nat) (hc : ∀ c ∈ cs, c.Holds ρ M)
     (hH : ∀ ρw : Nat → Nat, (∀ j, (∀ i ∈ is, i.wit ≠ j) → ρw j = ρ j) → ∀ h ∈ hyps, evalC ρw M h = true) : False := by
   simp only [checkCountedW, Bool.and_eq_true] at hck
@@ -309,7 +318,7 @@ theorem countedW_sound (hyps : List C) (cs : List Count) (is : List CInst) (tab 
     have hv := hxs i rs hr
     simp only [evalC, hS, hW, evalE, hat i hi, hB, Bool.or_eq_true, Bool.and_eq_true, decide_eq_true_eq]
     exact hv
-  exact sound ⟨tab, hyps ++ hs⟩ t hgoal ρs M (fun h hm => by
+  exact goalLemmas_sound ⟨tab, hyps ++ hs⟩ t lemmas hgoal ρs M (fun h hm => by
     rcases List.mem_append.mp hm with hm | hm
     · exact hH ρs hother h hm
     · obtain ⟨i, hi, hh⟩ := countHyps_mem hhs h hm
@@ -322,7 +331,7 @@ def checkMC (hyps : List C) (ds : List CDecl) (k : CCert) : Bool :=
   namedIn hyps k.hyps hyps && ds.all (fun d => d.j != d.key && d.lo != d.key) && readsOk k.hyps ds k.reads
     && k.reads.all (fun r => k.insts.all (fun i => i.wit != r.1 && !occE i.wit r.2.2))
     && match toCounts ds k.reads with
-      | some cs => checkCountedW (k.hyps ++ k.reads.map (readHyp ds) ++ pickHyps ds k.reads k.picks) cs k.insts k.tab k.tree
+      | some cs => checkCountedW (k.hyps ++ k.reads.map (readHyp ds) ++ pickHyps ds k.reads k.picks) cs k.insts k.tab k.tree k.lemmas
       | none => false
 
 /-! The counted goal's soundness -/

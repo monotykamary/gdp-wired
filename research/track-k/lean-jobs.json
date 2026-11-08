@@ -1,0 +1,9 @@
+[
+  {
+    "name": "lean-count-cuts",
+    "cmd": "cd lean-kernel && TC=~/.elan/toolchains/leanprover--lean4---v4.34.0 && export LEAN_PATH=\"$PWD:$TC/lib/lean\" && \"$TC/bin/lean\" -o Count.olean Count.lean && \"$TC/bin/lean\" -o CountMachine.olean CountMachine.lean && \"$TC/bin/lean\" ../research/track-k/LemmaCuts.lean",
+    "timeout": 600,
+    "cpu": 4,
+    "memory": 8192
+  }
+]

@@ -4,6 +4,38 @@ The optional Lean path for the kernel, as `Cert.lean` is for `core/check.ts`: a 
 (its tree check, all four of its induction rules, step flags, progress laws, step laws and k-step laws), proven sound, and an exporter that
 sends the kernel's real trees to it. `Sets.lean` adds kernel.ts's sets, and `History.lean`, on top of it, the history rule.
 
+## Conditional counted lemma cuts
+
+The counted certificate optionally carries `lemmas: {when, cut, tree, slice?}[]`. The containing table and witness namespace are shared. Each lemma is checked independently, without access to any lemma, against the exact selected hypotheses under its conditions and the negation of its cut. Only leaves whose original split path decides all conditions may use the cut. An absent/empty list follows the original checker; no prover cache is trusted.
+
+| TypeScript (`kernel/kernel.ts`) | Lean | Contract |
+| --- | --- | --- |
+| `LemmaCut` | `Count.CutLemma` | Positive linear conditions, cut, old tree, optional hypothesis-index slice |
+| Slice selection in `checkGoalLemmas` | `lemmaSlice`, `lemmaHyps`, `lemmaHyps_sub` | Every selected hypothesis belongs to the containing expanded goal |
+| Independent `check` of each lemma | `checkLemma`, `lemma_sound` | Refute the negated cut under the declared conditions, without lemma references |
+| `lemmaPath` | `lemmaActive`, `lemmaPath`, `lemmaPath_holds` | Expose cuts only after the original path decides every condition |
+| `checkGoalLemmas` | `checkTLemmas`, `checkGoalLemmas`, `goalLemmas_sound` | Old split tree and leaf checker, with proven cuts available at eligible leaves |
+| `checkCounted` | `checkCounted`, `counted_sound` | Original counted unsatisfiability statement, extended with an optional lemma list |
+| `checkCountedW`, `checkMC` | `checkCountedW`, `countedW_sound`, `checkMC`, `mc_sound` | Preserve fresh witness/read conditions and the production counted-machine theorem |
+
+Public exports accept already checked counted certificates, without re-running search:
+
+```ts
+const file = toLean([
+  {id: 'counted_goal', countedGoal: goal, certificate: {insts, tree, lemmas}},
+  {id: 'counted_machine', countedMachine: machine, laws, proof: {instances, certs}},
+], {native: false})
+const project = leanProject(file)
+```
+
+`leanProject` includes `Count.lean`, `CountMachine.lean`, and `GhostMap.lean`. `encodeCounted` assigns the main tree and every independent lemma proof one common dependency-ordered table, while preserving each lemma's exact slice and initial path. `conformance.ts --lemma-cuts` checks the shared TypeScript fixtures; adding `--public` exercises `toLean` itself. No lemma is silently dropped when an exporter lacks its source context.
+
+Lean's `checkTLemmas_nil`, `checkGoalLemmas_nil`, `checkCounted_nil`, and `checkCountedW_nil` prove empty-list conservation. The new theorems use only the existing `propext`, `Classical.choice`, and `Quot.sound` axioms.
+
+**Acceptance is not exact equality. TypeScript accepts a strict subset of Lean's certificates:** it intentionally retains the legacy refusals of constant splits and splits repeated on a path, which Lean's tree checker permits. It also rejects malformed JSON-shaped payloads. The empty-lemma route preserves the old TypeScript checker exactly; the Lean soundness guarantee is not weakened by these additional refusals.
+
+For new lemma conditions, an all-zero vector of variable coefficients is recognized as constant, matching Lean's `dec`/`allZero`, even if zero entries are explicitly present. This normalization is used only to decide eligibility; original proof rows and their input numbering are preserved, and global legacy `decide` behavior is unchanged. Independent frozen regression inputs live in `kernel/fixtures/lemma-cut-review.json`; they are not regenerated with the helper under test.
+
 | File | What |
 | --- | --- |
 | `Cert.lean` | The derivation checker and `Cert.sound`, as in `../research/lean/Cert.lean` but on sparse rows (each row its nonzero coefficients, in column order) |

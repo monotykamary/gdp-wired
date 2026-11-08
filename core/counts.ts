@@ -26,6 +26,7 @@ import {relevantGoals, relevantLaws} from './relevance.ts'
 import {countPoolKey, countSignature, grammarPool, ids, polaritySelection, readTuples, refinementSignature, reservationReadClosure, reservationState, reservePool, prepareSupport, smallSelection, sparseReadInstances, sourceContext, coarseContext, selectedCertificate, chosenView, candidateWork, stableState, UnsupportedCountProposal} from './count-support.ts'
 import {smallOf, trueSmall} from './exists.ts'
 import {env} from './solver.ts'
+import {proofOrigins, proposeLemmaCuts} from './lemma-cuts.ts'
 
 // (GDP_COUNTS_PROF: where a counted search's time goes, by phase, on stderr at the end; `countsDump.on`, set by research's
 // profiles: each step goal left unknown or with a model past GDP_COUNTS_DUMP_MIN (300) hypotheses, the first GDP_COUNTS_DUMP_N (3))
@@ -412,6 +413,12 @@ function searchCounted0(m0: Machine, g: ReturnType<typeof guardLaws>, m: Machine
 
 // Candidate scheduling only. Every returned family still goes through finish.
 export function admitCountedFamily(m:Machine,caller:Law[],initial:Law[],support:Set<Law>,until:number):Counted {
+  const previous = proofOrigins.enabled
+  if (env.GDP_COUNT_LEMMA_CUTS === '1') proofOrigins.enabled = true
+  try { return admitCountedFamily0(m, caller, initial, support, until) }
+  finally { proofOrigins.enabled = previous }
+}
+function admitCountedFamily0(m:Machine,caller:Law[],initial:Law[],support:Set<Law>,until:number):Counted {
   if(!caller.every(l=>initial.includes(l)))return {proven:false,laws:initial,m,why:'missing caller'}
   let set=initial.slice()
   const attempts = countedAttempts(m, caller, support, until), traced = attempts.traced
@@ -421,7 +428,22 @@ export function admitCountedFamily(m:Machine,caller:Law[],initial:Law[],support:
   // drops failed helpers and carries proofs whose instantiated support survives.
   // Every returned set still passes checkCountedLaws, including all caller laws.
   const finish = (ls: Law[], proof: {instances: Record<string, Instances>, certs: Record<string, CountCert>}): Counted => {
-    if (!ptime('kernel', () => checkCountedLaws(m, ls, proof))) return {proven: false, laws: ls, m, why: 'the kernel refused the set'}
+    let proposed = proof
+    if (env.GDP_COUNT_LEMMA_CUTS === '1') {
+      // This pass performs no search work. Reuse the enclosing wall deadline; outside one,
+      // conservatively cap its wall time by the remaining counted allowance. Neither budget is extended.
+      const wall = wallAt(), end = Number.isFinite(wall) ? wall : performance.now() + Math.max(0, until - clock())
+      for (const {goal, decls} of countedObligations(m, ls, proof.instances)) {
+        if (performance.now() >= end) break
+        const cert = proof.certs[goal.name]
+        if (!cert || cert.lemmas?.length) continue
+        const expanded = mcGoal(goal.hyps, decls, cert)
+        const shared = expanded && proposeLemmaCuts(expanded, cert.tree, {until: end})
+        if (shared) proposed = {...proposed, certs: {...proposed.certs, [goal.name]: {...cert, tree: shared.tree, lemmas: shared.lemmas}}}
+      }
+    }
+    if (proposed !== proof && ptime('kernel', () => checkCountedLaws(m, ls, proposed))) proof = proposed
+    else if (!ptime('kernel', () => checkCountedLaws(m, ls, proof))) return {proven: false, laws: ls, m, why: 'the kernel refused the set'}
     // Output-only observation, after the unchanged checker accepts every obligation.
     countsDump.on?.({phase: 'closed-family', machine: m, laws: ls, proof, checked: true})
     return {proven: true, laws: ls, m, proof}

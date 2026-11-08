@@ -1,0 +1,9 @@
+[
+  {
+    "name": "review-mutants",
+    "cmd": "bash research/track-k/review-mutants.sh",
+    "timeout": 1500,
+    "cpu": 4,
+    "memory": 8192
+  }
+]

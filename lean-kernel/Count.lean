@@ -191,12 +191,171 @@ def witFresh (hyps : List C) (cs : List Count) (is : List CInst) (w : Nat) : Boo
 def countedOk (hyps : List C) (cs : List Count) (is : List CInst) : Bool :=
   cDistinct (is.map (·.wit)) && is.all (fun i => witFresh hyps cs is i.wit)
 
--- The check: fresh witnesses, every instance built, and the tree refuting the goal's hypotheses followed by the
--- instances', in that order.
-def checkCounted (g : CGoal) (is : List CInst) (tab : List VDef) (t : Tree) : Bool :=
+/-! Conditional lemma cuts. A lemma shares the containing goal's table and may select only its hypotheses.
+Its proof is an old-language tree, checked without any lemma assumptions. This rules out circular citations. -/
+
+section LemmaCuts
+set_option autoImplicit false
+
+structure CutLemma where
+  when : List Cert.Row
+  cut : Cert.Row
+  tree : Tree
+  slice : Option (List Nat) := none
+
+def lemmaSlice (hyps : List C) : List Nat → Option (List C)
+  | [] => some []
+  | i :: is => match hyps[i]?, lemmaSlice hyps is with
+    | some h, some hs => some (h :: hs)
+    | _, _ => none
+
+def lemmaHyps (hyps : List C) (l : CutLemma) : Option (List C) :=
+  match l.slice with
+  | none => some hyps
+  | some is => lemmaSlice hyps is
+
+def checkLemma (tab : List VDef) (hyps : List C) (l : CutLemma) : Bool :=
+  match lemmaHyps hyps l with
+  | some hs => checkT tab hs ((l.cut, false) :: l.when.map (fun w => (w, true))) l.tree
+  | none => false
+
+-- Eligibility reads only the original split path, never the cuts being made available.
+def lemmaActive (path : Path) (l : CutLemma) : Bool :=
+  l.when.all (fun w => dec path w == some true)
+
+def lemmaPath (lemmas : List CutLemma) (path : Path) : Path :=
+  (lemmas.filter (lemmaActive path)).map (fun l => (l.cut, true)) ++ path
+
+def checkTLemmas (tab : List VDef) (hyps : List C) (lemmas : List CutLemma) : Path → Tree → Bool
+  | path, .split l y n => checkTLemmas tab hyps lemmas ((l, true) :: path) y && checkTLemmas tab hyps lemmas ((l, false) :: path) n
+  | path, t => checkT tab hyps (lemmaPath lemmas path) t
+
+def checkGoalLemmas (g : Goal) (t : Tree) (lemmas : List CutLemma) : Bool :=
+  wfTab 0 g.tab && lemmas.all (checkLemma g.tab g.hyps) && checkTLemmas g.tab g.hyps lemmas [] t
+
+@[simp] theorem lemmaPath_nil (path : Path) : lemmaPath [] path = path := rfl
+
+@[simp] theorem checkTLemmas_nil (tab : List VDef) (hyps : List C) (t : Tree) (path : Path) :
+    checkTLemmas tab hyps [] path t = checkT tab hyps path t := by
+  induction t generalizing path with
+  | split l y n ihy ihn => simp only [checkTLemmas, checkT, ihy, ihn]
+  | leaf rows steps eqs prods => rfl
+  | leafAt rows steps eqs prods => rfl
+  | leafSq rows sqs steps eqs prods => rfl
+
+@[simp] theorem checkGoalLemmas_nil (g : Goal) (t : Tree) : checkGoalLemmas g t [] = checkGoal g t := by
+  simp [checkGoalLemmas, checkGoal]
+
+theorem lemmaSlice_sub {hyps : List C} : ∀ {is : List Nat} {hs : List C},
+    lemmaSlice hyps is = some hs → ∀ h ∈ hs, h ∈ hyps
+  | [], hs, he => by simp only [lemmaSlice, Option.some.injEq] at he; subst he; simp
+  | i :: is, hs, he => by
+    cases hi : hyps[i]? with
+    | none => simp [lemmaSlice, hi] at he
+    | some c =>
+      cases ht : lemmaSlice hyps is with
+      | none => simp [lemmaSlice, hi, ht] at he
+      | some cs =>
+        simp only [lemmaSlice, hi, ht, Option.some.injEq] at he
+        subst he
+        intro h hh
+        rcases List.mem_cons.mp hh with rfl | hh
+        · exact List.mem_of_getElem? hi
+        · exact lemmaSlice_sub ht h hh
+
+theorem lemmaHyps_sub {hyps hs : List C} {l : CutLemma} (he : lemmaHyps hyps l = some hs) :
+    ∀ h ∈ hs, h ∈ hyps := by
+  cases sl : l.slice with
+  | none => simp only [lemmaHyps, sl, Option.some.injEq] at he; subst he; exact fun _ hh => hh
+  | some is => exact lemmaSlice_sub (by simpa only [lemmaHyps, sl] using he)
+
+def CutHolds (l : CutLemma) (x : List Int) : Prop :=
+  (∀ w ∈ l.when, Cert.eval w x ≤ 0) → Cert.eval l.cut x ≤ 0
+
+/-- A checked lemma proves its cut under exactly its declared linear conditions. -/
+theorem lemma_sound {tab : List VDef} {hyps : List C} {env : Nat → Nat} {maps : Nat → Nat → Nat} {x : List Int}
+    (hM : Model tab env maps x) (hH : ∀ c ∈ hyps, evalC env maps c = true)
+    {l : CutLemma} (hck : checkLemma tab hyps l = true) : CutHolds l x := by
+  intro hw
+  apply Int.not_lt.mp
+  intro hc
+  cases hs : lemmaHyps hyps l with
+  | none => simp [checkLemma, hs] at hck
+  | some cs =>
+    simp only [checkLemma, hs] at hck
+    have hp : PathHolds ((l.cut, false) :: l.when.map (fun w => (w, true))) x := by
+      intro a ha
+      rcases List.mem_cons.mp ha with rfl | ha
+      · have hn : ¬ Cert.eval l.cut x ≤ 0 := by omega
+        simpa using hn
+      · obtain ⟨w, hwm, rfl⟩ := List.mem_map.mp ha
+        simpa using hw w hwm
+    exact checkT_sound hM (fun c hc => hH c (lemmaHyps_sub hs c hc)) l.tree _ hp hck
+
+theorem lemmaPath_holds {lemmas : List CutLemma} {path : Path} {x : List Int}
+    (hP : PathHolds path x) (hL : ∀ l ∈ lemmas, CutHolds l x) : PathHolds (lemmaPath lemmas path) x := by
+  intro a ha
+  rcases List.mem_append.mp ha with ha | ha
+  · obtain ⟨l, hl, rfl⟩ := List.mem_map.mp ha
+    obtain ⟨hlm, hactive⟩ := List.mem_filter.mp hl
+    have hc : Cert.eval l.cut x ≤ 0 := hL l hlm (fun w hw => by
+      have hd : dec path w = some true := by
+        simpa only [lemmaActive, List.all_eq_true, beq_iff_eq] using (List.all_eq_true.mp hactive w hw)
+      have := dec_sound hP hd
+      simpa using this)
+    simpa using hc
+  · exact hP a ha
+
+theorem checkTLemmas_sound {tab : List VDef} {hyps : List C} {env : Nat → Nat} {maps : Nat → Nat → Nat} {x : List Int}
+    (hM : Model tab env maps x) (hH : ∀ c ∈ hyps, evalC env maps c = true)
+    {lemmas : List CutLemma} (hL : ∀ l ∈ lemmas, CutHolds l x) :
+    ∀ (t : Tree) (path : Path), PathHolds path x → checkTLemmas tab hyps lemmas path t = true → False
+  | .split l y n, path, hP, h => by
+    simp only [checkTLemmas, Bool.and_eq_true] at h
+    by_cases hl : Cert.eval l x ≤ 0
+    · refine checkTLemmas_sound hM hH hL y _ ?_ h.1
+      intro a ha
+      rcases List.mem_cons.mp ha with rfl | ha
+      · simpa using hl
+      · exact hP a ha
+    · refine checkTLemmas_sound hM hH hL n _ ?_ h.2
+      intro a ha
+      rcases List.mem_cons.mp ha with rfl | ha
+      · simpa using hl
+      · exact hP a ha
+  | .leaf rows steps eqs prods, path, hP, h =>
+    checkT_sound hM hH _ _ (lemmaPath_holds hP hL) h
+  | .leafAt rows steps eqs prods, path, hP, h =>
+    checkT_sound hM hH _ _ (lemmaPath_holds hP hL) h
+  | .leafSq rows sqs steps eqs prods, path, hP, h =>
+    checkT_sound hM hH _ _ (lemmaPath_holds hP hL) h
+
+/-- The extended goal checker has the original unsatisfiability conclusion. -/
+theorem goalLemmas_sound (g : Goal) (t : Tree) (lemmas : List CutLemma)
+    (h : checkGoalLemmas g t lemmas = true) (env : Nat → Nat) (maps : Nat → Nat → Nat) :
+    ¬ ∀ c ∈ g.hyps, evalC env maps c = true := by
+  intro hH
+  simp only [checkGoalLemmas, Bool.and_eq_true, List.all_eq_true] at h
+  obtain ⟨⟨hw, hl⟩, ht⟩ := h
+  have hv := build_valid env maps g.tab [] [] ⟨rfl, by simp, by simp⟩ (by simpa using hw)
+  simp only [List.nil_append] at hv
+  have hM := model_of_valid hv
+  exact checkTLemmas_sound hM hH (fun l hm => lemma_sound hM hH (hl l hm)) t [] (by simp [PathHolds]) ht
+
+end LemmaCuts
+
+-- The check: fresh witnesses, every instance built, then the same goal extended by checked conditional cuts.
+def checkCounted (g : CGoal) (is : List CInst) (tab : List VDef) (t : Tree) (lemmas : List CutLemma := []) : Bool :=
   countedOk g.hyps g.counts is && match countHyps g.counts is with
-    | some hs => checkGoal ⟨tab, g.hyps ++ hs⟩ t
+    | some hs => checkGoalLemmas ⟨tab, g.hyps ++ hs⟩ t lemmas
     | none => false
+
+/-- With no lemma entries the old counted check is unchanged. -/
+theorem checkCounted_nil (g : CGoal) (is : List CInst) (tab : List VDef) (t : Tree) :
+    checkCounted g is tab t [] = (countedOk g.hyps g.counts is && match countHyps g.counts is with
+      | some hs => checkGoal ⟨tab, g.hyps ++ hs⟩ t
+      | none => false) := by
+  simp only [checkCounted, checkGoalLemmas_nil]
 
 /-! Soundness -/
 
@@ -316,7 +475,8 @@ theorem witFresh_parts {hyps : List C} {cs : List Count} {is : List CInst} {w : 
 
 /-- The kind is sound: an accepted counted goal's hypotheses hold at no naturals and maps where every count is its
 sum. -/
-theorem counted_sound (g : CGoal) (is : List CInst) (tab : List VDef) (t : Tree) (hck : checkCounted g is tab t = true)
+theorem counted_sound (g : CGoal) (is : List CInst) (tab : List VDef) (t : Tree) {lemmas : List CutLemma}
+    (hck : checkCounted g is tab t lemmas = true)
     (ρ : Nat → Nat) (M : Nat → Nat → Nat) (hc : ∀ c ∈ g.counts, c.Holds ρ M) : ¬ ∀ h ∈ g.hyps, evalC ρ M h = true := by
   intro hH
   simp only [checkCounted, Bool.and_eq_true] at hck
@@ -402,7 +562,7 @@ theorem counted_sound (g : CGoal) (is : List CInst) (tab : List VDef) (t : Tree)
     rw [congrC ρs ρ M h (fun j hj => hother j (fun i hi hij => by
       have := (witFresh_parts (hfresh i hi)).1 h hm; rw [hij] at this; simp [this] at hj))]
     exact hH h hm
-  exact sound ⟨tab, g.hyps ++ hs⟩ t hgoal ρs M (fun h hm => by
+  exact goalLemmas_sound ⟨tab, g.hyps ++ hs⟩ t lemmas hgoal ρs M (fun h hm => by
     rcases List.mem_append.mp hm with hm | hm
     · exact hhyp h hm
     · obtain ⟨i, hi, hh⟩ := countHyps_mem hhs h hm
@@ -414,4 +574,6 @@ end Kern
 #print axioms Kern.pigeonhole
 #print axioms Kern.majorities_meet
 #print axioms Kern.quorums_meet_outside
+#print axioms Kern.lemma_sound
+#print axioms Kern.goalLemmas_sound
 #print axioms Kern.counted_sound
