@@ -1,7 +1,7 @@
 // Receipt verification only; this does not run any prover.
 import {readFileSync,writeFileSync,mkdirSync,copyFileSync} from 'node:fs'
 const root=process.argv[2]??'runs/track-gen-final-direct-v1'
-const jobs:{name:string}[]=JSON.parse(readFileSync('research/track-gen/acceptance-jobs.json','utf8'))
+const jobs:{name:string}[]=JSON.parse(readFileSync(process.argv[3]??'research/track-gen/acceptance-jobs.json','utf8'))
 const rows=new Map(readFileSync(`${root}/summary.tsv`,'utf8').trim().split('\n').map(l=>{const [name,exit,seconds,where]=l.split('\t');return [name!,{exit:Number(exit),seconds:Number(seconds),where}] as const}))
 const placement=JSON.parse(readFileSync(`${root}/placement.json`,'utf8'))
 const errors:string[]=[]
