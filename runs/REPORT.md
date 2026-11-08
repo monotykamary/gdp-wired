@@ -1675,3 +1675,78 @@ Validation: **113 production-derivation tests, 295 Track M/count/port tests,
 There has been no Track K rebase, new trusted rule, safety weakening, or
 budget increase. The original whole-protocol 3x60-second and downstream
 gates remain unpassed.
+
+#### Final row-leaf field core — `00070df4`
+
+A discovered row may already make a field-only conclusion arithmetic. The
+row callback now tries `fieldCase` before invoking the full count-bound
+recovery, still transporting the candidate to the same source and checking
+the complete certificate. This reduces safety's counted work and gives
+Inv3915 a complete reconfiguration action candidate; it does not prove the
+remaining four whole laws.
+
+Final evidence: `production-derivations-final-v4`, batch
+`20261108-115756-t0k3a6`, tree `0736fb8a06c0`. The same five probes, original
+5,000 counted-ms allowance and 60-second outer wall limit, canonical captured
+hand set, and isolated large-VM placement were retained.
+
+| Complete hand-set law | Proved / checked | Counted ms | In-process wall s |
+| --- | --- | ---: | ---: |
+| one primary per term | **yes / yes** | **3,932** | **4.780** |
+| Inv3915: primary newest | no / no | 5,014 | 5.214 |
+| Inv1758: row agreement | no / no | 5,025 | 4.050 |
+| Inv2973: quorum overlap | no / no | 5,338 | 26.627 |
+| Inv*: quorum term backing | no / no | 5,164 | 29.089 |
+
+The safety result includes both the start and step certificates, rechecked
+by `verify-focused.ts` through `countedObligations` and `checkMC`. There is
+no complete-law result to check for the other rows. The recorded stopping
+overshoots remain failures, not an expanded allowance.
+
+Remaining derivations, now with the shared helpers present:
+
+- **Inv3915:** the leader action is the sole remaining action-level blocker.
+  Its first `different/equal` row fails before later retries obtain further
+  row candidates; the active branch still cannot complete the count-backed
+  ceiling/ordering argument and combine it within the law's allowance.
+  Reconfiguration and send-configuration now return action candidates.
+- **Inv1758:** active pick (`equal`) and copy (`equal/equal`) remain open;
+  these need the pointwise functional-copy and setup-guard consequences at
+  the actual row/column tuple. Discovering row equalities alone was not
+  enough. The source-context/model-instance path still needs to deliver
+  those consequences at the failing tuple; this is not a missing call to
+  `proveRowCases` anymore.
+- **Inv2973:** still stops on the inactive frame/closing arithmetic before
+  the difficult active overlap argument. The full packet has 195 instances
+  and 718 hypotheses; fourteen frame candidates do not close its
+  19-hypothesis arithmetic core. Its setup/row support must be narrowed and
+  instantiated for that core, rather than treating additional arbitrary
+  bounds as facts.
+- **Inv*:** setup-copy `different/equal`, send-terms `equal/equal`, and the
+  leader's remaining count/row derivation remain open in the shared budget.
+  The original individually checked research action certificates used a
+  whole per-action allowance; production has not yet reproduced their
+  source dependencies and combined derivations within one whole-law
+  allowance. Later actions are not all reached. The rejected cross-row
+  `bq` and `cfgSize` candidates are still rejected.
+
+The earlier eight-action research matrix proved Inv* entries, not an
+independent whole-law proof of each of the other four laws. Thus it would
+be inaccurate to describe every remaining failure as a missing already-
+verified research theorem. The default helper port is in place; the residual
+work is law-specific source instantiation, narrowing and composition.
+
+Final validation: **113 production-derivation tests, 295 Track M/count/port
+tests, 67 Track P tests**, all passing; type/lint zero warnings/errors.
+All jobs ran on boat and completed. There are no pending validation jobs.
+No trusted-kernel, Lean, invariant, safety-law, budget, or Track K change
+was made. Step 1 remains **1/5 hard complete-law probes checked**, and the
+3x60-second / downstream gates remain unpassed.
+
+Discarded experiment: `production-derivations-final-v3` added ordinary
+field-row guard seeds and prioritized ceilings by live row keys. It did
+not prove another law and slightly increased counted work. Its runtime
+tests passed, but its new test also contained an invalid `all.in` field
+caught by type checking. The entire uncommitted experiment was removed;
+none of it is in `00070df4`. Its failure receipts are retained, rather
+than reported as a successful validation.
