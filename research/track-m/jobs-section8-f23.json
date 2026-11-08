@@ -1,0 +1,9 @@
+[
+  {
+    "name": "tf23",
+    "cmd": "bash research/track-m/run-section8-f23.sh",
+    "cpu": 8,
+    "memory": 14336,
+    "timeout": 900
+  }
+]

@@ -1,0 +1,1393 @@
+[
+  {
+    "artifact": "tf23-control.log",
+    "law": "one primary per term",
+    "checked": true,
+    "proven": true,
+    "wallMs": 5287.9492,
+    "countedUnits": 926.6334919999999,
+    "kernelMs": 3216.386278,
+    "sites": {
+      "kernel/kernel.ts:check": {
+        "calls": 3,
+        "inclusiveMs": 3206.5004890000005
+      },
+      "kernel/kernel.ts:checkMC": {
+        "calls": 3,
+        "inclusiveMs": 3215.901448
+      }
+    },
+    "detail": {
+      "label": "one primary per term",
+      "buckets": {
+        "other": {
+          "other": 563.8147699999982,
+          "transport": 364.9352220000002
+        },
+        "proposals": {
+          "other": 43.604788000000255
+        },
+        "demand": {
+          "other": 0.7942870000002529
+        },
+        "search": {
+          "other": 1051.018929000001,
+          "transport": 47.335313999999926
+        },
+        "kernel": {
+          "transport": 0.4848299999999881,
+          "other": 9.264431000000059,
+          "kernel": 3206.637017
+        }
+      },
+      "sites": {
+        "kernel/prove.ts:widen": {
+          "calls": 50,
+          "wallMs": 393.0568299999998,
+          "phases": {
+            "other": 351.48601900000006,
+            "kernel": 0.4848299999999881,
+            "search": 40.33480099999997
+          }
+        },
+        "core/count-recovery/lift-count-proxies.ts:liftCountProxies": {
+          "calls": 2,
+          "wallMs": 20.468560000000025,
+          "phases": {
+            "other": 13.449203000000125,
+            "search": 7.000512999999955
+          }
+        },
+        "kernel/kernel.ts:check": {
+          "calls": 3,
+          "wallMs": 3206.624044,
+          "phases": {
+            "kernel": 3206.637017
+          }
+        }
+      },
+      "checks": {
+        "outside": {
+          "calls": 3,
+          "wallMs": 3207.0253060000005,
+          "minHyps": 2,
+          "maxHyps": 166,
+          "leaf": 1
+        }
+      }
+    }
+  },
+  {
+    "artifact": "tf23-control.log",
+    "law": "Inv3915: one config term, the primary newest",
+    "checked": true,
+    "proven": true,
+    "wallMs": 6628.8249989999995,
+    "countedUnits": 872.3352536000001,
+    "kernelMs": 4827.463311999999,
+    "sites": {
+      "kernel/kernel.ts:check": {
+        "calls": 3,
+        "inclusiveMs": 4820.309351000001
+      },
+      "kernel/kernel.ts:checkMC": {
+        "calls": 3,
+        "inclusiveMs": 4827.151336999999
+      }
+    },
+    "detail": {
+      "label": "Inv3915: one config term, the primary newest",
+      "buckets": {
+        "other": {
+          "other": 515.7553680000019,
+          "transport": 349.6126379999987
+        },
+        "proposals": {
+          "other": 46.235687999999755
+        },
+        "demand": {
+          "other": 33.082030000002305
+        },
+        "search": {
+          "other": 656.6171569999979,
+          "transport": 200.0452609999993
+        },
+        "kernel": {
+          "transport": 0.3119749999996202,
+          "other": 6.772313999998005,
+          "kernel": 4820.379023000001
+        }
+      },
+      "sites": {
+        "kernel/prove.ts:widen": {
+          "calls": 85,
+          "wallMs": 550.9470620000011,
+          "phases": {
+            "other": 349.6126379999987,
+            "kernel": 0.3119749999996202,
+            "search": 200.0452609999993
+          }
+        },
+        "kernel/kernel.ts:check": {
+          "calls": 3,
+          "wallMs": 4820.381425999998,
+          "phases": {
+            "kernel": 4820.379023000001
+          }
+        }
+      },
+      "checks": {
+        "outside": {
+          "calls": 3,
+          "wallMs": 4820.541837,
+          "minHyps": 2,
+          "maxHyps": 202,
+          "leaf": 1
+        }
+      }
+    }
+  },
+  {
+    "artifact": "tf23-control.log",
+    "law": "Inv1758: one version and term, one config",
+    "checked": true,
+    "proven": true,
+    "wallMs": 14502.880016000001,
+    "countedUnits": 4310.4753532,
+    "kernelMs": 6978.26745499999,
+    "sites": {
+      "kernel/kernel.ts:check": {
+        "calls": 3,
+        "inclusiveMs": 6968.842595999999
+      },
+      "kernel/kernel.ts:checkMC": {
+        "calls": 3,
+        "inclusiveMs": 6972.158234999999
+      }
+    },
+    "detail": {
+      "label": "Inv1758: one version and term, one config",
+      "buckets": {
+        "other": {
+          "other": 2868.389959999893,
+          "transport": 1958.6799300000166
+        },
+        "proposals": {
+          "other": 40.83834599999864
+        },
+        "demand": {
+          "other": 27.555615999997826
+        },
+        "search": {
+          "other": 2129.2021920001116,
+          "transport": 499.91887599999245
+        },
+        "kernel": {
+          "transport": 6.109219999991183,
+          "other": 3.29234500000166,
+          "kernel": 6968.865889999997
+        }
+      },
+      "sites": {
+        "kernel/prove.ts:widen": {
+          "calls": 158,
+          "wallMs": 2465.8813799999916,
+          "phases": {
+            "other": 1958.6799300000166,
+            "kernel": 6.109219999991183,
+            "search": 499.91887599999245
+          }
+        },
+        "kernel/kernel.ts:check": {
+          "calls": 3,
+          "wallMs": 6968.9097029999975,
+          "phases": {
+            "kernel": 6968.865889999997
+          }
+        }
+      },
+      "checks": {
+        "outside": {
+          "calls": 3,
+          "wallMs": 6968.961280000003,
+          "minHyps": 2,
+          "maxHyps": 210,
+          "leaf": 1
+        }
+      }
+    }
+  },
+  {
+    "artifact": "tf23-control.log",
+    "law": "Inv2973: quorums overlap, or a config disabled",
+    "checked": false,
+    "proven": false,
+    "wallMs": 30297.415728,
+    "countedUnits": 5002.6530103999985,
+    "kernelMs": 41.249227000022074,
+    "sites": {
+      "kernel/kernel.ts:check": {
+        "calls": 49,
+        "inclusiveMs": 41.249227000022074
+      }
+    },
+    "detail": {
+      "label": "Inv2973: quorums overlap, or a config disabled",
+      "buckets": {
+        "other": {
+          "other": 11258.188558000042,
+          "transport": 8317.366714000003,
+          "finish": 0.7034089999797288
+        },
+        "proposals": {
+          "other": 279.4366979999977
+        },
+        "demand": {
+          "other": 195.01115500000014
+        },
+        "search": {
+          "other": 4897.23141999996,
+          "transport": 1711.5520109999998
+        },
+        "A": {
+          "other": 256.41498199998387,
+          "transport": 407.3303970000088,
+          "source": 44.02671000000191,
+          "admission": 77.5859780000028
+        },
+        "kernel": {
+          "admission": 41.249227000022074
+        },
+        "B": {
+          "other": 1178.6010449999776,
+          "source": 39.7633220000389,
+          "scalar-proposal": 22.459841000003507,
+          "admission": 1368.5011699999632
+        },
+        "C": {
+          "finish": 201.98755200001324
+        }
+      },
+      "sites": {
+        "kernel/prove.ts:widen": {
+          "calls": 194,
+          "wallMs": 9422.839103999991,
+          "phases": {
+            "other": 7323.392275000009,
+            "A": 407.3303970000088,
+            "search": 1691.5070019999985
+          }
+        },
+        "core/count-recovery/lift-count-proxies.ts:liftCountProxies": {
+          "calls": 4,
+          "wallMs": 1014.0938290000013,
+          "phases": {
+            "other": 993.9744389999942,
+            "search": 20.0450090000013
+          }
+        },
+        "closure.source": {
+          "calls": 103,
+          "wallMs": 83.82218299999658,
+          "phases": {
+            "A": 44.02671000000191,
+            "B": 39.7633220000389
+          }
+        },
+        "core/count-recovery/conditional-cuts.ts:dependencies": {
+          "calls": 98,
+          "wallMs": 90.80610000000888,
+          "phases": {
+            "A": 1.3948039999922912,
+            "B": 89.29188499998054
+          }
+        },
+        "core/count-recovery/conditional-cuts.ts:relevantHypotheses": {
+          "calls": 49,
+          "wallMs": 189.5579730000063,
+          "phases": {
+            "A": 74.87932800000272,
+            "B": 114.68079699998998
+          }
+        },
+        "core/count-recovery/conditional-cuts.ts:transport": {
+          "calls": 784,
+          "wallMs": 1227.8357969999415,
+          "phases": {
+            "A": 1.2660390000055486,
+            "B": 1225.7833909999536
+          }
+        },
+        "core/count-recovery/conditional-cuts.ts:inline": {
+          "calls": 49,
+          "wallMs": 91.99059500000658,
+          "phases": {
+            "A": 1.0396919999984675,
+            "B": 90.96053899999606
+          }
+        },
+        "admitCut.trace-reduction": {
+          "calls": 49,
+          "wallMs": 14.993677999991633,
+          "phases": {
+            "A": 0.1262060000008205,
+            "B": 14.886269999988144
+          }
+        },
+        "admitCut.per-atom": {
+          "calls": 49,
+          "wallMs": 1097.7217309999905,
+          "phases": {
+            "A": 0.22119499999826076,
+            "B": 1097.4974409999631
+          }
+        },
+        "kernel/kernel.ts:check": {
+          "calls": 49,
+          "wallMs": 41.447357000011834,
+          "phases": {
+            "A": 0.004970000001776498,
+            "kernel": 41.249227000022074,
+            "B": 0.15356999995856313
+          }
+        },
+        "core/count-recovery/conditional-cuts.ts:checked": {
+          "calls": 49,
+          "wallMs": 42.30206600004385,
+          "phases": {
+            "A": 0.056055999997624895,
+            "kernel": 41.249227000022074,
+            "B": 0.991210999982286
+          }
+        },
+        "admitCut.final-check": {
+          "calls": 49,
+          "wallMs": 42.63565700000254,
+          "phases": {
+            "A": 0.09708400000090478,
+            "kernel": 41.249227000022074,
+            "B": 1.2890279999628547
+          }
+        },
+        "core/count-recovery/conditional-cuts.ts:admitCut": {
+          "calls": 49,
+          "wallMs": 1295.8917340000153,
+          "phases": {
+            "A": 2.3317240000033053,
+            "kernel": 41.249227000022074,
+            "B": 1252.3191369999877
+          }
+        },
+        "core/count-recovery/conditional-cuts.ts:admitConditionalCut": {
+          "calls": 49,
+          "wallMs": 1487.1141929999867,
+          "phases": {
+            "A": 77.5859780000028,
+            "kernel": 41.249227000022074,
+            "B": 1368.5011699999632
+          }
+        },
+        "core/count-recovery/scalar-guards.ts:countScalarGuards": {
+          "calls": 50,
+          "wallMs": 22.496095000009518,
+          "phases": {
+            "B": 22.459841000003507
+          }
+        },
+        "closure.finish": {
+          "calls": 4,
+          "wallMs": 202.68702399999165,
+          "phases": {
+            "other": 0.7034089999797288,
+            "C": 201.98755200001324
+          }
+        }
+      },
+      "checks": {
+        "core/count-recovery/conditional-cuts.ts:checked": {
+          "calls": 49,
+          "wallMs": 41.80204800002684,
+          "minHyps": 1,
+          "maxHyps": 1,
+          "leaf": 44
+        }
+      }
+    }
+  },
+  {
+    "artifact": "tf23-control.log",
+    "law": "Inv*: no quorum of a config can still be gathered for a config term held",
+    "checked": false,
+    "proven": false,
+    "wallMs": 35017.432082,
+    "countedUnits": 5161.673620400003,
+    "kernelMs": 10003.258049000084,
+    "sites": {
+      "kernel/kernel.ts:check": {
+        "calls": 1926,
+        "inclusiveMs": 9993.168589
+      }
+    },
+    "detail": {
+      "label": "Inv*: no quorum of a config can still be gathered for a config term held",
+      "buckets": {
+        "other": {
+          "other": 4961.330205999904,
+          "transport": 7169.944809999863,
+          "finish": 3.920270000009623
+        },
+        "proposals": {
+          "other": 73.89518300000054
+        },
+        "demand": {
+          "other": 39.977430999992066
+        },
+        "search": {
+          "other": 2073.1605110000673,
+          "transport": 702.0377790000566
+        },
+        "A": {
+          "other": 777.1182559998924,
+          "transport": 491.64655700011645,
+          "source": 68.49752700002136,
+          "admission": 131.81613199999265
+        },
+        "kernel": {
+          "admission": 558.0461409999771,
+          "transport": 4537.779532000095,
+          "other": 0.0716250000114087,
+          "check": 9.043610000022454,
+          "kernel": 4898.317140999978
+        },
+        "B": {
+          "other": 2935.2820319998937,
+          "source": 122.18778000007296,
+          "scalar-proposal": 29.51070599999366,
+          "admission": 4682.081566000037,
+          "transport": 12.462351000009221
+        },
+        "C": {
+          "finish": 736.3696429999618,
+          "transport": 2.9315370000331313
+        }
+      },
+      "sites": {
+        "kernel/prove.ts:widen": {
+          "calls": 199,
+          "wallMs": 3652.0196259998484,
+          "phases": {
+            "other": 2525.0769900000305,
+            "A": 491.64655700011645,
+            "B": 12.462351000009221,
+            "kernel": 0.07549199999630218,
+            "C": 2.9315370000331313,
+            "search": 619.3653139999951
+          }
+        },
+        "core/count-recovery/lift-count-proxies.ts:liftCountProxies": {
+          "calls": 21,
+          "wallMs": 1499.319338999987,
+          "phases": {
+            "other": 1416.4963189999398,
+            "search": 82.6724650000615
+          }
+        },
+        "closure.source": {
+          "calls": 239,
+          "wallMs": 190.81365400000504,
+          "phases": {
+            "A": 68.49752700002136,
+            "B": 122.18778000007296
+          }
+        },
+        "core/count-recovery/conditional-cuts.ts:dependencies": {
+          "calls": 194,
+          "wallMs": 233.9472910001059,
+          "phases": {
+            "A": 31.372714999961318,
+            "B": 202.3827320000637
+          }
+        },
+        "core/count-recovery/conditional-cuts.ts:relevantHypotheses": {
+          "calls": 97,
+          "wallMs": 227.6882400000177,
+          "phases": {
+            "A": 81.49241600000096,
+            "B": 146.1866289999598
+          }
+        },
+        "core/count-recovery/conditional-cuts.ts:transport": {
+          "calls": 1717,
+          "wallMs": 4503.635255000219,
+          "phases": {
+            "A": 45.59629199999472,
+            "B": 4456.548969999647
+          }
+        },
+        "core/count-recovery/conditional-cuts.ts:inline": {
+          "calls": 97,
+          "wallMs": 319.1499610000101,
+          "phases": {
+            "A": 19.9035909999875,
+            "B": 298.5422250000338,
+            "kernel": 0.7285550000087824
+          }
+        },
+        "admitCut.trace-reduction": {
+          "calls": 97,
+          "wallMs": 12.92488500001491,
+          "phases": {
+            "A": 5.5596779999978025,
+            "B": 7.370474999974249
+          }
+        },
+        "admitCut.per-atom": {
+          "calls": 97,
+          "wallMs": 4071.1689700000497,
+          "phases": {
+            "A": 13.260535999994318,
+            "B": 4057.9151160000547
+          }
+        },
+        "kernel/kernel.ts:check": {
+          "calls": 1926,
+          "wallMs": 9997.93023599992,
+          "phases": {
+            "A": 0.021337999998650048,
+            "kernel": 9994.067322000054,
+            "B": 0.19803800000954652,
+            "other": 2.027732999813452
+          }
+        },
+        "core/count-recovery/conditional-cuts.ts:checked": {
+          "calls": 103,
+          "wallMs": 559.4531399999541,
+          "phases": {
+            "A": 0.1382890000095358,
+            "kernel": 558.0461409999771,
+            "B": 1.2550540000083856
+          }
+        },
+        "admitCut.final-check": {
+          "calls": 97,
+          "wallMs": 559.0971249999202,
+          "phases": {
+            "A": 0.216247000011208,
+            "kernel": 557.3175859999683,
+            "B": 1.5619800001004478
+          }
+        },
+        "core/count-recovery/conditional-cuts.ts:admitCut": {
+          "calls": 97,
+          "wallMs": 5141.965315999951,
+          "phases": {
+            "A": 50.01297900000645,
+            "kernel": 558.0461409999771,
+            "B": 4533.935486999973
+          }
+        },
+        "core/count-recovery/conditional-cuts.ts:admitConditionalCut": {
+          "calls": 97,
+          "wallMs": 5371.5981159999865,
+          "phases": {
+            "A": 131.81613199999265,
+            "kernel": 558.0461409999771,
+            "B": 4682.081566000037
+          }
+        },
+        "core/count-recovery/scalar-guards.ts:countScalarGuards": {
+          "calls": 97,
+          "wallMs": 29.587450000057288,
+          "phases": {
+            "B": 29.51070599999366
+          }
+        },
+        "closure.finish": {
+          "calls": 20,
+          "wallMs": 1788.0441709999432,
+          "phases": {
+            "other": 978.8085629999769,
+            "C": 739.3011799999949,
+            "search": 69.95684100005747
+          }
+        },
+        "core/count-recovery/conditional-proof.ts:independent": {
+          "calls": 52,
+          "wallMs": 2338.2336650000507,
+          "phases": {
+            "other": 7.979701999924146,
+            "kernel": 2330.2972780001
+          }
+        },
+        "core/count-recovery/conditional-proof.ts:leaf": {
+          "calls": 2049,
+          "wallMs": 3087.165861000205,
+          "phases": {
+            "other": 3085.7161360000464
+          }
+        },
+        "core/count-recovery/conditional-proof.ts:ordinary": {
+          "calls": 517,
+          "wallMs": 1895.0632650000844,
+          "phases": {
+            "other": 1895.2496039999533
+          }
+        },
+        "core/count-recovery/conditional-proof.ts:retarget": {
+          "calls": 23,
+          "wallMs": 3863.060823000036,
+          "phases": {
+            "other": 2014.1073029998952,
+            "kernel": 1848.9648030001263
+          }
+        },
+        "core/count-recovery/conditional-proof.ts:transportConditionalProof": {
+          "calls": 12,
+          "wallMs": 7766.063493000023,
+          "phases": {
+            "other": 3228.3715009998923,
+            "kernel": 4537.704040000099
+          }
+        },
+        "core/count-recovery/conditional-proof.ts:checked": {
+          "calls": 11,
+          "wallMs": 7601.660145000016,
+          "phases": {
+            "other": 5.568585000059102,
+            "kernel": 7596.099987999973
+          }
+        }
+      },
+      "checks": {
+        "core/count-recovery/conditional-cuts.ts:checked": {
+          "calls": 103,
+          "wallMs": 558.8093600000866,
+          "minHyps": 1,
+          "maxHyps": 11,
+          "leaf": 67
+        },
+        "core/count-recovery/conditional-proof.ts:independent": {
+          "calls": 1190,
+          "wallMs": 2331.3934769998596,
+          "minHyps": 1,
+          "maxHyps": 2,
+          "leaf": 780
+        },
+        "core/count-recovery/conditional-proof.ts:retarget": {
+          "calls": 515,
+          "wallMs": 815.1032370000685,
+          "minHyps": 1,
+          "maxHyps": 2,
+          "leaf": 345
+        },
+        "core/count-recovery/conditional-proof.ts:checked": {
+          "calls": 118,
+          "wallMs": 6297.057205999983,
+          "minHyps": 489,
+          "maxHyps": 490,
+          "leaf": 118
+        }
+      }
+    }
+  },
+  {
+    "artifact": "tf23-sliced.log",
+    "law": "one primary per term",
+    "checked": true,
+    "proven": true,
+    "wallMs": 2402.307643,
+    "countedUnits": 926.6334919999999,
+    "kernelMs": 1247.4402549999998,
+    "sites": {
+      "kernel/kernel.ts:check": {
+        "calls": 3,
+        "inclusiveMs": 1239.854636
+      },
+      "kernel/kernel.ts:checkMC": {
+        "calls": 3,
+        "inclusiveMs": 1246.8583039999999
+      }
+    },
+    "detail": {
+      "label": "one primary per term",
+      "buckets": {
+        "other": {
+          "other": 306.60721700000016,
+          "transport": 214.18059600000018
+        },
+        "proposals": {
+          "other": 38.856246000000034
+        },
+        "demand": {
+          "other": 0.6300729999999959
+        },
+        "search": {
+          "other": 565.1065359999999,
+          "transport": 29.42828099999997
+        },
+        "kernel": {
+          "transport": 0.58195099999989,
+          "other": 6.893361000000141,
+          "kernel": 1239.9649429999997
+        }
+      },
+      "sites": {
+        "kernel/prove.ts:widen": {
+          "calls": 50,
+          "wallMs": 226.77987799999934,
+          "phases": {
+            "other": 207.39638200000016,
+            "kernel": 0.58195099999989,
+            "search": 18.580317000000036
+          }
+        },
+        "core/count-recovery/lift-count-proxies.ts:liftCountProxies": {
+          "calls": 2,
+          "wallMs": 17.641655999999898,
+          "phases": {
+            "other": 6.78421400000002,
+            "search": 10.847963999999934
+          }
+        },
+        "kernel/kernel.ts:check": {
+          "calls": 3,
+          "wallMs": 1239.9323419999998,
+          "phases": {
+            "kernel": 1239.9649429999997
+          }
+        }
+      },
+      "checks": {
+        "outside": {
+          "calls": 3,
+          "wallMs": 1240.163066,
+          "minHyps": 2,
+          "maxHyps": 166,
+          "leaf": 1
+        }
+      }
+    }
+  },
+  {
+    "artifact": "tf23-sliced.log",
+    "law": "Inv3915: one config term, the primary newest",
+    "checked": true,
+    "proven": true,
+    "wallMs": 2505.0175699999995,
+    "countedUnits": 872.3352536000001,
+    "kernelMs": 1594.6865940000012,
+    "sites": {
+      "kernel/kernel.ts:check": {
+        "calls": 3,
+        "inclusiveMs": 1590.8441790000002
+      },
+      "kernel/kernel.ts:checkMC": {
+        "calls": 3,
+        "inclusiveMs": 1594.554389
+      }
+    },
+    "detail": {
+      "label": "Inv3915: one config term, the primary newest",
+      "buckets": {
+        "other": {
+          "other": 316.12056399999665,
+          "transport": 202.68720699999994
+        },
+        "proposals": {
+          "other": 23.486093999999866
+        },
+        "demand": {
+          "other": 18.038512999999966
+        },
+        "search": {
+          "other": 270.5598700000014,
+          "transport": 79.43224500000088
+        },
+        "kernel": {
+          "transport": 0.13220500000124957,
+          "other": 3.6842509999996764,
+          "kernel": 1590.8701380000002
+        }
+      },
+      "sites": {
+        "kernel/prove.ts:widen": {
+          "calls": 85,
+          "wallMs": 282.4951530000012,
+          "phases": {
+            "other": 202.68720699999994,
+            "kernel": 0.13220500000124957,
+            "search": 79.43224500000088
+          }
+        },
+        "kernel/kernel.ts:check": {
+          "calls": 3,
+          "wallMs": 1590.8858560000003,
+          "phases": {
+            "kernel": 1590.8701380000002
+          }
+        }
+      },
+      "checks": {
+        "outside": {
+          "calls": 3,
+          "wallMs": 1590.9695339999998,
+          "minHyps": 2,
+          "maxHyps": 202,
+          "leaf": 1
+        }
+      }
+    }
+  },
+  {
+    "artifact": "tf23-sliced.log",
+    "law": "Inv1758: one version and term, one config",
+    "checked": true,
+    "proven": true,
+    "wallMs": 14952.821588,
+    "countedUnits": 4310.4753532,
+    "kernelMs": 8018.316020000004,
+    "sites": {
+      "kernel/kernel.ts:check": {
+        "calls": 3,
+        "inclusiveMs": 8009.820328
+      },
+      "kernel/kernel.ts:checkMC": {
+        "calls": 3,
+        "inclusiveMs": 8013.674040000002
+      }
+    },
+    "detail": {
+      "label": "Inv1758: one version and term, one config",
+      "buckets": {
+        "other": {
+          "other": 2599.7892730000012,
+          "transport": 1913.0193839999856
+        },
+        "proposals": {
+          "other": 22.364086000000498
+        },
+        "demand": {
+          "other": 14.346835000001192
+        },
+        "search": {
+          "other": 1936.4303960000016,
+          "transport": 448.52983600000425
+        },
+        "kernel": {
+          "transport": 4.64198000000215,
+          "other": 3.8220430000001215,
+          "kernel": 8009.851997000002
+        }
+      },
+      "sites": {
+        "kernel/prove.ts:widen": {
+          "calls": 158,
+          "wallMs": 2367.134706000009,
+          "phases": {
+            "other": 1913.0193839999856,
+            "kernel": 4.64198000000215,
+            "search": 448.52983600000425
+          }
+        },
+        "kernel/kernel.ts:check": {
+          "calls": 3,
+          "wallMs": 8009.896289999999,
+          "phases": {
+            "kernel": 8009.851997000002
+          }
+        }
+      },
+      "checks": {
+        "outside": {
+          "calls": 3,
+          "wallMs": 8009.955099999997,
+          "minHyps": 2,
+          "maxHyps": 210,
+          "leaf": 1
+        }
+      }
+    }
+  },
+  {
+    "artifact": "tf23-sliced.log",
+    "law": "Inv2973: quorums overlap, or a config disabled",
+    "checked": false,
+    "proven": false,
+    "wallMs": 30195.936534,
+    "countedUnits": 5002.6530103999985,
+    "kernelMs": 40.76089999999749,
+    "sites": {
+      "kernel/kernel.ts:check": {
+        "calls": 49,
+        "inclusiveMs": 40.76089999999749
+      }
+    },
+    "detail": {
+      "label": "Inv2973: quorums overlap, or a config disabled",
+      "buckets": {
+        "other": {
+          "other": 10593.737691000002,
+          "transport": 8335.866213999983,
+          "finish": 0.6776709999940067
+        },
+        "proposals": {
+          "other": 274.7503519999955
+        },
+        "demand": {
+          "other": 269.29357700000037
+        },
+        "search": {
+          "other": 5077.456564000007,
+          "transport": 1603.111240000013
+        },
+        "A": {
+          "other": 550.0834190000132,
+          "transport": 532.5320669999892,
+          "source": 54.640818999996554,
+          "admission": 90.40237799999886
+        },
+        "kernel": {
+          "admission": 40.76089999999749
+        },
+        "B": {
+          "other": 1458.2959769999397,
+          "source": 52.824773000003916,
+          "scalar-proposal": 24.28660900002069,
+          "admission": 1019.6111290000408
+        },
+        "C": {
+          "finish": 217.59975300000588
+        }
+      },
+      "sites": {
+        "kernel/prove.ts:widen": {
+          "calls": 194,
+          "wallMs": 9891.705627999996,
+          "phases": {
+            "other": 7773.996016999983,
+            "A": 532.5320669999892,
+            "search": 1584.360142000005
+          }
+        },
+        "core/count-recovery/lift-count-proxies.ts:liftCountProxies": {
+          "calls": 4,
+          "wallMs": 580.6578429999936,
+          "phases": {
+            "other": 561.8701970000002,
+            "search": 18.751098000007914
+          }
+        },
+        "closure.source": {
+          "calls": 103,
+          "wallMs": 107.55128699997658,
+          "phases": {
+            "A": 54.640818999996554,
+            "B": 52.824773000003916
+          }
+        },
+        "core/count-recovery/conditional-cuts.ts:dependencies": {
+          "calls": 98,
+          "wallMs": 96.77553100000296,
+          "phases": {
+            "A": 1.809025999998994,
+            "B": 94.81940399999439
+          }
+        },
+        "core/count-recovery/conditional-cuts.ts:relevantHypotheses": {
+          "calls": 49,
+          "wallMs": 204.47832900000867,
+          "phases": {
+            "A": 86.25281400000313,
+            "B": 118.23651499999687
+          }
+        },
+        "core/count-recovery/conditional-cuts.ts:transport": {
+          "calls": 784,
+          "wallMs": 875.6483299998872,
+          "phases": {
+            "A": 1.6638309999834746,
+            "B": 873.1837989999331
+          }
+        },
+        "core/count-recovery/conditional-cuts.ts:inline": {
+          "calls": 49,
+          "wallMs": 90.35968399999547,
+          "phases": {
+            "A": 1.36083299999882,
+            "B": 89.02575099998285
+          }
+        },
+        "admitCut.trace-reduction": {
+          "calls": 49,
+          "wallMs": 15.755523999974685,
+          "phases": {
+            "A": 0.17023999999582884,
+            "B": 15.604846000001999
+          }
+        },
+        "admitCut.per-atom": {
+          "calls": 49,
+          "wallMs": 749.0313239999632,
+          "phases": {
+            "A": 0.3659460000017134,
+            "B": 748.6671800000258
+          }
+        },
+        "kernel/kernel.ts:check": {
+          "calls": 49,
+          "wallMs": 40.97287000001597,
+          "phases": {
+            "A": 0.008719000004930422,
+            "kernel": 40.76089999999749,
+            "B": 0.1724489999942307
+          }
+        },
+        "core/count-recovery/conditional-cuts.ts:checked": {
+          "calls": 49,
+          "wallMs": 41.89307200001713,
+          "phases": {
+            "A": 0.08089300000210642,
+            "kernel": 40.76089999999749,
+            "B": 1.0391189999863855
+          }
+        },
+        "admitCut.final-check": {
+          "calls": 49,
+          "wallMs": 42.25910100002511,
+          "phases": {
+            "A": 0.1367080000018177,
+            "kernel": 40.76089999999749,
+            "B": 1.3597719999670517
+          }
+        },
+        "core/count-recovery/conditional-cuts.ts:admitCut": {
+          "calls": 49,
+          "wallMs": 944.0445050000089,
+          "phases": {
+            "A": 3.6419429999987187,
+            "kernel": 40.76089999999749,
+            "B": 899.6623449999861
+          }
+        },
+        "core/count-recovery/conditional-cuts.ts:admitConditionalCut": {
+          "calls": 49,
+          "wallMs": 1150.5044880000132,
+          "phases": {
+            "A": 90.40237799999886,
+            "kernel": 40.76089999999749,
+            "B": 1019.6111290000408
+          }
+        },
+        "core/count-recovery/scalar-guards.ts:countScalarGuards": {
+          "calls": 50,
+          "wallMs": 24.33493300002374,
+          "phases": {
+            "B": 24.28660900002069
+          }
+        },
+        "closure.finish": {
+          "calls": 4,
+          "wallMs": 218.28180299999804,
+          "phases": {
+            "other": 0.6776709999940067,
+            "C": 217.59975300000588
+          }
+        }
+      },
+      "checks": {
+        "core/count-recovery/conditional-cuts.ts:checked": {
+          "calls": 49,
+          "wallMs": 41.367741000016395,
+          "minHyps": 1,
+          "maxHyps": 1,
+          "leaf": 44
+        }
+      }
+    }
+  },
+  {
+    "artifact": "tf23-sliced.log",
+    "law": "Inv*: no quorum of a config can still be gathered for a config term held",
+    "checked": false,
+    "proven": false,
+    "wallMs": 25262.099511,
+    "countedUnits": 5161.5263752,
+    "kernelMs": 3037.3852589999806,
+    "sites": {
+      "kernel/kernel.ts:check": {
+        "calls": 1319,
+        "inclusiveMs": 3031.5048099999476
+      }
+    },
+    "detail": {
+      "label": "Inv*: no quorum of a config can still be gathered for a config term held",
+      "buckets": {
+        "other": {
+          "other": 4955.81976299997,
+          "transport": 5188.021935999939,
+          "finish": 2.4445490000289283
+        },
+        "proposals": {
+          "other": 77.5848240000123
+        },
+        "demand": {
+          "other": 38.4306679999936
+        },
+        "search": {
+          "other": 1292.8018570000204,
+          "transport": 1056.6938850000224
+        },
+        "A": {
+          "other": 639.0663449999993,
+          "transport": 421.6455559999886,
+          "source": 59.363128000011784,
+          "admission": 97.36848399999872
+        },
+        "kernel": {
+          "admission": 247.8567079999557,
+          "transport": 2781.8827280000187,
+          "other": 0.05137599999579834,
+          "check": 5.679658000015479,
+          "kernel": 1.9147889999949257
+        },
+        "B": {
+          "other": 3258.758972000127,
+          "source": 155.77834399993299,
+          "scalar-proposal": 331.32412299999123,
+          "admission": 4455.031945999981,
+          "transport": 13.692003000003751
+        },
+        "C": {
+          "finish": 178.60962199998175,
+          "transport": 2.2739200000141864
+        }
+      },
+      "sites": {
+        "kernel/prove.ts:widen": {
+          "calls": 198,
+          "wallMs": 3798.7931799998987,
+          "phases": {
+            "other": 2360.916509999981,
+            "A": 421.6455559999886,
+            "B": 13.692003000003751,
+            "kernel": 0.08888900000602007,
+            "C": 2.2739200000141864,
+            "search": 999.8676770000166
+          }
+        },
+        "core/count-recovery/lift-count-proxies.ts:liftCountProxies": {
+          "calls": 17,
+          "wallMs": 750.8739509999868,
+          "phases": {
+            "other": 693.9227379999575,
+            "search": 56.82620800000586
+          }
+        },
+        "closure.source": {
+          "calls": 246,
+          "wallMs": 215.20252199997776,
+          "phases": {
+            "A": 59.363128000011784,
+            "B": 155.77834399993299
+          }
+        },
+        "core/count-recovery/conditional-cuts.ts:dependencies": {
+          "calls": 200,
+          "wallMs": 245.6652329999124,
+          "phases": {
+            "A": 19.058273999980884,
+            "B": 226.41686299999128
+          }
+        },
+        "core/count-recovery/conditional-cuts.ts:relevantHypotheses": {
+          "calls": 100,
+          "wallMs": 217.65911499998037,
+          "phases": {
+            "A": 61.5237879999986,
+            "B": 156.1693730000552
+          }
+        },
+        "core/count-recovery/conditional-cuts.ts:transport": {
+          "calls": 1778,
+          "wallMs": 4239.980351999802,
+          "phases": {
+            "A": 32.13004900002852,
+            "B": 4206.308347000027
+          }
+        },
+        "core/count-recovery/conditional-cuts.ts:inline": {
+          "calls": 100,
+          "wallMs": 278.7296469999492,
+          "phases": {
+            "A": 13.098465999995824,
+            "B": 264.54820499999187,
+            "kernel": 1.0752050000010058
+          }
+        },
+        "admitCut.trace-reduction": {
+          "calls": 100,
+          "wallMs": 11.615871000038169,
+          "phases": {
+            "A": 3.6126290000029257,
+            "B": 8.005750999953307
+          }
+        },
+        "admitCut.per-atom": {
+          "calls": 100,
+          "wallMs": 3851.644235000029,
+          "phases": {
+            "A": 10.863055000016175,
+            "B": 3840.7625980000594
+          }
+        },
+        "kernel/kernel.ts:check": {
+          "calls": 1319,
+          "wallMs": 3033.7973010003698,
+          "phases": {
+            "A": 0.026491000004170928,
+            "kernel": 3031.5653359999633,
+            "B": 0.22845500004041241,
+            "other": 1.6058290000873967
+          }
+        },
+        "core/count-recovery/conditional-cuts.ts:checked": {
+          "calls": 106,
+          "wallMs": 249.23651200001768,
+          "phases": {
+            "A": 0.14250500001799082,
+            "kernel": 247.8567079999557,
+            "B": 1.2341680000172346
+          }
+        },
+        "admitCut.final-check": {
+          "calls": 100,
+          "wallMs": 248.5023059999512,
+          "phases": {
+            "A": 0.21417000001383713,
+            "kernel": 246.78150299995468,
+            "B": 1.5153750000390573
+          }
+        },
+        "core/count-recovery/conditional-cuts.ts:admitCut": {
+          "calls": 100,
+          "wallMs": 4580.361267999913,
+          "phases": {
+            "A": 35.60689600001206,
+            "kernel": 247.8567079999557,
+            "B": 4296.931683000053
+          }
+        },
+        "core/count-recovery/conditional-cuts.ts:admitConditionalCut": {
+          "calls": 100,
+          "wallMs": 4799.948547999957,
+          "phases": {
+            "A": 97.36848399999872,
+            "kernel": 247.8567079999557,
+            "B": 4455.031945999981
+          }
+        },
+        "core/count-recovery/scalar-guards.ts:countScalarGuards": {
+          "calls": 99,
+          "wallMs": 331.40897400001995,
+          "phases": {
+            "B": 331.32412299999123
+          }
+        },
+        "closure.finish": {
+          "calls": 16,
+          "wallMs": 763.0016919999907,
+          "phases": {
+            "other": 537.7957920000117,
+            "C": 180.88354199999594,
+            "search": 44.35357800000202
+          }
+        },
+        "core/count-recovery/conditional-proof.ts:independent": {
+          "calls": 64,
+          "wallMs": 941.7616870000275,
+          "phases": {
+            "other": 4.832417000012356,
+            "kernel": 936.9763119999552
+          }
+        },
+        "core/count-recovery/conditional-proof.ts:leaf": {
+          "calls": 2898,
+          "wallMs": 1579.2093159996439,
+          "phases": {
+            "other": 1577.611171000026
+          }
+        },
+        "core/count-recovery/conditional-proof.ts:ordinary": {
+          "calls": 632,
+          "wallMs": 734.3467169999203,
+          "phases": {
+            "other": 734.4461919999667
+          }
+        },
+        "core/count-recovery/conditional-proof.ts:retarget": {
+          "calls": 28,
+          "wallMs": 2722.1764570000596,
+          "phases": {
+            "other": 772.4863869999899,
+            "kernel": 1949.692988000017
+          }
+        },
+        "core/count-recovery/conditional-proof.ts:transportConditionalProof": {
+          "calls": 12,
+          "wallMs": 4914.968324000001,
+          "phases": {
+            "other": 2133.182688000001,
+            "kernel": 2781.7938390000127
+          }
+        },
+        "core/count-recovery/conditional-proof.ts:checked": {
+          "calls": 12,
+          "wallMs": 1336.4930840000015,
+          "phases": {
+            "other": 496.80855300000985,
+            "kernel": 839.695298000006
+          }
+        }
+      },
+      "checks": {
+        "core/count-recovery/conditional-cuts.ts:checked": {
+          "calls": 106,
+          "wallMs": 248.70254899993597,
+          "minHyps": 1,
+          "maxHyps": 11,
+          "leaf": 69
+        },
+        "core/count-recovery/conditional-proof.ts:independent": {
+          "calls": 460,
+          "wallMs": 937.6745139999475,
+          "minHyps": 1,
+          "maxHyps": 2,
+          "leaf": 300
+        },
+        "core/count-recovery/conditional-proof.ts:retarget": {
+          "calls": 631,
+          "wallMs": 1844.0947430001324,
+          "minHyps": 1,
+          "maxHyps": 2,
+          "leaf": 420
+        },
+        "core/count-recovery/conditional-proof.ts:checked": {
+          "calls": 122,
+          "wallMs": 5.81930899994768,
+          "minHyps": 1,
+          "maxHyps": 3,
+          "leaf": 122
+        }
+      }
+    }
+  },
+  {
+    "test": "T-F23-stats",
+    "sliced": 122,
+    "sliceHits": 32,
+    "fullHyps": 59740,
+    "sliceHyps": 259,
+    "independentHits": 1012,
+    "retargetHits": 0
+  }
+]

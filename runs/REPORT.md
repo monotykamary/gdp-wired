@@ -4944,3 +4944,24 @@ successful snapshots. Only an outer process timeout was extended after the
 first collection timed out; no law budget, cap, or final-check rule changed.
 Evidence: **runs/track-m/section8-f1-calls-v1/README.md**, **results.json**,
 **section8-f1-v2/** and **section8-health-v1/**. No production implementation.
+
+## Section 8 T-F2/F3 — large slice win, but 2.5 s ceiling missed
+
+Research-only snapshot, same exclusive **bx_3kjzmmhv**; unchanged kernel and
+final harness check. Inv* exclusive kernel wall falls **10.003 → 3.037 s**,
+while total diagnostic wall falls **35.017 → 25.262 s**. The required
+**<=2.5 s is not met**. Counted work differs by **-0.1472452 units
+(-0.002853%)**, within 0.01%; the other four laws match exactly. All five
+verdicts agree. No exact trace-equivalence claim is made.
+
+Full-goal leaf checking falls from **118 calls / 6.297 s** to **122 sliced
+calls / 0.005819 s**, each over only 1–3 hypotheses. Thirty-two slice-cache
+hits avoid additional calls. Independent checks fall **1190 → 460**, with
+1012 cache hits. The identity-keyed retarget cache has **zero hits**;
+retarget rechecks instead cost **1.844 s** across 631 calls (control:
+0.815 s / 515). Thus F2 is effective, but the specified F3 cache does not
+provide the predicted final reduction.
+
+Three tests, TypeScript, and type-aware lint pass. No production change.
+Evidence: **runs/track-m/section8-f23-v1/README.md**, **results.json** and
+its paired raw/decoded profile receipts.
