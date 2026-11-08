@@ -1,0 +1,45 @@
+PLAIN
+Found 0 warnings and 0 errors.
+Finished in 30.0s on 1188 files with 100 rules using 8 threads.
+bun test v1.4.3 (c6da4a4d3)
+{"installed":"T-F4","trustedKernelChanged":false,"retentionCap":4096,"rowWeightCap":250000}
+F4
+Found 0 warnings and 0 errors.
+Finished in 17.1s on 1188 files with 100 rules using 8 threads.
+bun test v1.4.3 (c6da4a4d3)
+
+--- stderr ---
+$ tsc -p . && oxlint --type-aware --deny-warnings --disable-nested-config
+
+research/track-m/phase-census-meter.test.ts:
+(pass) wall phases are exclusive and kernel work is not double counted [4.01ms]
+(pass) phase-local solver work remains charged to its phase [1.99ms]
+(pass) cut-use audit distinguishes offered, core and checked proof references [4.36ms]
+
+research/track-m/section7-followup-meter.test.ts:
+(pass) post-timing audit separates bindings, frames and exact repeated checks [5.49ms]
+(pass) disabled audit does not retain data or change return values [0.25ms]
+
+research/track-m/section8-incremental-rows.test.ts:
+(pass) incremental rows equal the unchanged builder across sibling paths and row aliases [9.57ms]
+(pass) newly read decisions and duplicate hypotheses remain exact [2.10ms]
+
+research/track-m/section8-f23.test.ts:
+(pass) F2 slices and reindexes a checked leaf without weakening the final check [6.40ms]
+(pass) F2 preserves ordered path rows [0.33ms]
+(pass) F3 memo keys include both goals, cut identity and scope [0.46ms]
+
+ 10 pass
+ 0 fail
+ 46 expect() calls
+Ran 10 tests across 4 files. [121.00ms]
+$ tsc -p . && oxlint --type-aware --deny-warnings --disable-nested-config
+
+research/track-m/section8-incremental-rows.test.ts:
+(pass) incremental rows equal the unchanged builder across sibling paths and row aliases [4.10ms]
+(pass) newly read decisions and duplicate hypotheses remain exact [0.45ms]
+
+ 2 pass
+ 0 fail
+ 20 expect() calls
+Ran 2 tests across 1 file. [15.00ms]

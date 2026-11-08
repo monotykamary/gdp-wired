@@ -4992,3 +4992,36 @@ Both repeated full-pool runs have identical counted totals. TypeScript and
 type-aware lint pass. Exact scopes, model rounds, V/exclusion sets and source
 queries are in **runs/track-m/section8-loop-final-v1/**; earlier restricted
 controls and setup failures are retained. Production remains unchanged.
+
+## Section 8 T-F4 — incremental row prototype rejected; stop
+
+On the same exclusive **bx_3kjzmmhv**, Inv2973's exclusive remaining-phase
+row-materialization bucket increases **8.551 → 22.997 s**. Its inclusive
+`rowsAt` wall increases **29.045 → 48.635 s**, despite fewer calls
+(13364 → 12094). Total diagnostic wall is **48.186 → 60.800 s**.
+The candidate reaches the unchanged 60-second wall at **4883.592478 units**;
+control reaches **5002.6530104**. These are not identical traces, so no
+matched-work speed ratio is claimed. **Neither <=2 s nor 50% saving holds:
+drop F4.** All five verdicts agree; proved-law counted totals match exactly.
+
+The untrusted prototype does reuse 14,033,332 hypothesis blocks across the
+candidate process, but complete row assembly/bookkeeping is not thereby cheap.
+The profile does not assign the residual to a specific copy operation.
+The trusted kernel and final check are unchanged.
+
+Two row-differential tests cover 20 sibling/nested paths against the unchanged
+builder. After removing two unused imports from the snapshot generator,
+**TypeScript and type-aware lint pass on both the plain and F4 snapshot trees**.
+Final validation: **10 tests / 46 assertions**, plus the two differential tests
+and 20 assertions repeated on the installed F4 snapshot.
+
+Evidence: **runs/track-m/section8-f4-v1/README.md**, **results.json**, paired
+profile receipts, and **section8-final-validation-v1/validate.log**.
+
+### Section 8 stop decision
+
+All requested tests were run in order. T-A did not produce the requested
+Inv* source proof, T-F1 and T-F2/F3 missed their ceilings, T-8.1 did not complete
+Inv*, and F4 regressed. **The implementation pass line is not met.**
+No production implementation, default change, cap/allowance increase, trusted
+rule change, or new Gate 1 run. Gate 1 remains at its prior **3/5** result.
