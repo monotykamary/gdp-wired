@@ -1635,3 +1635,43 @@ The immediate follow-up adds written-field row discovery when a conclusion
 has no post-count reads, using the actual source claim and the same checked
 row-case transport. Its separate measurement is recorded below; the table
 above is deliberately tied to the already validated commit.
+
+#### Field-only row discovery — `37d6319f`: safety passes
+
+`rowPairs` previously obtained its row coordinates only from a post-count
+read. Field-only laws do not have one. It now also reads the keys of written
+fields in the actual source conclusion, and field-only row cases run before
+the dependent field/count derivations. The existing row-case transport and
+final counted checker are unchanged.
+
+`production-derivations-final-v2`, batch `20261108-114634-5455s9`, tree
+`8e9e4a39ada3`, reruns all five complete laws and all regression suites with
+the same inputs, 5,000-counted-ms allowance, and isolated large-VM label.
+**Safety returns a complete certificate and the final source check is true.**
+This is not merely an individually checked action or an unvalidated proposal.
+
+| Complete hand-set law | Proved / checked | Counted ms | In-process wall s |
+| --- | --- | ---: | ---: |
+| one primary per term | yes / yes | 4,235 | 4.299 |
+| Inv3915: primary newest | no / no | 5,013 | 4.336 |
+| Inv1758: row agreement | no / no | 5,015 | 5.046 |
+| Inv2973: quorum overlap | no / no | 5,338 | 23.147 |
+| Inv*: quorum term backing | no / no | 5,164 | 21.798 |
+
+Safety's leader retry now produces all row branches and the whole-law
+certificate checks with 22 instances. For Inv3915 the `a != i, b = i` active
+leader/reconfiguration row still fails: the necessary config-term ceiling
+or same-term ordering contradiction has not been completed in that row.
+Inv1758 now reaches the row cases, but the active pick's `a = i` and copy's
+`a = i, b = i` rows remain open. This is a pointwise field/guard-instance gap,
+not the absence of a row-splitting function anymore. Inv2973 and Inv* retain
+the counted derivation failures described in the previous subsection;
+their counted times are unchanged. Their wall differences between VMs are
+not evidence of a speedup.
+
+Validation: **113 production-derivation tests, 295 Track M/count/port tests,
+67 Track P tests**, all passing; type/lint has zero warnings/errors.
+`Step 1` remains **not passed (1/5 hard complete-law probes checked)**.
+There has been no Track K rebase, new trusted rule, safety weakening, or
+budget increase. The original whole-protocol 3x60-second and downstream
+gates remain unpassed.
