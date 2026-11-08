@@ -751,6 +751,10 @@ function inferLawsSearch(target: AnyRule | Machine, laws: Law[], stepLaws: StepL
     samples[i] = s; keys[i] = k; held.add(k)
   }
   for (const st of opts.seen ?? []) if (!m.params.length) keep({params: {}, st})
+  // Cube-only callers already evaluated these reachable states. Reuse them for
+  // the initial views; the ordinary inference and empty-row paths still walk.
+  const supplied = !!opts.cubes && !!opts.rows?.length
+  if (supplied) for (const row of opts.rows!) keep(row)
   trace('start')
   // Counted: `runs` requests tried at least, and on until as many states as the samples hold were offered (a trial offers
   // its start at least), the trials at most `runs` or that many. Timed: `runsMs` of wall time.
@@ -758,7 +762,7 @@ function inferLawsSearch(target: AnyRule | Machine, laws: Law[], stepLaws: StepL
   // runs the least, the engine's small instance its samples)
   const relStep = domainStep(m)
   const runsTimed = timed || opts.runsMs !== undefined, runsUntil = Math.min(wallUntil, performance.now() + (opts.runsMs ?? 500)), least = opts.runs ?? (relStep ? 2000 : Math.min(inferRuns, Math.max(2000, 4 * ms)))
-  const moreRuns = (trial: number) => (runsTimed ? performance.now() < runsUntil : trial < (relStep ? 400 : Math.max(cap, least)) && (used.tries < least || offered < cap) && !stop())
+  const moreRuns = (trial: number) => !supplied && (runsTimed ? performance.now() < runsUntil : trial < (relStep ? 400 : Math.max(cap, least)) && (used.tries < least || offered < cap) && !stop())
   let trials = 0
   // (an assumption with "there exists", a value the request brings, may admit no request at a small bound, a multiple
   // of 5 but 0, say: a trial whose steps moved nothing doubles the bound at once)
