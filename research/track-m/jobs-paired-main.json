@@ -1,0 +1,205 @@
+[
+  {
+    "name": "pair-consensus",
+    "cmd": "bash research/track-m/compare-main.sh consensus cand",
+    "cpu": 8,
+    "memory": 14336,
+    "timeout": 300
+  },
+  {
+    "name": "pair-tcommit",
+    "cmd": "bash research/track-m/compare-main.sh tcommit base",
+    "cpu": 8,
+    "memory": 14336,
+    "timeout": 300
+  },
+  {
+    "name": "pair-lock_server",
+    "cmd": "bash research/track-m/compare-main.sh lock_server cand",
+    "cpu": 8,
+    "memory": 14336,
+    "timeout": 300
+  },
+  {
+    "name": "pair-quorum_leader_election",
+    "cmd": "bash research/track-m/compare-main.sh quorum_leader_election base",
+    "cpu": 8,
+    "memory": 14336,
+    "timeout": 300
+  },
+  {
+    "name": "pair-toy_consensus_forall",
+    "cmd": "bash research/track-m/compare-main.sh toy_consensus_forall cand",
+    "cpu": 8,
+    "memory": 14336,
+    "timeout": 300
+  },
+  {
+    "name": "pair-simple",
+    "cmd": "bash research/track-m/compare-main.sh simple base",
+    "cpu": 8,
+    "memory": 14336,
+    "timeout": 300
+  },
+  {
+    "name": "pair-simple_regular",
+    "cmd": "bash research/track-m/compare-main.sh simple_regular cand",
+    "cpu": 8,
+    "memory": 14336,
+    "timeout": 300
+  },
+  {
+    "name": "pair-lockserv_automaton",
+    "cmd": "bash research/track-m/compare-main.sh lockserv_automaton base",
+    "cpu": 8,
+    "memory": 14336,
+    "timeout": 300
+  },
+  {
+    "name": "pair-sharded_kv",
+    "cmd": "bash research/track-m/compare-main.sh sharded_kv cand",
+    "cpu": 8,
+    "memory": 14336,
+    "timeout": 300
+  },
+  {
+    "name": "pair-sharded_kv_no_lost_keys",
+    "cmd": "bash research/track-m/compare-main.sh sharded_kv_no_lost_keys base",
+    "cpu": 8,
+    "memory": 14336,
+    "timeout": 300
+  },
+  {
+    "name": "pair-lockserv",
+    "cmd": "bash research/track-m/compare-main.sh lockserv cand",
+    "cpu": 8,
+    "memory": 14336,
+    "timeout": 300
+  },
+  {
+    "name": "pair-twophase",
+    "cmd": "bash research/track-m/compare-main.sh twophase base",
+    "cpu": 8,
+    "memory": 14336,
+    "timeout": 300
+  },
+  {
+    "name": "pair-simple_decentralized_lock",
+    "cmd": "bash research/track-m/compare-main.sh simple_decentralized_lock cand",
+    "cpu": 8,
+    "memory": 14336,
+    "timeout": 300
+  },
+  {
+    "name": "pair-two_phase_commit",
+    "cmd": "bash research/track-m/compare-main.sh two_phase_commit base",
+    "cpu": 8,
+    "memory": 14336,
+    "timeout": 300
+  },
+  {
+    "name": "pair-consensus_wo_decide",
+    "cmd": "bash research/track-m/compare-main.sh consensus_wo_decide cand",
+    "cpu": 8,
+    "memory": 14336,
+    "timeout": 300
+  },
+  {
+    "name": "pair-consensus_forall",
+    "cmd": "bash research/track-m/compare-main.sh consensus_forall base",
+    "cpu": 8,
+    "memory": 14336,
+    "timeout": 300
+  },
+  {
+    "name": "pair-naive_consensus",
+    "cmd": "bash research/track-m/compare-main.sh naive_consensus cand",
+    "cpu": 8,
+    "memory": 14336,
+    "timeout": 300
+  },
+  {
+    "name": "pair-client_server_ae",
+    "cmd": "bash research/track-m/compare-main.sh client_server_ae base",
+    "cpu": 8,
+    "memory": 14336,
+    "timeout": 300
+  },
+  {
+    "name": "pair-client_server_db_ae",
+    "cmd": "bash research/track-m/compare-main.sh client_server_db_ae cand",
+    "cpu": 8,
+    "memory": 14336,
+    "timeout": 300
+  },
+  {
+    "name": "pair-simple_election",
+    "cmd": "bash research/track-m/compare-main.sh simple_election base",
+    "cpu": 8,
+    "memory": 14336,
+    "timeout": 300
+  },
+  {
+    "name": "pair-toy_consensus_epr",
+    "cmd": "bash research/track-m/compare-main.sh toy_consensus_epr cand",
+    "cpu": 8,
+    "memory": 14336,
+    "timeout": 300
+  },
+  {
+    "name": "pair-toy_consensus",
+    "cmd": "bash research/track-m/compare-main.sh toy_consensus base",
+    "cpu": 8,
+    "memory": 14336,
+    "timeout": 300
+  },
+  {
+    "name": "pair-firewall",
+    "cmd": "bash research/track-m/compare-main.sh firewall cand",
+    "cpu": 8,
+    "memory": 14336,
+    "timeout": 300
+  },
+  {
+    "name": "pair-majorityset_leader_election",
+    "cmd": "bash research/track-m/compare-main.sh majorityset_leader_election base",
+    "cpu": 8,
+    "memory": 14336,
+    "timeout": 300
+  },
+  {
+    "name": "pair-consensus_epr",
+    "cmd": "bash research/track-m/compare-main.sh consensus_epr cand",
+    "cpu": 8,
+    "memory": 14336,
+    "timeout": 300
+  },
+  {
+    "name": "pair-learning_switch",
+    "cmd": "bash research/track-m/compare-main.sh learning_switch base",
+    "cpu": 8,
+    "memory": 14336,
+    "timeout": 300
+  },
+  {
+    "name": "pair-learning_switch_i4",
+    "cmd": "bash research/track-m/compare-main.sh learning_switch_i4 cand",
+    "cpu": 8,
+    "memory": 14336,
+    "timeout": 300
+  },
+  {
+    "name": "pair-paxos_epr",
+    "cmd": "bash research/track-m/compare-main.sh paxos_epr base",
+    "cpu": 8,
+    "memory": 14336,
+    "timeout": 300
+  },
+  {
+    "name": "pair-mldr",
+    "cmd": "bash research/track-m/compare-main.sh mldr cand",
+    "cpu": 8,
+    "memory": 14336,
+    "timeout": 300
+  }
+]

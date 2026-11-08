@@ -1,0 +1,30 @@
+[
+  {
+    "name": "boundary-72f0fe4d",
+    "cmd": "bash research/track-m/paxos-revision.sh 6a3874d3 72f0fe4d 6a3874d3",
+    "cpu": 8,
+    "memory": 14336,
+    "timeout": 240
+  },
+  {
+    "name": "boundary-616b0c9c",
+    "cmd": "bash research/track-m/paxos-revision.sh 6a3874d3 616b0c9c 6a3874d3",
+    "cpu": 8,
+    "memory": 14336,
+    "timeout": 240
+  },
+  {
+    "name": "boundary-37d6319f",
+    "cmd": "bash research/track-m/paxos-revision.sh 6a3874d3 37d6319f 6a3874d3",
+    "cpu": 8,
+    "memory": 14336,
+    "timeout": 240
+  },
+  {
+    "name": "boundary-00070df4",
+    "cmd": "bash research/track-m/paxos-revision.sh 6a3874d3 00070df4 6a3874d3",
+    "cpu": 8,
+    "memory": 14336,
+    "timeout": 240
+  }
+]

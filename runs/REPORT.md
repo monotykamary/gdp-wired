@@ -2894,3 +2894,164 @@ remains **2/5** and the all-laws-kept / strict 3×60-second gates remain
 The validated source-context and weighted-retention implementations are now
 committed as `67110163` and `0813bfb3`. The earlier rejected whole-hypothesis
 cache remains only an archived experiment. Generation source is unchanged.
+
+## Paxos regression correction — baseline invalidation
+
+The coordinator independently verifies **main `6a3874d3` proves `paxos_epr`
+3/3** under the original strict 60-second harness. My previous paired gates
+used a flag-disabled **Track M** checkout as their baseline and a four-CPU
+restriction. They only established equivalence within Track M; they did **not**
+establish conservation against approved main. The 27/29 claim therefore hid a
+real loss relative to main's 28/29. Those historical results remain above, but
+their use as a merge/no-regression gate is **withdrawn**.
+
+New optimization work is stopped. The regression is being bisected using
+source snapshots from main, the `rebase-paxos-v1` checkpoint, the Track K merge,
+and the current branch. Each revision runs the unchanged original command
+`run.ts --ms 60000 --only paxos_epr --skip broken`, under outer `timeout 60s`,
+with an exclusive large **8-vCPU** VM, an eight-vCPU / 14 GiB request and
+**no extra four-CPU affinity**. Two scheduler submissions remained unplaced
+(all compatible warm VMs reported fully occupied); both were explicitly
+closed and are not measurements. The runner maps the eight-vCPU request to
+four scheduler slots. A temporary four-vCPU request with the same memory
+also mapped to four slots; it was not a CPU-affinity experiment. The supported
+`SUPERCOMPUTER_SCHEDULER=0` dedicated-VM runner is used to obtain the required
+placement without changing or killing other clients’ work. The initial
+`55b5846a` hypothesis was rejected by the executed replay: it still proves
+Paxos. The narrowed adjacent boundary is recorded below.
+
+All future paired gates use `research/track-m/compare-main.sh` and
+`jobs-paired-main.json`: the SHA-256-checked archived baseline is fixed to
+`6a3874d3`, not constructed by disabling candidate flags. CPU/memory requests
+match the original target harness. No further generation or proof-optimization
+change will precede the regression fix and its 3/3 confirmation.
+
+### Executed bisection and rejected prefix-only repair
+
+The normal scheduler became usable again. `paxos-bisect-seed-v5` and
+`paxos-bisect-narrow-v1` use exclusive **large**, 8-of-8 pinned vCPUs,
+`Cpus_allowed_list=0-7`, no co-tenants, and no extra `taskset`. Each historical
+revision is recreated from a `git archive 6a3874d3` plus an exact binary diff
+(excluding reports). Main controls run in the same job/VM before and after
+historical revisions. Hardware varies between EPYC 9455 and Ryzen 9950X;
+only same-job comparisons are interpreted as paired timings.
+
+| Revision | Strict outcome | Harness wall s |
+| --- | --- | ---: |
+| `d1061c8d` — last recorded good checkpoint | proven / checked | 21.614 |
+| `23543462` | proven / checked | 18.550 |
+| `55b5846a` — finite recovery enabled | proven / checked | 20.646 |
+| **`72f0fe4d` — immediate parent** | **proven / checked** | **20.292** |
+| **`616b0c9c` — guarded production recovery** | **timeout / no proof** | **60 s outer cap** |
+| `37d6319f` | timeout / no proof | 60 s outer cap |
+| `00070df4` | unknown (`time`) | 56.054 |
+| `41b97e31` | unknown (`time`) | 58.696 |
+| `a374d8f2` — Track K merge | unknown (`time`) | 56.279 |
+
+Thus the first bad adjacent commit is **`616b0c9c`**, not the later cache
+changes, the Track K merge, or `55b5846a`. Its parent is `72f0fe4d`. This commit
+is below `3394e14c`; the generation lane was notified via `hc send t5r`.
+Three-repeat confirmation (`paxos-repair-v1/boundary-confirmation.log`)
+proves the parent **3/3**, at 26.198/25.289/23.838 s, and returns unknown/time
+for the child **0/3**, at 52.082/53.045/57.816 s. Its same-VM main controls
+prove 3/3 at 21.467/22.707/20.881 s.
+
+The direct main/current comparison in `seed-v5/current-v-main.log` is:
+
+| Side | Strict proved runs | Harness wall s |
+| --- | ---: | --- |
+| Main `6a3874d3` | **3/3** | 22.397, 21.991, 21.420 |
+| Track M `844a1baf` | **0/3** (three `unknown/time`) | 55.298, 56.101, 55.561 |
+
+The current-side runs consume the same 15,001,410 full-work units each and
+retain 74 found candidates; main closes with 1,135,224 full-work units and 25
+found laws. Earlier timeouts remain failures, not budget extensions.
+
+The exact two-file **`f51e8996`** change was applied only to a disposable
+`844a1baf` snapshot. Main passed 3/3 on that same VM (18.633, 17.520, 20.379 s),
+but the candidate returned **unknown/time at 45.437 s** and 15,001,829 full-work
+units. Its strict job stops on this first failed repeat; it is **not** a 3/3
+pass, and the patch was not merged. This preservation of the old witness prefix
+alone does not repair the regression on current Track M.
+
+### Ordinary-first repair under validation
+
+`616b0c9c` made the previously bounded early recovery substantially stronger:
+field/guard/row search now runs before the existing ordinary attempt, including
+on the support goals Paxos already proves. The repair keeps those generic,
+default-on derivations, but registers them as a deferred fallback. The ordinary
+attempt gets its original share first; only an unsuccessful result with time
+left may invoke the latest warmed recovery proposal. Both fallback sites are
+clamped to the **same original attempt deadline** and the existing 5,000-ms
+recovery cap. No new time slice, trusted rule, law, generator or protocol-name
+exception is introduced.
+
+`paxos-repair-v1` jointly checks: main/repair Paxos 3/3; parent/bad-commit 3×;
+all kernel/production recovery and support tests; type/lint; and the two already
+proved MLDR laws against `844a1baf`, including wall times. The MLDR job also
+exercises `countedAttempts` separately from the direct `proveFocusedCounts`
+entry: an unchanged direct helper is not treated as evidence that the changed
+ordinary scheduling route closes. **Results are pending; no repair acceptance
+or extra MLDR proof is claimed here.**
+
+#### Joint repair result and remaining Paxos margin
+
+`paxos-repair-v1`: all six scheduling regressions are included in **379 passing
+kernel/recovery tests (2,308,615 assertions)**; **67 support tests (1,071
+assertions)** also pass. TypeScript and type-aware lint report zero warnings or
+errors across 1,100 files. The joint strict proof gate passes:
+
+| Check / entry | Baseline | Deferred recovery | Proof status |
+| --- | --- | --- | --- |
+| Paxos vs main, three strict runs, harness wall s | 23.075 / 23.908 / 23.028 | 32.034 / 28.171 / 25.871 | **3/3 checked on both sides** |
+| MLDR one primary, ordinary attempt, wall s | 3.350 | 3.439 | **checked on both sides** |
+| MLDR Inv3915, ordinary attempt, wall s | 3.000 | 3.822 | **checked on both sides** |
+| MLDR one primary, direct focused entry, wall s | 3.912 | 2.910 | **checked on both sides** |
+| MLDR Inv3915, direct focused entry, wall s | 3.407 | 3.383 | **checked on both sides** |
+
+The MLDR baseline here is the pre-fix `844a1baf` fixed-family fixture, not a
+replacement for the mandatory main baseline in protocol gates. Both ordinary
+routes get the same original 5,000-counted-ms allowance. Deferral adds **0.911 s**
+to their two-law total in this pair (6.350 → 7.261 s); counted work increases
+947.682 → 1,190.593 ms and 856.118 → 1,171.215 ms. The direct focused work stays
+identical. No direct-entry wall improvement is claimed from this one ordered
+pair, and no new MLDR law closes.
+
+**Paxos speed remains open.** The repair is **25.871–32.034 s versus main's
+23.028–23.908 s on the same VM**: about **+3 to +9 s**, mean **+5.355 s**. This
+restores correctness but does not pass the speed question. That residual cost
+consumes margin that the shared solver and MLDR still need; it is not hidden by
+the recovered 3/3 verdict. The next acceptance check is the full IC3Syn **29×3**
+comparison against main `6a3874d3`, with the same strict placement.
+
+#### Reproduction and remaining gates
+
+`research/track-m/prepare-paxos-revisions.sh` creates the fixed-main archive,
+its checksum and exact source patches. For example:
+
+```sh
+bash research/track-m/prepare-paxos-revisions.sh runs/track-m/replay-paxos \
+  d1061c8d 23543462 55b5846a 72f0fe4d 616b0c9c 37d6319f 00070df4 \
+  41b97e31 a374d8f2 844a1baf 844a1baf-deferred=f525d951
+supercomputer run --jobs research/track-m/jobs-paxos-repair.json \
+  --out runs/track-m/replay-repair --class gate --vm-type large --timing \
+  --data runs/track-m/replay-paxos:bisect-input \
+  --data runs/track-m/canonical-capture-v1/fixtures:replay-input
+supercomputer run --jobs research/track-m/jobs-paired-main-3x.json \
+  --out runs/track-m/replay-main-3x --class gate --vm-type large --timing \
+  --data runs/track-m/replay-paxos:baseline-input
+bun research/track-m/score-main-pairs.ts runs/track-m/replay-main-3x \
+  research/track-m/jobs-paired-main-3x.json runs/track-m/replay-main-3x/score.json
+```
+
+The last command is a small log scorer, not a proof run. It rejects wrong/missing
+baselines, incomplete phases, non-exclusive or non-eight-vCPU placements, and
+anything other than 29 protocols × 3 pairs. Outer timeouts override an emitted
+positive result; an unknown broken variant is never counted as a refutation.
+Five scorer regressions and the full type/lint check pass in `pair-audit-v1`.
+
+The committed repair is **`f525d951`**. Its 29×3 comparison is currently running
+in `paired-main-repair-3x-v1`; no result for that wider gate is yet claimed.
+Generation integration must wait for the generation lane's repaired-source
+gates. The hard MLDR gate remains **2/5**, and no all-laws-kept/3×60-second
+MLDR pass is claimed.
