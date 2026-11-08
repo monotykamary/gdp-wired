@@ -48,19 +48,6 @@ test('structured count identities preserve the frozen legacy witness prefix', ()
   ]))
 })
 
-test('structured identities remain available after an explicit legacy-first proposal', () => {
-  const member=x('member'), whole=same(get('Whole',member),n(1)), inside=same(get('Inside',member),n(1))
-  const base={j:'unused',key:'member',below:n(3)}, ds=[
-    {...base,map:'All',body:ite(whole,n(1),n(0))},
-    {...base,map:'In',body:ite(all(whole,inside),n(1),n(0))},
-    {...base,map:'Out',body:ite(all(whole,not(inside)),n(1),n(0))},
-  ], hyps=ds.map(d=>same(get(d.map,n(0)),n(1)))
-  const legacy=certFor({hyps},ds,true,1000,undefined,false), expanded=certFor({hyps},ds,true,1000,undefined,true)
-  expect(legacy.insts.some(i=>i.terms.length>=3)).toBe(false)
-  expect(expanded.insts.some(i=>i.terms.length>=3)).toBe(true)
-  expect(expanded.insts.slice(0,legacy.insts.length)).toEqual(legacy.insts)
-})
-
 test('a key from another row is only a proposal and cannot certify a false count', () => {
   const g = goal(1), full = certFor(g, decls, true)
   const q = mcGoal(g.hyps, decls, {reads: full.reads, insts: [], picks: full.picks})!

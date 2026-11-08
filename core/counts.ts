@@ -23,7 +23,7 @@ import {modelSequence} from '../kernel/model-sequence.ts'
 import {inferLaws} from './infer.ts'
 import {carryCandidates, scanPrefixes} from './carry.ts'
 import {relevantGoals, relevantLaws} from './relevance.ts'
-import {countPoolKey, countSignature, grammarPool, ids, instId, polaritySelection, readTuples, refinementSignature, reservationReadClosure, reservationState, reservePool, prepareSupport, smallSelection, sparseReadInstances, sourceContext, coarseContext, selectedCertificate, chosenView, candidateWork, stableState, UnsupportedCountProposal} from './count-support.ts'
+import {countPoolKey, countSignature, grammarPool, ids, polaritySelection, readTuples, refinementSignature, reservationReadClosure, reservationState, reservePool, prepareSupport, smallSelection, sparseReadInstances, sourceContext, coarseContext, selectedCertificate, chosenView, candidateWork, stableState, UnsupportedCountProposal} from './count-support.ts'
 import {fieldLaws} from './field-laws.ts'
 import {countsForReads, proposeCountFacts} from './count-facts.ts'
 import {proposeCountUnions} from './count-unions.ts'
@@ -419,6 +419,15 @@ export type Counted = {proven: boolean, laws: Law[], m: Machine, proof?: {instan
 // search is bounded by its own count of steps, on neither clock, and took 3.6 to 5.2 s of an 8 s budget's 16 s wall on
 // a boat VM (exists.test.ts's two counts), so a shared VM crossed the wall before the search began and left every goal
 // unknown (2 runs in 4 on main; 4 in 4 beside three busy loops).
+// The ordinary family gets its complete existing path first. Structured
+// witness families are retried only after failure, under the same absolute
+// deadline and counted fuel; no generated family is removed.
+function structuredFallback(until: number, attempt: (structured: boolean) => Counted): Counted {
+  const ordinary = attempt(false)
+  if (ordinary.proven || clock() >= until) return ordinary
+  countsDump.on?.({phase: 'structured-family-expansion'})
+  return attempt(true)
+}
 export function searchCounted(m0: Machine, caller: Law[], ms = 60_000): Counted {
   const g = guardLaws(m0), m: Machine = {...m0, counts: {...m0.counts, ...g.counts}}
   ptime('small', () => smallOf(m))
@@ -438,16 +447,22 @@ function searchCounted0(m0: Machine, g: ReturnType<typeof guardLaws>, m: Machine
   let set = env.GDP_COUNTS_GIVEN === '1' ? [...caller] : [...caller, ...candidates(m0, m, caller, caller, g.laws, ms, until, support)]
   countsDump.on?.({phase: 'candidates', machine: m, laws: set})
   if (env.GDP_COUNTS_TRACE) console.error(`counts: candidates at ${Math.round(clock() - t1)} ms: ${set.map(l => l.name).join('; ')}`)
-  const context=countSupportContext(m,caller,set,support),result=admitCountedFamily(m,caller,context.laws,context.support,until)
-  // Primitive proposals can widen a failed baseline search, never replace its first attempt.
-  return result.proven||context.laws.length===set.length||clock()>=until?result:admitCountedFamily(m,caller,set,context.support,until)
+  const context=countSupportContext(m,caller,set,support)
+  return structuredFallback(until, structured => {
+    const result=admitCountedFamilyOnce(m,caller,context.laws,context.support,until,structured)
+    // Preserve full-context fallback before trying extra witness families.
+    return result.proven||context.laws.length===set.length||clock()>=until?result:admitCountedFamilyOnce(m,caller,set,context.support,until,structured)
+  })
 }
 
 // Candidate scheduling only. Every returned family still goes through finish.
 export function admitCountedFamily(m:Machine,caller:Law[],initial:Law[],support:Set<Law>,until:number):Counted {
+  return structuredFallback(until, structured => admitCountedFamilyOnce(m,caller,initial,support,until,structured))
+}
+function admitCountedFamilyOnce(m:Machine,caller:Law[],initial:Law[],support:Set<Law>,until:number,structured:boolean):Counted {
   if(!caller.every(l=>initial.includes(l)))return {proven:false,laws:initial,m,why:'missing caller'}
   let set=initial.slice()
-  const attempts = countedAttempts(m, caller, support, until), traced = attempts.traced
+  const attempts = countedAttempts(m, caller, support, until, structured), traced = attempts.traced
   const isCount = (mp: string) => !!m.counts?.[mp]
   // Prove the proposed set together. A preliminary cone reproved many helpers in
   // several smaller contexts before asking these same induction goals. Houdini
@@ -561,7 +576,7 @@ type Proof = {instances: Instances, certs: Record<string, CountCert>}
 // The production attempt also serves the fixed-family research replay. Candidate
 // generation and scheduling stay outside; inference, selection, reservation and
 // all budget checks have exactly one implementation.
-export function countedAttempts(m: Machine, caller: Law[], support: Set<Law>, until: number) {
+export function countedAttempts(m: Machine, caller: Law[], support: Set<Law>, until: number, structured = true) {
   // (the law's own names and the request's values that key a map: an action's value keys none)
   const keys0 = [...[...reads([m.step, m.assume ?? null], () => true).values()].map(([, key]) => key), ...Object.values(m.step.maps ?? {}).flatMap(w => ('each' in w ? [] : [w.key]))]
   const keyed = m.inputs.filter(i => keys0.some(key => mentions(key, i))).map(v)
@@ -589,14 +604,11 @@ export function countedAttempts(m: Machine, caller: Law[], support: Set<Law>, un
     const attemptEnd = Math.min(until,clock()+ms)
     const ts = terms(law), id = `${pass} ${law.name}`, cti = models.get(id)
     const supported = ls.some(l => support.has(l)), modelLaws = supportOrder(ls, caller, support, true)
-    let structured = false
     // Start bounded field/row recovery before a growing model-instantiation
     // context consumes the law's share. Finite-input recovery is the default; it returns only
     // ordinary certificates accepted by the same final checkCountedLaws gate.
     if (!pass && focusEnabled && m.inputMaps?.length && !reads(law.holds, isCount).size) {
-      const focusEnd = Math.min(until, clock() + Math.min(ms, 5000))
-      const focus = (extra: boolean) => ptime('focused', () => proveFocusedCounts(m, ls, law, {}, focusEnd, (g, ds) => certFor(g, ds, true, pool, undefined, extra)))
-      const focused = focus(false) ?? (clock() < focusEnd ? focus(true) : undefined)
+      const focused = ptime('focused', () => proveFocusedCounts(m, ls, law, {}, Math.min(until, clock() + Math.min(ms, 5000)), (g, ds) => certFor(g, ds, true, pool, undefined, structured)))
       if (focused) return {proof: focused}
     }
     // (the model broken: the attempt starts at the instances it asks for, its last attempt's and the tuples the new laws
@@ -633,7 +645,6 @@ export function countedAttempts(m: Machine, caller: Law[], support: Set<Law>, un
     type Selection = {chosen: Set<string>, cap: number, previous: Pick<CountCert, 'reads' | 'insts' | 'picks'>, decls: Parameters<typeof certFor>[1], reserve: ReturnType<typeof reservationState>, stable: ReturnType<typeof stableState>}
     const selections = new Map<string, Selection>()
     const poolCache = new Map<string, {key: string, value: ReturnType<typeof grammarPool>}>()
-    const legacyEntries = new Map<string, Set<string>>()
     const rawBuild = () => obligations(at).map(({goal, decls}) => {
       if (pass && supported && lazyMode === 'wide') {
         if (generation.state.deadline || performance.now() >= wallAt()) throw new UnsupportedCountProposal('reservation deadline')
@@ -643,27 +654,14 @@ export function countedAttempts(m: Machine, caller: Law[], support: Set<Law>, un
         // the proposal pool while only those instances grow; retained picks
         // are still reified against this goal, and additional picks may wait
         // for failure-driven widening. This caches proposals, never a proof.
-        const key = `${Number(structured)}:${countPoolKey(goal, decls)}`
+        const key = countPoolKey(goal, decls)
         const cached = poolCache.get(goal.name)
         const pool0 = cached?.key === key ? cached.value : grammarPool(goal, decls, pool, generation, structured)
         if (cached?.key !== key) poolCache.set(goal.name, {key, value: pool0})
         if (!selection) {
-          let pick = readTuples(goal.hyps.at(-1), generation.tick).some(([mp]) => mp.endsWith('#') && decls.some(d => d.map === mp))
+          const pick = readTuples(goal.hyps.at(-1), generation.tick).some(([mp]) => mp.endsWith('#') && decls.some(d => d.map === mp))
             ? polaritySelection(goal, decls, pool0, generation, sourceMaps).pick
             : smallSelection(goal, decls, pool0.full, readTuples(law.holds, generation.tick).map(([, key]) => key), none, generation)
-          if (structured) {
-            // A full ordinary selection must not hide the newly requested
-            // family behind its cap again. Seed fresh, small identities at
-            // the root first, within the existing three-read reservation
-            // width; all ordinary candidates remain in the pool.
-            const prior = legacyEntries.get(goal.name) ?? new Set<string>()
-            const root = new Set([...reads(goal.hyps.at(-1), () => true, new Map(), generation.tick).values()].map(json))
-            const byRead = new Map(pool0.full.reads.map(r => [r[0], r]))
-            const score = (i: CountInst) => i.terms.filter(([, id]) => root.has(json(byRead.get(id)?.slice(1)))).length
-            const fresh = pool0.full.insts.filter(i => i.terms.length <= 3 && !prior.has('i' + instId(i, pool0.full.reads))).sort((a, b) => score(b) - score(a))
-            const seen = new Set<string>()
-            pick = {...pick, insts: [...fresh, ...pick.insts].filter(i => { const id = instId(i, pool0.full.reads); return !seen.has(id) && !!seen.add(id) }).slice(0, 10), picks: []}
-          }
           selection = {chosen: new Set(ids(pick)), cap: Math.min(10, pick.insts.length + 2), previous: pick, decls, reserve: reservationState(goal, [m, ls, goal], pool), stable: stableState([m, ls, goal])}
           selections.set(goal.name, selection)
         }
@@ -734,19 +732,6 @@ export function countedAttempts(m: Machine, caller: Law[], support: Set<Law>, un
       decisions.set(id, (decideStep = modelSequence()))
     }
     const t0 = clock(), more = () => clock() - t0 <= Math.max(ms, 1_000)
-    // Try the established pool first. A failed counted attempt may expand to
-    // structured partitions/unions once, inside the same attempt and budgets.
-    // This defers candidate work, not a generator or a checker obligation.
-    const expandStructured = () => {
-      if (!pass || structured || !built.some(b => b.c.reads.length) || !more()) return false
-      structured = true; wide = true; widened.add(law.name)
-      for (const [name, cached] of poolCache) legacyEntries.set(name, new Set(ids(cached.value.full)))
-      selections.clear(); chosen.clear()
-      tally('#structured')
-      countsDump.on?.({law: law.name, pass, phase: 'structured-expansion'})
-      built = build()
-      return true
-    }
     // The step goal decided first by the CDCL search for a model (its phases the simplex's point: a model is met where the
     // tree search would split on), within 2·ms (5 s at most):
     //   - refuted: the law's instances cut to those its core reads, and the core's hypotheses grown on their own first,
@@ -801,7 +786,6 @@ export function countedAttempts(m: Machine, caller: Law[], support: Set<Law>, un
         if (!asked) {
           if (countsDump.on && pass && dumped < Number(env.GDP_COUNTS_DUMP_N ?? 3)) { dumped++; countsDump.on({law: law.name, goal: step.goal.name, ls: ls.map(l => l.name), stuck: 'sat', witness: q.witness, reads: step.c.reads, insts: step.c.insts, hyps: step.gg.hyps, base: step.goal, decls: step.decls, cert: step.c, at, laws: ls, wide, pass}) }
           if (pass && !wide && houdini && 'loose' in step.c && (step.c.loose || isCaller) && more()) { wide = true; widened.add(law.name); built = build(); continue }
-          if (expandStructured()) continue
           return refuted(step.gg, q.witness)
         }
         at = asked
@@ -833,14 +817,8 @@ export function countedAttempts(m: Machine, caller: Law[], support: Set<Law>, un
           if (asked || lz) { if (asked) at = asked; built = build(); again = true; break }
         }
         if (gg && o && !('tree' in o) && o.stuck === 'sat' && o.witness && gg === built.at(-1)!.gg && pass && !wide && houdini && 'loose' in c && (c.loose || isCaller) && more()) { wide = true; widened.add(law.name); built = build(); again = true; break }
-        if (gg && o && !('tree' in o) && o.stuck === 'sat' && o.witness && gg === built.at(-1)!.gg) {
-          if (expandStructured()) { again = true; break }
-          return refuted(gg, o.witness)
-        }
-        if (!o || !('tree' in o)) {
-          if (expandStructured()) { again = true; break }
-          return {stuck: gg ? (o as {stuck?: string}).stuck ?? '' : ''}
-        }
+        if (gg && o && !('tree' in o) && o.stuck === 'sat' && o.witness && gg === built.at(-1)!.gg) return refuted(gg, o.witness)
+        if (!o || !('tree' in o)) return {stuck: gg ? (o as {stuck?: string}).stuck ?? '' : ''}
         certs[goal.name] = {reads: c.reads, insts: c.insts, tree: o.tree, ...('picks' in c && c.picks.length ? {picks: c.picks} : {})}
       }
       if (!again) return {proof: {instances: at, certs}}
