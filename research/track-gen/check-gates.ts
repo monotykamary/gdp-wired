@@ -1,8 +1,8 @@
 // Parse full receipts, not scheduler success. A timeout is never a proof.
 import {readFileSync,readdirSync,writeFileSync} from 'node:fs'
-const root=process.argv[2]??'runs/track-gen-gates-v3',errors:string[]=[]
+const root=process.argv[2]??'runs/track-gen-gates-v4',errors:string[]=[]
 type Result={exit?:number,row?:{id:string,error?:string,search?:{verdict:string,ms:number},broken?:{verdict:string}}}
-const logs=(path:string)=>readdirSync(path).filter(p=>p.endsWith('.log')).sort()
+const logs=(path:string)=>readdirSync(path,{recursive:true}).map(String).filter(p=>p.endsWith('.log')).sort()
 const lines=(path:string)=>readFileSync(path,'utf8').split('\n')
 const proved=(r:Result)=>r.exit===0&&r.row?.search?.verdict==='proven'&&r.row.search.ms<=60000
 function pairs(suite:string,expected:number){

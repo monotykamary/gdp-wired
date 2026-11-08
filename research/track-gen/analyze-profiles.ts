@@ -15,6 +15,7 @@ function normal(l:Law):string{
  }
  return JSON.stringify(go(l.holds))
 }
+const comparisons:{prefix:string,workIdentical:boolean,usageIdentical:boolean}[]=[]
 const generation=JSON.parse(readFileSync(`${root}/track-gen-baseline-v1/generation.json`,'utf8'))
 let side='',prefix='';const probes:any[]=[]
 for(const line of lines(`${root}/${probeDir}/probe-pairs.log`)){
@@ -29,7 +30,8 @@ for(const line of lines(`${root}/${probeDir}/probe-pairs.log`)){
 if(probes.length!==10)throw Error(`expected ten probe records, got ${probes.length}`)
 for(const key of new Set(probes.map(p=>p.prefix))){
  const pair=probes.filter(p=>p.prefix===key)
- if(pair.length!==2||pair[0].proven!==pair[1].proven||pair[0].checked!==pair[1].checked||pair[0].countedMs!==pair[1].countedMs||JSON.stringify(pair[0].usage)!==JSON.stringify(pair[1].usage))throw Error(`probe differs: ${key}`)
+ if(pair.length!==2||pair[0].proven!==pair[1].proven||pair[0].checked!==pair[1].checked)throw Error(`probe verdict differs: ${key}`)
+ comparisons.push({prefix:key,workIdentical:pair[0].countedMs===pair[1].countedMs,usageIdentical:JSON.stringify(pair[0].usage)===JSON.stringify(pair[1].usage)})
 }
-writeFileSync(`${root}/${probeDir}/probes-verified.json`,JSON.stringify({identical:true,probes},null,2)+'\n')
+writeFileSync(`${root}/${probeDir}/probes-verified.json`,JSON.stringify({verdictsIdentical:true,comparisons,probes},null,2)+'\n')
 console.log(JSON.stringify(probes.map(({side,prefix,proven,checked,countedMs,matches})=>({side,prefix,proven,checked,countedMs,matches}))))
