@@ -1,0 +1,16 @@
+[
+  {
+    "name": "reconfig",
+    "cmd": "set -e; echo installing; bun install --frozen-lockfile >/dev/null; echo installed; sha256sum research/track-m/count-case-replay.ts research/track-m/field-bound-lemmas.ts; LAB_REQUEST_FRAMES=1 LAB_NAT_CASES=1 LAB_THIN_FIELD_CONTEXT=1 LAB_TREE_AUDIT=1 LAB_REQUEST_DIAGONALS=1 LAB_GUARD_CASES=1 LAB_GUARD_PATH=1 LAB_POST_SUBSETS=1 LAB_ROW_SPLIT=1 LAB_PROGRESS=1 LAB_SATURATE=1 LAB_COUNT_LEMMAS=1 LAB_SYMBOLIC_OVERLAP=1 LAB_ALGEBRAIC=1 LAB_BOUND_QUERY_MS=200 LAB_WALL_MS=60000 LAB_CASE=5 LAB_ALL_CARRIED=1 LAB_DECIDE_MS=200 LAB_ALL_MODELS=1 LAB_GROW_CERT=1 LAB_GROW_ALGEBRAIC=1 LAB_FRAME_COUNTS=1 LAB_AT_POINT=1 LAB_CASE_REFINE=1 LAB_FOCUS_COLD=1 bun research/track-m/count-case-replay.ts replay-input/quorum.json replay-input/input.json",
+    "cpu": 4,
+    "memory": 8000,
+    "timeout": 120
+  },
+  {
+    "name": "leader",
+    "cmd": "set -e; echo installing; bun install --frozen-lockfile >/dev/null; echo installed; sha256sum research/track-m/count-case-replay.ts research/track-m/field-bound-lemmas.ts; LAB_NAT_CASES=1 LAB_THIN_FIELD_CONTEXT=1 LAB_TREE_AUDIT=1 LAB_REQUEST_DIAGONALS=1 LAB_GUARD_CASES=1 LAB_GUARD_PATH=1 LAB_POST_SUBSETS=1 LAB_ROW_SPLIT=1 LAB_PROGRESS=1 LAB_SATURATE=1 LAB_COUNT_LEMMAS=1 LAB_SYMBOLIC_OVERLAP=1 LAB_ALGEBRAIC=1 LAB_BOUND_QUERY_MS=200 LAB_WALL_MS=60000 LAB_CASE=4 LAB_DECIDE_MS=200 LAB_ALL_MODELS=1 LAB_GROW_CERT=1 LAB_GROW_ALGEBRAIC=1 LAB_FRAME_COUNTS=1 LAB_AT_POINT=1 LAB_CASE_REFINE=1 LAB_FOCUS_COLD=1 bun research/track-m/count-case-replay.ts replay-input/quorum.json replay-input/input.json",
+    "cpu": 4,
+    "memory": 8000,
+    "timeout": 120
+  }
+]

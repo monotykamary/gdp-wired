@@ -1064,3 +1064,43 @@ reservation and in the subsequent complete v2/v3/v4 checks. No timeout or proof
 budget was raised. Step 1, production generation, and the downstream gates
 remain open; the next work is the remaining count proof and its source-context
 cost.
+
+### Step 1b: smaller instance contexts close both hard action entries
+
+`LAB_THIN_FIELD_CONTEXT=1` omits initial non-count instances with additional
+quantifier keys and their field bridges for a count target. It does **not**
+remove any law from the hand set, add a premise, change the target, or prevent
+ordinary model-guided instantiation from recovering an omitted instance. It
+asks the prover to use less of the available precondition. The option is a
+research proposal strategy, not yet a production default.
+
+`thin-fields-v1` (isolated, pinned large, zero co-tenants) checks the encoded
+leader entry in **2,827 counted ms / 77,262 wall ms** and the encoded
+reconfiguration entry in **4,152 counted ms / 81,685 wall ms**. Both complete
+source guard trees check and the selected `branches` entry is true. No whole
+Inv* or hand-set certificate is claimed: each run selects one action, the
+symbolic overlap instance is still supplied by the diagnostic harness, and
+wall-time source checking remains too expensive.
+
+`remaining-cases-v1` surveys the other entries with the same context and fixed
+five-second allowance. Entries 2, 3, and the final unchanged-action remainder
+check (1,276 / 1,851 / 316 counted ms). Setup entries 0 and 1 and the send entry
+6 remain open at the allowance. Together with `thin-fields-v1`, five of eight
+entries have checked encoded trees; these are separate replays, not a combined
+certificate. The setup countermodel keeps both the target config term and the
+actor term at zero, suggesting that the singleton empty-post-count witness
+already in the certificate must be used; the current field helper filters
+those singleton witnesses out.
+
+`one-row-v1` shows that dropping the secondary-key split alone does not prove
+reconfiguration. `field-frames-v1` and `folded-frames-v1` add checked-proposal
+attempts for an unchanged target field, but still fail to close that broader
+row branch. Those options remain diagnostic and disabled by default. Three
+regressions test frame candidate selection, the valid equality case without
+fixing the target key, and rejection when the supporting equality is absent.
+
+`thin-fields-checks-v1`: **239 Track M tests plus 67 Track P tests pass**;
+TypeScript/type-aware lint reports zero warnings/errors on 1,020 files. The
+latest Section 1.5 confirms no design falsifier: P* and the bounded induction
+checks still support I-A. Step 1 remains the gate; no later candidate family
+or downstream merge gate is claimed complete.

@@ -14,6 +14,7 @@ import {proveRowCases,rowPairs} from './row-cases.ts'
 import {proveNaturalCases} from './natural-cases.ts'
 import {activeCarried} from './action-guard.ts'
 import {diagnoseTree} from './tree-diagnosis.ts'
+import {fieldFrames} from './field-frames.ts'
 import {atPoint,clock,grow,rowsAt,widen,withDeadline} from '../../kernel/prove.ts'
 import {modelSequence} from '../../kernel/model-sequence.ts'
 import {REFUTED} from '../../kernel/cdcl.ts'
@@ -58,7 +59,7 @@ export function fieldBoundLemmas(m:Machine,ds:CountDecl[],g:Goal,cert:Proposal,u
  const seq=modelSequence(root),ctx:C[]=[],path:Path=new Map(root),lemmas:{split:Record<string,number>,no:Tree}[]=[]
  const accept=(tree:Tree|undefined,path:Path)=>tree&&(options.deferCheck||check(g,tree,path))?tree:undefined
  const verdict=(tree:Tree|undefined)=>({checked:!options.deferCheck&&!!tree,...(options.deferCheck?{proposed:!!tree,deferred:true}:{})})
- const rowPlan=options.splitRows!==false&&process.env.LAB_ROW_SPLIT==='1'?rowPairs(m,cert):[]
+ const rowPlan=options.splitRows!==false&&process.env.LAB_ROW_SPLIT==='1'?rowPairs(m,cert).slice(0,process.env.LAB_ROW_DEPTH==='1'?1:2):[]
  let arithmetic:Tree|undefined
  const postMaps=new Set(cert.reads.filter(r=>r[1].endsWith('#')).map(r=>r[1])),postIds=new Set(cert.reads.filter(r=>r[1].endsWith('#')).map(r=>r[0]))
  const base=g.hyps.slice(0,g.hyps.length-cert.insts.length).flatMap(c=>piecesAt(c,root)).filter(c=>{let post=false;walkLive(c,root,(o:any)=>{if(o.op==='get'&&postMaps.has(o.map)||o.op==='var'&&postIds.has(o.name))post=true});return !post})
@@ -159,6 +160,20 @@ export function fieldBoundLemmas(m:Machine,ds:CountDecl[],g:Goal,cert:Proposal,u
   const lifted=proof&&widen(part,g,proof,{},root,noPath),no=accept(lifted,noPath)
   trace.push({stage:'field-domain',domain,direct:direct?.kind==='refuted',ms:Math.round(clock()-start),...verdict(no)})
   if(no){lemmas.push({split,no});ctx.push(domain);path.set(canon(split),{lin:split,holds:true})}
+ }
+ if(process.env.LAB_FIELD_FRAMES==='1'){
+  const targets=ceilings.flatMap(good=>good.op==='<='&&good.a.op==='if'&&good.a.then.op==='get'&&good.a.then.key.op==='var'&&!m.inputs.includes(good.a.then.key.name)?[good.a.then]:[])
+  const bodies=[...cs].filter(([id])=>postIds.has(id)).map(([,c])=>c.body)
+  for(const pair of fieldFrames(bodies,targets,path))for(const [a,b]of [[pair.after,pair.before],[pair.before,pair.after]]){
+   const raw:C={op:'<=',a:a!,b:b!},good=process.env.LAB_FOLD_FIELD_FRAMES==='1'?foldPath({name:'frame expression',hyps:[raw]},path).goal.hyps[0]!:raw
+   if(good.op!=='<='||truth(good,path)===true||clock()>=until)continue
+   const left=linear(good.a,path),right=linear(good.b,path);if(!left||!right)continue
+   const split=sub(left,right),noPath=new Map(path).set(canon(split),{lin:split,holds:false}),begun=clock(),tiny={name:'field frame',hyps:[{op:'not' as const,x:good}]}
+   const tree=booleanCore(tiny,path,new Set(targets.flatMap(t=>t.op==='get'&&t.key.op==='var'?[t.key.name]:[])),Math.min(until,clock()+80),trace)
+   const lifted=tree&&widen(tiny,g,tree,{},path,noPath),no=accept(lifted,noPath)
+   trace.push({stage:'field-frame',cell:pair.before,ms:Math.round(clock()-begun),...verdict(no)})
+   if(no){lemmas.push({split,no});ctx.push(good);path.set(canon(split),{lin:split,holds:true})}
+  }
  }
  const activeCeilings=new Set(ceilings.flatMap(good=>good.op==='<='&&good.a.op==='if'&&truth(good.a.c,path)===true?[JSON.stringify([good.a.then,good.b])]:[]))
  for(const good of ceilings){

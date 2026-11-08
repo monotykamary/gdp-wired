@@ -31,9 +31,16 @@ for(const [name,values] of Object.entries(d.at) as [string,E[]][]){const n=1+(la
 if(process.env.LAB_FOCUS_COLD==='1')at={}
 const names=[law.forall,...law.keys??[]],own:E[]=[x(`${law.forall}#`),...(law.keys??[]).map(x)],scalar=rowKeyNames(m,law)
 let countedTarget=false;walkOnce(law.holds,(o:any)=>{if(o.op==='get'&&m.counts[o.map])countedTarget=true})
+const thinFields=countedTarget&&process.env.LAB_THIN_FIELD_CONTEXT==='1',wideFields=new Set<string>()
+if(thinFields)for(const l of laws){
+ let count=false;walkOnce(l.holds,(o:any)=>{if(o.op==='get'&&m.counts[o.map])count=true})
+ if(!count&&(l.keys?.length??0)>0)wideFields.add(l.name)
+}
+const sourceLaws=thinFields?laws.filter((l:any)=>!wideFields.has(l.name)):laws
+if(thinFields)at=Object.fromEntries(Object.entries(at).filter(([name])=>!wideFields.has(name)))
 const rows=own.filter((_,i)=>scalar.has(names[i])),request:E[]=m.inputs.filter((name:string)=>Object.values(m.counts??{}).some((c:any)=>![c.j,c.lo,c.key].includes(name)&&JSON.stringify([c.below,c.body]).includes(`"name":${JSON.stringify(name)}`))).map(x)
 mark('seeding-instances')
-at=countLawSeeds(m,laws,at,rows.length?rows:own,request,!countedTarget,{requestDiagonals:process.env.LAB_REQUEST_DIAGONALS==='1'});at=fieldLawBridges(m,laws,at,rows.length?rows:own,request,own.length===3?own[2]:undefined);at[law.name]=[...at[law.name]??[],...own];at=countRowBridges(m,law,at,own,request)
+at=countLawSeeds(m,laws,at,rows.length?rows:own,request,!countedTarget,{requestDiagonals:process.env.LAB_REQUEST_DIAGONALS==='1'});at=fieldLawBridges(m,sourceLaws,at,rows.length?rows:own,request,own.length===3?own[2]:undefined);at[law.name]=[...at[law.name]??[],...own];at=countRowBridges(m,law,at,own,request)
 // Diagnostic only: the design also permits Ov_uw. Its numeric keys can be
 // instantiated by the actual excess-over-outside counts, not guessed halves.
 if(process.env.LAB_SYMBOLIC_OVERLAP==='1'){
@@ -61,7 +68,7 @@ mark('building-counted-goal')
 let goal:Goal={...mcGoal(base.goal.hyps,base.decls,cert)!,name:base.goal.name},plain=goal.hyps.slice(0,goal.hyps.length-cert.insts.length)
 mark('counted-goal-ready')
 const order=(hyps:C[]):C[]=>{if(process.env.LAB_CONCLUSION_LAST!=='1')return hyps;const i=hyps.indexOf(base.goal.hyps.at(-1)!);return i<0?hyps:[...hyps.slice(0,i),...hyps.slice(i+1),hyps[i]!] }
-const fieldLaws=laws.filter((l:any)=>{let count=false;walkOnce(l.holds,(o:any)=>{if(o.op==='get'&&m.counts[o.map])count=true});return !count})
+const fieldLaws=sourceLaws.filter((l:any)=>{let count=false;walkOnce(l.holds,(o:any)=>{if(o.op==='get'&&m.counts[o.map])count=true});return !count})
 const initialAt=at,allAt:Instances={...at},packetCache=new Map<string,{base:typeof base,goal:Goal,plain:C[]}>()
 packetCache.set(JSON.stringify(at),{base,goal,plain})
 const rebuild=()=>{
@@ -303,4 +310,4 @@ const result=withWall(start+Math.min(60000,Number(process.env.LAB_WALL_MS??10000
  return {complete:!!tree,branches:trees.map((t,i)=>!!t&&check(goal,t,branchRoots[i]!)),groundChecked:!!tree&&check(goal,tree),checked:!!tree&&checkMC(base.goal.hyps,base.decls,{...cert,tree})}
  })
 },true))
-console.log(JSON.stringify({file,law:law.name,diagnosticAssumptions:[...activation?['existing leader activation; no unrestricted proof unless rebase checks']:[],...process.env.LAB_ROW_CASE?['row-case assumptions; not an unrestricted proof']:[],...process.env.LAB_ACTIVE_ROW?['active action guard assumed for row diagnostic']:[]],...result,counted:Math.round((fullWork()-w)/fullRate),wall:Math.round(performance.now()-start),insts:cert.insts.length,trace,...(cores.length?{cores}:{})}))
+console.log(JSON.stringify({file,law:law.name,context:thinFields?'thin-field':'full',diagnosticAssumptions:[...activation?['existing leader activation; no unrestricted proof unless rebase checks']:[],...process.env.LAB_ROW_CASE?['row-case assumptions; not an unrestricted proof']:[],...process.env.LAB_ACTIVE_ROW?['active action guard assumed for row diagnostic']:[]],...result,counted:Math.round((fullWork()-w)/fullRate),wall:Math.round(performance.now()-start),insts:cert.insts.length,trace,...(cores.length?{cores}:{})}))
