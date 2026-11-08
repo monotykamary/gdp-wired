@@ -2058,3 +2058,61 @@ Point diagnostics use `research/track-m/jobs-point-source.json` with the same
 fixture mount. Full results, including failed intermediate attempts, remain
 under `runs/track-m/ordered-recovery-v{3,4,5,6,7,8,9,10,11}/` and
 `runs/track-m/ordered-point-source-v2/`.
+
+### Coordinator follow-up: untrusted mirrored rows and isolated Track K measurement
+
+#### First mirror replay
+
+`mirrored-rows-v1`, batch `20261108-130753-9a971s`, tree `04fba5ea8fca`,
+adds a pure untrusted column renamer and used-row matcher. A reused proof is
+emitted as an ordinary complete subtree; there is no kernel rule, symmetry
+axiom, protocol-name test, or opt-in flag. Renaming covers scalar variables,
+packed and tuple cells, conditional columns, squares and product references.
+An unmatched source row refuses the reuse.
+
+| Complete hand-set law | Proved / checked | Counted ms | In-process wall s |
+| --- | --- | ---: | ---: |
+| one primary per term | yes / yes | 2,314 | 4.932 |
+| Inv3915: primary newest | yes / yes | 1,936 | 5.215 |
+| Inv1758: row agreement | no / no | 5,014 | 10.148 |
+| Inv2973: quorum overlap | no / no | 5,001 | 28.182 |
+| Inv*: quorum term backing | no / no | 5,101 | 28.881 |
+
+The requested different/equal send row now reuses the equal/different
+subtree. The next failure is a later different/different ordering half;
+the next replay also attempts swapped histories within that case label.
+The 125 production tests pass, but the type check rejects the initial
+polynomial helper import (scalar `times` was used in place of polynomial
+`times`). The next snapshot uses the existing untrusted polynomial reader
+and adds a monomial regression. This validation failure is not hidden.
+
+#### Track K: measurement only, not integrated
+
+A throwaway branch, `research/track-m-kmeasure-0e9afc3d`, merges exactly
+`0e9afc3d` into Track M's `a75ebf56`. Merge commit `07cb2af7` resolves only
+report/shard-list conflicts using the Track M copies. Measurement-only
+instrumentation in `babcdb7a` counts calls and successful proposals and
+turns on the optional provenance hints together with
+`GDP_COUNT_LEMMA_CUTS=1`. No Track K commit is an ancestor of
+`claude/track-mldr`.
+
+Each pair runs off then on in separate Bun processes on the same pinned
+large VM (AMD EPYC 4585PX, four vCPUs, no co-tenants), three pairs per law.
+The measured emission result is **zero proposer calls and zero proposals
+in every run**: these focused probes stop before a complete certificate
+reaches the `core/counts.ts` admission hook. Therefore these measurements
+show **no observed saving attributable to lemma emission**. They do not
+measure the potential benefit of applying cuts to partial branch checks.
+
+| Law | Emission off wall s (three repeats) | Emission on wall s (three repeats) | Mean off / on s | Counted ms | Verdict, all runs |
+| --- | --- | --- | --- | ---: | --- |
+| Inv2973 | 38.123, 29.594, 48.838 | 37.632, 36.303, 39.865 | 38.852 / 37.933 | 5,001 | unproved / unchecked |
+| Inv* | 33.649, 31.109, 28.961 | 32.284, 29.490, 33.927 | 31.240 / 31.900 | 5,101 | unproved / unchecked |
+
+Evidence: `runs/track-m/kernel-pair-v1/` (batch
+`20261108-130637-npc9xy`, tree `8e625d61b85e`) and
+`runs/track-m/kernel-pair-supplement-v1/` (batch
+`20261108-131804-kyl88l`, tree `6b65f32f796c`), with placement files.
+The first Inv* log reached the 400,000-byte output cap after its second
+pair. Only the missing third pair was rerun, with trace-free output; no
+truncated record was treated as a complete measurement.
