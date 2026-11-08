@@ -34,6 +34,20 @@ test('the wide pool proposes a checked three-count partition identity', () => {
   if ('tree' in proof) expect(checkMC(hyps, ds, {...cert, tree: proof.tree})).toBe(true)
 })
 
+test('structured count identities preserve the frozen legacy witness prefix', () => {
+  const k=x('member'), a=same(get('Whole',k),n(1)), b=same(get('Inside',k),n(1)), base={j:'unused',key:'member',below:n(3)}
+  const ds=[{...base,map:'All',body:ite(a,n(1),n(0))},{...base,map:'In',body:ite(all(a,b),n(1),n(0))},
+    {...base,map:'Out',body:ite(all(a,not(b)),n(1),n(0))},{...base,map:'Fourth',body:ite(same(get('Flag',k),n(1)),n(1),n(0))}]
+  const hyps=ds.map(d=>same(get(d.map,n(0)),n(1))), cert=certFor({hyps},ds,true,16)
+  // These indices and units are frozen from the unextended legacy pool.
+  const meetings=[[0,1],[0,2],[0,3],[1,2],[1,3],[2,3]]
+  const differences=[[0,1],[0,2],[0,3],[1,0],[1,2],[1,3],[2,0],[2,1],[2,3],[3,0]]
+  expect(JSON.stringify(cert.insts.map(i=>[i.terms,i.unit]))).toBe(JSON.stringify([
+    ...meetings.map(([i,j])=>[[[1,`r$${i}`],[1,`r$${j}`]],-1]),
+    ...differences.map(([i,j])=>[[[1,`r$${i}`],[-1,`r$${j}`]],0]),
+  ]))
+})
+
 test('a key from another row is only a proposal and cannot certify a false count', () => {
   const g = goal(1), full = certFor(g, decls, true)
   const q = mcGoal(g.hyps, decls, {reads: full.reads, insts: [], picks: full.picks})!

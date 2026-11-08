@@ -224,22 +224,6 @@ export function certFor(goal: {hyps: C[]}, decls: {map: string, below: E, j: str
   }
   if (wide) {
     insts.splice(10); wits.splice(10)
-    // Reuse Boolean-region identities among the actual declared counts. They
-    // are ordinary witness certificates, not arithmetic assumptions. Preserve
-    // the narrow prefix and prioritize missing multi-count partitions before
-    // the generic pair pool; the existing cap and time budget are unchanged.
-    const cs = countsForReads(decls, named)
-    if (cs && tick()) {
-      const facts = proposeCountFacts(cs, goal, {maxFacts: Math.min(cap, 256), reserved: wits})
-      for (const q of facts.insts) {
-        if ((!!more && insts.length >= cap) || !tick()) break
-        if (q.terms.length >= 3) add(q.terms, q.unit, q.below)
-      }
-      const heads = named.filter(r => ranked(r)).sort((a, b) => Number(post(b)) - Number(post(a)))
-      const carried = named.filter(r => !post(r) && keyless(r[1]))
-      const pairs: [string, string][] = heads.flatMap(a => carried.filter(b => b !== a && bound(a) === bound(b)).map(b => [a[0], b[0]] as [string, string]))
-      for (const q of proposeCountUnions(cs, pairs, Math.min(cap, 128))) { if ((!!more && insts.length >= cap) || !tick()) break; add(q.terms, q.unit, q.below) }
-    }
     pairs: for (const a of named) for (const c of named) {
       if ((!!more && insts.length >= cap) || !tick()) break pairs
       if (a !== c && bound(a) === bound(c) && !(post(c) && !post(a))) add([[1, a[0]], [-1, c[0]]], 0, byMap.get(a[1])!.below)
@@ -252,6 +236,22 @@ export function certFor(goal: {hyps: C[]}, decls: {map: string, below: E, j: str
         if ((!!more && insts.length >= cap) || !tick()) break meets
         if (i < j && bound(a) === bound(c) && post(a) === post(c) && !had.has(json([[[1, a[0]], [1, c[0]]], -1]))) add([[1, a[0]], [1, c[0]]], -1, byMap.get(a[1])!.below)
       }
+    }
+    // Structured identities supplement the legacy pool; they must not displace
+    // its witness prefix at the same cap. Both generators still run, and every
+    // appended proposal is checked as an ordinary witness certificate.
+    // Do not construct a tail that the unchanged cap would immediately discard.
+    const cs = insts.length < cap ? countsForReads(decls, named) : undefined
+    if (cs && tick()) {
+      const facts = proposeCountFacts(cs, goal, {maxFacts: Math.min(cap, 256), reserved: wits})
+      for (const q of facts.insts) {
+        if ((!!more && insts.length >= cap) || !tick()) break
+        if (q.terms.length >= 3) add(q.terms, q.unit, q.below)
+      }
+      const heads = named.filter(r => ranked(r)).sort((a, b) => Number(post(b)) - Number(post(a)))
+      const carried = named.filter(r => !post(r) && keyless(r[1]))
+      const pairs: [string, string][] = heads.flatMap(a => carried.filter(b => b !== a && bound(a) === bound(b)).map(b => [a[0], b[0]] as [string, string]))
+      for (const q of proposeCountUnions(cs, pairs, Math.min(cap, 128))) { if ((!!more && insts.length >= cap) || !tick()) break; add(q.terms, q.unit, q.below) }
     }
   }
   const picks: [string, E[]][] = []
