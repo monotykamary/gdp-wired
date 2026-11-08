@@ -1,0 +1,1277 @@
+'Kern.keyArity_of_parts' depends on axioms: [propext]
+'Kern.sound' depends on axioms: [propext, Classical.choice, Quot.sound]
+'Kern.machine_sound' depends on axioms: [propext, Classical.choice, Quot.sound]
+'Kern.fold_sound' depends on axioms: [propext, Classical.choice, Quot.sound]
+'Kern.mmachine_sound' depends on axioms: [propext, Classical.choice, Quot.sound]
+'Kern.inline_evalC' depends on axioms: [propext]
+'Kern.fmachine_sound' depends on axioms: [propext, Classical.choice, Quot.sound]
+'Kern.fmmachine_sound' depends on axioms: [propext, Classical.choice, Quot.sound]
+'Kern.progress_sound' depends on axioms: [propext, Classical.choice, Quot.sound]
+'Kern.progress_reach' depends on axioms: [propext, Classical.choice, Quot.sound]
+'Kern.steplaw_sound' depends on axioms: [propext, Classical.choice, Quot.sound]
+'Kern.kstep_sound' depends on axioms: [propext, Classical.choice, Quot.sound]
+Sets.lean:109:16: warning: This simp argument is unused:
+  List.contains_iff_mem
+
+Hint: Omit it from the simp argument list.
+  [apply] simp [atKeys, h]
+
+Note: This linter can be disabled with `set_option linter.unusedSimpArgs false`
+Sets.lean:111:16: warning: This simp argument is unused:
+  List.contains_iff_mem
+
+Hint: Omit it from the simp argument list.
+  [apply] simp [atKeys, h]
+
+Note: This linter can be disabled with `set_option linter.unusedSimpArgs false`
+Sets.lean:274:12: warning: This simp argument is unused:
+  List.contains_iff_mem
+
+Hint: Omit it from the simp argument list.
+  [apply] simp [hv]
+
+Note: This linter can be disabled with `set_option linter.unusedSimpArgs false`
+Sets.lean:409:113: warning: This simp argument is unused:
+  false_or
+
+Hint: Omit it from the simp argument list.
+  [apply] simp only [SMachine.extVars, List.contains_iff_mem, List.mem_append, hvi, hvq, or_true, true_or, ite_true,
+    ite_false]
+
+Note: This linter can be disabled with `set_option linter.unusedSimpArgs false`
+Sets.lean:473:32: warning: `dif_pos` has been deprecated: Use `dite_eq_left` instead
+Sets.lean:443:46: warning: This simp argument is unused:
+  decide_eq_true_eq
+
+Hint: Omit it from the simp argument list.
+  [apply] simp only [evalC, evalE, Bool.or_eq_true]
+
+Note: This linter can be disabled with `set_option linter.unusedSimpArgs false`
+Sets.lean:451:46: warning: This simp argument is unused:
+  decide_eq_true_eq
+
+Hint: Omit it from the simp argument list.
+  [apply] simp only [evalC, evalE, Bool.or_eq_true, Bool.not_eq_true']
+
+Note: This linter can be disabled with `set_option linter.unusedSimpArgs false`
+Sets.lean:597:0: warning: automatically included section variable(s) unused in theorem `Kern.substR_evalC_on`:
+  hrd
+consider restructuring your `variable` declarations so that the variables are not in scope or explicitly omit them:
+  omit hrd in theorem ...
+
+Note: This linter can be disabled with `set_option linter.unusedSectionVars false`
+Sets.lean:714:41: warning: Variable name `hfz` is not explicitly referenced.
+
+Hint: The binding can be removed (if unused) or named `_` (if used implicitly). Alternatively, prefix the name with `_` to silence this warning:
+  [apply] _hfz
+
+Note: This linter can be disabled with `set_option linter.unusedVariables false`
+Sets.lean:714:81: warning: Variable name `hfav` is not explicitly referenced.
+
+Hint: The binding can be removed (if unused) or named `_` (if used implicitly). Alternatively, prefix the name with `_` to silence this warning:
+  [apply] _hfav
+
+Note: This linter can be disabled with `set_option linter.unusedVariables false`
+Sets.lean:738:82: warning: `if_false` has been deprecated: Use `ite_false` instead
+Sets.lean:844:10: warning: `if_neg` has been deprecated: Use `ite_eq_right` instead
+Sets.lean:812:5: warning: Variable name `hrk` is not explicitly referenced.
+
+Hint: The binding can be removed (if unused) or named `_` (if used implicitly). Alternatively, prefix the name with `_` to silence this warning:
+  [apply] _hrk
+
+Note: This linter can be disabled with `set_option linter.unusedVariables false`
+Sets.lean:967:20: warning: This simp argument is unused:
+  List.contains_iff_mem
+
+Hint: Omit it from the simp argument list.
+  [apply] simp [hx]
+
+Note: This linter can be disabled with `set_option linter.unusedSimpArgs false`
+Sets.lean:1089:35: warning: `if_neg` has been deprecated: Use `ite_eq_right` instead
+Sets.lean:1169:39: warning: `if_neg` has been deprecated: Use `ite_eq_right` instead
+Sets.lean:1184:21: warning: `if_false` has been deprecated: Use `ite_false` instead
+Sets.lean:1196:52: warning: `if_neg` has been deprecated: Use `ite_eq_right` instead
+Sets.lean:1198:43: warning: `if_neg` has been deprecated: Use `ite_eq_right` instead
+Sets.lean:1200:41: warning: `if_neg` has been deprecated: Use `ite_eq_right` instead
+Sets.lean:1230:37: warning: `if_true` has been deprecated: Use `ite_true` instead
+Sets.lean:1231:26: warning: `if_neg` has been deprecated: Use `ite_eq_right` instead
+Sets.lean:1234:27: warning: `if_false` has been deprecated: Use `ite_false` instead
+Sets.lean:1222:29: warning: This simp argument is unused:
+  hk
+
+Hint: Omit it from the simp argument list.
+  [apply] simp only [MLaw.Holds]
+
+Note: This linter can be disabled with `set_option linter.unusedSimpArgs false`
+Sets.lean:1272:35: warning: `if_true` has been deprecated: Use `ite_true` instead
+Sets.lean:1273:24: warning: `if_neg` has been deprecated: Use `ite_eq_right` instead
+Sets.lean:1276:25: warning: `if_false` has been deprecated: Use `ite_false` instead
+Sets.lean:1264:27: warning: This simp argument is unused:
+  hk
+
+Hint: Omit it from the simp argument list.
+  [apply] simp only [MLaw.Holds]
+
+Note: This linter can be disabled with `set_option linter.unusedSimpArgs false`
+Sets.lean:1335:35: warning: `if_neg` has been deprecated: Use `ite_eq_right` instead
+Sets.lean:1380:6: warning: Variable name `e` is not explicitly referenced.
+
+Hint: The binding can be removed (if unused) or named `_` (if used implicitly). Alternatively, prefix the name with `_` to silence this warning:
+  [apply] _e
+
+Note: This linter can be disabled with `set_option linter.unusedVariables false`
+Sets.lean:1380:11: warning: Variable name `k` is not explicitly referenced.
+
+Hint: The binding can be removed (if unused) or named `_` (if used implicitly). Alternatively, prefix the name with `_` to silence this warning:
+  [apply] _k
+
+Note: This linter can be disabled with `set_option linter.unusedVariables false`
+Sets.lean:1404:82: warning: `if_neg` has been deprecated: Use `ite_eq_right` instead
+Sets.lean:1406:82: warning: `if_neg` has been deprecated: Use `ite_eq_right` instead
+Sets.lean:1394:57: warning: This simp argument is unused:
+  List.mem_singleton
+
+Hint: Omit it from the simp argument list.
+  [apply] simp only [sStartGoal, List.mem_append, List.mem_cons, List.not_mem_nil, or_false] at hc
+
+Note: This linter can be disabled with `set_option linter.unusedSimpArgs false`
+Sets.lean:1439:51: warning: `if_neg` has been deprecated: Use `ite_eq_right` instead
+Sets.lean:1453:52: warning: `if_neg` has been deprecated: Use `ite_eq_right` instead
+Sets.lean:1454:53: warning: `if_neg` has been deprecated: Use `ite_eq_right` instead
+Sets.lean:1467:10: warning: `if_neg` has been deprecated: Use `ite_eq_right` instead
+Sets.lean:1468:22: warning: `if_neg` has been deprecated: Use `ite_eq_right` instead
+Sets.lean:1473:57: warning: `if_neg` has been deprecated: Use `ite_eq_right` instead
+Sets.lean:1473:132: warning: `if_neg` has been deprecated: Use `ite_eq_right` instead
+Sets.lean:1474:61: warning: `if_neg` has been deprecated: Use `ite_eq_right` instead
+Sets.lean:1477:57: warning: `if_neg` has been deprecated: Use `ite_eq_right` instead
+Sets.lean:1477:132: warning: `if_neg` has been deprecated: Use `ite_eq_right` instead
+Sets.lean:1478:61: warning: `if_neg` has been deprecated: Use `ite_eq_right` instead
+Sets.lean:1485:24: warning: `if_neg` has been deprecated: Use `ite_eq_right` instead
+Sets.lean:1489:52: warning: `if_neg` has been deprecated: Use `ite_eq_right` instead
+Sets.lean:1490:59: warning: `if_neg` has been deprecated: Use `ite_eq_right` instead
+Sets.lean:1508:75: warning: `if_neg` has been deprecated: Use `ite_eq_right` instead
+Sets.lean:1459:56: warning: This simp argument is unused:
+  List.mem_singleton
+
+Hint: Omit it from the simp argument list.
+  [apply] simp only [sStepGoal, List.mem_append, List.mem_cons, List.not_mem_nil, or_false, List.mem_map] at hc
+
+Note: This linter can be disabled with `set_option linter.unusedSimpArgs false`
+Sets.lean:1527:47: warning: `if_neg` has been deprecated: Use `ite_eq_right` instead
+Sets.lean:1531:47: warning: `if_neg` has been deprecated: Use `ite_eq_right` instead
+Sets.lean:1534:129: warning: `if_neg` has been deprecated: Use `ite_eq_right` instead
+Sets.lean:1570:28: warning: `if_neg` has been deprecated: Use `ite_eq_right` instead
+Sets.lean:1789:35: warning: `if_pos` has been deprecated: Use `ite_eq_left` instead
+Sets.lean:1792:35: warning: `if_neg` has been deprecated: Use `ite_eq_right` instead
+Sets.lean:1803:67: warning: `if_pos` has been deprecated: Use `ite_eq_left` instead
+Sets.lean:1808:64: warning: `if_neg` has been deprecated: Use `ite_eq_right` instead
+Sets.lean:1876:60: warning: `if_neg` has been deprecated: Use `ite_eq_right` instead
+Sets.lean:1877:78: warning: `if_neg` has been deprecated: Use `ite_eq_right` instead
+Sets.lean:1896:49: warning: `if_neg` has been deprecated: Use `ite_eq_right` instead
+Sets.lean:1897:55: warning: `if_neg` has been deprecated: Use `ite_eq_right` instead
+Sets.lean:1932:10: warning: `if_neg` has been deprecated: Use `ite_eq_right` instead
+Sets.lean:1936:70: warning: `if_neg` has been deprecated: Use `ite_eq_right` instead
+Sets.lean:1937:76: warning: `if_neg` has been deprecated: Use `ite_eq_right` instead
+Sets.lean:1940:70: warning: `if_neg` has been deprecated: Use `ite_eq_right` instead
+Sets.lean:1941:76: warning: `if_neg` has been deprecated: Use `ite_eq_right` instead
+Sets.lean:1911:17: warning: This simp argument is unused:
+  Bool.and_eq_true
+
+Hint: Omit it from the simp argument list.
+  [apply] simp only [Bool.not_eq_true', List.contains_iff_mem] at h
+
+Note: This linter can be disabled with `set_option linter.unusedSimpArgs false`
+Sets.lean:1911:54: warning: This simp argument is unused:
+  List.contains_iff_mem
+
+Hint: Omit it from the simp argument list.
+  [apply] simp only [Bool.and_eq_true, Bool.not_eq_true'] at h
+
+Note: This linter can be disabled with `set_option linter.unusedSimpArgs false`
+'Kern.smachine_sound' depends on axioms: [propext, Classical.choice, Quot.sound]
+'Kern.skstep_sound' depends on axioms: [propext, Classical.choice, Quot.sound]
+'Kern.exists_lt_of_sumBelow_lt' depends on axioms: [propext, Classical.choice, Quot.sound]
+'Kern.pigeonhole' depends on axioms: [propext, Classical.choice, Quot.sound]
+'Kern.majorities_meet' depends on axioms: [propext, Classical.choice, Quot.sound]
+'Kern.quorums_meet_outside' depends on axioms: [propext, Classical.choice, Quot.sound]
+'Kern.lemma_sound' depends on axioms: [propext, Classical.choice, Quot.sound]
+'Kern.goalLemmas_sound' depends on axioms: [propext, Classical.choice, Quot.sound]
+'Kern.counted_sound' depends on axioms: [propext, Classical.choice, Quot.sound]
+CountMachine.lean:155:55: warning: This simp argument is unused:
+  decide_eq_true_eq
+
+Hint: Omit it from the simp argument list.
+  [apply] simp only [bne_iff_ne, ne_eq] at hne
+
+Note: This linter can be disabled with `set_option linter.unusedSimpArgs false`
+CountMachine.lean:375:17: warning: `if_neg` has been deprecated: Use `ite_eq_right` instead
+CountMachine.lean:375:28: warning: `if_neg` has been deprecated: Use `ite_eq_right` instead
+CountMachine.lean:374:16: warning: This simp argument is unused:
+  h2
+
+Hint: Omit it from the simp argument list.
+  [apply] simp [h1]
+
+Note: This linter can be disabled with `set_option linter.unusedSimpArgs false`
+CountMachine.lean:383:8: warning: `if_neg` has been deprecated: Use `ite_eq_right` instead
+CountMachine.lean:398:8: warning: `if_neg` has been deprecated: Use `ite_eq_right` instead
+CountMachine.lean:422:19: warning: `if_neg` has been deprecated: Use `ite_eq_right` instead
+CountMachine.lean:422:30: warning: `if_neg` has been deprecated: Use `ite_eq_right` instead
+CountMachine.lean:421:14: warning: This simp argument is unused:
+  h1
+
+Hint: Omit it from the simp argument list.
+  [apply] simp [h2]
+
+Note: This linter can be disabled with `set_option linter.unusedSimpArgs false`
+CountMachine.lean:640:12: warning: `if_neg` has been deprecated: Use `ite_eq_right` instead
+CountMachine.lean:877:8: warning: `dif_pos` has been deprecated: Use `dite_eq_left` instead
+CountMachine.lean:883:8: warning: `dif_neg` has been deprecated: Use `dite_eq_right` instead
+CountMachine.lean:1092:19: warning: This simp argument is unused:
+  List.contains_iff_mem
+
+Hint: Omit it from the simp argument list.
+  [apply] simp [hg]
+
+Note: This linter can be disabled with `set_option linter.unusedSimpArgs false`
+CountMachine.lean:1166:23: warning: This simp argument is unused:
+  beq_self_eq_true
+
+Hint: Omit it from the simp argument list.
+  [apply] simp only [ha, beq_iff_eq, ite_false]
+
+Note: This linter can be disabled with `set_option linter.unusedSimpArgs false`
+CountMachine.lean:1289:16: warning: `if_neg` has been deprecated: Use `ite_eq_right` instead
+CountMachine.lean:1305:22: warning: `if_neg` has been deprecated: Use `ite_eq_right` instead
+CountMachine.lean:1315:26: warning: `if_neg` has been deprecated: Use `ite_eq_right` instead
+CountMachine.lean:1316:26: warning: `if_neg` has been deprecated: Use `ite_eq_right` instead
+CountMachine.lean:1325:71: warning: This simp argument is unused:
+  List.mem_singleton
+
+Hint: Omit it from the simp argument list.
+  [apply] simp only [cStartGoal, sStartGoal, List.mem_append, List.mem_cons, List.not_mem_nil, or_false] at hc
+
+Note: This linter can be disabled with `set_option linter.unusedSimpArgs false`
+CountMachine.lean:1371:95: warning: This simp argument is unused:
+  List.contains_iff_mem
+
+Hint: Omit it from the simp argument list.
+  [apply] simp [withCarried, hc]
+
+Note: This linter can be disabled with `set_option linter.unusedSimpArgs false`
+CountMachine.lean:1372:67: warning: This simp argument is unused:
+  List.contains_iff_mem
+
+Hint: Omit it from the simp argument list.
+  [apply] simp [withCarried, hc]
+
+Note: This linter can be disabled with `set_option linter.unusedSimpArgs false`
+CountMachine.lean:1383:23: warning: Variable name `mp` is not explicitly referenced.
+
+Hint: The binding can be removed (if unused) or named `_` (if used implicitly). Alternatively, prefix the name with `_` to silence this warning:
+  [apply] _mp
+
+Note: This linter can be disabled with `set_option linter.unusedVariables false`
+CountMachine.lean:1386:23: warning: Variable name `mp` is not explicitly referenced.
+
+Hint: The binding can be removed (if unused) or named `_` (if used implicitly). Alternatively, prefix the name with `_` to silence this warning:
+  [apply] _mp
+
+Note: This linter can be disabled with `set_option linter.unusedVariables false`
+CountMachine.lean:1480:52: warning: `if_neg` has been deprecated: Use `ite_eq_right` instead
+CountMachine.lean:1481:53: warning: `if_neg` has been deprecated: Use `ite_eq_right` instead
+CountMachine.lean:1507:12: warning: `if_neg` has been deprecated: Use `ite_eq_right` instead
+CountMachine.lean:1528:19: warning: `if_neg` has been deprecated: Use `ite_eq_right` instead
+CountMachine.lean:1702:24: warning: `if_neg` has been deprecated: Use `ite_eq_right` instead
+CountMachine.lean:1704:12: warning: `if_neg` has been deprecated: Use `ite_eq_right` instead
+CountMachine.lean:1721:40: warning: `if_neg` has been deprecated: Use `ite_eq_right` instead
+CountMachine.lean:1722:40: warning: `if_neg` has been deprecated: Use `ite_eq_right` instead
+CountMachine.lean:1731:23: warning: `if_neg` has been deprecated: Use `ite_eq_right` instead
+CountMachine.lean:1751:38: warning: `if_neg` has been deprecated: Use `ite_eq_right` instead
+CountMachine.lean:1754:43: warning: `if_neg` has been deprecated: Use `ite_eq_right` instead
+CountMachine.lean:1770:81: warning: `if_neg` has been deprecated: Use `ite_eq_right` instead
+CountMachine.lean:1775:81: warning: `if_neg` has been deprecated: Use `ite_eq_right` instead
+CountMachine.lean:1783:25: warning: `if_neg` has been deprecated: Use `ite_eq_right` instead
+CountMachine.lean:1783:54: warning: `if_neg` has been deprecated: Use `ite_eq_right` instead
+CountMachine.lean:1822:43: warning: `if_neg` has been deprecated: Use `ite_eq_right` instead
+CountMachine.lean:1826:75: warning: `if_neg` has been deprecated: Use `ite_eq_right` instead
+CountMachine.lean:1598:25: warning: This simp argument is unused:
+  List.contains_iff_mem
+
+Hint: Omit it from the simp argument list.
+  [apply] simp [withCarried, hx]
+
+Note: This linter can be disabled with `set_option linter.unusedSimpArgs false`
+CountMachine.lean:1611:25: warning: This simp argument is unused:
+  List.contains_iff_mem
+
+Hint: Omit it from the simp argument list.
+  [apply] simp [withCarried, hnc]
+
+Note: This linter can be disabled with `set_option linter.unusedSimpArgs false`
+CountMachine.lean:1755:69: warning: This simp argument is unused:
+  List.mem_singleton
+
+Hint: Omit it from the simp argument list.
+  [apply] simp only [cStepGoal, sStepGoal, List.mem_append, List.mem_cons, List.not_mem_nil, or_false,
+    List.mem_map] at hc
+
+Note: This linter can be disabled with `set_option linter.unusedSimpArgs false`
+CountMachine.lean:1802:29: warning: This simp argument is unused:
+  List.contains_iff_mem
+
+Hint: Omit it from the simp argument list.
+  [apply] simp [withCarried, hc]
+
+Note: This linter can be disabled with `set_option linter.unusedSimpArgs false`
+CountMachine.lean:1850:47: warning: `if_neg` has been deprecated: Use `ite_eq_right` instead
+CountMachine.lean:1854:47: warning: `if_neg` has been deprecated: Use `ite_eq_right` instead
+CountMachine.lean:1857:129: warning: `if_neg` has been deprecated: Use `ite_eq_right` instead
+CountMachine.lean:1906:28: warning: `if_neg` has been deprecated: Use `ite_eq_right` instead
+CountMachine.lean:1931:6: warning: `if_pos` has been deprecated: Use `ite_eq_left` instead
+'Kern.mc_sound' depends on axioms: [propext, Classical.choice, Quot.sound]
+'Kern.cmachine_sound' depends on axioms: [propext, Classical.choice, Quot.sound]
+'Kern.counts_exist' depends on axioms: [propext, Classical.choice, Quot.sound]
+'Kern.pickHyp_true' depends on axioms: [propext, Classical.choice, Quot.sound]
+{"id":"baseline","unit":0,"generation":0,"lean":0,"survived":true}
+{"id":"M01-no-eligibility","unit":1,"generation":1,"lean":null,"survived":false}
+bun test v1.4.3 (c6da4a4d3)
+
+kernel/lemma-cut.test.ts:
+15 |   const original = JSON.stringify(zero)
+16 |   expect(checkGoalLemmas(zero.goal, zero.tree, zero.lemmas)).toBe(true)
+17 |   expect(checkGoalLemmas(zero.goal, zero.tree, [])).toBe(false)
+18 |   expect(check(zero.goal, zero.tree)).toBe(false)
+19 |   expect(checkGoalLemmas(zero.goal, zero.tree, [{...zero.lemmas[0]!, when: [{'1': -1, z: 0}]}])).toBe(true)
+20 |   expect(checkGoalLemmas(zero.goal, zero.tree, [{...zero.lemmas[0]!, when: [{'1': 1, z: 0}]}])).toBe(false)
+                                                                                                     ^
+error: expect(received).toBe(expected)
+
+Expected: false
+Received: true
+
+      at <anonymous> (/tmp/track-k-review-mutants.6A1wyi/tree/kernel/lemma-cut.test.ts:20:97)
+(fail) zero-coefficient lemma conditions agree with Lean without changing legacy paths [3.84ms]
+(pass) frozen reviewer input: slice_exact_end [0.07ms]
+(pass) frozen reviewer input: duplicate_slice [0.23ms]
+23 | })
+24 | 
+25 | // Fixed JSON from the unmodified checker: never reconstruct these leaves with a helper under test.
+26 | for (const fixture of frozen) if (fixture.id !== 'zero_coefficient_condition') {
+27 |   test(`frozen reviewer input: ${fixture.id}`, () => {
+28 |     expect(checkGoalLemmas(fixture.goal, fixture.tree, fixture.lemmas)).toBe(fixture.expect)
+                                                                             ^
+error: expect(received).toBe(expected)
+
+Expected: true
+Received: false
+
+      at <anonymous> (/tmp/track-k-review-mutants.6A1wyi/tree/kernel/lemma-cut.test.ts:28:73)
+(fail) frozen reviewer input: cut_equals_duplicate_when [0.13ms]
+(pass) frozen reviewer input: repeated_split [0.03ms]
+(pass) frozen reviewer input: constant_split [0.03ms]
+(pass) frozen reviewer input: nested_lemma_tree [0.08ms]
+(pass) frozen reviewer input: fresh_unbound_name_is_arbitrary_nat [0.11ms]
+(pass) frozen reviewer input: extra_instance_field_grants_nothing [0.02ms]
+(pass) frozen reviewer input: malformed_null_tree
+(pass) frozen reviewer input: malformed_array_cut
+(pass) frozen reviewer input: malformed_fractional_when
+(pass) frozen reviewer input: malformed_sparse_slice
+36 | 
+37 | test('eligibility cannot use a preceding cut to enable a second lemma', () => {
+38 |   const path = new Map([['c:1', {lin: {c: 1}, holds: true}]])
+39 |   const first: LemmaCut = {when: [{c: 1}], cut: {a: 1}, tree: {leaf: []}}
+40 |   const second: LemmaCut = {when: [{a: 1}], cut: {b: 1}, tree: {leaf: []}}
+41 |   expect([...lemmaPath([first, second], path).values()]).toEqual([
+                                                              ^
+error: expect(received).toEqual(expected)
+
+  [
+    {
+      "holds": true,
+      "lin": {
+        "a": 1,
+      },
+    },
+    {
+      "holds": true,
+      "lin": {
++       "b": 1,
++     },
++   },
++   {
++     "holds": true,
++     "lin": {
+        "c": 1,
+      },
+    },
+  ]
+
+- Expected  - 0
++ Received  + 6
+
+      at <anonymous> (/tmp/track-k-review-mutants.6A1wyi/tree/kernel/lemma-cut.test.ts:41:58)
+(fail) eligibility cannot use a preceding cut to enable a second lemma [3.38ms]
+(pass) cuts precede original rows and duplicate cuts keep their own row positions [0.08ms]
+59 | test('a separately checked conditional lemma closes only below its decision', () => {
+60 |   expect(checkGoalLemmas(goal, tree, [entry])).toBe(true)
+61 |   expect(check(goal, tree)).toBe(false)
+62 |   expect(checkGoalLemmas(goal, tree, [])).toBe(false)
+63 |   expect(checkGoalLemmas(goal, tree.yes, [entry])).toBe(false)
+64 |   expect(checkGoalLemmas(goal, tree, [{...entry, when: [flip(c)]}])).toBe(false)
+                                                                          ^
+error: expect(received).toBe(expected)
+
+Expected: false
+Received: true
+
+      at <anonymous> (/tmp/track-k-review-mutants.6A1wyi/tree/kernel/lemma-cut.test.ts:64:70)
+(fail) a separately checked conditional lemma closes only below its decision [0.40ms]
+(pass) empty lemma lists preserve the original goal and counted checkers [0.37ms]
+(pass) the actual counted and MC wrappers carry the lemma list [0.10ms]
+(pass) a lemma is checked against exactly its selected hypotheses [0.08ms]
+(pass) non-refuting, self-citing and circular lemma payloads are refused [0.06ms]
+(pass) read capture is still refused with a nonempty valid lemma list [0.77ms]
+110 |     const expanded = mcGoal(g.hyps, decls, partial)!
+111 |     const index = leafConstraints(expanded, new Map()).findIndex(r => canon(r.lin) === canon(k(1)))
+112 |     expect(index).toBeGreaterThanOrEqual(0)
+113 |     certs[g.name] = {...partial, tree: {leaf: [{kind: 'input', index}]}, lemmas: [inactive]}
+114 |   }
+115 |   expect(checkCountedLaws(m, laws, {instances: {}, certs})).toBe(true)
+                                                                  ^
+error: expect(received).toBe(expected)
+
+Expected: true
+Received: false
+
+      at <anonymous> (/tmp/track-k-review-mutants.6A1wyi/tree/kernel/lemma-cut.test.ts:115:61)
+(fail) witness capture of parameters, ?flag names and law skolems remains refused [2.29ms]
+(pass) malformed new fields do not grant assumptions or throw [0.05ms]
+
+ 18 pass
+ 5 fail
+ 58 expect() calls
+Ran 23 tests across 1 file. [23.00ms]
+
+40 |     {name: 'different slice', lemmas: [{...f.entry, slice: [0, 3]}]},
+41 |     {name: 'out-of-range slice', lemmas: [{...f.entry, slice: [0, 40]}]},
+42 |   ]
+43 |   for (const c of mutants) {
+44 |     const expected = checkCounted(g, {...cert, lemmas: c.lemmas})
+45 |     if (expected) throw new Error(`mutant accepted: ${c.name}`)
+                                 ^
+error: mutant accepted: opposite condition
+      at /tmp/track-k-review-mutants.6A1wyi/tree/lean-kernel/conformance.ts:45:29
+
+Bun v1.4.3 (Linux x64)
+
+{"id":"M02-positive-proof-cut","unit":1,"generation":1,"lean":null,"survived":false}
+id}`, () => {
+28 |     expect(checkGoalLemmas(fixture.goal, fixture.tree, fixture.lemmas)).toBe(fixture.expect)
+                                                                             ^
+error: expect(received).toBe(expected)
+
+Expected: true
+Received: false
+
+      at <anonymous> (/tmp/track-k-review-mutants.6A1wyi/tree/kernel/lemma-cut.test.ts:28:73)
+(fail) frozen reviewer input: duplicate_slice [0.10ms]
+23 | })
+24 | 
+25 | // Fixed JSON from the unmodified checker: never reconstruct these leaves with a helper under test.
+26 | for (const fixture of frozen) if (fixture.id !== 'zero_coefficient_condition') {
+27 |   test(`frozen reviewer input: ${fixture.id}`, () => {
+28 |     expect(checkGoalLemmas(fixture.goal, fixture.tree, fixture.lemmas)).toBe(fixture.expect)
+                                                                             ^
+error: expect(received).toBe(expected)
+
+Expected: true
+Received: false
+
+      at <anonymous> (/tmp/track-k-review-mutants.6A1wyi/tree/kernel/lemma-cut.test.ts:28:73)
+(fail) frozen reviewer input: cut_equals_duplicate_when [0.05ms]
+(pass) frozen reviewer input: repeated_split [0.03ms]
+(pass) frozen reviewer input: constant_split [0.02ms]
+(pass) frozen reviewer input: nested_lemma_tree [0.07ms]
+23 | })
+24 | 
+25 | // Fixed JSON from the unmodified checker: never reconstruct these leaves with a helper under test.
+26 | for (const fixture of frozen) if (fixture.id !== 'zero_coefficient_condition') {
+27 |   test(`frozen reviewer input: ${fixture.id}`, () => {
+28 |     expect(checkGoalLemmas(fixture.goal, fixture.tree, fixture.lemmas)).toBe(fixture.expect)
+                                                                             ^
+error: expect(received).toBe(expected)
+
+Expected: true
+Received: false
+
+      at <anonymous> (/tmp/track-k-review-mutants.6A1wyi/tree/kernel/lemma-cut.test.ts:28:73)
+(fail) frozen reviewer input: fresh_unbound_name_is_arbitrary_nat [0.03ms]
+(pass) frozen reviewer input: extra_instance_field_grants_nothing
+(pass) frozen reviewer input: malformed_null_tree
+(pass) frozen reviewer input: malformed_array_cut
+(pass) frozen reviewer input: malformed_fractional_when
+(pass) frozen reviewer input: malformed_sparse_slice
+(pass) eligibility cannot use a preceding cut to enable a second lemma [0.09ms]
+(pass) cuts precede original rows and duplicate cuts keep their own row positions [0.03ms]
+55 |     ['c:1', {lin: {c: 1}, holds: true}],
+56 |   ])
+57 | })
+58 | 
+59 | test('a separately checked conditional lemma closes only below its decision', () => {
+60 |   expect(checkGoalLemmas(goal, tree, [entry])).toBe(true)
+                                                    ^
+error: expect(received).toBe(expected)
+
+Expected: true
+Received: false
+
+      at <anonymous> (/tmp/track-k-review-mutants.6A1wyi/tree/kernel/lemma-cut.test.ts:60:48)
+(fail) a separately checked conditional lemma closes only below its decision [0.15ms]
+(pass) empty lemma lists preserve the original goal and counted checkers [0.38ms]
+72 |   expect(checkMC(hyps, [], {reads: [], insts: [], tree: legacy})).toBe(true)
+73 |   expect(checkMC(hyps, [], {reads: [], insts: [], tree: legacy, lemmas: []})).toBe(true)
+74 | })
+75 | 
+76 | test('the actual counted and MC wrappers carry the lemma list', () => {
+77 |   expect(checkCounted({...goal, counts: []}, {insts: [], tree, lemmas: [entry]})).toBe(true)
+                                                                                       ^
+error: expect(received).toBe(expected)
+
+Expected: true
+Received: false
+
+      at <anonymous> (/tmp/track-k-review-mutants.6A1wyi/tree/kernel/lemma-cut.test.ts:77:83)
+(fail) the actual counted and MC wrappers carry the lemma list [0.10ms]
+(pass) a lemma is checked against exactly its selected hypotheses [0.14ms]
+(pass) non-refuting, self-citing and circular lemma payloads are refused [0.10ms]
+93 | test('read capture is still refused with a nonempty valid lemma list', () => {
+94 |   const decl = {map: 'total', j: 'j', key: 'i', below: n(1), body: n(0)}
+95 |   const cert: CountCert = {reads: [['fresh', 'total', n(0)]], insts: [], tree, lemmas: [entry]}
+96 |   const expanded = mcGoal(hyps, [decl], cert)!
+97 |   cert.tree = {split: c, yes: leaf(expanded, lemmaPath([entry], yes), [a, flip(a)]), no: leaf(expanded, no, [c, flip(c)])}
+98 |   expect(checkMC(hyps, [decl], cert)).toBe(true)
+                                           ^
+error: expect(received).toBe(expected)
+
+Expected: true
+Received: false
+
+      at <anonymous> (/tmp/track-k-review-mutants.6A1wyi/tree/kernel/lemma-cut.test.ts:98:39)
+(fail) read capture is still refused with a nonempty valid lemma list [0.75ms]
+110 |     const expanded = mcGoal(g.hyps, decls, partial)!
+111 |     const index = leafConstraints(expanded, new Map()).findIndex(r => canon(r.lin) === canon(k(1)))
+112 |     expect(index).toBeGreaterThanOrEqual(0)
+113 |     certs[g.name] = {...partial, tree: {leaf: [{kind: 'input', index}]}, lemmas: [inactive]}
+114 |   }
+115 |   expect(checkCountedLaws(m, laws, {instances: {}, certs})).toBe(true)
+                                                                  ^
+error: expect(received).toBe(expected)
+
+Expected: true
+Received: false
+
+      at <anonymous> (/tmp/track-k-review-mutants.6A1wyi/tree/kernel/lemma-cut.test.ts:115:61)
+(fail) witness capture of parameters, ?flag names and law skolems remains refused [1.96ms]
+(pass) malformed new fields do not grant assumptions or throw [0.04ms]
+
+ 15 pass
+ 8 fail
+ 49 expect() calls
+Ran 23 tests across 1 file. [15.00ms]
+
+28 | 
+29 | // The same concrete conditional certificates used by kernel/lemma-cut.test.ts, through the production printer.
+30 | if (process.argv.includes('--lemma-cuts')) {
+31 |   const f = lemmaCutFixture(), g = {...f.goal, counts: []}
+32 |   const cert = {insts: [], tree: f.tree, lemmas: [f.entry]}
+33 |   if (!checkCounted(g, cert)) throw new Error('conditional fixture does not check')
+                                             ^
+error: conditional fixture does not check
+      at /tmp/track-k-review-mutants.6A1wyi/tree/lean-kernel/conformance.ts:33:41
+
+Bun v1.4.3 (Linux x64)
+
+{"id":"M03-slice-upper-inclusive","unit":0,"generation":0,"lean":0,"survived":true}
+{"id":"M04-eligibility-from-cuts","unit":1,"generation":0,"lean":0,"survived":false}
+bun test v1.4.3 (c6da4a4d3)
+
+kernel/lemma-cut.test.ts:
+(pass) zero-coefficient lemma conditions agree with Lean without changing legacy paths [1.42ms]
+(pass) frozen reviewer input: slice_exact_end [0.12ms]
+(pass) frozen reviewer input: duplicate_slice [0.24ms]
+(pass) frozen reviewer input: cut_equals_duplicate_when [0.11ms]
+(pass) frozen reviewer input: repeated_split [0.06ms]
+(pass) frozen reviewer input: constant_split [0.02ms]
+(pass) frozen reviewer input: nested_lemma_tree [0.07ms]
+(pass) frozen reviewer input: fresh_unbound_name_is_arbitrary_nat [0.21ms]
+(pass) frozen reviewer input: extra_instance_field_grants_nothing [0.04ms]
+(pass) frozen reviewer input: malformed_null_tree
+(pass) frozen reviewer input: malformed_array_cut
+(pass) frozen reviewer input: malformed_fractional_when
+(pass) frozen reviewer input: malformed_sparse_slice
+36 | 
+37 | test('eligibility cannot use a preceding cut to enable a second lemma', () => {
+38 |   const path = new Map([['c:1', {lin: {c: 1}, holds: true}]])
+39 |   const first: LemmaCut = {when: [{c: 1}], cut: {a: 1}, tree: {leaf: []}}
+40 |   const second: LemmaCut = {when: [{a: 1}], cut: {b: 1}, tree: {leaf: []}}
+41 |   expect([...lemmaPath([first, second], path).values()]).toEqual([
+                                                              ^
+error: expect(received).toEqual(expected)
+
+  [
+    {
+      "holds": true,
+      "lin": {
+        "a": 1,
+      },
+    },
+    {
+      "holds": true,
+      "lin": {
++       "b": 1,
++     },
++   },
++   {
++     "holds": true,
++     "lin": {
+        "c": 1,
+      },
+    },
+  ]
+
+- Expected  - 0
++ Received  + 6
+
+      at <anonymous> (/tmp/track-k-review-mutants.6A1wyi/tree/kernel/lemma-cut.test.ts:41:58)
+(fail) eligibility cannot use a preceding cut to enable a second lemma [0.42ms]
+(pass) cuts precede original rows and duplicate cuts keep their own row positions [0.10ms]
+(pass) a separately checked conditional lemma closes only below its decision [0.47ms]
+(pass) empty lemma lists preserve the original goal and counted checkers [0.45ms]
+(pass) the actual counted and MC wrappers carry the lemma list [0.14ms]
+(pass) a lemma is checked against exactly its selected hypotheses [0.08ms]
+(pass) non-refuting, self-citing and circular lemma payloads are refused [0.07ms]
+(pass) read capture is still refused with a nonempty valid lemma list [0.80ms]
+(pass) witness capture of parameters, ?flag names and law skolems remains refused [2.20ms]
+(pass) malformed new fields do not grant assumptions or throw [0.05ms]
+
+1 tests failed:
+(fail) eligibility cannot use a preceding cut to enable a second lemma [0.42ms]
+
+ 22 pass
+ 1 fail
+ 63 expect() calls
+Ran 23 tests across 1 file. [20.00ms]
+
+{"id":"M05-nested-lemma-fallback","unit":1,"generation":0,"lean":0,"survived":false}
+bun test v1.4.3 (c6da4a4d3)
+
+kernel/lemma-cut.test.ts:
+(pass) zero-coefficient lemma conditions agree with Lean without changing legacy paths [0.95ms]
+(pass) frozen reviewer input: slice_exact_end [0.83ms]
+(pass) frozen reviewer input: duplicate_slice [0.15ms]
+(pass) frozen reviewer input: cut_equals_duplicate_when [0.12ms]
+(pass) frozen reviewer input: repeated_split [0.03ms]
+(pass) frozen reviewer input: constant_split [0.02ms]
+23 | })
+24 | 
+25 | // Fixed JSON from the unmodified checker: never reconstruct these leaves with a helper under test.
+26 | for (const fixture of frozen) if (fixture.id !== 'zero_coefficient_condition') {
+27 |   test(`frozen reviewer input: ${fixture.id}`, () => {
+28 |     expect(checkGoalLemmas(fixture.goal, fixture.tree, fixture.lemmas)).toBe(fixture.expect)
+                                                                             ^
+error: expect(received).toBe(expected)
+
+Expected: false
+Received: true
+
+      at <anonymous> (/tmp/track-k-review-mutants.6A1wyi/tree/kernel/lemma-cut.test.ts:28:73)
+(fail) frozen reviewer input: nested_lemma_tree [0.38ms]
+(pass) frozen reviewer input: fresh_unbound_name_is_arbitrary_nat [0.11ms]
+(pass) frozen reviewer input: extra_instance_field_grants_nothing [0.02ms]
+(pass) frozen reviewer input: malformed_null_tree
+(pass) frozen reviewer input: malformed_array_cut
+(pass) frozen reviewer input: malformed_fractional_when
+(pass) frozen reviewer input: malformed_sparse_slice
+(pass) eligibility cannot use a preceding cut to enable a second lemma [0.10ms]
+(pass) cuts precede original rows and duplicate cuts keep their own row positions [0.03ms]
+(pass) a separately checked conditional lemma closes only below its decision [0.27ms]
+(pass) empty lemma lists preserve the original goal and counted checkers [0.30ms]
+(pass) the actual counted and MC wrappers carry the lemma list [0.11ms]
+(pass) a lemma is checked against exactly its selected hypotheses [0.09ms]
+(pass) non-refuting, self-citing and circular lemma payloads are refused [0.06ms]
+(pass) read capture is still refused with a nonempty valid lemma list [0.67ms]
+(pass) witness capture of parameters, ?flag names and law skolems remains refused [1.98ms]
+(pass) malformed new fields do not grant assumptions or throw [0.04ms]
+
+1 tests failed:
+(fail) frozen reviewer input: nested_lemma_tree [0.38ms]
+
+ 22 pass
+ 1 fail
+ 64 expect() calls
+Ran 23 tests across 1 file. [18.00ms]
+
+{"id":"M06-no-repeated-split-refusal","unit":1,"generation":0,"lean":0,"survived":false}
+bun test v1.4.3 (c6da4a4d3)
+
+kernel/lemma-cut.test.ts:
+(pass) zero-coefficient lemma conditions agree with Lean without changing legacy paths [0.97ms]
+(pass) frozen reviewer input: slice_exact_end [0.08ms]
+(pass) frozen reviewer input: duplicate_slice [0.11ms]
+(pass) frozen reviewer input: cut_equals_duplicate_when [0.08ms]
+23 | })
+24 | 
+25 | // Fixed JSON from the unmodified checker: never reconstruct these leaves with a helper under test.
+26 | for (const fixture of frozen) if (fixture.id !== 'zero_coefficient_condition') {
+27 |   test(`frozen reviewer input: ${fixture.id}`, () => {
+28 |     expect(checkGoalLemmas(fixture.goal, fixture.tree, fixture.lemmas)).toBe(fixture.expect)
+                                                                             ^
+error: expect(received).toBe(expected)
+
+Expected: false
+Received: true
+
+      at <anonymous> (/tmp/track-k-review-mutants.6A1wyi/tree/kernel/lemma-cut.test.ts:28:73)
+(fail) frozen reviewer input: repeated_split [0.17ms]
+(pass) frozen reviewer input: constant_split [0.06ms]
+(pass) frozen reviewer input: nested_lemma_tree [0.09ms]
+(pass) frozen reviewer input: fresh_unbound_name_is_arbitrary_nat [0.05ms]
+(pass) frozen reviewer input: extra_instance_field_grants_nothing [0.02ms]
+(pass) frozen reviewer input: malformed_null_tree
+(pass) frozen reviewer input: malformed_array_cut
+(pass) frozen reviewer input: malformed_fractional_when
+(pass) frozen reviewer input: malformed_sparse_slice
+(pass) eligibility cannot use a preceding cut to enable a second lemma [0.11ms]
+(pass) cuts precede original rows and duplicate cuts keep their own row positions [0.04ms]
+(pass) a separately checked conditional lemma closes only below its decision [0.27ms]
+(pass) empty lemma lists preserve the original goal and counted checkers [0.36ms]
+(pass) the actual counted and MC wrappers carry the lemma list [0.12ms]
+(pass) a lemma is checked against exactly its selected hypotheses [0.10ms]
+(pass) non-refuting, self-citing and circular lemma payloads are refused [0.08ms]
+(pass) read capture is still refused with a nonempty valid lemma list [0.75ms]
+(pass) witness capture of parameters, ?flag names and law skolems remains refused [2.10ms]
+(pass) malformed new fields do not grant assumptions or throw [0.04ms]
+
+1 tests failed:
+(fail) frozen reviewer input: repeated_split [0.17ms]
+
+ 22 pass
+ 1 fail
+ 62 expect() calls
+Ran 23 tests across 1 file. [16.00ms]
+
+{"id":"M07-no-constant-split-refusal","unit":1,"generation":0,"lean":0,"survived":false}
+bun test v1.4.3 (c6da4a4d3)
+
+kernel/lemma-cut.test.ts:
+(pass) zero-coefficient lemma conditions agree with Lean without changing legacy paths [1.04ms]
+(pass) frozen reviewer input: slice_exact_end [0.12ms]
+(pass) frozen reviewer input: duplicate_slice [0.27ms]
+(pass) frozen reviewer input: cut_equals_duplicate_when [0.08ms]
+(pass) frozen reviewer input: repeated_split [0.09ms]
+23 | })
+24 | 
+25 | // Fixed JSON from the unmodified checker: never reconstruct these leaves with a helper under test.
+26 | for (const fixture of frozen) if (fixture.id !== 'zero_coefficient_condition') {
+27 |   test(`frozen reviewer input: ${fixture.id}`, () => {
+28 |     expect(checkGoalLemmas(fixture.goal, fixture.tree, fixture.lemmas)).toBe(fixture.expect)
+                                                                             ^
+error: expect(received).toBe(expected)
+
+Expected: false
+Received: true
+
+      at <anonymous> (/tmp/track-k-review-mutants.6A1wyi/tree/kernel/lemma-cut.test.ts:28:73)
+(fail) frozen reviewer input: constant_split [0.17ms]
+(pass) frozen reviewer input: nested_lemma_tree [0.15ms]
+(pass) frozen reviewer input: fresh_unbound_name_is_arbitrary_nat [0.11ms]
+(pass) frozen reviewer input: extra_instance_field_grants_nothing [0.02ms]
+(pass) frozen reviewer input: malformed_null_tree
+(pass) frozen reviewer input: malformed_array_cut
+(pass) frozen reviewer input: malformed_fractional_when
+(pass) frozen reviewer input: malformed_sparse_slice
+(pass) eligibility cannot use a preceding cut to enable a second lemma [0.16ms]
+(pass) cuts precede original rows and duplicate cuts keep their own row positions [0.04ms]
+(pass) a separately checked conditional lemma closes only below its decision [0.29ms]
+(pass) empty lemma lists preserve the original goal and counted checkers [0.38ms]
+(pass) the actual counted and MC wrappers carry the lemma list [0.12ms]
+(pass) a lemma is checked against exactly its selected hypotheses [0.09ms]
+(pass) non-refuting, self-citing and circular lemma payloads are refused [0.08ms]
+(pass) read capture is still refused with a nonempty valid lemma list [1.00ms]
+(pass) witness capture of parameters, ?flag names and law skolems remains refused [2.45ms]
+(pass) malformed new fields do not grant assumptions or throw [0.05ms]
+
+1 tests failed:
+(fail) frozen reviewer input: constant_split [0.17ms]
+
+ 22 pass
+ 1 fail
+ 62 expect() calls
+Ran 23 tests across 1 file. [20.00ms]
+
+{"id":"M08-collapse-duplicates","unit":1,"generation":1,"lean":null,"survived":false}
+bun test v1.4.3 (c6da4a4d3)
+
+kernel/lemma-cut.test.ts:
+(pass) zero-coefficient lemma conditions agree with Lean without changing legacy paths [1.68ms]
+(pass) frozen reviewer input: slice_exact_end [0.10ms]
+(pass) frozen reviewer input: duplicate_slice [0.21ms]
+23 | })
+24 | 
+25 | // Fixed JSON from the unmodified checker: never reconstruct these leaves with a helper under test.
+26 | for (const fixture of frozen) if (fixture.id !== 'zero_coefficient_condition') {
+27 |   test(`frozen reviewer input: ${fixture.id}`, () => {
+28 |     expect(checkGoalLemmas(fixture.goal, fixture.tree, fixture.lemmas)).toBe(fixture.expect)
+                                                                             ^
+error: expect(received).toBe(expected)
+
+Expected: true
+Received: false
+
+      at <anonymous> (/tmp/track-k-review-mutants.6A1wyi/tree/kernel/lemma-cut.test.ts:28:73)
+(fail) frozen reviewer input: cut_equals_duplicate_when [0.24ms]
+(pass) frozen reviewer input: repeated_split [0.15ms]
+(pass) frozen reviewer input: constant_split [0.04ms]
+(pass) frozen reviewer input: nested_lemma_tree [0.10ms]
+(pass) frozen reviewer input: fresh_unbound_name_is_arbitrary_nat [0.12ms]
+(pass) frozen reviewer input: extra_instance_field_grants_nothing [0.03ms]
+(pass) frozen reviewer input: malformed_null_tree
+(pass) frozen reviewer input: malformed_array_cut
+(pass) frozen reviewer input: malformed_fractional_when
+(pass) frozen reviewer input: malformed_sparse_slice
+(pass) eligibility cannot use a preceding cut to enable a second lemma [0.20ms]
+48 |   const path = new Map([['c:1', {lin: {c: 1}, holds: true}]])
+49 |   const cut: LemmaCut = {when: [], cut: {a: 1}, tree: {leaf: []}}
+50 |   expect([...lemmaPath([cut], path).entries()]).toEqual([
+51 |     ['a:1', {lin: {a: 1}, holds: true}], ['c:1', {lin: {c: 1}, holds: true}],
+52 |   ])
+53 |   expect([...lemmaPath([cut, cut], path).entries()]).toEqual([
+                                                          ^
+error: expect(received).toEqual(expected)
+
+  [
+    [
+      "a:1",
+      {
+        "holds": true,
+        "lin": {
+          "a": 1,
+        },
+      },
+    ],
+    [
+-     "@0",
+-     {
+-       "holds": true,
+-       "lin": {
+-         "a": 1,
+-       },
+-     },
+-   ],
+-   [
+      "c:1",
+      {
+        "holds": true,
+        "lin": {
+          "c": 1,
+        },
+      },
+    ],
+  ]
+
+- Expected  - 9
++ Received  + 0
+
+      at <anonymous> (/tmp/track-k-review-mutants.6A1wyi/tree/kernel/lemma-cut.test.ts:53:54)
+(fail) cuts precede original rows and duplicate cuts keep their own row positions [0.27ms]
+(pass) a separately checked conditional lemma closes only below its decision [0.52ms]
+(pass) empty lemma lists preserve the original goal and counted checkers [0.74ms]
+(pass) the actual counted and MC wrappers carry the lemma list [0.23ms]
+(pass) a lemma is checked against exactly its selected hypotheses [0.12ms]
+(pass) non-refuting, self-citing and circular lemma payloads are refused [0.11ms]
+(pass) read capture is still refused with a nonempty valid lemma list [1.02ms]
+(pass) witness capture of parameters, ?flag names and law skolems remains refused [3.24ms]
+(pass) malformed new fields do not grant assumptions or throw [0.07ms]
+
+2 tests failed:
+(fail) frozen reviewer input: cut_equals_duplicate_when [0.24ms]
+(fail) cuts precede original rows and duplicate cuts keep their own row positions [0.27ms]
+
+ 21 pass
+ 2 fail
+ 64 expect() calls
+Ran 23 tests across 1 file. [25.00ms]
+
+47 |   }
+48 |   // Repeated atoms remain separate input rows, exactly as Lean's list path does.
+49 |   const duplicatePath = new Map([[canon(f.a), {lin: f.a, holds: false}], [canon(f.c), {lin: f.c, holds: true}], ['@0', {lin: f.c, holds: true}]])
+50 |   const duplicate = {...f.entry, when: [f.c, f.c], tree: f.leaf({...f.goal, hyps: f.hyps.slice(0, 2)}, duplicatePath, [f.ab, f.b, f.flip(f.a)])}
+51 |   const duplicateCert = {...cert, lemmas: [duplicate]}
+52 |   if (!checkCounted(g, duplicateCert)) throw new Error('duplicate-condition certificate')
+                                                      ^
+error: duplicate-condition certificate
+      at /tmp/track-k-review-mutants.6A1wyi/tree/lean-kernel/conformance.ts:52:50
+
+Bun v1.4.3 (Linux x64)
+
+{"id":"M09-path-before-cut","unit":1,"generation":0,"lean":0,"survived":false}
+bun test v1.4.3 (c6da4a4d3)
+
+kernel/lemma-cut.test.ts:
+(pass) zero-coefficient lemma conditions agree with Lean without changing legacy paths [1.74ms]
+(pass) frozen reviewer input: slice_exact_end [0.10ms]
+23 | })
+24 | 
+25 | // Fixed JSON from the unmodified checker: never reconstruct these leaves with a helper under test.
+26 | for (const fixture of frozen) if (fixture.id !== 'zero_coefficient_condition') {
+27 |   test(`frozen reviewer input: ${fixture.id}`, () => {
+28 |     expect(checkGoalLemmas(fixture.goal, fixture.tree, fixture.lemmas)).toBe(fixture.expect)
+                                                                             ^
+error: expect(received).toBe(expected)
+
+Expected: true
+Received: false
+
+      at <anonymous> (/tmp/track-k-review-mutants.6A1wyi/tree/kernel/lemma-cut.test.ts:28:73)
+(fail) frozen reviewer input: duplicate_slice [0.35ms]
+(pass) frozen reviewer input: cut_equals_duplicate_when [0.14ms]
+(pass) frozen reviewer input: repeated_split [0.05ms]
+(pass) frozen reviewer input: constant_split [0.06ms]
+(pass) frozen reviewer input: nested_lemma_tree [0.09ms]
+(pass) frozen reviewer input: fresh_unbound_name_is_arbitrary_nat [0.08ms]
+(pass) frozen reviewer input: extra_instance_field_grants_nothing [0.02ms]
+(pass) frozen reviewer input: malformed_null_tree
+(pass) frozen reviewer input: malformed_array_cut
+(pass) frozen reviewer input: malformed_fractional_when
+(pass) frozen reviewer input: malformed_sparse_slice
+36 | 
+37 | test('eligibility cannot use a preceding cut to enable a second lemma', () => {
+38 |   const path = new Map([['c:1', {lin: {c: 1}, holds: true}]])
+39 |   const first: LemmaCut = {when: [{c: 1}], cut: {a: 1}, tree: {leaf: []}}
+40 |   const second: LemmaCut = {when: [{a: 1}], cut: {b: 1}, tree: {leaf: []}}
+41 |   expect([...lemmaPath([first, second], path).values()]).toEqual([
+                                                              ^
+error: expect(received).toEqual(expected)
+
+  [
+    {
+      "holds": true,
+      "lin": {
+-       "a": 1,
++       "c": 1,
+      },
+    },
+    {
+      "holds": true,
+      "lin": {
+-       "c": 1,
++       "a": 1,
+      },
+    },
+  ]
+
+- Expected  - 2
++ Received  + 2
+
+      at <anonymous> (/tmp/track-k-review-mutants.6A1wyi/tree/kernel/lemma-cut.test.ts:41:58)
+(fail) eligibility cannot use a preceding cut to enable a second lemma [0.33ms]
+45 | })
+46 | 
+47 | test('cuts precede original rows and duplicate cuts keep their own row positions', () => {
+48 |   const path = new Map([['c:1', {lin: {c: 1}, holds: true}]])
+49 |   const cut: LemmaCut = {when: [], cut: {a: 1}, tree: {leaf: []}}
+50 |   expect([...lemmaPath([cut], path).entries()]).toEqual([
+                                                     ^
+error: expect(received).toEqual(expected)
+
+  [
+    [
+-     "a:1",
++     "c:1",
+      {
+        "holds": true,
+        "lin": {
+-         "a": 1,
++         "c": 1,
+        },
+      },
+    ],
+    [
+-     "c:1",
++     "a:1",
+      {
+        "holds": true,
+        "lin": {
+-         "c": 1,
++         "a": 1,
+        },
+      },
+    ],
+  ]
+
+- Expected  - 4
++ Received  + 4
+
+      at <anonymous> (/tmp/track-k-review-mutants.6A1wyi/tree/kernel/lemma-cut.test.ts:50:49)
+(fail) cuts precede original rows and duplicate cuts keep their own row positions [0.14ms]
+(pass) a separately checked conditional lemma closes only below its decision [0.53ms]
+(pass) empty lemma lists preserve the original goal and counted checkers [0.57ms]
+(pass) the actual counted and MC wrappers carry the lemma list [0.21ms]
+(pass) a lemma is checked against exactly its selected hypotheses [0.15ms]
+(pass) non-refuting, self-citing and circular lemma payloads are refused [0.10ms]
+(pass) read capture is still refused with a nonempty valid lemma list [1.09ms]
+(pass) witness capture of parameters, ?flag names and law skolems remains refused [3.71ms]
+(pass) malformed new fields do not grant assumptions or throw [0.09ms]
+
+ 20 pass
+ 3 fail
+ 62 expect() calls
+Ran 23 tests across 1 file. [25.00ms]
+
+{"id":"M10-ignore-slice","unit":1,"generation":1,"lean":null,"survived":false}
+bun test v1.4.3 (c6da4a4d3)
+
+kernel/lemma-cut.test.ts:
+(pass) zero-coefficient lemma conditions agree with Lean without changing legacy paths [1.15ms]
+(pass) frozen reviewer input: slice_exact_end [0.05ms]
+23 | })
+24 | 
+25 | // Fixed JSON from the unmodified checker: never reconstruct these leaves with a helper under test.
+26 | for (const fixture of frozen) if (fixture.id !== 'zero_coefficient_condition') {
+27 |   test(`frozen reviewer input: ${fixture.id}`, () => {
+28 |     expect(checkGoalLemmas(fixture.goal, fixture.tree, fixture.lemmas)).toBe(fixture.expect)
+                                                                             ^
+error: expect(received).toBe(expected)
+
+Expected: true
+Received: false
+
+      at <anonymous> (/tmp/track-k-review-mutants.6A1wyi/tree/kernel/lemma-cut.test.ts:28:73)
+(fail) frozen reviewer input: duplicate_slice [0.24ms]
+(pass) frozen reviewer input: cut_equals_duplicate_when [0.16ms]
+(pass) frozen reviewer input: repeated_split [0.06ms]
+(pass) frozen reviewer input: constant_split [0.03ms]
+(pass) frozen reviewer input: nested_lemma_tree [0.07ms]
+23 | })
+24 | 
+25 | // Fixed JSON from the unmodified checker: never reconstruct these leaves with a helper under test.
+26 | for (const fixture of frozen) if (fixture.id !== 'zero_coefficient_condition') {
+27 |   test(`frozen reviewer input: ${fixture.id}`, () => {
+28 |     expect(checkGoalLemmas(fixture.goal, fixture.tree, fixture.lemmas)).toBe(fixture.expect)
+                                                                             ^
+error: expect(received).toBe(expected)
+
+Expected: true
+Received: false
+
+      at <anonymous> (/tmp/track-k-review-mutants.6A1wyi/tree/kernel/lemma-cut.test.ts:28:73)
+(fail) frozen reviewer input: fresh_unbound_name_is_arbitrary_nat [0.09ms]
+(pass) frozen reviewer input: extra_instance_field_grants_nothing [0.03ms]
+(pass) frozen reviewer input: malformed_null_tree
+(pass) frozen reviewer input: malformed_array_cut
+(pass) frozen reviewer input: malformed_fractional_when
+(pass) frozen reviewer input: malformed_sparse_slice
+(pass) eligibility cannot use a preceding cut to enable a second lemma [0.14ms]
+(pass) cuts precede original rows and duplicate cuts keep their own row positions [0.04ms]
+(pass) a separately checked conditional lemma closes only below its decision [0.32ms]
+(pass) empty lemma lists preserve the original goal and counted checkers [0.42ms]
+(pass) the actual counted and MC wrappers carry the lemma list [0.17ms]
+77 |   expect(checkCounted({...goal, counts: []}, {insts: [], tree, lemmas: [entry]})).toBe(true)
+78 |   expect(checkMC(hyps, [], {reads: [], insts: [], tree, lemmas: [entry]})).toBe(true)
+79 | })
+80 | 
+81 | test('a lemma is checked against exactly its selected hypotheses', () => {
+82 |   expect(checkGoalLemmas(goal, tree, [{...entry, slice: [0, 3]}])).toBe(false)
+                                                                        ^
+error: expect(received).toBe(expected)
+
+Expected: false
+Received: true
+
+      at <anonymous> (/tmp/track-k-review-mutants.6A1wyi/tree/kernel/lemma-cut.test.ts:82:68)
+(fail) a lemma is checked against exactly its selected hypotheses [0.14ms]
+(pass) non-refuting, self-citing and circular lemma payloads are refused [0.07ms]
+(pass) read capture is still refused with a nonempty valid lemma list [0.73ms]
+(pass) witness capture of parameters, ?flag names and law skolems remains refused [2.33ms]
+(pass) malformed new fields do not grant assumptions or throw [0.05ms]
+
+ 20 pass
+ 3 fail
+ 59 expect() calls
+Ran 23 tests across 1 file. [21.00ms]
+
+40 |     {name: 'different slice', lemmas: [{...f.entry, slice: [0, 3]}]},
+41 |     {name: 'out-of-range slice', lemmas: [{...f.entry, slice: [0, 40]}]},
+42 |   ]
+43 |   for (const c of mutants) {
+44 |     const expected = checkCounted(g, {...cert, lemmas: c.lemmas})
+45 |     if (expected) throw new Error(`mutant accepted: ${c.name}`)
+                                 ^
+error: mutant accepted: different slice
+      at /tmp/track-k-review-mutants.6A1wyi/tree/lean-kernel/conformance.ts:45:29
+
+Bun v1.4.3 (Linux x64)
+
+{"id":"M11-drop-MC-lemmas","unit":1,"generation":0,"lean":0,"survived":false}
+bun test v1.4.3 (c6da4a4d3)
+
+kernel/lemma-cut.test.ts:
+(pass) zero-coefficient lemma conditions agree with Lean without changing legacy paths [1.41ms]
+(pass) frozen reviewer input: slice_exact_end [0.08ms]
+(pass) frozen reviewer input: duplicate_slice [0.14ms]
+(pass) frozen reviewer input: cut_equals_duplicate_when [0.08ms]
+(pass) frozen reviewer input: repeated_split [0.03ms]
+(pass) frozen reviewer input: constant_split [0.02ms]
+(pass) frozen reviewer input: nested_lemma_tree [0.08ms]
+(pass) frozen reviewer input: fresh_unbound_name_is_arbitrary_nat [0.05ms]
+(pass) frozen reviewer input: extra_instance_field_grants_nothing [0.05ms]
+(pass) frozen reviewer input: malformed_null_tree
+(pass) frozen reviewer input: malformed_array_cut
+(pass) frozen reviewer input: malformed_fractional_when
+(pass) frozen reviewer input: malformed_sparse_slice
+(pass) eligibility cannot use a preceding cut to enable a second lemma [0.10ms]
+(pass) cuts precede original rows and duplicate cuts keep their own row positions [0.04ms]
+(pass) a separately checked conditional lemma closes only below its decision [0.36ms]
+(pass) empty lemma lists preserve the original goal and counted checkers [0.45ms]
+73 |   expect(checkMC(hyps, [], {reads: [], insts: [], tree: legacy, lemmas: []})).toBe(true)
+74 | })
+75 | 
+76 | test('the actual counted and MC wrappers carry the lemma list', () => {
+77 |   expect(checkCounted({...goal, counts: []}, {insts: [], tree, lemmas: [entry]})).toBe(true)
+78 |   expect(checkMC(hyps, [], {reads: [], insts: [], tree, lemmas: [entry]})).toBe(true)
+                                                                                ^
+error: expect(received).toBe(expected)
+
+Expected: true
+Received: false
+
+      at <anonymous> (/tmp/track-k-review-mutants.6A1wyi/tree/kernel/lemma-cut.test.ts:78:76)
+(fail) the actual counted and MC wrappers carry the lemma list [0.27ms]
+(pass) a lemma is checked against exactly its selected hypotheses [0.11ms]
+(pass) non-refuting, self-citing and circular lemma payloads are refused [0.10ms]
+93 | test('read capture is still refused with a nonempty valid lemma list', () => {
+94 |   const decl = {map: 'total', j: 'j', key: 'i', below: n(1), body: n(0)}
+95 |   const cert: CountCert = {reads: [['fresh', 'total', n(0)]], insts: [], tree, lemmas: [entry]}
+96 |   const expanded = mcGoal(hyps, [decl], cert)!
+97 |   cert.tree = {split: c, yes: leaf(expanded, lemmaPath([entry], yes), [a, flip(a)]), no: leaf(expanded, no, [c, flip(c)])}
+98 |   expect(checkMC(hyps, [decl], cert)).toBe(true)
+                                           ^
+error: expect(received).toBe(expected)
+
+Expected: true
+Received: false
+
+      at <anonymous> (/tmp/track-k-review-mutants.6A1wyi/tree/kernel/lemma-cut.test.ts:98:39)
+(fail) read capture is still refused with a nonempty valid lemma list [0.98ms]
+(pass) witness capture of parameters, ?flag names and law skolems remains refused [2.44ms]
+(pass) malformed new fields do not grant assumptions or throw [0.05ms]
+
+2 tests failed:
+(fail) the actual counted and MC wrappers carry the lemma list [0.27ms]
+(fail) read capture is still refused with a nonempty valid lemma list [0.98ms]
+
+ 21 pass
+ 2 fail
+ 63 expect() calls
+Ran 23 tests across 1 file. [21.00ms]
+
+{"id":"M12-no-lemma-proof","unit":1,"generation":1,"lean":null,"survived":false}
+bun test v1.4.3 (c6da4a4d3)
+
+kernel/lemma-cut.test.ts:
+(pass) zero-coefficient lemma conditions agree with Lean without changing legacy paths [1.07ms]
+(pass) frozen reviewer input: slice_exact_end [0.04ms]
+(pass) frozen reviewer input: duplicate_slice [0.11ms]
+(pass) frozen reviewer input: cut_equals_duplicate_when [0.06ms]
+(pass) frozen reviewer input: repeated_split [0.02ms]
+(pass) frozen reviewer input: constant_split [0.02ms]
+23 | })
+24 | 
+25 | // Fixed JSON from the unmodified checker: never reconstruct these leaves with a helper under test.
+26 | for (const fixture of frozen) if (fixture.id !== 'zero_coefficient_condition') {
+27 |   test(`frozen reviewer input: ${fixture.id}`, () => {
+28 |     expect(checkGoalLemmas(fixture.goal, fixture.tree, fixture.lemmas)).toBe(fixture.expect)
+                                                                             ^
+error: expect(received).toBe(expected)
+
+Expected: false
+Received: true
+
+      at <anonymous> (/tmp/track-k-review-mutants.6A1wyi/tree/kernel/lemma-cut.test.ts:28:73)
+(fail) frozen reviewer input: nested_lemma_tree [0.19ms]
+(pass) frozen reviewer input: fresh_unbound_name_is_arbitrary_nat [0.03ms]
+23 | })
+24 | 
+25 | // Fixed JSON from the unmodified checker: never reconstruct these leaves with a helper under test.
+26 | for (const fixture of frozen) if (fixture.id !== 'zero_coefficient_condition') {
+27 |   test(`frozen reviewer input: ${fixture.id}`, () => {
+28 |     expect(checkGoalLemmas(fixture.goal, fixture.tree, fixture.lemmas)).toBe(fixture.expect)
+                                                                             ^
+error: expect(received).toBe(expected)
+
+Expected: false
+Received: true
+
+      at <anonymous> (/tmp/track-k-review-mutants.6A1wyi/tree/kernel/lemma-cut.test.ts:28:73)
+(fail) frozen reviewer input: extra_instance_field_grants_nothing [0.03ms]
+(pass) frozen reviewer input: malformed_null_tree
+(pass) frozen reviewer input: malformed_array_cut [0.01ms]
+(pass) frozen reviewer input: malformed_fractional_when
+(pass) frozen reviewer input: malformed_sparse_slice
+(pass) eligibility cannot use a preceding cut to enable a second lemma [0.13ms]
+(pass) cuts precede original rows and duplicate cuts keep their own row positions [0.03ms]
+(pass) a separately checked conditional lemma closes only below its decision [0.21ms]
+(pass) empty lemma lists preserve the original goal and counted checkers [0.38ms]
+(pass) the actual counted and MC wrappers carry the lemma list [0.35ms]
+77 |   expect(checkCounted({...goal, counts: []}, {insts: [], tree, lemmas: [entry]})).toBe(true)
+78 |   expect(checkMC(hyps, [], {reads: [], insts: [], tree, lemmas: [entry]})).toBe(true)
+79 | })
+80 | 
+81 | test('a lemma is checked against exactly its selected hypotheses', () => {
+82 |   expect(checkGoalLemmas(goal, tree, [{...entry, slice: [0, 3]}])).toBe(false)
+                                                                        ^
+error: expect(received).toBe(expected)
+
+Expected: false
+Received: true
+
+      at <anonymous> (/tmp/track-k-review-mutants.6A1wyi/tree/kernel/lemma-cut.test.ts:82:68)
+(fail) a lemma is checked against exactly its selected hypotheses [0.25ms]
+82 |   expect(checkGoalLemmas(goal, tree, [{...entry, slice: [0, 3]}])).toBe(false)
+83 |   for (const index of [-1, 40, 0.5, NaN, Infinity]) expect(checkGoalLemmas(goal, tree, [{...entry, slice: [0, index]}])).toBe(false)
+84 | })
+85 | 
+86 | test('non-refuting, self-citing and circular lemma payloads are refused', () => {
+87 |   expect(checkGoalLemmas(goal, tree, [{...entry, tree: {leaf: []}}])).toBe(false)
+                                                                           ^
+error: expect(received).toBe(expected)
+
+Expected: false
+Received: true
+
+      at <anonymous> (/tmp/track-k-review-mutants.6A1wyi/tree/kernel/lemma-cut.test.ts:87:71)
+(fail) non-refuting, self-citing and circular lemma payloads are refused [0.12ms]
+(pass) read capture is still refused with a nonempty valid lemma list [0.95ms]
+(pass) witness capture of parameters, ?flag names and law skolems remains refused [2.28ms]
+(pass) malformed new fields do not grant assumptions or throw [0.04ms]
+
+ 19 pass
+ 4 fail
+ 57 expect() calls
+Ran 23 tests across 1 file. [18.00ms]
+
+40 |     {name: 'different slice', lemmas: [{...f.entry, slice: [0, 3]}]},
+41 |     {name: 'out-of-range slice', lemmas: [{...f.entry, slice: [0, 40]}]},
+42 |   ]
+43 |   for (const c of mutants) {
+44 |     const expected = checkCounted(g, {...cert, lemmas: c.lemmas})
+45 |     if (expected) throw new Error(`mutant accepted: ${c.name}`)
+                                 ^
+error: mutant accepted: non-refuting proof
+      at /tmp/track-k-review-mutants.6A1wyi/tree/lean-kernel/conformance.ts:45:29
+
+Bun v1.4.3 (Linux x64)
+
+ALL_MUTANTS_DONE
+VERIFIED_MUTANT_MATRIX=[{"id":"baseline","unit":0,"generation":0,"lean":0,"survived":true},{"id":"M01-no-eligibility","unit":1,"generation":1,"lean":null,"survived":false},{"id":"M02-positive-proof-cut","unit":1,"generation":1,"lean":null,"survived":false},{"id":"M03-slice-upper-inclusive","unit":0,"generation":0,"lean":0,"survived":true},{"id":"M04-eligibility-from-cuts","unit":1,"generation":0,"lean":0,"survived":false},{"id":"M05-nested-lemma-fallback","unit":1,"generation":0,"lean":0,"survived":false},{"id":"M06-no-repeated-split-refusal","unit":1,"generation":0,"lean":0,"survived":false},{"id":"M07-no-constant-split-refusal","unit":1,"generation":0,"lean":0,"survived":false},{"id":"M08-collapse-duplicates","unit":1,"generation":1,"lean":null,"survived":false},{"id":"M09-path-before-cut","unit":1,"generation":0,"lean":0,"survived":false},{"id":"M10-ignore-slice","unit":1,"generation":1,"lean":null,"survived":false},{"id":"M11-drop-MC-lemmas","unit":1,"generation":0,"lean":0,"survived":false},{"id":"M12-no-lemma-proof","unit":1,"generation":1,"lean":null,"survived":false}]

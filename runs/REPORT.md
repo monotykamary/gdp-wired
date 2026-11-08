@@ -2,11 +2,68 @@
 
 Base: `8610af26c16cf8e50b5ec0564a154c6bf358d82c`; branch: `claude/track-kernel`.
 
-## Independent-review follow-up
+## Independent-review follow-up — F1/F2/F3
 
-F1 is fixed in `53278bd9` at the new lemma-condition decision boundary: all-zero variable coefficients are treated as constants, matching Lean. The global `decide`, old tree checker, empty-list fast path, and proof-row layout are unchanged. The reviewer’s fixtures were captured once from the unmodified `df6f409e` checker (kernel SHA256 `6984ace7dea563b38aa93827558cfe209dd4978fb9ab994d92e4c2f8b9966433`) before the edit. `track-k-review-f1-v1/` passes 9 tests / 43 assertions and the independent Lean edge examples. F2 (`17a7bd21`) adds fixed-input tests for the exact-end slice, duplicate slices/rows, nested lemma trees, repeated/constant splits, cut-assisted eligibility, and cut/path order. The unchanged reviewer runner and all 12 unchanged substitutions pass their baseline; all 11 non-equivalent mutants are killed by unit tests in `track-k-review-mutants-v1/verified.json`. M03 alone survives: the out-of-range selection still fails closed downstream on these dense inputs, and the exact-end boundary is explicitly tested. F3 now explicitly documents TS acceptance as a strict subset of Lean, retaining legacy repeated/constant-split refusals rather than claiming exact equality. Post-fix static checking, all seven shards, Lean/conformance, strict Paxos 3/3, and a final unchanged mutant replay are queued. Previous evidence hashes are the pre-review snapshot, not the modified source. No merge is authorized. No merge will be performed.
+The requested fixes are committed: **F1 `53278bd9`, F2 `17a7bd21`, F3 `195d702d`**. The fixed engine is unchanged since `195d702d`; no law, proof budget, legacy `decide`, or legacy split refusal was changed. The required post-fix gates pass after one explicitly retained shard retry. The final current-source check also passes: zero type/lint errors or warnings, 29 focused tests and 87 assertions (`track-k-review-final-check-v1/`). **No merge or publish action has been taken.**
+
+- **F1:** all-zero variable coefficients in a lemma condition are classified as constant, matching Lean's `dec`/`allZero`. Only the new eligibility boundary changes; original proof rows and input numbering are preserved. The reviewer's zero-row certificate now checks, including in the independent Lean example.
+- **F2:** frozen goals, trees, slices and row indices were generated **once from the unmodified checker**, before F1, and saved in `kernel/fixtures/lemma-cut-review.json`. The capture validates the pre-review kernel SHA256 `6984ace7dea563b38aa93827558cfe209dd4978fb9ab994d92e4c2f8b9966433`. Tests load these bytes; they never rebuild those leaves with the helper under test. Additional path tests use literal input/expected rows. Exact-end slice and duplicate-row coverage are included.
+- **F3:** `lean-kernel/README.md` and kernel comments explicitly state that TS accepts a **strict subset** of Lean's certificates, including the intentional legacy repeated/constant-split refusals. Exact acceptance equality is not claimed.
+
+### Post-fix gates
+
+| Gate | Result | Receipt |
+| --- | --- | --- |
+| `bun run check` and focused tests | Passed, zero errors/warnings; 29 tests / 87 assertions | `track-k-review-gates-v1/check-and-units.log`, `track-k-review-final-check-v1/final-check.log` |
+| Seven complete shards | All pass after the single shard-5 retry below | `track-k-review-gates-v1/`, `track-k-review-retry-v1/test-shard-5.log` |
+| Lean build, frozen edge examples, counted library, conformance, public export | Passed; no new axioms or `sorry` | `track-k-review-gates-v1/{lean-count-cuts,counted-library,expanded-conformance}.log` |
+| Strict original-harness Paxos | **3/3: 30.090s, 29.396s, 29.029s** | `track-k-review-gates-v1/paxos-r{1,2,3}.log` |
+| Unchanged C14/C9/C11 | All check with absent/empty lemmas and zero search | `track-k-review-gates-v1/c{14,9,11}.log` |
+| Original reviewer mutant set | **11 killed; M03 alone survives as fail-closed equivalent** | `track-k-review-gates-v1/mutants.json`, `review-mutants.log` |
+
+The original batch is **17/18**, not falsely relabeled as an all-pass run. The sole failure was the existing 60-second co-write provenance test in shard 5 (79.767s test wall; no ghost proof found). The identical full shard passed on retry, with that test taking **15.618s**. A same-VM isolated control passed with both the pre-review kernel (**21.616s**) and fixed kernel (**19.988s**). This failure did not reproduce; no production code, test expectation, or proof budget was changed to accommodate it. Both receipts remain available. `verified.json` explicitly records `originalAllPassed: false` and the selected successful retry.
+
+Shard stdout/stderr is bounded and can lose early lines; its visible pass/skip counts are lower bounds, not complete suite totals. Completion is checked from each full shard process's exit status, and the new 29 focused tests are separately logged in full.
+
+### Complete mutation matrix
+
+The reviewer's `review-run.ts` and twelve substitutions were copied unchanged and run in disposable boat scratch. Baseline units, generation and Lean all pass. Every non-equivalent mutant is killed by the independent unit tests; M03 is not counted as killed.
+
+| Mutant | Outcome |
+| --- | --- |
+| M01 no eligibility | killed |
+| M02 positive proof cut | killed |
+| M03 inclusive slice upper bound | survives; downstream rejection remains fail-closed on the tested dense inputs |
+| M04 cut-assisted eligibility | killed |
+| M05 nested lemma fallback | killed |
+| M06 repeated split allowed | killed |
+| M07 constant split allowed | killed |
+| M08 collapse duplicate atoms | killed |
+| M09 original path before cuts | killed |
+| M10 ignore selected slice | killed |
+| M11 drop MC lemmas | killed |
+| M12 skip independent lemma proof | killed |
+
+M05/M06/M07/M09 are contract/refusal-policy changes, not claims of demonstrated semantic unsoundness. The exact-end test still rejects M03's out-of-range input; its survival is recorded honestly.
+
+### Review-fix reproduction
+
+```sh
+# All requested gates and the unmodified reviewer mutation suite, on boat.
+supercomputer run --jobs research/track-k/review-gates-jobs.json --out runs/recheck-review --class gate --vm-type large --vms 4 --data runs/track-k-input:research/track-k/input
+
+# Verify the recorded original batch plus its explicit retry (receipt-only).
+bun research/track-k/check-review-gates.ts runs/track-k-review-gates-v1 runs/track-k-review-retry-v1
+
+# Reproduce the shard retry and paired pre-review/fixed control if needed.
+supercomputer run --jobs research/track-k/review-retry-jobs.json --out runs/recheck-review-retry --class gate --vm-type large --vms 3
+```
+
+The new source/receipt hashes are in `runs/track-k-review-final/SHA256SUMS`. The older `runs/track-k-final/SHA256SUMS` remains the **pre-review** snapshot's manifest and is not claimed to match the corrected source.
 
 ## Pre-review baseline status (`df6f409e`)
+
+The sections below record the historical pre-review checkpoint and its old hash manifest, not the current review disposition above.
 
 The Lean-first rule, TypeScript mirror, unchanged-certificate conservation, semantic refusals, Lean export, and measured untrusted emission are implemented. The engine is frozen at `0e9afc3db2317abee2b96894de5dd83e2edf86f4`; all core/kernel/Lean source still matches that commit. The required automated gate pipeline and final helper/artifact recheck passed. **Independent review of the Lean statement and TypeScript mirror remains required before any merge; no merge or publish action was taken.**
 
@@ -19,7 +76,7 @@ The Lean-first rule, TypeScript mirror, unchanged-certificate conservation, sema
 | Paired IC3Syn 29 × 3 vs main 8610af26 | **28/29 vs 28/29 in every repeat; 84/87 each; no lost proofs; Paxos 3/3** | `track-k-final-ic3syn-v1/verified.json` |
 | DuoAI ten paired | **10/10 candidate vs 9/10 main; no lost proofs** | `track-k-final-duoai-v1/verified.json` |
 | Broken variants | **0/29 proven**: 11 refuted, 18 unknown | `track-k-final-broken-v1/verified.json` |
-| Seven isolated test shards | **7/7 passed**; 713 Bun test passes, 18 existing skips, plus script checks/examples | `track-k-final-shards-v1/` |
+| Seven isolated test shards | **7/7 passed**; at least 713 visible Bun test passes and 18 skips in bounded logs, plus script checks/examples | `track-k-final-shards-v1/` |
 | Quick bar | **Wrong 0; solid losses 0**, ten groups, three reruns per differing task; Lean 6/6 | `track-k-bar/runs/track-k-v1/{REPORT.md,report.json,verified.json}` |
 
 MLDR itself remains **unknown in all three integrated runs on both sides**. This track supplies and measures the sharing rule; it does not claim a complete MLDR proof. The bar has timing-dependent non-solid losses, retained in its detailed report; “no lost proofs” above refers to the paired protocol suites, not every bar task.

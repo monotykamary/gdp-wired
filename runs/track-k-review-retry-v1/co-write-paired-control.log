@@ -1,0 +1,26 @@
+CONTROL begin pre-review
+bun test v1.4.3 (c6da4a4d3)
+CONTROL end pre-review exit=0
+CONTROL begin fixed
+bun test v1.4.3 (c6da4a4d3)
+CONTROL end fixed exit=0
+
+--- stderr ---
+
+core/exists-support.test.ts:
+(pass) co-write provenance closes a renamed forwarding pipeline with nothing written [21616.02ms]
+
+ 1 pass
+ 5 filtered out
+ 0 fail
+ 1 expect() calls
+Ran 1 test across 1 file. [21.65s]
+
+core/exists-support.test.ts:
+(pass) co-write provenance closes a renamed forwarding pipeline with nothing written [19988.21ms]
+
+ 1 pass
+ 5 filtered out
+ 0 fail
+ 1 expect() calls
+Ran 1 test across 1 file. [20.03s]

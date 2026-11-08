@@ -1,0 +1,44 @@
+Found 0 warnings and 0 errors.
+Finished in 34.2s on 967 files with 100 rules using 8 threads.
+bun test v1.4.3 (c6da4a4d3)
+
+--- stderr ---
+$ tsc -p . && oxlint --type-aware --deny-warnings --disable-nested-config
+
+core/lemma-cuts.test.ts:
+(pass) repeated forced splits become one independent checked lemma without search [3.20ms]
+(pass) conditional input paths become explicit scope hypotheses and retain needed conditions [1.70ms]
+(pass) forged source provenance cannot become a checked lemma [0.37ms]
+(pass) row-cache hints are keyed by the exact goal and ordered source path [1.16ms]
+(pass) forged matching row hints cannot bypass the trusted checker [0.49ms]
+(pass) compression declines expired work and never certifies a satisfiable changed goal [0.55ms]
+
+kernel/lemma-cut.test.ts:
+(pass) zero-coefficient lemma conditions agree with Lean without changing legacy paths [0.39ms]
+(pass) frozen reviewer input: slice_exact_end [0.04ms]
+(pass) frozen reviewer input: duplicate_slice [0.11ms]
+(pass) frozen reviewer input: cut_equals_duplicate_when [0.06ms]
+(pass) frozen reviewer input: repeated_split [0.02ms]
+(pass) frozen reviewer input: constant_split [0.01ms]
+(pass) frozen reviewer input: nested_lemma_tree [0.06ms]
+(pass) frozen reviewer input: fresh_unbound_name_is_arbitrary_nat [0.03ms]
+(pass) frozen reviewer input: extra_instance_field_grants_nothing [0.03ms]
+(pass) frozen reviewer input: malformed_null_tree
+(pass) frozen reviewer input: malformed_array_cut
+(pass) frozen reviewer input: malformed_fractional_when
+(pass) frozen reviewer input: malformed_sparse_slice
+(pass) eligibility cannot use a preceding cut to enable a second lemma [0.09ms]
+(pass) cuts precede original rows and duplicate cuts keep their own row positions [0.03ms]
+(pass) a separately checked conditional lemma closes only below its decision [0.22ms]
+(pass) empty lemma lists preserve the original goal and counted checkers [0.39ms]
+(pass) the actual counted and MC wrappers carry the lemma list [0.14ms]
+(pass) a lemma is checked against exactly its selected hypotheses [0.08ms]
+(pass) non-refuting, self-citing and circular lemma payloads are refused [0.09ms]
+(pass) read capture is still refused with a nonempty valid lemma list [0.76ms]
+(pass) witness capture of parameters, ?flag names and law skolems remains refused [2.03ms]
+(pass) malformed new fields do not grant assumptions or throw [0.04ms]
+
+ 29 pass
+ 0 fail
+ 87 expect() calls
+Ran 29 tests across 2 files. [27.00ms]

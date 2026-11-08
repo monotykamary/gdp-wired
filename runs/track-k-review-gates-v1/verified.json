@@ -1,0 +1,47 @@
+{
+  "jobs": 18,
+  "originalAllPassed": false,
+  "allRequiredChecksPassed": true,
+  "retries": [
+    {
+      "name": "test-shard-5",
+      "originalExit": 1,
+      "original": "runs/track-k-review-gates-v1",
+      "retry": "runs/track-k-review-retry-v1"
+    }
+  ],
+  "paxos": [
+    {
+      "run": 1,
+      "ms": 30090
+    },
+    {
+      "run": 2,
+      "ms": 29396
+    },
+    {
+      "run": 3,
+      "ms": 29029
+    }
+  ],
+  "shards": {
+    "jobs": 7,
+    "visiblePasses": 713,
+    "visibleSkipped": 18,
+    "failed": 0,
+    "countsAreComplete": false
+  },
+  "mutants": {
+    "killed": 11,
+    "equivalentSurvivor": "M03-slice-upper-inclusive"
+  },
+  "sourceHashes": {
+    "kernel/kernel.ts": "7ec8b310d23fab7eb3ba452b659e7051ceefe97aea01ffa6f16d990a7bea7f33",
+    "kernel/lemma-cut.test.ts": "fd53a19d5dfdf7876e6e5dfee15930bbd804d9b1d75dc2d887af263827634f7b",
+    "kernel/fixtures/lemma-cut-review.json": "17154065eac49dcd440713d657f65d98c4c4018470d834d5e5a9611384c78fda",
+    "lean-kernel/Count.lean": "d2acaff8a5ba433e48e97955f5c01f061700516d9d76e401676d50bf294a21b6",
+    "lean-kernel/CountMachine.lean": "017d0f5f2fc9c3e30f7d644833da39f091cf4d40fc07e7da81f8efbeeb454e68",
+    "research/track-k/review-source/review-run.ts.txt": "95579771505618561be2846a3dd3f0e92276e58f02a8b9b9a6af11d320888980",
+    "research/track-k/review-source/review-mutants.json": "0a6ebdad836d5ec348daedcf7058f63e04e882f3669e8fe806f8ad1ad7ae7e17"
+  }
+}
