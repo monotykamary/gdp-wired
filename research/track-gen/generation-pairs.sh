@@ -11,11 +11,11 @@ for repeat in 1 2 3; do
   for side in $sides; do
     dir=$root; [[ $side == parent ]] && dir=$root/parent
     echo "GENERATION repeat=$repeat side=$side"
-    (cd "$dir" && taskset -c 0-3 timeout -s KILL 60 bun research/track-gen/profile.ts)
+    (cd "$dir" && timeout -s KILL 60 bun research/track-gen/profile.ts)
   done
 done
 for side in parent candidate; do
   dir=$root; [[ $side == parent ]] && dir=$root/parent
   echo "PROFILE side=$side"
-  (cd "$dir" && TRACK_GEN_DISPOSABLE=1 bun research/track-gen/install-profile.ts && taskset -c 0-3 timeout -s KILL 60 bun research/track-gen/profile.ts)
+  (cd "$dir" && TRACK_GEN_DISPOSABLE=1 bun research/track-gen/install-profile.ts && timeout -s KILL 60 bun research/track-gen/profile.ts)
 done

@@ -6,6 +6,10 @@ if(mode==='facts'||mode==='both'){
  const start=text.indexOf('    // Reuse Boolean-region identities'),end=text.indexOf('    pairs: for',start)
  if(start<0||end<start)throw Error('facts anchor');text=text.slice(0,start)+text.slice(end)
 }
+if(mode==='tail'){
+ const start=text.indexOf('    // Structured identities supplement'),end=text.indexOf('\n  }\n  const picks',start)
+ if(start<0||end<start)throw Error('tail anchor');text=text.slice(0,start)+text.slice(end)
+}
 if(mode==='singletons'||mode==='both'){
  const line='    for (const t of ts) picks.push([r[0], [t]])\n';if(!text.includes(line))throw Error('picks anchor');text=text.replace(line,'')
 }

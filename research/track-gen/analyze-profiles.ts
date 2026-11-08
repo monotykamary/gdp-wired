@@ -1,5 +1,5 @@
 // Deterministic postprocessing only; no searches are run here.
-import {readFileSync,writeFileSync} from 'node:fs'
+import {existsSync,readFileSync,writeFileSync} from 'node:fs'
 import {type Law} from '../../core/machine.ts'
 const root=process.argv[2]??'runs',probeDir=process.argv[3]??'track-gen-final-replays-v1',lines=(file:string)=>readFileSync(file,'utf8').split('\n')
 function normal(l:Law):string{
@@ -16,7 +16,8 @@ function normal(l:Law):string{
  return JSON.stringify(go(l.holds))
 }
 const comparisons:{prefix:string,workIdentical:boolean,usageIdentical:boolean}[]=[]
-const generation=JSON.parse(readFileSync(`${root}/track-gen-baseline-v1/generation.json`,'utf8'))
+const recorded=`${root}/${probeDir}/records.json`
+const generation=existsSync(recorded)?JSON.parse(readFileSync(recorded,'utf8'))[0]:JSON.parse(readFileSync(`${root}/track-gen-baseline-v1/generation.json`,'utf8'))
 let side='',prefix='';const probes:any[]=[]
 for(const line of lines(`${root}/${probeDir}/probe-pairs.log`)){
  const marker=/^PROBE side=(\S+) prefix=(.*)/.exec(line)

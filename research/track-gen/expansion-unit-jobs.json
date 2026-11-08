@@ -1,0 +1,1 @@
+[{"name":"expansion-unit","cmd":"set -e; bun install --frozen-lockfile >/dev/null; bun test core/counts-structured.test.ts","cpu":8,"memory":14336,"timeout":180}]

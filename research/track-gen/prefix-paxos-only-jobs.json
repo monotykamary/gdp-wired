@@ -1,1 +1,1 @@
-[{"name":"paxos","cmd":"set -e; bun install --frozen-lockfile >/dev/null; GDP_COUNTS_TRACE=1 taskset -c 0-3 timeout -s KILL 60 bun research/protocols/ic3syn/run.ts --only paxos_epr --skip broken --ms 60000","cpu":8,"memory":14336,"timeout":120}]
+[{"name":"paxos","cmd":"set -e; bun install --frozen-lockfile >/dev/null; GDP_COUNTS_TRACE=1 timeout -s KILL 60 bun research/protocols/ic3syn/run.ts --only paxos_epr --skip broken --ms 60000","cpu":8,"memory":14336,"timeout":120}]

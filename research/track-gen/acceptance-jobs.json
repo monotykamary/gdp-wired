@@ -1,0 +1,1080 @@
+[
+  {
+    "name": "ic3-paxos_epr-s60-r1",
+    "cmd": "set -e; mkdir -p base; tar -xf replay-input/main.tar -C base; set -e; root=$PWD; base=$(cd 'base' && pwd); bun install --frozen-lockfile >/dev/null 2>&1; (cd \"$base\" && bun install --frozen-lockfile >/dev/null 2>&1); set +e; failed=0; for side in cand base; do dir=$root; [ \"$side\" = base ] && dir=$base; echo \"PAIR begin side=$side id=paxos_epr run=1\"; (cd \"$dir\" && GDP_INFER_TRACE=2 timeout -s KILL 60 bun research/protocols/ic3syn/run.ts --ms 60000 --only 'paxos_epr' --skip 'broken') > /tmp/pair-$side.out 2>/tmp/pair-$side.err; s=$?; cat /tmp/pair-$side.out; grep -E 'small instance|join (enumerated|end|failed|exists|set|cone|td|houdini|engine|ic3|undecided|pool|filter)' /tmp/pair-$side.err | cut -c1-300 | tail -c 60000; tail -c 2000 /tmp/pair-$side.err | grep -iE 'error|throw' | tail -5; echo \"PAIR end side=$side exit=$s\"; if [ $s -ne 0 ] && [ $s -ne 124 ] && [ $s -ne 137 ]; then failed=1; fi; done; exit $failed",
+    "timeout": 300,
+    "vm_type": "large",
+    "cpu": 8,
+    "memory": 14336
+  },
+  {
+    "name": "ic3-paxos_epr-s60-r2",
+    "cmd": "set -e; mkdir -p base; tar -xf replay-input/main.tar -C base; set -e; root=$PWD; base=$(cd 'base' && pwd); bun install --frozen-lockfile >/dev/null 2>&1; (cd \"$base\" && bun install --frozen-lockfile >/dev/null 2>&1); set +e; failed=0; for side in base cand; do dir=$root; [ \"$side\" = base ] && dir=$base; echo \"PAIR begin side=$side id=paxos_epr run=2\"; (cd \"$dir\" && GDP_INFER_TRACE=2 timeout -s KILL 60 bun research/protocols/ic3syn/run.ts --ms 60000 --only 'paxos_epr' --skip 'broken') > /tmp/pair-$side.out 2>/tmp/pair-$side.err; s=$?; cat /tmp/pair-$side.out; grep -E 'small instance|join (enumerated|end|failed|exists|set|cone|td|houdini|engine|ic3|undecided|pool|filter)' /tmp/pair-$side.err | cut -c1-300 | tail -c 60000; tail -c 2000 /tmp/pair-$side.err | grep -iE 'error|throw' | tail -5; echo \"PAIR end side=$side exit=$s\"; if [ $s -ne 0 ] && [ $s -ne 124 ] && [ $s -ne 137 ]; then failed=1; fi; done; exit $failed",
+    "timeout": 300,
+    "vm_type": "large",
+    "cpu": 8,
+    "memory": 14336
+  },
+  {
+    "name": "ic3-paxos_epr-s60-r3",
+    "cmd": "set -e; mkdir -p base; tar -xf replay-input/main.tar -C base; set -e; root=$PWD; base=$(cd 'base' && pwd); bun install --frozen-lockfile >/dev/null 2>&1; (cd \"$base\" && bun install --frozen-lockfile >/dev/null 2>&1); set +e; failed=0; for side in cand base; do dir=$root; [ \"$side\" = base ] && dir=$base; echo \"PAIR begin side=$side id=paxos_epr run=3\"; (cd \"$dir\" && GDP_INFER_TRACE=2 timeout -s KILL 60 bun research/protocols/ic3syn/run.ts --ms 60000 --only 'paxos_epr' --skip 'broken') > /tmp/pair-$side.out 2>/tmp/pair-$side.err; s=$?; cat /tmp/pair-$side.out; grep -E 'small instance|join (enumerated|end|failed|exists|set|cone|td|houdini|engine|ic3|undecided|pool|filter)' /tmp/pair-$side.err | cut -c1-300 | tail -c 60000; tail -c 2000 /tmp/pair-$side.err | grep -iE 'error|throw' | tail -5; echo \"PAIR end side=$side exit=$s\"; if [ $s -ne 0 ] && [ $s -ne 124 ] && [ $s -ne 137 ]; then failed=1; fi; done; exit $failed",
+    "timeout": 300,
+    "vm_type": "large",
+    "cpu": 8,
+    "memory": 14336
+  },
+  {
+    "name": "ic3-consensus-s60-r1",
+    "cmd": "set -e; mkdir -p base; tar -xf replay-input/main.tar -C base; set -e; root=$PWD; base=$(cd 'base' && pwd); bun install --frozen-lockfile >/dev/null 2>&1; (cd \"$base\" && bun install --frozen-lockfile >/dev/null 2>&1); set +e; failed=0; for side in cand base; do dir=$root; [ \"$side\" = base ] && dir=$base; echo \"PAIR begin side=$side id=consensus run=1\"; (cd \"$dir\" && GDP_INFER_TRACE=2 timeout -s KILL 60 bun research/protocols/ic3syn/run.ts --ms 60000 --only 'consensus' --skip 'broken') > /tmp/pair-$side.out 2>/tmp/pair-$side.err; s=$?; cat /tmp/pair-$side.out; grep -E 'small instance|join (enumerated|end|failed|exists|set|cone|td|houdini|engine|ic3|undecided|pool|filter)' /tmp/pair-$side.err | cut -c1-300 | tail -c 60000; tail -c 2000 /tmp/pair-$side.err | grep -iE 'error|throw' | tail -5; echo \"PAIR end side=$side exit=$s\"; if [ $s -ne 0 ] && [ $s -ne 124 ] && [ $s -ne 137 ]; then failed=1; fi; done; exit $failed",
+    "timeout": 300,
+    "vm_type": "large",
+    "cpu": 8,
+    "memory": 14336
+  },
+  {
+    "name": "ic3-tcommit-s60-r1",
+    "cmd": "set -e; mkdir -p base; tar -xf replay-input/main.tar -C base; set -e; root=$PWD; base=$(cd 'base' && pwd); bun install --frozen-lockfile >/dev/null 2>&1; (cd \"$base\" && bun install --frozen-lockfile >/dev/null 2>&1); set +e; failed=0; for side in cand base; do dir=$root; [ \"$side\" = base ] && dir=$base; echo \"PAIR begin side=$side id=tcommit run=1\"; (cd \"$dir\" && GDP_INFER_TRACE=2 timeout -s KILL 60 bun research/protocols/ic3syn/run.ts --ms 60000 --only 'tcommit' --skip 'broken') > /tmp/pair-$side.out 2>/tmp/pair-$side.err; s=$?; cat /tmp/pair-$side.out; grep -E 'small instance|join (enumerated|end|failed|exists|set|cone|td|houdini|engine|ic3|undecided|pool|filter)' /tmp/pair-$side.err | cut -c1-300 | tail -c 60000; tail -c 2000 /tmp/pair-$side.err | grep -iE 'error|throw' | tail -5; echo \"PAIR end side=$side exit=$s\"; if [ $s -ne 0 ] && [ $s -ne 124 ] && [ $s -ne 137 ]; then failed=1; fi; done; exit $failed",
+    "timeout": 300,
+    "vm_type": "large",
+    "cpu": 8,
+    "memory": 14336
+  },
+  {
+    "name": "ic3-lock_server-s60-r1",
+    "cmd": "set -e; mkdir -p base; tar -xf replay-input/main.tar -C base; set -e; root=$PWD; base=$(cd 'base' && pwd); bun install --frozen-lockfile >/dev/null 2>&1; (cd \"$base\" && bun install --frozen-lockfile >/dev/null 2>&1); set +e; failed=0; for side in cand base; do dir=$root; [ \"$side\" = base ] && dir=$base; echo \"PAIR begin side=$side id=lock_server run=1\"; (cd \"$dir\" && GDP_INFER_TRACE=2 timeout -s KILL 60 bun research/protocols/ic3syn/run.ts --ms 60000 --only 'lock_server' --skip 'broken') > /tmp/pair-$side.out 2>/tmp/pair-$side.err; s=$?; cat /tmp/pair-$side.out; grep -E 'small instance|join (enumerated|end|failed|exists|set|cone|td|houdini|engine|ic3|undecided|pool|filter)' /tmp/pair-$side.err | cut -c1-300 | tail -c 60000; tail -c 2000 /tmp/pair-$side.err | grep -iE 'error|throw' | tail -5; echo \"PAIR end side=$side exit=$s\"; if [ $s -ne 0 ] && [ $s -ne 124 ] && [ $s -ne 137 ]; then failed=1; fi; done; exit $failed",
+    "timeout": 300,
+    "vm_type": "large",
+    "cpu": 8,
+    "memory": 14336
+  },
+  {
+    "name": "ic3-quorum_leader_election-s60-r1",
+    "cmd": "set -e; mkdir -p base; tar -xf replay-input/main.tar -C base; set -e; root=$PWD; base=$(cd 'base' && pwd); bun install --frozen-lockfile >/dev/null 2>&1; (cd \"$base\" && bun install --frozen-lockfile >/dev/null 2>&1); set +e; failed=0; for side in cand base; do dir=$root; [ \"$side\" = base ] && dir=$base; echo \"PAIR begin side=$side id=quorum_leader_election run=1\"; (cd \"$dir\" && GDP_INFER_TRACE=2 timeout -s KILL 60 bun research/protocols/ic3syn/run.ts --ms 60000 --only 'quorum_leader_election' --skip 'broken') > /tmp/pair-$side.out 2>/tmp/pair-$side.err; s=$?; cat /tmp/pair-$side.out; grep -E 'small instance|join (enumerated|end|failed|exists|set|cone|td|houdini|engine|ic3|undecided|pool|filter)' /tmp/pair-$side.err | cut -c1-300 | tail -c 60000; tail -c 2000 /tmp/pair-$side.err | grep -iE 'error|throw' | tail -5; echo \"PAIR end side=$side exit=$s\"; if [ $s -ne 0 ] && [ $s -ne 124 ] && [ $s -ne 137 ]; then failed=1; fi; done; exit $failed",
+    "timeout": 300,
+    "vm_type": "large",
+    "cpu": 8,
+    "memory": 14336
+  },
+  {
+    "name": "ic3-toy_consensus_forall-s60-r1",
+    "cmd": "set -e; mkdir -p base; tar -xf replay-input/main.tar -C base; set -e; root=$PWD; base=$(cd 'base' && pwd); bun install --frozen-lockfile >/dev/null 2>&1; (cd \"$base\" && bun install --frozen-lockfile >/dev/null 2>&1); set +e; failed=0; for side in cand base; do dir=$root; [ \"$side\" = base ] && dir=$base; echo \"PAIR begin side=$side id=toy_consensus_forall run=1\"; (cd \"$dir\" && GDP_INFER_TRACE=2 timeout -s KILL 60 bun research/protocols/ic3syn/run.ts --ms 60000 --only 'toy_consensus_forall' --skip 'broken') > /tmp/pair-$side.out 2>/tmp/pair-$side.err; s=$?; cat /tmp/pair-$side.out; grep -E 'small instance|join (enumerated|end|failed|exists|set|cone|td|houdini|engine|ic3|undecided|pool|filter)' /tmp/pair-$side.err | cut -c1-300 | tail -c 60000; tail -c 2000 /tmp/pair-$side.err | grep -iE 'error|throw' | tail -5; echo \"PAIR end side=$side exit=$s\"; if [ $s -ne 0 ] && [ $s -ne 124 ] && [ $s -ne 137 ]; then failed=1; fi; done; exit $failed",
+    "timeout": 300,
+    "vm_type": "large",
+    "cpu": 8,
+    "memory": 14336
+  },
+  {
+    "name": "ic3-simple-s60-r1",
+    "cmd": "set -e; mkdir -p base; tar -xf replay-input/main.tar -C base; set -e; root=$PWD; base=$(cd 'base' && pwd); bun install --frozen-lockfile >/dev/null 2>&1; (cd \"$base\" && bun install --frozen-lockfile >/dev/null 2>&1); set +e; failed=0; for side in cand base; do dir=$root; [ \"$side\" = base ] && dir=$base; echo \"PAIR begin side=$side id=simple run=1\"; (cd \"$dir\" && GDP_INFER_TRACE=2 timeout -s KILL 60 bun research/protocols/ic3syn/run.ts --ms 60000 --only 'simple' --skip 'broken') > /tmp/pair-$side.out 2>/tmp/pair-$side.err; s=$?; cat /tmp/pair-$side.out; grep -E 'small instance|join (enumerated|end|failed|exists|set|cone|td|houdini|engine|ic3|undecided|pool|filter)' /tmp/pair-$side.err | cut -c1-300 | tail -c 60000; tail -c 2000 /tmp/pair-$side.err | grep -iE 'error|throw' | tail -5; echo \"PAIR end side=$side exit=$s\"; if [ $s -ne 0 ] && [ $s -ne 124 ] && [ $s -ne 137 ]; then failed=1; fi; done; exit $failed",
+    "timeout": 300,
+    "vm_type": "large",
+    "cpu": 8,
+    "memory": 14336
+  },
+  {
+    "name": "ic3-simple_regular-s60-r1",
+    "cmd": "set -e; mkdir -p base; tar -xf replay-input/main.tar -C base; set -e; root=$PWD; base=$(cd 'base' && pwd); bun install --frozen-lockfile >/dev/null 2>&1; (cd \"$base\" && bun install --frozen-lockfile >/dev/null 2>&1); set +e; failed=0; for side in cand base; do dir=$root; [ \"$side\" = base ] && dir=$base; echo \"PAIR begin side=$side id=simple_regular run=1\"; (cd \"$dir\" && GDP_INFER_TRACE=2 timeout -s KILL 60 bun research/protocols/ic3syn/run.ts --ms 60000 --only 'simple_regular' --skip 'broken') > /tmp/pair-$side.out 2>/tmp/pair-$side.err; s=$?; cat /tmp/pair-$side.out; grep -E 'small instance|join (enumerated|end|failed|exists|set|cone|td|houdini|engine|ic3|undecided|pool|filter)' /tmp/pair-$side.err | cut -c1-300 | tail -c 60000; tail -c 2000 /tmp/pair-$side.err | grep -iE 'error|throw' | tail -5; echo \"PAIR end side=$side exit=$s\"; if [ $s -ne 0 ] && [ $s -ne 124 ] && [ $s -ne 137 ]; then failed=1; fi; done; exit $failed",
+    "timeout": 300,
+    "vm_type": "large",
+    "cpu": 8,
+    "memory": 14336
+  },
+  {
+    "name": "ic3-lockserv_automaton-s60-r1",
+    "cmd": "set -e; mkdir -p base; tar -xf replay-input/main.tar -C base; set -e; root=$PWD; base=$(cd 'base' && pwd); bun install --frozen-lockfile >/dev/null 2>&1; (cd \"$base\" && bun install --frozen-lockfile >/dev/null 2>&1); set +e; failed=0; for side in cand base; do dir=$root; [ \"$side\" = base ] && dir=$base; echo \"PAIR begin side=$side id=lockserv_automaton run=1\"; (cd \"$dir\" && GDP_INFER_TRACE=2 timeout -s KILL 60 bun research/protocols/ic3syn/run.ts --ms 60000 --only 'lockserv_automaton' --skip 'broken') > /tmp/pair-$side.out 2>/tmp/pair-$side.err; s=$?; cat /tmp/pair-$side.out; grep -E 'small instance|join (enumerated|end|failed|exists|set|cone|td|houdini|engine|ic3|undecided|pool|filter)' /tmp/pair-$side.err | cut -c1-300 | tail -c 60000; tail -c 2000 /tmp/pair-$side.err | grep -iE 'error|throw' | tail -5; echo \"PAIR end side=$side exit=$s\"; if [ $s -ne 0 ] && [ $s -ne 124 ] && [ $s -ne 137 ]; then failed=1; fi; done; exit $failed",
+    "timeout": 300,
+    "vm_type": "large",
+    "cpu": 8,
+    "memory": 14336
+  },
+  {
+    "name": "ic3-sharded_kv-s60-r1",
+    "cmd": "set -e; mkdir -p base; tar -xf replay-input/main.tar -C base; set -e; root=$PWD; base=$(cd 'base' && pwd); bun install --frozen-lockfile >/dev/null 2>&1; (cd \"$base\" && bun install --frozen-lockfile >/dev/null 2>&1); set +e; failed=0; for side in cand base; do dir=$root; [ \"$side\" = base ] && dir=$base; echo \"PAIR begin side=$side id=sharded_kv run=1\"; (cd \"$dir\" && GDP_INFER_TRACE=2 timeout -s KILL 60 bun research/protocols/ic3syn/run.ts --ms 60000 --only 'sharded_kv' --skip 'broken') > /tmp/pair-$side.out 2>/tmp/pair-$side.err; s=$?; cat /tmp/pair-$side.out; grep -E 'small instance|join (enumerated|end|failed|exists|set|cone|td|houdini|engine|ic3|undecided|pool|filter)' /tmp/pair-$side.err | cut -c1-300 | tail -c 60000; tail -c 2000 /tmp/pair-$side.err | grep -iE 'error|throw' | tail -5; echo \"PAIR end side=$side exit=$s\"; if [ $s -ne 0 ] && [ $s -ne 124 ] && [ $s -ne 137 ]; then failed=1; fi; done; exit $failed",
+    "timeout": 300,
+    "vm_type": "large",
+    "cpu": 8,
+    "memory": 14336
+  },
+  {
+    "name": "ic3-sharded_kv_no_lost_keys-s60-r1",
+    "cmd": "set -e; mkdir -p base; tar -xf replay-input/main.tar -C base; set -e; root=$PWD; base=$(cd 'base' && pwd); bun install --frozen-lockfile >/dev/null 2>&1; (cd \"$base\" && bun install --frozen-lockfile >/dev/null 2>&1); set +e; failed=0; for side in cand base; do dir=$root; [ \"$side\" = base ] && dir=$base; echo \"PAIR begin side=$side id=sharded_kv_no_lost_keys run=1\"; (cd \"$dir\" && GDP_INFER_TRACE=2 timeout -s KILL 60 bun research/protocols/ic3syn/run.ts --ms 60000 --only 'sharded_kv_no_lost_keys' --skip 'broken') > /tmp/pair-$side.out 2>/tmp/pair-$side.err; s=$?; cat /tmp/pair-$side.out; grep -E 'small instance|join (enumerated|end|failed|exists|set|cone|td|houdini|engine|ic3|undecided|pool|filter)' /tmp/pair-$side.err | cut -c1-300 | tail -c 60000; tail -c 2000 /tmp/pair-$side.err | grep -iE 'error|throw' | tail -5; echo \"PAIR end side=$side exit=$s\"; if [ $s -ne 0 ] && [ $s -ne 124 ] && [ $s -ne 137 ]; then failed=1; fi; done; exit $failed",
+    "timeout": 300,
+    "vm_type": "large",
+    "cpu": 8,
+    "memory": 14336
+  },
+  {
+    "name": "ic3-lockserv-s60-r1",
+    "cmd": "set -e; mkdir -p base; tar -xf replay-input/main.tar -C base; set -e; root=$PWD; base=$(cd 'base' && pwd); bun install --frozen-lockfile >/dev/null 2>&1; (cd \"$base\" && bun install --frozen-lockfile >/dev/null 2>&1); set +e; failed=0; for side in cand base; do dir=$root; [ \"$side\" = base ] && dir=$base; echo \"PAIR begin side=$side id=lockserv run=1\"; (cd \"$dir\" && GDP_INFER_TRACE=2 timeout -s KILL 60 bun research/protocols/ic3syn/run.ts --ms 60000 --only 'lockserv' --skip 'broken') > /tmp/pair-$side.out 2>/tmp/pair-$side.err; s=$?; cat /tmp/pair-$side.out; grep -E 'small instance|join (enumerated|end|failed|exists|set|cone|td|houdini|engine|ic3|undecided|pool|filter)' /tmp/pair-$side.err | cut -c1-300 | tail -c 60000; tail -c 2000 /tmp/pair-$side.err | grep -iE 'error|throw' | tail -5; echo \"PAIR end side=$side exit=$s\"; if [ $s -ne 0 ] && [ $s -ne 124 ] && [ $s -ne 137 ]; then failed=1; fi; done; exit $failed",
+    "timeout": 300,
+    "vm_type": "large",
+    "cpu": 8,
+    "memory": 14336
+  },
+  {
+    "name": "ic3-twophase-s60-r1",
+    "cmd": "set -e; mkdir -p base; tar -xf replay-input/main.tar -C base; set -e; root=$PWD; base=$(cd 'base' && pwd); bun install --frozen-lockfile >/dev/null 2>&1; (cd \"$base\" && bun install --frozen-lockfile >/dev/null 2>&1); set +e; failed=0; for side in cand base; do dir=$root; [ \"$side\" = base ] && dir=$base; echo \"PAIR begin side=$side id=twophase run=1\"; (cd \"$dir\" && GDP_INFER_TRACE=2 timeout -s KILL 60 bun research/protocols/ic3syn/run.ts --ms 60000 --only 'twophase' --skip 'broken') > /tmp/pair-$side.out 2>/tmp/pair-$side.err; s=$?; cat /tmp/pair-$side.out; grep -E 'small instance|join (enumerated|end|failed|exists|set|cone|td|houdini|engine|ic3|undecided|pool|filter)' /tmp/pair-$side.err | cut -c1-300 | tail -c 60000; tail -c 2000 /tmp/pair-$side.err | grep -iE 'error|throw' | tail -5; echo \"PAIR end side=$side exit=$s\"; if [ $s -ne 0 ] && [ $s -ne 124 ] && [ $s -ne 137 ]; then failed=1; fi; done; exit $failed",
+    "timeout": 300,
+    "vm_type": "large",
+    "cpu": 8,
+    "memory": 14336
+  },
+  {
+    "name": "ic3-simple_decentralized_lock-s60-r1",
+    "cmd": "set -e; mkdir -p base; tar -xf replay-input/main.tar -C base; set -e; root=$PWD; base=$(cd 'base' && pwd); bun install --frozen-lockfile >/dev/null 2>&1; (cd \"$base\" && bun install --frozen-lockfile >/dev/null 2>&1); set +e; failed=0; for side in cand base; do dir=$root; [ \"$side\" = base ] && dir=$base; echo \"PAIR begin side=$side id=simple_decentralized_lock run=1\"; (cd \"$dir\" && GDP_INFER_TRACE=2 timeout -s KILL 60 bun research/protocols/ic3syn/run.ts --ms 60000 --only 'simple_decentralized_lock' --skip 'broken') > /tmp/pair-$side.out 2>/tmp/pair-$side.err; s=$?; cat /tmp/pair-$side.out; grep -E 'small instance|join (enumerated|end|failed|exists|set|cone|td|houdini|engine|ic3|undecided|pool|filter)' /tmp/pair-$side.err | cut -c1-300 | tail -c 60000; tail -c 2000 /tmp/pair-$side.err | grep -iE 'error|throw' | tail -5; echo \"PAIR end side=$side exit=$s\"; if [ $s -ne 0 ] && [ $s -ne 124 ] && [ $s -ne 137 ]; then failed=1; fi; done; exit $failed",
+    "timeout": 300,
+    "vm_type": "large",
+    "cpu": 8,
+    "memory": 14336
+  },
+  {
+    "name": "ic3-two_phase_commit-s60-r1",
+    "cmd": "set -e; mkdir -p base; tar -xf replay-input/main.tar -C base; set -e; root=$PWD; base=$(cd 'base' && pwd); bun install --frozen-lockfile >/dev/null 2>&1; (cd \"$base\" && bun install --frozen-lockfile >/dev/null 2>&1); set +e; failed=0; for side in cand base; do dir=$root; [ \"$side\" = base ] && dir=$base; echo \"PAIR begin side=$side id=two_phase_commit run=1\"; (cd \"$dir\" && GDP_INFER_TRACE=2 timeout -s KILL 60 bun research/protocols/ic3syn/run.ts --ms 60000 --only 'two_phase_commit' --skip 'broken') > /tmp/pair-$side.out 2>/tmp/pair-$side.err; s=$?; cat /tmp/pair-$side.out; grep -E 'small instance|join (enumerated|end|failed|exists|set|cone|td|houdini|engine|ic3|undecided|pool|filter)' /tmp/pair-$side.err | cut -c1-300 | tail -c 60000; tail -c 2000 /tmp/pair-$side.err | grep -iE 'error|throw' | tail -5; echo \"PAIR end side=$side exit=$s\"; if [ $s -ne 0 ] && [ $s -ne 124 ] && [ $s -ne 137 ]; then failed=1; fi; done; exit $failed",
+    "timeout": 300,
+    "vm_type": "large",
+    "cpu": 8,
+    "memory": 14336
+  },
+  {
+    "name": "ic3-consensus_wo_decide-s60-r1",
+    "cmd": "set -e; mkdir -p base; tar -xf replay-input/main.tar -C base; set -e; root=$PWD; base=$(cd 'base' && pwd); bun install --frozen-lockfile >/dev/null 2>&1; (cd \"$base\" && bun install --frozen-lockfile >/dev/null 2>&1); set +e; failed=0; for side in cand base; do dir=$root; [ \"$side\" = base ] && dir=$base; echo \"PAIR begin side=$side id=consensus_wo_decide run=1\"; (cd \"$dir\" && GDP_INFER_TRACE=2 timeout -s KILL 60 bun research/protocols/ic3syn/run.ts --ms 60000 --only 'consensus_wo_decide' --skip 'broken') > /tmp/pair-$side.out 2>/tmp/pair-$side.err; s=$?; cat /tmp/pair-$side.out; grep -E 'small instance|join (enumerated|end|failed|exists|set|cone|td|houdini|engine|ic3|undecided|pool|filter)' /tmp/pair-$side.err | cut -c1-300 | tail -c 60000; tail -c 2000 /tmp/pair-$side.err | grep -iE 'error|throw' | tail -5; echo \"PAIR end side=$side exit=$s\"; if [ $s -ne 0 ] && [ $s -ne 124 ] && [ $s -ne 137 ]; then failed=1; fi; done; exit $failed",
+    "timeout": 300,
+    "vm_type": "large",
+    "cpu": 8,
+    "memory": 14336
+  },
+  {
+    "name": "ic3-consensus_forall-s60-r1",
+    "cmd": "set -e; mkdir -p base; tar -xf replay-input/main.tar -C base; set -e; root=$PWD; base=$(cd 'base' && pwd); bun install --frozen-lockfile >/dev/null 2>&1; (cd \"$base\" && bun install --frozen-lockfile >/dev/null 2>&1); set +e; failed=0; for side in cand base; do dir=$root; [ \"$side\" = base ] && dir=$base; echo \"PAIR begin side=$side id=consensus_forall run=1\"; (cd \"$dir\" && GDP_INFER_TRACE=2 timeout -s KILL 60 bun research/protocols/ic3syn/run.ts --ms 60000 --only 'consensus_forall' --skip 'broken') > /tmp/pair-$side.out 2>/tmp/pair-$side.err; s=$?; cat /tmp/pair-$side.out; grep -E 'small instance|join (enumerated|end|failed|exists|set|cone|td|houdini|engine|ic3|undecided|pool|filter)' /tmp/pair-$side.err | cut -c1-300 | tail -c 60000; tail -c 2000 /tmp/pair-$side.err | grep -iE 'error|throw' | tail -5; echo \"PAIR end side=$side exit=$s\"; if [ $s -ne 0 ] && [ $s -ne 124 ] && [ $s -ne 137 ]; then failed=1; fi; done; exit $failed",
+    "timeout": 300,
+    "vm_type": "large",
+    "cpu": 8,
+    "memory": 14336
+  },
+  {
+    "name": "ic3-naive_consensus-s60-r1",
+    "cmd": "set -e; mkdir -p base; tar -xf replay-input/main.tar -C base; set -e; root=$PWD; base=$(cd 'base' && pwd); bun install --frozen-lockfile >/dev/null 2>&1; (cd \"$base\" && bun install --frozen-lockfile >/dev/null 2>&1); set +e; failed=0; for side in cand base; do dir=$root; [ \"$side\" = base ] && dir=$base; echo \"PAIR begin side=$side id=naive_consensus run=1\"; (cd \"$dir\" && GDP_INFER_TRACE=2 timeout -s KILL 60 bun research/protocols/ic3syn/run.ts --ms 60000 --only 'naive_consensus' --skip 'broken') > /tmp/pair-$side.out 2>/tmp/pair-$side.err; s=$?; cat /tmp/pair-$side.out; grep -E 'small instance|join (enumerated|end|failed|exists|set|cone|td|houdini|engine|ic3|undecided|pool|filter)' /tmp/pair-$side.err | cut -c1-300 | tail -c 60000; tail -c 2000 /tmp/pair-$side.err | grep -iE 'error|throw' | tail -5; echo \"PAIR end side=$side exit=$s\"; if [ $s -ne 0 ] && [ $s -ne 124 ] && [ $s -ne 137 ]; then failed=1; fi; done; exit $failed",
+    "timeout": 300,
+    "vm_type": "large",
+    "cpu": 8,
+    "memory": 14336
+  },
+  {
+    "name": "ic3-client_server_ae-s60-r1",
+    "cmd": "set -e; mkdir -p base; tar -xf replay-input/main.tar -C base; set -e; root=$PWD; base=$(cd 'base' && pwd); bun install --frozen-lockfile >/dev/null 2>&1; (cd \"$base\" && bun install --frozen-lockfile >/dev/null 2>&1); set +e; failed=0; for side in cand base; do dir=$root; [ \"$side\" = base ] && dir=$base; echo \"PAIR begin side=$side id=client_server_ae run=1\"; (cd \"$dir\" && GDP_INFER_TRACE=2 timeout -s KILL 60 bun research/protocols/ic3syn/run.ts --ms 60000 --only 'client_server_ae' --skip 'broken') > /tmp/pair-$side.out 2>/tmp/pair-$side.err; s=$?; cat /tmp/pair-$side.out; grep -E 'small instance|join (enumerated|end|failed|exists|set|cone|td|houdini|engine|ic3|undecided|pool|filter)' /tmp/pair-$side.err | cut -c1-300 | tail -c 60000; tail -c 2000 /tmp/pair-$side.err | grep -iE 'error|throw' | tail -5; echo \"PAIR end side=$side exit=$s\"; if [ $s -ne 0 ] && [ $s -ne 124 ] && [ $s -ne 137 ]; then failed=1; fi; done; exit $failed",
+    "timeout": 300,
+    "vm_type": "large",
+    "cpu": 8,
+    "memory": 14336
+  },
+  {
+    "name": "ic3-client_server_db_ae-s60-r1",
+    "cmd": "set -e; mkdir -p base; tar -xf replay-input/main.tar -C base; set -e; root=$PWD; base=$(cd 'base' && pwd); bun install --frozen-lockfile >/dev/null 2>&1; (cd \"$base\" && bun install --frozen-lockfile >/dev/null 2>&1); set +e; failed=0; for side in cand base; do dir=$root; [ \"$side\" = base ] && dir=$base; echo \"PAIR begin side=$side id=client_server_db_ae run=1\"; (cd \"$dir\" && GDP_INFER_TRACE=2 timeout -s KILL 60 bun research/protocols/ic3syn/run.ts --ms 60000 --only 'client_server_db_ae' --skip 'broken') > /tmp/pair-$side.out 2>/tmp/pair-$side.err; s=$?; cat /tmp/pair-$side.out; grep -E 'small instance|join (enumerated|end|failed|exists|set|cone|td|houdini|engine|ic3|undecided|pool|filter)' /tmp/pair-$side.err | cut -c1-300 | tail -c 60000; tail -c 2000 /tmp/pair-$side.err | grep -iE 'error|throw' | tail -5; echo \"PAIR end side=$side exit=$s\"; if [ $s -ne 0 ] && [ $s -ne 124 ] && [ $s -ne 137 ]; then failed=1; fi; done; exit $failed",
+    "timeout": 300,
+    "vm_type": "large",
+    "cpu": 8,
+    "memory": 14336
+  },
+  {
+    "name": "ic3-simple_election-s60-r1",
+    "cmd": "set -e; mkdir -p base; tar -xf replay-input/main.tar -C base; set -e; root=$PWD; base=$(cd 'base' && pwd); bun install --frozen-lockfile >/dev/null 2>&1; (cd \"$base\" && bun install --frozen-lockfile >/dev/null 2>&1); set +e; failed=0; for side in cand base; do dir=$root; [ \"$side\" = base ] && dir=$base; echo \"PAIR begin side=$side id=simple_election run=1\"; (cd \"$dir\" && GDP_INFER_TRACE=2 timeout -s KILL 60 bun research/protocols/ic3syn/run.ts --ms 60000 --only 'simple_election' --skip 'broken') > /tmp/pair-$side.out 2>/tmp/pair-$side.err; s=$?; cat /tmp/pair-$side.out; grep -E 'small instance|join (enumerated|end|failed|exists|set|cone|td|houdini|engine|ic3|undecided|pool|filter)' /tmp/pair-$side.err | cut -c1-300 | tail -c 60000; tail -c 2000 /tmp/pair-$side.err | grep -iE 'error|throw' | tail -5; echo \"PAIR end side=$side exit=$s\"; if [ $s -ne 0 ] && [ $s -ne 124 ] && [ $s -ne 137 ]; then failed=1; fi; done; exit $failed",
+    "timeout": 300,
+    "vm_type": "large",
+    "cpu": 8,
+    "memory": 14336
+  },
+  {
+    "name": "ic3-toy_consensus_epr-s60-r1",
+    "cmd": "set -e; mkdir -p base; tar -xf replay-input/main.tar -C base; set -e; root=$PWD; base=$(cd 'base' && pwd); bun install --frozen-lockfile >/dev/null 2>&1; (cd \"$base\" && bun install --frozen-lockfile >/dev/null 2>&1); set +e; failed=0; for side in cand base; do dir=$root; [ \"$side\" = base ] && dir=$base; echo \"PAIR begin side=$side id=toy_consensus_epr run=1\"; (cd \"$dir\" && GDP_INFER_TRACE=2 timeout -s KILL 60 bun research/protocols/ic3syn/run.ts --ms 60000 --only 'toy_consensus_epr' --skip 'broken') > /tmp/pair-$side.out 2>/tmp/pair-$side.err; s=$?; cat /tmp/pair-$side.out; grep -E 'small instance|join (enumerated|end|failed|exists|set|cone|td|houdini|engine|ic3|undecided|pool|filter)' /tmp/pair-$side.err | cut -c1-300 | tail -c 60000; tail -c 2000 /tmp/pair-$side.err | grep -iE 'error|throw' | tail -5; echo \"PAIR end side=$side exit=$s\"; if [ $s -ne 0 ] && [ $s -ne 124 ] && [ $s -ne 137 ]; then failed=1; fi; done; exit $failed",
+    "timeout": 300,
+    "vm_type": "large",
+    "cpu": 8,
+    "memory": 14336
+  },
+  {
+    "name": "ic3-toy_consensus-s60-r1",
+    "cmd": "set -e; mkdir -p base; tar -xf replay-input/main.tar -C base; set -e; root=$PWD; base=$(cd 'base' && pwd); bun install --frozen-lockfile >/dev/null 2>&1; (cd \"$base\" && bun install --frozen-lockfile >/dev/null 2>&1); set +e; failed=0; for side in cand base; do dir=$root; [ \"$side\" = base ] && dir=$base; echo \"PAIR begin side=$side id=toy_consensus run=1\"; (cd \"$dir\" && GDP_INFER_TRACE=2 timeout -s KILL 60 bun research/protocols/ic3syn/run.ts --ms 60000 --only 'toy_consensus' --skip 'broken') > /tmp/pair-$side.out 2>/tmp/pair-$side.err; s=$?; cat /tmp/pair-$side.out; grep -E 'small instance|join (enumerated|end|failed|exists|set|cone|td|houdini|engine|ic3|undecided|pool|filter)' /tmp/pair-$side.err | cut -c1-300 | tail -c 60000; tail -c 2000 /tmp/pair-$side.err | grep -iE 'error|throw' | tail -5; echo \"PAIR end side=$side exit=$s\"; if [ $s -ne 0 ] && [ $s -ne 124 ] && [ $s -ne 137 ]; then failed=1; fi; done; exit $failed",
+    "timeout": 300,
+    "vm_type": "large",
+    "cpu": 8,
+    "memory": 14336
+  },
+  {
+    "name": "ic3-firewall-s60-r1",
+    "cmd": "set -e; mkdir -p base; tar -xf replay-input/main.tar -C base; set -e; root=$PWD; base=$(cd 'base' && pwd); bun install --frozen-lockfile >/dev/null 2>&1; (cd \"$base\" && bun install --frozen-lockfile >/dev/null 2>&1); set +e; failed=0; for side in cand base; do dir=$root; [ \"$side\" = base ] && dir=$base; echo \"PAIR begin side=$side id=firewall run=1\"; (cd \"$dir\" && GDP_INFER_TRACE=2 timeout -s KILL 60 bun research/protocols/ic3syn/run.ts --ms 60000 --only 'firewall' --skip 'broken') > /tmp/pair-$side.out 2>/tmp/pair-$side.err; s=$?; cat /tmp/pair-$side.out; grep -E 'small instance|join (enumerated|end|failed|exists|set|cone|td|houdini|engine|ic3|undecided|pool|filter)' /tmp/pair-$side.err | cut -c1-300 | tail -c 60000; tail -c 2000 /tmp/pair-$side.err | grep -iE 'error|throw' | tail -5; echo \"PAIR end side=$side exit=$s\"; if [ $s -ne 0 ] && [ $s -ne 124 ] && [ $s -ne 137 ]; then failed=1; fi; done; exit $failed",
+    "timeout": 300,
+    "vm_type": "large",
+    "cpu": 8,
+    "memory": 14336
+  },
+  {
+    "name": "ic3-majorityset_leader_election-s60-r1",
+    "cmd": "set -e; mkdir -p base; tar -xf replay-input/main.tar -C base; set -e; root=$PWD; base=$(cd 'base' && pwd); bun install --frozen-lockfile >/dev/null 2>&1; (cd \"$base\" && bun install --frozen-lockfile >/dev/null 2>&1); set +e; failed=0; for side in cand base; do dir=$root; [ \"$side\" = base ] && dir=$base; echo \"PAIR begin side=$side id=majorityset_leader_election run=1\"; (cd \"$dir\" && GDP_INFER_TRACE=2 timeout -s KILL 60 bun research/protocols/ic3syn/run.ts --ms 60000 --only 'majorityset_leader_election' --skip 'broken') > /tmp/pair-$side.out 2>/tmp/pair-$side.err; s=$?; cat /tmp/pair-$side.out; grep -E 'small instance|join (enumerated|end|failed|exists|set|cone|td|houdini|engine|ic3|undecided|pool|filter)' /tmp/pair-$side.err | cut -c1-300 | tail -c 60000; tail -c 2000 /tmp/pair-$side.err | grep -iE 'error|throw' | tail -5; echo \"PAIR end side=$side exit=$s\"; if [ $s -ne 0 ] && [ $s -ne 124 ] && [ $s -ne 137 ]; then failed=1; fi; done; exit $failed",
+    "timeout": 300,
+    "vm_type": "large",
+    "cpu": 8,
+    "memory": 14336
+  },
+  {
+    "name": "ic3-consensus_epr-s60-r1",
+    "cmd": "set -e; mkdir -p base; tar -xf replay-input/main.tar -C base; set -e; root=$PWD; base=$(cd 'base' && pwd); bun install --frozen-lockfile >/dev/null 2>&1; (cd \"$base\" && bun install --frozen-lockfile >/dev/null 2>&1); set +e; failed=0; for side in cand base; do dir=$root; [ \"$side\" = base ] && dir=$base; echo \"PAIR begin side=$side id=consensus_epr run=1\"; (cd \"$dir\" && GDP_INFER_TRACE=2 timeout -s KILL 60 bun research/protocols/ic3syn/run.ts --ms 60000 --only 'consensus_epr' --skip 'broken') > /tmp/pair-$side.out 2>/tmp/pair-$side.err; s=$?; cat /tmp/pair-$side.out; grep -E 'small instance|join (enumerated|end|failed|exists|set|cone|td|houdini|engine|ic3|undecided|pool|filter)' /tmp/pair-$side.err | cut -c1-300 | tail -c 60000; tail -c 2000 /tmp/pair-$side.err | grep -iE 'error|throw' | tail -5; echo \"PAIR end side=$side exit=$s\"; if [ $s -ne 0 ] && [ $s -ne 124 ] && [ $s -ne 137 ]; then failed=1; fi; done; exit $failed",
+    "timeout": 300,
+    "vm_type": "large",
+    "cpu": 8,
+    "memory": 14336
+  },
+  {
+    "name": "ic3-learning_switch-s60-r1",
+    "cmd": "set -e; mkdir -p base; tar -xf replay-input/main.tar -C base; set -e; root=$PWD; base=$(cd 'base' && pwd); bun install --frozen-lockfile >/dev/null 2>&1; (cd \"$base\" && bun install --frozen-lockfile >/dev/null 2>&1); set +e; failed=0; for side in cand base; do dir=$root; [ \"$side\" = base ] && dir=$base; echo \"PAIR begin side=$side id=learning_switch run=1\"; (cd \"$dir\" && GDP_INFER_TRACE=2 timeout -s KILL 60 bun research/protocols/ic3syn/run.ts --ms 60000 --only 'learning_switch' --skip 'broken') > /tmp/pair-$side.out 2>/tmp/pair-$side.err; s=$?; cat /tmp/pair-$side.out; grep -E 'small instance|join (enumerated|end|failed|exists|set|cone|td|houdini|engine|ic3|undecided|pool|filter)' /tmp/pair-$side.err | cut -c1-300 | tail -c 60000; tail -c 2000 /tmp/pair-$side.err | grep -iE 'error|throw' | tail -5; echo \"PAIR end side=$side exit=$s\"; if [ $s -ne 0 ] && [ $s -ne 124 ] && [ $s -ne 137 ]; then failed=1; fi; done; exit $failed",
+    "timeout": 300,
+    "vm_type": "large",
+    "cpu": 8,
+    "memory": 14336
+  },
+  {
+    "name": "ic3-learning_switch_i4-s60-r1",
+    "cmd": "set -e; mkdir -p base; tar -xf replay-input/main.tar -C base; set -e; root=$PWD; base=$(cd 'base' && pwd); bun install --frozen-lockfile >/dev/null 2>&1; (cd \"$base\" && bun install --frozen-lockfile >/dev/null 2>&1); set +e; failed=0; for side in cand base; do dir=$root; [ \"$side\" = base ] && dir=$base; echo \"PAIR begin side=$side id=learning_switch_i4 run=1\"; (cd \"$dir\" && GDP_INFER_TRACE=2 timeout -s KILL 60 bun research/protocols/ic3syn/run.ts --ms 60000 --only 'learning_switch_i4' --skip 'broken') > /tmp/pair-$side.out 2>/tmp/pair-$side.err; s=$?; cat /tmp/pair-$side.out; grep -E 'small instance|join (enumerated|end|failed|exists|set|cone|td|houdini|engine|ic3|undecided|pool|filter)' /tmp/pair-$side.err | cut -c1-300 | tail -c 60000; tail -c 2000 /tmp/pair-$side.err | grep -iE 'error|throw' | tail -5; echo \"PAIR end side=$side exit=$s\"; if [ $s -ne 0 ] && [ $s -ne 124 ] && [ $s -ne 137 ]; then failed=1; fi; done; exit $failed",
+    "timeout": 300,
+    "vm_type": "large",
+    "cpu": 8,
+    "memory": 14336
+  },
+  {
+    "name": "ic3-mldr-s60-r1",
+    "cmd": "set -e; mkdir -p base; tar -xf replay-input/main.tar -C base; set -e; root=$PWD; base=$(cd 'base' && pwd); bun install --frozen-lockfile >/dev/null 2>&1; (cd \"$base\" && bun install --frozen-lockfile >/dev/null 2>&1); set +e; failed=0; for side in cand base; do dir=$root; [ \"$side\" = base ] && dir=$base; echo \"PAIR begin side=$side id=mldr run=1\"; (cd \"$dir\" && GDP_INFER_TRACE=2 timeout -s KILL 60 bun research/protocols/ic3syn/run.ts --ms 60000 --only 'mldr' --skip 'broken') > /tmp/pair-$side.out 2>/tmp/pair-$side.err; s=$?; cat /tmp/pair-$side.out; grep -E 'small instance|join (enumerated|end|failed|exists|set|cone|td|houdini|engine|ic3|undecided|pool|filter)' /tmp/pair-$side.err | cut -c1-300 | tail -c 60000; tail -c 2000 /tmp/pair-$side.err | grep -iE 'error|throw' | tail -5; echo \"PAIR end side=$side exit=$s\"; if [ $s -ne 0 ] && [ $s -ne 124 ] && [ $s -ne 137 ]; then failed=1; fi; done; exit $failed",
+    "timeout": 300,
+    "vm_type": "large",
+    "cpu": 8,
+    "memory": 14336
+  },
+  {
+    "name": "ic3-consensus-s60-r2",
+    "cmd": "set -e; mkdir -p base; tar -xf replay-input/main.tar -C base; set -e; root=$PWD; base=$(cd 'base' && pwd); bun install --frozen-lockfile >/dev/null 2>&1; (cd \"$base\" && bun install --frozen-lockfile >/dev/null 2>&1); set +e; failed=0; for side in base cand; do dir=$root; [ \"$side\" = base ] && dir=$base; echo \"PAIR begin side=$side id=consensus run=2\"; (cd \"$dir\" && GDP_INFER_TRACE=2 timeout -s KILL 60 bun research/protocols/ic3syn/run.ts --ms 60000 --only 'consensus' --skip 'broken') > /tmp/pair-$side.out 2>/tmp/pair-$side.err; s=$?; cat /tmp/pair-$side.out; grep -E 'small instance|join (enumerated|end|failed|exists|set|cone|td|houdini|engine|ic3|undecided|pool|filter)' /tmp/pair-$side.err | cut -c1-300 | tail -c 60000; tail -c 2000 /tmp/pair-$side.err | grep -iE 'error|throw' | tail -5; echo \"PAIR end side=$side exit=$s\"; if [ $s -ne 0 ] && [ $s -ne 124 ] && [ $s -ne 137 ]; then failed=1; fi; done; exit $failed",
+    "timeout": 300,
+    "vm_type": "large",
+    "cpu": 8,
+    "memory": 14336
+  },
+  {
+    "name": "ic3-tcommit-s60-r2",
+    "cmd": "set -e; mkdir -p base; tar -xf replay-input/main.tar -C base; set -e; root=$PWD; base=$(cd 'base' && pwd); bun install --frozen-lockfile >/dev/null 2>&1; (cd \"$base\" && bun install --frozen-lockfile >/dev/null 2>&1); set +e; failed=0; for side in base cand; do dir=$root; [ \"$side\" = base ] && dir=$base; echo \"PAIR begin side=$side id=tcommit run=2\"; (cd \"$dir\" && GDP_INFER_TRACE=2 timeout -s KILL 60 bun research/protocols/ic3syn/run.ts --ms 60000 --only 'tcommit' --skip 'broken') > /tmp/pair-$side.out 2>/tmp/pair-$side.err; s=$?; cat /tmp/pair-$side.out; grep -E 'small instance|join (enumerated|end|failed|exists|set|cone|td|houdini|engine|ic3|undecided|pool|filter)' /tmp/pair-$side.err | cut -c1-300 | tail -c 60000; tail -c 2000 /tmp/pair-$side.err | grep -iE 'error|throw' | tail -5; echo \"PAIR end side=$side exit=$s\"; if [ $s -ne 0 ] && [ $s -ne 124 ] && [ $s -ne 137 ]; then failed=1; fi; done; exit $failed",
+    "timeout": 300,
+    "vm_type": "large",
+    "cpu": 8,
+    "memory": 14336
+  },
+  {
+    "name": "ic3-lock_server-s60-r2",
+    "cmd": "set -e; mkdir -p base; tar -xf replay-input/main.tar -C base; set -e; root=$PWD; base=$(cd 'base' && pwd); bun install --frozen-lockfile >/dev/null 2>&1; (cd \"$base\" && bun install --frozen-lockfile >/dev/null 2>&1); set +e; failed=0; for side in base cand; do dir=$root; [ \"$side\" = base ] && dir=$base; echo \"PAIR begin side=$side id=lock_server run=2\"; (cd \"$dir\" && GDP_INFER_TRACE=2 timeout -s KILL 60 bun research/protocols/ic3syn/run.ts --ms 60000 --only 'lock_server' --skip 'broken') > /tmp/pair-$side.out 2>/tmp/pair-$side.err; s=$?; cat /tmp/pair-$side.out; grep -E 'small instance|join (enumerated|end|failed|exists|set|cone|td|houdini|engine|ic3|undecided|pool|filter)' /tmp/pair-$side.err | cut -c1-300 | tail -c 60000; tail -c 2000 /tmp/pair-$side.err | grep -iE 'error|throw' | tail -5; echo \"PAIR end side=$side exit=$s\"; if [ $s -ne 0 ] && [ $s -ne 124 ] && [ $s -ne 137 ]; then failed=1; fi; done; exit $failed",
+    "timeout": 300,
+    "vm_type": "large",
+    "cpu": 8,
+    "memory": 14336
+  },
+  {
+    "name": "ic3-quorum_leader_election-s60-r2",
+    "cmd": "set -e; mkdir -p base; tar -xf replay-input/main.tar -C base; set -e; root=$PWD; base=$(cd 'base' && pwd); bun install --frozen-lockfile >/dev/null 2>&1; (cd \"$base\" && bun install --frozen-lockfile >/dev/null 2>&1); set +e; failed=0; for side in base cand; do dir=$root; [ \"$side\" = base ] && dir=$base; echo \"PAIR begin side=$side id=quorum_leader_election run=2\"; (cd \"$dir\" && GDP_INFER_TRACE=2 timeout -s KILL 60 bun research/protocols/ic3syn/run.ts --ms 60000 --only 'quorum_leader_election' --skip 'broken') > /tmp/pair-$side.out 2>/tmp/pair-$side.err; s=$?; cat /tmp/pair-$side.out; grep -E 'small instance|join (enumerated|end|failed|exists|set|cone|td|houdini|engine|ic3|undecided|pool|filter)' /tmp/pair-$side.err | cut -c1-300 | tail -c 60000; tail -c 2000 /tmp/pair-$side.err | grep -iE 'error|throw' | tail -5; echo \"PAIR end side=$side exit=$s\"; if [ $s -ne 0 ] && [ $s -ne 124 ] && [ $s -ne 137 ]; then failed=1; fi; done; exit $failed",
+    "timeout": 300,
+    "vm_type": "large",
+    "cpu": 8,
+    "memory": 14336
+  },
+  {
+    "name": "ic3-toy_consensus_forall-s60-r2",
+    "cmd": "set -e; mkdir -p base; tar -xf replay-input/main.tar -C base; set -e; root=$PWD; base=$(cd 'base' && pwd); bun install --frozen-lockfile >/dev/null 2>&1; (cd \"$base\" && bun install --frozen-lockfile >/dev/null 2>&1); set +e; failed=0; for side in base cand; do dir=$root; [ \"$side\" = base ] && dir=$base; echo \"PAIR begin side=$side id=toy_consensus_forall run=2\"; (cd \"$dir\" && GDP_INFER_TRACE=2 timeout -s KILL 60 bun research/protocols/ic3syn/run.ts --ms 60000 --only 'toy_consensus_forall' --skip 'broken') > /tmp/pair-$side.out 2>/tmp/pair-$side.err; s=$?; cat /tmp/pair-$side.out; grep -E 'small instance|join (enumerated|end|failed|exists|set|cone|td|houdini|engine|ic3|undecided|pool|filter)' /tmp/pair-$side.err | cut -c1-300 | tail -c 60000; tail -c 2000 /tmp/pair-$side.err | grep -iE 'error|throw' | tail -5; echo \"PAIR end side=$side exit=$s\"; if [ $s -ne 0 ] && [ $s -ne 124 ] && [ $s -ne 137 ]; then failed=1; fi; done; exit $failed",
+    "timeout": 300,
+    "vm_type": "large",
+    "cpu": 8,
+    "memory": 14336
+  },
+  {
+    "name": "ic3-simple-s60-r2",
+    "cmd": "set -e; mkdir -p base; tar -xf replay-input/main.tar -C base; set -e; root=$PWD; base=$(cd 'base' && pwd); bun install --frozen-lockfile >/dev/null 2>&1; (cd \"$base\" && bun install --frozen-lockfile >/dev/null 2>&1); set +e; failed=0; for side in base cand; do dir=$root; [ \"$side\" = base ] && dir=$base; echo \"PAIR begin side=$side id=simple run=2\"; (cd \"$dir\" && GDP_INFER_TRACE=2 timeout -s KILL 60 bun research/protocols/ic3syn/run.ts --ms 60000 --only 'simple' --skip 'broken') > /tmp/pair-$side.out 2>/tmp/pair-$side.err; s=$?; cat /tmp/pair-$side.out; grep -E 'small instance|join (enumerated|end|failed|exists|set|cone|td|houdini|engine|ic3|undecided|pool|filter)' /tmp/pair-$side.err | cut -c1-300 | tail -c 60000; tail -c 2000 /tmp/pair-$side.err | grep -iE 'error|throw' | tail -5; echo \"PAIR end side=$side exit=$s\"; if [ $s -ne 0 ] && [ $s -ne 124 ] && [ $s -ne 137 ]; then failed=1; fi; done; exit $failed",
+    "timeout": 300,
+    "vm_type": "large",
+    "cpu": 8,
+    "memory": 14336
+  },
+  {
+    "name": "ic3-simple_regular-s60-r2",
+    "cmd": "set -e; mkdir -p base; tar -xf replay-input/main.tar -C base; set -e; root=$PWD; base=$(cd 'base' && pwd); bun install --frozen-lockfile >/dev/null 2>&1; (cd \"$base\" && bun install --frozen-lockfile >/dev/null 2>&1); set +e; failed=0; for side in base cand; do dir=$root; [ \"$side\" = base ] && dir=$base; echo \"PAIR begin side=$side id=simple_regular run=2\"; (cd \"$dir\" && GDP_INFER_TRACE=2 timeout -s KILL 60 bun research/protocols/ic3syn/run.ts --ms 60000 --only 'simple_regular' --skip 'broken') > /tmp/pair-$side.out 2>/tmp/pair-$side.err; s=$?; cat /tmp/pair-$side.out; grep -E 'small instance|join (enumerated|end|failed|exists|set|cone|td|houdini|engine|ic3|undecided|pool|filter)' /tmp/pair-$side.err | cut -c1-300 | tail -c 60000; tail -c 2000 /tmp/pair-$side.err | grep -iE 'error|throw' | tail -5; echo \"PAIR end side=$side exit=$s\"; if [ $s -ne 0 ] && [ $s -ne 124 ] && [ $s -ne 137 ]; then failed=1; fi; done; exit $failed",
+    "timeout": 300,
+    "vm_type": "large",
+    "cpu": 8,
+    "memory": 14336
+  },
+  {
+    "name": "ic3-lockserv_automaton-s60-r2",
+    "cmd": "set -e; mkdir -p base; tar -xf replay-input/main.tar -C base; set -e; root=$PWD; base=$(cd 'base' && pwd); bun install --frozen-lockfile >/dev/null 2>&1; (cd \"$base\" && bun install --frozen-lockfile >/dev/null 2>&1); set +e; failed=0; for side in base cand; do dir=$root; [ \"$side\" = base ] && dir=$base; echo \"PAIR begin side=$side id=lockserv_automaton run=2\"; (cd \"$dir\" && GDP_INFER_TRACE=2 timeout -s KILL 60 bun research/protocols/ic3syn/run.ts --ms 60000 --only 'lockserv_automaton' --skip 'broken') > /tmp/pair-$side.out 2>/tmp/pair-$side.err; s=$?; cat /tmp/pair-$side.out; grep -E 'small instance|join (enumerated|end|failed|exists|set|cone|td|houdini|engine|ic3|undecided|pool|filter)' /tmp/pair-$side.err | cut -c1-300 | tail -c 60000; tail -c 2000 /tmp/pair-$side.err | grep -iE 'error|throw' | tail -5; echo \"PAIR end side=$side exit=$s\"; if [ $s -ne 0 ] && [ $s -ne 124 ] && [ $s -ne 137 ]; then failed=1; fi; done; exit $failed",
+    "timeout": 300,
+    "vm_type": "large",
+    "cpu": 8,
+    "memory": 14336
+  },
+  {
+    "name": "ic3-sharded_kv-s60-r2",
+    "cmd": "set -e; mkdir -p base; tar -xf replay-input/main.tar -C base; set -e; root=$PWD; base=$(cd 'base' && pwd); bun install --frozen-lockfile >/dev/null 2>&1; (cd \"$base\" && bun install --frozen-lockfile >/dev/null 2>&1); set +e; failed=0; for side in base cand; do dir=$root; [ \"$side\" = base ] && dir=$base; echo \"PAIR begin side=$side id=sharded_kv run=2\"; (cd \"$dir\" && GDP_INFER_TRACE=2 timeout -s KILL 60 bun research/protocols/ic3syn/run.ts --ms 60000 --only 'sharded_kv' --skip 'broken') > /tmp/pair-$side.out 2>/tmp/pair-$side.err; s=$?; cat /tmp/pair-$side.out; grep -E 'small instance|join (enumerated|end|failed|exists|set|cone|td|houdini|engine|ic3|undecided|pool|filter)' /tmp/pair-$side.err | cut -c1-300 | tail -c 60000; tail -c 2000 /tmp/pair-$side.err | grep -iE 'error|throw' | tail -5; echo \"PAIR end side=$side exit=$s\"; if [ $s -ne 0 ] && [ $s -ne 124 ] && [ $s -ne 137 ]; then failed=1; fi; done; exit $failed",
+    "timeout": 300,
+    "vm_type": "large",
+    "cpu": 8,
+    "memory": 14336
+  },
+  {
+    "name": "ic3-sharded_kv_no_lost_keys-s60-r2",
+    "cmd": "set -e; mkdir -p base; tar -xf replay-input/main.tar -C base; set -e; root=$PWD; base=$(cd 'base' && pwd); bun install --frozen-lockfile >/dev/null 2>&1; (cd \"$base\" && bun install --frozen-lockfile >/dev/null 2>&1); set +e; failed=0; for side in base cand; do dir=$root; [ \"$side\" = base ] && dir=$base; echo \"PAIR begin side=$side id=sharded_kv_no_lost_keys run=2\"; (cd \"$dir\" && GDP_INFER_TRACE=2 timeout -s KILL 60 bun research/protocols/ic3syn/run.ts --ms 60000 --only 'sharded_kv_no_lost_keys' --skip 'broken') > /tmp/pair-$side.out 2>/tmp/pair-$side.err; s=$?; cat /tmp/pair-$side.out; grep -E 'small instance|join (enumerated|end|failed|exists|set|cone|td|houdini|engine|ic3|undecided|pool|filter)' /tmp/pair-$side.err | cut -c1-300 | tail -c 60000; tail -c 2000 /tmp/pair-$side.err | grep -iE 'error|throw' | tail -5; echo \"PAIR end side=$side exit=$s\"; if [ $s -ne 0 ] && [ $s -ne 124 ] && [ $s -ne 137 ]; then failed=1; fi; done; exit $failed",
+    "timeout": 300,
+    "vm_type": "large",
+    "cpu": 8,
+    "memory": 14336
+  },
+  {
+    "name": "ic3-lockserv-s60-r2",
+    "cmd": "set -e; mkdir -p base; tar -xf replay-input/main.tar -C base; set -e; root=$PWD; base=$(cd 'base' && pwd); bun install --frozen-lockfile >/dev/null 2>&1; (cd \"$base\" && bun install --frozen-lockfile >/dev/null 2>&1); set +e; failed=0; for side in base cand; do dir=$root; [ \"$side\" = base ] && dir=$base; echo \"PAIR begin side=$side id=lockserv run=2\"; (cd \"$dir\" && GDP_INFER_TRACE=2 timeout -s KILL 60 bun research/protocols/ic3syn/run.ts --ms 60000 --only 'lockserv' --skip 'broken') > /tmp/pair-$side.out 2>/tmp/pair-$side.err; s=$?; cat /tmp/pair-$side.out; grep -E 'small instance|join (enumerated|end|failed|exists|set|cone|td|houdini|engine|ic3|undecided|pool|filter)' /tmp/pair-$side.err | cut -c1-300 | tail -c 60000; tail -c 2000 /tmp/pair-$side.err | grep -iE 'error|throw' | tail -5; echo \"PAIR end side=$side exit=$s\"; if [ $s -ne 0 ] && [ $s -ne 124 ] && [ $s -ne 137 ]; then failed=1; fi; done; exit $failed",
+    "timeout": 300,
+    "vm_type": "large",
+    "cpu": 8,
+    "memory": 14336
+  },
+  {
+    "name": "ic3-twophase-s60-r2",
+    "cmd": "set -e; mkdir -p base; tar -xf replay-input/main.tar -C base; set -e; root=$PWD; base=$(cd 'base' && pwd); bun install --frozen-lockfile >/dev/null 2>&1; (cd \"$base\" && bun install --frozen-lockfile >/dev/null 2>&1); set +e; failed=0; for side in base cand; do dir=$root; [ \"$side\" = base ] && dir=$base; echo \"PAIR begin side=$side id=twophase run=2\"; (cd \"$dir\" && GDP_INFER_TRACE=2 timeout -s KILL 60 bun research/protocols/ic3syn/run.ts --ms 60000 --only 'twophase' --skip 'broken') > /tmp/pair-$side.out 2>/tmp/pair-$side.err; s=$?; cat /tmp/pair-$side.out; grep -E 'small instance|join (enumerated|end|failed|exists|set|cone|td|houdini|engine|ic3|undecided|pool|filter)' /tmp/pair-$side.err | cut -c1-300 | tail -c 60000; tail -c 2000 /tmp/pair-$side.err | grep -iE 'error|throw' | tail -5; echo \"PAIR end side=$side exit=$s\"; if [ $s -ne 0 ] && [ $s -ne 124 ] && [ $s -ne 137 ]; then failed=1; fi; done; exit $failed",
+    "timeout": 300,
+    "vm_type": "large",
+    "cpu": 8,
+    "memory": 14336
+  },
+  {
+    "name": "ic3-simple_decentralized_lock-s60-r2",
+    "cmd": "set -e; mkdir -p base; tar -xf replay-input/main.tar -C base; set -e; root=$PWD; base=$(cd 'base' && pwd); bun install --frozen-lockfile >/dev/null 2>&1; (cd \"$base\" && bun install --frozen-lockfile >/dev/null 2>&1); set +e; failed=0; for side in base cand; do dir=$root; [ \"$side\" = base ] && dir=$base; echo \"PAIR begin side=$side id=simple_decentralized_lock run=2\"; (cd \"$dir\" && GDP_INFER_TRACE=2 timeout -s KILL 60 bun research/protocols/ic3syn/run.ts --ms 60000 --only 'simple_decentralized_lock' --skip 'broken') > /tmp/pair-$side.out 2>/tmp/pair-$side.err; s=$?; cat /tmp/pair-$side.out; grep -E 'small instance|join (enumerated|end|failed|exists|set|cone|td|houdini|engine|ic3|undecided|pool|filter)' /tmp/pair-$side.err | cut -c1-300 | tail -c 60000; tail -c 2000 /tmp/pair-$side.err | grep -iE 'error|throw' | tail -5; echo \"PAIR end side=$side exit=$s\"; if [ $s -ne 0 ] && [ $s -ne 124 ] && [ $s -ne 137 ]; then failed=1; fi; done; exit $failed",
+    "timeout": 300,
+    "vm_type": "large",
+    "cpu": 8,
+    "memory": 14336
+  },
+  {
+    "name": "ic3-two_phase_commit-s60-r2",
+    "cmd": "set -e; mkdir -p base; tar -xf replay-input/main.tar -C base; set -e; root=$PWD; base=$(cd 'base' && pwd); bun install --frozen-lockfile >/dev/null 2>&1; (cd \"$base\" && bun install --frozen-lockfile >/dev/null 2>&1); set +e; failed=0; for side in base cand; do dir=$root; [ \"$side\" = base ] && dir=$base; echo \"PAIR begin side=$side id=two_phase_commit run=2\"; (cd \"$dir\" && GDP_INFER_TRACE=2 timeout -s KILL 60 bun research/protocols/ic3syn/run.ts --ms 60000 --only 'two_phase_commit' --skip 'broken') > /tmp/pair-$side.out 2>/tmp/pair-$side.err; s=$?; cat /tmp/pair-$side.out; grep -E 'small instance|join (enumerated|end|failed|exists|set|cone|td|houdini|engine|ic3|undecided|pool|filter)' /tmp/pair-$side.err | cut -c1-300 | tail -c 60000; tail -c 2000 /tmp/pair-$side.err | grep -iE 'error|throw' | tail -5; echo \"PAIR end side=$side exit=$s\"; if [ $s -ne 0 ] && [ $s -ne 124 ] && [ $s -ne 137 ]; then failed=1; fi; done; exit $failed",
+    "timeout": 300,
+    "vm_type": "large",
+    "cpu": 8,
+    "memory": 14336
+  },
+  {
+    "name": "ic3-consensus_wo_decide-s60-r2",
+    "cmd": "set -e; mkdir -p base; tar -xf replay-input/main.tar -C base; set -e; root=$PWD; base=$(cd 'base' && pwd); bun install --frozen-lockfile >/dev/null 2>&1; (cd \"$base\" && bun install --frozen-lockfile >/dev/null 2>&1); set +e; failed=0; for side in base cand; do dir=$root; [ \"$side\" = base ] && dir=$base; echo \"PAIR begin side=$side id=consensus_wo_decide run=2\"; (cd \"$dir\" && GDP_INFER_TRACE=2 timeout -s KILL 60 bun research/protocols/ic3syn/run.ts --ms 60000 --only 'consensus_wo_decide' --skip 'broken') > /tmp/pair-$side.out 2>/tmp/pair-$side.err; s=$?; cat /tmp/pair-$side.out; grep -E 'small instance|join (enumerated|end|failed|exists|set|cone|td|houdini|engine|ic3|undecided|pool|filter)' /tmp/pair-$side.err | cut -c1-300 | tail -c 60000; tail -c 2000 /tmp/pair-$side.err | grep -iE 'error|throw' | tail -5; echo \"PAIR end side=$side exit=$s\"; if [ $s -ne 0 ] && [ $s -ne 124 ] && [ $s -ne 137 ]; then failed=1; fi; done; exit $failed",
+    "timeout": 300,
+    "vm_type": "large",
+    "cpu": 8,
+    "memory": 14336
+  },
+  {
+    "name": "ic3-consensus_forall-s60-r2",
+    "cmd": "set -e; mkdir -p base; tar -xf replay-input/main.tar -C base; set -e; root=$PWD; base=$(cd 'base' && pwd); bun install --frozen-lockfile >/dev/null 2>&1; (cd \"$base\" && bun install --frozen-lockfile >/dev/null 2>&1); set +e; failed=0; for side in base cand; do dir=$root; [ \"$side\" = base ] && dir=$base; echo \"PAIR begin side=$side id=consensus_forall run=2\"; (cd \"$dir\" && GDP_INFER_TRACE=2 timeout -s KILL 60 bun research/protocols/ic3syn/run.ts --ms 60000 --only 'consensus_forall' --skip 'broken') > /tmp/pair-$side.out 2>/tmp/pair-$side.err; s=$?; cat /tmp/pair-$side.out; grep -E 'small instance|join (enumerated|end|failed|exists|set|cone|td|houdini|engine|ic3|undecided|pool|filter)' /tmp/pair-$side.err | cut -c1-300 | tail -c 60000; tail -c 2000 /tmp/pair-$side.err | grep -iE 'error|throw' | tail -5; echo \"PAIR end side=$side exit=$s\"; if [ $s -ne 0 ] && [ $s -ne 124 ] && [ $s -ne 137 ]; then failed=1; fi; done; exit $failed",
+    "timeout": 300,
+    "vm_type": "large",
+    "cpu": 8,
+    "memory": 14336
+  },
+  {
+    "name": "ic3-naive_consensus-s60-r2",
+    "cmd": "set -e; mkdir -p base; tar -xf replay-input/main.tar -C base; set -e; root=$PWD; base=$(cd 'base' && pwd); bun install --frozen-lockfile >/dev/null 2>&1; (cd \"$base\" && bun install --frozen-lockfile >/dev/null 2>&1); set +e; failed=0; for side in base cand; do dir=$root; [ \"$side\" = base ] && dir=$base; echo \"PAIR begin side=$side id=naive_consensus run=2\"; (cd \"$dir\" && GDP_INFER_TRACE=2 timeout -s KILL 60 bun research/protocols/ic3syn/run.ts --ms 60000 --only 'naive_consensus' --skip 'broken') > /tmp/pair-$side.out 2>/tmp/pair-$side.err; s=$?; cat /tmp/pair-$side.out; grep -E 'small instance|join (enumerated|end|failed|exists|set|cone|td|houdini|engine|ic3|undecided|pool|filter)' /tmp/pair-$side.err | cut -c1-300 | tail -c 60000; tail -c 2000 /tmp/pair-$side.err | grep -iE 'error|throw' | tail -5; echo \"PAIR end side=$side exit=$s\"; if [ $s -ne 0 ] && [ $s -ne 124 ] && [ $s -ne 137 ]; then failed=1; fi; done; exit $failed",
+    "timeout": 300,
+    "vm_type": "large",
+    "cpu": 8,
+    "memory": 14336
+  },
+  {
+    "name": "ic3-client_server_ae-s60-r2",
+    "cmd": "set -e; mkdir -p base; tar -xf replay-input/main.tar -C base; set -e; root=$PWD; base=$(cd 'base' && pwd); bun install --frozen-lockfile >/dev/null 2>&1; (cd \"$base\" && bun install --frozen-lockfile >/dev/null 2>&1); set +e; failed=0; for side in base cand; do dir=$root; [ \"$side\" = base ] && dir=$base; echo \"PAIR begin side=$side id=client_server_ae run=2\"; (cd \"$dir\" && GDP_INFER_TRACE=2 timeout -s KILL 60 bun research/protocols/ic3syn/run.ts --ms 60000 --only 'client_server_ae' --skip 'broken') > /tmp/pair-$side.out 2>/tmp/pair-$side.err; s=$?; cat /tmp/pair-$side.out; grep -E 'small instance|join (enumerated|end|failed|exists|set|cone|td|houdini|engine|ic3|undecided|pool|filter)' /tmp/pair-$side.err | cut -c1-300 | tail -c 60000; tail -c 2000 /tmp/pair-$side.err | grep -iE 'error|throw' | tail -5; echo \"PAIR end side=$side exit=$s\"; if [ $s -ne 0 ] && [ $s -ne 124 ] && [ $s -ne 137 ]; then failed=1; fi; done; exit $failed",
+    "timeout": 300,
+    "vm_type": "large",
+    "cpu": 8,
+    "memory": 14336
+  },
+  {
+    "name": "ic3-client_server_db_ae-s60-r2",
+    "cmd": "set -e; mkdir -p base; tar -xf replay-input/main.tar -C base; set -e; root=$PWD; base=$(cd 'base' && pwd); bun install --frozen-lockfile >/dev/null 2>&1; (cd \"$base\" && bun install --frozen-lockfile >/dev/null 2>&1); set +e; failed=0; for side in base cand; do dir=$root; [ \"$side\" = base ] && dir=$base; echo \"PAIR begin side=$side id=client_server_db_ae run=2\"; (cd \"$dir\" && GDP_INFER_TRACE=2 timeout -s KILL 60 bun research/protocols/ic3syn/run.ts --ms 60000 --only 'client_server_db_ae' --skip 'broken') > /tmp/pair-$side.out 2>/tmp/pair-$side.err; s=$?; cat /tmp/pair-$side.out; grep -E 'small instance|join (enumerated|end|failed|exists|set|cone|td|houdini|engine|ic3|undecided|pool|filter)' /tmp/pair-$side.err | cut -c1-300 | tail -c 60000; tail -c 2000 /tmp/pair-$side.err | grep -iE 'error|throw' | tail -5; echo \"PAIR end side=$side exit=$s\"; if [ $s -ne 0 ] && [ $s -ne 124 ] && [ $s -ne 137 ]; then failed=1; fi; done; exit $failed",
+    "timeout": 300,
+    "vm_type": "large",
+    "cpu": 8,
+    "memory": 14336
+  },
+  {
+    "name": "ic3-simple_election-s60-r2",
+    "cmd": "set -e; mkdir -p base; tar -xf replay-input/main.tar -C base; set -e; root=$PWD; base=$(cd 'base' && pwd); bun install --frozen-lockfile >/dev/null 2>&1; (cd \"$base\" && bun install --frozen-lockfile >/dev/null 2>&1); set +e; failed=0; for side in base cand; do dir=$root; [ \"$side\" = base ] && dir=$base; echo \"PAIR begin side=$side id=simple_election run=2\"; (cd \"$dir\" && GDP_INFER_TRACE=2 timeout -s KILL 60 bun research/protocols/ic3syn/run.ts --ms 60000 --only 'simple_election' --skip 'broken') > /tmp/pair-$side.out 2>/tmp/pair-$side.err; s=$?; cat /tmp/pair-$side.out; grep -E 'small instance|join (enumerated|end|failed|exists|set|cone|td|houdini|engine|ic3|undecided|pool|filter)' /tmp/pair-$side.err | cut -c1-300 | tail -c 60000; tail -c 2000 /tmp/pair-$side.err | grep -iE 'error|throw' | tail -5; echo \"PAIR end side=$side exit=$s\"; if [ $s -ne 0 ] && [ $s -ne 124 ] && [ $s -ne 137 ]; then failed=1; fi; done; exit $failed",
+    "timeout": 300,
+    "vm_type": "large",
+    "cpu": 8,
+    "memory": 14336
+  },
+  {
+    "name": "ic3-toy_consensus_epr-s60-r2",
+    "cmd": "set -e; mkdir -p base; tar -xf replay-input/main.tar -C base; set -e; root=$PWD; base=$(cd 'base' && pwd); bun install --frozen-lockfile >/dev/null 2>&1; (cd \"$base\" && bun install --frozen-lockfile >/dev/null 2>&1); set +e; failed=0; for side in base cand; do dir=$root; [ \"$side\" = base ] && dir=$base; echo \"PAIR begin side=$side id=toy_consensus_epr run=2\"; (cd \"$dir\" && GDP_INFER_TRACE=2 timeout -s KILL 60 bun research/protocols/ic3syn/run.ts --ms 60000 --only 'toy_consensus_epr' --skip 'broken') > /tmp/pair-$side.out 2>/tmp/pair-$side.err; s=$?; cat /tmp/pair-$side.out; grep -E 'small instance|join (enumerated|end|failed|exists|set|cone|td|houdini|engine|ic3|undecided|pool|filter)' /tmp/pair-$side.err | cut -c1-300 | tail -c 60000; tail -c 2000 /tmp/pair-$side.err | grep -iE 'error|throw' | tail -5; echo \"PAIR end side=$side exit=$s\"; if [ $s -ne 0 ] && [ $s -ne 124 ] && [ $s -ne 137 ]; then failed=1; fi; done; exit $failed",
+    "timeout": 300,
+    "vm_type": "large",
+    "cpu": 8,
+    "memory": 14336
+  },
+  {
+    "name": "ic3-toy_consensus-s60-r2",
+    "cmd": "set -e; mkdir -p base; tar -xf replay-input/main.tar -C base; set -e; root=$PWD; base=$(cd 'base' && pwd); bun install --frozen-lockfile >/dev/null 2>&1; (cd \"$base\" && bun install --frozen-lockfile >/dev/null 2>&1); set +e; failed=0; for side in base cand; do dir=$root; [ \"$side\" = base ] && dir=$base; echo \"PAIR begin side=$side id=toy_consensus run=2\"; (cd \"$dir\" && GDP_INFER_TRACE=2 timeout -s KILL 60 bun research/protocols/ic3syn/run.ts --ms 60000 --only 'toy_consensus' --skip 'broken') > /tmp/pair-$side.out 2>/tmp/pair-$side.err; s=$?; cat /tmp/pair-$side.out; grep -E 'small instance|join (enumerated|end|failed|exists|set|cone|td|houdini|engine|ic3|undecided|pool|filter)' /tmp/pair-$side.err | cut -c1-300 | tail -c 60000; tail -c 2000 /tmp/pair-$side.err | grep -iE 'error|throw' | tail -5; echo \"PAIR end side=$side exit=$s\"; if [ $s -ne 0 ] && [ $s -ne 124 ] && [ $s -ne 137 ]; then failed=1; fi; done; exit $failed",
+    "timeout": 300,
+    "vm_type": "large",
+    "cpu": 8,
+    "memory": 14336
+  },
+  {
+    "name": "ic3-firewall-s60-r2",
+    "cmd": "set -e; mkdir -p base; tar -xf replay-input/main.tar -C base; set -e; root=$PWD; base=$(cd 'base' && pwd); bun install --frozen-lockfile >/dev/null 2>&1; (cd \"$base\" && bun install --frozen-lockfile >/dev/null 2>&1); set +e; failed=0; for side in base cand; do dir=$root; [ \"$side\" = base ] && dir=$base; echo \"PAIR begin side=$side id=firewall run=2\"; (cd \"$dir\" && GDP_INFER_TRACE=2 timeout -s KILL 60 bun research/protocols/ic3syn/run.ts --ms 60000 --only 'firewall' --skip 'broken') > /tmp/pair-$side.out 2>/tmp/pair-$side.err; s=$?; cat /tmp/pair-$side.out; grep -E 'small instance|join (enumerated|end|failed|exists|set|cone|td|houdini|engine|ic3|undecided|pool|filter)' /tmp/pair-$side.err | cut -c1-300 | tail -c 60000; tail -c 2000 /tmp/pair-$side.err | grep -iE 'error|throw' | tail -5; echo \"PAIR end side=$side exit=$s\"; if [ $s -ne 0 ] && [ $s -ne 124 ] && [ $s -ne 137 ]; then failed=1; fi; done; exit $failed",
+    "timeout": 300,
+    "vm_type": "large",
+    "cpu": 8,
+    "memory": 14336
+  },
+  {
+    "name": "ic3-majorityset_leader_election-s60-r2",
+    "cmd": "set -e; mkdir -p base; tar -xf replay-input/main.tar -C base; set -e; root=$PWD; base=$(cd 'base' && pwd); bun install --frozen-lockfile >/dev/null 2>&1; (cd \"$base\" && bun install --frozen-lockfile >/dev/null 2>&1); set +e; failed=0; for side in base cand; do dir=$root; [ \"$side\" = base ] && dir=$base; echo \"PAIR begin side=$side id=majorityset_leader_election run=2\"; (cd \"$dir\" && GDP_INFER_TRACE=2 timeout -s KILL 60 bun research/protocols/ic3syn/run.ts --ms 60000 --only 'majorityset_leader_election' --skip 'broken') > /tmp/pair-$side.out 2>/tmp/pair-$side.err; s=$?; cat /tmp/pair-$side.out; grep -E 'small instance|join (enumerated|end|failed|exists|set|cone|td|houdini|engine|ic3|undecided|pool|filter)' /tmp/pair-$side.err | cut -c1-300 | tail -c 60000; tail -c 2000 /tmp/pair-$side.err | grep -iE 'error|throw' | tail -5; echo \"PAIR end side=$side exit=$s\"; if [ $s -ne 0 ] && [ $s -ne 124 ] && [ $s -ne 137 ]; then failed=1; fi; done; exit $failed",
+    "timeout": 300,
+    "vm_type": "large",
+    "cpu": 8,
+    "memory": 14336
+  },
+  {
+    "name": "ic3-consensus_epr-s60-r2",
+    "cmd": "set -e; mkdir -p base; tar -xf replay-input/main.tar -C base; set -e; root=$PWD; base=$(cd 'base' && pwd); bun install --frozen-lockfile >/dev/null 2>&1; (cd \"$base\" && bun install --frozen-lockfile >/dev/null 2>&1); set +e; failed=0; for side in base cand; do dir=$root; [ \"$side\" = base ] && dir=$base; echo \"PAIR begin side=$side id=consensus_epr run=2\"; (cd \"$dir\" && GDP_INFER_TRACE=2 timeout -s KILL 60 bun research/protocols/ic3syn/run.ts --ms 60000 --only 'consensus_epr' --skip 'broken') > /tmp/pair-$side.out 2>/tmp/pair-$side.err; s=$?; cat /tmp/pair-$side.out; grep -E 'small instance|join (enumerated|end|failed|exists|set|cone|td|houdini|engine|ic3|undecided|pool|filter)' /tmp/pair-$side.err | cut -c1-300 | tail -c 60000; tail -c 2000 /tmp/pair-$side.err | grep -iE 'error|throw' | tail -5; echo \"PAIR end side=$side exit=$s\"; if [ $s -ne 0 ] && [ $s -ne 124 ] && [ $s -ne 137 ]; then failed=1; fi; done; exit $failed",
+    "timeout": 300,
+    "vm_type": "large",
+    "cpu": 8,
+    "memory": 14336
+  },
+  {
+    "name": "ic3-learning_switch-s60-r2",
+    "cmd": "set -e; mkdir -p base; tar -xf replay-input/main.tar -C base; set -e; root=$PWD; base=$(cd 'base' && pwd); bun install --frozen-lockfile >/dev/null 2>&1; (cd \"$base\" && bun install --frozen-lockfile >/dev/null 2>&1); set +e; failed=0; for side in base cand; do dir=$root; [ \"$side\" = base ] && dir=$base; echo \"PAIR begin side=$side id=learning_switch run=2\"; (cd \"$dir\" && GDP_INFER_TRACE=2 timeout -s KILL 60 bun research/protocols/ic3syn/run.ts --ms 60000 --only 'learning_switch' --skip 'broken') > /tmp/pair-$side.out 2>/tmp/pair-$side.err; s=$?; cat /tmp/pair-$side.out; grep -E 'small instance|join (enumerated|end|failed|exists|set|cone|td|houdini|engine|ic3|undecided|pool|filter)' /tmp/pair-$side.err | cut -c1-300 | tail -c 60000; tail -c 2000 /tmp/pair-$side.err | grep -iE 'error|throw' | tail -5; echo \"PAIR end side=$side exit=$s\"; if [ $s -ne 0 ] && [ $s -ne 124 ] && [ $s -ne 137 ]; then failed=1; fi; done; exit $failed",
+    "timeout": 300,
+    "vm_type": "large",
+    "cpu": 8,
+    "memory": 14336
+  },
+  {
+    "name": "ic3-learning_switch_i4-s60-r2",
+    "cmd": "set -e; mkdir -p base; tar -xf replay-input/main.tar -C base; set -e; root=$PWD; base=$(cd 'base' && pwd); bun install --frozen-lockfile >/dev/null 2>&1; (cd \"$base\" && bun install --frozen-lockfile >/dev/null 2>&1); set +e; failed=0; for side in base cand; do dir=$root; [ \"$side\" = base ] && dir=$base; echo \"PAIR begin side=$side id=learning_switch_i4 run=2\"; (cd \"$dir\" && GDP_INFER_TRACE=2 timeout -s KILL 60 bun research/protocols/ic3syn/run.ts --ms 60000 --only 'learning_switch_i4' --skip 'broken') > /tmp/pair-$side.out 2>/tmp/pair-$side.err; s=$?; cat /tmp/pair-$side.out; grep -E 'small instance|join (enumerated|end|failed|exists|set|cone|td|houdini|engine|ic3|undecided|pool|filter)' /tmp/pair-$side.err | cut -c1-300 | tail -c 60000; tail -c 2000 /tmp/pair-$side.err | grep -iE 'error|throw' | tail -5; echo \"PAIR end side=$side exit=$s\"; if [ $s -ne 0 ] && [ $s -ne 124 ] && [ $s -ne 137 ]; then failed=1; fi; done; exit $failed",
+    "timeout": 300,
+    "vm_type": "large",
+    "cpu": 8,
+    "memory": 14336
+  },
+  {
+    "name": "ic3-mldr-s60-r2",
+    "cmd": "set -e; mkdir -p base; tar -xf replay-input/main.tar -C base; set -e; root=$PWD; base=$(cd 'base' && pwd); bun install --frozen-lockfile >/dev/null 2>&1; (cd \"$base\" && bun install --frozen-lockfile >/dev/null 2>&1); set +e; failed=0; for side in base cand; do dir=$root; [ \"$side\" = base ] && dir=$base; echo \"PAIR begin side=$side id=mldr run=2\"; (cd \"$dir\" && GDP_INFER_TRACE=2 timeout -s KILL 60 bun research/protocols/ic3syn/run.ts --ms 60000 --only 'mldr' --skip 'broken') > /tmp/pair-$side.out 2>/tmp/pair-$side.err; s=$?; cat /tmp/pair-$side.out; grep -E 'small instance|join (enumerated|end|failed|exists|set|cone|td|houdini|engine|ic3|undecided|pool|filter)' /tmp/pair-$side.err | cut -c1-300 | tail -c 60000; tail -c 2000 /tmp/pair-$side.err | grep -iE 'error|throw' | tail -5; echo \"PAIR end side=$side exit=$s\"; if [ $s -ne 0 ] && [ $s -ne 124 ] && [ $s -ne 137 ]; then failed=1; fi; done; exit $failed",
+    "timeout": 300,
+    "vm_type": "large",
+    "cpu": 8,
+    "memory": 14336
+  },
+  {
+    "name": "ic3-consensus-s60-r3",
+    "cmd": "set -e; mkdir -p base; tar -xf replay-input/main.tar -C base; set -e; root=$PWD; base=$(cd 'base' && pwd); bun install --frozen-lockfile >/dev/null 2>&1; (cd \"$base\" && bun install --frozen-lockfile >/dev/null 2>&1); set +e; failed=0; for side in cand base; do dir=$root; [ \"$side\" = base ] && dir=$base; echo \"PAIR begin side=$side id=consensus run=3\"; (cd \"$dir\" && GDP_INFER_TRACE=2 timeout -s KILL 60 bun research/protocols/ic3syn/run.ts --ms 60000 --only 'consensus' --skip 'broken') > /tmp/pair-$side.out 2>/tmp/pair-$side.err; s=$?; cat /tmp/pair-$side.out; grep -E 'small instance|join (enumerated|end|failed|exists|set|cone|td|houdini|engine|ic3|undecided|pool|filter)' /tmp/pair-$side.err | cut -c1-300 | tail -c 60000; tail -c 2000 /tmp/pair-$side.err | grep -iE 'error|throw' | tail -5; echo \"PAIR end side=$side exit=$s\"; if [ $s -ne 0 ] && [ $s -ne 124 ] && [ $s -ne 137 ]; then failed=1; fi; done; exit $failed",
+    "timeout": 300,
+    "vm_type": "large",
+    "cpu": 8,
+    "memory": 14336
+  },
+  {
+    "name": "ic3-tcommit-s60-r3",
+    "cmd": "set -e; mkdir -p base; tar -xf replay-input/main.tar -C base; set -e; root=$PWD; base=$(cd 'base' && pwd); bun install --frozen-lockfile >/dev/null 2>&1; (cd \"$base\" && bun install --frozen-lockfile >/dev/null 2>&1); set +e; failed=0; for side in cand base; do dir=$root; [ \"$side\" = base ] && dir=$base; echo \"PAIR begin side=$side id=tcommit run=3\"; (cd \"$dir\" && GDP_INFER_TRACE=2 timeout -s KILL 60 bun research/protocols/ic3syn/run.ts --ms 60000 --only 'tcommit' --skip 'broken') > /tmp/pair-$side.out 2>/tmp/pair-$side.err; s=$?; cat /tmp/pair-$side.out; grep -E 'small instance|join (enumerated|end|failed|exists|set|cone|td|houdini|engine|ic3|undecided|pool|filter)' /tmp/pair-$side.err | cut -c1-300 | tail -c 60000; tail -c 2000 /tmp/pair-$side.err | grep -iE 'error|throw' | tail -5; echo \"PAIR end side=$side exit=$s\"; if [ $s -ne 0 ] && [ $s -ne 124 ] && [ $s -ne 137 ]; then failed=1; fi; done; exit $failed",
+    "timeout": 300,
+    "vm_type": "large",
+    "cpu": 8,
+    "memory": 14336
+  },
+  {
+    "name": "ic3-lock_server-s60-r3",
+    "cmd": "set -e; mkdir -p base; tar -xf replay-input/main.tar -C base; set -e; root=$PWD; base=$(cd 'base' && pwd); bun install --frozen-lockfile >/dev/null 2>&1; (cd \"$base\" && bun install --frozen-lockfile >/dev/null 2>&1); set +e; failed=0; for side in cand base; do dir=$root; [ \"$side\" = base ] && dir=$base; echo \"PAIR begin side=$side id=lock_server run=3\"; (cd \"$dir\" && GDP_INFER_TRACE=2 timeout -s KILL 60 bun research/protocols/ic3syn/run.ts --ms 60000 --only 'lock_server' --skip 'broken') > /tmp/pair-$side.out 2>/tmp/pair-$side.err; s=$?; cat /tmp/pair-$side.out; grep -E 'small instance|join (enumerated|end|failed|exists|set|cone|td|houdini|engine|ic3|undecided|pool|filter)' /tmp/pair-$side.err | cut -c1-300 | tail -c 60000; tail -c 2000 /tmp/pair-$side.err | grep -iE 'error|throw' | tail -5; echo \"PAIR end side=$side exit=$s\"; if [ $s -ne 0 ] && [ $s -ne 124 ] && [ $s -ne 137 ]; then failed=1; fi; done; exit $failed",
+    "timeout": 300,
+    "vm_type": "large",
+    "cpu": 8,
+    "memory": 14336
+  },
+  {
+    "name": "ic3-quorum_leader_election-s60-r3",
+    "cmd": "set -e; mkdir -p base; tar -xf replay-input/main.tar -C base; set -e; root=$PWD; base=$(cd 'base' && pwd); bun install --frozen-lockfile >/dev/null 2>&1; (cd \"$base\" && bun install --frozen-lockfile >/dev/null 2>&1); set +e; failed=0; for side in cand base; do dir=$root; [ \"$side\" = base ] && dir=$base; echo \"PAIR begin side=$side id=quorum_leader_election run=3\"; (cd \"$dir\" && GDP_INFER_TRACE=2 timeout -s KILL 60 bun research/protocols/ic3syn/run.ts --ms 60000 --only 'quorum_leader_election' --skip 'broken') > /tmp/pair-$side.out 2>/tmp/pair-$side.err; s=$?; cat /tmp/pair-$side.out; grep -E 'small instance|join (enumerated|end|failed|exists|set|cone|td|houdini|engine|ic3|undecided|pool|filter)' /tmp/pair-$side.err | cut -c1-300 | tail -c 60000; tail -c 2000 /tmp/pair-$side.err | grep -iE 'error|throw' | tail -5; echo \"PAIR end side=$side exit=$s\"; if [ $s -ne 0 ] && [ $s -ne 124 ] && [ $s -ne 137 ]; then failed=1; fi; done; exit $failed",
+    "timeout": 300,
+    "vm_type": "large",
+    "cpu": 8,
+    "memory": 14336
+  },
+  {
+    "name": "ic3-toy_consensus_forall-s60-r3",
+    "cmd": "set -e; mkdir -p base; tar -xf replay-input/main.tar -C base; set -e; root=$PWD; base=$(cd 'base' && pwd); bun install --frozen-lockfile >/dev/null 2>&1; (cd \"$base\" && bun install --frozen-lockfile >/dev/null 2>&1); set +e; failed=0; for side in cand base; do dir=$root; [ \"$side\" = base ] && dir=$base; echo \"PAIR begin side=$side id=toy_consensus_forall run=3\"; (cd \"$dir\" && GDP_INFER_TRACE=2 timeout -s KILL 60 bun research/protocols/ic3syn/run.ts --ms 60000 --only 'toy_consensus_forall' --skip 'broken') > /tmp/pair-$side.out 2>/tmp/pair-$side.err; s=$?; cat /tmp/pair-$side.out; grep -E 'small instance|join (enumerated|end|failed|exists|set|cone|td|houdini|engine|ic3|undecided|pool|filter)' /tmp/pair-$side.err | cut -c1-300 | tail -c 60000; tail -c 2000 /tmp/pair-$side.err | grep -iE 'error|throw' | tail -5; echo \"PAIR end side=$side exit=$s\"; if [ $s -ne 0 ] && [ $s -ne 124 ] && [ $s -ne 137 ]; then failed=1; fi; done; exit $failed",
+    "timeout": 300,
+    "vm_type": "large",
+    "cpu": 8,
+    "memory": 14336
+  },
+  {
+    "name": "ic3-simple-s60-r3",
+    "cmd": "set -e; mkdir -p base; tar -xf replay-input/main.tar -C base; set -e; root=$PWD; base=$(cd 'base' && pwd); bun install --frozen-lockfile >/dev/null 2>&1; (cd \"$base\" && bun install --frozen-lockfile >/dev/null 2>&1); set +e; failed=0; for side in cand base; do dir=$root; [ \"$side\" = base ] && dir=$base; echo \"PAIR begin side=$side id=simple run=3\"; (cd \"$dir\" && GDP_INFER_TRACE=2 timeout -s KILL 60 bun research/protocols/ic3syn/run.ts --ms 60000 --only 'simple' --skip 'broken') > /tmp/pair-$side.out 2>/tmp/pair-$side.err; s=$?; cat /tmp/pair-$side.out; grep -E 'small instance|join (enumerated|end|failed|exists|set|cone|td|houdini|engine|ic3|undecided|pool|filter)' /tmp/pair-$side.err | cut -c1-300 | tail -c 60000; tail -c 2000 /tmp/pair-$side.err | grep -iE 'error|throw' | tail -5; echo \"PAIR end side=$side exit=$s\"; if [ $s -ne 0 ] && [ $s -ne 124 ] && [ $s -ne 137 ]; then failed=1; fi; done; exit $failed",
+    "timeout": 300,
+    "vm_type": "large",
+    "cpu": 8,
+    "memory": 14336
+  },
+  {
+    "name": "ic3-simple_regular-s60-r3",
+    "cmd": "set -e; mkdir -p base; tar -xf replay-input/main.tar -C base; set -e; root=$PWD; base=$(cd 'base' && pwd); bun install --frozen-lockfile >/dev/null 2>&1; (cd \"$base\" && bun install --frozen-lockfile >/dev/null 2>&1); set +e; failed=0; for side in cand base; do dir=$root; [ \"$side\" = base ] && dir=$base; echo \"PAIR begin side=$side id=simple_regular run=3\"; (cd \"$dir\" && GDP_INFER_TRACE=2 timeout -s KILL 60 bun research/protocols/ic3syn/run.ts --ms 60000 --only 'simple_regular' --skip 'broken') > /tmp/pair-$side.out 2>/tmp/pair-$side.err; s=$?; cat /tmp/pair-$side.out; grep -E 'small instance|join (enumerated|end|failed|exists|set|cone|td|houdini|engine|ic3|undecided|pool|filter)' /tmp/pair-$side.err | cut -c1-300 | tail -c 60000; tail -c 2000 /tmp/pair-$side.err | grep -iE 'error|throw' | tail -5; echo \"PAIR end side=$side exit=$s\"; if [ $s -ne 0 ] && [ $s -ne 124 ] && [ $s -ne 137 ]; then failed=1; fi; done; exit $failed",
+    "timeout": 300,
+    "vm_type": "large",
+    "cpu": 8,
+    "memory": 14336
+  },
+  {
+    "name": "ic3-lockserv_automaton-s60-r3",
+    "cmd": "set -e; mkdir -p base; tar -xf replay-input/main.tar -C base; set -e; root=$PWD; base=$(cd 'base' && pwd); bun install --frozen-lockfile >/dev/null 2>&1; (cd \"$base\" && bun install --frozen-lockfile >/dev/null 2>&1); set +e; failed=0; for side in cand base; do dir=$root; [ \"$side\" = base ] && dir=$base; echo \"PAIR begin side=$side id=lockserv_automaton run=3\"; (cd \"$dir\" && GDP_INFER_TRACE=2 timeout -s KILL 60 bun research/protocols/ic3syn/run.ts --ms 60000 --only 'lockserv_automaton' --skip 'broken') > /tmp/pair-$side.out 2>/tmp/pair-$side.err; s=$?; cat /tmp/pair-$side.out; grep -E 'small instance|join (enumerated|end|failed|exists|set|cone|td|houdini|engine|ic3|undecided|pool|filter)' /tmp/pair-$side.err | cut -c1-300 | tail -c 60000; tail -c 2000 /tmp/pair-$side.err | grep -iE 'error|throw' | tail -5; echo \"PAIR end side=$side exit=$s\"; if [ $s -ne 0 ] && [ $s -ne 124 ] && [ $s -ne 137 ]; then failed=1; fi; done; exit $failed",
+    "timeout": 300,
+    "vm_type": "large",
+    "cpu": 8,
+    "memory": 14336
+  },
+  {
+    "name": "ic3-sharded_kv-s60-r3",
+    "cmd": "set -e; mkdir -p base; tar -xf replay-input/main.tar -C base; set -e; root=$PWD; base=$(cd 'base' && pwd); bun install --frozen-lockfile >/dev/null 2>&1; (cd \"$base\" && bun install --frozen-lockfile >/dev/null 2>&1); set +e; failed=0; for side in cand base; do dir=$root; [ \"$side\" = base ] && dir=$base; echo \"PAIR begin side=$side id=sharded_kv run=3\"; (cd \"$dir\" && GDP_INFER_TRACE=2 timeout -s KILL 60 bun research/protocols/ic3syn/run.ts --ms 60000 --only 'sharded_kv' --skip 'broken') > /tmp/pair-$side.out 2>/tmp/pair-$side.err; s=$?; cat /tmp/pair-$side.out; grep -E 'small instance|join (enumerated|end|failed|exists|set|cone|td|houdini|engine|ic3|undecided|pool|filter)' /tmp/pair-$side.err | cut -c1-300 | tail -c 60000; tail -c 2000 /tmp/pair-$side.err | grep -iE 'error|throw' | tail -5; echo \"PAIR end side=$side exit=$s\"; if [ $s -ne 0 ] && [ $s -ne 124 ] && [ $s -ne 137 ]; then failed=1; fi; done; exit $failed",
+    "timeout": 300,
+    "vm_type": "large",
+    "cpu": 8,
+    "memory": 14336
+  },
+  {
+    "name": "ic3-sharded_kv_no_lost_keys-s60-r3",
+    "cmd": "set -e; mkdir -p base; tar -xf replay-input/main.tar -C base; set -e; root=$PWD; base=$(cd 'base' && pwd); bun install --frozen-lockfile >/dev/null 2>&1; (cd \"$base\" && bun install --frozen-lockfile >/dev/null 2>&1); set +e; failed=0; for side in cand base; do dir=$root; [ \"$side\" = base ] && dir=$base; echo \"PAIR begin side=$side id=sharded_kv_no_lost_keys run=3\"; (cd \"$dir\" && GDP_INFER_TRACE=2 timeout -s KILL 60 bun research/protocols/ic3syn/run.ts --ms 60000 --only 'sharded_kv_no_lost_keys' --skip 'broken') > /tmp/pair-$side.out 2>/tmp/pair-$side.err; s=$?; cat /tmp/pair-$side.out; grep -E 'small instance|join (enumerated|end|failed|exists|set|cone|td|houdini|engine|ic3|undecided|pool|filter)' /tmp/pair-$side.err | cut -c1-300 | tail -c 60000; tail -c 2000 /tmp/pair-$side.err | grep -iE 'error|throw' | tail -5; echo \"PAIR end side=$side exit=$s\"; if [ $s -ne 0 ] && [ $s -ne 124 ] && [ $s -ne 137 ]; then failed=1; fi; done; exit $failed",
+    "timeout": 300,
+    "vm_type": "large",
+    "cpu": 8,
+    "memory": 14336
+  },
+  {
+    "name": "ic3-lockserv-s60-r3",
+    "cmd": "set -e; mkdir -p base; tar -xf replay-input/main.tar -C base; set -e; root=$PWD; base=$(cd 'base' && pwd); bun install --frozen-lockfile >/dev/null 2>&1; (cd \"$base\" && bun install --frozen-lockfile >/dev/null 2>&1); set +e; failed=0; for side in cand base; do dir=$root; [ \"$side\" = base ] && dir=$base; echo \"PAIR begin side=$side id=lockserv run=3\"; (cd \"$dir\" && GDP_INFER_TRACE=2 timeout -s KILL 60 bun research/protocols/ic3syn/run.ts --ms 60000 --only 'lockserv' --skip 'broken') > /tmp/pair-$side.out 2>/tmp/pair-$side.err; s=$?; cat /tmp/pair-$side.out; grep -E 'small instance|join (enumerated|end|failed|exists|set|cone|td|houdini|engine|ic3|undecided|pool|filter)' /tmp/pair-$side.err | cut -c1-300 | tail -c 60000; tail -c 2000 /tmp/pair-$side.err | grep -iE 'error|throw' | tail -5; echo \"PAIR end side=$side exit=$s\"; if [ $s -ne 0 ] && [ $s -ne 124 ] && [ $s -ne 137 ]; then failed=1; fi; done; exit $failed",
+    "timeout": 300,
+    "vm_type": "large",
+    "cpu": 8,
+    "memory": 14336
+  },
+  {
+    "name": "ic3-twophase-s60-r3",
+    "cmd": "set -e; mkdir -p base; tar -xf replay-input/main.tar -C base; set -e; root=$PWD; base=$(cd 'base' && pwd); bun install --frozen-lockfile >/dev/null 2>&1; (cd \"$base\" && bun install --frozen-lockfile >/dev/null 2>&1); set +e; failed=0; for side in cand base; do dir=$root; [ \"$side\" = base ] && dir=$base; echo \"PAIR begin side=$side id=twophase run=3\"; (cd \"$dir\" && GDP_INFER_TRACE=2 timeout -s KILL 60 bun research/protocols/ic3syn/run.ts --ms 60000 --only 'twophase' --skip 'broken') > /tmp/pair-$side.out 2>/tmp/pair-$side.err; s=$?; cat /tmp/pair-$side.out; grep -E 'small instance|join (enumerated|end|failed|exists|set|cone|td|houdini|engine|ic3|undecided|pool|filter)' /tmp/pair-$side.err | cut -c1-300 | tail -c 60000; tail -c 2000 /tmp/pair-$side.err | grep -iE 'error|throw' | tail -5; echo \"PAIR end side=$side exit=$s\"; if [ $s -ne 0 ] && [ $s -ne 124 ] && [ $s -ne 137 ]; then failed=1; fi; done; exit $failed",
+    "timeout": 300,
+    "vm_type": "large",
+    "cpu": 8,
+    "memory": 14336
+  },
+  {
+    "name": "ic3-simple_decentralized_lock-s60-r3",
+    "cmd": "set -e; mkdir -p base; tar -xf replay-input/main.tar -C base; set -e; root=$PWD; base=$(cd 'base' && pwd); bun install --frozen-lockfile >/dev/null 2>&1; (cd \"$base\" && bun install --frozen-lockfile >/dev/null 2>&1); set +e; failed=0; for side in cand base; do dir=$root; [ \"$side\" = base ] && dir=$base; echo \"PAIR begin side=$side id=simple_decentralized_lock run=3\"; (cd \"$dir\" && GDP_INFER_TRACE=2 timeout -s KILL 60 bun research/protocols/ic3syn/run.ts --ms 60000 --only 'simple_decentralized_lock' --skip 'broken') > /tmp/pair-$side.out 2>/tmp/pair-$side.err; s=$?; cat /tmp/pair-$side.out; grep -E 'small instance|join (enumerated|end|failed|exists|set|cone|td|houdini|engine|ic3|undecided|pool|filter)' /tmp/pair-$side.err | cut -c1-300 | tail -c 60000; tail -c 2000 /tmp/pair-$side.err | grep -iE 'error|throw' | tail -5; echo \"PAIR end side=$side exit=$s\"; if [ $s -ne 0 ] && [ $s -ne 124 ] && [ $s -ne 137 ]; then failed=1; fi; done; exit $failed",
+    "timeout": 300,
+    "vm_type": "large",
+    "cpu": 8,
+    "memory": 14336
+  },
+  {
+    "name": "ic3-two_phase_commit-s60-r3",
+    "cmd": "set -e; mkdir -p base; tar -xf replay-input/main.tar -C base; set -e; root=$PWD; base=$(cd 'base' && pwd); bun install --frozen-lockfile >/dev/null 2>&1; (cd \"$base\" && bun install --frozen-lockfile >/dev/null 2>&1); set +e; failed=0; for side in cand base; do dir=$root; [ \"$side\" = base ] && dir=$base; echo \"PAIR begin side=$side id=two_phase_commit run=3\"; (cd \"$dir\" && GDP_INFER_TRACE=2 timeout -s KILL 60 bun research/protocols/ic3syn/run.ts --ms 60000 --only 'two_phase_commit' --skip 'broken') > /tmp/pair-$side.out 2>/tmp/pair-$side.err; s=$?; cat /tmp/pair-$side.out; grep -E 'small instance|join (enumerated|end|failed|exists|set|cone|td|houdini|engine|ic3|undecided|pool|filter)' /tmp/pair-$side.err | cut -c1-300 | tail -c 60000; tail -c 2000 /tmp/pair-$side.err | grep -iE 'error|throw' | tail -5; echo \"PAIR end side=$side exit=$s\"; if [ $s -ne 0 ] && [ $s -ne 124 ] && [ $s -ne 137 ]; then failed=1; fi; done; exit $failed",
+    "timeout": 300,
+    "vm_type": "large",
+    "cpu": 8,
+    "memory": 14336
+  },
+  {
+    "name": "ic3-consensus_wo_decide-s60-r3",
+    "cmd": "set -e; mkdir -p base; tar -xf replay-input/main.tar -C base; set -e; root=$PWD; base=$(cd 'base' && pwd); bun install --frozen-lockfile >/dev/null 2>&1; (cd \"$base\" && bun install --frozen-lockfile >/dev/null 2>&1); set +e; failed=0; for side in cand base; do dir=$root; [ \"$side\" = base ] && dir=$base; echo \"PAIR begin side=$side id=consensus_wo_decide run=3\"; (cd \"$dir\" && GDP_INFER_TRACE=2 timeout -s KILL 60 bun research/protocols/ic3syn/run.ts --ms 60000 --only 'consensus_wo_decide' --skip 'broken') > /tmp/pair-$side.out 2>/tmp/pair-$side.err; s=$?; cat /tmp/pair-$side.out; grep -E 'small instance|join (enumerated|end|failed|exists|set|cone|td|houdini|engine|ic3|undecided|pool|filter)' /tmp/pair-$side.err | cut -c1-300 | tail -c 60000; tail -c 2000 /tmp/pair-$side.err | grep -iE 'error|throw' | tail -5; echo \"PAIR end side=$side exit=$s\"; if [ $s -ne 0 ] && [ $s -ne 124 ] && [ $s -ne 137 ]; then failed=1; fi; done; exit $failed",
+    "timeout": 300,
+    "vm_type": "large",
+    "cpu": 8,
+    "memory": 14336
+  },
+  {
+    "name": "ic3-consensus_forall-s60-r3",
+    "cmd": "set -e; mkdir -p base; tar -xf replay-input/main.tar -C base; set -e; root=$PWD; base=$(cd 'base' && pwd); bun install --frozen-lockfile >/dev/null 2>&1; (cd \"$base\" && bun install --frozen-lockfile >/dev/null 2>&1); set +e; failed=0; for side in cand base; do dir=$root; [ \"$side\" = base ] && dir=$base; echo \"PAIR begin side=$side id=consensus_forall run=3\"; (cd \"$dir\" && GDP_INFER_TRACE=2 timeout -s KILL 60 bun research/protocols/ic3syn/run.ts --ms 60000 --only 'consensus_forall' --skip 'broken') > /tmp/pair-$side.out 2>/tmp/pair-$side.err; s=$?; cat /tmp/pair-$side.out; grep -E 'small instance|join (enumerated|end|failed|exists|set|cone|td|houdini|engine|ic3|undecided|pool|filter)' /tmp/pair-$side.err | cut -c1-300 | tail -c 60000; tail -c 2000 /tmp/pair-$side.err | grep -iE 'error|throw' | tail -5; echo \"PAIR end side=$side exit=$s\"; if [ $s -ne 0 ] && [ $s -ne 124 ] && [ $s -ne 137 ]; then failed=1; fi; done; exit $failed",
+    "timeout": 300,
+    "vm_type": "large",
+    "cpu": 8,
+    "memory": 14336
+  },
+  {
+    "name": "ic3-naive_consensus-s60-r3",
+    "cmd": "set -e; mkdir -p base; tar -xf replay-input/main.tar -C base; set -e; root=$PWD; base=$(cd 'base' && pwd); bun install --frozen-lockfile >/dev/null 2>&1; (cd \"$base\" && bun install --frozen-lockfile >/dev/null 2>&1); set +e; failed=0; for side in cand base; do dir=$root; [ \"$side\" = base ] && dir=$base; echo \"PAIR begin side=$side id=naive_consensus run=3\"; (cd \"$dir\" && GDP_INFER_TRACE=2 timeout -s KILL 60 bun research/protocols/ic3syn/run.ts --ms 60000 --only 'naive_consensus' --skip 'broken') > /tmp/pair-$side.out 2>/tmp/pair-$side.err; s=$?; cat /tmp/pair-$side.out; grep -E 'small instance|join (enumerated|end|failed|exists|set|cone|td|houdini|engine|ic3|undecided|pool|filter)' /tmp/pair-$side.err | cut -c1-300 | tail -c 60000; tail -c 2000 /tmp/pair-$side.err | grep -iE 'error|throw' | tail -5; echo \"PAIR end side=$side exit=$s\"; if [ $s -ne 0 ] && [ $s -ne 124 ] && [ $s -ne 137 ]; then failed=1; fi; done; exit $failed",
+    "timeout": 300,
+    "vm_type": "large",
+    "cpu": 8,
+    "memory": 14336
+  },
+  {
+    "name": "ic3-client_server_ae-s60-r3",
+    "cmd": "set -e; mkdir -p base; tar -xf replay-input/main.tar -C base; set -e; root=$PWD; base=$(cd 'base' && pwd); bun install --frozen-lockfile >/dev/null 2>&1; (cd \"$base\" && bun install --frozen-lockfile >/dev/null 2>&1); set +e; failed=0; for side in cand base; do dir=$root; [ \"$side\" = base ] && dir=$base; echo \"PAIR begin side=$side id=client_server_ae run=3\"; (cd \"$dir\" && GDP_INFER_TRACE=2 timeout -s KILL 60 bun research/protocols/ic3syn/run.ts --ms 60000 --only 'client_server_ae' --skip 'broken') > /tmp/pair-$side.out 2>/tmp/pair-$side.err; s=$?; cat /tmp/pair-$side.out; grep -E 'small instance|join (enumerated|end|failed|exists|set|cone|td|houdini|engine|ic3|undecided|pool|filter)' /tmp/pair-$side.err | cut -c1-300 | tail -c 60000; tail -c 2000 /tmp/pair-$side.err | grep -iE 'error|throw' | tail -5; echo \"PAIR end side=$side exit=$s\"; if [ $s -ne 0 ] && [ $s -ne 124 ] && [ $s -ne 137 ]; then failed=1; fi; done; exit $failed",
+    "timeout": 300,
+    "vm_type": "large",
+    "cpu": 8,
+    "memory": 14336
+  },
+  {
+    "name": "ic3-client_server_db_ae-s60-r3",
+    "cmd": "set -e; mkdir -p base; tar -xf replay-input/main.tar -C base; set -e; root=$PWD; base=$(cd 'base' && pwd); bun install --frozen-lockfile >/dev/null 2>&1; (cd \"$base\" && bun install --frozen-lockfile >/dev/null 2>&1); set +e; failed=0; for side in cand base; do dir=$root; [ \"$side\" = base ] && dir=$base; echo \"PAIR begin side=$side id=client_server_db_ae run=3\"; (cd \"$dir\" && GDP_INFER_TRACE=2 timeout -s KILL 60 bun research/protocols/ic3syn/run.ts --ms 60000 --only 'client_server_db_ae' --skip 'broken') > /tmp/pair-$side.out 2>/tmp/pair-$side.err; s=$?; cat /tmp/pair-$side.out; grep -E 'small instance|join (enumerated|end|failed|exists|set|cone|td|houdini|engine|ic3|undecided|pool|filter)' /tmp/pair-$side.err | cut -c1-300 | tail -c 60000; tail -c 2000 /tmp/pair-$side.err | grep -iE 'error|throw' | tail -5; echo \"PAIR end side=$side exit=$s\"; if [ $s -ne 0 ] && [ $s -ne 124 ] && [ $s -ne 137 ]; then failed=1; fi; done; exit $failed",
+    "timeout": 300,
+    "vm_type": "large",
+    "cpu": 8,
+    "memory": 14336
+  },
+  {
+    "name": "ic3-simple_election-s60-r3",
+    "cmd": "set -e; mkdir -p base; tar -xf replay-input/main.tar -C base; set -e; root=$PWD; base=$(cd 'base' && pwd); bun install --frozen-lockfile >/dev/null 2>&1; (cd \"$base\" && bun install --frozen-lockfile >/dev/null 2>&1); set +e; failed=0; for side in cand base; do dir=$root; [ \"$side\" = base ] && dir=$base; echo \"PAIR begin side=$side id=simple_election run=3\"; (cd \"$dir\" && GDP_INFER_TRACE=2 timeout -s KILL 60 bun research/protocols/ic3syn/run.ts --ms 60000 --only 'simple_election' --skip 'broken') > /tmp/pair-$side.out 2>/tmp/pair-$side.err; s=$?; cat /tmp/pair-$side.out; grep -E 'small instance|join (enumerated|end|failed|exists|set|cone|td|houdini|engine|ic3|undecided|pool|filter)' /tmp/pair-$side.err | cut -c1-300 | tail -c 60000; tail -c 2000 /tmp/pair-$side.err | grep -iE 'error|throw' | tail -5; echo \"PAIR end side=$side exit=$s\"; if [ $s -ne 0 ] && [ $s -ne 124 ] && [ $s -ne 137 ]; then failed=1; fi; done; exit $failed",
+    "timeout": 300,
+    "vm_type": "large",
+    "cpu": 8,
+    "memory": 14336
+  },
+  {
+    "name": "ic3-toy_consensus_epr-s60-r3",
+    "cmd": "set -e; mkdir -p base; tar -xf replay-input/main.tar -C base; set -e; root=$PWD; base=$(cd 'base' && pwd); bun install --frozen-lockfile >/dev/null 2>&1; (cd \"$base\" && bun install --frozen-lockfile >/dev/null 2>&1); set +e; failed=0; for side in cand base; do dir=$root; [ \"$side\" = base ] && dir=$base; echo \"PAIR begin side=$side id=toy_consensus_epr run=3\"; (cd \"$dir\" && GDP_INFER_TRACE=2 timeout -s KILL 60 bun research/protocols/ic3syn/run.ts --ms 60000 --only 'toy_consensus_epr' --skip 'broken') > /tmp/pair-$side.out 2>/tmp/pair-$side.err; s=$?; cat /tmp/pair-$side.out; grep -E 'small instance|join (enumerated|end|failed|exists|set|cone|td|houdini|engine|ic3|undecided|pool|filter)' /tmp/pair-$side.err | cut -c1-300 | tail -c 60000; tail -c 2000 /tmp/pair-$side.err | grep -iE 'error|throw' | tail -5; echo \"PAIR end side=$side exit=$s\"; if [ $s -ne 0 ] && [ $s -ne 124 ] && [ $s -ne 137 ]; then failed=1; fi; done; exit $failed",
+    "timeout": 300,
+    "vm_type": "large",
+    "cpu": 8,
+    "memory": 14336
+  },
+  {
+    "name": "ic3-toy_consensus-s60-r3",
+    "cmd": "set -e; mkdir -p base; tar -xf replay-input/main.tar -C base; set -e; root=$PWD; base=$(cd 'base' && pwd); bun install --frozen-lockfile >/dev/null 2>&1; (cd \"$base\" && bun install --frozen-lockfile >/dev/null 2>&1); set +e; failed=0; for side in cand base; do dir=$root; [ \"$side\" = base ] && dir=$base; echo \"PAIR begin side=$side id=toy_consensus run=3\"; (cd \"$dir\" && GDP_INFER_TRACE=2 timeout -s KILL 60 bun research/protocols/ic3syn/run.ts --ms 60000 --only 'toy_consensus' --skip 'broken') > /tmp/pair-$side.out 2>/tmp/pair-$side.err; s=$?; cat /tmp/pair-$side.out; grep -E 'small instance|join (enumerated|end|failed|exists|set|cone|td|houdini|engine|ic3|undecided|pool|filter)' /tmp/pair-$side.err | cut -c1-300 | tail -c 60000; tail -c 2000 /tmp/pair-$side.err | grep -iE 'error|throw' | tail -5; echo \"PAIR end side=$side exit=$s\"; if [ $s -ne 0 ] && [ $s -ne 124 ] && [ $s -ne 137 ]; then failed=1; fi; done; exit $failed",
+    "timeout": 300,
+    "vm_type": "large",
+    "cpu": 8,
+    "memory": 14336
+  },
+  {
+    "name": "ic3-firewall-s60-r3",
+    "cmd": "set -e; mkdir -p base; tar -xf replay-input/main.tar -C base; set -e; root=$PWD; base=$(cd 'base' && pwd); bun install --frozen-lockfile >/dev/null 2>&1; (cd \"$base\" && bun install --frozen-lockfile >/dev/null 2>&1); set +e; failed=0; for side in cand base; do dir=$root; [ \"$side\" = base ] && dir=$base; echo \"PAIR begin side=$side id=firewall run=3\"; (cd \"$dir\" && GDP_INFER_TRACE=2 timeout -s KILL 60 bun research/protocols/ic3syn/run.ts --ms 60000 --only 'firewall' --skip 'broken') > /tmp/pair-$side.out 2>/tmp/pair-$side.err; s=$?; cat /tmp/pair-$side.out; grep -E 'small instance|join (enumerated|end|failed|exists|set|cone|td|houdini|engine|ic3|undecided|pool|filter)' /tmp/pair-$side.err | cut -c1-300 | tail -c 60000; tail -c 2000 /tmp/pair-$side.err | grep -iE 'error|throw' | tail -5; echo \"PAIR end side=$side exit=$s\"; if [ $s -ne 0 ] && [ $s -ne 124 ] && [ $s -ne 137 ]; then failed=1; fi; done; exit $failed",
+    "timeout": 300,
+    "vm_type": "large",
+    "cpu": 8,
+    "memory": 14336
+  },
+  {
+    "name": "ic3-majorityset_leader_election-s60-r3",
+    "cmd": "set -e; mkdir -p base; tar -xf replay-input/main.tar -C base; set -e; root=$PWD; base=$(cd 'base' && pwd); bun install --frozen-lockfile >/dev/null 2>&1; (cd \"$base\" && bun install --frozen-lockfile >/dev/null 2>&1); set +e; failed=0; for side in cand base; do dir=$root; [ \"$side\" = base ] && dir=$base; echo \"PAIR begin side=$side id=majorityset_leader_election run=3\"; (cd \"$dir\" && GDP_INFER_TRACE=2 timeout -s KILL 60 bun research/protocols/ic3syn/run.ts --ms 60000 --only 'majorityset_leader_election' --skip 'broken') > /tmp/pair-$side.out 2>/tmp/pair-$side.err; s=$?; cat /tmp/pair-$side.out; grep -E 'small instance|join (enumerated|end|failed|exists|set|cone|td|houdini|engine|ic3|undecided|pool|filter)' /tmp/pair-$side.err | cut -c1-300 | tail -c 60000; tail -c 2000 /tmp/pair-$side.err | grep -iE 'error|throw' | tail -5; echo \"PAIR end side=$side exit=$s\"; if [ $s -ne 0 ] && [ $s -ne 124 ] && [ $s -ne 137 ]; then failed=1; fi; done; exit $failed",
+    "timeout": 300,
+    "vm_type": "large",
+    "cpu": 8,
+    "memory": 14336
+  },
+  {
+    "name": "ic3-consensus_epr-s60-r3",
+    "cmd": "set -e; mkdir -p base; tar -xf replay-input/main.tar -C base; set -e; root=$PWD; base=$(cd 'base' && pwd); bun install --frozen-lockfile >/dev/null 2>&1; (cd \"$base\" && bun install --frozen-lockfile >/dev/null 2>&1); set +e; failed=0; for side in cand base; do dir=$root; [ \"$side\" = base ] && dir=$base; echo \"PAIR begin side=$side id=consensus_epr run=3\"; (cd \"$dir\" && GDP_INFER_TRACE=2 timeout -s KILL 60 bun research/protocols/ic3syn/run.ts --ms 60000 --only 'consensus_epr' --skip 'broken') > /tmp/pair-$side.out 2>/tmp/pair-$side.err; s=$?; cat /tmp/pair-$side.out; grep -E 'small instance|join (enumerated|end|failed|exists|set|cone|td|houdini|engine|ic3|undecided|pool|filter)' /tmp/pair-$side.err | cut -c1-300 | tail -c 60000; tail -c 2000 /tmp/pair-$side.err | grep -iE 'error|throw' | tail -5; echo \"PAIR end side=$side exit=$s\"; if [ $s -ne 0 ] && [ $s -ne 124 ] && [ $s -ne 137 ]; then failed=1; fi; done; exit $failed",
+    "timeout": 300,
+    "vm_type": "large",
+    "cpu": 8,
+    "memory": 14336
+  },
+  {
+    "name": "ic3-learning_switch-s60-r3",
+    "cmd": "set -e; mkdir -p base; tar -xf replay-input/main.tar -C base; set -e; root=$PWD; base=$(cd 'base' && pwd); bun install --frozen-lockfile >/dev/null 2>&1; (cd \"$base\" && bun install --frozen-lockfile >/dev/null 2>&1); set +e; failed=0; for side in cand base; do dir=$root; [ \"$side\" = base ] && dir=$base; echo \"PAIR begin side=$side id=learning_switch run=3\"; (cd \"$dir\" && GDP_INFER_TRACE=2 timeout -s KILL 60 bun research/protocols/ic3syn/run.ts --ms 60000 --only 'learning_switch' --skip 'broken') > /tmp/pair-$side.out 2>/tmp/pair-$side.err; s=$?; cat /tmp/pair-$side.out; grep -E 'small instance|join (enumerated|end|failed|exists|set|cone|td|houdini|engine|ic3|undecided|pool|filter)' /tmp/pair-$side.err | cut -c1-300 | tail -c 60000; tail -c 2000 /tmp/pair-$side.err | grep -iE 'error|throw' | tail -5; echo \"PAIR end side=$side exit=$s\"; if [ $s -ne 0 ] && [ $s -ne 124 ] && [ $s -ne 137 ]; then failed=1; fi; done; exit $failed",
+    "timeout": 300,
+    "vm_type": "large",
+    "cpu": 8,
+    "memory": 14336
+  },
+  {
+    "name": "ic3-learning_switch_i4-s60-r3",
+    "cmd": "set -e; mkdir -p base; tar -xf replay-input/main.tar -C base; set -e; root=$PWD; base=$(cd 'base' && pwd); bun install --frozen-lockfile >/dev/null 2>&1; (cd \"$base\" && bun install --frozen-lockfile >/dev/null 2>&1); set +e; failed=0; for side in cand base; do dir=$root; [ \"$side\" = base ] && dir=$base; echo \"PAIR begin side=$side id=learning_switch_i4 run=3\"; (cd \"$dir\" && GDP_INFER_TRACE=2 timeout -s KILL 60 bun research/protocols/ic3syn/run.ts --ms 60000 --only 'learning_switch_i4' --skip 'broken') > /tmp/pair-$side.out 2>/tmp/pair-$side.err; s=$?; cat /tmp/pair-$side.out; grep -E 'small instance|join (enumerated|end|failed|exists|set|cone|td|houdini|engine|ic3|undecided|pool|filter)' /tmp/pair-$side.err | cut -c1-300 | tail -c 60000; tail -c 2000 /tmp/pair-$side.err | grep -iE 'error|throw' | tail -5; echo \"PAIR end side=$side exit=$s\"; if [ $s -ne 0 ] && [ $s -ne 124 ] && [ $s -ne 137 ]; then failed=1; fi; done; exit $failed",
+    "timeout": 300,
+    "vm_type": "large",
+    "cpu": 8,
+    "memory": 14336
+  },
+  {
+    "name": "ic3-mldr-s60-r3",
+    "cmd": "set -e; mkdir -p base; tar -xf replay-input/main.tar -C base; set -e; root=$PWD; base=$(cd 'base' && pwd); bun install --frozen-lockfile >/dev/null 2>&1; (cd \"$base\" && bun install --frozen-lockfile >/dev/null 2>&1); set +e; failed=0; for side in cand base; do dir=$root; [ \"$side\" = base ] && dir=$base; echo \"PAIR begin side=$side id=mldr run=3\"; (cd \"$dir\" && GDP_INFER_TRACE=2 timeout -s KILL 60 bun research/protocols/ic3syn/run.ts --ms 60000 --only 'mldr' --skip 'broken') > /tmp/pair-$side.out 2>/tmp/pair-$side.err; s=$?; cat /tmp/pair-$side.out; grep -E 'small instance|join (enumerated|end|failed|exists|set|cone|td|houdini|engine|ic3|undecided|pool|filter)' /tmp/pair-$side.err | cut -c1-300 | tail -c 60000; tail -c 2000 /tmp/pair-$side.err | grep -iE 'error|throw' | tail -5; echo \"PAIR end side=$side exit=$s\"; if [ $s -ne 0 ] && [ $s -ne 124 ] && [ $s -ne 137 ]; then failed=1; fi; done; exit $failed",
+    "timeout": 300,
+    "vm_type": "large",
+    "cpu": 8,
+    "memory": 14336
+  },
+  {
+    "name": "duo-lock_server_sync-s60-r1",
+    "cmd": "set -e; mkdir -p base; tar -xf replay-input/main.tar -C base; set -e; root=$PWD; base=$(cd 'base' && pwd); bun install --frozen-lockfile >/dev/null 2>&1; (cd \"$base\" && bun install --frozen-lockfile >/dev/null 2>&1); set +e; failed=0; for side in cand base; do dir=$root; [ \"$side\" = base ] && dir=$base; echo \"PAIR begin side=$side id=lock_server_sync run=1\"; (cd \"$dir\" && GDP_INFER_TRACE=2 timeout -s KILL 60 bun research/protocols/run.ts --ms 60000 --only 'lock_server_sync' --skip 'broken,given') > /tmp/pair-$side.out 2>/tmp/pair-$side.err; s=$?; cat /tmp/pair-$side.out; grep -E 'small instance|join (enumerated|end|failed|exists|set|cone|td|houdini|engine|ic3|undecided|pool|filter)' /tmp/pair-$side.err | cut -c1-300 | tail -c 60000; tail -c 2000 /tmp/pair-$side.err | grep -iE 'error|throw' | tail -5; echo \"PAIR end side=$side exit=$s\"; if [ $s -ne 0 ] && [ $s -ne 124 ] && [ $s -ne 137 ]; then failed=1; fi; done; exit $failed",
+    "timeout": 300,
+    "vm_type": "large",
+    "cpu": 8,
+    "memory": 14336
+  },
+  {
+    "name": "duo-lock_server_async-s60-r1",
+    "cmd": "set -e; mkdir -p base; tar -xf replay-input/main.tar -C base; set -e; root=$PWD; base=$(cd 'base' && pwd); bun install --frozen-lockfile >/dev/null 2>&1; (cd \"$base\" && bun install --frozen-lockfile >/dev/null 2>&1); set +e; failed=0; for side in cand base; do dir=$root; [ \"$side\" = base ] && dir=$base; echo \"PAIR begin side=$side id=lock_server_async run=1\"; (cd \"$dir\" && GDP_INFER_TRACE=2 timeout -s KILL 60 bun research/protocols/run.ts --ms 60000 --only 'lock_server_async' --skip 'broken,given') > /tmp/pair-$side.out 2>/tmp/pair-$side.err; s=$?; cat /tmp/pair-$side.out; grep -E 'small instance|join (enumerated|end|failed|exists|set|cone|td|houdini|engine|ic3|undecided|pool|filter)' /tmp/pair-$side.err | cut -c1-300 | tail -c 60000; tail -c 2000 /tmp/pair-$side.err | grep -iE 'error|throw' | tail -5; echo \"PAIR end side=$side exit=$s\"; if [ $s -ne 0 ] && [ $s -ne 124 ] && [ $s -ne 137 ]; then failed=1; fi; done; exit $failed",
+    "timeout": 300,
+    "vm_type": "large",
+    "cpu": 8,
+    "memory": 14336
+  },
+  {
+    "name": "duo-decentralized_lock-s60-r1",
+    "cmd": "set -e; mkdir -p base; tar -xf replay-input/main.tar -C base; set -e; root=$PWD; base=$(cd 'base' && pwd); bun install --frozen-lockfile >/dev/null 2>&1; (cd \"$base\" && bun install --frozen-lockfile >/dev/null 2>&1); set +e; failed=0; for side in cand base; do dir=$root; [ \"$side\" = base ] && dir=$base; echo \"PAIR begin side=$side id=decentralized_lock run=1\"; (cd \"$dir\" && GDP_INFER_TRACE=2 timeout -s KILL 60 bun research/protocols/run.ts --ms 60000 --only 'decentralized_lock' --skip 'broken,given') > /tmp/pair-$side.out 2>/tmp/pair-$side.err; s=$?; cat /tmp/pair-$side.out; grep -E 'small instance|join (enumerated|end|failed|exists|set|cone|td|houdini|engine|ic3|undecided|pool|filter)' /tmp/pair-$side.err | cut -c1-300 | tail -c 60000; tail -c 2000 /tmp/pair-$side.err | grep -iE 'error|throw' | tail -5; echo \"PAIR end side=$side exit=$s\"; if [ $s -ne 0 ] && [ $s -ne 124 ] && [ $s -ne 137 ]; then failed=1; fi; done; exit $failed",
+    "timeout": 300,
+    "vm_type": "large",
+    "cpu": 8,
+    "memory": 14336
+  },
+  {
+    "name": "duo-distributed_lock-s60-r1",
+    "cmd": "set -e; mkdir -p base; tar -xf replay-input/main.tar -C base; set -e; root=$PWD; base=$(cd 'base' && pwd); bun install --frozen-lockfile >/dev/null 2>&1; (cd \"$base\" && bun install --frozen-lockfile >/dev/null 2>&1); set +e; failed=0; for side in cand base; do dir=$root; [ \"$side\" = base ] && dir=$base; echo \"PAIR begin side=$side id=distributed_lock run=1\"; (cd \"$dir\" && GDP_INFER_TRACE=2 timeout -s KILL 60 bun research/protocols/run.ts --ms 60000 --only 'distributed_lock' --skip 'broken,given') > /tmp/pair-$side.out 2>/tmp/pair-$side.err; s=$?; cat /tmp/pair-$side.out; grep -E 'small instance|join (enumerated|end|failed|exists|set|cone|td|houdini|engine|ic3|undecided|pool|filter)' /tmp/pair-$side.err | cut -c1-300 | tail -c 60000; tail -c 2000 /tmp/pair-$side.err | grep -iE 'error|throw' | tail -5; echo \"PAIR end side=$side exit=$s\"; if [ $s -ne 0 ] && [ $s -ne 124 ] && [ $s -ne 137 ]; then failed=1; fi; done; exit $failed",
+    "timeout": 300,
+    "vm_type": "large",
+    "cpu": 8,
+    "memory": 14336
+  },
+  {
+    "name": "duo-two_phase_commit-s60-r1",
+    "cmd": "set -e; mkdir -p base; tar -xf replay-input/main.tar -C base; set -e; root=$PWD; base=$(cd 'base' && pwd); bun install --frozen-lockfile >/dev/null 2>&1; (cd \"$base\" && bun install --frozen-lockfile >/dev/null 2>&1); set +e; failed=0; for side in cand base; do dir=$root; [ \"$side\" = base ] && dir=$base; echo \"PAIR begin side=$side id=two_phase_commit run=1\"; (cd \"$dir\" && GDP_INFER_TRACE=2 timeout -s KILL 60 bun research/protocols/run.ts --ms 60000 --only 'two_phase_commit' --skip 'broken,given') > /tmp/pair-$side.out 2>/tmp/pair-$side.err; s=$?; cat /tmp/pair-$side.out; grep -E 'small instance|join (enumerated|end|failed|exists|set|cone|td|houdini|engine|ic3|undecided|pool|filter)' /tmp/pair-$side.err | cut -c1-300 | tail -c 60000; tail -c 2000 /tmp/pair-$side.err | grep -iE 'error|throw' | tail -5; echo \"PAIR end side=$side exit=$s\"; if [ $s -ne 0 ] && [ $s -ne 124 ] && [ $s -ne 137 ]; then failed=1; fi; done; exit $failed",
+    "timeout": 300,
+    "vm_type": "large",
+    "cpu": 8,
+    "memory": 14336
+  },
+  {
+    "name": "duo-ticket_lock-s60-r1",
+    "cmd": "set -e; mkdir -p base; tar -xf replay-input/main.tar -C base; set -e; root=$PWD; base=$(cd 'base' && pwd); bun install --frozen-lockfile >/dev/null 2>&1; (cd \"$base\" && bun install --frozen-lockfile >/dev/null 2>&1); set +e; failed=0; for side in cand base; do dir=$root; [ \"$side\" = base ] && dir=$base; echo \"PAIR begin side=$side id=ticket_lock run=1\"; (cd \"$dir\" && GDP_INFER_TRACE=2 timeout -s KILL 60 bun research/protocols/run.ts --ms 60000 --only 'ticket_lock' --skip 'broken,given') > /tmp/pair-$side.out 2>/tmp/pair-$side.err; s=$?; cat /tmp/pair-$side.out; grep -E 'small instance|join (enumerated|end|failed|exists|set|cone|td|houdini|engine|ic3|undecided|pool|filter)' /tmp/pair-$side.err | cut -c1-300 | tail -c 60000; tail -c 2000 /tmp/pair-$side.err | grep -iE 'error|throw' | tail -5; echo \"PAIR end side=$side exit=$s\"; if [ $s -ne 0 ] && [ $s -ne 124 ] && [ $s -ne 137 ]; then failed=1; fi; done; exit $failed",
+    "timeout": 300,
+    "vm_type": "large",
+    "cpu": 8,
+    "memory": 14336
+  },
+  {
+    "name": "duo-toy_consensus_forall-s60-r1",
+    "cmd": "set -e; mkdir -p base; tar -xf replay-input/main.tar -C base; set -e; root=$PWD; base=$(cd 'base' && pwd); bun install --frozen-lockfile >/dev/null 2>&1; (cd \"$base\" && bun install --frozen-lockfile >/dev/null 2>&1); set +e; failed=0; for side in cand base; do dir=$root; [ \"$side\" = base ] && dir=$base; echo \"PAIR begin side=$side id=toy_consensus_forall run=1\"; (cd \"$dir\" && GDP_INFER_TRACE=2 timeout -s KILL 60 bun research/protocols/run.ts --ms 60000 --only 'toy_consensus_forall' --skip 'broken,given') > /tmp/pair-$side.out 2>/tmp/pair-$side.err; s=$?; cat /tmp/pair-$side.out; grep -E 'small instance|join (enumerated|end|failed|exists|set|cone|td|houdini|engine|ic3|undecided|pool|filter)' /tmp/pair-$side.err | cut -c1-300 | tail -c 60000; tail -c 2000 /tmp/pair-$side.err | grep -iE 'error|throw' | tail -5; echo \"PAIR end side=$side exit=$s\"; if [ $s -ne 0 ] && [ $s -ne 124 ] && [ $s -ne 137 ]; then failed=1; fi; done; exit $failed",
+    "timeout": 300,
+    "vm_type": "large",
+    "cpu": 8,
+    "memory": 14336
+  },
+  {
+    "name": "duo-consensus_wo_decide-s60-r1",
+    "cmd": "set -e; mkdir -p base; tar -xf replay-input/main.tar -C base; set -e; root=$PWD; base=$(cd 'base' && pwd); bun install --frozen-lockfile >/dev/null 2>&1; (cd \"$base\" && bun install --frozen-lockfile >/dev/null 2>&1); set +e; failed=0; for side in cand base; do dir=$root; [ \"$side\" = base ] && dir=$base; echo \"PAIR begin side=$side id=consensus_wo_decide run=1\"; (cd \"$dir\" && GDP_INFER_TRACE=2 timeout -s KILL 60 bun research/protocols/run.ts --ms 60000 --only 'consensus_wo_decide' --skip 'broken,given') > /tmp/pair-$side.out 2>/tmp/pair-$side.err; s=$?; cat /tmp/pair-$side.out; grep -E 'small instance|join (enumerated|end|failed|exists|set|cone|td|houdini|engine|ic3|undecided|pool|filter)' /tmp/pair-$side.err | cut -c1-300 | tail -c 60000; tail -c 2000 /tmp/pair-$side.err | grep -iE 'error|throw' | tail -5; echo \"PAIR end side=$side exit=$s\"; if [ $s -ne 0 ] && [ $s -ne 124 ] && [ $s -ne 137 ]; then failed=1; fi; done; exit $failed",
+    "timeout": 300,
+    "vm_type": "large",
+    "cpu": 8,
+    "memory": 14336
+  },
+  {
+    "name": "duo-ring_leader_election-s60-r1",
+    "cmd": "set -e; mkdir -p base; tar -xf replay-input/main.tar -C base; set -e; root=$PWD; base=$(cd 'base' && pwd); bun install --frozen-lockfile >/dev/null 2>&1; (cd \"$base\" && bun install --frozen-lockfile >/dev/null 2>&1); set +e; failed=0; for side in cand base; do dir=$root; [ \"$side\" = base ] && dir=$base; echo \"PAIR begin side=$side id=ring_leader_election run=1\"; (cd \"$dir\" && GDP_INFER_TRACE=2 timeout -s KILL 60 bun research/protocols/run.ts --ms 60000 --only 'ring_leader_election' --skip 'broken,given') > /tmp/pair-$side.out 2>/tmp/pair-$side.err; s=$?; cat /tmp/pair-$side.out; grep -E 'small instance|join (enumerated|end|failed|exists|set|cone|td|houdini|engine|ic3|undecided|pool|filter)' /tmp/pair-$side.err | cut -c1-300 | tail -c 60000; tail -c 2000 /tmp/pair-$side.err | grep -iE 'error|throw' | tail -5; echo \"PAIR end side=$side exit=$s\"; if [ $s -ne 0 ] && [ $s -ne 124 ] && [ $s -ne 137 ]; then failed=1; fi; done; exit $failed",
+    "timeout": 300,
+    "vm_type": "large",
+    "cpu": 8,
+    "memory": 14336
+  },
+  {
+    "name": "duo-sharded_key_value_store-s60-r1",
+    "cmd": "set -e; mkdir -p base; tar -xf replay-input/main.tar -C base; set -e; root=$PWD; base=$(cd 'base' && pwd); bun install --frozen-lockfile >/dev/null 2>&1; (cd \"$base\" && bun install --frozen-lockfile >/dev/null 2>&1); set +e; failed=0; for side in cand base; do dir=$root; [ \"$side\" = base ] && dir=$base; echo \"PAIR begin side=$side id=sharded_key_value_store run=1\"; (cd \"$dir\" && GDP_INFER_TRACE=2 timeout -s KILL 60 bun research/protocols/run.ts --ms 60000 --only 'sharded_key_value_store' --skip 'broken,given') > /tmp/pair-$side.out 2>/tmp/pair-$side.err; s=$?; cat /tmp/pair-$side.out; grep -E 'small instance|join (enumerated|end|failed|exists|set|cone|td|houdini|engine|ic3|undecided|pool|filter)' /tmp/pair-$side.err | cut -c1-300 | tail -c 60000; tail -c 2000 /tmp/pair-$side.err | grep -iE 'error|throw' | tail -5; echo \"PAIR end side=$side exit=$s\"; if [ $s -ne 0 ] && [ $s -ne 124 ] && [ $s -ne 137 ]; then failed=1; fi; done; exit $failed",
+    "timeout": 300,
+    "vm_type": "large",
+    "cpu": 8,
+    "memory": 14336
+  },
+  {
+    "name": "broken-consensus-s60-r1",
+    "cmd": "set -e; bun install --frozen-lockfile >/dev/null; set +e; GDP_INFER_TRACE=2 timeout -s KILL 60 bun research/protocols/ic3syn/run.ts --ms 60000 --only 'consensus' --skip 'search' 2>/tmp/err.log; s=$?; grep -E 'small instance|join (enumerated|end|failed|exists|set|cone|td|houdini|engine|ic3|undecided|pool|filter)' /tmp/err.log | cut -c1-300 | tail -c 60000; tail -c 2000 /tmp/err.log | grep -iE 'error|throw' | tail -5; echo BROKEN_EXIT=$s; if [ \"$s\" = 0 ] || [ \"$s\" = 124 ] || [ \"$s\" = 137 ]; then exit 0; else exit \"$s\"; fi",
+    "timeout": 180,
+    "vm_type": "large",
+    "cpu": 8,
+    "memory": 14336
+  },
+  {
+    "name": "broken-tcommit-s60-r1",
+    "cmd": "set -e; bun install --frozen-lockfile >/dev/null; set +e; GDP_INFER_TRACE=2 timeout -s KILL 60 bun research/protocols/ic3syn/run.ts --ms 60000 --only 'tcommit' --skip 'search' 2>/tmp/err.log; s=$?; grep -E 'small instance|join (enumerated|end|failed|exists|set|cone|td|houdini|engine|ic3|undecided|pool|filter)' /tmp/err.log | cut -c1-300 | tail -c 60000; tail -c 2000 /tmp/err.log | grep -iE 'error|throw' | tail -5; echo BROKEN_EXIT=$s; if [ \"$s\" = 0 ] || [ \"$s\" = 124 ] || [ \"$s\" = 137 ]; then exit 0; else exit \"$s\"; fi",
+    "timeout": 180,
+    "vm_type": "large",
+    "cpu": 8,
+    "memory": 14336
+  },
+  {
+    "name": "broken-lock_server-s60-r1",
+    "cmd": "set -e; bun install --frozen-lockfile >/dev/null; set +e; GDP_INFER_TRACE=2 timeout -s KILL 60 bun research/protocols/ic3syn/run.ts --ms 60000 --only 'lock_server' --skip 'search' 2>/tmp/err.log; s=$?; grep -E 'small instance|join (enumerated|end|failed|exists|set|cone|td|houdini|engine|ic3|undecided|pool|filter)' /tmp/err.log | cut -c1-300 | tail -c 60000; tail -c 2000 /tmp/err.log | grep -iE 'error|throw' | tail -5; echo BROKEN_EXIT=$s; if [ \"$s\" = 0 ] || [ \"$s\" = 124 ] || [ \"$s\" = 137 ]; then exit 0; else exit \"$s\"; fi",
+    "timeout": 180,
+    "vm_type": "large",
+    "cpu": 8,
+    "memory": 14336
+  },
+  {
+    "name": "broken-quorum_leader_election-s60-r1",
+    "cmd": "set -e; bun install --frozen-lockfile >/dev/null; set +e; GDP_INFER_TRACE=2 timeout -s KILL 60 bun research/protocols/ic3syn/run.ts --ms 60000 --only 'quorum_leader_election' --skip 'search' 2>/tmp/err.log; s=$?; grep -E 'small instance|join (enumerated|end|failed|exists|set|cone|td|houdini|engine|ic3|undecided|pool|filter)' /tmp/err.log | cut -c1-300 | tail -c 60000; tail -c 2000 /tmp/err.log | grep -iE 'error|throw' | tail -5; echo BROKEN_EXIT=$s; if [ \"$s\" = 0 ] || [ \"$s\" = 124 ] || [ \"$s\" = 137 ]; then exit 0; else exit \"$s\"; fi",
+    "timeout": 180,
+    "vm_type": "large",
+    "cpu": 8,
+    "memory": 14336
+  },
+  {
+    "name": "broken-toy_consensus_forall-s60-r1",
+    "cmd": "set -e; bun install --frozen-lockfile >/dev/null; set +e; GDP_INFER_TRACE=2 timeout -s KILL 60 bun research/protocols/ic3syn/run.ts --ms 60000 --only 'toy_consensus_forall' --skip 'search' 2>/tmp/err.log; s=$?; grep -E 'small instance|join (enumerated|end|failed|exists|set|cone|td|houdini|engine|ic3|undecided|pool|filter)' /tmp/err.log | cut -c1-300 | tail -c 60000; tail -c 2000 /tmp/err.log | grep -iE 'error|throw' | tail -5; echo BROKEN_EXIT=$s; if [ \"$s\" = 0 ] || [ \"$s\" = 124 ] || [ \"$s\" = 137 ]; then exit 0; else exit \"$s\"; fi",
+    "timeout": 180,
+    "vm_type": "large",
+    "cpu": 8,
+    "memory": 14336
+  },
+  {
+    "name": "broken-simple-s60-r1",
+    "cmd": "set -e; bun install --frozen-lockfile >/dev/null; set +e; GDP_INFER_TRACE=2 timeout -s KILL 60 bun research/protocols/ic3syn/run.ts --ms 60000 --only 'simple' --skip 'search' 2>/tmp/err.log; s=$?; grep -E 'small instance|join (enumerated|end|failed|exists|set|cone|td|houdini|engine|ic3|undecided|pool|filter)' /tmp/err.log | cut -c1-300 | tail -c 60000; tail -c 2000 /tmp/err.log | grep -iE 'error|throw' | tail -5; echo BROKEN_EXIT=$s; if [ \"$s\" = 0 ] || [ \"$s\" = 124 ] || [ \"$s\" = 137 ]; then exit 0; else exit \"$s\"; fi",
+    "timeout": 180,
+    "vm_type": "large",
+    "cpu": 8,
+    "memory": 14336
+  },
+  {
+    "name": "broken-simple_regular-s60-r1",
+    "cmd": "set -e; bun install --frozen-lockfile >/dev/null; set +e; GDP_INFER_TRACE=2 timeout -s KILL 60 bun research/protocols/ic3syn/run.ts --ms 60000 --only 'simple_regular' --skip 'search' 2>/tmp/err.log; s=$?; grep -E 'small instance|join (enumerated|end|failed|exists|set|cone|td|houdini|engine|ic3|undecided|pool|filter)' /tmp/err.log | cut -c1-300 | tail -c 60000; tail -c 2000 /tmp/err.log | grep -iE 'error|throw' | tail -5; echo BROKEN_EXIT=$s; if [ \"$s\" = 0 ] || [ \"$s\" = 124 ] || [ \"$s\" = 137 ]; then exit 0; else exit \"$s\"; fi",
+    "timeout": 180,
+    "vm_type": "large",
+    "cpu": 8,
+    "memory": 14336
+  },
+  {
+    "name": "broken-lockserv_automaton-s60-r1",
+    "cmd": "set -e; bun install --frozen-lockfile >/dev/null; set +e; GDP_INFER_TRACE=2 timeout -s KILL 60 bun research/protocols/ic3syn/run.ts --ms 60000 --only 'lockserv_automaton' --skip 'search' 2>/tmp/err.log; s=$?; grep -E 'small instance|join (enumerated|end|failed|exists|set|cone|td|houdini|engine|ic3|undecided|pool|filter)' /tmp/err.log | cut -c1-300 | tail -c 60000; tail -c 2000 /tmp/err.log | grep -iE 'error|throw' | tail -5; echo BROKEN_EXIT=$s; if [ \"$s\" = 0 ] || [ \"$s\" = 124 ] || [ \"$s\" = 137 ]; then exit 0; else exit \"$s\"; fi",
+    "timeout": 180,
+    "vm_type": "large",
+    "cpu": 8,
+    "memory": 14336
+  },
+  {
+    "name": "broken-sharded_kv-s60-r1",
+    "cmd": "set -e; bun install --frozen-lockfile >/dev/null; set +e; GDP_INFER_TRACE=2 timeout -s KILL 60 bun research/protocols/ic3syn/run.ts --ms 60000 --only 'sharded_kv' --skip 'search' 2>/tmp/err.log; s=$?; grep -E 'small instance|join (enumerated|end|failed|exists|set|cone|td|houdini|engine|ic3|undecided|pool|filter)' /tmp/err.log | cut -c1-300 | tail -c 60000; tail -c 2000 /tmp/err.log | grep -iE 'error|throw' | tail -5; echo BROKEN_EXIT=$s; if [ \"$s\" = 0 ] || [ \"$s\" = 124 ] || [ \"$s\" = 137 ]; then exit 0; else exit \"$s\"; fi",
+    "timeout": 180,
+    "vm_type": "large",
+    "cpu": 8,
+    "memory": 14336
+  },
+  {
+    "name": "broken-sharded_kv_no_lost_keys-s60-r1",
+    "cmd": "set -e; bun install --frozen-lockfile >/dev/null; set +e; GDP_INFER_TRACE=2 timeout -s KILL 60 bun research/protocols/ic3syn/run.ts --ms 60000 --only 'sharded_kv_no_lost_keys' --skip 'search' 2>/tmp/err.log; s=$?; grep -E 'small instance|join (enumerated|end|failed|exists|set|cone|td|houdini|engine|ic3|undecided|pool|filter)' /tmp/err.log | cut -c1-300 | tail -c 60000; tail -c 2000 /tmp/err.log | grep -iE 'error|throw' | tail -5; echo BROKEN_EXIT=$s; if [ \"$s\" = 0 ] || [ \"$s\" = 124 ] || [ \"$s\" = 137 ]; then exit 0; else exit \"$s\"; fi",
+    "timeout": 180,
+    "vm_type": "large",
+    "cpu": 8,
+    "memory": 14336
+  },
+  {
+    "name": "broken-lockserv-s60-r1",
+    "cmd": "set -e; bun install --frozen-lockfile >/dev/null; set +e; GDP_INFER_TRACE=2 timeout -s KILL 60 bun research/protocols/ic3syn/run.ts --ms 60000 --only 'lockserv' --skip 'search' 2>/tmp/err.log; s=$?; grep -E 'small instance|join (enumerated|end|failed|exists|set|cone|td|houdini|engine|ic3|undecided|pool|filter)' /tmp/err.log | cut -c1-300 | tail -c 60000; tail -c 2000 /tmp/err.log | grep -iE 'error|throw' | tail -5; echo BROKEN_EXIT=$s; if [ \"$s\" = 0 ] || [ \"$s\" = 124 ] || [ \"$s\" = 137 ]; then exit 0; else exit \"$s\"; fi",
+    "timeout": 180,
+    "vm_type": "large",
+    "cpu": 8,
+    "memory": 14336
+  },
+  {
+    "name": "broken-twophase-s60-r1",
+    "cmd": "set -e; bun install --frozen-lockfile >/dev/null; set +e; GDP_INFER_TRACE=2 timeout -s KILL 60 bun research/protocols/ic3syn/run.ts --ms 60000 --only 'twophase' --skip 'search' 2>/tmp/err.log; s=$?; grep -E 'small instance|join (enumerated|end|failed|exists|set|cone|td|houdini|engine|ic3|undecided|pool|filter)' /tmp/err.log | cut -c1-300 | tail -c 60000; tail -c 2000 /tmp/err.log | grep -iE 'error|throw' | tail -5; echo BROKEN_EXIT=$s; if [ \"$s\" = 0 ] || [ \"$s\" = 124 ] || [ \"$s\" = 137 ]; then exit 0; else exit \"$s\"; fi",
+    "timeout": 180,
+    "vm_type": "large",
+    "cpu": 8,
+    "memory": 14336
+  },
+  {
+    "name": "broken-simple_decentralized_lock-s60-r1",
+    "cmd": "set -e; bun install --frozen-lockfile >/dev/null; set +e; GDP_INFER_TRACE=2 timeout -s KILL 60 bun research/protocols/ic3syn/run.ts --ms 60000 --only 'simple_decentralized_lock' --skip 'search' 2>/tmp/err.log; s=$?; grep -E 'small instance|join (enumerated|end|failed|exists|set|cone|td|houdini|engine|ic3|undecided|pool|filter)' /tmp/err.log | cut -c1-300 | tail -c 60000; tail -c 2000 /tmp/err.log | grep -iE 'error|throw' | tail -5; echo BROKEN_EXIT=$s; if [ \"$s\" = 0 ] || [ \"$s\" = 124 ] || [ \"$s\" = 137 ]; then exit 0; else exit \"$s\"; fi",
+    "timeout": 180,
+    "vm_type": "large",
+    "cpu": 8,
+    "memory": 14336
+  },
+  {
+    "name": "broken-two_phase_commit-s60-r1",
+    "cmd": "set -e; bun install --frozen-lockfile >/dev/null; set +e; GDP_INFER_TRACE=2 timeout -s KILL 60 bun research/protocols/ic3syn/run.ts --ms 60000 --only 'two_phase_commit' --skip 'search' 2>/tmp/err.log; s=$?; grep -E 'small instance|join (enumerated|end|failed|exists|set|cone|td|houdini|engine|ic3|undecided|pool|filter)' /tmp/err.log | cut -c1-300 | tail -c 60000; tail -c 2000 /tmp/err.log | grep -iE 'error|throw' | tail -5; echo BROKEN_EXIT=$s; if [ \"$s\" = 0 ] || [ \"$s\" = 124 ] || [ \"$s\" = 137 ]; then exit 0; else exit \"$s\"; fi",
+    "timeout": 180,
+    "vm_type": "large",
+    "cpu": 8,
+    "memory": 14336
+  },
+  {
+    "name": "broken-consensus_wo_decide-s60-r1",
+    "cmd": "set -e; bun install --frozen-lockfile >/dev/null; set +e; GDP_INFER_TRACE=2 timeout -s KILL 60 bun research/protocols/ic3syn/run.ts --ms 60000 --only 'consensus_wo_decide' --skip 'search' 2>/tmp/err.log; s=$?; grep -E 'small instance|join (enumerated|end|failed|exists|set|cone|td|houdini|engine|ic3|undecided|pool|filter)' /tmp/err.log | cut -c1-300 | tail -c 60000; tail -c 2000 /tmp/err.log | grep -iE 'error|throw' | tail -5; echo BROKEN_EXIT=$s; if [ \"$s\" = 0 ] || [ \"$s\" = 124 ] || [ \"$s\" = 137 ]; then exit 0; else exit \"$s\"; fi",
+    "timeout": 180,
+    "vm_type": "large",
+    "cpu": 8,
+    "memory": 14336
+  },
+  {
+    "name": "broken-consensus_forall-s60-r1",
+    "cmd": "set -e; bun install --frozen-lockfile >/dev/null; set +e; GDP_INFER_TRACE=2 timeout -s KILL 60 bun research/protocols/ic3syn/run.ts --ms 60000 --only 'consensus_forall' --skip 'search' 2>/tmp/err.log; s=$?; grep -E 'small instance|join (enumerated|end|failed|exists|set|cone|td|houdini|engine|ic3|undecided|pool|filter)' /tmp/err.log | cut -c1-300 | tail -c 60000; tail -c 2000 /tmp/err.log | grep -iE 'error|throw' | tail -5; echo BROKEN_EXIT=$s; if [ \"$s\" = 0 ] || [ \"$s\" = 124 ] || [ \"$s\" = 137 ]; then exit 0; else exit \"$s\"; fi",
+    "timeout": 180,
+    "vm_type": "large",
+    "cpu": 8,
+    "memory": 14336
+  },
+  {
+    "name": "broken-naive_consensus-s60-r1",
+    "cmd": "set -e; bun install --frozen-lockfile >/dev/null; set +e; GDP_INFER_TRACE=2 timeout -s KILL 60 bun research/protocols/ic3syn/run.ts --ms 60000 --only 'naive_consensus' --skip 'search' 2>/tmp/err.log; s=$?; grep -E 'small instance|join (enumerated|end|failed|exists|set|cone|td|houdini|engine|ic3|undecided|pool|filter)' /tmp/err.log | cut -c1-300 | tail -c 60000; tail -c 2000 /tmp/err.log | grep -iE 'error|throw' | tail -5; echo BROKEN_EXIT=$s; if [ \"$s\" = 0 ] || [ \"$s\" = 124 ] || [ \"$s\" = 137 ]; then exit 0; else exit \"$s\"; fi",
+    "timeout": 180,
+    "vm_type": "large",
+    "cpu": 8,
+    "memory": 14336
+  },
+  {
+    "name": "broken-client_server_ae-s60-r1",
+    "cmd": "set -e; bun install --frozen-lockfile >/dev/null; set +e; GDP_INFER_TRACE=2 timeout -s KILL 60 bun research/protocols/ic3syn/run.ts --ms 60000 --only 'client_server_ae' --skip 'search' 2>/tmp/err.log; s=$?; grep -E 'small instance|join (enumerated|end|failed|exists|set|cone|td|houdini|engine|ic3|undecided|pool|filter)' /tmp/err.log | cut -c1-300 | tail -c 60000; tail -c 2000 /tmp/err.log | grep -iE 'error|throw' | tail -5; echo BROKEN_EXIT=$s; if [ \"$s\" = 0 ] || [ \"$s\" = 124 ] || [ \"$s\" = 137 ]; then exit 0; else exit \"$s\"; fi",
+    "timeout": 180,
+    "vm_type": "large",
+    "cpu": 8,
+    "memory": 14336
+  },
+  {
+    "name": "broken-client_server_db_ae-s60-r1",
+    "cmd": "set -e; bun install --frozen-lockfile >/dev/null; set +e; GDP_INFER_TRACE=2 timeout -s KILL 60 bun research/protocols/ic3syn/run.ts --ms 60000 --only 'client_server_db_ae' --skip 'search' 2>/tmp/err.log; s=$?; grep -E 'small instance|join (enumerated|end|failed|exists|set|cone|td|houdini|engine|ic3|undecided|pool|filter)' /tmp/err.log | cut -c1-300 | tail -c 60000; tail -c 2000 /tmp/err.log | grep -iE 'error|throw' | tail -5; echo BROKEN_EXIT=$s; if [ \"$s\" = 0 ] || [ \"$s\" = 124 ] || [ \"$s\" = 137 ]; then exit 0; else exit \"$s\"; fi",
+    "timeout": 180,
+    "vm_type": "large",
+    "cpu": 8,
+    "memory": 14336
+  },
+  {
+    "name": "broken-simple_election-s60-r1",
+    "cmd": "set -e; bun install --frozen-lockfile >/dev/null; set +e; GDP_INFER_TRACE=2 timeout -s KILL 60 bun research/protocols/ic3syn/run.ts --ms 60000 --only 'simple_election' --skip 'search' 2>/tmp/err.log; s=$?; grep -E 'small instance|join (enumerated|end|failed|exists|set|cone|td|houdini|engine|ic3|undecided|pool|filter)' /tmp/err.log | cut -c1-300 | tail -c 60000; tail -c 2000 /tmp/err.log | grep -iE 'error|throw' | tail -5; echo BROKEN_EXIT=$s; if [ \"$s\" = 0 ] || [ \"$s\" = 124 ] || [ \"$s\" = 137 ]; then exit 0; else exit \"$s\"; fi",
+    "timeout": 180,
+    "vm_type": "large",
+    "cpu": 8,
+    "memory": 14336
+  },
+  {
+    "name": "broken-toy_consensus_epr-s60-r1",
+    "cmd": "set -e; bun install --frozen-lockfile >/dev/null; set +e; GDP_INFER_TRACE=2 timeout -s KILL 60 bun research/protocols/ic3syn/run.ts --ms 60000 --only 'toy_consensus_epr' --skip 'search' 2>/tmp/err.log; s=$?; grep -E 'small instance|join (enumerated|end|failed|exists|set|cone|td|houdini|engine|ic3|undecided|pool|filter)' /tmp/err.log | cut -c1-300 | tail -c 60000; tail -c 2000 /tmp/err.log | grep -iE 'error|throw' | tail -5; echo BROKEN_EXIT=$s; if [ \"$s\" = 0 ] || [ \"$s\" = 124 ] || [ \"$s\" = 137 ]; then exit 0; else exit \"$s\"; fi",
+    "timeout": 180,
+    "vm_type": "large",
+    "cpu": 8,
+    "memory": 14336
+  },
+  {
+    "name": "broken-toy_consensus-s60-r1",
+    "cmd": "set -e; bun install --frozen-lockfile >/dev/null; set +e; GDP_INFER_TRACE=2 timeout -s KILL 60 bun research/protocols/ic3syn/run.ts --ms 60000 --only 'toy_consensus' --skip 'search' 2>/tmp/err.log; s=$?; grep -E 'small instance|join (enumerated|end|failed|exists|set|cone|td|houdini|engine|ic3|undecided|pool|filter)' /tmp/err.log | cut -c1-300 | tail -c 60000; tail -c 2000 /tmp/err.log | grep -iE 'error|throw' | tail -5; echo BROKEN_EXIT=$s; if [ \"$s\" = 0 ] || [ \"$s\" = 124 ] || [ \"$s\" = 137 ]; then exit 0; else exit \"$s\"; fi",
+    "timeout": 180,
+    "vm_type": "large",
+    "cpu": 8,
+    "memory": 14336
+  },
+  {
+    "name": "broken-firewall-s60-r1",
+    "cmd": "set -e; bun install --frozen-lockfile >/dev/null; set +e; GDP_INFER_TRACE=2 timeout -s KILL 60 bun research/protocols/ic3syn/run.ts --ms 60000 --only 'firewall' --skip 'search' 2>/tmp/err.log; s=$?; grep -E 'small instance|join (enumerated|end|failed|exists|set|cone|td|houdini|engine|ic3|undecided|pool|filter)' /tmp/err.log | cut -c1-300 | tail -c 60000; tail -c 2000 /tmp/err.log | grep -iE 'error|throw' | tail -5; echo BROKEN_EXIT=$s; if [ \"$s\" = 0 ] || [ \"$s\" = 124 ] || [ \"$s\" = 137 ]; then exit 0; else exit \"$s\"; fi",
+    "timeout": 180,
+    "vm_type": "large",
+    "cpu": 8,
+    "memory": 14336
+  },
+  {
+    "name": "broken-majorityset_leader_election-s60-r1",
+    "cmd": "set -e; bun install --frozen-lockfile >/dev/null; set +e; GDP_INFER_TRACE=2 timeout -s KILL 60 bun research/protocols/ic3syn/run.ts --ms 60000 --only 'majorityset_leader_election' --skip 'search' 2>/tmp/err.log; s=$?; grep -E 'small instance|join (enumerated|end|failed|exists|set|cone|td|houdini|engine|ic3|undecided|pool|filter)' /tmp/err.log | cut -c1-300 | tail -c 60000; tail -c 2000 /tmp/err.log | grep -iE 'error|throw' | tail -5; echo BROKEN_EXIT=$s; if [ \"$s\" = 0 ] || [ \"$s\" = 124 ] || [ \"$s\" = 137 ]; then exit 0; else exit \"$s\"; fi",
+    "timeout": 180,
+    "vm_type": "large",
+    "cpu": 8,
+    "memory": 14336
+  },
+  {
+    "name": "broken-consensus_epr-s60-r1",
+    "cmd": "set -e; bun install --frozen-lockfile >/dev/null; set +e; GDP_INFER_TRACE=2 timeout -s KILL 60 bun research/protocols/ic3syn/run.ts --ms 60000 --only 'consensus_epr' --skip 'search' 2>/tmp/err.log; s=$?; grep -E 'small instance|join (enumerated|end|failed|exists|set|cone|td|houdini|engine|ic3|undecided|pool|filter)' /tmp/err.log | cut -c1-300 | tail -c 60000; tail -c 2000 /tmp/err.log | grep -iE 'error|throw' | tail -5; echo BROKEN_EXIT=$s; if [ \"$s\" = 0 ] || [ \"$s\" = 124 ] || [ \"$s\" = 137 ]; then exit 0; else exit \"$s\"; fi",
+    "timeout": 180,
+    "vm_type": "large",
+    "cpu": 8,
+    "memory": 14336
+  },
+  {
+    "name": "broken-learning_switch-s60-r1",
+    "cmd": "set -e; bun install --frozen-lockfile >/dev/null; set +e; GDP_INFER_TRACE=2 timeout -s KILL 60 bun research/protocols/ic3syn/run.ts --ms 60000 --only 'learning_switch' --skip 'search' 2>/tmp/err.log; s=$?; grep -E 'small instance|join (enumerated|end|failed|exists|set|cone|td|houdini|engine|ic3|undecided|pool|filter)' /tmp/err.log | cut -c1-300 | tail -c 60000; tail -c 2000 /tmp/err.log | grep -iE 'error|throw' | tail -5; echo BROKEN_EXIT=$s; if [ \"$s\" = 0 ] || [ \"$s\" = 124 ] || [ \"$s\" = 137 ]; then exit 0; else exit \"$s\"; fi",
+    "timeout": 180,
+    "vm_type": "large",
+    "cpu": 8,
+    "memory": 14336
+  },
+  {
+    "name": "broken-learning_switch_i4-s60-r1",
+    "cmd": "set -e; bun install --frozen-lockfile >/dev/null; set +e; GDP_INFER_TRACE=2 timeout -s KILL 60 bun research/protocols/ic3syn/run.ts --ms 60000 --only 'learning_switch_i4' --skip 'search' 2>/tmp/err.log; s=$?; grep -E 'small instance|join (enumerated|end|failed|exists|set|cone|td|houdini|engine|ic3|undecided|pool|filter)' /tmp/err.log | cut -c1-300 | tail -c 60000; tail -c 2000 /tmp/err.log | grep -iE 'error|throw' | tail -5; echo BROKEN_EXIT=$s; if [ \"$s\" = 0 ] || [ \"$s\" = 124 ] || [ \"$s\" = 137 ]; then exit 0; else exit \"$s\"; fi",
+    "timeout": 180,
+    "vm_type": "large",
+    "cpu": 8,
+    "memory": 14336
+  },
+  {
+    "name": "broken-paxos_epr-s60-r1",
+    "cmd": "set -e; bun install --frozen-lockfile >/dev/null; set +e; GDP_INFER_TRACE=2 timeout -s KILL 60 bun research/protocols/ic3syn/run.ts --ms 60000 --only 'paxos_epr' --skip 'search' 2>/tmp/err.log; s=$?; grep -E 'small instance|join (enumerated|end|failed|exists|set|cone|td|houdini|engine|ic3|undecided|pool|filter)' /tmp/err.log | cut -c1-300 | tail -c 60000; tail -c 2000 /tmp/err.log | grep -iE 'error|throw' | tail -5; echo BROKEN_EXIT=$s; if [ \"$s\" = 0 ] || [ \"$s\" = 124 ] || [ \"$s\" = 137 ]; then exit 0; else exit \"$s\"; fi",
+    "timeout": 180,
+    "vm_type": "large",
+    "cpu": 8,
+    "memory": 14336
+  },
+  {
+    "name": "broken-mldr-s60-r1",
+    "cmd": "set -e; bun install --frozen-lockfile >/dev/null; set +e; GDP_INFER_TRACE=2 timeout -s KILL 60 bun research/protocols/ic3syn/run.ts --ms 60000 --only 'mldr' --skip 'search' 2>/tmp/err.log; s=$?; grep -E 'small instance|join (enumerated|end|failed|exists|set|cone|td|houdini|engine|ic3|undecided|pool|filter)' /tmp/err.log | cut -c1-300 | tail -c 60000; tail -c 2000 /tmp/err.log | grep -iE 'error|throw' | tail -5; echo BROKEN_EXIT=$s; if [ \"$s\" = 0 ] || [ \"$s\" = 124 ] || [ \"$s\" = 137 ]; then exit 0; else exit \"$s\"; fi",
+    "timeout": 180,
+    "vm_type": "large",
+    "cpu": 8,
+    "memory": 14336
+  },
+  {
+    "name": "generation-pairs",
+    "cmd": "bash research/track-gen/generation-pairs.sh",
+    "cpu": 8,
+    "memory": 14336,
+    "timeout": 480
+  },
+  {
+    "name": "probe-pairs",
+    "cmd": "bash research/track-gen/probe-pairs.sh",
+    "cpu": 8,
+    "memory": 14336,
+    "timeout": 480
+  },
+  {
+    "name": "check-and-tests",
+    "cmd": "set -e; bash research/track-m/prepare-vendors.sh; bun install --frozen-lockfile >/dev/null; bun run check; bun test core/cube-rows.test.ts core/sample-step.test.ts core/compile.test.ts core/infer.test.ts kernel/model-values.test.ts core/count-witness.test.ts core/count-unions.test.ts core/counts-structured.test.ts core/count-support.test.ts core/count-focus-proof.test.ts",
+    "cpu": 8,
+    "memory": 14336,
+    "timeout": 300
+  },
+  {
+    "name": "shard-1-of-7",
+    "cmd": "set -e; bash research/track-m/prepare-vendors.sh; bun install --frozen-lockfile >/dev/null; bun scripts/test-shards.ts --shard 1/7",
+    "cpu": 8,
+    "memory": 14336,
+    "timeout": 900
+  },
+  {
+    "name": "shard-2-of-7",
+    "cmd": "set -e; bash research/track-m/prepare-vendors.sh; bun install --frozen-lockfile >/dev/null; bun scripts/test-shards.ts --shard 2/7",
+    "cpu": 8,
+    "memory": 14336,
+    "timeout": 900
+  },
+  {
+    "name": "shard-3-of-7",
+    "cmd": "set -e; bash research/track-m/prepare-vendors.sh; bun install --frozen-lockfile >/dev/null; bun scripts/test-shards.ts --shard 3/7",
+    "cpu": 8,
+    "memory": 14336,
+    "timeout": 900
+  },
+  {
+    "name": "shard-4-of-7",
+    "cmd": "set -e; bash research/track-m/prepare-vendors.sh; bun install --frozen-lockfile >/dev/null; bun scripts/test-shards.ts --shard 4/7",
+    "cpu": 8,
+    "memory": 14336,
+    "timeout": 900
+  },
+  {
+    "name": "shard-5-of-7",
+    "cmd": "set -e; bash research/track-m/prepare-vendors.sh; bun install --frozen-lockfile >/dev/null; bun scripts/test-shards.ts --shard 5/7",
+    "cpu": 8,
+    "memory": 14336,
+    "timeout": 900
+  },
+  {
+    "name": "shard-6-of-7",
+    "cmd": "set -e; bash research/track-m/prepare-vendors.sh; bun install --frozen-lockfile >/dev/null; bun scripts/test-shards.ts --shard 6/7",
+    "cpu": 8,
+    "memory": 14336,
+    "timeout": 900
+  },
+  {
+    "name": "shard-7-of-7",
+    "cmd": "set -e; bash research/track-m/prepare-vendors.sh; bun install --frozen-lockfile >/dev/null; bun scripts/test-shards.ts --shard 7/7",
+    "cpu": 8,
+    "memory": 14336,
+    "timeout": 900
+  }
+]
