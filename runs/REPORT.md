@@ -2,7 +2,11 @@
 
 Base: `8610af26c16cf8e50b5ec0564a154c6bf358d82c`; branch: `claude/track-kernel`.
 
-## Status
+## Independent-review follow-up
+
+F1 is fixed at the new lemma-condition decision boundary: all-zero variable coefficients are treated as constants, matching Lean. The global `decide`, old tree checker, empty-list fast path, and proof-row layout are unchanged. The reviewer’s fixtures were captured once from the unmodified `df6f409e` checker (kernel SHA256 `6984ace7dea563b38aa93827558cfe209dd4978fb9ab994d92e4c2f8b9966433`) before the edit. `track-k-review-f1-v1/` passes 9 tests / 43 assertions and the independent Lean edge examples. F2 frozen regression coverage, the mutant replay, F3 documentation, and post-fix gates are pending. No merge will be performed.
+
+## Pre-review baseline status (`df6f409e`)
 
 The Lean-first rule, TypeScript mirror, unchanged-certificate conservation, semantic refusals, Lean export, and measured untrusted emission are implemented. The engine is frozen at `0e9afc3db2317abee2b96894de5dd83e2edf86f4`; all core/kernel/Lean source still matches that commit. The required automated gate pipeline and final helper/artifact recheck passed. **Independent review of the Lean statement and TypeScript mirror remains required before any merge; no merge or publish action was taken.**
 

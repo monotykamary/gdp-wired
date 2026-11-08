@@ -529,6 +529,10 @@ function prependAtoms(front: {lin: Lin, holds: boolean}[], path: Path): Path {
 
 // Eligibility uses only the original split path, never another cut. The returned path is for a leaf alone.
 export function lemmaPath(lemmas: LemmaCut[], path: Path): Path {
+  // Lean's dec treats all-zero variable coefficients as constant. Normalize only this
+  // new-condition decision boundary: preserve the original proof rows and every legacy path.
+  lemmas = lemmas.map(l => ({...l, when: l.when.map(w =>
+    Object.keys(w).every(key => key === '1' || w[key] === 0) ? k(w['1'] ?? 0) : w)}))
   const active = lemmas.filter(l => l.when.every(w => decide(w, path) === true))
   return active.length ? prependAtoms(active.map(l => ({lin: l.cut, holds: true})), path) : path
 }

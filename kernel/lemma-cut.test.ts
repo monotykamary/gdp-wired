@@ -1,10 +1,26 @@
 import {expect, test} from 'bun:test'
+import {readFileSync} from 'node:fs'
 import {type Law, type Machine, atMost, n, x} from '../core/machine.ts'
 import {type Lin, k} from '../core/solver.ts'
 import {lemmaCutFixture} from '../lean-kernel/lemma-cases.ts'
-import {type CountCert, type LemmaCut, type Tree, canon, check, checkCounted, checkCountedLaws, checkGoalLemmas, checkMC, countedObligations, leafConstraints, lemmaPath, mcGoal} from './kernel.ts'
+import {type CountCert, type Goal, type LemmaCut, type Tree, canon, check, checkCounted, checkCountedLaws, checkGoalLemmas, checkMC, countedObligations, leafConstraints, lemmaPath, mcGoal} from './kernel.ts'
 
 const {a, c, hyps, goal, entry, tree, legacy, flip, leaf, yes, no} = lemmaCutFixture()
+const frozen = JSON.parse(readFileSync(new URL('./fixtures/lemma-cut-review.json', import.meta.url), 'utf8')) as
+  {id: string, goal: Goal, tree: Tree, lemmas: LemmaCut[], expect: boolean}[]
+
+test('zero-coefficient lemma conditions agree with Lean without changing legacy paths', () => {
+  const zero = frozen.find(t => t.id === 'zero_coefficient_condition')!
+  expect(zero.expect).toBe(false) // Historical result saved before the fix, not an oracle rebuilt by this checker.
+  const original = JSON.stringify(zero)
+  expect(checkGoalLemmas(zero.goal, zero.tree, zero.lemmas)).toBe(true)
+  expect(checkGoalLemmas(zero.goal, zero.tree, [])).toBe(false)
+  expect(check(zero.goal, zero.tree)).toBe(false)
+  expect(checkGoalLemmas(zero.goal, zero.tree, [{...zero.lemmas[0]!, when: [{'1': -1, z: 0}]}])).toBe(true)
+  expect(checkGoalLemmas(zero.goal, zero.tree, [{...zero.lemmas[0]!, when: [{'1': 1, z: 0}]}])).toBe(false)
+  expect(lemmaPath(zero.lemmas, new Map()).size).toBe(1)
+  expect(JSON.stringify(zero)).toBe(original)
+})
 
 test('a separately checked conditional lemma closes only below its decision', () => {
   expect(checkGoalLemmas(goal, tree, [entry])).toBe(true)
