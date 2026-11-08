@@ -2,6 +2,20 @@ import {expect, test} from 'bun:test'
 import {type Law, type Machine, all, any, atMost, get, less, n, not, plus, same, times, x} from '../core/machine.ts'
 import {assumed, check} from './kernel.ts'
 import {clock, grow, modelInstances} from './prove.ts'
+import {modelValueTerms} from './model-values.ts'
+
+test('function arguments keep symbolic keys rather than arithmetic neighbours', () => {
+  const a=x('a'),b=x('b'),body=any(not(same(get('f',a),get('f',b))),same(a,b))
+  // Frozen input: with a already assigned 5, b=a used to propose 5,6,4.
+  expect(modelValueTerms(body,'b',new Set(['b']),e=>e.op==='var'&&e.name==='a'?5:undefined)).toEqual([])
+  const packed=atMost(plus(x('index'),n(1)),get('Table',plus(x('index'),n(2))))
+  expect(modelValueTerms(packed,'index',new Set(['index']),()=>10)).toEqual([])
+})
+
+test('arithmetic-only boundaries remain available and ordered', () => {
+  const body=atMost(times(2,x('half')),get('Total',n(0)))
+  expect(modelValueTerms(body,'half',new Set(['half']),e=>e.op==='get'?14:undefined)).toEqual([n(7),n(8),n(6)])
+})
 
 test('an arithmetic witness stays constant when its value equals a row key', () => {
   const machine: Machine = {name:'aliased half',params:[],inputs:[],state:{},maps:{A:0,Good:0},step:{}}
