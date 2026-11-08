@@ -1,0 +1,93 @@
+{
+  "test": "T-9A",
+  "order": [
+    "A1",
+    "B1",
+    "A2",
+    "B2",
+    "A3",
+    "B3"
+  ],
+  "packetHash": "78b51495639d2e70ecdb871465c3d59c7cdfbc43e0abcf2804ab6b251f76f5c3",
+  "summary": {
+    "A": {
+      "repeats": 3,
+      "countedUnits": [
+        226.58278839999903,
+        226.58278839999903,
+        226.58278839999903
+      ],
+      "wallMedianMs": 171.08087999999952,
+      "wallMaxMs": 186.8697460000003,
+      "pass": false,
+      "generatorGap": false,
+      "branches": [
+        [
+          {
+            "name": "bare",
+            "outcome": "stalled",
+            "reason": "27-and-32-source-sat",
+            "units": 226.58278839999903
+          }
+        ],
+        [
+          {
+            "name": "bare",
+            "outcome": "stalled",
+            "reason": "27-and-32-source-sat",
+            "units": 226.58278839999903
+          }
+        ],
+        [
+          {
+            "name": "bare",
+            "outcome": "stalled",
+            "reason": "27-and-32-source-sat",
+            "units": 226.58278839999903
+          }
+        ]
+      ]
+    },
+    "B": {
+      "repeats": 3,
+      "countedUnits": [
+        227.6648163999999,
+        227.6648163999999,
+        227.6648163999999
+      ],
+      "wallMedianMs": 140.58041199999934,
+      "wallMaxMs": 143.695208000001,
+      "pass": false,
+      "generatorGap": true,
+      "branches": [
+        [
+          {
+            "name": "complement",
+            "outcome": "generator-gap",
+            "reason": "27-and-32-source-sat",
+            "units": 227.6648163999999
+          }
+        ],
+        [
+          {
+            "name": "complement",
+            "outcome": "generator-gap",
+            "reason": "27-and-32-source-sat",
+            "units": 227.6648163999999
+          }
+        ],
+        [
+          {
+            "name": "complement",
+            "outcome": "generator-gap",
+            "reason": "27-and-32-source-sat",
+            "units": 227.6648163999999
+          }
+        ]
+      ]
+    }
+  },
+  "decision": "generator-gap",
+  "implementationAllowed": false,
+  "laterTestsRun": false
+}

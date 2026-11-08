@@ -5090,3 +5090,48 @@ Final validation on the same exclusive VM passes TypeScript, type-aware lint,
 **12 tests / 18 assertions**, and the independent aggregate audit of all
 **72 checked results**. The audit lists the six missing raw files explicitly.
 Production sources remain unchanged; Gate 1 remains **3/5**.
+
+## Section 9 T-9A — complement generator gap; stop
+
+All runs are on exclusive **bx_3kjzmmhv**, eight pinned vCPUs, with three fresh
+A/B interleaved repeats. Counted units are primary; walls below are median/max
+of three target probes, excluding separately reported packet regeneration.
+All goal/certificate/path hashes match the original Section 8 T-A packet. The
+full certificate, numeric goal, index mapping and 24 active cuts also match;
+only a redundant `originalIndex` annotation on the saved cuts is omitted.
+
+| Measurement | Counted units | Wall median / max |
+|---|---|---:|
+| Strict run A: bare leaf | 226.582788 each | 0.163 / 0.166 s |
+| Strict run B: forced G, then complement | 403.136028 / 401.837966 / 401.837966 | 1.631 / 1.785 s |
+| Complement diagnostic A: bare leaf | 226.582788 each | 0.171 / 0.187 s |
+| Complement diagnostic B: complement alone | **227.664816 each** | **0.141 / 0.144 s** |
+
+The strict shared-400-unit test **does not pass**. `scopesFor` does not propose
+`G = CfgT[j$] <= CT[i]`; candidate 77 proposes the opposite strict order instead.
+Forced-G queries find cores of **6** for 84 (**39.713046 units**) and **5** for 77
+(**18.800593–18.970285 units**). 77 is admitted in all three; 84 in one of three.
+The positive branch never finishes, so the complement receives no / too little
+remaining budget. Unknown is not labelled SAT or a generator gap.
+
+The separate complement-only diagnostic answers the requested decisive question.
+At **`a$# = i`, `j$ < i`, `CT[i] < CfgT[j$]`**, the numeric model has
+**V = {27, 32, 77, 84}**, and all four exact source queries return validated SAT
+in every repeat. In particular, **27 costs 27.602556 units** and **32 costs
+21.179086 units**, with no new cut admitted. This is the requested named
+**generator gap**, relative to the captured 32-candidate restricted pool—not a
+protocol counterexample or a claim about every possible production-pool fact.
+
+Numeric example: `i=a$#=1`, `j$=0`, `size=2`, `CT[i]=CfgT[i]=0`, `CfgT[j$]=1`.
+The source models also have `St[j$]=0`; their separate valuations are retained,
+not combined into a fabricated global state.
+
+**Stopped. T-9B, T-9C, T-9D, implementation and Gate 1 were not run.** No production,
+default, trusted-rule, cap or total-allowance change. Evidence:
+**runs/track-m/section9-ta-v3/** and **section9-complement-v2/generator-gap.json**.
+
+Final validation on the same exclusive VM passes TypeScript, type-aware lint,
+**9 tests / 15 assertions**, and independent fresh-process replay of all
+**42 source SAT models plus 14 numeric SAT models** and their **56 full paths**.
+It also verifies the full certificate, numeric goal, active cuts and original
+index mapping against the original packet. See **section9-validation-v2/**.

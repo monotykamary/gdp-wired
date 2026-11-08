@@ -1,0 +1,5 @@
+research/track-m/section9-guard-observer.ts(83,10): error TS1005: ';' expected.
+research/track-m/section9-guard-observer.ts(97,1): error TS1005: '}' expected.
+
+--- stderr ---
+$ tsc -p . && oxlint --type-aware --deny-warnings --disable-nested-config
