@@ -1,7 +1,7 @@
 import {expect, test} from 'bun:test'
-import type {C} from '../core/machine.ts'
+import {type C, type Law, type Machine, atMost, n, x} from '../core/machine.ts'
 import {type Lin, type Step, add, k, scale, sub, v} from '../core/solver.ts'
-import {type Goal, type LemmaCut, type Path, type Tree, canon, check, checkCounted, checkGoalLemmas, checkMC, leafConstraints, lemmaPath} from './kernel.ts'
+import {type CountCert, type Goal, type LemmaCut, type Path, type Tree, canon, check, checkCounted, checkCountedLaws, checkGoalLemmas, checkMC, countedObligations, leafConstraints, lemmaPath, mcGoal} from './kernel.ts'
 
 const flip = (r: Lin): Lin => add(k(1), scale(r, -1))
 const a = v('a'), b = v('b'), c = v('c'), ab = sub(a, b)
@@ -63,6 +63,35 @@ test('non-refuting, self-citing and circular lemma payloads are refused', () => 
   const self = {...entry, tree: {lemma: 0} as unknown as Tree}
   expect(checkGoalLemmas(goal, tree, [self])).toBe(false)
   expect(checkGoalLemmas(goal, tree, [self, {...entry, tree: {lemma: 1} as unknown as Tree}])).toBe(false)
+})
+
+test('read capture is still refused with a nonempty valid lemma list', () => {
+  const decl = {map: 'total', j: 'j', key: 'i', below: n(1), body: n(0)}
+  const cert: CountCert = {reads: [['fresh', 'total', n(0)]], insts: [], tree, lemmas: [entry]}
+  const expanded = mcGoal(hyps, [decl], cert)!
+  cert.tree = {split: c, yes: leaf(expanded, lemmaPath([entry], yes), [a, flip(a)]), no: leaf(expanded, no, [c, flip(c)])}
+  expect(checkMC(hyps, [decl], cert)).toBe(true)
+  const captured: CountCert = {...cert, reads: [['a', 'total', n(0)]]}
+  expect(checkMC(hyps, [decl], captured)).toBe(false)
+})
+
+test('witness capture of parameters, ?flag names and law skolems remains refused', () => {
+  const m: Machine = {name: 'capture control', params: ['p'], inputs: [], state: {}, pre: atMost(x('p'), x('p')), step: {flags: {flag: atMost(n(0), n(0))}}}
+  const laws: Law[] = [{name: 'tautology', forall: 'key', holds: atMost(n(0), n(0))}]
+  const inactive: LemmaCut = {when: [k(1)], cut: {}, slice: [], tree: {leaf: [{kind: 'input', index: 0}]}}
+  const certs: Record<string, CountCert> = {}
+  for (const {goal: g, decls} of countedObligations(m, laws, {})) {
+    const partial = {reads: [], insts: [{wit: 'fresh', below: n(0), terms: [], unit: 0}]} satisfies Omit<CountCert, 'tree'>
+    const expanded = mcGoal(g.hyps, decls, partial)!
+    const index = leafConstraints(expanded, new Map()).findIndex(r => canon(r.lin) === canon(k(1)))
+    expect(index).toBeGreaterThanOrEqual(0)
+    certs[g.name] = {...partial, tree: {leaf: [{kind: 'input', index}]}, lemmas: [inactive]}
+  }
+  expect(checkCountedLaws(m, laws, {instances: {}, certs})).toBe(true)
+  for (const wit of ['p', '?flag', 'key#']) {
+    const changed = Object.fromEntries(Object.entries(certs).map(([name, c]) => [name, {...c, insts: c.insts.map(i => ({...i, wit}))}]))
+    expect(checkCountedLaws(m, laws, {instances: {}, certs: changed})).toBe(false)
+  }
 })
 
 test('malformed new fields do not grant assumptions or throw', () => {

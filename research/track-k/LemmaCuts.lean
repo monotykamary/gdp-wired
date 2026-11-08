@@ -43,6 +43,39 @@ example : checkGoalLemmas goal main [{entry with tree := .leaf [] [] [] []}] = f
 -- A lemma cannot use its own claimed conclusion as an input row.
 example : checkGoalLemmas goal main [{entry with tree := pair a0 (flip a0)}] = false := by decide +kernel
 
+-- A valid read can be added without changing the proof; capturing a goal variable cannot.
+private def decl : CDecl := ⟨0, 1, 4, 5, .const 1, .const 0, 4, 0⟩
+private def goodRead : CCert := {counted with reads := [(7, 0, .const 0)]}
+example : checkMC hyps [decl] goodRead = true := by decide +kernel
+example : checkMC hyps [decl] {goodRead with reads := [(0, 0, .const 0)]} = false := by decide +kernel
+
+-- Neither an earlier nor a later cut is available inside any lemma proof.
+private def circularA : CutLemma := ⟨[c0], a0, pair b0 (flip b0), some []⟩
+private def circularB : CutLemma := ⟨[c0], b0, pair a0 (flip a0), some []⟩
+example : checkGoalLemmas goal main [circularA, circularB] = false := by decide +kernel
+
+-- Full machine checker: valid inactive lemmas do not bypass existing name/freshness guards.
+private def taut : C := .le (.const 0) (.const 0)
+private def one : Row := sp [] 1
+private def inactive : CutLemma := ⟨[one], sp [] 0, .leaf [one] [.input 0] [] [], some []⟩
+private def fm : SMachine := {
+  f := {m := {inputs := [], init := [], maps0 := [], step := [], writes := [],
+              pre := .le (.var 0) (.var 0), assume := taut}, flags := [(1, taut)]},
+  carried := [], every := [], qflags := [], wits := [], facts := [], pfacts := []}
+private def fe : SEntry := {
+  law := ⟨taut, some 4⟩, sk := 3, keys2 := [], insts := [], qinsts := [], finsts := [], pinsts := [], pfinsts := [],
+  start := ([], [], .leaf [] [] [] []), step := ([], [], .leaf [] [] [] [])}
+private def fc : CCert := {
+  hyps := [.not taut], reads := [], insts := [⟨2, .const 0, [], 0⟩],
+  tab := [], tree := .leaf [one] [.input 0] [] [], picks := [], lemmas := [inactive]}
+private def fp (c : CCert) : List CEntry := [⟨fe, c, c⟩]
+example : witsOk fm [fe] fc = true := by decide +kernel
+example : checkCMachine fm [] (fp fc) = true := by decide +kernel
+-- 0 is the parameter, 1 the ?flag variable, 3 the law skolem.
+example : checkCMachine fm [] (fp {fc with insts := [⟨0, .const 0, [], 0⟩]}) = false := by decide +kernel
+example : checkCMachine fm [] (fp {fc with insts := [⟨1, .const 0, [], 0⟩]}) = false := by decide +kernel
+example : checkCMachine fm [] (fp {fc with insts := [⟨3, .const 0, [], 0⟩]}) = false := by decide +kernel
+
 end Kern.LemmaCutExamples
 
 #print axioms Kern.lemma_sound

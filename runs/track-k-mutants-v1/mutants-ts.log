@@ -1,0 +1,44 @@
+bun test v1.4.3 (c6da4a4d3)
+
+--- stderr ---
+
+kernel/lemma-cut.test.ts:
+(pass) a separately checked conditional lemma closes only below its decision [1.29ms]
+(pass) empty lemma lists preserve the original goal and counted checkers [0.36ms]
+(pass) the actual counted and MC wrappers carry the lemma list [0.26ms]
+(pass) a lemma is checked against exactly its selected hypotheses [0.12ms]
+(pass) non-refuting, self-citing and circular lemma payloads are refused [0.28ms]
+66 | })
+67 | 
+68 | test('read capture is still refused with a nonempty valid lemma list', () => {
+69 |   const decl = {name: 'total', j: 'j', key: 'i', below: n(1), body: n(0)}
+70 |   const cert: CountCert = {reads: [['fresh', 'total', n(0)]], insts: [], tree, lemmas: [entry]}
+71 |   expect(checkMC(hyps, [decl], cert)).toBe(true)
+                                           ^
+error: expect(received).toBe(expected)
+
+Expected: true
+Received: false
+
+      at <anonymous> (/work/gdp-wired/kernel/lemma-cut.test.ts:71:39)
+(fail) read capture is still refused with a nonempty valid lemma list [2.23ms]
+87 |     certs[g.name] = {...partial, tree: {leaf: [{kind: 'input', index}]}, lemmas: [inactive]}
+88 |   }
+89 |   expect(checkCountedLaws(m, laws, {instances: {}, certs})).toBe(true)
+90 |   for (const wit of ['p', '?flag', '#']) {
+91 |     const changed = Object.fromEntries(Object.entries(certs).map(([name, c]) => [name, {...c, insts: c.insts.map(i => ({...i, wit}))}]))
+92 |     expect(checkCountedLaws(m, laws, {instances: {}, certs: changed})).toBe(false)
+                                                                            ^
+error: expect(received).toBe(expected)
+
+Expected: false
+Received: true
+
+      at <anonymous> (/work/gdp-wired/kernel/lemma-cut.test.ts:92:72)
+(fail) witness capture of parameters, ?flag names and law skolems remains refused [3.53ms]
+(pass) malformed new fields do not grant assumptions or throw [0.07ms]
+
+ 6 pass
+ 2 fail
+ 34 expect() calls
+Ran 8 tests across 1 file. [25.00ms]
