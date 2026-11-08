@@ -510,6 +510,7 @@ export function check(goal: Goal, tree: Tree, path: Path = new Map()): boolean {
 
 // Count.lean's conditional lemma rule. All rows use the containing goal's columns and witness namespace; a slice
 // selects only that exact goal's hypotheses. A lemma tree is checked by the old checker, with no lemma list.
+// TS acceptance is a strict subset of Lean's: legacy constant/repeated split refusals are intentionally retained.
 export type LemmaCut = {when: Lin[], cut: Lin, tree: Tree, slice?: number[]}
 const lemmaLin = (lin: Lin): boolean => !!lin && typeof lin === 'object' && !Array.isArray(lin)
   && (Object.getPrototypeOf(lin) === Object.prototype || Object.getPrototypeOf(lin) === null)
@@ -1922,7 +1923,8 @@ export function countedGoal(g: CountedGoal, insts: CountInst[]): Goal | undefine
 // goal declares the counts it reads (Lean's cStartDecls, cStepDecls): after the start, each state count read across
 // it; at a step, every count as the request carries it, then each state count read across the step (afterDecl). A
 // goal's certificate names the cells it reads (a fresh variable, a count map, a key term) and Count.lean's instances
-// and tree; checkMC is Lean's, line for line (lean-kernel/README.md has the counted-certificate mirror table).
+// and tree. checkMC follows Lean's counted rule, but TS accepts a strict subset: the legacy constant/repeated
+// split refusals remain intentional (lean-kernel/README.md has the counted-certificate mirror contract).
 export type CountDecl = {map: string, j: string, key: string, below: E, body: E, lo?: string, base?: number}
 export type MapRead = [string, string, E]
 export type CountCert = {reads: MapRead[], insts: CountInst[], tree: Tree, picks?: [string, E[]][], lemmas?: LemmaCut[]}

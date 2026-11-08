@@ -12,7 +12,7 @@ The main tree retains its original split paths. At a leaf, only lemmas whose eve
 
 Proof plan: selected hypotheses are members of the original goal; an accepted lemma implies its cut whenever `when` holds; path decisions imply the declared conditions; extending a path with eligible cuts preserves `PathHolds`; induction over the original tree then gives refutation by the existing `checkT_sound`. Build a model with the existing well-formed table theorem. Reuse the current counted witness construction unchanged, replacing only its final application of `sound`. Carry this into `countedW_sound` and `mc_sound` (CountMachine.lean), so the actual production counted certificate, not merely a toy goal, is covered.
 
-No TypeScript checker modification before these proofs build without sorry or new axioms. Later phases: exact TS mirror; unchanged-certificate conservation; TS/Lean mutants; exporter/conformance; then untrusted emission and a same-VM send replay comparison. The independent review remains mandatory before merge.
+No TypeScript checker modification before these proofs build without sorry or new axioms. Later phases: a sound TS mirror retaining its intentional strict-subset refusal policy; unchanged-certificate conservation; TS/Lean mutants; exporter/conformance; then untrusted emission and a same-VM send replay comparison. The independent review remains mandatory before merge.
 
 ## Untrusted emission and replay
 

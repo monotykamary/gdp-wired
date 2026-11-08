@@ -30,7 +30,11 @@ const project = leanProject(file)
 
 `leanProject` includes `Count.lean`, `CountMachine.lean`, and `GhostMap.lean`. `encodeCounted` assigns the main tree and every independent lemma proof one common dependency-ordered table, while preserving each lemma's exact slice and initial path. `conformance.ts --lemma-cuts` checks the shared TypeScript fixtures; adding `--public` exercises `toLean` itself. No lemma is silently dropped when an exporter lacks its source context.
 
-Lean's `checkTLemmas_nil`, `checkGoalLemmas_nil`, `checkCounted_nil`, and `checkCountedW_nil` prove empty-list conservation. The new theorems use only the existing `propext`, `Classical.choice`, and `Quot.sound` axioms. TypeScript additionally rejects malformed JSON-shaped payloads and keeps the original restrictions on constant/repeated splits.
+Lean's `checkTLemmas_nil`, `checkGoalLemmas_nil`, `checkCounted_nil`, and `checkCountedW_nil` prove empty-list conservation. The new theorems use only the existing `propext`, `Classical.choice`, and `Quot.sound` axioms.
+
+**Acceptance is not exact equality. TypeScript accepts a strict subset of Lean's certificates:** it intentionally retains the legacy refusals of constant splits and splits repeated on a path, which Lean's tree checker permits. It also rejects malformed JSON-shaped payloads. The empty-lemma route preserves the old TypeScript checker exactly; the Lean soundness guarantee is not weakened by these additional refusals.
+
+For new lemma conditions, an all-zero vector of variable coefficients is recognized as constant, matching Lean's `dec`/`allZero`, even if zero entries are explicitly present. This normalization is used only to decide eligibility; original proof rows and their input numbering are preserved, and global legacy `decide` behavior is unchanged. Independent frozen regression inputs live in `kernel/fixtures/lemma-cut-review.json`; they are not regenerated with the helper under test.
 
 | File | What |
 | --- | --- |
