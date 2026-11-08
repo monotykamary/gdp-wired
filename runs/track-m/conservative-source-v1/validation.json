@@ -1,0 +1,135 @@
+{
+  "source": "restored default source with deadline guards",
+  "baseline": "6a3874d3",
+  "laws": [
+    {
+      "law": "one primary per term",
+      "proven": true,
+      "checked": true,
+      "wall": 2050,
+      "counted": 927
+    },
+    {
+      "law": "Inv3915: one config term, the primary newest",
+      "proven": true,
+      "checked": true,
+      "wall": 2314,
+      "counted": 779
+    },
+    {
+      "law": "Inv1758: one version and term, one config",
+      "proven": true,
+      "checked": true,
+      "wall": 11786,
+      "counted": 4221
+    },
+    {
+      "law": "Inv2973: quorums overlap, or a config disabled",
+      "proven": false,
+      "checked": false,
+      "wall": 14794,
+      "counted": 5234
+    },
+    {
+      "law": "Inv*: no quorum of a config can still be gathered for a config term held",
+      "proven": false,
+      "checked": false,
+      "wall": 15966,
+      "counted": 5137
+    }
+  ],
+  "tests": {
+    "pass": 120,
+    "fail": 0,
+    "typeLintClean": true
+  },
+  "pairs": [
+    {
+      "repetition": 1,
+      "pair": {
+        "base": {
+          "search": {
+            "verdict": "unknown",
+            "exit": 0,
+            "ms": 34516
+          },
+          "broken": {
+            "verdict": "unknown",
+            "exit": 0,
+            "ms": 7434
+          }
+        },
+        "cand": {
+          "search": {
+            "verdict": "unknown",
+            "exit": 0,
+            "ms": 44209
+          },
+          "broken": {
+            "verdict": "unknown",
+            "exit": 0,
+            "ms": 7026
+          }
+        }
+      }
+    },
+    {
+      "repetition": 2,
+      "pair": {
+        "base": {
+          "search": {
+            "verdict": "unknown",
+            "exit": 0,
+            "ms": 22164
+          },
+          "broken": {
+            "verdict": "unknown",
+            "exit": 0,
+            "ms": 6227
+          }
+        },
+        "cand": {
+          "search": {
+            "verdict": "unknown",
+            "exit": 0,
+            "ms": 37688
+          },
+          "broken": {
+            "verdict": "unknown",
+            "exit": 0,
+            "ms": 6102
+          }
+        }
+      }
+    },
+    {
+      "repetition": 3,
+      "pair": {
+        "base": {
+          "search": {
+            "verdict": "unknown",
+            "exit": 0,
+            "ms": 25724
+          },
+          "broken": {
+            "verdict": "unknown",
+            "exit": 0,
+            "ms": 7090
+          }
+        },
+        "cand": {
+          "search": {
+            "verdict": "unknown",
+            "exit": 0,
+            "ms": 43873
+          },
+          "broken": {
+            "verdict": "unknown",
+            "exit": 0,
+            "ms": 7655
+          }
+        }
+      }
+    }
+  ]
+}

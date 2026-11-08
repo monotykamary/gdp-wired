@@ -1,0 +1,9 @@
+[
+  {
+    "name": "written-row-diagnosis",
+    "cmd": "set -e; bun install --frozen-lockfile >/dev/null; LAB_SOURCE_DUMP=1 LAB_SOURCE_DUMP_POST=1 bun research/track-m/active-source-probe.ts replay-input/input.json 'Inv*' 5 all",
+    "cpu": 8,
+    "memory": 14336,
+    "timeout": 180
+  }
+]

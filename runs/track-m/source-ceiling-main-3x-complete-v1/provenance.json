@@ -1,0 +1,11 @@
+{
+  "original": "runs/track-m/source-ceiling-main-3x-v1",
+  "replaced": {
+    "pair-paxos_epr-r1": {
+      "source": "runs/track-m/source-ceiling-paxos-retry-v1",
+      "reason": "Original setup was interrupted before any PAIR header; exact parent plus frozen patch replayed, all protocol deadlines remain 60 seconds."
+    }
+  },
+  "candidateParent": "51f88b1ecf9bf68fbdb7c067b7a7d85090f3c814",
+  "candidatePatchSha256": "e7996fa7176a9f4f7192933f58d3ef1be8b807c120e2e780a8218c419e1de39e  runs/track-m/source-ceiling-gate-input/candidate.patch"
+}

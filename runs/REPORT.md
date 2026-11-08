@@ -3557,3 +3557,268 @@ Combined-source validation: **400 proof/generation tests**, **12 admission,
 structured-fallback and deferred-recovery tests**, and both type/lint runs
 pass. Remaining work is the two active-action witness chains and their
 construction cost; the row-cache trials above do not close that gap.
+
+## Track M active-source derivations after the generation merge
+
+**Acceptance is still 3/5.** No new complete law or complete MLDR proof is
+claimed. The current pre-state-ceiling/ordering patch is a candidate awaiting
+the main-baseline gate below, not an accepted default optimization.
+
+### What the source probes establish
+
+The new `research/track-m/active-source-probe.ts` reconstructs a cold focused
+packet and checks conditional active-path trees. These are deliberately not
+whole-law admissions. On exclusive large VMs with all eight vCPUs pinned:
+
+- Inv* setup and copy active branches check in both the all-carried and first
+  carried-set probes. Both enumerated send guard branches also check in the
+  first-carried probe. This covers only the branches actually enumerated.
+- Inv* reconfiguration and the probed Inv2973 active branches remain open.
+- Model-selected sibling-law instances are ordinary family instances, filtered
+  by the existing count-key freshness rule. Bounded retries did **not** close
+  either reconfiguration branch, so this proposer is **not connected to the
+  production default**. It is exercised by research and renamed unit fixtures.
+
+The exact retained source query corrects an earlier attribution: the first
+rejected five-term bound was `|X| + |Q2| <= |X union S|`. Its source admits a
+member of both Q2 and S; that inequality is not justified by adding Inv1758.
+This SAT source is not a reachable protocol counterexample. The required
+post-backing/Q2 union is already present in the certificate (instance 39 in
+`source-certificate-v1`); it must not be confused with this rejected pre-size
+union (instance 46).
+
+### A concrete prerequisite now derives
+
+The valid guarded ceiling `CfgT[j] <= CT[i]` under an active committed quorum
+was unknown in a 321-hypothesis diagnostic source retaining instances at
+removed witnesses. Keeping the same pre-state count instances while removing
+those discarded-witness instances reduces the source to **136 hypotheses**.
+Both isolated target variants then check: **179.676 / 135.629 ms** in
+`source-ceilings-clean-v1`. The source still assumes the original family before
+the step; no extra invariant or trusted arithmetic fact is introduced.
+
+`core/count-recovery/pre-state-source.ts` implements this weakening generically:
+retain pre-state count reads and their original CInst order, remove assumptions
+that depend on discarded post witnesses, and preserve all remaining terms.
+The candidate caller tries that source inside the existing 250-counted-ms
+ceiling window and transports any proposed tree back to its full goal. The
+isolated source is checked; a transported cut inside an otherwise unfinished
+whole goal is still a **proposal**, not a newly admitted complete certificate.
+The ordinary final check is unchanged.
+
+The subsequent ordering trial is also structural, with no law/protocol names:
+unchanged-row frames remain first; an existing five-term carried-union
+candidate whose post-count touches the active written row is considered before
+speculative cross-row copy/size comparisons. No candidate generator is removed
+and no candidate inequality is assumed true.
+
+### Updated scoped measurements and validation
+
+These are separate diagnostic runs, **not paired protocol timing claims**:
+
+| Run / scope | Checked complete law? | Wall |
+| --- | --- | ---: |
+| Pre-state ceiling candidate, Inv* focused INIT+STEP runner | no / no | 17.348 s |
+| Written-row ordering candidate, same focused runner | no / no | 16.767 s |
+| Pre-state ceiling candidate, active Inv* reconfiguration only | no (conditional branch still open) | 4.203 s |
+| Written-row ordering candidate, same active branch | no (conditional branch still open) | 4.239 s |
+
+The previous five-law wall table remains the last measured complete family
+breakdown; these numbers do not replace it or establish a speedup. Inv2973 and
+Inv* remain open, and the all-laws-kept / 3x60-second gates remain unpassed.
+
+`reconfigure-support-v1` passes **369 tests / 2,308,593 assertions** and type/lint.
+`pre-state-ceiling-v1` passes **118 focused tests**, including source weakening
+and checked transport, and type/lint. Earlier failed checks and the overly
+strong one-round fixed-point test expectation are retained in their raw logs;
+the renamed proposer is bounded and may legitimately need multiple rounds.
+
+### Required acceptance gate: completed, rejected for an MLDR cost regression
+
+`source-ceiling-main-3x-v1` ran the frozen candidate against **main 6a3874d3**
+using `research/track-m/jobs-paired-main-3x.json`: all 29 IC3Syn protocols, three
+repetitions, correct and broken variants. The gate uses exclusive large VMs,
+all eight vCPUs pinned, the original strict 60-second harness, and
+`score-main-pairs.ts`. The candidate patch and its parent are preserved in
+`runs/track-m/source-ceiling-gate-input/`. The final score is in
+`runs/track-m/source-ceiling-main-3x-complete-v1/score.json`; **noRegression is
+false**. All 84 main correct-protocol proofs and all 33 broken-variant
+refutations survive; neither side proves a broken variant. Correct Paxos is
+3/3 on both sides. There are 170/174 exact phase-status matches and three
+broken-Paxos unknown/timeout cost-only differences. The fourth difference is
+**correct MLDR repetition 3: main UNKNOWN at 27.595 s, candidate strict timeout**.
+This is recorded as a cost regression, not a successful gate.
+
+The original Paxos-r1 job hit its outer setup watchdog without producing any
+PAIR header. Only that incomplete job was replaced, using the archived parent
+plus the captured candidate patch, on an exclusive large VM with eight pinned
+vCPUs and the same four strict 60-second protocol deadlines. Both original and
+retry receipts are preserved. The combined directory uses symlinks to those
+original logs and records the replacement and placement in `provenance.json`.
+
+Further live-write-source ordering and natural-arithmetic/core-chain experiments
+were made **after** this snapshot. This comparison does not cover those later
+runtime changes. None is accepted as a default, and the complete-law verdict
+remains 3/5. Their source snapshots and receipts are retained separately in
+`written-row-replacement-v1`, `written-source-v1`, `natural-selection-v1`, and
+`core-chain-v1`.
+
+### Conditional written-row diagnosis (not a complete-law proof)
+
+Pinning both quantified rows to the active write row and allowing a diagnostic
+6,000-unit local window produces an **original-kernel-checked conditional Inv***
+proof (`equal-row-source-v1` and `core-chain-trace-v1`). The latter is 4.633 s
+wall, versus an unproved 1.707 s at the original 1,500-unit row window. These
+are diagnostic runs on exclusive eight-vCPU large VMs, not a raised production
+budget or a whole-law result. The trace shows that the valid post-count/carried
+union is constructible (115 ms in the latter run), but selection spends most
+of the window on refuted old-row size comparisons before deriving the carried
+set's pre-state subset bound. Natural-case closure and deferring redundant
+closure while a selected core is incomplete are being tested; the full Inv*
+remains unproved (`core-chain-v1`: 14.598 s wall). No speed claim is inferred
+from these separate, heterogeneous placements.
+
+### Narrowed deadline repair and a fresh acceptance gate
+
+The post-gate replacement-map ordering, natural-core refinement, and deferred
+closure experiments were backed out of production source: none closed the full
+Inv*, and a current-source original-harness MLDR pair still timed out. Their
+complete patch is retained as
+`source-ceiling-gate-input/post-gate-experiments.patch`.
+
+The next candidate is the original frozen source plus **early deadline exits**
+in `fieldBoundLemmas`: an expired caller must not inspect the machine, rebuild
+count rows, or enter another field-source phase. No proof budget is increased.
+The regression test uses a machine that throws on inspection after expiry.
+
+Three fresh original-harness MLDR pairs (`source-budget-v1`) now have identical
+UNKNOWN verdicts, with no strict timeout:
+
+| Repetition | Main 6a3874d3 | Deadline repair |
+|---|---:|---:|
+| 1 | 30.502 s | 44.232 s |
+| 2 | 22.566 s | 41.150 s |
+| 3 | 23.142 s | 36.565 s |
+
+These do **not** establish a successful MLDR proof, and the positive runtime
+cost delta remains open. The initial full-check job lacked the ignored vendor
+sources; it was not a compiler success. Validation was resubmitted through the
+existing `prepare-vendors.sh` path along with all five hard-law checks.
+
+A fresh 87-pair gate, `source-budget-main-3x-v1`, is running against approved
+main on the frozen narrowed candidate in `source-budget-gate-input/`. It uses
+`jobs-paired-main-3x-budget.json`; only the outer per-job setup headroom is 420 s.
+Every correct/broken protocol invocation still has the original strict 60 s
+watchdog and `--ms 60000`. This pending gate must not be conflated with the
+rejected first gate or with later research-only probe changes.
+
+The narrowed candidate also reproduced the timeout in that wide run: completed
+`pair-mldr-r3` has main UNKNOWN at **46.616 s** and candidate strict timeout.
+The narrowed repair is therefore **not accepted** despite its three earlier
+matched pairs. Its completed focused validation is: one-primary checked
+2.511 s; Inv3915 checked 2.296 s; Inv1758 checked 10.661 s; Inv2973 unproved
+18.192 s; Inv* unproved 15.197 s (separate exclusive eight-vCPU placements).
+Prepared type/lint reports zero warnings/errors, and 119 focused tests pass.
+
+The identified gap is that the new exits check only the counted-work clock,
+not the prover's independent `pastWall()` deadline. After the wall expires,
+kernel search stops but the counted clock need not advance while source
+construction continues. A further repair checks the existing wall predicate
+at field-source entry/loops, finite-case entry/loops, and focused recovery.
+Its regression test keeps counted budget available under an expired wall and
+requires all three entry points to return without inspecting the machine.
+`wall-budget-v1` validates this repair locally: prepared type/lint reports zero
+warnings/errors, and **120 tests pass**, including the expired-wall test.
+Three strict original-harness MLDR pairs remain UNKNOWN on both sides:
+main/repair 43.626/48.333 s, 22.519/37.454 s, and 25.297/45.490 s.
+This is not a complete MLDR proof and does not close the runtime-cost item.
+
+The five-law result is still **3/5**. Current independent-probe wall times are
+one-primary 1.841 s (checked), Inv3915 2.366 s (checked), Inv1758 11.817 s
+(checked), Inv2973 14.686 s (unproved), and Inv* 12.802 s (unproved).
+A final-source 87-pair gate is pending in `wall-budget-main-3x-v1`, with its
+snapshot preserved in `wall-budget-gate-input/`. No runtime files are changed
+while that snapshot is under test; subsequent changes are research probes only.
+
+The counted-clock-only predecessor's wide run completed with the already
+recorded MLDR regression and one incomplete `learning_switch_i4` setup. It is
+rejected; that incomplete job is not counted as a successful negative check.
+
+### Learned count-core replay: negative ablation
+
+`checked-core-replay-v1` and `core-source-context-v1` test a research-only replay
+of the count bounds reported used by the checked conditional Inv* proof. They
+do not alter production candidate generation. The 13-instance replay remains
+unproved at both the 1,500- and diagnostic 6,000-unit windows. Retaining all
+pre-state instances (32 total) restores the checked field ceiling, but the
+conditional count proof still fails at both windows. This is evidence against
+promoting index-only core replay or dropping the other candidates. Reusing
+complete, transported source subproofs—not just their candidate indices—remains
+the appropriate next hypothesis.
+
+### Default speculation withdrawn after a third strict-timeout failure
+
+The wall-aware candidate's official `pair-mldr-r2` emitted UNKNOWN at
+59.955 s but exited under signal 137, so it is still a strict timeout and that
+candidate is **not accepted**. All three completed correct-Paxos pairs remain
+proved on both sides, but that does not excuse the MLDR cost regression.
+
+Inspection of `searchCounted` confirmed that its existing wall bound is twice
+the counted budget, with small-instance construction before that wall starts.
+Thus the missing `pastWall()` checks are real deadline hygiene defects, but
+fixing them alone cannot guarantee the external 60-second harness cutoff.
+The dominant new speculative work must instead be removed or made cheaper.
+
+The unaccepted eager pre-state source attempt and written-row union priority
+have now been withdrawn from the **default** field-bound path. Its prior narrow
+source and ordering are restored. The generic deadline checks remain; the
+pre-state source helper, witness proposer, tests, and rejected-trial receipts
+remain available for research. This does not declare those experiments to be
+accepted default optimizations. `conservative-source-v1` is rechecking the
+expected 3/5 full-law result and strict MLDR pairs before any further gate.
+
+That conservative validation completed: prepared type/lint is clean and all
+120 tests pass. The five-law result remains 3/5: one-primary checked 2.050 s;
+Inv3915 checked 2.314 s; Inv1758 checked 11.786 s; Inv2973 unproved 14.794 s;
+Inv* unproved 15.966 s, on independent exclusive eight-vCPU large placements.
+Its three strict MLDR pairs are UNKNOWN on both sides, with main/repair times
+34.516/44.209 s, 22.164/37.688 s, and 25.724/43.873 s.
+
+The preceding wall-aware speculative matrix is now fully scored:
+`wall-budget-main-3x-v1/score.json` records 173/174 matching phase statuses,
+84/84 conserved main proofs, 33/33 conserved refutations, zero broken proofs,
+and the one MLDR-r2 strict-timeout regression. It is rejected, not silently
+relabelled as a pass.
+
+`conservative-main-3x-v1` is the **completed, passing conservation gate** for the
+restored default strategy, against main 6a3874d3 with the original strict harness
+and exclusive pinned large placement. Its exact patch and parent are in
+`conservative-gate-input/`; `conservative-main-3x-v1/score.json` records
+**noRegression: true** and no invalid pairs.
+
+| Three repetitions, 29 protocols | Main | Conservative repair |
+|---|---:|---:|
+| Correct protocols proved | 84/87 | 84/87 |
+| Correct protocols unknown | 3/87 | 3/87 |
+| Broken variants refuted | 33/87 | 33/87 |
+| Broken variants proved | 0 | 0 |
+
+Every main proof and refutation is preserved run by run. Correct Paxos is 3/3.
+There are **173/174 exact phase-status matches**. The sole mismatch is broken
+Paxos repetition 2: main UNKNOWN at 52.009 s, repair strict timeout (137).
+It is a cost-only difference under the established gate definition, not a
+successful negative check. The broken-Paxos runtime cost item remains OPEN.
+
+MLDR is still UNKNOWN, not proved. Its three main/repair times in this final
+gate are 25.563/43.585 s, 26.009/46.327 s, and 25.468/43.918 s. The positive
+runtime delta remains OPEN; the final candidate no longer has the prior
+correct-MLDR strict timeout. The complete hard-law result remains **3/5**.
+Inv2973, Inv*, the all-laws-kept success gate, and 3×60-second complete MLDR
+proof success are not claimed.
+
+The final working-tree prepared check (`final-source-check-v1`) also reports
+zero type/lint warnings/errors and 120 passing tests. The current core/kernel
+patch was compared byte-for-byte with the frozen final-gate runtime before
+committing; subsequent edits were research-only probes and this report. The
+validated runtime repair is committed as `fd2d1dcb`; the research helpers remain
+unwired from the default proof path.

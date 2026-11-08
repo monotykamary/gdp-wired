@@ -1,0 +1,9 @@
+[
+  {
+    "name": "pair-paxos_epr-r1",
+    "cmd": "set -euo pipefail; origin=\"$PWD\"; frozen=\"$(mktemp -d /tmp/track-m-frozen-source-XXXXXX)\"; trap 'rm -rf \"$frozen\"' EXIT; sha256sum source-ceiling-gate-input/parent.tar source-ceiling-gate-input/candidate.patch; tar xf source-ceiling-gate-input/parent.tar -C \"$frozen\"; cd \"$frozen\"; git apply \"$origin/source-ceiling-gate-input/candidate.patch\"; ln -s \"$origin/baseline-input\" baseline-input; bash research/track-m/compare-main.sh paxos_epr base",
+    "cpu": 8,
+    "memory": 14336,
+    "timeout": 420
+  }
+]

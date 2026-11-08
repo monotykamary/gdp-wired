@@ -1,0 +1,1314 @@
+diff --git a/core/count-cases.ts b/core/count-cases.ts
+index 365f36d5..d204000f 100644
+--- a/core/count-cases.ts
++++ b/core/count-cases.ts
+@@ -3,7 +3,7 @@
+ // against the unspecialized counted obligation before it is returned.
+ import {type C,type Law,type Machine,walkOnce,x} from './machine.ts'
+ import {type CountCert,type CountDecl,type Goal,type Instances,type Path,type Tree,boundOf,canon,check,checkMC,linear,mcGoal,truth} from '../kernel/kernel.ts'
+-import {atPoint,clock,grow,modelInstances,usedHyps,widen,withDeadline} from '../kernel/prove.ts'
++import {atPoint,clock,grow,modelInstances,pastWall,usedHyps,widen,withDeadline} from '../kernel/prove.ts'
+ import {sub} from './solver.ts'
+ import {seedCountWitnessFlags} from './count-witness-flags.ts'
+ import {modelSequence} from '../kernel/model-sequence.ts'
+@@ -53,7 +53,7 @@ function selectedCase(m:Machine,laws:Law[],at:Instances,cert:Pick<CountCert,'rea
+  if(!full||!cert.insts.length)return undefined
+  const offset=full.hyps.length-cert.insts.length,base={...full,hyps:full.hyps.slice(0,offset)},excluded=new Set<number>()
+  const candidates=cert.insts.flatMap((_,index)=>{const h=full.hyps[offset+index];return h?.op==='or'&&h.xs[0]?.op==='<='?[{index,bound:h.xs[0]}]:[]})
+- while(clock()<until){
++ while(clock()<until&&!pastWall()){
+   const selected=selectCountBounds(base,candidates.filter(c=>!excluded.has(c.index)),until,{path,queryMs:options.queryMs,trace:options.trace})
+   if(!selected||selected.fallback)return undefined
+   const chosen=new Set(selected.indices),insts=cert.insts.filter((_,i)=>chosen.has(i)),slim={...cert,insts}
+@@ -90,8 +90,9 @@ function selectedCase(m:Machine,laws:Law[],at:Instances,cert:Pick<CountCert,'rea
+ export type CountCaseOptions={propose?:(goal:Goal,decls:CountDecl[])=>Pick<CountCert,'reads'|'insts'>,localModels?:boolean,saturate?:boolean,queryMs?:number,coreLimit?:number,units?:boolean,corePointOnly?:boolean,trace?:(event:Record<string,unknown>)=>void}
+ export function proveCountCases(m:Machine,laws:Law[],at:Instances,cert:Pick<CountCert,'reads'|'insts'>,until:number,build:(at:Instances)=>Packet,options:CountCaseOptions={}):{instances:Instances,cert:CountCert}|undefined {
+  return withDeadline(until,()=>{
++  if(clock()>=until||pastWall())return undefined
+   const choice=finiteCountChoice(m)
+-  if(!choice||clock()>=until)return undefined
++  if(!choice)return undefined
+   const [name,vs]=choice,cuts=[...vs].sort((a,b)=>a-b),path:Path=new Map(),conditions:C[]=[]
+   const splitAt=(v:number):Record<string,number>=>v?{[name]:1,'1':-v}:{[name]:1}
+   let activeCert=cert,packet=build(at),root=mcGoal(packet.goal.hyps,packet.decls,activeCert)
+@@ -121,7 +122,7 @@ export function proveCountCases(m:Machine,laws:Law[],at:Instances,cert:Pick<Coun
+   const coreGrow=(g:Goal,end:number)=>{const before=atPoint.on;atPoint.on=true;try{return grow(g,new Map(),{nodes:0,until:end,units:options.units})}finally{atPoint.on=before}}
+   try {
+     for(const [i,value] of [...cuts,undefined].entries()){
+-      if(clock()>=until)return undefined
++      if(clock()>=until||pastWall())return undefined
+       const split=value===undefined?undefined:splitAt(value),cut:C|undefined=value===undefined?undefined:{op:'<=',a:x(name),b:{op:'const',value}}
+       if(split)path.set(canon(split),{lin:split,holds:true})
+       const root=new Map(path),tails=options.saturate&&value!==undefined?cuts.filter(v=>v>value):[]
+@@ -149,7 +150,7 @@ export function proveCountCases(m:Machine,laws:Law[],at:Instances,cert:Pick<Coun
+        at=seedCountWitnessFlags(m,at,[{decls:packet.decls,cert:slim}],true)
+        tree=selected.tree;source=selected.goal;from=new Map(path);indices=selected.indices
+       }
+-      for(let round=0;!tree&&round<6&&clock()<caseEnd;round++){
++      for(let round=0;!tree&&round<6&&clock()<caseEnd&&!pastWall();round++){
+         const part={name:goal.name,hyps:[...prefix,...goal.hyps]},start=clock(),q=seq(part,Math.min(caseEnd,clock()+(options.queryMs??200)))
+         options.trace?.({value,stage:'query',round,hyps:part.hyps.length,ms:Math.round(clock()-start),outcome:'tree'in q?'tree':q.stuck,core:q.core?.length})
+         if(!('tree'in q)&&q.why===REFUTED&&q.core?.length&&q.core.length<=(options.coreLimit??Infinity)){
+@@ -163,7 +164,7 @@ export function proveCountCases(m:Machine,laws:Law[],at:Instances,cert:Pick<Coun
+         if(!next)break
+         at=next;if(!rebuild())return undefined
+       }
+-      if(!tree&&clock()<caseEnd){
++      if(!tree&&clock()<caseEnd&&!pastWall()){
+         const part={name:goal.name,hyps:[...prefix,...goal.hyps]},out=grow(part,new Map(),{nodes:0,until:caseEnd,units:options.units})
+         options.trace?.({value,stage:'grow',outcome:'tree'in out?'tree':out.stuck})
+         if('tree'in out){tree=out.tree;source=part}
+@@ -176,7 +177,7 @@ export function proveCountCases(m:Machine,laws:Law[],at:Instances,cert:Pick<Coun
+     if(options.localModels){at=merged;if(!rebuild())return undefined}
+     const missing=records.flatMap((r,i)=>r?[]:[i])
+     for(const [j,i] of missing.entries()){
+-      if(clock()>=until)break
++      if(clock()>=until||pastWall())break
+       const {prefix,path:p}=branches[i]!,part={name:goal.name,hyps:[...prefix,...goal.hyps]}
+       const end=Math.min(until,clock()+(until-clock())/(missing.length-j)),guard=actionGuard(m,name,cuts[i]),events:object[]=[]
+       const derived=guard&&guardCases(m,packet.decls,goal,cert,guard,end,events,0,p,{deferCheck:true,claim:packet.goal.hyps.at(-1),memo})
+diff --git a/core/count-focus-proof.ts b/core/count-focus-proof.ts
+index d7b84d51..948338b1 100644
+--- a/core/count-focus-proof.ts
++++ b/core/count-focus-proof.ts
+@@ -2,7 +2,7 @@
+ // is an ordinary counted proof, checked by the caller's existing kernel gate.
+ import {type E,type Law,type Machine,walkOnce,x} from './machine.ts'
+ import {type CountCert,type CountDecl,type Goal,type Instances,countedObligations,mcGoal} from '../kernel/kernel.ts'
+-import {clock,grow} from '../kernel/prove.ts'
++import {clock,grow,pastWall} from '../kernel/prove.ts'
+ import {env} from './solver.ts'
+ import {countLawSeeds,countRowBridges,fieldGuardSeeds,fieldLawBridges,focusCountCert,rowKeyNames} from './count-focused.ts'
+ import {seedCountWitnessFlags} from './count-witness-flags.ts'
+@@ -13,7 +13,7 @@ export type FocusedCountProof={instances:Instances,certs:Record<string,CountCert
+ // opt-out, while 1 also enables the legacy non-finite recovery experiment.
+ export const focusedCountRecoveryEnabled=(m:Machine,setting:string|undefined=env.GDP_COUNTS_FOCUS):boolean=>setting==='1'||setting!=='0'&&!!finiteCountChoice(m)
+ export function proveFocusedCounts(m:Machine,laws:Law[],law:Law,at:Instances,until:number,propose:(goal:Goal,decls:CountDecl[])=>Pick<CountCert,'reads'|'insts'>,trace?:(event:Record<string,unknown>)=>void):FocusedCountProof|undefined {
+-  if(!m.inputMaps?.length||clock()>=until)return undefined
++  if(clock()>=until||pastWall()||!m.inputMaps?.length)return undefined
+   let clean:Instances={}
+   for(const [name,terms] of Object.entries(at)){
+     const l=laws.find(l=>l.name===name),arity=l?1+(l.keys?.length??0):1,keep:E[]=[]
+@@ -39,7 +39,7 @@ export function proveFocusedCounts(m:Machine,laws:Law[],law:Law,at:Instances,unt
+   if(!targetCounts)clean=fieldGuardSeeds(m,clean,[...rows,...request,{op:'const',value:0}])
+   const index=laws.findIndex(l=>l.name===law.name)
+   for(const carried of [undefined,...m.inputMaps]){
+-    if(clock()>=until)return undefined
++    if(clock()>=until||pastWall())return undefined
+     let instances=clean
+     const retained=new Map<string,Pick<CountCert,'reads'|'insts'>>()
+     const proposal=(goal:Goal,decls:CountDecl[])=>focusCountCert(m,decls,propose(goal,decls),{carried,structural:false,frames:true,algebraic:true,requestFrames:true,copyFrames:true,targets:!targetCounts?rows:undefined})
+@@ -64,7 +64,7 @@ export function proveFocusedCounts(m:Machine,laws:Law[],law:Law,at:Instances,unt
+       certs[goal.name]={...cert,tree:result.tree}
+     }
+     if(complete)return {instances,certs}
+-    if(clock()>=until)continue
++    if(clock()>=until||pastWall())continue
+     let cold:Instances={}
+     cold=countLawSeeds(m,laws,cold,rows.length?rows:own,request,!targetCounts,{requestDiagonals:true})
+     cold=fieldLawBridges(m,bridgeLaws,cold,rows.length?rows:own,request,own.length===3?own[2]:undefined)
+diff --git a/core/count-recovery/field-bound-budget.test.ts b/core/count-recovery/field-bound-budget.test.ts
+new file mode 100644
+index 00000000..188ef978
+--- /dev/null
++++ b/core/count-recovery/field-bound-budget.test.ts
+@@ -0,0 +1,23 @@
++import {expect,test} from 'bun:test'
++import {type Machine,n,same} from '../machine.ts'
++import {clock,counted,fullRate,withWall} from '../../kernel/prove.ts'
++import {proveCountCases} from '../count-cases.ts'
++import {proveFocusedCounts} from '../count-focus-proof.ts'
++import {fieldBoundLemmas} from './field-bound-lemmas.ts'
++
++test('an expired source budget returns before inspecting machine rows',()=>{
++ const machine=new Proxy({} as Machine,{get(){throw new Error('expired source inspected machine')}}),trace:object[]=[]
++ const result=fieldBoundLemmas(machine,[],{name:'expired source',hyps:[]},{reads:[],insts:[]},clock()-1,trace)
++ expect(result).toBeUndefined()
++ expect(trace).toEqual([{stage:'source-budget-exhausted'}])
++})
++test('an expired wall stops source construction even when counted work remains',()=>{
++ const machine=new Proxy({} as Machine,{get(){throw new Error('wall-expired source inspected machine')}}),goal={name:'expired wall',hyps:[]},cert={reads:[],insts:[]},trace:object[]=[]
++ withWall(0,()=>counted(fullRate,()=>{
++  const until=clock()+1000
++  expect(fieldBoundLemmas(machine,[],goal,cert,until,trace)).toBeUndefined()
++  expect(proveCountCases(machine,[],{},cert,until,()=>{throw new Error('wall-expired case rebuilt a goal')})).toBeUndefined()
++  expect(proveFocusedCounts(machine,[],{name:'unused',holds:same(n(0),n(0))},{},until,()=>{throw new Error('wall-expired focus proposed a certificate')})).toBeUndefined()
++ },true))
++ expect(trace).toEqual([{stage:'source-budget-exhausted'}])
++})
+diff --git a/core/count-recovery/field-bound-lemmas.ts b/core/count-recovery/field-bound-lemmas.ts
+index ebd5b34e..e8a8ddb2 100644
+--- a/core/count-recovery/field-bound-lemmas.ts
++++ b/core/count-recovery/field-bound-lemmas.ts
+@@ -11,12 +11,13 @@ import {carriedCase} from './carried-case.ts'
+ import {foldPath} from './fold-path.ts'
+ import {fieldCase} from './field-case.ts'
+ import {type SourceProofMemo} from './source-memo.ts'
++import {preStateCountSource} from './pre-state-source.ts'
+ import {booleanCore} from './boolean-core.ts'
+ import {selectCountBounds} from '../count-select.ts'
+ import {activeWriteRow,proveRowCases,rowPairs} from './row-cases.ts'
+ import {proveNaturalCases} from './natural-cases.ts'
+ import {activeCarried,copiesRows} from './action-guard.ts'
+-import {atPoint,clock,withDeadline} from '../../kernel/prove.ts'
++import {atPoint,clock,pastWall,withDeadline} from '../../kernel/prove.ts'
+ 
+ import {REFUTED} from '../../kernel/cdcl.ts'
+ import {wallTree,check,refuteFast,grow,rowsAt,widen,modelSequence} from './ops.ts'
+@@ -68,13 +69,15 @@ export function emptyCountCandidate(m:Machine,cert:Proposal,inst:Proposal['insts
+  return fields
+ }
+ export const fieldBoundLemmas:typeof fieldBoundLemmasImpl=(...args)=>wallTree('proposal-control',()=>{
+- const [,,g,,until,trace,,path=new Map(),options={}]=args,cached=options.memo?.get(g,path,until)
++ const [,,g,,until,trace,,path=new Map(),options={}]=args
++ if((clock()>=until||pastWall())){trace.push({stage:'source-budget-exhausted'});return undefined}
++ const cached=options.memo?.get(g,path,until)
+  if(cached&&(options.deferCheck||check(g,cached,path))){trace.push({stage:'source-memo',scope:'field'});return cached}
+  const tree=fieldBoundLemmasImpl(...args)
+  if(tree)options.memo?.put(g,path,tree)
+  return tree
+ })
+-function fieldBoundLemmasImpl(m:Machine,ds:CountDecl[],g:Goal,cert:Proposal,until:number,trace:object[],onModel?:(goal:Goal,witness:Record<string,number>)=>boolean,root:Path=new Map(),options:{splitRows?:boolean,deferCheck?:boolean,fieldClaim?:C,memo?:SourceProofMemo}={}):Tree|undefined{
++function fieldBoundLemmasImpl(m:Machine,ds:CountDecl[],g:Goal,cert:Proposal,until:number,trace:object[],onModel?:(goal:Goal,witness:Record<string,number>)=>boolean,root:Path=new Map(),options:{splitRows?:boolean,deferCheck?:boolean,fieldClaim?:C,memo?:SourceProofMemo,onSourceModel?:(goal:Goal,witness:Record<string,number>,path:Path)=>void}={}):Tree|undefined{
+  const pointOptions={deferCheck:!!options.deferCheck}
+  const seq=modelSequence(root),ctx:C[]=[],path:Path=new Map(root),lemmas:{split:Record<string,number>,no:Tree}[]=[]
+  const accept=(tree:Tree|undefined,path:Path)=>tree&&(options.deferCheck||check(g,tree,path))?tree:undefined
+@@ -155,6 +158,7 @@ function fieldBoundLemmasImpl(m:Machine,ds:CountDecl[],g:Goal,cert:Proposal,unti
+   const budget=limit,started=clock(),q=seq(goal,Math.min(until,clock()+budget))
+   trace.push({stage:'field-query',hyps:goal.hyps.length,ms:Math.round(clock()-started),limit:budget,outcome:'tree'in q?'tree':q.stuck,core:q.core?.length,...(!('tree'in q)&&q.stuck==='sat'?{model:q.witness}:{})})
+   if('tree'in q)return q.tree
++  if(q.stuck==='sat'&&q.witness)options.onSourceModel?.(goal,q.witness,root)
+   if(finish&&q.stuck==='sat'&&q.witness&&onModel?.(goal,q.witness))return undefined
+   const reduced=q.why===REFUTED&&q.core?.length?{...goal,hyps:q.core.map(i=>goal.hyps[i]!)}:finish?goal:undefined
+   if(!reduced)return undefined
+@@ -186,7 +190,7 @@ function fieldBoundLemmasImpl(m:Machine,ds:CountDecl[],g:Goal,cert:Proposal,unti
+   const a=cert.reads[i]!,b=cert.reads[j]!
+   if(a[1]!==b[1]||truth({op:'=',a:a[2],b:b[2]},root)!==true)continue
+   for(const [left,right]of [[a[0],b[0]],[b[0],a[0]]]){
+-   if(clock()>=until)break
++   if((clock()>=until||pastWall()))break
+    const split=sub({[left!]:1},{[right!]:1});if(path.get(canon(split))?.holds===true)continue
+    const noPath=new Map(path).set(canon(split),{lin:split,holds:false}),begun=clock()
+    trace.push({stage:'read-alias-start',left,right})
+@@ -199,13 +203,14 @@ function fieldBoundLemmasImpl(m:Machine,ds:CountDecl[],g:Goal,cert:Proposal,unti
+    if(accepted&&no){lemmas.push({split,no});ctx.push({op:'<=',a:x(left!),b:x(right!)});path.set(canon(split),{lin:split,holds:true})}
+   }
+  }
++ if((clock()>=until||pastWall()))return undefined
+  const ceilings=fieldBounds(m,ds,cert,{claim:options.fieldClaim,path:root}),domains:C[]=[]
+  for(const good of ceilings)if(good.op==='<='&&good.a.op==='if'){
+   const parts=good.a.c.op==='and'?good.a.c.xs:[good.a.c]
+   for(const c of parts)if(c.op==='<'&&!domains.some(d=>JSON.stringify(c)===JSON.stringify(d)))domains.push(c)
+  }
+  for(const domain of domains){
+-  if(truth(domain,path)!==undefined||clock()>=until)continue
++  if(truth(domain,path)!==undefined||(clock()>=until||pastWall()))continue
+   if(domain.op!=='<')continue
+   const a=linear(domain.a,root),b=linear(domain.b,root);if(!a||!b)continue
+   const split=sub(a,b);split['1']=(split['1']??0)+1
+@@ -217,7 +222,7 @@ function fieldBoundLemmasImpl(m:Machine,ds:CountDecl[],g:Goal,cert:Proposal,unti
+   if(no){lemmas.push({split,no});ctx.push(domain);path.set(canon(split),{lin:split,holds:true})}
+  }
+  const finishField=():Tree|undefined=>{
+-  if(postIds.size||!options.fieldClaim||!lemmas.length||clock()>=until)return undefined
++  if(postIds.size||!options.fieldClaim||!lemmas.length||(clock()>=until||pastWall()))return undefined
+   const offset=g.hyps.length-cert.insts.length,part={...g,hyps:[...g.hyps.slice(0,offset),...ctx,...g.hyps.slice(offset)]}
+   const field=fieldCase(m,part,cert,options.fieldClaim,path,Math.min(until,clock()+150),e=>trace.push(e))
+   let tree=field&&widen(part,g,field,{},path,path)
+@@ -231,17 +236,29 @@ function fieldBoundLemmasImpl(m:Machine,ds:CountDecl[],g:Goal,cert:Proposal,unti
+  const activeCeilings=new Set(ceilings.flatMap(good=>good.op==='<='&&good.a.op==='if'&&truth(good.a.c,path)===true?[JSON.stringify([good.a.then,good.b])]:[]))
+  for(const good of ceilings){
+   if(good.op==='<='&&good.a.op==='if'&&truth(good.a.c,path)!==true&&activeCeilings.has(JSON.stringify([good.a.then,good.b])))continue
+-  if(good.op!=='<='||clock()>=until)break
++  if(good.op!=='<='||(clock()>=until||pastWall()))break
+   if(truth(good,path)===true)continue
+   const a=linear(good.a,path),b=linear(good.b,path);if(!a||!b)continue
+   const split=sub(a,b),noPath=new Map(path).set(canon(split),{lin:split,holds:false}),start=clock()
+-  const facts=narrow(good),part={...g,hyps:[...facts,...ctx,{op:'not' as const,x:good}]},proof=solve(part,250),lifted=proof&&widen(part,g,proof,{},root,noPath),no=accept(lifted,noPath)
++  const negative:C={op:'not',x:good},facts=narrow(good),part={...g,hyps:[...facts,...ctx,negative]},end=Math.min(until,start+250)
++  let proof:Tree|undefined,source=part
++  if(postIds.size){
++   const before=preStateCountSource(g,cert,negative,root,ctx)
++   if(before.cert.insts.length<cert.insts.length){
++    const candidate=fieldBoundLemmas(m,ds,before.goal,before.cert,end,trace,onModel,root,{deferCheck:true,fieldClaim:negative,memo:options.memo,onSourceModel:options.onSourceModel})
++    if(candidate){source={...g,hyps:[...g.hyps,...ctx,negative]};proof=withDeadline(end,()=>widen(before.goal,source,candidate,{},root,root))}
++    trace.push({stage:'pre-state-ceiling',hyps:before.goal.hyps.length,insts:before.cert.insts.length,proposed:!!proof})
++   }
++  }
++  if(!proof&&clock()<end){proof=solve(part,Math.max(0,end-clock()));source=part}
++  const lifted=proof&&withDeadline(end,()=>widen(source,g,proof,{},root,noPath)),no=accept(lifted,noPath)
+   trace.push({stage:'field-bound',bound:good,ms:Math.round(clock()-start),proved:!!no,...verdict(no)})
+   if(no){
+    lemmas.push({split,no});ctx.push(good);path.set(canon(split),{lin:split,holds:true})
+    const field=finishField();if(field)return field
+   }
+  }
++ if((clock()>=until||pastWall()))return undefined
+  const field=finishField();if(field)return field
+  {
+   const carriedMaps=activeCarried(m,root),countMaps=new Set(cert.reads.map(r=>r[1])),countIds=new Set(cert.reads.map(r=>r[0])),wits=new Set(cert.insts.map(i=>i.wit)),raw=g.hyps.slice(0,g.hyps.length-cert.insts.length)
+@@ -289,7 +306,7 @@ function fieldBoundLemmasImpl(m:Machine,ds:CountDecl[],g:Goal,cert:Proposal,unti
+   const finish=()=>{
+    // The outer row pass adds only pre-state cuts. Defer arithmetic closure to
+    // the exhaustive row children, where post-state constraints are available.
+-   if(rowPlan.length||arithmetic||clock()>=until)return
++   if(rowPlan.length||arithmetic||(clock()>=until||pastWall()))return
+    const numeric:Goal={...g,hyps:[...numericBase,...numericBindings,...ctx.filter(pure)]},begun=clock(),q=seq(numeric,Math.min(until,clock()+200))
+    trace.push({stage:'count-arithmetic',hyps:numeric.hyps.length,ms:Math.round(clock()-begun),outcome:'tree'in q?'tree':q.stuck,core:q.core?.length,...(!('tree'in q)&&q.stuck==='sat'?{model:q.witness}:{})})
+    let proof='tree'in q?q.tree:undefined
+@@ -320,6 +337,10 @@ function fieldBoundLemmasImpl(m:Machine,ds:CountDecl[],g:Goal,cert:Proposal,unti
+    if(emptyCountCandidate(m,cert,inst))return -1
+    const after=afterRead(inst),keys=after&&coordinates(after)
+    if(writer&&frame(inst)&&keys?.every(key=>truth(same(key,x(writer)),root)===false))return -0.75
++   // A written-row disjointness bound can close a carried replacement while
++   // arbitrary cross-row size comparisons cannot. Keep unchanged-row frames
++   // first, then ask the arithmetic core about this existing union candidate.
++   if(writer&&inst.terms.length===5&&keys?.some(key=>truth(same(key,x(writer)),root)===true)&&inst.terms.some(([k,id])=>{const c=cs.get(id),b=c&&view(c.body);return k>0&&b?.op==='get'&&carriedMaps.has(b.map)}))return -0.25
+    if(copyFrame(inst)){
+     if(writer&&keys){
+      const before=inst.terms.map(([,id])=>cert.reads.find(r=>r[0]===id)).find(r=>r&&!r[1].endsWith('#')),oldKeys=before&&coordinates(before)
+@@ -358,7 +379,7 @@ function fieldBoundLemmasImpl(m:Machine,ds:CountDecl[],g:Goal,cert:Proposal,unti
+   let queue=pick(),cursor=0
+   while(cursor<queue.length){
+    const [index,inst]=queue[cursor++]!
+-   if(arithmetic||clock()>=until)break
++   if(arithmetic||(clock()>=until||pastWall()))break
+    if(!selected(inst))continue
+    const h=g.hyps[raw.length+index];if(h?.op!=='or'||h.xs[0]?.op!=='<=')continue
+    const good=h.xs[0];if(truth(good,path)===true)continue
+@@ -394,12 +415,12 @@ function fieldBoundLemmasImpl(m:Machine,ds:CountDecl[],g:Goal,cert:Proposal,unti
+   }
+   finish()
+  }
+- if(clock()>=until)return undefined
++ if((clock()>=until||pastWall()))return undefined
+  const part={...g,hyps:[...g.hyps,...ctx]},start=clock()
+  let tree=arithmetic
+  if(!tree&&rowPlan.length){
+   trace.push({stage:'row-pairs',pairs:rowPlan})
+-  tree=proveRowCases(g,path,rowPlan,until,(branch,end)=>fieldBoundLemmas(m,ds,g,cert,end,trace,onModel,branch,{splitRows:false,deferCheck:true,memo:options.memo}),e=>trace.push(e),{deferToCaller:true,splitEqual:copiesRows(m,root)})
++  tree=proveRowCases(g,path,rowPlan,until,(branch,end)=>fieldBoundLemmas(m,ds,g,cert,end,trace,onModel,branch,{splitRows:false,deferCheck:true,memo:options.memo,onSourceModel:options.onSourceModel}),e=>trace.push(e),{deferToCaller:true,splitEqual:copiesRows(m,root)})
+  }
+  if(!tree){const proof=solve(part,Math.max(150,until-clock()-200),true);tree=proof&&widen(part,g,proof,{},root,path)}
+  trace.push({stage:'field-bound-conclusion',facts:lemmas.length,ms:Math.round(clock()-start),proved:!!tree})
+diff --git a/core/count-recovery/pre-state-source.test.ts b/core/count-recovery/pre-state-source.test.ts
+new file mode 100644
+index 00000000..29bf59e0
+--- /dev/null
++++ b/core/count-recovery/pre-state-source.test.ts
+@@ -0,0 +1,29 @@
++import {expect,test} from 'bun:test'
++import {all,get,less,n,not,same,x} from '../machine.ts'
++import {check,mcGoal,type CountCert} from '../../kernel/kernel.ts'
++import {clock,grow,widen} from '../../kernel/prove.ts'
++import {preStateCountSource} from './pre-state-source.ts'
++
++test('pre-state ceiling sources remove discarded witness instances and preserve original CInst order',()=>{
++ const d={j:'row',key:'member',below:n(3),body:n(1)},ds=[{...d,map:'Total'},{...d,map:'Total#'}]
++ const cert:Pick<CountCert,'reads'|'insts'>={reads:[['old','Total',n(0)],['new','Total#',n(0)]],insts:[{wit:'kept',below:n(3),terms:[[1,'old']],unit:0},{wit:'discarded',below:n(3),terms:[[1,'new'],[-1,'old']],unit:0}]}
++ const pre=same(get('Field',x('kept')),n(0)),post=same(get('Field',x('discarded')),n(0))
++ const full=mcGoal([all(pre,post),less(get('Total#',n(0)),get('Total',n(0)))],ds,cert)!,claim=not(pre)
++ const before=JSON.stringify({full,cert}),source=preStateCountSource(full,cert,claim,new Map())
++ expect(source.cert.reads).toEqual([cert.reads[0]!])
++ expect(source.cert.insts).toEqual([cert.insts[0]!])
++ expect(source.goal.hyps).toContainEqual(pre)
++ expect(source.goal.hyps).toContainEqual(claim)
++ expect(JSON.stringify(source.goal)).not.toContain('discarded')
++ expect(JSON.stringify(source.goal)).not.toContain('Total#')
++ expect(source.goal.hyps.at(-1)).toBe(full.hyps.at(-2))
++ expect(JSON.stringify({full,cert})).toBe(before)
++ const proof=grow(source.goal,new Map(),{nodes:0,until:clock()+1000})
++ expect('tree'in proof).toBe(true)
++ if('tree'in proof){
++  expect(check(source.goal,proof.tree)).toBe(true)
++  const target={...full,hyps:[...full.hyps,claim]},lifted=widen(source.goal,target,proof.tree)
++  expect(lifted).toBeDefined()
++  if(lifted)expect(check(target,lifted)).toBe(true)
++ }
++})
+diff --git a/core/count-recovery/pre-state-source.ts b/core/count-recovery/pre-state-source.ts
+new file mode 100644
+index 00000000..d34853ea
+--- /dev/null
++++ b/core/count-recovery/pre-state-source.ts
+@@ -0,0 +1,23 @@
++// A weaker pre-state source for a field ceiling. Preserve original terms and
++// CInst order, remove post-dependent assumptions and instances at discarded
++// witnesses. The caller must transport and check the tree in its full goal.
++import {type C} from '../machine.ts'
++import {type CountCert,type Goal,type Path} from '../../kernel/kernel.ts'
++import {piecesAt,walkLive} from './live-dependencies.ts'
++type Proposal=Pick<CountCert,'reads'|'insts'>
++export function preStateCountSource(goal:Goal,cert:Proposal,claim:C,path:Path,extra:C[]=[]):{goal:Goal,cert:Proposal}{
++ const post=cert.reads.filter(r=>r[1].endsWith('#')),postIds=new Set(post.map(r=>r[0])),postMaps=new Set(post.map(r=>r[1]))
++ const keep=cert.insts.map((q,index)=>({q,index})).filter(({q})=>q.terms.every(([,id])=>!postIds.has(id))),indices=new Set(keep.map(({index})=>index))
++ const discarded=new Set(cert.insts.filter((_,i)=>!indices.has(i)).map(q=>q.wit)),offset=goal.hyps.length-cert.insts.length
++ const weaken=(c:C):C|undefined=>{
++  if(c.op==='and'){
++   const xs=c.xs.flatMap(child=>{const kept=weaken(child);return kept?[kept]:[]})
++   return xs.length?{...c,xs}:undefined
++  }
++  let invalid=false
++  walkLive(c,path,(o:any)=>{if(o.op==='get'&&postMaps.has(o.map)||o.op==='var'&&(postIds.has(o.name)||discarded.has(o.name)))invalid=true})
++  return invalid?undefined:c
++ }
++ const hyps=goal.hyps.slice(0,offset).flatMap(c=>piecesAt(c,path)).flatMap(c=>{const kept=weaken(c);return kept?[kept]:[]})
++ return {goal:{...goal,hyps:[...hyps,...extra,claim,...keep.map(({index})=>goal.hyps[offset+index]!)]},cert:{reads:cert.reads.filter(r=>!postIds.has(r[0])),insts:keep.map(({q})=>q)}}
++}
+diff --git a/core/count-recovery/source-witness-instances.test.ts b/core/count-recovery/source-witness-instances.test.ts
+new file mode 100644
+index 00000000..7818e533
+--- /dev/null
++++ b/core/count-recovery/source-witness-instances.test.ts
+@@ -0,0 +1,46 @@
++import {expect,test} from 'bun:test'
++import {any,get,n,not,plus,same,times,x,type Law,type Machine} from '../machine.ts'
++import {assumed,check,type Goal,type Instances} from '../../kernel/kernel.ts'
++import {modelSequence} from '../../kernel/model-sequence.ts'
++import {clock,grow} from '../../kernel/prove.ts'
++import {sourceWitnessInstances} from './source-witness-instances.ts'
++
++function fixture(){
++ const cell=(row:ReturnType<typeof x>,member:ReturnType<typeof x>)=>get('Cells',plus(times(64,row),member)),a=x('a'),b=x('b'),member=x('sample')
++ const law:Law={name:'matching rows agree',forall:'row',keys:['other','member'],holds:any(not(same(get('Tag',x('row')),get('Tag',x('other')))),same(cell(x('row'),x('member')),cell(x('other'),x('member'))))}
++ const machine:Machine={name:'renamed field witness',params:[],inputs:[],state:{},maps:{Cells:0,Tag:0},counts:{Total:{j:'row',key:'member',below:n(4),body:n(1)}},step:{}}
++ const goal:Goal={name:'source',hyps:[same(a,n(0)),same(b,n(1)),same(member,n(2)),same(get('Tag',a),n(0)),same(get('Tag',b),n(0)),same(cell(a,member),n(0)),same(cell(b,member),n(1))]}
++ const result=modelSequence()(goal,clock()+1000)
++ if('tree'in result||result.stuck!=='sat'||!result.witness)throw new Error('fixture must have a source model')
++ return {machine,law,goal,model:result.witness}
++}
++
++test('local countermodels request ordinary multi-key field instances at a count witness',()=>{
++ const {machine,law,goal,model}=fixture(),before:Instances={untouched:[x('prior')]},saved=JSON.stringify(before)
++ const next=sourceWitnessInstances(machine,[law],before,goal,model,new Set(['sample']))
++ expect(next).toBeDefined()
++ expect(next?.[law.name]?.length).toBeGreaterThan(0)
++ for(let i=0;i<(next?.[law.name]?.length??0);i+=3)expect(next![law.name]!.slice(i,i+3)).toContainEqual(x('sample'))
++ expect(next?.untouched).toBe(before.untouched)
++ expect(JSON.stringify(before)).toBe(saved)
++ if(next){
++  const refined={...goal,hyps:[...goal.hyps,...assumed([law],next)]},proof=grow(refined,new Map(),{nodes:0,until:clock()+1000})
++  expect('tree'in proof).toBe(true)
++  if('tree'in proof)expect(check(refined,proof.tree)).toBe(true)
++  const again=sourceWitnessInstances(machine,[law],next,goal,model,new Set(['sample']))
++  if(again){
++   expect(again[law.name]!.slice(0,next[law.name]!.length)).toEqual(next[law.name]!)
++   const tuples=Array.from({length:again[law.name]!.length/3},(_,i)=>JSON.stringify(again[law.name]!.slice(i*3,i*3+3)))
++   expect(new Set(tuples).size).toBe(tuples.length)
++   expect(again[law.name]!.length-next[law.name]!.length).toBeLessThanOrEqual(24)
++  }
++ }
++})
++
++test('source feedback requires a read witness and preserves count-key freshness',()=>{
++ const {machine,law,goal,model}=fixture(),counted:Law={name:'count dependent',forall:'row',holds:same(get('Total',x('row')),n(0))}
++ expect(sourceWitnessInstances(machine,[law],{},goal,model,new Set())).toBeUndefined()
++ expect(sourceWitnessInstances(machine,[law],{},goal,model,new Set(['unrelated']))).toBeUndefined()
++ const offered=sourceWitnessInstances(machine,[counted],{},goal,model,new Set(['sample']))
++ expect(offered?.[counted.name]??[]).not.toContainEqual(x('sample'))
++})
+diff --git a/core/count-recovery/source-witness-instances.ts b/core/count-recovery/source-witness-instances.ts
+new file mode 100644
+index 00000000..3648657d
+--- /dev/null
++++ b/core/count-recovery/source-witness-instances.ts
+@@ -0,0 +1,25 @@
++// Untrusted family instances demanded by a model of a count-witness source.
++// Count-read keys retain the kernel's freshness rule. Returned tuples are only
++// ordinary candidates: rebuild the obligation and check the complete family.
++import {type Law,type Machine,walkOnce} from '../machine.ts'
++import {type Goal,type Instances} from '../../kernel/kernel.ts'
++import {modelInstances} from '../../kernel/prove.ts'
++import {independentCountInstances} from '../count-focused.ts'
++export function sourceWitnessInstances(m:Machine,laws:Law[],at:Instances,goal:Goal,model:Record<string,number>,witnesses:ReadonlySet<string>):Instances|undefined{
++ // Select proposal keys from the queried witness body, not unrelated flag
++ // witnesses that happen to share its model value. This weak slice proposes
++ // terms only; the rebuilt, complete obligation remains the proof target.
++ const hyps=goal.hyps.filter(c=>{let reads=false;walkOnce(c,(o:any)=>{if(o.op==='var'&&witnesses.has(o.name))reads=true});return reads})
++ if(!hyps.length)return undefined
++ const proposed=modelInstances(m,laws,at,{...goal,hyps},model,32)
++ const valid=proposed&&independentCountInstances(m,laws,at,proposed,[...witnesses])
++ if(!valid)return undefined
++ let out=at,added=0
++ for(const law of laws){
++  if(!law.forall)continue
++  const before=at[law.name]??[],next=valid[law.name]??before,arity=1+(law.keys?.length??0),extra:typeof before=[]
++  for(let i=before.length;i+arity<=next.length&&added<8;i+=arity){extra.push(...next.slice(i,i+arity));added++}
++  if(extra.length){if(out===at)out={...at};out[law.name]=[...before,...extra]}
++ }
++ return out===at?undefined:out
++}
+diff --git a/research/track-m/active-source-probe.ts b/research/track-m/active-source-probe.ts
+new file mode 100644
+index 00000000..a737fba3
+--- /dev/null
++++ b/research/track-m/active-source-probe.ts
+@@ -0,0 +1,108 @@
++// Partial active-source diagnostic, not a complete-law or protocol proof.
++import {readFileSync} from 'node:fs'
++import {type C,type Law,type Machine,n,plus,same,walkOnce,x} from '../../core/machine.ts'
++import {type Instances,type Path,canon,countedObligations,linear,mcGoal,truth,check} from '../../kernel/kernel.ts'
++import {clock,counted,fullRate,modelInstances,usedHyps,withWall} from '../../kernel/prove.ts'
++import {certFor} from '../../core/counts.ts'
++import {countLawSeeds,countRowBridges,fieldLawBridges,focusCountCert,independentCountInstances,rowKeyNames} from '../../core/count-focused.ts'
++import {seedCountWitnessFlags} from '../../core/count-witness-flags.ts'
++import {finiteCountChoice,withoutCountWitnesses} from '../../core/count-cases.ts'
++import {actionGuard,activeCarried} from '../../core/count-recovery/action-guard.ts'
++import {activeWriteKey,activeWriteRow} from '../../core/count-recovery/row-cases.ts'
++import {fieldBoundLemmas,fieldBounds} from '../../core/count-recovery/field-bound-lemmas.ts'
++import {sourceProofMemo} from '../../core/count-recovery/source-memo.ts'
++import {sourceWitnessInstances} from '../../core/count-recovery/source-witness-instances.ts'
++import {sub} from '../../core/solver.ts'
++const [file,prefix='Inv2973',valueText='0',carriedArg='first']=process.argv.slice(2),value=Number(valueText)
++const {m,laws}=JSON.parse(readFileSync(file!,'utf8')) as {m:Machine,laws:Law[]}
++const index=laws.findIndex(l=>l.name.startsWith(prefix)),law=laws[index]!
++if(!law)throw new Error('missing law')
++const names=[law.forall,...law.keys??[]],own=names.map((name,i)=>x(i?name!:`${name}#`)),scalar=rowKeyNames(m,law)
++let targetCounts=false
++walkOnce(law.holds,(o:any)=>{if(o.op==='get'){if(o.key.op==='var')scalar.add(o.key.name);if(m.counts?.[o.map])targetCounts=true}})
++const rows=own.filter((_,i)=>scalar.has(names[i]!)),request=m.inputs.filter(name=>Object.values(m.counts??{}).some(d=>![d.j,d.lo,d.key].includes(name)&&JSON.stringify([d.below,d.body]).includes(`"name":${JSON.stringify(name)}`))).map(x)
++let at:Instances=countLawSeeds(m,laws,{},rows.length?rows:own,request,!targetCounts,{requestDiagonals:true})
++at=fieldLawBridges(m,targetCounts?laws.filter(l=>(l.keys?.length??0)===0):laws,at,rows.length?rows:own,request,own.length===3?own[2]:undefined)
++if(law.forall)at[law.name]=[...at[law.name]??[],...own]
++at=countRowBridges(m,law,at,own,request)
++const carried=carriedArg==='all'?undefined:carriedArg==='first'?m.inputMaps?.[0]:carriedArg
++const build=()=>{const p=countedObligations(m,laws,{[law.name]:at},index).find(p=>p.goal.name.endsWith('@step'))!;return {...p,cert:focusCountCert(m,p.decls,certFor(p.goal,p.decls,true,1000),{carried,structural:false,frames:true,algebraic:true,requestFrames:true,copyFrames:true,targets:!targetCounts?rows:undefined})}}
++let packet=build();at=seedCountWitnessFlags(m,at,[packet],true);packet=build()
++if(process.env.LAB_SOURCE_CERT==='1'){console.log(JSON.stringify({reads:packet.cert.reads,insts:packet.cert.insts}));process.exit(0)}
++const choice=finiteCountChoice(m);if(!choice)throw new Error('no choice')
++const [selector,values]=choice,guard=actionGuard(m,selector,value);if(!guard)throw new Error('no guard')
++const root:Path=new Map([...values].sort((a,b)=>a-b).map(v=>{const lin=v?{[selector]:1,'1':-v}:{[selector]:1};return [canon(lin),{lin,holds:v>=value}]}))
++const conditions:C[]=[]
++const collect=(c:C):void=>{if(c.op==='and'||c.op==='or')c.xs.forEach(collect);else if(c.op==='not')collect(c.x);else if(c.op==='='){conditions.push({op:'<=',a:c.a,b:c.b},{op:'<=',a:c.b,b:c.a})}else if(c.op==='<')conditions.push({op:'<=',a:plus(c.a,n(1)),b:c.b});else if(c.op==='<=')conditions.push(c);else throw new Error('unsupported guard')}
++collect(guard)
++const paths:Path[]=[]
++const visit=(i:number,path:Path):void=>{
++ const active=truth(guard,path);if(active!==undefined){if(active)paths.push(path);return}
++ if(i>=conditions.length||paths.length>=8)return
++ const c=conditions[i]!;if(c.op!=='<=')return
++ const known=truth(c,path);if(known!==undefined){visit(i+1,path);return}
++ const a=linear(c.a,path),b=linear(c.b,path);if(!a||!b)return
++ const lin=sub(a,b),id=canon(lin)
++ visit(i+1,new Map(path).set(id,{lin,holds:false}));visit(i+1,new Map(path).set(id,{lin,holds:true}))
++}
++visit(0,root)
++const ceilings=fieldBounds(m,packet.decls,packet.cert,{claim:packet.goal.hyps.at(-1),path:root}),ceilingIndex=process.env.LAB_CEILING_INDEX
++if(ceilingIndex!==undefined){
++ const ceiling=ceilings[Number(ceilingIndex)];if(!ceiling)throw new Error('missing ceiling candidate')
++ const reads=packet.cert.reads.filter(r=>!r[1].endsWith('#')),ids=new Set(reads.map(r=>r[0])),insts=packet.cert.insts.filter(q=>q.terms.every(([,id])=>ids.has(id)))
++ const kept=new Set(insts.map(q=>q.wit)),discard=new Set(packet.cert.insts.filter(q=>!kept.has(q.wit)).map(q=>q.wit))
++ at=withoutCountWitnesses(m,laws,at,discard)
++ const original=countedObligations(m,laws,{[law.name]:at},index).find(p=>p.goal.name.endsWith('@step'))!
++ packet={...packet,goal:{...original.goal,hyps:[...original.goal.hyps.slice(0,-1),{op:'not',x:ceiling}]},cert:{reads,insts}}
++}
++if(process.env.LAB_SOURCE_CORE){
++ const prior=JSON.parse(readFileSync(process.env.LAB_SOURCE_CORE,'utf8'))
++ if(prior.conditionalChecked!==true||prior.law!==law.name)throw new Error('source core is not a checked conditional result for this law')
++ const signature=(q:any)=>JSON.stringify({wit:q.wit,below:q.below,terms:q.terms,unit:q.unit})
++ const keep=new Set(prior.usedCounts.map(signature)),insts=packet.cert.insts.filter(q=>keep.has(signature(q)))
++ if(insts.length!==keep.size)throw new Error('source core does not match this certificate')
++ packet.cert={...packet.cert,insts}
++}
++const makeGoal=()=>{const original=mcGoal(packet.goal.hyps,packet.decls,packet.cert)!;return {...original,hyps:[guard,...original.hyps]}}
++let goal=makeGoal();const memo=sourceProofMemo(m,law.name)
++for(const [branch,path]of paths.entries()){
++ if(process.env.LAB_ROW_MODE==='equal'){
++  const writer=activeWriteRow(m,path);if(!writer)throw new Error('no written row')
++  for(const row of rows){const a=linear(row,path)!,b=linear(x(writer),path)!,lin=sub(a,b),back=sub(b,a);path.set(canon(lin),{lin,holds:true});path.set(canon(back),{lin:back,holds:true})}
++ }
++ const events:any[]=[],suggestions:object[]=[],captured=new Set<string>(),start=performance.now()
++ let tree:ReturnType<typeof fieldBoundLemmas>
++ const retries=process.env.LAB_SOURCE_MODEL_RETRY==='1'?Number(process.env.LAB_SOURCE_MODEL_ROUNDS??2):0,sourceAdditions:object[]=[]
++ for(let attempt=0;attempt<=retries&&!tree;attempt++){
++ const restart={},known=at;let pending:Instances|undefined
++ try{tree=withWall(start+60000,()=>counted(fullRate,()=>fieldBoundLemmas(m,packet.decls,goal,packet.cert,clock()+Number(process.env.LAB_SOURCE_MS??3000),events,(source,witness)=>{
++  const next=modelInstances(m,laws,at,source,witness,8),valid=next&&independentCountInstances(m,laws,at,next,packet.cert.insts.map(i=>i.wit))
++  suggestions.push({hyps:source.hyps.length,added:valid?Object.fromEntries(Object.entries(valid).flatMap(([name,ts])=>ts.length>(at[name]?.length??0)?[[name,ts.slice(at[name]?.length??0)]]:[])):null})
++  return true
++ },path,{deferCheck:true,...(process.env.LAB_ROW_MODE==='equal'?{splitRows:false}:{}),fieldClaim:packet.goal.hyps.at(-1),memo,...(attempt<retries||process.env.LAB_SOURCE_DUMP==='1'?{onSourceModel:(source:any,model:Record<string,number>,sourcePath:Path)=>{
++  if(process.env.LAB_SOURCE_DUMP==='1'&&captured.size<8){
++   const used=new Set<string>();walkOnce(source.hyps,(o:any)=>{if(o.op==='var')used.add(o.name)})
++   const instances=packet.cert.insts.filter(q=>used.has(q.wit)&&(process.env.LAB_SOURCE_DUMP_POST==='1'?q.terms.some(([,id])=>packet.cert.reads.some(r=>r[0]===id&&r[1].endsWith('#'))):q.terms.length>=3)),key=JSON.stringify(source.hyps)
++   if(instances.length&&!captured.has(key)){
++    captured.add(key);const writer=activeWriteRow(m,sourcePath)
++    console.log(JSON.stringify({sourceQuery:true,source,path:[...sourcePath],model,instances,reads:packet.cert.reads,writer,writeKey:activeWriteKey(m,sourcePath),carried:[...activeCarried(m,sourcePath)],rowAliases:own.map(k=>({key:k,equal:writer?truth(same(k,x(writer)),sourcePath):undefined}))}))
++   }
++  }
++  if(attempt>=retries)return
++  pending=sourceWitnessInstances(m,laws,at,source,model,new Set(packet.cert.insts.map(i=>i.wit)))
++  if(pending)throw restart
++ }}:{})}),true))}catch(error){if(error!==restart)throw error}
++ if(!pending)break
++ sourceAdditions.push({attempt,added:Object.fromEntries(Object.entries(pending).flatMap(([name,ts])=>ts.length>(known[name]?.length??0)?[[name,ts.slice(known[name]?.length??0)]]:[]))})
++ const retained=packet.cert;at=pending;packet=build();packet.cert=retained;goal=makeGoal()
++ }
++ const failed:any[]=[];let query:any
++ for(const event of events){
++  if(event.stage==='field-query')query=event
++  if(event.stage==='count-lemma'&&!event.proposed&&failed.length<4){
++   const next:Instances|undefined=query?.model?modelInstances(m,laws,at,goal,query.model,32):undefined,valid=next&&independentCountInstances(m,laws,at,next,packet.cert.insts.map(i=>i.wit))
++   failed.push({index:event.index,terms:packet.cert.insts[event.index]?.terms,query:query&&{hyps:query.hyps,outcome:query.outcome,model:query.model},suggestedFromFullGoal:valid?Object.fromEntries(Object.entries(valid).flatMap(([name,ts])=>ts.length>(at[name]?.length??0)?[[name,ts.slice(at[name]?.length??0)]]:[])):null})
++  }
++ }
++ console.log(JSON.stringify({diagnostic:true,law:law.name,value,branch,carried,rowMode:process.env.LAB_ROW_MODE,ceilingIndex,ceilings,fieldAttempts:events.filter(e=>e.stage==='field-bound'),failed,sourceAdditions,...(process.env.LAB_SOURCE_TRACE==='1'?{countSteps:events.filter(e=>['count-lemma','needed-lemmas','field-bound-pending-core'].includes(e.stage)),usedCounts:tree?[...usedHyps(goal,tree,path)].filter(i=>i>=goal.hyps.length-packet.cert.insts.length).map(i=>({index:i-goal.hyps.length+packet.cert.insts.length,...packet.cert.insts[i-goal.hyps.length+packet.cert.insts.length]})):[]}:{}),wallMs:performance.now()-start,conditionalTree:!!tree,conditionalChecked:!!tree&&check(goal,tree,path),hyps:goal.hyps.length,instances:packet.cert.insts.length,suggestions,path:[...path],tail:events.slice(-14)}))
++}
+diff --git a/research/track-m/jobs-active-source-narrow.json b/research/track-m/jobs-active-source-narrow.json
+new file mode 100644
+index 00000000..2cde2a65
+--- /dev/null
++++ b/research/track-m/jobs-active-source-narrow.json
+@@ -0,0 +1,58 @@
++[
++  {
++    "name": "overlap-0",
++    "cmd": "set -e; bun install --frozen-lockfile >/dev/null; bun research/track-m/active-source-probe.ts replay-input/input.json 'Inv2973' 0 first",
++    "cpu": 8,
++    "memory": 14336,
++    "timeout": 150
++  },
++  {
++    "name": "overlap-1",
++    "cmd": "set -e; bun install --frozen-lockfile >/dev/null; bun research/track-m/active-source-probe.ts replay-input/input.json 'Inv2973' 1 first",
++    "cpu": 8,
++    "memory": 14336,
++    "timeout": 150
++  },
++  {
++    "name": "overlap-5",
++    "cmd": "set -e; bun install --frozen-lockfile >/dev/null; bun research/track-m/active-source-probe.ts replay-input/input.json 'Inv2973' 5 first",
++    "cpu": 8,
++    "memory": 14336,
++    "timeout": 150
++  },
++  {
++    "name": "overlap-6",
++    "cmd": "set -e; bun install --frozen-lockfile >/dev/null; bun research/track-m/active-source-probe.ts replay-input/input.json 'Inv2973' 6 first",
++    "cpu": 8,
++    "memory": 14336,
++    "timeout": 150
++  },
++  {
++    "name": "backing-0",
++    "cmd": "set -e; bun install --frozen-lockfile >/dev/null; bun research/track-m/active-source-probe.ts replay-input/input.json 'Inv*' 0 first",
++    "cpu": 8,
++    "memory": 14336,
++    "timeout": 150
++  },
++  {
++    "name": "backing-1",
++    "cmd": "set -e; bun install --frozen-lockfile >/dev/null; bun research/track-m/active-source-probe.ts replay-input/input.json 'Inv*' 1 first",
++    "cpu": 8,
++    "memory": 14336,
++    "timeout": 150
++  },
++  {
++    "name": "backing-5",
++    "cmd": "set -e; bun install --frozen-lockfile >/dev/null; bun research/track-m/active-source-probe.ts replay-input/input.json 'Inv*' 5 first",
++    "cpu": 8,
++    "memory": 14336,
++    "timeout": 150
++  },
++  {
++    "name": "backing-6",
++    "cmd": "set -e; bun install --frozen-lockfile >/dev/null; bun research/track-m/active-source-probe.ts replay-input/input.json 'Inv*' 6 first",
++    "cpu": 8,
++    "memory": 14336,
++    "timeout": 150
++  }
++]
+diff --git a/research/track-m/jobs-active-source-resume.json b/research/track-m/jobs-active-source-resume.json
+new file mode 100644
+index 00000000..bbfa3e50
+--- /dev/null
++++ b/research/track-m/jobs-active-source-resume.json
+@@ -0,0 +1,30 @@
++[
++  {
++    "name": "overlap-setup",
++    "cmd": "set -e; bun install --frozen-lockfile >/dev/null; bun research/track-m/active-source-probe.ts replay-input/input.json 'Inv2973' 0",
++    "cpu": 8,
++    "memory": 14336,
++    "timeout": 150
++  },
++  {
++    "name": "overlap-copy",
++    "cmd": "set -e; bun install --frozen-lockfile >/dev/null; bun research/track-m/active-source-probe.ts replay-input/input.json 'Inv2973' 1",
++    "cpu": 8,
++    "memory": 14336,
++    "timeout": 150
++  },
++  {
++    "name": "backing-setup",
++    "cmd": "set -e; bun install --frozen-lockfile >/dev/null; bun research/track-m/active-source-probe.ts replay-input/input.json 'Inv*' 0",
++    "cpu": 8,
++    "memory": 14336,
++    "timeout": 150
++  },
++  {
++    "name": "backing-copy",
++    "cmd": "set -e; bun install --frozen-lockfile >/dev/null; bun research/track-m/active-source-probe.ts replay-input/input.json 'Inv*' 1",
++    "cpu": 8,
++    "memory": 14336,
++    "timeout": 150
++  }
++]
+diff --git a/research/track-m/jobs-carried-support.json b/research/track-m/jobs-carried-support.json
+new file mode 100644
+index 00000000..387cff61
+--- /dev/null
++++ b/research/track-m/jobs-carried-support.json
+@@ -0,0 +1,30 @@
++[
++  {
++    "name": "backing-active",
++    "cmd": "set -e; bun install --frozen-lockfile >/dev/null; LAB_SOURCE_TRACE=1 bun research/track-m/active-source-probe.ts replay-input/input.json 'Inv*' 5 all",
++    "cpu": 8,
++    "memory": 14336,
++    "timeout": 180
++  },
++  {
++    "name": "backing-complete",
++    "cmd": "set -e; bun install --frozen-lockfile >/dev/null; timeout -s KILL 60 bun research/track-m/verify-focused.ts replay-input/input.json 'Inv*'",
++    "cpu": 8,
++    "memory": 14336,
++    "timeout": 90
++  },
++  {
++    "name": "tests",
++    "cmd": "set -e; bun install --frozen-lockfile >/dev/null; bun test core/count-recovery core/count-cases.test.ts core/count-focus-proof.test.ts",
++    "cpu": 8,
++    "memory": 14336,
++    "timeout": 240
++  },
++  {
++    "name": "mldr-pair",
++    "cmd": "bash research/track-m/compare-main.sh mldr base",
++    "cpu": 8,
++    "memory": 14336,
++    "timeout": 420
++  }
++]
+diff --git a/research/track-m/jobs-checked-core-replay.json b/research/track-m/jobs-checked-core-replay.json
+new file mode 100644
+index 00000000..e8ac67e7
+--- /dev/null
++++ b/research/track-m/jobs-checked-core-replay.json
+@@ -0,0 +1,16 @@
++[
++  {
++    "name": "full-pool",
++    "cmd": "set -e; bun install --frozen-lockfile >/dev/null; LAB_SOURCE_TRACE=1 LAB_ROW_MODE=equal LAB_SOURCE_MS=1500 bun research/track-m/active-source-probe.ts replay-input/input.json 'Inv*' 5 all",
++    "cpu": 8,
++    "memory": 14336,
++    "timeout": 120
++  },
++  {
++    "name": "checked-core",
++    "cmd": "set -e; bun install --frozen-lockfile >/dev/null; LAB_SOURCE_CORE=trace-input/checked-core.json LAB_SOURCE_TRACE=1 LAB_ROW_MODE=equal LAB_SOURCE_MS=1500 bun research/track-m/active-source-probe.ts replay-input/input.json 'Inv*' 5 all",
++    "cpu": 8,
++    "memory": 14336,
++    "timeout": 120
++  }
++]
+diff --git a/research/track-m/jobs-core-chain-trace.json b/research/track-m/jobs-core-chain-trace.json
+new file mode 100644
+index 00000000..b28fc972
+--- /dev/null
++++ b/research/track-m/jobs-core-chain-trace.json
+@@ -0,0 +1,16 @@
++[
++  {
++    "name": "equal-row-1500",
++    "cmd": "set -e; bun install --frozen-lockfile >/dev/null; LAB_SOURCE_TRACE=1 LAB_ROW_MODE=equal LAB_SOURCE_MS=1500 bun research/track-m/active-source-probe.ts replay-input/input.json 'Inv*' 5 all",
++    "cpu": 8,
++    "memory": 14336,
++    "timeout": 120
++  },
++  {
++    "name": "equal-row-6000",
++    "cmd": "set -e; bun install --frozen-lockfile >/dev/null; LAB_SOURCE_TRACE=1 LAB_ROW_MODE=equal LAB_SOURCE_MS=6000 bun research/track-m/active-source-probe.ts replay-input/input.json 'Inv*' 5 all",
++    "cpu": 8,
++    "memory": 14336,
++    "timeout": 120
++  }
++]
+diff --git a/research/track-m/jobs-core-chain.json b/research/track-m/jobs-core-chain.json
+new file mode 100644
+index 00000000..b009c19b
+--- /dev/null
++++ b/research/track-m/jobs-core-chain.json
+@@ -0,0 +1,23 @@
++[
++  {
++    "name": "backing-active",
++    "cmd": "set -e; bun install --frozen-lockfile >/dev/null; bun research/track-m/active-source-probe.ts replay-input/input.json 'Inv*' 5 all",
++    "cpu": 8,
++    "memory": 14336,
++    "timeout": 180
++  },
++  {
++    "name": "backing-complete",
++    "cmd": "set -e; bun install --frozen-lockfile >/dev/null; timeout -s KILL 60 bun research/track-m/verify-focused.ts replay-input/input.json 'Inv*'",
++    "cpu": 8,
++    "memory": 14336,
++    "timeout": 90
++  },
++  {
++    "name": "tests",
++    "cmd": "set -e; bun install --frozen-lockfile >/dev/null; bun test core/count-recovery core/count-cases.test.ts core/count-focus-proof.test.ts",
++    "cpu": 8,
++    "memory": 14336,
++    "timeout": 240
++  }
++]
+diff --git a/research/track-m/jobs-equal-row-source.json b/research/track-m/jobs-equal-row-source.json
+new file mode 100644
+index 00000000..ef55ac09
+--- /dev/null
++++ b/research/track-m/jobs-equal-row-source.json
+@@ -0,0 +1,16 @@
++[
++  {
++    "name": "equal-row-1500",
++    "cmd": "set -e; bun install --frozen-lockfile >/dev/null; LAB_ROW_MODE=equal LAB_SOURCE_MS=1500 bun research/track-m/active-source-probe.ts replay-input/input.json 'Inv*' 5 all",
++    "cpu": 8,
++    "memory": 14336,
++    "timeout": 120
++  },
++  {
++    "name": "equal-row-6000",
++    "cmd": "set -e; bun install --frozen-lockfile >/dev/null; LAB_ROW_MODE=equal LAB_SOURCE_MS=6000 bun research/track-m/active-source-probe.ts replay-input/input.json 'Inv*' 5 all",
++    "cpu": 8,
++    "memory": 14336,
++    "timeout": 120
++  }
++]
+diff --git a/research/track-m/jobs-frozen-paxos-retry.json b/research/track-m/jobs-frozen-paxos-retry.json
+new file mode 100644
+index 00000000..88855d85
+--- /dev/null
++++ b/research/track-m/jobs-frozen-paxos-retry.json
+@@ -0,0 +1,9 @@
++[
++  {
++    "name": "pair-paxos_epr-r1",
++    "cmd": "set -euo pipefail; origin=\"$PWD\"; frozen=\"$(mktemp -d /tmp/track-m-frozen-source-XXXXXX)\"; trap 'rm -rf \"$frozen\"' EXIT; sha256sum source-ceiling-gate-input/parent.tar source-ceiling-gate-input/candidate.patch; tar xf source-ceiling-gate-input/parent.tar -C \"$frozen\"; cd \"$frozen\"; git apply \"$origin/source-ceiling-gate-input/candidate.patch\"; ln -s \"$origin/baseline-input\" baseline-input; bash research/track-m/compare-main.sh paxos_epr base",
++    "cpu": 8,
++    "memory": 14336,
++    "timeout": 420
++  }
++]
+diff --git a/research/track-m/jobs-natural-selection.json b/research/track-m/jobs-natural-selection.json
+new file mode 100644
+index 00000000..b009c19b
+--- /dev/null
++++ b/research/track-m/jobs-natural-selection.json
+@@ -0,0 +1,23 @@
++[
++  {
++    "name": "backing-active",
++    "cmd": "set -e; bun install --frozen-lockfile >/dev/null; bun research/track-m/active-source-probe.ts replay-input/input.json 'Inv*' 5 all",
++    "cpu": 8,
++    "memory": 14336,
++    "timeout": 180
++  },
++  {
++    "name": "backing-complete",
++    "cmd": "set -e; bun install --frozen-lockfile >/dev/null; timeout -s KILL 60 bun research/track-m/verify-focused.ts replay-input/input.json 'Inv*'",
++    "cpu": 8,
++    "memory": 14336,
++    "timeout": 90
++  },
++  {
++    "name": "tests",
++    "cmd": "set -e; bun install --frozen-lockfile >/dev/null; bun test core/count-recovery core/count-cases.test.ts core/count-focus-proof.test.ts",
++    "cpu": 8,
++    "memory": 14336,
++    "timeout": 240
++  }
++]
+diff --git a/research/track-m/jobs-pre-state-ceiling.json b/research/track-m/jobs-pre-state-ceiling.json
+new file mode 100644
+index 00000000..ca34d45f
+--- /dev/null
++++ b/research/track-m/jobs-pre-state-ceiling.json
+@@ -0,0 +1,37 @@
++[
++  {
++    "name": "backing-active",
++    "cmd": "set -e; bun install --frozen-lockfile >/dev/null; bun research/track-m/active-source-probe.ts replay-input/input.json 'Inv*' 5 all",
++    "cpu": 8,
++    "memory": 14336,
++    "timeout": 180
++  },
++  {
++    "name": "overlap-active",
++    "cmd": "set -e; bun install --frozen-lockfile >/dev/null; bun research/track-m/active-source-probe.ts replay-input/input.json 'Inv2973' 5 all",
++    "cpu": 8,
++    "memory": 14336,
++    "timeout": 180
++  },
++  {
++    "name": "backing-complete",
++    "cmd": "set -e; bun install --frozen-lockfile >/dev/null; timeout -s KILL 60 bun research/track-m/verify-focused.ts replay-input/input.json 'Inv*'",
++    "cpu": 8,
++    "memory": 14336,
++    "timeout": 90
++  },
++  {
++    "name": "source-tests",
++    "cmd": "set -e; bun install --frozen-lockfile >/dev/null; bun test core/count-recovery core/count-cases.test.ts core/count-focus-proof.test.ts",
++    "cpu": 8,
++    "memory": 14336,
++    "timeout": 240
++  },
++  {
++    "name": "check",
++    "cmd": "set -e; bash research/track-m/prepare-vendors.sh; bun install --frozen-lockfile >/dev/null; bun run check",
++    "cpu": 8,
++    "memory": 14336,
++    "timeout": 240
++  }
++]
+diff --git a/research/track-m/jobs-reconfigure-support.json b/research/track-m/jobs-reconfigure-support.json
+new file mode 100644
+index 00000000..c374bb1e
+--- /dev/null
++++ b/research/track-m/jobs-reconfigure-support.json
+@@ -0,0 +1,23 @@
++[
++  {
++    "name": "backing-reconfigure-Q2",
++    "cmd": "set -e; bun install --frozen-lockfile >/dev/null; bun research/track-m/active-source-probe.ts replay-input/input.json 'Inv*' 5 Q2",
++    "cpu": 8,
++    "memory": 14336,
++    "timeout": 180
++  },
++  {
++    "name": "backing-reconfigure-all",
++    "cmd": "set -e; bun install --frozen-lockfile >/dev/null; bun research/track-m/active-source-probe.ts replay-input/input.json 'Inv*' 5 all",
++    "cpu": 8,
++    "memory": 14336,
++    "timeout": 180
++  },
++  {
++    "name": "proof-tests-and-check",
++    "cmd": "set -e; bash research/track-m/prepare-vendors.sh; bun install --frozen-lockfile >/dev/null; bun test kernel core/count-recovery core/count-cases.test.ts core/count-focus-proof.test.ts; bun run check",
++    "cpu": 8,
++    "memory": 14336,
++    "timeout": 300
++  }
++]
+diff --git a/research/track-m/jobs-source-budget.json b/research/track-m/jobs-source-budget.json
+new file mode 100644
+index 00000000..ec29c79b
+--- /dev/null
++++ b/research/track-m/jobs-source-budget.json
+@@ -0,0 +1,30 @@
++[
++  {
++    "name": "source-check",
++    "cmd": "set -e; bun install --frozen-lockfile >/dev/null; bun run check; bun test core/count-recovery core/count-cases.test.ts core/count-focus-proof.test.ts",
++    "cpu": 8,
++    "memory": 14336,
++    "timeout": 240
++  },
++  {
++    "name": "mldr-pair-r1",
++    "cmd": "bash research/track-m/compare-main.sh mldr base",
++    "cpu": 8,
++    "memory": 14336,
++    "timeout": 420
++  },
++  {
++    "name": "mldr-pair-r2",
++    "cmd": "bash research/track-m/compare-main.sh mldr cand",
++    "cpu": 8,
++    "memory": 14336,
++    "timeout": 420
++  },
++  {
++    "name": "mldr-pair-r3",
++    "cmd": "bash research/track-m/compare-main.sh mldr base",
++    "cpu": 8,
++    "memory": 14336,
++    "timeout": 420
++  }
++]
+diff --git a/research/track-m/jobs-source-ceilings-clean.json b/research/track-m/jobs-source-ceilings-clean.json
+new file mode 100644
+index 00000000..704b4c22
+--- /dev/null
++++ b/research/track-m/jobs-source-ceilings-clean.json
+@@ -0,0 +1,16 @@
++[
++  {
++    "name": "ceiling-replay",
++    "cmd": "set -e; bun install --frozen-lockfile >/dev/null; for ceiling in 2 3; do LAB_CEILING_INDEX=$ceiling bun research/track-m/active-source-probe.ts replay-input/input.json 'Inv*' 5 Q2; done",
++    "cpu": 8,
++    "memory": 14336,
++    "timeout": 180
++  },
++  {
++    "name": "check",
++    "cmd": "set -e; bash research/track-m/prepare-vendors.sh; bun install --frozen-lockfile >/dev/null; bun run check",
++    "cpu": 8,
++    "memory": 14336,
++    "timeout": 240
++  }
++]
+diff --git a/research/track-m/jobs-source-ceilings.json b/research/track-m/jobs-source-ceilings.json
+new file mode 100644
+index 00000000..841860e2
+--- /dev/null
++++ b/research/track-m/jobs-source-ceilings.json
+@@ -0,0 +1,9 @@
++[
++  {
++    "name": "ceiling-replay",
++    "cmd": "set -e; bun install --frozen-lockfile >/dev/null; for ceiling in 0 1 2 3; do LAB_CEILING_INDEX=$ceiling bun research/track-m/active-source-probe.ts replay-input/input.json 'Inv*' 5 Q2; done",
++    "cpu": 8,
++    "memory": 14336,
++    "timeout": 180
++  }
++]
+diff --git a/research/track-m/jobs-source-certificate.json b/research/track-m/jobs-source-certificate.json
+new file mode 100644
+index 00000000..cc2e5196
+--- /dev/null
++++ b/research/track-m/jobs-source-certificate.json
+@@ -0,0 +1,9 @@
++[
++  {
++    "name": "source-certificate",
++    "cmd": "set -e; bun install --frozen-lockfile >/dev/null; LAB_SOURCE_CERT=1 bun research/track-m/active-source-probe.ts replay-input/input.json 'Inv*' 5 all",
++    "cpu": 8,
++    "memory": 14336,
++    "timeout": 60
++  }
++]
+diff --git a/research/track-m/jobs-source-family.json b/research/track-m/jobs-source-family.json
+new file mode 100644
+index 00000000..3432e0cc
+--- /dev/null
++++ b/research/track-m/jobs-source-family.json
+@@ -0,0 +1,23 @@
++[
++  {
++    "name": "backing-family-source",
++    "cmd": "set -e; bun install --frozen-lockfile >/dev/null; LAB_SOURCE_MODEL_RETRY=1 LAB_SOURCE_MODEL_ROUNDS=8 bun research/track-m/active-source-probe.ts replay-input/input.json 'Inv*' 5 first",
++    "cpu": 8,
++    "memory": 14336,
++    "timeout": 180
++  },
++  {
++    "name": "overlap-family-source",
++    "cmd": "set -e; bun install --frozen-lockfile >/dev/null; LAB_SOURCE_MODEL_RETRY=1 LAB_SOURCE_MODEL_ROUNDS=8 bun research/track-m/active-source-probe.ts replay-input/input.json 'Inv2973' 5 first",
++    "cpu": 8,
++    "memory": 14336,
++    "timeout": 180
++  },
++  {
++    "name": "source-tests",
++    "cmd": "set -e; bun install --frozen-lockfile >/dev/null; bun test core/count-recovery/source-witness-instances.test.ts core/count-recovery/field-bound-lemmas.test.ts core/count-cases.test.ts core/count-focus-proof.test.ts",
++    "cpu": 8,
++    "memory": 14336,
++    "timeout": 240
++  }
++]
+diff --git a/research/track-m/jobs-source-model-probe.json b/research/track-m/jobs-source-model-probe.json
+new file mode 100644
+index 00000000..53727eaf
+--- /dev/null
++++ b/research/track-m/jobs-source-model-probe.json
+@@ -0,0 +1,37 @@
++[
++  {
++    "name": "backing-reconfigure-base",
++    "cmd": "set -e; bun install --frozen-lockfile >/dev/null; LAB_SOURCE_MODEL_RETRY=0 bun research/track-m/active-source-probe.ts replay-input/input.json 'Inv*' 5 first",
++    "cpu": 8,
++    "memory": 14336,
++    "timeout": 180
++  },
++  {
++    "name": "backing-reconfigure-retry",
++    "cmd": "set -e; bun install --frozen-lockfile >/dev/null; LAB_SOURCE_MODEL_RETRY=1 bun research/track-m/active-source-probe.ts replay-input/input.json 'Inv*' 5 first",
++    "cpu": 8,
++    "memory": 14336,
++    "timeout": 180
++  },
++  {
++    "name": "overlap-reconfigure-base",
++    "cmd": "set -e; bun install --frozen-lockfile >/dev/null; LAB_SOURCE_MODEL_RETRY=0 bun research/track-m/active-source-probe.ts replay-input/input.json 'Inv2973' 5 first",
++    "cpu": 8,
++    "memory": 14336,
++    "timeout": 180
++  },
++  {
++    "name": "overlap-reconfigure-retry",
++    "cmd": "set -e; bun install --frozen-lockfile >/dev/null; LAB_SOURCE_MODEL_RETRY=1 bun research/track-m/active-source-probe.ts replay-input/input.json 'Inv2973' 5 first",
++    "cpu": 8,
++    "memory": 14336,
++    "timeout": 180
++  },
++  {
++    "name": "check",
++    "cmd": "set -e; bun install --frozen-lockfile >/dev/null; bun run check",
++    "cpu": 8,
++    "memory": 14336,
++    "timeout": 240
++  }
++]
+diff --git a/research/track-m/jobs-source-model-retained.json b/research/track-m/jobs-source-model-retained.json
+new file mode 100644
+index 00000000..cca9db9a
+--- /dev/null
++++ b/research/track-m/jobs-source-model-retained.json
+@@ -0,0 +1,30 @@
++[
++  {
++    "name": "backing-retained-source",
++    "cmd": "set -e; bun install --frozen-lockfile >/dev/null; LAB_SOURCE_MODEL_RETRY=1 LAB_SOURCE_MODEL_ROUNDS=8 bun research/track-m/active-source-probe.ts replay-input/input.json 'Inv*' 5 first",
++    "cpu": 8,
++    "memory": 14336,
++    "timeout": 180
++  },
++  {
++    "name": "overlap-retained-source",
++    "cmd": "set -e; bun install --frozen-lockfile >/dev/null; LAB_SOURCE_MODEL_RETRY=1 LAB_SOURCE_MODEL_ROUNDS=8 bun research/track-m/active-source-probe.ts replay-input/input.json 'Inv2973' 5 first",
++    "cpu": 8,
++    "memory": 14336,
++    "timeout": 180
++  },
++  {
++    "name": "source-tests",
++    "cmd": "set -e; bun install --frozen-lockfile >/dev/null; bun test core/count-recovery/source-witness-instances.test.ts core/count-recovery/field-bound-lemmas.test.ts core/count-cases.test.ts core/count-focus-proof.test.ts",
++    "cpu": 8,
++    "memory": 14336,
++    "timeout": 240
++  },
++  {
++    "name": "check-with-vendors",
++    "cmd": "set -e; bash research/track-m/prepare-vendors.sh; bun install --frozen-lockfile >/dev/null; bun run check",
++    "cpu": 8,
++    "memory": 14336,
++    "timeout": 240
++  }
++]
+diff --git a/research/track-m/jobs-source-query-capture.json b/research/track-m/jobs-source-query-capture.json
+new file mode 100644
+index 00000000..8ff8460d
+--- /dev/null
++++ b/research/track-m/jobs-source-query-capture.json
+@@ -0,0 +1,16 @@
++[
++  {
++    "name": "reconfigure-source-queries",
++    "cmd": "set -e; bun install --frozen-lockfile >/dev/null; LAB_SOURCE_DUMP=1 bun research/track-m/active-source-probe.ts replay-input/input.json 'Inv*' 5 first",
++    "cpu": 8,
++    "memory": 14336,
++    "timeout": 180
++  },
++  {
++    "name": "check",
++    "cmd": "set -e; bash research/track-m/prepare-vendors.sh; bun install --frozen-lockfile >/dev/null; bun run check; bun test core/count-recovery/source-witness-instances.test.ts",
++    "cpu": 8,
++    "memory": 14336,
++    "timeout": 240
++  }
++]
+diff --git a/research/track-m/jobs-source-witness-slice.json b/research/track-m/jobs-source-witness-slice.json
+new file mode 100644
+index 00000000..46592f83
+--- /dev/null
++++ b/research/track-m/jobs-source-witness-slice.json
+@@ -0,0 +1,16 @@
++[
++  {
++    "name": "backing-witness-slice",
++    "cmd": "set -e; bun install --frozen-lockfile >/dev/null; LAB_SOURCE_MODEL_RETRY=1 LAB_SOURCE_MODEL_ROUNDS=8 bun research/track-m/active-source-probe.ts replay-input/input.json 'Inv*' 5 first",
++    "cpu": 8,
++    "memory": 14336,
++    "timeout": 180
++  },
++  {
++    "name": "source-tests",
++    "cmd": "set -e; bun install --frozen-lockfile >/dev/null; bun test core/count-recovery/source-witness-instances.test.ts core/count-recovery/field-bound-lemmas.test.ts core/count-cases.test.ts core/count-focus-proof.test.ts",
++    "cpu": 8,
++    "memory": 14336,
++    "timeout": 240
++  }
++]
+diff --git a/research/track-m/jobs-wall-budget.json b/research/track-m/jobs-wall-budget.json
+new file mode 100644
+index 00000000..b0fab1fa
+--- /dev/null
++++ b/research/track-m/jobs-wall-budget.json
+@@ -0,0 +1,65 @@
++[
++  {
++    "name": "prepared-check",
++    "cmd": "set -e; bash research/track-m/prepare-vendors.sh; bun install --frozen-lockfile >/dev/null; bun run check; bun test core/count-recovery core/count-cases.test.ts core/count-focus-proof.test.ts",
++    "cpu": 8,
++    "memory": 14336,
++    "timeout": 300
++  },
++  {
++    "name": "mldr-pair-r1",
++    "cmd": "bash research/track-m/compare-main.sh mldr base",
++    "cpu": 8,
++    "memory": 14336,
++    "timeout": 420
++  },
++  {
++    "name": "mldr-pair-r2",
++    "cmd": "bash research/track-m/compare-main.sh mldr cand",
++    "cpu": 8,
++    "memory": 14336,
++    "timeout": 420
++  },
++  {
++    "name": "mldr-pair-r3",
++    "cmd": "bash research/track-m/compare-main.sh mldr base",
++    "cpu": 8,
++    "memory": 14336,
++    "timeout": 420
++  },
++  {
++    "name": "law-1",
++    "cmd": "set -e; bun install --frozen-lockfile >/dev/null; timeout -s KILL 60 bun research/track-m/verify-focused.ts replay-input/input.json 'one primary'",
++    "cpu": 8,
++    "memory": 14336,
++    "timeout": 120
++  },
++  {
++    "name": "law-2",
++    "cmd": "set -e; bun install --frozen-lockfile >/dev/null; timeout -s KILL 60 bun research/track-m/verify-focused.ts replay-input/input.json 'Inv3915'",
++    "cpu": 8,
++    "memory": 14336,
++    "timeout": 120
++  },
++  {
++    "name": "law-3",
++    "cmd": "set -e; bun install --frozen-lockfile >/dev/null; timeout -s KILL 60 bun research/track-m/verify-focused.ts replay-input/input.json 'Inv1758'",
++    "cpu": 8,
++    "memory": 14336,
++    "timeout": 120
++  },
++  {
++    "name": "law-4",
++    "cmd": "set -e; bun install --frozen-lockfile >/dev/null; timeout -s KILL 60 bun research/track-m/verify-focused.ts replay-input/input.json 'Inv2973'",
++    "cpu": 8,
++    "memory": 14336,
++    "timeout": 120
++  },
++  {
++    "name": "law-5",
++    "cmd": "set -e; bun install --frozen-lockfile >/dev/null; timeout -s KILL 60 bun research/track-m/verify-focused.ts replay-input/input.json 'Inv*'",
++    "cpu": 8,
++    "memory": 14336,
++    "timeout": 120
++  }
++]
+diff --git a/research/track-m/jobs-written-row-diagnosis.json b/research/track-m/jobs-written-row-diagnosis.json
+new file mode 100644
+index 00000000..2a0d7b6f
+--- /dev/null
++++ b/research/track-m/jobs-written-row-diagnosis.json
+@@ -0,0 +1,9 @@
++[
++  {
++    "name": "written-row-diagnosis",
++    "cmd": "set -e; bun install --frozen-lockfile >/dev/null; LAB_SOURCE_DUMP=1 LAB_SOURCE_DUMP_POST=1 bun research/track-m/active-source-probe.ts replay-input/input.json 'Inv*' 5 all",
++    "cpu": 8,
++    "memory": 14336,
++    "timeout": 180
++  }
++]
+diff --git a/research/track-m/jobs-written-row-replacement.json b/research/track-m/jobs-written-row-replacement.json
+new file mode 100644
+index 00000000..b009c19b
+--- /dev/null
++++ b/research/track-m/jobs-written-row-replacement.json
+@@ -0,0 +1,23 @@
++[
++  {
++    "name": "backing-active",
++    "cmd": "set -e; bun install --frozen-lockfile >/dev/null; bun research/track-m/active-source-probe.ts replay-input/input.json 'Inv*' 5 all",
++    "cpu": 8,
++    "memory": 14336,
++    "timeout": 180
++  },
++  {
++    "name": "backing-complete",
++    "cmd": "set -e; bun install --frozen-lockfile >/dev/null; timeout -s KILL 60 bun research/track-m/verify-focused.ts replay-input/input.json 'Inv*'",
++    "cpu": 8,
++    "memory": 14336,
++    "timeout": 90
++  },
++  {
++    "name": "tests",
++    "cmd": "set -e; bun install --frozen-lockfile >/dev/null; bun test core/count-recovery core/count-cases.test.ts core/count-focus-proof.test.ts",
++    "cpu": 8,
++    "memory": 14336,
++    "timeout": 240
++  }
++]
+diff --git a/research/track-m/jobs-written-row-union.json b/research/track-m/jobs-written-row-union.json
+new file mode 100644
+index 00000000..b009c19b
+--- /dev/null
++++ b/research/track-m/jobs-written-row-union.json
+@@ -0,0 +1,23 @@
++[
++  {
++    "name": "backing-active",
++    "cmd": "set -e; bun install --frozen-lockfile >/dev/null; bun research/track-m/active-source-probe.ts replay-input/input.json 'Inv*' 5 all",
++    "cpu": 8,
++    "memory": 14336,
++    "timeout": 180
++  },
++  {
++    "name": "backing-complete",
++    "cmd": "set -e; bun install --frozen-lockfile >/dev/null; timeout -s KILL 60 bun research/track-m/verify-focused.ts replay-input/input.json 'Inv*'",
++    "cpu": 8,
++    "memory": 14336,
++    "timeout": 90
++  },
++  {
++    "name": "tests",
++    "cmd": "set -e; bun install --frozen-lockfile >/dev/null; bun test core/count-recovery core/count-cases.test.ts core/count-focus-proof.test.ts",
++    "cpu": 8,
++    "memory": 14336,
++    "timeout": 240
++  }
++]
+diff --git a/research/track-m/jobs-written-source.json b/research/track-m/jobs-written-source.json
+new file mode 100644
+index 00000000..b009c19b
+--- /dev/null
++++ b/research/track-m/jobs-written-source.json
+@@ -0,0 +1,23 @@
++[
++  {
++    "name": "backing-active",
++    "cmd": "set -e; bun install --frozen-lockfile >/dev/null; bun research/track-m/active-source-probe.ts replay-input/input.json 'Inv*' 5 all",
++    "cpu": 8,
++    "memory": 14336,
++    "timeout": 180
++  },
++  {
++    "name": "backing-complete",
++    "cmd": "set -e; bun install --frozen-lockfile >/dev/null; timeout -s KILL 60 bun research/track-m/verify-focused.ts replay-input/input.json 'Inv*'",
++    "cpu": 8,
++    "memory": 14336,
++    "timeout": 90
++  },
++  {
++    "name": "tests",
++    "cmd": "set -e; bun install --frozen-lockfile >/dev/null; bun test core/count-recovery core/count-cases.test.ts core/count-focus-proof.test.ts",
++    "cpu": 8,
++    "memory": 14336,
++    "timeout": 240
++  }
++]
