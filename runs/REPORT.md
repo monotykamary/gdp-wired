@@ -3822,3 +3822,125 @@ patch was compared byte-for-byte with the frozen final-gate runtime before
 committing; subsequent edits were research-only probes and this report. The
 validated runtime repair is committed as `fd2d1dcb`; the research helpers remain
 unwired from the default proof path.
+
+## Inv2973: captured active-action source-count gaps for Section 5
+
+<a id="inv2973-active-source-gap-table"></a>
+
+**Read-only diagnosis after acceptance of `fd2d1dcb`. No default-path edits or
+new proof searches.** Section 5 was absent when this inventory began and landed
+while the table was being finalized; it has now been read. The evidence is the canonical `Inv2973 ... @step` input and the existing
+`active-source-narrow-v1/overlap-{0,1,5,6}.log`, setup/copy follow-ups in
+`active-source-resume-v1`, and `source-family-v1/overlap-family-source.log`.
+All eight captured conditional outcomes are unproved. This is not a claim that
+every action has been freshly replayed or that every listed dependency is a
+separately observed failing leaf.
+
+### Exact packet and notation
+
+`research/track-m/audit-inv2973-gaps.ts` checks the recorded candidate references
+against two metadata-only reconstructions of those cold packets, writes
+`inv2973-gap-layout-v1/audit.json`, and performs **no proving**. The two print-only
+boat jobs took 1.17 / 1.47 seconds of job time; 42.9 seconds batch elapsed includes
+scheduling. This is not a proof-runtime measurement.
+
+- `F` = first-carried packet: **41 reads, 156 candidates = 149 pairs + 7 singletons**.
+- `A` = all-carried packet: **41 reads, 175 candidates = 168 pairs + 7 singletons**.
+- Neither packet contains **any** three-term partition or five-term union.
+  This diagnoses these captured cold packets, **not** the engine's entire later
+  structured-family retry. The prototype calls `certFor(..., most=1000)`;
+  its legacy pair prefix fills before its structured tail, then focusing removes
+  entries. Generator existence alone does not put a needed identity in this packet.
+- `F84 (w$275)` means candidate index 84 in F, with source member witness
+  `w$275`. A candidate `+p -q` asks for `p <= q`; its counterexample/source
+  branch must prove the corresponding pointwise predicate at that witness.
+- `X_z(k) = Config[64*z+k]`, `V(z)=(CfgT[z],CV[z])` lexicographically,
+  `old[z]=count(X_z(k) and V(k)<=V(z))`, and
+  `D(z) := 2*old[z] <= cfgSize[z]`. `#` denotes post-state. Every member below
+  is in `0 <= k < size <= 64`.
+- Shared read IDs: `r$0/1=cfgSize#[a/b]`, `r$2/3=old#[a/b]`,
+  `r$4=xn#[a,b]`, `r$5=xm#[a,b]`, `r$6=xm#[b,a]`;
+  `r$7=inX`, `r$8=inS`, `r$9=inQ2`, `r$10=xNotS`,
+  `r$11=xAndS`, `r$12=sNotX`, `r$17=cfgSize[0]`,
+  `r$22=cfgSize[i]`, `r$23=old[i]`. All 41 bindings are in the audit JSON.
+
+### Gap table: needed fact versus what is actually available
+
+Rows marked **dependency** name the valid fact a structural design must deliver;
+rows marked **observed** also identify a failing source in the saved trace.
+Symmetric `a/b` cases are written together, not claimed as independently checked.
+
+| ID / goal and action condition | Precise missing delivered fact / source obligation | Count/member read | Does a captured candidate supply it? |
+|---|---|---|---|
+| **P — observed**, pick (`op=0`), unwritten row `z != 0` | `old#[z]=0`, hence `D#(z)`. At its source member, combine `noneCopied` with `p1(z,k)` to show `Config#[64*z+k]=0`. The changed-row case `z=0` must be split off: its old count need not be zero. | `r$2` / `r$3`; `frame$36` / `frame$38` in F. | **Present but conditional:** F146 / F148 are zero-count proposals. They fail on the unsplit active path; no theorem `old#[z]=0` for every z is missing. Setup follow-up remains unproved with A. |
+| **P/C diagonal — dependency**, both law rows are the same written row (pick or copy) | `xm#[a,b]=xm#[b,a]=0`; transport the common row size/intersection and close the integer half inequalities. Do not require the common row to be empty. | `r$5/r$6`; F152 `frame$42`, F154 `frame$44`. | Zero-difference proposals **present**. F/A38 and 39 supply `xn# <= cfgSize#`; the reverse `cfgSize# <= xn#` directions are **absent**, as are partition triples. The captures do not establish a checked diagonal sub-derivation. |
+| **C — observed**, copy (`op=1`), target row `i`, source row **0** | Correct transport is `cfgSize#[i]=cfgSize[0]`, not `cfgSize[i]`. For another row y, split `CV[y]=0` (p1: empty) from `CV[y]=1` (p2 plus Inv1758(y,0,k): same row as 0). These member facts must reach the actual transport witnesses. | Correct size pairs `r$0-r$17`, `r$1-r$17`: `frame$24..27`. Intersection/difference with row 0 use `r$27..29`. | Size equality **present**: F134–137 / A149–152. `xn#[a,b] <= xn[0,b]` is F/A49 (`w$196`); reverse-direction difference `xm#[b,a] <= xm[b,0]` is F/A86 (`w$278`). The exact `xm#[a,b] <= xm[0,b]` pair is **absent in both**. Recorded failed F110/F112 compare with the old destination size `r$22`, which is not the required copy fact. |
+| **R1 — dependency**, reconfigure (`op=5`), before replacing row i | `inQ2 <= old[i]` from `Q2(k) => X_i(k) and V(k)=V(i)`, so majority Q2 rules out `D(i)` before the step. | `r$9-r$23`; member `w$371`, with committedQuorum and Q2-subset flags at that same member. | **Absent in F; present in A114.** A113 (`w$370`) also proposes `inQ2 <= cfgSize[i]`. Presence is not a checked source proof. |
+| **R2 — dependency**, reconfigure, other row y not disabled | Derive `V(i) <= V(y)`: if `V(i)>V(y)`, Q2 and `old[y]` are disjoint majorities inside `X_i union X_y`, contradicting pre-overlap. This needs the **conditional** five-term bound `inQ2 + old[y] <= xm[i,y]+xn[i,y]+xm[y,i]` and row partitions. Instantiate pre-Inv2973 at **(i,y,hx,h_y)**, not the post-written row's half. | For y=b: `r$9+r$16-r$25-r$24-r$26`; for y=a: `r$9+r$15-r$32-r$30-r$31`. Source member must simultaneously read Q2 and the old predicate at y. | Required five-/three-term candidates **absent in F and A**, so there is no such source member in either packet. Cold `countRowBridges` preserves u/w while changing row coordinates; it does **not** supply the hx-substituted tuple. The eight recorded model-retry rounds add no Inv2973 instance. |
+| **R3 — dependency**, reconfigure, establish equal metadata with surviving y | First `CfgT[y] <= CT[i]`: under the opposite inequality Q2 is a subset of `bq[i,y]`, contradicting Inv* and Q2 majority. Combine with R2 and `CfgT[i]=CT[i]`; Inv3915 then gives `CV[y]<=CV[i]`, hence `V(y)=V(i)`. Instantiate **Inv1758(y,i,k)** at each subsequent transport member to obtain `X_y(k)=X_i(k)`. | y=a: `r$9-r$38`, member `w$386`; y=b: `r$9-r$40`, member `w$388`. Then the members of the missing R4 bridges. | Q2/bq pairs **absent in F**, **present in A122/A123**. The sibling laws exist. The recorded retry adds Inv3915 and Inv1758 at `frame$36/38` and later witnesses, but still does not check the branch. Those old-count-zero witnesses are not substitutes for the missing R4 bridge witnesses. |
+| **R4 — dependency**, reconfigure, `a=i`, `b=y!=i`, after R3 | Deliver `cfgSize#[i]=inS`, `xn#[i,y]=xAndS`, `xm#[i,y]=sNotX`, `xm#[y,i]=xNotS`, pointwise using `X_y=X_i` and the write `X_i#=S`. Swap the last two relations for the mirrored orientation. | Exact post/request bridges include `r$4-r$11`, `r$5-r$12`, `r$6-r$10`; each needs a fresh common member for its two predicates. | The size equality is **present**, F140/141 (`frame$30/31`) or A155/156. All three exact intersection/difference bridge pairs, **in both directions, are absent in both F and A**. Existing same-declaration copy candidates cannot be reported as these cross-declaration request bridges. |
+| **R5 — dependency**, finish reconfiguration overlap arithmetic | `inX=xNotS+xAndS` and `inS=sNotX+xAndS`; with R4, infer target halves `u=hy`, `w=hx` (or reversed orientation), and transport the guard overlap formula to the post law. Natural subtraction cases must preserve these equalities. | `r$7-r$10-r$11` and `r$8-r$12-r$11`, with partition members; guard halves hx/hy and target halves u/w. | No three-term candidates in either packet. Guard half inequalities are present, but they alone do not relate the free count reads. This is not fixed merely by adding another ordering of pair candidates. |
+| **S1 — dependency**, send_config (`op=6`), written row j | `old#[j]=old[i]`; for y!=j, `old#[y]<=old[y]` because only V(j) increases. Use the former for the copied row and the latter to preserve a disabled other row. | `r$2-r$23` / `r$3-r$23`, `frame$4..7`; unchanged-row witnesses `w$104` / `w$145`. | Copy-old pairs **present**: F114–117 / A129–132. Monotonicity pairs **present**: F/A20 and 30. They require the row/guard conditions, not unconditional cross-row equality. |
+| **S2 — observed**, send_config, `a=j`, `b=y` (and mirror), both guard branches | At a common member, transport `xn#[j,y]=xn[i,y]`, `xm#[j,y]=xm[i,y]`, `xm#[y,j]=xm[y,i]` through the actual flattened-row copy; retain its row-domain and offset equalities. Branch 0 is equal config term / larger CV; branch 1 is larger config term. | F47 (`w$193`), F119/120 (`frame$9/10`), F84 (`w$275`), with reverse candidates F118/F133. F84 reads `Config#[64*y+k]` and `Config#[64*j+k]` against pre `Config[64*y+k]` / `Config[64*i+k]`. | **All three equalities have both directional candidates.** F84 is still proposed=false in the tails of **both** saved guard branches, and both conditional checks fail. This is a member-source/row-composition gap, not an absent count expression. |
+
+### Rejected distractions must not become additional assumptions
+
+F146/F148 (`old#[a/b] <= 0`) recur as early SAT sources in pick, copy,
+reconfigure, and both send branches. They are legitimate speculative candidates,
+not valid unconditional invariants. Likewise F64 compares `xm#[a,b]` with the
+**reversed** pre difference `xm[b,a]`, and reconfiguration tails try F66/F68/F70
+against unrelated pre differences. Such bounds require additional alias/row
+conditions and may simply be false under the current path. A SAT source here
+is neither a reachable counterexample nor evidence that the missing theorem is
+one of those overstrong inequalities.
+
+The reconfiguration retry is particularly diagnostic: eight rounds add only
+Inv3915, Inv1758, and p1 instances, while the same zero-old sources and wrong
+copy differences persist. The valid chain is R1–R5, not a demand to prove all
+of the failed candidates.
+
+### Coverage limits / next design tests
+
+- **BecomeLeader (`op=4`)** has no matching current Inv2973 active-source receipt
+  in this captured series. Its syntactic dependency is `inS<=old[i]` (F/A99,
+  member `w$338`, canVote/subset instances), plus monotonicity of old[y] for
+  y!=i. Because rows do not change, excluding pre-D(i) should allow pre-overlap
+  to carry forward. This is a **coverage hole for Section 5 testing**, not a new
+  measured failing source or a claim that the branch checks.
+- Start (`op=2`) and UpdateTerms (`op=3`) do not change Config/CV/CfgT, the fields
+  read by Inv2973's counts. They add no corresponding source-count dependency;
+  no new per-action checked certificate is claimed here.
+- The all-carried packet is only a diagnostic alternative. The default focused
+  loop already tries all-carried then individual carried choices; this table
+  does not propose disabling a generator, changing that order, or enabling a
+  research fallback.
+
+Section 5 now proposes derivability closure followed by one arithmetic query.
+This inventory supplies a concrete precondition for its Inv2973 test: the named
+R2/R4/R5 facts are not in these cold packets. Closure over the existing pool does
+not directly add those absent candidates; it may find another proof, but their
+absence must not be mistaken for a failed ordering. The first/all packet scope
+here is not the separate 73-instance equal-row Inv* test in Section 5.6.
+
+The design can be tested against the table without a full protocol run: show
+which missing R2/R4/R5 candidate and which correctly scoped witness/half tuple it
+constructs, then replay that captured source. Existing S2 candidates instead
+need their already-named member sources discharged. **No proof budget change,
+new invariant assumption, default-path edit, or improvement in the 3/5 complete
+law result is claimed.**
+
+The audit verifies all eight captured records against the reconstructed count
+indices. Its isolated one-file type-aware lint check passes with zero warnings
+and errors (`inv2973-gap-audit-check-v1/audit-check.log`, 1.46 seconds job time).
+Together with the two metadata jobs, this work used about four seconds of boat
+job time, no new proof search, and no default-path edits.
+
+Rebuild this evidence (read-only except the output JSON):
+
+```sh
+bun research/track-m/audit-inv2973-gaps.ts
+# Optional, metadata-only packet reconstruction; no prover is called:
+supercomputer run --jobs research/track-m/jobs-inv2973-gap-layout.json \
+  --out runs/track-m/inv2973-gap-layout-replay --class interactive \
+  --data runs/track-m/canonical-capture-v1/fixtures:replay-input
+```
