@@ -23,5 +23,8 @@
     "timing": "8d5c2bc7-07b4-4c3c-bb74-543503609952",
     "suite": "e3ce5019-86f7-4982-ae4f-a97bbded5cec",
     "consensus": "286e798e-11ee-4764-b6c7-6bbed1166400"
-  }
+  },
+  "nextGateBaseline": "8214a543bc44e88d979f9e4457d7370e7e3c122b",
+  "integratedMain": "8214a543bc44e88d979f9e4457d7370e7e3c122b",
+  "activeRunsScope": "Frozen historical-source repair diagnostics, not a gate against the new main."
 }
