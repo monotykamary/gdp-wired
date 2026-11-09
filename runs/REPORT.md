@@ -1,5 +1,15 @@
 # Lane E — guarded inclusion integration
 
+**Lane D evidence blocker accepted:** the prior 84/87 vs 83/87 and
+1,073-pass / 18-skip numbers are iteration observations only, not independently
+established exact-source suite evidence. The shard parser does not establish
+roster, uniqueness, source identity or terminal completeness, and six shard
+receipts are absent from the committed tree. Hashes do not repair those gaps.
+The stronger completeness interpretation of those historical claims is
+withdrawn. No more lane-local gate tooling will be built; acceptance goes
+through Lane D’s final gate. Audit:
+`gdp-wired-verifyP/research/verify-all/final-audit-P80.md`.
+
 ## Production-premise continuation
 
 Pulled Lane B `568fc570` into this branch, including its existing Lane A
@@ -43,7 +53,7 @@ kernel. Tests cover immutable inputs, exact-witness reuse, full-cap refusal,
 missing flags, a checked generic conditional proof, and rejection of its
 unguarded strengthening.
 
-## Verified receipts
+## Iteration receipts — not acceptance evidence
 
 * `runs/mldr-incl-check-v8/`: type/lint and all four focused files passed:
   **89 tests, zero failures**. This supersedes the earlier cap-expectation
