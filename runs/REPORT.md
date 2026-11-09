@@ -1,6 +1,59 @@
-# RESUME — PAUSED at the user's request
+# RESUMED — lane E, 2026-11-10
 
-**Do not start work until the user explicitly resumes it.**
+The user explicitly resumed this lane. First action: resubmit the **unchanged**
+`integrated-check` command from the cancelled integrated-production manifest,
+on boat (`--class submission --timing --vm-type large`), source checkpoint
+`b3f8377e`, batch `20261110-000811-qbrwk7`, output
+`runs/mldr-incl-resume-check-v1/`. The controller **timed out after 600 s**
+without a job result or downloaded log. This is an infrastructure failure,
+not a type-check or proof verdict. The authenticated snapshot and close
+requests also timed out; cleanup of that exact batch is **unconfirmed**.
+Small controller/close receipts: `runs/mldr-incl-resume/`.
+
+**Committed:**
+- `1a1c37e4`: remove the duplicate `rangeInstances` import from
+  `core/counts.ts`. No count selection, proof rule or allowance changed.
+  The duplicate is visible in source; the remote compiler failure is not
+  yet captured, so this is not a claim that all compiler errors are fixed.
+- `5f8c1e59`: research-only resumed validation/replay. Correct shell quoting
+  and replace the old out-of-range 300000-byte archive request with a
+  lossless, capped archive: preserve the exact generated family and both
+  phase certificates or fail, never silently drop a required file. Four
+  archive regression tests were added, **not yet run successfully**.
+  A separate Bun process reconstructs START and STEP and reports the used
+  original premises/count instances. This remains conditional on helpers.
+
+**Submitted, not validated:**
+- `20261110-001749-c8xynq`, task `9e2450b2-a42e-4e93-bd26-ce49e427a602`,
+  `runs/mldr-incl-resume-check-v2/`: unchanged check/test command on the
+  import-fixed source (shipped tree `b1b6e375981a`).
+- task `5cae319c-b8f2-47da-b841-d6c037736e43`,
+  `runs/mldr-incl-resume-validation-v1/`, source `5f8c1e59`: six parallel
+  jobs, including original harness x3 with the unchanged 60000-unit command
+  and 75-s watchdog, the historical failed replay command as a distinct
+  diagnostic, the corrected fresh-family replay, and focused checks.
+  **Every proof job first requires `bun run check` to pass on that VM.**
+  `GENERATOR_REV` is bound to the committed source at submission.
+
+The shared scheduler's `/health` answers, but status, exact-batch snapshot,
+and close calls do not complete. Many processes (including the shared
+scheduler) have the blob-cache lock open; lock contention is a hypothesis,
+not an established root cause. No shared scheduler or another lane's VM
+was stopped. Do not start another duplicate controller or infer a verdict
+from the absence of output. Collect the existing controllers first.
+
+### For lane I / D
+
+`1a1c37e4` is the production import repair; it may already be unnecessary on
+I's conflict-resolved source. `5f8c1e59` is only diagnostic/replay plumbing,
+not a prover improvement or gate. No remote check, fresh conditional win,
+original MLDR proof, 29/29, or GATE GREEN has been established in this resume.
+The earlier Lane D audit blocker remains in force. Pre-existing untracked
+`research/claude-import/` is untouched. No main merge or push was performed.
+
+## Archived pause / exact resume plan
+
+The following checkpoint was paused at the user's request and is now resumed.
 Branch: **`claude/mldr-incl`**. Last work/receipt SHA before this documentation
 checkpoint: **`3e0d2b647608239305618f73ebc9d27890eed0ea`**. The final checkpoint
 is the commit containing this RESUME section (`git rev-parse HEAD`).

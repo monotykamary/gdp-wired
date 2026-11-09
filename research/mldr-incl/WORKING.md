@@ -1,6 +1,24 @@
-# PAUSED — resume only on explicit user instruction
+# RESUMED — user instruction, 2026-11-10
 
-See the top RESUME section of runs/REPORT.md for the checkpoint.
+The unchanged cancelled check was submitted first, batch
+`20261110-000811-qbrwk7`, and its controller timed out at 600 s with no job
+log. Authenticated close also timed out: that batch's cleanup is unconfirmed.
+Receipts: `runs/mldr-incl-resume/`.
+
+Production repair `1a1c37e4` removes the duplicate range import only.
+Research commit `5f8c1e59` adds corrected quoting, a lossless family/both-phase
+archive with four tests, and fresh-process conditional replay. None is yet
+validated remotely. Existing active tasks, **collect before duplicating**:
+- `9e2450b2-a42e-4e93-bd26-ce49e427a602`, batch
+  `20261110-001749-c8xynq`, output `runs/mldr-incl-resume-check-v2/`.
+- `5cae319c-b8f2-47da-b841-d6c037736e43`, output
+  `runs/mldr-incl-resume-validation-v1/`, six parallel source-check-guarded
+  jobs including original x3 and corrected conditional replay.
+
+The scheduler health route answers but state/close requests time out;
+no shared process or VM was stopped. No new proof experiment may execute
+before its own source check passes. See runs/REPORT.md for current status;
+the archived pause and exact resume plan follow there.
 Finished production change: 2047d2be (generic member premises, tests).
 Integrated source: 36a278e9 (B 6d69e094, A fdabeba4 as 3b500f8f,
 F 682c8dc6). No new merge or push during this checkpoint.
