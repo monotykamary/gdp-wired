@@ -1,0 +1,1 @@
+[{"name":"qalpha-check","cmd":"bash research/verify-all/check-lean.sh lean-kernel/QAlpha.lean && LEAN_PATH=lean-kernel lean -o lean-kernel/QAlpha.olean lean-kernel/QAlpha.lean && LEAN_PATH=lean-kernel lean research/verify-all/qalpha-tests.lean","cpu":4,"memory":14336,"timeout":1500,"vm_type":"large"}]

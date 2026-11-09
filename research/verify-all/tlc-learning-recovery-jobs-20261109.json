@@ -1,0 +1,16 @@
+[
+  {
+    "name": "tlc-learning_switch-states",
+    "cmd": "python3 research/verify-all/tlc-audit-run-20261109.py learning_switch 600000 --states-only --skip-broken",
+    "cpu": 4,
+    "memory": 14336,
+    "timeout": 1350
+  },
+  {
+    "name": "tlc-learning_switch-edges",
+    "cmd": "python3 research/verify-all/tlc-audit-run-20261109.py learning_switch 1800000 --skip-broken",
+    "cpu": 4,
+    "memory": 14336,
+    "timeout": 2550
+  }
+]

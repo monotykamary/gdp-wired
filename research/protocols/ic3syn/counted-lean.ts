@@ -17,7 +17,7 @@ for (const [j, id] of only.split(',').entries()) {
   parts.push(cmachineToLean(`ic${j}`, c.m, c.laws, c.proof)); ids.push(`ic${j}_laws`)
   console.log(`${id}: ${c.laws.length} laws exported`)
 }
-writeFileSync(join(dir, 'CountedIC3.lean'), `import CountMachine
+writeFileSync(join(dir, 'CountedIC3.lean'), `import QAlpha
 open Kern Cert
 set_option maxRecDepth 100000
 set_option maxHeartbeats 0

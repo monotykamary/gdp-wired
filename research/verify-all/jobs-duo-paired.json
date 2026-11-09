@@ -1,0 +1,242 @@
+[
+  {
+    "name": "paired-lock_server_sync-r1",
+    "cmd": "bash research/verify-all/run-duo-pair.sh lock_server_sync 1",
+    "cpu": 4,
+    "memory": 14336,
+    "timeout": 240,
+    "vm_type": "large"
+  },
+  {
+    "name": "paired-lock_server_sync-r2",
+    "cmd": "bash research/verify-all/run-duo-pair.sh lock_server_sync 2",
+    "cpu": 4,
+    "memory": 14336,
+    "timeout": 240,
+    "vm_type": "large"
+  },
+  {
+    "name": "paired-lock_server_sync-r3",
+    "cmd": "bash research/verify-all/run-duo-pair.sh lock_server_sync 3",
+    "cpu": 4,
+    "memory": 14336,
+    "timeout": 240,
+    "vm_type": "large"
+  },
+  {
+    "name": "paired-lock_server_async-r1",
+    "cmd": "bash research/verify-all/run-duo-pair.sh lock_server_async 1",
+    "cpu": 4,
+    "memory": 14336,
+    "timeout": 240,
+    "vm_type": "large"
+  },
+  {
+    "name": "paired-lock_server_async-r2",
+    "cmd": "bash research/verify-all/run-duo-pair.sh lock_server_async 2",
+    "cpu": 4,
+    "memory": 14336,
+    "timeout": 240,
+    "vm_type": "large"
+  },
+  {
+    "name": "paired-lock_server_async-r3",
+    "cmd": "bash research/verify-all/run-duo-pair.sh lock_server_async 3",
+    "cpu": 4,
+    "memory": 14336,
+    "timeout": 240,
+    "vm_type": "large"
+  },
+  {
+    "name": "paired-decentralized_lock-r1",
+    "cmd": "bash research/verify-all/run-duo-pair.sh decentralized_lock 1",
+    "cpu": 4,
+    "memory": 14336,
+    "timeout": 240,
+    "vm_type": "large"
+  },
+  {
+    "name": "paired-decentralized_lock-r2",
+    "cmd": "bash research/verify-all/run-duo-pair.sh decentralized_lock 2",
+    "cpu": 4,
+    "memory": 14336,
+    "timeout": 240,
+    "vm_type": "large"
+  },
+  {
+    "name": "paired-decentralized_lock-r3",
+    "cmd": "bash research/verify-all/run-duo-pair.sh decentralized_lock 3",
+    "cpu": 4,
+    "memory": 14336,
+    "timeout": 240,
+    "vm_type": "large"
+  },
+  {
+    "name": "paired-distributed_lock-r1",
+    "cmd": "bash research/verify-all/run-duo-pair.sh distributed_lock 1",
+    "cpu": 4,
+    "memory": 14336,
+    "timeout": 240,
+    "vm_type": "large"
+  },
+  {
+    "name": "paired-distributed_lock-r2",
+    "cmd": "bash research/verify-all/run-duo-pair.sh distributed_lock 2",
+    "cpu": 4,
+    "memory": 14336,
+    "timeout": 240,
+    "vm_type": "large"
+  },
+  {
+    "name": "paired-distributed_lock-r3",
+    "cmd": "bash research/verify-all/run-duo-pair.sh distributed_lock 3",
+    "cpu": 4,
+    "memory": 14336,
+    "timeout": 240,
+    "vm_type": "large"
+  },
+  {
+    "name": "paired-two_phase_commit-r1",
+    "cmd": "bash research/verify-all/run-duo-pair.sh two_phase_commit 1",
+    "cpu": 4,
+    "memory": 14336,
+    "timeout": 240,
+    "vm_type": "large"
+  },
+  {
+    "name": "paired-two_phase_commit-r2",
+    "cmd": "bash research/verify-all/run-duo-pair.sh two_phase_commit 2",
+    "cpu": 4,
+    "memory": 14336,
+    "timeout": 240,
+    "vm_type": "large"
+  },
+  {
+    "name": "paired-two_phase_commit-r3",
+    "cmd": "bash research/verify-all/run-duo-pair.sh two_phase_commit 3",
+    "cpu": 4,
+    "memory": 14336,
+    "timeout": 240,
+    "vm_type": "large"
+  },
+  {
+    "name": "paired-ticket_lock-r1",
+    "cmd": "bash research/verify-all/run-duo-pair.sh ticket_lock 1",
+    "cpu": 4,
+    "memory": 14336,
+    "timeout": 240,
+    "vm_type": "large"
+  },
+  {
+    "name": "paired-ticket_lock-r2",
+    "cmd": "bash research/verify-all/run-duo-pair.sh ticket_lock 2",
+    "cpu": 4,
+    "memory": 14336,
+    "timeout": 240,
+    "vm_type": "large"
+  },
+  {
+    "name": "paired-ticket_lock-r3",
+    "cmd": "bash research/verify-all/run-duo-pair.sh ticket_lock 3",
+    "cpu": 4,
+    "memory": 14336,
+    "timeout": 240,
+    "vm_type": "large"
+  },
+  {
+    "name": "paired-toy_consensus_forall-r1",
+    "cmd": "bash research/verify-all/run-duo-pair.sh toy_consensus_forall 1",
+    "cpu": 4,
+    "memory": 14336,
+    "timeout": 240,
+    "vm_type": "large"
+  },
+  {
+    "name": "paired-toy_consensus_forall-r2",
+    "cmd": "bash research/verify-all/run-duo-pair.sh toy_consensus_forall 2",
+    "cpu": 4,
+    "memory": 14336,
+    "timeout": 240,
+    "vm_type": "large"
+  },
+  {
+    "name": "paired-toy_consensus_forall-r3",
+    "cmd": "bash research/verify-all/run-duo-pair.sh toy_consensus_forall 3",
+    "cpu": 4,
+    "memory": 14336,
+    "timeout": 240,
+    "vm_type": "large"
+  },
+  {
+    "name": "paired-consensus_wo_decide-r1",
+    "cmd": "bash research/verify-all/run-duo-pair.sh consensus_wo_decide 1",
+    "cpu": 4,
+    "memory": 14336,
+    "timeout": 240,
+    "vm_type": "large"
+  },
+  {
+    "name": "paired-consensus_wo_decide-r2",
+    "cmd": "bash research/verify-all/run-duo-pair.sh consensus_wo_decide 2",
+    "cpu": 4,
+    "memory": 14336,
+    "timeout": 240,
+    "vm_type": "large"
+  },
+  {
+    "name": "paired-consensus_wo_decide-r3",
+    "cmd": "bash research/verify-all/run-duo-pair.sh consensus_wo_decide 3",
+    "cpu": 4,
+    "memory": 14336,
+    "timeout": 240,
+    "vm_type": "large"
+  },
+  {
+    "name": "paired-ring_leader_election-r1",
+    "cmd": "bash research/verify-all/run-duo-pair.sh ring_leader_election 1",
+    "cpu": 4,
+    "memory": 14336,
+    "timeout": 240,
+    "vm_type": "large"
+  },
+  {
+    "name": "paired-ring_leader_election-r2",
+    "cmd": "bash research/verify-all/run-duo-pair.sh ring_leader_election 2",
+    "cpu": 4,
+    "memory": 14336,
+    "timeout": 240,
+    "vm_type": "large"
+  },
+  {
+    "name": "paired-ring_leader_election-r3",
+    "cmd": "bash research/verify-all/run-duo-pair.sh ring_leader_election 3",
+    "cpu": 4,
+    "memory": 14336,
+    "timeout": 240,
+    "vm_type": "large"
+  },
+  {
+    "name": "paired-sharded_key_value_store-r1",
+    "cmd": "bash research/verify-all/run-duo-pair.sh sharded_key_value_store 1",
+    "cpu": 4,
+    "memory": 14336,
+    "timeout": 240,
+    "vm_type": "large"
+  },
+  {
+    "name": "paired-sharded_key_value_store-r2",
+    "cmd": "bash research/verify-all/run-duo-pair.sh sharded_key_value_store 2",
+    "cpu": 4,
+    "memory": 14336,
+    "timeout": 240,
+    "vm_type": "large"
+  },
+  {
+    "name": "paired-sharded_key_value_store-r3",
+    "cmd": "bash research/verify-all/run-duo-pair.sh sharded_key_value_store 3",
+    "cpu": 4,
+    "memory": 14336,
+    "timeout": 240,
+    "vm_type": "large"
+  }
+]

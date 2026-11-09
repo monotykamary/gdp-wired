@@ -1,0 +1,12 @@
+[
+  {
+    "name": "engine-trust-census-862592db-final",
+    "cmd": "bun research/verify-all/engine-trust-scan-862592db.ts",
+    "env": {
+      "AUDIT_SECTION": "census"
+    },
+    "cpu": 1,
+    "memory": 2,
+    "timeout": 120
+  }
+]

@@ -1,0 +1,9 @@
+[
+  {
+    "name": "model-source-artifact-check",
+    "cmd": "bun research/verify-all/model-source-artifact-check-20261109.ts",
+    "cpu": 1,
+    "memory": 2,
+    "timeout": 60
+  }
+]

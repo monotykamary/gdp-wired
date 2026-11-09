@@ -1,0 +1,6 @@
+[
+ {"name":"qalpha","cmd":"bash research/verify-all/check-lean.sh lean-kernel/QAlpha.lean && LEAN_PATH=lean-kernel lean -o lean-kernel/QAlpha.olean lean-kernel/QAlpha.lean && LEAN_PATH=lean-kernel lean research/verify-all/qalpha-tests.lean","cpu":4,"memory":14336,"timeout":900,"vm_type":"large"},
+ {"name":"receipts","cmd":"bun research/verify-all/export-fix-receipts.ts evidence","cpu":2,"memory":4096,"timeout":300,"vm_type":"large"},
+ {"name":"source","cmd":"bun install --frozen-lockfile >/dev/null && bun scripts/gen-lean-library.ts --check && bun test lean-kernel/export-shape.test.ts lean-kernel/qalpha.test.ts research/verify-all/capture-alpha.test.ts && bun research/verify-all/paxos-lean-source-check.ts","cpu":8,"memory":14336,"timeout":900,"vm_type":"large"},
+ {"name":"commitlint","cmd":"bunx @commitlint/cli --config research/egraph/historical/commitlint.config.cjs < evidence/messages/commit.txt","cpu":2,"memory":4096,"timeout":300,"vm_type":"large"}
+]
