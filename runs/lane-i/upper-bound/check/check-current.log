@@ -1,0 +1,8 @@
+gdp-ts.tar: OK
+handwired.tar: OK
+main.tar: OK
+Found 0 warnings and 0 errors.
+Finished in 24.6s on 1479 files with 100 rules using 6 threads.
+
+--- stderr ---
+$ tsc -p . && oxlint --type-aware --deny-warnings --disable-nested-config

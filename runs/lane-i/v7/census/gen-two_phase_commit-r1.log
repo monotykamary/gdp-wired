@@ -1,0 +1,12 @@
+gdp-ts.tar: OK
+handwired.tar: OK
+main.tar: OK
+{"candidate":"704efc27694151cd4797707ebf5b8aea5b8df318","baseline":"b788e1959bba1f2e8aa1f94d4cf7c0eb163a2f9c","archives":{"main.tar":"c593e659eb2d22592f82ab291a63a057679eaf11e8086ed0eed5a972c57745fe","handwired.tar":"73d44548dbe109a40ac933406324e17d7dee39e7dff1a6f1270ed030c31c1da4","gdp-ts.tar":"75d367da15decb1fefce2ae72ae50e7f3f737989094a760fde643c5b1f5c1496"}}
+model name	: AMD EPYC 4585PX 16-Core Processor
+LANE_I_BEGIN census 1 two_phase_commit base
+{"id":"two_phase_commit","count":34,"wallMs":4146.977077,"phases":{"guards":4.970628000000005,"small":703.4140629999999,"candidates":3431.475338},"states":[121,1083],"counts":[],"cprof":{"small":0.014256000000045788,"cubes":3232.6023880000002,"filter":177.45060300000023}}
+LANE_I_END census 1 two_phase_commit base
+LANE_I_BEGIN census 1 two_phase_commit candidate
+{"id":"two_phase_commit","count":34,"wallMs":2752.13179,"phases":{"guards":6.931669999999997,"small":814.1271529999999,"candidates":1922.9047759999999},"states":[121,1083],"counts":[],"cprof":{"small":0.02820299999996223,"cubes":1716.9540579999998,"filter":177.07068299999992,"quorumFilter":0.015489000000343367}}
+LANE_I_END census 1 two_phase_commit candidate
+LANE_I_CENSUS {"id":"two_phase_commit","repeat":1,"identical":true,"base":{"count":34,"hash":"4a1828f36f3f69afb92df8b6e558119a6e771236afba62b1d7742faa6a656512","wallMs":4146.977077,"phases":{"guards":4.970628000000005,"small":703.4140629999999,"candidates":3431.475338}},"candidate":{"count":34,"hash":"4a1828f36f3f69afb92df8b6e558119a6e771236afba62b1d7742faa6a656512","wallMs":2752.13179,"phases":{"guards":6.931669999999997,"small":814.1271529999999,"candidates":1922.9047759999999}}}

@@ -1,0 +1,12 @@
+gdp-ts.tar: OK
+handwired.tar: OK
+main.tar: OK
+{"candidate":"d99480e8","baseline":"b788e1959bba1f2e8aa1f94d4cf7c0eb163a2f9c","archives":{"main.tar":"c593e659eb2d22592f82ab291a63a057679eaf11e8086ed0eed5a972c57745fe","handwired.tar":"73d44548dbe109a40ac933406324e17d7dee39e7dff1a6f1270ed030c31c1da4","gdp-ts.tar":"75d367da15decb1fefce2ae72ae50e7f3f737989094a760fde643c5b1f5c1496"}}
+model name	: AMD EPYC 4585PX 16-Core Processor
+LANE_I_BEGIN census 1 client_server_db_ae base
+{"id":"client_server_db_ae","count":15,"wallMs":6679.883610000001,"phases":{"guards":2.2002840000000035,"small":3189.112761,"candidates":3485.2961179999998},"states":[4481],"counts":[],"cprof":{"small":0.01131100000020524,"cubes":3316.263853,"filter":145.75685900000008}}
+LANE_I_END census 1 client_server_db_ae base
+LANE_I_BEGIN census 1 client_server_db_ae candidate
+{"id":"client_server_db_ae","count":15,"wallMs":5823.294828,"phases":{"guards":2.298088,"small":2585.9631980000004,"candidates":3231.9881020000003},"states":[4481],"counts":[],"cprof":{"small":0.016920999999911146,"cubes":3046.978159,"filter":164.61791999999969,"quorumFilter":0.007824999999684223}}
+LANE_I_END census 1 client_server_db_ae candidate
+LANE_I_CENSUS {"id":"client_server_db_ae","repeat":1,"identical":true,"base":{"count":15,"hash":"24c730901be1d47def8fd4ffa11b87143b70f2ca664f3d6feb205397336ca64f","wallMs":6679.883610000001,"phases":{"guards":2.2002840000000035,"small":3189.112761,"candidates":3485.2961179999998}},"candidate":{"count":15,"hash":"24c730901be1d47def8fd4ffa11b87143b70f2ca664f3d6feb205397336ca64f","wallMs":5823.294828,"phases":{"guards":2.298088,"small":2585.9631980000004,"candidates":3231.9881020000003}}}

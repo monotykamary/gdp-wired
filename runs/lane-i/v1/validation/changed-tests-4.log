@@ -1,0 +1,222 @@
+bun test v1.4.3 (c6da4a4d3)
+
+--- stderr ---
+
+core/count-witness-flags.test.ts:
+(pass) selected count witnesses receive relevant universal flags, without recursive count reads [9.59ms]
+
+core/wall.test.ts:
+(pass) completion headroom is bounded, protocol independent, and leaves counted fuel unchanged [0.93ms]
+(pass) an expired counted call stops before generation and spends no counted work [0.46ms]
+cyclic: {"kind":"machine","name":"deadline identity","cert":true,"usual":true,"cyclic":true,"ms":12,"usualMs":1,"route":"translated","leaves":10,"regrown":0,"splits":5,"carried":1,"uncarried":0,"cached":0}
+(pass) the public rule deadline includes preflight and cannot be extended by a nested budget [17.69ms]
+(pass) interrupted sampling never caches a partial graph or an empty success [75.36ms]
+(pass) preflight binding enumeration checks the wall before charging another tuple [0.56ms]
+(pass) binding enumeration observes the wall, and checkpoints do not debit the counted clock [36.33ms]
+
+core/count-focus-proof.test.ts:
+(pass) finite-input focused recovery is the default and keeps an explicit opt-out [0.16ms]
+(pass) focused finite-count recovery keeps the selected step packet instead of rebuilding its full pool [14.15ms]
+
+core/counts-structured.test.ts:
+(pass) failed ordinary families can use structured witnesses without accepting a false partition [120.05ms]
+
+core/count-cert-transport.test.ts:
+(pass) counted support includes independent lemma source slices [0.71ms]
+(pass) complete counted certificates retain cuts across reordered and enlarged contexts [1.17ms]
+(pass) counted certificate transport does not extend expired deadlines [0.11ms]
+
+core/runtime-keys.test.ts:
+(pass) the compiled key helpers are sorted arrays and agree with the interpreter on every-key writes [47.40ms]
+(pass) an inherited enumerable member of the maps dictionary is not a map of the state [0.62ms]
+
+kernel/prover-row-cache.test.ts:
+(pass) row retention counts constraint weight and keeps the most recently used entry [0.08ms]
+(pass) row retention rejects invalid budgets and supports a zero row budget [0.04ms]
+(pass) row retention also bounds zero-weight entries without changing returned arrays [0.04ms]
+
+core/count-recovery/guard-cases.test.ts:
+(pass) default Boolean activation covers both branches (impossible=true) [1.39ms]
+(pass) default Boolean activation covers both branches (impossible=false) [3.27ms]
+(pass) activation proofs retain their original non-empty path scope [0.15ms]
+(pass) activation proposals pass the complete source check (deferred=false) [0.27ms]
+(pass) activation proposals pass the complete source check (deferred=true) [0.15ms]
+
+core/count-recovery/conditional-proof.test.ts:
+(pass) metadata is untrusted, root-local, and checked under ordinary entry paths [0.54ms]
+(pass) mixed ordinary and conditional siblings globalize at an empty root [0.27ms]
+(pass) rootless conditional cuts keep their guards as well as the subtree entry scope [0.36ms]
+(pass) cross-goal added and reordered hypotheses preserve independent slices [0.38ms]
+(pass) unsliced source cuts become explicit slices and do not assume added hypotheses [0.23ms]
+(pass) inactive cuts cannot be used or activated by another cut [0.22ms]
+(pass) missing target rows and missing source-slice hypotheses refuse exact transport [0.14ms]
+(pass) removed guard hypotheses are discharged by explicit entry conditions, not assumed [0.52ms]
+(pass) malformed independent cuts are refused by checking, transport and collection [0.10ms]
+(pass) constant-positive target row short-circuits obsolete source rows [0.18ms]
+(pass) duplicate path atoms keep rows and negcut-first lookup semantics [0.20ms]
+(pass) ordinary siblings reindex when global cuts change their leaf rows [0.23ms]
+(pass) transport can prune a known split without losing a descendant mark [0.16ms]
+(pass) ordinary square and product references follow the relocated base rows [0.28ms]
+(pass) ordinary checking retains the kernel constant and repeated split refusals [0.06ms]
+(pass) retarget cache hits across unrelated scopes and equivalent target objects [0.57ms]
+(pass) retarget cache distinguishes slice vectors and never covers missing hypotheses [0.18ms]
+(pass) retarget cache does not alias equal slice vectors with different source content [0.19ms]
+(pass) warm pre-check caches do not replace final kernel verification [0.21ms]
+(pass) expired absolute wall deadlines never produce certificates [0.04ms]
+
+core/count-recovery/scalar-guards.test.ts:
+(pass) lexicographic candidates use field anchors, not row aliases (plain) [1.33ms]
+(pass) lexicographic candidates use field anchors, not row aliases (renamed_) [0.40ms]
+(pass) only active relevant forall flags supply anchors, preferring the positive carried count [0.81ms]
+(pass) raw and encoded flag references are traversed (false) [0.23ms]
+(pass) raw and encoded flag references are traversed (true) [0.13ms]
+(pass) known root comparisons are not re-proposed and false scopes are dropped [0.39ms]
+(pass) optional source comparisons retain only known row/input/parameter scalar cells [0.34ms]
+(pass) goal hints use only the candidate row pair, and lex conjunctions use distinct fields [0.22ms]
+(pass) two-term post/pre frames use candidate-row field equalities, including their conjunction [0.19ms]
+(pass) keyless frame finds its actor only in the body [0.14ms]
+(pass) keyless frame finds its actor only in the anchor [0.11ms]
+(pass) primitive Boolean partitions do not rescan or propose broad goal fields [0.05ms]
+(pass) an oversized or cyclic source tail does not suppress the selected count guards [4.44ms]
+(pass) large candidate families stay bounded and deterministic [0.53ms]
+(pass) unknown reads, malformed ASTs, cyclic ASTs and recursive flag aliases fail conservatively [0.09ms]
+(pass) packed read keys contribute only their row variables; unsupported packing is refused [0.19ms]
+
+core/count-recovery/rebase-path.test.ts:
+(pass) path reindexing removes a redundant numeric assumption without searching [0.27ms]
+(pass) path reindexing keeps a split needed to expose a conditional row [0.14ms]
+(pass) a reindexed proposal is not a certificate without the final check [0.06ms]
+(pass) derived cuts are removed only when the retained branch works without them [0.38ms]
+
+core/count-recovery/live-dependencies.test.ts:
+(pass) scalar context retains the source stride bound [4.06ms]
+(pass) scalar context does not invent a missing stride bound [0.81ms]
+(pass) dependency slices ignore inactive witnesses without rewriting source terms [0.10ms]
+(pass) small cores recover only their own existing witness guards [0.92ms]
+(pass) active implications expose independently sliceable conjuncts at the original path [0.26ms]
+
+core/count-recovery/boolean-core.test.ts:
+(pass) Boolean union core checks membership cases [3.20ms]
+(pass) Boolean union core does not invent the subset premise [1.32ms]
+(pass) witness key congruence checks a natural-subtraction alias [1.73ms]
+(pass) witness key congruence does not assume row equality [1.11ms]
+(pass) lowered Boolean writes remain shared membership choices in a partition [2.70ms]
+(pass) a partition CInst checks directly in forward direction [0.81ms]
+(pass) a partition CInst checks directly in reverse direction [0.84ms]
+(pass) packed copy offsets check through their row-order guard [3.32ms]
+(pass) packed copy offsets do not hide a wrong offset [4.05ms]
+(pass) primitive copy guards outrank compound cell-key aliases in the fixed pool [0.20ms]
+(pass) inactive Boolean arms stay pruned inside a forced indicator [0.15ms]
+(pass) a forced comparison still exposes its conditional operands [0.10ms]
+(pass) inactive scalar writes do not occupy the witness case pool [1.73ms]
+(pass) inactive scalar writes remain open without the selector [0.67ms]
+(pass) conditional indicator copy checks a non-newer destination [7.47ms]
+(pass) conditional indicator copy does not invent the version guard [2.00ms]
+(pass) packed conditional indicator copy checks a non-newer destination [92.72ms]
+(pass) packed conditional indicator copy does not invent the version guard [7.42ms]
+(pass) witness field comparisons expose an impossible indicator [0.72ms]
+(pass) witness field comparisons remain unproved without the bound [0.27ms]
+(pass) a point update proposes its witness-versus-actor equality [0.41ms]
+(pass) forced facts leave room for Boolean proposals (valid) [18.72ms]
+(pass) forced facts leave room for Boolean proposals (missing subset) [5.36ms]
+(pass) witness-domain guards follow a checked row equality [8.43ms]
+(pass) witness-domain guards are not assumed across rows [1.28ms]
+
+core/count-recovery/field-demand.test.ts:
+(pass) active leaf draws conserve the original allowance and never extend it [0.07ms]
+(pass) field demand distinguishes core, model, absence and missing observation [0.30ms]
+(pass) a parent observation cannot claim demand absence at a stronger child scope [0.06ms]
+(pass) nested attempt costs are exclusive and both are recorded on unwind [0.08ms]
+(pass) disabled observer does not inspect a goal or alter the candidate [0.01ms]
+
+research/mldr-incl/gate-evidence.test.ts:
+(pass) exact 29x3, ten paired, and 29 broken rosters are accepted with both pins [2.45ms]
+(pass) duplicated protocol under another expected filename fails despite 87 logs and receipts [0.98ms]
+(pass) renamed duplicate replacing a different protocol fails the exact roster [0.65ms]
+(pass) base and candidate protocol identities cannot diverge [0.09ms]
+(pass) base and candidate repeat identities cannot diverge [0.46ms]
+(pass) candidate SHA must match the independently requested revision [0.09ms]
+(pass) a forged candidate SHA in the pair markers fails [0.09ms]
+(pass) both source archive hashes must match the manifest [0.08ms]
+(pass) legacy marker envelopes without candidate binding are rejected [0.08ms]
+(pass) duplicate receipts cannot hide a missing expected case [0.52ms]
+(pass) duplicate JSON outcomes and a missing end marker are rejected [0.18ms]
+(pass) wrong result identity and proofs above the strict budget are rejected [0.18ms]
+(pass) an accepted false proof in a broken case blocks the gate [0.26ms]
+
+research/track-m/section18.test.ts:
+(pass) goal table round-trips shared proof context without column renaming [0.14ms]
+(pass) normalization removes read allocation identities but preserves keys and post-state [0.14ms]
+(pass) a quantified hash suffix is not a post-state scalar or a guard [0.08ms]
+(pass) linear comparison keys coalesce strict bounds, zero terms and common factors [0.27ms]
+(pass) observer frames nest exactly and are disabled in controls [0.09ms]
+
+research/track-m/section15-share.test.ts:
+(pass) each attempt receives an even share of what remains, not the round-start balance [0.02ms]
+(pass) shares and unchanged support draws are nonnegative and bounded by the current pool [0.42ms]
+(pass) local support and caller ceilings are unchanged [0.02ms]
+
+research/track-m/score-main-pairs.test.ts:
+(pass) strict pair parser retains both original protocol phases [0.18ms]
+(pass) outer timeout overrides even an emitted positive result [0.06ms]
+(pass) a missing phase or wrong baseline cannot pass [0.05ms]
+(pass) main refutations are required, while unresolved negative timing is cost-only [0.01ms]
+(pass) new negative proofs are improvements, never false positive proofs [0.01ms]
+
+research/track-m/guard-cases.test.ts:
+(pass) Boolean activation covers a disjunction and its complement [3.00ms]
+(pass) Boolean activation does not prove a possible source [1.58ms]
+(pass) activation proofs retain their original non-empty path scope [0.30ms]
+(pass) source-only activation stays checked and does not mutate its input goal [0.35ms]
+(pass) activation cases cannot turn a satisfiable unrestricted goal into a proof [0.42ms]
+(pass) activation case leaves lift to a checked complete tree (deferred=false) [0.44ms]
+(pass) activation case leaves lift to a checked complete tree (deferred=true) [0.30ms]
+
+research/track-m/section14-root-admission.test.ts:
+(pass) a root count identity is checked independently before admission [3.26ms]
+
+research/track-m/pack-section10-archive.test.ts:
+(pass) archive packing retains one nested result directory with disambiguated names [12.46ms]
+
+research/track-m/section8-incremental-rows.test.ts:
+(pass) incremental rows equal the unchanged builder across sibling paths and row aliases [1.21ms]
+(pass) newly read decisions and duplicate hypotheses remain exact [0.24ms]
+
+research/track-m/field-bound-lemmas.test.ts:
+(pass) empty-count candidates are post-state singleton upper bounds on field comparisons [0.12ms]
+(pass) a singleton empty count checks at a zero threshold [6.47ms]
+(pass) a singleton empty count is not assumed empty [2.69ms]
+(pass) numeric count bridges include nested path cells but omit unrelated reads [0.27ms]
+(pass) strict successor member bounds suggest checked field ceilings without protocol names [3.61ms]
+(pass) ceilings retain input-key fields used by a write beside the post-count target [0.21ms]
+(pass) equal per-member fields also suggest checked ceiling candidates [0.75ms]
+(pass) equal row keys produce checked count-read alias cuts [1.56ms]
+(pass) ceiling slices keep carried membership encoded as 1 <= the set cell [16.37ms]
+
+research/track-m/model-count-picks.test.ts:
+(pass) model count picks retain distinct symbolic witnesses and remain kernel checked [5.23ms]
+
+research/track-m/census-integrity-audit.test.ts:
+(pass) measurement integrity > timing may vary without changing work [0.21ms]
+(pass) measurement integrity > reject changed counted work [0.07ms]
+(pass) measurement integrity > reject changed checker counts [0.04ms]
+(pass) measurement integrity > reject extra instrumented sites [0.05ms]
+(pass) measurement integrity > reject unchecked results [0.03ms]
+(pass) measurement integrity > reject incomplete runs [0.03ms]
+(pass) measurement integrity > reject changed installed source [0.02ms]
+(pass) measurement integrity > reject reordered laws [0.02ms]
+(pass) measurement integrity > plain controls still require equal work [0.03ms]
+
+research/track-m/wall-profile.test.ts:
+(pass) wall profile accounts for nested phases without double counting [0.11ms]
+(pass) native subphases are subtracted and thrown calls still close their timer [0.05ms]
+(pass) disabled profiling does not read its clock or change a result [0.01ms]
+
+research/track-m/action-guard.test.ts:
+(pass) action guards use the selected operation and ground its quantified flag [0.13ms]
+(pass) the active quantified flag selects its carried set without protocol names [0.10ms]
+
+ 159 pass
+ 0 fail
+ 5629 expect() calls
+Ran 159 tests across 27 files. [641.00ms]

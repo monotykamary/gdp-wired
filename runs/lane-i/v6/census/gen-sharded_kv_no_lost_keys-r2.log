@@ -1,0 +1,12 @@
+gdp-ts.tar: OK
+handwired.tar: OK
+main.tar: OK
+{"candidate":"16818ecaa40a5d65fdb084ac0c37efe8d2163d36","baseline":"b788e1959bba1f2e8aa1f94d4cf7c0eb163a2f9c","archives":{"main.tar":"c593e659eb2d22592f82ab291a63a057679eaf11e8086ed0eed5a972c57745fe","handwired.tar":"73d44548dbe109a40ac933406324e17d7dee39e7dff1a6f1270ed030c31c1da4","gdp-ts.tar":"75d367da15decb1fefce2ae72ae50e7f3f737989094a760fde643c5b1f5c1496"}}
+model name	: AMD EPYC 4585PX 16-Core Processor
+LANE_I_BEGIN census 2 sharded_kv_no_lost_keys candidate
+{"id":"sharded_kv_no_lost_keys","count":6,"wallMs":2298.887699,"phases":{"guards":2.7800499999999957,"small":2018.6840269999998,"candidates":273.682581},"states":[457,3375],"counts":[],"cprof":{"small":0.01928700000007666,"cubes":213.2022710000001,"filter":43.88657899999998,"quorumFilter":0.00769399999990128}}
+LANE_I_END census 2 sharded_kv_no_lost_keys candidate
+LANE_I_BEGIN census 2 sharded_kv_no_lost_keys base
+{"id":"sharded_kv_no_lost_keys","count":6,"wallMs":3536.332191,"phases":{"guards":2.9809570000000036,"small":2748.566638,"candidates":781.108596},"states":[457,3375],"counts":[],"cprof":{"small":0.01121000000011918,"cubes":738.0965849999998,"filter":31.118551000000025}}
+LANE_I_END census 2 sharded_kv_no_lost_keys base
+LANE_I_CENSUS {"id":"sharded_kv_no_lost_keys","repeat":2,"identical":true,"base":{"count":6,"hash":"cb05fe1bc7dea38632ad678e7d4fa6df1277ffe5c8166b450c13a43b1c83597e","wallMs":3536.332191,"phases":{"guards":2.9809570000000036,"small":2748.566638,"candidates":781.108596}},"candidate":{"count":6,"hash":"cb05fe1bc7dea38632ad678e7d4fa6df1277ffe5c8166b450c13a43b1c83597e","wallMs":2298.887699,"phases":{"guards":2.7800499999999957,"small":2018.6840269999998,"candidates":273.682581}}}

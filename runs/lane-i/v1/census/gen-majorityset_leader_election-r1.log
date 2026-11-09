@@ -1,0 +1,9 @@
+{"candidate":"5440a7b87ead19fcc02b9b8be86df382088d9cdf","baseline":"b788e1959bba1f2e8aa1f94d4cf7c0eb163a2f9c","archives":{"main.tar":"c593e659eb2d22592f82ab291a63a057679eaf11e8086ed0eed5a972c57745fe","handwired.tar":"73d44548dbe109a40ac933406324e17d7dee39e7dff1a6f1270ed030c31c1da4","gdp-ts.tar":"75d367da15decb1fefce2ae72ae50e7f3f737989094a760fde643c5b1f5c1496"}}
+model name	: AMD Ryzen 9 9950X 16-Core Processor
+LANE_I_BEGIN census 1 majorityset_leader_election base
+{"id":"majorityset_leader_election","count":17,"wallMs":1393.164348,"phases":{"guards":2.0908170000000013,"small":43.977389,"candidates":1340.217198},"states":[27,400],"counts":["voters"],"cprof":{"small":0.008295000000003938,"cubes":1316.241311,"filter":19.97056500000008}}
+LANE_I_END census 1 majorityset_leader_election base
+LANE_I_BEGIN census 1 majorityset_leader_election candidate
+{"id":"majorityset_leader_election","count":17,"wallMs":833.229682,"phases":{"guards":2.2239980000000017,"small":34.571298000000006,"candidates":790.0020059999999},"states":[27,400],"counts":["voters"],"cprof":{"small":0.007033999999990215,"cubes":765.79363,"filter":20.15604499999995,"quorumFilter":0.011320999999952619}}
+LANE_I_END census 1 majorityset_leader_election candidate
+LANE_I_CENSUS {"id":"majorityset_leader_election","repeat":1,"identical":true,"base":{"count":17,"hash":"bb147d46a7fb370560860dfd5441416683ec8c4c8a845d78cba57f199aba247f","wallMs":1393.164348,"phases":{"guards":2.0908170000000013,"small":43.977389,"candidates":1340.217198}},"candidate":{"count":17,"hash":"bb147d46a7fb370560860dfd5441416683ec8c4c8a845d78cba57f199aba247f","wallMs":833.229682,"phases":{"guards":2.2239980000000017,"small":34.571298000000006,"candidates":790.0020059999999}}}

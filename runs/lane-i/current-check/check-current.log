@@ -1,0 +1,4 @@
+research/lane-i/summarize.ts(47,184): error TS18048: 'j.placement' is possibly 'undefined'.
+
+--- stderr ---
+$ tsc -p . && oxlint --type-aware --deny-warnings --disable-nested-config

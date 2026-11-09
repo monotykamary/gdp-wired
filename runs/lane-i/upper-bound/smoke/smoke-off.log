@@ -1,0 +1,190 @@
+gdp-ts.tar: OK
+handwired.tar: OK
+main.tar: OK
+core/accel.ts: OK
+core/bitsets.ts: OK
+core/bmc.ts: OK
+core/c/reader.ts: OK
+core/calendar.ts: OK
+core/carry.ts: OK
+core/chart.ts: OK
+core/check.ts: OK
+core/cli.ts: OK
+core/compile-lean.ts: OK
+core/compose.ts: OK
+core/conformance.ts: OK
+core/count-cases.ts: OK
+core/count-cert-grow.ts: OK
+core/count-cert-transport.ts: OK
+core/count-completion.ts: OK
+core/count-cubes.ts: OK
+core/count-demand.ts: OK
+core/count-facts.ts: OK
+core/count-focus-proof.ts: OK
+core/count-focused.ts: OK
+core/count-ranges.ts: OK
+core/count-recovery/action-guard.ts: OK
+core/count-recovery/boolean-core.ts: OK
+core/count-recovery/carried-case.ts: OK
+core/count-recovery/conditional-check-cache.ts: OK
+core/count-recovery/conditional-cuts.ts: OK
+core/count-recovery/conditional-proof.ts: OK
+core/count-recovery/derivability-closure.ts: OK
+core/count-recovery/empty-count-source.ts: OK
+core/count-recovery/field-bound-lemmas.ts: OK
+core/count-recovery/field-case.ts: OK
+core/count-recovery/field-demand.ts: OK
+core/count-recovery/field-only.ts: OK
+core/count-recovery/fold-path.ts: OK
+core/count-recovery/frame-lemmas.ts: OK
+core/count-recovery/guard-cases.ts: OK
+core/count-recovery/key-closure.ts: OK
+core/count-recovery/leaf-allowance.ts: OK
+core/count-recovery/lift-count-proxies.ts: OK
+core/count-recovery/live-dependencies.ts: OK
+core/count-recovery/member-inclusions.ts: OK
+core/count-recovery/natural-cases.ts: OK
+core/count-recovery/ops.ts: OK
+core/count-recovery/pre-state-source.ts: OK
+core/count-recovery/rebase-path.ts: OK
+core/count-recovery/rename-proof.ts: OK
+core/count-recovery/row-cases.ts: OK
+core/count-recovery/scalar-guards.ts: OK
+core/count-recovery/source-memo.ts: OK
+core/count-recovery/source-witness-instances.ts: OK
+core/count-select.ts: OK
+core/count-support.ts: OK
+core/count-unions.ts: OK
+core/count-witness-flags.ts: OK
+core/count-write-frames.ts: OK
+core/counts.ts: OK
+core/cycles.ts: OK
+core/cyclic.ts: OK
+core/data-synth.ts: OK
+core/data.ts: OK
+core/discover.ts: OK
+core/draft.ts: OK
+core/dsl.ts: OK
+core/dsl.types.ts: OK
+core/effect-prims.ts: OK
+core/effect-schedule.ts: OK
+core/effect-schema.ts: OK
+core/effect-schema.types.ts: OK
+core/effect.ts: OK
+core/exists.ts: OK
+core/export-lean.ts: OK
+core/extract-c.ts: OK
+core/extract-check.ts: OK
+core/extract-ex.ts: OK
+core/extract-fuzz.ts: OK
+core/extract-go-check.ts: OK
+core/extract-go.ts: OK
+core/extract-ir.ts: OK
+core/extract-jvm.ts: OK
+core/extract-orm.ts: OK
+core/extract-print.ts: OK
+core/extract-py.ts: OK
+core/extract-rb.ts: OK
+core/extract-read.ts: OK
+core/extract-rs.ts: OK
+core/extract-shapes.ts: OK
+core/extract-sol.ts: OK
+core/extract-standalone.ts: OK
+core/extract-step.ts: OK
+core/extract-swift.ts: OK
+core/extract-xstate.ts: OK
+core/extract.ts: OK
+core/fiber-run.ts: OK
+core/field-laws.ts: OK
+core/finite-frontiers.ts: OK
+core/finite-houdini.ts: OK
+core/finite-model.ts: OK
+core/finite-tiny.ts: OK
+core/fixtures/count-facts.ts: OK
+core/fresh.ts: OK
+core/gdp.ts: OK
+core/gdp.types.ts: OK
+core/infer.ts: OK
+core/interp.ts: OK
+core/kind.ts: OK
+core/laws.ts: OK
+core/lemma-cuts.ts: OK
+core/live.ts: OK
+core/machine.ts: OK
+core/models.ts: OK
+core/nonterm.ts: OK
+core/orm-fixtures/entity.ts: OK
+core/orm-fixtures/handlers.ts: OK
+core/orm-fixtures/unloadable.ts: OK
+core/q.ts: OK
+core/quorum-laws.ts: OK
+core/rationals.ts: OK
+core/relation.ts: OK
+core/relational.ts: OK
+core/relevance.ts: OK
+core/run-proofs.ts: OK
+core/run-strengthen.ts: OK
+core/runtime-wall.ts: OK
+core/sample-cache.ts: OK
+core/sample-step.ts: OK
+core/security.ts: OK
+core/sol-concrete.ts: OK
+core/solver.ts: OK
+core/support-budget.ts: OK
+core/system.ts: OK
+core/tpa.ts: OK
+core/transfer.ts: OK
+core/translate.ts: OK
+core/wall.ts: OK
+core/watch.ts: OK
+core/xstate.ts: OK
+kernel/cdcl.ts: OK
+kernel/cyclic.ts: OK
+kernel/epr.ts: OK
+kernel/kernel.ts: OK
+kernel/model-sequence.ts: OK
+kernel/model-values.ts: OK
+kernel/mutants.ts: OK
+kernel/probe-field-param.ts: OK
+kernel/probe-products.ts: OK
+kernel/probe-pugh.ts: OK
+kernel/prove.ts: OK
+kernel/prover-rows.ts: OK
+kernel/qprove.ts: OK
+kernel/reader.ts: OK
+kernel/run-kernel.ts: OK
+kernel/run-more.ts: OK
+kernel/run-progress.ts: OK
+kernel/share.ts: OK
+kernel/simplex.ts: OK
+model name	: AMD Ryzen 9 9950X 16-Core Processor
+UPPER_PATCHES {"ceilings":"off","files":[{"path":"core/counts.ts","before":"25f53a40b238fe9b18e9e79f123d7c4cc1b2153b0bc7e28132e5afc1fa7ef741","after":"674f9bd5795fadf6a6253064f7fb2262ac8c6e75a25e0f8691d2f7b07b08e7d9","edits":3},{"path":"core/count-cases.ts","before":"6dafd763471a716d77b39ef7424a0ecd48c64505f78554ef72e05a1e615af600","after":"d2ecfc75c7ea71410083e9301a0b8598adfb89fb46b222d7ad8478addb2dfd83","edits":2},{"path":"core/count-focus-proof.ts","before":"adc673cee3f3300f601657def69869000cb42e450b140aef263071d43ca4da49","after":"dfff873337f121b8f4c1af0b99a440b128f78d67f9b1a6568e50b3d6208632d0","edits":3},{"path":"core/count-recovery/derivability-closure.ts","before":"dd311dd7188db859bdd74c7aaa3af2da4f572226030a68401649a4512f6d4ed2","after":"f2e77bbe3eddead7d3b7c326041d6b98e96bbc80ac524e8790b7c3eccca1fb93","edits":8},{"path":"core/count-recovery/guard-cases.ts","before":"5e2f668bc304e1bdeb0c4b8126d4289cf757bbd88ffb182e67a35a2d84642b77","after":"5744de0ee4bc69826b02f34c6fc7d8d3fe1965f4b81e8fce40c3ce146c8dd8ab","edits":4},{"path":"core/count-recovery/field-bound-lemmas.ts","before":"d3217b3cd64c716b161cf9a98286e7270f4e414f7aac09c124b2b82707c8859e","after":"87e63b39eb22555af020b43ad3010cc530ba3ef1c0e403f731909da0046dfd2d","edits":11},{"path":"core/count-recovery/row-cases.ts","before":"d70f618833a9770f75316363b97bfb79efabb50662fc1dae446aa93826563018","after":"2aaaf7d0f0113f7845b3c23c37ff7048d9c371ef5edd64051be27d4dc4b3ccc4","edits":3},{"path":"core/count-recovery/leaf-allowance.ts","before":"69ee7a613953b9b53738e29a2aca543bf988a333a757626e134374abf295b7b4","after":"ab6cc7dd71e07d43d407355a4cded717e72f898f5e380a52de3071be9478da4f","edits":1}]}
+UPPER_PROGRESS {"researchOnly":true,"originalFamily":true,"sourceSha":"15eff72f04f74351b622b02d08e47bfb9dfdb131","familyHash":"5dbdbf766e9949b051d0764920f1bcc3707690cd6852fca6d0bcf18674fbdac4","law":"inX: no quorum canVote/3","tag":"star","operation":{"name":"op","value":0},"pass":1,"ceilings":"off","noShare":true,"countedBudget":1000000000000,"wallLimitMs":2000,"familySize":34,"suppliedLaws":[],"conditional":"original STEP under operation equality","cpu":"model name\t: AMD Ryzen 9 9950X 16-Core Processor","wallMs":0.0624079999999978,"countedUnits":0,"peakRssKiB":43264,"last":{},"leaf":{},"excluded":[],"excludedCount":0}
+UPPER_PROGRESS {"researchOnly":true,"originalFamily":true,"sourceSha":"15eff72f04f74351b622b02d08e47bfb9dfdb131","familyHash":"5dbdbf766e9949b051d0764920f1bcc3707690cd6852fca6d0bcf18674fbdac4","law":"inX: no quorum canVote/3","tag":"star","operation":{"name":"op","value":0},"pass":1,"ceilings":"off","noShare":true,"countedBudget":1000000000000,"wallLimitMs":2000,"familySize":34,"suppliedLaws":[],"conditional":"original STEP under operation equality","cpu":"model name\t: AMD Ryzen 9 9950X 16-Core Processor","wallMs":1210.171333,"countedUnits":596.129544,"peakRssKiB":326428,"last":{"law":"inX: no quorum canVote/3","goal":"inX: no quorum canVote/3 @step","pass":1,"phase":"decision:sat"},"leaf":{},"excluded":[],"excludedCount":0}
+UPPER_PROGRESS {"researchOnly":true,"originalFamily":true,"sourceSha":"15eff72f04f74351b622b02d08e47bfb9dfdb131","familyHash":"5dbdbf766e9949b051d0764920f1bcc3707690cd6852fca6d0bcf18674fbdac4","law":"inX: no quorum canVote/3","tag":"star","operation":{"name":"op","value":0},"pass":1,"ceilings":"off","noShare":true,"countedBudget":1000000000000,"wallLimitMs":2000,"familySize":34,"suppliedLaws":[],"conditional":"original STEP under operation equality","cpu":"model name\t: AMD Ryzen 9 9950X 16-Core Processor","wallMs":2206.5804009999997,"countedUnits":1389.6992779999998,"peakRssKiB":373260,"last":{"law":"inX: no quorum canVote/3","pass":1,"phase":"rejected proposal"},"leaf":{},"excluded":[],"excludedCount":0}
+UPPER_RESULT {"researchOnly":true,"originalFamily":true,"sourceSha":"15eff72f04f74351b622b02d08e47bfb9dfdb131","familyHash":"5dbdbf766e9949b051d0764920f1bcc3707690cd6852fca6d0bcf18674fbdac4","law":"inX: no quorum canVote/3","tag":"star","operation":{"name":"op","value":0},"pass":1,"ceilings":"off","noShare":true,"countedBudget":1000000000000,"wallLimitMs":2000,"familySize":34,"suppliedLaws":[],"conditional":"original STEP under operation equality","cpu":"model name\t: AMD Ryzen 9 9950X 16-Core Processor","status":"censored","checked":false,"freshProcessCheckPending":false,"searchUnits":1389.6992779999998,"searchWallMs":2206.254929,"countedUnits":1389.6992779999998,"wallMs":2206.5073340000004,"peakRssKiB":373260,"result":{"stuck":"unknown"},"progress":{"researchOnly":true,"originalFamily":true,"sourceSha":"15eff72f04f74351b622b02d08e47bfb9dfdb131","familyHash":"5dbdbf766e9949b051d0764920f1bcc3707690cd6852fca6d0bcf18674fbdac4","law":"inX: no quorum canVote/3","tag":"star","operation":{"name":"op","value":0},"pass":1,"ceilings":"off","noShare":true,"countedBudget":1000000000000,"wallLimitMs":2000,"familySize":34,"suppliedLaws":[],"conditional":"original STEP under operation equality","cpu":"model name\t: AMD Ryzen 9 9950X 16-Core Processor","wallMs":2206.800075,"countedUnits":1389.6992779999998,"peakRssKiB":373260,"last":{"law":"inX: no quorum canVote/3","pass":1,"phase":"rejected proposal"},"leaf":{},"excluded":[],"excludedCount":0}}
+UPPER_PROCESS_EXIT 0
+UPPER_RESOURCE_BEGIN
+	Command being timed: "timeout --signal=TERM --kill-after=5s 12s bun research/lane-i/upper-bound/run.ts upper-input/family.json star 0 1 off 2000"
+	User time (seconds): 4.03
+	System time (seconds): 0.20
+	Percent of CPU this job got: 188%
+	Elapsed (wall clock) time (h:mm:ss or m:ss): 0:02.24
+	Average shared text size (kbytes): 0
+	Average unshared data size (kbytes): 0
+	Average stack size (kbytes): 0
+	Average total size (kbytes): 0
+	Maximum resident set size (kbytes): 373260
+	Average resident set size (kbytes): 0
+	Major (requiring I/O) page faults: 25
+	Minor (reclaiming a frame) page faults: 162499
+	Voluntary context switches: 28954
+	Involuntary context switches: 53
+	Swaps: 0
+	File system inputs: 7776
+	File system outputs: 672
+	Socket messages sent: 0
+	Socket messages received: 0
+	Signals delivered: 0
+	Page size (bytes): 4096
+	Exit status: 0

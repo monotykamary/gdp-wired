@@ -1,0 +1,226 @@
+{
+  "finalGate": false,
+  "issues": [
+    "gen-learning_switch-r1: failed/missing/non-boat job",
+    "gen-learning_switch-r2: failed/missing/non-boat job",
+    "gen-learning_switch-r3: failed/missing/non-boat job",
+    "gen-learning_switch_i4-r1: failed/missing/non-boat job",
+    "gen-learning_switch_i4-r2: failed/missing/non-boat job",
+    "gen-learning_switch_i4-r3: failed/missing/non-boat job",
+    "gen-learning_switch-r1: receipt cardinality",
+    "gen-learning_switch-r2: receipt cardinality",
+    "gen-learning_switch-r3: receipt cardinality",
+    "gen-learning_switch_i4-r1: receipt cardinality",
+    "gen-learning_switch_i4-r2: receipt cardinality",
+    "gen-learning_switch_i4-r3: receipt cardinality",
+    "check: failed/missing/non-boat job"
+  ],
+  "censusPairs": 87,
+  "unrelatedIdentical": 78,
+  "mldr": [
+    {
+      "name": "mldr-r1",
+      "cpu": "AMD Ryzen 9 9950X 16-Core Processor",
+      "sides": [
+        {
+          "side": "base",
+          "result": {
+            "id": "mldr",
+            "ic3syn": "mldr",
+            "search": {
+              "verdict": "unknown",
+              "why": "not proven: one primary per term",
+              "found": [
+                "every C0 cell is a value of its kind",
+                "every Copied cell is a value of its kind",
+                "every Config cell is a value of its kind",
+                "one primary per term",
+                "St at most 1",
+                "every x: never 1 <= Config[x] and picked is 0",
+                "every x with x < size: never 1 <= C0[x] and picked is 0",
+                "every x with x < size: never Copied[x] is 0 and 1 <= CT[x]",
+                "every x with x < size: never Copied[x] is 0 and 1 <= St[x]",
+                "every x with x < size: never Copied[x] is 0 and 1 <= CfgT[x]",
+                "every x with x < size: never Copied[x] is 0 and 1 <= started",
+                "every x with x < size: never 1 <= Copied[x] and picked is 0",
+                "every x with x < size: never CT[x] is 0 and 1 <= St[x]",
+                "every x with x < size: never 1 <= CT[x] and started is 0",
+                "every x with x < size: never 1 <= CT[x] and picked is 0",
+                "every x with x < size: never 1 <= St[x] and CfgT[x] is 0",
+                "every x with x < size: never 1 <= St[x] and started is 0",
+                "every x with x < size: never 1 <= St[x] and picked is 0",
+                "every x with x < size: never 1 <= CfgT[x] and started is 0",
+                "every x with x < size: never 1 <= CfgT[x] and picked is 0",
+                "every x, y with x < size ∧ y < size ∧ ¬(x = y): never Copied[x] is 0 and 1 <= CT[y]",
+                "every x, y with x < size ∧ y < size ∧ ¬(x = y): never Copied[x] is 0 and 1 <= St[y]",
+                "every x, y with x < size ∧ y < size ∧ ¬(x = y): never Copied[x] is 0 and 1 <= CfgT[y]"
+              ],
+              "ms": 21402,
+              "work": 2657026,
+              "full": 921136
+            }
+          },
+          "laws": 27,
+          "attempts": 34,
+          "safetyTried": true,
+          "safetyKept": false
+        },
+        {
+          "side": "candidate",
+          "result": {
+            "id": "mldr",
+            "ic3syn": "mldr",
+            "search": {
+              "verdict": "unknown",
+              "stuck": "unknown",
+              "why": "time (rule result)",
+              "ms": 59001,
+              "work": 44974026,
+              "full": 13839325
+            }
+          },
+          "laws": 34,
+          "attempts": 51,
+          "safetyTried": true,
+          "safetyKept": false
+        }
+      ]
+    },
+    {
+      "name": "mldr-r2",
+      "cpu": "AMD EPYC 4585PX 16-Core Processor",
+      "sides": [
+        {
+          "side": "base",
+          "result": {
+            "id": "mldr",
+            "ic3syn": "mldr",
+            "search": {
+              "verdict": "unknown",
+              "why": "not proven: one primary per term",
+              "found": [
+                "every C0 cell is a value of its kind",
+                "every Copied cell is a value of its kind",
+                "every Config cell is a value of its kind",
+                "one primary per term",
+                "St at most 1",
+                "every x: never 1 <= Config[x] and picked is 0",
+                "every x with x < size: never 1 <= C0[x] and picked is 0",
+                "every x with x < size: never Copied[x] is 0 and 1 <= CT[x]",
+                "every x with x < size: never Copied[x] is 0 and 1 <= St[x]",
+                "every x with x < size: never Copied[x] is 0 and 1 <= CfgT[x]",
+                "every x with x < size: never Copied[x] is 0 and 1 <= started",
+                "every x with x < size: never 1 <= Copied[x] and picked is 0",
+                "every x with x < size: never CT[x] is 0 and 1 <= St[x]",
+                "every x with x < size: never 1 <= CT[x] and started is 0",
+                "every x with x < size: never 1 <= CT[x] and picked is 0",
+                "every x with x < size: never 1 <= St[x] and CfgT[x] is 0",
+                "every x with x < size: never 1 <= St[x] and started is 0",
+                "every x with x < size: never 1 <= St[x] and picked is 0",
+                "every x with x < size: never 1 <= CfgT[x] and started is 0",
+                "every x with x < size: never 1 <= CfgT[x] and picked is 0",
+                "every x, y with x < size ∧ y < size ∧ ¬(x = y): never Copied[x] is 0 and 1 <= CT[y]",
+                "every x, y with x < size ∧ y < size ∧ ¬(x = y): never Copied[x] is 0 and 1 <= St[y]",
+                "every x, y with x < size ∧ y < size ∧ ¬(x = y): never Copied[x] is 0 and 1 <= CfgT[y]"
+              ],
+              "ms": 37821,
+              "work": 2657026,
+              "full": 921136
+            }
+          },
+          "laws": 27,
+          "attempts": 34,
+          "safetyTried": true,
+          "safetyKept": false
+        },
+        {
+          "side": "candidate",
+          "result": {
+            "id": "mldr",
+            "ic3syn": "mldr",
+            "search": {
+              "verdict": "unknown",
+              "stuck": "unknown",
+              "why": "time (rule result)",
+              "ms": 59328,
+              "work": 20758162,
+              "full": 5517099
+            }
+          },
+          "laws": 34,
+          "attempts": 28,
+          "safetyTried": false,
+          "safetyKept": false
+        }
+      ]
+    },
+    {
+      "name": "mldr-r3",
+      "cpu": "AMD EPYC 4585PX 16-Core Processor",
+      "sides": [
+        {
+          "side": "base",
+          "result": {
+            "id": "mldr",
+            "ic3syn": "mldr",
+            "search": {
+              "verdict": "unknown",
+              "why": "not proven: one primary per term",
+              "found": [
+                "every C0 cell is a value of its kind",
+                "every Copied cell is a value of its kind",
+                "every Config cell is a value of its kind",
+                "one primary per term",
+                "St at most 1",
+                "every x: never 1 <= Config[x] and picked is 0",
+                "every x with x < size: never 1 <= C0[x] and picked is 0",
+                "every x with x < size: never Copied[x] is 0 and 1 <= CT[x]",
+                "every x with x < size: never Copied[x] is 0 and 1 <= St[x]",
+                "every x with x < size: never Copied[x] is 0 and 1 <= CfgT[x]",
+                "every x with x < size: never Copied[x] is 0 and 1 <= started",
+                "every x with x < size: never 1 <= Copied[x] and picked is 0",
+                "every x with x < size: never CT[x] is 0 and 1 <= St[x]",
+                "every x with x < size: never 1 <= CT[x] and started is 0",
+                "every x with x < size: never 1 <= CT[x] and picked is 0",
+                "every x with x < size: never 1 <= St[x] and CfgT[x] is 0",
+                "every x with x < size: never 1 <= St[x] and started is 0",
+                "every x with x < size: never 1 <= St[x] and picked is 0",
+                "every x with x < size: never 1 <= CfgT[x] and started is 0",
+                "every x with x < size: never 1 <= CfgT[x] and picked is 0",
+                "every x, y with x < size ∧ y < size ∧ ¬(x = y): never Copied[x] is 0 and 1 <= CT[y]",
+                "every x, y with x < size ∧ y < size ∧ ¬(x = y): never Copied[x] is 0 and 1 <= St[y]",
+                "every x, y with x < size ∧ y < size ∧ ¬(x = y): never Copied[x] is 0 and 1 <= CfgT[y]"
+              ],
+              "ms": 23321,
+              "work": 2657026,
+              "full": 921136
+            }
+          },
+          "laws": 27,
+          "attempts": 34,
+          "safetyTried": true,
+          "safetyKept": false
+        },
+        {
+          "side": "candidate",
+          "result": {
+            "id": "mldr",
+            "ic3syn": "mldr",
+            "search": {
+              "verdict": "unknown",
+              "stuck": "unknown",
+              "why": "time (rule result)",
+              "ms": 59005,
+              "work": 41016208,
+              "full": 12470938
+            }
+          },
+          "laws": 34,
+          "attempts": 46,
+          "safetyTried": false,
+          "safetyKept": false
+        }
+      ]
+    }
+  ]
+}

@@ -1,0 +1,12 @@
+gdp-ts.tar: OK
+handwired.tar: OK
+main.tar: OK
+{"candidate":"b2c6aa20308b3c18f607210cbf652c9ae56550c7","baseline":"b788e1959bba1f2e8aa1f94d4cf7c0eb163a2f9c","archives":{"main.tar":"c593e659eb2d22592f82ab291a63a057679eaf11e8086ed0eed5a972c57745fe","handwired.tar":"73d44548dbe109a40ac933406324e17d7dee39e7dff1a6f1270ed030c31c1da4","gdp-ts.tar":"75d367da15decb1fefce2ae72ae50e7f3f737989094a760fde643c5b1f5c1496"}}
+model name	: AMD Ryzen 9 9950X 16-Core Processor
+LANE_I_BEGIN census 2 sharded_kv_no_lost_keys candidate
+{"id":"sharded_kv_no_lost_keys","count":6,"wallMs":2884.596782,"phases":{"guards":3.473208999999997,"small":2579.951471,"candidates":297.1456449999996},"states":[457,3375],"counts":[],"cprof":{"small":0.019605000000410655,"cubes":235.4130009999999,"filter":44.84793700000046,"quorumFilter":0.012073000000327738}}
+LANE_I_END census 2 sharded_kv_no_lost_keys candidate
+LANE_I_BEGIN census 2 sharded_kv_no_lost_keys base
+{"id":"sharded_kv_no_lost_keys","count":6,"wallMs":5300.215526,"phases":{"guards":3.3304120000000026,"small":4056.837374,"candidates":1234.451623},"states":[457,3375],"counts":[],"cprof":{"small":0.013775999999779742,"cubes":1170.547297,"filter":43.27745499999946}}
+LANE_I_END census 2 sharded_kv_no_lost_keys base
+LANE_I_CENSUS {"id":"sharded_kv_no_lost_keys","repeat":2,"identical":true,"base":{"count":6,"hash":"cb05fe1bc7dea38632ad678e7d4fa6df1277ffe5c8166b450c13a43b1c83597e","wallMs":5300.215526,"phases":{"guards":3.3304120000000026,"small":4056.837374,"candidates":1234.451623}},"candidate":{"count":6,"hash":"cb05fe1bc7dea38632ad678e7d4fa6df1277ffe5c8166b450c13a43b1c83597e","wallMs":2884.596782,"phases":{"guards":3.473208999999997,"small":2579.951471,"candidates":297.1456449999996}}}

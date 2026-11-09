@@ -1,0 +1,12 @@
+gdp-ts.tar: OK
+handwired.tar: OK
+main.tar: OK
+{"candidate":"16818ecaa40a5d65fdb084ac0c37efe8d2163d36","baseline":"b788e1959bba1f2e8aa1f94d4cf7c0eb163a2f9c","archives":{"main.tar":"c593e659eb2d22592f82ab291a63a057679eaf11e8086ed0eed5a972c57745fe","handwired.tar":"73d44548dbe109a40ac933406324e17d7dee39e7dff1a6f1270ed030c31c1da4","gdp-ts.tar":"75d367da15decb1fefce2ae72ae50e7f3f737989094a760fde643c5b1f5c1496"}}
+model name	: AMD EPYC 4585PX 16-Core Processor
+LANE_I_BEGIN census 2 tcommit candidate
+{"id":"tcommit","count":4,"wallMs":40.71181599999999,"phases":{"guards":2.0683329999999955,"small":6.538323000000005,"candidates":30.292666000000004},"states":[12,34],"counts":[],"cprof":{"small":0.009709000000000856,"cubes":27.152736999999995,"filter":1.1934140000000184,"quorumFilter":0.004277000000001863}}
+LANE_I_END census 2 tcommit candidate
+LANE_I_BEGIN census 2 tcommit base
+{"id":"tcommit","count":4,"wallMs":420.819803,"phases":{"guards":1.5541399999999967,"small":6.091806999999999,"candidates":411.60097},"states":[12,34],"counts":[],"cprof":{"small":0.005749999999999034,"cubes":408.73337,"filter":1.1933539999999994}}
+LANE_I_END census 2 tcommit base
+LANE_I_CENSUS {"id":"tcommit","repeat":2,"identical":true,"base":{"count":4,"hash":"0fcdba2bffed25323343e97a11d2439514ab6a146a5f4039103365d216045e54","wallMs":420.819803,"phases":{"guards":1.5541399999999967,"small":6.091806999999999,"candidates":411.60097}},"candidate":{"count":4,"hash":"0fcdba2bffed25323343e97a11d2439514ab6a146a5f4039103365d216045e54","wallMs":40.71181599999999,"phases":{"guards":2.0683329999999955,"small":6.538323000000005,"candidates":30.292666000000004}}}

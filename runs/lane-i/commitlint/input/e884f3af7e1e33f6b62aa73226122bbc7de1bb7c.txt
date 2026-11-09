@@ -1,0 +1,2 @@
+test(research): measure original harness generation wall explicitly
+

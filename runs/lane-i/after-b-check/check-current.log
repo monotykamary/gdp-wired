@@ -1,0 +1,20 @@
+gdp-ts.tar: OK
+handwired.tar: OK
+main.tar: OK
+
+  x eslint(no-unused-vars): Parameter 'log' is declared but never used. Unused parameters should start with a '_'.
+    ,-[research/lane-i/summarize.ts:45:133]
+ 44 | })
+ 45 | const report={finalGate:false,identity:JSON.parse(read('input/identity.json')),issues,census,tests,mldr,validation:validation.map(({log,...job})=>job)}
+    :                                                                                                                                     ^|^
+    :                                                                                                                                      `-- 'log' is declared here
+ 46 | writeFileSync(join(root,'summary.json'),JSON.stringify(report,null,2)+'\n')
+    `----
+  help: Consider removing this parameter.
+
+Found 0 warnings and 1 error.
+Finished in 23.2s on 1452 files with 100 rules using 6 threads.
+
+--- stderr ---
+$ tsc -p . && oxlint --type-aware --deny-warnings --disable-nested-config
+error: script "check" exited with code 1

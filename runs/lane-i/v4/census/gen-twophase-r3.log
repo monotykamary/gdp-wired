@@ -1,0 +1,12 @@
+gdp-ts.tar: OK
+handwired.tar: OK
+main.tar: OK
+{"candidate":"d99480e8","baseline":"b788e1959bba1f2e8aa1f94d4cf7c0eb163a2f9c","archives":{"main.tar":"c593e659eb2d22592f82ab291a63a057679eaf11e8086ed0eed5a972c57745fe","handwired.tar":"73d44548dbe109a40ac933406324e17d7dee39e7dff1a6f1270ed030c31c1da4","gdp-ts.tar":"75d367da15decb1fefce2ae72ae50e7f3f737989094a760fde643c5b1f5c1496"}}
+model name	: AMD EPYC 4585PX 16-Core Processor
+LANE_I_BEGIN census 3 twophase base
+{"id":"twophase","count":14,"wallMs":717.842324,"phases":{"guards":2.2936400000000035,"small":37.17873899999999,"candidates":675.4205089999999},"states":[56,288],"counts":[],"cprof":{"small":0.012163000000001034,"cubes":664.2823510000001,"filter":7.1201990000000706}}
+LANE_I_END census 3 twophase base
+LANE_I_BEGIN census 3 twophase candidate
+{"id":"twophase","count":14,"wallMs":649.566227,"phases":{"guards":2.848860000000002,"small":36.073948,"candidates":607.679695},"states":[56,288],"counts":[],"cprof":{"small":0.016370999999992364,"cubes":593.849142,"filter":7.24449699999991,"quorumFilter":0.010910999999964588}}
+LANE_I_END census 3 twophase candidate
+LANE_I_CENSUS {"id":"twophase","repeat":3,"identical":true,"base":{"count":14,"hash":"44bfbce553ff9457ee1e2df76ebef4d046e290ef831acd554bfbed2d74f44fd0","wallMs":717.842324,"phases":{"guards":2.2936400000000035,"small":37.17873899999999,"candidates":675.4205089999999}},"candidate":{"count":14,"hash":"44bfbce553ff9457ee1e2df76ebef4d046e290ef831acd554bfbed2d74f44fd0","wallMs":649.566227,"phases":{"guards":2.848860000000002,"small":36.073948,"candidates":607.679695}}}

@@ -1,0 +1,162 @@
+{"candidate":"5440a7b87ead19fcc02b9b8be86df382088d9cdf","baseline":"b788e1959bba1f2e8aa1f94d4cf7c0eb163a2f9c","archives":{"main.tar":"c593e659eb2d22592f82ab291a63a057679eaf11e8086ed0eed5a972c57745fe","handwired.tar":"73d44548dbe109a40ac933406324e17d7dee39e7dff1a6f1270ed030c31c1da4","gdp-ts.tar":"75d367da15decb1fefce2ae72ae50e7f3f737989094a760fde643c5b1f5c1496"}}
+model name	: AMD Ryzen 9 9950X 16-Core Processor
+LANE_I_BEGIN mldr 1 mldr base
+LANE_I_EXIT base 0
+{"id":"mldr","ic3syn":"mldr","search":{"verdict":"unknown","why":"not proven: one primary per term","found":["every C0 cell is a value of its kind","every Copied cell is a value of its kind","every Config cell is a value of its kind","one primary per term","St at most 1","every x: never 1 <= Config[x] and picked is 0","every x with x < size: never 1 <= C0[x] and picked is 0","every x with x < size: never Copied[x] is 0 and 1 <= CT[x]","every x with x < size: never Copied[x] is 0 and 1 <= St[x]","every x with x < size: never Copied[x] is 0 and 1 <= CfgT[x]","every x with x < size: never Copied[x] is 0 and 1 <= started","every x with x < size: never 1 <= Copied[x] and picked is 0","every x with x < size: never CT[x] is 0 and 1 <= St[x]","every x with x < size: never 1 <= CT[x] and started is 0","every x with x < size: never 1 <= CT[x] and picked is 0","every x with x < size: never 1 <= St[x] and CfgT[x] is 0","every x with x < size: never 1 <= St[x] and started is 0","every x with x < size: never 1 <= St[x] and picked is 0","every x with x < size: never 1 <= CfgT[x] and started is 0","every x with x < size: never 1 <= CfgT[x] and picked is 0","every x, y with x < size ∧ y < size ∧ ¬(x = y): never Copied[x] is 0 and 1 <= CT[y]","every x, y with x < size ∧ y < size ∧ ¬(x = y): never Copied[x] is 0 and 1 <= St[y]","every x, y with x < size ∧ y < size ∧ ¬(x = y): never Copied[x] is 0 and 1 <= CfgT[y]"],"ms":21402,"work":2657026,"full":921136}}
+[infer] start {"ms":1,"counted":0,"work":0,"tries":0,"rows":0,"evals":0,"watched":0,"erows":0,"etries":0}
+[infer runs] {"samples":1931,"trials":1498}
+[infer] runs {"ms":2626,"counted":1386,"work":0,"tries":138634,"rows":0,"evals":0,"watched":0,"erows":0,"etries":0,"samples":1931,"trials":1498}
+[infer candidates] {"atoms":10,"shapes":3902,"forms":0}
+[infer] candidates {"ms":21,"counted":1,"work":0,"tries":138634,"rows":7724,"evals":0,"watched":0,"erows":0,"etries":0,"forms":0}
+[infer houdini] {"alive":0,"ctis":0}
+[infer] houdini {"ms":0,"counted":0,"work":0,"tries":138634,"rows":7724,"evals":0,"watched":0,"erows":0,"etries":0,"alive":0}
+[infer join start] {"space":"state","control":"","groups":1,"dirs":18,"coords":3}
+[infer join start] {"space":"cells","control":"","groups":1,"dirs":200,"coords":10}
+[infer join start] {"space":0,"control":"","groups":1,"dirs":34,"coords":17}
+[infer join start] {"space":1,"control":"","groups":1,"dirs":162,"coords":9}
+[infer join start] {"space":2,"control":"","groups":1,"dirs":30,"coords":15}
+[infer join engine] {"wall":0,"eUntil":13855}
+[infer join meters] {"at":"engine","real":2824,"v":0,"now":1387,"full":0,"epr":0,"erows":155868,"etries":0,"tries":138634,"rows":7724,"evals":0,"work":0}
+[infer join template] {"sorts":"M:Copied:2 M:Config:1","multi":""}
+[infer join small domains] {"params":"{\"size\":4}","doms":"op:0/1/2 i:0/1/2/3 j:0/1/2/3 hx:0/1/2 hy:0/1/2 S:16 Q2:16","combos":2048}
+[infer join meters] {"at":"small","real":4467,"v":1524,"now":1387,"full":0,"epr":0,"erows":155868,"etries":121925,"tries":138634,"rows":7724,"evals":0,"work":0}
+[infer join small instance] {"states":165,"bfs":113,"params":1,"symmetric":"M:Config","ms":1524,"took":1524}
+[infer join view] {"keys":"M:Config","places":1,"lits":6,"informative":6,"rows":15,"names":"Config[0]=0 Config[0]=1 s0=0 s0=1 s1=0 s1=1"}
+[infer join view] {"keys":"M:Copied","places":1,"lits":15,"informative":14,"rows":86,"names":"C0[0]=0 C0[0]=1 Copied[0]=0 Copied[0]=1 CT[0]=0 CT[0]=1 St[0]=0 St[0]=1 CV[0]=1 CfgT[0]=0 CfgT[0]=1 s0=0 s0=1 s1=0 s1=1"}
+[infer join view] {"keys":"M:Copied,M:Config","places":2,"lits":17,"informative":16,"rows":167,"names":"C0[0]=0 C0[0]=1 Copied[0]=0 Copied[0]=1 CT[0]=0 CT[0]=1 St[0]=0 St[0]=1 CV[0]=1 CfgT[0]=0 CfgT[0]=1 Config[1]=0 Config[1]=1 s0=0 s0=1 s1=0 s1=1"}
+[infer join view] {"keys":"M:Copied,M:Copied","places":2,"lits":28,"informative":26,"rows":562,"names":"C0[0]=0 C0[0]=1 Copied[0]=0 Copied[0]=1 CT[0]=0 CT[0]=1 St[0]=0 St[0]=1 CV[0]=1 CfgT[0]=0 CfgT[0]=1 C0[1]=0 C0[1]=1 Copied[1]=0 Copied[1]=1 CT[1]=0 CT[1]=1 St[1]=0 St[1]=1 CV[1]=1 CfgT[1]=0 CfgT[1]=1 s0=0 s0=1 s1=0 s1=1 #0<=-1+#1 #1<=-1+#0"}
+[infer join view] {"keys":"M:Copied,M:Copied,M:Config","places":3,"lits":30,"informative":28,"rows":928,"names":"C0[0]=0 C0[0]=1 Copied[0]=0 Copied[0]=1 CT[0]=0 CT[0]=1 St[0]=0 St[0]=1 CV[0]=1 CfgT[0]=0 CfgT[0]=1 C0[1]=0 C0[1]=1 Copied[1]=0 Copied[1]=1 CT[1]=0 CT[1]=1 St[1]=0 St[1]=1 CV[1]=1 CfgT[1]=0 CfgT[1]=1 Config[2]=0 Config[2]=1 s0=0 s0=1 s1=0 s1=1 #0<=-1+#1 #1<=-1+#0"}
+[infer join meters] {"at":"filter bfs","real":8895,"v":5750,"now":1392,"full":0,"epr":0,"erows":175017,"etries":444704,"tries":138634,"rows":55519,"evals":0,"work":0}
+[infer join meters] {"at":"filter read 0","read":98,"lastKill":0,"bfs":179,"real":8895,"v":5750,"now":1392,"full":0,"epr":0,"erows":175017,"etries":444704,"tries":138634,"rows":55519,"evals":0,"work":0}
+[infer join meters] {"at":"filter bfs","real":13206,"v":9803,"now":1392,"full":0,"epr":0,"erows":176813,"etries":767453,"tries":138634,"rows":55519,"evals":0,"work":0}
+[infer join meters] {"at":"filter read 1","read":98,"lastKill":0,"bfs":172,"real":13206,"v":9803,"now":1392,"full":0,"epr":0,"erows":176813,"etries":767453,"tries":138634,"rows":55519,"evals":0,"work":0}
+[infer join pool] {"made":20,"left":20,"states":196,"ms":8105,"real":13206}
+counts: small 32/1504; cubes 20 in 0 ms: every x: never 1 <= Config[x] and picked is 0; every x with x < size: never C0[x] is 0 and 1 <= St[x]; every x with x < size: never 1 <= C0[x] and picked is 0; every x with x < size: never Copied[x] is 0 and 1 <= CT[x]; every x with x < size: never Copied[x] is 0 and 1 <= St[x]; every x with x < size: never Copied[x] is 0 and 1 <= CfgT[x]; every x with x < size: never Copied[x] is 0 and 1 <= started; every x with x < size: never 1 <= Copied[x] and picked is 0; every x with x < size: never CT[x] is 0 and 1 <= St[x]; every x with x < size: never 1 <= CT[x] and started is 0; every x with x < size: never 1 <= CT[x] and picked is 0; every x with x < size: never 1 <= St[x] and CfgT[x] is 0; every x with x < size: never 1 <= St[x] and started is 0; every x with x < size: never 1 <= St[x] and picked is 0; every x with x < size: never 1 <= CfgT[x] and started is 0; every x with x < size: never 1 <= CfgT[x] and picked is 0; every x, y with x < size ∧ y < size ∧ ¬(x = y): never Copied[x] is 0 and 1 <= CT[y]; every x, y with x < size ∧ y < size ∧ ¬(x = y): never Copied[x] is 0 and 1 <= St[y]; every x, y with x < size ∧ y < size ∧ ¬(x = y): never Copied[x] is 0 and 1 <= CfgT[y]; every x, y with x < size ∧ y < size ∧ ¬(x = y): never 1 <= St[x] and 1 <= St[y]
+counts: 19 candidates said before or false on the small instances
+counts: candidates at 0 ms: every C0 cell is a value of its kind; every Copied cell is a value of its kind; every Config cell is a value of its kind; one primary per term; CT at most 73; St at most 1; CV at most 2; CfgT at most 73; every x: never 1 <= Config[x] and picked is 0; every x with x < size: never C0[x] is 0 and 1 <= St[x]; every x with x < size: never 1 <= C0[x] and picked is 0; every x with x < size: never Copied[x] is 0 and 1 <= CT[x]; every x with x < size: never Copied[x] is 0 and 1 <= St[x]; every x with x < size: never Copied[x] is 0 and 1 <= CfgT[x]; every x with x < size: never Copied[x] is 0 and 1 <= started; every x with x < size: never 1 <= Copied[x] and picked is 0; every x with x < size: never CT[x] is 0 and 1 <= St[x]; every x with x < size: never 1 <= CT[x] and started is 0; every x with x < size: never 1 <= CT[x] and picked is 0; every x with x < size: never 1 <= St[x] and CfgT[x] is 0; every x with x < size: never 1 <= St[x] and started is 0; every x with x < size: never 1 <= St[x] and picked is 0; every x with x < size: never 1 <= CfgT[x] and started is 0; every x with x < size: never 1 <= CfgT[x] and picked is 0; every x, y with x < size ∧ y < size ∧ ¬(x = y): never Copied[x] is 0 and 1 <= CT[y]; every x, y with x < size ∧ y < size ∧ ¬(x = y): never Copied[x] is 0 and 1 <= St[y]; every x, y with x < size ∧ y < size ∧ ¬(x = y): never Copied[x] is 0 and 1 <= CfgT[y]
+counts: try CT at most 73 | ls 27 pass 0 ms 2222 took 101 wall 89 [encode 5 decide 71 mbqi 12 #rounds 4 #hyps 202] -> sat
+counts: try CT at most 73 | ls 27 pass 1 ms 2222 took 181 wall 126 [encode 7 decide 107 mbqi 10 #rounds 6 #hyps 440] -> sat
+counts: try St at most 1 | ls 27 pass 0 ms 2222 took 71 wall 45 [encode 3 decide 19 #rounds 1 #hyps 33 grow 1 part 21] -> kept
+counts: try CV at most 2 | ls 27 pass 0 ms 2222 took 113 wall 74 [encode 5 decide 63 mbqi 5 #rounds 5 #hyps 247] -> sat
+counts: try CV at most 2 | ls 27 pass 1 ms 2222 took 182 wall 100 [encode 5 decide 86 mbqi 8 #rounds 5 #hyps 327] -> sat
+counts: try CfgT at most 73 | ls 27 pass 0 ms 2222 took 183 wall 91 [encode 4 decide 84 mbqi 3 #rounds 4 #hyps 227] -> sat
+counts: try CfgT at most 73 | ls 27 pass 1 ms 2222 took 234 wall 114 [encode 4 decide 103 mbqi 5 #rounds 4 #hyps 308] -> sat
+counts: try every x: never 1 <= Config[x] and picked is 0 | ls 27 pass 0 ms 2222 took 77 wall 71 [encode 17 decide 32 mbqi 1 #rounds 2 #hyps 72 part 20] -> kept
+counts: try every x with x < size: never C0[x] is 0 and 1 <= S | ls 27 pass 0 ms 2222 took 144 wall 86 [encode 5 decide 75 mbqi 5 #rounds 6 #hyps 317] -> sat
+counts: try every x with x < size: never C0[x] is 0 and 1 <= S | ls 27 pass 1 ms 2222 took 175 wall 104 [encode 6 decide 87 mbqi 9 #rounds 6 #hyps 413] -> sat
+counts: try every x with x < size: never 1 <= C0[x] and picked | ls 27 pass 0 ms 2222 took 35 wall 34 [encode 3 decide 21 mbqi 1 #rounds 2 #hyps 72 part 8] -> kept
+counts: try every x with x < size: never Copied[x] is 0 and 1  | ls 27 pass 0 ms 2222 took 137 wall 86 [encode 6 decide 65 mbqi 3 #rounds 5 #hyps 230 part 10] -> kept
+counts: try every x with x < size: never Copied[x] is 0 and 1  | ls 27 pass 0 ms 2222 took 121 wall 66 [encode 5 decide 50 mbqi 2 #rounds 3 #hyps 132 part 9] -> kept
+counts: try every x with x < size: never Copied[x] is 0 and 1  | ls 27 pass 0 ms 2222 took 96 wall 69 [encode 5 decide 48 mbqi 3 #rounds 4 #hyps 185 part 11] -> kept
+counts: try every x with x < size: never Copied[x] is 0 and 1  | ls 27 pass 0 ms 2222 took 68 wall 37 [encode 4 decide 22 mbqi 2 #rounds 3 #hyps 114 part 8] -> kept
+counts: try every x with x < size: never 1 <= Copied[x] and pi | ls 27 pass 0 ms 2222 took 41 wall 37 [encode 3 decide 27 mbqi 1 #rounds 2 #hyps 71 part 5] -> kept
+counts: try every x with x < size: never CT[x] is 0 and 1 <= S | ls 27 pass 0 ms 2222 took 92 wall 55 [encode 2 decide 20 #rounds 1 #hyps 33 part 31] -> kept
+counts: try every x with x < size: never 1 <= CT[x] and starte | ls 27 pass 0 ms 2222 took 27 wall 25 [encode 4 decide 16 mbqi 2 #rounds 2 #hyps 71 part 3] -> kept
+counts: try every x with x < size: never 1 <= CT[x] and picked | ls 27 pass 0 ms 2222 took 41 wall 23 [encode 3 decide 12 mbqi 1 #rounds 2 #hyps 71 part 7] -> kept
+counts: try every x with x < size: never 1 <= St[x] and CfgT[x | ls 27 pass 0 ms 2222 took 229 wall 122 [encode 4 decide 85 mbqi 1 #rounds 2 #hyps 76 part 32] -> kept
+counts: try every x with x < size: never 1 <= St[x] and starte | ls 27 pass 0 ms 2222 took 29 wall 25 [encode 4 decide 14 mbqi 2 #rounds 2 #hyps 76 part 5] -> kept
+counts: try every x with x < size: never 1 <= St[x] and picked | ls 27 pass 0 ms 2222 took 42 wall 62 [encode 4 decide 47 mbqi 2 #rounds 2 #hyps 75 part 9] -> kept
+counts: try every x with x < size: never 1 <= CfgT[x] and star | ls 27 pass 0 ms 2222 took 29 wall 22 [encode 3 decide 14 mbqi 1 #rounds 2 #hyps 74 part 4] -> kept
+counts: try every x with x < size: never 1 <= CfgT[x] and pick | ls 27 pass 0 ms 2222 took 43 wall 26 [encode 3 decide 15 mbqi 1 #rounds 2 #hyps 73 part 7] -> kept
+counts: try every x, y with x < size ∧ y < size ∧ ¬(x = y): ne | ls 27 pass 0 ms 2222 took 120 wall 75 [encode 4 decide 57 mbqi 2 #rounds 3 #hyps 142 part 11] -> kept
+counts: try every x, y with x < size ∧ y < size ∧ ¬(x = y): ne | ls 27 pass 0 ms 2222 took 159 wall 91 [encode 5 decide 54 mbqi 2 #rounds 3 #hyps 154 part 29] -> kept
+counts: try every x, y with x < size ∧ y < size ∧ ¬(x = y): ne | ls 27 pass 0 ms 2222 took 182 wall 73 [encode 4 decide 55 mbqi 2 #rounds 3 #hyps 152 part 11] -> kept
+counts: try every C0 cell is a value of its kind | ls 27 pass 0 ms 2222 took 5 wall 7 [encode 2 decide 4] -> kept
+counts: try every Copied cell is a value of its kind | ls 27 pass 0 ms 2222 took 13 wall 33 [encode 5 decide 9 mbqi 2 #rounds 1 #hyps 33 part 17] -> kept
+counts: try every Config cell is a value of its kind | ls 27 pass 0 ms 2222 took 7 wall 12 [encode 2 decide 6 part 3] -> kept
+counts: try one primary per term | ls 27 pass 0 ms 2222 took 323 wall 145 [encode 4 decide 137 mbqi 4 #rounds 5 #hyps 367] -> sat
+counts: try one primary per term | ls 27 pass 1 ms 2222 took 383 wall 199 [encode 8 decide 146 mbqi 22 lazy 17 #rounds 7 #hyps 676 #lazy 15] -> sat
+counts: round 0: 27 laws, 0 kept, 0 carried, failed CT at most 73; CV at most 2; CfgT at most 73; every x with x < size: never C0[x] is 0 and 1 <= St[x]; one primary per term
+counts: try one primary per term | ls 23 pass 0 ms 56315 took 0 wall 2 [mbqi 2] -> sat
+counts: try one primary per term | ls 23 pass 1 ms 56315 took 0 wall 2 [mbqi 2] -> sat
+counts: round 1: 23 laws, 0 kept, 22 carried, failed one primary per term
+LANE_I_END mldr 1 mldr base
+LANE_I_BEGIN mldr 1 mldr candidate
+LANE_I_EXIT candidate 0
+{"id":"mldr","ic3syn":"mldr","search":{"verdict":"unknown","stuck":"unknown","why":"time (rule result)","ms":59001,"work":44974026,"full":13839325}}
+[infer] start {"ms":3,"counted":0,"work":0,"tries":0,"rows":0,"evals":0,"watched":0,"erows":0,"etries":0}
+[infer runs] {"samples":1251,"trials":0}
+[infer] runs {"ms":5,"counted":0,"work":0,"tries":0,"rows":0,"evals":0,"watched":0,"erows":0,"etries":0,"samples":1251,"trials":0}
+[infer candidates] {"atoms":7,"shapes":492,"forms":929}
+[infer] candidates {"ms":76,"counted":122,"work":0,"tries":0,"rows":1220967,"evals":0,"watched":0,"erows":0,"etries":0,"forms":929}
+[infer houdini] {"alive":929,"ctis":0}
+[infer] houdini {"ms":1,"counted":0,"work":0,"tries":0,"rows":1220967,"evals":0,"watched":0,"erows":0,"etries":0,"alive":929}
+[infer join start] {"space":"state","control":"","groups":1,"dirs":8,"coords":2}
+[infer join start] {"space":"cells","control":"","groups":1,"dirs":98,"coords":7}
+[infer join start] {"space":0,"control":"","groups":1,"dirs":24,"coords":12}
+[infer join start] {"space":1,"control":"","groups":1,"dirs":98,"coords":7}
+[infer join start] {"space":2,"control":"","groups":1,"dirs":24,"coords":12}
+[infer join engine] {"wall":0,"eUntil":14215}
+[infer join meters] {"at":"engine","real":239,"v":0,"now":122,"full":0,"epr":0,"erows":113167,"etries":0,"tries":0,"rows":1220967,"evals":0,"work":0}
+[infer join template] {"sorts":"j:2","multi":""}
+[infer join small domains] {"params":"{\"size\":4}","doms":"op:0/1/2 i:0/1/2/3 j:0/1/2/3 hx:0/1/2 hy:0/1/2 S:16 Q2:16","combos":2048}
+[infer join meters] {"at":"small","real":1558,"v":1524,"now":122,"full":0,"epr":0,"erows":113167,"etries":121926,"tries":0,"rows":1220967,"evals":0,"work":0}
+[infer join small instance] {"states":127,"bfs":86,"params":1,"symmetric":"","ms":1524,"took":1524}
+[infer join view] {"keys":"j","places":1,"lits":12,"informative":12,"rows":78,"names":"Config[0]=0 Config[0]=1 CT[0]=0 CT[0]=1 St[0]=0 St[0]=1 CV[0]=0 CV[0]=1 CfgT[0]=0 CfgT[0]=1 s0=0 s0=1"}
+[infer join view] {"keys":"j,j","places":2,"lits":24,"informative":24,"rows":428,"names":"Config[0]=0 Config[0]=1 CT[0]=0 CT[0]=1 St[0]=0 St[0]=1 CV[0]=0 CV[0]=1 CfgT[0]=0 CfgT[0]=1 Config[1]=0 Config[1]=1 CT[1]=0 CT[1]=1 St[1]=0 St[1]=1 CV[1]=0 CV[1]=1 CfgT[1]=0 CfgT[1]=1 s0=0 s0=1 #0<=-1+#1 #1<=-1+#0"}
+[infer join meters] {"at":"filter bfs","real":5091,"v":5770,"now":123,"full":0,"epr":0,"erows":116666,"etries":458793,"tries":0,"rows":1232175,"evals":0,"work":0}
+[infer join meters] {"at":"filter read 0","read":89,"lastKill":0,"bfs":156,"real":5091,"v":5770,"now":123,"full":0,"epr":0,"erows":116666,"etries":458793,"tries":0,"rows":1232175,"evals":0,"work":0}
+[infer join pool] {"made":14,"left":14,"states":89,"ms":4223,"real":5091}
+counts: small 46/1205; cubes 14 in 0 ms: every x with x < size: never Config[x] is 0 and 1 <= St[x]; every x with x < size: never CT[x] is 0 and 1 <= St[x]; every x with x < size: never 1 <= CT[x] and CV[x] is 0; every x with x < size: never 1 <= CT[x] and started is 0; every x with x < size: never 1 <= St[x] and CV[x] is 0; every x with x < size: never 1 <= St[x] and CfgT[x] is 0; every x with x < size: never 1 <= St[x] and started is 0; every x with x < size: never CV[x] is 0 and 1 <= CfgT[x]; every x with x < size: never CV[x] is 0 and 1 <= started; every x with x < size: never 1 <= CfgT[x] and started is 0; every x, y with x < size ∧ y < size ∧ ¬(x = y): never 1 <= CT[x] and CV[y] is 0; every x, y with x < size ∧ y < size ∧ ¬(x = y): never 1 <= St[x] and 1 <= St[y]; every x, y with x < size ∧ y < size ∧ ¬(x = y): never 1 <= St[x] and CV[y] is 0; every x, y with x < size ∧ y < size ∧ ¬(x = y): never CV[x] is 0 and 1 <= CfgT[y]
+counts: finite drop 0 CT at most 44
+counts: finite drop 0 CfgT at most 44
+counts: finite drop 0 every x with x < size: never Config[x] is 0 and 1 <= St[x]
+counts: finite drop 0 fields: CT[a]=CT[b] and CV[a]=CV[b] -> Config rows agree
+counts: finite drop 0 fields: St[a]=1 -> CT[a]=CT[b] -> CV[b]<=CV[a]
+counts: finite drop 0 CV at most 2
+counts: finite result {"timedOut":true,"ms":1900.3037989999993,"dropped":6}
+counts: 74 candidates said before or false on the small instances
+counts: candidates at 0 ms: every Config cell is a value of its kind; one primary per term; St at most 1; fields: St[a]=1 -> CT[a]=CfgT[a]; fields: St[a]=1 -> CT[a]<=CfgT[a]; fields: St[a]=1 -> CT[a]=CT[b] -> CfgT[b]<=CfgT[a]; fields: St[a]=1 -> CfgT[a]<=CT[a]; fields: St[a]=1 -> CfgT[a]=CfgT[b] -> CV[b]<=CV[a]; every x with x < size: never CT[x] is 0 and 1 <= St[x]; every x with x < size: never 1 <= CT[x] and CV[x] is 0; every x with x < size: never 1 <= CT[x] and started is 0; every x with x < size: never 1 <= St[x] and CV[x] is 0; every x with x < size: never 1 <= St[x] and CfgT[x] is 0; every x with x < size: never 1 <= St[x] and started is 0; every x with x < size: never CV[x] is 0 and 1 <= CfgT[x]; every x with x < size: never CV[x] is 0 and 1 <= started; every x with x < size: never 1 <= CfgT[x] and started is 0; every x, y with x < size ∧ y < size ∧ ¬(x = y): never 1 <= CT[x] and CV[y] is 0; every x, y with x < size ∧ y < size ∧ ¬(x = y): never 1 <= St[x] and CV[y] is 0; every x, y with x < size ∧ y < size ∧ ¬(x = y): never CV[x] is 0 and 1 <= CfgT[y]; inX: no quorum canVote/1; inX: no quorum canVote/3; inX: stored guard reconfigs/inS; inX: stored guard reconfigs/inS or disabled/0; inX: stored guard reconfigs/inS or disabled/1; inX: stored guard reconfigs/inS or disabled/2; inX: stored guard reconfigs/inS or disabled/3; fields: CV[a]=CV[b] and CfgT[a]=CfgT[b] -> Config rows agree; count cubes: every x with x < {"op":"var","name":"size"}: never 1 <= started and inX$row[x] is 0; count cubes: every x with x < {"op":"var","name":"size"}: never 1 <= CT[x] and inX$row[x] is 0; count cubes: every x with x < {"op":"var","name":"size"}: never CV[x] is 0 and 1 <= inX$row[x]; count cubes: every x with x < {"op":"var","name":"size"}: never 1 <= CV[x] and inX$row[x] is 0; count cubes: every x with x < {"op":"var","name":"size"}: never 1 <= CfgT[x] and inX$row[x] is 0; count cubes: every x with x < {"op":"var","name":"size"}: never 1 <= St[x] and inX$row[x] is 0
+counts: try St at most 1 | ls 34 pass 0 ms 1765 took 88 wall 93 [encode 6 decide 59 mbqi 7 #rounds 1 #hyps 38 grow 1 part 17] -> kept
+counts: try fields: St[a]=1 -> CT[a]=CfgT[a] | ls 34 pass 0 ms 1816 took 301 wall 188 [encode 7 decide 120 mbqi 14 #rounds 2 #hyps 90 part 46] -> kept
+counts: try fields: St[a]=1 -> CT[a]<=CfgT[a] | ls 34 pass 0 ms 1863 took 318 wall 165 [encode 7 decide 97 mbqi 4 #rounds 2 #hyps 88 part 55] -> kept
+counts: try fields: St[a]=1 -> CT[a]=CT[b] -> CfgT[b]<=CfgT[a] | ls 34 pass 0 ms 1913 took 1913 wall 1340 [encode 7 decide 102 mbqi 11 #rounds 4 #hyps 329 focused 1216] -> sat
+counts: try fields: St[a]=1 -> CT[a]=CT[b] -> CfgT[b]<=CfgT[a] | ls 34 pass 1 ms 1913 took 1913 wall 1262 [encode 31 decide 1046 mbqi 53 lazy 88 #rounds 9 #hyps 1288 #count-completion 43 #lazy 57] -> unknown
+counts: try fields: St[a]=1 -> CfgT[a]<=CT[a] | ls 34 pass 0 ms 1849 took 316 wall 141 [encode 5 decide 94 mbqi 4 #rounds 2 #hyps 90 part 36] -> kept
+counts: try fields: St[a]=1 -> CfgT[a]=CfgT[b] -> CV[b]<=CV[a] | ls 34 pass 0 ms 1902 took 1903 wall 1412 [encode 25 decide 159 mbqi 30 #rounds 6 #hyps 547 focused 1195] -> sat
+counts: try fields: St[a]=1 -> CfgT[a]=CfgT[b] -> CV[b]<=CV[a] | ls 34 pass 1 ms 1902 took 1902 wall 1031 [encode 25 decide 899 mbqi 49 #rounds 8 #hyps 1091 #count-completion 39] -> unknown
+counts: try every x with x < size: never CT[x] is 0 and 1 <= S | ls 34 pass 0 ms 1834 took 97 wall 46 [encode 5 decide 24 mbqi 2 #rounds 1 #hyps 38 part 16] -> kept
+counts: try every x with x < size: never 1 <= CT[x] and CV[x]  | ls 34 pass 0 ms 1898 took 198 wall 136 [encode 7 decide 98 mbqi 8 #rounds 3 #hyps 139 part 22] -> kept
+counts: try every x with x < size: never 1 <= CT[x] and starte | ls 34 pass 0 ms 1964 took 64 wall 45 [encode 7 decide 29 mbqi 5 #rounds 3 #hyps 134 part 3] -> kept
+counts: try every x with x < size: never 1 <= St[x] and CV[x]  | ls 34 pass 0 ms 2039 took 148 wall 104 [encode 6 decide 73 mbqi 3 #rounds 2 #hyps 90 part 20] -> kept
+counts: try every x with x < size: never 1 <= St[x] and CfgT[x | ls 34 pass 0 ms 2118 took 271 wall 97 [encode 5 decide 60 mbqi 4 #rounds 2 #hyps 88 part 27] -> kept
+counts: try every x with x < size: never 1 <= St[x] and starte | ls 34 pass 0 ms 2199 took 70 wall 152 [encode 8 decide 54 mbqi 6 #rounds 3 #hyps 151 part 84] -> kept
+counts: try every x with x < size: never CV[x] is 0 and 1 <= C | ls 34 pass 0 ms 2295 took 259 wall 113 [encode 8 decide 75 mbqi 7 #rounds 3 #hyps 148 part 22] -> kept
+counts: try every x with x < size: never CV[x] is 0 and 1 <= s | ls 34 pass 0 ms 2392 took 180 wall 80 [encode 7 decide 49 mbqi 6 #rounds 3 #hyps 137 part 18] -> kept
+counts: try every x with x < size: never 1 <= CfgT[x] and star | ls 34 pass 0 ms 2503 took 64 wall 82 [encode 38 decide 32 mbqi 7 #rounds 3 #hyps 140 part 4] -> kept
+counts: try every x, y with x < size ∧ y < size ∧ ¬(x = y): ne | ls 34 pass 0 ms 2631 took 225 wall 102 [encode 7 decide 67 mbqi 8 #rounds 3 #hyps 161 part 20] -> kept
+counts: try every x, y with x < size ∧ y < size ∧ ¬(x = y): ne | ls 34 pass 0 ms 2765 took 305 wall 171 [encode 9 decide 127 mbqi 11 #rounds 4 #hyps 258 part 23] -> kept
+counts: try every x, y with x < size ∧ y < size ∧ ¬(x = y): ne | ls 34 pass 0 ms 2910 took 240 wall 107 [encode 7 decide 68 mbqi 7 #rounds 3 #hyps 166 part 23] -> kept
+counts: try inX: no quorum canVote/1 | ls 34 pass 0 ms 3077 took 98 wall 50 [encode 5 decide 36 mbqi 8 #rounds 4 #hyps 219] -> sat
+counts: try inX: no quorum canVote/1 | ls 34 pass 1 ms 3077 took 3078 wall 2253 [encode 37 decide 1900 mbqi 98 lazy 170 #rounds 7 #hyps 765 #count-completion 48 #lazy 58] -> unknown
+counts: try inX: no quorum canVote/3 | ls 34 pass 0 ms 3070 took 98 wall 50 [encode 6 decide 34 mbqi 8 #rounds 4 #hyps 219] -> sat
+counts: try inX: no quorum canVote/3 | ls 34 pass 1 ms 3070 took 3071 wall 3180 [encode 45 decide 2802 mbqi 55 lazy 228 #rounds 7 #hyps 765 #count-completion 48 #lazy 58] -> unknown
+counts: try inX: stored guard reconfigs/inS | ls 34 pass 0 ms 3063 took 132 wall 76 [encode 6 decide 57 mbqi 10 #rounds 4 #hyps 278] -> sat
+counts: try inX: stored guard reconfigs/inS | ls 34 pass 1 ms 3063 took 3067 wall 4424 [encode 46 decide 3994 mbqi 66 lazy 250 #rounds 7 #hyps 929 #count-completion 48 #lazy 48] -> unknown
+counts: try inX: stored guard reconfigs/inS or disabled/0 | ls 34 pass 0 ms 3052 took 141 wall 59 [encode 5 decide 45 mbqi 8 #rounds 4 #hyps 278] -> sat
+counts: try inX: stored guard reconfigs/inS or disabled/0 | ls 34 pass 1 ms 3052 took 3055 wall 3445 [encode 58 decide 2885 mbqi 68 lazy 318 #rounds 6 #hyps 882 grow 1 #count-completion 48 #lazy 102] -> unknown
+counts: try inX: stored guard reconfigs/inS or disabled/1 | ls 34 pass 0 ms 3040 took 141 wall 210 [encode 5 decide 68 mbqi 135 #rounds 4 #hyps 278] -> sat
+counts: try inX: stored guard reconfigs/inS or disabled/1 | ls 34 pass 1 ms 3040 took 3042 wall 3336 [encode 57 decide 2805 mbqi 81 lazy 285 #rounds 6 #hyps 882 grow 1 #count-completion 48 #lazy 89] -> unknown
+counts: try inX: stored guard reconfigs/inS or disabled/2 | ls 34 pass 0 ms 3027 took 141 wall 72 [encode 6 decide 53 mbqi 11 #rounds 4 #hyps 278] -> sat
+counts: try inX: stored guard reconfigs/inS or disabled/2 | ls 34 pass 1 ms 3027 took 3029 wall 3381 [encode 210 decide 2693 mbqi 63 lazy 307 #rounds 6 #hyps 882 grow 1 #count-completion 48 #lazy 91] -> unknown
+counts: try inX: stored guard reconfigs/inS or disabled/3 | ls 34 pass 0 ms 3013 took 141 wall 224 [encode 5 decide 206 mbqi 12 #rounds 4 #hyps 278] -> sat
+counts: try inX: stored guard reconfigs/inS or disabled/3 | ls 34 pass 1 ms 3013 took 3015 wall 3236 [encode 59 decide 2728 mbqi 65 lazy 276 #rounds 6 #hyps 882 grow 1 #count-completion 48 #lazy 89] -> unknown
+counts: try fields: CV[a]=CV[b] and CfgT[a]=CfgT[b] -> Config  | ls 34 pass 0 ms 2997 took 2997 wall 2936 [encode 16 decide 557 mbqi 57 #rounds 11 #hyps 1190 focused 2303] -> sat
+counts: try fields: CV[a]=CV[b] and CfgT[a]=CfgT[b] -> Config  | ls 34 pass 1 ms 2997 took 2997 wall 1440 [encode 16 decide 1349 mbqi 57 #rounds 9 #hyps 1083] -> unknown
+counts: try count cubes: every x with x < {"op":"var","name":" | ls 34 pass 0 ms 2622 took 96 wall 54 [encode 6 decide 37 mbqi 9 #rounds 5 #hyps 251] -> sat
+counts: try count cubes: every x with x < {"op":"var","name":" | ls 34 pass 1 ms 2622 took 2623 wall 2159 [encode 158 decide 1583 mbqi 205 lazy 149 #rounds 10 #hyps 1265 #count-completion 25 #lazy 145] -> unknown
+counts: try count cubes: every x with x < {"op":"var","name":" | ls 34 pass 0 ms 2609 took 96 wall 53 [encode 6 decide 36 mbqi 9 #rounds 5 #hyps 248] -> sat
+counts: try count cubes: every x with x < {"op":"var","name":" | ls 34 pass 1 ms 2609 took 2610 wall 1904 [encode 20 decide 1780 mbqi 77 #rounds 10 #hyps 1291] -> unknown
+counts: try count cubes: every x with x < {"op":"var","name":" | ls 34 pass 0 ms 2592 took 117 wall 69 [encode 9 decide 46 mbqi 12 #rounds 7 #hyps 373] -> sat
+counts: try count cubes: every x with x < {"op":"var","name":" | ls 34 pass 1 ms 2592 took 2170 wall 1490 [encode 25 decide 1165 mbqi 44 lazy 53 #rounds 8 #hyps 810 part 177 #count-completion 30 #lazy 25] -> kept
+counts: try count cubes: every x with x < {"op":"var","name":" | ls 34 pass 0 ms 2654 took 113 wall 67 [encode 7 decide 48 mbqi 10 #rounds 6 #hyps 304] -> sat
+counts: try count cubes: every x with x < {"op":"var","name":" | ls 34 pass 1 ms 2654 took 2654 wall 1636 [encode 16 decide 1555 mbqi 53 #rounds 9 #hyps 1034 #count-completion 21] -> unknown
+counts: try count cubes: every x with x < {"op":"var","name":" | ls 34 pass 0 ms 2625 took 108 wall 269 [encode 8 decide 248 mbqi 12 #rounds 5 #hyps 275] -> sat
+counts: try count cubes: every x with x < {"op":"var","name":" | ls 34 pass 1 ms 2625 took 2625 wall 2087 [encode 16 decide 1978 mbqi 66 #rounds 9 #hyps 1191 #count-completion 22] -> unknown
+counts: try count cubes: every x with x < {"op":"var","name":" | ls 34 pass 0 ms 2589 took 362 wall 347 [encode 15 decide 299 mbqi 32 #rounds 10 #hyps 893] -> sat
+counts: try count cubes: every x with x < {"op":"var","name":" | ls 34 pass 1 ms 2589 took 2590 wall 1609 [encode 186 decide 1378 mbqi 36 #rounds 6 #hyps 661] -> unknown
+counts: try every Config cell is a value of its kind | ls 34 pass 0 ms 2408 took 8 wall 11 [encode 3 decide 6 part 3] -> kept
+counts: try one primary per term | ls 34 pass 0 ms 4808 took 166 wall 61 [encode 4 decide 53 mbqi 4 #rounds 2 #hyps 114] -> unknown
+counts: try one primary per term | ls 34 pass 1 ms 4643 took 0 wall 0 [] -> unknown
+counts: round 0: 34 laws, 0 kept, 0 carried, failed fields: St[a]=1 -> CT[a]=CT[b] -> CfgT[b]<=CfgT[a]; fields: St[a]=1 -> CfgT[a]=CfgT[b] -> CV[b]<=CV[a]; inX: no quorum canVote/1; inX: no quorum canVote/3; inX: stored guard reconfigs/inS; inX: stored guard reconfigs/inS or disabled/0; inX: stored guard reconfigs/inS or disabled/1; inX: stored guard reconfigs/inS or disabled/2; inX: stored guard reconfigs/inS or disabled/3; fields: CV[a]=CV[b] and CfgT[a]=CfgT[b] -> Config rows agree; count cubes: every x with x < {"op":"var","name":"size"}: never 1 <= started and inX$row[x] is 0; count cubes: every x with x < {"op":"var","name":"size"}: never
+LANE_I_END mldr 1 mldr candidate

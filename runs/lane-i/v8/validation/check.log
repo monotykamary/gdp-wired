@@ -1,0 +1,8 @@
+gdp-ts.tar: OK
+handwired.tar: OK
+main.tar: OK
+core/counts.ts(931,11): error TS2322: Type '{ goal: Goal; decls: CountDecl[]; c: { reads: MapRead[]; insts: { wit: string; below: E; terms: [number, string][]; unit: number; }[]; picks: [string, E[]][]; wits: string[]; }; gg: Goal | undefined; pool: Pool | undefined; }[]' is not assignable to type '{ goal: Goal; decls: CountDecl[]; c: { reads: MapRead[]; insts: { wit: string; below: E; terms: [number, string][]; unit: number; }[]; picks: [string, E[]][]; wits: string[]; }; gg: Goal | undefined; all: MapRead[]; pool: Pool | undefined; }[]'.
+  Property 'all' is missing in type '{ goal: Goal; decls: CountDecl[]; c: { reads: MapRead[]; insts: { wit: string; below: E; terms: [number, string][]; unit: number; }[]; picks: [string, E[]][]; wits: string[]; }; gg: Goal | undefined; pool: Pool | undefined; }' but required in type '{ goal: Goal; decls: CountDecl[]; c: { reads: MapRead[]; insts: { wit: string; below: E; terms: [number, string][]; unit: number; }[]; picks: [string, E[]][]; wits: string[]; }; gg: Goal | undefined; all: MapRead[]; pool: Pool | undefined; }'.
+
+--- stderr ---
+$ tsc -p . && oxlint --type-aware --deny-warnings --disable-nested-config

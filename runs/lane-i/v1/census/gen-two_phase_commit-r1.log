@@ -1,0 +1,9 @@
+{"candidate":"5440a7b87ead19fcc02b9b8be86df382088d9cdf","baseline":"b788e1959bba1f2e8aa1f94d4cf7c0eb163a2f9c","archives":{"main.tar":"c593e659eb2d22592f82ab291a63a057679eaf11e8086ed0eed5a972c57745fe","handwired.tar":"73d44548dbe109a40ac933406324e17d7dee39e7dff1a6f1270ed030c31c1da4","gdp-ts.tar":"75d367da15decb1fefce2ae72ae50e7f3f737989094a760fde643c5b1f5c1496"}}
+model name	: AMD Ryzen 9 9950X 16-Core Processor
+LANE_I_BEGIN census 1 two_phase_commit base
+{"id":"two_phase_commit","count":34,"wallMs":1611.159033,"phases":{"guards":2.2927469999999985,"small":323.35724500000003,"candidates":1282.682577},"states":[121,1083],"counts":[],"cprof":{"small":0.009027000000003227,"cubes":1235.882083,"filter":40.49778700000002}}
+LANE_I_END census 1 two_phase_commit base
+LANE_I_BEGIN census 1 two_phase_commit candidate
+{"id":"two_phase_commit","count":34,"wallMs":728.722991,"phases":{"guards":3.1156580000000034,"small":192.044841,"candidates":530.2804920000001},"states":[121,1083],"counts":[],"cprof":{"small":0.015169000000014421,"cubes":463.956991,"filter":58.95176100000003,"quorumFilter":0.008305999999947744}}
+LANE_I_END census 1 two_phase_commit candidate
+LANE_I_CENSUS {"id":"two_phase_commit","repeat":1,"identical":true,"base":{"count":34,"hash":"4a1828f36f3f69afb92df8b6e558119a6e771236afba62b1d7742faa6a656512","wallMs":1611.159033,"phases":{"guards":2.2927469999999985,"small":323.35724500000003,"candidates":1282.682577}},"candidate":{"count":34,"hash":"4a1828f36f3f69afb92df8b6e558119a6e771236afba62b1d7742faa6a656512","wallMs":728.722991,"phases":{"guards":3.1156580000000034,"small":192.044841,"candidates":530.2804920000001}}}

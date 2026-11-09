@@ -1,0 +1,12 @@
+gdp-ts.tar: OK
+handwired.tar: OK
+main.tar: OK
+{"candidate":"d99480e8","baseline":"b788e1959bba1f2e8aa1f94d4cf7c0eb163a2f9c","archives":{"main.tar":"c593e659eb2d22592f82ab291a63a057679eaf11e8086ed0eed5a972c57745fe","handwired.tar":"73d44548dbe109a40ac933406324e17d7dee39e7dff1a6f1270ed030c31c1da4","gdp-ts.tar":"75d367da15decb1fefce2ae72ae50e7f3f737989094a760fde643c5b1f5c1496"}}
+model name	: AMD Ryzen 9 9950X 16-Core Processor
+LANE_I_BEGIN census 3 tcommit base
+{"id":"tcommit","count":4,"wallMs":466.523078,"phases":{"guards":1.9209360000000046,"small":8.824709000000006,"candidates":452.904358},"states":[12,34],"counts":[],"cprof":{"small":0.007674000000001513,"cubes":449.767206,"filter":1.3007709999999975}}
+LANE_I_END census 3 tcommit base
+LANE_I_BEGIN census 3 tcommit candidate
+{"id":"tcommit","count":4,"wallMs":44.520905,"phases":{"guards":1.971342,"small":6.988793000000001,"candidates":33.934938},"states":[12,34],"counts":[],"cprof":{"small":0.009768999999998584,"cubes":30.394399999999997,"filter":1.4253159999999951,"quorumFilter":0.004288000000002512}}
+LANE_I_END census 3 tcommit candidate
+LANE_I_CENSUS {"id":"tcommit","repeat":3,"identical":true,"base":{"count":4,"hash":"0fcdba2bffed25323343e97a11d2439514ab6a146a5f4039103365d216045e54","wallMs":466.523078,"phases":{"guards":1.9209360000000046,"small":8.824709000000006,"candidates":452.904358}},"candidate":{"count":4,"hash":"0fcdba2bffed25323343e97a11d2439514ab6a146a5f4039103365d216045e54","wallMs":44.520905,"phases":{"guards":1.971342,"small":6.988793000000001,"candidates":33.934938}}}

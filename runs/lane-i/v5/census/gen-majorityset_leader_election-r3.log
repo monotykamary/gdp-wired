@@ -1,0 +1,12 @@
+gdp-ts.tar: OK
+handwired.tar: OK
+main.tar: OK
+{"candidate":"b2c6aa20308b3c18f607210cbf652c9ae56550c7","baseline":"b788e1959bba1f2e8aa1f94d4cf7c0eb163a2f9c","archives":{"main.tar":"c593e659eb2d22592f82ab291a63a057679eaf11e8086ed0eed5a972c57745fe","handwired.tar":"73d44548dbe109a40ac933406324e17d7dee39e7dff1a6f1270ed030c31c1da4","gdp-ts.tar":"75d367da15decb1fefce2ae72ae50e7f3f737989094a760fde643c5b1f5c1496"}}
+model name	: AMD EPYC 4585PX 16-Core Processor
+LANE_I_BEGIN census 3 majorityset_leader_election base
+{"id":"majorityset_leader_election","count":17,"wallMs":1937.925647,"phases":{"guards":2.586397000000005,"small":56.95141099999999,"candidates":1871.442542},"states":[27,400],"counts":["voters"],"cprof":{"small":0.00727399999999534,"cubes":1839.066601,"filter":27.125949999999875}}
+LANE_I_END census 3 majorityset_leader_election base
+LANE_I_BEGIN census 3 majorityset_leader_election candidate
+{"id":"majorityset_leader_election","count":17,"wallMs":1207.036723,"phases":{"guards":2.9250220000000056,"small":50.923332,"candidates":1143.843423},"states":[27,400],"counts":["voters"],"cprof":{"small":0.010229999999992856,"cubes":1109.871503,"filter":28.78505999999993,"quorumFilter":0.013444999999819629}}
+LANE_I_END census 3 majorityset_leader_election candidate
+LANE_I_CENSUS {"id":"majorityset_leader_election","repeat":3,"identical":true,"base":{"count":17,"hash":"bb147d46a7fb370560860dfd5441416683ec8c4c8a845d78cba57f199aba247f","wallMs":1937.925647,"phases":{"guards":2.586397000000005,"small":56.95141099999999,"candidates":1871.442542}},"candidate":{"count":17,"hash":"bb147d46a7fb370560860dfd5441416683ec8c4c8a845d78cba57f199aba247f","wallMs":1207.036723,"phases":{"guards":2.9250220000000056,"small":50.923332,"candidates":1143.843423}}}

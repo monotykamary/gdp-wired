@@ -1,0 +1,15 @@
+
+  x typescript(require-array-sort-compare): Require 'compare' argument.
+    ,-[research/track-m/summarize-lane-b-pairs.ts:9:18]
+  8 | const expected=['overlap','rows','star','safety','p1'].flatMap(tag=>['ab','ba'].map(order=>`${tag}-${order}`)),lines=readFileSync(join(dir,'summary.tsv'),'utf8').trim().split('\n').map(line=>line.split('\t'))
+  9 | assert.deepEqual(lines.map(r=>r[0]).sort(),[...expected].sort())
+    :                  ^^^^^^^^^^^^^^^^^^^^^^^^^
+ 10 | const rows=lines.map(([name,exit])=>{
+    `----
+
+Found 0 warnings and 1 error.
+Finished in 13.3s on 1447 files with 100 rules using 6 threads.
+
+--- stderr ---
+$ tsc -p . && oxlint --type-aware --deny-warnings --disable-nested-config
+error: script "check" exited with code 1

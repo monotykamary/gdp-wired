@@ -1,0 +1,12 @@
+gdp-ts.tar: OK
+handwired.tar: OK
+main.tar: OK
+{"candidate":"16818ecaa40a5d65fdb084ac0c37efe8d2163d36","baseline":"b788e1959bba1f2e8aa1f94d4cf7c0eb163a2f9c","archives":{"main.tar":"c593e659eb2d22592f82ab291a63a057679eaf11e8086ed0eed5a972c57745fe","handwired.tar":"73d44548dbe109a40ac933406324e17d7dee39e7dff1a6f1270ed030c31c1da4","gdp-ts.tar":"75d367da15decb1fefce2ae72ae50e7f3f737989094a760fde643c5b1f5c1496"}}
+model name	: AMD EPYC 9455 48-Core Processor
+LANE_I_BEGIN census 1 lockserv base
+{"id":"lockserv","count":17,"wallMs":324.95205799999997,"phases":{"guards":4.326802000000001,"small":14.343468999999999,"candidates":302.94847699999997},"states":[80],"counts":[],"cprof":{"small":0.008480000000005816,"cubes":295.506359,"filter":4.031952999999987}}
+LANE_I_END census 1 lockserv base
+LANE_I_BEGIN census 1 lockserv candidate
+{"id":"lockserv","count":17,"wallMs":69.110982,"phases":{"guards":2.3922840000000036,"small":14.896558999999996,"candidates":49.16129500000001},"states":[80],"counts":[],"cprof":{"small":0.015317000000003134,"cubes":37.57633799999999,"filter":7.696925000000007,"quorumFilter":0.006217000000006578}}
+LANE_I_END census 1 lockserv candidate
+LANE_I_CENSUS {"id":"lockserv","repeat":1,"identical":true,"base":{"count":17,"hash":"625d4a5b0bd1a44c77cb3d4f01f5b0c862d06f8dd00b2739f62af8732915be00","wallMs":324.95205799999997,"phases":{"guards":4.326802000000001,"small":14.343468999999999,"candidates":302.94847699999997}},"candidate":{"count":17,"hash":"625d4a5b0bd1a44c77cb3d4f01f5b0c862d06f8dd00b2739f62af8732915be00","wallMs":69.110982,"phases":{"guards":2.3922840000000036,"small":14.896558999999996,"candidates":49.16129500000001}}}

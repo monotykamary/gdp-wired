@@ -1,0 +1,18 @@
+gdp-ts.tar: OK
+handwired.tar: OK
+main.tar: OK
+
+  x typescript(no-implied-eval): Implied eval. Do not use the Function constructor to create functions.
+    ,-[core/runtime-keys.test.ts:55:18]
+ 54 |   const src = compileJs(m), start = src.indexOf('function $unique('), end = src.indexOf('\n', start)
+ 55 |   const unique = new Function(`${src.slice(start, end)}; return $unique;`)() as ((vals: number[], top: number) => number[]) & {buf?: Uint32Array, stamp?: number}
+    :                  ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+ 56 |   expect(unique([3, 1, 3, 0], 5)).toEqual([0, 1, 3])
+    `----
+
+Found 0 warnings and 1 error.
+Finished in 13.3s on 1452 files with 100 rules using 6 threads.
+
+--- stderr ---
+$ tsc -p . && oxlint --type-aware --deny-warnings --disable-nested-config
+error: script "check" exited with code 1

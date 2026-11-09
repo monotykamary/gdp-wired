@@ -1,0 +1,9 @@
+{"candidate":"5440a7b87ead19fcc02b9b8be86df382088d9cdf","baseline":"b788e1959bba1f2e8aa1f94d4cf7c0eb163a2f9c","archives":{"main.tar":"c593e659eb2d22592f82ab291a63a057679eaf11e8086ed0eed5a972c57745fe","handwired.tar":"73d44548dbe109a40ac933406324e17d7dee39e7dff1a6f1270ed030c31c1da4","gdp-ts.tar":"75d367da15decb1fefce2ae72ae50e7f3f737989094a760fde643c5b1f5c1496"}}
+model name	: AMD Ryzen 9 9950X 16-Core Processor
+LANE_I_BEGIN census 3 paxos_epr base
+{"id":"paxos_epr","count":77,"wallMs":17611.329393,"phases":{"guards":3.3286270000000044,"small":6397.013782999999,"candidates":11160.270934},"states":[153,534],"counts":["members","missing","members$Qs","members$Decision","can$Vote$members"],"cprof":{"small":0.010820999999850756,"cubes":10323.766587,"filter":817.2451519999995}}
+LANE_I_END census 3 paxos_epr base
+LANE_I_BEGIN census 3 paxos_epr candidate
+{"id":"paxos_epr","count":77,"wallMs":13490.439258999999,"phases":{"guards":5.0376679999999965,"small":3798.789925,"candidates":9647.632511},"states":[153,534],"counts":["members","missing","members$Qs","members$Decision","can$Vote$members"],"cprof":{"small":0.014628000000357133,"cubes":8833.063825,"filter":795.8977589999995,"quorumFilter":0.054852999999638996}}
+LANE_I_END census 3 paxos_epr candidate
+LANE_I_CENSUS {"id":"paxos_epr","repeat":3,"identical":true,"base":{"count":77,"hash":"01f9c4f68d27630184f0d5268345ada29c31507eac21bfbf45d87e0bc6051e77","wallMs":17611.329393,"phases":{"guards":3.3286270000000044,"small":6397.013782999999,"candidates":11160.270934}},"candidate":{"count":77,"hash":"01f9c4f68d27630184f0d5268345ada29c31507eac21bfbf45d87e0bc6051e77","wallMs":13490.439258999999,"phases":{"guards":5.0376679999999965,"small":3798.789925,"candidates":9647.632511}}}

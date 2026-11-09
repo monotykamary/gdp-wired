@@ -1,0 +1,127 @@
+COMMITLINT integ-commits/08c457108d7bf020a0b0725086a52aa5dcc0b19c.txt
+⧗   --- input ---
+merge(research): integrate MLDR generation lane
+✖   type must be one of [build, chore, ci, docs, feat, fix, perf, refactor, revert, style, test] [type-enum]
+
+✖   found 1 problems, 0 warnings
+ⓘ   Get help: https://github.com/conventional-changelog/commitlint/#what-is-commitlint
+
+COMMITLINT integ-commits/0d9e1d3cac6bd2a1595af5cf088fbc2cfd832380.txt
+COMMITLINT integ-commits/0ea131584d9abebfb8851d263ee7d15581e6e535.txt
+COMMITLINT integ-commits/16bb1343178e49f90812676a0b909c04bc49306a.txt
+⧗   --- input ---
+merge(research): preserve allocation ablation audit and explicit sorting
+✖   type must be one of [build, chore, ci, docs, feat, fix, perf, refactor, revert, style, test] [type-enum]
+
+✖   found 1 problems, 0 warnings
+ⓘ   Get help: https://github.com/conventional-changelog/commitlint/#what-is-commitlint
+
+COMMITLINT integ-commits/1d7a276de51a3850de20e9bd97fb6380a5ef45f1.txt
+⧗   --- input ---
+merge(research): integrate runtime stamp audit and retain census timeouts
+✖   type must be one of [build, chore, ci, docs, feat, fix, perf, refactor, revert, style, test] [type-enum]
+
+✖   found 1 problems, 0 warnings
+ⓘ   Get help: https://github.com/conventional-changelog/commitlint/#what-is-commitlint
+
+COMMITLINT integ-commits/1fc01c10f4fe5ee71101639cca55c5da39c3e10c.txt
+⧗   --- input ---
+merge(research): preserve completion and deadlines from MLDR proof lane
+✖   type must be one of [build, chore, ci, docs, feat, fix, perf, refactor, revert, style, test] [type-enum]
+
+✖   found 1 problems, 0 warnings
+ⓘ   Get help: https://github.com/conventional-changelog/commitlint/#what-is-commitlint
+
+COMMITLINT integ-commits/21db1e2285810ef8c66901bd783b24484f11399d.txt
+⧗   --- input ---
+merge(research): combine finite audit guards and wall optimizations
+✖   type must be one of [build, chore, ci, docs, feat, fix, perf, refactor, revert, style, test] [type-enum]
+
+✖   found 1 problems, 0 warnings
+ⓘ   Get help: https://github.com/conventional-changelog/commitlint/#what-is-commitlint
+
+COMMITLINT integ-commits/2338ee7b08159655c3559c68499203d1bae2f317.txt
+⧗   --- input ---
+merge(research): integrate MLDR leaf lane and frozen probes
+✖   type must be one of [build, chore, ci, docs, feat, fix, perf, refactor, revert, style, test] [type-enum]
+
+✖   found 1 problems, 0 warnings
+ⓘ   Get help: https://github.com/conventional-changelog/commitlint/#what-is-commitlint
+
+COMMITLINT integ-commits/4647765c2b8c989c35f3c9a86861efb667545487.txt
+⧗   --- input ---
+merge(research): retain leaf stopping evidence and corrected runtime test
+✖   type must be one of [build, chore, ci, docs, feat, fix, perf, refactor, revert, style, test] [type-enum]
+
+✖   found 1 problems, 0 warnings
+ⓘ   Get help: https://github.com/conventional-changelog/commitlint/#what-is-commitlint
+
+COMMITLINT integ-commits/4b00256b20d3d0b64847e0a70492507dbf9d69c9.txt
+COMMITLINT integ-commits/5440a7b87ead19fcc02b9b8be86df382088d9cdf.txt
+COMMITLINT integ-commits/5dbab4f56f78d2796acff97ae67d5fe43300cd6e.txt
+⧗   --- input ---
+merge(research): refresh MLDR lane evidence tips
+✖   type must be one of [build, chore, ci, docs, feat, fix, perf, refactor, revert, style, test] [type-enum]
+
+✖   found 1 problems, 0 warnings
+ⓘ   Get help: https://github.com/conventional-changelog/commitlint/#what-is-commitlint
+
+COMMITLINT integ-commits/5fc70286dd46f7f31a99aaf7d0164a678f9603b6.txt
+COMMITLINT integ-commits/61e47e028a0168a222007ec6beb3de0a6a7ed664.txt
+⧗   --- input ---
+merge(research): refresh MLDR lane evidence tips
+✖   type must be one of [build, chore, ci, docs, feat, fix, perf, refactor, revert, style, test] [type-enum]
+
+✖   found 1 problems, 0 warnings
+ⓘ   Get help: https://github.com/conventional-changelog/commitlint/#what-is-commitlint
+
+COMMITLINT integ-commits/6800612b03beb450e7c9a02455463dc5cde5d473.txt
+⧗   --- input ---
+merge(research): refresh inclusion and frontier measurement tips
+✖   type must be one of [build, chore, ci, docs, feat, fix, perf, refactor, revert, style, test] [type-enum]
+
+✖   found 1 problems, 0 warnings
+ⓘ   Get help: https://github.com/conventional-changelog/commitlint/#what-is-commitlint
+
+COMMITLINT integ-commits/6949cfe00da84d7422472865f48e0e58d9766f50.txt
+COMMITLINT integ-commits/6dc0c8b0dc922c2353ef04b98eb759cf02c31562.txt
+COMMITLINT integ-commits/d03e2da02020afbb9ae321561911768fca3a492c.txt
+⧗   --- input ---
+merge(research): integrate MLDR inclusion lane
+✖   type must be one of [build, chore, ci, docs, feat, fix, perf, refactor, revert, style, test] [type-enum]
+
+✖   found 1 problems, 0 warnings
+ⓘ   Get help: https://github.com/conventional-changelog/commitlint/#what-is-commitlint
+
+COMMITLINT integ-commits/d45717fb14122c86f1c9ea2365f0966d66cab6eb.txt
+⧗   --- input ---
+merge(research): refresh inclusion and frontier measurement tips
+✖   type must be one of [build, chore, ci, docs, feat, fix, perf, refactor, revert, style, test] [type-enum]
+
+✖   found 1 problems, 0 warnings
+ⓘ   Get help: https://github.com/conventional-changelog/commitlint/#what-is-commitlint
+
+COMMITLINT integ-commits/e40fd1c8bc3d07047e4dfbecda086411d574c860.txt
+COMMITLINT integ-commits/e438acdf2a8ddda969eac3559bc11e77aa0455e6.txt
+COMMITLINT integ-commits/e884f3af7e1e33f6b62aa73226122bbc7de1bb7c.txt
+COMMITLINT integ-commits/e9419480e4ee7132b0b3cdda97e46cb75ff3cb7d.txt
+⧗   --- input ---
+merge(research): refresh strict generation audit evidence
+✖   type must be one of [build, chore, ci, docs, feat, fix, perf, refactor, revert, style, test] [type-enum]
+
+✖   found 1 problems, 0 warnings
+ⓘ   Get help: https://github.com/conventional-changelog/commitlint/#what-is-commitlint
+
+COMMITLINT integ-commits/f9d220c4c7065a079d1b076b3fa418f9bdf00014.txt
+⧗   --- input ---
+merge(research): retain leaf stopping evidence and corrected runtime test
+✖   type must be one of [build, chore, ci, docs, feat, fix, perf, refactor, revert, style, test] [type-enum]
+
+✖   found 1 problems, 0 warnings
+ⓘ   Get help: https://github.com/conventional-changelog/commitlint/#what-is-commitlint
+
+
+--- stderr ---
+Resolving dependencies
+Resolved, downloaded and extracted [276]
+Saved lockfile

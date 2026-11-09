@@ -1,0 +1,9 @@
+{"candidate":"5440a7b87ead19fcc02b9b8be86df382088d9cdf","baseline":"b788e1959bba1f2e8aa1f94d4cf7c0eb163a2f9c","archives":{"main.tar":"c593e659eb2d22592f82ab291a63a057679eaf11e8086ed0eed5a972c57745fe","handwired.tar":"73d44548dbe109a40ac933406324e17d7dee39e7dff1a6f1270ed030c31c1da4","gdp-ts.tar":"75d367da15decb1fefce2ae72ae50e7f3f737989094a760fde643c5b1f5c1496"}}
+model name	: AMD Ryzen 9 9950X 16-Core Processor
+LANE_I_BEGIN census 1 consensus_epr base
+{"id":"consensus_epr","count":29,"wallMs":11684.479012,"phases":{"guards":2.894506,"small":3879.8287309999996,"candidates":7730.310547},"states":[296,2038],"counts":["members","members$Leader"],"cprof":{"small":0.011031000000002678,"cubes":7331.647412,"filter":379.5061939999996}}
+LANE_I_END census 1 consensus_epr base
+LANE_I_BEGIN census 1 consensus_epr candidate
+{"id":"consensus_epr","count":29,"wallMs":8029.401111,"phases":{"guards":5.145246,"small":3228.5815730000004,"candidates":4697.654183999999},"states":[296,2038],"counts":["members","members$Leader"],"cprof":{"small":0.012832999999773165,"cubes":4439.426954,"filter":240.93768399999863,"quorumFilter":0.042150000000219734}}
+LANE_I_END census 1 consensus_epr candidate
+LANE_I_CENSUS {"id":"consensus_epr","repeat":1,"identical":true,"base":{"count":29,"hash":"ab81a384b7f6afc1f8d207c9f6ea5fec0a1526cc98b4088e00b34cd69186db65","wallMs":11684.479012,"phases":{"guards":2.894506,"small":3879.8287309999996,"candidates":7730.310547}},"candidate":{"count":29,"hash":"ab81a384b7f6afc1f8d207c9f6ea5fec0a1526cc98b4088e00b34cd69186db65","wallMs":8029.401111,"phases":{"guards":5.145246,"small":3228.5815730000004,"candidates":4697.654183999999}}}

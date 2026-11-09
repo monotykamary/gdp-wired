@@ -1,0 +1,191 @@
+bun test v1.4.3 (c6da4a4d3)
+
+--- stderr ---
+
+core/count-cubes.test.ts:
+(pass) fresh one-key count cells extend the width-two cube vocabulary [3.43ms]
+(pass) finite cover checks every explicit cell, not just small key numbers [0.59ms]
+(pass) finite cover derives auxiliary half-count bounds and preserves equality cases [0.72ms]
+(pass) Houdini drops only post-violations from the current whole family, never callers [2.18ms]
+(pass) finite Houdini reaches a fixpoint as removed premises admit new predecessors [0.42ms]
+(pass) a completed model is a CTI only after a real step from the whole family [0.52ms]
+(pass) finite model certification recomputes count cells and rejects bad requests [0.60ms]
+(pass) an unsupported predecessor law cannot certify a finite model [0.28ms]
+(pass) lazy derived counts stop inside the loop and do not cache partial sums [20.60ms]
+(pass) finite model stop reaches both precondition counts and transition counts [0.60ms]
+(pass) finite CTIs respect declared facts, including unsupported facts and derived state [0.60ms]
+(pass) finite frontiers expose both one-sided cube boundaries and field limits [0.08ms]
+(pass) finite boundary states update real count bodies without mutating samples [0.56ms]
+(pass) a finite sampling allowance returns survivors but never extends the outer wall [0.85ms]
+(pass) completed finite drops survive cancellation of the rest of the local pass [0.23ms]
+(pass) finite filtering obeys the outer wall rather than extending it [0.16ms]
+
+core/count-cases.test.ts:
+(pass) finite count recovery returns an original-kernel-checked tree and restores search scope [14.54ms]
+(pass) finite cases use checked activation and witness derivations without an opt-in [12.29ms]
+(pass) ranked bounds use the arithmetic core rather than every preceding proposal [0.43ms]
+(pass) default case recovery excludes a false bound and retains the successful slim certificate [7.70ms]
+(pass) selected cases retain newly seeded universal-flag witnesses in the final source [19.87ms]
+(pass) an arithmetic core of an unprovable bound cannot certify a false law [11.32ms]
+(pass) slimming witness instances removes complete tuples without mutating the caller [0.11ms]
+(pass) compact recovery keeps its saturated branches and local model scope checked [11.84ms]
+(pass) explicit pre-transport deferral still requires the final kernel check [5.67ms]
+(pass) finite count recovery does not turn a satisfiable goal into a proof [4.56ms]
+
+core/small-counts.test.ts:
+(pass) fresh unused counts reuse exactly the original sampled graph [1.03ms]
+(pass) changed steps, changed definitions and shadowed reads are sampled independently [1.33ms]
+
+core/field-laws.test.ts:
+cyclic: {"kind":"machine","name":"replicated fields","cert":true,"usual":true,"cyclic":true,"ms":33,"usualMs":8,"route":"translated","leaves":29,"regrown":0,"splits":13,"carried":1,"uncarried":0,"cached":0}
+(pass) field equality is proposed from structure and proven by the ordinary kernel [52.08ms]
+(pass) the same candidate on a broken write is filtered and not proven [9.35ms]
+(pass) cross-record field equality can guard an ordering, without input leakage [1.88ms]
+(pass) ambiguous domains and a single numeric field are not guessed [0.12ms]
+(pass) two equal fields can identify a tuple-keyed row, with an independent member [31.49ms]
+(pass) composed-key rows use their encoded base and still require induction [13.49ms]
+(pass) generated binders do not capture state, request or flag variables [0.37ms]
+
+core/count-write-frames.test.ts:
+(pass) generic renamed writers propose the missing 2/4/4 directional frames [2.15ms]
+(pass) copied row sizes and intersections of two overwritten rows get source-size bridges [0.47ms]
+(pass) only demanded post heads participate, never unrelated carried sets or pre heads [0.55ms]
+(pass) a carried map read only in the write guard or arithmetic is not a copied source [0.42ms]
+(pass) point writes and Boolean membership-copy values are supported without reading guard sources [0.28ms]
+(pass) lowered Boolean copy values preserve guarded membership arms [0.31ms]
+(pass) membership syntaxes, conjunction order and double negation do not change pair selection [6.12ms]
+(pass) non-membership predicates and malformed binary regions are not frame shapes [0.62ms]
+(pass) incoming, PRE and actual post bounds must match exactly; unsupported packed reads are skipped [0.45ms]
+(pass) existing coefficient vectors, including reordered reverse directions, are deduplicated independently [0.40ms]
+(pass) caps are stable, at most 32, with fresh witnesses and no input mutation [2.07ms]
+(pass) false frames stay untrusted: a witness survives without the copying guard [4.31ms]
+
+core/count-recovery-order.test.ts:
+(pass) ordinary checked proposals take priority over deferred count recovery [0.06ms]
+(pass) an unsuccessful ordinary attempt can recover within its remaining allowance [0.04ms]
+(pass) failed recovery preserves the exact ordinary result, including a model outcome [0.09ms]
+(pass) expired attempts never borrow a fresh recovery allowance [0.03ms]
+(pass) deferred recovery uses only the latest warmed proposal context [0.02ms]
+(pass) an ordinary failure without a recovery proposal is unchanged [0.01ms]
+
+kernel/tree-reuse.test.ts:
+(pass) completed exact goals serve another law name within one scope [0.30ms]
+(pass) changed assumptions and unknown results never become cached proofs [0.19ms]
+
+kernel/model-values.test.ts:
+(pass) function arguments keep symbolic keys rather than arithmetic neighbours [0.13ms]
+(pass) arithmetic-only boundaries remain available and ordered [0.14ms]
+(pass) an arithmetic witness stays constant when its value equals a row key [0.44ms]
+(pass) model instances obtain arithmetic-only witnesses from comparison boundaries [1.48ms]
+
+core/count-recovery/field-bound-budget.test.ts:
+(pass) an expired source budget returns before inspecting machine rows [0.04ms]
+(pass) an expired wall stops source construction even when counted work remains [0.35ms]
+
+core/count-recovery/natural-cases.test.ts:
+(pass) natural subtraction cases recover a checked overlap contradiction under its guard path [11.35ms]
+(pass) natural subtraction cases cannot invent the missing union bound [9.60ms]
+
+core/count-recovery/fold-path.test.ts:
+(pass) path folding retains a checked route through original conditional terms [0.93ms]
+
+core/count-recovery/source-witness-instances.test.ts:
+(pass) local countermodels request ordinary multi-key field instances at a count witness [3.78ms]
+(pass) source feedback requires a read witness and preserves count-key freshness [0.99ms]
+
+core/count-recovery/conditional-check-cache.test.ts:
+(pass) sliced leaves retain exact proof semantics and memoize the same immutable leaf [0.34ms]
+(pass) sliced leaves retain square/product offsets and unused product dependencies [0.15ms]
+(pass) malformed leaves refuse and unused product handling matches the unchanged kernel [0.17ms]
+(pass) ordered paths, duplicates and changed truth values never share a leaf result [0.14ms]
+(pass) slicing falls back rather than rejecting a needed implicit naturality row [0.11ms]
+
+core/count-recovery/leaf-allowance.test.ts:
+(pass) leaf draws take an even remaining share with a one-third ceiling [0.06ms]
+(pass) one third is a ceiling, not a floor or a last-leaf windfall [0.03ms]
+(pass) successive draws conserve spent plus unspent allowance [0.05ms]
+(pass) split children spend one parent draw and cannot obtain another [0.01ms]
+
+core/count-recovery/row-cases.test.ts:
+(pass) active writes select the destination row rather than the copied source [0.31ms]
+(pass) Boolean-valued row writes ignore dead arms and membership lookup keys [0.13ms]
+(pass) active constant-index writes split against that index, not an unrelated input [0.20ms]
+(pass) field-only conclusions discover row cases without a post-count read [0.20ms]
+(pass) row cases cover both directions of disequality and reuse only checked trees [1.24ms]
+(pass) row copies can split the secondary key in the primary-equal branch too [0.71ms]
+(pass) mirrored row cases emit full subtrees without rerunning their callback [2.30ms]
+(pass) row cases never accept an unchecked leaf [0.08ms]
+(pass) deferred row proposals still require the composing kernel check [0.20ms]
+
+research/track-m/section16.test.ts:
+(pass) normalization retains guards and does not assert root validity [0.16ms]
+(pass) frame normalization keeps post-state and action references [0.05ms]
+(pass) an indexed success without a matching statement stays unresolved [0.01ms]
+
+research/track-m/rebase-path.test.ts:
+(pass) path reindexing removes a redundant numeric assumption without searching [0.33ms]
+(pass) path reindexing keeps a split needed to expose a conditional row [0.15ms]
+(pass) a reindexed proposal is not a certificate without the final check [0.06ms]
+(pass) derived cuts are removed only when the retained branch works without them [0.42ms]
+
+research/track-m/bounded-research.test.ts:
+(pass) research cap stops real work and restores counter descriptors [0.45ms]
+(pass) research cap restores descriptors after an unrelated error [0.07ms]
+
+research/track-m/normalize-section13.test.ts:
+(pass) publication drops columns without changing raw receipt data [0.06ms]
+(pass) a pre-leaf cap carries actual closure guards and no invented model [0.06ms]
+(pass) a recorded numeric failure is preserved exactly [0.01ms]
+
+research/track-m/section7-followup-meter.test.ts:
+(pass) post-timing audit separates bindings, frames and exact repeated checks [1.56ms]
+(pass) disabled audit does not retain data or change return values [0.02ms]
+
+research/track-m/section10-gate-audit.test.ts:
+(pass) the audit computes median/max and preserves every count [0.34ms]
+(pass) a missing repeat cannot yield a median-of-three table [0.04ms]
+(pass) nonfinite counted work is rejected [0.07ms]
+(pass) any checked-law loss is a regression [0.14ms]
+(pass) a checked family beyond sixty seconds does not pass [0.09ms]
+(pass) a new baseline must be explicitly named, never silently accepted [0.11ms]
+(pass) kernel drift cannot pass an evidence audit [0.04ms]
+
+research/track-m/fold-path.test.ts:
+(pass) path folding retains a checked route through original conditional terms [1.09ms]
+
+research/track-m/section15-leaf-count.test.ts:
+(pass) counts conjunction short-circuit leaves exactly [0.13ms]
+(pass) counts mixed Boolean guard leaves without assuming a conjunction [0.06ms]
+(pass) a decided guard needs one leaf and repeated tests add none [0.04ms]
+
+research/track-m/thin-source.test.ts:
+(pass) unused flag tuples are removed as whole tuples, unknown layouts are retained [0.15ms]
+(pass) a smaller source context must preserve every input row of the proof [0.15ms]
+(pass) unused invariant tuples are removed only when their exact source hypothesis is known [0.15ms]
+
+research/track-m/lift-count-proxies.test.ts:
+(pass) count proxies lift through explicit read equalities without whole-goal search [0.84ms]
+(pass) count proxy transport cannot invent a missing read equality [0.18ms]
+(pass) composite count terms lift [0.62ms]
+(pass) composite count terms cannot invent bindings [0.28ms]
+(pass) numeric count bindings retain constraints in an existing guard path [0.39ms]
+(pass) a deferred transport is not an accepted proof [0.12ms]
+(pass) count proxy domain guards are checked (deferred=false) [0.56ms]
+(pass) count proxy domain guards cannot be assumed (deferred=false) [0.18ms]
+(pass) count proxy domain guards are checked (deferred=true) [0.28ms]
+(pass) count proxy domain guards cannot be assumed (deferred=true) [0.13ms]
+
+research/track-m/cost-meter.test.ts:
+(pass) exclusive cost phases sum to elapsed wall without double counting [0.16ms]
+(pass) kernel check owns nested row work and generation owns its internal probes [0.07ms]
+(pass) unfold owns arithmetic reconstruction; exceptions restore the stack [0.06ms]
+(pass) disabled meter does not read the clock or change an outcome [0.03ms]
+
+research/protocols/ic3syn/mldr.test.ts:
+(pass) MLDR P* preserves equal-version rows during pick/copy and starts only after copying [7.32ms]
+(pass) MLDR P* retains the majority guard and its broken negative control [3.36ms]
+
+ 128 pass
+ 0 fail
+ 719 expect() calls
+Ran 128 tests across 27 files. [383.00ms]
