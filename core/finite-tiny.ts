@@ -238,15 +238,20 @@ class Compiler {
       }
     }
     const rank = order ? this.slots.map((_, i) => order.indexOf(i)) : undefined, used: Term[] = []
-    const code = this.predicateCode(p, rank, used, polarity), seen = new Set<number>(), lines: string[] = []
-    let chars = code.length
+    // An atomic predicate is unknown until ALL of its dependencies are set.
+    // Its old per-term placeholders could not affect that result, so return
+    // before evaluating the closed expression DAG instead. Once ready, every
+    // dependency of every prerequisite term is ready too.
+    const ready = rank ? Math.max(-1, ...depsOf(p).map(i => rank[i]!)) + 1 : 0
+    const guard = ready > 0 ? `if(d<${ready})return true;` : ''
+    const code = this.predicateCode(p, undefined, used, polarity), seen = new Set<number>(), lines: string[] = []
+    let chars = guard.length + code.length
     if (chars > 65_536) throw new Unsupported('large generated screen')
     const emit = (t: Term): void => {
       checkWall('tiny term code')
       if (seen.has(t.id)) return
       seen.add(t.id); t.args.forEach(emit)
-      const ready = rank ? Math.max(-1, ...t.deps.map(i => rank[i]!)) + 1 : 0
-      const line = `const t${t.id}=${rank && ready > 0 ? `d>=${ready}?${t.code}:0` : t.code};`
+      const line = `const t${t.id}=${t.code};`
       chars += line.length
       if (chars > 65_536) throw new Unsupported('large generated screen')
       lines.push(line)
@@ -256,7 +261,7 @@ class Compiler {
     // no identifier or external function source is interpolated. This is an
     // UNTRUSTED screen: the callback must independently replay every proposal.
     // oxlint-disable-next-line typescript/no-implied-eval
-    return new Function('v', 'd', `${lines.join('')}return ${code};`) as (v: number[], d: number) => boolean
+    return new Function('v', 'd', `${guard}${lines.join('')}return ${code};`) as (v: number[], d: number) => boolean
   }
 }
 const uniqueTerms = (ts: Term[]) => [...new Map(ts.map(t => [t.id, t])).values()]

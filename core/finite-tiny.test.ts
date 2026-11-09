@@ -100,6 +100,42 @@ test('inactive flags cannot prune an unconditional update elsewhere',()=>{
   })
   expect(stats.candidates).toBe(1);expect(stats.completed).toBe(true)
 })
+test('partial atoms preserve all finite pre-states through both polarities', () => {
+  const source: Machine = {...counter(), state: {a: n(0), b: n(0)}, step: {state: {a: plus(x('b'), n(1)), b: x('a')}}}
+  const a = x('a'), b = x('b'), choose = ite(less(a, b), plus(a, n(1)), b)
+  const predicates = [same(a, b), not(same(a, b)), less(a, b), atMost(choose, b),
+    all(not(same(a, n(0))), any(same(b, n(0)), less(a, b))),
+    not(any(less(a, b), same(a, n(0))))]
+  const evaluate = finiteEvaluator(source), run = interpret(source)
+  for (const holds of predicates) {
+    const law: Law = {name: 'finite polarity case', holds}, actual: string[] = [], expected: string[] = []
+    for (const av of [0, 1, 2]) for (const bv of [0, 1, 2]) {
+      const pre: import('./machine.ts').State = {scalars: {a: av, b: bv}, maps: {}}
+      if (evaluate(law, {}, pre) === true && evaluate(law, {}, run.step({}, pre, {})) === false) expected.push(`${av},${bv}`)
+    }
+    const stats = tinyFiniteCandidates(source, source, [law], {}, pre => {
+      actual.push(`${pre.scalars.a},${pre.scalars.b}`)
+      return false // Observe every proposal, not just the first target.
+    }, {valueDomain: [0, 1, 2]})
+    expect(stats.completed).toBe(true)
+    expect(stats.unsupported).toEqual([])
+    expect(actual.sort()).toEqual(expected.sort())
+  }
+})
+test('request atoms wait for every conditional-term dependency', () => {
+  const source: Machine = {...counter(), inputs: ['left', 'right'],
+    assume: all(atMost(x('left'), n(2)), atMost(x('right'), n(2)),
+      not(same(ite(less(x('left'), x('right')), x('right'), x('left')), n(0)))),
+    step: {state: {value: plus(x('left'), x('right'))}}}
+  const law: Law = {name: 'zero', holds: same(x('value'), n(0))}, actual: string[] = []
+  const stats = tinyFiniteCandidates(source, source, [law], {}, (pre, request) => {
+    expect(finiteEvaluator(source)(law, {}, interpret(source).step({}, pre, request))).toBe(false)
+    actual.push(`${request.left},${request.right}`)
+    return false
+  })
+  expect(stats.completed).toBe(true)
+  expect(actual.sort()).toEqual(['0,1', '0,2', '1,0', '1,1', '1,2', '2,0', '2,1', '2,2'])
+})
 test('state-only no-op has no proposals in the recorded finite scope', () => {
   const source = counter(); source.step = {}
   const law: Law = {name: 'zero or one', holds: all(atMost(x('value'), n(1)))}

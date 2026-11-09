@@ -1,4 +1,63 @@
-# RESUME — PAUSED AT USER REQUEST
+# RESUMED — 2026-11-10
+
+User explicitly resumed lane A. Checkpoint `bef4020f` is clean; the frozen
+`runs/t16-frontier-capture/0.json` digest remains
+`96ba906a86c7f54db1371cea2c55c0bbcc79fd9e8ebe368b770f6495a9ee4496`.
+All six cancelled probes were resubmitted **first**, unchanged, via:
+
+```sh
+supercomputer run --jobs research/track-gen/t16-domain-hybrid-jobs.json \
+  --out runs/t16-domain-hybrid-resume --class submission --timing \
+  --vm-type large --data runs/t16-frontier-capture:tiny-data
+```
+
+Batch `20261110-000752-9cbvob`, snapshot tree `99439867caf3`, task
+`1b2d3e1d-c456-438d-aa13-75af84ec879c`. Results pending; no timing, removal,
+proof, or gate conclusion is drawn from the cancelled batch. Production tiny
+screening stays disabled. Next: collect all six exact exits/placements,
+independently replay their `HYBRID_CTI`s and count only the named seven;
+then keep iterating against the five-of-seven / <=2 s falsifier.
+
+## In-flight follow-up (not yet validated)
+
+`core/finite-tiny.ts` now returns unknown before evaluating an atomic
+predicate's closed expression DAG when any dependency is unassigned. The
+prior code evaluated guarded intermediate terms even though the atom had to
+return unknown. No search domain, law, proof fuel, native-body cap, wall,
+or production switch changes. Two finite equivalence regressions cover
+ternary predecessor states, both predicate polarities, and conditional
+request dependencies in `core/finite-tiny.test.ts`.
+
+- Required domain validation: `20261110-001417-gd15iy`, tree `5f8486bd01ee`,
+  task `a434a908-dd22-4bb7-b955-130b396ec578`, output
+  `runs/t16-partial-check/`.
+- New six-probe experiment: `20261110-001508-ez9go1`, tree `d0ae610ee71f`,
+  task `1c1edd9f-b30c-458a-93e3-7d4d17d66a28`, output
+  `runs/t16-partial-hybrid/`.
+- Final-source type/lint/regression validation, including the new independent
+  replay script: task `7c638a8f-675f-42da-80ca-337c34e13594`, output
+  `runs/t16-partial-final-check/`, batch `20261110-001813-riu69e`, tree
+  `cef78180da95`. Its immutable snapshot still contains the disallowed `perf`
+  commit-message type; the working file now uses allowed `refactor`. If this
+  job reaches commitlint after passing tests/type/lint, its expected header
+  failure is not a code-test failure. Revalidate the corrected message before
+  promoting this WIP.
+- Replay-only diagnostic: `research/track-gen/t16-hybrid-replay.ts` validates
+  every logged CTI against the complete beginning-of-round family,
+  declarations and actual source interpreter, separately from the proposer.
+  It records the exact seven-law criterion, not total drops. It is **not**
+  authoritative census/admission tooling; lane D retains final admission.
+
+At the last read-only scheduler inspection the restart still showed six
+queued, zero running. No result payload was available. Shared scheduler
+health reported `churn`, `starts`, and `status` breaches; no shared process,
+VM, lease, or policy was changed. The running clients remain responsible for
+normal scheduling/fallback. There is one bounded completion waiter for the
+required restart; no alternate local execution or duplicate restart.
+
+---
+
+# HISTORICAL RESUME — PAUSED AT USER REQUEST
 
 **Start nothing until the user explicitly resumes. No push or merge.**
 
