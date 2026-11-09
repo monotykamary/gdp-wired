@@ -1,5 +1,9 @@
 # RESUME (checkpoint 2026-11-09, lane C / Fable, branch `claude/mldr-wall`)
 
+**Resumed 2026-11-10 00:05.** Step 2 done: lane A's `claude/mldr-gen` head `bef4020f` merged as `a6ae4be9` (both conflicts additive: lane A's
+`finiteTinyHoudini` beside `lawReads` in core/finite-houdini.ts; lane A's report section after this one). Step 1 (traced strict mldr pairs),
+the merged-tree tests/typecheck, the 29-list census against `bef4020f` and a per-phase profile are on boat; results follow below as they land.
+
 **Branch and head:** `claude/mldr-wall`, forked from `claude/mldr-gen` 1681e8e5, with lane A's head `c21a6e54` merged (d24a4196);
 last code commit before this checkpoint f8206bfc (this RESUME commit follows it). Worktree `gdp-wired-mldr-design`. No push, no merge.
 
