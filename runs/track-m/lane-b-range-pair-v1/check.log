@@ -1,0 +1,4 @@
+core/count-ranges.test.ts(4,22): error TS2305: Module '"../kernel/prove.ts"' has no exported member 'modelSequence'.
+
+--- stderr ---
+$ tsc -p . && oxlint --type-aware --deny-warnings --disable-nested-config

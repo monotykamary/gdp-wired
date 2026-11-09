@@ -1,0 +1,36 @@
+Found 0 warnings and 0 errors.
+Finished in 15.0s on 1392 files with 100 rules using 8 threads.
+bun test v1.4.3 (c6da4a4d3)
+
+--- stderr ---
+$ tsc -p . && oxlint --type-aware --deny-warnings --disable-nested-config
+
+core/count-ranges.test.ts:
+(pass) zeroOne recognizes 0/1 bodies and nothing else [0.05ms]
+(pass) one range instance per 0/1-bodied read, fresh witnesses, present ranges and non-0/1 bodies skipped [2.82ms]
+(pass) a row count above its universe is refuted once its range instance is in the goal [11.09ms]
+
+core/counts-preflight.test.ts:
+(pass) bounded relevance preflight lifts a proof and never promotes a subset model [120.18ms]
+(pass) counted model queries inherit the attempt end, not the outer allowance [5.29ms]
+
+core/count-recovery/row-cases.test.ts:
+(pass) active writes select the destination row rather than the copied source [0.51ms]
+(pass) Boolean-valued row writes ignore dead arms and membership lookup keys [0.19ms]
+(pass) active constant-index writes split against that index, not an unrelated input [0.42ms]
+(pass) field-only conclusions discover row cases without a post-count read [0.27ms]
+(pass) row cases cover both directions of disequality and reuse only checked trees [1.75ms]
+(pass) row copies can split the secondary key in the primary-equal branch too [1.43ms]
+(pass) mirrored row cases emit full subtrees without rerunning their callback [3.13ms]
+(pass) row cases never accept an unchecked leaf [0.09ms]
+(pass) deferred row proposals still require the composing kernel check [0.28ms]
+
+research/track-m/section15-derive-order.test.ts:
+(pass) derive classes precede partitions, omit zero claims, and preserve class order [0.12ms]
+(pass) a class pass is at most 24 distinct attempts, never an unbounded new pool [0.12ms]
+(pass) frame classification resolves only path-decided value branches [0.39ms]
+
+ 17 pass
+ 0 fail
+ 65 expect() calls
+Ran 17 tests across 4 files. [196.00ms]

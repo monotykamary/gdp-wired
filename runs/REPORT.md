@@ -181,6 +181,10 @@ Merged E `36a278e9` (including B `6d69e094`, F `682c8dc6` and declaration-backed
 
 Conflicts: retained `memberSources`, the guarded witness filtering, B's completion retries and E's preferred inclusion fallback; adopted `rangeWanted` with read lists on all certificate branches and range-triggered rebuilding in both model loops. Kept one import per symbol. The relocated finite `lawReads` and newer dropped-set replay logic survive unchanged. Added new member-premise and upper-bound aggregation tests to Lane I's jobs. The new source gets a complete v8 check/test/strict-MLDR/census batch. The already-running upper-bound shards are intentionally still bound to their earlier source manifest.
 
+## B stopping-evidence refresh
+
+Imported B `00a7d516` and its force-added raw archives. `research/track-m/LANE-F-HANDOFF.md` now records the original-34 Inv1758 early-entry limit: 6,002.553 counted units / 6,040.223 ms with field/row cases still open, not a proof. No derivability-closure/class-order events occur for its field-only claim. Baseline is wall-limited at 2,679.971 units / 7,018.544 ms, so this is not a same-budget cost win. These diagnostic results do not change the production settings, v8 source changes above, or the final gate status.
+
 ## For lane D
 
 Please run the independent one-command final gate on **`704efc27694151cd4797707ebf5b8aea5b8df318`**, the current best combined A/B/E/Fable/F candidate (range insertion, preserved completion/preferred inclusions, F's independently reconstructed empty sources, tiny proposer present but NOT active in generation). Baseline is `b788e1959bba1f2e8aa1f94d4cf7c0eb163a2f9c`. Lane I's full v7 checks and 87 generation pairs have been submitted on that exact SHA. This is a request, not an assertion they passed. V6 still had 3/3 original MLDR unknown and two now-fixed import failures, so a red gate remains expected until measured otherwise. Bind both SHAs, exact roster, paired identity, CPUs, DuoAI/broken/bar and full check/tests; only your complete receipt may authorize GATE GREEN. If a newer lane changes production, I will explicitly supersede this SHA, not silently transfer your result.
