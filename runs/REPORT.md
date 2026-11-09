@@ -43,6 +43,29 @@ errors on both trees (environment), lane D's clean-checkout gate is authoritativ
    wide request space, the finite pass's law evaluation.
 4. Hand `claude/mldr-wall` to lane D's gate; lanes F (Inv2973-half), B (Inv*) and I pull `a19a0713`+.
 
+## Disk (lane C, 2026-11-10 00:45; rules from the coordinator applied)
+
+**Archives:** one whole-tree archive per SHA now lives at `/private/tmp/gdp-archives/<sha>.tar` — `c21a6e54.tar` (120 MB, lane A's
+head the 16.3/16.4 pairs measured against) and `bef4020f.tar` (121 MB, lane A's current head). Because `--data DIR[:DEST]` ships a
+whole directory, each archive is also reachable through a per-SHA mount directory of hard links, `/private/tmp/gdp-archives/mount/<sha>/base.tar`
+(zero extra bytes), passed as `--data /private/tmp/gdp-archives/mount/<sha>:baselines`; the job commands keep reading `baselines/base.tar`.
+Nothing over 500 MB will be written without a line here first. Boat results fetched from now on: `summary.tsv`, `placement.json`, the
+job logs the client brings back (capped), gzipped if they are kept. The three scratchpad copies below are the same inodes as the archives
+or superseded by them.
+
+**Candidates I believe are safe to delete — the coordinator decides (path, size, why):**
+- `<scratchpad>/s11/op4/` — 591 MB — trackP's op-4 tree-search capture (`branch-proof.json`, `inflight.json`, `result.json`,
+  `search.log`, `sources.json`) fetched for Section 11's per-op closure reading; its conclusions are in MLDR-DESIGN.md Sections 11–12
+  and nothing reads the files again.
+- `<scratchpad>/wall/base/base.tar` — 114 MB — archive of `1681e8e5` (the original `claude/mldr-gen` fork point), superseded by the
+  two archives above; its pairs are in `runs/track-wall/receipts/{check5,orig1}`.
+- `<scratchpad>/wall/base2/base.tar` and `<scratchpad>/wall/base3/base.tar` — 120 MB + 121 MB on paper, 0 bytes in fact: hard links of
+  `/private/tmp/gdp-archives/{c21a6e54,bef4020f}.tar`; removing the scratchpad names frees nothing but tidies, once the live batches
+  `000646`, `002450`, `002825`, `003539` that were submitted with them have closed.
+- Not mine, for information: `~/.local/share/supercomputer/live/scheduler/blobs` — 8.1 GB — the scheduler's blob cache for every
+  repo; `supercomputer cache` has reference-aware pruning.
+(`<scratchpad>` = `/private/tmp/claude-501/-Users-monotykamary-VCS-working-remote-open-source-gdp-wired-mldr-design/189e2959-785a-40f5-aa9d-69082a562e43/scratchpad`.)
+
 # Lane C (Fable) — branch claude/mldr-wall, from claude/mldr-gen 1681e8e5
 
 **Current head for lane D's re-audit: 3068e7b3 (the revert of the per-step cache eb9aad68, which gained nothing on a paired measurement; the audited helpers are those of fc3a75c1 plus the test fix 57ac3f57; the confirming strict pair on a tree still carrying the cache read 15.2 s vs 20.1 s non-attempt wall).** Audit fixes, second round: commit fc3a75c1 — `$unique` zeroes its stamp buffer and restarts at 1
