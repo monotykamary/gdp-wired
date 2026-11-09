@@ -20,8 +20,8 @@ the merged-tree tests/typecheck, the 29-list census against `bef4020f` and a per
   **Paired generation, both cuts, pinned exclusive VMs:** vs `bef4020f` on an EPYC 9455: **12.4 / 13.9 / 11.7 s vs 21.6 / 21.5 / 26.2 s**
   (small 4.3–5.2 vs 11.0–12.6 s; `runs/track-wall/receipts/cells1`); incremental vs `b25ab7c4` on an EPYC 4585PX: 14.1 / 12.6 / 10.4 s vs
   13.0 / 15.6 / 15.1 s — the small phase 4.6 / 4.0 / 3.4 vs 5.3 / 6.7 / 6.2 s, the candidate phase mixed (9.5 / 8.6 / 7.0 vs 7.7 / 8.9 / 8.9 s,
-  pair 1 against; `runs/track-wall/receipts/incr1`). **117 tests pass on `f4db596e`** (`runs/track-wall/receipts/tests5`), the compiled-cells agreement included: 1,200 steps of a
-  three-count machine (a two-parameter key, a carried map) cell for cell against the interpreter; the census of this head vs `bef4020f` is running.
+  pair 1 against; `runs/track-wall/receipts/incr1`). **Census of `f4db596e` vs `bef4020f`: 29 / 29 lists byte-identical** (`runs/track-wall/receipts/census4`; mldr 17.4 → 11.3 s, small 8.0 → 4.1 s). **117 tests pass on `f4db596e`** (`runs/track-wall/receipts/tests5`), the compiled-cells agreement included: 1,200 steps of a
+  three-count machine (a two-parameter key, a carried map) cell for cell against the interpreter.
   **Strict harness (the 16.4 metric), this head vs `bef4020f`, one pinned exclusive VM per pair, `GDP_COUNTS_PROF=1`
   (`runs/track-wall/receipts/orig2`; the jobs exit 1 only because the final `grep -c 'counts: try'` finds no trace lines at trace level 1):**
   non-attempt wall = small + cubes + filter + quorumFilter + countCubes + finiteHoudini —
@@ -34,7 +34,7 @@ the merged-tree tests/typecheck, the 29-list census against `bef4020f` and a per
   self (4.4 s: its cost is the per-call Map-key iteration and allocation, not the neighbour array), `step` 14.8 %, `cells` + `$cells` 5.4 %,
   `$m` 3.5 % (the request's maps were validated twice per step, in `cells` and in `step`), `Map` 2.9 % + `cloneObject` 2.5 % (the persistent
   fork), `RangeError` 2.2 % (refused requests in the BFS), `stringify` + `keyOf3` + `sampleStateText` 5 % (state keys of the cube join's BFS).
-  Next cut, committed as `bf…` below: one breakpoint list per step shared by every dense write (the union of their breakpoints; `$dense`
+  Next cut, `7bc4e5fd` (tests, pair, census and strict pairs running): one breakpoint list per step shared by every dense write (the union of their breakpoints; `$dense`
   fills the same cells from it), and no second validation in `cells`.
 , violation-driven ranges (`72380dc1`) vs lane A's `c21a6e54`, three pinned large VMs
   (Ryzen 9 9950X ×2, EPYC 4585PX; `runs/track-wall/receipts/rmldr3`, logs gzipped):** verdict `unknown` (time) on all six runs;
