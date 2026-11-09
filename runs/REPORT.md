@@ -5749,3 +5749,117 @@ changes. No production file changed after implementation commit `74a8a0e9`.
 Reproduction commands and receipt formats: `research/track-gen/T13.md`.
 All started jobs are finished or explicitly stopped. No merge or push was done;
 large logs and decoded receipt archives remain outside git.
+
+## MLDR-GEN: strict 60 s deadline follow-up (2026-11-09)
+
+The earlier 88.610–133.399 s candidate runs above are **not strict-gate passes**.
+This follow-up compares the completed generation branch at **`189eefcd`** with
+the deadline fix, not the earlier 25-law `346fbcd9` baseline. Both sides generate
+34 MLDR laws. No kernel/solver file, law or trusted fact changed.
+
+### Where the wall escaped, and the generic fix
+
+1. `searchCounted` called `guardLaws` and `smallOf` **before** starting its wall,
+   then granted `2 * ms` to proof search. `proveRule` also did preparation and
+   refutation preflight before reaching that scope. Thus `--ms 60000` was not a
+   60 s end-to-end deadline.
+2. Sampling's BFS and random walks, sample-law binding enumeration, and the
+   preflight watcher's binding enumeration had no enclosing-wall checkpoints.
+   The counted clock does not debit this work. Several counted phase, Houdini,
+   refinement and fallback boundaries could also continue after wall expiry.
+3. `proveRule` now puts preparation, preflight, generation and proof under one
+   absolute wall. `searchCounted` starts its own nested scope before generation
+   and no longer doubles it. Nested scopes only shorten the caller's deadline.
+4. `core/wall.ts` supplies cooperative cancellation for untrusted search only.
+   Sampling checks each request; binding enumeration checks at entry and every
+   256 tuple prefixes, with a fresh poll for each state/law. Counted phases and
+   refinement/Houdini/fallback boundaries check the wall. A local attempt's
+   expired wall returns `unknown` for that attempt. A whole-run expiry returns
+   an unchecked `unknown`, never a proof. Interrupted sample graphs are not
+   cached as complete or replaced by an empty successful filter.
+5. The first fix still returned at 60.142 s inside the engine / 60.37 s as a
+   process (`runs/t13-wall-diagnose/engine-60s.log`): an in-flight synchronous
+   operation plus process setup/output straddled the deadline. Work now leaves
+   **`min(1000 ms, requested_ms / 20)`** of completion headroom, generically.
+   For 60 s the work wall is 59 s; the external hard wrapper stays exactly 60 s.
+   This is a wall-only reduction. The requested 60,000 counted units, rates,
+   counters, per-law shares and search ordering are unchanged.
+
+### Strict three-pair gate — final source
+
+`runs/t13-wall-final-v2`: every individual process ran the **unchanged original
+harness** under:
+
+```sh
+timeout -s KILL 60 bun research/protocols/ic3syn/run.ts \
+  --ms 60000 --only mldr --skip broken
+```
+
+`GDP_COUNTS_TRACE=123` / `GDP_COUNTS_PROF=1` only observe. `/usr/bin/time`
+measures the process including startup and output, separately from `search.ms`.
+Each pair is sequential on one exclusive large AMD Ryzen 9 9950X VM, two pinned
+vCPUs and zero co-tenants (`placement.json`). The middle pair is baseline first;
+the other two are candidate first. Exit 137 is a **kill**, not an unknown verdict.
+
+| repeat | parent process / exit | fixed process / exit | fixed engine wall | fixed result |
+|---|---|---|---|---|
+| 1 | 60.00 s / 137 (killed) | 59.36 s / 0 | 59.223 s | unknown |
+| 2 | 60.00 s / 137 (killed) | 59.19 s / 0 | 59.028 s | unknown |
+| 3 | 60.00 s / 137 (killed) | 59.24 s / 0 | 59.127 s | unknown |
+
+All three fixed processes finish cleanly under 60 s and emit their JSON verdict.
+The final reason is `time (rule result)`. The MLDR proof remains **unknown**;
+this fixes the deadline, not the remaining proof-cost limitation.
+
+### Counted-work preservation and generation nonregression
+
+The trace audit strips wall/profiling fields but retains the law, pass, share,
+counted work and outcome. All **37 / 39 / 41** completed parent attempts are
+identical prefixes of the corresponding fixed traces. Each fixed run then logs
+one additional, deadline-interrupted attempt; no completed parent attempt was
+reordered or assigned different counted work. Whole-run work differs with host
+throughput and the cutoff: it is not claimed equal after a wall interruption.
+Tests separately verify that checkpoints/headroom do not debit `fullWork` or the
+counted clock, and an expired preflight does not debit another watched tuple.
+
+The final paired generation census covers **all 29 protocols**, in three disjoint
+subsets (`generation-rest`, `generation-switch`, `generation-switch-i4`). It
+makes **zero root proof queries**. Every canonical list is byte-identical to
+`189eefcd`, including MLDR's **34** laws; therefore all other **28** are unchanged.
+Their SHA-256 hashes also all equal the earlier full, unsharded T-13 census.
+MLDR generation was 14.866 s parent / 15.471 s fixed in this pair. This is one
+paired observation, not a statistically significant speed claim.
+
+Full exit-code, timing, counted-prefix and 29-list hash receipts:
+`runs/t13-wall-summary-v2.json` (decoded by
+`research/track-gen/t13-wall-report.ts`). Full logs remain in
+`runs/t13-wall-final-v2`, outside git.
+
+### Tests, failures retained, and reproduction
+
+`runs/t13-wall-checks-v2`: **40 tests / 177 assertions passed**, including six new
+wall/caching/accounting tests and the neighboring search, exists, quorum and
+field-law tests. Full TypeScript, type-aware lint and file-input commitlint passed.
+No baseline fragments were mounted into this check job.
+
+- `runs/t13-wall-probe`: first cooperative fix still got exit 137 under the
+  strict wrapper. It is a failure, not included among the final three pairs.
+- `runs/t13-wall-diagnose`: the 10/60 s diagnostic runs used wider outer wrappers
+  solely to measure the residual overrun; they are not strict-gate evidence.
+- `runs/t13-wall-final/checks.log`: TypeScript saw the four mounted baseline
+  fragments under `baseline/core` and reported unresolved imports. This was a
+  job-layout failure, not fixed by weakening checks. Checks now run separately
+  without that data mount. The earlier unamortized polling experiment is also
+  not substituted for the final source's timings above.
+
+Final production git blob hashes:
+
+- `core/counts.ts`: `4f67e82158e82979957df4925120d8c30b6d6e82`
+- `core/dsl.ts`: `a714df3e14440ae640014a9005e58d73cecc01df`
+- `core/exists.ts`: `f87beb2c46ace579ef0c21ec7917aa3ee25637d6`
+- `core/watch.ts`: `0dde3d54af8eb67841e0e64ef4dc31afba7b9618`
+- `core/wall.ts`: `3fd094c12de30c5bba73ace61c6f72388d780620`
+
+Reproduction commands, baseline overlay and receipt semantics:
+`research/track-gen/WALL.md`. All jobs are finished. No merge, push, full-suite
+merge gate or successful MLDR proof is claimed.

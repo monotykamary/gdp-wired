@@ -32,6 +32,7 @@ export {supportBudget} from './support-budget.ts'
 import {proposeCountUnions} from './count-unions.ts'
 import {focusedCountRecoveryEnabled,proveFocusedCounts} from './count-focus-proof.ts'
 import {smallOf, trueSmall} from './exists.ts'
+import {WallExpired, checkWall, searchWall} from './wall.ts'
 import {env} from './solver.ts'
 import {proofOrigins, proposeLemmaCuts} from './lemma-cuts.ts'
 import {countedCertificateHyps,transportCountCertificate} from './count-cert-transport.ts'
@@ -41,7 +42,7 @@ import {countedCertificateHyps,transportCountCertificate} from './count-cert-tra
 export const cprof: Record<string, number> = {}
 export const countsDump: {on?: (goal: object) => void} = {}
 const tally = (k: string, n = 1) => { cprof[k] = (cprof[k] ?? 0) + n }
-const ptime = <T>(k: string, f: () => T): T => { const t = performance.now(); try { return f() } finally { cprof[k] = (cprof[k] ?? 0) + performance.now() - t } }
+const ptime = <T>(k: string, f: () => T): T => { const t = performance.now(); try { checkWall(k); const out = f(); checkWall(k); return out } finally { cprof[k] = (cprof[k] ?? 0) + performance.now() - t } }
 let dumped = 0
 // (GDP_COUNTS_LAZY=0: every instance and pick certFor proposes in the goal at once, as before; `wide`: the narrow
 // instances at once, the widened goal's further instances and picks lazily)
@@ -441,24 +442,32 @@ export function supportOrder(set: Law[], caller: Law[], support: Set<Law>, forMo
 }
 export type Counted = {proven: boolean, laws: Law[], m: Machine, proof?: {instances: Record<string, Instances>, certs: Record<string, CountCert>}, why?: string}
 // On the counted clock (kernel/prove.ts's `counted`, the cost model's work at fullRate a millisecond), as the engine's
-// search is: what a budget lets it try, and so its verdict, is the same on a slow or shared machine as on a fast one; the
-// wall a stop only at twice the budget. The small instances (exists.ts's smallOf) are read before the wall starts: their
-// search is bounded by its own count of steps, on neither clock, and took 3.6 to 5.2 s of an 8 s budget's 16 s wall on
-// a boat VM (exists.test.ts's two counts), so a shared VM crossed the wall before the search began and left every goal
-// unknown (2 runs in 4 on main; 4 in 4 beside three busy loops).
+// search is: counted fuel and ordering are unchanged up to the wall cutoff. The
+// wall is an independent hard ceiling, including sampling and generation. A slow
+// machine may stop earlier on the same counted-work prefix, never get extra time.
 // The ordinary family gets its complete existing path first. Structured
 // witness families are retried only after failure, under the same absolute
 // deadline and counted fuel; no generated family is removed.
 function structuredFallback(until: number, attempt: (structured: boolean) => Counted): Counted {
   const ordinary = attempt(false)
   if (ordinary.proven || clock() >= until) return ordinary
+  checkWall('structured fallback')
   countsDump.on?.({phase: 'structured-family-expansion'})
   return attempt(true)
 }
 export function searchCounted(m0: Machine, caller: Law[], ms = 60_000): Counted {
-  const g = guardLaws(m0), m: Machine = {...m0, counts: {...m0.counts, ...g.counts}}
-  ptime('small', () => smallOf(m, m0))
-  const run = () => withWall(performance.now() + 2 * ms, () => counted(fullRate, () => searchCounted0(m0, g, m, caller, ms), true))
+  let m = m0
+  const run = () => withWall(searchWall(ms), (): Counted => {
+    try {
+      const g = ptime('guards', () => guardLaws(m0))
+      m = {...m0, counts: {...m0.counts, ...g.counts}}
+      ptime('small', () => smallOf(m, m0))
+      return counted(fullRate, () => searchCounted0(m0, g, m, caller, ms), true)
+    } catch (e) {
+      if (!(e instanceof WallExpired)) throw e
+      return {proven: false, laws: caller, m, why: e.message}
+    }
+  })
   if (!env.GDP_COUNTS_PROF) return run()
   cdclStats.on = true
   const t = performance.now(), out = run()
@@ -533,6 +542,7 @@ function admitCountedFamily0(m:Machine,caller:Law[],initial:Law[],support:Set<La
       const failed = new Set<string>(), proofs = new Map<string, Proof>(), share = (until - clock()) / Math.max(1, set.filter(l => !kept.has(l.name) && !carried.has(l.name)).length)
       // Structural supports first; no-support scheduling is unchanged.
       for (const law of supportOrder(set, caller, support)) {
+        checkWall('Houdini round')
         if (clock() > until) return {proven: false, laws: set, m, why: 'time'}
         if (kept.has(law.name)) continue
         const was = carried.get(law.name)
@@ -788,9 +798,11 @@ export function countedAttempts(m: Machine, caller: Law[], support: Set<Law>, un
     //   - unknown: the goals grown as they are.
     let preflighted = false
     for (;;) {
+      checkWall('counted refinement')
       let part: {gg: Goal, core: Goal} | undefined
       let direct: {gg: Goal, tree: CountCert['tree']} | undefined
       for (;;) {
+        checkWall('counted model loop')
         const step = built.at(-1)
         if (!step?.gg) break
         if (supported && !preflighted && !step.c.insts.length) {
@@ -912,8 +924,9 @@ export function countedAttempts(m: Machine, caller: Law[], support: Set<Law>, un
       }
       r = attempt(law, ls, pass, Math.max(0, end - clock()))
     } catch (error) {
-      // Invalid or captured proposals are rejected; they cannot become assumptions.
-      if (!(error instanceof UnsupportedCountProposal)) throw error
+      // A local wall expires this attempt, not the whole enclosing search.
+      // Invalid or captured proposals are likewise never assumptions.
+      if (!(error instanceof UnsupportedCountProposal) && !(error instanceof WallExpired)) throw error
       countsDump.on?.({law: law.name, pass, phase: 'rejected proposal', error: String(error)})
       r = {stuck: 'unknown'}
     }

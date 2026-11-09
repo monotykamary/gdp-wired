@@ -22,6 +22,7 @@ import {allowed, keysOf, requestEnv, watch, watchWork} from './watch.ts'
 import {ghostOf, proveSome, skolemOf, someHolds, substVars, substVarsE, witnessSupport} from './exists.ts'
 import {type Fold, type Ghosted, type Goal, type Liveness, type Loop, type Recur, type StepLaw, type Tree, check, mapArities, checkRecur, foldObligations, ghostedMachine, loopObligations, someOfGhostsOk, substC, sumMachine} from '../kernel/kernel.ts'
 import {type Report, certLoop, clock, counted, factsFor, fullRate, grow, pastWall, proveLaw, proveLaws, proveLiveness, proveSetFast, proveStepLaws, usualProof, withDeadline, withWall} from '../kernel/prove.ts'
+import {WallExpired, checkWall, searchWall} from './wall.ts'
 import {type Translated, type UsualProof, certCyclic, certOn, crossCyclic, cyclicOn, foldNodes, proveCyclic, quietly, recurNodes, translatedProof, uncovered} from './cyclic.ts'
 import {discover} from './discover.ts'
 import {inferLaws, inferRates} from './infer.ts'
@@ -2735,7 +2736,7 @@ function refuteByRuns(r: Rule<Obj, Obj, Obj, Obj, Obj, Obj, Obj, Obj>, laws: Law
       for (const sl of steps1) if (!watch(m, run, sl, params, bound).step(st, input, next)) return {goal: `${sl.name} @step law`, witness: witness()}
       for (const l of lawsHere) if (!watch(m, run, l, params, bound).step(st, input, next)) return {goal: `${l.name} @step`, witness: witness()}
     }
-  } catch { return undefined }
+  } catch (e) { if (e instanceof WallExpired) throw e; return undefined }
   return undefined
 }
 // The kernel's report as a verdict: its first goal left unproven, with its counterexample and why.
@@ -2745,6 +2746,23 @@ const refutedVerdict = (out: NonNullable<ReturnType<typeof refuteByRuns>>): Verd
 // another instance of the same rule (a factory called twice).
 const noting = <R extends Rule<Obj, Obj, Obj, Obj, Obj, Obj, Obj, Obj>>(r: R, ...xs: object[]): R => { const ks = divisorsIn(xs as never); if (ks.size) r.dividesBy(...ks); return r }
 export function proveRule(r: Rule<Obj, Obj, Obj, Obj, Obj, Obj, Obj, Obj>, laws: Law[], opts: ProveOptions = {}): Verdict {
+  const ms = typeof opts.search === 'object' ? opts.search.ms : undefined
+  const run = (): Verdict => {
+    try {
+      checkWall('rule preflight')
+      const out = proveRuleIn(r, laws, opts)
+      checkWall('rule result')
+      return out
+    } catch (e) {
+      if (!(e instanceof WallExpired)) throw e
+      return {proven: false, checked: false, stuck: 'unknown', why: e.message}
+    }
+  }
+  // One absolute wall for setup, sampling, generation and proof, not a fresh
+  // allowance for each phase. Nested callers can only shorten it.
+  return ms === undefined ? run() : withWall(searchWall(ms), run)
+}
+function proveRuleIn(r: Rule<Obj, Obj, Obj, Obj, Obj, Obj, Obj, Obj>, laws: Law[], opts: ProveOptions): Verdict {
   r = r.withSumsOf(laws)
   noting(r, laws)
   const refuted = refuteByRuns(r, laws)
@@ -2776,8 +2794,15 @@ export function proveSteps(r: Rule<Obj, Obj, Obj, Obj, Obj, Obj, Obj, Obj>, laws
   const ms = typeof opts.search === 'object' ? opts.search.ms : undefined
   // From any state, the caller's budget includes preflight runs and all initial
   // goals, not a fresh budget per goal. Keep reachable-state search unchanged.
-  return opts.from !== 'any' || ms === undefined ? proveStepsIn(r, laws, stepLaws, opts)
-    : withWall(performance.now() + ms, () => proveStepsIn(r, laws, stepLaws, opts))
+  const run = (): Verdict => {
+    try { return proveStepsIn(r, laws, stepLaws, opts) }
+    catch (e) {
+      if (!(e instanceof WallExpired)) throw e
+      return {proven: false, checked: false, stuck: 'unknown', why: e.message}
+    }
+  }
+  return opts.from !== 'any' || ms === undefined ? run()
+    : withWall(performance.now() + ms, run)
 }
 function proveStepsIn(r: Rule<Obj, Obj, Obj, Obj, Obj, Obj, Obj, Obj>, laws: Law[], stepLaws: StepLaw[], opts: ProveOptions): Verdict {
   r = r.withSumsOf(laws, stepLaws)

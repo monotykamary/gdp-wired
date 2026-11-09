@@ -11,9 +11,9 @@ export const canonical = (l: Law) => {
   return JSON.stringify(walk(l.holds))
 }
 if (import.meta.main) {
-  const only = process.argv[2], records = []
+  const only = process.argv[2]?.split(','), records = []
   let queries = 0; queryHook.on = () => { queries++ }
-  for (const p of protocols.filter(p => !only || p.id === only)) {
+  for (const p of protocols.filter(p => !only || only.includes(p.id))) {
     const t0 = performance.now(), phases: Record<string, number> = {}
     const time = <T>(key: string, f: () => T): T => { const t = performance.now(); try { return f() } finally { phases[key] = performance.now() - t } }
     const r = p.make(), caller = [...r.kindLaws(), ...p.laws(r)]
