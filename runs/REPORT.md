@@ -40,7 +40,8 @@ side), MLDR helper observations and all 29 generation lists. Future gates still
 use main `4497c4b0`. The old pruning pilot remains untouched and lower priority. Candidate source
 commit: `1564709f`. Focus regression tests and static checks are submitted in
 `runs/t17-focus-check/` (task `eca5057d-c5ae-4a65-9875-2919e22cfaf9`).
-The three-way measurement driver is being qualified separately; strict Ryzen
+The three-way measurement driver is being qualified separately in task
+`ec243895-c29c-46e6-963a-751150616ffc`, output `runs/t17-measurement-check/`; strict Ryzen
 repeats and the 29-protocol census are prepared but not yet submitted.
 Comparators are new main `4497c4b0`, pre-fix merge `6bcdf421`, and `1564709f`.
 
@@ -71,7 +72,7 @@ export work, which this lane had not yet merged from `b788e195`.
 Post-merge static checks and regression shards are next; the prior 80-test
 receipt does **not** certify the new merged tree. Production stays disabled.
 
-## Current revision: front-loaded seed certification (checked; pilot running)
+## Pre-merge experiment: front-loaded seeds (checked; pilot rejected)
 
 Coupled moves below still missed five-of-seven. The next hypothesis moves the
 same bounded seed-vector work before native setup, using shared layout and
@@ -84,11 +85,14 @@ The full expanded suite passed on submission in `20261110-031855-qrrixs`:
 and commitlint. Receipts: `runs/t16-early-check/`; immutable overlay:
 `runs/t16-early-overlay/`; checked source commit: `af32bd46`.
 
-Six same-budget pilots are running on isolated submission-class large VMs:
-`0d3e5862-5fdf-4e5d-914a-4165d67fe318`, output `runs/t16-early-probe/`.
-The checked wrapper and new suite are now hash-checked by every pilot as well
-as the compiler and driver. Post-target pruning, uniform seeds and front-loading
-are on; intervals remain off. No performance outcome is claimed.
+Pre-merge batch `20261110-032156-aue177` completed all six jobs, exits 0.
+Original-family named drops are **3 / 3 / 3**, below five-of-seven. One active
+wall was **2062.240 ms**, also outside the 2-second allowance. Front-loading
+did run and emitted extra non-named drops; it did not meet the criterion.
+The checked wrapper, compiler, driver and new suite were hash-bound.
+Preliminary receipts: `research/track-gen/t16-early-preliminary-results.json`.
+Independent witness replay is deferred behind the coordinator’s focused-recovery
+priority. This is not a validated promotion and no production change follows.
 Details: `research/track-gen/t16-early-notes.md`.
 Compiler SHA-256 `be1bd8f0d285eabe77716160e31fbe316d9fa031f8f07d6ab88c221387699578`;
 wrapper `a38433e20e843f347bdc28deaba3951778e21544fd7c36bd24c16b4eaf27c28b`;
