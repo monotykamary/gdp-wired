@@ -10,7 +10,7 @@
   "strict": {
     "batch": "20261110-035023-3p9acg",
     "task": "d1deb71c-dc90-419c-b819-e7573a13be81",
-    "status": "pending",
+    "status": "audited-ten-pairs-no-loss",
     "cohortIds": [
       13,
       14,
@@ -24,7 +24,10 @@
       22,
       23,
       24
-    ]
+    ],
+    "acceptedPairs": 10,
+    "losses": 0,
+    "issues": []
   },
   "finalGate": false,
   "lintRepair": {
