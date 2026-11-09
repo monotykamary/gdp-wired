@@ -1,0 +1,234 @@
+[
+  {
+    "name": "capture-consensus",
+    "cmd": "bash research/verify-all/run-capture.sh consensus search",
+    "cpu": 4,
+    "memory": 14336,
+    "timeout": 2100,
+    "vm_type": "large"
+  },
+  {
+    "name": "capture-tcommit",
+    "cmd": "bash research/verify-all/run-capture.sh tcommit search",
+    "cpu": 4,
+    "memory": 14336,
+    "timeout": 2100,
+    "vm_type": "large"
+  },
+  {
+    "name": "capture-lock_server",
+    "cmd": "bash research/verify-all/run-capture.sh lock_server search",
+    "cpu": 4,
+    "memory": 14336,
+    "timeout": 2100,
+    "vm_type": "large"
+  },
+  {
+    "name": "capture-quorum_leader_election",
+    "cmd": "bash research/verify-all/run-capture.sh quorum_leader_election search",
+    "cpu": 4,
+    "memory": 14336,
+    "timeout": 2100,
+    "vm_type": "large"
+  },
+  {
+    "name": "capture-toy_consensus_forall",
+    "cmd": "bash research/verify-all/run-capture.sh toy_consensus_forall search",
+    "cpu": 4,
+    "memory": 14336,
+    "timeout": 2100,
+    "vm_type": "large"
+  },
+  {
+    "name": "capture-simple",
+    "cmd": "bash research/verify-all/run-capture.sh simple search",
+    "cpu": 4,
+    "memory": 14336,
+    "timeout": 2100,
+    "vm_type": "large"
+  },
+  {
+    "name": "capture-simple_regular",
+    "cmd": "bash research/verify-all/run-capture.sh simple_regular search",
+    "cpu": 4,
+    "memory": 14336,
+    "timeout": 2100,
+    "vm_type": "large"
+  },
+  {
+    "name": "capture-lockserv_automaton",
+    "cmd": "bash research/verify-all/run-capture.sh lockserv_automaton search",
+    "cpu": 4,
+    "memory": 14336,
+    "timeout": 2100,
+    "vm_type": "large"
+  },
+  {
+    "name": "capture-sharded_kv",
+    "cmd": "bash research/verify-all/run-capture.sh sharded_kv search",
+    "cpu": 4,
+    "memory": 14336,
+    "timeout": 2100,
+    "vm_type": "large"
+  },
+  {
+    "name": "capture-sharded_kv_no_lost_keys",
+    "cmd": "bash research/verify-all/run-capture.sh sharded_kv_no_lost_keys search",
+    "cpu": 4,
+    "memory": 14336,
+    "timeout": 2100,
+    "vm_type": "large"
+  },
+  {
+    "name": "capture-lockserv",
+    "cmd": "bash research/verify-all/run-capture.sh lockserv search",
+    "cpu": 4,
+    "memory": 14336,
+    "timeout": 2100,
+    "vm_type": "large"
+  },
+  {
+    "name": "capture-twophase",
+    "cmd": "bash research/verify-all/run-capture.sh twophase search",
+    "cpu": 4,
+    "memory": 14336,
+    "timeout": 2100,
+    "vm_type": "large"
+  },
+  {
+    "name": "capture-simple_decentralized_lock",
+    "cmd": "bash research/verify-all/run-capture.sh simple_decentralized_lock search",
+    "cpu": 4,
+    "memory": 14336,
+    "timeout": 2100,
+    "vm_type": "large"
+  },
+  {
+    "name": "capture-two_phase_commit",
+    "cmd": "bash research/verify-all/run-capture.sh two_phase_commit search",
+    "cpu": 4,
+    "memory": 14336,
+    "timeout": 2100,
+    "vm_type": "large"
+  },
+  {
+    "name": "capture-consensus_wo_decide",
+    "cmd": "bash research/verify-all/run-capture.sh consensus_wo_decide search",
+    "cpu": 4,
+    "memory": 14336,
+    "timeout": 2100,
+    "vm_type": "large"
+  },
+  {
+    "name": "capture-consensus_forall",
+    "cmd": "bash research/verify-all/run-capture.sh consensus_forall search",
+    "cpu": 4,
+    "memory": 14336,
+    "timeout": 2100,
+    "vm_type": "large"
+  },
+  {
+    "name": "capture-naive_consensus",
+    "cmd": "bash research/verify-all/run-capture.sh naive_consensus search",
+    "cpu": 4,
+    "memory": 14336,
+    "timeout": 2100,
+    "vm_type": "large"
+  },
+  {
+    "name": "capture-client_server_ae",
+    "cmd": "bash research/verify-all/run-capture.sh client_server_ae search",
+    "cpu": 4,
+    "memory": 14336,
+    "timeout": 2100,
+    "vm_type": "large"
+  },
+  {
+    "name": "capture-client_server_db_ae",
+    "cmd": "bash research/verify-all/run-capture.sh client_server_db_ae search",
+    "cpu": 4,
+    "memory": 14336,
+    "timeout": 2100,
+    "vm_type": "large"
+  },
+  {
+    "name": "capture-simple_election",
+    "cmd": "bash research/verify-all/run-capture.sh simple_election search",
+    "cpu": 4,
+    "memory": 14336,
+    "timeout": 2100,
+    "vm_type": "large"
+  },
+  {
+    "name": "capture-toy_consensus_epr",
+    "cmd": "bash research/verify-all/run-capture.sh toy_consensus_epr search",
+    "cpu": 4,
+    "memory": 14336,
+    "timeout": 2100,
+    "vm_type": "large"
+  },
+  {
+    "name": "capture-toy_consensus",
+    "cmd": "bash research/verify-all/run-capture.sh toy_consensus search",
+    "cpu": 4,
+    "memory": 14336,
+    "timeout": 2100,
+    "vm_type": "large"
+  },
+  {
+    "name": "capture-firewall",
+    "cmd": "bash research/verify-all/run-capture.sh firewall search",
+    "cpu": 4,
+    "memory": 14336,
+    "timeout": 2100,
+    "vm_type": "large"
+  },
+  {
+    "name": "capture-majorityset_leader_election",
+    "cmd": "bash research/verify-all/run-capture.sh majorityset_leader_election search",
+    "cpu": 4,
+    "memory": 14336,
+    "timeout": 2100,
+    "vm_type": "large"
+  },
+  {
+    "name": "capture-consensus_epr",
+    "cmd": "bash research/verify-all/run-capture.sh consensus_epr search",
+    "cpu": 4,
+    "memory": 14336,
+    "timeout": 2100,
+    "vm_type": "large"
+  },
+  {
+    "name": "capture-learning_switch",
+    "cmd": "bash research/verify-all/run-capture.sh learning_switch search",
+    "cpu": 4,
+    "memory": 14336,
+    "timeout": 2100,
+    "vm_type": "large"
+  },
+  {
+    "name": "capture-learning_switch_i4",
+    "cmd": "bash research/verify-all/run-capture.sh learning_switch_i4 search",
+    "cpu": 4,
+    "memory": 14336,
+    "timeout": 2100,
+    "vm_type": "large"
+  },
+  {
+    "name": "capture-paxos_epr",
+    "cmd": "bash research/verify-all/run-capture.sh paxos_epr search",
+    "cpu": 4,
+    "memory": 14336,
+    "timeout": 2100,
+    "vm_type": "large"
+  },
+  {
+    "name": "capture-mldr",
+    "cmd": "bash research/verify-all/run-capture.sh mldr search",
+    "cpu": 4,
+    "memory": 14336,
+    "timeout": 2100,
+    "vm_type": "large"
+  }
+]

@@ -1,0 +1,10 @@
+[
+  {
+    "name": "check",
+    "cmd": "bun install --frozen-lockfile >/dev/null && printf \"AUDIT_ENV\\n\" && env | LC_ALL=C sort | grep -E \"^GDP_(STRICT|REAL_MODELS|CERT|CYCLIC|COUNTS|COUNT_LEMMA|INFER_TRACE)\"; bun run check",
+    "cpu": 4,
+    "memory": 14336,
+    "timeout": 600,
+    "vm_type": "large"
+  }
+]

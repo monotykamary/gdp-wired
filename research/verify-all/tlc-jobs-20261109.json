@@ -1,0 +1,205 @@
+[
+  {
+    "name": "tlc-consensus",
+    "cmd": "python3 research/verify-all/tlc-audit-run-20261109.py consensus",
+    "cpu": 4,
+    "memory": 14336,
+    "timeout": 1200
+  },
+  {
+    "name": "tlc-tcommit",
+    "cmd": "python3 research/verify-all/tlc-audit-run-20261109.py tcommit",
+    "cpu": 4,
+    "memory": 14336,
+    "timeout": 1200
+  },
+  {
+    "name": "tlc-lock_server",
+    "cmd": "python3 research/verify-all/tlc-audit-run-20261109.py lock_server",
+    "cpu": 4,
+    "memory": 14336,
+    "timeout": 1200
+  },
+  {
+    "name": "tlc-quorum_leader_election",
+    "cmd": "python3 research/verify-all/tlc-audit-run-20261109.py quorum_leader_election",
+    "cpu": 4,
+    "memory": 14336,
+    "timeout": 1200
+  },
+  {
+    "name": "tlc-toy_consensus_forall",
+    "cmd": "python3 research/verify-all/tlc-audit-run-20261109.py toy_consensus_forall",
+    "cpu": 4,
+    "memory": 14336,
+    "timeout": 1200
+  },
+  {
+    "name": "tlc-simple",
+    "cmd": "python3 research/verify-all/tlc-audit-run-20261109.py simple",
+    "cpu": 4,
+    "memory": 14336,
+    "timeout": 1200
+  },
+  {
+    "name": "tlc-simple_regular",
+    "cmd": "python3 research/verify-all/tlc-audit-run-20261109.py simple_regular",
+    "cpu": 4,
+    "memory": 14336,
+    "timeout": 1200
+  },
+  {
+    "name": "tlc-lockserv_automaton",
+    "cmd": "python3 research/verify-all/tlc-audit-run-20261109.py lockserv_automaton",
+    "cpu": 4,
+    "memory": 14336,
+    "timeout": 1200
+  },
+  {
+    "name": "tlc-sharded_kv",
+    "cmd": "python3 research/verify-all/tlc-audit-run-20261109.py sharded_kv",
+    "cpu": 4,
+    "memory": 14336,
+    "timeout": 1200
+  },
+  {
+    "name": "tlc-sharded_kv_no_lost_keys",
+    "cmd": "python3 research/verify-all/tlc-audit-run-20261109.py sharded_kv_no_lost_keys",
+    "cpu": 4,
+    "memory": 14336,
+    "timeout": 1200
+  },
+  {
+    "name": "tlc-lockserv",
+    "cmd": "python3 research/verify-all/tlc-audit-run-20261109.py lockserv",
+    "cpu": 4,
+    "memory": 14336,
+    "timeout": 1200
+  },
+  {
+    "name": "tlc-twophase",
+    "cmd": "python3 research/verify-all/tlc-audit-run-20261109.py twophase",
+    "cpu": 4,
+    "memory": 14336,
+    "timeout": 1200
+  },
+  {
+    "name": "tlc-simple_decentralized_lock",
+    "cmd": "python3 research/verify-all/tlc-audit-run-20261109.py simple_decentralized_lock",
+    "cpu": 4,
+    "memory": 14336,
+    "timeout": 1200
+  },
+  {
+    "name": "tlc-two_phase_commit",
+    "cmd": "python3 research/verify-all/tlc-audit-run-20261109.py two_phase_commit",
+    "cpu": 4,
+    "memory": 14336,
+    "timeout": 1200
+  },
+  {
+    "name": "tlc-naive_consensus",
+    "cmd": "python3 research/verify-all/tlc-audit-run-20261109.py naive_consensus",
+    "cpu": 4,
+    "memory": 14336,
+    "timeout": 1200
+  },
+  {
+    "name": "tlc-client_server_ae",
+    "cmd": "python3 research/verify-all/tlc-audit-run-20261109.py client_server_ae",
+    "cpu": 4,
+    "memory": 14336,
+    "timeout": 1200
+  },
+  {
+    "name": "tlc-client_server_db_ae",
+    "cmd": "python3 research/verify-all/tlc-audit-run-20261109.py client_server_db_ae",
+    "cpu": 4,
+    "memory": 14336,
+    "timeout": 1200
+  },
+  {
+    "name": "tlc-simple_election",
+    "cmd": "python3 research/verify-all/tlc-audit-run-20261109.py simple_election",
+    "cpu": 4,
+    "memory": 14336,
+    "timeout": 1200
+  },
+  {
+    "name": "tlc-toy_consensus_epr",
+    "cmd": "python3 research/verify-all/tlc-audit-run-20261109.py toy_consensus_epr",
+    "cpu": 4,
+    "memory": 14336,
+    "timeout": 1200
+  },
+  {
+    "name": "tlc-toy_consensus",
+    "cmd": "python3 research/verify-all/tlc-audit-run-20261109.py toy_consensus",
+    "cpu": 4,
+    "memory": 14336,
+    "timeout": 1200
+  },
+  {
+    "name": "tlc-firewall",
+    "cmd": "python3 research/verify-all/tlc-audit-run-20261109.py firewall",
+    "cpu": 4,
+    "memory": 14336,
+    "timeout": 1200
+  },
+  {
+    "name": "tlc-majorityset_leader_election",
+    "cmd": "python3 research/verify-all/tlc-audit-run-20261109.py majorityset_leader_election",
+    "cpu": 4,
+    "memory": 14336,
+    "timeout": 1200
+  },
+  {
+    "name": "tlc-consensus_epr",
+    "cmd": "python3 research/verify-all/tlc-audit-run-20261109.py consensus_epr",
+    "cpu": 4,
+    "memory": 14336,
+    "timeout": 1200
+  },
+  {
+    "name": "tlc-consensus_wo_decide",
+    "cmd": "python3 research/verify-all/tlc-audit-run-20261109.py consensus_wo_decide",
+    "cpu": 4,
+    "memory": 14336,
+    "timeout": 1200
+  },
+  {
+    "name": "tlc-consensus_forall",
+    "cmd": "python3 research/verify-all/tlc-audit-run-20261109.py consensus_forall",
+    "cpu": 4,
+    "memory": 14336,
+    "timeout": 1200
+  },
+  {
+    "name": "tlc-mldr",
+    "cmd": "python3 research/verify-all/tlc-audit-run-20261109.py mldr",
+    "cpu": 4,
+    "memory": 14336,
+    "timeout": 1200
+  },
+  {
+    "name": "tlc-learning_switch_i4",
+    "cmd": "python3 research/verify-all/tlc-audit-run-20261109.py learning_switch_i4",
+    "cpu": 4,
+    "memory": 14336,
+    "timeout": 1200
+  },
+  {
+    "name": "tlc-learning_switch",
+    "cmd": "python3 research/verify-all/tlc-audit-run-20261109.py learning_switch",
+    "cpu": 4,
+    "memory": 14336,
+    "timeout": 1200
+  },
+  {
+    "name": "tlc-paxos_epr",
+    "cmd": "python3 research/verify-all/tlc-audit-run-20261109.py paxos_epr",
+    "cpu": 4,
+    "memory": 14336,
+    "timeout": 1200
+  }
+]

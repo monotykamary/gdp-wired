@@ -1,0 +1,24 @@
+## Trust verdict and remaining limits
+
+| Claim | Audit verdict |
+|---|---|
+| “Production proves 28/29 IC3Syn protocols” | **Reproduced for this baseline and these encoded models**: 84/87, the same 28 in every repeat. It is not 29/29, and it is not a claim about arbitrary source-domain sizes. |
+| “Paxos is independently checked” | **Not established.** Its actual captured counted certificate is rejected by the current Lean export/check path. A TypeScript `checked` flag is not a substitute. See the diagnostic for the precise failing condition and what remains unresolved. |
+| “MLDR is proved in production” | **False for these runs**: unknown in all three. A hand-supplied family or candidate count cannot replace that measurement. |
+| “Every broken variant is rejected with a real run” | **Too strong**: zero were proven, but only eleven had a refuting trace. All eleven captured repeat-run witnesses replayed; exact primary witnesses were not retained. Seventeen primary runs remained unknown and one timed out. |
+| “No knowledge is supplied by hand” | **Qualified only**: no hand-seeded inductive law family or supplied `.facts` in these models; but typing/domain/quorum restrictions, initialized summaries, switch reflexivity and invariant-aware representation choices are supplied. |
+| “The ports are the unrestricted original protocols” | **Not established**: finite correspondence is evidence on the tested instances, not a cutoff, refinement or bisimulation theorem. Paxos’s TLC surrogate is another project-authored transcription. |
+| “There are no answers in the engine” | **No literal protocol-name shortcut found**, but generic templates, scope gates and constants were visibly benchmark-shaped. Static searching cannot establish absence of all answer-encoding or out-of-distribution generality. |
+| “These are the exact certificates from the three uninstrumented runs” | **Not established**: those commands do not export proof objects. Lean checked actual accepted objects from explicitly disclosed observational repetitions, with packet hashes, not inferred or substituted proof families. |
+
+Final validation command (on boat): `supercomputer run --jobs research/verify-all/jobs-finalize.json --out runs/verify-all/finalize-confirm --class interactive --backend boat --data runs/verify-all:evidence`. Its check job runs `bun run check`; the report verifier checks every linked artifact, all 146 primary log hashes and in-job kernel identities, all five sections, and certificate/receipt tallies. The final report-only rebuild after EOF whitespace normalization and receipt relocation is in `runs/verify-all/report-final-provenance/`. Seven test shards and the quick bar were not rerun: no engine/model/kernel change or merge is proposed.
+
+The trustworthy evidence is the reproducible, qualified measurement and the successfully kernel-checked individual certificates. The gaps are equally part of the result: especially the independent Paxos rejection, the unproved MLDR row, incomplete broken-variant refutation, and source-model/generalization limits. Nothing here justifies presenting the whole suite as unconditionally or independently verified.
+
+### Verification-tool failures and cleanup
+
+Initial capture/export failures are retained in `capture-all/`: missing scalar-ghost declarations (`simple`, `simple_regular`), missing `Sums` import (`simple_decentralized_lock`), and the substantive Paxos check failure. Audit-side adapters corrected the first three without touching core, kernel, models or harness and without replacing the captured proof. Additional original-claim ghost bridges were checked for client/server, firewall and no-lost-keys certificates. The final sum export seeds the effective plain machine and uses captured side-goal trees, preventing silent re-proving by the exporter.
+
+The replay helper initially confused the fixed small-instance `p.bad` predicate with the actual production-domain law. Its failed receipts are retained; the corrected helper checks the actual law along the legal interpreter run. Initial TypeScript/lint failures were confined to new audit scripts (optional-path typing, scalar-read typing, lexical sort comparators); successful final validation is recorded with the other evidence. TLC wrapper/output and engine-scan truncation failures are detailed in their own reports. The first commitlint invocation (`finalize/commitlint.log`) failed because the remote source snapshot has no git root for `--edit`; the file-backed stdin retry in `finalize-confirm/` avoids that repository lookup without changing the message.
+
+No cache was cleared, no ignored/untracked output was cleaned, no worktree was recreated, no history was rewritten, and nothing was pushed. All started verification jobs were awaited to terminal receipts. The report and scripts are the only intended committed changes; large evidence remains under ignored `runs/verify-all/`.
