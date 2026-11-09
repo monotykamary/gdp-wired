@@ -25,7 +25,9 @@ export function writesReadState(m:Machine,cert:Pick<CountCert,'reads'>,path:Path
   const count=m.counts?.[name]
   if(count){visit(count.below);visit(count.body)}else maps.add(name)
  }
- for(const [,name,key]of cert.reads){read(name);visit(key)}
+ const wanted=new Set<string>()
+ if(claim)walkLive(claim,path,(o:any)=>{for(const [id,name,key]of cert.reads)if(o.op==='var'&&o.name===id||o.op==='get'&&o.map===name&&JSON.stringify(o.key)===JSON.stringify(key))wanted.add(id)})
+ for(const [id,name,key]of cert.reads)if(!claim||wanted.has(id)){read(name);visit(key)}
  visit(claim)
  const identity=(value:E,want:E):boolean=>{
   if(JSON.stringify(value)===JSON.stringify(want))return true
@@ -44,14 +46,15 @@ export function writesReadState(m:Machine,cert:Pick<CountCert,'reads'>,path:Path
 
 // Prefer a row equal in the model, then another fully assigned unresolved row.
 // Missing/NaN model cells cannot choose a split. A model is a hint, not a proof.
-export function demandedRowPair(pairs:RowPair[],path:Path,model:Record<string,number>):RowPair|undefined{
+export function demandedRowPair(pairs:RowPair[],path:Path,model:Record<string,number>,sources:ReadonlySet<string>=new Set()):RowPair|undefined{
  const ranked=pairs.flatMap((pair,index)=>{
   if(truth({op:'=',a:pair[0],b:pair[1]},path)!==undefined)return []
   const a=linear(pair[0],path),b=linear(pair[1],path);if(!a||!b)return []
   let value=0
   for(const [key,k]of Object.entries(sub(a,b))){const v=key==='1'?1:model[key];if(!Number.isFinite(v))return [];value+=k*v!}
-  return [{pair,index,equal:value===0}]
- }).sort((a,b)=>Number(b.equal)-Number(a.equal)||a.index-b.index)
+  let relevant=false;walkOnce(pair[0],(o:any)=>{if(o.op==='var'&&sources.has(o.name))relevant=true})
+  return [{pair,index,equal:value===0,relevant}]
+ }).sort((a,b)=>Number(b.equal&&b.relevant)-Number(a.equal&&a.relevant)||Number(b.relevant)-Number(a.relevant)||Number(b.equal)-Number(a.equal)||a.index-b.index)
  return ranked[0]?.pair
 }
 // Prefer exact scalar destinations, including constant-index initialization.
@@ -108,7 +111,7 @@ export function rowPairs(m:Machine,cert:Pick<CountCert,'reads'>,root:Path=new Ma
  return [...names].slice(0,2).map(name=>[x(name),actor] as const)
 }
 export const proveRowCases:typeof proveRowCasesImpl=(...args)=>wallTree('row-case-reconstruction',()=>proveRowCasesImpl(...args))
-function proveRowCasesImpl(g:Goal,root:Path,pairs:RowPair[],until:number,prove:(path:Path,until:number)=>Tree|undefined,trace?:(e:object)=>void,options:{deferToCaller?:boolean,splitEqual?:boolean,model?:()=>Record<string,number>|undefined}={}):Tree|undefined{
+function proveRowCasesImpl(g:Goal,root:Path,pairs:RowPair[],until:number,prove:(path:Path,until:number)=>Tree|undefined,trace?:(e:object)=>void,options:{deferToCaller?:boolean,splitEqual?:boolean,model?:()=>Record<string,number>|undefined,sources?:()=>ReadonlySet<string>}={}):Tree|undefined{
  if(!pairs.length||clock()>=until)return undefined
  const cache=new Map<string,{path:Path,tree:Tree}>(),history=new Map<string,{path:Path,tree:Tree}[]>()
  const renaming:Record<string,string>={},pair=pairs.length===2?pairs:undefined
@@ -169,7 +172,7 @@ function proveRowCasesImpl(g:Goal,root:Path,pairs:RowPair[],until:number,prove:(
    const key=pairs.map(([a,b])=>{const t=truth({op:'=',a,b},path);return t===undefined?'any':t?'equal':'different'}).join('/')
    const direct=leaf(path,key);if(direct)return direct
    if(clock()>=until||depth>=pairs.length)return undefined
-   const model=options.model(),next=model&&demandedRowPair(remaining,path,model)
+   const model=options.model(),next=model&&demandedRowPair(remaining,path,model,options.sources?.())
    if(!next)return undefined
    trace?.({stage:'row-demand',depth,pair:next,key})
    const rest=remaining.filter(pair=>pair!==next)

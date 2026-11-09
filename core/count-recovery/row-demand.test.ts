@@ -13,6 +13,7 @@ test('model-directed row search proves the unsplit root once',()=>{
 })
 test('a model selects its equal row before other unresolved rows and skips unknown cells',()=>{
  expect(demandedRowPair([...pairs],new Map(),{a:2,b:1,i:1})).toBe(pairs[1])
+ expect(demandedRowPair([...pairs],new Map(),{a:0,b:1,i:0},new Set(['b']))).toBe(pairs[1])
  expect(demandedRowPair([...pairs],new Map(),{b:1,i:1})).toBe(pairs[1])
  expect(demandedRowPair([...pairs],new Map(),{a:NaN,i:0})).toBeUndefined()
 })
@@ -35,6 +36,8 @@ test('write-free detection follows count bodies, bounds, scalar writes, and inac
  const a={op:1},b={op:-1},root:Path=new Map([[canon(a),{lin:a,holds:true}],[canon(b),{lin:b,holds:true}]])
  expect(writesReadState(m,cert,root)).toBe(false)
  expect(writesReadState(m,cert,new Map())).toBe(true)
+ expect(writesReadState(m,cert,new Map(),same(get('N',x('a')),n(0)))).toBe(true)
+ expect(writesReadState(m,cert,new Map(),same(x('limit'),n(2)))).toBe(false)
  const frame={...m,step:{maps:{V:{each:'k',value:get('V',x('k'))},Other:{each:'k',value:n(1)}}}}
  expect(writesReadState(frame,cert,new Map())).toBe(false)
  expect(writesReadState({...frame,step:{...frame.step,state:{limit:n(3)}}},cert,new Map())).toBe(true)
