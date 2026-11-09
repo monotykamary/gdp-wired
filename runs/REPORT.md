@@ -1,6 +1,6 @@
 # Lane C (Fable) — branch claude/mldr-wall, from claude/mldr-gen 1681e8e5
 
-**Audit fixes for lane D (2026-11-09), second round: commit fc3a75c1** — `$unique` zeroes its stamp buffer and restarts at 1
+**Current head for lane D's re-audit: the commit after `revert: core(machine): one key-array cache per compiled step` (the per-step cache eb9aad68 gained nothing on a paired measurement and is reverted; the audited helpers are those of fc3a75c1 plus the test fix 57ac3f57).** Audit fixes, second round: commit fc3a75c1 — `$unique` zeroes its stamp buffer and restarts at 1
 before the counter reaches 2^32 − 1 (and on growth), so a stale mark can never equal a live stamp; `core/runtime-keys.test.ts`
 forces the wrap through the helper's own `stamp`/`buf` properties and checks the enumeration and the restart; every check job
 exits with the check's own status (`exit $st`) instead of echoing it. First round, commit fe4a0dfe — (1) `$keys` iterates own properties again (`Object.keys`),
@@ -36,6 +36,13 @@ Measurements (boat, same VM per pair, alternating order, AMD Ryzen 9 9950X large
   counts unchanged, zero proof queries; generation ms baseline → candidate: mldr 22,020 → 13,121, paxos_epr 15,177 → 12,738,
   consensus_epr 8,337 → 6,359, consensus_forall 9,264 → 7,513, client_server_db_ae 7,660 → 6,470, learning_switch 135,530 → 124,475,
   learning_switch_i4 125,012 → 119,879; the small ports within ±20 ms.
+- after the revert, paired generation on an AMD EPYC 4585PX large VM ×3 with the per-step cache (eb9aad68): base 22.43 / 21.98 / 26.87 s →
+  15.51 / 16.73 / 15.78 s; the cache's own cost equalled its saving (`$mk` 2.9 s self), hence the revert. What remains of the
+  generation wall on mldr (profile, 26 s run): `$breaks` ≈ 5.7 s total (the key enumeration itself, once per every-key write
+  and ∀-flag per step), the cube join's own small-instance BFS (1.5 s) and filter BFS (≈ 4.4 s, 458,793 enumerated transitions
+  at 2,048 request combinations per state), `small`'s BFS whose 300,000-step cap is spent on ≈ 22 frontier states because the
+  request space is 13,824 wide, and the finite pass's law evaluation (≈ 3–4 s). Each is a policy, not a cost, and would change
+  which states are read; they are left for a measured decision (census byte-identity is the guardrail).
 Profiles: `research/track-wall/profile-jobs.json`. `bun run check` in the shipped tree exits 2 on both trees for the same
 `vendor/handwired`-dependent errors (no vendor in the shipped tree); lane D's clean-checkout gate is the authority.
 
