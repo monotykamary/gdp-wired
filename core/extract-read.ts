@@ -571,7 +571,7 @@ export class Exec {
     const set = (p: Path, there: boolean): Path => ({...p, locals: new Map(p.locals).set(x.text, there ? v.v : absent)})
     // A falsy optional scalar can be present (false or 0), not just absent.
     // Preserve the opt value on that arm; only an explicit absence comparison narrows both arms.
-    if (this.standalone && !absenceTest) return present ? [set(pt, true), pe] : [pt, set(pe, true)]
+    if (!absenceTest) return present ? [set(pt, true), pe] : [pt, set(pe, true)]
     return present ? [set(pt, true), set(pe, false)] : [set(pt, false), set(pe, true)]
   }
   bind(name: ts.BindingName, v: V, p: Path): Path {

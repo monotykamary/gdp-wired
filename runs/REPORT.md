@@ -6,6 +6,8 @@ B1 release impact first: all 64 stable published tarballs integrity-checked on B
 
 P2: both typed and lazy record argument roots now use `Exec.id`, independently of their display name. Regressions cover named/destructured arguments in both orders, all four boolean inputs, a false cross-argument law with replay disabled, and a valid identity law. A mutant restores the old shared root ID.
 
-B2, C1, N1, private-law replay and the final small gate remain pending. No new GATE GREEN is claimed here.
+B2: truthiness narrowing now preserves optional payloads in falsy arms for every reader, not only standalone. Added boolean-false/numeric-zero coverage for both `if (v)` and `if (!v)`, a replay-disabled false-law check, default replay, and a mutant. This is a distinct predicate bug from strict null/undefined narrowing: truthiness conflated present falsy values with absence; release range verification is running separately.
+
+C1, N1, private-law replay and the final small gate remain pending. No new GATE GREEN is claimed here.
 
 The previous P1 report and receipts are preserved in commit `bca086ad` (`runs/REPORT.md` there). The coordinator's merge `8214a543` did not carry those tracked reports; this is a new follow-up report, not a relabeling of that old gate.

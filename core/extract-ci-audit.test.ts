@@ -46,3 +46,16 @@ test('CI audit P2: named and destructured records have independent heap identiti
     }
   }
 })
+
+test('CI audit B2: falsy map payloads remain present in both truthiness arms', () => {
+  for (const kind of ['boolean', 'number']) for (const negated of [false, true]) {
+    const branch = negated ? 'if (!v) return v === undefined; return true;' : 'if (v) return true; return v === undefined;'
+    const source = `export class Decision { values = new Map<string, ${kind}>(); put(key: string, value: ${kind}) { this.values.set(key, value); } test(key: string): boolean { const v = this.values.get(key); ${branch} } }`
+    const x = extract(source, {entry: 'Decision', check: noReplay})
+    expect({ok: x.ok, refusals: x.refusals}).toEqual({ok: true, refusals: []})
+    expect(verdict(x, 'result == true', 'test')).toMatchObject({proven: false, stuck: 'sat'})
+    const replayed = extract(source, {entry: 'Decision'})
+    expect({ok: replayed.ok, refusals: replayed.refusals}).toEqual({ok: true, refusals: []})
+    expect(replayed.evidence!.requests).toBeGreaterThan(0)
+  }
+}, 60000)
