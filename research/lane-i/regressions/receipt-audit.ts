@@ -23,7 +23,8 @@ export function verifyTrace(outcome:Outcome):string[]{
   return[...(sha(text.slice(0,at))===outcome.stdoutSha256?[]:['stdout hash mismatch']),...(sha(text.slice(at+separator.length))===outcome.stderrSha256?[]:['stderr hash mismatch'])]
  }catch{return['invalid compressed trace']}
 }
-export function auditPair(pair:Pair,kind:'strict'|'bar',index:number){
+export type ReceiptSources={baseline:string,candidate:string}
+export function auditPair(pair:Pair,kind:'strict'|'bar',index:number,sources:ReceiptSources={baseline,candidate}){
  const issues:string[]=[],check=(ok:boolean,message:string)=>{if(!ok)issues.push(message)}
  check(Number.isInteger(pair.repeat)&&pair.repeat>=1&&pair.repeat<=3,'repeat outside 1..3')
  check((kind==='strict'?pair.group:pair.index)===index,'job identity mismatch')
@@ -34,7 +35,7 @@ export function auditPair(pair:Pair,kind:'strict'|'bar',index:number){
  const metrics:Record<string,unknown>={}
  for(const side of ['base','candidate'] as const){
   const meta=pair.meta?.[side],outcome=pair.outcomes?.[side]
-  check(meta?.revision===(side==='base'?baseline:candidate)&&meta.clean===true,side+': source mismatch')
+  check(meta?.revision===(side==='base'?sources.baseline:sources.candidate)&&meta.clean===true,side+': source mismatch')
   if(!outcome){issues.push(side+': missing outcome');continue}
   for(const issue of verifyTrace(outcome))issues.push(side+': '+issue)
   check(Number.isFinite(outcome.wallMs)&&outcome.wallMs>=0,side+': invalid wall time')
@@ -57,14 +58,14 @@ export function auditPair(pair:Pair,kind:'strict'|'bar',index:number){
  }
  return{issues,pair:{index,repeat:pair.repeat,cpu:pair.cpu,view:pair.view,task:pair.task,metrics}}
 }
-export function parseReceipts(text:string,kind:'strict'|'bar',index:number){
+export function parseReceipts(text:string,kind:'strict'|'bar',index:number,sources?:ReceiptSources){
  const prefix=kind==='strict'?'STRICT_PAIR ':'BAR_PAIR ',issues:string[]=[],pairs:ReturnType<typeof auditPair>['pair'][]=[],seen=new Set<number>(),skips:{group:number,cpu:string}[]=[]
  for(const line of text.split('\n')){
   if(line.startsWith('STRICT_CPU_SKIP ')){
    try{const row=JSON.parse(line.slice(16));if(kind!=='strict'||row.group!==index||typeof row.cpu!=='string'||row.cpu===targetCpu)issues.push('invalid CPU skip');skips.push(row)}catch{issues.push('malformed CPU skip')}
   }
   if(!line.startsWith(prefix))continue
-  try{const row:Pair=JSON.parse(line.slice(prefix.length)),audit=auditPair(row,kind,index);if(seen.has(row.repeat))issues.push('duplicate repeat '+row.repeat);seen.add(row.repeat);issues.push(...audit.issues.map(issue=>'repeat '+row.repeat+': '+issue));pairs.push(audit.pair)}catch{issues.push('malformed pair record')}
+  try{const row:Pair=JSON.parse(line.slice(prefix.length)),audit=auditPair(row,kind,index,sources);if(seen.has(row.repeat))issues.push('duplicate repeat '+row.repeat);seen.add(row.repeat);issues.push(...audit.issues.map(issue=>'repeat '+row.repeat+': '+issue));pairs.push(audit.pair)}catch{issues.push('malformed pair record')}
  }
  if(skips.length){if(skips.length!==1||pairs.length)issues.push('mixed or duplicate CPU skip')}
  else if(pairs.length!==3||seen.size!==3)issues.push('expected exactly three paired repeats')

@@ -8,6 +8,7 @@ function fixture():Pair{
  const outcome={exit:0,wallMs:10,results,profile,attempts:[],stdoutSha256:hash(stdout),stderrSha256:hash(stderr),traceGzipBase64:gzipSync(stdout+'\n---stderr---\n'+stderr).toString('base64')}
  return{group:1,repeat:1,cpu:'AMD Ryzen 9 9950X 16-Core Processor',strictMs:60000,meta:{base:{revision:baseline,clean:true},candidate:{revision:candidate,clean:true}},outcomes:{base:structuredClone(outcome),candidate:structuredClone(outcome)}}
 }
+test('explicit source identities are required and do not relax historical defaults',()=>{const pair=fixture(),sources={baseline:'a'.repeat(40),candidate:'b'.repeat(40)};pair.meta.base.revision=sources.baseline;pair.meta.candidate.revision=sources.candidate;expect(auditPair(pair,'strict',1,sources).issues).toEqual([]);expect(auditPair(pair,'strict',1).issues).toContain('base: source mismatch');pair.meta.candidate.revision=baseline;expect(auditPair(pair,'strict',1,sources).issues).toContain('candidate: source mismatch')})
 test('an intact strict pair passes, but wrong CPU, source, or original budget fails',()=>{
  const pair=fixture();expect(auditPair(pair,'strict',1).issues).toEqual([])
  pair.cpu='another CPU';pair.strictMs=120000;pair.meta.candidate.revision=baseline

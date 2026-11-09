@@ -1,0 +1,1 @@
+[{"name":"paxos-bar-audit","cmd":"set -euo pipefail; bun test ./report-audit/receipt-audit.test.ts ./report-audit/rss-audit.test.ts; bun report-audit/bar-resource-summary.ts report-audit/receipts report-audit/jobs.json report-audit/identity.json","cpu":4,"memory":14336,"timeout":120,"vm_type":"large"}]
