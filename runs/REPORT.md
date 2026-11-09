@@ -1,5 +1,45 @@
 # RESUMED — lane E, 2026-11-10
 
+## Submissions reopened — frozen-source retry
+
+After the coordinator reopened submissions, authenticated `/snapshot` calls
+reported **`no such batch` for all three old IDs** (`20261110-000811-qbrwk7`,
+`20261110-001749-c8xynq`, `20261110-002140-jvt2tb`), and all three old output
+directories remained empty. No registered work was duplicated.
+
+Exported **`84a7a6728d578e3918b969574a36a295fc2ad5a2`** into the new isolated
+`/tmp/gdp-wired-incl-resume-84a7a672`; archive extraction completed, required
+files exist, and `core/counts.ts` matches the committed SHA-256
+`dd70a44ea0c9b97361e9c48884a2817a16e218bf8bf3b0732a56e09668a5193c`.
+The earlier partial export remains untouched. The new snapshot will not be
+edited while its upload runs.
+
+Submitted the six guarded jobs from that snapshot, `--class submission
+--timing --vm-type large`, with `GENERATOR_REV` bound to the full source SHA.
+The first frozen-source attempt (`3d4b5140`) failed **before admission**:
+`supercomputer` requires a Git index and rejected the bare export. Added
+standalone Git metadata to the same export (no source-byte change, same
+`core/counts.ts` SHA-256), then resubmitted once. **Registered batch:**
+`20261110-004001-gs8s50`, tree `dc1bbba248e9`, active task
+`1ce194cd-f78d-4226-9f50-41ba03b3fb16`, output
+`runs/mldr-incl-resume-frozen-v3/`. An authenticated snapshot confirms all
+six named jobs registered and queued, zero placements/rows so far. No
+subagents are running; the one-subagent memory cap remains in force.
+
+### Disk
+
+Coordinator disk rule is in force: no new whole-tree archive per run;
+future archives are one per SHA in `/private/tmp/gdp-archives/<sha>.tar`,
+reused via data input. Keep return data to necessary compact receipts,
+hashes and compressed diagnostics. No write over 500 MB is planned.
+Nothing has been deleted to free space.
+
+| Path | Allocated size (`du -sk`) | Deletion assessment |
+|---|---:|---|
+| `/tmp/gdp-wired-incl-resume-ca0ef8f9` | 27,496 KiB (~26.9 MiB) | Candidate: interrupted, unvalidated export; no batch uses it and it holds no unique result. Coordinator decides; left intact. |
+| `/tmp/gdp-wired-incl-resume-84a7a672` | 260,928 KiB (~254.8 MiB) | **Keep while the active controller uses it.** Reuse for this SHA rather than create another snapshot. Later removable only after needed provenance/results are retained. |
+
+
 ## Coordinator resource hold — supersedes active-task status below
 
 The coordinator reports host memory pressure (7.5/8 GB swap) and slow
