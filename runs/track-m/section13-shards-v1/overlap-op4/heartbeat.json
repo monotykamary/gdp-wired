@@ -1,0 +1,1 @@
+{"units":20297.388216000003,"wallMs":497924.495032,"stats":{"cuts":130,"sat":237,"refuted":129,"unknown":45,"reused":604,"cached":4,"rawSat":237,"rawRefuted":174,"rawUnknown":0},"law":"Inv2973: quorums overlap, or a config disabled","op":4,"kind":"natural"}

@@ -1,0 +1,25 @@
+Found 0 warnings and 0 errors.
+Finished in 12.8s on 1268 files with 100 rules using 8 threads.
+bun test v1.4.3 (c6da4a4d3)
+
+--- stderr ---
+$ tsc -p . && oxlint --type-aware --deny-warnings --disable-nested-config
+
+research/track-m/without-deadlines.test.ts:
+(pass) unlimited research clock disables positive deadlines but preserves measured work and checking [3.57ms]
+(pass) the research override restores clocks on exceptions [0.07ms]
+(pass) a used bounded counted scope cannot silently masquerade as unlimited [0.03ms]
+
+research/track-m/bounded-research.test.ts:
+(pass) research cap stops real work and restores counter descriptors [0.57ms]
+(pass) research cap restores descriptors after an unrelated error [0.06ms]
+
+research/track-m/normalize-section13.test.ts:
+(pass) publication drops columns without changing raw receipt data [0.12ms]
+(pass) a pre-leaf cap carries actual closure guards and no invented model [0.08ms]
+(pass) a recorded numeric failure is preserved exactly [0.02ms]
+
+ 8 pass
+ 0 fail
+ 30 expect() calls
+Ran 8 tests across 3 files. [24.00ms]

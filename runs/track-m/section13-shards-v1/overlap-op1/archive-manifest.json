@@ -1,0 +1,17 @@
+{
+  "artifact": "section10-chunk-manifest",
+  "dir": "/home/user/track-m-s10-receipts-ZeZizt",
+  "parts": 6,
+  "bytes": 835847,
+  "sha256": "d9db1362b4a999c01ccaba71546fc448ea9a4ccfd55d35301359825a7f43a5a9",
+  "files": [
+    "actions.jsonl",
+    "first-failure.json",
+    "heartbeat.json",
+    "inflight.json",
+    "outcomes.jsonl",
+    "result.json",
+    "search.log",
+    "sources.json"
+  ]
+}

@@ -5378,3 +5378,40 @@ Type/lint and **258 tests / 1,313 assertions** pass. Fresh processes validate
 selections; the 12 refuted source receipts were kernel-checked during probing.
 Earlier audit-only failures are retained; no timed repeat was rerun. All owned
 temporary archives are removed. No later gates or additional strategy changes.
+
+## Sections 12–13 — censored unlimited work, bounded op shards and entry profile
+
+Research-only engine **5974b916**, unchanged production/kernel. The original
+deadline-free Inv* run is **censored** (external watchdog exit 137 at 3,602.85 s,
+still in op 3); no terminal counted total was captured. Completed op 0–2 spans
+sum to 582.893924 units. Its queued unsharded Inv2973 successor was cancelled.
+
+Eleven independent op shards used a 50,000-unit research stop and 600-second
+watchdog, each alone on a large eight-pinned-vCPU VM. The scheduler used eight
+VMs, reusing three, not eleven distinct simultaneous VMs. **Inv2973 op 4 closed
+and checked at 20,732.071099 units / 510.549 s; ten other shards were unknown.**
+No complete law closed, no new gate ran, and sums of independent shard work
+are not minimum law costs.
+
+The requested Inv* op 3 entry profile explains the apparent reversal. Normal
+production reached its first numeric leaf in 701.150586 op-local units; the
+deadline-free shard did not reach one in 50,032.659118. Both enumerated the same
+9 activation nodes and 4 activation cases. One nested `grow` inside Phase-A
+field-source preparation spent **49,100.134260 units / 41.360 s**. That attempt
+normally has a 250-unit ceiling; the research override disables local deadlines
+as well as the law deadline. These shards therefore cannot establish a
+50,000-unit lower bound on production need.
+
+Per-op verdicts, exact units and walls, cuts, raw SAT/refuted source attempts,
+first failing guards/points/violated sets and per-instance source results are
+in [the trimmed report](track-m/shard-ops-v1/README.md), its audited
+[summary](track-m/shard-ops-v1/summary.json), and the requested
+[entry profile](track-m/shard-ops-v1/Invstar-op3-entry-profile.json). Exact integer
+auditing passed for every captured path and violated set and all eleven work
+ledgers. Full dumps remain only in checksum-verified compressed receipts; no
+large `columns` dump or giant per-op JSON is committed.
+
+The first profile lost its output to an archive-directory error. Only that
+profile was repeated after a tested writer fix; the shard batch was not rerun.
+Future work uses bounded captured packets and prepared runtimes; interleaved
+three-repeat wall runs remain gate-only checkpoints.

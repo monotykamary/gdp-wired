@@ -1,0 +1,15 @@
+{
+  "artifact": "section10-chunk-manifest",
+  "dir": "/home/user/track-m-s10-receipts-FIQEql",
+  "parts": 1,
+  "bytes": 18967,
+  "sha256": "8dd98ea98104c48fab42ee21f4d06eab0e4a80bea4b7d095f0446276d2697c13",
+  "files": [
+    "actions.jsonl",
+    "instrumentation-base.json",
+    "instrumentation-ops.json",
+    "integrity.json",
+    "probe.log",
+    "source-before.json"
+  ]
+}

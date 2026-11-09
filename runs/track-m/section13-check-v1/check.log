@@ -1,0 +1,18 @@
+research/track-m/entry-profile.ts(12,74): error TS2532: Object is possibly 'undefined'.
+research/track-m/entry-profile.ts(12,123): error TS2532: Object is possibly 'undefined'.
+research/track-m/entry-profile.ts(15,64): error TS2532: Object is possibly 'undefined'.
+research/track-m/entry-profile.ts(15,137): error TS2532: Object is possibly 'undefined'.
+research/track-m/entry-profile.ts(15,169): error TS2532: Object is possibly 'undefined'.
+research/track-m/entry-profile.ts(15,262): error TS2532: Object is possibly 'undefined'.
+research/track-m/entry-profile.ts(15,342): error TS2532: Object is possibly 'undefined'.
+research/track-m/publish-section13.ts(18,19): error TS2345: Argument of type 'string | undefined' is not assignable to parameter of type 'string'.
+  Type 'undefined' is not assignable to type 'string'.
+research/track-m/publish-section13.ts(18,63): error TS2345: Argument of type 'string | undefined' is not assignable to parameter of type 'string'.
+  Type 'undefined' is not assignable to type 'string'.
+research/track-m/publish-section13.ts(30,17): error TS2345: Argument of type 'string | undefined' is not assignable to parameter of type 'string'.
+  Type 'undefined' is not assignable to type 'string'.
+research/track-m/publish-section13.ts(42,18): error TS2345: Argument of type 'string | undefined' is not assignable to parameter of type 'string'.
+  Type 'undefined' is not assignable to type 'string'.
+
+--- stderr ---
+$ tsc -p . && oxlint --type-aware --deny-warnings --disable-nested-config
