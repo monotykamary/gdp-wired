@@ -3,6 +3,7 @@ import {join} from 'node:path'
 import {gunzipSync,gzipSync} from 'node:zlib'
 import {createHash} from 'node:crypto'
 import {auditSummary,decodeReceipt,summarize,cpu} from './merge-bisect-audit.ts'
+import {cohortReceipt,unpackCohort} from './cohort-envelope.ts'
 const [dir,jobsFile,pointsFile,priorDir,priorJobs]=process.argv.slice(2)
 if(!dir||!jobsFile||!pointsFile)throw new Error('usage: cohort-audit.ts dir jobs points [prior-dir prior-jobs]')
 const read=(path:string)=>existsSync(path)?readFileSync(path,'utf8'):gunzipSync(readFileSync(path+'.gz')).toString('utf8')
@@ -13,15 +14,16 @@ for(const job of jobs){
  const id=Number(/cohort\.ts (\d+)/.exec(job.cmd)?.[1]),p=placement[job.name],rows=status.filter(row=>row[0]===job.name)
  if(rows.length!==1||rows[0]?.[1]!=='0'||rows[0]?.[3]!=='boat')issues.push(job.name+': failed scheduler result')
  const text=read(join(dir,job.name+'.log')),skipLines=text.split('\n').filter(line=>line.startsWith('COHORT_CPU_SKIP '))
- if(skipLines.length){const skip=JSON.parse(skipLines[0]!.slice(16));if(skipLines.length!==1||skip.id!==id||skip.cpu===cpu||skip.cpu!==p?.cpu||text.includes('COHORT_RESULT_GZIP'))issues.push(job.name+': invalid skip');else skips.push(skip);continue}
+ if(skipLines.length){const skip=JSON.parse(skipLines[0]!.slice(16));if(skipLines.length!==1||skip.id!==id||skip.cpu===cpu||skip.cpu!==p?.cpu||text.includes('COHORT_RESULT_'))issues.push(job.name+': invalid skip');else skips.push(skip);continue}
  try{
-  const prefix='COHORT_RESULT_GZIP ',lines=text.split('\n').filter(line=>line.startsWith(prefix));if(lines.length!==1)throw new Error('missing/duplicate cohort result')
-  const group=JSON.parse(gunzipSync(Buffer.from(lines[0]!.slice(prefix.length),'base64')).toString('utf8'))
+  const lines=text.split('\n').filter(line=>line.startsWith('COHORT_RESULT_GZIP ')||line.startsWith('COHORT_RESULT_BR '));if(lines.length!==1)throw new Error('missing/duplicate cohort result')
+  const line=lines[0]!,br=line.startsWith('COHORT_RESULT_BR '),prefix=br?'COHORT_RESULT_BR ':'COHORT_RESULT_GZIP '
+  const group=unpackCohort(Buffer.from(line.slice(prefix.length),'base64'),br?'br':'gzip')
   if(group.id!==id||seen.has(id)||group.cpu!==cpu||p?.cpu!==cpu||p?.exclusive!==true||p.co_tenants!==0)throw new Error('cohort identity/placement mismatch');seen.add(id)
   if(JSON.stringify(group.revisions)!==JSON.stringify(points)||group.results.length!==points.length||new Set(group.results.map((row:any)=>row.revision)).size!==points.length)throw new Error('cohort roster mismatch')
   for(const result of group.results){
    if(!points.includes(result.revision)||result.exit!==0){issues.push(job.name+': failed child '+result.revision);continue}
-   const {summary,traces}=decodeReceipt(result.stdout),errors=auditSummary(summary,traces,result.revision,1)
+   const {summary,traces}=cohortReceipt(group,result),errors=auditSummary(summary,traces,result.revision,1)
    if(summary.replica!==id||summary.repeats!==1||summary.cohort!==true)errors.push('child cohort identity mismatch')
    if(errors.length)issues.push(...errors.map(error=>job.name+': '+error));else accepted.push(summary)
   }

@@ -1,0 +1,11 @@
+{
+ "cohort-pack-check": {
+  "vm": "bx_7y8uwqen",
+  "type": "large",
+  "cpu": "AMD EPYC 9455 48-Core Processor",
+  "vcpus": 6,
+  "vm_vcpus": 8,
+  "exclusive": true,
+  "co_tenants": 0
+ }
+}

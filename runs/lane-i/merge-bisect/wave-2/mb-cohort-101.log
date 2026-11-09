@@ -1,0 +1,23 @@
+COHORT_PROGRESS {"id":101,"revision":"a1c528633863bc2c0af36893bbbb4c58fdef4495","exit":0,"signal":null}
+COHORT_PROGRESS {"id":101,"revision":"b8dbf1fd7be5f1190d95a431ca82fc73d9cfbfc3","exit":0,"signal":null}
+COHORT_PROGRESS {"id":101,"revision":"b09da82d9ada6e0cdc31f943292cfea727f5752e","exit":0,"signal":null}
+COHORT_PROGRESS {"id":101,"revision":"bf43554bb67be5d8864e2212958908ae866eeb6c","exit":0,"signal":null}
+COHORT_PROGRESS {"id":101,"revision":"1550512d3933434c5a2ad11a17031d1fa36284db","exit":0,"signal":null}
+COHORT_PROGRESS {"id":101,"revision":"d6189c1e485edd3f2ceb2cdbe2e98ee26f5a0921","exit":0,"signal":null}
+COHORT_PROGRESS {"id":101,"revision":"f70716da7d991288ea6e9e92fdda386f361bf0aa","exit":0,"signal":null}
+COHORT_PROGRESS {"id":101,"revision":"7eb1679752e8ddc1d446b43430f2d105e4a857ec","exit":0,"signal":null}
+COHORT_PROGRESS {"id":101,"revision":"8769061bea541a33396819be86f7a5bba0a7bf73","exit":0,"signal":null}
+COHORT_PROGRESS {"id":101,"revision":"21db1e2285810ef8c66901bd783b24484f11399d","exit":0,"signal":null}
+
+--- stderr ---
+14 |  const record={revision,exit:run.status,signal:run.signal,error:run.error?.message,stdout:run.stdout??'',stderr:run.stderr??''};results.push(record)
+15 |  console.log('COHORT_PROGRESS '+JSON.stringify({id,revision,exit:run.status,signal:run.signal}))
+16 |  if(run.status===0){const {summary}=decodeReceipt(record.stdout);if(summary.revision!==revision||summary.replica!==id||summary.repeats!==1||summary.cohort!==true)throw new Error('child identity mismatch')}
+17 | }
+18 | const output=gzipSync(JSON.stringify({id,cpu,revisions,results})).toString('base64')
+19 | if(output.length>350000)throw new Error('cohort output exceeds safe collector tail; recover worker stdout')
+                                       ^
+error: cohort output exceeds safe collector tail; recover worker stdout
+      at /work/gdp-wired/regression-driver/merge-bisect-cohort.ts:19:35
+
+Bun v1.4.3 (Linux x64)

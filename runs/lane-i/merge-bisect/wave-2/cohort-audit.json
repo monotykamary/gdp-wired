@@ -1,0 +1,12 @@
+{
+  "issues": [
+    "mb-cohort-101: failed scheduler result",
+    "mb-cohort-101: Error: missing/duplicate cohort result",
+    "mb-cohort-109: failed scheduler result",
+    "mb-cohort-109: Error: missing/duplicate cohort result"
+  ],
+  "skips": 34,
+  "acceptedReceipts": 0,
+  "acceptedSha256": "b49153039ab3d17e6eb1256bc1076131c306b30f3b77e951232beb47748fa564",
+  "byRevision": []
+}

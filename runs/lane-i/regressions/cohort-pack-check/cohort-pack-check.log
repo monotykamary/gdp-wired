@@ -1,0 +1,35 @@
+gdp-ts.tar: OK
+handwired.tar: OK
+main.tar: OK
+bun test v1.4.3 (c6da4a4d3)
+{"scope":"transport-only; not new benchmark runs","fixtures":6,"pairedRecords":10,"oldBase64Bytes":492140,"newBase64Bytes":481792,"lossless":true}
+
+--- stderr ---
+
+research/lane-i/regressions/bar-portfolio.test.ts:
+(pass) checked portfolio cause does not accept generic killed answers [2.06ms]
+
+research/lane-i/regressions/merge-bisect-audit.test.ts:
+(pass) decoded cohort transport retains raw audit and rejects forged work [9.40ms]
+(pass) bisection summary needs full raw traces and five valid repeats [4.36ms]
+(pass) one cohort trial cannot satisfy an ordinary five-repeat receipt [0.21ms]
+(pass) wrong source, CPU and fabricated law work are rejected [0.28ms]
+
+research/lane-i/regressions/resource-run.test.ts:
+(pass) kernel resource counters accept tab and space separators [0.73ms]
+
+ 6 pass
+ 0 fail
+ 21 expect() calls
+Ran 6 tests across 3 files. [326.00ms]
+11 | const results:any[]=[]
+12 | for(let i=0;results.length<10;i++){const sample=samples[i%samples.length],record=sample.summary.records[Math.floor(i/samples.length)%sample.summary.records.length],traces=sample.traces.filter((trace:any)=>trace.repeat===record.repeat),summary={...sample.summary,records:[record],repeats:1,traceSha256:createHash('sha256').update(JSON.stringify(traces)).digest('hex')},stdout='BISECT_TRACES_GZIP '+gzipSync(JSON.stringify(traces)).toString('base64')+'\nBISECT_SUMMARY_GZIP '+gzipSync(JSON.stringify(summary)).toString('base64');results.push({revision:summary.revision,exit:0,stdout,stderr:''})}
+13 | const group={id:999,cpu:'transport-only fixture',revisions:results.map(result=>result.revision),results},old=gzipSync(JSON.stringify(group)).toString('base64'),bytes=packCohort(group),packed=bytes.toString('base64'),decoded=JSON.parse(gunzipSync(bytes).toString('utf8'))
+14 | for(let i=0;i<results.length;i++)if(JSON.stringify(cohortReceipt(decoded,decoded.results[i]))!==JSON.stringify(decodeReceipt(results[i].stdout)))throw new Error('lossy receipt transport')
+15 | console.log(JSON.stringify({scope:'transport-only; not new benchmark runs',fixtures:samples.length,pairedRecords:results.length,oldBase64Bytes:old.length,newBase64Bytes:packed.length,lossless:true}))
+16 | if(packed.length>350000)throw new Error('real-trace transport load still exceeds collector allowance')
+                                       ^
+error: real-trace transport load still exceeds collector allowance
+      at /work/gdp-wired/research/lane-i/regressions/cohort-pack-check.ts:16:35
+
+Bun v1.4.3 (Linux x64)

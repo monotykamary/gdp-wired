@@ -2,7 +2,16 @@ import {test,expect} from 'bun:test'
 import {gzipSync} from 'node:zlib'
 import {createHash} from 'node:crypto'
 import {base,cpu,expectedHarness,auditSummary,decodeReceipt,summarize} from './merge-bisect-audit.ts'
+import {packCohort,cohortReceipt,unpackCohort} from './cohort-envelope.ts'
 const hash=(s:string)=>createHash('sha256').update(s).digest('hex')
+test('decoded cohort transport retains raw audit and rejects forged work',()=>{
+ const {row,traces}=fixture(),stdout='BISECT_TRACES_GZIP '+gzipSync(JSON.stringify(traces)).toString('base64')+'\nBISECT_SUMMARY_GZIP '+gzipSync(JSON.stringify(row)).toString('base64')
+ const group=unpackCohort(packCohort({id:101,cpu,revisions:[base],results:[{revision:base,exit:0,stdout,stderr:''}]})),decoded=cohortReceipt(group,group.results[0])
+ expect(group.results[0].stdout).toBeUndefined();expect(decoded).toEqual({summary:row,traces});expect(auditSummary(decoded.summary,decoded.traces,base)).toEqual([])
+ decoded.summary.records[0].outcomes.base.attempts[0].full++;expect(auditSummary(decoded.summary,decoded.traces,base)).toContain('1/base: law trace mismatch')
+ expect(()=>cohortReceipt({...group,format:'other'},group.results[0])).toThrow('invalid cohort receipt format')
+ expect(cohortReceipt({}, {stdout})).toEqual({summary:row,traces})
+})
 function fixture(){
  const traces:any[]=[],records:any[]=[]
  for(let repeat=1;repeat<=5;repeat++){const outcomes:any={};for(const side of ['base','candidate']){const results=[{id:'consensus_forall',search:{verdict:'proven',ms:10,work:20,full:30}}],profile:any[]=[{event:'result',at:100,searchMs:10},{event:'candidates',at:92,profile:{}}],attempts=[{law:'a full law name',at:93,full:30,work:20,wallMs:10,units:10}],stdout=JSON.stringify(results[0]),stderr=profile.map(p=>'LANE_I_PROFILE '+JSON.stringify(p)).join('\n')+'\nBISECT_LAW '+JSON.stringify(attempts[0]);traces.push({repeat,side,stdout,stderr});outcomes[side]={exit:0,results,profile,attempts,stdoutSha256:hash(stdout),stderrSha256:hash(stderr),generationWallMs:2,finitePassMs:0,preProverWallMs:3}}records.push({repeat,order:(1+repeat)%2?['candidate','base']:['base','candidate'],outcomes})}

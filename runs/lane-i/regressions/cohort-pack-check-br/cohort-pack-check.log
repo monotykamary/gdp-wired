@@ -1,0 +1,27 @@
+gdp-ts.tar: OK
+handwired.tar: OK
+main.tar: OK
+bun test v1.4.3 (c6da4a4d3)
+{"scope":"transport-only; not new benchmark runs","fixtures":6,"pairedRecords":10,"oldBase64Bytes":492040,"newBase64Bytes":148564,"lossless":true}
+Found 0 warnings and 0 errors.
+Finished in 17.4s on 1554 files with 100 rules using 6 threads.
+
+--- stderr ---
+
+research/lane-i/regressions/resource-run.test.ts:
+(pass) kernel resource counters accept tab and space separators [0.40ms]
+
+research/lane-i/regressions/merge-bisect-audit.test.ts:
+(pass) decoded cohort transport retains raw audit and rejects forged work [12.40ms]
+(pass) bisection summary needs full raw traces and five valid repeats [0.96ms]
+(pass) one cohort trial cannot satisfy an ordinary five-repeat receipt [0.25ms]
+(pass) wrong source, CPU and fabricated law work are rejected [0.34ms]
+
+research/lane-i/regressions/bar-portfolio.test.ts:
+(pass) checked portfolio cause does not accept generic killed answers [0.13ms]
+
+ 6 pass
+ 0 fail
+ 21 expect() calls
+Ran 6 tests across 3 files. [32.00ms]
+$ tsc -p . && oxlint --type-aware --deny-warnings --disable-nested-config

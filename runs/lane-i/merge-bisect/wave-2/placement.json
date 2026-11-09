@@ -1,0 +1,326 @@
+{
+ "mb-cohort-101": {
+  "vm": "bx_7ah56czc",
+  "type": "large",
+  "cpu": "AMD Ryzen 9 9950X 16-Core Processor",
+  "vcpus": 8,
+  "vm_vcpus": 8,
+  "exclusive": true,
+  "co_tenants": 0
+ },
+ "mb-cohort-102": {
+  "vm": "bx_ag96cka8",
+  "type": "large",
+  "cpu": "AMD Ryzen 7 9700X 8-Core Processor",
+  "vcpus": 8,
+  "vm_vcpus": 8,
+  "exclusive": true,
+  "co_tenants": 0
+ },
+ "mb-cohort-103": {
+  "vm": "bx_ag96cka8",
+  "type": "large",
+  "cpu": "AMD Ryzen 7 9700X 8-Core Processor",
+  "vcpus": 8,
+  "vm_vcpus": 8,
+  "exclusive": true,
+  "co_tenants": 0
+ },
+ "mb-cohort-104": {
+  "vm": "bx_ag96cka8",
+  "type": "large",
+  "cpu": "AMD Ryzen 7 9700X 8-Core Processor",
+  "vcpus": 8,
+  "vm_vcpus": 8,
+  "exclusive": true,
+  "co_tenants": 0
+ },
+ "mb-cohort-105": {
+  "vm": "bx_ag96cka8",
+  "type": "large",
+  "cpu": "AMD Ryzen 7 9700X 8-Core Processor",
+  "vcpus": 8,
+  "vm_vcpus": 8,
+  "exclusive": true,
+  "co_tenants": 0
+ },
+ "mb-cohort-106": {
+  "vm": "bx_ag96cka8",
+  "type": "large",
+  "cpu": "AMD Ryzen 7 9700X 8-Core Processor",
+  "vcpus": 8,
+  "vm_vcpus": 8,
+  "exclusive": true,
+  "co_tenants": 0
+ },
+ "mb-cohort-107": {
+  "vm": "bx_ag96cka8",
+  "type": "large",
+  "cpu": "AMD Ryzen 7 9700X 8-Core Processor",
+  "vcpus": 8,
+  "vm_vcpus": 8,
+  "exclusive": true,
+  "co_tenants": 0
+ },
+ "mb-cohort-108": {
+  "vm": "bx_ag96cka8",
+  "type": "large",
+  "cpu": "AMD Ryzen 7 9700X 8-Core Processor",
+  "vcpus": 8,
+  "vm_vcpus": 8,
+  "exclusive": true,
+  "co_tenants": 0
+ },
+ "mb-cohort-109": {
+  "vm": "bx_7w3jpwcn",
+  "type": "large",
+  "cpu": "AMD Ryzen 9 9950X 16-Core Processor",
+  "vcpus": 8,
+  "vm_vcpus": 8,
+  "exclusive": true,
+  "co_tenants": 0
+ },
+ "mb-cohort-110": {
+  "vm": "bx_ag96cka8",
+  "type": "large",
+  "cpu": "AMD Ryzen 7 9700X 8-Core Processor",
+  "vcpus": 8,
+  "vm_vcpus": 8,
+  "exclusive": true,
+  "co_tenants": 0
+ },
+ "mb-cohort-111": {
+  "vm": "bx_ag96cka8",
+  "type": "large",
+  "cpu": "AMD Ryzen 7 9700X 8-Core Processor",
+  "vcpus": 8,
+  "vm_vcpus": 8,
+  "exclusive": true,
+  "co_tenants": 0
+ },
+ "mb-cohort-112": {
+  "vm": "bx_ag96cka8",
+  "type": "large",
+  "cpu": "AMD Ryzen 7 9700X 8-Core Processor",
+  "vcpus": 8,
+  "vm_vcpus": 8,
+  "exclusive": true,
+  "co_tenants": 0
+ },
+ "mb-cohort-113": {
+  "vm": "bx_ag96cka8",
+  "type": "large",
+  "cpu": "AMD Ryzen 7 9700X 8-Core Processor",
+  "vcpus": 8,
+  "vm_vcpus": 8,
+  "exclusive": true,
+  "co_tenants": 0
+ },
+ "mb-cohort-114": {
+  "vm": "bx_ag96cka8",
+  "type": "large",
+  "cpu": "AMD Ryzen 7 9700X 8-Core Processor",
+  "vcpus": 8,
+  "vm_vcpus": 8,
+  "exclusive": true,
+  "co_tenants": 0
+ },
+ "mb-cohort-115": {
+  "vm": "bx_ag96cka8",
+  "type": "large",
+  "cpu": "AMD Ryzen 7 9700X 8-Core Processor",
+  "vcpus": 8,
+  "vm_vcpus": 8,
+  "exclusive": true,
+  "co_tenants": 0
+ },
+ "mb-cohort-116": {
+  "vm": "bx_ag96cka8",
+  "type": "large",
+  "cpu": "AMD Ryzen 7 9700X 8-Core Processor",
+  "vcpus": 8,
+  "vm_vcpus": 8,
+  "exclusive": true,
+  "co_tenants": 0
+ },
+ "mb-cohort-117": {
+  "vm": "bx_ag96cka8",
+  "type": "large",
+  "cpu": "AMD Ryzen 7 9700X 8-Core Processor",
+  "vcpus": 8,
+  "vm_vcpus": 8,
+  "exclusive": true,
+  "co_tenants": 0
+ },
+ "mb-cohort-118": {
+  "vm": "bx_ag96cka8",
+  "type": "large",
+  "cpu": "AMD Ryzen 7 9700X 8-Core Processor",
+  "vcpus": 8,
+  "vm_vcpus": 8,
+  "exclusive": true,
+  "co_tenants": 0
+ },
+ "mb-cohort-119": {
+  "vm": "bx_ag96cka8",
+  "type": "large",
+  "cpu": "AMD Ryzen 7 9700X 8-Core Processor",
+  "vcpus": 8,
+  "vm_vcpus": 8,
+  "exclusive": true,
+  "co_tenants": 0
+ },
+ "mb-cohort-120": {
+  "vm": "bx_ag96cka8",
+  "type": "large",
+  "cpu": "AMD Ryzen 7 9700X 8-Core Processor",
+  "vcpus": 8,
+  "vm_vcpus": 8,
+  "exclusive": true,
+  "co_tenants": 0
+ },
+ "mb-cohort-121": {
+  "vm": "bx_ag96cka8",
+  "type": "large",
+  "cpu": "AMD Ryzen 7 9700X 8-Core Processor",
+  "vcpus": 8,
+  "vm_vcpus": 8,
+  "exclusive": true,
+  "co_tenants": 0
+ },
+ "mb-cohort-122": {
+  "vm": "bx_ag96cka8",
+  "type": "large",
+  "cpu": "AMD Ryzen 7 9700X 8-Core Processor",
+  "vcpus": 8,
+  "vm_vcpus": 8,
+  "exclusive": true,
+  "co_tenants": 0
+ },
+ "mb-cohort-123": {
+  "vm": "bx_ag96cka8",
+  "type": "large",
+  "cpu": "AMD Ryzen 7 9700X 8-Core Processor",
+  "vcpus": 8,
+  "vm_vcpus": 8,
+  "exclusive": true,
+  "co_tenants": 0
+ },
+ "mb-cohort-124": {
+  "vm": "bx_ag96cka8",
+  "type": "large",
+  "cpu": "AMD Ryzen 7 9700X 8-Core Processor",
+  "vcpus": 8,
+  "vm_vcpus": 8,
+  "exclusive": true,
+  "co_tenants": 0
+ },
+ "mb-cohort-125": {
+  "vm": "bx_ag96cka8",
+  "type": "large",
+  "cpu": "AMD Ryzen 7 9700X 8-Core Processor",
+  "vcpus": 8,
+  "vm_vcpus": 8,
+  "exclusive": true,
+  "co_tenants": 0
+ },
+ "mb-cohort-126": {
+  "vm": "bx_ag96cka8",
+  "type": "large",
+  "cpu": "AMD Ryzen 7 9700X 8-Core Processor",
+  "vcpus": 8,
+  "vm_vcpus": 8,
+  "exclusive": true,
+  "co_tenants": 0
+ },
+ "mb-cohort-127": {
+  "vm": "bx_ag96cka8",
+  "type": "large",
+  "cpu": "AMD Ryzen 7 9700X 8-Core Processor",
+  "vcpus": 8,
+  "vm_vcpus": 8,
+  "exclusive": true,
+  "co_tenants": 0
+ },
+ "mb-cohort-128": {
+  "vm": "bx_ag96cka8",
+  "type": "large",
+  "cpu": "AMD Ryzen 7 9700X 8-Core Processor",
+  "vcpus": 8,
+  "vm_vcpus": 8,
+  "exclusive": true,
+  "co_tenants": 0
+ },
+ "mb-cohort-129": {
+  "vm": "bx_ag96cka8",
+  "type": "large",
+  "cpu": "AMD Ryzen 7 9700X 8-Core Processor",
+  "vcpus": 8,
+  "vm_vcpus": 8,
+  "exclusive": true,
+  "co_tenants": 0
+ },
+ "mb-cohort-130": {
+  "vm": "bx_2kmf8w3s",
+  "type": "large",
+  "cpu": "AMD EPYC 4585PX 16-Core Processor",
+  "vcpus": 8,
+  "vm_vcpus": 8,
+  "exclusive": true,
+  "co_tenants": 0
+ },
+ "mb-cohort-131": {
+  "vm": "bx_ag96cka8",
+  "type": "large",
+  "cpu": "AMD Ryzen 7 9700X 8-Core Processor",
+  "vcpus": 8,
+  "vm_vcpus": 8,
+  "exclusive": true,
+  "co_tenants": 0
+ },
+ "mb-cohort-132": {
+  "vm": "bx_84e8hfw5",
+  "type": "large",
+  "cpu": "AMD EPYC 4585PX 16-Core Processor",
+  "vcpus": 8,
+  "vm_vcpus": 8,
+  "exclusive": true,
+  "co_tenants": 0
+ },
+ "mb-cohort-133": {
+  "vm": "bx_ag96cka8",
+  "type": "large",
+  "cpu": "AMD Ryzen 7 9700X 8-Core Processor",
+  "vcpus": 8,
+  "vm_vcpus": 8,
+  "exclusive": true,
+  "co_tenants": 0
+ },
+ "mb-cohort-134": {
+  "vm": "bx_2kmf8w3s",
+  "type": "large",
+  "cpu": "AMD EPYC 4585PX 16-Core Processor",
+  "vcpus": 8,
+  "vm_vcpus": 8,
+  "exclusive": true,
+  "co_tenants": 0
+ },
+ "mb-cohort-135": {
+  "vm": "bx_2kmf8w3s",
+  "type": "large",
+  "cpu": "AMD EPYC 4585PX 16-Core Processor",
+  "vcpus": 8,
+  "vm_vcpus": 8,
+  "exclusive": true,
+  "co_tenants": 0
+ },
+ "mb-cohort-136": {
+  "vm": "bx_84e8hfw5",
+  "type": "large",
+  "cpu": "AMD EPYC 4585PX 16-Core Processor",
+  "vcpus": 8,
+  "vm_vcpus": 8,
+  "exclusive": true,
+  "co_tenants": 0
+ }
+}
