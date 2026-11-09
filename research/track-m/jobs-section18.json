@@ -1,0 +1,1 @@
+[{"name":"lemmas","cmd":"bash research/track-m/prepare-section18.sh","cpu":8,"memory":14336,"timeout":1200}]
