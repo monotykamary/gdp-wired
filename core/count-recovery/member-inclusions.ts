@@ -1,10 +1,26 @@
 // Untrusted carried-set inclusions. Flag equalities suggest substitutions;
 // ordinary count witnesses and independent conditional cuts prove every result.
 import {type C,type E,type Machine,n,same,walkOnce,x} from '../machine.ts'
-import {type CountCert,type CountDecl,substC,substE} from '../../kernel/kernel.ts'
+import {type CountCert,type CountDecl,type CountInst,substC,substE} from '../../kernel/kernel.ts'
 import {countsForReads} from '../count-facts.ts'
 import {bounded} from './scalar-guards.ts'
 export type MemberInclusion={positive:string,negative:string,carried:string,below:E,guards:C[]}
+// The ordinary pool already contains many pairs, but model-driven selection can
+// miss a useful inclusion when its target count is otherwise unconstrained.
+// Prefer only existing witness instances suggested by the flag syntax. Their
+// scalar guards are not asserted: mcGoal must still prove every witness branch.
+export function preferMemberInclusions<T extends Pick<CountCert,'reads'|'insts'>>(m:Machine,ds:CountDecl[],full:T,picked:T,cap=10):T {
+ if(cap<=0||!m.inputMaps?.length||!full.insts.length)return picked
+ const vector=(q:Pick<CountInst,'terms'|'unit'|'below'>)=>text([q.unit,q.below,[...q.terms].sort((a,b)=>a[1].localeCompare(b[1])||a[0]-b[0])])
+ const available=new Map(full.insts.map(q=>[vector(q),q])),preferred:CountInst[]=[]
+ for(const p of memberInclusions(m,ds,full.reads)){
+  const q=available.get(vector({unit:0,below:p.below,terms:[[1,p.positive],[-1,p.negative]]}))
+  if(q)preferred.push(q)
+ }
+ if(!preferred.length)return picked
+ const seen=new Set<string>(),insts=[...preferred,...picked.insts].filter(q=>{const k=vector(q);if(seen.has(k))return false;seen.add(k);return true}).slice(0,cap)
+ return {...picked,insts}
+}
 const text=(v:unknown)=>JSON.stringify(v)
 const member=(c:C):Extract<E,{op:'get'}>|undefined=>{
  if(c.op==='='&&c.a.op==='get'&&c.b.op==='const'&&c.b.value===1)return c.a

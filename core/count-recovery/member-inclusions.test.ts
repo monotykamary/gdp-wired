@@ -1,7 +1,7 @@
 import {expect,test} from 'bun:test'
 import {type C,type Machine,all,any,get,ite,less,n,not,same,x} from '../machine.ts'
 import {type CountCert,type CountDecl} from '../../kernel/kernel.ts'
-import {memberInclusions} from './member-inclusions.ts'
+import {memberInclusions,preferMemberInclusions} from './member-inclusions.ts'
 function fixture(prefix=''){
  const s=(v:string)=>prefix+v,k=x(s('k')),actor=x(s('actor')),other=x(s('other')),q=get(s('Parcel'),k),cell=(map:string,at= k)=>get(s(map),at)
  const flag=(c:C):C=>({op:'all',key:s('k'),c:any(not(same(q,n(1))),c)})
@@ -23,3 +23,27 @@ test('a still-member-dependent predicate is not a scalar residue',()=>{const f=f
 test('without an equality rewrite, ordinary membership stays with the old family',()=>{const f=fixture();f.ds[1]!.body=ite(same(get('Rows',x('k')),n(1)),n(1),n(0));expect(f.run()).toEqual([])})
 test('a discharged equality may yield an unconditional candidate, never an asserted cut',()=>{const f=fixture();f.ds[1]!.body=ite(all(same(get('Rows',x('k')),n(1)),same(get('Epoch',x('k')),get('Epoch',x('actor')))),n(1),n(0));expect(f.run()[0]!.guards).toEqual([])})
 test('cyclic input is refused before recursive substitution',()=>{const f=fixture();const c:any={op:'not'};c.x=c;f.m.step.flags!.bad=c;expect(f.run()).toEqual([])})
+
+test('ordinary selection receives an existing guarded inclusion within its unchanged cap',()=>{
+ const f=fixture(),noise=Array.from({length:10},(_,i)=>({wit:`old${i}`,unit:0,below:n(12),terms:[[i+1,'eligible']] as [number,string][]})),hit={wit:'existing',unit:0,below:n(12),terms:[[1,'input'],[-1,'eligible']] as [number,string][]}
+ const full={reads:f.reads,insts:[...noise,hit]},picked={reads:f.reads,insts:noise},before=JSON.stringify([f.m,f.ds,full,picked]),out=preferMemberInclusions(f.m,f.ds,full,picked)
+ expect(out.insts).toHaveLength(10)
+ expect(out.insts[0]).toBe(hit)
+ expect(out.insts.every(q=>full.insts.includes(q))).toBe(true)
+ expect(JSON.stringify([f.m,f.ds,full,picked])).toBe(before)
+})
+
+test('selection cannot manufacture a missing instance or borrow unrelated member flags',()=>{
+ const f=fixture(),hit={wit:'existing',unit:0,below:n(12),terms:[[1,'input'],[-1,'eligible']] as [number,string][]},full={reads:f.reads,insts:[hit]},picked={reads:f.reads,insts:[]}
+ expect(preferMemberInclusions(f.m,f.ds,{...full,insts:[]},picked)).toBe(picked)
+ delete f.m.step.flags!.view
+ expect(preferMemberInclusions(f.m,f.ds,full,picked)).toBe(picked)
+})
+
+test('selection respects an explicitly smaller cap and does not assert its scalar residue',()=>{
+ const f=fixture(),hit={wit:'existing',unit:0,below:n(12),terms:[[1,'input'],[-1,'eligible']] as [number,string][]},full={reads:f.reads,insts:[hit]},picked={reads:f.reads,insts:[]}
+ const out=preferMemberInclusions(f.m,f.ds,full,picked,1)
+ expect(out).toEqual({reads:f.reads,insts:[hit]})
+ expect(Object.keys(out).sort()).toEqual(['insts','reads'])
+ expect(preferMemberInclusions(f.m,f.ds,full,picked,0)).toBe(picked)
+})
