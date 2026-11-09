@@ -2,6 +2,7 @@ import {readFileSync,writeFileSync,existsSync} from 'node:fs'
 import {join} from 'node:path'
 import {gunzipSync} from 'node:zlib'
 import {parseReceipts} from './receipt-audit.ts'
+import {checkedPortfolioHandoff} from './bar-portfolio.ts'
 const [dir,jobsFile]=process.argv.slice(2);if(!dir||!jobsFile)throw new Error('usage: bar-resource-summary.ts dir jobs')
 const jobs=JSON.parse(readFileSync(jobsFile,'utf8')),placement=JSON.parse(readFileSync(join(dir,'placement.json'),'utf8')),status=readFileSync(join(dir,'summary.tsv'),'utf8').trim().split('\n').map(line=>line.split('\t')),backends=JSON.parse(readFileSync(join(dir,'backends.json'),'utf8'))
 const issues:string[]=[],rows:any[]=[],counts:Record<string,number>={}
@@ -17,8 +18,9 @@ for(const job of jobs){
    if(delta!==r.oomDelta||r.kernelPidOom!==((pids.length>0)&&/oom|Out of memory|Killed process/.test(r.kernel)))issues.push(job.name+': resource evidence mismatch')
    const kind=o.exit===0?'completed':o.exit===124?'strict-timeout':r.watchdog?'outer-watchdog':pids.length?'confirmed-kernel-oom':killed&&delta>0?'oom-correlated-pid-unconfirmed':killed?'unattributed-sigkill':o.error?'launcher-error':'nonzero'
    if(kind!==r.classification)issues.push(job.name+': classification mismatch')
-   counts[kind]=(counts[kind]??0)+1
-   outcomes[side]={answer:o.answer,exit:o.exit,signal:o.signal,wallMs:o.wallMs,classification:kind,oomDelta:delta,kernelPids:pids,peakRssKiB:r.telemetryVersion===2?r.peakRssKiB:null,minAvailableKiB:r.minAvailableKiB,journalExit:r.journalExit,resourcesVersion:r.telemetryVersion??1}
+   const attribution=kind==='unattributed-sigkill'&&checkedPortfolioHandoff(row.view,o)?'portfolio-parent-handoff':kind
+   counts[attribution]=(counts[attribution]??0)+1
+   outcomes[side]={attribution,answer:o.answer,exit:o.exit,signal:o.signal,wallMs:o.wallMs,classification:kind,oomDelta:delta,kernelPids:pids,peakRssKiB:r.telemetryVersion===2?r.peakRssKiB:null,minAvailableKiB:r.minAvailableKiB,journalExit:r.journalExit,resourcesVersion:r.telemetryVersion??1}
   }
   rows.push({index,task:row.task,repeat:row.repeat,view:row.view,cpu:row.cpu,outcomes})
  }

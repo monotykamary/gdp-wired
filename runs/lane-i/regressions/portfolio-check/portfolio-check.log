@@ -1,0 +1,25 @@
+gdp-ts.tar: OK
+handwired.tar: OK
+main.tar: OK
+bun test v1.4.3 (c6da4a4d3)
+Found 0 warnings and 0 errors.
+Finished in 17.4s on 1552 files with 100 rules using 6 threads.
+
+--- stderr ---
+
+research/lane-i/regressions/resource-run.test.ts:
+(pass) kernel resource counters accept tab and space separators [0.28ms]
+
+research/lane-i/regressions/merge-bisect-audit.test.ts:
+(pass) bisection summary needs full raw traces and five valid repeats [3.49ms]
+(pass) one cohort trial cannot satisfy an ordinary five-repeat receipt [0.27ms]
+(pass) wrong source, CPU and fabricated law work are rejected [0.60ms]
+
+research/lane-i/regressions/bar-portfolio.test.ts:
+(pass) checked portfolio cause does not accept generic killed answers [0.10ms]
+
+ 5 pass
+ 0 fail
+ 15 expect() calls
+Ran 5 tests across 3 files. [20.00ms]
+$ tsc -p . && oxlint --type-aware --deny-warnings --disable-nested-config

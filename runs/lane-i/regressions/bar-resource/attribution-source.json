@@ -1,0 +1,9 @@
+{
+  "baseline": "b788e1959bba1f2e8aa1f94d4cf7c0eb163a2f9c",
+  "candidate": "b09da82d9ada6e0cdc31f943292cfea727f5752e",
+  "path": "compare/chc/kind.ts",
+  "baselineGitBlob": "31155cc35136b8534f33b7e38acb3dcb73cd84ab",
+  "candidateGitBlob": "31155cc35136b8534f33b7e38acb3dcb73cd84ab",
+  "classificationOnly": true,
+  "upgradesExitOrProofAcceptance": false
+}

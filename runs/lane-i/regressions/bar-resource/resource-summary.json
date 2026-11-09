@@ -1,0 +1,797 @@
+{
+  "issues": [],
+  "pairs": 21,
+  "children": 42,
+  "counts": {
+    "portfolio-parent-handoff": 10,
+    "completed": 9,
+    "strict-timeout": 21,
+    "confirmed-kernel-oom": 2
+  },
+  "completePairs": 3,
+  "completeDifferences": [],
+  "rows": [
+    {
+      "index": 1,
+      "task": "vmt-chc-benchmarks/ctigar/seesaw.c_000.yml",
+      "repeat": 1,
+      "view": "chc",
+      "cpu": "AMD EPYC 4585PX 16-Core Processor",
+      "outcomes": {
+        "base": {
+          "attribution": "portfolio-parent-handoff",
+          "answer": "sat",
+          "exit": null,
+          "signal": "SIGKILL",
+          "wallMs": 23286.922345000003,
+          "classification": "unattributed-sigkill",
+          "oomDelta": 0,
+          "kernelPids": [],
+          "peakRssKiB": null,
+          "minAvailableKiB": 12581880,
+          "journalExit": 0,
+          "resourcesVersion": 1
+        },
+        "candidate": {
+          "attribution": "portfolio-parent-handoff",
+          "answer": "sat",
+          "exit": null,
+          "signal": "SIGKILL",
+          "wallMs": 23455.487621000007,
+          "classification": "unattributed-sigkill",
+          "oomDelta": 0,
+          "kernelPids": [],
+          "peakRssKiB": null,
+          "minAvailableKiB": 11702788,
+          "journalExit": 0,
+          "resourcesVersion": 1
+        }
+      }
+    },
+    {
+      "index": 1,
+      "task": "vmt-chc-benchmarks/ctigar/seesaw.c_000.yml",
+      "repeat": 2,
+      "view": "chc",
+      "cpu": "AMD EPYC 4585PX 16-Core Processor",
+      "outcomes": {
+        "base": {
+          "attribution": "portfolio-parent-handoff",
+          "answer": "sat",
+          "exit": null,
+          "signal": "SIGKILL",
+          "wallMs": 24612.131477999996,
+          "classification": "unattributed-sigkill",
+          "oomDelta": 0,
+          "kernelPids": [],
+          "peakRssKiB": null,
+          "minAvailableKiB": 11733232,
+          "journalExit": 0,
+          "resourcesVersion": 1
+        },
+        "candidate": {
+          "attribution": "portfolio-parent-handoff",
+          "answer": "sat",
+          "exit": null,
+          "signal": "SIGKILL",
+          "wallMs": 20685.817909000005,
+          "classification": "unattributed-sigkill",
+          "oomDelta": 0,
+          "kernelPids": [],
+          "peakRssKiB": null,
+          "minAvailableKiB": 12547444,
+          "journalExit": 0,
+          "resourcesVersion": 1
+        }
+      }
+    },
+    {
+      "index": 1,
+      "task": "vmt-chc-benchmarks/ctigar/seesaw.c_000.yml",
+      "repeat": 3,
+      "view": "chc",
+      "cpu": "AMD EPYC 4585PX 16-Core Processor",
+      "outcomes": {
+        "base": {
+          "attribution": "portfolio-parent-handoff",
+          "answer": "sat",
+          "exit": null,
+          "signal": "SIGKILL",
+          "wallMs": 25986.567766000007,
+          "classification": "unattributed-sigkill",
+          "oomDelta": 0,
+          "kernelPids": [],
+          "peakRssKiB": null,
+          "minAvailableKiB": 12363868,
+          "journalExit": 0,
+          "resourcesVersion": 1
+        },
+        "candidate": {
+          "attribution": "portfolio-parent-handoff",
+          "answer": "sat",
+          "exit": null,
+          "signal": "SIGKILL",
+          "wallMs": 20863.254641000007,
+          "classification": "unattributed-sigkill",
+          "oomDelta": 0,
+          "kernelPids": [],
+          "peakRssKiB": null,
+          "minAvailableKiB": 12488780,
+          "journalExit": 0,
+          "resourcesVersion": 1
+        }
+      }
+    },
+    {
+      "index": 2,
+      "task": "vmt-chc-benchmarks/lustre/DRAGON_4_000_001.yml",
+      "repeat": 1,
+      "view": "chc",
+      "cpu": "AMD EPYC 4585PX 16-Core Processor",
+      "outcomes": {
+        "base": {
+          "attribution": "completed",
+          "answer": "unknown",
+          "exit": 0,
+          "signal": null,
+          "wallMs": 58566.597954,
+          "classification": "completed",
+          "oomDelta": 0,
+          "kernelPids": [],
+          "peakRssKiB": null,
+          "minAvailableKiB": 11836996,
+          "journalExit": 0,
+          "resourcesVersion": 1
+        },
+        "candidate": {
+          "attribution": "completed",
+          "answer": "unknown",
+          "exit": 0,
+          "signal": null,
+          "wallMs": 58588.622436,
+          "classification": "completed",
+          "oomDelta": 0,
+          "kernelPids": [],
+          "peakRssKiB": null,
+          "minAvailableKiB": 12229120,
+          "journalExit": 0,
+          "resourcesVersion": 1
+        }
+      }
+    },
+    {
+      "index": 2,
+      "task": "vmt-chc-benchmarks/lustre/DRAGON_4_000_001.yml",
+      "repeat": 2,
+      "view": "chc",
+      "cpu": "AMD EPYC 4585PX 16-Core Processor",
+      "outcomes": {
+        "base": {
+          "attribution": "portfolio-parent-handoff",
+          "answer": "sat",
+          "exit": null,
+          "signal": "SIGKILL",
+          "wallMs": 38400.702578,
+          "classification": "unattributed-sigkill",
+          "oomDelta": 0,
+          "kernelPids": [],
+          "peakRssKiB": null,
+          "minAvailableKiB": 12523096,
+          "journalExit": 0,
+          "resourcesVersion": 1
+        },
+        "candidate": {
+          "attribution": "portfolio-parent-handoff",
+          "answer": "sat",
+          "exit": null,
+          "signal": "SIGKILL",
+          "wallMs": 55142.130565,
+          "classification": "unattributed-sigkill",
+          "oomDelta": 0,
+          "kernelPids": [],
+          "peakRssKiB": null,
+          "minAvailableKiB": 12186780,
+          "journalExit": 0,
+          "resourcesVersion": 1
+        }
+      }
+    },
+    {
+      "index": 2,
+      "task": "vmt-chc-benchmarks/lustre/DRAGON_4_000_001.yml",
+      "repeat": 3,
+      "view": "chc",
+      "cpu": "AMD EPYC 4585PX 16-Core Processor",
+      "outcomes": {
+        "base": {
+          "attribution": "completed",
+          "answer": "unknown",
+          "exit": 0,
+          "signal": null,
+          "wallMs": 58551.52902700001,
+          "classification": "completed",
+          "oomDelta": 0,
+          "kernelPids": [],
+          "peakRssKiB": null,
+          "minAvailableKiB": 12157444,
+          "journalExit": 0,
+          "resourcesVersion": 1
+        },
+        "candidate": {
+          "attribution": "portfolio-parent-handoff",
+          "answer": "sat",
+          "exit": null,
+          "signal": "SIGKILL",
+          "wallMs": 43789.12024399996,
+          "classification": "unattributed-sigkill",
+          "oomDelta": 0,
+          "kernelPids": [],
+          "peakRssKiB": null,
+          "minAvailableKiB": 11920084,
+          "journalExit": 0,
+          "resourcesVersion": 1
+        }
+      }
+    },
+    {
+      "index": 3,
+      "task": "vmt-chc-benchmarks/lustre/DRAGON_4_e2_2799_000_001.yml",
+      "repeat": 1,
+      "view": "chc",
+      "cpu": "AMD Ryzen 9 9950X 16-Core Processor",
+      "outcomes": {
+        "base": {
+          "attribution": "completed",
+          "answer": "unknown",
+          "exit": 0,
+          "signal": null,
+          "wallMs": 58601.401589,
+          "classification": "completed",
+          "oomDelta": 0,
+          "kernelPids": [],
+          "peakRssKiB": null,
+          "minAvailableKiB": 11926648,
+          "journalExit": 0,
+          "resourcesVersion": 1
+        },
+        "candidate": {
+          "attribution": "portfolio-parent-handoff",
+          "answer": "sat",
+          "exit": null,
+          "signal": "SIGKILL",
+          "wallMs": 58259.37742999999,
+          "classification": "unattributed-sigkill",
+          "oomDelta": 0,
+          "kernelPids": [],
+          "peakRssKiB": null,
+          "minAvailableKiB": 11762736,
+          "journalExit": 0,
+          "resourcesVersion": 1
+        }
+      }
+    },
+    {
+      "index": 3,
+      "task": "vmt-chc-benchmarks/lustre/DRAGON_4_e2_2799_000_001.yml",
+      "repeat": 2,
+      "view": "chc",
+      "cpu": "AMD Ryzen 9 9950X 16-Core Processor",
+      "outcomes": {
+        "base": {
+          "attribution": "completed",
+          "answer": "unknown",
+          "exit": 0,
+          "signal": null,
+          "wallMs": 58165.13175699997,
+          "classification": "completed",
+          "oomDelta": 0,
+          "kernelPids": [],
+          "peakRssKiB": null,
+          "minAvailableKiB": 12462876,
+          "journalExit": 0,
+          "resourcesVersion": 1
+        },
+        "candidate": {
+          "attribution": "completed",
+          "answer": "unknown",
+          "exit": 0,
+          "signal": null,
+          "wallMs": 58645.22696600002,
+          "classification": "completed",
+          "oomDelta": 0,
+          "kernelPids": [],
+          "peakRssKiB": null,
+          "minAvailableKiB": 11689288,
+          "journalExit": 0,
+          "resourcesVersion": 1
+        }
+      }
+    },
+    {
+      "index": 3,
+      "task": "vmt-chc-benchmarks/lustre/DRAGON_4_e2_2799_000_001.yml",
+      "repeat": 3,
+      "view": "chc",
+      "cpu": "AMD Ryzen 9 9950X 16-Core Processor",
+      "outcomes": {
+        "base": {
+          "attribution": "completed",
+          "answer": "unknown",
+          "exit": 0,
+          "signal": null,
+          "wallMs": 58198.694663,
+          "classification": "completed",
+          "oomDelta": 0,
+          "kernelPids": [],
+          "peakRssKiB": null,
+          "minAvailableKiB": 12601168,
+          "journalExit": 0,
+          "resourcesVersion": 1
+        },
+        "candidate": {
+          "attribution": "completed",
+          "answer": "unknown",
+          "exit": 0,
+          "signal": null,
+          "wallMs": 58396.858550000004,
+          "classification": "completed",
+          "oomDelta": 0,
+          "kernelPids": [],
+          "peakRssKiB": null,
+          "minAvailableKiB": 12267508,
+          "journalExit": 0,
+          "resourcesVersion": 1
+        }
+      }
+    },
+    {
+      "index": 6,
+      "task": "Integer_Transition_Systems/From_T2/bio.t2.ari",
+      "repeat": 1,
+      "view": "its-scc",
+      "cpu": "AMD Ryzen 9 9950X 16-Core Processor",
+      "outcomes": {
+        "base": {
+          "attribution": "strict-timeout",
+          "answer": "timeout",
+          "exit": 124,
+          "signal": null,
+          "wallMs": 61856.85097099998,
+          "classification": "strict-timeout",
+          "oomDelta": 0,
+          "kernelPids": [],
+          "peakRssKiB": null,
+          "minAvailableKiB": 5763044,
+          "journalExit": 0,
+          "resourcesVersion": 1
+        },
+        "candidate": {
+          "attribution": "completed",
+          "answer": "unknown",
+          "exit": 0,
+          "signal": null,
+          "wallMs": 58782.05530200002,
+          "classification": "completed",
+          "oomDelta": 0,
+          "kernelPids": [],
+          "peakRssKiB": null,
+          "minAvailableKiB": 11337736,
+          "journalExit": 0,
+          "resourcesVersion": 1
+        }
+      }
+    },
+    {
+      "index": 6,
+      "task": "Integer_Transition_Systems/From_T2/bio.t2.ari",
+      "repeat": 2,
+      "view": "its-scc",
+      "cpu": "AMD Ryzen 9 9950X 16-Core Processor",
+      "outcomes": {
+        "base": {
+          "attribution": "strict-timeout",
+          "answer": "timeout",
+          "exit": 124,
+          "signal": null,
+          "wallMs": 62169.846846,
+          "classification": "strict-timeout",
+          "oomDelta": 0,
+          "kernelPids": [],
+          "peakRssKiB": null,
+          "minAvailableKiB": 5377088,
+          "journalExit": 0,
+          "resourcesVersion": 1
+        },
+        "candidate": {
+          "attribution": "strict-timeout",
+          "answer": "timeout",
+          "exit": 124,
+          "signal": null,
+          "wallMs": 60599.85173500003,
+          "classification": "strict-timeout",
+          "oomDelta": 0,
+          "kernelPids": [],
+          "peakRssKiB": null,
+          "minAvailableKiB": 1365888,
+          "journalExit": 0,
+          "resourcesVersion": 1
+        }
+      }
+    },
+    {
+      "index": 6,
+      "task": "Integer_Transition_Systems/From_T2/bio.t2.ari",
+      "repeat": 3,
+      "view": "its-scc",
+      "cpu": "AMD Ryzen 9 9950X 16-Core Processor",
+      "outcomes": {
+        "base": {
+          "attribution": "strict-timeout",
+          "answer": "timeout",
+          "exit": 124,
+          "signal": null,
+          "wallMs": 60710.52292999998,
+          "classification": "strict-timeout",
+          "oomDelta": 0,
+          "kernelPids": [],
+          "peakRssKiB": null,
+          "minAvailableKiB": 1140376,
+          "journalExit": 0,
+          "resourcesVersion": 1
+        },
+        "candidate": {
+          "attribution": "strict-timeout",
+          "answer": "timeout",
+          "exit": 124,
+          "signal": null,
+          "wallMs": 60830.95266000001,
+          "classification": "strict-timeout",
+          "oomDelta": 0,
+          "kernelPids": [],
+          "peakRssKiB": null,
+          "minAvailableKiB": 845600,
+          "journalExit": 0,
+          "resourcesVersion": 1
+        }
+      }
+    },
+    {
+      "index": 8,
+      "task": "Integer_Transition_Systems/From_T2/bio.t2.ari",
+      "repeat": 1,
+      "view": "its",
+      "cpu": "AMD EPYC 4585PX 16-Core Processor",
+      "outcomes": {
+        "base": {
+          "attribution": "strict-timeout",
+          "answer": "timeout",
+          "exit": 124,
+          "signal": null,
+          "wallMs": 60459.87026000001,
+          "classification": "strict-timeout",
+          "oomDelta": 0,
+          "kernelPids": [],
+          "peakRssKiB": null,
+          "minAvailableKiB": 44160,
+          "journalExit": 0,
+          "resourcesVersion": 1
+        },
+        "candidate": {
+          "attribution": "strict-timeout",
+          "answer": "timeout",
+          "exit": 124,
+          "signal": null,
+          "wallMs": 60737.06179000001,
+          "classification": "strict-timeout",
+          "oomDelta": 0,
+          "kernelPids": [],
+          "peakRssKiB": null,
+          "minAvailableKiB": 59856,
+          "journalExit": 0,
+          "resourcesVersion": 1
+        }
+      }
+    },
+    {
+      "index": 8,
+      "task": "Integer_Transition_Systems/From_T2/bio.t2.ari",
+      "repeat": 2,
+      "view": "its",
+      "cpu": "AMD EPYC 4585PX 16-Core Processor",
+      "outcomes": {
+        "base": {
+          "attribution": "strict-timeout",
+          "answer": "timeout",
+          "exit": 124,
+          "signal": null,
+          "wallMs": 60342.617421,
+          "classification": "strict-timeout",
+          "oomDelta": 0,
+          "kernelPids": [],
+          "peakRssKiB": null,
+          "minAvailableKiB": 6779332,
+          "journalExit": 0,
+          "resourcesVersion": 1
+        },
+        "candidate": {
+          "attribution": "strict-timeout",
+          "answer": "timeout",
+          "exit": 124,
+          "signal": null,
+          "wallMs": 60670.19491999998,
+          "classification": "strict-timeout",
+          "oomDelta": 0,
+          "kernelPids": [],
+          "peakRssKiB": null,
+          "minAvailableKiB": 56788,
+          "journalExit": 0,
+          "resourcesVersion": 1
+        }
+      }
+    },
+    {
+      "index": 8,
+      "task": "Integer_Transition_Systems/From_T2/bio.t2.ari",
+      "repeat": 3,
+      "view": "its",
+      "cpu": "AMD EPYC 4585PX 16-Core Processor",
+      "outcomes": {
+        "base": {
+          "attribution": "strict-timeout",
+          "answer": "timeout",
+          "exit": 124,
+          "signal": null,
+          "wallMs": 60522.09538699995,
+          "classification": "strict-timeout",
+          "oomDelta": 0,
+          "kernelPids": [],
+          "peakRssKiB": null,
+          "minAvailableKiB": 41572,
+          "journalExit": 0,
+          "resourcesVersion": 1
+        },
+        "candidate": {
+          "attribution": "strict-timeout",
+          "answer": "timeout",
+          "exit": 124,
+          "signal": null,
+          "wallMs": 60520.21964200004,
+          "classification": "strict-timeout",
+          "oomDelta": 0,
+          "kernelPids": [],
+          "peakRssKiB": null,
+          "minAvailableKiB": 61676,
+          "journalExit": 0,
+          "resourcesVersion": 1
+        }
+      }
+    },
+    {
+      "index": 9,
+      "task": "Integer_Transition_Systems/From_T2/cover.t2.ari",
+      "repeat": 1,
+      "view": "its",
+      "cpu": "AMD Ryzen 9 9950X 16-Core Processor",
+      "outcomes": {
+        "base": {
+          "attribution": "strict-timeout",
+          "answer": "timeout",
+          "exit": 124,
+          "signal": null,
+          "wallMs": 61061.611051,
+          "classification": "strict-timeout",
+          "oomDelta": 0,
+          "kernelPids": [],
+          "peakRssKiB": null,
+          "minAvailableKiB": 175492,
+          "journalExit": 0,
+          "resourcesVersion": 1
+        },
+        "candidate": {
+          "attribution": "strict-timeout",
+          "answer": "timeout",
+          "exit": 124,
+          "signal": null,
+          "wallMs": 60588.55955799999,
+          "classification": "strict-timeout",
+          "oomDelta": 0,
+          "kernelPids": [],
+          "peakRssKiB": null,
+          "minAvailableKiB": 170640,
+          "journalExit": 0,
+          "resourcesVersion": 1
+        }
+      }
+    },
+    {
+      "index": 9,
+      "task": "Integer_Transition_Systems/From_T2/cover.t2.ari",
+      "repeat": 2,
+      "view": "its",
+      "cpu": "AMD Ryzen 9 9950X 16-Core Processor",
+      "outcomes": {
+        "base": {
+          "attribution": "strict-timeout",
+          "answer": "timeout",
+          "exit": 124,
+          "signal": null,
+          "wallMs": 60600.58956500003,
+          "classification": "strict-timeout",
+          "oomDelta": 0,
+          "kernelPids": [],
+          "peakRssKiB": null,
+          "minAvailableKiB": 45960,
+          "journalExit": 0,
+          "resourcesVersion": 1
+        },
+        "candidate": {
+          "attribution": "strict-timeout",
+          "answer": "timeout",
+          "exit": 124,
+          "signal": null,
+          "wallMs": 60590.112139000004,
+          "classification": "strict-timeout",
+          "oomDelta": 0,
+          "kernelPids": [],
+          "peakRssKiB": null,
+          "minAvailableKiB": 55936,
+          "journalExit": 0,
+          "resourcesVersion": 1
+        }
+      }
+    },
+    {
+      "index": 9,
+      "task": "Integer_Transition_Systems/From_T2/cover.t2.ari",
+      "repeat": 3,
+      "view": "its",
+      "cpu": "AMD Ryzen 9 9950X 16-Core Processor",
+      "outcomes": {
+        "base": {
+          "attribution": "strict-timeout",
+          "answer": "timeout",
+          "exit": 124,
+          "signal": null,
+          "wallMs": 60704.682509000006,
+          "classification": "strict-timeout",
+          "oomDelta": 0,
+          "kernelPids": [],
+          "peakRssKiB": null,
+          "minAvailableKiB": 46680,
+          "journalExit": 0,
+          "resourcesVersion": 1
+        },
+        "candidate": {
+          "attribution": "strict-timeout",
+          "answer": "timeout",
+          "exit": 124,
+          "signal": null,
+          "wallMs": 60844.568606999994,
+          "classification": "strict-timeout",
+          "oomDelta": 0,
+          "kernelPids": [],
+          "peakRssKiB": null,
+          "minAvailableKiB": 37352,
+          "journalExit": 0,
+          "resourcesVersion": 1
+        }
+      }
+    },
+    {
+      "index": 10,
+      "task": "tip2015/list_weird_concat_map_bind.smt2",
+      "repeat": 1,
+      "view": "tip",
+      "cpu": "AMD Ryzen 7 9700X 8-Core Processor",
+      "outcomes": {
+        "base": {
+          "attribution": "strict-timeout",
+          "answer": "timeout",
+          "exit": 124,
+          "signal": null,
+          "wallMs": 60451.951052000004,
+          "classification": "strict-timeout",
+          "oomDelta": 0,
+          "kernelPids": [],
+          "peakRssKiB": null,
+          "minAvailableKiB": 1180828,
+          "journalExit": 0,
+          "resourcesVersion": 1
+        },
+        "candidate": {
+          "attribution": "strict-timeout",
+          "answer": "timeout",
+          "exit": 124,
+          "signal": null,
+          "wallMs": 60558.020915,
+          "classification": "strict-timeout",
+          "oomDelta": 0,
+          "kernelPids": [],
+          "peakRssKiB": null,
+          "minAvailableKiB": 758204,
+          "journalExit": 0,
+          "resourcesVersion": 1
+        }
+      }
+    },
+    {
+      "index": 10,
+      "task": "tip2015/list_weird_concat_map_bind.smt2",
+      "repeat": 2,
+      "view": "tip",
+      "cpu": "AMD Ryzen 7 9700X 8-Core Processor",
+      "outcomes": {
+        "base": {
+          "attribution": "strict-timeout",
+          "answer": "timeout",
+          "exit": 124,
+          "signal": null,
+          "wallMs": 60277.947538999986,
+          "classification": "strict-timeout",
+          "oomDelta": 0,
+          "kernelPids": [],
+          "peakRssKiB": null,
+          "minAvailableKiB": 1291568,
+          "journalExit": 0,
+          "resourcesVersion": 1
+        },
+        "candidate": {
+          "attribution": "confirmed-kernel-oom",
+          "answer": "error",
+          "exit": null,
+          "signal": "SIGKILL",
+          "wallMs": 56051.14210899998,
+          "classification": "confirmed-kernel-oom",
+          "oomDelta": 1,
+          "kernelPids": [
+            42866
+          ],
+          "peakRssKiB": null,
+          "minAvailableKiB": 108632,
+          "journalExit": 0,
+          "resourcesVersion": 1
+        }
+      }
+    },
+    {
+      "index": 10,
+      "task": "tip2015/list_weird_concat_map_bind.smt2",
+      "repeat": 3,
+      "view": "tip",
+      "cpu": "AMD Ryzen 7 9700X 8-Core Processor",
+      "outcomes": {
+        "base": {
+          "attribution": "strict-timeout",
+          "answer": "timeout",
+          "exit": 124,
+          "signal": null,
+          "wallMs": 60299.480941999995,
+          "classification": "strict-timeout",
+          "oomDelta": 0,
+          "kernelPids": [],
+          "peakRssKiB": null,
+          "minAvailableKiB": 1201064,
+          "journalExit": 0,
+          "resourcesVersion": 1
+        },
+        "candidate": {
+          "attribution": "confirmed-kernel-oom",
+          "answer": "error",
+          "exit": null,
+          "signal": "SIGKILL",
+          "wallMs": 53531.70426599996,
+          "classification": "confirmed-kernel-oom",
+          "oomDelta": 1,
+          "kernelPids": [
+            43889
+          ],
+          "peakRssKiB": null,
+          "minAvailableKiB": 89584,
+          "journalExit": 0,
+          "resourcesVersion": 1
+        }
+      }
+    }
+  ],
+  "scope": "Infrastructure attribution only. Incomplete children never establish a semantic candidate loss or a passing no-loss gate."
+}
