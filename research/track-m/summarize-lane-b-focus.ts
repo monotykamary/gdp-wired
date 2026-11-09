@@ -1,5 +1,5 @@
-// WIP checkpoint: the expanded 13-record projection and its final source check
-// were cancelled before completion. Resume validation before relying on it.
+// The 13-record projection and checkpoint source check completed on resume.
+// Exact-family checker receipts are joined separately by link-lane-b-focus-audits.ts.
 // Receipt-only projection. This does not search for or validate a proof tree.
 import {strict as assert} from 'node:assert'
 import {createHash} from 'node:crypto'

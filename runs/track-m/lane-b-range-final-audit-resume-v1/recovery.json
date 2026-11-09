@@ -1,0 +1,23 @@
+{
+  "batch": "20261110-000815-19wzia",
+  "tree": "4e5d068cb3d9e9205d13ab01",
+  "sourceSha": "30537f703a8dcfd87103fb8f4fc259e9f2eaa16c",
+  "method": "Read persisted scheduler rows and completed stdout/stderr; no rerun, no close",
+  "logs": [
+    {
+      "name": "audit",
+      "sha256": "3912764313220d87fa3edd7c9de43734adb6df00a1b429a4c3ccc137c264e648",
+      "bytes": 17698
+    },
+    {
+      "name": "projection",
+      "sha256": "3673e5515409bb0215be84c25f6785bee17824da22365f0483655797b85c164f",
+      "bytes": 8194
+    },
+    {
+      "name": "check",
+      "sha256": "dcf38db7b9ec6fd2ce38fda53a392ccd196392dfd8ab27569e2226f7c2cc4bc6",
+      "bytes": 185
+    }
+  ]
+}

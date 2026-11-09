@@ -1,12 +1,21 @@
 {
-  "branch": "claude/track-mldr",
-  "resumed": true,
-  "gateGreen": false,
-  "completedMeasurementsRepeated": false,
-  "batches": [
-    {"batch":"20261110-000815-19wzia","source":"30537f70","tree":"4e5d068cb3d9","task":"1dd551f7-0335-4d41-b98e-832eb04cf2b9","state":"registered-late-after-rpc-failure","reason":"initial RPC timed out; later inventory found left=3 running=0; guarded third attempt refused to resubmit"},
-    {"batch":"20261110-001834-eu43wb","source":"30537f70","tree":"4e5d068cb3d9","task":"111b428c-975c-40f9-88a4-73dfb21dfed4","state":"pending","output":"runs/track-m/lane-b-range-final-audit-resume-v2"},
-    {"batch":"20261110-002114-ovy5ii","source":"b056c3b4","tree":"c5c63c1bf723","task":"2605e783-888f-4081-90fd-52555ff707ef","state":"pending","output":"runs/track-m/lane-b-demand-range-v1"},
-    {"batch":"20261110-001852-88p0sl","source":"201a21a2","tree":"91adfc0ed7f4","task":"60fb8788-f6d2-47ed-ae26-ef183c93d04c","state":"pending","output":"runs/track-m/lane-b-audit-link-check-v1"}
+  "branch":"claude/track-mldr",
+  "resumed":true,
+  "gateGreen":false,
+  "completedMeasurementsRepeated":false,
+  "memoryPolicy":"at most one subagent; this lane owns none",
+  "diskPolicy":"one source archive per SHA; small receipts; no deletions",
+  "resumeAudit":{"complete":true,"exactFamilyOutcomes":13,"checked":5,"unknown":8,"conditional":true,"summarySha256":"eb819e75a6acfa6050521823bb8c013f0a4c65cf70a3a99125871a30a94b1d0a"},
+  "batches":[
+    {"batch":"20261110-000815-19wzia","source":"30537f70","tree":"4e5d068cb3d9e9205d13ab01","state":"complete-recovered","exits":{"audit":0,"check":0,"projection":0},"output":"runs/track-m/lane-b-range-final-audit-resume-v1","note":"submit RPC timed out but registered late; saved scheduler receipts recovered without rerun"},
+    {"batch":"20261110-001834-eu43wb","source":"30537f70","state":"complete-duplicate-audit","exits":{"audit":0,"check":0,"projection":0},"note":"late registration of retry, not substituted for first batch evidence; no third submission"},
+    {"batch":"20261110-002114-ovy5ii","source":"b056c3b4","tree":"c5c63c1bf723","state":"complete","pairedOutcomes":12,"checked":4,"checkExit":1,"note":"exhaustive-switch lint; all six pair jobs exit 0","output":"runs/track-m/lane-b-demand-range-v1"},
+    {"batch":"20261110-001852-88p0sl","source":"201a21a2","tree":"91adfc0ed7f4","state":"complete","checkExit":2,"note":"optional-input TypeScript narrowing; tests not run"},
+    {"task":"e3774a52-f411-475e-9812-0ee68b20730d","source":"d91a53e4","state":"complete","checkExit":1,"output":"runs/track-m/lane-b-audit-link-check-v2","note":"TypeScript passed; already-repaired exhaustive-switch lint failed; tests not run"},
+    {"batch":"20261110-010856-07ox2p","source":"27c8cb26","tree":"7e9cc9f8c7bd","task":"749d54a5-79a6-4cf8-b03e-b263f039277b","state":"complete","checkExit":0,"tests":25,"assertions":101,"output":"runs/track-m/lane-b-audit-link-check-v3"},
+    {"task":"e11eb951-62ce-4a42-9a38-342bd7fcbfda","state":"complete","exitCode":0,"output":"runs/track-m/lane-b-resume-commitlint-v1"},
+    {"source":"09d3d172","control":"47215336","upstream":"2047d2be","task":"2d0d8363-da4f-4d7c-b1bf-3629ccd11a1e","batch":"20261110-013121-bhvcxb","tree":"e34b93627925","state":"complete-negative","jobs":8,"failedJobs":0,"testsPerVariant":13,"assertionsPerVariant":61,"output":"runs/track-m/lane-b-members-v1","note":"p1 +166.3193948 units in both orders; row unchanged; star wall-limited unknown; production counts/ranges unchanged","archiveCustody":{"verified":5,"expected":6,"bytes":6060754,"missing":"star-ba: original VM stopped"}},
+    {"source":"9c8a07ba","batch":"20261110-014341-ccbmlq","tree":"a3e1cabbd7bb","task":"23cefbe3-d5e7-4492-8881-440f6937070c","state":"partial","jobs":9,"knownCheckExits":[2,2],"output":"runs/track-m/lane-b-row-premises-v1","note":"last p1-ba receipt pending; row remains unknown in both orders; fixture-only typo repaired without remeasuring"},
+    {"source":"6fe2d846","task":"ea9aacef-193d-425e-b825-078ae88d4a0f","batch":"20261110-014618-2k8pqx","tree":"5b15cb57eb97","state":"complete","exits":[0,0],"testsPerVariant":38,"assertionsPerVariant":169,"jobs":2,"output":"runs/track-m/lane-b-row-check-v2","note":"corrected validation only; no repeated measurement"}
   ]
 }

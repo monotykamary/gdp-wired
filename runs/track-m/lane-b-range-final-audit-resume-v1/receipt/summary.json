@@ -1,0 +1,1621 @@
+{
+  "conditional": true,
+  "projectionChecksProofs": false,
+  "familySize": 34,
+  "original": [
+    {
+      "name": "rows-ab",
+      "checked": false,
+      "units": 4193.685635999999,
+      "wallMs": 7001.778297,
+      "profile": {
+        "encode": 66.86166500000036,
+        "decide": 6681.784614999999,
+        "mbqi": 186.89726200000132,
+        "lazy": 0.15678399999978865,
+        "#rounds": 11,
+        "#hyps": 1607
+      },
+      "queryHypotheses": [
+        68,
+        76,
+        90,
+        100,
+        110,
+        116,
+        120,
+        183,
+        220,
+        244,
+        280,
+        284
+      ],
+      "last": {
+        "phase": "rejected proposal",
+        "pass": 0,
+        "law": "fields: CV[a]=CV[b] and CfgT[a]=CfgT[b] -> Config rows agree",
+        "error": "WallExpired: time (encode)"
+      }
+    },
+    {
+      "name": "rows-ba",
+      "checked": false,
+      "units": 6000.308358,
+      "wallMs": 5534.172022,
+      "profile": {
+        "encode": 46.261498999999276,
+        "decide": 5294.420839999999,
+        "mbqi": 135.9054129999995,
+        "lazy": 0.1429679999992004,
+        "#rounds": 12,
+        "#hyps": 1891,
+        "grow": 1.8168169999999009
+      },
+      "queryHypotheses": [
+        68,
+        76,
+        90,
+        100,
+        110,
+        116,
+        120,
+        183,
+        220,
+        244,
+        280,
+        284,
+        295
+      ],
+      "last": {
+        "phase": "unknown",
+        "pass": 1,
+        "goal": "fields: CV[a]=CV[b] and CfgT[a]=CfgT[b] -> Config rows agree @start",
+        "law": "fields: CV[a]=CV[b] and CfgT[a]=CfgT[b] -> Config rows agree",
+        "hyps": 2
+      }
+    }
+  ],
+  "range": [
+    {
+      "batch": "lane-b-range-pair-v1",
+      "name": "star-ab",
+      "side": "before",
+      "tag": "star",
+      "checked": false,
+      "units": 6001.712424,
+      "wallMs": 6723.752446,
+      "withinDiagnosticLine": false,
+      "results": [
+        {
+          "pass": 1,
+          "outcome": "unknown",
+          "units": 6001.712424,
+          "wallMs": 6720.83702
+        }
+      ],
+      "cpu": {
+        "vm": "bx_6aqepfyv",
+        "type": "large",
+        "cpu": "AMD Ryzen 9 9950X 16-Core Processor",
+        "vcpus": 8,
+        "vm_vcpus": 8,
+        "exclusive": true,
+        "co_tenants": 0
+      },
+      "sha256": "b1c768147e1470a0d61c7ad22e5e689d56dd96b42b9d7da3ae402a75350acb66",
+      "profile": {
+        "encode": 56.67573699999912,
+        "decide": 6365.142222,
+        "mbqi": 71.8970589999999,
+        "lazy": 159.71471699999938,
+        "#rounds": 7,
+        "#hyps": 765,
+        "#count-completion": 48,
+        "#lazy": 58,
+        "grow": 3.6898520000004282
+      },
+      "stages": {},
+      "cases": [],
+      "queryHypotheses": [
+        65,
+        72,
+        88,
+        92,
+        96,
+        175,
+        177,
+        235
+      ],
+      "rangeCoverage": [
+        {
+          "reads": 10,
+          "ranges": 0
+        },
+        {
+          "reads": 11,
+          "ranges": 0
+        },
+        {
+          "reads": 14,
+          "ranges": 0
+        },
+        {
+          "reads": 15,
+          "ranges": 0
+        },
+        {
+          "reads": 16,
+          "ranges": 0
+        },
+        {
+          "reads": 47,
+          "ranges": 0
+        },
+        {
+          "reads": 47,
+          "ranges": 0
+        },
+        {
+          "reads": 47,
+          "ranges": 0
+        }
+      ],
+      "audit": {
+        "sourceLog": "runs/track-m/lane-b-range-followup-v1/audit.log",
+        "logSha256": "a07467080a71d4133c079e784c45fa9d9461ed3bd529c8317da1a359aa2e0446",
+        "checked": false,
+        "familyVerified": true,
+        "conditional": true
+      }
+    },
+    {
+      "batch": "lane-b-range-pair-v1",
+      "name": "star-ab",
+      "side": "after",
+      "tag": "star",
+      "checked": false,
+      "units": 3270.412992,
+      "wallMs": 7009.419193,
+      "withinDiagnosticLine": false,
+      "results": [
+        {
+          "pass": 1,
+          "outcome": "unknown",
+          "units": 3270.412992,
+          "wallMs": 7004.868343
+        },
+        {
+          "pass": 0,
+          "outcome": "unknown",
+          "units": 0,
+          "wallMs": 0.2109359999994922
+        }
+      ],
+      "cpu": {
+        "vm": "bx_6aqepfyv",
+        "type": "large",
+        "cpu": "AMD Ryzen 9 9950X 16-Core Processor",
+        "vcpus": 8,
+        "vm_vcpus": 8,
+        "exclusive": true,
+        "co_tenants": 0
+      },
+      "sha256": "b1c768147e1470a0d61c7ad22e5e689d56dd96b42b9d7da3ae402a75350acb66",
+      "profile": {
+        "encode": 85.11805999999979,
+        "decide": 6491.207514999999,
+        "mbqi": 100.28521100000034,
+        "lazy": 211.8679890000003,
+        "#rounds": 7,
+        "#hyps": 925,
+        "#count-completion": 48,
+        "#lazy": 58
+      },
+      "stages": {},
+      "cases": [],
+      "queryHypotheses": [
+        75,
+        83,
+        102,
+        107,
+        112,
+        222,
+        224,
+        282
+      ],
+      "rangeCoverage": [
+        {
+          "reads": 10,
+          "ranges": 10
+        },
+        {
+          "reads": 11,
+          "ranges": 11
+        },
+        {
+          "reads": 14,
+          "ranges": 14
+        },
+        {
+          "reads": 15,
+          "ranges": 15
+        },
+        {
+          "reads": 16,
+          "ranges": 16
+        },
+        {
+          "reads": 47,
+          "ranges": 47
+        },
+        {
+          "reads": 47,
+          "ranges": 47
+        },
+        {
+          "reads": 47,
+          "ranges": 47
+        }
+      ],
+      "audit": {
+        "sourceLog": "runs/track-m/lane-b-range-followup-v1/audit.log",
+        "logSha256": "a07467080a71d4133c079e784c45fa9d9461ed3bd529c8317da1a359aa2e0446",
+        "checked": false,
+        "familyVerified": true,
+        "conditional": true
+      }
+    },
+    {
+      "batch": "lane-b-range-pair-v1",
+      "name": "star-ba",
+      "side": "before",
+      "tag": "star",
+      "checked": false,
+      "units": 6001.712424,
+      "wallMs": 5478.192540999999,
+      "withinDiagnosticLine": false,
+      "results": [
+        {
+          "pass": 1,
+          "outcome": "unknown",
+          "units": 6001.712424,
+          "wallMs": 5474.914805
+        }
+      ],
+      "cpu": {
+        "vm": "bx_5f32uf5a",
+        "type": "large",
+        "cpu": "AMD Ryzen 9 9950X 16-Core Processor",
+        "vcpus": 8,
+        "vm_vcpus": 8,
+        "exclusive": true,
+        "co_tenants": 0
+      },
+      "sha256": "5314ca122a3242ff0a9bdb29733c096b1c5f319cc3b93ef71ed22fb42cff804c",
+      "profile": {
+        "encode": 54.712535000001026,
+        "decide": 5092.3288459999985,
+        "mbqi": 98.00018099999988,
+        "lazy": 170.09943900000053,
+        "#rounds": 7,
+        "#hyps": 765,
+        "#count-completion": 48,
+        "#lazy": 58,
+        "grow": 2.4629039999999804
+      },
+      "stages": {},
+      "cases": [],
+      "queryHypotheses": [
+        65,
+        72,
+        88,
+        92,
+        96,
+        175,
+        177,
+        235
+      ],
+      "rangeCoverage": [
+        {
+          "reads": 10,
+          "ranges": 0
+        },
+        {
+          "reads": 11,
+          "ranges": 0
+        },
+        {
+          "reads": 14,
+          "ranges": 0
+        },
+        {
+          "reads": 15,
+          "ranges": 0
+        },
+        {
+          "reads": 16,
+          "ranges": 0
+        },
+        {
+          "reads": 47,
+          "ranges": 0
+        },
+        {
+          "reads": 47,
+          "ranges": 0
+        },
+        {
+          "reads": 47,
+          "ranges": 0
+        }
+      ],
+      "audit": {
+        "sourceLog": "runs/track-m/lane-b-range-followup-v1/audit.log",
+        "logSha256": "a07467080a71d4133c079e784c45fa9d9461ed3bd529c8317da1a359aa2e0446",
+        "checked": false,
+        "familyVerified": true,
+        "conditional": true
+      }
+    },
+    {
+      "batch": "lane-b-range-pair-v1",
+      "name": "star-ba",
+      "side": "after",
+      "tag": "star",
+      "checked": false,
+      "units": 6001.332708,
+      "wallMs": 6493.664559,
+      "withinDiagnosticLine": false,
+      "results": [
+        {
+          "pass": 1,
+          "outcome": "unknown",
+          "units": 6001.332708,
+          "wallMs": 6490.76226
+        }
+      ],
+      "cpu": {
+        "vm": "bx_5f32uf5a",
+        "type": "large",
+        "cpu": "AMD Ryzen 9 9950X 16-Core Processor",
+        "vcpus": 8,
+        "vm_vcpus": 8,
+        "exclusive": true,
+        "co_tenants": 0
+      },
+      "sha256": "5314ca122a3242ff0a9bdb29733c096b1c5f319cc3b93ef71ed22fb42cff804c",
+      "profile": {
+        "encode": 83.68016399999988,
+        "decide": 6063.178970999999,
+        "mbqi": 104.28353900000002,
+        "lazy": 176.12535900000012,
+        "#rounds": 7,
+        "#hyps": 925,
+        "#count-completion": 48,
+        "#lazy": 58,
+        "grow": 2.323051999999734
+      },
+      "stages": {},
+      "cases": [],
+      "queryHypotheses": [
+        75,
+        83,
+        102,
+        107,
+        112,
+        222,
+        224,
+        282
+      ],
+      "rangeCoverage": [
+        {
+          "reads": 10,
+          "ranges": 10
+        },
+        {
+          "reads": 11,
+          "ranges": 11
+        },
+        {
+          "reads": 14,
+          "ranges": 14
+        },
+        {
+          "reads": 15,
+          "ranges": 15
+        },
+        {
+          "reads": 16,
+          "ranges": 16
+        },
+        {
+          "reads": 47,
+          "ranges": 47
+        },
+        {
+          "reads": 47,
+          "ranges": 47
+        },
+        {
+          "reads": 47,
+          "ranges": 47
+        }
+      ],
+      "audit": {
+        "sourceLog": "runs/track-m/lane-b-range-followup-v1/audit.log",
+        "logSha256": "a07467080a71d4133c079e784c45fa9d9461ed3bd529c8317da1a359aa2e0446",
+        "checked": false,
+        "familyVerified": true,
+        "conditional": true
+      }
+    },
+    {
+      "batch": "lane-b-range-followup-v1",
+      "name": "p1-ab",
+      "side": "before",
+      "tag": "p1",
+      "checked": true,
+      "units": 2175.5122859999997,
+      "wallMs": 2137.106358,
+      "withinDiagnosticLine": true,
+      "results": [
+        {
+          "pass": 1,
+          "outcome": "proof",
+          "units": 2175.5122859999997,
+          "wallMs": 1970.853531
+        }
+      ],
+      "cpu": {
+        "vm": "bx_69nkhdf7",
+        "type": "large",
+        "cpu": "AMD EPYC 4585PX 16-Core Processor",
+        "vcpus": 8,
+        "vm_vcpus": 8,
+        "exclusive": true,
+        "co_tenants": 0
+      },
+      "sha256": "ca9c4d08aa51b185278578879eb97550fe9d0ce73ddf4c25654021ac1793fdb5",
+      "profile": {
+        "encode": 54.707569999999805,
+        "decide": 1439.3946810000004,
+        "mbqi": 88.79534400000034,
+        "lazy": 83.39195100000006,
+        "#rounds": 8,
+        "#hyps": 810,
+        "#count-completion": 30,
+        "#lazy": 25,
+        "grow": 2.524163999999928,
+        "part": 258.75884599999995
+      },
+      "stages": {},
+      "cases": [],
+      "queryHypotheses": [
+        56,
+        64,
+        77,
+        90,
+        91,
+        139,
+        146,
+        147,
+        173
+      ],
+      "rangeCoverage": [
+        {
+          "reads": 8,
+          "ranges": 0
+        },
+        {
+          "reads": 10,
+          "ranges": 0
+        },
+        {
+          "reads": 11,
+          "ranges": 0
+        },
+        {
+          "reads": 13,
+          "ranges": 0
+        },
+        {
+          "reads": 13,
+          "ranges": 0
+        },
+        {
+          "reads": 31,
+          "ranges": 0
+        },
+        {
+          "reads": 32,
+          "ranges": 0
+        },
+        {
+          "reads": 32,
+          "ranges": 0
+        },
+        {
+          "reads": 32,
+          "ranges": 0
+        }
+      ],
+      "audit": {
+        "sourceLog": "runs/track-m/lane-b-range-final-audit-resume-v1/audit.log.gz",
+        "logSha256": "3912764313220d87fa3edd7c9de43734adb6df00a1b429a4c3ccc137c264e648",
+        "checked": true,
+        "familyVerified": true,
+        "conditional": true
+      }
+    },
+    {
+      "batch": "lane-b-range-followup-v1",
+      "name": "p1-ab",
+      "side": "after",
+      "tag": "p1",
+      "checked": true,
+      "units": 2295.746380399999,
+      "wallMs": 2849.200965,
+      "withinDiagnosticLine": true,
+      "results": [
+        {
+          "pass": 1,
+          "outcome": "proof",
+          "units": 2295.746380399999,
+          "wallMs": 2434.602197
+        }
+      ],
+      "cpu": {
+        "vm": "bx_69nkhdf7",
+        "type": "large",
+        "cpu": "AMD EPYC 4585PX 16-Core Processor",
+        "vcpus": 8,
+        "vm_vcpus": 8,
+        "exclusive": true,
+        "co_tenants": 0
+      },
+      "sha256": "ca9c4d08aa51b185278578879eb97550fe9d0ce73ddf4c25654021ac1793fdb5",
+      "profile": {
+        "encode": 71.89936700000021,
+        "decide": 1689.4612410000007,
+        "mbqi": 113.7885590000003,
+        "lazy": 77.3232700000001,
+        "#rounds": 11,
+        "#hyps": 1367,
+        "#count-completion": 32,
+        "#lazy": 12,
+        "grow": 2.2837749999998778,
+        "part": 433.9107610000001
+      },
+      "stages": {},
+      "cases": [],
+      "queryHypotheses": [
+        64,
+        74,
+        88,
+        97,
+        101,
+        106,
+        107,
+        177,
+        183,
+        185,
+        185,
+        199
+      ],
+      "rangeCoverage": [
+        {
+          "reads": 8,
+          "ranges": 8
+        },
+        {
+          "reads": 10,
+          "ranges": 10
+        },
+        {
+          "reads": 11,
+          "ranges": 11
+        },
+        {
+          "reads": 13,
+          "ranges": 13
+        },
+        {
+          "reads": 13,
+          "ranges": 13
+        },
+        {
+          "reads": 14,
+          "ranges": 14
+        },
+        {
+          "reads": 14,
+          "ranges": 14
+        },
+        {
+          "reads": 33,
+          "ranges": 33
+        },
+        {
+          "reads": 34,
+          "ranges": 34
+        },
+        {
+          "reads": 34,
+          "ranges": 34
+        },
+        {
+          "reads": 34,
+          "ranges": 34
+        },
+        {
+          "reads": 35,
+          "ranges": 35
+        }
+      ],
+      "audit": {
+        "sourceLog": "runs/track-m/lane-b-range-final-audit-resume-v1/audit.log.gz",
+        "logSha256": "3912764313220d87fa3edd7c9de43734adb6df00a1b429a4c3ccc137c264e648",
+        "checked": true,
+        "familyVerified": true,
+        "conditional": true
+      }
+    },
+    {
+      "batch": "lane-b-range-followup-v1",
+      "name": "p1-ba",
+      "side": "before",
+      "tag": "p1",
+      "checked": true,
+      "units": 2175.5122859999997,
+      "wallMs": 2260.666061,
+      "withinDiagnosticLine": true,
+      "results": [
+        {
+          "pass": 1,
+          "outcome": "proof",
+          "units": 2175.5122859999997,
+          "wallMs": 2088.8775250000003
+        }
+      ],
+      "cpu": {
+        "vm": "bx_2eg9t59n",
+        "type": "large",
+        "cpu": "AMD EPYC 4585PX 16-Core Processor",
+        "vcpus": 8,
+        "vm_vcpus": 8,
+        "exclusive": true,
+        "co_tenants": 0
+      },
+      "sha256": "c0317a13abe85f369f3415789a3a6c2d8ad9d5f0df16108b224e80fcb8bd4adb",
+      "profile": {
+        "encode": 52.069723999999724,
+        "decide": 1548.717393,
+        "mbqi": 55.240720999999894,
+        "lazy": 105.11241600000017,
+        "#rounds": 8,
+        "#hyps": 810,
+        "#count-completion": 30,
+        "#lazy": 25,
+        "grow": 1.6290169999999762,
+        "part": 269.17275800000016
+      },
+      "stages": {},
+      "cases": [],
+      "queryHypotheses": [
+        56,
+        64,
+        77,
+        90,
+        91,
+        139,
+        146,
+        147,
+        173
+      ],
+      "rangeCoverage": [
+        {
+          "reads": 8,
+          "ranges": 0
+        },
+        {
+          "reads": 10,
+          "ranges": 0
+        },
+        {
+          "reads": 11,
+          "ranges": 0
+        },
+        {
+          "reads": 13,
+          "ranges": 0
+        },
+        {
+          "reads": 13,
+          "ranges": 0
+        },
+        {
+          "reads": 31,
+          "ranges": 0
+        },
+        {
+          "reads": 32,
+          "ranges": 0
+        },
+        {
+          "reads": 32,
+          "ranges": 0
+        },
+        {
+          "reads": 32,
+          "ranges": 0
+        }
+      ],
+      "audit": {
+        "sourceLog": "runs/track-m/lane-b-range-final-audit-resume-v1/audit.log.gz",
+        "logSha256": "3912764313220d87fa3edd7c9de43734adb6df00a1b429a4c3ccc137c264e648",
+        "checked": true,
+        "familyVerified": true,
+        "conditional": true
+      }
+    },
+    {
+      "batch": "lane-b-range-followup-v1",
+      "name": "p1-ba",
+      "side": "after",
+      "tag": "p1",
+      "checked": true,
+      "units": 2295.746380399999,
+      "wallMs": 3231.7472089999997,
+      "withinDiagnosticLine": true,
+      "results": [
+        {
+          "pass": 1,
+          "outcome": "proof",
+          "units": 2295.746380399999,
+          "wallMs": 2767.21244
+        }
+      ],
+      "cpu": {
+        "vm": "bx_2eg9t59n",
+        "type": "large",
+        "cpu": "AMD EPYC 4585PX 16-Core Processor",
+        "vcpus": 8,
+        "vm_vcpus": 8,
+        "exclusive": true,
+        "co_tenants": 0
+      },
+      "sha256": "c0317a13abe85f369f3415789a3a6c2d8ad9d5f0df16108b224e80fcb8bd4adb",
+      "profile": {
+        "encode": 82.24359300000015,
+        "decide": 1812.3962849999998,
+        "mbqi": 117.56204600000024,
+        "lazy": 102.340463,
+        "#rounds": 11,
+        "#hyps": 1367,
+        "#count-completion": 32,
+        "#lazy": 12,
+        "grow": 2.821784000000207,
+        "part": 601.338737
+      },
+      "stages": {},
+      "cases": [],
+      "queryHypotheses": [
+        64,
+        74,
+        88,
+        97,
+        101,
+        106,
+        107,
+        177,
+        183,
+        185,
+        185,
+        199
+      ],
+      "rangeCoverage": [
+        {
+          "reads": 8,
+          "ranges": 8
+        },
+        {
+          "reads": 10,
+          "ranges": 10
+        },
+        {
+          "reads": 11,
+          "ranges": 11
+        },
+        {
+          "reads": 13,
+          "ranges": 13
+        },
+        {
+          "reads": 13,
+          "ranges": 13
+        },
+        {
+          "reads": 14,
+          "ranges": 14
+        },
+        {
+          "reads": 14,
+          "ranges": 14
+        },
+        {
+          "reads": 33,
+          "ranges": 33
+        },
+        {
+          "reads": 34,
+          "ranges": 34
+        },
+        {
+          "reads": 34,
+          "ranges": 34
+        },
+        {
+          "reads": 34,
+          "ranges": 34
+        },
+        {
+          "reads": 35,
+          "ranges": 35
+        }
+      ],
+      "audit": {
+        "sourceLog": "runs/track-m/lane-b-range-final-audit-resume-v1/audit.log.gz",
+        "logSha256": "3912764313220d87fa3edd7c9de43734adb6df00a1b429a4c3ccc137c264e648",
+        "checked": true,
+        "familyVerified": true,
+        "conditional": true
+      }
+    }
+  ],
+  "early": [
+    {
+      "batch": "lane-b-early-focus-v1",
+      "name": "rows-only",
+      "side": "run",
+      "tag": "rows",
+      "checked": false,
+      "units": 2679.9710424,
+      "wallMs": 7018.543877,
+      "withinDiagnosticLine": false,
+      "results": [
+        {
+          "pass": "early-focus",
+          "outcome": "unknown",
+          "units": 2679.9710424,
+          "wallMs": 7015.928861
+        }
+      ],
+      "cpu": {
+        "vm": "bx_25xas5gt",
+        "type": "large",
+        "cpu": "AMD Ryzen 9 9950X 16-Core Processor",
+        "vcpus": 8,
+        "vm_vcpus": 8,
+        "exclusive": true,
+        "co_tenants": 0
+      },
+      "sha256": "fc48b5e6bf3ec47550d8108c106bed34443fd120b5398911abea543943bebae1",
+      "profile": {},
+      "stages": {
+        "focused-packet": 1,
+        "case-fallback": 1,
+        "guard-leaf-budget": 25,
+        "field-case": 14,
+        "guard-leaf": 5,
+        "key-closure": 9,
+        "pin-prune": 9,
+        "boolean-core": 9,
+        "source-memo": 24,
+        "field-row-pairs": 3,
+        "row-case": 16,
+        "field-column-domain": 3,
+        "guard-complete": 4,
+        "case-derivations": 4,
+        "row-mirror": 1,
+        "source-budget-exhausted": 1,
+        "count-core-select": 2,
+        "query": 2,
+        "grow": 2,
+        "read-alias-start": 12,
+        "read-alias": 4,
+        "field-domain": 4,
+        "field-query": 2,
+        "field-bound": 2,
+        "field-ceiling-conclusion": 1
+      },
+      "cases": [
+        {
+          "value": 0,
+          "derivations": [
+            {
+              "proposed": true,
+              "units": 233
+            }
+          ],
+          "fallback": []
+        },
+        {
+          "value": 1,
+          "derivations": [
+            {
+              "proposed": false,
+              "units": 324
+            }
+          ],
+          "fallback": [
+            {
+              "stage": "query",
+              "outcome": "unknown"
+            },
+            {
+              "stage": "grow",
+              "outcome": "unknown"
+            }
+          ]
+        },
+        {
+          "value": 2,
+          "derivations": [],
+          "fallback": []
+        },
+        {
+          "value": 3,
+          "derivations": [
+            {
+              "proposed": true,
+              "units": 0
+            }
+          ],
+          "fallback": []
+        },
+        {
+          "value": 4,
+          "derivations": [
+            {
+              "proposed": false,
+              "units": 528
+            }
+          ],
+          "fallback": [
+            {
+              "stage": "query",
+              "outcome": "unknown"
+            },
+            {
+              "stage": "grow",
+              "outcome": "unknown"
+            }
+          ]
+        }
+      ],
+      "queryHypotheses": [],
+      "rangeCoverage": [],
+      "audit": {
+        "sourceLog": "runs/track-m/lane-b-range-followup-v1/audit.log",
+        "logSha256": "a07467080a71d4133c079e784c45fa9d9461ed3bd529c8317da1a359aa2e0446",
+        "checked": false,
+        "familyVerified": true,
+        "conditional": true
+      }
+    },
+    {
+      "batch": "lane-b-early-focus-v1",
+      "name": "rows-third",
+      "side": "run",
+      "tag": "rows",
+      "checked": false,
+      "units": 1477.0116595999998,
+      "wallMs": 7009.4169839999995,
+      "withinDiagnosticLine": false,
+      "results": [
+        {
+          "pass": "early-focus",
+          "outcome": "unknown",
+          "units": 1477.0116595999998,
+          "wallMs": 7003.396977
+        },
+        {
+          "pass": 1,
+          "outcome": "unknown",
+          "units": 0,
+          "wallMs": 2.2363530000002356
+        },
+        {
+          "pass": 0,
+          "outcome": "unknown",
+          "units": 0,
+          "wallMs": 0.2834019999991142
+        }
+      ],
+      "cpu": {
+        "vm": "bx_2uat3ctg",
+        "type": "large",
+        "cpu": "AMD EPYC 4585PX 16-Core Processor",
+        "vcpus": 8,
+        "vm_vcpus": 8,
+        "exclusive": true,
+        "co_tenants": 0
+      },
+      "sha256": "2c6696fedbbd9d68ceaeedb75b572a4bd58026ef9457b5733b47f6e3fde43b63",
+      "profile": {
+        "encode": 0.10157100000014907
+      },
+      "stages": {
+        "focused-packet": 1,
+        "case-fallback": 1,
+        "guard-leaf-budget": 25,
+        "field-case": 11,
+        "guard-leaf": 5,
+        "key-closure": 6,
+        "pin-prune": 6,
+        "boolean-core": 6,
+        "source-memo": 24,
+        "field-row-pairs": 3,
+        "row-case": 12,
+        "source-budget-exhausted": 2,
+        "field-column-domain": 3,
+        "guard-complete": 4,
+        "case-derivations": 4,
+        "count-core-select": 3,
+        "query": 2,
+        "read-alias-start": 6,
+        "read-alias": 2,
+        "field-domain": 2,
+        "field-query": 1,
+        "field-bound": 1
+      },
+      "cases": [
+        {
+          "value": 0,
+          "derivations": [
+            {
+              "proposed": false,
+              "units": 228
+            }
+          ],
+          "fallback": [
+            {
+              "stage": "query",
+              "outcome": "unknown"
+            }
+          ]
+        },
+        {
+          "value": 1,
+          "derivations": [
+            {
+              "proposed": false,
+              "units": 201
+            }
+          ],
+          "fallback": [
+            {
+              "stage": "query",
+              "outcome": "unknown"
+            }
+          ]
+        },
+        {
+          "value": 2,
+          "derivations": [],
+          "fallback": []
+        },
+        {
+          "value": 3,
+          "derivations": [
+            {
+              "proposed": true,
+              "units": 0
+            }
+          ],
+          "fallback": []
+        },
+        {
+          "value": 4,
+          "derivations": [
+            {
+              "proposed": false,
+              "units": 200
+            }
+          ],
+          "fallback": []
+        }
+      ],
+      "queryHypotheses": [],
+      "rangeCoverage": [],
+      "audit": {
+        "sourceLog": "runs/track-m/lane-b-range-followup-v1/audit.log",
+        "logSha256": "a07467080a71d4133c079e784c45fa9d9461ed3bd529c8317da1a359aa2e0446",
+        "checked": false,
+        "familyVerified": true,
+        "conditional": true
+      }
+    },
+    {
+      "batch": "lane-b-early-focus-v1",
+      "name": "rows-classes",
+      "side": "run",
+      "tag": "rows",
+      "checked": false,
+      "units": 6002.5534812000005,
+      "wallMs": 6040.22284,
+      "withinDiagnosticLine": false,
+      "results": [
+        {
+          "pass": "early-focus",
+          "outcome": "unknown",
+          "units": 6002.5534812000005,
+          "wallMs": 6038.888306
+        }
+      ],
+      "cpu": {
+        "vm": "bx_8f8tzqk2",
+        "type": "large",
+        "cpu": "AMD Ryzen 9 9950X 16-Core Processor",
+        "vcpus": 8,
+        "vm_vcpus": 8,
+        "exclusive": true,
+        "co_tenants": 0
+      },
+      "sha256": "caa80103d446f8f733c98daf10f3f6ab1c2da017426baa8a92db2fb6163b57ca",
+      "profile": {},
+      "stages": {
+        "focused-packet": 1,
+        "case-fallback": 1,
+        "guard-leaf-budget": 43,
+        "field-case": 18,
+        "guard-leaf": 7,
+        "key-closure": 12,
+        "pin-prune": 12,
+        "boolean-core": 12,
+        "source-memo": 42,
+        "field-row-pairs": 5,
+        "row-case": 19,
+        "field-column-domain": 5,
+        "guard-complete": 6,
+        "case-derivations": 6,
+        "source-budget-exhausted": 3,
+        "count-core-select": 4,
+        "query": 4,
+        "grow": 4,
+        "read-alias-start": 6,
+        "read-alias": 2,
+        "field-domain": 2,
+        "field-query": 1,
+        "field-bound": 1,
+        "row-mirror": 3,
+        "field-natural-direction": 1
+      },
+      "cases": [
+        {
+          "value": 0,
+          "derivations": [
+            {
+              "proposed": true,
+              "units": 233
+            }
+          ],
+          "fallback": []
+        },
+        {
+          "value": 1,
+          "derivations": [
+            {
+              "proposed": false,
+              "units": 325
+            }
+          ],
+          "fallback": [
+            {
+              "stage": "query",
+              "outcome": "unknown"
+            },
+            {
+              "stage": "grow",
+              "outcome": "unknown"
+            }
+          ]
+        },
+        {
+          "value": 2,
+          "derivations": [],
+          "fallback": []
+        },
+        {
+          "value": 3,
+          "derivations": [
+            {
+              "proposed": true,
+              "units": 0
+            }
+          ],
+          "fallback": []
+        },
+        {
+          "value": 4,
+          "derivations": [
+            {
+              "proposed": false,
+              "units": 528
+            }
+          ],
+          "fallback": [
+            {
+              "stage": "query",
+              "outcome": "unknown"
+            },
+            {
+              "stage": "grow",
+              "outcome": "unknown"
+            }
+          ]
+        },
+        {
+          "value": 5,
+          "derivations": [
+            {
+              "proposed": false,
+              "units": 531
+            }
+          ],
+          "fallback": [
+            {
+              "stage": "query",
+              "outcome": "unknown"
+            },
+            {
+              "stage": "grow",
+              "outcome": "unknown"
+            }
+          ]
+        },
+        {
+          "value": 6,
+          "derivations": [
+            {
+              "proposed": false,
+              "units": 532
+            }
+          ],
+          "fallback": [
+            {
+              "stage": "query",
+              "outcome": "unknown"
+            },
+            {
+              "stage": "grow",
+              "outcome": "unknown"
+            }
+          ]
+        }
+      ],
+      "queryHypotheses": [],
+      "rangeCoverage": [],
+      "audit": {
+        "sourceLog": "runs/track-m/lane-b-range-followup-v1/audit.log",
+        "logSha256": "a07467080a71d4133c079e784c45fa9d9461ed3bd529c8317da1a359aa2e0446",
+        "checked": false,
+        "familyVerified": true,
+        "conditional": true
+      }
+    },
+    {
+      "batch": "lane-b-early-focus-v1",
+      "name": "p1-base",
+      "side": "run",
+      "tag": "p1",
+      "checked": true,
+      "units": 2175.5122859999997,
+      "wallMs": 5335.6478480000005,
+      "withinDiagnosticLine": true,
+      "results": [
+        {
+          "pass": 1,
+          "outcome": "proof",
+          "units": 2175.5122859999997,
+          "wallMs": 5035.533834000001
+        }
+      ],
+      "cpu": {
+        "vm": "bx_2uat3ctg",
+        "type": "large",
+        "cpu": "AMD EPYC 4585PX 16-Core Processor",
+        "vcpus": 8,
+        "vm_vcpus": 8,
+        "exclusive": true,
+        "co_tenants": 0
+      },
+      "sha256": "8f835697c8272c1e83769fcb6cd40b977e40f319a6dfba864af7cc2241807642",
+      "profile": {
+        "encode": 230.11922700000014,
+        "decide": 3869.646254000001,
+        "mbqi": 157.1476349999998,
+        "lazy": 148.4308189999997,
+        "#rounds": 8,
+        "#hyps": 810,
+        "#count-completion": 30,
+        "#lazy": 25,
+        "grow": 3.9898819999998523,
+        "part": 515.9645090000004
+      },
+      "stages": {},
+      "cases": [],
+      "queryHypotheses": [
+        56,
+        64,
+        77,
+        90,
+        91,
+        139,
+        146,
+        147,
+        173
+      ],
+      "rangeCoverage": [
+        {
+          "reads": 8,
+          "ranges": 0
+        },
+        {
+          "reads": 10,
+          "ranges": 0
+        },
+        {
+          "reads": 11,
+          "ranges": 0
+        },
+        {
+          "reads": 13,
+          "ranges": 0
+        },
+        {
+          "reads": 13,
+          "ranges": 0
+        },
+        {
+          "reads": 31,
+          "ranges": 0
+        },
+        {
+          "reads": 32,
+          "ranges": 0
+        },
+        {
+          "reads": 32,
+          "ranges": 0
+        },
+        {
+          "reads": 32,
+          "ranges": 0
+        }
+      ],
+      "audit": {
+        "sourceLog": "runs/track-m/lane-b-range-followup-v1/audit.log",
+        "logSha256": "a07467080a71d4133c079e784c45fa9d9461ed3bd529c8317da1a359aa2e0446",
+        "checked": true,
+        "familyVerified": true,
+        "conditional": true
+      }
+    }
+  ],
+  "followup": [
+    {
+      "batch": "lane-b-range-followup-v1",
+      "name": "rows-third-wall",
+      "side": "run",
+      "tag": "rows",
+      "checked": false,
+      "units": 6001.0033972,
+      "wallMs": 4290.702412000001,
+      "withinDiagnosticLine": false,
+      "results": [
+        {
+          "pass": "early-focus",
+          "outcome": "unknown",
+          "units": 2000.7905632,
+          "wallMs": 1637.781697
+        },
+        {
+          "pass": 1,
+          "outcome": "unknown",
+          "units": 4000.212834000001,
+          "wallMs": 2652.049668
+        }
+      ],
+      "cpu": {
+        "vm": "bx_6k9k52sn",
+        "type": "large",
+        "cpu": "AMD Ryzen 9 9950X 16-Core Processor",
+        "vcpus": 8,
+        "vm_vcpus": 8,
+        "exclusive": true,
+        "co_tenants": 0
+      },
+      "sha256": "f0d1e79b643d47e4a661b6647cfab73d368c1fef7767af6fadbf4fc42a427515",
+      "profile": {
+        "encode": 21.759448999997858,
+        "decide": 2498.020157000001,
+        "mbqi": 102.87045800000033,
+        "lazy": 0.10902799999985291,
+        "#rounds": 10,
+        "#hyps": 1327,
+        "grow": 0.6672869999993054
+      },
+      "stages": {
+        "focused-packet": 1,
+        "case-fallback": 1,
+        "guard-leaf-budget": 36,
+        "field-case": 12,
+        "guard-leaf": 6,
+        "key-closure": 6,
+        "pin-prune": 6,
+        "boolean-core": 6,
+        "source-memo": 35,
+        "field-row-pairs": 4,
+        "row-case": 13,
+        "source-budget-exhausted": 3,
+        "field-column-domain": 4,
+        "guard-complete": 5,
+        "case-derivations": 5,
+        "count-core-select": 3,
+        "query": 3,
+        "read-alias-start": 6,
+        "read-alias": 2,
+        "field-domain": 2,
+        "field-query": 1,
+        "field-bound": 1
+      },
+      "cases": [
+        {
+          "value": 0,
+          "derivations": [
+            {
+              "proposed": false,
+              "units": 228
+            }
+          ],
+          "fallback": [
+            {
+              "stage": "query",
+              "outcome": "unknown"
+            }
+          ]
+        },
+        {
+          "value": 1,
+          "derivations": [
+            {
+              "proposed": false,
+              "units": 201
+            }
+          ],
+          "fallback": [
+            {
+              "stage": "query",
+              "outcome": "unknown"
+            }
+          ]
+        },
+        {
+          "value": 2,
+          "derivations": [],
+          "fallback": []
+        },
+        {
+          "value": 3,
+          "derivations": [
+            {
+              "proposed": true,
+              "units": 0
+            }
+          ],
+          "fallback": []
+        },
+        {
+          "value": 4,
+          "derivations": [
+            {
+              "proposed": false,
+              "units": 200
+            }
+          ],
+          "fallback": [
+            {
+              "stage": "query",
+              "outcome": "unknown"
+            }
+          ]
+        },
+        {
+          "value": 5,
+          "derivations": [
+            {
+              "proposed": false,
+              "units": 51
+            }
+          ],
+          "fallback": []
+        }
+      ],
+      "queryHypotheses": [
+        68,
+        76,
+        90,
+        100,
+        110,
+        116,
+        120,
+        183,
+        220,
+        244,
+        280
+      ],
+      "rangeCoverage": [
+        {
+          "reads": 6,
+          "ranges": 0
+        },
+        {
+          "reads": 7,
+          "ranges": 0
+        },
+        {
+          "reads": 10,
+          "ranges": 0
+        },
+        {
+          "reads": 12,
+          "ranges": 0
+        },
+        {
+          "reads": 14,
+          "ranges": 0
+        },
+        {
+          "reads": 14,
+          "ranges": 0
+        },
+        {
+          "reads": 14,
+          "ranges": 0
+        },
+        {
+          "reads": 46,
+          "ranges": 0
+        },
+        {
+          "reads": 55,
+          "ranges": 0
+        },
+        {
+          "reads": 59,
+          "ranges": 0
+        },
+        {
+          "reads": 61,
+          "ranges": 0
+        }
+      ],
+      "audit": {
+        "sourceLog": "runs/track-m/lane-b-range-final-audit-resume-v1/audit.log.gz",
+        "logSha256": "3912764313220d87fa3edd7c9de43734adb6df00a1b429a4c3ccc137c264e648",
+        "checked": false,
+        "familyVerified": true,
+        "conditional": true
+      }
+    }
+  ],
+  "independentAuditPending": false,
+  "originalFamilyVerified": true,
+  "gateGreen": false,
+  "independentAudit": {
+    "outcomes": 13,
+    "checked": 5,
+    "unknown": 8
+  }
+}
