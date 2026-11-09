@@ -1,0 +1,20 @@
+{
+  "candidate": "8769061bea541a33396819be86f7a5bba0a7bf73",
+  "baseline": "b788e1959bba1f2e8aa1f94d4cf7c0eb163a2f9c",
+  "snapshot": "5c02ba03212e",
+  "image": "sc-f0d8daeee6c3",
+  "testModules": 127,
+  "missingTestModules": [],
+  "validation": {
+    "batch": "20261110-022934-e437u3",
+    "task": "b49ff1d1-b416-40ca-a6b6-63ecb7368461",
+    "jobs": 9,
+    "status": "pending"
+  },
+  "census": {
+    "batch": "20261110-022931-9ald5l",
+    "task": "59a82dbf-fe94-47e8-a6f9-86a5fd21b0a0",
+    "pairs": 87,
+    "status": "pending"
+  }
+}

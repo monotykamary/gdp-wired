@@ -1,0 +1,16 @@
+{
+  "candidate": "8769061bea541a33396819be86f7a5bba0a7bf73",
+  "baseline": "b788e1959bba1f2e8aa1f94d4cf7c0eb163a2f9c",
+  "archives": {
+    "main.tar": "c593e659eb2d22592f82ab291a63a057679eaf11e8086ed0eed5a972c57745fe",
+    "handwired.tar": "73d44548dbe109a40ac933406324e17d7dee39e7dff1a6f1270ed030c31c1da4",
+    "gdp-ts.tar": "75d367da15decb1fefce2ae72ae50e7f3f737989094a760fde643c5b1f5c1496"
+  },
+  "integratedHeads": {
+    "A": "d7d6a9e634c98b6d573722761d6bed9d4a6db3b1",
+    "B": "72e9da1a3a7ebe5ac24c18854fe2954f3a553506",
+    "E": "34206459fadf9ee26868814f5667013b08999a64",
+    "F": "60704669f18f201b3d3a39ea096b1a9adf3f1266",
+    "Fable": "546be441b4bfeeeb0598d814f549b58f259db3ee"
+  }
+}
