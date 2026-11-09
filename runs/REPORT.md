@@ -22,7 +22,24 @@ on top of state-first: the first pilot caught no drops during target build.
 Shared circuits passed 57 tests; the pilot recovered four named drops,
 but still fails the unchanged five-of-seven bar.
 
-## Current revision: bounded seed neighborhoods (checked; pilot running)
+## Current WIP: coupled map seed moves (validation pending)
+
+The radius-one seed pilot below failed the criterion. The next opt-in move
+sets all modeled cells of one map to an already-admitted common value, under
+the same eight-seed / 256-attempt cap. Request and state maps stay distinct;
+no values, keys, walls or certification rules change. Intervals remain off.
+See `research/track-gen/t16-coupled-notes.md`.
+
+The previous 71 tests plus two exhaustive state/input-map cases and static
+checks are running on submission: `e1134538-3985-474b-8948-ece80d07c5d9`,
+`runs/t16-coupled-check/`, overlay `runs/t16-coupled-overlay/`.
+Compiler SHA-256 `a130bde06e36c60b177a78a88ef2a4672d390101af1ff3d80ac5e806fdff2c1f`;
+seed suite `02966de2a49dd47fe4564676d89c212916cfd6d191e5d3fc968e08fa37bfaa59`;
+driver `cb23828858424c06227caa35a3c4b8fec7feae96b8ad230471c32c714c3fd563`.
+No coupled pilot has been submitted. This source is not covered by the prior
+71-test receipt. Archives are reused; no >500 MB write or deletion is planned.
+
+## Previous revision: bounded seed neighborhoods (checked; pilot failed)
 
 The interval pilot below failed. The next generic hypothesis tries one-coordinate
 neighbors of prior counterexamples before ordinary global traversal. The optional
@@ -36,12 +53,18 @@ The complete suite passed in submission batch `20261110-024235-jcofa9`:
 and commitlint. Receipts: `runs/t16-seed-check/`. Checked source: `94a443cc`;
 immutable overlay: `runs/t16-seed-overlay/`.
 
-All six fixed-budget pilots are now running on isolated submission-class large
-VMs in task `5cb96fde-716d-4b52-a209-9ea4ae95ae2d`, output
-`runs/t16-seed-probe/`. Source hashes were verified against the passed overlay
-before commit/submission. Shared post-target pruning is on, intervals are off,
-and the independent checker, finite domains and five-of-seven / 2 s bar are
-unchanged. No pilot outcome is claimed yet.
+Seed pilot `20261110-024443-g6s11w` completed six jobs with exits 0, but
+**failed**: original named new drops **3 / 2 / 3**, active walls
+**1900.207 / 2362.200 / 1900.157 ms**. Survivors caught two new named drops
+each. Two original runs reported an additional non-named law; it does not
+count toward the five-of-seven requirement. The overrun is retained.
+
+Independent replay is pending in `5f26d2a8-9c04-4934-b356-cfa13e315f39`,
+batch `20261110-024725-59idfa`, `runs/t16-seed-replay/`. A separate instrumented
+diagnostic (`3ab68a0d-ac04-424c-a831-2b15271c4750`, batch
+`20261110-024729-wzf17f`, `runs/t16-seed-profile/`) exposes onTiny counters
+before the final wall check. It is not a qualifying rerun and its one-line
+overlay is not applied to production source. No jobs were resubmitted.
 Compiler SHA-256 `75ad5d2b681ce9b5fd167139d94858712da2c7bbd2cdd5df987bfd1fff074b8e`;
 new suite `992a86b0a27247b78834b5b3fee370be9d947888a71aef1b1afb0ed483c41542`;
 driver `e8df5883ffc911b06a2a4555f244a6dd58a342c8ea86e68605d79ab3cbd1eb68`.
