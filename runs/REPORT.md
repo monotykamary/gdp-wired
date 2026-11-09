@@ -10,7 +10,7 @@ Lane I resumed from `cca59f0c` on `claude/mldr-integ`; clean worktree verified, 
 
 The final current-source qualification of **`bf011901`** passed on boat: **173 tests / 3,410 assertions**, zero failures, and **zero TypeScript/lint warnings or errors**. The emitted count-runtime hash is independently unchanged. Batch `20261110-035600-xl5s32`, snapshot `31b4c9d28b5a`; both jobs ran on exclusive Ryzen 9 9950X workers. Audit: `runs/lane-i/final-prereq/lint-final/validation/validation-audit.json`.
 
-The separate strict confirmation has **10 paired repeats / 20 proven sides**, zero losses and zero audit issues against **`4497c4b0`**. The requested candidate is `bf01190119f9409077a36e11a4a5b763fb6c1cad`; its production/protocol/kernel/gate paths are byte-identical to strict source `8d35b7f1`. Only the bounded research formatter/test and recorded evidence differ. Re-gate scope and the seven bar identities are written in `runs/lane-i/final-prereq/lane-d-request.md`. The request is ready for Lane D; **no final-gate success is claimed**. Every earlier failed check remains retained.
+The separate strict confirmation has **10 paired repeats / 20 proven sides**, zero losses and zero audit issues against **`4497c4b0`**. The requested candidate is `bf01190119f9409077a36e11a4a5b763fb6c1cad`; its production/protocol/kernel/gate paths are byte-identical to strict source `8d35b7f1`. Only the bounded research formatter/test and recorded evidence differ. Re-gate scope and the seven bar identities are written in `runs/lane-i/final-prereq/lane-d-request.md`. The exact-source request was delivered to existing Lane D terminal `t6p` (receipt `started=true`, turn 20), and the coordinator was notified. Delivery is not gate admission or completion; **no final-gate success is claimed**. Every earlier failed check remains retained.
 
 ## New main `4497c4b0` — pre-lane mechanical qualification passed
 
@@ -18,7 +18,7 @@ The coordinator moved main from `b788e195` to **`4497c4b05c3111959a2b8d808c426a0
 
 **For lane D:** the next final-gate base is `4497c4b0`, never the old base. The earlier exact-source request below is now historical only. Already running jobs need not be cancelled, but no result transfers across the new baseline. A fresh candidate SHA will follow qualification and the newly published lane-tip integrations. The consensus_forall bisection, its immutable source pack and all running historical jobs remain pinned to `b788e195` as explicitly requested.
 
-## Final-gate prerequisite — qualified; re-gate request ready
+## Final-gate prerequisite — qualified; re-gate request delivered
 
 Coordinator instruction was to hold Lane D's final gate until both fixes and the independent five-plus-repeat comparison passed. **Those prerequisites are now met; the final gate itself is not yet run or green.** Candidate `5829b23d` still carries both isolated causes: default focused recovery (`55b5846a`) and eager count-law completion (`60b8c37a`). Integrate both Lane A and Lane B fixes as they commit. Before any new final-gate request, Lane I must run and audit **at least five strict repeats per side on Ryzen 9 9950X against `4497c4b0`**, showing no `consensus_forall` loss. Historical b788-based bisection results cannot satisfy this new-baseline check. Existing cheaper validations continue and are not cancelled or relabelled.
 

@@ -1,0 +1,12 @@
+{
+  "recipient": "t6p",
+  "candidate": "bf01190119f9409077a36e11a4a5b763fb6c1cad",
+  "baseline": "4497c4b05c3111959a2b8d808c426a0e3cab3f01",
+  "requestCommit": "f82ba1033bb6c1ae73c0a12136002e9058f3a161",
+  "receipt": {
+    "started": true,
+    "status": "done",
+    "turn": 20
+  },
+  "finalGate": false
+}
