@@ -153,6 +153,10 @@ console.log(run({ready: true}))
 console.log(f.run({ready: false})) // interpreted default
 ```
 
+## Coverage-preservation correction
+
+Review of the runtime commit diff caught that the new CSP test file had replaced the pre-existing `core/runtime.test.ts` fuzz regressions. The original file was restored byte-for-byte from the baseline, and the new tests moved to `core/runtime-default.test.ts`; the quick-suite entry now names only that new file. No existing runtime coverage is intentionally removed. This is a separate corrective commit, not a history rewrite.
+
 ## Pending
 
 Items 0–2 are committed (`662cf1ef`, `7ad7eb2b`, `054da953`); item 3 runtime implementation and item 4 docs/posture are awaiting their final focused check and commits. Then rebase onto the coordinator's updated main and run the full clean-checkout gate with both pinned submodules, Boat bar against that main, and 29-protocol generation census. An exhaustive comparison is a test, never a proof. Kernel trust is unchanged.
