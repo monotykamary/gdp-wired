@@ -10,6 +10,28 @@ and check jobs were rerun on boat (54 tests pass; `bun run check` in the shipped
 errors, compared against the same command on the `1681e8e5` archive in the same environment — see `runs/track-wall/`). The
 earlier commits 811699c3 and 275f02df are superseded by fe4a0dfe. Not a merge candidate: lane D's one-command gate decides.
 
+## 16.3 consequence: range instances per count read (commit a19a0713, on claude/mldr-gen c21a6e54 merged)
+
+`core/count-ranges.ts`: a 0/1-bodied count read (`zeroOne` body: an `if` tree over the constants 0 and 1) is at most its
+bound, as the ordinary count instance `[[1, r]]`, unit −1, below the count's bound (Count.lean's `countHyp`: the count is at
+most its bound, or some key below the bound has a body above 1, which no 0/1 body has). `rangeInstances` builds them with
+fresh `w$range$n` witnesses; `rangeViolations` names the reads a model puts above their bound (bound evaluated in the model
+over constants, params, state scalars, `add`/`mul`/`sub`/`min`/`max`; anything the model leaves open is not a violation).
+`core/counts.ts` `rawBuild`: a model that violates a read's range (CDCL model or tree-search model) adds that read's range
+instance to the goal's selection — outside the lazy pool and its ten-slot cap — and the goal is made again, on both the lazy
+and the plain path; the final certificate carries the instances and `checkMC` checks them. Pass 0 is unchanged (no instances).
+
+Two forms were measured, both against lane A's head `c21a6e54` on the same VM:
+- **eager** (one range per 0/1 read in every pass-1 selection, commit c21f301c): mldr pass-1 goals gained ≈ 120 hypotheses
+  (`#hyps` 706 vs 586 for Inv2973-half), each pass-1 attempt took more wall and fewer laws were reached (37 / 35 / 27 `try`
+  lines vs 43 / 37 / 27), and **consensus_forall went from proven to unknown on time** — rejected.
+- **on violation** (a19a0713): `research/track-wall/ranges-verdicts-jobs.json`, all 29 protocols paired: **29 / 29 verdicts
+  identical** (28 proven, mldr unknown both sides); the traced strict mldr pairs are reported below when complete.
+
+Tests: `core/count-ranges.test.ts` — `zeroOne`, one instance per 0/1 read with fresh witnesses and present ranges skipped,
+`rangeViolations` on the T-14 witness shape, and the **16-cell size-1 witness as a kernel regression** (size 1, row counts at
+2: refuted with the range instances, `sat` without); 94 tests pass across the counted and compiled-step suites.
+
 ## Section 16.3 (answered) and 16.4 (in progress)
 
 16.3: the captured Inv2973-half pass-1 `sat` is spurious at every completion within n ≤ 3, T = V = 2 (relative to T-14's
