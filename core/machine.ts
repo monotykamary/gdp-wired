@@ -688,11 +688,14 @@ const RUNTIME: [string, string][] = [
   ['$p', `function $p(a, b) { const s = a + b, v = (s % 2 === 0 ? (s / 2) * (s + 1) : s * ((s + 1) / 2)) + b; if (!Number.isSafeInteger(v)) throw new RangeError('a tuple key passed 2^53 - 1, past which the proofs over the naturals no longer describe the run'); return v; }`],
   ['$u', `function $u(z) { const tri = t => (t % 2 === 0 ? (t / 2) * (t + 1) : t * ((t + 1) / 2)); let s = Math.floor((Math.sqrt(8 * z + 1) - 1) / 2); while (s > 0 && tri(s) > z) s--; while (tri(s + 1) <= z) s++; const b = z - tri(s); return [s - b, b]; }`],
   ['$m', `function $m(v, what) { if (!(v instanceof Map)) throw new RangeError(what + ' must be a Map of naturals'); for (const [key, x] of v) { $n(key, 'a key of ' + what); $n(x, 'a cell of ' + what); } return v; }`],
-  ['$keys', `function $keys(maps, names) { const keys = new Set(); let past = 0; for (const c of Object.values(maps)) for (const key of c.keys()) past = Math.max(past, key + 1); for (const n of names) for (const key of maps[n].keys()) keys.add(key); return [...keys, past]; }`],
-  ['$breaks', `function $breaks(maps, reads, cmps) { const p = new Set([0]); for (const [n, d, minus] of reads) { for (const s of maps[n].keys()) { if (minus) p.add(s + d); else if (s >= d) p.add(s - d); } if (minus) p.add(d); } for (const [v, d, minus] of cmps) { if (minus) { p.add(v + d); p.add(d); } else if (v >= d) p.add(v - d); } const keys = new Set(); for (const q of p) for (let i = -1; i <= 2; i++) if (q + i >= 0) keys.add(q + i); const sorted = [...keys].sort((a, b) => a - b); sorted.push(sorted[sorted.length - 1] + 1); return sorted; }`],
+  // ($unique: the naturals of `vals` (each at most `top`) sorted and made unique. A dense range is marked in a reused
+  // stamp buffer and read back in key order, no sort and no Set per step; a sparse one falls back to a Set and a sort.)
+  ['$unique', `function $unique(vals, top) { if (top > 4 * vals.length + 64 || top > 1048576) return [...new Set(vals)].sort((a, b) => a - b); let buf = $unique.buf; if (!buf || buf.length <= top) { buf = new Uint32Array(Math.max(top + 1, buf ? 2 * buf.length : 256)); $unique.buf = buf; $unique.stamp = 0; } const s = ++$unique.stamp; for (let i = 0; i < vals.length; i++) buf[vals[i]] = s; const out = []; for (let i = 0; i <= top; i++) if (buf[i] === s) out.push(i); return out; }`],
+  ['$keys', `function $keys(maps, names) { const keys = []; let past = 0; for (const n of Object.keys(maps)) for (const key of maps[n].keys()) if (key + 1 > past) past = key + 1; for (const n of names) for (const key of maps[n].keys()) keys.push(key); const out = $unique(keys, past); out.push(past); return out; }`],
+  ['$breaks', `function $breaks(maps, reads, cmps) { const p = [0]; let top = 0; for (const [n, d, minus] of reads) { for (const s of maps[n].keys()) { const q = minus ? s + d : s - d; if (q >= 0) { p.push(q); if (q > top) top = q; } } if (minus) { p.push(d); if (d > top) top = d; } } for (const [v, d, minus] of cmps) { if (minus) { p.push(v + d); p.push(d); if (v + d > top) top = v + d; } else if (v >= d) { p.push(v - d); if (v - d > top) top = v - d; } } const vals = []; for (let j = 0; j < p.length; j++) { const q = p[j]; for (let i = -1; i <= 2; i++) if (q + i >= 0) vals.push(q + i); } const out = $unique(vals, top + 2); out.push(out[out.length - 1] + 1); return out; }`],
   // A condition at every two keys that holds wherever x(k) differs from y(k1): only the pairs whose values match are read.
   ['$join', `function $join(ks, x, y, f) { const by = new Map(); for (const k1 of ks) { const v = y(k1), l = by.get(v); if (l) l.push(k1); else by.set(v, [k1]); } return ks.every(k => { const l = by.get(x(k)); return l === undefined || l.every(k1 => f(k, k1)); }); }`],
-  ['$spread', `function $spread(keys, n) { const out = new Set(); for (const k of keys) for (let i = 0; i < n; i++) out.add(k + i); return [...out].sort((a, b) => a - b); }`],
+  ['$spread', `function $spread(keys, n) { const vals = []; let top = 0; for (const k of keys) for (let i = 0; i < n; i++) { vals.push(k + i); if (k + i > top) top = k + i; } return $unique(vals, top); }`],
   // (the interpreter's writeEvery: each breakpoint, and each stretch between two at one key of it, filled only where it
   // holds other than the value past the last)
   ['$dense', `function $dense(keys, f) { const top = keys[keys.length - 1], d = f(top), cells = new Map(); for (let i = 0; i + 1 < keys.length; i++) { const key = keys[i], v = f(key); if (v !== d) cells.set(key, v); if (keys[i + 1] > key + 1) { const u = f(key + 1); if (u !== d) { if (keys[i + 1] - key > 1000000) throw new RangeError('a write at every key fills a stretch of more than a million keys (' + (key + 1) + ' to ' + (keys[i + 1] - 1) + ')'); for (let k2 = key + 1; k2 < keys[i + 1]; k2++) cells.set(k2, u); } } } return {cells, d}; }`],
@@ -874,11 +877,17 @@ const loadJsMode = (m: Machine, persistent: boolean): Compiled => compileFunctio
 // given to it as maps the request carries (carriedView's, each cell its sum when read); none with a history, or where the
 // generator refuses the machine.
 export function fastStep(m: Machine): ((params: Env, st: State, input: Request) => State) | undefined {
-  const cs = Object.keys(m.counts ?? {})
+  // (the counts the step itself reads, in its guards, flags, writes or assumption: a count only a law reads is never
+  // computed for a step; a count's body may read another count, so the closure is taken)
+  const all = m.counts ?? {}, read = new Set<string>()
+  walk([m.step, m.assume ?? null, m.pre ?? null], o => { if (o.op === 'get' && (o.map as string) in all) read.add(o.map as string) })
+  for (let grew = true; grew;) { grew = false; for (const c of [...read]) walk([all[c]!.below, all[c]!.body], o => { if (o.op === 'get' && (o.map as string) in all && !read.has(o.map as string)) { read.add(o.map as string); grew = true } }) }
+  const cs = Object.keys(all).filter(c => read.has(c))
   let js: Compiled
   try { if (m.history) return undefined; js = loadJsMode({...m, counts: undefined, inputMaps: [...m.inputMaps ?? [], ...cs]}, true) } catch { return undefined }
+  const only = cs.length ? {...m, counts: Object.fromEntries(cs.map(c => [c, all[c]!]))} : m
   return (params, st, input) => {
-    const view = cs.length ? carriedView(m, st, input, undefined, params).maps : {}
+    const view = cs.length ? carriedView(only, st, input, undefined, params).maps : {}
     return js.step(params, st, cs.length ? {...input, ...Object.fromEntries(cs.map(c => [c, view[c]!]))} : input)
   }
 }

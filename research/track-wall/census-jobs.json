@@ -1,0 +1,205 @@
+[
+ {
+  "name": "gen-consensus",
+  "cpu": 2,
+  "memory": 8192,
+  "timeout": 900,
+  "cmd": "set -o pipefail; mkdir -p base && tar -xf baselines/base.tar -C base && (cp -R vendor/. base/vendor/ 2>/dev/null || true) && bun install --frozen-lockfile >/dev/null && (cd base && bun install --frozen-lockfile >/dev/null) && (cd base && timeout -s KILL 900 bun research/track-gen/t13-generation.ts consensus > ../base.out 2>/dev/null) ; timeout -s KILL 900 bun research/track-gen/t13-generation.ts consensus > mine.out 2>/dev/null; bun research/track-wall/compare-lists.ts base.out mine.out"
+ },
+ {
+  "name": "gen-tcommit",
+  "cpu": 2,
+  "memory": 8192,
+  "timeout": 900,
+  "cmd": "set -o pipefail; mkdir -p base && tar -xf baselines/base.tar -C base && (cp -R vendor/. base/vendor/ 2>/dev/null || true) && bun install --frozen-lockfile >/dev/null && (cd base && bun install --frozen-lockfile >/dev/null) && (cd base && timeout -s KILL 900 bun research/track-gen/t13-generation.ts tcommit > ../base.out 2>/dev/null) ; timeout -s KILL 900 bun research/track-gen/t13-generation.ts tcommit > mine.out 2>/dev/null; bun research/track-wall/compare-lists.ts base.out mine.out"
+ },
+ {
+  "name": "gen-lock_server",
+  "cpu": 2,
+  "memory": 8192,
+  "timeout": 900,
+  "cmd": "set -o pipefail; mkdir -p base && tar -xf baselines/base.tar -C base && (cp -R vendor/. base/vendor/ 2>/dev/null || true) && bun install --frozen-lockfile >/dev/null && (cd base && bun install --frozen-lockfile >/dev/null) && (cd base && timeout -s KILL 900 bun research/track-gen/t13-generation.ts lock_server > ../base.out 2>/dev/null) ; timeout -s KILL 900 bun research/track-gen/t13-generation.ts lock_server > mine.out 2>/dev/null; bun research/track-wall/compare-lists.ts base.out mine.out"
+ },
+ {
+  "name": "gen-quorum_leader_election",
+  "cpu": 2,
+  "memory": 8192,
+  "timeout": 900,
+  "cmd": "set -o pipefail; mkdir -p base && tar -xf baselines/base.tar -C base && (cp -R vendor/. base/vendor/ 2>/dev/null || true) && bun install --frozen-lockfile >/dev/null && (cd base && bun install --frozen-lockfile >/dev/null) && (cd base && timeout -s KILL 900 bun research/track-gen/t13-generation.ts quorum_leader_election > ../base.out 2>/dev/null) ; timeout -s KILL 900 bun research/track-gen/t13-generation.ts quorum_leader_election > mine.out 2>/dev/null; bun research/track-wall/compare-lists.ts base.out mine.out"
+ },
+ {
+  "name": "gen-toy_consensus_forall",
+  "cpu": 2,
+  "memory": 8192,
+  "timeout": 900,
+  "cmd": "set -o pipefail; mkdir -p base && tar -xf baselines/base.tar -C base && (cp -R vendor/. base/vendor/ 2>/dev/null || true) && bun install --frozen-lockfile >/dev/null && (cd base && bun install --frozen-lockfile >/dev/null) && (cd base && timeout -s KILL 900 bun research/track-gen/t13-generation.ts toy_consensus_forall > ../base.out 2>/dev/null) ; timeout -s KILL 900 bun research/track-gen/t13-generation.ts toy_consensus_forall > mine.out 2>/dev/null; bun research/track-wall/compare-lists.ts base.out mine.out"
+ },
+ {
+  "name": "gen-simple",
+  "cpu": 2,
+  "memory": 8192,
+  "timeout": 900,
+  "cmd": "set -o pipefail; mkdir -p base && tar -xf baselines/base.tar -C base && (cp -R vendor/. base/vendor/ 2>/dev/null || true) && bun install --frozen-lockfile >/dev/null && (cd base && bun install --frozen-lockfile >/dev/null) && (cd base && timeout -s KILL 900 bun research/track-gen/t13-generation.ts simple > ../base.out 2>/dev/null) ; timeout -s KILL 900 bun research/track-gen/t13-generation.ts simple > mine.out 2>/dev/null; bun research/track-wall/compare-lists.ts base.out mine.out"
+ },
+ {
+  "name": "gen-simple_regular",
+  "cpu": 2,
+  "memory": 8192,
+  "timeout": 900,
+  "cmd": "set -o pipefail; mkdir -p base && tar -xf baselines/base.tar -C base && (cp -R vendor/. base/vendor/ 2>/dev/null || true) && bun install --frozen-lockfile >/dev/null && (cd base && bun install --frozen-lockfile >/dev/null) && (cd base && timeout -s KILL 900 bun research/track-gen/t13-generation.ts simple_regular > ../base.out 2>/dev/null) ; timeout -s KILL 900 bun research/track-gen/t13-generation.ts simple_regular > mine.out 2>/dev/null; bun research/track-wall/compare-lists.ts base.out mine.out"
+ },
+ {
+  "name": "gen-lockserv_automaton",
+  "cpu": 2,
+  "memory": 8192,
+  "timeout": 900,
+  "cmd": "set -o pipefail; mkdir -p base && tar -xf baselines/base.tar -C base && (cp -R vendor/. base/vendor/ 2>/dev/null || true) && bun install --frozen-lockfile >/dev/null && (cd base && bun install --frozen-lockfile >/dev/null) && (cd base && timeout -s KILL 900 bun research/track-gen/t13-generation.ts lockserv_automaton > ../base.out 2>/dev/null) ; timeout -s KILL 900 bun research/track-gen/t13-generation.ts lockserv_automaton > mine.out 2>/dev/null; bun research/track-wall/compare-lists.ts base.out mine.out"
+ },
+ {
+  "name": "gen-sharded_kv",
+  "cpu": 2,
+  "memory": 8192,
+  "timeout": 900,
+  "cmd": "set -o pipefail; mkdir -p base && tar -xf baselines/base.tar -C base && (cp -R vendor/. base/vendor/ 2>/dev/null || true) && bun install --frozen-lockfile >/dev/null && (cd base && bun install --frozen-lockfile >/dev/null) && (cd base && timeout -s KILL 900 bun research/track-gen/t13-generation.ts sharded_kv > ../base.out 2>/dev/null) ; timeout -s KILL 900 bun research/track-gen/t13-generation.ts sharded_kv > mine.out 2>/dev/null; bun research/track-wall/compare-lists.ts base.out mine.out"
+ },
+ {
+  "name": "gen-sharded_kv_no_lost_keys",
+  "cpu": 2,
+  "memory": 8192,
+  "timeout": 900,
+  "cmd": "set -o pipefail; mkdir -p base && tar -xf baselines/base.tar -C base && (cp -R vendor/. base/vendor/ 2>/dev/null || true) && bun install --frozen-lockfile >/dev/null && (cd base && bun install --frozen-lockfile >/dev/null) && (cd base && timeout -s KILL 900 bun research/track-gen/t13-generation.ts sharded_kv_no_lost_keys > ../base.out 2>/dev/null) ; timeout -s KILL 900 bun research/track-gen/t13-generation.ts sharded_kv_no_lost_keys > mine.out 2>/dev/null; bun research/track-wall/compare-lists.ts base.out mine.out"
+ },
+ {
+  "name": "gen-lockserv",
+  "cpu": 2,
+  "memory": 8192,
+  "timeout": 900,
+  "cmd": "set -o pipefail; mkdir -p base && tar -xf baselines/base.tar -C base && (cp -R vendor/. base/vendor/ 2>/dev/null || true) && bun install --frozen-lockfile >/dev/null && (cd base && bun install --frozen-lockfile >/dev/null) && (cd base && timeout -s KILL 900 bun research/track-gen/t13-generation.ts lockserv > ../base.out 2>/dev/null) ; timeout -s KILL 900 bun research/track-gen/t13-generation.ts lockserv > mine.out 2>/dev/null; bun research/track-wall/compare-lists.ts base.out mine.out"
+ },
+ {
+  "name": "gen-twophase",
+  "cpu": 2,
+  "memory": 8192,
+  "timeout": 900,
+  "cmd": "set -o pipefail; mkdir -p base && tar -xf baselines/base.tar -C base && (cp -R vendor/. base/vendor/ 2>/dev/null || true) && bun install --frozen-lockfile >/dev/null && (cd base && bun install --frozen-lockfile >/dev/null) && (cd base && timeout -s KILL 900 bun research/track-gen/t13-generation.ts twophase > ../base.out 2>/dev/null) ; timeout -s KILL 900 bun research/track-gen/t13-generation.ts twophase > mine.out 2>/dev/null; bun research/track-wall/compare-lists.ts base.out mine.out"
+ },
+ {
+  "name": "gen-simple_decentralized_lock",
+  "cpu": 2,
+  "memory": 8192,
+  "timeout": 900,
+  "cmd": "set -o pipefail; mkdir -p base && tar -xf baselines/base.tar -C base && (cp -R vendor/. base/vendor/ 2>/dev/null || true) && bun install --frozen-lockfile >/dev/null && (cd base && bun install --frozen-lockfile >/dev/null) && (cd base && timeout -s KILL 900 bun research/track-gen/t13-generation.ts simple_decentralized_lock > ../base.out 2>/dev/null) ; timeout -s KILL 900 bun research/track-gen/t13-generation.ts simple_decentralized_lock > mine.out 2>/dev/null; bun research/track-wall/compare-lists.ts base.out mine.out"
+ },
+ {
+  "name": "gen-two_phase_commit",
+  "cpu": 2,
+  "memory": 8192,
+  "timeout": 900,
+  "cmd": "set -o pipefail; mkdir -p base && tar -xf baselines/base.tar -C base && (cp -R vendor/. base/vendor/ 2>/dev/null || true) && bun install --frozen-lockfile >/dev/null && (cd base && bun install --frozen-lockfile >/dev/null) && (cd base && timeout -s KILL 900 bun research/track-gen/t13-generation.ts two_phase_commit > ../base.out 2>/dev/null) ; timeout -s KILL 900 bun research/track-gen/t13-generation.ts two_phase_commit > mine.out 2>/dev/null; bun research/track-wall/compare-lists.ts base.out mine.out"
+ },
+ {
+  "name": "gen-consensus_wo_decide",
+  "cpu": 2,
+  "memory": 8192,
+  "timeout": 900,
+  "cmd": "set -o pipefail; mkdir -p base && tar -xf baselines/base.tar -C base && (cp -R vendor/. base/vendor/ 2>/dev/null || true) && bun install --frozen-lockfile >/dev/null && (cd base && bun install --frozen-lockfile >/dev/null) && (cd base && timeout -s KILL 900 bun research/track-gen/t13-generation.ts consensus_wo_decide > ../base.out 2>/dev/null) ; timeout -s KILL 900 bun research/track-gen/t13-generation.ts consensus_wo_decide > mine.out 2>/dev/null; bun research/track-wall/compare-lists.ts base.out mine.out"
+ },
+ {
+  "name": "gen-consensus_forall",
+  "cpu": 2,
+  "memory": 8192,
+  "timeout": 900,
+  "cmd": "set -o pipefail; mkdir -p base && tar -xf baselines/base.tar -C base && (cp -R vendor/. base/vendor/ 2>/dev/null || true) && bun install --frozen-lockfile >/dev/null && (cd base && bun install --frozen-lockfile >/dev/null) && (cd base && timeout -s KILL 900 bun research/track-gen/t13-generation.ts consensus_forall > ../base.out 2>/dev/null) ; timeout -s KILL 900 bun research/track-gen/t13-generation.ts consensus_forall > mine.out 2>/dev/null; bun research/track-wall/compare-lists.ts base.out mine.out"
+ },
+ {
+  "name": "gen-naive_consensus",
+  "cpu": 2,
+  "memory": 8192,
+  "timeout": 900,
+  "cmd": "set -o pipefail; mkdir -p base && tar -xf baselines/base.tar -C base && (cp -R vendor/. base/vendor/ 2>/dev/null || true) && bun install --frozen-lockfile >/dev/null && (cd base && bun install --frozen-lockfile >/dev/null) && (cd base && timeout -s KILL 900 bun research/track-gen/t13-generation.ts naive_consensus > ../base.out 2>/dev/null) ; timeout -s KILL 900 bun research/track-gen/t13-generation.ts naive_consensus > mine.out 2>/dev/null; bun research/track-wall/compare-lists.ts base.out mine.out"
+ },
+ {
+  "name": "gen-client_server_ae",
+  "cpu": 2,
+  "memory": 8192,
+  "timeout": 900,
+  "cmd": "set -o pipefail; mkdir -p base && tar -xf baselines/base.tar -C base && (cp -R vendor/. base/vendor/ 2>/dev/null || true) && bun install --frozen-lockfile >/dev/null && (cd base && bun install --frozen-lockfile >/dev/null) && (cd base && timeout -s KILL 900 bun research/track-gen/t13-generation.ts client_server_ae > ../base.out 2>/dev/null) ; timeout -s KILL 900 bun research/track-gen/t13-generation.ts client_server_ae > mine.out 2>/dev/null; bun research/track-wall/compare-lists.ts base.out mine.out"
+ },
+ {
+  "name": "gen-client_server_db_ae",
+  "cpu": 2,
+  "memory": 8192,
+  "timeout": 900,
+  "cmd": "set -o pipefail; mkdir -p base && tar -xf baselines/base.tar -C base && (cp -R vendor/. base/vendor/ 2>/dev/null || true) && bun install --frozen-lockfile >/dev/null && (cd base && bun install --frozen-lockfile >/dev/null) && (cd base && timeout -s KILL 900 bun research/track-gen/t13-generation.ts client_server_db_ae > ../base.out 2>/dev/null) ; timeout -s KILL 900 bun research/track-gen/t13-generation.ts client_server_db_ae > mine.out 2>/dev/null; bun research/track-wall/compare-lists.ts base.out mine.out"
+ },
+ {
+  "name": "gen-simple_election",
+  "cpu": 2,
+  "memory": 8192,
+  "timeout": 900,
+  "cmd": "set -o pipefail; mkdir -p base && tar -xf baselines/base.tar -C base && (cp -R vendor/. base/vendor/ 2>/dev/null || true) && bun install --frozen-lockfile >/dev/null && (cd base && bun install --frozen-lockfile >/dev/null) && (cd base && timeout -s KILL 900 bun research/track-gen/t13-generation.ts simple_election > ../base.out 2>/dev/null) ; timeout -s KILL 900 bun research/track-gen/t13-generation.ts simple_election > mine.out 2>/dev/null; bun research/track-wall/compare-lists.ts base.out mine.out"
+ },
+ {
+  "name": "gen-toy_consensus_epr",
+  "cpu": 2,
+  "memory": 8192,
+  "timeout": 900,
+  "cmd": "set -o pipefail; mkdir -p base && tar -xf baselines/base.tar -C base && (cp -R vendor/. base/vendor/ 2>/dev/null || true) && bun install --frozen-lockfile >/dev/null && (cd base && bun install --frozen-lockfile >/dev/null) && (cd base && timeout -s KILL 900 bun research/track-gen/t13-generation.ts toy_consensus_epr > ../base.out 2>/dev/null) ; timeout -s KILL 900 bun research/track-gen/t13-generation.ts toy_consensus_epr > mine.out 2>/dev/null; bun research/track-wall/compare-lists.ts base.out mine.out"
+ },
+ {
+  "name": "gen-toy_consensus",
+  "cpu": 2,
+  "memory": 8192,
+  "timeout": 900,
+  "cmd": "set -o pipefail; mkdir -p base && tar -xf baselines/base.tar -C base && (cp -R vendor/. base/vendor/ 2>/dev/null || true) && bun install --frozen-lockfile >/dev/null && (cd base && bun install --frozen-lockfile >/dev/null) && (cd base && timeout -s KILL 900 bun research/track-gen/t13-generation.ts toy_consensus > ../base.out 2>/dev/null) ; timeout -s KILL 900 bun research/track-gen/t13-generation.ts toy_consensus > mine.out 2>/dev/null; bun research/track-wall/compare-lists.ts base.out mine.out"
+ },
+ {
+  "name": "gen-firewall",
+  "cpu": 2,
+  "memory": 8192,
+  "timeout": 900,
+  "cmd": "set -o pipefail; mkdir -p base && tar -xf baselines/base.tar -C base && (cp -R vendor/. base/vendor/ 2>/dev/null || true) && bun install --frozen-lockfile >/dev/null && (cd base && bun install --frozen-lockfile >/dev/null) && (cd base && timeout -s KILL 900 bun research/track-gen/t13-generation.ts firewall > ../base.out 2>/dev/null) ; timeout -s KILL 900 bun research/track-gen/t13-generation.ts firewall > mine.out 2>/dev/null; bun research/track-wall/compare-lists.ts base.out mine.out"
+ },
+ {
+  "name": "gen-majorityset_leader_election",
+  "cpu": 2,
+  "memory": 8192,
+  "timeout": 900,
+  "cmd": "set -o pipefail; mkdir -p base && tar -xf baselines/base.tar -C base && (cp -R vendor/. base/vendor/ 2>/dev/null || true) && bun install --frozen-lockfile >/dev/null && (cd base && bun install --frozen-lockfile >/dev/null) && (cd base && timeout -s KILL 900 bun research/track-gen/t13-generation.ts majorityset_leader_election > ../base.out 2>/dev/null) ; timeout -s KILL 900 bun research/track-gen/t13-generation.ts majorityset_leader_election > mine.out 2>/dev/null; bun research/track-wall/compare-lists.ts base.out mine.out"
+ },
+ {
+  "name": "gen-consensus_epr",
+  "cpu": 2,
+  "memory": 8192,
+  "timeout": 900,
+  "cmd": "set -o pipefail; mkdir -p base && tar -xf baselines/base.tar -C base && (cp -R vendor/. base/vendor/ 2>/dev/null || true) && bun install --frozen-lockfile >/dev/null && (cd base && bun install --frozen-lockfile >/dev/null) && (cd base && timeout -s KILL 900 bun research/track-gen/t13-generation.ts consensus_epr > ../base.out 2>/dev/null) ; timeout -s KILL 900 bun research/track-gen/t13-generation.ts consensus_epr > mine.out 2>/dev/null; bun research/track-wall/compare-lists.ts base.out mine.out"
+ },
+ {
+  "name": "gen-learning_switch",
+  "cpu": 2,
+  "memory": 8192,
+  "timeout": 1500,
+  "cmd": "set -o pipefail; mkdir -p base && tar -xf baselines/base.tar -C base && (cp -R vendor/. base/vendor/ 2>/dev/null || true) && bun install --frozen-lockfile >/dev/null && (cd base && bun install --frozen-lockfile >/dev/null) && (cd base && timeout -s KILL 900 bun research/track-gen/t13-generation.ts learning_switch > ../base.out 2>/dev/null) ; timeout -s KILL 900 bun research/track-gen/t13-generation.ts learning_switch > mine.out 2>/dev/null; bun research/track-wall/compare-lists.ts base.out mine.out"
+ },
+ {
+  "name": "gen-learning_switch_i4",
+  "cpu": 2,
+  "memory": 8192,
+  "timeout": 1500,
+  "cmd": "set -o pipefail; mkdir -p base && tar -xf baselines/base.tar -C base && (cp -R vendor/. base/vendor/ 2>/dev/null || true) && bun install --frozen-lockfile >/dev/null && (cd base && bun install --frozen-lockfile >/dev/null) && (cd base && timeout -s KILL 900 bun research/track-gen/t13-generation.ts learning_switch_i4 > ../base.out 2>/dev/null) ; timeout -s KILL 900 bun research/track-gen/t13-generation.ts learning_switch_i4 > mine.out 2>/dev/null; bun research/track-wall/compare-lists.ts base.out mine.out"
+ },
+ {
+  "name": "gen-paxos_epr",
+  "cpu": 2,
+  "memory": 8192,
+  "timeout": 900,
+  "cmd": "set -o pipefail; mkdir -p base && tar -xf baselines/base.tar -C base && (cp -R vendor/. base/vendor/ 2>/dev/null || true) && bun install --frozen-lockfile >/dev/null && (cd base && bun install --frozen-lockfile >/dev/null) && (cd base && timeout -s KILL 900 bun research/track-gen/t13-generation.ts paxos_epr > ../base.out 2>/dev/null) ; timeout -s KILL 900 bun research/track-gen/t13-generation.ts paxos_epr > mine.out 2>/dev/null; bun research/track-wall/compare-lists.ts base.out mine.out"
+ },
+ {
+  "name": "gen-mldr",
+  "cpu": 2,
+  "memory": 8192,
+  "timeout": 900,
+  "cmd": "set -o pipefail; mkdir -p base && tar -xf baselines/base.tar -C base && (cp -R vendor/. base/vendor/ 2>/dev/null || true) && bun install --frozen-lockfile >/dev/null && (cd base && bun install --frozen-lockfile >/dev/null) && (cd base && timeout -s KILL 900 bun research/track-gen/t13-generation.ts mldr > ../base.out 2>/dev/null) ; timeout -s KILL 900 bun research/track-gen/t13-generation.ts mldr > mine.out 2>/dev/null; bun research/track-wall/compare-lists.ts base.out mine.out"
+ }
+]
