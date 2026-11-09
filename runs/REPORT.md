@@ -1,3 +1,17 @@
+# HANDOFF (lane C / Fable, 2026-11-10 02:10) — `claude/mldr-wall`, head for lane D's gate: **f4db596e** (fully guarded); 7bc4e5fd under guards
+
+- **f4db596e** = lane A's `bef4020f` merged + 16.3 range instances on violation + 16.4 generation cost cuts (compiled-step key helpers,
+  `fastStep` reading only step counts, finite pass revisit-only, hashed `small` BFS, `$breaks` direct marking, **derived counts computed by
+  the generated module**). Guards on it: 117 tests (`receipts/tests5`), typecheck clean in core (`receipts/mcheck1`-style, 10 known
+  `vendor/` errors of the shipped tree), **census 29 / 29 lists byte-identical vs `bef4020f`** (`receipts/census4`), strict-harness
+  non-attempt wall **10.9 / 9.9 s vs 29.1 / 20.5 s** on EPYC 4585PX / Ryzen 7 9700X (`receipts/orig2`), 29 / 29 verdicts identical to
+  `c21a6e54` at a19a0713 (`receipts/rverd2`; the later commits are generation-only and census-identical). Lanes F / B / I can pull it.
+- **7bc4e5fd** (one shared breakpoint list per step, no duplicate map validation in `cells`) is running its tests, incremental pair,
+  census and strict pairs; it becomes the head for the gate only when all four hold, else f4db596e stays.
+- No open audit blockers. No push, no merge. Kernel untouched since the Lean-first frame-cut work (branch `claude/mldr-design`).
+- Routed to lane A (MLDR-DESIGN.md "16.3 consequence — measured"): every pass-1 attempt overruns its 3.2 s share by 1–2.7× on both
+  trees (`decide` is not cut at the attempt's end), so round 0 needs > 200 s of attempts in a 60 s run whatever the generation wall is.
+
 # RESUME (checkpoint 2026-11-09, lane C / Fable, branch `claude/mldr-wall`)
 
 **Resumed 2026-11-10 00:05.** Step 2 done: lane A's `claude/mldr-gen` head `bef4020f` merged as `a6ae4be9` (both conflicts additive: lane A's
