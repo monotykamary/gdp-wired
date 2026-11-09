@@ -45,6 +45,18 @@ fresh generated conditional checks with separate-process replay at **both**
 2700 and 6000. It reuses the frozen base and prior tiny overlays; no new
 whole-tree archive, no subagents, no deletions. No 29/29 or gate-green claim.
 
+Broader coverage is also queued: the unchanged official quick-suite roster
+(`scripts/test-shards.ts`) in all eight supported shards, batch
+**20261110-015717-9fubkz**, task
+`7576ff0b-3b7f-4799-9603-c42008b3cf5b`, output
+`runs/mldr-incl-flags-quick-suite-v1/`. Each shard checks the same hash-bound
+9124348d source first; class gate, pinned large VMs. This is not a substitute
+for the 29x3 baseline pair, DuoAI, broken variants, bar, or lane D gate.
+
+For lane B: your measured eager-member p1 regression remains valid; this
+proposal removes the eager scalar-field part rather than promoting that
+variant. No p1/Inv1758/Inv* gain is claimed from the safety measurement.
+
 
 ## ac7eacfe validated: conditional safety restored; originals remain UNKNOWN
 
