@@ -22,6 +22,32 @@ on top of state-first: the first pilot caught no drops during target build.
 Shared circuits passed 57 tests; the pilot recovered four named drops,
 but still fails the unchanged five-of-seven bar.
 
+## Priority: focused-recovery full-work regression
+
+Coordinator reprioritized the consensus_forall regression ahead of pruning.
+Lane I isolates 2,155,419 extra full-work units from the default focused policy;
+its confirmed-refutation guard probe is already negative and is not repeated.
+The lane already defers focused recovery until an ordinary pass fails, but a
+plain-pass failure still spends recovery work before the ordinary counted pass.
+
+New hypothesis: suppress that premature recovery when counts remain to try;
+a failed plain pass records only family-identity scheduling history, and the
+ordinary counted pass may recover afterward within its existing allowance.
+No protocol name, new proof fact, enlarged cap, or extra deadline enters the
+engine. No-count and previously wide-pool recovery remain available. Pending
+validation must include strict Ryzen 9 9950X consensus pairs (at least five per
+side), MLDR helper observations and all 29 generation lists. Future gates still
+use main `4497c4b0`. The old pruning pilot remains untouched and lower priority.
+
+Post-merge validation of `6bcdf421` is already submitted as eight regression
+shards plus static checks: task `45a869de-99d7-4842-aac6-7f5dfad8bec2`, outputs
+`runs/t16-main-merge-check/`. It uses a hash-bound 1,440,560-byte patch over the
+existing archive, not a new whole-tree archive. These checks do not cover the
+new focus-order WIP. No local >500 MB write or deletion is planned.
+Strict three-way measurement workers may reconstruct main, pre-fix and fixed
+source plus dependencies on boat; those combined remote trees may exceed
+500 MB per worker. Local inputs remain small canonical patches only.
+
 ## Gate base update — main 4497c4b0
 
 Coordinator advanced main from `b788e195` to `4497c4b0`. All future paired
