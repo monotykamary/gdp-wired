@@ -72,7 +72,7 @@ function copySources(value: E, inputs: ReadonlySet<string>, out = new Set<string
  * written/equal is a guarded proof obligation, not a syntactic equivalence.
  * No reads/declarations are added, no input is mutated, and at most 32 ordinary
  * unit-zero instances are returned (two-term frames or three-term compensated
- * differences, in a deterministic prefix).
+ * single-set/difference transports, in a deterministic prefix).
  */
 export function proposeWriteCountFrames(m: Machine, ds: CountDecl[], cert: Pick<CountCert, 'reads' | 'insts'>,
   demanded: ReadonlySet<string>, maxFacts = 32): CountInst[] {
@@ -141,11 +141,11 @@ export function proposeWriteCountFrames(m: Machine, ds: CountDecl[], cert: Pick<
       const kinds: Shape['kind'][] = s.kind === 'intersection' && s.literals.every(l => l.cell.map === map) ? [s.kind, 'single'] : [s.kind]
       for (const kind of kinds) for (const c of incoming.get(indexKey(map, kind, post.below)) ?? []) {
         if (c.v === read[0]) continue
-        // A changed row need not equal its old value. Keep the old directed
-        // difference as a compensating term: d(new,B) <= d(old,B)+d(new,old).
-        // Both incoming orientations remain candidates, proved under the
-        // actual write/row guards, never asserted by this syntactic match.
-        if (s.kind === 'difference') {
+        // Retaining the old count can compensate a changed single set or
+        // directed difference. These are only proposals: a writer may conjure
+        // members, and neither old+incoming nor either incoming orientation
+        // is trusted until checked under the actual write/row guards.
+        if (s.kind === 'difference' || s.kind === 'single') {
           const previous = cert.reads.find(r => r[1] === preRead[1] && stable(r[2]) === stable(preRead[2]))
           if (previous) {
             const terms: CountInst['terms'] = [[1, read[0]], [-1, previous[0]], [-1, c.v]], key = signature({terms, unit: 0})
