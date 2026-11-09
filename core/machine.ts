@@ -689,8 +689,11 @@ const RUNTIME: [string, string][] = [
   // The stamp never reaches 2^32 − 1: at that count the buffer is zeroed and the stamps restart at 1, so a stale mark
   // can never equal a live stamp; a grown buffer starts at 0 likewise.)
   ['$unique', `function $unique(vals, top) { if (top > 4 * vals.length + 64 || top > 1048576) return [...new Set(vals)].sort((a, b) => a - b); let buf = $unique.buf; if (!buf || buf.length <= top) { buf = new Uint32Array(Math.max(top + 1, buf ? 2 * buf.length : 256)); $unique.buf = buf; $unique.stamp = 0; } let s = $unique.stamp + 1; if (s >= 0xFFFFFFFF) { buf.fill(0); s = 1; } $unique.stamp = s; for (let i = 0; i < vals.length; i++) buf[vals[i]] = s; const out = []; for (let i = 0; i <= top; i++) if (buf[i] === s) out.push(i); return out; }`],
-  ['$keys', `function $keys(maps, names) { const keys = []; let past = 0; for (const n of Object.keys(maps)) for (const key of maps[n].keys()) if (key + 1 > past) past = key + 1; for (const n of names) for (const key of maps[n].keys()) keys.push(key); const out = $unique(keys, past); out.push(past); return out; }`],
-  ['$breaks', `function $breaks(maps, reads, cmps) { const p = [0]; let top = 0; for (const [n, d, minus] of reads) { for (const s of maps[n].keys()) { const q = minus ? s + d : s - d; if (q >= 0) { p.push(q); if (q > top) top = q; } } if (minus) { p.push(d); if (d > top) top = d; } } for (const [v, d, minus] of cmps) { if (minus) { p.push(v + d); p.push(d); if (v + d > top) top = v + d; } else if (v >= d) { p.push(v - d); if (v - d > top) top = v - d; } } const vals = []; for (let j = 0; j < p.length; j++) { const q = p[j]; for (let i = -1; i <= 2; i++) if (q + i >= 0) vals.push(q + i); } const out = $unique(vals, top + 2); out.push(out[out.length - 1] + 1); return out; }`],
+  // ($mk: a map's keys as an array, once per step when the step's cache `c` is given: every site that reads the keys
+  // of the same map shares the array; a step's reads all precede its writes, so the cache is sound within the step)
+  ['$mk', `function $mk(maps, n, c) { if (!c) return [...maps[n].keys()]; let ks = c.get(n); if (ks === undefined) { ks = [...maps[n].keys()]; c.set(n, ks); } return ks; }`],
+  ['$keys', `function $keys(maps, names, c) { let past = c ? c.get(0) : undefined; if (past === undefined) { past = 0; for (const n of Object.keys(maps)) { const ks = $mk(maps, n, c); for (let i = 0; i < ks.length; i++) if (ks[i] + 1 > past) past = ks[i] + 1; } if (c) c.set(0, past); } const keys = []; for (const n of names) { const ks = $mk(maps, n, c); for (let i = 0; i < ks.length; i++) keys.push(ks[i]); } const out = $unique(keys, past); out.push(past); return out; }`],
+  ['$breaks', `function $breaks(maps, reads, cmps, c) { const p = [0]; let top = 0; for (const [n, d, minus] of reads) { const ks = $mk(maps, n, c); for (let i = 0; i < ks.length; i++) { const q = minus ? ks[i] + d : ks[i] - d; if (q >= 0) { p.push(q); if (q > top) top = q; } } if (minus) { p.push(d); if (d > top) top = d; } } for (const [v, d, minus] of cmps) { if (minus) { p.push(v + d); p.push(d); if (v + d > top) top = v + d; } else if (v >= d) { p.push(v - d); if (v - d > top) top = v - d; } } const vals = []; for (let j = 0; j < p.length; j++) { const q = p[j]; for (let i = -1; i <= 2; i++) if (q + i >= 0) vals.push(q + i); } const out = $unique(vals, top + 2); out.push(out[out.length - 1] + 1); return out; }`],
   // A condition at every two keys that holds wherever x(k) differs from y(k1): only the pairs whose values match are read.
   ['$join', `function $join(ks, x, y, f) { const by = new Map(); for (const k1 of ks) { const v = y(k1), l = by.get(v); if (l) l.push(k1); else by.set(v, [k1]); } return ks.every(k => { const l = by.get(x(k)); return l === undefined || l.every(k1 => f(k, k1)); }); }`],
   ['$spread', `function $spread(keys, n) { const vals = []; let top = 0; for (const k of keys) for (let i = 0; i < n; i++) { vals.push(k + i); if (k + i > top) top = k + i; } return $unique(vals, top); }`],
@@ -787,19 +790,19 @@ function compileJsMode(m: Machine, persistent: boolean): string {
   }
   // The keys a quantifier or a write at every key is decided on (the interpreter's keysAt, or its breakKeys).
   const keysJs = (t: E | C, key: string): string => {
-    if (plainKey(t, key)) return `$keys(maps, ${JSON.stringify(mapsIn(t).filter(mp => !fns.includes(mp)))})`
+    if (plainKey(t, key)) return `$keys(maps, ${JSON.stringify(mapsIn(t).filter(mp => !fns.includes(mp)))}, $c)`
     return breaksJs(breaksOf(t, key))
   }
   const breaksJs = (b: Breaks): string => {
     const off = (o?: E) => (o ? ex(o) : '0')
-    return `$breaks(maps, [${b.reads.map(r => `[${id(r.map)}, ${off(r.off)}, ${r.minus}]`).join(', ')}], [${b.cmps.map(c => `[${ex(c.value)}, ${off(c.off)}, ${c.minus}]`).join(', ')}])`
+    return `$breaks(maps, [${b.reads.map(r => `[${id(r.map)}, ${off(r.off)}, ${r.minus}]`).join(', ')}], [${b.cmps.map(c => `[${ex(c.value)}, ${off(c.off)}, ${c.minus}]`).join(', ')}], $c)`
   }
   // The interpreter's tupleKeys.
   const tupleJs = (c: Extract<C, {op: 'all'}>): string => {
     const names = boundOf(c)
-    if (names.every(n => plainKey(c.c, n))) return `$keys(maps, ${JSON.stringify(mapsIn(c.c).filter(mp => !fns.includes(mp)))})`
+    if (names.every(n => plainKey(c.c, n))) return `$keys(maps, ${JSON.stringify(mapsIn(c.c).filter(mp => !fns.includes(mp)))}, $c)`
     const body = crossFree(c.c, names)
-    if (names.every(n => plainKey(body, n))) return `$spread([0, ...$keys(maps, ${JSON.stringify(mapsIn(c.c).filter(mp => !fns.includes(mp)))})], ${names.length + 1})`
+    if (names.every(n => plainKey(body, n))) return `$spread([0, ...$keys(maps, ${JSON.stringify(mapsIn(c.c).filter(mp => !fns.includes(mp)))}, $c)], ${names.length + 1})`
     const parts = names.map(n => breaksOf(body, n))
     return `$spread(${breaksJs({reads: parts.flatMap(b => b.reads), cmps: parts.flatMap(b => b.cmps)})}, ${names.length})`
   }
@@ -807,7 +810,7 @@ function compileJsMode(m: Machine, persistent: boolean): string {
   const writes = Object.entries(plain.step.maps ?? {})
   const env = (input: boolean) => `{${[...m.params.map(p => `${id(p)}: $n(params[${id(p)}], ${id(`param ${p}`)})`), ...(input ? carried.map(i => `${id(i)}: $n(input[${id(i)}], ${id(`input ${i}`)})`) : [])].join(', ')}}`
   // Reads go through `maps` (with the maps the request carries); writes go to the state's own.
-  const lines = [`const env = ${env(true)}, s = state.scalars, dft = {...state.defaults}, maps = ${carriedMaps.length ? `{...state.maps, ${carriedMaps.map(mp => `${id(mp)}: $m(input[${id(mp)}], ${id(`input ${mp}`)})`).join(', ')}}` : 'state.maps'};`]
+  const lines = [`const env = ${env(true)}, s = state.scalars, dft = {...state.defaults}, maps = ${carriedMaps.length ? `{...state.maps, ${carriedMaps.map(mp => `${id(mp)}: $m(input[${id(mp)}], ${id(`input ${mp}`)})`).join(', ')}}` : 'state.maps'}, $c = new Map();`]
   if (h) {
     lines.push('const records = state.history;', 'let head = state.head;')
     if (h.prune) {
@@ -829,7 +832,7 @@ function compileJsMode(m: Machine, persistent: boolean): string {
     bound = outer
     const ms = mapsIn({op: 'and', xs: [l.where, ...l.by.flatMap(b => [b.e, ...(b.neg ? [b.neg] : [])].map(e => ({op: '=', a: e, b: e}) as C))]}).filter(mp => !fns.includes(mp))
     const better = l.by.map((b, i) => `by[${i}] !== bb[${i}] ? by[${i}] ${b.desc ? '>' : '<'} bb[${i}] : `).join('') + 'false'
-    lines.push(`{ const ks = $keys(maps, ${JSON.stringify(ms)}), past = ks.pop(); let lk = past; if (${where}) throw new RangeError(${id(`${m.name}: ${name} has no least (its condition holds at every key past the cells)`)}); let bk, bb; for (lk of ks.sort((a, b) => a - b)) { if (!(${where})) continue; const by = [${by.join(', ')}]; if (bk === undefined || (${better})) { bk = lk; bb = by; } } env[${id(name)}] = bk ?? 0; env[${id(l.some)}] = bk === undefined ? 0 : 1; }`)
+    lines.push(`{ const ks = $keys(maps, ${JSON.stringify(ms)}, $c), past = ks.pop(); let lk = past; if (${where}) throw new RangeError(${id(`${m.name}: ${name} has no least (its condition holds at every key past the cells)`)}); let bk, bb; for (lk of ks.sort((a, b) => a - b)) { if (!(${where})) continue; const by = [${by.join(', ')}]; if (bk === undefined || (${better})) { bk = lk; bb = by; } } env[${id(name)}] = bk ?? 0; env[${id(l.some)}] = bk === undefined ? 0 : 1; }`)
   }
   lines.push(...flags.map((name, i) => `const flag${i} = ${cx(plain.step.flags![name]!)};`),
     // The rule's own assumption, as `allowed` (core/watch.ts) reads it (a history's machine assumes more: its relations).
