@@ -1,0 +1,56 @@
+{
+  "pausedByUser": true,
+  "priorHead": "00a7d516",
+  "branch": "claude/track-mldr",
+  "cancelled": [
+    {
+      "taskId": "1d02306c-85e3-46cc-848a-8a55e2a6d00a",
+      "pid": 23225,
+      "batch": "20261109-154233-07us9f",
+      "out": "runs/track-m/lane-b-range-final-audit-v1",
+      "purpose": "Five remaining exact-family replays, final source check, and consolidated 13-record receipt projection",
+      "taskResult": "killed by tasks.stop using exact task ID",
+      "batchResult": "closed through batch-scoped scheduler /close; absent from subsequent status; zero running items",
+      "partialResultsUsable": false,
+      "partialExplanation": "No per-job logs, placements or final receipts were written; output directory was empty. Startup metadata only is retained here.",
+      "closeReceipt": {"vms": 3, "starts": 0, "preempted": 0, "class": "submission", "wall_s": 1159.9},
+      "rerun": ["audit", "check", "projection"]
+    },
+    {
+      "taskId": null,
+      "batch": "20261109-000842-7lxjwd",
+      "client": "gdp-wired-trackM",
+      "out": null,
+      "purpose": "Stale single-item submission; exact original purpose and output mapping are not retained in the task registry",
+      "partialResultsUsable": false,
+      "partialExplanation": "No attributable result located; do not use or blindly rerun this stale admission",
+      "batchResult": "Closed by exact batch ID; no owned batch or running item remains",
+      "closeReceipt": {"vms": 1, "starts": 0, "preempted": 0, "class": "submission", "wall_s": 57324.8}
+    },
+    {
+      "taskId": null,
+      "batch": "20261109-001003-ts9wn1",
+      "client": "gdp-wired-trackM",
+      "out": null,
+      "purpose": "Stale single-item submission; exact original purpose and output mapping are not retained in the task registry",
+      "partialResultsUsable": false,
+      "partialExplanation": "No attributable result located; do not use or blindly rerun this stale admission",
+      "batchResult": "Closed by exact batch ID; no owned batch or running item remains",
+      "closeReceipt": {"vms": 1, "starts": 0, "preempted": 0, "class": "submission", "wall_s": 57244.8}
+    },
+    {
+      "taskId": null,
+      "batch": "20261109-120151-t1kpp9",
+      "client": "gdp-wired-trackM",
+      "out": null,
+      "purpose": "Stale single-item submission; exact original purpose and output mapping are not retained in the task registry",
+      "partialResultsUsable": false,
+      "partialExplanation": "No attributable result located; do not use or blindly rerun this stale admission",
+      "batchResult": "Closed by exact batch ID; no owned batch or running item remains",
+      "closeReceipt": {"vms": 1, "starts": 0, "preempted": 0, "class": "submission", "wall_s": 14526.1}
+    }
+  ],
+  "otherLiveOwnedBackgroundTasks": 0,
+  "validPriorMeasurements": "Nine completed measurement archives and the completed eight-record audit remain usable; cancellation did not repeat or invalidate them.",
+  "largeOutputs": "Nine receipts.tar.gz archives remain at their original local paths, excluded from the current Git tree. Committed archive-manifest.json files retain SHA-256 and size. Do not clean those ignored files."
+}
