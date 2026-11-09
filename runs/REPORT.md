@@ -1,4 +1,12 @@
-# RESUME — PAUSED; do not restart until the user explicitly resumes
+# RESUME — ACTIVE (user explicitly resumed)
+
+Lane I resumed from `cca59f0c` on `claude/mldr-integ`; clean worktree verified, handoff including PAUSED, COMMON, and Section 14 read. **NOT GATE GREEN.** Baseline stays `b788e1959bba1f2e8aa1f94d4cf7c0eb163a2f9c`.
+
+- First cancelled work rerun: all **140 upper-bound shards** submitted through the scheduler, fresh output `runs/lane-i/upper-bound/resumed/full`, task `cf1d3fc9-6a88-4e12-8403-974717b1ed42`. Every guest unpacks frozen production `15eff72f` and checks the retained source manifest; the current integration is not substituted. No supplied laws; original 34-law family; 30 minutes per operation; no share; independent verification still required. Pending, not a result.
+- Repair: core-replay reconstruction now spreads the previous obligation before replacing its goal/decls/encoded goal, retaining `all`, certificate and pool. Added a focused range-demand test for a read omitted by the selected certificate. No budget, law, or kernel change.
+- Next: merge current committed lane tips preserving both sides, repin v9 input and rerun all eight validation jobs and all 87 generation pairs. Audit before any claim. Lane D's final gate is still mandatory; its earlier `704efc27` request remains historical.
+
+## Archived paused checkpoint (superseded by the explicit resume above)
 
 **Branch:** `claude/mldr-integ`. **Last source/test SHA:** `a3930f448d4a7e447cb4d9470a4ec34a5d09e5b3`. **WIP/evidence checkpoint SHA:** `b5ed324525e8e88ad7386fa746f1ed41dad95536` (this RESUME is the subsequent documentation-only commit; obtain its final SHA with `git rev-parse HEAD`). Baseline remains `b788e1959bba1f2e8aa1f94d4cf7c0eb163a2f9c`. No push. The pending merge of Fable `f8206bfc` was **aborted**, not completed. No merge is in progress.
 

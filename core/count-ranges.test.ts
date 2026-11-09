@@ -49,6 +49,17 @@ test('a row count above its universe is refuted once its range instance is in th
   if (!('tree' in model)) expect(model.stuck).toBe('sat')
 })
 
+test('a narrowed certificate still needs the complete read pool for replay range demand', () => {
+  const selected = {reads: [reads[0]!], insts: []}
+  const replay = {c: selected, all: reads}
+  const witness = {size: 1, r$0: 1, r$1: 2}
+  expect(rangeViolations(ds, replay.c.reads, witness)).toEqual([])
+  const demanded = rangeViolations(ds, replay.all, witness)
+  expect(demanded).toEqual([reads[1]!])
+  expect(rangeInstances(ds, demanded, ['size']).map(i => i.terms)).toEqual([[[1, 'r$1']]])
+  expect(replay.c).toBe(selected)
+})
+
 test('rangeViolations names the reads a model puts above their evaluated bound, nothing it leaves open', () => {
   // The T-14 witness: size 1, every row count at 2.
   expect(rangeViolations(ds, reads, {size: 1, r$0: 2, r$1: 2, r$2: 2}).map(r => r[0])).toEqual(['r$0', 'r$1'])

@@ -1,0 +1,10 @@
+{
+  "experiment": "upper-bound-resumed-original34",
+  "sourceSha": "15eff72f04f74351b622b02d08e47bfb9dfdb131",
+  "frozenTarSha256": "7d697a87edba36cc65a6ca33e4998fe67e677c6a5fe02617a759fc9df25252b5",
+  "familySha256": "5dbdbf766e9949b051d0764920f1bcc3707690cd6852fca6d0bcf18674fbdac4",
+  "sourceManifestSha256": "9e7e8afe08dd3cd02fa1739bbeaa53d78d4699f5e65ef70e104021223e297554",
+  "shards": 140,
+  "suppliedLaws": [],
+  "note": "New output directory; production source unpacked from frozen git archive in each guest, then checked before disposable instrumentation. Same original family, no relabelling as current integration."
+}
