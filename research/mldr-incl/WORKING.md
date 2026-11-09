@@ -1,5 +1,14 @@
 # RESUMED — user instruction, 2026-11-10
 
+**Coordinator resource hold:** no new parallel local work, submissions or
+retries until lifted. This lane has no subagents. Existing boat batches
+are not to be killed or resubmitted. Both formerly active controllers
+below failed in source upload (`blob bytes do not match their key`), not
+in tests/proofs. The attempted frozen export timed out before submission;
+`/tmp/gdp-wired-incl-resume-ca0ef8f9` may be partial. See the superseding
+resource-hold section at the top of runs/REPORT.md and preserved receipts.
+
+
 The unchanged cancelled check was submitted first, batch
 `20261110-000811-qbrwk7`, and its controller timed out at 600 s with no job
 log. Authenticated close also timed out: that batch's cleanup is unconfirmed.

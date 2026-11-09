@@ -1,5 +1,28 @@
 # RESUMED — lane E, 2026-11-10
 
+## Coordinator resource hold — supersedes active-task status below
+
+The coordinator reports host memory pressure (7.5/8 GB swap) and slow
+per-file `utime` under `blob-cache.lock`. No new local parallel work,
+submission or retry until that restriction is lifted. This lane has no
+subagents and has not killed or resubmitted a boat batch after the notice.
+
+Both later controllers have now failed **during source upload**, before
+job execution: check-v2 `9e2450b2` after 887 s and validation-v1 `5cae319c`,
+both with `ValueError: blob bytes do not match their key`. Their receipts
+are in `runs/mldr-incl-resume/`; neither is a compiler/prover verdict.
+The mutable source changed while upload was delayed; that is consistent
+with a source-hash mismatch, not evidence of a kernel or proof failure.
+
+A committed-source export to `/tmp/gdp-wired-incl-resume-ca0ef8f9` timed out
+before its submission command ran; the directory may be partial and is
+not validated. **No frozen-source validation batch was launched.** Do not
+use it as a completed snapshot. Existing scheduler batches are untouched;
+the initial batch's cleanup remains unconfirmed. Resume new submissions
+only after the coordinator lifts the resource hold, using an immutable,
+verified source export. No tests or proofs have completed in this resume.
+
+
 The user explicitly resumed this lane. First action: resubmit the **unchanged**
 `integrated-check` command from the cancelled integrated-production manifest,
 on boat (`--class submission --timing --vm-type large`), source checkpoint
