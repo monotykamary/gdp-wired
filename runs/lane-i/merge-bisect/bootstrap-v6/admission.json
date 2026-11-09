@@ -1,0 +1,11 @@
+{
+  "task":"386c1fa8-eb2b-46bc-afdf-c8b366a48b8f",
+  "status":"preflight-started",
+  "runner":"/private/tmp/lane-i-history-runner.Df4NKx",
+  "data":"/private/tmp/lane-i-history-data.33ppZf",
+  "jobs":"research/lane-i/regressions/bootstrap-check.jobs.json",
+  "proposedReplacement":"research/lane-i/regressions/merge-cohort-wave6.jobs.json",
+  "replacementSubmitted":false,
+  "measuredPairs":0,
+  "finalGate":false
+}
