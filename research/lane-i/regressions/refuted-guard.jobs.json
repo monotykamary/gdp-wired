@@ -1,0 +1,18 @@
+[
+  {
+    "name": "refuted-guard-probe-1",
+    "cmd": "bun regression-driver/refuted-guard-probe.ts 1",
+    "cpu": 4,
+    "memory": 14336,
+    "timeout": 900,
+    "vm_type": "large"
+  },
+  {
+    "name": "refuted-guard-probe-2",
+    "cmd": "bun regression-driver/refuted-guard-probe.ts 2",
+    "cpu": 4,
+    "memory": 14336,
+    "timeout": 900,
+    "vm_type": "large"
+  }
+]
