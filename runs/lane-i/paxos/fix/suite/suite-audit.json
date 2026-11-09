@@ -1,0 +1,81 @@
+{
+  "revision": "8de9dadbe10925c2377121ee220faf97bcca4d59",
+  "issues": [
+    "paxos-fix-suite-2: process exit 1",
+    "paxos-fix-suite-2: no terminal success marker",
+    "paxos-fix-suite-2: 1 failed tests"
+  ],
+  "passed": 1405,
+  "failed": 1,
+  "skipped": 17,
+  "assertions": 595707,
+  "results": [
+    {
+      "name": "paxos-fix-suite-1",
+      "exit": 0,
+      "passed": 119,
+      "failed": 0,
+      "skipped": 0,
+      "assertions": 3329,
+      "failedTests": []
+    },
+    {
+      "name": "paxos-fix-suite-2",
+      "exit": 1,
+      "passed": 115,
+      "failed": 1,
+      "skipped": 17,
+      "assertions": 263302,
+      "failedTests": [
+        "(fail) an invariant nobody wrote is found and proven, and said as a law [6434.45ms]"
+      ]
+    },
+    {
+      "name": "paxos-fix-suite-3",
+      "exit": 0,
+      "passed": 251,
+      "failed": 0,
+      "skipped": 0,
+      "assertions": 44064,
+      "failedTests": []
+    },
+    {
+      "name": "paxos-fix-suite-4",
+      "exit": 0,
+      "passed": 163,
+      "failed": 0,
+      "skipped": 0,
+      "assertions": 6115,
+      "failedTests": []
+    },
+    {
+      "name": "paxos-fix-suite-5",
+      "exit": 0,
+      "passed": 257,
+      "failed": 0,
+      "skipped": 0,
+      "assertions": 62881,
+      "failedTests": []
+    },
+    {
+      "name": "paxos-fix-suite-6",
+      "exit": 0,
+      "passed": 234,
+      "failed": 0,
+      "skipped": 0,
+      "assertions": 197217,
+      "failedTests": []
+    },
+    {
+      "name": "paxos-fix-suite-7",
+      "exit": 0,
+      "passed": 266,
+      "failed": 0,
+      "skipped": 0,
+      "assertions": 18799,
+      "failedTests": []
+    }
+  ],
+  "qualified": false,
+  "finalGate": false
+}

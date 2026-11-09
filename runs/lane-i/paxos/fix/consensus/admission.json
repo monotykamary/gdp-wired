@@ -1,7 +1,13 @@
 {
   "task": "286e798e-11ee-4764-b6c7-6bbed1166400",
-  "status": "controller-started",
+  "status": "audited-incomplete-coverage",
   "candidate": "8de9dadbe10925c2377121ee220faf97bcca4d59",
   "data": "/private/tmp/lane-i-paxos-repair2-data.tHnDxP",
-  "finalGate": false
+  "finalGate": false,
+  "issues": [],
+  "acceptedPairs": 3,
+  "requiredPairs": 5,
+  "skips": 2,
+  "allObservedSidesProven": true,
+  "noLossQualified": false
 }

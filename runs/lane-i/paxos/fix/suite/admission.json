@@ -1,7 +1,14 @@
 {
   "task": "e3ce5019-86f7-4982-ae4f-a97bbded5cec",
-  "status": "controller-started",
+  "status": "failed-default-test-timeout",
   "candidate": "8de9dadbe10925c2377121ee220faf97bcca4d59",
   "data": "/private/tmp/lane-i-paxos-repair2-data.tHnDxP",
-  "finalGate": false
+  "finalGate": false,
+  "completedShards": 6,
+  "expectedShards": 7,
+  "recordedPassedTests": 1405,
+  "recordedFailedTests": 1,
+  "recordedSkippedTests": 17,
+  "failure": "core/search.test.ts: invariant discovery, 6434.45ms versus default 5000ms",
+  "classification": "not yet attributed; paired new-main check active"
 }

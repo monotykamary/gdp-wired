@@ -1,0 +1,3514 @@
+{
+  "sources": {
+    "baseline": "bf01190119f9409077a36e11a4a5b763fb6c1cad",
+    "candidate": "8de9dadbe10925c2377121ee220faf97bcca4d59"
+  },
+  "issues": [],
+  "acceptedPairs": 3,
+  "requiredPairs": 5,
+  "enoughPairs": false,
+  "skips": [
+    {
+      "group": 6401,
+      "cpu": "AMD Ryzen 7 9700X 8-Core Processor"
+    },
+    {
+      "group": 6402,
+      "cpu": "AMD EPYC 9455 48-Core Processor"
+    }
+  ],
+  "allProven": true,
+  "noLoss": false,
+  "pairs": [
+    {
+      "index": 6403,
+      "repeat": 1,
+      "cpu": "AMD Ryzen 9 9950X 16-Core Processor",
+      "metrics": {
+        "base": {
+          "verdict": "proven",
+          "found": [
+            "every VoteRequestMsg cell is a value of its kind",
+            "every Voted cell is a value of its kind",
+            "every VoteMsg cell is a value of its kind",
+            "every Votes cell is a value of its kind",
+            "every Leader cell is a value of its kind",
+            "every VotingQuorum cell is a value of its kind",
+            "every Decided cell is a value of its kind",
+            "one value decided",
+            "members$VotingQuorum keeps members's bound 0",
+            "members$VotingQuorum keeps members's bound 2",
+            "Leader keeps members$VotingQuorum's bound through members$VotingQuorum$Leader",
+            "Decided: one second key a first",
+            "every x with x < size: never Voted[x] is 0 and 1 <= VoteMsg[64·x + x]",
+            "every x with x < size: never Voted[x] is 0 and 1 <= Votes[64·x + x]",
+            "every x with x < size: never 1 <= Voted[x] and started is 0",
+            "every x with x < size: never 1 <= Leader[x] and started is 0",
+            "every x with x < size: never 1 <= VotingQuorum[x] and started is 0",
+            "every x with x < size: never VoteRequestMsg[64·x + x] is 0 and 1 <= VoteMsg[64·x + x]",
+            "every x with x < size: never VoteRequestMsg[64·x + x] is 0 and 1 <= Votes[64·x + x]",
+            "every x with x < size: never 1 <= VoteRequestMsg[64·x + x] and started is 0",
+            "every x with x < size: never VoteMsg[64·x + x] is 0 and 1 <= Votes[64·x + x]",
+            "every x with x < size: never 1 <= VoteMsg[64·x + x] and started is 0",
+            "every x with x < size: never 1 <= Votes[64·x + x] and started is 0",
+            "every x, y with x < size ∧ y < 64: never Leader[x] is 0 and 1 <= Decided[64·x + y]",
+            "every x, y with x < size ∧ y < 64: never 1 <= Decided[64·x + y] and started is 0",
+            "every x, y, z with x < size ∧ y < 64 ∧ z < 64 ∧ ¬(y = z): never 1 <= Decided[64·x + y] and 1 <= Decided[64·x + z]",
+            "every x, y with x < size ∧ y < size ∧ ¬(x = y): never Voted[x] is 0 and 1 <= VoteMsg[64·x + y]",
+            "every x, y with x < size ∧ y < size ∧ ¬(x = y): never Voted[x] is 0 and 1 <= Votes[64·y + x]",
+            "every x, y with x < size ∧ y < size ∧ ¬(x = y): never 1 <= Leader[x] and 1 <= Leader[y]",
+            "every x, y with x < size ∧ y < size ∧ ¬(x = y): never VoteRequestMsg[64·x + y] is 0 and 1 <= VoteMsg[64·y + x]",
+            "every x, y with x < size ∧ y < size ∧ ¬(x = y): never VoteRequestMsg[64·x + y] is 0 and 1 <= Votes[64·x + y]",
+            "every x, y with x < size ∧ y < size ∧ ¬(x = y): never 1 <= VoteRequestMsg[64·x + y] and started is 0",
+            "every x, y with x < size ∧ y < size ∧ ¬(x = y): never 1 <= VoteMsg[64·x + x] and 1 <= VoteMsg[64·x + y]",
+            "every x, y with x < size ∧ y < size ∧ ¬(x = y): never 1 <= VoteMsg[64·x + x] and 1 <= Votes[64·y + x]",
+            "every x, y with x < size ∧ y < size ∧ ¬(x = y): never VoteMsg[64·x + y] is 0 and 1 <= Votes[64·y + x]",
+            "every x, y with x < size ∧ y < size ∧ ¬(x = y): never 1 <= VoteMsg[64·x + y] and 1 <= Votes[64·x + x]",
+            "every x, y with x < size ∧ y < size ∧ ¬(x = y): never 1 <= VoteMsg[64·x + y] and started is 0",
+            "every x, y with x < size ∧ y < size ∧ ¬(x = y): never 1 <= Votes[64·x + x] and 1 <= Votes[64·y + x]",
+            "every x, y with x < size ∧ y < size ∧ ¬(x = y): never 1 <= Votes[64·x + y] and started is 0",
+            "every x, y, z with x < size ∧ y < size ∧ ¬(x = y) ∧ z < 64: never 1 <= Leader[x] and 1 <= Decided[64·y + z]",
+            "every x, y, z with x < size ∧ y < size ∧ ¬(x = y) ∧ z < 64: never 1 <= Decided[64·x + z] and 1 <= Decided[64·y + z]",
+            "every x, y, z, w with x < size ∧ y < size ∧ ¬(x = y) ∧ z < 64 ∧ w < 64 ∧ ¬(z = w): never 1 <= Decided[64·x + z] and 1 <= Decided[64·y + w]",
+            "every x, y, z with x < size ∧ y < size ∧ ¬(x = y) ∧ z < size ∧ ¬(x = z) ∧ ¬(y = z): never 1 <= VoteMsg[64·x + y] and 1 <= VoteMsg[64·x + z]",
+            "every x, y, z with x < size ∧ y < size ∧ ¬(x = y) ∧ z < size ∧ ¬(x = z) ∧ ¬(y = z): never 1 <= VoteMsg[64·x + y] and 1 <= Votes[64·z + x]",
+            "every x, y, z with x < size ∧ y < size ∧ ¬(x = y) ∧ z < size ∧ ¬(x = z) ∧ ¬(y = z): never 1 <= Votes[64·x + y] and 1 <= Votes[64·z + y]"
+          ],
+          "ms": 18443,
+          "work": 11093727,
+          "full": 3256350,
+          "wallMs": 18520.147844999996,
+          "generationWallMs": 8063.937087,
+          "preAttemptWallMs": 8066.594843000001,
+          "attempts": [
+            {
+              "law": "members$VotingQuorum keeps members's bound 0",
+              "family": 46,
+              "pass": 0,
+              "allowance": 1304,
+              "units": 17,
+              "wallMs": 91,
+              "outcome": "sat"
+            },
+            {
+              "law": "members$VotingQuorum keeps members's bound 0",
+              "family": 46,
+              "pass": 1,
+              "allowance": 1304,
+              "units": 101,
+              "wallMs": 168,
+              "outcome": "kept"
+            },
+            {
+              "law": "members$VotingQuorum keeps members's bound 2",
+              "family": 46,
+              "pass": 0,
+              "allowance": 1331,
+              "units": 13,
+              "wallMs": 60,
+              "outcome": "sat"
+            },
+            {
+              "law": "members$VotingQuorum keeps members's bound 2",
+              "family": 46,
+              "pass": 1,
+              "allowance": 1331,
+              "units": 73,
+              "wallMs": 123,
+              "outcome": "kept"
+            },
+            {
+              "law": "Leader keeps members$VotingQuorum's bound through ",
+              "family": 46,
+              "pass": 0,
+              "allowance": 1359,
+              "units": 33,
+              "wallMs": 76,
+              "outcome": "sat"
+            },
+            {
+              "law": "Leader keeps members$VotingQuorum's bound through ",
+              "family": 46,
+              "pass": 1,
+              "allowance": 1359,
+              "units": 291,
+              "wallMs": 553,
+              "outcome": "kept"
+            },
+            {
+              "law": "Decided: one second key a first",
+              "family": 46,
+              "pass": 0,
+              "allowance": 1383,
+              "units": 244,
+              "wallMs": 394,
+              "outcome": "kept"
+            },
+            {
+              "law": "every x with x < size: never Voted[x] is 0 and 1 <",
+              "family": 46,
+              "pass": 0,
+              "allowance": 1410,
+              "units": 67,
+              "wallMs": 84,
+              "outcome": "kept"
+            },
+            {
+              "law": "every x with x < size: never Voted[x] is 0 and 1 <",
+              "family": 46,
+              "pass": 0,
+              "allowance": 1443,
+              "units": 99,
+              "wallMs": 138,
+              "outcome": "kept"
+            },
+            {
+              "law": "every x with x < size: never 1 <= Voted[x] and sta",
+              "family": 46,
+              "pass": 0,
+              "allowance": 1477,
+              "units": 21,
+              "wallMs": 69,
+              "outcome": "kept"
+            },
+            {
+              "law": "every x with x < size: never 1 <= Leader[x] and st",
+              "family": 46,
+              "pass": 0,
+              "allowance": 1514,
+              "units": 21,
+              "wallMs": 41,
+              "outcome": "kept"
+            },
+            {
+              "law": "every x with x < size: never 1 <= VotingQuorum[x] ",
+              "family": 46,
+              "pass": 0,
+              "allowance": 1553,
+              "units": 19,
+              "wallMs": 35,
+              "outcome": "kept"
+            },
+            {
+              "law": "every x with x < size: never VoteRequestMsg[64·x +",
+              "family": 46,
+              "pass": 0,
+              "allowance": 1595,
+              "units": 202,
+              "wallMs": 332,
+              "outcome": "kept"
+            },
+            {
+              "law": "every x with x < size: never VoteRequestMsg[64·x +",
+              "family": 46,
+              "pass": 0,
+              "allowance": 1633,
+              "units": 197,
+              "wallMs": 340,
+              "outcome": "kept"
+            },
+            {
+              "law": "every x with x < size: never 1 <= VoteRequestMsg[6",
+              "family": 46,
+              "pass": 0,
+              "allowance": 1674,
+              "units": 41,
+              "wallMs": 61,
+              "outcome": "kept"
+            },
+            {
+              "law": "every x with x < size: never VoteMsg[64·x + x] is ",
+              "family": 46,
+              "pass": 0,
+              "allowance": 1722,
+              "units": 200,
+              "wallMs": 212,
+              "outcome": "kept"
+            },
+            {
+              "law": "every x with x < size: never 1 <= VoteMsg[64·x + x",
+              "family": 46,
+              "pass": 0,
+              "allowance": 1768,
+              "units": 44,
+              "wallMs": 46,
+              "outcome": "kept"
+            },
+            {
+              "law": "every x with x < size: never 1 <= Votes[64·x + x] ",
+              "family": 46,
+              "pass": 0,
+              "allowance": 1822,
+              "units": 46,
+              "wallMs": 49,
+              "outcome": "kept"
+            },
+            {
+              "law": "every x, y with x < size ∧ y < 64: never Leader[x]",
+              "family": 46,
+              "pass": 0,
+              "allowance": 1880,
+              "units": 184,
+              "wallMs": 217,
+              "outcome": "kept"
+            },
+            {
+              "law": "every x, y with x < size ∧ y < 64: never 1 <= Deci",
+              "family": 46,
+              "pass": 0,
+              "allowance": 1936,
+              "units": 46,
+              "wallMs": 48,
+              "outcome": "kept"
+            },
+            {
+              "law": "every x, y, z with x < size ∧ y < 64 ∧ z < 64 ∧ ¬(",
+              "family": 46,
+              "pass": 0,
+              "allowance": 2001,
+              "units": 197,
+              "wallMs": 203,
+              "outcome": "kept"
+            },
+            {
+              "law": "every x, y with x < size ∧ y < size ∧ ¬(x = y): ne",
+              "family": 46,
+              "pass": 0,
+              "allowance": 2066,
+              "units": 92,
+              "wallMs": 55,
+              "outcome": "kept"
+            },
+            {
+              "law": "every x, y with x < size ∧ y < size ∧ ¬(x = y): ne",
+              "family": 46,
+              "pass": 0,
+              "allowance": 2139,
+              "units": 150,
+              "wallMs": 102,
+              "outcome": "kept"
+            },
+            {
+              "law": "every x, y with x < size ∧ y < size ∧ ¬(x = y): ne",
+              "family": 46,
+              "pass": 0,
+              "allowance": 2215,
+              "units": 160,
+              "wallMs": 173,
+              "outcome": "sat"
+            },
+            {
+              "law": "every x, y with x < size ∧ y < size ∧ ¬(x = y): ne",
+              "family": 46,
+              "pass": 1,
+              "allowance": 2215,
+              "units": 1370,
+              "wallMs": 756,
+              "outcome": "kept"
+            },
+            {
+              "law": "every x, y with x < size ∧ y < size ∧ ¬(x = y): ne",
+              "family": 46,
+              "pass": 0,
+              "allowance": 2243,
+              "units": 139,
+              "wallMs": 86,
+              "outcome": "kept"
+            },
+            {
+              "law": "every x, y with x < size ∧ y < size ∧ ¬(x = y): ne",
+              "family": 46,
+              "pass": 0,
+              "allowance": 2331,
+              "units": 348,
+              "wallMs": 203,
+              "outcome": "kept"
+            },
+            {
+              "law": "every x, y with x < size ∧ y < size ∧ ¬(x = y): ne",
+              "family": 46,
+              "pass": 0,
+              "allowance": 2417,
+              "units": 26,
+              "wallMs": 23,
+              "outcome": "kept"
+            },
+            {
+              "law": "every x, y with x < size ∧ y < size ∧ ¬(x = y): ne",
+              "family": 46,
+              "pass": 0,
+              "allowance": 2525,
+              "units": 84,
+              "wallMs": 49,
+              "outcome": "kept"
+            },
+            {
+              "law": "every x, y with x < size ∧ y < size ∧ ¬(x = y): ne",
+              "family": 46,
+              "pass": 0,
+              "allowance": 2642,
+              "units": 234,
+              "wallMs": 164,
+              "outcome": "kept"
+            },
+            {
+              "law": "every x, y with x < size ∧ y < size ∧ ¬(x = y): ne",
+              "family": 46,
+              "pass": 0,
+              "allowance": 2762,
+              "units": 528,
+              "wallMs": 296,
+              "outcome": "kept"
+            },
+            {
+              "law": "every x, y with x < size ∧ y < size ∧ ¬(x = y): ne",
+              "family": 46,
+              "pass": 0,
+              "allowance": 2880,
+              "units": 160,
+              "wallMs": 130,
+              "outcome": "kept"
+            },
+            {
+              "law": "every x, y with x < size ∧ y < size ∧ ¬(x = y): ne",
+              "family": 46,
+              "pass": 0,
+              "allowance": 3031,
+              "units": 44,
+              "wallMs": 34,
+              "outcome": "kept"
+            },
+            {
+              "law": "every x, y with x < size ∧ y < size ∧ ¬(x = y): ne",
+              "family": 46,
+              "pass": 0,
+              "allowance": 3206,
+              "units": 205,
+              "wallMs": 105,
+              "outcome": "kept"
+            },
+            {
+              "law": "every x, y with x < size ∧ y < size ∧ ¬(x = y): ne",
+              "family": 46,
+              "pass": 0,
+              "allowance": 3394,
+              "units": 36,
+              "wallMs": 25,
+              "outcome": "kept"
+            },
+            {
+              "law": "every x, y, z with x < size ∧ y < size ∧ ¬(x = y) ",
+              "family": 46,
+              "pass": 0,
+              "allowance": 3618,
+              "units": 89,
+              "wallMs": 100,
+              "outcome": "sat"
+            },
+            {
+              "law": "every x, y, z with x < size ∧ y < size ∧ ¬(x = y) ",
+              "family": 46,
+              "pass": 1,
+              "allowance": 3618,
+              "units": 3621,
+              "wallMs": 1639,
+              "outcome": "unknown"
+            },
+            {
+              "law": "every x, y, z with x < size ∧ y < size ∧ ¬(x = y) ",
+              "family": 46,
+              "pass": 0,
+              "allowance": 3611,
+              "units": 201,
+              "wallMs": 305,
+              "outcome": "sat"
+            },
+            {
+              "law": "every x, y, z with x < size ∧ y < size ∧ ¬(x = y) ",
+              "family": 46,
+              "pass": 1,
+              "allowance": 3611,
+              "units": 1350,
+              "wallMs": 1140,
+              "outcome": "kept"
+            },
+            {
+              "law": "every x, y, z with x < size ∧ y < size ∧ ¬(x = y) ",
+              "family": 46,
+              "pass": 0,
+              "allowance": 3770,
+              "units": 122,
+              "wallMs": 85,
+              "outcome": "kept"
+            },
+            {
+              "law": "every x, y, z, w with x < size ∧ y < size ∧ ¬(x = ",
+              "family": 46,
+              "pass": 0,
+              "allowance": 4074,
+              "units": 322,
+              "wallMs": 229,
+              "outcome": "kept"
+            },
+            {
+              "law": "every x, y, z with x < size ∧ y < size ∧ ¬(x = y) ",
+              "family": 46,
+              "pass": 0,
+              "allowance": 4415,
+              "units": 172,
+              "wallMs": 104,
+              "outcome": "kept"
+            },
+            {
+              "law": "every x, y, z with x < size ∧ y < size ∧ ¬(x = y) ",
+              "family": 46,
+              "pass": 0,
+              "allowance": 4839,
+              "units": 555,
+              "wallMs": 293,
+              "outcome": "kept"
+            },
+            {
+              "law": "every x, y, z with x < size ∧ y < size ∧ ¬(x = y) ",
+              "family": 46,
+              "pass": 0,
+              "allowance": 5315,
+              "units": 465,
+              "wallMs": 277,
+              "outcome": "kept"
+            },
+            {
+              "law": "every VoteRequestMsg cell is a value of its kind",
+              "family": 46,
+              "pass": 0,
+              "allowance": 5921,
+              "units": 9,
+              "wallMs": 37,
+              "outcome": "kept"
+            },
+            {
+              "law": "every Voted cell is a value of its kind",
+              "family": 46,
+              "pass": 0,
+              "allowance": 6766,
+              "units": 9,
+              "wallMs": 71,
+              "outcome": "kept"
+            },
+            {
+              "law": "every VoteMsg cell is a value of its kind",
+              "family": 46,
+              "pass": 0,
+              "allowance": 7892,
+              "units": 9,
+              "wallMs": 16,
+              "outcome": "kept"
+            },
+            {
+              "law": "every Votes cell is a value of its kind",
+              "family": 46,
+              "pass": 0,
+              "allowance": 9469,
+              "units": 9,
+              "wallMs": 13,
+              "outcome": "kept"
+            },
+            {
+              "law": "every Leader cell is a value of its kind",
+              "family": 46,
+              "pass": 0,
+              "allowance": 11834,
+              "units": 9,
+              "wallMs": 12,
+              "outcome": "kept"
+            },
+            {
+              "law": "every VotingQuorum cell is a value of its kind",
+              "family": 46,
+              "pass": 0,
+              "allowance": 15776,
+              "units": 4,
+              "wallMs": 5,
+              "outcome": "kept"
+            },
+            {
+              "law": "every Decided cell is a value of its kind",
+              "family": 46,
+              "pass": 0,
+              "allowance": 23662,
+              "units": 9,
+              "wallMs": 12,
+              "outcome": "kept"
+            },
+            {
+              "law": "one value decided",
+              "family": 46,
+              "pass": 0,
+              "allowance": 47314,
+              "units": 340,
+              "wallMs": 182,
+              "outcome": "kept"
+            }
+          ],
+          "names": [
+            [
+              "every VoteRequestMsg cell is a value of its kind",
+              "every Voted cell is a value of its kind",
+              "every VoteMsg cell is a value of its kind",
+              "every Votes cell is a value of its kind",
+              "every Leader cell is a value of its kind",
+              "every VotingQuorum cell is a value of its kind",
+              "every Decided cell is a value of its kind",
+              "one value decided",
+              "members$VotingQuorum keeps members's bound 0",
+              "members$VotingQuorum keeps members's bound 2",
+              "Leader keeps members$VotingQuorum's bound through members$VotingQuorum$Leader",
+              "Decided: one second key a first",
+              "every x with x < size: never Voted[x] is 0 and 1 <= VoteMsg[64·x + x]",
+              "every x with x < size: never Voted[x] is 0 and 1 <= Votes[64·x + x]",
+              "every x with x < size: never 1 <= Voted[x] and started is 0",
+              "every x with x < size: never 1 <= Leader[x] and started is 0",
+              "every x with x < size: never 1 <= VotingQuorum[x] and started is 0",
+              "every x with x < size: never VoteRequestMsg[64·x + x] is 0 and 1 <= VoteMsg[64·x + x]",
+              "every x with x < size: never VoteRequestMsg[64·x + x] is 0 and 1 <= Votes[64·x + x]",
+              "every x with x < size: never 1 <= VoteRequestMsg[64·x + x] and started is 0",
+              "every x with x < size: never VoteMsg[64·x + x] is 0 and 1 <= Votes[64·x + x]",
+              "every x with x < size: never 1 <= VoteMsg[64·x + x] and started is 0",
+              "every x with x < size: never 1 <= Votes[64·x + x] and started is 0",
+              "every x, y with x < size ∧ y < 64: never Leader[x] is 0 and 1 <= Decided[64·x + y]",
+              "every x, y with x < size ∧ y < 64: never 1 <= Decided[64·x + y] and started is 0",
+              "every x, y, z with x < size ∧ y < 64 ∧ z < 64 ∧ ¬(y = z): never 1 <= Decided[64·x + y] and 1 <= Decided[64·x + z]",
+              "every x, y with x < size ∧ y < size ∧ ¬(x = y): never Voted[x] is 0 and 1 <= VoteMsg[64·x + y]",
+              "every x, y with x < size ∧ y < size ∧ ¬(x = y): never Voted[x] is 0 and 1 <= Votes[64·y + x]",
+              "every x, y with x < size ∧ y < size ∧ ¬(x = y): never 1 <= Leader[x] and 1 <= Leader[y]",
+              "every x, y with x < size ∧ y < size ∧ ¬(x = y): never VoteRequestMsg[64·x + y] is 0 and 1 <= VoteMsg[64·y + x]",
+              "every x, y with x < size ∧ y < size ∧ ¬(x = y): never VoteRequestMsg[64·x + y] is 0 and 1 <= Votes[64·x + y]",
+              "every x, y with x < size ∧ y < size ∧ ¬(x = y): never 1 <= VoteRequestMsg[64·x + y] and started is 0",
+              "every x, y with x < size ∧ y < size ∧ ¬(x = y): never 1 <= VoteMsg[64·x + x] and 1 <= VoteMsg[64·x + y]",
+              "every x, y with x < size ∧ y < size ∧ ¬(x = y): never 1 <= VoteMsg[64·x + x] and 1 <= Votes[64·y + x]",
+              "every x, y with x < size ∧ y < size ∧ ¬(x = y): never VoteMsg[64·x + y] is 0 and 1 <= Votes[64·y + x]",
+              "every x, y with x < size ∧ y < size ∧ ¬(x = y): never 1 <= VoteMsg[64·x + y] and 1 <= Votes[64·x + x]",
+              "every x, y with x < size ∧ y < size ∧ ¬(x = y): never 1 <= VoteMsg[64·x + y] and started is 0",
+              "every x, y with x < size ∧ y < size ∧ ¬(x = y): never 1 <= Votes[64·x + x] and 1 <= Votes[64·y + x]",
+              "every x, y with x < size ∧ y < size ∧ ¬(x = y): never 1 <= Votes[64·x + y] and started is 0",
+              "every x, y, z with x < size ∧ y < size ∧ ¬(x = y) ∧ z < 64: never Voted[x] is 0 and 1 <= Decided[64·y + z]",
+              "every x, y, z with x < size ∧ y < size ∧ ¬(x = y) ∧ z < 64: never 1 <= Leader[x] and 1 <= Decided[64·y + z]",
+              "every x, y, z with x < size ∧ y < size ∧ ¬(x = y) ∧ z < 64: never 1 <= Decided[64·x + z] and 1 <= Decided[64·y + z]",
+              "every x, y, z, w with x < size ∧ y < size ∧ ¬(x = y) ∧ z < 64 ∧ w < 64 ∧ ¬(z = w): never 1 <= Decided[64·x + z] and 1 <= Decided[64·y + w]",
+              "every x, y, z with x < size ∧ y < size ∧ ¬(x = y) ∧ z < size ∧ ¬(x = z) ∧ ¬(y = z): never 1 <= VoteMsg[64·x + y] and 1 <= VoteMsg[64·x + z]",
+              "every x, y, z with x < size ∧ y < size ∧ ¬(x = y) ∧ z < size ∧ ¬(x = z) ∧ ¬(y = z): never 1 <= VoteMsg[64·x + y] and 1 <= Votes[64·z + x]",
+              "every x, y, z with x < size ∧ y < size ∧ ¬(x = y) ∧ z < size ∧ ¬(x = z) ∧ ¬(y = z): never 1 <= Votes[64·x + y] and 1 <= Votes[64·z + y]",
+              "carry:point-guard:adc673d7c555ac2c",
+              "carry:point-guard:695583f187e7e5ab"
+            ]
+          ]
+        },
+        "candidate": {
+          "verdict": "proven",
+          "found": [
+            "every VoteRequestMsg cell is a value of its kind",
+            "every Voted cell is a value of its kind",
+            "every VoteMsg cell is a value of its kind",
+            "every Votes cell is a value of its kind",
+            "every Leader cell is a value of its kind",
+            "every VotingQuorum cell is a value of its kind",
+            "every Decided cell is a value of its kind",
+            "one value decided",
+            "members$VotingQuorum keeps members's bound 0",
+            "members$VotingQuorum keeps members's bound 2",
+            "Leader keeps members$VotingQuorum's bound through members$VotingQuorum$Leader",
+            "Decided: one second key a first",
+            "every x with x < size: never Voted[x] is 0 and 1 <= VoteMsg[64·x + x]",
+            "every x with x < size: never Voted[x] is 0 and 1 <= Votes[64·x + x]",
+            "every x with x < size: never 1 <= Voted[x] and started is 0",
+            "every x with x < size: never 1 <= Leader[x] and started is 0",
+            "every x with x < size: never 1 <= VotingQuorum[x] and started is 0",
+            "every x with x < size: never VoteRequestMsg[64·x + x] is 0 and 1 <= VoteMsg[64·x + x]",
+            "every x with x < size: never VoteRequestMsg[64·x + x] is 0 and 1 <= Votes[64·x + x]",
+            "every x with x < size: never 1 <= VoteRequestMsg[64·x + x] and started is 0",
+            "every x with x < size: never VoteMsg[64·x + x] is 0 and 1 <= Votes[64·x + x]",
+            "every x with x < size: never 1 <= VoteMsg[64·x + x] and started is 0",
+            "every x with x < size: never 1 <= Votes[64·x + x] and started is 0",
+            "every x, y with x < size ∧ y < 64: never Leader[x] is 0 and 1 <= Decided[64·x + y]",
+            "every x, y with x < size ∧ y < 64: never 1 <= Decided[64·x + y] and started is 0",
+            "every x, y, z with x < size ∧ y < 64 ∧ z < 64 ∧ ¬(y = z): never 1 <= Decided[64·x + y] and 1 <= Decided[64·x + z]",
+            "every x, y with x < size ∧ y < size ∧ ¬(x = y): never Voted[x] is 0 and 1 <= VoteMsg[64·x + y]",
+            "every x, y with x < size ∧ y < size ∧ ¬(x = y): never Voted[x] is 0 and 1 <= Votes[64·y + x]",
+            "every x, y with x < size ∧ y < size ∧ ¬(x = y): never 1 <= Leader[x] and 1 <= Leader[y]",
+            "every x, y with x < size ∧ y < size ∧ ¬(x = y): never VoteRequestMsg[64·x + y] is 0 and 1 <= VoteMsg[64·y + x]",
+            "every x, y with x < size ∧ y < size ∧ ¬(x = y): never VoteRequestMsg[64·x + y] is 0 and 1 <= Votes[64·x + y]",
+            "every x, y with x < size ∧ y < size ∧ ¬(x = y): never 1 <= VoteRequestMsg[64·x + y] and started is 0",
+            "every x, y with x < size ∧ y < size ∧ ¬(x = y): never 1 <= VoteMsg[64·x + x] and 1 <= VoteMsg[64·x + y]",
+            "every x, y with x < size ∧ y < size ∧ ¬(x = y): never 1 <= VoteMsg[64·x + x] and 1 <= Votes[64·y + x]",
+            "every x, y with x < size ∧ y < size ∧ ¬(x = y): never VoteMsg[64·x + y] is 0 and 1 <= Votes[64·y + x]",
+            "every x, y with x < size ∧ y < size ∧ ¬(x = y): never 1 <= VoteMsg[64·x + y] and 1 <= Votes[64·x + x]",
+            "every x, y with x < size ∧ y < size ∧ ¬(x = y): never 1 <= VoteMsg[64·x + y] and started is 0",
+            "every x, y with x < size ∧ y < size ∧ ¬(x = y): never 1 <= Votes[64·x + x] and 1 <= Votes[64·y + x]",
+            "every x, y with x < size ∧ y < size ∧ ¬(x = y): never 1 <= Votes[64·x + y] and started is 0",
+            "every x, y, z with x < size ∧ y < size ∧ ¬(x = y) ∧ z < 64: never 1 <= Leader[x] and 1 <= Decided[64·y + z]",
+            "every x, y, z with x < size ∧ y < size ∧ ¬(x = y) ∧ z < 64: never 1 <= Decided[64·x + z] and 1 <= Decided[64·y + z]",
+            "every x, y, z, w with x < size ∧ y < size ∧ ¬(x = y) ∧ z < 64 ∧ w < 64 ∧ ¬(z = w): never 1 <= Decided[64·x + z] and 1 <= Decided[64·y + w]",
+            "every x, y, z with x < size ∧ y < size ∧ ¬(x = y) ∧ z < size ∧ ¬(x = z) ∧ ¬(y = z): never 1 <= VoteMsg[64·x + y] and 1 <= VoteMsg[64·x + z]",
+            "every x, y, z with x < size ∧ y < size ∧ ¬(x = y) ∧ z < size ∧ ¬(x = z) ∧ ¬(y = z): never 1 <= VoteMsg[64·x + y] and 1 <= Votes[64·z + x]",
+            "every x, y, z with x < size ∧ y < size ∧ ¬(x = y) ∧ z < size ∧ ¬(x = z) ∧ ¬(y = z): never 1 <= Votes[64·x + y] and 1 <= Votes[64·z + y]"
+          ],
+          "ms": 26239,
+          "work": 11023203,
+          "full": 3251424,
+          "wallMs": 26333.403176000007,
+          "generationWallMs": 8198.1277,
+          "preAttemptWallMs": 8199.925451,
+          "attempts": [
+            {
+              "law": "members$VotingQuorum keeps members's bound 0",
+              "family": 46,
+              "pass": 0,
+              "allowance": 1304,
+              "units": 17,
+              "wallMs": 89,
+              "outcome": "sat"
+            },
+            {
+              "law": "members$VotingQuorum keeps members's bound 0",
+              "family": 46,
+              "pass": 1,
+              "allowance": 1304,
+              "units": 103,
+              "wallMs": 159,
+              "outcome": "kept"
+            },
+            {
+              "law": "members$VotingQuorum keeps members's bound 2",
+              "family": 46,
+              "pass": 0,
+              "allowance": 1331,
+              "units": 13,
+              "wallMs": 40,
+              "outcome": "sat"
+            },
+            {
+              "law": "members$VotingQuorum keeps members's bound 2",
+              "family": 46,
+              "pass": 1,
+              "allowance": 1331,
+              "units": 76,
+              "wallMs": 130,
+              "outcome": "kept"
+            },
+            {
+              "law": "Leader keeps members$VotingQuorum's bound through ",
+              "family": 46,
+              "pass": 0,
+              "allowance": 1359,
+              "units": 33,
+              "wallMs": 73,
+              "outcome": "sat"
+            },
+            {
+              "law": "Leader keeps members$VotingQuorum's bound through ",
+              "family": 46,
+              "pass": 1,
+              "allowance": 1359,
+              "units": 266,
+              "wallMs": 372,
+              "outcome": "kept"
+            },
+            {
+              "law": "Decided: one second key a first",
+              "family": 46,
+              "pass": 0,
+              "allowance": 1384,
+              "units": 244,
+              "wallMs": 287,
+              "outcome": "kept"
+            },
+            {
+              "law": "every x with x < size: never Voted[x] is 0 and 1 <",
+              "family": 46,
+              "pass": 0,
+              "allowance": 1411,
+              "units": 67,
+              "wallMs": 93,
+              "outcome": "kept"
+            },
+            {
+              "law": "every x with x < size: never Voted[x] is 0 and 1 <",
+              "family": 46,
+              "pass": 0,
+              "allowance": 1443,
+              "units": 99,
+              "wallMs": 95,
+              "outcome": "kept"
+            },
+            {
+              "law": "every x with x < size: never 1 <= Voted[x] and sta",
+              "family": 46,
+              "pass": 0,
+              "allowance": 1477,
+              "units": 21,
+              "wallMs": 22,
+              "outcome": "kept"
+            },
+            {
+              "law": "every x with x < size: never 1 <= Leader[x] and st",
+              "family": 46,
+              "pass": 0,
+              "allowance": 1514,
+              "units": 21,
+              "wallMs": 37,
+              "outcome": "kept"
+            },
+            {
+              "law": "every x with x < size: never 1 <= VotingQuorum[x] ",
+              "family": 46,
+              "pass": 0,
+              "allowance": 1554,
+              "units": 19,
+              "wallMs": 26,
+              "outcome": "kept"
+            },
+            {
+              "law": "every x with x < size: never VoteRequestMsg[64·x +",
+              "family": 46,
+              "pass": 0,
+              "allowance": 1595,
+              "units": 202,
+              "wallMs": 228,
+              "outcome": "kept"
+            },
+            {
+              "law": "every x with x < size: never VoteRequestMsg[64·x +",
+              "family": 46,
+              "pass": 0,
+              "allowance": 1634,
+              "units": 197,
+              "wallMs": 260,
+              "outcome": "kept"
+            },
+            {
+              "law": "every x with x < size: never 1 <= VoteRequestMsg[6",
+              "family": 46,
+              "pass": 0,
+              "allowance": 1675,
+              "units": 41,
+              "wallMs": 57,
+              "outcome": "kept"
+            },
+            {
+              "law": "every x with x < size: never VoteMsg[64·x + x] is ",
+              "family": 46,
+              "pass": 0,
+              "allowance": 1723,
+              "units": 200,
+              "wallMs": 279,
+              "outcome": "kept"
+            },
+            {
+              "law": "every x with x < size: never 1 <= VoteMsg[64·x + x",
+              "family": 46,
+              "pass": 0,
+              "allowance": 1769,
+              "units": 44,
+              "wallMs": 109,
+              "outcome": "kept"
+            },
+            {
+              "law": "every x with x < size: never 1 <= Votes[64·x + x] ",
+              "family": 46,
+              "pass": 0,
+              "allowance": 1823,
+              "units": 46,
+              "wallMs": 106,
+              "outcome": "kept"
+            },
+            {
+              "law": "every x, y with x < size ∧ y < 64: never Leader[x]",
+              "family": 46,
+              "pass": 0,
+              "allowance": 1880,
+              "units": 184,
+              "wallMs": 466,
+              "outcome": "kept"
+            },
+            {
+              "law": "every x, y with x < size ∧ y < 64: never 1 <= Deci",
+              "family": 46,
+              "pass": 0,
+              "allowance": 1937,
+              "units": 46,
+              "wallMs": 159,
+              "outcome": "kept"
+            },
+            {
+              "law": "every x, y, z with x < size ∧ y < 64 ∧ z < 64 ∧ ¬(",
+              "family": 46,
+              "pass": 0,
+              "allowance": 2002,
+              "units": 197,
+              "wallMs": 453,
+              "outcome": "kept"
+            },
+            {
+              "law": "every x, y with x < size ∧ y < size ∧ ¬(x = y): ne",
+              "family": 46,
+              "pass": 0,
+              "allowance": 2067,
+              "units": 92,
+              "wallMs": 184,
+              "outcome": "kept"
+            },
+            {
+              "law": "every x, y with x < size ∧ y < size ∧ ¬(x = y): ne",
+              "family": 46,
+              "pass": 0,
+              "allowance": 2140,
+              "units": 150,
+              "wallMs": 369,
+              "outcome": "kept"
+            },
+            {
+              "law": "every x, y with x < size ∧ y < size ∧ ¬(x = y): ne",
+              "family": 46,
+              "pass": 0,
+              "allowance": 2216,
+              "units": 160,
+              "wallMs": 365,
+              "outcome": "sat"
+            },
+            {
+              "law": "every x, y with x < size ∧ y < size ∧ ¬(x = y): ne",
+              "family": 46,
+              "pass": 1,
+              "allowance": 2216,
+              "units": 1370,
+              "wallMs": 1451,
+              "outcome": "kept"
+            },
+            {
+              "law": "every x, y with x < size ∧ y < size ∧ ¬(x = y): ne",
+              "family": 46,
+              "pass": 0,
+              "allowance": 2244,
+              "units": 139,
+              "wallMs": 300,
+              "outcome": "kept"
+            },
+            {
+              "law": "every x, y with x < size ∧ y < size ∧ ¬(x = y): ne",
+              "family": 46,
+              "pass": 0,
+              "allowance": 2331,
+              "units": 348,
+              "wallMs": 371,
+              "outcome": "kept"
+            },
+            {
+              "law": "every x, y with x < size ∧ y < size ∧ ¬(x = y): ne",
+              "family": 46,
+              "pass": 0,
+              "allowance": 2418,
+              "units": 26,
+              "wallMs": 26,
+              "outcome": "kept"
+            },
+            {
+              "law": "every x, y with x < size ∧ y < size ∧ ¬(x = y): ne",
+              "family": 46,
+              "pass": 0,
+              "allowance": 2526,
+              "units": 84,
+              "wallMs": 57,
+              "outcome": "kept"
+            },
+            {
+              "law": "every x, y with x < size ∧ y < size ∧ ¬(x = y): ne",
+              "family": 46,
+              "pass": 0,
+              "allowance": 2643,
+              "units": 234,
+              "wallMs": 222,
+              "outcome": "kept"
+            },
+            {
+              "law": "every x, y with x < size ∧ y < size ∧ ¬(x = y): ne",
+              "family": 46,
+              "pass": 0,
+              "allowance": 2763,
+              "units": 528,
+              "wallMs": 645,
+              "outcome": "kept"
+            },
+            {
+              "law": "every x, y with x < size ∧ y < size ∧ ¬(x = y): ne",
+              "family": 46,
+              "pass": 0,
+              "allowance": 2881,
+              "units": 160,
+              "wallMs": 356,
+              "outcome": "kept"
+            },
+            {
+              "law": "every x, y with x < size ∧ y < size ∧ ¬(x = y): ne",
+              "family": 46,
+              "pass": 0,
+              "allowance": 3032,
+              "units": 44,
+              "wallMs": 103,
+              "outcome": "kept"
+            },
+            {
+              "law": "every x, y with x < size ∧ y < size ∧ ¬(x = y): ne",
+              "family": 46,
+              "pass": 0,
+              "allowance": 3207,
+              "units": 205,
+              "wallMs": 570,
+              "outcome": "kept"
+            },
+            {
+              "law": "every x, y with x < size ∧ y < size ∧ ¬(x = y): ne",
+              "family": 46,
+              "pass": 0,
+              "allowance": 3395,
+              "units": 36,
+              "wallMs": 259,
+              "outcome": "kept"
+            },
+            {
+              "law": "every x, y, z with x < size ∧ y < size ∧ ¬(x = y) ",
+              "family": 46,
+              "pass": 0,
+              "allowance": 3619,
+              "units": 89,
+              "wallMs": 474,
+              "outcome": "sat"
+            },
+            {
+              "law": "every x, y, z with x < size ∧ y < size ∧ ¬(x = y) ",
+              "family": 46,
+              "pass": 1,
+              "allowance": 3619,
+              "units": 3621,
+              "wallMs": 3381,
+              "outcome": "unknown"
+            },
+            {
+              "law": "every x, y, z with x < size ∧ y < size ∧ ¬(x = y) ",
+              "family": 46,
+              "pass": 0,
+              "allowance": 3613,
+              "units": 201,
+              "wallMs": 596,
+              "outcome": "sat"
+            },
+            {
+              "law": "every x, y, z with x < size ∧ y < size ∧ ¬(x = y) ",
+              "family": 46,
+              "pass": 1,
+              "allowance": 3613,
+              "units": 1350,
+              "wallMs": 2137,
+              "outcome": "kept"
+            },
+            {
+              "law": "every x, y, z with x < size ∧ y < size ∧ ¬(x = y) ",
+              "family": 46,
+              "pass": 0,
+              "allowance": 3771,
+              "units": 122,
+              "wallMs": 121,
+              "outcome": "kept"
+            },
+            {
+              "law": "every x, y, z, w with x < size ∧ y < size ∧ ¬(x = ",
+              "family": 46,
+              "pass": 0,
+              "allowance": 4075,
+              "units": 322,
+              "wallMs": 438,
+              "outcome": "kept"
+            },
+            {
+              "law": "every x, y, z with x < size ∧ y < size ∧ ¬(x = y) ",
+              "family": 46,
+              "pass": 0,
+              "allowance": 4417,
+              "units": 172,
+              "wallMs": 197,
+              "outcome": "kept"
+            },
+            {
+              "law": "every x, y, z with x < size ∧ y < size ∧ ¬(x = y) ",
+              "family": 46,
+              "pass": 0,
+              "allowance": 4841,
+              "units": 555,
+              "wallMs": 431,
+              "outcome": "kept"
+            },
+            {
+              "law": "every x, y, z with x < size ∧ y < size ∧ ¬(x = y) ",
+              "family": 46,
+              "pass": 0,
+              "allowance": 5317,
+              "units": 465,
+              "wallMs": 504,
+              "outcome": "kept"
+            },
+            {
+              "law": "every VoteRequestMsg cell is a value of its kind",
+              "family": 46,
+              "pass": 0,
+              "allowance": 5924,
+              "units": 9,
+              "wallMs": 24,
+              "outcome": "kept"
+            },
+            {
+              "law": "every Voted cell is a value of its kind",
+              "family": 46,
+              "pass": 0,
+              "allowance": 6769,
+              "units": 9,
+              "wallMs": 22,
+              "outcome": "kept"
+            },
+            {
+              "law": "every VoteMsg cell is a value of its kind",
+              "family": 46,
+              "pass": 0,
+              "allowance": 7896,
+              "units": 9,
+              "wallMs": 21,
+              "outcome": "kept"
+            },
+            {
+              "law": "every Votes cell is a value of its kind",
+              "family": 46,
+              "pass": 0,
+              "allowance": 9473,
+              "units": 9,
+              "wallMs": 22,
+              "outcome": "kept"
+            },
+            {
+              "law": "every Leader cell is a value of its kind",
+              "family": 46,
+              "pass": 0,
+              "allowance": 11839,
+              "units": 9,
+              "wallMs": 19,
+              "outcome": "kept"
+            },
+            {
+              "law": "every VotingQuorum cell is a value of its kind",
+              "family": 46,
+              "pass": 0,
+              "allowance": 15782,
+              "units": 4,
+              "wallMs": 9,
+              "outcome": "kept"
+            },
+            {
+              "law": "every Decided cell is a value of its kind",
+              "family": 46,
+              "pass": 0,
+              "allowance": 23671,
+              "units": 9,
+              "wallMs": 22,
+              "outcome": "kept"
+            },
+            {
+              "law": "one value decided",
+              "family": 46,
+              "pass": 0,
+              "allowance": 47334,
+              "units": 340,
+              "wallMs": 403,
+              "outcome": "kept"
+            }
+          ],
+          "names": [
+            [
+              "every VoteRequestMsg cell is a value of its kind",
+              "every Voted cell is a value of its kind",
+              "every VoteMsg cell is a value of its kind",
+              "every Votes cell is a value of its kind",
+              "every Leader cell is a value of its kind",
+              "every VotingQuorum cell is a value of its kind",
+              "every Decided cell is a value of its kind",
+              "one value decided",
+              "members$VotingQuorum keeps members's bound 0",
+              "members$VotingQuorum keeps members's bound 2",
+              "Leader keeps members$VotingQuorum's bound through members$VotingQuorum$Leader",
+              "Decided: one second key a first",
+              "every x with x < size: never Voted[x] is 0 and 1 <= VoteMsg[64·x + x]",
+              "every x with x < size: never Voted[x] is 0 and 1 <= Votes[64·x + x]",
+              "every x with x < size: never 1 <= Voted[x] and started is 0",
+              "every x with x < size: never 1 <= Leader[x] and started is 0",
+              "every x with x < size: never 1 <= VotingQuorum[x] and started is 0",
+              "every x with x < size: never VoteRequestMsg[64·x + x] is 0 and 1 <= VoteMsg[64·x + x]",
+              "every x with x < size: never VoteRequestMsg[64·x + x] is 0 and 1 <= Votes[64·x + x]",
+              "every x with x < size: never 1 <= VoteRequestMsg[64·x + x] and started is 0",
+              "every x with x < size: never VoteMsg[64·x + x] is 0 and 1 <= Votes[64·x + x]",
+              "every x with x < size: never 1 <= VoteMsg[64·x + x] and started is 0",
+              "every x with x < size: never 1 <= Votes[64·x + x] and started is 0",
+              "every x, y with x < size ∧ y < 64: never Leader[x] is 0 and 1 <= Decided[64·x + y]",
+              "every x, y with x < size ∧ y < 64: never 1 <= Decided[64·x + y] and started is 0",
+              "every x, y, z with x < size ∧ y < 64 ∧ z < 64 ∧ ¬(y = z): never 1 <= Decided[64·x + y] and 1 <= Decided[64·x + z]",
+              "every x, y with x < size ∧ y < size ∧ ¬(x = y): never Voted[x] is 0 and 1 <= VoteMsg[64·x + y]",
+              "every x, y with x < size ∧ y < size ∧ ¬(x = y): never Voted[x] is 0 and 1 <= Votes[64·y + x]",
+              "every x, y with x < size ∧ y < size ∧ ¬(x = y): never 1 <= Leader[x] and 1 <= Leader[y]",
+              "every x, y with x < size ∧ y < size ∧ ¬(x = y): never VoteRequestMsg[64·x + y] is 0 and 1 <= VoteMsg[64·y + x]",
+              "every x, y with x < size ∧ y < size ∧ ¬(x = y): never VoteRequestMsg[64·x + y] is 0 and 1 <= Votes[64·x + y]",
+              "every x, y with x < size ∧ y < size ∧ ¬(x = y): never 1 <= VoteRequestMsg[64·x + y] and started is 0",
+              "every x, y with x < size ∧ y < size ∧ ¬(x = y): never 1 <= VoteMsg[64·x + x] and 1 <= VoteMsg[64·x + y]",
+              "every x, y with x < size ∧ y < size ∧ ¬(x = y): never 1 <= VoteMsg[64·x + x] and 1 <= Votes[64·y + x]",
+              "every x, y with x < size ∧ y < size ∧ ¬(x = y): never VoteMsg[64·x + y] is 0 and 1 <= Votes[64·y + x]",
+              "every x, y with x < size ∧ y < size ∧ ¬(x = y): never 1 <= VoteMsg[64·x + y] and 1 <= Votes[64·x + x]",
+              "every x, y with x < size ∧ y < size ∧ ¬(x = y): never 1 <= VoteMsg[64·x + y] and started is 0",
+              "every x, y with x < size ∧ y < size ∧ ¬(x = y): never 1 <= Votes[64·x + x] and 1 <= Votes[64·y + x]",
+              "every x, y with x < size ∧ y < size ∧ ¬(x = y): never 1 <= Votes[64·x + y] and started is 0",
+              "every x, y, z with x < size ∧ y < size ∧ ¬(x = y) ∧ z < 64: never Voted[x] is 0 and 1 <= Decided[64·y + z]",
+              "every x, y, z with x < size ∧ y < size ∧ ¬(x = y) ∧ z < 64: never 1 <= Leader[x] and 1 <= Decided[64·y + z]",
+              "every x, y, z with x < size ∧ y < size ∧ ¬(x = y) ∧ z < 64: never 1 <= Decided[64·x + z] and 1 <= Decided[64·y + z]",
+              "every x, y, z, w with x < size ∧ y < size ∧ ¬(x = y) ∧ z < 64 ∧ w < 64 ∧ ¬(z = w): never 1 <= Decided[64·x + z] and 1 <= Decided[64·y + w]",
+              "every x, y, z with x < size ∧ y < size ∧ ¬(x = y) ∧ z < size ∧ ¬(x = z) ∧ ¬(y = z): never 1 <= VoteMsg[64·x + y] and 1 <= VoteMsg[64·x + z]",
+              "every x, y, z with x < size ∧ y < size ∧ ¬(x = y) ∧ z < size ∧ ¬(x = z) ∧ ¬(y = z): never 1 <= VoteMsg[64·x + y] and 1 <= Votes[64·z + x]",
+              "every x, y, z with x < size ∧ y < size ∧ ¬(x = y) ∧ z < size ∧ ¬(x = z) ∧ ¬(y = z): never 1 <= Votes[64·x + y] and 1 <= Votes[64·z + y]",
+              "carry:point-guard:adc673d7c555ac2c",
+              "carry:point-guard:695583f187e7e5ab"
+            ]
+          ]
+        }
+      }
+    },
+    {
+      "index": 6403,
+      "repeat": 2,
+      "cpu": "AMD Ryzen 9 9950X 16-Core Processor",
+      "metrics": {
+        "base": {
+          "verdict": "proven",
+          "found": [
+            "every VoteRequestMsg cell is a value of its kind",
+            "every Voted cell is a value of its kind",
+            "every VoteMsg cell is a value of its kind",
+            "every Votes cell is a value of its kind",
+            "every Leader cell is a value of its kind",
+            "every VotingQuorum cell is a value of its kind",
+            "every Decided cell is a value of its kind",
+            "one value decided",
+            "members$VotingQuorum keeps members's bound 0",
+            "members$VotingQuorum keeps members's bound 2",
+            "Leader keeps members$VotingQuorum's bound through members$VotingQuorum$Leader",
+            "Decided: one second key a first",
+            "every x with x < size: never Voted[x] is 0 and 1 <= VoteMsg[64·x + x]",
+            "every x with x < size: never Voted[x] is 0 and 1 <= Votes[64·x + x]",
+            "every x with x < size: never 1 <= Voted[x] and started is 0",
+            "every x with x < size: never 1 <= Leader[x] and started is 0",
+            "every x with x < size: never 1 <= VotingQuorum[x] and started is 0",
+            "every x with x < size: never VoteRequestMsg[64·x + x] is 0 and 1 <= VoteMsg[64·x + x]",
+            "every x with x < size: never VoteRequestMsg[64·x + x] is 0 and 1 <= Votes[64·x + x]",
+            "every x with x < size: never 1 <= VoteRequestMsg[64·x + x] and started is 0",
+            "every x with x < size: never VoteMsg[64·x + x] is 0 and 1 <= Votes[64·x + x]",
+            "every x with x < size: never 1 <= VoteMsg[64·x + x] and started is 0",
+            "every x with x < size: never 1 <= Votes[64·x + x] and started is 0",
+            "every x, y with x < size ∧ y < 64: never Leader[x] is 0 and 1 <= Decided[64·x + y]",
+            "every x, y with x < size ∧ y < 64: never 1 <= Decided[64·x + y] and started is 0",
+            "every x, y, z with x < size ∧ y < 64 ∧ z < 64 ∧ ¬(y = z): never 1 <= Decided[64·x + y] and 1 <= Decided[64·x + z]",
+            "every x, y with x < size ∧ y < size ∧ ¬(x = y): never Voted[x] is 0 and 1 <= VoteMsg[64·x + y]",
+            "every x, y with x < size ∧ y < size ∧ ¬(x = y): never Voted[x] is 0 and 1 <= Votes[64·y + x]",
+            "every x, y with x < size ∧ y < size ∧ ¬(x = y): never 1 <= Leader[x] and 1 <= Leader[y]",
+            "every x, y with x < size ∧ y < size ∧ ¬(x = y): never VoteRequestMsg[64·x + y] is 0 and 1 <= VoteMsg[64·y + x]",
+            "every x, y with x < size ∧ y < size ∧ ¬(x = y): never VoteRequestMsg[64·x + y] is 0 and 1 <= Votes[64·x + y]",
+            "every x, y with x < size ∧ y < size ∧ ¬(x = y): never 1 <= VoteRequestMsg[64·x + y] and started is 0",
+            "every x, y with x < size ∧ y < size ∧ ¬(x = y): never 1 <= VoteMsg[64·x + x] and 1 <= VoteMsg[64·x + y]",
+            "every x, y with x < size ∧ y < size ∧ ¬(x = y): never 1 <= VoteMsg[64·x + x] and 1 <= Votes[64·y + x]",
+            "every x, y with x < size ∧ y < size ∧ ¬(x = y): never VoteMsg[64·x + y] is 0 and 1 <= Votes[64·y + x]",
+            "every x, y with x < size ∧ y < size ∧ ¬(x = y): never 1 <= VoteMsg[64·x + y] and 1 <= Votes[64·x + x]",
+            "every x, y with x < size ∧ y < size ∧ ¬(x = y): never 1 <= VoteMsg[64·x + y] and started is 0",
+            "every x, y with x < size ∧ y < size ∧ ¬(x = y): never 1 <= Votes[64·x + x] and 1 <= Votes[64·y + x]",
+            "every x, y with x < size ∧ y < size ∧ ¬(x = y): never 1 <= Votes[64·x + y] and started is 0",
+            "every x, y, z with x < size ∧ y < size ∧ ¬(x = y) ∧ z < 64: never 1 <= Leader[x] and 1 <= Decided[64·y + z]",
+            "every x, y, z with x < size ∧ y < size ∧ ¬(x = y) ∧ z < 64: never 1 <= Decided[64·x + z] and 1 <= Decided[64·y + z]",
+            "every x, y, z, w with x < size ∧ y < size ∧ ¬(x = y) ∧ z < 64 ∧ w < 64 ∧ ¬(z = w): never 1 <= Decided[64·x + z] and 1 <= Decided[64·y + w]",
+            "every x, y, z with x < size ∧ y < size ∧ ¬(x = y) ∧ z < size ∧ ¬(x = z) ∧ ¬(y = z): never 1 <= VoteMsg[64·x + y] and 1 <= VoteMsg[64·x + z]",
+            "every x, y, z with x < size ∧ y < size ∧ ¬(x = y) ∧ z < size ∧ ¬(x = z) ∧ ¬(y = z): never 1 <= VoteMsg[64·x + y] and 1 <= Votes[64·z + x]",
+            "every x, y, z with x < size ∧ y < size ∧ ¬(x = y) ∧ z < size ∧ ¬(x = z) ∧ ¬(y = z): never 1 <= Votes[64·x + y] and 1 <= Votes[64·z + y]"
+          ],
+          "ms": 22875,
+          "work": 11093727,
+          "full": 3256350,
+          "wallMs": 23060.705833999993,
+          "generationWallMs": 10910.896349,
+          "preAttemptWallMs": 10913.700914000001,
+          "attempts": [
+            {
+              "law": "members$VotingQuorum keeps members's bound 0",
+              "family": 46,
+              "pass": 0,
+              "allowance": 1304,
+              "units": 17,
+              "wallMs": 69,
+              "outcome": "sat"
+            },
+            {
+              "law": "members$VotingQuorum keeps members's bound 0",
+              "family": 46,
+              "pass": 1,
+              "allowance": 1304,
+              "units": 101,
+              "wallMs": 136,
+              "outcome": "kept"
+            },
+            {
+              "law": "members$VotingQuorum keeps members's bound 2",
+              "family": 46,
+              "pass": 0,
+              "allowance": 1331,
+              "units": 13,
+              "wallMs": 57,
+              "outcome": "sat"
+            },
+            {
+              "law": "members$VotingQuorum keeps members's bound 2",
+              "family": 46,
+              "pass": 1,
+              "allowance": 1331,
+              "units": 73,
+              "wallMs": 105,
+              "outcome": "kept"
+            },
+            {
+              "law": "Leader keeps members$VotingQuorum's bound through ",
+              "family": 46,
+              "pass": 0,
+              "allowance": 1359,
+              "units": 33,
+              "wallMs": 69,
+              "outcome": "sat"
+            },
+            {
+              "law": "Leader keeps members$VotingQuorum's bound through ",
+              "family": 46,
+              "pass": 1,
+              "allowance": 1359,
+              "units": 291,
+              "wallMs": 478,
+              "outcome": "kept"
+            },
+            {
+              "law": "Decided: one second key a first",
+              "family": 46,
+              "pass": 0,
+              "allowance": 1383,
+              "units": 244,
+              "wallMs": 346,
+              "outcome": "kept"
+            },
+            {
+              "law": "every x with x < size: never Voted[x] is 0 and 1 <",
+              "family": 46,
+              "pass": 0,
+              "allowance": 1410,
+              "units": 67,
+              "wallMs": 84,
+              "outcome": "kept"
+            },
+            {
+              "law": "every x with x < size: never Voted[x] is 0 and 1 <",
+              "family": 46,
+              "pass": 0,
+              "allowance": 1443,
+              "units": 99,
+              "wallMs": 104,
+              "outcome": "kept"
+            },
+            {
+              "law": "every x with x < size: never 1 <= Voted[x] and sta",
+              "family": 46,
+              "pass": 0,
+              "allowance": 1477,
+              "units": 21,
+              "wallMs": 23,
+              "outcome": "kept"
+            },
+            {
+              "law": "every x with x < size: never 1 <= Leader[x] and st",
+              "family": 46,
+              "pass": 0,
+              "allowance": 1514,
+              "units": 21,
+              "wallMs": 43,
+              "outcome": "kept"
+            },
+            {
+              "law": "every x with x < size: never 1 <= VotingQuorum[x] ",
+              "family": 46,
+              "pass": 0,
+              "allowance": 1553,
+              "units": 19,
+              "wallMs": 26,
+              "outcome": "kept"
+            },
+            {
+              "law": "every x with x < size: never VoteRequestMsg[64·x +",
+              "family": 46,
+              "pass": 0,
+              "allowance": 1595,
+              "units": 202,
+              "wallMs": 242,
+              "outcome": "kept"
+            },
+            {
+              "law": "every x with x < size: never VoteRequestMsg[64·x +",
+              "family": 46,
+              "pass": 0,
+              "allowance": 1633,
+              "units": 197,
+              "wallMs": 298,
+              "outcome": "kept"
+            },
+            {
+              "law": "every x with x < size: never 1 <= VoteRequestMsg[6",
+              "family": 46,
+              "pass": 0,
+              "allowance": 1674,
+              "units": 41,
+              "wallMs": 63,
+              "outcome": "kept"
+            },
+            {
+              "law": "every x with x < size: never VoteMsg[64·x + x] is ",
+              "family": 46,
+              "pass": 0,
+              "allowance": 1722,
+              "units": 200,
+              "wallMs": 205,
+              "outcome": "kept"
+            },
+            {
+              "law": "every x with x < size: never 1 <= VoteMsg[64·x + x",
+              "family": 46,
+              "pass": 0,
+              "allowance": 1768,
+              "units": 44,
+              "wallMs": 40,
+              "outcome": "kept"
+            },
+            {
+              "law": "every x with x < size: never 1 <= Votes[64·x + x] ",
+              "family": 46,
+              "pass": 0,
+              "allowance": 1822,
+              "units": 46,
+              "wallMs": 44,
+              "outcome": "kept"
+            },
+            {
+              "law": "every x, y with x < size ∧ y < 64: never Leader[x]",
+              "family": 46,
+              "pass": 0,
+              "allowance": 1880,
+              "units": 184,
+              "wallMs": 180,
+              "outcome": "kept"
+            },
+            {
+              "law": "every x, y with x < size ∧ y < 64: never 1 <= Deci",
+              "family": 46,
+              "pass": 0,
+              "allowance": 1936,
+              "units": 46,
+              "wallMs": 71,
+              "outcome": "kept"
+            },
+            {
+              "law": "every x, y, z with x < size ∧ y < 64 ∧ z < 64 ∧ ¬(",
+              "family": 46,
+              "pass": 0,
+              "allowance": 2001,
+              "units": 197,
+              "wallMs": 219,
+              "outcome": "kept"
+            },
+            {
+              "law": "every x, y with x < size ∧ y < size ∧ ¬(x = y): ne",
+              "family": 46,
+              "pass": 0,
+              "allowance": 2066,
+              "units": 92,
+              "wallMs": 117,
+              "outcome": "kept"
+            },
+            {
+              "law": "every x, y with x < size ∧ y < size ∧ ¬(x = y): ne",
+              "family": 46,
+              "pass": 0,
+              "allowance": 2139,
+              "units": 150,
+              "wallMs": 181,
+              "outcome": "kept"
+            },
+            {
+              "law": "every x, y with x < size ∧ y < size ∧ ¬(x = y): ne",
+              "family": 46,
+              "pass": 0,
+              "allowance": 2215,
+              "units": 160,
+              "wallMs": 225,
+              "outcome": "sat"
+            },
+            {
+              "law": "every x, y with x < size ∧ y < size ∧ ¬(x = y): ne",
+              "family": 46,
+              "pass": 1,
+              "allowance": 2215,
+              "units": 1370,
+              "wallMs": 1094,
+              "outcome": "kept"
+            },
+            {
+              "law": "every x, y with x < size ∧ y < size ∧ ¬(x = y): ne",
+              "family": 46,
+              "pass": 0,
+              "allowance": 2243,
+              "units": 139,
+              "wallMs": 197,
+              "outcome": "kept"
+            },
+            {
+              "law": "every x, y with x < size ∧ y < size ∧ ¬(x = y): ne",
+              "family": 46,
+              "pass": 0,
+              "allowance": 2331,
+              "units": 348,
+              "wallMs": 290,
+              "outcome": "kept"
+            },
+            {
+              "law": "every x, y with x < size ∧ y < size ∧ ¬(x = y): ne",
+              "family": 46,
+              "pass": 0,
+              "allowance": 2417,
+              "units": 26,
+              "wallMs": 53,
+              "outcome": "kept"
+            },
+            {
+              "law": "every x, y with x < size ∧ y < size ∧ ¬(x = y): ne",
+              "family": 46,
+              "pass": 0,
+              "allowance": 2525,
+              "units": 84,
+              "wallMs": 65,
+              "outcome": "kept"
+            },
+            {
+              "law": "every x, y with x < size ∧ y < size ∧ ¬(x = y): ne",
+              "family": 46,
+              "pass": 0,
+              "allowance": 2642,
+              "units": 234,
+              "wallMs": 220,
+              "outcome": "kept"
+            },
+            {
+              "law": "every x, y with x < size ∧ y < size ∧ ¬(x = y): ne",
+              "family": 46,
+              "pass": 0,
+              "allowance": 2762,
+              "units": 528,
+              "wallMs": 433,
+              "outcome": "kept"
+            },
+            {
+              "law": "every x, y with x < size ∧ y < size ∧ ¬(x = y): ne",
+              "family": 46,
+              "pass": 0,
+              "allowance": 2880,
+              "units": 160,
+              "wallMs": 105,
+              "outcome": "kept"
+            },
+            {
+              "law": "every x, y with x < size ∧ y < size ∧ ¬(x = y): ne",
+              "family": 46,
+              "pass": 0,
+              "allowance": 3031,
+              "units": 44,
+              "wallMs": 124,
+              "outcome": "kept"
+            },
+            {
+              "law": "every x, y with x < size ∧ y < size ∧ ¬(x = y): ne",
+              "family": 46,
+              "pass": 0,
+              "allowance": 3206,
+              "units": 205,
+              "wallMs": 131,
+              "outcome": "kept"
+            },
+            {
+              "law": "every x, y with x < size ∧ y < size ∧ ¬(x = y): ne",
+              "family": 46,
+              "pass": 0,
+              "allowance": 3394,
+              "units": 36,
+              "wallMs": 35,
+              "outcome": "kept"
+            },
+            {
+              "law": "every x, y, z with x < size ∧ y < size ∧ ¬(x = y) ",
+              "family": 46,
+              "pass": 0,
+              "allowance": 3618,
+              "units": 89,
+              "wallMs": 150,
+              "outcome": "sat"
+            },
+            {
+              "law": "every x, y, z with x < size ∧ y < size ∧ ¬(x = y) ",
+              "family": 46,
+              "pass": 1,
+              "allowance": 3618,
+              "units": 3621,
+              "wallMs": 1670,
+              "outcome": "unknown"
+            },
+            {
+              "law": "every x, y, z with x < size ∧ y < size ∧ ¬(x = y) ",
+              "family": 46,
+              "pass": 0,
+              "allowance": 3611,
+              "units": 201,
+              "wallMs": 191,
+              "outcome": "sat"
+            },
+            {
+              "law": "every x, y, z with x < size ∧ y < size ∧ ¬(x = y) ",
+              "family": 46,
+              "pass": 1,
+              "allowance": 3611,
+              "units": 1350,
+              "wallMs": 921,
+              "outcome": "kept"
+            },
+            {
+              "law": "every x, y, z with x < size ∧ y < size ∧ ¬(x = y) ",
+              "family": 46,
+              "pass": 0,
+              "allowance": 3770,
+              "units": 122,
+              "wallMs": 88,
+              "outcome": "kept"
+            },
+            {
+              "law": "every x, y, z, w with x < size ∧ y < size ∧ ¬(x = ",
+              "family": 46,
+              "pass": 0,
+              "allowance": 4074,
+              "units": 322,
+              "wallMs": 203,
+              "outcome": "kept"
+            },
+            {
+              "law": "every x, y, z with x < size ∧ y < size ∧ ¬(x = y) ",
+              "family": 46,
+              "pass": 0,
+              "allowance": 4415,
+              "units": 172,
+              "wallMs": 104,
+              "outcome": "kept"
+            },
+            {
+              "law": "every x, y, z with x < size ∧ y < size ∧ ¬(x = y) ",
+              "family": 46,
+              "pass": 0,
+              "allowance": 4839,
+              "units": 555,
+              "wallMs": 370,
+              "outcome": "kept"
+            },
+            {
+              "law": "every x, y, z with x < size ∧ y < size ∧ ¬(x = y) ",
+              "family": 46,
+              "pass": 0,
+              "allowance": 5315,
+              "units": 465,
+              "wallMs": 479,
+              "outcome": "kept"
+            },
+            {
+              "law": "every VoteRequestMsg cell is a value of its kind",
+              "family": 46,
+              "pass": 0,
+              "allowance": 5921,
+              "units": 9,
+              "wallMs": 33,
+              "outcome": "kept"
+            },
+            {
+              "law": "every Voted cell is a value of its kind",
+              "family": 46,
+              "pass": 0,
+              "allowance": 6766,
+              "units": 9,
+              "wallMs": 77,
+              "outcome": "kept"
+            },
+            {
+              "law": "every VoteMsg cell is a value of its kind",
+              "family": 46,
+              "pass": 0,
+              "allowance": 7892,
+              "units": 9,
+              "wallMs": 149,
+              "outcome": "kept"
+            },
+            {
+              "law": "every Votes cell is a value of its kind",
+              "family": 46,
+              "pass": 0,
+              "allowance": 9469,
+              "units": 9,
+              "wallMs": 35,
+              "outcome": "kept"
+            },
+            {
+              "law": "every Leader cell is a value of its kind",
+              "family": 46,
+              "pass": 0,
+              "allowance": 11834,
+              "units": 9,
+              "wallMs": 33,
+              "outcome": "kept"
+            },
+            {
+              "law": "every VotingQuorum cell is a value of its kind",
+              "family": 46,
+              "pass": 0,
+              "allowance": 15776,
+              "units": 4,
+              "wallMs": 14,
+              "outcome": "kept"
+            },
+            {
+              "law": "every Decided cell is a value of its kind",
+              "family": 46,
+              "pass": 0,
+              "allowance": 23662,
+              "units": 9,
+              "wallMs": 30,
+              "outcome": "kept"
+            },
+            {
+              "law": "one value decided",
+              "family": 46,
+              "pass": 0,
+              "allowance": 47314,
+              "units": 340,
+              "wallMs": 445,
+              "outcome": "kept"
+            }
+          ],
+          "names": [
+            [
+              "every VoteRequestMsg cell is a value of its kind",
+              "every Voted cell is a value of its kind",
+              "every VoteMsg cell is a value of its kind",
+              "every Votes cell is a value of its kind",
+              "every Leader cell is a value of its kind",
+              "every VotingQuorum cell is a value of its kind",
+              "every Decided cell is a value of its kind",
+              "one value decided",
+              "members$VotingQuorum keeps members's bound 0",
+              "members$VotingQuorum keeps members's bound 2",
+              "Leader keeps members$VotingQuorum's bound through members$VotingQuorum$Leader",
+              "Decided: one second key a first",
+              "every x with x < size: never Voted[x] is 0 and 1 <= VoteMsg[64·x + x]",
+              "every x with x < size: never Voted[x] is 0 and 1 <= Votes[64·x + x]",
+              "every x with x < size: never 1 <= Voted[x] and started is 0",
+              "every x with x < size: never 1 <= Leader[x] and started is 0",
+              "every x with x < size: never 1 <= VotingQuorum[x] and started is 0",
+              "every x with x < size: never VoteRequestMsg[64·x + x] is 0 and 1 <= VoteMsg[64·x + x]",
+              "every x with x < size: never VoteRequestMsg[64·x + x] is 0 and 1 <= Votes[64·x + x]",
+              "every x with x < size: never 1 <= VoteRequestMsg[64·x + x] and started is 0",
+              "every x with x < size: never VoteMsg[64·x + x] is 0 and 1 <= Votes[64·x + x]",
+              "every x with x < size: never 1 <= VoteMsg[64·x + x] and started is 0",
+              "every x with x < size: never 1 <= Votes[64·x + x] and started is 0",
+              "every x, y with x < size ∧ y < 64: never Leader[x] is 0 and 1 <= Decided[64·x + y]",
+              "every x, y with x < size ∧ y < 64: never 1 <= Decided[64·x + y] and started is 0",
+              "every x, y, z with x < size ∧ y < 64 ∧ z < 64 ∧ ¬(y = z): never 1 <= Decided[64·x + y] and 1 <= Decided[64·x + z]",
+              "every x, y with x < size ∧ y < size ∧ ¬(x = y): never Voted[x] is 0 and 1 <= VoteMsg[64·x + y]",
+              "every x, y with x < size ∧ y < size ∧ ¬(x = y): never Voted[x] is 0 and 1 <= Votes[64·y + x]",
+              "every x, y with x < size ∧ y < size ∧ ¬(x = y): never 1 <= Leader[x] and 1 <= Leader[y]",
+              "every x, y with x < size ∧ y < size ∧ ¬(x = y): never VoteRequestMsg[64·x + y] is 0 and 1 <= VoteMsg[64·y + x]",
+              "every x, y with x < size ∧ y < size ∧ ¬(x = y): never VoteRequestMsg[64·x + y] is 0 and 1 <= Votes[64·x + y]",
+              "every x, y with x < size ∧ y < size ∧ ¬(x = y): never 1 <= VoteRequestMsg[64·x + y] and started is 0",
+              "every x, y with x < size ∧ y < size ∧ ¬(x = y): never 1 <= VoteMsg[64·x + x] and 1 <= VoteMsg[64·x + y]",
+              "every x, y with x < size ∧ y < size ∧ ¬(x = y): never 1 <= VoteMsg[64·x + x] and 1 <= Votes[64·y + x]",
+              "every x, y with x < size ∧ y < size ∧ ¬(x = y): never VoteMsg[64·x + y] is 0 and 1 <= Votes[64·y + x]",
+              "every x, y with x < size ∧ y < size ∧ ¬(x = y): never 1 <= VoteMsg[64·x + y] and 1 <= Votes[64·x + x]",
+              "every x, y with x < size ∧ y < size ∧ ¬(x = y): never 1 <= VoteMsg[64·x + y] and started is 0",
+              "every x, y with x < size ∧ y < size ∧ ¬(x = y): never 1 <= Votes[64·x + x] and 1 <= Votes[64·y + x]",
+              "every x, y with x < size ∧ y < size ∧ ¬(x = y): never 1 <= Votes[64·x + y] and started is 0",
+              "every x, y, z with x < size ∧ y < size ∧ ¬(x = y) ∧ z < 64: never Voted[x] is 0 and 1 <= Decided[64·y + z]",
+              "every x, y, z with x < size ∧ y < size ∧ ¬(x = y) ∧ z < 64: never 1 <= Leader[x] and 1 <= Decided[64·y + z]",
+              "every x, y, z with x < size ∧ y < size ∧ ¬(x = y) ∧ z < 64: never 1 <= Decided[64·x + z] and 1 <= Decided[64·y + z]",
+              "every x, y, z, w with x < size ∧ y < size ∧ ¬(x = y) ∧ z < 64 ∧ w < 64 ∧ ¬(z = w): never 1 <= Decided[64·x + z] and 1 <= Decided[64·y + w]",
+              "every x, y, z with x < size ∧ y < size ∧ ¬(x = y) ∧ z < size ∧ ¬(x = z) ∧ ¬(y = z): never 1 <= VoteMsg[64·x + y] and 1 <= VoteMsg[64·x + z]",
+              "every x, y, z with x < size ∧ y < size ∧ ¬(x = y) ∧ z < size ∧ ¬(x = z) ∧ ¬(y = z): never 1 <= VoteMsg[64·x + y] and 1 <= Votes[64·z + x]",
+              "every x, y, z with x < size ∧ y < size ∧ ¬(x = y) ∧ z < size ∧ ¬(x = z) ∧ ¬(y = z): never 1 <= Votes[64·x + y] and 1 <= Votes[64·z + y]",
+              "carry:point-guard:adc673d7c555ac2c",
+              "carry:point-guard:695583f187e7e5ab"
+            ]
+          ]
+        },
+        "candidate": {
+          "verdict": "proven",
+          "found": [
+            "every VoteRequestMsg cell is a value of its kind",
+            "every Voted cell is a value of its kind",
+            "every VoteMsg cell is a value of its kind",
+            "every Votes cell is a value of its kind",
+            "every Leader cell is a value of its kind",
+            "every VotingQuorum cell is a value of its kind",
+            "every Decided cell is a value of its kind",
+            "one value decided",
+            "members$VotingQuorum keeps members's bound 0",
+            "members$VotingQuorum keeps members's bound 2",
+            "Leader keeps members$VotingQuorum's bound through members$VotingQuorum$Leader",
+            "Decided: one second key a first",
+            "every x with x < size: never Voted[x] is 0 and 1 <= VoteMsg[64·x + x]",
+            "every x with x < size: never Voted[x] is 0 and 1 <= Votes[64·x + x]",
+            "every x with x < size: never 1 <= Voted[x] and started is 0",
+            "every x with x < size: never 1 <= Leader[x] and started is 0",
+            "every x with x < size: never 1 <= VotingQuorum[x] and started is 0",
+            "every x with x < size: never VoteRequestMsg[64·x + x] is 0 and 1 <= VoteMsg[64·x + x]",
+            "every x with x < size: never VoteRequestMsg[64·x + x] is 0 and 1 <= Votes[64·x + x]",
+            "every x with x < size: never 1 <= VoteRequestMsg[64·x + x] and started is 0",
+            "every x with x < size: never VoteMsg[64·x + x] is 0 and 1 <= Votes[64·x + x]",
+            "every x with x < size: never 1 <= VoteMsg[64·x + x] and started is 0",
+            "every x with x < size: never 1 <= Votes[64·x + x] and started is 0",
+            "every x, y with x < size ∧ y < 64: never Leader[x] is 0 and 1 <= Decided[64·x + y]",
+            "every x, y with x < size ∧ y < 64: never 1 <= Decided[64·x + y] and started is 0",
+            "every x, y, z with x < size ∧ y < 64 ∧ z < 64 ∧ ¬(y = z): never 1 <= Decided[64·x + y] and 1 <= Decided[64·x + z]",
+            "every x, y with x < size ∧ y < size ∧ ¬(x = y): never Voted[x] is 0 and 1 <= VoteMsg[64·x + y]",
+            "every x, y with x < size ∧ y < size ∧ ¬(x = y): never Voted[x] is 0 and 1 <= Votes[64·y + x]",
+            "every x, y with x < size ∧ y < size ∧ ¬(x = y): never 1 <= Leader[x] and 1 <= Leader[y]",
+            "every x, y with x < size ∧ y < size ∧ ¬(x = y): never VoteRequestMsg[64·x + y] is 0 and 1 <= VoteMsg[64·y + x]",
+            "every x, y with x < size ∧ y < size ∧ ¬(x = y): never VoteRequestMsg[64·x + y] is 0 and 1 <= Votes[64·x + y]",
+            "every x, y with x < size ∧ y < size ∧ ¬(x = y): never 1 <= VoteRequestMsg[64·x + y] and started is 0",
+            "every x, y with x < size ∧ y < size ∧ ¬(x = y): never 1 <= VoteMsg[64·x + x] and 1 <= VoteMsg[64·x + y]",
+            "every x, y with x < size ∧ y < size ∧ ¬(x = y): never 1 <= VoteMsg[64·x + x] and 1 <= Votes[64·y + x]",
+            "every x, y with x < size ∧ y < size ∧ ¬(x = y): never VoteMsg[64·x + y] is 0 and 1 <= Votes[64·y + x]",
+            "every x, y with x < size ∧ y < size ∧ ¬(x = y): never 1 <= VoteMsg[64·x + y] and 1 <= Votes[64·x + x]",
+            "every x, y with x < size ∧ y < size ∧ ¬(x = y): never 1 <= VoteMsg[64·x + y] and started is 0",
+            "every x, y with x < size ∧ y < size ∧ ¬(x = y): never 1 <= Votes[64·x + x] and 1 <= Votes[64·y + x]",
+            "every x, y with x < size ∧ y < size ∧ ¬(x = y): never 1 <= Votes[64·x + y] and started is 0",
+            "every x, y, z with x < size ∧ y < size ∧ ¬(x = y) ∧ z < 64: never 1 <= Leader[x] and 1 <= Decided[64·y + z]",
+            "every x, y, z with x < size ∧ y < size ∧ ¬(x = y) ∧ z < 64: never 1 <= Decided[64·x + z] and 1 <= Decided[64·y + z]",
+            "every x, y, z, w with x < size ∧ y < size ∧ ¬(x = y) ∧ z < 64 ∧ w < 64 ∧ ¬(z = w): never 1 <= Decided[64·x + z] and 1 <= Decided[64·y + w]",
+            "every x, y, z with x < size ∧ y < size ∧ ¬(x = y) ∧ z < size ∧ ¬(x = z) ∧ ¬(y = z): never 1 <= VoteMsg[64·x + y] and 1 <= VoteMsg[64·x + z]",
+            "every x, y, z with x < size ∧ y < size ∧ ¬(x = y) ∧ z < size ∧ ¬(x = z) ∧ ¬(y = z): never 1 <= VoteMsg[64·x + y] and 1 <= Votes[64·z + x]",
+            "every x, y, z with x < size ∧ y < size ∧ ¬(x = y) ∧ z < size ∧ ¬(x = z) ∧ ¬(y = z): never 1 <= Votes[64·x + y] and 1 <= Votes[64·z + y]"
+          ],
+          "ms": 34433,
+          "work": 11023203,
+          "full": 3251424,
+          "wallMs": 34740.731881,
+          "generationWallMs": 14534.834753000003,
+          "preAttemptWallMs": 14537.056631000003,
+          "attempts": [
+            {
+              "law": "members$VotingQuorum keeps members's bound 0",
+              "family": 46,
+              "pass": 0,
+              "allowance": 1304,
+              "units": 17,
+              "wallMs": 104,
+              "outcome": "sat"
+            },
+            {
+              "law": "members$VotingQuorum keeps members's bound 0",
+              "family": 46,
+              "pass": 1,
+              "allowance": 1304,
+              "units": 103,
+              "wallMs": 247,
+              "outcome": "kept"
+            },
+            {
+              "law": "members$VotingQuorum keeps members's bound 2",
+              "family": 46,
+              "pass": 0,
+              "allowance": 1331,
+              "units": 13,
+              "wallMs": 76,
+              "outcome": "sat"
+            },
+            {
+              "law": "members$VotingQuorum keeps members's bound 2",
+              "family": 46,
+              "pass": 1,
+              "allowance": 1331,
+              "units": 76,
+              "wallMs": 182,
+              "outcome": "kept"
+            },
+            {
+              "law": "Leader keeps members$VotingQuorum's bound through ",
+              "family": 46,
+              "pass": 0,
+              "allowance": 1359,
+              "units": 33,
+              "wallMs": 85,
+              "outcome": "sat"
+            },
+            {
+              "law": "Leader keeps members$VotingQuorum's bound through ",
+              "family": 46,
+              "pass": 1,
+              "allowance": 1359,
+              "units": 266,
+              "wallMs": 422,
+              "outcome": "kept"
+            },
+            {
+              "law": "Decided: one second key a first",
+              "family": 46,
+              "pass": 0,
+              "allowance": 1384,
+              "units": 244,
+              "wallMs": 476,
+              "outcome": "kept"
+            },
+            {
+              "law": "every x with x < size: never Voted[x] is 0 and 1 <",
+              "family": 46,
+              "pass": 0,
+              "allowance": 1411,
+              "units": 67,
+              "wallMs": 96,
+              "outcome": "kept"
+            },
+            {
+              "law": "every x with x < size: never Voted[x] is 0 and 1 <",
+              "family": 46,
+              "pass": 0,
+              "allowance": 1443,
+              "units": 99,
+              "wallMs": 132,
+              "outcome": "kept"
+            },
+            {
+              "law": "every x with x < size: never 1 <= Voted[x] and sta",
+              "family": 46,
+              "pass": 0,
+              "allowance": 1477,
+              "units": 21,
+              "wallMs": 63,
+              "outcome": "kept"
+            },
+            {
+              "law": "every x with x < size: never 1 <= Leader[x] and st",
+              "family": 46,
+              "pass": 0,
+              "allowance": 1514,
+              "units": 21,
+              "wallMs": 35,
+              "outcome": "kept"
+            },
+            {
+              "law": "every x with x < size: never 1 <= VotingQuorum[x] ",
+              "family": 46,
+              "pass": 0,
+              "allowance": 1554,
+              "units": 19,
+              "wallMs": 30,
+              "outcome": "kept"
+            },
+            {
+              "law": "every x with x < size: never VoteRequestMsg[64·x +",
+              "family": 46,
+              "pass": 0,
+              "allowance": 1595,
+              "units": 202,
+              "wallMs": 320,
+              "outcome": "kept"
+            },
+            {
+              "law": "every x with x < size: never VoteRequestMsg[64·x +",
+              "family": 46,
+              "pass": 0,
+              "allowance": 1634,
+              "units": 197,
+              "wallMs": 341,
+              "outcome": "kept"
+            },
+            {
+              "law": "every x with x < size: never 1 <= VoteRequestMsg[6",
+              "family": 46,
+              "pass": 0,
+              "allowance": 1675,
+              "units": 41,
+              "wallMs": 79,
+              "outcome": "kept"
+            },
+            {
+              "law": "every x with x < size: never VoteMsg[64·x + x] is ",
+              "family": 46,
+              "pass": 0,
+              "allowance": 1723,
+              "units": 200,
+              "wallMs": 259,
+              "outcome": "kept"
+            },
+            {
+              "law": "every x with x < size: never 1 <= VoteMsg[64·x + x",
+              "family": 46,
+              "pass": 0,
+              "allowance": 1769,
+              "units": 44,
+              "wallMs": 66,
+              "outcome": "kept"
+            },
+            {
+              "law": "every x with x < size: never 1 <= Votes[64·x + x] ",
+              "family": 46,
+              "pass": 0,
+              "allowance": 1823,
+              "units": 46,
+              "wallMs": 84,
+              "outcome": "kept"
+            },
+            {
+              "law": "every x, y with x < size ∧ y < 64: never Leader[x]",
+              "family": 46,
+              "pass": 0,
+              "allowance": 1880,
+              "units": 184,
+              "wallMs": 258,
+              "outcome": "kept"
+            },
+            {
+              "law": "every x, y with x < size ∧ y < 64: never 1 <= Deci",
+              "family": 46,
+              "pass": 0,
+              "allowance": 1937,
+              "units": 46,
+              "wallMs": 67,
+              "outcome": "kept"
+            },
+            {
+              "law": "every x, y, z with x < size ∧ y < 64 ∧ z < 64 ∧ ¬(",
+              "family": 46,
+              "pass": 0,
+              "allowance": 2002,
+              "units": 197,
+              "wallMs": 347,
+              "outcome": "kept"
+            },
+            {
+              "law": "every x, y with x < size ∧ y < size ∧ ¬(x = y): ne",
+              "family": 46,
+              "pass": 0,
+              "allowance": 2067,
+              "units": 92,
+              "wallMs": 115,
+              "outcome": "kept"
+            },
+            {
+              "law": "every x, y with x < size ∧ y < size ∧ ¬(x = y): ne",
+              "family": 46,
+              "pass": 0,
+              "allowance": 2140,
+              "units": 150,
+              "wallMs": 260,
+              "outcome": "kept"
+            },
+            {
+              "law": "every x, y with x < size ∧ y < size ∧ ¬(x = y): ne",
+              "family": 46,
+              "pass": 0,
+              "allowance": 2216,
+              "units": 160,
+              "wallMs": 288,
+              "outcome": "sat"
+            },
+            {
+              "law": "every x, y with x < size ∧ y < size ∧ ¬(x = y): ne",
+              "family": 46,
+              "pass": 1,
+              "allowance": 2216,
+              "units": 1370,
+              "wallMs": 1918,
+              "outcome": "kept"
+            },
+            {
+              "law": "every x, y with x < size ∧ y < size ∧ ¬(x = y): ne",
+              "family": 46,
+              "pass": 0,
+              "allowance": 2244,
+              "units": 139,
+              "wallMs": 218,
+              "outcome": "kept"
+            },
+            {
+              "law": "every x, y with x < size ∧ y < size ∧ ¬(x = y): ne",
+              "family": 46,
+              "pass": 0,
+              "allowance": 2331,
+              "units": 348,
+              "wallMs": 429,
+              "outcome": "kept"
+            },
+            {
+              "law": "every x, y with x < size ∧ y < size ∧ ¬(x = y): ne",
+              "family": 46,
+              "pass": 0,
+              "allowance": 2418,
+              "units": 26,
+              "wallMs": 48,
+              "outcome": "kept"
+            },
+            {
+              "law": "every x, y with x < size ∧ y < size ∧ ¬(x = y): ne",
+              "family": 46,
+              "pass": 0,
+              "allowance": 2526,
+              "units": 84,
+              "wallMs": 159,
+              "outcome": "kept"
+            },
+            {
+              "law": "every x, y with x < size ∧ y < size ∧ ¬(x = y): ne",
+              "family": 46,
+              "pass": 0,
+              "allowance": 2643,
+              "units": 234,
+              "wallMs": 328,
+              "outcome": "kept"
+            },
+            {
+              "law": "every x, y with x < size ∧ y < size ∧ ¬(x = y): ne",
+              "family": 46,
+              "pass": 0,
+              "allowance": 2763,
+              "units": 528,
+              "wallMs": 698,
+              "outcome": "kept"
+            },
+            {
+              "law": "every x, y with x < size ∧ y < size ∧ ¬(x = y): ne",
+              "family": 46,
+              "pass": 0,
+              "allowance": 2881,
+              "units": 160,
+              "wallMs": 256,
+              "outcome": "kept"
+            },
+            {
+              "law": "every x, y with x < size ∧ y < size ∧ ¬(x = y): ne",
+              "family": 46,
+              "pass": 0,
+              "allowance": 3032,
+              "units": 44,
+              "wallMs": 65,
+              "outcome": "kept"
+            },
+            {
+              "law": "every x, y with x < size ∧ y < size ∧ ¬(x = y): ne",
+              "family": 46,
+              "pass": 0,
+              "allowance": 3207,
+              "units": 205,
+              "wallMs": 289,
+              "outcome": "kept"
+            },
+            {
+              "law": "every x, y with x < size ∧ y < size ∧ ¬(x = y): ne",
+              "family": 46,
+              "pass": 0,
+              "allowance": 3395,
+              "units": 36,
+              "wallMs": 64,
+              "outcome": "kept"
+            },
+            {
+              "law": "every x, y, z with x < size ∧ y < size ∧ ¬(x = y) ",
+              "family": 46,
+              "pass": 0,
+              "allowance": 3619,
+              "units": 89,
+              "wallMs": 283,
+              "outcome": "sat"
+            },
+            {
+              "law": "every x, y, z with x < size ∧ y < size ∧ ¬(x = y) ",
+              "family": 46,
+              "pass": 1,
+              "allowance": 3619,
+              "units": 3621,
+              "wallMs": 3043,
+              "outcome": "unknown"
+            },
+            {
+              "law": "every x, y, z with x < size ∧ y < size ∧ ¬(x = y) ",
+              "family": 46,
+              "pass": 0,
+              "allowance": 3613,
+              "units": 201,
+              "wallMs": 330,
+              "outcome": "sat"
+            },
+            {
+              "law": "every x, y, z with x < size ∧ y < size ∧ ¬(x = y) ",
+              "family": 46,
+              "pass": 1,
+              "allowance": 3613,
+              "units": 1350,
+              "wallMs": 2029,
+              "outcome": "kept"
+            },
+            {
+              "law": "every x, y, z with x < size ∧ y < size ∧ ¬(x = y) ",
+              "family": 46,
+              "pass": 0,
+              "allowance": 3771,
+              "units": 122,
+              "wallMs": 136,
+              "outcome": "kept"
+            },
+            {
+              "law": "every x, y, z, w with x < size ∧ y < size ∧ ¬(x = ",
+              "family": 46,
+              "pass": 0,
+              "allowance": 4075,
+              "units": 322,
+              "wallMs": 469,
+              "outcome": "kept"
+            },
+            {
+              "law": "every x, y, z with x < size ∧ y < size ∧ ¬(x = y) ",
+              "family": 46,
+              "pass": 0,
+              "allowance": 4417,
+              "units": 172,
+              "wallMs": 322,
+              "outcome": "kept"
+            },
+            {
+              "law": "every x, y, z with x < size ∧ y < size ∧ ¬(x = y) ",
+              "family": 46,
+              "pass": 0,
+              "allowance": 4841,
+              "units": 555,
+              "wallMs": 1385,
+              "outcome": "kept"
+            },
+            {
+              "law": "every x, y, z with x < size ∧ y < size ∧ ¬(x = y) ",
+              "family": 46,
+              "pass": 0,
+              "allowance": 5317,
+              "units": 465,
+              "wallMs": 981,
+              "outcome": "kept"
+            },
+            {
+              "law": "every VoteRequestMsg cell is a value of its kind",
+              "family": 46,
+              "pass": 0,
+              "allowance": 5924,
+              "units": 9,
+              "wallMs": 48,
+              "outcome": "kept"
+            },
+            {
+              "law": "every Voted cell is a value of its kind",
+              "family": 46,
+              "pass": 0,
+              "allowance": 6769,
+              "units": 9,
+              "wallMs": 50,
+              "outcome": "kept"
+            },
+            {
+              "law": "every VoteMsg cell is a value of its kind",
+              "family": 46,
+              "pass": 0,
+              "allowance": 7896,
+              "units": 9,
+              "wallMs": 51,
+              "outcome": "kept"
+            },
+            {
+              "law": "every Votes cell is a value of its kind",
+              "family": 46,
+              "pass": 0,
+              "allowance": 9473,
+              "units": 9,
+              "wallMs": 54,
+              "outcome": "kept"
+            },
+            {
+              "law": "every Leader cell is a value of its kind",
+              "family": 46,
+              "pass": 0,
+              "allowance": 11839,
+              "units": 9,
+              "wallMs": 44,
+              "outcome": "kept"
+            },
+            {
+              "law": "every VotingQuorum cell is a value of its kind",
+              "family": 46,
+              "pass": 0,
+              "allowance": 15782,
+              "units": 4,
+              "wallMs": 20,
+              "outcome": "kept"
+            },
+            {
+              "law": "every Decided cell is a value of its kind",
+              "family": 46,
+              "pass": 0,
+              "allowance": 23671,
+              "units": 9,
+              "wallMs": 40,
+              "outcome": "kept"
+            },
+            {
+              "law": "one value decided",
+              "family": 46,
+              "pass": 0,
+              "allowance": 47334,
+              "units": 340,
+              "wallMs": 817,
+              "outcome": "kept"
+            }
+          ],
+          "names": [
+            [
+              "every VoteRequestMsg cell is a value of its kind",
+              "every Voted cell is a value of its kind",
+              "every VoteMsg cell is a value of its kind",
+              "every Votes cell is a value of its kind",
+              "every Leader cell is a value of its kind",
+              "every VotingQuorum cell is a value of its kind",
+              "every Decided cell is a value of its kind",
+              "one value decided",
+              "members$VotingQuorum keeps members's bound 0",
+              "members$VotingQuorum keeps members's bound 2",
+              "Leader keeps members$VotingQuorum's bound through members$VotingQuorum$Leader",
+              "Decided: one second key a first",
+              "every x with x < size: never Voted[x] is 0 and 1 <= VoteMsg[64·x + x]",
+              "every x with x < size: never Voted[x] is 0 and 1 <= Votes[64·x + x]",
+              "every x with x < size: never 1 <= Voted[x] and started is 0",
+              "every x with x < size: never 1 <= Leader[x] and started is 0",
+              "every x with x < size: never 1 <= VotingQuorum[x] and started is 0",
+              "every x with x < size: never VoteRequestMsg[64·x + x] is 0 and 1 <= VoteMsg[64·x + x]",
+              "every x with x < size: never VoteRequestMsg[64·x + x] is 0 and 1 <= Votes[64·x + x]",
+              "every x with x < size: never 1 <= VoteRequestMsg[64·x + x] and started is 0",
+              "every x with x < size: never VoteMsg[64·x + x] is 0 and 1 <= Votes[64·x + x]",
+              "every x with x < size: never 1 <= VoteMsg[64·x + x] and started is 0",
+              "every x with x < size: never 1 <= Votes[64·x + x] and started is 0",
+              "every x, y with x < size ∧ y < 64: never Leader[x] is 0 and 1 <= Decided[64·x + y]",
+              "every x, y with x < size ∧ y < 64: never 1 <= Decided[64·x + y] and started is 0",
+              "every x, y, z with x < size ∧ y < 64 ∧ z < 64 ∧ ¬(y = z): never 1 <= Decided[64·x + y] and 1 <= Decided[64·x + z]",
+              "every x, y with x < size ∧ y < size ∧ ¬(x = y): never Voted[x] is 0 and 1 <= VoteMsg[64·x + y]",
+              "every x, y with x < size ∧ y < size ∧ ¬(x = y): never Voted[x] is 0 and 1 <= Votes[64·y + x]",
+              "every x, y with x < size ∧ y < size ∧ ¬(x = y): never 1 <= Leader[x] and 1 <= Leader[y]",
+              "every x, y with x < size ∧ y < size ∧ ¬(x = y): never VoteRequestMsg[64·x + y] is 0 and 1 <= VoteMsg[64·y + x]",
+              "every x, y with x < size ∧ y < size ∧ ¬(x = y): never VoteRequestMsg[64·x + y] is 0 and 1 <= Votes[64·x + y]",
+              "every x, y with x < size ∧ y < size ∧ ¬(x = y): never 1 <= VoteRequestMsg[64·x + y] and started is 0",
+              "every x, y with x < size ∧ y < size ∧ ¬(x = y): never 1 <= VoteMsg[64·x + x] and 1 <= VoteMsg[64·x + y]",
+              "every x, y with x < size ∧ y < size ∧ ¬(x = y): never 1 <= VoteMsg[64·x + x] and 1 <= Votes[64·y + x]",
+              "every x, y with x < size ∧ y < size ∧ ¬(x = y): never VoteMsg[64·x + y] is 0 and 1 <= Votes[64·y + x]",
+              "every x, y with x < size ∧ y < size ∧ ¬(x = y): never 1 <= VoteMsg[64·x + y] and 1 <= Votes[64·x + x]",
+              "every x, y with x < size ∧ y < size ∧ ¬(x = y): never 1 <= VoteMsg[64·x + y] and started is 0",
+              "every x, y with x < size ∧ y < size ∧ ¬(x = y): never 1 <= Votes[64·x + x] and 1 <= Votes[64·y + x]",
+              "every x, y with x < size ∧ y < size ∧ ¬(x = y): never 1 <= Votes[64·x + y] and started is 0",
+              "every x, y, z with x < size ∧ y < size ∧ ¬(x = y) ∧ z < 64: never Voted[x] is 0 and 1 <= Decided[64·y + z]",
+              "every x, y, z with x < size ∧ y < size ∧ ¬(x = y) ∧ z < 64: never 1 <= Leader[x] and 1 <= Decided[64·y + z]",
+              "every x, y, z with x < size ∧ y < size ∧ ¬(x = y) ∧ z < 64: never 1 <= Decided[64·x + z] and 1 <= Decided[64·y + z]",
+              "every x, y, z, w with x < size ∧ y < size ∧ ¬(x = y) ∧ z < 64 ∧ w < 64 ∧ ¬(z = w): never 1 <= Decided[64·x + z] and 1 <= Decided[64·y + w]",
+              "every x, y, z with x < size ∧ y < size ∧ ¬(x = y) ∧ z < size ∧ ¬(x = z) ∧ ¬(y = z): never 1 <= VoteMsg[64·x + y] and 1 <= VoteMsg[64·x + z]",
+              "every x, y, z with x < size ∧ y < size ∧ ¬(x = y) ∧ z < size ∧ ¬(x = z) ∧ ¬(y = z): never 1 <= VoteMsg[64·x + y] and 1 <= Votes[64·z + x]",
+              "every x, y, z with x < size ∧ y < size ∧ ¬(x = y) ∧ z < size ∧ ¬(x = z) ∧ ¬(y = z): never 1 <= Votes[64·x + y] and 1 <= Votes[64·z + y]",
+              "carry:point-guard:adc673d7c555ac2c",
+              "carry:point-guard:695583f187e7e5ab"
+            ]
+          ]
+        }
+      }
+    },
+    {
+      "index": 6403,
+      "repeat": 3,
+      "cpu": "AMD Ryzen 9 9950X 16-Core Processor",
+      "metrics": {
+        "base": {
+          "verdict": "proven",
+          "found": [
+            "every VoteRequestMsg cell is a value of its kind",
+            "every Voted cell is a value of its kind",
+            "every VoteMsg cell is a value of its kind",
+            "every Votes cell is a value of its kind",
+            "every Leader cell is a value of its kind",
+            "every VotingQuorum cell is a value of its kind",
+            "every Decided cell is a value of its kind",
+            "one value decided",
+            "members$VotingQuorum keeps members's bound 0",
+            "members$VotingQuorum keeps members's bound 2",
+            "Leader keeps members$VotingQuorum's bound through members$VotingQuorum$Leader",
+            "Decided: one second key a first",
+            "every x with x < size: never Voted[x] is 0 and 1 <= VoteMsg[64·x + x]",
+            "every x with x < size: never Voted[x] is 0 and 1 <= Votes[64·x + x]",
+            "every x with x < size: never 1 <= Voted[x] and started is 0",
+            "every x with x < size: never 1 <= Leader[x] and started is 0",
+            "every x with x < size: never 1 <= VotingQuorum[x] and started is 0",
+            "every x with x < size: never VoteRequestMsg[64·x + x] is 0 and 1 <= VoteMsg[64·x + x]",
+            "every x with x < size: never VoteRequestMsg[64·x + x] is 0 and 1 <= Votes[64·x + x]",
+            "every x with x < size: never 1 <= VoteRequestMsg[64·x + x] and started is 0",
+            "every x with x < size: never VoteMsg[64·x + x] is 0 and 1 <= Votes[64·x + x]",
+            "every x with x < size: never 1 <= VoteMsg[64·x + x] and started is 0",
+            "every x with x < size: never 1 <= Votes[64·x + x] and started is 0",
+            "every x, y with x < size ∧ y < 64: never Leader[x] is 0 and 1 <= Decided[64·x + y]",
+            "every x, y with x < size ∧ y < 64: never 1 <= Decided[64·x + y] and started is 0",
+            "every x, y, z with x < size ∧ y < 64 ∧ z < 64 ∧ ¬(y = z): never 1 <= Decided[64·x + y] and 1 <= Decided[64·x + z]",
+            "every x, y with x < size ∧ y < size ∧ ¬(x = y): never Voted[x] is 0 and 1 <= VoteMsg[64·x + y]",
+            "every x, y with x < size ∧ y < size ∧ ¬(x = y): never Voted[x] is 0 and 1 <= Votes[64·y + x]",
+            "every x, y with x < size ∧ y < size ∧ ¬(x = y): never 1 <= Leader[x] and 1 <= Leader[y]",
+            "every x, y with x < size ∧ y < size ∧ ¬(x = y): never VoteRequestMsg[64·x + y] is 0 and 1 <= VoteMsg[64·y + x]",
+            "every x, y with x < size ∧ y < size ∧ ¬(x = y): never VoteRequestMsg[64·x + y] is 0 and 1 <= Votes[64·x + y]",
+            "every x, y with x < size ∧ y < size ∧ ¬(x = y): never 1 <= VoteRequestMsg[64·x + y] and started is 0",
+            "every x, y with x < size ∧ y < size ∧ ¬(x = y): never 1 <= VoteMsg[64·x + x] and 1 <= VoteMsg[64·x + y]",
+            "every x, y with x < size ∧ y < size ∧ ¬(x = y): never 1 <= VoteMsg[64·x + x] and 1 <= Votes[64·y + x]",
+            "every x, y with x < size ∧ y < size ∧ ¬(x = y): never VoteMsg[64·x + y] is 0 and 1 <= Votes[64·y + x]",
+            "every x, y with x < size ∧ y < size ∧ ¬(x = y): never 1 <= VoteMsg[64·x + y] and 1 <= Votes[64·x + x]",
+            "every x, y with x < size ∧ y < size ∧ ¬(x = y): never 1 <= VoteMsg[64·x + y] and started is 0",
+            "every x, y with x < size ∧ y < size ∧ ¬(x = y): never 1 <= Votes[64·x + x] and 1 <= Votes[64·y + x]",
+            "every x, y with x < size ∧ y < size ∧ ¬(x = y): never 1 <= Votes[64·x + y] and started is 0",
+            "every x, y, z with x < size ∧ y < size ∧ ¬(x = y) ∧ z < 64: never 1 <= Leader[x] and 1 <= Decided[64·y + z]",
+            "every x, y, z with x < size ∧ y < size ∧ ¬(x = y) ∧ z < 64: never 1 <= Decided[64·x + z] and 1 <= Decided[64·y + z]",
+            "every x, y, z, w with x < size ∧ y < size ∧ ¬(x = y) ∧ z < 64 ∧ w < 64 ∧ ¬(z = w): never 1 <= Decided[64·x + z] and 1 <= Decided[64·y + w]",
+            "every x, y, z with x < size ∧ y < size ∧ ¬(x = y) ∧ z < size ∧ ¬(x = z) ∧ ¬(y = z): never 1 <= VoteMsg[64·x + y] and 1 <= VoteMsg[64·x + z]",
+            "every x, y, z with x < size ∧ y < size ∧ ¬(x = y) ∧ z < size ∧ ¬(x = z) ∧ ¬(y = z): never 1 <= VoteMsg[64·x + y] and 1 <= Votes[64·z + x]",
+            "every x, y, z with x < size ∧ y < size ∧ ¬(x = y) ∧ z < size ∧ ¬(x = z) ∧ ¬(y = z): never 1 <= Votes[64·x + y] and 1 <= Votes[64·z + y]"
+          ],
+          "ms": 51229,
+          "work": 11093727,
+          "full": 3256350,
+          "wallMs": 51492.13738600002,
+          "generationWallMs": 26711.457673,
+          "preAttemptWallMs": 26716.841096,
+          "attempts": [
+            {
+              "law": "members$VotingQuorum keeps members's bound 0",
+              "family": 46,
+              "pass": 0,
+              "allowance": 1304,
+              "units": 17,
+              "wallMs": 287,
+              "outcome": "sat"
+            },
+            {
+              "law": "members$VotingQuorum keeps members's bound 0",
+              "family": 46,
+              "pass": 1,
+              "allowance": 1304,
+              "units": 101,
+              "wallMs": 500,
+              "outcome": "kept"
+            },
+            {
+              "law": "members$VotingQuorum keeps members's bound 2",
+              "family": 46,
+              "pass": 0,
+              "allowance": 1331,
+              "units": 13,
+              "wallMs": 111,
+              "outcome": "sat"
+            },
+            {
+              "law": "members$VotingQuorum keeps members's bound 2",
+              "family": 46,
+              "pass": 1,
+              "allowance": 1331,
+              "units": 73,
+              "wallMs": 281,
+              "outcome": "kept"
+            },
+            {
+              "law": "Leader keeps members$VotingQuorum's bound through ",
+              "family": 46,
+              "pass": 0,
+              "allowance": 1359,
+              "units": 33,
+              "wallMs": 232,
+              "outcome": "sat"
+            },
+            {
+              "law": "Leader keeps members$VotingQuorum's bound through ",
+              "family": 46,
+              "pass": 1,
+              "allowance": 1359,
+              "units": 291,
+              "wallMs": 907,
+              "outcome": "kept"
+            },
+            {
+              "law": "Decided: one second key a first",
+              "family": 46,
+              "pass": 0,
+              "allowance": 1383,
+              "units": 244,
+              "wallMs": 580,
+              "outcome": "kept"
+            },
+            {
+              "law": "every x with x < size: never Voted[x] is 0 and 1 <",
+              "family": 46,
+              "pass": 0,
+              "allowance": 1410,
+              "units": 67,
+              "wallMs": 178,
+              "outcome": "kept"
+            },
+            {
+              "law": "every x with x < size: never Voted[x] is 0 and 1 <",
+              "family": 46,
+              "pass": 0,
+              "allowance": 1443,
+              "units": 99,
+              "wallMs": 205,
+              "outcome": "kept"
+            },
+            {
+              "law": "every x with x < size: never 1 <= Voted[x] and sta",
+              "family": 46,
+              "pass": 0,
+              "allowance": 1477,
+              "units": 21,
+              "wallMs": 98,
+              "outcome": "kept"
+            },
+            {
+              "law": "every x with x < size: never 1 <= Leader[x] and st",
+              "family": 46,
+              "pass": 0,
+              "allowance": 1514,
+              "units": 21,
+              "wallMs": 61,
+              "outcome": "kept"
+            },
+            {
+              "law": "every x with x < size: never 1 <= VotingQuorum[x] ",
+              "family": 46,
+              "pass": 0,
+              "allowance": 1553,
+              "units": 19,
+              "wallMs": 64,
+              "outcome": "kept"
+            },
+            {
+              "law": "every x with x < size: never VoteRequestMsg[64·x +",
+              "family": 46,
+              "pass": 0,
+              "allowance": 1595,
+              "units": 202,
+              "wallMs": 626,
+              "outcome": "kept"
+            },
+            {
+              "law": "every x with x < size: never VoteRequestMsg[64·x +",
+              "family": 46,
+              "pass": 0,
+              "allowance": 1633,
+              "units": 197,
+              "wallMs": 536,
+              "outcome": "kept"
+            },
+            {
+              "law": "every x with x < size: never 1 <= VoteRequestMsg[6",
+              "family": 46,
+              "pass": 0,
+              "allowance": 1674,
+              "units": 41,
+              "wallMs": 136,
+              "outcome": "kept"
+            },
+            {
+              "law": "every x with x < size: never VoteMsg[64·x + x] is ",
+              "family": 46,
+              "pass": 0,
+              "allowance": 1722,
+              "units": 200,
+              "wallMs": 406,
+              "outcome": "kept"
+            },
+            {
+              "law": "every x with x < size: never 1 <= VoteMsg[64·x + x",
+              "family": 46,
+              "pass": 0,
+              "allowance": 1768,
+              "units": 44,
+              "wallMs": 115,
+              "outcome": "kept"
+            },
+            {
+              "law": "every x with x < size: never 1 <= Votes[64·x + x] ",
+              "family": 46,
+              "pass": 0,
+              "allowance": 1822,
+              "units": 46,
+              "wallMs": 181,
+              "outcome": "kept"
+            },
+            {
+              "law": "every x, y with x < size ∧ y < 64: never Leader[x]",
+              "family": 46,
+              "pass": 0,
+              "allowance": 1880,
+              "units": 184,
+              "wallMs": 401,
+              "outcome": "kept"
+            },
+            {
+              "law": "every x, y with x < size ∧ y < 64: never 1 <= Deci",
+              "family": 46,
+              "pass": 0,
+              "allowance": 1936,
+              "units": 46,
+              "wallMs": 145,
+              "outcome": "kept"
+            },
+            {
+              "law": "every x, y, z with x < size ∧ y < 64 ∧ z < 64 ∧ ¬(",
+              "family": 46,
+              "pass": 0,
+              "allowance": 2001,
+              "units": 197,
+              "wallMs": 500,
+              "outcome": "kept"
+            },
+            {
+              "law": "every x, y with x < size ∧ y < size ∧ ¬(x = y): ne",
+              "family": 46,
+              "pass": 0,
+              "allowance": 2066,
+              "units": 92,
+              "wallMs": 193,
+              "outcome": "kept"
+            },
+            {
+              "law": "every x, y with x < size ∧ y < size ∧ ¬(x = y): ne",
+              "family": 46,
+              "pass": 0,
+              "allowance": 2139,
+              "units": 150,
+              "wallMs": 532,
+              "outcome": "kept"
+            },
+            {
+              "law": "every x, y with x < size ∧ y < size ∧ ¬(x = y): ne",
+              "family": 46,
+              "pass": 0,
+              "allowance": 2215,
+              "units": 160,
+              "wallMs": 561,
+              "outcome": "sat"
+            },
+            {
+              "law": "every x, y with x < size ∧ y < size ∧ ¬(x = y): ne",
+              "family": 46,
+              "pass": 1,
+              "allowance": 2215,
+              "units": 1370,
+              "wallMs": 1098,
+              "outcome": "kept"
+            },
+            {
+              "law": "every x, y with x < size ∧ y < size ∧ ¬(x = y): ne",
+              "family": 46,
+              "pass": 0,
+              "allowance": 2243,
+              "units": 139,
+              "wallMs": 119,
+              "outcome": "kept"
+            },
+            {
+              "law": "every x, y with x < size ∧ y < size ∧ ¬(x = y): ne",
+              "family": 46,
+              "pass": 0,
+              "allowance": 2331,
+              "units": 348,
+              "wallMs": 241,
+              "outcome": "kept"
+            },
+            {
+              "law": "every x, y with x < size ∧ y < size ∧ ¬(x = y): ne",
+              "family": 46,
+              "pass": 0,
+              "allowance": 2417,
+              "units": 26,
+              "wallMs": 27,
+              "outcome": "kept"
+            },
+            {
+              "law": "every x, y with x < size ∧ y < size ∧ ¬(x = y): ne",
+              "family": 46,
+              "pass": 0,
+              "allowance": 2525,
+              "units": 84,
+              "wallMs": 79,
+              "outcome": "kept"
+            },
+            {
+              "law": "every x, y with x < size ∧ y < size ∧ ¬(x = y): ne",
+              "family": 46,
+              "pass": 0,
+              "allowance": 2642,
+              "units": 234,
+              "wallMs": 212,
+              "outcome": "kept"
+            },
+            {
+              "law": "every x, y with x < size ∧ y < size ∧ ¬(x = y): ne",
+              "family": 46,
+              "pass": 0,
+              "allowance": 2762,
+              "units": 528,
+              "wallMs": 521,
+              "outcome": "kept"
+            },
+            {
+              "law": "every x, y with x < size ∧ y < size ∧ ¬(x = y): ne",
+              "family": 46,
+              "pass": 0,
+              "allowance": 2880,
+              "units": 160,
+              "wallMs": 414,
+              "outcome": "kept"
+            },
+            {
+              "law": "every x, y with x < size ∧ y < size ∧ ¬(x = y): ne",
+              "family": 46,
+              "pass": 0,
+              "allowance": 3031,
+              "units": 44,
+              "wallMs": 128,
+              "outcome": "kept"
+            },
+            {
+              "law": "every x, y with x < size ∧ y < size ∧ ¬(x = y): ne",
+              "family": 46,
+              "pass": 0,
+              "allowance": 3206,
+              "units": 205,
+              "wallMs": 402,
+              "outcome": "kept"
+            },
+            {
+              "law": "every x, y with x < size ∧ y < size ∧ ¬(x = y): ne",
+              "family": 46,
+              "pass": 0,
+              "allowance": 3394,
+              "units": 36,
+              "wallMs": 216,
+              "outcome": "kept"
+            },
+            {
+              "law": "every x, y, z with x < size ∧ y < size ∧ ¬(x = y) ",
+              "family": 46,
+              "pass": 0,
+              "allowance": 3618,
+              "units": 89,
+              "wallMs": 282,
+              "outcome": "sat"
+            },
+            {
+              "law": "every x, y, z with x < size ∧ y < size ∧ ¬(x = y) ",
+              "family": 46,
+              "pass": 1,
+              "allowance": 3618,
+              "units": 3621,
+              "wallMs": 4684,
+              "outcome": "unknown"
+            },
+            {
+              "law": "every x, y, z with x < size ∧ y < size ∧ ¬(x = y) ",
+              "family": 46,
+              "pass": 0,
+              "allowance": 3611,
+              "units": 201,
+              "wallMs": 499,
+              "outcome": "sat"
+            },
+            {
+              "law": "every x, y, z with x < size ∧ y < size ∧ ¬(x = y) ",
+              "family": 46,
+              "pass": 1,
+              "allowance": 3611,
+              "units": 1350,
+              "wallMs": 3423,
+              "outcome": "kept"
+            },
+            {
+              "law": "every x, y, z with x < size ∧ y < size ∧ ¬(x = y) ",
+              "family": 46,
+              "pass": 0,
+              "allowance": 3770,
+              "units": 122,
+              "wallMs": 176,
+              "outcome": "kept"
+            },
+            {
+              "law": "every x, y, z, w with x < size ∧ y < size ∧ ¬(x = ",
+              "family": 46,
+              "pass": 0,
+              "allowance": 4074,
+              "units": 322,
+              "wallMs": 505,
+              "outcome": "kept"
+            },
+            {
+              "law": "every x, y, z with x < size ∧ y < size ∧ ¬(x = y) ",
+              "family": 46,
+              "pass": 0,
+              "allowance": 4415,
+              "units": 172,
+              "wallMs": 286,
+              "outcome": "kept"
+            },
+            {
+              "law": "every x, y, z with x < size ∧ y < size ∧ ¬(x = y) ",
+              "family": 46,
+              "pass": 0,
+              "allowance": 4839,
+              "units": 555,
+              "wallMs": 923,
+              "outcome": "kept"
+            },
+            {
+              "law": "every x, y, z with x < size ∧ y < size ∧ ¬(x = y) ",
+              "family": 46,
+              "pass": 0,
+              "allowance": 5315,
+              "units": 465,
+              "wallMs": 777,
+              "outcome": "kept"
+            },
+            {
+              "law": "every VoteRequestMsg cell is a value of its kind",
+              "family": 46,
+              "pass": 0,
+              "allowance": 5921,
+              "units": 9,
+              "wallMs": 40,
+              "outcome": "kept"
+            },
+            {
+              "law": "every Voted cell is a value of its kind",
+              "family": 46,
+              "pass": 0,
+              "allowance": 6766,
+              "units": 9,
+              "wallMs": 28,
+              "outcome": "kept"
+            },
+            {
+              "law": "every VoteMsg cell is a value of its kind",
+              "family": 46,
+              "pass": 0,
+              "allowance": 7892,
+              "units": 9,
+              "wallMs": 37,
+              "outcome": "kept"
+            },
+            {
+              "law": "every Votes cell is a value of its kind",
+              "family": 46,
+              "pass": 0,
+              "allowance": 9469,
+              "units": 9,
+              "wallMs": 37,
+              "outcome": "kept"
+            },
+            {
+              "law": "every Leader cell is a value of its kind",
+              "family": 46,
+              "pass": 0,
+              "allowance": 11834,
+              "units": 9,
+              "wallMs": 34,
+              "outcome": "kept"
+            },
+            {
+              "law": "every VotingQuorum cell is a value of its kind",
+              "family": 46,
+              "pass": 0,
+              "allowance": 15776,
+              "units": 4,
+              "wallMs": 16,
+              "outcome": "kept"
+            },
+            {
+              "law": "every Decided cell is a value of its kind",
+              "family": 46,
+              "pass": 0,
+              "allowance": 23662,
+              "units": 9,
+              "wallMs": 36,
+              "outcome": "kept"
+            },
+            {
+              "law": "one value decided",
+              "family": 46,
+              "pass": 0,
+              "allowance": 47314,
+              "units": 340,
+              "wallMs": 684,
+              "outcome": "kept"
+            }
+          ],
+          "names": [
+            [
+              "every VoteRequestMsg cell is a value of its kind",
+              "every Voted cell is a value of its kind",
+              "every VoteMsg cell is a value of its kind",
+              "every Votes cell is a value of its kind",
+              "every Leader cell is a value of its kind",
+              "every VotingQuorum cell is a value of its kind",
+              "every Decided cell is a value of its kind",
+              "one value decided",
+              "members$VotingQuorum keeps members's bound 0",
+              "members$VotingQuorum keeps members's bound 2",
+              "Leader keeps members$VotingQuorum's bound through members$VotingQuorum$Leader",
+              "Decided: one second key a first",
+              "every x with x < size: never Voted[x] is 0 and 1 <= VoteMsg[64·x + x]",
+              "every x with x < size: never Voted[x] is 0 and 1 <= Votes[64·x + x]",
+              "every x with x < size: never 1 <= Voted[x] and started is 0",
+              "every x with x < size: never 1 <= Leader[x] and started is 0",
+              "every x with x < size: never 1 <= VotingQuorum[x] and started is 0",
+              "every x with x < size: never VoteRequestMsg[64·x + x] is 0 and 1 <= VoteMsg[64·x + x]",
+              "every x with x < size: never VoteRequestMsg[64·x + x] is 0 and 1 <= Votes[64·x + x]",
+              "every x with x < size: never 1 <= VoteRequestMsg[64·x + x] and started is 0",
+              "every x with x < size: never VoteMsg[64·x + x] is 0 and 1 <= Votes[64·x + x]",
+              "every x with x < size: never 1 <= VoteMsg[64·x + x] and started is 0",
+              "every x with x < size: never 1 <= Votes[64·x + x] and started is 0",
+              "every x, y with x < size ∧ y < 64: never Leader[x] is 0 and 1 <= Decided[64·x + y]",
+              "every x, y with x < size ∧ y < 64: never 1 <= Decided[64·x + y] and started is 0",
+              "every x, y, z with x < size ∧ y < 64 ∧ z < 64 ∧ ¬(y = z): never 1 <= Decided[64·x + y] and 1 <= Decided[64·x + z]",
+              "every x, y with x < size ∧ y < size ∧ ¬(x = y): never Voted[x] is 0 and 1 <= VoteMsg[64·x + y]",
+              "every x, y with x < size ∧ y < size ∧ ¬(x = y): never Voted[x] is 0 and 1 <= Votes[64·y + x]",
+              "every x, y with x < size ∧ y < size ∧ ¬(x = y): never 1 <= Leader[x] and 1 <= Leader[y]",
+              "every x, y with x < size ∧ y < size ∧ ¬(x = y): never VoteRequestMsg[64·x + y] is 0 and 1 <= VoteMsg[64·y + x]",
+              "every x, y with x < size ∧ y < size ∧ ¬(x = y): never VoteRequestMsg[64·x + y] is 0 and 1 <= Votes[64·x + y]",
+              "every x, y with x < size ∧ y < size ∧ ¬(x = y): never 1 <= VoteRequestMsg[64·x + y] and started is 0",
+              "every x, y with x < size ∧ y < size ∧ ¬(x = y): never 1 <= VoteMsg[64·x + x] and 1 <= VoteMsg[64·x + y]",
+              "every x, y with x < size ∧ y < size ∧ ¬(x = y): never 1 <= VoteMsg[64·x + x] and 1 <= Votes[64·y + x]",
+              "every x, y with x < size ∧ y < size ∧ ¬(x = y): never VoteMsg[64·x + y] is 0 and 1 <= Votes[64·y + x]",
+              "every x, y with x < size ∧ y < size ∧ ¬(x = y): never 1 <= VoteMsg[64·x + y] and 1 <= Votes[64·x + x]",
+              "every x, y with x < size ∧ y < size ∧ ¬(x = y): never 1 <= VoteMsg[64·x + y] and started is 0",
+              "every x, y with x < size ∧ y < size ∧ ¬(x = y): never 1 <= Votes[64·x + x] and 1 <= Votes[64·y + x]",
+              "every x, y with x < size ∧ y < size ∧ ¬(x = y): never 1 <= Votes[64·x + y] and started is 0",
+              "every x, y, z with x < size ∧ y < size ∧ ¬(x = y) ∧ z < 64: never Voted[x] is 0 and 1 <= Decided[64·y + z]",
+              "every x, y, z with x < size ∧ y < size ∧ ¬(x = y) ∧ z < 64: never 1 <= Leader[x] and 1 <= Decided[64·y + z]",
+              "every x, y, z with x < size ∧ y < size ∧ ¬(x = y) ∧ z < 64: never 1 <= Decided[64·x + z] and 1 <= Decided[64·y + z]",
+              "every x, y, z, w with x < size ∧ y < size ∧ ¬(x = y) ∧ z < 64 ∧ w < 64 ∧ ¬(z = w): never 1 <= Decided[64·x + z] and 1 <= Decided[64·y + w]",
+              "every x, y, z with x < size ∧ y < size ∧ ¬(x = y) ∧ z < size ∧ ¬(x = z) ∧ ¬(y = z): never 1 <= VoteMsg[64·x + y] and 1 <= VoteMsg[64·x + z]",
+              "every x, y, z with x < size ∧ y < size ∧ ¬(x = y) ∧ z < size ∧ ¬(x = z) ∧ ¬(y = z): never 1 <= VoteMsg[64·x + y] and 1 <= Votes[64·z + x]",
+              "every x, y, z with x < size ∧ y < size ∧ ¬(x = y) ∧ z < size ∧ ¬(x = z) ∧ ¬(y = z): never 1 <= Votes[64·x + y] and 1 <= Votes[64·z + y]",
+              "carry:point-guard:adc673d7c555ac2c",
+              "carry:point-guard:695583f187e7e5ab"
+            ]
+          ]
+        },
+        "candidate": {
+          "verdict": "proven",
+          "found": [
+            "every VoteRequestMsg cell is a value of its kind",
+            "every Voted cell is a value of its kind",
+            "every VoteMsg cell is a value of its kind",
+            "every Votes cell is a value of its kind",
+            "every Leader cell is a value of its kind",
+            "every VotingQuorum cell is a value of its kind",
+            "every Decided cell is a value of its kind",
+            "one value decided",
+            "members$VotingQuorum keeps members's bound 0",
+            "members$VotingQuorum keeps members's bound 2",
+            "Leader keeps members$VotingQuorum's bound through members$VotingQuorum$Leader",
+            "Decided: one second key a first",
+            "every x with x < size: never Voted[x] is 0 and 1 <= VoteMsg[64·x + x]",
+            "every x with x < size: never Voted[x] is 0 and 1 <= Votes[64·x + x]",
+            "every x with x < size: never 1 <= Voted[x] and started is 0",
+            "every x with x < size: never 1 <= Leader[x] and started is 0",
+            "every x with x < size: never 1 <= VotingQuorum[x] and started is 0",
+            "every x with x < size: never VoteRequestMsg[64·x + x] is 0 and 1 <= VoteMsg[64·x + x]",
+            "every x with x < size: never VoteRequestMsg[64·x + x] is 0 and 1 <= Votes[64·x + x]",
+            "every x with x < size: never 1 <= VoteRequestMsg[64·x + x] and started is 0",
+            "every x with x < size: never VoteMsg[64·x + x] is 0 and 1 <= Votes[64·x + x]",
+            "every x with x < size: never 1 <= VoteMsg[64·x + x] and started is 0",
+            "every x with x < size: never 1 <= Votes[64·x + x] and started is 0",
+            "every x, y with x < size ∧ y < 64: never Leader[x] is 0 and 1 <= Decided[64·x + y]",
+            "every x, y with x < size ∧ y < 64: never 1 <= Decided[64·x + y] and started is 0",
+            "every x, y, z with x < size ∧ y < 64 ∧ z < 64 ∧ ¬(y = z): never 1 <= Decided[64·x + y] and 1 <= Decided[64·x + z]",
+            "every x, y with x < size ∧ y < size ∧ ¬(x = y): never Voted[x] is 0 and 1 <= VoteMsg[64·x + y]",
+            "every x, y with x < size ∧ y < size ∧ ¬(x = y): never Voted[x] is 0 and 1 <= Votes[64·y + x]",
+            "every x, y with x < size ∧ y < size ∧ ¬(x = y): never 1 <= Leader[x] and 1 <= Leader[y]",
+            "every x, y with x < size ∧ y < size ∧ ¬(x = y): never VoteRequestMsg[64·x + y] is 0 and 1 <= VoteMsg[64·y + x]",
+            "every x, y with x < size ∧ y < size ∧ ¬(x = y): never VoteRequestMsg[64·x + y] is 0 and 1 <= Votes[64·x + y]",
+            "every x, y with x < size ∧ y < size ∧ ¬(x = y): never 1 <= VoteRequestMsg[64·x + y] and started is 0",
+            "every x, y with x < size ∧ y < size ∧ ¬(x = y): never 1 <= VoteMsg[64·x + x] and 1 <= VoteMsg[64·x + y]",
+            "every x, y with x < size ∧ y < size ∧ ¬(x = y): never 1 <= VoteMsg[64·x + x] and 1 <= Votes[64·y + x]",
+            "every x, y with x < size ∧ y < size ∧ ¬(x = y): never VoteMsg[64·x + y] is 0 and 1 <= Votes[64·y + x]",
+            "every x, y with x < size ∧ y < size ∧ ¬(x = y): never 1 <= VoteMsg[64·x + y] and 1 <= Votes[64·x + x]",
+            "every x, y with x < size ∧ y < size ∧ ¬(x = y): never 1 <= VoteMsg[64·x + y] and started is 0",
+            "every x, y with x < size ∧ y < size ∧ ¬(x = y): never 1 <= Votes[64·x + x] and 1 <= Votes[64·y + x]",
+            "every x, y with x < size ∧ y < size ∧ ¬(x = y): never 1 <= Votes[64·x + y] and started is 0",
+            "every x, y, z with x < size ∧ y < size ∧ ¬(x = y) ∧ z < 64: never 1 <= Leader[x] and 1 <= Decided[64·y + z]",
+            "every x, y, z with x < size ∧ y < size ∧ ¬(x = y) ∧ z < 64: never 1 <= Decided[64·x + z] and 1 <= Decided[64·y + z]",
+            "every x, y, z, w with x < size ∧ y < size ∧ ¬(x = y) ∧ z < 64 ∧ w < 64 ∧ ¬(z = w): never 1 <= Decided[64·x + z] and 1 <= Decided[64·y + w]",
+            "every x, y, z with x < size ∧ y < size ∧ ¬(x = y) ∧ z < size ∧ ¬(x = z) ∧ ¬(y = z): never 1 <= VoteMsg[64·x + y] and 1 <= VoteMsg[64·x + z]",
+            "every x, y, z with x < size ∧ y < size ∧ ¬(x = y) ∧ z < size ∧ ¬(x = z) ∧ ¬(y = z): never 1 <= VoteMsg[64·x + y] and 1 <= Votes[64·z + x]",
+            "every x, y, z with x < size ∧ y < size ∧ ¬(x = y) ∧ z < size ∧ ¬(x = z) ∧ ¬(y = z): never 1 <= Votes[64·x + y] and 1 <= Votes[64·z + y]"
+          ],
+          "ms": 55786,
+          "work": 11023203,
+          "full": 3251424,
+          "wallMs": 56008.71421800001,
+          "generationWallMs": 27330.075410999998,
+          "preAttemptWallMs": 27335.776224999998,
+          "attempts": [
+            {
+              "law": "members$VotingQuorum keeps members's bound 0",
+              "family": 46,
+              "pass": 0,
+              "allowance": 1304,
+              "units": 17,
+              "wallMs": 149,
+              "outcome": "sat"
+            },
+            {
+              "law": "members$VotingQuorum keeps members's bound 0",
+              "family": 46,
+              "pass": 1,
+              "allowance": 1304,
+              "units": 103,
+              "wallMs": 142,
+              "outcome": "kept"
+            },
+            {
+              "law": "members$VotingQuorum keeps members's bound 2",
+              "family": 46,
+              "pass": 0,
+              "allowance": 1331,
+              "units": 13,
+              "wallMs": 20,
+              "outcome": "sat"
+            },
+            {
+              "law": "members$VotingQuorum keeps members's bound 2",
+              "family": 46,
+              "pass": 1,
+              "allowance": 1331,
+              "units": 76,
+              "wallMs": 100,
+              "outcome": "kept"
+            },
+            {
+              "law": "Leader keeps members$VotingQuorum's bound through ",
+              "family": 46,
+              "pass": 0,
+              "allowance": 1359,
+              "units": 33,
+              "wallMs": 73,
+              "outcome": "sat"
+            },
+            {
+              "law": "Leader keeps members$VotingQuorum's bound through ",
+              "family": 46,
+              "pass": 1,
+              "allowance": 1359,
+              "units": 266,
+              "wallMs": 212,
+              "outcome": "kept"
+            },
+            {
+              "law": "Decided: one second key a first",
+              "family": 46,
+              "pass": 0,
+              "allowance": 1384,
+              "units": 244,
+              "wallMs": 927,
+              "outcome": "kept"
+            },
+            {
+              "law": "every x with x < size: never Voted[x] is 0 and 1 <",
+              "family": 46,
+              "pass": 0,
+              "allowance": 1411,
+              "units": 67,
+              "wallMs": 179,
+              "outcome": "kept"
+            },
+            {
+              "law": "every x with x < size: never Voted[x] is 0 and 1 <",
+              "family": 46,
+              "pass": 0,
+              "allowance": 1443,
+              "units": 99,
+              "wallMs": 366,
+              "outcome": "kept"
+            },
+            {
+              "law": "every x with x < size: never 1 <= Voted[x] and sta",
+              "family": 46,
+              "pass": 0,
+              "allowance": 1477,
+              "units": 21,
+              "wallMs": 89,
+              "outcome": "kept"
+            },
+            {
+              "law": "every x with x < size: never 1 <= Leader[x] and st",
+              "family": 46,
+              "pass": 0,
+              "allowance": 1514,
+              "units": 21,
+              "wallMs": 70,
+              "outcome": "kept"
+            },
+            {
+              "law": "every x with x < size: never 1 <= VotingQuorum[x] ",
+              "family": 46,
+              "pass": 0,
+              "allowance": 1554,
+              "units": 19,
+              "wallMs": 62,
+              "outcome": "kept"
+            },
+            {
+              "law": "every x with x < size: never VoteRequestMsg[64·x +",
+              "family": 46,
+              "pass": 0,
+              "allowance": 1595,
+              "units": 202,
+              "wallMs": 721,
+              "outcome": "kept"
+            },
+            {
+              "law": "every x with x < size: never VoteRequestMsg[64·x +",
+              "family": 46,
+              "pass": 0,
+              "allowance": 1634,
+              "units": 197,
+              "wallMs": 780,
+              "outcome": "kept"
+            },
+            {
+              "law": "every x with x < size: never 1 <= VoteRequestMsg[6",
+              "family": 46,
+              "pass": 0,
+              "allowance": 1675,
+              "units": 41,
+              "wallMs": 185,
+              "outcome": "kept"
+            },
+            {
+              "law": "every x with x < size: never VoteMsg[64·x + x] is ",
+              "family": 46,
+              "pass": 0,
+              "allowance": 1723,
+              "units": 200,
+              "wallMs": 630,
+              "outcome": "kept"
+            },
+            {
+              "law": "every x with x < size: never 1 <= VoteMsg[64·x + x",
+              "family": 46,
+              "pass": 0,
+              "allowance": 1769,
+              "units": 44,
+              "wallMs": 90,
+              "outcome": "kept"
+            },
+            {
+              "law": "every x with x < size: never 1 <= Votes[64·x + x] ",
+              "family": 46,
+              "pass": 0,
+              "allowance": 1823,
+              "units": 46,
+              "wallMs": 143,
+              "outcome": "kept"
+            },
+            {
+              "law": "every x, y with x < size ∧ y < 64: never Leader[x]",
+              "family": 46,
+              "pass": 0,
+              "allowance": 1880,
+              "units": 184,
+              "wallMs": 407,
+              "outcome": "kept"
+            },
+            {
+              "law": "every x, y with x < size ∧ y < 64: never 1 <= Deci",
+              "family": 46,
+              "pass": 0,
+              "allowance": 1937,
+              "units": 46,
+              "wallMs": 79,
+              "outcome": "kept"
+            },
+            {
+              "law": "every x, y, z with x < size ∧ y < 64 ∧ z < 64 ∧ ¬(",
+              "family": 46,
+              "pass": 0,
+              "allowance": 2002,
+              "units": 197,
+              "wallMs": 700,
+              "outcome": "kept"
+            },
+            {
+              "law": "every x, y with x < size ∧ y < size ∧ ¬(x = y): ne",
+              "family": 46,
+              "pass": 0,
+              "allowance": 2067,
+              "units": 92,
+              "wallMs": 221,
+              "outcome": "kept"
+            },
+            {
+              "law": "every x, y with x < size ∧ y < size ∧ ¬(x = y): ne",
+              "family": 46,
+              "pass": 0,
+              "allowance": 2140,
+              "units": 150,
+              "wallMs": 583,
+              "outcome": "kept"
+            },
+            {
+              "law": "every x, y with x < size ∧ y < size ∧ ¬(x = y): ne",
+              "family": 46,
+              "pass": 0,
+              "allowance": 2216,
+              "units": 160,
+              "wallMs": 715,
+              "outcome": "sat"
+            },
+            {
+              "law": "every x, y with x < size ∧ y < size ∧ ¬(x = y): ne",
+              "family": 46,
+              "pass": 1,
+              "allowance": 2216,
+              "units": 1370,
+              "wallMs": 3383,
+              "outcome": "kept"
+            },
+            {
+              "law": "every x, y with x < size ∧ y < size ∧ ¬(x = y): ne",
+              "family": 46,
+              "pass": 0,
+              "allowance": 2244,
+              "units": 139,
+              "wallMs": 321,
+              "outcome": "kept"
+            },
+            {
+              "law": "every x, y with x < size ∧ y < size ∧ ¬(x = y): ne",
+              "family": 46,
+              "pass": 0,
+              "allowance": 2331,
+              "units": 348,
+              "wallMs": 841,
+              "outcome": "kept"
+            },
+            {
+              "law": "every x, y with x < size ∧ y < size ∧ ¬(x = y): ne",
+              "family": 46,
+              "pass": 0,
+              "allowance": 2418,
+              "units": 26,
+              "wallMs": 67,
+              "outcome": "kept"
+            },
+            {
+              "law": "every x, y with x < size ∧ y < size ∧ ¬(x = y): ne",
+              "family": 46,
+              "pass": 0,
+              "allowance": 2526,
+              "units": 84,
+              "wallMs": 150,
+              "outcome": "kept"
+            },
+            {
+              "law": "every x, y with x < size ∧ y < size ∧ ¬(x = y): ne",
+              "family": 46,
+              "pass": 0,
+              "allowance": 2643,
+              "units": 234,
+              "wallMs": 554,
+              "outcome": "kept"
+            },
+            {
+              "law": "every x, y with x < size ∧ y < size ∧ ¬(x = y): ne",
+              "family": 46,
+              "pass": 0,
+              "allowance": 2763,
+              "units": 528,
+              "wallMs": 1169,
+              "outcome": "kept"
+            },
+            {
+              "law": "every x, y with x < size ∧ y < size ∧ ¬(x = y): ne",
+              "family": 46,
+              "pass": 0,
+              "allowance": 2881,
+              "units": 160,
+              "wallMs": 132,
+              "outcome": "kept"
+            },
+            {
+              "law": "every x, y with x < size ∧ y < size ∧ ¬(x = y): ne",
+              "family": 46,
+              "pass": 0,
+              "allowance": 3032,
+              "units": 44,
+              "wallMs": 159,
+              "outcome": "kept"
+            },
+            {
+              "law": "every x, y with x < size ∧ y < size ∧ ¬(x = y): ne",
+              "family": 46,
+              "pass": 0,
+              "allowance": 3207,
+              "units": 205,
+              "wallMs": 379,
+              "outcome": "kept"
+            },
+            {
+              "law": "every x, y with x < size ∧ y < size ∧ ¬(x = y): ne",
+              "family": 46,
+              "pass": 0,
+              "allowance": 3395,
+              "units": 36,
+              "wallMs": 101,
+              "outcome": "kept"
+            },
+            {
+              "law": "every x, y, z with x < size ∧ y < size ∧ ¬(x = y) ",
+              "family": 46,
+              "pass": 0,
+              "allowance": 3619,
+              "units": 89,
+              "wallMs": 310,
+              "outcome": "sat"
+            },
+            {
+              "law": "every x, y, z with x < size ∧ y < size ∧ ¬(x = y) ",
+              "family": 46,
+              "pass": 1,
+              "allowance": 3619,
+              "units": 3621,
+              "wallMs": 4037,
+              "outcome": "unknown"
+            },
+            {
+              "law": "every x, y, z with x < size ∧ y < size ∧ ¬(x = y) ",
+              "family": 46,
+              "pass": 0,
+              "allowance": 3613,
+              "units": 201,
+              "wallMs": 554,
+              "outcome": "sat"
+            },
+            {
+              "law": "every x, y, z with x < size ∧ y < size ∧ ¬(x = y) ",
+              "family": 46,
+              "pass": 1,
+              "allowance": 3613,
+              "units": 1350,
+              "wallMs": 3207,
+              "outcome": "kept"
+            },
+            {
+              "law": "every x, y, z with x < size ∧ y < size ∧ ¬(x = y) ",
+              "family": 46,
+              "pass": 0,
+              "allowance": 3771,
+              "units": 122,
+              "wallMs": 219,
+              "outcome": "kept"
+            },
+            {
+              "law": "every x, y, z, w with x < size ∧ y < size ∧ ¬(x = ",
+              "family": 46,
+              "pass": 0,
+              "allowance": 4075,
+              "units": 322,
+              "wallMs": 744,
+              "outcome": "kept"
+            },
+            {
+              "law": "every x, y, z with x < size ∧ y < size ∧ ¬(x = y) ",
+              "family": 46,
+              "pass": 0,
+              "allowance": 4417,
+              "units": 172,
+              "wallMs": 417,
+              "outcome": "kept"
+            },
+            {
+              "law": "every x, y, z with x < size ∧ y < size ∧ ¬(x = y) ",
+              "family": 46,
+              "pass": 0,
+              "allowance": 4841,
+              "units": 555,
+              "wallMs": 1359,
+              "outcome": "kept"
+            },
+            {
+              "law": "every x, y, z with x < size ∧ y < size ∧ ¬(x = y) ",
+              "family": 46,
+              "pass": 0,
+              "allowance": 5317,
+              "units": 465,
+              "wallMs": 679,
+              "outcome": "kept"
+            },
+            {
+              "law": "every VoteRequestMsg cell is a value of its kind",
+              "family": 46,
+              "pass": 0,
+              "allowance": 5924,
+              "units": 9,
+              "wallMs": 47,
+              "outcome": "kept"
+            },
+            {
+              "law": "every Voted cell is a value of its kind",
+              "family": 46,
+              "pass": 0,
+              "allowance": 6769,
+              "units": 9,
+              "wallMs": 40,
+              "outcome": "kept"
+            },
+            {
+              "law": "every VoteMsg cell is a value of its kind",
+              "family": 46,
+              "pass": 0,
+              "allowance": 7896,
+              "units": 9,
+              "wallMs": 38,
+              "outcome": "kept"
+            },
+            {
+              "law": "every Votes cell is a value of its kind",
+              "family": 46,
+              "pass": 0,
+              "allowance": 9473,
+              "units": 9,
+              "wallMs": 42,
+              "outcome": "kept"
+            },
+            {
+              "law": "every Leader cell is a value of its kind",
+              "family": 46,
+              "pass": 0,
+              "allowance": 11839,
+              "units": 9,
+              "wallMs": 42,
+              "outcome": "kept"
+            },
+            {
+              "law": "every VotingQuorum cell is a value of its kind",
+              "family": 46,
+              "pass": 0,
+              "allowance": 15782,
+              "units": 4,
+              "wallMs": 18,
+              "outcome": "kept"
+            },
+            {
+              "law": "every Decided cell is a value of its kind",
+              "family": 46,
+              "pass": 0,
+              "allowance": 23671,
+              "units": 9,
+              "wallMs": 36,
+              "outcome": "kept"
+            },
+            {
+              "law": "one value decided",
+              "family": 46,
+              "pass": 0,
+              "allowance": 47334,
+              "units": 340,
+              "wallMs": 625,
+              "outcome": "kept"
+            }
+          ],
+          "names": [
+            [
+              "every VoteRequestMsg cell is a value of its kind",
+              "every Voted cell is a value of its kind",
+              "every VoteMsg cell is a value of its kind",
+              "every Votes cell is a value of its kind",
+              "every Leader cell is a value of its kind",
+              "every VotingQuorum cell is a value of its kind",
+              "every Decided cell is a value of its kind",
+              "one value decided",
+              "members$VotingQuorum keeps members's bound 0",
+              "members$VotingQuorum keeps members's bound 2",
+              "Leader keeps members$VotingQuorum's bound through members$VotingQuorum$Leader",
+              "Decided: one second key a first",
+              "every x with x < size: never Voted[x] is 0 and 1 <= VoteMsg[64·x + x]",
+              "every x with x < size: never Voted[x] is 0 and 1 <= Votes[64·x + x]",
+              "every x with x < size: never 1 <= Voted[x] and started is 0",
+              "every x with x < size: never 1 <= Leader[x] and started is 0",
+              "every x with x < size: never 1 <= VotingQuorum[x] and started is 0",
+              "every x with x < size: never VoteRequestMsg[64·x + x] is 0 and 1 <= VoteMsg[64·x + x]",
+              "every x with x < size: never VoteRequestMsg[64·x + x] is 0 and 1 <= Votes[64·x + x]",
+              "every x with x < size: never 1 <= VoteRequestMsg[64·x + x] and started is 0",
+              "every x with x < size: never VoteMsg[64·x + x] is 0 and 1 <= Votes[64·x + x]",
+              "every x with x < size: never 1 <= VoteMsg[64·x + x] and started is 0",
+              "every x with x < size: never 1 <= Votes[64·x + x] and started is 0",
+              "every x, y with x < size ∧ y < 64: never Leader[x] is 0 and 1 <= Decided[64·x + y]",
+              "every x, y with x < size ∧ y < 64: never 1 <= Decided[64·x + y] and started is 0",
+              "every x, y, z with x < size ∧ y < 64 ∧ z < 64 ∧ ¬(y = z): never 1 <= Decided[64·x + y] and 1 <= Decided[64·x + z]",
+              "every x, y with x < size ∧ y < size ∧ ¬(x = y): never Voted[x] is 0 and 1 <= VoteMsg[64·x + y]",
+              "every x, y with x < size ∧ y < size ∧ ¬(x = y): never Voted[x] is 0 and 1 <= Votes[64·y + x]",
+              "every x, y with x < size ∧ y < size ∧ ¬(x = y): never 1 <= Leader[x] and 1 <= Leader[y]",
+              "every x, y with x < size ∧ y < size ∧ ¬(x = y): never VoteRequestMsg[64·x + y] is 0 and 1 <= VoteMsg[64·y + x]",
+              "every x, y with x < size ∧ y < size ∧ ¬(x = y): never VoteRequestMsg[64·x + y] is 0 and 1 <= Votes[64·x + y]",
+              "every x, y with x < size ∧ y < size ∧ ¬(x = y): never 1 <= VoteRequestMsg[64·x + y] and started is 0",
+              "every x, y with x < size ∧ y < size ∧ ¬(x = y): never 1 <= VoteMsg[64·x + x] and 1 <= VoteMsg[64·x + y]",
+              "every x, y with x < size ∧ y < size ∧ ¬(x = y): never 1 <= VoteMsg[64·x + x] and 1 <= Votes[64·y + x]",
+              "every x, y with x < size ∧ y < size ∧ ¬(x = y): never VoteMsg[64·x + y] is 0 and 1 <= Votes[64·y + x]",
+              "every x, y with x < size ∧ y < size ∧ ¬(x = y): never 1 <= VoteMsg[64·x + y] and 1 <= Votes[64·x + x]",
+              "every x, y with x < size ∧ y < size ∧ ¬(x = y): never 1 <= VoteMsg[64·x + y] and started is 0",
+              "every x, y with x < size ∧ y < size ∧ ¬(x = y): never 1 <= Votes[64·x + x] and 1 <= Votes[64·y + x]",
+              "every x, y with x < size ∧ y < size ∧ ¬(x = y): never 1 <= Votes[64·x + y] and started is 0",
+              "every x, y, z with x < size ∧ y < size ∧ ¬(x = y) ∧ z < 64: never Voted[x] is 0 and 1 <= Decided[64·y + z]",
+              "every x, y, z with x < size ∧ y < size ∧ ¬(x = y) ∧ z < 64: never 1 <= Leader[x] and 1 <= Decided[64·y + z]",
+              "every x, y, z with x < size ∧ y < size ∧ ¬(x = y) ∧ z < 64: never 1 <= Decided[64·x + z] and 1 <= Decided[64·y + z]",
+              "every x, y, z, w with x < size ∧ y < size ∧ ¬(x = y) ∧ z < 64 ∧ w < 64 ∧ ¬(z = w): never 1 <= Decided[64·x + z] and 1 <= Decided[64·y + w]",
+              "every x, y, z with x < size ∧ y < size ∧ ¬(x = y) ∧ z < size ∧ ¬(x = z) ∧ ¬(y = z): never 1 <= VoteMsg[64·x + y] and 1 <= VoteMsg[64·x + z]",
+              "every x, y, z with x < size ∧ y < size ∧ ¬(x = y) ∧ z < size ∧ ¬(x = z) ∧ ¬(y = z): never 1 <= VoteMsg[64·x + y] and 1 <= Votes[64·z + x]",
+              "every x, y, z with x < size ∧ y < size ∧ ¬(x = y) ∧ z < size ∧ ¬(x = z) ∧ ¬(y = z): never 1 <= Votes[64·x + y] and 1 <= Votes[64·z + y]",
+              "carry:point-guard:adc673d7c555ac2c",
+              "carry:point-guard:695583f187e7e5ab"
+            ]
+          ]
+        }
+      }
+    }
+  ],
+  "finalGate": false
+}

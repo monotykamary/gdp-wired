@@ -1,0 +1,8 @@
+{
+  "task": "90371148-31aa-474c-8a87-3fad952373c5",
+  "status": "active",
+  "baseline": "8214a543bc44e88d979f9e4457d7370e7e3c122b",
+  "candidate": "d3adf3c9589ec014a158b6f42ecfb091c999bb43",
+  "testTimeoutUnchanged": true,
+  "finalGate": false
+}

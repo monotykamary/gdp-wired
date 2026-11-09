@@ -24,8 +24,8 @@ for(const job of jobs){
  }
  pairs.push(...checked.pairs);skips.push(...checked.skips)
 }
-const allProven=pairs.length>=5&&pairs.every(pair=>pair.metrics.base.verdict==='proven'&&pair.metrics.candidate.verdict==='proven'),noLoss=issues.length===0&&allProven
-const result={sources,issues,acceptedPairs:pairs.length,skips,allProven,noLoss,pairs,finalGate:false}
+const allProven=pairs.length>0&&pairs.every(pair=>pair.metrics.base.verdict==='proven'&&pair.metrics.candidate.verdict==='proven'),enoughPairs=pairs.length>=5,noLoss=issues.length===0&&enoughPairs&&allProven
+const result={sources,issues,acceptedPairs:pairs.length,requiredPairs:5,enoughPairs,skips,allProven,noLoss,pairs,finalGate:false}
 writeFileSync(join(dir,'consensus-fix-audit.json'),JSON.stringify(result,null,2)+'\n')
 console.log(JSON.stringify({...result,pairs:undefined,skips:skips.length}))
 if(!noLoss)process.exitCode=1
