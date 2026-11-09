@@ -5,6 +5,7 @@ id=${2:?protocol}
 repeat=${3:-1}
 base_kind=${4:-main}
 root=$PWD
+printf 'T14_CPU_MODEL %s\n' "$(awk -F ' : |: ' '/^model name/{print $2; exit}' /proc/cpuinfo)"
 scratch=$(mktemp -d)
 trap 'rm -rf "$scratch"' EXIT
 base="$scratch/base"
