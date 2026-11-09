@@ -1,5 +1,6 @@
 // Iteration-only receipt replay. This is NOT final-gate admission tooling.
-import {readFileSync} from 'node:fs'
+import {existsSync, readFileSync} from 'node:fs'
+import {gunzipSync} from 'node:zlib'
 import {createHash} from 'node:crypto'
 import {type Law, type Machine, type Request, type State, interpret} from '../../core/machine.ts'
 import {finiteEvaluator} from '../../core/finite-houdini.ts'
@@ -10,6 +11,7 @@ type EncodedState = {scalars: Record<string, number>, maps: Record<string, [numb
 type Drop = {stage: number, round: number, ms: number, law: string, pre: EncodedState, request: Record<string, number | [number, number][]>}
 type Result = {mode: string, initial: number, drops: Omit<Drop, 'pre' | 'request'>[], timedOut: boolean, wall: number, removed: number, survivors: number}
 const dir = process.argv[2] ?? 'hybrid-data', input = process.argv[3] ?? 'tiny-data/0.json'
+const readLog = (path: string): string => existsSync(path + '.gz') ? gunzipSync(readFileSync(path + '.gz')).toString('utf8') : readFileSync(path, 'utf8')
 const raw = readFileSync(input), inputHash = createHash('sha256').update(raw).digest('hex')
 if (inputHash !== '96ba906a86c7f54db1371cea2c55c0bbcc79fd9e8ebe368b770f6495a9ee4496') throw Error('frozen input changed')
 const capture = JSON.parse(raw.toString()) as {beforeFinite: {machine: Machine, caller: Law[], candidates: Law[]}, finiteDrops: {round: number, law: Law, params: Record<string, number>, pre: EncodedState, request: Drop['request']}[]}
@@ -24,7 +26,7 @@ const summary = readFileSync(`${dir}/summary.tsv`, 'utf8').trim().split('\n').ma
 const roster = ['original', 'survivors'].flatMap(mode => [1, 2, 3].map(n => `${mode}-hybrid-${n}`))
 if (summary.length !== 6 || new Set(summary.map(row => row[0])).size !== 6 || summary.some(row => !roster.includes(row[0]!))) throw Error('incorrect six-job roster')
 const rows = withWall(performance.now() + 30_000, () => roster.map(job => {
-  const text = readFileSync(`${dir}/${job}.log`, 'utf8'), receipts = text.split('\n').filter(line => line.startsWith('HYBRID_RESULT '))
+  const text = readLog(`${dir}/${job}.log`), receipts = text.split('\n').filter(line => line.startsWith('HYBRID_RESULT '))
   if (receipts.length !== 1) throw Error(`missing/duplicate result: ${job}`)
   const result = JSON.parse(receipts[0]!.slice('HYBRID_RESULT '.length)) as Result
   const drops = text.split('\n').filter(line => line.startsWith('HYBRID_CTI ')).map(line => JSON.parse(line.slice('HYBRID_CTI '.length)) as Drop)

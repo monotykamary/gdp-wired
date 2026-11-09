@@ -18,7 +18,55 @@ screening stays disabled. Next: collect all six exact exits/placements,
 independently replay their `HYBRID_CTI`s and count only the named seven;
 then keep iterating against the five-of-seven / <=2 s falsifier.
 
-## Current validation — green unit/type/lint, probes still pending
+## Resumed hybrid probes: independently replayed, criterion fails
+
+Both six-probe batches are complete, every job exited 0, and independent
+replay batch `20261110-010325-urerjg` passes for **all twelve logs**. The
+replayer checks the complete beginning-of-round family, all declarations,
+the source interpreter's enabled step and the target post-law. Compact
+records: `research/track-gen/t16-hybrid-resume-results.json`; compressed
+input logs total 64 KB under `runs/t16-replay-input/`.
+
+| Source | Original-40 active walls (ms) | Total drops | New named-seven drops |
+| --- | --- | --- | --- |
+| Checkpoint `bef4020f`, batch `20261110-000752-9cbvob` | 1900.324 / 1900.814 / 1900.212 | 5 / 4 / 5 | **3 / 3 / 3** |
+| Unready-atom shortcut, `19ad4ab4`, batch `20261110-003852-llmvg6` | 1900.401 / 1900.409 / 1900.419 | 5 / 4 / 4 | **3 / 3 / 3** |
+
+The three named drops are the unweakened stored guard, disabled/1 and the CV
+bound. The row-0 cube and CT/CV row agreement are **not** named-seven credit.
+Every survivor-34 run drops only the first two (two new named drops, three
+including its independently replayed historical CV removal). All twelve
+active walls are below 2 s; every search is wall-limited, not a completed
+semantic search. Process durations and scheduler wait are not algorithm wall.
+
+**Falsifier: fewer than five of the named seven. Production stays disabled.**
+The shortcut has no demonstrated removal gain; the different CPU placements
+are not a paired speed comparison. No strict original-harness/full gate is
+scheduled for this unsuccessful screen. No safety proof or GATE GREEN.
+
+### Next bounded experiment (WIP; not covered by the prior green check)
+
+Individual native predicate calls may be replacing arithmetic work with call
+overhead. `core/finite-tiny.ts` now tries shared-DAG logical groups within the
+**same 64-KiB native-body cap**, splitting oversized groups recursively and
+checking cancellation between them. Atomic early guards remain. No search
+domain, wall, proof fuel, law or production switch changes. A 4,096-clause
+regression exercises cap-driven splitting, alongside the exhaustive small
+polarity/request tests. This is a hypothesis, not a measured improvement.
+
+- Tests/type/lint: task `bfd09cd2-0b58-45b3-a140-ae756d934be1`, output
+  `runs/t16-group-check/`.
+- Six bounded probes: task `025406e0-0dc3-4837-953d-1c86433ae218`, output
+  `runs/t16-group-probe/`.
+- Both reuse canonical archive `6288b666` with the small immutable overlay
+  `runs/t16-group-overlay/`; no new tree archive or clone. Compiler SHA-256
+  `2802f3dd4e4d53cc3382457db302f2ee7c1abcef5b394529ccf367f070d2a2a2`.
+
+For lane I/Fable: do not enable or promote the tiny backend from these
+receipts. The original restart is now completed (not pending); the current
+frontier is the bounded-group experiment, with the same five-of-seven bar.
+
+## Prior unready-atom validation — green unit/type/lint only
 
 The unready-atom shortcut and repaired regression fixtures pass **39 tests /
 145 assertions**, TypeScript, type-aware lint (zero warnings/errors), and both
