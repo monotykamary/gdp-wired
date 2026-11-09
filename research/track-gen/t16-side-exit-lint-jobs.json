@@ -1,0 +1,9 @@
+[
+  {
+    "name": "side-exit-commitlint",
+    "cmd": "bunx --yes @commitlint/cli --config research/egraph/historical/commitlint.config.cjs < research/track-gen/T16-SIDE-EXIT-COMMIT.txt",
+    "cpu": 2,
+    "memory": 4096,
+    "timeout": 90
+  }
+]
