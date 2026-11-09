@@ -1,0 +1,18 @@
+
+--- stderr ---
+ 5 | import {createHash} from 'node:crypto'
+ 6 | import {checkMC,mcGoal} from '../../kernel/kernel.ts'
+ 7 | import {clock,counted,fullRate,fullWork,grow,withWall} from '../../kernel/prove.ts'
+ 8 | const [input,output,guardText,limitText='2700']=process.argv.slice(2)
+ 9 | if(!input||!output||guardText===undefined)throw Error('INPUT OUTPUT ORIGINAL_GUARD_INDEX [TOTAL_UNITS] required')
+10 | const bytes=readFileSync(input),p=JSON.parse(brotliDecompressSync(bytes).toString()),guard=Number(guardText),limit=Number(limitText)
+                 ^
+ENOENT: no such file or directory, open 'runs/mldr-incl-pointwise-certificates-v2/tight-domain.br'
+    path: "runs/mldr-incl-pointwise-certificates-v2/tight-domain.br",
+ syscall: "open",
+   errno: -2,
+    code: "ENOENT"
+
+      at /work/gdp-wired/research/mldr-incl/minimize-pointwise.ts:10:13
+
+Bun v1.4.3 (Linux x64)

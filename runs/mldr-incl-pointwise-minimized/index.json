@@ -1,0 +1,50 @@
+[
+  {
+    "scope": "conditional pointwise lemma; NOT safety",
+    "control": "guarded-domain",
+    "inputSha256": "82a92edbc31b56ff7b295b31c9565846cf22b7c1828509aef68998d259bc6b1f",
+    "sha256": "2c9f8ca0bf98f3135c7883848caaaf26dd0675a378fdff7bf222eca101362bb2",
+    "bytes": 994,
+    "minimized": true,
+    "reductionCountedUnits": 572.9136087999999,
+    "premisesBefore": 20,
+    "premisesAfter": 5,
+    "remainingOriginalIndices": [
+      1,
+      13,
+      16,
+      17,
+      19,
+      20
+    ],
+    "parentSha256": "4e003e8464b94962f56447aa4ffe8214209173f6941c3669c9910b9ee7d8e306",
+    "producerChecked": true,
+    "independentChecked": true,
+    "carried": "S",
+    "targetMap": "inX$canVote$3"
+  },
+  {
+    "scope": "conditional pointwise lemma; NOT safety",
+    "control": "tight-domain",
+    "inputSha256": "82a92edbc31b56ff7b295b31c9565846cf22b7c1828509aef68998d259bc6b1f",
+    "sha256": "2629bd4e36f4a990656d077c9f0346a43c4f0c8ece00dc29714e5ccb76993199",
+    "bytes": 976,
+    "minimized": true,
+    "reductionCountedUnits": 572.7694855999999,
+    "premisesBefore": 20,
+    "premisesAfter": 5,
+    "remainingOriginalIndices": [
+      1,
+      13,
+      16,
+      17,
+      19,
+      20
+    ],
+    "parentSha256": "3f231dc1a37e89ca567c8fb0363ba1de8f399faaeb258bcd012b494b66c0926e",
+    "producerChecked": true,
+    "independentChecked": true,
+    "carried": "S",
+    "targetMap": "inX$canVote$3"
+  }
+]

@@ -79,7 +79,11 @@ weaker `CT[i] < CfgT[b]` assumption instead of the proposal's sufficient
 `CT[i] + 1 < CfgT[b]`. This strengthens the conditional claim; it does not
 alter production matching or assert a fact.
 
-Both guarded domain-aware variants checked in about 40 counted units. The
+Both guarded domain-aware variants checked in about 40 counted units.
+Further checked premise reduction retains five of twenty assumptions; see
+[the conditional-lemma handoff](CONDITIONAL-LEMMA.md). The approximately 573
+units for that reduction include every positive and negative probe, not
+one proof attempt. The
 missing-guard control stays SAT. Without the original scalar/key-domain
 premises, all initial controls were SAT; those failures remain recorded.
 This is **not a proof of safety**, nor evidence that the guard or member flags

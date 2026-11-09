@@ -148,12 +148,35 @@ falsification of the complete safety implication. A new control adds only
 scalar conjuncts extracted from the original raw goal, with a missing-guard
 negative, now produces a **checked conditional proof in 39.78 counted units**
 using the tighter `CT[i] < CfgT[b]` guard. The original stronger guard also
-checks (39.79 units). Omitting the guard remains SAT (35.64 units), ruling out
-a vacuous contradiction in the context. Both certificates are now saved and
+checks (39.79 units). Omitting the guard remains numerically SAT (35.64
+units); this is a missing-guard control, not a certified finite counterexample
+or, by itself, a satisfiability check of the guarded premises. Both certificates
+are now saved and
 accepted by fresh kernel processes. The hardened V2 exporter uses unique
 output files; producer, verifier, frozen-input and certificate hashes all
 match. See `runs/mldr-incl-pointwise-certificates-v2/index.json`. This is
 **not a safety proof** and does not establish the explicit flag premises.
+
+The follow-up independently checks **five-premise** versions of both lemmas,
+down from twenty premises. Only `size <= 64`, `b < size`, the scalar guard,
+and the instantiated `canVote` / `all$2` flag bodies remain. Declarations,
+count reads, witness instances and the conclusion are unchanged. The full
+greedy reductions cost 572.91 / 572.77 units; these are **not** single-proof
+measurements or an original-harness speedup. Both missing-guard negatives
+remain numerically SAT. Fresh controls also find both original guarded
+numeric contexts SAT; because reduction only removes premises and keeps the
+guard, the reduced contexts are satisfiable too. These are not certified
+finite-state models. The initial reduction run failed before proof because
+`runs/` was omitted from the source snapshot; the retry explicitly mounted
+the committed inputs. Both logs are retained. Details and exact assumptions:
+`research/mldr-incl/CONDITIONAL-LEMMA.md`; certificates:
+`runs/mldr-incl-pointwise-minimized/`. The final follow-up check passes
+type/lint, all three receipt-parser tests, and four extractor controls: the
+valid frozen receipt is accepted; forged conclusions, premise order and
+parent hashes are rejected even with forged success labels. The execution
+plan is preserved in `mldr-incl-final-check-v1/executed-jobs.json` and as
+`research/mldr-incl/conditional-final-check-jobs.json`; the older unrelated
+`final-check-jobs.json` was restored unchanged. All owned batches are terminal.
 
 The isolated original-harness A/A+E v1 probe failed all three jobs **in patch
 setup**, before any protocol verdict. Lane A changed an import
@@ -167,6 +190,22 @@ all retained ordinary-attempt stages are pass 0, with no prioritized safety
 stage observed. The original-harness improvement is therefore still absent.
 The capture hash is
 `5926107dd7548316d2c531c7822bb440bf44e17cef3d59bf5340042f92655069`.
+
+## For Lane B / Lane D
+
+**Lane B:** `0ee27c7a` supplies the ordinary inclusion and bounded selection;
+`research/mldr-incl/CONDITIONAL-LEMMA.md` now describes its five-premise,
+freshly checked conditional certificate. `all$1` and the extra actor/key/flag
+bounds are unnecessary for that lemma; the `canVote` and `all$2` bodies and
+two domain premises still matter. This is a smaller conditional obligation,
+not a transported proof for arbitrary declarations or a claim that its
+premises hold outside the appropriate branch.
+
+**Lane D:** the full exact-roster local diagnostics for `0ee27c7a` against
+`b788e195` are retained and pass, including source bindings, no lost proofs
+or refutations, and no false proof. Seven shards and type/lint pass. Please
+use the authoritative one-command final gate before any merge; no local
+receipt here, including the conditional certificates, grants GATE GREEN.
 
 ## Real E-14 input
 
@@ -203,8 +242,9 @@ reach safety, then replace this measurement with the real attempt.
 Remaining: turn the conditional lemma into an actual safety-cost improvement
 and obtain Lane D’s exact-source final gate, including its authoritative bar.
 The repaired 29×3 / DuoAI / broken diagnostics, seven shards and final local
-type/lint are complete; none substitutes for that final gate. The next bounded
-experiment removes premises from the saved conditional proof, rechecking every
-removal and retaining a SAT missing-guard control. It is research, not a
-production change. No complete MLDR proof, integrated sub-60-second result,
+type/lint are complete; none substitutes for that final gate. The bounded premise-reduction experiment is complete and independently
+checked; it is research, not a production change. Lane B can use the smaller
+conditional obligation without treating its flag assumptions as facts.
+Lane D still owns the authoritative final acceptance of production
+`0ee27c7a`; this report does not authorize a merge. No complete MLDR proof, integrated sub-60-second result,
 merge, or push is claimed.
