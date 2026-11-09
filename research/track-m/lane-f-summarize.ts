@@ -13,7 +13,7 @@ const result=rows.map(([name,exit,seconds,backend])=>{
   if(active&&line.startsWith('{')){try{const r=JSON.parse(line);if(typeof r.checked==='boolean'&&(r.searchUnits!==undefined||r.units!==undefined))active.result=r}catch{}}
   if(line.startsWith('LANE_F_END '))active=undefined
  }
- const [before,after]=['before','after'].map(side=>sides.filter(s=>s.side===side)),a=before[0]?.result,b=after[0]?.result
+ const before=sides.filter(s=>s.side==='before'),after=sides.filter(s=>s.side==='after'),a=before[0]?.result,b=after[0]?.result
  const complete=Number(exit)===0&&before.length===1&&after.length===1&&!!a&&!!b
  const frozenSame=!!a?.packetSha256&&a.packetSha256===b?.packetSha256
  return {name,exit:Number(exit),seconds:Number(seconds),backend,placement:placement[name!],logSha256:createHash('sha256').update(text).digest('hex'),complete,frozenSame,sides,checkedLost:complete&&a.checked&&!b.checked,searchDelta:complete?b.searchUnits-a.searchUnits:null,wallDelta:complete?(b.wallMs??b.searchWallMs)-(a.wallMs??a.searchWallMs):null}

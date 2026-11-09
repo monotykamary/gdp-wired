@@ -52,6 +52,7 @@ export function demandedRowPair(pairs:RowPair[],path:Path,model:Record<string,nu
   const a=linear(pair[0],path),b=linear(pair[1],path);if(!a||!b)return []
   let value=0
   for(const [key,k]of Object.entries(sub(a,b))){const v=key==='1'?1:model[key];if(!Number.isFinite(v))return [];value+=k*v!}
+  if(!Number.isFinite(value))return []
   let relevant=false;walkOnce(pair[0],(o:any)=>{if(o.op==='var'&&sources.has(o.name))relevant=true})
   return [{pair,index,equal:value===0,relevant}]
  }).sort((a,b)=>Number(b.equal&&b.relevant)-Number(a.equal&&a.relevant)||Number(b.relevant)-Number(a.relevant)||Number(b.equal)-Number(a.equal)||a.index-b.index)
@@ -167,12 +168,13 @@ function proveRowCasesImpl(g:Goal,root:Path,pairs:RowPair[],until:number,prove:(
   }
   return branch(diff,path,p=>branch(back,p,yes,no),no)
  }
- if(options.model){
+ const modelAt=options.model
+ if(modelAt){
   const visit=(path:Path,_key:string,remaining:RowPair[],depth:number):Tree|undefined=>{
    const key=pairs.map(([a,b])=>{const t=truth({op:'=',a,b},path);return t===undefined?'any':t?'equal':'different'}).join('/')
    const direct=leaf(path,key);if(direct)return direct
    if(clock()>=until||depth>=pairs.length)return undefined
-   const model=options.model(),next=model&&demandedRowPair(remaining,path,model,options.sources?.())
+   const model=modelAt(),next=model&&demandedRowPair(remaining,path,model,options.sources?.())
    if(!next)return undefined
    trace?.({stage:'row-demand',depth,pair:next,key})
    const rest=remaining.filter(pair=>pair!==next)
