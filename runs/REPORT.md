@@ -22,6 +22,12 @@ the initial batch's cleanup remains unconfirmed. Resume new submissions
 only after the coordinator lifts the resource hold, using an immutable,
 verified source export. No tests or proofs have completed in this resume.
 
+Static review under the hold: the prepared original/replay wrappers now keep
+`bun run check` stdout rather than suppressing it, so any future preflight
+failure will retain its actual compiler diagnostics in that job's own log.
+The original proof commands and budgets are unchanged. This manifest edit
+has not been submitted or executed.
+
 
 The user explicitly resumed this lane. First action: resubmit the **unchanged**
 `integrated-check` command from the cancelled integrated-production manifest,
