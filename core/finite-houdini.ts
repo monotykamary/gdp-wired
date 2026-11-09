@@ -15,6 +15,7 @@ const conjuncts = (c: C): C[] => c.op === 'and' ? c.xs.flatMap(conjuncts) : [c]
 // Otherwise permit only direct finite-map reads and equality between binders:
 // the explicit cells plus one distinct fresh key per binder cover every case.
 export function finiteEvaluator(m: Machine, stop: () => boolean = () => false): (law: Law, p: Env, st: State) => Truth {
+  const checkpoint = () => { checkWall('finite derived count'); if (stop()) throw new Error('finite evaluation stopped') }
   const plans = new WeakMap<Law, ReturnType<typeof plan>>()
   const cache = new WeakMap<State, {params: Env, view: State, values: Map<Law, Truth>}>()
   function plan(law: Law) {
@@ -60,7 +61,7 @@ export function finiteEvaluator(m: Machine, stop: () => boolean = () => false): 
     checkWall('finite law')
     if (stop()) return undefined
     let entry = cache.get(st)
-    if (!entry || entry.params !== p) { entry = {params: p, view: carriedView(m, st, Object.fromEntries((m.inputMaps ?? []).map(k => [k, new Map()])), undefined, p), values: new Map()}; cache.set(st, entry) }
+    if (!entry || entry.params !== p) { entry = {params: p, view: carriedView(m, st, Object.fromEntries((m.inputMaps ?? []).map(k => [k, new Map()])), undefined, p, checkpoint), values: new Map()}; cache.set(st, entry) }
     if (entry.values.has(law)) return entry.values.get(law)
     let shape = plans.get(law); if (!shape) { shape = plan(law); plans.set(law, shape) }
     if (!shape.supported) return undefined
@@ -116,6 +117,9 @@ export function finiteHoudini(source: Machine, m: Machine, caller: Law[], candid
 }
 function finiteHoudiniWithin(source: Machine, m: Machine, caller: Law[], candidates: Law[], samples: Samples, options: FiniteOptions): Law[] {
   finiteDump.onStart?.({machine: m, caller, candidates})
+  // Derived sum-state consistency is not reconstructed by this finite backend.
+  if (Object.keys(m.sums ?? {}).length) return candidates
+  const declarations: Law[] = [...(m.pre ? [{name: 'finite parameter precondition', holds: m.pre}] : []), ...m.facts ?? []]
   const evaluate = finiteEvaluator(m), rng = seeded(options.seed ?? 17), run = interpret(source), step = fastStep(source) ?? run.step
   const base = samples.flatMap(({p, sts}) => sts.map(st => ({p, st})))
   if (!base.length) return candidates
@@ -131,7 +135,7 @@ function finiteHoudiniWithin(source: Machine, m: Machine, caller: Law[], candida
   const protectedLaws = new Set(caller)
   let alive = [...candidates]
   for (let round = 0; ; round++) {
-    const family = [...caller, ...alive], removed = new Set<Law>()
+    const family = [...declarations, ...caller, ...alive], removed = new Set<Law>()
     let accepted = 0, steps = 0
     const lawful = (p: Env, st: State) => family.every(law => evaluate(law, p, st) === true)
     const visit = (p: Env, pre: State): boolean => {
