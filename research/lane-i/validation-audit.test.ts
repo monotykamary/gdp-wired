@@ -1,5 +1,5 @@
 import {expect, test} from 'bun:test'
-import {parseMldrPair, parseTestSummary} from './validation-audit.ts'
+import {parseMldrPair, parseTestSummary, parseReplayNegative} from './validation-audit.ts'
 const side = (name: string, verdict = 'unknown') => [
   `LANE_I_BEGIN mldr 1 mldr ${name}`,
   `LANE_I_EXIT ${name} 0`,
@@ -27,6 +27,11 @@ test('duplicate or swapped phases and malformed results fail closed', () => {
   expect(parseMldrPair(side('base') + '\n' + side('candidate') + '\n' + side('candidate'), 1).issues).toContain('candidate: phase cardinality/order')
   expect(parseMldrPair(side('base') + '\n' + side('candidate', 'green'), 1).issues).toContain('candidate: invalid strict result')
   expect(parseMldrPair(side('base') + '\n' + side('candidate').replace('"ms":59000', '"ms":61000'), 1).issues).toContain('candidate: invalid strict result')
+})
+test('a replay control requires the specific metadata rejection, not just an exit marker', () => {
+  const log = '(fail) ordinary core replay retains metadata\n0 pass\n1 fail\n"readsRetained": false\n"certificatesRetained": true\n"poolsRetained": true\nCORE_REPLAY_NEGATIVE_CONTROL_OK'
+  expect(parseReplayNegative(log)).toEqual({issues: [], expectedRejection: true})
+  for (const bad of [log.replace('false', 'true'), log.replace('1 fail', '0 fail'), log + '\n1 error', log + '\nCORE_REPLAY_NEGATIVE_CONTROL_OK', 'CORE_REPLAY_NEGATIVE_CONTROL_OK']) expect(parseReplayNegative(bad).issues.length).toBe(1)
 })
 test('a passing test beside a load error is not a clean test summary', () => {
   expect(parseTestSummary('1 pass\n0 fail\n1 error\n1 expect() calls').issues.length).toBe(1)

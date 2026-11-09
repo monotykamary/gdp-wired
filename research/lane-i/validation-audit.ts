@@ -37,6 +37,12 @@ export function parseMldrPair(log: string, repeat: number) {
   })
   return {repeat, issues, sides}
 }
+export function parseReplayNegative(log: string) {
+  const markers = log.match(/^CORE_REPLAY_NEGATIVE_CONTROL_OK$/gm) ?? []
+  const expected = /^\s*0 pass\s*$/m.test(log) && /^\s*1 fail\s*$/m.test(log) && /\(fail\) ordinary core replay retains metadata/.test(log) && /"readsRetained":\s*false/.test(log) && /"certificatesRetained":\s*true/.test(log) && /"poolsRetained":\s*true/.test(log) && !/^\s*[1-9]\d* errors?\s*$/m.test(log)
+  const issues = markers.length === 1 && expected ? [] : ['missing or invalid replay negative control']
+  return {issues, expectedRejection: issues.length === 0}
+}
 export function parseTestSummary(log: string) {
   const passes = [...log.matchAll(/^\s*(\d+) pass\s*$/gm)], failures = [...log.matchAll(/^\s*(\d+) fail\s*$/gm)], assertions = [...log.matchAll(/^\s*(\d+) expect\(\) calls\s*$/gm)]
   const issues: string[] = []
@@ -46,13 +52,13 @@ export function parseTestSummary(log: string) {
 if (import.meta.main) {
   const root = process.argv[2]; if (!root) throw Error('iteration root required')
   const dir = join(root, 'validation'), identity = JSON.parse(readFileSync(join(root, 'input/identity.json'), 'utf8')), placement = JSON.parse(readFileSync(join(dir, 'placement.json'), 'utf8'))
-  const rows = readFileSync(join(dir, 'summary.tsv'), 'utf8').trim().split('\n').map(line => line.split('\t')), names = ['check', ...[1, 2, 3, 4].map(i => `changed-tests-${i}`), ...[1, 2, 3].map(i => `mldr-r${i}`)], issues: string[] = []
+  const rows = readFileSync(join(dir, 'summary.tsv'), 'utf8').trim().split('\n').map(line => line.split('\t')), names = ['check', ...[1, 2, 3, 4].map(i => `changed-tests-${i}`), ...[1, 2, 3].map(i => `mldr-r${i}`), ...(process.argv[3] === '--replay-negative' ? ['core-replay-negative'] : [])], issues: string[] = []
   if (rows.length !== names.length || new Set(rows.map(row => row[0])).size !== names.length || rows.some(row => !names.includes(row[0]!))) issues.push('validation roster mismatch')
   const jobs = names.map(name => {
     const row = rows.find(r => r[0] === name), p = placement[name], log = readFileSync(join(dir, name + '.log'), 'utf8')
     if (row?.[1] !== '0' || row?.[3] !== 'boat' || !p?.exclusive || p.co_tenants !== 0 || p.type !== 'large' || !p.cpu) issues.push(`${name}: exit/backend/CPU placement`)
     if (name.startsWith('mldr-') && (!log.includes(identity.candidate) || !log.includes(identity.baseline))) issues.push(`${name}: source identity missing`)
-    const parsed = name.startsWith('mldr-') ? parseMldrPair(log, Number(name.slice(-1))) : name.startsWith('changed-tests-') ? parseTestSummary(log) : {issues: []}
+    const parsed = name.startsWith('mldr-') ? parseMldrPair(log, Number(name.slice(-1))) : name.startsWith('changed-tests-') ? parseTestSummary(log) : name === 'core-replay-negative' ? parseReplayNegative(log) : {issues: []}
     issues.push(...parsed.issues.map(issue => `${name}: ${issue}`))
     return {name, placement: p, sha256: createHash('sha256').update(log).digest('hex'), ...parsed}
   })
