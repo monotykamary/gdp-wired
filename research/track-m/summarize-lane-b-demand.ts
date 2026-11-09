@@ -1,6 +1,7 @@
 // Small-log reconciliation only; large archives remain on boat.
 import {strict as assert} from 'node:assert'
-import {readFileSync, writeFileSync} from 'node:fs'
+import {existsSync, readFileSync, writeFileSync} from 'node:fs'
+import {gunzipSync} from 'node:zlib'
 import {join, basename} from 'node:path'
 import {createHash} from 'node:crypto'
 const dir = process.argv[2]
@@ -10,7 +11,8 @@ const placement = JSON.parse(readFileSync(join(dir, 'placement.json'), 'utf8'))
 const exits = new Map(readFileSync(join(dir, 'summary.tsv'), 'utf8').trim().split('\n').map(line => { const [name, code] = line.split('\t'); return [name, Number(code)] }))
 const rows = names.map(name => {
   assert.equal(exits.get(name), 0, name)
-  const text = readFileSync(join(dir, name + '.log'), 'utf8')
+  const path = join(dir, name + (existsSync(join(dir, name + '.log')) ? '.log' : '.log.gz'))
+  const bytes = readFileSync(path), text = (path.endsWith('.gz') ? gunzipSync(bytes) : bytes).toString('utf8')
   const arms: any[] = [], audits = new Map<string, any>(), manifests: any[] = []
   let input: string | undefined
   for (const line of text.split('\n')) {
