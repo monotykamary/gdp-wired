@@ -1,0 +1,14 @@
+fix(core): cancel derived counts and validate finite facts
+
+Check the wall inside lazy count evaluation and propagate the finite
+attempt's stop callback through count reads and interpreter transitions.
+An interrupted count never enters the lazy result cache.
+
+Require declared facts as well as parameter preconditions and the full
+relative family before certifying a finite CTI. Unsupported facts remain
+uncertified; derived sum-state machines are conservatively declined.
+Apply the declaration checks to finite generation as well.
+
+Add regressions for the 5,000,000-bound wall probe, stop-only cancellation,
+partial-cache safety and a model violating the declared parameter fact.
+Addresses Lane D's two c9d7f823 audit blockers; re-audit still required.

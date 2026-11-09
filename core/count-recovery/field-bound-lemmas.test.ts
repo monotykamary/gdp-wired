@@ -1,7 +1,7 @@
 import {expect,test} from 'bun:test'
 import {type C,type Machine,all,any,atMost,get,ite,less,minus,n,not,plus,same,times,x} from '../machine.ts'
 import {canon,check,checkMC,linear,mcGoal,type CountCert,type Path} from '../../kernel/kernel.ts'
-import {clock} from '../../kernel/prove.ts'
+import {clock,counted,fullRate} from '../../kernel/prove.ts'
 import {countBindingsAt,emptyCountCandidate,fieldBoundLemmas,fieldBounds} from './field-bound-lemmas.ts'
 
 test('packed column domains are split once before row reconstruction and checked',()=>{
@@ -9,7 +9,8 @@ test('packed column domains are split once before row reconstruction and checked
  const a=x('a'),b=x('b'),column=x('column'),size=x('size'),cell=(row:typeof a)=>get('Cells',plus(times(64,row),column))
  const law=any(not(all(less(a,size),less(b,size),less(column,size))),not(same(get('Tag',a),get('Tag',b))),same(cell(a),cell(b))),claim=not(law)
  const g={name:'column domain',hyps:[same(cell(a),n(0)),same(cell(b),n(0)),claim]},events:object[]=[]
- const tree=fieldBoundLemmas(machine,[],g,{reads:[],insts:[]},clock()+1500,events,undefined,new Map(),{fieldClaim:claim})
+ // Exercise the route under its deterministic work clock, not a 50 ms JIT/GC race.
+ const tree=counted(fullRate,()=>fieldBoundLemmas(machine,[],g,{reads:[],insts:[]},clock()+1500,events,undefined,new Map(),{fieldClaim:claim}),true)
  expect(tree).toBeDefined();if(tree)expect(check(g,tree)).toBe(true)
  expect(events.some((e:any)=>e.stage==='field-column-domain'&&e.proposed)).toBe(true)
  expect(fieldBoundLemmas(machine,[],{...g,hyps:[claim]},{reads:[],insts:[]},clock()+1000,[],undefined,new Map(),{fieldClaim:claim})).toBeUndefined()

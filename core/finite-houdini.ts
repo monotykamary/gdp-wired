@@ -2,7 +2,9 @@
 // unknown; only an actual enabled step from a state satisfying the WHOLE
 // current family may remove a non-caller. The checked prover sees survivors.
 import {type C, type E, type Law, type Machine, type Request, type State, carriedView, compileC, compileE, fastStep, interpret, seeded, walk} from './machine.ts'
-import {checkWall, WallExpired} from './wall.ts'
+import {checkWall, searchWall, WallExpired} from './wall.ts'
+import {boundaryState, lawFrontiers} from './finite-frontiers.ts'
+import {wallAt, withWall} from '../kernel/prove.ts'
 type Env = Record<string, number>
 type Samples = {p: Env, sts: State[]}[]
 type Truth = boolean | undefined
@@ -12,7 +14,8 @@ const conjuncts = (c: C): C[] => c.op === 'and' ? c.xs.flatMap(conjuncts) : [c]
 // Guards provide finite upper bounds (including auxiliary half-count witnesses).
 // Otherwise permit only direct finite-map reads and equality between binders:
 // the explicit cells plus one distinct fresh key per binder cover every case.
-export function finiteEvaluator(m: Machine): (law: Law, p: Env, st: State) => Truth {
+export function finiteEvaluator(m: Machine, stop: () => boolean = () => false): (law: Law, p: Env, st: State) => Truth {
+  const checkpoint = () => { checkWall('finite derived count'); if (stop()) throw new Error('finite evaluation stopped') }
   const plans = new WeakMap<Law, ReturnType<typeof plan>>()
   const cache = new WeakMap<State, {params: Env, view: State, values: Map<Law, Truth>}>()
   function plan(law: Law) {
@@ -56,15 +59,16 @@ export function finiteEvaluator(m: Machine): (law: Law, p: Env, st: State) => Tr
   }
   return (law, p, st) => {
     checkWall('finite law')
+    if (stop()) return undefined
     let entry = cache.get(st)
-    if (!entry || entry.params !== p) { entry = {params: p, view: carriedView(m, st, Object.fromEntries((m.inputMaps ?? []).map(k => [k, new Map()])), undefined, p), values: new Map()}; cache.set(st, entry) }
+    if (!entry || entry.params !== p) { entry = {params: p, view: carriedView(m, st, Object.fromEntries((m.inputMaps ?? []).map(k => [k, new Map()])), undefined, p, checkpoint), values: new Map()}; cache.set(st, entry) }
     if (entry.values.has(law)) return entry.values.get(law)
     let shape = plans.get(law); if (!shape) { shape = plan(law); plans.set(law, shape) }
     if (!shape.supported) return undefined
     const env: Env = {...p, ...st.scalars}, view = entry.view
     let visited = 0
     const go = (left: typeof shape.cover): Truth => {
-      if ((visited++ & 255) === 0) checkWall('finite law bindings')
+      if ((visited++ & 255) === 0) { checkWall('finite law bindings'); if (stop()) return undefined }
       if (visited > 1_000_000) return undefined
       if (!left.length) return shape.test(env, view)
       for (const g of shape.guards) if (g.vars.every(k => k in env) && !g.test(env, view)) return true
@@ -93,7 +97,24 @@ export function finiteEvaluator(m: Machine): (law: Law, p: Env, st: State) => Tr
 }
 export type FiniteDrop = {round: number, law: Law, params: Env, pre: State, request: Request, post: State}
 export const finiteDump: {onStart?: (value: {machine: Machine, caller: Law[], candidates: Law[]}) => void, onDrop?: (drop: FiniteDrop) => void} = {}
-export type FiniteOptions = {randomStates?: number, requests?: number, seed?: number, onDrop?: (drop: FiniteDrop) => void, onRound?: (row: {round: number, alive: number, dropped: number, randomStates: number, steps: number}) => void}
+export type FiniteOptions = {randomStates?: number, requests?: number, seed?: number, targeted?: boolean, wallMs?: number, onFinish?: (row: {timedOut: boolean, ms: number, dropped: number}) => void, onDrop?: (drop: FiniteDrop) => void, onRound?: (row: {round: number, alive: number, dropped: number, randomStates: number, steps: number}) => void}
+export function finiteHoudini(source: Machine, m: Machine, caller: Law[], candidates: Law[], samples: Samples, options: FiniteOptions = {}): Law[] {
+  const start = performance.now(), end = Math.min(wallAt(), searchWall(Math.max(0, options.wallMs ?? 2_000)))
+  let survivors = candidates.slice(), timedOut = false
+  try {
+    return withWall(end, () => finiteHoudiniWithin(source, m, caller, candidates, samples, {...options, onDrop: drop => {
+      survivors = survivors.filter(law => law !== drop.law)
+      options.onDrop?.(drop)
+    }}))
+  } catch (error) {
+    if (!(error instanceof WallExpired)) throw error
+    // An enclosing deadline must still cancel the caller. Only expiration of
+    // this local sampling allowance returns the already-certified survivors.
+    checkWall('finite sampling completion')
+    timedOut = true
+    return survivors
+  } finally { options.onFinish?.({timedOut, ms: performance.now() - start, dropped: candidates.length - survivors.length}) }
+}
 // What a law reads: its scalars and maps, a count map read as the scalars and maps of its body and bound. A law
 // reading nothing a step changed keeps its truth across that step (the pre-state satisfied it), so it is not evaluated
 // on the post-state: the same drops, fewer evaluations.
@@ -110,8 +131,11 @@ function lawReads(m: Machine, law: Law): {scalars: Set<string>, maps: Set<string
   visit(law.holds)
   return {scalars, maps}
 }
-export function finiteHoudini(source: Machine, m: Machine, caller: Law[], candidates: Law[], samples: Samples, options: FiniteOptions = {}): Law[] {
+function finiteHoudiniWithin(source: Machine, m: Machine, caller: Law[], candidates: Law[], samples: Samples, options: FiniteOptions): Law[] {
   finiteDump.onStart?.({machine: m, caller, candidates})
+  // Derived sum-state consistency is not reconstructed by this finite backend.
+  if (Object.keys(m.sums ?? {}).length) return candidates
+  const declarations: Law[] = [...(m.pre ? [{name: 'finite parameter precondition', holds: m.pre}] : []), ...m.facts ?? []]
   const evaluate = finiteEvaluator(m), rng = seeded(options.seed ?? 17), run = interpret(source), step = fastStep(source) ?? run.step
   const base = samples.flatMap(({p, sts}) => sts.map(st => ({p, st})))
   if (!base.length) return candidates
@@ -126,7 +150,7 @@ export function finiteHoudini(source: Machine, m: Machine, caller: Law[], candid
     for (const [k, v] of bv ?? []) if (v !== (av?.get(k) ?? ad)) return true
     return false
   }
-  // The laws a state failed first, so a later round re-reads only the states a dropped law had rejected.
+  // The law a state failed first, so a later round re-reads only the states a since-dropped law had rejected.
   const failures = new Map<Law, number>()
   const order = (family: Law[]) => [...family].sort((a, b) => (failures.get(b) ?? 0) - (failures.get(a) ?? 0))
   const values = new Map(maps.map(mp => [mp, [...new Set([source.maps![mp]!, ...base.flatMap(({st}) => [...st.maps[mp]?.values() ?? []])])].sort((a, b) => a - b)]))
@@ -137,17 +161,17 @@ export function finiteHoudini(source: Machine, m: Machine, caller: Law[], candid
     const av = a.maps[mp], bv = b.maps[mp], ad = a.defaults?.[mp] ?? source.maps![mp]!, bd = b.defaults?.[mp] ?? source.maps![mp]!
     return ad === bd && (av === bv || ([...av ?? []].every(([k, v]) => v === (bv?.get(k) ?? bd)) && [...bv ?? []].every(([k, v]) => v === (av?.get(k) ?? ad))))
   })
-  const protectedLaws = new Set(caller)
+  const protectedLaws = new Set(caller), dropped = new Set<Law>()
   let alive = [...candidates]
-  // A random state a round rejected, with the law that rejected it: after that law is dropped the state may be lawful.
+  // A state a round rejected, with the law that rejected it: once that law is dropped the state may be lawful.
   let rejected: {p: Env, st: State, by: Law}[] = []
   for (let round = 0; ; round++) {
-    const family = order([...caller, ...alive]), removed = new Set<Law>()
+    const family = order([...declarations, ...caller, ...alive]), removed = new Set<Law>()
     let accepted = 0, steps = 0
     const rejecting = (p: Env, st: State): Law | undefined => { for (const law of family) if (evaluate(law, p, st) !== true) { failures.set(law, (failures.get(law) ?? 0) + 1); return law } return undefined }
-    const visit = (p: Env, pre: State, record = false): boolean => {
+    const visit = (p: Env, pre: State): boolean => {
       const by = rejecting(p, pre)
-      if (by) { if (record) rejected.push({p, st: pre, by}); return false }
+      if (by) { rejected.push({p, st: pre, by}); return false }
       const bound = Math.max(3, ...Object.values(p))
       for (let trial = 0; trial < (options.requests ?? 25); trial++) {
         checkWall('finite transitions')
@@ -169,15 +193,30 @@ export function finiteHoudini(source: Machine, m: Machine, caller: Law[], candid
       }
       return true
     }
-    // Round 0 reads every sampled state and the random states; a later round only the states a since-dropped law had
-    // rejected (every other rejected state still fails a law that is still in the family).
-    if (round === 0) for (const {p, st} of base) visit(p, st, true)
-    else {
-      const revived = rejected.filter(r => !alive.includes(r.by) && !protectedLaws.has(r.by))
-      rejected = rejected.filter(r => alive.includes(r.by) || protectedLaws.has(r.by))
-      for (const {p, st} of revived) if (visit(p, st, true)) accepted++
+    // A later round re-reads only the states a since-dropped law had rejected: every other rejected state still fails
+    // a law that is still in the family, and every visited state was read against every law then alive.
+    if (round > 0) {
+      const revived = rejected.filter(r => dropped.has(r.by))
+      rejected = rejected.filter(r => !dropped.has(r.by))
+      for (const {p, st} of revived) if (visit(p, st)) accepted++
+      options.onRound?.({round, alive: alive.length, dropped: removed.size, randomStates: accepted, steps})
+      if (!removed.size) return alive
+      for (const law of removed) dropped.add(law)
+      alive = alive.filter(law => !removed.has(law))
+      continue
     }
-    for (let tries = 0; round === 0 && accepted < requested && tries < Math.max(requested * 8, requested); tries++) {
+    // Use each law's own atoms before spending the random budget: a cube's
+    // one-sided boundary, a guard enabled, or a bounded field at its limit.
+    const frontiers = options.targeted === false ? [] : alive.flatMap(law => lawFrontiers(law).map(conditions => ({law, conditions})))
+    for (let i = 0; frontiers.length && i < Math.min(requested, frontiers.length * 8); i++) {
+      checkWall('finite frontiers')
+      const {p, st: old} = base[rng(base.length)]!, {law, conditions} = frontiers[i % frontiers.length]!
+      const bound = Math.max(1, ...Object.values(p)), keys = Object.fromEntries([law.forall, ...law.keys ?? []].filter((k): k is string => !!k).map(k => [k, rng(bound)]))
+      const st = boundaryState(source, m, conditions, p, old, keys)
+      if (st) visit(p, st)
+    }
+    for (const {p, st} of base) visit(p, st)
+    for (let tries = 0; accepted < requested && tries < Math.max(requested * 8, requested); tries++) {
       checkWall('finite neighbors')
       const {p, st: old} = base[rng(base.length)]!, st: State = {...old, scalars: {...old.scalars}, maps: {...old.maps}}
       const bound = Math.max(3, ...Object.values(p))
@@ -196,10 +235,11 @@ export function finiteHoudini(source: Machine, m: Machine, caller: Law[], candid
           st.maps[mp] = new Map(st.maps[mp]); st.maps[mp]!.set(key, value)
         } else if (scalars.length) { const name = scalars[rng(scalars.length)]!; st.scalars[name] = Math.max(0, st.scalars[name]! + rng(3) - 1) }
       }
-      if (visit(p, st, true)) accepted++
+      if (visit(p, st)) accepted++
     }
     options.onRound?.({round, alive: alive.length, dropped: removed.size, randomStates: accepted, steps})
     if (!removed.size) return alive
+    for (const law of removed) dropped.add(law)
     alive = alive.filter(law => !removed.has(law))
   }
 }

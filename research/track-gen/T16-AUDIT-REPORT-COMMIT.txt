@@ -1,0 +1,4 @@
+docs(research): identify the finite audit repair commit
+
+Record 74dd9cc5 as the fix for both Lane D findings, with the focused
+validation receipts still pending on the shared scheduler.

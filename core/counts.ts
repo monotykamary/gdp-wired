@@ -28,7 +28,9 @@ import {fieldLaws} from './field-laws.ts'
 import {quorumLaws} from './quorum-laws.ts'
 import {countCubes, liftedOneKeyCounts} from './count-cubes.ts'
 import {finiteHoudini} from './finite-houdini.ts'
+import {finiteModelChecker} from './finite-model.ts'
 import {countsForReads, proposeCountFacts} from './count-facts.ts'
+import {rangeInstances} from './count-ranges.ts'
 import {attemptShare, supportBudget} from './support-budget.ts'
 export {attemptShare, supportBudget} from './support-budget.ts'
 import {proposeCountUnions} from './count-unions.ts'
@@ -372,6 +374,7 @@ export function candidates(src: Parameters<typeof inferLaws>[0], m: Machine, cal
     if (liftedOneKeyCounts(source, m).some(name => liftedCounts.has(name))) {
       out.push(...ptime('countCubes', () => countCubes(source, m, states, liftedCounts).filter(admit)))
       out = ptime('finiteHoudini', () => finiteHoudini(source, m, caller, out, states, {
+        onFinish: row => { if (env.GDP_COUNTS_TRACE) console.error(`counts: finite result ${JSON.stringify(row)}`) },
         onDrop: d => { if (env.GDP_COUNTS_TRACE) console.error(`counts: finite drop ${d.round} ${d.law.name}`) },
         onRound: row => { if (env.GDP_COUNTS_TRACE) console.error(`counts: finite Houdini ${JSON.stringify(row)}`) },
       }))
@@ -394,7 +397,7 @@ export function candidates(src: Parameters<typeof inferLaws>[0], m: Machine, cal
 // laws that read one of its maps; with every kept law (twice a law at most), the nearer tier again after each kept.
 // Within two thirds of what is left (the rest the caller's: Houdini, or the whole set's proof), each goal an even share
 // of that over the candidates. `attempt` is the caller's proof: the counted goals, or the kernel's for plain laws.
-export type Tried<P> = {proof: P} | {stuck: string}
+export type Tried<P> = {proof: P} | {stuck: string, refuted?: boolean}
 // Recovery proposals must not consume a successful ordinary attempt's allowance.
 // A deferred proposal keeps the latest warmed context, but never extends its deadline.
 export function withDeferredCountRecovery<P>(until: number, attempt: (defer: (recover: () => P | undefined) => void) => Tried<P>): Tried<P> {
@@ -575,7 +578,7 @@ function admitCountedFamily0(m:Machine,caller:Law[],initial:Law[],support:Set<La
         }
         const countFirst = (env.GDP_COUNTS_COUNT_FIRST === '1' || boundedSupport && env.GDP_COUNTS_COUNT_FIRST !== '0') && (reads(law.holds, isCount).size > 0 || boundedSupport && !!law.keys?.length)
         let r: Tried<Proof> = was ? {proof: was} : ask(countFirst ? 1 : 0)
-        if (!('proof' in r) && (countFirst || attempts.counted)) r = ask(countFirst ? 0 : 1)
+        if (!('proof' in r) && !r.refuted && (countFirst || attempts.counted)) r = ask(countFirst ? 0 : 1)
         if (!('proof' in r)) { failed.add(law.name); continue }
         proofs.set(law.name, r.proof)
         instances[law.name] = r.proof.instances
@@ -633,7 +636,7 @@ function admitCountedFamily0(m:Machine,caller:Law[],initial:Law[],support:Set<La
       const ask=(context:Law[]):Tried<Proof>=>withWall(wall,()=>withDeadline(stop,()=>{
         const pass:0|1=countFirst?1:0
         let result=traced(law,context,pass,Math.min(allotted,Math.max(0,stop-clock())))
-        if(!('proof'in result)&&(countFirst||attempts.counted)&&clock()<stop)result=traced(law,context,pass?0:1,Math.min(allotted,Math.max(0,stop-clock())))
+        if(!('proof'in result)&&!result.refuted&&(countFirst||attempts.counted)&&clock()<stop)result=traced(law,context,pass?0:1,Math.min(allotted,Math.max(0,stop-clock())))
         return result
       }))
       let context=coarseContext(m,set,[...caller,law],support),result=ask(context)
@@ -674,6 +677,7 @@ export function countedAttempts(m: Machine, caller: Law[], support: Set<Law>, un
   // bounded set of sessions; each independently resets unless its hypotheses are
   // still present verbatim. This reuses work, never a verdict from a weaker goal.
   const decisions = new Map<string, ReturnType<typeof modelSequence>>(), focusEnabled=focusedCountRecoveryEnabled(m)
+  let finite: ReturnType<typeof finiteModelChecker> | undefined
   const ordinaryAttempt = (law: Law, ls: Law[], pass: 0 | 1, ms: number, attemptEnd: number, defer: (recover: () => Proof | undefined) => void): Tried<Proof> => {
     // A cached model can return before the no-count optimization below. A helper
     // without count reads must not suppress the next law's counting-lemma pass.
@@ -688,14 +692,17 @@ export function countedAttempts(m: Machine, caller: Law[], support: Set<Law>, un
     // (the model broken: the attempt starts at the instances it asks for, its last attempt's and the tuples the new laws
     // break it at, where the rounds of models would lead it again)
     let seed: Instances | undefined
+    const refuted = (gg: Goal, w: Record<string, number>, instances: Instances): Tried<Proof> => {
+      const completion = (finite ??= finiteModelChecker(m))(ls, law, w, () => clock() >= attemptEnd)
+      countsDump.on?.({phase: 'finite-model', law: law.name, pass, completion})
+      if (env.GDP_COUNTS_DUMP_ALL_PASSES === '1') countsDump.on?.({phase: completion.genuine ? 'final-sat' : 'uncertified-model', stuck: completion.genuine || !pass ? 'sat' : 'unknown', law: law.name, pass, machine: m, laws: ls, goal: gg, witness: w, at: instances})
+      models.set(id, {gg, w, at: instances, ls: new Set(ls.map(l => l.name))})
+      return completion.genuine ? {stuck: 'sat', refuted: true} : {stuck: pass ? 'unknown' : 'sat'}
+    }
     // (not where the attempt may widen: its narrow model is no model of the widened goal)
     if (cti && !(supported && pass) && !(houdini && caller.some(l => l.name === law.name) && !widened.has(law.name)) && !ls.some(l => !cti.ls.has(l.name) && reads(l.holds, isCount).size)) {
       const at0 = Object.fromEntries(Object.entries(cti.at).filter(([n]) => n.startsWith('?') || ls.some(l => l.name === n)))
-      if (!(seed = ptime('mbqi', () => modelInstances(m, modelLaws, at0, cti.gg, cti.w)))) return {stuck: 'sat'}
-    }
-    const refuted = (gg: Goal, w: Record<string, number>): Tried<Proof> => {
-      if (env.GDP_COUNTS_DUMP_ALL_PASSES === '1') countsDump.on?.({phase: 'final-sat', stuck: 'sat', law: law.name, pass, machine: m, laws: ls, goal: gg, witness: w, at})
-      models.set(id, {gg, w, at, ls: new Set(ls.map(l => l.name))}); return {stuck: 'sat'}
+      if (!(seed = ptime('mbqi', () => modelInstances(m, modelLaws, at0, cti.gg, cti.w)))) return refuted(cti.gg, cti.w, cti.at)
     }
     // Supported obligations seed quantified flags only at demanded source terms.
     // Ordinary MBQI remains the fallback; arbitrary inputs are not initial witnesses.
@@ -722,6 +729,18 @@ export function countedAttempts(m: Machine, caller: Law[], support: Set<Law>, un
     type Selection = {chosen: Set<string>, cap: number, previous: Pick<CountCert, 'reads' | 'insts' | 'picks'>, decls: Parameters<typeof certFor>[1], reserve: ReturnType<typeof reservationState>, stable: ReturnType<typeof stableState>}
     const selections = new Map<string, Selection>()
     const poolCache = new Map<string, {key: string, value: ReturnType<typeof grammarPool>}>()
+    // Every 0/1-bodied count the goal reads is at most its bound (core/count-ranges.ts): the range instances join the
+    // initial selection of each counted pass, outside the lazy pool and its cap, so no model puts a count above the keys it
+    // ranges over. The reads they name are the proposer's own reads of the goal.
+    const withRanges = <T extends Pick<CountCert, 'reads' | 'insts' | 'picks'> & {wits?: string[]}>(decls: CountDecl[], c: T, all: MapRead[]): T => {
+      if (!pass) return c
+      const taken = new Set<string>([...all.map(r => r[0]), ...c.insts.map(i => i.wit), ...m.params, ...m.inputs, ...Object.keys(m.state)])
+      const ranges = rangeInstances(decls, all, taken, c.insts)
+      if (!ranges.length) return c
+      const have = new Set(c.reads.map(r => r[0])), wanted = new Set(ranges.map(i => i.terms[0]![1]))
+      const reads = [...c.reads, ...all.filter(r => !have.has(r[0]) && wanted.has(r[0]))]
+      return {...c, reads, insts: [...c.insts, ...ranges], ...(c.wits ? {wits: [...c.wits, ...ranges.map(i => i.wit)]} : {})}
+    }
     const rawBuild = () => obligations(at).map(({goal, decls}) => {
       if (pass && supported && lazyMode === 'wide') {
         if (generation.state.deadline || performance.now() >= wallAt()) throw new UnsupportedCountProposal('reservation deadline')
@@ -745,24 +764,24 @@ export function countedAttempts(m: Machine, caller: Law[], support: Set<Law>, un
         const full = reservePool(goal, decls, pool0, selection.previous, selection.decls, selection.chosen, selection.reserve, pool, reservation).full
         const keys = ids(full), lazyRoom = selection.chosen.size < selection.cap
         const view = chosenView(full, selection.chosen, selection.cap)
-        const c = selectedCertificate(goal, decls, view, selection.stable, lazyRoom)
+        const c = withRanges(decls, selectedCertificate(goal, decls, view, selection.stable, lazyRoom), full.reads)
         const gg = mcGoal(goal.hyps, decls, c), fg = lazyRoom ? mcGoal(goal.hyps, decls, full) : undefined
         selection.previous = full; selection.decls = decls
         return {goal, decls, c, gg, pool: fg ? {fg, keys, wits: [...full.picks.map(() => undefined), ...full.insts.map(i => i.wit)], chosen: selection.chosen, cap: selection.cap} as Pool : undefined}
       }
       const full = pass ? certFor(goal, decls, wide, wide && lazyMode !== '0' ? pool : undefined, undefined, structured) : none
-      if (!pass || lazyMode === '0' || (lazyMode === 'wide' && !wide)) return {goal, decls, c: full, gg: ptime('encode', () => mcGoal(goal.hyps, decls, full)), pool: undefined as Pool | undefined}
+      if (!pass || lazyMode === '0' || (lazyMode === 'wide' && !wide)) { const c0 = withRanges(decls, full, full.reads); return {goal, decls, c: c0, gg: ptime('encode', () => mcGoal(goal.hyps, decls, c0)), pool: undefined as Pool | undefined} }
       const rd = new Map(full.reads.map(r => [r[0], json([r[1], r[2]])]))
       const keys = [...full.picks.map(q => `p${json([rd.get(q[0]), q[1]])}`), ...full.insts.map(i => `i${json([i.terms.map(([z, x]) => [z, rd.get(x)]), i.unit, i.below])}`)]
       if (lazyMode === 'wide') for (const q of keys.slice(full.picks.length, full.picks.length + 10)) chosen.add(q)
-      const c = {...full, picks: full.picks.filter((_, j) => chosen.has(keys[j]!)), insts: full.insts.filter((_, j) => chosen.has(keys[j + full.picks.length]!))}
+      const c = withRanges(decls, {...full, picks: full.picks.filter((_, j) => chosen.has(keys[j]!)), insts: full.insts.filter((_, j) => chosen.has(keys[j + full.picks.length]!))}, full.reads)
       const fg = ptime('encode', () => mcGoal(goal.hyps, decls, full))
       return {goal, decls, c, gg: ptime('encode', () => mcGoal(goal.hyps, decls, c)), pool: fg && keys.length ? {fg, keys, wits: [...full.picks.map(() => undefined), ...full.insts.map(i => i.wit)]} : undefined}
     })
     let lastSignature = ''
     const build = () => {
       let built = rawBuild()
-      if (pass && supported) while (seedCount < 64 && clock() < until) {
+      if (pass && supported) while (seedCount < 64 && clock() < attemptEnd) {
         const step = built.at(-1)
         if (!step?.gg) break
         const signature = refinementSignature(step.gg, step.c)
@@ -808,9 +827,9 @@ export function countedAttempts(m: Machine, caller: Law[], support: Set<Law>, un
       if (decisions.size >= 64) decisions.delete(decisions.keys().next().value!)
       decisions.set(id, (decideStep = modelSequence()))
     }
-    const t0 = clock(), more = () => clock() - t0 <= Math.max(ms, 1_000)
+    const more = () => clock() < attemptEnd
     // The step goal decided first by the CDCL search for a model (its phases the simplex's point: a model is met where the
-    // tree search would split on), within 2·ms (5 s at most):
+    // tree search would split on), within the attempt's remaining allowance:
     //   - refuted: the law's instances cut to those its core reads, and the core's hypotheses grown on their own first,
     //     the tree widened to the goal;
     //   - a model: the instances it asks for (kernel/prove.ts's modelInstances, MBQI: a law or quantified flag broken at a
@@ -821,10 +840,12 @@ export function countedAttempts(m: Machine, caller: Law[], support: Set<Law>, un
     let preflighted = false
     for (;;) {
       checkWall('counted refinement')
+      if (!more()) return {stuck: 'unknown'}
       let part: {gg: Goal, core: Goal} | undefined
       let direct: {gg: Goal, tree: CountCert['tree']} | undefined
       for (;;) {
         checkWall('counted model loop')
+        if (!more()) return {stuck: 'unknown'}
         const step = built.at(-1)
         if (!step?.gg) break
         if (supported && !preflighted && !step.c.insts.length) {
@@ -841,7 +862,7 @@ export function countedAttempts(m: Machine, caller: Law[], support: Set<Law>, un
           if (tree) { direct = {gg: step.gg, tree}; break }
         }
         observe(step, 'query')
-        const q0 = clock(), q = ptime('decide', () => decideStep(step.gg!, Math.min(until, clock() + Math.min(2 * ms, 5_000))))
+        const q0 = clock(), q = ptime('decide', () => decideStep(step.gg!, attemptEnd))
         observe(step, 'decision:' + ('tree' in q ? 'tree' : q.why === REFUTED ? 'refuted' : q.stuck))
         if (env.GDP_COUNTS_TRACE?.includes('2')) console.error(`counts: decide ${pass} ${step.goal.name}: ${'tree' in q ? 'proven' : q.stuck} ${step.gg.hyps.length} hyps ${Math.round(clock() - q0)} ms`)
         if ('tree' in q) { direct = {gg: step.gg, tree: q.tree}; break }
@@ -865,7 +886,7 @@ export function countedAttempts(m: Machine, caller: Law[], support: Set<Law>, un
         if (!asked) {
           if (countsDump.on && (pass || env.GDP_COUNTS_DUMP_ALL_PASSES === '1') && dumped < Number(env.GDP_COUNTS_DUMP_N ?? 3)) { dumped++; countsDump.on({law: law.name, goal: step.goal.name, ls: ls.map(l => l.name), stuck: 'sat', witness: q.witness, reads: step.c.reads, insts: step.c.insts, hyps: step.gg.hyps, base: step.goal, decls: step.decls, cert: step.c, at, laws: ls, wide, pass}) }
           if (pass && !wide && houdini && 'loose' in step.c && (step.c.loose || isCaller) && more()) { wide = true; widened.add(law.name); built = build(); continue }
-          return refuted(step.gg, q.witness)
+          return refuted(step.gg, q.witness, at)
         }
         at = asked
         built = build()
@@ -882,10 +903,10 @@ export function countedAttempts(m: Machine, caller: Law[], support: Set<Law>, un
       let again = false
       for (const {goal, decls, c, gg} of built) {
         const t0 = clock(), viaPart = gg && part?.gg === gg ? ptime('part', () => {
-          const o1 = grow(part!.core, new Map(), {nodes: 0, until: Math.min(until, clock() + Math.max(ms, 2_000))}), w = 'tree' in o1 ? widen(part!.core, gg, o1.tree) : undefined
+          const o1 = grow(part!.core, new Map(), {nodes: 0, until: attemptEnd}), w = 'tree' in o1 ? widen(part!.core, gg, o1.tree) : undefined
           return w ? {tree: w, nodes: 0} : undefined
         }) : undefined
-        const o = (direct && direct.gg === gg ? {tree: direct.tree, nodes: 0} : undefined) ?? viaPart ?? (gg && ptime(`grow${(gg.hyps.length > 300 ? '>300' : '')}`, () => grow(gg, new Map(), {nodes: 0, until: Math.min(until, clock() + ms)})))
+        const o = (direct && direct.gg === gg ? {tree: direct.tree, nodes: 0} : undefined) ?? viaPart ?? (gg && ptime(`grow${(gg.hyps.length > 300 ? '>300' : '')}`, () => grow(gg, new Map(), {nodes: 0, until: attemptEnd})))
         if (gg && o && !('tree' in o)) observe(built.find(b => b.gg === gg)!, o.stuck, 'witness' in o ? o.witness : undefined)
         if (countsDump.on && gg && o && !('tree' in o) && gg.hyps.length > Number(env.GDP_COUNTS_DUMP_MIN ?? 300) && dumped < Number(env.GDP_COUNTS_DUMP_N ?? 3)) { dumped++; countsDump.on({law: law.name, goal: goal.name, ls: ls.map(l => l.name), stuck: (o as {stuck?: string}).stuck, hyps: gg.hyps, base: goal, decls, cert: c, at, laws: ls, wide, pass, ...('witness' in o ? {witness: o.witness} : {})}) }
         if (env.GDP_COUNTS_TRACE?.includes('2')) console.error(`counts: ${ls.length === 1 ? 'alone' : `with ${ls.length}`} ${pass} ${goal.name}: ${o && 'tree' in o ? 'proven' : gg ? (o as {stuck?: string}).stuck : 'no read'} ${gg?.hyps.length ?? 0} hyps (insts ${'insts' in c ? c.insts.length : 0} picks ${'picks' in c ? c.picks.length : 0}${wide ? ' wide' : ''}${built.find(b => b.gg === gg)?.pool ? ` of ${built.find(b => b.gg === gg)!.pool!.keys.length}` : ''}) ${Math.round(clock() - t0)} ms`)
@@ -895,7 +916,7 @@ export function countedAttempts(m: Machine, caller: Law[], support: Set<Law>, un
           if (asked || lz) { if (asked) at = asked; built = build(); again = true; break }
         }
         if (gg && o && !('tree' in o) && o.stuck === 'sat' && o.witness && gg === built.at(-1)!.gg && pass && !wide && houdini && 'loose' in c && (c.loose || isCaller) && more()) { wide = true; widened.add(law.name); built = build(); again = true; break }
-        if (gg && o && !('tree' in o) && o.stuck === 'sat' && o.witness && gg === built.at(-1)!.gg) return refuted(gg, o.witness)
+        if (gg && o && !('tree' in o) && o.stuck === 'sat' && o.witness && gg === built.at(-1)!.gg) return refuted(gg, o.witness, at)
         if (!o || !('tree' in o)) return {stuck: gg ? (o as {stuck?: string}).stuck ?? '' : ''}
         certs[goal.name] = {reads: c.reads, insts: c.insts, tree: o.tree, ...('picks' in c && c.picks.length ? {picks: c.picks} : {})}
       }
@@ -904,7 +925,7 @@ export function countedAttempts(m: Machine, caller: Law[], support: Set<Law>, un
   }
   const attempt = (law: Law, ls: Law[], pass: 0 | 1, ms: number): Tried<Proof> => {
     const end = Math.min(until, clock() + ms)
-    return withDeferredCountRecovery(end, defer => ordinaryAttempt(law, ls, pass, ms, end, defer))
+    return withDeadline(end, () => withDeferredCountRecovery(end, defer => ordinaryAttempt(law, ls, pass, ms, end, defer)))
   }
   const traced = (law: Law, ls: Law[], pass: 0 | 1, ms: number): Tried<Proof> => {
     const t0 = clock(), w0 = performance.now(), p0 = {...cprof}
