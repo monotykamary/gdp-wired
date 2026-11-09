@@ -1,0 +1,12 @@
+{
+  "observerTask": "aaf38a3b-7d3f-40e1-bfa5-41bd5af42f86",
+  "supersedesCompletedObserver": "09ae80a4-de5a-4138-addd-93d17289872a",
+  "batches": [
+    "20261110-015518-rcbski"
+  ],
+  "sinceRow": 2,
+  "deadlineSeconds": 600,
+  "submissions": 0,
+  "cancellations": 0,
+  "observedAt": "2026-11-09T19:25:37.850Z"
+}

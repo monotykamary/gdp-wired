@@ -1,5 +1,66 @@
 # RESUMED — user instruction, 2026-11-10
 
+**Commitlint complete:** eight submitted messages pass, including 9124348d;
+exact scope is in runs/mldr-incl-commitlint-v1/verified-result.json. Later
+report-only commits are outside that receipt.
+
+**Current observer:** aaf38a3b-7d3f-40e1-bfa5-41bd5af42f86, continuing batch
+20261110-015518-rcbski at row 2. Previous observer ended normally at its
+observation deadline. Three remaining jobs are still queued, zero placements;
+no cancellation or duplicate submission. No production proof verdict added.
+
+
+**Tail passed:** 28 tests / 1,305 assertions. Official quick-suite coverage
+is recovered for all 167 unique units using the seven complete shards,
+the completed prefix, and the isolated final bundle. Original aggregate
+timeout is retained; missing prefix test totals are not invented. See
+`runs/mldr-incl-quick-tail-v1/completion.json`; this is not the final gate.
+
+**Recovery:** 9124348d original R1/R3 are both UNKNOWN, 59.187 / 59.060 s.
+R2, focused validation, fresh conditional/replay and commitlint remain
+registered and queued. Observer 09ae80a4-de5a-4138-addd-93d17289872a is the
+only collector for those batches. No duplicate work or cancellations.
+
+
+**Current:** official quick suite is incomplete: seven shards pass (1,049
+reported tests / 393,383 assertions), one times out at its final score
+bundle. Only `research/security/score.test.ts` is rerunning unchanged:
+20261110-021006-ih70jv / task 48794f3e-aaa7-4ae8-ab58-972050aa4e7e.
+
+**Do not duplicate queued work:** the 9124348d validation and commitlint
+controllers timed out, but their authenticated scheduler snapshots still
+show registered work. Read-only collector task
+09ae80a4-de5a-4138-addd-93d17289872a watches batches
+20261110-015518-rcbski and 20261110-015805-vx6pzb. Source checks from all
+quick shards pass; production conditional, remaining original, lint and
+full-suite completion are not yet claimed. See top of runs/REPORT.md.
+
+
+**Ranking completed:** omitting only eager scalar-field proposals checks
+conditional safety at **2052.9079764 units** at both 2700 and 6000, versus
+control 3817.24253. Both phases and both independent replays pass. All seven
+source checks and 6-test/21-assertion runs pass. Receipts:
+`runs/mldr-incl-member-rank-v1/`. Conditional research result only.
+
+**Production candidate 9124348d pending:** flags-first initial member
+seeding; all scalar laws remain available to MBQI. Task
+f151cb88-2215-4e96-bdee-55837243e46e, batch 20261110-015518-rcbski,
+`runs/mldr-incl-flags-first-v1/`: checks/tests, original x3, fresh generated
+2700/6000 probes and independent replay at both. No full gate claimed.
+
+
+**Latest completed source ac7eacfe:** type/lint and 87 tests / 295 assertions
+pass. Fresh generated conditional safety checks at 3817.24253 units with
+both member inclusions, 8.762 s wall; still UNKNOWN at 2700. Original MLDR
+x3 remains UNKNOWN (59.001/59.358/59.001 s). Same 34-law machine and ordered
+family, no hand law. Receipts `runs/mldr-incl-demand-range-v1/`; no full gate.
+
+**Next running:** research 5c3686f0, seven ranking alternatives on the exact
+prior family with initial ranges off, unchanged flags/caps/budgets. Batch
+20261110-014758-a6x9cy, task 8b23c143-90b0-4846-8b18-d72b4bfc14b3,
+output `runs/mldr-incl-member-rank-v1/`. No production ranking change.
+
+
 **Confirmed paired result:** exact same 34-law machine/family; eager
 ranges UNKNOWN at 6000.223364 in both orders, only initial ranges disabled
 checks START and STEP at 3817.24253 in both orders. Actual tree uses two

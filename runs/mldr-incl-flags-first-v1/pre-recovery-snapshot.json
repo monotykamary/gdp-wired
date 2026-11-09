@@ -1,0 +1,110 @@
+{
+  "ok": true,
+  "batch": "20261110-015518-rcbski",
+  "strict_once": false,
+  "retain_journals": false,
+  "admission_closed": false,
+  "closed": false,
+  "placements": [
+    {
+      "name": "original-r3",
+      "run_name": "original-r3",
+      "vm": "bx_2eg9t59n",
+      "image": "sc-f0d8daeee6c3",
+      "type": "large",
+      "identity": "441655100b70ba20fadbf5f202e23b5784bcf4391f2f875e",
+      "t": 1794250526.120521
+    },
+    {
+      "name": "original-r1",
+      "run_name": "original-r1",
+      "vm": "bx_2kmf8w3s",
+      "image": "sc-f0d8daeee6c3",
+      "type": "large",
+      "identity": "bf5a0c4f98d8dba7d6e22f74a77149278441cb84b82fc75a",
+      "t": 1794250531.098527
+    }
+  ],
+  "cancellation_receipts": [],
+  "rows": [
+    {
+      "name": "original-r1",
+      "code": 0,
+      "seconds": 108.62,
+      "vm": "bx_2kmf8w3s",
+      "run_name": "original-r1",
+      "placement": {
+        "vm": "bx_2kmf8w3s",
+        "type": "large",
+        "cpu": "AMD EPYC 4585PX 16-Core Processor",
+        "vcpus": 8,
+        "vm_vcpus": 8,
+        "exclusive": true,
+        "co_tenants": 0
+      }
+    },
+    {
+      "name": "original-r3",
+      "code": 0,
+      "seconds": 116.56,
+      "vm": "bx_2eg9t59n",
+      "run_name": "original-r3",
+      "placement": {
+        "vm": "bx_2eg9t59n",
+        "type": "large",
+        "cpu": "AMD EPYC 9455 48-Core Processor",
+        "vcpus": 8,
+        "vm_vcpus": 8,
+        "exclusive": true,
+        "co_tenants": 0
+      }
+    }
+  ],
+  "items": [
+    {
+      "name": "integrated-check",
+      "state": "queued",
+      "placements": 0,
+      "reaped": false,
+      "start_inflight": false,
+      "admission_closed": false,
+      "result_error": null
+    },
+    {
+      "name": "original-r1",
+      "state": "done",
+      "placements": 1,
+      "reaped": false,
+      "start_inflight": false,
+      "admission_closed": false,
+      "result_error": null
+    },
+    {
+      "name": "original-r2",
+      "state": "queued",
+      "placements": 0,
+      "reaped": false,
+      "start_inflight": false,
+      "admission_closed": false,
+      "result_error": null
+    },
+    {
+      "name": "original-r3",
+      "state": "done",
+      "placements": 1,
+      "reaped": false,
+      "start_inflight": false,
+      "admission_closed": false,
+      "result_error": null
+    },
+    {
+      "name": "fresh-conditional-and-replay",
+      "state": "queued",
+      "placements": 0,
+      "reaped": false,
+      "start_inflight": false,
+      "admission_closed": false,
+      "result_error": null
+    }
+  ]
+}

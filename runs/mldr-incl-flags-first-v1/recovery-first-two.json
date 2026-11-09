@@ -1,0 +1,41 @@
+{
+  "batch": "20261110-015518-rcbski",
+  "rows": [
+    {
+      "name": "original-r1",
+      "code": 0,
+      "seconds": 108.62,
+      "vm": "bx_2kmf8w3s",
+      "run_name": "original-r1",
+      "placement": {
+        "vm": "bx_2kmf8w3s",
+        "type": "large",
+        "cpu": "AMD EPYC 4585PX 16-Core Processor",
+        "vcpus": 8,
+        "vm_vcpus": 8,
+        "exclusive": true,
+        "co_tenants": 0
+      }
+    },
+    {
+      "name": "original-r3",
+      "code": 0,
+      "seconds": 116.56,
+      "vm": "bx_2eg9t59n",
+      "run_name": "original-r3",
+      "placement": {
+        "vm": "bx_2eg9t59n",
+        "type": "large",
+        "cpu": "AMD EPYC 9455 48-Core Processor",
+        "vcpus": 8,
+        "vm_vcpus": 8,
+        "exclusive": true,
+        "co_tenants": 0
+      }
+    }
+  ],
+  "logArchiveSha256": "7abe121c996b3e8c55f8ec2332eacc332b9898843f9ccb09c8caf2202c5ac883",
+  "done": false,
+  "running": 0,
+  "queued": 3
+}

@@ -818,7 +818,9 @@ export function countedAttempts(m: Machine, caller: Law[], support: Set<Law>, un
       if(pass)while(seedCount<64&&clock()<attemptEnd){
         const step=built.at(-1),hints=step&&memberSources.get(step.goal.name)
         if(!step||!hints?.length)break
-        const seeded=instantiateMemberPremises(m,ls,at,step.decls,hints,members(),64-seedCount,generation.tick)
+        // Seed declaration-backed member flags first. Scalar law tuples stay
+        // model-driven rather than crowding the initial goal with field bridges.
+        const seeded=instantiateMemberPremises(m,[],at,step.decls,hints,members(),64-seedCount,generation.tick)
         if(!seeded.added.length)break
         at=seeded.at;seedCount+=seeded.added.length
         countsDump.on?.({phase:'member-premises',law:law.name,goal:step.goal.name,pass,added:seeded.added})

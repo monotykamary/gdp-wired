@@ -1,0 +1,2369 @@
+{
+  "member-rank-0.log": [
+    {
+      "diagnostic": true,
+      "rangeSwitch": true,
+      "before": "dd70a44ea0c9b97361e9c48884a2817a16e218bf8bf3b0732a56e09668a5193c",
+      "after": "00b8c0fab6ae0368cba571de06eddc36e4f0edde16c5e2dc43dd76b72cc28c5e"
+    },
+    {
+      "diagnostic": true,
+      "memberSourceRank": 0,
+      "before": "4e63043f1ae2ba6417d5571a194b06b181b9fa84ed3ed99bf791f6a66e645b2e",
+      "after": "b5794bbf34c2e9d99043330db8c7ba17f7b9642f0fc1c80912784ea1c2895578"
+    },
+    {
+      "diagnostic": true,
+      "familyComparison": true,
+      "archiveSha256": "3c43d9ef808ca58e11764d0ab41b43c4cab10194a0e7551842f66befd9558199",
+      "familySha256": "ad1f3875ea61c34145adfaec3e015311bb096c5f5d69deb98b9e7ad9c0fc0d2f",
+      "sameMachine": true,
+      "sameLaws": true,
+      "laws": 34,
+      "priorLaws": 34
+    },
+    {
+      "conditional": true,
+      "variant": "member-rank-0-2700",
+      "family": "captured generated family (no hand law)",
+      "repeat": "1",
+      "ms": 2700,
+      "support": "no",
+      "supportCount": 0,
+      "law": "one primary per term",
+      "laws": 34,
+      "proven": true,
+      "checked": true,
+      "checks": [
+        {
+          "goal": "one primary per term @start",
+          "checked": true,
+          "treeChecked": true,
+          "reads": 0,
+          "insts": 0
+        },
+        {
+          "goal": "one primary per term @step",
+          "checked": true,
+          "treeChecked": true,
+          "reads": 46,
+          "insts": 52
+        }
+      ],
+      "profile": {
+        "encode": 134.05361099999845,
+        "decide": 3399.9675040000006,
+        "mbqi": 169.64775699999927,
+        "lazy": 204.73382200000015,
+        "#rounds": 10,
+        "#hyps": 1708,
+        "#count-completion": 36,
+        "#lazy": 80,
+        "grow": 3.5302520000004733,
+        "part": 478.00039300000026
+      },
+      "wallMs": 6606.477252,
+      "countedMs": 2052.9079764000003,
+      "activeSourceTupleCounts": {
+        "?noneCopied": 4,
+        "?allCopied": 4,
+        "?canVote": 8,
+        "?committedQuorum": 8,
+        "?all$1": 9,
+        "?all$2": 10,
+        "?all$3": 8,
+        "one primary per term": 2,
+        "fields: St[a]=1 -> CT[a]=CfgT[a]": 1,
+        "fields: St[a]=1 -> CT[a]<=CfgT[a]": 1,
+        "every x with x < size: never 1 <= St[x] and started is 0": 1,
+        "inX: no quorum canVote/1": 4
+      }
+    },
+    {
+      "diagnostic": true,
+      "conditional": true,
+      "goal": "one primary per term @start",
+      "checked": true,
+      "laws": 34,
+      "rawPremises": 2,
+      "usedPremises": [
+        1
+      ],
+      "instances": []
+    },
+    {
+      "diagnostic": true,
+      "conditional": true,
+      "goal": "one primary per term @step",
+      "checked": true,
+      "laws": 34,
+      "rawPremises": 74,
+      "usedPremises": [
+        0,
+        1,
+        2,
+        3,
+        4,
+        5,
+        6,
+        7,
+        20,
+        21,
+        27,
+        28,
+        43,
+        54,
+        58,
+        59,
+        73
+      ],
+      "instances": [
+        {
+          "wit": "member$4",
+          "unit": 0,
+          "below": {
+            "op": "var",
+            "name": "size"
+          },
+          "terms": [
+            [
+              1,
+              [
+                "inS",
+                {
+                  "op": "const",
+                  "value": 0
+                }
+              ]
+            ],
+            [
+              -1,
+              [
+                "inX$canVote$1",
+                {
+                  "op": "add",
+                  "a": {
+                    "op": "mul",
+                    "k": 64,
+                    "a": {
+                      "op": "var",
+                      "name": "i"
+                    }
+                  },
+                  "b": {
+                    "op": "var",
+                    "name": "key$4#"
+                  }
+                }
+              ]
+            ]
+          ]
+        },
+        {
+          "wit": "member$5",
+          "unit": 0,
+          "below": {
+            "op": "var",
+            "name": "size"
+          },
+          "terms": [
+            [
+              1,
+              [
+                "inS",
+                {
+                  "op": "const",
+                  "value": 0
+                }
+              ]
+            ],
+            [
+              -1,
+              [
+                "inX$canVote$1",
+                {
+                  "op": "add",
+                  "a": {
+                    "op": "mul",
+                    "k": 64,
+                    "a": {
+                      "op": "var",
+                      "name": "i"
+                    }
+                  },
+                  "b": {
+                    "op": "var",
+                    "name": "key$5"
+                  }
+                }
+              ]
+            ]
+          ]
+        },
+        {
+          "wit": "w$280",
+          "below": {
+            "op": "var",
+            "name": "size"
+          },
+          "terms": [
+            [
+              1,
+              [
+                "inX$row",
+                {
+                  "op": "var",
+                  "name": "i"
+                }
+              ]
+            ],
+            [
+              -1,
+              [
+                "inX",
+                {
+                  "op": "const",
+                  "value": 0
+                }
+              ]
+            ]
+          ],
+          "unit": 0
+        }
+      ]
+    },
+    {
+      "artifact": "mldr-incl-production-capture",
+      "diagnostic": true,
+      "conditional": true,
+      "files": 4,
+      "filenames": [
+        "family-source.json",
+        "production-proof.json",
+        "final-proof-0.json",
+        "final-proof-1.json"
+      ],
+      "omitted": 0,
+      "sha256": "5475f29a04a0818277664657ce123974a6809dc3e4af7c3ae64707b422949891"
+    },
+    {
+      "conditional": true,
+      "variant": "member-rank-0-6000",
+      "family": "captured generated family (no hand law)",
+      "repeat": "1",
+      "ms": 6000,
+      "support": "no",
+      "supportCount": 0,
+      "law": "one primary per term",
+      "laws": 34,
+      "proven": true,
+      "checked": true,
+      "checks": [
+        {
+          "goal": "one primary per term @start",
+          "checked": true,
+          "treeChecked": true,
+          "reads": 0,
+          "insts": 0
+        },
+        {
+          "goal": "one primary per term @step",
+          "checked": true,
+          "treeChecked": true,
+          "reads": 46,
+          "insts": 52
+        }
+      ],
+      "profile": {
+        "encode": 99.12729300000001,
+        "decide": 2652.8092430000015,
+        "mbqi": 168.26379499999985,
+        "lazy": 184.48764299999993,
+        "#rounds": 10,
+        "#hyps": 1708,
+        "#count-completion": 36,
+        "#lazy": 80,
+        "grow": 1.9112079999999878,
+        "part": 378.82114100000035
+      },
+      "wallMs": 5772.209301,
+      "countedMs": 2052.9079764000003,
+      "activeSourceTupleCounts": {
+        "?noneCopied": 4,
+        "?allCopied": 4,
+        "?canVote": 8,
+        "?committedQuorum": 8,
+        "?all$1": 9,
+        "?all$2": 10,
+        "?all$3": 8,
+        "one primary per term": 2,
+        "fields: St[a]=1 -> CT[a]=CfgT[a]": 1,
+        "fields: St[a]=1 -> CT[a]<=CfgT[a]": 1,
+        "every x with x < size: never 1 <= St[x] and started is 0": 1,
+        "inX: no quorum canVote/1": 4
+      }
+    },
+    {
+      "diagnostic": true,
+      "conditional": true,
+      "goal": "one primary per term @start",
+      "checked": true,
+      "laws": 34,
+      "rawPremises": 2,
+      "usedPremises": [
+        1
+      ],
+      "instances": []
+    },
+    {
+      "diagnostic": true,
+      "conditional": true,
+      "goal": "one primary per term @step",
+      "checked": true,
+      "laws": 34,
+      "rawPremises": 74,
+      "usedPremises": [
+        0,
+        1,
+        2,
+        3,
+        4,
+        5,
+        6,
+        7,
+        20,
+        21,
+        27,
+        28,
+        43,
+        54,
+        58,
+        59,
+        73
+      ],
+      "instances": [
+        {
+          "wit": "member$4",
+          "unit": 0,
+          "below": {
+            "op": "var",
+            "name": "size"
+          },
+          "terms": [
+            [
+              1,
+              [
+                "inS",
+                {
+                  "op": "const",
+                  "value": 0
+                }
+              ]
+            ],
+            [
+              -1,
+              [
+                "inX$canVote$1",
+                {
+                  "op": "add",
+                  "a": {
+                    "op": "mul",
+                    "k": 64,
+                    "a": {
+                      "op": "var",
+                      "name": "i"
+                    }
+                  },
+                  "b": {
+                    "op": "var",
+                    "name": "key$4#"
+                  }
+                }
+              ]
+            ]
+          ]
+        },
+        {
+          "wit": "member$5",
+          "unit": 0,
+          "below": {
+            "op": "var",
+            "name": "size"
+          },
+          "terms": [
+            [
+              1,
+              [
+                "inS",
+                {
+                  "op": "const",
+                  "value": 0
+                }
+              ]
+            ],
+            [
+              -1,
+              [
+                "inX$canVote$1",
+                {
+                  "op": "add",
+                  "a": {
+                    "op": "mul",
+                    "k": 64,
+                    "a": {
+                      "op": "var",
+                      "name": "i"
+                    }
+                  },
+                  "b": {
+                    "op": "var",
+                    "name": "key$5"
+                  }
+                }
+              ]
+            ]
+          ]
+        },
+        {
+          "wit": "w$280",
+          "below": {
+            "op": "var",
+            "name": "size"
+          },
+          "terms": [
+            [
+              1,
+              [
+                "inX$row",
+                {
+                  "op": "var",
+                  "name": "i"
+                }
+              ]
+            ],
+            [
+              -1,
+              [
+                "inX",
+                {
+                  "op": "const",
+                  "value": 0
+                }
+              ]
+            ]
+          ],
+          "unit": 0
+        }
+      ]
+    },
+    {
+      "artifact": "mldr-incl-production-capture",
+      "diagnostic": true,
+      "conditional": true,
+      "files": 4,
+      "filenames": [
+        "family-source.json",
+        "production-proof.json",
+        "final-proof-0.json",
+        "final-proof-1.json"
+      ],
+      "omitted": 0,
+      "sha256": "5475f29a04a0818277664657ce123974a6809dc3e4af7c3ae64707b422949891"
+    }
+  ],
+  "member-rank-1.log": [
+    {
+      "diagnostic": true,
+      "rangeSwitch": true,
+      "before": "dd70a44ea0c9b97361e9c48884a2817a16e218bf8bf3b0732a56e09668a5193c",
+      "after": "00b8c0fab6ae0368cba571de06eddc36e4f0edde16c5e2dc43dd76b72cc28c5e"
+    },
+    {
+      "diagnostic": true,
+      "memberSourceRank": 1,
+      "before": "4e63043f1ae2ba6417d5571a194b06b181b9fa84ed3ed99bf791f6a66e645b2e",
+      "after": "d95a0864430583128155f2b8d1acc413d829d14a7d4f5d0f2b8e80de299a14d2"
+    },
+    {
+      "diagnostic": true,
+      "familyComparison": true,
+      "archiveSha256": "3c43d9ef808ca58e11764d0ab41b43c4cab10194a0e7551842f66befd9558199",
+      "familySha256": "ad1f3875ea61c34145adfaec3e015311bb096c5f5d69deb98b9e7ad9c0fc0d2f",
+      "sameMachine": true,
+      "sameLaws": true,
+      "laws": 34,
+      "priorLaws": 34
+    },
+    {
+      "conditional": true,
+      "variant": "member-rank-1-2700",
+      "family": "captured generated family (no hand law)",
+      "repeat": "1",
+      "ms": 2700,
+      "support": "no",
+      "supportCount": 0,
+      "law": "one primary per term",
+      "laws": 34,
+      "proven": true,
+      "checked": true,
+      "checks": [
+        {
+          "goal": "one primary per term @start",
+          "checked": true,
+          "treeChecked": true,
+          "reads": 0,
+          "insts": 0
+        },
+        {
+          "goal": "one primary per term @step",
+          "checked": true,
+          "treeChecked": true,
+          "reads": 46,
+          "insts": 52
+        }
+      ],
+      "profile": {
+        "encode": 115.27272700000094,
+        "decide": 2655.2022990000005,
+        "mbqi": 130.21328500000027,
+        "lazy": 144.01742999999988,
+        "#rounds": 10,
+        "#hyps": 1722,
+        "#count-completion": 36,
+        "#lazy": 80,
+        "grow": 2.2309470000000147,
+        "part": 395.48985500000026
+      },
+      "wallMs": 6055.268491,
+      "countedMs": 2116.7015284000004,
+      "activeSourceTupleCounts": {
+        "?noneCopied": 4,
+        "?allCopied": 4,
+        "?canVote": 8,
+        "?committedQuorum": 8,
+        "?all$1": 9,
+        "?all$2": 10,
+        "?all$3": 8,
+        "one primary per term": 2,
+        "fields: St[a]=1 -> CT[a]=CfgT[a]": 1,
+        "fields: St[a]=1 -> CT[a]<=CfgT[a]": 1,
+        "every x with x < size: never 1 <= St[x] and started is 0": 1,
+        "inX: no quorum canVote/1": 4
+      }
+    },
+    {
+      "diagnostic": true,
+      "conditional": true,
+      "goal": "one primary per term @start",
+      "checked": true,
+      "laws": 34,
+      "rawPremises": 2,
+      "usedPremises": [
+        1
+      ],
+      "instances": []
+    },
+    {
+      "diagnostic": true,
+      "conditional": true,
+      "goal": "one primary per term @step",
+      "checked": true,
+      "laws": 34,
+      "rawPremises": 74,
+      "usedPremises": [
+        0,
+        1,
+        2,
+        3,
+        4,
+        5,
+        6,
+        7,
+        20,
+        21,
+        27,
+        28,
+        43,
+        54,
+        58,
+        59,
+        73
+      ],
+      "instances": [
+        {
+          "wit": "member$4",
+          "unit": 0,
+          "below": {
+            "op": "var",
+            "name": "size"
+          },
+          "terms": [
+            [
+              1,
+              [
+                "inS",
+                {
+                  "op": "const",
+                  "value": 0
+                }
+              ]
+            ],
+            [
+              -1,
+              [
+                "inX$canVote$1",
+                {
+                  "op": "add",
+                  "a": {
+                    "op": "mul",
+                    "k": 64,
+                    "a": {
+                      "op": "var",
+                      "name": "i"
+                    }
+                  },
+                  "b": {
+                    "op": "var",
+                    "name": "key$4#"
+                  }
+                }
+              ]
+            ]
+          ]
+        },
+        {
+          "wit": "member$5",
+          "unit": 0,
+          "below": {
+            "op": "var",
+            "name": "size"
+          },
+          "terms": [
+            [
+              1,
+              [
+                "inS",
+                {
+                  "op": "const",
+                  "value": 0
+                }
+              ]
+            ],
+            [
+              -1,
+              [
+                "inX$canVote$1",
+                {
+                  "op": "add",
+                  "a": {
+                    "op": "mul",
+                    "k": 64,
+                    "a": {
+                      "op": "var",
+                      "name": "i"
+                    }
+                  },
+                  "b": {
+                    "op": "var",
+                    "name": "key$5"
+                  }
+                }
+              ]
+            ]
+          ]
+        },
+        {
+          "wit": "w$280",
+          "below": {
+            "op": "var",
+            "name": "size"
+          },
+          "terms": [
+            [
+              1,
+              [
+                "inX$row",
+                {
+                  "op": "var",
+                  "name": "i"
+                }
+              ]
+            ],
+            [
+              -1,
+              [
+                "inX",
+                {
+                  "op": "const",
+                  "value": 0
+                }
+              ]
+            ]
+          ],
+          "unit": 0
+        }
+      ]
+    },
+    {
+      "artifact": "mldr-incl-production-capture",
+      "diagnostic": true,
+      "conditional": true,
+      "files": 4,
+      "filenames": [
+        "family-source.json",
+        "production-proof.json",
+        "final-proof-0.json",
+        "final-proof-1.json"
+      ],
+      "omitted": 0,
+      "sha256": "5475f29a04a0818277664657ce123974a6809dc3e4af7c3ae64707b422949891"
+    },
+    {
+      "conditional": true,
+      "variant": "member-rank-1-6000",
+      "family": "captured generated family (no hand law)",
+      "repeat": "1",
+      "ms": 6000,
+      "support": "no",
+      "supportCount": 0,
+      "law": "one primary per term",
+      "laws": 34,
+      "proven": true,
+      "checked": true,
+      "checks": [
+        {
+          "goal": "one primary per term @start",
+          "checked": true,
+          "treeChecked": true,
+          "reads": 0,
+          "insts": 0
+        },
+        {
+          "goal": "one primary per term @step",
+          "checked": true,
+          "treeChecked": true,
+          "reads": 46,
+          "insts": 52
+        }
+      ],
+      "profile": {
+        "encode": 71.23057000000017,
+        "decide": 1918.2678999999998,
+        "mbqi": 114.31988000000047,
+        "lazy": 130.2303290000002,
+        "#rounds": 10,
+        "#hyps": 1722,
+        "#count-completion": 36,
+        "#lazy": 80,
+        "grow": 1.8616369999999733,
+        "part": 269.7204740000002
+      },
+      "wallMs": 3583.347879,
+      "countedMs": 2116.7015284000004,
+      "activeSourceTupleCounts": {
+        "?noneCopied": 4,
+        "?allCopied": 4,
+        "?canVote": 8,
+        "?committedQuorum": 8,
+        "?all$1": 9,
+        "?all$2": 10,
+        "?all$3": 8,
+        "one primary per term": 2,
+        "fields: St[a]=1 -> CT[a]=CfgT[a]": 1,
+        "fields: St[a]=1 -> CT[a]<=CfgT[a]": 1,
+        "every x with x < size: never 1 <= St[x] and started is 0": 1,
+        "inX: no quorum canVote/1": 4
+      }
+    },
+    {
+      "diagnostic": true,
+      "conditional": true,
+      "goal": "one primary per term @start",
+      "checked": true,
+      "laws": 34,
+      "rawPremises": 2,
+      "usedPremises": [
+        1
+      ],
+      "instances": []
+    },
+    {
+      "diagnostic": true,
+      "conditional": true,
+      "goal": "one primary per term @step",
+      "checked": true,
+      "laws": 34,
+      "rawPremises": 74,
+      "usedPremises": [
+        0,
+        1,
+        2,
+        3,
+        4,
+        5,
+        6,
+        7,
+        20,
+        21,
+        27,
+        28,
+        43,
+        54,
+        58,
+        59,
+        73
+      ],
+      "instances": [
+        {
+          "wit": "member$4",
+          "unit": 0,
+          "below": {
+            "op": "var",
+            "name": "size"
+          },
+          "terms": [
+            [
+              1,
+              [
+                "inS",
+                {
+                  "op": "const",
+                  "value": 0
+                }
+              ]
+            ],
+            [
+              -1,
+              [
+                "inX$canVote$1",
+                {
+                  "op": "add",
+                  "a": {
+                    "op": "mul",
+                    "k": 64,
+                    "a": {
+                      "op": "var",
+                      "name": "i"
+                    }
+                  },
+                  "b": {
+                    "op": "var",
+                    "name": "key$4#"
+                  }
+                }
+              ]
+            ]
+          ]
+        },
+        {
+          "wit": "member$5",
+          "unit": 0,
+          "below": {
+            "op": "var",
+            "name": "size"
+          },
+          "terms": [
+            [
+              1,
+              [
+                "inS",
+                {
+                  "op": "const",
+                  "value": 0
+                }
+              ]
+            ],
+            [
+              -1,
+              [
+                "inX$canVote$1",
+                {
+                  "op": "add",
+                  "a": {
+                    "op": "mul",
+                    "k": 64,
+                    "a": {
+                      "op": "var",
+                      "name": "i"
+                    }
+                  },
+                  "b": {
+                    "op": "var",
+                    "name": "key$5"
+                  }
+                }
+              ]
+            ]
+          ]
+        },
+        {
+          "wit": "w$280",
+          "below": {
+            "op": "var",
+            "name": "size"
+          },
+          "terms": [
+            [
+              1,
+              [
+                "inX$row",
+                {
+                  "op": "var",
+                  "name": "i"
+                }
+              ]
+            ],
+            [
+              -1,
+              [
+                "inX",
+                {
+                  "op": "const",
+                  "value": 0
+                }
+              ]
+            ]
+          ],
+          "unit": 0
+        }
+      ]
+    },
+    {
+      "artifact": "mldr-incl-production-capture",
+      "diagnostic": true,
+      "conditional": true,
+      "files": 4,
+      "filenames": [
+        "family-source.json",
+        "production-proof.json",
+        "final-proof-0.json",
+        "final-proof-1.json"
+      ],
+      "omitted": 0,
+      "sha256": "5475f29a04a0818277664657ce123974a6809dc3e4af7c3ae64707b422949891"
+    }
+  ],
+  "member-rank-2.log": [
+    {
+      "diagnostic": true,
+      "rangeSwitch": true,
+      "before": "dd70a44ea0c9b97361e9c48884a2817a16e218bf8bf3b0732a56e09668a5193c",
+      "after": "00b8c0fab6ae0368cba571de06eddc36e4f0edde16c5e2dc43dd76b72cc28c5e"
+    },
+    {
+      "diagnostic": true,
+      "memberSourceRank": 2,
+      "before": "4e63043f1ae2ba6417d5571a194b06b181b9fa84ed3ed99bf791f6a66e645b2e",
+      "after": "6c31c0653b098d02cb896c9adc5e44b2212e7afb9851bea56e0866d387ae4399"
+    },
+    {
+      "diagnostic": true,
+      "familyComparison": true,
+      "archiveSha256": "3c43d9ef808ca58e11764d0ab41b43c4cab10194a0e7551842f66befd9558199",
+      "familySha256": "ad1f3875ea61c34145adfaec3e015311bb096c5f5d69deb98b9e7ad9c0fc0d2f",
+      "sameMachine": true,
+      "sameLaws": true,
+      "laws": 34,
+      "priorLaws": 34
+    },
+    {
+      "conditional": true,
+      "variant": "member-rank-2-2700",
+      "family": "captured generated family (no hand law)",
+      "repeat": "1",
+      "ms": 2700,
+      "support": "no",
+      "supportCount": 0,
+      "law": "one primary per term",
+      "laws": 34,
+      "proven": true,
+      "checked": true,
+      "checks": [
+        {
+          "goal": "one primary per term @start",
+          "checked": true,
+          "treeChecked": true,
+          "reads": 0,
+          "insts": 0
+        },
+        {
+          "goal": "one primary per term @step",
+          "checked": true,
+          "treeChecked": true,
+          "reads": 46,
+          "insts": 52
+        }
+      ],
+      "profile": {
+        "encode": 187.48697300000003,
+        "decide": 3673.1354079999983,
+        "mbqi": 220.51390600000013,
+        "lazy": 178.1301779999999,
+        "#rounds": 10,
+        "#hyps": 1743,
+        "#count-completion": 36,
+        "#lazy": 80,
+        "grow": 2.2278349999996863,
+        "part": 452.88393300000007
+      },
+      "wallMs": 6927.864147,
+      "countedMs": 2125.2738471999996,
+      "activeSourceTupleCounts": {
+        "?noneCopied": 4,
+        "?allCopied": 4,
+        "?canVote": 8,
+        "?committedQuorum": 8,
+        "?all$1": 9,
+        "?all$2": 10,
+        "?all$3": 8,
+        "one primary per term": 2,
+        "fields: St[a]=1 -> CT[a]<=CfgT[a]": 2,
+        "every x with x < size: never 1 <= St[x] and started is 0": 1,
+        "inX: no quorum canVote/1": 4
+      }
+    },
+    {
+      "diagnostic": true,
+      "conditional": true,
+      "goal": "one primary per term @start",
+      "checked": true,
+      "laws": 34,
+      "rawPremises": 2,
+      "usedPremises": [
+        1
+      ],
+      "instances": []
+    },
+    {
+      "diagnostic": true,
+      "conditional": true,
+      "goal": "one primary per term @step",
+      "checked": true,
+      "laws": 34,
+      "rawPremises": 74,
+      "usedPremises": [
+        0,
+        1,
+        2,
+        3,
+        4,
+        5,
+        6,
+        7,
+        20,
+        21,
+        27,
+        28,
+        43,
+        54,
+        58,
+        59,
+        73
+      ],
+      "instances": [
+        {
+          "wit": "member$4",
+          "unit": 0,
+          "below": {
+            "op": "var",
+            "name": "size"
+          },
+          "terms": [
+            [
+              1,
+              [
+                "inS",
+                {
+                  "op": "const",
+                  "value": 0
+                }
+              ]
+            ],
+            [
+              -1,
+              [
+                "inX$canVote$1",
+                {
+                  "op": "add",
+                  "a": {
+                    "op": "mul",
+                    "k": 64,
+                    "a": {
+                      "op": "var",
+                      "name": "i"
+                    }
+                  },
+                  "b": {
+                    "op": "var",
+                    "name": "key$4#"
+                  }
+                }
+              ]
+            ]
+          ]
+        },
+        {
+          "wit": "member$5",
+          "unit": 0,
+          "below": {
+            "op": "var",
+            "name": "size"
+          },
+          "terms": [
+            [
+              1,
+              [
+                "inS",
+                {
+                  "op": "const",
+                  "value": 0
+                }
+              ]
+            ],
+            [
+              -1,
+              [
+                "inX$canVote$1",
+                {
+                  "op": "add",
+                  "a": {
+                    "op": "mul",
+                    "k": 64,
+                    "a": {
+                      "op": "var",
+                      "name": "i"
+                    }
+                  },
+                  "b": {
+                    "op": "var",
+                    "name": "key$5"
+                  }
+                }
+              ]
+            ]
+          ]
+        },
+        {
+          "wit": "w$280",
+          "below": {
+            "op": "var",
+            "name": "size"
+          },
+          "terms": [
+            [
+              1,
+              [
+                "inX$row",
+                {
+                  "op": "var",
+                  "name": "i"
+                }
+              ]
+            ],
+            [
+              -1,
+              [
+                "inX",
+                {
+                  "op": "const",
+                  "value": 0
+                }
+              ]
+            ]
+          ],
+          "unit": 0
+        }
+      ]
+    },
+    {
+      "artifact": "mldr-incl-production-capture",
+      "diagnostic": true,
+      "conditional": true,
+      "files": 4,
+      "filenames": [
+        "family-source.json",
+        "production-proof.json",
+        "final-proof-0.json",
+        "final-proof-1.json"
+      ],
+      "omitted": 0,
+      "sha256": "194d55bf8618588cdb4a103ceb61a1aebb5dd581ab89b75e7d3bf930bcf2449a"
+    },
+    {
+      "conditional": true,
+      "variant": "member-rank-2-6000",
+      "family": "captured generated family (no hand law)",
+      "repeat": "1",
+      "ms": 6000,
+      "support": "no",
+      "supportCount": 0,
+      "law": "one primary per term",
+      "laws": 34,
+      "proven": true,
+      "checked": true,
+      "checks": [
+        {
+          "goal": "one primary per term @start",
+          "checked": true,
+          "treeChecked": true,
+          "reads": 0,
+          "insts": 0
+        },
+        {
+          "goal": "one primary per term @step",
+          "checked": true,
+          "treeChecked": true,
+          "reads": 46,
+          "insts": 52
+        }
+      ],
+      "profile": {
+        "encode": 105.97144900000012,
+        "decide": 2067.5568359999997,
+        "mbqi": 121.51859599999989,
+        "lazy": 222.6150130000001,
+        "#rounds": 10,
+        "#hyps": 1743,
+        "#count-completion": 36,
+        "#lazy": 80,
+        "grow": 1.6653909999999996,
+        "part": 434.20081200000004
+      },
+      "wallMs": 5119.93949,
+      "countedMs": 2125.2738471999996,
+      "activeSourceTupleCounts": {
+        "?noneCopied": 4,
+        "?allCopied": 4,
+        "?canVote": 8,
+        "?committedQuorum": 8,
+        "?all$1": 9,
+        "?all$2": 10,
+        "?all$3": 8,
+        "one primary per term": 2,
+        "fields: St[a]=1 -> CT[a]<=CfgT[a]": 2,
+        "every x with x < size: never 1 <= St[x] and started is 0": 1,
+        "inX: no quorum canVote/1": 4
+      }
+    },
+    {
+      "diagnostic": true,
+      "conditional": true,
+      "goal": "one primary per term @start",
+      "checked": true,
+      "laws": 34,
+      "rawPremises": 2,
+      "usedPremises": [
+        1
+      ],
+      "instances": []
+    },
+    {
+      "diagnostic": true,
+      "conditional": true,
+      "goal": "one primary per term @step",
+      "checked": true,
+      "laws": 34,
+      "rawPremises": 74,
+      "usedPremises": [
+        0,
+        1,
+        2,
+        3,
+        4,
+        5,
+        6,
+        7,
+        20,
+        21,
+        27,
+        28,
+        43,
+        54,
+        58,
+        59,
+        73
+      ],
+      "instances": [
+        {
+          "wit": "member$4",
+          "unit": 0,
+          "below": {
+            "op": "var",
+            "name": "size"
+          },
+          "terms": [
+            [
+              1,
+              [
+                "inS",
+                {
+                  "op": "const",
+                  "value": 0
+                }
+              ]
+            ],
+            [
+              -1,
+              [
+                "inX$canVote$1",
+                {
+                  "op": "add",
+                  "a": {
+                    "op": "mul",
+                    "k": 64,
+                    "a": {
+                      "op": "var",
+                      "name": "i"
+                    }
+                  },
+                  "b": {
+                    "op": "var",
+                    "name": "key$4#"
+                  }
+                }
+              ]
+            ]
+          ]
+        },
+        {
+          "wit": "member$5",
+          "unit": 0,
+          "below": {
+            "op": "var",
+            "name": "size"
+          },
+          "terms": [
+            [
+              1,
+              [
+                "inS",
+                {
+                  "op": "const",
+                  "value": 0
+                }
+              ]
+            ],
+            [
+              -1,
+              [
+                "inX$canVote$1",
+                {
+                  "op": "add",
+                  "a": {
+                    "op": "mul",
+                    "k": 64,
+                    "a": {
+                      "op": "var",
+                      "name": "i"
+                    }
+                  },
+                  "b": {
+                    "op": "var",
+                    "name": "key$5"
+                  }
+                }
+              ]
+            ]
+          ]
+        },
+        {
+          "wit": "w$280",
+          "below": {
+            "op": "var",
+            "name": "size"
+          },
+          "terms": [
+            [
+              1,
+              [
+                "inX$row",
+                {
+                  "op": "var",
+                  "name": "i"
+                }
+              ]
+            ],
+            [
+              -1,
+              [
+                "inX",
+                {
+                  "op": "const",
+                  "value": 0
+                }
+              ]
+            ]
+          ],
+          "unit": 0
+        }
+      ]
+    },
+    {
+      "artifact": "mldr-incl-production-capture",
+      "diagnostic": true,
+      "conditional": true,
+      "files": 4,
+      "filenames": [
+        "family-source.json",
+        "production-proof.json",
+        "final-proof-0.json",
+        "final-proof-1.json"
+      ],
+      "omitted": 0,
+      "sha256": "194d55bf8618588cdb4a103ceb61a1aebb5dd581ab89b75e7d3bf930bcf2449a"
+    }
+  ],
+  "member-rank-3.log": [
+    {
+      "diagnostic": true,
+      "rangeSwitch": true,
+      "before": "dd70a44ea0c9b97361e9c48884a2817a16e218bf8bf3b0732a56e09668a5193c",
+      "after": "00b8c0fab6ae0368cba571de06eddc36e4f0edde16c5e2dc43dd76b72cc28c5e"
+    },
+    {
+      "diagnostic": true,
+      "memberSourceRank": 3,
+      "before": "4e63043f1ae2ba6417d5571a194b06b181b9fa84ed3ed99bf791f6a66e645b2e",
+      "after": "bc25d7514aeb574535456fd02a8d2cec16b8b463d93f0daa91352e96cfbab5e5"
+    },
+    {
+      "diagnostic": true,
+      "familyComparison": true,
+      "archiveSha256": "3c43d9ef808ca58e11764d0ab41b43c4cab10194a0e7551842f66befd9558199",
+      "familySha256": "ad1f3875ea61c34145adfaec3e015311bb096c5f5d69deb98b9e7ad9c0fc0d2f",
+      "sameMachine": true,
+      "sameLaws": true,
+      "laws": 34,
+      "priorLaws": 34
+    },
+    {
+      "conditional": true,
+      "variant": "member-rank-3-2700",
+      "family": "captured generated family (no hand law)",
+      "repeat": "1",
+      "ms": 2700,
+      "support": "no",
+      "supportCount": 0,
+      "law": "one primary per term",
+      "laws": 34,
+      "proven": false,
+      "checked": false,
+      "checks": [],
+      "stuck": "unknown",
+      "profile": {
+        "encode": 99.93375500000002,
+        "decide": 5990.939090999999,
+        "mbqi": 142.35722400000031,
+        "lazy": 0.30213500000172644,
+        "#rounds": 10,
+        "#hyps": 1803,
+        "#count-completion": 36,
+        "grow": 2.850894000000153
+      },
+      "wallMs": 6378.362983,
+      "countedMs": 2700.3142000000003
+    },
+    {
+      "artifact": "mldr-incl-production-capture",
+      "diagnostic": true,
+      "conditional": true,
+      "files": 1,
+      "filenames": [
+        "family-source.json"
+      ],
+      "omitted": 0,
+      "sha256": "3c43d9ef808ca58e11764d0ab41b43c4cab10194a0e7551842f66befd9558199"
+    },
+    {
+      "conditional": true,
+      "variant": "member-rank-3-6000",
+      "family": "captured generated family (no hand law)",
+      "repeat": "1",
+      "ms": 6000,
+      "support": "no",
+      "supportCount": 0,
+      "law": "one primary per term",
+      "laws": 34,
+      "proven": true,
+      "checked": true,
+      "checks": [
+        {
+          "goal": "one primary per term @start",
+          "checked": true,
+          "treeChecked": true,
+          "reads": 0,
+          "insts": 0
+        },
+        {
+          "goal": "one primary per term @step",
+          "checked": true,
+          "treeChecked": true,
+          "reads": 45,
+          "insts": 53
+        }
+      ],
+      "profile": {
+        "encode": 133.59459400000014,
+        "decide": 7620.864898000001,
+        "mbqi": 221.69839800000045,
+        "lazy": 191.7254099999991,
+        "#rounds": 16,
+        "#hyps": 3543,
+        "#count-completion": 36,
+        "#lazy": 62,
+        "grow": 2.661806999998589,
+        "part": 356.3300729999992
+      },
+      "wallMs": 10922.726821,
+      "countedMs": 4851.5793732,
+      "activeSourceTupleCounts": {
+        "?noneCopied": 4,
+        "?allCopied": 4,
+        "?canVote": 9,
+        "?committedQuorum": 8,
+        "?all$1": 12,
+        "?all$2": 11,
+        "?all$3": 8,
+        "one primary per term": 2,
+        "fields: St[a]=1 -> CT[a]<=CfgT[a]": 2,
+        "every x with x < size: never 1 <= St[x] and started is 0": 1,
+        "inX: no quorum canVote/1": 4
+      }
+    },
+    {
+      "diagnostic": true,
+      "conditional": true,
+      "goal": "one primary per term @start",
+      "checked": true,
+      "laws": 34,
+      "rawPremises": 2,
+      "usedPremises": [
+        1
+      ],
+      "instances": []
+    },
+    {
+      "diagnostic": true,
+      "conditional": true,
+      "goal": "one primary per term @step",
+      "checked": true,
+      "laws": 34,
+      "rawPremises": 79,
+      "usedPremises": [
+        0,
+        1,
+        2,
+        3,
+        4,
+        5,
+        6,
+        7,
+        20,
+        21,
+        27,
+        28,
+        44,
+        58,
+        62,
+        63,
+        78
+      ],
+      "instances": [
+        {
+          "wit": "member$4",
+          "unit": 0,
+          "below": {
+            "op": "var",
+            "name": "size"
+          },
+          "terms": [
+            [
+              1,
+              [
+                "inS",
+                {
+                  "op": "const",
+                  "value": 0
+                }
+              ]
+            ],
+            [
+              -1,
+              [
+                "inX$canVote$1",
+                {
+                  "op": "add",
+                  "a": {
+                    "op": "mul",
+                    "k": 64,
+                    "a": {
+                      "op": "var",
+                      "name": "i"
+                    }
+                  },
+                  "b": {
+                    "op": "var",
+                    "name": "key$4#"
+                  }
+                }
+              ]
+            ]
+          ]
+        },
+        {
+          "wit": "member$5",
+          "unit": 0,
+          "below": {
+            "op": "var",
+            "name": "size"
+          },
+          "terms": [
+            [
+              1,
+              [
+                "inS",
+                {
+                  "op": "const",
+                  "value": 0
+                }
+              ]
+            ],
+            [
+              -1,
+              [
+                "inX$canVote$1",
+                {
+                  "op": "add",
+                  "a": {
+                    "op": "mul",
+                    "k": 64,
+                    "a": {
+                      "op": "var",
+                      "name": "i"
+                    }
+                  },
+                  "b": {
+                    "op": "var",
+                    "name": "key$5"
+                  }
+                }
+              ]
+            ]
+          ]
+        },
+        {
+          "wit": "w$274",
+          "below": {
+            "op": "var",
+            "name": "size"
+          },
+          "terms": [
+            [
+              1,
+              [
+                "inX$row",
+                {
+                  "op": "var",
+                  "name": "i"
+                }
+              ]
+            ],
+            [
+              -1,
+              [
+                "inX",
+                {
+                  "op": "const",
+                  "value": 0
+                }
+              ]
+            ]
+          ],
+          "unit": 0
+        }
+      ]
+    },
+    {
+      "artifact": "mldr-incl-production-capture",
+      "diagnostic": true,
+      "conditional": true,
+      "files": 4,
+      "filenames": [
+        "family-source.json",
+        "production-proof.json",
+        "final-proof-0.json",
+        "final-proof-1.json"
+      ],
+      "omitted": 0,
+      "sha256": "800d52c537396108b79bde4e96e05df9e8da59fa2d419fb359da73a1e6bc980c"
+    }
+  ],
+  "member-rank-4.log": [
+    {
+      "diagnostic": true,
+      "rangeSwitch": true,
+      "before": "dd70a44ea0c9b97361e9c48884a2817a16e218bf8bf3b0732a56e09668a5193c",
+      "after": "00b8c0fab6ae0368cba571de06eddc36e4f0edde16c5e2dc43dd76b72cc28c5e"
+    },
+    {
+      "diagnostic": true,
+      "memberSourceRank": 4,
+      "before": "4e63043f1ae2ba6417d5571a194b06b181b9fa84ed3ed99bf791f6a66e645b2e",
+      "after": "6c63984eac298bb3c3c40bb142a505d032ddfb134ff224d3dcfb611a5bde9c4f"
+    },
+    {
+      "diagnostic": true,
+      "familyComparison": true,
+      "archiveSha256": "3c43d9ef808ca58e11764d0ab41b43c4cab10194a0e7551842f66befd9558199",
+      "familySha256": "ad1f3875ea61c34145adfaec3e015311bb096c5f5d69deb98b9e7ad9c0fc0d2f",
+      "sameMachine": true,
+      "sameLaws": true,
+      "laws": 34,
+      "priorLaws": 34
+    },
+    {
+      "conditional": true,
+      "variant": "member-rank-4-2700",
+      "family": "captured generated family (no hand law)",
+      "repeat": "1",
+      "ms": 2700,
+      "support": "no",
+      "supportCount": 0,
+      "law": "one primary per term",
+      "laws": 34,
+      "proven": false,
+      "checked": false,
+      "checks": [],
+      "stuck": "unknown",
+      "profile": {
+        "encode": 40.567503000000215,
+        "decide": 2782.1812290000003,
+        "mbqi": 79.29135399999996,
+        "lazy": 0.16999800000075993,
+        "#rounds": 10,
+        "#hyps": 1829,
+        "#count-completion": 36,
+        "grow": 1.5047709999998915
+      },
+      "wallMs": 2982.32346,
+      "countedMs": 2700.107466
+    },
+    {
+      "artifact": "mldr-incl-production-capture",
+      "diagnostic": true,
+      "conditional": true,
+      "files": 1,
+      "filenames": [
+        "family-source.json"
+      ],
+      "omitted": 0,
+      "sha256": "3c43d9ef808ca58e11764d0ab41b43c4cab10194a0e7551842f66befd9558199"
+    },
+    {
+      "conditional": true,
+      "variant": "member-rank-4-6000",
+      "family": "captured generated family (no hand law)",
+      "repeat": "1",
+      "ms": 6000,
+      "support": "no",
+      "supportCount": 0,
+      "law": "one primary per term",
+      "laws": 34,
+      "proven": true,
+      "checked": true,
+      "checks": [
+        {
+          "goal": "one primary per term @start",
+          "checked": true,
+          "treeChecked": true,
+          "reads": 0,
+          "insts": 0
+        },
+        {
+          "goal": "one primary per term @step",
+          "checked": true,
+          "treeChecked": true,
+          "reads": 45,
+          "insts": 53
+        }
+      ],
+      "profile": {
+        "encode": 68.96645500000068,
+        "decide": 3884.570067999999,
+        "mbqi": 110.87953200000084,
+        "lazy": 94.36727700000029,
+        "#rounds": 16,
+        "#hyps": 3593,
+        "#count-completion": 36,
+        "#lazy": 62,
+        "grow": 1.2689550000004601,
+        "part": 206.1489760000004
+      },
+      "wallMs": 5127.114441,
+      "countedMs": 4877.7164352,
+      "activeSourceTupleCounts": {
+        "?noneCopied": 4,
+        "?allCopied": 4,
+        "?canVote": 9,
+        "?committedQuorum": 8,
+        "?all$1": 12,
+        "?all$2": 11,
+        "?all$3": 8,
+        "one primary per term": 2,
+        "fields: St[a]=1 -> CT[a]<=CfgT[a]": 2,
+        "every x with x < size: never 1 <= St[x] and started is 0": 1,
+        "inX: no quorum canVote/1": 4
+      }
+    },
+    {
+      "diagnostic": true,
+      "conditional": true,
+      "goal": "one primary per term @start",
+      "checked": true,
+      "laws": 34,
+      "rawPremises": 2,
+      "usedPremises": [
+        1
+      ],
+      "instances": []
+    },
+    {
+      "diagnostic": true,
+      "conditional": true,
+      "goal": "one primary per term @step",
+      "checked": true,
+      "laws": 34,
+      "rawPremises": 79,
+      "usedPremises": [
+        0,
+        1,
+        2,
+        3,
+        4,
+        5,
+        6,
+        7,
+        20,
+        21,
+        27,
+        28,
+        44,
+        58,
+        62,
+        63,
+        78
+      ],
+      "instances": [
+        {
+          "wit": "member$4",
+          "unit": 0,
+          "below": {
+            "op": "var",
+            "name": "size"
+          },
+          "terms": [
+            [
+              1,
+              [
+                "inS",
+                {
+                  "op": "const",
+                  "value": 0
+                }
+              ]
+            ],
+            [
+              -1,
+              [
+                "inX$canVote$1",
+                {
+                  "op": "add",
+                  "a": {
+                    "op": "mul",
+                    "k": 64,
+                    "a": {
+                      "op": "var",
+                      "name": "i"
+                    }
+                  },
+                  "b": {
+                    "op": "var",
+                    "name": "key$4#"
+                  }
+                }
+              ]
+            ]
+          ]
+        },
+        {
+          "wit": "member$5",
+          "unit": 0,
+          "below": {
+            "op": "var",
+            "name": "size"
+          },
+          "terms": [
+            [
+              1,
+              [
+                "inS",
+                {
+                  "op": "const",
+                  "value": 0
+                }
+              ]
+            ],
+            [
+              -1,
+              [
+                "inX$canVote$1",
+                {
+                  "op": "add",
+                  "a": {
+                    "op": "mul",
+                    "k": 64,
+                    "a": {
+                      "op": "var",
+                      "name": "i"
+                    }
+                  },
+                  "b": {
+                    "op": "var",
+                    "name": "key$5"
+                  }
+                }
+              ]
+            ]
+          ]
+        },
+        {
+          "wit": "w$274",
+          "below": {
+            "op": "var",
+            "name": "size"
+          },
+          "terms": [
+            [
+              1,
+              [
+                "inX$row",
+                {
+                  "op": "var",
+                  "name": "i"
+                }
+              ]
+            ],
+            [
+              -1,
+              [
+                "inX",
+                {
+                  "op": "const",
+                  "value": 0
+                }
+              ]
+            ]
+          ],
+          "unit": 0
+        }
+      ]
+    },
+    {
+      "artifact": "mldr-incl-production-capture",
+      "diagnostic": true,
+      "conditional": true,
+      "files": 4,
+      "filenames": [
+        "family-source.json",
+        "production-proof.json",
+        "final-proof-0.json",
+        "final-proof-1.json"
+      ],
+      "omitted": 0,
+      "sha256": "800d52c537396108b79bde4e96e05df9e8da59fa2d419fb359da73a1e6bc980c"
+    }
+  ],
+  "member-rank-6.log": [
+    {
+      "diagnostic": true,
+      "rangeSwitch": true,
+      "before": "dd70a44ea0c9b97361e9c48884a2817a16e218bf8bf3b0732a56e09668a5193c",
+      "after": "00b8c0fab6ae0368cba571de06eddc36e4f0edde16c5e2dc43dd76b72cc28c5e"
+    },
+    {
+      "diagnostic": true,
+      "memberSourceRank": 6,
+      "before": "4e63043f1ae2ba6417d5571a194b06b181b9fa84ed3ed99bf791f6a66e645b2e",
+      "after": "40c26f3d122693c5e99db437f7c58f60c7ad285301765398cf9ac4b99b5cf723"
+    },
+    {
+      "diagnostic": true,
+      "familyComparison": true,
+      "archiveSha256": "3c43d9ef808ca58e11764d0ab41b43c4cab10194a0e7551842f66befd9558199",
+      "familySha256": "ad1f3875ea61c34145adfaec3e015311bb096c5f5d69deb98b9e7ad9c0fc0d2f",
+      "sameMachine": true,
+      "sameLaws": true,
+      "laws": 34,
+      "priorLaws": 34
+    },
+    {
+      "conditional": true,
+      "variant": "member-rank-6-2700",
+      "family": "captured generated family (no hand law)",
+      "repeat": "1",
+      "ms": 2700,
+      "support": "no",
+      "supportCount": 0,
+      "law": "one primary per term",
+      "laws": 34,
+      "proven": false,
+      "checked": false,
+      "checks": [],
+      "stuck": "unknown",
+      "profile": {
+        "encode": 58.339468999998644,
+        "decide": 5921.131405,
+        "mbqi": 107.66269800000009,
+        "lazy": 0.24742399999922782,
+        "#rounds": 6,
+        "#hyps": 862,
+        "#count-completion": 35,
+        "grow": 4.818114000000605
+      },
+      "wallMs": 6204.692808,
+      "countedMs": 2700.4116379999996
+    },
+    {
+      "artifact": "mldr-incl-production-capture",
+      "diagnostic": true,
+      "conditional": true,
+      "files": 1,
+      "filenames": [
+        "family-source.json"
+      ],
+      "omitted": 0,
+      "sha256": "3c43d9ef808ca58e11764d0ab41b43c4cab10194a0e7551842f66befd9558199"
+    },
+    {
+      "conditional": true,
+      "variant": "member-rank-6-6000",
+      "family": "captured generated family (no hand law)",
+      "repeat": "1",
+      "ms": 6000,
+      "support": "no",
+      "supportCount": 0,
+      "law": "one primary per term",
+      "laws": 34,
+      "proven": false,
+      "checked": false,
+      "checks": [],
+      "stuck": "unknown",
+      "profile": {
+        "encode": 104.54015400000026,
+        "decide": 18137.741016000004,
+        "mbqi": 117.21205499999996,
+        "lazy": 0.32372399999985646,
+        "#rounds": 7,
+        "#hyps": 1162,
+        "#count-completion": 35,
+        "grow": 3.9460540000000037
+      },
+      "wallMs": 18532.302297000002,
+      "countedMs": 6000.110039999999
+    },
+    {
+      "artifact": "mldr-incl-production-capture",
+      "diagnostic": true,
+      "conditional": true,
+      "files": 1,
+      "filenames": [
+        "family-source.json"
+      ],
+      "omitted": 0,
+      "sha256": "3c43d9ef808ca58e11764d0ab41b43c4cab10194a0e7551842f66befd9558199"
+    }
+  ],
+  "member-rank-control.log": [
+    {
+      "diagnostic": true,
+      "rangeSwitch": true,
+      "before": "dd70a44ea0c9b97361e9c48884a2817a16e218bf8bf3b0732a56e09668a5193c",
+      "after": "00b8c0fab6ae0368cba571de06eddc36e4f0edde16c5e2dc43dd76b72cc28c5e"
+    },
+    {
+      "diagnostic": true,
+      "familyComparison": true,
+      "archiveSha256": "3c43d9ef808ca58e11764d0ab41b43c4cab10194a0e7551842f66befd9558199",
+      "familySha256": "ad1f3875ea61c34145adfaec3e015311bb096c5f5d69deb98b9e7ad9c0fc0d2f",
+      "sameMachine": true,
+      "sameLaws": true,
+      "laws": 34,
+      "priorLaws": 34
+    },
+    {
+      "conditional": true,
+      "variant": "member-rank-control-2700",
+      "family": "captured generated family (no hand law)",
+      "repeat": "1",
+      "ms": 2700,
+      "support": "no",
+      "supportCount": 0,
+      "law": "one primary per term",
+      "laws": 34,
+      "proven": false,
+      "checked": false,
+      "checks": [],
+      "stuck": "unknown",
+      "profile": {
+        "encode": 71.90951200000018,
+        "decide": 3273.395139000001,
+        "mbqi": 90.69248700000026,
+        "lazy": 108.8249109999997,
+        "#rounds": 10,
+        "#hyps": 2015,
+        "#count-completion": 36,
+        "#lazy": 123,
+        "grow": 1.5786800000000767
+      },
+      "wallMs": 3650.1419560000004,
+      "countedMs": 2701.245368
+    },
+    {
+      "artifact": "mldr-incl-production-capture",
+      "diagnostic": true,
+      "conditional": true,
+      "files": 1,
+      "filenames": [
+        "family-source.json"
+      ],
+      "omitted": 0,
+      "sha256": "3c43d9ef808ca58e11764d0ab41b43c4cab10194a0e7551842f66befd9558199"
+    },
+    {
+      "conditional": true,
+      "variant": "member-rank-control-6000",
+      "family": "captured generated family (no hand law)",
+      "repeat": "1",
+      "ms": 6000,
+      "support": "no",
+      "supportCount": 0,
+      "law": "one primary per term",
+      "laws": 34,
+      "proven": true,
+      "checked": true,
+      "checks": [
+        {
+          "goal": "one primary per term @start",
+          "checked": true,
+          "treeChecked": true,
+          "reads": 0,
+          "insts": 0
+        },
+        {
+          "goal": "one primary per term @step",
+          "checked": true,
+          "treeChecked": true,
+          "reads": 45,
+          "insts": 106
+        }
+      ],
+      "profile": {
+        "encode": 69.01542700000027,
+        "decide": 3162.121348999999,
+        "mbqi": 81.16898199999969,
+        "lazy": 131.2795759999999,
+        "#rounds": 10,
+        "#hyps": 2015,
+        "#count-completion": 36,
+        "#lazy": 123,
+        "grow": 1.9103119999999763,
+        "part": 278.73893099999987
+      },
+      "wallMs": 5818.584879,
+      "countedMs": 3817.24253,
+      "activeSourceTupleCounts": {
+        "?noneCopied": 4,
+        "?allCopied": 4,
+        "?canVote": 8,
+        "?committedQuorum": 7,
+        "?all$1": 10,
+        "?all$2": 9,
+        "?all$3": 6,
+        "one primary per term": 2,
+        "fields: St[a]=1 -> CT[a]<=CfgT[a]": 2,
+        "every x with x < size: never 1 <= CT[x] and started is 0": 1,
+        "every x with x < size: never 1 <= St[x] and started is 0": 1,
+        "inX: no quorum canVote/1": 4,
+        "St at most 1": 1
+      }
+    },
+    {
+      "diagnostic": true,
+      "conditional": true,
+      "goal": "one primary per term @start",
+      "checked": true,
+      "laws": 34,
+      "rawPremises": 2,
+      "usedPremises": [
+        1
+      ],
+      "instances": []
+    },
+    {
+      "diagnostic": true,
+      "conditional": true,
+      "goal": "one primary per term @step",
+      "checked": true,
+      "laws": 34,
+      "rawPremises": 73,
+      "usedPremises": [
+        0,
+        1,
+        2,
+        3,
+        4,
+        5,
+        7,
+        8,
+        9,
+        22,
+        23,
+        29,
+        30,
+        44,
+        56,
+        60,
+        61,
+        72
+      ],
+      "instances": [
+        {
+          "wit": "member$4",
+          "unit": 0,
+          "below": {
+            "op": "var",
+            "name": "size"
+          },
+          "terms": [
+            [
+              1,
+              [
+                "inS",
+                {
+                  "op": "const",
+                  "value": 0
+                }
+              ]
+            ],
+            [
+              -1,
+              [
+                "inX$canVote$1",
+                {
+                  "op": "add",
+                  "a": {
+                    "op": "mul",
+                    "k": 64,
+                    "a": {
+                      "op": "var",
+                      "name": "i"
+                    }
+                  },
+                  "b": {
+                    "op": "var",
+                    "name": "key$4#"
+                  }
+                }
+              ]
+            ]
+          ]
+        },
+        {
+          "wit": "member$5",
+          "unit": 0,
+          "below": {
+            "op": "var",
+            "name": "size"
+          },
+          "terms": [
+            [
+              1,
+              [
+                "inS",
+                {
+                  "op": "const",
+                  "value": 0
+                }
+              ]
+            ],
+            [
+              -1,
+              [
+                "inX$canVote$1",
+                {
+                  "op": "add",
+                  "a": {
+                    "op": "mul",
+                    "k": 64,
+                    "a": {
+                      "op": "var",
+                      "name": "i"
+                    }
+                  },
+                  "b": {
+                    "op": "var",
+                    "name": "key$5"
+                  }
+                }
+              ]
+            ]
+          ]
+        },
+        {
+          "wit": "w$274",
+          "below": {
+            "op": "var",
+            "name": "size"
+          },
+          "terms": [
+            [
+              1,
+              [
+                "inX$row",
+                {
+                  "op": "var",
+                  "name": "i"
+                }
+              ]
+            ],
+            [
+              -1,
+              [
+                "inX",
+                {
+                  "op": "const",
+                  "value": 0
+                }
+              ]
+            ]
+          ],
+          "unit": 0
+        }
+      ]
+    },
+    {
+      "artifact": "mldr-incl-production-capture",
+      "diagnostic": true,
+      "conditional": true,
+      "files": 4,
+      "filenames": [
+        "family-source.json",
+        "production-proof.json",
+        "final-proof-0.json",
+        "final-proof-1.json"
+      ],
+      "omitted": 0,
+      "sha256": "d508fcac4940e3a73c7c775afa9a52da875887a744746a5aab3e72c61a3c46e0"
+    }
+  ]
+}
