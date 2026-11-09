@@ -6,6 +6,14 @@ Lane I resumed from `cca59f0c` on `claude/mldr-integ`; clean worktree verified, 
 - Repair: core-replay reconstruction now spreads the previous obligation before replacing its goal/decls/encoded goal, retaining `all`, certificate and pool. Added a focused range-demand test for a read omitted by the selected certificate. No budget, law, or kernel change.
 - Current source/test candidate: `b09da82d`. Final-candidate check is clean; **660 tests / 19,846 assertions pass**, including the real core-replay regression. The old-shape negative control also passed by detecting dropped reads. All three fresh MLDR pairs remain unknown, with no MLDR proof. **Not gate green**: frozen/census results and Lane D's final gate remain pending.
 
+## V10 generation census completed; newer production tips require integration
+
+Batch `20261110-004029-8b1rye` (controller `1d5b236b-821e-47f1-8dba-db994bd90c31`; exact scheduler ID remains available in its controller receipt), candidate **`b37c4e2ce8172d0e3e1546b6c099ceff33b2d7ae`**, completed all 87 pairs. The same roster/source/phase/CPU/hash/repeat audit reports **zero issues**, **84 canonical-identical pairs across 28 non-MLDR protocols**, MLDR consistently **27 → 34**, and no count decreases. **Every baseline and candidate canonical hash matches V9**, including MLDR, despite the intervening finite-generator change. This is repeatable generation evidence, not an MLDR proof or a final gate.
+
+MLDR paired generation wall ms: r1 EPYC 4585PX **51,560.946 → 13,137.081**; r2 Ryzen 9950X **38,678.107 → 13,736.742**; r3 Ryzen 9950X **48,685.612 → 17,318.256**. Full CPU-labelled metrics, 87 compressed logs, and 174 raw/compressed hashes are retained under `runs/lane-i/v10`.
+
+A fresh lane-ref check found newer **production** changes (A finite-predicate batching, E member/range preservation, and Fable compiled runtime/count changes), not just report updates. These require source review/integration and fresh validation; the clean `b09da82d` mechanics/negative control must not be transferred silently. No redundant final census has been launched before that integration.
+
 ## V9 generation census completed: 28 unchanged protocols, MLDR 27 → 34
 
 Batch `20261110-001623-9q08uz`, source **`edd284913024a6566591d7ad1cba8059b8047a14`**, completed all **87** generation pairs (29 protocols × 3 repeats), with zero worker failures. Audited every job for exact roster, a single comparison record, both side boundaries, source identity, exclusive CPU-labelled placement, valid canonical hashes/counts, and stable hashes across the three repeats: **zero issues**.

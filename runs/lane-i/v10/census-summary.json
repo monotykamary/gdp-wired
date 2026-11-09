@@ -1,0 +1,3215 @@
+{
+  "identity": {
+    "candidate": "b37c4e2ce8172d0e3e1546b6c099ceff33b2d7ae",
+    "baseline": "b788e1959bba1f2e8aa1f94d4cf7c0eb163a2f9c",
+    "archives": {
+      "main.tar": "c593e659eb2d22592f82ab291a63a057679eaf11e8086ed0eed5a972c57745fe",
+      "handwired.tar": "73d44548dbe109a40ac933406324e17d7dee39e7dff1a6f1270ed030c31c1da4",
+      "gdp-ts.tar": "75d367da15decb1fefce2ae72ae50e7f3f737989094a760fde643c5b1f5c1496"
+    },
+    "integratedHeads": {
+      "A": "19ad4ab4e378644d325d44b9e47c29d5c9d64129",
+      "B": "432bbc37847a00b7abbd788a6b048e4ebba569d5",
+      "E": "84a7a6728d578e3918b969574a36a295fc2ad5a2",
+      "Fable": "c40acb07160a2d057870a3a6ac747f347b5ebebb",
+      "F": "27ca886f41b99e93235545e148cbbcedeb642a2a"
+    }
+  },
+  "issues": [],
+  "pairs": 87,
+  "protocols": 29,
+  "identicalPairs": 84,
+  "changedProtocols": [
+    "mldr"
+  ],
+  "decreasedPairs": [],
+  "canonicalDriftFromV9": [],
+  "grouped": {
+    "consensus": {
+      "pairs": 3,
+      "identical": true,
+      "baseCount": 3,
+      "candidateCount": 3,
+      "baseHash": "e14ce6d5523e14235e7be911e6585a4e341579f13af79146ee5c0272782c73fd",
+      "candidateHash": "e14ce6d5523e14235e7be911e6585a4e341579f13af79146ee5c0272782c73fd",
+      "wallMs": [
+        {
+          "cpu": "AMD Ryzen 9 9950X 16-Core Processor",
+          "base": 355.35060899999996,
+          "candidate": 25.276124999999993
+        },
+        {
+          "cpu": "AMD EPYC 9455 48-Core Processor",
+          "base": 305.930582,
+          "candidate": 26.896196999999994
+        },
+        {
+          "cpu": "AMD Ryzen 9 9950X 16-Core Processor",
+          "base": 476.044527,
+          "candidate": 39.247388
+        }
+      ]
+    },
+    "tcommit": {
+      "pairs": 3,
+      "identical": true,
+      "baseCount": 4,
+      "candidateCount": 4,
+      "baseHash": "0fcdba2bffed25323343e97a11d2439514ab6a146a5f4039103365d216045e54",
+      "candidateHash": "0fcdba2bffed25323343e97a11d2439514ab6a146a5f4039103365d216045e54",
+      "wallMs": [
+        {
+          "cpu": "AMD Ryzen 9 9950X 16-Core Processor",
+          "base": 633.2457459999999,
+          "candidate": 53.735968
+        },
+        {
+          "cpu": "AMD EPYC 4585PX 16-Core Processor",
+          "base": 510.240704,
+          "candidate": 54.42914
+        },
+        {
+          "cpu": "AMD EPYC 4585PX 16-Core Processor",
+          "base": 1161.345997,
+          "candidate": 64.972935
+        }
+      ]
+    },
+    "lock_server": {
+      "pairs": 3,
+      "identical": true,
+      "baseCount": 5,
+      "candidateCount": 5,
+      "baseHash": "c1076284bf2ecddf1c752965c0332a92d24a58540f38714b94ad496712ed4de5",
+      "candidateHash": "c1076284bf2ecddf1c752965c0332a92d24a58540f38714b94ad496712ed4de5",
+      "wallMs": [
+        {
+          "cpu": "AMD Ryzen 7 9700X 8-Core Processor",
+          "base": 358.94901000000004,
+          "candidate": 85.641581
+        },
+        {
+          "cpu": "AMD EPYC 4585PX 16-Core Processor",
+          "base": 463.13602399999996,
+          "candidate": 88.553504
+        },
+        {
+          "cpu": "AMD EPYC 4585PX 16-Core Processor",
+          "base": 571.549059,
+          "candidate": 96.44911299999998
+        }
+      ]
+    },
+    "quorum_leader_election": {
+      "pairs": 3,
+      "identical": true,
+      "baseCount": 7,
+      "candidateCount": 7,
+      "baseHash": "6354d3cdc634e6c8862532d3fe5e485059396f4c7fabbd7d4727c62c30242052",
+      "candidateHash": "6354d3cdc634e6c8862532d3fe5e485059396f4c7fabbd7d4727c62c30242052",
+      "wallMs": [
+        {
+          "cpu": "AMD EPYC 4585PX 16-Core Processor",
+          "base": 2288.478989,
+          "candidate": 619.011857
+        },
+        {
+          "cpu": "AMD Ryzen 9 9950X 16-Core Processor",
+          "base": 2225.5911800000003,
+          "candidate": 680.191943
+        },
+        {
+          "cpu": "AMD Ryzen 9 9950X 16-Core Processor",
+          "base": 2373.8895089999996,
+          "candidate": 642.679248
+        }
+      ]
+    },
+    "toy_consensus_forall": {
+      "pairs": 3,
+      "identical": true,
+      "baseCount": 9,
+      "candidateCount": 9,
+      "baseHash": "36b95967eb139c572c4928f9fd291fcb711464d021b5ccb3b1b52b0ea91a33e6",
+      "candidateHash": "36b95967eb139c572c4928f9fd291fcb711464d021b5ccb3b1b52b0ea91a33e6",
+      "wallMs": [
+        {
+          "cpu": "AMD Ryzen 7 9700X 8-Core Processor",
+          "base": 1690.34545,
+          "candidate": 557.876243
+        },
+        {
+          "cpu": "AMD EPYC 4585PX 16-Core Processor",
+          "base": 4001.284809,
+          "candidate": 1151.042877
+        },
+        {
+          "cpu": "AMD EPYC 4585PX 16-Core Processor",
+          "base": 1829.425313,
+          "candidate": 573.457744
+        }
+      ]
+    },
+    "simple": {
+      "pairs": 3,
+      "identical": true,
+      "baseCount": 4,
+      "candidateCount": 4,
+      "baseHash": "ecce4cd0151bd6b60fb404d99c25aa8be129e7860d6b1ba6a212e51c1f74f967",
+      "candidateHash": "ecce4cd0151bd6b60fb404d99c25aa8be129e7860d6b1ba6a212e51c1f74f967",
+      "wallMs": [
+        {
+          "cpu": "AMD EPYC 4585PX 16-Core Processor",
+          "base": 274.856994,
+          "candidate": 40.499521
+        },
+        {
+          "cpu": "AMD EPYC 9455 48-Core Processor",
+          "base": 236.690678,
+          "candidate": 33.658618000000004
+        },
+        {
+          "cpu": "AMD Ryzen 9 9950X 16-Core Processor",
+          "base": 236.10185199999998,
+          "candidate": 32.415568
+        }
+      ]
+    },
+    "simple_regular": {
+      "pairs": 3,
+      "identical": true,
+      "baseCount": 4,
+      "candidateCount": 4,
+      "baseHash": "664a2153927102a496ca62016c1a489f577b00f84bc187cb666f4c7492cde64a",
+      "candidateHash": "664a2153927102a496ca62016c1a489f577b00f84bc187cb666f4c7492cde64a",
+      "wallMs": [
+        {
+          "cpu": "AMD EPYC 4585PX 16-Core Processor",
+          "base": 180.788615,
+          "candidate": 36.76947899999999
+        },
+        {
+          "cpu": "AMD Ryzen 9 9950X 16-Core Processor",
+          "base": 274.30506,
+          "candidate": 46.99118200000001
+        },
+        {
+          "cpu": "AMD Ryzen 9 9950X 16-Core Processor",
+          "base": 363.794132,
+          "candidate": 79.78629099999999
+        }
+      ]
+    },
+    "lockserv_automaton": {
+      "pairs": 3,
+      "identical": true,
+      "baseCount": 17,
+      "candidateCount": 17,
+      "baseHash": "28197b96f28bb0293452708bb2f3f1558343328d37086def3dc214f1d8740a2e",
+      "candidateHash": "28197b96f28bb0293452708bb2f3f1558343328d37086def3dc214f1d8740a2e",
+      "wallMs": [
+        {
+          "cpu": "AMD Ryzen 9 9950X 16-Core Processor",
+          "base": 379.941293,
+          "candidate": 299.686825
+        },
+        {
+          "cpu": "AMD Ryzen 9 9950X 16-Core Processor",
+          "base": 821.2186730000001,
+          "candidate": 149.335006
+        },
+        {
+          "cpu": "AMD Ryzen 9 9950X 16-Core Processor",
+          "base": 402.15287,
+          "candidate": 73.28470300000001
+        }
+      ]
+    },
+    "sharded_kv": {
+      "pairs": 3,
+      "identical": true,
+      "baseCount": 18,
+      "candidateCount": 18,
+      "baseHash": "ed00314a85784d02f0740819b3c1323809c2fa6d31522bb43bdfb832f2bea282",
+      "candidateHash": "ed00314a85784d02f0740819b3c1323809c2fa6d31522bb43bdfb832f2bea282",
+      "wallMs": [
+        {
+          "cpu": "AMD Ryzen 9 9950X 16-Core Processor",
+          "base": 2727.863896,
+          "candidate": 2414.354671
+        },
+        {
+          "cpu": "AMD EPYC 9455 48-Core Processor",
+          "base": 4233.230206,
+          "candidate": 3259.8786259999997
+        },
+        {
+          "cpu": "AMD Ryzen 9 9950X 16-Core Processor",
+          "base": 10013.51961,
+          "candidate": 8184.262634000001
+        }
+      ]
+    },
+    "sharded_kv_no_lost_keys": {
+      "pairs": 3,
+      "identical": true,
+      "baseCount": 6,
+      "candidateCount": 6,
+      "baseHash": "cb05fe1bc7dea38632ad678e7d4fa6df1277ffe5c8166b450c13a43b1c83597e",
+      "candidateHash": "cb05fe1bc7dea38632ad678e7d4fa6df1277ffe5c8166b450c13a43b1c83597e",
+      "wallMs": [
+        {
+          "cpu": "AMD EPYC 9455 48-Core Processor",
+          "base": 4990.832639,
+          "candidate": 2568.479496
+        },
+        {
+          "cpu": "AMD Ryzen 9 9950X 16-Core Processor",
+          "base": 3650.3258429999996,
+          "candidate": 1997.912926
+        },
+        {
+          "cpu": "AMD Ryzen 9 9950X 16-Core Processor",
+          "base": 3464.644378,
+          "candidate": 2187.935618
+        }
+      ]
+    },
+    "lockserv": {
+      "pairs": 3,
+      "identical": true,
+      "baseCount": 17,
+      "candidateCount": 17,
+      "baseHash": "625d4a5b0bd1a44c77cb3d4f01f5b0c862d06f8dd00b2739f62af8732915be00",
+      "candidateHash": "625d4a5b0bd1a44c77cb3d4f01f5b0c862d06f8dd00b2739f62af8732915be00",
+      "wallMs": [
+        {
+          "cpu": "AMD Ryzen 9 9950X 16-Core Processor",
+          "base": 387.36767000000003,
+          "candidate": 86.854504
+        },
+        {
+          "cpu": "AMD Ryzen 9 9950X 16-Core Processor",
+          "base": 587.519819,
+          "candidate": 82.593699
+        },
+        {
+          "cpu": "AMD Ryzen 9 9950X 16-Core Processor",
+          "base": 369.142177,
+          "candidate": 73.229626
+        }
+      ]
+    },
+    "twophase": {
+      "pairs": 3,
+      "identical": true,
+      "baseCount": 14,
+      "candidateCount": 14,
+      "baseHash": "44bfbce553ff9457ee1e2df76ebef4d046e290ef831acd554bfbed2d74f44fd0",
+      "candidateHash": "44bfbce553ff9457ee1e2df76ebef4d046e290ef831acd554bfbed2d74f44fd0",
+      "wallMs": [
+        {
+          "cpu": "AMD EPYC 4585PX 16-Core Processor",
+          "base": 1281.8851929999998,
+          "candidate": 748.957808
+        },
+        {
+          "cpu": "AMD Ryzen 9 9950X 16-Core Processor",
+          "base": 804.4582260000001,
+          "candidate": 764.916153
+        },
+        {
+          "cpu": "AMD Ryzen 9 9950X 16-Core Processor",
+          "base": 1059.2503849999998,
+          "candidate": 850.80962
+        }
+      ]
+    },
+    "simple_decentralized_lock": {
+      "pairs": 3,
+      "identical": true,
+      "baseCount": 20,
+      "candidateCount": 20,
+      "baseHash": "07fdd1070c44037616163044bb5fd27bb8a379c93424cdec53f8166f2eacb2e1",
+      "candidateHash": "07fdd1070c44037616163044bb5fd27bb8a379c93424cdec53f8166f2eacb2e1",
+      "wallMs": [
+        {
+          "cpu": "AMD Ryzen 9 9950X 16-Core Processor",
+          "base": 391.839386,
+          "candidate": 64.24555000000001
+        },
+        {
+          "cpu": "AMD Ryzen 7 9700X 8-Core Processor",
+          "base": 286.19961500000005,
+          "candidate": 43.865068
+        },
+        {
+          "cpu": "AMD Ryzen 9 9950X 16-Core Processor",
+          "base": 394.324972,
+          "candidate": 80.47107400000002
+        }
+      ]
+    },
+    "two_phase_commit": {
+      "pairs": 3,
+      "identical": true,
+      "baseCount": 34,
+      "candidateCount": 34,
+      "baseHash": "4a1828f36f3f69afb92df8b6e558119a6e771236afba62b1d7742faa6a656512",
+      "candidateHash": "4a1828f36f3f69afb92df8b6e558119a6e771236afba62b1d7742faa6a656512",
+      "wallMs": [
+        {
+          "cpu": "AMD EPYC 4585PX 16-Core Processor",
+          "base": 1829.545376,
+          "candidate": 952.404625
+        },
+        {
+          "cpu": "AMD Ryzen 9 9950X 16-Core Processor",
+          "base": 2202.008837,
+          "candidate": 952.0548640000001
+        },
+        {
+          "cpu": "AMD Ryzen 9 9950X 16-Core Processor",
+          "base": 1669.415015,
+          "candidate": 790.4787600000001
+        }
+      ]
+    },
+    "consensus_wo_decide": {
+      "pairs": 3,
+      "identical": true,
+      "baseCount": 39,
+      "candidateCount": 39,
+      "baseHash": "05af3c755b720768be509b2d936a89d3772804554d6a5e37c84c6188d592dd46",
+      "candidateHash": "05af3c755b720768be509b2d936a89d3772804554d6a5e37c84c6188d592dd46",
+      "wallMs": [
+        {
+          "cpu": "AMD Ryzen 9 9950X 16-Core Processor",
+          "base": 7452.196867000001,
+          "candidate": 5328.408409000001
+        },
+        {
+          "cpu": "AMD Ryzen 9 9950X 16-Core Processor",
+          "base": 16200.08709,
+          "candidate": 16522.695902
+        },
+        {
+          "cpu": "AMD EPYC 4585PX 16-Core Processor",
+          "base": 8236.298808000001,
+          "candidate": 5568.494791
+        }
+      ]
+    },
+    "consensus_forall": {
+      "pairs": 3,
+      "identical": true,
+      "baseCount": 48,
+      "candidateCount": 48,
+      "baseHash": "5597b7cd11317d41db1e3204398864077a58857746c18b15db1cfb4ebcd1e3da",
+      "candidateHash": "5597b7cd11317d41db1e3204398864077a58857746c18b15db1cfb4ebcd1e3da",
+      "wallMs": [
+        {
+          "cpu": "AMD Ryzen 9 9950X 16-Core Processor",
+          "base": 15293.754209,
+          "candidate": 23739.583434
+        },
+        {
+          "cpu": "AMD Ryzen 9 9950X 16-Core Processor",
+          "base": 11764.025080000001,
+          "candidate": 7859.5547990000005
+        },
+        {
+          "cpu": "AMD Ryzen 9 9950X 16-Core Processor",
+          "base": 19788.228409,
+          "candidate": 30051.473926000002
+        }
+      ]
+    },
+    "naive_consensus": {
+      "pairs": 3,
+      "identical": true,
+      "baseCount": 13,
+      "candidateCount": 13,
+      "baseHash": "33063fbf32c2fe26d3a2543e077350c6d2d6a6bd9141f194c829ff390249325c",
+      "candidateHash": "33063fbf32c2fe26d3a2543e077350c6d2d6a6bd9141f194c829ff390249325c",
+      "wallMs": [
+        {
+          "cpu": "AMD Ryzen 9 9950X 16-Core Processor",
+          "base": 2575.3240950000004,
+          "candidate": 1455.386925
+        },
+        {
+          "cpu": "AMD Ryzen 9 9950X 16-Core Processor",
+          "base": 3671.197006,
+          "candidate": 3477.960943
+        },
+        {
+          "cpu": "AMD Ryzen 9 9950X 16-Core Processor",
+          "base": 2498.550874,
+          "candidate": 1206.9986490000001
+        }
+      ]
+    },
+    "client_server_ae": {
+      "pairs": 3,
+      "identical": true,
+      "baseCount": 10,
+      "candidateCount": 10,
+      "baseHash": "1772d8c83ef06781cd23d6cfbe447b783864d76ee4b2a7004c5ac085a94040ea",
+      "candidateHash": "1772d8c83ef06781cd23d6cfbe447b783864d76ee4b2a7004c5ac085a94040ea",
+      "wallMs": [
+        {
+          "cpu": "AMD EPYC 4585PX 16-Core Processor",
+          "base": 2026.684983,
+          "candidate": 1643.225186
+        },
+        {
+          "cpu": "AMD Ryzen 7 9700X 8-Core Processor",
+          "base": 1564.521861,
+          "candidate": 1259.468164
+        },
+        {
+          "cpu": "AMD Ryzen 9 9950X 16-Core Processor",
+          "base": 1918.2987699999999,
+          "candidate": 1597.133027
+        }
+      ]
+    },
+    "client_server_db_ae": {
+      "pairs": 3,
+      "identical": true,
+      "baseCount": 15,
+      "candidateCount": 15,
+      "baseHash": "24c730901be1d47def8fd4ffa11b87143b70f2ca664f3d6feb205397336ca64f",
+      "candidateHash": "24c730901be1d47def8fd4ffa11b87143b70f2ca664f3d6feb205397336ca64f",
+      "wallMs": [
+        {
+          "cpu": "AMD Ryzen 9 9950X 16-Core Processor",
+          "base": 12273.81345,
+          "candidate": 11567.144393999999
+        },
+        {
+          "cpu": "AMD Ryzen 7 9700X 8-Core Processor",
+          "base": 5096.776653,
+          "candidate": 5002.352424
+        },
+        {
+          "cpu": "AMD Ryzen 9 9950X 16-Core Processor",
+          "base": 21219.418502999997,
+          "candidate": 13153.222146
+        }
+      ]
+    },
+    "simple_election": {
+      "pairs": 3,
+      "identical": true,
+      "baseCount": 12,
+      "candidateCount": 12,
+      "baseHash": "30bc4cc549adbbd85c982849ae7b5cf741388b8750e135e1b96ba0e6b2204a4d",
+      "candidateHash": "30bc4cc549adbbd85c982849ae7b5cf741388b8750e135e1b96ba0e6b2204a4d",
+      "wallMs": [
+        {
+          "cpu": "AMD Ryzen 7 9700X 8-Core Processor",
+          "base": 2024.031072,
+          "candidate": 1066.81453
+        },
+        {
+          "cpu": "AMD Ryzen 9 9950X 16-Core Processor",
+          "base": 3319.9797190000004,
+          "candidate": 1833.09508
+        },
+        {
+          "cpu": "AMD EPYC 9455 48-Core Processor",
+          "base": 2741.570053,
+          "candidate": 1605.3625200000001
+        }
+      ]
+    },
+    "toy_consensus_epr": {
+      "pairs": 3,
+      "identical": true,
+      "baseCount": 8,
+      "candidateCount": 8,
+      "baseHash": "133630cb1e8c0acf2f7b1b1f30f8c5eb82f1ebd6ef16350af7b27e97f3fea9fc",
+      "candidateHash": "133630cb1e8c0acf2f7b1b1f30f8c5eb82f1ebd6ef16350af7b27e97f3fea9fc",
+      "wallMs": [
+        {
+          "cpu": "AMD EPYC 4585PX 16-Core Processor",
+          "base": 2052.172636,
+          "candidate": 1033.613983
+        },
+        {
+          "cpu": "AMD Ryzen 9 9950X 16-Core Processor",
+          "base": 1895.1445250000002,
+          "candidate": 954.559961
+        },
+        {
+          "cpu": "AMD Ryzen 9 9950X 16-Core Processor",
+          "base": 2027.801106,
+          "candidate": 839.593676
+        }
+      ]
+    },
+    "toy_consensus": {
+      "pairs": 3,
+      "identical": true,
+      "baseCount": 5,
+      "candidateCount": 5,
+      "baseHash": "42a22a2106bf7bde3e8f00f847d72d7b426b493fe2c551d8b12760722db12bf2",
+      "candidateHash": "42a22a2106bf7bde3e8f00f847d72d7b426b493fe2c551d8b12760722db12bf2",
+      "wallMs": [
+        {
+          "cpu": "AMD EPYC 4585PX 16-Core Processor",
+          "base": 1865.344257,
+          "candidate": 534.933269
+        },
+        {
+          "cpu": "AMD Ryzen 9 9950X 16-Core Processor",
+          "base": 2359.761694,
+          "candidate": 784.9479309999999
+        },
+        {
+          "cpu": "AMD Ryzen 9 9950X 16-Core Processor",
+          "base": 4309.384255,
+          "candidate": 1450.2795800000001
+        }
+      ]
+    },
+    "firewall": {
+      "pairs": 3,
+      "identical": true,
+      "baseCount": 7,
+      "candidateCount": 7,
+      "baseHash": "0aeb72d28c1ed33a168870c883b14003290b1f6276c90ed6469aaee474a41dcc",
+      "candidateHash": "0aeb72d28c1ed33a168870c883b14003290b1f6276c90ed6469aaee474a41dcc",
+      "wallMs": [
+        {
+          "cpu": "AMD Ryzen 9 9950X 16-Core Processor",
+          "base": 619.266288,
+          "candidate": 119.17631399999999
+        },
+        {
+          "cpu": "AMD Ryzen 9 9950X 16-Core Processor",
+          "base": 368.658036,
+          "candidate": 65.4848
+        },
+        {
+          "cpu": "AMD Ryzen 9 9950X 16-Core Processor",
+          "base": 398.534137,
+          "candidate": 69.19940500000001
+        }
+      ]
+    },
+    "majorityset_leader_election": {
+      "pairs": 3,
+      "identical": true,
+      "baseCount": 17,
+      "candidateCount": 17,
+      "baseHash": "bb147d46a7fb370560860dfd5441416683ec8c4c8a845d78cba57f199aba247f",
+      "candidateHash": "bb147d46a7fb370560860dfd5441416683ec8c4c8a845d78cba57f199aba247f",
+      "wallMs": [
+        {
+          "cpu": "AMD EPYC 4585PX 16-Core Processor",
+          "base": 2247.547831,
+          "candidate": 1322.097214
+        },
+        {
+          "cpu": "AMD EPYC 4585PX 16-Core Processor",
+          "base": 1637.0826869999999,
+          "candidate": 1082.296688
+        },
+        {
+          "cpu": "AMD EPYC 4585PX 16-Core Processor",
+          "base": 1777.400957,
+          "candidate": 1013.1002649999999
+        }
+      ]
+    },
+    "consensus_epr": {
+      "pairs": 3,
+      "identical": true,
+      "baseCount": 29,
+      "candidateCount": 29,
+      "baseHash": "ab81a384b7f6afc1f8d207c9f6ea5fec0a1526cc98b4088e00b34cd69186db65",
+      "candidateHash": "ab81a384b7f6afc1f8d207c9f6ea5fec0a1526cc98b4088e00b34cd69186db65",
+      "wallMs": [
+        {
+          "cpu": "AMD EPYC 4585PX 16-Core Processor",
+          "base": 15102.95163,
+          "candidate": 9685.958840000001
+        },
+        {
+          "cpu": "AMD EPYC 4585PX 16-Core Processor",
+          "base": 24242.401244,
+          "candidate": 15551.341052
+        },
+        {
+          "cpu": "AMD Ryzen 9 9950X 16-Core Processor",
+          "base": 12942.353025999999,
+          "candidate": 7650.659198
+        }
+      ]
+    },
+    "learning_switch": {
+      "pairs": 3,
+      "identical": true,
+      "baseCount": 16,
+      "candidateCount": 16,
+      "baseHash": "30e01737accefb7cdd6842704aaadf370a3420d57fff3aefa81a435eb25c3761",
+      "candidateHash": "30e01737accefb7cdd6842704aaadf370a3420d57fff3aefa81a435eb25c3761",
+      "wallMs": [
+        {
+          "cpu": "AMD EPYC 4585PX 16-Core Processor",
+          "base": 223948.04793700002,
+          "candidate": 165758.735892
+        },
+        {
+          "cpu": "AMD EPYC 4585PX 16-Core Processor",
+          "base": 135016.571375,
+          "candidate": 156527.35375600003
+        },
+        {
+          "cpu": "AMD Ryzen 9 9950X 16-Core Processor",
+          "base": 324776.94938500004,
+          "candidate": 221897.062228
+        }
+      ]
+    },
+    "learning_switch_i4": {
+      "pairs": 3,
+      "identical": true,
+      "baseCount": 463,
+      "candidateCount": 463,
+      "baseHash": "1fee9ce40764701e37b1e4a0e854273ac3be8a73db8d48faa029d5fa5ebfc163",
+      "candidateHash": "1fee9ce40764701e37b1e4a0e854273ac3be8a73db8d48faa029d5fa5ebfc163",
+      "wallMs": [
+        {
+          "cpu": "AMD Ryzen 9 9950X 16-Core Processor",
+          "base": 167294.07975399998,
+          "candidate": 188355.695803
+        },
+        {
+          "cpu": "AMD Ryzen 9 9950X 16-Core Processor",
+          "base": 166945.101669,
+          "candidate": 167090.884479
+        },
+        {
+          "cpu": "AMD EPYC 9455 48-Core Processor",
+          "base": 130847.319103,
+          "candidate": 143835.480544
+        }
+      ]
+    },
+    "paxos_epr": {
+      "pairs": 3,
+      "identical": true,
+      "baseCount": 77,
+      "candidateCount": 77,
+      "baseHash": "01f9c4f68d27630184f0d5268345ada29c31507eac21bfbf45d87e0bc6051e77",
+      "candidateHash": "01f9c4f68d27630184f0d5268345ada29c31507eac21bfbf45d87e0bc6051e77",
+      "wallMs": [
+        {
+          "cpu": "AMD EPYC 4585PX 16-Core Processor",
+          "base": 31033.317637,
+          "candidate": 18616.477484
+        },
+        {
+          "cpu": "AMD Ryzen 9 9950X 16-Core Processor",
+          "base": 17085.225205,
+          "candidate": 37353.897801
+        },
+        {
+          "cpu": "AMD EPYC 4585PX 16-Core Processor",
+          "base": 18712.047665,
+          "candidate": 15869.538352
+        }
+      ]
+    },
+    "mldr": {
+      "pairs": 3,
+      "identical": false,
+      "baseCount": 27,
+      "candidateCount": 34,
+      "baseHash": "182e714c9c0384d3113f03bbbafba40ec5f19f7c19b2d00377c1d4ef4b567329",
+      "candidateHash": "dd495ab653ff4376b1c7b8c462c7dfafbcf9b3f5fc27949b8d61543ad5c69563",
+      "wallMs": [
+        {
+          "cpu": "AMD EPYC 4585PX 16-Core Processor",
+          "base": 51560.946234,
+          "candidate": 13137.081286
+        },
+        {
+          "cpu": "AMD Ryzen 9 9950X 16-Core Processor",
+          "base": 38678.106866,
+          "candidate": 13736.74232
+        },
+        {
+          "cpu": "AMD Ryzen 9 9950X 16-Core Processor",
+          "base": 48685.611716,
+          "candidate": 17318.255670000002
+        }
+      ]
+    }
+  },
+  "records": [
+    {
+      "job": "gen-consensus-r1",
+      "cpu": "AMD Ryzen 9 9950X 16-Core Processor",
+      "id": "consensus",
+      "repeat": 1,
+      "identical": true,
+      "base": {
+        "count": 3,
+        "hash": "e14ce6d5523e14235e7be911e6585a4e341579f13af79146ee5c0272782c73fd",
+        "wallMs": 355.35060899999996,
+        "phases": {
+          "guards": 2.1230759999999975,
+          "small": 3.0484790000000004,
+          "candidates": 347.93418
+        }
+      },
+      "candidate": {
+        "count": 3,
+        "hash": "e14ce6d5523e14235e7be911e6585a4e341579f13af79146ee5c0272782c73fd",
+        "wallMs": 25.276124999999993,
+        "phases": {
+          "guards": 2.273349000000003,
+          "small": 2.252280000000006,
+          "candidates": 18.630616000000003
+        }
+      }
+    },
+    {
+      "job": "gen-consensus-r2",
+      "cpu": "AMD EPYC 9455 48-Core Processor",
+      "id": "consensus",
+      "repeat": 2,
+      "identical": true,
+      "base": {
+        "count": 3,
+        "hash": "e14ce6d5523e14235e7be911e6585a4e341579f13af79146ee5c0272782c73fd",
+        "wallMs": 305.930582,
+        "phases": {
+          "guards": 1.8900920000000028,
+          "small": 2.3691420000000036,
+          "candidates": 299.738402
+        }
+      },
+      "candidate": {
+        "count": 3,
+        "hash": "e14ce6d5523e14235e7be911e6585a4e341579f13af79146ee5c0272782c73fd",
+        "wallMs": 26.896196999999994,
+        "phases": {
+          "guards": 2.3281920000000014,
+          "small": 2.618572999999998,
+          "candidates": 19.908437
+        }
+      }
+    },
+    {
+      "job": "gen-consensus-r3",
+      "cpu": "AMD Ryzen 9 9950X 16-Core Processor",
+      "id": "consensus",
+      "repeat": 3,
+      "identical": true,
+      "base": {
+        "count": 3,
+        "hash": "e14ce6d5523e14235e7be911e6585a4e341579f13af79146ee5c0272782c73fd",
+        "wallMs": 476.044527,
+        "phases": {
+          "guards": 2.345711999999999,
+          "small": 2.8305810000000022,
+          "candidates": 468.35892300000006
+        }
+      },
+      "candidate": {
+        "count": 3,
+        "hash": "e14ce6d5523e14235e7be911e6585a4e341579f13af79146ee5c0272782c73fd",
+        "wallMs": 39.247388,
+        "phases": {
+          "guards": 2.868893,
+          "small": 3.4268670000000014,
+          "candidates": 30.479496000000005
+        }
+      }
+    },
+    {
+      "job": "gen-tcommit-r1",
+      "cpu": "AMD Ryzen 9 9950X 16-Core Processor",
+      "id": "tcommit",
+      "repeat": 1,
+      "identical": true,
+      "base": {
+        "count": 4,
+        "hash": "0fcdba2bffed25323343e97a11d2439514ab6a146a5f4039103365d216045e54",
+        "wallMs": 633.2457459999999,
+        "phases": {
+          "guards": 2.1542650000000023,
+          "small": 21.623748999999997,
+          "candidates": 606.652386
+        }
+      },
+      "candidate": {
+        "count": 4,
+        "hash": "0fcdba2bffed25323343e97a11d2439514ab6a146a5f4039103365d216045e54",
+        "wallMs": 53.735968,
+        "phases": {
+          "guards": 2.2021859999999975,
+          "small": 10.333064,
+          "candidates": 38.885689
+        }
+      }
+    },
+    {
+      "job": "gen-tcommit-r2",
+      "cpu": "AMD EPYC 4585PX 16-Core Processor",
+      "id": "tcommit",
+      "repeat": 2,
+      "identical": true,
+      "base": {
+        "count": 4,
+        "hash": "0fcdba2bffed25323343e97a11d2439514ab6a146a5f4039103365d216045e54",
+        "wallMs": 510.240704,
+        "phases": {
+          "guards": 1.7087210000000042,
+          "small": 8.912763000000005,
+          "candidates": 498.002131
+        }
+      },
+      "candidate": {
+        "count": 4,
+        "hash": "0fcdba2bffed25323343e97a11d2439514ab6a146a5f4039103365d216045e54",
+        "wallMs": 54.42914,
+        "phases": {
+          "guards": 2.04157,
+          "small": 10.766328000000001,
+          "candidates": 39.43727199999999
+        }
+      }
+    },
+    {
+      "job": "gen-tcommit-r3",
+      "cpu": "AMD EPYC 4585PX 16-Core Processor",
+      "id": "tcommit",
+      "repeat": 3,
+      "identical": true,
+      "base": {
+        "count": 4,
+        "hash": "0fcdba2bffed25323343e97a11d2439514ab6a146a5f4039103365d216045e54",
+        "wallMs": 1161.345997,
+        "phases": {
+          "guards": 3.9495719999999963,
+          "small": 18.426441999999994,
+          "candidates": 1133.311416
+        }
+      },
+      "candidate": {
+        "count": 4,
+        "hash": "0fcdba2bffed25323343e97a11d2439514ab6a146a5f4039103365d216045e54",
+        "wallMs": 64.972935,
+        "phases": {
+          "guards": 3.0182410000000033,
+          "small": 11.069430000000004,
+          "candidates": 48.477492999999996
+        }
+      }
+    },
+    {
+      "job": "gen-lock_server-r1",
+      "cpu": "AMD Ryzen 7 9700X 8-Core Processor",
+      "id": "lock_server",
+      "repeat": 1,
+      "identical": true,
+      "base": {
+        "count": 5,
+        "hash": "c1076284bf2ecddf1c752965c0332a92d24a58540f38714b94ad496712ed4de5",
+        "wallMs": 358.94901000000004,
+        "phases": {
+          "guards": 2.0694580000000045,
+          "small": 17.029370999999998,
+          "candidates": 337.47377099999994
+        }
+      },
+      "candidate": {
+        "count": 5,
+        "hash": "c1076284bf2ecddf1c752965c0332a92d24a58540f38714b94ad496712ed4de5",
+        "wallMs": 85.641581,
+        "phases": {
+          "guards": 2.274751000000002,
+          "small": 12.915092999999999,
+          "candidates": 68.16629499999999
+        }
+      }
+    },
+    {
+      "job": "gen-lock_server-r2",
+      "cpu": "AMD EPYC 4585PX 16-Core Processor",
+      "id": "lock_server",
+      "repeat": 2,
+      "identical": true,
+      "base": {
+        "count": 5,
+        "hash": "c1076284bf2ecddf1c752965c0332a92d24a58540f38714b94ad496712ed4de5",
+        "wallMs": 463.13602399999996,
+        "phases": {
+          "guards": 2.0224839999999986,
+          "small": 23.780315,
+          "candidates": 434.41992999999997
+        }
+      },
+      "candidate": {
+        "count": 5,
+        "hash": "c1076284bf2ecddf1c752965c0332a92d24a58540f38714b94ad496712ed4de5",
+        "wallMs": 88.553504,
+        "phases": {
+          "guards": 2.739659000000003,
+          "small": 16.622420000000005,
+          "candidates": 66.62987999999999
+        }
+      }
+    },
+    {
+      "job": "gen-lock_server-r3",
+      "cpu": "AMD EPYC 4585PX 16-Core Processor",
+      "id": "lock_server",
+      "repeat": 3,
+      "identical": true,
+      "base": {
+        "count": 5,
+        "hash": "c1076284bf2ecddf1c752965c0332a92d24a58540f38714b94ad496712ed4de5",
+        "wallMs": 571.549059,
+        "phases": {
+          "guards": 3.2772539999999992,
+          "small": 27.655373000000004,
+          "candidates": 536.4557130000001
+        }
+      },
+      "candidate": {
+        "count": 5,
+        "hash": "c1076284bf2ecddf1c752965c0332a92d24a58540f38714b94ad496712ed4de5",
+        "wallMs": 96.44911299999998,
+        "phases": {
+          "guards": 3.402510999999997,
+          "small": 19.264470000000003,
+          "candidates": 70.63205500000001
+        }
+      }
+    },
+    {
+      "job": "gen-quorum_leader_election-r1",
+      "cpu": "AMD EPYC 4585PX 16-Core Processor",
+      "id": "quorum_leader_election",
+      "repeat": 1,
+      "identical": true,
+      "base": {
+        "count": 7,
+        "hash": "6354d3cdc634e6c8862532d3fe5e485059396f4c7fabbd7d4727c62c30242052",
+        "wallMs": 2288.478989,
+        "phases": {
+          "guards": 2.1336720000000184,
+          "small": 141.640762,
+          "candidates": 2140.1056470000003
+        }
+      },
+      "candidate": {
+        "count": 7,
+        "hash": "6354d3cdc634e6c8862532d3fe5e485059396f4c7fabbd7d4727c62c30242052",
+        "wallMs": 619.011857,
+        "phases": {
+          "guards": 3.7990970000000033,
+          "small": 106.76536300000001,
+          "candidates": 503.53229699999997
+        }
+      }
+    },
+    {
+      "job": "gen-quorum_leader_election-r2",
+      "cpu": "AMD Ryzen 9 9950X 16-Core Processor",
+      "id": "quorum_leader_election",
+      "repeat": 2,
+      "identical": true,
+      "base": {
+        "count": 7,
+        "hash": "6354d3cdc634e6c8862532d3fe5e485059396f4c7fabbd7d4727c62c30242052",
+        "wallMs": 2225.5911800000003,
+        "phases": {
+          "guards": 2.6855079999999987,
+          "small": 118.66209599999999,
+          "candidates": 2099.9207119999996
+        }
+      },
+      "candidate": {
+        "count": 7,
+        "hash": "6354d3cdc634e6c8862532d3fe5e485059396f4c7fabbd7d4727c62c30242052",
+        "wallMs": 680.191943,
+        "phases": {
+          "guards": 3.1331240000000022,
+          "small": 108.393811,
+          "candidates": 563.2183090000001
+        }
+      }
+    },
+    {
+      "job": "gen-quorum_leader_election-r3",
+      "cpu": "AMD Ryzen 9 9950X 16-Core Processor",
+      "id": "quorum_leader_election",
+      "repeat": 3,
+      "identical": true,
+      "base": {
+        "count": 7,
+        "hash": "6354d3cdc634e6c8862532d3fe5e485059396f4c7fabbd7d4727c62c30242052",
+        "wallMs": 2373.8895089999996,
+        "phases": {
+          "guards": 2.486048999999994,
+          "small": 106.533389,
+          "candidates": 2260.117355
+        }
+      },
+      "candidate": {
+        "count": 7,
+        "hash": "6354d3cdc634e6c8862532d3fe5e485059396f4c7fabbd7d4727c62c30242052",
+        "wallMs": 642.679248,
+        "phases": {
+          "guards": 3.1018279999999976,
+          "small": 110.21558100000001,
+          "candidates": 523.125851
+        }
+      }
+    },
+    {
+      "job": "gen-toy_consensus_forall-r1",
+      "cpu": "AMD Ryzen 7 9700X 8-Core Processor",
+      "id": "toy_consensus_forall",
+      "repeat": 1,
+      "identical": true,
+      "base": {
+        "count": 9,
+        "hash": "36b95967eb139c572c4928f9fd291fcb711464d021b5ccb3b1b52b0ea91a33e6",
+        "wallMs": 1690.34545,
+        "phases": {
+          "guards": 3.050895000000004,
+          "small": 120.32439500000001,
+          "candidates": 1560.858882
+        }
+      },
+      "candidate": {
+        "count": 9,
+        "hash": "36b95967eb139c572c4928f9fd291fcb711464d021b5ccb3b1b52b0ea91a33e6",
+        "wallMs": 557.876243,
+        "phases": {
+          "guards": 3.2358210000000014,
+          "small": 91.786948,
+          "candidates": 458.17855599999996
+        }
+      }
+    },
+    {
+      "job": "gen-toy_consensus_forall-r2",
+      "cpu": "AMD EPYC 4585PX 16-Core Processor",
+      "id": "toy_consensus_forall",
+      "repeat": 2,
+      "identical": true,
+      "base": {
+        "count": 9,
+        "hash": "36b95967eb139c572c4928f9fd291fcb711464d021b5ccb3b1b52b0ea91a33e6",
+        "wallMs": 4001.284809,
+        "phases": {
+          "guards": 4.4680430000000015,
+          "small": 270.449753,
+          "candidates": 3716.863727
+        }
+      },
+      "candidate": {
+        "count": 9,
+        "hash": "36b95967eb139c572c4928f9fd291fcb711464d021b5ccb3b1b52b0ea91a33e6",
+        "wallMs": 1151.042877,
+        "phases": {
+          "guards": 4.790846999999999,
+          "small": 272.941518,
+          "candidates": 862.76467
+        }
+      }
+    },
+    {
+      "job": "gen-toy_consensus_forall-r3",
+      "cpu": "AMD EPYC 4585PX 16-Core Processor",
+      "id": "toy_consensus_forall",
+      "repeat": 3,
+      "identical": true,
+      "base": {
+        "count": 9,
+        "hash": "36b95967eb139c572c4928f9fd291fcb711464d021b5ccb3b1b52b0ea91a33e6",
+        "wallMs": 1829.425313,
+        "phases": {
+          "guards": 2.3724749999999943,
+          "small": 106.27105699999998,
+          "candidates": 1714.29209
+        }
+      },
+      "candidate": {
+        "count": 9,
+        "hash": "36b95967eb139c572c4928f9fd291fcb711464d021b5ccb3b1b52b0ea91a33e6",
+        "wallMs": 573.457744,
+        "phases": {
+          "guards": 2.7804780000000022,
+          "small": 79.355652,
+          "candidates": 486.13789299999996
+        }
+      }
+    },
+    {
+      "job": "gen-simple-r1",
+      "cpu": "AMD EPYC 4585PX 16-Core Processor",
+      "id": "simple",
+      "repeat": 1,
+      "identical": true,
+      "base": {
+        "count": 4,
+        "hash": "ecce4cd0151bd6b60fb404d99c25aa8be129e7860d6b1ba6a212e51c1f74f967",
+        "wallMs": 274.856994,
+        "phases": {
+          "guards": 2.444707000000001,
+          "small": 17.905794,
+          "candidates": 251.32000899999997
+        }
+      },
+      "candidate": {
+        "count": 4,
+        "hash": "ecce4cd0151bd6b60fb404d99c25aa8be129e7860d6b1ba6a212e51c1f74f967",
+        "wallMs": 40.499521,
+        "phases": {
+          "guards": 2.5641320000000007,
+          "small": 15.419077999999999,
+          "candidates": 19.952999999999996
+        }
+      }
+    },
+    {
+      "job": "gen-simple-r2",
+      "cpu": "AMD EPYC 9455 48-Core Processor",
+      "id": "simple",
+      "repeat": 2,
+      "identical": true,
+      "base": {
+        "count": 4,
+        "hash": "ecce4cd0151bd6b60fb404d99c25aa8be129e7860d6b1ba6a212e51c1f74f967",
+        "wallMs": 236.690678,
+        "phases": {
+          "guards": 1.7928580000000025,
+          "small": 14.009647999999999,
+          "candidates": 218.54398700000002
+        }
+      },
+      "candidate": {
+        "count": 4,
+        "hash": "ecce4cd0151bd6b60fb404d99c25aa8be129e7860d6b1ba6a212e51c1f74f967",
+        "wallMs": 33.658618000000004,
+        "phases": {
+          "guards": 2.2907849999999996,
+          "small": 11.199292999999997,
+          "candidates": 18.001555999999994
+        }
+      }
+    },
+    {
+      "job": "gen-simple-r3",
+      "cpu": "AMD Ryzen 9 9950X 16-Core Processor",
+      "id": "simple",
+      "repeat": 3,
+      "identical": true,
+      "base": {
+        "count": 4,
+        "hash": "ecce4cd0151bd6b60fb404d99c25aa8be129e7860d6b1ba6a212e51c1f74f967",
+        "wallMs": 236.10185199999998,
+        "phases": {
+          "guards": 1.7754249999999985,
+          "small": 12.256399000000002,
+          "candidates": 219.87668399999998
+        }
+      },
+      "candidate": {
+        "count": 4,
+        "hash": "ecce4cd0151bd6b60fb404d99c25aa8be129e7860d6b1ba6a212e51c1f74f967",
+        "wallMs": 32.415568,
+        "phases": {
+          "guards": 2.2659499999999966,
+          "small": 10.661555999999997,
+          "candidates": 17.019854000000002
+        }
+      }
+    },
+    {
+      "job": "gen-simple_regular-r1",
+      "cpu": "AMD EPYC 4585PX 16-Core Processor",
+      "id": "simple_regular",
+      "repeat": 1,
+      "identical": true,
+      "base": {
+        "count": 4,
+        "hash": "664a2153927102a496ca62016c1a489f577b00f84bc187cb666f4c7492cde64a",
+        "wallMs": 180.788615,
+        "phases": {
+          "guards": 1.518502999999999,
+          "small": 12.076875999999999,
+          "candidates": 165.240815
+        }
+      },
+      "candidate": {
+        "count": 4,
+        "hash": "664a2153927102a496ca62016c1a489f577b00f84bc187cb666f4c7492cde64a",
+        "wallMs": 36.76947899999999,
+        "phases": {
+          "guards": 1.8820699999999988,
+          "small": 12.790266000000003,
+          "candidates": 20.012842
+        }
+      }
+    },
+    {
+      "job": "gen-simple_regular-r2",
+      "cpu": "AMD Ryzen 9 9950X 16-Core Processor",
+      "id": "simple_regular",
+      "repeat": 2,
+      "identical": true,
+      "base": {
+        "count": 4,
+        "hash": "664a2153927102a496ca62016c1a489f577b00f84bc187cb666f4c7492cde64a",
+        "wallMs": 274.30506,
+        "phases": {
+          "guards": 3.1977910000000023,
+          "small": 19.062091000000002,
+          "candidates": 247.83799499999998
+        }
+      },
+      "candidate": {
+        "count": 4,
+        "hash": "664a2153927102a496ca62016c1a489f577b00f84bc187cb666f4c7492cde64a",
+        "wallMs": 46.99118200000001,
+        "phases": {
+          "guards": 2.991443999999994,
+          "small": 17.490947999999996,
+          "candidates": 23.538235999999998
+        }
+      }
+    },
+    {
+      "job": "gen-simple_regular-r3",
+      "cpu": "AMD Ryzen 9 9950X 16-Core Processor",
+      "id": "simple_regular",
+      "repeat": 3,
+      "identical": true,
+      "base": {
+        "count": 4,
+        "hash": "664a2153927102a496ca62016c1a489f577b00f84bc187cb666f4c7492cde64a",
+        "wallMs": 363.794132,
+        "phases": {
+          "guards": 2.4000139999999988,
+          "small": 28.196567999999992,
+          "candidates": 329.108912
+        }
+      },
+      "candidate": {
+        "count": 4,
+        "hash": "664a2153927102a496ca62016c1a489f577b00f84bc187cb666f4c7492cde64a",
+        "wallMs": 79.78629099999999,
+        "phases": {
+          "guards": 2.853065000000001,
+          "small": 26.031817000000004,
+          "candidates": 46.958653
+        }
+      }
+    },
+    {
+      "job": "gen-lockserv_automaton-r1",
+      "cpu": "AMD Ryzen 9 9950X 16-Core Processor",
+      "id": "lockserv_automaton",
+      "repeat": 1,
+      "identical": true,
+      "base": {
+        "count": 17,
+        "hash": "28197b96f28bb0293452708bb2f3f1558343328d37086def3dc214f1d8740a2e",
+        "wallMs": 379.941293,
+        "phases": {
+          "guards": 3.184747999999999,
+          "small": 20.512602,
+          "candidates": 353.278663
+        }
+      },
+      "candidate": {
+        "count": 17,
+        "hash": "28197b96f28bb0293452708bb2f3f1558343328d37086def3dc214f1d8740a2e",
+        "wallMs": 299.686825,
+        "phases": {
+          "guards": 3.4380290000000002,
+          "small": 69.06168600000001,
+          "candidates": 222.72025499999998
+        }
+      }
+    },
+    {
+      "job": "gen-lockserv_automaton-r2",
+      "cpu": "AMD Ryzen 9 9950X 16-Core Processor",
+      "id": "lockserv_automaton",
+      "repeat": 2,
+      "identical": true,
+      "base": {
+        "count": 17,
+        "hash": "28197b96f28bb0293452708bb2f3f1558343328d37086def3dc214f1d8740a2e",
+        "wallMs": 821.2186730000001,
+        "phases": {
+          "guards": 3.3569949999999977,
+          "small": 21.817949000000006,
+          "candidates": 790.307863
+        }
+      },
+      "candidate": {
+        "count": 17,
+        "hash": "28197b96f28bb0293452708bb2f3f1558343328d37086def3dc214f1d8740a2e",
+        "wallMs": 149.335006,
+        "phases": {
+          "guards": 6.846731999999996,
+          "small": 29.541105,
+          "candidates": 105.445359
+        }
+      }
+    },
+    {
+      "job": "gen-lockserv_automaton-r3",
+      "cpu": "AMD Ryzen 9 9950X 16-Core Processor",
+      "id": "lockserv_automaton",
+      "repeat": 3,
+      "identical": true,
+      "base": {
+        "count": 17,
+        "hash": "28197b96f28bb0293452708bb2f3f1558343328d37086def3dc214f1d8740a2e",
+        "wallMs": 402.15287,
+        "phases": {
+          "guards": 2.243514999999995,
+          "small": 17.234792,
+          "candidates": 379.52187100000003
+        }
+      },
+      "candidate": {
+        "count": 17,
+        "hash": "28197b96f28bb0293452708bb2f3f1558343328d37086def3dc214f1d8740a2e",
+        "wallMs": 73.28470300000001,
+        "phases": {
+          "guards": 2.3818660000000023,
+          "small": 12.549718999999996,
+          "candidates": 55.609559000000004
+        }
+      }
+    },
+    {
+      "job": "gen-sharded_kv-r1",
+      "cpu": "AMD Ryzen 9 9950X 16-Core Processor",
+      "id": "sharded_kv",
+      "repeat": 1,
+      "identical": true,
+      "base": {
+        "count": 18,
+        "hash": "ed00314a85784d02f0740819b3c1323809c2fa6d31522bb43bdfb832f2bea282",
+        "wallMs": 2727.863896,
+        "phases": {
+          "guards": 2.193659000000004,
+          "small": 1052.595411,
+          "candidates": 1670.184932
+        }
+      },
+      "candidate": {
+        "count": 18,
+        "hash": "ed00314a85784d02f0740819b3c1323809c2fa6d31522bb43bdfb832f2bea282",
+        "wallMs": 2414.354671,
+        "phases": {
+          "guards": 3.8470550000000046,
+          "small": 947.803373,
+          "candidates": 1459.3868770000004
+        }
+      }
+    },
+    {
+      "job": "gen-sharded_kv-r2",
+      "cpu": "AMD EPYC 9455 48-Core Processor",
+      "id": "sharded_kv",
+      "repeat": 2,
+      "identical": true,
+      "base": {
+        "count": 18,
+        "hash": "ed00314a85784d02f0740819b3c1323809c2fa6d31522bb43bdfb832f2bea282",
+        "wallMs": 4233.230206,
+        "phases": {
+          "guards": 2.643487999999998,
+          "small": 1681.785705,
+          "candidates": 2545.1356520000004
+        }
+      },
+      "candidate": {
+        "count": 18,
+        "hash": "ed00314a85784d02f0740819b3c1323809c2fa6d31522bb43bdfb832f2bea282",
+        "wallMs": 3259.8786259999997,
+        "phases": {
+          "guards": 3.4716029999999947,
+          "small": 1284.462341,
+          "candidates": 1967.701247
+        }
+      }
+    },
+    {
+      "job": "gen-sharded_kv-r3",
+      "cpu": "AMD Ryzen 9 9950X 16-Core Processor",
+      "id": "sharded_kv",
+      "repeat": 3,
+      "identical": true,
+      "base": {
+        "count": 18,
+        "hash": "ed00314a85784d02f0740819b3c1323809c2fa6d31522bb43bdfb832f2bea282",
+        "wallMs": 10013.51961,
+        "phases": {
+          "guards": 6.715491999999998,
+          "small": 5455.918858,
+          "candidates": 4541.787407000001
+        }
+      },
+      "candidate": {
+        "count": 18,
+        "hash": "ed00314a85784d02f0740819b3c1323809c2fa6d31522bb43bdfb832f2bea282",
+        "wallMs": 8184.262634000001,
+        "phases": {
+          "guards": 5.413236999999995,
+          "small": 3706.166498,
+          "candidates": 4464.019589000001
+        }
+      }
+    },
+    {
+      "job": "gen-sharded_kv_no_lost_keys-r1",
+      "cpu": "AMD EPYC 9455 48-Core Processor",
+      "id": "sharded_kv_no_lost_keys",
+      "repeat": 1,
+      "identical": true,
+      "base": {
+        "count": 6,
+        "hash": "cb05fe1bc7dea38632ad678e7d4fa6df1277ffe5c8166b450c13a43b1c83597e",
+        "wallMs": 4990.832639,
+        "phases": {
+          "guards": 2.757646000000001,
+          "small": 3803.470392,
+          "candidates": 1180.367044
+        }
+      },
+      "candidate": {
+        "count": 6,
+        "hash": "cb05fe1bc7dea38632ad678e7d4fa6df1277ffe5c8166b450c13a43b1c83597e",
+        "wallMs": 2568.479496,
+        "phases": {
+          "guards": 3.8422139999999985,
+          "small": 2304.213229,
+          "candidates": 256.384196
+        }
+      }
+    },
+    {
+      "job": "gen-sharded_kv_no_lost_keys-r2",
+      "cpu": "AMD Ryzen 9 9950X 16-Core Processor",
+      "id": "sharded_kv_no_lost_keys",
+      "repeat": 2,
+      "identical": true,
+      "base": {
+        "count": 6,
+        "hash": "cb05fe1bc7dea38632ad678e7d4fa6df1277ffe5c8166b450c13a43b1c83597e",
+        "wallMs": 3650.3258429999996,
+        "phases": {
+          "guards": 2.423684999999999,
+          "small": 2709.422157,
+          "candidates": 934.3585059999996
+        }
+      },
+      "candidate": {
+        "count": 6,
+        "hash": "cb05fe1bc7dea38632ad678e7d4fa6df1277ffe5c8166b450c13a43b1c83597e",
+        "wallMs": 1997.912926,
+        "phases": {
+          "guards": 2.6024929999999955,
+          "small": 1769.571414,
+          "candidates": 222.53460300000006
+        }
+      }
+    },
+    {
+      "job": "gen-sharded_kv_no_lost_keys-r3",
+      "cpu": "AMD Ryzen 9 9950X 16-Core Processor",
+      "id": "sharded_kv_no_lost_keys",
+      "repeat": 3,
+      "identical": true,
+      "base": {
+        "count": 6,
+        "hash": "cb05fe1bc7dea38632ad678e7d4fa6df1277ffe5c8166b450c13a43b1c83597e",
+        "wallMs": 3464.644378,
+        "phases": {
+          "guards": 2.331668999999998,
+          "small": 2594.889959,
+          "candidates": 864.107994
+        }
+      },
+      "candidate": {
+        "count": 6,
+        "hash": "cb05fe1bc7dea38632ad678e7d4fa6df1277ffe5c8166b450c13a43b1c83597e",
+        "wallMs": 2187.935618,
+        "phases": {
+          "guards": 3.182507000000001,
+          "small": 1942.8939189999999,
+          "candidates": 238.3066540000002
+        }
+      }
+    },
+    {
+      "job": "gen-lockserv-r1",
+      "cpu": "AMD Ryzen 9 9950X 16-Core Processor",
+      "id": "lockserv",
+      "repeat": 1,
+      "identical": true,
+      "base": {
+        "count": 17,
+        "hash": "625d4a5b0bd1a44c77cb3d4f01f5b0c862d06f8dd00b2739f62af8732915be00",
+        "wallMs": 387.36767000000003,
+        "phases": {
+          "guards": 2.7945649999999986,
+          "small": 17.263531999999998,
+          "candidates": 363.91437499999995
+        }
+      },
+      "candidate": {
+        "count": 17,
+        "hash": "625d4a5b0bd1a44c77cb3d4f01f5b0c862d06f8dd00b2739f62af8732915be00",
+        "wallMs": 86.854504,
+        "phases": {
+          "guards": 2.4033969999999982,
+          "small": 15.448753999999994,
+          "candidates": 65.700963
+        }
+      }
+    },
+    {
+      "job": "gen-lockserv-r2",
+      "cpu": "AMD Ryzen 9 9950X 16-Core Processor",
+      "id": "lockserv",
+      "repeat": 2,
+      "identical": true,
+      "base": {
+        "count": 17,
+        "hash": "625d4a5b0bd1a44c77cb3d4f01f5b0c862d06f8dd00b2739f62af8732915be00",
+        "wallMs": 587.519819,
+        "phases": {
+          "guards": 4.135221999999999,
+          "small": 133.614196,
+          "candidates": 446.3498380000001
+        }
+      },
+      "candidate": {
+        "count": 17,
+        "hash": "625d4a5b0bd1a44c77cb3d4f01f5b0c862d06f8dd00b2739f62af8732915be00",
+        "wallMs": 82.593699,
+        "phases": {
+          "guards": 2.5348139999999972,
+          "small": 16.854476,
+          "candidates": 60.133613000000004
+        }
+      }
+    },
+    {
+      "job": "gen-lockserv-r3",
+      "cpu": "AMD Ryzen 9 9950X 16-Core Processor",
+      "id": "lockserv",
+      "repeat": 3,
+      "identical": true,
+      "base": {
+        "count": 17,
+        "hash": "625d4a5b0bd1a44c77cb3d4f01f5b0c862d06f8dd00b2739f62af8732915be00",
+        "wallMs": 369.142177,
+        "phases": {
+          "guards": 2.2713949999999983,
+          "small": 16.705170000000003,
+          "candidates": 347.303588
+        }
+      },
+      "candidate": {
+        "count": 17,
+        "hash": "625d4a5b0bd1a44c77cb3d4f01f5b0c862d06f8dd00b2739f62af8732915be00",
+        "wallMs": 73.229626,
+        "phases": {
+          "guards": 2.603818000000004,
+          "small": 17.111130000000003,
+          "candidates": 50.777766
+        }
+      }
+    },
+    {
+      "job": "gen-twophase-r1",
+      "cpu": "AMD EPYC 4585PX 16-Core Processor",
+      "id": "twophase",
+      "repeat": 1,
+      "identical": true,
+      "base": {
+        "count": 14,
+        "hash": "44bfbce553ff9457ee1e2df76ebef4d046e290ef831acd554bfbed2d74f44fd0",
+        "wallMs": 1281.8851929999998,
+        "phases": {
+          "guards": 2.7361959999999996,
+          "small": 292.207465,
+          "candidates": 983.2567260000001
+        }
+      },
+      "candidate": {
+        "count": 14,
+        "hash": "44bfbce553ff9457ee1e2df76ebef4d046e290ef831acd554bfbed2d74f44fd0",
+        "wallMs": 748.957808,
+        "phases": {
+          "guards": 5.3165500000000065,
+          "small": 86.595411,
+          "candidates": 650.9321269999999
+        }
+      }
+    },
+    {
+      "job": "gen-twophase-r2",
+      "cpu": "AMD Ryzen 9 9950X 16-Core Processor",
+      "id": "twophase",
+      "repeat": 2,
+      "identical": true,
+      "base": {
+        "count": 14,
+        "hash": "44bfbce553ff9457ee1e2df76ebef4d046e290ef831acd554bfbed2d74f44fd0",
+        "wallMs": 804.4582260000001,
+        "phases": {
+          "guards": 2.9782049999999956,
+          "small": 47.117932,
+          "candidates": 749.6789450000001
+        }
+      },
+      "candidate": {
+        "count": 14,
+        "hash": "44bfbce553ff9457ee1e2df76ebef4d046e290ef831acd554bfbed2d74f44fd0",
+        "wallMs": 764.916153,
+        "phases": {
+          "guards": 2.827389999999994,
+          "small": 41.46596400000001,
+          "candidates": 717.361271
+        }
+      }
+    },
+    {
+      "job": "gen-twophase-r3",
+      "cpu": "AMD Ryzen 9 9950X 16-Core Processor",
+      "id": "twophase",
+      "repeat": 3,
+      "identical": true,
+      "base": {
+        "count": 14,
+        "hash": "44bfbce553ff9457ee1e2df76ebef4d046e290ef831acd554bfbed2d74f44fd0",
+        "wallMs": 1059.2503849999998,
+        "phases": {
+          "guards": 3.6651999999999987,
+          "small": 65.062963,
+          "candidates": 985.53728
+        }
+      },
+      "candidate": {
+        "count": 14,
+        "hash": "44bfbce553ff9457ee1e2df76ebef4d046e290ef831acd554bfbed2d74f44fd0",
+        "wallMs": 850.80962,
+        "phases": {
+          "guards": 3.7014679999999984,
+          "small": 51.120563,
+          "candidates": 791.843537
+        }
+      }
+    },
+    {
+      "job": "gen-simple_decentralized_lock-r1",
+      "cpu": "AMD Ryzen 9 9950X 16-Core Processor",
+      "id": "simple_decentralized_lock",
+      "repeat": 1,
+      "identical": true,
+      "base": {
+        "count": 20,
+        "hash": "07fdd1070c44037616163044bb5fd27bb8a379c93424cdec53f8166f2eacb2e1",
+        "wallMs": 391.839386,
+        "phases": {
+          "guards": 2.1285980000000038,
+          "small": 12.357075000000002,
+          "candidates": 373.62176800000003
+        }
+      },
+      "candidate": {
+        "count": 20,
+        "hash": "07fdd1070c44037616163044bb5fd27bb8a379c93424cdec53f8166f2eacb2e1",
+        "wallMs": 64.24555000000001,
+        "phases": {
+          "guards": 2.551274999999997,
+          "small": 10.969616000000002,
+          "candidates": 47.720227
+        }
+      }
+    },
+    {
+      "job": "gen-simple_decentralized_lock-r2",
+      "cpu": "AMD Ryzen 7 9700X 8-Core Processor",
+      "id": "simple_decentralized_lock",
+      "repeat": 2,
+      "identical": true,
+      "base": {
+        "count": 20,
+        "hash": "07fdd1070c44037616163044bb5fd27bb8a379c93424cdec53f8166f2eacb2e1",
+        "wallMs": 286.19961500000005,
+        "phases": {
+          "guards": 1.6348919999999971,
+          "small": 8.301760000000002,
+          "candidates": 274.12485599999997
+        }
+      },
+      "candidate": {
+        "count": 20,
+        "hash": "07fdd1070c44037616163044bb5fd27bb8a379c93424cdec53f8166f2eacb2e1",
+        "wallMs": 43.865068,
+        "phases": {
+          "guards": 2.3995450000000034,
+          "small": 7.653516000000003,
+          "candidates": 31.375542000000003
+        }
+      }
+    },
+    {
+      "job": "gen-simple_decentralized_lock-r3",
+      "cpu": "AMD Ryzen 9 9950X 16-Core Processor",
+      "id": "simple_decentralized_lock",
+      "repeat": 3,
+      "identical": true,
+      "base": {
+        "count": 20,
+        "hash": "07fdd1070c44037616163044bb5fd27bb8a379c93424cdec53f8166f2eacb2e1",
+        "wallMs": 394.324972,
+        "phases": {
+          "guards": 2.0587829999999983,
+          "small": 10.611395000000002,
+          "candidates": 378.50655199999994
+        }
+      },
+      "candidate": {
+        "count": 20,
+        "hash": "07fdd1070c44037616163044bb5fd27bb8a379c93424cdec53f8166f2eacb2e1",
+        "wallMs": 80.47107400000002,
+        "phases": {
+          "guards": 2.8198819999999998,
+          "small": 14.381703000000009,
+          "candidates": 54.79265099999999
+        }
+      }
+    },
+    {
+      "job": "gen-two_phase_commit-r1",
+      "cpu": "AMD EPYC 4585PX 16-Core Processor",
+      "id": "two_phase_commit",
+      "repeat": 1,
+      "identical": true,
+      "base": {
+        "count": 34,
+        "hash": "4a1828f36f3f69afb92df8b6e558119a6e771236afba62b1d7742faa6a656512",
+        "wallMs": 1829.545376,
+        "phases": {
+          "guards": 2.538241999999997,
+          "small": 396.10661500000003,
+          "candidates": 1427.52523
+        }
+      },
+      "candidate": {
+        "count": 34,
+        "hash": "4a1828f36f3f69afb92df8b6e558119a6e771236afba62b1d7742faa6a656512",
+        "wallMs": 952.404625,
+        "phases": {
+          "guards": 2.8795399999999987,
+          "small": 261.337833,
+          "candidates": 684.221674
+        }
+      }
+    },
+    {
+      "job": "gen-two_phase_commit-r2",
+      "cpu": "AMD Ryzen 9 9950X 16-Core Processor",
+      "id": "two_phase_commit",
+      "repeat": 2,
+      "identical": true,
+      "base": {
+        "count": 34,
+        "hash": "4a1828f36f3f69afb92df8b6e558119a6e771236afba62b1d7742faa6a656512",
+        "wallMs": 2202.008837,
+        "phases": {
+          "guards": 2.4021550000000005,
+          "small": 425.499526,
+          "candidates": 1770.648209
+        }
+      },
+      "candidate": {
+        "count": 34,
+        "hash": "4a1828f36f3f69afb92df8b6e558119a6e771236afba62b1d7742faa6a656512",
+        "wallMs": 952.0548640000001,
+        "phases": {
+          "guards": 3.3360249999999994,
+          "small": 239.35431,
+          "candidates": 705.736696
+        }
+      }
+    },
+    {
+      "job": "gen-two_phase_commit-r3",
+      "cpu": "AMD Ryzen 9 9950X 16-Core Processor",
+      "id": "two_phase_commit",
+      "repeat": 3,
+      "identical": true,
+      "base": {
+        "count": 34,
+        "hash": "4a1828f36f3f69afb92df8b6e558119a6e771236afba62b1d7742faa6a656512",
+        "wallMs": 1669.415015,
+        "phases": {
+          "guards": 3.1087500000000006,
+          "small": 373.604684,
+          "candidates": 1289.320956
+        }
+      },
+      "candidate": {
+        "count": 34,
+        "hash": "4a1828f36f3f69afb92df8b6e558119a6e771236afba62b1d7742faa6a656512",
+        "wallMs": 790.4787600000001,
+        "phases": {
+          "guards": 2.678775999999999,
+          "small": 219.635097,
+          "candidates": 564.917743
+        }
+      }
+    },
+    {
+      "job": "gen-consensus_wo_decide-r1",
+      "cpu": "AMD Ryzen 9 9950X 16-Core Processor",
+      "id": "consensus_wo_decide",
+      "repeat": 1,
+      "identical": true,
+      "base": {
+        "count": 39,
+        "hash": "05af3c755b720768be509b2d936a89d3772804554d6a5e37c84c6188d592dd46",
+        "wallMs": 7452.196867000001,
+        "phases": {
+          "guards": 2.8781219999999976,
+          "small": 3269.096453,
+          "candidates": 4126.29065
+        }
+      },
+      "candidate": {
+        "count": 39,
+        "hash": "05af3c755b720768be509b2d936a89d3772804554d6a5e37c84c6188d592dd46",
+        "wallMs": 5328.408409000001,
+        "phases": {
+          "guards": 3.557462000000001,
+          "small": 2479.9411969999996,
+          "candidates": 2797.1205800000002
+        }
+      }
+    },
+    {
+      "job": "gen-consensus_wo_decide-r2",
+      "cpu": "AMD Ryzen 9 9950X 16-Core Processor",
+      "id": "consensus_wo_decide",
+      "repeat": 2,
+      "identical": true,
+      "base": {
+        "count": 39,
+        "hash": "05af3c755b720768be509b2d936a89d3772804554d6a5e37c84c6188d592dd46",
+        "wallMs": 16200.08709,
+        "phases": {
+          "guards": 5.355283,
+          "small": 11029.661989,
+          "candidates": 5081.096529999999
+        }
+      },
+      "candidate": {
+        "count": 39,
+        "hash": "05af3c755b720768be509b2d936a89d3772804554d6a5e37c84c6188d592dd46",
+        "wallMs": 16522.695902,
+        "phases": {
+          "guards": 6.790846999999999,
+          "small": 8715.621057,
+          "candidates": 7586.5539199999985
+        }
+      }
+    },
+    {
+      "job": "gen-consensus_wo_decide-r3",
+      "cpu": "AMD EPYC 4585PX 16-Core Processor",
+      "id": "consensus_wo_decide",
+      "repeat": 3,
+      "identical": true,
+      "base": {
+        "count": 39,
+        "hash": "05af3c755b720768be509b2d936a89d3772804554d6a5e37c84c6188d592dd46",
+        "wallMs": 8236.298808000001,
+        "phases": {
+          "guards": 3.658256999999999,
+          "small": 3917.799325,
+          "candidates": 4257.0887569999995
+        }
+      },
+      "candidate": {
+        "count": 39,
+        "hash": "05af3c755b720768be509b2d936a89d3772804554d6a5e37c84c6188d592dd46",
+        "wallMs": 5568.494791,
+        "phases": {
+          "guards": 4.134156000000004,
+          "small": 2791.929556,
+          "candidates": 2702.0426449999995
+        }
+      }
+    },
+    {
+      "job": "gen-consensus_forall-r1",
+      "cpu": "AMD Ryzen 9 9950X 16-Core Processor",
+      "id": "consensus_forall",
+      "repeat": 1,
+      "identical": true,
+      "base": {
+        "count": 48,
+        "hash": "5597b7cd11317d41db1e3204398864077a58857746c18b15db1cfb4ebcd1e3da",
+        "wallMs": 15293.754209,
+        "phases": {
+          "guards": 3.7436480000000003,
+          "small": 6919.90408,
+          "candidates": 8297.145616999998
+        }
+      },
+      "candidate": {
+        "count": 48,
+        "hash": "5597b7cd11317d41db1e3204398864077a58857746c18b15db1cfb4ebcd1e3da",
+        "wallMs": 23739.583434,
+        "phases": {
+          "guards": 5.1587710000000015,
+          "small": 10913.635599000001,
+          "candidates": 12615.916656
+        }
+      }
+    },
+    {
+      "job": "gen-consensus_forall-r2",
+      "cpu": "AMD Ryzen 9 9950X 16-Core Processor",
+      "id": "consensus_forall",
+      "repeat": 2,
+      "identical": true,
+      "base": {
+        "count": 48,
+        "hash": "5597b7cd11317d41db1e3204398864077a58857746c18b15db1cfb4ebcd1e3da",
+        "wallMs": 11764.025080000001,
+        "phases": {
+          "guards": 3.484831,
+          "small": 4870.539588000001,
+          "candidates": 6795.136888
+        }
+      },
+      "candidate": {
+        "count": 48,
+        "hash": "5597b7cd11317d41db1e3204398864077a58857746c18b15db1cfb4ebcd1e3da",
+        "wallMs": 7859.5547990000005,
+        "phases": {
+          "guards": 3.4252579999999995,
+          "small": 2847.194924,
+          "candidates": 4932.357993
+        }
+      }
+    },
+    {
+      "job": "gen-consensus_forall-r3",
+      "cpu": "AMD Ryzen 9 9950X 16-Core Processor",
+      "id": "consensus_forall",
+      "repeat": 3,
+      "identical": true,
+      "base": {
+        "count": 48,
+        "hash": "5597b7cd11317d41db1e3204398864077a58857746c18b15db1cfb4ebcd1e3da",
+        "wallMs": 19788.228409,
+        "phases": {
+          "guards": 3.952148000000001,
+          "small": 6878.483308,
+          "candidates": 12796.671609
+        }
+      },
+      "candidate": {
+        "count": 48,
+        "hash": "5597b7cd11317d41db1e3204398864077a58857746c18b15db1cfb4ebcd1e3da",
+        "wallMs": 30051.473926000002,
+        "phases": {
+          "guards": 14.049226000000004,
+          "small": 13202.135773,
+          "candidates": 16682.830154999996
+        }
+      }
+    },
+    {
+      "job": "gen-naive_consensus-r1",
+      "cpu": "AMD Ryzen 9 9950X 16-Core Processor",
+      "id": "naive_consensus",
+      "repeat": 1,
+      "identical": true,
+      "base": {
+        "count": 13,
+        "hash": "33063fbf32c2fe26d3a2543e077350c6d2d6a6bd9141f194c829ff390249325c",
+        "wallMs": 2575.3240950000004,
+        "phases": {
+          "guards": 3.332251999999997,
+          "small": 250.05542499999999,
+          "candidates": 2313.729983
+        }
+      },
+      "candidate": {
+        "count": 13,
+        "hash": "33063fbf32c2fe26d3a2543e077350c6d2d6a6bd9141f194c829ff390249325c",
+        "wallMs": 1455.386925,
+        "phases": {
+          "guards": 3.8128290000000007,
+          "small": 150.41506700000002,
+          "candidates": 1293.511402
+        }
+      }
+    },
+    {
+      "job": "gen-naive_consensus-r2",
+      "cpu": "AMD Ryzen 9 9950X 16-Core Processor",
+      "id": "naive_consensus",
+      "repeat": 2,
+      "identical": true,
+      "base": {
+        "count": 13,
+        "hash": "33063fbf32c2fe26d3a2543e077350c6d2d6a6bd9141f194c829ff390249325c",
+        "wallMs": 3671.197006,
+        "phases": {
+          "guards": 5.120604,
+          "small": 513.444114,
+          "candidates": 3143.248107
+        }
+      },
+      "candidate": {
+        "count": 13,
+        "hash": "33063fbf32c2fe26d3a2543e077350c6d2d6a6bd9141f194c829ff390249325c",
+        "wallMs": 3477.960943,
+        "phases": {
+          "guards": 5.651704999999993,
+          "small": 437.856171,
+          "candidates": 3015.393642
+        }
+      }
+    },
+    {
+      "job": "gen-naive_consensus-r3",
+      "cpu": "AMD Ryzen 9 9950X 16-Core Processor",
+      "id": "naive_consensus",
+      "repeat": 3,
+      "identical": true,
+      "base": {
+        "count": 13,
+        "hash": "33063fbf32c2fe26d3a2543e077350c6d2d6a6bd9141f194c829ff390249325c",
+        "wallMs": 2498.550874,
+        "phases": {
+          "guards": 3.8442779999999956,
+          "small": 218.265723,
+          "candidates": 2268.3658649999998
+        }
+      },
+      "candidate": {
+        "count": 13,
+        "hash": "33063fbf32c2fe26d3a2543e077350c6d2d6a6bd9141f194c829ff390249325c",
+        "wallMs": 1206.9986490000001,
+        "phases": {
+          "guards": 3.3331719999999976,
+          "small": 132.23825399999998,
+          "candidates": 1065.375079
+        }
+      }
+    },
+    {
+      "job": "gen-client_server_ae-r1",
+      "cpu": "AMD EPYC 4585PX 16-Core Processor",
+      "id": "client_server_ae",
+      "repeat": 1,
+      "identical": true,
+      "base": {
+        "count": 10,
+        "hash": "1772d8c83ef06781cd23d6cfbe447b783864d76ee4b2a7004c5ac085a94040ea",
+        "wallMs": 2026.684983,
+        "phases": {
+          "guards": 2.511932999999999,
+          "small": 567.4553390000001,
+          "candidates": 1452.6810509999998
+        }
+      },
+      "candidate": {
+        "count": 10,
+        "hash": "1772d8c83ef06781cd23d6cfbe447b783864d76ee4b2a7004c5ac085a94040ea",
+        "wallMs": 1643.225186,
+        "phases": {
+          "guards": 2.547730999999999,
+          "small": 527.773085,
+          "candidates": 1109.065145
+        }
+      }
+    },
+    {
+      "job": "gen-client_server_ae-r2",
+      "cpu": "AMD Ryzen 7 9700X 8-Core Processor",
+      "id": "client_server_ae",
+      "repeat": 2,
+      "identical": true,
+      "base": {
+        "count": 10,
+        "hash": "1772d8c83ef06781cd23d6cfbe447b783864d76ee4b2a7004c5ac085a94040ea",
+        "wallMs": 1564.521861,
+        "phases": {
+          "guards": 1.5960399999999986,
+          "small": 420.749726,
+          "candidates": 1139.5044810000002
+        }
+      },
+      "candidate": {
+        "count": 10,
+        "hash": "1772d8c83ef06781cd23d6cfbe447b783864d76ee4b2a7004c5ac085a94040ea",
+        "wallMs": 1259.468164,
+        "phases": {
+          "guards": 2.4801550000000034,
+          "small": 376.656328,
+          "candidates": 877.4701299999999
+        }
+      }
+    },
+    {
+      "job": "gen-client_server_ae-r3",
+      "cpu": "AMD Ryzen 9 9950X 16-Core Processor",
+      "id": "client_server_ae",
+      "repeat": 3,
+      "identical": true,
+      "base": {
+        "count": 10,
+        "hash": "1772d8c83ef06781cd23d6cfbe447b783864d76ee4b2a7004c5ac085a94040ea",
+        "wallMs": 1918.2987699999999,
+        "phases": {
+          "guards": 2.120320999999997,
+          "small": 643.259416,
+          "candidates": 1268.7616189999999
+        }
+      },
+      "candidate": {
+        "count": 10,
+        "hash": "1772d8c83ef06781cd23d6cfbe447b783864d76ee4b2a7004c5ac085a94040ea",
+        "wallMs": 1597.133027,
+        "phases": {
+          "guards": 2.341587000000004,
+          "small": 431.36989000000005,
+          "candidates": 1159.843647
+        }
+      }
+    },
+    {
+      "job": "gen-client_server_db_ae-r1",
+      "cpu": "AMD Ryzen 9 9950X 16-Core Processor",
+      "id": "client_server_db_ae",
+      "repeat": 1,
+      "identical": true,
+      "base": {
+        "count": 15,
+        "hash": "24c730901be1d47def8fd4ffa11b87143b70f2ca664f3d6feb205397336ca64f",
+        "wallMs": 12273.81345,
+        "phases": {
+          "guards": 4.7152010000000075,
+          "small": 6396.431322,
+          "candidates": 5865.298616
+        }
+      },
+      "candidate": {
+        "count": 15,
+        "hash": "24c730901be1d47def8fd4ffa11b87143b70f2ca664f3d6feb205397336ca64f",
+        "wallMs": 11567.144393999999,
+        "phases": {
+          "guards": 3.5363940000000014,
+          "small": 5220.4851229999995,
+          "candidates": 6332.332518
+        }
+      }
+    },
+    {
+      "job": "gen-client_server_db_ae-r2",
+      "cpu": "AMD Ryzen 7 9700X 8-Core Processor",
+      "id": "client_server_db_ae",
+      "repeat": 2,
+      "identical": true,
+      "base": {
+        "count": 15,
+        "hash": "24c730901be1d47def8fd4ffa11b87143b70f2ca664f3d6feb205397336ca64f",
+        "wallMs": 5096.776653,
+        "phases": {
+          "guards": 1.6569439999999993,
+          "small": 2261.238569,
+          "candidates": 2831.1806320000005
+        }
+      },
+      "candidate": {
+        "count": 15,
+        "hash": "24c730901be1d47def8fd4ffa11b87143b70f2ca664f3d6feb205397336ca64f",
+        "wallMs": 5002.352424,
+        "phases": {
+          "guards": 2.623324000000011,
+          "small": 2219.063178,
+          "candidates": 2769.367199
+        }
+      }
+    },
+    {
+      "job": "gen-client_server_db_ae-r3",
+      "cpu": "AMD Ryzen 9 9950X 16-Core Processor",
+      "id": "client_server_db_ae",
+      "repeat": 3,
+      "identical": true,
+      "base": {
+        "count": 15,
+        "hash": "24c730901be1d47def8fd4ffa11b87143b70f2ca664f3d6feb205397336ca64f",
+        "wallMs": 21219.418502999997,
+        "phases": {
+          "guards": 2.850960999999998,
+          "small": 11364.584459,
+          "candidates": 9844.614325
+        }
+      },
+      "candidate": {
+        "count": 15,
+        "hash": "24c730901be1d47def8fd4ffa11b87143b70f2ca664f3d6feb205397336ca64f",
+        "wallMs": 13153.222146,
+        "phases": {
+          "guards": 4.708087000000006,
+          "small": 8056.3830259999995,
+          "candidates": 5086.348027
+        }
+      }
+    },
+    {
+      "job": "gen-simple_election-r1",
+      "cpu": "AMD Ryzen 7 9700X 8-Core Processor",
+      "id": "simple_election",
+      "repeat": 1,
+      "identical": true,
+      "base": {
+        "count": 12,
+        "hash": "30bc4cc549adbbd85c982849ae7b5cf741388b8750e135e1b96ba0e6b2204a4d",
+        "wallMs": 2024.031072,
+        "phases": {
+          "guards": 2.3646299999999982,
+          "small": 290.58574500000003,
+          "candidates": 1724.471229
+        }
+      },
+      "candidate": {
+        "count": 12,
+        "hash": "30bc4cc549adbbd85c982849ae7b5cf741388b8750e135e1b96ba0e6b2204a4d",
+        "wallMs": 1066.81453,
+        "phases": {
+          "guards": 4.154150999999999,
+          "small": 198.504008,
+          "candidates": 857.202204
+        }
+      }
+    },
+    {
+      "job": "gen-simple_election-r2",
+      "cpu": "AMD Ryzen 9 9950X 16-Core Processor",
+      "id": "simple_election",
+      "repeat": 2,
+      "identical": true,
+      "base": {
+        "count": 12,
+        "hash": "30bc4cc549adbbd85c982849ae7b5cf741388b8750e135e1b96ba0e6b2204a4d",
+        "wallMs": 3319.9797190000004,
+        "phases": {
+          "guards": 3.9160109999999975,
+          "small": 589.621103,
+          "candidates": 2713.494922
+        }
+      },
+      "candidate": {
+        "count": 12,
+        "hash": "30bc4cc549adbbd85c982849ae7b5cf741388b8750e135e1b96ba0e6b2204a4d",
+        "wallMs": 1833.09508,
+        "phases": {
+          "guards": 4.726767000000002,
+          "small": 270.69514100000004,
+          "candidates": 1547.208045
+        }
+      }
+    },
+    {
+      "job": "gen-simple_election-r3",
+      "cpu": "AMD EPYC 9455 48-Core Processor",
+      "id": "simple_election",
+      "repeat": 3,
+      "identical": true,
+      "base": {
+        "count": 12,
+        "hash": "30bc4cc549adbbd85c982849ae7b5cf741388b8750e135e1b96ba0e6b2204a4d",
+        "wallMs": 2741.570053,
+        "phases": {
+          "guards": 3.9292140000000018,
+          "small": 468.63501199999996,
+          "candidates": 2256.7036839999996
+        }
+      },
+      "candidate": {
+        "count": 12,
+        "hash": "30bc4cc549adbbd85c982849ae7b5cf741388b8750e135e1b96ba0e6b2204a4d",
+        "wallMs": 1605.3625200000001,
+        "phases": {
+          "guards": 3.8994,
+          "small": 288.43010599999997,
+          "candidates": 1303.08599
+        }
+      }
+    },
+    {
+      "job": "gen-toy_consensus_epr-r1",
+      "cpu": "AMD EPYC 4585PX 16-Core Processor",
+      "id": "toy_consensus_epr",
+      "repeat": 1,
+      "identical": true,
+      "base": {
+        "count": 8,
+        "hash": "133630cb1e8c0acf2f7b1b1f30f8c5eb82f1ebd6ef16350af7b27e97f3fea9fc",
+        "wallMs": 2052.172636,
+        "phases": {
+          "guards": 2.505471,
+          "small": 111.137495,
+          "candidates": 1932.2822140000003
+        }
+      },
+      "candidate": {
+        "count": 8,
+        "hash": "133630cb1e8c0acf2f7b1b1f30f8c5eb82f1ebd6ef16350af7b27e97f3fea9fc",
+        "wallMs": 1033.613983,
+        "phases": {
+          "guards": 6.751633999999996,
+          "small": 120.406492,
+          "candidates": 900.4677859999999
+        }
+      }
+    },
+    {
+      "job": "gen-toy_consensus_epr-r2",
+      "cpu": "AMD Ryzen 9 9950X 16-Core Processor",
+      "id": "toy_consensus_epr",
+      "repeat": 2,
+      "identical": true,
+      "base": {
+        "count": 8,
+        "hash": "133630cb1e8c0acf2f7b1b1f30f8c5eb82f1ebd6ef16350af7b27e97f3fea9fc",
+        "wallMs": 1895.1445250000002,
+        "phases": {
+          "guards": 2.658684000000001,
+          "small": 121.45127000000001,
+          "candidates": 1765.26432
+        }
+      },
+      "candidate": {
+        "count": 8,
+        "hash": "133630cb1e8c0acf2f7b1b1f30f8c5eb82f1ebd6ef16350af7b27e97f3fea9fc",
+        "wallMs": 954.559961,
+        "phases": {
+          "guards": 3.013512999999996,
+          "small": 96.956785,
+          "candidates": 849.455198
+        }
+      }
+    },
+    {
+      "job": "gen-toy_consensus_epr-r3",
+      "cpu": "AMD Ryzen 9 9950X 16-Core Processor",
+      "id": "toy_consensus_epr",
+      "repeat": 3,
+      "identical": true,
+      "base": {
+        "count": 8,
+        "hash": "133630cb1e8c0acf2f7b1b1f30f8c5eb82f1ebd6ef16350af7b27e97f3fea9fc",
+        "wallMs": 2027.801106,
+        "phases": {
+          "guards": 2.551074,
+          "small": 114.399977,
+          "candidates": 1904.553174
+        }
+      },
+      "candidate": {
+        "count": 8,
+        "hash": "133630cb1e8c0acf2f7b1b1f30f8c5eb82f1ebd6ef16350af7b27e97f3fea9fc",
+        "wallMs": 839.593676,
+        "phases": {
+          "guards": 3.2186480000000017,
+          "small": 101.69540699999999,
+          "candidates": 728.754172
+        }
+      }
+    },
+    {
+      "job": "gen-toy_consensus-r1",
+      "cpu": "AMD EPYC 4585PX 16-Core Processor",
+      "id": "toy_consensus",
+      "repeat": 1,
+      "identical": true,
+      "base": {
+        "count": 5,
+        "hash": "42a22a2106bf7bde3e8f00f847d72d7b426b493fe2c551d8b12760722db12bf2",
+        "wallMs": 1865.344257,
+        "phases": {
+          "guards": 2.505080999999997,
+          "small": 108.76629899999999,
+          "candidates": 1749.420249
+        }
+      },
+      "candidate": {
+        "count": 5,
+        "hash": "42a22a2106bf7bde3e8f00f847d72d7b426b493fe2c551d8b12760722db12bf2",
+        "wallMs": 534.933269,
+        "phases": {
+          "guards": 2.7672450000000026,
+          "small": 87.931873,
+          "candidates": 439.86392599999994
+        }
+      }
+    },
+    {
+      "job": "gen-toy_consensus-r2",
+      "cpu": "AMD Ryzen 9 9950X 16-Core Processor",
+      "id": "toy_consensus",
+      "repeat": 2,
+      "identical": true,
+      "base": {
+        "count": 5,
+        "hash": "42a22a2106bf7bde3e8f00f847d72d7b426b493fe2c551d8b12760722db12bf2",
+        "wallMs": 2359.761694,
+        "phases": {
+          "guards": 2.7223889999999997,
+          "small": 189.79816,
+          "candidates": 2160.364891
+        }
+      },
+      "candidate": {
+        "count": 5,
+        "hash": "42a22a2106bf7bde3e8f00f847d72d7b426b493fe2c551d8b12760722db12bf2",
+        "wallMs": 784.9479309999999,
+        "phases": {
+          "guards": 2.703122999999998,
+          "small": 92.59088200000001,
+          "candidates": 683.994665
+        }
+      }
+    },
+    {
+      "job": "gen-toy_consensus-r3",
+      "cpu": "AMD Ryzen 9 9950X 16-Core Processor",
+      "id": "toy_consensus",
+      "repeat": 3,
+      "identical": true,
+      "base": {
+        "count": 5,
+        "hash": "42a22a2106bf7bde3e8f00f847d72d7b426b493fe2c551d8b12760722db12bf2",
+        "wallMs": 4309.384255,
+        "phases": {
+          "guards": 4.819223000000001,
+          "small": 287.740525,
+          "candidates": 4005.478832
+        }
+      },
+      "candidate": {
+        "count": 5,
+        "hash": "42a22a2106bf7bde3e8f00f847d72d7b426b493fe2c551d8b12760722db12bf2",
+        "wallMs": 1450.2795800000001,
+        "phases": {
+          "guards": 4.927998000000002,
+          "small": 202.57166099999998,
+          "candidates": 1233.236644
+        }
+      }
+    },
+    {
+      "job": "gen-firewall-r1",
+      "cpu": "AMD Ryzen 9 9950X 16-Core Processor",
+      "id": "firewall",
+      "repeat": 1,
+      "identical": true,
+      "base": {
+        "count": 7,
+        "hash": "0aeb72d28c1ed33a168870c883b14003290b1f6276c90ed6469aaee474a41dcc",
+        "wallMs": 619.266288,
+        "phases": {
+          "guards": 2.899011999999999,
+          "small": 26.24534700000001,
+          "candidates": 585.819016
+        }
+      },
+      "candidate": {
+        "count": 7,
+        "hash": "0aeb72d28c1ed33a168870c883b14003290b1f6276c90ed6469aaee474a41dcc",
+        "wallMs": 119.17631399999999,
+        "phases": {
+          "guards": 2.720326,
+          "small": 19.069442999999993,
+          "candidates": 94.115555
+        }
+      }
+    },
+    {
+      "job": "gen-firewall-r2",
+      "cpu": "AMD Ryzen 9 9950X 16-Core Processor",
+      "id": "firewall",
+      "repeat": 2,
+      "identical": true,
+      "base": {
+        "count": 7,
+        "hash": "0aeb72d28c1ed33a168870c883b14003290b1f6276c90ed6469aaee474a41dcc",
+        "wallMs": 368.658036,
+        "phases": {
+          "guards": 1.7071289999999948,
+          "small": 14.046056,
+          "candidates": 350.588279
+        }
+      },
+      "candidate": {
+        "count": 7,
+        "hash": "0aeb72d28c1ed33a168870c883b14003290b1f6276c90ed6469aaee474a41dcc",
+        "wallMs": 65.4848,
+        "phases": {
+          "guards": 2.0684320000000014,
+          "small": 13.009756999999993,
+          "candidates": 47.91569799999999
+        }
+      }
+    },
+    {
+      "job": "gen-firewall-r3",
+      "cpu": "AMD Ryzen 9 9950X 16-Core Processor",
+      "id": "firewall",
+      "repeat": 3,
+      "identical": true,
+      "base": {
+        "count": 7,
+        "hash": "0aeb72d28c1ed33a168870c883b14003290b1f6276c90ed6469aaee474a41dcc",
+        "wallMs": 398.534137,
+        "phases": {
+          "guards": 1.6788430000000005,
+          "small": 17.704893,
+          "candidates": 376.628781
+        }
+      },
+      "candidate": {
+        "count": 7,
+        "hash": "0aeb72d28c1ed33a168870c883b14003290b1f6276c90ed6469aaee474a41dcc",
+        "wallMs": 69.19940500000001,
+        "phases": {
+          "guards": 2.2828109999999953,
+          "small": 13.386608000000003,
+          "candidates": 51.052026
+        }
+      }
+    },
+    {
+      "job": "gen-majorityset_leader_election-r1",
+      "cpu": "AMD EPYC 4585PX 16-Core Processor",
+      "id": "majorityset_leader_election",
+      "repeat": 1,
+      "identical": true,
+      "base": {
+        "count": 17,
+        "hash": "bb147d46a7fb370560860dfd5441416683ec8c4c8a845d78cba57f199aba247f",
+        "wallMs": 2247.547831,
+        "phases": {
+          "guards": 3.0318070000000006,
+          "small": 87.81606,
+          "candidates": 2147.813356
+        }
+      },
+      "candidate": {
+        "count": 17,
+        "hash": "bb147d46a7fb370560860dfd5441416683ec8c4c8a845d78cba57f199aba247f",
+        "wallMs": 1322.097214,
+        "phases": {
+          "guards": 2.854405,
+          "small": 50.001498999999995,
+          "candidates": 1261.067769
+        }
+      }
+    },
+    {
+      "job": "gen-majorityset_leader_election-r2",
+      "cpu": "AMD EPYC 4585PX 16-Core Processor",
+      "id": "majorityset_leader_election",
+      "repeat": 2,
+      "identical": true,
+      "base": {
+        "count": 17,
+        "hash": "bb147d46a7fb370560860dfd5441416683ec8c4c8a845d78cba57f199aba247f",
+        "wallMs": 1637.0826869999999,
+        "phases": {
+          "guards": 2.079291999999999,
+          "small": 47.79807099999999,
+          "candidates": 1579.674658
+        }
+      },
+      "candidate": {
+        "count": 17,
+        "hash": "bb147d46a7fb370560860dfd5441416683ec8c4c8a845d78cba57f199aba247f",
+        "wallMs": 1082.296688,
+        "phases": {
+          "guards": 2.8907859999999985,
+          "small": 43.171682000000004,
+          "candidates": 1028.9242370000002
+        }
+      }
+    },
+    {
+      "job": "gen-majorityset_leader_election-r3",
+      "cpu": "AMD EPYC 4585PX 16-Core Processor",
+      "id": "majorityset_leader_election",
+      "repeat": 3,
+      "identical": true,
+      "base": {
+        "count": 17,
+        "hash": "bb147d46a7fb370560860dfd5441416683ec8c4c8a845d78cba57f199aba247f",
+        "wallMs": 1777.400957,
+        "phases": {
+          "guards": 2.364744999999999,
+          "small": 47.918463,
+          "candidates": 1719.543862
+        }
+      },
+      "candidate": {
+        "count": 17,
+        "hash": "bb147d46a7fb370560860dfd5441416683ec8c4c8a845d78cba57f199aba247f",
+        "wallMs": 1013.1002649999999,
+        "phases": {
+          "guards": 3.021797999999997,
+          "small": 51.17952999999999,
+          "candidates": 950.639123
+        }
+      }
+    },
+    {
+      "job": "gen-consensus_epr-r1",
+      "cpu": "AMD EPYC 4585PX 16-Core Processor",
+      "id": "consensus_epr",
+      "repeat": 1,
+      "identical": true,
+      "base": {
+        "count": 29,
+        "hash": "ab81a384b7f6afc1f8d207c9f6ea5fec0a1526cc98b4088e00b34cd69186db65",
+        "wallMs": 15102.95163,
+        "phases": {
+          "guards": 13.579408,
+          "small": 5382.31012,
+          "candidates": 9609.037204
+        }
+      },
+      "candidate": {
+        "count": 29,
+        "hash": "ab81a384b7f6afc1f8d207c9f6ea5fec0a1526cc98b4088e00b34cd69186db65",
+        "wallMs": 9685.958840000001,
+        "phases": {
+          "guards": 8.730774000000011,
+          "small": 4293.834552,
+          "candidates": 5301.502228999999
+        }
+      }
+    },
+    {
+      "job": "gen-consensus_epr-r2",
+      "cpu": "AMD EPYC 4585PX 16-Core Processor",
+      "id": "consensus_epr",
+      "repeat": 2,
+      "identical": true,
+      "base": {
+        "count": 29,
+        "hash": "ab81a384b7f6afc1f8d207c9f6ea5fec0a1526cc98b4088e00b34cd69186db65",
+        "wallMs": 24242.401244,
+        "phases": {
+          "guards": 3.950620999999998,
+          "small": 11149.524492,
+          "candidates": 12926.149822999998
+        }
+      },
+      "candidate": {
+        "count": 29,
+        "hash": "ab81a384b7f6afc1f8d207c9f6ea5fec0a1526cc98b4088e00b34cd69186db65",
+        "wallMs": 15551.341052,
+        "phases": {
+          "guards": 6.186955999999995,
+          "small": 6341.9543810000005,
+          "candidates": 9052.193325
+        }
+      }
+    },
+    {
+      "job": "gen-consensus_epr-r3",
+      "cpu": "AMD Ryzen 9 9950X 16-Core Processor",
+      "id": "consensus_epr",
+      "repeat": 3,
+      "identical": true,
+      "base": {
+        "count": 29,
+        "hash": "ab81a384b7f6afc1f8d207c9f6ea5fec0a1526cc98b4088e00b34cd69186db65",
+        "wallMs": 12942.353025999999,
+        "phases": {
+          "guards": 3.8712969999999984,
+          "small": 6234.896341000001,
+          "candidates": 6615.269135
+        }
+      },
+      "candidate": {
+        "count": 29,
+        "hash": "ab81a384b7f6afc1f8d207c9f6ea5fec0a1526cc98b4088e00b34cd69186db65",
+        "wallMs": 7650.659198,
+        "phases": {
+          "guards": 3.541035000000001,
+          "small": 3328.0979559999996,
+          "candidates": 4243.954213
+        }
+      }
+    },
+    {
+      "job": "gen-learning_switch-r1",
+      "cpu": "AMD EPYC 4585PX 16-Core Processor",
+      "id": "learning_switch",
+      "repeat": 1,
+      "identical": true,
+      "base": {
+        "count": 16,
+        "hash": "30e01737accefb7cdd6842704aaadf370a3420d57fff3aefa81a435eb25c3761",
+        "wallMs": 223948.04793700002,
+        "phases": {
+          "guards": 3.4537809999999993,
+          "small": 219624.268475,
+          "candidates": 4312.524114
+        }
+      },
+      "candidate": {
+        "count": 16,
+        "hash": "30e01737accefb7cdd6842704aaadf370a3420d57fff3aefa81a435eb25c3761",
+        "wallMs": 165758.735892,
+        "phases": {
+          "guards": 3.1111800000000045,
+          "small": 161374.35323200002,
+          "candidates": 4376.7403690000065
+        }
+      }
+    },
+    {
+      "job": "gen-learning_switch-r2",
+      "cpu": "AMD EPYC 4585PX 16-Core Processor",
+      "id": "learning_switch",
+      "repeat": 2,
+      "identical": true,
+      "base": {
+        "count": 16,
+        "hash": "30e01737accefb7cdd6842704aaadf370a3420d57fff3aefa81a435eb25c3761",
+        "wallMs": 135016.571375,
+        "phases": {
+          "guards": 1.7954209999999975,
+          "small": 131323.879035,
+          "candidates": 3687.3688409999886
+        }
+      },
+      "candidate": {
+        "count": 16,
+        "hash": "30e01737accefb7cdd6842704aaadf370a3420d57fff3aefa81a435eb25c3761",
+        "wallMs": 156527.35375600003,
+        "phases": {
+          "guards": 2.556526000000005,
+          "small": 152830.440761,
+          "candidates": 3690.021794
+        }
+      }
+    },
+    {
+      "job": "gen-learning_switch-r3",
+      "cpu": "AMD Ryzen 9 9950X 16-Core Processor",
+      "id": "learning_switch",
+      "repeat": 3,
+      "identical": true,
+      "base": {
+        "count": 16,
+        "hash": "30e01737accefb7cdd6842704aaadf370a3420d57fff3aefa81a435eb25c3761",
+        "wallMs": 324776.94938500004,
+        "phases": {
+          "guards": 4.265715999999998,
+          "small": 318880.851961,
+          "candidates": 5885.457297999994
+        }
+      },
+      "candidate": {
+        "count": 16,
+        "hash": "30e01737accefb7cdd6842704aaadf370a3420d57fff3aefa81a435eb25c3761",
+        "wallMs": 221897.062228,
+        "phases": {
+          "guards": 3.804528999999995,
+          "small": 216584.243403,
+          "candidates": 5303.630447000003
+        }
+      }
+    },
+    {
+      "job": "gen-learning_switch_i4-r1",
+      "cpu": "AMD Ryzen 9 9950X 16-Core Processor",
+      "id": "learning_switch_i4",
+      "repeat": 1,
+      "identical": true,
+      "base": {
+        "count": 463,
+        "hash": "1fee9ce40764701e37b1e4a0e854273ac3be8a73db8d48faa029d5fa5ebfc163",
+        "wallMs": 167294.07975399998,
+        "phases": {
+          "guards": 3.1271270000000015,
+          "small": 140147.268331,
+          "candidates": 27129.568391000008
+        }
+      },
+      "candidate": {
+        "count": 463,
+        "hash": "1fee9ce40764701e37b1e4a0e854273ac3be8a73db8d48faa029d5fa5ebfc163",
+        "wallMs": 188355.695803,
+        "phases": {
+          "guards": 5.045555000000007,
+          "small": 161974.512075,
+          "candidates": 26358.646680000005
+        }
+      }
+    },
+    {
+      "job": "gen-learning_switch_i4-r2",
+      "cpu": "AMD Ryzen 9 9950X 16-Core Processor",
+      "id": "learning_switch_i4",
+      "repeat": 2,
+      "identical": true,
+      "base": {
+        "count": 463,
+        "hash": "1fee9ce40764701e37b1e4a0e854273ac3be8a73db8d48faa029d5fa5ebfc163",
+        "wallMs": 166945.101669,
+        "phases": {
+          "guards": 2.6707959999999957,
+          "small": 144091.983763,
+          "candidates": 22802.743785000028
+        }
+      },
+      "candidate": {
+        "count": 463,
+        "hash": "1fee9ce40764701e37b1e4a0e854273ac3be8a73db8d48faa029d5fa5ebfc163",
+        "wallMs": 167090.884479,
+        "phases": {
+          "guards": 3.533014999999999,
+          "small": 143530.63243499998,
+          "candidates": 23538.997542999976
+        }
+      }
+    },
+    {
+      "job": "gen-learning_switch_i4-r3",
+      "cpu": "AMD EPYC 9455 48-Core Processor",
+      "id": "learning_switch_i4",
+      "repeat": 3,
+      "identical": true,
+      "base": {
+        "count": 463,
+        "hash": "1fee9ce40764701e37b1e4a0e854273ac3be8a73db8d48faa029d5fa5ebfc163",
+        "wallMs": 130847.319103,
+        "phases": {
+          "guards": 2.992084999999996,
+          "small": 111852.72706,
+          "candidates": 18980.623105000006
+        }
+      },
+      "candidate": {
+        "count": 463,
+        "hash": "1fee9ce40764701e37b1e4a0e854273ac3be8a73db8d48faa029d5fa5ebfc163",
+        "wallMs": 143835.480544,
+        "phases": {
+          "guards": 3.643387000000004,
+          "small": 121521.834219,
+          "candidates": 22282.653431999992
+        }
+      }
+    },
+    {
+      "job": "gen-paxos_epr-r1",
+      "cpu": "AMD EPYC 4585PX 16-Core Processor",
+      "id": "paxos_epr",
+      "repeat": 1,
+      "identical": true,
+      "base": {
+        "count": 77,
+        "hash": "01f9c4f68d27630184f0d5268345ada29c31507eac21bfbf45d87e0bc6051e77",
+        "wallMs": 31033.317637,
+        "phases": {
+          "guards": 5.831716999999998,
+          "small": 13677.033691999999,
+          "candidates": 17245.162632
+        }
+      },
+      "candidate": {
+        "count": 77,
+        "hash": "01f9c4f68d27630184f0d5268345ada29c31507eac21bfbf45d87e0bc6051e77",
+        "wallMs": 18616.477484,
+        "phases": {
+          "guards": 5.477858000000005,
+          "small": 6328.04473,
+          "candidates": 12222.313737
+        }
+      }
+    },
+    {
+      "job": "gen-paxos_epr-r2",
+      "cpu": "AMD Ryzen 9 9950X 16-Core Processor",
+      "id": "paxos_epr",
+      "repeat": 2,
+      "identical": true,
+      "base": {
+        "count": 77,
+        "hash": "01f9c4f68d27630184f0d5268345ada29c31507eac21bfbf45d87e0bc6051e77",
+        "wallMs": 17085.225205,
+        "phases": {
+          "guards": 5.607043999999995,
+          "small": 7721.908394,
+          "candidates": 9317.900519
+        }
+      },
+      "candidate": {
+        "count": 77,
+        "hash": "01f9c4f68d27630184f0d5268345ada29c31507eac21bfbf45d87e0bc6051e77",
+        "wallMs": 37353.897801,
+        "phases": {
+          "guards": 7.342956999999998,
+          "small": 16437.168735,
+          "candidates": 20809.150528
+        }
+      }
+    },
+    {
+      "job": "gen-paxos_epr-r3",
+      "cpu": "AMD EPYC 4585PX 16-Core Processor",
+      "id": "paxos_epr",
+      "repeat": 3,
+      "identical": true,
+      "base": {
+        "count": 77,
+        "hash": "01f9c4f68d27630184f0d5268345ada29c31507eac21bfbf45d87e0bc6051e77",
+        "wallMs": 18712.047665,
+        "phases": {
+          "guards": 4.088766999999997,
+          "small": 7778.3883000000005,
+          "candidates": 10881.867171000002
+        }
+      },
+      "candidate": {
+        "count": 77,
+        "hash": "01f9c4f68d27630184f0d5268345ada29c31507eac21bfbf45d87e0bc6051e77",
+        "wallMs": 15869.538352,
+        "phases": {
+          "guards": 4.576926,
+          "small": 5041.9719239999995,
+          "candidates": 10781.146789
+        }
+      }
+    },
+    {
+      "job": "gen-mldr-r1",
+      "cpu": "AMD EPYC 4585PX 16-Core Processor",
+      "id": "mldr",
+      "repeat": 1,
+      "identical": false,
+      "base": {
+        "count": 27,
+        "hash": "182e714c9c0384d3113f03bbbafba40ec5f19f7c19b2d00377c1d4ef4b567329",
+        "wallMs": 51560.946234,
+        "phases": {
+          "guards": 8.103631,
+          "small": 31703.269365999997,
+          "candidates": 19811.250701999998
+        }
+      },
+      "candidate": {
+        "count": 34,
+        "hash": "dd495ab653ff4376b1c7b8c462c7dfafbcf9b3f5fc27949b8d61543ad5c69563",
+        "wallMs": 13137.081286,
+        "phases": {
+          "guards": 9.488506000000001,
+          "small": 5678.66836,
+          "candidates": 7432.371621
+        }
+      },
+      "names": [
+        "every Config cell is a value of its kind",
+        "one primary per term",
+        "St at most 1",
+        "fields: St[a]=1 -> CT[a]=CfgT[a]",
+        "fields: St[a]=1 -> CT[a]<=CfgT[a]",
+        "fields: St[a]=1 -> CT[a]=CT[b] -> CfgT[b]<=CfgT[a]",
+        "fields: St[a]=1 -> CfgT[a]<=CT[a]",
+        "fields: St[a]=1 -> CfgT[a]=CfgT[b] -> CV[b]<=CV[a]",
+        "every x with x < size: never CT[x] is 0 and 1 <= St[x]",
+        "every x with x < size: never 1 <= CT[x] and CV[x] is 0",
+        "every x with x < size: never 1 <= CT[x] and started is 0",
+        "every x with x < size: never 1 <= St[x] and CV[x] is 0",
+        "every x with x < size: never 1 <= St[x] and CfgT[x] is 0",
+        "every x with x < size: never 1 <= St[x] and started is 0",
+        "every x with x < size: never CV[x] is 0 and 1 <= CfgT[x]",
+        "every x with x < size: never CV[x] is 0 and 1 <= started",
+        "every x with x < size: never 1 <= CfgT[x] and started is 0",
+        "every x, y with x < size ∧ y < size ∧ ¬(x = y): never 1 <= CT[x] and CV[y] is 0",
+        "every x, y with x < size ∧ y < size ∧ ¬(x = y): never 1 <= St[x] and CV[y] is 0",
+        "every x, y with x < size ∧ y < size ∧ ¬(x = y): never CV[x] is 0 and 1 <= CfgT[y]",
+        "inX: no quorum canVote/1",
+        "inX: no quorum canVote/3",
+        "inX: stored guard reconfigs/inS",
+        "inX: stored guard reconfigs/inS or disabled/0",
+        "inX: stored guard reconfigs/inS or disabled/1",
+        "inX: stored guard reconfigs/inS or disabled/2",
+        "inX: stored guard reconfigs/inS or disabled/3",
+        "fields: CV[a]=CV[b] and CfgT[a]=CfgT[b] -> Config rows agree",
+        "count cubes: every x with x < {\"op\":\"var\",\"name\":\"size\"}: never 1 <= started and inX$row[x] is 0",
+        "count cubes: every x with x < {\"op\":\"var\",\"name\":\"size\"}: never 1 <= CT[x] and inX$row[x] is 0",
+        "count cubes: every x with x < {\"op\":\"var\",\"name\":\"size\"}: never CV[x] is 0 and 1 <= inX$row[x]",
+        "count cubes: every x with x < {\"op\":\"var\",\"name\":\"size\"}: never 1 <= CV[x] and inX$row[x] is 0",
+        "count cubes: every x with x < {\"op\":\"var\",\"name\":\"size\"}: never 1 <= CfgT[x] and inX$row[x] is 0",
+        "count cubes: every x with x < {\"op\":\"var\",\"name\":\"size\"}: never 1 <= St[x] and inX$row[x] is 0"
+      ]
+    },
+    {
+      "job": "gen-mldr-r2",
+      "cpu": "AMD Ryzen 9 9950X 16-Core Processor",
+      "id": "mldr",
+      "repeat": 2,
+      "identical": false,
+      "base": {
+        "count": 27,
+        "hash": "182e714c9c0384d3113f03bbbafba40ec5f19f7c19b2d00377c1d4ef4b567329",
+        "wallMs": 38678.106866,
+        "phases": {
+          "guards": 4.799613000000001,
+          "small": 10921.283437999999,
+          "candidates": 27702.835871000003
+        }
+      },
+      "candidate": {
+        "count": 34,
+        "hash": "dd495ab653ff4376b1c7b8c462c7dfafbcf9b3f5fc27949b8d61543ad5c69563",
+        "wallMs": 13736.74232,
+        "phases": {
+          "guards": 7.178033999999997,
+          "small": 5451.289588000001,
+          "candidates": 8255.807842000002
+        }
+      },
+      "names": [
+        "every Config cell is a value of its kind",
+        "one primary per term",
+        "St at most 1",
+        "fields: St[a]=1 -> CT[a]=CfgT[a]",
+        "fields: St[a]=1 -> CT[a]<=CfgT[a]",
+        "fields: St[a]=1 -> CT[a]=CT[b] -> CfgT[b]<=CfgT[a]",
+        "fields: St[a]=1 -> CfgT[a]<=CT[a]",
+        "fields: St[a]=1 -> CfgT[a]=CfgT[b] -> CV[b]<=CV[a]",
+        "every x with x < size: never CT[x] is 0 and 1 <= St[x]",
+        "every x with x < size: never 1 <= CT[x] and CV[x] is 0",
+        "every x with x < size: never 1 <= CT[x] and started is 0",
+        "every x with x < size: never 1 <= St[x] and CV[x] is 0",
+        "every x with x < size: never 1 <= St[x] and CfgT[x] is 0",
+        "every x with x < size: never 1 <= St[x] and started is 0",
+        "every x with x < size: never CV[x] is 0 and 1 <= CfgT[x]",
+        "every x with x < size: never CV[x] is 0 and 1 <= started",
+        "every x with x < size: never 1 <= CfgT[x] and started is 0",
+        "every x, y with x < size ∧ y < size ∧ ¬(x = y): never 1 <= CT[x] and CV[y] is 0",
+        "every x, y with x < size ∧ y < size ∧ ¬(x = y): never 1 <= St[x] and CV[y] is 0",
+        "every x, y with x < size ∧ y < size ∧ ¬(x = y): never CV[x] is 0 and 1 <= CfgT[y]",
+        "inX: no quorum canVote/1",
+        "inX: no quorum canVote/3",
+        "inX: stored guard reconfigs/inS",
+        "inX: stored guard reconfigs/inS or disabled/0",
+        "inX: stored guard reconfigs/inS or disabled/1",
+        "inX: stored guard reconfigs/inS or disabled/2",
+        "inX: stored guard reconfigs/inS or disabled/3",
+        "fields: CV[a]=CV[b] and CfgT[a]=CfgT[b] -> Config rows agree",
+        "count cubes: every x with x < {\"op\":\"var\",\"name\":\"size\"}: never 1 <= started and inX$row[x] is 0",
+        "count cubes: every x with x < {\"op\":\"var\",\"name\":\"size\"}: never 1 <= CT[x] and inX$row[x] is 0",
+        "count cubes: every x with x < {\"op\":\"var\",\"name\":\"size\"}: never CV[x] is 0 and 1 <= inX$row[x]",
+        "count cubes: every x with x < {\"op\":\"var\",\"name\":\"size\"}: never 1 <= CV[x] and inX$row[x] is 0",
+        "count cubes: every x with x < {\"op\":\"var\",\"name\":\"size\"}: never 1 <= CfgT[x] and inX$row[x] is 0",
+        "count cubes: every x with x < {\"op\":\"var\",\"name\":\"size\"}: never 1 <= St[x] and inX$row[x] is 0"
+      ]
+    },
+    {
+      "job": "gen-mldr-r3",
+      "cpu": "AMD Ryzen 9 9950X 16-Core Processor",
+      "id": "mldr",
+      "repeat": 3,
+      "identical": false,
+      "base": {
+        "count": 27,
+        "hash": "182e714c9c0384d3113f03bbbafba40ec5f19f7c19b2d00377c1d4ef4b567329",
+        "wallMs": 48685.611716,
+        "phases": {
+          "guards": 6.204554999999999,
+          "small": 25571.870807,
+          "candidates": 23044.412874
+        }
+      },
+      "candidate": {
+        "count": 34,
+        "hash": "dd495ab653ff4376b1c7b8c462c7dfafbcf9b3f5fc27949b8d61543ad5c69563",
+        "wallMs": 17318.255670000002,
+        "phases": {
+          "guards": 9.070487,
+          "small": 7333.150401,
+          "candidates": 9954.066352000002
+        }
+      },
+      "names": [
+        "every Config cell is a value of its kind",
+        "one primary per term",
+        "St at most 1",
+        "fields: St[a]=1 -> CT[a]=CfgT[a]",
+        "fields: St[a]=1 -> CT[a]<=CfgT[a]",
+        "fields: St[a]=1 -> CT[a]=CT[b] -> CfgT[b]<=CfgT[a]",
+        "fields: St[a]=1 -> CfgT[a]<=CT[a]",
+        "fields: St[a]=1 -> CfgT[a]=CfgT[b] -> CV[b]<=CV[a]",
+        "every x with x < size: never CT[x] is 0 and 1 <= St[x]",
+        "every x with x < size: never 1 <= CT[x] and CV[x] is 0",
+        "every x with x < size: never 1 <= CT[x] and started is 0",
+        "every x with x < size: never 1 <= St[x] and CV[x] is 0",
+        "every x with x < size: never 1 <= St[x] and CfgT[x] is 0",
+        "every x with x < size: never 1 <= St[x] and started is 0",
+        "every x with x < size: never CV[x] is 0 and 1 <= CfgT[x]",
+        "every x with x < size: never CV[x] is 0 and 1 <= started",
+        "every x with x < size: never 1 <= CfgT[x] and started is 0",
+        "every x, y with x < size ∧ y < size ∧ ¬(x = y): never 1 <= CT[x] and CV[y] is 0",
+        "every x, y with x < size ∧ y < size ∧ ¬(x = y): never 1 <= St[x] and CV[y] is 0",
+        "every x, y with x < size ∧ y < size ∧ ¬(x = y): never CV[x] is 0 and 1 <= CfgT[y]",
+        "inX: no quorum canVote/1",
+        "inX: no quorum canVote/3",
+        "inX: stored guard reconfigs/inS",
+        "inX: stored guard reconfigs/inS or disabled/0",
+        "inX: stored guard reconfigs/inS or disabled/1",
+        "inX: stored guard reconfigs/inS or disabled/2",
+        "inX: stored guard reconfigs/inS or disabled/3",
+        "fields: CV[a]=CV[b] and CfgT[a]=CfgT[b] -> Config rows agree",
+        "count cubes: every x with x < {\"op\":\"var\",\"name\":\"size\"}: never 1 <= started and inX$row[x] is 0",
+        "count cubes: every x with x < {\"op\":\"var\",\"name\":\"size\"}: never 1 <= CT[x] and inX$row[x] is 0",
+        "count cubes: every x with x < {\"op\":\"var\",\"name\":\"size\"}: never CV[x] is 0 and 1 <= inX$row[x]",
+        "count cubes: every x with x < {\"op\":\"var\",\"name\":\"size\"}: never 1 <= CV[x] and inX$row[x] is 0",
+        "count cubes: every x with x < {\"op\":\"var\",\"name\":\"size\"}: never 1 <= CfgT[x] and inX$row[x] is 0",
+        "count cubes: every x with x < {\"op\":\"var\",\"name\":\"size\"}: never 1 <= St[x] and inX$row[x] is 0"
+      ]
+    }
+  ],
+  "proofQueries": "The guest comparison requires zero proof queries; raw canonical payloads are not in the returned logs.",
+  "noLossGate": false
+}
