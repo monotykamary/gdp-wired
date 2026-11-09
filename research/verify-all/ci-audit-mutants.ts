@@ -4,11 +4,12 @@ import {checkMutations} from '../../core/mutate.ts'
 
 const file = 'core/laws.ts'
 const guard = "  if ([later, earlier].some(v => v.t === 'opt')) throw new LawError(c.strictOptional ? 'arithmetic on an optional standalone value is not supported' : 'arithmetic on an optional value is not supported in calendar comparisons')"
-const before = readFileSync(file, 'utf8')
+const before = new Map([file, 'core/extract-shapes.ts', 'core/extract-read.ts', 'core/extract.ts'].map(path => [path, readFileSync(path, 'utf8')]))
 const result = checkMutations({
   lawSuite: 'audit', timeoutMs: 120_000,
   suites: [{name: 'audit', command: ['bun', 'test', 'core/extract-ci-audit.test.ts']}],
   mutants: [
+    {file: 'core/extract.ts', name: 'N1-drop-qualified-result-fields', from: "      out.push({code: `result.${f}`, rule: n, role: 'result', method})", to: '      // mutant: reserve value/failed and omit source-field names', bug: 'returned record fields cannot be read with their source names'},
     {file: 'core/extract-shapes.ts', name: 'C1-drop-plain-data-contract', from: "      s.notes.add('standalone record inputs are immutable plain-data snapshots: own data properties only, no accessors or Proxies')", to: '      // mutant: claim unconstrained structural record equivalence', bug: 'record equivalence advertised without its plain-data restriction'},
     {file: 'core/extract-read.ts', name: 'B2-class-falsy-is-absent', from: 'if (!absenceTest) return present ? [set(pt, true), pe] : [pt, set(pe, true)]', to: 'if (this.standalone && !absenceTest) return present ? [set(pt, true), pe] : [pt, set(pe, true)]', bug: 'present false or zero in class maps is narrowed to absence'},
     {file: 'core/extract-shapes.ts', name: 'P2-shared-record-identity', from: 'const id = ex.id(`input.${prefix}${pname}`), v = make', to: 'const id = `input.${prefix}${pname}`, v = make', bug: 'named and destructured arguments alias the same heap object'},
@@ -21,5 +22,5 @@ for (const row of result.rows) {
   console.log(row.suites.audit!.output)
 }
 if (!result.passed) throw new Error('an audit mutant survived or errored')
-if (readFileSync(file, 'utf8') !== before) throw new Error('mutation runner did not restore source')
+for (const [path, text] of before) if (readFileSync(path, 'utf8') !== text) throw new Error(`mutation runner did not restore ${path}`)
 console.log('CI_AUDIT_MUTATIONS_PASS restored=true')

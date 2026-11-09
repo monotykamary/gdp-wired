@@ -79,3 +79,23 @@ test('CI audit C1: accepted records report the plain-data contract', () => {
   const snapshot = {enabled: true}
   expect(snapshot.enabled === snapshot.enabled).toBe(true)
 })
+
+test('CI audit N1: reserved output field names are readable without becoming failure status', () => {
+  const x = extract('export function decide(): {value: number, failed: boolean} { return {value: 7, failed: true}; }', {entry: 'decide', mode: 'standalone'})
+  expect({ok: x.ok, refusals: x.refusals}).toEqual({ok: true, refusals: []})
+  expect(verdict(x, 'result.value == 7 and result.failed == true')).toMatchObject({proven: true, checked: true})
+  expect(verdict(x, 'result.value != 7')).toMatchObject({proven: false, stuck: 'sat'})
+  expect(verdict(x, 'result.failed == false')).toMatchObject({proven: false, stuck: 'sat'})
+  expect(x.names!.some(n => n.role === 'failed')).toBe(false)
+  expect(() => verdict(x, 'failed == true')).toThrow('the rule keeps no failure')
+})
+
+test('CI audit N1: class result fields are qualified and scoped by method', () => {
+  const x = extract('export class Decision { first() { return {value: 7, failed: false}; } second() { return {value: 9, failed: true}; } }', {entry: 'Decision', check: noReplay})
+  expect({ok: x.ok, refusals: x.refusals}).toEqual({ok: true, refusals: []})
+  for (const [method, value, failed] of [['first', 7, false], ['second', 9, true]] as const) {
+    expect(verdict(x, `result.value == ${value} and result.failed == ${failed}`, method)).toMatchObject({proven: true, checked: true})
+    expect(verdict(x, `result.failed == ${!failed}`, method)).toMatchObject({proven: false, stuck: 'sat'})
+    expect(verdict(x, `result == ${value}`, method)).toMatchObject({proven: true, checked: true})
+  }
+})

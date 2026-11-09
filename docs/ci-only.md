@@ -36,6 +36,23 @@ arguments are equivalent. Establish the plain-data contract at the application's
 on these source-law results. Copying or spreading an unknown object may itself invoke getters or proxy traps;
 it is not an automatic proof that this contract holds.
 
+### Returned record field names
+
+A record result's fields keep their source names in laws, including `result.value` and `result.failed`:
+
+```ts
+// gdp: law fields are retained: result.value == 7 and result.failed == true
+export function decide(): {value: number, failed: boolean} {
+  return {value: 7, failed: true};
+}
+```
+
+These fields are scoped to the law's method. A standalone field named `failed` is just a returned boolean,
+not call-failure status; bare `failed` is refused when no failure channel exists. Non-standalone/class and
+Effect result envelopes retain their legacy bare `result`/`failed` aliases for compatibility. In such an
+envelope, `failed` can name a modeled result property rather than an exception; use `result.failed` for the
+returned field explicitly instead of assuming it certifies call success or failure.
+
 ## Fallback: keep the model only in tests
 
 For source outside the reader's subset, write a model beside the tests, prove its laws, and test the production function against that model. Neither the model nor the prover needs to ship.

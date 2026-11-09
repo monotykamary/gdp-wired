@@ -131,7 +131,11 @@ export function namesOf(m: Model): Name[] {
   for (const [method, r] of Object.entries(m.results ?? {})) {
     if (r.k === 'scalar') out.push({code: 'result', rule: r.name, role: 'result', method})
     else if (r.k === 'maybe') out.push({code: 'result', rule: r.name, role: 'result', method, none: r.missing})
-    else for (const [f, n] of r.fields) out.push(f === 'failed' ? {code: 'failed', rule: n, role: 'failed'} : {code: f === 'value' ? 'result' : `result.${f}`, rule: n, role: 'result', method})
+    else for (const [f, n] of r.fields) {
+      out.push({code: `result.${f}`, rule: n, role: 'result', method})
+      // Preserve legacy class/Effect envelope aliases; standalone records expose only source field names.
+      if (!m.standalone && (f === 'value' || f === 'failed')) out.push(f === 'failed' ? {code: 'failed', rule: n, role: 'failed'} : {code: 'result', rule: n, role: 'result', method})
+    }
   }
   if (m.event) out.push({code: 'method', rule: m.event, role: 'method'})
   return out

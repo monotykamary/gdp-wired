@@ -10,6 +10,8 @@ B2: truthiness narrowing now preserves optional payloads in falsy arms for every
 
 C1: chose the requested explicit-contract option. README, the CI guide, API comments, and emitted extraction notes now restrict standalone record arguments to immutable plain-data snapshots with stable own data properties; accessors and Proxies are excluded despite matching TypeScript types. Notes are covered for scalar and record-returning functions, with an out-of-contract accessor control and a notice-removal mutant. This is documentation of the modeled boundary, not a claim to detect arbitrary runtime Proxies.
 
-N1, private-law replay and the final small gate remain pending. No new GATE GREEN is claimed here.
+N1: every returned record field now has a canonical method-scoped `result.<field>` name, including `value` and `failed`. Standalone records do not masquerade as bare failure channels. Legacy class/Effect envelope aliases are retained and explicitly documented; tests cover correct/false laws, both reserved fields, method scope, and bare standalone failure refusal. A mutant removes the canonical names.
+
+Private-law replay, release-range completion, focused verification and the final small gate remain pending. No new GATE GREEN is claimed here.
 
 The previous P1 report and receipts are preserved in commit `bca086ad` (`runs/REPORT.md` there). The coordinator's merge `8214a543` did not carry those tracked reports; this is a new follow-up report, not a relabeling of that old gate.
