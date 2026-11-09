@@ -207,8 +207,19 @@ export function ghostOf(m: Machine, law: Law): SomeWitness | undefined {
 // the walks past it in a third as many; an instance whose params the machine refuses has no states. With no params,
 // 2 and 3 denote the same instance, so sample it only once. Read once a machine.
 const smalls = new WeakMap<Machine, {p: Env, sts: State[]}[]>()
-export function smallOf(m: Machine): {p: Env, sts: State[]}[] {
+// Adding fresh, unreferenced count definitions cannot change any transition.
+// Reuse the engine's original samples instead of enumerating that same graph
+// with every speculative count attached to every request. The structural check
+// rejects changed transitions, replaced counts, and shadowed map reads.
+export function smallOf(m: Machine, source?: Machine): {p: Env, sts: State[]}[] {
   let out = smalls.get(m)
+  if (!out && source && source !== m) {
+    const fields = new Set([...Object.keys(m), ...Object.keys(source)])
+    const added = new Set(Object.keys(m.counts ?? {}).filter(k => !(k in (source.counts ?? {}))))
+    let safe = [...fields].every(k => k === 'counts' || m[k as keyof Machine] === source[k as keyof Machine]) && Object.entries(source.counts ?? {}).every(([k, d]) => m.counts?.[k] === d) && [...added].every(k => !(k in (source.maps ?? {})) && !(k in (source.fns ?? {})) && !source.inputMaps?.includes(k))
+    walk(source, o => { if (o.op === 'get' && added.has(o.map as string)) safe = false })
+    if (safe) smalls.set(m, (out = smallOf(source)))
+  }
   if (!out) smalls.set(m, (out = (m.params.length ? [2, 3] : [2]).map(x => { const p = Object.fromEntries(m.params.map(q => [q, x])); try { return {p, sts: small(m, p, 3, 3000, 300_000, 100_000)} } catch { return {p, sts: []} } })))
   return out
 }
@@ -235,13 +246,15 @@ export function trueSmall(m: Machine, laws: Law[], ghosted?: Machine): boolean {
 }
 // A law at a state, its counts the state's, at every key below b.
 // (a state's view once: a law is read at every state, and every law at each)
-const views = new WeakMap<State, State>()
+const views = new WeakMap<Machine, WeakMap<State, State>>()
 const sampleTests = new WeakMap<Machine, WeakMap<C, ReturnType<typeof compileC>>>()
 export function holdsAt(m: Machine, law: Law, p: Env, st: State, b: number): boolean {
-  let view = views.get(st)
+  let machineViews = views.get(m)
+  if (!machineViews) views.set(m, (machineViews = new WeakMap()))
+  let view = machineViews.get(st)
   if (!view) {
     const empty: Request = Object.fromEntries((m.inputMaps ?? []).map(c => [c, new Map()]))
-    views.set(st, (view = carriedView(m, st, empty, undefined, p)))
+    machineViews.set(st, (view = carriedView(m, st, empty, undefined, p)))
   }
   let tests = sampleTests.get(m)
   if (!tests) sampleTests.set(m, (tests = new WeakMap()))

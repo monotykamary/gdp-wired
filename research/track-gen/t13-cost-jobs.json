@@ -1,0 +1,1 @@
+[{"name":"cost-pair","cmd":"bun install --frozen-lockfile && d=$(mktemp -d) && trap 'rm -rf \"$d\"' EXIT && T13_FRESH_SAMPLES=1 bun research/track-gen/t13-generation.ts mldr > \"$d/before\" && bun research/track-gen/t13-generation.ts mldr > \"$d/after\" && bun research/track-gen/t13-compare.ts \"$d/before\" \"$d/after\"","timeout":300}]

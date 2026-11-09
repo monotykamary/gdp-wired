@@ -1,6 +1,6 @@
 import {expect, test} from 'bun:test'
 import {fieldLaws} from './field-laws.ts'
-import {type Machine, all, get, less, n, same, tuple, x} from './machine.ts'
+import {type Machine, all, get, less, n, same, times, plus, tuple, x} from './machine.ts'
 import {trueSmall} from './exists.ts'
 import {proveLaws} from '../kernel/prove.ts'
 import {scope} from '../kernel/kernel.ts'
@@ -55,6 +55,19 @@ test('two equal fields can identify a tuple-keyed row, with an independent membe
   // The same metadata does not let numeric field equality prove mutable content.
   const broken: Machine = {...m, step: {...m.step, maps: {...m.step.maps, Contents: {key: tuple([x('i'), x('i')]), value: n(1)}}}}
   expect(proveLaws(broken, [row]).proven).toBe(false)
+})
+
+test('composed-key rows use their encoded base and still require induction', () => {
+  const base = machine(), packed = (a: ReturnType<typeof x>, b: ReturnType<typeof x>) => plus(times(8, a), b)
+  const m: Machine = {...base, inputs: [...base.inputs, 'k'], maps: {...base.maps, Contents: 0}, step: {...base.step,
+    flags: {...base.step.flags, read: same(get('Contents', packed(x('i'), x('k'))), n(1))},
+    maps: {...base.step.maps, Contents: {key: packed(x('i'), x('k')), value: n(1)}}}}
+  const rows = fieldLaws(m).filter(l => l.name.endsWith('Contents rows agree'))
+  expect(rows).toHaveLength(1)
+  expect(fieldLaws(m, false).some(l => l.name.endsWith('Contents rows agree'))).toBe(false)
+  expect(JSON.stringify(rows[0])).toContain('"k":8')
+  expect(() => scope(m, rows)).not.toThrow()
+  expect(proveLaws(m, rows).proven).toBe(false)
 })
 
 test('generated binders do not capture state, request or flag variables', () => {

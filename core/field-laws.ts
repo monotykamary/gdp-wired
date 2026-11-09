@@ -2,9 +2,9 @@
 // between fields (and between two records), even when the transition reads them.
 // Propose their shapes, not facts: counts.ts filters on reachable samples, and the
 // ordinary counted induction/checker must prove every surviving candidate.
-import {type C, type E, type Law, type Machine, all, any, atMost, get, less, n, not, same, tuple, walk, x} from './machine.ts'
+import {type C, type E, type Law, type Machine, all, any, atMost, get, less, n, not, same, times, plus, tuple, walk, x} from './machine.ts'
 
-export function fieldLaws(m: Machine): Law[] {
+export function fieldLaws(m: Machine, composed = true): Law[] {
   const fields = new Set<string>(), roles = new Map<string, {map: string, value: number}>(), bounds = new Map<string, E>()
   const maps = m.maps ?? {}, source = [m.assume, m.step.flags]
   const direct = (e: E): e is Extract<E, {op: 'get'}> => e.op === 'get' && e.key.op === 'var' && e.map in maps
@@ -57,6 +57,23 @@ export function fieldLaws(m: Machine): Law[] {
       const guard = all(da, db, less(c, bound), same(get(f, a), get(f, b)), same(get(g, a), get(g, b)))
       const holds = any(not(guard), same(get(map, tuple([a, c])), get(map, tuple([b, c]))))
       out.push({name: `fields: ${f}[a]=${f}[b] and ${g}[a]=${g}[b] -> ${map} rows agree`, forall: ka, keys: [kb, kc], holds})
+    }
+  }
+  // The numeric encoding base*row + member is a relation too. Discover it
+  // from reads, not map names; explicit tuple metadata keeps its old encoding.
+  if (composed) {
+    const rows = new Map<string, number>()
+    walk([m.assume, m.step, m.counts], o => {
+      if (o.op !== 'get' || !(o.map as string in maps) || m.relations?.[o.map as string]) return
+      const key = o.key as E
+      if (key.op !== 'add' || key.a.op !== 'mul' || key.a.k <= 1 || key.a.a.op !== 'var' || key.b.op !== 'var' || key.a.a.name === key.b.name || !m.inputs.includes(key.a.a.name)) return
+      const old = rows.get(o.map as string)
+      rows.set(o.map as string, old === undefined || old === key.a.k ? key.a.k : 0)
+    })
+    for (const [map, base] of rows) if (base) for (let i = 0; i < fs.length; i++) for (let j = i + 1; j < fs.length; j++) {
+      const f = fs[i]!, g = fs[j]!, cell = (row: E) => get(map, plus(times(base, row), c))
+      const guard = all(da, db, less(c, bound), same(get(f, a), get(f, b)), same(get(g, a), get(g, b)))
+      out.push({name: `fields: ${f}[a]=${f}[b] and ${g}[a]=${g}[b] -> ${map} rows agree`, forall: ka, keys: [kb, kc], holds: any(not(guard), same(cell(a), cell(b)))})
     }
   }
   return out
