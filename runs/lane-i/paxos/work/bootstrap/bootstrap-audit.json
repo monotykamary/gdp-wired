@@ -1,0 +1,18 @@
+{
+  "issues": [],
+  "passes": [
+    {
+      "baseline": "b09da82d9ada6e0cdc31f943292cfea727f5752e",
+      "hashedFiles": 123,
+      "restored": 2,
+      "manifestPoints": 21,
+      "measuredPairs": 0
+    }
+  ],
+  "tests": 7,
+  "assertions": 23,
+  "batch": "20261110-052052-lobfa5",
+  "snapshot": "155ceb6c6ec3",
+  "reusedSourceQualification": "runs/lane-i/paxos/bootstrap/bootstrap-audit.json",
+  "finalGate": false
+}
