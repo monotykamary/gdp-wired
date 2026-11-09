@@ -1,0 +1,44 @@
+[
+  {
+    "name": "safe-mldr-1",
+    "cmd": "GDP_COUNTS_TRACE=1 GDP_COUNTS_PROF=1 bash research/track-gen/t16-audit-pair.sh original mldr 1",
+    "cpu": 4,
+    "memory": 14336,
+    "timeout": 180
+  },
+  {
+    "name": "generation-1",
+    "cmd": "bash research/track-gen/t16-audit-pair.sh generation consensus,tcommit,lock_server,quorum_leader_election,toy_consensus_forall,simple,simple_regular,lockserv_automaton,sharded_kv,sharded_kv_no_lost_keys,lockserv,twophase,simple_decentralized_lock,two_phase_commit,consensus_wo_decide,consensus_forall,naive_consensus,client_server_ae,client_server_db_ae,simple_election,toy_consensus_epr,toy_consensus,firewall,majorityset_leader_election,consensus_epr,paxos_epr,learning_switch,learning_switch_i4,mldr 1",
+    "cpu": 4,
+    "memory": 14336,
+    "timeout": 360
+  },
+  {
+    "name": "safe-mldr-2",
+    "cmd": "GDP_COUNTS_TRACE=1 GDP_COUNTS_PROF=1 bash research/track-gen/t16-audit-pair.sh original mldr 2",
+    "cpu": 4,
+    "memory": 14336,
+    "timeout": 180
+  },
+  {
+    "name": "generation-2",
+    "cmd": "bash research/track-gen/t16-audit-pair.sh generation consensus,tcommit,lock_server,quorum_leader_election,toy_consensus_forall,simple,simple_regular,lockserv_automaton,sharded_kv,sharded_kv_no_lost_keys,lockserv,twophase,simple_decentralized_lock,two_phase_commit,consensus_wo_decide,consensus_forall,naive_consensus,client_server_ae,client_server_db_ae,simple_election,toy_consensus_epr,toy_consensus,firewall,majorityset_leader_election,consensus_epr,paxos_epr,learning_switch,learning_switch_i4,mldr 2",
+    "cpu": 4,
+    "memory": 14336,
+    "timeout": 360
+  },
+  {
+    "name": "safe-mldr-3",
+    "cmd": "GDP_COUNTS_TRACE=1 GDP_COUNTS_PROF=1 bash research/track-gen/t16-audit-pair.sh original mldr 3",
+    "cpu": 4,
+    "memory": 14336,
+    "timeout": 180
+  },
+  {
+    "name": "generation-3",
+    "cmd": "bash research/track-gen/t16-audit-pair.sh generation consensus,tcommit,lock_server,quorum_leader_election,toy_consensus_forall,simple,simple_regular,lockserv_automaton,sharded_kv,sharded_kv_no_lost_keys,lockserv,twophase,simple_decentralized_lock,two_phase_commit,consensus_wo_decide,consensus_forall,naive_consensus,client_server_ae,client_server_db_ae,simple_election,toy_consensus_epr,toy_consensus,firewall,majorityset_leader_election,consensus_epr,paxos_epr,learning_switch,learning_switch_i4,mldr 3",
+    "cpu": 4,
+    "memory": 14336,
+    "timeout": 360
+  }
+]
