@@ -16,6 +16,6 @@
     {"task":"e11eb951-62ce-4a42-9a38-342bd7fcbfda","state":"complete","exitCode":0,"output":"runs/track-m/lane-b-resume-commitlint-v1"},
     {"source":"09d3d172","control":"47215336","upstream":"2047d2be","task":"2d0d8363-da4f-4d7c-b1bf-3629ccd11a1e","batch":"20261110-013121-bhvcxb","tree":"e34b93627925","state":"complete-negative","jobs":8,"failedJobs":0,"testsPerVariant":13,"assertionsPerVariant":61,"output":"runs/track-m/lane-b-members-v1","note":"p1 +166.3193948 units in both orders; row unchanged; star wall-limited unknown; production counts/ranges unchanged","archiveCustody":{"verified":5,"expected":6,"bytes":6060754,"missing":"star-ba: original VM stopped"}},
     {"source":"9c8a07ba","batch":"20261110-014341-ccbmlq","tree":"a3e1cabbd7bb","task":"23cefbe3-d5e7-4492-8881-440f6937070c","state":"partial","jobs":9,"knownCheckExits":[2,2],"output":"runs/track-m/lane-b-row-premises-v1","note":"last p1-ba receipt pending; row remains unknown in both orders; fixture-only typo repaired without remeasuring"},
-    {"source":"6fe2d846","task":"ea9aacef-193d-425e-b825-078ae88d4a0f","state":"submission-pending","jobs":2,"output":"runs/track-m/lane-b-row-check-v2","note":"corrected validation only; no repeated measurement"}
+    {"source":"6fe2d846","task":"ea9aacef-193d-425e-b825-078ae88d4a0f","batch":"20261110-014618-2k8pqx","tree":"5b15cb57eb97","state":"complete","exits":[0,0],"testsPerVariant":38,"assertionsPerVariant":169,"jobs":2,"output":"runs/track-m/lane-b-row-check-v2","note":"corrected validation only; no repeated measurement"}
   ]
 }
