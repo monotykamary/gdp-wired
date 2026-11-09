@@ -4,7 +4,23 @@ Lane I resumed from `cca59f0c` on `claude/mldr-integ`; clean worktree verified, 
 
 - First cancelled work rerun: all **140 upper-bound shards** submitted through the scheduler, fresh output `runs/lane-i/upper-bound/resumed/full`, task `cf1d3fc9-6a88-4e12-8403-974717b1ed42`. Every guest unpacks frozen production `15eff72f` and checks the retained source manifest; the current integration is not substituted. No supplied laws; original 34-law family; 30 minutes per operation; no share; independent verification still required. Pending, not a result.
 - Repair: core-replay reconstruction now spreads the previous obligation before replacing its goal/decls/encoded goal, retaining `all`, certificate and pool. Added a focused range-demand test for a read omitted by the selected certificate. No budget, law, or kernel change.
-- Current repair candidate: `5abc2ddf` (behavior-preserving lint fixes plus unsupported-bound regression). Five mechanics jobs are submitted; v10 remains independently pinned to `b37c4e2ce8172d0e3e1546b6c099ceff33b2d7ae`. V9 `edd284913024a6566591d7ad1cba8059b8047a14` results are now audited below. **Not gate green**; Lane D's final gate remains mandatory.
+- Current repair candidate: `90f6676a` (lint fixes, two v10 test/receipt defects, and complete changed-test roster). Five repair2 mechanics jobs are submitted. V9 `edd284913024a6566591d7ad1cba8059b8047a14` and v10 `b37c4e2ce8172d0e3e1546b6c099ceff33b2d7ae` are audited below: both checks failed, all MLDR pairs remain unknown. **Not gate green**; Lane D's final gate remains mandatory.
+
+## V10 completed: new check/test defects, no MLDR proof
+
+Batch `20261110-004025-7qwhgq`, candidate `b37c4e2ce8172d0e3e1546b6c099ceff33b2d7ae`, completed: check exit **2**, changed-tests-2 exit **1**, all other workers exit 0. The audit correctly returns nonzero. Check stopped at a TypeScript narrowing error in `research/track-m/link-lane-b-focus-audits.ts`; the finite-polarity test inherited an unused count binder `a` that collided with its scalar `a` when the independent interpreter checked scope. Neither is a production proof-engine change.
+
+V10 tests: shard 1 **210 pass**, shard 2 **143 pass / 1 fail**, shard 3 **136 pass**, shard 4 **160 pass** (649 passed / 1 failed overall, 19,790 assertions). Do not label the failing shard or whole suite green.
+
+All three original MLDR candidate runs again returned **unknown / time (rule result)**: 59,017 / 59,076 / 59,254 ms, 16 trace-kept candidates each, safety never reached. Baseline returned unknown (`not proven: one primary per term`) in all three. All three pair guests report Ryzen 9 9950X; candidate pre-attempt wall was 12,444.703 / 17,626.867 / 19,377.932 ms, baseline 22,698.158 / 28,124.501 / 27,471.780 ms. No proof win is claimed. Source-bound audit, CPU placement, statuses, compressed logs and hashes are retained under `runs/lane-i/v10`.
+
+The first lint-repair batch `20261110-004916-komoui` likewise completed with the v10 TypeScript and finite-fixture failures; its new unsupported-bound regression passed in shard 1 (211 passing there). It did not establish a clean check. Receipts are retained under `runs/lane-i/lint-repair/results`.
+
+### Repair2 and coverage
+
+`90f6676a` gives the unused test count a non-colliding binder and makes the existing input-name assertion narrow correctly. A source-roster comparison found two omitted changed test files (`research/mldr-incl/pack-production.test.ts` and `research/track-m/link-lane-b-focus-audits.test.ts`); both are now in validation and the quick-suite roster regression. **All 120 test modules changed since baseline are listed; this is a roster fact, not a test result.**
+
+Five new check/changed-test jobs for that source are task `d7d2f018-6b20-4ddc-ba8f-b4fe7ccd470a`, `runs/lane-i/repair2/results`; existing jobs were not resubmitted. They reuse the same hard-linked archive cache view and a metadata-only input directory. Pending, not passed. No new MLDR performance claim is attached to these mechanics-only repairs.
 
 ## V9 completed: tests green, check red, no MLDR proof
 
