@@ -1,0 +1,4 @@
+[
+ {"name":"p1-guarded-probe-7002","cmd":"set -euo pipefail; cp -a frozen-paxos/. .; bun regression-driver/p1-scheduling-probe-v2.ts","cpu":8,"memory":14336,"timeout":420,"vm_type":"large"},
+ {"name":"p1-receipt-audit-7002","cmd":"set -euo pipefail; cp -a frozen-paxos/. .; P1_AUDIT_INPUT=audit-input bun test regression-driver/p1-scheduling-audit.test.ts; bun regression-driver/p1-scheduling-audit.ts audit-input/probe.log audit-input/input-manifest.json audit-input/family.json /tmp/p1-audit.json","cpu":2,"memory":4096,"timeout":120,"vm_type":"large"}
+]

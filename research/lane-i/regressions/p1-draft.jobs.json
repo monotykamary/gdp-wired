@@ -1,0 +1,3 @@
+[
+ {"name":"p1-conservative-draft-7003","cmd":"bash frozen-paxos/regression-driver/p1-draft-qualify.sh","cpu":8,"memory":14336,"timeout":360,"vm_type":"large"}
+]

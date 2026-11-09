@@ -1,7 +1,8 @@
-# For lane B — p1 scheduling comparison (pending)
+# For lane B — p1 regression reproduced; refinement pending
 
-The production tree and Lane D's `8214a543` → `d3adf3c9` final gate remain unchanged.
-This work is for a subsequent candidate, not a replacement gate.
+Lane D's frozen `8214a543` → `d3adf3c9` final gate remains unchanged.
+An uncommitted conservative scheduling draft is under separate qualification
+for a subsequent candidate, not a replacement gate.
 
 ## Exact inputs
 
@@ -15,8 +16,8 @@ This work is for a subsequent candidate, not a replacement gate.
 - Frozen 45-law Paxos family: SHA-256
   `1a956aa3c04217a3f426837e88558de8888faeb0e3fc7dfc5e0270edd68550bc`.
 
-Lane B reports 1152.3382236 → 2046.9378360 p1 units. Those are prior
-measurements, not results of the pending reproduction here.
+Lane B reports 1152.3382236 → 2046.9378360 p1 units. Those prior
+measurements are now reproduced exactly by all three new paired repetitions.
 
 ## Falsifiable hypothesis
 
@@ -50,4 +51,32 @@ gate. The first-countermodel alternative already reviewed by Lane B is not
 substituted: it adds 41.3331660 p1 units and lost `learning_switch_i4` in its
 own census.
 
-All measurements are pending. No new production repair or gate pass is claimed.
+## Initial result: regression confirmed, first prototype not accepted
+
+Batch `20261110-062712-4vl6nq` completed on one exclusive AMD EPYC 9455
+worker. All three repetitions give exactly:
+
+| Source | p1 units | Frozen Paxos solver / full work |
+| --- | ---: | --- |
+| Validated control | 1152.3382236 | unknown, 4,719,042 / 224,064.6210 |
+| `d3adf3c9` | 2046.9378360 | checked, 38,917 / 26,285.6192 |
+| Unary-priority prototype | 1152.3382236 | checked, 38,917 / 26,285.6192 |
+
+All nine p1 certificates and six successful frozen Paxos certificates pass
+separate native replay. These remain conditional per-target certificates.
+However, the single whole-Paxos pair is **not work-neutral**: full work
+1,037,946 → 1,038,476 (+530), solver work 6,915,544 → 6,916,948 (+1404),
+both proven. The first prototype therefore does not meet the requested
+joint criterion, despite restoring p1's original cost. No speed claim.
+
+A second disposable experiment requires a separate relevant count premise;
+it retains per-law whole-run work traces. Task
+`3431abef-abdf-4e94-8afa-126c50780bdc`, batch `20261110-063516-cuuvdp`.
+The conservative production draft additionally requires an actual quantified
+key, so concrete goals keep their original sparse-first behavior. Its type,
+lint, refusal tests, p1 replay and exact whole-Paxos work check are pending in
+task `bff38ac0-d682-4852-8bf7-572f364ef00c`, batch `20261110-063659-6z5xy4`.
+The original work-increase receipt is also being independently audited with
+missing/duplicate/source/certificate/archive refusal tests.
+
+No new production repair or final-gate pass is claimed.

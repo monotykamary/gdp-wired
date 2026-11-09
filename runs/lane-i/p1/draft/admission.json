@@ -1,0 +1,11 @@
+{
+ "task":"bff38ac0-d682-4852-8bf7-572f364ef00c",
+ "batch":"20261110-063659-6z5xy4",
+ "snapshot":"7e46472190b1",
+ "status":"admitted; results pending",
+ "inputManifestSha256":"2b846a76bb457937da6e94aec7d9f43e27e884b4339136d54406ac253a5f1dfd",
+ "base":"d3adf3c9589ec014a158b6f42ecfb091c999bb43",
+ "policy":"strictly one quantified key, unary count maps, separate relevant count premise; concrete goals remain sparse",
+ "scope":"uncommitted draft with exact overlay hashes; not a final gate",
+ "finalGate":false
+}

@@ -1,0 +1,9 @@
+{
+ "task":"3431abef-abdf-4e94-8afa-126c50780bdc",
+ "batch":"20261110-063516-cuuvdp",
+ "snapshot":"69fdcd2b1880",
+ "status":"admitted; results pending",
+ "inputManifestSha256":"f70e77b68767864a40b81dcbed94494c6396ae010d4854e093f3c7d6cf14023a",
+ "policy":"single-key unary count request with a separate relevant count premise",
+ "finalGate":false
+}

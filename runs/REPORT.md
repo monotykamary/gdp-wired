@@ -2,7 +2,13 @@
 
 Lane I resumed from `cca59f0c` on `claude/mldr-integ`; clean worktree verified, handoff including PAUSED, COMMON, and Section 14 read. **NOT GATE GREEN.** Historical baselines remain `b788e195` for the consensus diagnosis and `b09da82d` for the Paxos diagnosis; the coordinator now requires **`8214a543bc44e88d979f9e4457d7370e7e3c122b` for every next final gate**.
 
-## For lane B — p1 scheduling follow-up admitted; measurements pending
+## For lane B — p1 regression reproduced; first prototype rejected on whole work
+
+The exact three-repeat boat comparison reproduces **1152.3382236 → 2046.9378360 p1 units** for validated control `97463c56` versus `d3adf3c9`; all nine p1 certificates independently replay. A disposable unary-priority policy recovers **1152.3382236** and preserves the frozen Paxos proof at **38,917 solver / 26,285.6192 full work**, with six successful frozen Paxos certificates independently replayed. But its whole-Paxos screening pair costs **530 extra full-work units** (1,037,946 → 1,038,476), so it is **not accepted** as the joint work-neutral fix. This completed on one exclusive EPYC 9455 worker; no timing claim. Raw receipts: `runs/lane-i/p1/probe/`.
+
+Two follow-ups are admitted: a separate-count-premise scheduling experiment and receipt-auditor refusal tests (`3431abef-abdf-4e94-8afa-126c50780bdc`, batch `20261110-063516-cuuvdp`), and qualification of a conservative uncommitted draft that also requires an actual single quantified key, leaving concrete goals sparse (`bff38ac0-d682-4852-8bf7-572f364ef00c`, batch `20261110-063659-6z5xy4`). The latter checks type/lint, scope and false-INIT regressions, p1's exact old cost, and exact whole-Paxos baseline work. **Results remain pending; no new repair or final-gate pass is claimed. Lane D's frozen `8214a543` → `d3adf3c9` gate is untouched.** Details: `research/lane-i/regressions/p1-scheduling-notes.md`.
+
+## For lane B — initial p1 scheduling admission (historical)
 
 Lane B's exact before/repair count-source hashes match `97463c56` / `d3adf3c9`. The original p1 and 45-law Paxos families are frozen unchanged. A new exclusive boat job tests three rotated repetitions of the validated control, exact current repair and a **disposable** single-key/unary-count early-completion policy, with independent native certificate replay. It also screens whole `paxos_epr` on the current and experimental policies at the unchanged strict 60-second limit. Task `c54164de-9246-44c1-b493-60d3529dbabd`, batch `20261110-062712-4vl6nq`, snapshot `f980b21aa51a`; input manifest SHA-256 `d503b71edbe57c418e9bd60012884c44606b077a6946a9d32c87e713871c9627`. **No new measurement or production fix is claimed yet.** This is an arity-based hypothesis, not a guarantee of linear helper expansion. Details: `research/lane-i/regressions/p1-scheduling-notes.md`, `runs/lane-i/p1/`.
 
