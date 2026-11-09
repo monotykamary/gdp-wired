@@ -100,7 +100,8 @@ the merged-tree tests/typecheck, the 29-list census against `bef4020f` and a per
   `stringify` 3 %): **`8feee82e`** keeps one environment per write (the key or the parts written into it) instead of a spread per key or
   tuple, reads a tuple write's parts / freed value / breakpoints / crossing once per write instead of once per step, and memoizes
   `unchanged`'s part-reading facts per term — exact by construction (the interpreter's results are unchanged; only allocation goes).
-  Under guards now: tests, a paired learning_switch profile vs `cd947909`, census vs `bef4020f`. Not a gate head until they hold. one breakpoint list per step shared by every dense write (the union of their breakpoints; `$dense`
+  **135 tests pass on it** (`receipts/tests7`, the interpreter-vs-compiled comparisons included); a paired learning_switch profile vs `cd947909`
+  and the census vs `bef4020f` are running. Not a gate head until they hold. one breakpoint list per step shared by every dense write (the union of their breakpoints; `$dense`
   fills the same cells from it), and no second validation in `cells`.
 , violation-driven ranges (`72380dc1`) vs lane A's `c21a6e54`, three pinned large VMs
   (Ryzen 9 9950X ×2, EPYC 4585PX; `runs/track-wall/receipts/rmldr3`, logs gzipped):** verdict `unknown` (time) on all six runs;
