@@ -33,8 +33,8 @@ function D(n: number, file: string, law: string, says: string, fns: string, enco
 // Concrete breaks the random runs cannot reach: values past 2^32, and maps whose cells hold values (the harness draws a
 // carried map as a set, cells 0 or 1).
 const capWitness = () => {
-  const left = 4294967296 + 5, local = 10, got = P.cap('narrows before capping').run({left, local}).out!
-  const want = P.cap().run({left, local}).out!
+  const left = 4294967296 + 5, local = 10, got = P.cap('narrows before capping').compiled()({left, local}).out!
+  const want = P.cap().compiled()({left, local}).out!
   return {breaks: got !== want && want === Math.min(left, local), detail: `left 2^32 + 5, local 10: the broken rule gives ${got}, the law ${want}`}
 }
 const mergeWitness = (which: 'whole' | 'irrelevant') => () => {

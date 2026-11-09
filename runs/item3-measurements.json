@@ -1,0 +1,259 @@
+{
+  "batch": "20261110-010532-cfxnro",
+  "placement": {
+    "vm": "bx_bqtyjgvd",
+    "type": "large",
+    "cpu": "AMD Ryzen 9 9950X 16-Core Processor",
+    "vcpus": 2,
+    "vm_vcpus": 8,
+    "exclusive": true,
+    "co_tenants": 0
+  },
+  "rows": [
+    {
+      "name": "synthetic-4",
+      "mode": "plain",
+      "n": 100000,
+      "nsPerOp": 30.162010000000024,
+      "checksum": 175000
+    },
+    {
+      "name": "synthetic-4",
+      "mode": "compiled",
+      "n": 100000,
+      "nsPerOp": 1858.2966499999998,
+      "checksum": 175000
+    },
+    {
+      "name": "synthetic-4",
+      "mode": "interpreter",
+      "n": 100000,
+      "nsPerOp": 1773.2799899999998,
+      "checksum": 175000
+    },
+    {
+      "name": "synthetic-4",
+      "mode": "compiled-cold-model-create-first-call",
+      "n": 1000,
+      "nsPerOp": 60232.38600000002,
+      "checksum": 1750
+    },
+    {
+      "name": "synthetic-4",
+      "mode": "interpreter-cold-model-create-first-call",
+      "n": 1000,
+      "nsPerOp": 26754.80200000004,
+      "checksum": 1750
+    },
+    {
+      "name": "synthetic-128",
+      "mode": "plain",
+      "n": 100000,
+      "nsPerOp": 22.180809999999838,
+      "checksum": 92184
+    },
+    {
+      "name": "synthetic-128",
+      "mode": "compiled",
+      "n": 100000,
+      "nsPerOp": 2979.7706300000004,
+      "checksum": 92184
+    },
+    {
+      "name": "synthetic-128",
+      "mode": "interpreter",
+      "n": 100000,
+      "nsPerOp": 2382.5926300000015,
+      "checksum": 92184
+    },
+    {
+      "name": "synthetic-128",
+      "mode": "compiled-cold-model-create-first-call",
+      "n": 1000,
+      "nsPerOp": 78724.64200000014,
+      "checksum": 924
+    },
+    {
+      "name": "synthetic-128",
+      "mode": "interpreter-cold-model-create-first-call",
+      "n": 1000,
+      "nsPerOp": 41671.03399999996,
+      "checksum": 924
+    },
+    {
+      "name": "synthetic-32",
+      "mode": "plain",
+      "n": 100000,
+      "nsPerOp": 23.72822999999926,
+      "checksum": 6250
+    },
+    {
+      "name": "synthetic-32",
+      "mode": "compiled",
+      "n": 100000,
+      "nsPerOp": 2797.08472,
+      "checksum": 6250
+    },
+    {
+      "name": "synthetic-32",
+      "mode": "interpreter",
+      "n": 100000,
+      "nsPerOp": 1784.6671199999992,
+      "checksum": 6250
+    },
+    {
+      "name": "synthetic-32",
+      "mode": "compiled-cold-model-create-first-call",
+      "n": 1000,
+      "nsPerOp": 62537.12500000006,
+      "checksum": 63
+    },
+    {
+      "name": "synthetic-32",
+      "mode": "interpreter-cold-model-create-first-call",
+      "n": 1000,
+      "nsPerOp": 41392.69399999966,
+      "checksum": 63
+    },
+    {
+      "name": "private-4",
+      "mode": "plain",
+      "n": 100000,
+      "nsPerOp": 21.104310000000055,
+      "checksum": 325000
+    },
+    {
+      "name": "private-4",
+      "mode": "compiled",
+      "n": 100000,
+      "nsPerOp": 2280.46122,
+      "checksum": 325000
+    },
+    {
+      "name": "private-4",
+      "mode": "interpreter",
+      "n": 100000,
+      "nsPerOp": 1708.42195,
+      "checksum": 325000
+    },
+    {
+      "name": "private-4",
+      "mode": "compiled-cold-model-create-first-call",
+      "n": 1000,
+      "nsPerOp": 63551.84999999995,
+      "checksum": 3250
+    },
+    {
+      "name": "private-4",
+      "mode": "interpreter-cold-model-create-first-call",
+      "n": 1000,
+      "nsPerOp": 26337.338000000043,
+      "checksum": 3250
+    },
+    {
+      "name": "private-128",
+      "mode": "plain",
+      "n": 100000,
+      "nsPerOp": 37.03491999999983,
+      "checksum": 90624
+    },
+    {
+      "name": "private-128",
+      "mode": "compiled",
+      "n": 100000,
+      "nsPerOp": 3283.0156,
+      "checksum": 90624
+    },
+    {
+      "name": "private-128",
+      "mode": "interpreter",
+      "n": 100000,
+      "nsPerOp": 2856.7100400000004,
+      "checksum": 90624
+    },
+    {
+      "name": "private-128",
+      "mode": "compiled-cold-model-create-first-call",
+      "n": 1000,
+      "nsPerOp": 100095.65500000007,
+      "checksum": 908
+    },
+    {
+      "name": "private-128",
+      "mode": "interpreter-cold-model-create-first-call",
+      "n": 1000,
+      "nsPerOp": 56409.07700000002,
+      "checksum": 908
+    },
+    {
+      "name": "private-32",
+      "mode": "plain",
+      "n": 100000,
+      "nsPerOp": 31.444710000000672,
+      "checksum": 6250
+    },
+    {
+      "name": "private-32",
+      "mode": "compiled",
+      "n": 100000,
+      "nsPerOp": 3095.8775400000013,
+      "checksum": 6250
+    },
+    {
+      "name": "private-32",
+      "mode": "interpreter",
+      "n": 100000,
+      "nsPerOp": 1818.0332299999984,
+      "checksum": 6250
+    },
+    {
+      "name": "private-32",
+      "mode": "compiled-cold-model-create-first-call",
+      "n": 1000,
+      "nsPerOp": 50930.20499999966,
+      "checksum": 62
+    },
+    {
+      "name": "private-32",
+      "mode": "interpreter-cold-model-create-first-call",
+      "n": 1000,
+      "nsPerOp": 36937.9640000002,
+      "checksum": 62
+    },
+    {
+      "name": "private-48",
+      "mode": "plain",
+      "n": 100000,
+      "nsPerOp": 16.20752000000266,
+      "checksum": 8334
+    },
+    {
+      "name": "private-48",
+      "mode": "compiled",
+      "n": 100000,
+      "nsPerOp": 2947.921889999998,
+      "checksum": 8334
+    },
+    {
+      "name": "private-48",
+      "mode": "interpreter",
+      "n": 100000,
+      "nsPerOp": 2138.3722799999987,
+      "checksum": 8334
+    },
+    {
+      "name": "private-48",
+      "mode": "compiled-cold-model-create-first-call",
+      "n": 1000,
+      "nsPerOp": 53823.787000000266,
+      "checksum": 83
+    },
+    {
+      "name": "private-48",
+      "mode": "interpreter-cold-model-create-first-call",
+      "n": 1000,
+      "nsPerOp": 27948.51299999982,
+      "checksum": 83
+    }
+  ]
+}

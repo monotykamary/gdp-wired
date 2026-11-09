@@ -16,7 +16,7 @@ Gate: **PENDING**. Branch `claude/ci-first-class`; starting revision `b788e1959b
 
 ## Item 3 — explicit runtime compilation
 
-**Starting status: partly.** `Rule.interpreter()` and explicit `Rule.compiled()` already exist (`core/dsl.ts:2417-2420`), but `Fun.run` always compiles (`core/dsl.ts:2513-2521`). The interpreter itself compiles declared helper source (`core/machine.ts:351-371`), and building those machines validates helper source through compilation (`core/dsl.ts:1540-1544,2131`). No default change is selected until the requested actual-example cost measurement completes. The recovered first benchmark contains valid synthetic-only measurements, but its private stage failed because of the same data-path error; corrected actual-example timings are pending. A corrected benchmark is now owned by the main session; the earlier child-owned command terminated without a receipt when its worker finished, and its private harness also had a missing import. No timings are claimed.
+**Starting status: partly.** `Rule.interpreter()` and explicit `Rule.compiled()` already exist (`core/dsl.ts:2417-2420`), but `Fun.run` always compiles (`core/dsl.ts:2513-2521`). The interpreter itself compiles declared helper source (`core/machine.ts:351-371`), and building those machines validates helper source through compilation (`core/dsl.ts:1540-1544,2131`). Implemented the interpreter default after the successful actual-example measurement, with cached explicit `Fun.compiled()` callables. Declared helper source is refused before default-runtime machine construction; native arithmetic terms need no compilation. The v6 runtime/export probe passed 62 tests, and v7 passed check, lint, build and 28 built-package/runtime tests. Detailed timings and migration notes are below.
 
 ## Item 4 — CI-only docs and package posture
 
@@ -120,7 +120,7 @@ The private v4 replay proved all **20 per-input decision laws** with the existin
 | MCP-B03 | Destructured finite record; early-return choice guards | refused | refused | proven |
 | MCP-B04 | Destructured finite record; early-return choice guards | refused | refused | proven |
 | MCP-B05 | Destructured finite record; early-return choice guards | refused | refused | proven |
-| MCP-B06 | Stateful protocol step law, not a per-input decision | model retained | model retained | model retained |
+| MCP-B06 | Not per-input: a protocol transition depends on stored destination and prior registration/authorization across calls | model retained | model retained | model retained |
 | MCP-B07 | Destructured finite record; early-return choice guards | refused | refused | proven |
 | MCP-B08 | Destructured finite record; early-return choice guards | refused | refused | proven |
 
@@ -130,6 +130,29 @@ The separate CLI-P01 flow law also remains a model law; decision proofs do not e
 
 `runs/probe-v4` / batch `20261110-010526-s9tq8y`: **61 tests passed, 0 failed** across seven focused files; `bun run check` passed with 0 warnings/errors and the build passed. This is a clean-baseline-plus-frozen-patch validation, not the required final committed-candidate gate. The new whole-file CLI regression is in the next snapshot.
 
+## Item 3 choice and measured costs
+
+Selected **interpreter-by-default for `Fun.run()`**, with a cached `Fun.compiled()` callable as explicit opt-in. Selection was made after the actual-example job completed successfully. `runs/item3-measurements.json` contains the numeric rows and placement from batch `20261110-010532-cfxnro` (exclusive large, AMD Ryzen 9 9950X, 2/8 vCPUs, zero co-tenants). Each row is 100,000 warm calls or 1,000 model-create/first calls; normalization was checked on every input before timing.
+
+| Domain | Plain ns/call | Compiled ns/call | Interpreted ns/call | Cold compiled ns | Cold interpreted ns |
+| --- | ---: | ---: | ---: | ---: | ---: |
+| 4 | 21.10 | 2280.46 | 1708.42 | 63551.85 | 26337.34 |
+| 128 | 37.03 | 3283.02 | 2856.71 | 100095.66 | 56409.08 |
+| 32 | 31.44 | 3095.88 | 1818.03 | 50930.20 | 36937.96 |
+| 48 (additional decision) | 16.21 | 2947.92 | 2138.37 | 53823.79 | 27948.51 |
+
+These are wrapper-level measurements including encoding/decoding and adapters, not isolated evaluator costs or a universal speed claim. On the requested examples the interpreter was not slower, and avoided cold code generation; plain shipped TypeScript remains much cheaper. Internal prover compilation remains unchanged. `compare()` deliberately keeps a compiled execution path for tooling. Native arithmetic terms avoid helper compilation; declared helper source is refused by default before machine construction and requires the explicit opt-in (callbacks are serialized by the existing machinery too). The v6 CSP/compatibility/export probe passed **62 tests, 0 failed**. Its typecheck failed only because a test expected string was widened rather than kept as a literal; that fixture was fixed and v7 passed check, lint, build and 28 built-export/runtime tests. No final gate is claimed.
+
+New `Fun.compiled()` API:
+
+```ts
+import {bool, fun} from 'gdp-wired'
+const f = fun('permit').inputs({ready: bool}).returns(({ready}) => ({ok: ready}))
+const run = f.compiled() // explicit dynamic-code opt-in; cached callable
+console.log(run({ready: true}))
+console.log(f.run({ready: false})) // interpreted default
+```
+
 ## Pending
 
-Items 0–4, ordered commits, package evidence, full clean-checkout gate with both pinned submodules, Boat bar against main, and 29-protocol generation census. An exhaustive comparison is a test, never a proof. Kernel trust is unchanged.
+Items 0–2 are committed (`662cf1ef`, `7ad7eb2b`, `054da953`); item 3 runtime implementation and item 4 docs/posture are awaiting their final focused check and commits. Then rebase onto the coordinator's updated main and run the full clean-checkout gate with both pinned submodules, Boat bar against that main, and 29-protocol generation census. An exhaustive comparison is a test, never a proof. Kernel trust is unchanged.

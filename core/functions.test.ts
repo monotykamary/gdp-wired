@@ -92,8 +92,8 @@ test('decisions assume the functions\' facts where they read them; fun: a functi
   // The facts are hypotheses of the decision's goal (as its Lean export states them), at the arguments it reads.
   expect(lossless(cap()).goal.hyps.length).toBeGreaterThan(lossless(cap({fact: false})).goal.hyps.length)
   // What runs is what was proven: the compiled rule, the broken one broken past 2^32.
-  expect(cap().run({left: R + 5, local: 10})).toEqual({out: 10})
-  expect(cap({bug: 'narrows before capping'}).run({left: R + 5, local: 10})).toEqual({out: 5})
+  expect(cap().compiled()({left: R + 5, local: 10})).toEqual({out: 10})
+  expect(cap({bug: 'narrows before capping'}).compiled()({left: R + 5, local: 10})).toEqual({out: 5})
   // Conditions in the result come back as booleans; a field may share an argument's name.
   const reserve = fun('reserve').params({cost: nat}).inputs({left: nat}).returns(({left, cost}) => ({granted: left.atLeast(cost), left: left.minus(cost)}))
   expect(reserve.run({left: 3}, {cost: 2})).toEqual({granted: true, left: 1})

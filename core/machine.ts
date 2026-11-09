@@ -205,6 +205,9 @@ export function arithmetic(ks: Iterable<number>): {fns: Record<string, Fn>, fact
     const d = divName(k), r = modName(k), key = `x$${r}`, at = (map: string): E => get(map, x(key))
     fns[d] = {js: `x => Math.floor(x / ${k})`, lean: `fun x => x / ${k}`}
     fns[r] = {js: `x => x % ${k}`, lean: `fun x => x % ${k}`}
+    // These library-created helpers already have native implementations; interpreting them needs no code generation.
+    compiledFns.set(fns[d]!, x => Math.floor(x / k))
+    compiledFns.set(fns[r]!, x => x % k)
     facts.push({name: `${r}: x = ${k}·(x div ${k}) + x mod ${k}`, forall: key, holds: same(x(key), plus(times(k, at(d)), at(r)))},
       {name: `${r}: x mod ${k} < ${k}`, forall: key, holds: less(at(r), n(k))})
   }

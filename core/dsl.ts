@@ -2481,7 +2481,7 @@ const quantifiedIn = (c: C): boolean => c.op === 'all' || (c.op === 'not' ? quan
 
 // A function: arguments in, a result out, each field of the result a term or a condition over the arguments, the
 // params and the functions it reads. Its laws are decisions about the same terms it computes, so what is proven is what
-// runs (`run`, the compiled one-step rule whose state after the step is the result).
+// runs (`run` interprets the one-step rule; `compiled()` explicitly opts into generated JavaScript).
 //   const reserve = fun('reserve').inputs({left: nat, used: nat}).returns(({left, used}) => ({granted: left.gt(0), left: left.minus(1), used: used.plus(1)}))
 //   reserve.law('an empty budget grants nothing', ({left}) => left.eq(0), out => out.granted.not())
 // (A field of no known kind, `any`, is a term.)
@@ -2498,6 +2498,7 @@ type Field = Term | Cond | Int | Decimal | Choice<string> | Str | Variant<any, a
 // The kind a result field is kept in.
 const kindOf = (t: Field | number): Kind<unknown> => (t instanceof Cond ? bool : t instanceof Int ? int : t instanceof Decimal ? decimal(t.places) : t instanceof Choice ? oneOf(...t.values) : t instanceof Str ? str({like: t.patterns})
   : t instanceof Variant ? t.kind : t instanceof Maybe ? maybe(kindOf(t.inner as Field)) : isRecord(t) ? record(Object.fromEntries(Object.entries(t).map(([f, x]) => [f, kindOf(x as Field)]))) : nat)
+type FunRunner<P extends Obj, I extends Obj, O extends Obj> = (values: {[k in keyof I]: Raw}, params?: {[k in keyof P]?: Raw}) => Value<O>
 export class Fun<P extends Obj = {}, I extends Obj = {}, O extends Obj = {}> {
   constructor(private readonly r: Rule<P, I>, private readonly out?: (env: never) => Record<string, TermLike | Field>) {}
   get name() { return this.r.name }
@@ -2530,7 +2531,7 @@ export class Fun<P extends Obj = {}, I extends Obj = {}, O extends Obj = {}> {
   compare(reference: (values: Value<I>, params: Value<P>) => Partial<Value<O>>, opts: Draws<Value<I>> & {params?: Value<P>} = {}): CompareAgreement {
     const rand = opts.rand ?? seeded(5), bound = compareCount(opts.bound ?? 1000, 'bound'), trials = compareCount(opts.trials ?? 2000, 'trials')
     const cap = compareCount(opts.maxCases ?? 100_000, 'maxCases', 1), params = compareCopy((opts.params ?? {}) as Value<P>), kinds = this.r['spec'].inputs
-    const domain = opts.draw ? undefined : finiteFields(kinds, cap), r = this.rule, m = r.machine, run = r.interpreter(), ps = r.encodeParams(params as never)
+    const domain = opts.draw ? undefined : finiteFields(kinds, cap), r = this.rule, m = r.machine, run = r.interpreter(), ps = r.encodeParams(params as never), execute = this.compiled()
     let checked = 0, skipped = 0
     if (m.pre && !evalC(m.pre, ps, {scalars: {}, maps: {}}, m)) return compareResult(0, false, 0, 1)
     const initial = run.init(ps), supplied = opts.edges ?? []
@@ -2543,7 +2544,7 @@ export class Fun<P extends Obj = {}, I extends Obj = {}, O extends Obj = {}> {
     }
     for (const values of draws()) {
       if (!allowed(m, run, ps, initial, r.encodeInput(values as never, params as never))) { skipped++; continue }
-      const ours = this.run(values, params) as Record<string, unknown>, theirs = compareFields(reference(compareCopy(values), compareCopy(params)))
+      const ours = execute(values, params) as Record<string, unknown>, theirs = compareFields(reference(compareCopy(values), compareCopy(params)))
       checked++
       for (const [field, want] of Object.entries(theirs)) {
         if (!sameRaw(ours[field], want)) return compareResult(checked, false, skipped, 0, `${this.name}, params ${JSON.stringify(params)}, at ${JSON.stringify(values)}: ${field} is ${shown(ours[field])} here, ${shown(want)} in the code it describes`)
@@ -2558,15 +2559,29 @@ export class Fun<P extends Obj = {}, I extends Obj = {}, O extends Obj = {}> {
     return this.r.state(Object.fromEntries(fields.map(([k, t]) => { const kind = kindOf(t); return [name(k), kind.from(kind.empty())] })))
       .step(env => Object.fromEntries(Object.entries(this.result(env)).map(([k, t]) => [name(k), t])) as never) as never
   }
-  private compiledRule?: {rule: Rule<P, I>, gen: ReturnType<Rule['compiled']>}
-  // The result at these arguments (and params), from the compiled rule: numbers, and booleans for the conditions.
-  run(values: {[k in keyof I]: Raw}, params: {[k in keyof P]?: Raw} = {}): Value<O> {
-    this.compiledRule ??= (rule => ({rule, gen: rule.compiled()}))(this.rule)
-    const {rule, gen} = this.compiledRule, ps = rule.encodeParams(params as never)
-    const kinds = Object.entries(this.result(this.r['env']({flags: false, state: false, queries: false})))
-    const st = rule.decode(gen.step(ps, gen.init(ps), rule.encodeInput(values as never, params as never)))
-    return Object.fromEntries(kinds.map(([k]) => [k, st[`out.${k}`]])) as never
+  private runtimeRule?: {rule: Rule<P, I>, fields: string[]}
+  private runners: Partial<Record<'interpreted' | 'compiled', FunRunner<P, I, O>>> = {}
+  private runner(mode: 'interpreted' | 'compiled'): FunRunner<P, I, O> {
+    const cached = this.runners[mode]
+    if (cached) return cached
+    // Custom helpers are source code, including callbacks serialized by fnSource. Refuse before materializing a
+    // machine rather than implicitly invoking Function in a runtime which the caller chose to interpret.
+    const helpers = this.r['spec'].fns
+    if (mode === 'interpreted' && helpers?.length) throw new Error(`${this.name}: run() does not compile declared helper source (${helpers.map(([name]) => name).join(', ')}); use compiled() explicitly, or term.divBy()/modBy() for arithmetic`)
+    this.runtimeRule ??= {rule: this.rule, fields: Object.keys(this.result(this.r['env']({flags: false, state: false, queries: false})))}
+    const {rule, fields} = this.runtimeRule, gen = mode === 'compiled' ? rule.compiled() : rule.interpreter()
+    const execute: FunRunner<P, I, O> = (values, params = {}) => {
+      const ps = rule.encodeParams(params as never)
+      const st = rule.decode(gen.step(ps, gen.init(ps), rule.encodeInput(values as never, params as never)))
+      return Object.fromEntries(fields.map(k => [k, st[`out.${k}`]])) as never
+    }
+    this.runners[mode] = execute
+    return execute
   }
+  // The default runtime interprets terms without generating JavaScript.
+  run(values: {[k in keyof I]: Raw}, params: {[k in keyof P]?: Raw} = {}): Value<O> { return this.runner('interpreted')(values, params) }
+  // Explicit dynamic-code opt-in. Cache this callable at startup; it has run()'s argument and result types.
+  compiled(): FunRunner<P, I, O> { return this.runner('compiled') }
 }
 export const fun = (name: string): Fun => new Fun(rule(name))
 // The function a law was stated about. Variants of one function share its arguments, so a law's terms alone don't say
