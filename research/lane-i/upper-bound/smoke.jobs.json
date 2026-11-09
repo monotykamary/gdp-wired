@@ -1,0 +1,16 @@
+[
+  {
+    "name": "smoke-on",
+    "cmd": "bash research/lane-i/upper-bound/shard.sh star 0 1 on 2000",
+    "cpu": 2,
+    "memory": 14336,
+    "timeout": 90
+  },
+  {
+    "name": "smoke-off",
+    "cmd": "bash research/lane-i/upper-bound/shard.sh star 0 1 off 2000",
+    "cpu": 2,
+    "memory": 14336,
+    "timeout": 90
+  }
+]
