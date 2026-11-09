@@ -62,7 +62,11 @@ test('$unique cannot observe a stamp wrap: at 2^32 − 1 the buffer is zeroed an
   expect([...unique.buf!]).toEqual([0, 0, 1, 0, 1, 0, 0, 0])
   expect(unique([6], 6)).toEqual([6])
   expect(unique.stamp).toBe(2)
-  // A buffer grown for a larger range restarts its stamps too.
+  // A buffer grown for a larger dense range restarts its stamps too; a sparse range takes the Set path and leaves them.
   expect(unique([300, 2], 300)).toEqual([2, 300])
+  expect(unique.stamp).toBe(2)
+  const dense = Array.from({length: 80}, (_, i) => 3 * i)
+  expect(unique(dense, 240)).toEqual(dense)
   expect(unique.stamp).toBe(1)
+  expect(unique.buf!.length).toBeGreaterThan(240)
 })
