@@ -22,6 +22,10 @@
 - **VM note for lane D and the coordinator:** `bx_8nqy7xab` (large, Ryzen 9 9950X) ran both of its strict pairs ≈ 3× slower than every
   other large VM (base 54.1 s and 54.8 s of non-attempt wall against 20–29 s elsewhere; `receipts/orig2` pair 3, `receipts/orig3` pair 2).
   A timing claim should not rest on it; the pairs on it still favour the candidate.
+- **In progress (coordinator's request 04:30): Section 17 of MLDR-DESIGN.md** — why Inv* and Inv2973-half end `unknown` on all 7
+  operations at unlimited budget. 17.0 is written from lane I's frozen shard logs: two modes, (A) nine shards stop reporting after the
+  first pass-1 model and grow to 14 GiB outside the counted clock (incl. `half`'s pure-frame ops 2 and 3), (B) five shards loop on
+  `rejected proposal` for 30 min. Traces of the frozen family on both trees are on boat (`research/track-wall/s17-trace.ts`, 42 jobs).
 - No open audit blockers. No push, no merge. Kernel untouched since the Lean-first frame-cut work (branch `claude/mldr-design`).
 - Routed to lanes A / B (MLDR-DESIGN.md "16.3 consequence — measured", corrected 03:50): **pass-1 attempts do obey their share on the
   counted clock** (`took` 3,214–3,237 of a 3,2xx share, every attempt, both trees); what overruns is the **wall per counted unit**: 0.83–1.1
