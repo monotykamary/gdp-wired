@@ -1,5 +1,17 @@
 # RESUMED — Lane F; original batches registered late
 
+## For lanes B/C/D — source progress, not a gate candidate
+
+`f84a8330` contains ordinary checked/admitted compensated off-diagonal sources for candidate vectors `r$0-r$55-r$10` and `r$2-r$57-r$12`, with compressed hash-verified proofs. They cost 226/307 search units in the 1,000-unit diagnostic, so they are **not** cleared for the production source allowance. `c6406187` reduces the same source query from 81 to 9 hypotheses and obtains numeric cores in approximately 19 units, but the following 100-unit reconstruction still fails. All frozen comparisons and original-family attempts so far remain unchecked; do not promote a helper win, increase a cap, or request the full gate from this evidence. The retained-scalar-context experiment below is pending.
+
+## Retained scalar-context reconstruction — fixed-cap failure, cheaper diagnostic
+
+Checkpoint `c6406187` records the 9-hypothesis query improvement and failed 100-unit reconstructions. The next falsifiable hypothesis is that the minimal numeric core omits scalar bounds useful to ordinary proof reconstruction. Six acceptance probes retain all nine already-existing scalar-context hypotheses and compare ordinary, folded and Boolean reconstruction under the unchanged **50 query / 100 reconstruction / 150 total** caps. Four separately named **diagnostic** probes use the pre-existing 1,000-unit diagnostic limit to measure minimal-versus-contextual phase costs; those are not production acceptance results. The eleventh job validates the actual injected code and all affected tests. No original-family or full gate is being submitted, and no production behavior or kernel code is changed.
+
+Batch `20261110-015137-2xhuhc`, tree `b22ef3e00df9`, returned 11 worker exits 0. All six strict **50+100 acceptance probes fail**; adding the full 9-hypothesis context makes reconstruction slower, not faster. In the separately labeled diagnostics, minimal candidate 0 checks and admits at **19.578 query + 114.516 reconstruction = 134.093 search units**; minimal candidate 3 checks and admits at **18.859 + 201.150 = 220.009 units**. Full context costs 161.926 and 259.320 units, respectively; the latter checks but does not admit. Validation passes **85 tests / 391 assertions**, type-aware checks and four commit messages.
+
+Candidate 0's 134-unit diagnostic is below the sum of the existing 150-unit attempt envelope, but exceeds its current 100-unit reconstruction sub-slice; it is **not** a strict-cap acceptance result. Next test whether explicitly pooling unused query allowance within the unchanged 150-unit total admits it, and whether simpler Boolean reconstruction avoids the extra work for either candidate. Do not enlarge the attempt/leaf or helper allowance. The cheapest candidate-0 proof receipt is retained compressed and hash-verified; no bulky context was fetched.
+
 ## Live scalar-domain projection — query improved, reconstruction still blocked
 
 The exact-cap negative result is committed as `0775159a`. Because the 50-unit initial query never returns a core, the next change is **before** that query: retain the ordinary witness clause, its negated claim, and only existing scalar hypotheses whose variables occur in the live witness clause. This uses the existing `sourceScalarContext` helper, invents no premise, preserves the conclusion position, and widens every proposed tree back to the full source before checking/admission. A regression covers both retained and missing guard domains.

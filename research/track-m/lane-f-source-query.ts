@@ -29,7 +29,7 @@ if(index===undefined||index<0)throw Error('requested source instance absent')
 const scope:Path=new Map(traceData.events.filter((e:any)=>e.stage==='closure-final').at(-1).path),raw=g.hyps.slice(0,-cert.insts.length),inst=cert.insts[index]!,h=g.hyps[raw.length+index]!,good=(h as any).xs[0]
 const ids=new Set(cert.reads.map(r=>r[0])),maps=new Set(cert.reads.map(r=>r[1])),wits=new Set(cert.insts.map(q=>q.wit))
 const source=raw.flatMap(c=>piecesAt(c,scope)).filter(c=>{let skip=false;const owners=new Set<string>();walkLive(c,scope,(o:any)=>{if(o.op==='get'&&maps.has(o.map)||o.op==='var'&&ids.has(o.name))skip=true;else if(o.op==='var'&&wits.has(o.name))owners.add(o.name)});return !skip&&owners.size<=1&&(!owners.size||owners.has(inst.wit))})
-const part:Goal={name:g.name,hyps:[...(mode.startsWith('tiny')?[]:source),h,{op:'not',x:good}]},events:object[]=[],start=performance.now(),work=fullWork();let tree:Tree|undefined,error:string|undefined,coreIndices:number[]|undefined,coreQueryUnits:number|undefined,coreSearchUnits:number|undefined,queryHyps=part.hyps.length,coreTree=false,coreWidened=false
+const part:Goal={name:g.name,hyps:[...(mode.startsWith('tiny')?[]:source),h,{op:'not',x:good}]},events:object[]=[],start=performance.now(),work=fullWork();let tree:Tree|undefined,error:string|undefined,coreIndices:number[]|undefined,coreQueryUnits:number|undefined,coreSearchUnits:number|undefined,queryHyps=part.hyps.length,reconstructionHyps=0,coreTree=false,coreWidened=false
 try{withWall(start+7000,()=>counted(fullRate,()=>withDeadline(clock()+sourceBudget+50,()=>{
  const end=clock()+sourceBudget
  if(mode.includes('-core-')){
@@ -45,7 +45,8 @@ try{withWall(start+7000,()=>counted(fullRate,()=>withDeadline(clock()+sourceBudg
   else if(q.why==='refuted, not unfolded'&&q.core?.length){
    coreIndices=[...new Set(q.core)]
    if(coreIndices.some(i=>!Number.isInteger(i)||i<0||i>=queryGoal.hyps.length))throw Error('invalid source core')
-   const small:Goal={name:part.name,hyps:coreIndices.map(i=>queryGoal.hyps[i]!)},coreStart=clock(),coreEnd=Math.min(end,clock()+coreBudget),oldPoint=atPoint.on;let proof:Tree|undefined
+   const reduced:Goal={name:part.name,hyps:coreIndices.map(i=>queryGoal.hyps[i]!)},small=mode.includes('-context-')?queryGoal:reduced,coreStart=clock(),coreEnd=Math.min(end,clock()+coreBudget),oldPoint=atPoint.on;let proof:Tree|undefined
+   reconstructionHyps=small.hyps.length
    if(reconstructionPoint==='off')atPoint.on=false
    try{withDeadline(coreEnd,()=>{
     if(mode.endsWith('boolean'))proof=booleanCore(small,scope,new Set([inst.wit]),coreEnd,events,{deferCheck:true,extended:true,scalarGuards:true,model:true})
@@ -69,5 +70,5 @@ try{withWall(start+7000,()=>counted(fullRate,()=>withDeadline(clock()+sourceBudg
  else {const q=modelSequence(scope)(part,Math.min(end,clock()+(sourceBudget>150?250:sourceBudget)));if('tree'in q)tree=q.tree;else events.push(q);if(mode.endsWith('grow')&&!tree){const r=grow(part,scope,{nodes:0,until:end,units:true});if('tree'in r)tree=r.tree}}
 }),true))}catch(e){error=String(e)}
 const searchUnits=(fullWork()-work)/fullRate,searchWallMs=performance.now()-start,checked=!!tree&&check(part,tree,scope),a=linear(good.a,scope),b=linear(good.b,scope),lemma=checked&&a&&b?admitConditionalCut(g,part,tree!,scope,scope,sub(a,b),[],performance.now()+1000):undefined
-const result={mode,sourceBudget,queryBudget,coreBudget,reconstructionPoint,queryHyps,coreQueryUnits,coreSearchUnits,contextSha256,triangleOrdinal,triangleCandidates:triangles.map(({index,q})=>({index,inst:q})),coreIndices,coreTree,coreWidened,index,inst,hyps:part.hyps.length,checked,admissible:!!lemma,error,searchUnits,searchWallMs,units:(fullWork()-work)/fullRate,wallMs:performance.now()-start,events}
+const result={mode,sourceBudget,queryBudget,coreBudget,reconstructionPoint,queryHyps,reconstructionHyps,coreQueryUnits,coreSearchUnits,contextSha256,triangleOrdinal,triangleCandidates:triangles.map(({index,q})=>({index,inst:q})),coreIndices,coreTree,coreWidened,index,inst,hyps:part.hyps.length,checked,admissible:!!lemma,error,searchUnits,searchWallMs,units:(fullWork()-work)/fullRate,wallMs:performance.now()-start,events}
 mkdirSync(out,{recursive:true});writeFileSync(join(out,'result.json'),pack({result,part,tree,scope:[...scope],lemma}));console.log(JSON.stringify({...result,events:undefined}))
