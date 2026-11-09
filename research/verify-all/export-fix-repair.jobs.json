@@ -1,0 +1,4 @@
+[
+ {"name":"two-phase","cmd":"bun research/verify-all/export-fix-packet.ts evidence two_phase_commit","cpu":4,"memory":14336,"timeout":900,"vm_type":"large"},
+ {"name":"hash-and-controls","cmd":"bun research/verify-all/export-fix-packet.ts evidence simple && bun research/verify-all/export-fix-controls.ts && bash research/verify-all/check-lean.sh /tmp/export-fix-controls.lean","cpu":4,"memory":14336,"timeout":900,"vm_type":"large"}
+]

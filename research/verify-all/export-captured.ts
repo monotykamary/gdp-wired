@@ -5,30 +5,15 @@ import {checkLaws, checkCountedLaws, ghostedOk, someOfGhostsOk, substC, plainOf,
 import {cmachineToLean, seedStepProof, smachineToLean} from '../../lean-kernel/emit.ts'
 import {evalC, interpret} from '../../core/machine.ts'
 import {watch} from '../../core/watch.ts'
+import {alphaProjection as alpha} from './capture-alpha.ts'
 const [file, target] = process.argv.slice(2)
 const raw = readFileSync(file!, 'utf8'), x = JSON.parse(raw, (_k, v) => v?.__map ? new Map(v.__map) : v?.__set ? new Set(v.__set) : v)
 const sha = (v: string) => createHash('sha256').update(v).digest('hex')
+const snapshot = (v: any): string => JSON.stringify(v, (_k, y) => y instanceof Map ? {__map: [...y]} : y instanceof Set ? {__set: [...y]} : y)
+const beforeExport = snapshot(x)
+const retainedProof = x.counted?.checked ? x.counted.proof : x.good?.proof
+const proofBefore = retainedProof === undefined ? undefined : snapshot(retainedProof)
 const canonical = (v: any): string => JSON.stringify(v, (_k, x) => x && typeof x === 'object' && !Array.isArray(x) ? Object.fromEntries(Object.keys(x).sort().filter(k => x[k] !== undefined).map(k => [k, x[k]])) : x)
-// Rename only lexical quantifier, map-write and sum binders; never normalize free names or constants.
-const alpha = (v: any, env = new Map<string, string>(), depth = 0): any => {
-  if (!v || typeof v !== 'object') return v
-  if (Array.isArray(v)) return v.map(y => alpha(y, env, depth))
-  if (v.op === 'var' && env.has(v.name)) return {...v, name: env.get(v.name)}
-  if (typeof v.each === 'string' && v.value !== undefined) {
-    const inner = new Map(env); inner.set(v.each, `__verify_bound_${depth}`)
-    return {...v, each:inner.get(v.each), value:alpha(v.value,inner,depth+1)}
-  }
-  if (typeof v.key === 'string' && v.term !== undefined) {
-    const inner = new Map(env); inner.set(v.key, `__verify_bound_${depth}`)
-    return {...v,key:inner.get(v.key),term:alpha(v.term,inner,depth+1)}
-  }
-  if (v.op === 'all') {
-    const names = [v.key, ...(v.keys ?? [])], inner = new Map(env)
-    names.forEach((name, i) => inner.set(name, `__verify_bound_${depth + i}`))
-    return {...v, key: inner.get(v.key), ...(v.keys ? {keys: v.keys.map((k: string) => inner.get(k))} : {}), c: alpha(v.c, inner, depth + names.length), ...(v.witness ? {witness: alpha(v.witness, env, depth)} : {})}
-  }
-  return Object.fromEntries(Object.entries(v).map(([k, y]) => [k, alpha(y, env, depth)]))
-}
 const result: any = {id: x.row.id, captureSha256: sha(raw), harness: x.row, accepted: !!(x.verdict.out.proven && x.verdict.out.checked)}
 const v = x.verdict.out
 if (v.run) {
@@ -66,7 +51,7 @@ try {
     result.kind = 'counted-machine'; result.laws = c.laws.length
     result.sourceLawEquality = true; result.countedProjectionAlphaEquivalent = true
     result.addedCountViews = Object.keys(c.machine.counts??{}).filter(k=>!(k in (original.counts??{})))
-    text = 'import CountMachine\nopen Kern Cert\nset_option maxRecDepth 100000\nset_option maxHeartbeats 0\n' + cmachineToLean('verified', c.machine, c.laws, c.proof)
+    text = 'import QAlpha\nopen Kern Cert\nset_option maxRecDepth 100000\nset_option maxHeartbeats 0\n' + cmachineToLean('verified', c.machine, c.laws, c.proof)
   } else {
     const c = x.good
     if (!c) throw new Error('accepted harness verdict exposed no captured whole-family certificate')
@@ -129,6 +114,9 @@ try {
   }
   text += '\n#print axioms verified_laws\n'
   if (/\bsorry\b|\badmit\b|native_decide/.test(text)) throw new Error('unsafe theorem or native_decide in export')
+  if (snapshot(x) !== beforeExport || snapshot(retainedProof) !== proofBefore) throw new Error('export mutated retained capture objects')
+  result.packetObjectsUnchanged = true
+  result.retainedProofSha256 = sha(proofBefore!)
   writeFileSync(target!, text); result.leanBytes = text.length; result.leanSha256 = sha(text)
 } catch (e) { result.exportError = String(e) }
 writeFileSync(target!.replace(/\.lean$/, '.result.json'), JSON.stringify(result, null, 2))

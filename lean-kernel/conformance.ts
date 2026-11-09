@@ -75,7 +75,7 @@ if (process.argv.includes('--lemma-cuts')) {
   const expectedAbove = checkCounted(g, above)
   if (expectedAbove) throw new Error('cut accepted above its condition')
   out.push(`-- cut cited above its decision: TypeScript ${expectedAbove}\nexample : checkCounted conditional_cases_goal [] ${aboveEnc.tab} (${aboveEnc.tree}) ${aboveEnc.lemmas} = ${expectedAbove} := by decide +kernel`)
-  console.log(`import CountMachine\nopen Kern Cert\nset_option maxRecDepth 100000\nset_option maxHeartbeats 0\n\n${out.join('\n\n')}`)
+  console.log(`import QAlpha\nopen Kern Cert\nset_option maxRecDepth 100000\nset_option maxHeartbeats 0\n\n${out.join('\n\n')}`)
   process.exit(0)
 }
 

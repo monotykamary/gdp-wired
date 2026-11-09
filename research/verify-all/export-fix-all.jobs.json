@@ -1,0 +1,226 @@
+[
+  {
+    "name": "export-client_server_ae",
+    "cmd": "bun install --frozen-lockfile >/dev/null && bun research/verify-all/export-fix-packet.ts evidence client_server_ae",
+    "cpu": 4,
+    "memory": 14336,
+    "timeout": 1800,
+    "vm_type": "large"
+  },
+  {
+    "name": "export-client_server_db_ae",
+    "cmd": "bun install --frozen-lockfile >/dev/null && bun research/verify-all/export-fix-packet.ts evidence client_server_db_ae",
+    "cpu": 4,
+    "memory": 14336,
+    "timeout": 1800,
+    "vm_type": "large"
+  },
+  {
+    "name": "export-consensus",
+    "cmd": "bun install --frozen-lockfile >/dev/null && bun research/verify-all/export-fix-packet.ts evidence consensus",
+    "cpu": 4,
+    "memory": 14336,
+    "timeout": 1800,
+    "vm_type": "large"
+  },
+  {
+    "name": "export-consensus_epr",
+    "cmd": "bun install --frozen-lockfile >/dev/null && bun research/verify-all/export-fix-packet.ts evidence consensus_epr",
+    "cpu": 4,
+    "memory": 14336,
+    "timeout": 1800,
+    "vm_type": "large"
+  },
+  {
+    "name": "export-consensus_forall",
+    "cmd": "bun install --frozen-lockfile >/dev/null && bun research/verify-all/export-fix-packet.ts evidence consensus_forall",
+    "cpu": 4,
+    "memory": 14336,
+    "timeout": 1800,
+    "vm_type": "large"
+  },
+  {
+    "name": "export-consensus_wo_decide",
+    "cmd": "bun install --frozen-lockfile >/dev/null && bun research/verify-all/export-fix-packet.ts evidence consensus_wo_decide",
+    "cpu": 4,
+    "memory": 14336,
+    "timeout": 1800,
+    "vm_type": "large"
+  },
+  {
+    "name": "export-firewall",
+    "cmd": "bun install --frozen-lockfile >/dev/null && bun research/verify-all/export-fix-packet.ts evidence firewall",
+    "cpu": 4,
+    "memory": 14336,
+    "timeout": 1800,
+    "vm_type": "large"
+  },
+  {
+    "name": "export-learning_switch",
+    "cmd": "bun install --frozen-lockfile >/dev/null && bun research/verify-all/export-fix-packet.ts evidence learning_switch",
+    "cpu": 4,
+    "memory": 14336,
+    "timeout": 1800,
+    "vm_type": "large"
+  },
+  {
+    "name": "export-learning_switch_i4",
+    "cmd": "bun install --frozen-lockfile >/dev/null && bun research/verify-all/export-fix-packet.ts evidence learning_switch_i4",
+    "cpu": 4,
+    "memory": 14336,
+    "timeout": 1800,
+    "vm_type": "large"
+  },
+  {
+    "name": "export-lock_server",
+    "cmd": "bun install --frozen-lockfile >/dev/null && bun research/verify-all/export-fix-packet.ts evidence lock_server",
+    "cpu": 4,
+    "memory": 14336,
+    "timeout": 1800,
+    "vm_type": "large"
+  },
+  {
+    "name": "export-lockserv",
+    "cmd": "bun install --frozen-lockfile >/dev/null && bun research/verify-all/export-fix-packet.ts evidence lockserv",
+    "cpu": 4,
+    "memory": 14336,
+    "timeout": 1800,
+    "vm_type": "large"
+  },
+  {
+    "name": "export-lockserv_automaton",
+    "cmd": "bun install --frozen-lockfile >/dev/null && bun research/verify-all/export-fix-packet.ts evidence lockserv_automaton",
+    "cpu": 4,
+    "memory": 14336,
+    "timeout": 1800,
+    "vm_type": "large"
+  },
+  {
+    "name": "export-majorityset_leader_election",
+    "cmd": "bun install --frozen-lockfile >/dev/null && bun research/verify-all/export-fix-packet.ts evidence majorityset_leader_election",
+    "cpu": 4,
+    "memory": 14336,
+    "timeout": 1800,
+    "vm_type": "large"
+  },
+  {
+    "name": "export-naive_consensus",
+    "cmd": "bun install --frozen-lockfile >/dev/null && bun research/verify-all/export-fix-packet.ts evidence naive_consensus",
+    "cpu": 4,
+    "memory": 14336,
+    "timeout": 1800,
+    "vm_type": "large"
+  },
+  {
+    "name": "export-paxos_epr",
+    "cmd": "bun install --frozen-lockfile >/dev/null && bun research/verify-all/export-fix-packet.ts evidence paxos_epr",
+    "cpu": 4,
+    "memory": 14336,
+    "timeout": 1800,
+    "vm_type": "large"
+  },
+  {
+    "name": "export-quorum_leader_election",
+    "cmd": "bun install --frozen-lockfile >/dev/null && bun research/verify-all/export-fix-packet.ts evidence quorum_leader_election",
+    "cpu": 4,
+    "memory": 14336,
+    "timeout": 1800,
+    "vm_type": "large"
+  },
+  {
+    "name": "export-sharded_kv",
+    "cmd": "bun install --frozen-lockfile >/dev/null && bun research/verify-all/export-fix-packet.ts evidence sharded_kv",
+    "cpu": 4,
+    "memory": 14336,
+    "timeout": 1800,
+    "vm_type": "large"
+  },
+  {
+    "name": "export-sharded_kv_no_lost_keys",
+    "cmd": "bun install --frozen-lockfile >/dev/null && bun research/verify-all/export-fix-packet.ts evidence sharded_kv_no_lost_keys",
+    "cpu": 4,
+    "memory": 14336,
+    "timeout": 1800,
+    "vm_type": "large"
+  },
+  {
+    "name": "export-simple",
+    "cmd": "bun install --frozen-lockfile >/dev/null && bun research/verify-all/export-fix-packet.ts evidence simple",
+    "cpu": 4,
+    "memory": 14336,
+    "timeout": 1800,
+    "vm_type": "large"
+  },
+  {
+    "name": "export-simple_decentralized_lock",
+    "cmd": "bun install --frozen-lockfile >/dev/null && bun research/verify-all/export-fix-packet.ts evidence simple_decentralized_lock",
+    "cpu": 4,
+    "memory": 14336,
+    "timeout": 1800,
+    "vm_type": "large"
+  },
+  {
+    "name": "export-simple_election",
+    "cmd": "bun install --frozen-lockfile >/dev/null && bun research/verify-all/export-fix-packet.ts evidence simple_election",
+    "cpu": 4,
+    "memory": 14336,
+    "timeout": 1800,
+    "vm_type": "large"
+  },
+  {
+    "name": "export-simple_regular",
+    "cmd": "bun install --frozen-lockfile >/dev/null && bun research/verify-all/export-fix-packet.ts evidence simple_regular",
+    "cpu": 4,
+    "memory": 14336,
+    "timeout": 1800,
+    "vm_type": "large"
+  },
+  {
+    "name": "export-tcommit",
+    "cmd": "bun install --frozen-lockfile >/dev/null && bun research/verify-all/export-fix-packet.ts evidence tcommit",
+    "cpu": 4,
+    "memory": 14336,
+    "timeout": 1800,
+    "vm_type": "large"
+  },
+  {
+    "name": "export-toy_consensus",
+    "cmd": "bun install --frozen-lockfile >/dev/null && bun research/verify-all/export-fix-packet.ts evidence toy_consensus",
+    "cpu": 4,
+    "memory": 14336,
+    "timeout": 1800,
+    "vm_type": "large"
+  },
+  {
+    "name": "export-toy_consensus_epr",
+    "cmd": "bun install --frozen-lockfile >/dev/null && bun research/verify-all/export-fix-packet.ts evidence toy_consensus_epr",
+    "cpu": 4,
+    "memory": 14336,
+    "timeout": 1800,
+    "vm_type": "large"
+  },
+  {
+    "name": "export-toy_consensus_forall",
+    "cmd": "bun install --frozen-lockfile >/dev/null && bun research/verify-all/export-fix-packet.ts evidence toy_consensus_forall",
+    "cpu": 4,
+    "memory": 14336,
+    "timeout": 1800,
+    "vm_type": "large"
+  },
+  {
+    "name": "export-two_phase_commit",
+    "cmd": "bun install --frozen-lockfile >/dev/null && bun research/verify-all/export-fix-packet.ts evidence two_phase_commit",
+    "cpu": 4,
+    "memory": 14336,
+    "timeout": 1800,
+    "vm_type": "large"
+  },
+  {
+    "name": "export-twophase",
+    "cmd": "bun install --frozen-lockfile >/dev/null && bun research/verify-all/export-fix-packet.ts evidence twophase",
+    "cpu": 4,
+    "memory": 14336,
+    "timeout": 1800,
+    "vm_type": "large"
+  }
+]

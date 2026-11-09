@@ -1,0 +1,1 @@
+[{"name":"shape","cmd":"bash research/verify-all/check-lean.sh research/verify-all/export-shape.lean","cpu":4,"memory":14336,"timeout":900,"vm_type":"large"}]

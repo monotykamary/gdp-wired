@@ -6,7 +6,7 @@ export LEAN_PATH="$root/lean-kernel"
 lean --version
 # Sources remain unchanged. Dependencies compile on boat; no native_decide, sorry, or external solver.
 cd lean-kernel
-for m in Cert Kernel Cyclic Progress StepLaw Steps Sets History Live Ghost GhostMap Sums Count CountMachine; do
+for m in Cert Kernel Cyclic Progress StepLaw Steps Sets History Live Ghost GhostMap Sums Count CountMachine QAlpha; do
   if [ ! -f "$m.olean" ] || [ "$m.lean" -nt "$m.olean" ]; then
     echo "LEAN_DEP $m"
     timeout -s KILL 600 lean -o "$m.olean" "$m.lean"
