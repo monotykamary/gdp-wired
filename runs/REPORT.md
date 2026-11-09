@@ -95,7 +95,12 @@ the merged-tree tests/typecheck, the 29-list census against `bef4020f` and a per
   `research/track-wall/fast-step-census.ts`): 26 of 29 protocols generate on the compiled step; `learning_switch`, `learning_switch_i4` and
   `client_server_db_ae` run in the interpreter because `compileJs` takes no tuple key at every key — and those three are ≈ 350–450 s of a
   ≈ 560 s census (learning_switch 216 s, _i4 130–230 s, client_server_db_ae 6–9 s). A compiled tuple-key every-write would cut lane D's
-  29-protocol census wall by roughly 60–70 % per gate run. mldr is unaffected (compiled already). one breakpoint list per step shared by every dense write (the union of their breakpoints; `$dense`
+  29-protocol census wall by roughly 60–70 % per gate run. mldr is unaffected (compiled already). Short of that compiler item, the
+  interpreter's own profile pointed at ≈ 25 % of pure allocation per tuple (`fromEntries` 9 %, `copyDataProperties` 6 %, `cloneObject` 5 %,
+  `stringify` 3 %): **`8feee82e`** keeps one environment per write (the key or the parts written into it) instead of a spread per key or
+  tuple, reads a tuple write's parts / freed value / breakpoints / crossing once per write instead of once per step, and memoizes
+  `unchanged`'s part-reading facts per term — exact by construction (the interpreter's results are unchanged; only allocation goes).
+  Under guards now: tests, a paired learning_switch profile vs `cd947909`, census vs `bef4020f`. Not a gate head until they hold. one breakpoint list per step shared by every dense write (the union of their breakpoints; `$dense`
   fills the same cells from it), and no second validation in `cells`.
 , violation-driven ranges (`72380dc1`) vs lane A's `c21a6e54`, three pinned large VMs
   (Ryzen 9 9950X ×2, EPYC 4585PX; `runs/track-wall/receipts/rmldr3`, logs gzipped):** verdict `unknown` (time) on all six runs;
