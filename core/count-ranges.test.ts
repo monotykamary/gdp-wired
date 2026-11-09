@@ -1,7 +1,8 @@
 import {expect, test} from 'bun:test'
-import {get, ite, n, same, x} from './machine.ts'
-import {type CountDecl, type MapRead, checkCounted, countedGoal} from '../kernel/kernel.ts'
-import {clock, grow} from '../kernel/prove.ts'
+import {type Law, type Machine, any, atMost, get, ite, n, same, x} from './machine.ts'
+import {type CountDecl, type MapRead, checkCounted, checkMC, countedGoal, countedObligations} from '../kernel/kernel.ts'
+import {clock, counted, fullRate, grow, withDeadline, withWall} from '../kernel/prove.ts'
+import {countedAttempts, countsDump} from './counts.ts'
 import {modelSequence} from '../kernel/model-sequence.ts'
 import {countsForReads} from './count-facts.ts'
 import {rangeInstances, rangeViolations, zeroOne} from './count-ranges.ts'
@@ -59,6 +60,33 @@ test('a narrowed certificate still needs the complete read pool for replay range
   expect(rangeInstances(ds, demanded, ['size']).map(i => i.terms)).toEqual([[[1, 'r$1']]])
   expect(replay.c).toBe(selected)
 })
+
+test('ordinary core replay retains metadata and returns an independently checked proof', () => {
+  const m: Machine = {name: 'guarded core replay', params: [], inputs: ['at', 'value'], state: {ready: n(0)}, maps: {Cells: 0},
+    counts: {Total: {j: 'row', key: 'member', below: n(2), body: bit(same(get('Cells', x('member')), n(1)))}},
+    step: {state: {ready: n(1)}, maps: {Cells: {key: x('at'), value: x('value')}}}}
+  const law: Law = {name: 'bounded cells', holds: any(same(x('ready'), n(0)), atMost(get('Total', n(0)), n(2)))}
+  const prior = countsDump.on
+  let replays = 0
+  try {
+    countsDump.on = event => {
+      if ('phase' in event && event.phase === 'core-replay') {
+        replays++
+        expect(event).toMatchObject({readsRetained: true, poolsRetained: true, certificatesRetained: true})
+        expect('readCount' in event && typeof event.readCount === 'number' && event.readCount > 0).toBe(true)
+      }
+    }
+    const result = withWall(performance.now() + 8000, () => counted(fullRate, () => {
+      const until = clock() + 4000
+      return withDeadline(until, () => countedAttempts(m, [law], new Set(), until).traced(law, [law], 1, 4000))
+    }, true))
+    expect(replays).toBeGreaterThan(0)
+    expect('proof' in result).toBe(true)
+    if ('proof' in result) for (const {goal, decls} of countedObligations(m, [law], {[law.name]: result.proof.instances}, 0)) {
+      expect(checkMC(goal.hyps, decls, result.proof.certs[goal.name]!)).toBe(true)
+    }
+  } finally { countsDump.on = prior }
+}, 10000)
 
 test('unsupported map and conditional bounds stay unknown even when scalar values are present', () => {
   for (const below of [get('Limits', n(0)), ite(same(x('size'), n(1)), n(1), n(2))]) {

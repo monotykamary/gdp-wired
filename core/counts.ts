@@ -928,7 +928,13 @@ export function countedAttempts(m: Machine, caller: Law[], support: Set<Law>, un
           }
           at = cut
           // Replay changes the goal, not its proposal pool or complete read set.
+          const beforeReplay = built
           built = obligations(at).map(({goal, decls}, j) => ({...built[j]!, goal, decls, gg: mcGoal(goal.hyps, decls, built[j]!.c)}))
+          countsDump.on?.({phase: 'core-replay', law: law.name, pass,
+            readCount: beforeReplay.at(-1)!.all.length,
+            readsRetained: built.every((b, j) => b.all === beforeReplay[j]!.all),
+            poolsRetained: built.every((b, j) => b.pool === beforeReplay[j]!.pool),
+            certificatesRetained: built.every((b, j) => b.c === beforeReplay[j]!.c)})
           part = {gg: built.at(-1)!.gg!, core: {name: gg.name, hyps: (q.core.includes(last) ? q.core : [...q.core, last]).map(h => gg.hyps[h]!)}}
           break
         }
