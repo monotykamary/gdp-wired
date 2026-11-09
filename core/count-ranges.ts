@@ -1,9 +1,7 @@
-// A count whose body is 0 or 1 at every key is at most the number of keys it ranges over. The instance `count ≤ below`
-// (Count.lean's countHyp with the one term at +1 and the unit at −1: the count is at most its bound, or some key below
-// the bound has a body above 1, which no 0/1 body has) joins a counted attempt's selection as soon as a model of the goal
-// puts such a count above its bound (`rangeViolations`), so that model is never kept and never returned as a refutation.
-// Nothing is assumed: the instance is an ordinary count instance the kernel checks. A body that is not 0/1 gets no range;
-// a goal whose models respect every range pays nothing.
+// A 0/1-bodied count is at most its key bound. Propose its ordinary witness-
+// bearing range instance when a model violates the bound, not eagerly for
+// every read. Nothing is assumed: the unchanged kernel checks the instance.
+// Unknown bounds and non-0/1 bodies do not trigger a proposal.
 import type {E} from './machine.ts'
 import type {CountDecl, CountInst, MapRead} from '../kernel/kernel.ts'
 import {countsForReads} from './count-facts.ts'
@@ -24,8 +22,8 @@ export function rangeInstances(decls: CountDecl[], reads: MapRead[], taken: Iter
   }
   return out
 }
-// The reads whose count the model puts above its bound: the read's variable and the bound's variables all valued by the
-// model (a bound over params and state, as counts declare them); anything the model leaves open is not a violation.
+// Inspect only fully valued arithmetic bounds. Unassigned or unsupported
+// terms are unknown, not evidence that a model violates a range.
 export function rangeViolations(decls: CountDecl[], reads: MapRead[], model: Record<string, number>): MapRead[] {
   const value = (e: E): number | undefined => {
     switch (e.op) {

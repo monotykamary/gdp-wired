@@ -743,9 +743,9 @@ export function countedAttempts(m: Machine, caller: Law[], support: Set<Law>, un
     const selections = new Map<string, Selection>()
     const poolCache = new Map<string, {key: string, value: ReturnType<typeof grammarPool>}>()
     const memberSources = new Map<string,MemberHint[]>()
-    // A 0/1-bodied count the goal reads is at most its bound (core/count-ranges.ts). The range instance of a read joins
-    // the selection the moment a model puts that read above its bound (`rangeWanted`, per goal), outside the lazy pool and
-    // its cap; a goal whose models respect the ranges carries none. The reads named are the proposer's own reads.
+    // Demand-driven ranges (Fable b89dd77a / Lane B): retain a goal's demand
+    // across rebuilds, without crowding out ordinary member inclusions.
+    // Every proposed range remains an ordinary kernel-checked count instance.
     const rangeWanted = new Map<string, Set<string>>()
     const withRanges = <T extends Pick<CountCert, 'reads' | 'insts' | 'picks'> & {wits?: string[]}>(goal: Goal, decls: CountDecl[], c: T, all: MapRead[]): T => {
       const wanted = rangeWanted.get(goal.name)

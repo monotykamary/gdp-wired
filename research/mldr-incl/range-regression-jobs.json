@@ -1,0 +1,44 @@
+[
+  {
+    "name": "range-tools-check",
+    "cmd": "bash range-tools/range-regression.sh check",
+    "cpu": 8,
+    "memory": 14336,
+    "timeout": 240
+  },
+  {
+    "name": "range-control-first",
+    "cmd": "bash range-tools/range-regression.sh ordinary control:6000 off:6000",
+    "cpu": 8,
+    "memory": 14336,
+    "timeout": 240
+  },
+  {
+    "name": "range-off-first",
+    "cmd": "bash range-tools/range-regression.sh ordinary off:6000 control:6000",
+    "cpu": 8,
+    "memory": 14336,
+    "timeout": 240
+  },
+  {
+    "name": "targeted-2700",
+    "cmd": "bash range-tools/range-regression.sh targeted control:2700",
+    "cpu": 8,
+    "memory": 14336,
+    "timeout": 240
+  },
+  {
+    "name": "targeted-6000",
+    "cmd": "bash range-tools/range-regression.sh targeted control:6000",
+    "cpu": 8,
+    "memory": 14336,
+    "timeout": 240
+  },
+  {
+    "name": "targeted-no-initial-ranges-6000",
+    "cmd": "bash range-tools/range-regression.sh targeted off:6000",
+    "cpu": 8,
+    "memory": 14336,
+    "timeout": 240
+  }
+]

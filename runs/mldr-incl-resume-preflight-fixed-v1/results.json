@@ -1,0 +1,213 @@
+{
+  "diagnostic": true,
+  "gateGreen": false,
+  "baseSource": "84a7a6728d578e3918b969574a36a295fc2ad5a2",
+  "overlaySource": "8e7e863060d3b27582f605ce51411035997ea5dd",
+  "typecheckAndLint": true,
+  "tests": {
+    "passes": [
+      78,
+      4
+    ],
+    "assertions": [
+      270,
+      10
+    ],
+    "totalPass": 82,
+    "totalAssertions": 280
+  },
+  "originals": [
+    {
+      "name": "original-r1",
+      "placement": {
+        "vm": "bx_7m649ges",
+        "type": "large",
+        "cpu": "AMD Ryzen 9 9950X 16-Core Processor",
+        "vcpus": 8,
+        "vm_vcpus": 8,
+        "exclusive": true,
+        "co_tenants": 0
+      },
+      "result": {
+        "id": "mldr",
+        "ic3syn": "mldr",
+        "search": {
+          "verdict": "unknown",
+          "stuck": "unknown",
+          "why": "time (rule result)",
+          "ms": 59029,
+          "work": 25932708,
+          "full": 8655052
+        }
+      }
+    },
+    {
+      "name": "original-r2",
+      "placement": {
+        "vm": "bx_cj95y27j",
+        "type": "large",
+        "cpu": "AMD Ryzen 9 9950X 16-Core Processor",
+        "vcpus": 8,
+        "vm_vcpus": 8,
+        "exclusive": true,
+        "co_tenants": 0
+      },
+      "result": {
+        "id": "mldr",
+        "ic3syn": "mldr",
+        "search": {
+          "verdict": "unknown",
+          "stuck": "unknown",
+          "why": "time (rule result)",
+          "ms": 59092,
+          "work": 15510352,
+          "full": 4638599
+        }
+      }
+    },
+    {
+      "name": "original-r3",
+      "placement": {
+        "vm": "bx_bucc8x77",
+        "type": "large",
+        "cpu": "AMD EPYC 9455 48-Core Processor",
+        "vcpus": 8,
+        "vm_vcpus": 8,
+        "exclusive": true,
+        "co_tenants": 0
+      },
+      "result": {
+        "id": "mldr",
+        "ic3syn": "mldr",
+        "search": {
+          "verdict": "unknown",
+          "stuck": "unknown",
+          "why": "time (rule result)",
+          "ms": 59002,
+          "work": 30415518,
+          "full": 10060585
+        }
+      }
+    }
+  ],
+  "conditional": [
+    {
+      "conditional": true,
+      "variant": "resume-integrated",
+      "family": "captured generated family (no hand law)",
+      "repeat": "1",
+      "ms": 2700,
+      "support": "no",
+      "supportCount": 0,
+      "law": "one primary per term",
+      "laws": 34,
+      "proven": false,
+      "checked": false,
+      "checks": [],
+      "stuck": "unknown",
+      "profile": {
+        "encode": 27.92390199999977,
+        "decide": 2026.4936269999998,
+        "mbqi": 75.07355000000007,
+        "lazy": 0.15052399999990485,
+        "#rounds": 6,
+        "#hyps": 987,
+        "#count-completion": 36,
+        "grow": 1.524359000000004
+      },
+      "wallMs": 2162.8561400000003,
+      "countedMs": 2700.1289339999994
+    },
+    {
+      "conditional": true,
+      "variant": "resume-integrated",
+      "family": "captured generated family (no hand law)",
+      "repeat": "1",
+      "ms": 6000,
+      "support": "no",
+      "supportCount": 0,
+      "law": "one primary per term",
+      "laws": 34,
+      "proven": false,
+      "checked": false,
+      "checks": [],
+      "stuck": "unknown",
+      "profile": {
+        "encode": 37.80239899999924,
+        "decide": 3848.211448,
+        "mbqi": 97.86422899999934,
+        "lazy": 0.13096600000062608,
+        "#rounds": 9,
+        "#hyps": 1994,
+        "#count-completion": 36,
+        "grow": 1.8937150000001566
+      },
+      "wallMs": 4121.165236,
+      "countedMs": 6000.223364
+    }
+  ],
+  "captures": [
+    {
+      "artifact": "mldr-incl-capture",
+      "generationOnly": true,
+      "revision": "8e7e863060d3b27582f605ce51411035997ea5dd",
+      "lawCount": 34,
+      "names": [
+        "every Config cell is a value of its kind",
+        "one primary per term",
+        "St at most 1",
+        "fields: St[a]=1 -> CT[a]=CfgT[a]",
+        "fields: St[a]=1 -> CT[a]<=CfgT[a]",
+        "fields: St[a]=1 -> CT[a]=CT[b] -> CfgT[b]<=CfgT[a]",
+        "fields: St[a]=1 -> CfgT[a]<=CT[a]",
+        "fields: St[a]=1 -> CfgT[a]=CfgT[b] -> CV[b]<=CV[a]",
+        "every x with x < size: never CT[x] is 0 and 1 <= St[x]",
+        "every x with x < size: never 1 <= CT[x] and CV[x] is 0",
+        "every x with x < size: never 1 <= CT[x] and started is 0",
+        "every x with x < size: never 1 <= St[x] and CV[x] is 0",
+        "every x with x < size: never 1 <= St[x] and CfgT[x] is 0",
+        "every x with x < size: never 1 <= St[x] and started is 0",
+        "every x with x < size: never CV[x] is 0 and 1 <= CfgT[x]",
+        "every x with x < size: never CV[x] is 0 and 1 <= started",
+        "every x with x < size: never 1 <= CfgT[x] and started is 0",
+        "every x, y with x < size ∧ y < size ∧ ¬(x = y): never 1 <= CT[x] and CV[y] is 0",
+        "every x, y with x < size ∧ y < size ∧ ¬(x = y): never 1 <= St[x] and CV[y] is 0",
+        "every x, y with x < size ∧ y < size ∧ ¬(x = y): never CV[x] is 0 and 1 <= CfgT[y]",
+        "inX: no quorum canVote/1",
+        "inX: no quorum canVote/3",
+        "inX: stored guard reconfigs/inS",
+        "inX: stored guard reconfigs/inS or disabled/0",
+        "inX: stored guard reconfigs/inS or disabled/1",
+        "inX: stored guard reconfigs/inS or disabled/2",
+        "inX: stored guard reconfigs/inS or disabled/3",
+        "fields: CV[a]=CV[b] and CfgT[a]=CfgT[b] -> Config rows agree",
+        "count cubes: every x with x < {\"op\":\"var\",\"name\":\"size\"}: never 1 <= started and inX$row[x] is 0",
+        "count cubes: every x with x < {\"op\":\"var\",\"name\":\"size\"}: never 1 <= CT[x] and inX$row[x] is 0",
+        "count cubes: every x with x < {\"op\":\"var\",\"name\":\"size\"}: never CV[x] is 0 and 1 <= inX$row[x]",
+        "count cubes: every x with x < {\"op\":\"var\",\"name\":\"size\"}: never 1 <= CV[x] and inX$row[x] is 0",
+        "count cubes: every x with x < {\"op\":\"var\",\"name\":\"size\"}: never 1 <= CfgT[x] and inX$row[x] is 0",
+        "count cubes: every x with x < {\"op\":\"var\",\"name\":\"size\"}: never 1 <= St[x] and inX$row[x] is 0"
+      ],
+      "queries": 0,
+      "wallMs": 30113.337765,
+      "files": 1,
+      "omitted": 0,
+      "sha256": "e2311f2d5253a816f3dc381e57733378acdcdc5373022f975a117e6a42b98b63"
+    },
+    {
+      "artifact": "mldr-incl-production-capture",
+      "diagnostic": true,
+      "conditional": true,
+      "files": 1,
+      "filenames": [
+        "family-source.json"
+      ],
+      "omitted": 0,
+      "sha256": "3c43d9ef808ca58e11764d0ab41b43c4cab10194a0e7551842f66befd9558199"
+    }
+  ],
+  "notes": [
+    "Conditional helpers are assumed; no full safety proof.",
+    "Historical command failed at the invalid 300000-byte pack limit, not during its completed proof probes."
+  ]
+}

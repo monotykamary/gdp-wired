@@ -104,3 +104,8 @@ test('rangeViolations names the reads a model puts above their evaluated bound, 
   expect(rangeViolations(sized, [reads[0]!], {size: 1, r$0: 3}).map(r => r[0])).toEqual(['r$0'])
   expect(rangeViolations(sized, [reads[0]!], {size: 1, r$0: 2})).toEqual([])
 })
+
+test('range demand does not treat an unsupported bound as zero', () => {
+  const unknown: CountDecl[] = [{...ds[0]!, below: get('hiddenBound', n(0))}]
+  expect(rangeViolations(unknown, [reads[0]!], {r$0: 10})).toEqual([])
+})

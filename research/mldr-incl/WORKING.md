@@ -1,5 +1,60 @@
 # RESUMED — user instruction, 2026-11-10
 
+**Confirmed paired result:** exact same 34-law machine/family; eager
+ranges UNKNOWN at 6000.223364 in both orders, only initial ranges disabled
+checks START and STEP at 3817.24253 in both orders. Actual tree uses two
+member inclusions and one row inclusion. Conditional only; measured wall
+13.825/23.411 s, not a wall pass, and still above the 2700-unit share.
+Targeted completion off checks at 3974.8476248, no counted-work gain.
+Receipts: `runs/mldr-incl-range-regression-v1/`.
+
+**Production candidate ac7eacfe:** B/Fable demand-driven ranges integrated
+without losing E member/freshness handling. Pending guarded validation,
+batch `20261110-014532-stsqg4`, task
+`6d94b6ed-c01f-4ca9-8617-876fed697db3`, output
+`runs/mldr-incl-demand-range-v1/` (five parallel jobs, reused frozen base,
+108 KiB overlay, no new archive). No full-gate or merge claim.
+
+
+**8e7e8630 executed:** type/lint and 82 tests / 280 assertions pass.
+Original MLDR x3 remains UNKNOWN at 59.029/59.092/59.002 s. Fresh generated
+34-law conditional safety is UNKNOWN at both 2700 and 6000 units; no new
+certificate. Actual historical-command failure is the 300000-byte pack
+limit, not demonstrated shell quoting. Receipts are preserved in
+`runs/mldr-incl-resume-preflight-fixed-v1/`; no gate-green claim.
+
+**Current work:** 3af3d9ad research-only exact-family comparison and
+same-VM eager initial-range on/off in both orders, plus corrected targeted
+completion with the unchanged 48-tuple cap. Active task
+`01d0b4ba-830f-4aa4-a730-c712b43219f5`, output
+`runs/mldr-incl-range-regression-v1/`. It investigates why pre-range E's
+conditional 3817-unit certificate is not reproduced after range integration.
+No production change or new archive; all candidates must pass fresh replay.
+
+
+**Latest:** `f0eb7671` preflight passed TypeScript, then failed four
+no-useless-escape lint errors in the disabled research installer. Repair
+`8e7e8630` changes only those escapes, preserving emitted code. No focused
+tests or new proofs have passed yet. Active corrected six-job run:
+`da84933a-c5b8-4201-984f-ae4940c2b139`, output
+`runs/mldr-incl-resume-preflight-fixed-v1/`. It reuses the frozen base plus
+two tiny hash-checked source replacements. Every proof is source-check
+guarded. The older five-job batch remains untouched until terminal.
+
+
+**Actual execution now available:** frozen-v3 finished; all six jobs exited
+2 on TS2345 in `research/track-m/lane-f-frame-falsifier.ts:25`. No original
+or conditional proof command ran. Repair `f0eb7671` is an explicit type
+union only. Active focused check: task
+`b1dad863-97ea-448e-a0b0-6f8396391c87`, output
+`runs/mldr-incl-resume-typefix-check-v1/`. It reuses the same frozen tree
+with a tiny before/after-hash-checked overlay; no new tree archive. The
+remaining five jobs are queued under task
+`fee9b63c-74e6-4e11-be56-51c066e54cf8`, output
+`runs/mldr-incl-resume-typefix-proof-v1/`; each independently requires its
+source check to pass before any proof command. See runs/REPORT.md.
+
+
 **Submissions reopened.** All three old exact batch IDs now report `no such
 batch`; their output directories are empty. New six-job guarded validation
 is running from completed immutable-by-use source export
