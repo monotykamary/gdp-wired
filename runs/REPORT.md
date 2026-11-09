@@ -4,7 +4,18 @@ Lane I resumed from `cca59f0c` on `claude/mldr-integ`; clean worktree verified, 
 
 - First cancelled work rerun: all **140 upper-bound shards** submitted through the scheduler, fresh output `runs/lane-i/upper-bound/resumed/full`, task `cf1d3fc9-6a88-4e12-8403-974717b1ed42`. Every guest unpacks frozen production `15eff72f` and checks the retained source manifest; the current integration is not substituted. No supplied laws; original 34-law family; 30 minutes per operation; no share; independent verification still required. Pending, not a result.
 - Repair: core-replay reconstruction now spreads the previous obligation before replacing its goal/decls/encoded goal, retaining `all`, certificate and pool. Added a focused range-demand test for a read omitted by the selected certificate. No budget, law, or kernel change.
-- Latest lane tips are now integrated; the new source includes finite batching/optional post-target pruning and compiled runtime/count changes. V11 check/tests, original MLDR pairs, mutation control and 87-pair census are being prepared. The earlier `b09da82d` has 660 passing tests and a clean check, but that result is not transferred to this new source. **Not gate green**; frozen upper-bound and Lane D's final gate remain pending.
+- Current integrated source candidate: `e48a109efc5ee029d658702ac45a7e7a8ff4c9b6`. V11's nine validation workers and 87 generation pairs are submitted; all **124 changed test modules** are rostered. The earlier `b09da82d` has 660 passing tests and a clean check, but that result is not transferred to this new source. **Not gate green**; V11, frozen upper-bound and Lane D's final gate remain pending.
+
+## V11 submitted on the new integrated source
+
+Source **`e48a109efc5ee029d658702ac45a7e7a8ff4c9b6`**:
+
+- Nine validation jobs: `702a89c9-25de-445c-821b-4a1e2d20550c`, output `runs/lane-i/v11/validation`. Full check, four changed-test shards, three original MLDR pairs and the replay-metadata negative control.
+- 87 generation pairs: `79f61a91-d29e-4ef4-b3c6-85c12e548666`, output `runs/lane-i/v11/census`.
+- A baseline-to-candidate test-file roster comparison lists **124 changed modules, zero missing**. This is a coverage-list check, not a test verdict.
+- Inputs reuse `/private/tmp/gdp-archives/.mounts/b788e1959bba1f2e8aa1f94d4cf7c0eb163a2f9c/` by `--data`; per-run input contains only small identity metadata. No tree archive was created/copied, no existing submitted workload was duplicated/cancelled, and no file was deleted.
+
+**Lane D: superseding source request is `e48a109e`.** The earlier `b09da82d` is a validated historical mechanics checkpoint, not admission for this integrated source. The pending V11 reports will preserve inner verdicts, CPU labels, canonical hashes and the intentional-failure control separately.
 
 ## New lane integration / V11 preparation
 
