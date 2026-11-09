@@ -5503,3 +5503,31 @@ models. Independent frame/ledger and exact-integer point audits pass for all
 three; type/lint and **3 tests / 8 assertions** pass. The initial driver type
 error and an overly broad cross-key frame-class pilot are retained and excluded
 from the primary verdict. No complete-law or gate pass is claimed.
+
+## Section 16 — receipt-only field/frame overlap audit
+
+The requested T-12 per-lemma saving is **not recoverable**. The driver passed
+`trace:()=>{}` and discarded the helper events; whole-call wrappers retained
+costs but no statements, per-lemma costs, outcomes or used premises. Each of
+the three requested receipts has zero retained field/frame lemma events.
+
+A static census of 39 archives and historical logs recovered seven positive
+field/domain statement forms for the two laws. The literal intersection is
+**two**: `if(?canVote=1 && i<size, CfgT[i], 0)<=CT[i]`, and `i<size`.
+These are historical positive-event overlaps, not checked reusable-root sets.
+None of the explicitly op-tagged normalized field records has `checked:true`;
+older checked records omit the op. Another 4,323 positive indexed frame records
+(including duplicate copies/tails) lack statement mappings in retained context.
+
+T-12 subtotals are 6,698.388905 units for Inv2973 ops 0/4 and 2,452.353619 for
+Inv* op 3. Deleting all field/frame work for free leaves 1,388.930707 and
+1,383.481384, but that is not a once-per-law estimate: it removes failed/setup
+work and the first proof, and omits other ops. Actual reusable savings and
+remaining costs are **unknown**, not zero.
+
+[Report and inventory](track-m/lemma-overlap-v1/README.md),
+[summary](track-m/lemma-overlap-v1/summary.json), and compressed catalogues retain
+the coverage and limitations. Twenty-eight archives had matching manifests;
+eleven are marked unverified. No parse failures or available-manifest
+mismatches. No solver reruns or policy/production/kernel changes. Type/lint and
+**3 tests / 6 assertions** pass.

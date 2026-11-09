@@ -1,0 +1,18 @@
+Found 0 warnings and 0 errors.
+Finished in 19.6s on 1290 files with 100 rules using 4 threads.
+bun test v1.4.3 (c6da4a4d3)
+{"out":"/home/user/track-m-section16-report-OFRgrX","primary":[{"law":"Inv2973","op":0,"total":2709.5656931999997,"fieldUnits":595.2500500000002,"frameUnits":1536.0285315999997,"helperUnits":2131.2785816,"otherUnits":578.2871115999999,"provedLemmaInventory":null,"perLemmaUnits":null,"opIndependentOverlap":null,"oncePerLawRemainingUnits":null},{"law":"Inv2973","op":4,"total":3988.8232120000002,"fieldUnits":2183.8052959999995,"frameUnits":994.3743208000008,"helperUnits":3178.1796168,"otherUnits":810.6435951999999,"provedLemmaInventory":null,"perLemmaUnits":null,"opIndependentOverlap":null,"oncePerLawRemainingUnits":null},{"law":"Inv*","op":3,"total":2452.3536191999997,"fieldUnits":832.0724563999997,"frameUnits":236.79977919999982,"helperUnits":1068.8722355999996,"otherUnits":1383.4813836,"provedLemmaInventory":null,"perLemmaUnits":null,"opIndependentOverlap":null,"oncePerLawRemainingUnits":null}],"totals":[{"law":"Inv2973","coveredOps":[0,4],"observedOpSubtotal":6698.3889051999995,"fieldUnits":2779.0553459999996,"frameUnits":2530.4028524000005,"remainingIfAllHelperWorkWereFree":1388.9307067999998,"remainingOncePerLaw":null,"justifiedReusableSavings":null},{"law":"Inv*","coveredOps":[3],"observedOpSubtotal":2452.3536191999997,"fieldUnits":832.0724563999997,"frameUnits":236.79977919999982,"remainingIfAllHelperWorkWereFree":1383.4813836,"remainingOncePerLaw":null,"justifiedReusableSavings":null}],"statements":7,"crossLawStatements":["F4","F6"]}
+{"artifact":"section10-chunk-manifest","dir":"/home/user/track-m-s10-receipts-ctMiNW","parts":1,"bytes":2695,"sha256":"7dd72e06cd6ef566c126abb9f15fdcd22883bfdb7f78fa9c8d96f91b0bdd5b4c","files":["summary.json"]}
+
+--- stderr ---
+$ tsc -p . && oxlint --type-aware --deny-warnings --disable-nested-config
+
+research/track-m/section16.test.ts:
+(pass) normalization retains guards and does not assert root validity [0.49ms]
+(pass) frame normalization keeps post-state and action references [0.16ms]
+(pass) an indexed success without a matching statement stays unresolved [0.03ms]
+
+ 3 pass
+ 0 fail
+ 6 expect() calls
+Ran 3 tests across 1 file. [6.00ms]
