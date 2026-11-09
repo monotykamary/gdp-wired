@@ -1,0 +1,3 @@
+[
+ {"name":"safety","cmd":"bun install --frozen-lockfile >/dev/null && for f in receipts/*.gz; do echo INPUT=\"$f\"; bun research/track-m/audit-lane-b-cost.ts \"$f\"; done","cpu":2,"memory":8192,"timeout":180}
+]
