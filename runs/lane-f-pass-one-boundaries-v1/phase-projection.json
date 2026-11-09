@@ -1,0 +1,1186 @@
+[
+  {
+    "op": 0,
+    "verified": true,
+    "sha256": "b06107b8f5fab0cd67e1f24b294481dbbbc836959025e9805ac9cdc28dbd664c",
+    "journalHash": "fb7c23f8d48b5e8010885be68d940edc6e7118f9f2dce802fba36f5e41414d91",
+    "rows": 141,
+    "open": [],
+    "peakRss": 644354048,
+    "totals": {
+      "encode": {
+        "calls": 18,
+        "inclusiveWallMs": 96.04166199999958,
+        "inclusiveUnits": 0,
+        "maxWallMs": 26.85674199999994
+      },
+      "rawBuild": {
+        "calls": 8,
+        "inclusiveWallMs": 279.6627309999998,
+        "inclusiveUnits": 0,
+        "maxWallMs": 101.0474519999998
+      },
+      "build": {
+        "calls": 8,
+        "inclusiveWallMs": 280.30138000000034,
+        "inclusiveUnits": 0,
+        "maxWallMs": 101.09181700000045
+      },
+      "decide": {
+        "calls": 8,
+        "inclusiveWallMs": 6074.338754,
+        "inclusiveUnits": 3509.9334919999997,
+        "maxWallMs": 2742.100158
+      },
+      "mbqi": {
+        "calls": 7,
+        "inclusiveWallMs": 188.28536199999962,
+        "inclusiveUnits": 0,
+        "maxWallMs": 44.868015000000014
+      },
+      "lazy": {
+        "calls": 9,
+        "inclusiveWallMs": 448.15652800000055,
+        "inclusiveUnits": 0,
+        "maxWallMs": 447.8282240000003
+      }
+    },
+    "largest": [
+      {
+        "span": "decide",
+        "edge": "throw",
+        "startUnits": 1615.744606,
+        "endUnits": 3509.9334919999997,
+        "units": 1894.1888859999997,
+        "wallMs": 2742.100158,
+        "startRss": 469049344,
+        "endRss": 644222976
+      },
+      {
+        "span": "decide",
+        "edge": "return",
+        "startUnits": 610.80003,
+        "endUnits": 845.735248,
+        "units": 234.93521799999996,
+        "wallMs": 680.2029379999999,
+        "startRss": 360505344,
+        "endRss": 386220032
+      },
+      {
+        "span": "decide",
+        "edge": "return",
+        "startUnits": 1085.7022479999998,
+        "endUnits": 1517.3749779999998,
+        "units": 431.67273,
+        "wallMs": 678.4073539999999,
+        "startRss": 399761408,
+        "endRss": 485769216
+      },
+      {
+        "span": "decide",
+        "edge": "return",
+        "startUnits": 845.735248,
+        "endUnits": 1085.7022479999998,
+        "units": 239.96699999999987,
+        "wallMs": 635.1739120000002,
+        "startRss": 395132928,
+        "endRss": 397697024
+      },
+      {
+        "span": "lazy",
+        "edge": "return",
+        "startUnits": 1615.744606,
+        "endUnits": 1615.744606,
+        "units": 0,
+        "wallMs": 447.8282240000003,
+        "startRss": 442810368,
+        "endRss": 457551872
+      }
+    ],
+    "models": [
+      {
+        "phase": "model",
+        "wallMs": 465.998859,
+        "units": 154.876546,
+        "rss": 184184832,
+        "params": {
+          "size": 2
+        }
+      },
+      {
+        "phase": "model",
+        "wallMs": 916.43263,
+        "units": 361.8606899999999,
+        "rss": 295653376,
+        "params": {
+          "size": 4
+        }
+      },
+      {
+        "phase": "model",
+        "wallMs": 1337.687735,
+        "units": 610.80003,
+        "rss": 358801408,
+        "params": {
+          "size": 4
+        }
+      },
+      {
+        "phase": "model",
+        "wallMs": 2062.512854,
+        "units": 845.735248,
+        "rss": 386220032,
+        "params": {
+          "size": 3
+        }
+      },
+      {
+        "phase": "model",
+        "wallMs": 2715.632172,
+        "units": 1085.7022479999998,
+        "rss": 397697024,
+        "params": {
+          "size": 2
+        }
+      },
+      {
+        "phase": "model",
+        "wallMs": 3464.321816,
+        "units": 1517.3749779999998,
+        "rss": 485769216,
+        "params": {
+          "size": 2
+        }
+      },
+      {
+        "phase": "model",
+        "wallMs": 3689.561393,
+        "units": 1615.744606,
+        "rss": 421052416,
+        "params": {
+          "size": 2
+        }
+      }
+    ],
+    "errors": [
+      {
+        "phase": "rejected proposal",
+        "wallMs": 7004.073721,
+        "units": 3509.9334919999997,
+        "rss": 644354048,
+        "error": "WallExpired: time (decide)"
+      }
+    ]
+  },
+  {
+    "op": 1,
+    "verified": true,
+    "sha256": "8338fb044111f7f553959aa5240bc288af081e469de2a29e27fc20b42bb38a0e",
+    "journalHash": "8e2e0eb8f2eea5dbc7084e3d6df14fe2b76b44b5366948e92c9c305033e5f3eb",
+    "rows": 124,
+    "open": [],
+    "peakRss": 550633472,
+    "totals": {
+      "encode": {
+        "calls": 16,
+        "inclusiveWallMs": 132.54851799999952,
+        "inclusiveUnits": 0,
+        "maxWallMs": 32.09836099999984
+      },
+      "rawBuild": {
+        "calls": 7,
+        "inclusiveWallMs": 298.1007160000007,
+        "inclusiveUnits": 0,
+        "maxWallMs": 110.31517200000008
+      },
+      "build": {
+        "calls": 7,
+        "inclusiveWallMs": 299.01506400000005,
+        "inclusiveUnits": 0,
+        "maxWallMs": 110.37842099999989
+      },
+      "decide": {
+        "calls": 7,
+        "inclusiveWallMs": 6026.917692000001,
+        "inclusiveUnits": 3188.323456,
+        "maxWallMs": 2813.9899560000003
+      },
+      "mbqi": {
+        "calls": 6,
+        "inclusiveWallMs": 187.37473099999988,
+        "inclusiveUnits": 0,
+        "maxWallMs": 43.20576499999993
+      },
+      "lazy": {
+        "calls": 8,
+        "inclusiveWallMs": 686.2510799999994,
+        "inclusiveUnits": 0,
+        "maxWallMs": 685.7914349999996
+      }
+    },
+    "largest": [
+      {
+        "span": "decide",
+        "edge": "throw",
+        "startUnits": 1473.933588,
+        "endUnits": 3188.323456,
+        "units": 1714.389868,
+        "wallMs": 2813.9899560000003,
+        "startRss": 480006144,
+        "endRss": 550633472
+      },
+      {
+        "span": "decide",
+        "edge": "return",
+        "startUnits": 870.909876,
+        "endUnits": 1365.7519579999998,
+        "units": 494.8420819999998,
+        "wallMs": 855.956749,
+        "startRss": 382169088,
+        "endRss": 452653056
+      },
+      {
+        "span": "lazy",
+        "edge": "return",
+        "startUnits": 1473.933588,
+        "endUnits": 1473.933588,
+        "units": 0,
+        "wallMs": 685.7914349999996,
+        "startRss": 411226112,
+        "endRss": 467058688
+      },
+      {
+        "span": "decide",
+        "edge": "return",
+        "startUnits": 197.518408,
+        "endUnits": 392.75741999999997,
+        "units": 195.23901199999997,
+        "wallMs": 639.240252,
+        "startRss": 175247360,
+        "endRss": 277430272
+      },
+      {
+        "span": "decide",
+        "edge": "return",
+        "startUnits": 0,
+        "endUnits": 197.518408,
+        "units": 197.518408,
+        "wallMs": 616.7138490000001,
+        "startRss": 55443456,
+        "endRss": 171192320
+      }
+    ],
+    "models": [
+      {
+        "phase": "model",
+        "wallMs": 645.4310820000001,
+        "units": 197.518408,
+        "rss": 171192320,
+        "params": {
+          "size": 2
+        }
+      },
+      {
+        "phase": "model",
+        "wallMs": 1339.864057,
+        "units": 392.75741999999997,
+        "rss": 277430272,
+        "params": {
+          "size": 4
+        }
+      },
+      {
+        "phase": "model",
+        "wallMs": 1865.599528,
+        "units": 597.516156,
+        "rss": 360730624,
+        "params": {
+          "size": 5
+        }
+      },
+      {
+        "phase": "model",
+        "wallMs": 2412.8177499999997,
+        "units": 870.909876,
+        "rss": 388718592,
+        "params": {
+          "size": 4
+        }
+      },
+      {
+        "phase": "model",
+        "wallMs": 3333.655597,
+        "units": 1365.7519579999998,
+        "rss": 452784128,
+        "params": {
+          "size": 3
+        }
+      },
+      {
+        "phase": "model",
+        "wallMs": 3596.2116499999997,
+        "units": 1473.933588,
+        "rss": 404672512,
+        "params": {
+          "size": 2
+        }
+      }
+    ],
+    "errors": [
+      {
+        "phase": "rejected proposal",
+        "wallMs": 7207.675786,
+        "units": 3188.323456,
+        "rss": 550633472,
+        "error": "WallExpired: time (decide)"
+      }
+    ]
+  },
+  {
+    "op": 2,
+    "verified": true,
+    "sha256": "aa0296c1f161bc7c8adff4d4da1f82896014a34366ecd65ea9bd12df4e9dcf47",
+    "journalHash": "e4f5fe0527ec588c2b2b1b457ce9be44716c2d3ce251c493a62d2443400854ef",
+    "rows": 124,
+    "open": [],
+    "peakRss": 728502272,
+    "totals": {
+      "encode": {
+        "calls": 16,
+        "inclusiveWallMs": 125.79089700000003,
+        "inclusiveUnits": 0,
+        "maxWallMs": 45.245642999999745
+      },
+      "rawBuild": {
+        "calls": 7,
+        "inclusiveWallMs": 291.95313099999976,
+        "inclusiveUnits": 0,
+        "maxWallMs": 96.25327500000003
+      },
+      "build": {
+        "calls": 7,
+        "inclusiveWallMs": 292.4980440000001,
+        "inclusiveUnits": 0,
+        "maxWallMs": 96.29530299999988
+      },
+      "decide": {
+        "calls": 7,
+        "inclusiveWallMs": 6030.773326,
+        "inclusiveUnits": 4403.674862,
+        "maxWallMs": 3838.215314
+      },
+      "mbqi": {
+        "calls": 6,
+        "inclusiveWallMs": 165.07826799999964,
+        "inclusiveUnits": 0,
+        "maxWallMs": 51.014626000000135
+      },
+      "lazy": {
+        "calls": 8,
+        "inclusiveWallMs": 509.34117999999944,
+        "inclusiveUnits": 0,
+        "maxWallMs": 509.0874469999999
+      }
+    },
+    "largest": [
+      {
+        "span": "decide",
+        "edge": "throw",
+        "startUnits": 1255.96636,
+        "endUnits": 4403.674862,
+        "units": 3147.708502,
+        "wallMs": 3838.215314,
+        "startRss": 489164800,
+        "endRss": 728502272
+      },
+      {
+        "span": "decide",
+        "edge": "return",
+        "startUnits": 722.5720799999999,
+        "endUnits": 1158.710746,
+        "units": 436.13866600000006,
+        "wallMs": 629.8224300000004,
+        "startRss": 362262528,
+        "endRss": 472666112
+      },
+      {
+        "span": "lazy",
+        "edge": "return",
+        "startUnits": 1255.96636,
+        "endUnits": 1255.96636,
+        "units": 0,
+        "wallMs": 509.0874469999999,
+        "startRss": 447676416,
+        "endRss": 464281600
+      },
+      {
+        "span": "decide",
+        "edge": "return",
+        "startUnits": 310.40562,
+        "endUnits": 486.347322,
+        "units": 175.94170200000002,
+        "wallMs": 390.46823099999983,
+        "startRss": 249331712,
+        "endRss": 322174976
+      },
+      {
+        "span": "decide",
+        "edge": "return",
+        "startUnits": 486.347322,
+        "endUnits": 722.5720799999999,
+        "units": 236.2247579999999,
+        "wallMs": 383.5695569999998,
+        "startRss": 303616000,
+        "endRss": 383807488
+      }
+    ],
+    "models": [
+      {
+        "phase": "model",
+        "wallMs": 381.39093,
+        "units": 140.24118399999998,
+        "rss": 182882304,
+        "params": {
+          "size": 2
+        }
+      },
+      {
+        "phase": "model",
+        "wallMs": 746.703753,
+        "units": 310.40562,
+        "rss": 247889920,
+        "params": {
+          "size": 4
+        }
+      },
+      {
+        "phase": "model",
+        "wallMs": 1167.858832,
+        "units": 486.347322,
+        "rss": 322174976,
+        "params": {
+          "size": 5
+        }
+      },
+      {
+        "phase": "model",
+        "wallMs": 1591.269721,
+        "units": 722.5720799999999,
+        "rss": 383807488,
+        "params": {
+          "size": 4
+        }
+      },
+      {
+        "phase": "model",
+        "wallMs": 2298.1589120000003,
+        "units": 1158.710746,
+        "rss": 472666112,
+        "params": {
+          "size": 2
+        }
+      },
+      {
+        "phase": "model",
+        "wallMs": 2528.239431,
+        "units": 1255.96636,
+        "rss": 418054144,
+        "params": {
+          "size": 2
+        }
+      }
+    ],
+    "errors": [
+      {
+        "phase": "rejected proposal",
+        "wallMs": 7004.712715,
+        "units": 4403.674862,
+        "rss": 728502272,
+        "error": "WallExpired: time (decide)"
+      }
+    ]
+  },
+  {
+    "op": 3,
+    "verified": true,
+    "sha256": "6a915401253a0a4287c62f50f2d023aed0a13fccfae75d72b0238f7a3db75d19",
+    "journalHash": "9f152a7631d1982e3bd76c6d12d11a11eaeae9f257ea7b0e50240d7513dcaa47",
+    "rows": 124,
+    "open": [],
+    "peakRss": 765968384,
+    "totals": {
+      "encode": {
+        "calls": 16,
+        "inclusiveWallMs": 92.09114699999992,
+        "inclusiveUnits": 0,
+        "maxWallMs": 25.644202000000405
+      },
+      "rawBuild": {
+        "calls": 7,
+        "inclusiveWallMs": 231.21265800000032,
+        "inclusiveUnits": 0,
+        "maxWallMs": 89.60305100000005
+      },
+      "build": {
+        "calls": 7,
+        "inclusiveWallMs": 231.6889470000002,
+        "inclusiveUnits": 0,
+        "maxWallMs": 89.64265400000022
+      },
+      "decide": {
+        "calls": 7,
+        "inclusiveWallMs": 6279.195423000001,
+        "inclusiveUnits": 5195.951155999999,
+        "maxWallMs": 4109.675875000001
+      },
+      "mbqi": {
+        "calls": 6,
+        "inclusiveWallMs": 143.2212329999998,
+        "inclusiveUnits": 0,
+        "maxWallMs": 37.324691999999914
+      },
+      "lazy": {
+        "calls": 8,
+        "inclusiveWallMs": 401.4502199999995,
+        "inclusiveUnits": 0,
+        "maxWallMs": 401.07917799999996
+      }
+    },
+    "largest": [
+      {
+        "span": "decide",
+        "edge": "throw",
+        "startUnits": 1255.9798,
+        "endUnits": 5195.951155999999,
+        "units": 3939.971355999999,
+        "wallMs": 4109.675875000001,
+        "startRss": 489787392,
+        "endRss": 765968384
+      },
+      {
+        "span": "decide",
+        "edge": "return",
+        "startUnits": 722.582832,
+        "endUnits": 1158.724186,
+        "units": 436.14135399999986,
+        "wallMs": 571.5335499999999,
+        "startRss": 372404224,
+        "endRss": 488345600
+      },
+      {
+        "span": "decide",
+        "edge": "return",
+        "startUnits": 0,
+        "endUnits": 140.243872,
+        "units": 140.243872,
+        "wallMs": 444.24080399999997,
+        "startRss": 56098816,
+        "endRss": 172646400
+      },
+      {
+        "span": "decide",
+        "edge": "return",
+        "startUnits": 140.243872,
+        "endUnits": 310.410996,
+        "units": 170.167124,
+        "wallMs": 403.89617000000004,
+        "startRss": 178544640,
+        "endRss": 248078336
+      },
+      {
+        "span": "lazy",
+        "edge": "return",
+        "startUnits": 1255.9798,
+        "endUnits": 1255.9798,
+        "units": 0,
+        "wallMs": 401.07917799999996,
+        "startRss": 426061824,
+        "endRss": 467308544
+      }
+    ],
+    "models": [
+      {
+        "phase": "model",
+        "wallMs": 461.41349199999996,
+        "units": 140.243872,
+        "rss": 172646400,
+        "params": {
+          "size": 2
+        }
+      },
+      {
+        "phase": "model",
+        "wallMs": 903.54642,
+        "units": 310.410996,
+        "rss": 248078336,
+        "params": {
+          "size": 4
+        }
+      },
+      {
+        "phase": "model",
+        "wallMs": 1275.05022,
+        "units": 486.35538600000007,
+        "rss": 343150592,
+        "params": {
+          "size": 5
+        }
+      },
+      {
+        "phase": "model",
+        "wallMs": 1641.260331,
+        "units": 722.582832,
+        "rss": 367267840,
+        "params": {
+          "size": 4
+        }
+      },
+      {
+        "phase": "model",
+        "wallMs": 2271.6961459999998,
+        "units": 1158.724186,
+        "rss": 488345600,
+        "params": {
+          "size": 2
+        }
+      },
+      {
+        "phase": "model",
+        "wallMs": 2447.655699,
+        "units": 1255.9798,
+        "rss": 427151360,
+        "params": {
+          "size": 2
+        }
+      }
+    ],
+    "errors": [
+      {
+        "phase": "rejected proposal",
+        "wallMs": 7061.3527349999995,
+        "units": 5195.951155999999,
+        "rss": 765968384,
+        "error": "WallExpired: time (decide)"
+      }
+    ]
+  },
+  {
+    "op": 4,
+    "verified": true,
+    "sha256": "57943d3334afb9e61a9ac8f362e1705ce51d525b8e2027a75fd703ba06c7b97a",
+    "journalHash": "e3437f9e323968443af546d0e9477dd3bf37e74e0c562542106852bcfdcf7e90",
+    "rows": 192,
+    "open": [],
+    "peakRss": 635637760,
+    "totals": {
+      "encode": {
+        "calls": 24,
+        "inclusiveWallMs": 159.42430299999995,
+        "inclusiveUnits": 0,
+        "maxWallMs": 47.83564900000056
+      },
+      "rawBuild": {
+        "calls": 11,
+        "inclusiveWallMs": 346.19114600000034,
+        "inclusiveUnits": 0,
+        "maxWallMs": 103.31912400000056
+      },
+      "build": {
+        "calls": 11,
+        "inclusiveWallMs": 346.9305510000006,
+        "inclusiveUnits": 0,
+        "maxWallMs": 103.3648720000001
+      },
+      "decide": {
+        "calls": 11,
+        "inclusiveWallMs": 6213.9070489999995,
+        "inclusiveUnits": 3597.4460240000003,
+        "maxWallMs": 2427.170371
+      },
+      "mbqi": {
+        "calls": 10,
+        "inclusiveWallMs": 278.3298600000003,
+        "inclusiveUnits": 0,
+        "maxWallMs": 52.684588000000076
+      },
+      "lazy": {
+        "calls": 12,
+        "inclusiveWallMs": 472.210615000001,
+        "inclusiveUnits": 0,
+        "maxWallMs": 471.830927
+      }
+    },
+    "largest": [
+      {
+        "span": "decide",
+        "edge": "throw",
+        "startUnits": 2204.890896,
+        "endUnits": 3597.4460240000003,
+        "units": 1392.5551280000004,
+        "wallMs": 2427.170371,
+        "startRss": 466587648,
+        "endRss": 635637760
+      },
+      {
+        "span": "decide",
+        "edge": "return",
+        "startUnits": 1438.128644,
+        "endUnits": 1982.4841960000003,
+        "units": 544.3555520000004,
+        "wallMs": 918.649285,
+        "startRss": 380518400,
+        "endRss": 445149184
+      },
+      {
+        "span": "decide",
+        "edge": "return",
+        "startUnits": 0,
+        "endUnits": 175.32662,
+        "units": 175.32662,
+        "wallMs": 487.610829,
+        "startRss": 55504896,
+        "endRss": 176050176
+      },
+      {
+        "span": "lazy",
+        "edge": "return",
+        "startUnits": 2204.890896,
+        "endUnits": 2204.890896,
+        "units": 0,
+        "wallMs": 471.830927,
+        "startRss": 419131392,
+        "endRss": 453087232
+      },
+      {
+        "span": "decide",
+        "edge": "return",
+        "startUnits": 898.388932,
+        "endUnits": 1161.987616,
+        "units": 263.59868399999993,
+        "wallMs": 469.5559519999997,
+        "startRss": 360964096,
+        "endRss": 358518784
+      }
+    ],
+    "models": [
+      {
+        "phase": "model",
+        "wallMs": 515.306178,
+        "units": 175.32662,
+        "rss": 176050176,
+        "params": {
+          "size": 2
+        }
+      },
+      {
+        "phase": "model",
+        "wallMs": 950.029764,
+        "units": 386.86839999999995,
+        "rss": 290295808,
+        "params": {
+          "size": 4
+        }
+      },
+      {
+        "phase": "model",
+        "wallMs": 1378.355509,
+        "units": 607.38907,
+        "rss": 362987520,
+        "params": {
+          "size": 4
+        }
+      },
+      {
+        "phase": "model",
+        "wallMs": 1797.176726,
+        "units": 851.597042,
+        "rss": 363728896,
+        "params": {
+          "size": 2
+        }
+      },
+      {
+        "phase": "model",
+        "wallMs": 1863.723614,
+        "units": 898.388932,
+        "rss": 360833024,
+        "params": {
+          "size": 3
+        }
+      },
+      {
+        "phase": "model",
+        "wallMs": 2358.7817269999996,
+        "units": 1161.987616,
+        "rss": 358518784,
+        "params": {
+          "size": 4
+        }
+      },
+      {
+        "phase": "model",
+        "wallMs": 2798.038757,
+        "units": 1438.128644,
+        "rss": 379035648,
+        "params": {
+          "size": 4
+        }
+      },
+      {
+        "phase": "model",
+        "wallMs": 3798.552252,
+        "units": 1982.4841960000003,
+        "rss": 445280256,
+        "params": {
+          "size": 3
+        }
+      },
+      {
+        "phase": "model",
+        "wallMs": 4072.484657,
+        "units": 2093.4567079999997,
+        "rss": 466829312,
+        "params": {
+          "size": 3
+        }
+      },
+      {
+        "phase": "model",
+        "wallMs": 4274.784699,
+        "units": 2204.890896,
+        "rss": 385822720,
+        "params": {
+          "size": 3
+        }
+      }
+    ],
+    "errors": [
+      {
+        "phase": "rejected proposal",
+        "wallMs": 7320.258963,
+        "units": 3597.4460240000003,
+        "rss": 635637760,
+        "error": "WallExpired: time (decide)"
+      }
+    ]
+  },
+  {
+    "op": 5,
+    "verified": true,
+    "sha256": "756bc483c3916112cd285537ef42c321af6ee4d9d17b138078d319130d5c878d",
+    "journalHash": "f578efb672d8959ebab602e70ca8e029e3d0b5ef9e5c21a0c8dd60783d5f8ac8",
+    "rows": 97,
+    "open": [],
+    "peakRss": 378912768,
+    "totals": {
+      "encode": {
+        "calls": 12,
+        "inclusiveWallMs": 166.3762259999995,
+        "inclusiveUnits": 0,
+        "maxWallMs": 45.60984300000018
+      },
+      "rawBuild": {
+        "calls": 6,
+        "inclusiveWallMs": 245.1817519999997,
+        "inclusiveUnits": 0,
+        "maxWallMs": 60.23249699999997
+      },
+      "build": {
+        "calls": 6,
+        "inclusiveWallMs": 248.30884400000016,
+        "inclusiveUnits": 0,
+        "maxWallMs": 60.30624700000044
+      },
+      "decide": {
+        "calls": 6,
+        "inclusiveWallMs": 6529.441227999999,
+        "inclusiveUnits": 1352.0510079999997,
+        "maxWallMs": 1575.8546490000003
+      },
+      "mbqi": {
+        "calls": 5,
+        "inclusiveWallMs": 328.0277959999985,
+        "inclusiveUnits": 0,
+        "maxWallMs": 112.107438
+      },
+      "lazy": {
+        "calls": 5,
+        "inclusiveWallMs": 0.9289470000007896,
+        "inclusiveUnits": 0,
+        "maxWallMs": 0.6982729999999719
+      }
+    },
+    "largest": [
+      {
+        "span": "decide",
+        "edge": "return",
+        "startUnits": 494.53889799999996,
+        "endUnits": 836.6388000000001,
+        "units": 342.0999020000001,
+        "wallMs": 1575.8546490000003,
+        "startRss": 291377152,
+        "endRss": 378126336
+      },
+      {
+        "span": "decide",
+        "edge": "return",
+        "startUnits": 0,
+        "endUnits": 212.16926,
+        "units": 212.16926,
+        "wallMs": 1460.4648499999998,
+        "startRss": 55967744,
+        "endRss": 176979968
+      },
+      {
+        "span": "decide",
+        "edge": "return",
+        "startUnits": 212.16926,
+        "endUnits": 494.53889799999996,
+        "units": 282.36963799999995,
+        "wallMs": 1455.408336,
+        "startRss": 176443392,
+        "endRss": 286720000
+      },
+      {
+        "span": "decide",
+        "edge": "return",
+        "startUnits": 836.6388000000001,
+        "endUnits": 1211.735628,
+        "units": 375.09682799999985,
+        "wallMs": 1397.5751069999997,
+        "startRss": 331386880,
+        "endRss": 348286976
+      },
+      {
+        "span": "decide",
+        "edge": "throw",
+        "startUnits": 1283.293342,
+        "endUnits": 1352.0510079999997,
+        "units": 68.75766599999974,
+        "wallMs": 421.7022429999997,
+        "startRss": 319127552,
+        "endRss": 322621440
+      }
+    ],
+    "models": [
+      {
+        "phase": "model",
+        "wallMs": 1518.633543,
+        "units": 212.16926,
+        "rss": 176979968,
+        "params": {
+          "size": 2
+        }
+      },
+      {
+        "phase": "model",
+        "wallMs": 3096.770463,
+        "units": 494.53889799999996,
+        "rss": 286720000,
+        "params": {
+          "size": 3
+        }
+      },
+      {
+        "phase": "model",
+        "wallMs": 4826.82833,
+        "units": 836.6388000000001,
+        "rss": 378519552,
+        "params": {
+          "size": 4
+        }
+      },
+      {
+        "phase": "model",
+        "wallMs": 6279.027752,
+        "units": 1211.735628,
+        "rss": 348286976,
+        "params": {
+          "size": 4
+        }
+      },
+      {
+        "phase": "model",
+        "wallMs": 6610.956039000001,
+        "units": 1283.293342,
+        "rss": 315813888,
+        "params": {
+          "size": 5
+        }
+      }
+    ],
+    "errors": [
+      {
+        "phase": "rejected proposal",
+        "wallMs": 7129.266326,
+        "units": 1352.0510079999997,
+        "rss": 322621440,
+        "error": "WallExpired: time (decide)"
+      }
+    ]
+  },
+  {
+    "op": 6,
+    "verified": true,
+    "sha256": "6570e0ac09d2c53f7cced123fea7eb5004a7234dcb7dcf23e2b54aa2e917e163",
+    "journalHash": "b329b4cc259e7960ce6ea16049a9d20092c35c59318612824aab66b97b58e5ef",
+    "rows": 111,
+    "open": [],
+    "peakRss": 481062912,
+    "totals": {
+      "encode": {
+        "calls": 13,
+        "inclusiveWallMs": 122.12320900000205,
+        "inclusiveUnits": 0,
+        "maxWallMs": 55.07290400000056
+      },
+      "rawBuild": {
+        "calls": 6,
+        "inclusiveWallMs": 314.6829039999995,
+        "inclusiveUnits": 0,
+        "maxWallMs": 184.8839479999997
+      },
+      "build": {
+        "calls": 6,
+        "inclusiveWallMs": 317.3197000000007,
+        "inclusiveUnits": 0,
+        "maxWallMs": 186.149222
+      },
+      "decide": {
+        "calls": 6,
+        "inclusiveWallMs": 5850.963056,
+        "inclusiveUnits": 1898.262676,
+        "maxWallMs": 1665.1750849999999
+      },
+      "mbqi": {
+        "calls": 6,
+        "inclusiveWallMs": 342.4679489999992,
+        "inclusiveUnits": 0,
+        "maxWallMs": 77.82969099999991
+      },
+      "lazy": {
+        "calls": 8,
+        "inclusiveWallMs": 977.6191710000007,
+        "inclusiveUnits": 0,
+        "maxWallMs": 976.6331289999998
+      }
+    },
+    "largest": [
+      {
+        "span": "decide",
+        "edge": "return",
+        "startUnits": 1142.821536,
+        "endUnits": 1761.325558,
+        "units": 618.5040220000001,
+        "wallMs": 1665.1750849999999,
+        "startRss": 365690880,
+        "endRss": 477294592
+      },
+      {
+        "span": "decide",
+        "edge": "return",
+        "startUnits": 782.6521980000001,
+        "endUnits": 1142.821536,
+        "units": 360.1693379999998,
+        "wallMs": 1089.1513799999998,
+        "startRss": 361086976,
+        "endRss": 404807680
+      },
+      {
+        "span": "decide",
+        "edge": "return",
+        "startUnits": 0,
+        "endUnits": 228.948616,
+        "units": 228.948616,
+        "wallMs": 992.418562,
+        "startRss": 55312384,
+        "endRss": 178012160
+      },
+      {
+        "span": "lazy",
+        "edge": "throw",
+        "startUnits": 1898.262676,
+        "endUnits": 1898.262676,
+        "units": 0,
+        "wallMs": 976.6331289999998,
+        "startRss": 481062912,
+        "endRss": 472743936
+      },
+      {
+        "span": "decide",
+        "edge": "return",
+        "startUnits": 228.948616,
+        "endUnits": 508.88775599999997,
+        "units": 279.93913999999995,
+        "wallMs": 969.5690419999999,
+        "startRss": 179134464,
+        "endRss": 283475968
+      }
+    ],
+    "models": [
+      {
+        "phase": "model",
+        "wallMs": 1023.490657,
+        "units": 228.948616,
+        "rss": 178012160,
+        "params": {
+          "size": 2
+        }
+      },
+      {
+        "phase": "model",
+        "wallMs": 2104.855154,
+        "units": 508.88775599999997,
+        "rss": 283475968,
+        "params": {
+          "size": 4
+        }
+      },
+      {
+        "phase": "model",
+        "wallMs": 3051.927569,
+        "units": 782.6521980000001,
+        "rss": 362643456,
+        "params": {
+          "size": 5
+        }
+      },
+      {
+        "phase": "model",
+        "wallMs": 4235.985015,
+        "units": 1142.821536,
+        "rss": 404807680,
+        "params": {
+          "size": 4
+        }
+      },
+      {
+        "phase": "model",
+        "wallMs": 6027.084192,
+        "units": 1761.325558,
+        "rss": 477294592,
+        "params": {
+          "size": 2
+        }
+      },
+      {
+        "phase": "model",
+        "wallMs": 6479.065745,
+        "units": 1898.262676,
+        "rss": 439177216,
+        "params": {
+          "size": 2
+        }
+      }
+    ],
+    "errors": [
+      {
+        "phase": "rejected proposal",
+        "wallMs": 7504.111673,
+        "units": 1898.262676,
+        "rss": 472743936,
+        "error": "WallExpired: time (lazy)"
+      }
+    ]
+  }
+]

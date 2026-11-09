@@ -1,0 +1,1749 @@
+[
+  {
+    "op": 0,
+    "diagnostic": "pass-one-phase-boundaries",
+    "conditional": true,
+    "instrumented": true,
+    "familySha256": "54c58da465575dd41903b3c7712d70d0caa29400dd23d9c083a8ad366b236553",
+    "familySize": 34,
+    "law": "inX: stored guard reconfigs/inS or disabled/0",
+    "pass": 1,
+    "budget": 6000,
+    "wall": 7000,
+    "checked": false,
+    "result": {
+      "stuck": "unknown"
+    },
+    "searchUnits": 3509.9334919999997,
+    "searchWallMs": 7004.134238,
+    "events": 141,
+    "capped": false,
+    "active": [],
+    "phases": {
+      "boundary": 116,
+      "query": 8,
+      "decision:sat": 7,
+      "model": 7,
+      "count-completion": 1,
+      "unlabelled": 1,
+      "rejected proposal": 1
+    },
+    "tail": [
+      {
+        "phase": "boundary",
+        "span": "build",
+        "id": 45,
+        "edge": "return",
+        "wallMs": 3608.247703,
+        "units": 1517.3749779999998,
+        "rss": 420442112
+      },
+      {
+        "phase": "query",
+        "wallMs": 3608.275845,
+        "units": 1517.3749779999998,
+        "rss": 420442112
+      },
+      {
+        "phase": "boundary",
+        "span": "decide",
+        "id": 50,
+        "edge": "enter",
+        "wallMs": 3608.298777,
+        "units": 1517.3749779999998,
+        "rss": 420442112
+      },
+      {
+        "phase": "boundary",
+        "span": "decide",
+        "id": 50,
+        "edge": "return",
+        "wallMs": 3689.378529,
+        "units": 1615.744606,
+        "rss": 421052416
+      },
+      {
+        "phase": "decision:sat",
+        "wallMs": 3689.531239,
+        "units": 1615.744606,
+        "rss": 421052416
+      },
+      {
+        "phase": "model",
+        "wallMs": 3689.561393,
+        "units": 1615.744606,
+        "rss": 421052416,
+        "params": {
+          "size": 2
+        }
+      },
+      {
+        "phase": "boundary",
+        "span": "mbqi",
+        "id": 51,
+        "edge": "enter",
+        "wallMs": 3689.603342,
+        "units": 1615.744606,
+        "rss": 421052416
+      },
+      {
+        "phase": "boundary",
+        "span": "mbqi",
+        "id": 51,
+        "edge": "return",
+        "wallMs": 3712.241028,
+        "units": 1615.744606,
+        "rss": 442810368
+      },
+      {
+        "phase": "boundary",
+        "span": "lazy",
+        "id": 52,
+        "edge": "enter",
+        "wallMs": 3712.335705,
+        "units": 1615.744606,
+        "rss": 442810368
+      },
+      {
+        "phase": "boundary",
+        "span": "lazy",
+        "id": 52,
+        "edge": "return",
+        "wallMs": 4160.163929,
+        "units": 1615.744606,
+        "rss": 457551872
+      },
+      {
+        "phase": "boundary",
+        "span": "build",
+        "id": 53,
+        "edge": "enter",
+        "wallMs": 4160.266197,
+        "units": 1615.744606,
+        "rss": 457551872
+      },
+      {
+        "phase": "boundary",
+        "span": "rawBuild",
+        "id": 54,
+        "edge": "enter",
+        "wallMs": 4160.28183,
+        "units": 1615.744606,
+        "rss": 457551872
+      },
+      {
+        "phase": "boundary",
+        "span": "encode",
+        "id": 55,
+        "edge": "enter",
+        "wallMs": 4160.296,
+        "units": 1615.744606,
+        "rss": 457551872
+      },
+      {
+        "phase": "boundary",
+        "span": "encode",
+        "id": 55,
+        "edge": "return",
+        "wallMs": 4162.607805,
+        "units": 1615.744606,
+        "rss": 457682944
+      },
+      {
+        "phase": "boundary",
+        "span": "encode",
+        "id": 56,
+        "edge": "enter",
+        "wallMs": 4230.178604,
+        "units": 1615.744606,
+        "rss": 468918272
+      },
+      {
+        "phase": "boundary",
+        "span": "encode",
+        "id": 56,
+        "edge": "return",
+        "wallMs": 4256.503321,
+        "units": 1615.744606,
+        "rss": 469049344
+      },
+      {
+        "phase": "boundary",
+        "span": "encode",
+        "id": 57,
+        "edge": "enter",
+        "wallMs": 4256.610294,
+        "units": 1615.744606,
+        "rss": 469049344
+      },
+      {
+        "phase": "boundary",
+        "span": "encode",
+        "id": 57,
+        "edge": "return",
+        "wallMs": 4261.16785,
+        "units": 1615.744606,
+        "rss": 469049344
+      },
+      {
+        "phase": "boundary",
+        "span": "rawBuild",
+        "id": 54,
+        "edge": "return",
+        "wallMs": 4261.329282,
+        "units": 1615.744606,
+        "rss": 469049344
+      },
+      {
+        "phase": "boundary",
+        "span": "build",
+        "id": 53,
+        "edge": "return",
+        "wallMs": 4261.358014,
+        "units": 1615.744606,
+        "rss": 469049344
+      },
+      {
+        "phase": "query",
+        "wallMs": 4261.3885980000005,
+        "units": 1615.744606,
+        "rss": 469049344
+      },
+      {
+        "phase": "boundary",
+        "span": "decide",
+        "id": 58,
+        "edge": "enter",
+        "wallMs": 4261.414686,
+        "units": 1615.744606,
+        "rss": 469049344
+      },
+      {
+        "phase": "boundary",
+        "span": "decide",
+        "id": 58,
+        "edge": "throw",
+        "wallMs": 7003.514844,
+        "units": 3509.9334919999997,
+        "rss": 644222976
+      },
+      {
+        "phase": "rejected proposal",
+        "wallMs": 7004.073721,
+        "units": 3509.9334919999997,
+        "rss": 644354048,
+        "error": "WallExpired: time (decide)"
+      }
+    ],
+    "journal": {
+      "bytes": 2146,
+      "sha256": "fb7c23f8d48b5e8010885be68d940edc6e7118f9f2dce802fba36f5e41414d91"
+    }
+  },
+  {
+    "op": 0,
+    "artifact": "track-m-tar-v1",
+    "dir": "/home/user/track-m-s18-receipts-vhgEIy",
+    "format": "tar.gz",
+    "parts": 1,
+    "bytes": 5800,
+    "sha256": "b06107b8f5fab0cd67e1f24b294481dbbbc836959025e9805ac9cdc28dbd664c"
+  },
+  {
+    "op": 1,
+    "diagnostic": "pass-one-phase-boundaries",
+    "conditional": true,
+    "instrumented": true,
+    "familySha256": "54c58da465575dd41903b3c7712d70d0caa29400dd23d9c083a8ad366b236553",
+    "familySize": 34,
+    "law": "inX: stored guard reconfigs/inS or disabled/0",
+    "pass": 1,
+    "budget": 6000,
+    "wall": 7000,
+    "checked": false,
+    "result": {
+      "stuck": "unknown"
+    },
+    "searchUnits": 3188.323456,
+    "searchWallMs": 7207.70992,
+    "events": 124,
+    "capped": false,
+    "active": [],
+    "phases": {
+      "boundary": 102,
+      "query": 7,
+      "decision:sat": 6,
+      "model": 6,
+      "count-completion": 1,
+      "unlabelled": 1,
+      "rejected proposal": 1
+    },
+    "tail": [
+      {
+        "phase": "boundary",
+        "span": "build",
+        "id": 38,
+        "edge": "return",
+        "wallMs": 3468.4266799999996,
+        "units": 1365.7519579999998,
+        "rss": 404987904
+      },
+      {
+        "phase": "query",
+        "wallMs": 3468.476134,
+        "units": 1365.7519579999998,
+        "rss": 404987904
+      },
+      {
+        "phase": "boundary",
+        "span": "decide",
+        "id": 43,
+        "edge": "enter",
+        "wallMs": 3468.5085059999997,
+        "units": 1365.7519579999998,
+        "rss": 404987904
+      },
+      {
+        "phase": "boundary",
+        "span": "decide",
+        "id": 43,
+        "edge": "return",
+        "wallMs": 3596.084982,
+        "units": 1473.933588,
+        "rss": 404672512
+      },
+      {
+        "phase": "decision:sat",
+        "wallMs": 3596.1958609999997,
+        "units": 1473.933588,
+        "rss": 404672512
+      },
+      {
+        "phase": "model",
+        "wallMs": 3596.2116499999997,
+        "units": 1473.933588,
+        "rss": 404672512,
+        "params": {
+          "size": 2
+        }
+      },
+      {
+        "phase": "boundary",
+        "span": "mbqi",
+        "id": 44,
+        "edge": "enter",
+        "wallMs": 3596.237388,
+        "units": 1473.933588,
+        "rss": 404672512
+      },
+      {
+        "phase": "boundary",
+        "span": "mbqi",
+        "id": 44,
+        "edge": "return",
+        "wallMs": 3623.344154,
+        "units": 1473.933588,
+        "rss": 411226112
+      },
+      {
+        "phase": "boundary",
+        "span": "lazy",
+        "id": 45,
+        "edge": "enter",
+        "wallMs": 3623.4534,
+        "units": 1473.933588,
+        "rss": 411226112
+      },
+      {
+        "phase": "boundary",
+        "span": "lazy",
+        "id": 45,
+        "edge": "return",
+        "wallMs": 4309.2448349999995,
+        "units": 1473.933588,
+        "rss": 467058688
+      },
+      {
+        "phase": "boundary",
+        "span": "build",
+        "id": 46,
+        "edge": "enter",
+        "wallMs": 4309.366343,
+        "units": 1473.933588,
+        "rss": 467058688
+      },
+      {
+        "phase": "boundary",
+        "span": "rawBuild",
+        "id": 47,
+        "edge": "enter",
+        "wallMs": 4309.390699,
+        "units": 1473.933588,
+        "rss": 467058688
+      },
+      {
+        "phase": "boundary",
+        "span": "encode",
+        "id": 48,
+        "edge": "enter",
+        "wallMs": 4309.420674999999,
+        "units": 1473.933588,
+        "rss": 467058688
+      },
+      {
+        "phase": "boundary",
+        "span": "encode",
+        "id": 48,
+        "edge": "return",
+        "wallMs": 4312.565538,
+        "units": 1473.933588,
+        "rss": 467582976
+      },
+      {
+        "phase": "boundary",
+        "span": "encode",
+        "id": 49,
+        "edge": "enter",
+        "wallMs": 4357.677307,
+        "units": 1473.933588,
+        "rss": 487636992
+      },
+      {
+        "phase": "boundary",
+        "span": "encode",
+        "id": 49,
+        "edge": "return",
+        "wallMs": 4383.091109,
+        "units": 1473.933588,
+        "rss": 480006144
+      },
+      {
+        "phase": "boundary",
+        "span": "encode",
+        "id": 50,
+        "edge": "enter",
+        "wallMs": 4383.20811,
+        "units": 1473.933588,
+        "rss": 480006144
+      },
+      {
+        "phase": "boundary",
+        "span": "encode",
+        "id": 50,
+        "edge": "return",
+        "wallMs": 4393.205416,
+        "units": 1473.933588,
+        "rss": 480006144
+      },
+      {
+        "phase": "boundary",
+        "span": "rawBuild",
+        "id": 47,
+        "edge": "return",
+        "wallMs": 4393.441089,
+        "units": 1473.933588,
+        "rss": 480006144
+      },
+      {
+        "phase": "boundary",
+        "span": "build",
+        "id": 46,
+        "edge": "return",
+        "wallMs": 4393.462939999999,
+        "units": 1473.933588,
+        "rss": 480006144
+      },
+      {
+        "phase": "query",
+        "wallMs": 4393.493888999999,
+        "units": 1473.933588,
+        "rss": 480006144
+      },
+      {
+        "phase": "boundary",
+        "span": "decide",
+        "id": 51,
+        "edge": "enter",
+        "wallMs": 4393.513234999999,
+        "units": 1473.933588,
+        "rss": 480006144
+      },
+      {
+        "phase": "boundary",
+        "span": "decide",
+        "id": 51,
+        "edge": "throw",
+        "wallMs": 7207.503191,
+        "units": 3188.323456,
+        "rss": 550633472
+      },
+      {
+        "phase": "rejected proposal",
+        "wallMs": 7207.675786,
+        "units": 3188.323456,
+        "rss": 550633472,
+        "error": "WallExpired: time (decide)"
+      }
+    ],
+    "journal": {
+      "bytes": 1987,
+      "sha256": "8e2e0eb8f2eea5dbc7084e3d6df14fe2b76b44b5366948e92c9c305033e5f3eb"
+    }
+  },
+  {
+    "op": 1,
+    "artifact": "track-m-tar-v1",
+    "dir": "/home/user/track-m-s18-receipts-22RSIt",
+    "format": "tar.gz",
+    "parts": 1,
+    "bytes": 5502,
+    "sha256": "8338fb044111f7f553959aa5240bc288af081e469de2a29e27fc20b42bb38a0e"
+  },
+  {
+    "op": 2,
+    "diagnostic": "pass-one-phase-boundaries",
+    "conditional": true,
+    "instrumented": true,
+    "familySha256": "54c58da465575dd41903b3c7712d70d0caa29400dd23d9c083a8ad366b236553",
+    "familySize": 34,
+    "law": "inX: stored guard reconfigs/inS or disabled/0",
+    "pass": 1,
+    "budget": 6000,
+    "wall": 7000,
+    "checked": false,
+    "result": {
+      "stuck": "unknown"
+    },
+    "searchUnits": 4403.674862,
+    "searchWallMs": 7004.805338,
+    "events": 124,
+    "capped": false,
+    "active": [],
+    "phases": {
+      "boundary": 102,
+      "query": 7,
+      "decision:sat": 6,
+      "model": 6,
+      "count-completion": 1,
+      "unlabelled": 1,
+      "rejected proposal": 1
+    },
+    "tail": [
+      {
+        "phase": "boundary",
+        "span": "build",
+        "id": 38,
+        "edge": "return",
+        "wallMs": 2433.361228,
+        "units": 1158.710746,
+        "rss": 418000896
+      },
+      {
+        "phase": "query",
+        "wallMs": 2433.3939,
+        "units": 1158.710746,
+        "rss": 418000896
+      },
+      {
+        "phase": "boundary",
+        "span": "decide",
+        "id": 43,
+        "edge": "enter",
+        "wallMs": 2433.412565,
+        "units": 1158.710746,
+        "rss": 418000896
+      },
+      {
+        "phase": "boundary",
+        "span": "decide",
+        "id": 43,
+        "edge": "return",
+        "wallMs": 2527.989955,
+        "units": 1255.96636,
+        "rss": 418054144
+      },
+      {
+        "phase": "decision:sat",
+        "wallMs": 2528.21216,
+        "units": 1255.96636,
+        "rss": 418054144
+      },
+      {
+        "phase": "model",
+        "wallMs": 2528.239431,
+        "units": 1255.96636,
+        "rss": 418054144,
+        "params": {
+          "size": 2
+        }
+      },
+      {
+        "phase": "boundary",
+        "span": "mbqi",
+        "id": 44,
+        "edge": "enter",
+        "wallMs": 2528.2805280000002,
+        "units": 1255.96636,
+        "rss": 418054144
+      },
+      {
+        "phase": "boundary",
+        "span": "mbqi",
+        "id": 44,
+        "edge": "return",
+        "wallMs": 2560.202425,
+        "units": 1255.96636,
+        "rss": 447676416
+      },
+      {
+        "phase": "boundary",
+        "span": "lazy",
+        "id": 45,
+        "edge": "enter",
+        "wallMs": 2560.368796,
+        "units": 1255.96636,
+        "rss": 447676416
+      },
+      {
+        "phase": "boundary",
+        "span": "lazy",
+        "id": 45,
+        "edge": "return",
+        "wallMs": 3069.456243,
+        "units": 1255.96636,
+        "rss": 464281600
+      },
+      {
+        "phase": "boundary",
+        "span": "build",
+        "id": 46,
+        "edge": "enter",
+        "wallMs": 3069.5794730000002,
+        "units": 1255.96636,
+        "rss": 464281600
+      },
+      {
+        "phase": "boundary",
+        "span": "rawBuild",
+        "id": 47,
+        "edge": "enter",
+        "wallMs": 3069.5941700000003,
+        "units": 1255.96636,
+        "rss": 464281600
+      },
+      {
+        "phase": "boundary",
+        "span": "encode",
+        "id": 48,
+        "edge": "enter",
+        "wallMs": 3069.618817,
+        "units": 1255.96636,
+        "rss": 464281600
+      },
+      {
+        "phase": "boundary",
+        "span": "encode",
+        "id": 48,
+        "edge": "return",
+        "wallMs": 3072.184055,
+        "units": 1255.96636,
+        "rss": 464412672
+      },
+      {
+        "phase": "boundary",
+        "span": "encode",
+        "id": 49,
+        "edge": "enter",
+        "wallMs": 3116.219574,
+        "units": 1255.96636,
+        "rss": 489459712
+      },
+      {
+        "phase": "boundary",
+        "span": "encode",
+        "id": 49,
+        "edge": "return",
+        "wallMs": 3161.465217,
+        "units": 1255.96636,
+        "rss": 489164800
+      },
+      {
+        "phase": "boundary",
+        "span": "encode",
+        "id": 50,
+        "edge": "enter",
+        "wallMs": 3161.571336,
+        "units": 1255.96636,
+        "rss": 489164800
+      },
+      {
+        "phase": "boundary",
+        "span": "encode",
+        "id": 50,
+        "edge": "return",
+        "wallMs": 3165.685692,
+        "units": 1255.96636,
+        "rss": 489164800
+      },
+      {
+        "phase": "boundary",
+        "span": "rawBuild",
+        "id": 47,
+        "edge": "return",
+        "wallMs": 3165.8474450000003,
+        "units": 1255.96636,
+        "rss": 489164800
+      },
+      {
+        "phase": "boundary",
+        "span": "build",
+        "id": 46,
+        "edge": "return",
+        "wallMs": 3165.874776,
+        "units": 1255.96636,
+        "rss": 489164800
+      },
+      {
+        "phase": "query",
+        "wallMs": 3165.915853,
+        "units": 1255.96636,
+        "rss": 489164800
+      },
+      {
+        "phase": "boundary",
+        "span": "decide",
+        "id": 51,
+        "edge": "enter",
+        "wallMs": 3165.943695,
+        "units": 1255.96636,
+        "rss": 489164800
+      },
+      {
+        "phase": "boundary",
+        "span": "decide",
+        "id": 51,
+        "edge": "throw",
+        "wallMs": 7004.159009,
+        "units": 4403.674862,
+        "rss": 728502272
+      },
+      {
+        "phase": "rejected proposal",
+        "wallMs": 7004.712715,
+        "units": 4403.674862,
+        "rss": 728502272,
+        "error": "WallExpired: time (decide)"
+      }
+    ],
+    "journal": {
+      "bytes": 1958,
+      "sha256": "e4f5fe0527ec588c2b2b1b457ce9be44716c2d3ce251c493a62d2443400854ef"
+    }
+  },
+  {
+    "op": 2,
+    "artifact": "track-m-tar-v1",
+    "dir": "/home/user/track-m-s18-receipts-jcWEmO",
+    "format": "tar.gz",
+    "parts": 1,
+    "bytes": 5441,
+    "sha256": "aa0296c1f161bc7c8adff4d4da1f82896014a34366ecd65ea9bd12df4e9dcf47"
+  },
+  {
+    "op": 3,
+    "diagnostic": "pass-one-phase-boundaries",
+    "conditional": true,
+    "instrumented": true,
+    "familySha256": "54c58da465575dd41903b3c7712d70d0caa29400dd23d9c083a8ad366b236553",
+    "familySize": 34,
+    "law": "inX: stored guard reconfigs/inS or disabled/0",
+    "pass": 1,
+    "budget": 6000,
+    "wall": 7000,
+    "checked": false,
+    "result": {
+      "stuck": "unknown"
+    },
+    "searchUnits": 5195.951155999999,
+    "searchWallMs": 7061.415674,
+    "events": 124,
+    "capped": false,
+    "active": [],
+    "phases": {
+      "boundary": 102,
+      "query": 7,
+      "decision:sat": 6,
+      "model": 6,
+      "count-completion": 1,
+      "unlabelled": 1,
+      "rejected proposal": 1
+    },
+    "tail": [
+      {
+        "phase": "boundary",
+        "span": "build",
+        "id": 38,
+        "edge": "return",
+        "wallMs": 2381.205188,
+        "units": 1158.724186,
+        "rss": 436809728
+      },
+      {
+        "phase": "query",
+        "wallMs": 2381.235776,
+        "units": 1158.724186,
+        "rss": 436809728
+      },
+      {
+        "phase": "boundary",
+        "span": "decide",
+        "id": 43,
+        "edge": "enter",
+        "wallMs": 2381.257005,
+        "units": 1158.724186,
+        "rss": 436809728
+      },
+      {
+        "phase": "boundary",
+        "span": "decide",
+        "id": 43,
+        "edge": "return",
+        "wallMs": 2447.5024329999997,
+        "units": 1255.9798,
+        "rss": 427151360
+      },
+      {
+        "phase": "decision:sat",
+        "wallMs": 2447.608581,
+        "units": 1255.9798,
+        "rss": 427151360
+      },
+      {
+        "phase": "model",
+        "wallMs": 2447.655699,
+        "units": 1255.9798,
+        "rss": 427151360,
+        "params": {
+          "size": 2
+        }
+      },
+      {
+        "phase": "boundary",
+        "span": "mbqi",
+        "id": 44,
+        "edge": "enter",
+        "wallMs": 2447.719037,
+        "units": 1255.9798,
+        "rss": 427151360
+      },
+      {
+        "phase": "boundary",
+        "span": "mbqi",
+        "id": 44,
+        "edge": "return",
+        "wallMs": 2470.91052,
+        "units": 1255.9798,
+        "rss": 426061824
+      },
+      {
+        "phase": "boundary",
+        "span": "lazy",
+        "id": 45,
+        "edge": "enter",
+        "wallMs": 2470.986513,
+        "units": 1255.9798,
+        "rss": 426061824
+      },
+      {
+        "phase": "boundary",
+        "span": "lazy",
+        "id": 45,
+        "edge": "return",
+        "wallMs": 2872.065691,
+        "units": 1255.9798,
+        "rss": 467308544
+      },
+      {
+        "phase": "boundary",
+        "span": "build",
+        "id": 46,
+        "edge": "enter",
+        "wallMs": 2872.16171,
+        "units": 1255.9798,
+        "rss": 467308544
+      },
+      {
+        "phase": "boundary",
+        "span": "rawBuild",
+        "id": 47,
+        "edge": "enter",
+        "wallMs": 2872.1760769999996,
+        "units": 1255.9798,
+        "rss": 467308544
+      },
+      {
+        "phase": "boundary",
+        "span": "encode",
+        "id": 48,
+        "edge": "enter",
+        "wallMs": 2872.195143,
+        "units": 1255.9798,
+        "rss": 467308544
+      },
+      {
+        "phase": "boundary",
+        "span": "encode",
+        "id": 48,
+        "edge": "return",
+        "wallMs": 2874.3299279999997,
+        "units": 1255.9798,
+        "rss": 467308544
+      },
+      {
+        "phase": "boundary",
+        "span": "encode",
+        "id": 49,
+        "edge": "enter",
+        "wallMs": 2913.9925959999996,
+        "units": 1255.9798,
+        "rss": 491556864
+      },
+      {
+        "phase": "boundary",
+        "span": "encode",
+        "id": 49,
+        "edge": "return",
+        "wallMs": 2939.636798,
+        "units": 1255.9798,
+        "rss": 489787392
+      },
+      {
+        "phase": "boundary",
+        "span": "encode",
+        "id": 50,
+        "edge": "enter",
+        "wallMs": 2939.729773,
+        "units": 1255.9798,
+        "rss": 489787392
+      },
+      {
+        "phase": "boundary",
+        "span": "encode",
+        "id": 50,
+        "edge": "return",
+        "wallMs": 2951.244542,
+        "units": 1255.9798,
+        "rss": 489787392
+      },
+      {
+        "phase": "boundary",
+        "span": "rawBuild",
+        "id": 47,
+        "edge": "return",
+        "wallMs": 2951.39815,
+        "units": 1255.9798,
+        "rss": 489787392
+      },
+      {
+        "phase": "boundary",
+        "span": "build",
+        "id": 46,
+        "edge": "return",
+        "wallMs": 2951.421563,
+        "units": 1255.9798,
+        "rss": 489787392
+      },
+      {
+        "phase": "query",
+        "wallMs": 2951.449455,
+        "units": 1255.9798,
+        "rss": 489787392
+      },
+      {
+        "phase": "boundary",
+        "span": "decide",
+        "id": 51,
+        "edge": "enter",
+        "wallMs": 2951.4875669999997,
+        "units": 1255.9798,
+        "rss": 489787392
+      },
+      {
+        "phase": "boundary",
+        "span": "decide",
+        "id": 51,
+        "edge": "throw",
+        "wallMs": 7061.163442,
+        "units": 5195.951155999999,
+        "rss": 765968384
+      },
+      {
+        "phase": "rejected proposal",
+        "wallMs": 7061.3527349999995,
+        "units": 5195.951155999999,
+        "rss": 765968384,
+        "error": "WallExpired: time (decide)"
+      }
+    ],
+    "journal": {
+      "bytes": 1917,
+      "sha256": "9f152a7631d1982e3bd76c6d12d11a11eaeae9f257ea7b0e50240d7513dcaa47"
+    }
+  },
+  {
+    "op": 3,
+    "artifact": "track-m-tar-v1",
+    "dir": "/home/user/track-m-s18-receipts-2C0rxR",
+    "format": "tar.gz",
+    "parts": 1,
+    "bytes": 5348,
+    "sha256": "6a915401253a0a4287c62f50f2d023aed0a13fccfae75d72b0238f7a3db75d19"
+  },
+  {
+    "op": 4,
+    "diagnostic": "pass-one-phase-boundaries",
+    "conditional": true,
+    "instrumented": true,
+    "familySha256": "54c58da465575dd41903b3c7712d70d0caa29400dd23d9c083a8ad366b236553",
+    "familySize": 34,
+    "law": "inX: stored guard reconfigs/inS or disabled/0",
+    "pass": 1,
+    "budget": 6000,
+    "wall": 7000,
+    "checked": false,
+    "result": {
+      "stuck": "unknown"
+    },
+    "searchUnits": 3597.4460240000003,
+    "searchWallMs": 7320.295047,
+    "events": 192,
+    "capped": false,
+    "active": [],
+    "phases": {
+      "boundary": 158,
+      "query": 11,
+      "decision:sat": 10,
+      "model": 10,
+      "count-completion": 1,
+      "unlabelled": 1,
+      "rejected proposal": 1
+    },
+    "tail": [
+      {
+        "phase": "boundary",
+        "span": "build",
+        "id": 66,
+        "edge": "return",
+        "wallMs": 4217.687417,
+        "units": 2093.4567079999997,
+        "rss": 377065472
+      },
+      {
+        "phase": "query",
+        "wallMs": 4217.719392999999,
+        "units": 2093.4567079999997,
+        "rss": 377065472
+      },
+      {
+        "phase": "boundary",
+        "span": "decide",
+        "id": 71,
+        "edge": "enter",
+        "wallMs": 4217.746204,
+        "units": 2093.4567079999997,
+        "rss": 377065472
+      },
+      {
+        "phase": "boundary",
+        "span": "decide",
+        "id": 71,
+        "edge": "return",
+        "wallMs": 4274.6713389999995,
+        "units": 2204.890896,
+        "rss": 385822720
+      },
+      {
+        "phase": "decision:sat",
+        "wallMs": 4274.765719999999,
+        "units": 2204.890896,
+        "rss": 385822720
+      },
+      {
+        "phase": "model",
+        "wallMs": 4274.784699,
+        "units": 2204.890896,
+        "rss": 385822720,
+        "params": {
+          "size": 3
+        }
+      },
+      {
+        "phase": "boundary",
+        "span": "mbqi",
+        "id": 72,
+        "edge": "enter",
+        "wallMs": 4274.815756,
+        "units": 2204.890896,
+        "rss": 385822720
+      },
+      {
+        "phase": "boundary",
+        "span": "mbqi",
+        "id": 72,
+        "edge": "return",
+        "wallMs": 4318.218229,
+        "units": 2204.890896,
+        "rss": 419131392
+      },
+      {
+        "phase": "boundary",
+        "span": "lazy",
+        "id": 73,
+        "edge": "enter",
+        "wallMs": 4318.315866,
+        "units": 2204.890896,
+        "rss": 419131392
+      },
+      {
+        "phase": "boundary",
+        "span": "lazy",
+        "id": 73,
+        "edge": "return",
+        "wallMs": 4790.146793,
+        "units": 2204.890896,
+        "rss": 453087232
+      },
+      {
+        "phase": "boundary",
+        "span": "build",
+        "id": 74,
+        "edge": "enter",
+        "wallMs": 4790.259642999999,
+        "units": 2204.890896,
+        "rss": 453087232
+      },
+      {
+        "phase": "boundary",
+        "span": "rawBuild",
+        "id": 75,
+        "edge": "enter",
+        "wallMs": 4790.278361,
+        "units": 2204.890896,
+        "rss": 453087232
+      },
+      {
+        "phase": "boundary",
+        "span": "encode",
+        "id": 76,
+        "edge": "enter",
+        "wallMs": 4790.294124,
+        "units": 2204.890896,
+        "rss": 453087232
+      },
+      {
+        "phase": "boundary",
+        "span": "encode",
+        "id": 76,
+        "edge": "return",
+        "wallMs": 4792.775305,
+        "units": 2204.890896,
+        "rss": 453087232
+      },
+      {
+        "phase": "boundary",
+        "span": "encode",
+        "id": 77,
+        "edge": "enter",
+        "wallMs": 4840.174609,
+        "units": 2204.890896,
+        "rss": 465932288
+      },
+      {
+        "phase": "boundary",
+        "span": "encode",
+        "id": 77,
+        "edge": "return",
+        "wallMs": 4888.010258,
+        "units": 2204.890896,
+        "rss": 466587648
+      },
+      {
+        "phase": "boundary",
+        "span": "encode",
+        "id": 78,
+        "edge": "enter",
+        "wallMs": 4888.113143,
+        "units": 2204.890896,
+        "rss": 466587648
+      },
+      {
+        "phase": "boundary",
+        "span": "encode",
+        "id": 78,
+        "edge": "return",
+        "wallMs": 4892.723653999999,
+        "units": 2204.890896,
+        "rss": 466587648
+      },
+      {
+        "phase": "boundary",
+        "span": "rawBuild",
+        "id": 75,
+        "edge": "return",
+        "wallMs": 4892.8379749999995,
+        "units": 2204.890896,
+        "rss": 466587648
+      },
+      {
+        "phase": "boundary",
+        "span": "build",
+        "id": 74,
+        "edge": "return",
+        "wallMs": 4892.860339,
+        "units": 2204.890896,
+        "rss": 466587648
+      },
+      {
+        "phase": "query",
+        "wallMs": 4892.889432999999,
+        "units": 2204.890896,
+        "rss": 466587648
+      },
+      {
+        "phase": "boundary",
+        "span": "decide",
+        "id": 79,
+        "edge": "enter",
+        "wallMs": 4892.913309,
+        "units": 2204.890896,
+        "rss": 466587648
+      },
+      {
+        "phase": "boundary",
+        "span": "decide",
+        "id": 79,
+        "edge": "throw",
+        "wallMs": 7320.08368,
+        "units": 3597.4460240000003,
+        "rss": 635637760
+      },
+      {
+        "phase": "rejected proposal",
+        "wallMs": 7320.258963,
+        "units": 3597.4460240000003,
+        "rss": 635637760,
+        "error": "WallExpired: time (decide)"
+      }
+    ],
+    "journal": {
+      "bytes": 2855,
+      "sha256": "e3437f9e323968443af546d0e9477dd3bf37e74e0c562542106852bcfdcf7e90"
+    }
+  },
+  {
+    "op": 4,
+    "artifact": "track-m-tar-v1",
+    "dir": "/home/user/track-m-s18-receipts-YJyn6H",
+    "format": "tar.gz",
+    "parts": 1,
+    "bytes": 7264,
+    "sha256": "57943d3334afb9e61a9ac8f362e1705ce51d525b8e2027a75fd703ba06c7b97a"
+  },
+  {
+    "op": 5,
+    "diagnostic": "pass-one-phase-boundaries",
+    "conditional": true,
+    "instrumented": true,
+    "familySha256": "54c58da465575dd41903b3c7712d70d0caa29400dd23d9c083a8ad366b236553",
+    "familySize": 34,
+    "law": "inX: stored guard reconfigs/inS or disabled/0",
+    "pass": 1,
+    "budget": 6000,
+    "wall": 7000,
+    "checked": false,
+    "result": {
+      "stuck": "unknown"
+    },
+    "searchUnits": 1352.0510079999997,
+    "searchWallMs": 7129.731481,
+    "events": 97,
+    "capped": false,
+    "active": [],
+    "phases": {
+      "boundary": 80,
+      "query": 6,
+      "decision:sat": 5,
+      "model": 5,
+      "rejected proposal": 1
+    },
+    "tail": [
+      {
+        "phase": "boundary",
+        "span": "encode",
+        "id": 32,
+        "edge": "return",
+        "wallMs": 6386.230723000001,
+        "units": 1211.735628,
+        "rss": 348614656
+      },
+      {
+        "phase": "boundary",
+        "span": "rawBuild",
+        "id": 30,
+        "edge": "return",
+        "wallMs": 6388.257947,
+        "units": 1211.735628,
+        "rss": 348614656
+      },
+      {
+        "phase": "boundary",
+        "span": "build",
+        "id": 29,
+        "edge": "return",
+        "wallMs": 6389.513269,
+        "units": 1211.735628,
+        "rss": 348614656
+      },
+      {
+        "phase": "query",
+        "wallMs": 6390.076418000001,
+        "units": 1211.735628,
+        "rss": 348614656
+      },
+      {
+        "phase": "boundary",
+        "span": "decide",
+        "id": 33,
+        "edge": "enter",
+        "wallMs": 6391.243926,
+        "units": 1211.735628,
+        "rss": 348614656
+      },
+      {
+        "phase": "boundary",
+        "span": "decide",
+        "id": 33,
+        "edge": "return",
+        "wallMs": 6609.679969,
+        "units": 1283.293342,
+        "rss": 315813888
+      },
+      {
+        "phase": "decision:sat",
+        "wallMs": 6610.821728,
+        "units": 1283.293342,
+        "rss": 315813888
+      },
+      {
+        "phase": "model",
+        "wallMs": 6610.956039000001,
+        "units": 1283.293342,
+        "rss": 315813888,
+        "params": {
+          "size": 5
+        }
+      },
+      {
+        "phase": "boundary",
+        "span": "mbqi",
+        "id": 34,
+        "edge": "enter",
+        "wallMs": 6611.03593,
+        "units": 1283.293342,
+        "rss": 315813888
+      },
+      {
+        "phase": "boundary",
+        "span": "mbqi",
+        "id": 34,
+        "edge": "return",
+        "wallMs": 6644.951217,
+        "units": 1283.293342,
+        "rss": 320008192
+      },
+      {
+        "phase": "boundary",
+        "span": "lazy",
+        "id": 35,
+        "edge": "enter",
+        "wallMs": 6645.200707,
+        "units": 1283.293342,
+        "rss": 320008192
+      },
+      {
+        "phase": "boundary",
+        "span": "lazy",
+        "id": 35,
+        "edge": "return",
+        "wallMs": 6645.257214,
+        "units": 1283.293342,
+        "rss": 320008192
+      },
+      {
+        "phase": "boundary",
+        "span": "build",
+        "id": 36,
+        "edge": "enter",
+        "wallMs": 6645.322155,
+        "units": 1283.293342,
+        "rss": 320008192
+      },
+      {
+        "phase": "boundary",
+        "span": "rawBuild",
+        "id": 37,
+        "edge": "enter",
+        "wallMs": 6645.365848,
+        "units": 1283.293342,
+        "rss": 320008192
+      },
+      {
+        "phase": "boundary",
+        "span": "encode",
+        "id": 38,
+        "edge": "enter",
+        "wallMs": 6645.395883,
+        "units": 1283.293342,
+        "rss": 320008192
+      },
+      {
+        "phase": "boundary",
+        "span": "encode",
+        "id": 38,
+        "edge": "return",
+        "wallMs": 6691.005726,
+        "units": 1283.293342,
+        "rss": 320401408
+      },
+      {
+        "phase": "boundary",
+        "span": "encode",
+        "id": 39,
+        "edge": "enter",
+        "wallMs": 6702.4554610000005,
+        "units": 1283.293342,
+        "rss": 319127552
+      },
+      {
+        "phase": "boundary",
+        "span": "encode",
+        "id": 39,
+        "edge": "return",
+        "wallMs": 6705.392297,
+        "units": 1283.293342,
+        "rss": 319127552
+      },
+      {
+        "phase": "boundary",
+        "span": "rawBuild",
+        "id": 37,
+        "edge": "return",
+        "wallMs": 6705.598345,
+        "units": 1283.293342,
+        "rss": 319127552
+      },
+      {
+        "phase": "boundary",
+        "span": "build",
+        "id": 36,
+        "edge": "return",
+        "wallMs": 6705.628402,
+        "units": 1283.293342,
+        "rss": 319127552
+      },
+      {
+        "phase": "query",
+        "wallMs": 6705.662926,
+        "units": 1283.293342,
+        "rss": 319127552
+      },
+      {
+        "phase": "boundary",
+        "span": "decide",
+        "id": 40,
+        "edge": "enter",
+        "wallMs": 6705.69131,
+        "units": 1283.293342,
+        "rss": 319127552
+      },
+      {
+        "phase": "boundary",
+        "span": "decide",
+        "id": 40,
+        "edge": "throw",
+        "wallMs": 7127.393553,
+        "units": 1352.0510079999997,
+        "rss": 322621440
+      },
+      {
+        "phase": "rejected proposal",
+        "wallMs": 7129.266326,
+        "units": 1352.0510079999997,
+        "rss": 322621440,
+        "error": "WallExpired: time (decide)"
+      }
+    ],
+    "journal": {
+      "bytes": 1621,
+      "sha256": "f578efb672d8959ebab602e70ca8e029e3d0b5ef9e5c21a0c8dd60783d5f8ac8"
+    }
+  },
+  {
+    "op": 5,
+    "artifact": "track-m-tar-v1",
+    "dir": "/home/user/track-m-s18-receipts-3duyqj",
+    "format": "tar.gz",
+    "parts": 1,
+    "bytes": 4731,
+    "sha256": "756bc483c3916112cd285537ef42c321af6ee4d9d17b138078d319130d5c878d"
+  },
+  {
+    "op": 6,
+    "diagnostic": "pass-one-phase-boundaries",
+    "conditional": true,
+    "instrumented": true,
+    "familySha256": "54c58da465575dd41903b3c7712d70d0caa29400dd23d9c083a8ad366b236553",
+    "familySize": 34,
+    "law": "inX: stored guard reconfigs/inS or disabled/0",
+    "pass": 1,
+    "budget": 6000,
+    "wall": 7000,
+    "checked": false,
+    "result": {
+      "stuck": "unknown"
+    },
+    "searchUnits": 1898.262676,
+    "searchWallMs": 7504.56997,
+    "events": 111,
+    "capped": false,
+    "active": [],
+    "phases": {
+      "boundary": 90,
+      "query": 6,
+      "decision:sat": 6,
+      "model": 6,
+      "count-completion": 1,
+      "unlabelled": 1,
+      "rejected proposal": 1
+    },
+    "tail": [
+      {
+        "phase": "boundary",
+        "span": "lazy",
+        "id": 36,
+        "edge": "return",
+        "wallMs": 6067.731332,
+        "units": 1761.325558,
+        "rss": 477294592
+      },
+      {
+        "phase": "boundary",
+        "span": "lazy",
+        "id": 37,
+        "edge": "enter",
+        "wallMs": 6067.767049,
+        "units": 1761.325558,
+        "rss": 477294592
+      },
+      {
+        "phase": "boundary",
+        "span": "lazy",
+        "id": 37,
+        "edge": "return",
+        "wallMs": 6067.793359,
+        "units": 1761.325558,
+        "rss": 477294592
+      },
+      {
+        "wallMs": 6068.066178,
+        "units": 1761.325558,
+        "rss": 477294592
+      },
+      {
+        "phase": "boundary",
+        "span": "build",
+        "id": 38,
+        "edge": "enter",
+        "wallMs": 6068.157198,
+        "units": 1761.325558,
+        "rss": 477294592
+      },
+      {
+        "phase": "boundary",
+        "span": "rawBuild",
+        "id": 39,
+        "edge": "enter",
+        "wallMs": 6068.185921,
+        "units": 1761.325558,
+        "rss": 477294592
+      },
+      {
+        "phase": "boundary",
+        "span": "encode",
+        "id": 40,
+        "edge": "enter",
+        "wallMs": 6068.215316,
+        "units": 1761.325558,
+        "rss": 477294592
+      },
+      {
+        "phase": "boundary",
+        "span": "encode",
+        "id": 40,
+        "edge": "return",
+        "wallMs": 6073.744808,
+        "units": 1761.325558,
+        "rss": 477556736
+      },
+      {
+        "phase": "boundary",
+        "span": "encode",
+        "id": 41,
+        "edge": "enter",
+        "wallMs": 6192.743189,
+        "units": 1761.325558,
+        "rss": 432218112
+      },
+      {
+        "phase": "boundary",
+        "span": "encode",
+        "id": 41,
+        "edge": "return",
+        "wallMs": 6247.816093,
+        "units": 1761.325558,
+        "rss": 422621184
+      },
+      {
+        "phase": "boundary",
+        "span": "encode",
+        "id": 42,
+        "edge": "enter",
+        "wallMs": 6248.007379,
+        "units": 1761.325558,
+        "rss": 422621184
+      },
+      {
+        "phase": "boundary",
+        "span": "encode",
+        "id": 42,
+        "edge": "return",
+        "wallMs": 6250.439213,
+        "units": 1761.325558,
+        "rss": 424325120
+      },
+      {
+        "phase": "boundary",
+        "span": "rawBuild",
+        "id": 39,
+        "edge": "return",
+        "wallMs": 6253.069869,
+        "units": 1761.325558,
+        "rss": 424456192
+      },
+      {
+        "phase": "boundary",
+        "span": "build",
+        "id": 38,
+        "edge": "return",
+        "wallMs": 6254.30642,
+        "units": 1761.325558,
+        "rss": 423112704
+      },
+      {
+        "phase": "query",
+        "wallMs": 6255.229645,
+        "units": 1761.325558,
+        "rss": 423112704
+      },
+      {
+        "phase": "boundary",
+        "span": "decide",
+        "id": 43,
+        "edge": "enter",
+        "wallMs": 6255.310205,
+        "units": 1761.325558,
+        "rss": 423112704
+      },
+      {
+        "phase": "boundary",
+        "span": "decide",
+        "id": 43,
+        "edge": "return",
+        "wallMs": 6478.843659,
+        "units": 1898.262676,
+        "rss": 439177216
+      },
+      {
+        "phase": "decision:sat",
+        "wallMs": 6479.040186,
+        "units": 1898.262676,
+        "rss": 439177216
+      },
+      {
+        "phase": "model",
+        "wallMs": 6479.065745,
+        "units": 1898.262676,
+        "rss": 439177216,
+        "params": {
+          "size": 2
+        }
+      },
+      {
+        "phase": "boundary",
+        "span": "mbqi",
+        "id": 44,
+        "edge": "enter",
+        "wallMs": 6479.103315,
+        "units": 1898.262676,
+        "rss": 439177216
+      },
+      {
+        "phase": "boundary",
+        "span": "mbqi",
+        "id": 44,
+        "edge": "return",
+        "wallMs": 6527.051506,
+        "units": 1898.262676,
+        "rss": 481062912
+      },
+      {
+        "phase": "boundary",
+        "span": "lazy",
+        "id": 45,
+        "edge": "enter",
+        "wallMs": 6527.188222,
+        "units": 1898.262676,
+        "rss": 481062912
+      },
+      {
+        "phase": "boundary",
+        "span": "lazy",
+        "id": 45,
+        "edge": "throw",
+        "wallMs": 7503.821351,
+        "units": 1898.262676,
+        "rss": 472743936
+      },
+      {
+        "phase": "rejected proposal",
+        "wallMs": 7504.111673,
+        "units": 1898.262676,
+        "rss": 472743936,
+        "error": "WallExpired: time (lazy)"
+      }
+    ],
+    "journal": {
+      "bytes": 1756,
+      "sha256": "b329b4cc259e7960ce6ea16049a9d20092c35c59318612824aab66b97b58e5ef"
+    }
+  },
+  {
+    "op": 6,
+    "artifact": "track-m-tar-v1",
+    "dir": "/home/user/track-m-s18-receipts-Qi1HyP",
+    "format": "tar.gz",
+    "parts": 1,
+    "bytes": 4995,
+    "sha256": "6570e0ac09d2c53f7cced123fea7eb5004a7234dcb7dcf23e2b54aa2e917e163"
+  }
+]
