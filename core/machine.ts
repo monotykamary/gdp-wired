@@ -813,11 +813,14 @@ function compileJsMode(m: Machine, persistent: boolean, cells?: CompiledCells): 
     return `$spread(${breaksJs({reads: parts.flatMap(b => b.reads), cmps: parts.flatMap(b => b.cmps)})}, ${names.length})`
   }
   const every = (w: {each: string, value: E}, shared?: string) => { const dense = !plainKey(w.value, w.each), keys = shared ?? keysJs(w.value, w.each), outer = bound; bound = {[w.each]: 'k'}; const body = ex(w.value); bound = outer; return `${dense ? '$dense' : '$every'}(${keys}, k => ${body})` }
-  // The writes at every key whose keys are breakpoints share one list per step: the breakpoints of them all (each write's
-  // value is constant between its own, so between the union's too, and $dense fills the same cells in the same order from
-  // a list that holds more of them), computed once instead of once per write.
+  // Writes at every key with the same breakpoints (the same reads and comparisons) share one list per step, computed once
+  // instead of once per write; a write with breakpoints of its own keeps its own list, since $dense evaluates a write's
+  // value at every key of the list it is given, and a list holding another write's breakpoints would cost it those.
   const denseWrites = Object.entries(plain.step.maps ?? {}).filter((e): e is [string, {each: string, value: E}] => 'each' in e[1] && !plainKey(e[1].value, e[1].each))
-  const sharedBreaks = denseWrites.length > 1 ? (() => { const parts = denseWrites.map(([, w]) => breaksOf(w.value, w.each)), once = <T>(xs: T[]) => [...new Map(xs.map(x => [JSON.stringify(x), x])).values()]; return breaksJs({reads: once(parts.flatMap(b => b.reads)), cmps: once(parts.flatMap(b => b.cmps))}) })() : undefined
+  const breaksText = new Map(denseWrites.map(([name, w]) => [name, JSON.stringify(breaksOf(w.value, w.each))]))
+  const sharedBreaks = new Map<string, string>()
+  for (const [text, count] of [...breaksText.values()].reduce((acc, text) => acc.set(text, (acc.get(text) ?? 0) + 1), new Map<string, number>())) if (count > 1) sharedBreaks.set(text, `bk${sharedBreaks.size}`)
+  const sharedOf = (name: string) => sharedBreaks.get(breaksText.get(name) ?? '')
   const writes = Object.entries(plain.step.maps ?? {})
   const env = (input: boolean) => `{${[...m.params.map(p => `${id(p)}: $n(params[${id(p)}], ${id(`param ${p}`)})`), ...(input ? carried.map(i => `${id(i)}: $n(input[${id(i)}], ${id(`input ${i}`)})`) : [])].join(', ')}}`
   // Reads go through `maps` (with the maps the request carries); writes go to the state's own.
@@ -849,8 +852,8 @@ function compileJsMode(m: Machine, persistent: boolean, cells?: CompiledCells): 
     // The rule's own assumption, as `allowed` (core/watch.ts) reads it (a history's machine assumes more: its relations).
     ...(m.assume ? [`if (!${cx(m.assume)}) throw new RangeError(${id(refused(m))});`] : []),
     `const scalars = {...s, ${Object.entries(plain.step.state ?? {}).map(([name, e]) => `${id(name)}: ${ex(e)}`).join(', ')}};`,
-    ...(sharedBreaks ? [`const bk = ${sharedBreaks};`] : []),
-    ...writes.map(([, w], i) => ('each' in w ? `const write${i} = ${every(w, sharedBreaks && !plainKey(w.value, w.each) ? 'bk' : undefined)};` : `const key${i} = ${ex(w.key)}, value${i} = ${ex(w.value)};`)))
+    ...[...sharedBreaks].map(([text, bk]) => `const ${bk} = ${breaksJs(JSON.parse(text) as Breaks)};`),
+    ...writes.map(([name, w], i) => ('each' in w ? `const write${i} = ${every(w, sharedOf(name))};` : `const key${i} = ${ex(w.key)}, value${i} = ${ex(w.value)};`)))
   if (h) lines.push(`const keep = ${cx(h.keep)};`)
   if (persistent) lines.push('state = fork(state);')
   lines.push(...writes.map(([name, w], i) => ('each' in w ? `state.maps[${id(name)}] = write${i}.cells; dft[${id(name)}] = write${i}.d;` : `state.maps[${id(name)}].set(key${i}, value${i});`)))
