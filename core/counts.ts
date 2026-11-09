@@ -712,13 +712,13 @@ export function countedAttempts(m: Machine, caller: Law[], support: Set<Law>, un
         // for failure-driven widening. This caches proposals, never a proof.
         const key = countPoolKey(goal, decls)
         const cached = poolCache.get(goal.name)
-        const pool0 = cached?.key === key ? cached.value : grammarPool(goal, decls, pool, generation, structured)
+        const pool0 = cached?.key === key ? cached.value : grammarPool(goal, decls, pool, generation, structured, m)
         if (cached?.key !== key) poolCache.set(goal.name, {key, value: pool0})
         if (!selection) {
           const ordinary = readTuples(goal.hyps.at(-1), generation.tick).some(([mp]) => mp.endsWith('#') && decls.some(d => d.map === mp))
             ? polaritySelection(goal, decls, pool0, generation, sourceMaps).pick
             : smallSelection(goal, decls, pool0.full, readTuples(law.holds, generation.tick).map(([, key]) => key), none, generation)
-          const pick = preferMemberInclusions(m, decls, pool0.full, ordinary)
+          const pick = preferMemberInclusions(m, decls, pool0.full, ordinary, 10, generation.tick)
           selection = {chosen: new Set(ids(pick)), cap: Math.min(10, pick.insts.length + 2), previous: pick, decls, reserve: reservationState(goal, [m, ls, goal], pool), stable: stableState([m, ls, goal])}
           selections.set(goal.name, selection)
         }
@@ -735,7 +735,7 @@ export function countedAttempts(m: Machine, caller: Law[], support: Set<Law>, un
       const rd = new Map(full.reads.map(r => [r[0], json([r[1], r[2]])]))
       const keys = [...full.picks.map(q => `p${json([rd.get(q[0]), q[1]])}`), ...full.insts.map(i => `i${json([i.terms.map(([z, x]) => [z, rd.get(x)]), i.unit, i.below])}`)]
       if (lazyMode === 'wide') {
-        const initial = preferMemberInclusions(m, decls, full, {...full, insts: full.insts.slice(0, 10)})
+        const initial = preferMemberInclusions(m, decls, full, {...full, picks: [], insts: full.insts.slice(0, 10)}, 10, generation.tick)
         for (const inst of initial.insts) chosen.add(keys[full.picks.length + full.insts.indexOf(inst)]!)
       }
       const c = {...full, picks: full.picks.filter((_, j) => chosen.has(keys[j]!)), insts: full.insts.filter((_, j) => chosen.has(keys[j + full.picks.length]!))}

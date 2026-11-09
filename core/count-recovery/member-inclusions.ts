@@ -9,16 +9,17 @@ export type MemberInclusion={positive:string,negative:string,carried:string,belo
 // miss a useful inclusion when its target count is otherwise unconstrained.
 // Prefer only existing witness instances suggested by the flag syntax. Their
 // scalar guards are not asserted: mcGoal must still prove every witness branch.
-export function preferMemberInclusions<T extends Pick<CountCert,'reads'|'insts'>>(m:Machine,ds:CountDecl[],full:T,picked:T,cap=10):T {
- if(cap<=0||!m.inputMaps?.length||!full.insts.length)return picked
+export function preferMemberInclusions<T extends Pick<CountCert,'reads'|'insts'> & Partial<Pick<CountCert,'picks'>>>(m:Machine,ds:CountDecl[],full:T,picked:T,cap=10,more?:()=>boolean):T {
+ const room=cap-(picked.picks?.length??0)
+ if(room<=0||picked.insts.length>room||!m.inputMaps?.length||!full.insts.length)return picked
  const vector=(q:Pick<CountInst,'terms'|'unit'|'below'>)=>text([q.unit,q.below,[...q.terms].sort((a,b)=>a[1].localeCompare(b[1])||a[0]-b[0])])
  const available=new Map(full.insts.map(q=>[vector(q),q])),preferred:CountInst[]=[]
- for(const p of memberInclusions(m,ds,full.reads)){
+ for(const p of memberInclusions(m,ds,full.reads,more)){
   const q=available.get(vector({unit:0,below:p.below,terms:[[1,p.positive],[-1,p.negative]]}))
   if(q)preferred.push(q)
  }
  if(!preferred.length)return picked
- const seen=new Set<string>(),insts=[...preferred,...picked.insts].filter(q=>{const k=vector(q);if(seen.has(k))return false;seen.add(k);return true}).slice(0,cap)
+ const seen=new Set<string>(),insts=[...preferred,...picked.insts].filter(q=>{const k=vector(q);if(seen.has(k))return false;seen.add(k);return true}).slice(0,room)
  return {...picked,insts}
 }
 const text=(v:unknown)=>JSON.stringify(v)
@@ -31,7 +32,8 @@ const member=(c:C):Extract<E,{op:'get'}>|undefined=>{
 }
 const predicate=(e:E):C|undefined=>e.op==='if'&&e.then.op==='const'&&e.then.value===1&&e.else.op==='const'&&e.else.value===0?e.c:e.op==='get'?same(e,n(1)):undefined
 const parts=(c:C):C[]=>c.op==='and'?c.xs.flatMap(parts):[c]
-export function memberInclusions(m:Machine,ds:CountDecl[],reads:CountCert['reads']):MemberInclusion[]{
+export function memberInclusions(m:Machine,ds:CountDecl[],reads:CountCert['reads'],more?:()=>boolean):MemberInclusion[]{
+ if(more&&!more())return []
  const picked=reads.filter(([,map])=>!map.endsWith('#')),names=new Set(picked.map(r=>r[1])),decls=ds.filter(d=>names.has(d.map))
  if(!m.inputMaps?.length||!bounded([m.step.flags,decls,picked]))return []
  const counts=countsForReads(decls,picked);if(!counts)return []
@@ -40,6 +42,7 @@ export function memberInclusions(m:Machine,ds:CountDecl[],reads:CountCert['reads
  const mentions=(v:unknown)=>{let found=false;walkOnce(v,(o:any)=>{if(o.op==='var'&&o.name===key)found=true});return found}
  const inputs=new Set(m.inputMaps),facts=new Map<string,{known:Set<string>,anchors:Map<string,E>}>()
  for(const q of Object.values(m.step.flags??{})){
+  if(more&&!more())return []
   if(q.op!=='all'||q.keys?.length)continue
   const c=substC(q.c,{vars:{[q.key]:x(key)},maps:{},flags:{}})
   if(c.op!=='or'||c.xs.length!==2)continue
@@ -64,7 +67,7 @@ export function memberInclusions(m:Machine,ds:CountDecl[],reads:CountCert['reads
   const entry=facts.get(source.map);if(!entry?.anchors.size)continue
   const known=new Set([...entry.known,text(source)])
   for(const b of counts){
-   if(--work<0||out.length>=128)return out
+   if(--work<0||out.length>=128||more&&!more())return out
    if(a.v===b.v||text(a.below)!==text(b.below))continue
    const target=predicate(substE(b.body,{vars:{[b.key]:x(key)},maps:{},flags:{}}));if(!target)continue
    let changed=false
