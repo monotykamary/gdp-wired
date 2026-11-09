@@ -1,6 +1,6 @@
 # Lane C (Fable) — branch claude/mldr-wall, from claude/mldr-gen 1681e8e5
 
-**Current head for lane D's re-audit: the commit after `revert: core(machine): one key-array cache per compiled step` (the per-step cache eb9aad68 gained nothing on a paired measurement and is reverted; the audited helpers are those of fc3a75c1 plus the test fix 57ac3f57).** Audit fixes, second round: commit fc3a75c1 — `$unique` zeroes its stamp buffer and restarts at 1
+**Current head for lane D's re-audit: 3068e7b3 (the revert of the per-step cache eb9aad68, which gained nothing on a paired measurement; the audited helpers are those of fc3a75c1 plus the test fix 57ac3f57; the confirming strict pair on a tree still carrying the cache read 15.2 s vs 20.1 s non-attempt wall).** Audit fixes, second round: commit fc3a75c1 — `$unique` zeroes its stamp buffer and restarts at 1
 before the counter reaches 2^32 − 1 (and on growth), so a stale mark can never equal a live stamp; `core/runtime-keys.test.ts`
 forces the wrap through the helper's own `stamp`/`buf` properties and checks the enumeration and the restart; every check job
 exits with the check's own status (`exit $st`) instead of echoing it. First round, commit fe4a0dfe — (1) `$keys` iterates own properties again (`Object.keys`),
