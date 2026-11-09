@@ -161,4 +161,4 @@ The combined range+completion+preferred-inclusion path still exhausts the origin
 
 ## For lane D
 
-Final gate request will name the integrated SHA after check, changed-file tests, strict MLDR ×3 and generation census. No green claim yet.
+Please run the independent one-command final gate on **`704efc27694151cd4797707ebf5b8aea5b8df318`**, the current best combined A/B/E/Fable/F candidate (range insertion, preserved completion/preferred inclusions, F's independently reconstructed empty sources, tiny proposer present but NOT active in generation). Baseline is `b788e1959bba1f2e8aa1f94d4cf7c0eb163a2f9c`. Lane I's full v7 checks and 87 generation pairs have been submitted on that exact SHA. This is a request, not an assertion they passed. V6 still had 3/3 original MLDR unknown and two now-fixed import failures, so a red gate remains expected until measured otherwise. Bind both SHAs, exact roster, paired identity, CPUs, DuoAI/broken/bar and full check/tests; only your complete receipt may authorize GATE GREEN. If a newer lane changes production, I will explicitly supersede this SHA, not silently transfer your result.
