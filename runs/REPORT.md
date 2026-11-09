@@ -4,7 +4,13 @@ Lane I resumed from `cca59f0c` on `claude/mldr-integ`; clean worktree verified, 
 
 - First cancelled work rerun: all **140 upper-bound shards** submitted through the scheduler, fresh output `runs/lane-i/upper-bound/resumed/full`, task `cf1d3fc9-6a88-4e12-8403-974717b1ed42`. Every guest unpacks frozen production `15eff72f` and checks the retained source manifest; the current integration is not substituted. No supplied laws; original 34-law family; 30 minutes per operation; no share; independent verification still required. Pending, not a result.
 - Repair: core-replay reconstruction now spreads the previous obligation before replacing its goal/decls/encoded goal, retaining `all`, certificate and pool. Added a focused range-demand test for a read omitted by the selected certificate. No budget, law, or kernel change.
-- Current repair candidate: `90f6676a` (lint fixes, two v10 test/receipt defects, and complete changed-test roster). Five repair2 mechanics jobs are submitted. V9 `edd284913024a6566591d7ad1cba8059b8047a14` and v10 `b37c4e2ce8172d0e3e1546b6c099ceff33b2d7ae` are audited below: both checks failed, all MLDR pairs remain unknown. **Not gate green**; Lane D's final gate remains mandatory.
+- Current repair candidate: `50b3dc68` (explicit scalar guard for the last observed fixture lint). Repair2 confirmed **659 tests / 19,840 assertions passing** on `90f6676a`, but check still failed lint. Five repair3 mechanics jobs are now submitted. V9 and v10 are audited below: their checks failed and all completed MLDR pairs remain unknown. **Not gate green**; Lane D's final gate remains mandatory.
+
+## Repair2 completed: all changed tests pass; final fixture lint remains
+
+Batch `20261110-005238-i4t0hb`, source `90f6676aa0697a91bdc1a845d9edd9b0d645b597`, completed. All four changed-test workers passed: **215 + 148 + 136 + 160 = 659 tests, 19,840 assertions, zero failures**, covering all 120 changed test modules. This includes the previously failing finite-polarity test and both newly rostered audit/archive modules.
+
+`check` still exited 1: TypeScript passed and lint reached four diagnostics at one new fixture line, where `request.left/right` were interpolated without narrowing their possible map/undefined type. `50b3dc68` now explicitly rejects non-number fields and only formats narrowed scalars; no production engine change. A full five-worker check/test rerun is task `3b811587-1fef-4d5a-8caa-ced0da232f71`, `runs/lane-i/repair3/results`, using the same canonical archive cache and existing `research/lane-i/repair2.jobs.json` recipe. Result pending. Repair2 compressed receipts and hashes are retained; passing tests do not override the failed check.
 
 ## V10 completed: new check/test defects, no MLDR proof
 
