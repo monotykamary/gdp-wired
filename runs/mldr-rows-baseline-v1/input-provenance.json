@@ -1,0 +1,15 @@
+{
+  "production": "9124348d5d313ab7e89082b0146a72d6a7c8bf66",
+  "archiveSha256": "b3f4e8b5407964d6a34e3edcfd9901943e6997fe4cada254beaa8834bb998bc2",
+  "originalFamilySha256": "96ee4bffe3c60054141501b2064f2ebbe0f61581b503859a44a8e113f1d49bcd",
+  "inputSha256": "f14f538ea14763ced6f8aac5227ae9bc9fbc6dd18acea4f150cbaadd3eeca639",
+  "bytes": 56202,
+  "laws": 34,
+  "target": "fields: CV[a]=CV[b] and CfgT[a]=CfgT[b] -> Config rows agree",
+  "targetIndex": 27,
+  "caller": [
+    0,
+    1
+  ],
+  "support": []
+}

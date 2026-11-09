@@ -1,0 +1,30 @@
+[
+  {
+    "name": "rows-2700-ordinary-first",
+    "cmd": "bash lane-e-rows/baseline.sh 2700 4800 ordinary-first",
+    "cpu": 8,
+    "memory": 14336,
+    "timeout": 180
+  },
+  {
+    "name": "rows-2700-count-first",
+    "cmd": "bash lane-e-rows/baseline.sh 2700 4800 count-first",
+    "cpu": 8,
+    "memory": 14336,
+    "timeout": 180
+  },
+  {
+    "name": "rows-6000-ordinary-first",
+    "cmd": "bash lane-e-rows/baseline.sh 6000 7000 ordinary-first",
+    "cpu": 8,
+    "memory": 14336,
+    "timeout": 180
+  },
+  {
+    "name": "rows-6000-count-first",
+    "cmd": "bash lane-e-rows/baseline.sh 6000 7000 count-first",
+    "cpu": 8,
+    "memory": 14336,
+    "timeout": 180
+  }
+]

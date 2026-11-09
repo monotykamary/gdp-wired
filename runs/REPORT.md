@@ -1,5 +1,27 @@
 # RESUMED — lane E, 2026-11-10
 
+## NEW TARGET — Inv1758 assigned to lane E
+
+Coordinator moved Inv1758 to E; B retains Inv* / p1 and F retains
+Inv2973-half. The completed safety evidence below remains unchanged.
+
+Initial four-job baseline is submitted as task
+**8901c267-d68f-4835-8d67-213bee7ed517**, output
+`runs/mldr-rows-baseline-v1/`: ordinary-first and count-first at 2700 units /
+4800 ms and 6000 units / 7000 ms, exclusive pinned large VMs. It uses the
+existing hash-checked 9124348d source overlays and the **exact same fresh
+34-law family**, mapped without changing machine/laws to the existing
+`lane-b-cost.ts` diagnostic. No results or production improvement claimed.
+Family/input hashes are in `input-provenance.json` and the working plan in
+`research/mldr-rows/WORKING.md`.
+
+Initial hypothesis: Inv1758's field-only STEP may need count-law tuples at
+the actor/other row before its repeated MBQI rounds; B's eager completion
+for count-bearing targets does not cover this case. Read the actual captures
+before choosing a generic patch. B's negative eager-member / 64-row seeding
+results are respected, not rerun. No production source has changed yet.
+
+
 ## VERIFIED — fresh generated-family safety below its share; original remains UNKNOWN
 
 Production source **9124348d5d313ab7e89082b0146a72d6a7c8bf66** completes
