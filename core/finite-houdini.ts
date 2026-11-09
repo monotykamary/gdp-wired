@@ -12,7 +12,7 @@ const conjuncts = (c: C): C[] => c.op === 'and' ? c.xs.flatMap(conjuncts) : [c]
 // Guards provide finite upper bounds (including auxiliary half-count witnesses).
 // Otherwise permit only direct finite-map reads and equality between binders:
 // the explicit cells plus one distinct fresh key per binder cover every case.
-export function finiteEvaluator(m: Machine): (law: Law, p: Env, st: State) => Truth {
+export function finiteEvaluator(m: Machine, stop: () => boolean = () => false): (law: Law, p: Env, st: State) => Truth {
   const plans = new WeakMap<Law, ReturnType<typeof plan>>()
   const cache = new WeakMap<State, {params: Env, view: State, values: Map<Law, Truth>}>()
   function plan(law: Law) {
@@ -56,6 +56,7 @@ export function finiteEvaluator(m: Machine): (law: Law, p: Env, st: State) => Tr
   }
   return (law, p, st) => {
     checkWall('finite law')
+    if (stop()) return undefined
     let entry = cache.get(st)
     if (!entry || entry.params !== p) { entry = {params: p, view: carriedView(m, st, Object.fromEntries((m.inputMaps ?? []).map(k => [k, new Map()])), undefined, p), values: new Map()}; cache.set(st, entry) }
     if (entry.values.has(law)) return entry.values.get(law)
@@ -64,7 +65,7 @@ export function finiteEvaluator(m: Machine): (law: Law, p: Env, st: State) => Tr
     const env: Env = {...p, ...st.scalars}, view = entry.view
     let visited = 0
     const go = (left: typeof shape.cover): Truth => {
-      if ((visited++ & 255) === 0) checkWall('finite law bindings')
+      if ((visited++ & 255) === 0) { checkWall('finite law bindings'); if (stop()) return undefined }
       if (visited > 1_000_000) return undefined
       if (!left.length) return shape.test(env, view)
       for (const g of shape.guards) if (g.vars.every(k => k in env) && !g.test(env, view)) return true

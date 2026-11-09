@@ -4,7 +4,7 @@ import {countsDump} from '../../core/counts.ts'
 import {finiteDump} from '../../core/finite-houdini.ts'
 if (process.env.T14_CAPTURE === '1') {
   let family: unknown, beforeFinite: unknown
-  const finiteDrops: unknown[] = [], witnesses: unknown[] = [], roots: {law: string, pass: number, kind: string, outcome: string, goal: {name: string, hyps: unknown[]}}[] = []
+  const finiteDrops: unknown[] = [], witnesses: unknown[] = [], modelChecks: unknown[] = [], roots: {law: string, pass: number, kind: string, outcome: string, goal: {name: string, hyps: unknown[]}}[] = []
   const seen = new Set<string>(), witnessKeys = new Set<string>()
   const wanted = (name: string) => /stored guard.*disabled\/0|canVote\/3|CV\[a\]=CV\[b\].*CfgT\[a\]=CfgT\[b\]|one primary per term/.test(name)
   finiteDump.onStart = value => { beforeFinite = {...value, machine: {...value.machine, counts: {...value.machine.counts}}} }
@@ -14,6 +14,7 @@ if (process.env.T14_CAPTURE === '1') {
     old?.(value)
     const v = value as any, law = String(v.law ?? ''), outcome = String(v.stuck ?? v.phase ?? '')
     if (v.phase === 'candidates') family = value
+    if (v.phase === 'finite-model') modelChecks.push({law, pass: v.pass, genuine: v.completion.genuine, reason: v.completion.reason})
     if (outcome === 'sat' && v.witness) {
       const compact = {law, pass: v.pass, phase: v.phase ?? 'candidate-model', witness: v.witness}
       const key = JSON.stringify(compact)
@@ -27,7 +28,7 @@ if (process.env.T14_CAPTURE === '1') {
   }
   process.on('exit', () => {
     const kept = [...roots], omittedRoots: unknown[] = []
-    const pack = () => gzipSync(JSON.stringify({family, beforeFinite, finiteDrops, witnesses, roots: kept, omittedRoots}))
+    const pack = () => gzipSync(JSON.stringify({family, beforeFinite, finiteDrops, witnesses, modelChecks, roots: kept, omittedRoots}))
     let zip = pack()
     while (zip.length > 180_000 && kept.length) { const r = kept.pop()!; omittedRoots.push({law: r.law, pass: r.pass, outcome: r.outcome}); zip = pack() }
     console.log(`T14_CAPTURE_BYTES ${zip.length}`)

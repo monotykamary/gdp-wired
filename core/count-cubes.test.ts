@@ -2,6 +2,7 @@ import {expect, test} from 'bun:test'
 import {type Machine, type Law, type State, all, any, atMost, get, ite, less, n, not, plus, same, times, x} from './machine.ts'
 import {countCubes} from './count-cubes.ts'
 import {finiteEvaluator, finiteHoudini} from './finite-houdini.ts'
+import {finiteModelChecker} from './finite-model.ts'
 import {holdsAt} from './exists.ts'
 import {WallExpired} from './wall.ts'
 import {withWall} from '../kernel/prove.ts'
@@ -54,6 +55,29 @@ test('finite Houdini reaches a fixpoint as removed premises admit new predecesso
   expect(finiteHoudini(m, m, [], [a, b], samples, {randomStates: 0, requests: 1, onDrop: d => drops.push([d.round, d.law.name])})).toEqual([])
   expect(drops).toEqual([[0, 'a zero'], [1, 'b zero']])
   expect(finiteHoudini(m, m, [a], [a, b], samples, {randomStates: 0, requests: 1})).toEqual([a, b])
+})
+
+test('a completed model is a CTI only after a real step from the whole family', () => {
+  const m = counter(), law = {name: 'zero', holds: same(x('value'), n(0))}, check = finiteModelChecker(m)
+  expect(check([law], law, {value: 0}).genuine).toBe(true)
+  expect(check([law], law, {value: 1}).genuine).toBe(false)
+  expect(check([law, {name: 'inconsistent', holds: same(x('value'), n(1))}], law, {value: 0}).genuine).toBe(false)
+  expect(check([law], law, {value: 0}, () => true).genuine).toBe(false)
+  const unchanged = {...m, step: {}}
+  expect(finiteModelChecker(unchanged)([law], law, {value: 0}).genuine).toBe(false)
+})
+test('finite model certification recomputes count cells and rejects bad requests', () => {
+  const m: Machine = {name: 'count completion', params: [], inputs: ['op'], state: {}, maps: {A: 0}, assume: same(x('op'), n(1)), counts: {Total: {j: 'row', key: 'key', below: n(2), body: get('A', x('key'))}}, step: {maps: {A: {key: n(0), value: n(1)}}}}
+  const law = {name: 'empty', holds: same(get('Total', n(0)), n(0))}, check = finiteModelChecker(m)
+  expect(check([law], law, {op: 1, 'Total[]': 999}).genuine).toBe(true)
+  expect(check([law], law, {op: 0}).genuine).toBe(false)
+  expect(check([law], law, {op: 1, a: 0, b: 0, 'A[a:1]': 0, 'A[b:1]': 1}).genuine).toBe(false)
+  expect(check([law], law, {op: -1}).genuine).toBe(false)
+})
+test('an unsupported predecessor law cannot certify a finite model', () => {
+  const m = counter(), zero = {name: 'zero', holds: same(x('value'), n(0))}
+  const unsupported: Law = {name: 'unbounded', forall: 'i', holds: same(times(2, x('i')), x('i'))}
+  expect(finiteModelChecker(m)([zero, unsupported], zero, {value: 0}).genuine).toBe(false)
 })
 
 test('finite filtering obeys the outer wall rather than extending it', () => {
