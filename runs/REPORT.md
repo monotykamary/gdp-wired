@@ -16,53 +16,60 @@ Batch `20261110-000752-9cbvob`, snapshot tree `99439867caf3`, task
 below refer to its new payloads, never to the cancelled batch. All twelve
 checkpoint/shortcut logs were independently replayed. Production tiny
 screening stays disabled: only three of the named seven were caught.
-Bounded grouping reached four named drops, not five. The current experiment
-is an opt-in operation/request-first traversal; its validation is pending.
+Bounded grouping reached four named drops, not five. Operation-first was
+rejected; the checked state-first implementation has been restored.
 
-## Current pilot: opt-in operation-first traversal (WIP; not yet validated)
+## Operation-first pilot rejected; checked state-first implementation restored
 
-After the certified four-of-seven result below, the generic next experiment
-closes relevant requests per operation before assigning states. Its
-partial enablement predicate now sees the full request/state assignment
-order; the separate shared pre-family predicate is checked only after the
-request prefix is complete. An unknown state atom stays unknown, never
-false merely because its slot still contains an old value.
+All six probes in `20261110-013906-gsvh4j` exited 0 and confirmed
+`operationFirst: true`, but **zero of the named seven** were removed.
+Original runs removed only CT/CV row agreement and the row-0 cube (neither
+is named-seven credit); survivor runs removed nothing new.
 
-- `operationFirst` is opt-in; the default state-first path is unchanged.
-- The research driver sets it only with `T16_OPERATION_FIRST=1` and records
-  the mode in its result; the scope also records the mode.
-- Added exhaustive concrete-proposal-set equality and accepted-target tests.
-- Independent CTI admission, domains, native-body cap, 1900-ms outer pilot
-  wall and production-disabled status are unchanged.
-- Equal complete finite proposal sets would not guarantee equal prefixes:
-  sequential operations may starve later operations under the wall. The
-  six actual probes, not the small fixture, decide the five-of-seven bar.
+| Family | Active walls (ms) |
+| --- | --- |
+| Original 40 | 2515.848 / 2622.421 / 1908.557 |
+| Historical survivors 34 | 2043.451 / 1925.269 / 1900.317 |
 
-The first validation batch `20261110-013903-jm3fgc` returned 41 pass /
-1 fail: the new fixture inherited count binder `a` while declaring state
-`a`, so the source interpreter rejected its scope before the new search
-ran. Typecheck/lint were not reached. The fixture now uses binder `row`;
-only this test file changed. Corrected validation task
-`90db37a7-3f2d-4239-8f19-f5f52b23614b` uses a separate one-file overlay
-(test SHA-256 `270c15ac8a857813e72fda8a27600974c9b493048e70012a79d54fa775be7e9d`).
-The compiler/driver and the already-submitted probes are untouched; no
-probes were repeated. Failure log retained as
-`runs/t16-operation-check/operation-first-check.log.gz`.
+Three of the six exceed the strict 2-second allowance. This falsifies the
+pilot on both removal count and wall, regardless of unit-test outcome.
+The result is consistent with the recorded operation-starvation concern,
+not proof of that cause. No performance gain, exhaustion or gate claim.
 
-Work on boat (small overlays, no new archive):
+The variant is **not landed**. `core/finite-tiny.ts`, its tests, and the
+hybrid driver were restored byte-for-byte to the checked state-first
+implementation (`27ff24fc`); compiler hash
+`2802f3dd4e4d53cc3382457db302f2ee7c1abcef5b394529ccf367f070d2a2a2`,
+test hash `f3bf9bafa63ffe7150512ada101e5c781f5e0696ac6ce5175750bf77f9d8005c`.
+The exact rejected change is retained only as
+`research/track-gen/t16-operation-first-rejected.patch` (SHA-256
+`8f89254ae2fb89c9dbb65e662f9a0e9c3c8cc6233fe4d338be447ef51358f4e5`).
+`T16-OPERATION-COMMIT.txt` is its unused proposed message, not a landed change.
 
-| Work | Task | Output |
-| --- | --- | --- |
-| Corrected tests/type/lint | `90db37a7-3f2d-4239-8f19-f5f52b23614b` | `runs/t16-operation-fixture-check/` |
-| Six probes | `9f01547d-1cc2-40a0-9111-689886bb9c86` | `runs/t16-operation-probe/` |
+Both failed checks remain recorded:
+- `20261110-013903-jm3fgc`: 41 pass / 1 fail, scope error from inherited
+  count binder `a` colliding with state `a`. No type/lint run.
+- `20261110-013951-npalu8`: after changing the fixture binder to `row`,
+  41 pass / 1 fail. Its exact-request assertion expected five raw requests,
+  but the **unchanged state-first path** returns three representatives:
+  payloads 1 and 2 are intentionally quotiented to 0 in a branch where
+  payload is irrelevant. This is an invalid fixture expectation, not an
+  established operation-first bug. The second mode is not reached by that
+  assertion; no type/lint run and no correctness-validation success claimed.
+- Logs have gzip copies under `runs/t16-operation-check/` and
+  `runs/t16-operation-fixture-check/`. No further validation retry is useful
+  for this already-rejected performance variant.
 
-Overlay `runs/t16-operation-overlay/` uses canonical source archive
-`6288b666`, compiler SHA-256
-`779cd5b0953697a33f1a3b6e016bd34958e55e0606a9b8bea9636fc4ad165da4`,
-test `d8b4af69d189ced49b54ea595da6c241f5236874a574c35dd75693168bcd4d2f`,
-and driver `e59a1a84281ff57a31d71062483a14b6edc7d56068ed2bbc0c902fbf25739fe1`.
-These WIP files are **not** covered by the earlier 40-test receipt. No new
-performance, proof or gate success is claimed; no subagents are running.
+The six payloads are being independently replayed in task
+`b3e5cc40-a0a8-4af6-b3ef-48c84f071865`, output `runs/t16-operation-replay/`.
+Replay can validate witnesses but cannot rescue the wall or named-seven
+failure. All source archives are reused; only small patches/receipts/logs
+were added. No subagents; production remains disabled.
+
+For lane I/Fable: retain the checked bounded-group state-first code, not
+the rejected operation-first patch. Best observed original-family result
+remains four of seven under 2 s. The missing fifth requires a different
+proposal strategy, not a larger time cap or a new counting rule.
 
 ## Resumed hybrid probes: independently replayed, criterion fails
 
