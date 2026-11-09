@@ -15,16 +15,24 @@ if (!law) throw Error('missing target')
 const m: Machine = {...p.m, assume: all(...(p.m.assume ? [p.m.assume] : []), same(x(choice[0]), n(op)))}
 const t0 = performance.now(), w0 = fullWork()
 let seq = 0
-const sizeOf = (v: unknown): unknown => Array.isArray(v) ? v.length : v && typeof v === 'object' ? Object.fromEntries(Object.entries(v as object).map(([k, u]) => [k, Array.isArray(u) ? u.length : typeof u === 'object' && u ? '{…}' : u])) : v
+// One compact line per event: the counted clock, wall and RSS; a query's hypothesis count and instance totals; a model's
+// key values and every count read's value with its map and key, post and pre side by side; an error's text.
+const keyText = (e: unknown): string => JSON.stringify(e).replace(/\{"op":"var","name":"([^"]+)"\}/g, '$1').replace(/\{"op":"const","value":(\d+)\}/g, '$1').replace(/\{"op":"add","a":(.*?),"b":(.*?)\}$/, '$1+$2').replace(/\{"op":"mul","k":(\d+),"a":(.*?)\}/g, '$1*$2')
+let readsOf: Record<string, string> = {}
 countsDump.on = e => {
-  const r = e as Record<string, unknown>, out: Record<string, unknown> = {seq: ++seq, ms: Math.round(performance.now() - t0), units: Math.round((fullWork() - w0) / fullRate), rssMiB: Math.round(process.memoryUsage().rss / 1048576)}
-  for (const [k, v] of Object.entries(r)) {
-    if (k === 'machine' || k === 'laws' || k === 'rawGoal' || k === 'certificateRequest' || k === 'proof' || k === 'decls' || k === 'ls') continue
-    if (k === 'hyps' || k === 'instances' || k === 'reads' || k === 'at') { out[k] = sizeOf(v); continue }
-    if (k === 'completion') { const c = v as Record<string, unknown>; out.completion = {genuine: c.genuine, keys: Object.keys(c)}; continue }
-    if (k === 'goal' && typeof v !== 'string') { out.goal = sizeOf(v); continue }
-    out[k] = v
+  const r = e as Record<string, unknown>, out: Record<string, unknown> = {seq: ++seq, ms: Math.round(performance.now() - t0), units: Math.round((fullWork() - w0) / fullRate), rssMiB: Math.round(process.memoryUsage().rss / 1048576), phase: r.phase}
+  const c = r.certificateRequest as {reads?: [string, string, unknown][], insts?: unknown[]} | undefined
+  if (c?.reads) { readsOf = Object.fromEntries(c.reads.map(([map, v, key]) => [v, `${map}[${keyText(key)}]`])); out.reads = c.reads.length; out.insts = c.insts?.length }
+  if (Array.isArray(r.hyps)) out.hyps = r.hyps.length
+  if (r.instances && typeof r.instances === 'object') { const inst = r.instances as Record<string, unknown[]>; out.flagInst = Object.entries(inst).filter(([k]) => k.startsWith('?')).reduce((s, [, v]) => s + v.length, 0); const laws = Object.entries(inst).filter(([k]) => !k.startsWith('?')); out.lawInst = laws.reduce((s, [, v]) => s + v.length, 0); out.lawsWithInst = laws.length }
+  if (r.witness && typeof r.witness === 'object') {
+    const w = r.witness as Record<string, number>
+    out.keys = Object.fromEntries(Object.entries(w).filter(([k]) => !k.startsWith('?') && !k.startsWith('r$') && !k.startsWith('w$')))
+    out.counts = Object.fromEntries(Object.entries(w).filter(([k]) => k.startsWith('r$')).map(([k, v]) => [`${k}=${readsOf[k] ?? '?'}`, v]))
   }
+  if (r.error !== undefined) out.error = String(r.error).slice(0, 200)
+  if (r.completion && typeof r.completion === 'object') out.completion = {genuine: (r.completion as {genuine?: boolean}).genuine, reason: (r.completion as {reason?: string}).reason}
+  for (const k of ['stuck', 'outcome', 'added', 'local', 'whole', 'context', 'required', 'known', 'round', 'seedCount']) if (k in r) out[k] = r[k]
   console.log('S17 ' + JSON.stringify(out))
 }
 let result: Record<string, unknown> | undefined, error: string | undefined
