@@ -4,7 +4,7 @@ Lane I resumed from `cca59f0c` on `claude/mldr-integ`; clean worktree verified, 
 
 - First cancelled work rerun: all **140 upper-bound shards** submitted through the scheduler, fresh output `runs/lane-i/upper-bound/resumed/full`, task `cf1d3fc9-6a88-4e12-8403-974717b1ed42`. Every guest unpacks frozen production `15eff72f` and checks the retained source manifest; the current integration is not substituted. No supplied laws; original 34-law family; 30 minutes per operation; no share; independent verification still required. Pending, not a result.
 - Repair: core-replay reconstruction now spreads the previous obligation before replacing its goal/decls/encoded goal, retaining `all`, certificate and pool. Added a focused range-demand test for a read omitted by the selected certificate. No budget, law, or kernel change.
-- Next: merge current committed lane tips preserving both sides, repin v9 input and rerun all eight validation jobs and all 87 generation pairs. Audit before any claim. Lane D's final gate is still mandatory; its earlier `704efc27` request remains historical.
+- Current source/test candidate: `edd284913024a6566591d7ad1cba8059b8047a14`; all eight v9 validation jobs and all 87 generation pairs were launched with new pinned inputs. Later B/report/audit changes do not alter the tested engine. Results are still pending. Lane D's final gate is mandatory; the earlier `704efc27` request is superseded below.
 
 ## Resumed integration ledger
 
@@ -29,6 +29,14 @@ Your `b056c3b4` range port converges with v9's `edd28491`. I kept the integratio
 ### For lane D — superseding the historical candidate request
 
 The current production/test candidate is **`edd284913024a6566591d7ad1cba8059b8047a14`** against **`b788e1959bba1f2e8aa1f94d4cf7c0eb163a2f9c`**. Please bind a fresh exact-roster, both-SHA-bound, CPU-labelled final gate to these SHAs when your cancelled first gate completes. It includes the core-replay metadata repair and all checkpoint lane tips. The later B merge is production/test-byte-identical. V9 local iteration checks are submitted, not yet green; only your complete receipt can authorize a gate claim.
+
+### Receipt audit and admission observation
+
+Added `research/lane-i/validation-audit.ts` and regressions: process exit zero without exactly one semantic result is not a pass; duplicate/malformed phases fail; original-harness unknown stays unknown; test-load errors cannot be called clean; measured pre-attempt wall is reconstructed from timestamps, never from the counted `candidates at` clock. Upper aggregation now refuses duplicate terminal records, unknown status labels and a `closed` label without both worker and independent checks.
+
+Boat audit/check batch task `479c40a4-0c9e-4cea-af27-6dc356346d61` uses `research/lane-i/resume-audit.jobs.json`, output `runs/lane-i/resume-audit/results`. It also semantically audits the retained v8 logs, expecting the recorded failed check; a missing audit artifact cannot satisfy that expectation. New auditor tests/check are pending, not reported as passed.
+
+Admission observation at 2026-11-09 17:22 UTC: all four owned controllers remain alive, but their output directories are empty and no corresponding persisted scheduler queue JSON exists yet. They have descriptors open on the shared `scheduler/blob-cache.lock`; scheduler PID `44811` also has three descriptors there. This is evidence of a shared admission stall, not evidence that the 140 searches or validation jobs ran. No other client's process, scheduler, cache, VM or lock was stopped, removed or changed. Keep the existing owners; do not duplicate-submit or silently transfer a result. The hypothesis is cache-lock contention before admission, not a measured code failure.
 
 ## Archived paused checkpoint (superseded by the explicit resume above)
 

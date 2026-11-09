@@ -7,7 +7,9 @@ export function parseUpperLog(text:string){
  if(results.length>1)issues.push('multiple terminal records')
  const result=results.at(-1),last=result?.progress??censored.at(-1)??progress.at(-1),verified=verifiers.length===1&&verifiers[0].checked===true
  let status=result?.status??(censored.length?'censored':'pending')
- if(result?.checked&&!verified){status='unknown';issues.push('missing/failed independent check')}
+ if((status==='closed'||result?.checked)&&(!result?.checked||!verified)){status='unknown';issues.push('missing/failed independent check')}
+ if(results.length>1)status='unknown'
+ if(!['closed','unknown','sat','censored','pending'].includes(status)){status='unknown';issues.push('invalid terminal status')}
  if(result&&(result.familySize!==34||result.suppliedLaws?.length!==0||!result.originalFamily||!result.noShare)){status='unknown';issues.push('invalid original-family contract')}
  if(result?.error||result?.checkError)issues.push(result.error??result.checkError)
  const rss=Number(/Maximum resident set size \(kbytes\):\s*(\d+)/.exec(text)?.[1]??0)

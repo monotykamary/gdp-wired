@@ -1,0 +1,4 @@
+[
+  {"name":"audit-tests-and-check","cmd":"set -euo pipefail; bash research/lane-i/validate.sh setup; bun test research/lane-i/validation-audit.test.ts research/lane-i/upper-bound/summarize.test.ts; bun run check","cpu":4,"memory":12288,"timeout":600},
+  {"name":"audit-prior-v8","cmd":"set -euo pipefail; bash research/lane-i/validate.sh setup; set +e; bun research/lane-i/validation-audit.ts audit-input/prior-v8; code=$?; set -e; test -s audit-input/prior-v8/validation-audit.json; test \"$code\" -eq 1","cpu":2,"memory":8192,"timeout":180}
+]
