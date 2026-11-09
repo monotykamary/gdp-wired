@@ -24,7 +24,9 @@ The coordinator moved main from `b788e195` to **`4497c4b05c3111959a2b8d808c426a0
 
 - **Fable `f6b383f0`:** `core/machine.ts` merged automatically with new main. Retain both CI's source-free helper/runtime defaults and the interpreter's per-write environment reuse / tuple-write memoization. Lane A's newer finite-search implementation remains intact. Only the report conflicted, archived at `runs/lane-i/incoming/20261110/Fable-f6b383f0.md`. Two incoming raw receipt tables contain pre-existing trailing spaces; their bytes are preserved rather than normalized. The source diff passes whitespace checking; those two historical receipt files are the explicit exception.
 
-All five reviewed lane tips and main `4497c4b0` are now integrated. All newly integrated source still requires combined qualification; no historical receipt or gate result is transferred to it.
+All five reviewed lane tips and main `4497c4b0` are now integrated at `399c328a`. The combined check and seven canonical test shards are running as task `a40988c4-85d4-450d-bac1-e443dd7d097e`, batch `20261110-033350-zdkdwh`, snapshot `d0c41b3366da`. All newly integrated source still requires qualification; no historical receipt or gate result is transferred to it.
+
+The rebased paired input is prepared from an exact **26.88 MiB** Git archive of `4497c4b0`; its SHA-256 is `9508c2e454b4b6eefa4093bbf6efba569d09bea4bc89646b6e8df7bc0a3a6dc6`. Vendor archives are hard links to the unchanged, checksum-bound inputs, not copied trees. Three original strict-60-second MLDR pairs and the unchanged 87-pair generation census are being prepared against this new base. Strict trace capture is lossless gzip plus a durable on-VM raw file; it wraps but does not change the existing harness or its deadlines.
 
 ## Coordinator follow-up: merge bisection and bar resource attribution — active
 
