@@ -1,0 +1,10 @@
+[
+  {
+    "name": "paxos-combined-check",
+    "cmd": "bun install --frozen-lockfile >/dev/null && bun research/verify-all/paxos-combined-check.ts && bash research/verify-all/check-lean.sh /tmp/paxos-soundness-combined.lean; rc=$?; tar -cJf /tmp/paxos-soundness-combined.tar.xz -C /tmp paxos-soundness-combined.lean; echo COMBINED_ARTIFACT_BEGIN; base64 -w0 /tmp/paxos-soundness-combined.tar.xz; echo; echo COMBINED_ARTIFACT_END; exit $rc",
+    "cpu": 4,
+    "memory": 14336,
+    "timeout": 1500,
+    "vm_type": "large"
+  }
+]

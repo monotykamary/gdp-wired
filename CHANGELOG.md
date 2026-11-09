@@ -3,6 +3,21 @@
 What changed since the first public release, 0.6.0 (2026-10-18). Times are measured on Modal (2 vCPU per job unless
 noted), each with the command that reproduces it.
 
+## Unreleased
+
+- **CI-first use:** keep gdp-wired in dev dependencies and ship plain application code. Supported finite TypeScript
+  decision laws can be checked directly from source; protocol flows remain separate models.
+- **Finite comparison:** `fun.compare` and `rule.compare` report input-domain coverage, with deterministic failing
+  cases and bounded fallback for unbounded domains. Coverage is a test result, not a formal proof of every history.
+- **Mutation checking:** `gdp-wired/mutate` and `gdp-wired mutate suite.ts` run bounded source-edit checks in isolated
+  copies, retaining witnesses for killed and surviving variants. `deriveDecisionMutants` derives bounded scalar-term
+  candidates through an explicit source printer; named per-law suites attribute their kills.
+- **Breaking — JavaScript helper runtimes:** `fun.run()` now interprets terms. User-supplied JavaScript helpers
+  (`fn` strings or callbacks, including transitive dependencies) require `fun.compiled()` or explicit
+  `rule.interpreter({compileHelpers: true})`; the refusal names the required opt-in. Library-built `divBy`,
+  `modBy`, recurrence equations and their source-free dependencies remain directly interpretable without
+  dynamic compilation or opt-in. See [the CI-only guide](docs/ci-only.md) for limits and migration details.
+
 ## 0.47.0
 
 - **Effect Schema frontend:** `fromSchema` now provides typed symbolic values (signed `Int`, `Bool`,

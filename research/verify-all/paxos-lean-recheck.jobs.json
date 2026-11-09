@@ -1,0 +1,26 @@
+[
+  {
+    "name": "combined",
+    "cmd": "bun install --frozen-lockfile >/dev/null && bun research/verify-all/paxos-combined-check.ts && bash research/verify-all/check-lean.sh research/verify-all/paxos-law20-semantic.lean && bash research/verify-all/check-lean.sh /tmp/paxos-soundness-combined.lean; rc=$?; if [ -f /tmp/paxos-soundness-combined.lean ]; then tar -cJf /tmp/paxos-lean-recheck.tar.xz -C /tmp paxos-soundness-combined.lean; echo COMBINED_ARTIFACT_BEGIN; base64 -w0 /tmp/paxos-lean-recheck.tar.xz; echo; echo COMBINED_ARTIFACT_END; fi; exit $rc",
+    "cpu": 4,
+    "memory": 14336,
+    "timeout": 1800,
+    "vm_type": "large"
+  },
+  {
+    "name": "law12-probe",
+    "cmd": "bun install --frozen-lockfile >/dev/null && bun research/verify-all/paxos-law12-probe-v2.ts && bash research/verify-all/check-lean.sh /tmp/paxos-law12-probe-v2/probe-check.lean; rc=$?; if [ -f /tmp/paxos-law12-probe-v2/probe-check.lean ]; then tar -cJf /tmp/paxos-lean-probe.tar.xz -C /tmp/paxos-law12-probe-v2 results.json probe-check.lean; echo ARTIFACTS_BEGIN; base64 -w0 /tmp/paxos-lean-probe.tar.xz; echo; echo ARTIFACTS_END; fi; exit $rc",
+    "cpu": 4,
+    "memory": 14336,
+    "timeout": 900,
+    "vm_type": "large"
+  },
+  {
+    "name": "census",
+    "cmd": "bun install --frozen-lockfile >/dev/null && bun research/verify-all/paxos-feature-census.ts evidence-all && bun research/verify-all/paxos-census-report.ts evidence-all",
+    "cpu": 2,
+    "memory": 4096,
+    "timeout": 300,
+    "vm_type": "large"
+  }
+]

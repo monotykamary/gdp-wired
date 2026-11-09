@@ -1,0 +1,1896 @@
+{
+  "baseline": "0281a7e0",
+  "passed": 28,
+  "total": 28,
+  "sourceHashes": {
+    "lean-kernel/emit.ts": "82bcf3130caf108f8e9a4cfa8416573892c797b1ce247a115bd163e9ca39093c",
+    "lean-kernel/lean-terms.ts": "8742d35bb9133994ea726d2f34f8f73a07e817dd30e0bd3d6f421388f5f2e8d7",
+    "lean-kernel/qalpha.ts": "862b958ea6b0b2691157339d5b4d03056932660e0cbeff81dc48e6eeefaff468",
+    "lean-kernel/QAlpha.lean": "3c362e366b8aad32de802feac45e5ab86d0893cefb9b6e0fc9c2e85ef1bf3a4b",
+    "research/verify-all/export-captured.ts": "3a9fd7b7dc97d1f246d96a65127b1d0ffd0fc5ef31debbbee5eb9ae5f6138e6b",
+    "research/verify-all/capture-alpha.ts": "14759963f58f302509aee884909f1fa87eb94f0ff94b2adbfcaee2807c1e9eab"
+  },
+  "summarySha256": "c9ef646d8a624be4bfd34c7de7db27fe170cc8a736820ea18769136570895d3e",
+  "rows": [
+    {
+      "id": "client_server_ae",
+      "packetSha256": "f0718ac3a082397ebdbab9aab1d17376229c65f5ac3a5d907731543349174476",
+      "retainedProofSha256": "5731c596ba32bb852576926a36d313dc82051f645128343064875da124d970e7",
+      "originalLeanSha256": "c221c92451fa80bd46d9dcdb5213e9d8326093d44b307f541923a0c493e7a4eb",
+      "auditedPriorLeanSha256": "b2302cf4dc4d7741600778c8ff14f5aaf7f2257f3baa9a7d382fcf4e3ff74579",
+      "reexportLeanSha256": "898a8b8039e8400c9cced6b723bb0a90c4d740ddef2f4df02933f61256dcf7c6",
+      "bytes": 158078,
+      "exportExit": 0,
+      "leanExit": 0,
+      "packetUnchanged": true,
+      "packetObjectsUnchanged": true,
+      "containsAlphaBridge": false,
+      "leanWall": "LEAN_WALL seconds=8.00 maxrss_kb=1729960 exit=0",
+      "exportMetadata": {
+        "id": "client_server_ae",
+        "captureSha256": "f0718ac3a082397ebdbab9aab1d17376229c65f5ac3a5d907731543349174476",
+        "harness": {
+          "id": "client_server_ae",
+          "ic3syn": "pyv-client-server-ae",
+          "search": {
+            "verdict": "proven",
+            "found": [
+              "every x, y with x < 64 ∧ y < 64: never ResponseSent[64·y + x] is 0 and 1 <= ResponseReceived[64·y + x]",
+              "every x, y with x < 64 ∧ y < 64: never 1 <= ResponseSent[64·y + x] and started is 0",
+              "every x, y with x < 64 ∧ y < 64: never 1 <= ResponseReceived[64·y + x] and started is 0",
+              "every x, y with x <= 63 ∧ y < 64: never 1 <= RequestSent[64·y + x] and started is 0"
+            ],
+            "ms": 14600,
+            "work": 1017296,
+            "full": 595146
+          }
+        },
+        "accepted": true,
+        "kind": "ordinary-trees",
+        "laws": 10,
+        "sourceLawEquality": false,
+        "machineEquality": false,
+        "machineAlphaEquivalent": false,
+        "machineDifferences": [
+          {
+            "key": "maps",
+            "original": "{\"Match\":0,\"RequestSent\":0,\"ResponseReceived\":0,\"ResponseSent\":0}",
+            "captured": "{\"Match\":0,\"RequestSent\":0,\"ResponseReceived\":0,\"ResponseSent\":0,\"ResponseSent$w\":0}"
+          },
+          {
+            "key": "step",
+            "original": "{\"flags\":{\"matches\":{\"op\":\"and\",\"xs\":[{\"a\":{\"name\":\"op\",\"op\":\"var\"},\"b\":{\"op\":\"const\",\"value\":0},\"op\":\"=\"},{\"a\":{\"name\":\"started\",\"op\":\"var\"},\"b\":{\"op\":\"const\",\"value\":0},\"op\":\"=\"}]},\"receives\":{\"op\":\"and\",\"xs\":[{\"a\":{\"name\":\"op\",\"op\":\"var\"},\"b\":{\"op\":\"const\",\"value\":4},\"op\":\"=\"},{\"a\":{\"name\":\"started\",\"op\":\"var\"},\"b\":{\"op\":\"const\",\"value\":1},\"op\":\"=\"},{\"a\":{\"key\":{\"a\":{\"a\":{\"name\":\"n\",\"op\":\"var\"},\"k\":64,\"op\":\"mul\"},\"b\":{\"name\":\"p\",\"op\":\"var\"},\"op\":\"add\"},\"map\":\"ResponseSent\",\"op\":\"get\"},\"b\":{\"op\":\"const\",\"value\":1},\"op\":\"=\"}]},\"requests\":{\"op\":\"and\",\"xs\":[{\"a\":{\"name\":\"op\",\"op\":\"var\"},\"b\":{\"op\":\"const\",\"value\":2},\"op\":\"=\"},{\"a\":{\"name\":\"started\",\"op\":\"var\"},\"b\":{\"op\":\"const\",\"value\":1},\"op\":\"=\"}]},\"responds\":{\"op\":\"and\",\"xs\":[{\"a\":{\"name\":\"op\",\"op\":\"var\"},\"b\":{\"op\":\"const\",\"value\":3},\"op\":\"=\"},{\"a\":{\"name\":\"started\",\"op\":\"var\"},\"b\":{\"op\":\"const\",\"value\":1},\"op\":\"=\"},{\"a\":{\"key\":{\"a\":{\"a",
+            "captured": "{\"flags\":{\"matches\":{\"op\":\"and\",\"xs\":[{\"a\":{\"name\":\"op\",\"op\":\"var\"},\"b\":{\"op\":\"const\",\"value\":0},\"op\":\"=\"},{\"a\":{\"name\":\"started\",\"op\":\"var\"},\"b\":{\"op\":\"const\",\"value\":0},\"op\":\"=\"}]},\"receives\":{\"op\":\"and\",\"xs\":[{\"a\":{\"name\":\"op\",\"op\":\"var\"},\"b\":{\"op\":\"const\",\"value\":4},\"op\":\"=\"},{\"a\":{\"name\":\"started\",\"op\":\"var\"},\"b\":{\"op\":\"const\",\"value\":1},\"op\":\"=\"},{\"a\":{\"key\":{\"a\":{\"a\":{\"name\":\"n\",\"op\":\"var\"},\"k\":64,\"op\":\"mul\"},\"b\":{\"name\":\"p\",\"op\":\"var\"},\"op\":\"add\"},\"map\":\"ResponseSent\",\"op\":\"get\"},\"b\":{\"op\":\"const\",\"value\":1},\"op\":\"=\"}]},\"requests\":{\"op\":\"and\",\"xs\":[{\"a\":{\"name\":\"op\",\"op\":\"var\"},\"b\":{\"op\":\"const\",\"value\":2},\"op\":\"=\"},{\"a\":{\"name\":\"started\",\"op\":\"var\"},\"b\":{\"op\":\"const\",\"value\":1},\"op\":\"=\"}]},\"responds\":{\"op\":\"and\",\"xs\":[{\"a\":{\"name\":\"op\",\"op\":\"var\"},\"b\":{\"op\":\"const\",\"value\":3},\"op\":\"=\"},{\"a\":{\"name\":\"started\",\"op\":\"var\"},\"b\":{\"op\":\"const\",\"value\":1},\"op\":\"=\"},{\"a\":{\"key\":{\"a\":{\"a"
+          }
+        ],
+        "existentialBridge": {
+          "kind": "forall_some_of_ghostsubst",
+          "extraVars": [],
+          "extraMaps": [
+            "ResponseSent$w"
+          ],
+          "laws": [
+            "a received response was matched"
+          ],
+          "projectionAlphaEquivalent": true
+        },
+        "packetObjectsUnchanged": true,
+        "retainedProofSha256": "5731c596ba32bb852576926a36d313dc82051f645128343064875da124d970e7",
+        "leanBytes": 157557,
+        "leanSha256": "898a8b8039e8400c9cced6b723bb0a90c4d740ddef2f4df02933f61256dcf7c6"
+      },
+      "finalReexportByteIdentical": true,
+      "jobSeconds": 12.59,
+      "logSha256": "866da0adff36c7854db3389c6bb9ca1ad6f8e6559ad2a02607363857337c7b11",
+      "compilerLogSha256": "d7666704b8d03f17d46c6351253737d9e6c4a007afeb44100f236b2571cc1c82"
+    },
+    {
+      "id": "client_server_db_ae",
+      "packetSha256": "281af1206130f84dbc9d9c1894690d53aa0b04bc51bc4e0b50d68de6fde5254d",
+      "retainedProofSha256": "3523f807ff9638159dafdb134d2cadbf7de7e8a217250d285c9c02913c528b7e",
+      "originalLeanSha256": "771869d62784ebe53c584e7075ea60dbadddd0a843d1e075e400635121bc85ea",
+      "auditedPriorLeanSha256": "dbd9dba52992a0608c7c5c0668c7ac47ba341ce21c0bac43979f38a3afabbd46",
+      "reexportLeanSha256": "feb210d8dd762197aa8b92da5fb935accd2f112e0a6c5367d868b52f36de1267",
+      "bytes": 277557,
+      "exportExit": 0,
+      "leanExit": 0,
+      "packetUnchanged": true,
+      "packetObjectsUnchanged": true,
+      "containsAlphaBridge": false,
+      "leanWall": "LEAN_WALL seconds=11.15 maxrss_kb=2570508 exit=0",
+      "exportMetadata": {
+        "id": "client_server_db_ae",
+        "captureSha256": "281af1206130f84dbc9d9c1894690d53aa0b04bc51bc4e0b50d68de6fde5254d",
+        "harness": {
+          "id": "client_server_db_ae",
+          "ic3syn": "pyv-client-server-db-ae",
+          "search": {
+            "verdict": "proven",
+            "found": [
+              "Match row guard (1)",
+              "Match row guard (2)",
+              "RequestSent row guard (3)",
+              "RequestSent row guard (4)",
+              "RequestSent row guard (5)",
+              "ResponseSent row guard (6)",
+              "ResponseSent row guard (7)",
+              "ResponseSent row guard (8)",
+              "ResponseReceived row guard (9)",
+              "ResponseReceived row guard (10)",
+              "ResponseReceived row guard (11)",
+              "ResponseReceived row guard (12)",
+              "DbRequestSent row guard (13)",
+              "DbRequestSent row guard (14)",
+              "DbRequestSent row guard (15)",
+              "DbRequestSent / T joined guard (16)",
+              "DbResponseSent row guard (17)",
+              "DbResponseSent row guard (18)",
+              "DbResponseSent row guard (19)",
+              "T row guard (20)",
+              "T row guard (21)",
+              "T row guard (22)",
+              "T functional n (24)",
+              "DbRequestSent$g where DbRequestSent is set"
+            ],
+            "ms": 18485,
+            "work": 686698,
+            "full": 369654
+          }
+        },
+        "accepted": true,
+        "kind": "ordinary-trees",
+        "laws": 27,
+        "sourceLawEquality": false,
+        "machineEquality": false,
+        "machineAlphaEquivalent": false,
+        "machineDifferences": [
+          {
+            "key": "maps",
+            "original": "{\"DbRequestSent\":0,\"DbResponseSent\":0,\"Match\":0,\"RequestSent\":0,\"ResponseReceived\":0,\"ResponseSent\":0,\"T\":0}",
+            "captured": "{\"DbRequestSent\":0,\"DbRequestSent$g\":0,\"DbResponseSent\":0,\"DbResponseSent$g\":0,\"Match\":0,\"RequestSent\":0,\"ResponseReceived\":0,\"ResponseSent\":0,\"ResponseSent$w\":0,\"T\":0}"
+          },
+          {
+            "key": "step",
+            "original": "{\"flags\":{\"dbResponds\":{\"op\":\"and\",\"xs\":[{\"a\":{\"name\":\"op\",\"op\":\"var\"},\"b\":{\"op\":\"const\",\"value\":5},\"op\":\"=\"},{\"a\":{\"name\":\"started\",\"op\":\"var\"},\"b\":{\"op\":\"const\",\"value\":1},\"op\":\"=\"},{\"a\":{\"op\":\"const\",\"value\":1},\"b\":{\"key\":{\"a\":{\"name\":\"i\",\"op\":\"var\"},\"b\":{\"name\":\"r\",\"op\":\"var\"},\"op\":\"tup\"},\"map\":\"DbRequestSent\",\"op\":\"get\"},\"op\":\"<=\"},{\"a\":{\"op\":\"const\",\"value\":1},\"b\":{\"key\":{\"a\":{\"name\":\"r\",\"op\":\"var\"},\"b\":{\"name\":\"p\",\"op\":\"var\"},\"op\":\"tup\"},\"map\":\"Match\",\"op\":\"get\"},\"op\":\"<=\"}]},\"matches\":{\"op\":\"and\",\"xs\":[{\"a\":{\"name\":\"op\",\"op\":\"var\"},\"b\":{\"op\":\"const\",\"value\":0},\"op\":\"=\"},{\"a\":{\"name\":\"started\",\"op\":\"var\"},\"b\":{\"op\":\"const\",\"value\":0},\"op\":\"=\"}]},\"noneWithId\":{\"c\":{\"op\":\"or\",\"xs\":[{\"op\":\"not\",\"x\":{\"a\":{\"name\":\"k$22\",\"op\":\"var\"},\"b\":{\"op\":\"const\",\"value\":64},\"op\":\"<\"}},{\"op\":\"not\",\"x\":{\"a\":{\"op\":\"const\",\"value\":1},\"b\":{\"key\":{\"a\":{\"name\":\"i\",\"op\":\"var\"},\"b\":{\"name\":\"k$22\",\"op\":\"var\"",
+            "captured": "{\"flags\":{\"dbResponds\":{\"op\":\"and\",\"xs\":[{\"a\":{\"name\":\"op\",\"op\":\"var\"},\"b\":{\"op\":\"const\",\"value\":5},\"op\":\"=\"},{\"a\":{\"name\":\"started\",\"op\":\"var\"},\"b\":{\"op\":\"const\",\"value\":1},\"op\":\"=\"},{\"a\":{\"op\":\"const\",\"value\":1},\"b\":{\"key\":{\"a\":{\"name\":\"i\",\"op\":\"var\"},\"b\":{\"name\":\"r\",\"op\":\"var\"},\"op\":\"tup\"},\"map\":\"DbRequestSent\",\"op\":\"get\"},\"op\":\"<=\"},{\"a\":{\"op\":\"const\",\"value\":1},\"b\":{\"key\":{\"a\":{\"name\":\"r\",\"op\":\"var\"},\"b\":{\"name\":\"p\",\"op\":\"var\"},\"op\":\"tup\"},\"map\":\"Match\",\"op\":\"get\"},\"op\":\"<=\"}]},\"matches\":{\"op\":\"and\",\"xs\":[{\"a\":{\"name\":\"op\",\"op\":\"var\"},\"b\":{\"op\":\"const\",\"value\":0},\"op\":\"=\"},{\"a\":{\"name\":\"started\",\"op\":\"var\"},\"b\":{\"op\":\"const\",\"value\":0},\"op\":\"=\"}]},\"noneWithId\":{\"c\":{\"op\":\"or\",\"xs\":[{\"op\":\"not\",\"x\":{\"a\":{\"name\":\"k$18\",\"op\":\"var\"},\"b\":{\"op\":\"const\",\"value\":64},\"op\":\"<\"}},{\"op\":\"not\",\"x\":{\"a\":{\"op\":\"const\",\"value\":1},\"b\":{\"key\":{\"a\":{\"name\":\"i\",\"op\":\"var\"},\"b\":{\"name\":\"k$18\",\"op\":\"var\""
+          }
+        ],
+        "existentialBridge": {
+          "kind": "forall_some_of_ghostsubst",
+          "extraVars": [],
+          "extraMaps": [
+            "DbResponseSent$g",
+            "ResponseSent$w",
+            "DbRequestSent$g"
+          ],
+          "laws": [
+            "a received response was matched"
+          ],
+          "projectionAlphaEquivalent": true
+        },
+        "packetObjectsUnchanged": true,
+        "retainedProofSha256": "3523f807ff9638159dafdb134d2cadbf7de7e8a217250d285c9c02913c528b7e",
+        "leanBytes": 276390,
+        "leanSha256": "feb210d8dd762197aa8b92da5fb935accd2f112e0a6c5367d868b52f36de1267"
+      },
+      "finalReexportByteIdentical": true,
+      "jobSeconds": 15.14,
+      "logSha256": "50ccbbf097643a4abfb1406bc86e343e9d30b7bd32ae67354d4f0b36b9809bb0",
+      "compilerLogSha256": "8ffac9d7b732ca5b331502eab5beb85ef6ebb246c1f9d85694a5cf83ddadd161"
+    },
+    {
+      "id": "consensus",
+      "packetSha256": "9b9ddc75902e4d9cdc66f2f063778fb12f8c96c2f674414d1a7dea6681822197",
+      "retainedProofSha256": "6a8b3ddd565bbe0d4a85d1310757dc36794e59eed2c55732c13ac0dacef2854f",
+      "originalLeanSha256": "f281d66ae9f314e9201274e183b4a2f5fbde9d77024fb061efed09b291b96f2e",
+      "auditedPriorLeanSha256": "f281d66ae9f314e9201274e183b4a2f5fbde9d77024fb061efed09b291b96f2e",
+      "reexportLeanSha256": "55c2a2cf70ea49904dfc07ae20f02638f42ecbee8b267eae3181c1f434c9242c",
+      "bytes": 14017,
+      "exportExit": 0,
+      "leanExit": 0,
+      "packetUnchanged": true,
+      "packetObjectsUnchanged": true,
+      "containsAlphaBridge": false,
+      "leanWall": "LEAN_WALL seconds=0.72 maxrss_kb=628872 exit=0",
+      "exportMetadata": {
+        "id": "consensus",
+        "captureSha256": "9b9ddc75902e4d9cdc66f2f063778fb12f8c96c2f674414d1a7dea6681822197",
+        "harness": {
+          "id": "consensus",
+          "ic3syn": "tla-consensus",
+          "search": {
+            "verdict": "proven",
+            "ms": 120,
+            "work": 4685,
+            "full": 52454
+          }
+        },
+        "accepted": true,
+        "kind": "ordinary-trees-with-cyclic",
+        "laws": 2,
+        "sourceLawEquality": true,
+        "machineEquality": false,
+        "machineAlphaEquivalent": true,
+        "machineDifferences": [
+          {
+            "key": "step",
+            "original": "{\"flags\":{\"chooses\":{\"name\":\"none\",\"op\":\"flag\"},\"none\":{\"c\":{\"op\":\"not\",\"x\":{\"a\":{\"key\":{\"name\":\"k$4\",\"op\":\"var\"},\"map\":\"Chosen\",\"op\":\"get\"},\"b\":{\"op\":\"const\",\"value\":1},\"op\":\"=\"}},\"key\":\"k$4\",\"op\":\"all\"}},\"maps\":{\"Chosen\":{\"key\":{\"name\":\"v\",\"op\":\"var\"},\"value\":{\"c\":{\"op\":\"or\",\"xs\":[{\"op\":\"and\",\"xs\":[{\"name\":\"chooses\",\"op\":\"flag\"},{\"a\":{\"op\":\"const\",\"value\":0},\"b\":{\"op\":\"const\",\"value\":0},\"op\":\"<=\"}]},{\"op\":\"and\",\"xs\":[{\"op\":\"not\",\"x\":{\"name\":\"chooses\",\"op\":\"flag\"}},{\"a\":{\"key\":{\"name\":\"v\",\"op\":\"var\"},\"map\":\"Chosen\",\"op\":\"get\"},\"b\":{\"op\":\"const\",\"value\":1},\"op\":\"=\"}]}]},\"else\":{\"op\":\"const\",\"value\":0},\"op\":\"if\",\"then\":{\"op\":\"const\",\"value\":1}}}}}",
+            "captured": "{\"flags\":{\"chooses\":{\"name\":\"none\",\"op\":\"flag\"},\"none\":{\"c\":{\"op\":\"not\",\"x\":{\"a\":{\"key\":{\"name\":\"k$3\",\"op\":\"var\"},\"map\":\"Chosen\",\"op\":\"get\"},\"b\":{\"op\":\"const\",\"value\":1},\"op\":\"=\"}},\"key\":\"k$3\",\"op\":\"all\"}},\"maps\":{\"Chosen\":{\"key\":{\"name\":\"v\",\"op\":\"var\"},\"value\":{\"c\":{\"op\":\"or\",\"xs\":[{\"op\":\"and\",\"xs\":[{\"name\":\"chooses\",\"op\":\"flag\"},{\"a\":{\"op\":\"const\",\"value\":0},\"b\":{\"op\":\"const\",\"value\":0},\"op\":\"<=\"}]},{\"op\":\"and\",\"xs\":[{\"op\":\"not\",\"x\":{\"name\":\"chooses\",\"op\":\"flag\"}},{\"a\":{\"key\":{\"name\":\"v\",\"op\":\"var\"},\"map\":\"Chosen\",\"op\":\"get\"},\"b\":{\"op\":\"const\",\"value\":1},\"op\":\"=\"}]}]},\"else\":{\"op\":\"const\",\"value\":0},\"op\":\"if\",\"then\":{\"op\":\"const\",\"value\":1}}}}}"
+          }
+        ],
+        "packetObjectsUnchanged": true,
+        "retainedProofSha256": "6a8b3ddd565bbe0d4a85d1310757dc36794e59eed2c55732c13ac0dacef2854f",
+        "leanBytes": 13920,
+        "leanSha256": "55c2a2cf70ea49904dfc07ae20f02638f42ecbee8b267eae3181c1f434c9242c"
+      },
+      "finalReexportByteIdentical": true,
+      "jobSeconds": 5.36,
+      "logSha256": "2e982eb80f69334c2cc643e7b0c5bee8dc991f1238299ed2de0a1813d090f26c",
+      "compilerLogSha256": "99dfc7b8e9e6a3d4b65713ba9488316a06f6ef2b4962cb6fefb29f74d6b36926"
+    },
+    {
+      "id": "consensus_epr",
+      "packetSha256": "c81f53591d19ff998dbe8f458d07c65f6bc05ffc36d0e3a0971de24a06bbe0d3",
+      "retainedProofSha256": "ad8af9a8e9231539e894f7209460fdb5f9981262ec3951d9366c729f003850b1",
+      "originalLeanSha256": "0552c33ca5fb5d1b157512e5e53435478fe70497d2655a8fc69295f822d920e4",
+      "auditedPriorLeanSha256": "0552c33ca5fb5d1b157512e5e53435478fe70497d2655a8fc69295f822d920e4",
+      "reexportLeanSha256": "dbd662247a4d61fef9ae2748f8f7b3ccef14d1787c57d561dcd188e35add3f1f",
+      "bytes": 533678,
+      "exportExit": 0,
+      "leanExit": 0,
+      "packetUnchanged": true,
+      "packetObjectsUnchanged": true,
+      "containsAlphaBridge": false,
+      "leanWall": "LEAN_WALL seconds=24.81 maxrss_kb=4881644 exit=0",
+      "exportMetadata": {
+        "id": "consensus_epr",
+        "captureSha256": "c81f53591d19ff998dbe8f458d07c65f6bc05ffc36d0e3a0971de24a06bbe0d3",
+        "harness": {
+          "id": "consensus_epr",
+          "ic3syn": "pyv-consensus-epr",
+          "search": {
+            "verdict": "proven",
+            "found": [
+              "every VoteRequestMsg cell is a value of its kind",
+              "every Voted cell is a value of its kind",
+              "every VoteMsg cell is a value of its kind",
+              "every Votes cell is a value of its kind",
+              "every Leader cell is a value of its kind",
+              "every Decided cell is a value of its kind",
+              "one value decided",
+              "Leader keeps members's bound through members$Leader",
+              "Decided: one second key a first",
+              "every x with x < size: never Voted[x] is 0 and 1 <= VoteMsg[64·x + x]",
+              "every x with x < size: never Voted[x] is 0 and 1 <= Votes[64·x + x]",
+              "every x with x < size: never VoteMsg[64·x + x] is 0 and 1 <= Votes[64·x + x]",
+              "every x, y with x < size ∧ y < 64: never Leader[x] is 0 and 1 <= Decided[64·x + y]",
+              "every x, y, z with x < size ∧ y < 64 ∧ z < 64 ∧ ¬(y = z): never 1 <= Decided[64·x + y] and 1 <= Decided[64·x + z]",
+              "every x, y with x < size ∧ y < size ∧ ¬(x = y): never Voted[x] is 0 and 1 <= VoteMsg[64·x + y]",
+              "every x, y with x < size ∧ y < size ∧ ¬(x = y): never Voted[x] is 0 and 1 <= Votes[64·y + x]",
+              "every x, y with x < size ∧ y < size ∧ ¬(x = y): never 1 <= Leader[x] and 1 <= Leader[y]",
+              "every x, y with x < size ∧ y < size ∧ ¬(x = y): never 1 <= VoteMsg[64·x + x] and 1 <= VoteMsg[64·x + y]",
+              "every x, y with x < size ∧ y < size ∧ ¬(x = y): never 1 <= VoteMsg[64·x + x] and 1 <= Votes[64·y + x]",
+              "every x, y with x < size ∧ y < size ∧ ¬(x = y): never VoteMsg[64·x + y] is 0 and 1 <= Votes[64·y + x]",
+              "every x, y with x < size ∧ y < size ∧ ¬(x = y): never 1 <= VoteMsg[64·x + y] and 1 <= Votes[64·x + x]",
+              "every x, y with x < size ∧ y < size ∧ ¬(x = y): never 1 <= Votes[64·x + x] and 1 <= Votes[64·y + x]",
+              "every x, y, z with x < size ∧ y < size ∧ ¬(x = y) ∧ z < 64: never 1 <= Leader[x] and 1 <= Decided[64·y + z]",
+              "every x, y, z with x < size ∧ y < size ∧ ¬(x = y) ∧ z < 64: never 1 <= Decided[64·x + z] and 1 <= Decided[64·y + z]",
+              "every x, y, z, w with x < size ∧ y < size ∧ ¬(x = y) ∧ z < 64 ∧ w < 64 ∧ ¬(z = w): never 1 <= Decided[64·x + z] and 1 <= Decided[64·y + w]",
+              "every x, y, z with x < size ∧ y < size ∧ ¬(x = y) ∧ z < size ∧ ¬(x = z) ∧ ¬(y = z): never 1 <= VoteMsg[64·x + y] and 1 <= VoteMsg[64·x + z]",
+              "every x, y, z with x < size ∧ y < size ∧ ¬(x = y) ∧ z < size ∧ ¬(x = z) ∧ ¬(y = z): never 1 <= VoteMsg[64·x + y] and 1 <= Votes[64·z + x]",
+              "every x, y, z with x < size ∧ y < size ∧ ¬(x = y) ∧ z < size ∧ ¬(x = z) ∧ ¬(y = z): never 1 <= Votes[64·x + y] and 1 <= Votes[64·z + y]"
+            ],
+            "ms": 13136,
+            "work": 7364433,
+            "full": 1488593
+          }
+        },
+        "accepted": true,
+        "kind": "counted-machine",
+        "laws": 28,
+        "sourceLawEquality": true,
+        "countedProjectionAlphaEquivalent": true,
+        "addedCountViews": [
+          "members$Leader"
+        ],
+        "packetObjectsUnchanged": true,
+        "retainedProofSha256": "ad8af9a8e9231539e894f7209460fdb5f9981262ec3951d9366c729f003850b1",
+        "leanBytes": 532762,
+        "leanSha256": "dbd662247a4d61fef9ae2748f8f7b3ccef14d1787c57d561dcd188e35add3f1f"
+      },
+      "finalReexportByteIdentical": true,
+      "jobSeconds": 29.39,
+      "logSha256": "8c01f81fe950431f8e61b1cd964266d7d34a071bd21b41e00114358cdc78d554",
+      "compilerLogSha256": "35d0bc2b65693487c5eca594478712dec4f74e141aa12e333acdd5c3a76f1492"
+    },
+    {
+      "id": "consensus_forall",
+      "packetSha256": "ea67fc7ff8388391325a64e6269072b08874ccea93d509390e7f074461c259f9",
+      "retainedProofSha256": "b594166be34c8c292c5b4a641757021d1b51fe0722776bf3308bb228d9719f61",
+      "originalLeanSha256": "ccf620ae160c3b090447ddaf4b52b597fa31c4af5aabf09596e0c01c775d6822",
+      "auditedPriorLeanSha256": "ccf620ae160c3b090447ddaf4b52b597fa31c4af5aabf09596e0c01c775d6822",
+      "reexportLeanSha256": "8eb55d963403227dc8f3782dfa4b1c34e10118e7f26c40c39e5c2053b39f2e57",
+      "bytes": 790557,
+      "exportExit": 0,
+      "leanExit": 0,
+      "packetUnchanged": true,
+      "packetObjectsUnchanged": true,
+      "containsAlphaBridge": false,
+      "leanWall": "LEAN_WALL seconds=48.96 maxrss_kb=6433204 exit=0",
+      "exportMetadata": {
+        "id": "consensus_forall",
+        "captureSha256": "ea67fc7ff8388391325a64e6269072b08874ccea93d509390e7f074461c259f9",
+        "harness": {
+          "id": "consensus_forall",
+          "ic3syn": "pyv-consensus-forall",
+          "search": {
+            "verdict": "proven",
+            "found": [
+              "every VoteRequestMsg cell is a value of its kind",
+              "every Voted cell is a value of its kind",
+              "every VoteMsg cell is a value of its kind",
+              "every Votes cell is a value of its kind",
+              "every Leader cell is a value of its kind",
+              "every VotingQuorum cell is a value of its kind",
+              "every Decided cell is a value of its kind",
+              "one value decided",
+              "members$VotingQuorum keeps members's bound 0",
+              "members$VotingQuorum keeps members's bound 2",
+              "Leader keeps members$VotingQuorum's bound through members$VotingQuorum$Leader",
+              "Decided: one second key a first",
+              "every x with x < size: never Voted[x] is 0 and 1 <= VoteMsg[64·x + x]",
+              "every x with x < size: never Voted[x] is 0 and 1 <= Votes[64·x + x]",
+              "every x with x < size: never 1 <= Voted[x] and started is 0",
+              "every x with x < size: never 1 <= Leader[x] and started is 0",
+              "every x with x < size: never 1 <= VotingQuorum[x] and started is 0",
+              "every x with x < size: never VoteRequestMsg[64·x + x] is 0 and 1 <= VoteMsg[64·x + x]",
+              "every x with x < size: never VoteRequestMsg[64·x + x] is 0 and 1 <= Votes[64·x + x]",
+              "every x with x < size: never 1 <= VoteRequestMsg[64·x + x] and started is 0",
+              "every x with x < size: never VoteMsg[64·x + x] is 0 and 1 <= Votes[64·x + x]",
+              "every x with x < size: never 1 <= VoteMsg[64·x + x] and started is 0",
+              "every x with x < size: never 1 <= Votes[64·x + x] and started is 0",
+              "every x, y with x < size ∧ y < 64: never Leader[x] is 0 and 1 <= Decided[64·x + y]",
+              "every x, y with x < size ∧ y < 64: never 1 <= Decided[64·x + y] and started is 0",
+              "every x, y, z with x < size ∧ y < 64 ∧ z < 64 ∧ ¬(y = z): never 1 <= Decided[64·x + y] and 1 <= Decided[64·x + z]",
+              "every x, y with x < size ∧ y < size ∧ ¬(x = y): never Voted[x] is 0 and 1 <= VoteMsg[64·x + y]",
+              "every x, y with x < size ∧ y < size ∧ ¬(x = y): never Voted[x] is 0 and 1 <= Votes[64·y + x]",
+              "every x, y with x < size ∧ y < size ∧ ¬(x = y): never 1 <= Leader[x] and 1 <= Leader[y]",
+              "every x, y with x < size ∧ y < size ∧ ¬(x = y): never VoteRequestMsg[64·x + y] is 0 and 1 <= VoteMsg[64·y + x]",
+              "every x, y with x < size ∧ y < size ∧ ¬(x = y): never VoteRequestMsg[64·x + y] is 0 and 1 <= Votes[64·x + y]",
+              "every x, y with x < size ∧ y < size ∧ ¬(x = y): never 1 <= VoteRequestMsg[64·x + y] and started is 0",
+              "every x, y with x < size ∧ y < size ∧ ¬(x = y): never 1 <= VoteMsg[64·x + x] and 1 <= VoteMsg[64·x + y]",
+              "every x, y with x < size ∧ y < size ∧ ¬(x = y): never 1 <= VoteMsg[64·x + x] and 1 <= Votes[64·y + x]",
+              "every x, y with x < size ∧ y < size ∧ ¬(x = y): never VoteMsg[64·x + y] is 0 and 1 <= Votes[64·y + x]",
+              "every x, y with x < size ∧ y < size ∧ ¬(x = y): never 1 <= VoteMsg[64·x + y] and 1 <= Votes[64·x + x]",
+              "every x, y with x < size ∧ y < size ∧ ¬(x = y): never 1 <= VoteMsg[64·x + y] and started is 0",
+              "every x, y with x < size ∧ y < size ∧ ¬(x = y): never 1 <= Votes[64·x + x] and 1 <= Votes[64·y + x]",
+              "every x, y with x < size ∧ y < size ∧ ¬(x = y): never 1 <= Votes[64·x + y] and started is 0",
+              "every x, y, z with x < size ∧ y < size ∧ ¬(x = y) ∧ z < 64: never 1 <= Decided[64·x + z] and 1 <= Decided[64·y + z]",
+              "every x, y, z, w with x < size ∧ y < size ∧ ¬(x = y) ∧ z < 64 ∧ w < 64 ∧ ¬(z = w): never 1 <= Decided[64·x + z] and 1 <= Decided[64·y + w]",
+              "every x, y, z with x < size ∧ y < size ∧ ¬(x = y) ∧ z < size ∧ ¬(x = z) ∧ ¬(y = z): never 1 <= VoteMsg[64·x + y] and 1 <= VoteMsg[64·x + z]",
+              "every x, y, z with x < size ∧ y < size ∧ ¬(x = y) ∧ z < size ∧ ¬(x = z) ∧ ¬(y = z): never 1 <= VoteMsg[64·x + y] and 1 <= Votes[64·z + x]",
+              "every x, y, z with x < size ∧ y < size ∧ ¬(x = y) ∧ z < size ∧ ¬(x = z) ∧ ¬(y = z): never 1 <= Votes[64·x + y] and 1 <= Votes[64·z + y]"
+            ],
+            "ms": 17587,
+            "work": 14498189,
+            "full": 2665853
+          }
+        },
+        "accepted": true,
+        "kind": "counted-machine",
+        "laws": 44,
+        "sourceLawEquality": true,
+        "countedProjectionAlphaEquivalent": true,
+        "addedCountViews": [
+          "members$VotingQuorum",
+          "members$VotingQuorum$Leader"
+        ],
+        "packetObjectsUnchanged": true,
+        "retainedProofSha256": "b594166be34c8c292c5b4a641757021d1b51fe0722776bf3308bb228d9719f61",
+        "leanBytes": 789189,
+        "leanSha256": "8eb55d963403227dc8f3782dfa4b1c34e10118e7f26c40c39e5c2053b39f2e57"
+      },
+      "finalReexportByteIdentical": true,
+      "jobSeconds": 55.18,
+      "logSha256": "6a2451adbde8952a87ef7ad9d2014d27ff77eeaea53fb40c2acb90266bf6191f",
+      "compilerLogSha256": "ba16d0dea38a9abbf0ec7b7a5267a02ad76fa04db8a2421be40a38ea61804ab2"
+    },
+    {
+      "id": "consensus_wo_decide",
+      "packetSha256": "9f755c0b03c30faaeb4e2c4f82d72139a316b2bafcb074ef6024a667f42a1b37",
+      "retainedProofSha256": "7378df6e630441f62789d0db3e4a6bf5b5d25f941dc3676c254746f0152a80c4",
+      "originalLeanSha256": "ae0ee366c05239632a04eb4ca253f92d80bba8d3f30d9a8e043d4be4192e9442",
+      "auditedPriorLeanSha256": "ae0ee366c05239632a04eb4ca253f92d80bba8d3f30d9a8e043d4be4192e9442",
+      "reexportLeanSha256": "0b26c6d8177ff45ece80b7733a1af165fed70868b2eae1726e71072a66018350",
+      "bytes": 608981,
+      "exportExit": 0,
+      "leanExit": 0,
+      "packetUnchanged": true,
+      "packetObjectsUnchanged": true,
+      "containsAlphaBridge": false,
+      "leanWall": "LEAN_WALL seconds=39.54 maxrss_kb=5374728 exit=0",
+      "exportMetadata": {
+        "id": "consensus_wo_decide",
+        "captureSha256": "9f755c0b03c30faaeb4e2c4f82d72139a316b2bafcb074ef6024a667f42a1b37",
+        "harness": {
+          "id": "consensus_wo_decide",
+          "ic3syn": "pyv-consensus-wo-decide",
+          "search": {
+            "verdict": "proven",
+            "found": [
+              "every VoteRequestMsg cell is a value of its kind",
+              "every Voted cell is a value of its kind",
+              "every VoteMsg cell is a value of its kind",
+              "every Votes cell is a value of its kind",
+              "every Leader cell is a value of its kind",
+              "every VotingQuorum cell is a value of its kind",
+              "one leader",
+              "members$VotingQuorum keeps members's bound 0",
+              "members$VotingQuorum keeps members's bound 2",
+              "Leader keeps members$VotingQuorum's bound through members$VotingQuorum$Leader",
+              "every x with x < size: never Voted[x] is 0 and 1 <= VoteMsg[64·x + x]",
+              "every x with x < size: never Voted[x] is 0 and 1 <= Votes[64·x + x]",
+              "every x with x < size: never 1 <= Voted[x] and started is 0",
+              "every x with x < size: never 1 <= Leader[x] and started is 0",
+              "every x with x < size: never 1 <= VotingQuorum[x] and started is 0",
+              "every x with x < size: never VoteRequestMsg[64·x + x] is 0 and 1 <= VoteMsg[64·x + x]",
+              "every x with x < size: never VoteRequestMsg[64·x + x] is 0 and 1 <= Votes[64·x + x]",
+              "every x with x < size: never 1 <= VoteRequestMsg[64·x + x] and started is 0",
+              "every x with x < size: never VoteMsg[64·x + x] is 0 and 1 <= Votes[64·x + x]",
+              "every x with x < size: never 1 <= VoteMsg[64·x + x] and started is 0",
+              "every x with x < size: never 1 <= Votes[64·x + x] and started is 0",
+              "every x, y with x < size ∧ y < size ∧ ¬(x = y): never Voted[x] is 0 and 1 <= VoteMsg[64·x + y]",
+              "every x, y with x < size ∧ y < size ∧ ¬(x = y): never Voted[x] is 0 and 1 <= Votes[64·y + x]",
+              "every x, y with x < size ∧ y < size ∧ ¬(x = y): never 1 <= Leader[x] and 1 <= Leader[y]",
+              "every x, y with x < size ∧ y < size ∧ ¬(x = y): never VoteRequestMsg[64·x + y] is 0 and 1 <= VoteMsg[64·y + x]",
+              "every x, y with x < size ∧ y < size ∧ ¬(x = y): never VoteRequestMsg[64·x + y] is 0 and 1 <= Votes[64·x + y]",
+              "every x, y with x < size ∧ y < size ∧ ¬(x = y): never 1 <= VoteRequestMsg[64·x + y] and started is 0",
+              "every x, y with x < size ∧ y < size ∧ ¬(x = y): never 1 <= VoteMsg[64·x + x] and 1 <= VoteMsg[64·x + y]",
+              "every x, y with x < size ∧ y < size ∧ ¬(x = y): never 1 <= VoteMsg[64·x + x] and 1 <= Votes[64·y + x]",
+              "every x, y with x < size ∧ y < size ∧ ¬(x = y): never VoteMsg[64·x + y] is 0 and 1 <= Votes[64·y + x]",
+              "every x, y with x < size ∧ y < size ∧ ¬(x = y): never 1 <= VoteMsg[64·x + y] and 1 <= Votes[64·x + x]",
+              "every x, y with x < size ∧ y < size ∧ ¬(x = y): never 1 <= VoteMsg[64·x + y] and started is 0",
+              "every x, y with x < size ∧ y < size ∧ ¬(x = y): never 1 <= Votes[64·x + x] and 1 <= Votes[64·y + x]",
+              "every x, y with x < size ∧ y < size ∧ ¬(x = y): never 1 <= Votes[64·x + y] and started is 0",
+              "every x, y, z with x < size ∧ y < size ∧ ¬(x = y) ∧ z < size ∧ ¬(x = z) ∧ ¬(y = z): never 1 <= VoteMsg[64·x + y] and 1 <= VoteMsg[64·x + z]",
+              "every x, y, z with x < size ∧ y < size ∧ ¬(x = y) ∧ z < size ∧ ¬(x = z) ∧ ¬(y = z): never 1 <= VoteMsg[64·x + y] and 1 <= Votes[64·z + x]",
+              "every x, y, z with x < size ∧ y < size ∧ ¬(x = y) ∧ z < size ∧ ¬(x = z) ∧ ¬(y = z): never 1 <= Votes[64·x + y] and 1 <= Votes[64·z + y]"
+            ],
+            "ms": 17883,
+            "work": 6321466,
+            "full": 1365323
+          }
+        },
+        "accepted": true,
+        "kind": "counted-machine",
+        "laws": 37,
+        "sourceLawEquality": true,
+        "countedProjectionAlphaEquivalent": true,
+        "addedCountViews": [
+          "members$VotingQuorum",
+          "members$VotingQuorum$Leader"
+        ],
+        "packetObjectsUnchanged": true,
+        "retainedProofSha256": "7378df6e630441f62789d0db3e4a6bf5b5d25f941dc3676c254746f0152a80c4",
+        "leanBytes": 607805,
+        "leanSha256": "0b26c6d8177ff45ece80b7733a1af165fed70868b2eae1726e71072a66018350"
+      },
+      "finalReexportByteIdentical": true,
+      "jobSeconds": 45.68,
+      "logSha256": "e7f09bcf91790d97a48c16fb824b095307d943d3aba86d0ac4df6dea496ac184",
+      "compilerLogSha256": "6d080833d5c694bbe8649d5afff5bb6b1264f6b19d1dfae9db83241df42d0f68"
+    },
+    {
+      "id": "firewall",
+      "packetSha256": "289208b43bb920b6623d10b7f23bd25ece13bcea79b2120982bc243d77d37b35",
+      "retainedProofSha256": "4abf29d1dfe0878d70e4917f2dc0ce3720c5d134aa69ec1cf6fbd40b34a9a32a",
+      "originalLeanSha256": "dbfa52618a9c918f97ca6d965f6e24e591583b700fa1f04bcef6e930600b73fd",
+      "auditedPriorLeanSha256": "8017ae2950ea734e48bffd31dbb2dd3976f3b771f25c31e51a2ecc8286163d44",
+      "reexportLeanSha256": "637cb9efda3ab25fec8f061c27722e821b16ddaf24e563c19554ab01ed881234",
+      "bytes": 162346,
+      "exportExit": 0,
+      "leanExit": 0,
+      "packetUnchanged": true,
+      "packetObjectsUnchanged": true,
+      "containsAlphaBridge": false,
+      "leanWall": "LEAN_WALL seconds=7.50 maxrss_kb=1791156 exit=0",
+      "exportMetadata": {
+        "id": "firewall",
+        "captureSha256": "289208b43bb920b6623d10b7f23bd25ece13bcea79b2120982bc243d77d37b35",
+        "harness": {
+          "id": "firewall",
+          "ic3syn": "pyv-firewall",
+          "search": {
+            "verdict": "proven",
+            "found": [
+              "r.law('every k: started is 0 → Sent[k] <= 0', ({Sent, started}) => forall(k => started.eq(0).implies(Sent.at(k).n.atMost(0))))"
+            ],
+            "ms": 20070,
+            "work": 1350274,
+            "full": 1264172
+          }
+        },
+        "accepted": true,
+        "kind": "ordinary-trees",
+        "laws": 6,
+        "sourceLawEquality": false,
+        "machineEquality": false,
+        "machineAlphaEquivalent": false,
+        "machineDifferences": [
+          {
+            "key": "maps",
+            "original": "{\"AllowedIn\":0,\"Internal\":0,\"Sent\":0}",
+            "captured": "{\"AllowedIn\":0,\"AllowedIn$w\":0,\"Internal\":0,\"Sent\":0}"
+          },
+          {
+            "key": "step",
+            "original": "{\"flags\":{\"fromInternal\":{\"op\":\"and\",\"xs\":[{\"a\":{\"name\":\"op\",\"op\":\"var\"},\"b\":{\"op\":\"const\",\"value\":2},\"op\":\"=\"},{\"a\":{\"name\":\"started\",\"op\":\"var\"},\"b\":{\"op\":\"const\",\"value\":1},\"op\":\"=\"},{\"a\":{\"key\":{\"name\":\"s\",\"op\":\"var\"},\"map\":\"Internal\",\"op\":\"get\"},\"b\":{\"op\":\"const\",\"value\":1},\"op\":\"=\"},{\"op\":\"not\",\"x\":{\"a\":{\"key\":{\"name\":\"d\",\"op\":\"var\"},\"map\":\"Internal\",\"op\":\"get\"},\"b\":{\"op\":\"const\",\"value\":1},\"op\":\"=\"}}]},\"marks\":{\"op\":\"and\",\"xs\":[{\"a\":{\"name\":\"op\",\"op\":\"var\"},\"b\":{\"op\":\"const\",\"value\":0},\"op\":\"=\"},{\"a\":{\"name\":\"started\",\"op\":\"var\"},\"b\":{\"op\":\"const\",\"value\":0},\"op\":\"=\"}]},\"starts\":{\"op\":\"and\",\"xs\":[{\"a\":{\"name\":\"op\",\"op\":\"var\"},\"b\":{\"op\":\"const\",\"value\":1},\"op\":\"=\"},{\"a\":{\"name\":\"started\",\"op\":\"var\"},\"b\":{\"op\":\"const\",\"value\":0},\"op\":\"=\"}]},\"toInternal\":{\"op\":\"and\",\"xs\":[{\"a\":{\"name\":\"op\",\"op\":\"var\"},\"b\":{\"op\":\"const\",\"value\":3},\"op\":\"=\"},{\"a\":{\"name\":\"started\",\"op\":\"var\"},\"b\":{\"op\"",
+            "captured": "{\"flags\":{\"fromInternal\":{\"op\":\"and\",\"xs\":[{\"a\":{\"name\":\"op\",\"op\":\"var\"},\"b\":{\"op\":\"const\",\"value\":2},\"op\":\"=\"},{\"a\":{\"name\":\"started\",\"op\":\"var\"},\"b\":{\"op\":\"const\",\"value\":1},\"op\":\"=\"},{\"a\":{\"key\":{\"name\":\"s\",\"op\":\"var\"},\"map\":\"Internal\",\"op\":\"get\"},\"b\":{\"op\":\"const\",\"value\":1},\"op\":\"=\"},{\"op\":\"not\",\"x\":{\"a\":{\"key\":{\"name\":\"d\",\"op\":\"var\"},\"map\":\"Internal\",\"op\":\"get\"},\"b\":{\"op\":\"const\",\"value\":1},\"op\":\"=\"}}]},\"marks\":{\"op\":\"and\",\"xs\":[{\"a\":{\"name\":\"op\",\"op\":\"var\"},\"b\":{\"op\":\"const\",\"value\":0},\"op\":\"=\"},{\"a\":{\"name\":\"started\",\"op\":\"var\"},\"b\":{\"op\":\"const\",\"value\":0},\"op\":\"=\"}]},\"starts\":{\"op\":\"and\",\"xs\":[{\"a\":{\"name\":\"op\",\"op\":\"var\"},\"b\":{\"op\":\"const\",\"value\":1},\"op\":\"=\"},{\"a\":{\"name\":\"started\",\"op\":\"var\"},\"b\":{\"op\":\"const\",\"value\":0},\"op\":\"=\"}]},\"toInternal\":{\"op\":\"and\",\"xs\":[{\"a\":{\"name\":\"op\",\"op\":\"var\"},\"b\":{\"op\":\"const\",\"value\":3},\"op\":\"=\"},{\"a\":{\"name\":\"started\",\"op\":\"var\"},\"b\":{\"op\""
+          }
+        ],
+        "existentialBridge": {
+          "kind": "forall_some_of_ghostsubst",
+          "extraVars": [],
+          "extraMaps": [
+            "AllowedIn$w"
+          ],
+          "laws": [
+            "a sender to the inside was sent to from the inside"
+          ],
+          "projectionAlphaEquivalent": true
+        },
+        "packetObjectsUnchanged": true,
+        "retainedProofSha256": "4abf29d1dfe0878d70e4917f2dc0ce3720c5d134aa69ec1cf6fbd40b34a9a32a",
+        "leanBytes": 162007,
+        "leanSha256": "637cb9efda3ab25fec8f061c27722e821b16ddaf24e563c19554ab01ed881234"
+      },
+      "finalReexportByteIdentical": true,
+      "jobSeconds": 11.42,
+      "logSha256": "da30e9ceb2f0848d7820762d7ae28ed4f49dc69feb42d492b7ebd1c59d55ab95",
+      "compilerLogSha256": "ba573285d9f526e3e827b0635f9057a08fca34174ed4ef44681a2a491c464417"
+    },
+    {
+      "id": "learning_switch",
+      "packetSha256": "3fad96e4b916c6915f0d3b5498bdb513882c0dd9750efe9564b58bf06cac7483",
+      "retainedProofSha256": "a09919fb7a43ebc63054a93ee4fa19a975287a6f0f57d780dfecd2e9990eff9f",
+      "originalLeanSha256": "985f87fef35d310552dc4fba159201b015b1f374cf0744786f51dad1a7e5cc5f",
+      "auditedPriorLeanSha256": "985f87fef35d310552dc4fba159201b015b1f374cf0744786f51dad1a7e5cc5f",
+      "reexportLeanSha256": "be09a51b2e641c8d0f921e4c0ec982a934d69ce45184747e2e73e57e9f247d8f",
+      "bytes": 989074,
+      "exportExit": 0,
+      "leanExit": 0,
+      "packetUnchanged": true,
+      "packetObjectsUnchanged": true,
+      "containsAlphaBridge": false,
+      "leanWall": "LEAN_WALL seconds=88.09 maxrss_kb=8065660 exit=0",
+      "exportMetadata": {
+        "id": "learning_switch",
+        "captureSha256": "3fad96e4b916c6915f0d3b5498bdb513882c0dd9750efe9564b58bf06cac7483",
+        "harness": {
+          "id": "learning_switch",
+          "ic3syn": "pyv-learning-switch",
+          "search": {
+            "verdict": "proven",
+            "found": [
+              "every x, y with x < size ∧ y < size ∧ ¬(x = y): never 1 <= T[⟨x, ⟨x, y⟩⟩]",
+              "every x, y with x < size ∧ y < size ∧ ¬(x = y): never 1 <= T[⟨x, ⟨y, y⟩⟩]",
+              "every x with x < size: never 1 <= T[⟨x, ⟨x, x⟩⟩]",
+              "every x, y with x < size ∧ y < size ∧ ¬(x = y): never T[⟨x, ⟨y, x⟩⟩] is 0 and 1 <= P[⟨x, ⟨_, ⟨y, _⟩⟩⟩]",
+              "every x, y with x < size ∧ y < size ∧ ¬(x = y): never P[⟨x, ⟨x, ⟨x, x⟩⟩⟩] is 0 and 1 <= P[⟨x, ⟨x, ⟨x, y⟩⟩⟩]",
+              "every x, y with x < size ∧ y < size ∧ ¬(x = y): never P[⟨x, ⟨x, ⟨y, x⟩⟩⟩] is 0 and 1 <= P[⟨x, ⟨x, ⟨y, y⟩⟩⟩]",
+              "every x, y with x < size ∧ y < size ∧ ¬(x = y): never 1 <= P[⟨x, ⟨x, ⟨y, x⟩⟩⟩] and P[⟨x, ⟨x, ⟨y, y⟩⟩⟩] is 0",
+              "every x, y, z with x < size ∧ y < size ∧ ¬(x = y) ∧ z < size ∧ ¬(x = z) ∧ ¬(y = z): never 1 <= T[⟨x, ⟨y, z⟩⟩] and 1 <= T[⟨x, ⟨z, y⟩⟩]",
+              "every x, y with x < size ∧ y < size ∧ ¬(x = y): never P[⟨x, ⟨y, ⟨x, x⟩⟩⟩] is 0 and 1 <= P[⟨x, ⟨y, ⟨x, y⟩⟩⟩]",
+              "every x, y with x < size ∧ y < size ∧ ¬(x = y): never P[⟨x, ⟨y, ⟨y, x⟩⟩⟩] is 0 and 1 <= P[⟨x, ⟨y, ⟨y, y⟩⟩⟩]",
+              "every x, y with x < size ∧ y < size ∧ ¬(x = y): never 1 <= P[⟨x, ⟨y, ⟨y, x⟩⟩⟩] and P[⟨x, ⟨y, ⟨y, y⟩⟩⟩] is 0",
+              "every x, y with x < size ∧ y < size ∧ ¬(x = y): never T[⟨x, ⟨y, x⟩⟩] is 0 and 1 <= T[⟨x, ⟨y, _⟩⟩]",
+              "every x, y with x < size ∧ y < size ∧ ¬(x = y): never T[⟨x, ⟨y, x⟩⟩] is 0 and 1 <= T[⟨x, ⟨_, y⟩⟩]"
+            ],
+            "ms": 16579,
+            "work": 399436,
+            "full": 685946
+          }
+        },
+        "accepted": true,
+        "kind": "ordinary-trees",
+        "laws": 16,
+        "sourceLawEquality": true,
+        "machineEquality": false,
+        "machineAlphaEquivalent": true,
+        "machineDifferences": [
+          {
+            "key": "step",
+            "original": "{\"flags\":{\"forwards\":{\"op\":\"and\",\"xs\":[{\"a\":{\"name\":\"op\",\"op\":\"var\"},\"b\":{\"op\":\"const\",\"value\":1},\"op\":\"=\"},{\"a\":{\"op\":\"const\",\"value\":1},\"b\":{\"key\":{\"a\":{\"name\":\"ps\",\"op\":\"var\"},\"b\":{\"a\":{\"name\":\"pd\",\"op\":\"var\"},\"b\":{\"a\":{\"name\":\"sw0\",\"op\":\"var\"},\"b\":{\"name\":\"sw1\",\"op\":\"var\"},\"op\":\"tup\"},\"op\":\"tup\"},\"op\":\"tup\"},\"map\":\"P\",\"op\":\"get\"},\"op\":\"<=\"}]},\"learns\":{\"op\":\"and\",\"xs\":[{\"op\":\"and\",\"xs\":[{\"a\":{\"name\":\"op\",\"op\":\"var\"},\"b\":{\"op\":\"const\",\"value\":1},\"op\":\"=\"},{\"a\":{\"op\":\"const\",\"value\":1},\"b\":{\"key\":{\"a\":{\"name\":\"ps\",\"op\":\"var\"},\"b\":{\"a\":{\"name\":\"pd\",\"op\":\"var\"},\"b\":{\"a\":{\"name\":\"sw0\",\"op\":\"var\"},\"b\":{\"name\":\"sw1\",\"op\":\"var\"},\"op\":\"tup\"},\"op\":\"tup\"},\"op\":\"tup\"},\"map\":\"P\",\"op\":\"get\"},\"op\":\"<=\"}]},{\"op\":\"not\",\"x\":{\"a\":{\"name\":\"ps\",\"op\":\"var\"},\"b\":{\"name\":\"sw1\",\"op\":\"var\"},\"op\":\"=\"}},{\"name\":\"noRoute\",\"op\":\"flag\"}]},\"news\":{\"a\":{\"name\":\"op\",\"op\":\"var\"},\"b\":{\"op\":\"const\",\"value\":0},\"op\":\"=\"},",
+            "captured": "{\"flags\":{\"forwards\":{\"op\":\"and\",\"xs\":[{\"a\":{\"name\":\"op\",\"op\":\"var\"},\"b\":{\"op\":\"const\",\"value\":1},\"op\":\"=\"},{\"a\":{\"op\":\"const\",\"value\":1},\"b\":{\"key\":{\"a\":{\"name\":\"ps\",\"op\":\"var\"},\"b\":{\"a\":{\"name\":\"pd\",\"op\":\"var\"},\"b\":{\"a\":{\"name\":\"sw0\",\"op\":\"var\"},\"b\":{\"name\":\"sw1\",\"op\":\"var\"},\"op\":\"tup\"},\"op\":\"tup\"},\"op\":\"tup\"},\"map\":\"P\",\"op\":\"get\"},\"op\":\"<=\"}]},\"learns\":{\"op\":\"and\",\"xs\":[{\"op\":\"and\",\"xs\":[{\"a\":{\"name\":\"op\",\"op\":\"var\"},\"b\":{\"op\":\"const\",\"value\":1},\"op\":\"=\"},{\"a\":{\"op\":\"const\",\"value\":1},\"b\":{\"key\":{\"a\":{\"name\":\"ps\",\"op\":\"var\"},\"b\":{\"a\":{\"name\":\"pd\",\"op\":\"var\"},\"b\":{\"a\":{\"name\":\"sw0\",\"op\":\"var\"},\"b\":{\"name\":\"sw1\",\"op\":\"var\"},\"op\":\"tup\"},\"op\":\"tup\"},\"op\":\"tup\"},\"map\":\"P\",\"op\":\"get\"},\"op\":\"<=\"}]},{\"op\":\"not\",\"x\":{\"a\":{\"name\":\"ps\",\"op\":\"var\"},\"b\":{\"name\":\"sw1\",\"op\":\"var\"},\"op\":\"=\"}},{\"name\":\"noRoute\",\"op\":\"flag\"}]},\"news\":{\"a\":{\"name\":\"op\",\"op\":\"var\"},\"b\":{\"op\":\"const\",\"value\":0},\"op\":\"=\"},"
+          }
+        ],
+        "packetObjectsUnchanged": true,
+        "retainedProofSha256": "a09919fb7a43ebc63054a93ee4fa19a975287a6f0f57d780dfecd2e9990eff9f",
+        "leanBytes": 987559,
+        "leanSha256": "be09a51b2e641c8d0f921e4c0ec982a934d69ce45184747e2e73e57e9f247d8f"
+      },
+      "finalReexportByteIdentical": true,
+      "jobSeconds": 103.48,
+      "logSha256": "9eccf591febe9bf0ca3fc1641ae2e5bbdc3fe16f81e5a9d57f2d7f4ce17bda44",
+      "compilerLogSha256": "384aa2245bdcd54fb58a7d711cae6646c9b28b8fbf4d7e230fda83135bc74486"
+    },
+    {
+      "id": "learning_switch_i4",
+      "packetSha256": "ad44f31b148aa0a703886783768e32216ea9c0b90dd7529aac2f1cc4daec9c59",
+      "retainedProofSha256": "df9262fae9e584dc67d665b9456b2d4f9c0f040afc474a5755843e31bd5cee6b",
+      "originalLeanSha256": "1e096a70a955feaaf138964dca580397ac01e24fac2b3f6158e372c52a0c317d",
+      "auditedPriorLeanSha256": "1e096a70a955feaaf138964dca580397ac01e24fac2b3f6158e372c52a0c317d",
+      "reexportLeanSha256": "275c454f9d28929364cfb698f7dfa64a5a78f20fa941f73a4dfe81426ffea2d7",
+      "bytes": 902593,
+      "exportExit": 0,
+      "leanExit": 0,
+      "packetUnchanged": true,
+      "packetObjectsUnchanged": true,
+      "containsAlphaBridge": false,
+      "leanWall": "LEAN_WALL seconds=107.00 maxrss_kb=12167112 exit=0",
+      "exportMetadata": {
+        "id": "learning_switch_i4",
+        "captureSha256": "ad44f31b148aa0a703886783768e32216ea9c0b90dd7529aac2f1cc4daec9c59",
+        "harness": {
+          "id": "learning_switch_i4",
+          "ic3syn": "i4-learning-switch",
+          "search": {
+            "verdict": "proven",
+            "found": [
+              "every x with x < packets: never Dst(x) in range is 0",
+              "every x with x < size: never LinkSet[x] is 0 and 1 <= started",
+              "every x with x < size: never 1 <= Pend[⟨_, ⟨x, _⟩⟩] and started is 0",
+              "every x with x < size: never 1 <= Dom[⟨x, _⟩] and started is 0",
+              "every x with x < size: never 1 <= T[⟨x, ⟨_, _⟩⟩] and started is 0",
+              "every x, y with x < size ∧ y < size ∧ ¬(x = y): never 1 <= T[⟨x, ⟨_, y⟩⟩] and 1 <= started",
+              "every x, y with x < size ∧ y < size ∧ ¬(x = y): never Link(x)=y is 0 and 1 <= Link(y)=x and 1 <= LinkSet[y]",
+              "every x, y with x < size ∧ y < size ∧ ¬(x = y): never Link(x)=y is 0 and 1 <= Link(y)=x and 1 <= started",
+              "every x with x < size: never 1 <= Dom[⟨_, x⟩] and started is 0",
+              "every x with x < size: never 1 <= T[⟨_, ⟨x, _⟩⟩] and started is 0",
+              "every x, y with x < size ∧ y < size ∧ ¬(x = y): never 1 <= Link(x)=y and 1 <= LinkSet[x] and LinkSet[y] is 0",
+              "every x with x < packets: never 1 <= Pend[⟨x, ⟨_, _⟩⟩] and started is 0",
+              "every x with x < size: never 1 <= T[⟨_, ⟨_, x⟩⟩] and started is 0",
+              "every x, Src(x) with x < packets: never 1 <= Dom[⟨Src(x), Src(x)⟩]",
+              "every x, y with x < size ∧ y < size ∧ ¬(x = y): never 1 <= T[⟨x, ⟨y, _⟩⟩] and Dom[⟨x, y⟩] is 0",
+              "every x, y, z, Src(x) with x < packets ∧ y < size ∧ z < size ∧ ¬(y = z) ∧ ¬(Src(x) = y) ∧ ¬(Src(x) = z): never 1 <= Pend[⟨x, ⟨y, z⟩⟩] and Dom[⟨Src(x), y⟩] is 0 and T[⟨Src(x), ⟨y, z⟩⟩] is 0",
+              "every x, y, Src(x) with x < packets ∧ y < size ∧ ¬(Src(x) = y): never 1 <= Pend[⟨x, ⟨y, _⟩⟩] and Dom[⟨Src(x), y⟩] is 0 and T[⟨Src(x), ⟨y, y⟩⟩] is 0",
+              "every x, y with x < size ∧ y < size ∧ ¬(x = y): never Link(x)=y is 0 and 1 <= Pend[⟨_, ⟨x, y⟩⟩]",
+              "every x, y with x < size ∧ y < size ∧ ¬(x = y): never Link(x)=y is 0 and 1 <= Dom[⟨y, x⟩]"
+            ],
+            "ms": 21729,
+            "work": 314016,
+            "full": 618517
+          }
+        },
+        "accepted": true,
+        "kind": "ordinary-trees",
+        "laws": 22,
+        "sourceLawEquality": true,
+        "machineEquality": false,
+        "machineAlphaEquivalent": true,
+        "machineDifferences": [
+          {
+            "key": "step",
+            "original": "{\"flags\":{\"below2\":{\"c\":{\"op\":\"or\",\"xs\":[{\"op\":\"not\",\"x\":{\"a\":{\"name\":\"k$129\",\"op\":\"var\"},\"b\":{\"name\":\"size\",\"op\":\"var\"},\"op\":\"<\"}},{\"op\":\"or\",\"xs\":[{\"a\":{\"name\":\"k$129\",\"op\":\"var\"},\"b\":{\"name\":\"sw1\",\"op\":\"var\"},\"op\":\"=\"},{\"op\":\"not\",\"x\":{\"a\":{\"op\":\"const\",\"value\":1},\"b\":{\"key\":{\"a\":{\"key\":{\"name\":\"p\",\"op\":\"var\"},\"map\":\"Dst\",\"op\":\"get\"},\"b\":{\"a\":{\"name\":\"sw1\",\"op\":\"var\"},\"b\":{\"name\":\"k$129\",\"op\":\"var\"},\"op\":\"tup\"},\"op\":\"tup\"},\"map\":\"T\",\"op\":\"get\"},\"op\":\"<=\"}},{\"op\":\"or\",\"xs\":[{\"a\":{\"name\":\"sw2\",\"op\":\"var\"},\"b\":{\"name\":\"k$129\",\"op\":\"var\"},\"op\":\"=\"},{\"a\":{\"op\":\"const\",\"value\":1},\"b\":{\"key\":{\"a\":{\"key\":{\"name\":\"p\",\"op\":\"var\"},\"map\":\"Dst\",\"op\":\"get\"},\"b\":{\"a\":{\"name\":\"sw2\",\"op\":\"var\"},\"b\":{\"name\":\"k$129\",\"op\":\"var\"},\"op\":\"tup\"},\"op\":\"tup\"},\"map\":\"T\",\"op\":\"get\"},\"op\":\"<=\"}]}]}]},\"key\":\"k$129\",\"op\":\"all\"},\"cond2\":{\"op\":\"not\",\"x\":{\"a\":{\"key\":{\"name\":\"p\",\"op\":\"var\"},\"map\":\"Dst\",\"op\":\"get\"},\"b\":{",
+            "captured": "{\"flags\":{\"below2\":{\"c\":{\"op\":\"or\",\"xs\":[{\"op\":\"not\",\"x\":{\"a\":{\"name\":\"k$115\",\"op\":\"var\"},\"b\":{\"name\":\"size\",\"op\":\"var\"},\"op\":\"<\"}},{\"op\":\"or\",\"xs\":[{\"a\":{\"name\":\"k$115\",\"op\":\"var\"},\"b\":{\"name\":\"sw1\",\"op\":\"var\"},\"op\":\"=\"},{\"op\":\"not\",\"x\":{\"a\":{\"op\":\"const\",\"value\":1},\"b\":{\"key\":{\"a\":{\"key\":{\"name\":\"p\",\"op\":\"var\"},\"map\":\"Dst\",\"op\":\"get\"},\"b\":{\"a\":{\"name\":\"sw1\",\"op\":\"var\"},\"b\":{\"name\":\"k$115\",\"op\":\"var\"},\"op\":\"tup\"},\"op\":\"tup\"},\"map\":\"T\",\"op\":\"get\"},\"op\":\"<=\"}},{\"op\":\"or\",\"xs\":[{\"a\":{\"name\":\"sw2\",\"op\":\"var\"},\"b\":{\"name\":\"k$115\",\"op\":\"var\"},\"op\":\"=\"},{\"a\":{\"op\":\"const\",\"value\":1},\"b\":{\"key\":{\"a\":{\"key\":{\"name\":\"p\",\"op\":\"var\"},\"map\":\"Dst\",\"op\":\"get\"},\"b\":{\"a\":{\"name\":\"sw2\",\"op\":\"var\"},\"b\":{\"name\":\"k$115\",\"op\":\"var\"},\"op\":\"tup\"},\"op\":\"tup\"},\"map\":\"T\",\"op\":\"get\"},\"op\":\"<=\"}]}]}]},\"key\":\"k$115\",\"op\":\"all\"},\"cond2\":{\"op\":\"not\",\"x\":{\"a\":{\"key\":{\"name\":\"p\",\"op\":\"var\"},\"map\":\"Dst\",\"op\":\"get\"},\"b\":{"
+          }
+        ],
+        "packetObjectsUnchanged": true,
+        "retainedProofSha256": "df9262fae9e584dc67d665b9456b2d4f9c0f040afc474a5755843e31bd5cee6b",
+        "leanBytes": 901284,
+        "leanSha256": "275c454f9d28929364cfb698f7dfa64a5a78f20fa941f73a4dfe81426ffea2d7"
+      },
+      "finalReexportByteIdentical": true,
+      "jobSeconds": 120.92,
+      "logSha256": "d86fcfe889bba6c57c266776b1c5b5bbbecc5c387230fd73960f032f38d32f54",
+      "compilerLogSha256": "fb6ec3d1b993976c1ad544d98541aafb6e7b65ebc682ef4a92432bf2d647c65b"
+    },
+    {
+      "id": "lock_server",
+      "packetSha256": "e68b6d5bdd30e3b86be00d674977afd718c7d984c93dee4aa83adf3c14202e4e",
+      "retainedProofSha256": "d6f3837f6e4a091657404416e06c56f8a4ae0c27179a1d45b2348de4c0ff19cf",
+      "originalLeanSha256": "2fbb0c3b07fa47e11d57fd05fc69c360cf4df80a9b6025f0ba606e46599b452f",
+      "auditedPriorLeanSha256": "2fbb0c3b07fa47e11d57fd05fc69c360cf4df80a9b6025f0ba606e46599b452f",
+      "reexportLeanSha256": "a4eafffd66720527933f33745b9817d1ec5c0613d45c7e2de8e8bc00a8aee824",
+      "bytes": 59482,
+      "exportExit": 0,
+      "leanExit": 0,
+      "packetUnchanged": true,
+      "packetObjectsUnchanged": true,
+      "containsAlphaBridge": false,
+      "leanWall": "LEAN_WALL seconds=3.28 maxrss_kb=963080 exit=0",
+      "exportMetadata": {
+        "id": "lock_server",
+        "captureSha256": "e68b6d5bdd30e3b86be00d674977afd718c7d984c93dee4aa83adf3c14202e4e",
+        "harness": {
+          "id": "lock_server",
+          "ic3syn": "i4-lock-server",
+          "search": {
+            "verdict": "proven",
+            "found": [
+              "every x, y with x < 64 ∧ y < 64: Semaphore[y] + Link[64·x + y] <= 1"
+            ],
+            "ms": 3807,
+            "work": 56883,
+            "full": 39220
+          }
+        },
+        "accepted": true,
+        "kind": "ordinary-trees",
+        "laws": 4,
+        "sourceLawEquality": true,
+        "machineEquality": true,
+        "machineAlphaEquivalent": true,
+        "machineDifferences": [],
+        "packetObjectsUnchanged": true,
+        "retainedProofSha256": "d6f3837f6e4a091657404416e06c56f8a4ae0c27179a1d45b2348de4c0ff19cf",
+        "leanBytes": 59305,
+        "leanSha256": "a4eafffd66720527933f33745b9817d1ec5c0613d45c7e2de8e8bc00a8aee824"
+      },
+      "finalReexportByteIdentical": true,
+      "jobSeconds": 9.96,
+      "logSha256": "fe6ae643f7bce0397b3a89a1ec2acb06c14317275f76a6cf2165ba822dbc4c4e",
+      "compilerLogSha256": "f2fc324056fee9b750b481836919c5d1179e6eb902d5addb5654870714cded75"
+    },
+    {
+      "id": "lockserv",
+      "packetSha256": "6ffc9529116e8afdac5b2022f9b4cfc730c94c9a7fd65a06ea0437a4e0389e17",
+      "retainedProofSha256": "542b6100ae7c23f6cc19f7f0030ab310ed30b4aaec4266a2842fb8c02430ced7",
+      "originalLeanSha256": "b7b355d6f1178bf68b6530c5493b5bca9cdf9c6fe56924bc3cb3f6c4442c6d86",
+      "auditedPriorLeanSha256": "b7b355d6f1178bf68b6530c5493b5bca9cdf9c6fe56924bc3cb3f6c4442c6d86",
+      "reexportLeanSha256": "ec8278c3fff9acc9921caf37e753531d380e8dc7763ac466c79741b0bf48a30e",
+      "bytes": 245008,
+      "exportExit": 0,
+      "leanExit": 0,
+      "packetUnchanged": true,
+      "packetObjectsUnchanged": true,
+      "containsAlphaBridge": false,
+      "leanWall": "LEAN_WALL seconds=13.04 maxrss_kb=2056824 exit=0",
+      "exportMetadata": {
+        "id": "lockserv",
+        "captureSha256": "6ffc9529116e8afdac5b2022f9b4cfc730c94c9a7fd65a06ea0437a4e0389e17",
+        "harness": {
+          "id": "lockserv",
+          "ic3syn": "pyv-lockserv",
+          "search": {
+            "verdict": "proven",
+            "found": [
+              "r.law('every x, y with ¬(x = y): GrantMsg[x] + HoldsLock[y] <= 1', ({GrantMsg, HoldsLock}) => forall((x, y) => x.eq(y).not().implies(GrantMsg.at(x).n.plus(HoldsLock.at(y).n).atMost(1))))",
+              "r.law('every k: serverHoldsLock + HoldsLock[k] <= 1', ({serverHoldsLock, HoldsLock}) => forall(k => serverHoldsLock.plus(HoldsLock.at(k).n).atMost(1)))",
+              "r.law('every x, y with ¬(x = y): GrantMsg[x] + GrantMsg[y] <= 1', ({GrantMsg}) => forall((x, y) => x.eq(y).not().implies(GrantMsg.at(x).n.plus(GrantMsg.at(y).n).atMost(1))))",
+              "r.law('every x, y with ¬(x = y): UnlockMsg[x] + HoldsLock[y] <= 1', ({UnlockMsg, HoldsLock}) => forall((x, y) => x.eq(y).not().implies(UnlockMsg.at(x).n.plus(HoldsLock.at(y).n).atMost(1))))",
+              "r.law('every k: UnlockMsg[k] + HoldsLock[k] <= 1', ({UnlockMsg, HoldsLock}) => forall(k => UnlockMsg.at(k).n.plus(HoldsLock.at(k).n).atMost(1)))",
+              "r.law('every k: serverHoldsLock + GrantMsg[k] <= 1', ({serverHoldsLock, GrantMsg}) => forall(k => serverHoldsLock.plus(GrantMsg.at(k).n).atMost(1)))",
+              "r.law('every x, y with ¬(x = y): HoldsLock[x] + HoldsLock[y] <= 1', ({HoldsLock}) => forall((x, y) => x.eq(y).not().implies(HoldsLock.at(x).n.plus(HoldsLock.at(y).n).atMost(1))))",
+              "r.law('every x, y with ¬(x = y): UnlockMsg[x] + GrantMsg[y] <= 1', ({UnlockMsg, GrantMsg}) => forall((x, y) => x.eq(y).not().implies(UnlockMsg.at(x).n.plus(GrantMsg.at(y).n).atMost(1))))",
+              "r.law('every k: GrantMsg[k] + UnlockMsg[k] <= 1', ({GrantMsg, UnlockMsg}) => forall(k => GrantMsg.at(k).n.plus(UnlockMsg.at(k).n).atMost(1)))",
+              "r.law('every k: serverHoldsLock + UnlockMsg[k] <= 1', ({serverHoldsLock, UnlockMsg}) => forall(k => serverHoldsLock.plus(UnlockMsg.at(k).n).atMost(1)))",
+              "r.law('every k: GrantMsg[k] + HoldsLock[k] <= 1', ({GrantMsg, HoldsLock}) => forall(k => GrantMsg.at(k).n.plus(HoldsLock.at(k).n).atMost(1)))",
+              "r.law('every x, y with ¬(x = y): UnlockMsg[x] + UnlockMsg[y] <= 1', ({UnlockMsg}) => forall((x, y) => x.eq(y).not().implies(UnlockMsg.at(x).n.plus(UnlockMsg.at(y).n).atMost(1))))"
+            ],
+            "ms": 4485,
+            "work": 1340389,
+            "full": 2197580
+          }
+        },
+        "accepted": true,
+        "kind": "ordinary-trees",
+        "laws": 17,
+        "sourceLawEquality": true,
+        "machineEquality": true,
+        "machineAlphaEquivalent": true,
+        "machineDifferences": [],
+        "packetObjectsUnchanged": true,
+        "retainedProofSha256": "542b6100ae7c23f6cc19f7f0030ab310ed30b4aaec4266a2842fb8c02430ced7",
+        "leanBytes": 244366,
+        "leanSha256": "ec8278c3fff9acc9921caf37e753531d380e8dc7763ac466c79741b0bf48a30e"
+      },
+      "finalReexportByteIdentical": true,
+      "jobSeconds": 20.32,
+      "logSha256": "b0c53aa4a3bcd647cbf5aea0e77e0b905ddec8fa58442a7f272a1f6e7916a4a1",
+      "compilerLogSha256": "f6cc80c12a74e1e441c70d5742fe2b8711e04b7ebbeaa9df3f5ae4bd0d2994b7"
+    },
+    {
+      "id": "lockserv_automaton",
+      "packetSha256": "cc0bb87f7107a989efb68b6af660a8f72954d7ce7e767b55d35bd05ee6271d35",
+      "retainedProofSha256": "6d086d5ebffe58092e86b6598e92b32124158f29819deb102f6af4599b637c9b",
+      "originalLeanSha256": "904b3db5f0ec1035a34f1850348c48fbce68de2ef3b71ae404343b9b30d28f0a",
+      "auditedPriorLeanSha256": "904b3db5f0ec1035a34f1850348c48fbce68de2ef3b71ae404343b9b30d28f0a",
+      "reexportLeanSha256": "4d651cc7adf0363664778d8e43a7d5f77695524188ffedc2ca3bcceea8c5cb4a",
+      "bytes": 236968,
+      "exportExit": 0,
+      "leanExit": 0,
+      "packetUnchanged": true,
+      "packetObjectsUnchanged": true,
+      "containsAlphaBridge": false,
+      "leanWall": "LEAN_WALL seconds=8.28 maxrss_kb=2042932 exit=0",
+      "exportMetadata": {
+        "id": "lockserv_automaton",
+        "captureSha256": "cc0bb87f7107a989efb68b6af660a8f72954d7ce7e767b55d35bd05ee6271d35",
+        "harness": {
+          "id": "lockserv_automaton",
+          "ic3syn": "ex-lockserv-automaton",
+          "search": {
+            "verdict": "proven",
+            "found": [
+              "r.law('every x, y with ¬(x = y): GrantMsg[x] + HoldsLock[y] <= 1', ({GrantMsg, HoldsLock}) => forall((x, y) => x.eq(y).not().implies(GrantMsg.at(x).n.plus(HoldsLock.at(y).n).atMost(1))))",
+              "r.law('every k: HoldsLock[k] <= held', ({held, HoldsLock}) => forall(k => HoldsLock.at(k).n.atMost(held)))",
+              "r.law('every x, y with ¬(x = y): GrantMsg[x] + GrantMsg[y] <= 1', ({GrantMsg}) => forall((x, y) => x.eq(y).not().implies(GrantMsg.at(x).n.plus(GrantMsg.at(y).n).atMost(1))))",
+              "r.law('every k: GrantMsg[k] <= held', ({held, GrantMsg}) => forall(k => GrantMsg.at(k).n.atMost(held)))",
+              "r.law('every k: UnlockMsg[k] + HoldsLock[k] <= 1', ({UnlockMsg, HoldsLock}) => forall(k => UnlockMsg.at(k).n.plus(HoldsLock.at(k).n).atMost(1)))",
+              "r.law('every x, y with ¬(x = y): UnlockMsg[x] + HoldsLock[y] <= 1', ({UnlockMsg, HoldsLock}) => forall((x, y) => x.eq(y).not().implies(UnlockMsg.at(x).n.plus(HoldsLock.at(y).n).atMost(1))))",
+              "r.law('every k: UnlockMsg[k] + GrantMsg[k] <= 1', ({UnlockMsg, GrantMsg}) => forall(k => UnlockMsg.at(k).n.plus(GrantMsg.at(k).n).atMost(1)))",
+              "r.law('every x, y with ¬(x = y): UnlockMsg[x] + GrantMsg[y] <= 1', ({UnlockMsg, GrantMsg}) => forall((x, y) => x.eq(y).not().implies(UnlockMsg.at(x).n.plus(GrantMsg.at(y).n).atMost(1))))",
+              "r.law('every x, y with ¬(x = y): HoldsLock[x] + HoldsLock[y] <= 1', ({HoldsLock}) => forall((x, y) => x.eq(y).not().implies(HoldsLock.at(x).n.plus(HoldsLock.at(y).n).atMost(1))))",
+              "r.law('every k: GrantMsg[k] + HoldsLock[k] <= 1', ({GrantMsg, HoldsLock}) => forall(k => GrantMsg.at(k).n.plus(HoldsLock.at(k).n).atMost(1)))",
+              "r.law('every k: UnlockMsg[k] <= held', ({held, UnlockMsg}) => forall(k => UnlockMsg.at(k).n.atMost(held)))",
+              "r.law('every x, y with ¬(x = y): UnlockMsg[x] + UnlockMsg[y] <= 1', ({UnlockMsg}) => forall((x, y) => x.eq(y).not().implies(UnlockMsg.at(x).n.plus(UnlockMsg.at(y).n).atMost(1))))"
+            ],
+            "ms": 5763,
+            "work": 1159509,
+            "full": 2067272
+          }
+        },
+        "accepted": true,
+        "kind": "ordinary-trees",
+        "laws": 17,
+        "sourceLawEquality": true,
+        "machineEquality": true,
+        "machineAlphaEquivalent": true,
+        "machineDifferences": [],
+        "packetObjectsUnchanged": true,
+        "retainedProofSha256": "6d086d5ebffe58092e86b6598e92b32124158f29819deb102f6af4599b637c9b",
+        "leanBytes": 236326,
+        "leanSha256": "4d651cc7adf0363664778d8e43a7d5f77695524188ffedc2ca3bcceea8c5cb4a"
+      },
+      "finalReexportByteIdentical": true,
+      "jobSeconds": 12.45,
+      "logSha256": "1b432914d030b4c26e2d61434c637b6798c58d3a5eba82dfb2921c840a34c3f6",
+      "compilerLogSha256": "57dc10346da0782511a8596ffdfb09fd6f98d0ac49ab49a4b9eb5b63180dd793"
+    },
+    {
+      "id": "majorityset_leader_election",
+      "packetSha256": "3901663828912775846610d10f9853c135a25ab95f89afeb1eb86999f5cde1d8",
+      "retainedProofSha256": "ff0908ce91c6f1bfad4ed51733f33d38bb4f3d4713ebddae5f9f87bbdde9e967",
+      "originalLeanSha256": "869f5ccff2ecdf9eb429dd7f19cdc24c1c9462691dc4cbd8b7f778ad5ba3b2c6",
+      "auditedPriorLeanSha256": "869f5ccff2ecdf9eb429dd7f19cdc24c1c9462691dc4cbd8b7f778ad5ba3b2c6",
+      "reexportLeanSha256": "e2674ee559327e1eb1fe7dabdb4eb26056c98c7bc92e4f30f832a2fe1cad2b1d",
+      "bytes": 315138,
+      "exportExit": 0,
+      "leanExit": 0,
+      "packetUnchanged": true,
+      "packetObjectsUnchanged": true,
+      "containsAlphaBridge": false,
+      "leanWall": "LEAN_WALL seconds=16.45 maxrss_kb=3323476 exit=0",
+      "exportMetadata": {
+        "id": "majorityset_leader_election",
+        "captureSha256": "3901663828912775846610d10f9853c135a25ab95f89afeb1eb86999f5cde1d8",
+        "harness": {
+          "id": "majorityset_leader_election",
+          "ic3syn": "ex-majorityset-leader-election",
+          "search": {
+            "verdict": "proven",
+            "found": [
+              "every Vote cell is a value of its kind",
+              "every Voters cell is a value of its kind",
+              "every Leader cell is a value of its kind",
+              "one leader",
+              "Leader keeps voters's bound",
+              "Vote: one second key a first",
+              "every x with x < size: never Vote[64·x + x] is 0 and 1 <= Voters[64·x + x]",
+              "every x, y with x < size ∧ y < size ∧ ¬(x = y): never 1 <= Leader[x] and 1 <= Leader[y]",
+              "every x, y with x < size ∧ y < size ∧ ¬(x = y): never 1 <= Vote[64·x + x] and 1 <= Vote[64·x + y]",
+              "every x, y with x < size ∧ y < size ∧ ¬(x = y): never 1 <= Vote[64·x + x] and 1 <= Voters[64·y + x]",
+              "every x, y with x < size ∧ y < size ∧ ¬(x = y): never Vote[64·x + y] is 0 and 1 <= Voters[64·y + x]",
+              "every x, y with x < size ∧ y < size ∧ ¬(x = y): never 1 <= Vote[64·x + y] and 1 <= Voters[64·x + x]",
+              "every x, y with x < size ∧ y < size ∧ ¬(x = y): never 1 <= Voters[64·x + x] and 1 <= Voters[64·y + x]",
+              "every x, y, z with x < size ∧ y < size ∧ ¬(x = y) ∧ z < size ∧ ¬(x = z) ∧ ¬(y = z): never 1 <= Vote[64·x + y] and 1 <= Vote[64·x + z]",
+              "every x, y, z with x < size ∧ y < size ∧ ¬(x = y) ∧ z < size ∧ ¬(x = z) ∧ ¬(y = z): never 1 <= Vote[64·x + y] and 1 <= Voters[64·z + x]",
+              "every x, y, z with x < size ∧ y < size ∧ ¬(x = y) ∧ z < size ∧ ¬(x = z) ∧ ¬(y = z): never 1 <= Voters[64·x + y] and 1 <= Voters[64·z + y]"
+            ],
+            "ms": 3436,
+            "work": 2007722,
+            "full": 594997
+          }
+        },
+        "accepted": true,
+        "kind": "counted-machine",
+        "laws": 16,
+        "sourceLawEquality": true,
+        "countedProjectionAlphaEquivalent": true,
+        "addedCountViews": [],
+        "packetObjectsUnchanged": true,
+        "retainedProofSha256": "ff0908ce91c6f1bfad4ed51733f33d38bb4f3d4713ebddae5f9f87bbdde9e967",
+        "leanBytes": 314580,
+        "leanSha256": "e2674ee559327e1eb1fe7dabdb4eb26056c98c7bc92e4f30f832a2fe1cad2b1d"
+      },
+      "finalReexportByteIdentical": true,
+      "jobSeconds": 37.41,
+      "logSha256": "07f11ce455e89d224ced99142829b0bc855462f7f2e9de9deabcffe8d61d2ddd",
+      "compilerLogSha256": "673d78a7ae50249cbea4e61e61ea48e7a9f82c4d6284aee88b8ceccbba967bfb"
+    },
+    {
+      "id": "naive_consensus",
+      "packetSha256": "7771870abacbf648204fe36578b0fc8e0e24c0529eb2ff3e3257104b58c27f2b",
+      "retainedProofSha256": "3adbc1e740208afc4780d96d5cdd34817f96190330bb4a3b412a55c34b7f0fcd",
+      "originalLeanSha256": "2cab86aad542fece7fcdc005368f1d58280310bd81da2daebd08f0072d19ac6b",
+      "auditedPriorLeanSha256": "2cab86aad542fece7fcdc005368f1d58280310bd81da2daebd08f0072d19ac6b",
+      "reexportLeanSha256": "2fa8eb9ee6ef947bea61d0dc6e568de335a7974251fa3a8d4eefcd5aec6f7c02",
+      "bytes": 130189,
+      "exportExit": 0,
+      "leanExit": 0,
+      "packetUnchanged": true,
+      "packetObjectsUnchanged": true,
+      "containsAlphaBridge": false,
+      "leanWall": "LEAN_WALL seconds=7.00 maxrss_kb=1678724 exit=0",
+      "exportMetadata": {
+        "id": "naive_consensus",
+        "captureSha256": "7771870abacbf648204fe36578b0fc8e0e24c0529eb2ff3e3257104b58c27f2b",
+        "harness": {
+          "id": "naive_consensus",
+          "ic3syn": "ex-naive-consensus",
+          "search": {
+            "verdict": "proven",
+            "found": [
+              "every Vote cell is a value of its kind",
+              "every Voted cell is a value of its kind",
+              "every Decide cell is a value of its kind",
+              "every Decision cell is a value of its kind",
+              "one value decided",
+              "Decide keeps members's bound through members$Decide",
+              "every x with x < 64: never Decide[x] is 0 and 1 <= Decision[x]",
+              "every x, y with x < 64 ∧ y < 64 ∧ ¬(x = y): never 1 <= Decide[x] and 1 <= Decide[y]",
+              "every x, y with x < 64 ∧ y < 64 ∧ ¬(x = y): never 1 <= Decide[x] and 1 <= Decision[y]",
+              "every x, y with x < 64 ∧ y < 64 ∧ ¬(x = y): never 1 <= Decision[x] and 1 <= Decision[y]",
+              "every x, y with x <= 63 ∧ y < 64: never Voted[x] is 0 and 1 <= Vote[64·y + x]",
+              "every x, y, z with x <= 63 ∧ y < 64 ∧ z < 64 ∧ ¬(y = z): never 1 <= Vote[64·y + x] and 1 <= Vote[64·z + x]"
+            ],
+            "ms": 5470,
+            "work": 693719,
+            "full": 221514
+          }
+        },
+        "accepted": true,
+        "kind": "counted-machine",
+        "laws": 12,
+        "sourceLawEquality": true,
+        "countedProjectionAlphaEquivalent": true,
+        "addedCountViews": [
+          "members$Decide"
+        ],
+        "packetObjectsUnchanged": true,
+        "retainedProofSha256": "3adbc1e740208afc4780d96d5cdd34817f96190330bb4a3b412a55c34b7f0fcd",
+        "leanBytes": 129827,
+        "leanSha256": "2fa8eb9ee6ef947bea61d0dc6e568de335a7974251fa3a8d4eefcd5aec6f7c02"
+      },
+      "finalReexportByteIdentical": true,
+      "jobSeconds": 11.62,
+      "logSha256": "d11715321ea5ecab962f28fbb70b7facb25dd0175a24d9be8c7eeda19e96ecfd",
+      "compilerLogSha256": "6bb631e504928f653d75d799fc6e1e23d03699e50fec3b41b04093027a6df704"
+    },
+    {
+      "id": "paxos_epr",
+      "packetSha256": "dc0e230fab5d0081a2c9d4f56b525ef314a2e78780647d3cb2fafaf3a512f386",
+      "retainedProofSha256": "682863e5ca89db9cbf3cb6d0ba4aff0c7801f3d8e8afb5606a283a0f3d3194fd",
+      "originalLeanSha256": "e31b4c24e46e021c0b0187d1c2b71736530c16e47db15c18eb4d8cd77cfc15b1",
+      "auditedPriorLeanSha256": "e31b4c24e46e021c0b0187d1c2b71736530c16e47db15c18eb4d8cd77cfc15b1",
+      "reexportLeanSha256": "c1ae72887a924244db6217888ba6fb2426ffe35293741ea8610585eae3e0fd03",
+      "bytes": 563361,
+      "exportExit": 0,
+      "leanExit": 0,
+      "packetUnchanged": true,
+      "packetObjectsUnchanged": true,
+      "containsAlphaBridge": true,
+      "leanWall": "LEAN_WALL seconds=52.91 maxrss_kb=6883428 exit=0",
+      "exportMetadata": {
+        "id": "paxos_epr",
+        "captureSha256": "dc0e230fab5d0081a2c9d4f56b525ef314a2e78780647d3cb2fafaf3a512f386",
+        "harness": {
+          "id": "paxos_epr",
+          "ic3syn": "pyv-paxos-epr",
+          "search": {
+            "verdict": "proven",
+            "found": [
+              "every OneA cell is a value of its kind",
+              "every OneB cell is a value of its kind",
+              "every Left cell is a value of its kind",
+              "every Proposal cell is a value of its kind",
+              "every Vote cell is a value of its kind",
+              "every Decision cell is a value of its kind",
+              "every Qs cell is a value of its kind",
+              "one value decided",
+              "members$Qs keeps members's bound 2",
+              "Decision keeps members's bound through members$Decision",
+              "Proposal at (c, d) bounds can$Vote$members at (a, b): a < c, b ≠ d",
+              "scan-prefix:cnt:rowOk:d93992f463f488aa:entry",
+              "scan-prefix:cnt:rowOk:d93992f463f488aa",
+              "every x, y with x < 64 ∧ y < 64: never 1 <= Decision[64·x + y] and Proposal[64·x + y] is 0",
+              "every x, y, z with x < 64 ∧ y < 64 ∧ z < 64 ∧ ¬(y = z): never 1 <= Proposal[64·x + y] and 1 <= Proposal[64·x + z]",
+              "every x, y, z with x <= 63 ∧ y < 64 ∧ z < 64: never 1 <= Vote[64·64·x + y + z] and Proposal[64·y + z] is 0",
+              "carry:guard:71517ec714847e1e",
+              "carry:guard:8c4667f43952b1a7",
+              "carry:guard:a1aac0f2b5acf946",
+              "carry:guard:e6d2937e4bcb51dc",
+              "carry:co-write:6282256ba10ee781",
+              "carry:global-range:f29c323756a78a95",
+              "carry:global-range:4d9ef1fb20062861",
+              "carry:global-frame:ef4514c87a594d2c",
+              "carry:point-guard:42b72ece9101070e"
+            ],
+            "ms": 28487,
+            "work": 8719080,
+            "full": 1135224
+          }
+        },
+        "accepted": true,
+        "kind": "counted-machine",
+        "laws": 25,
+        "sourceLawEquality": true,
+        "countedProjectionAlphaEquivalent": true,
+        "addedCountViews": [
+          "members$Qs",
+          "members$Decision",
+          "can$Vote$members"
+        ],
+        "packetObjectsUnchanged": true,
+        "retainedProofSha256": "682863e5ca89db9cbf3cb6d0ba4aff0c7801f3d8e8afb5606a283a0f3d3194fd",
+        "leanBytes": 562657,
+        "leanSha256": "c1ae72887a924244db6217888ba6fb2426ffe35293741ea8610585eae3e0fd03"
+      },
+      "finalReexportByteIdentical": true,
+      "jobSeconds": 61.79,
+      "logSha256": "a1175b248103123937c056a8a63fba98940b33df409021b23ce31abf7178df1e",
+      "compilerLogSha256": "17c88d076701ec808899c1aa29b1e2801e6127e7c8f0da9862f18679e7fb39b8"
+    },
+    {
+      "id": "quorum_leader_election",
+      "packetSha256": "47c9462ca80094ac32bedf82eb46e3c962783305c07d47bdc2c256d65a3e57db",
+      "retainedProofSha256": "942343d28035eb7a7d6920d85e05e70fc48a21e77fc30391b994a28d2fc26c24",
+      "originalLeanSha256": "453ee5b909430b441f7ce7c0ef4bcfb02b93ed64ec06d098dd33aca3ebb8ded8",
+      "auditedPriorLeanSha256": "453ee5b909430b441f7ce7c0ef4bcfb02b93ed64ec06d098dd33aca3ebb8ded8",
+      "reexportLeanSha256": "b73845ae4f01b51505c891e6e492f5c1e9418cc303205641d95ae0bc5213ecd3",
+      "bytes": 62082,
+      "exportExit": 0,
+      "leanExit": 0,
+      "packetUnchanged": true,
+      "packetObjectsUnchanged": true,
+      "containsAlphaBridge": false,
+      "leanWall": "LEAN_WALL seconds=3.54 maxrss_kb=1155736 exit=0",
+      "exportMetadata": {
+        "id": "quorum_leader_election",
+        "captureSha256": "47c9462ca80094ac32bedf82eb46e3c962783305c07d47bdc2c256d65a3e57db",
+        "harness": {
+          "id": "quorum_leader_election",
+          "ic3syn": "ex-quorum-leader-election",
+          "search": {
+            "verdict": "proven",
+            "found": [
+              "every IsLeader cell is a value of its kind",
+              "one leader",
+              "IsLeader keeps members's bound through members$IsLeader",
+              "every x with x < size: never Voted[x] is 0 and x + 1 <= Voted[x]",
+              "every x, y with x < size ∧ y < size ∧ ¬(x = y): never 1 <= IsLeader[x] and 1 <= IsLeader[y]",
+              "every x, y with x < size ∧ y < size ∧ ¬(x = y): never Voted[x] is 0 and y + 1 <= Voted[x]"
+            ],
+            "ms": 2291,
+            "work": 77815,
+            "full": 68379
+          }
+        },
+        "accepted": true,
+        "kind": "counted-machine",
+        "laws": 6,
+        "sourceLawEquality": true,
+        "countedProjectionAlphaEquivalent": true,
+        "addedCountViews": [
+          "members$IsLeader"
+        ],
+        "packetObjectsUnchanged": true,
+        "retainedProofSha256": "942343d28035eb7a7d6920d85e05e70fc48a21e77fc30391b994a28d2fc26c24",
+        "leanBytes": 61874,
+        "leanSha256": "b73845ae4f01b51505c891e6e492f5c1e9418cc303205641d95ae0bc5213ecd3"
+      },
+      "finalReexportByteIdentical": true,
+      "jobSeconds": 28.31,
+      "logSha256": "851258cf5131460d90379accca6db4331b14bb083b479091eb752cf7dbb1c52a",
+      "compilerLogSha256": "441980873c1e614c7bc08910f70531e4fab164939c1c575dc78bbb867c58ce3e"
+    },
+    {
+      "id": "sharded_kv",
+      "packetSha256": "74258416c940209a14f85bec2a195cecda1a0744c2b916a3295ab38787bdc892",
+      "retainedProofSha256": "322c2e3635c28ac4a4df400d024350cf1633e9f73e1ce3304aa706c68e323927",
+      "originalLeanSha256": "cd1cd99deda38517d6b2adb9c9c7ada3c1dc9e455ca12508cb0cc0f62abef20d",
+      "auditedPriorLeanSha256": "cd1cd99deda38517d6b2adb9c9c7ada3c1dc9e455ca12508cb0cc0f62abef20d",
+      "reexportLeanSha256": "f549781c27d6fe14261435d6cd2ad0ceccb62363dc27989ad306307e1f36aaa6",
+      "bytes": 692928,
+      "exportExit": 0,
+      "leanExit": 0,
+      "packetUnchanged": true,
+      "packetObjectsUnchanged": true,
+      "containsAlphaBridge": false,
+      "leanWall": "LEAN_WALL seconds=36.13 maxrss_kb=5552336 exit=0",
+      "exportMetadata": {
+        "id": "sharded_kv",
+        "captureSha256": "74258416c940209a14f85bec2a195cecda1a0744c2b916a3295ab38787bdc892",
+        "harness": {
+          "id": "sharded_kv",
+          "ic3syn": "pyv-sharded-kv",
+          "search": {
+            "verdict": "proven",
+            "found": [
+              "every x, y, z, w with x < 64 ∧ y < 64 ∧ ¬(x = y) ∧ z < 64 ∧ w < 64: never Table[64·x + z] is 1 and 1 <= TransferMsg[64·64·y + z + w]",
+              "every x, y, z with x < 64 ∧ y < 64 ∧ ¬(x = y) ∧ z < 64: never Table[64·x + z] is 1 and Table[64·y + z] is 1",
+              "every x, y, z with x < 64 ∧ y < 64 ∧ ¬(x = y) ∧ z < 64: never Table[64·x + z] is 1 and 1 <= Owner[64·z + y]",
+              "every x, y with x < 64 ∧ y < 64: never Table[64·x + y] is 1 and started is 0",
+              "every x, y, z, w, u with x < 64 ∧ y < 64 ∧ ¬(x = y) ∧ z < 64 ∧ w < 64 ∧ u < 64 ∧ ¬(w = u): never 1 <= TransferMsg[64·64·x + z + w] and 1 <= TransferMsg[64·64·y + z + u]",
+              "every x, y, z, w with x < 64 ∧ y < 64 ∧ ¬(x = y) ∧ z < 64 ∧ w < 64: never 1 <= Owner[64·z + x] and 1 <= TransferMsg[64·64·y + z + w]",
+              "every x, y, z with x < 64 ∧ y < 64 ∧ z < 64: never 1 <= TransferMsg[64·64·x + y + z] and started is 0",
+              "every x, y, z with x < 64 ∧ y < 64 ∧ ¬(x = y) ∧ z < 64: never 1 <= Owner[64·z + x] and 1 <= Owner[64·z + y]",
+              "every x, y, z, w with x < 64 ∧ y < 64 ∧ ¬(x = y) ∧ z < 64 ∧ w < 64: never 2 <= Table[64·x + z] and 1 <= TransferMsg[64·64·y + z + w]",
+              "every x, y, z with x < 64 ∧ y < 64 ∧ ¬(x = y) ∧ z < 64: never Table[64·x + z] is 1 and 2 <= Table[64·y + z]",
+              "every x, y, z with x < 64 ∧ y < 64 ∧ ¬(x = y) ∧ z < 64: never 2 <= Table[64·x + z] and 1 <= Owner[64·z + y]",
+              "every x, y with x < 64 ∧ y < 64: never 2 <= Table[64·x + y] and started is 0",
+              "every x, y, z, w with x < 64 ∧ y < 64 ∧ z < 64 ∧ w < 64 ∧ ¬(z = w): never 1 <= TransferMsg[64·64·x + y + z] and 1 <= TransferMsg[64·64·x + y + w]",
+              "every x, y, z with x < 64 ∧ y < 64 ∧ z < 64: never 1 <= Owner[64·y + x] and 1 <= TransferMsg[64·64·x + y + z]",
+              "every x, y, z with x < 64 ∧ y < 64 ∧ z < 64: never Table[64·x + y] is 1 and 1 <= TransferMsg[64·64·x + y + z]",
+              "every x, y, z with x < 64 ∧ y < 64 ∧ ¬(x = y) ∧ z < 64: never 2 <= Table[64·x + z] and 2 <= Table[64·y + z]",
+              "every x, y with x < 64 ∧ y < 64: never Table[64·x + y] is 1 and Owner[64·y + x] is 0",
+              "every x, y, z, w with x < 64 ∧ y < 64 ∧ ¬(x = y) ∧ z < 64 ∧ w < 64: never 1 <= TransferMsg[64·64·x + z + w] and 1 <= TransferMsg[64·64·y + z + w]",
+              "every x, y, z with x < 64 ∧ y < 64 ∧ z < 64: never 2 <= Table[64·x + y] and 1 <= TransferMsg[64·64·x + y + z]",
+              "every x, y with x < 64 ∧ y < 64: never 2 <= Table[64·x + y] and Owner[64·y + x] is 0"
+            ],
+            "ms": 17049,
+            "work": 1375415,
+            "full": 820889
+          }
+        },
+        "accepted": true,
+        "kind": "ordinary-trees",
+        "laws": 23,
+        "sourceLawEquality": true,
+        "machineEquality": false,
+        "machineAlphaEquivalent": true,
+        "machineDifferences": [
+          {
+            "key": "step",
+            "original": "{\"flags\":{\"allOwned\":{\"a\":{\"op\":\"const\",\"value\":0},\"b\":{\"op\":\"const\",\"value\":0},\"op\":\"<=\"},\"owns\":{\"op\":\"and\",\"xs\":[{\"a\":{\"name\":\"op\",\"op\":\"var\"},\"b\":{\"op\":\"const\",\"value\":0},\"op\":\"=\"},{\"a\":{\"name\":\"started\",\"op\":\"var\"},\"b\":{\"op\":\"const\",\"value\":0},\"op\":\"=\"},{\"name\":\"unowned\",\"op\":\"flag\"}]},\"puts\":{\"op\":\"and\",\"xs\":[{\"a\":{\"name\":\"op\",\"op\":\"var\"},\"b\":{\"op\":\"const\",\"value\":4},\"op\":\"=\"},{\"a\":{\"name\":\"started\",\"op\":\"var\"},\"b\":{\"op\":\"const\",\"value\":1},\"op\":\"=\"},{\"a\":{\"key\":{\"a\":{\"a\":{\"name\":\"k\",\"op\":\"var\"},\"k\":64,\"op\":\"mul\"},\"b\":{\"name\":\"n\",\"op\":\"var\"},\"op\":\"add\"},\"map\":\"Owner\",\"op\":\"get\"},\"b\":{\"op\":\"const\",\"value\":1},\"op\":\"=\"}]},\"receives\":{\"op\":\"and\",\"xs\":[{\"a\":{\"name\":\"op\",\"op\":\"var\"},\"b\":{\"op\":\"const\",\"value\":3},\"op\":\"=\"},{\"a\":{\"name\":\"started\",\"op\":\"var\"},\"b\":{\"op\":\"const\",\"value\":1},\"op\":\"=\"},{\"a\":{\"key\":{\"a\":{\"a\":{\"a\":{\"name\":\"n\",\"op\":\"var\"},\"k\":4096,\"op\":\"mul\"},\"b\":{\"a\":{\"name\":\"k\",\"op",
+            "captured": "{\"flags\":{\"allOwned\":{\"a\":{\"op\":\"const\",\"value\":0},\"b\":{\"op\":\"const\",\"value\":0},\"op\":\"<=\"},\"owns\":{\"op\":\"and\",\"xs\":[{\"a\":{\"name\":\"op\",\"op\":\"var\"},\"b\":{\"op\":\"const\",\"value\":0},\"op\":\"=\"},{\"a\":{\"name\":\"started\",\"op\":\"var\"},\"b\":{\"op\":\"const\",\"value\":0},\"op\":\"=\"},{\"name\":\"unowned\",\"op\":\"flag\"}]},\"puts\":{\"op\":\"and\",\"xs\":[{\"a\":{\"name\":\"op\",\"op\":\"var\"},\"b\":{\"op\":\"const\",\"value\":4},\"op\":\"=\"},{\"a\":{\"name\":\"started\",\"op\":\"var\"},\"b\":{\"op\":\"const\",\"value\":1},\"op\":\"=\"},{\"a\":{\"key\":{\"a\":{\"a\":{\"name\":\"k\",\"op\":\"var\"},\"k\":64,\"op\":\"mul\"},\"b\":{\"name\":\"n\",\"op\":\"var\"},\"op\":\"add\"},\"map\":\"Owner\",\"op\":\"get\"},\"b\":{\"op\":\"const\",\"value\":1},\"op\":\"=\"}]},\"receives\":{\"op\":\"and\",\"xs\":[{\"a\":{\"name\":\"op\",\"op\":\"var\"},\"b\":{\"op\":\"const\",\"value\":3},\"op\":\"=\"},{\"a\":{\"name\":\"started\",\"op\":\"var\"},\"b\":{\"op\":\"const\",\"value\":1},\"op\":\"=\"},{\"a\":{\"key\":{\"a\":{\"a\":{\"a\":{\"name\":\"n\",\"op\":\"var\"},\"k\":4096,\"op\":\"mul\"},\"b\":{\"a\":{\"name\":\"k\",\"op"
+          }
+        ],
+        "packetObjectsUnchanged": true,
+        "retainedProofSha256": "322c2e3635c28ac4a4df400d024350cf1633e9f73e1ce3304aa706c68e323927",
+        "leanBytes": 691497,
+        "leanSha256": "f549781c27d6fe14261435d6cd2ad0ceccb62363dc27989ad306307e1f36aaa6"
+      },
+      "finalReexportByteIdentical": true,
+      "jobSeconds": 60.23,
+      "logSha256": "6aeae0193dec0b808b983bb452e185ab758253ed5231bb1fe5b01d1f1c2816b2",
+      "compilerLogSha256": "bca041f4f4ac4a133d3f2591267fdfec63f6d21933b0c579ab4a1daf86a542f0"
+    },
+    {
+      "id": "sharded_kv_no_lost_keys",
+      "packetSha256": "d47393774cf908be72b8cb1fe329d2ce4e68461b3e534cf21a4c7e13e19a02fa",
+      "retainedProofSha256": "551fa5ba7f1024c2cb6024549d67cc736360cf37ee8bef52262c7bebda8ab4da",
+      "originalLeanSha256": "7e22913165dc7e81a5e790c46866af8407404ebb53009645cebf435e70bedb27",
+      "auditedPriorLeanSha256": "ff93c0fe2e6e54182d8739e0da01f4dc5009e1d2d354b84aca76136abbb62a01",
+      "reexportLeanSha256": "03d0dff10da567b8f9682b41660e9bc74f77ffb39b653531a3e21c8a39d0d766",
+      "bytes": 252976,
+      "exportExit": 0,
+      "leanExit": 0,
+      "packetUnchanged": true,
+      "packetObjectsUnchanged": true,
+      "containsAlphaBridge": false,
+      "leanWall": "LEAN_WALL seconds=8.34 maxrss_kb=1664896 exit=0",
+      "exportMetadata": {
+        "id": "sharded_kv_no_lost_keys",
+        "captureSha256": "d47393774cf908be72b8cb1fe329d2ce4e68461b3e534cf21a4c7e13e19a02fa",
+        "harness": {
+          "id": "sharded_kv_no_lost_keys",
+          "ic3syn": "pyv-sharded-kv-no-lost-keys",
+          "search": {
+            "verdict": "proven",
+            "found": [
+              "Owner$n below 64",
+              "TransferMsg$n21 below 64",
+              "TransferMsg$v1 below 64",
+              "(¬(started = 0 ∧ Owned[key$2] = 1) ∨ some$1 < 64 ∧ Owner[64·key$2 + some$1] = 1) (5)",
+              "Table empty where started = 0 (19)",
+              "TransferMsg empty where started = 0 (21)"
+            ],
+            "ms": 9014,
+            "work": 362642,
+            "full": 207610
+          }
+        },
+        "accepted": true,
+        "kind": "ordinary-trees",
+        "laws": 10,
+        "sourceLawEquality": false,
+        "machineEquality": false,
+        "machineAlphaEquivalent": false,
+        "machineDifferences": [
+          {
+            "key": "maps",
+            "original": "{\"Owned\":0,\"Owner\":0,\"Table\":0,\"TransferMsg\":0}",
+            "captured": "{\"Owned\":0,\"Owner\":0,\"Owner$n\":0,\"Table\":0,\"TransferMsg\":0,\"TransferMsg$n21\":0,\"TransferMsg$v1\":0}"
+          },
+          {
+            "key": "step",
+            "original": "{\"flags\":{\"allOwned\":{\"c\":{\"op\":\"or\",\"xs\":[{\"op\":\"not\",\"x\":{\"a\":{\"name\":\"k$64\",\"op\":\"var\"},\"b\":{\"name\":\"keys\",\"op\":\"var\"},\"op\":\"<\"}},{\"a\":{\"key\":{\"name\":\"k$64\",\"op\":\"var\"},\"map\":\"Owned\",\"op\":\"get\"},\"b\":{\"op\":\"const\",\"value\":1},\"op\":\"=\"}]},\"key\":\"k$64\",\"op\":\"all\"},\"owns\":{\"op\":\"and\",\"xs\":[{\"a\":{\"name\":\"op\",\"op\":\"var\"},\"b\":{\"op\":\"const\",\"value\":0},\"op\":\"=\"},{\"a\":{\"name\":\"started\",\"op\":\"var\"},\"b\":{\"op\":\"const\",\"value\":0},\"op\":\"=\"},{\"name\":\"unowned\",\"op\":\"flag\"}]},\"puts\":{\"op\":\"and\",\"xs\":[{\"a\":{\"name\":\"op\",\"op\":\"var\"},\"b\":{\"op\":\"const\",\"value\":4},\"op\":\"=\"},{\"a\":{\"name\":\"started\",\"op\":\"var\"},\"b\":{\"op\":\"const\",\"value\":1},\"op\":\"=\"},{\"a\":{\"key\":{\"a\":{\"a\":{\"name\":\"k\",\"op\":\"var\"},\"k\":64,\"op\":\"mul\"},\"b\":{\"name\":\"n\",\"op\":\"var\"},\"op\":\"add\"},\"map\":\"Owner\",\"op\":\"get\"},\"b\":{\"op\":\"const\",\"value\":1},\"op\":\"=\"}]},\"receives\":{\"op\":\"and\",\"xs\":[{\"a\":{\"name\":\"op\",\"op\":\"var\"},\"b\":{\"op\":\"const\",\"value\":3},\"op\":\"=",
+            "captured": "{\"flags\":{\"allOwned\":{\"c\":{\"op\":\"or\",\"xs\":[{\"op\":\"not\",\"x\":{\"a\":{\"name\":\"k$52\",\"op\":\"var\"},\"b\":{\"name\":\"keys\",\"op\":\"var\"},\"op\":\"<\"}},{\"a\":{\"key\":{\"name\":\"k$52\",\"op\":\"var\"},\"map\":\"Owned\",\"op\":\"get\"},\"b\":{\"op\":\"const\",\"value\":1},\"op\":\"=\"}]},\"key\":\"k$52\",\"op\":\"all\"},\"owns\":{\"op\":\"and\",\"xs\":[{\"a\":{\"name\":\"op\",\"op\":\"var\"},\"b\":{\"op\":\"const\",\"value\":0},\"op\":\"=\"},{\"a\":{\"name\":\"started\",\"op\":\"var\"},\"b\":{\"op\":\"const\",\"value\":0},\"op\":\"=\"},{\"name\":\"unowned\",\"op\":\"flag\"}]},\"puts\":{\"op\":\"and\",\"xs\":[{\"a\":{\"name\":\"op\",\"op\":\"var\"},\"b\":{\"op\":\"const\",\"value\":4},\"op\":\"=\"},{\"a\":{\"name\":\"started\",\"op\":\"var\"},\"b\":{\"op\":\"const\",\"value\":1},\"op\":\"=\"},{\"a\":{\"key\":{\"a\":{\"a\":{\"name\":\"k\",\"op\":\"var\"},\"k\":64,\"op\":\"mul\"},\"b\":{\"name\":\"n\",\"op\":\"var\"},\"op\":\"add\"},\"map\":\"Owner\",\"op\":\"get\"},\"b\":{\"op\":\"const\",\"value\":1},\"op\":\"=\"}]},\"receives\":{\"op\":\"and\",\"xs\":[{\"a\":{\"name\":\"op\",\"op\":\"var\"},\"b\":{\"op\":\"const\",\"value\":3},\"op\":\"="
+          }
+        ],
+        "existentialBridge": {
+          "kind": "forall_some_of_ghostsubst",
+          "extraVars": [],
+          "extraMaps": [
+            "Owner$n",
+            "TransferMsg$n21",
+            "TransferMsg$v1"
+          ],
+          "laws": [
+            "a transfer in flight, or every key owned"
+          ],
+          "projectionAlphaEquivalent": true
+        },
+        "packetObjectsUnchanged": true,
+        "retainedProofSha256": "551fa5ba7f1024c2cb6024549d67cc736360cf37ee8bef52262c7bebda8ab4da",
+        "leanBytes": 252508,
+        "leanSha256": "03d0dff10da567b8f9682b41660e9bc74f77ffb39b653531a3e21c8a39d0d766"
+      },
+      "finalReexportByteIdentical": true,
+      "jobSeconds": 13.4,
+      "logSha256": "8eee1ad8c95aa2fbfed7003a468e8ebd38af4f6d6ac1688bce7f1503074d6ade",
+      "compilerLogSha256": "9dc93f807e874fdc8dcdcd42cdd23f39bc55cdc36ca04744ff783787fb9c28dc"
+    },
+    {
+      "id": "simple",
+      "packetSha256": "83784cec64acd8b107ca18f48c3d7993b1008e9d73d2e39fb7b610d6682732e0",
+      "retainedProofSha256": "b00c2bd234f0f29234a84b192ceb89818cf3aa9561097adfdc4d24f86731a3aa",
+      "originalLeanSha256": "b5697749928ff444766a3d0e9c967707d58cdcd9c9bd71aeefd0ce522230e87e",
+      "auditedPriorLeanSha256": "fa61bf842aa778e21be7e63da5c6bea31666489657bd2d2406089eb6042b68d5",
+      "reexportLeanSha256": "6b833d952baee6dd8a82faddf6af9eb3b353b8557351c44ca5cb02c06d7593e0",
+      "bytes": 161758,
+      "exportExit": 0,
+      "leanExit": 0,
+      "packetUnchanged": true,
+      "packetObjectsUnchanged": true,
+      "containsAlphaBridge": false,
+      "leanWall": "LEAN_WALL seconds=4.31 maxrss_kb=1156000 exit=0",
+      "exportMetadata": {
+        "id": "simple",
+        "captureSha256": "83784cec64acd8b107ca18f48c3d7993b1008e9d73d2e39fb7b610d6682732e0",
+        "harness": {
+          "id": "simple",
+          "ic3syn": "tla-simple",
+          "search": {
+            "verdict": "proven",
+            "found": [
+              "X at most 1",
+              "Y at most 1",
+              "Pc at most 2",
+              "every x with x < n: never X[x] is 0 and 1 <= Y[x]",
+              "every x with x < n: never X[x] is 0 and Pc[x] is 1",
+              "every x with x < n: never X[x] is 0 and 2 <= Pc[x]",
+              "every x with x < n: never 1 <= X[x] and Pc[x] is 0",
+              "every x with x < n: never 1 <= Y[x] and Pc[x] is 0",
+              "every x with x < n: never 1 <= Y[x] and Pc[x] is 1"
+            ],
+            "ms": 8632,
+            "work": 3781926,
+            "full": 8405744
+          }
+        },
+        "accepted": true,
+        "kind": "ordinary-trees",
+        "laws": 10,
+        "sourceLawEquality": false,
+        "machineEquality": false,
+        "machineAlphaEquivalent": false,
+        "machineDifferences": [
+          {
+            "key": "state",
+            "original": "{}",
+            "captured": "{\"some$1\":{\"op\":\"const\",\"value\":0}}"
+          },
+          {
+            "key": "step",
+            "original": "{\"flags\":{\"a1s\":{\"op\":\"and\",\"xs\":[{\"a\":{\"name\":\"op\",\"op\":\"var\"},\"b\":{\"op\":\"const\",\"value\":0},\"op\":\"=\"},{\"a\":{\"key\":{\"name\":\"self\",\"op\":\"var\"},\"map\":\"Pc\",\"op\":\"get\"},\"b\":{\"op\":\"const\",\"value\":0},\"op\":\"=\"}]},\"a2s\":{\"a\":{\"op\":\"const\",\"value\":0},\"b\":{\"op\":\"const\",\"value\":0},\"op\":\"<\"},\"bs\":{\"op\":\"and\",\"xs\":[{\"a\":{\"name\":\"op\",\"op\":\"var\"},\"b\":{\"op\":\"const\",\"value\":2},\"op\":\"=\"},{\"a\":{\"key\":{\"name\":\"self\",\"op\":\"var\"},\"map\":\"Pc\",\"op\":\"get\"},\"b\":{\"op\":\"const\",\"value\":1},\"op\":\"=\"},{\"a\":{\"name\":\"v\",\"op\":\"var\"},\"b\":{\"key\":{\"c\":{\"a\":{\"name\":\"self\",\"op\":\"var\"},\"b\":{\"op\":\"const\",\"value\":0},\"op\":\"=\"},\"else\":{\"a\":{\"name\":\"self\",\"op\":\"var\"},\"b\":{\"op\":\"const\",\"value\":1},\"op\":\"sub\"},\"op\":\"if\",\"then\":{\"a\":{\"name\":\"n\",\"op\":\"var\"},\"b\":{\"op\":\"const\",\"value\":1},\"op\":\"sub\"}},\"map\":\"X\",\"op\":\"get\"},\"op\":\"=\"}]}},\"maps\":{\"Pc\":{\"key\":{\"name\":\"self\",\"op\":\"var\"},\"value\":{\"c\":{\"name\":\"a1s\",\"op\":\"flag\"},\"else\":{\"c\":{\"name\":",
+            "captured": "{\"flags\":{\"a1s\":{\"op\":\"and\",\"xs\":[{\"a\":{\"name\":\"op\",\"op\":\"var\"},\"b\":{\"op\":\"const\",\"value\":0},\"op\":\"=\"},{\"a\":{\"key\":{\"name\":\"self\",\"op\":\"var\"},\"map\":\"Pc\",\"op\":\"get\"},\"b\":{\"op\":\"const\",\"value\":0},\"op\":\"=\"}]},\"a2s\":{\"a\":{\"op\":\"const\",\"value\":0},\"b\":{\"op\":\"const\",\"value\":0},\"op\":\"<\"},\"bs\":{\"op\":\"and\",\"xs\":[{\"a\":{\"name\":\"op\",\"op\":\"var\"},\"b\":{\"op\":\"const\",\"value\":2},\"op\":\"=\"},{\"a\":{\"key\":{\"name\":\"self\",\"op\":\"var\"},\"map\":\"Pc\",\"op\":\"get\"},\"b\":{\"op\":\"const\",\"value\":1},\"op\":\"=\"},{\"a\":{\"name\":\"v\",\"op\":\"var\"},\"b\":{\"key\":{\"c\":{\"a\":{\"name\":\"self\",\"op\":\"var\"},\"b\":{\"op\":\"const\",\"value\":0},\"op\":\"=\"},\"else\":{\"a\":{\"name\":\"self\",\"op\":\"var\"},\"b\":{\"op\":\"const\",\"value\":1},\"op\":\"sub\"},\"op\":\"if\",\"then\":{\"a\":{\"name\":\"n\",\"op\":\"var\"},\"b\":{\"op\":\"const\",\"value\":1},\"op\":\"sub\"}},\"map\":\"X\",\"op\":\"get\"},\"op\":\"=\"}]}},\"maps\":{\"Pc\":{\"key\":{\"name\":\"self\",\"op\":\"var\"},\"value\":{\"c\":{\"name\":\"a1s\",\"op\":\"flag\"},\"else\":{\"c\":{\"name\":"
+          }
+        ],
+        "existentialBridge": {
+          "kind": "forall_some_of_ghostsubst",
+          "extraVars": [
+            "some$1"
+          ],
+          "extraMaps": [],
+          "laws": [
+            "some process not done, or some y is 1"
+          ],
+          "projectionAlphaEquivalent": true
+        },
+        "packetObjectsUnchanged": true,
+        "retainedProofSha256": "b00c2bd234f0f29234a84b192ceb89818cf3aa9561097adfdc4d24f86731a3aa",
+        "leanBytes": 161275,
+        "leanSha256": "6b833d952baee6dd8a82faddf6af9eb3b353b8557351c44ca5cb02c06d7593e0"
+      },
+      "finalReexportByteIdentical": true,
+      "jobSeconds": 8.75,
+      "logSha256": "fb9199e3e3a107c15da4beaf9d416f495480d2dfbd35c82625af72912dfb8090",
+      "compilerLogSha256": "9bdf403c4b4c25103e47d61c3907a0bcf0e20becb9531ad0ccfce893ee6e5b4d"
+    },
+    {
+      "id": "simple_decentralized_lock",
+      "packetSha256": "f9b38416b0e6cc2fc51fe3d5560822528ebc28326fb2ac65a9018aef001c8e45",
+      "retainedProofSha256": "3a1391970f255ded5c8a6c058e788e1abc7b25903d92882c6ba78ed70b7a396e",
+      "originalLeanSha256": "dbe5bdb467f5954973de281cfd968af749edabcb1a3d0f529322ecdb7642c0c1",
+      "auditedPriorLeanSha256": "c3c42cdce60c48bf2f58283caea5523841db28d8da3e0010dc14f605d324b5ee",
+      "reexportLeanSha256": "6fe89de4123fb39daf3b7250bee3a28ae0a20aa9c4c0f487d0cb901349189021",
+      "bytes": 120792,
+      "exportExit": 0,
+      "leanExit": 0,
+      "packetUnchanged": true,
+      "packetObjectsUnchanged": true,
+      "containsAlphaBridge": false,
+      "leanWall": "LEAN_WALL seconds=4.14 maxrss_kb=1303284 exit=0",
+      "exportMetadata": {
+        "id": "simple_decentralized_lock",
+        "captureSha256": "f9b38416b0e6cc2fc51fe3d5560822528ebc28326fb2ac65a9018aef001c8e45",
+        "harness": {
+          "id": "simple_decentralized_lock",
+          "ic3syn": "ex-simple-decentralized-lock",
+          "search": {
+            "verdict": "proven",
+            "found": [
+              "r.law('sum$HasLock + sum$Message <= started', ({started, sum$HasLock, sum$Message}) => sum$HasLock.plus(sum$Message).atMost(started))"
+            ],
+            "ms": 2934,
+            "work": 241158,
+            "full": 351675
+          }
+        },
+        "accepted": true,
+        "kind": "ordinary-trees",
+        "laws": 4,
+        "sourceLawEquality": true,
+        "machineEquality": false,
+        "machineAlphaEquivalent": false,
+        "machineDifferences": [
+          {
+            "key": "state",
+            "original": "{\"started\":{\"op\":\"const\",\"value\":0}}",
+            "captured": "{\"started\":{\"op\":\"const\",\"value\":0},\"sum$HasLock\":{\"op\":\"const\",\"value\":0},\"sum$Message\":{\"op\":\"const\",\"value\":0}}"
+          },
+          {
+            "key": "step",
+            "original": "{\"flags\":{\"inits\":{\"op\":\"and\",\"xs\":[{\"a\":{\"name\":\"op\",\"op\":\"var\"},\"b\":{\"op\":\"const\",\"value\":0},\"op\":\"=\"},{\"a\":{\"name\":\"started\",\"op\":\"var\"},\"b\":{\"op\":\"const\",\"value\":0},\"op\":\"=\"}]},\"recvs\":{\"op\":\"and\",\"xs\":[{\"a\":{\"name\":\"op\",\"op\":\"var\"},\"b\":{\"op\":\"const\",\"value\":2},\"op\":\"=\"},{\"a\":{\"name\":\"started\",\"op\":\"var\"},\"b\":{\"op\":\"const\",\"value\":1},\"op\":\"=\"},{\"a\":{\"key\":{\"a\":{\"a\":{\"name\":\"src\",\"op\":\"var\"},\"k\":64,\"op\":\"mul\"},\"b\":{\"name\":\"dst\",\"op\":\"var\"},\"op\":\"add\"},\"map\":\"Message\",\"op\":\"get\"},\"b\":{\"op\":\"const\",\"value\":1},\"op\":\"=\"}]},\"sends\":{\"op\":\"and\",\"xs\":[{\"a\":{\"name\":\"op\",\"op\":\"var\"},\"b\":{\"op\":\"const\",\"value\":1},\"op\":\"=\"},{\"a\":{\"name\":\"started\",\"op\":\"var\"},\"b\":{\"op\":\"const\",\"value\":1},\"op\":\"=\"},{\"a\":{\"key\":{\"name\":\"src\",\"op\":\"var\"},\"map\":\"HasLock\",\"op\":\"get\"},\"b\":{\"op\":\"const\",\"value\":1},\"op\":\"=\"}]}},\"maps\":{\"HasLock\":{\"each\":\"k$38\",\"value\":{\"c\":{\"op\":\"or\",\"xs\":[{\"op\":\"and\",\"xs\":[{\"op\":\"and\",\"x",
+            "captured": "{\"flags\":{\"inits\":{\"op\":\"and\",\"xs\":[{\"a\":{\"name\":\"op\",\"op\":\"var\"},\"b\":{\"op\":\"const\",\"value\":0},\"op\":\"=\"},{\"a\":{\"name\":\"started\",\"op\":\"var\"},\"b\":{\"op\":\"const\",\"value\":0},\"op\":\"=\"}]},\"recvs\":{\"op\":\"and\",\"xs\":[{\"a\":{\"name\":\"op\",\"op\":\"var\"},\"b\":{\"op\":\"const\",\"value\":2},\"op\":\"=\"},{\"a\":{\"name\":\"started\",\"op\":\"var\"},\"b\":{\"op\":\"const\",\"value\":1},\"op\":\"=\"},{\"a\":{\"key\":{\"a\":{\"a\":{\"name\":\"src\",\"op\":\"var\"},\"k\":64,\"op\":\"mul\"},\"b\":{\"name\":\"dst\",\"op\":\"var\"},\"op\":\"add\"},\"map\":\"Message\",\"op\":\"get\"},\"b\":{\"op\":\"const\",\"value\":1},\"op\":\"=\"}]},\"sends\":{\"op\":\"and\",\"xs\":[{\"a\":{\"name\":\"op\",\"op\":\"var\"},\"b\":{\"op\":\"const\",\"value\":1},\"op\":\"=\"},{\"a\":{\"name\":\"started\",\"op\":\"var\"},\"b\":{\"op\":\"const\",\"value\":1},\"op\":\"=\"},{\"a\":{\"key\":{\"name\":\"src\",\"op\":\"var\"},\"map\":\"HasLock\",\"op\":\"get\"},\"b\":{\"op\":\"const\",\"value\":1},\"op\":\"=\"}]}},\"maps\":{\"HasLock\":{\"each\":\"k$36\",\"value\":{\"c\":{\"op\":\"or\",\"xs\":[{\"op\":\"and\",\"xs\":[{\"op\":\"and\",\"x"
+          },
+          {
+            "key": "sums",
+            "captured": "{\"sum$HasLock\":{\"key\":\"sum$HasLock$k\",\"term\":{\"key\":{\"name\":\"sum$HasLock$k\",\"op\":\"var\"},\"map\":\"HasLock\",\"op\":\"get\"}},\"sum$Message\":{\"key\":\"sum$Message$k\",\"term\":{\"key\":{\"name\":\"sum$Message$k\",\"op\":\"var\"},\"map\":\"Message\",\"op\":\"get\"}}}"
+          }
+        ],
+        "sumBridge": {
+          "kind": "Sums.lean",
+          "names": [
+            "sum$HasLock",
+            "sum$Message"
+          ],
+          "projectionAlphaEquivalent": true
+        },
+        "packetObjectsUnchanged": true,
+        "retainedProofSha256": "3a1391970f255ded5c8a6c058e788e1abc7b25903d92882c6ba78ed70b7a396e",
+        "leanBytes": 120557,
+        "leanSha256": "6fe89de4123fb39daf3b7250bee3a28ae0a20aa9c4c0f487d0cb901349189021"
+      },
+      "finalReexportByteIdentical": true,
+      "jobSeconds": 21.66,
+      "logSha256": "3c1666cb68a4ddbce9b3b040176e949a0705e83d98f28f075ad20df81b29f430",
+      "compilerLogSha256": "fe73764f54fe50d64129b2e91a47437f61f1d40e2aec0aba8a6cf9f2e18b56da"
+    },
+    {
+      "id": "simple_election",
+      "packetSha256": "7183bd7019cbc76e1b843d9c137f45277313f1b91eea8fd1b005100a771ee384",
+      "retainedProofSha256": "6eebeaefbbf37f7230e1be813eaa28a7bb76d944ff92f8143eb87e3482fcb9f9",
+      "originalLeanSha256": "9bd870ff4b497621682b0d176719e6e7551fb1219d608a8d9ab4dd93138e91f7",
+      "auditedPriorLeanSha256": "9bd870ff4b497621682b0d176719e6e7551fb1219d608a8d9ab4dd93138e91f7",
+      "reexportLeanSha256": "30ec9e02fab6b6df5cf40d46315a20e9bce8ed4ae2a28d2ba2ca2ed689bf45a9",
+      "bytes": 122985,
+      "exportExit": 0,
+      "leanExit": 0,
+      "packetUnchanged": true,
+      "packetObjectsUnchanged": true,
+      "containsAlphaBridge": false,
+      "leanWall": "LEAN_WALL seconds=7.44 maxrss_kb=1714328 exit=0",
+      "exportMetadata": {
+        "id": "simple_election",
+        "captureSha256": "7183bd7019cbc76e1b843d9c137f45277313f1b91eea8fd1b005100a771ee384",
+        "harness": {
+          "id": "simple_election",
+          "ic3syn": "ex-simple-election",
+          "search": {
+            "verdict": "proven",
+            "found": [
+              "every Start cell is a value of its kind",
+              "every Promise cell is a value of its kind",
+              "every Promised cell is a value of its kind",
+              "every Leader cell is a value of its kind",
+              "one leader",
+              "Leader keeps members's bound through members$Leader",
+              "every x, y with x < 64 ∧ y <= 63: never Start[x] is 0 and 1 <= Promise[64·x + y]",
+              "every x, y with x < 64 ∧ y <= 63: never Promised[y] is 0 and 1 <= Promise[64·x + y]",
+              "every x, y with x < 64 ∧ y < 64 ∧ ¬(x = y): never 1 <= Leader[x] and 1 <= Leader[y]",
+              "every x, y, z with x < 64 ∧ y < 64 ∧ ¬(x = y) ∧ z <= 63: never 1 <= Promise[64·x + z] and 1 <= Promise[64·y + z]"
+            ],
+            "ms": 5496,
+            "work": 332692,
+            "full": 158981
+          }
+        },
+        "accepted": true,
+        "kind": "counted-machine",
+        "laws": 10,
+        "sourceLawEquality": true,
+        "countedProjectionAlphaEquivalent": true,
+        "addedCountViews": [
+          "members$Leader"
+        ],
+        "packetObjectsUnchanged": true,
+        "retainedProofSha256": "6eebeaefbbf37f7230e1be813eaa28a7bb76d944ff92f8143eb87e3482fcb9f9",
+        "leanBytes": 122677,
+        "leanSha256": "30ec9e02fab6b6df5cf40d46315a20e9bce8ed4ae2a28d2ba2ca2ed689bf45a9"
+      },
+      "finalReexportByteIdentical": true,
+      "jobSeconds": 11.99,
+      "logSha256": "eb21689b63e7ae4891f9e18b61246e93050c10de899b3389b0414464e6839de6",
+      "compilerLogSha256": "773bc88b62657ad1281fc2b5285e9d10f4050526dc5d4fddab77550a21eb9868"
+    },
+    {
+      "id": "simple_regular",
+      "packetSha256": "7c441755a1dee88073d55e2d8ff701416508c8f132a6fcf176dd7cb7ec76bbfa",
+      "retainedProofSha256": "30c4a85ef587ee3270593fb88ca97a13f8e5d176e96b57dc8eb0839117bafe20",
+      "originalLeanSha256": "fb9e5b89677f149ffccdf93dac32fde0c17f91e4fa22fa2f649519009132a7d4",
+      "auditedPriorLeanSha256": "9393aa7b5681df0cf021c4792e2133191ef5bf78077e31a2461310d91278b059",
+      "reexportLeanSha256": "b390bce1a26102d959fb1bf6a915635b822cc66f7a0b94ea5f67e1c8b48cfba6",
+      "bytes": 440664,
+      "exportExit": 0,
+      "leanExit": 0,
+      "packetUnchanged": true,
+      "packetObjectsUnchanged": true,
+      "containsAlphaBridge": false,
+      "leanWall": "LEAN_WALL seconds=10.32 maxrss_kb=1853332 exit=0",
+      "exportMetadata": {
+        "id": "simple_regular",
+        "captureSha256": "7c441755a1dee88073d55e2d8ff701416508c8f132a6fcf176dd7cb7ec76bbfa",
+        "harness": {
+          "id": "simple_regular",
+          "ic3syn": "tla-simpleregular",
+          "search": {
+            "verdict": "proven",
+            "found": [
+              "X at most 2",
+              "Y at most 1",
+              "Pc at most 3",
+              "every x with x < n: never X[x] is 0 and 1 <= Y[x]",
+              "every x with x < n: never X[x] is 0 and Pc[x] is 1",
+              "every x with x < n: never X[x] is 0 and Pc[x] is 2",
+              "every x with x < n: never X[x] is 0 and 3 <= Pc[x]",
+              "every x with x < n: never X[x] is 1 and 1 <= Y[x]",
+              "every x with x < n: never X[x] is 1 and Pc[x] is 0",
+              "every x with x < n: never X[x] is 1 and Pc[x] is 2",
+              "every x with x < n: never X[x] is 1 and 3 <= Pc[x]",
+              "every x with x < n: never 2 <= X[x] and Pc[x] is 0",
+              "every x with x < n: never 2 <= X[x] and Pc[x] is 1",
+              "every x with x < n: never 1 <= Y[x] and Pc[x] is 0",
+              "every x with x < n: never 1 <= Y[x] and Pc[x] is 1",
+              "every x with x < n: never 1 <= Y[x] and Pc[x] is 2"
+            ],
+            "ms": 12277,
+            "work": 2645465,
+            "full": 6255163
+          }
+        },
+        "accepted": true,
+        "kind": "ordinary-trees",
+        "laws": 17,
+        "sourceLawEquality": false,
+        "machineEquality": false,
+        "machineAlphaEquivalent": false,
+        "machineDifferences": [
+          {
+            "key": "state",
+            "original": "{}",
+            "captured": "{\"some$1\":{\"op\":\"const\",\"value\":0}}"
+          },
+          {
+            "key": "step",
+            "original": "{\"flags\":{\"a1s\":{\"op\":\"and\",\"xs\":[{\"a\":{\"name\":\"op\",\"op\":\"var\"},\"b\":{\"op\":\"const\",\"value\":0},\"op\":\"=\"},{\"a\":{\"key\":{\"name\":\"self\",\"op\":\"var\"},\"map\":\"Pc\",\"op\":\"get\"},\"b\":{\"op\":\"const\",\"value\":0},\"op\":\"=\"}]},\"a2s\":{\"op\":\"and\",\"xs\":[{\"a\":{\"name\":\"op\",\"op\":\"var\"},\"b\":{\"op\":\"const\",\"value\":1},\"op\":\"=\"},{\"a\":{\"key\":{\"name\":\"self\",\"op\":\"var\"},\"map\":\"Pc\",\"op\":\"get\"},\"b\":{\"op\":\"const\",\"value\":1},\"op\":\"=\"}]},\"bs\":{\"op\":\"and\",\"xs\":[{\"a\":{\"name\":\"op\",\"op\":\"var\"},\"b\":{\"op\":\"const\",\"value\":2},\"op\":\"=\"},{\"a\":{\"key\":{\"name\":\"self\",\"op\":\"var\"},\"map\":\"Pc\",\"op\":\"get\"},\"b\":{\"op\":\"const\",\"value\":2},\"op\":\"=\"},{\"op\":\"or\",\"xs\":[{\"op\":\"and\",\"xs\":[{\"a\":{\"name\":\"v\",\"op\":\"var\"},\"b\":{\"op\":\"const\",\"value\":0},\"op\":\"=\"},{\"a\":{\"key\":{\"c\":{\"a\":{\"name\":\"self\",\"op\":\"var\"},\"b\":{\"op\":\"const\",\"value\":0},\"op\":\"=\"},\"else\":{\"a\":{\"name\":\"self\",\"op\":\"var\"},\"b\":{\"op\":\"const\",\"value\":1},\"op\":\"sub\"},\"op\":\"if\",\"then\":{\"a\":{\"name\":\"n\",",
+            "captured": "{\"flags\":{\"a1s\":{\"op\":\"and\",\"xs\":[{\"a\":{\"name\":\"op\",\"op\":\"var\"},\"b\":{\"op\":\"const\",\"value\":0},\"op\":\"=\"},{\"a\":{\"key\":{\"name\":\"self\",\"op\":\"var\"},\"map\":\"Pc\",\"op\":\"get\"},\"b\":{\"op\":\"const\",\"value\":0},\"op\":\"=\"}]},\"a2s\":{\"op\":\"and\",\"xs\":[{\"a\":{\"name\":\"op\",\"op\":\"var\"},\"b\":{\"op\":\"const\",\"value\":1},\"op\":\"=\"},{\"a\":{\"key\":{\"name\":\"self\",\"op\":\"var\"},\"map\":\"Pc\",\"op\":\"get\"},\"b\":{\"op\":\"const\",\"value\":1},\"op\":\"=\"}]},\"bs\":{\"op\":\"and\",\"xs\":[{\"a\":{\"name\":\"op\",\"op\":\"var\"},\"b\":{\"op\":\"const\",\"value\":2},\"op\":\"=\"},{\"a\":{\"key\":{\"name\":\"self\",\"op\":\"var\"},\"map\":\"Pc\",\"op\":\"get\"},\"b\":{\"op\":\"const\",\"value\":2},\"op\":\"=\"},{\"op\":\"or\",\"xs\":[{\"op\":\"and\",\"xs\":[{\"a\":{\"name\":\"v\",\"op\":\"var\"},\"b\":{\"op\":\"const\",\"value\":0},\"op\":\"=\"},{\"a\":{\"key\":{\"c\":{\"a\":{\"name\":\"self\",\"op\":\"var\"},\"b\":{\"op\":\"const\",\"value\":0},\"op\":\"=\"},\"else\":{\"a\":{\"name\":\"self\",\"op\":\"var\"},\"b\":{\"op\":\"const\",\"value\":1},\"op\":\"sub\"},\"op\":\"if\",\"then\":{\"a\":{\"name\":\"n\","
+          }
+        ],
+        "existentialBridge": {
+          "kind": "forall_some_of_ghostsubst",
+          "extraVars": [
+            "some$1"
+          ],
+          "extraMaps": [],
+          "laws": [
+            "some process not done, or some y is 1"
+          ],
+          "projectionAlphaEquivalent": true
+        },
+        "packetObjectsUnchanged": true,
+        "retainedProofSha256": "30c4a85ef587ee3270593fb88ca97a13f8e5d176e96b57dc8eb0839117bafe20",
+        "leanBytes": 439886,
+        "leanSha256": "b390bce1a26102d959fb1bf6a915635b822cc66f7a0b94ea5f67e1c8b48cfba6"
+      },
+      "finalReexportByteIdentical": true,
+      "jobSeconds": 15.51,
+      "logSha256": "265e824120159d240cfe017c0dc0f6516efbaa1679ce555edf1a30a50274a743",
+      "compilerLogSha256": "16fc8a631dac8f57ccb0a477f4f748cc9d93cbca8a5945e33c7b0c3095d1ac15"
+    },
+    {
+      "id": "tcommit",
+      "packetSha256": "03944dbe7f5de1b013c03ba5db13bbccbbb55746e397615550749b373a4c535d",
+      "retainedProofSha256": "a0aa8c14a8837557446220d7b968ca16df7d94cebeafc61c8145a036f15c0fd5",
+      "originalLeanSha256": "da6b2d936d4646fb63839bd973f689961feefec15df2e97519ecc901dc47e7b1",
+      "auditedPriorLeanSha256": "da6b2d936d4646fb63839bd973f689961feefec15df2e97519ecc901dc47e7b1",
+      "reexportLeanSha256": "999561c03900a79cc58feecde4ffe00d3b5f35c9b2e68e712f70425a6ad24768",
+      "bytes": 23998,
+      "exportExit": 0,
+      "leanExit": 0,
+      "packetUnchanged": true,
+      "packetObjectsUnchanged": true,
+      "containsAlphaBridge": false,
+      "leanWall": "LEAN_WALL seconds=1.47 maxrss_kb=748340 exit=0",
+      "exportMetadata": {
+        "id": "tcommit",
+        "captureSha256": "03944dbe7f5de1b013c03ba5db13bbccbbb55746e397615550749b373a4c535d",
+        "harness": {
+          "id": "tcommit",
+          "ic3syn": "tla-tcommit",
+          "search": {
+            "verdict": "proven",
+            "ms": 254,
+            "work": 11200,
+            "full": 120024
+          }
+        },
+        "accepted": true,
+        "kind": "ordinary-trees-with-cyclic",
+        "laws": 1,
+        "sourceLawEquality": true,
+        "machineEquality": false,
+        "machineAlphaEquivalent": true,
+        "machineDifferences": [
+          {
+            "key": "step",
+            "original": "{\"flags\":{\"aborts\":{\"op\":\"and\",\"xs\":[{\"a\":{\"name\":\"op\",\"op\":\"var\"},\"b\":{\"op\":\"const\",\"value\":2},\"op\":\"=\"},{\"a\":{\"key\":{\"name\":\"rm\",\"op\":\"var\"},\"map\":\"St\",\"op\":\"get\"},\"b\":{\"op\":\"const\",\"value\":1},\"op\":\"<=\"},{\"name\":\"notCommitted\",\"op\":\"flag\"}]},\"canCommit\":{\"c\":{\"op\":\"or\",\"xs\":[{\"op\":\"not\",\"x\":{\"a\":{\"name\":\"k$7\",\"op\":\"var\"},\"b\":{\"name\":\"size\",\"op\":\"var\"},\"op\":\"<\"}},{\"op\":\"or\",\"xs\":[{\"a\":{\"key\":{\"name\":\"k$7\",\"op\":\"var\"},\"map\":\"St\",\"op\":\"get\"},\"b\":{\"op\":\"const\",\"value\":1},\"op\":\"=\"},{\"a\":{\"key\":{\"name\":\"k$7\",\"op\":\"var\"},\"map\":\"St\",\"op\":\"get\"},\"b\":{\"op\":\"const\",\"value\":2},\"op\":\"=\"}]}]},\"key\":\"k$7\",\"op\":\"all\"},\"commits\":{\"op\":\"and\",\"xs\":[{\"a\":{\"name\":\"op\",\"op\":\"var\"},\"b\":{\"op\":\"const\",\"value\":1},\"op\":\"=\"},{\"a\":{\"key\":{\"name\":\"rm\",\"op\":\"var\"},\"map\":\"St\",\"op\":\"get\"},\"b\":{\"op\":\"const\",\"value\":1},\"op\":\"=\"},{\"name\":\"canCommit\",\"op\":\"flag\"}]},\"notCommitted\":{\"c\":{\"op\":\"or\",\"xs\":[{\"op\":\"not\",\"x\":{\"a\"",
+            "captured": "{\"flags\":{\"aborts\":{\"op\":\"and\",\"xs\":[{\"a\":{\"name\":\"op\",\"op\":\"var\"},\"b\":{\"op\":\"const\",\"value\":2},\"op\":\"=\"},{\"a\":{\"key\":{\"name\":\"rm\",\"op\":\"var\"},\"map\":\"St\",\"op\":\"get\"},\"b\":{\"op\":\"const\",\"value\":1},\"op\":\"<=\"},{\"name\":\"notCommitted\",\"op\":\"flag\"}]},\"canCommit\":{\"c\":{\"op\":\"or\",\"xs\":[{\"op\":\"not\",\"x\":{\"a\":{\"name\":\"k$5\",\"op\":\"var\"},\"b\":{\"name\":\"size\",\"op\":\"var\"},\"op\":\"<\"}},{\"op\":\"or\",\"xs\":[{\"a\":{\"key\":{\"name\":\"k$5\",\"op\":\"var\"},\"map\":\"St\",\"op\":\"get\"},\"b\":{\"op\":\"const\",\"value\":1},\"op\":\"=\"},{\"a\":{\"key\":{\"name\":\"k$5\",\"op\":\"var\"},\"map\":\"St\",\"op\":\"get\"},\"b\":{\"op\":\"const\",\"value\":2},\"op\":\"=\"}]}]},\"key\":\"k$5\",\"op\":\"all\"},\"commits\":{\"op\":\"and\",\"xs\":[{\"a\":{\"name\":\"op\",\"op\":\"var\"},\"b\":{\"op\":\"const\",\"value\":1},\"op\":\"=\"},{\"a\":{\"key\":{\"name\":\"rm\",\"op\":\"var\"},\"map\":\"St\",\"op\":\"get\"},\"b\":{\"op\":\"const\",\"value\":1},\"op\":\"=\"},{\"name\":\"canCommit\",\"op\":\"flag\"}]},\"notCommitted\":{\"c\":{\"op\":\"or\",\"xs\":[{\"op\":\"not\",\"x\":{\"a\""
+          }
+        ],
+        "packetObjectsUnchanged": true,
+        "retainedProofSha256": "a0aa8c14a8837557446220d7b968ca16df7d94cebeafc61c8145a036f15c0fd5",
+        "leanBytes": 23925,
+        "leanSha256": "999561c03900a79cc58feecde4ffe00d3b5f35c9b2e68e712f70425a6ad24768"
+      },
+      "finalReexportByteIdentical": true,
+      "jobSeconds": 5.87,
+      "logSha256": "f3c670cb9fc69d40752d5de63017543f1407af6e4ca2da865c8bd5636503c05d",
+      "compilerLogSha256": "265f8b6c13a577823daf61c9954c18ab364f92b1d95985dff1553704d6b61e13"
+    },
+    {
+      "id": "toy_consensus",
+      "packetSha256": "98e0fd726d198c96167162cf4c4fc1ca232276c7beec676bc99e33cfec658fc8",
+      "retainedProofSha256": "e69e4c7f5e73854b35a8f2f8fd33dd67eb406260019194aded25c0ba4ebda356",
+      "originalLeanSha256": "e2379369c2a6b3bd8a82c10ab6cfa1cc50424ddbd976b2ac7d5a64a504ecba05",
+      "auditedPriorLeanSha256": "e2379369c2a6b3bd8a82c10ab6cfa1cc50424ddbd976b2ac7d5a64a504ecba05",
+      "reexportLeanSha256": "4e15d68387def3d776b90fc5e66d5a07f2276358761dcd253bcf273261bf01e8",
+      "bytes": 55463,
+      "exportExit": 0,
+      "leanExit": 0,
+      "packetUnchanged": true,
+      "packetObjectsUnchanged": true,
+      "containsAlphaBridge": false,
+      "leanWall": "LEAN_WALL seconds=3.21 maxrss_kb=1145008 exit=0",
+      "exportMetadata": {
+        "id": "toy_consensus",
+        "captureSha256": "98e0fd726d198c96167162cf4c4fc1ca232276c7beec676bc99e33cfec658fc8",
+        "harness": {
+          "id": "toy_consensus",
+          "ic3syn": "ex-toy-consensus",
+          "search": {
+            "verdict": "proven",
+            "found": [
+              "every Decision cell is a value of its kind",
+              "one value decided",
+              "Decision keeps members's bound through members$Decision",
+              "every x, y with x < 64 ∧ y < 64 ∧ ¬(x = y): never 1 <= Decision[x] and 1 <= Decision[y]"
+            ],
+            "ms": 1505,
+            "work": 76032,
+            "full": 64652
+          }
+        },
+        "accepted": true,
+        "kind": "counted-machine",
+        "laws": 4,
+        "sourceLawEquality": true,
+        "countedProjectionAlphaEquivalent": true,
+        "addedCountViews": [
+          "members$Decision"
+        ],
+        "packetObjectsUnchanged": true,
+        "retainedProofSha256": "e69e4c7f5e73854b35a8f2f8fd33dd67eb406260019194aded25c0ba4ebda356",
+        "leanBytes": 55305,
+        "leanSha256": "4e15d68387def3d776b90fc5e66d5a07f2276358761dcd253bcf273261bf01e8"
+      },
+      "finalReexportByteIdentical": true,
+      "jobSeconds": 7.06,
+      "logSha256": "aeed760856e0db31551bc760921e2d046057c17627ba28e57acaaca196b37c40",
+      "compilerLogSha256": "1d89dd2c0ff3f9b8139094916e94d01d4472686ca812ea3518cca7f3a5e66c7b"
+    },
+    {
+      "id": "toy_consensus_epr",
+      "packetSha256": "0e40c141413b088f90357b527c14c9fef7962de965716b0c05bf7a0dd59d781e",
+      "retainedProofSha256": "e50eb28b0b65f08965412a2a3727b2239b9e003bc17c66a49bea6ca26c87706f",
+      "originalLeanSha256": "207dd48950b6aa1c280b1a2e40faccb5d3cc2f7485c50296b76b20b6930ab4fe",
+      "auditedPriorLeanSha256": "207dd48950b6aa1c280b1a2e40faccb5d3cc2f7485c50296b76b20b6930ab4fe",
+      "reexportLeanSha256": "aed843dc9c6a8bd92bb2d29dc2b90213c9afae9fc2217ad899c80736950bf7a4",
+      "bytes": 100234,
+      "exportExit": 0,
+      "leanExit": 0,
+      "packetUnchanged": true,
+      "packetObjectsUnchanged": true,
+      "containsAlphaBridge": false,
+      "leanWall": "LEAN_WALL seconds=5.21 maxrss_kb=1541488 exit=0",
+      "exportMetadata": {
+        "id": "toy_consensus_epr",
+        "captureSha256": "0e40c141413b088f90357b527c14c9fef7962de965716b0c05bf7a0dd59d781e",
+        "harness": {
+          "id": "toy_consensus_epr",
+          "ic3syn": "pyv-toy-consensus-epr",
+          "search": {
+            "verdict": "proven",
+            "found": [
+              "every Voted cell is a value of its kind",
+              "every Vote cell is a value of its kind",
+              "every Decided cell is a value of its kind",
+              "one value decided",
+              "Decided keeps members's bound through members$Decided",
+              "every x, y with x < 64 ∧ y < 64 ∧ ¬(x = y): never 1 <= Decided[x] and 1 <= Decided[y]",
+              "every x, y with x <= 63 ∧ y < 64: never Voted[x] is 0 and 1 <= Vote[64·y + x]",
+              "every x, y, z with x <= 63 ∧ y < 64 ∧ z < 64 ∧ ¬(y = z): never 1 <= Vote[64·y + x] and 1 <= Vote[64·z + x]"
+            ],
+            "ms": 2352,
+            "work": 572283,
+            "full": 185783
+          }
+        },
+        "accepted": true,
+        "kind": "counted-machine",
+        "laws": 8,
+        "sourceLawEquality": true,
+        "countedProjectionAlphaEquivalent": true,
+        "addedCountViews": [
+          "members$Decided"
+        ],
+        "packetObjectsUnchanged": true,
+        "retainedProofSha256": "e50eb28b0b65f08965412a2a3727b2239b9e003bc17c66a49bea6ca26c87706f",
+        "leanBytes": 99972,
+        "leanSha256": "aed843dc9c6a8bd92bb2d29dc2b90213c9afae9fc2217ad899c80736950bf7a4"
+      },
+      "finalReexportByteIdentical": true,
+      "jobSeconds": 9.06,
+      "logSha256": "33c744bb7274733c9f38ce6f1c54f9c74899fd7c6b643ec5a7adcb8fa0d5bf3c",
+      "compilerLogSha256": "408116586d7091d94208b6d3c815e15760666643033d9090cf59ae124f42cd05"
+    },
+    {
+      "id": "toy_consensus_forall",
+      "packetSha256": "07b9eefc1d67934f2264e2da3774dacc4a4b85c8fd76bf7a1874c58136084b11",
+      "retainedProofSha256": "22cddf322902ae75ef2c1471474eab7f54590e518f9578020ca1568ad9403f3d",
+      "originalLeanSha256": "ca5f69dc699e4cb81ce74deffb495c4c4ab05b821f44baa2aa16004115aaf330",
+      "auditedPriorLeanSha256": "ca5f69dc699e4cb81ce74deffb495c4c4ab05b821f44baa2aa16004115aaf330",
+      "reexportLeanSha256": "c470d77babfdea76e227b9687b97e4776ccfe5dc15453f8cf9d6fc423786e1f0",
+      "bytes": 84500,
+      "exportExit": 0,
+      "leanExit": 0,
+      "packetUnchanged": true,
+      "packetObjectsUnchanged": true,
+      "containsAlphaBridge": false,
+      "leanWall": "LEAN_WALL seconds=4.84 maxrss_kb=1328372 exit=0",
+      "exportMetadata": {
+        "id": "toy_consensus_forall",
+        "captureSha256": "07b9eefc1d67934f2264e2da3774dacc4a4b85c8fd76bf7a1874c58136084b11",
+        "harness": {
+          "id": "toy_consensus_forall",
+          "ic3syn": "pyv-toy-consensus-forall",
+          "search": {
+            "verdict": "proven",
+            "found": [
+              "every Voted cell is a value of its kind",
+              "every Decided cell is a value of its kind",
+              "one value decided",
+              "Decided keeps members's bound through members$Decided",
+              "every x, y with x < 64 ∧ y < 64 ∧ ¬(x = y): never 1 <= Decided[x] and 1 <= Decided[y]",
+              "every x: never Vote[x] is 0 and 1 <= Voted[x]",
+              "every x: never Vote[x] is 1 and Voted[x] is 0",
+              "every x: never 2 <= Vote[x] and Voted[x] is 0"
+            ],
+            "ms": 1649,
+            "work": 115382,
+            "full": 91451
+          }
+        },
+        "accepted": true,
+        "kind": "counted-machine",
+        "laws": 8,
+        "sourceLawEquality": true,
+        "countedProjectionAlphaEquivalent": true,
+        "addedCountViews": [
+          "members$Decided"
+        ],
+        "packetObjectsUnchanged": true,
+        "retainedProofSha256": "22cddf322902ae75ef2c1471474eab7f54590e518f9578020ca1568ad9403f3d",
+        "leanBytes": 84262,
+        "leanSha256": "c470d77babfdea76e227b9687b97e4776ccfe5dc15453f8cf9d6fc423786e1f0"
+      },
+      "finalReexportByteIdentical": true,
+      "jobSeconds": 9.5,
+      "logSha256": "b37e8d09c048d96076aa66f8d29447af04ecf974309b84513e1172755eb3a1c9",
+      "compilerLogSha256": "e3d5892b528c1b95a3cbddad43670830e0f53e1ae8c52f32ae8215b64629f375"
+    },
+    {
+      "id": "two_phase_commit",
+      "packetSha256": "b17e1a47997f7de4e80b0d2c2cce353375c1279f7ff771e27eb1f3ba587c5359",
+      "retainedProofSha256": "0927dbd00a0483bc495dfef4087fc33deedfed42fb810d50e7ee7f90463c98a1",
+      "originalLeanSha256": "8289ca3313d0ee7bb77fdbcbca8b56cf01947ef641d2aade2e0e5b2dfa4401ba",
+      "auditedPriorLeanSha256": "8289ca3313d0ee7bb77fdbcbca8b56cf01947ef641d2aade2e0e5b2dfa4401ba",
+      "reexportLeanSha256": "57214827426fbad3d4eca949957f90a50c28b45b5b69c1a6c2b814169d12a752",
+      "bytes": 582590,
+      "exportExit": 0,
+      "leanExit": 0,
+      "packetUnchanged": true,
+      "packetObjectsUnchanged": true,
+      "containsAlphaBridge": false,
+      "leanWall": "LEAN_WALL seconds=18.35 maxrss_kb=3770168 exit=0",
+      "exportMetadata": {
+        "id": "two_phase_commit",
+        "captureSha256": "b17e1a47997f7de4e80b0d2c2cce353375c1279f7ff771e27eb1f3ba587c5359",
+        "harness": {
+          "id": "two_phase_commit",
+          "ic3syn": "i4-two-phase-commit",
+          "search": {
+            "verdict": "proven",
+            "found": [
+              "∀k. Alive[k] ≠ 1 → Alive[k] < abortFlag",
+              "r.law('every x, y with x < size ∧ y < size ∧ ¬(x = y): GoCommit[x] <= GoCommit[y]', ({GoCommit, size}) => forall((x, y) => x.lt(size).and(y.lt(size)).and(x.eq(y).not()).implies(GoCommit.at(x).n.atMost(GoCommit.at(y).n))))",
+              "r.law('every x with x < size: GoCommit[x] <= VoteYes[x]', ({VoteYes, GoCommit, size}) => forall(x => x.lt(size).implies(GoCommit.at(x).n.atMost(VoteYes.at(x).n))))",
+              "r.law('every k: VoteNo[k] is 0 → GoCommit[k] + DecideAbort[k] <= 1', ({GoCommit, DecideAbort, VoteNo}) => forall(k => VoteNo.at(k).not().implies(GoCommit.at(k).n.plus(DecideAbort.at(k).n).atMost(1))))",
+              "r.law('every k: VoteNo[k] is 0 → DecideAbort[k] <= GoAbort[k]', ({GoAbort, DecideAbort, VoteNo}) => forall(k => VoteNo.at(k).not().implies(DecideAbort.at(k).n.atMost(GoAbort.at(k).n))))",
+              "r.law('every k: 1 <= VoteNo[k] → VoteYes[k] <= 0', ({VoteYes, VoteNo}) => forall(k => VoteNo.at(k).n.atLeast(1).implies(VoteYes.at(k).n.atMost(0))))",
+              "r.law('every k: 1 <= VoteNo[k] → GoCommit[k] <= 0', ({GoCommit, VoteNo}) => forall(k => VoteNo.at(k).n.atLeast(1).implies(GoCommit.at(k).n.atMost(0))))",
+              "r.law('every k: VoteNo[k] is 0 → GoAbort[k] <= abortFlag', ({abortFlag, GoAbort, VoteNo}) => forall(k => VoteNo.at(k).not().implies(GoAbort.at(k).n.atMost(abortFlag))))",
+              "r.law('every k: VoteNo[k] is 0 → GoCommit[k] + GoAbort[k] <= 1', ({GoCommit, GoAbort, VoteNo}) => forall(k => VoteNo.at(k).not().implies(GoCommit.at(k).n.plus(GoAbort.at(k).n).atMost(1))))",
+              "r.law('abortFlag <= 1', ({abortFlag}) => abortFlag.atMost(1))",
+              "r.law('every k: 1 <= VoteNo[k] → 1 <= abortFlag', ({abortFlag, VoteNo}) => forall(k => VoteNo.at(k).n.atLeast(1).implies(abortFlag.atLeast(1))))",
+              "r.law('every k: 1 <= VoteNo[k] → 1 <= DecideAbort[k]', ({DecideAbort, VoteNo}) => forall(k => VoteNo.at(k).n.atLeast(1).implies(DecideAbort.at(k).n.atLeast(1))))",
+              "r.law('every k: VoteNo[k] is 0 → DecideCommit[k] <= GoCommit[k]', ({GoCommit, DecideCommit, VoteNo}) => forall(k => VoteNo.at(k).not().implies(DecideCommit.at(k).n.atMost(GoCommit.at(k).n))))",
+              "r.law('every k: VoteNo[k] is 0 → GoAbort[k] + DecideCommit[k] <= 1', ({GoAbort, DecideCommit, VoteNo}) => forall(k => VoteNo.at(k).not().implies(GoAbort.at(k).n.plus(DecideCommit.at(k).n).atMost(1))))"
+            ],
+            "ms": 6589,
+            "work": 2798392,
+            "full": 1860768
+          }
+        },
+        "accepted": true,
+        "kind": "ordinary-trees",
+        "laws": 22,
+        "sourceLawEquality": true,
+        "machineEquality": false,
+        "machineAlphaEquivalent": true,
+        "machineDifferences": [
+          {
+            "key": "step",
+            "original": "{\"flags\":{\"aborts\":{\"op\":\"and\",\"xs\":[{\"a\":{\"name\":\"op\",\"op\":\"var\"},\"b\":{\"op\":\"const\",\"value\":6},\"op\":\"=\"},{\"a\":{\"key\":{\"name\":\"n\",\"op\":\"var\"},\"map\":\"Alive\",\"op\":\"get\"},\"b\":{\"op\":\"const\",\"value\":1},\"op\":\"=\"},{\"a\":{\"key\":{\"name\":\"n\",\"op\":\"var\"},\"map\":\"GoAbort\",\"op\":\"get\"},\"b\":{\"op\":\"const\",\"value\":1},\"op\":\"=\"}]},\"allYes\":{\"c\":{\"op\":\"or\",\"xs\":[{\"op\":\"not\",\"x\":{\"a\":{\"name\":\"k$102\",\"op\":\"var\"},\"b\":{\"name\":\"size\",\"op\":\"var\"},\"op\":\"<\"}},{\"a\":{\"key\":{\"name\":\"k$102\",\"op\":\"var\"},\"map\":\"VoteYes\",\"op\":\"get\"},\"b\":{\"op\":\"const\",\"value\":1},\"op\":\"=\"}]},\"key\":\"k$102\",\"op\":\"all\"},\"commits\":{\"op\":\"and\",\"xs\":[{\"a\":{\"name\":\"op\",\"op\":\"var\"},\"b\":{\"op\":\"const\",\"value\":5},\"op\":\"=\"},{\"a\":{\"key\":{\"name\":\"n\",\"op\":\"var\"},\"map\":\"Alive\",\"op\":\"get\"},\"b\":{\"op\":\"const\",\"value\":1},\"op\":\"=\"},{\"a\":{\"key\":{\"name\":\"n\",\"op\":\"var\"},\"map\":\"GoCommit\",\"op\":\"get\"},\"b\":{\"op\":\"const\",\"value\":1},\"op\":\"=\"}]},\"fails\":{\"op\":\"and\",\"xs\":[{",
+            "captured": "{\"flags\":{\"aborts\":{\"op\":\"and\",\"xs\":[{\"a\":{\"name\":\"op\",\"op\":\"var\"},\"b\":{\"op\":\"const\",\"value\":6},\"op\":\"=\"},{\"a\":{\"key\":{\"name\":\"n\",\"op\":\"var\"},\"map\":\"Alive\",\"op\":\"get\"},\"b\":{\"op\":\"const\",\"value\":1},\"op\":\"=\"},{\"a\":{\"key\":{\"name\":\"n\",\"op\":\"var\"},\"map\":\"GoAbort\",\"op\":\"get\"},\"b\":{\"op\":\"const\",\"value\":1},\"op\":\"=\"}]},\"allYes\":{\"c\":{\"op\":\"or\",\"xs\":[{\"op\":\"not\",\"x\":{\"a\":{\"name\":\"k$94\",\"op\":\"var\"},\"b\":{\"name\":\"size\",\"op\":\"var\"},\"op\":\"<\"}},{\"a\":{\"key\":{\"name\":\"k$94\",\"op\":\"var\"},\"map\":\"VoteYes\",\"op\":\"get\"},\"b\":{\"op\":\"const\",\"value\":1},\"op\":\"=\"}]},\"key\":\"k$94\",\"op\":\"all\"},\"commits\":{\"op\":\"and\",\"xs\":[{\"a\":{\"name\":\"op\",\"op\":\"var\"},\"b\":{\"op\":\"const\",\"value\":5},\"op\":\"=\"},{\"a\":{\"key\":{\"name\":\"n\",\"op\":\"var\"},\"map\":\"Alive\",\"op\":\"get\"},\"b\":{\"op\":\"const\",\"value\":1},\"op\":\"=\"},{\"a\":{\"key\":{\"name\":\"n\",\"op\":\"var\"},\"map\":\"GoCommit\",\"op\":\"get\"},\"b\":{\"op\":\"const\",\"value\":1},\"op\":\"=\"}]},\"fails\":{\"op\":\"and\",\"xs\":[{\"a\""
+          }
+        ],
+        "packetObjectsUnchanged": true,
+        "retainedProofSha256": "0927dbd00a0483bc495dfef4087fc33deedfed42fb810d50e7ee7f90463c98a1",
+        "leanBytes": 581667,
+        "leanSha256": "57214827426fbad3d4eca949957f90a50c28b45b5b69c1a6c2b814169d12a752"
+      },
+      "finalReexportByteIdentical": true,
+      "jobSeconds": 23,
+      "logSha256": "fb2011d4726b528457adc7fc7e8fc16a251424faa8be739a937844ffb4d14c0e",
+      "compilerLogSha256": "011707815c582f6d185fbb8b5b0b6490adcd58d99dee13d67a7ab6140101c86f"
+    },
+    {
+      "id": "twophase",
+      "packetSha256": "48007eac85b8ea0a01d3b595f9330bddc125082d498c8ab074b54a550e8c2f79",
+      "retainedProofSha256": "4a0138ad60557fa04e666acacaf335b4476c681dac5478a591fc5f703038733e",
+      "originalLeanSha256": "76a60333bb61f6e1dcce0ed0276cb74cd91355e77bc508e5938c5c4831c38ce0",
+      "auditedPriorLeanSha256": "76a60333bb61f6e1dcce0ed0276cb74cd91355e77bc508e5938c5c4831c38ce0",
+      "reexportLeanSha256": "181992f0ed89fef15af875036c98492c010d929639df4da064311ce8cd08c848",
+      "bytes": 385489,
+      "exportExit": 0,
+      "leanExit": 0,
+      "packetUnchanged": true,
+      "packetObjectsUnchanged": true,
+      "containsAlphaBridge": false,
+      "leanWall": "LEAN_WALL seconds=18.46 maxrss_kb=3030320 exit=0",
+      "exportMetadata": {
+        "id": "twophase",
+        "captureSha256": "48007eac85b8ea0a01d3b595f9330bddc125082d498c8ab074b54a550e8c2f79",
+        "harness": {
+          "id": "twophase",
+          "ic3syn": "tla-twophase",
+          "search": {
+            "verdict": "proven",
+            "found": [
+              "every x, y with x < size ∧ y < size ∧ ¬(x = y): never Rm[x] is 0 and Rm[y] is 2",
+              "every x, y with x < size ∧ y < size ∧ ¬(x = y): never Rm[x] is 2 and TmPrepared[y] is 0",
+              "every x, y with x < size ∧ y < size ∧ ¬(x = y): never Rm[x] is 2 and PreparedMsg[y] is 0",
+              "every x with x < size: never Rm[x] is 0 and tm is 1",
+              "every x with x < size: never TmPrepared[x] is 0 and tm is 1",
+              "every x with x < size: never 1 <= TmPrepared[x] and PreparedMsg[x] is 0",
+              "every x with x < size: never PreparedMsg[x] is 0 and tm is 1",
+              "every x, y with x < size ∧ y < size ∧ ¬(x = y): never Rm[x] is 2 and 3 <= Rm[y]",
+              "every x with x < size: never Rm[x] is 0 and 1 <= TmPrepared[x]",
+              "every x with x < size: never Rm[x] is 0 and 1 <= PreparedMsg[x]",
+              "every x with x < size: never Rm[x] is 0 and 1 <= commitMsg",
+              "every x with x < size: never TmPrepared[x] is 0 and 1 <= commitMsg",
+              "every x with x < size: never PreparedMsg[x] is 0 and 1 <= commitMsg",
+              "every x with x < size: never Rm[x] is 2 and TmPrepared[x] is 0",
+              "every x with x < size: never Rm[x] is 1 and PreparedMsg[x] is 0",
+              "every x with x < size: never Rm[x] is 2 and tm is 0",
+              "every x with x < size: never Rm[x] is 2 and PreparedMsg[x] is 0",
+              "every x with x < size: never Rm[x] is 2 and 2 <= tm",
+              "every x with x < size: never Rm[x] is 2 and commitMsg is 0",
+              "every x with x < size: never Rm[x] is 2 and 1 <= abortMsg",
+              "every x with x < size: never 3 <= Rm[x] and tm is 1",
+              "every x with x < size: never 3 <= Rm[x] and 1 <= commitMsg",
+              "every x with x < size: never 1 <= commitMsg and 1 <= abortMsg",
+              "every x with x < size: never 3 <= Rm[x] and 1 <= TmPrepared[x] and tm is 0",
+              "every x with x < size: never 3 <= Rm[x] and 1 <= TmPrepared[x] and abortMsg is 0",
+              "every x with x < size: never 3 <= Rm[x] and 1 <= PreparedMsg[x] and tm is 0",
+              "every x with x < size: never 3 <= Rm[x] and 1 <= PreparedMsg[x] and abortMsg is 0",
+              "every x with x < size: never tm is 0 and 1 <= commitMsg",
+              "every x with x < size: never 2 <= tm and abortMsg is 0",
+              "every x with x < size: never tm is 1 and 1 <= abortMsg",
+              "every x with x < size: never tm is 0 and 1 <= abortMsg",
+              "every x, y with x < size ∧ y < size ∧ ¬(x = y): never tm is 0 and 1 <= abortMsg"
+            ],
+            "ms": 11911,
+            "work": 1513912,
+            "full": 2667344
+          }
+        },
+        "accepted": true,
+        "kind": "ordinary-trees",
+        "laws": 35,
+        "sourceLawEquality": true,
+        "machineEquality": false,
+        "machineAlphaEquivalent": true,
+        "machineDifferences": [
+          {
+            "key": "step",
+            "original": "{\"flags\":{\"allPrepared\":{\"c\":{\"op\":\"or\",\"xs\":[{\"op\":\"not\",\"x\":{\"a\":{\"name\":\"k$19\",\"op\":\"var\"},\"b\":{\"name\":\"size\",\"op\":\"var\"},\"op\":\"<\"}},{\"a\":{\"key\":{\"name\":\"k$19\",\"op\":\"var\"},\"map\":\"TmPrepared\",\"op\":\"get\"},\"b\":{\"op\":\"const\",\"value\":1},\"op\":\"=\"}]},\"key\":\"k$19\",\"op\":\"all\"},\"choosesAbort\":{\"op\":\"and\",\"xs\":[{\"a\":{\"name\":\"op\",\"op\":\"var\"},\"b\":{\"op\":\"const\",\"value\":4},\"op\":\"=\"},{\"a\":{\"key\":{\"name\":\"rm\",\"op\":\"var\"},\"map\":\"Rm\",\"op\":\"get\"},\"b\":{\"op\":\"const\",\"value\":0},\"op\":\"=\"}]},\"prepares\":{\"op\":\"and\",\"xs\":[{\"a\":{\"name\":\"op\",\"op\":\"var\"},\"b\":{\"op\":\"const\",\"value\":3},\"op\":\"=\"},{\"a\":{\"key\":{\"name\":\"rm\",\"op\":\"var\"},\"map\":\"Rm\",\"op\":\"get\"},\"b\":{\"op\":\"const\",\"value\":0},\"op\":\"=\"}]},\"rcvAbort\":{\"op\":\"and\",\"xs\":[{\"a\":{\"name\":\"op\",\"op\":\"var\"},\"b\":{\"op\":\"const\",\"value\":6},\"op\":\"=\"},{\"a\":{\"name\":\"abortMsg\",\"op\":\"var\"},\"b\":{\"op\":\"const\",\"value\":1},\"op\":\"=\"},{\"op\":\"not\",\"x\":{\"a\":{\"key\":{\"name\":\"rm\",\"op\":\"var\"},",
+            "captured": "{\"flags\":{\"allPrepared\":{\"c\":{\"op\":\"or\",\"xs\":[{\"op\":\"not\",\"x\":{\"a\":{\"name\":\"k$17\",\"op\":\"var\"},\"b\":{\"name\":\"size\",\"op\":\"var\"},\"op\":\"<\"}},{\"a\":{\"key\":{\"name\":\"k$17\",\"op\":\"var\"},\"map\":\"TmPrepared\",\"op\":\"get\"},\"b\":{\"op\":\"const\",\"value\":1},\"op\":\"=\"}]},\"key\":\"k$17\",\"op\":\"all\"},\"choosesAbort\":{\"op\":\"and\",\"xs\":[{\"a\":{\"name\":\"op\",\"op\":\"var\"},\"b\":{\"op\":\"const\",\"value\":4},\"op\":\"=\"},{\"a\":{\"key\":{\"name\":\"rm\",\"op\":\"var\"},\"map\":\"Rm\",\"op\":\"get\"},\"b\":{\"op\":\"const\",\"value\":0},\"op\":\"=\"}]},\"prepares\":{\"op\":\"and\",\"xs\":[{\"a\":{\"name\":\"op\",\"op\":\"var\"},\"b\":{\"op\":\"const\",\"value\":3},\"op\":\"=\"},{\"a\":{\"key\":{\"name\":\"rm\",\"op\":\"var\"},\"map\":\"Rm\",\"op\":\"get\"},\"b\":{\"op\":\"const\",\"value\":0},\"op\":\"=\"}]},\"rcvAbort\":{\"op\":\"and\",\"xs\":[{\"a\":{\"name\":\"op\",\"op\":\"var\"},\"b\":{\"op\":\"const\",\"value\":6},\"op\":\"=\"},{\"a\":{\"name\":\"abortMsg\",\"op\":\"var\"},\"b\":{\"op\":\"const\",\"value\":1},\"op\":\"=\"},{\"op\":\"not\",\"x\":{\"a\":{\"key\":{\"name\":\"rm\",\"op\":\"var\"},"
+          }
+        ],
+        "packetObjectsUnchanged": true,
+        "retainedProofSha256": "4a0138ad60557fa04e666acacaf335b4476c681dac5478a591fc5f703038733e",
+        "leanBytes": 383868,
+        "leanSha256": "181992f0ed89fef15af875036c98492c010d929639df4da064311ce8cd08c848"
+      },
+      "finalReexportByteIdentical": true,
+      "jobSeconds": 23.71,
+      "logSha256": "60a965891b6499a82626cd6f8be5ccda9d3132cc930f1f6c67c2801275535b82",
+      "compilerLogSha256": "631be94f1c80e1b493cad0eb1b0d2d0152788805c95bd210cd3f77ad0a951201"
+    }
+  ]
+}

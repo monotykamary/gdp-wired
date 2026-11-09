@@ -68,7 +68,7 @@ export function standaloneClosure(s: Setup, entry: ts.FunctionLikeDeclaration): 
   const expression = (raw: ts.Expression, locals: Set<ts.Symbol>): void => {
     const e = unparen(raw)
     if (ts.isAsExpression(e) || ts.isTypeAssertionExpression(e) || ts.isSatisfiesExpression(e)) { expression(e.expression, locals); return }
-    if (ts.isNumericLiteral(e) || e.kind === ts.SyntaxKind.TrueKeyword || e.kind === ts.SyntaxKind.FalseKeyword) return
+    if (ts.isNumericLiteral(e) || ts.isStringLiteral(e) || ts.isNoSubstitutionTemplateLiteral(e) || e.kind === ts.SyntaxKind.TrueKeyword || e.kind === ts.SyntaxKind.FalseKeyword || e.kind === ts.SyntaxKind.NullKeyword) return
     if (ts.isIdentifier(e)) {
       const sym = s.checker.getSymbolAtLocation(e)
       if (e.text === 'undefined' && !sym?.valueDeclaration) return
@@ -77,6 +77,18 @@ export function standaloneClosure(s: Setup, entry: ts.FunctionLikeDeclaration): 
       if (!b) refuse(e, 'standalone: non-input identifier or captured binding')
       if (functionOf(b!)) refuse(e, 'standalone: non-input identifier (function used as a value)')
       constant(b!, e); return
+    }
+    if (ts.isObjectLiteralExpression(e)) {
+      for (const prop of e.properties) {
+        if (ts.isPropertyAssignment(prop) && ts.isIdentifier(prop.name) && !['__proto__', 'prototype', 'constructor'].includes(prop.name.text)) expression(prop.initializer, locals)
+        else if (ts.isShorthandPropertyAssignment(prop) && !prop.objectAssignmentInitializer && !['__proto__', 'prototype', 'constructor'].includes(prop.name.text)) expression(prop.name, locals)
+        else refuse(prop, 'standalone: record literals need plain fields')
+      }
+      return
+    }
+    if (ts.isPropertyAccessExpression(e)) {
+      if (e.questionDotToken || ['__proto__', 'prototype', 'constructor'].includes(e.name.text)) refuse(e, 'standalone: unsafe property access')
+      expression(e.expression, locals); return
     }
     if (ts.isCallExpression(e)) {
       if (e.questionDotToken || !ts.isIdentifier(e.expression)) refuse(e, 'standalone: only direct closed helper calls are supported')
@@ -95,6 +107,14 @@ export function standaloneClosure(s: Setup, entry: ts.FunctionLikeDeclaration): 
   const statement = (st: ts.Statement, locals: Set<ts.Symbol>): void => {
     if (ts.isBlock(st)) { st.statements.forEach(x => statement(x, locals)); return }
     if (ts.isReturnStatement(st)) { if (st.expression) expression(st.expression, locals); return }
+    if (ts.isVariableStatement(st) && (st.declarationList.flags & ts.NodeFlags.Const)) {
+      for (const d of st.declarationList.declarations) {
+        if (!d.initializer) refuse(d, 'standalone: local const needs an initializer')
+        expression(d.initializer!, locals)
+        bindLocals(d.name, locals)
+      }
+      return
+    }
     if (ts.isIfStatement(st)) { expression(st.expression, locals); statement(st.thenStatement, locals); if (st.elseStatement) statement(st.elseStatement, locals); return }
     if (ts.isSwitchStatement(st)) {
       expression(st.expression, locals)
@@ -104,6 +124,22 @@ export function standaloneClosure(s: Setup, entry: ts.FunctionLikeDeclaration): 
     if ((ts.isBreakStatement(st) && !st.label) || ts.isEmptyStatement(st)) return
     refuse(st, 'standalone: effects or unsupported statement')
   }
+  const bindLocals = (name: ts.BindingName, locals: Set<ts.Symbol>, role = 'local'): void => {
+    if (ts.isObjectBindingPattern(name)) {
+      for (const el of name.elements) {
+        if (el.dotDotDotToken || el.initializer || (el.propertyName && !ts.isIdentifier(el.propertyName))) refuse(el, 'standalone: unsupported destructuring')
+        if (el.propertyName && ['__proto__', 'prototype', 'constructor'].includes(el.propertyName.getText())) refuse(el, 'standalone: unsafe property')
+        bindLocals(el.name, locals, role)
+      }
+      return
+    }
+    if (!ts.isIdentifier(name)) refuse(name, 'standalone: only identifier or record bindings are supported')
+    const id = name as ts.Identifier
+    if (reserved(id.text)) refuse(id, `standalone: reserved ${role} ${id.text}`)
+    const sym = symbol(id)
+    if (locals.has(sym)) refuse(id, 'standalone: duplicate local binding')
+    locals.add(sym)
+  }
   const functionBody = (fn: ts.FunctionLikeDeclaration): void => {
     if (active.has(fn)) refuse(fn, 'standalone: recursion is outside the subset')
     if (done.has(fn)) return
@@ -111,11 +147,9 @@ export function standaloneClosure(s: Setup, entry: ts.FunctionLikeDeclaration): 
     if ((ts.isFunctionDeclaration(fn) || ts.isFunctionExpression(fn)) && fn.name && reserved(fn.name.text)) refuse(fn.name, 'standalone: reserved function name')
     const locals = new Set<ts.Symbol>()
     for (const p of fn.parameters) {
-      if (!ts.isIdentifier(p.name) || p.dotDotDotToken || p.initializer) refuse(p, 'standalone: rest, destructuring and defaults are outside the subset')
-      if (reserved(p.name.getText())) refuse(p, `standalone: reserved parameter ${p.name.getText()}`)
-      const sym = symbol(p.name as ts.Identifier)
-      if (locals.has(sym)) refuse(p, 'standalone: duplicate parameter binding')
-      locals.add(sym)
+      if (p.dotDotDotToken || p.initializer) refuse(p, 'standalone: rest and defaults are outside the subset')
+      if (ts.isObjectBindingPattern(p.name) && p.name.elements.some(el => !!el.propertyName || !ts.isIdentifier(el.name))) refuse(p, 'standalone: record parameters need unrenamed flat bindings')
+      bindLocals(p.name, locals, 'parameter')
     }
     active.add(fn)
     if (ts.isBlock(fn.body!)) statement(fn.body!, locals); else expression(fn.body! as ts.Expression, locals)

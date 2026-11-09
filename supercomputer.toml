@@ -16,7 +16,7 @@ vm_type = "large"
 path = ["~/.bun/bin", "~/.elan/bin", "/usr/lib/jvm/temurin-17/bin", "/opt/sol", "/opt/foundry", "/opt/swift/usr/bin"]
 env = { JAVA_HOME = "/usr/lib/jvm/temurin-17" }
 mounts = ["/bench", "/smt", "/vamp", "/sv"]
-ignore = ["vendor/handwired/lab/recovery-*/**", "**/*.olean", "**/*.ilean", "**/*.c", "**/node_modules/**", "**/runs/**", "runs/**", "supercomputer/**", "modal/**", "modal",
+ignore = [".pi/**", "vendor/handwired/lab/recovery-*/**", "**/*.olean", "**/*.ilean", "**/*.c", "**/node_modules/**", "**/runs/**", "runs/**", "supercomputer/**", "modal/**", "modal",
           "private/**", "vendor/handwired/lab/ui-exploration/**", "vendor/handwired/lab/knuth-plass/**", "vendor/handwired/assets/**", "vendor/handwired/tests/**",
           "vendor/gdp-ts/examples/**", "**/__pycache__/**"]
 

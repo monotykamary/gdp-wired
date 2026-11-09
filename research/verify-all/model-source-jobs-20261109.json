@@ -1,0 +1,9 @@
+[
+  {
+    "name": "model-source-inventory",
+    "cmd": "python3 research/verify-all/model-source-inventory-20261109.py && bun research/verify-all/model-source-inventory-20261109.ts",
+    "cpu": 1,
+    "memory": 2,
+    "timeout": 180
+  }
+]

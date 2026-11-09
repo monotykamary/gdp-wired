@@ -1,0 +1,9 @@
+[
+  {
+    "name": "paxos-feature-census",
+    "cmd": "bun install --frozen-lockfile >/dev/null && bun research/verify-all/paxos-feature-census.ts evidence",
+    "cpu": 2,
+    "memory": 4096,
+    "timeout": 240
+  }
+]

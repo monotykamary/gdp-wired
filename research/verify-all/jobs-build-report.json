@@ -1,0 +1,9 @@
+[
+  {
+    "name": "build-report",
+    "cmd": "bash -o pipefail -c 'bun research/verify-all/build-report.ts evidence | tee /tmp/verify-all-final-report.log' && bun research/verify-all/verify-report.ts /tmp/verify-all-final-report.log evidence",
+    "cpu": 2,
+    "memory": 4096,
+    "timeout": 120
+  }
+]

@@ -1,0 +1,4 @@
+[
+ {"name":"source-unit","cmd":"bun install --frozen-lockfile >/dev/null && bun scripts/gen-lean-library.ts --check && bun test --timeout 300000 lean-kernel/export-shape.test.ts lean-kernel/qalpha.test.ts research/verify-all/capture-alpha.test.ts core/conformance.test.ts && bun research/verify-all/paxos-lean-source-check.ts","cpu":8,"memory":14336,"timeout":1200,"vm_type":"large"},
+ {"name":"count-examples","cmd":"bun install --frozen-lockfile >/dev/null && mkdir -p /tmp/export-fix-counts && bun lean-kernel/count-examples.ts /tmp/export-fix-counts && bash research/verify-all/check-lean.sh /tmp/export-fix-counts/CountExamples.lean","cpu":4,"memory":14336,"timeout":1200,"vm_type":"large"}
+]

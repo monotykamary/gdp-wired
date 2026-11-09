@@ -22,6 +22,24 @@ on top of state-first: the first pilot caught no drops during target build.
 Shared circuits passed 57 tests; the pilot recovered four named drops,
 but still fails the unchanged five-of-seven bar.
 
+## Gate base update — main 4497c4b0
+
+Coordinator advanced main from `b788e195` to `4497c4b0`. All future paired
+and final gates use `4497c4b0` (also recorded in `research/track-gen/GATE-BASE.txt`).
+The live early-seed pilot is an immutable **pre-merge experiment**, not a gate;
+its archive, overlay, six jobs and comparison scope are unchanged.
+
+Merged main while preserving lane count/deadline work. The only textual conflict
+was `scripts/test-shards.ts`: retained every lane count/recovery/kernel test,
+added upstream absence/choice-join tests, retained the auto-merged comparison,
+mutation and runtime tests, and registered all five tiny-search suites.
+`core/machine.ts` and `core/dsl.ts` merged automatically: main's interpreter and
+comparison fixes coexist with the lane's runtime-count checkpoints and walls.
+No manual kernel/Lean changes. This merge also inherits main's earlier Lean
+export work, which this lane had not yet merged from `b788e195`.
+Post-merge static checks and regression shards are next; the prior 80-test
+receipt does **not** certify the new merged tree. Production stays disabled.
+
 ## Current revision: front-loaded seed certification (checked; pilot running)
 
 Coupled moves below still missed five-of-seven. The next hypothesis moves the

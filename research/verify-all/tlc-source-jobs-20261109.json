@@ -1,0 +1,9 @@
+[
+  {
+    "name": "tlc-source-audit",
+    "cmd": "python3 research/verify-all/tlc-source-audit-20261109.py",
+    "cpu": 1,
+    "memory": 1024,
+    "timeout": 180
+  }
+]

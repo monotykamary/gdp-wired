@@ -8,12 +8,13 @@ import {type Lin, type RowSrc, type Step, add, k, scale, sub} from '../core/solv
 import {type CountCert, type CountedGoal, type CountInst, type LemmaCut, lemmaPath, checkCounted, checkCountedLaws, type Ghosted, countedGoal, countedObligations, countHyps, mcGoal, postName, type Fold, type Goal, type Instances, type KInduction, type Liveness, type Loop, type Path, type Recur, type RecurCases, type StepLaw, type Tree, boundOf, caseGoals, cellParts, check, checkRecur, checkRecurCases, coverGoal, recurGoal, canon, decided, factorsOf, isCell, isMonomial, columnTerm, stateName, termColumn, truth, historyMachine, sumMachine, sumCovers, sumParts, foldObligations, kInductionStart, kInductionSteps, leafConstraints, loopLiveness, loopMachine, linear, livenessHelpful, livenessParts, livenessLevels, livenessRanks, strongly, loopObligations, trueC, obligations, progressObligations, stepLawObligations, substC, witnessesOf, withProducts} from '../kernel/kernel.ts'
 import {chooseLevels, clock, grow, minimal, proveBuilt, proveLaws, proveSetFast, proveStepLaws, withDeadline} from '../kernel/prove.ts'
 import {refinement, refinementSides} from '../core/compose.ts'
-import {exactNat, leanSurface, leanTerms} from './lean-terms.ts'
+import {exactNat, leanConnective, leanSurface, leanTerms} from './lean-terms.ts'
 import {type Cyclic, descentGoal, mainGoal, premiseGoal} from '../kernel/cyclic.ts'
 import {allowNode, certMs, closingInsts, reqTS, withWitness, foldNodes, certMode, quietly, uncoveredWhy, hasQuantified, kWhens, machineNodes, type NodeSpec, proveCyclic, routeOf, searchedStepNodes, skMachine, stepLawNodes, tBack, tSub} from '../core/cyclic.ts'
 import type {Fact} from '../kernel/cyclic.ts'
 import {leanLibrary} from './library.ts'
 import {proveKInduction} from '../core/kind.ts'
+import {quantifiedRenames} from './qalpha.ts'
 export {leanLibrary}
 
 export type Exported = {name: string, goal: Goal, tree: Tree}
@@ -377,6 +378,11 @@ export function cmachineToLean(id: string, m: Machine, laws: Law[], proof: {inst
     ...goals.flatMap(g => g.hyps.flatMap(varsOf)), ...certVars])]
   const maps = [...new Set([...named.maps, ...extra.flatMap(n => n.maps), ...counts.flatMap(([cn]) => [cn, postName(cn)]), ...goals.flatMap(g => g.hyps.flatMap(mapsOf)),
     ...allCerts.flatMap(cs => Object.values(cs).flatMap(k => [...k.reads.map(r => r[1]), ...(k.picks ?? []).flatMap(([, ks]) => ks.flatMap(mapsOf))]))])]
+  // Keep the input machine and proof untouched. Only the machine submitted to Lean's
+  // checker alpha-renames colliding local binders; QAlpha proves its original semantics.
+  const renames = quantifiedRenames(sm, laws, [...vars, ...maps])
+  vars.push(...renames.map(r => r.fresh))
+  const checked = renames.length ? `${id}_checkedMachine` : `${id}_machine`
   const {e, c} = leanTerms(vars, maps, id)
   const ix = (name: string) => { const j = vars.indexOf(name); if (j < 0) throw new Error(`${id}: no variable for ${name}`); return j }
   const mx = (name: string) => { const j = maps.indexOf(name); if (j < 0) throw new Error(`${id}: no map for ${name}`); return j }
@@ -418,15 +424,18 @@ export function cmachineToLean(id: string, m: Machine, laws: Law[], proof: {inst
   })
   return `-- ${m.name}: ${laws.map(l => l.name).join('; ')}, with counts ${counts.map(([cn]) => cn).join(', ')}
 --   (variables ${vars.map((v2, j) => `${j} ${v2}`).join(', ')}; maps ${maps.map((v2, j) => `${j} ${v2}`).join(', ')})
-def ${id}_machine : SMachine := ${machineLit(sm, {e, c}, ix, mx)}
+def ${id}_machine : SMachine := ${machineLit(sm, {e, c}, ix, mx)}${renames.length ? `
+-- Local alpha conversion only; validAll is checked by the generic semantic bridge.
+def ${id}_renames : List QAlpha.Rename := ${list(renames.map(r => `⟨${ix(`?${r.flag}`)}, ${ix(r.old)}, ${ix(r.fresh)}⟩`))}
+def ${id}_checkedMachine : SMachine := QAlpha.renameAll ${id}_machine ${id}_renames` : ''}
 def ${id}_decls : List CDecl := ${list(counts.map(([cn, d]) => `⟨${mx(cn)}, ${mx(postName(cn))}, ${ix(d.j)}, ${ix(d.key)}, ${e(d.below)}, ${e(d.body)}, ${ix(d.lo ?? d.j)}, ${d.base ?? 0}⟩`))}
 def ${id}_proof : List CEntry := ${list(entries(proof.certs))}
-theorem ${id}_check : checkCMachine ${id}_machine ${id}_decls ${id}_proof = true := by ${checkBy}
+theorem ${id}_check : checkCMachine ${checked} ${id}_decls ${id}_proof = true := by ${checkBy}
 /-- ${laws.map(l => l.name).join('; ')}: each holds in every reachable state, each count map read as the state's count. -/
 theorem ${id}_laws : ∀ ρ M, CReach ${id}_machine ${id}_decls ρ M → ∀ ce ∈ ${id}_proof, ce.e.Holds ρ (withCnt ${id}_decls ρ M) :=
-  cmachine_sound ${id}_machine ${id}_decls ${id}_proof ${id}_check${tampers.map(t => `
+  ${renames.length ? `QAlpha.cmachine_sound ${id}_machine ${id}_renames ${id}_decls ${id}_proof (by ${checkBy}) ${id}_check` : `cmachine_sound ${id}_machine ${id}_decls ${id}_proof ${id}_check`}${tampers.map(t => `
 -- TAMPERED: ${t.what}. Lean computes the check to false, as kernel.ts refuses it.
-example : checkCMachine ${id}_machine ${id}_decls ${list(entries(t.certs))} = false := by ${checkBy}`).join('')}`
+example : checkCMachine ${checked} ${id}_decls ${list(entries(t.certs))} = false := by ${checkBy}`).join('')}`
 }
 
 // Whole machines through Kern.machine_sound: Lean builds the goals from the machine; the trees are the kernel's.
@@ -615,7 +624,7 @@ function sharedTerms(vars: string[], where: string, plainE: (t: E) => string) {
       case '<': return `.lt (${e(t.a)}) (${e(t.b)})`
       case '=': return `.eq (${e(t.a)}) (${e(t.b)})`
       case 'not': return `.not (${c(t.x)})`
-      case 'and': case 'or': return t.xs.length === 0 ? plainC(t) : t.xs.map(c).reduceRight((acc, y) => `.${t.op} (${y}) (${acc})`)
+      case 'and': case 'or': return leanConnective(t.op, t.xs.map(c))
       case 'flag': case 'all': return plainC(t)
     }
   }
@@ -857,7 +866,10 @@ ${[...vars.filter(v => used.has(v)).map(v => `abbrev ${q(v)} : Nat := ${vars.ind
 ${laws.map((law, j) => {
     if (law.ex) return someOf(law, j)
     if (JSON.stringify(law.holds).includes('"op":"if"')) return `-- ${law.name}: its terms read an if, so no plain statement here (${id}_laws holds it)`
-    const hyps = arithBinders(law), names = arithIn(law).map(hypName), rw = names.length ? `have hμ : ${statement(law, false)} := hl'\n  rw [${names.join(', ')}] at hμ\n  exact hμ` : `exact hl'`
+    const hyps = arithBinders(law), names = arithIn(law).map(hypName)
+    // Proof terms retain neutral Boolean children; surface statements omit them.
+    const surfaceProof = `by simpa [${id}_l${j}, holdsC, evalE, upd] using hl'`
+    const rw = names.length ? `have hμ : ${statement(law, false)} := ${surfaceProof}\n  rw [${names.join(', ')}] at hμ\n  exact hμ` : `exact ${surfaceProof}`
     const own = law.keys?.length ? `${reach.have ? reach.have(j) : `have hl : ${id}_e${j}.Holds ρ μ := ${reach.call} ${id}_e${j} (by simp [${id}_proof])`}
   have hl' := fun k ${law.keys.map((_, i) => `k${i + 2}`).join(' ')} => (evalC_iff (upd (${law.keys.reduce((acc, key, i) => `upd (${acc}) ${vars.indexOf(key)} k${i + 2}`, 'ρ')}) ${vars.indexOf(law.forall!)} k) μ ${id}_l${j}.holds).mp (hl ${law.keys.map((_, i) => `k${i + 2}`).join(' ')} k)
   ${rw}` : `${reach.have ? reach.have(j) : `have hl : ${id}_l${j}.Holds ρ μ := ${reach.call} ${id}_e${j} (by simp [${id}_proof])`}
@@ -2219,7 +2231,7 @@ function toLeanWith(items: LeanItem[], opts: {title?: string}): string {
   }
   // The file the items need: Live.lean for a liveness or a loop, Sets.lean (which imports Steps.lean) for any machine.
   return `import History
-${items.some(item => 'countedGoal' in item || 'countedMachine' in item) ? 'import CountMachine\n' : ''}${items.some(item => 'machine' in item && item.machine.sums && Object.keys(item.machine.sums).length) ? 'import Sums\n' : ''}${items.some(item => 'neverEnds' in item) ? 'import NonTerm\n' : ''}${items.some(item => 'kInduction' in item) ? 'import KInd\n' : ''}${cycTexts ? 'import BridgeRules\n' : ''}${items.some(item => 'cyclic' in item) ? (items.some(item => 'cyclic' in item && (item.bridge || item.recur || item.fold)) ? 'import Bridge\n' : 'import Cyclic\n') : ''}${items.some(item => 'cyclic' in item && item.data) ? 'import Data\n' : ''}import ${items.some(item => 'refinement' in item) ? 'Refine' : items.some(item => 'machine' in item && (item.ghosts?.length || item.laws.some(l => l.some?.length))) ? 'Ghost' : items.some(item => ('machine' in item && item.liveness?.length) || 'loop' in item) ? 'Live' : items.some(item => 'machine' in item) ? 'Sets' : 'Steps'}
+${items.some(item => 'countedGoal' in item || 'countedMachine' in item) ? 'import QAlpha\n' : ''}${items.some(item => 'machine' in item && item.machine.sums && Object.keys(item.machine.sums).length) ? 'import Sums\n' : ''}${items.some(item => 'neverEnds' in item) ? 'import NonTerm\n' : ''}${items.some(item => 'kInduction' in item) ? 'import KInd\n' : ''}${cycTexts ? 'import BridgeRules\n' : ''}${items.some(item => 'cyclic' in item) ? (items.some(item => 'cyclic' in item && (item.bridge || item.recur || item.fold)) ? 'import Bridge\n' : 'import Cyclic\n') : ''}${items.some(item => 'cyclic' in item && item.data) ? 'import Data\n' : ''}import ${items.some(item => 'refinement' in item) ? 'Refine' : items.some(item => 'machine' in item && (item.ghosts?.length || item.laws.some(l => l.some?.length))) ? 'Ghost' : items.some(item => ('machine' in item && item.liveness?.length) || 'loop' in item) ? 'Live' : items.some(item => 'machine' in item) ? 'Sets' : 'Steps'}
 open Kern Cert
 set_option maxRecDepth 100000
 set_option maxHeartbeats 0
