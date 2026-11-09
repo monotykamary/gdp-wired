@@ -16,7 +16,7 @@ bun -e 'import{createHash}from"node:crypto";const p=await Bun.file("lane-e-rows/
 code=0
 LANE_B_PASS_ORDER="$order" GDP_COUNTS_TRACE=2 GDP_COUNTS_DUMP_ALL_PASSES=1 GDP_COUNTS_DUMP_MIN=0 GDP_COUNTS_DUMP_N=100000 bun research/track-m/lane-b-cost.ts "$work/family.json" rows "$work/result" "$budget" "$wall" > "$work/run.log" 2>&1 || code=$?
 if test -f "$work/result/summary.json"; then
- bun -e 'const r=await Bun.file(process.argv[1]).json();const {events,profile,checkProfile,cache,...small}=r;console.log(JSON.stringify({...small,eventCount:events.length,stages:events.map(e=>({phase:e.phase,pass:e.pass,hyps:e.hyps})),profile,cache,checkProfile}))' "$work/result/summary.json"
+ bun -e 'const r=await Bun.file(process.argv[1]).json();const {events,profile,checkProfile,cache,last,...small}=r;console.log(JSON.stringify({...small,last:last&&{phase:last.phase,pass:last.pass,goal:last.goal,error:last.error},eventCount:events.length,stages:events.map(e=>({phase:e.phase,pass:e.pass,hyps:e.hyps})),profile,cache,checkProfile}))' "$work/result/summary.json"
 else
  echo MISSING_SUMMARY
  tail -c 4000 "$work/run.log"

@@ -1,0 +1,176 @@
+[
+  {
+    "name": "rows-2700-count-first",
+    "checked": false,
+    "units": 2700.2335139999996,
+    "searchUnits": 2700.2335139999996,
+    "wallMs": 2358.761184,
+    "results": [
+      {
+        "pass": 1,
+        "outcome": "unknown",
+        "units": 2700.2335139999996,
+        "wallMs": 2357.2094020000004
+      }
+    ],
+    "lastPhase": null,
+    "phaseCounts": {
+      "query": 10,
+      "decision:sat": 9,
+      "model": 9,
+      "decision:unknown": 1,
+      "unknown": 1,
+      "unspecified": 1
+    },
+    "profile": {
+      "encode": 40.176074999999855,
+      "decide": 2160.921783,
+      "mbqi": 112.75268000000005,
+      "lazy": 0.16845099999954982,
+      "#rounds": 9,
+      "#hyps": 1083,
+      "grow": 2.3603109999999106
+    },
+    "archive": {
+      "artifact": "track-m-tar-v1",
+      "dir": "/home/user/track-m-s18-receipts-aIaGm1",
+      "format": "tar.gz",
+      "parts": 3,
+      "bytes": 363278,
+      "sha256": "c396996effe812558edafa9bf2c7f1cdd96177bba65e90dabc5c4cc7052e673c"
+    }
+  },
+  {
+    "name": "rows-2700-ordinary-first",
+    "checked": false,
+    "units": 2700.1291251999996,
+    "searchUnits": 2700.1291251999996,
+    "wallMs": 3380.956798,
+    "results": [
+      {
+        "pass": 0,
+        "outcome": "sat",
+        "units": 2700.1291251999996,
+        "wallMs": 3379.018757
+      }
+    ],
+    "lastPhase": "uncertified-model",
+    "phaseCounts": {
+      "query": 11,
+      "decision:sat": 11,
+      "model": 11,
+      "unspecified": 1,
+      "finite-model": 1,
+      "uncertified-model": 1
+    },
+    "profile": {
+      "encode": 32.82292599999971,
+      "decide": 734.4860280000003,
+      "mbqi": 93.10261299999979,
+      "lazy": 0.11173200000030192,
+      "#rounds": 11,
+      "#hyps": 1190,
+      "focused": 2511.20123
+    },
+    "archive": {
+      "artifact": "track-m-tar-v1",
+      "dir": "/home/user/track-m-s18-receipts-pu1rsn",
+      "format": "tar.gz",
+      "parts": 3,
+      "bytes": 403567,
+      "sha256": "ac46f0634e225e1d8461abf085fe06bb01ed2ae81d3b4bd0fa8aefa7f723a05e"
+    }
+  },
+  {
+    "name": "rows-6000-count-first",
+    "checked": false,
+    "units": 3090.0964839999997,
+    "searchUnits": 3090.0964839999997,
+    "wallMs": 7089.859029,
+    "results": [
+      {
+        "pass": 1,
+        "outcome": "unknown",
+        "units": 3090.0964839999997,
+        "wallMs": 7086.136039
+      },
+      {
+        "pass": 0,
+        "outcome": "unknown",
+        "units": 0,
+        "wallMs": 0.530786999999691
+      }
+    ],
+    "lastPhase": "rejected proposal",
+    "phaseCounts": {
+      "query": 10,
+      "decision:sat": 9,
+      "model": 9,
+      "rejected proposal": 2
+    },
+    "profile": {
+      "encode": 84.25578100000075,
+      "decide": 6647.697091,
+      "mbqi": 255.4380630000005,
+      "lazy": 0.2837230000004638,
+      "#rounds": 9,
+      "#hyps": 1083
+    },
+    "archive": {
+      "artifact": "track-m-tar-v1",
+      "dir": "/home/user/track-m-s18-receipts-ZVaXK4",
+      "format": "tar.gz",
+      "parts": 3,
+      "bytes": 331235,
+      "sha256": "2e7c598fc91fc87e2cfc45756453dae760ae9cba39aabc7b64eb426a9118c262"
+    }
+  },
+  {
+    "name": "rows-6000-ordinary-first",
+    "checked": false,
+    "units": 3574.5404236,
+    "searchUnits": 3574.5404236,
+    "wallMs": 7002.216966,
+    "results": [
+      {
+        "pass": 0,
+        "outcome": "unknown",
+        "units": 3574.5404236,
+        "wallMs": 7000.595624
+      },
+      {
+        "pass": 1,
+        "outcome": "unknown",
+        "units": 0,
+        "wallMs": 0.17156100000011065
+      }
+    ],
+    "lastPhase": "rejected proposal",
+    "phaseCounts": {
+      "query": 11,
+      "decision:sat": 11,
+      "model": 11,
+      "unspecified": 1,
+      "finite-model": 1,
+      "uncertified-model": 1,
+      "rejected proposal": 2
+    },
+    "profile": {
+      "encode": 36.469858000000386,
+      "decide": 1443.247945,
+      "mbqi": 100.86553100000037,
+      "lazy": 0.1966830000005757,
+      "#rounds": 11,
+      "#hyps": 1190,
+      "focused": 5408.918031
+    },
+    "archive": {
+      "artifact": "track-m-tar-v1",
+      "dir": "/home/user/track-m-s18-receipts-lfay6e",
+      "format": "tar.gz",
+      "parts": 3,
+      "bytes": 384522,
+      "sha256": "e917bc0808362fe425625ea51619b2940c95665d58cf432e6544fa301972470d"
+    }
+  }
+]

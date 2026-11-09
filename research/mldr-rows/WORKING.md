@@ -4,6 +4,22 @@ Coordinator reassigned Inv1758 to E. B retains Inv* and p1; F retains
 Inv2973-half. Safety's source 9124348d and its fresh-family receipts remain
 unchanged. No other lane worktree is edited.
 
+## Current result and active next falsifier
+
+Baseline: no checked proof in all four jobs. At 2700, ordinary-first returns
+uncertified SAT at 2700.129 units, counted-first UNKNOWN at 2700.234. Both
+6000 jobs exhaust seven-second walls, not their work allowances.
+
+Frozen counted STEP: 68 initial hypotheses, no universal-law tuples, six
+keyless count reads / ten count instances; tenth query has 244 hypotheses.
+The final abstract model is become_leader, actor equal to the first target
+row, with a config-term collision and differing row payload cells.
+
+Current ten-job experiment is ce05e3b2-32d6-47f4-a62d-8d9896fada63:
+`early` moves the existing bounded completion; `row-first` also moves row and
+request terms before the column. Eight paired timing jobs plus two source/
+test checks. No production source changes; no proof claimed until checked.
+
 ## First falsifiable measurement
 
 Use the already verified fresh 34-law family, no supplied law. Target index

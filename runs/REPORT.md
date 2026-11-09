@@ -1,5 +1,39 @@
 # RESUMED — lane E, 2026-11-10
 
+## Inv1758 baseline returned; missing actor-row count context under test
+
+All four baseline jobs completed in **20261110-023802-tbr25k**. None produced
+a checked Inv1758 proof. At 2700 units: ordinary-first returns an uncertified
+`SAT` after **2700.129 units / 3.381 s**; counted-first is **UNKNOWN** after
+**2700.234 / 2.359 s**. At 6000 units both reach the unchanged seven-second
+wall (**3574.540** ordinary-first, **3090.096** counted-first). Lower reached
+work at a wall is not an improvement. Full logs, CPU labels and hashes:
+`runs/mldr-rows-baseline-v1/`.
+
+Frozen-model inspection ran on boat, batch **20261110-024021-a5u0mp**.
+Counted STEP starts with 68 hypotheses, **no universal-law tuples**, six
+keyless count reads, and ten count instances. By the tenth query it has 244
+hypotheses but still no bounded-completion event. The last model is the
+unchanged `become_leader` action: actor i equals target row a, with a higher
+pre-state config term, and distinct payload cells at the symbolic column.
+This is an abstract model, **not a validated reachable counterexample**.
+Compact diagnosis: `runs/mldr-rows-inspect-v1/diagnosis.json`.
+
+Testing two **disposable-only** schedules: move the existing 4-term/48-tuple
+count-law completion before the first counted query; additionally prioritize
+actual row/request terms ahead of the third (column) binder. Each is paired
+with an unchanged control in both orders and at both budgets, plus a source
+check/test worker. Task **ce05e3b2-32d6-47f4-a62d-8d9896fada63**, output
+`runs/mldr-rows-early-v1/`. No successful result is claimed yet.
+
+**For B/I:** production `core/counts.ts` is unchanged. The experimental
+installer touches only disposable boat copies of its completion block.
+A later production scheduling hook would overlap B's file and will be
+reported before promotion. Both kernel and original family are untouched.
+The four compressed captures total about 1.48 MB and remain ignored; only
+small receipts/hashes and compressed logs are committed.
+
+
 ## NEW TARGET — Inv1758 assigned to lane E
 
 Coordinator moved Inv1758 to E; B retains Inv* / p1 and F retains

@@ -1,0 +1,7 @@
+COMMITLINT commits/84aa102f.txt
+COMMITLINT commits/proposed.txt
+
+--- stderr ---
+Resolving dependencies
+Resolved, downloaded and extracted [276]
+Saved lockfile
