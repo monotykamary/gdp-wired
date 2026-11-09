@@ -1,4 +1,4 @@
-// T-13: the production generation path, with no proof queries.
+// T-13: counted production generation plus the all-port census; no proof queries.
 import {gzipSync} from 'node:zlib'
 import {protocols} from '../protocols/ic3syn/models.ts'
 import {candidates, guardLaws, cprof} from '../../core/counts.ts'
@@ -22,7 +22,7 @@ if (import.meta.main) {
     const laws = withWall(performance.now() + 60000, () => counted(fullRate, () => {
       // Raw existential callers are not ordinary state laws; their witness
       // selection is a separate production path, not a generation query.
-      if (!caller.filter(l => !l.some?.length).every(l => trueSmall(m, [l]))) throw Error(`${p.id}: caller fails samples`)
+      if (r.machine.counts && !caller.filter(l => !l.some?.length).every(l => trueSmall(m, [l]))) throw Error(`${p.id}: caller fails samples`)
       return [...caller, ...time('candidates', () => candidates(r.machine, m, caller, caller, g.laws, 60000, clock() + 60000))]
     }, true))
     const record = {id: p.id, count: laws.length, canonical: laws.map(canonical), names: laws.map(l => l.name), wallMs: performance.now() - t0, phases, states: states.map(s => s.sts.length), counts: Object.keys(m.counts), cprof: {...cprof}}

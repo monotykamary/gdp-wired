@@ -5531,3 +5531,221 @@ the coverage and limitations. Twenty-eight archives had matching manifests;
 eleven are marked unverified. No parse failures or available-manifest
 mismatches. No solver reruns or policy/production/kernel changes. Type/lint and
 **3 tests / 6 assertions** pass.
+
+## MLDR-GEN / T-13 — syntax-driven quorum lifting (2026-11-09)
+
+Branch `claude/mldr-gen`, based on `claude/track-mldr` at `346fbcd9`.
+This lane changes generation, not the protocol, kernel, proof budgets, or solver.
+The parallel proof-cost lane's worktree was not modified. No merge or push.
+
+### Implementation and falsifiable contract
+
+- `core/quorum-laws.ts`, called beside the stored-set loop in `guardLaws`,
+  recognizes a stored-row majority and an action's quantified carried-set
+  predicate. It enumerates nonempty conjunction subsets, lifts through the
+  action's exact written value, and proposes no-quorum laws. A row write also
+  lifts the set guard and its half-witness assumptions, including disjunctive
+  no-quorum weakenings. It handles both numeric if-writes and the Boolean
+  disjunctive form emitted by the DSL. No protocol/map/flag names are built in.
+- Packed-key row equality supplements the existing tuple-key versioned-row
+  clause in `core/field-laws.ts`.
+- New laws are admitted **after the existing candidate families**. All go through
+  scope, the existing reachable-state filter, and ordinary counted induction.
+  The grammar has at most two quorum predicates, three conjuncts each, and a
+  32-law cap on its appended family. Reversed row differences reuse a count at
+  swapped keys. Counts not read by admitted laws are removed.
+- `smallOf(m, source)` reuses the source's sampled graph only after checking that
+  the sole changes are fresh, unreferenced count declarations. Changed steps,
+  replacement definitions and shadowed map reads cannot use this shortcut.
+  Sample views are cached by **machine and state**, not state alone. Filtering
+  retains its per-candidate early exit and no sampling bounds were changed.
+
+The falsification contract is unchanged: any different canonical list on the
+other 28 ports, or absence of a semantic match for one of the three missing
+MLDR laws, fails T-13.1. A bounded induction check is not an unbounded proof.
+
+### Completed semantic and bounded checks
+
+`runs/t13-fast-v4/equivalence.log` compares every binding in `{0,1,2,3}` on
+2,000 seeded size-3 random states (seed 13013), not just universally quantified
+truth at a state. Each comparison has both true and false instances:
+
+| Published law | Generated match | true / false instances |
+|---|---|---:|
+| Inv1758 | `fields: CV[a]=CV[b] and CfgT[a]=CfgT[b] -> Config rows agree` | 126874 / 1126 |
+| Inv2973, half form | `inX: stored guard reconfigs/inS or disabled/0` | 510826 / 1174 |
+| Inv* | `inX: no quorum canVote/3` | 29126 / 2874 |
+
+This is an experimental semantic cross-check, not a proof certificate. The hand
+laws occur only in the research comparison oracle, never as production input.
+
+The actual grammar proposes **18** laws (15 quorum/guard laws plus 3 packed-row
+field laws), of which **9** pass the small-state filter: MLDR has **34**, not 25,
+laws. The design's estimates of 19/11 are not the measured result. There are nine
+retained new counts, not six: three equality-body counts remain referenced by
+three admitted weakened overlap laws even though their standalone no-quorum
+laws fail the filter. They are not silently removed to meet an estimate.
+
+T-13.2: `research/track-gen/t13-relative.ts`, on boat at n=3, T=2, V=2,
+enumerated 4,652,219 states after sound unary/pair pruning; 1,905,566 satisfy the
+hand family. Every enabled transition was checked, **including post-states
+outside the T/V pre-state bounds**. The hand family has **zero CTIs**.
+
+| Alternative added separately | Pre-states satisfying it | transitions | CTIs |
+|---|---:|---:|---:|
+| unconditional low-term no-quorum | 1434341 | 7773133 | 83718 |
+| unconditional row quorum overlap | 1403426 | 7445710 | 2052 |
+
+First low-term CTI: `lead(1,2)` from
+`ct=[0,1,1], st=[0,0,0], cv=[0,1,2], cft=[1,0,0], cfg=[0,2,5]` raises
+`ct[1]` and `cft[1]` to 2. First overlap CTI: `reconfig(2,4)` from
+`ct=[0,0,0], st=[0,0,1], cv=[1,2,2], cft=[0,0,0], cfg=[2,6,6]` changes the
+last row to 4 and version to 3. Full receipts: `runs/t13-relative/relative.log`;
+`placement.json` labels the exclusive pinned large VM.
+
+### Cost, gates and experiment failures
+
+A same-VM before/after sample-reuse pair (`runs/t13-cost`) retained identical
+34-law canonical lists and zero root queries. Total generation wall was
+28.737 s fresh vs 22.253 s reused; sampling was 15.155 vs 13.803 s, candidate
+work 13.534 vs 8.414 s. This sequential pair includes warmup/host variance: do not
+attribute the entire difference to the optimization. The new-law filter itself
+was **0.325 vs 0.308 s**, not the prototype's approximately 15 s: it uses the
+engine's cached sample views/count cells and exits on the first false instance.
+Every timing receipt has `--timing --vm-type large` and its own placement label;
+large VMs have different CPU models, so cross-VM wall comparisons are not a
+fixed-CPU benchmark.
+
+`runs/t13-gates`: **28 tests / 239 assertions passed** across the new generator,
+packed-field, sample-reuse tests and neighboring counted/exists/MLDR tests.
+TypeScript and type-aware lint passed. `runs/t13-final-check` also passed both
+the complete type/lint check and the corrected file-input commitlint check.
+
+Failures retained, not counted as passes:
+
+1. `runs/t13-check-v1/check.log`: one TS `unknown` map-name error, corrected by
+   the explicit type narrowing. The first prototype missed the Boolean-lowered
+   row write and generated only 29 laws; the added shape recognition fixes it.
+2. `runs/t13-paired-v1` and `runs/t13-original-v1`: snapshot setup failed before
+   any run because `cp -al` cannot hardlink the mounted node_modules across
+   devices. Source-only copies plus a dependency symlink replace it; no cache
+   was cleared and the failed runs do not supply paired measurements.
+3. `runs/t13-gates/commitlint.log`: remote snapshots have no `.git`, so
+   commitlint's `--edit` mode failed to locate the git root. The corrected job
+   reads the same message file on stdin.
+4. `runs/t13-paired-v2`: the uniform census tried the universal-state evaluator
+   on an existential caller (`some$36`), including on the baseline. Corrected
+   the research driver: existential witness proving is not a generation query.
+   The following all-port pilot was explicitly stopped after its overly broad
+   preflight spent minutes enumerating non-counted caller bindings. The final
+   driver applies caller preflight only on counted machines, as production does;
+   all proposed candidates still pass the unchanged universal-state filter.
+5. `runs/t13-paired-v3/generation-pair-2.log`: the aggregate all-29 paired job
+   hit its 870 s effective shell timeout on an EPYC VM. It supplied no complete
+   census and is excluded. Only this middle pair was retried, baseline first,
+   in `runs/t13-paired-r2-retry` (817.35 s on a Ryzen VM). The retry allowed
+   1,800 s for the aggregate shell job; **no per-protocol generation or proof
+   budget changed**. The other two completed pairs were not rerun.
+
+### Final paired generation and original-harness receipts
+
+Implementation commit: `74a8a0e9`. The changed production-file git blob hashes are:
+`core/quorum-laws.ts` = `50c3076f0c8b8c331853cdbde29470c2059d6431`,
+`core/counts.ts` = `c1a976aeeb0f1151d3a06137bc62283deb6e1ef0`,
+`core/field-laws.ts` = `91c4c2c1dfda9baf4cd33cb77d3e2cd457727790`,
+`core/exists.ts` = `78e8a95cac8c67d8eb5dae2d3b325ec83cece3a6`.
+
+T-13.3 completed: `runs/t13-original-v2` has three **paired original-harness**
+runs, with `--ms 60000 --only mldr --skip broken`, tracing/profiling only.
+Every baseline and every candidate result is **unknown**, never proven.
+
+| repeat | baseline wall / final reason | candidate wall / final reason |
+|---|---|---|
+| 1 | 48.749 s / `not proven: one primary per term` | 133.399 s / `not proven: every Config cell is a value of its kind, one primary per term` |
+| 2 | 82.147 s / `not proven: one primary per term` | 128.164 s / `time` |
+| 3 | 41.211 s / `not proven: one primary per term` | 88.610 s / `time` |
+
+These are measured walls, **not increased requested proof budgets**. The
+original engine's counted clock and existing wall ceilings are unchanged.
+`runs/t13-original-summary.json` retains the final attempts and phase profiles;
+the full logs and placement labels are in `runs/t13-original-v2/`.
+
+Exactly where safety stops (repeats 2 and 3 have the same counted trace):
+
+- The initial 34-law family gives safety a 955-unit first-pass share. Its STEP
+  stays `sat` through eight rounds / 1,013 accumulated hypotheses. The retry has
+  zero share left and returns `unknown`; the final reason is `time`.
+- Inv* (`no quorum canVote/3`) returns `sat` in both passes (68 and 615 counted
+  units), so it is not retained as an established invariant.
+- Inv2973's generated half form returns `sat` on its initial pass, then
+  `unknown` on retry (6,107 counted units, 485 accumulated hypotheses). That
+  retry costs 19.027 s wall in repeat 2 and 13.369 s in repeat 3.
+- Inv1758's generated row equality stays `unknown` (1,934 and 2,687 counted
+  units). None of the three required helpers becomes an established invariant.
+- Repeat 1 reaches the existing absolute wall ceiling during the broader
+  fallback; the final two-law family still cannot establish either caller.
+  Its early Inv2973 retry is likewise `unknown` at 6,107 counted units.
+
+Thus the generation gap is closed; **the original MLDR safety proof is not**.
+The limit observed here is helper/STEP proof cost under the unchanged scheduler,
+not missing quorum candidates. No full-suite merge gate or successful MLDR
+proof is claimed.
+
+T-13.1 completed: three paired all-29 generation censuses, **zero root proof
+queries**, and byte-identical canonical lists on **all other 28 protocols in
+all three pairs**. MLDR has **25 → 34** laws in every pair, with the semantic
+matches recorded above. Complete lists are retained in compressed form in
+`runs/t13-paired-v3/generation-pair-{1,3}.log` and
+`runs/t13-paired-r2-retry/generation-pair-2.log`.
+`runs/t13-generation-summary.json` records their source paths, per-list SHA-256
+hashes, counts and phase walls; it is a decoded receipt, not a new experiment.
+
+Each successful pair ran sequentially on one exclusive large VM, two pinned
+vCPUs, zero co-tenants, AMD Ryzen 9 9950X. Pairs 1 and 3 ran candidate first;
+pair 2 ran baseline first. Placement labels remain in each run directory.
+The following are per-protocol **generation seconds**, not proof times. The
+large `learning_switch` walls occur on both sides and are mostly existing
+sampling; the 60,000-unit candidate budget and all sampling bounds are unchanged.
+These are paired observations, not a claim of statistically significant speedup.
+
+| protocol | baseline → candidate laws | canonical comparison | baseline seconds, repeats 1/2/3 | candidate seconds, repeats 1/2/3 |
+|---|---:|---|---|---|
+| consensus | 3 → 3 | identical ×3 | 0.03, 0.06, 0.02 | 0.04, 0.03, 0.03 |
+| tcommit | 4 → 4 | identical ×3 | 0.06, 0.13, 0.06 | 0.06, 0.06, 0.04 |
+| lock_server | 5 → 5 | identical ×3 | 0.06, 0.09, 0.08 | 0.05, 0.05, 0.04 |
+| quorum_leader_election | 7 → 7 | identical ×3 | 0.69, 0.80, 0.56 | 0.57, 0.57, 0.51 |
+| toy_consensus_forall | 9 → 9 | identical ×3 | 0.62, 0.86, 0.62 | 0.71, 0.72, 0.60 |
+| simple | 4 → 4 | identical ×3 | 0.01, 0.02, 0.01 | 0.01, 0.01, 0.01 |
+| simple_regular | 4 → 4 | identical ×3 | 0.02, 0.02, 0.02 | 0.02, 0.02, 0.01 |
+| lockserv_automaton | 17 → 17 | identical ×3 | 0.03, 0.07, 0.03 | 0.04, 0.04, 0.04 |
+| sharded_kv | 18 → 18 | identical ×3 | 2.63, 3.08, 2.32 | 2.59, 2.76, 2.38 |
+| sharded_kv_no_lost_keys | 6 → 6 | identical ×3 | 2.74, 3.96, 2.41 | 2.69, 2.44, 2.05 |
+| lockserv | 17 → 17 | identical ×3 | 0.02, 0.04, 0.02 | 0.02, 0.03, 0.02 |
+| twophase | 14 → 14 | identical ×3 | 0.68, 0.86, 0.67 | 0.62, 0.62, 0.47 |
+| simple_decentralized_lock | 20 → 20 | identical ×3 | 0.02, 0.02, 0.02 | 0.02, 0.02, 0.02 |
+| two_phase_commit | 34 → 34 | identical ×3 | 1.23, 1.29, 1.16 | 1.16, 1.16, 0.99 |
+| consensus_wo_decide | 39 → 39 | identical ×3 | 5.82, 6.10, 4.82 | 5.54, 5.36, 4.68 |
+| consensus_forall | 48 → 48 | identical ×3 | 10.19, 13.02, 9.81 | 9.29, 10.72, 10.75 |
+| naive_consensus | 13 → 13 | identical ×3 | 1.11, 1.40, 1.09 | 1.11, 1.34, 1.22 |
+| client_server_ae | 10 → 10 | identical ×3 | 1.42, 1.73, 1.33 | 1.32, 1.42, 1.48 |
+| client_server_db_ae | 15 → 15 | identical ×3 | 6.41, 8.17, 6.75 | 5.92, 7.81, 6.94 |
+| simple_election | 12 → 12 | identical ×3 | 1.57, 1.99, 1.34 | 1.62, 1.76, 1.49 |
+| toy_consensus_epr | 8 → 8 | identical ×3 | 1.06, 1.45, 1.06 | 1.19, 1.19, 1.13 |
+| toy_consensus | 5 → 5 | identical ×3 | 0.60, 0.88, 0.57 | 0.66, 0.72, 0.79 |
+| firewall | 7 → 7 | identical ×3 | 0.04, 0.06, 0.03 | 0.03, 0.05, 0.04 |
+| majorityset_leader_election | 17 → 17 | identical ×3 | 1.18, 1.88, 1.23 | 1.11, 1.44, 1.44 |
+| consensus_epr | 29 → 29 | identical ×3 | 8.60, 12.21, 8.06 | 8.53, 10.51, 8.92 |
+| learning_switch | 16 → 16 | identical ×3 | 165.76, 158.93, 139.83 | 154.44, 157.34, 148.52 |
+| learning_switch_i4 | 463 → 463 | identical ×3 | 160.89, 147.49, 149.11 | 135.62, 164.16, 133.60 |
+| paxos_epr | 77 → 77 | identical ×3 | 19.97, 19.70, 16.51 | 16.11, 20.50, 15.40 |
+| mldr | 25 → 34 | changed | 16.93, 15.46, 15.44 | 16.06, 19.00, 15.24 |
+
+`runs/t13-census/census.log` separately confirms the structural trigger is
+**1 of 29**: MLDR proposes 15 quorum/guard laws and 3 composed-row laws; all
+other ports propose zero of both. Full type/lint and file-input commitlint
+checks passed again in `runs/t13-report-check` after the final research-tooling
+changes. No production file changed after implementation commit `74a8a0e9`.
+
+Reproduction commands and receipt formats: `research/track-gen/T13.md`.
+All started jobs are finished or explicitly stopped. No merge or push was done;
+large logs and decoded receipt archives remain outside git.
