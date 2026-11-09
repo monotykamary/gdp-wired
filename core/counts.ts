@@ -1003,7 +1003,7 @@ export function countedAttempts(m: Machine, caller: Law[], support: Set<Law>, un
   }
   const attempt = (law: Law, ls: Law[], pass: 0 | 1, ms: number): Tried<Proof> => {
     const end = Math.min(until, clock() + ms)
-    const result = withDeadline(end, () => withDeferredCountRecovery(end,
+    const result = withDeadline(end, () => withDeferredCountRecovery<Proof>(end,
       defer => ordinaryAttempt(law, ls, pass, ms, end, defer), () => !!pass || !counted))
     if (!pass) {
       const failures = plainFailures.get(law) ?? new WeakSet<Law[]>()
