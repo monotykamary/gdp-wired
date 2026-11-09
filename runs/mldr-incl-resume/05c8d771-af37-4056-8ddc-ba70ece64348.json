@@ -1,0 +1,21 @@
+{
+  "task": {
+    "id": "05c8d771-af37-4056-8ddc-ba70ece64348",
+    "tool": "bash",
+    "command": "supercomputer run --jobs runs/mldr-incl-resume-check-v1-jobs.json --out runs/mldr-incl-resume-check-v1 --class submission --timing --vm-type large",
+    "cwd": "/Users/monotykamary/VCS/working-remote/open-source/gdp-wired-trackP",
+    "ownerId": "01a1c147-1851-7763-aa96-2150cc23f3f3",
+    "lastOutputAt": 1794244097492,
+    "eventCount": 0,
+    "unread": false,
+    "stopping": false,
+    "pid": 45988,
+    "logPath": "/var/folders/hc/3k4lvfw90yv7kghsnynghcvm0000gn/T/pi-fabric-shell-H424IU/output.log",
+    "startedAt": 1794244080157,
+    "spilledAt": 1794244080406,
+    "finishedAt": 1794244680323,
+    "status": "failed",
+    "exitCode": null
+  },
+  "output": "[Bounded shell log: starts with retained pre-spill tail; 8 MiB total cap, then further output is omitted. Not a full-output archive.]\n[boat] batch 20261110-000811-qbrwk7: gdp-wired, image sc-f0d8daeee6c3, tree 78e2225a7a7c (3845 files), cache olean 001de680457b (16 here)\n[boat] 1 jobs to the scheduler (submission) + 1 large (times from the last run)\n\n\n[[boat] batch 20261110-000811-qbrwk7: gdp-wired, image sc-f0d8daeee6c3, tree 78e2225a7a7c (3845 files), cache olean 001de680457b (16 here)\n[boat] 1 jobs to the scheduler (submission) + 1 large (times from the last run)\n\n\nCommand timed out after 600 seconds]\n"
+}

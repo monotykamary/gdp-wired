@@ -1,0 +1,21 @@
+{
+  "task": {
+    "id": "aa71e475-d1c2-40c7-92fe-2f630a170009",
+    "tool": "bash",
+    "command": "/Users/monotykamary/.local/share/uv/tools/supercomputer/bin/python -c 'from supercomputer.scheduler import Client; import json; print(json.dumps(Client().req(\"/close\", {\"batch\":\"20261110-000811-qbrwk7\"}, timeout=8)))'",
+    "cwd": "/Users/monotykamary/VCS/working-remote/open-source/gdp-wired-trackP",
+    "ownerId": "01a1c147-1851-7763-aa96-2150cc23f3f3",
+    "lastOutputAt": 1794244842254,
+    "eventCount": 0,
+    "unread": false,
+    "stopping": false,
+    "pid": 718,
+    "logPath": "/var/folders/hc/3k4lvfw90yv7kghsnynghcvm0000gn/T/pi-fabric-shell-wURR3i/output.log",
+    "startedAt": 1794244813927,
+    "spilledAt": 1794244814122,
+    "finishedAt": 1794244842733,
+    "status": "failed",
+    "exitCode": 1
+  },
+  "output": "[Bounded shell log: starts with retained pre-spill tail; 8 MiB total cap, then further output is omitted. Not a full-output archive.]\nTraceback (most recent call last):\n  File \"<string>\", line 1, in <module>\n  File \"/Users/monotykamary/.local/share/supercomputer/supercomputer/scheduler.py\", line 3967, in req\n    data = self._local(path, data_in, timeout)\n           ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^\n  File \"/Users/monotykamary/.local/share/supercomputer/supercomputer/scheduler.py\", line 3996, in _local\n    raise RuntimeError(f\"the scheduler didn't answer ({last})\")\nRuntimeError: the scheduler didn't answer (timed out)\n\n\n[Process exited with code 1]\n"
+}

@@ -1,0 +1,21 @@
+{
+  "task": {
+    "id": "9e2450b2-a42e-4e93-bd26-ce49e427a602",
+    "tool": "bash",
+    "command": "supercomputer run --jobs runs/mldr-incl-resume-check-v1-jobs.json --out runs/mldr-incl-resume-check-v2 --class submission --timing --vm-type large",
+    "cwd": "/Users/monotykamary/VCS/working-remote/open-source/gdp-wired-trackP",
+    "ownerId": "01a1c147-1851-7763-aa96-2150cc23f3f3",
+    "lastOutputAt": 1794245541824,
+    "eventCount": 0,
+    "unread": false,
+    "stopping": false,
+    "pid": 92477,
+    "logPath": "/var/folders/hc/3k4lvfw90yv7kghsnynghcvm0000gn/T/pi-fabric-shell-VxVThb/output.log",
+    "startedAt": 1794244657202,
+    "spilledAt": 1794244657517,
+    "finishedAt": 1794245543954,
+    "status": "failed",
+    "exitCode": 1
+  },
+  "output": "[Bounded shell log: starts with retained pre-spill tail; 8 MiB total cap, then further output is omitted. Not a full-output archive.]\n[boat] batch 20261110-001749-c8xynq: gdp-wired, image sc-f0d8daeee6c3, tree b1b6e375981a (3845 files), cache olean 001de680457b (16 here)\n[boat] 1 jobs to the scheduler (submission) + 1 large (times from the last run)\nTraceback (most recent call last):\n  File \"/Users/monotykamary/.local/bin/supercomputer\", line 10, in <module>\n    sys.exit(main())\n             ^^^^^^\n  File \"/Users/monotykamary/.local/share/supercomputer/supercomputer/__main__.py\", line 268, in main\n    _run(a)\n  File \"/Users/monotykamary/.local/share/supercomputer/supercomputer/__main__.py\", line 58, in _run\n    fanout.run_jobs(app, spec, a.out, pre, cmd, mjobs, backend=a.backend, vms=a.vms, idle=None if a.idle < 0 else a.idle, teardown=a.teardown,\n  File \"/Users/monotykamary/.local/share/supercomputer/supercomputer/fanout.py\", line 190, in run_jobs\n    got, bsum = boat.boat_jobs(mine, out, pre, cmd, vms=vms, idle=idle, teardown=teardown, durations=durations, vm_type=vm_type, max_vms=max_vms,\n                ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^\n  File \"/Users/monotykamary/.local/share/supercomputer/supercomputer/boat.py\", line 2928, in boat_jobs\n    sess.run(items, done, on_lost=(lambda it, why: on_lost(it[\"name\"], why)) if on_lost else None, max_wait=max_wait)\n  File \"/Users/monotykamary/.local/share/supercomputer/supercomputer/boat.py\", line 2451, in run\n    self.client.push_tree(self.tree)\n  File \"/Users/monotykamary/.local/share/supercomputer/supercomputer/scheduler.py\", line 4014, in push_tree\n    return store_blobs(tree)\n           ^^^^^^^^^^^^^^^^^\n  File \"/Users/monotykamary/.local/share/supercomputer/supercomputer/scheduler.py\", line 3697, in store_blobs\n    blobcache.put(BLOBS, k, data)\n  File \"/Users/monotykamary/.local/share/supercomputer/supercomputer/blobcache.py\", line 61, in put\n    raise ValueError(\"blob bytes do not match their key\")\nValueError: blob bytes do not match their key\n\n\n[Process exited with code 1]\n"
+}
