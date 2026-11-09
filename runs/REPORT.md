@@ -25,9 +25,19 @@ audit agrees on all 45 witnesses. Full statement: MLDR-DESIGN.md "16.3 — answe
   step changed is not re-evaluated on the post-state. Same drops (5) on the MLDR generation; round 1 visits 132 states /
   2,337 steps instead of 2,000 / 56,341.
 - `core/exists.ts`: `small`'s BFS keys states by a hash with cell-by-cell equality instead of a sorted JSON text per step.
-Measurements (boat, `--timing`, large): generation-only harness 14.5–17.4 s on one Ryzen VM against 26–28 s before on
-another; the same-VM paired comparison against 1681e8e5 ×3 is in `runs/track-wall/` when it lands. Profiles:
-`research/track-wall/profile-jobs.json`.
+Measurements (boat, same VM per pair, alternating order, AMD Ryzen 9 9950X large, `research/track-wall/{check5,original,census}-jobs.json`):
+- generation-only harness ×3: `1681e8e5` 19.60 / 20.16 / 21.07 s → `fe4a0dfe` 12.28 / 12.91 / 12.83 s (small 7.0–7.6 → 4.2–4.5,
+  candidates 12.5–13.5 → 8.0–8.5); same five finite drops; round 1 of the finite pass 132 states / 2,337 steps vs 2,000 / 56,341.
+- strict original harness ×3 (`timeout -s KILL 60 … --ms 60000 --only mldr --skip broken`, both sides `unknown`, `time`):
+  non-attempt wall (small + cubes + finiteHoudini from `counts: prof`) base 23.3 / 28.7 / 19.1 s → mine 21.1 / 17.3 / 13.0 s;
+  `decide` 27.5 / 21.8 / 31.9 → 28.6 / 32.5 / 37.4 s. Pair-to-pair variance on the shared host is large; the paired delta is
+  −2.2 / −11.4 / −6.1 s. The 15 s target is met in one of three pairs; further cuts below.
+- census, all 29 protocols, baseline archive beside the candidate in one job each: **29 / 29 canonical lists byte-identical**,
+  counts unchanged, zero proof queries; generation ms baseline → candidate: mldr 22,020 → 13,121, paxos_epr 15,177 → 12,738,
+  consensus_epr 8,337 → 6,359, consensus_forall 9,264 → 7,513, client_server_db_ae 7,660 → 6,470, learning_switch 135,530 → 124,475,
+  learning_switch_i4 125,012 → 119,879; the small ports within ±20 ms.
+Profiles: `research/track-wall/profile-jobs.json`. `bun run check` in the shipped tree exits 2 on both trees for the same
+`vendor/handwired`-dependent errors (no vendor in the shipped tree); lane D's clean-checkout gate is the authority.
 
 # Track P report
 
