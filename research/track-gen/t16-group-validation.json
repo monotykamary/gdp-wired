@@ -23,7 +23,7 @@
     "research/track-gen/t16-hybrid-replay.ts": "7df0f1856079622f859b0bbbde3db21870cabe91755506f3ca57827943730adf",
     "runs/t16-group-check/bounded-group-check.log.gz": "55b47596b95aed55f9711ec9b6465199bc9d203d85d26f23c5873ae566ebbc5d"
   },
-  "performance": "First six probes failed before the experiment due to the input path after chdir; corrected six-probe retry pending. No measured outcome.",
+  "performance": "Corrected probes and independent replay complete: four named-seven drops per original run, all active walls <= 2s. Five-of-seven falsifier fails; production disabled.",
   "productionEnabled": false,
   "implementationCommit": "27ff24fc",
   "failedProbeBatch": "20261110-010407-6qnghm",
@@ -35,5 +35,6 @@
     "survivors-hybrid-2",
     "survivors-hybrid-3"
   ],
-  "retryTask": "3a9c3826-7966-4737-83cc-593822d37f22"
+  "retryTask": "3a9c3826-7966-4737-83cc-593822d37f22",
+  "results": "research/track-gen/t16-group-results.json"
 }

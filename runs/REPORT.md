@@ -44,7 +44,7 @@ The shortcut has no demonstrated removal gain; the different CPU placements
 are not a paired speed comparison. No strict original-harness/full gate is
 scheduled for this unsuccessful screen. No safety proof or GATE GREEN.
 
-### Bounded native grouping: checked implementation, probes pending
+### Bounded native grouping: independently replayed, four of seven — not sufficient
 
 Batch `20261110-010410-4rvkxj`, snapshot `777d8975d129`, has now passed
 **40 tests / 150 assertions**, full TypeScript and type-aware lint (zero
@@ -60,11 +60,18 @@ only at the outer sandbox root. This is an input-path setup failure, not a
 compiler/removal/wall result. All six error logs were inspected and gzip
 copies retained. The completed failing batch is `20261110-010407-6qnghm`.
 
-The corrected manifest checks the frozen input SHA-256, copies that small
-file into `$work/tiny-data/`, and reruns only those six jobs. Task
-`3a9c3826-7966-4737-83cc-593822d37f22` is pending. No compiler code, budget,
-domain, or archive changed, and the successful test suite was not repeated.
-No performance gain or production promotion is claimed.
+The corrected batch `20261110-012637-jlj653` exited 0 for all six jobs.
+Independent replay `20261110-013708-5enz4s` also passed for all six logs.
+Original-family active walls: **1966.647 / 1901.227 / 1900.141 ms**. Each
+original run removes six laws total, but only **four of the named seven**:
+CV bound, unweakened stored guard, disabled/1 and no-quorum canVote/1.
+All survivor-34 runs newly remove the last three; the historical CV drop
+makes four including history. Their active walls are 1900.323 / 1902.648 /
+1900.260 ms. Compact evidence: `research/track-gen/t16-group-results.json`.
+
+**The five-of-seven bar still fails.** No production promotion, final gate,
+semantic-exhaustion or safety-proof claim. No compiler code, budget, domain,
+or archive changed for this retry; the passing suite was not repeated.
 
 Individual native predicate calls may be replacing arithmetic work with call
 overhead. `core/finite-tiny.ts` now tries shared-DAG logical groups within the
@@ -72,7 +79,9 @@ overhead. `core/finite-tiny.ts` now tries shared-DAG logical groups within the
 checking cancellation between them. Atomic early guards remain. No search
 domain, wall, proof fuel, law or production switch changes. A 4,096-clause
 regression exercises cap-driven splitting, alongside the exhaustive small
-polarity/request tests. This is a hypothesis, not a measured improvement.
+polarity/request tests. This now has a repeatable removal improvement over
+the earlier variants (four rather than three named drops), but not a pass.
+Different CPU placements preclude a paired speedup claim.
 
 - Tests/type/lint: completed; checked implementation committed as `27ff24fc`.
 - First six probes: failed before the experiment; batch
@@ -84,8 +93,17 @@ polarity/request tests. This is a hypothesis, not a measured improvement.
   `2802f3dd4e4d53cc3382457db302f2ee7c1abcef5b394529ccf367f070d2a2a2`.
 
 For lane I/Fable: do not enable or promote the tiny backend from these
-receipts. The original restart is now completed (not pending); the current
-frontier is the bounded-group experiment, with the same five-of-seven bar.
+receipts. All submitted probes and their replay have completed. Disabled/0,
+/2 and /3 remain. The bounded-group change is checked but does not meet the
+five-of-seven bar.
+
+Next generic hypothesis: state-first enumeration waits until a full state
+before testing any operation's enablement. An opt-in operation/request-first
+search can close dispatch and request coordinates, then apply the same
+partial-assignment pre-family AND enablement screen during state assignment.
+It must preserve the complete proposal set on small finite fixtures, retain
+the independent checker, and meet the unchanged wall/five-of-seven bar.
+No name matching, new assumptions, domain expansion or timing-cap tuning.
 
 ## Prior unready-atom validation — green unit/type/lint only
 
