@@ -156,6 +156,97 @@ test('different choice domains compare by string, never encoded index', () => {
 })
 
 
+// These tests deliberately disable source replay: the law translation itself must
+// reject false source claims even when the extracted decision is otherwise correct.
+const choiceLaw = (source: string, expr: string) => {
+  const x = extract(source, {...options, check: {runs: 0, states: 0, probes: false}})
+  expect({ok: x.ok, refusals: x.refusals}).toMatchObject({ok: true})
+  const built = buildLaw(x, {name: expr, expr, method: 'decide'})
+  if (built.kind !== 'step') throw new Error('expected step law')
+  const verdict = proveSteps(x.rule!, x.invariants ?? [], [built.law], {from: 'any', search: false})
+  if (!verdict.proven) expect(verdict).toMatchObject({checked: false, stuck: 'sat'})
+  return verdict
+}
+
+for (const [label, source] of [
+  ['singleton', 'export function decide(a: "red"): "green" { return "green"; }'],
+  ['same-index multi-value', 'export function decide(a: "red" | "blue"): "green" | "amber" { if (a === "red") return "green"; return "amber"; }'],
+] as const) test(`optional choice law: ${label} equality and inequality use strings`, () => {
+  for (const expr of ['result == a', 'a == result']) {
+    expect(choiceLaw(source, expr)).toMatchObject({proven: false, checked: false})
+  }
+  for (const expr of ['result != a', 'a != result']) {
+    expect(choiceLaw(source, expr)).toMatchObject({proven: true, checked: true})
+  }
+})
+
+test('optional choice law: a shared value at different indices compares by name', () => {
+  // Unlike reordered unions (which TypeScript can normalize to the same type),
+  // these genuinely different domains put the common string at different indices.
+  const source = 'export function decide(a: "red" | "blue"): "blue" | "amber" { return "blue"; }'
+  const x = extract(source, {...options, check: {runs: 0, states: 0, probes: false}})
+  expect(x.ok).toBe(true)
+  const input = x.model!.inputs.find(v => v.name === 'a')!.sort
+  const out = x.model!.results!.decide!
+  if (out.k !== 'maybe') throw new Error('expected optional result')
+  const result = x.model!.state.find(v => v.name === out.name)!.sort
+  if (input.k !== 'choice' || result.k !== 'choice') throw new Error('expected choice domains')
+  expect(input.values).toContain('blue')
+  expect(result.values).toContain('blue')
+  expect(input.values.indexOf('blue')).not.toBe(result.values.indexOf('blue'))
+  for (const expr of ['(result == a) == (a == "blue")', '(result != a) == (a != "blue")']) {
+    expect(choiceLaw(source, expr)).toMatchObject({proven: true, checked: true})
+  }
+  for (const expr of ['result == a', 'result != a']) {
+    expect(choiceLaw(source, expr)).toMatchObject({proven: false, checked: false})
+  }
+})
+
+test('optional choice law: nullable locals and nested returns retain domain semantics', () => {
+  const source = `export function decide(a: "red", enabled: boolean): "green" | null {
+    const inner = enabled ? "green" : null;
+    if (enabled) { if (a === "red") return inner; }
+    return null;
+  }`
+  expect(choiceLaw(source, 'result != null implies result == a')).toMatchObject({proven: false, checked: false})
+  expect(choiceLaw(source, 'result != a')).toMatchObject({proven: true, checked: true})
+  expect(choiceLaw(source, 'not enabled implies result == null')).toMatchObject({proven: true, checked: true})
+})
+
+test('optional choice law: comparisons nested in boolean equality retain semantics', () => {
+  const source = 'export function decide(a: "red"): "green" { return "green"; }'
+  expect(choiceLaw(source, '(result == a) == true')).toMatchObject({proven: false, checked: false})
+  expect(choiceLaw(source, 'not (result != a)')).toMatchObject({proven: false, checked: false})
+  expect(choiceLaw(source, '(result == a) == false')).toMatchObject({proven: true, checked: true})
+})
+
+test('optional choice law: literals are checked within their domain in either order', () => {
+  const source = 'export function decide(a: "red"): "green" { return "green"; }'
+  for (const expr of ['result == "green"', '"green" == result']) {
+    expect(choiceLaw(source, expr)).toMatchObject({proven: true, checked: true})
+  }
+  for (const expr of ['result != "green"', '"green" != result']) {
+    expect(choiceLaw(source, expr)).toMatchObject({proven: false, checked: false})
+  }
+  for (const expr of ['result == "red"', '"red" == result', 'result != "red"']) {
+    expect(() => choiceLaw(source, expr)).toThrow('isn\'t one of green')
+  }
+})
+
+test('optional choice law: unsupported nested optional input is explicitly refused', () => {
+  const x = extract('export function decide(a: ("red" | null) | undefined): "green" { return "green"; }', {...options, check: {runs: 0, states: 0, probes: false}})
+  expect(x.ok).toBe(false)
+  expect(x.refusals.map(r => r.what).join(' ')).toContain('null input is outside the subset')
+})
+
+test('optional standalone calendar operands cannot bypass absence checks', () => {
+  const x = extract('export function decide(flag: boolean): number | undefined { if (flag) return 0; }', {...options, check: {runs: 0, states: 0, probes: false}})
+  expect(x.ok).toBe(true)
+  for (const expr of ['result - 0 <= 1 business days', '1 business days >= result - 0']) {
+    expect(() => buildLaw(x, {name: expr, expr, method: 'decide'}, {clock: 1, calendar: {weekend: ['sat', 'sun']}})).toThrow('arithmetic on an optional standalone value is not supported')
+  }
+})
+
 test('finite choice support still refuses unrestricted strings and effects', () => {
   refused('export function decide(a: string) { return a === "red"; }', 'finite string choice')
   refused('export function decide(a: "red" | "blue") { console.log(a); return true; }', 'standalone:')
