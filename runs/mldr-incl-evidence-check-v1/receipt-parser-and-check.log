@@ -1,0 +1,58 @@
+Found 0 warnings and 0 errors.
+Finished in 28.1s on 1349 files with 100 rules using 8 threads.
+bun test v1.4.3 (c6da4a4d3)
+{"shard":"7/7","childExit":0,"logSha256":"9586b9eb8b1b71947dd600e386978272c2e483d5382db3e22e481fa257c04629","logBytes":368228,"pass":227,"fail":0,"skip":0,"runs":[{"tests":164,"files":11},{"tests":8,"files":2},{"tests":6,"files":2},{"tests":21,"files":1},{"tests":28,"files":1}],"complete":true}
+
+--- stderr ---
+$ tsc -p . && oxlint --type-aware --deny-warnings --disable-nested-config
+
+core/count-recovery/member-inclusions.test.ts:
+(pass) equality consequents discharge reflexive bodies and retain scalar residue  [4.04ms]
+(pass) equality consequents discharge reflexive bodies and retain scalar residue renamed_ [0.41ms]
+(pass) unknown membership is not treated as implied [0.27ms]
+(pass) member upper bounds propose sufficient scalar guards without equality anchors [0.32ms]
+(pass) an upper bound is not rewritten in a negative comparison [0.30ms]
+(pass) upper-bound suggestions still require the scalar guard and checked witness flags [54.69ms]
+(pass) an inequality is not a substitution [0.24ms]
+(pass) different domains cannot form an inclusion [0.09ms]
+(pass) another carried map does not supply these member facts [0.07ms]
+(pass) a still-member-dependent predicate is not a scalar residue [0.15ms]
+(pass) without an equality rewrite, ordinary membership stays with the old family [0.08ms]
+(pass) a discharged equality may yield an unconditional candidate, never an asserted cut [0.09ms]
+(pass) cyclic input is refused before recursive substitution [0.04ms]
+(pass) ordinary selection receives an existing guarded inclusion within its unchanged cap [0.23ms]
+(pass) selection cannot manufacture a missing instance or borrow unrelated member flags [0.12ms]
+(pass) selection respects an explicitly smaller cap and does not assert its scalar residue [0.14ms]
+(pass) initial selection shares its cap with existing picks and respects exhausted proposal work [0.20ms]
+(pass) the raw lazy pool admits a genuinely missing bound-specialized inclusion with a fresh witness [1.24ms]
+(pass) an ordinary selected witness proves the conditional inclusion but not its unguarded strengthening [24.12ms]
+
+research/mldr-incl/fixtures.test.ts:
+(pass) frozen baseline safety archive preserves the exhausted-pool counterexample [89.03ms]
+(pass) frozen actual E-14 safety packets retain the original 35-law family [42.97ms]
+(pass) frozen E-14 family is the actual 35-law output, not the supplied-p1 fixture [0.74ms]
+
+research/mldr-incl/shard-receipt.test.ts:
+(pass) both singular and plural Bun file summaries are counted [1.90ms]
+(pass) a missing or truncated summary is incomplete [0.06ms]
+(pass) completeness does not turn failed tests into passes [0.02ms]
+
+research/mldr-incl/gate-evidence.test.ts:
+(pass) exact 29x3, ten paired, and 29 broken rosters are accepted with both pins [3.13ms]
+(pass) duplicated protocol under another expected filename fails despite 87 logs and receipts [0.98ms]
+(pass) renamed duplicate replacing a different protocol fails the exact roster [0.74ms]
+(pass) base and candidate protocol identities cannot diverge [0.12ms]
+(pass) base and candidate repeat identities cannot diverge [0.55ms]
+(pass) candidate SHA must match the independently requested revision [0.12ms]
+(pass) a forged candidate SHA in the pair markers fails [0.10ms]
+(pass) both source archive hashes must match the manifest [0.09ms]
+(pass) legacy marker envelopes without candidate binding are rejected [0.10ms]
+(pass) duplicate receipts cannot hide a missing expected case [0.55ms]
+(pass) duplicate JSON outcomes and a missing end marker are rejected [0.25ms]
+(pass) wrong result identity and proofs above the strict budget are rejected [0.16ms]
+(pass) an accepted false proof in a broken case blocks the gate [0.30ms]
+
+ 38 pass
+ 0 fail
+ 96 expect() calls
+Ran 38 tests across 4 files. [294.00ms]

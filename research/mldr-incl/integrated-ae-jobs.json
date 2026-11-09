@@ -1,0 +1,5 @@
+[
+ {"name":"original-ae-r1","cmd":"bash research/mldr-incl/integrated-ae.sh 1","cpu":8,"memory":14336,"vm_type":"large","timeout":210},
+ {"name":"original-ae-r2","cmd":"bash research/mldr-incl/integrated-ae.sh 2","cpu":8,"memory":14336,"vm_type":"large","timeout":210},
+ {"name":"original-ae-r3","cmd":"bash research/mldr-incl/integrated-ae.sh 3","cpu":8,"memory":14336,"vm_type":"large","timeout":210}
+]
