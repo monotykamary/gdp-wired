@@ -529,42 +529,60 @@
     "cmd": "bash research/lane-i/validate.sh census 1 learning_switch",
     "cpu": 2,
     "memory": 8192,
-    "timeout": 240
+    "timeout": 2100,
+    "env": {
+      "LANE_I_CENSUS_SECONDS": "900"
+    }
   },
   {
     "name": "gen-learning_switch-r2",
     "cmd": "bash research/lane-i/validate.sh census 2 learning_switch",
     "cpu": 2,
     "memory": 8192,
-    "timeout": 240
+    "timeout": 2100,
+    "env": {
+      "LANE_I_CENSUS_SECONDS": "900"
+    }
   },
   {
     "name": "gen-learning_switch-r3",
     "cmd": "bash research/lane-i/validate.sh census 3 learning_switch",
     "cpu": 2,
     "memory": 8192,
-    "timeout": 240
+    "timeout": 2100,
+    "env": {
+      "LANE_I_CENSUS_SECONDS": "900"
+    }
   },
   {
     "name": "gen-learning_switch_i4-r1",
     "cmd": "bash research/lane-i/validate.sh census 1 learning_switch_i4",
     "cpu": 2,
     "memory": 8192,
-    "timeout": 240
+    "timeout": 2100,
+    "env": {
+      "LANE_I_CENSUS_SECONDS": "900"
+    }
   },
   {
     "name": "gen-learning_switch_i4-r2",
     "cmd": "bash research/lane-i/validate.sh census 2 learning_switch_i4",
     "cpu": 2,
     "memory": 8192,
-    "timeout": 240
+    "timeout": 2100,
+    "env": {
+      "LANE_I_CENSUS_SECONDS": "900"
+    }
   },
   {
     "name": "gen-learning_switch_i4-r3",
     "cmd": "bash research/lane-i/validate.sh census 3 learning_switch_i4",
     "cpu": 2,
     "memory": 8192,
-    "timeout": 240
+    "timeout": 2100,
+    "env": {
+      "LANE_I_CENSUS_SECONDS": "900"
+    }
   },
   {
     "name": "gen-paxos_epr-r1",

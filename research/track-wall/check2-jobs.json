@@ -11,7 +11,7 @@
   "cpu": 4,
   "memory": 12288,
   "timeout": 1800,
-  "cmd": "set -o pipefail; bun install --frozen-lockfile >/dev/null && bun run check 2>&1 | tail -30"
+  "cmd": "set -o pipefail; bun install --frozen-lockfile >/dev/null && bun run check 2>&1 | tail -30; st=${PIPESTATUS[0]}; echo CHECK_EXIT $st; exit $st"
  },
  {
   "name": "prof-generation",

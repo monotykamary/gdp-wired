@@ -28,7 +28,7 @@ for side in $sides; do
   if [[ "$mode" == census ]]; then
     mkdir -p "$dir/research/track-gen"
     if [[ "$side" == base ]]; then cp research/track-gen/t13-generation.ts "$dir/research/track-gen/t13-generation.ts"; fi
-    (cd "$dir" && timeout -s KILL 120 bun research/track-gen/t13-generation.ts "$id") > "$side.out" 2> "$side.err"
+    (cd "$dir" && timeout -s KILL "${LANE_I_CENSUS_SECONDS:-120}" bun research/track-gen/t13-generation.ts "$id") > "$side.out" 2> "$side.err"
     cat "$side.err"
   else
     set +e

@@ -49,3 +49,20 @@ test('an inherited enumerable member of the maps dictionary is not a map of the 
     expect(Object.keys(quick.maps).sort()).toEqual(['A', 'B', 'C'])
   }
 })
+
+test('$unique cannot observe a stamp wrap: at 2^32 − 1 the buffer is zeroed and the stamps restart', () => {
+  const src = compileJs(m), start = src.indexOf('function $unique('), end = src.indexOf('\n', start)
+  const unique = new Function(`${src.slice(start, end)}; return $unique;`)() as ((vals: number[], top: number) => number[]) & {buf?: Uint32Array, stamp?: number}
+  expect(unique([3, 1, 3, 0], 5)).toEqual([0, 1, 3])
+  // Stale marks from an earlier cycle, and the counter one step from the wrap.
+  unique.buf = new Uint32Array(8).fill(1)
+  unique.stamp = 0xFFFFFFFE
+  expect(unique([4, 2], 6)).toEqual([2, 4])
+  expect(unique.stamp).toBe(1)
+  expect([...unique.buf!]).toEqual([0, 0, 1, 0, 1, 0, 0, 0])
+  expect(unique([6], 6)).toEqual([6])
+  expect(unique.stamp).toBe(2)
+  // A buffer grown for a larger range restarts its stamps too.
+  expect(unique([300, 2], 300)).toEqual([2, 300])
+  expect(unique.stamp).toBe(1)
+})

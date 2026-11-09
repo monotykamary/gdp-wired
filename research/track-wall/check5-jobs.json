@@ -4,7 +4,7 @@
   "cpu": 4,
   "memory": 12288,
   "timeout": 1800,
-  "cmd": "set -o pipefail; mkdir -p base && tar -xf baselines/base.tar -C base && (cp -R vendor/. base/vendor/ 2>/dev/null || true) && cd base && bun install --frozen-lockfile >/dev/null && bun run check 2>&1 | grep -v 'vendor/handwired' | tail -30; echo CHECK_EXIT ${PIPESTATUS[0]}"
+  "cmd": "set -o pipefail; mkdir -p base && tar -xf baselines/base.tar -C base && (cp -R vendor/. base/vendor/ 2>/dev/null || true) && cd base && bun install --frozen-lockfile >/dev/null && bun run check 2>&1 | grep -v 'vendor/handwired' | tail -30; st=${PIPESTATUS[0]}; echo CHECK_EXIT $st; exit $st"
  },
  {
   "name": "gen-paired",
