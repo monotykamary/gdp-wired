@@ -2,11 +2,11 @@
   "candidate": "8de9dadbe10925c2377121ee220faf97bcca4d59",
   "culprit": "1550512d3933434c5a2ad11a17031d1fa36284db",
   "data": "/private/tmp/lane-i-paxos-repair2-data.tHnDxP",
-  "status": "corrected-fixture-validation-active",
+  "status": "focused-passed-confirmation-active",
   "validationTask": "faf8af80-c961-4eba-a68f-2ec7a0ef0e31",
-  "timingSubmitted": false,
-  "suiteSubmitted": false,
-  "consensusSubmitted": false,
+  "timingSubmitted": true,
+  "suiteSubmitted": true,
+  "consensusSubmitted": true,
   "finalGate": false,
   "validationIssues": [
     "New exact-zero fixture did not prove; the other 22 focused tests passed.",
@@ -15,5 +15,13 @@
   "fixtureProbeTask": "e46707c9-384b-4243-925c-706a4ab1600e",
   "focusedTask": "2460c129-5838-44c1-8863-599bf46196d7",
   "checkTask": "ab895207-670a-45b2-bff3-94eeaabad575",
-  "productionUnchangedFrom": "dd036dd714728fd4d1431d56bf33d96a18b21f60"
+  "productionUnchangedFrom": "dd036dd714728fd4d1431d56bf33d96a18b21f60",
+  "focusedTests": 23,
+  "focusedAssertions": 106,
+  "focusedAuditIssues": [],
+  "tasks": {
+    "timing": "8d5c2bc7-07b4-4c3c-bb74-543503609952",
+    "suite": "e3ce5019-86f7-4982-ae4f-a97bbded5cec",
+    "consensus": "286e798e-11ee-4764-b6c7-6bbed1166400"
+  }
 }
