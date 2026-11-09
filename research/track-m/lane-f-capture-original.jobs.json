@@ -1,0 +1,1 @@
+[{"name":"family-0","cmd":"bash research/track-m/lane-f-capture-original.sh","cpu":2,"memory":8192,"timeout":100},{"name":"family-1","cmd":"bash research/track-m/lane-f-capture-original.sh","cpu":2,"memory":8192,"timeout":100}]

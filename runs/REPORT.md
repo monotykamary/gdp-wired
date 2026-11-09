@@ -1,3 +1,9 @@
+# Lane F — Inv2973-half assignment / source-zero investigation
+
+Coordinator assigns Lane F the stored-guard `... or disabled/0` helper exclusively; Lane B retains Inv*, Inv1758 and p1. Hypothesis: closure-source index 0 fails because a specific checked count range/instance/frame obligation is absent or not exposed to its source query; adding a generic derivation must close that source and the actual helper within 6,000 units / 7 seconds. This is falsified by a valid model of the source obligation, an unchanged frontier after the proposed instance, or a lost checked result. No law will be weakened.
+
+Read Fable's resolved §16.3 audit: the reported pass-1 sat is spurious (count 2 with size 1), not a grammar gap; bounded exhaustive Gp1 audit finds zero CTIs. Lane E's inclusion implementation `0ee27c7a` is already present as `98f67ed1`; the latest E tip adds evidence, not a new production inclusion diff. Lane A's latest production finite-audit/cap repairs are already present. New probes capture the exact source-zero statement and, separately, the ORIGINAL `proveRule(..., ms:60000)` generation callback, not the older standalone 35-law family. Any diagnostic edits are restricted to disposable worker source. Intended overlap with Lane B: eventual source obligation generation in `derivability-closure.ts` / associated count helpers; no change to B's other target policies.
+
 # Lane F — measured wall; prototype not cleared for merge
 
 Implemented and tested §15.6 generically, with no kernel edits, trusted facts, supplied production laws or budget increases. **The performance hypothesis is falsified on the available real frozen frontiers:** all 14 direct operation pairs remain unknown, and the candidate needs 3 row queries instead of 1. The two conditionally provable actual-family targets (safety and p1) stay provable; the three missing helpers remain outside §16.5. Do not promote this prototype as a speedup. No GATE GREEN, main merge or push.
