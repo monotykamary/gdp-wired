@@ -1,29 +1,43 @@
-# Lane A — AUDIT-BLOCKER fixes under verification
+# Lane A — audit repairs implemented; re-audit pending
 
-**Fix SHA for both findings: `74dd9cc5`** (`fix(core): cancel derived counts
-and validate finite facts`). Lane D: please re-audit this repair; the test
-receipts below are still pending, so this is not a resolution claim.
+**Fix SHAs: `74dd9cc5` plus `52b2382f`.** Lane D: please re-audit both
+findings against the complete repair. No resolution or GATE GREEN is claimed.
 
-Lane D found two defects in `c9d7f823`: derived-count evaluation did not
-check cancellation inside its loop, and CTI certification omitted declared
-`m.facts`. Both are being fixed before further gates. The runtime count loop
-now checks the wall and accepts a propagated checkpoint; the finite evaluator
-and actual interpreter step pass the per-attempt stop through to that loop.
-Partial count sums are never cached. CTI certification checks every supported
-fact and refuses unsupported declarations; the finite sampler also includes
-preconditions/facts and declines unsupported derived sum-state machines.
+- **Cancellation:** the derived-count loop checks the active wall every 256
+  iterations and propagates the optional per-attempt stop through the finite
+  evaluator and real interpreter step. Interrupted sums are never cached.
+  `52b2382f` keeps this check through a dependency-free runtime hook, avoiding
+  a proof-engine initialization cycle introduced by the first repair.
+- **Declared facts:** CTI certification requires every declared fact to hold,
+  in addition to the current family and precondition. Unsupported facts or
+  derived sum-state cannot certify a CTI. The finite sampler applies the same
+  predecessor constraints and declines unsupported derived sum-state.
 
-`runs/t16-audit-fix-v1` is validating focused regressions, including the exact
-5,000,000-bound / 20 ms wall case and the `p=1` model under a declared `p=0`
-fact. The repair commit is being published for review while test receipts are
-pending. Lane D re-audit remains required; no resolution or GATE GREEN is
-claimed. Both focused jobs are still awaiting remote receipts: gate batch
-`20261109-134201-sn9lie` and interactive batch `20261109-134617-k7jlfk`.
-Read-only scheduler status reports 58 idle large VMs while these jobs and
-the worker’s earlier short pilots remain marked running past their nominal
-timeouts. No shared scheduler or VM was restarted, and no duplicate gate
-is being launched. Previously launched
-`c9d7f823` regression probes and old sampler probes are not final gate evidence.
+Focused verification of `52b2382f` in `runs/t16-audit-fixed/audit-fixed.log`:
+**20 tests, 82 assertions, zero failures**. The exact 5,000,000-count / 20 ms
+reproduction was repeated three times with a wall and three times with only
+an attempt stop: all stopped inside the loop at **20.05–20.18 ms**. The
+`p=1` model under a declared `p=0` fact is rejected as not genuine.
+
+The same job passed TypeScript but failed type-aware lint on two in-progress
+worker files: `core/finite-tiny.ts` (generated Function annotation) and
+`research/track-gen/t16-tiny-bench.ts` (unknown-error string conversion).
+The owning worker has addressed these; a current-tree recheck is pending.
+A separate clean-archive check (`t16-audit-isolated/`) is validating exact
+commit `52b2382f` without any uncommitted worker files. Initial
+repair jobs failed on the import cycle, with their logs retained in
+`t16-audit-fix-v1/` and `t16-audit-quick/`. No shared scheduler or VM was
+restarted; delayed receipts have now arrived.
+
+The older immutable `c9d7f823` versus `b788e195` experiment also completed:
+**84/84 other-protocol pairs retain their proof, no candidate kills, no wrong
+verdicts** (`t16-others-summary.json`). Counted work moves in 39 pairs across
+13 protocols: consensus_epr, consensus_forall, consensus_wo_decide,
+majorityset_leader_election, naive_consensus, paxos_epr,
+quorum_leader_election, simple, simple_election, simple_regular,
+toy_consensus, toy_consensus_epr, toy_consensus_forall. These are first-half
+iteration results, not evidence for the later audit/fallback changes and
+not Lane D's authoritative final gate.
 
 # Lane A / T-14 iteration receipts complete; Section 16 in progress
 
