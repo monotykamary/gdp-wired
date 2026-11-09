@@ -1,0 +1,92 @@
+[
+  {
+    "name": "lock_server_sync-r1",
+    "cmd": "bash research/mldr-incl/compare-main.sh duoai lock_server_sync cand",
+    "cpu": 8,
+    "memory": 14336,
+    "timeout": 240,
+    "vm_type": "large",
+    "timing": true
+  },
+  {
+    "name": "lock_server_async-r1",
+    "cmd": "bash research/mldr-incl/compare-main.sh duoai lock_server_async base",
+    "cpu": 8,
+    "memory": 14336,
+    "timeout": 240,
+    "vm_type": "large",
+    "timing": true
+  },
+  {
+    "name": "decentralized_lock-r1",
+    "cmd": "bash research/mldr-incl/compare-main.sh duoai decentralized_lock cand",
+    "cpu": 8,
+    "memory": 14336,
+    "timeout": 240,
+    "vm_type": "large",
+    "timing": true
+  },
+  {
+    "name": "distributed_lock-r1",
+    "cmd": "bash research/mldr-incl/compare-main.sh duoai distributed_lock base",
+    "cpu": 8,
+    "memory": 14336,
+    "timeout": 240,
+    "vm_type": "large",
+    "timing": true
+  },
+  {
+    "name": "two_phase_commit-r1",
+    "cmd": "bash research/mldr-incl/compare-main.sh duoai two_phase_commit cand",
+    "cpu": 8,
+    "memory": 14336,
+    "timeout": 240,
+    "vm_type": "large",
+    "timing": true
+  },
+  {
+    "name": "ticket_lock-r1",
+    "cmd": "bash research/mldr-incl/compare-main.sh duoai ticket_lock base",
+    "cpu": 8,
+    "memory": 14336,
+    "timeout": 240,
+    "vm_type": "large",
+    "timing": true
+  },
+  {
+    "name": "toy_consensus_forall-r1",
+    "cmd": "bash research/mldr-incl/compare-main.sh duoai toy_consensus_forall cand",
+    "cpu": 8,
+    "memory": 14336,
+    "timeout": 240,
+    "vm_type": "large",
+    "timing": true
+  },
+  {
+    "name": "consensus_wo_decide-r1",
+    "cmd": "bash research/mldr-incl/compare-main.sh duoai consensus_wo_decide base",
+    "cpu": 8,
+    "memory": 14336,
+    "timeout": 240,
+    "vm_type": "large",
+    "timing": true
+  },
+  {
+    "name": "ring_leader_election-r1",
+    "cmd": "bash research/mldr-incl/compare-main.sh duoai ring_leader_election cand",
+    "cpu": 8,
+    "memory": 14336,
+    "timeout": 240,
+    "vm_type": "large",
+    "timing": true
+  },
+  {
+    "name": "sharded_key_value_store-r1",
+    "cmd": "bash research/mldr-incl/compare-main.sh duoai sharded_key_value_store base",
+    "cpu": 8,
+    "memory": 14336,
+    "timeout": 240,
+    "vm_type": "large",
+    "timing": true
+  }
+]

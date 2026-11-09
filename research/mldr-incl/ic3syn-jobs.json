@@ -1,0 +1,785 @@
+[
+  {
+    "name": "consensus-r1",
+    "cmd": "bash research/mldr-incl/compare-main.sh ic3syn consensus cand",
+    "cpu": 8,
+    "memory": 14336,
+    "timeout": 240,
+    "vm_type": "large",
+    "timing": true
+  },
+  {
+    "name": "consensus-r2",
+    "cmd": "bash research/mldr-incl/compare-main.sh ic3syn consensus base",
+    "cpu": 8,
+    "memory": 14336,
+    "timeout": 240,
+    "vm_type": "large",
+    "timing": true
+  },
+  {
+    "name": "consensus-r3",
+    "cmd": "bash research/mldr-incl/compare-main.sh ic3syn consensus cand",
+    "cpu": 8,
+    "memory": 14336,
+    "timeout": 240,
+    "vm_type": "large",
+    "timing": true
+  },
+  {
+    "name": "tcommit-r1",
+    "cmd": "bash research/mldr-incl/compare-main.sh ic3syn tcommit base",
+    "cpu": 8,
+    "memory": 14336,
+    "timeout": 240,
+    "vm_type": "large",
+    "timing": true
+  },
+  {
+    "name": "tcommit-r2",
+    "cmd": "bash research/mldr-incl/compare-main.sh ic3syn tcommit cand",
+    "cpu": 8,
+    "memory": 14336,
+    "timeout": 240,
+    "vm_type": "large",
+    "timing": true
+  },
+  {
+    "name": "tcommit-r3",
+    "cmd": "bash research/mldr-incl/compare-main.sh ic3syn tcommit base",
+    "cpu": 8,
+    "memory": 14336,
+    "timeout": 240,
+    "vm_type": "large",
+    "timing": true
+  },
+  {
+    "name": "lock_server-r1",
+    "cmd": "bash research/mldr-incl/compare-main.sh ic3syn lock_server cand",
+    "cpu": 8,
+    "memory": 14336,
+    "timeout": 240,
+    "vm_type": "large",
+    "timing": true
+  },
+  {
+    "name": "lock_server-r2",
+    "cmd": "bash research/mldr-incl/compare-main.sh ic3syn lock_server base",
+    "cpu": 8,
+    "memory": 14336,
+    "timeout": 240,
+    "vm_type": "large",
+    "timing": true
+  },
+  {
+    "name": "lock_server-r3",
+    "cmd": "bash research/mldr-incl/compare-main.sh ic3syn lock_server cand",
+    "cpu": 8,
+    "memory": 14336,
+    "timeout": 240,
+    "vm_type": "large",
+    "timing": true
+  },
+  {
+    "name": "quorum_leader_election-r1",
+    "cmd": "bash research/mldr-incl/compare-main.sh ic3syn quorum_leader_election base",
+    "cpu": 8,
+    "memory": 14336,
+    "timeout": 240,
+    "vm_type": "large",
+    "timing": true
+  },
+  {
+    "name": "quorum_leader_election-r2",
+    "cmd": "bash research/mldr-incl/compare-main.sh ic3syn quorum_leader_election cand",
+    "cpu": 8,
+    "memory": 14336,
+    "timeout": 240,
+    "vm_type": "large",
+    "timing": true
+  },
+  {
+    "name": "quorum_leader_election-r3",
+    "cmd": "bash research/mldr-incl/compare-main.sh ic3syn quorum_leader_election base",
+    "cpu": 8,
+    "memory": 14336,
+    "timeout": 240,
+    "vm_type": "large",
+    "timing": true
+  },
+  {
+    "name": "toy_consensus_forall-r1",
+    "cmd": "bash research/mldr-incl/compare-main.sh ic3syn toy_consensus_forall cand",
+    "cpu": 8,
+    "memory": 14336,
+    "timeout": 240,
+    "vm_type": "large",
+    "timing": true
+  },
+  {
+    "name": "toy_consensus_forall-r2",
+    "cmd": "bash research/mldr-incl/compare-main.sh ic3syn toy_consensus_forall base",
+    "cpu": 8,
+    "memory": 14336,
+    "timeout": 240,
+    "vm_type": "large",
+    "timing": true
+  },
+  {
+    "name": "toy_consensus_forall-r3",
+    "cmd": "bash research/mldr-incl/compare-main.sh ic3syn toy_consensus_forall cand",
+    "cpu": 8,
+    "memory": 14336,
+    "timeout": 240,
+    "vm_type": "large",
+    "timing": true
+  },
+  {
+    "name": "simple-r1",
+    "cmd": "bash research/mldr-incl/compare-main.sh ic3syn simple base",
+    "cpu": 8,
+    "memory": 14336,
+    "timeout": 240,
+    "vm_type": "large",
+    "timing": true
+  },
+  {
+    "name": "simple-r2",
+    "cmd": "bash research/mldr-incl/compare-main.sh ic3syn simple cand",
+    "cpu": 8,
+    "memory": 14336,
+    "timeout": 240,
+    "vm_type": "large",
+    "timing": true
+  },
+  {
+    "name": "simple-r3",
+    "cmd": "bash research/mldr-incl/compare-main.sh ic3syn simple base",
+    "cpu": 8,
+    "memory": 14336,
+    "timeout": 240,
+    "vm_type": "large",
+    "timing": true
+  },
+  {
+    "name": "simple_regular-r1",
+    "cmd": "bash research/mldr-incl/compare-main.sh ic3syn simple_regular cand",
+    "cpu": 8,
+    "memory": 14336,
+    "timeout": 240,
+    "vm_type": "large",
+    "timing": true
+  },
+  {
+    "name": "simple_regular-r2",
+    "cmd": "bash research/mldr-incl/compare-main.sh ic3syn simple_regular base",
+    "cpu": 8,
+    "memory": 14336,
+    "timeout": 240,
+    "vm_type": "large",
+    "timing": true
+  },
+  {
+    "name": "simple_regular-r3",
+    "cmd": "bash research/mldr-incl/compare-main.sh ic3syn simple_regular cand",
+    "cpu": 8,
+    "memory": 14336,
+    "timeout": 240,
+    "vm_type": "large",
+    "timing": true
+  },
+  {
+    "name": "lockserv_automaton-r1",
+    "cmd": "bash research/mldr-incl/compare-main.sh ic3syn lockserv_automaton base",
+    "cpu": 8,
+    "memory": 14336,
+    "timeout": 240,
+    "vm_type": "large",
+    "timing": true
+  },
+  {
+    "name": "lockserv_automaton-r2",
+    "cmd": "bash research/mldr-incl/compare-main.sh ic3syn lockserv_automaton cand",
+    "cpu": 8,
+    "memory": 14336,
+    "timeout": 240,
+    "vm_type": "large",
+    "timing": true
+  },
+  {
+    "name": "lockserv_automaton-r3",
+    "cmd": "bash research/mldr-incl/compare-main.sh ic3syn lockserv_automaton base",
+    "cpu": 8,
+    "memory": 14336,
+    "timeout": 240,
+    "vm_type": "large",
+    "timing": true
+  },
+  {
+    "name": "sharded_kv-r1",
+    "cmd": "bash research/mldr-incl/compare-main.sh ic3syn sharded_kv cand",
+    "cpu": 8,
+    "memory": 14336,
+    "timeout": 240,
+    "vm_type": "large",
+    "timing": true
+  },
+  {
+    "name": "sharded_kv-r2",
+    "cmd": "bash research/mldr-incl/compare-main.sh ic3syn sharded_kv base",
+    "cpu": 8,
+    "memory": 14336,
+    "timeout": 240,
+    "vm_type": "large",
+    "timing": true
+  },
+  {
+    "name": "sharded_kv-r3",
+    "cmd": "bash research/mldr-incl/compare-main.sh ic3syn sharded_kv cand",
+    "cpu": 8,
+    "memory": 14336,
+    "timeout": 240,
+    "vm_type": "large",
+    "timing": true
+  },
+  {
+    "name": "sharded_kv_no_lost_keys-r1",
+    "cmd": "bash research/mldr-incl/compare-main.sh ic3syn sharded_kv_no_lost_keys base",
+    "cpu": 8,
+    "memory": 14336,
+    "timeout": 240,
+    "vm_type": "large",
+    "timing": true
+  },
+  {
+    "name": "sharded_kv_no_lost_keys-r2",
+    "cmd": "bash research/mldr-incl/compare-main.sh ic3syn sharded_kv_no_lost_keys cand",
+    "cpu": 8,
+    "memory": 14336,
+    "timeout": 240,
+    "vm_type": "large",
+    "timing": true
+  },
+  {
+    "name": "sharded_kv_no_lost_keys-r3",
+    "cmd": "bash research/mldr-incl/compare-main.sh ic3syn sharded_kv_no_lost_keys base",
+    "cpu": 8,
+    "memory": 14336,
+    "timeout": 240,
+    "vm_type": "large",
+    "timing": true
+  },
+  {
+    "name": "lockserv-r1",
+    "cmd": "bash research/mldr-incl/compare-main.sh ic3syn lockserv cand",
+    "cpu": 8,
+    "memory": 14336,
+    "timeout": 240,
+    "vm_type": "large",
+    "timing": true
+  },
+  {
+    "name": "lockserv-r2",
+    "cmd": "bash research/mldr-incl/compare-main.sh ic3syn lockserv base",
+    "cpu": 8,
+    "memory": 14336,
+    "timeout": 240,
+    "vm_type": "large",
+    "timing": true
+  },
+  {
+    "name": "lockserv-r3",
+    "cmd": "bash research/mldr-incl/compare-main.sh ic3syn lockserv cand",
+    "cpu": 8,
+    "memory": 14336,
+    "timeout": 240,
+    "vm_type": "large",
+    "timing": true
+  },
+  {
+    "name": "twophase-r1",
+    "cmd": "bash research/mldr-incl/compare-main.sh ic3syn twophase base",
+    "cpu": 8,
+    "memory": 14336,
+    "timeout": 240,
+    "vm_type": "large",
+    "timing": true
+  },
+  {
+    "name": "twophase-r2",
+    "cmd": "bash research/mldr-incl/compare-main.sh ic3syn twophase cand",
+    "cpu": 8,
+    "memory": 14336,
+    "timeout": 240,
+    "vm_type": "large",
+    "timing": true
+  },
+  {
+    "name": "twophase-r3",
+    "cmd": "bash research/mldr-incl/compare-main.sh ic3syn twophase base",
+    "cpu": 8,
+    "memory": 14336,
+    "timeout": 240,
+    "vm_type": "large",
+    "timing": true
+  },
+  {
+    "name": "simple_decentralized_lock-r1",
+    "cmd": "bash research/mldr-incl/compare-main.sh ic3syn simple_decentralized_lock cand",
+    "cpu": 8,
+    "memory": 14336,
+    "timeout": 240,
+    "vm_type": "large",
+    "timing": true
+  },
+  {
+    "name": "simple_decentralized_lock-r2",
+    "cmd": "bash research/mldr-incl/compare-main.sh ic3syn simple_decentralized_lock base",
+    "cpu": 8,
+    "memory": 14336,
+    "timeout": 240,
+    "vm_type": "large",
+    "timing": true
+  },
+  {
+    "name": "simple_decentralized_lock-r3",
+    "cmd": "bash research/mldr-incl/compare-main.sh ic3syn simple_decentralized_lock cand",
+    "cpu": 8,
+    "memory": 14336,
+    "timeout": 240,
+    "vm_type": "large",
+    "timing": true
+  },
+  {
+    "name": "two_phase_commit-r1",
+    "cmd": "bash research/mldr-incl/compare-main.sh ic3syn two_phase_commit base",
+    "cpu": 8,
+    "memory": 14336,
+    "timeout": 240,
+    "vm_type": "large",
+    "timing": true
+  },
+  {
+    "name": "two_phase_commit-r2",
+    "cmd": "bash research/mldr-incl/compare-main.sh ic3syn two_phase_commit cand",
+    "cpu": 8,
+    "memory": 14336,
+    "timeout": 240,
+    "vm_type": "large",
+    "timing": true
+  },
+  {
+    "name": "two_phase_commit-r3",
+    "cmd": "bash research/mldr-incl/compare-main.sh ic3syn two_phase_commit base",
+    "cpu": 8,
+    "memory": 14336,
+    "timeout": 240,
+    "vm_type": "large",
+    "timing": true
+  },
+  {
+    "name": "consensus_wo_decide-r1",
+    "cmd": "bash research/mldr-incl/compare-main.sh ic3syn consensus_wo_decide cand",
+    "cpu": 8,
+    "memory": 14336,
+    "timeout": 240,
+    "vm_type": "large",
+    "timing": true
+  },
+  {
+    "name": "consensus_wo_decide-r2",
+    "cmd": "bash research/mldr-incl/compare-main.sh ic3syn consensus_wo_decide base",
+    "cpu": 8,
+    "memory": 14336,
+    "timeout": 240,
+    "vm_type": "large",
+    "timing": true
+  },
+  {
+    "name": "consensus_wo_decide-r3",
+    "cmd": "bash research/mldr-incl/compare-main.sh ic3syn consensus_wo_decide cand",
+    "cpu": 8,
+    "memory": 14336,
+    "timeout": 240,
+    "vm_type": "large",
+    "timing": true
+  },
+  {
+    "name": "consensus_forall-r1",
+    "cmd": "bash research/mldr-incl/compare-main.sh ic3syn consensus_forall base",
+    "cpu": 8,
+    "memory": 14336,
+    "timeout": 240,
+    "vm_type": "large",
+    "timing": true
+  },
+  {
+    "name": "consensus_forall-r2",
+    "cmd": "bash research/mldr-incl/compare-main.sh ic3syn consensus_forall cand",
+    "cpu": 8,
+    "memory": 14336,
+    "timeout": 240,
+    "vm_type": "large",
+    "timing": true
+  },
+  {
+    "name": "consensus_forall-r3",
+    "cmd": "bash research/mldr-incl/compare-main.sh ic3syn consensus_forall base",
+    "cpu": 8,
+    "memory": 14336,
+    "timeout": 240,
+    "vm_type": "large",
+    "timing": true
+  },
+  {
+    "name": "naive_consensus-r1",
+    "cmd": "bash research/mldr-incl/compare-main.sh ic3syn naive_consensus cand",
+    "cpu": 8,
+    "memory": 14336,
+    "timeout": 240,
+    "vm_type": "large",
+    "timing": true
+  },
+  {
+    "name": "naive_consensus-r2",
+    "cmd": "bash research/mldr-incl/compare-main.sh ic3syn naive_consensus base",
+    "cpu": 8,
+    "memory": 14336,
+    "timeout": 240,
+    "vm_type": "large",
+    "timing": true
+  },
+  {
+    "name": "naive_consensus-r3",
+    "cmd": "bash research/mldr-incl/compare-main.sh ic3syn naive_consensus cand",
+    "cpu": 8,
+    "memory": 14336,
+    "timeout": 240,
+    "vm_type": "large",
+    "timing": true
+  },
+  {
+    "name": "client_server_ae-r1",
+    "cmd": "bash research/mldr-incl/compare-main.sh ic3syn client_server_ae base",
+    "cpu": 8,
+    "memory": 14336,
+    "timeout": 240,
+    "vm_type": "large",
+    "timing": true
+  },
+  {
+    "name": "client_server_ae-r2",
+    "cmd": "bash research/mldr-incl/compare-main.sh ic3syn client_server_ae cand",
+    "cpu": 8,
+    "memory": 14336,
+    "timeout": 240,
+    "vm_type": "large",
+    "timing": true
+  },
+  {
+    "name": "client_server_ae-r3",
+    "cmd": "bash research/mldr-incl/compare-main.sh ic3syn client_server_ae base",
+    "cpu": 8,
+    "memory": 14336,
+    "timeout": 240,
+    "vm_type": "large",
+    "timing": true
+  },
+  {
+    "name": "client_server_db_ae-r1",
+    "cmd": "bash research/mldr-incl/compare-main.sh ic3syn client_server_db_ae cand",
+    "cpu": 8,
+    "memory": 14336,
+    "timeout": 240,
+    "vm_type": "large",
+    "timing": true
+  },
+  {
+    "name": "client_server_db_ae-r2",
+    "cmd": "bash research/mldr-incl/compare-main.sh ic3syn client_server_db_ae base",
+    "cpu": 8,
+    "memory": 14336,
+    "timeout": 240,
+    "vm_type": "large",
+    "timing": true
+  },
+  {
+    "name": "client_server_db_ae-r3",
+    "cmd": "bash research/mldr-incl/compare-main.sh ic3syn client_server_db_ae cand",
+    "cpu": 8,
+    "memory": 14336,
+    "timeout": 240,
+    "vm_type": "large",
+    "timing": true
+  },
+  {
+    "name": "simple_election-r1",
+    "cmd": "bash research/mldr-incl/compare-main.sh ic3syn simple_election base",
+    "cpu": 8,
+    "memory": 14336,
+    "timeout": 240,
+    "vm_type": "large",
+    "timing": true
+  },
+  {
+    "name": "simple_election-r2",
+    "cmd": "bash research/mldr-incl/compare-main.sh ic3syn simple_election cand",
+    "cpu": 8,
+    "memory": 14336,
+    "timeout": 240,
+    "vm_type": "large",
+    "timing": true
+  },
+  {
+    "name": "simple_election-r3",
+    "cmd": "bash research/mldr-incl/compare-main.sh ic3syn simple_election base",
+    "cpu": 8,
+    "memory": 14336,
+    "timeout": 240,
+    "vm_type": "large",
+    "timing": true
+  },
+  {
+    "name": "toy_consensus_epr-r1",
+    "cmd": "bash research/mldr-incl/compare-main.sh ic3syn toy_consensus_epr cand",
+    "cpu": 8,
+    "memory": 14336,
+    "timeout": 240,
+    "vm_type": "large",
+    "timing": true
+  },
+  {
+    "name": "toy_consensus_epr-r2",
+    "cmd": "bash research/mldr-incl/compare-main.sh ic3syn toy_consensus_epr base",
+    "cpu": 8,
+    "memory": 14336,
+    "timeout": 240,
+    "vm_type": "large",
+    "timing": true
+  },
+  {
+    "name": "toy_consensus_epr-r3",
+    "cmd": "bash research/mldr-incl/compare-main.sh ic3syn toy_consensus_epr cand",
+    "cpu": 8,
+    "memory": 14336,
+    "timeout": 240,
+    "vm_type": "large",
+    "timing": true
+  },
+  {
+    "name": "toy_consensus-r1",
+    "cmd": "bash research/mldr-incl/compare-main.sh ic3syn toy_consensus base",
+    "cpu": 8,
+    "memory": 14336,
+    "timeout": 240,
+    "vm_type": "large",
+    "timing": true
+  },
+  {
+    "name": "toy_consensus-r2",
+    "cmd": "bash research/mldr-incl/compare-main.sh ic3syn toy_consensus cand",
+    "cpu": 8,
+    "memory": 14336,
+    "timeout": 240,
+    "vm_type": "large",
+    "timing": true
+  },
+  {
+    "name": "toy_consensus-r3",
+    "cmd": "bash research/mldr-incl/compare-main.sh ic3syn toy_consensus base",
+    "cpu": 8,
+    "memory": 14336,
+    "timeout": 240,
+    "vm_type": "large",
+    "timing": true
+  },
+  {
+    "name": "firewall-r1",
+    "cmd": "bash research/mldr-incl/compare-main.sh ic3syn firewall cand",
+    "cpu": 8,
+    "memory": 14336,
+    "timeout": 240,
+    "vm_type": "large",
+    "timing": true
+  },
+  {
+    "name": "firewall-r2",
+    "cmd": "bash research/mldr-incl/compare-main.sh ic3syn firewall base",
+    "cpu": 8,
+    "memory": 14336,
+    "timeout": 240,
+    "vm_type": "large",
+    "timing": true
+  },
+  {
+    "name": "firewall-r3",
+    "cmd": "bash research/mldr-incl/compare-main.sh ic3syn firewall cand",
+    "cpu": 8,
+    "memory": 14336,
+    "timeout": 240,
+    "vm_type": "large",
+    "timing": true
+  },
+  {
+    "name": "majorityset_leader_election-r1",
+    "cmd": "bash research/mldr-incl/compare-main.sh ic3syn majorityset_leader_election base",
+    "cpu": 8,
+    "memory": 14336,
+    "timeout": 240,
+    "vm_type": "large",
+    "timing": true
+  },
+  {
+    "name": "majorityset_leader_election-r2",
+    "cmd": "bash research/mldr-incl/compare-main.sh ic3syn majorityset_leader_election cand",
+    "cpu": 8,
+    "memory": 14336,
+    "timeout": 240,
+    "vm_type": "large",
+    "timing": true
+  },
+  {
+    "name": "majorityset_leader_election-r3",
+    "cmd": "bash research/mldr-incl/compare-main.sh ic3syn majorityset_leader_election base",
+    "cpu": 8,
+    "memory": 14336,
+    "timeout": 240,
+    "vm_type": "large",
+    "timing": true
+  },
+  {
+    "name": "consensus_epr-r1",
+    "cmd": "bash research/mldr-incl/compare-main.sh ic3syn consensus_epr cand",
+    "cpu": 8,
+    "memory": 14336,
+    "timeout": 240,
+    "vm_type": "large",
+    "timing": true
+  },
+  {
+    "name": "consensus_epr-r2",
+    "cmd": "bash research/mldr-incl/compare-main.sh ic3syn consensus_epr base",
+    "cpu": 8,
+    "memory": 14336,
+    "timeout": 240,
+    "vm_type": "large",
+    "timing": true
+  },
+  {
+    "name": "consensus_epr-r3",
+    "cmd": "bash research/mldr-incl/compare-main.sh ic3syn consensus_epr cand",
+    "cpu": 8,
+    "memory": 14336,
+    "timeout": 240,
+    "vm_type": "large",
+    "timing": true
+  },
+  {
+    "name": "learning_switch-r1",
+    "cmd": "bash research/mldr-incl/compare-main.sh ic3syn learning_switch base",
+    "cpu": 8,
+    "memory": 14336,
+    "timeout": 240,
+    "vm_type": "large",
+    "timing": true
+  },
+  {
+    "name": "learning_switch-r2",
+    "cmd": "bash research/mldr-incl/compare-main.sh ic3syn learning_switch cand",
+    "cpu": 8,
+    "memory": 14336,
+    "timeout": 240,
+    "vm_type": "large",
+    "timing": true
+  },
+  {
+    "name": "learning_switch-r3",
+    "cmd": "bash research/mldr-incl/compare-main.sh ic3syn learning_switch base",
+    "cpu": 8,
+    "memory": 14336,
+    "timeout": 240,
+    "vm_type": "large",
+    "timing": true
+  },
+  {
+    "name": "learning_switch_i4-r1",
+    "cmd": "bash research/mldr-incl/compare-main.sh ic3syn learning_switch_i4 cand",
+    "cpu": 8,
+    "memory": 14336,
+    "timeout": 240,
+    "vm_type": "large",
+    "timing": true
+  },
+  {
+    "name": "learning_switch_i4-r2",
+    "cmd": "bash research/mldr-incl/compare-main.sh ic3syn learning_switch_i4 base",
+    "cpu": 8,
+    "memory": 14336,
+    "timeout": 240,
+    "vm_type": "large",
+    "timing": true
+  },
+  {
+    "name": "learning_switch_i4-r3",
+    "cmd": "bash research/mldr-incl/compare-main.sh ic3syn learning_switch_i4 cand",
+    "cpu": 8,
+    "memory": 14336,
+    "timeout": 240,
+    "vm_type": "large",
+    "timing": true
+  },
+  {
+    "name": "paxos_epr-r1",
+    "cmd": "bash research/mldr-incl/compare-main.sh ic3syn paxos_epr base",
+    "cpu": 8,
+    "memory": 14336,
+    "timeout": 240,
+    "vm_type": "large",
+    "timing": true
+  },
+  {
+    "name": "paxos_epr-r2",
+    "cmd": "bash research/mldr-incl/compare-main.sh ic3syn paxos_epr cand",
+    "cpu": 8,
+    "memory": 14336,
+    "timeout": 240,
+    "vm_type": "large",
+    "timing": true
+  },
+  {
+    "name": "paxos_epr-r3",
+    "cmd": "bash research/mldr-incl/compare-main.sh ic3syn paxos_epr base",
+    "cpu": 8,
+    "memory": 14336,
+    "timeout": 240,
+    "vm_type": "large",
+    "timing": true
+  },
+  {
+    "name": "mldr-r1",
+    "cmd": "bash research/mldr-incl/compare-main.sh ic3syn mldr cand",
+    "cpu": 8,
+    "memory": 14336,
+    "timeout": 240,
+    "vm_type": "large",
+    "timing": true
+  },
+  {
+    "name": "mldr-r2",
+    "cmd": "bash research/mldr-incl/compare-main.sh ic3syn mldr base",
+    "cpu": 8,
+    "memory": 14336,
+    "timeout": 240,
+    "vm_type": "large",
+    "timing": true
+  },
+  {
+    "name": "mldr-r3",
+    "cmd": "bash research/mldr-incl/compare-main.sh ic3syn mldr cand",
+    "cpu": 8,
+    "memory": 14336,
+    "timeout": 240,
+    "vm_type": "large",
+    "timing": true
+  }
+]

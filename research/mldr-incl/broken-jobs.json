@@ -1,0 +1,263 @@
+[
+  {
+    "name": "consensus-r1",
+    "cmd": "bash research/mldr-incl/compare-main.sh broken consensus cand",
+    "cpu": 8,
+    "memory": 14336,
+    "timeout": 240,
+    "vm_type": "large",
+    "timing": true
+  },
+  {
+    "name": "tcommit-r1",
+    "cmd": "bash research/mldr-incl/compare-main.sh broken tcommit base",
+    "cpu": 8,
+    "memory": 14336,
+    "timeout": 240,
+    "vm_type": "large",
+    "timing": true
+  },
+  {
+    "name": "lock_server-r1",
+    "cmd": "bash research/mldr-incl/compare-main.sh broken lock_server cand",
+    "cpu": 8,
+    "memory": 14336,
+    "timeout": 240,
+    "vm_type": "large",
+    "timing": true
+  },
+  {
+    "name": "quorum_leader_election-r1",
+    "cmd": "bash research/mldr-incl/compare-main.sh broken quorum_leader_election base",
+    "cpu": 8,
+    "memory": 14336,
+    "timeout": 240,
+    "vm_type": "large",
+    "timing": true
+  },
+  {
+    "name": "toy_consensus_forall-r1",
+    "cmd": "bash research/mldr-incl/compare-main.sh broken toy_consensus_forall cand",
+    "cpu": 8,
+    "memory": 14336,
+    "timeout": 240,
+    "vm_type": "large",
+    "timing": true
+  },
+  {
+    "name": "simple-r1",
+    "cmd": "bash research/mldr-incl/compare-main.sh broken simple base",
+    "cpu": 8,
+    "memory": 14336,
+    "timeout": 240,
+    "vm_type": "large",
+    "timing": true
+  },
+  {
+    "name": "simple_regular-r1",
+    "cmd": "bash research/mldr-incl/compare-main.sh broken simple_regular cand",
+    "cpu": 8,
+    "memory": 14336,
+    "timeout": 240,
+    "vm_type": "large",
+    "timing": true
+  },
+  {
+    "name": "lockserv_automaton-r1",
+    "cmd": "bash research/mldr-incl/compare-main.sh broken lockserv_automaton base",
+    "cpu": 8,
+    "memory": 14336,
+    "timeout": 240,
+    "vm_type": "large",
+    "timing": true
+  },
+  {
+    "name": "sharded_kv-r1",
+    "cmd": "bash research/mldr-incl/compare-main.sh broken sharded_kv cand",
+    "cpu": 8,
+    "memory": 14336,
+    "timeout": 240,
+    "vm_type": "large",
+    "timing": true
+  },
+  {
+    "name": "sharded_kv_no_lost_keys-r1",
+    "cmd": "bash research/mldr-incl/compare-main.sh broken sharded_kv_no_lost_keys base",
+    "cpu": 8,
+    "memory": 14336,
+    "timeout": 240,
+    "vm_type": "large",
+    "timing": true
+  },
+  {
+    "name": "lockserv-r1",
+    "cmd": "bash research/mldr-incl/compare-main.sh broken lockserv cand",
+    "cpu": 8,
+    "memory": 14336,
+    "timeout": 240,
+    "vm_type": "large",
+    "timing": true
+  },
+  {
+    "name": "twophase-r1",
+    "cmd": "bash research/mldr-incl/compare-main.sh broken twophase base",
+    "cpu": 8,
+    "memory": 14336,
+    "timeout": 240,
+    "vm_type": "large",
+    "timing": true
+  },
+  {
+    "name": "simple_decentralized_lock-r1",
+    "cmd": "bash research/mldr-incl/compare-main.sh broken simple_decentralized_lock cand",
+    "cpu": 8,
+    "memory": 14336,
+    "timeout": 240,
+    "vm_type": "large",
+    "timing": true
+  },
+  {
+    "name": "two_phase_commit-r1",
+    "cmd": "bash research/mldr-incl/compare-main.sh broken two_phase_commit base",
+    "cpu": 8,
+    "memory": 14336,
+    "timeout": 240,
+    "vm_type": "large",
+    "timing": true
+  },
+  {
+    "name": "consensus_wo_decide-r1",
+    "cmd": "bash research/mldr-incl/compare-main.sh broken consensus_wo_decide cand",
+    "cpu": 8,
+    "memory": 14336,
+    "timeout": 240,
+    "vm_type": "large",
+    "timing": true
+  },
+  {
+    "name": "consensus_forall-r1",
+    "cmd": "bash research/mldr-incl/compare-main.sh broken consensus_forall base",
+    "cpu": 8,
+    "memory": 14336,
+    "timeout": 240,
+    "vm_type": "large",
+    "timing": true
+  },
+  {
+    "name": "naive_consensus-r1",
+    "cmd": "bash research/mldr-incl/compare-main.sh broken naive_consensus cand",
+    "cpu": 8,
+    "memory": 14336,
+    "timeout": 240,
+    "vm_type": "large",
+    "timing": true
+  },
+  {
+    "name": "client_server_ae-r1",
+    "cmd": "bash research/mldr-incl/compare-main.sh broken client_server_ae base",
+    "cpu": 8,
+    "memory": 14336,
+    "timeout": 240,
+    "vm_type": "large",
+    "timing": true
+  },
+  {
+    "name": "client_server_db_ae-r1",
+    "cmd": "bash research/mldr-incl/compare-main.sh broken client_server_db_ae cand",
+    "cpu": 8,
+    "memory": 14336,
+    "timeout": 240,
+    "vm_type": "large",
+    "timing": true
+  },
+  {
+    "name": "simple_election-r1",
+    "cmd": "bash research/mldr-incl/compare-main.sh broken simple_election base",
+    "cpu": 8,
+    "memory": 14336,
+    "timeout": 240,
+    "vm_type": "large",
+    "timing": true
+  },
+  {
+    "name": "toy_consensus_epr-r1",
+    "cmd": "bash research/mldr-incl/compare-main.sh broken toy_consensus_epr cand",
+    "cpu": 8,
+    "memory": 14336,
+    "timeout": 240,
+    "vm_type": "large",
+    "timing": true
+  },
+  {
+    "name": "toy_consensus-r1",
+    "cmd": "bash research/mldr-incl/compare-main.sh broken toy_consensus base",
+    "cpu": 8,
+    "memory": 14336,
+    "timeout": 240,
+    "vm_type": "large",
+    "timing": true
+  },
+  {
+    "name": "firewall-r1",
+    "cmd": "bash research/mldr-incl/compare-main.sh broken firewall cand",
+    "cpu": 8,
+    "memory": 14336,
+    "timeout": 240,
+    "vm_type": "large",
+    "timing": true
+  },
+  {
+    "name": "majorityset_leader_election-r1",
+    "cmd": "bash research/mldr-incl/compare-main.sh broken majorityset_leader_election base",
+    "cpu": 8,
+    "memory": 14336,
+    "timeout": 240,
+    "vm_type": "large",
+    "timing": true
+  },
+  {
+    "name": "consensus_epr-r1",
+    "cmd": "bash research/mldr-incl/compare-main.sh broken consensus_epr cand",
+    "cpu": 8,
+    "memory": 14336,
+    "timeout": 240,
+    "vm_type": "large",
+    "timing": true
+  },
+  {
+    "name": "learning_switch-r1",
+    "cmd": "bash research/mldr-incl/compare-main.sh broken learning_switch base",
+    "cpu": 8,
+    "memory": 14336,
+    "timeout": 240,
+    "vm_type": "large",
+    "timing": true
+  },
+  {
+    "name": "learning_switch_i4-r1",
+    "cmd": "bash research/mldr-incl/compare-main.sh broken learning_switch_i4 cand",
+    "cpu": 8,
+    "memory": 14336,
+    "timeout": 240,
+    "vm_type": "large",
+    "timing": true
+  },
+  {
+    "name": "paxos_epr-r1",
+    "cmd": "bash research/mldr-incl/compare-main.sh broken paxos_epr base",
+    "cpu": 8,
+    "memory": 14336,
+    "timeout": 240,
+    "vm_type": "large",
+    "timing": true
+  },
+  {
+    "name": "mldr-r1",
+    "cmd": "bash research/mldr-incl/compare-main.sh broken mldr cand",
+    "cpu": 8,
+    "memory": 14336,
+    "timeout": 240,
+    "vm_type": "large",
+    "timing": true
+  }
+]
