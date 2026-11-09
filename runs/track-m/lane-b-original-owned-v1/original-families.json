@@ -1,0 +1,332 @@
+{
+  "iterationOnly": true,
+  "gateGreen": false,
+  "scope": "conditional helpers against observed original admission families",
+  "independentAuditPending": false,
+  "rows": [
+    {
+      "name": "original-0",
+      "placement": {
+        "vm": "bx_dcvyxe5r",
+        "type": "large",
+        "cpu": "AMD EPYC 4585PX 16-Core Processor",
+        "vcpus": 8,
+        "vm_vcpus": 8,
+        "exclusive": true,
+        "co_tenants": 0
+      },
+      "archiveSha256": "8852207be197398cbe371cc851da156c77903bdea8b31b9a3acffb8ce2f64794",
+      "logSha256": "62f05d2d00611d3ddf31bdad63aa80047b85328dbfa084e9ad8588a255fe7e46",
+      "familySha256": "3ee7d418e3f3713c7428f4a5aa5e3ef4415e96cf5f2b2a3cfd2533ab1df2bf05",
+      "comparison": {
+        "frozenSha256": "5c9aa44bca08790afdf331b290f101b6ca5d177133e662f5f6f1e80aa6cebc6f",
+        "frozenSize": 35,
+        "candidateSize": 34,
+        "admissionSize": 34,
+        "missingFromAdmission": [
+          "CV at most 2"
+        ],
+        "missingFromCandidates": [
+          "CV at most 2"
+        ],
+        "addedInAdmission": [],
+        "machineSame": false,
+        "targetComparisons": {
+          "p1": {
+            "name": "count cubes: every x with x < {\"op\":\"var\",\"name\":\"size\"}: never CV[x] is 0 and 1 <= inX$row[x]",
+            "sameBody": true
+          },
+          "rows": {
+            "name": "fields: CV[a]=CV[b] and CfgT[a]=CfgT[b] -> Config rows agree",
+            "sameBody": true
+          },
+          "star": {
+            "name": "inX: no quorum canVote/3",
+            "sameBody": true
+          }
+        },
+        "familySha256": "3ee7d418e3f3713c7428f4a5aa5e3ef4415e96cf5f2b2a3cfd2533ab1df2bf05",
+        "missingTargets": []
+      },
+      "machineDifferentFields": [
+        "step"
+      ],
+      "changedLawBodies": [
+        "every Config cell is a value of its kind",
+        "one primary per term"
+      ],
+      "missingTargets": [],
+      "arms": [
+        {
+          "side": "p1",
+          "tag": "p1",
+          "law": "count cubes: every x with x < {\"op\":\"var\",\"name\":\"size\"}: never CV[x] is 0 and 1 <= inX$row[x]",
+          "familySize": 34,
+          "workerChecked": true,
+          "withinPassLine": true,
+          "units": 2292.235458,
+          "wallMs": 5806.423295,
+          "audit": {
+            "sourceLog": "runs/track-m/lane-b-original-audit-v2/original-0.log",
+            "logSha256": "e54de300f32171199f04798171ceec74cee21f42df6b5ec82a6401c99402e842",
+            "conditional": true,
+            "checked": true,
+            "familyVerified": true
+          }
+        },
+        {
+          "side": "rows",
+          "tag": "rows",
+          "law": "fields: CV[a]=CV[b] and CfgT[a]=CfgT[b] -> Config rows agree",
+          "familySize": 34,
+          "workerChecked": false,
+          "withinPassLine": false,
+          "units": 1877.7752144,
+          "wallMs": 7003.2578029999995,
+          "audit": {
+            "sourceLog": "runs/track-m/lane-b-original-audit-v2/original-0.log",
+            "logSha256": "e54de300f32171199f04798171ceec74cee21f42df6b5ec82a6401c99402e842",
+            "conditional": true,
+            "checked": false,
+            "familyVerified": true
+          }
+        },
+        {
+          "side": "star",
+          "tag": "star",
+          "law": "inX: no quorum canVote/3",
+          "familySize": 34,
+          "workerChecked": false,
+          "withinPassLine": false,
+          "units": 1654.958204,
+          "wallMs": 7013.719263999999,
+          "audit": {
+            "sourceLog": "runs/track-m/lane-b-original-audit-v2/original-0.log",
+            "logSha256": "e54de300f32171199f04798171ceec74cee21f42df6b5ec82a6401c99402e842",
+            "conditional": true,
+            "checked": false,
+            "familyVerified": true
+          }
+        }
+      ]
+    },
+    {
+      "name": "original-1",
+      "placement": {
+        "vm": "bx_2eg9t59n",
+        "type": "large",
+        "cpu": "AMD EPYC 4585PX 16-Core Processor",
+        "vcpus": 8,
+        "vm_vcpus": 8,
+        "exclusive": true,
+        "co_tenants": 0
+      },
+      "archiveSha256": "effaa40b8ace8398a2ccb6e1f076934471bcd55f8d44b2b62ceaf09857c26bd3",
+      "logSha256": "b00a9f557c72e544cd0c0b53f17b43ee81766ff5484f993c3b5170931009309b",
+      "familySha256": "4ad51895f0c74201d2f0d77c3f4af9657ed17d1f6bbd8eab9899dd63a89ebc2b",
+      "comparison": {
+        "frozenSha256": "5c9aa44bca08790afdf331b290f101b6ca5d177133e662f5f6f1e80aa6cebc6f",
+        "frozenSize": 35,
+        "candidateSize": 34,
+        "admissionSize": 34,
+        "missingFromAdmission": [
+          "CV at most 2"
+        ],
+        "missingFromCandidates": [
+          "CV at most 2"
+        ],
+        "addedInAdmission": [],
+        "machineSame": false,
+        "targetComparisons": {
+          "p1": {
+            "name": "count cubes: every x with x < {\"op\":\"var\",\"name\":\"size\"}: never CV[x] is 0 and 1 <= inX$row[x]",
+            "sameBody": true
+          },
+          "rows": {
+            "name": "fields: CV[a]=CV[b] and CfgT[a]=CfgT[b] -> Config rows agree",
+            "sameBody": true
+          },
+          "star": {
+            "name": "inX: no quorum canVote/3",
+            "sameBody": true
+          }
+        },
+        "familySha256": "4ad51895f0c74201d2f0d77c3f4af9657ed17d1f6bbd8eab9899dd63a89ebc2b",
+        "missingTargets": []
+      },
+      "machineDifferentFields": [
+        "step"
+      ],
+      "changedLawBodies": [
+        "every Config cell is a value of its kind",
+        "one primary per term"
+      ],
+      "missingTargets": [],
+      "arms": [
+        {
+          "side": "p1",
+          "tag": "p1",
+          "law": "count cubes: every x with x < {\"op\":\"var\",\"name\":\"size\"}: never CV[x] is 0 and 1 <= inX$row[x]",
+          "familySize": 34,
+          "workerChecked": true,
+          "withinPassLine": true,
+          "units": 2292.235458,
+          "wallMs": 3256.8779990000003,
+          "audit": {
+            "sourceLog": "runs/track-m/lane-b-original-audit-v2/original-1.log",
+            "logSha256": "3d4529db99a9684285859f2c45ac0c2d8b7ffc6c3a95d5e96ce5867fc72bf65f",
+            "conditional": true,
+            "checked": true,
+            "familyVerified": true
+          }
+        },
+        {
+          "side": "rows",
+          "tag": "rows",
+          "law": "fields: CV[a]=CV[b] and CfgT[a]=CfgT[b] -> Config rows agree",
+          "familySize": 34,
+          "workerChecked": false,
+          "withinPassLine": false,
+          "units": 5180.099786400001,
+          "wallMs": 7003.789096,
+          "audit": {
+            "sourceLog": "runs/track-m/lane-b-original-audit-v2/original-1.log",
+            "logSha256": "3d4529db99a9684285859f2c45ac0c2d8b7ffc6c3a95d5e96ce5867fc72bf65f",
+            "conditional": true,
+            "checked": false,
+            "familyVerified": true
+          }
+        },
+        {
+          "side": "star",
+          "tag": "star",
+          "law": "inX: no quorum canVote/3",
+          "familySize": 34,
+          "workerChecked": false,
+          "withinPassLine": false,
+          "units": 4572.129517999999,
+          "wallMs": 7051.476506,
+          "audit": {
+            "sourceLog": "runs/track-m/lane-b-original-audit-v2/original-1.log",
+            "logSha256": "3d4529db99a9684285859f2c45ac0c2d8b7ffc6c3a95d5e96ce5867fc72bf65f",
+            "conditional": true,
+            "checked": false,
+            "familyVerified": true
+          }
+        }
+      ]
+    },
+    {
+      "name": "original-2",
+      "placement": {
+        "vm": "bx_akfb4v39",
+        "type": "large",
+        "cpu": "AMD Ryzen 9 9950X 16-Core Processor",
+        "vcpus": 8,
+        "vm_vcpus": 8,
+        "exclusive": true,
+        "co_tenants": 0
+      },
+      "archiveSha256": "e48b941a7b54fc82796b360065505ab37f7ec45b14b632719bfa3187f969ee06",
+      "logSha256": "aa255dd59f35c852397d6ca484968ddaf39018ef8963c0a9b372c0bc741005c3",
+      "familySha256": "737c233d0efc2f750df5253aa9269f1ddd1db44bf2dbbed9d523b7d6952e22dc",
+      "comparison": {
+        "frozenSha256": "5c9aa44bca08790afdf331b290f101b6ca5d177133e662f5f6f1e80aa6cebc6f",
+        "frozenSize": 35,
+        "candidateSize": 34,
+        "admissionSize": 34,
+        "missingFromAdmission": [
+          "CV at most 2"
+        ],
+        "missingFromCandidates": [
+          "CV at most 2"
+        ],
+        "addedInAdmission": [],
+        "machineSame": false,
+        "targetComparisons": {
+          "p1": {
+            "name": "count cubes: every x with x < {\"op\":\"var\",\"name\":\"size\"}: never CV[x] is 0 and 1 <= inX$row[x]",
+            "sameBody": true
+          },
+          "rows": {
+            "name": "fields: CV[a]=CV[b] and CfgT[a]=CfgT[b] -> Config rows agree",
+            "sameBody": true
+          },
+          "star": {
+            "name": "inX: no quorum canVote/3",
+            "sameBody": true
+          }
+        },
+        "familySha256": "737c233d0efc2f750df5253aa9269f1ddd1db44bf2dbbed9d523b7d6952e22dc",
+        "missingTargets": []
+      },
+      "machineDifferentFields": [
+        "step"
+      ],
+      "changedLawBodies": [
+        "every Config cell is a value of its kind",
+        "one primary per term"
+      ],
+      "missingTargets": [],
+      "arms": [
+        {
+          "side": "p1",
+          "tag": "p1",
+          "law": "count cubes: every x with x < {\"op\":\"var\",\"name\":\"size\"}: never CV[x] is 0 and 1 <= inX$row[x]",
+          "familySize": 34,
+          "workerChecked": true,
+          "withinPassLine": true,
+          "units": 2292.235458,
+          "wallMs": 1794.6794329999998,
+          "audit": {
+            "sourceLog": "runs/track-m/lane-b-original-audit-v2/original-2.log",
+            "logSha256": "1346312c321213699562c154412786cc024725f51f6f02917ad748bf0006d0d1",
+            "conditional": true,
+            "checked": true,
+            "familyVerified": true
+          }
+        },
+        {
+          "side": "rows",
+          "tag": "rows",
+          "law": "fields: CV[a]=CV[b] and CfgT[a]=CfgT[b] -> Config rows agree",
+          "familySize": 34,
+          "workerChecked": false,
+          "withinPassLine": false,
+          "units": 6000.1785604,
+          "wallMs": 4405.747647,
+          "audit": {
+            "sourceLog": "runs/track-m/lane-b-original-audit-v2/original-2.log",
+            "logSha256": "1346312c321213699562c154412786cc024725f51f6f02917ad748bf0006d0d1",
+            "conditional": true,
+            "checked": false,
+            "familyVerified": true
+          }
+        },
+        {
+          "side": "star",
+          "tag": "star",
+          "law": "inX: no quorum canVote/3",
+          "familySize": 34,
+          "workerChecked": false,
+          "withinPassLine": false,
+          "units": 6001.319071999999,
+          "wallMs": 3631.0328879999997,
+          "audit": {
+            "sourceLog": "runs/track-m/lane-b-original-audit-v2/original-2.log",
+            "logSha256": "1346312c321213699562c154412786cc024725f51f6f02917ad748bf0006d0d1",
+            "conditional": true,
+            "checked": false,
+            "familyVerified": true
+          }
+        }
+      ]
+    }
+  ],
+  "originalFamilyVerified": true,
+  "independentAudit": {
+    "outcomes": 9,
+    "checked": 3,
+    "unknown": 6
+  }
+}
