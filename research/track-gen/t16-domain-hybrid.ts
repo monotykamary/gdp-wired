@@ -29,13 +29,13 @@ if(mode==='survivors')withWall(performance.now()+5000,()=>{
 const initial=caller.length+candidates.length,drops:{stage:number,round:number,ms:number,law:string}[]=[],rounds:unknown[]=[],finishes:unknown[]=[]
 const removed=new Set<Law>(),started=performance.now()
 let timedOut=false
-const postTargetPruning=process.env.T16_POST_TARGET==='1'
+const postTargetPruning=process.env.T16_POST_TARGET==='1',postTargetIntervals=process.env.T16_POST_INTERVALS==='1'
 try {
   withWall(started+1900,()=>{
     const stages=[{valueDomain:[0,1],rounds:2,wallMs:1000},{valueDomain:[0,1,2],rounds:1,wallMs:2000}]
     for(const [stage,options] of stages.entries()) {
       checkWall('hybrid stage')
-      candidates=finiteTinyHoudini(source,m,caller,candidates,[params],{...options,postTargetPruning,
+      candidates=finiteTinyHoudini(source,m,caller,candidates,[params],{...options,postTargetPruning,postTargetIntervals,
         onDrop:drop=>{
           removed.add(drop.law)
           const row={stage,round:drop.round,ms:performance.now()-started,law:drop.law.name}
@@ -51,4 +51,4 @@ try {
   if(!(error instanceof Error)||error.name!=='WallExpired')throw error
   checkWall('hybrid outer completion');timedOut=true
 }
-console.log('HYBRID_RESULT',JSON.stringify({mode,postTargetPruning,initial,drops,rounds,finishes,timedOut,wall:performance.now()-started,removed:removed.size,survivors:initial-removed.size}))
+console.log('HYBRID_RESULT',JSON.stringify({mode,postTargetPruning,postTargetIntervals,initial,drops,rounds,finishes,timedOut,wall:performance.now()-started,removed:removed.size,survivors:initial-removed.size}))

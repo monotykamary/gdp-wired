@@ -5,13 +5,14 @@
 import {type C, type E, type Law, type Machine, type Request, type State, cpair, cunpair, walk} from './machine.ts'
 import {checkWall, WallExpired} from './wall.ts'
 type Env = Record<string, number>
-type Term = {id: number, code: string, args: Term[], deps: number[], lo: number, hi: number, values?: number[], choice?: {c: Pred, a: Term, b: Term}}
+type NumericOp = Extract<E['op'], 'add' | 'sub' | 'prod' | 'min' | 'max' | 'tup'>
+type Term = {id: number, code: string, args: Term[], deps: number[], lo: number, hi: number, arithmetic?: NumericOp, values?: number[], choice?: {c: Pred, a: Term, b: Term}}
 type Pred = boolean | {op: 'atom', a: Term, b: Term, cmp: '<' | '<=' | '='} | {op: 'and', xs: Pred[]} | {op: 'or', xs: Pred[]} | {op: 'not', x: Pred}
 type Slot = {name: string, key?: number, request?: boolean, values: number[]}
-export type TinyFiniteOptions = {valueDomain?: readonly number[], postTargetPruning?: boolean}
+export type TinyFiniteOptions = {valueDomain?: readonly number[], postTargetPruning?: boolean, postTargetIntervals?: boolean}
 export type TinyFiniteStatistics = {
-  scope: {params: Env, scalarValues: number[], cellValues: number[], cells: Record<string, number[]>, inputValues: Record<string, number[]>, inputCells: Record<string, number[]>, binderValues: number[], postTargetPruning: boolean}
-  completed: boolean, exhausted: boolean, timedOut: boolean, unsupported: string[], nodes: number, states: number, steps: number, scenarios: number, candidates: number, postStatePrunes: number, postRequestPrunes: number, ms: number
+  scope: {params: Env, scalarValues: number[], cellValues: number[], cells: Record<string, number[]>, inputValues: Record<string, number[]>, inputCells: Record<string, number[]>, binderValues: number[], postTargetPruning: boolean, postTargetIntervals: boolean}
+  completed: boolean, exhausted: boolean, timedOut: boolean, unsupported: string[], nodes: number, states: number, steps: number, scenarios: number, candidates: number, postStatePrunes: number, postRequestPrunes: number, postIntervalFallbacks: number, ms: number
 }
 const unique = (xs: number[]) => [...new Set(xs)]
 const conjunction = (xs: Pred[]): Pred => {
@@ -56,9 +57,10 @@ class Compiler {
   constant(n: number): Term { return this.term(String(n), [], n, n) }
   ref(t: Term): string { return `t${t.id}` }
   slot(i: number): Term { const vs = this.slots[i]!.values; return this.term(`v[${i}]`, [], Math.min(...vs), Math.max(...vs), [i]) }
-  binary(op: E['op'], a: Term, b: Term): Term {
+  binary(op: NumericOp, a: Term, b: Term): Term {
     checkWall('tiny arithmetic compile')
     const finish = (t: Term): Term => {
+      t.arithmetic = op
       if (a.values && b.values && a.values.length * b.values.length <= 256) t.values = unique(a.values.flatMap(x => b.values!.map(y => op === 'add' ? x + y : op === 'sub' ? Math.max(0, x - y) : op === 'prod' ? x * y : op === 'min' ? Math.min(x, y) : op === 'max' ? Math.max(x, y) : cpair(x, y)))).sort((x, y) => x - y)
       return t
     }
@@ -202,6 +204,66 @@ class Compiler {
     const test = `(${this.ref(p.a)}${p.cmp === '=' ? '===' : p.cmp}${this.ref(p.b)})`
     return `(${rank && ready > 0 ? `d<${ready}||` : ''}${polarity ? test : '!' + test})`
   }
+  // Three-valued interval truth: -1=false, 0=unknown, 1=true. Only a
+  // definitely true target rules out its negation; intersecting bounds stay
+  // unknown. All generated code is built from closed operators and numbers.
+  compileIntervalFailure(p: Pred, readyAt: number[]): (v: number[], depth: number) => boolean {
+    const lines: string[] = [], ranges = new Map<number, {lo: string, hi: string}>(), truths = new WeakMap<object, string>()
+    let chars = 0, next = 0
+    const emit = (line: string): void => {
+      checkWall('tiny interval code')
+      chars += line.length
+      if (chars > 65_536) throw new Unsupported('large interval screen')
+      lines.push(line)
+    }
+    const range = (t: Term): {lo: string, hi: string} => {
+      checkWall('tiny interval term')
+      if (t.lo < 0 || t.hi < t.lo) throw new Unsupported('non-natural interval')
+      const hit = ranges.get(t.id)
+      if (hit) return hit
+      let lo = String(t.lo), hi = String(t.hi)
+      if (!t.args.length && t.deps.length === 1) {
+        const i = t.deps[0]!, ready = readyAt[i]
+        if (ready === undefined) throw new Unsupported('missing interval readiness')
+        lo = `(d>=${ready}?v[${i}]:${lo})`; hi = `(d>=${ready}?v[${i}]:${hi})`
+      } else if (t.choice) {
+        const c = truth(t.choice.c), a = range(t.choice.a), b = range(t.choice.b)
+        lo = `(${c}===1?${a.lo}:${c}===-1?${b.lo}:Math.min(${a.lo},${b.lo}))`
+        hi = `(${c}===1?${a.hi}:${c}===-1?${b.hi}:Math.max(${a.hi},${b.hi}))`
+      } else if (t.arithmetic && t.args.length === 2) {
+        const a = range(t.args[0]!), b = range(t.args[1]!)
+        if (t.arithmetic === 'add') { lo = `(${a.lo}+${b.lo})`; hi = `(${a.hi}+${b.hi})` }
+        else if (t.arithmetic === 'sub') { lo = `Math.max(0,${a.lo}-${b.hi})`; hi = `Math.max(0,${a.hi}-${b.lo})` }
+        else if (t.arithmetic === 'prod') { lo = `(${a.lo}*${b.lo})`; hi = `(${a.hi}*${b.hi})` }
+        else if (t.arithmetic === 'min' || t.arithmetic === 'max') { lo = `Math.${t.arithmetic}(${a.lo},${b.lo})`; hi = `Math.${t.arithmetic}(${a.hi},${b.hi})` }
+      }
+      const out = {lo: `l${t.id}`, hi: `h${t.id}`}
+      emit(`const ${out.lo}=${lo},${out.hi}=${hi};`); ranges.set(t.id, out)
+      return out
+    }
+    const truth = (q: Pred): string => {
+      checkWall('tiny interval predicate')
+      if (typeof q === 'boolean') return q ? '1' : '-1'
+      const hit = truths.get(q)
+      if (hit) return hit
+      let code: string
+      if (q.op === 'atom') {
+        const a = range(q.a), b = range(q.b)
+        const yes = q.cmp === '<' ? `${a.hi}<${b.lo}` : q.cmp === '<=' ? `${a.hi}<=${b.lo}` : `${a.lo}===${a.hi}&&${b.lo}===${b.hi}&&${a.lo}===${b.lo}`
+        const no = q.cmp === '<' ? `${a.lo}>=${b.hi}` : q.cmp === '<=' ? `${a.lo}>${b.hi}` : `${a.hi}<${b.lo}||${b.hi}<${a.lo}`
+        code = `((${yes})?1:(${no})?-1:0)`
+      } else if (q.op === 'not') code = `(-${truth(q.x)})`
+      else {
+        const xs = q.xs.map(truth), all = q.op === 'and', decisive = all ? -1 : 1, neutral = -decisive
+        code = `((${xs.map(x => `${x}===${decisive}`).join('||') || 'false'})?${decisive}:(${xs.map(x => `${x}===${neutral}`).join('&&') || 'true'})?${neutral}:0)`
+      }
+      const name = `b${next++}`; emit(`const ${name}=${code};`); truths.set(q, name); return name
+    }
+    const result = truth(p)
+    emit(`return ${result}!==1;`)
+    // oxlint-disable-next-line typescript/no-implied-eval
+    return new Function('v', 'd', lines.join('')) as (v: number[], depth: number) => boolean
+  }
   compileValues(values: Term[], order?: number[]): (v: number[], depth?: number) => number[] {
     checkWall('tiny transition code')
     const rank = order ? this.slots.map((_, i) => order.indexOf(i)) : undefined
@@ -321,8 +383,8 @@ function gridKeys(m: Machine, size: number): Record<string, number[]> {
 export function tinyFiniteCandidates(source: Machine, m: Machine, family: Law[], params: Env,
   onCandidate: (pre: State, request: Request, violated: Law[]) => boolean | void, options: TinyFiniteOptions = {}): TinyFiniteStatistics {
   const stateValues = unique([...(options.valueDomain ?? [0, 1])]).sort((a, b) => a - b)
-  const start = performance.now(), scope: TinyFiniteStatistics['scope'] = {params: {...params}, scalarValues: [...stateValues], cellValues: [...stateValues], cells: {}, inputValues: {}, inputCells: {}, binderValues: [], postTargetPruning: options.postTargetPruning === true}
-  const stats: TinyFiniteStatistics = {scope, completed: false, exhausted: false, timedOut: false, unsupported: [], nodes: 0, states: 0, steps: 0, scenarios: 0, candidates: 0, postStatePrunes: 0, postRequestPrunes: 0, ms: 0}
+  const start = performance.now(), scope: TinyFiniteStatistics['scope'] = {params: {...params}, scalarValues: [...stateValues], cellValues: [...stateValues], cells: {}, inputValues: {}, inputCells: {}, binderValues: [], postTargetPruning: options.postTargetPruning === true, postTargetIntervals: options.postTargetIntervals === true}
+  const stats: TinyFiniteStatistics = {scope, completed: false, exhausted: false, timedOut: false, unsupported: [], nodes: 0, states: 0, steps: 0, scenarios: 0, candidates: 0, postStatePrunes: 0, postRequestPrunes: 0, postIntervalFallbacks: 0, ms: 0}
   const unknown = (e: unknown) => { const reason = e instanceof Error ? e.message : String(e); if (!stats.unsupported.includes(reason)) stats.unsupported.push(reason) }
   try {
     checkWall('tiny start')
@@ -458,7 +520,18 @@ export function tinyFiniteCandidates(source: Machine, m: Machine, family: Law[],
           // Unchanged primitive dependencies preserve this full-family law.
           if (!deps.some(j => changed.has(j))) continue
           deps.forEach(j => needed.add(j))
-          try { screens.push({law, mayFail: postCompiler.compile(p, undefined, false, readyAt)}) }
+          try {
+            let mayFail: (v: number[], d: number) => boolean
+            if (options.postTargetIntervals) {
+              try { mayFail = postCompiler.compileIntervalFailure(p, readyAt) }
+              catch (e) {
+                if (e instanceof WallExpired) throw e
+                if (!(e instanceof Unsupported)) throw e
+                stats.postIntervalFallbacks++; mayFail = postCompiler.compile(p, undefined, false, readyAt)
+              }
+            } else mayFail = postCompiler.compile(p, undefined, false, readyAt)
+            screens.push({law, mayFail})
+          }
           catch (e) {
             if (e instanceof WallExpired) throw e
             if (!(e instanceof Unsupported)) throw e
