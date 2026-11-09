@@ -34,7 +34,7 @@ test('a lemma that is not proven is refused, with the step it breaks at; lemmas 
 })
 
 test('the runtimes compute it by its recurrence', () => {
-  const r = retries(), gen = r.compiled(), run = r.interpreter()
+  const r = retries(), gen = r.compiled(), run = r.interpreter({compileHelpers: true})
   let st = gen.init({}), si = run.init({})
   const seen: number[] = []
   for (let t = 0; t < 400; t += 1) {
