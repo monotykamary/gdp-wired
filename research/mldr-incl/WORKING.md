@@ -1,82 +1,54 @@
-# Lane E live state — Section 16.6
+# Lane E checkpoint
 
-Branch `claude/mldr-incl`. Do not merge or push.
+Branch `claude/mldr-incl`. Production is **0ee27c7a**, unchanged by the latest
+research follow-up. Main is b788e195. No owned jobs or waiters remain running.
+No merge, push, GATE GREEN or complete MLDR proof is claimed.
 
-**AUDIT BLOCKER:** all v1 paired-gate pass claims are withdrawn. The repaired
-`gate-evidence.ts` fixes exact independent rosters, immutable pair identities,
-and both revision/archive bindings. The 13 adversarial parser tests ran with
-the other focused tests: 31 passed, zero failed. The actual archive/tamper smoke
-is task `a01c9094-2591-452a-a7bb-f07f5158e472`. Acceptance uses Lane D's final
-one-command gate, not the historical v1 `pass:true`.
+## Current deliverables
 
-The three E-14 allocation/reselection/trace batches were stopped and their
-exact owned admissions closed: their captured support set was empty, so the
-supported-path variants were inactive. This is preserved in the source data;
-new tests must label any forced support classification as a research control. Keep the pre-existing
-`research/claude-import/` untouched. Production commits remain `f6ec83db` and
-`7dc52140`; `bdece707` adds frozen inputs and replay support only.
+- Production commits f6ec83db, 7dc52140, 0ee27c7a: ordinary guarded inclusion
+  admission and bounded selection. No kernel or budget changes.
+- Exact-source paired diagnostics: **126 pairs**, IC3Syn **84/87 vs 83/87**,
+  DuoAI **10/10 each**, broken **0/29 each**; no lost proof/refutation or false
+  proof. Source pins and full roster checked. This is NOT Lane D acceptance.
+- Seven full shards: **1073 pass, 18 skip, 0 fail**. Complete shard-7 gzip
+  and hash prove 227 pass. The original wrapper's singular/plural parsing
+  failure is retained. Type/lint + **38 focused tests** pass; the final
+  follow-up reconfirms type/lint, three parser tests and four extractor checks.
+- Conditional lemma: both original guarded variants check at **39.79/39.78**
+  counted units. Greedy reduction retains **five of twenty premises**, with
+  the conclusion, declarations and witness instances unchanged. Fresh kernel
+  processes check both reduced certificates. Full reduction costs
+  **572.91/572.77 units**, NOT one-proof cost. The positive numeric contexts
+  and missing-guard controls are SAT, not certified finite-state models.
+- Read `research/mldr-incl/CONDITIONAL-LEMMA.md` for the exact five premises,
+  original indices 1/13/16/17/19 and unchanged conclusion at 20. They use the
+  canVote and all$2 bodies, not all$1. Never assume these flag bodies globally.
+- Certs/index/17 hashes: `runs/mldr-incl-pointwise-minimized/`.
+  Parent certs: `runs/mldr-incl-pointwise-certificates-v2/`.
+- Reduction v1 failed before proof (runs/ omitted from source snapshot).
+  V2 mounted the committed inputs and passed. Final extractor tests reject
+  changed conclusions, reordered premises and forged parent hashes even with
+  success labels. All failures and exact executed plans remain retained.
 
-## Facts already verified
+## Original-harness boundary
 
-- Corrected type/lint and focused suite: 89 pass, 0 fail (`mldr-incl-check-v8`).
-- Final-check v1: type/lint and 91 tests pass, including both frozen fixtures.
-- Seven shards: 1,073 pass, 18 skip, 0 fail (`mldr-incl-shards-v1`).
-- DuoAI current-main pairs: 10/10 both sides, no loss (`mldr-incl-gates-v1`).
-- Broken 29 pairs: zero false proofs and no lost baseline refutations.
-- E-14 `1681e8e5` actual output: 35 laws, zero proof queries, no hand p1.
-- Conditional Gp1 base/preferred/completion/both all remain SAT at the same
-  1,868.570 counted units. No MLDR improvement claimed.
-- At first query, proposal work is exhausted (65,536/65,536). Last raw STEP has
-  quorum-count reads but its certificate still has five reads. Frozen fixtures
-  preserve this; their SHA-256 is in README and REPORT.
+144 frozen full-STEP replays selected the desired full-S inclusion but gave
+no checked safety proof. Original A/A+E v2, pinned A=48533517, gave six
+UNKNOWNs around 59 s. The partial instrumented capture retains 144 files,
+omits 405, has 34 initial laws and 284 model queries; retained stages are
+pass 0 and show no prioritized safety stage. No 29/29 claim.
 
-## Active task handles (one controller per batch)
+New upstream history, read only: A's 74dd9cc5/52b2382f fixes cancellation and
+fact checking, still awaiting Lane D re-audit. B's 1db3dc67 rejects its
+combined policy after a conditional safety loss. Do not blindly compose it
+or transfer our local diagnostic acceptance. These commits are NOT inputs
+to the recorded A/A+E experiments. Lane I owns continuous integration.
 
-- E-14 eight allocation/completion controls:
-  `1f41530b-2666-4626-ba48-b273486b4a44`, batch `20261109-125428-1l3tmb`,
-  output `runs/mldr-incl-e14-refinement-v1`.
-- 108 frozen STEP replays:
-  `3877773e-ca5b-48a9-9bd8-be94c488cde0`, batch `20261109-125643-pzfo7k`,
-  output `runs/mldr-incl-step-v1`.
-- Current-main IC3Syn 29x3 pairs:
-  `2dedf3e9-b750-4ac9-b509-7f73c3b9b29c`, `runs/mldr-incl-gates-v1/ic3syn`.
-- Scoped quick bar:
-  `c7acb82a-fc6c-4364-8e7e-bcc9e5212397`,
-  `runs/mldr-incl-bar/runs/lane-e`. Baseline b788e195, candidate bdece707.
-- Four E-14 preference-refresh controls:
-  `bb11749d-1f34-4554-9412-2cef4e80f4a9`, `runs/mldr-incl-e14-reselect-v1`.
+## Next boundary
 
-Get completed task results, then inspect actual output files. Do not infer a
-proof from exit 0. `analyze-gates.ts` enforces exact counts, strict receipts,
-no positive losses, no false proofs, and records negative refutation losses.
-`analyze-replays.ts` verifies each input's hash and rejects unchecked proofs.
-Both the proposal ceiling and 2,700-unit diagnostic share are unchanged.
-
-## Research, not production
-
-The scheduling controls use isolated per-job source copies. They limit optional
-pre-query refinement to leave existing fuel for later pool refresh, move Lane B
-`60b8c37a` completion earlier, or reconsider preferences when count reads change.
-None is enabled in production. The four refresh cases test the second possible
-blocker: current `rawBuild` preferences are only chosen on the first pool, before
-later count reads arrive.
-
-## Recovery / cleanup completed
-
-Only these exact owned abandoned batches were recovered and closed:
-`20261109-121248-zmexwp`, `20261109-122218-nesnin`,
-`20261109-121814-jfjufz`, `20261109-122849-euw16n`.
-Receipts and preserved log archives are under `runs/mldr-incl-recovered`.
-No other client, VM ownership guard, or scheduler resource policy changed.
-The generic queue entry `mldr-incl-step-v1` was accepted but not consumed by
-this repository's idea-only treadmill. It was marked withdrawn while idle;
-its exact same jobs now have the one direct scheduler controller listed above.
-Host-specific recovery helpers are retained under ignored `runs/mldr-incl-ops`.
-
-## Next
-
-Collect and analyze the pending work. Section 16.6 says conditional safety uses
-the actual E-14 35-law family until Lane A 16.1/16.2 reaches safety in the real
-harness, then measure the real attempt. Promote no scheduling experiment before
-its measured effect, tests and full nonregression. Keep working; no gate-green
-or sub-60-second MLDR claim is currently justified.
+Lane B can use the five-premise conditional obligation while still proving
+actual branch assumptions and rechecking declaration/term transport. Lane D
+must run its authoritative exact-source final gate before any merge. Until
+original MLDR is proved, do not move to AFTER-MLDR or call the task green.
+Leave the pre-existing untracked research/claude-import/ directory alone.

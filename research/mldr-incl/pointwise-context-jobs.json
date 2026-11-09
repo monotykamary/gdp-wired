@@ -1,0 +1,1 @@
+[{"name":"guarded-numeric-contexts","cmd":"set -e; bash research/track-m/prepare-vendors.sh; bun install --frozen-lockfile >/dev/null; timeout -s KILL 30 bun research/mldr-incl/check-pointwise-contexts.ts certificate-input/guarded-domain.br certificate-input/tight-domain.br","cpu":8,"memory":14336,"timeout":90}]

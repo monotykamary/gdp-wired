@@ -1,0 +1,17 @@
+Found 0 warnings and 0 errors.
+Finished in 14.6s on 1353 files with 100 rules using 8 threads.
+bun test v1.4.3 (c6da4a4d3)
+{"checks":4,"validAccepted":1,"forgedSuccessReceiptsRejected":3,"variants":["conclusion","order","parent"]}
+
+--- stderr ---
+$ tsc -p . && oxlint --type-aware --deny-warnings --disable-nested-config
+
+research/mldr-incl/shard-receipt.test.ts:
+(pass) both singular and plural Bun file summaries are counted [0.46ms]
+(pass) a missing or truncated summary is incomplete [0.04ms]
+(pass) completeness does not turn failed tests into passes [0.02ms]
+
+ 3 pass
+ 0 fail
+ 5 expect() calls
+Ran 3 tests across 1 file. [5.00ms]
