@@ -1,0 +1,180 @@
+{
+  "candidate": "f338c30cd90e9bbb8d4ce32cbe8934fe45cc3715",
+  "tree": "ca382fe9c57a06070b975f2d562dc6be50e5e752",
+  "batch": "20261110-061448-froht1",
+  "groups": [
+    {
+      "expected": 13,
+      "exit": 0,
+      "checks": [
+        "checked against the code: 2400 requests from the start, 400 from drawn states, 0 from the prover's witnesses",
+        "checked against the code: 2400 requests from the start, 400 from drawn states, 6 from the prover's witnesses, 12 of 12 branch arms",
+        "checked against the code: 2400 requests from the start, 400 from drawn states, 0 from the prover's witnesses, 3 of 3 branch arms"
+      ],
+      "rows": [
+        {
+          "id": "CLI-A01",
+          "verdict": "proven"
+        },
+        {
+          "id": "CLI-A02",
+          "verdict": "proven"
+        },
+        {
+          "id": "CLI-A03",
+          "verdict": "proven"
+        },
+        {
+          "id": "CLI-A04",
+          "verdict": "proven"
+        },
+        {
+          "id": "CLI-A05",
+          "verdict": "proven"
+        },
+        {
+          "id": "CLI-A06",
+          "verdict": "proven"
+        },
+        {
+          "id": "CLI-A07",
+          "verdict": "proven"
+        },
+        {
+          "id": "CLI-A08",
+          "verdict": "proven"
+        },
+        {
+          "id": "CLI-A09",
+          "verdict": "proven"
+        },
+        {
+          "id": "CLI-A10",
+          "verdict": "proven"
+        },
+        {
+          "id": "CLI-A11",
+          "verdict": "proven"
+        },
+        {
+          "id": "CLI-A12",
+          "verdict": "proven"
+        },
+        {
+          "id": "CLI-A13",
+          "verdict": "proven"
+        }
+      ]
+    },
+    {
+      "expected": 7,
+      "exit": 0,
+      "checks": [
+        "checked against the code: 2400 requests from the start, 400 from drawn states, 4 from the prover's witnesses, 9 of 9 branch arms"
+      ],
+      "rows": [
+        {
+          "id": "MCP-B01",
+          "verdict": "proven"
+        },
+        {
+          "id": "MCP-B02",
+          "verdict": "proven"
+        },
+        {
+          "id": "MCP-B03",
+          "verdict": "proven"
+        },
+        {
+          "id": "MCP-B04",
+          "verdict": "proven"
+        },
+        {
+          "id": "MCP-B05",
+          "verdict": "proven"
+        },
+        {
+          "id": "MCP-B07",
+          "verdict": "proven"
+        },
+        {
+          "id": "MCP-B08",
+          "verdict": "proven"
+        }
+      ]
+    }
+  ],
+  "cases": [
+    {
+      "decision": 1,
+      "cases": 4,
+      "requests": 2400,
+      "fromStates": 400,
+      "probes": {
+        "conditions": 0,
+        "witnesses": 0,
+        "steps": 0
+      },
+      "coverage": {
+        "arms": 0,
+        "hit": 0,
+        "missed": []
+      },
+      "matched": true
+    },
+    {
+      "decision": 2,
+      "cases": 128,
+      "requests": 2400,
+      "fromStates": 400,
+      "probes": {
+        "conditions": 6,
+        "witnesses": 6,
+        "steps": 6
+      },
+      "coverage": {
+        "arms": 12,
+        "hit": 12,
+        "missed": []
+      },
+      "matched": true
+    },
+    {
+      "decision": 3,
+      "cases": 32,
+      "requests": 2400,
+      "fromStates": 400,
+      "probes": {
+        "conditions": 0,
+        "witnesses": 0,
+        "steps": 0
+      },
+      "coverage": {
+        "arms": 3,
+        "hit": 3,
+        "missed": []
+      },
+      "matched": true
+    },
+    {
+      "decision": 4,
+      "cases": 48,
+      "requests": 2400,
+      "fromStates": 400,
+      "probes": {
+        "conditions": 4,
+        "witnesses": 4,
+        "steps": 4
+      },
+      "coverage": {
+        "arms": 9,
+        "hit": 9,
+        "missed": []
+      },
+      "matched": true
+    }
+  ],
+  "allTwentyProven": true,
+  "lost": [],
+  "fullPrivateReceipt": "/tmp/gdp-ci-audit-replay-f338c30c/plain-laws-replay-on.log"
+}

@@ -1,0 +1,2631 @@
+{
+  "affected": [
+    "0.46.0",
+    "0.47.0"
+  ],
+  "defaultReplay": true,
+  "matrices": [
+    {
+      "variant": "standalone",
+      "summary": {
+        "firstAffected": "0.47.0",
+        "lastAffected": "0.47.0",
+        "affected": [
+          "0.47.0"
+        ],
+        "counts": {
+          "UNSUPPORTED_FRONTEND": 36,
+          "UNSUPPORTED_LAW_API": 10,
+          "EXTRACT_REFUSED": 17,
+          "AFFECTED_DEFAULT_REPLAY": 1
+        },
+        "unclassified": [],
+        "allStableTested": true,
+        "stableCount": 64
+      },
+      "cli": [
+        {
+          "version": "0.47.0",
+          "exit": 0,
+          "laws": [
+            {
+              "name": "absent calendar result",
+              "expr": "result - 0 <= 1 business days",
+              "where": "decision.ts:1",
+              "kind": "step",
+              "verdict": "proven",
+              "ms": 130
+            },
+            {
+              "name": "reversed absent result",
+              "expr": "1 business days >= result - 0",
+              "where": "decision.ts:2",
+              "kind": "step",
+              "verdict": "proven",
+              "ms": 80
+            }
+          ],
+          "checked": [
+            "checked against the code: 2400 requests from the start, 400 from drawn states, 0 from the prover's witnesses, 2 of 2 branch arms"
+          ]
+        }
+      ],
+      "versions": [
+        {
+          "version": "0.1.0",
+          "time": "2026-10-16T22:29:33.596Z",
+          "sha256": "07bdc2a8a74b516ff32beb915b5afda347bc3e6fffd63755e89f2afd03587288",
+          "classification": "UNSUPPORTED_FRONTEND",
+          "integrityVerified": true,
+          "proofs": []
+        },
+        {
+          "version": "0.2.0",
+          "time": "2026-10-17T07:07:20.365Z",
+          "sha256": "cbf50a1ca57bb48c707b8ee9f22c0d07f0eae15bec7f8f0e27f44bed3e02e1d5",
+          "classification": "UNSUPPORTED_FRONTEND",
+          "integrityVerified": true,
+          "proofs": []
+        },
+        {
+          "version": "0.3.0",
+          "time": "2026-10-18T03:14:02.569Z",
+          "sha256": "3c4f973b2abc760366ac8fbe3b8a0af1f00c0202d13b861eea7470e96232f19d",
+          "classification": "UNSUPPORTED_FRONTEND",
+          "integrityVerified": true,
+          "proofs": []
+        },
+        {
+          "version": "0.4.0",
+          "time": "2026-10-18T08:28:05.625Z",
+          "sha256": "1c71d6fcf131683030a5ae4c04e3e3479cb15e7ed3851b4ff19de5c7306e939a",
+          "classification": "UNSUPPORTED_FRONTEND",
+          "integrityVerified": true,
+          "proofs": []
+        },
+        {
+          "version": "0.5.0",
+          "time": "2026-10-18T12:57:08.678Z",
+          "sha256": "a711f0fc4bb382b1bcc1fef45e033e9f5875fe46ea2acb114f00a468500df23c",
+          "classification": "UNSUPPORTED_FRONTEND",
+          "integrityVerified": true,
+          "proofs": []
+        },
+        {
+          "version": "0.6.0",
+          "time": "2026-10-18T15:05:38.403Z",
+          "sha256": "c1d667af2a48b3f0374ce4c2bcdd9fb533178492d4fffc76c88a517518d1ec54",
+          "classification": "UNSUPPORTED_FRONTEND",
+          "integrityVerified": true,
+          "proofs": []
+        },
+        {
+          "version": "0.7.0",
+          "time": "2026-10-19T09:29:20.840Z",
+          "sha256": "a81146ca2713022a871a97e6a0e90343cea1a8b21a568602c0fbc07229b4ed53",
+          "classification": "UNSUPPORTED_FRONTEND",
+          "integrityVerified": true,
+          "proofs": []
+        },
+        {
+          "version": "0.8.0",
+          "time": "2026-10-19T15:09:20.537Z",
+          "sha256": "4caa4012aa8d1f4bb09ec8b662df113642ee1cab3bde2b31f7788ee1b9111f05",
+          "classification": "UNSUPPORTED_FRONTEND",
+          "integrityVerified": true,
+          "proofs": []
+        },
+        {
+          "version": "0.9.0",
+          "time": "2026-10-19T18:10:42.707Z",
+          "sha256": "bfeffa1b1ad49a7b6e4dffd3c844dd5584c6db4b85026b05ef60991e44987951",
+          "classification": "UNSUPPORTED_FRONTEND",
+          "integrityVerified": true,
+          "proofs": []
+        },
+        {
+          "version": "0.10.0",
+          "time": "2026-10-19T19:01:03.323Z",
+          "sha256": "4a2d4f98dd473f465eb7a538e4f15f38b9fe9776fe8a2a559301653d6faaa99b",
+          "classification": "UNSUPPORTED_FRONTEND",
+          "integrityVerified": true,
+          "proofs": []
+        },
+        {
+          "version": "0.10.1",
+          "time": "2026-10-19T21:54:20.488Z",
+          "sha256": "d9c024864a009794d9ac08524de5827384b1bd5e28159183020142a0711823d1",
+          "classification": "UNSUPPORTED_FRONTEND",
+          "integrityVerified": true,
+          "proofs": []
+        },
+        {
+          "version": "0.11.0",
+          "time": "2026-10-20T02:30:22.248Z",
+          "sha256": "aa986c7d4c589bb0a46e0306647a51a1e9933fdcf8f2b7866f3a8b301cb5d4f9",
+          "classification": "UNSUPPORTED_FRONTEND",
+          "integrityVerified": true,
+          "proofs": []
+        },
+        {
+          "version": "0.12.0",
+          "time": "2026-10-20T05:59:17.141Z",
+          "sha256": "c911408a7e147aa36f37aa9d228f4b45aebddd771aa474877d17c5ed2734476f",
+          "classification": "UNSUPPORTED_FRONTEND",
+          "integrityVerified": true,
+          "proofs": []
+        },
+        {
+          "version": "0.12.1",
+          "time": "2026-10-20T07:01:35.773Z",
+          "sha256": "b15e0cabc86c04a16d5b86ee86c91ea8f00b47b1b9b92c6ded19c0907241002e",
+          "classification": "UNSUPPORTED_FRONTEND",
+          "integrityVerified": true,
+          "proofs": []
+        },
+        {
+          "version": "0.12.2",
+          "time": "2026-10-20T07:58:30.040Z",
+          "sha256": "1f03575360178ef41dbe3110898bf40fb0f5f3d99147d8bc257775efb4625c9e",
+          "classification": "UNSUPPORTED_FRONTEND",
+          "integrityVerified": true,
+          "proofs": []
+        },
+        {
+          "version": "0.12.3",
+          "time": "2026-10-20T08:41:08.882Z",
+          "sha256": "d5c425176d927b1ae4ad377e9e57328ff475f249345ee7e3be507c796486c238",
+          "classification": "UNSUPPORTED_FRONTEND",
+          "integrityVerified": true,
+          "proofs": []
+        },
+        {
+          "version": "0.12.4",
+          "time": "2026-10-20T13:28:27.140Z",
+          "sha256": "d6ac0b4b5ea195c9aa259314d7413c2d76c4b83cc0a3484ef45f3936d11596b0",
+          "classification": "UNSUPPORTED_FRONTEND",
+          "integrityVerified": true,
+          "proofs": []
+        },
+        {
+          "version": "0.12.5",
+          "time": "2026-10-20T14:01:46.452Z",
+          "sha256": "dd42ec3f9d08c6a320794f1bfe215031bec9bbdba62d947161ca6de0acae2859",
+          "classification": "UNSUPPORTED_FRONTEND",
+          "integrityVerified": true,
+          "proofs": []
+        },
+        {
+          "version": "0.12.6",
+          "time": "2026-10-20T16:19:21.172Z",
+          "sha256": "4794e2eb9229066d627470b8d101c13eae732e4c1e9dc1fc4efcf05fdfbabc10",
+          "classification": "UNSUPPORTED_FRONTEND",
+          "integrityVerified": true,
+          "proofs": []
+        },
+        {
+          "version": "0.12.7",
+          "time": "2026-10-20T16:47:18.737Z",
+          "sha256": "5e8823dd6240450073453d1789721efd57321584420b32f2db934e63e1d6366f",
+          "classification": "UNSUPPORTED_FRONTEND",
+          "integrityVerified": true,
+          "proofs": []
+        },
+        {
+          "version": "0.13.0",
+          "time": "2026-10-20T17:18:58.451Z",
+          "sha256": "85632183d0b7dc9455b80ea4316808e68a84045dd3f46b8428f233d527f58388",
+          "classification": "UNSUPPORTED_FRONTEND",
+          "integrityVerified": true,
+          "proofs": []
+        },
+        {
+          "version": "0.13.1",
+          "time": "2026-10-20T17:50:49.513Z",
+          "sha256": "47b33f633f0f245df2ca01939b85905f79dee4ec5f4223367217fff9d5382d8c",
+          "classification": "UNSUPPORTED_FRONTEND",
+          "integrityVerified": true,
+          "proofs": []
+        },
+        {
+          "version": "0.13.2",
+          "time": "2026-10-20T18:25:20.962Z",
+          "sha256": "2c51c1ab6167f84352d5fcb86dd2490fca39b1826aceccb067338977440ac956",
+          "classification": "UNSUPPORTED_FRONTEND",
+          "integrityVerified": true,
+          "proofs": []
+        },
+        {
+          "version": "0.13.3",
+          "time": "2026-10-20T18:45:26.366Z",
+          "sha256": "68dc369368f52527ed821cf8de0aab27f23c263f4bd4cf1ef208cc86fb700428",
+          "classification": "UNSUPPORTED_FRONTEND",
+          "integrityVerified": true,
+          "proofs": []
+        },
+        {
+          "version": "0.14.0",
+          "time": "2026-10-21T03:52:29.545Z",
+          "sha256": "a2cc49f1c5489d890f72aea554705264ef90381b7378e60397f816f681244ed7",
+          "classification": "UNSUPPORTED_FRONTEND",
+          "integrityVerified": true,
+          "proofs": []
+        },
+        {
+          "version": "0.14.1",
+          "time": "2026-10-21T05:27:01.890Z",
+          "sha256": "576f3d39c9581bfa9aefbadd00964fc2fcece7fb0ec360ac69094be9a6c4c76f",
+          "classification": "UNSUPPORTED_FRONTEND",
+          "integrityVerified": true,
+          "proofs": []
+        },
+        {
+          "version": "0.14.2",
+          "time": "2026-10-21T06:15:56.676Z",
+          "sha256": "f003338a8f407e7f28d1702b79409ab6699f949d5ddebe07c4d9d9751c1afc94",
+          "classification": "UNSUPPORTED_FRONTEND",
+          "integrityVerified": true,
+          "proofs": []
+        },
+        {
+          "version": "0.15.0",
+          "time": "2026-10-21T12:57:52.484Z",
+          "sha256": "b449c4bb82de33d239d0e529a8358e14b89a90b2b8fc7be746988ed747d55906",
+          "classification": "UNSUPPORTED_FRONTEND",
+          "integrityVerified": true,
+          "proofs": []
+        },
+        {
+          "version": "0.16.0",
+          "time": "2026-10-21T14:09:27.112Z",
+          "sha256": "5fa28bb380954498d00b1cee69fab882f96ce095857d6ff80f55d54324a6df65",
+          "classification": "UNSUPPORTED_FRONTEND",
+          "integrityVerified": true,
+          "proofs": []
+        },
+        {
+          "version": "0.17.0",
+          "time": "2026-10-21T16:01:21.628Z",
+          "sha256": "b143a189413c590506e9a015bdaf3b5aff7d858aa1861e6db47e7bf5229710ce",
+          "classification": "UNSUPPORTED_FRONTEND",
+          "integrityVerified": true,
+          "proofs": []
+        },
+        {
+          "version": "0.18.0",
+          "time": "2026-10-21T21:37:15.684Z",
+          "sha256": "49111cf0cf80ef65c1d66229903429d78713feba791a423b99ec202134197526",
+          "classification": "UNSUPPORTED_FRONTEND",
+          "integrityVerified": true,
+          "proofs": []
+        },
+        {
+          "version": "0.19.0",
+          "time": "2026-10-22T05:10:30.983Z",
+          "sha256": "ab02d2d3180f8629bdb9fc03a69bb0f894cb672271b7aa02d97c8e264374b2ae",
+          "classification": "UNSUPPORTED_FRONTEND",
+          "integrityVerified": true,
+          "proofs": []
+        },
+        {
+          "version": "0.20.0",
+          "time": "2026-10-22T11:48:07.904Z",
+          "sha256": "e6fbd44a2ec5ef6e398bc7dc2fc1e6c12bd9e9cc236ac0f85b3bcf895186c4a7",
+          "classification": "UNSUPPORTED_FRONTEND",
+          "integrityVerified": true,
+          "proofs": []
+        },
+        {
+          "version": "0.21.0",
+          "time": "2026-10-22T21:44:31.292Z",
+          "sha256": "181e9ebdcd87c5349333e007dc48e42b4e8b69f379c709137fa2107eca456cb8",
+          "classification": "UNSUPPORTED_FRONTEND",
+          "integrityVerified": true,
+          "proofs": []
+        },
+        {
+          "version": "0.22.0",
+          "time": "2026-10-23T04:36:30.843Z",
+          "sha256": "98499619f5648cfe23a9e229a09eef52151ff3a3848797382a26be4144db8d85",
+          "classification": "UNSUPPORTED_FRONTEND",
+          "integrityVerified": true,
+          "proofs": []
+        },
+        {
+          "version": "0.23.0",
+          "time": "2026-10-23T15:05:50.515Z",
+          "sha256": "9647f852ef323de5f790b0c82e42c2c57a6905a5ff82c97013d011e69f6f73db",
+          "classification": "UNSUPPORTED_FRONTEND",
+          "integrityVerified": true,
+          "proofs": []
+        },
+        {
+          "version": "0.24.0",
+          "time": "2026-10-23T19:47:45.316Z",
+          "sha256": "3f62ab081dcb8fb317f57850b5490a228ca841b1864611a01e29dde2b1449b7f",
+          "classification": "UNSUPPORTED_LAW_API",
+          "integrityVerified": true,
+          "proofs": []
+        },
+        {
+          "version": "0.25.0",
+          "time": "2026-10-23T22:23:04.922Z",
+          "sha256": "ce2ce991dc5ce10341dbe54c6b6502269ea38e45fd2f5066bf6e7d1f55607af9",
+          "classification": "UNSUPPORTED_LAW_API",
+          "integrityVerified": true,
+          "proofs": []
+        },
+        {
+          "version": "0.26.0",
+          "time": "2026-10-24T06:56:21.399Z",
+          "sha256": "da4bccbe9817fd1dc626ed1e4f95323ee0a0717d1d634ea0de0510a1aaa7f9ca",
+          "classification": "UNSUPPORTED_LAW_API",
+          "integrityVerified": true,
+          "proofs": []
+        },
+        {
+          "version": "0.27.0",
+          "time": "2026-10-24T11:41:35.123Z",
+          "sha256": "945c7d93cde7d5f61bd0028492ff63acca5d9323402ae3803b4de8dc91228c58",
+          "classification": "UNSUPPORTED_LAW_API",
+          "integrityVerified": true,
+          "proofs": []
+        },
+        {
+          "version": "0.28.0",
+          "time": "2026-10-25T01:46:06.356Z",
+          "sha256": "15e730396de2b750dc08df0fb1838c0340c075eb17ee44e6dbcb3d4eef582db9",
+          "classification": "UNSUPPORTED_LAW_API",
+          "integrityVerified": true,
+          "proofs": []
+        },
+        {
+          "version": "0.29.0",
+          "time": "2026-10-25T09:30:21.517Z",
+          "sha256": "9c9d8e8e9918bc1f9dddb3d26f8972a73677a6b3807e093a2c27efa222b4ecf3",
+          "classification": "UNSUPPORTED_LAW_API",
+          "integrityVerified": true,
+          "proofs": []
+        },
+        {
+          "version": "0.30.0",
+          "time": "2026-10-25T14:28:26.000Z",
+          "sha256": "f6a8fd45e42c104c60db744a0419e0c3968b5fce7e8360c07700111f3ab223c4",
+          "classification": "UNSUPPORTED_LAW_API",
+          "integrityVerified": true,
+          "proofs": []
+        },
+        {
+          "version": "0.30.1",
+          "time": "2026-10-25T20:50:05.246Z",
+          "sha256": "03187502eabdfeba4c8fc51b9b8e220d7f7fea7a02f053f90695f93c4d8c4b1f",
+          "classification": "UNSUPPORTED_LAW_API",
+          "integrityVerified": true,
+          "proofs": []
+        },
+        {
+          "version": "0.31.0",
+          "time": "2026-10-29T04:20:59.586Z",
+          "sha256": "fdd82ee4cc5b23e93b1f707f392bcb35db1bf7e797e3e22a07aa3b4ad38e085c",
+          "classification": "UNSUPPORTED_LAW_API",
+          "integrityVerified": true,
+          "proofs": []
+        },
+        {
+          "version": "0.31.1",
+          "time": "2026-10-29T04:59:33.989Z",
+          "sha256": "8bf96613dc06108a934452debcede6eb1533131378efd76ea6ff9e19beb0f9b2",
+          "classification": "UNSUPPORTED_LAW_API",
+          "integrityVerified": true,
+          "proofs": []
+        },
+        {
+          "version": "0.32.0",
+          "time": "2026-10-30T16:46:41.667Z",
+          "sha256": "d6e50ca2bd274a6cadfe1e0d2c2b1fedfb5720993737a5f5eae5e0966e959005",
+          "classification": "EXTRACT_REFUSED",
+          "integrityVerified": true,
+          "proofs": []
+        },
+        {
+          "version": "0.33.0",
+          "time": "2026-10-31T00:09:57.911Z",
+          "sha256": "9b8c509abb3f35e668279929b52a8d9eb88b552785db859f4208bd1676c1f53b",
+          "classification": "EXTRACT_REFUSED",
+          "integrityVerified": true,
+          "proofs": []
+        },
+        {
+          "version": "0.33.1",
+          "time": "2026-10-31T02:31:43.115Z",
+          "sha256": "8a9fd1db3ed62616ac44a965aef39e27f31d98e12f6c1a83f1e1779fe2c8ced9",
+          "classification": "EXTRACT_REFUSED",
+          "integrityVerified": true,
+          "proofs": []
+        },
+        {
+          "version": "0.34.0",
+          "time": "2026-10-31T02:49:18.966Z",
+          "sha256": "8c02436d0f0975b97cd4d7edfbce780c9aa117473b5ac22f1f7976d5ea0c4121",
+          "classification": "EXTRACT_REFUSED",
+          "integrityVerified": true,
+          "proofs": []
+        },
+        {
+          "version": "0.35.0",
+          "time": "2026-10-31T04:14:27.752Z",
+          "sha256": "8d9ba760e4a1a9935bf00bfe1a450605878174417d17bd6c7c186e521d19a92c",
+          "classification": "EXTRACT_REFUSED",
+          "integrityVerified": true,
+          "proofs": []
+        },
+        {
+          "version": "0.36.0",
+          "time": "2026-10-31T04:30:36.362Z",
+          "sha256": "6b31384b76dc0b7a775a0443c1bdbfe1794603a37429116272cff0794d31fb56",
+          "classification": "EXTRACT_REFUSED",
+          "integrityVerified": true,
+          "proofs": []
+        },
+        {
+          "version": "0.37.0",
+          "time": "2026-10-31T05:06:41.766Z",
+          "sha256": "bdf25f808ffff88198e7a19c724d763371c5157ef3c14cab3731a8729b090623",
+          "classification": "EXTRACT_REFUSED",
+          "integrityVerified": true,
+          "proofs": []
+        },
+        {
+          "version": "0.38.0",
+          "time": "2026-10-31T06:25:11.084Z",
+          "sha256": "0f2d4d633de27ba138519b3ec780c2053af407f103571304d78f8abb4235bf4d",
+          "classification": "EXTRACT_REFUSED",
+          "integrityVerified": true,
+          "proofs": []
+        },
+        {
+          "version": "0.39.0",
+          "time": "2026-10-31T07:42:29.486Z",
+          "sha256": "d83c343b77a9166de1d27c3b4eb2c86057ab5425bdf40ff93e7b28551d692116",
+          "classification": "EXTRACT_REFUSED",
+          "integrityVerified": true,
+          "proofs": []
+        },
+        {
+          "version": "0.40.0",
+          "time": "2026-10-31T09:08:08.385Z",
+          "sha256": "a0a901f24d3cb69692b571aa52c37120677affb8b9476442948ff33e34148f75",
+          "classification": "EXTRACT_REFUSED",
+          "integrityVerified": true,
+          "proofs": []
+        },
+        {
+          "version": "0.41.0",
+          "time": "2026-10-31T10:32:17.653Z",
+          "sha256": "51c09f2ffe949e22f815afcd08b7c13234543f2555433a47889115c8fb7519f8",
+          "classification": "EXTRACT_REFUSED",
+          "integrityVerified": true,
+          "proofs": []
+        },
+        {
+          "version": "0.41.1",
+          "time": "2026-10-31T11:49:24.980Z",
+          "sha256": "0be1c91e92dd8fc696a493afa816126ee84c27a04a4d8a942fc6f07aa700768c",
+          "classification": "EXTRACT_REFUSED",
+          "integrityVerified": true,
+          "proofs": []
+        },
+        {
+          "version": "0.42.0",
+          "time": "2026-10-31T13:04:11.798Z",
+          "sha256": "94ca8215a5b9508a1865601e8486757499a00c5ace75376609664ad8c764e0a9",
+          "classification": "EXTRACT_REFUSED",
+          "integrityVerified": true,
+          "proofs": []
+        },
+        {
+          "version": "0.43.0",
+          "time": "2026-10-31T21:14:11.570Z",
+          "sha256": "23bf2f9d02c30d6da1e77e46448951df506fd8b1de6633f1378509c217b51b28",
+          "classification": "EXTRACT_REFUSED",
+          "integrityVerified": true,
+          "proofs": []
+        },
+        {
+          "version": "0.44.0",
+          "time": "2026-11-01T05:28:27.443Z",
+          "sha256": "b081ff19019143ff06492e5110b0262bb30a4373f52d4e7f2688ea082365b193",
+          "classification": "EXTRACT_REFUSED",
+          "integrityVerified": true,
+          "proofs": []
+        },
+        {
+          "version": "0.45.0",
+          "time": "2026-11-02T02:48:08.118Z",
+          "sha256": "c036b313c234fae94ef6be6be68357fabbb990615a708716e92f49006dd3e3f5",
+          "classification": "EXTRACT_REFUSED",
+          "integrityVerified": true,
+          "proofs": []
+        },
+        {
+          "version": "0.46.0",
+          "time": "2026-11-03T16:33:45.232Z",
+          "sha256": "3fe3db718252b1fd9ca178f214247995539837f27449a4b07ac60ae1a6c12de3",
+          "classification": "EXTRACT_REFUSED",
+          "integrityVerified": true,
+          "proofs": []
+        },
+        {
+          "version": "0.47.0",
+          "time": "2026-11-05T16:00:47.047Z",
+          "sha256": "ca81b4f6c641a9cc4b2c5eb3932e5ea36840c02c00bbd8ff493aedcdfb40dd6c",
+          "classification": "AFFECTED_DEFAULT_REPLAY",
+          "integrityVerified": true,
+          "proofs": [
+            {
+              "proven": true,
+              "checked": true
+            },
+            {
+              "proven": true,
+              "checked": true
+            }
+          ],
+          "replay": {
+            "requests": 2400,
+            "fromStates": 400
+          }
+        }
+      ]
+    },
+    {
+      "variant": "direct-class",
+      "summary": {
+        "affected": [],
+        "counts": {
+          "UNSUPPORTED_FRONTEND": 36,
+          "UNSUPPORTED_LAW_API": 10,
+          "EXTRACT_REFUSED": 18
+        },
+        "unclassified": [],
+        "allStableTested": true,
+        "stableCount": 64
+      },
+      "cli": [],
+      "versions": [
+        {
+          "version": "0.1.0",
+          "time": "2026-10-16T22:29:33.596Z",
+          "sha256": "07bdc2a8a74b516ff32beb915b5afda347bc3e6fffd63755e89f2afd03587288",
+          "classification": "UNSUPPORTED_FRONTEND",
+          "integrityVerified": true,
+          "proofs": []
+        },
+        {
+          "version": "0.2.0",
+          "time": "2026-10-17T07:07:20.365Z",
+          "sha256": "cbf50a1ca57bb48c707b8ee9f22c0d07f0eae15bec7f8f0e27f44bed3e02e1d5",
+          "classification": "UNSUPPORTED_FRONTEND",
+          "integrityVerified": true,
+          "proofs": []
+        },
+        {
+          "version": "0.3.0",
+          "time": "2026-10-18T03:14:02.569Z",
+          "sha256": "3c4f973b2abc760366ac8fbe3b8a0af1f00c0202d13b861eea7470e96232f19d",
+          "classification": "UNSUPPORTED_FRONTEND",
+          "integrityVerified": true,
+          "proofs": []
+        },
+        {
+          "version": "0.4.0",
+          "time": "2026-10-18T08:28:05.625Z",
+          "sha256": "1c71d6fcf131683030a5ae4c04e3e3479cb15e7ed3851b4ff19de5c7306e939a",
+          "classification": "UNSUPPORTED_FRONTEND",
+          "integrityVerified": true,
+          "proofs": []
+        },
+        {
+          "version": "0.5.0",
+          "time": "2026-10-18T12:57:08.678Z",
+          "sha256": "a711f0fc4bb382b1bcc1fef45e033e9f5875fe46ea2acb114f00a468500df23c",
+          "classification": "UNSUPPORTED_FRONTEND",
+          "integrityVerified": true,
+          "proofs": []
+        },
+        {
+          "version": "0.6.0",
+          "time": "2026-10-18T15:05:38.403Z",
+          "sha256": "c1d667af2a48b3f0374ce4c2bcdd9fb533178492d4fffc76c88a517518d1ec54",
+          "classification": "UNSUPPORTED_FRONTEND",
+          "integrityVerified": true,
+          "proofs": []
+        },
+        {
+          "version": "0.7.0",
+          "time": "2026-10-19T09:29:20.840Z",
+          "sha256": "a81146ca2713022a871a97e6a0e90343cea1a8b21a568602c0fbc07229b4ed53",
+          "classification": "UNSUPPORTED_FRONTEND",
+          "integrityVerified": true,
+          "proofs": []
+        },
+        {
+          "version": "0.8.0",
+          "time": "2026-10-19T15:09:20.537Z",
+          "sha256": "4caa4012aa8d1f4bb09ec8b662df113642ee1cab3bde2b31f7788ee1b9111f05",
+          "classification": "UNSUPPORTED_FRONTEND",
+          "integrityVerified": true,
+          "proofs": []
+        },
+        {
+          "version": "0.9.0",
+          "time": "2026-10-19T18:10:42.707Z",
+          "sha256": "bfeffa1b1ad49a7b6e4dffd3c844dd5584c6db4b85026b05ef60991e44987951",
+          "classification": "UNSUPPORTED_FRONTEND",
+          "integrityVerified": true,
+          "proofs": []
+        },
+        {
+          "version": "0.10.0",
+          "time": "2026-10-19T19:01:03.323Z",
+          "sha256": "4a2d4f98dd473f465eb7a538e4f15f38b9fe9776fe8a2a559301653d6faaa99b",
+          "classification": "UNSUPPORTED_FRONTEND",
+          "integrityVerified": true,
+          "proofs": []
+        },
+        {
+          "version": "0.10.1",
+          "time": "2026-10-19T21:54:20.488Z",
+          "sha256": "d9c024864a009794d9ac08524de5827384b1bd5e28159183020142a0711823d1",
+          "classification": "UNSUPPORTED_FRONTEND",
+          "integrityVerified": true,
+          "proofs": []
+        },
+        {
+          "version": "0.11.0",
+          "time": "2026-10-20T02:30:22.248Z",
+          "sha256": "aa986c7d4c589bb0a46e0306647a51a1e9933fdcf8f2b7866f3a8b301cb5d4f9",
+          "classification": "UNSUPPORTED_FRONTEND",
+          "integrityVerified": true,
+          "proofs": []
+        },
+        {
+          "version": "0.12.0",
+          "time": "2026-10-20T05:59:17.141Z",
+          "sha256": "c911408a7e147aa36f37aa9d228f4b45aebddd771aa474877d17c5ed2734476f",
+          "classification": "UNSUPPORTED_FRONTEND",
+          "integrityVerified": true,
+          "proofs": []
+        },
+        {
+          "version": "0.12.1",
+          "time": "2026-10-20T07:01:35.773Z",
+          "sha256": "b15e0cabc86c04a16d5b86ee86c91ea8f00b47b1b9b92c6ded19c0907241002e",
+          "classification": "UNSUPPORTED_FRONTEND",
+          "integrityVerified": true,
+          "proofs": []
+        },
+        {
+          "version": "0.12.2",
+          "time": "2026-10-20T07:58:30.040Z",
+          "sha256": "1f03575360178ef41dbe3110898bf40fb0f5f3d99147d8bc257775efb4625c9e",
+          "classification": "UNSUPPORTED_FRONTEND",
+          "integrityVerified": true,
+          "proofs": []
+        },
+        {
+          "version": "0.12.3",
+          "time": "2026-10-20T08:41:08.882Z",
+          "sha256": "d5c425176d927b1ae4ad377e9e57328ff475f249345ee7e3be507c796486c238",
+          "classification": "UNSUPPORTED_FRONTEND",
+          "integrityVerified": true,
+          "proofs": []
+        },
+        {
+          "version": "0.12.4",
+          "time": "2026-10-20T13:28:27.140Z",
+          "sha256": "d6ac0b4b5ea195c9aa259314d7413c2d76c4b83cc0a3484ef45f3936d11596b0",
+          "classification": "UNSUPPORTED_FRONTEND",
+          "integrityVerified": true,
+          "proofs": []
+        },
+        {
+          "version": "0.12.5",
+          "time": "2026-10-20T14:01:46.452Z",
+          "sha256": "dd42ec3f9d08c6a320794f1bfe215031bec9bbdba62d947161ca6de0acae2859",
+          "classification": "UNSUPPORTED_FRONTEND",
+          "integrityVerified": true,
+          "proofs": []
+        },
+        {
+          "version": "0.12.6",
+          "time": "2026-10-20T16:19:21.172Z",
+          "sha256": "4794e2eb9229066d627470b8d101c13eae732e4c1e9dc1fc4efcf05fdfbabc10",
+          "classification": "UNSUPPORTED_FRONTEND",
+          "integrityVerified": true,
+          "proofs": []
+        },
+        {
+          "version": "0.12.7",
+          "time": "2026-10-20T16:47:18.737Z",
+          "sha256": "5e8823dd6240450073453d1789721efd57321584420b32f2db934e63e1d6366f",
+          "classification": "UNSUPPORTED_FRONTEND",
+          "integrityVerified": true,
+          "proofs": []
+        },
+        {
+          "version": "0.13.0",
+          "time": "2026-10-20T17:18:58.451Z",
+          "sha256": "85632183d0b7dc9455b80ea4316808e68a84045dd3f46b8428f233d527f58388",
+          "classification": "UNSUPPORTED_FRONTEND",
+          "integrityVerified": true,
+          "proofs": []
+        },
+        {
+          "version": "0.13.1",
+          "time": "2026-10-20T17:50:49.513Z",
+          "sha256": "47b33f633f0f245df2ca01939b85905f79dee4ec5f4223367217fff9d5382d8c",
+          "classification": "UNSUPPORTED_FRONTEND",
+          "integrityVerified": true,
+          "proofs": []
+        },
+        {
+          "version": "0.13.2",
+          "time": "2026-10-20T18:25:20.962Z",
+          "sha256": "2c51c1ab6167f84352d5fcb86dd2490fca39b1826aceccb067338977440ac956",
+          "classification": "UNSUPPORTED_FRONTEND",
+          "integrityVerified": true,
+          "proofs": []
+        },
+        {
+          "version": "0.13.3",
+          "time": "2026-10-20T18:45:26.366Z",
+          "sha256": "68dc369368f52527ed821cf8de0aab27f23c263f4bd4cf1ef208cc86fb700428",
+          "classification": "UNSUPPORTED_FRONTEND",
+          "integrityVerified": true,
+          "proofs": []
+        },
+        {
+          "version": "0.14.0",
+          "time": "2026-10-21T03:52:29.545Z",
+          "sha256": "a2cc49f1c5489d890f72aea554705264ef90381b7378e60397f816f681244ed7",
+          "classification": "UNSUPPORTED_FRONTEND",
+          "integrityVerified": true,
+          "proofs": []
+        },
+        {
+          "version": "0.14.1",
+          "time": "2026-10-21T05:27:01.890Z",
+          "sha256": "576f3d39c9581bfa9aefbadd00964fc2fcece7fb0ec360ac69094be9a6c4c76f",
+          "classification": "UNSUPPORTED_FRONTEND",
+          "integrityVerified": true,
+          "proofs": []
+        },
+        {
+          "version": "0.14.2",
+          "time": "2026-10-21T06:15:56.676Z",
+          "sha256": "f003338a8f407e7f28d1702b79409ab6699f949d5ddebe07c4d9d9751c1afc94",
+          "classification": "UNSUPPORTED_FRONTEND",
+          "integrityVerified": true,
+          "proofs": []
+        },
+        {
+          "version": "0.15.0",
+          "time": "2026-10-21T12:57:52.484Z",
+          "sha256": "b449c4bb82de33d239d0e529a8358e14b89a90b2b8fc7be746988ed747d55906",
+          "classification": "UNSUPPORTED_FRONTEND",
+          "integrityVerified": true,
+          "proofs": []
+        },
+        {
+          "version": "0.16.0",
+          "time": "2026-10-21T14:09:27.112Z",
+          "sha256": "5fa28bb380954498d00b1cee69fab882f96ce095857d6ff80f55d54324a6df65",
+          "classification": "UNSUPPORTED_FRONTEND",
+          "integrityVerified": true,
+          "proofs": []
+        },
+        {
+          "version": "0.17.0",
+          "time": "2026-10-21T16:01:21.628Z",
+          "sha256": "b143a189413c590506e9a015bdaf3b5aff7d858aa1861e6db47e7bf5229710ce",
+          "classification": "UNSUPPORTED_FRONTEND",
+          "integrityVerified": true,
+          "proofs": []
+        },
+        {
+          "version": "0.18.0",
+          "time": "2026-10-21T21:37:15.684Z",
+          "sha256": "49111cf0cf80ef65c1d66229903429d78713feba791a423b99ec202134197526",
+          "classification": "UNSUPPORTED_FRONTEND",
+          "integrityVerified": true,
+          "proofs": []
+        },
+        {
+          "version": "0.19.0",
+          "time": "2026-10-22T05:10:30.983Z",
+          "sha256": "ab02d2d3180f8629bdb9fc03a69bb0f894cb672271b7aa02d97c8e264374b2ae",
+          "classification": "UNSUPPORTED_FRONTEND",
+          "integrityVerified": true,
+          "proofs": []
+        },
+        {
+          "version": "0.20.0",
+          "time": "2026-10-22T11:48:07.904Z",
+          "sha256": "e6fbd44a2ec5ef6e398bc7dc2fc1e6c12bd9e9cc236ac0f85b3bcf895186c4a7",
+          "classification": "UNSUPPORTED_FRONTEND",
+          "integrityVerified": true,
+          "proofs": []
+        },
+        {
+          "version": "0.21.0",
+          "time": "2026-10-22T21:44:31.292Z",
+          "sha256": "181e9ebdcd87c5349333e007dc48e42b4e8b69f379c709137fa2107eca456cb8",
+          "classification": "UNSUPPORTED_FRONTEND",
+          "integrityVerified": true,
+          "proofs": []
+        },
+        {
+          "version": "0.22.0",
+          "time": "2026-10-23T04:36:30.843Z",
+          "sha256": "98499619f5648cfe23a9e229a09eef52151ff3a3848797382a26be4144db8d85",
+          "classification": "UNSUPPORTED_FRONTEND",
+          "integrityVerified": true,
+          "proofs": []
+        },
+        {
+          "version": "0.23.0",
+          "time": "2026-10-23T15:05:50.515Z",
+          "sha256": "9647f852ef323de5f790b0c82e42c2c57a6905a5ff82c97013d011e69f6f73db",
+          "classification": "UNSUPPORTED_FRONTEND",
+          "integrityVerified": true,
+          "proofs": []
+        },
+        {
+          "version": "0.24.0",
+          "time": "2026-10-23T19:47:45.316Z",
+          "sha256": "3f62ab081dcb8fb317f57850b5490a228ca841b1864611a01e29dde2b1449b7f",
+          "classification": "UNSUPPORTED_LAW_API",
+          "integrityVerified": true,
+          "proofs": []
+        },
+        {
+          "version": "0.25.0",
+          "time": "2026-10-23T22:23:04.922Z",
+          "sha256": "ce2ce991dc5ce10341dbe54c6b6502269ea38e45fd2f5066bf6e7d1f55607af9",
+          "classification": "UNSUPPORTED_LAW_API",
+          "integrityVerified": true,
+          "proofs": []
+        },
+        {
+          "version": "0.26.0",
+          "time": "2026-10-24T06:56:21.399Z",
+          "sha256": "da4bccbe9817fd1dc626ed1e4f95323ee0a0717d1d634ea0de0510a1aaa7f9ca",
+          "classification": "UNSUPPORTED_LAW_API",
+          "integrityVerified": true,
+          "proofs": []
+        },
+        {
+          "version": "0.27.0",
+          "time": "2026-10-24T11:41:35.123Z",
+          "sha256": "945c7d93cde7d5f61bd0028492ff63acca5d9323402ae3803b4de8dc91228c58",
+          "classification": "UNSUPPORTED_LAW_API",
+          "integrityVerified": true,
+          "proofs": []
+        },
+        {
+          "version": "0.28.0",
+          "time": "2026-10-25T01:46:06.356Z",
+          "sha256": "15e730396de2b750dc08df0fb1838c0340c075eb17ee44e6dbcb3d4eef582db9",
+          "classification": "UNSUPPORTED_LAW_API",
+          "integrityVerified": true,
+          "proofs": []
+        },
+        {
+          "version": "0.29.0",
+          "time": "2026-10-25T09:30:21.517Z",
+          "sha256": "9c9d8e8e9918bc1f9dddb3d26f8972a73677a6b3807e093a2c27efa222b4ecf3",
+          "classification": "UNSUPPORTED_LAW_API",
+          "integrityVerified": true,
+          "proofs": []
+        },
+        {
+          "version": "0.30.0",
+          "time": "2026-10-25T14:28:26.000Z",
+          "sha256": "f6a8fd45e42c104c60db744a0419e0c3968b5fce7e8360c07700111f3ab223c4",
+          "classification": "UNSUPPORTED_LAW_API",
+          "integrityVerified": true,
+          "proofs": []
+        },
+        {
+          "version": "0.30.1",
+          "time": "2026-10-25T20:50:05.246Z",
+          "sha256": "03187502eabdfeba4c8fc51b9b8e220d7f7fea7a02f053f90695f93c4d8c4b1f",
+          "classification": "UNSUPPORTED_LAW_API",
+          "integrityVerified": true,
+          "proofs": []
+        },
+        {
+          "version": "0.31.0",
+          "time": "2026-10-29T04:20:59.586Z",
+          "sha256": "fdd82ee4cc5b23e93b1f707f392bcb35db1bf7e797e3e22a07aa3b4ad38e085c",
+          "classification": "UNSUPPORTED_LAW_API",
+          "integrityVerified": true,
+          "proofs": []
+        },
+        {
+          "version": "0.31.1",
+          "time": "2026-10-29T04:59:33.989Z",
+          "sha256": "8bf96613dc06108a934452debcede6eb1533131378efd76ea6ff9e19beb0f9b2",
+          "classification": "UNSUPPORTED_LAW_API",
+          "integrityVerified": true,
+          "proofs": []
+        },
+        {
+          "version": "0.32.0",
+          "time": "2026-10-30T16:46:41.667Z",
+          "sha256": "d6e50ca2bd274a6cadfe1e0d2c2b1fedfb5720993737a5f5eae5e0966e959005",
+          "classification": "EXTRACT_REFUSED",
+          "integrityVerified": true,
+          "proofs": []
+        },
+        {
+          "version": "0.33.0",
+          "time": "2026-10-31T00:09:57.911Z",
+          "sha256": "9b8c509abb3f35e668279929b52a8d9eb88b552785db859f4208bd1676c1f53b",
+          "classification": "EXTRACT_REFUSED",
+          "integrityVerified": true,
+          "proofs": []
+        },
+        {
+          "version": "0.33.1",
+          "time": "2026-10-31T02:31:43.115Z",
+          "sha256": "8a9fd1db3ed62616ac44a965aef39e27f31d98e12f6c1a83f1e1779fe2c8ced9",
+          "classification": "EXTRACT_REFUSED",
+          "integrityVerified": true,
+          "proofs": []
+        },
+        {
+          "version": "0.34.0",
+          "time": "2026-10-31T02:49:18.966Z",
+          "sha256": "8c02436d0f0975b97cd4d7edfbce780c9aa117473b5ac22f1f7976d5ea0c4121",
+          "classification": "EXTRACT_REFUSED",
+          "integrityVerified": true,
+          "proofs": []
+        },
+        {
+          "version": "0.35.0",
+          "time": "2026-10-31T04:14:27.752Z",
+          "sha256": "8d9ba760e4a1a9935bf00bfe1a450605878174417d17bd6c7c186e521d19a92c",
+          "classification": "EXTRACT_REFUSED",
+          "integrityVerified": true,
+          "proofs": []
+        },
+        {
+          "version": "0.36.0",
+          "time": "2026-10-31T04:30:36.362Z",
+          "sha256": "6b31384b76dc0b7a775a0443c1bdbfe1794603a37429116272cff0794d31fb56",
+          "classification": "EXTRACT_REFUSED",
+          "integrityVerified": true,
+          "proofs": []
+        },
+        {
+          "version": "0.37.0",
+          "time": "2026-10-31T05:06:41.766Z",
+          "sha256": "bdf25f808ffff88198e7a19c724d763371c5157ef3c14cab3731a8729b090623",
+          "classification": "EXTRACT_REFUSED",
+          "integrityVerified": true,
+          "proofs": []
+        },
+        {
+          "version": "0.38.0",
+          "time": "2026-10-31T06:25:11.084Z",
+          "sha256": "0f2d4d633de27ba138519b3ec780c2053af407f103571304d78f8abb4235bf4d",
+          "classification": "EXTRACT_REFUSED",
+          "integrityVerified": true,
+          "proofs": []
+        },
+        {
+          "version": "0.39.0",
+          "time": "2026-10-31T07:42:29.486Z",
+          "sha256": "d83c343b77a9166de1d27c3b4eb2c86057ab5425bdf40ff93e7b28551d692116",
+          "classification": "EXTRACT_REFUSED",
+          "integrityVerified": true,
+          "proofs": []
+        },
+        {
+          "version": "0.40.0",
+          "time": "2026-10-31T09:08:08.385Z",
+          "sha256": "a0a901f24d3cb69692b571aa52c37120677affb8b9476442948ff33e34148f75",
+          "classification": "EXTRACT_REFUSED",
+          "integrityVerified": true,
+          "proofs": []
+        },
+        {
+          "version": "0.41.0",
+          "time": "2026-10-31T10:32:17.653Z",
+          "sha256": "51c09f2ffe949e22f815afcd08b7c13234543f2555433a47889115c8fb7519f8",
+          "classification": "EXTRACT_REFUSED",
+          "integrityVerified": true,
+          "proofs": []
+        },
+        {
+          "version": "0.41.1",
+          "time": "2026-10-31T11:49:24.980Z",
+          "sha256": "0be1c91e92dd8fc696a493afa816126ee84c27a04a4d8a942fc6f07aa700768c",
+          "classification": "EXTRACT_REFUSED",
+          "integrityVerified": true,
+          "proofs": []
+        },
+        {
+          "version": "0.42.0",
+          "time": "2026-10-31T13:04:11.798Z",
+          "sha256": "94ca8215a5b9508a1865601e8486757499a00c5ace75376609664ad8c764e0a9",
+          "classification": "EXTRACT_REFUSED",
+          "integrityVerified": true,
+          "proofs": []
+        },
+        {
+          "version": "0.43.0",
+          "time": "2026-10-31T21:14:11.570Z",
+          "sha256": "23bf2f9d02c30d6da1e77e46448951df506fd8b1de6633f1378509c217b51b28",
+          "classification": "EXTRACT_REFUSED",
+          "integrityVerified": true,
+          "proofs": []
+        },
+        {
+          "version": "0.44.0",
+          "time": "2026-11-01T05:28:27.443Z",
+          "sha256": "b081ff19019143ff06492e5110b0262bb30a4373f52d4e7f2688ea082365b193",
+          "classification": "EXTRACT_REFUSED",
+          "integrityVerified": true,
+          "proofs": []
+        },
+        {
+          "version": "0.45.0",
+          "time": "2026-11-02T02:48:08.118Z",
+          "sha256": "c036b313c234fae94ef6be6be68357fabbb990615a708716e92f49006dd3e3f5",
+          "classification": "EXTRACT_REFUSED",
+          "integrityVerified": true,
+          "proofs": []
+        },
+        {
+          "version": "0.46.0",
+          "time": "2026-11-03T16:33:45.232Z",
+          "sha256": "3fe3db718252b1fd9ca178f214247995539837f27449a4b07ac60ae1a6c12de3",
+          "classification": "EXTRACT_REFUSED",
+          "integrityVerified": true,
+          "proofs": []
+        },
+        {
+          "version": "0.47.0",
+          "time": "2026-11-05T16:00:47.047Z",
+          "sha256": "ca81b4f6c641a9cc4b2c5eb3932e5ea36840c02c00bbd8ff493aedcdfb40dd6c",
+          "classification": "EXTRACT_REFUSED",
+          "integrityVerified": true,
+          "proofs": []
+        }
+      ]
+    },
+    {
+      "variant": "map-result",
+      "summary": {
+        "affected": [],
+        "counts": {
+          "UNSUPPORTED_FRONTEND": 36,
+          "UNSUPPORTED_LAW_API": 10,
+          "LAW_REFUSED": 16,
+          "NOT_PROVEN": 2
+        },
+        "unclassified": [],
+        "allStableTested": true,
+        "stableCount": 64
+      },
+      "cli": [],
+      "versions": [
+        {
+          "version": "0.1.0",
+          "time": "2026-10-16T22:29:33.596Z",
+          "sha256": "07bdc2a8a74b516ff32beb915b5afda347bc3e6fffd63755e89f2afd03587288",
+          "classification": "UNSUPPORTED_FRONTEND",
+          "integrityVerified": true,
+          "proofs": []
+        },
+        {
+          "version": "0.2.0",
+          "time": "2026-10-17T07:07:20.365Z",
+          "sha256": "cbf50a1ca57bb48c707b8ee9f22c0d07f0eae15bec7f8f0e27f44bed3e02e1d5",
+          "classification": "UNSUPPORTED_FRONTEND",
+          "integrityVerified": true,
+          "proofs": []
+        },
+        {
+          "version": "0.3.0",
+          "time": "2026-10-18T03:14:02.569Z",
+          "sha256": "3c4f973b2abc760366ac8fbe3b8a0af1f00c0202d13b861eea7470e96232f19d",
+          "classification": "UNSUPPORTED_FRONTEND",
+          "integrityVerified": true,
+          "proofs": []
+        },
+        {
+          "version": "0.4.0",
+          "time": "2026-10-18T08:28:05.625Z",
+          "sha256": "1c71d6fcf131683030a5ae4c04e3e3479cb15e7ed3851b4ff19de5c7306e939a",
+          "classification": "UNSUPPORTED_FRONTEND",
+          "integrityVerified": true,
+          "proofs": []
+        },
+        {
+          "version": "0.5.0",
+          "time": "2026-10-18T12:57:08.678Z",
+          "sha256": "a711f0fc4bb382b1bcc1fef45e033e9f5875fe46ea2acb114f00a468500df23c",
+          "classification": "UNSUPPORTED_FRONTEND",
+          "integrityVerified": true,
+          "proofs": []
+        },
+        {
+          "version": "0.6.0",
+          "time": "2026-10-18T15:05:38.403Z",
+          "sha256": "c1d667af2a48b3f0374ce4c2bcdd9fb533178492d4fffc76c88a517518d1ec54",
+          "classification": "UNSUPPORTED_FRONTEND",
+          "integrityVerified": true,
+          "proofs": []
+        },
+        {
+          "version": "0.7.0",
+          "time": "2026-10-19T09:29:20.840Z",
+          "sha256": "a81146ca2713022a871a97e6a0e90343cea1a8b21a568602c0fbc07229b4ed53",
+          "classification": "UNSUPPORTED_FRONTEND",
+          "integrityVerified": true,
+          "proofs": []
+        },
+        {
+          "version": "0.8.0",
+          "time": "2026-10-19T15:09:20.537Z",
+          "sha256": "4caa4012aa8d1f4bb09ec8b662df113642ee1cab3bde2b31f7788ee1b9111f05",
+          "classification": "UNSUPPORTED_FRONTEND",
+          "integrityVerified": true,
+          "proofs": []
+        },
+        {
+          "version": "0.9.0",
+          "time": "2026-10-19T18:10:42.707Z",
+          "sha256": "bfeffa1b1ad49a7b6e4dffd3c844dd5584c6db4b85026b05ef60991e44987951",
+          "classification": "UNSUPPORTED_FRONTEND",
+          "integrityVerified": true,
+          "proofs": []
+        },
+        {
+          "version": "0.10.0",
+          "time": "2026-10-19T19:01:03.323Z",
+          "sha256": "4a2d4f98dd473f465eb7a538e4f15f38b9fe9776fe8a2a559301653d6faaa99b",
+          "classification": "UNSUPPORTED_FRONTEND",
+          "integrityVerified": true,
+          "proofs": []
+        },
+        {
+          "version": "0.10.1",
+          "time": "2026-10-19T21:54:20.488Z",
+          "sha256": "d9c024864a009794d9ac08524de5827384b1bd5e28159183020142a0711823d1",
+          "classification": "UNSUPPORTED_FRONTEND",
+          "integrityVerified": true,
+          "proofs": []
+        },
+        {
+          "version": "0.11.0",
+          "time": "2026-10-20T02:30:22.248Z",
+          "sha256": "aa986c7d4c589bb0a46e0306647a51a1e9933fdcf8f2b7866f3a8b301cb5d4f9",
+          "classification": "UNSUPPORTED_FRONTEND",
+          "integrityVerified": true,
+          "proofs": []
+        },
+        {
+          "version": "0.12.0",
+          "time": "2026-10-20T05:59:17.141Z",
+          "sha256": "c911408a7e147aa36f37aa9d228f4b45aebddd771aa474877d17c5ed2734476f",
+          "classification": "UNSUPPORTED_FRONTEND",
+          "integrityVerified": true,
+          "proofs": []
+        },
+        {
+          "version": "0.12.1",
+          "time": "2026-10-20T07:01:35.773Z",
+          "sha256": "b15e0cabc86c04a16d5b86ee86c91ea8f00b47b1b9b92c6ded19c0907241002e",
+          "classification": "UNSUPPORTED_FRONTEND",
+          "integrityVerified": true,
+          "proofs": []
+        },
+        {
+          "version": "0.12.2",
+          "time": "2026-10-20T07:58:30.040Z",
+          "sha256": "1f03575360178ef41dbe3110898bf40fb0f5f3d99147d8bc257775efb4625c9e",
+          "classification": "UNSUPPORTED_FRONTEND",
+          "integrityVerified": true,
+          "proofs": []
+        },
+        {
+          "version": "0.12.3",
+          "time": "2026-10-20T08:41:08.882Z",
+          "sha256": "d5c425176d927b1ae4ad377e9e57328ff475f249345ee7e3be507c796486c238",
+          "classification": "UNSUPPORTED_FRONTEND",
+          "integrityVerified": true,
+          "proofs": []
+        },
+        {
+          "version": "0.12.4",
+          "time": "2026-10-20T13:28:27.140Z",
+          "sha256": "d6ac0b4b5ea195c9aa259314d7413c2d76c4b83cc0a3484ef45f3936d11596b0",
+          "classification": "UNSUPPORTED_FRONTEND",
+          "integrityVerified": true,
+          "proofs": []
+        },
+        {
+          "version": "0.12.5",
+          "time": "2026-10-20T14:01:46.452Z",
+          "sha256": "dd42ec3f9d08c6a320794f1bfe215031bec9bbdba62d947161ca6de0acae2859",
+          "classification": "UNSUPPORTED_FRONTEND",
+          "integrityVerified": true,
+          "proofs": []
+        },
+        {
+          "version": "0.12.6",
+          "time": "2026-10-20T16:19:21.172Z",
+          "sha256": "4794e2eb9229066d627470b8d101c13eae732e4c1e9dc1fc4efcf05fdfbabc10",
+          "classification": "UNSUPPORTED_FRONTEND",
+          "integrityVerified": true,
+          "proofs": []
+        },
+        {
+          "version": "0.12.7",
+          "time": "2026-10-20T16:47:18.737Z",
+          "sha256": "5e8823dd6240450073453d1789721efd57321584420b32f2db934e63e1d6366f",
+          "classification": "UNSUPPORTED_FRONTEND",
+          "integrityVerified": true,
+          "proofs": []
+        },
+        {
+          "version": "0.13.0",
+          "time": "2026-10-20T17:18:58.451Z",
+          "sha256": "85632183d0b7dc9455b80ea4316808e68a84045dd3f46b8428f233d527f58388",
+          "classification": "UNSUPPORTED_FRONTEND",
+          "integrityVerified": true,
+          "proofs": []
+        },
+        {
+          "version": "0.13.1",
+          "time": "2026-10-20T17:50:49.513Z",
+          "sha256": "47b33f633f0f245df2ca01939b85905f79dee4ec5f4223367217fff9d5382d8c",
+          "classification": "UNSUPPORTED_FRONTEND",
+          "integrityVerified": true,
+          "proofs": []
+        },
+        {
+          "version": "0.13.2",
+          "time": "2026-10-20T18:25:20.962Z",
+          "sha256": "2c51c1ab6167f84352d5fcb86dd2490fca39b1826aceccb067338977440ac956",
+          "classification": "UNSUPPORTED_FRONTEND",
+          "integrityVerified": true,
+          "proofs": []
+        },
+        {
+          "version": "0.13.3",
+          "time": "2026-10-20T18:45:26.366Z",
+          "sha256": "68dc369368f52527ed821cf8de0aab27f23c263f4bd4cf1ef208cc86fb700428",
+          "classification": "UNSUPPORTED_FRONTEND",
+          "integrityVerified": true,
+          "proofs": []
+        },
+        {
+          "version": "0.14.0",
+          "time": "2026-10-21T03:52:29.545Z",
+          "sha256": "a2cc49f1c5489d890f72aea554705264ef90381b7378e60397f816f681244ed7",
+          "classification": "UNSUPPORTED_FRONTEND",
+          "integrityVerified": true,
+          "proofs": []
+        },
+        {
+          "version": "0.14.1",
+          "time": "2026-10-21T05:27:01.890Z",
+          "sha256": "576f3d39c9581bfa9aefbadd00964fc2fcece7fb0ec360ac69094be9a6c4c76f",
+          "classification": "UNSUPPORTED_FRONTEND",
+          "integrityVerified": true,
+          "proofs": []
+        },
+        {
+          "version": "0.14.2",
+          "time": "2026-10-21T06:15:56.676Z",
+          "sha256": "f003338a8f407e7f28d1702b79409ab6699f949d5ddebe07c4d9d9751c1afc94",
+          "classification": "UNSUPPORTED_FRONTEND",
+          "integrityVerified": true,
+          "proofs": []
+        },
+        {
+          "version": "0.15.0",
+          "time": "2026-10-21T12:57:52.484Z",
+          "sha256": "b449c4bb82de33d239d0e529a8358e14b89a90b2b8fc7be746988ed747d55906",
+          "classification": "UNSUPPORTED_FRONTEND",
+          "integrityVerified": true,
+          "proofs": []
+        },
+        {
+          "version": "0.16.0",
+          "time": "2026-10-21T14:09:27.112Z",
+          "sha256": "5fa28bb380954498d00b1cee69fab882f96ce095857d6ff80f55d54324a6df65",
+          "classification": "UNSUPPORTED_FRONTEND",
+          "integrityVerified": true,
+          "proofs": []
+        },
+        {
+          "version": "0.17.0",
+          "time": "2026-10-21T16:01:21.628Z",
+          "sha256": "b143a189413c590506e9a015bdaf3b5aff7d858aa1861e6db47e7bf5229710ce",
+          "classification": "UNSUPPORTED_FRONTEND",
+          "integrityVerified": true,
+          "proofs": []
+        },
+        {
+          "version": "0.18.0",
+          "time": "2026-10-21T21:37:15.684Z",
+          "sha256": "49111cf0cf80ef65c1d66229903429d78713feba791a423b99ec202134197526",
+          "classification": "UNSUPPORTED_FRONTEND",
+          "integrityVerified": true,
+          "proofs": []
+        },
+        {
+          "version": "0.19.0",
+          "time": "2026-10-22T05:10:30.983Z",
+          "sha256": "ab02d2d3180f8629bdb9fc03a69bb0f894cb672271b7aa02d97c8e264374b2ae",
+          "classification": "UNSUPPORTED_FRONTEND",
+          "integrityVerified": true,
+          "proofs": []
+        },
+        {
+          "version": "0.20.0",
+          "time": "2026-10-22T11:48:07.904Z",
+          "sha256": "e6fbd44a2ec5ef6e398bc7dc2fc1e6c12bd9e9cc236ac0f85b3bcf895186c4a7",
+          "classification": "UNSUPPORTED_FRONTEND",
+          "integrityVerified": true,
+          "proofs": []
+        },
+        {
+          "version": "0.21.0",
+          "time": "2026-10-22T21:44:31.292Z",
+          "sha256": "181e9ebdcd87c5349333e007dc48e42b4e8b69f379c709137fa2107eca456cb8",
+          "classification": "UNSUPPORTED_FRONTEND",
+          "integrityVerified": true,
+          "proofs": []
+        },
+        {
+          "version": "0.22.0",
+          "time": "2026-10-23T04:36:30.843Z",
+          "sha256": "98499619f5648cfe23a9e229a09eef52151ff3a3848797382a26be4144db8d85",
+          "classification": "UNSUPPORTED_FRONTEND",
+          "integrityVerified": true,
+          "proofs": []
+        },
+        {
+          "version": "0.23.0",
+          "time": "2026-10-23T15:05:50.515Z",
+          "sha256": "9647f852ef323de5f790b0c82e42c2c57a6905a5ff82c97013d011e69f6f73db",
+          "classification": "UNSUPPORTED_FRONTEND",
+          "integrityVerified": true,
+          "proofs": []
+        },
+        {
+          "version": "0.24.0",
+          "time": "2026-10-23T19:47:45.316Z",
+          "sha256": "3f62ab081dcb8fb317f57850b5490a228ca841b1864611a01e29dde2b1449b7f",
+          "classification": "UNSUPPORTED_LAW_API",
+          "integrityVerified": true,
+          "proofs": []
+        },
+        {
+          "version": "0.25.0",
+          "time": "2026-10-23T22:23:04.922Z",
+          "sha256": "ce2ce991dc5ce10341dbe54c6b6502269ea38e45fd2f5066bf6e7d1f55607af9",
+          "classification": "UNSUPPORTED_LAW_API",
+          "integrityVerified": true,
+          "proofs": []
+        },
+        {
+          "version": "0.26.0",
+          "time": "2026-10-24T06:56:21.399Z",
+          "sha256": "da4bccbe9817fd1dc626ed1e4f95323ee0a0717d1d634ea0de0510a1aaa7f9ca",
+          "classification": "UNSUPPORTED_LAW_API",
+          "integrityVerified": true,
+          "proofs": []
+        },
+        {
+          "version": "0.27.0",
+          "time": "2026-10-24T11:41:35.123Z",
+          "sha256": "945c7d93cde7d5f61bd0028492ff63acca5d9323402ae3803b4de8dc91228c58",
+          "classification": "UNSUPPORTED_LAW_API",
+          "integrityVerified": true,
+          "proofs": []
+        },
+        {
+          "version": "0.28.0",
+          "time": "2026-10-25T01:46:06.356Z",
+          "sha256": "15e730396de2b750dc08df0fb1838c0340c075eb17ee44e6dbcb3d4eef582db9",
+          "classification": "UNSUPPORTED_LAW_API",
+          "integrityVerified": true,
+          "proofs": []
+        },
+        {
+          "version": "0.29.0",
+          "time": "2026-10-25T09:30:21.517Z",
+          "sha256": "9c9d8e8e9918bc1f9dddb3d26f8972a73677a6b3807e093a2c27efa222b4ecf3",
+          "classification": "UNSUPPORTED_LAW_API",
+          "integrityVerified": true,
+          "proofs": []
+        },
+        {
+          "version": "0.30.0",
+          "time": "2026-10-25T14:28:26.000Z",
+          "sha256": "f6a8fd45e42c104c60db744a0419e0c3968b5fce7e8360c07700111f3ab223c4",
+          "classification": "UNSUPPORTED_LAW_API",
+          "integrityVerified": true,
+          "proofs": []
+        },
+        {
+          "version": "0.30.1",
+          "time": "2026-10-25T20:50:05.246Z",
+          "sha256": "03187502eabdfeba4c8fc51b9b8e220d7f7fea7a02f053f90695f93c4d8c4b1f",
+          "classification": "UNSUPPORTED_LAW_API",
+          "integrityVerified": true,
+          "proofs": []
+        },
+        {
+          "version": "0.31.0",
+          "time": "2026-10-29T04:20:59.586Z",
+          "sha256": "fdd82ee4cc5b23e93b1f707f392bcb35db1bf7e797e3e22a07aa3b4ad38e085c",
+          "classification": "UNSUPPORTED_LAW_API",
+          "integrityVerified": true,
+          "proofs": []
+        },
+        {
+          "version": "0.31.1",
+          "time": "2026-10-29T04:59:33.989Z",
+          "sha256": "8bf96613dc06108a934452debcede6eb1533131378efd76ea6ff9e19beb0f9b2",
+          "classification": "UNSUPPORTED_LAW_API",
+          "integrityVerified": true,
+          "proofs": []
+        },
+        {
+          "version": "0.32.0",
+          "time": "2026-10-30T16:46:41.667Z",
+          "sha256": "d6e50ca2bd274a6cadfe1e0d2c2b1fedfb5720993737a5f5eae5e0966e959005",
+          "classification": "LAW_REFUSED",
+          "integrityVerified": true,
+          "proofs": [
+            {
+              "refusal": "Error: unexpected \"business\""
+            },
+            {
+              "refusal": "Error: unexpected \"business\""
+            }
+          ],
+          "replay": {
+            "requests": 2400,
+            "fromStates": 400
+          }
+        },
+        {
+          "version": "0.33.0",
+          "time": "2026-10-31T00:09:57.911Z",
+          "sha256": "9b8c509abb3f35e668279929b52a8d9eb88b552785db859f4208bd1676c1f53b",
+          "classification": "LAW_REFUSED",
+          "integrityVerified": true,
+          "proofs": [
+            {
+              "refusal": "Error: business: not a fixed number of seconds (a month or a year has several lengths, a business day depends on the calendar): state it in days, hours or seconds"
+            },
+            {
+              "refusal": "Error: business: not a fixed number of seconds (a month or a year has several lengths, a business day depends on the calendar): state it in days, hours or seconds"
+            }
+          ],
+          "replay": {
+            "requests": 2400,
+            "fromStates": 400
+          }
+        },
+        {
+          "version": "0.33.1",
+          "time": "2026-10-31T02:31:43.115Z",
+          "sha256": "8a9fd1db3ed62616ac44a965aef39e27f31d98e12f6c1a83f1e1779fe2c8ced9",
+          "classification": "LAW_REFUSED",
+          "integrityVerified": true,
+          "proofs": [
+            {
+              "refusal": "Error: business: not a fixed number of seconds (a month or a year has several lengths, a business day depends on the calendar): state it in days, hours or seconds"
+            },
+            {
+              "refusal": "Error: business: not a fixed number of seconds (a month or a year has several lengths, a business day depends on the calendar): state it in days, hours or seconds"
+            }
+          ],
+          "replay": {
+            "requests": 2400,
+            "fromStates": 400
+          }
+        },
+        {
+          "version": "0.34.0",
+          "time": "2026-10-31T02:49:18.966Z",
+          "sha256": "8c02436d0f0975b97cd4d7edfbce780c9aa117473b5ac22f1f7976d5ea0c4121",
+          "classification": "LAW_REFUSED",
+          "integrityVerified": true,
+          "proofs": [
+            {
+              "refusal": "Error: business: not a fixed number of seconds (a month or a year has several lengths, a business day depends on the calendar): state it in days, hours or seconds"
+            },
+            {
+              "refusal": "Error: business: not a fixed number of seconds (a month or a year has several lengths, a business day depends on the calendar): state it in days, hours or seconds"
+            }
+          ],
+          "replay": {
+            "requests": 2400,
+            "fromStates": 400
+          }
+        },
+        {
+          "version": "0.35.0",
+          "time": "2026-10-31T04:14:27.752Z",
+          "sha256": "8d9ba760e4a1a9935bf00bfe1a450605878174417d17bd6c7c186e521d19a92c",
+          "classification": "LAW_REFUSED",
+          "integrityVerified": true,
+          "proofs": [
+            {
+              "refusal": "Error: business: not a fixed number of seconds (a month or a year has several lengths, a business day depends on the calendar): state it in days, hours or seconds"
+            },
+            {
+              "refusal": "Error: business: not a fixed number of seconds (a month or a year has several lengths, a business day depends on the calendar): state it in days, hours or seconds"
+            }
+          ],
+          "replay": {
+            "requests": 2400,
+            "fromStates": 400
+          }
+        },
+        {
+          "version": "0.36.0",
+          "time": "2026-10-31T04:30:36.362Z",
+          "sha256": "6b31384b76dc0b7a775a0443c1bdbfe1794603a37429116272cff0794d31fb56",
+          "classification": "LAW_REFUSED",
+          "integrityVerified": true,
+          "proofs": [
+            {
+              "refusal": "Error: business: not a fixed number of seconds (a month or a year has several lengths, a business day depends on the calendar): state it in days, hours or seconds"
+            },
+            {
+              "refusal": "Error: business: not a fixed number of seconds (a month or a year has several lengths, a business day depends on the calendar): state it in days, hours or seconds"
+            }
+          ],
+          "replay": {
+            "requests": 2400,
+            "fromStates": 400
+          }
+        },
+        {
+          "version": "0.37.0",
+          "time": "2026-10-31T05:06:41.766Z",
+          "sha256": "bdf25f808ffff88198e7a19c724d763371c5157ef3c14cab3731a8729b090623",
+          "classification": "LAW_REFUSED",
+          "integrityVerified": true,
+          "proofs": [
+            {
+              "refusal": "Error: business: not a fixed number of seconds (a month or a year has several lengths, a business day depends on the calendar): state it in days, hours or seconds"
+            },
+            {
+              "refusal": "Error: business: not a fixed number of seconds (a month or a year has several lengths, a business day depends on the calendar): state it in days, hours or seconds"
+            }
+          ],
+          "replay": {
+            "requests": 2400,
+            "fromStates": 400
+          }
+        },
+        {
+          "version": "0.38.0",
+          "time": "2026-10-31T06:25:11.084Z",
+          "sha256": "0f2d4d633de27ba138519b3ec780c2053af407f103571304d78f8abb4235bf4d",
+          "classification": "LAW_REFUSED",
+          "integrityVerified": true,
+          "proofs": [
+            {
+              "refusal": "Error: business: not a fixed number of seconds (a month or a year has several lengths, a business day depends on the calendar): state it in days, hours or seconds"
+            },
+            {
+              "refusal": "Error: business: not a fixed number of seconds (a month or a year has several lengths, a business day depends on the calendar): state it in days, hours or seconds"
+            }
+          ],
+          "replay": {
+            "requests": 2400,
+            "fromStates": 400
+          }
+        },
+        {
+          "version": "0.39.0",
+          "time": "2026-10-31T07:42:29.486Z",
+          "sha256": "d83c343b77a9166de1d27c3b4eb2c86057ab5425bdf40ff93e7b28551d692116",
+          "classification": "LAW_REFUSED",
+          "integrityVerified": true,
+          "proofs": [
+            {
+              "refusal": "Error: business: not a fixed number of seconds (a month or a year has several lengths, a business day depends on the calendar): state it in days, hours or seconds"
+            },
+            {
+              "refusal": "Error: business: not a fixed number of seconds (a month or a year has several lengths, a business day depends on the calendar): state it in days, hours or seconds"
+            }
+          ],
+          "replay": {
+            "requests": 2400,
+            "fromStates": 400
+          }
+        },
+        {
+          "version": "0.40.0",
+          "time": "2026-10-31T09:08:08.385Z",
+          "sha256": "a0a901f24d3cb69692b571aa52c37120677affb8b9476442948ff33e34148f75",
+          "classification": "LAW_REFUSED",
+          "integrityVerified": true,
+          "proofs": [
+            {
+              "refusal": "Error: business: not a fixed number of seconds (a month or a year has several lengths, a business day depends on the calendar): state it in days, hours or seconds"
+            },
+            {
+              "refusal": "Error: business: not a fixed number of seconds (a month or a year has several lengths, a business day depends on the calendar): state it in days, hours or seconds"
+            }
+          ],
+          "replay": {
+            "requests": 2400,
+            "fromStates": 400
+          }
+        },
+        {
+          "version": "0.41.0",
+          "time": "2026-10-31T10:32:17.653Z",
+          "sha256": "51c09f2ffe949e22f815afcd08b7c13234543f2555433a47889115c8fb7519f8",
+          "classification": "LAW_REFUSED",
+          "integrityVerified": true,
+          "proofs": [
+            {
+              "refusal": "Error: business: not a fixed number of seconds (a month or a year has several lengths, a business day depends on the calendar): state it in days, hours or seconds"
+            },
+            {
+              "refusal": "Error: business: not a fixed number of seconds (a month or a year has several lengths, a business day depends on the calendar): state it in days, hours or seconds"
+            }
+          ],
+          "replay": {
+            "requests": 2400,
+            "fromStates": 400
+          }
+        },
+        {
+          "version": "0.41.1",
+          "time": "2026-10-31T11:49:24.980Z",
+          "sha256": "0be1c91e92dd8fc696a493afa816126ee84c27a04a4d8a942fc6f07aa700768c",
+          "classification": "LAW_REFUSED",
+          "integrityVerified": true,
+          "proofs": [
+            {
+              "refusal": "Error: business: not a fixed number of seconds (a month or a year has several lengths, a business day depends on the calendar): state it in days, hours or seconds"
+            },
+            {
+              "refusal": "Error: business: not a fixed number of seconds (a month or a year has several lengths, a business day depends on the calendar): state it in days, hours or seconds"
+            }
+          ],
+          "replay": {
+            "requests": 2400,
+            "fromStates": 400
+          }
+        },
+        {
+          "version": "0.42.0",
+          "time": "2026-10-31T13:04:11.798Z",
+          "sha256": "94ca8215a5b9508a1865601e8486757499a00c5ace75376609664ad8c764e0a9",
+          "classification": "LAW_REFUSED",
+          "integrityVerified": true,
+          "proofs": [
+            {
+              "refusal": "Error: business: not a fixed number of seconds (a month or a year has several lengths, a business day depends on the calendar): state it in days, hours or seconds"
+            },
+            {
+              "refusal": "Error: business: not a fixed number of seconds (a month or a year has several lengths, a business day depends on the calendar): state it in days, hours or seconds"
+            }
+          ],
+          "replay": {
+            "requests": 2400,
+            "fromStates": 400
+          }
+        },
+        {
+          "version": "0.43.0",
+          "time": "2026-10-31T21:14:11.570Z",
+          "sha256": "23bf2f9d02c30d6da1e77e46448951df506fd8b1de6633f1378509c217b51b28",
+          "classification": "LAW_REFUSED",
+          "integrityVerified": true,
+          "proofs": [
+            {
+              "refusal": "Error: business: not a fixed number of seconds (a month or a year has several lengths, a business day depends on the calendar): state it in days, hours or seconds"
+            },
+            {
+              "refusal": "Error: business: not a fixed number of seconds (a month or a year has several lengths, a business day depends on the calendar): state it in days, hours or seconds"
+            }
+          ],
+          "replay": {
+            "requests": 2400,
+            "fromStates": 400
+          }
+        },
+        {
+          "version": "0.44.0",
+          "time": "2026-11-01T05:28:27.443Z",
+          "sha256": "b081ff19019143ff06492e5110b0262bb30a4373f52d4e7f2688ea082365b193",
+          "classification": "LAW_REFUSED",
+          "integrityVerified": true,
+          "proofs": [
+            {
+              "refusal": "Error: business: not a fixed number of seconds (a month or a year has several lengths, a business day depends on the calendar): state it in days, hours or seconds"
+            },
+            {
+              "refusal": "Error: business: not a fixed number of seconds (a month or a year has several lengths, a business day depends on the calendar): state it in days, hours or seconds"
+            }
+          ],
+          "replay": {
+            "requests": 2400,
+            "fromStates": 400
+          }
+        },
+        {
+          "version": "0.45.0",
+          "time": "2026-11-02T02:48:08.118Z",
+          "sha256": "c036b313c234fae94ef6be6be68357fabbb990615a708716e92f49006dd3e3f5",
+          "classification": "LAW_REFUSED",
+          "integrityVerified": true,
+          "proofs": [
+            {
+              "refusal": "Error: business: not a fixed number of seconds (a month or a year has several lengths, a business day depends on the calendar): state it in days, hours or seconds"
+            },
+            {
+              "refusal": "Error: business: not a fixed number of seconds (a month or a year has several lengths, a business day depends on the calendar): state it in days, hours or seconds"
+            }
+          ],
+          "replay": {
+            "requests": 2400,
+            "fromStates": 400
+          }
+        },
+        {
+          "version": "0.46.0",
+          "time": "2026-11-03T16:33:45.232Z",
+          "sha256": "3fe3db718252b1fd9ca178f214247995539837f27449a4b07ac60ae1a6c12de3",
+          "classification": "NOT_PROVEN",
+          "integrityVerified": true,
+          "proofs": [
+            {
+              "proven": false,
+              "checked": false
+            },
+            {
+              "proven": false,
+              "checked": false
+            }
+          ],
+          "replay": {
+            "requests": 2400,
+            "fromStates": 400
+          }
+        },
+        {
+          "version": "0.47.0",
+          "time": "2026-11-05T16:00:47.047Z",
+          "sha256": "ca81b4f6c641a9cc4b2c5eb3932e5ea36840c02c00bbd8ff493aedcdfb40dd6c",
+          "classification": "NOT_PROVEN",
+          "integrityVerified": true,
+          "proofs": [
+            {
+              "proven": false,
+              "checked": false
+            },
+            {
+              "proven": false,
+              "checked": false
+            }
+          ],
+          "replay": {
+            "requests": 2400,
+            "fromStates": 400
+          }
+        }
+      ]
+    },
+    {
+      "variant": "guarded-map-result",
+      "summary": {
+        "firstAffected": "0.46.0",
+        "lastAffected": "0.47.0",
+        "affected": [
+          "0.46.0",
+          "0.47.0"
+        ],
+        "counts": {
+          "UNSUPPORTED_FRONTEND": 36,
+          "UNSUPPORTED_LAW_API": 10,
+          "LAW_REFUSED": 16,
+          "AFFECTED_DEFAULT_REPLAY": 2
+        },
+        "unclassified": [],
+        "allStableTested": true,
+        "stableCount": 64
+      },
+      "cli": [
+        {
+          "version": "0.46.0",
+          "exit": 0,
+          "laws": [
+            {
+              "name": "absent calendar result",
+              "expr": "result is undefined implies result - 0 <= 1 business days",
+              "where": "decision.ts:3",
+              "kind": "step",
+              "verdict": "proven",
+              "ms": 406
+            },
+            {
+              "name": "reversed absent result",
+              "expr": "result is undefined implies 1 business days >= result - 0",
+              "where": "decision.ts:4",
+              "kind": "step",
+              "verdict": "proven",
+              "ms": 310
+            }
+          ],
+          "checked": [
+            "checked against the code: 2400 requests from the start, 400 from drawn states, 0 from the prover's witnesses"
+          ]
+        },
+        {
+          "version": "0.47.0",
+          "exit": 0,
+          "laws": [
+            {
+              "name": "absent calendar result",
+              "expr": "result is undefined implies result - 0 <= 1 business days",
+              "where": "decision.ts:3",
+              "kind": "step",
+              "verdict": "proven",
+              "ms": 375
+            },
+            {
+              "name": "reversed absent result",
+              "expr": "result is undefined implies 1 business days >= result - 0",
+              "where": "decision.ts:4",
+              "kind": "step",
+              "verdict": "proven",
+              "ms": 278
+            }
+          ],
+          "checked": [
+            "checked against the code: 2400 requests from the start, 400 from drawn states, 0 from the prover's witnesses"
+          ]
+        }
+      ],
+      "versions": [
+        {
+          "version": "0.1.0",
+          "time": "2026-10-16T22:29:33.596Z",
+          "sha256": "07bdc2a8a74b516ff32beb915b5afda347bc3e6fffd63755e89f2afd03587288",
+          "classification": "UNSUPPORTED_FRONTEND",
+          "integrityVerified": true,
+          "proofs": []
+        },
+        {
+          "version": "0.2.0",
+          "time": "2026-10-17T07:07:20.365Z",
+          "sha256": "cbf50a1ca57bb48c707b8ee9f22c0d07f0eae15bec7f8f0e27f44bed3e02e1d5",
+          "classification": "UNSUPPORTED_FRONTEND",
+          "integrityVerified": true,
+          "proofs": []
+        },
+        {
+          "version": "0.3.0",
+          "time": "2026-10-18T03:14:02.569Z",
+          "sha256": "3c4f973b2abc760366ac8fbe3b8a0af1f00c0202d13b861eea7470e96232f19d",
+          "classification": "UNSUPPORTED_FRONTEND",
+          "integrityVerified": true,
+          "proofs": []
+        },
+        {
+          "version": "0.4.0",
+          "time": "2026-10-18T08:28:05.625Z",
+          "sha256": "1c71d6fcf131683030a5ae4c04e3e3479cb15e7ed3851b4ff19de5c7306e939a",
+          "classification": "UNSUPPORTED_FRONTEND",
+          "integrityVerified": true,
+          "proofs": []
+        },
+        {
+          "version": "0.5.0",
+          "time": "2026-10-18T12:57:08.678Z",
+          "sha256": "a711f0fc4bb382b1bcc1fef45e033e9f5875fe46ea2acb114f00a468500df23c",
+          "classification": "UNSUPPORTED_FRONTEND",
+          "integrityVerified": true,
+          "proofs": []
+        },
+        {
+          "version": "0.6.0",
+          "time": "2026-10-18T15:05:38.403Z",
+          "sha256": "c1d667af2a48b3f0374ce4c2bcdd9fb533178492d4fffc76c88a517518d1ec54",
+          "classification": "UNSUPPORTED_FRONTEND",
+          "integrityVerified": true,
+          "proofs": []
+        },
+        {
+          "version": "0.7.0",
+          "time": "2026-10-19T09:29:20.840Z",
+          "sha256": "a81146ca2713022a871a97e6a0e90343cea1a8b21a568602c0fbc07229b4ed53",
+          "classification": "UNSUPPORTED_FRONTEND",
+          "integrityVerified": true,
+          "proofs": []
+        },
+        {
+          "version": "0.8.0",
+          "time": "2026-10-19T15:09:20.537Z",
+          "sha256": "4caa4012aa8d1f4bb09ec8b662df113642ee1cab3bde2b31f7788ee1b9111f05",
+          "classification": "UNSUPPORTED_FRONTEND",
+          "integrityVerified": true,
+          "proofs": []
+        },
+        {
+          "version": "0.9.0",
+          "time": "2026-10-19T18:10:42.707Z",
+          "sha256": "bfeffa1b1ad49a7b6e4dffd3c844dd5584c6db4b85026b05ef60991e44987951",
+          "classification": "UNSUPPORTED_FRONTEND",
+          "integrityVerified": true,
+          "proofs": []
+        },
+        {
+          "version": "0.10.0",
+          "time": "2026-10-19T19:01:03.323Z",
+          "sha256": "4a2d4f98dd473f465eb7a538e4f15f38b9fe9776fe8a2a559301653d6faaa99b",
+          "classification": "UNSUPPORTED_FRONTEND",
+          "integrityVerified": true,
+          "proofs": []
+        },
+        {
+          "version": "0.10.1",
+          "time": "2026-10-19T21:54:20.488Z",
+          "sha256": "d9c024864a009794d9ac08524de5827384b1bd5e28159183020142a0711823d1",
+          "classification": "UNSUPPORTED_FRONTEND",
+          "integrityVerified": true,
+          "proofs": []
+        },
+        {
+          "version": "0.11.0",
+          "time": "2026-10-20T02:30:22.248Z",
+          "sha256": "aa986c7d4c589bb0a46e0306647a51a1e9933fdcf8f2b7866f3a8b301cb5d4f9",
+          "classification": "UNSUPPORTED_FRONTEND",
+          "integrityVerified": true,
+          "proofs": []
+        },
+        {
+          "version": "0.12.0",
+          "time": "2026-10-20T05:59:17.141Z",
+          "sha256": "c911408a7e147aa36f37aa9d228f4b45aebddd771aa474877d17c5ed2734476f",
+          "classification": "UNSUPPORTED_FRONTEND",
+          "integrityVerified": true,
+          "proofs": []
+        },
+        {
+          "version": "0.12.1",
+          "time": "2026-10-20T07:01:35.773Z",
+          "sha256": "b15e0cabc86c04a16d5b86ee86c91ea8f00b47b1b9b92c6ded19c0907241002e",
+          "classification": "UNSUPPORTED_FRONTEND",
+          "integrityVerified": true,
+          "proofs": []
+        },
+        {
+          "version": "0.12.2",
+          "time": "2026-10-20T07:58:30.040Z",
+          "sha256": "1f03575360178ef41dbe3110898bf40fb0f5f3d99147d8bc257775efb4625c9e",
+          "classification": "UNSUPPORTED_FRONTEND",
+          "integrityVerified": true,
+          "proofs": []
+        },
+        {
+          "version": "0.12.3",
+          "time": "2026-10-20T08:41:08.882Z",
+          "sha256": "d5c425176d927b1ae4ad377e9e57328ff475f249345ee7e3be507c796486c238",
+          "classification": "UNSUPPORTED_FRONTEND",
+          "integrityVerified": true,
+          "proofs": []
+        },
+        {
+          "version": "0.12.4",
+          "time": "2026-10-20T13:28:27.140Z",
+          "sha256": "d6ac0b4b5ea195c9aa259314d7413c2d76c4b83cc0a3484ef45f3936d11596b0",
+          "classification": "UNSUPPORTED_FRONTEND",
+          "integrityVerified": true,
+          "proofs": []
+        },
+        {
+          "version": "0.12.5",
+          "time": "2026-10-20T14:01:46.452Z",
+          "sha256": "dd42ec3f9d08c6a320794f1bfe215031bec9bbdba62d947161ca6de0acae2859",
+          "classification": "UNSUPPORTED_FRONTEND",
+          "integrityVerified": true,
+          "proofs": []
+        },
+        {
+          "version": "0.12.6",
+          "time": "2026-10-20T16:19:21.172Z",
+          "sha256": "4794e2eb9229066d627470b8d101c13eae732e4c1e9dc1fc4efcf05fdfbabc10",
+          "classification": "UNSUPPORTED_FRONTEND",
+          "integrityVerified": true,
+          "proofs": []
+        },
+        {
+          "version": "0.12.7",
+          "time": "2026-10-20T16:47:18.737Z",
+          "sha256": "5e8823dd6240450073453d1789721efd57321584420b32f2db934e63e1d6366f",
+          "classification": "UNSUPPORTED_FRONTEND",
+          "integrityVerified": true,
+          "proofs": []
+        },
+        {
+          "version": "0.13.0",
+          "time": "2026-10-20T17:18:58.451Z",
+          "sha256": "85632183d0b7dc9455b80ea4316808e68a84045dd3f46b8428f233d527f58388",
+          "classification": "UNSUPPORTED_FRONTEND",
+          "integrityVerified": true,
+          "proofs": []
+        },
+        {
+          "version": "0.13.1",
+          "time": "2026-10-20T17:50:49.513Z",
+          "sha256": "47b33f633f0f245df2ca01939b85905f79dee4ec5f4223367217fff9d5382d8c",
+          "classification": "UNSUPPORTED_FRONTEND",
+          "integrityVerified": true,
+          "proofs": []
+        },
+        {
+          "version": "0.13.2",
+          "time": "2026-10-20T18:25:20.962Z",
+          "sha256": "2c51c1ab6167f84352d5fcb86dd2490fca39b1826aceccb067338977440ac956",
+          "classification": "UNSUPPORTED_FRONTEND",
+          "integrityVerified": true,
+          "proofs": []
+        },
+        {
+          "version": "0.13.3",
+          "time": "2026-10-20T18:45:26.366Z",
+          "sha256": "68dc369368f52527ed821cf8de0aab27f23c263f4bd4cf1ef208cc86fb700428",
+          "classification": "UNSUPPORTED_FRONTEND",
+          "integrityVerified": true,
+          "proofs": []
+        },
+        {
+          "version": "0.14.0",
+          "time": "2026-10-21T03:52:29.545Z",
+          "sha256": "a2cc49f1c5489d890f72aea554705264ef90381b7378e60397f816f681244ed7",
+          "classification": "UNSUPPORTED_FRONTEND",
+          "integrityVerified": true,
+          "proofs": []
+        },
+        {
+          "version": "0.14.1",
+          "time": "2026-10-21T05:27:01.890Z",
+          "sha256": "576f3d39c9581bfa9aefbadd00964fc2fcece7fb0ec360ac69094be9a6c4c76f",
+          "classification": "UNSUPPORTED_FRONTEND",
+          "integrityVerified": true,
+          "proofs": []
+        },
+        {
+          "version": "0.14.2",
+          "time": "2026-10-21T06:15:56.676Z",
+          "sha256": "f003338a8f407e7f28d1702b79409ab6699f949d5ddebe07c4d9d9751c1afc94",
+          "classification": "UNSUPPORTED_FRONTEND",
+          "integrityVerified": true,
+          "proofs": []
+        },
+        {
+          "version": "0.15.0",
+          "time": "2026-10-21T12:57:52.484Z",
+          "sha256": "b449c4bb82de33d239d0e529a8358e14b89a90b2b8fc7be746988ed747d55906",
+          "classification": "UNSUPPORTED_FRONTEND",
+          "integrityVerified": true,
+          "proofs": []
+        },
+        {
+          "version": "0.16.0",
+          "time": "2026-10-21T14:09:27.112Z",
+          "sha256": "5fa28bb380954498d00b1cee69fab882f96ce095857d6ff80f55d54324a6df65",
+          "classification": "UNSUPPORTED_FRONTEND",
+          "integrityVerified": true,
+          "proofs": []
+        },
+        {
+          "version": "0.17.0",
+          "time": "2026-10-21T16:01:21.628Z",
+          "sha256": "b143a189413c590506e9a015bdaf3b5aff7d858aa1861e6db47e7bf5229710ce",
+          "classification": "UNSUPPORTED_FRONTEND",
+          "integrityVerified": true,
+          "proofs": []
+        },
+        {
+          "version": "0.18.0",
+          "time": "2026-10-21T21:37:15.684Z",
+          "sha256": "49111cf0cf80ef65c1d66229903429d78713feba791a423b99ec202134197526",
+          "classification": "UNSUPPORTED_FRONTEND",
+          "integrityVerified": true,
+          "proofs": []
+        },
+        {
+          "version": "0.19.0",
+          "time": "2026-10-22T05:10:30.983Z",
+          "sha256": "ab02d2d3180f8629bdb9fc03a69bb0f894cb672271b7aa02d97c8e264374b2ae",
+          "classification": "UNSUPPORTED_FRONTEND",
+          "integrityVerified": true,
+          "proofs": []
+        },
+        {
+          "version": "0.20.0",
+          "time": "2026-10-22T11:48:07.904Z",
+          "sha256": "e6fbd44a2ec5ef6e398bc7dc2fc1e6c12bd9e9cc236ac0f85b3bcf895186c4a7",
+          "classification": "UNSUPPORTED_FRONTEND",
+          "integrityVerified": true,
+          "proofs": []
+        },
+        {
+          "version": "0.21.0",
+          "time": "2026-10-22T21:44:31.292Z",
+          "sha256": "181e9ebdcd87c5349333e007dc48e42b4e8b69f379c709137fa2107eca456cb8",
+          "classification": "UNSUPPORTED_FRONTEND",
+          "integrityVerified": true,
+          "proofs": []
+        },
+        {
+          "version": "0.22.0",
+          "time": "2026-10-23T04:36:30.843Z",
+          "sha256": "98499619f5648cfe23a9e229a09eef52151ff3a3848797382a26be4144db8d85",
+          "classification": "UNSUPPORTED_FRONTEND",
+          "integrityVerified": true,
+          "proofs": []
+        },
+        {
+          "version": "0.23.0",
+          "time": "2026-10-23T15:05:50.515Z",
+          "sha256": "9647f852ef323de5f790b0c82e42c2c57a6905a5ff82c97013d011e69f6f73db",
+          "classification": "UNSUPPORTED_FRONTEND",
+          "integrityVerified": true,
+          "proofs": []
+        },
+        {
+          "version": "0.24.0",
+          "time": "2026-10-23T19:47:45.316Z",
+          "sha256": "3f62ab081dcb8fb317f57850b5490a228ca841b1864611a01e29dde2b1449b7f",
+          "classification": "UNSUPPORTED_LAW_API",
+          "integrityVerified": true,
+          "proofs": []
+        },
+        {
+          "version": "0.25.0",
+          "time": "2026-10-23T22:23:04.922Z",
+          "sha256": "ce2ce991dc5ce10341dbe54c6b6502269ea38e45fd2f5066bf6e7d1f55607af9",
+          "classification": "UNSUPPORTED_LAW_API",
+          "integrityVerified": true,
+          "proofs": []
+        },
+        {
+          "version": "0.26.0",
+          "time": "2026-10-24T06:56:21.399Z",
+          "sha256": "da4bccbe9817fd1dc626ed1e4f95323ee0a0717d1d634ea0de0510a1aaa7f9ca",
+          "classification": "UNSUPPORTED_LAW_API",
+          "integrityVerified": true,
+          "proofs": []
+        },
+        {
+          "version": "0.27.0",
+          "time": "2026-10-24T11:41:35.123Z",
+          "sha256": "945c7d93cde7d5f61bd0028492ff63acca5d9323402ae3803b4de8dc91228c58",
+          "classification": "UNSUPPORTED_LAW_API",
+          "integrityVerified": true,
+          "proofs": []
+        },
+        {
+          "version": "0.28.0",
+          "time": "2026-10-25T01:46:06.356Z",
+          "sha256": "15e730396de2b750dc08df0fb1838c0340c075eb17ee44e6dbcb3d4eef582db9",
+          "classification": "UNSUPPORTED_LAW_API",
+          "integrityVerified": true,
+          "proofs": []
+        },
+        {
+          "version": "0.29.0",
+          "time": "2026-10-25T09:30:21.517Z",
+          "sha256": "9c9d8e8e9918bc1f9dddb3d26f8972a73677a6b3807e093a2c27efa222b4ecf3",
+          "classification": "UNSUPPORTED_LAW_API",
+          "integrityVerified": true,
+          "proofs": []
+        },
+        {
+          "version": "0.30.0",
+          "time": "2026-10-25T14:28:26.000Z",
+          "sha256": "f6a8fd45e42c104c60db744a0419e0c3968b5fce7e8360c07700111f3ab223c4",
+          "classification": "UNSUPPORTED_LAW_API",
+          "integrityVerified": true,
+          "proofs": []
+        },
+        {
+          "version": "0.30.1",
+          "time": "2026-10-25T20:50:05.246Z",
+          "sha256": "03187502eabdfeba4c8fc51b9b8e220d7f7fea7a02f053f90695f93c4d8c4b1f",
+          "classification": "UNSUPPORTED_LAW_API",
+          "integrityVerified": true,
+          "proofs": []
+        },
+        {
+          "version": "0.31.0",
+          "time": "2026-10-29T04:20:59.586Z",
+          "sha256": "fdd82ee4cc5b23e93b1f707f392bcb35db1bf7e797e3e22a07aa3b4ad38e085c",
+          "classification": "UNSUPPORTED_LAW_API",
+          "integrityVerified": true,
+          "proofs": []
+        },
+        {
+          "version": "0.31.1",
+          "time": "2026-10-29T04:59:33.989Z",
+          "sha256": "8bf96613dc06108a934452debcede6eb1533131378efd76ea6ff9e19beb0f9b2",
+          "classification": "UNSUPPORTED_LAW_API",
+          "integrityVerified": true,
+          "proofs": []
+        },
+        {
+          "version": "0.32.0",
+          "time": "2026-10-30T16:46:41.667Z",
+          "sha256": "d6e50ca2bd274a6cadfe1e0d2c2b1fedfb5720993737a5f5eae5e0966e959005",
+          "classification": "LAW_REFUSED",
+          "integrityVerified": true,
+          "proofs": [
+            {
+              "refusal": "Error: unexpected \"business\""
+            },
+            {
+              "refusal": "Error: unexpected \"business\""
+            }
+          ],
+          "replay": {
+            "requests": 2400,
+            "fromStates": 400
+          }
+        },
+        {
+          "version": "0.33.0",
+          "time": "2026-10-31T00:09:57.911Z",
+          "sha256": "9b8c509abb3f35e668279929b52a8d9eb88b552785db859f4208bd1676c1f53b",
+          "classification": "LAW_REFUSED",
+          "integrityVerified": true,
+          "proofs": [
+            {
+              "refusal": "Error: business: not a fixed number of seconds (a month or a year has several lengths, a business day depends on the calendar): state it in days, hours or seconds"
+            },
+            {
+              "refusal": "Error: business: not a fixed number of seconds (a month or a year has several lengths, a business day depends on the calendar): state it in days, hours or seconds"
+            }
+          ],
+          "replay": {
+            "requests": 2400,
+            "fromStates": 400
+          }
+        },
+        {
+          "version": "0.33.1",
+          "time": "2026-10-31T02:31:43.115Z",
+          "sha256": "8a9fd1db3ed62616ac44a965aef39e27f31d98e12f6c1a83f1e1779fe2c8ced9",
+          "classification": "LAW_REFUSED",
+          "integrityVerified": true,
+          "proofs": [
+            {
+              "refusal": "Error: business: not a fixed number of seconds (a month or a year has several lengths, a business day depends on the calendar): state it in days, hours or seconds"
+            },
+            {
+              "refusal": "Error: business: not a fixed number of seconds (a month or a year has several lengths, a business day depends on the calendar): state it in days, hours or seconds"
+            }
+          ],
+          "replay": {
+            "requests": 2400,
+            "fromStates": 400
+          }
+        },
+        {
+          "version": "0.34.0",
+          "time": "2026-10-31T02:49:18.966Z",
+          "sha256": "8c02436d0f0975b97cd4d7edfbce780c9aa117473b5ac22f1f7976d5ea0c4121",
+          "classification": "LAW_REFUSED",
+          "integrityVerified": true,
+          "proofs": [
+            {
+              "refusal": "Error: business: not a fixed number of seconds (a month or a year has several lengths, a business day depends on the calendar): state it in days, hours or seconds"
+            },
+            {
+              "refusal": "Error: business: not a fixed number of seconds (a month or a year has several lengths, a business day depends on the calendar): state it in days, hours or seconds"
+            }
+          ],
+          "replay": {
+            "requests": 2400,
+            "fromStates": 400
+          }
+        },
+        {
+          "version": "0.35.0",
+          "time": "2026-10-31T04:14:27.752Z",
+          "sha256": "8d9ba760e4a1a9935bf00bfe1a450605878174417d17bd6c7c186e521d19a92c",
+          "classification": "LAW_REFUSED",
+          "integrityVerified": true,
+          "proofs": [
+            {
+              "refusal": "Error: business: not a fixed number of seconds (a month or a year has several lengths, a business day depends on the calendar): state it in days, hours or seconds"
+            },
+            {
+              "refusal": "Error: business: not a fixed number of seconds (a month or a year has several lengths, a business day depends on the calendar): state it in days, hours or seconds"
+            }
+          ],
+          "replay": {
+            "requests": 2400,
+            "fromStates": 400
+          }
+        },
+        {
+          "version": "0.36.0",
+          "time": "2026-10-31T04:30:36.362Z",
+          "sha256": "6b31384b76dc0b7a775a0443c1bdbfe1794603a37429116272cff0794d31fb56",
+          "classification": "LAW_REFUSED",
+          "integrityVerified": true,
+          "proofs": [
+            {
+              "refusal": "Error: business: not a fixed number of seconds (a month or a year has several lengths, a business day depends on the calendar): state it in days, hours or seconds"
+            },
+            {
+              "refusal": "Error: business: not a fixed number of seconds (a month or a year has several lengths, a business day depends on the calendar): state it in days, hours or seconds"
+            }
+          ],
+          "replay": {
+            "requests": 2400,
+            "fromStates": 400
+          }
+        },
+        {
+          "version": "0.37.0",
+          "time": "2026-10-31T05:06:41.766Z",
+          "sha256": "bdf25f808ffff88198e7a19c724d763371c5157ef3c14cab3731a8729b090623",
+          "classification": "LAW_REFUSED",
+          "integrityVerified": true,
+          "proofs": [
+            {
+              "refusal": "Error: business: not a fixed number of seconds (a month or a year has several lengths, a business day depends on the calendar): state it in days, hours or seconds"
+            },
+            {
+              "refusal": "Error: business: not a fixed number of seconds (a month or a year has several lengths, a business day depends on the calendar): state it in days, hours or seconds"
+            }
+          ],
+          "replay": {
+            "requests": 2400,
+            "fromStates": 400
+          }
+        },
+        {
+          "version": "0.38.0",
+          "time": "2026-10-31T06:25:11.084Z",
+          "sha256": "0f2d4d633de27ba138519b3ec780c2053af407f103571304d78f8abb4235bf4d",
+          "classification": "LAW_REFUSED",
+          "integrityVerified": true,
+          "proofs": [
+            {
+              "refusal": "Error: business: not a fixed number of seconds (a month or a year has several lengths, a business day depends on the calendar): state it in days, hours or seconds"
+            },
+            {
+              "refusal": "Error: business: not a fixed number of seconds (a month or a year has several lengths, a business day depends on the calendar): state it in days, hours or seconds"
+            }
+          ],
+          "replay": {
+            "requests": 2400,
+            "fromStates": 400
+          }
+        },
+        {
+          "version": "0.39.0",
+          "time": "2026-10-31T07:42:29.486Z",
+          "sha256": "d83c343b77a9166de1d27c3b4eb2c86057ab5425bdf40ff93e7b28551d692116",
+          "classification": "LAW_REFUSED",
+          "integrityVerified": true,
+          "proofs": [
+            {
+              "refusal": "Error: business: not a fixed number of seconds (a month or a year has several lengths, a business day depends on the calendar): state it in days, hours or seconds"
+            },
+            {
+              "refusal": "Error: business: not a fixed number of seconds (a month or a year has several lengths, a business day depends on the calendar): state it in days, hours or seconds"
+            }
+          ],
+          "replay": {
+            "requests": 2400,
+            "fromStates": 400
+          }
+        },
+        {
+          "version": "0.40.0",
+          "time": "2026-10-31T09:08:08.385Z",
+          "sha256": "a0a901f24d3cb69692b571aa52c37120677affb8b9476442948ff33e34148f75",
+          "classification": "LAW_REFUSED",
+          "integrityVerified": true,
+          "proofs": [
+            {
+              "refusal": "Error: business: not a fixed number of seconds (a month or a year has several lengths, a business day depends on the calendar): state it in days, hours or seconds"
+            },
+            {
+              "refusal": "Error: business: not a fixed number of seconds (a month or a year has several lengths, a business day depends on the calendar): state it in days, hours or seconds"
+            }
+          ],
+          "replay": {
+            "requests": 2400,
+            "fromStates": 400
+          }
+        },
+        {
+          "version": "0.41.0",
+          "time": "2026-10-31T10:32:17.653Z",
+          "sha256": "51c09f2ffe949e22f815afcd08b7c13234543f2555433a47889115c8fb7519f8",
+          "classification": "LAW_REFUSED",
+          "integrityVerified": true,
+          "proofs": [
+            {
+              "refusal": "Error: business: not a fixed number of seconds (a month or a year has several lengths, a business day depends on the calendar): state it in days, hours or seconds"
+            },
+            {
+              "refusal": "Error: business: not a fixed number of seconds (a month or a year has several lengths, a business day depends on the calendar): state it in days, hours or seconds"
+            }
+          ],
+          "replay": {
+            "requests": 2400,
+            "fromStates": 400
+          }
+        },
+        {
+          "version": "0.41.1",
+          "time": "2026-10-31T11:49:24.980Z",
+          "sha256": "0be1c91e92dd8fc696a493afa816126ee84c27a04a4d8a942fc6f07aa700768c",
+          "classification": "LAW_REFUSED",
+          "integrityVerified": true,
+          "proofs": [
+            {
+              "refusal": "Error: business: not a fixed number of seconds (a month or a year has several lengths, a business day depends on the calendar): state it in days, hours or seconds"
+            },
+            {
+              "refusal": "Error: business: not a fixed number of seconds (a month or a year has several lengths, a business day depends on the calendar): state it in days, hours or seconds"
+            }
+          ],
+          "replay": {
+            "requests": 2400,
+            "fromStates": 400
+          }
+        },
+        {
+          "version": "0.42.0",
+          "time": "2026-10-31T13:04:11.798Z",
+          "sha256": "94ca8215a5b9508a1865601e8486757499a00c5ace75376609664ad8c764e0a9",
+          "classification": "LAW_REFUSED",
+          "integrityVerified": true,
+          "proofs": [
+            {
+              "refusal": "Error: business: not a fixed number of seconds (a month or a year has several lengths, a business day depends on the calendar): state it in days, hours or seconds"
+            },
+            {
+              "refusal": "Error: business: not a fixed number of seconds (a month or a year has several lengths, a business day depends on the calendar): state it in days, hours or seconds"
+            }
+          ],
+          "replay": {
+            "requests": 2400,
+            "fromStates": 400
+          }
+        },
+        {
+          "version": "0.43.0",
+          "time": "2026-10-31T21:14:11.570Z",
+          "sha256": "23bf2f9d02c30d6da1e77e46448951df506fd8b1de6633f1378509c217b51b28",
+          "classification": "LAW_REFUSED",
+          "integrityVerified": true,
+          "proofs": [
+            {
+              "refusal": "Error: business: not a fixed number of seconds (a month or a year has several lengths, a business day depends on the calendar): state it in days, hours or seconds"
+            },
+            {
+              "refusal": "Error: business: not a fixed number of seconds (a month or a year has several lengths, a business day depends on the calendar): state it in days, hours or seconds"
+            }
+          ],
+          "replay": {
+            "requests": 2400,
+            "fromStates": 400
+          }
+        },
+        {
+          "version": "0.44.0",
+          "time": "2026-11-01T05:28:27.443Z",
+          "sha256": "b081ff19019143ff06492e5110b0262bb30a4373f52d4e7f2688ea082365b193",
+          "classification": "LAW_REFUSED",
+          "integrityVerified": true,
+          "proofs": [
+            {
+              "refusal": "Error: business: not a fixed number of seconds (a month or a year has several lengths, a business day depends on the calendar): state it in days, hours or seconds"
+            },
+            {
+              "refusal": "Error: business: not a fixed number of seconds (a month or a year has several lengths, a business day depends on the calendar): state it in days, hours or seconds"
+            }
+          ],
+          "replay": {
+            "requests": 2400,
+            "fromStates": 400
+          }
+        },
+        {
+          "version": "0.45.0",
+          "time": "2026-11-02T02:48:08.118Z",
+          "sha256": "c036b313c234fae94ef6be6be68357fabbb990615a708716e92f49006dd3e3f5",
+          "classification": "LAW_REFUSED",
+          "integrityVerified": true,
+          "proofs": [
+            {
+              "refusal": "Error: business: not a fixed number of seconds (a month or a year has several lengths, a business day depends on the calendar): state it in days, hours or seconds"
+            },
+            {
+              "refusal": "Error: business: not a fixed number of seconds (a month or a year has several lengths, a business day depends on the calendar): state it in days, hours or seconds"
+            }
+          ],
+          "replay": {
+            "requests": 2400,
+            "fromStates": 400
+          }
+        },
+        {
+          "version": "0.46.0",
+          "time": "2026-11-03T16:33:45.232Z",
+          "sha256": "3fe3db718252b1fd9ca178f214247995539837f27449a4b07ac60ae1a6c12de3",
+          "classification": "AFFECTED_DEFAULT_REPLAY",
+          "integrityVerified": true,
+          "proofs": [
+            {
+              "proven": true,
+              "checked": true
+            },
+            {
+              "proven": true,
+              "checked": true
+            }
+          ],
+          "replay": {
+            "requests": 2400,
+            "fromStates": 400
+          }
+        },
+        {
+          "version": "0.47.0",
+          "time": "2026-11-05T16:00:47.047Z",
+          "sha256": "ca81b4f6c641a9cc4b2c5eb3932e5ea36840c02c00bbd8ff493aedcdfb40dd6c",
+          "classification": "AFFECTED_DEFAULT_REPLAY",
+          "integrityVerified": true,
+          "proofs": [
+            {
+              "proven": true,
+              "checked": true
+            },
+            {
+              "proven": true,
+              "checked": true
+            }
+          ],
+          "replay": {
+            "requests": 2400,
+            "fromStates": 400
+          }
+        }
+      ]
+    }
+  ]
+}

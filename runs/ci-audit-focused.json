@@ -1,0 +1,57 @@
+{
+  "candidate": "f338c30cd90e9bbb8d4ce32cbe8934fe45cc3715",
+  "tree": "ca382fe9c57a06070b975f2d562dc6be50e5e752",
+  "batch": "20261110-061451-rbrjoa",
+  "receipt": "runs/ci-audit-focus-f338c30c/audit-regressions-mutants-check.log",
+  "exit": 0,
+  "mutants": [
+    {
+      "mutant": "N1-drop-qualified-result-fields",
+      "status": "caught",
+      "exit": 1
+    },
+    {
+      "mutant": "C1-drop-plain-data-contract",
+      "status": "caught",
+      "exit": 1
+    },
+    {
+      "mutant": "B2-class-falsy-is-absent",
+      "status": "caught",
+      "exit": 1
+    },
+    {
+      "mutant": "P2-shared-record-identity",
+      "status": "caught",
+      "exit": 1
+    },
+    {
+      "mutant": "B1-standalone-only-guard",
+      "status": "caught",
+      "exit": 1
+    },
+    {
+      "mutant": "drop-equality-context",
+      "status": "caught",
+      "exit": 1
+    },
+    {
+      "mutant": "drop-both-recursive-contexts",
+      "status": "caught",
+      "exit": 1
+    },
+    {
+      "mutant": "drop-calendar-optional-guard",
+      "status": "caught",
+      "exit": 1
+    }
+  ],
+  "sourceRestored": true,
+  "checks": [
+    "three boundary regression files",
+    "five CI-audit mutants",
+    "three optional-choice mutants",
+    "check/typecheck/lint",
+    "all six commit messages"
+  ]
+}

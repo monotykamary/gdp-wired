@@ -1,0 +1,11 @@
+{
+ "audit-regressions-mutants-check": {
+  "vm": "bx_ahemkzme",
+  "type": "large",
+  "cpu": "AMD EPYC 9455 48-Core Processor",
+  "vcpus": 4,
+  "vm_vcpus": 8,
+  "exclusive": false,
+  "co_tenants": 2
+ }
+}

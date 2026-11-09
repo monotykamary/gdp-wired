@@ -1,0 +1,1031 @@
+CLEAN_CHECKOUT_HEAD f338c30cd90e9bbb8d4ce32cbe8934fe45cc3715
+CLEAN_CHECKOUT_TREE ca382fe9c57a06070b975f2d562dc6be50e5e752
+ 0b6ebeeec827b05210f3acfa4149a70dda9a0de5 vendor/gdp-ts (heads/master)
+ d47141cce2caf5b86b0c2c0c372a5174f424bc15 vendor/handwired (heads/master)
+bun test v1.4.3 (c6da4a4d3)
+| Mutant | Bug | audit |
+| --- | --- | --- |
+| N1-drop-qualified-result-fields | returned record fields cannot be read with their source names | caught |
+| C1-drop-plain-data-contract | record equivalence advertised without its plain-data restriction | caught |
+| B2-class-falsy-is-absent | present false or zero in class maps is narrowed to absence | caught |
+| P2-shared-record-identity | named and destructured arguments alias the same heap object | caught |
+| B1-standalone-only-guard | optional class result bypasses calendar arithmetic guard | caught |
+{"mutant":"N1-drop-qualified-result-fields","status":"caught","exit":1}
+bun test v1.4.3 (c6da4a4d3)
+
+core/extract-ci-audit.test.ts:
+(pass) CI audit B1: default replay cannot validate optional calendar law translation [480.10ms]
+cyclic: {"kind":"machine","name":"decide","cert":true,"usual":true,"cyclic":true,"ms":28,"usualMs":9,"route":"translated","leaves":12,"regrown":0,"splits":6,"carried":2,"uncarried":0,"cached":0}
+cyclic: {"kind":"step law","name":"decide","cert":true,"usual":true,"cyclic":true,"ms":19,"usualMs":4,"route":"translated","leaves":17,"regrown":0,"splits":13,"carried":1,"uncarried":0,"cached":0}
+cyclic: {"kind":"machine","name":"decide","cert":true,"usual":true,"cyclic":true,"ms":12,"usualMs":1,"route":"translated","leaves":12,"regrown":0,"splits":6,"carried":2,"uncarried":0,"cached":0}
+cyclic: {"kind":"step law","name":"decide","cert":true,"usual":true,"cyclic":true,"ms":22,"usualMs":1,"route":"translated","leaves":17,"regrown":0,"splits":13,"carried":1,"uncarried":0,"cached":0}
+(pass) CI audit P2: named and destructured records have independent heap identities [202.16ms]
+(pass) CI audit B2: falsy map payloads remain present in both truthiness arms [1196.22ms]
+(pass) CI audit C1: accepted records report the plain-data contract [181.38ms]
+357 |         const out: X = op === '<=' ? le(ka, x) : op === '<' ? le(ka1, x) : op === '>=' ? lt(x, ka1) : op === '>' ? lt(x, ka) : op === '==' ? eq : {k: 'un', op: 'not', x: eq}
+358 |         return go(out)
+359 |       }
+360 |       if (e.op === 'in') { const m = go(e.b); if (m.t !== 'map') throw new LawError('x in m: m a map'); const k = go(e.a); return dry ? {t: 'cond', v: yes} : {t: 'cond', v: cellOf(m, key(k), c).rec.has as Cond} }
+361 |       // (a name the rule doesn't have, compared with a choice: the choice's value, Outcome.SLOW_ERROR)
+362 |       const lit = (x: X): V => { try { return go(x) } catch (err) { if (x.k !== 'path' || !(err instanceof LawError) || !['==', '!='].includes(e.op)) throw err; return {t: 'lit', v: lastName(x) ?? '', err} } }
+                                                                                                                                                                  ^
+error: the method returns nothing the rule keeps
+      at lit (/tmp/gdp-ci-audit-focus.tL5B3U/tree/core/laws.ts:362:157)
+      at val (/tmp/gdp-ci-audit-focus.tL5B3U/tree/core/laws.ts:363:17)
+      at read (/tmp/gdp-ci-audit-focus.tL5B3U/tree/core/laws.ts:282:15)
+      at bitBody (/tmp/gdp-ci-audit-focus.tL5B3U/tree/core/laws.ts:223:19)
+      at stepLaw (/tmp/gdp-ci-audit-focus.tL5B3U/tree/core/dsl.ts:1919:17)
+      at buildLaw (/tmp/gdp-ci-audit-focus.tL5B3U/tree/core/laws.ts:234:65)
+      at verdict (/tmp/gdp-ci-audit-focus.tL5B3U/tree/core/extract-ci-audit.test.ts:8:13)
+      at <anonymous> (/tmp/gdp-ci-audit-focus.tL5B3U/tree/core/extract-ci-audit.test.ts:86:10)
+(fail) CI audit N1: reserved output field names are readable without becoming failure status [67.63ms]
+357 |         const out: X = op === '<=' ? le(ka, x) : op === '<' ? le(ka1, x) : op === '>=' ? lt(x, ka1) : op === '>' ? lt(x, ka) : op === '==' ? eq : {k: 'un', op: 'not', x: eq}
+358 |         return go(out)
+359 |       }
+360 |       if (e.op === 'in') { const m = go(e.b); if (m.t !== 'map') throw new LawError('x in m: m a map'); const k = go(e.a); return dry ? {t: 'cond', v: yes} : {t: 'cond', v: cellOf(m, key(k), c).rec.has as Cond} }
+361 |       // (a name the rule doesn't have, compared with a choice: the choice's value, Outcome.SLOW_ERROR)
+362 |       const lit = (x: X): V => { try { return go(x) } catch (err) { if (x.k !== 'path' || !(err instanceof LawError) || !['==', '!='].includes(e.op)) throw err; return {t: 'lit', v: lastName(x) ?? '', err} } }
+                                                                                                                                                                  ^
+error: result.value: can't read .value of a num
+      at lit (/tmp/gdp-ci-audit-focus.tL5B3U/tree/core/laws.ts:362:157)
+      at val (/tmp/gdp-ci-audit-focus.tL5B3U/tree/core/laws.ts:363:17)
+      at read (/tmp/gdp-ci-audit-focus.tL5B3U/tree/core/laws.ts:282:15)
+      at bitBody (/tmp/gdp-ci-audit-focus.tL5B3U/tree/core/laws.ts:223:19)
+      at stepLaw (/tmp/gdp-ci-audit-focus.tL5B3U/tree/core/dsl.ts:1919:17)
+      at buildLaw (/tmp/gdp-ci-audit-focus.tL5B3U/tree/core/laws.ts:234:65)
+      at verdict (/tmp/gdp-ci-audit-focus.tL5B3U/tree/core/extract-ci-audit.test.ts:8:13)
+      at <anonymous> (/tmp/gdp-ci-audit-focus.tL5B3U/tree/core/extract-ci-audit.test.ts:97:12)
+(fail) CI audit N1: class result fields are qualified and scoped by method [77.48ms]
+
+ 4 pass
+ 2 fail
+ 72 expect() calls
+Ran 6 tests across 1 file. [2.38s]
+
+{"mutant":"C1-drop-plain-data-contract","status":"caught","exit":1}
+bun test v1.4.3 (c6da4a4d3)
+
+core/extract-ci-audit.test.ts:
+(pass) CI audit B1: default replay cannot validate optional calendar law translation [479.96ms]
+cyclic: {"kind":"machine","name":"decide","cert":true,"usual":true,"cyclic":true,"ms":25,"usualMs":6,"route":"translated","leaves":12,"regrown":0,"splits":6,"carried":2,"uncarried":0,"cached":0}
+cyclic: {"kind":"step law","name":"decide","cert":true,"usual":true,"cyclic":true,"ms":19,"usualMs":3,"route":"translated","leaves":17,"regrown":0,"splits":13,"carried":1,"uncarried":0,"cached":0}
+cyclic: {"kind":"machine","name":"decide","cert":true,"usual":true,"cyclic":true,"ms":11,"usualMs":1,"route":"translated","leaves":12,"regrown":0,"splits":6,"carried":2,"uncarried":0,"cached":0}
+cyclic: {"kind":"step law","name":"decide","cert":true,"usual":true,"cyclic":true,"ms":21,"usualMs":1,"route":"translated","leaves":17,"regrown":0,"splits":13,"carried":1,"uncarried":0,"cached":0}
+(pass) CI audit P2: named and destructured records have independent heap identities [181.66ms]
+(pass) CI audit B2: falsy map payloads remain present in both truthiness arms [1126.66ms]
+66 |     'export function decide({enabled}: {enabled: boolean}): {accepted: boolean} { return {accepted: enabled}; }',
+67 |   ]) {
+68 |     const x = extract(source, {entry: 'decide', mode: 'standalone'})
+69 |     expect({ok: x.ok, refusals: x.refusals}).toEqual({ok: true, refusals: []})
+70 |     const notes = x.notes.join('\n')
+71 |     expect(notes).toContain('immutable plain-data snapshots')
+                       ^
+error: expect(received).toContain(expected)
+
+Expected to contain: "immutable plain-data snapshots"
+Received: "standalone scalar function: separate arguments and optional result; numbers are safe integers, not arbitrary JavaScript numbers\nclosed reachable bindings: decide"
+
+      at <anonymous> (/tmp/gdp-ci-audit-focus.tL5B3U/tree/core/extract-ci-audit.test.ts:71:19)
+(fail) CI audit C1: accepted records report the plain-data contract [73.21ms]
+cyclic: {"kind":"machine","name":"decide","cert":true,"usual":true,"cyclic":true,"ms":3,"usualMs":1,"route":"translated","leaves":6,"regrown":0,"splits":3,"carried":1,"uncarried":0,"cached":0}
+cyclic: {"kind":"step law","name":"decide","cert":true,"usual":true,"cyclic":true,"ms":3,"usualMs":0,"route":"translated","leaves":8,"regrown":0,"splits":6,"carried":1,"uncarried":0,"cached":0}
+(pass) CI audit N1: reserved output field names are readable without becoming failure status [85.40ms]
+cyclic: {"kind":"machine","name":"Decision","cert":true,"usual":true,"cyclic":true,"ms":22,"usualMs":1,"route":"translated","leaves":12,"regrown":0,"splits":6,"carried":2,"uncarried":0,"cached":0}
+cyclic: {"kind":"step law","name":"Decision","cert":true,"usual":true,"cyclic":true,"ms":11,"usualMs":1,"route":"translated","leaves":9,"regrown":0,"splits":5,"carried":1,"uncarried":0,"cached":0}
+cyclic: {"kind":"machine","name":"Decision","cert":true,"usual":true,"cyclic":true,"ms":0,"usualMs":1,"route":"translated","leaves":0,"regrown":0,"splits":0,"carried":0,"uncarried":0,"cached":1}
+cyclic: {"kind":"step law","name":"Decision","cert":true,"usual":true,"cyclic":true,"ms":6,"usualMs":1,"route":"translated","leaves":8,"regrown":0,"splits":4,"carried":1,"uncarried":0,"cached":0}
+cyclic: {"kind":"machine","name":"Decision","cert":true,"usual":true,"cyclic":true,"ms":0,"usualMs":1,"route":"translated","leaves":0,"regrown":0,"splits":0,"carried":0,"uncarried":0,"cached":1}
+cyclic: {"kind":"step law","name":"Decision","cert":true,"usual":true,"cyclic":true,"ms":12,"usualMs":1,"route":"translated","leaves":11,"regrown":0,"splits":8,"carried":1,"uncarried":0,"cached":0}
+cyclic: {"kind":"machine","name":"Decision","cert":true,"usual":true,"cyclic":true,"ms":0,"usualMs":1,"route":"translated","leaves":0,"regrown":0,"splits":0,"carried":0,"uncarried":0,"cached":1}
+cyclic: {"kind":"step law","name":"Decision","cert":true,"usual":true,"cyclic":true,"ms":7,"usualMs":1,"route":"translated","leaves":7,"regrown":0,"splits":4,"carried":1,"uncarried":0,"cached":0}
+(pass) CI audit N1: class result fields are qualified and scoped by method [137.30ms]
+
+ 5 pass
+ 1 fail
+ 75 expect() calls
+Ran 6 tests across 1 file. [2.25s]
+
+{"mutant":"B2-class-falsy-is-absent","status":"caught","exit":1}
+bun test v1.4.3 (c6da4a4d3)
+
+core/extract-ci-audit.test.ts:
+(pass) CI audit B1: default replay cannot validate optional calendar law translation [492.19ms]
+cyclic: {"kind":"machine","name":"decide","cert":true,"usual":true,"cyclic":true,"ms":22,"usualMs":7,"route":"translated","leaves":12,"regrown":0,"splits":6,"carried":2,"uncarried":0,"cached":0}
+cyclic: {"kind":"step law","name":"decide","cert":true,"usual":true,"cyclic":true,"ms":25,"usualMs":3,"route":"translated","leaves":17,"regrown":0,"splits":13,"carried":1,"uncarried":0,"cached":0}
+cyclic: {"kind":"machine","name":"decide","cert":true,"usual":true,"cyclic":true,"ms":8,"usualMs":1,"route":"translated","leaves":12,"regrown":0,"splits":6,"carried":2,"uncarried":0,"cached":0}
+cyclic: {"kind":"step law","name":"decide","cert":true,"usual":true,"cyclic":true,"ms":15,"usualMs":1,"route":"translated","leaves":17,"regrown":0,"splits":13,"carried":1,"uncarried":0,"cached":0}
+(pass) CI audit P2: named and destructured records have independent heap identities [174.53ms]
+cyclic: {"kind":"machine","name":"Decision","cert":true,"usual":true,"cyclic":true,"ms":164,"usualMs":26,"route":"translated","leaves":161,"regrown":0,"splits":96,"carried":3,"uncarried":0,"cached":0}
+cyclic: {"kind":"step law","name":"Decision","cert":true,"usual":true,"cyclic":true,"ms":85,"usualMs":2,"route":"translated","leaves":25,"regrown":0,"splits":22,"carried":1,"uncarried":0,"cached":0}
+51 |   for (const kind of ['boolean', 'number']) for (const negated of [false, true]) {
+52 |     const branch = negated ? 'if (!v) return v === undefined; return true;' : 'if (v) return true; return v === undefined;'
+53 |     const source = `export class Decision { values = new Map<string, ${kind}>(); put(key: string, value: ${kind}) { this.values.set(key, value); } test(key: string): boolean { const v = this.values.get(key); ${branch} } }`
+54 |     const x = extract(source, {entry: 'Decision', check: noReplay})
+55 |     expect({ok: x.ok, refusals: x.refusals}).toEqual({ok: true, refusals: []})
+56 |     expect(verdict(x, 'result == true', 'test')).toMatchObject({proven: false, stuck: 'sat'})
+                                                      ^
+error: expect(received).toMatchObject(expected)
+
+  {
+-   "proven": false,
+-   "stuck": "sat",
++   "checked": true,
++   "proven": true,
+  }
+
+- Expected  - 2
++ Received  + 2
+
+      at <anonymous> (/tmp/gdp-ci-audit-focus.tL5B3U/tree/core/extract-ci-audit.test.ts:56:50)
+(fail) CI audit B2: falsy map payloads remain present in both truthiness arms [366.04ms]
+(pass) CI audit C1: accepted records report the plain-data contract [142.01ms]
+cyclic: {"kind":"machine","name":"decide","cert":true,"usual":true,"cyclic":true,"ms":3,"usualMs":1,"route":"translated","leaves":6,"regrown":0,"splits":3,"carried":1,"uncarried":0,"cached":0}
+cyclic: {"kind":"step law","name":"decide","cert":true,"usual":true,"cyclic":true,"ms":3,"usualMs":0,"route":"translated","leaves":8,"regrown":0,"splits":6,"carried":1,"uncarried":0,"cached":0}
+(pass) CI audit N1: reserved output field names are readable without becoming failure status [81.43ms]
+cyclic: {"kind":"machine","name":"Decision","cert":true,"usual":true,"cyclic":true,"ms":8,"usualMs":1,"route":"translated","leaves":12,"regrown":0,"splits":6,"carried":2,"uncarried":0,"cached":0}
+cyclic: {"kind":"step law","name":"Decision","cert":true,"usual":true,"cyclic":true,"ms":10,"usualMs":1,"route":"translated","leaves":9,"regrown":0,"splits":5,"carried":1,"uncarried":0,"cached":0}
+cyclic: {"kind":"machine","name":"Decision","cert":true,"usual":true,"cyclic":true,"ms":0,"usualMs":1,"route":"translated","leaves":0,"regrown":0,"splits":0,"carried":0,"uncarried":0,"cached":1}
+cyclic: {"kind":"step law","name":"Decision","cert":true,"usual":true,"cyclic":true,"ms":15,"usualMs":1,"route":"translated","leaves":8,"regrown":0,"splits":4,"carried":1,"uncarried":0,"cached":0}
+cyclic: {"kind":"machine","name":"Decision","cert":true,"usual":true,"cyclic":true,"ms":0,"usualMs":1,"route":"translated","leaves":0,"regrown":0,"splits":0,"carried":0,"uncarried":0,"cached":1}
+cyclic: {"kind":"step law","name":"Decision","cert":true,"usual":true,"cyclic":true,"ms":16,"usualMs":1,"route":"translated","leaves":11,"regrown":0,"splits":8,"carried":1,"uncarried":0,"cached":0}
+cyclic: {"kind":"machine","name":"Decision","cert":true,"usual":true,"cyclic":true,"ms":0,"usualMs":1,"route":"translated","leaves":0,"regrown":0,"splits":0,"carried":0,"uncarried":0,"cached":1}
+cyclic: {"kind":"step law","name":"Decision","cert":true,"usual":true,"cyclic":true,"ms":10,"usualMs":1,"route":"translated","leaves":7,"regrown":0,"splits":4,"carried":1,"uncarried":0,"cached":0}
+(pass) CI audit N1: class result fields are qualified and scoped by method [144.28ms]
+
+ 5 pass
+ 1 fail
+ 69 expect() calls
+Ran 6 tests across 1 file. [1.55s]
+
+{"mutant":"P2-shared-record-identity","status":"caught","exit":1}
+bun test v1.4.3 (c6da4a4d3)
+
+core/extract-ci-audit.test.ts:
+(pass) CI audit B1: default replay cannot validate optional calendar law translation [527.73ms]
+cyclic: {"kind":"machine","name":"decide","cert":true,"usual":true,"cyclic":true,"ms":25,"usualMs":7,"route":"translated","leaves":12,"regrown":0,"splits":6,"carried":2,"uncarried":0,"cached":0}
+cyclic: {"kind":"step law","name":"decide","cert":true,"usual":true,"cyclic":true,"ms":21,"usualMs":3,"route":"translated","leaves":17,"regrown":0,"splits":13,"carried":1,"uncarried":0,"cached":0}
+29 | test('CI audit P2: named and destructured records have independent heap identities', () => {
+30 |   for (const reversed of [false, true]) {
+31 |     const parameters = reversed ? '{enabled}: {enabled: boolean}, arg: {enabled: boolean}' : 'arg: {enabled: boolean}, {enabled}: {enabled: boolean}'
+32 |     const x = extract(`export function decide(${parameters}): boolean { return arg.enabled; }`, {entry: 'decide', mode: 'standalone', check: noReplay})
+33 |     expect({ok: x.ok, refusals: x.refusals}).toEqual({ok: true, refusals: []})
+34 |     expect(verdict(x, 'result == enabled')).toMatchObject({proven: false, stuck: 'sat'})
+                                                 ^
+error: expect(received).toMatchObject(expected)
+
+  {
+-   "proven": false,
+-   "stuck": "sat",
++   "checked": true,
++   "proven": true,
+  }
+
+- Expected  - 2
++ Received  + 2
+
+      at <anonymous> (/tmp/gdp-ci-audit-focus.tL5B3U/tree/core/extract-ci-audit.test.ts:34:45)
+(fail) CI audit P2: named and destructured records have independent heap identities [106.43ms]
+(pass) CI audit B2: falsy map payloads remain present in both truthiness arms [1203.86ms]
+(pass) CI audit C1: accepted records report the plain-data contract [151.45ms]
+cyclic: {"kind":"machine","name":"decide","cert":true,"usual":true,"cyclic":true,"ms":7,"usualMs":1,"route":"translated","leaves":6,"regrown":0,"splits":3,"carried":1,"uncarried":0,"cached":0}
+cyclic: {"kind":"step law","name":"decide","cert":true,"usual":true,"cyclic":true,"ms":4,"usualMs":0,"route":"translated","leaves":8,"regrown":0,"splits":6,"carried":1,"uncarried":0,"cached":0}
+(pass) CI audit N1: reserved output field names are readable without becoming failure status [82.51ms]
+cyclic: {"kind":"machine","name":"Decision","cert":true,"usual":true,"cyclic":true,"ms":20,"usualMs":1,"route":"translated","leaves":12,"regrown":0,"splits":6,"carried":2,"uncarried":0,"cached":0}
+cyclic: {"kind":"step law","name":"Decision","cert":true,"usual":true,"cyclic":true,"ms":13,"usualMs":1,"route":"translated","leaves":9,"regrown":0,"splits":5,"carried":1,"uncarried":0,"cached":0}
+cyclic: {"kind":"machine","name":"Decision","cert":true,"usual":true,"cyclic":true,"ms":0,"usualMs":2,"route":"translated","leaves":0,"regrown":0,"splits":0,"carried":0,"uncarried":0,"cached":1}
+cyclic: {"kind":"step law","name":"Decision","cert":true,"usual":true,"cyclic":true,"ms":7,"usualMs":1,"route":"translated","leaves":8,"regrown":0,"splits":4,"carried":1,"uncarried":0,"cached":0}
+cyclic: {"kind":"machine","name":"Decision","cert":true,"usual":true,"cyclic":true,"ms":0,"usualMs":1,"route":"translated","leaves":0,"regrown":0,"splits":0,"carried":0,"uncarried":0,"cached":1}
+cyclic: {"kind":"step law","name":"Decision","cert":true,"usual":true,"cyclic":true,"ms":14,"usualMs":1,"route":"translated","leaves":11,"regrown":0,"splits":8,"carried":1,"uncarried":0,"cached":0}
+cyclic: {"kind":"machine","name":"Decision","cert":true,"usual":true,"cyclic":true,"ms":0,"usualMs":1,"route":"translated","leaves":0,"regrown":0,"splits":0,"carried":0,"uncarried":0,"cached":1}
+cyclic: {"kind":"step law","name":"Decision","cert":true,"usual":true,"cyclic":true,"ms":6,"usualMs":0,"route":"translated","leaves":7,"regrown":0,"splits":4,"carried":1,"uncarried":0,"cached":0}
+(pass) CI audit N1: class result fields are qualified and scoped by method [144.28ms]
+
+ 5 pass
+ 1 fail
+ 59 expect() calls
+Ran 6 tests across 1 file. [2.36s]
+
+{"mutant":"B1-standalone-only-guard","status":"caught","exit":1}
+bun test v1.4.3 (c6da4a4d3)
+
+core/extract-ci-audit.test.ts:
+19 |     const x = extract(source, standalone ? {entry: 'decide', mode: 'standalone'} : {entry: 'Decision'})
+20 |     expect({ok: x.ok, refusals: x.refusals}).toEqual({ok: true, refusals: []})
+21 |     expect(x.evidence!.requests).toBeGreaterThan(0)
+22 |     expect(x.evidence!.fromStates).toBeGreaterThan(0)
+23 |     for (const expr of ['result - 0 <= 1 business days', '1 business days >= result - 0', '0 - result <= 1 business days']) {
+24 |       expect(() => buildLaw(x, {name: expr, expr, method: 'decide'}, {clock: 1, calendar: {weekend: ['sat', 'sun']}})).toThrow('arithmetic on an optional')
+                                                                                                                            ^
+error: expect(received).toThrow(expected)
+
+Expected substring: "arithmetic on an optional"
+
+Received function did not throw
+Received value: {
+  kind: "step",
+  method: "decide",
+  law: {
+    name: "result - 0 <= 1 business days",
+    forall: "key$4",
+    keys: [ "key$5" ],
+    then: {
+      op: "or",
+      xs: [
+        {
+          op: "not",
+          x: {
+            op: "and",
+            xs: [
+              {
+                op: "and",
+                xs: [
+                  [Object ...], [Object ...]
+                ],
+              }, {
+                op: "and",
+                xs: [
+                  [Object ...], [Object ...]
+                ],
+              }
+            ],
+          },
+        }, {
+          op: "<=",
+          a: {
+            op: "add",
+            a: {
+              op: "add",
+              a: {
+                op: "add",
+                a: {
+                  op: "add",
+                  a: [Object ...],
+                  b: [Object ...],
+                },
+                b: {
+                  op: "if",
+                  c: [Object ...],
+                  then: [Object ...],
+                  else: [Object ...],
+                },
+              },
+              b: {
+                op: "if",
+                c: {
+                  op: "<=",
+                  a: [Object ...],
+                  b: [Object ...],
+                },
+                then: {
+                  op: "const",
+                  value: 1,
+                },
+                else: {
+                  op: "const",
+                  value: 0,
+                },
+              },
+            },
+            b: {
+              op: "add",
+              a: {
+                op: "add",
+                a: {
+                  op: "add",
+                  a: [Object ...],
+                  b: [Object ...],
+                },
+                b: {
+                  op: "if",
+                  c: [Object ...],
+                  then: [Object ...],
+                  else: [Object ...],
+                },
+              },
+              b: {
+                op: "if",
+                c: {
+                  op: "<=",
+                  a: [Object ...],
+                  b: [Object ...],
+                },
+                then: {
+                  op: "const",
+                  value: 0,
+                },
+                else: {
+                  op: "const",
+                  value: 0,
+                },
+              },
+            },
+          },
+          b: {
+            op: "add",
+            a: {
+              op: "const",
+              value: 1,
+            },
+            b: {
+              op: "add",
+              a: {
+                op: "add",
+                a: {
+                  op: "add",
+                  a: [Object ...],
+                  b: [Object ...],
+                },
+                b: {
+                  op: "if",
+                  c: [Object ...],
+                  then: [Object ...],
+                  else: [Object ...],
+                },
+              },
+              b: {
+                op: "add",
+                a: {
+                  op: "add",
+                  a: [Object ...],
+                  b: [Object ...],
+                },
+                b: {
+                  op: "if",
+                  c: [Object ...],
+                  then: [Object ...],
+                  else: [Object ...],
+                },
+              },
+            },
+          },
+        }
+      ],
+    },
+    when: {
+      op: "=",
+      a: {
+        op: "var",
+        name: "method",
+      },
+      b: {
+        op: "const",
+        value: 0,
+      },
+    },
+  },
+}
+
+      at <anonymous> (/tmp/gdp-ci-audit-focus.tL5B3U/tree/core/extract-ci-audit.test.ts:24:120)
+(fail) CI audit B1: default replay cannot validate optional calendar law translation [523.11ms]
+cyclic: {"kind":"machine","name":"decide","cert":true,"usual":true,"cyclic":true,"ms":32,"usualMs":7,"route":"translated","leaves":12,"regrown":0,"splits":6,"carried":2,"uncarried":0,"cached":0}
+cyclic: {"kind":"step law","name":"decide","cert":true,"usual":true,"cyclic":true,"ms":24,"usualMs":3,"route":"translated","leaves":17,"regrown":0,"splits":13,"carried":1,"uncarried":0,"cached":0}
+cyclic: {"kind":"machine","name":"decide","cert":true,"usual":true,"cyclic":true,"ms":10,"usualMs":1,"route":"translated","leaves":12,"regrown":0,"splits":6,"carried":2,"uncarried":0,"cached":0}
+cyclic: {"kind":"step law","name":"decide","cert":true,"usual":true,"cyclic":true,"ms":17,"usualMs":1,"route":"translated","leaves":17,"regrown":0,"splits":13,"carried":1,"uncarried":0,"cached":0}
+(pass) CI audit P2: named and destructured records have independent heap identities [217.73ms]
+(pass) CI audit B2: falsy map payloads remain present in both truthiness arms [1211.31ms]
+(pass) CI audit C1: accepted records report the plain-data contract [163.91ms]
+cyclic: {"kind":"machine","name":"decide","cert":true,"usual":true,"cyclic":true,"ms":3,"usualMs":1,"route":"translated","leaves":6,"regrown":0,"splits":3,"carried":1,"uncarried":0,"cached":0}
+cyclic: {"kind":"step law","name":"decide","cert":true,"usual":true,"cyclic":true,"ms":4,"usualMs":0,"route":"translated","leaves":8,"regrown":0,"splits":6,"carried":1,"uncarried":0,"cached":0}
+(pass) CI audit N1: reserved output field names are readable without becoming failure status [71.57ms]
+cyclic: {"kind":"machine","name":"Decision","cert":true,"usual":true,"cyclic":true,"ms":8,"usualMs":1,"route":"translated","leaves":12,"regrown":0,"splits":6,"carried":2,"uncarried":0,"cached":0}
+cyclic: {"kind":"step law","name":"Decision","cert":true,"usual":true,"cyclic":true,"ms":11,"usualMs":1,"route":"translated","leaves":9,"regrown":0,"splits":5,"carried":1,"uncarried":0,"cached":0}
+cyclic: {"kind":"machine","name":"Decision","cert":true,"usual":true,"cyclic":true,"ms":0,"usualMs":1,"route":"translated","leaves":0,"regrown":0,"splits":0,"carried":0,"uncarried":0,"cached":1}
+cyclic: {"kind":"step law","name":"Decision","cert":true,"usual":true,"cyclic":true,"ms":7,"usualMs":1,"route":"translated","leaves":8,"regrown":0,"splits":4,"carried":1,"uncarried":0,"cached":0}
+cyclic: {"kind":"machine","name":"Decision","cert":true,"usual":true,"cyclic":true,"ms":0,"usualMs":1,"route":"translated","leaves":0,"regrown":0,"splits":0,"carried":0,"uncarried":0,"cached":1}
+cyclic: {"kind":"step law","name":"Decision","cert":true,"usual":true,"cyclic":true,"ms":25,"usualMs":1,"route":"translated","leaves":11,"regrown":0,"splits":8,"carried":1,"uncarried":0,"cached":0}
+cyclic: {"kind":"machine","name":"Decision","cert":true,"usual":true,"cyclic":true,"ms":0,"usualMs":1,"route":"translated","leaves":0,"regrown":0,"splits":0,"carried":0,"uncarried":0,"cached":1}
+cyclic: {"kind":"step law","name":"Decision","cert":true,"usual":true,"cyclic":true,"ms":9,"usualMs":1,"route":"translated","leaves":7,"regrown":0,"splits":4,"carried":1,"uncarried":0,"cached":0}
+(pass) CI audit N1: class result fields are qualified and scoped by method [154.99ms]
+
+ 5 pass
+ 1 fail
+ 81 expect() calls
+Ran 6 tests across 1 file. [2.49s]
+
+CI_AUDIT_MUTATIONS_PASS restored=true
+| Mutant | Bug | source-laws |
+| --- | --- | --- |
+| drop-equality-context | present choices compared by local indices | caught |
+| drop-both-recursive-contexts | original recursive context loss | caught |
+| drop-calendar-optional-guard | calendar helper unwraps absent scalar | caught |
+{"mutant":"drop-equality-context","status":"caught","exit":1}
+bun test v1.4.3 (c6da4a4d3)
+
+core/extract-standalone.test.ts:
+cyclic: {"kind":"machine","name":"decide","cert":true,"usual":true,"cyclic":true,"ms":21,"usualMs":16,"route":"translated","leaves":12,"regrown":0,"splits":6,"carried":2,"uncarried":0,"cached":0}
+cyclic: {"kind":"step law","name":"decide","cert":true,"usual":true,"cyclic":true,"ms":10,"usualMs":5,"route":"translated","leaves":9,"regrown":0,"splits":6,"carried":1,"uncarried":0,"cached":0}
+171 | for (const [label, source] of [
+172 |   ['singleton', 'export function decide(a: "red"): "green" { return "green"; }'],
+173 |   ['same-index multi-value', 'export function decide(a: "red" | "blue"): "green" | "amber" { if (a === "red") return "green"; return "amber"; }'],
+174 | ] as const) test(`optional choice law: ${label} equality and inequality use strings`, () => {
+175 |   for (const expr of ['result == a', 'a == result']) {
+176 |     expect(choiceLaw(source, expr)).toMatchObject({proven: false, checked: false})
+                                          ^
+error: expect(received).toMatchObject(expected)
+
+  {
+-   "checked": false,
+-   "proven": false,
++   "checked": true,
++   "proven": true,
+  }
+
+- Expected  - 2
++ Received  + 2
+
+      at <anonymous> (/tmp/gdp-ci-audit-focus.tL5B3U/tree/core/extract-standalone.test.ts:176:37)
+(fail) optional choice law: singleton equality and inequality use strings [345.81ms]
+cyclic: {"kind":"machine","name":"decide","cert":true,"usual":true,"cyclic":true,"ms":9,"usualMs":2,"route":"translated","leaves":12,"regrown":0,"splits":6,"carried":2,"uncarried":0,"cached":0}
+cyclic: {"kind":"step law","name":"decide","cert":true,"usual":true,"cyclic":true,"ms":18,"usualMs":1,"route":"translated","leaves":10,"regrown":0,"splits":6,"carried":1,"uncarried":0,"cached":0}
+171 | for (const [label, source] of [
+172 |   ['singleton', 'export function decide(a: "red"): "green" { return "green"; }'],
+173 |   ['same-index multi-value', 'export function decide(a: "red" | "blue"): "green" | "amber" { if (a === "red") return "green"; return "amber"; }'],
+174 | ] as const) test(`optional choice law: ${label} equality and inequality use strings`, () => {
+175 |   for (const expr of ['result == a', 'a == result']) {
+176 |     expect(choiceLaw(source, expr)).toMatchObject({proven: false, checked: false})
+                                          ^
+error: expect(received).toMatchObject(expected)
+
+  {
+-   "checked": false,
+-   "proven": false,
++   "checked": true,
++   "proven": true,
+  }
+
+- Expected  - 2
++ Received  + 2
+
+      at <anonymous> (/tmp/gdp-ci-audit-focus.tL5B3U/tree/core/extract-standalone.test.ts:176:37)
+(fail) optional choice law: same-index multi-value equality and inequality use strings [99.61ms]
+193 |   if (input.k !== 'choice' || result.k !== 'choice') throw new Error('expected choice domains')
+194 |   expect(input.values).toContain('blue')
+195 |   expect(result.values).toContain('blue')
+196 |   expect(input.values.indexOf('blue')).not.toBe(result.values.indexOf('blue'))
+197 |   for (const expr of ['(result == a) == (a == "blue")', '(result != a) == (a != "blue")']) {
+198 |     expect(choiceLaw(source, expr)).toMatchObject({proven: true, checked: true})
+                                          ^
+error: expect(received).toMatchObject(expected)
+
+  {
+-   "checked": true,
+-   "proven": true,
++   "checked": false,
++   "goal": "(result == a) == (a == "blue") @step law",
++   "proven": false,
++   "run": {
++     "params": {},
++     "trace": [
++       {
++         "a": 1,
++       },
++     ],
++   },
++   "stuck": "sat",
++   "witness": {
++     "a": 1,
++     "decide_result": 0,
++     "decide_result_missing": 0,
++   },
+  }
+
+- Expected  - 2
++ Received  + 17
+
+      at <anonymous> (/tmp/gdp-ci-audit-focus.tL5B3U/tree/core/extract-standalone.test.ts:198:37)
+(fail) optional choice law: a shared value at different indices compares by name [125.76ms]
+cyclic: {"kind":"machine","name":"decide","cert":true,"usual":true,"cyclic":true,"ms":10,"usualMs":8,"route":"translated","leaves":12,"regrown":0,"splits":6,"carried":2,"uncarried":0,"cached":0}
+cyclic: {"kind":"step law","name":"decide","cert":true,"usual":true,"cyclic":true,"ms":17,"usualMs":2,"route":"translated","leaves":14,"regrown":0,"splits":8,"carried":1,"uncarried":0,"cached":0}
+206 |   const source = `export function decide(a: "red", enabled: boolean): "green" | null {
+207 |     const inner = enabled ? "green" : null;
+208 |     if (enabled) { if (a === "red") return inner; }
+209 |     return null;
+210 |   }`
+211 |   expect(choiceLaw(source, 'result != null implies result == a')).toMatchObject({proven: false, checked: false})
+                                                                        ^
+error: expect(received).toMatchObject(expected)
+
+  {
+-   "checked": false,
+-   "proven": false,
++   "checked": true,
++   "proven": true,
+  }
+
+- Expected  - 2
++ Received  + 2
+
+      at <anonymous> (/tmp/gdp-ci-audit-focus.tL5B3U/tree/core/extract-standalone.test.ts:211:67)
+(fail) optional choice law: nullable locals and nested returns retain domain semantics [99.42ms]
+cyclic: {"kind":"machine","name":"decide","cert":true,"usual":true,"cyclic":true,"ms":0,"usualMs":1,"route":"translated","leaves":0,"regrown":0,"splits":0,"carried":0,"uncarried":0,"cached":1}
+cyclic: {"kind":"step law","name":"decide","cert":true,"usual":true,"cyclic":true,"ms":6,"usualMs":1,"route":"translated","leaves":9,"regrown":0,"splits":6,"carried":1,"uncarried":0,"cached":0}
+213 |   expect(choiceLaw(source, 'not enabled implies result == null')).toMatchObject({proven: true, checked: true})
+214 | })
+215 | 
+216 | test('optional choice law: comparisons nested in boolean equality retain semantics', () => {
+217 |   const source = 'export function decide(a: "red"): "green" { return "green"; }'
+218 |   expect(choiceLaw(source, '(result == a) == true')).toMatchObject({proven: false, checked: false})
+                                                           ^
+error: expect(received).toMatchObject(expected)
+
+  {
+-   "checked": false,
+-   "proven": false,
++   "checked": true,
++   "proven": true,
+  }
+
+- Expected  - 2
++ Received  + 2
+
+      at <anonymous> (/tmp/gdp-ci-audit-focus.tL5B3U/tree/core/extract-standalone.test.ts:218:54)
+(fail) optional choice law: comparisons nested in boolean equality retain semantics [47.87ms]
+cyclic: {"kind":"machine","name":"decide","cert":true,"usual":true,"cyclic":true,"ms":0,"usualMs":1,"route":"translated","leaves":0,"regrown":0,"splits":0,"carried":0,"uncarried":0,"cached":1}
+cyclic: {"kind":"step law","name":"decide","cert":true,"usual":true,"cyclic":true,"ms":6,"usualMs":0,"route":"translated","leaves":8,"regrown":0,"splits":6,"carried":1,"uncarried":0,"cached":0}
+cyclic: {"kind":"machine","name":"decide","cert":true,"usual":true,"cyclic":true,"ms":0,"usualMs":1,"route":"translated","leaves":0,"regrown":0,"splits":0,"carried":0,"uncarried":0,"cached":1}
+cyclic: {"kind":"step law","name":"decide","cert":true,"usual":true,"cyclic":true,"ms":5,"usualMs":0,"route":"translated","leaves":8,"regrown":0,"splits":6,"carried":1,"uncarried":0,"cached":0}
+(pass) optional choice law: literals are checked within their domain in either order [285.25ms]
+(pass) optional choice law: unsupported nested optional input is explicitly refused [33.58ms]
+(pass) optional standalone calendar operands cannot bypass absence checks [35.82ms]
+
+ 3 pass
+ 23 filtered out
+ 5 fail
+ 36 expect() calls
+Ran 8 tests across 1 file. [1261.00ms]
+
+{"mutant":"drop-both-recursive-contexts","status":"caught","exit":1}
+bun test v1.4.3 (c6da4a4d3)
+
+core/extract-standalone.test.ts:
+cyclic: {"kind":"machine","name":"decide","cert":true,"usual":true,"cyclic":true,"ms":16,"usualMs":5,"route":"translated","leaves":12,"regrown":0,"splits":6,"carried":2,"uncarried":0,"cached":0}
+cyclic: {"kind":"step law","name":"decide","cert":true,"usual":true,"cyclic":true,"ms":8,"usualMs":2,"route":"translated","leaves":9,"regrown":0,"splits":6,"carried":1,"uncarried":0,"cached":0}
+171 | for (const [label, source] of [
+172 |   ['singleton', 'export function decide(a: "red"): "green" { return "green"; }'],
+173 |   ['same-index multi-value', 'export function decide(a: "red" | "blue"): "green" | "amber" { if (a === "red") return "green"; return "amber"; }'],
+174 | ] as const) test(`optional choice law: ${label} equality and inequality use strings`, () => {
+175 |   for (const expr of ['result == a', 'a == result']) {
+176 |     expect(choiceLaw(source, expr)).toMatchObject({proven: false, checked: false})
+                                          ^
+error: expect(received).toMatchObject(expected)
+
+  {
+-   "checked": false,
+-   "proven": false,
++   "checked": true,
++   "proven": true,
+  }
+
+- Expected  - 2
++ Received  + 2
+
+      at <anonymous> (/tmp/gdp-ci-audit-focus.tL5B3U/tree/core/extract-standalone.test.ts:176:37)
+(fail) optional choice law: singleton equality and inequality use strings [189.94ms]
+cyclic: {"kind":"machine","name":"decide","cert":true,"usual":true,"cyclic":true,"ms":10,"usualMs":2,"route":"translated","leaves":12,"regrown":0,"splits":6,"carried":2,"uncarried":0,"cached":0}
+cyclic: {"kind":"step law","name":"decide","cert":true,"usual":true,"cyclic":true,"ms":17,"usualMs":1,"route":"translated","leaves":10,"regrown":0,"splits":6,"carried":1,"uncarried":0,"cached":0}
+171 | for (const [label, source] of [
+172 |   ['singleton', 'export function decide(a: "red"): "green" { return "green"; }'],
+173 |   ['same-index multi-value', 'export function decide(a: "red" | "blue"): "green" | "amber" { if (a === "red") return "green"; return "amber"; }'],
+174 | ] as const) test(`optional choice law: ${label} equality and inequality use strings`, () => {
+175 |   for (const expr of ['result == a', 'a == result']) {
+176 |     expect(choiceLaw(source, expr)).toMatchObject({proven: false, checked: false})
+                                          ^
+error: expect(received).toMatchObject(expected)
+
+  {
+-   "checked": false,
+-   "proven": false,
++   "checked": true,
++   "proven": true,
+  }
+
+- Expected  - 2
++ Received  + 2
+
+      at <anonymous> (/tmp/gdp-ci-audit-focus.tL5B3U/tree/core/extract-standalone.test.ts:176:37)
+(fail) optional choice law: same-index multi-value equality and inequality use strings [83.25ms]
+193 |   if (input.k !== 'choice' || result.k !== 'choice') throw new Error('expected choice domains')
+194 |   expect(input.values).toContain('blue')
+195 |   expect(result.values).toContain('blue')
+196 |   expect(input.values.indexOf('blue')).not.toBe(result.values.indexOf('blue'))
+197 |   for (const expr of ['(result == a) == (a == "blue")', '(result != a) == (a != "blue")']) {
+198 |     expect(choiceLaw(source, expr)).toMatchObject({proven: true, checked: true})
+                                          ^
+error: expect(received).toMatchObject(expected)
+
+  {
+-   "checked": true,
+-   "proven": true,
++   "checked": false,
++   "goal": "(result == a) == (a == "blue") @step law",
++   "proven": false,
++   "run": {
++     "params": {},
++     "trace": [
++       {
++         "a": 1,
++       },
++     ],
++   },
++   "stuck": "sat",
++   "witness": {
++     "a": 1,
++     "decide_result": 0,
++     "decide_result_missing": 0,
++   },
+  }
+
+- Expected  - 2
++ Received  + 17
+
+      at <anonymous> (/tmp/gdp-ci-audit-focus.tL5B3U/tree/core/extract-standalone.test.ts:198:37)
+(fail) optional choice law: a shared value at different indices compares by name [89.99ms]
+cyclic: {"kind":"machine","name":"decide","cert":true,"usual":true,"cyclic":true,"ms":11,"usualMs":1,"route":"translated","leaves":12,"regrown":0,"splits":6,"carried":2,"uncarried":0,"cached":0}
+cyclic: {"kind":"step law","name":"decide","cert":true,"usual":true,"cyclic":true,"ms":17,"usualMs":2,"route":"translated","leaves":14,"regrown":0,"splits":8,"carried":1,"uncarried":0,"cached":0}
+206 |   const source = `export function decide(a: "red", enabled: boolean): "green" | null {
+207 |     const inner = enabled ? "green" : null;
+208 |     if (enabled) { if (a === "red") return inner; }
+209 |     return null;
+210 |   }`
+211 |   expect(choiceLaw(source, 'result != null implies result == a')).toMatchObject({proven: false, checked: false})
+                                                                        ^
+error: expect(received).toMatchObject(expected)
+
+  {
+-   "checked": false,
+-   "proven": false,
++   "checked": true,
++   "proven": true,
+  }
+
+- Expected  - 2
++ Received  + 2
+
+      at <anonymous> (/tmp/gdp-ci-audit-focus.tL5B3U/tree/core/extract-standalone.test.ts:211:67)
+(fail) optional choice law: nullable locals and nested returns retain domain semantics [88.76ms]
+cyclic: {"kind":"machine","name":"decide","cert":true,"usual":true,"cyclic":true,"ms":0,"usualMs":1,"route":"translated","leaves":0,"regrown":0,"splits":0,"carried":0,"uncarried":0,"cached":1}
+cyclic: {"kind":"step law","name":"decide","cert":true,"usual":true,"cyclic":true,"ms":5,"usualMs":1,"route":"translated","leaves":9,"regrown":0,"splits":6,"carried":1,"uncarried":0,"cached":0}
+213 |   expect(choiceLaw(source, 'not enabled implies result == null')).toMatchObject({proven: true, checked: true})
+214 | })
+215 | 
+216 | test('optional choice law: comparisons nested in boolean equality retain semantics', () => {
+217 |   const source = 'export function decide(a: "red"): "green" { return "green"; }'
+218 |   expect(choiceLaw(source, '(result == a) == true')).toMatchObject({proven: false, checked: false})
+                                                           ^
+error: expect(received).toMatchObject(expected)
+
+  {
+-   "checked": false,
+-   "proven": false,
++   "checked": true,
++   "proven": true,
+  }
+
+- Expected  - 2
++ Received  + 2
+
+      at <anonymous> (/tmp/gdp-ci-audit-focus.tL5B3U/tree/core/extract-standalone.test.ts:218:54)
+(fail) optional choice law: comparisons nested in boolean equality retain semantics [47.34ms]
+cyclic: {"kind":"machine","name":"decide","cert":true,"usual":true,"cyclic":true,"ms":0,"usualMs":1,"route":"translated","leaves":0,"regrown":0,"splits":0,"carried":0,"uncarried":0,"cached":1}
+cyclic: {"kind":"step law","name":"decide","cert":true,"usual":true,"cyclic":true,"ms":5,"usualMs":0,"route":"translated","leaves":8,"regrown":0,"splits":6,"carried":1,"uncarried":0,"cached":0}
+cyclic: {"kind":"machine","name":"decide","cert":true,"usual":true,"cyclic":true,"ms":0,"usualMs":1,"route":"translated","leaves":0,"regrown":0,"splits":0,"carried":0,"uncarried":0,"cached":1}
+cyclic: {"kind":"step law","name":"decide","cert":true,"usual":true,"cyclic":true,"ms":6,"usualMs":0,"route":"translated","leaves":8,"regrown":0,"splits":6,"carried":1,"uncarried":0,"cached":0}
+(pass) optional choice law: literals are checked within their domain in either order [315.74ms]
+(pass) optional choice law: unsupported nested optional input is explicitly refused [23.09ms]
+(pass) optional standalone calendar operands cannot bypass absence checks [29.94ms]
+
+ 3 pass
+ 23 filtered out
+ 5 fail
+ 36 expect() calls
+Ran 8 tests across 1 file. [1030.00ms]
+
+{"mutant":"drop-calendar-optional-guard","status":"caught","exit":1}
+bun test v1.4.3 (c6da4a4d3)
+
+core/extract-standalone.test.ts:
+cyclic: {"kind":"machine","name":"decide","cert":true,"usual":true,"cyclic":true,"ms":25,"usualMs":5,"route":"translated","leaves":12,"regrown":0,"splits":6,"carried":2,"uncarried":0,"cached":0}
+cyclic: {"kind":"step law","name":"decide","cert":true,"usual":true,"cyclic":true,"ms":6,"usualMs":1,"route":"translated","leaves":3,"regrown":0,"splits":1,"carried":1,"uncarried":0,"cached":0}
+cyclic: {"kind":"machine","name":"decide","cert":true,"usual":true,"cyclic":true,"ms":0,"usualMs":1,"route":"translated","leaves":0,"regrown":0,"splits":0,"carried":0,"uncarried":0,"cached":1}
+cyclic: {"kind":"step law","name":"decide","cert":true,"usual":true,"cyclic":true,"ms":4,"usualMs":0,"route":"translated","leaves":3,"regrown":0,"splits":1,"carried":1,"uncarried":0,"cached":0}
+(pass) optional choice law: singleton equality and inequality use strings [368.04ms]
+cyclic: {"kind":"machine","name":"decide","cert":true,"usual":true,"cyclic":true,"ms":9,"usualMs":2,"route":"translated","leaves":12,"regrown":0,"splits":6,"carried":2,"uncarried":0,"cached":0}
+cyclic: {"kind":"step law","name":"decide","cert":true,"usual":true,"cyclic":true,"ms":11,"usualMs":1,"route":"translated","leaves":3,"regrown":0,"splits":1,"carried":1,"uncarried":0,"cached":0}
+cyclic: {"kind":"machine","name":"decide","cert":true,"usual":true,"cyclic":true,"ms":0,"usualMs":1,"route":"translated","leaves":0,"regrown":0,"splits":0,"carried":0,"uncarried":0,"cached":1}
+cyclic: {"kind":"step law","name":"decide","cert":true,"usual":true,"cyclic":true,"ms":12,"usualMs":0,"route":"translated","leaves":3,"regrown":0,"splits":1,"carried":1,"uncarried":0,"cached":0}
+(pass) optional choice law: same-index multi-value equality and inequality use strings [190.09ms]
+cyclic: {"kind":"machine","name":"decide","cert":true,"usual":true,"cyclic":true,"ms":6,"usualMs":1,"route":"translated","leaves":12,"regrown":0,"splits":6,"carried":2,"uncarried":0,"cached":0}
+cyclic: {"kind":"step law","name":"decide","cert":true,"usual":true,"cyclic":true,"ms":9,"usualMs":1,"route":"translated","leaves":13,"regrown":0,"splits":9,"carried":1,"uncarried":0,"cached":0}
+cyclic: {"kind":"machine","name":"decide","cert":true,"usual":true,"cyclic":true,"ms":0,"usualMs":1,"route":"translated","leaves":0,"regrown":0,"splits":0,"carried":0,"uncarried":0,"cached":1}
+cyclic: {"kind":"step law","name":"decide","cert":true,"usual":true,"cyclic":true,"ms":8,"usualMs":1,"route":"translated","leaves":13,"regrown":0,"splits":9,"carried":1,"uncarried":0,"cached":0}
+(pass) optional choice law: a shared value at different indices compares by name [222.20ms]
+cyclic: {"kind":"machine","name":"decide","cert":true,"usual":true,"cyclic":true,"ms":10,"usualMs":1,"route":"translated","leaves":12,"regrown":0,"splits":6,"carried":2,"uncarried":0,"cached":0}
+cyclic: {"kind":"step law","name":"decide","cert":true,"usual":true,"cyclic":true,"ms":9,"usualMs":0,"route":"translated","leaves":3,"regrown":0,"splits":1,"carried":1,"uncarried":0,"cached":0}
+cyclic: {"kind":"machine","name":"decide","cert":true,"usual":true,"cyclic":true,"ms":0,"usualMs":1,"route":"translated","leaves":0,"regrown":0,"splits":0,"carried":0,"uncarried":0,"cached":1}
+cyclic: {"kind":"step law","name":"decide","cert":true,"usual":true,"cyclic":true,"ms":8,"usualMs":1,"route":"translated","leaves":10,"regrown":0,"splits":6,"carried":1,"uncarried":0,"cached":0}
+(pass) optional choice law: nullable locals and nested returns retain domain semantics [154.71ms]
+cyclic: {"kind":"machine","name":"decide","cert":true,"usual":true,"cyclic":true,"ms":0,"usualMs":1,"route":"translated","leaves":0,"regrown":0,"splits":0,"carried":0,"uncarried":0,"cached":1}
+cyclic: {"kind":"step law","name":"decide","cert":true,"usual":true,"cyclic":true,"ms":10,"usualMs":0,"route":"translated","leaves":3,"regrown":0,"splits":1,"carried":1,"uncarried":0,"cached":0}
+(pass) optional choice law: comparisons nested in boolean equality retain semantics [112.06ms]
+cyclic: {"kind":"machine","name":"decide","cert":true,"usual":true,"cyclic":true,"ms":0,"usualMs":1,"route":"translated","leaves":0,"regrown":0,"splits":0,"carried":0,"uncarried":0,"cached":1}
+cyclic: {"kind":"step law","name":"decide","cert":true,"usual":true,"cyclic":true,"ms":4,"usualMs":0,"route":"translated","leaves":8,"regrown":0,"splits":6,"carried":1,"uncarried":0,"cached":0}
+cyclic: {"kind":"machine","name":"decide","cert":true,"usual":true,"cyclic":true,"ms":0,"usualMs":1,"route":"translated","leaves":0,"regrown":0,"splits":0,"carried":0,"uncarried":0,"cached":1}
+cyclic: {"kind":"step law","name":"decide","cert":true,"usual":true,"cyclic":true,"ms":4,"usualMs":0,"route":"translated","leaves":8,"regrown":0,"splits":6,"carried":1,"uncarried":0,"cached":0}
+(pass) optional choice law: literals are checked within their domain in either order [245.22ms]
+(pass) optional choice law: unsupported nested optional input is explicitly refused [45.70ms]
+241 | 
+242 | test('optional standalone calendar operands cannot bypass absence checks', () => {
+243 |   const x = extract('export function decide(flag: boolean): number | undefined { if (flag) return 0; }', {...options, check: {runs: 0, states: 0, probes: false}})
+244 |   expect(x.ok).toBe(true)
+245 |   for (const expr of ['result - 0 <= 1 business days', '1 business days >= result - 0']) {
+246 |     expect(() => buildLaw(x, {name: expr, expr, method: 'decide'}, {clock: 1, calendar: {weekend: ['sat', 'sun']}})).toThrow('arithmetic on an optional standalone value is not supported')
+                                                                                                                           ^
+error: expect(received).toThrow(expected)
+
+Expected substring: "arithmetic on an optional standalone value is not supported"
+
+Received function did not throw
+Received value: {
+  kind: "step",
+  law: {
+    name: "result - 0 <= 1 business days",
+    forall: "key$46",
+    keys: [ "key$47" ],
+    then: {
+      op: "or",
+      xs: [
+        {
+          op: "not",
+          x: {
+            op: "and",
+            xs: [
+              {
+                op: "and",
+                xs: [
+                  [Object ...], [Object ...]
+                ],
+              }, {
+                op: "and",
+                xs: [
+                  [Object ...], [Object ...]
+                ],
+              }
+            ],
+          },
+        }, {
+          op: "<=",
+          a: {
+            op: "add",
+            a: {
+              op: "add",
+              a: {
+                op: "add",
+                a: {
+                  op: "add",
+                  a: [Object ...],
+                  b: [Object ...],
+                },
+                b: {
+                  op: "if",
+                  c: [Object ...],
+                  then: [Object ...],
+                  else: [Object ...],
+                },
+              },
+              b: {
+                op: "if",
+                c: {
+                  op: "<=",
+                  a: [Object ...],
+                  b: [Object ...],
+                },
+                then: {
+                  op: "const",
+                  value: 1,
+                },
+                else: {
+                  op: "const",
+                  value: 0,
+                },
+              },
+            },
+            b: {
+              op: "add",
+              a: {
+                op: "add",
+                a: {
+                  op: "add",
+                  a: [Object ...],
+                  b: [Object ...],
+                },
+                b: {
+                  op: "if",
+                  c: [Object ...],
+                  then: [Object ...],
+                  else: [Object ...],
+                },
+              },
+              b: {
+                op: "if",
+                c: {
+                  op: "<=",
+                  a: [Object ...],
+                  b: [Object ...],
+                },
+                then: {
+                  op: "const",
+                  value: 0,
+                },
+                else: {
+                  op: "const",
+                  value: 0,
+                },
+              },
+            },
+          },
+          b: {
+            op: "add",
+            a: {
+              op: "const",
+              value: 1,
+            },
+            b: {
+              op: "add",
+              a: {
+                op: "add",
+                a: {
+                  op: "add",
+                  a: [Object ...],
+                  b: [Object ...],
+                },
+                b: {
+                  op: "if",
+                  c: [Object ...],
+                  then: [Object ...],
+                  else: [Object ...],
+                },
+              },
+              b: {
+                op: "add",
+                a: {
+                  op: "add",
+                  a: [Object ...],
+                  b: [Object ...],
+                },
+                b: {
+                  op: "if",
+                  c: [Object ...],
+                  then: [Object ...],
+                  else: [Object ...],
+                },
+              },
+            },
+          },
+        }
+      ],
+    },
+  },
+}
+
+      at <anonymous> (/tmp/gdp-ci-audit-focus.tL5B3U/tree/core/extract-standalone.test.ts:246:118)
+(fail) optional standalone calendar operands cannot bypass absence checks [30.16ms]
+
+ 7 pass
+ 23 filtered out
+ 1 fail
+ 69 expect() calls
+Ran 8 tests across 1 file. [1.52s]
+
+MUTATIONS_PASS restored=true
+Found 0 warnings and 0 errors.
+Finished in 28.8s on 1008 files with 100 rules using 4 threads.
+
+--- stderr ---
+warning: adding embedded git repository: vendor/gdp-ts
+warning: adding embedded git repository: vendor/handwired
+Submodule 'vendor/gdp-ts' (https://github.com/rauchg/gdp-ts.git) registered for path 'vendor/gdp-ts'
+Submodule 'vendor/handwired' (https://github.com/monotykamary/handwired.git) registered for path 'vendor/handwired'
+Migrating git directory of 'vendor/gdp-ts' from
+'/tmp/gdp-ci-audit-focus.tL5B3U/tree/vendor/gdp-ts/.git' to
+'/tmp/gdp-ci-audit-focus.tL5B3U/tree/.git/modules/vendor/gdp-ts'
+Migrating git directory of 'vendor/handwired' from
+'/tmp/gdp-ci-audit-focus.tL5B3U/tree/vendor/handwired/.git' to
+'/tmp/gdp-ci-audit-focus.tL5B3U/tree/.git/modules/vendor/handwired'
+
+core/extract-standalone.test.ts:
+(pass) closed constants, erased import, pure helper and uncalled callback declaration [171.82ms]
+(pass) finite string choices preserve early returns and comparison equivalence [49.73ms]
+(pass) finite choice result preserves each case [56.51ms]
+cyclic: {"kind":"machine","name":"decide","cert":true,"usual":true,"cyclic":true,"ms":18,"usualMs":5,"route":"translated","leaves":12,"regrown":0,"splits":6,"carried":2,"uncarried":0,"cached":0}
+cyclic: {"kind":"step law","name":"decide","cert":true,"usual":true,"cyclic":true,"ms":9,"usualMs":10,"route":"translated","leaves":10,"regrown":0,"splits":6,"carried":1,"uncarried":0,"cached":0}
+(pass) nullable choice results distinguish null from undefined in false laws [196.63ms]
+cyclic: {"kind":"machine","name":"decide","cert":true,"usual":true,"cyclic":true,"ms":18,"usualMs":1,"route":"translated","leaves":12,"regrown":0,"splits":6,"carried":2,"uncarried":0,"cached":0}
+cyclic: {"kind":"step law","name":"decide","cert":true,"usual":true,"cyclic":true,"ms":11,"usualMs":1,"route":"translated","leaves":10,"regrown":0,"splits":6,"carried":1,"uncarried":0,"cached":0}
+(pass) flat record input and result replay all values [75.95ms]
+cyclic: {"kind":"machine","name":"decide","cert":true,"usual":true,"cyclic":true,"ms":9,"usualMs":1,"route":"translated","leaves":12,"regrown":0,"splits":6,"carried":2,"uncarried":0,"cached":0}
+cyclic: {"kind":"step law","name":"decide","cert":true,"usual":true,"cyclic":true,"ms":10,"usualMs":1,"route":"translated","leaves":9,"regrown":0,"splits":5,"carried":1,"uncarried":0,"cached":0}
+(pass) destructured record input supports early returns [59.71ms]
+(pass) different choice domains compare by string, never encoded index [39.58ms]
+cyclic: {"kind":"machine","name":"decide","cert":true,"usual":true,"cyclic":true,"ms":5,"usualMs":1,"route":"translated","leaves":12,"regrown":0,"splits":6,"carried":2,"uncarried":0,"cached":0}
+cyclic: {"kind":"step law","name":"decide","cert":true,"usual":true,"cyclic":true,"ms":4,"usualMs":0,"route":"translated","leaves":3,"regrown":0,"splits":1,"carried":1,"uncarried":0,"cached":0}
+cyclic: {"kind":"machine","name":"decide","cert":true,"usual":true,"cyclic":true,"ms":5,"usualMs":1,"route":"translated","leaves":0,"regrown":0,"splits":0,"carried":0,"uncarried":0,"cached":1}
+cyclic: {"kind":"step law","name":"decide","cert":true,"usual":true,"cyclic":true,"ms":3,"usualMs":0,"route":"translated","leaves":3,"regrown":0,"splits":1,"carried":1,"uncarried":0,"cached":0}
+(pass) optional choice law: singleton equality and inequality use strings [161.98ms]
+cyclic: {"kind":"machine","name":"decide","cert":true,"usual":true,"cyclic":true,"ms":6,"usualMs":1,"route":"translated","leaves":12,"regrown":0,"splits":6,"carried":2,"uncarried":0,"cached":0}
+cyclic: {"kind":"step law","name":"decide","cert":true,"usual":true,"cyclic":true,"ms":4,"usualMs":0,"route":"translated","leaves":3,"regrown":0,"splits":1,"carried":1,"uncarried":0,"cached":0}
+cyclic: {"kind":"machine","name":"decide","cert":true,"usual":true,"cyclic":true,"ms":0,"usualMs":1,"route":"translated","leaves":0,"regrown":0,"splits":0,"carried":0,"uncarried":0,"cached":1}
+cyclic: {"kind":"step law","name":"decide","cert":true,"usual":true,"cyclic":true,"ms":5,"usualMs":0,"route":"translated","leaves":3,"regrown":0,"splits":1,"carried":1,"uncarried":0,"cached":0}
+(pass) optional choice law: same-index multi-value equality and inequality use strings [153.69ms]
+cyclic: {"kind":"machine","name":"decide","cert":true,"usual":true,"cyclic":true,"ms":6,"usualMs":1,"route":"translated","leaves":12,"regrown":0,"splits":6,"carried":2,"uncarried":0,"cached":0}
+cyclic: {"kind":"step law","name":"decide","cert":true,"usual":true,"cyclic":true,"ms":8,"usualMs":1,"route":"translated","leaves":13,"regrown":0,"splits":9,"carried":1,"uncarried":0,"cached":0}
+cyclic: {"kind":"machine","name":"decide","cert":true,"usual":true,"cyclic":true,"ms":0,"usualMs":1,"route":"translated","leaves":0,"regrown":0,"splits":0,"carried":0,"uncarried":0,"cached":1}
+cyclic: {"kind":"step law","name":"decide","cert":true,"usual":true,"cyclic":true,"ms":7,"usualMs":1,"route":"translated","leaves":13,"regrown":0,"splits":9,"carried":1,"uncarried":0,"cached":0}
+(pass) optional choice law: a shared value at different indices compares by name [229.40ms]
+cyclic: {"kind":"machine","name":"decide","cert":true,"usual":true,"cyclic":true,"ms":9,"usualMs":1,"route":"translated","leaves":12,"regrown":0,"splits":6,"carried":2,"uncarried":0,"cached":0}
+cyclic: {"kind":"step law","name":"decide","cert":true,"usual":true,"cyclic":true,"ms":7,"usualMs":0,"route":"translated","leaves":3,"regrown":0,"splits":1,"carried":1,"uncarried":0,"cached":0}
+cyclic: {"kind":"machine","name":"decide","cert":true,"usual":true,"cyclic":true,"ms":0,"usualMs":1,"route":"translated","leaves":0,"regrown":0,"splits":0,"carried":0,"uncarried":0,"cached":1}
+cyclic: {"kind":"step law","name":"decide","cert":true,"usual":true,"cyclic":true,"ms":8,"usualMs":1,"route":"translated","leaves":10,"regrown":0,"splits":6,"carried":1,"uncarried":0,"cached":0}
+(pass) optional choice law: nullable locals and nested returns retain domain semantics [139.29ms]
+cyclic: {"kind":"machine","name":"decide","cert":true,"usual":true,"cyclic":true,"ms":0,"usualMs":1,"route":"translated","leaves":0,"regrown":0,"splits":0,"carried":0,"uncarried":0,"cached":1}
+cyclic: {"kind":"step law","name":"decide","cert":true,"usual":true,"cyclic":true,"ms":3,"usualMs":0,"route":"translated","leaves":3,"regrown":0,"splits":1,"carried":1,"uncarried":0,"cached":0}
+(pass) optional choice law: comparisons nested in boolean equality retain semantics [99.74ms]
+cyclic: {"kind":"machine","name":"decide","cert":true,"usual":true,"cyclic":true,"ms":0,"usualMs":1,"route":"translated","leaves":0,"regrown":0,"splits":0,"carried":0,"uncarried":0,"cached":1}
+cyclic: {"kind":"step law","name":"decide","cert":true,"usual":true,"cyclic":true,"ms":6,"usualMs":0,"route":"translated","leaves":8,"regrown":0,"splits":6,"carried":1,"uncarried":0,"cached":0}
+cyclic: {"kind":"machine","name":"decide","cert":true,"usual":true,"cyclic":true,"ms":0,"usualMs":1,"route":"translated","leaves":0,"regrown":0,"splits":0,"carried":0,"uncarried":0,"cached":1}
+cyclic: {"kind":"step law","name":"decide","cert":true,"usual":true,"cyclic":true,"ms":4,"usualMs":0,"route":"translated","leaves":8,"regrown":0,"splits":6,"carried":1,"uncarried":0,"cached":0}
+(pass) optional choice law: literals are checked within their domain in either order [247.41ms]
+(pass) optional choice law: unsupported nested optional input is explicitly refused [24.84ms]
+(pass) optional standalone calendar operands cannot bypass absence checks [31.40ms]
+(pass) finite choice support still refuses unrestricted strings and effects [53.00ms]
+(pass) helper parameters bind by symbol rather than a same-named module constant [36.25ms]
+(pass) multi-return helper retains present false separately from undefined [30.06ms]
+(pass) numeric union works through a supplied erased type module [45.11ms]
+(pass) prover witnesses replay returns, not prior result fields as source state [39.98ms]
+(pass) empty source state never hides a wrong return or missing bit in prover probes [110.05ms]
+cyclic: {"kind":"machine","name":"decide","cert":true,"usual":true,"cyclic":true,"ms":10,"usualMs":1,"route":"translated","leaves":12,"regrown":0,"splits":6,"carried":2,"uncarried":0,"cached":0}
+cyclic: {"kind":"step law","name":"decide","cert":true,"usual":true,"cyclic":true,"ms":18,"usualMs":2,"route":"translated","leaves":16,"regrown":0,"splits":10,"carried":1,"uncarried":0,"cached":0}
+cyclic: {"kind":"machine","name":"decide","cert":true,"usual":true,"cyclic":true,"ms":0,"usualMs":1,"route":"translated","leaves":0,"regrown":0,"splits":0,"carried":0,"uncarried":0,"cached":1}
+cyclic: {"kind":"step law","name":"decide","cert":true,"usual":true,"cyclic":true,"ms":22,"usualMs":2,"route":"translated","leaves":15,"regrown":0,"splits":9,"carried":1,"uncarried":0,"cached":0}
+cyclic: {"kind":"machine","name":"decide","cert":true,"usual":true,"cyclic":true,"ms":0,"usualMs":1,"route":"translated","leaves":0,"regrown":0,"splits":0,"carried":0,"uncarried":0,"cached":1}
+cyclic: {"kind":"step law","name":"decide","cert":true,"usual":true,"cyclic":true,"ms":10,"usualMs":1,"route":"translated","leaves":10,"regrown":0,"splits":6,"carried":1,"uncarried":0,"cached":0}
+cyclic: {"kind":"machine","name":"decide","cert":true,"usual":true,"cyclic":true,"ms":0,"usualMs":1,"route":"translated","leaves":0,"regrown":0,"splits":0,"carried":0,"uncarried":0,"cached":1}
+cyclic: {"kind":"step law","name":"decide","cert":true,"usual":true,"cyclic":true,"ms":11,"usualMs":1,"route":"translated","leaves":9,"regrown":0,"splits":5,"carried":1,"uncarried":0,"cached":0}
+cyclic: {"kind":"machine","name":"decide","cert":true,"usual":true,"cyclic":true,"ms":0,"usualMs":1,"route":"translated","leaves":0,"regrown":0,"splits":0,"carried":0,"uncarried":0,"cached":1}
+cyclic: {"kind":"step law","name":"decide","cert":true,"usual":true,"cyclic":true,"ms":8,"usualMs":1,"route":"translated","leaves":7,"regrown":0,"splits":4,"carried":1,"uncarried":0,"cached":0}
+cyclic: {"kind":"machine","name":"decide","cert":true,"usual":true,"cyclic":true,"ms":0,"usualMs":1,"route":"translated","leaves":0,"regrown":0,"splits":0,"carried":0,"uncarried":0,"cached":1}
+cyclic: {"kind":"step law","name":"decide","cert":true,"usual":true,"cyclic":true,"ms":19,"usualMs":8,"route":"translated","leaves":16,"regrown":0,"splits":10,"carried":1,"uncarried":0,"cached":0}
+cyclic: {"kind":"machine","name":"decide","cert":true,"usual":true,"cyclic":true,"ms":0,"usualMs":1,"route":"translated","leaves":0,"regrown":0,"splits":0,"carried":0,"uncarried":0,"cached":1}
+cyclic: {"kind":"step law","name":"decide","cert":true,"usual":true,"cyclic":true,"ms":16,"usualMs":2,"route":"translated","leaves":17,"regrown":0,"splits":11,"carried":1,"uncarried":0,"cached":0}
+cyclic: {"kind":"machine","name":"decide","cert":true,"usual":true,"cyclic":true,"ms":0,"usualMs":1,"route":"translated","leaves":0,"regrown":0,"splits":0,"carried":0,"uncarried":0,"cached":1}
+cyclic: {"kind":"step law","name":"decide","cert":true,"usual":true,"cyclic":true,"ms":11,"usualMs":2,"route":"translated","leaves":9,"regrown":0,"splits":5,"carried":1,"uncarried":0,"cached":0}
+(pass) standalone laws preserve optional boolean truth, absence and hidden payloads [220.06ms]
+cyclic: {"kind":"machine","name":"decide","cert":true,"usual":true,"cyclic":true,"ms":5,"usualMs":1,"route":"translated","leaves":6,"regrown":0,"splits":3,"carried":1,"uncarried":0,"cached":0}
+cyclic: {"kind":"step law","name":"decide","cert":true,"usual":true,"cyclic":true,"ms":6,"usualMs":1,"route":"translated","leaves":8,"regrown":0,"splits":4,"carried":1,"uncarried":0,"cached":0}
+cyclic: {"kind":"machine","name":"decide","cert":true,"usual":true,"cyclic":true,"ms":0,"usualMs":1,"route":"translated","leaves":0,"regrown":0,"splits":0,"carried":0,"uncarried":0,"cached":1}
+cyclic: {"kind":"step law","name":"decide","cert":true,"usual":true,"cyclic":true,"ms":5,"usualMs":1,"route":"translated","leaves":8,"regrown":0,"splits":4,"carried":1,"uncarried":0,"cached":0}
+cyclic: {"kind":"machine","name":"decide","cert":true,"usual":true,"cyclic":true,"ms":0,"usualMs":1,"route":"translated","leaves":0,"regrown":0,"splits":0,"carried":0,"uncarried":0,"cached":1}
+cyclic: {"kind":"step law","name":"decide","cert":true,"usual":true,"cyclic":true,"ms":9,"usualMs":1,"route":"translated","leaves":12,"regrown":0,"splits":8,"carried":1,"uncarried":0,"cached":0}
+(pass) standalone laws preserve optional numeric comparisons and refuse absent arithmetic [82.65ms]
+(pass) standalone optional predicates check both hidden boolean values and present values [46.92ms]
+(pass) optional floor-division refuses original numerators before comparison rewrites [31.59ms]
+(pass) nonoptional division rewrites retain standalone and default-reader semantics [142.80ms]
+(pass) scalar constants may depend on earlier constants [34.80ms]
+(pass) module evaluation and imported runtime code are refused before execution [215.55ms]
+(pass) reachable helper effects, closures, mutation and recursion are refused statically [260.17ms]
+(pass) invalid modes and contradictory numeric domains are not silently ignored [29.07ms]
+(pass) nonintegral declared numeric domains and literals cannot be widened silently [52.32ms]
+
+core/extract-ci-audit.test.ts:
+(pass) CI audit B1: default replay cannot validate optional calendar law translation [280.37ms]
+cyclic: {"kind":"machine","name":"decide","cert":true,"usual":true,"cyclic":true,"ms":8,"usualMs":1,"route":"translated","leaves":12,"regrown":0,"splits":6,"carried":2,"uncarried":0,"cached":0}
+cyclic: {"kind":"step law","name":"decide","cert":true,"usual":true,"cyclic":true,"ms":14,"usualMs":1,"route":"translated","leaves":17,"regrown":0,"splits":13,"carried":1,"uncarried":0,"cached":0}
+cyclic: {"kind":"machine","name":"decide","cert":true,"usual":true,"cyclic":true,"ms":7,"usualMs":1,"route":"translated","leaves":12,"regrown":0,"splits":6,"carried":2,"uncarried":0,"cached":0}
+cyclic: {"kind":"step law","name":"decide","cert":true,"usual":true,"cyclic":true,"ms":13,"usualMs":1,"route":"translated","leaves":17,"regrown":0,"splits":13,"carried":1,"uncarried":0,"cached":0}
+(pass) CI audit P2: named and destructured records have independent heap identities [121.89ms]
+(pass) CI audit B2: falsy map payloads remain present in both truthiness arms [1141.68ms]
+(pass) CI audit C1: accepted records report the plain-data contract [141.16ms]
+cyclic: {"kind":"machine","name":"decide","cert":true,"usual":true,"cyclic":true,"ms":3,"usualMs":1,"route":"translated","leaves":6,"regrown":0,"splits":3,"carried":1,"uncarried":0,"cached":0}
+cyclic: {"kind":"step law","name":"decide","cert":true,"usual":true,"cyclic":true,"ms":3,"usualMs":0,"route":"translated","leaves":8,"regrown":0,"splits":6,"carried":1,"uncarried":0,"cached":0}
+(pass) CI audit N1: reserved output field names are readable without becoming failure status [75.40ms]
+cyclic: {"kind":"machine","name":"Decision","cert":true,"usual":true,"cyclic":true,"ms":7,"usualMs":1,"route":"translated","leaves":12,"regrown":0,"splits":6,"carried":2,"uncarried":0,"cached":0}
+cyclic: {"kind":"step law","name":"Decision","cert":true,"usual":true,"cyclic":true,"ms":10,"usualMs":1,"route":"translated","leaves":9,"regrown":0,"splits":5,"carried":1,"uncarried":0,"cached":0}
+cyclic: {"kind":"machine","name":"Decision","cert":true,"usual":true,"cyclic":true,"ms":0,"usualMs":1,"route":"translated","leaves":0,"regrown":0,"splits":0,"carried":0,"uncarried":0,"cached":1}
+cyclic: {"kind":"step law","name":"Decision","cert":true,"usual":true,"cyclic":true,"ms":7,"usualMs":7,"route":"translated","leaves":8,"regrown":0,"splits":4,"carried":1,"uncarried":0,"cached":0}
+cyclic: {"kind":"machine","name":"Decision","cert":true,"usual":true,"cyclic":true,"ms":0,"usualMs":1,"route":"translated","leaves":0,"regrown":0,"splits":0,"carried":0,"uncarried":0,"cached":1}
+cyclic: {"kind":"step law","name":"Decision","cert":true,"usual":true,"cyclic":true,"ms":12,"usualMs":1,"route":"translated","leaves":11,"regrown":0,"splits":8,"carried":1,"uncarried":0,"cached":0}
+cyclic: {"kind":"machine","name":"Decision","cert":true,"usual":true,"cyclic":true,"ms":0,"usualMs":1,"route":"translated","leaves":0,"regrown":0,"splits":0,"carried":0,"uncarried":0,"cached":1}
+cyclic: {"kind":"step law","name":"Decision","cert":true,"usual":true,"cyclic":true,"ms":6,"usualMs":0,"route":"translated","leaves":7,"regrown":0,"splits":4,"carried":1,"uncarried":0,"cached":0}
+(pass) CI audit N1: class result fields are qualified and scoped by method [129.03ms]
+
+core/extract-absence.test.ts:
+(pass) absence narrowing distinguishes strict/loose null and undefined and preserves the absent tag [566.65ms]
+(pass) strict comparison to a different absence kind cannot prove a false decision law [40.95ms]
+
+ 39 pass
+ 0 fail
+ 927 expect() calls
+Ran 39 tests across 3 files. [5.82s]
+$ tsc -p . && oxlint --type-aware --deny-warnings --disable-nested-config
+Resolving dependencies
+Resolved, downloaded and extracted [276]
+Saved lockfile
