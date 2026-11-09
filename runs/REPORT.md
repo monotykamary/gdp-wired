@@ -10,6 +10,44 @@ withdrawn. No more lane-local gate tooling will be built; acceptance goes
 through Lane D’s final gate. Audit:
 `gdp-wired-verifyP/research/verify-all/final-audit-P80.md`.
 
+## Production premise derivation — `2047d2be`
+
+The ordinary empty-support path did not use the supported grammar pool, so
+its initial ten candidates contained no useful carried-set inclusion. The
+new production path proposes declaration-backed member witnesses, instantiates
+the actual quantified flag bodies, and requests generated primitive field
+laws at the scalar guard's keys. No guard or flag body is asserted. Stable
+fresh names survive rebuilding; the existing kernel checks the full result.
+No protocol names, packing widths, trusted facts, or proof limits changed.
+
+On the latest captured Lane A **34-law** family (no supplied `p1`), assuming
+the generated helpers first, the conditional safety probe now returns a
+certificate with **both START and STEP checked**. It takes **3817.24253 counted
+units** under the unchanged 6000-unit diagnostic limit. The corresponding
+2700-unit probe remains UNKNOWN. Recorded whole-probe wall time is 9.625 s;
+this is not a strict-60-second original-harness result or a per-helper wall win.
+The unmodified integrated baseline was UNKNOWN at 6001.055494 units.
+
+An earlier iteration returned a tree that passed the arithmetic tree checker
+but failed `checkMC`: three count-read coordinates depended on the very member
+witnesses that justify them. The kernel rejected it. The repaired ordinary and
+cached MBQI paths apply the existing count-instance independence filter.
+The rejected packet and logs remain preserved; it is not counted as a proof.
+
+Diagnostics:
+- `runs/mldr-incl-production-premises-baseline-v1/`
+- `runs/mldr-incl-production-premises-{v1,debug-v1,v2}/`
+- `runs/mldr-incl-production-checked-input/`: verified archive
+  `bc13d4b9c0124e23412a6093affe48bb91062102c44ae675cecd6f72910a0327`
+- 53 focused tests / 195 assertions passed in v2. That batch still failed
+  type-check on a missing test-declaration `j` and an experiment tuple type;
+  both are fixed, with the final check rerun pending at this checkpoint.
+- Early count completion is a **research-only** experiment, not production;
+  its 2700-unit probe was also UNKNOWN.
+
+Next: pull landed A/B/F, rerun checks and the real original harness x3.
+Only Lane D's authoritative gate can establish suite acceptance.
+
 ## Production-premise continuation
 
 Pulled Lane B `568fc570` into this branch, including its existing Lane A
