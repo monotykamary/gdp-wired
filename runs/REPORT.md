@@ -1,5 +1,13 @@
 # RESUMED — Lane F; original batches registered late
 
+## Live scalar-domain projection — query improved, reconstruction still blocked
+
+The exact-cap negative result is committed as `0775159a`. Because the 50-unit initial query never returns a core, the next change is **before** that query: retain the ordinary witness clause, its negated claim, and only existing scalar hypotheses whose variables occur in the live witness clause. This uses the existing `sourceScalarContext` helper, invents no premise, preserves the conclusion position, and widens every proposed tree back to the full source before checking/admission. A regression covers both retained and missing guard domains.
+
+`runs/lane-f-scalar-source-v1/` submits six projected direct probes with the unchanged 50+100 envelope, two AB/BA pairs for projection alone, two for projection plus the earlier core-first ordering, and validation. Both paired arms retain the same 294-candidate pool. The validator installs the disposable projection/core-order patches before typechecking and testing, so generated patch code is checked too. Batch `20261110-014745-p8o6nq` / tree `aadb1ddbb79b` returned all 11 worker exits 0. **Projection reduces the direct query from 81 to 9 hypotheses and returns a core in 19.578 / 18.859 units**, versus exhausting 50 units without a core before. However, all six reconstructions consume their 100-unit allowance and remain unchecked/unadmitted (total approximately 119–120 units). The projected core has three hypotheses for candidate 0 and two for candidate 3; neither point-mode setting fixes reconstruction. This is a localized query improvement, not a proof win.
+
+All eight frozen before/after outcomes remain unchecked. Projection-only AB hits the 7-second wall on both sides (999.245 / 785.466 units), so lower work there is not a speedup; BA records 1552.820 after / 1555.811 before. Projection+core-first records 1557.465 after / 1555.811 before in both orders, also unchecked. The unchanged packet hash and 294-instance pool are in `closure-projection.json`. Validation of the actually injected worker code passes **85 tests / 391 assertions**, type-aware checks and four commit messages. No production behavior or kernel code changed in the worktree. Next test whether retaining the 9-hypothesis scalar context, rather than only its minimal numeric core, makes reconstruction fit; keep the 150 total / 100 reconstruction cap.
+
 ## Exact-production-envelope follow-up — query-bound, no closure pass
 
 Checked-source evidence and the reduced-core diagnostic are committed as `f84a8330`. The ordinary diagnostic succeeded at 226/307 units; these are not silently substituted for the production 50+100 envelope.
