@@ -1,0 +1,13 @@
+[
+ {"name":"star-op3","cmd":"bash research/track-m/run-section13-shard.sh star 3","cpu":8,"memory":14336,"timeout":660},
+ {"name":"star-op4","cmd":"bash research/track-m/run-section13-shard.sh star 4","cpu":8,"memory":14336,"timeout":660},
+ {"name":"star-op5","cmd":"bash research/track-m/run-section13-shard.sh star 5","cpu":8,"memory":14336,"timeout":660},
+ {"name":"star-op6","cmd":"bash research/track-m/run-section13-shard.sh star 6","cpu":8,"memory":14336,"timeout":660},
+ {"name":"overlap-op0","cmd":"bash research/track-m/run-section13-shard.sh overlap 0","cpu":8,"memory":14336,"timeout":660},
+ {"name":"overlap-op1","cmd":"bash research/track-m/run-section13-shard.sh overlap 1","cpu":8,"memory":14336,"timeout":660},
+ {"name":"overlap-op2","cmd":"bash research/track-m/run-section13-shard.sh overlap 2","cpu":8,"memory":14336,"timeout":660},
+ {"name":"overlap-op3","cmd":"bash research/track-m/run-section13-shard.sh overlap 3","cpu":8,"memory":14336,"timeout":660},
+ {"name":"overlap-op4","cmd":"bash research/track-m/run-section13-shard.sh overlap 4","cpu":8,"memory":14336,"timeout":660},
+ {"name":"overlap-op5","cmd":"bash research/track-m/run-section13-shard.sh overlap 5","cpu":8,"memory":14336,"timeout":660},
+ {"name":"overlap-op6","cmd":"bash research/track-m/run-section13-shard.sh overlap 6","cpu":8,"memory":14336,"timeout":660}
+]

@@ -1,0 +1,1 @@
+[{"name":"star","cmd":"bash research/track-m/run-section12-unlimited.sh star","cpu":8,"memory":14336,"timeout":4200},{"name":"overlap","cmd":"bash research/track-m/run-section12-unlimited.sh overlap","cpu":8,"memory":14336,"timeout":4200}]
