@@ -1,0 +1,6 @@
+PAIR begin side=base id=majorityset_leader_election run=2
+{"id":"majorityset_leader_election","ic3syn":"ex-majorityset-leader-election","broken":{"bug":"vote twice","verdict":"unknown","why":"a law fails on the small instances","found":["every Vote cell is a value of its kind","every Voters cell is a value of its kind","every Leader cell is a value of its kind","one leader"],"ms":828,"work":0,"full":0}}
+PAIR end side=base exit=0
+PAIR begin side=cand id=majorityset_leader_election run=2
+{"id":"majorityset_leader_election","ic3syn":"ex-majorityset-leader-election","broken":{"bug":"vote twice","verdict":"unknown","why":"a law fails on the small instances","found":["every Vote cell is a value of its kind","every Voters cell is a value of its kind","every Leader cell is a value of its kind","one leader"],"ms":674,"work":0,"full":0}}
+PAIR end side=cand exit=0

@@ -1,0 +1,6 @@
+PAIR begin side=base id=quorum_leader_election run=2
+{"id":"quorum_leader_election","ic3syn":"ex-quorum-leader-election","broken":{"bug":"vote twice","verdict":"unknown","why":"a law fails on the small instances","found":["every IsLeader cell is a value of its kind","one leader"],"ms":260,"work":0,"full":0}}
+PAIR end side=base exit=0
+PAIR begin side=cand id=quorum_leader_election run=2
+{"id":"quorum_leader_election","ic3syn":"ex-quorum-leader-election","broken":{"bug":"vote twice","verdict":"unknown","why":"a law fails on the small instances","found":["every IsLeader cell is a value of its kind","one leader"],"ms":261,"work":0,"full":0}}
+PAIR end side=cand exit=0

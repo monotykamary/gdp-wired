@@ -1,0 +1,4 @@
+[
+ {"name":"inv1758","cmd":"set -e; bun install --frozen-lockfile >/dev/null; GDP_COUNTS_GIVEN=1 bun research/track-m/verify-focused.ts replay-input/input.json Inv1758","cpu":8,"memory":14336,"timeout":150},
+ {"name":"family-profile","cmd":"set -e; bun install --frozen-lockfile >/dev/null; TRACK_M_DISPOSABLE_PROFILE=1 bun research/track-m/install-cost-meter.ts /tmp/resume-originals >/tmp/resume-manifest; TRACK_M_COST_PROFILE=1 TRACK_M_FAMILY_TRACE=1 bun research/track-m/profile-family.ts replay-input/input.json","cpu":8,"memory":14336,"timeout":240}
+]

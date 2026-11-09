@@ -21,7 +21,7 @@ Lane-local reports remain in each lane's `runs/REPORT.md`; this report keeps poi
 ## Execution ledger
 
 - Initial worktree clean at baseline. Scheduler skill read; no local tests or builds.
-- Integration started; no checked integrated result yet.
+- A `00a0cbc1`: source merged cleanly. Only `runs/REPORT.md` conflicted (add/add); retained Lane I report with the pointer above. No checked integrated result yet.
 
 ## For lane D
 

@@ -1,0 +1,6 @@
+PAIR begin side=cand id=consensus_wo_decide run=3
+{"id":"consensus_wo_decide","ic3syn":"pyv-consensus-wo-decide","broken":{"bug":"send_vote without voted","verdict":"unknown","why":"a law fails on the small instances","found":["every VoteRequestMsg cell is a value of its kind","every Voted cell is a value of its kind","every VoteMsg cell is a value of its kind","every Votes cell is a value of its kind","every Leader cell is a value of its kind","every VotingQuorum cell is a value of its kind","one leader"],"ms":2853,"work":0,"full":0}}
+PAIR end side=cand exit=0
+PAIR begin side=base id=consensus_wo_decide run=3
+{"id":"consensus_wo_decide","ic3syn":"pyv-consensus-wo-decide","broken":{"bug":"send_vote without voted","verdict":"unknown","why":"a law fails on the small instances","found":["every VoteRequestMsg cell is a value of its kind","every Voted cell is a value of its kind","every VoteMsg cell is a value of its kind","every Votes cell is a value of its kind","every Leader cell is a value of its kind","every VotingQuorum cell is a value of its kind","one leader"],"ms":2577,"work":0,"full":0}}
+PAIR end side=base exit=0

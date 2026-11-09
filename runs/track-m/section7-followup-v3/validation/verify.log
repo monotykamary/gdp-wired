@@ -1,0 +1,21 @@
+Found 0 warnings and 0 errors.
+Finished in 15.9s on 1171 files with 100 rules using 8 threads.
+bun test v1.4.3 (c6da4a4d3)
+{"verified":true,"numeric":[{"law":"Inv*: no quorum of a config can still be gathered for a config term held","checked":true,"hyps":2,"poolCore":[54],"assumptionsOnly":true},{"law":"Inv2973: quorums overlap, or a config disabled","checked":true,"hyps":2,"poolCore":[190],"assumptionsOnly":true}],"controlVerdicts":5,"exactCountedMatches":4,"countedDeltas":[{"law":"one primary per term","delta":0},{"law":"Inv3915: one config term, the primary newest","delta":0},{"law":"Inv1758: one version and term, one config","delta":0},{"law":"Inv2973: quorums overlap, or a config disabled","delta":0},{"law":"Inv*: no quorum of a config can still be gathered for a config term held","delta":0.3255687999962902}],"leafCalls":120,"distinctCheckedLeaves":88,"checkedTargetCuts":26}
+
+--- stderr ---
+$ tsc -p . && oxlint --type-aware --deny-warnings --disable-nested-config
+
+research/track-m/phase-census-meter.test.ts:
+(pass) wall phases are exclusive and kernel work is not double counted [0.52ms]
+(pass) phase-local solver work remains charged to its phase [0.16ms]
+(pass) cut-use audit distinguishes offered, core and checked proof references [0.52ms]
+
+research/track-m/section7-followup-meter.test.ts:
+(pass) post-timing audit separates bindings, frames and exact repeated checks [1.75ms]
+(pass) disabled audit does not retain data or change return values [0.11ms]
+
+ 5 pass
+ 0 fail
+ 15 expect() calls
+Ran 5 tests across 2 files. [16.00ms]

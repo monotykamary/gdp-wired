@@ -1,0 +1,7 @@
+research/track-m/section7-demand-measurement.ts(6,50): error TS2305: Module '"../../kernel/prove.ts"' has no exported member 'modelSequence'.
+research/track-m/section7-demand-measurement.ts(54,69): error TS7006: Parameter 'i' implicitly has an 'any' type.
+research/track-m/section7-demand-measurement.ts(54,92): error TS7006: Parameter 'i' implicitly has an 'any' type.
+research/track-m/section7-demand-measurement.ts(56,309): error TS7006: Parameter 'i' implicitly has an 'any' type.
+
+--- stderr ---
+$ tsc -p . && oxlint --type-aware --deny-warnings --disable-nested-config

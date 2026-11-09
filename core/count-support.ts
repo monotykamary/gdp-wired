@@ -119,9 +119,9 @@ export function candidateWork() {
   patternIndices.set(tick,{laws:new WeakMap()})
   return {state,tick,mark}
 }
-export function grammarPool(goal:Goal,decls:CountDecl[],cap=1000,budget=candidateWork()){
+export function grammarPool(goal:Goal,decls:CountDecl[],cap=1000,budget=candidateWork(),structured=true){
  const more=budget.tick;budget.mark('pool:begin')
- const base=certFor(goal,decls,true,cap,more),byMap=new Map(decls.map(d=>[d.map,d])),byRead=new Map(base.reads.map(r=>[r[0],r])),insts=[...base.insts],wits=[...base.wits]
+ const base=certFor(goal,decls,true,cap,more,structured),byMap=new Map(decls.map(d=>[d.map,d])),byRead=new Map(base.reads.map(r=>[r[0],r])),insts=[...base.insts],wits=[...base.wits]
  const added:{instance:CountInst,reason:string,links?:unknown}[]=[],proposed:unknown[]=[]
  let omittedProvenance=0
  const semantic=(i:CountInst)=>json([i.terms.map(([k,r])=>[k,byRead.get(r)?.slice(1)]),i.unit,keyId(i.below)]),had=new Set(insts.map(semantic)),taken=names([goal,decls,insts]);let serial=insts.length

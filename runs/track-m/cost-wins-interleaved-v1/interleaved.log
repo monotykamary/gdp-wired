@@ -1,0 +1,332 @@
+Found 0 warnings and 0 errors.
+Finished in 12.7s on 1207 files with 100 rules using 8 threads.
+bun test v1.4.3 (c6da4a4d3)
+baseline.tar.gz: OK
+{"event":"start","id":"A1","side":"A","repeat":1,"at":"2026-11-08T20:15:13.148Z"}
+{"event":"end","id":"A1","exitCode":0,"laws":[{"law":"one primary per term","proven":true,"checked":true,"units":926.6334919999999,"wallMs":2401.956797,"cache":null},{"law":"Inv3915: one config term, the primary newest","proven":true,"checked":true,"units":872.3352536000001,"wallMs":2845.328572,"cache":null},{"law":"Inv1758: one version and term, one config","proven":true,"checked":true,"units":4310.4753532,"wallMs":13641.121935000001,"cache":null},{"law":"Inv2973: quorums overlap, or a config disabled","proven":false,"checked":false,"units":5002.6530103999985,"wallMs":30865.178697,"cache":null},{"law":"Inv*: no quorum of a config can still be gathered for a config term held","proven":false,"checked":false,"units":5161.293822800001,"wallMs":38646.535037999995,"cache":null}]}
+{"event":"start","id":"B1","side":"B","repeat":1,"at":"2026-11-08T20:16:41.734Z"}
+{"event":"end","id":"B1","exitCode":0,"laws":[{"law":"one primary per term","proven":true,"checked":true,"units":926.6334919999999,"wallMs":1968.486366,"cache":{"leafChecks":0,"leafHits":0,"leafFallbacks":0,"fullHyps":0,"sliceHyps":0,"independentChecks":0,"independentHits":0,"retargetChecks":0,"retargetHits":0}},{"law":"Inv3915: one config term, the primary newest","proven":true,"checked":true,"units":872.3352536000001,"wallMs":2177.9455149999994,"cache":{"leafChecks":0,"leafHits":0,"leafFallbacks":0,"fullHyps":0,"sliceHyps":0,"independentChecks":0,"independentHits":0,"retargetChecks":0,"retargetHits":0}},{"law":"Inv1758: one version and term, one config","proven":true,"checked":true,"units":4310.4753532,"wallMs":12497.474054,"cache":{"leafChecks":0,"leafHits":0,"leafFallbacks":0,"fullHyps":0,"sliceHyps":0,"independentChecks":0,"independentHits":0,"retargetChecks":0,"retargetHits":0}},{"law":"Inv2973: quorums overlap, or a config disabled","proven":false,"checked":false,"units":5002.6530103999985,"wallMs":53273.594849,"cache":{"leafChecks":0,"leafHits":0,"leafFallbacks":0,"fullHyps":0,"sliceHyps":0,"independentChecks":0,"independentHits":0,"retargetChecks":0,"retargetHits":0}},{"law":"Inv*: no quorum of a config can still be gathered for a config term held","proven":false,"checked":false,"units":3182.5856464000008,"wallMs":60036.00697,"cache":{"leafChecks":80,"leafHits":20,"leafFallbacks":0,"fullHyps":39160,"sliceHyps":170,"independentChecks":851,"independentHits":759,"retargetChecks":322,"retargetHits":253}}]}
+{"event":"start","id":"A2","side":"A","repeat":2,"at":"2026-11-08T20:18:51.859Z"}
+{"event":"end","id":"A2","exitCode":0,"laws":[{"law":"one primary per term","proven":true,"checked":true,"units":926.6334919999999,"wallMs":3306.3470289999996,"cache":null},{"law":"Inv3915: one config term, the primary newest","proven":true,"checked":true,"units":872.3352536000001,"wallMs":5581.5485069999995,"cache":null},{"law":"Inv1758: one version and term, one config","proven":true,"checked":true,"units":4310.4753532,"wallMs":30626.022478,"cache":null},{"law":"Inv2973: quorums overlap, or a config disabled","proven":false,"checked":false,"units":4837.597574,"wallMs":60528.804906000005,"cache":null},{"law":"Inv*: no quorum of a config can still be gathered for a config term held","proven":false,"checked":false,"units":5161.673620399998,"wallMs":51879.484664,"cache":null}]}
+{"event":"start","id":"B2","side":"B","repeat":2,"at":"2026-11-08T20:21:23.967Z"}
+{"event":"end","id":"B2","exitCode":0,"laws":[{"law":"one primary per term","proven":true,"checked":true,"units":926.6334919999999,"wallMs":1878.13291,"cache":{"leafChecks":0,"leafHits":0,"leafFallbacks":0,"fullHyps":0,"sliceHyps":0,"independentChecks":0,"independentHits":0,"retargetChecks":0,"retargetHits":0}},{"law":"Inv3915: one config term, the primary newest","proven":true,"checked":true,"units":872.3352536000001,"wallMs":2063.108308,"cache":{"leafChecks":0,"leafHits":0,"leafFallbacks":0,"fullHyps":0,"sliceHyps":0,"independentChecks":0,"independentHits":0,"retargetChecks":0,"retargetHits":0}},{"law":"Inv1758: one version and term, one config","proven":true,"checked":true,"units":4310.4753532,"wallMs":9870.181327,"cache":{"leafChecks":0,"leafHits":0,"leafFallbacks":0,"fullHyps":0,"sliceHyps":0,"independentChecks":0,"independentHits":0,"retargetChecks":0,"retargetHits":0}},{"law":"Inv2973: quorums overlap, or a config disabled","proven":false,"checked":false,"units":5002.6530103999985,"wallMs":33147.538570000004,"cache":{"leafChecks":0,"leafHits":0,"leafFallbacks":0,"fullHyps":0,"sliceHyps":0,"independentChecks":0,"independentHits":0,"retargetChecks":0,"retargetHits":0}},{"law":"Inv*: no quorum of a config can still be gathered for a config term held","proven":false,"checked":false,"units":5160.0960208,"wallMs":29317.092157,"cache":{"leafChecks":160,"leafHits":36,"leafFallbacks":0,"fullHyps":78320,"sliceHyps":342,"independentChecks":1679,"independentHits":1495,"retargetChecks":644,"retargetHits":506}}]}
+{"event":"start","id":"A3","side":"A","repeat":3,"at":"2026-11-08T20:22:40.419Z"}
+{"event":"end","id":"A3","exitCode":0,"laws":[{"law":"one primary per term","proven":true,"checked":true,"units":926.6334919999999,"wallMs":2405.020101,"cache":null},{"law":"Inv3915: one config term, the primary newest","proven":true,"checked":true,"units":872.3352536000001,"wallMs":3445.0792839999995,"cache":null},{"law":"Inv1758: one version and term, one config","proven":true,"checked":true,"units":4310.4753532,"wallMs":20427.448324999998,"cache":null},{"law":"Inv2973: quorums overlap, or a config disabled","proven":false,"checked":false,"units":4882.748613999999,"wallMs":60225.740497,"cache":null},{"law":"Inv*: no quorum of a config can still be gathered for a config term held","proven":false,"checked":false,"units":5161.673620400001,"wallMs":58342.457595000014,"cache":null}]}
+{"event":"start","id":"B3","side":"B","repeat":3,"at":"2026-11-08T20:25:05.867Z"}
+{"event":"end","id":"B3","exitCode":0,"laws":[{"law":"one primary per term","proven":true,"checked":true,"units":926.6334919999999,"wallMs":2967.449608,"cache":{"leafChecks":0,"leafHits":0,"leafFallbacks":0,"fullHyps":0,"sliceHyps":0,"independentChecks":0,"independentHits":0,"retargetChecks":0,"retargetHits":0}},{"law":"Inv3915: one config term, the primary newest","proven":true,"checked":true,"units":872.3352536000001,"wallMs":3435.420055,"cache":{"leafChecks":0,"leafHits":0,"leafFallbacks":0,"fullHyps":0,"sliceHyps":0,"independentChecks":0,"independentHits":0,"retargetChecks":0,"retargetHits":0}},{"law":"Inv1758: one version and term, one config","proven":true,"checked":true,"units":4310.4753532,"wallMs":15251.775137,"cache":{"leafChecks":0,"leafHits":0,"leafFallbacks":0,"fullHyps":0,"sliceHyps":0,"independentChecks":0,"independentHits":0,"retargetChecks":0,"retargetHits":0}},{"law":"Inv2973: quorums overlap, or a config disabled","proven":false,"checked":false,"units":5002.6530103999985,"wallMs":41628.16929599999,"cache":{"leafChecks":0,"leafHits":0,"leafFallbacks":0,"fullHyps":0,"sliceHyps":0,"independentChecks":0,"independentHits":0,"retargetChecks":0,"retargetHits":0}},{"law":"Inv*: no quorum of a config can still be gathered for a config term held","proven":false,"checked":false,"units":5160.0775776,"wallMs":34046.427580999996,"cache":{"leafChecks":160,"leafHits":36,"leafFallbacks":0,"fullHyps":78320,"sliceHyps":340,"independentChecks":1679,"independentHits":1495,"retargetChecks":638,"retargetHits":499}}]}
+{"test":"default-on cost wins","order":["A1","B1","A2","B2","A3","B3"],"baseline":"50109a36","kernelEqual":true,"harnessEqual":true,"laws":[{"law":"one primary per term","verdictsIdentical":true,"A":{"verdicts":[[true,true],[true,true],[true,true]],"countedUnits":[926.6334919999999,926.6334919999999,926.6334919999999],"wallMedianMs":2405.020101,"wallMaxMs":3306.3470289999996,"cache":[null,null,null]},"B":{"verdicts":[[true,true],[true,true],[true,true]],"countedUnits":[926.6334919999999,926.6334919999999,926.6334919999999],"wallMedianMs":1968.486366,"wallMaxMs":2967.449608,"cache":[{"leafChecks":0,"leafHits":0,"leafFallbacks":0,"fullHyps":0,"sliceHyps":0,"independentChecks":0,"independentHits":0,"retargetChecks":0,"retargetHits":0},{"leafChecks":0,"leafHits":0,"leafFallbacks":0,"fullHyps":0,"sliceHyps":0,"independentChecks":0,"independentHits":0,"retargetChecks":0,"retargetHits":0},{"leafChecks":0,"leafHits":0,"leafFallbacks":0,"fullHyps":0,"sliceHyps":0,"independentChecks":0,"independentHits":0,"retargetChecks":0,"retargetHits":0}]}},{"law":"Inv3915: one config term, the primary newest","verdictsIdentical":true,"A":{"verdicts":[[true,true],[true,true],[true,true]],"countedUnits":[872.3352536000001,872.3352536000001,872.3352536000001],"wallMedianMs":3445.0792839999995,"wallMaxMs":5581.5485069999995,"cache":[null,null,null]},"B":{"verdicts":[[true,true],[true,true],[true,true]],"countedUnits":[872.3352536000001,872.3352536000001,872.3352536000001],"wallMedianMs":2177.9455149999994,"wallMaxMs":3435.420055,"cache":[{"leafChecks":0,"leafHits":0,"leafFallbacks":0,"fullHyps":0,"sliceHyps":0,"independentChecks":0,"independentHits":0,"retargetChecks":0,"retargetHits":0},{"leafChecks":0,"leafHits":0,"leafFallbacks":0,"fullHyps":0,"sliceHyps":0,"independentChecks":0,"independentHits":0,"retargetChecks":0,"retargetHits":0},{"leafChecks":0,"leafHits":0,"leafFallbacks":0,"fullHyps":0,"sliceHyps":0,"independentChecks":0,"independentHits":0,"retargetChecks":0,"retargetHits":0}]}},{"law":"Inv1758: one version and term, one config","verdictsIdentical":true,"A":{"verdicts":[[true,true],[true,true],[true,true]],"countedUnits":[4310.4753532,4310.4753532,4310.4753532],"wallMedianMs":20427.448324999998,"wallMaxMs":30626.022478,"cache":[null,null,null]},"B":{"verdicts":[[true,true],[true,true],[true,true]],"countedUnits":[4310.4753532,4310.4753532,4310.4753532],"wallMedianMs":12497.474054,"wallMaxMs":15251.775137,"cache":[{"leafChecks":0,"leafHits":0,"leafFallbacks":0,"fullHyps":0,"sliceHyps":0,"independentChecks":0,"independentHits":0,"retargetChecks":0,"retargetHits":0},{"leafChecks":0,"leafHits":0,"leafFallbacks":0,"fullHyps":0,"sliceHyps":0,"independentChecks":0,"independentHits":0,"retargetChecks":0,"retargetHits":0},{"leafChecks":0,"leafHits":0,"leafFallbacks":0,"fullHyps":0,"sliceHyps":0,"independentChecks":0,"independentHits":0,"retargetChecks":0,"retargetHits":0}]}},{"law":"Inv2973: quorums overlap, or a config disabled","verdictsIdentical":true,"A":{"verdicts":[[false,false],[false,false],[false,false]],"countedUnits":[5002.6530103999985,4837.597574,4882.748613999999],"wallMedianMs":60225.740497,"wallMaxMs":60528.804906000005,"cache":[null,null,null]},"B":{"verdicts":[[false,false],[false,false],[false,false]],"countedUnits":[5002.6530103999985,5002.6530103999985,5002.6530103999985],"wallMedianMs":41628.16929599999,"wallMaxMs":53273.594849,"cache":[{"leafChecks":0,"leafHits":0,"leafFallbacks":0,"fullHyps":0,"sliceHyps":0,"independentChecks":0,"independentHits":0,"retargetChecks":0,"retargetHits":0},{"leafChecks":0,"leafHits":0,"leafFallbacks":0,"fullHyps":0,"sliceHyps":0,"independentChecks":0,"independentHits":0,"retargetChecks":0,"retargetHits":0},{"leafChecks":0,"leafHits":0,"leafFallbacks":0,"fullHyps":0,"sliceHyps":0,"independentChecks":0,"independentHits":0,"retargetChecks":0,"retargetHits":0}]}},{"law":"Inv*: no quorum of a config can still be gathered for a config term held","verdictsIdentical":true,"A":{"verdicts":[[false,false],[false,false],[false,false]],"countedUnits":[5161.293822800001,5161.673620399998,5161.673620400001],"wallMedianMs":51879.484664,"wallMaxMs":58342.457595000014,"cache":[null,null,null]},"B":{"verdicts":[[false,false],[false,false],[false,false]],"countedUnits":[3182.5856464000008,5160.0960208,5160.0775776],"wallMedianMs":34046.427580999996,"wallMaxMs":60036.00697,"cache":[{"leafChecks":80,"leafHits":20,"leafFallbacks":0,"fullHyps":39160,"sliceHyps":170,"independentChecks":851,"independentHits":759,"retargetChecks":322,"retargetHits":253},{"leafChecks":160,"leafHits":36,"leafFallbacks":0,"fullHyps":78320,"sliceHyps":342,"independentChecks":1679,"independentHits":1495,"retargetChecks":644,"retargetHits":506},{"leafChecks":160,"leafHits":36,"leafFallbacks":0,"fullHyps":78320,"sliceHyps":340,"independentChecks":1679,"independentHits":1495,"retargetChecks":638,"retargetHits":499}]}}],"allVerdictsIdentical":true,"laterGatesRun":false}
+{"artifact":"A1.log","encoding":"gzip-base64","data":"H4sIAAAAAAAAA73WX4vbOBAA8Pd+CqPHw2s0M/rrtysUenDloNAP4MbKxtSxUktJuiz57ofi/LFdsnfplvVTRtjSeOYXyc9s7WvHSras1k37xHK2dmvfP7HymfUhsBJJGeAoeM5Wrtp8Ca5mpSFCq6Q85Kyt9qxkvnPZpm/WVf+UbVyfRdevWc56vw//dKyM/dblLPbOjcKF76L7EUcjTVe7H9dw0/udu96+cotvafEh3Fdt+ynlJzgUViptdZpy20VXp3GLqlBEwoIdrmH9j00MrOQ5C37bL9xntw0uvevS96557P6M0a036RYr8vPg8AzkbNH7EP6u9pdJWr+o2iEScDi+72XGzten1QCUEvlx4FMTgktZSy5y9ujPTwMOxRoipewQvt82bWQlaBDDwIdds4ipCPyQs82qOk72fMhZaOLw8/Du+dzShQ/xYd90DyFWMbD/6NVwU9lt23Y0xy0WZBVqa7gZswC02nIJqRTDWn91O7IgyywtuvDdsnk8rpdncXXNonN7F+IbeTFCFoRGapx4MRoLIomSFE8X3OkFjZ6BkXMwNAFD9jYYrbWagTmWegSGJmCAT8EokjMwFl5B5s423kcJOFpEJawaWxIKUSgtJ5ZASzMksXN9aHyXVV19yuSa2ttAAlICCkCwJM9iRp4EAS+EliQJ76Sk9JwS2rklmFqim5aU1kpOLYk0cKWU6n6lJNFMKQn8yRIIKV6n6X838s5dSVprFM23JcVBK6tt+sddUkCrqcy+b32/XYfM71zfVps8831WnYnXTai+tq7+baCWVRvGok7xmRRxo2QB2qjZYSY5x0JJ4sApnWVG3kmKAGak+MvH2e3NCYEE2Zko1NqOTckTosvUI1H6581JI+CrPN3XzPtQCSmNtsaIKSqNlisBqMeo/iizzp/yyPzyuvqi6rIQm7bNvrrssYor17s6W44TTPqzlWvfjptRQhWSJCd9/ESSU3SgoEBLBtH8yokorbnPHMjbu5i1GqbmlE0KRyeipRfMcYMzc0odd81fN/e7ev2SxofoY9W+GsS548YIjoUmTaCHWS61Xp2r9s1tIitvHyhkuILZiSKlSHiuzaD0dXVtBhiuJ/0gpORp0hC0aOXh8O5fZpV1qZMMAAA="}
+{"artifact":"A1.stderr.log","encoding":"gzip-base64","data":"H4sIAAAAAAAAAwMAAAAAAAAAAAA="}
+{"artifact":"A2.log","encoding":"gzip-base64","data":"H4sIAAAAAAAAA73W3YrjNhQA4Pt9CqPL4jE6ko5+fNeFhRa6FAp9AG+sTMw6ViopyQ5D3r0oniSWl2xrskyuItmWjnU+6fiVbF1rSU3WzbbrX0hJtnbr/AupX4kPgdRMIIJggpZkY5vd38G2pFYGAQU3p5L0zZHUxA222Plu2/iXYmd9Ea3fkpJ4dwx/DqSOfm9LEr21k+bKDdF+i5Oebmjtt1tz593B3m7f2NXXNPnYPDZ9/zmQmnMqKy4UZdqcfzKNvB+ibdNlw2QlORcGxqtmDOO3LgZS05IEt/cr+5fdB5teee287Z6HX2O02126xYjy0jk+AyVZeRfCH83xOkjvVk0/tgSczq99HXFw7dtsAFKK8tzxuQvBpsVFKkry7C5PAxvXbGxJacbmx33XR1KDAjF2fDp0q5jWgp5Ksts058FeTyUJXRz/nj68XjK7ciE+HbvhKcQmBvIfKRtvqod930/GuKeDGwVKas6mOhIXTTWqK4/fhwM3gHWRJl25Yd09n+cri7i5RTHYow3xfdggaqhQaKRydIEZG61YxTky5JKmHyxkw7SaucG5G565Oe+lO26UUnLmRlOdueGZG6C5G8lx5sbAA3IWZnOZKKBMMSkQMlJCU8GNoRkpUKjHIA7Wh84NRTO0b5HcQnunY4hKJivKmFA6kyQ40Eoo5Jg2ySJEUs0RMTNXBLkifleRVEpirkikjhuidHLeECHTOSLBvlMEAsVjjv53ChceS6gpM4qBzM8lMEYYxfVUETOK18U/e+f321C4g/V9sysL54vmgrvtQvOlt+1Po7Ru+jC19Na+YJIUma40FYaOx09+OAnNVYVGoRILRXGAmSj643KGdz0x4DRRz0AxpTJSmJHKTyUFdO5JMoCHOC3L5TJTgmsARJ72xcSUYgY1FTrtvGscv9TF4N7iKNz6NvuqGYoQu74vvtjiuYkb621brKcBJvzFxvbvpg1BK1MJLc6fJxNnCBIqqbhklKcSqRdqw/TEEm1wn5s0RrFcmzTcZEUw1fC72qjWM20KHiyCPyvLP3L4FF1s+ocpXHINCIZhpQXIyzfNdbE3l2X7aneR1PdLCdeU4ayWIAoD02zwlK5bNkBTlSWEp8+aWUaYVgpOpw//Arqw9meVDAAA"}
+{"artifact":"A2.stderr.log","encoding":"gzip-base64","data":"H4sIAAAAAAAAAwMAAAAAAAAAAAA="}
+{"artifact":"A3.log","encoding":"gzip-base64","data":"H4sIAAAAAAAAA73W3arbOBAA4Ps+hdHl4mM00ujPd7uwsIWWhYV9ADdWTkwdKyspSQ+HvPuiOD9WStq6KcdXkZCl8cyHJq9k7VpLarJs1l3/QkqytmvnX0j9SnwIpGYCjFKK6ZKsbLP5N9iW1JoiA6bUoSR9syc1cYMtNr5bN/6l2FhfROvXpCTe7cPfA6mj39qSRG/tZLhwQ7Rf4mSmG1r75TrceLez1+Uru/icDh+H+6bvP6b4kIqKMgoU0pbbIdo2zRsmK8k5GjDjM57/VxcDqWlJgtv6hf3HboNN37p03nbPw+8x2vUmLTFYnifHd9L23oXwodlfNundounHEcLh+L2XHQfXnk4DkBLL48THLgR7zCrFkjy789vAxmSNIynNOPxj2/WR1KAAx4k/d90ipiTQQ0k2q+a42euhJKGL48/Du9dzSRcuxKd9NzyF2MRAvlOrcVE9bPt+ssc9FkipYSgVm7IANIpKw1Nw41nvhx03IOoiHbpww7J7Pp5XFnF1jWKwexvi23jhiKKiyjDNRxciY6MVqzgXTHBJ0wMz2TCtbtyIWzc8c8PNfTdKKXnjRlOdueGZG6C5G8nFjRsDD8iZWc15ooCCFFQjyCkplMowyZFNSYESegxiZ33o3FA0Q3uK5BraG90/FJmqEDVnePSkM0/IgVaoBBeczaQk1S0lZm4tQW6J37UklZIit4Rp4krJyCklkS78KSVkX1kCFPiYph8u5DxKHCkKlBSzpgWCcSWFgJSlSwjMKF4X/22d365D4XbW982mLJwvmjPxtgvNp962vwzUsunDVNRpfCYlKWOiUkjRqByT1qxSqCWc7q6ZojjAjSj67aam73piwGm66jJQTGk6JSUyUvndpJjUN56kQvkQp3m1nNnwkAujKdO5KSOQCmUwM/VbXQzuFEfhltfTF81QhNj1ffHJFs9NXFlv22I5DTDhL1a2fzNtQnNkFQoljDh2PMzMCZBQScUlo/gzDVGkC3GOORD3LzFjFM/NScPzhpj6+V1zVH9tjuuHzP2qWn9L41N0sekfBnGuOCBqNBUzcExn2uaS7NU5bZ/tJpL6fkPhmrLbjiIEpvRfq8HT/8NrNUBTlRWEg8FTiS4VYdpwPBze/Q91nNMwmgwAAA=="}
+{"artifact":"A3.stderr.log","encoding":"gzip-base64","data":"H4sIAAAAAAAAAwMAAAAAAAAAAAA="}
+{"artifact":"B1.log","encoding":"gzip-base64","data":"H4sIAAAAAAAAA9WX34rjNhTG7/cpjC4Xj5F09Nd329KyC10KhT6AJlYSs47lWkqyw5B3L4qT2PJMug1ZBsZXOSfyEfrO7zvIz2jjKotKtDSbunlCOdrYjeufUPmMeu9RSanAAEKwHK2t6f72tkKlFAwD4fiQo8bsUYlca7Ourzemf8o622fB9huUo97t/Z8tKkO/tTkKvbWTcOHaYL+HSaZuK/t9DLve7ey4fG0X3+LmQ7g3TfPVo5JooQqmBAgRS27bYKuY11QUAoBpoodn2P9zHTwqcY682/YL+5fdehvPunS9rVftpxDspotLNMvPyeEdkqNF77z/w+wvRRq3MM0QMXI4nvdSsXXVaTdCjvLFxNfaextV5ZjlaOXObxM6iDVEQugh/GVbNwGVRBI2JH7b1YsQRYjSd2tzLPZ8yJGvw/Dz8OH53NKF8+FhX7cPPpjg0Q96NSwqn1FjzfLXKPbpjNYsxwNbs/zdNM2jOf+93DbN56fuJGpTL+wliu3sbFvZNkzqTbKXsr0Npl/Z6bJz6rRmeq5rqIICrJlUCaqEUwaSwMjql3YHmvAyi0IsXLusV0cN8iysR2Vau7c+vA3DlEhZaMY5YQOrLEFZSVoAcMpB4PiQG1GmSs5Y5nOWIWEZ9HWWpZRixrLCKmEZEpYJTlkWwGcsa3IHzTd28/1TrqWSDKgWU8pBA+VSk9i4iy5EcjXosrO9r12bmbY6iTOq9UZjmjItCyYZ5incDAgumOTAgd7ItZBzrqmeg01SsOEq2EJKwVOwWUyMXEfFR645VSnXjL4AmzDO7kP7f7fw/XMNXDCsgTGcjG8GUlBGJ3eNL+2Oagll9s/W9duNz9zO9o3p8sz1mTnPgKr25rGx1U/De2kaP+X7FJ8B50AlFFwzxXQCOMeYFoIDJhjibFf8RsyBkBnm+L+vItenNyXAQM8op1LqKef8BPbY35Fy+XJ6S0roXYzf1sz3DzrDRGuKVTrBCedUaUZEAvrHMmvdSZvMLUdFFqbNfKibJnu02cqEte1tlS2nosUpka1t82YWEBiDKDAWWiYOAKJowRUXTLDjBUbd6AAer8e3OABfH/OK85kBhFLp/YXi6wYgFFM6H/NYKXaXBX5Wm181h0rcQX9gD9BEpBYh8nWTKE5esYmM8s6NAkfNEqtQDi/N8hBcMM3dvI6XDq25KKTERA6fgUOtCxfrc4e/2S6g8vrtAKSmGFJuOGcs+Yijsf4IDlFYJuyApIzM2AHgTBwOH/4FtSP+cogPAAA="}
+{"artifact":"B1.stderr.log","encoding":"gzip-base64","data":"H4sIAAAAAAAAAwMAAAAAAAAAAAA="}
+{"artifact":"B2.log","encoding":"gzip-base64","data":"H4sIAAAAAAAAA9XX3Y7iNhQA4Pt9isiXVTby8fFv7tqq1a7UVaVKfQAPmCHaEFPbwI5GvHvlCZCfWaZFsxppuMLGOOSc7xycR7LxS0dqsrKbpn0gJdm4jQ8PpH4kIUZSM6ZAcpC0JGtnt39HtyS1MhyYMHAsSWsPpCa+c8U2NBsbHoqtC0VyYUNKEvwh/tmROoWdK0kKzo2GC98l9y2NZppu6b4Nw23wezcsX7vF13zxfniwbfslkhq00hUgM5B33HXJLfO0YbKSiNyA6V/95T81KZKaliT6XVi4v9wuunyrKx9cc9/9nJLbbPMSw8vzZP+dvH3wMf5hD5dNWr+wbT/iORbBHy47dn55uhqAlLx8mvjSxOhyUAXlJbn3528D62PVj6Q0/fCXXdMmUoMC3k/8tm8WKceAHkuyXdunzR6PJYlN6t8ePzyeM7rwMX08NN3HmGyK5D9S1S+qH0nr7OrXHOvTPTq7Gm7Y2dXvtm3v7Pnj1a5tPz1sT0Ftm4W7jHI2t65bui6N9hvNXrYNLtlw78bLzlOnNeP7uiYVtRHGMGRjqcCoAcolXqh+7vZoQNRFDsTCd6vm/ikGZZHWQ2Q6d3AxvQ1hRiVWQDVSPTGsFasQBRMoaX7BjYaZVjPEYo4YJ4jRXEeslJIzxDr/3hFinCAGOkUsUcwQG3gF4xvT+P55G6MUgFYT3pwZoSnIoRN/7vaghO7jsnchNr4rbLc8BWeI1tvYNlrRCjQgUxPbHIFWXAkUuV5vYi3VnDUzc9cwdY1XXUulpJi65nliYG3kmLVgesqas2eugQv+Otn/O4PvnzWioiipnrVtRbWSQKUYw2ZGYV38s/Nht4mF37vQ2m1Z+FDYcwtYNtHetW75w3SvbBvHvE/js29E4KoSqIV66tH5f33EXFDKKimQAsV8CtHiRuwIMMNOXz6IXG/hDJCjmVlnSpmxdnHiPWR5sK6et3DFgL1K+m0pff/cOQNArTnIMXdGBWMoNJdj7j/VRedPsSn8aojIwnZFTE3bFneuuLdp7YJbFqtx0HKvKNaufbNCYAZBVdQwENNOL0DSihpJWT4u3IRfGH0bfhBX9SuKOeZj/NKI6QFG0xfwc8Fm+KVR5lX4f1SCv1sWT49sQ2GgfLkylEY2rQ7k7Lv1ATK3jGclAtyI51UiOZ/XiaDyeaV8TD7Z9tVYzxqVZMpUgAYMjI7OFxfrc4a/um0i9fXzAepMd+pGCJEfyAY4KE4PbBdHamIHmVQww8OM5HA8fvgXbroB3IEPAAA="}
+{"artifact":"B2.stderr.log","encoding":"gzip-base64","data":"H4sIAAAAAAAAAwMAAAAAAAAAAAA="}
+{"artifact":"B3.log","encoding":"gzip-base64","data":"H4sIAAAAAAAAA9WX247bNhCG7/MUAi8LrcDh8Ki7NkiRAg0KFOgDcG3aFiKLrkjbWRh+94KWD5Icb2o4WGB15RlRpPjP99OjHVn6qSMlmdllVb+QnCzd0rcvpNyRNgRSMpASETnPycLZ1T/BTUmp0BhgyPc5qe2WlMQ3Llu11dK2L9nKtVl07ZLkpPXb8FdDytiuXU5i61wvnPgmum+xl6maqft2CVet37jL8IWbfE2Ld+HW1vWX9H5GqoJzI6lOU66b6KYpb5gsJCI3YLqrW/9zFQMpaU6CX7cT97dbB5f2OvOtq+bNrzG65SoNMTw/JbtnICeT1ofwp92eJ6n9xNZdxGF/2O95xsZPj6sBSMnzQ+JLFYJLby0oz8ncn54G1onVRVKaLvxtXdWRlKCAd4lPm2oSkwh0n5PVwh4m2+1zEqrY/dx/2J1KOvEhPm2r5ilEGwP5Qa26QeWO1M7OPiaxj3t0dnbZsLOz321dP9vT7dm6rj+/rI6i1tXEnaNUzpVrpq6Jvfl62fO0rYu2nbv+sFPqOKa/r1uoomYcgSHrowpgOJNA9ZnVP5oNGhBlloSY+GZWzQ8a5FlcXJRp3NaF+DYMI0dRcEapEAOGtWIFomACJU0X3Mkw02oEsRhDjAOI0dyGWCklRxDr5LkexDiAGOgQYoliBLGBBzC+s4zvH2+jJedKqwHeHLjWBjn28QYldKfLxrWh8k1mm+lRnItab8M2CCagUEoAqgHcHIEWXAkUybB3cS3VmGtmxmDDEGy8CbZUSooh2DwlLlwb2edaMD3kmrMrsIEL/hja/7uE75/r1FyAEpD+EXvntlBccY2c9clmRmGZ/bv27XoZMr9xbW1XeebbzJ7OgGkV7HPtpj8N75mtQ5/vY3wCnINkugBpmBHHRqNHuaCUFVIgBYrpphZ3so4AI9bp643I7SOcAXI0I9SZUqYPuzjSfSnyBXV1fYQrBuwh0O+r6PunnQNViCiHXQqjVGoJClL1ztr8UmaNP2qT+dlFkYltshCrus6eXTa3ceFaN81mfdHSUZEtXP1mPkBOuSw4U0LTgw/k0AggaUGVEoc24i4LCKPvswCImx5QFGHUxkgjhm2Mpq9YgAs2soA0yjxkgZ9V5u+aA+TAHihf94fSyIYeQf59l4BMB8eVUYAbce0ViXrsFm7MtV+eoo+2fhjZE5NGIYoCBLJU9DTLGYnFqbhf3SqS8nZ/gJqapGEfGSFE+iK7MIPi+MV2RkgNsEEmFYy4YUZy2O8//Ae0K4Vpgw8AAA=="}
+{"artifact":"B3.stderr.log","encoding":"gzip-base64","data":"H4sIAAAAAAAAAwMAAAAAAAAAAAA="}
+{"artifact":"manifest.json","encoding":"gzip-base64","data":"H4sIAAAAAAAAA41QSW4bMRC8zyuIOUcK90VXIx9IjoYPze4mRFgi7eGMgSDw3w1JQQI4CeJrVdfS9WMSYs4w+FQb3/Xzua7zQcxOKpnAeA3FSsy5GCV1YkfZpohGcSHAUuL86aJ/5KXx6cvzBqf5INZl4yt8hKXxGP/Cvx1BO39JI+cMGRNM8JYSk1OZOUjQMcYYEkUElZEhKNSB0UrtcknstQdIJshbi9qetvW3qc0sgy9aQyyMVslogkrGxWycihBN1gaIHBoqpL1UoYSgrbQcCFDbm+m5Uy2V6a4vPB/E/SSEEDP2ra07hMFjv/JY9+u4nr+n3qGl4zZ2T0vv5Q9uYewvvHz/jL1RXWtvcNrhkfFxh4BH/nvO/1UfEfxs9OGAXx9MQjxcZ8pbu2yu9nZvbsPlrX3llzpqvzLoCSxYMlJJds4ZayJ6WXym4ClFlYKPPuA8vU5v6owtfpQCAAA="}
+{"artifact":"measurements.json","encoding":"gzip-base64","data":"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"}
+{"artifact":"summary.json","encoding":"gzip-base64","data":"H4sIAAAAAAAAA+1aS4/bNhC++1cQOgYuwccMH75tirbJIZcC7aXIgWvRayFcaiPJuw2C/PfCkleWH7LlbTfZRaWDIc+MhuQM9X0cUl8nhCSVL6tkRpLUL9wqVD/lkczzsiIPWSyT6doiL1JfJDPy14QQQpIrXosJSd62d1eilbV3V7KVyWRCyMfa2bUrfciiXzeJjDPrpGqa+eSL6MMvn1cuJDNSFStfi5euiL4sD+TBPZRtp77Wv4107TmPntwV2a0rvpA7X5DKF7eb3hCS3PsizeZV+T71scrmO36briez1mXHvm2uubr3ZMfBVtIR1OP/Ec9OjnhJ5vkqVj79I2YH47JCUSUlWG6ba/pk5dGmH1wIH3yaufhh3bQAhpQJxhnfN3J/1xZSMkUlaCZM41Z1B+LmS783grgKYXrm/7Zrm7tvbfrfjun/funnVhkKRkmletIvrNIUwCpmzuR9+87WJsG7xc9LP/+09sKmh8p3zeQ/pvrVhXDtjj+6WIXw7svdMVUZsrnv0WUx9Xc+rkGnt1cdm57OFb5yxY3vd/Fo8Ph8R9tO8TFYY7D+25l1CKeTzozb5+f38V5ajjOyJup5HhfZTc3RU1Itt8wd/cN6cTLy9jDeNlpQKVGgVGx9dej0UuUQ4JYASJm2wsgG7bEHvxENpwgGmTo0HOn7dc8CwbWmFhA5NMmFvkUcSKQgGMNz6R9ZfGTx7hsxLnleLotzjaZh8XtflFkeiYvphsq33D5S+EDwBskZBY0SpZheKB+E1gzEupYyUjRwbfrQmimhKBMC9Lmiayy2X3DCuQCrKWhg2EfMHAVyqjVyqUdmHsmmvcbNiNfMzMJqOSOfV3mxui1Jfu+L4O6mJC+Ie6y406x018Gnz0zPCxfKvSKnFg3b337+py/FbGRMUIWScVZXvqZT0BACRmqKVqOGXbERVINRfFMtD0FvxYRAqoGB1T3orRgKQw0Dy5qq7QUW1/+vCXCpdshEAK6EoVxZYXFv2313q0UKLSlaMNA1Gavsca98PFh4vVz+ZkZivuFyki+2DD53kZRVFgK59uTGVUtf+JQsuiS/rsXJ0oeR5S8Eea44FVYaIczBVmmtVFoqsUHxHiUM3kdFbrSlYECpvkINjQRBATVarP12DUeqfxaql9wIigYVqDqXbD/TjDKrmDgm1xq1VsOOUhgoCkKjYQcfOOyu9phUlDG1sx68lN7NibNw8S8Ow6Xl6tSBONdDjsQN8rNwrNGeA2QpxGlIFiifcjR+OMRO9KR6evS0keJU9CSIAdHjStuz4ePQPYM7Hj8FcDp+yNQrix/7rvGTO5BwGD/o1IAnFgXtl3MuhD9PlOdJcJUvfnOVL39fxWS2wb5vk38AKfRUruYnAAA="}
+
+--- stderr ---
+$ tsc -p . && oxlint --type-aware --deny-warnings --disable-nested-config
+
+core/count-cases.test.ts:
+(pass) finite count recovery returns an original-kernel-checked tree and restores search scope [14.15ms]
+(pass) finite cases use checked activation and witness derivations without an opt-in [10.56ms]
+(pass) ranked bounds use the arithmetic core rather than every preceding proposal [0.45ms]
+(pass) default case recovery excludes a false bound and retains the successful slim certificate [8.98ms]
+(pass) selected cases retain newly seeded universal-flag witnesses in the final source [18.89ms]
+(pass) an arithmetic core of an unprovable bound cannot certify a false law [8.38ms]
+(pass) slimming witness instances removes complete tuples without mutating the caller [0.09ms]
+(pass) compact recovery keeps its saturated branches and local model scope checked [10.06ms]
+(pass) explicit pre-transport deferral still requires the final kernel check [4.31ms]
+(pass) finite count recovery does not turn a satisfiable goal into a proof [3.01ms]
+
+core/count-focused.test.ts:
+(pass) goal demand uses a primitive read for a missing pre-state union [5.60ms]
+(pass) goal demand follows a named flag to a missing pre-state union [1.00ms]
+(pass) demand discovers post-state Boolean identities without expanding the write [0.49ms]
+(pass) field guards receive row instances without adding carried-set witnesses [0.15ms]
+(pass) a copy starting subset retains source substitutions without unrelated tuples [0.27ms]
+(pass) copy source discovery ignores inputs read only by update guards [0.07ms]
+(pass) copy starting subsets preserve algebraic and post-empty proposals [0.04ms]
+(pass) copy-frame proposals compare the same counted definition at different rows within a cap [0.81ms]
+(pass) copy-frame slots are shared across result counts and prioritize input sources [0.43ms]
+(pass) focused comparisons follow carried sets and indicator bodies, not names [0.44ms]
+(pass) algebraic selection reserves union bounds and their row identities within the same cap [0.36ms]
+(pass) packed count coordinates are row keys but scalar comparison witnesses are not [0.09ms]
+(pass) equal Boolean views survive the narrow selector despite duplicated conjuncts [0.14ms]
+(pass) new count keys remain independent of certificate witnesses [0.19ms]
+(pass) counted row bridges preserve half-cardinality witnesses [0.16ms]
+(pass) targeted carried-set comparisons omit unrelated row reads [0.13ms]
+(pass) algebraic focus keeps equivalent pre-count views but not different rows [0.09ms]
+(pass) a carried subset can target its declared input-keyed row view [0.08ms]
+(pass) request frames propose only same-shaped carried-region comparisons [0.16ms]
+(pass) request frames normalize equality and threshold membership indicators [0.09ms]
+(pass) frames retain a structural range bound between two post counts [0.13ms]
+(pass) request partition identities outrank misleading triples within sixteen algebraic slots [0.86ms]
+(pass) post remainder and carried set propose a three-term coverage certificate [0.16ms]
+(pass) post counts can propose a bound from the stored membership they read [0.19ms]
+(pass) post-state frame comparisons are opt-in witness-bearing proposals [0.09ms]
+(pass) field bridges preserve the goal column independently of row-key aliases [0.17ms]
+(pass) count-law bridges seed only unary/binary count laws and preserve input [0.28ms]
+
+core/count-focus-proof.test.ts:
+(pass) finite-input focused recovery is the default and keeps an explicit opt-out [0.09ms]
+(pass) focused finite-count recovery keeps the selected step packet instead of rebuilding its full pool [9.44ms]
+
+core/count-cert-transport.test.ts:
+(pass) counted support includes independent lemma source slices [0.63ms]
+(pass) complete counted certificates retain cuts across reordered and enlarged contexts [1.13ms]
+(pass) counted certificate transport does not extend expired deadlines [0.11ms]
+
+core/count-write-frames.test.ts:
+(pass) generic renamed writers propose the missing 2/4/4 directional frames [1.10ms]
+(pass) copied row sizes and intersections of two overwritten rows get source-size bridges [0.37ms]
+(pass) only demanded post heads participate, never unrelated carried sets or pre heads [5.24ms]
+(pass) a carried map read only in the write guard or arithmetic is not a copied source [0.41ms]
+(pass) point writes and Boolean membership-copy values are supported without reading guard sources [0.25ms]
+(pass) lowered Boolean copy values preserve guarded membership arms [0.23ms]
+(pass) membership syntaxes, conjunction order and double negation do not change pair selection [0.26ms]
+(pass) non-membership predicates and malformed binary regions are not frame shapes [0.45ms]
+(pass) incoming, PRE and actual post bounds must match exactly; unsupported packed reads are skipped [0.35ms]
+(pass) existing coefficient vectors, including reordered reverse directions, are deduplicated independently [0.35ms]
+(pass) caps are stable, at most 32, with fresh witnesses and no input mutation [1.77ms]
+(pass) false frames stay untrusted: a witness survives without the copying guard [5.19ms]
+
+core/count-recovery-order.test.ts:
+(pass) ordinary checked proposals take priority over deferred count recovery [0.08ms]
+(pass) an unsuccessful ordinary attempt can recover within its remaining allowance [0.03ms]
+(pass) failed recovery preserves the exact ordinary result, including a model outcome [0.02ms]
+(pass) expired attempts never borrow a fresh recovery allowance [0.01ms]
+(pass) deferred recovery uses only the latest warmed proposal context [0.02ms]
+(pass) an ordinary failure without a recovery proposal is unchanged [0.01ms]
+
+core/count-demand.test.ts:
+(pass) one-fact pair requests do not regenerate a partition prefix [0.48ms]
+(pass) demand reaches a relevant family beyond 128 irrelevant legacy proposals [6.88ms]
+(pass) late counts are indexed, not clipped to the first 128 inputs [2.66ms]
+(pass) one demanded count finds an undemanded carried partner in a generic 41-read shape [0.77ms]
+(pass) positive pairs require a demanded endpoint and a same-bound relevant family [0.32ms]
+(pass) demanded region families may be used even without a shared positive primitive [0.22ms]
+(pass) requested indicators normalize member variables and equality orientation; both partitions check [7.19ms]
+(pass) complement indicators and declared region unions have both partition directions [0.38ms]
+(pass) a disjoint-cover proposal is admitted by the ordinary checked witness rule [14.74ms]
+(pass) raw-map partitions keep the witness alternative instead of asserting an axiom [6.81ms]
+(pass) witnesses avoid names from unrelated inputs and caller reservations [0.40ms]
+(pass) output and work limits are hard, deterministic, and do not mutate input [4.07ms]
+
+core/count-recovery/derivability-closure.test.ts:
+(pass) closure checks a derived union [26.19ms]
+(pass) closure does not assume a false union [6.40ms]
+(pass) internal closure keeps independent cuts in the final checked certificate [15.79ms]
+(pass) expired closure leaves no proof and never extends its deadline [0.42ms]
+
+core/count-recovery/guard-cases.test.ts:
+(pass) default Boolean activation covers both branches (impossible=true) [0.91ms]
+(pass) default Boolean activation covers both branches (impossible=false) [1.39ms]
+(pass) activation proofs retain their original non-empty path scope [0.20ms]
+(pass) activation proposals pass the complete source check (deferred=false) [0.33ms]
+(pass) activation proposals pass the complete source check (deferred=true) [0.16ms]
+
+core/count-recovery/conditional-proof.test.ts:
+(pass) metadata is untrusted, root-local, and checked under ordinary entry paths [0.63ms]
+(pass) mixed ordinary and conditional siblings globalize at an empty root [0.34ms]
+(pass) rootless conditional cuts keep their guards as well as the subtree entry scope [1.23ms]
+(pass) cross-goal added and reordered hypotheses preserve independent slices [6.97ms]
+(pass) unsliced source cuts become explicit slices and do not assume added hypotheses [0.65ms]
+(pass) inactive cuts cannot be used or activated by another cut [0.37ms]
+(pass) missing target rows and missing source-slice hypotheses refuse exact transport [0.26ms]
+(pass) removed guard hypotheses are discharged by explicit entry conditions, not assumed [0.69ms]
+(pass) malformed independent cuts are refused by checking, transport and collection [0.17ms]
+(pass) constant-positive target row short-circuits obsolete source rows [0.30ms]
+(pass) duplicate path atoms keep rows and negcut-first lookup semantics [0.31ms]
+(pass) ordinary siblings reindex when global cuts change their leaf rows [0.37ms]
+(pass) transport can prune a known split without losing a descendant mark [0.17ms]
+(pass) ordinary square and product references follow the relocated base rows [0.40ms]
+(pass) ordinary checking retains the kernel constant and repeated split refusals [0.07ms]
+(pass) retarget cache hits across unrelated scopes and equivalent target objects [0.73ms]
+(pass) retarget cache distinguishes slice vectors and never covers missing hypotheses [0.24ms]
+(pass) warm pre-check caches do not replace final kernel verification [0.28ms]
+(pass) expired absolute wall deadlines never produce certificates [0.07ms]
+
+core/count-recovery/field-bound-budget.test.ts:
+(pass) an expired source budget returns before inspecting machine rows [0.05ms]
+(pass) an expired wall stops source construction even when counted work remains [0.25ms]
+
+core/count-recovery/scalar-guards.test.ts:
+(pass) lexicographic candidates use field anchors, not row aliases (plain) [1.99ms]
+(pass) lexicographic candidates use field anchors, not row aliases (renamed_) [0.50ms]
+(pass) only active relevant forall flags supply anchors, preferring the positive carried count [1.56ms]
+(pass) raw and encoded flag references are traversed (false) [0.36ms]
+(pass) raw and encoded flag references are traversed (true) [0.24ms]
+(pass) known root comparisons are not re-proposed and false scopes are dropped [0.89ms]
+(pass) optional source comparisons retain only known row/input/parameter scalar cells [0.41ms]
+(pass) goal hints use only the candidate row pair, and lex conjunctions use distinct fields [0.34ms]
+(pass) two-term post/pre frames use candidate-row field equalities, including their conjunction [0.27ms]
+(pass) keyless frame finds its actor only in the body [0.24ms]
+(pass) keyless frame finds its actor only in the anchor [0.26ms]
+(pass) primitive Boolean partitions do not rescan or propose broad goal fields [0.21ms]
+(pass) an oversized or cyclic source tail does not suppress the selected count guards [6.35ms]
+(pass) large candidate families stay bounded and deterministic [0.76ms]
+(pass) unknown reads, malformed ASTs, cyclic ASTs and recursive flag aliases fail conservatively [0.11ms]
+(pass) packed read keys contribute only their row variables; unsupported packing is refused [0.24ms]
+
+core/count-recovery/natural-cases.test.ts:
+(pass) natural subtraction cases recover a checked overlap contradiction under its guard path [12.13ms]
+(pass) natural subtraction cases cannot invent the missing union bound [6.28ms]
+
+core/count-recovery/rebase-path.test.ts:
+(pass) path reindexing removes a redundant numeric assumption without searching [0.18ms]
+(pass) path reindexing keeps a split needed to expose a conditional row [0.17ms]
+(pass) a reindexed proposal is not a certificate without the final check [0.06ms]
+(pass) derived cuts are removed only when the retained branch works without them [0.39ms]
+
+core/count-recovery/carried-case.test.ts:
+(pass) carried witness split checks both branches [0.38ms]
+(pass) carried witness split cannot prove a satisfiable goal [0.13ms]
+
+core/count-recovery/frame-lemmas.test.ts:
+(pass) factored frame lemmas produce an ordinary checked count tree [4.89ms]
+(pass) the numeric core selects needed frames before proving unrelated ones [6.83ms]
+(pass) an unsuccessful shared-frame probe can stop before spending the leaf allowance [0.55ms]
+
+core/count-recovery/live-dependencies.test.ts:
+(pass) scalar context retains the source stride bound [1.28ms]
+(pass) scalar context does not invent a missing stride bound [0.75ms]
+(pass) dependency slices ignore inactive witnesses without rewriting source terms [0.13ms]
+(pass) small cores recover only their own existing witness guards [1.31ms]
+(pass) active implications expose independently sliceable conjuncts at the original path [0.33ms]
+
+core/count-recovery/source-memo.test.ts:
+(pass) source memo reuses only a transported tree at the same logical path [0.35ms]
+(pass) source memo reuses unchanged used rows across activation paths, not missing assumptions [0.18ms]
+(pass) source memo tries an exact match beyond two geometrically nearer paths [0.34ms]
+(pass) shared source scopes reuse exact rows despite different enclosing hypotheses [0.20ms]
+(pass) source memo cannot turn a changed satisfiable goal into a checked proof [0.11ms]
+
+core/count-recovery/boolean-core.test.ts:
+(pass) Boolean union core checks membership cases [3.49ms]
+(pass) Boolean union core does not invent the subset premise [1.43ms]
+(pass) witness key congruence checks a natural-subtraction alias [2.73ms]
+(pass) witness key congruence does not assume row equality [1.91ms]
+(pass) lowered Boolean writes remain shared membership choices in a partition [5.40ms]
+(pass) a partition CInst checks directly in forward direction [1.37ms]
+(pass) a partition CInst checks directly in reverse direction [0.87ms]
+(pass) packed copy offsets check through their row-order guard [3.60ms]
+(pass) packed copy offsets do not hide a wrong offset [1.93ms]
+(pass) primitive copy guards outrank compound cell-key aliases in the fixed pool [0.26ms]
+(pass) inactive Boolean arms stay pruned inside a forced indicator [0.23ms]
+(pass) a forced comparison still exposes its conditional operands [0.21ms]
+(pass) inactive scalar writes do not occupy the witness case pool [2.40ms]
+(pass) inactive scalar writes remain open without the selector [0.70ms]
+(pass) conditional indicator copy checks a non-newer destination [12.38ms]
+(pass) conditional indicator copy does not invent the version guard [2.26ms]
+(pass) packed conditional indicator copy checks a non-newer destination [119.47ms]
+(pass) packed conditional indicator copy does not invent the version guard [4.43ms]
+(pass) witness field comparisons expose an impossible indicator [0.83ms]
+(pass) witness field comparisons remain unproved without the bound [0.48ms]
+(pass) a point update proposes its witness-versus-actor equality [0.48ms]
+(pass) forced facts leave room for Boolean proposals (valid) [24.56ms]
+(pass) forced facts leave room for Boolean proposals (missing subset) [9.69ms]
+(pass) witness-domain guards follow a checked row equality [1.10ms]
+(pass) witness-domain guards are not assumed across rows [1.60ms]
+
+core/count-recovery/conditional-cuts.test.ts:
+(pass) a cut activates only in its conditional scope and drops unrelated guards and source hypotheses [0.72ms]
+(pass) a required prior cut is inlined into an independently checked lemma [0.81ms]
+(pass) an unavailable or independently invalid prerequisite fails admission [0.64ms]
+(pass) unneeded cuts are not inlined or checked and cannot make prerequisites active [0.39ms]
+(pass) inline emits an ordinary kernel-checked tree at scope with only needed active cuts [0.71ms]
+(pass) a selected active cut reuses a target negated bound that folds to false [0.78ms]
+(pass) opaque columns, including nested opaque column names, cannot be cuts [0.06ms]
+(pass) duplicate path atoms preserve rows and negcut wins deciding lookups [0.32ms]
+(pass) inline may discharge an already false cut without emitting a repeated split [0.31ms]
+(pass) expired wall deadlines and unchecked source refutations return no result [0.30ms]
+
+core/count-recovery/key-closure.test.ts:
+(pass) read-key closure checks the packed subtraction guard [0.57ms]
+(pass) read-key closure does not equate a wrong offset [0.64ms]
+
+core/count-recovery/fold-path.test.ts:
+(pass) path folding retains a checked route through original conditional terms [0.91ms]
+
+core/count-recovery/pre-state-source.test.ts:
+(pass) pre-state ceiling sources remove discarded witness instances and preserve original CInst order [1.21ms]
+
+core/count-recovery/source-witness-instances.test.ts:
+(pass) local countermodels request ordinary multi-key field instances at a count witness [4.85ms]
+(pass) source feedback requires a read witness and preserves count-key freshness [0.89ms]
+
+core/count-recovery/lift-count-proxies.test.ts:
+(pass) count proxies lift through explicit read equalities without whole-goal search [0.25ms]
+(pass) count proxy transport cannot invent a missing read equality [0.11ms]
+(pass) composite count terms lift [0.42ms]
+(pass) composite count terms cannot invent bindings [0.17ms]
+(pass) numeric count bindings retain constraints in an existing guard path [0.30ms]
+(pass) a deferred transport is not an accepted proof [0.11ms]
+(pass) count proxy domain guards are checked (deferred=false) [0.50ms]
+(pass) count proxy domain guards cannot be assumed (deferred=false) [0.19ms]
+(pass) count proxy domain guards are checked (deferred=true) [0.26ms]
+(pass) count proxy domain guards cannot be assumed (deferred=true) [0.14ms]
+
+core/count-recovery/field-bound-lemmas.test.ts:
+(pass) packed column domains are split once before row reconstruction and checked [28.78ms]
+(pass) empty-count candidates are post-state singleton upper bounds on field comparisons [0.19ms]
+(pass) a singleton empty count checks at a zero threshold [9.33ms]
+(pass) a singleton empty count is not assumed empty [3.51ms]
+(pass) numeric count bridges include nested path cells but omit unrelated reads [0.18ms]
+(pass) strict successor member bounds suggest checked field ceilings without protocol names [3.59ms]
+(pass) ceilings retain input-key fields used by a write beside the post-count target [0.19ms]
+(pass) field conclusions retain their own ceiling target beside a write actor [0.12ms]
+(pass) equal per-member fields also suggest checked ceiling candidates [0.77ms]
+(pass) a sufficient field ceiling closes before unrelated ceiling proposals [9.51ms]
+(pass) equal row keys produce checked count-read alias cuts [1.36ms]
+(pass) ceiling slices keep carried membership encoded as 1 <= the set cell [24.92ms]
+
+core/count-recovery/conditional-check-cache.test.ts:
+(pass) sliced leaves retain exact proof semantics and memoize the same immutable leaf [0.18ms]
+(pass) sliced leaves retain square/product offsets and unused product dependencies [0.17ms]
+(pass) malformed leaves refuse and unused product handling matches the unchanged kernel [0.21ms]
+(pass) ordered paths, duplicates and changed truth values never share a leaf result [0.13ms]
+(pass) slicing falls back rather than rejecting a needed implicit naturality row [0.13ms]
+
+core/count-recovery/action-guard.test.ts:
+(pass) action guards use the selected operation and ground its quantified flag [0.07ms]
+(pass) the active quantified flag selects its carried set without protocol names [0.08ms]
+
+core/count-recovery/rename-proof.test.ts:
+(pass) ordinary row proofs are instantiated by used-row matching, not trusted symmetry [0.32ms]
+(pass) packed cells and conditional term columns can be mirrored into a full checked subtree [0.98ms]
+(pass) monomial columns retain their polynomial meaning under row renaming [0.33ms]
+(pass) renaming refuses expired work and cannot validate fabricated leaves [0.08ms]
+
+core/count-recovery/field-only.test.ts:
+(pass) field projection only weakens premises and transports a checked proof [0.26ms]
+(pass) field projection uses the source conclusion before appended count bindings [0.12ms]
+(pass) packed copy fields reconstruct their equal-key core under row equalities [14.64ms]
+(pass) shifted copy fields prove both natural-subtraction directions [66.82ms]
+(pass) field arithmetic leaves close before the model query and remain checked [0.38ms]
+(pass) field memo transports completed subproofs but refuses missing source support [0.66ms]
+(pass) field arithmetic shortcut cannot close a satisfiable source [0.81ms]
+(pass) field projection does not strengthen disjunctions or discard a counted conclusion [0.18ms]
+
+core/count-recovery/row-cases.test.ts:
+(pass) active writes select the destination row rather than the copied source [0.30ms]
+(pass) Boolean-valued row writes ignore dead arms and membership lookup keys [0.16ms]
+(pass) active constant-index writes split against that index, not an unrelated input [0.12ms]
+(pass) field-only conclusions discover row cases without a post-count read [0.22ms]
+(pass) row cases cover both directions of disequality and reuse only checked trees [0.77ms]
+(pass) row copies can split the secondary key in the primary-equal branch too [8.11ms]
+(pass) mirrored row cases emit full subtrees without rerunning their callback [3.14ms]
+(pass) row cases never accept an unchecked leaf [0.11ms]
+(pass) deferred row proposals still require the composing kernel check [0.40ms]
+
+ 230 pass
+ 0 fail
+ 1037 expect() calls
+Ran 230 tests across 31 files. [735.00ms]

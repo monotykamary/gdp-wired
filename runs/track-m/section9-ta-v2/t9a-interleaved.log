@@ -1,0 +1,15 @@
+research/track-m/section9-guard-observer.ts(66,182): error TS2345: Argument of type '{ good: { op: "<" | "<=" | "="; a: E; b: E; }; lemma: LemmaCut; index: number; }' is not assignable to parameter of type 'Saved'.
+  The types of 'good.op' are incompatible between these types.
+    Type '"<" | "<=" | "="' is not assignable to type '"<="'.
+      Type '"<"' is not assignable to type '"<="'.
+research/track-m/section9-guard-observer.ts(72,165): error TS2345: Argument of type '{ good: { op: "<" | "<=" | "="; a: E; b: E; }; lemma: LemmaCut; index: number; }' is not assignable to parameter of type 'Saved'.
+  The types of 'good.op' are incompatible between these types.
+    Type '"<" | "<=" | "="' is not assignable to type '"<="'.
+      Type '"<"' is not assignable to type '"<="'.
+research/track-m/section9-guard-observer.ts(75,143): error TS2345: Argument of type '{ good: { op: "<" | "<=" | "="; a: E; b: E; }; lemma: LemmaCut; index: number; }' is not assignable to parameter of type 'Saved'.
+  The types of 'good.op' are incompatible between these types.
+    Type '"<" | "<=" | "="' is not assignable to type '"<="'.
+      Type '"<"' is not assignable to type '"<="'.
+
+--- stderr ---
+$ tsc -p . && oxlint --type-aware --deny-warnings --disable-nested-config

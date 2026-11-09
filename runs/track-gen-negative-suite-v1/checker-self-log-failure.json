@@ -1,0 +1,2831 @@
+{
+  "passed": false,
+  "baseline": "6a3874d3",
+  "strictMs": 60000,
+  "policy": "Refutation losses and false proofs block; UNKNOWN-to-timeout cost-only deltas remain OPEN per coordinator.",
+  "pairs": 88,
+  "baselineRefuted": 33,
+  "candidateRefuted": 33,
+  "refutationLosses": [],
+  "completionDeltas": [
+    {
+      "file": "negative-paxos-r3.log",
+      "base": {
+        "bug": "propose without the votes check",
+        "verdict": "unknown",
+        "why": "not proven: one value decided",
+        "found": [
+          "every OneA cell is a value of its kind",
+          "every OneB cell is a value of its kind",
+          "every Left cell is a value of its kind",
+          "every Proposal cell is a value of its kind",
+          "every Vote cell is a value of its kind",
+          "every Decision cell is a value of its kind",
+          "every Qs cell is a value of its kind",
+          "one value decided",
+          "members$Qs keeps members's bound 0",
+          "members$Qs keeps members's bound 2",
+          "Decision keeps members's bound through members$Decision",
+          "every x, y with x < 64 ∧ y < 64: never 1 <= Decision[64·x + y] and Proposal[64·x + y] is 0",
+          "every x, y, z with x < 64 ∧ y < 64 ∧ z < 64 ∧ ¬(y = z): never 1 <= Decision[64·x + y] and 1 <= Decision[64·x + z]",
+          "every x, y, z with x < 64 ∧ y < 64 ∧ z < 64 ∧ ¬(y = z): never 1 <= Proposal[64·x + y] and 1 <= Proposal[64·x + z]",
+          "every x with x <= 63: never 1 <= Qs[x] and busy is 0",
+          "every x, y with x <= 63 ∧ y < 64: never OneA[y] is 0 and 1 <= OneB[64·y + x]",
+          "every x, y, z with x <= 63 ∧ y < 64 ∧ z < 64: never 1 <= Vote[64·64·x + y + z] and Proposal[64·y + z] is 0",
+          "carry:guard:e11bb2856a4188b5",
+          "carry:guard:71517ec714847e1e",
+          "carry:guard:f8fa169d60df315a",
+          "carry:guard:faa607cf227d2883",
+          "carry:guard:8c4667f43952b1a7",
+          "carry:guard:a1aac0f2b5acf946",
+          "carry:guard:69834f3e58d5e918",
+          "carry:guard:e6d2937e4bcb51dc",
+          "carry:guard:980373f5503cf4c6",
+          "carry:co-write:6282256ba10ee781",
+          "carry:global-range:f29c323756a78a95",
+          "carry:global-range:345c4e9ce3eda2e1",
+          "carry:global-range:4d9ef1fb20062861",
+          "carry:global-frame:ef4514c87a594d2c",
+          "carry:point-guard:dbae780daebdcb74",
+          "carry:point-guard:42b72ece9101070e"
+        ],
+        "ms": 52001,
+        "work": 145967329,
+        "full": 12999248,
+        "exit": 0
+      },
+      "cand": {
+        "exit": 137
+      },
+      "status": "OPEN"
+    }
+  ],
+  "errors": [
+    "verification.log/base: incomplete",
+    "verification.log/cand: incomplete",
+    "expected 87 distinct negative pairs"
+  ],
+  "rows": [
+    {
+      "file": "negative-toy_consensus_forall-s60-r3.log",
+      "id": "toy_consensus_forall",
+      "run": 3,
+      "cand": {
+        "bug": "cast_vote without voted",
+        "verdict": "unknown",
+        "why": "a law fails on the small instances",
+        "found": [
+          "every Voted cell is a value of its kind",
+          "every Decided cell is a value of its kind",
+          "one value decided"
+        ],
+        "ms": 600,
+        "work": 0,
+        "full": 0,
+        "exit": 0
+      },
+      "base": {
+        "bug": "cast_vote without voted",
+        "verdict": "unknown",
+        "why": "a law fails on the small instances",
+        "found": [
+          "every Voted cell is a value of its kind",
+          "every Decided cell is a value of its kind",
+          "one value decided"
+        ],
+        "ms": 633,
+        "work": 0,
+        "full": 0,
+        "exit": 0
+      }
+    },
+    {
+      "file": "negative-lockserv-s60-r2.log",
+      "id": "lockserv",
+      "run": 2,
+      "cand": {
+        "bug": "recv_lock without server_holds_lock",
+        "verdict": "refuted",
+        "goal": "one holder @step",
+        "stuck": "sat",
+        "run": 24,
+        "ms": 133,
+        "work": 7848,
+        "full": 19202,
+        "exit": 0
+      },
+      "base": {
+        "bug": "recv_lock without server_holds_lock",
+        "verdict": "refuted",
+        "goal": "one holder @step",
+        "stuck": "sat",
+        "run": 24,
+        "ms": 129,
+        "work": 7848,
+        "full": 19202,
+        "exit": 0
+      }
+    },
+    {
+      "file": "negative-toy_consensus-s60-r2.log",
+      "id": "toy_consensus",
+      "run": 2,
+      "cand": {
+        "bug": "cast_vote twice",
+        "verdict": "unknown",
+        "why": "a law fails on the small instances",
+        "found": [
+          "every Decision cell is a value of its kind",
+          "one value decided"
+        ],
+        "ms": 373,
+        "work": 0,
+        "full": 0,
+        "exit": 0
+      },
+      "base": {
+        "bug": "cast_vote twice",
+        "verdict": "unknown",
+        "why": "a law fails on the small instances",
+        "found": [
+          "every Decision cell is a value of its kind",
+          "one value decided"
+        ],
+        "ms": 385,
+        "work": 0,
+        "full": 0,
+        "exit": 0
+      }
+    },
+    {
+      "file": "negative-toy_consensus-s60-r3.log",
+      "id": "toy_consensus",
+      "run": 3,
+      "cand": {
+        "bug": "cast_vote twice",
+        "verdict": "unknown",
+        "why": "a law fails on the small instances",
+        "found": [
+          "every Decision cell is a value of its kind",
+          "one value decided"
+        ],
+        "ms": 390,
+        "work": 0,
+        "full": 0,
+        "exit": 0
+      },
+      "base": {
+        "bug": "cast_vote twice",
+        "verdict": "unknown",
+        "why": "a law fails on the small instances",
+        "found": [
+          "every Decision cell is a value of its kind",
+          "one value decided"
+        ],
+        "ms": 394,
+        "work": 0,
+        "full": 0,
+        "exit": 0
+      }
+    },
+    {
+      "file": "negative-lockserv-s60-r3.log",
+      "id": "lockserv",
+      "run": 3,
+      "cand": {
+        "bug": "recv_lock without server_holds_lock",
+        "verdict": "refuted",
+        "goal": "one holder @step",
+        "stuck": "sat",
+        "run": 24,
+        "ms": 189,
+        "work": 7848,
+        "full": 19202,
+        "exit": 0
+      },
+      "base": {
+        "bug": "recv_lock without server_holds_lock",
+        "verdict": "refuted",
+        "goal": "one holder @step",
+        "stuck": "sat",
+        "run": 24,
+        "ms": 215,
+        "work": 7848,
+        "full": 19202,
+        "exit": 0
+      }
+    },
+    {
+      "file": "negative-toy_consensus_forall-s60-r2.log",
+      "id": "toy_consensus_forall",
+      "run": 2,
+      "cand": {
+        "bug": "cast_vote without voted",
+        "verdict": "unknown",
+        "why": "a law fails on the small instances",
+        "found": [
+          "every Voted cell is a value of its kind",
+          "every Decided cell is a value of its kind",
+          "one value decided"
+        ],
+        "ms": 403,
+        "work": 0,
+        "full": 0,
+        "exit": 0
+      },
+      "base": {
+        "bug": "cast_vote without voted",
+        "verdict": "unknown",
+        "why": "a law fails on the small instances",
+        "found": [
+          "every Voted cell is a value of its kind",
+          "every Decided cell is a value of its kind",
+          "one value decided"
+        ],
+        "ms": 372,
+        "work": 0,
+        "full": 0,
+        "exit": 0
+      }
+    },
+    {
+      "file": "negative-lockserv-s60-r1.log",
+      "id": "lockserv",
+      "run": 1,
+      "cand": {
+        "bug": "recv_lock without server_holds_lock",
+        "verdict": "refuted",
+        "goal": "one holder @step",
+        "stuck": "sat",
+        "run": 24,
+        "ms": 183,
+        "work": 7848,
+        "full": 19202,
+        "exit": 0
+      },
+      "base": {
+        "bug": "recv_lock without server_holds_lock",
+        "verdict": "refuted",
+        "goal": "one holder @step",
+        "stuck": "sat",
+        "run": 24,
+        "ms": 174,
+        "work": 7848,
+        "full": 19202,
+        "exit": 0
+      }
+    },
+    {
+      "file": "negative-toy_consensus-s60-r1.log",
+      "id": "toy_consensus",
+      "run": 1,
+      "cand": {
+        "bug": "cast_vote twice",
+        "verdict": "unknown",
+        "why": "a law fails on the small instances",
+        "found": [
+          "every Decision cell is a value of its kind",
+          "one value decided"
+        ],
+        "ms": 339,
+        "work": 0,
+        "full": 0,
+        "exit": 0
+      },
+      "base": {
+        "bug": "cast_vote twice",
+        "verdict": "unknown",
+        "why": "a law fails on the small instances",
+        "found": [
+          "every Decision cell is a value of its kind",
+          "one value decided"
+        ],
+        "ms": 365,
+        "work": 0,
+        "full": 0,
+        "exit": 0
+      }
+    },
+    {
+      "file": "negative-toy_consensus_forall-s60-r1.log",
+      "id": "toy_consensus_forall",
+      "run": 1,
+      "cand": {
+        "bug": "cast_vote without voted",
+        "verdict": "unknown",
+        "why": "a law fails on the small instances",
+        "found": [
+          "every Voted cell is a value of its kind",
+          "every Decided cell is a value of its kind",
+          "one value decided"
+        ],
+        "ms": 379,
+        "work": 0,
+        "full": 0,
+        "exit": 0
+      },
+      "base": {
+        "bug": "cast_vote without voted",
+        "verdict": "unknown",
+        "why": "a law fails on the small instances",
+        "found": [
+          "every Voted cell is a value of its kind",
+          "every Decided cell is a value of its kind",
+          "one value decided"
+        ],
+        "ms": 398,
+        "work": 0,
+        "full": 0,
+        "exit": 0
+      }
+    },
+    {
+      "file": "negative-mldr-s60-r3.log",
+      "id": "mldr",
+      "run": 3,
+      "cand": {
+        "bug": "become_leader without a majority",
+        "verdict": "unknown",
+        "why": "a law fails on the small instances",
+        "found": [
+          "every Config cell is a value of its kind",
+          "one primary per term"
+        ],
+        "ms": 7815,
+        "work": 0,
+        "full": 0,
+        "exit": 0
+      },
+      "base": {
+        "bug": "become_leader without a majority",
+        "verdict": "unknown",
+        "why": "a law fails on the small instances",
+        "found": [
+          "every C0 cell is a value of its kind",
+          "every Copied cell is a value of its kind",
+          "every Config cell is a value of its kind",
+          "one primary per term"
+        ],
+        "ms": 7259,
+        "work": 0,
+        "full": 0,
+        "exit": 0
+      }
+    },
+    {
+      "file": "negative-simple_election-s60-r3.log",
+      "id": "simple_election",
+      "run": 3,
+      "cand": {
+        "bug": "send_1b after a promise",
+        "verdict": "unknown",
+        "why": "a law fails on the small instances",
+        "found": [
+          "every Start cell is a value of its kind",
+          "every Promise cell is a value of its kind",
+          "every Promised cell is a value of its kind",
+          "every Leader cell is a value of its kind",
+          "one leader"
+        ],
+        "ms": 1898,
+        "work": 0,
+        "full": 0,
+        "exit": 0
+      },
+      "base": {
+        "bug": "send_1b after a promise",
+        "verdict": "unknown",
+        "why": "a law fails on the small instances",
+        "found": [
+          "every Start cell is a value of its kind",
+          "every Promise cell is a value of its kind",
+          "every Promised cell is a value of its kind",
+          "every Leader cell is a value of its kind",
+          "one leader"
+        ],
+        "ms": 1835,
+        "work": 0,
+        "full": 0,
+        "exit": 0
+      }
+    },
+    {
+      "file": "negative-consensus_forall-s60-r1.log",
+      "id": "consensus_forall",
+      "run": 1,
+      "cand": {
+        "bug": "send_vote without voted",
+        "verdict": "unknown",
+        "why": "a law fails on the small instances",
+        "found": [
+          "every VoteRequestMsg cell is a value of its kind",
+          "every Voted cell is a value of its kind",
+          "every VoteMsg cell is a value of its kind",
+          "every Votes cell is a value of its kind",
+          "every Leader cell is a value of its kind",
+          "every VotingQuorum cell is a value of its kind",
+          "every Decided cell is a value of its kind",
+          "one value decided"
+        ],
+        "ms": 6171,
+        "work": 0,
+        "full": 0,
+        "exit": 0
+      },
+      "base": {
+        "bug": "send_vote without voted",
+        "verdict": "unknown",
+        "why": "a law fails on the small instances",
+        "found": [
+          "every VoteRequestMsg cell is a value of its kind",
+          "every Voted cell is a value of its kind",
+          "every VoteMsg cell is a value of its kind",
+          "every Votes cell is a value of its kind",
+          "every Leader cell is a value of its kind",
+          "every VotingQuorum cell is a value of its kind",
+          "every Decided cell is a value of its kind",
+          "one value decided"
+        ],
+        "ms": 6163,
+        "work": 0,
+        "full": 0,
+        "exit": 0
+      }
+    },
+    {
+      "file": "negative-learning_switch-s60-r1.log",
+      "id": "learning_switch",
+      "run": 1,
+      "cand": {
+        "bug": "forward learns without the no-route check",
+        "verdict": "unknown",
+        "goal": "the table is antisymmetric @step",
+        "stuck": "sat",
+        "why": "a model; the search found nothing that proves it in 8600 ms",
+        "ms": 14725,
+        "work": 215455,
+        "full": 654844,
+        "exit": 0
+      },
+      "base": {
+        "bug": "forward learns without the no-route check",
+        "verdict": "unknown",
+        "goal": "the table is antisymmetric @step",
+        "stuck": "sat",
+        "why": "a model; the search found nothing that proves it in 7974 ms",
+        "ms": 13532,
+        "work": 215455,
+        "full": 654844,
+        "exit": 0
+      }
+    },
+    {
+      "file": "negative-simple_election-s60-r2.log",
+      "id": "simple_election",
+      "run": 2,
+      "cand": {
+        "bug": "send_1b after a promise",
+        "verdict": "unknown",
+        "why": "a law fails on the small instances",
+        "found": [
+          "every Start cell is a value of its kind",
+          "every Promise cell is a value of its kind",
+          "every Promised cell is a value of its kind",
+          "every Leader cell is a value of its kind",
+          "one leader"
+        ],
+        "ms": 1917,
+        "work": 0,
+        "full": 0,
+        "exit": 0
+      },
+      "base": {
+        "bug": "send_1b after a promise",
+        "verdict": "unknown",
+        "why": "a law fails on the small instances",
+        "found": [
+          "every Start cell is a value of its kind",
+          "every Promise cell is a value of its kind",
+          "every Promised cell is a value of its kind",
+          "every Leader cell is a value of its kind",
+          "one leader"
+        ],
+        "ms": 1950,
+        "work": 0,
+        "full": 0,
+        "exit": 0
+      }
+    },
+    {
+      "file": "negative-mldr-s60-r2.log",
+      "id": "mldr",
+      "run": 2,
+      "cand": {
+        "bug": "become_leader without a majority",
+        "verdict": "unknown",
+        "why": "a law fails on the small instances",
+        "found": [
+          "every Config cell is a value of its kind",
+          "one primary per term"
+        ],
+        "ms": 6291,
+        "work": 0,
+        "full": 0,
+        "exit": 0
+      },
+      "base": {
+        "bug": "become_leader without a majority",
+        "verdict": "unknown",
+        "why": "a law fails on the small instances",
+        "found": [
+          "every C0 cell is a value of its kind",
+          "every Copied cell is a value of its kind",
+          "every Config cell is a value of its kind",
+          "one primary per term"
+        ],
+        "ms": 6429,
+        "work": 0,
+        "full": 0,
+        "exit": 0
+      }
+    },
+    {
+      "file": "negative-consensus_forall-s60-r2.log",
+      "id": "consensus_forall",
+      "run": 2,
+      "cand": {
+        "bug": "send_vote without voted",
+        "verdict": "unknown",
+        "why": "a law fails on the small instances",
+        "found": [
+          "every VoteRequestMsg cell is a value of its kind",
+          "every Voted cell is a value of its kind",
+          "every VoteMsg cell is a value of its kind",
+          "every Votes cell is a value of its kind",
+          "every Leader cell is a value of its kind",
+          "every VotingQuorum cell is a value of its kind",
+          "every Decided cell is a value of its kind",
+          "one value decided"
+        ],
+        "ms": 5921,
+        "work": 0,
+        "full": 0,
+        "exit": 0
+      },
+      "base": {
+        "bug": "send_vote without voted",
+        "verdict": "unknown",
+        "why": "a law fails on the small instances",
+        "found": [
+          "every VoteRequestMsg cell is a value of its kind",
+          "every Voted cell is a value of its kind",
+          "every VoteMsg cell is a value of its kind",
+          "every Votes cell is a value of its kind",
+          "every Leader cell is a value of its kind",
+          "every VotingQuorum cell is a value of its kind",
+          "every Decided cell is a value of its kind",
+          "one value decided"
+        ],
+        "ms": 6286,
+        "work": 0,
+        "full": 0,
+        "exit": 0
+      }
+    },
+    {
+      "file": "negative-learning_switch-s60-r2.log",
+      "id": "learning_switch",
+      "run": 2,
+      "cand": {
+        "bug": "forward learns without the no-route check",
+        "verdict": "unknown",
+        "goal": "the table is antisymmetric @step",
+        "stuck": "sat",
+        "why": "a model; the search found nothing that proves it in 9184 ms",
+        "ms": 15135,
+        "work": 215455,
+        "full": 654844,
+        "exit": 0
+      },
+      "base": {
+        "bug": "forward learns without the no-route check",
+        "verdict": "unknown",
+        "goal": "the table is antisymmetric @step",
+        "stuck": "sat",
+        "why": "a model; the search found nothing that proves it in 7888 ms",
+        "ms": 13581,
+        "work": 215455,
+        "full": 654844,
+        "exit": 0
+      }
+    },
+    {
+      "file": "negative-learning_switch-s60-r3.log",
+      "id": "learning_switch",
+      "run": 3,
+      "cand": {
+        "bug": "forward learns without the no-route check",
+        "verdict": "unknown",
+        "goal": "the table is antisymmetric @step",
+        "stuck": "sat",
+        "why": "a model; the search found nothing that proves it in 10032 ms",
+        "ms": 16556,
+        "work": 215455,
+        "full": 654844,
+        "exit": 0
+      },
+      "base": {
+        "bug": "forward learns without the no-route check",
+        "verdict": "unknown",
+        "goal": "the table is antisymmetric @step",
+        "stuck": "sat",
+        "why": "a model; the search found nothing that proves it in 10270 ms",
+        "ms": 16261,
+        "work": 215455,
+        "full": 654844,
+        "exit": 0
+      }
+    },
+    {
+      "file": "negative-consensus_forall-s60-r3.log",
+      "id": "consensus_forall",
+      "run": 3,
+      "cand": {
+        "bug": "send_vote without voted",
+        "verdict": "unknown",
+        "why": "a law fails on the small instances",
+        "found": [
+          "every VoteRequestMsg cell is a value of its kind",
+          "every Voted cell is a value of its kind",
+          "every VoteMsg cell is a value of its kind",
+          "every Votes cell is a value of its kind",
+          "every Leader cell is a value of its kind",
+          "every VotingQuorum cell is a value of its kind",
+          "every Decided cell is a value of its kind",
+          "one value decided"
+        ],
+        "ms": 6522,
+        "work": 0,
+        "full": 0,
+        "exit": 0
+      },
+      "base": {
+        "bug": "send_vote without voted",
+        "verdict": "unknown",
+        "why": "a law fails on the small instances",
+        "found": [
+          "every VoteRequestMsg cell is a value of its kind",
+          "every Voted cell is a value of its kind",
+          "every VoteMsg cell is a value of its kind",
+          "every Votes cell is a value of its kind",
+          "every Leader cell is a value of its kind",
+          "every VotingQuorum cell is a value of its kind",
+          "every Decided cell is a value of its kind",
+          "one value decided"
+        ],
+        "ms": 6390,
+        "work": 0,
+        "full": 0,
+        "exit": 0
+      }
+    },
+    {
+      "file": "negative-simple_election-s60-r1.log",
+      "id": "simple_election",
+      "run": 1,
+      "cand": {
+        "bug": "send_1b after a promise",
+        "verdict": "unknown",
+        "why": "a law fails on the small instances",
+        "found": [
+          "every Start cell is a value of its kind",
+          "every Promise cell is a value of its kind",
+          "every Promised cell is a value of its kind",
+          "every Leader cell is a value of its kind",
+          "one leader"
+        ],
+        "ms": 2588,
+        "work": 0,
+        "full": 0,
+        "exit": 0
+      },
+      "base": {
+        "bug": "send_1b after a promise",
+        "verdict": "unknown",
+        "why": "a law fails on the small instances",
+        "found": [
+          "every Start cell is a value of its kind",
+          "every Promise cell is a value of its kind",
+          "every Promised cell is a value of its kind",
+          "every Leader cell is a value of its kind",
+          "one leader"
+        ],
+        "ms": 2480,
+        "work": 0,
+        "full": 0,
+        "exit": 0
+      }
+    },
+    {
+      "file": "negative-mldr-s60-r1.log",
+      "id": "mldr",
+      "run": 1,
+      "cand": {
+        "bug": "become_leader without a majority",
+        "verdict": "unknown",
+        "why": "a law fails on the small instances",
+        "found": [
+          "every Config cell is a value of its kind",
+          "one primary per term"
+        ],
+        "ms": 6749,
+        "work": 0,
+        "full": 0,
+        "exit": 0
+      },
+      "base": {
+        "bug": "become_leader without a majority",
+        "verdict": "unknown",
+        "why": "a law fails on the small instances",
+        "found": [
+          "every C0 cell is a value of its kind",
+          "every Copied cell is a value of its kind",
+          "every Config cell is a value of its kind",
+          "one primary per term"
+        ],
+        "ms": 7265,
+        "work": 0,
+        "full": 0,
+        "exit": 0
+      }
+    },
+    {
+      "file": "negative-quorum_leader_election-s60-r3.log",
+      "id": "quorum_leader_election",
+      "run": 3,
+      "cand": {
+        "bug": "vote twice",
+        "verdict": "unknown",
+        "why": "a law fails on the small instances",
+        "found": [
+          "every IsLeader cell is a value of its kind",
+          "one leader"
+        ],
+        "ms": 259,
+        "work": 0,
+        "full": 0,
+        "exit": 0
+      },
+      "base": {
+        "bug": "vote twice",
+        "verdict": "unknown",
+        "why": "a law fails on the small instances",
+        "found": [
+          "every IsLeader cell is a value of its kind",
+          "one leader"
+        ],
+        "ms": 266,
+        "work": 0,
+        "full": 0,
+        "exit": 0
+      }
+    },
+    {
+      "file": "negative-consensus_epr-s60-r3.log",
+      "id": "consensus_epr",
+      "run": 3,
+      "cand": {
+        "bug": "send_vote without voted",
+        "verdict": "unknown",
+        "why": "a law fails on the small instances",
+        "found": [
+          "every VoteRequestMsg cell is a value of its kind",
+          "every Voted cell is a value of its kind",
+          "every VoteMsg cell is a value of its kind",
+          "every Votes cell is a value of its kind",
+          "every Leader cell is a value of its kind",
+          "every Decided cell is a value of its kind",
+          "one value decided"
+        ],
+        "ms": 3563,
+        "work": 0,
+        "full": 0,
+        "exit": 0
+      },
+      "base": {
+        "bug": "send_vote without voted",
+        "verdict": "unknown",
+        "why": "a law fails on the small instances",
+        "found": [
+          "every VoteRequestMsg cell is a value of its kind",
+          "every Voted cell is a value of its kind",
+          "every VoteMsg cell is a value of its kind",
+          "every Votes cell is a value of its kind",
+          "every Leader cell is a value of its kind",
+          "every Decided cell is a value of its kind",
+          "one value decided"
+        ],
+        "ms": 3658,
+        "work": 0,
+        "full": 0,
+        "exit": 0
+      }
+    },
+    {
+      "file": "negative-two_phase_commit-s60-r3.log",
+      "id": "two_phase_commit",
+      "run": 3,
+      "cand": {
+        "bug": "go1 without every yes vote",
+        "verdict": "refuted",
+        "goal": "commit and abort agree @step",
+        "stuck": "sat",
+        "run": 6,
+        "ms": 20,
+        "work": 0,
+        "full": 0,
+        "exit": 0
+      },
+      "base": {
+        "bug": "go1 without every yes vote",
+        "verdict": "refuted",
+        "goal": "commit and abort agree @step",
+        "stuck": "sat",
+        "run": 6,
+        "ms": 20,
+        "work": 0,
+        "full": 0,
+        "exit": 0
+      }
+    },
+    {
+      "file": "negative-two_phase_commit-s60-r2.log",
+      "id": "two_phase_commit",
+      "run": 2,
+      "cand": {
+        "bug": "go1 without every yes vote",
+        "verdict": "refuted",
+        "goal": "commit and abort agree @step",
+        "stuck": "sat",
+        "run": 6,
+        "ms": 18,
+        "work": 0,
+        "full": 0,
+        "exit": 0
+      },
+      "base": {
+        "bug": "go1 without every yes vote",
+        "verdict": "refuted",
+        "goal": "commit and abort agree @step",
+        "stuck": "sat",
+        "run": 6,
+        "ms": 19,
+        "work": 0,
+        "full": 0,
+        "exit": 0
+      }
+    },
+    {
+      "file": "negative-consensus_epr-s60-r2.log",
+      "id": "consensus_epr",
+      "run": 2,
+      "cand": {
+        "bug": "send_vote without voted",
+        "verdict": "unknown",
+        "why": "a law fails on the small instances",
+        "found": [
+          "every VoteRequestMsg cell is a value of its kind",
+          "every Voted cell is a value of its kind",
+          "every VoteMsg cell is a value of its kind",
+          "every Votes cell is a value of its kind",
+          "every Leader cell is a value of its kind",
+          "every Decided cell is a value of its kind",
+          "one value decided"
+        ],
+        "ms": 3746,
+        "work": 0,
+        "full": 0,
+        "exit": 0
+      },
+      "base": {
+        "bug": "send_vote without voted",
+        "verdict": "unknown",
+        "why": "a law fails on the small instances",
+        "found": [
+          "every VoteRequestMsg cell is a value of its kind",
+          "every Voted cell is a value of its kind",
+          "every VoteMsg cell is a value of its kind",
+          "every Votes cell is a value of its kind",
+          "every Leader cell is a value of its kind",
+          "every Decided cell is a value of its kind",
+          "one value decided"
+        ],
+        "ms": 3735,
+        "work": 0,
+        "full": 0,
+        "exit": 0
+      }
+    },
+    {
+      "file": "negative-quorum_leader_election-s60-r2.log",
+      "id": "quorum_leader_election",
+      "run": 2,
+      "cand": {
+        "bug": "vote twice",
+        "verdict": "unknown",
+        "why": "a law fails on the small instances",
+        "found": [
+          "every IsLeader cell is a value of its kind",
+          "one leader"
+        ],
+        "ms": 261,
+        "work": 0,
+        "full": 0,
+        "exit": 0
+      },
+      "base": {
+        "bug": "vote twice",
+        "verdict": "unknown",
+        "why": "a law fails on the small instances",
+        "found": [
+          "every IsLeader cell is a value of its kind",
+          "one leader"
+        ],
+        "ms": 260,
+        "work": 0,
+        "full": 0,
+        "exit": 0
+      }
+    },
+    {
+      "file": "negative-two_phase_commit-s60-r1.log",
+      "id": "two_phase_commit",
+      "run": 1,
+      "cand": {
+        "bug": "go1 without every yes vote",
+        "verdict": "refuted",
+        "goal": "commit and abort agree @step",
+        "stuck": "sat",
+        "run": 6,
+        "ms": 13,
+        "work": 0,
+        "full": 0,
+        "exit": 0
+      },
+      "base": {
+        "bug": "go1 without every yes vote",
+        "verdict": "refuted",
+        "goal": "commit and abort agree @step",
+        "stuck": "sat",
+        "run": 6,
+        "ms": 17,
+        "work": 0,
+        "full": 0,
+        "exit": 0
+      }
+    },
+    {
+      "file": "negative-consensus_epr-s60-r1.log",
+      "id": "consensus_epr",
+      "run": 1,
+      "cand": {
+        "bug": "send_vote without voted",
+        "verdict": "unknown",
+        "why": "a law fails on the small instances",
+        "found": [
+          "every VoteRequestMsg cell is a value of its kind",
+          "every Voted cell is a value of its kind",
+          "every VoteMsg cell is a value of its kind",
+          "every Votes cell is a value of its kind",
+          "every Leader cell is a value of its kind",
+          "every Decided cell is a value of its kind",
+          "one value decided"
+        ],
+        "ms": 2994,
+        "work": 0,
+        "full": 0,
+        "exit": 0
+      },
+      "base": {
+        "bug": "send_vote without voted",
+        "verdict": "unknown",
+        "why": "a law fails on the small instances",
+        "found": [
+          "every VoteRequestMsg cell is a value of its kind",
+          "every Voted cell is a value of its kind",
+          "every VoteMsg cell is a value of its kind",
+          "every Votes cell is a value of its kind",
+          "every Leader cell is a value of its kind",
+          "every Decided cell is a value of its kind",
+          "one value decided"
+        ],
+        "ms": 2940,
+        "work": 0,
+        "full": 0,
+        "exit": 0
+      }
+    },
+    {
+      "file": "negative-quorum_leader_election-s60-r1.log",
+      "id": "quorum_leader_election",
+      "run": 1,
+      "cand": {
+        "bug": "vote twice",
+        "verdict": "unknown",
+        "why": "a law fails on the small instances",
+        "found": [
+          "every IsLeader cell is a value of its kind",
+          "one leader"
+        ],
+        "ms": 420,
+        "work": 0,
+        "full": 0,
+        "exit": 0
+      },
+      "base": {
+        "bug": "vote twice",
+        "verdict": "unknown",
+        "why": "a law fails on the small instances",
+        "found": [
+          "every IsLeader cell is a value of its kind",
+          "one leader"
+        ],
+        "ms": 439,
+        "work": 0,
+        "full": 0,
+        "exit": 0
+      }
+    },
+    {
+      "file": "negative-simple-s60-r3.log",
+      "id": "simple",
+      "run": 3,
+      "cand": {
+        "bug": "a leaves x",
+        "verdict": "refuted",
+        "goal": "some process not done, or some y is 1 @step",
+        "stuck": "sat",
+        "run": 3,
+        "ms": 9,
+        "work": 0,
+        "full": 0,
+        "exit": 0
+      },
+      "base": {
+        "bug": "a leaves x",
+        "verdict": "refuted",
+        "goal": "some process not done, or some y is 1 @step",
+        "stuck": "sat",
+        "run": 3,
+        "ms": 7,
+        "work": 0,
+        "full": 0,
+        "exit": 0
+      }
+    },
+    {
+      "file": "negative-lock_server-s60-r2.log",
+      "id": "lock_server",
+      "run": 2,
+      "cand": {
+        "bug": "connect without the semaphore",
+        "verdict": "refuted",
+        "goal": "one client per server @step",
+        "stuck": "sat",
+        "run": 6,
+        "ms": 5,
+        "work": 0,
+        "full": 0,
+        "exit": 0
+      },
+      "base": {
+        "bug": "connect without the semaphore",
+        "verdict": "refuted",
+        "goal": "one client per server @step",
+        "stuck": "sat",
+        "run": 6,
+        "ms": 7,
+        "work": 0,
+        "full": 0,
+        "exit": 0
+      }
+    },
+    {
+      "file": "negative-client_server_db_ae-s60-r3.log",
+      "id": "client_server_db_ae",
+      "run": 3,
+      "cand": {
+        "bug": "db_process_request without match",
+        "verdict": "unknown",
+        "goal": "a received response was matched @step",
+        "stuck": "unknown",
+        "why": "no witness for \"a received response was matched\" holds on the small instances; the search found nothing that proves it in 12084 ms",
+        "ms": 30970,
+        "work": 4426,
+        "full": 14885,
+        "exit": 0
+      },
+      "base": {
+        "bug": "db_process_request without match",
+        "verdict": "unknown",
+        "goal": "a received response was matched @step",
+        "stuck": "unknown",
+        "why": "no witness for \"a received response was matched\" holds on the small instances; the search found nothing that proves it in 11492 ms",
+        "ms": 26486,
+        "work": 4426,
+        "full": 14885,
+        "exit": 0
+      }
+    },
+    {
+      "file": "negative-firewall-s60-r2.log",
+      "id": "firewall",
+      "run": 2,
+      "cand": {
+        "bug": "send_to_internal without allowed_in",
+        "verdict": "unknown",
+        "goal": "a sender to the inside was sent to from the inside @step",
+        "stuck": "unknown",
+        "why": "no witness for \"a sender to the inside was sent to from the inside\" holds on the small instances; the search found nothing that proves it in 975 ms",
+        "ms": 5659,
+        "work": 0,
+        "full": 0,
+        "exit": 0
+      },
+      "base": {
+        "bug": "send_to_internal without allowed_in",
+        "verdict": "unknown",
+        "goal": "a sender to the inside was sent to from the inside @step",
+        "stuck": "unknown",
+        "why": "no witness for \"a sender to the inside was sent to from the inside\" holds on the small instances; the search found nothing that proves it in 1028 ms",
+        "ms": 5960,
+        "work": 0,
+        "full": 0,
+        "exit": 0
+      }
+    },
+    {
+      "file": "negative-firewall-s60-r3.log",
+      "id": "firewall",
+      "run": 3,
+      "cand": {
+        "bug": "send_to_internal without allowed_in",
+        "verdict": "unknown",
+        "goal": "a sender to the inside was sent to from the inside @step",
+        "stuck": "unknown",
+        "why": "no witness for \"a sender to the inside was sent to from the inside\" holds on the small instances; the search found nothing that proves it in 1274 ms",
+        "ms": 6600,
+        "work": 0,
+        "full": 0,
+        "exit": 0
+      },
+      "base": {
+        "bug": "send_to_internal without allowed_in",
+        "verdict": "unknown",
+        "goal": "a sender to the inside was sent to from the inside @step",
+        "stuck": "unknown",
+        "why": "no witness for \"a sender to the inside was sent to from the inside\" holds on the small instances; the search found nothing that proves it in 1129 ms",
+        "ms": 6923,
+        "work": 0,
+        "full": 0,
+        "exit": 0
+      }
+    },
+    {
+      "file": "negative-sharded_kv-s60-r1.log",
+      "id": "sharded_kv",
+      "run": 1,
+      "cand": {
+        "bug": "put without ownership",
+        "verdict": "refuted",
+        "goal": "one value per key @step",
+        "stuck": "sat",
+        "run": 24,
+        "ms": 2624,
+        "work": 383184,
+        "full": 89678,
+        "exit": 0
+      },
+      "base": {
+        "bug": "put without ownership",
+        "verdict": "refuted",
+        "goal": "one value per key @step",
+        "stuck": "sat",
+        "run": 24,
+        "ms": 2747,
+        "work": 383184,
+        "full": 89678,
+        "exit": 0
+      }
+    },
+    {
+      "file": "negative-client_server_db_ae-s60-r2.log",
+      "id": "client_server_db_ae",
+      "run": 2,
+      "cand": {
+        "bug": "db_process_request without match",
+        "verdict": "unknown",
+        "goal": "a received response was matched @step",
+        "stuck": "unknown",
+        "why": "no witness for \"a received response was matched\" holds on the small instances; the search found nothing that proves it in 17167 ms",
+        "ms": 38586,
+        "work": 4426,
+        "full": 14885,
+        "exit": 0
+      },
+      "base": {
+        "bug": "db_process_request without match",
+        "verdict": "unknown",
+        "goal": "a received response was matched @step",
+        "stuck": "unknown",
+        "why": "no witness for \"a received response was matched\" holds on the small instances; the search found nothing that proves it in 15529 ms",
+        "ms": 41293,
+        "work": 4426,
+        "full": 14885,
+        "exit": 0
+      }
+    },
+    {
+      "file": "negative-lock_server-s60-r3.log",
+      "id": "lock_server",
+      "run": 3,
+      "cand": {
+        "bug": "connect without the semaphore",
+        "verdict": "refuted",
+        "goal": "one client per server @step",
+        "stuck": "sat",
+        "run": 6,
+        "ms": 6,
+        "work": 0,
+        "full": 0,
+        "exit": 0
+      },
+      "base": {
+        "bug": "connect without the semaphore",
+        "verdict": "refuted",
+        "goal": "one client per server @step",
+        "stuck": "sat",
+        "run": 6,
+        "ms": 5,
+        "work": 0,
+        "full": 0,
+        "exit": 0
+      }
+    },
+    {
+      "file": "negative-simple-s60-r2.log",
+      "id": "simple",
+      "run": 2,
+      "cand": {
+        "bug": "a leaves x",
+        "verdict": "refuted",
+        "goal": "some process not done, or some y is 1 @step",
+        "stuck": "sat",
+        "run": 3,
+        "ms": 6,
+        "work": 0,
+        "full": 0,
+        "exit": 0
+      },
+      "base": {
+        "bug": "a leaves x",
+        "verdict": "refuted",
+        "goal": "some process not done, or some y is 1 @step",
+        "stuck": "sat",
+        "run": 3,
+        "ms": 6,
+        "work": 0,
+        "full": 0,
+        "exit": 0
+      }
+    },
+    {
+      "file": "negative-lock_server-s60-r1.log",
+      "id": "lock_server",
+      "run": 1,
+      "cand": {
+        "bug": "connect without the semaphore",
+        "verdict": "refuted",
+        "goal": "one client per server @step",
+        "stuck": "sat",
+        "run": 6,
+        "ms": 5,
+        "work": 0,
+        "full": 0,
+        "exit": 0
+      },
+      "base": {
+        "bug": "connect without the semaphore",
+        "verdict": "refuted",
+        "goal": "one client per server @step",
+        "stuck": "sat",
+        "run": 6,
+        "ms": 4,
+        "work": 0,
+        "full": 0,
+        "exit": 0
+      }
+    },
+    {
+      "file": "negative-sharded_kv-s60-r3.log",
+      "id": "sharded_kv",
+      "run": 3,
+      "cand": {
+        "bug": "put without ownership",
+        "verdict": "refuted",
+        "goal": "one value per key @step",
+        "stuck": "sat",
+        "run": 24,
+        "ms": 2114,
+        "work": 383184,
+        "full": 89678,
+        "exit": 0
+      },
+      "base": {
+        "bug": "put without ownership",
+        "verdict": "refuted",
+        "goal": "one value per key @step",
+        "stuck": "sat",
+        "run": 24,
+        "ms": 2176,
+        "work": 383184,
+        "full": 89678,
+        "exit": 0
+      }
+    },
+    {
+      "file": "negative-firewall-s60-r1.log",
+      "id": "firewall",
+      "run": 1,
+      "cand": {
+        "bug": "send_to_internal without allowed_in",
+        "verdict": "unknown",
+        "goal": "a sender to the inside was sent to from the inside @step",
+        "stuck": "unknown",
+        "why": "no witness for \"a sender to the inside was sent to from the inside\" holds on the small instances; the search found nothing that proves it in 1079 ms",
+        "ms": 6551,
+        "work": 0,
+        "full": 0,
+        "exit": 0
+      },
+      "base": {
+        "bug": "send_to_internal without allowed_in",
+        "verdict": "unknown",
+        "goal": "a sender to the inside was sent to from the inside @step",
+        "stuck": "unknown",
+        "why": "no witness for \"a sender to the inside was sent to from the inside\" holds on the small instances; the search found nothing that proves it in 1165 ms",
+        "ms": 7153,
+        "work": 0,
+        "full": 0,
+        "exit": 0
+      }
+    },
+    {
+      "file": "negative-sharded_kv-s60-r2.log",
+      "id": "sharded_kv",
+      "run": 2,
+      "cand": {
+        "bug": "put without ownership",
+        "verdict": "refuted",
+        "goal": "one value per key @step",
+        "stuck": "sat",
+        "run": 24,
+        "ms": 3541,
+        "work": 383184,
+        "full": 89678,
+        "exit": 0
+      },
+      "base": {
+        "bug": "put without ownership",
+        "verdict": "refuted",
+        "goal": "one value per key @step",
+        "stuck": "sat",
+        "run": 24,
+        "ms": 3624,
+        "work": 383184,
+        "full": 89678,
+        "exit": 0
+      }
+    },
+    {
+      "file": "negative-client_server_db_ae-s60-r1.log",
+      "id": "client_server_db_ae",
+      "run": 1,
+      "cand": {
+        "bug": "db_process_request without match",
+        "verdict": "unknown",
+        "goal": "a received response was matched @step",
+        "stuck": "unknown",
+        "why": "no witness for \"a received response was matched\" holds on the small instances; the search found nothing that proves it in 13044 ms",
+        "ms": 29644,
+        "work": 4426,
+        "full": 14885,
+        "exit": 0
+      },
+      "base": {
+        "bug": "db_process_request without match",
+        "verdict": "unknown",
+        "goal": "a received response was matched @step",
+        "stuck": "unknown",
+        "why": "no witness for \"a received response was matched\" holds on the small instances; the search found nothing that proves it in 11842 ms",
+        "ms": 27043,
+        "work": 4426,
+        "full": 14885,
+        "exit": 0
+      }
+    },
+    {
+      "file": "negative-simple-s60-r1.log",
+      "id": "simple",
+      "run": 1,
+      "cand": {
+        "bug": "a leaves x",
+        "verdict": "refuted",
+        "goal": "some process not done, or some y is 1 @step",
+        "stuck": "sat",
+        "run": 3,
+        "ms": 5,
+        "work": 0,
+        "full": 0,
+        "exit": 0
+      },
+      "base": {
+        "bug": "a leaves x",
+        "verdict": "refuted",
+        "goal": "some process not done, or some y is 1 @step",
+        "stuck": "sat",
+        "run": 3,
+        "ms": 6,
+        "work": 0,
+        "full": 0,
+        "exit": 0
+      }
+    },
+    {
+      "file": "negative-toy_consensus_epr-s60-r1.log",
+      "id": "toy_consensus_epr",
+      "run": 1,
+      "cand": {
+        "bug": "cast_vote twice",
+        "verdict": "unknown",
+        "why": "a law fails on the small instances",
+        "found": [
+          "every Voted cell is a value of its kind",
+          "every Vote cell is a value of its kind",
+          "every Decided cell is a value of its kind",
+          "one value decided"
+        ],
+        "ms": 2315,
+        "work": 0,
+        "full": 0,
+        "exit": 0
+      },
+      "base": {
+        "bug": "cast_vote twice",
+        "verdict": "unknown",
+        "why": "a law fails on the small instances",
+        "found": [
+          "every Voted cell is a value of its kind",
+          "every Vote cell is a value of its kind",
+          "every Decided cell is a value of its kind",
+          "one value decided"
+        ],
+        "ms": 2394,
+        "work": 0,
+        "full": 0,
+        "exit": 0
+      }
+    },
+    {
+      "file": "negative-learning_switch_i4-s60-r2.log",
+      "id": "learning_switch_i4",
+      "run": 2,
+      "cand": {
+        "bug": "a route learned both ways",
+        "verdict": "unknown",
+        "goal": "route_tc is transitive @step",
+        "stuck": "sat",
+        "why": "a model; the search found nothing that proves it in 27298 ms",
+        "ms": 46704,
+        "work": 407038,
+        "full": 900972,
+        "exit": 0
+      },
+      "base": {
+        "bug": "a route learned both ways",
+        "verdict": "unknown",
+        "goal": "route_tc is transitive @step",
+        "stuck": "sat",
+        "why": "a model; the search found nothing that proves it in 27354 ms",
+        "ms": 46564,
+        "work": 407134,
+        "full": 902233,
+        "exit": 0
+      }
+    },
+    {
+      "file": "negative-lockserv_automaton-s60-r3.log",
+      "id": "lockserv_automaton",
+      "run": 3,
+      "cand": {
+        "bug": "recv_lock while held",
+        "verdict": "refuted",
+        "goal": "one holder @step",
+        "stuck": "sat",
+        "run": 22,
+        "ms": 278,
+        "work": 7414,
+        "full": 18934,
+        "exit": 0
+      },
+      "base": {
+        "bug": "recv_lock while held",
+        "verdict": "refuted",
+        "goal": "one holder @step",
+        "stuck": "sat",
+        "run": 22,
+        "ms": 232,
+        "work": 7414,
+        "full": 18934,
+        "exit": 0
+      }
+    },
+    {
+      "file": "negative-lockserv_automaton-s60-r2.log",
+      "id": "lockserv_automaton",
+      "run": 2,
+      "cand": {
+        "bug": "recv_lock while held",
+        "verdict": "refuted",
+        "goal": "one holder @step",
+        "stuck": "sat",
+        "run": 22,
+        "ms": 182,
+        "work": 7414,
+        "full": 18934,
+        "exit": 0
+      },
+      "base": {
+        "bug": "recv_lock while held",
+        "verdict": "refuted",
+        "goal": "one holder @step",
+        "stuck": "sat",
+        "run": 22,
+        "ms": 159,
+        "work": 7414,
+        "full": 18934,
+        "exit": 0
+      }
+    },
+    {
+      "file": "negative-learning_switch_i4-s60-r3.log",
+      "id": "learning_switch_i4",
+      "run": 3,
+      "cand": {
+        "bug": "a route learned both ways",
+        "verdict": "unknown",
+        "goal": "route_tc is transitive @step",
+        "stuck": "sat",
+        "why": "a model; the search found nothing that proves it in 29588 ms",
+        "ms": 47760,
+        "work": 404740,
+        "full": 884708,
+        "exit": 0
+      },
+      "base": {
+        "bug": "a route learned both ways",
+        "verdict": "unknown",
+        "goal": "route_tc is transitive @step",
+        "stuck": "sat",
+        "why": "a model; the search found nothing that proves it in 30053 ms",
+        "ms": 48104,
+        "work": 404884,
+        "full": 884854,
+        "exit": 0
+      }
+    },
+    {
+      "file": "negative-toy_consensus_epr-s60-r2.log",
+      "id": "toy_consensus_epr",
+      "run": 2,
+      "cand": {
+        "bug": "cast_vote twice",
+        "verdict": "unknown",
+        "why": "a law fails on the small instances",
+        "found": [
+          "every Voted cell is a value of its kind",
+          "every Vote cell is a value of its kind",
+          "every Decided cell is a value of its kind",
+          "one value decided"
+        ],
+        "ms": 1448,
+        "work": 0,
+        "full": 0,
+        "exit": 0
+      },
+      "base": {
+        "bug": "cast_vote twice",
+        "verdict": "unknown",
+        "why": "a law fails on the small instances",
+        "found": [
+          "every Voted cell is a value of its kind",
+          "every Vote cell is a value of its kind",
+          "every Decided cell is a value of its kind",
+          "one value decided"
+        ],
+        "ms": 1430,
+        "work": 0,
+        "full": 0,
+        "exit": 0
+      }
+    },
+    {
+      "file": "negative-learning_switch_i4-s60-r1.log",
+      "id": "learning_switch_i4",
+      "run": 1,
+      "cand": {
+        "bug": "a route learned both ways",
+        "verdict": "unknown",
+        "goal": "route_tc is transitive @step",
+        "stuck": "sat",
+        "why": "a model; the search found nothing that proves it in 42863 ms",
+        "ms": 55911,
+        "work": 396933,
+        "full": 873918,
+        "exit": 0
+      },
+      "base": {
+        "bug": "a route learned both ways",
+        "verdict": "unknown",
+        "goal": "route_tc is transitive @step",
+        "stuck": "sat",
+        "why": "a model; the search found nothing that proves it in 34295 ms",
+        "ms": 50146,
+        "work": 404524,
+        "full": 884486,
+        "exit": 0
+      }
+    },
+    {
+      "file": "negative-lockserv_automaton-s60-r1.log",
+      "id": "lockserv_automaton",
+      "run": 1,
+      "cand": {
+        "bug": "recv_lock while held",
+        "verdict": "refuted",
+        "goal": "one holder @step",
+        "stuck": "sat",
+        "run": 22,
+        "ms": 167,
+        "work": 7414,
+        "full": 18934,
+        "exit": 0
+      },
+      "base": {
+        "bug": "recv_lock while held",
+        "verdict": "refuted",
+        "goal": "one holder @step",
+        "stuck": "sat",
+        "run": 22,
+        "ms": 158,
+        "work": 7414,
+        "full": 18934,
+        "exit": 0
+      }
+    },
+    {
+      "file": "negative-toy_consensus_epr-s60-r3.log",
+      "id": "toy_consensus_epr",
+      "run": 3,
+      "cand": {
+        "bug": "cast_vote twice",
+        "verdict": "unknown",
+        "why": "a law fails on the small instances",
+        "found": [
+          "every Voted cell is a value of its kind",
+          "every Vote cell is a value of its kind",
+          "every Decided cell is a value of its kind",
+          "one value decided"
+        ],
+        "ms": 1607,
+        "work": 0,
+        "full": 0,
+        "exit": 0
+      },
+      "base": {
+        "bug": "cast_vote twice",
+        "verdict": "unknown",
+        "why": "a law fails on the small instances",
+        "found": [
+          "every Voted cell is a value of its kind",
+          "every Vote cell is a value of its kind",
+          "every Decided cell is a value of its kind",
+          "one value decided"
+        ],
+        "ms": 1608,
+        "work": 0,
+        "full": 0,
+        "exit": 0
+      }
+    },
+    {
+      "file": "negative-majorityset_leader_election-s60-r2.log",
+      "id": "majorityset_leader_election",
+      "run": 2,
+      "cand": {
+        "bug": "vote twice",
+        "verdict": "unknown",
+        "why": "a law fails on the small instances",
+        "found": [
+          "every Vote cell is a value of its kind",
+          "every Voters cell is a value of its kind",
+          "every Leader cell is a value of its kind",
+          "one leader"
+        ],
+        "ms": 674,
+        "work": 0,
+        "full": 0,
+        "exit": 0
+      },
+      "base": {
+        "bug": "vote twice",
+        "verdict": "unknown",
+        "why": "a law fails on the small instances",
+        "found": [
+          "every Vote cell is a value of its kind",
+          "every Voters cell is a value of its kind",
+          "every Leader cell is a value of its kind",
+          "one leader"
+        ],
+        "ms": 828,
+        "work": 0,
+        "full": 0,
+        "exit": 0
+      }
+    },
+    {
+      "file": "negative-naive_consensus-s60-r1.log",
+      "id": "naive_consensus",
+      "run": 1,
+      "cand": {
+        "bug": "cast_vote twice",
+        "verdict": "unknown",
+        "why": "a law fails on the small instances",
+        "found": [
+          "every Vote cell is a value of its kind",
+          "every Voted cell is a value of its kind",
+          "every Decide cell is a value of its kind",
+          "every Decision cell is a value of its kind",
+          "one value decided"
+        ],
+        "ms": 1716,
+        "work": 0,
+        "full": 0,
+        "exit": 0
+      },
+      "base": {
+        "bug": "cast_vote twice",
+        "verdict": "unknown",
+        "why": "a law fails on the small instances",
+        "found": [
+          "every Vote cell is a value of its kind",
+          "every Voted cell is a value of its kind",
+          "every Decide cell is a value of its kind",
+          "every Decision cell is a value of its kind",
+          "one value decided"
+        ],
+        "ms": 1749,
+        "work": 0,
+        "full": 0,
+        "exit": 0
+      }
+    },
+    {
+      "file": "negative-simple_decentralized_lock-s60-r1.log",
+      "id": "simple_decentralized_lock",
+      "run": 1,
+      "cand": {
+        "bug": "send keeps the lock",
+        "verdict": "refuted",
+        "goal": "one node holds the lock @step",
+        "stuck": "sat",
+        "run": 11,
+        "ms": 97,
+        "work": 159,
+        "full": 765,
+        "exit": 0
+      },
+      "base": {
+        "bug": "send keeps the lock",
+        "verdict": "refuted",
+        "goal": "one node holds the lock @step",
+        "stuck": "sat",
+        "run": 11,
+        "ms": 75,
+        "work": 159,
+        "full": 765,
+        "exit": 0
+      }
+    },
+    {
+      "file": "negative-majorityset_leader_election-s60-r3.log",
+      "id": "majorityset_leader_election",
+      "run": 3,
+      "cand": {
+        "bug": "vote twice",
+        "verdict": "unknown",
+        "why": "a law fails on the small instances",
+        "found": [
+          "every Vote cell is a value of its kind",
+          "every Voters cell is a value of its kind",
+          "every Leader cell is a value of its kind",
+          "one leader"
+        ],
+        "ms": 621,
+        "work": 0,
+        "full": 0,
+        "exit": 0
+      },
+      "base": {
+        "bug": "vote twice",
+        "verdict": "unknown",
+        "why": "a law fails on the small instances",
+        "found": [
+          "every Vote cell is a value of its kind",
+          "every Voters cell is a value of its kind",
+          "every Leader cell is a value of its kind",
+          "one leader"
+        ],
+        "ms": 619,
+        "work": 0,
+        "full": 0,
+        "exit": 0
+      }
+    },
+    {
+      "file": "negative-consensus-s60-r1.log",
+      "id": "consensus",
+      "run": 1,
+      "cand": {
+        "bug": "Next without chosen = {}",
+        "verdict": "refuted",
+        "goal": "at most one value chosen @step",
+        "stuck": "sat",
+        "run": 2,
+        "ms": 4,
+        "work": 0,
+        "full": 0,
+        "exit": 0
+      },
+      "base": {
+        "bug": "Next without chosen = {}",
+        "verdict": "refuted",
+        "goal": "at most one value chosen @step",
+        "stuck": "sat",
+        "run": 2,
+        "ms": 4,
+        "work": 0,
+        "full": 0,
+        "exit": 0
+      }
+    },
+    {
+      "file": "negative-consensus-s60-r3.log",
+      "id": "consensus",
+      "run": 3,
+      "cand": {
+        "bug": "Next without chosen = {}",
+        "verdict": "refuted",
+        "goal": "at most one value chosen @step",
+        "stuck": "sat",
+        "run": 2,
+        "ms": 6,
+        "work": 0,
+        "full": 0,
+        "exit": 0
+      },
+      "base": {
+        "bug": "Next without chosen = {}",
+        "verdict": "refuted",
+        "goal": "at most one value chosen @step",
+        "stuck": "sat",
+        "run": 2,
+        "ms": 5,
+        "work": 0,
+        "full": 0,
+        "exit": 0
+      }
+    },
+    {
+      "file": "negative-majorityset_leader_election-s60-r1.log",
+      "id": "majorityset_leader_election",
+      "run": 1,
+      "cand": {
+        "bug": "vote twice",
+        "verdict": "unknown",
+        "why": "a law fails on the small instances",
+        "found": [
+          "every Vote cell is a value of its kind",
+          "every Voters cell is a value of its kind",
+          "every Leader cell is a value of its kind",
+          "one leader"
+        ],
+        "ms": 616,
+        "work": 0,
+        "full": 0,
+        "exit": 0
+      },
+      "base": {
+        "bug": "vote twice",
+        "verdict": "unknown",
+        "why": "a law fails on the small instances",
+        "found": [
+          "every Vote cell is a value of its kind",
+          "every Voters cell is a value of its kind",
+          "every Leader cell is a value of its kind",
+          "one leader"
+        ],
+        "ms": 752,
+        "work": 0,
+        "full": 0,
+        "exit": 0
+      }
+    },
+    {
+      "file": "negative-naive_consensus-s60-r2.log",
+      "id": "naive_consensus",
+      "run": 2,
+      "cand": {
+        "bug": "cast_vote twice",
+        "verdict": "unknown",
+        "why": "a law fails on the small instances",
+        "found": [
+          "every Vote cell is a value of its kind",
+          "every Voted cell is a value of its kind",
+          "every Decide cell is a value of its kind",
+          "every Decision cell is a value of its kind",
+          "one value decided"
+        ],
+        "ms": 1507,
+        "work": 0,
+        "full": 0,
+        "exit": 0
+      },
+      "base": {
+        "bug": "cast_vote twice",
+        "verdict": "unknown",
+        "why": "a law fails on the small instances",
+        "found": [
+          "every Vote cell is a value of its kind",
+          "every Voted cell is a value of its kind",
+          "every Decide cell is a value of its kind",
+          "every Decision cell is a value of its kind",
+          "one value decided"
+        ],
+        "ms": 1599,
+        "work": 0,
+        "full": 0,
+        "exit": 0
+      }
+    },
+    {
+      "file": "negative-simple_decentralized_lock-s60-r3.log",
+      "id": "simple_decentralized_lock",
+      "run": 3,
+      "cand": {
+        "bug": "send keeps the lock",
+        "verdict": "refuted",
+        "goal": "one node holds the lock @step",
+        "stuck": "sat",
+        "run": 11,
+        "ms": 63,
+        "work": 159,
+        "full": 765,
+        "exit": 0
+      },
+      "base": {
+        "bug": "send keeps the lock",
+        "verdict": "refuted",
+        "goal": "one node holds the lock @step",
+        "stuck": "sat",
+        "run": 11,
+        "ms": 61,
+        "work": 159,
+        "full": 765,
+        "exit": 0
+      }
+    },
+    {
+      "file": "negative-simple_decentralized_lock-s60-r2.log",
+      "id": "simple_decentralized_lock",
+      "run": 2,
+      "cand": {
+        "bug": "send keeps the lock",
+        "verdict": "refuted",
+        "goal": "one node holds the lock @step",
+        "stuck": "sat",
+        "run": 11,
+        "ms": 55,
+        "work": 159,
+        "full": 765,
+        "exit": 0
+      },
+      "base": {
+        "bug": "send keeps the lock",
+        "verdict": "refuted",
+        "goal": "one node holds the lock @step",
+        "stuck": "sat",
+        "run": 11,
+        "ms": 61,
+        "work": 159,
+        "full": 765,
+        "exit": 0
+      }
+    },
+    {
+      "file": "negative-naive_consensus-s60-r3.log",
+      "id": "naive_consensus",
+      "run": 3,
+      "cand": {
+        "bug": "cast_vote twice",
+        "verdict": "unknown",
+        "why": "a law fails on the small instances",
+        "found": [
+          "every Vote cell is a value of its kind",
+          "every Voted cell is a value of its kind",
+          "every Decide cell is a value of its kind",
+          "every Decision cell is a value of its kind",
+          "one value decided"
+        ],
+        "ms": 2320,
+        "work": 0,
+        "full": 0,
+        "exit": 0
+      },
+      "base": {
+        "bug": "cast_vote twice",
+        "verdict": "unknown",
+        "why": "a law fails on the small instances",
+        "found": [
+          "every Vote cell is a value of its kind",
+          "every Voted cell is a value of its kind",
+          "every Decide cell is a value of its kind",
+          "every Decision cell is a value of its kind",
+          "one value decided"
+        ],
+        "ms": 2535,
+        "work": 0,
+        "full": 0,
+        "exit": 0
+      }
+    },
+    {
+      "file": "negative-consensus-s60-r2.log",
+      "id": "consensus",
+      "run": 2,
+      "cand": {
+        "bug": "Next without chosen = {}",
+        "verdict": "refuted",
+        "goal": "at most one value chosen @step",
+        "stuck": "sat",
+        "run": 2,
+        "ms": 4,
+        "work": 0,
+        "full": 0,
+        "exit": 0
+      },
+      "base": {
+        "bug": "Next without chosen = {}",
+        "verdict": "refuted",
+        "goal": "at most one value chosen @step",
+        "stuck": "sat",
+        "run": 2,
+        "ms": 4,
+        "work": 0,
+        "full": 0,
+        "exit": 0
+      }
+    },
+    {
+      "file": "negative-twophase-s60-r1.log",
+      "id": "twophase",
+      "run": 1,
+      "cand": {
+        "bug": "tm_commit before every RM is prepared",
+        "verdict": "refuted",
+        "goal": "commit and abort exclude @step",
+        "stuck": "sat",
+        "run": 6,
+        "ms": 24,
+        "work": 0,
+        "full": 0,
+        "exit": 0
+      },
+      "base": {
+        "bug": "tm_commit before every RM is prepared",
+        "verdict": "refuted",
+        "goal": "commit and abort exclude @step",
+        "stuck": "sat",
+        "run": 6,
+        "ms": 25,
+        "work": 0,
+        "full": 0,
+        "exit": 0
+      }
+    },
+    {
+      "file": "negative-twophase-s60-r3.log",
+      "id": "twophase",
+      "run": 3,
+      "cand": {
+        "bug": "tm_commit before every RM is prepared",
+        "verdict": "refuted",
+        "goal": "commit and abort exclude @step",
+        "stuck": "sat",
+        "run": 6,
+        "ms": 17,
+        "work": 0,
+        "full": 0,
+        "exit": 0
+      },
+      "base": {
+        "bug": "tm_commit before every RM is prepared",
+        "verdict": "refuted",
+        "goal": "commit and abort exclude @step",
+        "stuck": "sat",
+        "run": 6,
+        "ms": 20,
+        "work": 0,
+        "full": 0,
+        "exit": 0
+      }
+    },
+    {
+      "file": "verification.log",
+      "id": "",
+      "run": 0,
+      "cand": {},
+      "base": {}
+    },
+    {
+      "file": "negative-twophase-s60-r2.log",
+      "id": "twophase",
+      "run": 2,
+      "cand": {
+        "bug": "tm_commit before every RM is prepared",
+        "verdict": "refuted",
+        "goal": "commit and abort exclude @step",
+        "stuck": "sat",
+        "run": 6,
+        "ms": 18,
+        "work": 0,
+        "full": 0,
+        "exit": 0
+      },
+      "base": {
+        "bug": "tm_commit before every RM is prepared",
+        "verdict": "refuted",
+        "goal": "commit and abort exclude @step",
+        "stuck": "sat",
+        "run": 6,
+        "ms": 17,
+        "work": 0,
+        "full": 0,
+        "exit": 0
+      }
+    },
+    {
+      "file": "negative-simple_regular-s60-r1.log",
+      "id": "simple_regular",
+      "run": 1,
+      "cand": {
+        "bug": "a2 leaves x = {0, 1}",
+        "verdict": "refuted",
+        "goal": "some process not done, or some y is 1 @step",
+        "stuck": "sat",
+        "run": 4,
+        "ms": 10,
+        "work": 0,
+        "full": 0,
+        "exit": 0
+      },
+      "base": {
+        "bug": "a2 leaves x = {0, 1}",
+        "verdict": "refuted",
+        "goal": "some process not done, or some y is 1 @step",
+        "stuck": "sat",
+        "run": 4,
+        "ms": 8,
+        "work": 0,
+        "full": 0,
+        "exit": 0
+      }
+    },
+    {
+      "file": "negative-consensus_wo_decide-s60-r2.log",
+      "id": "consensus_wo_decide",
+      "run": 2,
+      "cand": {
+        "bug": "send_vote without voted",
+        "verdict": "unknown",
+        "why": "a law fails on the small instances",
+        "found": [
+          "every VoteRequestMsg cell is a value of its kind",
+          "every Voted cell is a value of its kind",
+          "every VoteMsg cell is a value of its kind",
+          "every Votes cell is a value of its kind",
+          "every Leader cell is a value of its kind",
+          "every VotingQuorum cell is a value of its kind",
+          "one leader"
+        ],
+        "ms": 3340,
+        "work": 0,
+        "full": 0,
+        "exit": 0
+      },
+      "base": {
+        "bug": "send_vote without voted",
+        "verdict": "unknown",
+        "why": "a law fails on the small instances",
+        "found": [
+          "every VoteRequestMsg cell is a value of its kind",
+          "every Voted cell is a value of its kind",
+          "every VoteMsg cell is a value of its kind",
+          "every Votes cell is a value of its kind",
+          "every Leader cell is a value of its kind",
+          "every VotingQuorum cell is a value of its kind",
+          "one leader"
+        ],
+        "ms": 3458,
+        "work": 0,
+        "full": 0,
+        "exit": 0
+      }
+    },
+    {
+      "file": "negative-tcommit-s60-r1.log",
+      "id": "tcommit",
+      "run": 1,
+      "cand": {
+        "bug": "commit without canCommit",
+        "verdict": "refuted",
+        "goal": "commit and abort exclude @step",
+        "stuck": "sat",
+        "run": 4,
+        "ms": 16,
+        "work": 0,
+        "full": 0,
+        "exit": 0
+      },
+      "base": {
+        "bug": "commit without canCommit",
+        "verdict": "refuted",
+        "goal": "commit and abort exclude @step",
+        "stuck": "sat",
+        "run": 4,
+        "ms": 13,
+        "work": 0,
+        "full": 0,
+        "exit": 0
+      }
+    },
+    {
+      "file": "negative-consensus_wo_decide-s60-r3.log",
+      "id": "consensus_wo_decide",
+      "run": 3,
+      "cand": {
+        "bug": "send_vote without voted",
+        "verdict": "unknown",
+        "why": "a law fails on the small instances",
+        "found": [
+          "every VoteRequestMsg cell is a value of its kind",
+          "every Voted cell is a value of its kind",
+          "every VoteMsg cell is a value of its kind",
+          "every Votes cell is a value of its kind",
+          "every Leader cell is a value of its kind",
+          "every VotingQuorum cell is a value of its kind",
+          "one leader"
+        ],
+        "ms": 2853,
+        "work": 0,
+        "full": 0,
+        "exit": 0
+      },
+      "base": {
+        "bug": "send_vote without voted",
+        "verdict": "unknown",
+        "why": "a law fails on the small instances",
+        "found": [
+          "every VoteRequestMsg cell is a value of its kind",
+          "every Voted cell is a value of its kind",
+          "every VoteMsg cell is a value of its kind",
+          "every Votes cell is a value of its kind",
+          "every Leader cell is a value of its kind",
+          "every VotingQuorum cell is a value of its kind",
+          "one leader"
+        ],
+        "ms": 2577,
+        "work": 0,
+        "full": 0,
+        "exit": 0
+      }
+    },
+    {
+      "file": "negative-client_server_ae-s60-r1.log",
+      "id": "client_server_ae",
+      "run": 1,
+      "cand": {
+        "bug": "respond without match",
+        "verdict": "unknown",
+        "goal": "a received response was matched @step",
+        "stuck": "unknown",
+        "why": "no witness for \"a received response was matched\" holds on the small instances; the search found nothing that proves it in 1905 ms",
+        "ms": 12912,
+        "work": 0,
+        "full": 0,
+        "exit": 0
+      },
+      "base": {
+        "bug": "respond without match",
+        "verdict": "unknown",
+        "goal": "a received response was matched @step",
+        "stuck": "unknown",
+        "why": "no witness for \"a received response was matched\" holds on the small instances; the search found nothing that proves it in 2182 ms",
+        "ms": 13885,
+        "work": 0,
+        "full": 0,
+        "exit": 0
+      }
+    },
+    {
+      "file": "negative-sharded_kv_no_lost_keys-s60-r1.log",
+      "id": "sharded_kv_no_lost_keys",
+      "run": 1,
+      "cand": {
+        "exit": 137
+      },
+      "base": {
+        "exit": 137
+      }
+    },
+    {
+      "file": "negative-sharded_kv_no_lost_keys-s60-r3.log",
+      "id": "sharded_kv_no_lost_keys",
+      "run": 3,
+      "cand": {
+        "exit": 137
+      },
+      "base": {
+        "exit": 137
+      }
+    },
+    {
+      "file": "negative-client_server_ae-s60-r3.log",
+      "id": "client_server_ae",
+      "run": 3,
+      "cand": {
+        "bug": "respond without match",
+        "verdict": "unknown",
+        "goal": "a received response was matched @step",
+        "stuck": "unknown",
+        "why": "no witness for \"a received response was matched\" holds on the small instances; the search found nothing that proves it in 2154 ms",
+        "ms": 13011,
+        "work": 0,
+        "full": 0,
+        "exit": 0
+      },
+      "base": {
+        "bug": "respond without match",
+        "verdict": "unknown",
+        "goal": "a received response was matched @step",
+        "stuck": "unknown",
+        "why": "no witness for \"a received response was matched\" holds on the small instances; the search found nothing that proves it in 2229 ms",
+        "ms": 13444,
+        "work": 0,
+        "full": 0,
+        "exit": 0
+      }
+    },
+    {
+      "file": "negative-simple_regular-s60-r2.log",
+      "id": "simple_regular",
+      "run": 2,
+      "cand": {
+        "bug": "a2 leaves x = {0, 1}",
+        "verdict": "refuted",
+        "goal": "some process not done, or some y is 1 @step",
+        "stuck": "sat",
+        "run": 4,
+        "ms": 6,
+        "work": 0,
+        "full": 0,
+        "exit": 0
+      },
+      "base": {
+        "bug": "a2 leaves x = {0, 1}",
+        "verdict": "refuted",
+        "goal": "some process not done, or some y is 1 @step",
+        "stuck": "sat",
+        "run": 4,
+        "ms": 6,
+        "work": 0,
+        "full": 0,
+        "exit": 0
+      }
+    },
+    {
+      "file": "negative-consensus_wo_decide-s60-r1.log",
+      "id": "consensus_wo_decide",
+      "run": 1,
+      "cand": {
+        "bug": "send_vote without voted",
+        "verdict": "unknown",
+        "why": "a law fails on the small instances",
+        "found": [
+          "every VoteRequestMsg cell is a value of its kind",
+          "every Voted cell is a value of its kind",
+          "every VoteMsg cell is a value of its kind",
+          "every Votes cell is a value of its kind",
+          "every Leader cell is a value of its kind",
+          "every VotingQuorum cell is a value of its kind",
+          "one leader"
+        ],
+        "ms": 5761,
+        "work": 0,
+        "full": 0,
+        "exit": 0
+      },
+      "base": {
+        "bug": "send_vote without voted",
+        "verdict": "unknown",
+        "why": "a law fails on the small instances",
+        "found": [
+          "every VoteRequestMsg cell is a value of its kind",
+          "every Voted cell is a value of its kind",
+          "every VoteMsg cell is a value of its kind",
+          "every Votes cell is a value of its kind",
+          "every Leader cell is a value of its kind",
+          "every VotingQuorum cell is a value of its kind",
+          "one leader"
+        ],
+        "ms": 6699,
+        "work": 0,
+        "full": 0,
+        "exit": 0
+      }
+    },
+    {
+      "file": "negative-tcommit-s60-r3.log",
+      "id": "tcommit",
+      "run": 3,
+      "cand": {
+        "bug": "commit without canCommit",
+        "verdict": "refuted",
+        "goal": "commit and abort exclude @step",
+        "stuck": "sat",
+        "run": 4,
+        "ms": 15,
+        "work": 0,
+        "full": 0,
+        "exit": 0
+      },
+      "base": {
+        "bug": "commit without canCommit",
+        "verdict": "refuted",
+        "goal": "commit and abort exclude @step",
+        "stuck": "sat",
+        "run": 4,
+        "ms": 16,
+        "work": 0,
+        "full": 0,
+        "exit": 0
+      }
+    },
+    {
+      "file": "negative-tcommit-s60-r2.log",
+      "id": "tcommit",
+      "run": 2,
+      "cand": {
+        "bug": "commit without canCommit",
+        "verdict": "refuted",
+        "goal": "commit and abort exclude @step",
+        "stuck": "sat",
+        "run": 4,
+        "ms": 13,
+        "work": 0,
+        "full": 0,
+        "exit": 0
+      },
+      "base": {
+        "bug": "commit without canCommit",
+        "verdict": "refuted",
+        "goal": "commit and abort exclude @step",
+        "stuck": "sat",
+        "run": 4,
+        "ms": 11,
+        "work": 0,
+        "full": 0,
+        "exit": 0
+      }
+    },
+    {
+      "file": "negative-simple_regular-s60-r3.log",
+      "id": "simple_regular",
+      "run": 3,
+      "cand": {
+        "bug": "a2 leaves x = {0, 1}",
+        "verdict": "refuted",
+        "goal": "some process not done, or some y is 1 @step",
+        "stuck": "sat",
+        "run": 4,
+        "ms": 5,
+        "work": 0,
+        "full": 0,
+        "exit": 0
+      },
+      "base": {
+        "bug": "a2 leaves x = {0, 1}",
+        "verdict": "refuted",
+        "goal": "some process not done, or some y is 1 @step",
+        "stuck": "sat",
+        "run": 4,
+        "ms": 5,
+        "work": 0,
+        "full": 0,
+        "exit": 0
+      }
+    },
+    {
+      "file": "negative-client_server_ae-s60-r2.log",
+      "id": "client_server_ae",
+      "run": 2,
+      "cand": {
+        "bug": "respond without match",
+        "verdict": "unknown",
+        "goal": "a received response was matched @step",
+        "stuck": "unknown",
+        "why": "no witness for \"a received response was matched\" holds on the small instances; the search found nothing that proves it in 2385 ms",
+        "ms": 14741,
+        "work": 0,
+        "full": 0,
+        "exit": 0
+      },
+      "base": {
+        "bug": "respond without match",
+        "verdict": "unknown",
+        "goal": "a received response was matched @step",
+        "stuck": "unknown",
+        "why": "no witness for \"a received response was matched\" holds on the small instances; the search found nothing that proves it in 2729 ms",
+        "ms": 15284,
+        "work": 0,
+        "full": 0,
+        "exit": 0
+      }
+    },
+    {
+      "file": "negative-sharded_kv_no_lost_keys-s60-r2.log",
+      "id": "sharded_kv_no_lost_keys",
+      "run": 2,
+      "cand": {
+        "exit": 137
+      },
+      "base": {
+        "exit": 137
+      }
+    },
+    {
+      "file": "negative-paxos-r1.log",
+      "id": "paxos_epr",
+      "run": 1,
+      "cand": {
+        "bug": "propose without the votes check",
+        "verdict": "unknown",
+        "why": "time",
+        "found": [
+          "every OneA cell is a value of its kind",
+          "every OneB cell is a value of its kind",
+          "every Left cell is a value of its kind",
+          "every Proposal cell is a value of its kind",
+          "every Vote cell is a value of its kind",
+          "every Decision cell is a value of its kind",
+          "every Qs cell is a value of its kind",
+          "one value decided",
+          "members$Qs keeps members's bound 0",
+          "members$Qs keeps members's bound 2",
+          "Decision keeps members's bound through members$Decision",
+          "every x, y, z with x < 64 ∧ y < 64 ∧ z < 64 ∧ ¬(y = z): never 1 <= Proposal[64·x + y] and 1 <= Proposal[64·x + z]",
+          "every x with x <= 63: never 1 <= Qs[x] and busy is 0",
+          "every x, y with x <= 63 ∧ y < 64: never OneA[y] is 0 and 1 <= OneB[64·y + x]",
+          "every x, y, z with x <= 63 ∧ y < 64 ∧ z < 64: never 1 <= Vote[64·64·x + y + z] and Proposal[64·y + z] is 0",
+          "carry:guard:e11bb2856a4188b5",
+          "carry:guard:71517ec714847e1e",
+          "carry:guard:f8fa169d60df315a",
+          "carry:guard:faa607cf227d2883",
+          "carry:guard:8c4667f43952b1a7",
+          "carry:guard:a1aac0f2b5acf946",
+          "carry:guard:69834f3e58d5e918",
+          "carry:guard:e6d2937e4bcb51dc",
+          "carry:guard:980373f5503cf4c6",
+          "carry:co-write:6282256ba10ee781",
+          "carry:global-range:f29c323756a78a95",
+          "carry:global-range:345c4e9ce3eda2e1",
+          "carry:global-range:4d9ef1fb20062861",
+          "carry:global-frame:ef4514c87a594d2c",
+          "carry:point-guard:dbae780daebdcb74",
+          "carry:point-guard:42b72ece9101070e"
+        ],
+        "ms": 47960,
+        "work": 109728263,
+        "full": 15002734,
+        "exit": 0
+      },
+      "base": {
+        "bug": "propose without the votes check",
+        "verdict": "unknown",
+        "why": "not proven: one value decided",
+        "found": [
+          "every OneA cell is a value of its kind",
+          "every OneB cell is a value of its kind",
+          "every Left cell is a value of its kind",
+          "every Proposal cell is a value of its kind",
+          "every Vote cell is a value of its kind",
+          "every Decision cell is a value of its kind",
+          "every Qs cell is a value of its kind",
+          "one value decided",
+          "members$Qs keeps members's bound 0",
+          "members$Qs keeps members's bound 2",
+          "Decision keeps members's bound through members$Decision",
+          "every x, y with x < 64 ∧ y < 64: never 1 <= Decision[64·x + y] and Proposal[64·x + y] is 0",
+          "every x, y, z with x < 64 ∧ y < 64 ∧ z < 64 ∧ ¬(y = z): never 1 <= Decision[64·x + y] and 1 <= Decision[64·x + z]",
+          "every x, y, z with x < 64 ∧ y < 64 ∧ z < 64 ∧ ¬(y = z): never 1 <= Proposal[64·x + y] and 1 <= Proposal[64·x + z]",
+          "every x with x <= 63: never 1 <= Qs[x] and busy is 0",
+          "every x, y with x <= 63 ∧ y < 64: never OneA[y] is 0 and 1 <= OneB[64·y + x]",
+          "every x, y, z with x <= 63 ∧ y < 64 ∧ z < 64: never 1 <= Vote[64·64·x + y + z] and Proposal[64·y + z] is 0",
+          "carry:guard:e11bb2856a4188b5",
+          "carry:guard:71517ec714847e1e",
+          "carry:guard:f8fa169d60df315a",
+          "carry:guard:faa607cf227d2883",
+          "carry:guard:8c4667f43952b1a7",
+          "carry:guard:a1aac0f2b5acf946",
+          "carry:guard:69834f3e58d5e918",
+          "carry:guard:e6d2937e4bcb51dc",
+          "carry:guard:980373f5503cf4c6",
+          "carry:co-write:6282256ba10ee781",
+          "carry:global-range:f29c323756a78a95",
+          "carry:global-range:345c4e9ce3eda2e1",
+          "carry:global-range:4d9ef1fb20062861",
+          "carry:global-frame:ef4514c87a594d2c",
+          "carry:point-guard:dbae780daebdcb74",
+          "carry:point-guard:42b72ece9101070e"
+        ],
+        "ms": 40498,
+        "work": 145967329,
+        "full": 12999248,
+        "exit": 0
+      }
+    },
+    {
+      "file": "negative-paxos-r2.log",
+      "id": "paxos_epr",
+      "run": 2,
+      "cand": {
+        "bug": "propose without the votes check",
+        "verdict": "unknown",
+        "why": "time",
+        "found": [
+          "every OneA cell is a value of its kind",
+          "every OneB cell is a value of its kind",
+          "every Left cell is a value of its kind",
+          "every Proposal cell is a value of its kind",
+          "every Vote cell is a value of its kind",
+          "every Decision cell is a value of its kind",
+          "every Qs cell is a value of its kind",
+          "one value decided",
+          "members$Qs keeps members's bound 0",
+          "members$Qs keeps members's bound 2",
+          "Decision keeps members's bound through members$Decision",
+          "every x, y, z with x < 64 ∧ y < 64 ∧ z < 64 ∧ ¬(y = z): never 1 <= Proposal[64·x + y] and 1 <= Proposal[64·x + z]",
+          "every x with x <= 63: never 1 <= Qs[x] and busy is 0",
+          "every x, y with x <= 63 ∧ y < 64: never OneA[y] is 0 and 1 <= OneB[64·y + x]",
+          "every x, y, z with x <= 63 ∧ y < 64 ∧ z < 64: never 1 <= Vote[64·64·x + y + z] and Proposal[64·y + z] is 0",
+          "carry:guard:e11bb2856a4188b5",
+          "carry:guard:71517ec714847e1e",
+          "carry:guard:f8fa169d60df315a",
+          "carry:guard:faa607cf227d2883",
+          "carry:guard:8c4667f43952b1a7",
+          "carry:guard:a1aac0f2b5acf946",
+          "carry:guard:69834f3e58d5e918",
+          "carry:guard:e6d2937e4bcb51dc",
+          "carry:guard:980373f5503cf4c6",
+          "carry:co-write:6282256ba10ee781",
+          "carry:global-range:f29c323756a78a95",
+          "carry:global-range:345c4e9ce3eda2e1",
+          "carry:global-range:4d9ef1fb20062861",
+          "carry:global-frame:ef4514c87a594d2c",
+          "carry:point-guard:dbae780daebdcb74",
+          "carry:point-guard:42b72ece9101070e"
+        ],
+        "ms": 57726,
+        "work": 109728263,
+        "full": 15002734,
+        "exit": 0
+      },
+      "base": {
+        "bug": "propose without the votes check",
+        "verdict": "unknown",
+        "why": "not proven: one value decided",
+        "found": [
+          "every OneA cell is a value of its kind",
+          "every OneB cell is a value of its kind",
+          "every Left cell is a value of its kind",
+          "every Proposal cell is a value of its kind",
+          "every Vote cell is a value of its kind",
+          "every Decision cell is a value of its kind",
+          "every Qs cell is a value of its kind",
+          "one value decided",
+          "members$Qs keeps members's bound 0",
+          "members$Qs keeps members's bound 2",
+          "Decision keeps members's bound through members$Decision",
+          "every x, y with x < 64 ∧ y < 64: never 1 <= Decision[64·x + y] and Proposal[64·x + y] is 0",
+          "every x, y, z with x < 64 ∧ y < 64 ∧ z < 64 ∧ ¬(y = z): never 1 <= Decision[64·x + y] and 1 <= Decision[64·x + z]",
+          "every x, y, z with x < 64 ∧ y < 64 ∧ z < 64 ∧ ¬(y = z): never 1 <= Proposal[64·x + y] and 1 <= Proposal[64·x + z]",
+          "every x with x <= 63: never 1 <= Qs[x] and busy is 0",
+          "every x, y with x <= 63 ∧ y < 64: never OneA[y] is 0 and 1 <= OneB[64·y + x]",
+          "every x, y, z with x <= 63 ∧ y < 64 ∧ z < 64: never 1 <= Vote[64·64·x + y + z] and Proposal[64·y + z] is 0",
+          "carry:guard:e11bb2856a4188b5",
+          "carry:guard:71517ec714847e1e",
+          "carry:guard:f8fa169d60df315a",
+          "carry:guard:faa607cf227d2883",
+          "carry:guard:8c4667f43952b1a7",
+          "carry:guard:a1aac0f2b5acf946",
+          "carry:guard:69834f3e58d5e918",
+          "carry:guard:e6d2937e4bcb51dc",
+          "carry:guard:980373f5503cf4c6",
+          "carry:co-write:6282256ba10ee781",
+          "carry:global-range:f29c323756a78a95",
+          "carry:global-range:345c4e9ce3eda2e1",
+          "carry:global-range:4d9ef1fb20062861",
+          "carry:global-frame:ef4514c87a594d2c",
+          "carry:point-guard:dbae780daebdcb74",
+          "carry:point-guard:42b72ece9101070e"
+        ],
+        "ms": 53472,
+        "work": 145967329,
+        "full": 12999248,
+        "exit": 0
+      }
+    },
+    {
+      "file": "negative-paxos-r3.log",
+      "id": "paxos_epr",
+      "run": 3,
+      "cand": {
+        "exit": 137
+      },
+      "base": {
+        "bug": "propose without the votes check",
+        "verdict": "unknown",
+        "why": "not proven: one value decided",
+        "found": [
+          "every OneA cell is a value of its kind",
+          "every OneB cell is a value of its kind",
+          "every Left cell is a value of its kind",
+          "every Proposal cell is a value of its kind",
+          "every Vote cell is a value of its kind",
+          "every Decision cell is a value of its kind",
+          "every Qs cell is a value of its kind",
+          "one value decided",
+          "members$Qs keeps members's bound 0",
+          "members$Qs keeps members's bound 2",
+          "Decision keeps members's bound through members$Decision",
+          "every x, y with x < 64 ∧ y < 64: never 1 <= Decision[64·x + y] and Proposal[64·x + y] is 0",
+          "every x, y, z with x < 64 ∧ y < 64 ∧ z < 64 ∧ ¬(y = z): never 1 <= Decision[64·x + y] and 1 <= Decision[64·x + z]",
+          "every x, y, z with x < 64 ∧ y < 64 ∧ z < 64 ∧ ¬(y = z): never 1 <= Proposal[64·x + y] and 1 <= Proposal[64·x + z]",
+          "every x with x <= 63: never 1 <= Qs[x] and busy is 0",
+          "every x, y with x <= 63 ∧ y < 64: never OneA[y] is 0 and 1 <= OneB[64·y + x]",
+          "every x, y, z with x <= 63 ∧ y < 64 ∧ z < 64: never 1 <= Vote[64·64·x + y + z] and Proposal[64·y + z] is 0",
+          "carry:guard:e11bb2856a4188b5",
+          "carry:guard:71517ec714847e1e",
+          "carry:guard:f8fa169d60df315a",
+          "carry:guard:faa607cf227d2883",
+          "carry:guard:8c4667f43952b1a7",
+          "carry:guard:a1aac0f2b5acf946",
+          "carry:guard:69834f3e58d5e918",
+          "carry:guard:e6d2937e4bcb51dc",
+          "carry:guard:980373f5503cf4c6",
+          "carry:co-write:6282256ba10ee781",
+          "carry:global-range:f29c323756a78a95",
+          "carry:global-range:345c4e9ce3eda2e1",
+          "carry:global-range:4d9ef1fb20062861",
+          "carry:global-frame:ef4514c87a594d2c",
+          "carry:point-guard:dbae780daebdcb74",
+          "carry:point-guard:42b72ece9101070e"
+        ],
+        "ms": 52001,
+        "work": 145967329,
+        "full": 12999248,
+        "exit": 0
+      }
+    }
+  ]
+}

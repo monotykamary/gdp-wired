@@ -1,0 +1,51 @@
+[
+  {
+    "name": "endpoints",
+    "cmd": "bash research/track-m/paxos-revision.sh 6a3874d3 d1061c8d a374d8f2 844a1baf 6a3874d3",
+    "cpu": 8,
+    "memory": 14336,
+    "timeout": 420
+  },
+  {
+    "name": "candidate-boundary",
+    "cmd": "bash research/track-m/paxos-revision.sh 6a3874d3 23543462 55b5846a 41b97e31 6a3874d3",
+    "cpu": 8,
+    "memory": 14336,
+    "timeout": 420
+  },
+  {
+    "name": "approved-main-r1",
+    "cmd": "PAXOS_REQUIRE_PROVEN=1 bash research/track-m/paxos-revision.sh 6a3874d3",
+    "cpu": 8,
+    "memory": 14336,
+    "timeout": 150
+  },
+  {
+    "name": "approved-main-r2",
+    "cmd": "PAXOS_REQUIRE_PROVEN=1 bash research/track-m/paxos-revision.sh 6a3874d3",
+    "cpu": 8,
+    "memory": 14336,
+    "timeout": 150
+  },
+  {
+    "name": "approved-main-r3",
+    "cmd": "PAXOS_REQUIRE_PROVEN=1 bash research/track-m/paxos-revision.sh 6a3874d3",
+    "cpu": 8,
+    "memory": 14336,
+    "timeout": 150
+  },
+  {
+    "name": "current-v-main",
+    "cmd": "PAXOS_REPEATS=3 bash research/track-m/paxos-revision.sh 6a3874d3 844a1baf",
+    "cpu": 8,
+    "memory": 14336,
+    "timeout": 420
+  },
+  {
+    "name": "prefix-fix-v-main",
+    "cmd": "PAXOS_REPEATS=3 PAXOS_REQUIRE_PROVEN=1 bash research/track-m/paxos-revision.sh 6a3874d3 844a1baf-f51e8996",
+    "cpu": 8,
+    "memory": 14336,
+    "timeout": 420
+  }
+]

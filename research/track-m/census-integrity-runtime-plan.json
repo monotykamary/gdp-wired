@@ -1,0 +1,10 @@
+[
+ {"id":"p1","variant":"tf1-profile","bunArgs":["--cpu-prof","--cpu-prof-dir={out}","--cpu-prof-name=p1.cpuprofile"]},
+ {"id":"p2","variant":"tf1-profile","bunArgs":["--cpu-prof","--cpu-prof-dir={out}","--cpu-prof-name=p2.cpuprofile"]},
+ {"id":"s1","variant":"tf1-profile","env":{"BUN_JSC_useConcurrentJIT":"false"}},
+ {"id":"s2","variant":"tf1-profile","env":{"BUN_JSC_useConcurrentJIT":"false"}},
+ {"id":"g1","variant":"tf1-profile","env":{"BUN_JSC_useConcurrentGC":"false"}},
+ {"id":"g2","variant":"tf1-profile","env":{"BUN_JSC_useConcurrentGC":"false"}},
+ {"id":"f1","variant":"tf1-profile","env":{"BUN_JSC_useFTLJIT":"false"}},
+ {"id":"f2","variant":"tf1-profile","env":{"BUN_JSC_useFTLJIT":"false"}}
+]

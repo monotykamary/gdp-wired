@@ -1,0 +1,3530 @@
+{
+  "researchOnly": true,
+  "productionChanges": false,
+  "kernelChanges": false,
+  "engine": "5974b9165d6860f1157f3bed3cd66a7e1514e904",
+  "productionLawAllowance": 5000,
+  "diagnosticLawAllowance": 50000,
+  "normalClocks": true,
+  "inflightDump": false,
+  "placement": "exclusive bx_25xas5gt, 8 pinned large vCPUs; scheduler serialized jobs despite two-VM request",
+  "root": {
+    "proposed": 51,
+    "nonFrameCategoryCount": 45,
+    "checked": [
+      30,
+      40,
+      50,
+      51,
+      105,
+      136,
+      187,
+      188,
+      191,
+      193,
+      199,
+      204,
+      206,
+      207,
+      208,
+      209,
+      210,
+      213,
+      214,
+      215,
+      217,
+      219,
+      220,
+      221,
+      222,
+      223,
+      225,
+      227,
+      229,
+      230,
+      231
+    ],
+    "proofUnits": 2326.806830799999,
+    "all79Units": 3110.2621244,
+    "all79WallMs": 25052.457535,
+    "records": [
+      {
+        "index": 12,
+        "units": 10.646079599999998,
+        "wallMs": 23.473270000000003,
+        "outcome": "sat",
+        "checked": false,
+        "admitted": false
+      },
+      {
+        "index": 14,
+        "units": 14.937190799999998,
+        "wallMs": 26.229938000000004,
+        "outcome": "sat",
+        "checked": false,
+        "admitted": false
+      },
+      {
+        "index": 16,
+        "units": 14.931814800000003,
+        "wallMs": 21.464337,
+        "outcome": "sat",
+        "checked": false,
+        "admitted": false
+      },
+      {
+        "index": 21,
+        "units": 10.646079599999997,
+        "wallMs": 19.108782000000005,
+        "outcome": "sat",
+        "checked": false,
+        "admitted": false
+      },
+      {
+        "index": 23,
+        "units": 15.442838799999997,
+        "wallMs": 21.716210999999987,
+        "outcome": "sat",
+        "checked": false,
+        "admitted": false
+      },
+      {
+        "index": 25,
+        "units": 15.437462800000008,
+        "wallMs": 22.097307,
+        "outcome": "sat",
+        "checked": false,
+        "admitted": false
+      },
+      {
+        "index": 30,
+        "units": 198.51983800000002,
+        "wallMs": 1738.35423,
+        "outcome": "tree",
+        "checked": true,
+        "admitted": true
+      },
+      {
+        "index": 31,
+        "units": 22.09065639999998,
+        "wallMs": 36.002005000000054,
+        "outcome": "sat",
+        "checked": false,
+        "admitted": false
+      },
+      {
+        "index": 32,
+        "units": 22.634917200000025,
+        "wallMs": 26.407423000000108,
+        "outcome": "sat",
+        "checked": false,
+        "admitted": false
+      },
+      {
+        "index": 33,
+        "units": 22.404628399999986,
+        "wallMs": 38.01037600000018,
+        "outcome": "sat",
+        "checked": false,
+        "admitted": false
+      },
+      {
+        "index": 35,
+        "units": 22.399252400000055,
+        "wallMs": 26.967984000000115,
+        "outcome": "sat",
+        "checked": false,
+        "admitted": false
+      },
+      {
+        "index": 40,
+        "units": 198.519838,
+        "wallMs": 1706.418098,
+        "outcome": "tree",
+        "checked": true,
+        "admitted": true
+      },
+      {
+        "index": 41,
+        "units": 22.09065639999998,
+        "wallMs": 27.581306999999924,
+        "outcome": "sat",
+        "checked": false,
+        "admitted": false
+      },
+      {
+        "index": 42,
+        "units": 22.634917199999908,
+        "wallMs": 44.82016700000031,
+        "outcome": "sat",
+        "checked": false,
+        "admitted": false
+      },
+      {
+        "index": 43,
+        "units": 22.43316840000008,
+        "wallMs": 27.75636600000007,
+        "outcome": "sat",
+        "checked": false,
+        "admitted": false
+      },
+      {
+        "index": 45,
+        "units": 22.427792400000033,
+        "wallMs": 39.774651000000176,
+        "outcome": "sat",
+        "checked": false,
+        "admitted": false
+      },
+      {
+        "index": 50,
+        "units": 186.91173399999994,
+        "wallMs": 1614.7821000000004,
+        "outcome": "tree",
+        "checked": true,
+        "admitted": true
+      },
+      {
+        "index": 51,
+        "units": 204.64033999999972,
+        "wallMs": 1537.53589,
+        "outcome": "tree",
+        "checked": true,
+        "admitted": true
+      },
+      {
+        "index": 52,
+        "units": 18.368126800000436,
+        "wallMs": 27.074816000000283,
+        "outcome": "sat",
+        "checked": false,
+        "admitted": false
+      },
+      {
+        "index": 53,
+        "units": 18.368126799999736,
+        "wallMs": 24.472899000000325,
+        "outcome": "sat",
+        "checked": false,
+        "admitted": false
+      },
+      {
+        "index": 56,
+        "units": 20.29955920000002,
+        "wallMs": 25.487264000000323,
+        "outcome": "sat",
+        "checked": false,
+        "admitted": false
+      },
+      {
+        "index": 59,
+        "units": 19.5063872,
+        "wallMs": 40.01125500000035,
+        "outcome": "sat",
+        "checked": false,
+        "admitted": false
+      },
+      {
+        "index": 63,
+        "units": 18.95342519999994,
+        "wallMs": 29.168378000000303,
+        "outcome": "sat",
+        "checked": false,
+        "admitted": false
+      },
+      {
+        "index": 75,
+        "units": 20.885837200000182,
+        "wallMs": 27.999603000000207,
+        "outcome": "sat",
+        "checked": false,
+        "admitted": false
+      },
+      {
+        "index": 82,
+        "units": 20.955231199999805,
+        "wallMs": 42.16156499999943,
+        "outcome": "sat",
+        "checked": false,
+        "admitted": false
+      },
+      {
+        "index": 94,
+        "units": 20.885837200000182,
+        "wallMs": 28.361180999999306,
+        "outcome": "sat",
+        "checked": false,
+        "admitted": false
+      },
+      {
+        "index": 96,
+        "units": 20.95523120000004,
+        "wallMs": 26.897493999999824,
+        "outcome": "sat",
+        "checked": false,
+        "admitted": false
+      },
+      {
+        "index": 105,
+        "units": 0.4781119999999646,
+        "wallMs": 0.8915639999995619,
+        "outcome": "tree",
+        "checked": true,
+        "admitted": true
+      },
+      {
+        "index": 108,
+        "units": 2.5146160000001547,
+        "wallMs": 1.13124500000049,
+        "outcome": "sat",
+        "checked": false,
+        "admitted": false
+      },
+      {
+        "index": 110,
+        "units": 2.479192000000039,
+        "wallMs": 0.8585220000004483,
+        "outcome": "sat",
+        "checked": false,
+        "admitted": false
+      },
+      {
+        "index": 111,
+        "units": 4.698663999999873,
+        "wallMs": 1.8071860000000015,
+        "outcome": "sat",
+        "checked": false,
+        "admitted": false
+      },
+      {
+        "index": 112,
+        "units": 5.68389599999995,
+        "wallMs": 1.5445819999995365,
+        "outcome": "sat",
+        "checked": false,
+        "admitted": false
+      },
+      {
+        "index": 115,
+        "units": 5.683896000000183,
+        "wallMs": 1.6076599999996688,
+        "outcome": "sat",
+        "checked": false,
+        "admitted": false
+      },
+      {
+        "index": 136,
+        "units": 0.4781119999999646,
+        "wallMs": 0.7117369999996299,
+        "outcome": "tree",
+        "checked": true,
+        "admitted": true
+      },
+      {
+        "index": 137,
+        "units": 10.646079599999823,
+        "wallMs": 9.668880999999601,
+        "outcome": "sat",
+        "checked": false,
+        "admitted": false
+      },
+      {
+        "index": 138,
+        "units": 10.164030800000067,
+        "wallMs": 9.522516999999425,
+        "outcome": "sat",
+        "checked": false,
+        "admitted": false
+      },
+      {
+        "index": 139,
+        "units": 10.646079600000055,
+        "wallMs": 24.84966600000007,
+        "outcome": "sat",
+        "checked": false,
+        "admitted": false
+      },
+      {
+        "index": 140,
+        "units": 10.164030799999834,
+        "wallMs": 10.881800000000112,
+        "outcome": "sat",
+        "checked": false,
+        "admitted": false
+      },
+      {
+        "index": 147,
+        "units": 18.768824400000042,
+        "wallMs": 31.033032000000276,
+        "outcome": "sat",
+        "checked": false,
+        "admitted": false
+      },
+      {
+        "index": 152,
+        "units": 10.646079600000055,
+        "wallMs": 9.424801999999545,
+        "outcome": "sat",
+        "checked": false,
+        "admitted": false
+      },
+      {
+        "index": 158,
+        "units": 19.354069200000026,
+        "wallMs": 42.95113600000059,
+        "outcome": "sat",
+        "checked": false,
+        "admitted": false
+      },
+      {
+        "index": 166,
+        "units": 10.164030800000067,
+        "wallMs": 14.410858999999618,
+        "outcome": "sat",
+        "checked": false,
+        "admitted": false
+      },
+      {
+        "index": 172,
+        "units": 10.164030799999834,
+        "wallMs": 14.181618999999955,
+        "outcome": "sat",
+        "checked": false,
+        "admitted": false
+      },
+      {
+        "index": 182,
+        "units": 19.3843311999999,
+        "wallMs": 31.301735000000008,
+        "outcome": "sat",
+        "checked": false,
+        "admitted": false
+      },
+      {
+        "index": 184,
+        "units": 19.099706400000258,
+        "wallMs": 53.57264899999973,
+        "outcome": "sat",
+        "checked": false,
+        "admitted": false
+      },
+      {
+        "index": 185,
+        "units": 17.595051199999872,
+        "wallMs": 24.228368999999475,
+        "outcome": "sat",
+        "checked": false,
+        "admitted": false
+      },
+      {
+        "index": 187,
+        "units": 3.3094320000002626,
+        "wallMs": 7.754485999999815,
+        "outcome": "tree",
+        "checked": true,
+        "admitted": true
+      },
+      {
+        "index": 188,
+        "units": 3.3094319999997968,
+        "wallMs": 6.239478999999847,
+        "outcome": "tree",
+        "checked": true,
+        "admitted": true
+      },
+      {
+        "index": 191,
+        "units": 7.883064000000013,
+        "wallMs": 10.442103999999745,
+        "outcome": "tree",
+        "checked": true,
+        "admitted": true
+      },
+      {
+        "index": 193,
+        "units": 5.938680000000168,
+        "wallMs": 11.747887999999875,
+        "outcome": "tree",
+        "checked": true,
+        "admitted": true
+      },
+      {
+        "index": 199,
+        "units": 0.7352879999999422,
+        "wallMs": 0.7553579999994326,
+        "outcome": "tree",
+        "checked": true,
+        "admitted": true
+      },
+      {
+        "index": 204,
+        "units": 687.3690948000001,
+        "wallMs": 8251.676223999999,
+        "outcome": "tree",
+        "checked": true,
+        "admitted": true
+      },
+      {
+        "index": 206,
+        "units": 747.7757427999996,
+        "wallMs": 8940.175962999998,
+        "outcome": "tree",
+        "checked": true,
+        "admitted": true
+      },
+      {
+        "index": 207,
+        "units": 4.612486400000285,
+        "wallMs": 3.7476989999995567,
+        "outcome": "tree",
+        "checked": true,
+        "admitted": true
+      },
+      {
+        "index": 208,
+        "units": 4.612092799999285,
+        "wallMs": 3.106815999999526,
+        "outcome": "tree",
+        "checked": true,
+        "admitted": true
+      },
+      {
+        "index": 209,
+        "units": 4.612486400000285,
+        "wallMs": 3.165046000001894,
+        "outcome": "tree",
+        "checked": true,
+        "admitted": true
+      },
+      {
+        "index": 210,
+        "units": 4.612092800000217,
+        "wallMs": 3.0103539999981876,
+        "outcome": "tree",
+        "checked": true,
+        "admitted": true
+      },
+      {
+        "index": 213,
+        "units": 4.61248639999982,
+        "wallMs": 3.0479059999997844,
+        "outcome": "tree",
+        "checked": true,
+        "admitted": true
+      },
+      {
+        "index": 214,
+        "units": 4.612092800000217,
+        "wallMs": 45.89794400000028,
+        "outcome": "tree",
+        "checked": true,
+        "admitted": true
+      },
+      {
+        "index": 215,
+        "units": 4.61248639999982,
+        "wallMs": 4.152368999999453,
+        "outcome": "tree",
+        "checked": true,
+        "admitted": true
+      },
+      {
+        "index": 217,
+        "units": 4.61248639999982,
+        "wallMs": 3.715109000000666,
+        "outcome": "tree",
+        "checked": true,
+        "admitted": true
+      },
+      {
+        "index": 219,
+        "units": 4.612486400000285,
+        "wallMs": 3.456321999998181,
+        "outcome": "tree",
+        "checked": true,
+        "admitted": true
+      },
+      {
+        "index": 220,
+        "units": 4.612092800000217,
+        "wallMs": 3.3673759999983304,
+        "outcome": "tree",
+        "checked": true,
+        "admitted": true
+      },
+      {
+        "index": 221,
+        "units": 4.612486399999354,
+        "wallMs": 3.2213510000001406,
+        "outcome": "tree",
+        "checked": true,
+        "admitted": true
+      },
+      {
+        "index": 222,
+        "units": 4.612092800000217,
+        "wallMs": 3.0381280000001425,
+        "outcome": "tree",
+        "checked": true,
+        "admitted": true
+      },
+      {
+        "index": 223,
+        "units": 4.612486400000285,
+        "wallMs": 2.96685300000172,
+        "outcome": "tree",
+        "checked": true,
+        "admitted": true
+      },
+      {
+        "index": 225,
+        "units": 3.5801911999997684,
+        "wallMs": 2.1977090000000317,
+        "outcome": "tree",
+        "checked": true,
+        "admitted": true
+      },
+      {
+        "index": 227,
+        "units": 3.5605112000000663,
+        "wallMs": 2.090817000000243,
+        "outcome": "tree",
+        "checked": true,
+        "admitted": true
+      },
+      {
+        "index": 229,
+        "units": 4.61248639999982,
+        "wallMs": 2.886561999999685,
+        "outcome": "tree",
+        "checked": true,
+        "admitted": true
+      },
+      {
+        "index": 230,
+        "units": 4.612092800000217,
+        "wallMs": 2.7887080000000424,
+        "outcome": "tree",
+        "checked": true,
+        "admitted": true
+      },
+      {
+        "index": 231,
+        "units": 4.61248639999982,
+        "wallMs": 2.728503999998793,
+        "outcome": "tree",
+        "checked": true,
+        "admitted": true
+      },
+      {
+        "index": 253,
+        "units": 24.620554800000974,
+        "wallMs": 28.732701999997516,
+        "outcome": "sat",
+        "checked": false,
+        "admitted": false
+      },
+      {
+        "index": 254,
+        "units": 24.61968479999993,
+        "wallMs": 28.884356999999,
+        "outcome": "sat",
+        "checked": false,
+        "admitted": false
+      },
+      {
+        "index": 257,
+        "units": 24.61968479999993,
+        "wallMs": 27.82352300000275,
+        "outcome": "sat",
+        "checked": false,
+        "admitted": false
+      },
+      {
+        "index": 258,
+        "units": 24.620554799999574,
+        "wallMs": 26.079718000000867,
+        "outcome": "sat",
+        "checked": false,
+        "admitted": false
+      },
+      {
+        "index": 281,
+        "units": 13.78350120000029,
+        "wallMs": 5.22816000000239,
+        "outcome": "sat",
+        "checked": false,
+        "admitted": false
+      },
+      {
+        "index": 282,
+        "units": 14.60799319999991,
+        "wallMs": 5.273565999999846,
+        "outcome": "sat",
+        "checked": false,
+        "admitted": false
+      },
+      {
+        "index": 285,
+        "units": 14.60799319999991,
+        "wallMs": 5.132560000001831,
+        "outcome": "sat",
+        "checked": false,
+        "admitted": false
+      },
+      {
+        "index": 286,
+        "units": 13.783501199999824,
+        "wallMs": 29.732498999997915,
+        "outcome": "sat",
+        "checked": false,
+        "admitted": false
+      }
+    ],
+    "groups": {
+      "frame-or-bridge": {
+        "indices": [
+          12,
+          14,
+          16,
+          21,
+          23,
+          25,
+          31,
+          32,
+          33,
+          35,
+          41,
+          42,
+          43,
+          45,
+          52,
+          53,
+          56,
+          59,
+          63,
+          75,
+          82,
+          94,
+          96,
+          137,
+          138,
+          139,
+          140,
+          147,
+          152,
+          158,
+          166,
+          172,
+          182,
+          184
+        ],
+        "checked": [],
+        "notChecked": [
+          12,
+          14,
+          16,
+          21,
+          23,
+          25,
+          31,
+          32,
+          33,
+          35,
+          41,
+          42,
+          43,
+          45,
+          52,
+          53,
+          56,
+          59,
+          63,
+          75,
+          82,
+          94,
+          96,
+          137,
+          138,
+          139,
+          140,
+          147,
+          152,
+          158,
+          166,
+          172,
+          182,
+          184
+        ],
+        "proofUnits": 0
+      },
+      "same-state-inclusion": {
+        "indices": [
+          30,
+          40,
+          50,
+          51,
+          105,
+          108,
+          110,
+          111,
+          112,
+          115,
+          136
+        ],
+        "checked": [
+          30,
+          40,
+          50,
+          51,
+          105,
+          136
+        ],
+        "notChecked": [
+          108,
+          110,
+          111,
+          112,
+          115
+        ],
+        "proofUnits": 789.5479739999996
+      },
+      "range-or-zero": {
+        "indices": [
+          185,
+          187,
+          188,
+          191,
+          193,
+          199
+        ],
+        "checked": [
+          187,
+          188,
+          191,
+          193,
+          199
+        ],
+        "notChecked": [
+          185
+        ],
+        "proofUnits": 21.175896000000183
+      },
+      "three-term": {
+        "indices": [
+          204,
+          206,
+          207,
+          208,
+          209,
+          210,
+          213,
+          214,
+          215,
+          217,
+          219,
+          220,
+          221,
+          222,
+          223,
+          225,
+          227,
+          229,
+          230,
+          231
+        ],
+        "checked": [
+          204,
+          206,
+          207,
+          208,
+          209,
+          210,
+          213,
+          214,
+          215,
+          217,
+          219,
+          220,
+          221,
+          222,
+          223,
+          225,
+          227,
+          229,
+          230,
+          231
+        ],
+        "notChecked": [],
+        "proofUnits": 1516.0829608000001
+      },
+      "five-term": {
+        "indices": [
+          253,
+          254,
+          257,
+          258,
+          281,
+          282,
+          285,
+          286
+        ],
+        "checked": [],
+        "notChecked": [
+          253,
+          254,
+          257,
+          258,
+          281,
+          282,
+          285,
+          286
+        ],
+        "proofUnits": 0
+      }
+    },
+    "fullContext": {
+      "units": 50066.4585592,
+      "wallMs": 139280.292205,
+      "budgetPerGoal": 1000,
+      "records": [
+        {
+          "index": 12,
+          "units": 1042.8442704000001,
+          "outcome": "unknown",
+          "checked": false,
+          "admitted": false
+        },
+        {
+          "index": 14,
+          "units": 1043.3149768,
+          "outcome": "unknown",
+          "checked": false,
+          "admitted": false
+        },
+        {
+          "index": 16,
+          "units": 1042.5594391999998,
+          "outcome": "unknown",
+          "checked": false,
+          "admitted": false
+        },
+        {
+          "index": 21,
+          "units": 1042.8442704000004,
+          "outcome": "unknown",
+          "checked": false,
+          "admitted": false
+        },
+        {
+          "index": 23,
+          "units": 1043.314976799999,
+          "outcome": "unknown",
+          "checked": false,
+          "admitted": false
+        },
+        {
+          "index": 25,
+          "units": 1043.3149768000012,
+          "outcome": "unknown",
+          "checked": false,
+          "admitted": false
+        },
+        {
+          "index": 31,
+          "units": 1042.6765104,
+          "outcome": "unknown",
+          "checked": false,
+          "admitted": false
+        },
+        {
+          "index": 32,
+          "units": 1042.6765104,
+          "outcome": "unknown",
+          "checked": false,
+          "admitted": false
+        },
+        {
+          "index": 33,
+          "units": 1043.1751767999986,
+          "outcome": "unknown",
+          "checked": false,
+          "admitted": false
+        },
+        {
+          "index": 35,
+          "units": 1042.4196392000001,
+          "outcome": "unknown",
+          "checked": false,
+          "admitted": false
+        },
+        {
+          "index": 41,
+          "units": 1042.6765104000028,
+          "outcome": "unknown",
+          "checked": false,
+          "admitted": false
+        },
+        {
+          "index": 42,
+          "units": 1042.6765103999971,
+          "outcome": "unknown",
+          "checked": false,
+          "admitted": false
+        },
+        {
+          "index": 43,
+          "units": 1043.1751768000015,
+          "outcome": "unknown",
+          "checked": false,
+          "admitted": false
+        },
+        {
+          "index": 45,
+          "units": 1043.1751767999995,
+          "outcome": "unknown",
+          "checked": false,
+          "admitted": false
+        },
+        {
+          "index": 52,
+          "units": 1043.2759876000005,
+          "outcome": "unknown",
+          "checked": false,
+          "admitted": false
+        },
+        {
+          "index": 53,
+          "units": 1043.2759875999986,
+          "outcome": "unknown",
+          "checked": false,
+          "admitted": false
+        },
+        {
+          "index": 56,
+          "units": 1043.7743095999992,
+          "outcome": "unknown",
+          "checked": false,
+          "admitted": false
+        },
+        {
+          "index": 59,
+          "units": 1043.7743095999992,
+          "outcome": "unknown",
+          "checked": false,
+          "admitted": false
+        },
+        {
+          "index": 63,
+          "units": 1043.0161644000002,
+          "outcome": "unknown",
+          "checked": false,
+          "admitted": false
+        },
+        {
+          "index": 75,
+          "units": 1043.7743095999992,
+          "outcome": "unknown",
+          "checked": false,
+          "admitted": false
+        },
+        {
+          "index": 82,
+          "units": 1043.0161644000002,
+          "outcome": "unknown",
+          "checked": false,
+          "admitted": false
+        },
+        {
+          "index": 94,
+          "units": 1043.0161644000038,
+          "outcome": "unknown",
+          "checked": false,
+          "admitted": false
+        },
+        {
+          "index": 96,
+          "units": 1043.7743095999992,
+          "outcome": "unknown",
+          "checked": false,
+          "admitted": false
+        },
+        {
+          "index": 108,
+          "units": 1042.676510400001,
+          "outcome": "unknown",
+          "checked": false,
+          "admitted": false
+        },
+        {
+          "index": 110,
+          "units": 1042.8739991999976,
+          "outcome": "unknown",
+          "checked": false,
+          "admitted": false
+        },
+        {
+          "index": 111,
+          "units": 1042.676510400001,
+          "outcome": "unknown",
+          "checked": false,
+          "admitted": false
+        },
+        {
+          "index": 112,
+          "units": 1043.1751767999976,
+          "outcome": "unknown",
+          "checked": false,
+          "admitted": false
+        },
+        {
+          "index": 115,
+          "units": 1042.419639200002,
+          "outcome": "unknown",
+          "checked": false,
+          "admitted": false
+        },
+        {
+          "index": 137,
+          "units": 1043.097679200001,
+          "outcome": "unknown",
+          "checked": false,
+          "admitted": false
+        },
+        {
+          "index": 138,
+          "units": 1042.6254899999983,
+          "outcome": "unknown",
+          "checked": false,
+          "admitted": false
+        },
+        {
+          "index": 139,
+          "units": 1043.097679200001,
+          "outcome": "unknown",
+          "checked": false,
+          "admitted": false
+        },
+        {
+          "index": 140,
+          "units": 1042.676510400001,
+          "outcome": "unknown",
+          "checked": false,
+          "admitted": false
+        },
+        {
+          "index": 147,
+          "units": 1043.7743095999992,
+          "outcome": "unknown",
+          "checked": false,
+          "admitted": false
+        },
+        {
+          "index": 152,
+          "units": 1042.8442703999951,
+          "outcome": "unknown",
+          "checked": false,
+          "admitted": false
+        },
+        {
+          "index": 158,
+          "units": 1043.0161644000038,
+          "outcome": "unknown",
+          "checked": false,
+          "admitted": false
+        },
+        {
+          "index": 166,
+          "units": 1042.6254900000022,
+          "outcome": "unknown",
+          "checked": false,
+          "admitted": false
+        },
+        {
+          "index": 172,
+          "units": 1042.6765103999971,
+          "outcome": "unknown",
+          "checked": false,
+          "admitted": false
+        },
+        {
+          "index": 182,
+          "units": 1043.774309600003,
+          "outcome": "unknown",
+          "checked": false,
+          "admitted": false
+        },
+        {
+          "index": 184,
+          "units": 1043.7743095999956,
+          "outcome": "unknown",
+          "checked": false,
+          "admitted": false
+        },
+        {
+          "index": 185,
+          "units": 1042.760315200001,
+          "outcome": "unknown",
+          "checked": false,
+          "admitted": false
+        },
+        {
+          "index": 253,
+          "units": 1044.021465599999,
+          "outcome": "unknown",
+          "checked": false,
+          "admitted": false
+        },
+        {
+          "index": 254,
+          "units": 1041.9386711999998,
+          "outcome": "unknown",
+          "checked": false,
+          "admitted": false
+        },
+        {
+          "index": 257,
+          "units": 1044.0214656000062,
+          "outcome": "unknown",
+          "checked": false,
+          "admitted": false
+        },
+        {
+          "index": 258,
+          "units": 1041.9386711999998,
+          "outcome": "unknown",
+          "checked": false,
+          "admitted": false
+        },
+        {
+          "index": 281,
+          "units": 1044.021465599999,
+          "outcome": "unknown",
+          "checked": false,
+          "admitted": false
+        },
+        {
+          "index": 282,
+          "units": 1041.9386711999998,
+          "outcome": "unknown",
+          "checked": false,
+          "admitted": false
+        },
+        {
+          "index": 285,
+          "units": 1043.2958768000008,
+          "outcome": "unknown",
+          "checked": false,
+          "admitted": false
+        },
+        {
+          "index": 286,
+          "units": 1043.175569600001,
+          "outcome": "unknown",
+          "checked": false,
+          "admitted": false
+        }
+      ]
+    },
+    "fiveNamedMaps": {
+      "nonFrameCandidates": 38,
+      "checked": 26,
+      "indices": [
+        50,
+        51,
+        105,
+        136,
+        187,
+        188,
+        193,
+        199,
+        204,
+        206,
+        207,
+        208,
+        209,
+        210,
+        213,
+        214,
+        215,
+        217,
+        219,
+        220,
+        221,
+        222,
+        223,
+        229,
+        230,
+        231
+      ]
+    }
+  },
+  "rows": [
+    {
+      "name": "op4-control",
+      "file": "runs/track-m/section14-prepare-v1/op4-normal-result.json",
+      "op": 4,
+      "closed": false,
+      "units": 16672.478177200002,
+      "wallMs": 29018.534576000002,
+      "wallDefinition": "measured replay interval; excludes input loading and initial root-seed verification",
+      "allowance": 50000,
+      "seedCount": 0,
+      "imports": [],
+      "stats": {
+        "cuts": 36,
+        "sat": 21,
+        "checkedSources": 35,
+        "unknown": 8,
+        "reused": 54,
+        "rawSat": 21,
+        "rawRefuted": 42,
+        "rawUnknown": 1
+      },
+      "ledger": [
+        {
+          "op": "0",
+          "units": 0,
+          "actionAttempts": 1,
+          "leafVisits": 0,
+          "leaves": 0,
+          "cuts": 0,
+          "sourceQueries": 0,
+          "sat": 0,
+          "refuted": 0,
+          "unknown": 0,
+          "reused": 0,
+          "cacheChecked": 0,
+          "cacheSat": 0,
+          "cacheUnknown": 0,
+          "rawRefuted": 0
+        },
+        {
+          "op": "1",
+          "units": 0,
+          "actionAttempts": 1,
+          "leafVisits": 0,
+          "leaves": 0,
+          "cuts": 0,
+          "sourceQueries": 0,
+          "sat": 0,
+          "refuted": 0,
+          "unknown": 0,
+          "reused": 0,
+          "cacheChecked": 0,
+          "cacheSat": 0,
+          "cacheUnknown": 0,
+          "rawRefuted": 0
+        },
+        {
+          "op": "2",
+          "units": 0,
+          "actionAttempts": 1,
+          "leafVisits": 0,
+          "leaves": 0,
+          "cuts": 0,
+          "sourceQueries": 0,
+          "sat": 0,
+          "refuted": 0,
+          "unknown": 0,
+          "reused": 0,
+          "cacheChecked": 0,
+          "cacheSat": 0,
+          "cacheUnknown": 0,
+          "rawRefuted": 0
+        },
+        {
+          "op": "3",
+          "units": 0,
+          "actionAttempts": 1,
+          "leafVisits": 0,
+          "leaves": 0,
+          "cuts": 0,
+          "sourceQueries": 0,
+          "sat": 0,
+          "refuted": 0,
+          "unknown": 0,
+          "reused": 0,
+          "cacheChecked": 0,
+          "cacheSat": 0,
+          "cacheUnknown": 0,
+          "rawRefuted": 0
+        },
+        {
+          "op": "4",
+          "units": 16672.3917116,
+          "actionAttempts": 1,
+          "leafVisits": 1,
+          "leaves": 1,
+          "cuts": 36,
+          "sourceQueries": 64,
+          "sat": 21,
+          "refuted": 35,
+          "unknown": 8,
+          "reused": 54,
+          "cacheChecked": 0,
+          "cacheSat": 0,
+          "cacheUnknown": 0,
+          "rawRefuted": 42
+        }
+      ],
+      "firstFailure": {
+        "reason": "time",
+        "path": [
+          [
+            "op:1",
+            {
+              "lin": {
+                "op": 1
+              },
+              "holds": false
+            }
+          ],
+          [
+            "1:-1,op:1",
+            {
+              "lin": {
+                "1": -1,
+                "op": 1
+              },
+              "holds": false
+            }
+          ],
+          [
+            "1:-2,op:1",
+            {
+              "lin": {
+                "1": -2,
+                "op": 1
+              },
+              "holds": false
+            }
+          ],
+          [
+            "1:-3,op:1",
+            {
+              "lin": {
+                "1": -3,
+                "op": 1
+              },
+              "holds": false
+            }
+          ],
+          [
+            "1:-4,op:1",
+            {
+              "lin": {
+                "1": -4,
+                "op": 1
+              },
+              "holds": true
+            }
+          ],
+          [
+            "1:-5,op:1",
+            {
+              "lin": {
+                "1": -5,
+                "op": 1
+              },
+              "holds": true
+            }
+          ],
+          [
+            "1:-6,op:1",
+            {
+              "lin": {
+                "1": -6,
+                "op": 1
+              },
+              "holds": true
+            }
+          ],
+          [
+            "1:-1,started:1",
+            {
+              "lin": {
+                "1": -1,
+                "started": 1
+              },
+              "holds": true
+            }
+          ],
+          [
+            "1:1,started:-1",
+            {
+              "lin": {
+                "1": 1,
+                "started": -1
+              },
+              "holds": true
+            }
+          ],
+          [
+            "1:-1,Config[i:65]:1",
+            {
+              "lin": {
+                "1": -1,
+                "Config[i:65]": 1
+              },
+              "holds": true
+            }
+          ],
+          [
+            "1:1,Config[i:65]:-1",
+            {
+              "lin": {
+                "1": 1,
+                "Config[i:65]": -1
+              },
+              "holds": true
+            }
+          ],
+          [
+            "1:1,S[i:1]:-1",
+            {
+              "lin": {
+                "1": 1,
+                "S[i:1]": -1
+              },
+              "holds": true
+            }
+          ],
+          [
+            "1:-1,?canVote:1",
+            {
+              "lin": {
+                "1": -1,
+                "?canVote": 1
+              },
+              "holds": true
+            }
+          ],
+          [
+            "1:1,?canVote:-1",
+            {
+              "lin": {
+                "1": 1,
+                "?canVote": -1
+              },
+              "holds": true
+            }
+          ],
+          [
+            "1:1,i:1,size:-1",
+            {
+              "lin": {
+                "1": 1,
+                "i": 1,
+                "size": -1
+              },
+              "holds": true
+            }
+          ],
+          [
+            "1:-1,?committedQuorum:1",
+            {
+              "lin": {
+                "1": -1,
+                "?committedQuorum": 1
+              },
+              "holds": true
+            }
+          ],
+          [
+            "a$#:1,i:-1",
+            {
+              "lin": {
+                "a$#": 1,
+                "i": -1
+              },
+              "holds": true
+            }
+          ],
+          [
+            "a$#:-1,i:1",
+            {
+              "lin": {
+                "a$#": -1,
+                "i": 1
+              },
+              "holds": true
+            }
+          ],
+          [
+            "b$:1,i:-1",
+            {
+              "lin": {
+                "b$": 1,
+                "i": -1
+              },
+              "holds": true
+            }
+          ],
+          [
+            "b$:-1,i:1",
+            {
+              "lin": {
+                "b$": -1,
+                "i": 1
+              },
+              "holds": true
+            }
+          ]
+        ],
+        "model": {
+          "op": 4,
+          "started": 1,
+          "Config[i:65]": 1,
+          "S[i:1]": 1,
+          "?canVote": 1,
+          "i": 0,
+          "size": 1,
+          "?committedQuorum": 0,
+          "a$#": 0,
+          "b$": 0,
+          "j": 0,
+          "?all$1": 1,
+          "?all$2": 1,
+          "r$7": 1,
+          "r$8": 1,
+          "r$36": 0,
+          "r$22": 0,
+          "?noneCopied": 0,
+          "?allCopied": 0,
+          "?all$3": 0,
+          "u$": 0,
+          "r$0": 1,
+          "w$": 1,
+          "r$1": 3,
+          "r$2": 1,
+          "r$3": 2,
+          "r$15": 0,
+          "r$5": 0,
+          "r$17": 2,
+          "r$6": 0,
+          "r$13": 0,
+          "r$4": 3,
+          "r$14": 1,
+          "r$38": 0,
+          "r$37": 0,
+          "r$40": 0,
+          "r$39": 0,
+          "r$10": 0,
+          "r$11": 0,
+          "r$12": 0,
+          "r$16": 0,
+          "r$25": 0,
+          "r$24": 0,
+          "r$32": 0,
+          "r$30": 0,
+          "r$26": 0,
+          "r$31": 0,
+          "r$20": 0,
+          "r$19": 0,
+          "r$34": 0,
+          "r$33": 0,
+          "r$21": 0,
+          "r$29": 0,
+          "r$27": 0,
+          "r$9": 0,
+          "r$23": 0,
+          "r$18": 0,
+          "r$28": 0,
+          "r$35": 0
+        },
+        "violated": [
+          188,
+          191,
+          193,
+          50,
+          105,
+          165,
+          171,
+          177,
+          179,
+          181,
+          190,
+          192,
+          213,
+          215,
+          219,
+          225,
+          227,
+          229,
+          231,
+          0,
+          2,
+          173,
+          261,
+          262,
+          265,
+          266,
+          267,
+          268,
+          269,
+          270,
+          273,
+          274,
+          277,
+          278,
+          281,
+          282,
+          285,
+          286,
+          12,
+          21,
+          32,
+          42,
+          56,
+          59,
+          61,
+          63,
+          65,
+          137,
+          139,
+          141,
+          143,
+          152,
+          154,
+          156,
+          162,
+          163,
+          107,
+          108,
+          109,
+          110,
+          111,
+          112,
+          113,
+          114,
+          115,
+          116,
+          117,
+          118,
+          119,
+          120,
+          204,
+          13,
+          14,
+          15,
+          16,
+          17,
+          18,
+          19,
+          20,
+          22,
+          23,
+          24,
+          25,
+          26,
+          27,
+          28,
+          29,
+          31,
+          33,
+          34,
+          35,
+          36,
+          37,
+          38,
+          39,
+          41,
+          43,
+          44,
+          45,
+          46,
+          47,
+          48,
+          49,
+          52,
+          53,
+          54,
+          55,
+          57,
+          58,
+          60,
+          62,
+          64,
+          66,
+          67,
+          68,
+          169,
+          175,
+          233,
+          234,
+          235,
+          236,
+          237,
+          238,
+          239,
+          240,
+          241,
+          242,
+          243,
+          244,
+          245,
+          246,
+          247,
+          248,
+          249,
+          250,
+          251,
+          252,
+          253,
+          254,
+          257,
+          258
+        ],
+        "availableIndices": [
+          null,
+          206
+        ],
+        "modelUsesFailurePath": true
+      }
+    },
+    {
+      "name": "op0-control",
+      "file": "runs/track-m/section14-op0-control-v1/result.json",
+      "op": 0,
+      "closed": false,
+      "units": 7150.415741600001,
+      "wallMs": 20112.065899999998,
+      "wallDefinition": "measured replay interval; excludes input loading and initial root-seed verification",
+      "allowance": 50000,
+      "seedCount": 0,
+      "imports": [],
+      "stats": {
+        "cuts": 13,
+        "sat": 11,
+        "checkedSources": 12,
+        "unknown": 2,
+        "reused": 85,
+        "rawSat": 11,
+        "rawRefuted": 13,
+        "rawUnknown": 1
+      },
+      "ledger": [
+        {
+          "op": "0",
+          "units": 7150.329276,
+          "actionAttempts": 1,
+          "leafVisits": 1,
+          "leaves": 1,
+          "cuts": 13,
+          "sourceQueries": 25,
+          "sat": 11,
+          "refuted": 12,
+          "unknown": 2,
+          "reused": 85,
+          "cacheChecked": 0,
+          "cacheSat": 0,
+          "cacheUnknown": 0,
+          "rawRefuted": 13
+        }
+      ],
+      "firstFailure": {
+        "reason": "time",
+        "path": [
+          [
+            "op:1",
+            {
+              "lin": {
+                "op": 1
+              },
+              "holds": true
+            }
+          ],
+          [
+            "1:-1,op:1",
+            {
+              "lin": {
+                "1": -1,
+                "op": 1
+              },
+              "holds": true
+            }
+          ],
+          [
+            "1:-2,op:1",
+            {
+              "lin": {
+                "1": -2,
+                "op": 1
+              },
+              "holds": true
+            }
+          ],
+          [
+            "1:-3,op:1",
+            {
+              "lin": {
+                "1": -3,
+                "op": 1
+              },
+              "holds": true
+            }
+          ],
+          [
+            "1:-4,op:1",
+            {
+              "lin": {
+                "1": -4,
+                "op": 1
+              },
+              "holds": true
+            }
+          ],
+          [
+            "1:-5,op:1",
+            {
+              "lin": {
+                "1": -5,
+                "op": 1
+              },
+              "holds": true
+            }
+          ],
+          [
+            "1:-6,op:1",
+            {
+              "lin": {
+                "1": -6,
+                "op": 1
+              },
+              "holds": true
+            }
+          ],
+          [
+            "op:-1",
+            {
+              "lin": {
+                "op": -1
+              },
+              "holds": true
+            }
+          ],
+          [
+            "started:1",
+            {
+              "lin": {
+                "started": 1
+              },
+              "holds": true
+            }
+          ],
+          [
+            "started:-1",
+            {
+              "lin": {
+                "started": -1
+              },
+              "holds": true
+            }
+          ],
+          [
+            "1:-1,?noneCopied:1",
+            {
+              "lin": {
+                "1": -1,
+                "?noneCopied": 1
+              },
+              "holds": true
+            }
+          ],
+          [
+            "1:1,?noneCopied:-1",
+            {
+              "lin": {
+                "1": 1,
+                "?noneCopied": -1
+              },
+              "holds": true
+            }
+          ],
+          [
+            "1:-1,?canVote:1",
+            {
+              "lin": {
+                "1": -1,
+                "?canVote": 1
+              },
+              "holds": true
+            }
+          ],
+          [
+            "1:1,i:1,size:-1",
+            {
+              "lin": {
+                "1": 1,
+                "i": 1,
+                "size": -1
+              },
+              "holds": true
+            }
+          ],
+          [
+            "1:-1,?committedQuorum:1",
+            {
+              "lin": {
+                "1": -1,
+                "?committedQuorum": 1
+              },
+              "holds": true
+            }
+          ],
+          [
+            "a$#:1",
+            {
+              "lin": {
+                "a$#": 1
+              },
+              "holds": true
+            }
+          ],
+          [
+            "a$#:-1",
+            {
+              "lin": {
+                "a$#": -1
+              },
+              "holds": true
+            }
+          ],
+          [
+            "b$:1",
+            {
+              "lin": {
+                "b$": 1
+              },
+              "holds": true
+            }
+          ],
+          [
+            "b$:-1",
+            {
+              "lin": {
+                "b$": -1
+              },
+              "holds": true
+            }
+          ]
+        ],
+        "model": {
+          "op": 0,
+          "started": 0,
+          "?noneCopied": 1,
+          "?canVote": 0,
+          "i": 0,
+          "size": 3,
+          "?committedQuorum": 0,
+          "a$#": 0,
+          "b$": 0,
+          "j": 0,
+          "?all$1": 1,
+          "r$36": 0,
+          "r$22": 0,
+          "?allCopied": 0,
+          "?all$2": 0,
+          "?all$3": 0,
+          "u$": 0,
+          "r$0": 1,
+          "w$": 1,
+          "r$1": 3,
+          "r$2": 1,
+          "r$3": 2,
+          "r$6": 2,
+          "r$13": 0,
+          "r$14": 1,
+          "r$5": 0,
+          "r$39": 0,
+          "r$4": 1,
+          "r$26": 0,
+          "r$24": 1,
+          "r$21": 0,
+          "r$19": 1,
+          "r$29": 0,
+          "r$27": 1,
+          "r$8": 3,
+          "r$38": 0,
+          "r$37": 0,
+          "r$40": 0,
+          "r$15": 0,
+          "r$17": 2,
+          "r$10": 0,
+          "r$11": 0,
+          "r$12": 0,
+          "r$16": 0,
+          "r$7": 0,
+          "r$25": 0,
+          "r$32": 0,
+          "r$30": 0,
+          "r$31": 0,
+          "r$20": 0,
+          "r$34": 0,
+          "r$33": 0,
+          "r$9": 0,
+          "r$23": 0,
+          "r$18": 0,
+          "r$28": 0,
+          "r$35": 0
+        },
+        "violated": [
+          165,
+          171,
+          177,
+          179,
+          181,
+          185,
+          190,
+          192,
+          208,
+          216,
+          222,
+          227,
+          0,
+          3,
+          8,
+          10,
+          168,
+          261,
+          262,
+          265,
+          266,
+          268,
+          269,
+          270,
+          273,
+          274,
+          277,
+          278,
+          280,
+          281,
+          282,
+          285,
+          286,
+          12,
+          21,
+          32,
+          42,
+          63,
+          65,
+          93,
+          94,
+          96,
+          98,
+          100,
+          102,
+          137,
+          139,
+          141,
+          143,
+          148,
+          152,
+          154,
+          156,
+          162,
+          163,
+          106,
+          107,
+          108,
+          109,
+          110,
+          111,
+          112,
+          113,
+          114,
+          115,
+          116,
+          117,
+          118,
+          119,
+          120,
+          13,
+          15,
+          16,
+          17,
+          18,
+          19,
+          20,
+          22,
+          23,
+          24,
+          25,
+          26,
+          27,
+          28,
+          29,
+          31,
+          34,
+          35,
+          36,
+          37,
+          38,
+          39,
+          41,
+          43,
+          44,
+          45,
+          46,
+          47,
+          48,
+          49,
+          52,
+          54,
+          55,
+          57,
+          58,
+          60,
+          62,
+          64,
+          66,
+          67,
+          68,
+          88,
+          89,
+          90,
+          91,
+          92,
+          95,
+          97,
+          99,
+          101,
+          103,
+          104,
+          169,
+          175,
+          233,
+          234,
+          236,
+          237,
+          238,
+          239,
+          240,
+          241,
+          242,
+          244,
+          245,
+          246,
+          247,
+          248,
+          249,
+          250,
+          252,
+          253,
+          254,
+          257,
+          258,
+          259,
+          260
+        ],
+        "availableIndices": [
+          null,
+          206,
+          188,
+          191,
+          193,
+          50,
+          213,
+          229,
+          231,
+          2,
+          167,
+          173,
+          204
+        ],
+        "modelUsesFailurePath": true
+      }
+    },
+    {
+      "name": "op4-seeded",
+      "file": "runs/track-m/section14-seeded-v1/op4/result.json",
+      "op": 4,
+      "closed": false,
+      "units": 16668.6525984,
+      "wallMs": 60979.686123,
+      "wallDefinition": "measured replay interval; excludes input loading and initial root-seed verification",
+      "allowance": 50000,
+      "seedCount": 31,
+      "imports": [
+        {
+          "index": 30,
+          "accepted": true,
+          "name": "Inv2973: quorums overlap, or a config disabled @step"
+        },
+        {
+          "index": 40,
+          "accepted": true,
+          "name": "Inv2973: quorums overlap, or a config disabled @step"
+        },
+        {
+          "index": 50,
+          "accepted": true,
+          "name": "Inv2973: quorums overlap, or a config disabled @step"
+        },
+        {
+          "index": 51,
+          "accepted": true,
+          "name": "Inv2973: quorums overlap, or a config disabled @step"
+        },
+        {
+          "index": 105,
+          "accepted": true,
+          "name": "Inv2973: quorums overlap, or a config disabled @step"
+        },
+        {
+          "index": 136,
+          "accepted": true,
+          "name": "Inv2973: quorums overlap, or a config disabled @step"
+        },
+        {
+          "index": 187,
+          "accepted": true,
+          "name": "Inv2973: quorums overlap, or a config disabled @step"
+        },
+        {
+          "index": 188,
+          "accepted": true,
+          "name": "Inv2973: quorums overlap, or a config disabled @step"
+        },
+        {
+          "index": 191,
+          "accepted": true,
+          "name": "Inv2973: quorums overlap, or a config disabled @step"
+        },
+        {
+          "index": 193,
+          "accepted": true,
+          "name": "Inv2973: quorums overlap, or a config disabled @step"
+        },
+        {
+          "index": 199,
+          "accepted": true,
+          "name": "Inv2973: quorums overlap, or a config disabled @step"
+        },
+        {
+          "index": 204,
+          "accepted": true,
+          "name": "Inv2973: quorums overlap, or a config disabled @step"
+        },
+        {
+          "index": 206,
+          "accepted": true,
+          "name": "Inv2973: quorums overlap, or a config disabled @step"
+        },
+        {
+          "index": 207,
+          "accepted": true,
+          "name": "Inv2973: quorums overlap, or a config disabled @step"
+        },
+        {
+          "index": 208,
+          "accepted": true,
+          "name": "Inv2973: quorums overlap, or a config disabled @step"
+        },
+        {
+          "index": 209,
+          "accepted": true,
+          "name": "Inv2973: quorums overlap, or a config disabled @step"
+        },
+        {
+          "index": 210,
+          "accepted": true,
+          "name": "Inv2973: quorums overlap, or a config disabled @step"
+        },
+        {
+          "index": 213,
+          "accepted": true,
+          "name": "Inv2973: quorums overlap, or a config disabled @step"
+        },
+        {
+          "index": 214,
+          "accepted": true,
+          "name": "Inv2973: quorums overlap, or a config disabled @step"
+        },
+        {
+          "index": 215,
+          "accepted": true,
+          "name": "Inv2973: quorums overlap, or a config disabled @step"
+        },
+        {
+          "index": 217,
+          "accepted": true,
+          "name": "Inv2973: quorums overlap, or a config disabled @step"
+        },
+        {
+          "index": 219,
+          "accepted": true,
+          "name": "Inv2973: quorums overlap, or a config disabled @step"
+        },
+        {
+          "index": 220,
+          "accepted": true,
+          "name": "Inv2973: quorums overlap, or a config disabled @step"
+        },
+        {
+          "index": 221,
+          "accepted": true,
+          "name": "Inv2973: quorums overlap, or a config disabled @step"
+        },
+        {
+          "index": 222,
+          "accepted": true,
+          "name": "Inv2973: quorums overlap, or a config disabled @step"
+        },
+        {
+          "index": 223,
+          "accepted": true,
+          "name": "Inv2973: quorums overlap, or a config disabled @step"
+        },
+        {
+          "index": 225,
+          "accepted": true,
+          "name": "Inv2973: quorums overlap, or a config disabled @step"
+        },
+        {
+          "index": 227,
+          "accepted": true,
+          "name": "Inv2973: quorums overlap, or a config disabled @step"
+        },
+        {
+          "index": 229,
+          "accepted": true,
+          "name": "Inv2973: quorums overlap, or a config disabled @step"
+        },
+        {
+          "index": 230,
+          "accepted": true,
+          "name": "Inv2973: quorums overlap, or a config disabled @step"
+        },
+        {
+          "index": 231,
+          "accepted": true,
+          "name": "Inv2973: quorums overlap, or a config disabled @step"
+        }
+      ],
+      "stats": {
+        "cuts": 17,
+        "sat": 32,
+        "checkedSources": 16,
+        "unknown": 6,
+        "reused": 91,
+        "rawSat": 32,
+        "rawRefuted": 21,
+        "rawUnknown": 1
+      },
+      "ledger": [
+        {
+          "op": "0",
+          "units": 0,
+          "actionAttempts": 1,
+          "leafVisits": 0,
+          "leaves": 0,
+          "cuts": 0,
+          "sourceQueries": 0,
+          "sat": 0,
+          "refuted": 0,
+          "unknown": 0,
+          "reused": 0,
+          "cacheChecked": 0,
+          "cacheSat": 0,
+          "cacheUnknown": 0,
+          "rawRefuted": 0
+        },
+        {
+          "op": "1",
+          "units": 0,
+          "actionAttempts": 1,
+          "leafVisits": 0,
+          "leaves": 0,
+          "cuts": 0,
+          "sourceQueries": 0,
+          "sat": 0,
+          "refuted": 0,
+          "unknown": 0,
+          "reused": 0,
+          "cacheChecked": 0,
+          "cacheSat": 0,
+          "cacheUnknown": 0,
+          "rawRefuted": 0
+        },
+        {
+          "op": "2",
+          "units": 0,
+          "actionAttempts": 1,
+          "leafVisits": 0,
+          "leaves": 0,
+          "cuts": 0,
+          "sourceQueries": 0,
+          "sat": 0,
+          "refuted": 0,
+          "unknown": 0,
+          "reused": 0,
+          "cacheChecked": 0,
+          "cacheSat": 0,
+          "cacheUnknown": 0,
+          "rawRefuted": 0
+        },
+        {
+          "op": "3",
+          "units": 0,
+          "actionAttempts": 1,
+          "leafVisits": 0,
+          "leaves": 0,
+          "cuts": 0,
+          "sourceQueries": 0,
+          "sat": 0,
+          "refuted": 0,
+          "unknown": 0,
+          "reused": 0,
+          "cacheChecked": 0,
+          "cacheSat": 0,
+          "cacheUnknown": 0,
+          "rawRefuted": 0
+        },
+        {
+          "op": "4",
+          "units": 16668.5661328,
+          "actionAttempts": 1,
+          "leafVisits": 2,
+          "leaves": 2,
+          "cuts": 17,
+          "sourceQueries": 54,
+          "sat": 32,
+          "refuted": 16,
+          "unknown": 6,
+          "reused": 91,
+          "cacheChecked": 0,
+          "cacheSat": 0,
+          "cacheUnknown": 0,
+          "rawRefuted": 21
+        }
+      ],
+      "firstFailure": {
+        "reason": "time",
+        "path": [
+          [
+            "op:1",
+            {
+              "lin": {
+                "op": 1
+              },
+              "holds": false
+            }
+          ],
+          [
+            "1:-1,op:1",
+            {
+              "lin": {
+                "1": -1,
+                "op": 1
+              },
+              "holds": false
+            }
+          ],
+          [
+            "1:-2,op:1",
+            {
+              "lin": {
+                "1": -2,
+                "op": 1
+              },
+              "holds": false
+            }
+          ],
+          [
+            "1:-3,op:1",
+            {
+              "lin": {
+                "1": -3,
+                "op": 1
+              },
+              "holds": false
+            }
+          ],
+          [
+            "1:-4,op:1",
+            {
+              "lin": {
+                "1": -4,
+                "op": 1
+              },
+              "holds": true
+            }
+          ],
+          [
+            "1:-5,op:1",
+            {
+              "lin": {
+                "1": -5,
+                "op": 1
+              },
+              "holds": true
+            }
+          ],
+          [
+            "1:-6,op:1",
+            {
+              "lin": {
+                "1": -6,
+                "op": 1
+              },
+              "holds": true
+            }
+          ],
+          [
+            "1:-1,started:1",
+            {
+              "lin": {
+                "1": -1,
+                "started": 1
+              },
+              "holds": true
+            }
+          ],
+          [
+            "1:1,started:-1",
+            {
+              "lin": {
+                "1": 1,
+                "started": -1
+              },
+              "holds": true
+            }
+          ],
+          [
+            "1:-1,Config[i:65]:1",
+            {
+              "lin": {
+                "1": -1,
+                "Config[i:65]": 1
+              },
+              "holds": true
+            }
+          ],
+          [
+            "1:1,Config[i:65]:-1",
+            {
+              "lin": {
+                "1": 1,
+                "Config[i:65]": -1
+              },
+              "holds": true
+            }
+          ],
+          [
+            "1:1,S[i:1]:-1",
+            {
+              "lin": {
+                "1": 1,
+                "S[i:1]": -1
+              },
+              "holds": true
+            }
+          ],
+          [
+            "1:-1,?canVote:1",
+            {
+              "lin": {
+                "1": -1,
+                "?canVote": 1
+              },
+              "holds": true
+            }
+          ],
+          [
+            "1:1,?canVote:-1",
+            {
+              "lin": {
+                "1": 1,
+                "?canVote": -1
+              },
+              "holds": true
+            }
+          ],
+          [
+            "1:1,i:1,size:-1",
+            {
+              "lin": {
+                "1": 1,
+                "i": 1,
+                "size": -1
+              },
+              "holds": true
+            }
+          ],
+          [
+            "1:-1,?committedQuorum:1",
+            {
+              "lin": {
+                "1": -1,
+                "?committedQuorum": 1
+              },
+              "holds": true
+            }
+          ],
+          [
+            "a$#:1,i:-1",
+            {
+              "lin": {
+                "a$#": 1,
+                "i": -1
+              },
+              "holds": true
+            }
+          ],
+          [
+            "a$#:-1,i:1",
+            {
+              "lin": {
+                "a$#": -1,
+                "i": 1
+              },
+              "holds": true
+            }
+          ],
+          [
+            "b$:1,i:-1",
+            {
+              "lin": {
+                "b$": 1,
+                "i": -1
+              },
+              "holds": true
+            }
+          ],
+          [
+            "b$:-1,i:1",
+            {
+              "lin": {
+                "b$": -1,
+                "i": 1
+              },
+              "holds": false
+            }
+          ]
+        ],
+        "model": {
+          "op": 4,
+          "started": 1,
+          "Config[i:65]": 1,
+          "S[i:1]": 1,
+          "?canVote": 1,
+          "i": 1,
+          "size": 3,
+          "?committedQuorum": 0,
+          "a$#": 1,
+          "b$": 0,
+          "j": 0,
+          "?all$1": 1,
+          "?all$2": 1,
+          "r$7": 1,
+          "r$8": 1,
+          "r$36": 0,
+          "r$22": 1,
+          "?noneCopied": 0,
+          "?allCopied": 0,
+          "?all$3": 0,
+          "u$": 1,
+          "r$0": 3,
+          "w$": 0,
+          "r$1": 1,
+          "r$2": 3,
+          "r$3": 1,
+          "r$40": 0,
+          "r$5": 2,
+          "r$6": 0,
+          "r$39": 0,
+          "r$14": 0,
+          "r$4": 1,
+          "r$13": 1,
+          "r$25": 1,
+          "r$24": 0,
+          "r$32": 0,
+          "r$30": 1,
+          "r$26": 0,
+          "r$31": 0,
+          "r$20": 1,
+          "r$19": 0,
+          "r$34": 0,
+          "r$33": 1,
+          "r$10": 0,
+          "r$11": 1,
+          "r$12": 0,
+          "r$21": 0,
+          "r$29": 0,
+          "r$27": 0,
+          "r$38": 0,
+          "r$37": 0,
+          "r$18": 0,
+          "r$17": 2,
+          "r$15": 0,
+          "r$16": 0,
+          "r$9": 0,
+          "r$23": 0,
+          "r$28": 0,
+          "r$35": 0
+        },
+        "violated": [
+          165,
+          171,
+          177,
+          179,
+          181,
+          183,
+          190,
+          192,
+          4,
+          6,
+          167,
+          261,
+          262,
+          281,
+          282,
+          12,
+          21,
+          32,
+          42,
+          56,
+          59,
+          61,
+          75,
+          76,
+          78,
+          80,
+          82,
+          84,
+          137,
+          141,
+          143,
+          146,
+          149,
+          150,
+          154,
+          156,
+          161,
+          164,
+          107,
+          109,
+          111,
+          112,
+          114,
+          116,
+          117,
+          118,
+          119,
+          120,
+          13,
+          14,
+          15,
+          16,
+          17,
+          18,
+          19,
+          20,
+          22,
+          23,
+          24,
+          25,
+          26,
+          27,
+          28,
+          29,
+          31,
+          33,
+          34,
+          35,
+          36,
+          37,
+          38,
+          39,
+          41,
+          43,
+          44,
+          45,
+          46,
+          47,
+          48,
+          49,
+          53,
+          54,
+          55,
+          58,
+          60,
+          62,
+          64,
+          66,
+          67,
+          68,
+          70,
+          71,
+          72,
+          73,
+          74,
+          77,
+          79,
+          81,
+          83,
+          85,
+          86,
+          169,
+          175,
+          233,
+          234,
+          235,
+          236,
+          237,
+          238,
+          241,
+          242,
+          243,
+          244,
+          245,
+          246,
+          249,
+          250,
+          253,
+          254,
+          255,
+          256
+        ],
+        "availableIndices": [
+          30,
+          40,
+          50,
+          51,
+          105,
+          136,
+          187,
+          188,
+          191,
+          193,
+          199,
+          204,
+          206,
+          207,
+          208,
+          209,
+          210,
+          213,
+          214,
+          215,
+          217,
+          219,
+          220,
+          221,
+          222,
+          223,
+          225,
+          227,
+          229,
+          230,
+          231,
+          null
+        ],
+        "modelUsesFailurePath": true
+      }
+    },
+    {
+      "name": "op0-seeded",
+      "file": "runs/track-m/section14-seeded-v1/op0/result.json",
+      "op": 0,
+      "closed": false,
+      "units": 7144.273260400001,
+      "wallMs": 56512.513104000005,
+      "wallDefinition": "measured replay interval; excludes input loading and initial root-seed verification",
+      "allowance": 50000,
+      "seedCount": 31,
+      "imports": [
+        {
+          "index": 30,
+          "accepted": true,
+          "name": "Inv2973: quorums overlap, or a config disabled @step"
+        },
+        {
+          "index": 40,
+          "accepted": true,
+          "name": "Inv2973: quorums overlap, or a config disabled @step"
+        },
+        {
+          "index": 50,
+          "accepted": true,
+          "name": "Inv2973: quorums overlap, or a config disabled @step"
+        },
+        {
+          "index": 51,
+          "accepted": true,
+          "name": "Inv2973: quorums overlap, or a config disabled @step"
+        },
+        {
+          "index": 105,
+          "accepted": true,
+          "name": "Inv2973: quorums overlap, or a config disabled @step"
+        },
+        {
+          "index": 136,
+          "accepted": true,
+          "name": "Inv2973: quorums overlap, or a config disabled @step"
+        },
+        {
+          "index": 187,
+          "accepted": true,
+          "name": "Inv2973: quorums overlap, or a config disabled @step"
+        },
+        {
+          "index": 188,
+          "accepted": true,
+          "name": "Inv2973: quorums overlap, or a config disabled @step"
+        },
+        {
+          "index": 191,
+          "accepted": true,
+          "name": "Inv2973: quorums overlap, or a config disabled @step"
+        },
+        {
+          "index": 193,
+          "accepted": true,
+          "name": "Inv2973: quorums overlap, or a config disabled @step"
+        },
+        {
+          "index": 199,
+          "accepted": true,
+          "name": "Inv2973: quorums overlap, or a config disabled @step"
+        },
+        {
+          "index": 204,
+          "accepted": true,
+          "name": "Inv2973: quorums overlap, or a config disabled @step"
+        },
+        {
+          "index": 206,
+          "accepted": true,
+          "name": "Inv2973: quorums overlap, or a config disabled @step"
+        },
+        {
+          "index": 207,
+          "accepted": true,
+          "name": "Inv2973: quorums overlap, or a config disabled @step"
+        },
+        {
+          "index": 208,
+          "accepted": true,
+          "name": "Inv2973: quorums overlap, or a config disabled @step"
+        },
+        {
+          "index": 209,
+          "accepted": true,
+          "name": "Inv2973: quorums overlap, or a config disabled @step"
+        },
+        {
+          "index": 210,
+          "accepted": true,
+          "name": "Inv2973: quorums overlap, or a config disabled @step"
+        },
+        {
+          "index": 213,
+          "accepted": true,
+          "name": "Inv2973: quorums overlap, or a config disabled @step"
+        },
+        {
+          "index": 214,
+          "accepted": true,
+          "name": "Inv2973: quorums overlap, or a config disabled @step"
+        },
+        {
+          "index": 215,
+          "accepted": true,
+          "name": "Inv2973: quorums overlap, or a config disabled @step"
+        },
+        {
+          "index": 217,
+          "accepted": true,
+          "name": "Inv2973: quorums overlap, or a config disabled @step"
+        },
+        {
+          "index": 219,
+          "accepted": true,
+          "name": "Inv2973: quorums overlap, or a config disabled @step"
+        },
+        {
+          "index": 220,
+          "accepted": true,
+          "name": "Inv2973: quorums overlap, or a config disabled @step"
+        },
+        {
+          "index": 221,
+          "accepted": true,
+          "name": "Inv2973: quorums overlap, or a config disabled @step"
+        },
+        {
+          "index": 222,
+          "accepted": true,
+          "name": "Inv2973: quorums overlap, or a config disabled @step"
+        },
+        {
+          "index": 223,
+          "accepted": true,
+          "name": "Inv2973: quorums overlap, or a config disabled @step"
+        },
+        {
+          "index": 225,
+          "accepted": true,
+          "name": "Inv2973: quorums overlap, or a config disabled @step"
+        },
+        {
+          "index": 227,
+          "accepted": true,
+          "name": "Inv2973: quorums overlap, or a config disabled @step"
+        },
+        {
+          "index": 229,
+          "accepted": true,
+          "name": "Inv2973: quorums overlap, or a config disabled @step"
+        },
+        {
+          "index": 230,
+          "accepted": true,
+          "name": "Inv2973: quorums overlap, or a config disabled @step"
+        },
+        {
+          "index": 231,
+          "accepted": true,
+          "name": "Inv2973: quorums overlap, or a config disabled @step"
+        }
+      ],
+      "stats": {
+        "cuts": 6,
+        "sat": 22,
+        "checkedSources": 5,
+        "unknown": 2,
+        "reused": 51,
+        "rawSat": 22,
+        "rawRefuted": 6,
+        "rawUnknown": 1
+      },
+      "ledger": [
+        {
+          "op": "0",
+          "units": 7144.186794800001,
+          "actionAttempts": 1,
+          "leafVisits": 3,
+          "leaves": 3,
+          "cuts": 6,
+          "sourceQueries": 29,
+          "sat": 22,
+          "refuted": 5,
+          "unknown": 2,
+          "reused": 51,
+          "cacheChecked": 0,
+          "cacheSat": 0,
+          "cacheUnknown": 0,
+          "rawRefuted": 6
+        }
+      ],
+      "firstFailure": {
+        "reason": "time",
+        "path": [
+          [
+            "op:1",
+            {
+              "lin": {
+                "op": 1
+              },
+              "holds": true
+            }
+          ],
+          [
+            "1:-1,op:1",
+            {
+              "lin": {
+                "1": -1,
+                "op": 1
+              },
+              "holds": true
+            }
+          ],
+          [
+            "1:-2,op:1",
+            {
+              "lin": {
+                "1": -2,
+                "op": 1
+              },
+              "holds": true
+            }
+          ],
+          [
+            "1:-3,op:1",
+            {
+              "lin": {
+                "1": -3,
+                "op": 1
+              },
+              "holds": true
+            }
+          ],
+          [
+            "1:-4,op:1",
+            {
+              "lin": {
+                "1": -4,
+                "op": 1
+              },
+              "holds": true
+            }
+          ],
+          [
+            "1:-5,op:1",
+            {
+              "lin": {
+                "1": -5,
+                "op": 1
+              },
+              "holds": true
+            }
+          ],
+          [
+            "1:-6,op:1",
+            {
+              "lin": {
+                "1": -6,
+                "op": 1
+              },
+              "holds": true
+            }
+          ],
+          [
+            "op:-1",
+            {
+              "lin": {
+                "op": -1
+              },
+              "holds": true
+            }
+          ],
+          [
+            "started:1",
+            {
+              "lin": {
+                "started": 1
+              },
+              "holds": true
+            }
+          ],
+          [
+            "started:-1",
+            {
+              "lin": {
+                "started": -1
+              },
+              "holds": true
+            }
+          ],
+          [
+            "1:-1,?noneCopied:1",
+            {
+              "lin": {
+                "1": -1,
+                "?noneCopied": 1
+              },
+              "holds": true
+            }
+          ],
+          [
+            "1:1,?noneCopied:-1",
+            {
+              "lin": {
+                "1": 1,
+                "?noneCopied": -1
+              },
+              "holds": true
+            }
+          ],
+          [
+            "1:-1,?canVote:1",
+            {
+              "lin": {
+                "1": -1,
+                "?canVote": 1
+              },
+              "holds": true
+            }
+          ],
+          [
+            "1:1,i:1,size:-1",
+            {
+              "lin": {
+                "1": 1,
+                "i": 1,
+                "size": -1
+              },
+              "holds": true
+            }
+          ],
+          [
+            "1:-1,?committedQuorum:1",
+            {
+              "lin": {
+                "1": -1,
+                "?committedQuorum": 1
+              },
+              "holds": true
+            }
+          ],
+          [
+            "a$#:1",
+            {
+              "lin": {
+                "a$#": 1
+              },
+              "holds": true
+            }
+          ],
+          [
+            "a$#:-1",
+            {
+              "lin": {
+                "a$#": -1
+              },
+              "holds": true
+            }
+          ],
+          [
+            "b$:1",
+            {
+              "lin": {
+                "b$": 1
+              },
+              "holds": false
+            }
+          ]
+        ],
+        "model": {
+          "op": 0,
+          "started": 0,
+          "?noneCopied": 1,
+          "?canVote": 0,
+          "i": 0,
+          "size": 3,
+          "?committedQuorum": 0,
+          "a$#": 0,
+          "b$": 2,
+          "j": 0,
+          "?all$1": 1,
+          "r$36": 0,
+          "r$22": 0,
+          "?allCopied": 0,
+          "?all$2": 0,
+          "?all$3": 0,
+          "u$": 1,
+          "r$0": 3,
+          "w$": 0,
+          "r$1": 1,
+          "r$2": 3,
+          "r$3": 1,
+          "r$6": 0,
+          "r$13": 1,
+          "r$5": 2,
+          "r$39": 0,
+          "r$14": 0,
+          "r$40": 0,
+          "r$4": 1,
+          "r$7": 0,
+          "r$25": 0,
+          "r$24": 0,
+          "r$32": 0,
+          "r$30": 0,
+          "r$26": 0,
+          "r$31": 1,
+          "r$20": 1,
+          "r$19": 0,
+          "r$34": 0,
+          "r$33": 1,
+          "r$10": 0,
+          "r$11": 0,
+          "r$8": 0,
+          "r$12": 0,
+          "r$21": 0,
+          "r$29": 0,
+          "r$27": 0,
+          "r$38": 0,
+          "r$37": 0,
+          "r$18": 0,
+          "r$17": 2,
+          "r$15": 0,
+          "r$16": 0,
+          "r$9": 0,
+          "r$23": 0,
+          "r$28": 0,
+          "r$35": 0
+        },
+        "violated": [
+          165,
+          171,
+          177,
+          179,
+          181,
+          183,
+          190,
+          192,
+          0,
+          2,
+          4,
+          6,
+          167,
+          173,
+          261,
+          263,
+          281,
+          283,
+          12,
+          21,
+          32,
+          42,
+          56,
+          59,
+          61,
+          63,
+          75,
+          76,
+          78,
+          80,
+          82,
+          84,
+          137,
+          139,
+          141,
+          143,
+          146,
+          150,
+          154,
+          156,
+          161,
+          164,
+          13,
+          14,
+          15,
+          16,
+          17,
+          18,
+          19,
+          20,
+          22,
+          23,
+          24,
+          25,
+          26,
+          27,
+          28,
+          29,
+          31,
+          33,
+          34,
+          35,
+          36,
+          37,
+          38,
+          39,
+          41,
+          43,
+          44,
+          45,
+          46,
+          47,
+          48,
+          49,
+          53,
+          54,
+          55,
+          58,
+          60,
+          62,
+          66,
+          67,
+          68,
+          70,
+          71,
+          72,
+          73,
+          74,
+          77,
+          79,
+          81,
+          83,
+          85,
+          86,
+          169,
+          175,
+          233,
+          234,
+          235,
+          236,
+          237,
+          239,
+          241,
+          242,
+          243,
+          244,
+          245,
+          247,
+          249,
+          251,
+          253,
+          254,
+          255,
+          256
+        ],
+        "availableIndices": [
+          30,
+          40,
+          50,
+          51,
+          105,
+          136,
+          187,
+          188,
+          191,
+          193,
+          199,
+          204,
+          206,
+          207,
+          208,
+          209,
+          210,
+          213,
+          214,
+          215,
+          217,
+          219,
+          220,
+          221,
+          222,
+          223,
+          225,
+          227,
+          229,
+          230,
+          231,
+          null
+        ],
+        "modelUsesFailurePath": true
+      }
+    }
+  ],
+  "audit": "../section14-audit-v5/audit.log",
+  "noCompleteLawOrGateClaim": true,
+  "remoteArchiveCleanup": {
+    "vm": "bx_25xas5gt",
+    "verifiedArchives": 7,
+    "removed": [
+      "/home/user/track-m-s10-receipts-41WBHc",
+      "/home/user/track-m-s10-receipts-aajCgt",
+      "/home/user/track-m-s10-receipts-oJIIo9",
+      "/home/user/track-m-s10-receipts-LqGmED",
+      "/home/user/track-m-s10-receipts-fSqrMu",
+      "/home/user/track-m-s10-receipts-Jj01mo",
+      "/home/user/track-m-s10-receipts-uUJP8S"
+    ]
+  }
+}

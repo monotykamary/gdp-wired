@@ -1,0 +1,10 @@
+{
+  "artifact": "section10-chunk-manifest",
+  "dir": "/home/user/track-m-s10-receipts-Ux9uWI",
+  "parts": 1,
+  "bytes": 17025,
+  "sha256": "a14c1075427e40aed9c442a0d94fae6aed1d0e8902f5f504c54bd55981c16a3f",
+  "files": [
+    "census.json"
+  ]
+}

@@ -1,0 +1,468 @@
+{
+  "test": "default-on cost wins",
+  "order": [
+    "A1",
+    "B1",
+    "A2",
+    "B2",
+    "A3",
+    "B3"
+  ],
+  "baseline": "50109a36",
+  "kernelEqual": true,
+  "harnessEqual": true,
+  "laws": [
+    {
+      "law": "one primary per term",
+      "verdictsIdentical": true,
+      "A": {
+        "verdicts": [
+          [
+            true,
+            true
+          ],
+          [
+            true,
+            true
+          ],
+          [
+            true,
+            true
+          ]
+        ],
+        "countedUnits": [
+          926.6334919999999,
+          926.6334919999999,
+          926.6334919999999
+        ],
+        "wallMedianMs": 2405.020101,
+        "wallMaxMs": 3306.3470289999996,
+        "cache": [
+          null,
+          null,
+          null
+        ]
+      },
+      "B": {
+        "verdicts": [
+          [
+            true,
+            true
+          ],
+          [
+            true,
+            true
+          ],
+          [
+            true,
+            true
+          ]
+        ],
+        "countedUnits": [
+          926.6334919999999,
+          926.6334919999999,
+          926.6334919999999
+        ],
+        "wallMedianMs": 1968.486366,
+        "wallMaxMs": 2967.449608,
+        "cache": [
+          {
+            "leafChecks": 0,
+            "leafHits": 0,
+            "leafFallbacks": 0,
+            "fullHyps": 0,
+            "sliceHyps": 0,
+            "independentChecks": 0,
+            "independentHits": 0,
+            "retargetChecks": 0,
+            "retargetHits": 0
+          },
+          {
+            "leafChecks": 0,
+            "leafHits": 0,
+            "leafFallbacks": 0,
+            "fullHyps": 0,
+            "sliceHyps": 0,
+            "independentChecks": 0,
+            "independentHits": 0,
+            "retargetChecks": 0,
+            "retargetHits": 0
+          },
+          {
+            "leafChecks": 0,
+            "leafHits": 0,
+            "leafFallbacks": 0,
+            "fullHyps": 0,
+            "sliceHyps": 0,
+            "independentChecks": 0,
+            "independentHits": 0,
+            "retargetChecks": 0,
+            "retargetHits": 0
+          }
+        ]
+      }
+    },
+    {
+      "law": "Inv3915: one config term, the primary newest",
+      "verdictsIdentical": true,
+      "A": {
+        "verdicts": [
+          [
+            true,
+            true
+          ],
+          [
+            true,
+            true
+          ],
+          [
+            true,
+            true
+          ]
+        ],
+        "countedUnits": [
+          872.3352536000001,
+          872.3352536000001,
+          872.3352536000001
+        ],
+        "wallMedianMs": 3445.0792839999995,
+        "wallMaxMs": 5581.5485069999995,
+        "cache": [
+          null,
+          null,
+          null
+        ]
+      },
+      "B": {
+        "verdicts": [
+          [
+            true,
+            true
+          ],
+          [
+            true,
+            true
+          ],
+          [
+            true,
+            true
+          ]
+        ],
+        "countedUnits": [
+          872.3352536000001,
+          872.3352536000001,
+          872.3352536000001
+        ],
+        "wallMedianMs": 2177.9455149999994,
+        "wallMaxMs": 3435.420055,
+        "cache": [
+          {
+            "leafChecks": 0,
+            "leafHits": 0,
+            "leafFallbacks": 0,
+            "fullHyps": 0,
+            "sliceHyps": 0,
+            "independentChecks": 0,
+            "independentHits": 0,
+            "retargetChecks": 0,
+            "retargetHits": 0
+          },
+          {
+            "leafChecks": 0,
+            "leafHits": 0,
+            "leafFallbacks": 0,
+            "fullHyps": 0,
+            "sliceHyps": 0,
+            "independentChecks": 0,
+            "independentHits": 0,
+            "retargetChecks": 0,
+            "retargetHits": 0
+          },
+          {
+            "leafChecks": 0,
+            "leafHits": 0,
+            "leafFallbacks": 0,
+            "fullHyps": 0,
+            "sliceHyps": 0,
+            "independentChecks": 0,
+            "independentHits": 0,
+            "retargetChecks": 0,
+            "retargetHits": 0
+          }
+        ]
+      }
+    },
+    {
+      "law": "Inv1758: one version and term, one config",
+      "verdictsIdentical": true,
+      "A": {
+        "verdicts": [
+          [
+            true,
+            true
+          ],
+          [
+            true,
+            true
+          ],
+          [
+            true,
+            true
+          ]
+        ],
+        "countedUnits": [
+          4310.4753532,
+          4310.4753532,
+          4310.4753532
+        ],
+        "wallMedianMs": 20427.448324999998,
+        "wallMaxMs": 30626.022478,
+        "cache": [
+          null,
+          null,
+          null
+        ]
+      },
+      "B": {
+        "verdicts": [
+          [
+            true,
+            true
+          ],
+          [
+            true,
+            true
+          ],
+          [
+            true,
+            true
+          ]
+        ],
+        "countedUnits": [
+          4310.4753532,
+          4310.4753532,
+          4310.4753532
+        ],
+        "wallMedianMs": 12497.474054,
+        "wallMaxMs": 15251.775137,
+        "cache": [
+          {
+            "leafChecks": 0,
+            "leafHits": 0,
+            "leafFallbacks": 0,
+            "fullHyps": 0,
+            "sliceHyps": 0,
+            "independentChecks": 0,
+            "independentHits": 0,
+            "retargetChecks": 0,
+            "retargetHits": 0
+          },
+          {
+            "leafChecks": 0,
+            "leafHits": 0,
+            "leafFallbacks": 0,
+            "fullHyps": 0,
+            "sliceHyps": 0,
+            "independentChecks": 0,
+            "independentHits": 0,
+            "retargetChecks": 0,
+            "retargetHits": 0
+          },
+          {
+            "leafChecks": 0,
+            "leafHits": 0,
+            "leafFallbacks": 0,
+            "fullHyps": 0,
+            "sliceHyps": 0,
+            "independentChecks": 0,
+            "independentHits": 0,
+            "retargetChecks": 0,
+            "retargetHits": 0
+          }
+        ]
+      }
+    },
+    {
+      "law": "Inv2973: quorums overlap, or a config disabled",
+      "verdictsIdentical": true,
+      "A": {
+        "verdicts": [
+          [
+            false,
+            false
+          ],
+          [
+            false,
+            false
+          ],
+          [
+            false,
+            false
+          ]
+        ],
+        "countedUnits": [
+          5002.6530103999985,
+          4837.597574,
+          4882.748613999999
+        ],
+        "wallMedianMs": 60225.740497,
+        "wallMaxMs": 60528.804906000005,
+        "cache": [
+          null,
+          null,
+          null
+        ]
+      },
+      "B": {
+        "verdicts": [
+          [
+            false,
+            false
+          ],
+          [
+            false,
+            false
+          ],
+          [
+            false,
+            false
+          ]
+        ],
+        "countedUnits": [
+          5002.6530103999985,
+          5002.6530103999985,
+          5002.6530103999985
+        ],
+        "wallMedianMs": 41628.16929599999,
+        "wallMaxMs": 53273.594849,
+        "cache": [
+          {
+            "leafChecks": 0,
+            "leafHits": 0,
+            "leafFallbacks": 0,
+            "fullHyps": 0,
+            "sliceHyps": 0,
+            "independentChecks": 0,
+            "independentHits": 0,
+            "retargetChecks": 0,
+            "retargetHits": 0
+          },
+          {
+            "leafChecks": 0,
+            "leafHits": 0,
+            "leafFallbacks": 0,
+            "fullHyps": 0,
+            "sliceHyps": 0,
+            "independentChecks": 0,
+            "independentHits": 0,
+            "retargetChecks": 0,
+            "retargetHits": 0
+          },
+          {
+            "leafChecks": 0,
+            "leafHits": 0,
+            "leafFallbacks": 0,
+            "fullHyps": 0,
+            "sliceHyps": 0,
+            "independentChecks": 0,
+            "independentHits": 0,
+            "retargetChecks": 0,
+            "retargetHits": 0
+          }
+        ]
+      }
+    },
+    {
+      "law": "Inv*: no quorum of a config can still be gathered for a config term held",
+      "verdictsIdentical": true,
+      "A": {
+        "verdicts": [
+          [
+            false,
+            false
+          ],
+          [
+            false,
+            false
+          ],
+          [
+            false,
+            false
+          ]
+        ],
+        "countedUnits": [
+          5161.293822800001,
+          5161.673620399998,
+          5161.673620400001
+        ],
+        "wallMedianMs": 51879.484664,
+        "wallMaxMs": 58342.457595000014,
+        "cache": [
+          null,
+          null,
+          null
+        ]
+      },
+      "B": {
+        "verdicts": [
+          [
+            false,
+            false
+          ],
+          [
+            false,
+            false
+          ],
+          [
+            false,
+            false
+          ]
+        ],
+        "countedUnits": [
+          3182.5856464000008,
+          5160.0960208,
+          5160.0775776
+        ],
+        "wallMedianMs": 34046.427580999996,
+        "wallMaxMs": 60036.00697,
+        "cache": [
+          {
+            "leafChecks": 80,
+            "leafHits": 20,
+            "leafFallbacks": 0,
+            "fullHyps": 39160,
+            "sliceHyps": 170,
+            "independentChecks": 851,
+            "independentHits": 759,
+            "retargetChecks": 322,
+            "retargetHits": 253
+          },
+          {
+            "leafChecks": 160,
+            "leafHits": 36,
+            "leafFallbacks": 0,
+            "fullHyps": 78320,
+            "sliceHyps": 342,
+            "independentChecks": 1679,
+            "independentHits": 1495,
+            "retargetChecks": 644,
+            "retargetHits": 506
+          },
+          {
+            "leafChecks": 160,
+            "leafHits": 36,
+            "leafFallbacks": 0,
+            "fullHyps": 78320,
+            "sliceHyps": 340,
+            "independentChecks": 1679,
+            "independentHits": 1495,
+            "retargetChecks": 638,
+            "retargetHits": 499
+          }
+        ]
+      }
+    }
+  ],
+  "allVerdictsIdentical": true,
+  "laterGatesRun": false
+}

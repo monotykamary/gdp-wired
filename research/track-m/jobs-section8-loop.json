@@ -1,0 +1,9 @@
+[
+  {
+    "name": "t81-loop",
+    "cmd": "bash research/track-m/run-section8-loop.sh",
+    "cpu": 8,
+    "memory": 14336,
+    "timeout": 300
+  }
+]

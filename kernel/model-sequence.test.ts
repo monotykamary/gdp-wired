@@ -1,6 +1,6 @@
 import {expect, test} from 'bun:test'
 import {type C, type E, type Law, type Machine, atMost, n, x} from '../core/machine.ts'
-import {check, type Goal} from './kernel.ts'
+import {canon, check, type Goal, type Path} from './kernel.ts'
 import {clock, decideLaw, grow, modelInstances, proveSetFast, withStrict} from './prove.ts'
 import {Cond, nat, proveDecision, proveRule, rule} from '../core/dsl.ts'
 import {decideHook} from './epr.ts'
@@ -22,6 +22,17 @@ test('growing model queries remap cores after insertion, reordering and duplicat
   expect(ask({name:'sequence',hyps:[other,lower]},clock()+5000)).toMatchObject({stuck:'sat'})
   // A changed bound is not the old expression, even under the same goal name.
   expect(ask({name:'sequence',hyps:[atMost(x('x'),n(3)),other,lower]},clock()+5000)).toMatchObject({stuck:'sat'})
+})
+
+test('model queries capture a fixed path and never leak its facts to empty-path queries', () => {
+  const lin={x:1}, path:Path=new Map([[canon(lin),{lin,holds:true}]]), saved=new Map(path), ask=modelSequence(path)
+  path.clear()
+  const goal:Goal={name:'scoped sequence',hyps:[atMost(n(1),x('x'))]},out=ask(goal,clock()+1000)
+  expect(out).toMatchObject({why:REFUTED})
+  const part={...goal,hyps:out.core!.map(i=>goal.hyps[i]!)},proof=grow(part,saved,{nodes:0,until:clock()+1000})
+  expect('tree'in proof&&check(part,proof.tree,saved)).toBe(true)
+  expect(ask({name:'scoped sequence',hyps:[atMost(x('y'),n(4))]},clock()+1000)).toMatchObject({stuck:'sat'})
+  expect(modelSequence()(goal,clock()+1000)).toMatchObject({stuck:'sat'})
 })
 
 const get = (map: string, key: E): E => ({op: 'get', map, key})

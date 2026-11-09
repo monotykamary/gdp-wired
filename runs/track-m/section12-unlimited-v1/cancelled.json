@@ -1,0 +1,13 @@
+{
+  "batch": "20261109-052450-ke1brk",
+  "status": 200,
+  "result": {
+    "vms": 1,
+    "starts": 0,
+    "preempted": 0,
+    "class": "submission",
+    "wall_s": 4171.8
+  },
+  "requestedBy": "coordinator",
+  "classification": "censored"
+}

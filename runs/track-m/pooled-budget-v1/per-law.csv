@@ -1,0 +1,301 @@
+run,comparison,repeat,mode,law,verdict,attempts,completed,counted_units,units_complete,wall_ms
+pool-r1-baseline,pool,1,baseline,"every Config cell is a value of its kind",conditional-proof,2,2,15.316468000008172,true,25.016959000000497
+pool-r1-baseline,pool,1,baseline,"one primary per term",unknown,8,8,14377.621182799994,true,7331.234558999997
+pool-r1-baseline,pool,1,baseline,"CT at most 44",unknown,4,4,3983.1008572,true,1864.2051989999982
+pool-r1-baseline,pool,1,baseline,"St at most 1",conditional-proof,2,2,173.93195040000455,true,83.21269499999835
+pool-r1-baseline,pool,1,baseline,"CV at most 2",unknown,4,4,4018.318631199992,true,2002.3674789999986
+pool-r1-baseline,pool,1,baseline,"CfgT at most 44",unknown,4,4,4236.878874000001,true,2044.161939000005
+pool-r1-baseline,pool,1,baseline,"fields: St[a]=1 -> CT[a]=CT[b] -> CV[b]<=CV[a]",unknown,4,4,4010.4443268000023,true,2687.057762999997
+pool-r1-baseline,pool,1,baseline,"fields: St[a]=1 -> CT[a]=CfgT[a]",conditional-proof,2,2,547.1018504000003,true,328.07052300000214
+pool-r1-baseline,pool,1,baseline,"fields: St[a]=1 -> CT[a]<=CfgT[a]",conditional-proof,2,2,582.7193296000041,true,275.03459700000167
+pool-r1-baseline,pool,1,baseline,"fields: St[a]=1 -> CT[a]=CT[b] -> CfgT[b]<=CfgT[a]",unknown,4,4,4052.511996799998,true,2771.6785770000024
+pool-r1-baseline,pool,1,baseline,"fields: St[a]=1 -> CfgT[a]<=CT[a]",conditional-proof,2,2,576.1494303999971,true,271.72702400000344
+pool-r1-baseline,pool,1,baseline,"fields: St[a]=1 -> CfgT[a]=CfgT[b] -> CV[b]<=CV[a]",unknown,4,4,4108.342153200008,true,3372.88852099999
+pool-r1-baseline,pool,1,baseline,"every x with x < size: never Config[x] is 0 and 1 <= St[x]",unknown,4,4,4209.360445999995,true,3089.9934660000035
+pool-r1-baseline,pool,1,baseline,"every x with x < size: never CT[x] is 0 and 1 <= St[x]",conditional-proof,2,2,195.8676847999959,true,90.82955499999662
+pool-r1-baseline,pool,1,baseline,"every x with x < size: never 1 <= CT[x] and CV[x] is 0",conditional-proof,2,2,309.71554640000977,true,256.5713759999999
+pool-r1-baseline,pool,1,baseline,"every x with x < size: never 1 <= CT[x] and started is 0",conditional-proof,2,2,82.2036159999916,true,60.98903999999675
+pool-r1-baseline,pool,1,baseline,"every x with x < size: never 1 <= St[x] and CV[x] is 0",conditional-proof,2,2,258.8916568000059,true,123.76051300000108
+pool-r1-baseline,pool,1,baseline,"every x with x < size: never 1 <= St[x] and CfgT[x] is 0",conditional-proof,2,2,504.0855359999987,true,264.6606329999995
+pool-r1-baseline,pool,1,baseline,"every x with x < size: never 1 <= St[x] and started is 0",conditional-proof,2,2,91.63743600000453,true,112.74739399999817
+pool-r1-baseline,pool,1,baseline,"every x with x < size: never CV[x] is 0 and 1 <= CfgT[x]",conditional-proof,2,2,419.837455199995,true,192.51730799999496
+pool-r1-baseline,pool,1,baseline,"every x with x < size: never CV[x] is 0 and 1 <= started",conditional-proof,2,2,280.7640167999998,true,130.06970499999807
+pool-r1-baseline,pool,1,baseline,"every x with x < size: never 1 <= CfgT[x] and started is 0",conditional-proof,2,2,86.60312799998792,true,60.078805999994074
+pool-r1-baseline,pool,1,baseline,"every x, y with x < size ∧ y < size ∧ ¬(x = y): never 1 <= CT[x] and CV[y] is 0",conditional-proof,2,2,350.84431760000734,true,296.31558199999927
+pool-r1-baseline,pool,1,baseline,"every x, y with x < size ∧ y < size ∧ ¬(x = y): never 1 <= St[x] and CV[y] is 0",conditional-proof,2,2,445.43368560001545,true,237.99928100000034
+pool-r1-baseline,pool,1,baseline,"every x, y with x < size ∧ y < size ∧ ¬(x = y): never CV[x] is 0 and 1 <= CfgT[y]",conditional-proof,2,2,362.93213919999107,true,174.15990000000238
+pool-r1-pool,pool,1,pool,"every Config cell is a value of its kind",conditional-proof,2,2,15.316468000004534,true,31.970088999998552
+pool-r1-pool,pool,1,pool,"one primary per term",unknown,8,8,19953.404940399996,true,10769.333867999998
+pool-r1-pool,pool,1,pool,"CT at most 44",unknown,4,4,1923.7486988000007,true,1120.9443709999996
+pool-r1-pool,pool,1,pool,"St at most 1",conditional-proof,2,2,173.93195040000046,true,113.75709399999869
+pool-r1-pool,pool,1,pool,"CV at most 2",unknown,4,4,2413.6646776,true,1587.7487470000015
+pool-r1-pool,pool,1,pool,"CfgT at most 44",unknown,4,4,2395.507065999999,true,1465.9758989999991
+pool-r1-pool,pool,1,pool,"fields: St[a]=1 -> CT[a]=CT[b] -> CV[b]<=CV[a]",unknown,4,4,4379.745533200003,true,3391.6715269999986
+pool-r1-pool,pool,1,pool,"fields: St[a]=1 -> CT[a]=CfgT[a]",conditional-proof,2,2,547.1018503999903,true,405.53715600000214
+pool-r1-pool,pool,1,pool,"fields: St[a]=1 -> CT[a]<=CfgT[a]",conditional-proof,2,2,582.719329600016,true,311.06510699999853
+pool-r1-pool,pool,1,pool,"fields: St[a]=1 -> CT[a]=CT[b] -> CfgT[b]<=CfgT[a]",unknown,4,4,4784.186990399995,true,3902.7436540000017
+pool-r1-pool,pool,1,pool,"fields: St[a]=1 -> CfgT[a]<=CT[a]",conditional-proof,2,2,576.1494304000025,true,367.2623660000063
+pool-r1-pool,pool,1,pool,"fields: St[a]=1 -> CfgT[a]=CfgT[b] -> CV[b]<=CV[a]",unknown,4,4,6126.006926,true,4709.048057
+pool-r1-pool,pool,1,pool,"every x with x < size: never Config[x] is 0 and 1 <= St[x]",unknown,4,4,5291.46707959999,true,4559.818743999993
+pool-r1-pool,pool,1,pool,"every x with x < size: never CT[x] is 0 and 1 <= St[x]",conditional-proof,2,2,195.86768479999955,true,121.17418399999951
+pool-r1-pool,pool,1,pool,"every x with x < size: never 1 <= CT[x] and CV[x] is 0",conditional-proof,2,2,309.71554640000613,true,212.6224030000012
+pool-r1-pool,pool,1,pool,"every x with x < size: never 1 <= CT[x] and started is 0",conditional-proof,2,2,82.20361600000615,true,81.73441399999501
+pool-r1-pool,pool,1,pool,"every x with x < size: never 1 <= St[x] and CV[x] is 0",conditional-proof,2,2,258.8916567999913,true,298.1985240000031
+pool-r1-pool,pool,1,pool,"every x with x < size: never 1 <= St[x] and CfgT[x] is 0",conditional-proof,2,2,504.0855359999987,true,283.61306400000103
+pool-r1-pool,pool,1,pool,"every x with x < size: never 1 <= St[x] and started is 0",conditional-proof,2,2,91.6374360000118,true,99.81319699999221
+pool-r1-pool,pool,1,pool,"every x with x < size: never CV[x] is 0 and 1 <= CfgT[x]",conditional-proof,2,2,419.8374551999914,true,334.9291400000002
+pool-r1-pool,pool,1,pool,"every x with x < size: never CV[x] is 0 and 1 <= started",conditional-proof,2,2,280.76401679999617,true,270.48623699999735
+pool-r1-pool,pool,1,pool,"every x with x < size: never 1 <= CfgT[x] and started is 0",conditional-proof,2,2,86.60312799999883,true,102.30576600000131
+pool-r1-pool,pool,1,pool,"every x, y with x < size ∧ y < size ∧ ¬(x = y): never 1 <= CT[x] and CV[y] is 0",conditional-proof,2,2,350.84431760000007,true,306.2593400000005
+pool-r1-pool,pool,1,pool,"every x, y with x < size ∧ y < size ∧ ¬(x = y): never 1 <= St[x] and CV[y] is 0",conditional-proof,2,2,445.4336856000009,true,293.31966499999544
+pool-r1-pool,pool,1,pool,"every x, y with x < size ∧ y < size ∧ ¬(x = y): never CV[x] is 0 and 1 <= CfgT[y]",conditional-proof,2,2,362.93213919999835,true,369.914757999999
+combo-r1-combo,combo,1,combo,"every Config cell is a value of its kind",conditional-proof,2,2,15.316467999986344,true,23.315432000003057
+combo-r1-combo,combo,1,combo,"one primary per term",unknown,8,8,18517.36383080001,true,10538.49953999999
+combo-r1-combo,combo,1,combo,"CT at most 44",unknown,4,4,1722.6398368000062,true,1102.5044310000012
+combo-r1-combo,combo,1,combo,"St at most 1",conditional-proof,2,2,173.9319503999934,true,107.80578199999945
+combo-r1-combo,combo,1,combo,"CV at most 2",unknown,4,4,2106.969628000004,true,1667.2038649999959
+combo-r1-combo,combo,1,combo,"CfgT at most 44",unknown,4,4,2118.3644756000026,true,1606.389780999998
+combo-r1-combo,combo,1,combo,"fields: St[a]=1 -> CT[a]=CT[b] -> CV[b]<=CV[a]",unknown,4,4,3877.204252399996,true,3478.1095650000025
+combo-r1-combo,combo,1,combo,"fields: St[a]=1 -> CT[a]=CfgT[a]",conditional-proof,2,2,547.1018503999976,true,315.33050499999445
+combo-r1-combo,combo,1,combo,"fields: St[a]=1 -> CT[a]<=CfgT[a]",conditional-proof,2,2,582.719329600006,true,427.3647230000024
+combo-r1-combo,combo,1,combo,"fields: St[a]=1 -> CT[a]=CT[b] -> CfgT[b]<=CfgT[a]",unknown,4,4,4180.777081999995,true,3565.000597000013
+combo-r1-combo,combo,1,combo,"fields: St[a]=1 -> CfgT[a]<=CT[a]",conditional-proof,2,2,576.1494303999934,true,382.104123000001
+combo-r1-combo,combo,1,combo,"fields: St[a]=1 -> CfgT[a]=CfgT[b] -> CV[b]<=CV[a]",unknown,4,4,5158.749010400008,true,4399.645078000001
+combo-r1-combo,combo,1,combo,"every x with x < size: never Config[x] is 0 and 1 <= St[x]",unknown,4,4,4170.193420000007,true,3947.504515000008
+combo-r1-combo,combo,1,combo,"every x with x < size: never CT[x] is 0 and 1 <= St[x]",conditional-proof,2,2,195.86768479998864,true,242.85071000000607
+combo-r1-combo,combo,1,combo,"every x with x < size: never 1 <= CT[x] and CV[x] is 0",conditional-proof,2,2,309.71554640000613,true,196.86384499999986
+combo-r1-combo,combo,1,combo,"every x with x < size: never 1 <= CT[x] and started is 0",conditional-proof,2,2,82.20361600000615,true,92.93939400000454
+combo-r1-combo,combo,1,combo,"every x with x < size: never 1 <= St[x] and CV[x] is 0",conditional-proof,2,2,258.8916567999913,true,180.8077000000012
+combo-r1-combo,combo,1,combo,"every x with x < size: never 1 <= St[x] and CfgT[x] is 0",conditional-proof,2,2,504.0855360000023,true,409.2884309999972
+combo-r1-combo,combo,1,combo,"every x with x < size: never 1 <= St[x] and started is 0",conditional-proof,2,2,91.63743600000453,true,91.89855600000374
+combo-r1-combo,combo,1,combo,"every x with x < size: never CV[x] is 0 and 1 <= CfgT[x]",conditional-proof,2,2,419.8374552000023,true,225.96302700000524
+combo-r1-combo,combo,1,combo,"every x with x < size: never CV[x] is 0 and 1 <= started",conditional-proof,2,2,280.7640167999889,true,233.549329999998
+combo-r1-combo,combo,1,combo,"every x with x < size: never 1 <= CfgT[x] and started is 0",conditional-proof,2,2,86.60312799999156,true,87.35473899999852
+combo-r1-combo,combo,1,combo,"every x, y with x < size ∧ y < size ∧ ¬(x = y): never 1 <= CT[x] and CV[y] is 0",conditional-proof,2,2,350.8443176000146,true,311.4955359999949
+combo-r1-combo,combo,1,combo,"every x, y with x < size ∧ y < size ∧ ¬(x = y): never 1 <= St[x] and CV[y] is 0",conditional-proof,2,2,445.4336856000009,true,318.93459200000143
+combo-r1-combo,combo,1,combo,"every x, y with x < size ∧ y < size ∧ ¬(x = y): never CV[x] is 0 and 1 <= CfgT[y]",conditional-proof,2,2,362.932139200002,true,219.83882599999924
+combo-r1-baseline,combo,1,baseline,"every Config cell is a value of its kind",conditional-proof,2,2,15.316468000008172,true,36.026912000001175
+combo-r1-baseline,combo,1,baseline,"one primary per term",unknown,8,8,14377.621182799994,true,10311.082530999993
+combo-r1-baseline,combo,1,baseline,"CT at most 44",unknown,4,4,3983.1008572,true,2776.870592999996
+combo-r1-baseline,combo,1,baseline,"St at most 1",conditional-proof,2,2,173.93195040000455,true,108.96271100000376
+combo-r1-baseline,combo,1,baseline,"CV at most 2",unknown,4,4,4018.318631199992,true,3002.73676
+combo-r1-baseline,combo,1,baseline,"CfgT at most 44",unknown,4,4,4236.878874000001,true,3234.325988000008
+combo-r1-baseline,combo,1,baseline,"fields: St[a]=1 -> CT[a]=CT[b] -> CV[b]<=CV[a]",unknown,4,4,4010.4443268000023,true,4439.760101000007
+combo-r1-baseline,combo,1,baseline,"fields: St[a]=1 -> CT[a]=CfgT[a]",conditional-proof,2,2,547.1018504000003,true,324.12376399999266
+combo-r1-baseline,combo,1,baseline,"fields: St[a]=1 -> CT[a]<=CfgT[a]",conditional-proof,2,2,582.7193296000041,true,470.4588529999928
+combo-r1-baseline,combo,1,baseline,"fields: St[a]=1 -> CT[a]=CT[b] -> CfgT[b]<=CfgT[a]",unknown,4,4,4052.511996799998,true,4148.846591000005
+combo-r1-baseline,combo,1,baseline,"fields: St[a]=1 -> CfgT[a]<=CT[a]",conditional-proof,2,2,576.1494303999971,true,507.2062290000031
+combo-r1-baseline,combo,1,baseline,"fields: St[a]=1 -> CfgT[a]=CfgT[b] -> CV[b]<=CV[a]",unknown,4,4,4108.342153200008,true,4075.526740000005
+combo-r1-baseline,combo,1,baseline,"every x with x < size: never Config[x] is 0 and 1 <= St[x]",unknown,4,4,4209.360445999995,true,4091.081246000005
+combo-r1-baseline,combo,1,baseline,"every x with x < size: never CT[x] is 0 and 1 <= St[x]",conditional-proof,2,2,195.8676847999959,true,188.37075700000423
+combo-r1-baseline,combo,1,baseline,"every x with x < size: never 1 <= CT[x] and CV[x] is 0",conditional-proof,2,2,309.71554640000977,true,232.87136800000007
+combo-r1-baseline,combo,1,baseline,"every x with x < size: never 1 <= CT[x] and started is 0",conditional-proof,2,2,82.2036159999916,true,87.28138999999646
+combo-r1-baseline,combo,1,baseline,"every x with x < size: never 1 <= St[x] and CV[x] is 0",conditional-proof,2,2,258.8916568000059,true,295.789122999995
+combo-r1-baseline,combo,1,baseline,"every x with x < size: never 1 <= St[x] and CfgT[x] is 0",conditional-proof,2,2,504.0855359999987,true,429.6235119999983
+combo-r1-baseline,combo,1,baseline,"every x with x < size: never 1 <= St[x] and started is 0",conditional-proof,2,2,91.63743600000453,true,92.12081399999443
+combo-r1-baseline,combo,1,baseline,"every x with x < size: never CV[x] is 0 and 1 <= CfgT[x]",conditional-proof,2,2,419.837455199995,true,345.05887300000177
+combo-r1-baseline,combo,1,baseline,"every x with x < size: never CV[x] is 0 and 1 <= started",conditional-proof,2,2,280.7640167999998,true,238.73534900000232
+combo-r1-baseline,combo,1,baseline,"every x with x < size: never 1 <= CfgT[x] and started is 0",conditional-proof,2,2,86.60312799998792,true,174.49509299999772
+combo-r1-baseline,combo,1,baseline,"every x, y with x < size ∧ y < size ∧ ¬(x = y): never 1 <= CT[x] and CV[y] is 0",conditional-proof,2,2,350.84431760000734,true,328.361069999999
+combo-r1-baseline,combo,1,baseline,"every x, y with x < size ∧ y < size ∧ ¬(x = y): never 1 <= St[x] and CV[y] is 0",conditional-proof,2,2,445.43368560001545,true,369.95461400000204
+combo-r1-baseline,combo,1,baseline,"every x, y with x < size ∧ y < size ∧ ¬(x = y): never CV[x] is 0 and 1 <= CfgT[y]",conditional-proof,2,2,362.93213919999107,true,314.63417799999297
+combo-r2-baseline,combo,2,baseline,"every Config cell is a value of its kind",conditional-proof,2,2,15.316468000008172,true,30.306778999991366
+combo-r2-baseline,combo,2,baseline,"one primary per term",unknown,8,8,14377.621182799994,true,8775.652599000008
+combo-r2-baseline,combo,2,baseline,"CT at most 44",unknown,4,4,3983.1008572,true,2609.182624000001
+combo-r2-baseline,combo,2,baseline,"St at most 1",conditional-proof,2,2,173.93195040000455,true,113.29481800000576
+combo-r2-baseline,combo,2,baseline,"CV at most 2",unknown,4,4,4018.318631199992,true,2795.5731810000034
+combo-r2-baseline,combo,2,baseline,"CfgT at most 44",unknown,4,4,4236.878874000001,true,2905.1977070000066
+combo-r2-baseline,combo,2,baseline,"fields: St[a]=1 -> CT[a]=CT[b] -> CV[b]<=CV[a]",unknown,4,4,4010.4443268000023,true,3950.2061499999945
+combo-r2-baseline,combo,2,baseline,"fields: St[a]=1 -> CT[a]=CfgT[a]",conditional-proof,2,2,547.1018504000003,true,370.06746499999645
+combo-r2-baseline,combo,2,baseline,"fields: St[a]=1 -> CT[a]<=CfgT[a]",conditional-proof,2,2,582.7193296000041,true,328.23101699999825
+combo-r2-baseline,combo,2,baseline,"fields: St[a]=1 -> CT[a]=CT[b] -> CfgT[b]<=CfgT[a]",unknown,4,4,4052.511996799998,true,3888.0222969999922
+combo-r2-baseline,combo,2,baseline,"fields: St[a]=1 -> CfgT[a]<=CT[a]",conditional-proof,2,2,576.1494303999971,true,372.50208300000304
+combo-r2-baseline,combo,2,baseline,"fields: St[a]=1 -> CfgT[a]=CfgT[b] -> CV[b]<=CV[a]",unknown,4,4,4108.342153200008,true,3903.424723999997
+combo-r2-baseline,combo,2,baseline,"every x with x < size: never Config[x] is 0 and 1 <= St[x]",unknown,4,4,4209.360445999995,true,3815.9788150000095
+combo-r2-baseline,combo,2,baseline,"every x with x < size: never CT[x] is 0 and 1 <= St[x]",conditional-proof,2,2,195.8676847999959,true,113.27477699999872
+combo-r2-baseline,combo,2,baseline,"every x with x < size: never 1 <= CT[x] and CV[x] is 0",conditional-proof,2,2,309.71554640000977,true,350.12892499999725
+combo-r2-baseline,combo,2,baseline,"every x with x < size: never 1 <= CT[x] and started is 0",conditional-proof,2,2,82.2036159999916,true,99.71870699999272
+combo-r2-baseline,combo,2,baseline,"every x with x < size: never 1 <= St[x] and CV[x] is 0",conditional-proof,2,2,258.8916568000059,true,177.96279200000572
+combo-r2-baseline,combo,2,baseline,"every x with x < size: never 1 <= St[x] and CfgT[x] is 0",conditional-proof,2,2,504.0855359999987,true,246.86827500000072
+combo-r2-baseline,combo,2,baseline,"every x with x < size: never 1 <= St[x] and started is 0",conditional-proof,2,2,91.63743600000453,true,133.14037700000335
+combo-r2-baseline,combo,2,baseline,"every x with x < size: never CV[x] is 0 and 1 <= CfgT[x]",conditional-proof,2,2,419.837455199995,true,342.83378000000084
+combo-r2-baseline,combo,2,baseline,"every x with x < size: never CV[x] is 0 and 1 <= started",conditional-proof,2,2,280.7640167999998,true,198.0456450000056
+combo-r2-baseline,combo,2,baseline,"every x with x < size: never 1 <= CfgT[x] and started is 0",conditional-proof,2,2,86.60312799998792,true,94.67404699999315
+combo-r2-baseline,combo,2,baseline,"every x, y with x < size ∧ y < size ∧ ¬(x = y): never 1 <= CT[x] and CV[y] is 0",conditional-proof,2,2,350.84431760000734,true,280.79819999999745
+combo-r2-baseline,combo,2,baseline,"every x, y with x < size ∧ y < size ∧ ¬(x = y): never 1 <= St[x] and CV[y] is 0",conditional-proof,2,2,445.43368560001545,true,298.3170239999963
+combo-r2-baseline,combo,2,baseline,"every x, y with x < size ∧ y < size ∧ ¬(x = y): never CV[x] is 0 and 1 <= CfgT[y]",conditional-proof,2,2,362.93213919999107,true,316.0248109999957
+combo-r2-combo,combo,2,combo,"every Config cell is a value of its kind",conditional-proof,2,2,15.316467999997258,true,25.8481399999946
+combo-r2-combo,combo,2,combo,"one primary per term",unknown,8,8,17387.773167600008,true,10569.174699999996
+combo-r2-combo,combo,2,combo,"CT at most 44",unknown,4,4,1473.2398300000018,true,1263.4508489999935
+combo-r2-combo,combo,2,combo,"St at most 1",conditional-proof,2,2,173.93195040000091,true,113.54294399999708
+combo-r2-combo,combo,2,combo,"CV at most 2",unknown,4,4,2000.2185155999919,true,1714.4868099999985
+combo-r2-combo,combo,2,combo,"CfgT at most 44",unknown,4,4,1971.3384116000057,true,1588.4947970000103
+combo-r2-combo,combo,2,combo,"fields: St[a]=1 -> CT[a]=CT[b] -> CV[b]<=CV[a]",unknown,4,4,3592.440388000002,true,3370.150816999998
+combo-r2-combo,combo,2,combo,"fields: St[a]=1 -> CT[a]=CfgT[a]",conditional-proof,2,2,547.101850399994,true,330.4050809999935
+combo-r2-combo,combo,2,combo,"fields: St[a]=1 -> CT[a]<=CfgT[a]",conditional-proof,2,2,582.7193295999941,true,492.24866599999586
+combo-r2-combo,combo,2,combo,"fields: St[a]=1 -> CT[a]=CT[b] -> CfgT[b]<=CfgT[a]",unknown,4,4,3703.1934756000082,true,3383.6003130000063
+combo-r2-combo,combo,2,combo,"fields: St[a]=1 -> CfgT[a]<=CT[a]",conditional-proof,2,2,576.1494303999953,true,328.278027999997
+combo-r2-combo,combo,2,combo,"fields: St[a]=1 -> CfgT[a]=CfgT[b] -> CV[b]<=CV[a]",unknown,4,4,4577.0153560000035,true,4204.141582000004
+combo-r2-combo,combo,2,combo,"every x with x < size: never Config[x] is 0 and 1 <= St[x]",unknown,4,4,3992.1783871999996,true,3913.77748099999
+combo-r2-combo,combo,2,combo,"every x with x < size: never CT[x] is 0 and 1 <= St[x]",conditional-proof,2,2,195.86768479999955,true,148.6644550000019
+combo-r2-combo,combo,2,combo,"every x with x < size: never 1 <= CT[x] and CV[x] is 0",conditional-proof,2,2,309.7155464000007,true,218.62813600000663
+combo-r2-combo,combo,2,combo,"every x with x < size: never 1 <= CT[x] and started is 0",conditional-proof,2,2,82.20361600000251,true,144.97479800000292
+combo-r2-combo,combo,2,combo,"every x with x < size: never 1 <= St[x] and CV[x] is 0",conditional-proof,2,2,258.89165679999496,true,187.51294800000323
+combo-r2-combo,combo,2,combo,"every x with x < size: never 1 <= St[x] and CfgT[x] is 0",conditional-proof,2,2,504.08553599999686,true,385.56386799999746
+combo-r2-combo,combo,2,combo,"every x with x < size: never 1 <= St[x] and started is 0",conditional-proof,2,2,91.6374360000118,true,151.71427299999777
+combo-r2-combo,combo,2,combo,"every x with x < size: never CV[x] is 0 and 1 <= CfgT[x]",conditional-proof,2,2,419.8374551999914,true,252.15857700000197
+combo-r2-combo,combo,2,combo,"every x with x < size: never CV[x] is 0 and 1 <= started",conditional-proof,2,2,280.7640167999998,true,172.2641369999983
+combo-r2-combo,combo,2,combo,"every x with x < size: never 1 <= CfgT[x] and started is 0",conditional-proof,2,2,86.60312799999883,true,93.71905500000139
+combo-r2-combo,combo,2,combo,"every x, y with x < size ∧ y < size ∧ ¬(x = y): never 1 <= CT[x] and CV[y] is 0",conditional-proof,2,2,350.84431759999643,true,367.6700999999957
+combo-r2-combo,combo,2,combo,"every x, y with x < size ∧ y < size ∧ ¬(x = y): never 1 <= St[x] and CV[y] is 0",conditional-proof,2,2,445.43368560000454,true,293.82186399999773
+combo-r2-combo,combo,2,combo,"every x, y with x < size ∧ y < size ∧ ¬(x = y): never CV[x] is 0 and 1 <= CfgT[y]",conditional-proof,2,2,362.932139200002,true,276.90265999999974
+pool-r2-pool,pool,2,pool,"every Config cell is a value of its kind",conditional-proof,2,2,15.316467999999077,true,40.497282000003906
+pool-r2-pool,pool,2,pool,"one primary per term",unknown,8,8,15669.8361324,true,11112.480160999992
+pool-r2-pool,pool,2,pool,"CT at most 44",unknown,4,4,1575.7916463999998,true,1241.3273060000065
+pool-r2-pool,pool,2,pool,"St at most 1",conditional-proof,2,2,173.93195040000433,true,143.20586000000185
+pool-r2-pool,pool,2,pool,"CV at most 2",unknown,4,4,1540.8996447999953,true,1945.1356089999972
+pool-r2-pool,pool,2,pool,"CfgT at most 44",unknown,4,4,1914.2118724000034,true,1694.5763110000044
+pool-r2-pool,pool,2,pool,"fields: St[a]=1 -> CT[a]=CT[b] -> CV[b]<=CV[a]",unknown,4,4,3105.0994676000078,true,3515.736764000001
+pool-r2-pool,pool,2,pool,"fields: St[a]=1 -> CT[a]=CfgT[a]",conditional-proof,2,2,547.101850399993,true,344.5624040000039
+pool-r2-pool,pool,2,pool,"fields: St[a]=1 -> CT[a]<=CfgT[a]",conditional-proof,2,2,582.7193295999896,true,428.01812699999937
+pool-r2-pool,pool,2,pool,"fields: St[a]=1 -> CT[a]=CT[b] -> CfgT[b]<=CfgT[a]",unknown,4,4,3620.7268564000087,true,3438.7837390000022
+pool-r2-pool,pool,2,pool,"fields: St[a]=1 -> CfgT[a]<=CT[a]",conditional-proof,2,2,576.1494304000007,true,310.4511100000018
+pool-r2-pool,pool,2,pool,"fields: St[a]=1 -> CfgT[a]=CfgT[b] -> CV[b]<=CV[a]",unknown,4,4,4659.561648000006,true,3881.6495929999983
+pool-r2-pool,pool,2,pool,"every x with x < size: never Config[x] is 0 and 1 <= St[x]",unknown,4,4,3711.313155199987,true,3593.106096000007
+pool-r2-pool,pool,2,pool,"every x with x < size: never CT[x] is 0 and 1 <= St[x]",conditional-proof,2,2,195.86768479999955,true,133.87218199999916
+pool-r2-pool,pool,2,pool,"every x with x < size: never 1 <= CT[x] and CV[x] is 0",conditional-proof,2,2,309.7155464000007,true,231.52183199999854
+pool-r2-pool,pool,2,pool,"every x with x < size: never 1 <= CT[x] and started is 0",conditional-proof,2,2,82.20361599999887,true,114.54746400000295
+pool-r2-pool,pool,2,pool,"every x with x < size: never 1 <= St[x] and CV[x] is 0",conditional-proof,2,2,258.8916568000077,true,426.86882100000366
+pool-r2-pool,pool,2,pool,"every x with x < size: never 1 <= St[x] and CfgT[x] is 0",conditional-proof,2,2,504.0855359999987,true,362.3885819999996
+pool-r2-pool,pool,2,pool,"every x with x < size: never 1 <= St[x] and started is 0",conditional-proof,2,2,91.63743600000817,true,109.31157599999278
+pool-r2-pool,pool,2,pool,"every x with x < size: never CV[x] is 0 and 1 <= CfgT[x]",conditional-proof,2,2,419.837455199995,true,340.8254240000024
+pool-r2-pool,pool,2,pool,"every x with x < size: never CV[x] is 0 and 1 <= started",conditional-proof,2,2,280.76401679999617,true,220.8737340000007
+pool-r2-pool,pool,2,pool,"every x with x < size: never 1 <= CfgT[x] and started is 0",conditional-proof,2,2,86.60312799999156,true,526.6774680000017
+pool-r2-pool,pool,2,pool,"every x, y with x < size ∧ y < size ∧ ¬(x = y): never 1 <= CT[x] and CV[y] is 0",conditional-proof,2,2,350.84431760000734,true,320.63163799999893
+pool-r2-pool,pool,2,pool,"every x, y with x < size ∧ y < size ∧ ¬(x = y): never 1 <= St[x] and CV[y] is 0",conditional-proof,2,2,445.4336856000027,true,402.1822200000024
+pool-r2-pool,pool,2,pool,"every x, y with x < size ∧ y < size ∧ ¬(x = y): never CV[x] is 0 and 1 <= CfgT[y]",conditional-proof,2,2,362.932139200002,true,307.08477700000367
+pool-r2-baseline,pool,2,baseline,"every Config cell is a value of its kind",conditional-proof,1,1,7.658234000005905,true,18.59140699999989
+pool-r2-baseline,pool,2,baseline,"one primary per term",unknown,4,4,7747.837378399992,true,4760.148266999997
+pool-r2-baseline,pool,2,baseline,"CT at most 44",unknown,4,4,3983.1008572,true,3164.8583690000014
+pool-r2-baseline,pool,2,baseline,"St at most 1",conditional-proof,2,2,173.93195040000455,true,194.0640360000034
+pool-r2-baseline,pool,2,baseline,"CV at most 2",unknown,4,4,4018.318631199992,true,3847.2393679999986
+pool-r2-baseline,pool,2,baseline,"CfgT at most 44",unknown,4,4,4236.878874000001,true,3489.6898029999975
+pool-r2-baseline,pool,2,baseline,"fields: St[a]=1 -> CT[a]=CT[b] -> CV[b]<=CV[a]",unknown,4,4,4010.4443268000023,true,4168.496042000006
+pool-r2-baseline,pool,2,baseline,"fields: St[a]=1 -> CT[a]=CfgT[a]",conditional-proof,2,2,547.1018504000003,true,379.20499500000005
+pool-r2-baseline,pool,2,baseline,"fields: St[a]=1 -> CT[a]<=CfgT[a]",conditional-proof,2,2,582.7193296000041,true,534.8533110000062
+pool-r2-baseline,pool,2,baseline,"fields: St[a]=1 -> CT[a]=CT[b] -> CfgT[b]<=CfgT[a]",unknown,4,4,4052.511996799998,true,4189.443581999993
+pool-r2-baseline,pool,2,baseline,"fields: St[a]=1 -> CfgT[a]<=CT[a]",conditional-proof,2,2,576.1494303999971,true,592.6832500000019
+pool-r2-baseline,pool,2,baseline,"fields: St[a]=1 -> CfgT[a]=CfgT[b] -> CV[b]<=CV[a]",unknown,3,2,2628.4000448000024,false,2676.394969000001
+pool-r2-baseline,pool,2,baseline,"every x with x < size: never Config[x] is 0 and 1 <= St[x]",unknown,2,2,2681.6535587999933,true,2894.751506000008
+pool-r2-baseline,pool,2,baseline,"every x with x < size: never CT[x] is 0 and 1 <= St[x]",conditional-proof,1,1,97.93384240000887,true,126.9759120000017
+pool-r2-baseline,pool,2,baseline,"every x with x < size: never 1 <= CT[x] and CV[x] is 0",conditional-proof,1,1,154.8577731999976,true,121.675983000001
+pool-r2-baseline,pool,2,baseline,"every x with x < size: never 1 <= CT[x] and started is 0",conditional-proof,1,1,41.10180799999944,true,51.93897899999865
+pool-r2-baseline,pool,2,baseline,"every x with x < size: never 1 <= St[x] and CV[x] is 0",conditional-proof,1,1,129.4458283999993,true,99.99094799999875
+pool-r2-baseline,pool,2,baseline,"every x with x < size: never 1 <= St[x] and CfgT[x] is 0",conditional-proof,1,1,252.04276799999934,true,207.9056270000001
+pool-r2-baseline,pool,2,baseline,"every x with x < size: never 1 <= St[x] and started is 0",conditional-proof,1,1,45.818718000002264,true,49.30570699999953
+pool-r2-baseline,pool,2,baseline,"every x with x < size: never CV[x] is 0 and 1 <= CfgT[x]",conditional-proof,1,1,209.91872760000115,true,134.57305199999973
+pool-r2-baseline,pool,2,baseline,"every x with x < size: never CV[x] is 0 and 1 <= started",conditional-proof,1,1,140.38200839999627,true,163.24099900000147
+pool-r2-baseline,pool,2,baseline,"every x with x < size: never 1 <= CfgT[x] and started is 0",conditional-proof,1,1,43.30156399999396,true,62.24520399999892
+pool-r2-baseline,pool,2,baseline,"every x, y with x < size ∧ y < size ∧ ¬(x = y): never 1 <= CT[x] and CV[y] is 0",conditional-proof,1,1,175.4221588000073,true,140.75127200000134
+pool-r2-baseline,pool,2,baseline,"every x, y with x < size ∧ y < size ∧ ¬(x = y): never 1 <= St[x] and CV[y] is 0",conditional-proof,1,1,222.71684280000045,true,236.5167599999986
+pool-r2-baseline,pool,2,baseline,"every x, y with x < size ∧ y < size ∧ ¬(x = y): never CV[x] is 0 and 1 <= CfgT[y]",conditional-proof,1,1,181.46606959999917,true,119.04619799999637
+pool-r3-baseline,pool,3,baseline,"every Config cell is a value of its kind",conditional-proof,2,2,15.316468000008172,true,28.660014000000956
+pool-r3-baseline,pool,3,baseline,"one primary per term",unknown,8,8,14377.621182799994,true,8277.317454000011
+pool-r3-baseline,pool,3,baseline,"CT at most 44",unknown,4,4,3983.1008572,true,2572.0979879999904
+pool-r3-baseline,pool,3,baseline,"St at most 1",conditional-proof,2,2,173.93195040000455,true,114.76140300000043
+pool-r3-baseline,pool,3,baseline,"CV at most 2",unknown,4,4,4018.318631199992,true,3050.139699999996
+pool-r3-baseline,pool,3,baseline,"CfgT at most 44",unknown,4,4,4236.878874000001,true,3182.481702999994
+pool-r3-baseline,pool,3,baseline,"fields: St[a]=1 -> CT[a]=CT[b] -> CV[b]<=CV[a]",unknown,4,4,4010.4443268000023,true,4174.638196000007
+pool-r3-baseline,pool,3,baseline,"fields: St[a]=1 -> CT[a]=CfgT[a]",conditional-proof,2,2,547.1018504000003,true,426.11785600000076
+pool-r3-baseline,pool,3,baseline,"fields: St[a]=1 -> CT[a]<=CfgT[a]",conditional-proof,2,2,582.7193296000041,true,375.13150300000416
+pool-r3-baseline,pool,3,baseline,"fields: St[a]=1 -> CT[a]=CT[b] -> CfgT[b]<=CfgT[a]",unknown,4,4,4052.511996799998,true,4210.582667000006
+pool-r3-baseline,pool,3,baseline,"fields: St[a]=1 -> CfgT[a]<=CT[a]",conditional-proof,2,2,576.1494303999971,true,395.8302320000039
+pool-r3-baseline,pool,3,baseline,"fields: St[a]=1 -> CfgT[a]=CfgT[b] -> CV[b]<=CV[a]",unknown,4,4,4108.342153200008,true,4077.5384019999947
+pool-r3-baseline,pool,3,baseline,"every x with x < size: never Config[x] is 0 and 1 <= St[x]",unknown,4,4,4209.360445999995,true,3964.0345190000007
+pool-r3-baseline,pool,3,baseline,"every x with x < size: never CT[x] is 0 and 1 <= St[x]",conditional-proof,2,2,195.8676847999959,true,217.8951820000002
+pool-r3-baseline,pool,3,baseline,"every x with x < size: never 1 <= CT[x] and CV[x] is 0",conditional-proof,2,2,309.71554640000977,true,199.81203199999436
+pool-r3-baseline,pool,3,baseline,"every x with x < size: never 1 <= CT[x] and started is 0",conditional-proof,2,2,82.2036159999916,true,123.47224399999686
+pool-r3-baseline,pool,3,baseline,"every x with x < size: never 1 <= St[x] and CV[x] is 0",conditional-proof,2,2,258.8916568000059,true,183.0473320000092
+pool-r3-baseline,pool,3,baseline,"every x with x < size: never 1 <= St[x] and CfgT[x] is 0",conditional-proof,2,2,504.0855359999987,true,348.41751400000066
+pool-r3-baseline,pool,3,baseline,"every x with x < size: never 1 <= St[x] and started is 0",conditional-proof,2,2,91.63743600000453,true,117.79339299999992
+pool-r3-baseline,pool,3,baseline,"every x with x < size: never CV[x] is 0 and 1 <= CfgT[x]",conditional-proof,2,2,419.837455199995,true,353.61590199999773
+pool-r3-baseline,pool,3,baseline,"every x with x < size: never CV[x] is 0 and 1 <= started",conditional-proof,2,2,280.7640167999998,true,181.91729599999962
+pool-r3-baseline,pool,3,baseline,"every x with x < size: never 1 <= CfgT[x] and started is 0",conditional-proof,2,2,86.60312799998792,true,78.04354299999977
+pool-r3-baseline,pool,3,baseline,"every x, y with x < size ∧ y < size ∧ ¬(x = y): never 1 <= CT[x] and CV[y] is 0",conditional-proof,2,2,350.84431760000734,true,283.04841000000306
+pool-r3-baseline,pool,3,baseline,"every x, y with x < size ∧ y < size ∧ ¬(x = y): never 1 <= St[x] and CV[y] is 0",conditional-proof,2,2,445.43368560001545,true,344.75389500000165
+pool-r3-baseline,pool,3,baseline,"every x, y with x < size ∧ y < size ∧ ¬(x = y): never CV[x] is 0 and 1 <= CfgT[y]",conditional-proof,2,2,362.93213919999107,true,219.16331799999898
+pool-r3-pool,pool,3,pool,"every Config cell is a value of its kind",conditional-proof,2,2,15.31646799999362,true,26.07981899999504
+pool-r3-pool,pool,3,pool,"one primary per term",unknown,8,8,19991.438763600014,true,12117.281171999999
+pool-r3-pool,pool,3,pool,"CT at most 44",unknown,4,4,1825.8826816000028,true,1289.1180340000064
+pool-r3-pool,pool,3,pool,"St at most 1",conditional-proof,2,2,173.9319503999966,true,113.1962730000032
+pool-r3-pool,pool,3,pool,"CV at most 2",unknown,4,4,2241.053154000003,true,1755.9545899999994
+pool-r3-pool,pool,3,pool,"CfgT at most 44",unknown,4,4,2252.360093200007,true,1652.6995229999957
+pool-r3-pool,pool,3,pool,"fields: St[a]=1 -> CT[a]=CT[b] -> CV[b]<=CV[a]",unknown,4,4,4215.642816799995,true,3682.096980999999
+pool-r3-pool,pool,3,pool,"fields: St[a]=1 -> CT[a]=CfgT[a]",conditional-proof,2,2,547.1018503999994,true,433.03649700000096
+pool-r3-pool,pool,3,pool,"fields: St[a]=1 -> CT[a]<=CfgT[a]",conditional-proof,2,2,582.7193295999941,true,330.3867599999976
+pool-r3-pool,pool,3,pool,"fields: St[a]=1 -> CT[a]=CT[b] -> CfgT[b]<=CfgT[a]",unknown,4,4,4686.005767200008,true,3772.8813829999963
+pool-r3-pool,pool,3,pool,"fields: St[a]=1 -> CfgT[a]<=CT[a]",conditional-proof,2,2,576.1494304000007,true,380.44645899999887
+pool-r3-pool,pool,3,pool,"fields: St[a]=1 -> CfgT[a]=CfgT[b] -> CV[b]<=CV[a]",unknown,4,4,6011.971726799995,true,4445.334444000011
+pool-r3-pool,pool,3,pool,"every x with x < size: never Config[x] is 0 and 1 <= St[x]",unknown,4,4,5045.623221600001,true,4473.985931000003
+pool-r3-pool,pool,3,pool,"every x with x < size: never CT[x] is 0 and 1 <= St[x]",conditional-proof,2,2,195.8676848000032,true,143.42032400000244
+pool-r3-pool,pool,3,pool,"every x with x < size: never 1 <= CT[x] and CV[x] is 0",conditional-proof,2,2,309.71554639998794,true,230.98064299999896
+pool-r3-pool,pool,3,pool,"every x with x < size: never 1 <= CT[x] and started is 0",conditional-proof,2,2,82.20361600001343,true,75.81766300000527
+pool-r3-pool,pool,3,pool,"every x with x < size: never 1 <= St[x] and CV[x] is 0",conditional-proof,2,2,258.89165679999496,true,158.88427800000136
+pool-r3-pool,pool,3,pool,"every x with x < size: never 1 <= St[x] and CfgT[x] is 0",conditional-proof,2,2,504.0855360000023,true,381.4216600000036
+pool-r3-pool,pool,3,pool,"every x with x < size: never 1 <= St[x] and started is 0",conditional-proof,2,2,91.63743599999725,true,98.41384999999718
+pool-r3-pool,pool,3,pool,"every x with x < size: never CV[x] is 0 and 1 <= CfgT[x]",conditional-proof,2,2,419.8374552000023,true,273.7851750000009
+pool-r3-pool,pool,3,pool,"every x with x < size: never CV[x] is 0 and 1 <= started",conditional-proof,2,2,280.764016799978,true,250.5907739999966
+pool-r3-pool,pool,3,pool,"every x with x < size: never 1 <= CfgT[x] and started is 0",conditional-proof,2,2,86.60312800002794,true,102.51459200000318
+pool-r3-pool,pool,3,pool,"every x, y with x < size ∧ y < size ∧ ¬(x = y): never 1 <= CT[x] and CV[y] is 0",conditional-proof,2,2,350.8443175999819,true,232.74456899999495
+pool-r3-pool,pool,3,pool,"every x, y with x < size ∧ y < size ∧ ¬(x = y): never 1 <= St[x] and CV[y] is 0",conditional-proof,2,2,445.43368560000454,true,451.4246660000026
+pool-r3-pool,pool,3,pool,"every x, y with x < size ∧ y < size ∧ ¬(x = y): never CV[x] is 0 and 1 <= CfgT[y]",conditional-proof,2,2,362.932139200002,true,231.81612299999688
+combo-r3-combo,combo,3,combo,"every Config cell is a value of its kind",conditional-proof,2,2,15.316467999999077,true,36.328591999998025
+combo-r3-combo,combo,3,combo,"one primary per term",unknown,8,8,15657.435180000004,true,10358.476324999996
+combo-r3-combo,combo,3,combo,"CT at most 44",unknown,4,4,1475.6329456000044,true,1333.0413990000052
+combo-r3-combo,combo,3,combo,"St at most 1",conditional-proof,2,2,173.93195039999728,true,197.41023700000005
+combo-r3-combo,combo,3,combo,"CV at most 2",unknown,4,4,1732.1854392,true,1611.3103740000006
+combo-r3-combo,combo,3,combo,"CfgT at most 44",unknown,4,4,1793.5666396000033,true,1662.0507790000083
+combo-r3-combo,combo,3,combo,"fields: St[a]=1 -> CT[a]=CT[b] -> CV[b]<=CV[a]",unknown,4,4,3082.1165884000006,true,3295.1940539999996
+combo-r3-combo,combo,3,combo,"fields: St[a]=1 -> CT[a]=CfgT[a]",conditional-proof,2,2,547.1018503999985,true,529.9452100000017
+combo-r3-combo,combo,3,combo,"fields: St[a]=1 -> CT[a]<=CfgT[a]",conditional-proof,2,2,582.7193295999941,true,410.64981400000033
+combo-r3-combo,combo,3,combo,"fields: St[a]=1 -> CT[a]=CT[b] -> CfgT[b]<=CfgT[a]",unknown,4,4,3018.8739284000085,true,3545.1799140000003
+combo-r3-combo,combo,3,combo,"fields: St[a]=1 -> CfgT[a]<=CT[a]",conditional-proof,2,2,576.1494303999934,true,383.53459599999405
+combo-r3-combo,combo,3,combo,"fields: St[a]=1 -> CfgT[a]=CfgT[b] -> CV[b]<=CV[a]",unknown,4,4,4073.797805999995,true,4075.9130260000056
+combo-r3-combo,combo,3,combo,"every x with x < size: never Config[x] is 0 and 1 <= St[x]",unknown,4,4,3307.012678000003,true,3801.481230999987
+combo-r3-combo,combo,3,combo,"every x with x < size: never CT[x] is 0 and 1 <= St[x]",conditional-proof,2,2,195.86768480000137,true,174.74204499999905
+combo-r3-combo,combo,3,combo,"every x with x < size: never 1 <= CT[x] and CV[x] is 0",conditional-proof,2,2,309.71554639999704,true,269.7893550000008
+combo-r3-combo,combo,3,combo,"every x with x < size: never 1 <= CT[x] and started is 0",conditional-proof,2,2,82.20361600000615,true,99.25062899999466
+combo-r3-combo,combo,3,combo,"every x with x < size: never 1 <= St[x] and CV[x] is 0",conditional-proof,2,2,258.89165680000224,true,248.62230999999156
+combo-r3-combo,combo,3,combo,"every x with x < size: never 1 <= St[x] and CfgT[x] is 0",conditional-proof,2,2,504.0855359999896,true,509.44873799999914
+combo-r3-combo,combo,3,combo,"every x with x < size: never 1 <= St[x] and started is 0",conditional-proof,2,2,91.63743600000817,true,122.02976800000033
+combo-r3-combo,combo,3,combo,"every x with x < size: never CV[x] is 0 and 1 <= CfgT[x]",conditional-proof,2,2,419.8374551999932,true,354.04041600000346
+combo-r3-combo,combo,3,combo,"every x with x < size: never CV[x] is 0 and 1 <= started",conditional-proof,2,2,280.76401680000527,true,230.7925879999966
+combo-r3-combo,combo,3,combo,"every x with x < size: never 1 <= CfgT[x] and started is 0",conditional-proof,2,2,86.6031279999952,true,106.27329599999211
+combo-r3-combo,combo,3,combo,"every x, y with x < size ∧ y < size ∧ ¬(x = y): never 1 <= CT[x] and CV[y] is 0",conditional-proof,2,2,350.8443176000037,true,477.4506309999997
+combo-r3-combo,combo,3,combo,"every x, y with x < size ∧ y < size ∧ ¬(x = y): never 1 <= St[x] and CV[y] is 0",conditional-proof,2,2,445.4336856000027,true,385.39041400000133
+combo-r3-combo,combo,3,combo,"every x, y with x < size ∧ y < size ∧ ¬(x = y): never CV[x] is 0 and 1 <= CfgT[y]",conditional-proof,2,2,362.93213920000017,true,280.3215559999953
+combo-r3-baseline,combo,3,baseline,"every Config cell is a value of its kind",conditional-proof,2,2,15.316468000008172,true,33.700448000003234
+combo-r3-baseline,combo,3,baseline,"one primary per term",unknown,7,6,9344.653917599979,false,6209.368506999999
+combo-r3-baseline,combo,3,baseline,"CT at most 44",unknown,4,4,3983.1008572,true,2715.335920999998
+combo-r3-baseline,combo,3,baseline,"St at most 1",conditional-proof,2,2,173.93195040000455,true,106.6814000000013
+combo-r3-baseline,combo,3,baseline,"CV at most 2",unknown,4,4,4018.318631199992,true,3091.9427809999906
+combo-r3-baseline,combo,3,baseline,"CfgT at most 44",unknown,4,4,4236.878874000001,true,3470.569095999992
+combo-r3-baseline,combo,3,baseline,"fields: St[a]=1 -> CT[a]=CT[b] -> CV[b]<=CV[a]",unknown,4,4,4010.4443268000023,true,4060.140596999998
+combo-r3-baseline,combo,3,baseline,"fields: St[a]=1 -> CT[a]=CfgT[a]",conditional-proof,2,2,547.1018504000003,true,365.17358799999784
+combo-r3-baseline,combo,3,baseline,"fields: St[a]=1 -> CT[a]<=CfgT[a]",conditional-proof,2,2,582.7193296000041,true,497.6317659999986
+combo-r3-baseline,combo,3,baseline,"fields: St[a]=1 -> CT[a]=CT[b] -> CfgT[b]<=CfgT[a]",unknown,4,4,4052.511996799998,true,3810.2830460000005
+combo-r3-baseline,combo,3,baseline,"fields: St[a]=1 -> CfgT[a]<=CT[a]",conditional-proof,2,2,576.1494303999971,true,523.9731120000033
+combo-r3-baseline,combo,3,baseline,"fields: St[a]=1 -> CfgT[a]=CfgT[b] -> CV[b]<=CV[a]",unknown,4,4,4108.342153200008,true,4190.760156999993
+combo-r3-baseline,combo,3,baseline,"every x with x < size: never Config[x] is 0 and 1 <= St[x]",unknown,4,4,4209.360445999995,true,4722.265629000001
+combo-r3-baseline,combo,3,baseline,"every x with x < size: never CT[x] is 0 and 1 <= St[x]",conditional-proof,2,2,195.8676847999959,true,136.1192910000027
+combo-r3-baseline,combo,3,baseline,"every x with x < size: never 1 <= CT[x] and CV[x] is 0",conditional-proof,2,2,309.71554640000977,true,294.17307099999744
+combo-r3-baseline,combo,3,baseline,"every x with x < size: never 1 <= CT[x] and started is 0",conditional-proof,2,2,82.2036159999916,true,110.41605399999389
+combo-r3-baseline,combo,3,baseline,"every x with x < size: never 1 <= St[x] and CV[x] is 0",conditional-proof,2,2,258.8916568000059,true,263.1736430000019
+combo-r3-baseline,combo,3,baseline,"every x with x < size: never 1 <= St[x] and CfgT[x] is 0",conditional-proof,2,2,504.0855359999987,true,313.3085989999963
+combo-r3-baseline,combo,3,baseline,"every x with x < size: never 1 <= St[x] and started is 0",conditional-proof,2,2,91.63743600000453,true,327.81005000000005
+combo-r3-baseline,combo,3,baseline,"every x with x < size: never CV[x] is 0 and 1 <= CfgT[x]",conditional-proof,2,2,419.837455199995,true,349.6655129999999
+combo-r3-baseline,combo,3,baseline,"every x with x < size: never CV[x] is 0 and 1 <= started",conditional-proof,2,2,280.7640167999998,true,259.5591159999967
+combo-r3-baseline,combo,3,baseline,"every x with x < size: never 1 <= CfgT[x] and started is 0",conditional-proof,2,2,86.60312799998792,true,230.67608800000016
+combo-r3-baseline,combo,3,baseline,"every x, y with x < size ∧ y < size ∧ ¬(x = y): never 1 <= CT[x] and CV[y] is 0",conditional-proof,2,2,350.84431760000734,true,291.7072959999932
+combo-r3-baseline,combo,3,baseline,"every x, y with x < size ∧ y < size ∧ ¬(x = y): never 1 <= St[x] and CV[y] is 0",conditional-proof,2,2,445.43368560001545,true,496.49418299999525
+combo-r3-baseline,combo,3,baseline,"every x, y with x < size ∧ y < size ∧ ¬(x = y): never CV[x] is 0 and 1 <= CfgT[y]",conditional-proof,2,2,362.93213919999107,true,379.32637299999624

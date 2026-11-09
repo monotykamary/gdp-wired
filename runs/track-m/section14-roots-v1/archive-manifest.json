@@ -1,0 +1,12 @@
+{
+  "artifact": "section10-chunk-manifest",
+  "dir": "/home/user/track-m-s10-receipts-oJIIo9",
+  "parts": 1,
+  "bytes": 88077,
+  "sha256": "cc195e196e751bf7a1c9fab9cd1311255806838dfe57e779e953ea6b00cceeeb",
+  "files": [
+    "progress.json",
+    "root-seeds.json",
+    "roots.log"
+  ]
+}

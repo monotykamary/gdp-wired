@@ -1,0 +1,40 @@
+{
+  "controlRuns": 1,
+  "summary": [
+    {
+      "law": "one primary per term",
+      "proven": true,
+      "checked": true,
+      "countedUnits": 926.6334919999999,
+      "wallMs": 2029.192057
+    },
+    {
+      "law": "Inv3915: one config term, the primary newest",
+      "proven": true,
+      "checked": true,
+      "countedUnits": 872.3352536000001,
+      "wallMs": 2488.4732510000003
+    },
+    {
+      "law": "Inv1758: one version and term, one config",
+      "proven": true,
+      "checked": true,
+      "countedUnits": 4310.4753532,
+      "wallMs": 12178.566724999999
+    },
+    {
+      "law": "Inv2973: quorums overlap, or a config disabled",
+      "proven": false,
+      "checked": false,
+      "countedUnits": 5002.6530103999985,
+      "wallMs": 25327.451223000004
+    },
+    {
+      "law": "Inv*: no quorum of a config can still be gathered for a config term held",
+      "proven": false,
+      "checked": false,
+      "countedUnits": 5161.392997600002,
+      "wallMs": 29857.447326999994
+    }
+  ]
+}

@@ -1,0 +1,2310 @@
+{
+  "baseline": "6a3874d3",
+  "jobs": 87,
+  "phaseComparisons": 174,
+  "matches": 173,
+  "counts": {
+    "search": {
+      "base": {
+        "proven": 84,
+        "unknown": 3
+      },
+      "cand": {
+        "proven": 84,
+        "unknown": 2,
+        "timeout": 1
+      }
+    },
+    "broken": {
+      "base": {
+        "refuted": 33,
+        "unknown": 50,
+        "timeout": 4
+      },
+      "cand": {
+        "refuted": 33,
+        "unknown": 50,
+        "timeout": 4
+      }
+    }
+  },
+  "regressions": [
+    {
+      "name": "pair-mldr-r2",
+      "id": "mldr",
+      "phase": "search",
+      "result": "regression",
+      "base": {
+        "verdict": "unknown",
+        "exit": 0,
+        "ms": 26055
+      },
+      "cand": {
+        "verdict": "timeout",
+        "exit": 137,
+        "ms": 59955
+      }
+    }
+  ],
+  "invalid": [],
+  "improvements": [],
+  "costOnly": [],
+  "verdictsIdentical": false,
+  "noRegression": false,
+  "pairs": {
+    "pair-consensus-r1": {
+      "base": {
+        "search": {
+          "verdict": "proven",
+          "exit": 0,
+          "ms": 138
+        },
+        "broken": {
+          "verdict": "refuted",
+          "exit": 0,
+          "ms": 4
+        }
+      },
+      "cand": {
+        "search": {
+          "verdict": "proven",
+          "exit": 0,
+          "ms": 147
+        },
+        "broken": {
+          "verdict": "refuted",
+          "exit": 0,
+          "ms": 4
+        }
+      }
+    },
+    "pair-tcommit-r1": {
+      "base": {
+        "search": {
+          "verdict": "proven",
+          "exit": 0,
+          "ms": 239
+        },
+        "broken": {
+          "verdict": "refuted",
+          "exit": 0,
+          "ms": 10
+        }
+      },
+      "cand": {
+        "search": {
+          "verdict": "proven",
+          "exit": 0,
+          "ms": 234
+        },
+        "broken": {
+          "verdict": "refuted",
+          "exit": 0,
+          "ms": 12
+        }
+      }
+    },
+    "pair-lock_server-r1": {
+      "base": {
+        "search": {
+          "verdict": "proven",
+          "exit": 0,
+          "ms": 3327
+        },
+        "broken": {
+          "verdict": "refuted",
+          "exit": 0,
+          "ms": 4
+        }
+      },
+      "cand": {
+        "search": {
+          "verdict": "proven",
+          "exit": 0,
+          "ms": 3623
+        },
+        "broken": {
+          "verdict": "refuted",
+          "exit": 0,
+          "ms": 4
+        }
+      }
+    },
+    "pair-quorum_leader_election-r1": {
+      "base": {
+        "search": {
+          "verdict": "proven",
+          "exit": 0,
+          "ms": 2755
+        },
+        "broken": {
+          "verdict": "unknown",
+          "exit": 0,
+          "ms": 350
+        }
+      },
+      "cand": {
+        "search": {
+          "verdict": "proven",
+          "exit": 0,
+          "ms": 1187
+        },
+        "broken": {
+          "verdict": "unknown",
+          "exit": 0,
+          "ms": 351
+        }
+      }
+    },
+    "pair-toy_consensus_forall-r1": {
+      "base": {
+        "search": {
+          "verdict": "proven",
+          "exit": 0,
+          "ms": 2158
+        },
+        "broken": {
+          "verdict": "unknown",
+          "exit": 0,
+          "ms": 396
+        }
+      },
+      "cand": {
+        "search": {
+          "verdict": "proven",
+          "exit": 0,
+          "ms": 1123
+        },
+        "broken": {
+          "verdict": "unknown",
+          "exit": 0,
+          "ms": 420
+        }
+      }
+    },
+    "pair-simple-r1": {
+      "base": {
+        "search": {
+          "verdict": "proven",
+          "exit": 0,
+          "ms": 9755
+        },
+        "broken": {
+          "verdict": "refuted",
+          "exit": 0,
+          "ms": 5
+        }
+      },
+      "cand": {
+        "search": {
+          "verdict": "proven",
+          "exit": 0,
+          "ms": 8899
+        },
+        "broken": {
+          "verdict": "refuted",
+          "exit": 0,
+          "ms": 6
+        }
+      }
+    },
+    "pair-simple_regular-r1": {
+      "base": {
+        "search": {
+          "verdict": "proven",
+          "exit": 0,
+          "ms": 11693
+        },
+        "broken": {
+          "verdict": "refuted",
+          "exit": 0,
+          "ms": 7
+        }
+      },
+      "cand": {
+        "search": {
+          "verdict": "proven",
+          "exit": 0,
+          "ms": 12140
+        },
+        "broken": {
+          "verdict": "refuted",
+          "exit": 0,
+          "ms": 6
+        }
+      }
+    },
+    "pair-lockserv_automaton-r1": {
+      "base": {
+        "search": {
+          "verdict": "proven",
+          "exit": 0,
+          "ms": 5766
+        },
+        "broken": {
+          "verdict": "refuted",
+          "exit": 0,
+          "ms": 197
+        }
+      },
+      "cand": {
+        "search": {
+          "verdict": "proven",
+          "exit": 0,
+          "ms": 6208
+        },
+        "broken": {
+          "verdict": "refuted",
+          "exit": 0,
+          "ms": 199
+        }
+      }
+    },
+    "pair-sharded_kv-r1": {
+      "base": {
+        "search": {
+          "verdict": "proven",
+          "exit": 0,
+          "ms": 17138
+        },
+        "broken": {
+          "verdict": "refuted",
+          "exit": 0,
+          "ms": 3114
+        }
+      },
+      "cand": {
+        "search": {
+          "verdict": "proven",
+          "exit": 0,
+          "ms": 19933
+        },
+        "broken": {
+          "verdict": "refuted",
+          "exit": 0,
+          "ms": 2617
+        }
+      }
+    },
+    "pair-sharded_kv_no_lost_keys-r1": {
+      "base": {
+        "search": {
+          "verdict": "proven",
+          "exit": 0,
+          "ms": 8455
+        },
+        "broken": {
+          "verdict": "timeout",
+          "exit": 137
+        }
+      },
+      "cand": {
+        "search": {
+          "verdict": "proven",
+          "exit": 0,
+          "ms": 7809
+        },
+        "broken": {
+          "verdict": "timeout",
+          "exit": 137
+        }
+      }
+    },
+    "pair-lockserv-r1": {
+      "base": {
+        "search": {
+          "verdict": "proven",
+          "exit": 0,
+          "ms": 5614
+        },
+        "broken": {
+          "verdict": "refuted",
+          "exit": 0,
+          "ms": 150
+        }
+      },
+      "cand": {
+        "search": {
+          "verdict": "proven",
+          "exit": 0,
+          "ms": 6017
+        },
+        "broken": {
+          "verdict": "refuted",
+          "exit": 0,
+          "ms": 152
+        }
+      }
+    },
+    "pair-twophase-r1": {
+      "base": {
+        "search": {
+          "verdict": "proven",
+          "exit": 0,
+          "ms": 11953
+        },
+        "broken": {
+          "verdict": "refuted",
+          "exit": 0,
+          "ms": 16
+        }
+      },
+      "cand": {
+        "search": {
+          "verdict": "proven",
+          "exit": 0,
+          "ms": 11879
+        },
+        "broken": {
+          "verdict": "refuted",
+          "exit": 0,
+          "ms": 18
+        }
+      }
+    },
+    "pair-simple_decentralized_lock-r1": {
+      "base": {
+        "search": {
+          "verdict": "proven",
+          "exit": 0,
+          "ms": 3532
+        },
+        "broken": {
+          "verdict": "refuted",
+          "exit": 0,
+          "ms": 76
+        }
+      },
+      "cand": {
+        "search": {
+          "verdict": "proven",
+          "exit": 0,
+          "ms": 3506
+        },
+        "broken": {
+          "verdict": "refuted",
+          "exit": 0,
+          "ms": 78
+        }
+      }
+    },
+    "pair-two_phase_commit-r1": {
+      "base": {
+        "search": {
+          "verdict": "proven",
+          "exit": 0,
+          "ms": 7654
+        },
+        "broken": {
+          "verdict": "refuted",
+          "exit": 0,
+          "ms": 17
+        }
+      },
+      "cand": {
+        "search": {
+          "verdict": "proven",
+          "exit": 0,
+          "ms": 8093
+        },
+        "broken": {
+          "verdict": "refuted",
+          "exit": 0,
+          "ms": 17
+        }
+      }
+    },
+    "pair-consensus_wo_decide-r1": {
+      "base": {
+        "search": {
+          "verdict": "proven",
+          "exit": 0,
+          "ms": 10886
+        },
+        "broken": {
+          "verdict": "unknown",
+          "exit": 0,
+          "ms": 3128
+        }
+      },
+      "cand": {
+        "search": {
+          "verdict": "proven",
+          "exit": 0,
+          "ms": 10046
+        },
+        "broken": {
+          "verdict": "unknown",
+          "exit": 0,
+          "ms": 3416
+        }
+      }
+    },
+    "pair-consensus_forall-r1": {
+      "base": {
+        "search": {
+          "verdict": "proven",
+          "exit": 0,
+          "ms": 25341
+        },
+        "broken": {
+          "verdict": "unknown",
+          "exit": 0,
+          "ms": 6026
+        }
+      },
+      "cand": {
+        "search": {
+          "verdict": "proven",
+          "exit": 0,
+          "ms": 21066
+        },
+        "broken": {
+          "verdict": "unknown",
+          "exit": 0,
+          "ms": 7365
+        }
+      }
+    },
+    "pair-naive_consensus-r1": {
+      "base": {
+        "search": {
+          "verdict": "proven",
+          "exit": 0,
+          "ms": 2704
+        },
+        "broken": {
+          "verdict": "unknown",
+          "exit": 0,
+          "ms": 2238
+        }
+      },
+      "cand": {
+        "search": {
+          "verdict": "proven",
+          "exit": 0,
+          "ms": 4540
+        },
+        "broken": {
+          "verdict": "unknown",
+          "exit": 0,
+          "ms": 1935
+        }
+      }
+    },
+    "pair-client_server_ae-r1": {
+      "base": {
+        "search": {
+          "verdict": "proven",
+          "exit": 0,
+          "ms": 10959
+        },
+        "broken": {
+          "verdict": "unknown",
+          "exit": 0,
+          "ms": 12894
+        }
+      },
+      "cand": {
+        "search": {
+          "verdict": "proven",
+          "exit": 0,
+          "ms": 9862
+        },
+        "broken": {
+          "verdict": "unknown",
+          "exit": 0,
+          "ms": 13520
+        }
+      }
+    },
+    "pair-client_server_db_ae-r1": {
+      "base": {
+        "search": {
+          "verdict": "proven",
+          "exit": 0,
+          "ms": 15728
+        },
+        "broken": {
+          "verdict": "unknown",
+          "exit": 0,
+          "ms": 21936
+        }
+      },
+      "cand": {
+        "search": {
+          "verdict": "proven",
+          "exit": 0,
+          "ms": 14765
+        },
+        "broken": {
+          "verdict": "unknown",
+          "exit": 0,
+          "ms": 22461
+        }
+      }
+    },
+    "pair-simple_election-r1": {
+      "base": {
+        "search": {
+          "verdict": "proven",
+          "exit": 0,
+          "ms": 2740
+        },
+        "broken": {
+          "verdict": "unknown",
+          "exit": 0,
+          "ms": 1947
+        }
+      },
+      "cand": {
+        "search": {
+          "verdict": "proven",
+          "exit": 0,
+          "ms": 4421
+        },
+        "broken": {
+          "verdict": "unknown",
+          "exit": 0,
+          "ms": 1956
+        }
+      }
+    },
+    "pair-toy_consensus_epr-r1": {
+      "base": {
+        "search": {
+          "verdict": "proven",
+          "exit": 0,
+          "ms": 3981
+        },
+        "broken": {
+          "verdict": "unknown",
+          "exit": 0,
+          "ms": 2612
+        }
+      },
+      "cand": {
+        "search": {
+          "verdict": "proven",
+          "exit": 0,
+          "ms": 2330
+        },
+        "broken": {
+          "verdict": "unknown",
+          "exit": 0,
+          "ms": 2900
+        }
+      }
+    },
+    "pair-toy_consensus-r1": {
+      "base": {
+        "search": {
+          "verdict": "proven",
+          "exit": 0,
+          "ms": 1700
+        },
+        "broken": {
+          "verdict": "unknown",
+          "exit": 0,
+          "ms": 350
+        }
+      },
+      "cand": {
+        "search": {
+          "verdict": "proven",
+          "exit": 0,
+          "ms": 838
+        },
+        "broken": {
+          "verdict": "unknown",
+          "exit": 0,
+          "ms": 333
+        }
+      }
+    },
+    "pair-firewall-r1": {
+      "base": {
+        "search": {
+          "verdict": "proven",
+          "exit": 0,
+          "ms": 19502
+        },
+        "broken": {
+          "verdict": "unknown",
+          "exit": 0,
+          "ms": 6223
+        }
+      },
+      "cand": {
+        "search": {
+          "verdict": "proven",
+          "exit": 0,
+          "ms": 16629
+        },
+        "broken": {
+          "verdict": "unknown",
+          "exit": 0,
+          "ms": 6225
+        }
+      }
+    },
+    "pair-majorityset_leader_election-r1": {
+      "base": {
+        "search": {
+          "verdict": "proven",
+          "exit": 0,
+          "ms": 3865
+        },
+        "broken": {
+          "verdict": "unknown",
+          "exit": 0,
+          "ms": 533
+        }
+      },
+      "cand": {
+        "search": {
+          "verdict": "proven",
+          "exit": 0,
+          "ms": 2976
+        },
+        "broken": {
+          "verdict": "unknown",
+          "exit": 0,
+          "ms": 609
+        }
+      }
+    },
+    "pair-consensus_epr-r1": {
+      "base": {
+        "search": {
+          "verdict": "proven",
+          "exit": 0,
+          "ms": 12633
+        },
+        "broken": {
+          "verdict": "unknown",
+          "exit": 0,
+          "ms": 3612
+        }
+      },
+      "cand": {
+        "search": {
+          "verdict": "proven",
+          "exit": 0,
+          "ms": 13527
+        },
+        "broken": {
+          "verdict": "unknown",
+          "exit": 0,
+          "ms": 3427
+        }
+      }
+    },
+    "pair-learning_switch-r1": {
+      "base": {
+        "search": {
+          "verdict": "proven",
+          "exit": 0,
+          "ms": 19803
+        },
+        "broken": {
+          "verdict": "unknown",
+          "exit": 0,
+          "ms": 12519
+        }
+      },
+      "cand": {
+        "search": {
+          "verdict": "proven",
+          "exit": 0,
+          "ms": 20052
+        },
+        "broken": {
+          "verdict": "unknown",
+          "exit": 0,
+          "ms": 11881
+        }
+      }
+    },
+    "pair-learning_switch_i4-r1": {
+      "base": {
+        "search": {
+          "verdict": "proven",
+          "exit": 0,
+          "ms": 19058
+        },
+        "broken": {
+          "verdict": "unknown",
+          "exit": 0,
+          "ms": 46447
+        }
+      },
+      "cand": {
+        "search": {
+          "verdict": "proven",
+          "exit": 0,
+          "ms": 18393
+        },
+        "broken": {
+          "verdict": "unknown",
+          "exit": 0,
+          "ms": 46461
+        }
+      }
+    },
+    "pair-paxos_epr-r1": {
+      "base": {
+        "search": {
+          "verdict": "proven",
+          "exit": 0,
+          "ms": 18446
+        },
+        "broken": {
+          "verdict": "unknown",
+          "exit": 0,
+          "ms": 44626
+        }
+      },
+      "cand": {
+        "search": {
+          "verdict": "proven",
+          "exit": 0,
+          "ms": 16095
+        },
+        "broken": {
+          "verdict": "unknown",
+          "exit": 0,
+          "ms": 47252
+        }
+      }
+    },
+    "pair-mldr-r1": {
+      "base": {
+        "search": {
+          "verdict": "unknown",
+          "exit": 0,
+          "ms": 22864
+        },
+        "broken": {
+          "verdict": "unknown",
+          "exit": 0,
+          "ms": 6567
+        }
+      },
+      "cand": {
+        "search": {
+          "verdict": "unknown",
+          "exit": 0,
+          "ms": 41860
+        },
+        "broken": {
+          "verdict": "unknown",
+          "exit": 0,
+          "ms": 6538
+        }
+      }
+    },
+    "pair-consensus-r2": {
+      "base": {
+        "search": {
+          "verdict": "proven",
+          "exit": 0,
+          "ms": 158
+        },
+        "broken": {
+          "verdict": "refuted",
+          "exit": 0,
+          "ms": 4
+        }
+      },
+      "cand": {
+        "search": {
+          "verdict": "proven",
+          "exit": 0,
+          "ms": 148
+        },
+        "broken": {
+          "verdict": "refuted",
+          "exit": 0,
+          "ms": 4
+        }
+      }
+    },
+    "pair-tcommit-r2": {
+      "base": {
+        "search": {
+          "verdict": "proven",
+          "exit": 0,
+          "ms": 222
+        },
+        "broken": {
+          "verdict": "refuted",
+          "exit": 0,
+          "ms": 11
+        }
+      },
+      "cand": {
+        "search": {
+          "verdict": "proven",
+          "exit": 0,
+          "ms": 234
+        },
+        "broken": {
+          "verdict": "refuted",
+          "exit": 0,
+          "ms": 12
+        }
+      }
+    },
+    "pair-lock_server-r2": {
+      "base": {
+        "search": {
+          "verdict": "proven",
+          "exit": 0,
+          "ms": 4063
+        },
+        "broken": {
+          "verdict": "refuted",
+          "exit": 0,
+          "ms": 5
+        }
+      },
+      "cand": {
+        "search": {
+          "verdict": "proven",
+          "exit": 0,
+          "ms": 3796
+        },
+        "broken": {
+          "verdict": "refuted",
+          "exit": 0,
+          "ms": 6
+        }
+      }
+    },
+    "pair-quorum_leader_election-r2": {
+      "base": {
+        "search": {
+          "verdict": "proven",
+          "exit": 0,
+          "ms": 2086
+        },
+        "broken": {
+          "verdict": "unknown",
+          "exit": 0,
+          "ms": 284
+        }
+      },
+      "cand": {
+        "search": {
+          "verdict": "proven",
+          "exit": 0,
+          "ms": 859
+        },
+        "broken": {
+          "verdict": "unknown",
+          "exit": 0,
+          "ms": 280
+        }
+      }
+    },
+    "pair-toy_consensus_forall-r2": {
+      "base": {
+        "search": {
+          "verdict": "proven",
+          "exit": 0,
+          "ms": 2162
+        },
+        "broken": {
+          "verdict": "unknown",
+          "exit": 0,
+          "ms": 400
+        }
+      },
+      "cand": {
+        "search": {
+          "verdict": "proven",
+          "exit": 0,
+          "ms": 1078
+        },
+        "broken": {
+          "verdict": "unknown",
+          "exit": 0,
+          "ms": 394
+        }
+      }
+    },
+    "pair-simple-r2": {
+      "base": {
+        "search": {
+          "verdict": "proven",
+          "exit": 0,
+          "ms": 9214
+        },
+        "broken": {
+          "verdict": "refuted",
+          "exit": 0,
+          "ms": 5
+        }
+      },
+      "cand": {
+        "search": {
+          "verdict": "proven",
+          "exit": 0,
+          "ms": 9026
+        },
+        "broken": {
+          "verdict": "refuted",
+          "exit": 0,
+          "ms": 5
+        }
+      }
+    },
+    "pair-simple_regular-r2": {
+      "base": {
+        "search": {
+          "verdict": "proven",
+          "exit": 0,
+          "ms": 11427
+        },
+        "broken": {
+          "verdict": "refuted",
+          "exit": 0,
+          "ms": 5
+        }
+      },
+      "cand": {
+        "search": {
+          "verdict": "proven",
+          "exit": 0,
+          "ms": 10782
+        },
+        "broken": {
+          "verdict": "refuted",
+          "exit": 0,
+          "ms": 5
+        }
+      }
+    },
+    "pair-lockserv_automaton-r2": {
+      "base": {
+        "search": {
+          "verdict": "proven",
+          "exit": 0,
+          "ms": 4974
+        },
+        "broken": {
+          "verdict": "refuted",
+          "exit": 0,
+          "ms": 152
+        }
+      },
+      "cand": {
+        "search": {
+          "verdict": "proven",
+          "exit": 0,
+          "ms": 5305
+        },
+        "broken": {
+          "verdict": "refuted",
+          "exit": 0,
+          "ms": 150
+        }
+      }
+    },
+    "pair-sharded_kv-r2": {
+      "base": {
+        "search": {
+          "verdict": "proven",
+          "exit": 0,
+          "ms": 16076
+        },
+        "broken": {
+          "verdict": "refuted",
+          "exit": 0,
+          "ms": 2748
+        }
+      },
+      "cand": {
+        "search": {
+          "verdict": "proven",
+          "exit": 0,
+          "ms": 16103
+        },
+        "broken": {
+          "verdict": "refuted",
+          "exit": 0,
+          "ms": 2184
+        }
+      }
+    },
+    "pair-sharded_kv_no_lost_keys-r2": {
+      "base": {
+        "search": {
+          "verdict": "proven",
+          "exit": 0,
+          "ms": 6963
+        },
+        "broken": {
+          "verdict": "timeout",
+          "exit": 137
+        }
+      },
+      "cand": {
+        "search": {
+          "verdict": "proven",
+          "exit": 0,
+          "ms": 6945
+        },
+        "broken": {
+          "verdict": "timeout",
+          "exit": 137
+        }
+      }
+    },
+    "pair-lockserv-r2": {
+      "base": {
+        "search": {
+          "verdict": "proven",
+          "exit": 0,
+          "ms": 6087
+        },
+        "broken": {
+          "verdict": "refuted",
+          "exit": 0,
+          "ms": 163
+        }
+      },
+      "cand": {
+        "search": {
+          "verdict": "proven",
+          "exit": 0,
+          "ms": 6119
+        },
+        "broken": {
+          "verdict": "refuted",
+          "exit": 0,
+          "ms": 166
+        }
+      }
+    },
+    "pair-twophase-r2": {
+      "base": {
+        "search": {
+          "verdict": "proven",
+          "exit": 0,
+          "ms": 12203
+        },
+        "broken": {
+          "verdict": "refuted",
+          "exit": 0,
+          "ms": 17
+        }
+      },
+      "cand": {
+        "search": {
+          "verdict": "proven",
+          "exit": 0,
+          "ms": 12187
+        },
+        "broken": {
+          "verdict": "refuted",
+          "exit": 0,
+          "ms": 18
+        }
+      }
+    },
+    "pair-simple_decentralized_lock-r2": {
+      "base": {
+        "search": {
+          "verdict": "proven",
+          "exit": 0,
+          "ms": 3550
+        },
+        "broken": {
+          "verdict": "refuted",
+          "exit": 0,
+          "ms": 70
+        }
+      },
+      "cand": {
+        "search": {
+          "verdict": "proven",
+          "exit": 0,
+          "ms": 3584
+        },
+        "broken": {
+          "verdict": "refuted",
+          "exit": 0,
+          "ms": 66
+        }
+      }
+    },
+    "pair-two_phase_commit-r2": {
+      "base": {
+        "search": {
+          "verdict": "proven",
+          "exit": 0,
+          "ms": 7192
+        },
+        "broken": {
+          "verdict": "refuted",
+          "exit": 0,
+          "ms": 15
+        }
+      },
+      "cand": {
+        "search": {
+          "verdict": "proven",
+          "exit": 0,
+          "ms": 7248
+        },
+        "broken": {
+          "verdict": "refuted",
+          "exit": 0,
+          "ms": 14
+        }
+      }
+    },
+    "pair-consensus_wo_decide-r2": {
+      "base": {
+        "search": {
+          "verdict": "proven",
+          "exit": 0,
+          "ms": 9845
+        },
+        "broken": {
+          "verdict": "unknown",
+          "exit": 0,
+          "ms": 2710
+        }
+      },
+      "cand": {
+        "search": {
+          "verdict": "proven",
+          "exit": 0,
+          "ms": 9416
+        },
+        "broken": {
+          "verdict": "unknown",
+          "exit": 0,
+          "ms": 2605
+        }
+      }
+    },
+    "pair-consensus_forall-r2": {
+      "base": {
+        "search": {
+          "verdict": "proven",
+          "exit": 0,
+          "ms": 18740
+        },
+        "broken": {
+          "verdict": "unknown",
+          "exit": 0,
+          "ms": 6604
+        }
+      },
+      "cand": {
+        "search": {
+          "verdict": "proven",
+          "exit": 0,
+          "ms": 17387
+        },
+        "broken": {
+          "verdict": "unknown",
+          "exit": 0,
+          "ms": 5283
+        }
+      }
+    },
+    "pair-naive_consensus-r2": {
+      "base": {
+        "search": {
+          "verdict": "proven",
+          "exit": 0,
+          "ms": 2574
+        },
+        "broken": {
+          "verdict": "unknown",
+          "exit": 0,
+          "ms": 1825
+        }
+      },
+      "cand": {
+        "search": {
+          "verdict": "proven",
+          "exit": 0,
+          "ms": 4743
+        },
+        "broken": {
+          "verdict": "unknown",
+          "exit": 0,
+          "ms": 1964
+        }
+      }
+    },
+    "pair-client_server_ae-r2": {
+      "base": {
+        "search": {
+          "verdict": "proven",
+          "exit": 0,
+          "ms": 9647
+        },
+        "broken": {
+          "verdict": "unknown",
+          "exit": 0,
+          "ms": 11347
+        }
+      },
+      "cand": {
+        "search": {
+          "verdict": "proven",
+          "exit": 0,
+          "ms": 9857
+        },
+        "broken": {
+          "verdict": "unknown",
+          "exit": 0,
+          "ms": 11910
+        }
+      }
+    },
+    "pair-client_server_db_ae-r2": {
+      "base": {
+        "search": {
+          "verdict": "proven",
+          "exit": 0,
+          "ms": 15217
+        },
+        "broken": {
+          "verdict": "unknown",
+          "exit": 0,
+          "ms": 24730
+        }
+      },
+      "cand": {
+        "search": {
+          "verdict": "proven",
+          "exit": 0,
+          "ms": 15232
+        },
+        "broken": {
+          "verdict": "unknown",
+          "exit": 0,
+          "ms": 25886
+        }
+      }
+    },
+    "pair-simple_election-r2": {
+      "base": {
+        "search": {
+          "verdict": "proven",
+          "exit": 0,
+          "ms": 2617
+        },
+        "broken": {
+          "verdict": "unknown",
+          "exit": 0,
+          "ms": 1619
+        }
+      },
+      "cand": {
+        "search": {
+          "verdict": "proven",
+          "exit": 0,
+          "ms": 4218
+        },
+        "broken": {
+          "verdict": "unknown",
+          "exit": 0,
+          "ms": 1729
+        }
+      }
+    },
+    "pair-toy_consensus_epr-r2": {
+      "base": {
+        "search": {
+          "verdict": "proven",
+          "exit": 0,
+          "ms": 2977
+        },
+        "broken": {
+          "verdict": "unknown",
+          "exit": 0,
+          "ms": 1724
+        }
+      },
+      "cand": {
+        "search": {
+          "verdict": "proven",
+          "exit": 0,
+          "ms": 1832
+        },
+        "broken": {
+          "verdict": "unknown",
+          "exit": 0,
+          "ms": 1479
+        }
+      }
+    },
+    "pair-toy_consensus-r2": {
+      "base": {
+        "search": {
+          "verdict": "proven",
+          "exit": 0,
+          "ms": 2011
+        },
+        "broken": {
+          "verdict": "unknown",
+          "exit": 0,
+          "ms": 410
+        }
+      },
+      "cand": {
+        "search": {
+          "verdict": "proven",
+          "exit": 0,
+          "ms": 979
+        },
+        "broken": {
+          "verdict": "unknown",
+          "exit": 0,
+          "ms": 372
+        }
+      }
+    },
+    "pair-firewall-r2": {
+      "base": {
+        "search": {
+          "verdict": "proven",
+          "exit": 0,
+          "ms": 17936
+        },
+        "broken": {
+          "verdict": "unknown",
+          "exit": 0,
+          "ms": 5893
+        }
+      },
+      "cand": {
+        "search": {
+          "verdict": "proven",
+          "exit": 0,
+          "ms": 14583
+        },
+        "broken": {
+          "verdict": "unknown",
+          "exit": 0,
+          "ms": 5864
+        }
+      }
+    },
+    "pair-majorityset_leader_election-r2": {
+      "base": {
+        "search": {
+          "verdict": "proven",
+          "exit": 0,
+          "ms": 3826
+        },
+        "broken": {
+          "verdict": "unknown",
+          "exit": 0,
+          "ms": 611
+        }
+      },
+      "cand": {
+        "search": {
+          "verdict": "proven",
+          "exit": 0,
+          "ms": 3236
+        },
+        "broken": {
+          "verdict": "unknown",
+          "exit": 0,
+          "ms": 618
+        }
+      }
+    },
+    "pair-consensus_epr-r2": {
+      "base": {
+        "search": {
+          "verdict": "proven",
+          "exit": 0,
+          "ms": 16515
+        },
+        "broken": {
+          "verdict": "unknown",
+          "exit": 0,
+          "ms": 4264
+        }
+      },
+      "cand": {
+        "search": {
+          "verdict": "proven",
+          "exit": 0,
+          "ms": 16407
+        },
+        "broken": {
+          "verdict": "unknown",
+          "exit": 0,
+          "ms": 4268
+        }
+      }
+    },
+    "pair-learning_switch-r2": {
+      "base": {
+        "search": {
+          "verdict": "proven",
+          "exit": 0,
+          "ms": 15970
+        },
+        "broken": {
+          "verdict": "unknown",
+          "exit": 0,
+          "ms": 16545
+        }
+      },
+      "cand": {
+        "search": {
+          "verdict": "proven",
+          "exit": 0,
+          "ms": 17108
+        },
+        "broken": {
+          "verdict": "unknown",
+          "exit": 0,
+          "ms": 17945
+        }
+      }
+    },
+    "pair-learning_switch_i4-r2": {
+      "base": {
+        "search": {
+          "verdict": "proven",
+          "exit": 0,
+          "ms": 18550
+        },
+        "broken": {
+          "verdict": "unknown",
+          "exit": 0,
+          "ms": 47213
+        }
+      },
+      "cand": {
+        "search": {
+          "verdict": "proven",
+          "exit": 0,
+          "ms": 19061
+        },
+        "broken": {
+          "verdict": "unknown",
+          "exit": 0,
+          "ms": 46207
+        }
+      }
+    },
+    "pair-paxos_epr-r2": {
+      "base": {
+        "search": {
+          "verdict": "proven",
+          "exit": 0,
+          "ms": 32414
+        },
+        "broken": {
+          "verdict": "timeout",
+          "exit": 137
+        }
+      },
+      "cand": {
+        "search": {
+          "verdict": "proven",
+          "exit": 0,
+          "ms": 27920
+        },
+        "broken": {
+          "verdict": "timeout",
+          "exit": 137
+        }
+      }
+    },
+    "pair-mldr-r2": {
+      "base": {
+        "search": {
+          "verdict": "unknown",
+          "exit": 0,
+          "ms": 26055
+        },
+        "broken": {
+          "verdict": "unknown",
+          "exit": 0,
+          "ms": 13477
+        }
+      },
+      "cand": {
+        "search": {
+          "verdict": "timeout",
+          "exit": 137,
+          "ms": 59955
+        },
+        "broken": {
+          "verdict": "unknown",
+          "exit": 0,
+          "ms": 13312
+        }
+      }
+    },
+    "pair-consensus-r3": {
+      "base": {
+        "search": {
+          "verdict": "proven",
+          "exit": 0,
+          "ms": 134
+        },
+        "broken": {
+          "verdict": "refuted",
+          "exit": 0,
+          "ms": 3
+        }
+      },
+      "cand": {
+        "search": {
+          "verdict": "proven",
+          "exit": 0,
+          "ms": 116
+        },
+        "broken": {
+          "verdict": "refuted",
+          "exit": 0,
+          "ms": 4
+        }
+      }
+    },
+    "pair-tcommit-r3": {
+      "base": {
+        "search": {
+          "verdict": "proven",
+          "exit": 0,
+          "ms": 271
+        },
+        "broken": {
+          "verdict": "refuted",
+          "exit": 0,
+          "ms": 13
+        }
+      },
+      "cand": {
+        "search": {
+          "verdict": "proven",
+          "exit": 0,
+          "ms": 271
+        },
+        "broken": {
+          "verdict": "refuted",
+          "exit": 0,
+          "ms": 14
+        }
+      }
+    },
+    "pair-lock_server-r3": {
+      "base": {
+        "search": {
+          "verdict": "proven",
+          "exit": 0,
+          "ms": 3579
+        },
+        "broken": {
+          "verdict": "refuted",
+          "exit": 0,
+          "ms": 5
+        }
+      },
+      "cand": {
+        "search": {
+          "verdict": "proven",
+          "exit": 0,
+          "ms": 3408
+        },
+        "broken": {
+          "verdict": "refuted",
+          "exit": 0,
+          "ms": 4
+        }
+      }
+    },
+    "pair-quorum_leader_election-r3": {
+      "base": {
+        "search": {
+          "verdict": "proven",
+          "exit": 0,
+          "ms": 2184
+        },
+        "broken": {
+          "verdict": "unknown",
+          "exit": 0,
+          "ms": 320
+        }
+      },
+      "cand": {
+        "search": {
+          "verdict": "proven",
+          "exit": 0,
+          "ms": 938
+        },
+        "broken": {
+          "verdict": "unknown",
+          "exit": 0,
+          "ms": 324
+        }
+      }
+    },
+    "pair-toy_consensus_forall-r3": {
+      "base": {
+        "search": {
+          "verdict": "proven",
+          "exit": 0,
+          "ms": 2206
+        },
+        "broken": {
+          "verdict": "unknown",
+          "exit": 0,
+          "ms": 399
+        }
+      },
+      "cand": {
+        "search": {
+          "verdict": "proven",
+          "exit": 0,
+          "ms": 1253
+        },
+        "broken": {
+          "verdict": "unknown",
+          "exit": 0,
+          "ms": 395
+        }
+      }
+    },
+    "pair-simple-r3": {
+      "base": {
+        "search": {
+          "verdict": "proven",
+          "exit": 0,
+          "ms": 10514
+        },
+        "broken": {
+          "verdict": "refuted",
+          "exit": 0,
+          "ms": 9
+        }
+      },
+      "cand": {
+        "search": {
+          "verdict": "proven",
+          "exit": 0,
+          "ms": 9709
+        },
+        "broken": {
+          "verdict": "refuted",
+          "exit": 0,
+          "ms": 10
+        }
+      }
+    },
+    "pair-simple_regular-r3": {
+      "base": {
+        "search": {
+          "verdict": "proven",
+          "exit": 0,
+          "ms": 12560
+        },
+        "broken": {
+          "verdict": "refuted",
+          "exit": 0,
+          "ms": 6
+        }
+      },
+      "cand": {
+        "search": {
+          "verdict": "proven",
+          "exit": 0,
+          "ms": 13449
+        },
+        "broken": {
+          "verdict": "refuted",
+          "exit": 0,
+          "ms": 7
+        }
+      }
+    },
+    "pair-lockserv_automaton-r3": {
+      "base": {
+        "search": {
+          "verdict": "proven",
+          "exit": 0,
+          "ms": 5137
+        },
+        "broken": {
+          "verdict": "refuted",
+          "exit": 0,
+          "ms": 167
+        }
+      },
+      "cand": {
+        "search": {
+          "verdict": "proven",
+          "exit": 0,
+          "ms": 5495
+        },
+        "broken": {
+          "verdict": "refuted",
+          "exit": 0,
+          "ms": 151
+        }
+      }
+    },
+    "pair-sharded_kv-r3": {
+      "base": {
+        "search": {
+          "verdict": "proven",
+          "exit": 0,
+          "ms": 16756
+        },
+        "broken": {
+          "verdict": "refuted",
+          "exit": 0,
+          "ms": 2644
+        }
+      },
+      "cand": {
+        "search": {
+          "verdict": "proven",
+          "exit": 0,
+          "ms": 23353
+        },
+        "broken": {
+          "verdict": "refuted",
+          "exit": 0,
+          "ms": 2394
+        }
+      }
+    },
+    "pair-sharded_kv_no_lost_keys-r3": {
+      "base": {
+        "search": {
+          "verdict": "proven",
+          "exit": 0,
+          "ms": 8195
+        },
+        "broken": {
+          "verdict": "timeout",
+          "exit": 137
+        }
+      },
+      "cand": {
+        "search": {
+          "verdict": "proven",
+          "exit": 0,
+          "ms": 10356
+        },
+        "broken": {
+          "verdict": "timeout",
+          "exit": 137
+        }
+      }
+    },
+    "pair-lockserv-r3": {
+      "base": {
+        "search": {
+          "verdict": "proven",
+          "exit": 0,
+          "ms": 6363
+        },
+        "broken": {
+          "verdict": "refuted",
+          "exit": 0,
+          "ms": 156
+        }
+      },
+      "cand": {
+        "search": {
+          "verdict": "proven",
+          "exit": 0,
+          "ms": 5511
+        },
+        "broken": {
+          "verdict": "refuted",
+          "exit": 0,
+          "ms": 177
+        }
+      }
+    },
+    "pair-twophase-r3": {
+      "base": {
+        "search": {
+          "verdict": "proven",
+          "exit": 0,
+          "ms": 10315
+        },
+        "broken": {
+          "verdict": "refuted",
+          "exit": 0,
+          "ms": 14
+        }
+      },
+      "cand": {
+        "search": {
+          "verdict": "proven",
+          "exit": 0,
+          "ms": 10914
+        },
+        "broken": {
+          "verdict": "refuted",
+          "exit": 0,
+          "ms": 14
+        }
+      }
+    },
+    "pair-simple_decentralized_lock-r3": {
+      "base": {
+        "search": {
+          "verdict": "proven",
+          "exit": 0,
+          "ms": 3303
+        },
+        "broken": {
+          "verdict": "refuted",
+          "exit": 0,
+          "ms": 71
+        }
+      },
+      "cand": {
+        "search": {
+          "verdict": "proven",
+          "exit": 0,
+          "ms": 3360
+        },
+        "broken": {
+          "verdict": "refuted",
+          "exit": 0,
+          "ms": 64
+        }
+      }
+    },
+    "pair-two_phase_commit-r3": {
+      "base": {
+        "search": {
+          "verdict": "proven",
+          "exit": 0,
+          "ms": 6891
+        },
+        "broken": {
+          "verdict": "refuted",
+          "exit": 0,
+          "ms": 12
+        }
+      },
+      "cand": {
+        "search": {
+          "verdict": "proven",
+          "exit": 0,
+          "ms": 7574
+        },
+        "broken": {
+          "verdict": "refuted",
+          "exit": 0,
+          "ms": 12
+        }
+      }
+    },
+    "pair-consensus_wo_decide-r3": {
+      "base": {
+        "search": {
+          "verdict": "proven",
+          "exit": 0,
+          "ms": 23942
+        },
+        "broken": {
+          "verdict": "unknown",
+          "exit": 0,
+          "ms": 8212
+        }
+      },
+      "cand": {
+        "search": {
+          "verdict": "proven",
+          "exit": 0,
+          "ms": 21701
+        },
+        "broken": {
+          "verdict": "unknown",
+          "exit": 0,
+          "ms": 8053
+        }
+      }
+    },
+    "pair-consensus_forall-r3": {
+      "base": {
+        "search": {
+          "verdict": "proven",
+          "exit": 0,
+          "ms": 21067
+        },
+        "broken": {
+          "verdict": "unknown",
+          "exit": 0,
+          "ms": 6106
+        }
+      },
+      "cand": {
+        "search": {
+          "verdict": "proven",
+          "exit": 0,
+          "ms": 21765
+        },
+        "broken": {
+          "verdict": "unknown",
+          "exit": 0,
+          "ms": 6005
+        }
+      }
+    },
+    "pair-naive_consensus-r3": {
+      "base": {
+        "search": {
+          "verdict": "proven",
+          "exit": 0,
+          "ms": 2995
+        },
+        "broken": {
+          "verdict": "unknown",
+          "exit": 0,
+          "ms": 2039
+        }
+      },
+      "cand": {
+        "search": {
+          "verdict": "proven",
+          "exit": 0,
+          "ms": 4736
+        },
+        "broken": {
+          "verdict": "unknown",
+          "exit": 0,
+          "ms": 2502
+        }
+      }
+    },
+    "pair-client_server_ae-r3": {
+      "base": {
+        "search": {
+          "verdict": "proven",
+          "exit": 0,
+          "ms": 16296
+        },
+        "broken": {
+          "verdict": "unknown",
+          "exit": 0,
+          "ms": 31949
+        }
+      },
+      "cand": {
+        "search": {
+          "verdict": "proven",
+          "exit": 0,
+          "ms": 19532
+        },
+        "broken": {
+          "verdict": "unknown",
+          "exit": 0,
+          "ms": 24288
+        }
+      }
+    },
+    "pair-client_server_db_ae-r3": {
+      "base": {
+        "search": {
+          "verdict": "proven",
+          "exit": 0,
+          "ms": 14595
+        },
+        "broken": {
+          "verdict": "unknown",
+          "exit": 0,
+          "ms": 19864
+        }
+      },
+      "cand": {
+        "search": {
+          "verdict": "proven",
+          "exit": 0,
+          "ms": 14859
+        },
+        "broken": {
+          "verdict": "unknown",
+          "exit": 0,
+          "ms": 21433
+        }
+      }
+    },
+    "pair-simple_election-r3": {
+      "base": {
+        "search": {
+          "verdict": "proven",
+          "exit": 0,
+          "ms": 5391
+        },
+        "broken": {
+          "verdict": "unknown",
+          "exit": 0,
+          "ms": 4616
+        }
+      },
+      "cand": {
+        "search": {
+          "verdict": "proven",
+          "exit": 0,
+          "ms": 8003
+        },
+        "broken": {
+          "verdict": "unknown",
+          "exit": 0,
+          "ms": 4416
+        }
+      }
+    },
+    "pair-toy_consensus_epr-r3": {
+      "base": {
+        "search": {
+          "verdict": "proven",
+          "exit": 0,
+          "ms": 2279
+        },
+        "broken": {
+          "verdict": "unknown",
+          "exit": 0,
+          "ms": 1596
+        }
+      },
+      "cand": {
+        "search": {
+          "verdict": "proven",
+          "exit": 0,
+          "ms": 1519
+        },
+        "broken": {
+          "verdict": "unknown",
+          "exit": 0,
+          "ms": 1589
+        }
+      }
+    },
+    "pair-toy_consensus-r3": {
+      "base": {
+        "search": {
+          "verdict": "proven",
+          "exit": 0,
+          "ms": 2903
+        },
+        "broken": {
+          "verdict": "unknown",
+          "exit": 0,
+          "ms": 499
+        }
+      },
+      "cand": {
+        "search": {
+          "verdict": "proven",
+          "exit": 0,
+          "ms": 1427
+        },
+        "broken": {
+          "verdict": "unknown",
+          "exit": 0,
+          "ms": 531
+        }
+      }
+    },
+    "pair-firewall-r3": {
+      "base": {
+        "search": {
+          "verdict": "proven",
+          "exit": 0,
+          "ms": 18693
+        },
+        "broken": {
+          "verdict": "unknown",
+          "exit": 0,
+          "ms": 7818
+        }
+      },
+      "cand": {
+        "search": {
+          "verdict": "proven",
+          "exit": 0,
+          "ms": 14853
+        },
+        "broken": {
+          "verdict": "unknown",
+          "exit": 0,
+          "ms": 7595
+        }
+      }
+    },
+    "pair-majorityset_leader_election-r3": {
+      "base": {
+        "search": {
+          "verdict": "proven",
+          "exit": 0,
+          "ms": 4755
+        },
+        "broken": {
+          "verdict": "unknown",
+          "exit": 0,
+          "ms": 868
+        }
+      },
+      "cand": {
+        "search": {
+          "verdict": "proven",
+          "exit": 0,
+          "ms": 4268
+        },
+        "broken": {
+          "verdict": "unknown",
+          "exit": 0,
+          "ms": 751
+        }
+      }
+    },
+    "pair-consensus_epr-r3": {
+      "base": {
+        "search": {
+          "verdict": "proven",
+          "exit": 0,
+          "ms": 14741
+        },
+        "broken": {
+          "verdict": "unknown",
+          "exit": 0,
+          "ms": 3995
+        }
+      },
+      "cand": {
+        "search": {
+          "verdict": "proven",
+          "exit": 0,
+          "ms": 15315
+        },
+        "broken": {
+          "verdict": "unknown",
+          "exit": 0,
+          "ms": 3892
+        }
+      }
+    },
+    "pair-learning_switch-r3": {
+      "base": {
+        "search": {
+          "verdict": "proven",
+          "exit": 0,
+          "ms": 14921
+        },
+        "broken": {
+          "verdict": "unknown",
+          "exit": 0,
+          "ms": 11544
+        }
+      },
+      "cand": {
+        "search": {
+          "verdict": "proven",
+          "exit": 0,
+          "ms": 14827
+        },
+        "broken": {
+          "verdict": "unknown",
+          "exit": 0,
+          "ms": 11605
+        }
+      }
+    },
+    "pair-learning_switch_i4-r3": {
+      "base": {
+        "search": {
+          "verdict": "proven",
+          "exit": 0,
+          "ms": 17618
+        },
+        "broken": {
+          "verdict": "unknown",
+          "exit": 0,
+          "ms": 46566
+        }
+      },
+      "cand": {
+        "search": {
+          "verdict": "proven",
+          "exit": 0,
+          "ms": 17650
+        },
+        "broken": {
+          "verdict": "unknown",
+          "exit": 0,
+          "ms": 45956
+        }
+      }
+    },
+    "pair-paxos_epr-r3": {
+      "base": {
+        "search": {
+          "verdict": "proven",
+          "exit": 0,
+          "ms": 21076
+        },
+        "broken": {
+          "verdict": "unknown",
+          "exit": 0,
+          "ms": 51481
+        }
+      },
+      "cand": {
+        "search": {
+          "verdict": "proven",
+          "exit": 0,
+          "ms": 19770
+        },
+        "broken": {
+          "verdict": "unknown",
+          "exit": 0,
+          "ms": 58366
+        }
+      }
+    },
+    "pair-mldr-r3": {
+      "base": {
+        "search": {
+          "verdict": "unknown",
+          "exit": 0,
+          "ms": 30114
+        },
+        "broken": {
+          "verdict": "unknown",
+          "exit": 0,
+          "ms": 8059
+        }
+      },
+      "cand": {
+        "search": {
+          "verdict": "unknown",
+          "exit": 0,
+          "ms": 50582
+        },
+        "broken": {
+          "verdict": "unknown",
+          "exit": 0,
+          "ms": 8673
+        }
+      }
+    }
+  }
+}

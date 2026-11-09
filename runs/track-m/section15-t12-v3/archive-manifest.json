@@ -1,0 +1,27 @@
+{
+  "artifact": "section10-chunk-manifest",
+  "dir": "/home/user/track-m-s10-receipts-1JYMfu",
+  "parts": 2,
+  "bytes": 167097,
+  "sha256": "be7aa7fd0fed7a7ea6c628ac4913743221b18344831156302de74eba8f040fb2",
+  "files": [
+    "build.log",
+    "diagnostic.json",
+    "integrity.json",
+    "ledger.json",
+    "overlap-op0-actions.jsonl",
+    "overlap-op0-result.json",
+    "overlap-op0.log",
+    "overlap-op4-actions.jsonl",
+    "overlap-op4-result.json",
+    "overlap-op4.log",
+    "policy.json",
+    "replay.js",
+    "runtime.sha256",
+    "shard.json",
+    "source-before.json",
+    "star-op3-actions.jsonl",
+    "star-op3-result.json",
+    "star-op3.log"
+  ]
+}

@@ -1,0 +1,6 @@
+[
+ {"name":"off-on","cmd":"set -e; bun install --frozen-lockfile >/dev/null; TRACK_M_DISPOSABLE_PROFILE=1 bun research/track-m/install-cost-meter.ts /tmp/rows-off-on >/tmp/rows-manifest; for mode in 0 1; do echo FACT_SCOPE=$mode; GDP_ROWS_FACT_SCOPE=$mode TRACK_M_COST_PROFILE=1 bun research/track-m/profile-family.ts replay-input/input.json; done","cpu":8,"memory":14336,"timeout":360},
+ {"name":"on-off","cmd":"set -e; bun install --frozen-lockfile >/dev/null; TRACK_M_DISPOSABLE_PROFILE=1 bun research/track-m/install-cost-meter.ts /tmp/rows-on-off >/tmp/rows-manifest; for mode in 1 0; do echo FACT_SCOPE=$mode; GDP_ROWS_FACT_SCOPE=$mode TRACK_M_COST_PROFILE=1 bun research/track-m/profile-family.ts replay-input/input.json; done","cpu":8,"memory":14336,"timeout":360},
+ {"name":"tests","cmd":"set -e; bun install --frozen-lockfile >/dev/null; bun test kernel/prover-rows.test.ts kernel/prover-row-cache.test.ts kernel/tree-reuse.test.ts core/count-recovery core/count-cases.test.ts core/count-focus-proof.test.ts","cpu":8,"memory":14336,"timeout":240},
+ {"name":"check","cmd":"set -e; bash research/track-m/prepare-vendors.sh; bun install --frozen-lockfile >/dev/null; bun run check","cpu":8,"memory":14336,"timeout":240}
+]

@@ -1,0 +1,6 @@
+PAIR begin side=base id=lock_server run=2
+{"id":"lock_server","ic3syn":"i4-lock-server","broken":{"bug":"connect without the semaphore","verdict":"refuted","goal":"one client per server @step","stuck":"sat","run":6,"ms":7,"work":0,"full":0}}
+PAIR end side=base exit=0
+PAIR begin side=cand id=lock_server run=2
+{"id":"lock_server","ic3syn":"i4-lock-server","broken":{"bug":"connect without the semaphore","verdict":"refuted","goal":"one client per server @step","stuck":"sat","run":6,"ms":5,"work":0,"full":0}}
+PAIR end side=cand exit=0

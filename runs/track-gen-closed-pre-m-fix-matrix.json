@@ -1,0 +1,10 @@
+{
+  "batch": "20261108-182650-dcxv1q",
+  "result": {
+    "vms": 5,
+    "starts": 3,
+    "preempted": 0,
+    "class": "gate",
+    "wall_s": 1473.8
+  }
+}

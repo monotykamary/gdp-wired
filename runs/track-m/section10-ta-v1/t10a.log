@@ -1,0 +1,17 @@
+Found 0 warnings and 0 errors.
+Finished in 14.8s on 1214 files with 100 rules using 8 threads.
+{"installed":"section9-live-observer","files":["core/count-recovery/derivability-closure.ts","research/track-m/active-source-probe.ts"],"productionStrategyChanged":false}
+
+--- stderr ---
+$ tsc -p . && oxlint --type-aware --deny-warnings --disable-nested-config
+ 8 |  ['research/track-m/active-source-probe.ts',"./section9-guard-observer.ts","./section10-inclusion-observer.ts"]]){
+ 9 |  let text=readFileSync(file!,'utf8');if(text.split(old!).length!==2)throw new Error('missing observer import');text=text.replace(old!,next!)
+10 |  if(file!.endsWith('active-source-probe.ts')){
+11 |   text=text.replace("import {s9 as __s9} from './section10-inclusion-observer.ts'","import {s9 as __s9,section10Instance} from './section10-inclusion-observer.ts'")
+12 |   const marker='  selection=restrictPool(packet.cert,data)'
+13 |   if(text.split(marker).length!==2)throw new Error('missing restricted pool anchor')
+                                                  ^
+error: missing restricted pool anchor
+      at /work/gdp-wired/research/track-m/install-section10-ta.ts:13:46
+
+Bun v1.4.3 (Linux x64)

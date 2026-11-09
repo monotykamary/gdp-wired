@@ -1,0 +1,3655 @@
+[
+  {
+    "test": "T0",
+    "label": "Inv*: no quorum of a config can still be gathered for a config term held:equal",
+    "framePool": [
+      {
+        "index": 2,
+        "instance": {
+          "wit": "w$22",
+          "below": {
+            "op": "var",
+            "name": "size"
+          },
+          "terms": [
+            [
+              1,
+              "r$0"
+            ],
+            [
+              -1,
+              "r$13"
+            ]
+          ],
+          "unit": 0
+        }
+      },
+      {
+        "index": 3,
+        "instance": {
+          "wit": "w$26",
+          "below": {
+            "op": "var",
+            "name": "size"
+          },
+          "terms": [
+            [
+              1,
+              "r$0"
+            ],
+            [
+              -1,
+              "r$17"
+            ]
+          ],
+          "unit": 0
+        }
+      },
+      {
+        "index": 4,
+        "instance": {
+          "wit": "w$28",
+          "below": {
+            "op": "var",
+            "name": "size"
+          },
+          "terms": [
+            [
+              1,
+              "r$0"
+            ],
+            [
+              -1,
+              "r$19"
+            ]
+          ],
+          "unit": 0
+        }
+      },
+      {
+        "index": 47,
+        "instance": {
+          "wit": "frame$0",
+          "below": {
+            "op": "var",
+            "name": "size"
+          },
+          "terms": [
+            [
+              1,
+              "r$0"
+            ],
+            [
+              -1,
+              "r$11"
+            ]
+          ],
+          "unit": 0
+        }
+      },
+      {
+        "index": 54,
+        "instance": {
+          "wit": "frame$7",
+          "below": {
+            "op": "var",
+            "name": "size"
+          },
+          "terms": [
+            [
+              1,
+              "r$0"
+            ],
+            [
+              -1,
+              "r$14"
+            ]
+          ],
+          "unit": 0
+        }
+      },
+      {
+        "index": 58,
+        "instance": {
+          "wit": "frame$11",
+          "below": {
+            "op": "var",
+            "name": "size"
+          },
+          "terms": [
+            [
+              1,
+              "r$0"
+            ],
+            [
+              -1,
+              "r$15"
+            ]
+          ],
+          "unit": 0
+        }
+      },
+      {
+        "index": 60,
+        "instance": {
+          "wit": "frame$13",
+          "below": {
+            "op": "var",
+            "name": "size"
+          },
+          "terms": [
+            [
+              1,
+              "r$0"
+            ],
+            [
+              -1,
+              "r$16"
+            ]
+          ],
+          "unit": 0
+        }
+      },
+      {
+        "index": 62,
+        "instance": {
+          "wit": "frame$15",
+          "below": {
+            "op": "var",
+            "name": "size"
+          },
+          "terms": [
+            [
+              1,
+              "r$0"
+            ],
+            [
+              -1,
+              "r$18"
+            ]
+          ],
+          "unit": 0
+        }
+      }
+    ],
+    "reuses": 131,
+    "invalidatedByMissingBindings": 131,
+    "audit": [
+      {
+        "index": 67,
+        "scope": 0,
+        "savedWitness": "frame$18",
+        "missing": [
+          "w?all$1",
+          "w?all$3"
+        ],
+        "legacyValid": true
+      },
+      {
+        "index": 2,
+        "scope": 1,
+        "savedWitness": "w$22",
+        "missing": [
+          "w?all$1",
+          "w?all$3"
+        ],
+        "legacyValid": true
+      },
+      {
+        "index": 3,
+        "scope": 0,
+        "savedWitness": "w$22",
+        "missing": [
+          "r$17",
+          "w?all$1",
+          "w?all$3"
+        ],
+        "legacyValid": true
+      },
+      {
+        "index": 3,
+        "scope": 1,
+        "savedWitness": "w$22",
+        "missing": [
+          "r$17",
+          "w?all$1",
+          "w?all$3"
+        ],
+        "legacyValid": true
+      },
+      {
+        "index": 4,
+        "scope": 0,
+        "savedWitness": "w$22",
+        "missing": [
+          "r$19",
+          "w?all$1",
+          "w?all$3"
+        ],
+        "legacyValid": true
+      },
+      {
+        "index": 4,
+        "scope": 1,
+        "savedWitness": "w$22",
+        "missing": [
+          "r$19",
+          "w?all$1",
+          "w?all$3"
+        ],
+        "legacyValid": true
+      },
+      {
+        "index": 5,
+        "scope": 0,
+        "savedWitness": "w$22",
+        "missing": [
+          "r$8",
+          "w?all$1",
+          "w?all$3"
+        ],
+        "legacyValid": true
+      },
+      {
+        "index": 47,
+        "scope": 0,
+        "savedWitness": "w$22",
+        "missing": [
+          "r$11",
+          "w?all$1",
+          "w?all$3"
+        ],
+        "legacyValid": true
+      },
+      {
+        "index": 51,
+        "scope": 1,
+        "savedWitness": "frame$4",
+        "missing": [
+          "w?all$1",
+          "w?all$3"
+        ],
+        "legacyValid": true
+      },
+      {
+        "index": 52,
+        "scope": 0,
+        "savedWitness": "w$22",
+        "missing": [
+          "r$9",
+          "w?all$1",
+          "w?all$3"
+        ],
+        "legacyValid": true
+      },
+      {
+        "index": 54,
+        "scope": 0,
+        "savedWitness": "w$22",
+        "missing": [
+          "r$14",
+          "w?all$1",
+          "w?all$3"
+        ],
+        "legacyValid": true
+      },
+      {
+        "index": 56,
+        "scope": 0,
+        "savedWitness": "w$599",
+        "missing": [
+          "r$10",
+          "w?all$1",
+          "w?all$3"
+        ],
+        "legacyValid": true
+      },
+      {
+        "index": 58,
+        "scope": 0,
+        "savedWitness": "w$22",
+        "missing": [
+          "r$15",
+          "w?all$1",
+          "w?all$3"
+        ],
+        "legacyValid": true
+      },
+      {
+        "index": 58,
+        "scope": 1,
+        "savedWitness": "w$22",
+        "missing": [
+          "r$15",
+          "w?all$1",
+          "w?all$3"
+        ],
+        "legacyValid": true
+      },
+      {
+        "index": 59,
+        "scope": 1,
+        "savedWitness": "frame$12",
+        "missing": [
+          "w?all$1",
+          "w?all$3"
+        ],
+        "legacyValid": true
+      },
+      {
+        "index": 60,
+        "scope": 0,
+        "savedWitness": "w$22",
+        "missing": [
+          "r$16",
+          "w?all$1",
+          "w?all$3"
+        ],
+        "legacyValid": true
+      },
+      {
+        "index": 62,
+        "scope": 0,
+        "savedWitness": "w$22",
+        "missing": [
+          "r$18",
+          "w?all$1",
+          "w?all$3"
+        ],
+        "legacyValid": true
+      },
+      {
+        "index": 62,
+        "scope": 6,
+        "savedWitness": "frame$15",
+        "missing": [
+          "w?all$1",
+          "w?all$3"
+        ],
+        "legacyValid": true
+      },
+      {
+        "index": 63,
+        "scope": 6,
+        "savedWitness": "frame$16",
+        "missing": [
+          "w?all$1",
+          "w?all$3"
+        ],
+        "legacyValid": true
+      },
+      {
+        "index": 64,
+        "scope": 2,
+        "savedWitness": "frame$17",
+        "missing": [
+          "w?all$1",
+          "w?all$3"
+        ],
+        "legacyValid": true
+      },
+      {
+        "index": 64,
+        "scope": 1,
+        "savedWitness": "frame$17",
+        "missing": [
+          "w?all$1",
+          "w?all$3"
+        ],
+        "legacyValid": true
+      },
+      {
+        "index": 66,
+        "scope": 1,
+        "savedWitness": "frame$19",
+        "missing": [
+          "w?all$1",
+          "w?all$3"
+        ],
+        "legacyValid": true
+      },
+      {
+        "index": 10,
+        "scope": 0,
+        "savedWitness": "frame$2",
+        "missing": [
+          "w?all$1",
+          "w?all$3"
+        ],
+        "legacyValid": true
+      },
+      {
+        "index": 11,
+        "scope": 0,
+        "savedWitness": "w$599",
+        "missing": [
+          "w?all$1",
+          "w?all$3"
+        ],
+        "legacyValid": true
+      },
+      {
+        "index": 12,
+        "scope": 0,
+        "savedWitness": "frame$2",
+        "missing": [
+          "w?all$1",
+          "w?all$3"
+        ],
+        "legacyValid": true
+      },
+      {
+        "index": 13,
+        "scope": 0,
+        "savedWitness": "w$599",
+        "missing": [
+          "w?all$1",
+          "w?all$3"
+        ],
+        "legacyValid": true
+      },
+      {
+        "index": 14,
+        "scope": 0,
+        "savedWitness": "w$599",
+        "missing": [
+          "r$11",
+          "w?all$1",
+          "w?all$3"
+        ],
+        "legacyValid": true
+      },
+      {
+        "index": 15,
+        "scope": 0,
+        "savedWitness": "frame$2",
+        "missing": [
+          "w?all$1",
+          "w?all$3"
+        ],
+        "legacyValid": true
+      },
+      {
+        "index": 16,
+        "scope": 0,
+        "savedWitness": "w$599",
+        "missing": [
+          "r$14",
+          "w?all$1",
+          "w?all$3"
+        ],
+        "legacyValid": true
+      },
+      {
+        "index": 17,
+        "scope": 0,
+        "savedWitness": "w$599",
+        "missing": [
+          "r$16",
+          "w?all$1",
+          "w?all$3"
+        ],
+        "legacyValid": true
+      },
+      {
+        "index": 21,
+        "scope": 0,
+        "savedWitness": "w$84",
+        "missing": [
+          "w?all$1",
+          "w?all$3"
+        ],
+        "legacyValid": true
+      },
+      {
+        "index": 22,
+        "scope": 0,
+        "savedWitness": "w$84",
+        "missing": [
+          "r$11",
+          "w?all$1",
+          "w?all$3"
+        ],
+        "legacyValid": true
+      },
+      {
+        "index": 24,
+        "scope": 0,
+        "savedWitness": "w$84",
+        "missing": [
+          "r$14",
+          "w?all$1",
+          "w?all$3"
+        ],
+        "legacyValid": true
+      },
+      {
+        "index": 25,
+        "scope": 0,
+        "savedWitness": "w$84",
+        "missing": [
+          "r$16",
+          "w?all$1",
+          "w?all$3"
+        ],
+        "legacyValid": true
+      },
+      {
+        "index": 36,
+        "scope": 0,
+        "savedWitness": "w$22",
+        "missing": [
+          "r$4",
+          "r$8",
+          "w?all$1",
+          "w?all$3"
+        ],
+        "legacyValid": true
+      },
+      {
+        "index": 38,
+        "scope": 0,
+        "savedWitness": "w$22",
+        "missing": [
+          "r$4",
+          "r$8",
+          "w?all$1",
+          "w?all$3"
+        ],
+        "legacyValid": true
+      },
+      {
+        "index": 41,
+        "scope": 0,
+        "savedWitness": "w$599",
+        "missing": [
+          "r$4",
+          "r$8",
+          "w?all$1",
+          "w?all$3"
+        ],
+        "legacyValid": true
+      },
+      {
+        "index": 43,
+        "scope": 0,
+        "savedWitness": "w$22",
+        "missing": [
+          "r$4",
+          "r$8",
+          "w?all$1",
+          "w?all$3"
+        ],
+        "legacyValid": true
+      },
+      {
+        "index": 1,
+        "scope": 0,
+        "savedWitness": "w$22",
+        "missing": [
+          "r$4",
+          "r$8",
+          "w?all$1",
+          "w?all$3"
+        ],
+        "legacyValid": true
+      },
+      {
+        "index": 6,
+        "scope": 0,
+        "savedWitness": "w$599",
+        "missing": [
+          "r$13",
+          "r$4",
+          "w?all$1",
+          "w?all$3"
+        ],
+        "legacyValid": true
+      },
+      {
+        "index": 6,
+        "scope": 1,
+        "savedWitness": "w$599",
+        "missing": [
+          "r$13",
+          "r$4",
+          "w?all$1",
+          "w?all$3"
+        ],
+        "legacyValid": true
+      },
+      {
+        "index": 7,
+        "scope": 0,
+        "savedWitness": "w$599",
+        "missing": [
+          "r$17",
+          "r$4",
+          "w?all$1",
+          "w?all$3"
+        ],
+        "legacyValid": true
+      },
+      {
+        "index": 7,
+        "scope": 1,
+        "savedWitness": "w$599",
+        "missing": [
+          "r$17",
+          "r$4",
+          "w?all$1",
+          "w?all$3"
+        ],
+        "legacyValid": true
+      },
+      {
+        "index": 8,
+        "scope": 0,
+        "savedWitness": "w$599",
+        "missing": [
+          "r$19",
+          "r$4",
+          "w?all$1",
+          "w?all$3"
+        ],
+        "legacyValid": true
+      },
+      {
+        "index": 8,
+        "scope": 2,
+        "savedWitness": "w$28",
+        "missing": [
+          "r$4",
+          "w?all$1",
+          "w?all$3"
+        ],
+        "legacyValid": true
+      },
+      {
+        "index": 8,
+        "scope": 1,
+        "savedWitness": "w$599",
+        "missing": [
+          "r$19",
+          "r$4",
+          "w?all$1",
+          "w?all$3"
+        ],
+        "legacyValid": true
+      },
+      {
+        "index": 71,
+        "scope": 0,
+        "savedWitness": "w$599",
+        "missing": [
+          "r$4",
+          "w?all$1",
+          "w?all$3"
+        ],
+        "legacyValid": true
+      },
+      {
+        "index": 72,
+        "scope": 0,
+        "savedWitness": "w$85",
+        "missing": [
+          "w?all$1",
+          "w?all$3"
+        ],
+        "legacyValid": true
+      },
+      {
+        "index": 37,
+        "scope": 0,
+        "savedWitness": "w$22",
+        "missing": [
+          "r$4",
+          "w?all$1",
+          "w?all$3"
+        ],
+        "legacyValid": true
+      },
+      {
+        "index": 40,
+        "scope": 0,
+        "savedWitness": "w$599",
+        "missing": [
+          "r$4",
+          "w?all$1",
+          "w?all$3"
+        ],
+        "legacyValid": true
+      },
+      {
+        "index": 42,
+        "scope": 0,
+        "savedWitness": "w$599",
+        "missing": [
+          "r$4",
+          "w?all$1",
+          "w?all$3"
+        ],
+        "legacyValid": true
+      },
+      {
+        "index": 44,
+        "scope": 0,
+        "savedWitness": "w$84",
+        "missing": [
+          "w?all$1",
+          "w?all$3"
+        ],
+        "legacyValid": true
+      },
+      {
+        "index": 65,
+        "scope": 0,
+        "savedWitness": "w$22",
+        "missing": [
+          "r$4",
+          "w?all$1",
+          "w?all$3"
+        ],
+        "legacyValid": true
+      },
+      {
+        "index": 67,
+        "scope": 0,
+        "savedWitness": "w$599",
+        "missing": [
+          "r$4",
+          "w?all$1",
+          "w?all$3"
+        ],
+        "legacyValid": true
+      },
+      {
+        "index": 45,
+        "scope": 0,
+        "savedWitness": "w$599",
+        "missing": [
+          "r$4",
+          "w?all$1",
+          "w?all$3"
+        ],
+        "legacyValid": true
+      },
+      {
+        "index": 46,
+        "scope": 0,
+        "savedWitness": "w$84",
+        "missing": [
+          "w?all$1",
+          "w?all$3"
+        ],
+        "legacyValid": true
+      },
+      {
+        "index": 2,
+        "scope": 0,
+        "savedWitness": "w$22",
+        "missing": [
+          "r$4",
+          "w?all$1",
+          "w?all$3"
+        ],
+        "legacyValid": true
+      },
+      {
+        "index": 2,
+        "scope": 1,
+        "savedWitness": "w$22",
+        "missing": [
+          "r$4",
+          "w?all$1",
+          "w?all$3"
+        ],
+        "legacyValid": true
+      },
+      {
+        "index": 3,
+        "scope": 0,
+        "savedWitness": "w$22",
+        "missing": [
+          "r$17",
+          "r$4",
+          "w?all$1",
+          "w?all$3"
+        ],
+        "legacyValid": true
+      },
+      {
+        "index": 3,
+        "scope": 1,
+        "savedWitness": "w$22",
+        "missing": [
+          "r$17",
+          "r$4",
+          "w?all$1",
+          "w?all$3"
+        ],
+        "legacyValid": true
+      },
+      {
+        "index": 4,
+        "scope": 0,
+        "savedWitness": "w$22",
+        "missing": [
+          "r$19",
+          "r$4",
+          "w?all$1",
+          "w?all$3"
+        ],
+        "legacyValid": true
+      },
+      {
+        "index": 4,
+        "scope": 2,
+        "savedWitness": "w$28",
+        "missing": [
+          "r$4",
+          "w?all$1",
+          "w?all$3"
+        ],
+        "legacyValid": true
+      },
+      {
+        "index": 4,
+        "scope": 1,
+        "savedWitness": "w$22",
+        "missing": [
+          "r$19",
+          "r$4",
+          "w?all$1",
+          "w?all$3"
+        ],
+        "legacyValid": true
+      },
+      {
+        "index": 5,
+        "scope": 0,
+        "savedWitness": "w$22",
+        "missing": [
+          "r$4",
+          "r$8",
+          "w?all$1",
+          "w?all$3"
+        ],
+        "legacyValid": true
+      },
+      {
+        "index": 47,
+        "scope": 0,
+        "savedWitness": "w$22",
+        "missing": [
+          "r$11",
+          "r$4",
+          "w?all$1",
+          "w?all$3"
+        ],
+        "legacyValid": true
+      },
+      {
+        "index": 48,
+        "scope": 0,
+        "savedWitness": "frame$1",
+        "missing": [
+          "r$4",
+          "w?all$1",
+          "w?all$3"
+        ],
+        "legacyValid": true
+      },
+      {
+        "index": 49,
+        "scope": 0,
+        "savedWitness": "frame$2",
+        "missing": [
+          "r$4",
+          "w?all$1",
+          "w?all$3"
+        ],
+        "legacyValid": true
+      },
+      {
+        "index": 50,
+        "scope": 0,
+        "savedWitness": "frame$3",
+        "missing": [
+          "r$4",
+          "w?all$1",
+          "w?all$3"
+        ],
+        "legacyValid": true
+      },
+      {
+        "index": 51,
+        "scope": 0,
+        "savedWitness": "frame$4",
+        "missing": [
+          "r$4",
+          "w?all$1",
+          "w?all$3"
+        ],
+        "legacyValid": true
+      },
+      {
+        "index": 51,
+        "scope": 1,
+        "savedWitness": "frame$4",
+        "missing": [
+          "r$4",
+          "w?all$1",
+          "w?all$3"
+        ],
+        "legacyValid": true
+      },
+      {
+        "index": 52,
+        "scope": 0,
+        "savedWitness": "w$22",
+        "missing": [
+          "r$4",
+          "r$9",
+          "w?all$1",
+          "w?all$3"
+        ],
+        "legacyValid": true
+      },
+      {
+        "index": 53,
+        "scope": 0,
+        "savedWitness": "frame$6",
+        "missing": [
+          "r$4",
+          "w?all$1",
+          "w?all$3"
+        ],
+        "legacyValid": true
+      },
+      {
+        "index": 54,
+        "scope": 0,
+        "savedWitness": "w$22",
+        "missing": [
+          "r$14",
+          "r$4",
+          "w?all$1",
+          "w?all$3"
+        ],
+        "legacyValid": true
+      },
+      {
+        "index": 55,
+        "scope": 0,
+        "savedWitness": "frame$8",
+        "missing": [
+          "r$4",
+          "w?all$1",
+          "w?all$3"
+        ],
+        "legacyValid": true
+      },
+      {
+        "index": 56,
+        "scope": 0,
+        "savedWitness": "w$599",
+        "missing": [
+          "r$10",
+          "r$4",
+          "w?all$1",
+          "w?all$3"
+        ],
+        "legacyValid": true
+      },
+      {
+        "index": 57,
+        "scope": 0,
+        "savedWitness": "frame$10",
+        "missing": [
+          "r$4",
+          "w?all$1",
+          "w?all$3"
+        ],
+        "legacyValid": true
+      },
+      {
+        "index": 58,
+        "scope": 0,
+        "savedWitness": "w$22",
+        "missing": [
+          "r$15",
+          "r$4",
+          "w?all$1",
+          "w?all$3"
+        ],
+        "legacyValid": true
+      },
+      {
+        "index": 58,
+        "scope": 1,
+        "savedWitness": "w$22",
+        "missing": [
+          "r$15",
+          "r$4",
+          "w?all$1",
+          "w?all$3"
+        ],
+        "legacyValid": true
+      },
+      {
+        "index": 59,
+        "scope": 0,
+        "savedWitness": "frame$12",
+        "missing": [
+          "r$4",
+          "w?all$1",
+          "w?all$3"
+        ],
+        "legacyValid": true
+      },
+      {
+        "index": 59,
+        "scope": 1,
+        "savedWitness": "frame$12",
+        "missing": [
+          "r$4",
+          "w?all$1",
+          "w?all$3"
+        ],
+        "legacyValid": true
+      },
+      {
+        "index": 60,
+        "scope": 0,
+        "savedWitness": "w$22",
+        "missing": [
+          "r$16",
+          "r$4",
+          "w?all$1",
+          "w?all$3"
+        ],
+        "legacyValid": true
+      },
+      {
+        "index": 61,
+        "scope": 0,
+        "savedWitness": "frame$14",
+        "missing": [
+          "r$4",
+          "w?all$1",
+          "w?all$3"
+        ],
+        "legacyValid": true
+      },
+      {
+        "index": 62,
+        "scope": 0,
+        "savedWitness": "w$22",
+        "missing": [
+          "r$18",
+          "r$4",
+          "w?all$1",
+          "w?all$3"
+        ],
+        "legacyValid": true
+      },
+      {
+        "index": 62,
+        "scope": 3,
+        "savedWitness": "frame$15",
+        "missing": [
+          "r$4",
+          "w?all$1",
+          "w?all$3"
+        ],
+        "legacyValid": true
+      },
+      {
+        "index": 62,
+        "scope": 4,
+        "savedWitness": "frame$15",
+        "missing": [
+          "r$4",
+          "w?all$1",
+          "w?all$3"
+        ],
+        "legacyValid": true
+      },
+      {
+        "index": 62,
+        "scope": 5,
+        "savedWitness": "frame$15",
+        "missing": [
+          "r$4",
+          "w?all$1",
+          "w?all$3"
+        ],
+        "legacyValid": true
+      },
+      {
+        "index": 62,
+        "scope": 6,
+        "savedWitness": "frame$15",
+        "missing": [
+          "r$4",
+          "w?all$1",
+          "w?all$3"
+        ],
+        "legacyValid": true
+      },
+      {
+        "index": 63,
+        "scope": 0,
+        "savedWitness": "frame$16",
+        "missing": [
+          "r$4",
+          "w?all$1",
+          "w?all$3"
+        ],
+        "legacyValid": true
+      },
+      {
+        "index": 63,
+        "scope": 3,
+        "savedWitness": "frame$16",
+        "missing": [
+          "r$4",
+          "w?all$1",
+          "w?all$3"
+        ],
+        "legacyValid": true
+      },
+      {
+        "index": 63,
+        "scope": 4,
+        "savedWitness": "frame$16",
+        "missing": [
+          "r$4",
+          "w?all$1",
+          "w?all$3"
+        ],
+        "legacyValid": true
+      },
+      {
+        "index": 63,
+        "scope": 5,
+        "savedWitness": "frame$16",
+        "missing": [
+          "r$4",
+          "w?all$1",
+          "w?all$3"
+        ],
+        "legacyValid": true
+      },
+      {
+        "index": 63,
+        "scope": 6,
+        "savedWitness": "frame$16",
+        "missing": [
+          "r$4",
+          "w?all$1",
+          "w?all$3"
+        ],
+        "legacyValid": true
+      },
+      {
+        "index": 64,
+        "scope": 0,
+        "savedWitness": "frame$17",
+        "missing": [
+          "r$4",
+          "w?all$1",
+          "w?all$3"
+        ],
+        "legacyValid": true
+      },
+      {
+        "index": 64,
+        "scope": 2,
+        "savedWitness": "frame$17",
+        "missing": [
+          "r$4",
+          "w?all$1",
+          "w?all$3"
+        ],
+        "legacyValid": true
+      },
+      {
+        "index": 64,
+        "scope": 1,
+        "savedWitness": "frame$17",
+        "missing": [
+          "r$4",
+          "w?all$1",
+          "w?all$3"
+        ],
+        "legacyValid": true
+      },
+      {
+        "index": 66,
+        "scope": 0,
+        "savedWitness": "frame$19",
+        "missing": [
+          "r$4",
+          "w?all$1",
+          "w?all$3"
+        ],
+        "legacyValid": true
+      },
+      {
+        "index": 66,
+        "scope": 1,
+        "savedWitness": "frame$19",
+        "missing": [
+          "r$4",
+          "w?all$1",
+          "w?all$3"
+        ],
+        "legacyValid": true
+      },
+      {
+        "index": 68,
+        "scope": 0,
+        "savedWitness": "frame$21",
+        "missing": [
+          "r$4",
+          "w?all$1",
+          "w?all$3"
+        ],
+        "legacyValid": true
+      },
+      {
+        "index": 10,
+        "scope": 0,
+        "savedWitness": "frame$2",
+        "missing": [
+          "r$4",
+          "w?all$1",
+          "w?all$3"
+        ],
+        "legacyValid": true
+      },
+      {
+        "index": 11,
+        "scope": 0,
+        "savedWitness": "w$599",
+        "missing": [
+          "r$4",
+          "w?all$1",
+          "w?all$3"
+        ],
+        "legacyValid": true
+      },
+      {
+        "index": 12,
+        "scope": 0,
+        "savedWitness": "frame$2",
+        "missing": [
+          "r$4",
+          "w?all$1",
+          "w?all$3"
+        ],
+        "legacyValid": true
+      },
+      {
+        "index": 13,
+        "scope": 0,
+        "savedWitness": "w$599",
+        "missing": [
+          "r$4",
+          "w?all$1",
+          "w?all$3"
+        ],
+        "legacyValid": true
+      },
+      {
+        "index": 14,
+        "scope": 0,
+        "savedWitness": "w$599",
+        "missing": [
+          "r$11",
+          "r$4",
+          "w?all$1",
+          "w?all$3"
+        ],
+        "legacyValid": true
+      },
+      {
+        "index": 15,
+        "scope": 0,
+        "savedWitness": "frame$2",
+        "missing": [
+          "r$4",
+          "w?all$1",
+          "w?all$3"
+        ],
+        "legacyValid": true
+      },
+      {
+        "index": 16,
+        "scope": 0,
+        "savedWitness": "w$599",
+        "missing": [
+          "r$14",
+          "r$4",
+          "w?all$1",
+          "w?all$3"
+        ],
+        "legacyValid": true
+      },
+      {
+        "index": 17,
+        "scope": 0,
+        "savedWitness": "w$599",
+        "missing": [
+          "r$16",
+          "r$4",
+          "w?all$1",
+          "w?all$3"
+        ],
+        "legacyValid": true
+      },
+      {
+        "index": 19,
+        "scope": 0,
+        "savedWitness": "w$84",
+        "missing": [
+          "w?all$1",
+          "w?all$3"
+        ],
+        "legacyValid": true
+      },
+      {
+        "index": 20,
+        "scope": 0,
+        "savedWitness": "w$85",
+        "missing": [
+          "w?all$1",
+          "w?all$3"
+        ],
+        "legacyValid": true
+      },
+      {
+        "index": 21,
+        "scope": 0,
+        "savedWitness": "w$84",
+        "missing": [
+          "w?all$1",
+          "w?all$3"
+        ],
+        "legacyValid": true
+      },
+      {
+        "index": 22,
+        "scope": 0,
+        "savedWitness": "w$84",
+        "missing": [
+          "r$11",
+          "w?all$1",
+          "w?all$3"
+        ],
+        "legacyValid": true
+      },
+      {
+        "index": 24,
+        "scope": 0,
+        "savedWitness": "w$84",
+        "missing": [
+          "r$14",
+          "w?all$1",
+          "w?all$3"
+        ],
+        "legacyValid": true
+      },
+      {
+        "index": 25,
+        "scope": 0,
+        "savedWitness": "w$84",
+        "missing": [
+          "r$16",
+          "w?all$1",
+          "w?all$3"
+        ],
+        "legacyValid": true
+      },
+      {
+        "index": 36,
+        "scope": 0,
+        "savedWitness": "w$22",
+        "missing": [
+          "r$4",
+          "r$8",
+          "w?all$1",
+          "w?all$3"
+        ],
+        "legacyValid": true
+      },
+      {
+        "index": 38,
+        "scope": 0,
+        "savedWitness": "w$22",
+        "missing": [
+          "r$4",
+          "r$8",
+          "w?all$1",
+          "w?all$3"
+        ],
+        "legacyValid": true
+      },
+      {
+        "index": 41,
+        "scope": 0,
+        "savedWitness": "w$599",
+        "missing": [
+          "r$4",
+          "r$8",
+          "w?all$1",
+          "w?all$3"
+        ],
+        "legacyValid": true
+      },
+      {
+        "index": 43,
+        "scope": 0,
+        "savedWitness": "w$22",
+        "missing": [
+          "r$4",
+          "r$8",
+          "w?all$1",
+          "w?all$3"
+        ],
+        "legacyValid": true
+      },
+      {
+        "index": 1,
+        "scope": 0,
+        "savedWitness": "w$22",
+        "missing": [
+          "r$4",
+          "r$8",
+          "w?all$1",
+          "w?all$3"
+        ],
+        "legacyValid": true
+      },
+      {
+        "index": 6,
+        "scope": 0,
+        "savedWitness": "w$599",
+        "missing": [
+          "r$13",
+          "r$4",
+          "w?all$1",
+          "w?all$3"
+        ],
+        "legacyValid": true
+      },
+      {
+        "index": 6,
+        "scope": 1,
+        "savedWitness": "w$599",
+        "missing": [
+          "r$13",
+          "r$4",
+          "w?all$1",
+          "w?all$3"
+        ],
+        "legacyValid": true
+      },
+      {
+        "index": 7,
+        "scope": 0,
+        "savedWitness": "w$599",
+        "missing": [
+          "r$17",
+          "r$4",
+          "w?all$1",
+          "w?all$3"
+        ],
+        "legacyValid": true
+      },
+      {
+        "index": 7,
+        "scope": 1,
+        "savedWitness": "w$599",
+        "missing": [
+          "r$17",
+          "r$4",
+          "w?all$1",
+          "w?all$3"
+        ],
+        "legacyValid": true
+      },
+      {
+        "index": 8,
+        "scope": 0,
+        "savedWitness": "w$599",
+        "missing": [
+          "r$19",
+          "r$4",
+          "w?all$1",
+          "w?all$3"
+        ],
+        "legacyValid": true
+      },
+      {
+        "index": 8,
+        "scope": 2,
+        "savedWitness": "w$28",
+        "missing": [
+          "r$4",
+          "w?all$1",
+          "w?all$3"
+        ],
+        "legacyValid": true
+      },
+      {
+        "index": 8,
+        "scope": 1,
+        "savedWitness": "w$599",
+        "missing": [
+          "r$19",
+          "r$4",
+          "w?all$1",
+          "w?all$3"
+        ],
+        "legacyValid": true
+      },
+      {
+        "index": 71,
+        "scope": 0,
+        "savedWitness": "w$599",
+        "missing": [
+          "r$4",
+          "w?all$1",
+          "w?all$3"
+        ],
+        "legacyValid": true
+      },
+      {
+        "index": 72,
+        "scope": 0,
+        "savedWitness": "w$85",
+        "missing": [
+          "w?all$1",
+          "w?all$3"
+        ],
+        "legacyValid": true
+      },
+      {
+        "index": 35,
+        "scope": 0,
+        "savedWitness": "w$561",
+        "missing": [
+          "w?all$1",
+          "w?all$3"
+        ],
+        "legacyValid": true
+      },
+      {
+        "index": 37,
+        "scope": 0,
+        "savedWitness": "w$22",
+        "missing": [
+          "r$4",
+          "w?all$1",
+          "w?all$3"
+        ],
+        "legacyValid": true
+      },
+      {
+        "index": 40,
+        "scope": 0,
+        "savedWitness": "w$599",
+        "missing": [
+          "r$4",
+          "w?all$1",
+          "w?all$3"
+        ],
+        "legacyValid": true
+      },
+      {
+        "index": 42,
+        "scope": 0,
+        "savedWitness": "w$599",
+        "missing": [
+          "r$4",
+          "w?all$1",
+          "w?all$3"
+        ],
+        "legacyValid": true
+      },
+      {
+        "index": 44,
+        "scope": 0,
+        "savedWitness": "w$84",
+        "missing": [
+          "w?all$1",
+          "w?all$3"
+        ],
+        "legacyValid": true
+      }
+    ],
+    "targetCandidates": [
+      {
+        "scope": 0,
+        "hyps": 41
+      },
+      {
+        "scope": 0,
+        "hyps": 46
+      }
+    ],
+    "direct": {
+      "index": 47,
+      "scope": 0,
+      "hyps": 41,
+      "instance": {
+        "wit": "frame$0",
+        "below": {
+          "op": "var",
+          "name": "size"
+        },
+        "terms": [
+          [
+            1,
+            "r$0"
+          ],
+          [
+            -1,
+            "r$11"
+          ]
+        ],
+        "unit": 0
+      },
+      "path": [
+        [
+          "op:1",
+          {
+            "lin": {
+              "op": 1
+            },
+            "holds": false
+          }
+        ],
+        [
+          "1:-1,op:1",
+          {
+            "lin": {
+              "1": -1,
+              "op": 1
+            },
+            "holds": false
+          }
+        ],
+        [
+          "1:-2,op:1",
+          {
+            "lin": {
+              "1": -2,
+              "op": 1
+            },
+            "holds": false
+          }
+        ],
+        [
+          "1:-3,op:1",
+          {
+            "lin": {
+              "1": -3,
+              "op": 1
+            },
+            "holds": false
+          }
+        ],
+        [
+          "1:-4,op:1",
+          {
+            "lin": {
+              "1": -4,
+              "op": 1
+            },
+            "holds": false
+          }
+        ],
+        [
+          "1:-5,op:1",
+          {
+            "lin": {
+              "1": -5,
+              "op": 1
+            },
+            "holds": true
+          }
+        ],
+        [
+          "1:-6,op:1",
+          {
+            "lin": {
+              "1": -6,
+              "op": 1
+            },
+            "holds": true
+          }
+        ],
+        [
+          "1:-1,started:1",
+          {
+            "lin": {
+              "1": -1,
+              "started": 1
+            },
+            "holds": true
+          }
+        ],
+        [
+          "1:1,started:-1",
+          {
+            "lin": {
+              "1": 1,
+              "started": -1
+            },
+            "holds": true
+          }
+        ],
+        [
+          "1:-1,St[i:1]:1",
+          {
+            "lin": {
+              "1": -1,
+              "St[i:1]": 1
+            },
+            "holds": true
+          }
+        ],
+        [
+          "1:1,St[i:1]:-1",
+          {
+            "lin": {
+              "1": 1,
+              "St[i:1]": -1
+            },
+            "holds": true
+          }
+        ],
+        [
+          "CT[i:1]:-1,CfgT[i:1]:1",
+          {
+            "lin": {
+              "CfgT[i:1]": 1,
+              "CT[i:1]": -1
+            },
+            "holds": true
+          }
+        ],
+        [
+          "CT[i:1]:1,CfgT[i:1]:-1",
+          {
+            "lin": {
+              "CT[i:1]": 1,
+              "CfgT[i:1]": -1
+            },
+            "holds": true
+          }
+        ],
+        [
+          "1:-1,?committedQuorum:1",
+          {
+            "lin": {
+              "1": -1,
+              "?committedQuorum": 1
+            },
+            "holds": true
+          }
+        ],
+        [
+          "1:1,?committedQuorum:-1",
+          {
+            "lin": {
+              "1": 1,
+              "?committedQuorum": -1
+            },
+            "holds": true
+          }
+        ],
+        [
+          "1:1,xAndS[]:1,⟦5⟧:-1,⟦9⟧:-1",
+          {
+            "lin": {
+              "1": 1,
+              "xAndS[]": 1,
+              "⟦5⟧": -1,
+              "⟦9⟧": -1
+            },
+            "holds": true
+          }
+        ],
+        [
+          "1:1,S[i:1]:-1",
+          {
+            "lin": {
+              "1": 1,
+              "S[i:1]": -1
+            },
+            "holds": true
+          }
+        ],
+        [
+          "a$#:1,i:-1",
+          {
+            "lin": {
+              "a$#": 1,
+              "i": -1
+            },
+            "holds": true
+          }
+        ],
+        [
+          "a$#:-1,i:1",
+          {
+            "lin": {
+              "i": 1,
+              "a$#": -1
+            },
+            "holds": true
+          }
+        ],
+        [
+          "i:-1,j$:1",
+          {
+            "lin": {
+              "j$": 1,
+              "i": -1
+            },
+            "holds": true
+          }
+        ],
+        [
+          "i:1,j$:-1",
+          {
+            "lin": {
+              "i": 1,
+              "j$": -1
+            },
+            "holds": true
+          }
+        ],
+        [
+          "1:-1,?canVote:1",
+          {
+            "lin": {
+              "1": -1,
+              "?canVote": 1
+            },
+            "holds": true
+          }
+        ],
+        [
+          "1:1,i:1,size:-1",
+          {
+            "lin": {
+              "1": 1,
+              "i": 1,
+              "size": -1
+            },
+            "holds": true
+          }
+        ],
+        [
+          "1:1,j$:1,size:-1",
+          {
+            "lin": {
+              "1": 1,
+              "j$": 1,
+              "size": -1
+            },
+            "holds": true
+          }
+        ]
+      ],
+      "outcome": "sat",
+      "why": "a model",
+      "refuted": false,
+      "core": [],
+      "checked": false,
+      "countedUnits": 25.932355999999913,
+      "model": {
+        "op": 5,
+        "started": 1,
+        "St[i:1]": 1,
+        "CfgT[i:1]": 1,
+        "CT[i:1]": 1,
+        "?committedQuorum": 1,
+        "xAndS[]": 1,
+        "⟦5⟧": 1,
+        "⟦9⟧": 1,
+        "hx": 0,
+        "xNotS[]": 0,
+        "hy": 0,
+        "sNotX[]": 0,
+        "S[i:1]": 1,
+        "a$#": 63,
+        "i": 63,
+        "j$": 63,
+        "?canVote": 0,
+        "size": 64,
+        "j": 0,
+        "?all$1": 1,
+        "?all$3": 1,
+        "Config[a$#:1]": 0,
+        "Config[j$:1]": 0,
+        "Config[i:1]": 0,
+        "Config[]": 0,
+        "?noneCopied": 0,
+        "?allCopied": 0,
+        "?all$2": 0,
+        "CfgT[j$:1]": 1,
+        "r$0": 1,
+        "r$1": 1,
+        "r$2": 1,
+        "r$12": 1,
+        "r$5": 0,
+        "r$6": 1,
+        "r$3": 1,
+        "r$7": 0,
+        "r$11": 0,
+        "S[frame$0:1]": 1,
+        "Q2[frame$0:1]": 0,
+        "CV[w?noneCopied:1]": 1,
+        "frame$0": 62,
+        "CfgT[frame$0:1]": 0,
+        "Config[frame$0:1,i:64]": 0,
+        "Config[i:64,w?all$2:1]": 0,
+        "S[a$#:64,frame$0:1,i:-64]": 1,
+        "S[w?canVote:1]": 1,
+        "CT[w?canVote:1]": 0,
+        "CfgT[w?canVote:1]": 1,
+        "CV[i:1]": 0,
+        "CV[w?canVote:1]": 1,
+        "w?canVote": 64,
+        "CT[frame$0:1]": 0,
+        "St[a$#:1]": 1,
+        "CfgT[a$#:1]": 1,
+        "CT[a$#:1]": 1,
+        "St[j$:1]": 1,
+        "CT[j$:1]": 1,
+        "St[]": 0,
+        "w?noneCopied": 0,
+        "w?allCopied": 1,
+        "CV[w?allCopied:1]": 0,
+        "S[w?all$2:1]": 1,
+        "w?all$2": 63
+      },
+      "modelValid": true
+    },
+    "queryWallMs": 23.02892999999949
+  },
+  {
+    "test": "T0",
+    "label": "Inv*: no quorum of a config can still be gathered for a config term held:active",
+    "framePool": [
+      {
+        "index": 2,
+        "instance": {
+          "wit": "w$22",
+          "below": {
+            "op": "var",
+            "name": "size"
+          },
+          "terms": [
+            [
+              1,
+              "r$0"
+            ],
+            [
+              -1,
+              "r$13"
+            ]
+          ],
+          "unit": 0
+        }
+      },
+      {
+        "index": 3,
+        "instance": {
+          "wit": "w$26",
+          "below": {
+            "op": "var",
+            "name": "size"
+          },
+          "terms": [
+            [
+              1,
+              "r$0"
+            ],
+            [
+              -1,
+              "r$17"
+            ]
+          ],
+          "unit": 0
+        }
+      },
+      {
+        "index": 4,
+        "instance": {
+          "wit": "w$28",
+          "below": {
+            "op": "var",
+            "name": "size"
+          },
+          "terms": [
+            [
+              1,
+              "r$0"
+            ],
+            [
+              -1,
+              "r$19"
+            ]
+          ],
+          "unit": 0
+        }
+      },
+      {
+        "index": 27,
+        "instance": {
+          "wit": "frame$0",
+          "below": {
+            "op": "var",
+            "name": "size"
+          },
+          "terms": [
+            [
+              1,
+              "r$0"
+            ],
+            [
+              -1,
+              "r$11"
+            ]
+          ],
+          "unit": 0
+        }
+      },
+      {
+        "index": 34,
+        "instance": {
+          "wit": "frame$7",
+          "below": {
+            "op": "var",
+            "name": "size"
+          },
+          "terms": [
+            [
+              1,
+              "r$0"
+            ],
+            [
+              -1,
+              "r$14"
+            ]
+          ],
+          "unit": 0
+        }
+      },
+      {
+        "index": 38,
+        "instance": {
+          "wit": "frame$11",
+          "below": {
+            "op": "var",
+            "name": "size"
+          },
+          "terms": [
+            [
+              1,
+              "r$0"
+            ],
+            [
+              -1,
+              "r$15"
+            ]
+          ],
+          "unit": 0
+        }
+      },
+      {
+        "index": 40,
+        "instance": {
+          "wit": "frame$13",
+          "below": {
+            "op": "var",
+            "name": "size"
+          },
+          "terms": [
+            [
+              1,
+              "r$0"
+            ],
+            [
+              -1,
+              "r$16"
+            ]
+          ],
+          "unit": 0
+        }
+      },
+      {
+        "index": 42,
+        "instance": {
+          "wit": "frame$15",
+          "below": {
+            "op": "var",
+            "name": "size"
+          },
+          "terms": [
+            [
+              1,
+              "r$0"
+            ],
+            [
+              -1,
+              "r$18"
+            ]
+          ],
+          "unit": 0
+        }
+      }
+    ],
+    "reuses": 112,
+    "invalidatedByMissingBindings": 112,
+    "audit": [
+      {
+        "index": 45,
+        "scope": 5,
+        "savedWitness": "frame$18",
+        "missing": [
+          "w?all$1",
+          "w?all$3"
+        ],
+        "legacyValid": true
+      },
+      {
+        "index": 45,
+        "scope": 8,
+        "savedWitness": "frame$18",
+        "missing": [
+          "w?all$1",
+          "w?all$3"
+        ],
+        "legacyValid": true
+      },
+      {
+        "index": 45,
+        "scope": 11,
+        "savedWitness": "frame$18",
+        "missing": [
+          "w?all$1",
+          "w?all$3"
+        ],
+        "legacyValid": true
+      },
+      {
+        "index": 45,
+        "scope": 14,
+        "savedWitness": "frame$18",
+        "missing": [
+          "w?all$1",
+          "w?all$3"
+        ],
+        "legacyValid": true
+      },
+      {
+        "index": 47,
+        "scope": 0,
+        "savedWitness": "frame$18",
+        "missing": [
+          "w?all$1",
+          "w?all$3"
+        ],
+        "legacyValid": true
+      },
+      {
+        "index": 47,
+        "scope": 1,
+        "savedWitness": "frame$18",
+        "missing": [
+          "w?all$1",
+          "w?all$3"
+        ],
+        "legacyValid": true
+      },
+      {
+        "index": 47,
+        "scope": 2,
+        "savedWitness": "frame$18",
+        "missing": [
+          "w?all$1",
+          "w?all$3"
+        ],
+        "legacyValid": true
+      },
+      {
+        "index": 47,
+        "scope": 3,
+        "savedWitness": "frame$18",
+        "missing": [
+          "w?all$1",
+          "w?all$3"
+        ],
+        "legacyValid": true
+      },
+      {
+        "index": 54,
+        "scope": 0,
+        "savedWitness": "frame$18",
+        "missing": [
+          "w?all$1",
+          "w?all$3"
+        ],
+        "legacyValid": true
+      },
+      {
+        "index": 54,
+        "scope": 1,
+        "savedWitness": "frame$18",
+        "missing": [
+          "w?all$1",
+          "w?all$3"
+        ],
+        "legacyValid": true
+      },
+      {
+        "index": 54,
+        "scope": 2,
+        "savedWitness": "frame$18",
+        "missing": [
+          "w?all$1",
+          "w?all$3"
+        ],
+        "legacyValid": true
+      },
+      {
+        "index": 54,
+        "scope": 3,
+        "savedWitness": "frame$18",
+        "missing": [
+          "w?all$1",
+          "w?all$3"
+        ],
+        "legacyValid": true
+      },
+      {
+        "index": 54,
+        "scope": 4,
+        "savedWitness": "frame$18",
+        "missing": [
+          "w?all$1",
+          "w?all$3"
+        ],
+        "legacyValid": true
+      },
+      {
+        "index": 54,
+        "scope": 5,
+        "savedWitness": "frame$18",
+        "missing": [
+          "w?all$1",
+          "w?all$3"
+        ],
+        "legacyValid": true
+      },
+      {
+        "index": 54,
+        "scope": 6,
+        "savedWitness": "frame$18",
+        "missing": [
+          "w?all$1",
+          "w?all$3"
+        ],
+        "legacyValid": true
+      },
+      {
+        "index": 54,
+        "scope": 7,
+        "savedWitness": "frame$18",
+        "missing": [
+          "w?all$1",
+          "w?all$3"
+        ],
+        "legacyValid": true
+      },
+      {
+        "index": 54,
+        "scope": 8,
+        "savedWitness": "frame$18",
+        "missing": [
+          "w?all$1",
+          "w?all$3"
+        ],
+        "legacyValid": true
+      },
+      {
+        "index": 54,
+        "scope": 9,
+        "savedWitness": "frame$18",
+        "missing": [
+          "w?all$1",
+          "w?all$3"
+        ],
+        "legacyValid": true
+      },
+      {
+        "index": 54,
+        "scope": 10,
+        "savedWitness": "frame$18",
+        "missing": [
+          "w?all$1",
+          "w?all$3"
+        ],
+        "legacyValid": true
+      },
+      {
+        "index": 54,
+        "scope": 11,
+        "savedWitness": "frame$18",
+        "missing": [
+          "w?all$1",
+          "w?all$3"
+        ],
+        "legacyValid": true
+      },
+      {
+        "index": 54,
+        "scope": 12,
+        "savedWitness": "frame$18",
+        "missing": [
+          "w?all$1",
+          "w?all$3"
+        ],
+        "legacyValid": true
+      },
+      {
+        "index": 54,
+        "scope": 13,
+        "savedWitness": "frame$18",
+        "missing": [
+          "w?all$1",
+          "w?all$3"
+        ],
+        "legacyValid": true
+      },
+      {
+        "index": 54,
+        "scope": 14,
+        "savedWitness": "frame$18",
+        "missing": [
+          "w?all$1",
+          "w?all$3"
+        ],
+        "legacyValid": true
+      },
+      {
+        "index": 54,
+        "scope": 15,
+        "savedWitness": "frame$18",
+        "missing": [
+          "w?all$1",
+          "w?all$3"
+        ],
+        "legacyValid": true
+      },
+      {
+        "index": 76,
+        "scope": 3,
+        "savedWitness": "demand$12",
+        "missing": [
+          "w?all$1",
+          "w?all$3"
+        ],
+        "legacyValid": true
+      },
+      {
+        "index": 76,
+        "scope": 5,
+        "savedWitness": "demand$12",
+        "missing": [
+          "w?all$1",
+          "w?all$3"
+        ],
+        "legacyValid": true
+      },
+      {
+        "index": 76,
+        "scope": 6,
+        "savedWitness": "demand$12",
+        "missing": [
+          "w?all$1",
+          "w?all$3"
+        ],
+        "legacyValid": true
+      },
+      {
+        "index": 76,
+        "scope": 9,
+        "savedWitness": "demand$12",
+        "missing": [
+          "w?all$1",
+          "w?all$3"
+        ],
+        "legacyValid": true
+      },
+      {
+        "index": 76,
+        "scope": 11,
+        "savedWitness": "demand$12",
+        "missing": [
+          "w?all$1",
+          "w?all$3"
+        ],
+        "legacyValid": true
+      },
+      {
+        "index": 76,
+        "scope": 13,
+        "savedWitness": "demand$12",
+        "missing": [
+          "w?all$1",
+          "w?all$3"
+        ],
+        "legacyValid": true
+      },
+      {
+        "index": 76,
+        "scope": 15,
+        "savedWitness": "demand$12",
+        "missing": [
+          "w?all$1",
+          "w?all$3"
+        ],
+        "legacyValid": true
+      },
+      {
+        "index": 77,
+        "scope": 19,
+        "savedWitness": "demand$13",
+        "missing": [
+          "w?all$1",
+          "w?all$3"
+        ],
+        "legacyValid": true
+      },
+      {
+        "index": 77,
+        "scope": 3,
+        "savedWitness": "demand$13",
+        "missing": [
+          "w?all$1",
+          "w?all$3"
+        ],
+        "legacyValid": true
+      },
+      {
+        "index": 77,
+        "scope": 5,
+        "savedWitness": "demand$13",
+        "missing": [
+          "w?all$1",
+          "w?all$3"
+        ],
+        "legacyValid": true
+      },
+      {
+        "index": 77,
+        "scope": 6,
+        "savedWitness": "demand$13",
+        "missing": [
+          "w?all$1",
+          "w?all$3"
+        ],
+        "legacyValid": true
+      },
+      {
+        "index": 77,
+        "scope": 11,
+        "savedWitness": "demand$13",
+        "missing": [
+          "w?all$1",
+          "w?all$3"
+        ],
+        "legacyValid": true
+      },
+      {
+        "index": 77,
+        "scope": 13,
+        "savedWitness": "demand$13",
+        "missing": [
+          "w?all$1",
+          "w?all$3"
+        ],
+        "legacyValid": true
+      },
+      {
+        "index": 77,
+        "scope": 15,
+        "savedWitness": "demand$13",
+        "missing": [
+          "w?all$1",
+          "w?all$3"
+        ],
+        "legacyValid": true
+      },
+      {
+        "index": 49,
+        "scope": 0,
+        "savedWitness": "frame$18",
+        "missing": [
+          "r$3",
+          "w?all$1",
+          "w?all$3"
+        ],
+        "legacyValid": true
+      },
+      {
+        "index": 49,
+        "scope": 2,
+        "savedWitness": "frame$18",
+        "missing": [
+          "r$3",
+          "w?all$1",
+          "w?all$3"
+        ],
+        "legacyValid": true
+      },
+      {
+        "index": 49,
+        "scope": 3,
+        "savedWitness": "frame$18",
+        "missing": [
+          "r$3",
+          "w?all$1",
+          "w?all$3"
+        ],
+        "legacyValid": true
+      },
+      {
+        "index": 50,
+        "scope": 3,
+        "savedWitness": "frame$23",
+        "missing": [
+          "w?all$1",
+          "w?all$3"
+        ],
+        "legacyValid": true
+      },
+      {
+        "index": 75,
+        "scope": 0,
+        "savedWitness": "demand$12",
+        "missing": [
+          "w?all$1",
+          "w?all$3"
+        ],
+        "legacyValid": true
+      },
+      {
+        "index": 75,
+        "scope": 2,
+        "savedWitness": "demand$12",
+        "missing": [
+          "w?all$1",
+          "w?all$3"
+        ],
+        "legacyValid": true
+      },
+      {
+        "index": 75,
+        "scope": 3,
+        "savedWitness": "demand$12",
+        "missing": [
+          "w?all$1",
+          "w?all$3"
+        ],
+        "legacyValid": true
+      },
+      {
+        "index": 75,
+        "scope": 4,
+        "savedWitness": "demand$12",
+        "missing": [
+          "w?all$1",
+          "w?all$3"
+        ],
+        "legacyValid": true
+      },
+      {
+        "index": 75,
+        "scope": 5,
+        "savedWitness": "demand$12",
+        "missing": [
+          "w?all$1",
+          "w?all$3"
+        ],
+        "legacyValid": true
+      },
+      {
+        "index": 75,
+        "scope": 6,
+        "savedWitness": "demand$12",
+        "missing": [
+          "w?all$1",
+          "w?all$3"
+        ],
+        "legacyValid": true
+      },
+      {
+        "index": 75,
+        "scope": 9,
+        "savedWitness": "demand$11",
+        "missing": [
+          "w?all$1",
+          "w?all$3"
+        ],
+        "legacyValid": true
+      },
+      {
+        "index": 75,
+        "scope": 10,
+        "savedWitness": "demand$12",
+        "missing": [
+          "w?all$1",
+          "w?all$3"
+        ],
+        "legacyValid": true
+      },
+      {
+        "index": 75,
+        "scope": 11,
+        "savedWitness": "demand$12",
+        "missing": [
+          "w?all$1",
+          "w?all$3"
+        ],
+        "legacyValid": true
+      },
+      {
+        "index": 75,
+        "scope": 12,
+        "savedWitness": "demand$12",
+        "missing": [
+          "w?all$1",
+          "w?all$3"
+        ],
+        "legacyValid": true
+      },
+      {
+        "index": 75,
+        "scope": 13,
+        "savedWitness": "demand$12",
+        "missing": [
+          "w?all$1",
+          "w?all$3"
+        ],
+        "legacyValid": true
+      },
+      {
+        "index": 75,
+        "scope": 14,
+        "savedWitness": "demand$12",
+        "missing": [
+          "w?all$1",
+          "w?all$3"
+        ],
+        "legacyValid": true
+      },
+      {
+        "index": 75,
+        "scope": 15,
+        "savedWitness": "demand$12",
+        "missing": [
+          "w?all$1",
+          "w?all$3"
+        ],
+        "legacyValid": true
+      },
+      {
+        "index": 78,
+        "scope": 0,
+        "savedWitness": "demand$11",
+        "missing": [
+          "w?all$1",
+          "w?all$3"
+        ],
+        "legacyValid": true
+      },
+      {
+        "index": 78,
+        "scope": 1,
+        "savedWitness": "demand$11",
+        "missing": [
+          "w?all$1",
+          "w?all$3"
+        ],
+        "legacyValid": true
+      },
+      {
+        "index": 2,
+        "scope": 0,
+        "savedWitness": "frame$18",
+        "missing": [
+          "r$3",
+          "w?all$1",
+          "w?all$3"
+        ],
+        "legacyValid": true
+      },
+      {
+        "index": 2,
+        "scope": 19,
+        "savedWitness": "w$22",
+        "missing": [
+          "w?all$1",
+          "w?all$3"
+        ],
+        "legacyValid": true
+      },
+      {
+        "index": 2,
+        "scope": 1,
+        "savedWitness": "w$22",
+        "missing": [
+          "w?all$1",
+          "w?all$3"
+        ],
+        "legacyValid": true
+      },
+      {
+        "index": 2,
+        "scope": 4,
+        "savedWitness": "w$22",
+        "missing": [
+          "w?all$1",
+          "w?all$3"
+        ],
+        "legacyValid": true
+      },
+      {
+        "index": 2,
+        "scope": 5,
+        "savedWitness": "w$22",
+        "missing": [
+          "w?all$1",
+          "w?all$3"
+        ],
+        "legacyValid": true
+      },
+      {
+        "index": 2,
+        "scope": 8,
+        "savedWitness": "w$22",
+        "missing": [
+          "w?all$1",
+          "w?all$3"
+        ],
+        "legacyValid": true
+      },
+      {
+        "index": 3,
+        "scope": 0,
+        "savedWitness": "w$22",
+        "missing": [
+          "w?all$1",
+          "w?all$3"
+        ],
+        "legacyValid": true
+      },
+      {
+        "index": 3,
+        "scope": 24,
+        "savedWitness": "w$22",
+        "missing": [
+          "w?all$1",
+          "w?all$3"
+        ],
+        "legacyValid": true
+      },
+      {
+        "index": 3,
+        "scope": 25,
+        "savedWitness": "w$22",
+        "missing": [
+          "w?all$1",
+          "w?all$3"
+        ],
+        "legacyValid": true
+      },
+      {
+        "index": 3,
+        "scope": 19,
+        "savedWitness": "w$22",
+        "missing": [
+          "w?all$1",
+          "w?all$3"
+        ],
+        "legacyValid": true
+      },
+      {
+        "index": 3,
+        "scope": 1,
+        "savedWitness": "w$22",
+        "missing": [
+          "w?all$1",
+          "w?all$3"
+        ],
+        "legacyValid": true
+      },
+      {
+        "index": 3,
+        "scope": 4,
+        "savedWitness": "w$22",
+        "missing": [
+          "w?all$1",
+          "w?all$3"
+        ],
+        "legacyValid": true
+      },
+      {
+        "index": 3,
+        "scope": 5,
+        "savedWitness": "w$22",
+        "missing": [
+          "w?all$1",
+          "w?all$3"
+        ],
+        "legacyValid": true
+      },
+      {
+        "index": 3,
+        "scope": 6,
+        "savedWitness": "w$22",
+        "missing": [
+          "w?all$1",
+          "w?all$3"
+        ],
+        "legacyValid": true
+      },
+      {
+        "index": 3,
+        "scope": 7,
+        "savedWitness": "w$22",
+        "missing": [
+          "w?all$1",
+          "w?all$3"
+        ],
+        "legacyValid": true
+      },
+      {
+        "index": 3,
+        "scope": 8,
+        "savedWitness": "w$22",
+        "missing": [
+          "w?all$1",
+          "w?all$3"
+        ],
+        "legacyValid": true
+      },
+      {
+        "index": 3,
+        "scope": 9,
+        "savedWitness": "w$22",
+        "missing": [
+          "w?all$1",
+          "w?all$3"
+        ],
+        "legacyValid": true
+      },
+      {
+        "index": 4,
+        "scope": 0,
+        "savedWitness": "w$22",
+        "missing": [
+          "r$19",
+          "w?all$1",
+          "w?all$3"
+        ],
+        "legacyValid": true
+      },
+      {
+        "index": 4,
+        "scope": 29,
+        "savedWitness": "w$28",
+        "missing": [
+          "w?all$1",
+          "w?all$3"
+        ],
+        "legacyValid": true
+      },
+      {
+        "index": 4,
+        "scope": 16,
+        "savedWitness": "w$28",
+        "missing": [
+          "w?all$1",
+          "w?all$3"
+        ],
+        "legacyValid": true
+      },
+      {
+        "index": 4,
+        "scope": 17,
+        "savedWitness": "w$28",
+        "missing": [
+          "w?all$1",
+          "w?all$3"
+        ],
+        "legacyValid": true
+      },
+      {
+        "index": 4,
+        "scope": 18,
+        "savedWitness": "w$28",
+        "missing": [
+          "w?all$1",
+          "w?all$3"
+        ],
+        "legacyValid": true
+      },
+      {
+        "index": 4,
+        "scope": 24,
+        "savedWitness": "w$22",
+        "missing": [
+          "r$19",
+          "w?all$1",
+          "w?all$3"
+        ],
+        "legacyValid": true
+      },
+      {
+        "index": 4,
+        "scope": 25,
+        "savedWitness": "w$22",
+        "missing": [
+          "r$19",
+          "w?all$1",
+          "w?all$3"
+        ],
+        "legacyValid": true
+      },
+      {
+        "index": 4,
+        "scope": 19,
+        "savedWitness": "w$22",
+        "missing": [
+          "r$19",
+          "w?all$1",
+          "w?all$3"
+        ],
+        "legacyValid": true
+      },
+      {
+        "index": 4,
+        "scope": 1,
+        "savedWitness": "w$22",
+        "missing": [
+          "r$19",
+          "w?all$1",
+          "w?all$3"
+        ],
+        "legacyValid": true
+      },
+      {
+        "index": 4,
+        "scope": 4,
+        "savedWitness": "w$22",
+        "missing": [
+          "r$19",
+          "w?all$1",
+          "w?all$3"
+        ],
+        "legacyValid": true
+      },
+      {
+        "index": 4,
+        "scope": 5,
+        "savedWitness": "w$22",
+        "missing": [
+          "r$19",
+          "w?all$1",
+          "w?all$3"
+        ],
+        "legacyValid": true
+      },
+      {
+        "index": 4,
+        "scope": 6,
+        "savedWitness": "w$22",
+        "missing": [
+          "r$19",
+          "w?all$1",
+          "w?all$3"
+        ],
+        "legacyValid": true
+      },
+      {
+        "index": 4,
+        "scope": 7,
+        "savedWitness": "w$22",
+        "missing": [
+          "r$19",
+          "w?all$1",
+          "w?all$3"
+        ],
+        "legacyValid": true
+      },
+      {
+        "index": 4,
+        "scope": 8,
+        "savedWitness": "w$22",
+        "missing": [
+          "r$19",
+          "w?all$1",
+          "w?all$3"
+        ],
+        "legacyValid": true
+      },
+      {
+        "index": 4,
+        "scope": 9,
+        "savedWitness": "w$22",
+        "missing": [
+          "r$19",
+          "w?all$1",
+          "w?all$3"
+        ],
+        "legacyValid": true
+      },
+      {
+        "index": 5,
+        "scope": 0,
+        "savedWitness": "w$22",
+        "missing": [
+          "w?all$1",
+          "w?all$3"
+        ],
+        "legacyValid": true
+      },
+      {
+        "index": 5,
+        "scope": 1,
+        "savedWitness": "w$22",
+        "missing": [
+          "w?all$1",
+          "w?all$3"
+        ],
+        "legacyValid": true
+      },
+      {
+        "index": 27,
+        "scope": 0,
+        "savedWitness": "w$22",
+        "missing": [
+          "w?all$1",
+          "w?all$3"
+        ],
+        "legacyValid": true
+      },
+      {
+        "index": 27,
+        "scope": 1,
+        "savedWitness": "w$22",
+        "missing": [
+          "w?all$1",
+          "w?all$3"
+        ],
+        "legacyValid": true
+      },
+      {
+        "index": 27,
+        "scope": 4,
+        "savedWitness": "w$22",
+        "missing": [
+          "w?all$1",
+          "w?all$3"
+        ],
+        "legacyValid": true
+      },
+      {
+        "index": 27,
+        "scope": 5,
+        "savedWitness": "w$22",
+        "missing": [
+          "w?all$1",
+          "w?all$3"
+        ],
+        "legacyValid": true
+      },
+      {
+        "index": 27,
+        "scope": 6,
+        "savedWitness": "w$22",
+        "missing": [
+          "w?all$1",
+          "w?all$3"
+        ],
+        "legacyValid": true
+      },
+      {
+        "index": 27,
+        "scope": 7,
+        "savedWitness": "w$22",
+        "missing": [
+          "w?all$1",
+          "w?all$3"
+        ],
+        "legacyValid": true
+      },
+      {
+        "index": 27,
+        "scope": 8,
+        "savedWitness": "w$22",
+        "missing": [
+          "w?all$1",
+          "w?all$3"
+        ],
+        "legacyValid": true
+      },
+      {
+        "index": 27,
+        "scope": 9,
+        "savedWitness": "w$22",
+        "missing": [
+          "w?all$1",
+          "w?all$3"
+        ],
+        "legacyValid": true
+      },
+      {
+        "index": 28,
+        "scope": 3,
+        "savedWitness": "frame$1",
+        "missing": [
+          "w?all$1",
+          "w?all$3"
+        ],
+        "legacyValid": true
+      },
+      {
+        "index": 28,
+        "scope": 5,
+        "savedWitness": "frame$1",
+        "missing": [
+          "w?all$1",
+          "w?all$3"
+        ],
+        "legacyValid": true
+      },
+      {
+        "index": 28,
+        "scope": 8,
+        "savedWitness": "frame$1",
+        "missing": [
+          "w?all$1",
+          "w?all$3"
+        ],
+        "legacyValid": true
+      },
+      {
+        "index": 28,
+        "scope": 11,
+        "savedWitness": "frame$1",
+        "missing": [
+          "w?all$1",
+          "w?all$3"
+        ],
+        "legacyValid": true
+      },
+      {
+        "index": 28,
+        "scope": 13,
+        "savedWitness": "frame$1",
+        "missing": [
+          "w?all$1",
+          "w?all$3"
+        ],
+        "legacyValid": true
+      },
+      {
+        "index": 28,
+        "scope": 14,
+        "savedWitness": "frame$1",
+        "missing": [
+          "w?all$1",
+          "w?all$3"
+        ],
+        "legacyValid": true
+      },
+      {
+        "index": 28,
+        "scope": 15,
+        "savedWitness": "frame$1",
+        "missing": [
+          "w?all$1",
+          "w?all$3"
+        ],
+        "legacyValid": true
+      },
+      {
+        "index": 29,
+        "scope": 0,
+        "savedWitness": "w$22",
+        "missing": [
+          "w?all$1",
+          "w?all$3"
+        ],
+        "legacyValid": true
+      },
+      {
+        "index": 29,
+        "scope": 1,
+        "savedWitness": "w$22",
+        "missing": [
+          "w?all$1",
+          "w?all$3"
+        ],
+        "legacyValid": true
+      },
+      {
+        "index": 29,
+        "scope": 2,
+        "savedWitness": "frame$0",
+        "missing": [
+          "w?all$1",
+          "w?all$3"
+        ],
+        "legacyValid": true
+      },
+      {
+        "index": 29,
+        "scope": 3,
+        "savedWitness": "frame$0",
+        "missing": [
+          "w?all$1",
+          "w?all$3"
+        ],
+        "legacyValid": true
+      },
+      {
+        "index": 30,
+        "scope": 3,
+        "savedWitness": "frame$3",
+        "missing": [
+          "w?all$1",
+          "w?all$3"
+        ],
+        "legacyValid": true
+      },
+      {
+        "index": 31,
+        "scope": 16,
+        "savedWitness": "frame$4",
+        "missing": [
+          "w?all$1",
+          "w?all$3"
+        ],
+        "legacyValid": true
+      }
+    ],
+    "targetCandidates": [
+      {
+        "scope": 7,
+        "hyps": 53
+      }
+    ],
+    "direct": {
+      "index": 27,
+      "scope": 7,
+      "hyps": 53,
+      "instance": {
+        "wit": "frame$0",
+        "below": {
+          "op": "var",
+          "name": "size"
+        },
+        "terms": [
+          [
+            1,
+            "r$0"
+          ],
+          [
+            -1,
+            "r$11"
+          ]
+        ],
+        "unit": 0
+      },
+      "path": [
+        [
+          "op:1",
+          {
+            "lin": {
+              "op": 1
+            },
+            "holds": false
+          }
+        ],
+        [
+          "1:-1,op:1",
+          {
+            "lin": {
+              "1": -1,
+              "op": 1
+            },
+            "holds": false
+          }
+        ],
+        [
+          "1:-2,op:1",
+          {
+            "lin": {
+              "1": -2,
+              "op": 1
+            },
+            "holds": false
+          }
+        ],
+        [
+          "1:-3,op:1",
+          {
+            "lin": {
+              "1": -3,
+              "op": 1
+            },
+            "holds": false
+          }
+        ],
+        [
+          "1:-4,op:1",
+          {
+            "lin": {
+              "1": -4,
+              "op": 1
+            },
+            "holds": false
+          }
+        ],
+        [
+          "1:-5,op:1",
+          {
+            "lin": {
+              "1": -5,
+              "op": 1
+            },
+            "holds": true
+          }
+        ],
+        [
+          "1:-6,op:1",
+          {
+            "lin": {
+              "1": -6,
+              "op": 1
+            },
+            "holds": true
+          }
+        ],
+        [
+          "1:-1,started:1",
+          {
+            "lin": {
+              "1": -1,
+              "started": 1
+            },
+            "holds": true
+          }
+        ],
+        [
+          "1:1,started:-1",
+          {
+            "lin": {
+              "1": 1,
+              "started": -1
+            },
+            "holds": true
+          }
+        ],
+        [
+          "1:-1,St[i:1]:1",
+          {
+            "lin": {
+              "1": -1,
+              "St[i:1]": 1
+            },
+            "holds": true
+          }
+        ],
+        [
+          "1:1,St[i:1]:-1",
+          {
+            "lin": {
+              "1": 1,
+              "St[i:1]": -1
+            },
+            "holds": true
+          }
+        ],
+        [
+          "CT[i:1]:-1,CfgT[i:1]:1",
+          {
+            "lin": {
+              "CfgT[i:1]": 1,
+              "CT[i:1]": -1
+            },
+            "holds": true
+          }
+        ],
+        [
+          "CT[i:1]:1,CfgT[i:1]:-1",
+          {
+            "lin": {
+              "CT[i:1]": 1,
+              "CfgT[i:1]": -1
+            },
+            "holds": true
+          }
+        ],
+        [
+          "1:-1,?committedQuorum:1",
+          {
+            "lin": {
+              "1": -1,
+              "?committedQuorum": 1
+            },
+            "holds": true
+          }
+        ],
+        [
+          "1:1,?committedQuorum:-1",
+          {
+            "lin": {
+              "1": 1,
+              "?committedQuorum": -1
+            },
+            "holds": true
+          }
+        ],
+        [
+          "1:1,xAndS[]:1,⟦5⟧:-1,⟦9⟧:-1",
+          {
+            "lin": {
+              "1": 1,
+              "xAndS[]": 1,
+              "⟦5⟧": -1,
+              "⟦9⟧": -1
+            },
+            "holds": true
+          }
+        ],
+        [
+          "1:1,S[i:1]:-1",
+          {
+            "lin": {
+              "1": 1,
+              "S[i:1]": -1
+            },
+            "holds": true
+          }
+        ],
+        [
+          "1:-1,?canVote:1",
+          {
+            "lin": {
+              "1": -1,
+              "?canVote": 1
+            },
+            "holds": true
+          }
+        ],
+        [
+          "1:1,i:1,size:-1",
+          {
+            "lin": {
+              "1": 1,
+              "i": 1,
+              "size": -1
+            },
+            "holds": true
+          }
+        ],
+        [
+          "1:1,j$:1,size:-1",
+          {
+            "lin": {
+              "1": 1,
+              "j$": 1,
+              "size": -1
+            },
+            "holds": true
+          }
+        ],
+        [
+          "a$#:1,i:-1",
+          {
+            "lin": {
+              "a$#": 1,
+              "i": -1
+            },
+            "holds": true
+          }
+        ],
+        [
+          "a$#:-1,i:1",
+          {
+            "lin": {
+              "a$#": -1,
+              "i": 1
+            },
+            "holds": true
+          }
+        ],
+        [
+          "i:-1,j$:1",
+          {
+            "lin": {
+              "j$": 1,
+              "i": -1
+            },
+            "holds": true
+          }
+        ],
+        [
+          "i:1,j$:-1",
+          {
+            "lin": {
+              "j$": -1,
+              "i": 1
+            },
+            "holds": true
+          }
+        ]
+      ],
+      "outcome": "sat",
+      "why": "a model",
+      "refuted": false,
+      "core": [],
+      "checked": false,
+      "countedUnits": 27.741096000001562,
+      "model": {
+        "op": 5,
+        "started": 1,
+        "St[i:1]": 1,
+        "CfgT[i:1]": 1,
+        "CT[i:1]": 1,
+        "?committedQuorum": 1,
+        "xAndS[]": 1,
+        "⟦5⟧": 1,
+        "⟦9⟧": 1,
+        "hx": 0,
+        "xNotS[]": 0,
+        "hy": 0,
+        "sNotX[]": 0,
+        "S[i:1]": 1,
+        "?canVote": 0,
+        "i": 63,
+        "size": 64,
+        "j$": 63,
+        "a$#": 63,
+        "j": 0,
+        "?all$1": 1,
+        "?all$3": 1,
+        "Config[a$#:1]": 0,
+        "Config[j$:1]": 0,
+        "Config[i:1]": 0,
+        "Config[]": 0,
+        "?noneCopied": 0,
+        "?allCopied": 0,
+        "?all$2": 0,
+        "CfgT[j$:1]": 1,
+        "r$0": 1,
+        "r$1": 1,
+        "r$5": 0,
+        "r$6": 0,
+        "r$7": 1,
+        "r$8": 0,
+        "r$11": 0,
+        "r$12": 0,
+        "r$13": 0,
+        "r$16": 0,
+        "r$17": 0,
+        "r$2": 0,
+        "r$3": 1,
+        "r$4": 0,
+        "S[frame$0:1]": 1,
+        "Q2[frame$0:1]": 0,
+        "CV[w?noneCopied:1]": 1,
+        "frame$0": 62,
+        "CfgT[frame$0:1]": 0,
+        "Config[frame$0:1,i:64]": 0,
+        "Config[i:64,w?all$2:1]": 0,
+        "S[a$#:64,frame$0:1,i:-64]": 1,
+        "S[w?canVote:1]": 1,
+        "CT[w?canVote:1]": 0,
+        "CfgT[w?canVote:1]": 1,
+        "CV[i:1]": 0,
+        "CV[w?canVote:1]": 1,
+        "w?canVote": 64,
+        "CT[frame$0:1]": 0,
+        "St[a$#:1]": 1,
+        "CfgT[a$#:1]": 1,
+        "CT[a$#:1]": 1,
+        "St[j$:1]": 1,
+        "CT[j$:1]": 1,
+        "St[]": 0,
+        "w?noneCopied": 0,
+        "w?allCopied": 1,
+        "CV[w?allCopied:1]": 0,
+        "S[w?all$2:1]": 1,
+        "w?all$2": 63
+      },
+      "modelValid": true
+    },
+    "queryWallMs": 22.981438999999227
+  }
+]

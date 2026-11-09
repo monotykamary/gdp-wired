@@ -1,0 +1,37 @@
+[
+  {
+    "name": "backing-reconfigure-base",
+    "cmd": "set -e; bun install --frozen-lockfile >/dev/null; LAB_SOURCE_MODEL_RETRY=0 bun research/track-m/active-source-probe.ts replay-input/input.json 'Inv*' 5 first",
+    "cpu": 8,
+    "memory": 14336,
+    "timeout": 180
+  },
+  {
+    "name": "backing-reconfigure-retry",
+    "cmd": "set -e; bun install --frozen-lockfile >/dev/null; LAB_SOURCE_MODEL_RETRY=1 bun research/track-m/active-source-probe.ts replay-input/input.json 'Inv*' 5 first",
+    "cpu": 8,
+    "memory": 14336,
+    "timeout": 180
+  },
+  {
+    "name": "overlap-reconfigure-base",
+    "cmd": "set -e; bun install --frozen-lockfile >/dev/null; LAB_SOURCE_MODEL_RETRY=0 bun research/track-m/active-source-probe.ts replay-input/input.json 'Inv2973' 5 first",
+    "cpu": 8,
+    "memory": 14336,
+    "timeout": 180
+  },
+  {
+    "name": "overlap-reconfigure-retry",
+    "cmd": "set -e; bun install --frozen-lockfile >/dev/null; LAB_SOURCE_MODEL_RETRY=1 bun research/track-m/active-source-probe.ts replay-input/input.json 'Inv2973' 5 first",
+    "cpu": 8,
+    "memory": 14336,
+    "timeout": 180
+  },
+  {
+    "name": "check",
+    "cmd": "set -e; bun install --frozen-lockfile >/dev/null; bun run check",
+    "cpu": 8,
+    "memory": 14336,
+    "timeout": 240
+  }
+]

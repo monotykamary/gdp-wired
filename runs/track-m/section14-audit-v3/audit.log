@@ -1,0 +1,25 @@
+Found 0 warnings and 0 errors.
+Finished in 25.2s on 1281 files with 100 rules using 8 threads.
+bun test v1.4.3 (c6da4a4d3)
+
+--- stderr ---
+$ tsc -p . && oxlint --type-aware --deny-warnings --disable-nested-config
+
+research/track-m/section14-root-admission.test.ts:
+(pass) a root count identity is checked independently before admission [30.89ms]
+
+ 1 pass
+ 0 fail
+ 7 expect() calls
+Ran 1 test across 1 file. [78.00ms]
+ 9 | const read=(f:string)=>JSON.parse(readFileSync(f,'utf8')),seed=read(seedFile),p=read(packetFile)
+10 | for(const [i,t]of seed.columns.entries())if(termColumn(t)!==`⟦${i}⟧`)throw new Error('column namespace mismatch')
+11 | const counts=countsForReads(p.packet.decls,p.cert.reads);if(!counts)throw new Error('counts missing')
+12 | const hyps=countHyps(counts,p.cert.insts),raw=seed.root.hyps.slice(0,-p.cert.insts.length)
+13 | if(JSON.stringify(hyps)!==JSON.stringify(seed.root.hyps.slice(-p.cert.insts.length)))throw new Error('root count hypotheses differ')
+14 | for(const i of p.cert.insts)if(!witFresh(raw,counts,p.cert.insts,i.wit))throw new Error('nonfresh witness '+i.wit)
+                                                                                       ^
+error: nonfresh witness writeFrame$0
+      at /work/gdp-wired/research/track-m/audit-section14.ts:14:83
+
+Bun v1.4.3 (Linux x64)

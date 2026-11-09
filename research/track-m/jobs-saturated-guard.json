@@ -1,0 +1,16 @@
+[
+  {
+    "name": "tests",
+    "cmd": "set -e; bun install --frozen-lockfile >/dev/null; bun test research/track-m/boolean-core.test.ts research/track-m/fold-path.test.ts research/track-m/carried-case.test.ts research/track-m/live-dependencies.test.ts kernel/model-sequence.test.ts research/track-m/lift-count-proxies.test.ts research/track-m/guard-cases.test.ts core/count-unions.test.ts",
+    "cpu": 1,
+    "memory": 2000,
+    "timeout": 60
+  },
+  {
+    "name": "guard",
+    "cmd": "set -e; bun install --frozen-lockfile >/dev/null; LAB_GUARD_CASES=1 LAB_GUARD_PATH=1 LAB_SATURATE=1 LAB_COUNT_LEMMAS=1 LAB_SYMBOLIC_OVERLAP=1 LAB_ALGEBRAIC=1 LAB_BOUND_QUERY_MS=200 LAB_WALL_MS=60000 LAB_CASE=4 LAB_DECIDE_MS=200 LAB_ALL_MODELS=1 LAB_GROW_CERT=1 LAB_GROW_ALGEBRAIC=1 LAB_FRAME_COUNTS=1 LAB_AT_POINT=1 LAB_CASE_REFINE=1 LAB_FOCUS_COLD=1 bun research/track-m/count-case-replay.ts replay-input/quorum.json replay-input/input.json",
+    "cpu": 1,
+    "memory": 4000,
+    "timeout": 90
+  }
+]

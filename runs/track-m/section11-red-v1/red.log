@@ -1,0 +1,86 @@
+bun test v1.4.3 (c6da4a4d3)
+
+--- stderr ---
+
+core/count-recovery/derivability-closure.test.ts:
+(pass) closure checks a derived union [63.26ms]
+(pass) closure does not assume a false union [8.57ms]
+(pass) internal closure keeps independent cuts in the final checked certificate [34.32ms]
+(pass) separately useful inclusions accumulate when a partial violated set remains SAT [25.48ms]
+51 |  const query=modelSequence(root)({name:f.g.name,hyps:[]},clock()+100)
+52 |  expect('tree'in query).toBe(false)
+53 |  if('tree'in query)return
+54 |  expect(query.why).toBe(REFUTED);expect(query.core).toEqual([])
+55 |  const events:object[]=[],tree=deriveCountClosure(f.m,f.ds,f.g,f.cert,root,clock()+1500,events,{claim:f.claim})
+56 |  expect(tree).toBeDefined()
+                   ^
+error: expect(received).toBeDefined()
+
+Received: undefined
+
+      at <anonymous> (/work/gdp-wired/core/count-recovery/derivability-closure.test.ts:56:15)
+(fail) an empty numeric core closes a contradictory path with a kernel-checked proof [2.70ms]
+(pass) expired closure leaves no proof and never extends its deadline [0.24ms]
+
+core/count-recovery/leaf-allowance.test.ts:
+1 | import {test,expect} from 'bun:test'
+2 | import {leafAllowance} from './leaf-allowance.ts'
+3 | test('leaf draws take an even remaining share with a one-third ceiling',()=>{
+4 |  for(const remaining of [0,1e-9,1,25,350,1500,5000])for(const left of [1,2,3,9,30]){
+5 |   const draw=leafAllowance(remaining,left)
+6 |   expect(draw).toBe(Math.min(remaining/left,remaining/3))
+                   ^
+error: expect(received).toBe(expected)
+
+Expected: 3.3333333333333337e-10
+Received: 1e-9
+
+      at <anonymous> (/work/gdp-wired/core/count-recovery/leaf-allowance.test.ts:6:16)
+(fail) leaf draws take an even remaining share with a one-third ceiling [0.16ms]
+ 6 |   expect(draw).toBe(Math.min(remaining/left,remaining/3))
+ 7 |   expect(draw).toBeGreaterThanOrEqual(0);expect(draw).toBeLessThanOrEqual(remaining/3)
+ 8 |  }
+ 9 | })
+10 | test('one third is a ceiling, not a floor or a last-leaf windfall',()=>{
+11 |  expect(leafAllowance(900,9)).toBe(100)
+                                   ^
+error: expect(received).toBe(expected)
+
+Expected: 100
+Received: 300
+
+      at <anonymous> (/work/gdp-wired/core/count-recovery/leaf-allowance.test.ts:11:31)
+(fail) one third is a ceiling, not a floor or a last-leaf windfall [0.04ms]
+19 |  for(const initial of [1,17,350,5000]){let remaining=initial,total=0
+20 |   for(let left=9;left>=1;left--){const draw=leafAllowance(remaining,left);total+=draw;remaining-=draw
+21 |    expect(total).toBeLessThanOrEqual(initial+1e-10);expect(remaining).toBeGreaterThanOrEqual(0)
+22 |    expect(total+remaining).toBeCloseTo(initial,10)
+23 |   }
+24 |   expect(remaining).toBeGreaterThan(0)
+                         ^
+error: expect(received).toBeGreaterThan(expected)
+
+Expected: > 0
+Received: 0
+
+      at <anonymous> (/work/gdp-wired/core/count-recovery/leaf-allowance.test.ts:24:21)
+(fail) successive draws conserve spent plus unspent allowance [0.06ms]
+24 |   expect(remaining).toBeGreaterThan(0)
+25 |  }
+26 | })
+27 | test('split children spend one parent draw and cannot obtain another',()=>{
+28 |  const initial=900,draw=leafAllowance(initial,9),start=10,end=start+draw,first=40
+29 |  expect(draw).toBe(100);expect(Math.max(0,end-(start+first))).toBe(60)
+                   ^
+error: expect(received).toBe(expected)
+
+Expected: 100
+Received: 300
+
+      at <anonymous> (/work/gdp-wired/core/count-recovery/leaf-allowance.test.ts:29:15)
+(fail) split children spend one parent draw and cannot obtain another [0.03ms]
+
+ 5 pass
+ 5 fail
+ 65 expect() calls
+Ran 10 tests across 2 files. [161.00ms]

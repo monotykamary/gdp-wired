@@ -1,0 +1,42 @@
+Found 0 warnings and 0 errors.
+Finished in 12.1s on 1295 files with 100 rules using 8 threads.
+bun test v1.4.3 (c6da4a4d3)
+source.tar.gz: OK
+{"event":"start","id":"pool-r1-baseline"}
+{"event":"end","id":"pool-r1-baseline","exitCode":0,"censored":false,"wallMs":42363.886302,"totalUnits":48280.61371520001,"laws":25,"targets":{"Inv2973":{"generated":false,"closed":false,"laws":[]},"Inv*":{"generated":false,"closed":false,"laws":[]}},"verdict":"unknown"}
+{"event":"start","id":"pool-r1-pool"}
+{"event":"end","id":"pool-r1-pool","exitCode":0,"censored":false,"wallMs":49729.24469199999,"totalUnits":52551.7671592,"laws":25,"targets":{"Inv2973":{"generated":false,"closed":false,"laws":[]},"Inv*":{"generated":false,"closed":false,"laws":[]}},"verdict":"unknown"}
+{"event":"start","id":"combo-r1-combo"}
+{"event":"end","id":"combo-r1-combo","exitCode":0,"censored":false,"wallMs":52227.24392900002,"totalUnits":47136.29678320001,"laws":25,"targets":{"Inv2973":{"generated":false,"closed":false,"laws":[]},"Inv*":{"generated":false,"closed":false,"laws":[]}},"verdict":"unknown"}
+{"event":"start","id":"combo-r1-baseline"}
+{"event":"end","id":"combo-r1-baseline","exitCode":0,"censored":false,"wallMs":59985.88288600001,"totalUnits":48280.61371520001,"laws":25,"targets":{"Inv2973":{"generated":false,"closed":false,"laws":[]},"Inv*":{"generated":false,"closed":false,"laws":[]}},"verdict":"unknown"}
+{"event":"start","id":"combo-r2-baseline"}
+{"event":"end","id":"combo-r2-baseline","exitCode":0,"censored":false,"wallMs":57075.587081000005,"totalUnits":48280.61371520001,"laws":25,"targets":{"Inv2973":{"generated":false,"closed":false,"laws":[]},"Inv*":{"generated":false,"closed":false,"laws":[]}},"verdict":"unknown"}
+{"event":"start","id":"combo-r2-combo"}
+{"event":"end","id":"combo-r2-combo","exitCode":0,"censored":false,"wallMs":53546.97874400002,"totalUnits":43981.4327788,"laws":25,"targets":{"Inv2973":{"generated":false,"closed":false,"laws":[]},"Inv*":{"generated":false,"closed":false,"laws":[]}},"verdict":"unknown"}
+{"event":"start","id":"pool-r2-pool"}
+{"event":"end","id":"pool-r2-pool","exitCode":0,"censored":false,"wallMs":55384.028467999946,"totalUnits":41081.4756704,"laws":25,"targets":{"Inv2973":{"generated":false,"closed":false,"laws":[]},"Inv*":{"generated":false,"closed":false,"laws":[]}},"verdict":"unknown"}
+{"event":"start","id":"pool-r2-baseline"}
+{"event":"end","id":"pool-r2-baseline","exitCode":137,"censored":true,"wallMs":60001.51004199998,"totalUnits":36941.114572,"laws":25,"targets":{"Inv2973":{"generated":false,"closed":false,"laws":[]},"Inv*":{"generated":false,"closed":false,"laws":[]}}}
+{"event":"start","id":"pool-r3-baseline"}
+{"event":"end","id":"pool-r3-baseline","exitCode":0,"censored":false,"wallMs":58671.00220400002,"totalUnits":48280.61371520001,"laws":25,"targets":{"Inv2973":{"generated":false,"closed":false,"laws":[]},"Inv*":{"generated":false,"closed":false,"laws":[]}},"verdict":"unknown"}
+{"event":"start","id":"pool-r3-pool"}
+{"event":"end","id":"pool-r3-pool","exitCode":0,"censored":false,"wallMs":51002.291843999934,"totalUnits":51554.013472000006,"laws":25,"targets":{"Inv2973":{"generated":false,"closed":false,"laws":[]},"Inv*":{"generated":false,"closed":false,"laws":[]}},"verdict":"unknown"}
+{"event":"start","id":"combo-r3-combo"}
+{"event":"end","id":"combo-r3-combo","exitCode":0,"censored":false,"wallMs":55486.63771399995,"totalUnits":39424.656452400006,"laws":25,"targets":{"Inv2973":{"generated":false,"closed":false,"laws":[]},"Inv*":{"generated":false,"closed":false,"laws":[]}},"verdict":"unknown"}
+{"event":"start","id":"combo-r3-baseline"}
+{"event":"end","id":"combo-r3-baseline","exitCode":137,"censored":true,"wallMs":60001.31112500001,"totalUnits":43247.64644999999,"laws":25,"targets":{"Inv2973":{"generated":false,"closed":false,"laws":[]},"Inv*":{"generated":false,"closed":false,"laws":[]}}}
+{"artifact":"section10-chunk-manifest","dir":"/home/user/track-m-s10-receipts-o9OmGS","parts":4,"bytes":456766,"sha256":"ae7185f9baa38ec537cbe362bf0fcb6b1fbca9766fdedb725c23f0e263838c95","files":["baseline-build.log","baseline.js","before.json","combo-build.log","combo-policy.json","combo-r1-baseline.events.jsonl","combo-r1-baseline.stderr.log","combo-r1-baseline.stdout.log","combo-r1-combo.events.jsonl","combo-r1-combo.stderr.log","combo-r1-combo.stdout.log","combo-r2-baseline.events.jsonl","combo-r2-baseline.stderr.log","combo-r2-baseline.stdout.log","combo-r2-combo.events.jsonl","combo-r2-combo.stderr.log","combo-r2-combo.stdout.log","combo-r3-baseline.events.jsonl","combo-r3-baseline.stderr.log","combo-r3-baseline.stdout.log","combo-r3-combo.events.jsonl","combo-r3-combo.stderr.log","combo-r3-combo.stdout.log","combo.js","integrity.json","measurements.json","observe.json","pool-build.log","pool-policy.json","pool-r1-baseline.events.jsonl","pool-r1-baseline.stderr.log","pool-r1-baseline.stdout.log","pool-r1-pool.events.jsonl","pool-r1-pool.stderr.log","pool-r1-pool.stdout.log","pool-r2-baseline.events.jsonl","pool-r2-baseline.stderr.log","pool-r2-baseline.stdout.log","pool-r2-pool.events.jsonl","pool-r2-pool.stderr.log","pool-r2-pool.stdout.log","pool-r3-baseline.events.jsonl","pool-r3-baseline.stderr.log","pool-r3-baseline.stdout.log","pool-r3-pool.events.jsonl","pool-r3-pool.stderr.log","pool-r3-pool.stdout.log","pool.js"]}
+
+--- stderr ---
+$ tsc -p . && oxlint --type-aware --deny-warnings --disable-nested-config
+
+research/track-m/section17.test.ts:
+(pass) pooled shares are derived, nonnegative and capped at a third [1.94ms]
+(pass) unspent budget remains in the pool, with no last-law bonus [0.39ms]
+(pass) goal weights count expression nodes, not names or constants [0.94ms]
+
+ 3 pass
+ 0 fail
+ 99 expect() calls
+Ran 3 tests across 1 file. [21.00ms]

@@ -1,0 +1,1 @@
+[{"name":"path","cmd":"bun install --frozen-lockfile >/dev/null && LAB_CORE_CASE=5 LAB_ORDER_MODE=same bun research/track-m/core-order-replay.ts core-input/cores.log", "cpu":1,"memory":4000,"timeout":60}]

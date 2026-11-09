@@ -1,0 +1,1 @@
+[{"name":"op4-seeded","cmd":"bash research/track-m/run-section14-op.sh 4 50000 seeded","cpu":8,"memory":14336,"timeout":660},{"name":"op0-seeded","cmd":"bash research/track-m/run-section14-op.sh 0 50000 seeded","cpu":8,"memory":14336,"timeout":660}]

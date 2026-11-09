@@ -1,0 +1,8 @@
+{
+  "vm": "bx_3kjzmmhv",
+  "requestedAt": "2026-11-08T20:34:51.588Z",
+  "lastObservedState": "idle",
+  "lastObservedOwner": null,
+  "mechanism": "append exact VM ID to scheduler explicit-retirement file; preserve all other entries",
+  "reason": "coordinator requested replacement after degraded same-code timing"
+}

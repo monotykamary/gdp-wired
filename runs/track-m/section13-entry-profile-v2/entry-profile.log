@@ -1,0 +1,2 @@
+source.tar.gz: OK
+{"artifact":"section10-chunk-manifest","dir":"/home/user/track-m-s10-receipts-2IQXxQ","parts":3,"bytes":391990,"sha256":"2c44b97b3b084965e2f0b11bab57141ad42a046de76af40ec647aa8059b543d0","files":["build.log","deadline-free.json","deadline-free.log","instrumentation-base.json","instrumentation-ops.json","instrumentation-profile.json","instrumentation-shards.json","integrity.json","production.json","production.log","shard-heartbeat.json","shard-actions.jsonl","shard-sources.json","shard-result.json","source-before.json"]}

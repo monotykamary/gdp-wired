@@ -1,6 +1,8 @@
 import {expect,test} from 'bun:test'
 import {type Law,type Machine,n,x} from './machine.ts'
-import {admitCountedFamily} from './counts.ts'
+import {admitCountedFamily,countsDump,searchCounted} from './counts.ts'
+import {proofOrigins} from './lemma-cuts.ts'
+import {env} from './solver.ts'
 import {checkCountedLaws} from '../kernel/kernel.ts'
 import {clock,counted,fullRate,withDeadline,withWall} from '../kernel/prove.ts'
 
@@ -22,6 +24,23 @@ test('a needed but noninductive helper cannot authorize the caller',()=>{
 test('the no-support path still returns a checked family',()=>{
  const out=run(fixture(0),false);expect(out.proven).toBe(true);if(out.proof)expect(checkCountedLaws(out.m,out.laws,out.proof)).toBe(true)
 })
+test('lemma provenance is scoped across direct and generated admission paths',()=>{
+ const oldCuts=env.GDP_COUNT_LEMMA_CUTS,oldGiven=env.GDP_COUNTS_GIVEN,oldDump=countsDump.on,oldOrigins=proofOrigins.enabled,seen:boolean[]=[]
+ env.GDP_COUNT_LEMMA_CUTS='1';env.GDP_COUNTS_GIVEN='1';proofOrigins.enabled=false
+ countsDump.on=e=>{if('phase'in e&&e.phase==='closed-family')seen.push(proofOrigins.enabled)}
+ try{
+  const f=fixture(0),direct=run(f)
+  expect(direct.proven).toBe(true);expect(proofOrigins.enabled).toBe(false)
+  const searched=withWall(performance.now()+5000,()=>searchCounted(f.m,[f.caller,f.helper],2000))
+  expect(searched.proven).toBe(true);expect(proofOrigins.enabled).toBe(false)
+  expect(seen).toEqual([true,true])
+ }finally{
+  if(oldCuts===undefined)delete env.GDP_COUNT_LEMMA_CUTS;else env.GDP_COUNT_LEMMA_CUTS=oldCuts
+  if(oldGiven===undefined)delete env.GDP_COUNTS_GIVEN;else env.GDP_COUNTS_GIVEN=oldGiven
+  countsDump.on=oldDump;proofOrigins.enabled=oldOrigins
+ }
+})
+
 test('missing callers and exhausted admission budgets cannot produce success',()=>{
  const f=fixture(0)
  expect(admitCountedFamily(f.m,[f.caller],[f.helper],new Set([f.helper]),clock()).proven).toBe(false)

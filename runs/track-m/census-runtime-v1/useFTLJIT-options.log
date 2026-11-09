@@ -1,0 +1,3 @@
+Modified JSC options:
+   dumpOptions=1 (default: 0)
+   useFTLJIT=false (default: true)

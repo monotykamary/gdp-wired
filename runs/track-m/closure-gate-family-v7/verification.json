@@ -1,0 +1,18 @@
+{
+  "status": "gate-1-failed",
+  "parent": "e541473f53855782b205a285ec13ec457ca736e1",
+  "mainBaseline": "6a3874d3",
+  "batch": "20261108-235432-j3wfuj",
+  "tests": {"passed": 221, "failed": 0, "assertions": 977, "typecheck": true, "lint": true},
+  "canonicalConditionalSource": {"checked": true, "cuts": 17, "countedUnits": 920.0848272000001, "wallMs": 4373.567289},
+  "family": [
+    {"law": "one primary per term", "checked": true, "wallMs": 2715.598286, "countedUnits": 926.6334919999999},
+    {"law": "Inv3915", "checked": true, "wallMs": 2884.8431150000006, "countedUnits": 872.3352536000001},
+    {"law": "Inv1758", "checked": true, "wallMs": 13413.340184, "countedUnits": 4310.4753532},
+    {"law": "Inv2973", "checked": false, "wallMs": 32068.748075, "countedUnits": 5002.6530103999985},
+    {"law": "Inv*", "checked": false, "wallMs": 35273.629617, "countedUnits": 5161.7468984}
+  ],
+  "familyWallMs": 86358.556436,
+  "promotion": false,
+  "notRun": ["generated-production-60s", "paxos-main-three-repeats", "IC3Syn-29x3-paired"]
+}

@@ -1,0 +1,37 @@
+[
+  {
+    "name": "focused-law-0",
+    "cmd": "set -e; sha256sum core/count-cases.ts core/count-focus-proof.ts core/counts.ts; sha256sum core/count-recovery/*.ts; bun install --frozen-lockfile >/dev/null; GDP_COUNTS_GIVEN=1 bun research/track-m/verify-focused.ts replay-input/input.json 'one primary'",
+    "cpu": 4,
+    "memory": 8000,
+    "timeout": 180
+  },
+  {
+    "name": "focused-law-1",
+    "cmd": "set -e; sha256sum core/count-cases.ts core/count-focus-proof.ts core/counts.ts; sha256sum core/count-recovery/*.ts; bun install --frozen-lockfile >/dev/null; GDP_COUNTS_GIVEN=1 bun research/track-m/verify-focused.ts replay-input/input.json 'Inv3915'",
+    "cpu": 4,
+    "memory": 8000,
+    "timeout": 180
+  },
+  {
+    "name": "focused-law-2",
+    "cmd": "set -e; sha256sum core/count-cases.ts core/count-focus-proof.ts core/counts.ts; sha256sum core/count-recovery/*.ts; bun install --frozen-lockfile >/dev/null; GDP_COUNTS_GIVEN=1 bun research/track-m/verify-focused.ts replay-input/input.json 'Inv1758'",
+    "cpu": 4,
+    "memory": 8000,
+    "timeout": 180
+  },
+  {
+    "name": "focused-law-3",
+    "cmd": "set -e; sha256sum core/count-cases.ts core/count-focus-proof.ts core/counts.ts; sha256sum core/count-recovery/*.ts; bun install --frozen-lockfile >/dev/null; GDP_COUNTS_GIVEN=1 bun research/track-m/verify-focused.ts replay-input/input.json 'Inv2973'",
+    "cpu": 4,
+    "memory": 8000,
+    "timeout": 180
+  },
+  {
+    "name": "focused-law-4",
+    "cmd": "set -e; sha256sum core/count-cases.ts core/count-focus-proof.ts core/counts.ts; sha256sum core/count-recovery/*.ts; bun install --frozen-lockfile >/dev/null; GDP_COUNTS_GIVEN=1 bun research/track-m/verify-focused.ts replay-input/input.json 'Inv*'",
+    "cpu": 4,
+    "memory": 8000,
+    "timeout": 180
+  }
+]

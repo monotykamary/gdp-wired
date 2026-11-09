@@ -1,0 +1,1 @@
+[{"name":"cold","cmd":"set -e; bun install --frozen-lockfile >/dev/null; for f in 3 5; do LAB_CASE_REFINE=1 LAB_FOCUS_COLD=1 bun research/track-m/count-case-replay.ts replay-input/$f.json replay-input/input.json; done", "cpu":1,"memory":4000,"timeout":90}]

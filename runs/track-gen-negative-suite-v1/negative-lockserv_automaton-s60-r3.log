@@ -1,0 +1,6 @@
+PAIR begin side=cand id=lockserv_automaton run=3
+{"id":"lockserv_automaton","ic3syn":"ex-lockserv-automaton","broken":{"bug":"recv_lock while held","verdict":"refuted","goal":"one holder @step","stuck":"sat","run":22,"ms":278,"work":7414,"full":18934}}
+PAIR end side=cand exit=0
+PAIR begin side=base id=lockserv_automaton run=3
+{"id":"lockserv_automaton","ic3syn":"ex-lockserv-automaton","broken":{"bug":"recv_lock while held","verdict":"refuted","goal":"one holder @step","stuck":"sat","run":22,"ms":232,"work":7414,"full":18934}}
+PAIR end side=base exit=0

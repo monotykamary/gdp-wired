@@ -1,0 +1,365 @@
+diff --git a/core/count-recovery/action-guard.test.ts b/core/count-recovery/action-guard.test.ts
+index 41c4133b..786b4a13 100644
+--- a/core/count-recovery/action-guard.test.ts
++++ b/core/count-recovery/action-guard.test.ts
+@@ -1,7 +1,7 @@
+ import {expect,test} from 'bun:test'
+-import {type Machine,all,get,less,n,same,x} from '../machine.ts'
++import {type Machine,all,get,ite,less,n,same,x} from '../machine.ts'
+ import {canon} from '../../kernel/kernel.ts'
+-import {actionGuard,activeCarried} from './action-guard.ts'
++import {actionGuard,activeCarried,writtenCarried} from './action-guard.ts'
+ const m:Machine={name:'two carried actions',params:[],inputs:['mode'],inputMaps:['Left','Right'],state:{},step:{flags:{eligible:{op:'all',key:'v',c:less(get('Right',x('v')),n(2))},first:same(x('mode'),n(2)),second:all(same(x('mode'),n(3)),{op:'flag',name:'eligible'})}}}
+ test('action guards use the selected operation and ground its quantified flag',()=>{
+  expect(actionGuard(m,'mode',3)).toEqual(all(same(x('mode'),n(3)),same(x('?eligible'),n(1))))
+@@ -12,3 +12,13 @@ test('the active quantified flag selects its carried set without protocol names'
+  expect([...activeCarried(m,path)]).toEqual(['Right'])
+  expect([...activeCarried(m,new Map())]).toEqual(['Left'])
+ })
++test('live write data is distinct from guard-only inputs and inactive replacements',()=>{
++ const machine:Machine={name:'replacement sources',params:[],inputs:['mode','actor'],inputMaps:['Packet','Quorum','Fallback'],state:{},maps:{Stored:0},step:{flags:{eligible:{op:'all',key:'member',c:less(get('Quorum',x('member')),n(2))},active:all(same(x('mode'),n(1)),{op:'flag',name:'eligible'})},maps:{Stored:{each:'slot',value:ite({op:'flag',name:'active'},ite(same(x('slot'),x('actor')),get('Packet',x('slot')),get('Stored',x('slot'))),get('Fallback',x('slot')))}}}}
++ const lins:Record<string,number>[]=[{'?eligible':-1,'1':1},{'?eligible':1,'1':-1},{mode:-1,'1':1},{mode:1,'1':-1}]
++ const path=new Map(lins.map(lin=>[canon(lin),{lin,holds:true}])),before=JSON.stringify(machine)
++ expect([...activeCarried(machine,path)]).toEqual(['Quorum'])
++ expect([...writtenCarried(machine,path)]).toEqual(['Packet'])
++ const inactive=new Map([[canon({mode:1}),{lin:{mode:1},holds:true}]])
++ expect([...writtenCarried(machine,inactive)]).toEqual(['Fallback'])
++ expect(JSON.stringify(machine)).toBe(before)
++})
+diff --git a/core/count-recovery/action-guard.ts b/core/count-recovery/action-guard.ts
+index efeb3b45..9b6a70c9 100644
+--- a/core/count-recovery/action-guard.ts
++++ b/core/count-recovery/action-guard.ts
+@@ -24,6 +24,16 @@ export function activeCarried(m:Machine,path:Path):Set<string>{
+  return out
+ }
+ 
++// Carried maps that provide values to the live writes, rather than only
++// appearing in an activation guard. A known branch is selected before walking
++// it, so a quorum used as a guard is not mistaken for the replacement data.
++export function writtenCarried(m:Machine,path:Path):Set<string>{
++ const out=new Set<string>(),inputs=new Set(m.inputMaps??[]),flags:Record<string,C>={}
++ for(const [name,c]of Object.entries(m.step.flags??{}))flags[name]=c.op==='all'?same(x(`?${name}`),n(1)):substC(c,{vars:{},maps:{},flags})
++ for(const write of Object.values(m.step.maps??{}))if('each'in write)walkLive(substE(write.value,{vars:{},maps:{},flags}),path,(o:any)=>{if(o.op==='get'&&inputs.has(o.map))out.add(o.map)})
++ return out
++}
++
+ // A live same-map read indexed by another input is a copy, unlike the
+ // unchanged per-member fallback. Its equal-row case may need both keys split.
+ export function copiesRows(m:Machine,root:Path):boolean{
+diff --git a/core/count-recovery/field-bound-lemmas.ts b/core/count-recovery/field-bound-lemmas.ts
+index ebd5b34e..534e7ca5 100644
+--- a/core/count-recovery/field-bound-lemmas.ts
++++ b/core/count-recovery/field-bound-lemmas.ts
+@@ -11,11 +11,12 @@ import {carriedCase} from './carried-case.ts'
+ import {foldPath} from './fold-path.ts'
+ import {fieldCase} from './field-case.ts'
+ import {type SourceProofMemo} from './source-memo.ts'
++import {preStateCountSource} from './pre-state-source.ts'
+ import {booleanCore} from './boolean-core.ts'
+ import {selectCountBounds} from '../count-select.ts'
+ import {activeWriteRow,proveRowCases,rowPairs} from './row-cases.ts'
+-import {proveNaturalCases} from './natural-cases.ts'
+-import {activeCarried,copiesRows} from './action-guard.ts'
++import {naturalSplits,proveNaturalCases} from './natural-cases.ts'
++import {activeCarried,writtenCarried,copiesRows} from './action-guard.ts'
+ import {atPoint,clock,withDeadline} from '../../kernel/prove.ts'
+ 
+ import {REFUTED} from '../../kernel/cdcl.ts'
+@@ -74,7 +75,7 @@ export const fieldBoundLemmas:typeof fieldBoundLemmasImpl=(...args)=>wallTree('p
+  if(tree)options.memo?.put(g,path,tree)
+  return tree
+ })
+-function fieldBoundLemmasImpl(m:Machine,ds:CountDecl[],g:Goal,cert:Proposal,until:number,trace:object[],onModel?:(goal:Goal,witness:Record<string,number>)=>boolean,root:Path=new Map(),options:{splitRows?:boolean,deferCheck?:boolean,fieldClaim?:C,memo?:SourceProofMemo}={}):Tree|undefined{
++function fieldBoundLemmasImpl(m:Machine,ds:CountDecl[],g:Goal,cert:Proposal,until:number,trace:object[],onModel?:(goal:Goal,witness:Record<string,number>)=>boolean,root:Path=new Map(),options:{splitRows?:boolean,deferCheck?:boolean,fieldClaim?:C,memo?:SourceProofMemo,onSourceModel?:(goal:Goal,witness:Record<string,number>,path:Path)=>void}={}):Tree|undefined{
+  const pointOptions={deferCheck:!!options.deferCheck}
+  const seq=modelSequence(root),ctx:C[]=[],path:Path=new Map(root),lemmas:{split:Record<string,number>,no:Tree}[]=[]
+  const accept=(tree:Tree|undefined,path:Path)=>tree&&(options.deferCheck||check(g,tree,path))?tree:undefined
+@@ -155,6 +156,7 @@ function fieldBoundLemmasImpl(m:Machine,ds:CountDecl[],g:Goal,cert:Proposal,unti
+   const budget=limit,started=clock(),q=seq(goal,Math.min(until,clock()+budget))
+   trace.push({stage:'field-query',hyps:goal.hyps.length,ms:Math.round(clock()-started),limit:budget,outcome:'tree'in q?'tree':q.stuck,core:q.core?.length,...(!('tree'in q)&&q.stuck==='sat'?{model:q.witness}:{})})
+   if('tree'in q)return q.tree
++  if(q.stuck==='sat'&&q.witness)options.onSourceModel?.(goal,q.witness,root)
+   if(finish&&q.stuck==='sat'&&q.witness&&onModel?.(goal,q.witness))return undefined
+   const reduced=q.why===REFUTED&&q.core?.length?{...goal,hyps:q.core.map(i=>goal.hyps[i]!)}:finish?goal:undefined
+   if(!reduced)return undefined
+@@ -235,7 +237,18 @@ function fieldBoundLemmasImpl(m:Machine,ds:CountDecl[],g:Goal,cert:Proposal,unti
+   if(truth(good,path)===true)continue
+   const a=linear(good.a,path),b=linear(good.b,path);if(!a||!b)continue
+   const split=sub(a,b),noPath=new Map(path).set(canon(split),{lin:split,holds:false}),start=clock()
+-  const facts=narrow(good),part={...g,hyps:[...facts,...ctx,{op:'not' as const,x:good}]},proof=solve(part,250),lifted=proof&&widen(part,g,proof,{},root,noPath),no=accept(lifted,noPath)
++  const negative:C={op:'not',x:good},facts=narrow(good),part={...g,hyps:[...facts,...ctx,negative]},end=Math.min(until,start+250)
++  let proof:Tree|undefined,source=part
++  if(postIds.size){
++   const before=preStateCountSource(g,cert,negative,root,ctx)
++   if(before.cert.insts.length<cert.insts.length){
++    const candidate=fieldBoundLemmas(m,ds,before.goal,before.cert,end,trace,onModel,root,{deferCheck:true,fieldClaim:negative,memo:options.memo,onSourceModel:options.onSourceModel})
++    if(candidate){source={...g,hyps:[...g.hyps,...ctx,negative]};proof=withDeadline(end,()=>widen(before.goal,source,candidate,{},root,root))}
++    trace.push({stage:'pre-state-ceiling',hyps:before.goal.hyps.length,insts:before.cert.insts.length,proposed:!!proof})
++   }
++  }
++  if(!proof&&clock()<end){proof=solve(part,Math.max(0,end-clock()));source=part}
++  const lifted=proof&&withDeadline(end,()=>widen(source,g,proof,{},root,noPath)),no=accept(lifted,noPath)
+   trace.push({stage:'field-bound',bound:good,ms:Math.round(clock()-start),proved:!!no,...verdict(no)})
+   if(no){
+    lemmas.push({split,no});ctx.push(good);path.set(canon(split),{lin:split,holds:true})
+@@ -244,7 +257,7 @@ function fieldBoundLemmasImpl(m:Machine,ds:CountDecl[],g:Goal,cert:Proposal,unti
+  }
+  const field=finishField();if(field)return field
+  {
+-  const carriedMaps=activeCarried(m,root),countMaps=new Set(cert.reads.map(r=>r[1])),countIds=new Set(cert.reads.map(r=>r[0])),wits=new Set(cert.insts.map(i=>i.wit)),raw=g.hyps.slice(0,g.hyps.length-cert.insts.length)
++  const carriedMaps=activeCarried(m,root),replacementMaps=writtenCarried(m,root),countMaps=new Set(cert.reads.map(r=>r[1])),countIds=new Set(cert.reads.map(r=>r[0])),wits=new Set(cert.insts.map(i=>i.wit)),raw=g.hyps.slice(0,g.hyps.length-cert.insts.length)
+   const pieces=(c:C)=>piecesAt(c,root)
+   const alias=(inst:Proposal['insts'][number]):boolean=>{if(inst.unit!==0||inst.terms.length!==2||inst.terms.some(([,id])=>postIds.has(id)))return false;const a=cs.get(inst.terms[0]![1]),b=cs.get(inst.terms[1]![1]);return !!a&&!!b&&JSON.stringify(view(a.body))===JSON.stringify(view(b.body))}
+   const requestFrame=(inst:Proposal['insts'][number]):boolean=>inst.terms.length===2&&inst.terms.some(([,id])=>postIds.has(id))&&inst.terms.some(([,id])=>{const c=cs.get(id),b=c&&view(c.body);return b?.op==='get'&&(m.inputMaps??[]).includes(b.map)})
+@@ -320,6 +333,16 @@ function fieldBoundLemmasImpl(m:Machine,ds:CountDecl[],g:Goal,cert:Proposal,unti
+    if(emptyCountCandidate(m,cert,inst))return -1
+    const after=afterRead(inst),keys=after&&coordinates(after)
+    if(writer&&frame(inst)&&keys?.every(key=>truth(same(key,x(writer)),root)===false))return -0.75
++   // At the written row, a direct carried replacement is a better source
++   // than an arbitrary old row's size. These remain untrusted comparisons.
++   if(writer&&requestFrame(inst)&&keys?.some(key=>truth(same(key,x(writer)),root)===true)&&inst.terms.some(([,id])=>{const c=cs.get(id),b=c&&view(c.body);return !postIds.has(id)&&b?.op==='get'&&replacementMaps.has(b.map)}))return -0.6
++   // A written-row disjointness bound can close a carried replacement while
++   // arbitrary cross-row size comparisons cannot. Keep unchanged-row frames
++   // first, then ask the arithmetic core about this existing union candidate.
++   if(writer&&inst.terms.length===5&&keys?.some(key=>truth(same(key,x(writer)),root)===true)&&inst.terms.some(([k,id])=>{const c=cs.get(id),b=c&&view(c.body);return k>0&&b?.op==='get'&&carriedMaps.has(b.map)}))return -0.25
++   // A carried-set subset is support for that union, not an arbitrary old
++   // row comparison. In a row leaf, try this support before speculative copies.
++   if(!rowPlan.length&&writer&&inst.terms.length===2&&inst.terms.every(([,id])=>!postIds.has(id))&&inst.terms.some(([k,id])=>{const c=cs.get(id),b=c&&view(c.body);return k>0&&b?.op==='get'&&carriedMaps.has(b.map)}))return -0.2
+    if(copyFrame(inst)){
+     if(writer&&keys){
+      const before=inst.terms.map(([,id])=>cert.reads.find(r=>r[0]===id)).find(r=>r&&!r[1].endsWith('#')),oldKeys=before&&coordinates(before)
+@@ -346,7 +369,9 @@ function fieldBoundLemmasImpl(m:Machine,ds:CountDecl[],g:Goal,cert:Proposal,unti
+    // row children have a closing projection. Retain that ranked fallback;
+    // count-free row skeletons need no eager pre-state lemma chain.
+    if(rowPlan.length){fallbackSelection=true;return numericBindings.length?pool:[]}
+-   const selection=selectCountBounds({...g,hyps:[...numericBase,...numericBindings,...ctx.filter(pure)]},pool.map(([index])=>({index,bound:boundOf(index)!})),until,{path:root,queryMs:200,trace:event=>trace.push({...event,stage:'needed-lemmas'})})
++   const numeric={...g,hyps:[...numericBase,...numericBindings,...ctx.filter(pure)]}
++   const refine=naturalSplits(numeric,root).length?(goal:Goal,path:Path,end:number)=>proveNaturalCases(goal,path,end,trace,pointOptions):undefined
++   const selection=selectCountBounds(numeric,pool.map(([index])=>({index,bound:boundOf(index)!})),until,{path:root,queryMs:200,trace:event=>trace.push({...event,stage:'needed-lemmas'}),refine})
+    if(!selection)return []
+    fallbackSelection=selection.fallback
+    const needed=new Set(selection.indices)
+@@ -384,7 +409,13 @@ function fieldBoundLemmasImpl(m:Machine,ds:CountDecl[],g:Goal,cert:Proposal,unti
+    proof??=solve(part,directCopy?Math.max(0,230-(clock()-started)):150)
+    const lifted=proof&&withDeadline(Math.min(until,started+(directCopy?230:150)),()=>widen(part,g,proof,{},root,noPath)),no=accept(lifted,noPath)
+    trace.push({stage:'count-lemma',index,arity:inst.terms.length,terms:inst.terms,ms:Math.round(clock()-started),...verdict(no)})
+-   if(no){confirmed.add(index);lemmas.push({split,no});ctx.push(good);path.set(canon(split),{lin:split,holds:true});finish()}
++   if(no){
++    confirmed.add(index);lemmas.push({split,no});ctx.push(good);path.set(canon(split),{lin:split,holds:true})
++    // A proved selection still needs the rest of its core. Do not spend the
++    // source window rechecking the conclusion after each prerequisite.
++    if(fallbackSelection||cursor===queue.length)finish()
++    else trace.push({stage:'field-bound-pending-core',indices:queue.slice(cursor).map(([i])=>i)})
++   }
+    else{
+     excluded.add(index)
+     // An unknown oracle already supplied the full ranked fallback. Remove
+@@ -399,7 +430,7 @@ function fieldBoundLemmasImpl(m:Machine,ds:CountDecl[],g:Goal,cert:Proposal,unti
+  let tree=arithmetic
+  if(!tree&&rowPlan.length){
+   trace.push({stage:'row-pairs',pairs:rowPlan})
+-  tree=proveRowCases(g,path,rowPlan,until,(branch,end)=>fieldBoundLemmas(m,ds,g,cert,end,trace,onModel,branch,{splitRows:false,deferCheck:true,memo:options.memo}),e=>trace.push(e),{deferToCaller:true,splitEqual:copiesRows(m,root)})
++  tree=proveRowCases(g,path,rowPlan,until,(branch,end)=>fieldBoundLemmas(m,ds,g,cert,end,trace,onModel,branch,{splitRows:false,deferCheck:true,memo:options.memo,onSourceModel:options.onSourceModel}),e=>trace.push(e),{deferToCaller:true,splitEqual:copiesRows(m,root)})
+  }
+  if(!tree){const proof=solve(part,Math.max(150,until-clock()-200),true);tree=proof&&widen(part,g,proof,{},root,path)}
+  trace.push({stage:'field-bound-conclusion',facts:lemmas.length,ms:Math.round(clock()-start),proved:!!tree})
+diff --git a/core/count-recovery/natural-cases.test.ts b/core/count-recovery/natural-cases.test.ts
+index d8bcd45b..c1bf6b23 100644
+--- a/core/count-recovery/natural-cases.test.ts
++++ b/core/count-recovery/natural-cases.test.ts
+@@ -4,6 +4,7 @@ import {sub} from '../solver.ts'
+ import {canon,check,linear,type Path} from '../../kernel/kernel.ts'
+ import {clock} from '../../kernel/prove.ts'
+ import {naturalSplits,proveNaturalCases} from './natural-cases.ts'
++import {selectCountBounds} from '../count-select.ts'
+ 
+ function fixture(union=true){
+  const dx=x('xOnly'),dy=x('sOnly'),both=x('both'),hx=x('hx'),hy=x('hy'),bad=x('bad'),quorum=x('quorum'),xs=plus(dx,both),ss=plus(dy,both)
+@@ -25,3 +26,10 @@ test('natural subtraction cases cannot invent the missing union bound',()=>{
+  const {g,root}=fixture(false)
+  expect(proveNaturalCases(g,root,clock()+1000)).toBeUndefined()
+ })
++test('arithmetic selection may refine an unknown query by checked natural cases',()=>{
++ const {g,root}=fixture(false),needed=fixture().g.hyps.at(-1)!,candidates=[{index:3,bound:atMost(x('unrelated'),n(5))},{index:8,bound:needed}]
++ const picked=selectCountBounds(g,candidates,clock()+1500,{path:root,queryMs:400,refine:(goal,path,end)=>proveNaturalCases(goal,path,end)})
++ expect(picked?.fallback).toBe(false)
++ expect(picked?.indices).toEqual([8])
++})
++
+diff --git a/core/count-recovery/pre-state-source.test.ts b/core/count-recovery/pre-state-source.test.ts
+new file mode 100644
+index 00000000..29bf59e0
+--- /dev/null
++++ b/core/count-recovery/pre-state-source.test.ts
+@@ -0,0 +1,29 @@
++import {expect,test} from 'bun:test'
++import {all,get,less,n,not,same,x} from '../machine.ts'
++import {check,mcGoal,type CountCert} from '../../kernel/kernel.ts'
++import {clock,grow,widen} from '../../kernel/prove.ts'
++import {preStateCountSource} from './pre-state-source.ts'
++
++test('pre-state ceiling sources remove discarded witness instances and preserve original CInst order',()=>{
++ const d={j:'row',key:'member',below:n(3),body:n(1)},ds=[{...d,map:'Total'},{...d,map:'Total#'}]
++ const cert:Pick<CountCert,'reads'|'insts'>={reads:[['old','Total',n(0)],['new','Total#',n(0)]],insts:[{wit:'kept',below:n(3),terms:[[1,'old']],unit:0},{wit:'discarded',below:n(3),terms:[[1,'new'],[-1,'old']],unit:0}]}
++ const pre=same(get('Field',x('kept')),n(0)),post=same(get('Field',x('discarded')),n(0))
++ const full=mcGoal([all(pre,post),less(get('Total#',n(0)),get('Total',n(0)))],ds,cert)!,claim=not(pre)
++ const before=JSON.stringify({full,cert}),source=preStateCountSource(full,cert,claim,new Map())
++ expect(source.cert.reads).toEqual([cert.reads[0]!])
++ expect(source.cert.insts).toEqual([cert.insts[0]!])
++ expect(source.goal.hyps).toContainEqual(pre)
++ expect(source.goal.hyps).toContainEqual(claim)
++ expect(JSON.stringify(source.goal)).not.toContain('discarded')
++ expect(JSON.stringify(source.goal)).not.toContain('Total#')
++ expect(source.goal.hyps.at(-1)).toBe(full.hyps.at(-2))
++ expect(JSON.stringify({full,cert})).toBe(before)
++ const proof=grow(source.goal,new Map(),{nodes:0,until:clock()+1000})
++ expect('tree'in proof).toBe(true)
++ if('tree'in proof){
++  expect(check(source.goal,proof.tree)).toBe(true)
++  const target={...full,hyps:[...full.hyps,claim]},lifted=widen(source.goal,target,proof.tree)
++  expect(lifted).toBeDefined()
++  if(lifted)expect(check(target,lifted)).toBe(true)
++ }
++})
+diff --git a/core/count-recovery/pre-state-source.ts b/core/count-recovery/pre-state-source.ts
+new file mode 100644
+index 00000000..d34853ea
+--- /dev/null
++++ b/core/count-recovery/pre-state-source.ts
+@@ -0,0 +1,23 @@
++// A weaker pre-state source for a field ceiling. Preserve original terms and
++// CInst order, remove post-dependent assumptions and instances at discarded
++// witnesses. The caller must transport and check the tree in its full goal.
++import {type C} from '../machine.ts'
++import {type CountCert,type Goal,type Path} from '../../kernel/kernel.ts'
++import {piecesAt,walkLive} from './live-dependencies.ts'
++type Proposal=Pick<CountCert,'reads'|'insts'>
++export function preStateCountSource(goal:Goal,cert:Proposal,claim:C,path:Path,extra:C[]=[]):{goal:Goal,cert:Proposal}{
++ const post=cert.reads.filter(r=>r[1].endsWith('#')),postIds=new Set(post.map(r=>r[0])),postMaps=new Set(post.map(r=>r[1]))
++ const keep=cert.insts.map((q,index)=>({q,index})).filter(({q})=>q.terms.every(([,id])=>!postIds.has(id))),indices=new Set(keep.map(({index})=>index))
++ const discarded=new Set(cert.insts.filter((_,i)=>!indices.has(i)).map(q=>q.wit)),offset=goal.hyps.length-cert.insts.length
++ const weaken=(c:C):C|undefined=>{
++  if(c.op==='and'){
++   const xs=c.xs.flatMap(child=>{const kept=weaken(child);return kept?[kept]:[]})
++   return xs.length?{...c,xs}:undefined
++  }
++  let invalid=false
++  walkLive(c,path,(o:any)=>{if(o.op==='get'&&postMaps.has(o.map)||o.op==='var'&&(postIds.has(o.name)||discarded.has(o.name)))invalid=true})
++  return invalid?undefined:c
++ }
++ const hyps=goal.hyps.slice(0,offset).flatMap(c=>piecesAt(c,path)).flatMap(c=>{const kept=weaken(c);return kept?[kept]:[]})
++ return {goal:{...goal,hyps:[...hyps,...extra,claim,...keep.map(({index})=>goal.hyps[offset+index]!)]},cert:{reads:cert.reads.filter(r=>!postIds.has(r[0])),insts:keep.map(({q})=>q)}}
++}
+diff --git a/core/count-recovery/source-witness-instances.test.ts b/core/count-recovery/source-witness-instances.test.ts
+new file mode 100644
+index 00000000..7818e533
+--- /dev/null
++++ b/core/count-recovery/source-witness-instances.test.ts
+@@ -0,0 +1,46 @@
++import {expect,test} from 'bun:test'
++import {any,get,n,not,plus,same,times,x,type Law,type Machine} from '../machine.ts'
++import {assumed,check,type Goal,type Instances} from '../../kernel/kernel.ts'
++import {modelSequence} from '../../kernel/model-sequence.ts'
++import {clock,grow} from '../../kernel/prove.ts'
++import {sourceWitnessInstances} from './source-witness-instances.ts'
++
++function fixture(){
++ const cell=(row:ReturnType<typeof x>,member:ReturnType<typeof x>)=>get('Cells',plus(times(64,row),member)),a=x('a'),b=x('b'),member=x('sample')
++ const law:Law={name:'matching rows agree',forall:'row',keys:['other','member'],holds:any(not(same(get('Tag',x('row')),get('Tag',x('other')))),same(cell(x('row'),x('member')),cell(x('other'),x('member'))))}
++ const machine:Machine={name:'renamed field witness',params:[],inputs:[],state:{},maps:{Cells:0,Tag:0},counts:{Total:{j:'row',key:'member',below:n(4),body:n(1)}},step:{}}
++ const goal:Goal={name:'source',hyps:[same(a,n(0)),same(b,n(1)),same(member,n(2)),same(get('Tag',a),n(0)),same(get('Tag',b),n(0)),same(cell(a,member),n(0)),same(cell(b,member),n(1))]}
++ const result=modelSequence()(goal,clock()+1000)
++ if('tree'in result||result.stuck!=='sat'||!result.witness)throw new Error('fixture must have a source model')
++ return {machine,law,goal,model:result.witness}
++}
++
++test('local countermodels request ordinary multi-key field instances at a count witness',()=>{
++ const {machine,law,goal,model}=fixture(),before:Instances={untouched:[x('prior')]},saved=JSON.stringify(before)
++ const next=sourceWitnessInstances(machine,[law],before,goal,model,new Set(['sample']))
++ expect(next).toBeDefined()
++ expect(next?.[law.name]?.length).toBeGreaterThan(0)
++ for(let i=0;i<(next?.[law.name]?.length??0);i+=3)expect(next![law.name]!.slice(i,i+3)).toContainEqual(x('sample'))
++ expect(next?.untouched).toBe(before.untouched)
++ expect(JSON.stringify(before)).toBe(saved)
++ if(next){
++  const refined={...goal,hyps:[...goal.hyps,...assumed([law],next)]},proof=grow(refined,new Map(),{nodes:0,until:clock()+1000})
++  expect('tree'in proof).toBe(true)
++  if('tree'in proof)expect(check(refined,proof.tree)).toBe(true)
++  const again=sourceWitnessInstances(machine,[law],next,goal,model,new Set(['sample']))
++  if(again){
++   expect(again[law.name]!.slice(0,next[law.name]!.length)).toEqual(next[law.name]!)
++   const tuples=Array.from({length:again[law.name]!.length/3},(_,i)=>JSON.stringify(again[law.name]!.slice(i*3,i*3+3)))
++   expect(new Set(tuples).size).toBe(tuples.length)
++   expect(again[law.name]!.length-next[law.name]!.length).toBeLessThanOrEqual(24)
++  }
++ }
++})
++
++test('source feedback requires a read witness and preserves count-key freshness',()=>{
++ const {machine,law,goal,model}=fixture(),counted:Law={name:'count dependent',forall:'row',holds:same(get('Total',x('row')),n(0))}
++ expect(sourceWitnessInstances(machine,[law],{},goal,model,new Set())).toBeUndefined()
++ expect(sourceWitnessInstances(machine,[law],{},goal,model,new Set(['unrelated']))).toBeUndefined()
++ const offered=sourceWitnessInstances(machine,[counted],{},goal,model,new Set(['sample']))
++ expect(offered?.[counted.name]??[]).not.toContainEqual(x('sample'))
++})
+diff --git a/core/count-recovery/source-witness-instances.ts b/core/count-recovery/source-witness-instances.ts
+new file mode 100644
+index 00000000..3648657d
+--- /dev/null
++++ b/core/count-recovery/source-witness-instances.ts
+@@ -0,0 +1,25 @@
++// Untrusted family instances demanded by a model of a count-witness source.
++// Count-read keys retain the kernel's freshness rule. Returned tuples are only
++// ordinary candidates: rebuild the obligation and check the complete family.
++import {type Law,type Machine,walkOnce} from '../machine.ts'
++import {type Goal,type Instances} from '../../kernel/kernel.ts'
++import {modelInstances} from '../../kernel/prove.ts'
++import {independentCountInstances} from '../count-focused.ts'
++export function sourceWitnessInstances(m:Machine,laws:Law[],at:Instances,goal:Goal,model:Record<string,number>,witnesses:ReadonlySet<string>):Instances|undefined{
++ // Select proposal keys from the queried witness body, not unrelated flag
++ // witnesses that happen to share its model value. This weak slice proposes
++ // terms only; the rebuilt, complete obligation remains the proof target.
++ const hyps=goal.hyps.filter(c=>{let reads=false;walkOnce(c,(o:any)=>{if(o.op==='var'&&witnesses.has(o.name))reads=true});return reads})
++ if(!hyps.length)return undefined
++ const proposed=modelInstances(m,laws,at,{...goal,hyps},model,32)
++ const valid=proposed&&independentCountInstances(m,laws,at,proposed,[...witnesses])
++ if(!valid)return undefined
++ let out=at,added=0
++ for(const law of laws){
++  if(!law.forall)continue
++  const before=at[law.name]??[],next=valid[law.name]??before,arity=1+(law.keys?.length??0),extra:typeof before=[]
++  for(let i=before.length;i+arity<=next.length&&added<8;i+=arity){extra.push(...next.slice(i,i+arity));added++}
++  if(extra.length){if(out===at)out={...at};out[law.name]=[...before,...extra]}
++ }
++ return out===at?undefined:out
++}
+diff --git a/core/count-select.ts b/core/count-select.ts
+index 455154a7..78fa37e6 100644
+--- a/core/count-select.ts
++++ b/core/count-select.ts
+@@ -1,6 +1,6 @@
+ // Untrusted arithmetic-core selection; selected bounds are not accepted facts.
+ import {type C} from './machine.ts'
+-import {type Goal,type Path} from '../kernel/kernel.ts'
++import {type Goal,type Path,type Tree} from '../kernel/kernel.ts'
+ import {clock,usedHyps} from '../kernel/prove.ts'
+ import {modelSequence} from '../kernel/model-sequence.ts'
+ import {REFUTED} from '../kernel/cdcl.ts'
+@@ -9,11 +9,13 @@ export type CountBoundCandidate={index:number,bound:C}
+ export type CountBoundSelection={indices:number[],assumed:number,fallback:boolean}
+ // The arithmetic oracle chooses proposals, never facts. In rank order, add
+ // candidate bounds until its refutation core names the ones worth deriving.
+-export function selectCountBounds(base:Goal,candidates:CountBoundCandidate[],until:number,options:{path?:Path,queryMs?:number,trace?:(event:Record<string,unknown>)=>void}={}):CountBoundSelection|undefined{
++export function selectCountBounds(base:Goal,candidates:CountBoundCandidate[],until:number,options:{path?:Path,queryMs?:number,trace?:(event:Record<string,unknown>)=>void,refine?:(goal:Goal,path:Path,until:number)=>Tree|undefined}={}):CountBoundSelection|undefined{
+  const path=options.path??new Map(),ask=modelSequence(path),started=clock()
+  for(let n=candidates.length?1:0;n<=candidates.length&&clock()<until;n++){
+-  const goal={...base,hyps:[...base.hyps,...candidates.slice(0,n).map(c=>c.bound)]},q=ask(goal,Math.min(until,clock()+(options.queryMs??200)))
+-  const used='tree'in q?usedHyps(goal,q.tree,path):q.why===REFUTED&&q.core?new Set(q.core):undefined
++  const goal={...base,hyps:[...base.hyps,...candidates.slice(0,n).map(c=>c.bound)]},end=Math.min(until,clock()+(options.queryMs??200))
++  const q=ask(goal,options.refine?Math.min(end,clock()+(options.queryMs??200)/2):end)
++  const refined=!('tree'in q)&&q.stuck==='unknown'&&clock()<end?options.refine?.(goal,path,end):undefined
++  const used='tree'in q?usedHyps(goal,q.tree,path):refined?usedHyps(goal,refined,path):q.why===REFUTED&&q.core?new Set(q.core):undefined
+   if(used){
+    const indices=candidates.slice(0,n).filter((_,i)=>used.has(base.hyps.length+i)).map(c=>c.index)
+    options.trace?.({stage:'count-core-select',pool:candidates.length,assumed:n,indices,ms:Math.round(clock()-started)})

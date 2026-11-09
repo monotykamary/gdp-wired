@@ -1,0 +1,62 @@
+Found 0 warnings and 0 errors.
+Finished in 345ms on 5 files with 100 rules using 8 threads.
+bun test v1.4.3 (c6da4a4d3)
+
+--- stderr ---
+
+core/count-focused.test.ts:
+(pass) goal demand generates a missing pre-state union without changing the legacy packet [3.27ms]
+(pass) field guards receive row instances without adding carried-set witnesses [0.21ms]
+(pass) a copy starting subset retains source substitutions without unrelated tuples [0.34ms]
+(pass) copy source discovery ignores inputs read only by update guards [0.11ms]
+(pass) copy starting subsets preserve algebraic and post-empty proposals [0.06ms]
+(pass) copy-frame proposals compare the same counted definition at different rows within a cap [1.17ms]
+(pass) copy-frame slots are shared across result counts and prioritize input sources [0.55ms]
+(pass) focused comparisons follow carried sets and indicator bodies, not names [0.53ms]
+(pass) algebraic selection reserves union bounds and their row identities within the same cap [0.42ms]
+(pass) packed count coordinates are row keys but scalar comparison witnesses are not [0.08ms]
+(pass) equal Boolean views survive the narrow selector despite duplicated conjuncts [0.12ms]
+(pass) new count keys remain independent of certificate witnesses [0.17ms]
+(pass) counted row bridges preserve half-cardinality witnesses [0.14ms]
+(pass) targeted carried-set comparisons omit unrelated row reads [0.12ms]
+(pass) algebraic focus keeps equivalent pre-count views but not different rows [0.09ms]
+(pass) a carried subset can target its declared input-keyed row view [0.08ms]
+(pass) request frames propose only same-shaped carried-region comparisons [0.15ms]
+(pass) request frames normalize equality and threshold membership indicators [0.09ms]
+(pass) frames retain a structural range bound between two post counts [0.15ms]
+(pass) request partition identities outrank misleading triples within sixteen algebraic slots [1.04ms]
+(pass) post remainder and carried set propose a three-term coverage certificate [0.24ms]
+(pass) post counts can propose a bound from the stored membership they read [0.23ms]
+(pass) post-state frame comparisons are opt-in witness-bearing proposals [0.11ms]
+(pass) field bridges preserve the goal column independently of row-key aliases [0.15ms]
+(pass) count-law bridges seed only unary/binary count laws and preserve input [0.24ms]
+
+core/count-focus-proof.test.ts:
+(pass) finite-input focused recovery is the default and keeps an explicit opt-out [0.12ms]
+(pass) focused finite-count recovery keeps the selected step packet instead of rebuilding its full pool [17.74ms]
+
+core/count-recovery/derivability-closure.test.ts:
+[{"stage":"key-closure","facts":0,"ms":5,"proposed":true},{"stage":"pin-prune","removed":2,"kept":1},{"stage":"boolean-core","facts":3,"cuts":6,"nodes":24,"leaves":0,"ms":11,"checked":false,"proposed":true,"deferred":true,"choices":[{"op":"<=","a":"{\"op\":\"get\",\"map\":\"A\",\"key\":{\"op\":\"var\",\"name\":\"w\"}}","b":"{\"op\":\"const\",\"value\":1}"},{"op":"<=","a":"{\"op\":\"const\",\"value\":1}","b":"{\"op\":\"get\",\"map\":\"A\",\"key\":{\"op\":\"var\",\"name\":\"w\"}}"},{"op":"<=","a":"{\"op\":\"get\",\"map\":\"B\",\"key\":{\"op\":\"var\",\"name\":\"w\"}}","b":"{\"op\":\"const\",\"value\":1}"},{"op":"<=","a":"{\"op\":\"const\",\"value\":1}","b":"{\"op\":\"get\",\"map\":\"B\",\"key\":{\"op\":\"var\",\"name\":\"w\"}}"},{"op":"<=","a":"{\"op\":\"get\",\"map\":\"Vote\",\"key\":{\"op\":\"var\",\"name\":\"w\"}}","b":"{\"op\":\"const\",\"value\":1}"},{"op":"<=","a":"{\"op\":\"const\",\"value\":1}","b":"{\"op\":\"get\",\"map\":\"Vote\",\"key\":{\"op\":\"var\",\"name\":\"w\"}}"}]},{"stage":"closure-source","scope":0,"index":0,"core":2,"tree":true,"outcome":"checked","ms":21.970843000000002},{"stage":"closure-round","round":1,"added":1,"cuts":1,"models":0,"scopes":1},{"stage":"closure-round","round":2,"added":0,"cuts":1,"models":0,"scopes":1},{"stage":"closure-transport","reason":"missing-row","row":{"1":1},"desired":{"1":1}},{"stage":"closure-transport","reason":"complete","guards":0,"checked":false,"proposed":false,"deferred":true},{"stage":"closure-final","hyps":2,"cuts":1,"closedIndices":[0],"rounds":2,"core":1,"outcome":"unknown","reason":"refuted, not unfolded","ms":1.4559439999999881,"total":24.041902},{"stage":"closure-complete","cuts":1,"rounds":2,"checked":false,"total":24.043996}]
+19 |  return {m,ds,g,cert,claim}
+20 | }
+21 | for(const disjoint of [true,false])test(`closure ${disjoint?'checks a derived union':'does not assume a false union'}`,()=>{
+22 |  const f=fixture(disjoint),events:object[]=[],tree=deriveCountClosure(f.m,f.ds,f.g,f.cert,new Map(),clock()+1500,events,{claim:f.claim})
+23 |  if(disjoint&&!tree)console.error(JSON.stringify(events))
+24 |  if(disjoint){expect(tree).toBeDefined();if(tree)expect(checkMC([f.claim],f.ds,{...f.cert,tree})).toBe(true);expect(events.some((e:any)=>e.stage==='closure-final'&&e.outcome==='checked')).toBe(true)}
+                                ^
+error: expect(received).toBeDefined()
+
+Received: undefined
+
+      at <anonymous> (/work/gdp-wired/core/count-recovery/derivability-closure.test.ts:24:28)
+(fail) closure checks a derived union [26.77ms]
+(pass) closure does not assume a false union [5.50ms]
+(pass) expired closure leaves no proof and never extends its deadline [0.14ms]
+
+1 tests failed:
+(fail) closure checks a derived union [26.77ms]
+
+ 29 pass
+ 1 fail
+ 105 expect() calls
+Ran 30 tests across 3 files. [90.00ms]

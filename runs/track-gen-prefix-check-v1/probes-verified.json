@@ -1,0 +1,1680 @@
+{
+  "verdictsIdentical": true,
+  "comparisons": [
+    {
+      "prefix": "one primary",
+      "workIdentical": false,
+      "usageIdentical": true
+    },
+    {
+      "prefix": "Inv3915",
+      "workIdentical": false,
+      "usageIdentical": true
+    },
+    {
+      "prefix": "Inv1758",
+      "workIdentical": false,
+      "usageIdentical": true
+    },
+    {
+      "prefix": "Inv2973",
+      "workIdentical": false,
+      "usageIdentical": true
+    },
+    {
+      "prefix": "Inv*",
+      "workIdentical": true,
+      "usageIdentical": true
+    }
+  ],
+  "probes": [
+    {
+      "side": "parent",
+      "prefix": "one primary",
+      "mode": "probe",
+      "law": "one primary per term",
+      "proven": true,
+      "checked": true,
+      "wallMs": 2599.871321,
+      "countedMs": 984.4640724,
+      "usage": {
+        "complete": true,
+        "laws": [
+          {
+            "name": "one primary per term",
+            "forall": "key$2",
+            "keys": [
+              "key$3"
+            ],
+            "holds": {
+              "op": "or",
+              "xs": [
+                {
+                  "op": "not",
+                  "x": {
+                    "op": "and",
+                    "xs": [
+                      {
+                        "op": "<",
+                        "a": {
+                          "op": "var",
+                          "name": "key$2"
+                        },
+                        "b": {
+                          "op": "var",
+                          "name": "size"
+                        }
+                      },
+                      {
+                        "op": "<",
+                        "a": {
+                          "op": "var",
+                          "name": "key$3"
+                        },
+                        "b": {
+                          "op": "var",
+                          "name": "size"
+                        }
+                      },
+                      {
+                        "op": "=",
+                        "a": {
+                          "op": "get",
+                          "map": "St",
+                          "key": {
+                            "op": "var",
+                            "name": "key$2"
+                          }
+                        },
+                        "b": {
+                          "op": "const",
+                          "value": 1
+                        }
+                      },
+                      {
+                        "op": "=",
+                        "a": {
+                          "op": "get",
+                          "map": "St",
+                          "key": {
+                            "op": "var",
+                            "name": "key$3"
+                          }
+                        },
+                        "b": {
+                          "op": "const",
+                          "value": 1
+                        }
+                      },
+                      {
+                        "op": "=",
+                        "a": {
+                          "op": "get",
+                          "map": "CT",
+                          "key": {
+                            "op": "var",
+                            "name": "key$2"
+                          }
+                        },
+                        "b": {
+                          "op": "get",
+                          "map": "CT",
+                          "key": {
+                            "op": "var",
+                            "name": "key$3"
+                          }
+                        }
+                      }
+                    ]
+                  }
+                },
+                {
+                  "op": "=",
+                  "a": {
+                    "op": "var",
+                    "name": "key$2"
+                  },
+                  "b": {
+                    "op": "var",
+                    "name": "key$3"
+                  }
+                }
+              ]
+            }
+          },
+          {
+            "name": "Inv866: a primary at its config term",
+            "forall": "a$",
+            "keys": [],
+            "holds": {
+              "op": "or",
+              "xs": [
+                {
+                  "op": "not",
+                  "x": {
+                    "op": "and",
+                    "xs": [
+                      {
+                        "op": "<",
+                        "a": {
+                          "op": "var",
+                          "name": "a$"
+                        },
+                        "b": {
+                          "op": "var",
+                          "name": "size"
+                        }
+                      },
+                      {
+                        "op": "=",
+                        "a": {
+                          "op": "get",
+                          "map": "St",
+                          "key": {
+                            "op": "var",
+                            "name": "a$"
+                          }
+                        },
+                        "b": {
+                          "op": "const",
+                          "value": 1
+                        }
+                      }
+                    ]
+                  }
+                },
+                {
+                  "op": "=",
+                  "a": {
+                    "op": "get",
+                    "map": "CfgT",
+                    "key": {
+                      "op": "var",
+                      "name": "a$"
+                    }
+                  },
+                  "b": {
+                    "op": "get",
+                    "map": "CT",
+                    "key": {
+                      "op": "var",
+                      "name": "a$"
+                    }
+                  }
+                }
+              ]
+            }
+          },
+          {
+            "name": "Inv*: no quorum of a config can still be gathered for a config term held",
+            "forall": "a$",
+            "keys": [
+              "j$"
+            ],
+            "holds": {
+              "op": "or",
+              "xs": [
+                {
+                  "op": "not",
+                  "x": {
+                    "op": "and",
+                    "xs": [
+                      {
+                        "op": "<",
+                        "a": {
+                          "op": "var",
+                          "name": "a$"
+                        },
+                        "b": {
+                          "op": "var",
+                          "name": "size"
+                        }
+                      },
+                      {
+                        "op": "<",
+                        "a": {
+                          "op": "var",
+                          "name": "j$"
+                        },
+                        "b": {
+                          "op": "var",
+                          "name": "size"
+                        }
+                      }
+                    ]
+                  }
+                },
+                {
+                  "op": "<=",
+                  "a": {
+                    "op": "mul",
+                    "k": 2,
+                    "a": {
+                      "op": "get",
+                      "map": "bq",
+                      "key": {
+                        "op": "add",
+                        "a": {
+                          "op": "mul",
+                          "k": 64,
+                          "a": {
+                            "op": "var",
+                            "name": "a$"
+                          }
+                        },
+                        "b": {
+                          "op": "var",
+                          "name": "j$"
+                        }
+                      }
+                    }
+                  },
+                  "b": {
+                    "op": "get",
+                    "map": "cfgSize",
+                    "key": {
+                      "op": "var",
+                      "name": "a$"
+                    }
+                  }
+                }
+              ]
+            }
+          }
+        ]
+      },
+      "matches": [
+        {
+          "law": "one primary per term",
+          "generated": []
+        },
+        {
+          "law": "Inv866: a primary at its config term",
+          "generated": [
+            "fields: St[a]=1 -> CT[a]=CfgT[a]"
+          ]
+        },
+        {
+          "law": "Inv*: no quorum of a config can still be gathered for a config term held",
+          "generated": []
+        }
+      ]
+    },
+    {
+      "side": "candidate",
+      "prefix": "one primary",
+      "mode": "probe",
+      "law": "one primary per term",
+      "proven": true,
+      "checked": true,
+      "wallMs": 2949.877606,
+      "countedMs": 984.6687443999999,
+      "usage": {
+        "complete": true,
+        "laws": [
+          {
+            "name": "one primary per term",
+            "forall": "key$2",
+            "keys": [
+              "key$3"
+            ],
+            "holds": {
+              "op": "or",
+              "xs": [
+                {
+                  "op": "not",
+                  "x": {
+                    "op": "and",
+                    "xs": [
+                      {
+                        "op": "<",
+                        "a": {
+                          "op": "var",
+                          "name": "key$2"
+                        },
+                        "b": {
+                          "op": "var",
+                          "name": "size"
+                        }
+                      },
+                      {
+                        "op": "<",
+                        "a": {
+                          "op": "var",
+                          "name": "key$3"
+                        },
+                        "b": {
+                          "op": "var",
+                          "name": "size"
+                        }
+                      },
+                      {
+                        "op": "=",
+                        "a": {
+                          "op": "get",
+                          "map": "St",
+                          "key": {
+                            "op": "var",
+                            "name": "key$2"
+                          }
+                        },
+                        "b": {
+                          "op": "const",
+                          "value": 1
+                        }
+                      },
+                      {
+                        "op": "=",
+                        "a": {
+                          "op": "get",
+                          "map": "St",
+                          "key": {
+                            "op": "var",
+                            "name": "key$3"
+                          }
+                        },
+                        "b": {
+                          "op": "const",
+                          "value": 1
+                        }
+                      },
+                      {
+                        "op": "=",
+                        "a": {
+                          "op": "get",
+                          "map": "CT",
+                          "key": {
+                            "op": "var",
+                            "name": "key$2"
+                          }
+                        },
+                        "b": {
+                          "op": "get",
+                          "map": "CT",
+                          "key": {
+                            "op": "var",
+                            "name": "key$3"
+                          }
+                        }
+                      }
+                    ]
+                  }
+                },
+                {
+                  "op": "=",
+                  "a": {
+                    "op": "var",
+                    "name": "key$2"
+                  },
+                  "b": {
+                    "op": "var",
+                    "name": "key$3"
+                  }
+                }
+              ]
+            }
+          },
+          {
+            "name": "Inv866: a primary at its config term",
+            "forall": "a$",
+            "keys": [],
+            "holds": {
+              "op": "or",
+              "xs": [
+                {
+                  "op": "not",
+                  "x": {
+                    "op": "and",
+                    "xs": [
+                      {
+                        "op": "<",
+                        "a": {
+                          "op": "var",
+                          "name": "a$"
+                        },
+                        "b": {
+                          "op": "var",
+                          "name": "size"
+                        }
+                      },
+                      {
+                        "op": "=",
+                        "a": {
+                          "op": "get",
+                          "map": "St",
+                          "key": {
+                            "op": "var",
+                            "name": "a$"
+                          }
+                        },
+                        "b": {
+                          "op": "const",
+                          "value": 1
+                        }
+                      }
+                    ]
+                  }
+                },
+                {
+                  "op": "=",
+                  "a": {
+                    "op": "get",
+                    "map": "CfgT",
+                    "key": {
+                      "op": "var",
+                      "name": "a$"
+                    }
+                  },
+                  "b": {
+                    "op": "get",
+                    "map": "CT",
+                    "key": {
+                      "op": "var",
+                      "name": "a$"
+                    }
+                  }
+                }
+              ]
+            }
+          },
+          {
+            "name": "Inv*: no quorum of a config can still be gathered for a config term held",
+            "forall": "a$",
+            "keys": [
+              "j$"
+            ],
+            "holds": {
+              "op": "or",
+              "xs": [
+                {
+                  "op": "not",
+                  "x": {
+                    "op": "and",
+                    "xs": [
+                      {
+                        "op": "<",
+                        "a": {
+                          "op": "var",
+                          "name": "a$"
+                        },
+                        "b": {
+                          "op": "var",
+                          "name": "size"
+                        }
+                      },
+                      {
+                        "op": "<",
+                        "a": {
+                          "op": "var",
+                          "name": "j$"
+                        },
+                        "b": {
+                          "op": "var",
+                          "name": "size"
+                        }
+                      }
+                    ]
+                  }
+                },
+                {
+                  "op": "<=",
+                  "a": {
+                    "op": "mul",
+                    "k": 2,
+                    "a": {
+                      "op": "get",
+                      "map": "bq",
+                      "key": {
+                        "op": "add",
+                        "a": {
+                          "op": "mul",
+                          "k": 64,
+                          "a": {
+                            "op": "var",
+                            "name": "a$"
+                          }
+                        },
+                        "b": {
+                          "op": "var",
+                          "name": "j$"
+                        }
+                      }
+                    }
+                  },
+                  "b": {
+                    "op": "get",
+                    "map": "cfgSize",
+                    "key": {
+                      "op": "var",
+                      "name": "a$"
+                    }
+                  }
+                }
+              ]
+            }
+          }
+        ]
+      },
+      "matches": [
+        {
+          "law": "one primary per term",
+          "generated": []
+        },
+        {
+          "law": "Inv866: a primary at its config term",
+          "generated": [
+            "fields: St[a]=1 -> CT[a]=CfgT[a]"
+          ]
+        },
+        {
+          "law": "Inv*: no quorum of a config can still be gathered for a config term held",
+          "generated": []
+        }
+      ]
+    },
+    {
+      "side": "parent",
+      "prefix": "Inv3915",
+      "mode": "probe",
+      "law": "Inv3915: one config term, the primary newest",
+      "proven": true,
+      "checked": true,
+      "wallMs": 2816.383986,
+      "countedMs": 972.8125007999998,
+      "usage": {
+        "complete": true,
+        "laws": [
+          {
+            "name": "one primary per term",
+            "forall": "key$2",
+            "keys": [
+              "key$3"
+            ],
+            "holds": {
+              "op": "or",
+              "xs": [
+                {
+                  "op": "not",
+                  "x": {
+                    "op": "and",
+                    "xs": [
+                      {
+                        "op": "<",
+                        "a": {
+                          "op": "var",
+                          "name": "key$2"
+                        },
+                        "b": {
+                          "op": "var",
+                          "name": "size"
+                        }
+                      },
+                      {
+                        "op": "<",
+                        "a": {
+                          "op": "var",
+                          "name": "key$3"
+                        },
+                        "b": {
+                          "op": "var",
+                          "name": "size"
+                        }
+                      },
+                      {
+                        "op": "=",
+                        "a": {
+                          "op": "get",
+                          "map": "St",
+                          "key": {
+                            "op": "var",
+                            "name": "key$2"
+                          }
+                        },
+                        "b": {
+                          "op": "const",
+                          "value": 1
+                        }
+                      },
+                      {
+                        "op": "=",
+                        "a": {
+                          "op": "get",
+                          "map": "St",
+                          "key": {
+                            "op": "var",
+                            "name": "key$3"
+                          }
+                        },
+                        "b": {
+                          "op": "const",
+                          "value": 1
+                        }
+                      },
+                      {
+                        "op": "=",
+                        "a": {
+                          "op": "get",
+                          "map": "CT",
+                          "key": {
+                            "op": "var",
+                            "name": "key$2"
+                          }
+                        },
+                        "b": {
+                          "op": "get",
+                          "map": "CT",
+                          "key": {
+                            "op": "var",
+                            "name": "key$3"
+                          }
+                        }
+                      }
+                    ]
+                  }
+                },
+                {
+                  "op": "=",
+                  "a": {
+                    "op": "var",
+                    "name": "key$2"
+                  },
+                  "b": {
+                    "op": "var",
+                    "name": "key$3"
+                  }
+                }
+              ]
+            }
+          },
+          {
+            "name": "Inv866: a primary at its config term",
+            "forall": "a$",
+            "keys": [],
+            "holds": {
+              "op": "or",
+              "xs": [
+                {
+                  "op": "not",
+                  "x": {
+                    "op": "and",
+                    "xs": [
+                      {
+                        "op": "<",
+                        "a": {
+                          "op": "var",
+                          "name": "a$"
+                        },
+                        "b": {
+                          "op": "var",
+                          "name": "size"
+                        }
+                      },
+                      {
+                        "op": "=",
+                        "a": {
+                          "op": "get",
+                          "map": "St",
+                          "key": {
+                            "op": "var",
+                            "name": "a$"
+                          }
+                        },
+                        "b": {
+                          "op": "const",
+                          "value": 1
+                        }
+                      }
+                    ]
+                  }
+                },
+                {
+                  "op": "=",
+                  "a": {
+                    "op": "get",
+                    "map": "CfgT",
+                    "key": {
+                      "op": "var",
+                      "name": "a$"
+                    }
+                  },
+                  "b": {
+                    "op": "get",
+                    "map": "CT",
+                    "key": {
+                      "op": "var",
+                      "name": "a$"
+                    }
+                  }
+                }
+              ]
+            }
+          },
+          {
+            "name": "Inv3915: one config term, the primary newest",
+            "forall": "a$",
+            "keys": [
+              "b$"
+            ],
+            "holds": {
+              "op": "or",
+              "xs": [
+                {
+                  "op": "not",
+                  "x": {
+                    "op": "and",
+                    "xs": [
+                      {
+                        "op": "<",
+                        "a": {
+                          "op": "var",
+                          "name": "a$"
+                        },
+                        "b": {
+                          "op": "var",
+                          "name": "size"
+                        }
+                      },
+                      {
+                        "op": "<",
+                        "a": {
+                          "op": "var",
+                          "name": "b$"
+                        },
+                        "b": {
+                          "op": "var",
+                          "name": "size"
+                        }
+                      },
+                      {
+                        "op": "=",
+                        "a": {
+                          "op": "get",
+                          "map": "CfgT",
+                          "key": {
+                            "op": "var",
+                            "name": "a$"
+                          }
+                        },
+                        "b": {
+                          "op": "get",
+                          "map": "CfgT",
+                          "key": {
+                            "op": "var",
+                            "name": "b$"
+                          }
+                        }
+                      },
+                      {
+                        "op": "=",
+                        "a": {
+                          "op": "get",
+                          "map": "St",
+                          "key": {
+                            "op": "var",
+                            "name": "a$"
+                          }
+                        },
+                        "b": {
+                          "op": "const",
+                          "value": 1
+                        }
+                      }
+                    ]
+                  }
+                },
+                {
+                  "op": "not",
+                  "x": {
+                    "op": "or",
+                    "xs": [
+                      {
+                        "op": "<",
+                        "a": {
+                          "op": "get",
+                          "map": "CfgT",
+                          "key": {
+                            "op": "var",
+                            "name": "a$"
+                          }
+                        },
+                        "b": {
+                          "op": "get",
+                          "map": "CfgT",
+                          "key": {
+                            "op": "var",
+                            "name": "b$"
+                          }
+                        }
+                      },
+                      {
+                        "op": "and",
+                        "xs": [
+                          {
+                            "op": "=",
+                            "a": {
+                              "op": "get",
+                              "map": "CfgT",
+                              "key": {
+                                "op": "var",
+                                "name": "b$"
+                              }
+                            },
+                            "b": {
+                              "op": "get",
+                              "map": "CfgT",
+                              "key": {
+                                "op": "var",
+                                "name": "a$"
+                              }
+                            }
+                          },
+                          {
+                            "op": "<",
+                            "a": {
+                              "op": "get",
+                              "map": "CV",
+                              "key": {
+                                "op": "var",
+                                "name": "a$"
+                              }
+                            },
+                            "b": {
+                              "op": "get",
+                              "map": "CV",
+                              "key": {
+                                "op": "var",
+                                "name": "b$"
+                              }
+                            }
+                          }
+                        ]
+                      }
+                    ]
+                  }
+                }
+              ]
+            }
+          },
+          {
+            "name": "Inv*: no quorum of a config can still be gathered for a config term held",
+            "forall": "a$",
+            "keys": [
+              "j$"
+            ],
+            "holds": {
+              "op": "or",
+              "xs": [
+                {
+                  "op": "not",
+                  "x": {
+                    "op": "and",
+                    "xs": [
+                      {
+                        "op": "<",
+                        "a": {
+                          "op": "var",
+                          "name": "a$"
+                        },
+                        "b": {
+                          "op": "var",
+                          "name": "size"
+                        }
+                      },
+                      {
+                        "op": "<",
+                        "a": {
+                          "op": "var",
+                          "name": "j$"
+                        },
+                        "b": {
+                          "op": "var",
+                          "name": "size"
+                        }
+                      }
+                    ]
+                  }
+                },
+                {
+                  "op": "<=",
+                  "a": {
+                    "op": "mul",
+                    "k": 2,
+                    "a": {
+                      "op": "get",
+                      "map": "bq",
+                      "key": {
+                        "op": "add",
+                        "a": {
+                          "op": "mul",
+                          "k": 64,
+                          "a": {
+                            "op": "var",
+                            "name": "a$"
+                          }
+                        },
+                        "b": {
+                          "op": "var",
+                          "name": "j$"
+                        }
+                      }
+                    }
+                  },
+                  "b": {
+                    "op": "get",
+                    "map": "cfgSize",
+                    "key": {
+                      "op": "var",
+                      "name": "a$"
+                    }
+                  }
+                }
+              ]
+            }
+          },
+          {
+            "name": "p2: before start no terms and no primary",
+            "forall": "a$",
+            "keys": [],
+            "holds": {
+              "op": "or",
+              "xs": [
+                {
+                  "op": "not",
+                  "x": {
+                    "op": "and",
+                    "xs": [
+                      {
+                        "op": "=",
+                        "a": {
+                          "op": "var",
+                          "name": "started"
+                        },
+                        "b": {
+                          "op": "const",
+                          "value": 0
+                        }
+                      },
+                      {
+                        "op": "<",
+                        "a": {
+                          "op": "var",
+                          "name": "a$"
+                        },
+                        "b": {
+                          "op": "var",
+                          "name": "size"
+                        }
+                      }
+                    ]
+                  }
+                },
+                {
+                  "op": "and",
+                  "xs": [
+                    {
+                      "op": "=",
+                      "a": {
+                        "op": "get",
+                        "map": "CfgT",
+                        "key": {
+                          "op": "var",
+                          "name": "a$"
+                        }
+                      },
+                      "b": {
+                        "op": "const",
+                        "value": 0
+                      }
+                    },
+                    {
+                      "op": "=",
+                      "a": {
+                        "op": "get",
+                        "map": "St",
+                        "key": {
+                          "op": "var",
+                          "name": "a$"
+                        }
+                      },
+                      "b": {
+                        "op": "const",
+                        "value": 0
+                      }
+                    },
+                    {
+                      "op": "=",
+                      "a": {
+                        "op": "get",
+                        "map": "CT",
+                        "key": {
+                          "op": "var",
+                          "name": "a$"
+                        }
+                      },
+                      "b": {
+                        "op": "const",
+                        "value": 0
+                      }
+                    }
+                  ]
+                }
+              ]
+            }
+          }
+        ]
+      },
+      "matches": [
+        {
+          "law": "one primary per term",
+          "generated": []
+        },
+        {
+          "law": "Inv866: a primary at its config term",
+          "generated": [
+            "fields: St[a]=1 -> CT[a]=CfgT[a]"
+          ]
+        },
+        {
+          "law": "Inv3915: one config term, the primary newest",
+          "generated": []
+        },
+        {
+          "law": "Inv*: no quorum of a config can still be gathered for a config term held",
+          "generated": []
+        },
+        {
+          "law": "p2: before start no terms and no primary",
+          "generated": []
+        }
+      ]
+    },
+    {
+      "side": "candidate",
+      "prefix": "Inv3915",
+      "mode": "probe",
+      "law": "Inv3915: one config term, the primary newest",
+      "proven": true,
+      "checked": true,
+      "wallMs": 2920.962087,
+      "countedMs": 973.2356207999998,
+      "usage": {
+        "complete": true,
+        "laws": [
+          {
+            "name": "one primary per term",
+            "forall": "key$2",
+            "keys": [
+              "key$3"
+            ],
+            "holds": {
+              "op": "or",
+              "xs": [
+                {
+                  "op": "not",
+                  "x": {
+                    "op": "and",
+                    "xs": [
+                      {
+                        "op": "<",
+                        "a": {
+                          "op": "var",
+                          "name": "key$2"
+                        },
+                        "b": {
+                          "op": "var",
+                          "name": "size"
+                        }
+                      },
+                      {
+                        "op": "<",
+                        "a": {
+                          "op": "var",
+                          "name": "key$3"
+                        },
+                        "b": {
+                          "op": "var",
+                          "name": "size"
+                        }
+                      },
+                      {
+                        "op": "=",
+                        "a": {
+                          "op": "get",
+                          "map": "St",
+                          "key": {
+                            "op": "var",
+                            "name": "key$2"
+                          }
+                        },
+                        "b": {
+                          "op": "const",
+                          "value": 1
+                        }
+                      },
+                      {
+                        "op": "=",
+                        "a": {
+                          "op": "get",
+                          "map": "St",
+                          "key": {
+                            "op": "var",
+                            "name": "key$3"
+                          }
+                        },
+                        "b": {
+                          "op": "const",
+                          "value": 1
+                        }
+                      },
+                      {
+                        "op": "=",
+                        "a": {
+                          "op": "get",
+                          "map": "CT",
+                          "key": {
+                            "op": "var",
+                            "name": "key$2"
+                          }
+                        },
+                        "b": {
+                          "op": "get",
+                          "map": "CT",
+                          "key": {
+                            "op": "var",
+                            "name": "key$3"
+                          }
+                        }
+                      }
+                    ]
+                  }
+                },
+                {
+                  "op": "=",
+                  "a": {
+                    "op": "var",
+                    "name": "key$2"
+                  },
+                  "b": {
+                    "op": "var",
+                    "name": "key$3"
+                  }
+                }
+              ]
+            }
+          },
+          {
+            "name": "Inv866: a primary at its config term",
+            "forall": "a$",
+            "keys": [],
+            "holds": {
+              "op": "or",
+              "xs": [
+                {
+                  "op": "not",
+                  "x": {
+                    "op": "and",
+                    "xs": [
+                      {
+                        "op": "<",
+                        "a": {
+                          "op": "var",
+                          "name": "a$"
+                        },
+                        "b": {
+                          "op": "var",
+                          "name": "size"
+                        }
+                      },
+                      {
+                        "op": "=",
+                        "a": {
+                          "op": "get",
+                          "map": "St",
+                          "key": {
+                            "op": "var",
+                            "name": "a$"
+                          }
+                        },
+                        "b": {
+                          "op": "const",
+                          "value": 1
+                        }
+                      }
+                    ]
+                  }
+                },
+                {
+                  "op": "=",
+                  "a": {
+                    "op": "get",
+                    "map": "CfgT",
+                    "key": {
+                      "op": "var",
+                      "name": "a$"
+                    }
+                  },
+                  "b": {
+                    "op": "get",
+                    "map": "CT",
+                    "key": {
+                      "op": "var",
+                      "name": "a$"
+                    }
+                  }
+                }
+              ]
+            }
+          },
+          {
+            "name": "Inv3915: one config term, the primary newest",
+            "forall": "a$",
+            "keys": [
+              "b$"
+            ],
+            "holds": {
+              "op": "or",
+              "xs": [
+                {
+                  "op": "not",
+                  "x": {
+                    "op": "and",
+                    "xs": [
+                      {
+                        "op": "<",
+                        "a": {
+                          "op": "var",
+                          "name": "a$"
+                        },
+                        "b": {
+                          "op": "var",
+                          "name": "size"
+                        }
+                      },
+                      {
+                        "op": "<",
+                        "a": {
+                          "op": "var",
+                          "name": "b$"
+                        },
+                        "b": {
+                          "op": "var",
+                          "name": "size"
+                        }
+                      },
+                      {
+                        "op": "=",
+                        "a": {
+                          "op": "get",
+                          "map": "CfgT",
+                          "key": {
+                            "op": "var",
+                            "name": "a$"
+                          }
+                        },
+                        "b": {
+                          "op": "get",
+                          "map": "CfgT",
+                          "key": {
+                            "op": "var",
+                            "name": "b$"
+                          }
+                        }
+                      },
+                      {
+                        "op": "=",
+                        "a": {
+                          "op": "get",
+                          "map": "St",
+                          "key": {
+                            "op": "var",
+                            "name": "a$"
+                          }
+                        },
+                        "b": {
+                          "op": "const",
+                          "value": 1
+                        }
+                      }
+                    ]
+                  }
+                },
+                {
+                  "op": "not",
+                  "x": {
+                    "op": "or",
+                    "xs": [
+                      {
+                        "op": "<",
+                        "a": {
+                          "op": "get",
+                          "map": "CfgT",
+                          "key": {
+                            "op": "var",
+                            "name": "a$"
+                          }
+                        },
+                        "b": {
+                          "op": "get",
+                          "map": "CfgT",
+                          "key": {
+                            "op": "var",
+                            "name": "b$"
+                          }
+                        }
+                      },
+                      {
+                        "op": "and",
+                        "xs": [
+                          {
+                            "op": "=",
+                            "a": {
+                              "op": "get",
+                              "map": "CfgT",
+                              "key": {
+                                "op": "var",
+                                "name": "b$"
+                              }
+                            },
+                            "b": {
+                              "op": "get",
+                              "map": "CfgT",
+                              "key": {
+                                "op": "var",
+                                "name": "a$"
+                              }
+                            }
+                          },
+                          {
+                            "op": "<",
+                            "a": {
+                              "op": "get",
+                              "map": "CV",
+                              "key": {
+                                "op": "var",
+                                "name": "a$"
+                              }
+                            },
+                            "b": {
+                              "op": "get",
+                              "map": "CV",
+                              "key": {
+                                "op": "var",
+                                "name": "b$"
+                              }
+                            }
+                          }
+                        ]
+                      }
+                    ]
+                  }
+                }
+              ]
+            }
+          },
+          {
+            "name": "Inv*: no quorum of a config can still be gathered for a config term held",
+            "forall": "a$",
+            "keys": [
+              "j$"
+            ],
+            "holds": {
+              "op": "or",
+              "xs": [
+                {
+                  "op": "not",
+                  "x": {
+                    "op": "and",
+                    "xs": [
+                      {
+                        "op": "<",
+                        "a": {
+                          "op": "var",
+                          "name": "a$"
+                        },
+                        "b": {
+                          "op": "var",
+                          "name": "size"
+                        }
+                      },
+                      {
+                        "op": "<",
+                        "a": {
+                          "op": "var",
+                          "name": "j$"
+                        },
+                        "b": {
+                          "op": "var",
+                          "name": "size"
+                        }
+                      }
+                    ]
+                  }
+                },
+                {
+                  "op": "<=",
+                  "a": {
+                    "op": "mul",
+                    "k": 2,
+                    "a": {
+                      "op": "get",
+                      "map": "bq",
+                      "key": {
+                        "op": "add",
+                        "a": {
+                          "op": "mul",
+                          "k": 64,
+                          "a": {
+                            "op": "var",
+                            "name": "a$"
+                          }
+                        },
+                        "b": {
+                          "op": "var",
+                          "name": "j$"
+                        }
+                      }
+                    }
+                  },
+                  "b": {
+                    "op": "get",
+                    "map": "cfgSize",
+                    "key": {
+                      "op": "var",
+                      "name": "a$"
+                    }
+                  }
+                }
+              ]
+            }
+          },
+          {
+            "name": "p2: before start no terms and no primary",
+            "forall": "a$",
+            "keys": [],
+            "holds": {
+              "op": "or",
+              "xs": [
+                {
+                  "op": "not",
+                  "x": {
+                    "op": "and",
+                    "xs": [
+                      {
+                        "op": "=",
+                        "a": {
+                          "op": "var",
+                          "name": "started"
+                        },
+                        "b": {
+                          "op": "const",
+                          "value": 0
+                        }
+                      },
+                      {
+                        "op": "<",
+                        "a": {
+                          "op": "var",
+                          "name": "a$"
+                        },
+                        "b": {
+                          "op": "var",
+                          "name": "size"
+                        }
+                      }
+                    ]
+                  }
+                },
+                {
+                  "op": "and",
+                  "xs": [
+                    {
+                      "op": "=",
+                      "a": {
+                        "op": "get",
+                        "map": "CfgT",
+                        "key": {
+                          "op": "var",
+                          "name": "a$"
+                        }
+                      },
+                      "b": {
+                        "op": "const",
+                        "value": 0
+                      }
+                    },
+                    {
+                      "op": "=",
+                      "a": {
+                        "op": "get",
+                        "map": "St",
+                        "key": {
+                          "op": "var",
+                          "name": "a$"
+                        }
+                      },
+                      "b": {
+                        "op": "const",
+                        "value": 0
+                      }
+                    },
+                    {
+                      "op": "=",
+                      "a": {
+                        "op": "get",
+                        "map": "CT",
+                        "key": {
+                          "op": "var",
+                          "name": "a$"
+                        }
+                      },
+                      "b": {
+                        "op": "const",
+                        "value": 0
+                      }
+                    }
+                  ]
+                }
+              ]
+            }
+          }
+        ]
+      },
+      "matches": [
+        {
+          "law": "one primary per term",
+          "generated": []
+        },
+        {
+          "law": "Inv866: a primary at its config term",
+          "generated": [
+            "fields: St[a]=1 -> CT[a]=CfgT[a]"
+          ]
+        },
+        {
+          "law": "Inv3915: one config term, the primary newest",
+          "generated": []
+        },
+        {
+          "law": "Inv*: no quorum of a config can still be gathered for a config term held",
+          "generated": []
+        },
+        {
+          "law": "p2: before start no terms and no primary",
+          "generated": []
+        }
+      ]
+    },
+    {
+      "side": "parent",
+      "prefix": "Inv1758",
+      "mode": "probe",
+      "law": "Inv1758: one version and term, one config",
+      "proven": false,
+      "checked": false,
+      "wallMs": 6530.8099330000005,
+      "countedMs": 5000.2731204,
+      "usage": null,
+      "matches": []
+    },
+    {
+      "side": "candidate",
+      "prefix": "Inv1758",
+      "mode": "probe",
+      "law": "Inv1758: one version and term, one config",
+      "proven": false,
+      "checked": false,
+      "wallMs": 6147.799839,
+      "countedMs": 5000.780864400001,
+      "usage": null,
+      "matches": []
+    },
+    {
+      "side": "parent",
+      "prefix": "Inv2973",
+      "mode": "probe",
+      "law": "Inv2973: quorums overlap, or a config disabled",
+      "proven": false,
+      "checked": false,
+      "wallMs": 22247.706775000002,
+      "countedMs": 5396.4516384,
+      "usage": null,
+      "matches": []
+    },
+    {
+      "side": "candidate",
+      "prefix": "Inv2973",
+      "mode": "probe",
+      "law": "Inv2973: quorums overlap, or a config disabled",
+      "proven": false,
+      "checked": false,
+      "wallMs": 19552.456529000003,
+      "countedMs": 5234.4054464,
+      "usage": null,
+      "matches": []
+    },
+    {
+      "side": "parent",
+      "prefix": "Inv*",
+      "mode": "probe",
+      "law": "Inv*: no quorum of a config can still be gathered for a config term held",
+      "proven": false,
+      "checked": false,
+      "wallMs": 15158.772892,
+      "countedMs": 5137.4358176000005,
+      "usage": null,
+      "matches": []
+    },
+    {
+      "side": "candidate",
+      "prefix": "Inv*",
+      "mode": "probe",
+      "law": "Inv*: no quorum of a config can still be gathered for a config term held",
+      "proven": false,
+      "checked": false,
+      "wallMs": 16657.332359,
+      "countedMs": 5137.4358176000005,
+      "usage": null,
+      "matches": []
+    }
+  ]
+}

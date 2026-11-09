@@ -1,0 +1,541 @@
+[
+  {
+    "law": "one primary per term",
+    "A": 926.6334919999999,
+    "B": 947.5432539999999,
+    "delta": 20.909762,
+    "counterDelta": {
+      "solves": 10,
+      "solveRows": 30,
+      "fm": 20,
+      "cdclNodes": 146,
+      "cdclRows": 50315,
+      "scan": 44127,
+      "pivots": 10,
+      "pivotRows": 44,
+      "values": 1402,
+      "copies": 484,
+      "edges": 1622,
+      "goalNodes": 834
+    },
+    "weightedDelta": 20.909761999999997,
+    "focusedInstances": {
+      "A": 22,
+      "B": 23,
+      "extra": [
+        {
+          "wit": "w$34",
+          "below": {
+            "op": "var",
+            "name": "size"
+          },
+          "terms": [
+            [
+              1,
+              "r$2"
+            ],
+            [
+              -1,
+              "r$7"
+            ]
+          ],
+          "unit": 0
+        }
+      ],
+      "reads": [
+        [
+          "r$0",
+          "inX",
+          {
+            "op": "const",
+            "value": 0
+          }
+        ],
+        [
+          "r$1",
+          "inS",
+          {
+            "op": "const",
+            "value": 0
+          }
+        ],
+        [
+          "r$2",
+          "inQ2",
+          {
+            "op": "const",
+            "value": 0
+          }
+        ],
+        [
+          "r$3",
+          "xNotS",
+          {
+            "op": "const",
+            "value": 0
+          }
+        ],
+        [
+          "r$4",
+          "xAndS",
+          {
+            "op": "const",
+            "value": 0
+          }
+        ],
+        [
+          "r$5",
+          "sNotX",
+          {
+            "op": "const",
+            "value": 0
+          }
+        ],
+        [
+          "r$6",
+          "cfgSize",
+          {
+            "op": "var",
+            "name": "i"
+          }
+        ],
+        [
+          "r$7",
+          "bq",
+          {
+            "op": "add",
+            "a": {
+              "op": "mul",
+              "k": 64,
+              "a": {
+                "op": "var",
+                "name": "i"
+              }
+            },
+            "b": {
+              "op": "var",
+              "name": "i"
+            }
+          }
+        ],
+        [
+          "r$8",
+          "bq",
+          {
+            "op": "add",
+            "a": {
+              "op": "mul",
+              "k": 64,
+              "a": {
+                "op": "var",
+                "name": "i"
+              }
+            },
+            "b": {
+              "op": "var",
+              "name": "key$2#"
+            }
+          }
+        ],
+        [
+          "r$9",
+          "bq",
+          {
+            "op": "add",
+            "a": {
+              "op": "mul",
+              "k": 64,
+              "a": {
+                "op": "var",
+                "name": "i"
+              }
+            },
+            "b": {
+              "op": "var",
+              "name": "key$3"
+            }
+          }
+        ]
+      ]
+    },
+    "generatorUnits": 0,
+    "queryCalls": {
+      "A": 64,
+      "B": 64
+    },
+    "queryDelta": 20.693282000000067,
+    "growDelta": 0.2164799999995921,
+    "changedQueries": [
+      {
+        "ordinal": 5,
+        "A": {
+          "hyps": 84,
+          "units": 49.465807999999996,
+          "why": "a model"
+        },
+        "B": {
+          "hyps": 88,
+          "units": 54.973699999999994,
+          "why": "a model"
+        },
+        "delta": 5.507891999999998
+      },
+      {
+        "ordinal": 6,
+        "A": {
+          "hyps": 84,
+          "units": 48.199790000000036,
+          "why": "a model"
+        },
+        "B": {
+          "hyps": 88,
+          "units": 52.979022000000015,
+          "why": "a model"
+        },
+        "delta": 4.779231999999979
+      },
+      {
+        "ordinal": 42,
+        "A": {
+          "hyps": 84,
+          "units": 49.90026799999998,
+          "why": "a model"
+        },
+        "B": {
+          "hyps": 88,
+          "units": 55.46966599999996,
+          "why": "a model"
+        },
+        "delta": 5.569397999999978
+      },
+      {
+        "ordinal": 43,
+        "A": {
+          "hyps": 84,
+          "units": 48.63302599999997,
+          "why": "a model"
+        },
+        "B": {
+          "hyps": 88,
+          "units": 53.469786,
+          "why": "a model"
+        },
+        "delta": 4.836760000000027
+      }
+    ]
+  },
+  {
+    "law": "Inv3915: one config term, the primary newest",
+    "A": 872.3352536000001,
+    "B": 874.1162936000002,
+    "delta": 1.7810400000000755,
+    "counterDelta": {
+      "goalNodes": 905
+    },
+    "weightedDelta": 1.78104,
+    "focusedInstances": {
+      "A": 31,
+      "B": 32,
+      "extra": [
+        {
+          "wit": "w$61",
+          "below": {
+            "op": "var",
+            "name": "size"
+          },
+          "terms": [
+            [
+              1,
+              "r$5"
+            ],
+            [
+              -1,
+              "r$7"
+            ]
+          ],
+          "unit": 0
+        }
+      ],
+      "reads": [
+        [
+          "r$0",
+          "xNotS",
+          {
+            "op": "const",
+            "value": 0
+          }
+        ],
+        [
+          "r$1",
+          "xAndS",
+          {
+            "op": "const",
+            "value": 0
+          }
+        ],
+        [
+          "r$2",
+          "sNotX",
+          {
+            "op": "const",
+            "value": 0
+          }
+        ],
+        [
+          "r$3",
+          "inX",
+          {
+            "op": "const",
+            "value": 0
+          }
+        ],
+        [
+          "r$4",
+          "inS",
+          {
+            "op": "const",
+            "value": 0
+          }
+        ],
+        [
+          "r$5",
+          "inQ2",
+          {
+            "op": "const",
+            "value": 0
+          }
+        ],
+        [
+          "r$6",
+          "cfgSize",
+          {
+            "op": "var",
+            "name": "i"
+          }
+        ],
+        [
+          "r$7",
+          "bq",
+          {
+            "op": "add",
+            "a": {
+              "op": "mul",
+              "k": 64,
+              "a": {
+                "op": "var",
+                "name": "i"
+              }
+            },
+            "b": {
+              "op": "var",
+              "name": "i"
+            }
+          }
+        ],
+        [
+          "r$8",
+          "bq",
+          {
+            "op": "add",
+            "a": {
+              "op": "mul",
+              "k": 64,
+              "a": {
+                "op": "var",
+                "name": "i"
+              }
+            },
+            "b": {
+              "op": "var",
+              "name": "a$#"
+            }
+          }
+        ],
+        [
+          "r$9",
+          "bq",
+          {
+            "op": "add",
+            "a": {
+              "op": "mul",
+              "k": 64,
+              "a": {
+                "op": "var",
+                "name": "i"
+              }
+            },
+            "b": {
+              "op": "var",
+              "name": "b$"
+            }
+          }
+        ]
+      ]
+    },
+    "generatorUnits": 0,
+    "queryCalls": {
+      "A": 15,
+      "B": 15
+    },
+    "queryDelta": -3.410605131648481e-13,
+    "growDelta": 1.7810400000000755,
+    "changedQueries": []
+  },
+  {
+    "law": "Inv1758: one version and term, one config",
+    "A": 4310.4753532,
+    "B": 4312.6126011999995,
+    "delta": 2.13724799999909,
+    "counterDelta": {
+      "goalNodes": 1086
+    },
+    "weightedDelta": 2.137248,
+    "focusedInstances": {
+      "A": 31,
+      "B": 32,
+      "extra": [
+        {
+          "wit": "w$61",
+          "below": {
+            "op": "var",
+            "name": "size"
+          },
+          "terms": [
+            [
+              1,
+              "r$5"
+            ],
+            [
+              -1,
+              "r$7"
+            ]
+          ],
+          "unit": 0
+        }
+      ],
+      "reads": [
+        [
+          "r$0",
+          "xNotS",
+          {
+            "op": "const",
+            "value": 0
+          }
+        ],
+        [
+          "r$1",
+          "xAndS",
+          {
+            "op": "const",
+            "value": 0
+          }
+        ],
+        [
+          "r$2",
+          "sNotX",
+          {
+            "op": "const",
+            "value": 0
+          }
+        ],
+        [
+          "r$3",
+          "inX",
+          {
+            "op": "const",
+            "value": 0
+          }
+        ],
+        [
+          "r$4",
+          "inS",
+          {
+            "op": "const",
+            "value": 0
+          }
+        ],
+        [
+          "r$5",
+          "inQ2",
+          {
+            "op": "const",
+            "value": 0
+          }
+        ],
+        [
+          "r$6",
+          "cfgSize",
+          {
+            "op": "var",
+            "name": "i"
+          }
+        ],
+        [
+          "r$7",
+          "bq",
+          {
+            "op": "add",
+            "a": {
+              "op": "mul",
+              "k": 64,
+              "a": {
+                "op": "var",
+                "name": "i"
+              }
+            },
+            "b": {
+              "op": "var",
+              "name": "i"
+            }
+          }
+        ],
+        [
+          "r$8",
+          "bq",
+          {
+            "op": "add",
+            "a": {
+              "op": "mul",
+              "k": 64,
+              "a": {
+                "op": "var",
+                "name": "i"
+              }
+            },
+            "b": {
+              "op": "var",
+              "name": "a$#"
+            }
+          }
+        ],
+        [
+          "r$9",
+          "bq",
+          {
+            "op": "add",
+            "a": {
+              "op": "mul",
+              "k": 64,
+              "a": {
+                "op": "var",
+                "name": "i"
+              }
+            },
+            "b": {
+              "op": "var",
+              "name": "b$"
+            }
+          }
+        ]
+      ]
+    },
+    "generatorUnits": 0,
+    "queryCalls": {
+      "A": 63,
+      "B": 63
+    },
+    "queryDelta": 0,
+    "growDelta": 2.1372480000047744,
+    "changedQueries": []
+  }
+]

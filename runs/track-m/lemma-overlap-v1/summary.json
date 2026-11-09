@@ -1,0 +1,1300 @@
+{
+  "receiptOnly": true,
+  "policyChanged": false,
+  "solverInvoked": false,
+  "coverage": {
+    "archives": 39,
+    "manifestVerified": 28,
+    "parsedArchiveErrors": [],
+    "positiveRecordsIncludingDuplicates": 22078,
+    "unresolvedIndexedFrameRecords": 4323
+  },
+  "primary": [
+    {
+      "law": "Inv2973",
+      "op": 0,
+      "total": 2709.5656931999997,
+      "fieldUnits": 595.2500500000002,
+      "frameUnits": 1536.0285315999997,
+      "helperUnits": 2131.2785816,
+      "otherUnits": 578.2871115999999,
+      "provedLemmaInventory": null,
+      "perLemmaUnits": null,
+      "opIndependentOverlap": null,
+      "oncePerLawRemainingUnits": null
+    },
+    {
+      "law": "Inv2973",
+      "op": 4,
+      "total": 3988.8232120000002,
+      "fieldUnits": 2183.8052959999995,
+      "frameUnits": 994.3743208000008,
+      "helperUnits": 3178.1796168,
+      "otherUnits": 810.6435951999999,
+      "provedLemmaInventory": null,
+      "perLemmaUnits": null,
+      "opIndependentOverlap": null,
+      "oncePerLawRemainingUnits": null
+    },
+    {
+      "law": "Inv*",
+      "op": 3,
+      "total": 2452.3536191999997,
+      "fieldUnits": 832.0724563999997,
+      "frameUnits": 236.79977919999982,
+      "helperUnits": 1068.8722355999996,
+      "otherUnits": 1383.4813836,
+      "provedLemmaInventory": null,
+      "perLemmaUnits": null,
+      "opIndependentOverlap": null,
+      "oncePerLawRemainingUnits": null
+    }
+  ],
+  "totals": [
+    {
+      "law": "Inv2973",
+      "coveredOps": [
+        0,
+        4
+      ],
+      "observedOpSubtotal": 6698.3889051999995,
+      "fieldUnits": 2779.0553459999996,
+      "frameUnits": 2530.4028524000005,
+      "remainingIfAllHelperWorkWereFree": 1388.9307067999998,
+      "remainingOncePerLaw": null,
+      "justifiedReusableSavings": null
+    },
+    {
+      "law": "Inv*",
+      "coveredOps": [
+        3
+      ],
+      "observedOpSubtotal": 2452.3536191999997,
+      "fieldUnits": 832.0724563999997,
+      "frameUnits": 236.79977919999982,
+      "remainingIfAllHelperWorkWereFree": 1383.4813836,
+      "remainingOncePerLaw": null,
+      "justifiedReusableSavings": null
+    }
+  ],
+  "historical": [
+    {
+      "id": "F1",
+      "statement": "(if(((?committedQuorum = 1) && (j$ < size)), CfgT[j$], 0) <= CT[i])",
+      "mentions": {
+        "op": false,
+        "guard": true,
+        "postState": false
+      },
+      "proofScopeAvailable": false,
+      "rootLiftProven": false,
+      "coverage": [
+        {
+          "law": "Inv*",
+          "op": null,
+          "positiveRecords": 118,
+          "checkedRecords": 51,
+          "deferredRecords": 67,
+          "recordedClockDeltaRange": [
+            16,
+            122
+          ],
+          "countedUnits": null,
+          "examples": [
+            {
+              "file": "action-profiles-v1/action-0.log",
+              "path": "$.trace.27",
+              "receipt": "7428add47cb58cac6154e65ec7ce8c50b6dcce61d2a0968ecfb2618b88d94ced"
+            },
+            {
+              "file": "action-profiles-v1/action-1.log",
+              "path": "$.trace.28",
+              "receipt": "e48dde75b5411653dc3dc07e7d0589853dc251f436ea554d00d5a3424a07bb8a"
+            }
+          ]
+        },
+        {
+          "law": "Inv*",
+          "op": 5,
+          "positiveRecords": 112,
+          "checkedRecords": 0,
+          "deferredRecords": 112,
+          "recordedClockDeltaRange": [
+            9,
+            143
+          ],
+          "countedUnits": null,
+          "examples": [
+            {
+              "file": "activation-reuse-v1/focused-law-4.log",
+              "path": "$.trace.370",
+              "receipt": "760f694ec43576bb748090a159eed97917cd98b87833993fe46a5c43696936e0"
+            },
+            {
+              "file": "activation-reuse-v2/focused-law-4.log",
+              "path": "$.trace.370",
+              "receipt": "b02fe02d05f57e92e653481fa5d44c85aa317ea4f675172311f30e2ea214f015"
+            }
+          ]
+        },
+        {
+          "law": "Inv*",
+          "op": 2,
+          "positiveRecords": 42,
+          "checkedRecords": 0,
+          "deferredRecords": 42,
+          "recordedClockDeltaRange": [
+            29,
+            35
+          ],
+          "countedUnits": null,
+          "examples": [
+            {
+              "file": "activation-reuse-v1/focused-law-4.log",
+              "path": "$.trace.192",
+              "receipt": "760f694ec43576bb748090a159eed97917cd98b87833993fe46a5c43696936e0"
+            },
+            {
+              "file": "activation-reuse-v2/focused-law-4.log",
+              "path": "$.trace.192",
+              "receipt": "b02fe02d05f57e92e653481fa5d44c85aa317ea4f675172311f30e2ea214f015"
+            }
+          ]
+        },
+        {
+          "law": "Inv*",
+          "op": 1,
+          "positiveRecords": 42,
+          "checkedRecords": 0,
+          "deferredRecords": 42,
+          "recordedClockDeltaRange": [
+            31,
+            36
+          ],
+          "countedUnits": null,
+          "examples": [
+            {
+              "file": "activation-reuse-v1/focused-law-4.log",
+              "path": "$.trace.92",
+              "receipt": "760f694ec43576bb748090a159eed97917cd98b87833993fe46a5c43696936e0"
+            },
+            {
+              "file": "activation-reuse-v2/focused-law-4.log",
+              "path": "$.trace.92",
+              "receipt": "b02fe02d05f57e92e653481fa5d44c85aa317ea4f675172311f30e2ea214f015"
+            }
+          ]
+        },
+        {
+          "law": "Inv*",
+          "op": 0,
+          "positiveRecords": 42,
+          "checkedRecords": 0,
+          "deferredRecords": 42,
+          "recordedClockDeltaRange": [
+            30,
+            64
+          ],
+          "countedUnits": null,
+          "examples": [
+            {
+              "file": "activation-reuse-v1/focused-law-4.log",
+              "path": "$.trace.27",
+              "receipt": "760f694ec43576bb748090a159eed97917cd98b87833993fe46a5c43696936e0"
+            },
+            {
+              "file": "activation-reuse-v2/focused-law-4.log",
+              "path": "$.trace.27",
+              "receipt": "b02fe02d05f57e92e653481fa5d44c85aa317ea4f675172311f30e2ea214f015"
+            }
+          ]
+        },
+        {
+          "law": "Inv*",
+          "op": 4,
+          "positiveRecords": 5,
+          "checkedRecords": 0,
+          "deferredRecords": 5,
+          "recordedClockDeltaRange": [
+            30,
+            30
+          ],
+          "countedUnits": null,
+          "examples": [
+            {
+              "file": "column-domain-v1/focused-law-4.log",
+              "path": "$.trace.374",
+              "receipt": "abf664eef917fdebdcc4c9049913ecb3c3f0692daec36e24c26433bebeddc5c1"
+            },
+            {
+              "file": "column-domain-v2/focused-law-4.log",
+              "path": "$.trace.374",
+              "receipt": "45f7cb058a4f5d44ee84b3d2121d291a87198efa743885f65bc3ecc5bbcc3b1a"
+            }
+          ]
+        }
+      ]
+    },
+    {
+      "id": "F2",
+      "statement": "(if(((?canVote = 1) && (j$ < size)), CfgT[j$], 0) <= CT[i])",
+      "mentions": {
+        "op": false,
+        "guard": true,
+        "postState": false
+      },
+      "proofScopeAvailable": false,
+      "rootLiftProven": false,
+      "coverage": [
+        {
+          "law": "Inv*",
+          "op": null,
+          "positiveRecords": 272,
+          "checkedRecords": 99,
+          "deferredRecords": 169,
+          "recordedClockDeltaRange": [
+            12,
+            266
+          ],
+          "countedUnits": null,
+          "examples": [
+            {
+              "file": "action-profiles-v1/action-0.log",
+              "path": "$.trace.24",
+              "receipt": "7428add47cb58cac6154e65ec7ce8c50b6dcce61d2a0968ecfb2618b88d94ced"
+            },
+            {
+              "file": "action-profiles-v1/action-1.log",
+              "path": "$.trace.25",
+              "receipt": "e48dde75b5411653dc3dc07e7d0589853dc251f436ea554d00d5a3424a07bb8a"
+            }
+          ]
+        },
+        {
+          "law": "Inv*",
+          "op": 2,
+          "positiveRecords": 42,
+          "checkedRecords": 0,
+          "deferredRecords": 42,
+          "recordedClockDeltaRange": [
+            29,
+            35
+          ],
+          "countedUnits": null,
+          "examples": [
+            {
+              "file": "activation-reuse-v1/focused-law-4.log",
+              "path": "$.trace.189",
+              "receipt": "760f694ec43576bb748090a159eed97917cd98b87833993fe46a5c43696936e0"
+            },
+            {
+              "file": "activation-reuse-v2/focused-law-4.log",
+              "path": "$.trace.189",
+              "receipt": "b02fe02d05f57e92e653481fa5d44c85aa317ea4f675172311f30e2ea214f015"
+            }
+          ]
+        },
+        {
+          "law": "Inv*",
+          "op": 1,
+          "positiveRecords": 42,
+          "checkedRecords": 0,
+          "deferredRecords": 42,
+          "recordedClockDeltaRange": [
+            30,
+            36
+          ],
+          "countedUnits": null,
+          "examples": [
+            {
+              "file": "activation-reuse-v1/focused-law-4.log",
+              "path": "$.trace.89",
+              "receipt": "760f694ec43576bb748090a159eed97917cd98b87833993fe46a5c43696936e0"
+            },
+            {
+              "file": "activation-reuse-v2/focused-law-4.log",
+              "path": "$.trace.89",
+              "receipt": "b02fe02d05f57e92e653481fa5d44c85aa317ea4f675172311f30e2ea214f015"
+            }
+          ]
+        },
+        {
+          "law": "Inv*",
+          "op": 0,
+          "positiveRecords": 42,
+          "checkedRecords": 0,
+          "deferredRecords": 42,
+          "recordedClockDeltaRange": [
+            30,
+            63
+          ],
+          "countedUnits": null,
+          "examples": [
+            {
+              "file": "activation-reuse-v1/focused-law-4.log",
+              "path": "$.trace.24",
+              "receipt": "760f694ec43576bb748090a159eed97917cd98b87833993fe46a5c43696936e0"
+            },
+            {
+              "file": "activation-reuse-v2/focused-law-4.log",
+              "path": "$.trace.24",
+              "receipt": "b02fe02d05f57e92e653481fa5d44c85aa317ea4f675172311f30e2ea214f015"
+            }
+          ]
+        },
+        {
+          "law": "Inv*",
+          "op": 4,
+          "positiveRecords": 19,
+          "checkedRecords": 0,
+          "deferredRecords": 19,
+          "recordedClockDeltaRange": [
+            12,
+            133
+          ],
+          "countedUnits": null,
+          "examples": [
+            {
+              "file": "carried-support-v1/backing-complete.log",
+              "path": "$.trace.501",
+              "receipt": "dabf925e16ebd227dba589fa6907e5c1917ac35981c5c79a7cd2499cdf013921"
+            },
+            {
+              "file": "column-domain-v1/focused-law-4.log",
+              "path": "$.trace.395",
+              "receipt": "abf664eef917fdebdcc4c9049913ecb3c3f0692daec36e24c26433bebeddc5c1"
+            }
+          ]
+        },
+        {
+          "law": "Inv*",
+          "op": 5,
+          "positiveRecords": 28,
+          "checkedRecords": 0,
+          "deferredRecords": 28,
+          "recordedClockDeltaRange": [
+            85,
+            85
+          ],
+          "countedUnits": null,
+          "examples": [
+            {
+              "file": "closure-final-smoke-v1/demand-and-sources.log",
+              "path": "$.fieldAttempts.0",
+              "receipt": "b3616d8ea86392424fe6c2bb38032c9b350ed339374840748e589d0e304b3d7b"
+            },
+            {
+              "file": "closure-final-smoke-v2/demand-and-sources.log",
+              "path": "$.fieldAttempts.0",
+              "receipt": "8e426b7167534e70bf959ca40f2e2fa8f2754ab3ba9cb65991da93c1a16e3958"
+            }
+          ]
+        }
+      ]
+    },
+    {
+      "id": "F3",
+      "statement": "(if(((?committedQuorum = 1) && (i < size)), CfgT[i], 0) <= CT[i])",
+      "mentions": {
+        "op": false,
+        "guard": true,
+        "postState": false
+      },
+      "proofScopeAvailable": false,
+      "rootLiftProven": false,
+      "coverage": [
+        {
+          "law": "Inv*",
+          "op": null,
+          "positiveRecords": 51,
+          "checkedRecords": 6,
+          "deferredRecords": 45,
+          "recordedClockDeltaRange": [
+            29,
+            33
+          ],
+          "countedUnits": null,
+          "examples": [
+            {
+              "file": "action-profiles-v1/action-0.log",
+              "path": "$.trace.21",
+              "receipt": "7428add47cb58cac6154e65ec7ce8c50b6dcce61d2a0968ecfb2618b88d94ced"
+            },
+            {
+              "file": "action-profiles-v1/action-1.log",
+              "path": "$.trace.22",
+              "receipt": "e48dde75b5411653dc3dc07e7d0589853dc251f436ea554d00d5a3424a07bb8a"
+            }
+          ]
+        },
+        {
+          "law": "Inv*",
+          "op": 4,
+          "positiveRecords": 17,
+          "checkedRecords": 0,
+          "deferredRecords": 17,
+          "recordedClockDeltaRange": [
+            29,
+            164
+          ],
+          "countedUnits": null,
+          "examples": [
+            {
+              "file": "activation-reuse-v1/focused-law-4.log",
+              "path": "$.trace.340",
+              "receipt": "760f694ec43576bb748090a159eed97917cd98b87833993fe46a5c43696936e0"
+            },
+            {
+              "file": "activation-reuse-v2/focused-law-4.log",
+              "path": "$.trace.340",
+              "receipt": "b02fe02d05f57e92e653481fa5d44c85aa317ea4f675172311f30e2ea214f015"
+            }
+          ]
+        },
+        {
+          "law": "Inv*",
+          "op": 2,
+          "positiveRecords": 42,
+          "checkedRecords": 0,
+          "deferredRecords": 42,
+          "recordedClockDeltaRange": [
+            14,
+            31
+          ],
+          "countedUnits": null,
+          "examples": [
+            {
+              "file": "activation-reuse-v1/focused-law-4.log",
+              "path": "$.trace.186",
+              "receipt": "760f694ec43576bb748090a159eed97917cd98b87833993fe46a5c43696936e0"
+            },
+            {
+              "file": "activation-reuse-v2/focused-law-4.log",
+              "path": "$.trace.186",
+              "receipt": "b02fe02d05f57e92e653481fa5d44c85aa317ea4f675172311f30e2ea214f015"
+            }
+          ]
+        },
+        {
+          "law": "Inv*",
+          "op": 1,
+          "positiveRecords": 42,
+          "checkedRecords": 0,
+          "deferredRecords": 42,
+          "recordedClockDeltaRange": [
+            14,
+            33
+          ],
+          "countedUnits": null,
+          "examples": [
+            {
+              "file": "activation-reuse-v1/focused-law-4.log",
+              "path": "$.trace.86",
+              "receipt": "760f694ec43576bb748090a159eed97917cd98b87833993fe46a5c43696936e0"
+            },
+            {
+              "file": "activation-reuse-v2/focused-law-4.log",
+              "path": "$.trace.86",
+              "receipt": "b02fe02d05f57e92e653481fa5d44c85aa317ea4f675172311f30e2ea214f015"
+            }
+          ]
+        },
+        {
+          "law": "Inv*",
+          "op": 0,
+          "positiveRecords": 42,
+          "checkedRecords": 0,
+          "deferredRecords": 42,
+          "recordedClockDeltaRange": [
+            30,
+            38
+          ],
+          "countedUnits": null,
+          "examples": [
+            {
+              "file": "activation-reuse-v1/focused-law-4.log",
+              "path": "$.trace.21",
+              "receipt": "760f694ec43576bb748090a159eed97917cd98b87833993fe46a5c43696936e0"
+            },
+            {
+              "file": "activation-reuse-v2/focused-law-4.log",
+              "path": "$.trace.21",
+              "receipt": "b02fe02d05f57e92e653481fa5d44c85aa317ea4f675172311f30e2ea214f015"
+            }
+          ]
+        }
+      ]
+    },
+    {
+      "id": "F4",
+      "statement": "(if(((?canVote = 1) && (i < size)), CfgT[i], 0) <= CT[i])",
+      "mentions": {
+        "op": false,
+        "guard": true,
+        "postState": false
+      },
+      "proofScopeAvailable": false,
+      "rootLiftProven": false,
+      "coverage": [
+        {
+          "law": "Inv*",
+          "op": null,
+          "positiveRecords": 186,
+          "checkedRecords": 17,
+          "deferredRecords": 169,
+          "recordedClockDeltaRange": [
+            12,
+            249
+          ],
+          "countedUnits": null,
+          "examples": [
+            {
+              "file": "action-profiles-v1/action-0.log",
+              "path": "$.trace.18",
+              "receipt": "7428add47cb58cac6154e65ec7ce8c50b6dcce61d2a0968ecfb2618b88d94ced"
+            },
+            {
+              "file": "action-profiles-v1/action-1.log",
+              "path": "$.trace.19",
+              "receipt": "e48dde75b5411653dc3dc07e7d0589853dc251f436ea554d00d5a3424a07bb8a"
+            }
+          ]
+        },
+        {
+          "law": "Inv2973",
+          "op": 2,
+          "positiveRecords": 8,
+          "checkedRecords": 0,
+          "deferredRecords": 8,
+          "recordedClockDeltaRange": [
+            416,
+            439
+          ],
+          "countedUnits": null,
+          "examples": [
+            {
+              "file": "activation-reuse-v1/focused-law-3.log",
+              "path": "$.trace.61",
+              "receipt": "b8127af6588787c823840efda667c9812154086b4fa0c7087044299c624a0d9d"
+            },
+            {
+              "file": "activation-reuse-v2/focused-law-3.log",
+              "path": "$.trace.61",
+              "receipt": "813d6f516deeacbb9210909d85959a117cdfb39217a4d8199ffc7da78e4ffbdc"
+            }
+          ]
+        },
+        {
+          "law": "Inv2973",
+          "op": 0,
+          "positiveRecords": 10,
+          "checkedRecords": 0,
+          "deferredRecords": 10,
+          "recordedClockDeltaRange": [
+            23,
+            440
+          ],
+          "countedUnits": null,
+          "examples": [
+            {
+              "file": "activation-reuse-v1/focused-law-3.log",
+              "path": "$.trace.24",
+              "receipt": "b8127af6588787c823840efda667c9812154086b4fa0c7087044299c624a0d9d"
+            },
+            {
+              "file": "activation-reuse-v2/focused-law-3.log",
+              "path": "$.trace.24",
+              "receipt": "813d6f516deeacbb9210909d85959a117cdfb39217a4d8199ffc7da78e4ffbdc"
+            }
+          ]
+        },
+        {
+          "law": "Inv*",
+          "op": 4,
+          "positiveRecords": 53,
+          "checkedRecords": 0,
+          "deferredRecords": 53,
+          "recordedClockDeltaRange": [
+            12,
+            271
+          ],
+          "countedUnits": null,
+          "examples": [
+            {
+              "file": "activation-reuse-v1/focused-law-4.log",
+              "path": "$.trace.337",
+              "receipt": "760f694ec43576bb748090a159eed97917cd98b87833993fe46a5c43696936e0"
+            },
+            {
+              "file": "activation-reuse-v2/focused-law-4.log",
+              "path": "$.trace.337",
+              "receipt": "b02fe02d05f57e92e653481fa5d44c85aa317ea4f675172311f30e2ea214f015"
+            }
+          ]
+        },
+        {
+          "law": "Inv*",
+          "op": 2,
+          "positiveRecords": 42,
+          "checkedRecords": 0,
+          "deferredRecords": 42,
+          "recordedClockDeltaRange": [
+            153,
+            174
+          ],
+          "countedUnits": null,
+          "examples": [
+            {
+              "file": "activation-reuse-v1/focused-law-4.log",
+              "path": "$.trace.183",
+              "receipt": "760f694ec43576bb748090a159eed97917cd98b87833993fe46a5c43696936e0"
+            },
+            {
+              "file": "activation-reuse-v2/focused-law-4.log",
+              "path": "$.trace.183",
+              "receipt": "b02fe02d05f57e92e653481fa5d44c85aa317ea4f675172311f30e2ea214f015"
+            }
+          ]
+        },
+        {
+          "law": "Inv*",
+          "op": 1,
+          "positiveRecords": 42,
+          "checkedRecords": 0,
+          "deferredRecords": 42,
+          "recordedClockDeltaRange": [
+            154,
+            176
+          ],
+          "countedUnits": null,
+          "examples": [
+            {
+              "file": "activation-reuse-v1/focused-law-4.log",
+              "path": "$.trace.83",
+              "receipt": "760f694ec43576bb748090a159eed97917cd98b87833993fe46a5c43696936e0"
+            },
+            {
+              "file": "activation-reuse-v2/focused-law-4.log",
+              "path": "$.trace.83",
+              "receipt": "b02fe02d05f57e92e653481fa5d44c85aa317ea4f675172311f30e2ea214f015"
+            }
+          ]
+        },
+        {
+          "law": "Inv*",
+          "op": 0,
+          "positiveRecords": 61,
+          "checkedRecords": 0,
+          "deferredRecords": 61,
+          "recordedClockDeltaRange": [
+            12,
+            175
+          ],
+          "countedUnits": null,
+          "examples": [
+            {
+              "file": "activation-reuse-v1/focused-law-4.log",
+              "path": "$.trace.18",
+              "receipt": "760f694ec43576bb748090a159eed97917cd98b87833993fe46a5c43696936e0"
+            },
+            {
+              "file": "activation-reuse-v2/focused-law-4.log",
+              "path": "$.trace.592",
+              "receipt": "b02fe02d05f57e92e653481fa5d44c85aa317ea4f675172311f30e2ea214f015"
+            }
+          ]
+        }
+      ]
+    },
+    {
+      "id": "F5",
+      "statement": "(j$ < size)",
+      "mentions": {
+        "op": false,
+        "guard": false,
+        "postState": false
+      },
+      "proofScopeAvailable": false,
+      "rootLiftProven": false,
+      "coverage": [
+        {
+          "law": "Inv*",
+          "op": null,
+          "positiveRecords": 125,
+          "checkedRecords": 8,
+          "deferredRecords": 117,
+          "recordedClockDeltaRange": [
+            0,
+            50
+          ],
+          "countedUnits": null,
+          "examples": [
+            {
+              "file": "action-profiles-v1/action-0.log",
+              "path": "$.trace.15",
+              "receipt": "7428add47cb58cac6154e65ec7ce8c50b6dcce61d2a0968ecfb2618b88d94ced"
+            },
+            {
+              "file": "action-profiles-v1/action-1.log",
+              "path": "$.trace.16",
+              "receipt": "e48dde75b5411653dc3dc07e7d0589853dc251f436ea554d00d5a3424a07bb8a"
+            }
+          ]
+        },
+        {
+          "law": "Inv*",
+          "op": 3,
+          "positiveRecords": 52,
+          "checkedRecords": 0,
+          "deferredRecords": 52,
+          "recordedClockDeltaRange": [
+            0,
+            0
+          ],
+          "countedUnits": null,
+          "examples": [
+            {
+              "file": "activation-reuse-v1/focused-law-4.log",
+              "path": "$.trace.593",
+              "receipt": "760f694ec43576bb748090a159eed97917cd98b87833993fe46a5c43696936e0"
+            },
+            {
+              "file": "activation-reuse-v1/focused-law-4.log",
+              "path": "$.trace.255",
+              "receipt": "760f694ec43576bb748090a159eed97917cd98b87833993fe46a5c43696936e0"
+            }
+          ]
+        },
+        {
+          "law": "Inv*",
+          "op": 6,
+          "positiveRecords": 41,
+          "checkedRecords": 0,
+          "deferredRecords": 41,
+          "recordedClockDeltaRange": [
+            0,
+            0
+          ],
+          "countedUnits": null,
+          "examples": [
+            {
+              "file": "activation-reuse-v1/focused-law-4.log",
+              "path": "$.trace.459",
+              "receipt": "760f694ec43576bb748090a159eed97917cd98b87833993fe46a5c43696936e0"
+            },
+            {
+              "file": "activation-reuse-v2/focused-law-4.log",
+              "path": "$.trace.459",
+              "receipt": "b02fe02d05f57e92e653481fa5d44c85aa317ea4f675172311f30e2ea214f015"
+            }
+          ]
+        },
+        {
+          "law": "Inv*",
+          "op": 5,
+          "positiveRecords": 43,
+          "checkedRecords": 0,
+          "deferredRecords": 43,
+          "recordedClockDeltaRange": [
+            0,
+            0
+          ],
+          "countedUnits": null,
+          "examples": [
+            {
+              "file": "activation-reuse-v1/focused-law-4.log",
+              "path": "$.trace.368",
+              "receipt": "760f694ec43576bb748090a159eed97917cd98b87833993fe46a5c43696936e0"
+            },
+            {
+              "file": "activation-reuse-v2/focused-law-4.log",
+              "path": "$.trace.368",
+              "receipt": "b02fe02d05f57e92e653481fa5d44c85aa317ea4f675172311f30e2ea214f015"
+            }
+          ]
+        },
+        {
+          "law": "Inv*",
+          "op": 4,
+          "positiveRecords": 48,
+          "checkedRecords": 0,
+          "deferredRecords": 48,
+          "recordedClockDeltaRange": [
+            0,
+            0
+          ],
+          "countedUnits": null,
+          "examples": [
+            {
+              "file": "activation-reuse-v1/focused-law-4.log",
+              "path": "$.trace.335",
+              "receipt": "760f694ec43576bb748090a159eed97917cd98b87833993fe46a5c43696936e0"
+            },
+            {
+              "file": "activation-reuse-v2/focused-law-4.log",
+              "path": "$.trace.335",
+              "receipt": "b02fe02d05f57e92e653481fa5d44c85aa317ea4f675172311f30e2ea214f015"
+            }
+          ]
+        },
+        {
+          "law": "Inv*",
+          "op": 2,
+          "positiveRecords": 42,
+          "checkedRecords": 0,
+          "deferredRecords": 42,
+          "recordedClockDeltaRange": [
+            0,
+            0
+          ],
+          "countedUnits": null,
+          "examples": [
+            {
+              "file": "activation-reuse-v1/focused-law-4.log",
+              "path": "$.trace.180",
+              "receipt": "760f694ec43576bb748090a159eed97917cd98b87833993fe46a5c43696936e0"
+            },
+            {
+              "file": "activation-reuse-v2/focused-law-4.log",
+              "path": "$.trace.180",
+              "receipt": "b02fe02d05f57e92e653481fa5d44c85aa317ea4f675172311f30e2ea214f015"
+            }
+          ]
+        },
+        {
+          "law": "Inv*",
+          "op": 1,
+          "positiveRecords": 42,
+          "checkedRecords": 0,
+          "deferredRecords": 42,
+          "recordedClockDeltaRange": [
+            0,
+            0
+          ],
+          "countedUnits": null,
+          "examples": [
+            {
+              "file": "activation-reuse-v1/focused-law-4.log",
+              "path": "$.trace.80",
+              "receipt": "760f694ec43576bb748090a159eed97917cd98b87833993fe46a5c43696936e0"
+            },
+            {
+              "file": "activation-reuse-v2/focused-law-4.log",
+              "path": "$.trace.80",
+              "receipt": "b02fe02d05f57e92e653481fa5d44c85aa317ea4f675172311f30e2ea214f015"
+            }
+          ]
+        },
+        {
+          "law": "Inv*",
+          "op": 0,
+          "positiveRecords": 43,
+          "checkedRecords": 0,
+          "deferredRecords": 43,
+          "recordedClockDeltaRange": [
+            0,
+            0
+          ],
+          "countedUnits": null,
+          "examples": [
+            {
+              "file": "activation-reuse-v1/focused-law-4.log",
+              "path": "$.trace.15",
+              "receipt": "760f694ec43576bb748090a159eed97917cd98b87833993fe46a5c43696936e0"
+            },
+            {
+              "file": "activation-reuse-v2/focused-law-4.log",
+              "path": "$.trace.589",
+              "receipt": "b02fe02d05f57e92e653481fa5d44c85aa317ea4f675172311f30e2ea214f015"
+            }
+          ]
+        }
+      ]
+    },
+    {
+      "id": "F6",
+      "statement": "(i < size)",
+      "mentions": {
+        "op": false,
+        "guard": false,
+        "postState": false
+      },
+      "proofScopeAvailable": false,
+      "rootLiftProven": false,
+      "coverage": [
+        {
+          "law": "Inv*",
+          "op": null,
+          "positiveRecords": 125,
+          "checkedRecords": 8,
+          "deferredRecords": 117,
+          "recordedClockDeltaRange": [
+            0,
+            50
+          ],
+          "countedUnits": null,
+          "examples": [
+            {
+              "file": "action-profiles-v1/action-0.log",
+              "path": "$.trace.14",
+              "receipt": "7428add47cb58cac6154e65ec7ce8c50b6dcce61d2a0968ecfb2618b88d94ced"
+            },
+            {
+              "file": "action-profiles-v1/action-1.log",
+              "path": "$.trace.15",
+              "receipt": "e48dde75b5411653dc3dc07e7d0589853dc251f436ea554d00d5a3424a07bb8a"
+            }
+          ]
+        },
+        {
+          "law": "Inv2973",
+          "op": 6,
+          "positiveRecords": 16,
+          "checkedRecords": 0,
+          "deferredRecords": 16,
+          "recordedClockDeltaRange": [
+            0,
+            0
+          ],
+          "countedUnits": null,
+          "examples": [
+            {
+              "file": "activation-reuse-v1/focused-law-3.log",
+              "path": "$.trace.229",
+              "receipt": "b8127af6588787c823840efda667c9812154086b4fa0c7087044299c624a0d9d"
+            },
+            {
+              "file": "activation-reuse-v2/focused-law-3.log",
+              "path": "$.trace.229",
+              "receipt": "813d6f516deeacbb9210909d85959a117cdfb39217a4d8199ffc7da78e4ffbdc"
+            }
+          ]
+        },
+        {
+          "law": "Inv2973",
+          "op": 5,
+          "positiveRecords": 11,
+          "checkedRecords": 0,
+          "deferredRecords": 11,
+          "recordedClockDeltaRange": [
+            0,
+            0
+          ],
+          "countedUnits": null,
+          "examples": [
+            {
+              "file": "activation-reuse-v1/focused-law-3.log",
+              "path": "$.trace.156",
+              "receipt": "b8127af6588787c823840efda667c9812154086b4fa0c7087044299c624a0d9d"
+            },
+            {
+              "file": "activation-reuse-v2/focused-law-3.log",
+              "path": "$.trace.156",
+              "receipt": "813d6f516deeacbb9210909d85959a117cdfb39217a4d8199ffc7da78e4ffbdc"
+            }
+          ]
+        },
+        {
+          "law": "Inv2973",
+          "op": 3,
+          "positiveRecords": 14,
+          "checkedRecords": 0,
+          "deferredRecords": 14,
+          "recordedClockDeltaRange": [
+            0,
+            0
+          ],
+          "countedUnits": null,
+          "examples": [
+            {
+              "file": "activation-reuse-v1/focused-law-3.log",
+              "path": "$.trace.83",
+              "receipt": "b8127af6588787c823840efda667c9812154086b4fa0c7087044299c624a0d9d"
+            },
+            {
+              "file": "activation-reuse-v2/focused-law-3.log",
+              "path": "$.trace.83",
+              "receipt": "813d6f516deeacbb9210909d85959a117cdfb39217a4d8199ffc7da78e4ffbdc"
+            }
+          ]
+        },
+        {
+          "law": "Inv2973",
+          "op": 2,
+          "positiveRecords": 10,
+          "checkedRecords": 0,
+          "deferredRecords": 10,
+          "recordedClockDeltaRange": [
+            0,
+            0
+          ],
+          "countedUnits": null,
+          "examples": [
+            {
+              "file": "activation-reuse-v1/focused-law-3.log",
+              "path": "$.trace.58",
+              "receipt": "b8127af6588787c823840efda667c9812154086b4fa0c7087044299c624a0d9d"
+            },
+            {
+              "file": "activation-reuse-v2/focused-law-3.log",
+              "path": "$.trace.58",
+              "receipt": "813d6f516deeacbb9210909d85959a117cdfb39217a4d8199ffc7da78e4ffbdc"
+            }
+          ]
+        },
+        {
+          "law": "Inv2973",
+          "op": 0,
+          "positiveRecords": 12,
+          "checkedRecords": 0,
+          "deferredRecords": 12,
+          "recordedClockDeltaRange": [
+            0,
+            0
+          ],
+          "countedUnits": null,
+          "examples": [
+            {
+              "file": "activation-reuse-v1/focused-law-3.log",
+              "path": "$.trace.21",
+              "receipt": "b8127af6588787c823840efda667c9812154086b4fa0c7087044299c624a0d9d"
+            },
+            {
+              "file": "activation-reuse-v2/focused-law-3.log",
+              "path": "$.trace.21",
+              "receipt": "813d6f516deeacbb9210909d85959a117cdfb39217a4d8199ffc7da78e4ffbdc"
+            }
+          ]
+        },
+        {
+          "law": "Inv*",
+          "op": 3,
+          "positiveRecords": 70,
+          "checkedRecords": 0,
+          "deferredRecords": 70,
+          "recordedClockDeltaRange": [
+            0,
+            0
+          ],
+          "countedUnits": null,
+          "examples": [
+            {
+              "file": "activation-reuse-v1/focused-law-4.log",
+              "path": "$.trace.592",
+              "receipt": "760f694ec43576bb748090a159eed97917cd98b87833993fe46a5c43696936e0"
+            },
+            {
+              "file": "activation-reuse-v1/focused-law-4.log",
+              "path": "$.trace.254",
+              "receipt": "760f694ec43576bb748090a159eed97917cd98b87833993fe46a5c43696936e0"
+            }
+          ]
+        },
+        {
+          "law": "Inv*",
+          "op": 6,
+          "positiveRecords": 59,
+          "checkedRecords": 0,
+          "deferredRecords": 59,
+          "recordedClockDeltaRange": [
+            0,
+            0
+          ],
+          "countedUnits": null,
+          "examples": [
+            {
+              "file": "activation-reuse-v1/focused-law-4.log",
+              "path": "$.trace.458",
+              "receipt": "760f694ec43576bb748090a159eed97917cd98b87833993fe46a5c43696936e0"
+            },
+            {
+              "file": "activation-reuse-v2/focused-law-4.log",
+              "path": "$.trace.458",
+              "receipt": "b02fe02d05f57e92e653481fa5d44c85aa317ea4f675172311f30e2ea214f015"
+            }
+          ]
+        },
+        {
+          "law": "Inv*",
+          "op": 5,
+          "positiveRecords": 45,
+          "checkedRecords": 0,
+          "deferredRecords": 45,
+          "recordedClockDeltaRange": [
+            0,
+            0
+          ],
+          "countedUnits": null,
+          "examples": [
+            {
+              "file": "activation-reuse-v1/focused-law-4.log",
+              "path": "$.trace.367",
+              "receipt": "760f694ec43576bb748090a159eed97917cd98b87833993fe46a5c43696936e0"
+            },
+            {
+              "file": "activation-reuse-v2/focused-law-4.log",
+              "path": "$.trace.367",
+              "receipt": "b02fe02d05f57e92e653481fa5d44c85aa317ea4f675172311f30e2ea214f015"
+            }
+          ]
+        },
+        {
+          "law": "Inv*",
+          "op": 4,
+          "positiveRecords": 66,
+          "checkedRecords": 0,
+          "deferredRecords": 66,
+          "recordedClockDeltaRange": [
+            0,
+            0
+          ],
+          "countedUnits": null,
+          "examples": [
+            {
+              "file": "activation-reuse-v1/focused-law-4.log",
+              "path": "$.trace.334",
+              "receipt": "760f694ec43576bb748090a159eed97917cd98b87833993fe46a5c43696936e0"
+            },
+            {
+              "file": "activation-reuse-v2/focused-law-4.log",
+              "path": "$.trace.334",
+              "receipt": "b02fe02d05f57e92e653481fa5d44c85aa317ea4f675172311f30e2ea214f015"
+            }
+          ]
+        },
+        {
+          "law": "Inv*",
+          "op": 2,
+          "positiveRecords": 42,
+          "checkedRecords": 0,
+          "deferredRecords": 42,
+          "recordedClockDeltaRange": [
+            0,
+            0
+          ],
+          "countedUnits": null,
+          "examples": [
+            {
+              "file": "activation-reuse-v1/focused-law-4.log",
+              "path": "$.trace.179",
+              "receipt": "760f694ec43576bb748090a159eed97917cd98b87833993fe46a5c43696936e0"
+            },
+            {
+              "file": "activation-reuse-v2/focused-law-4.log",
+              "path": "$.trace.179",
+              "receipt": "b02fe02d05f57e92e653481fa5d44c85aa317ea4f675172311f30e2ea214f015"
+            }
+          ]
+        },
+        {
+          "law": "Inv*",
+          "op": 1,
+          "positiveRecords": 42,
+          "checkedRecords": 0,
+          "deferredRecords": 42,
+          "recordedClockDeltaRange": [
+            0,
+            0
+          ],
+          "countedUnits": null,
+          "examples": [
+            {
+              "file": "activation-reuse-v1/focused-law-4.log",
+              "path": "$.trace.79",
+              "receipt": "760f694ec43576bb748090a159eed97917cd98b87833993fe46a5c43696936e0"
+            },
+            {
+              "file": "activation-reuse-v2/focused-law-4.log",
+              "path": "$.trace.79",
+              "receipt": "b02fe02d05f57e92e653481fa5d44c85aa317ea4f675172311f30e2ea214f015"
+            }
+          ]
+        },
+        {
+          "law": "Inv*",
+          "op": 0,
+          "positiveRecords": 61,
+          "checkedRecords": 0,
+          "deferredRecords": 61,
+          "recordedClockDeltaRange": [
+            0,
+            0
+          ],
+          "countedUnits": null,
+          "examples": [
+            {
+              "file": "activation-reuse-v1/focused-law-4.log",
+              "path": "$.trace.14",
+              "receipt": "760f694ec43576bb748090a159eed97917cd98b87833993fe46a5c43696936e0"
+            },
+            {
+              "file": "activation-reuse-v2/focused-law-4.log",
+              "path": "$.trace.588",
+              "receipt": "b02fe02d05f57e92e653481fa5d44c85aa317ea4f675172311f30e2ea214f015"
+            }
+          ]
+        }
+      ]
+    },
+    {
+      "id": "F7",
+      "statement": "(if(((?canVote = 1) && (a$# < size)), CfgT[a$#], 0) <= CT[i])",
+      "mentions": {
+        "op": false,
+        "guard": true,
+        "postState": false
+      },
+      "proofScopeAvailable": false,
+      "rootLiftProven": false,
+      "coverage": [
+        {
+          "law": "Inv*",
+          "op": null,
+          "positiveRecords": 5,
+          "checkedRecords": 1,
+          "deferredRecords": 0,
+          "recordedClockDeltaRange": [
+            85,
+            126
+          ],
+          "countedUnits": null,
+          "examples": [
+            {
+              "file": "field-bounds-v10/leader.log",
+              "path": "$.trace.3",
+              "receipt": "001b237882d0e50f628e317b4fdc91898d4726339b32ddb9c7ec0c094363e5fa"
+            },
+            {
+              "file": "field-bounds-v11/leader.log",
+              "path": "$.trace.3",
+              "receipt": "3be3c214e7f4151d5ae1187c557b4963cb95de9314459457c602338cdcf7a86b"
+            }
+          ]
+        }
+      ]
+    }
+  ],
+  "syntacticHistoricalOverlap": {
+    "byLaw": {
+      "Inv2973": [
+        "F4",
+        "F6"
+      ],
+      "Inv*": [
+        "F1",
+        "F2",
+        "F3",
+        "F4",
+        "F5",
+        "F6",
+        "F7"
+      ]
+    },
+    "crossLawStatements": [
+      "F4",
+      "F6"
+    ],
+    "warning": "Statement overlap among positive historical records, not checked op-independent proof overlap. Repeated logs and tails are not separate measurements."
+  },
+  "conclusion": "T-12 drops per-helper events. Neither its actual per-lemma inventory nor once-per-law reusable cost can be reconstructed. Null means unavailable, not zero."
+}

@@ -1,0 +1,9 @@
+[
+  {
+    "name": "paired-controls",
+    "cmd": "bash research/track-m/run-census-integrity.sh",
+    "cpu": 8,
+    "memory": 14336,
+    "timeout": 900
+  }
+]

@@ -1,0 +1,6 @@
+PAIR begin side=base id=consensus run=2
+{"id":"consensus","ic3syn":"tla-consensus","search":{"verdict":"proven","ms":153,"work":4685,"full":52454}}
+PAIR end side=base exit=0
+PAIR begin side=cand id=consensus run=2
+{"id":"consensus","ic3syn":"tla-consensus","search":{"verdict":"proven","ms":145,"work":4685,"full":52454}}
+PAIR end side=cand exit=0

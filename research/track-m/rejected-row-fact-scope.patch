@@ -1,0 +1,40 @@
+diff --git a/kernel/prover-rows.ts b/kernel/prover-rows.ts
+index c8a8ed7d..a3faf073 100644
+--- a/kernel/prover-rows.ts
++++ b/kernel/prover-rows.ts
+@@ -7,7 +7,7 @@ import {type Goal,type Path,canon,leafConstraintsReusing} from './kernel.ts'
+ const originals=new WeakMap<object,object>(),ids=new WeakMap<object,number>()
+ const nodes=new Map<string,object>()
+ let serial=0,keyChars=0
+-export const rowReuseStats={nodeHits:0,nodeMisses:0,goalHits:0,rowsHits:0,rowsBuilt:0,rowsEvicted:0}
++export const rowReuseStats={nodeHits:0,nodeMisses:0,goalHits:0,rowsHits:0,rowsBuilt:0,rowsEvicted:0,factScopeHits:0,factScopeMisses:0,factScopeResets:0}
+ const id=(o:object):number=>{let n=ids.get(o);if(n===undefined)ids.set(o,(n=++serial));return n}
+ function intern(value:unknown):unknown{
+  if(!value||typeof value!=='object')return value
+@@ -63,6 +63,18 @@ export class ProverRowsCache{
+   this.entries.set(key,value);this.kept+=value.length;return evicted
+  }
+ }
++// facts() depends on the hypothesis and observed path, never its position in
++// a goal. The kernel helper scopes those tries by Goal, so use one private view
++// to retain them across canonical goals. Only this synchronous call sees the
++// view; complete-row keys and returned fact indices still use the real goal.
++let factScope:Goal={name:'shared row-fact scope',hyps:[]},factMembers=new Set<C>()
++function sharedFactRows(goal:Goal,path:Path):Constraint[]{
++ if(factMembers.size+goal.hyps.length>1024){factScope={name:'shared row-fact scope',hyps:[]};factMembers=new Set();rowReuseStats.factScopeResets++}
++ for(const hyp of goal.hyps){if(factMembers.has(hyp))rowReuseStats.factScopeHits++;else{factMembers.add(hyp);rowReuseStats.factScopeMisses++}}
++ const scope=factScope,previous=scope.hyps
++ scope.hyps=goal.hyps
++ try{return leafConstraintsReusing(scope,path)}finally{scope.hyps=previous}
++}
+ const rows=new ProverRowsCache(env.GDP_ROWS_UNWEIGHTED==='1'?Infinity:250000)
+ export const rowReuseStorage=()=>({nodes:nodes.size,keyChars,goals:goalPool.size,rowEntries:rows.size,constraints:rows.weight})
+ export function proverRows(goal:Goal,path:Path):Constraint[]{
+@@ -73,6 +85,6 @@ export function proverRows(goal:Goal,path:Path):Constraint[]{
+  let out=rows.get(key)
+  if(out){rowReuseStats.rowsHits++;return out}
+  rowReuseStats.rowsBuilt++
+- out=leafConstraintsReusing(shared,path)
++ out=env.GDP_ROWS_FACT_SCOPE==='0'?leafConstraintsReusing(shared,path):sharedFactRows(shared,path)
+  rowReuseStats.rowsEvicted+=rows.set(key,out);return out
+ }

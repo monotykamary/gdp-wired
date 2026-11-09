@@ -1,0 +1,4 @@
+[
+ {"name":"safety-own-root","cmd":"bun install --frozen-lockfile >/dev/null && LAB_CASE_ROOT=1 bun research/track-m/action-replay.ts replay-input/1.json replay-input/input.json own", "cpu":4,"memory":14000,"timeout":90},
+ {"name":"overlap-own-root","cmd":"bun install --frozen-lockfile >/dev/null && LAB_CASE_ROOT=1 bun research/track-m/action-replay.ts replay-input/8.json replay-input/input.json own", "cpu":4,"memory":14000,"timeout":90}
+]

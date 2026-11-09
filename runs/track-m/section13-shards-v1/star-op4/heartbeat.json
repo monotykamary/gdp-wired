@@ -1,0 +1,1 @@
+{"units":50002.7244156,"wallMs":168950.99128400002,"stats":{"cuts":23,"sat":32,"refuted":21,"unknown":8,"reused":97,"cached":0,"rawSat":32,"rawRefuted":29,"rawUnknown":0},"law":"Inv*: no quorum of a config can still be gathered for a config term held","op":4,"kind":"source"}

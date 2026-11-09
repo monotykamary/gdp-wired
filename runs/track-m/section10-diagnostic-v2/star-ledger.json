@@ -1,0 +1,1448 @@
+{
+  "law": "Inv*: no quorum of a config can still be gathered for a config term held",
+  "revision": "192ebbe2",
+  "controlMatches": true,
+  "finalCases": [],
+  "firstUnfinished": {
+    "kind": "stop",
+    "at": 1585.6585127999997,
+    "frame": 126,
+    "closure": 0,
+    "reason": "no-numeric-model",
+    "path": [
+      [
+        "op:1",
+        {
+          "lin": {
+            "op": 1
+          },
+          "holds": false
+        }
+      ],
+      [
+        "1:-1,op:1",
+        {
+          "lin": {
+            "1": -1,
+            "op": 1
+          },
+          "holds": false
+        }
+      ],
+      [
+        "1:-2,op:1",
+        {
+          "lin": {
+            "1": -2,
+            "op": 1
+          },
+          "holds": false
+        }
+      ],
+      [
+        "1:-3,op:1",
+        {
+          "lin": {
+            "1": -3,
+            "op": 1
+          },
+          "holds": false
+        }
+      ],
+      [
+        "1:-4,op:1",
+        {
+          "lin": {
+            "1": -4,
+            "op": 1
+          },
+          "holds": false
+        }
+      ],
+      [
+        "1:-5,op:1",
+        {
+          "lin": {
+            "1": -5,
+            "op": 1
+          },
+          "holds": true
+        }
+      ],
+      [
+        "1:-6,op:1",
+        {
+          "lin": {
+            "1": -6,
+            "op": 1
+          },
+          "holds": true
+        }
+      ],
+      [
+        "1:-1,started:1",
+        {
+          "lin": {
+            "1": -1,
+            "started": 1
+          },
+          "holds": true
+        }
+      ],
+      [
+        "1:1,started:-1",
+        {
+          "lin": {
+            "1": 1,
+            "started": -1
+          },
+          "holds": true
+        }
+      ],
+      [
+        "1:-1,St[i:1]:1",
+        {
+          "lin": {
+            "1": -1,
+            "St[i:1]": 1
+          },
+          "holds": true
+        }
+      ],
+      [
+        "1:1,St[i:1]:-1",
+        {
+          "lin": {
+            "1": 1,
+            "St[i:1]": -1
+          },
+          "holds": true
+        }
+      ],
+      [
+        "CT[i:1]:-1,CfgT[i:1]:1",
+        {
+          "lin": {
+            "CfgT[i:1]": 1,
+            "CT[i:1]": -1
+          },
+          "holds": true
+        }
+      ],
+      [
+        "CT[i:1]:1,CfgT[i:1]:-1",
+        {
+          "lin": {
+            "CT[i:1]": 1,
+            "CfgT[i:1]": -1
+          },
+          "holds": true
+        }
+      ],
+      [
+        "1:-1,?committedQuorum:1",
+        {
+          "lin": {
+            "1": -1,
+            "?committedQuorum": 1
+          },
+          "holds": true
+        }
+      ],
+      [
+        "1:1,?committedQuorum:-1",
+        {
+          "lin": {
+            "1": 1,
+            "?committedQuorum": -1
+          },
+          "holds": true
+        }
+      ],
+      [
+        "1:1,xAndS[]:1,⟦5⟧:-1,⟦9⟧:-1",
+        {
+          "lin": {
+            "1": 1,
+            "xAndS[]": 1,
+            "⟦5⟧": -1,
+            "⟦9⟧": -1
+          },
+          "holds": true
+        }
+      ],
+      [
+        "1:1,S[i:1]:-1",
+        {
+          "lin": {
+            "1": 1,
+            "S[i:1]": -1
+          },
+          "holds": true
+        }
+      ],
+      [
+        "1:-1,?canVote:1",
+        {
+          "lin": {
+            "1": -1,
+            "?canVote": 1
+          },
+          "holds": true
+        }
+      ],
+      [
+        "1:1,i:1,size:-1",
+        {
+          "lin": {
+            "1": 1,
+            "i": 1,
+            "size": -1
+          },
+          "holds": true
+        }
+      ],
+      [
+        "1:1,j$:1,size:-1",
+        {
+          "lin": {
+            "1": 1,
+            "j$": 1,
+            "size": -1
+          },
+          "holds": true
+        }
+      ],
+      [
+        "a$#:1,i:-1",
+        {
+          "lin": {
+            "a$#": 1,
+            "i": -1
+          },
+          "holds": true
+        }
+      ],
+      [
+        "a$#:-1,i:1",
+        {
+          "lin": {
+            "a$#": -1,
+            "i": 1
+          },
+          "holds": true
+        }
+      ],
+      [
+        "i:-1,j$:1",
+        {
+          "lin": {
+            "j$": 1,
+            "i": -1
+          },
+          "holds": true
+        }
+      ],
+      [
+        "i:1,j$:-1",
+        {
+          "lin": {
+            "j$": -1,
+            "i": 1
+          },
+          "holds": true
+        }
+      ],
+      [
+        "1:1,CT[i:1]:1,CfgT[j$:1]:-1",
+        {
+          "lin": {
+            "1": 1,
+            "CT[i:1]": 1,
+            "CfgT[j$:1]": -1
+          },
+          "holds": false
+        }
+      ]
+    ],
+    "end": 1585.6274452
+  },
+  "originalNumericModel": null,
+  "freshNumeric": {
+    "units": 1115.6398515999997,
+    "valid": true,
+    "model": {
+      "hx": 0,
+      "xNotS[]": 0,
+      "xAndS[]": 0,
+      "r$19": 0,
+      "r$18": 0,
+      "r$17": 0,
+      "r$15": 0,
+      "r$13": 0,
+      "j": 0,
+      "CT[i:1]": 0,
+      "r$12": 1,
+      "r$4": 1,
+      "⟦9⟧": 0,
+      "hy": 2,
+      "sNotX[]": 4,
+      "r$3": 5,
+      "?all$2": 0,
+      "?allCopied": 0,
+      "?noneCopied": 0,
+      "r$16": 0,
+      "r$14": 0,
+      "r$11": 0,
+      "r$0": 3,
+      "size": 1,
+      "i": 0,
+      "?canVote": 0,
+      "S[i:1]": 1,
+      "⟦5⟧": 1,
+      "r$10": 0,
+      "r$9": 0,
+      "r$8": 1,
+      "r$1": 5,
+      "r$2": 1,
+      "r$7": 4,
+      "r$6": 0,
+      "r$5": 0,
+      "?all$3": 1,
+      "?all$1": 1,
+      "CfgT[j$:1]": 0,
+      "j$": 0,
+      "a$#": 0,
+      "?committedQuorum": 1,
+      "CfgT[i:1]": 0,
+      "St[i:1]": 1,
+      "started": 1,
+      "op": 5
+    },
+    "violated": [
+      53,
+      55,
+      58,
+      45,
+      47,
+      54,
+      65,
+      67,
+      69,
+      76,
+      75,
+      78,
+      89,
+      2,
+      3,
+      4,
+      5,
+      27,
+      29,
+      32,
+      34,
+      36,
+      38,
+      40,
+      42,
+      10,
+      11,
+      12,
+      13,
+      14,
+      15,
+      16,
+      17,
+      19,
+      20,
+      22,
+      24,
+      25,
+      72,
+      82,
+      83,
+      86,
+      87,
+      1,
+      6,
+      7,
+      8,
+      51,
+      71,
+      74,
+      85,
+      88
+    ]
+  },
+  "rows": [
+    {
+      "meta": {
+        "closure": 0,
+        "path": [
+          [
+            "op:1",
+            {
+              "lin": {
+                "op": 1
+              },
+              "holds": false
+            }
+          ],
+          [
+            "1:-1,op:1",
+            {
+              "lin": {
+                "1": -1,
+                "op": 1
+              },
+              "holds": false
+            }
+          ],
+          [
+            "1:-2,op:1",
+            {
+              "lin": {
+                "1": -2,
+                "op": 1
+              },
+              "holds": false
+            }
+          ],
+          [
+            "1:-3,op:1",
+            {
+              "lin": {
+                "1": -3,
+                "op": 1
+              },
+              "holds": false
+            }
+          ],
+          [
+            "1:-4,op:1",
+            {
+              "lin": {
+                "1": -4,
+                "op": 1
+              },
+              "holds": false
+            }
+          ],
+          [
+            "1:-5,op:1",
+            {
+              "lin": {
+                "1": -5,
+                "op": 1
+              },
+              "holds": true
+            }
+          ],
+          [
+            "1:-6,op:1",
+            {
+              "lin": {
+                "1": -6,
+                "op": 1
+              },
+              "holds": true
+            }
+          ],
+          [
+            "1:-1,started:1",
+            {
+              "lin": {
+                "1": -1,
+                "started": 1
+              },
+              "holds": true
+            }
+          ],
+          [
+            "1:1,started:-1",
+            {
+              "lin": {
+                "1": 1,
+                "started": -1
+              },
+              "holds": true
+            }
+          ],
+          [
+            "1:-1,St[i:1]:1",
+            {
+              "lin": {
+                "1": -1,
+                "St[i:1]": 1
+              },
+              "holds": true
+            }
+          ],
+          [
+            "1:1,St[i:1]:-1",
+            {
+              "lin": {
+                "1": 1,
+                "St[i:1]": -1
+              },
+              "holds": true
+            }
+          ],
+          [
+            "CT[i:1]:-1,CfgT[i:1]:1",
+            {
+              "lin": {
+                "CfgT[i:1]": 1,
+                "CT[i:1]": -1
+              },
+              "holds": true
+            }
+          ],
+          [
+            "CT[i:1]:1,CfgT[i:1]:-1",
+            {
+              "lin": {
+                "CT[i:1]": 1,
+                "CfgT[i:1]": -1
+              },
+              "holds": true
+            }
+          ],
+          [
+            "1:-1,?committedQuorum:1",
+            {
+              "lin": {
+                "1": -1,
+                "?committedQuorum": 1
+              },
+              "holds": true
+            }
+          ],
+          [
+            "1:1,?committedQuorum:-1",
+            {
+              "lin": {
+                "1": 1,
+                "?committedQuorum": -1
+              },
+              "holds": true
+            }
+          ],
+          [
+            "1:1,xAndS[]:1,⟦5⟧:-1,⟦9⟧:-1",
+            {
+              "lin": {
+                "1": 1,
+                "xAndS[]": 1,
+                "⟦5⟧": -1,
+                "⟦9⟧": -1
+              },
+              "holds": true
+            }
+          ],
+          [
+            "1:1,S[i:1]:-1",
+            {
+              "lin": {
+                "1": 1,
+                "S[i:1]": -1
+              },
+              "holds": true
+            }
+          ],
+          [
+            "1:-1,?canVote:1",
+            {
+              "lin": {
+                "1": -1,
+                "?canVote": 1
+              },
+              "holds": true
+            }
+          ],
+          [
+            "1:1,i:1,size:-1",
+            {
+              "lin": {
+                "1": 1,
+                "i": 1,
+                "size": -1
+              },
+              "holds": true
+            }
+          ],
+          [
+            "1:1,j$:1,size:-1",
+            {
+              "lin": {
+                "1": 1,
+                "j$": 1,
+                "size": -1
+              },
+              "holds": true
+            }
+          ],
+          [
+            "a$#:1,i:-1",
+            {
+              "lin": {
+                "a$#": 1,
+                "i": -1
+              },
+              "holds": true
+            }
+          ],
+          [
+            "a$#:-1,i:1",
+            {
+              "lin": {
+                "a$#": -1,
+                "i": 1
+              },
+              "holds": true
+            }
+          ],
+          [
+            "i:-1,j$:1",
+            {
+              "lin": {
+                "j$": 1,
+                "i": -1
+              },
+              "holds": true
+            }
+          ],
+          [
+            "i:1,j$:-1",
+            {
+              "lin": {
+                "j$": -1,
+                "i": 1
+              },
+              "holds": true
+            }
+          ]
+        ],
+        "remaining": 4914.3725548,
+        "leavesLeft": 9,
+        "draw": 1638.1241849333335,
+        "granted": 1500,
+        "end": 1585.6274452
+      },
+      "units": 1500.0310675999997,
+      "overshoot": 0.031067599999687445,
+      "byKind": {
+        "row": 0,
+        "leaf": 0,
+        "natural-query": 231.6631668000001,
+        "numeric-query": 464.6485839999997,
+        "batch-query": 103.47425600000014,
+        "source-attempt": 7.6422368000006315,
+        "source-query": 692.6028239999991
+      },
+      "leaves": [
+        {
+          "id": 2,
+          "parent": 1,
+          "path": [
+            [
+              "op:1",
+              {
+                "lin": {
+                  "op": 1
+                },
+                "holds": false
+              }
+            ],
+            [
+              "1:-1,op:1",
+              {
+                "lin": {
+                  "1": -1,
+                  "op": 1
+                },
+                "holds": false
+              }
+            ],
+            [
+              "1:-2,op:1",
+              {
+                "lin": {
+                  "1": -2,
+                  "op": 1
+                },
+                "holds": false
+              }
+            ],
+            [
+              "1:-3,op:1",
+              {
+                "lin": {
+                  "1": -3,
+                  "op": 1
+                },
+                "holds": false
+              }
+            ],
+            [
+              "1:-4,op:1",
+              {
+                "lin": {
+                  "1": -4,
+                  "op": 1
+                },
+                "holds": false
+              }
+            ],
+            [
+              "1:-5,op:1",
+              {
+                "lin": {
+                  "1": -5,
+                  "op": 1
+                },
+                "holds": true
+              }
+            ],
+            [
+              "1:-6,op:1",
+              {
+                "lin": {
+                  "1": -6,
+                  "op": 1
+                },
+                "holds": true
+              }
+            ],
+            [
+              "1:-1,started:1",
+              {
+                "lin": {
+                  "1": -1,
+                  "started": 1
+                },
+                "holds": true
+              }
+            ],
+            [
+              "1:1,started:-1",
+              {
+                "lin": {
+                  "1": 1,
+                  "started": -1
+                },
+                "holds": true
+              }
+            ],
+            [
+              "1:-1,St[i:1]:1",
+              {
+                "lin": {
+                  "1": -1,
+                  "St[i:1]": 1
+                },
+                "holds": true
+              }
+            ],
+            [
+              "1:1,St[i:1]:-1",
+              {
+                "lin": {
+                  "1": 1,
+                  "St[i:1]": -1
+                },
+                "holds": true
+              }
+            ],
+            [
+              "CT[i:1]:-1,CfgT[i:1]:1",
+              {
+                "lin": {
+                  "CfgT[i:1]": 1,
+                  "CT[i:1]": -1
+                },
+                "holds": true
+              }
+            ],
+            [
+              "CT[i:1]:1,CfgT[i:1]:-1",
+              {
+                "lin": {
+                  "CT[i:1]": 1,
+                  "CfgT[i:1]": -1
+                },
+                "holds": true
+              }
+            ],
+            [
+              "1:-1,?committedQuorum:1",
+              {
+                "lin": {
+                  "1": -1,
+                  "?committedQuorum": 1
+                },
+                "holds": true
+              }
+            ],
+            [
+              "1:1,?committedQuorum:-1",
+              {
+                "lin": {
+                  "1": 1,
+                  "?committedQuorum": -1
+                },
+                "holds": true
+              }
+            ],
+            [
+              "1:1,xAndS[]:1,⟦5⟧:-1,⟦9⟧:-1",
+              {
+                "lin": {
+                  "1": 1,
+                  "xAndS[]": 1,
+                  "⟦5⟧": -1,
+                  "⟦9⟧": -1
+                },
+                "holds": true
+              }
+            ],
+            [
+              "1:1,S[i:1]:-1",
+              {
+                "lin": {
+                  "1": 1,
+                  "S[i:1]": -1
+                },
+                "holds": true
+              }
+            ],
+            [
+              "1:-1,?canVote:1",
+              {
+                "lin": {
+                  "1": -1,
+                  "?canVote": 1
+                },
+                "holds": true
+              }
+            ],
+            [
+              "1:1,i:1,size:-1",
+              {
+                "lin": {
+                  "1": 1,
+                  "i": 1,
+                  "size": -1
+                },
+                "holds": true
+              }
+            ],
+            [
+              "1:1,j$:1,size:-1",
+              {
+                "lin": {
+                  "1": 1,
+                  "j$": 1,
+                  "size": -1
+                },
+                "holds": true
+              }
+            ],
+            [
+              "a$#:1,i:-1",
+              {
+                "lin": {
+                  "a$#": 1,
+                  "i": -1
+                },
+                "holds": true
+              }
+            ],
+            [
+              "a$#:-1,i:1",
+              {
+                "lin": {
+                  "a$#": -1,
+                  "i": 1
+                },
+                "holds": true
+              }
+            ],
+            [
+              "i:-1,j$:1",
+              {
+                "lin": {
+                  "j$": 1,
+                  "i": -1
+                },
+                "holds": true
+              }
+            ],
+            [
+              "i:1,j$:-1",
+              {
+                "lin": {
+                  "j$": -1,
+                  "i": 1
+                },
+                "holds": true
+              }
+            ]
+          ],
+          "depth": 0,
+          "ownUnits": 645.1598931999999,
+          "inclusiveUnits": 1500.0310675999997,
+          "outcomes": {
+            "sat": 11,
+            "reused-model": 33,
+            "checked": 13,
+            "unknown": 17
+          },
+          "sourceQueries": 41,
+          "rawRefuted": 30
+        },
+        {
+          "id": 124,
+          "parent": 2,
+          "path": [
+            [
+              "op:1",
+              {
+                "lin": {
+                  "op": 1
+                },
+                "holds": false
+              }
+            ],
+            [
+              "1:-1,op:1",
+              {
+                "lin": {
+                  "1": -1,
+                  "op": 1
+                },
+                "holds": false
+              }
+            ],
+            [
+              "1:-2,op:1",
+              {
+                "lin": {
+                  "1": -2,
+                  "op": 1
+                },
+                "holds": false
+              }
+            ],
+            [
+              "1:-3,op:1",
+              {
+                "lin": {
+                  "1": -3,
+                  "op": 1
+                },
+                "holds": false
+              }
+            ],
+            [
+              "1:-4,op:1",
+              {
+                "lin": {
+                  "1": -4,
+                  "op": 1
+                },
+                "holds": false
+              }
+            ],
+            [
+              "1:-5,op:1",
+              {
+                "lin": {
+                  "1": -5,
+                  "op": 1
+                },
+                "holds": true
+              }
+            ],
+            [
+              "1:-6,op:1",
+              {
+                "lin": {
+                  "1": -6,
+                  "op": 1
+                },
+                "holds": true
+              }
+            ],
+            [
+              "1:-1,started:1",
+              {
+                "lin": {
+                  "1": -1,
+                  "started": 1
+                },
+                "holds": true
+              }
+            ],
+            [
+              "1:1,started:-1",
+              {
+                "lin": {
+                  "1": 1,
+                  "started": -1
+                },
+                "holds": true
+              }
+            ],
+            [
+              "1:-1,St[i:1]:1",
+              {
+                "lin": {
+                  "1": -1,
+                  "St[i:1]": 1
+                },
+                "holds": true
+              }
+            ],
+            [
+              "1:1,St[i:1]:-1",
+              {
+                "lin": {
+                  "1": 1,
+                  "St[i:1]": -1
+                },
+                "holds": true
+              }
+            ],
+            [
+              "CT[i:1]:-1,CfgT[i:1]:1",
+              {
+                "lin": {
+                  "CfgT[i:1]": 1,
+                  "CT[i:1]": -1
+                },
+                "holds": true
+              }
+            ],
+            [
+              "CT[i:1]:1,CfgT[i:1]:-1",
+              {
+                "lin": {
+                  "CT[i:1]": 1,
+                  "CfgT[i:1]": -1
+                },
+                "holds": true
+              }
+            ],
+            [
+              "1:-1,?committedQuorum:1",
+              {
+                "lin": {
+                  "1": -1,
+                  "?committedQuorum": 1
+                },
+                "holds": true
+              }
+            ],
+            [
+              "1:1,?committedQuorum:-1",
+              {
+                "lin": {
+                  "1": 1,
+                  "?committedQuorum": -1
+                },
+                "holds": true
+              }
+            ],
+            [
+              "1:1,xAndS[]:1,⟦5⟧:-1,⟦9⟧:-1",
+              {
+                "lin": {
+                  "1": 1,
+                  "xAndS[]": 1,
+                  "⟦5⟧": -1,
+                  "⟦9⟧": -1
+                },
+                "holds": true
+              }
+            ],
+            [
+              "1:1,S[i:1]:-1",
+              {
+                "lin": {
+                  "1": 1,
+                  "S[i:1]": -1
+                },
+                "holds": true
+              }
+            ],
+            [
+              "1:-1,?canVote:1",
+              {
+                "lin": {
+                  "1": -1,
+                  "?canVote": 1
+                },
+                "holds": true
+              }
+            ],
+            [
+              "1:1,i:1,size:-1",
+              {
+                "lin": {
+                  "1": 1,
+                  "i": 1,
+                  "size": -1
+                },
+                "holds": true
+              }
+            ],
+            [
+              "1:1,j$:1,size:-1",
+              {
+                "lin": {
+                  "1": 1,
+                  "j$": 1,
+                  "size": -1
+                },
+                "holds": true
+              }
+            ],
+            [
+              "a$#:1,i:-1",
+              {
+                "lin": {
+                  "a$#": 1,
+                  "i": -1
+                },
+                "holds": true
+              }
+            ],
+            [
+              "a$#:-1,i:1",
+              {
+                "lin": {
+                  "a$#": -1,
+                  "i": 1
+                },
+                "holds": true
+              }
+            ],
+            [
+              "i:-1,j$:1",
+              {
+                "lin": {
+                  "j$": 1,
+                  "i": -1
+                },
+                "holds": true
+              }
+            ],
+            [
+              "i:1,j$:-1",
+              {
+                "lin": {
+                  "j$": -1,
+                  "i": 1
+                },
+                "holds": true
+              }
+            ],
+            [
+              "1:1,CT[i:1]:1,CfgT[j$:1]:-1",
+              {
+                "lin": {
+                  "1": 1,
+                  "CT[i:1]": 1,
+                  "CfgT[j$:1]": -1
+                },
+                "holds": true
+              }
+            ]
+          ],
+          "depth": 1,
+          "ownUnits": 17.071887600000082,
+          "inclusiveUnits": 17.071887600000082,
+          "outcomes": {},
+          "sourceQueries": 0,
+          "rawRefuted": 0
+        },
+        {
+          "id": 126,
+          "parent": 2,
+          "path": [
+            [
+              "op:1",
+              {
+                "lin": {
+                  "op": 1
+                },
+                "holds": false
+              }
+            ],
+            [
+              "1:-1,op:1",
+              {
+                "lin": {
+                  "1": -1,
+                  "op": 1
+                },
+                "holds": false
+              }
+            ],
+            [
+              "1:-2,op:1",
+              {
+                "lin": {
+                  "1": -2,
+                  "op": 1
+                },
+                "holds": false
+              }
+            ],
+            [
+              "1:-3,op:1",
+              {
+                "lin": {
+                  "1": -3,
+                  "op": 1
+                },
+                "holds": false
+              }
+            ],
+            [
+              "1:-4,op:1",
+              {
+                "lin": {
+                  "1": -4,
+                  "op": 1
+                },
+                "holds": false
+              }
+            ],
+            [
+              "1:-5,op:1",
+              {
+                "lin": {
+                  "1": -5,
+                  "op": 1
+                },
+                "holds": true
+              }
+            ],
+            [
+              "1:-6,op:1",
+              {
+                "lin": {
+                  "1": -6,
+                  "op": 1
+                },
+                "holds": true
+              }
+            ],
+            [
+              "1:-1,started:1",
+              {
+                "lin": {
+                  "1": -1,
+                  "started": 1
+                },
+                "holds": true
+              }
+            ],
+            [
+              "1:1,started:-1",
+              {
+                "lin": {
+                  "1": 1,
+                  "started": -1
+                },
+                "holds": true
+              }
+            ],
+            [
+              "1:-1,St[i:1]:1",
+              {
+                "lin": {
+                  "1": -1,
+                  "St[i:1]": 1
+                },
+                "holds": true
+              }
+            ],
+            [
+              "1:1,St[i:1]:-1",
+              {
+                "lin": {
+                  "1": 1,
+                  "St[i:1]": -1
+                },
+                "holds": true
+              }
+            ],
+            [
+              "CT[i:1]:-1,CfgT[i:1]:1",
+              {
+                "lin": {
+                  "CfgT[i:1]": 1,
+                  "CT[i:1]": -1
+                },
+                "holds": true
+              }
+            ],
+            [
+              "CT[i:1]:1,CfgT[i:1]:-1",
+              {
+                "lin": {
+                  "CT[i:1]": 1,
+                  "CfgT[i:1]": -1
+                },
+                "holds": true
+              }
+            ],
+            [
+              "1:-1,?committedQuorum:1",
+              {
+                "lin": {
+                  "1": -1,
+                  "?committedQuorum": 1
+                },
+                "holds": true
+              }
+            ],
+            [
+              "1:1,?committedQuorum:-1",
+              {
+                "lin": {
+                  "1": 1,
+                  "?committedQuorum": -1
+                },
+                "holds": true
+              }
+            ],
+            [
+              "1:1,xAndS[]:1,⟦5⟧:-1,⟦9⟧:-1",
+              {
+                "lin": {
+                  "1": 1,
+                  "xAndS[]": 1,
+                  "⟦5⟧": -1,
+                  "⟦9⟧": -1
+                },
+                "holds": true
+              }
+            ],
+            [
+              "1:1,S[i:1]:-1",
+              {
+                "lin": {
+                  "1": 1,
+                  "S[i:1]": -1
+                },
+                "holds": true
+              }
+            ],
+            [
+              "1:-1,?canVote:1",
+              {
+                "lin": {
+                  "1": -1,
+                  "?canVote": 1
+                },
+                "holds": true
+              }
+            ],
+            [
+              "1:1,i:1,size:-1",
+              {
+                "lin": {
+                  "1": 1,
+                  "i": 1,
+                  "size": -1
+                },
+                "holds": true
+              }
+            ],
+            [
+              "1:1,j$:1,size:-1",
+              {
+                "lin": {
+                  "1": 1,
+                  "j$": 1,
+                  "size": -1
+                },
+                "holds": true
+              }
+            ],
+            [
+              "a$#:1,i:-1",
+              {
+                "lin": {
+                  "a$#": 1,
+                  "i": -1
+                },
+                "holds": true
+              }
+            ],
+            [
+              "a$#:-1,i:1",
+              {
+                "lin": {
+                  "a$#": -1,
+                  "i": 1
+                },
+                "holds": true
+              }
+            ],
+            [
+              "i:-1,j$:1",
+              {
+                "lin": {
+                  "j$": 1,
+                  "i": -1
+                },
+                "holds": true
+              }
+            ],
+            [
+              "i:1,j$:-1",
+              {
+                "lin": {
+                  "j$": -1,
+                  "i": 1
+                },
+                "holds": true
+              }
+            ],
+            [
+              "1:1,CT[i:1]:1,CfgT[j$:1]:-1",
+              {
+                "lin": {
+                  "1": 1,
+                  "CT[i:1]": 1,
+                  "CfgT[j$:1]": -1
+                },
+                "holds": false
+              }
+            ]
+          ],
+          "depth": 1,
+          "ownUnits": 837.7992867999997,
+          "inclusiveUnits": 837.7992867999997,
+          "outcomes": {
+            "sat": 5,
+            "reused-model": 6,
+            "checked": 2,
+            "unknown": 3
+          },
+          "sourceQueries": 10,
+          "rawRefuted": 5
+        }
+      ]
+    }
+  ],
+  "sourceSummary": {
+    "refuted-checked": 6,
+    "sat-validated": 46
+  }
+}

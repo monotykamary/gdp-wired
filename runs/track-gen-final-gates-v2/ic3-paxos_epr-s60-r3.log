@@ -1,0 +1,14 @@
+PAIR begin side=cand id=paxos_epr run=3
+[infer join engine] {"wall":0,"eUntil":14129}
+[infer join small instance] {"states":576,"bfs":263,"params":4,"symmetric":"","ms":2018,"took":2018}
+[infer join pool] {"made":46,"left":46,"states":86,"ms":3980,"real":24868}
+PAIR end side=cand exit=137
+PAIR begin side=base id=paxos_epr run=3
+[infer join engine] {"wall":0,"eUntil":14129}
+[infer join small instance] {"states":576,"bfs":263,"params":4,"symmetric":"","ms":2018,"took":2018}
+[infer join pool] {"made":46,"left":46,"states":86,"ms":3980,"real":23614}
+PAIR end side=base exit=137
+
+--- stderr ---
+bash: line 1: 216665 Killed                  ( cd "$dir" && GDP_INFER_TRACE=2 timeout -s KILL 60 bun research/protocols/ic3syn/run.ts --ms 60000 --only 'paxos_epr' --skip 'broken' ) > /tmp/pair-$side.out 2> /tmp/pair-$side.err
+bash: line 1: 217969 Killed                  ( cd "$dir" && GDP_INFER_TRACE=2 timeout -s KILL 60 bun research/protocols/ic3syn/run.ts --ms 60000 --only 'paxos_epr' --skip 'broken' ) > /tmp/pair-$side.out 2> /tmp/pair-$side.err

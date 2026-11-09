@@ -1,0 +1,288 @@
+Found 0 warnings and 0 errors.
+Finished in 21.1s on 1153 files with 100 rules using 8 threads.
+bun test v1.4.3 (c6da4a4d3)
+
+--- stderr ---
+$ tsc -p . && oxlint --type-aware --deny-warnings --disable-nested-config
+
+core/count-cases.test.ts:
+(pass) finite count recovery returns an original-kernel-checked tree and restores search scope [55.61ms]
+(pass) finite cases use checked activation and witness derivations without an opt-in [25.20ms]
+(pass) ranked bounds use the arithmetic core rather than every preceding proposal [0.76ms]
+(pass) default case recovery excludes a false bound and retains the successful slim certificate [20.52ms]
+(pass) selected cases retain newly seeded universal-flag witnesses in the final source [40.15ms]
+(pass) an arithmetic core of an unprovable bound cannot certify a false law [9.53ms]
+(pass) slimming witness instances removes complete tuples without mutating the caller [0.09ms]
+(pass) compact recovery keeps its saturated branches and local model scope checked [13.45ms]
+(pass) finite count recovery does not turn a satisfiable goal into a proof [4.43ms]
+
+core/count-focused.test.ts:
+(pass) goal demand uses a primitive read for a missing pre-state union [3.65ms]
+(pass) goal demand follows a named flag to a missing pre-state union [1.12ms]
+(pass) field guards receive row instances without adding carried-set witnesses [0.22ms]
+(pass) a copy starting subset retains source substitutions without unrelated tuples [0.30ms]
+(pass) copy source discovery ignores inputs read only by update guards [0.08ms]
+(pass) copy starting subsets preserve algebraic and post-empty proposals [0.04ms]
+(pass) copy-frame proposals compare the same counted definition at different rows within a cap [0.92ms]
+(pass) copy-frame slots are shared across result counts and prioritize input sources [0.57ms]
+(pass) focused comparisons follow carried sets and indicator bodies, not names [0.50ms]
+(pass) algebraic selection reserves union bounds and their row identities within the same cap [0.42ms]
+(pass) packed count coordinates are row keys but scalar comparison witnesses are not [0.10ms]
+(pass) equal Boolean views survive the narrow selector despite duplicated conjuncts [0.13ms]
+(pass) new count keys remain independent of certificate witnesses [0.20ms]
+(pass) counted row bridges preserve half-cardinality witnesses [0.15ms]
+(pass) targeted carried-set comparisons omit unrelated row reads [0.13ms]
+(pass) algebraic focus keeps equivalent pre-count views but not different rows [0.11ms]
+(pass) a carried subset can target its declared input-keyed row view [0.13ms]
+(pass) request frames propose only same-shaped carried-region comparisons [0.20ms]
+(pass) request frames normalize equality and threshold membership indicators [0.12ms]
+(pass) frames retain a structural range bound between two post counts [0.18ms]
+(pass) request partition identities outrank misleading triples within sixteen algebraic slots [1.07ms]
+(pass) post remainder and carried set propose a three-term coverage certificate [0.21ms]
+(pass) post counts can propose a bound from the stored membership they read [2.42ms]
+(pass) post-state frame comparisons are opt-in witness-bearing proposals [0.15ms]
+(pass) field bridges preserve the goal column independently of row-key aliases [0.36ms]
+(pass) count-law bridges seed only unary/binary count laws and preserve input [0.33ms]
+
+core/count-focus-proof.test.ts:
+(pass) finite-input focused recovery is the default and keeps an explicit opt-out [0.16ms]
+(pass) focused finite-count recovery keeps the selected step packet instead of rebuilding its full pool [11.10ms]
+
+core/count-cert-transport.test.ts:
+(pass) counted support includes independent lemma source slices [0.82ms]
+(pass) complete counted certificates retain cuts across reordered and enlarged contexts [0.94ms]
+(pass) counted certificate transport does not extend expired deadlines [0.08ms]
+
+core/count-write-frames.test.ts:
+(pass) generic renamed writers propose the missing 2/4/4 directional frames [1.03ms]
+(pass) only demanded post heads participate, never unrelated carried sets or pre heads [0.42ms]
+(pass) a carried map read only in the write guard or arithmetic is not a copied source [0.33ms]
+(pass) point writes and Boolean membership-copy values are supported without reading guard sources [0.27ms]
+(pass) lowered Boolean copy values preserve guarded membership arms [0.22ms]
+(pass) membership syntaxes, conjunction order and double negation do not change pair selection [0.23ms]
+(pass) non-membership predicates and malformed binary regions are not frame shapes [0.48ms]
+(pass) incoming, PRE and actual post bounds must match exactly; unsupported packed reads are skipped [0.32ms]
+(pass) existing coefficient vectors, including reordered reverse directions, are deduplicated independently [0.53ms]
+(pass) caps are stable, at most 32, with fresh witnesses and no input mutation [2.22ms]
+(pass) false frames stay untrusted: a witness survives without the copying guard [6.76ms]
+
+core/count-recovery-order.test.ts:
+(pass) ordinary checked proposals take priority over deferred count recovery [0.08ms]
+(pass) an unsuccessful ordinary attempt can recover within its remaining allowance [0.02ms]
+(pass) failed recovery preserves the exact ordinary result, including a model outcome [0.02ms]
+(pass) expired attempts never borrow a fresh recovery allowance [0.02ms]
+(pass) deferred recovery uses only the latest warmed proposal context [0.02ms]
+(pass) an ordinary failure without a recovery proposal is unchanged [0.01ms]
+
+core/count-demand.test.ts:
+(pass) demand reaches a relevant family beyond 128 irrelevant legacy proposals [7.17ms]
+(pass) late counts are indexed, not clipped to the first 128 inputs [5.19ms]
+(pass) one demanded count finds an undemanded carried partner in a generic 41-read shape [1.20ms]
+(pass) positive pairs require a demanded endpoint and a same-bound relevant family [0.42ms]
+(pass) demanded region families may be used even without a shared positive primitive [0.32ms]
+(pass) requested indicators normalize member variables and equality orientation; both partitions check [8.17ms]
+(pass) complement indicators and declared region unions have both partition directions [2.67ms]
+(pass) a disjoint-cover proposal is admitted by the ordinary checked witness rule [25.37ms]
+(pass) raw-map partitions keep the witness alternative instead of asserting an axiom [6.26ms]
+(pass) witnesses avoid names from unrelated inputs and caller reservations [0.53ms]
+(pass) output and work limits are hard, deterministic, and do not mutate input [8.98ms]
+
+core/count-recovery/derivability-closure.test.ts:
+(pass) closure checks a derived union [33.86ms]
+(pass) closure does not assume a false union [4.61ms]
+(pass) internal closure keeps independent cuts in the final checked certificate [22.64ms]
+(pass) expired closure leaves no proof and never extends its deadline [0.29ms]
+
+core/count-recovery/guard-cases.test.ts:
+(pass) default Boolean activation covers both branches (impossible=true) [1.12ms]
+(pass) default Boolean activation covers both branches (impossible=false) [2.09ms]
+(pass) activation proofs retain their original non-empty path scope [0.35ms]
+(pass) activation proposals pass the complete source check (deferred=false) [0.60ms]
+(pass) activation proposals pass the complete source check (deferred=true) [0.42ms]
+
+core/count-recovery/conditional-proof.test.ts:
+(pass) metadata is untrusted, root-local, and checked under ordinary entry paths [1.12ms]
+(pass) mixed ordinary and conditional siblings globalize at an empty root [0.66ms]
+(pass) rootless conditional cuts keep their guards as well as the subtree entry scope [0.56ms]
+(pass) cross-goal added and reordered hypotheses preserve independent slices [0.76ms]
+(pass) unsliced source cuts become explicit slices and do not assume added hypotheses [0.46ms]
+(pass) inactive cuts cannot be used or activated by another cut [0.39ms]
+(pass) missing target rows and missing source-slice hypotheses refuse exact transport [0.28ms]
+(pass) removed guard hypotheses are discharged by explicit entry conditions, not assumed [1.00ms]
+(pass) malformed independent cuts are refused by checking, transport and collection [0.19ms]
+(pass) constant-positive target row short-circuits obsolete source rows [0.29ms]
+(pass) duplicate path atoms keep rows and negcut-first lookup semantics [0.23ms]
+(pass) ordinary siblings reindex when global cuts change their leaf rows [0.27ms]
+(pass) transport can prune a known split without losing a descendant mark [0.27ms]
+(pass) ordinary square and product references follow the relocated base rows [0.49ms]
+(pass) ordinary checking retains the kernel constant and repeated split refusals [0.11ms]
+(pass) expired absolute wall deadlines never produce certificates [0.08ms]
+
+core/count-recovery/field-bound-budget.test.ts:
+(pass) an expired source budget returns before inspecting machine rows [0.04ms]
+(pass) an expired wall stops source construction even when counted work remains [0.18ms]
+
+core/count-recovery/scalar-guards.test.ts:
+(pass) lexicographic candidates use field anchors, not row aliases (plain) [2.36ms]
+(pass) lexicographic candidates use field anchors, not row aliases (renamed_) [0.63ms]
+(pass) only active relevant forall flags supply anchors, preferring the positive carried count [1.36ms]
+(pass) raw and encoded flag references are traversed (false) [0.29ms]
+(pass) raw and encoded flag references are traversed (true) [0.20ms]
+(pass) known root comparisons are not re-proposed and false scopes are dropped [0.65ms]
+(pass) optional source comparisons retain only known row/input/parameter scalar cells [0.44ms]
+(pass) goal hints use only the candidate row pair, and lex conjunctions use distinct fields [0.25ms]
+(pass) two-term post/pre frames use candidate-row field equalities, including their conjunction [0.87ms]
+(pass) keyless frame finds its actor only in the body [2.44ms]
+(pass) keyless frame finds its actor only in the anchor [0.23ms]
+(pass) primitive Boolean partitions do not rescan or propose broad goal fields [0.11ms]
+(pass) an oversized or cyclic source tail does not suppress the selected count guards [8.62ms]
+(pass) large candidate families stay bounded and deterministic [1.03ms]
+(pass) unknown reads, malformed ASTs, cyclic ASTs and recursive flag aliases fail conservatively [0.19ms]
+(pass) packed read keys contribute only their row variables; unsupported packing is refused [0.62ms]
+
+core/count-recovery/natural-cases.test.ts:
+(pass) natural subtraction cases recover a checked overlap contradiction under its guard path [21.74ms]
+(pass) natural subtraction cases cannot invent the missing union bound [9.23ms]
+
+core/count-recovery/rebase-path.test.ts:
+(pass) path reindexing removes a redundant numeric assumption without searching [0.27ms]
+(pass) path reindexing keeps a split needed to expose a conditional row [0.26ms]
+(pass) a reindexed proposal is not a certificate without the final check [0.09ms]
+(pass) derived cuts are removed only when the retained branch works without them [0.67ms]
+
+core/count-recovery/carried-case.test.ts:
+(pass) carried witness split checks both branches [0.56ms]
+(pass) carried witness split cannot prove a satisfiable goal [0.20ms]
+
+core/count-recovery/frame-lemmas.test.ts:
+(pass) factored frame lemmas produce an ordinary checked count tree [7.39ms]
+(pass) the numeric core selects needed frames before proving unrelated ones [7.84ms]
+(pass) an unsuccessful shared-frame probe can stop before spending the leaf allowance [0.53ms]
+
+core/count-recovery/live-dependencies.test.ts:
+(pass) scalar context retains the source stride bound [1.19ms]
+(pass) scalar context does not invent a missing stride bound [0.76ms]
+(pass) dependency slices ignore inactive witnesses without rewriting source terms [0.17ms]
+(pass) small cores recover only their own existing witness guards [1.22ms]
+(pass) active implications expose independently sliceable conjuncts at the original path [0.34ms]
+
+core/count-recovery/source-memo.test.ts:
+(pass) source memo reuses only a transported tree at the same logical path [0.30ms]
+(pass) source memo reuses unchanged used rows across activation paths, not missing assumptions [0.17ms]
+(pass) source memo tries an exact match beyond two geometrically nearer paths [0.27ms]
+(pass) shared source scopes reuse exact rows despite different enclosing hypotheses [0.14ms]
+(pass) source memo cannot turn a changed satisfiable goal into a checked proof [0.06ms]
+
+core/count-recovery/boolean-core.test.ts:
+(pass) Boolean union core checks membership cases [3.61ms]
+(pass) Boolean union core does not invent the subset premise [1.53ms]
+(pass) witness key congruence checks a natural-subtraction alias [2.38ms]
+(pass) witness key congruence does not assume row equality [1.38ms]
+(pass) a partition CInst checks directly in forward direction [1.04ms]
+(pass) a partition CInst checks directly in reverse direction [0.88ms]
+(pass) packed copy offsets check through their row-order guard [6.89ms]
+(pass) packed copy offsets do not hide a wrong offset [2.33ms]
+(pass) primitive copy guards outrank compound cell-key aliases in the fixed pool [0.28ms]
+(pass) inactive Boolean arms stay pruned inside a forced indicator [0.24ms]
+(pass) a forced comparison still exposes its conditional operands [0.14ms]
+(pass) inactive scalar writes do not occupy the witness case pool [2.14ms]
+(pass) inactive scalar writes remain open without the selector [0.77ms]
+(pass) conditional indicator copy checks a non-newer destination [14.85ms]
+(pass) conditional indicator copy does not invent the version guard [3.06ms]
+(pass) packed conditional indicator copy checks a non-newer destination [141.76ms]
+(pass) packed conditional indicator copy does not invent the version guard [5.74ms]
+(pass) witness field comparisons expose an impossible indicator [0.98ms]
+(pass) witness field comparisons remain unproved without the bound [0.42ms]
+(pass) a point update proposes its witness-versus-actor equality [0.63ms]
+(pass) forced facts leave room for Boolean proposals (valid) [38.18ms]
+(pass) forced facts leave room for Boolean proposals (missing subset) [7.17ms]
+(pass) witness-domain guards follow a checked row equality [1.04ms]
+(pass) witness-domain guards are not assumed across rows [1.24ms]
+
+core/count-recovery/conditional-cuts.test.ts:
+(pass) a cut activates only in its conditional scope and drops unrelated guards and source hypotheses [0.71ms]
+(pass) a required prior cut is inlined into an independently checked lemma [0.76ms]
+(pass) an unavailable or independently invalid prerequisite fails admission [0.68ms]
+(pass) unneeded cuts are not inlined or checked and cannot make prerequisites active [0.47ms]
+(pass) inline emits an ordinary kernel-checked tree at scope with only needed active cuts [0.81ms]
+(pass) a selected active cut reuses a target negated bound that folds to false [0.81ms]
+(pass) opaque columns, including nested opaque column names, cannot be cuts [0.06ms]
+(pass) duplicate path atoms preserve rows and negcut wins deciding lookups [0.18ms]
+(pass) inline may discharge an already false cut without emitting a repeated split [0.31ms]
+(pass) expired wall deadlines and unchecked source refutations return no result [0.31ms]
+
+core/count-recovery/key-closure.test.ts:
+(pass) read-key closure checks the packed subtraction guard [0.58ms]
+(pass) read-key closure does not equate a wrong offset [0.70ms]
+
+core/count-recovery/fold-path.test.ts:
+(pass) path folding retains a checked route through original conditional terms [0.87ms]
+
+core/count-recovery/pre-state-source.test.ts:
+(pass) pre-state ceiling sources remove discarded witness instances and preserve original CInst order [1.26ms]
+
+core/count-recovery/source-witness-instances.test.ts:
+(pass) local countermodels request ordinary multi-key field instances at a count witness [6.05ms]
+(pass) source feedback requires a read witness and preserves count-key freshness [1.01ms]
+
+core/count-recovery/lift-count-proxies.test.ts:
+(pass) count proxies lift through explicit read equalities without whole-goal search [0.26ms]
+(pass) count proxy transport cannot invent a missing read equality [0.12ms]
+(pass) composite count terms lift [0.49ms]
+(pass) composite count terms cannot invent bindings [0.20ms]
+(pass) numeric count bindings retain constraints in an existing guard path [0.31ms]
+(pass) a deferred transport is not an accepted proof [0.10ms]
+(pass) count proxy domain guards are checked (deferred=false) [0.34ms]
+(pass) count proxy domain guards cannot be assumed (deferred=false) [0.12ms]
+(pass) count proxy domain guards are checked (deferred=true) [0.18ms]
+(pass) count proxy domain guards cannot be assumed (deferred=true) [0.09ms]
+
+core/count-recovery/field-bound-lemmas.test.ts:
+(pass) packed column domains are split once before row reconstruction and checked [29.42ms]
+(pass) empty-count candidates are post-state singleton upper bounds on field comparisons [0.22ms]
+(pass) a singleton empty count checks at a zero threshold [9.03ms]
+(pass) a singleton empty count is not assumed empty [3.82ms]
+(pass) numeric count bridges include nested path cells but omit unrelated reads [0.25ms]
+(pass) strict successor member bounds suggest checked field ceilings without protocol names [5.00ms]
+(pass) ceilings retain input-key fields used by a write beside the post-count target [0.29ms]
+(pass) field conclusions retain their own ceiling target beside a write actor [0.17ms]
+(pass) equal per-member fields also suggest checked ceiling candidates [1.06ms]
+(pass) a sufficient field ceiling closes before unrelated ceiling proposals [14.93ms]
+(pass) equal row keys produce checked count-read alias cuts [2.27ms]
+(pass) ceiling slices keep carried membership encoded as 1 <= the set cell [27.43ms]
+
+core/count-recovery/action-guard.test.ts:
+(pass) action guards use the selected operation and ground its quantified flag [0.09ms]
+(pass) the active quantified flag selects its carried set without protocol names [0.11ms]
+
+core/count-recovery/rename-proof.test.ts:
+(pass) ordinary row proofs are instantiated by used-row matching, not trusted symmetry [0.45ms]
+(pass) packed cells and conditional term columns can be mirrored into a full checked subtree [1.32ms]
+(pass) monomial columns retain their polynomial meaning under row renaming [0.39ms]
+(pass) renaming refuses expired work and cannot validate fabricated leaves [0.10ms]
+
+core/count-recovery/field-only.test.ts:
+(pass) field projection only weakens premises and transports a checked proof [0.25ms]
+(pass) field projection uses the source conclusion before appended count bindings [0.11ms]
+(pass) packed copy fields reconstruct their equal-key core under row equalities [11.35ms]
+(pass) shifted copy fields prove both natural-subtraction directions [82.38ms]
+(pass) field arithmetic leaves close before the model query and remain checked [0.43ms]
+(pass) field memo transports completed subproofs but refuses missing source support [0.65ms]
+(pass) field arithmetic shortcut cannot close a satisfiable source [0.35ms]
+(pass) field projection does not strengthen disjunctions or discard a counted conclusion [0.13ms]
+
+core/count-recovery/row-cases.test.ts:
+(pass) active writes select the destination row rather than the copied source [0.28ms]
+(pass) Boolean-valued row writes ignore dead arms and membership lookup keys [0.16ms]
+(pass) active constant-index writes split against that index, not an unrelated input [0.14ms]
+(pass) field-only conclusions discover row cases without a post-count read [0.21ms]
+(pass) row cases cover both directions of disequality and reuse only checked trees [0.53ms]
+(pass) row copies can split the secondary key in the primary-equal branch too [0.52ms]
+(pass) mirrored row cases emit full subtrees without rerunning their callback [1.78ms]
+(pass) row cases never accept an unchecked leaf [0.10ms]
+(pass) deferred row proposals still require the composing kernel check [0.29ms]
+
+ 217 pass
+ 0 fail
+ 967 expect() calls
+Ran 217 tests across 30 files. [982.00ms]

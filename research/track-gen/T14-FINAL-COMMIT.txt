@@ -1,0 +1,9 @@
+test(core): stabilize packed-domain route coverage
+
+Use the deterministic counted clock for the route-specific regression so
+its internal leaf allowance is not a JIT or GC wall-time race. Production
+budgets and proof policy are unchanged.
+
+Record the completed T14 gate, all strict CPU labels and work deltas.
+Keep failed-window and failed-test evidence. Bound research captures by
+storing scalar witnesses separately from duplicated solver families.

@@ -1,0 +1,9 @@
+[
+  {
+    "name": "tf1",
+    "cmd": "bash research/track-m/run-section8-f1.sh",
+    "cpu": 8,
+    "memory": 14336,
+    "timeout": 800
+  }
+]

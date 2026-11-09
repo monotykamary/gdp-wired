@@ -1,0 +1,9 @@
+[
+  {
+    "name": "gc-abba",
+    "cmd": "bash research/track-m/run-census-runtime.sh research/track-m/census-gc-plan.json",
+    "cpu": 8,
+    "memory": 14336,
+    "timeout": 900
+  }
+]

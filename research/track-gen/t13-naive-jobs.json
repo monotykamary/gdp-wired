@@ -1,0 +1,1 @@
+[{"name":"generation","cmd":"bun install --frozen-lockfile && bun research/track-gen/t13-generation.ts mldr","timeout":300},{"name":"debug","cmd":"bun install --frozen-lockfile && bun research/track-gen/t13-debug.ts","timeout":180}]

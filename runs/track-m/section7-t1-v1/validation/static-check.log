@@ -1,0 +1,16 @@
+Found 0 warnings and 0 errors.
+Finished in 12.3s on 1164 files with 100 rules using 8 threads.
+bun test v1.4.3 (c6da4a4d3)
+
+--- stderr ---
+$ tsc -p . && oxlint --type-aware --deny-warnings --disable-nested-config
+
+research/track-m/phase-census-meter.test.ts:
+(pass) wall phases are exclusive and kernel work is not double counted [0.24ms]
+(pass) phase-local solver work remains charged to its phase [0.10ms]
+(pass) cut-use audit distinguishes offered, core and checked proof references [0.44ms]
+
+ 3 pass
+ 0 fail
+ 9 expect() calls
+Ran 3 tests across 1 file. [5.00ms]

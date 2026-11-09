@@ -1,0 +1,5 @@
+research/track-m/section9-ta-audit.ts(31,47): error TS18048: 'summary.B' is possibly 'undefined'.
+research/track-m/section9-ta-audit.ts(31,69): error TS18048: 'summary.B' is possibly 'undefined'.
+
+--- stderr ---
+$ tsc -p . && oxlint --type-aware --deny-warnings --disable-nested-config

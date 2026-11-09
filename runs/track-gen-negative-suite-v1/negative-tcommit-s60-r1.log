@@ -1,0 +1,6 @@
+PAIR begin side=cand id=tcommit run=1
+{"id":"tcommit","ic3syn":"tla-tcommit","broken":{"bug":"commit without canCommit","verdict":"refuted","goal":"commit and abort exclude @step","stuck":"sat","run":4,"ms":16,"work":0,"full":0}}
+PAIR end side=cand exit=0
+PAIR begin side=base id=tcommit run=1
+{"id":"tcommit","ic3syn":"tla-tcommit","broken":{"bug":"commit without canCommit","verdict":"refuted","goal":"commit and abort exclude @step","stuck":"sat","run":4,"ms":13,"work":0,"full":0}}
+PAIR end side=base exit=0

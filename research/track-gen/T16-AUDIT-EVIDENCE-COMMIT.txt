@@ -1,0 +1,7 @@
+docs(research): record finite audit regression evidence
+
+Record the cancellation and false-fact reproductions, including the
+initial import-cycle failure. Add a clean-archive check for 52b2382f so
+uncommitted fallback work cannot contaminate the audit repair receipt.
+
+The focused tests pass; full validation and Lane D re-audit stay pending.

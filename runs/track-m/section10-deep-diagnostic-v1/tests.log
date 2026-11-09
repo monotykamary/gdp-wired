@@ -1,0 +1,12 @@
+bun test v1.4.3 (c6da4a4d3)
+
+research/track-m/section10-diagnostic.test.ts:
+(pass) empty diagnostic spans and dumps charge no counted work [1.99ms]
+(pass) nested span totals conserve measured work without double counting [0.23ms]
+(pass) capture and dump never execute deferred source construction [0.09ms]
+(pass) unbalanced diagnostics are rejected [0.09ms]
+
+ 4 pass
+ 0 fail
+ 7 expect() calls
+Ran 4 tests across 1 file. [22.00ms]

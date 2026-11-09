@@ -1,0 +1,9 @@
+[
+  {
+    "name": "t81-full",
+    "cmd": "LAB_SECTION8_FULL_POOL=1 bash research/track-m/run-section8-loop.sh",
+    "cpu": 8,
+    "memory": 14336,
+    "timeout": 300
+  }
+]

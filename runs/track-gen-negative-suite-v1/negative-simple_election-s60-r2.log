@@ -1,0 +1,6 @@
+PAIR begin side=base id=simple_election run=2
+{"id":"simple_election","ic3syn":"ex-simple-election","broken":{"bug":"send_1b after a promise","verdict":"unknown","why":"a law fails on the small instances","found":["every Start cell is a value of its kind","every Promise cell is a value of its kind","every Promised cell is a value of its kind","every Leader cell is a value of its kind","one leader"],"ms":1950,"work":0,"full":0}}
+PAIR end side=base exit=0
+PAIR begin side=cand id=simple_election run=2
+{"id":"simple_election","ic3syn":"ex-simple-election","broken":{"bug":"send_1b after a promise","verdict":"unknown","why":"a law fails on the small instances","found":["every Start cell is a value of its kind","every Promise cell is a value of its kind","every Promised cell is a value of its kind","every Leader cell is a value of its kind","one leader"],"ms":1917,"work":0,"full":0}}
+PAIR end side=cand exit=0

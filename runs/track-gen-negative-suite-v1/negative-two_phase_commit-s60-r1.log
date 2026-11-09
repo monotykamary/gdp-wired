@@ -1,0 +1,6 @@
+PAIR begin side=cand id=two_phase_commit run=1
+{"id":"two_phase_commit","ic3syn":"i4-two-phase-commit","broken":{"bug":"go1 without every yes vote","verdict":"refuted","goal":"commit and abort agree @step","stuck":"sat","run":6,"ms":13,"work":0,"full":0}}
+PAIR end side=cand exit=0
+PAIR begin side=base id=two_phase_commit run=1
+{"id":"two_phase_commit","ic3syn":"i4-two-phase-commit","broken":{"bug":"go1 without every yes vote","verdict":"refuted","goal":"commit and abort agree @step","stuck":"sat","run":6,"ms":17,"work":0,"full":0}}
+PAIR end side=base exit=0

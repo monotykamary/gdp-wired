@@ -1,0 +1,28 @@
+
+--- stderr ---
+11 | start=s.indexOf(' const finish=(scope:Path,end:number):Tree|undefined=>{');end=s.indexOf(' const scalar=',start)
+12 | if(start<0||end<0)throw new Error('missing finish')
+13 | s=s.slice(0,start)+readFileSync('research/track-m/section8-loop-finish.txt','utf8')+s.slice(end)
+14 | writeFileSync(file,s)
+15 | const f='core/count-recovery/field-bound-lemmas.ts',before=readFileSync(f,'utf8'),marker='   if(closed)return closed'
+16 | if(before.split(marker).length!==2)throw new Error('missing closure call')
+                                                  ^
+error: missing closure call
+      at /work/gdp-wired/research/track-m/install-section8-loop.ts:16:46
+
+Bun v1.4.3 (Linux x64)
+1 | // Preserve complete research receipts below the remote stdout retention limit.
+2 | import {readFileSync} from 'node:fs'
+3 | import {basename} from 'node:path'
+4 | import {gzipSync} from 'node:zlib'
+5 | for(const file of process.argv.slice(2))console.log(JSON.stringify({artifact:basename(file),encoding:'gzip-base64',data:gzipSync(readFileSync(file)).toString('base64')}))
+                                                                                                                                     ^
+ENOENT: no such file or directory, open '/tmp/section8-loop-uRCb8L/*.log'
+    path: "/tmp/section8-loop-uRCb8L/*.log",
+ syscall: "open",
+   errno: -2,
+    code: "ENOENT"
+
+      at /work/gdp-wired/research/track-m/pack-section7-receipts.ts:5:130
+
+Bun v1.4.3 (Linux x64)

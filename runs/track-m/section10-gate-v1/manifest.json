@@ -1,0 +1,27 @@
+{
+  "baselineCommit": "50109a362af40cbbf31029e5db498c31efdacff8",
+  "kernelEqual": true,
+  "harnessEqual": true,
+  "harnessSha256": "d553d3373764d9ed51bee70a2888879d8ca1bcea71c27ec4025bf9e626aa9370",
+  "inputSha256": "4be076f22a8fec41083719358b3518a83b23add5c3dfd26017f772404e7dac24",
+  "modifiedCore": [
+    "count-cases.test.ts",
+    "count-cases.ts",
+    "count-focus-proof.ts",
+    "count-focused.ts",
+    "count-recovery/conditional-check-cache.test.ts",
+    "count-recovery/conditional-check-cache.ts",
+    "count-recovery/conditional-proof.test.ts",
+    "count-recovery/conditional-proof.ts",
+    "count-recovery/derivability-closure.test.ts",
+    "count-recovery/derivability-closure.ts",
+    "count-recovery/leaf-allowance.test.ts",
+    "count-recovery/leaf-allowance.ts",
+    "count-recovery/member-inclusions.test.ts",
+    "count-recovery/member-inclusions.ts",
+    "count-recovery/scalar-guards.ts",
+    "counts.ts",
+    "support-budget.ts"
+  ],
+  "bun": "1.4.3"
+}

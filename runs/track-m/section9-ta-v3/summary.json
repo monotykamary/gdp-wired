@@ -1,0 +1,111 @@
+{
+  "test": "T-9A",
+  "order": [
+    "A1",
+    "B1",
+    "A2",
+    "B2",
+    "A3",
+    "B3"
+  ],
+  "packetHash": "78b51495639d2e70ecdb871465c3d59c7cdfbc43e0abcf2804ab6b251f76f5c3",
+  "summary": {
+    "A": {
+      "repeats": 3,
+      "countedUnits": [
+        226.58278839999903,
+        226.58278839999903,
+        226.58278839999903
+      ],
+      "wallMedianMs": 163.2067189999998,
+      "wallMaxMs": 165.86338199999955,
+      "pass": false,
+      "generatorGap": false,
+      "branches": [
+        [
+          {
+            "name": "bare",
+            "outcome": "stalled",
+            "reason": "27-and-32-source-sat",
+            "units": 226.58278839999903
+          }
+        ],
+        [
+          {
+            "name": "bare",
+            "outcome": "stalled",
+            "reason": "27-and-32-source-sat",
+            "units": 226.58278839999903
+          }
+        ],
+        [
+          {
+            "name": "bare",
+            "outcome": "stalled",
+            "reason": "27-and-32-source-sat",
+            "units": 226.58278839999903
+          }
+        ]
+      ]
+    },
+    "B": {
+      "repeats": 3,
+      "countedUnits": [
+        403.13602839999925,
+        401.8379659999991,
+        401.8379659999991
+      ],
+      "wallMedianMs": 1631.0474890000005,
+      "wallMaxMs": 1784.8097399999988,
+      "pass": false,
+      "generatorGap": false,
+      "branches": [
+        [
+          {
+            "name": "guard",
+            "outcome": "unknown",
+            "reason": "no-validated-numeric-model",
+            "units": 403.13602839999925
+          },
+          {
+            "name": "complement",
+            "outcome": "unknown",
+            "reason": "shared-400-unit-limit",
+            "units": 0
+          }
+        ],
+        [
+          {
+            "name": "guard",
+            "outcome": "stalled",
+            "reason": "no-unexcluded-violated-pool-fact",
+            "units": 361.5815707999999
+          },
+          {
+            "name": "complement",
+            "outcome": "unknown",
+            "reason": "no-validated-numeric-model",
+            "units": 40.25639519999921
+          }
+        ],
+        [
+          {
+            "name": "guard",
+            "outcome": "stalled",
+            "reason": "no-unexcluded-violated-pool-fact",
+            "units": 361.5815707999999
+          },
+          {
+            "name": "complement",
+            "outcome": "unknown",
+            "reason": "no-validated-numeric-model",
+            "units": 40.25639519999921
+          }
+        ]
+      ]
+    }
+  },
+  "decision": "failed-or-inconsistent",
+  "implementationAllowed": false,
+  "laterTestsRun": false
+}

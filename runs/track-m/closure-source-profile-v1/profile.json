@@ -1,0 +1,2431 @@
+{
+  "law": "Inv*: no quorum of a config can still be gathered for a config term held",
+  "receipt": {
+    "hyps": 406,
+    "instances": 73,
+    "countedMs": 1500.1317483999999,
+    "wallMs": 11002.52314,
+    "checked": false
+  },
+  "aggregate": {
+    "unknownSources": 19,
+    "allOriginalSourcesMatched": true,
+    "allPointQueriesTimedOut": true,
+    "allUnreduced": true,
+    "allSingleInstance": true,
+    "auxiliaryWitnesses": [
+      "w?all$1",
+      "w?all$2",
+      "w?all$3",
+      "w?allCopied",
+      "w?canVote",
+      "w?noneCopied"
+    ],
+    "foreignMembers": [],
+    "nodes": {
+      "min": 414,
+      "max": 3108
+    },
+    "ifs": {
+      "min": 4,
+      "max": 58
+    },
+    "countedMs": 771.4316444,
+    "pointCountedMs": 154.55656400000055,
+    "booleanCountedMs": 616.8750803999994,
+    "pointWallMs": 259.2713879999992,
+    "booleanWallMs": 2063.4123490000056
+  },
+  "reads": [
+    [
+      "r$0",
+      "bq#",
+      {
+        "op": "add",
+        "a": {
+          "op": "mul",
+          "k": 64,
+          "a": {
+            "op": "var",
+            "name": "a$#"
+          }
+        },
+        "b": {
+          "op": "var",
+          "name": "j$"
+        }
+      }
+    ],
+    [
+      "r$1",
+      "cfgSize#",
+      {
+        "op": "var",
+        "name": "a$#"
+      }
+    ],
+    [
+      "r$2",
+      "inX",
+      {
+        "op": "const",
+        "value": 0
+      }
+    ],
+    [
+      "r$3",
+      "inS",
+      {
+        "op": "const",
+        "value": 0
+      }
+    ],
+    [
+      "r$4",
+      "inQ2",
+      {
+        "op": "const",
+        "value": 0
+      }
+    ],
+    [
+      "r$5",
+      "xNotS",
+      {
+        "op": "const",
+        "value": 0
+      }
+    ],
+    [
+      "r$6",
+      "xAndS",
+      {
+        "op": "const",
+        "value": 0
+      }
+    ],
+    [
+      "r$7",
+      "sNotX",
+      {
+        "op": "const",
+        "value": 0
+      }
+    ],
+    [
+      "r$8",
+      "cfgSize",
+      {
+        "op": "var",
+        "name": "a$#"
+      }
+    ],
+    [
+      "r$9",
+      "cfgSize",
+      {
+        "op": "var",
+        "name": "j$"
+      }
+    ],
+    [
+      "r$10",
+      "cfgSize",
+      {
+        "op": "const",
+        "value": 0
+      }
+    ],
+    [
+      "r$11",
+      "bq",
+      {
+        "op": "add",
+        "a": {
+          "op": "mul",
+          "k": 64,
+          "a": {
+            "op": "var",
+            "name": "i"
+          }
+        },
+        "b": {
+          "op": "var",
+          "name": "i"
+        }
+      }
+    ],
+    [
+      "r$12",
+      "cfgSize",
+      {
+        "op": "var",
+        "name": "i"
+      }
+    ],
+    [
+      "r$13",
+      "bq",
+      {
+        "op": "add",
+        "a": {
+          "op": "mul",
+          "k": 64,
+          "a": {
+            "op": "var",
+            "name": "a$#"
+          }
+        },
+        "b": {
+          "op": "var",
+          "name": "i"
+        }
+      }
+    ],
+    [
+      "r$14",
+      "bq",
+      {
+        "op": "add",
+        "a": {
+          "op": "mul",
+          "k": 64,
+          "a": {
+            "op": "var",
+            "name": "i"
+          }
+        },
+        "b": {
+          "op": "var",
+          "name": "a$#"
+        }
+      }
+    ],
+    [
+      "r$15",
+      "bq",
+      {
+        "op": "add",
+        "a": {
+          "op": "mul",
+          "k": 64,
+          "a": {
+            "op": "var",
+            "name": "j$"
+          }
+        },
+        "b": {
+          "op": "var",
+          "name": "i"
+        }
+      }
+    ],
+    [
+      "r$16",
+      "bq",
+      {
+        "op": "add",
+        "a": {
+          "op": "mul",
+          "k": 64,
+          "a": {
+            "op": "var",
+            "name": "i"
+          }
+        },
+        "b": {
+          "op": "var",
+          "name": "j$"
+        }
+      }
+    ],
+    [
+      "r$17",
+      "bq",
+      {
+        "op": "add",
+        "a": {
+          "op": "mul",
+          "k": 64,
+          "a": {
+            "op": "var",
+            "name": "a$#"
+          }
+        },
+        "b": {
+          "op": "var",
+          "name": "j$"
+        }
+      }
+    ],
+    [
+      "r$18",
+      "bq",
+      {
+        "op": "add",
+        "a": {
+          "op": "mul",
+          "k": 64,
+          "a": {
+            "op": "const",
+            "value": 0
+          }
+        },
+        "b": {
+          "op": "var",
+          "name": "j$"
+        }
+      }
+    ],
+    [
+      "r$19",
+      "bq",
+      {
+        "op": "add",
+        "a": {
+          "op": "mul",
+          "k": 64,
+          "a": {
+            "op": "var",
+            "name": "a$#"
+          }
+        },
+        "b": {
+          "op": "const",
+          "value": 0
+        }
+      }
+    ]
+  ],
+  "rows": [
+    {
+      "index": 1,
+      "wit": "w$17",
+      "terms": [
+        [
+          1,
+          "r$0"
+        ],
+        [
+          -1,
+          "r$8"
+        ]
+      ],
+      "hyps": 32,
+      "reconstructionHyps": 32,
+      "countInstances": 1,
+      "reconstructionCountInstances": 1,
+      "countReads": [
+        "r$0",
+        "r$5",
+        "r$6",
+        "r$7",
+        "r$8"
+      ],
+      "proxyCountReads": [
+        "r$0",
+        "r$8"
+      ],
+      "directCountReads": [
+        "r$6",
+        "r$5",
+        "r$7"
+      ],
+      "auxiliaryWitnesses": [
+        "w?all$1",
+        "w?all$2",
+        "w?all$3",
+        "w?allCopied",
+        "w?canVote",
+        "w?noneCopied"
+      ],
+      "foreignMembers": [],
+      "nodes": 2933,
+      "ifs": 52,
+      "maps": [
+        "CT",
+        "CV",
+        "CfgT",
+        "Config",
+        "Q2",
+        "S",
+        "St",
+        "sNotX",
+        "xAndS",
+        "xNotS"
+      ],
+      "reconstructionNodes": 2933,
+      "reconstructionIfs": 52,
+      "pointOutcome": "unknown",
+      "pointWhy": "time",
+      "pointCoreSize": null,
+      "pointCountedMs": 8.055234000000041,
+      "booleanCountedMs": 26.00021079999999,
+      "pointWallMs": 10.253058000000237,
+      "booleanWallMs": 166.40780300000006,
+      "totalCountedMs": 34.05544480000003,
+      "originalCountedMs": 34.05544480000003,
+      "transportWallMs": 0.0005509999991772929,
+      "admissionWallMs": 0.011101000000053318
+    },
+    {
+      "index": 2,
+      "wit": "w$22",
+      "terms": [
+        [
+          1,
+          "r$0"
+        ],
+        [
+          -1,
+          "r$13"
+        ]
+      ],
+      "hyps": 32,
+      "reconstructionHyps": 32,
+      "countInstances": 1,
+      "reconstructionCountInstances": 1,
+      "countReads": [
+        "r$0",
+        "r$5",
+        "r$6",
+        "r$7",
+        "r$13"
+      ],
+      "proxyCountReads": [
+        "r$0",
+        "r$13"
+      ],
+      "directCountReads": [
+        "r$6",
+        "r$5",
+        "r$7"
+      ],
+      "auxiliaryWitnesses": [
+        "w?all$1",
+        "w?all$2",
+        "w?all$3",
+        "w?allCopied",
+        "w?canVote",
+        "w?noneCopied"
+      ],
+      "foreignMembers": [],
+      "nodes": 2981,
+      "ifs": 52,
+      "maps": [
+        "CT",
+        "CV",
+        "CfgT",
+        "Config",
+        "Q2",
+        "S",
+        "St",
+        "sNotX",
+        "xAndS",
+        "xNotS"
+      ],
+      "reconstructionNodes": 2981,
+      "reconstructionIfs": 52,
+      "pointOutcome": "unknown",
+      "pointWhy": "time",
+      "pointCoreSize": null,
+      "pointCountedMs": 8.153334000000086,
+      "booleanCountedMs": 26.143158799999924,
+      "pointWallMs": 9.872543999999834,
+      "booleanWallMs": 173.43582100000003,
+      "totalCountedMs": 34.29649280000001,
+      "originalCountedMs": 34.29649280000001,
+      "transportWallMs": 0.0005419999997684499,
+      "admissionWallMs": 0.005290000000059081
+    },
+    {
+      "index": 3,
+      "wit": "w$26",
+      "terms": [
+        [
+          1,
+          "r$0"
+        ],
+        [
+          -1,
+          "r$17"
+        ]
+      ],
+      "hyps": 32,
+      "reconstructionHyps": 32,
+      "countInstances": 1,
+      "reconstructionCountInstances": 1,
+      "countReads": [
+        "r$0",
+        "r$5",
+        "r$6",
+        "r$7",
+        "r$17"
+      ],
+      "proxyCountReads": [
+        "r$0",
+        "r$17"
+      ],
+      "directCountReads": [
+        "r$6",
+        "r$5",
+        "r$7"
+      ],
+      "auxiliaryWitnesses": [
+        "w?all$1",
+        "w?all$2",
+        "w?all$3",
+        "w?allCopied",
+        "w?canVote",
+        "w?noneCopied"
+      ],
+      "foreignMembers": [],
+      "nodes": 2981,
+      "ifs": 52,
+      "maps": [
+        "CT",
+        "CV",
+        "CfgT",
+        "Config",
+        "Q2",
+        "S",
+        "St",
+        "sNotX",
+        "xAndS",
+        "xNotS"
+      ],
+      "reconstructionNodes": 2981,
+      "reconstructionIfs": 52,
+      "pointOutcome": "unknown",
+      "pointWhy": "time",
+      "pointCoreSize": null,
+      "pointCountedMs": 8.153333999999973,
+      "booleanCountedMs": 26.143158800000037,
+      "pointWallMs": 9.754853999999796,
+      "booleanWallMs": 127.6575640000001,
+      "totalCountedMs": 34.29649280000001,
+      "originalCountedMs": 34.29649280000001,
+      "transportWallMs": 0.0005409999994299142,
+      "admissionWallMs": 0.005380000000513974
+    },
+    {
+      "index": 4,
+      "wit": "w$28",
+      "terms": [
+        [
+          1,
+          "r$0"
+        ],
+        [
+          -1,
+          "r$19"
+        ]
+      ],
+      "hyps": 32,
+      "reconstructionHyps": 32,
+      "countInstances": 1,
+      "reconstructionCountInstances": 1,
+      "countReads": [
+        "r$0",
+        "r$5",
+        "r$6",
+        "r$7",
+        "r$19"
+      ],
+      "proxyCountReads": [
+        "r$0",
+        "r$19"
+      ],
+      "directCountReads": [
+        "r$6",
+        "r$5",
+        "r$7"
+      ],
+      "auxiliaryWitnesses": [
+        "w?all$1",
+        "w?all$2",
+        "w?all$3",
+        "w?allCopied",
+        "w?canVote",
+        "w?noneCopied"
+      ],
+      "foreignMembers": [],
+      "nodes": 2981,
+      "ifs": 52,
+      "maps": [
+        "CT",
+        "CV",
+        "CfgT",
+        "Config",
+        "Q2",
+        "S",
+        "St",
+        "sNotX",
+        "xAndS",
+        "xNotS"
+      ],
+      "reconstructionNodes": 2981,
+      "reconstructionIfs": 52,
+      "pointOutcome": "unknown",
+      "pointWhy": "time",
+      "pointCoreSize": null,
+      "pointCountedMs": 8.1533340000002,
+      "booleanCountedMs": 26.14315879999981,
+      "pointWallMs": 14.235241000000315,
+      "booleanWallMs": 145.40689700000075,
+      "totalCountedMs": 34.29649280000001,
+      "originalCountedMs": 34.29649280000001,
+      "transportWallMs": 0.0007810000006429618,
+      "admissionWallMs": 0.008625999999821943
+    },
+    {
+      "index": 5,
+      "wit": "w$36",
+      "terms": [
+        [
+          1,
+          "r$1"
+        ],
+        [
+          -1,
+          "r$8"
+        ]
+      ],
+      "hyps": 32,
+      "reconstructionHyps": 32,
+      "countInstances": 1,
+      "reconstructionCountInstances": 1,
+      "countReads": [
+        "r$1",
+        "r$5",
+        "r$6",
+        "r$7",
+        "r$8"
+      ],
+      "proxyCountReads": [
+        "r$1",
+        "r$8"
+      ],
+      "directCountReads": [
+        "r$6",
+        "r$5",
+        "r$7"
+      ],
+      "auxiliaryWitnesses": [
+        "w?all$1",
+        "w?all$2",
+        "w?all$3",
+        "w?allCopied",
+        "w?canVote",
+        "w?noneCopied"
+      ],
+      "foreignMembers": [],
+      "nodes": 1199,
+      "ifs": 6,
+      "maps": [
+        "CT",
+        "CV",
+        "CfgT",
+        "Config",
+        "Q2",
+        "S",
+        "St",
+        "sNotX",
+        "xAndS",
+        "xNotS"
+      ],
+      "reconstructionNodes": 1199,
+      "reconstructionIfs": 6,
+      "pointOutcome": "unknown",
+      "pointWhy": "time",
+      "pointCoreSize": null,
+      "pointCountedMs": 8.037962000000107,
+      "booleanCountedMs": 26.525402799999938,
+      "pointWallMs": 13.734540999999808,
+      "booleanWallMs": 90.34172399999989,
+      "totalCountedMs": 34.563364800000045,
+      "originalCountedMs": 34.563364800000045,
+      "transportWallMs": 0.0005410000003394089,
+      "admissionWallMs": 0.008977000000413682
+    },
+    {
+      "index": 6,
+      "wit": "w$41",
+      "terms": [
+        [
+          1,
+          "r$1"
+        ],
+        [
+          -1,
+          "r$13"
+        ]
+      ],
+      "hyps": 32,
+      "reconstructionHyps": 32,
+      "countInstances": 1,
+      "reconstructionCountInstances": 1,
+      "countReads": [
+        "r$1",
+        "r$5",
+        "r$6",
+        "r$7",
+        "r$13"
+      ],
+      "proxyCountReads": [
+        "r$1",
+        "r$13"
+      ],
+      "directCountReads": [
+        "r$6",
+        "r$5",
+        "r$7"
+      ],
+      "auxiliaryWitnesses": [
+        "w?all$1",
+        "w?all$2",
+        "w?all$3",
+        "w?allCopied",
+        "w?canVote",
+        "w?noneCopied"
+      ],
+      "foreignMembers": [],
+      "nodes": 1247,
+      "ifs": 6,
+      "maps": [
+        "CT",
+        "CV",
+        "CfgT",
+        "Config",
+        "Q2",
+        "S",
+        "St",
+        "sNotX",
+        "xAndS",
+        "xNotS"
+      ],
+      "reconstructionNodes": 1247,
+      "reconstructionIfs": 6,
+      "pointOutcome": "unknown",
+      "pointWhy": "time",
+      "pointCoreSize": null,
+      "pointCountedMs": 8.116502000000082,
+      "booleanCountedMs": 26.77625159999991,
+      "pointWallMs": 10.237530000000334,
+      "booleanWallMs": 56.22369700000036,
+      "totalCountedMs": 34.89275359999999,
+      "originalCountedMs": 34.89275359999999,
+      "transportWallMs": 0.0005099999998492422,
+      "admissionWallMs": 0.007222999999612512
+    },
+    {
+      "index": 7,
+      "wit": "w$45",
+      "terms": [
+        [
+          1,
+          "r$1"
+        ],
+        [
+          -1,
+          "r$17"
+        ]
+      ],
+      "hyps": 32,
+      "reconstructionHyps": 32,
+      "countInstances": 1,
+      "reconstructionCountInstances": 1,
+      "countReads": [
+        "r$1",
+        "r$5",
+        "r$6",
+        "r$7",
+        "r$17"
+      ],
+      "proxyCountReads": [
+        "r$1",
+        "r$17"
+      ],
+      "directCountReads": [
+        "r$6",
+        "r$5",
+        "r$7"
+      ],
+      "auxiliaryWitnesses": [
+        "w?all$1",
+        "w?all$2",
+        "w?all$3",
+        "w?allCopied",
+        "w?canVote",
+        "w?noneCopied"
+      ],
+      "foreignMembers": [],
+      "nodes": 1247,
+      "ifs": 6,
+      "maps": [
+        "CT",
+        "CV",
+        "CfgT",
+        "Config",
+        "Q2",
+        "S",
+        "St",
+        "sNotX",
+        "xAndS",
+        "xNotS"
+      ],
+      "reconstructionNodes": 1247,
+      "reconstructionIfs": 6,
+      "pointOutcome": "unknown",
+      "pointWhy": "time",
+      "pointCoreSize": null,
+      "pointCountedMs": 8.116501999999969,
+      "booleanCountedMs": 27.040786400000002,
+      "pointWallMs": 8.564781000000039,
+      "booleanWallMs": 54.69777400000021,
+      "totalCountedMs": 35.15728839999997,
+      "originalCountedMs": 35.15728839999997,
+      "transportWallMs": 0.0005610000007436611,
+      "admissionWallMs": 0.008597000000008848
+    },
+    {
+      "index": 8,
+      "wit": "w$47",
+      "terms": [
+        [
+          1,
+          "r$1"
+        ],
+        [
+          -1,
+          "r$19"
+        ]
+      ],
+      "hyps": 32,
+      "reconstructionHyps": 32,
+      "countInstances": 1,
+      "reconstructionCountInstances": 1,
+      "countReads": [
+        "r$1",
+        "r$5",
+        "r$6",
+        "r$7",
+        "r$19"
+      ],
+      "proxyCountReads": [
+        "r$1",
+        "r$19"
+      ],
+      "directCountReads": [
+        "r$6",
+        "r$5",
+        "r$7"
+      ],
+      "auxiliaryWitnesses": [
+        "w?all$1",
+        "w?all$2",
+        "w?all$3",
+        "w?allCopied",
+        "w?canVote",
+        "w?noneCopied"
+      ],
+      "foreignMembers": [],
+      "nodes": 1247,
+      "ifs": 6,
+      "maps": [
+        "CT",
+        "CV",
+        "CfgT",
+        "Config",
+        "Q2",
+        "S",
+        "St",
+        "sNotX",
+        "xAndS",
+        "xNotS"
+      ],
+      "reconstructionNodes": 1247,
+      "reconstructionIfs": 6,
+      "pointOutcome": "unknown",
+      "pointWhy": "time",
+      "pointCoreSize": null,
+      "pointCountedMs": 8.116501999999969,
+      "booleanCountedMs": 26.92320519999987,
+      "pointWallMs": 8.695475999999871,
+      "booleanWallMs": 92.63360499999999,
+      "totalCountedMs": 35.03970719999984,
+      "originalCountedMs": 35.03970719999984,
+      "transportWallMs": 0.00044100000013713725,
+      "admissionWallMs": 0.008475999999973283
+    },
+    {
+      "index": 19,
+      "wit": "w$84",
+      "terms": [
+        [
+          1,
+          "r$4"
+        ],
+        [
+          -1,
+          "r$5"
+        ]
+      ],
+      "hyps": 32,
+      "reconstructionHyps": 32,
+      "countInstances": 1,
+      "reconstructionCountInstances": 1,
+      "countReads": [
+        "r$4",
+        "r$5"
+      ],
+      "proxyCountReads": [
+        "r$4",
+        "r$5"
+      ],
+      "directCountReads": [],
+      "auxiliaryWitnesses": [
+        "w?all$1",
+        "w?all$2",
+        "w?all$3",
+        "w?allCopied",
+        "w?canVote",
+        "w?noneCopied"
+      ],
+      "foreignMembers": [],
+      "nodes": 416,
+      "ifs": 4,
+      "maps": [
+        "CT",
+        "CV",
+        "CfgT",
+        "Config",
+        "Q2",
+        "S",
+        "St"
+      ],
+      "reconstructionNodes": 416,
+      "reconstructionIfs": 4,
+      "pointOutcome": "unknown",
+      "pointWhy": "time",
+      "pointCoreSize": null,
+      "pointCountedMs": 8.059410000000298,
+      "booleanCountedMs": 26.94636079999998,
+      "pointWallMs": 12.150939000000108,
+      "booleanWallMs": 37.34608500000013,
+      "totalCountedMs": 35.00577080000028,
+      "originalCountedMs": 35.00577080000028,
+      "transportWallMs": 0.00043000000005122274,
+      "admissionWallMs": 0.00803399999949761
+    },
+    {
+      "index": 20,
+      "wit": "w$85",
+      "terms": [
+        [
+          1,
+          "r$4"
+        ],
+        [
+          -1,
+          "r$6"
+        ]
+      ],
+      "hyps": 32,
+      "reconstructionHyps": 32,
+      "countInstances": 1,
+      "reconstructionCountInstances": 1,
+      "countReads": [
+        "r$4",
+        "r$6"
+      ],
+      "proxyCountReads": [
+        "r$4",
+        "r$6"
+      ],
+      "directCountReads": [],
+      "auxiliaryWitnesses": [
+        "w?all$1",
+        "w?all$2",
+        "w?all$3",
+        "w?allCopied",
+        "w?canVote",
+        "w?noneCopied"
+      ],
+      "foreignMembers": [],
+      "nodes": 414,
+      "ifs": 4,
+      "maps": [
+        "CT",
+        "CV",
+        "CfgT",
+        "Config",
+        "Q2",
+        "S",
+        "St"
+      ],
+      "reconstructionNodes": 414,
+      "reconstructionIfs": 4,
+      "pointOutcome": "unknown",
+      "pointWhy": "time",
+      "pointCoreSize": null,
+      "pointCountedMs": 8.055474000000004,
+      "booleanCountedMs": 27.131162799999856,
+      "pointWallMs": 9.889094999999543,
+      "booleanWallMs": 25.004457000000002,
+      "totalCountedMs": 35.18663679999986,
+      "originalCountedMs": 35.18663679999986,
+      "transportWallMs": 0.0006219999995664693,
+      "admissionWallMs": 0.00875599999926635
+    },
+    {
+      "index": 21,
+      "wit": "w$86",
+      "terms": [
+        [
+          1,
+          "r$4"
+        ],
+        [
+          -1,
+          "r$7"
+        ]
+      ],
+      "hyps": 32,
+      "reconstructionHyps": 32,
+      "countInstances": 1,
+      "reconstructionCountInstances": 1,
+      "countReads": [
+        "r$4",
+        "r$7"
+      ],
+      "proxyCountReads": [
+        "r$4",
+        "r$7"
+      ],
+      "directCountReads": [],
+      "auxiliaryWitnesses": [
+        "w?all$1",
+        "w?all$2",
+        "w?all$3",
+        "w?allCopied",
+        "w?canVote",
+        "w?noneCopied"
+      ],
+      "foreignMembers": [],
+      "nodes": 416,
+      "ifs": 4,
+      "maps": [
+        "CT",
+        "CV",
+        "CfgT",
+        "Config",
+        "Q2",
+        "S",
+        "St"
+      ],
+      "reconstructionNodes": 416,
+      "reconstructionIfs": 4,
+      "pointOutcome": "unknown",
+      "pointWhy": "time",
+      "pointCoreSize": null,
+      "pointCountedMs": 8.010564000000159,
+      "booleanCountedMs": 26.95010000000002,
+      "pointWallMs": 7.036081999999624,
+      "booleanWallMs": 54.00303100000019,
+      "totalCountedMs": 34.96066400000018,
+      "originalCountedMs": 34.96066400000018,
+      "transportWallMs": 0.0007409999998344574,
+      "admissionWallMs": 0.007904000000053202
+    },
+    {
+      "index": 22,
+      "wit": "w$90",
+      "terms": [
+        [
+          1,
+          "r$4"
+        ],
+        [
+          -1,
+          "r$11"
+        ]
+      ],
+      "hyps": 32,
+      "reconstructionHyps": 32,
+      "countInstances": 1,
+      "reconstructionCountInstances": 1,
+      "countReads": [
+        "r$4",
+        "r$11"
+      ],
+      "proxyCountReads": [
+        "r$4",
+        "r$11"
+      ],
+      "directCountReads": [],
+      "auxiliaryWitnesses": [
+        "w?all$1",
+        "w?all$2",
+        "w?all$3",
+        "w?allCopied",
+        "w?canVote",
+        "w?noneCopied"
+      ],
+      "foreignMembers": [],
+      "nodes": 452,
+      "ifs": 4,
+      "maps": [
+        "CT",
+        "CV",
+        "CfgT",
+        "Config",
+        "Q2",
+        "S",
+        "St"
+      ],
+      "reconstructionNodes": 452,
+      "reconstructionIfs": 4,
+      "pointOutcome": "unknown",
+      "pointWhy": "time",
+      "pointCoreSize": null,
+      "pointCountedMs": 8.028485999999702,
+      "booleanCountedMs": 26.5642584000002,
+      "pointWallMs": 9.978734000000259,
+      "booleanWallMs": 28.72408600000017,
+      "totalCountedMs": 34.5927443999999,
+      "originalCountedMs": 34.5927443999999,
+      "transportWallMs": 0.00033999999959632987,
+      "admissionWallMs": 0.010529999999562278
+    },
+    {
+      "index": 24,
+      "wit": "w$93",
+      "terms": [
+        [
+          1,
+          "r$4"
+        ],
+        [
+          -1,
+          "r$14"
+        ]
+      ],
+      "hyps": 32,
+      "reconstructionHyps": 32,
+      "countInstances": 1,
+      "reconstructionCountInstances": 1,
+      "countReads": [
+        "r$4",
+        "r$14"
+      ],
+      "proxyCountReads": [
+        "r$4",
+        "r$14"
+      ],
+      "directCountReads": [],
+      "auxiliaryWitnesses": [
+        "w?all$1",
+        "w?all$2",
+        "w?all$3",
+        "w?allCopied",
+        "w?canVote",
+        "w?noneCopied"
+      ],
+      "foreignMembers": [],
+      "nodes": 452,
+      "ifs": 4,
+      "maps": [
+        "CT",
+        "CV",
+        "CfgT",
+        "Config",
+        "Q2",
+        "S",
+        "St"
+      ],
+      "reconstructionNodes": 452,
+      "reconstructionIfs": 4,
+      "pointOutcome": "unknown",
+      "pointWhy": "time",
+      "pointCoreSize": null,
+      "pointCountedMs": 8.038185999999996,
+      "booleanCountedMs": 27.13044600000012,
+      "pointWallMs": 6.662830999999642,
+      "booleanWallMs": 22.56312600000092,
+      "totalCountedMs": 35.168632000000116,
+      "originalCountedMs": 35.168632000000116,
+      "transportWallMs": 0.00020000000040454324,
+      "admissionWallMs": 0.008935999998357147
+    },
+    {
+      "index": 25,
+      "wit": "w$95",
+      "terms": [
+        [
+          1,
+          "r$4"
+        ],
+        [
+          -1,
+          "r$16"
+        ]
+      ],
+      "hyps": 32,
+      "reconstructionHyps": 32,
+      "countInstances": 1,
+      "reconstructionCountInstances": 1,
+      "countReads": [
+        "r$4",
+        "r$16"
+      ],
+      "proxyCountReads": [
+        "r$4",
+        "r$16"
+      ],
+      "directCountReads": [],
+      "auxiliaryWitnesses": [
+        "w?all$1",
+        "w?all$2",
+        "w?all$3",
+        "w?allCopied",
+        "w?canVote",
+        "w?noneCopied"
+      ],
+      "foreignMembers": [],
+      "nodes": 452,
+      "ifs": 4,
+      "maps": [
+        "CT",
+        "CV",
+        "CfgT",
+        "Config",
+        "Q2",
+        "S",
+        "St"
+      ],
+      "reconstructionNodes": 452,
+      "reconstructionIfs": 4,
+      "pointOutcome": "unknown",
+      "pointWhy": "time",
+      "pointCoreSize": null,
+      "pointCountedMs": 8.038185999999996,
+      "booleanCountedMs": 26.976997999999867,
+      "pointWallMs": 7.044698000001517,
+      "booleanWallMs": 63.97140500000023,
+      "totalCountedMs": 35.01518399999986,
+      "originalCountedMs": 35.01518399999986,
+      "transportWallMs": 0.0007310000000870787,
+      "admissionWallMs": 0.012691999998423853
+    },
+    {
+      "index": 36,
+      "wit": "w$562",
+      "terms": [
+        [
+          1,
+          "r$0"
+        ],
+        [
+          1,
+          "r$3"
+        ],
+        [
+          -1,
+          "r$8"
+        ]
+      ],
+      "hyps": 32,
+      "reconstructionHyps": 32,
+      "countInstances": 1,
+      "reconstructionCountInstances": 1,
+      "countReads": [
+        "r$0",
+        "r$3",
+        "r$5",
+        "r$6",
+        "r$7",
+        "r$8"
+      ],
+      "proxyCountReads": [
+        "r$0",
+        "r$3",
+        "r$8"
+      ],
+      "directCountReads": [
+        "r$6",
+        "r$5",
+        "r$7"
+      ],
+      "auxiliaryWitnesses": [
+        "w?all$1",
+        "w?all$2",
+        "w?all$3",
+        "w?allCopied",
+        "w?canVote",
+        "w?noneCopied"
+      ],
+      "foreignMembers": [],
+      "nodes": 2963,
+      "ifs": 54,
+      "maps": [
+        "CT",
+        "CV",
+        "CfgT",
+        "Config",
+        "Q2",
+        "S",
+        "St",
+        "sNotX",
+        "xAndS",
+        "xNotS"
+      ],
+      "reconstructionNodes": 2963,
+      "reconstructionIfs": 54,
+      "pointOutcome": "unknown",
+      "pointWhy": "time",
+      "pointCoreSize": null,
+      "pointCountedMs": 8.260050000000092,
+      "booleanCountedMs": 22.81588039999997,
+      "pointWallMs": 68.24374100000023,
+      "booleanWallMs": 125.51583399999981,
+      "totalCountedMs": 31.07593040000006,
+      "originalCountedMs": 31.07593040000006,
+      "transportWallMs": 0.0003999999989900971,
+      "admissionWallMs": 0.012744000001475797
+    },
+    {
+      "index": 38,
+      "wit": "w$565",
+      "terms": [
+        [
+          1,
+          "r$0"
+        ],
+        [
+          1,
+          "r$4"
+        ],
+        [
+          -1,
+          "r$8"
+        ]
+      ],
+      "hyps": 34,
+      "reconstructionHyps": 34,
+      "countInstances": 1,
+      "reconstructionCountInstances": 1,
+      "countReads": [
+        "r$0",
+        "r$4",
+        "r$5",
+        "r$6",
+        "r$7",
+        "r$8"
+      ],
+      "proxyCountReads": [
+        "r$0",
+        "r$4",
+        "r$8"
+      ],
+      "directCountReads": [
+        "r$6",
+        "r$5",
+        "r$7"
+      ],
+      "auxiliaryWitnesses": [
+        "w?all$1",
+        "w?all$2",
+        "w?all$3",
+        "w?allCopied",
+        "w?canVote",
+        "w?noneCopied"
+      ],
+      "foreignMembers": [],
+      "nodes": 3002,
+      "ifs": 54,
+      "maps": [
+        "CT",
+        "CV",
+        "CfgT",
+        "Config",
+        "Q2",
+        "S",
+        "St",
+        "sNotX",
+        "xAndS",
+        "xNotS"
+      ],
+      "reconstructionNodes": 3002,
+      "reconstructionIfs": 54,
+      "pointOutcome": "unknown",
+      "pointWhy": "time",
+      "pointCoreSize": null,
+      "pointCountedMs": 8.37243599999988,
+      "booleanCountedMs": 23.66985919999979,
+      "pointWallMs": 14.729797999998482,
+      "booleanWallMs": 254.78398000000016,
+      "totalCountedMs": 32.04229519999967,
+      "originalCountedMs": 32.04229519999967,
+      "transportWallMs": 0.0007210000003396999,
+      "admissionWallMs": 0.012353000000075554
+    },
+    {
+      "index": 39,
+      "wit": "w$566",
+      "terms": [
+        [
+          1,
+          "r$0"
+        ],
+        [
+          1,
+          "r$4"
+        ],
+        [
+          -1,
+          "r$7"
+        ],
+        [
+          -1,
+          "r$5"
+        ],
+        [
+          -1,
+          "r$6"
+        ]
+      ],
+      "hyps": 34,
+      "reconstructionHyps": 34,
+      "countInstances": 1,
+      "reconstructionCountInstances": 1,
+      "countReads": [
+        "r$0",
+        "r$4",
+        "r$5",
+        "r$6",
+        "r$7"
+      ],
+      "proxyCountReads": [
+        "r$0",
+        "r$4",
+        "r$7",
+        "r$5",
+        "r$6"
+      ],
+      "directCountReads": [
+        "r$6",
+        "r$5",
+        "r$7"
+      ],
+      "auxiliaryWitnesses": [
+        "w?all$1",
+        "w?all$2",
+        "w?all$3",
+        "w?allCopied",
+        "w?canVote",
+        "w?noneCopied"
+      ],
+      "foreignMembers": [],
+      "nodes": 3108,
+      "ifs": 58,
+      "maps": [
+        "CT",
+        "CV",
+        "CfgT",
+        "Config",
+        "Q2",
+        "S",
+        "St",
+        "sNotX",
+        "xAndS",
+        "xNotS"
+      ],
+      "reconstructionNodes": 3108,
+      "reconstructionIfs": 58,
+      "pointOutcome": "unknown",
+      "pointWhy": "time",
+      "pointCoreSize": null,
+      "pointCountedMs": 8.773668000000043,
+      "booleanCountedMs": 146.92270960000042,
+      "pointWallMs": 20.896859999998924,
+      "booleanWallMs": 423.95251200000166,
+      "totalCountedMs": 155.69637760000046,
+      "originalCountedMs": 155.69637760000046,
+      "transportWallMs": 0.000490999998874031,
+      "admissionWallMs": 0.008676999999806867
+    },
+    {
+      "index": 41,
+      "wit": "w$582",
+      "terms": [
+        [
+          1,
+          "r$1"
+        ],
+        [
+          1,
+          "r$3"
+        ],
+        [
+          -1,
+          "r$8"
+        ]
+      ],
+      "hyps": 32,
+      "reconstructionHyps": 32,
+      "countInstances": 1,
+      "reconstructionCountInstances": 1,
+      "countReads": [
+        "r$1",
+        "r$3",
+        "r$5",
+        "r$6",
+        "r$7",
+        "r$8"
+      ],
+      "proxyCountReads": [
+        "r$1",
+        "r$3",
+        "r$8"
+      ],
+      "directCountReads": [
+        "r$6",
+        "r$5",
+        "r$7"
+      ],
+      "auxiliaryWitnesses": [
+        "w?all$1",
+        "w?all$2",
+        "w?all$3",
+        "w?allCopied",
+        "w?canVote",
+        "w?noneCopied"
+      ],
+      "foreignMembers": [],
+      "nodes": 1229,
+      "ifs": 8,
+      "maps": [
+        "CT",
+        "CV",
+        "CfgT",
+        "Config",
+        "Q2",
+        "S",
+        "St",
+        "sNotX",
+        "xAndS",
+        "xNotS"
+      ],
+      "reconstructionNodes": 1229,
+      "reconstructionIfs": 8,
+      "pointOutcome": "unknown",
+      "pointWhy": "time",
+      "pointCoreSize": null,
+      "pointCountedMs": 8.002244000000019,
+      "booleanCountedMs": 24.359014399999978,
+      "pointWallMs": 7.911174999999275,
+      "booleanWallMs": 66.67113000000063,
+      "totalCountedMs": 32.3612584,
+      "originalCountedMs": 32.3612584,
+      "transportWallMs": 0.00031999999919207767,
+      "admissionWallMs": 0.006182000000990229
+    },
+    {
+      "index": 43,
+      "wit": "w$584",
+      "terms": [
+        [
+          1,
+          "r$1"
+        ],
+        [
+          1,
+          "r$4"
+        ],
+        [
+          -1,
+          "r$8"
+        ]
+      ],
+      "hyps": 34,
+      "reconstructionHyps": 34,
+      "countInstances": 1,
+      "reconstructionCountInstances": 1,
+      "countReads": [
+        "r$1",
+        "r$4",
+        "r$5",
+        "r$6",
+        "r$7",
+        "r$8"
+      ],
+      "proxyCountReads": [
+        "r$1",
+        "r$4",
+        "r$8"
+      ],
+      "directCountReads": [
+        "r$6",
+        "r$5",
+        "r$7"
+      ],
+      "auxiliaryWitnesses": [
+        "w?all$1",
+        "w?all$2",
+        "w?all$3",
+        "w?allCopied",
+        "w?canVote",
+        "w?noneCopied"
+      ],
+      "foreignMembers": [],
+      "nodes": 1268,
+      "ifs": 8,
+      "maps": [
+        "CT",
+        "CV",
+        "CfgT",
+        "Config",
+        "Q2",
+        "S",
+        "St",
+        "sNotX",
+        "xAndS",
+        "xNotS"
+      ],
+      "reconstructionNodes": 1268,
+      "reconstructionIfs": 8,
+      "pointOutcome": "unknown",
+      "pointWhy": "time",
+      "pointCoreSize": null,
+      "pointCountedMs": 8.015155999999934,
+      "booleanCountedMs": 25.712957599999754,
+      "pointWallMs": 9.379410000001371,
+      "booleanWallMs": 54.07181800000035,
+      "totalCountedMs": 33.72811359999969,
+      "originalCountedMs": 33.72811359999969,
+      "transportWallMs": 0.00034100000084436033,
+      "admissionWallMs": 0.0117709999994986
+    }
+  ],
+  "unionHypotheses": [
+    {
+      "index": 0,
+      "nodes": 3,
+      "ifs": 0,
+      "ops": {
+        "<=": 1,
+        "const": 1,
+        "var": 1
+      },
+      "counts": [],
+      "proxyCounts": [],
+      "directCounts": [],
+      "vars": [
+        "size"
+      ],
+      "maps": []
+    },
+    {
+      "index": 1,
+      "nodes": 3,
+      "ifs": 0,
+      "ops": {
+        "<=": 1,
+        "var": 1,
+        "const": 1
+      },
+      "counts": [],
+      "proxyCounts": [],
+      "directCounts": [],
+      "vars": [
+        "size"
+      ],
+      "maps": []
+    },
+    {
+      "index": 2,
+      "nodes": 3,
+      "ifs": 0,
+      "ops": {
+        "<": 1,
+        "var": 2
+      },
+      "counts": [],
+      "proxyCounts": [],
+      "directCounts": [],
+      "vars": [
+        "i",
+        "size"
+      ],
+      "maps": []
+    },
+    {
+      "index": 3,
+      "nodes": 3,
+      "ifs": 0,
+      "ops": {
+        "<": 1,
+        "var": 2
+      },
+      "counts": [],
+      "proxyCounts": [],
+      "directCounts": [],
+      "vars": [
+        "j",
+        "size"
+      ],
+      "maps": []
+    },
+    {
+      "index": 4,
+      "nodes": 3,
+      "ifs": 0,
+      "ops": {
+        "=": 1,
+        "var": 1,
+        "const": 1
+      },
+      "counts": [],
+      "proxyCounts": [],
+      "directCounts": [],
+      "vars": [
+        "?all$1"
+      ],
+      "maps": []
+    },
+    {
+      "index": 5,
+      "nodes": 3,
+      "ifs": 0,
+      "ops": {
+        "=": 1,
+        "var": 1,
+        "const": 1
+      },
+      "counts": [],
+      "proxyCounts": [],
+      "directCounts": [],
+      "vars": [
+        "?all$3"
+      ],
+      "maps": []
+    },
+    {
+      "index": 6,
+      "nodes": 4,
+      "ifs": 0,
+      "ops": {
+        "<=": 1,
+        "get": 1,
+        "var": 1,
+        "const": 1
+      },
+      "counts": [],
+      "proxyCounts": [],
+      "directCounts": [],
+      "vars": [
+        "a$#"
+      ],
+      "maps": [
+        "Config"
+      ]
+    },
+    {
+      "index": 7,
+      "nodes": 4,
+      "ifs": 0,
+      "ops": {
+        "<=": 1,
+        "get": 1,
+        "var": 1,
+        "const": 1
+      },
+      "counts": [],
+      "proxyCounts": [],
+      "directCounts": [],
+      "vars": [
+        "j$"
+      ],
+      "maps": [
+        "Config"
+      ]
+    },
+    {
+      "index": 8,
+      "nodes": 4,
+      "ifs": 0,
+      "ops": {
+        "<=": 1,
+        "get": 1,
+        "var": 1,
+        "const": 1
+      },
+      "counts": [],
+      "proxyCounts": [],
+      "directCounts": [],
+      "vars": [
+        "i"
+      ],
+      "maps": [
+        "Config"
+      ]
+    },
+    {
+      "index": 9,
+      "nodes": 4,
+      "ifs": 0,
+      "ops": {
+        "<=": 1,
+        "get": 1,
+        "const": 2
+      },
+      "counts": [],
+      "proxyCounts": [],
+      "directCounts": [],
+      "vars": [],
+      "maps": [
+        "Config"
+      ]
+    },
+    {
+      "index": 10,
+      "nodes": 15,
+      "ifs": 0,
+      "ops": {
+        "or": 1,
+        "not": 1,
+        "and": 1,
+        "<": 1,
+        "var": 5,
+        "=": 2,
+        "get": 3,
+        "const": 1
+      },
+      "counts": [],
+      "proxyCounts": [],
+      "directCounts": [],
+      "vars": [
+        "a$#",
+        "size"
+      ],
+      "maps": [
+        "CT",
+        "CfgT",
+        "St"
+      ]
+    },
+    {
+      "index": 11,
+      "nodes": 15,
+      "ifs": 0,
+      "ops": {
+        "or": 1,
+        "not": 1,
+        "and": 1,
+        "<": 1,
+        "var": 5,
+        "=": 2,
+        "get": 3,
+        "const": 1
+      },
+      "counts": [],
+      "proxyCounts": [],
+      "directCounts": [],
+      "vars": [
+        "j$",
+        "size"
+      ],
+      "maps": [
+        "CT",
+        "CfgT",
+        "St"
+      ]
+    },
+    {
+      "index": 12,
+      "nodes": 15,
+      "ifs": 0,
+      "ops": {
+        "or": 1,
+        "not": 1,
+        "and": 1,
+        "<": 1,
+        "const": 5,
+        "var": 1,
+        "=": 2,
+        "get": 3
+      },
+      "counts": [],
+      "proxyCounts": [],
+      "directCounts": [],
+      "vars": [
+        "size"
+      ],
+      "maps": [
+        "CT",
+        "CfgT",
+        "St"
+      ]
+    },
+    {
+      "index": 13,
+      "nodes": 3,
+      "ifs": 0,
+      "ops": {
+        "<=": 1,
+        "var": 1,
+        "const": 1
+      },
+      "counts": [],
+      "proxyCounts": [],
+      "directCounts": [],
+      "vars": [
+        "?noneCopied"
+      ],
+      "maps": []
+    },
+    {
+      "index": 14,
+      "nodes": 14,
+      "ifs": 0,
+      "ops": {
+        "or": 2,
+        "=": 2,
+        "var": 4,
+        "const": 2,
+        "not": 2,
+        "<": 1,
+        "get": 1
+      },
+      "counts": [],
+      "proxyCounts": [],
+      "directCounts": [],
+      "vars": [
+        "?noneCopied",
+        "size",
+        "w?noneCopied"
+      ],
+      "maps": [
+        "CV"
+      ]
+    },
+    {
+      "index": 15,
+      "nodes": 3,
+      "ifs": 0,
+      "ops": {
+        "<=": 1,
+        "var": 1,
+        "const": 1
+      },
+      "counts": [],
+      "proxyCounts": [],
+      "directCounts": [],
+      "vars": [
+        "?allCopied"
+      ],
+      "maps": []
+    },
+    {
+      "index": 16,
+      "nodes": 14,
+      "ifs": 0,
+      "ops": {
+        "or": 2,
+        "=": 2,
+        "var": 4,
+        "const": 2,
+        "not": 2,
+        "<": 1,
+        "get": 1
+      },
+      "counts": [],
+      "proxyCounts": [],
+      "directCounts": [],
+      "vars": [
+        "?allCopied",
+        "size",
+        "w?allCopied"
+      ],
+      "maps": [
+        "CV"
+      ]
+    },
+    {
+      "index": 17,
+      "nodes": 3,
+      "ifs": 0,
+      "ops": {
+        "<=": 1,
+        "var": 1,
+        "const": 1
+      },
+      "counts": [],
+      "proxyCounts": [],
+      "directCounts": [],
+      "vars": [
+        "?canVote"
+      ],
+      "maps": []
+    },
+    {
+      "index": 18,
+      "nodes": 35,
+      "ifs": 0,
+      "ops": {
+        "or": 3,
+        "=": 2,
+        "var": 10,
+        "const": 3,
+        "not": 1,
+        "<=": 2,
+        "get": 9,
+        "and": 2,
+        "<": 2,
+        "add": 1
+      },
+      "counts": [],
+      "proxyCounts": [],
+      "directCounts": [],
+      "vars": [
+        "?canVote",
+        "i",
+        "w$566"
+      ],
+      "maps": [
+        "CT",
+        "CV",
+        "CfgT",
+        "S"
+      ]
+    },
+    {
+      "index": 19,
+      "nodes": 36,
+      "ifs": 0,
+      "ops": {
+        "or": 3,
+        "=": 2,
+        "var": 10,
+        "const": 3,
+        "not": 2,
+        "<=": 2,
+        "get": 9,
+        "and": 2,
+        "<": 2,
+        "add": 1
+      },
+      "counts": [],
+      "proxyCounts": [],
+      "directCounts": [],
+      "vars": [
+        "?canVote",
+        "i",
+        "w?canVote"
+      ],
+      "maps": [
+        "CT",
+        "CV",
+        "CfgT",
+        "S"
+      ]
+    },
+    {
+      "index": 20,
+      "nodes": 22,
+      "ifs": 0,
+      "ops": {
+        "or": 1,
+        "not": 1,
+        "<=": 1,
+        "const": 1,
+        "get": 7,
+        "var": 7,
+        "and": 1,
+        "=": 3
+      },
+      "counts": [],
+      "proxyCounts": [],
+      "directCounts": [],
+      "vars": [
+        "i",
+        "w$566"
+      ],
+      "maps": [
+        "CT",
+        "CV",
+        "CfgT",
+        "Q2"
+      ]
+    },
+    {
+      "index": 21,
+      "nodes": 3,
+      "ifs": 0,
+      "ops": {
+        "<=": 1,
+        "var": 1,
+        "const": 1
+      },
+      "counts": [],
+      "proxyCounts": [],
+      "directCounts": [],
+      "vars": [
+        "?all$1"
+      ],
+      "maps": []
+    },
+    {
+      "index": 22,
+      "nodes": 31,
+      "ifs": 0,
+      "ops": {
+        "or": 3,
+        "=": 1,
+        "var": 9,
+        "const": 5,
+        "and": 1,
+        "<=": 4,
+        "get": 4,
+        "not": 2,
+        "<": 2
+      },
+      "counts": [],
+      "proxyCounts": [],
+      "directCounts": [],
+      "vars": [
+        "?all$1",
+        "size",
+        "w$566"
+      ],
+      "maps": [
+        "Q2",
+        "S"
+      ]
+    },
+    {
+      "index": 23,
+      "nodes": 32,
+      "ifs": 0,
+      "ops": {
+        "or": 3,
+        "=": 1,
+        "var": 9,
+        "const": 5,
+        "not": 3,
+        "and": 1,
+        "<=": 4,
+        "get": 4,
+        "<": 2
+      },
+      "counts": [],
+      "proxyCounts": [],
+      "directCounts": [],
+      "vars": [
+        "?all$1",
+        "size",
+        "w?all$1"
+      ],
+      "maps": [
+        "Q2",
+        "S"
+      ]
+    },
+    {
+      "index": 24,
+      "nodes": 3,
+      "ifs": 0,
+      "ops": {
+        "<=": 1,
+        "var": 1,
+        "const": 1
+      },
+      "counts": [],
+      "proxyCounts": [],
+      "directCounts": [],
+      "vars": [
+        "?all$2"
+      ],
+      "maps": []
+    },
+    {
+      "index": 25,
+      "nodes": 17,
+      "ifs": 0,
+      "ops": {
+        "or": 2,
+        "=": 2,
+        "var": 4,
+        "const": 3,
+        "not": 1,
+        "<=": 1,
+        "get": 2,
+        "add": 1,
+        "mul": 1
+      },
+      "counts": [],
+      "proxyCounts": [],
+      "directCounts": [],
+      "vars": [
+        "?all$2",
+        "i",
+        "w$566"
+      ],
+      "maps": [
+        "Config",
+        "S"
+      ]
+    },
+    {
+      "index": 26,
+      "nodes": 18,
+      "ifs": 0,
+      "ops": {
+        "or": 2,
+        "=": 2,
+        "var": 4,
+        "const": 3,
+        "not": 2,
+        "<=": 1,
+        "get": 2,
+        "add": 1,
+        "mul": 1
+      },
+      "counts": [],
+      "proxyCounts": [],
+      "directCounts": [],
+      "vars": [
+        "?all$2",
+        "i",
+        "w?all$2"
+      ],
+      "maps": [
+        "Config",
+        "S"
+      ]
+    },
+    {
+      "index": 27,
+      "nodes": 3,
+      "ifs": 0,
+      "ops": {
+        "<=": 1,
+        "var": 1,
+        "const": 1
+      },
+      "counts": [],
+      "proxyCounts": [],
+      "directCounts": [],
+      "vars": [
+        "?all$3"
+      ],
+      "maps": []
+    },
+    {
+      "index": 28,
+      "nodes": 17,
+      "ifs": 0,
+      "ops": {
+        "or": 2,
+        "=": 2,
+        "var": 4,
+        "const": 3,
+        "not": 1,
+        "<=": 1,
+        "get": 2,
+        "add": 1,
+        "mul": 1
+      },
+      "counts": [],
+      "proxyCounts": [],
+      "directCounts": [],
+      "vars": [
+        "?all$3",
+        "i",
+        "w$566"
+      ],
+      "maps": [
+        "Config",
+        "Q2"
+      ]
+    },
+    {
+      "index": 29,
+      "nodes": 18,
+      "ifs": 0,
+      "ops": {
+        "or": 2,
+        "=": 2,
+        "var": 4,
+        "const": 3,
+        "not": 2,
+        "<=": 1,
+        "get": 2,
+        "add": 1,
+        "mul": 1
+      },
+      "counts": [],
+      "proxyCounts": [],
+      "directCounts": [],
+      "vars": [
+        "?all$3",
+        "i",
+        "w?all$3"
+      ],
+      "maps": [
+        "Config",
+        "Q2"
+      ]
+    },
+    {
+      "index": 30,
+      "nodes": 3,
+      "ifs": 0,
+      "ops": {
+        "<": 1,
+        "var": 2
+      },
+      "counts": [],
+      "proxyCounts": [],
+      "directCounts": [],
+      "vars": [
+        "a$#",
+        "size"
+      ],
+      "maps": []
+    },
+    {
+      "index": 31,
+      "nodes": 3,
+      "ifs": 0,
+      "ops": {
+        "<": 1,
+        "var": 2
+      },
+      "counts": [],
+      "proxyCounts": [],
+      "directCounts": [],
+      "vars": [
+        "j$",
+        "size"
+      ],
+      "maps": []
+    },
+    {
+      "index": 32,
+      "nodes": 2711,
+      "ifs": 58,
+      "ops": {
+        "or": 35,
+        "<=": 61,
+        "add": 166,
+        "mul": 114,
+        "var": 762,
+        "const": 462,
+        "and": 193,
+        "<": 80,
+        "if": 58,
+        "=": 336,
+        "get": 382,
+        "not": 16,
+        "sub": 46
+      },
+      "counts": [
+        "r$0",
+        "r$4",
+        "r$5",
+        "r$6",
+        "r$7"
+      ],
+      "proxyCounts": [
+        "r$0",
+        "r$4",
+        "r$7",
+        "r$5",
+        "r$6"
+      ],
+      "directCounts": [
+        "r$6",
+        "r$5",
+        "r$7"
+      ],
+      "vars": [
+        "?canVote",
+        "?committedQuorum",
+        "?noneCopied",
+        "a$#",
+        "hx",
+        "hy",
+        "i",
+        "j",
+        "j$",
+        "op",
+        "r$0",
+        "r$4",
+        "r$5",
+        "r$6",
+        "r$7",
+        "size",
+        "started",
+        "w$566"
+      ],
+      "maps": [
+        "CT",
+        "CV",
+        "CfgT",
+        "Config",
+        "Q2",
+        "S",
+        "St",
+        "sNotX",
+        "xAndS",
+        "xNotS"
+      ]
+    },
+    {
+      "index": 33,
+      "nodes": 40,
+      "ifs": 0,
+      "ops": {
+        "not": 1,
+        "<=": 1,
+        "add": 12,
+        "mul": 12,
+        "var": 12,
+        "const": 2
+      },
+      "counts": [
+        "r$0",
+        "r$4",
+        "r$5",
+        "r$6",
+        "r$7"
+      ],
+      "proxyCounts": [
+        "r$0",
+        "r$4",
+        "r$7",
+        "r$5",
+        "r$6"
+      ],
+      "directCounts": [],
+      "vars": [
+        "r$0",
+        "r$4",
+        "r$5",
+        "r$6",
+        "r$7",
+        "size"
+      ],
+      "maps": []
+    }
+  ],
+  "residualAliasConflict": {
+    "rowAtMostWriter": true,
+    "writerAtMostRow": true,
+    "memberAbsent": true,
+    "aliasedMemberPresent": true,
+    "explanation": "a$#=i makes 64*a$#-64*i+w equal w; the last path has S[w]<=0 and S[64*a$#-64*i+w]>=1. This branch is inconsistent, not a SAT model. It does not prove the whole union."
+  }
+}

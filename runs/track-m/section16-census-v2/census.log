@@ -1,0 +1,18 @@
+Found 0 warnings and 0 errors.
+Finished in 24.8s on 1289 files with 100 rules using 4 threads.
+bun test v1.4.3 (c6da4a4d3)
+{"output":"/home/user/track-m-section16-YPG8Mg","archives":39,"positiveEvents":22078,"inventory":528,"failures":[],"profiles":[{"file":"section15-t12-v3/receipts.br!overlap-op0-result.json","op":0,"helperEvents":0,"frameKinds":["action-site","action","closure","row","leaf","numeric-query","batch-query","source-attempt","source-query"]},{"file":"section15-t12-v3/receipts.br!overlap-op4-result.json","op":4,"helperEvents":0,"frameKinds":["action-site","action","closure","row","leaf","numeric-query","batch-query","source-attempt","source-query"]},{"file":"section15-t12-v3/receipts.br!star-op3-result.json","op":3,"helperEvents":0,"frameKinds":["action-site","action","closure","row","leaf","numeric-query","batch-query","source-attempt","source-query"]}]}
+{"artifact":"section10-chunk-manifest","dir":"/home/user/track-m-s10-receipts-yWL3rT","parts":3,"bytes":308385,"sha256":"630b7210a44d9993306633bc8936e2cfd95d5a70ae8447a9865613fd9002e438","files":["census.json","lemma-catalog.json"]}
+
+--- stderr ---
+$ tsc -p . && oxlint --type-aware --deny-warnings --disable-nested-config
+
+research/track-m/section16.test.ts:
+(pass) normalization retains guards and does not assert root validity [1.97ms]
+(pass) frame normalization keeps post-state and action references [0.23ms]
+(pass) an indexed success without a matching statement stays unresolved [0.01ms]
+
+ 3 pass
+ 0 fail
+ 6 expect() calls
+Ran 3 tests across 1 file. [15.00ms]

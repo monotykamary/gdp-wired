@@ -1,0 +1,9 @@
+[
+  {
+    "name": "check",
+    "cmd": "set -e; bash research/track-m/prepare-vendors.sh; bun install --frozen-lockfile >/dev/null; bun run check",
+    "cpu": 1,
+    "memory": 4000,
+    "timeout": 240
+  }
+]

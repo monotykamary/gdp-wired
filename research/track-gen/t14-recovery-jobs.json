@@ -1,0 +1,51 @@
+[
+ {
+  "name": "field-test-1",
+  "cmd": "bash research/track-gen/t14-test-paired.sh 1 core/count-recovery/field-bound-lemmas.test.ts",
+  "timeout": 240,
+  "cpu": 4,
+  "memory": 14336
+ },
+ {
+  "name": "field-test-2",
+  "cmd": "bash research/track-gen/t14-test-paired.sh 2 core/count-recovery/field-bound-lemmas.test.ts",
+  "timeout": 240,
+  "cpu": 4,
+  "memory": 14336
+ },
+ {
+  "name": "field-test-3",
+  "cmd": "bash research/track-gen/t14-test-paired.sh 3 core/count-recovery/field-bound-lemmas.test.ts",
+  "timeout": 240,
+  "cpu": 4,
+  "memory": 14336
+ },
+ {
+  "name": "duo-distributed_lock-2",
+  "cmd": "bash research/track-gen/t14-paired.sh duoai distributed_lock 2 main",
+  "timeout": 240,
+  "cpu": 4,
+  "memory": 14336
+ },
+ {
+  "name": "duo-sharded_key_value_store-3",
+  "cmd": "bash research/track-gen/t14-paired.sh duoai sharded_key_value_store 3 main",
+  "timeout": 240,
+  "cpu": 4,
+  "memory": 14336
+ },
+ {
+  "name": "broken-mldr",
+  "cmd": "bash research/track-gen/t14-paired.sh broken mldr 1 main",
+  "timeout": 240,
+  "cpu": 4,
+  "memory": 14336
+ },
+ {
+  "name": "latest-check",
+  "cmd": "bun install --frozen-lockfile && bun run check && bunx --yes @commitlint/cli --config research/egraph/historical/commitlint.config.cjs < research/track-gen/T14-COMMIT.txt",
+  "timeout": 600,
+  "cpu": 4,
+  "memory": 14336
+ }
+]

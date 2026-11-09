@@ -1,0 +1,1 @@
+[{"name":"count-core","cmd":"bun install --frozen-lockfile >/dev/null && for f in 1 3 5; do bun research/track-m/focused-replay.ts replay-input/$f.json replay-input/input.json core; done", "cpu":1,"memory":4000,"timeout":90}]

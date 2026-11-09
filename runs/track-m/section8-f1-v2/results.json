@@ -1,0 +1,176 @@
+[
+  {
+    "artifact": "tf1-control.log",
+    "law": "one primary per term",
+    "checked": true,
+    "proven": true,
+    "wallMs": 8921.840386,
+    "countedUnits": 926.6334919999999,
+    "kernelMs": 5924.915008,
+    "sites": {
+      "kernel/kernel.ts:check": {
+        "calls": 3,
+        "inclusiveMs": 5914.277491999999
+      },
+      "kernel/kernel.ts:checkMC": {
+        "calls": 3,
+        "inclusiveMs": 5923.426438
+      }
+    }
+  },
+  {
+    "artifact": "tf1-control.log",
+    "law": "Inv3915: one config term, the primary newest",
+    "checked": true,
+    "proven": true,
+    "wallMs": 11997.746975999999,
+    "countedUnits": 872.3352536000001,
+    "kernelMs": 9310.581055000004,
+    "sites": {
+      "kernel/kernel.ts:check": {
+        "calls": 3,
+        "inclusiveMs": 9301.907989999998
+      },
+      "kernel/kernel.ts:checkMC": {
+        "calls": 3,
+        "inclusiveMs": 9310.286027
+      }
+    }
+  },
+  {
+    "artifact": "tf1-control.log",
+    "law": "Inv1758: one version and term, one config",
+    "checked": true,
+    "proven": true,
+    "wallMs": 54887.91410899999,
+    "countedUnits": 4310.4753532,
+    "kernelMs": 38902.02494000003,
+    "sites": {
+      "kernel/kernel.ts:check": {
+        "calls": 3,
+        "inclusiveMs": 38879.850935
+      },
+      "kernel/kernel.ts:checkMC": {
+        "calls": 3,
+        "inclusiveMs": 38888.90646500001
+      }
+    }
+  },
+  {
+    "artifact": "tf1-control.log",
+    "law": "Inv2973: quorums overlap, or a config disabled",
+    "checked": false,
+    "proven": false,
+    "wallMs": 60594.48263499999,
+    "countedUnits": 3178.914437600001,
+    "kernelMs": 103.78638099999807,
+    "sites": {
+      "kernel/kernel.ts:check": {
+        "calls": 35,
+        "inclusiveMs": 103.78638099999807
+      }
+    }
+  },
+  {
+    "artifact": "tf1-control.log",
+    "law": "Inv*: no quorum of a config can still be gathered for a config term held",
+    "checked": false,
+    "proven": false,
+    "wallMs": 60086.179460000014,
+    "countedUnits": 1979.024993999999,
+    "kernelMs": 720.085562000022,
+    "sites": {
+      "kernel/kernel.ts:check": {
+        "calls": 208,
+        "inclusiveMs": 719.2685369999963
+      }
+    }
+  },
+  {
+    "artifact": "tf1-deferred.log",
+    "law": "one primary per term",
+    "checked": true,
+    "proven": true,
+    "wallMs": 3159.669706,
+    "countedUnits": 926.6334919999999,
+    "kernelMs": 1157.5606389999998,
+    "sites": {
+      "kernel/kernel.ts:check": {
+        "calls": 2,
+        "inclusiveMs": 1152.758126
+      },
+      "kernel/kernel.ts:checkMC": {
+        "calls": 2,
+        "inclusiveMs": 1156.5771439999999
+      }
+    }
+  },
+  {
+    "artifact": "tf1-deferred.log",
+    "law": "Inv3915: one config term, the primary newest",
+    "checked": true,
+    "proven": true,
+    "wallMs": 5809.829609,
+    "countedUnits": 872.3352536000001,
+    "kernelMs": 3661.323517,
+    "sites": {
+      "kernel/kernel.ts:check": {
+        "calls": 2,
+        "inclusiveMs": 3655.6251730000004
+      },
+      "kernel/kernel.ts:checkMC": {
+        "calls": 2,
+        "inclusiveMs": 3660.784887
+      }
+    }
+  },
+  {
+    "artifact": "tf1-deferred.log",
+    "law": "Inv1758: one version and term, one config",
+    "checked": true,
+    "proven": true,
+    "wallMs": 22680.147000999998,
+    "countedUnits": 4310.4753532,
+    "kernelMs": 11092.878678000034,
+    "sites": {
+      "kernel/kernel.ts:check": {
+        "calls": 2,
+        "inclusiveMs": 11079.636227000003
+      },
+      "kernel/kernel.ts:checkMC": {
+        "calls": 2,
+        "inclusiveMs": 11082.474415999997
+      }
+    }
+  },
+  {
+    "artifact": "tf1-deferred.log",
+    "law": "Inv2973: quorums overlap, or a config disabled",
+    "checked": false,
+    "proven": false,
+    "wallMs": 61036.179321999996,
+    "countedUnits": 4837.606893999999,
+    "kernelMs": 86.16209799999342,
+    "sites": {
+      "kernel/kernel.ts:check": {
+        "calls": 35,
+        "inclusiveMs": 86.16209799999342
+      }
+    }
+  },
+  {
+    "artifact": "tf1-deferred.log",
+    "law": "Inv*: no quorum of a config can still be gathered for a config term held",
+    "checked": false,
+    "proven": false,
+    "wallMs": 60249.02761000002,
+    "countedUnits": 1225.2552928,
+    "kernelMs": 209.0939989999606,
+    "sites": {
+      "kernel/kernel.ts:check": {
+        "calls": 42,
+        "inclusiveMs": 208.7747899999522
+      }
+    }
+  }
+]

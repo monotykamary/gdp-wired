@@ -1,0 +1,11 @@
+bun test v1.4.3 (c6da4a4d3)
+
+--- stderr ---
+
+core/counts-structured.test.ts:
+(pass) failed ordinary families can use structured witnesses without accepting a false partition [196.53ms]
+
+ 1 pass
+ 0 fail
+ 6 expect() calls
+Ran 1 test across 1 file. [225.00ms]

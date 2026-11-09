@@ -1,0 +1,28 @@
+{
+  "packetHash": "78b51495639d2e70ecdb871465c3d59c7cdfbc43e0abcf2804ab6b251f76f5c3",
+  "summary": {
+    "A": {
+      "countedUnits": [
+        226.58278839999903,
+        226.58278839999903,
+        226.58278839999903
+      ],
+      "wallMedianMs": 163.2067189999998,
+      "wallMaxMs": 165.86338199999955,
+      "pass": false,
+      "generatorGap": false
+    },
+    "B": {
+      "countedUnits": [
+        403.13602839999925,
+        401.8379659999991,
+        401.8379659999991
+      ],
+      "wallMedianMs": 1631.0474890000005,
+      "wallMaxMs": 1784.8097399999988,
+      "pass": false,
+      "generatorGap": false
+    }
+  },
+  "decision": "failed-or-inconsistent"
+}

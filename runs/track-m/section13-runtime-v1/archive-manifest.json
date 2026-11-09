@@ -1,0 +1,20 @@
+{
+  "artifact": "section10-chunk-manifest",
+  "dir": "/home/user/track-m-s10-receipts-iflebz",
+  "parts": 3,
+  "bytes": 338394,
+  "sha256": "cb6e238c6a80688011bd9a2f42f223f1e8ab94147944d12dc80f62d34da1529d",
+  "files": [
+    "build.log",
+    "capture.log",
+    "instrumentation-base.json",
+    "instrumentation-ops.json",
+    "instrumentation-shards.json",
+    "integrity.json",
+    "overlap.packet.json",
+    "runtime.js",
+    "runtime.sha256",
+    "source-before.json",
+    "star.packet.json"
+  ]
+}

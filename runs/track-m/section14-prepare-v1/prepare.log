@@ -1,0 +1,2 @@
+source.tar.gz: OK
+{"artifact":"section10-chunk-manifest","dir":"/home/user/track-m-s10-receipts-aajCgt","parts":2,"bytes":170954,"sha256":"442931868fbe40c14165afbc46a2908f77a7e66b151d44b57f6ad312e4e913e2","files":["build.log","instrumentation-base.json","instrumentation-ledger.json","instrumentation-root-seeds.json","instrumentation-shards.json","integrity.json","op4-normal-actions.jsonl","op4-normal-result.json","op4-normal.log","replay.js","roots.js","runtime.sha256","source-before.json"]}

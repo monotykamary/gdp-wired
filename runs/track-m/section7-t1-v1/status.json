@@ -1,0 +1,13 @@
+{
+  "implementationBase": "50109a362af40cbbf31029e5db498c31efdacff8",
+  "priorCensus": "38c17fc4",
+  "t0Commit": "79a5c991",
+  "t0": "explained: packet-local instance index mismatch; matched frame is SAT in both sources",
+  "t1": "failed: admission/transport share below the required threshold",
+  "t2": "not run: stopped at T1",
+  "t3": "not run: stopped at T1",
+  "implementation": "not started",
+  "gate1": "not rerun",
+  "budgetChanges": false,
+  "productionSourceChanges": false
+}

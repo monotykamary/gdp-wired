@@ -1,0 +1,126 @@
+{
+  "records": 22,
+  "profiled": 11,
+  "allVerdictsMatch": true,
+  "allCountedWorkMatches": false,
+  "accountingWithinOneMs": true,
+  "comparisons": [
+    {
+      "profiled": "candidate-focused-profiled-one-primary",
+      "control": "candidate-focused-control-one-primary",
+      "sameVerdict": true,
+      "sameCountedWork": true,
+      "countedDifference": 0,
+      "controlWallMs": 1963.471916,
+      "profiledWallMs": 2164.214305,
+      "wallRatio": 1.1022384824372502
+    },
+    {
+      "profiled": "candidate-focused-profiled-Inv3915",
+      "control": "candidate-focused-control-Inv3915",
+      "sameVerdict": true,
+      "sameCountedWork": true,
+      "countedDifference": 0,
+      "controlWallMs": 2323.3496769999997,
+      "profiledWallMs": 2475.0362050000003,
+      "wallRatio": 1.065287859809318
+    },
+    {
+      "profiled": "candidate-focused-profiled-Inv1758",
+      "control": "candidate-focused-control-Inv1758",
+      "sameVerdict": true,
+      "sameCountedWork": true,
+      "countedDifference": 0,
+      "controlWallMs": 11603.941477,
+      "profiledWallMs": 11074.611976,
+      "wallRatio": 0.9543836461042848
+    },
+    {
+      "profiled": "candidate-focused-profiled-Inv2973",
+      "control": "candidate-focused-control-Inv2973",
+      "sameVerdict": true,
+      "sameCountedWork": true,
+      "countedDifference": 0,
+      "controlWallMs": 24618.660632,
+      "profiledWallMs": 25094.212557,
+      "wallRatio": 1.019316726125298
+    },
+    {
+      "profiled": "candidate-focused-profiled-Invstar",
+      "control": "candidate-focused-control-Invstar",
+      "sameVerdict": true,
+      "sameCountedWork": false,
+      "countedDifference": 0.4003892000000633,
+      "controlWallMs": 29281.915366,
+      "profiledWallMs": 29197.914348000006,
+      "wallRatio": 0.9971313004306566
+    },
+    {
+      "profiled": "candidate-native-profiled-one-primary",
+      "control": "candidate-native-control-one-primary",
+      "sameVerdict": true,
+      "sameCountedWork": true,
+      "countedDifference": 0,
+      "controlWallMs": 312.425447,
+      "profiledWallMs": 315.990817,
+      "wallRatio": 1.011411906533977
+    },
+    {
+      "profiled": "candidate-native-profiled-Inv3915",
+      "control": "candidate-native-control-Inv3915",
+      "sameVerdict": true,
+      "sameCountedWork": true,
+      "countedDifference": 0,
+      "controlWallMs": 680.360927,
+      "profiledWallMs": 667.642139,
+      "wallRatio": 0.9813058224021146
+    },
+    {
+      "profiled": "candidate-native-profiled-Inv1758",
+      "control": "candidate-native-control-Inv1758",
+      "sameVerdict": true,
+      "sameCountedWork": true,
+      "countedDifference": 0,
+      "controlWallMs": 237.55233099999998,
+      "profiledWallMs": 207.24724300000003,
+      "wallRatio": 0.8724277388799861
+    },
+    {
+      "profiled": "main-native-profiled-one-primary",
+      "control": "main-native-control-one-primary",
+      "sameVerdict": true,
+      "sameCountedWork": true,
+      "countedDifference": 0,
+      "controlWallMs": 309.29891999999995,
+      "profiledWallMs": 300.375666,
+      "wallRatio": 0.9711500641515336
+    },
+    {
+      "profiled": "main-native-profiled-Inv3915",
+      "control": "main-native-control-Inv3915",
+      "sameVerdict": true,
+      "sameCountedWork": true,
+      "countedDifference": 0,
+      "controlWallMs": 605.4664310000001,
+      "profiledWallMs": 590.327883,
+      "wallRatio": 0.9749968830229003
+    },
+    {
+      "profiled": "main-native-profiled-Inv1758",
+      "control": "main-native-control-Inv1758",
+      "sameVerdict": true,
+      "sameCountedWork": true,
+      "countedDifference": 0,
+      "controlWallMs": 202.15037900000004,
+      "profiledWallMs": 205.74273099999994,
+      "wallRatio": 1.0177706913920745
+    }
+  ],
+  "replay": [
+    {
+      "id": "candidate-focused-profiled-Invstar",
+      "file": "candidate-focused-profiled-Invstar-proofs.json",
+      "leaves": 12
+    }
+  ]
+}

@@ -1,0 +1,46 @@
+Found 0 warnings and 0 errors.
+Finished in 294ms on 5 files with 100 rules using 8 threads.
+bun test v1.4.3 (c6da4a4d3)
+
+--- stderr ---
+
+core/count-focused.test.ts:
+(pass) goal demand generates a missing pre-state union without changing the legacy packet [2.50ms]
+(pass) field guards receive row instances without adding carried-set witnesses [0.15ms]
+(pass) a copy starting subset retains source substitutions without unrelated tuples [0.24ms]
+(pass) copy source discovery ignores inputs read only by update guards [0.09ms]
+(pass) copy starting subsets preserve algebraic and post-empty proposals [0.04ms]
+(pass) copy-frame proposals compare the same counted definition at different rows within a cap [0.93ms]
+(pass) copy-frame slots are shared across result counts and prioritize input sources [0.42ms]
+(pass) focused comparisons follow carried sets and indicator bodies, not names [0.41ms]
+(pass) algebraic selection reserves union bounds and their row identities within the same cap [0.32ms]
+(pass) packed count coordinates are row keys but scalar comparison witnesses are not [0.06ms]
+(pass) equal Boolean views survive the narrow selector despite duplicated conjuncts [0.11ms]
+(pass) new count keys remain independent of certificate witnesses [0.13ms]
+(pass) counted row bridges preserve half-cardinality witnesses [0.10ms]
+(pass) targeted carried-set comparisons omit unrelated row reads [0.10ms]
+(pass) algebraic focus keeps equivalent pre-count views but not different rows [0.07ms]
+(pass) a carried subset can target its declared input-keyed row view [0.07ms]
+(pass) request frames propose only same-shaped carried-region comparisons [0.13ms]
+(pass) request frames normalize equality and threshold membership indicators [0.08ms]
+(pass) frames retain a structural range bound between two post counts [0.12ms]
+(pass) request partition identities outrank misleading triples within sixteen algebraic slots [0.78ms]
+(pass) post remainder and carried set propose a three-term coverage certificate [0.16ms]
+(pass) post counts can propose a bound from the stored membership they read [0.19ms]
+(pass) post-state frame comparisons are opt-in witness-bearing proposals [0.09ms]
+(pass) field bridges preserve the goal column independently of row-key aliases [0.13ms]
+(pass) count-law bridges seed only unary/binary count laws and preserve input [0.22ms]
+
+core/count-focus-proof.test.ts:
+(pass) finite-input focused recovery is the default and keeps an explicit opt-out [0.10ms]
+(pass) focused finite-count recovery keeps the selected step packet instead of rebuilding its full pool [17.07ms]
+
+core/count-recovery/derivability-closure.test.ts:
+(pass) closure checks a derived union [23.90ms]
+(pass) closure does not assume a false union [3.46ms]
+(pass) expired closure leaves no proof and never extends its deadline [0.11ms]
+
+ 30 pass
+ 0 fail
+ 107 expect() calls
+Ran 30 tests across 3 files. [79.00ms]

@@ -1,0 +1,6320 @@
+{
+  "researchOnly": true,
+  "engine": "5974b9165d6860f1157f3bed3cd66a7e1514e904",
+  "allowancePerOp": 50000,
+  "wallLimitMs": 600000,
+  "noCompleteLawClaim": true,
+  "rows": [
+    {
+      "law": "Inv2973: quorums overlap, or a config disabled",
+      "name": "Inv2973",
+      "op": 0,
+      "verdict": "unknown",
+      "units": 50006.25568400001,
+      "wallMs": 103357.540575,
+      "allowance": 50000,
+      "limit": "counted-cap",
+      "stats": {
+        "cuts": 37,
+        "sat": 50,
+        "refuted": 36,
+        "unknown": 0,
+        "reused": 201,
+        "cached": 0,
+        "rawSat": 50,
+        "rawRefuted": 36,
+        "rawUnknown": 0
+      },
+      "ledger": [
+        {
+          "op": "0",
+          "units": 50006.16921840001,
+          "actionAttempts": 1,
+          "leafVisits": 3,
+          "leaves": 3,
+          "cuts": 37,
+          "sourceQueries": 86,
+          "sat": 50,
+          "refuted": 36,
+          "unknown": 0,
+          "reused": 201,
+          "cacheChecked": 0,
+          "cacheSat": 0,
+          "cacheUnknown": 0,
+          "rawRefuted": 36
+        }
+      ],
+      "firstFailure": {
+        "kind": "stop",
+        "reason": "batch-exhausted",
+        "path": [
+          [
+            "op:1",
+            {
+              "lin": {
+                "op": 1
+              },
+              "holds": true
+            }
+          ],
+          [
+            "1:-1,op:1",
+            {
+              "lin": {
+                "1": -1,
+                "op": 1
+              },
+              "holds": true
+            }
+          ],
+          [
+            "1:-2,op:1",
+            {
+              "lin": {
+                "1": -2,
+                "op": 1
+              },
+              "holds": true
+            }
+          ],
+          [
+            "1:-3,op:1",
+            {
+              "lin": {
+                "1": -3,
+                "op": 1
+              },
+              "holds": true
+            }
+          ],
+          [
+            "1:-4,op:1",
+            {
+              "lin": {
+                "1": -4,
+                "op": 1
+              },
+              "holds": true
+            }
+          ],
+          [
+            "1:-5,op:1",
+            {
+              "lin": {
+                "1": -5,
+                "op": 1
+              },
+              "holds": true
+            }
+          ],
+          [
+            "1:-6,op:1",
+            {
+              "lin": {
+                "1": -6,
+                "op": 1
+              },
+              "holds": true
+            }
+          ],
+          [
+            "op:-1",
+            {
+              "lin": {
+                "op": -1
+              },
+              "holds": true
+            }
+          ],
+          [
+            "started:1",
+            {
+              "lin": {
+                "started": 1
+              },
+              "holds": true
+            }
+          ],
+          [
+            "started:-1",
+            {
+              "lin": {
+                "started": -1
+              },
+              "holds": true
+            }
+          ],
+          [
+            "1:-1,?noneCopied:1",
+            {
+              "lin": {
+                "1": -1,
+                "?noneCopied": 1
+              },
+              "holds": true
+            }
+          ],
+          [
+            "1:1,?noneCopied:-1",
+            {
+              "lin": {
+                "1": 1,
+                "?noneCopied": -1
+              },
+              "holds": true
+            }
+          ],
+          [
+            "1:-1,?canVote:1",
+            {
+              "lin": {
+                "1": -1,
+                "?canVote": 1
+              },
+              "holds": true
+            }
+          ],
+          [
+            "1:1,i:1,size:-1",
+            {
+              "lin": {
+                "1": 1,
+                "i": 1,
+                "size": -1
+              },
+              "holds": true
+            }
+          ],
+          [
+            "1:-1,?committedQuorum:1",
+            {
+              "lin": {
+                "1": -1,
+                "?committedQuorum": 1
+              },
+              "holds": true
+            }
+          ],
+          [
+            "a$#:1",
+            {
+              "lin": {
+                "a$#": 1
+              },
+              "holds": true
+            }
+          ],
+          [
+            "a$#:-1",
+            {
+              "lin": {
+                "a$#": -1
+              },
+              "holds": true
+            }
+          ],
+          [
+            "b$:1",
+            {
+              "lin": {
+                "b$": 1
+              },
+              "holds": false
+            }
+          ]
+        ],
+        "model": {
+          "op": 0,
+          "started": 0,
+          "?noneCopied": 1,
+          "?canVote": 0,
+          "i": 0,
+          "size": 3,
+          "?committedQuorum": 0,
+          "a$#": 0,
+          "b$": 2,
+          "j": 0,
+          "?all$1": 1,
+          "r$36": 0,
+          "r$22": 0,
+          "?allCopied": 0,
+          "?all$2": 0,
+          "?all$3": 0,
+          "u$": 0,
+          "r$0": 1,
+          "w$": 1,
+          "r$1": 3,
+          "r$2": 1,
+          "r$3": 3,
+          "r$5": 0,
+          "r$6": 2,
+          "r$4": 1,
+          "r$18": 0,
+          "r$17": 0,
+          "r$8": 1,
+          "r$14": 3,
+          "r$26": 3,
+          "r$24": 0,
+          "r$21": 3,
+          "r$19": 0,
+          "r$29": 0,
+          "r$27": 3,
+          "r$25": 0,
+          "r$7": 0,
+          "r$20": 0,
+          "r$13": 0,
+          "r$12": 1,
+          "r$11": 0,
+          "r$10": 0,
+          "r$31": 0,
+          "r$30": 0,
+          "r$34": 0,
+          "r$33": 0,
+          "r$32": 0,
+          "r$38": 0,
+          "r$37": 0,
+          "r$40": 0,
+          "r$39": 0,
+          "r$15": 0,
+          "r$23": 0,
+          "r$16": 0,
+          "r$9": 0,
+          "r$28": 0,
+          "r$35": 0
+        },
+        "violatedSet": [
+          165,
+          171,
+          177,
+          179,
+          181,
+          185,
+          190,
+          192,
+          0,
+          7,
+          8,
+          10,
+          173,
+          262,
+          265,
+          266,
+          268,
+          270,
+          274,
+          278,
+          282,
+          285,
+          286,
+          288,
+          12,
+          32,
+          42,
+          56,
+          59,
+          63,
+          65,
+          93,
+          98,
+          100,
+          102,
+          137,
+          139,
+          141,
+          143,
+          148,
+          151,
+          152,
+          154,
+          156,
+          159,
+          160,
+          161,
+          163,
+          186,
+          106,
+          107,
+          108,
+          110,
+          111,
+          112,
+          113,
+          115,
+          116,
+          117,
+          118,
+          119,
+          120,
+          13,
+          14,
+          15,
+          16,
+          17,
+          18,
+          19,
+          20,
+          22,
+          23,
+          25,
+          28,
+          29,
+          31,
+          33,
+          34,
+          35,
+          36,
+          37,
+          38,
+          39,
+          43,
+          45,
+          48,
+          49,
+          52,
+          54,
+          55,
+          57,
+          62,
+          64,
+          66,
+          67,
+          68,
+          88,
+          90,
+          91,
+          92,
+          95,
+          99,
+          101,
+          103,
+          104,
+          169,
+          175,
+          234,
+          236,
+          237,
+          238,
+          240,
+          242,
+          244,
+          245,
+          246,
+          248,
+          250,
+          252,
+          254,
+          258,
+          260
+        ],
+        "sourceResults": [
+          {
+            "index": 165,
+            "result": "reused-model",
+            "units": 0,
+            "attempts": 1
+          },
+          {
+            "index": 171,
+            "result": "sat",
+            "units": 14.847232000000076,
+            "attempts": 1
+          },
+          {
+            "index": 177,
+            "result": "reused-model",
+            "units": 0,
+            "attempts": 1
+          },
+          {
+            "index": 179,
+            "result": "reused-model",
+            "units": 0,
+            "attempts": 1
+          },
+          {
+            "index": 181,
+            "result": "sat",
+            "units": 20.320845999999847,
+            "attempts": 1
+          },
+          {
+            "index": 185,
+            "result": "sat",
+            "units": 19.419107999999596,
+            "attempts": 1
+          },
+          {
+            "index": 190,
+            "result": "sat",
+            "units": 21.15928199999985,
+            "attempts": 1
+          },
+          {
+            "index": 192,
+            "result": "sat",
+            "units": 20.807277999999997,
+            "attempts": 1
+          },
+          {
+            "index": 0,
+            "result": "reused-model",
+            "units": 0,
+            "attempts": 1
+          },
+          {
+            "index": 7,
+            "result": "sat",
+            "units": 23.212863999999627,
+            "attempts": 1
+          },
+          {
+            "index": 8,
+            "result": "sat",
+            "units": 21.592216000000008,
+            "attempts": 1
+          },
+          {
+            "index": 10,
+            "result": "reused-model",
+            "units": 0,
+            "attempts": 1
+          },
+          {
+            "index": 173,
+            "result": "reused-model",
+            "units": 0,
+            "attempts": 1
+          },
+          {
+            "index": 262,
+            "result": "sat",
+            "units": 21.15122799999972,
+            "attempts": 1
+          },
+          {
+            "index": 265,
+            "result": "reused-model",
+            "units": 0,
+            "attempts": 1
+          },
+          {
+            "index": 266,
+            "result": "reused-model",
+            "units": 0,
+            "attempts": 1
+          },
+          {
+            "index": 268,
+            "result": "reused-model",
+            "units": 0,
+            "attempts": 1
+          },
+          {
+            "index": 270,
+            "result": "sat",
+            "units": 23.29468200000065,
+            "attempts": 1
+          },
+          {
+            "index": 274,
+            "result": "sat",
+            "units": 21.15405999999939,
+            "attempts": 1
+          },
+          {
+            "index": 278,
+            "result": "reused-model",
+            "units": 0,
+            "attempts": 1
+          },
+          {
+            "index": 282,
+            "result": "sat",
+            "units": 24.962938000000122,
+            "attempts": 1
+          },
+          {
+            "index": 285,
+            "result": "sat",
+            "units": 32.7683020000004,
+            "attempts": 1
+          },
+          {
+            "index": 286,
+            "result": "reused-model",
+            "units": 0,
+            "attempts": 1
+          },
+          {
+            "index": 288,
+            "result": "reused-model",
+            "units": 0,
+            "attempts": 1
+          },
+          {
+            "index": 12,
+            "result": "sat",
+            "units": 19.327687999999853,
+            "attempts": 1
+          },
+          {
+            "index": 32,
+            "result": "sat",
+            "units": 23.73382000000015,
+            "attempts": 1
+          },
+          {
+            "index": 42,
+            "result": "sat",
+            "units": 25.799147999999832,
+            "attempts": 1
+          },
+          {
+            "index": 56,
+            "result": "sat",
+            "units": 22.212362000000212,
+            "attempts": 1
+          },
+          {
+            "index": 59,
+            "result": "sat",
+            "units": 22.212091999999984,
+            "attempts": 1
+          },
+          {
+            "index": 63,
+            "result": "reused-model",
+            "units": 0,
+            "attempts": 1
+          },
+          {
+            "index": 65,
+            "result": "reused-model",
+            "units": 0,
+            "attempts": 1
+          },
+          {
+            "index": 93,
+            "result": "reused-model",
+            "units": 0,
+            "attempts": 1
+          },
+          {
+            "index": 98,
+            "result": "reused-model",
+            "units": 0,
+            "attempts": 1
+          },
+          {
+            "index": 100,
+            "result": "reused-model",
+            "units": 0,
+            "attempts": 1
+          },
+          {
+            "index": 102,
+            "result": "reused-model",
+            "units": 0,
+            "attempts": 1
+          },
+          {
+            "index": 137,
+            "result": "reused-model",
+            "units": 0,
+            "attempts": 1
+          },
+          {
+            "index": 139,
+            "result": "reused-model",
+            "units": 0,
+            "attempts": 1
+          },
+          {
+            "index": 141,
+            "result": "reused-model",
+            "units": 0,
+            "attempts": 1
+          },
+          {
+            "index": 143,
+            "result": "reused-model",
+            "units": 0,
+            "attempts": 1
+          },
+          {
+            "index": 148,
+            "result": "reused-model",
+            "units": 0,
+            "attempts": 1
+          },
+          {
+            "index": 151,
+            "result": "sat",
+            "units": 18.301168000000416,
+            "attempts": 1
+          },
+          {
+            "index": 152,
+            "result": "reused-model",
+            "units": 0,
+            "attempts": 1
+          },
+          {
+            "index": 154,
+            "result": "reused-model",
+            "units": 0,
+            "attempts": 1
+          },
+          {
+            "index": 156,
+            "result": "reused-model",
+            "units": 0,
+            "attempts": 1
+          },
+          {
+            "index": 159,
+            "result": "reused-model",
+            "units": 0,
+            "attempts": 1
+          },
+          {
+            "index": 160,
+            "result": "sat",
+            "units": 22.162874000000556,
+            "attempts": 1
+          },
+          {
+            "index": 161,
+            "result": "reused-model",
+            "units": 0,
+            "attempts": 1
+          },
+          {
+            "index": 163,
+            "result": "reused-model",
+            "units": 0,
+            "attempts": 1
+          },
+          {
+            "index": 186,
+            "result": "reused-model",
+            "units": 0,
+            "attempts": 1
+          },
+          {
+            "index": 106,
+            "result": "reused-model",
+            "units": 0,
+            "attempts": 1
+          },
+          {
+            "index": 107,
+            "result": "reused-model",
+            "units": 0,
+            "attempts": 1
+          },
+          {
+            "index": 108,
+            "result": "sat",
+            "units": 16.464352000000872,
+            "attempts": 1
+          },
+          {
+            "index": 110,
+            "result": "reused-model",
+            "units": 0,
+            "attempts": 1
+          },
+          {
+            "index": 111,
+            "result": "reused-model",
+            "units": 0,
+            "attempts": 1
+          },
+          {
+            "index": 112,
+            "result": "reused-model",
+            "units": 0,
+            "attempts": 1
+          },
+          {
+            "index": 113,
+            "result": "reused-model",
+            "units": 0,
+            "attempts": 1
+          },
+          {
+            "index": 115,
+            "result": "reused-model",
+            "units": 0,
+            "attempts": 1
+          },
+          {
+            "index": 116,
+            "result": "reused-model",
+            "units": 0,
+            "attempts": 1
+          },
+          {
+            "index": 117,
+            "result": "reused-model",
+            "units": 0,
+            "attempts": 1
+          },
+          {
+            "index": 118,
+            "result": "reused-model",
+            "units": 0,
+            "attempts": 1
+          },
+          {
+            "index": 119,
+            "result": "reused-model",
+            "units": 0,
+            "attempts": 1
+          },
+          {
+            "index": 120,
+            "result": "reused-model",
+            "units": 0,
+            "attempts": 1
+          },
+          {
+            "index": 13,
+            "result": "reused-model",
+            "units": 0,
+            "attempts": 1
+          },
+          {
+            "index": 14,
+            "result": "sat",
+            "units": 20.896627999999964,
+            "attempts": 1
+          },
+          {
+            "index": 15,
+            "result": "reused-model",
+            "units": 0,
+            "attempts": 1
+          },
+          {
+            "index": 16,
+            "result": "reused-model",
+            "units": 0,
+            "attempts": 1
+          },
+          {
+            "index": 17,
+            "result": "reused-model",
+            "units": 0,
+            "attempts": 1
+          },
+          {
+            "index": 18,
+            "result": "reused-model",
+            "units": 0,
+            "attempts": 1
+          },
+          {
+            "index": 19,
+            "result": "reused-model",
+            "units": 0,
+            "attempts": 1
+          },
+          {
+            "index": 20,
+            "result": "reused-model",
+            "units": 0,
+            "attempts": 1
+          },
+          {
+            "index": 22,
+            "result": "sat",
+            "units": 17.739469999999756,
+            "attempts": 1
+          },
+          {
+            "index": 23,
+            "result": "reused-model",
+            "units": 0,
+            "attempts": 1
+          },
+          {
+            "index": 25,
+            "result": "reused-model",
+            "units": 0,
+            "attempts": 1
+          },
+          {
+            "index": 28,
+            "result": "reused-model",
+            "units": 0,
+            "attempts": 1
+          },
+          {
+            "index": 29,
+            "result": "reused-model",
+            "units": 0,
+            "attempts": 1
+          },
+          {
+            "index": 31,
+            "result": "reused-model",
+            "units": 0,
+            "attempts": 1
+          },
+          {
+            "index": 33,
+            "result": "reused-model",
+            "units": 0,
+            "attempts": 1
+          },
+          {
+            "index": 34,
+            "result": "reused-model",
+            "units": 0,
+            "attempts": 1
+          },
+          {
+            "index": 35,
+            "result": "reused-model",
+            "units": 0,
+            "attempts": 1
+          },
+          {
+            "index": 36,
+            "result": "reused-model",
+            "units": 0,
+            "attempts": 1
+          },
+          {
+            "index": 37,
+            "result": "reused-model",
+            "units": 0,
+            "attempts": 1
+          },
+          {
+            "index": 38,
+            "result": "reused-model",
+            "units": 0,
+            "attempts": 1
+          },
+          {
+            "index": 39,
+            "result": "reused-model",
+            "units": 0,
+            "attempts": 1
+          },
+          {
+            "index": 43,
+            "result": "sat",
+            "units": 23.929586000000427,
+            "attempts": 1
+          },
+          {
+            "index": 45,
+            "result": "sat",
+            "units": 23.502684000000045,
+            "attempts": 1
+          },
+          {
+            "index": 48,
+            "result": "reused-model",
+            "units": 0,
+            "attempts": 1
+          },
+          {
+            "index": 49,
+            "result": "reused-model",
+            "units": 0,
+            "attempts": 1
+          },
+          {
+            "index": 52,
+            "result": "reused-model",
+            "units": 0,
+            "attempts": 1
+          },
+          {
+            "index": 54,
+            "result": "reused-model",
+            "units": 0,
+            "attempts": 1
+          },
+          {
+            "index": 55,
+            "result": "sat",
+            "units": 22.617507999999816,
+            "attempts": 1
+          },
+          {
+            "index": 57,
+            "result": "reused-model",
+            "units": 0,
+            "attempts": 1
+          },
+          {
+            "index": 62,
+            "result": "reused-model",
+            "units": 0,
+            "attempts": 1
+          },
+          {
+            "index": 64,
+            "result": "reused-model",
+            "units": 0,
+            "attempts": 1
+          },
+          {
+            "index": 66,
+            "result": "reused-model",
+            "units": 0,
+            "attempts": 1
+          },
+          {
+            "index": 67,
+            "result": "reused-model",
+            "units": 0,
+            "attempts": 1
+          },
+          {
+            "index": 68,
+            "result": "reused-model",
+            "units": 0,
+            "attempts": 1
+          },
+          {
+            "index": 88,
+            "result": "reused-model",
+            "units": 0,
+            "attempts": 1
+          },
+          {
+            "index": 90,
+            "result": "reused-model",
+            "units": 0,
+            "attempts": 1
+          },
+          {
+            "index": 91,
+            "result": "sat",
+            "units": 21.42474399999992,
+            "attempts": 1
+          },
+          {
+            "index": 92,
+            "result": "reused-model",
+            "units": 0,
+            "attempts": 1
+          },
+          {
+            "index": 95,
+            "result": "reused-model",
+            "units": 0,
+            "attempts": 1
+          },
+          {
+            "index": 99,
+            "result": "reused-model",
+            "units": 0,
+            "attempts": 1
+          },
+          {
+            "index": 101,
+            "result": "reused-model",
+            "units": 0,
+            "attempts": 1
+          },
+          {
+            "index": 103,
+            "result": "reused-model",
+            "units": 0,
+            "attempts": 1
+          },
+          {
+            "index": 104,
+            "result": "reused-model",
+            "units": 0,
+            "attempts": 1
+          },
+          {
+            "index": 169,
+            "result": "reused-model",
+            "units": 0,
+            "attempts": 1
+          },
+          {
+            "index": 175,
+            "result": "reused-model",
+            "units": 0,
+            "attempts": 1
+          },
+          {
+            "index": 234,
+            "result": "reused-model",
+            "units": 0,
+            "attempts": 1
+          },
+          {
+            "index": 236,
+            "result": "reused-model",
+            "units": 0,
+            "attempts": 1
+          },
+          {
+            "index": 237,
+            "result": "reused-model",
+            "units": 0,
+            "attempts": 1
+          },
+          {
+            "index": 238,
+            "result": "reused-model",
+            "units": 0,
+            "attempts": 1
+          },
+          {
+            "index": 240,
+            "result": "reused-model",
+            "units": 0,
+            "attempts": 1
+          },
+          {
+            "index": 242,
+            "result": "reused-model",
+            "units": 0,
+            "attempts": 1
+          },
+          {
+            "index": 244,
+            "result": "reused-model",
+            "units": 0,
+            "attempts": 1
+          },
+          {
+            "index": 245,
+            "result": "reused-model",
+            "units": 0,
+            "attempts": 1
+          },
+          {
+            "index": 246,
+            "result": "reused-model",
+            "units": 0,
+            "attempts": 1
+          },
+          {
+            "index": 248,
+            "result": "reused-model",
+            "units": 0,
+            "attempts": 1
+          },
+          {
+            "index": 250,
+            "result": "reused-model",
+            "units": 0,
+            "attempts": 1
+          },
+          {
+            "index": 252,
+            "result": "reused-model",
+            "units": 0,
+            "attempts": 1
+          },
+          {
+            "index": 254,
+            "result": "reused-model",
+            "units": 0,
+            "attempts": 1
+          },
+          {
+            "index": 258,
+            "result": "reused-model",
+            "units": 0,
+            "attempts": 1
+          },
+          {
+            "index": 260,
+            "result": "reused-model",
+            "units": 0,
+            "attempts": 1
+          }
+        ]
+      },
+      "validation": {
+        "model": true,
+        "exactViolatedSet": true,
+        "path": true,
+        "note": "Exact BigInt path/instance audit; complete numeric-model validation was performed before production recorded it."
+      },
+      "publication": {
+        "batch": "20261109-064438-b0or32",
+        "job": "overlap-op0",
+        "vm": "bx_3qn8b65a",
+        "time": "2026-11-08T23:49:12.388Z",
+        "archiveSha256": "fc4f213a7a71639911841b997dfc60c6ef9ab6000f0a4c8327c3ec9903e50ec2"
+      }
+    },
+    {
+      "law": "Inv2973: quorums overlap, or a config disabled",
+      "name": "Inv2973",
+      "op": 1,
+      "verdict": "unknown",
+      "units": 50003.02096879999,
+      "wallMs": 146372.46973100002,
+      "allowance": 50000,
+      "limit": "counted-cap",
+      "stats": {
+        "cuts": 24,
+        "sat": 48,
+        "refuted": 23,
+        "unknown": 0,
+        "reused": 113,
+        "cached": 0,
+        "rawSat": 48,
+        "rawRefuted": 23,
+        "rawUnknown": 0
+      },
+      "ledger": [
+        {
+          "op": "0",
+          "units": 0,
+          "actionAttempts": 1,
+          "leafVisits": 0,
+          "leaves": 0,
+          "cuts": 0,
+          "sourceQueries": 0,
+          "sat": 0,
+          "refuted": 0,
+          "unknown": 0,
+          "reused": 0,
+          "cacheChecked": 0,
+          "cacheSat": 0,
+          "cacheUnknown": 0,
+          "rawRefuted": 0
+        },
+        {
+          "op": "1",
+          "units": 50002.93450319999,
+          "actionAttempts": 1,
+          "leafVisits": 2,
+          "leaves": 2,
+          "cuts": 24,
+          "sourceQueries": 71,
+          "sat": 48,
+          "refuted": 23,
+          "unknown": 0,
+          "reused": 113,
+          "cacheChecked": 0,
+          "cacheSat": 0,
+          "cacheUnknown": 0,
+          "rawRefuted": 23
+        }
+      ],
+      "firstFailure": {
+        "kind": "stop",
+        "reason": "batch-exhausted",
+        "path": [
+          [
+            "op:1",
+            {
+              "lin": {
+                "op": 1
+              },
+              "holds": false
+            }
+          ],
+          [
+            "1:-1,op:1",
+            {
+              "lin": {
+                "1": -1,
+                "op": 1
+              },
+              "holds": true
+            }
+          ],
+          [
+            "1:-2,op:1",
+            {
+              "lin": {
+                "1": -2,
+                "op": 1
+              },
+              "holds": true
+            }
+          ],
+          [
+            "1:-3,op:1",
+            {
+              "lin": {
+                "1": -3,
+                "op": 1
+              },
+              "holds": true
+            }
+          ],
+          [
+            "1:-4,op:1",
+            {
+              "lin": {
+                "1": -4,
+                "op": 1
+              },
+              "holds": true
+            }
+          ],
+          [
+            "1:-5,op:1",
+            {
+              "lin": {
+                "1": -5,
+                "op": 1
+              },
+              "holds": true
+            }
+          ],
+          [
+            "1:-6,op:1",
+            {
+              "lin": {
+                "1": -6,
+                "op": 1
+              },
+              "holds": true
+            }
+          ],
+          [
+            "started:1",
+            {
+              "lin": {
+                "started": 1
+              },
+              "holds": true
+            }
+          ],
+          [
+            "started:-1",
+            {
+              "lin": {
+                "started": -1
+              },
+              "holds": true
+            }
+          ],
+          [
+            "1:-1,CV[]:1",
+            {
+              "lin": {
+                "1": -1,
+                "CV[]": 1
+              },
+              "holds": true
+            }
+          ],
+          [
+            "1:1,CV[]:-1",
+            {
+              "lin": {
+                "1": 1,
+                "CV[]": -1
+              },
+              "holds": true
+            }
+          ],
+          [
+            "CV[i:1]:1",
+            {
+              "lin": {
+                "CV[i:1]": 1
+              },
+              "holds": true
+            }
+          ],
+          [
+            "CV[i:1]:-1",
+            {
+              "lin": {
+                "CV[i:1]": -1
+              },
+              "holds": true
+            }
+          ],
+          [
+            "1:-1,?canVote:1",
+            {
+              "lin": {
+                "1": -1,
+                "?canVote": 1
+              },
+              "holds": true
+            }
+          ],
+          [
+            "1:1,i:1,size:-1",
+            {
+              "lin": {
+                "1": 1,
+                "i": 1,
+                "size": -1
+              },
+              "holds": true
+            }
+          ],
+          [
+            "1:-1,?committedQuorum:1",
+            {
+              "lin": {
+                "1": -1,
+                "?committedQuorum": 1
+              },
+              "holds": true
+            }
+          ],
+          [
+            "a$#:1,i:-1",
+            {
+              "lin": {
+                "a$#": 1,
+                "i": -1
+              },
+              "holds": true
+            }
+          ],
+          [
+            "a$#:-1,i:1",
+            {
+              "lin": {
+                "a$#": -1,
+                "i": 1
+              },
+              "holds": true
+            }
+          ],
+          [
+            "b$:1,i:-1",
+            {
+              "lin": {
+                "b$": 1,
+                "i": -1
+              },
+              "holds": true
+            }
+          ],
+          [
+            "b$:-1,i:1",
+            {
+              "lin": {
+                "b$": -1,
+                "i": 1
+              },
+              "holds": false
+            }
+          ]
+        ],
+        "model": {
+          "op": 1,
+          "started": 0,
+          "CV[]": 1,
+          "CV[i:1]": 0,
+          "?canVote": 0,
+          "i": 1,
+          "size": 3,
+          "?committedQuorum": 0,
+          "a$#": 1,
+          "b$": 0,
+          "j": 0,
+          "?all$1": 1,
+          "r$36": 0,
+          "r$22": 0,
+          "?noneCopied": 0,
+          "?allCopied": 0,
+          "?all$2": 0,
+          "?all$3": 0,
+          "u$": 1,
+          "r$0": 3,
+          "w$": 0,
+          "r$1": 1,
+          "r$2": 2,
+          "r$3": 1,
+          "r$5": 2,
+          "r$6": 0,
+          "r$4": 1,
+          "r$18": 0,
+          "r$17": 3,
+          "r$14": 1,
+          "r$16": 1,
+          "r$27": 1,
+          "r$26": 1,
+          "r$24": 0,
+          "r$21": 1,
+          "r$19": 0,
+          "r$29": 0,
+          "r$25": 0,
+          "r$7": 0,
+          "r$20": 0,
+          "r$13": 0,
+          "r$38": 0,
+          "r$37": 0,
+          "r$40": 0,
+          "r$39": 0,
+          "r$10": 0,
+          "r$11": 0,
+          "r$12": 0,
+          "r$15": 0,
+          "r$32": 0,
+          "r$30": 0,
+          "r$31": 0,
+          "r$34": 0,
+          "r$33": 0,
+          "r$8": 0,
+          "r$9": 0,
+          "r$23": 0,
+          "r$28": 0,
+          "r$35": 0
+        },
+        "violatedSet": [
+          165,
+          171,
+          177,
+          179,
+          181,
+          183,
+          190,
+          192,
+          0,
+          2,
+          4,
+          6,
+          167,
+          173,
+          266,
+          268,
+          274,
+          276,
+          286,
+          288,
+          12,
+          32,
+          56,
+          59,
+          63,
+          65,
+          75,
+          76,
+          78,
+          80,
+          82,
+          84,
+          137,
+          139,
+          141,
+          143,
+          146,
+          150,
+          152,
+          154,
+          156,
+          160,
+          164,
+          186,
+          13,
+          14,
+          15,
+          16,
+          17,
+          18,
+          19,
+          20,
+          23,
+          25,
+          28,
+          29,
+          31,
+          33,
+          34,
+          35,
+          36,
+          37,
+          38,
+          39,
+          43,
+          45,
+          48,
+          49,
+          52,
+          54,
+          57,
+          62,
+          64,
+          66,
+          67,
+          68,
+          70,
+          71,
+          72,
+          73,
+          74,
+          77,
+          79,
+          81,
+          83,
+          85,
+          86,
+          169,
+          175,
+          233,
+          234,
+          235,
+          236,
+          238,
+          240,
+          241,
+          242,
+          243,
+          244,
+          246,
+          248,
+          250,
+          252,
+          253,
+          254,
+          255,
+          256
+        ],
+        "sourceResults": [
+          {
+            "index": 165,
+            "result": "sat",
+            "units": 16.819347999999763,
+            "attempts": 1
+          },
+          {
+            "index": 171,
+            "result": "sat",
+            "units": 16.455893999999716,
+            "attempts": 1
+          },
+          {
+            "index": 177,
+            "result": "reused-model",
+            "units": 0,
+            "attempts": 1
+          },
+          {
+            "index": 179,
+            "result": "reused-model",
+            "units": 0,
+            "attempts": 1
+          },
+          {
+            "index": 181,
+            "result": "sat",
+            "units": 20.78244800000016,
+            "attempts": 1
+          },
+          {
+            "index": 183,
+            "result": "sat",
+            "units": 34.85648600000013,
+            "attempts": 1
+          },
+          {
+            "index": 190,
+            "result": "sat",
+            "units": 23.87429599999973,
+            "attempts": 1
+          },
+          {
+            "index": 192,
+            "result": "sat",
+            "units": 23.131424000000152,
+            "attempts": 1
+          },
+          {
+            "index": 0,
+            "result": "reused-model",
+            "units": 0,
+            "attempts": 1
+          },
+          {
+            "index": 2,
+            "result": "reused-model",
+            "units": 0,
+            "attempts": 1
+          },
+          {
+            "index": 4,
+            "result": "reused-model",
+            "units": 0,
+            "attempts": 1
+          },
+          {
+            "index": 6,
+            "result": "reused-model",
+            "units": 0,
+            "attempts": 1
+          },
+          {
+            "index": 167,
+            "result": "reused-model",
+            "units": 0,
+            "attempts": 1
+          },
+          {
+            "index": 173,
+            "result": "reused-model",
+            "units": 0,
+            "attempts": 1
+          },
+          {
+            "index": 266,
+            "result": "reused-model",
+            "units": 0,
+            "attempts": 1
+          },
+          {
+            "index": 268,
+            "result": "reused-model",
+            "units": 0,
+            "attempts": 1
+          },
+          {
+            "index": 274,
+            "result": "reused-model",
+            "units": 0,
+            "attempts": 1
+          },
+          {
+            "index": 276,
+            "result": "reused-model",
+            "units": 0,
+            "attempts": 1
+          },
+          {
+            "index": 286,
+            "result": "sat",
+            "units": 23.537847999999485,
+            "attempts": 1
+          },
+          {
+            "index": 288,
+            "result": "reused-model",
+            "units": 0,
+            "attempts": 1
+          },
+          {
+            "index": 12,
+            "result": "reused-model",
+            "units": 0,
+            "attempts": 1
+          },
+          {
+            "index": 32,
+            "result": "reused-model",
+            "units": 0,
+            "attempts": 1
+          },
+          {
+            "index": 56,
+            "result": "sat",
+            "units": 23.206335999999737,
+            "attempts": 1
+          },
+          {
+            "index": 59,
+            "result": "reused-model",
+            "units": 0,
+            "attempts": 1
+          },
+          {
+            "index": 63,
+            "result": "sat",
+            "units": 23.31908599999997,
+            "attempts": 1
+          },
+          {
+            "index": 65,
+            "result": "reused-model",
+            "units": 0,
+            "attempts": 1
+          },
+          {
+            "index": 75,
+            "result": "reused-model",
+            "units": 0,
+            "attempts": 1
+          },
+          {
+            "index": 76,
+            "result": "reused-model",
+            "units": 0,
+            "attempts": 1
+          },
+          {
+            "index": 78,
+            "result": "reused-model",
+            "units": 0,
+            "attempts": 1
+          },
+          {
+            "index": 80,
+            "result": "reused-model",
+            "units": 0,
+            "attempts": 1
+          },
+          {
+            "index": 82,
+            "result": "reused-model",
+            "units": 0,
+            "attempts": 1
+          },
+          {
+            "index": 84,
+            "result": "reused-model",
+            "units": 0,
+            "attempts": 1
+          },
+          {
+            "index": 137,
+            "result": "reused-model",
+            "units": 0,
+            "attempts": 1
+          },
+          {
+            "index": 139,
+            "result": "reused-model",
+            "units": 0,
+            "attempts": 1
+          },
+          {
+            "index": 141,
+            "result": "reused-model",
+            "units": 0,
+            "attempts": 1
+          },
+          {
+            "index": 143,
+            "result": "sat",
+            "units": 25.519156000000066,
+            "attempts": 1
+          },
+          {
+            "index": 146,
+            "result": "reused-model",
+            "units": 0,
+            "attempts": 1
+          },
+          {
+            "index": 150,
+            "result": "sat",
+            "units": 30.811138000000028,
+            "attempts": 1
+          },
+          {
+            "index": 152,
+            "result": "reused-model",
+            "units": 0,
+            "attempts": 1
+          },
+          {
+            "index": 154,
+            "result": "sat",
+            "units": 28.417768000000024,
+            "attempts": 1
+          },
+          {
+            "index": 156,
+            "result": "reused-model",
+            "units": 0,
+            "attempts": 1
+          },
+          {
+            "index": 160,
+            "result": "sat",
+            "units": 28.759475999999722,
+            "attempts": 1
+          },
+          {
+            "index": 164,
+            "result": "reused-model",
+            "units": 0,
+            "attempts": 1
+          },
+          {
+            "index": 186,
+            "result": "reused-model",
+            "units": 0,
+            "attempts": 1
+          },
+          {
+            "index": 13,
+            "result": "sat",
+            "units": 20.035417999999936,
+            "attempts": 1
+          },
+          {
+            "index": 14,
+            "result": "reused-model",
+            "units": 0,
+            "attempts": 1
+          },
+          {
+            "index": 15,
+            "result": "reused-model",
+            "units": 0,
+            "attempts": 1
+          },
+          {
+            "index": 16,
+            "result": "reused-model",
+            "units": 0,
+            "attempts": 1
+          },
+          {
+            "index": 17,
+            "result": "reused-model",
+            "units": 0,
+            "attempts": 1
+          },
+          {
+            "index": 18,
+            "result": "reused-model",
+            "units": 0,
+            "attempts": 1
+          },
+          {
+            "index": 19,
+            "result": "reused-model",
+            "units": 0,
+            "attempts": 1
+          },
+          {
+            "index": 20,
+            "result": "reused-model",
+            "units": 0,
+            "attempts": 1
+          },
+          {
+            "index": 23,
+            "result": "reused-model",
+            "units": 0,
+            "attempts": 1
+          },
+          {
+            "index": 25,
+            "result": "reused-model",
+            "units": 0,
+            "attempts": 1
+          },
+          {
+            "index": 28,
+            "result": "reused-model",
+            "units": 0,
+            "attempts": 1
+          },
+          {
+            "index": 29,
+            "result": "reused-model",
+            "units": 0,
+            "attempts": 1
+          },
+          {
+            "index": 31,
+            "result": "reused-model",
+            "units": 0,
+            "attempts": 1
+          },
+          {
+            "index": 33,
+            "result": "reused-model",
+            "units": 0,
+            "attempts": 1
+          },
+          {
+            "index": 34,
+            "result": "reused-model",
+            "units": 0,
+            "attempts": 1
+          },
+          {
+            "index": 35,
+            "result": "reused-model",
+            "units": 0,
+            "attempts": 1
+          },
+          {
+            "index": 36,
+            "result": "reused-model",
+            "units": 0,
+            "attempts": 1
+          },
+          {
+            "index": 37,
+            "result": "reused-model",
+            "units": 0,
+            "attempts": 1
+          },
+          {
+            "index": 38,
+            "result": "reused-model",
+            "units": 0,
+            "attempts": 1
+          },
+          {
+            "index": 39,
+            "result": "reused-model",
+            "units": 0,
+            "attempts": 1
+          },
+          {
+            "index": 43,
+            "result": "sat",
+            "units": 26.081727999999657,
+            "attempts": 1
+          },
+          {
+            "index": 45,
+            "result": "reused-model",
+            "units": 0,
+            "attempts": 1
+          },
+          {
+            "index": 48,
+            "result": "reused-model",
+            "units": 0,
+            "attempts": 1
+          },
+          {
+            "index": 49,
+            "result": "reused-model",
+            "units": 0,
+            "attempts": 1
+          },
+          {
+            "index": 52,
+            "result": "sat",
+            "units": 23.65347199999951,
+            "attempts": 1
+          },
+          {
+            "index": 54,
+            "result": "reused-model",
+            "units": 0,
+            "attempts": 1
+          },
+          {
+            "index": 57,
+            "result": "reused-model",
+            "units": 0,
+            "attempts": 1
+          },
+          {
+            "index": 62,
+            "result": "reused-model",
+            "units": 0,
+            "attempts": 1
+          },
+          {
+            "index": 64,
+            "result": "reused-model",
+            "units": 0,
+            "attempts": 1
+          },
+          {
+            "index": 66,
+            "result": "reused-model",
+            "units": 0,
+            "attempts": 1
+          },
+          {
+            "index": 67,
+            "result": "reused-model",
+            "units": 0,
+            "attempts": 1
+          },
+          {
+            "index": 68,
+            "result": "reused-model",
+            "units": 0,
+            "attempts": 1
+          },
+          {
+            "index": 70,
+            "result": "reused-model",
+            "units": 0,
+            "attempts": 1
+          },
+          {
+            "index": 71,
+            "result": "reused-model",
+            "units": 0,
+            "attempts": 1
+          },
+          {
+            "index": 72,
+            "result": "reused-model",
+            "units": 0,
+            "attempts": 1
+          },
+          {
+            "index": 73,
+            "result": "reused-model",
+            "units": 0,
+            "attempts": 1
+          },
+          {
+            "index": 74,
+            "result": "reused-model",
+            "units": 0,
+            "attempts": 1
+          },
+          {
+            "index": 77,
+            "result": "reused-model",
+            "units": 0,
+            "attempts": 1
+          },
+          {
+            "index": 79,
+            "result": "reused-model",
+            "units": 0,
+            "attempts": 1
+          },
+          {
+            "index": 81,
+            "result": "reused-model",
+            "units": 0,
+            "attempts": 1
+          },
+          {
+            "index": 83,
+            "result": "reused-model",
+            "units": 0,
+            "attempts": 1
+          },
+          {
+            "index": 85,
+            "result": "reused-model",
+            "units": 0,
+            "attempts": 1
+          },
+          {
+            "index": 86,
+            "result": "reused-model",
+            "units": 0,
+            "attempts": 1
+          },
+          {
+            "index": 169,
+            "result": "reused-model",
+            "units": 0,
+            "attempts": 1
+          },
+          {
+            "index": 175,
+            "result": "reused-model",
+            "units": 0,
+            "attempts": 1
+          },
+          {
+            "index": 233,
+            "result": "sat",
+            "units": 29.90162599999985,
+            "attempts": 1
+          },
+          {
+            "index": 234,
+            "result": "reused-model",
+            "units": 0,
+            "attempts": 1
+          },
+          {
+            "index": 235,
+            "result": "sat",
+            "units": 34.74225199999955,
+            "attempts": 1
+          },
+          {
+            "index": 236,
+            "result": "reused-model",
+            "units": 0,
+            "attempts": 1
+          },
+          {
+            "index": 238,
+            "result": "reused-model",
+            "units": 0,
+            "attempts": 1
+          },
+          {
+            "index": 240,
+            "result": "reused-model",
+            "units": 0,
+            "attempts": 1
+          },
+          {
+            "index": 241,
+            "result": "reused-model",
+            "units": 0,
+            "attempts": 1
+          },
+          {
+            "index": 242,
+            "result": "reused-model",
+            "units": 0,
+            "attempts": 1
+          },
+          {
+            "index": 243,
+            "result": "reused-model",
+            "units": 0,
+            "attempts": 1
+          },
+          {
+            "index": 244,
+            "result": "reused-model",
+            "units": 0,
+            "attempts": 1
+          },
+          {
+            "index": 246,
+            "result": "reused-model",
+            "units": 0,
+            "attempts": 1
+          },
+          {
+            "index": 248,
+            "result": "reused-model",
+            "units": 0,
+            "attempts": 1
+          },
+          {
+            "index": 250,
+            "result": "reused-model",
+            "units": 0,
+            "attempts": 1
+          },
+          {
+            "index": 252,
+            "result": "reused-model",
+            "units": 0,
+            "attempts": 1
+          },
+          {
+            "index": 253,
+            "result": "reused-model",
+            "units": 0,
+            "attempts": 1
+          },
+          {
+            "index": 254,
+            "result": "reused-model",
+            "units": 0,
+            "attempts": 1
+          },
+          {
+            "index": 255,
+            "result": "reused-model",
+            "units": 0,
+            "attempts": 1
+          },
+          {
+            "index": 256,
+            "result": "reused-model",
+            "units": 0,
+            "attempts": 1
+          }
+        ]
+      },
+      "validation": {
+        "model": true,
+        "exactViolatedSet": true,
+        "path": true,
+        "note": "Exact BigInt path/instance audit; complete numeric-model validation was performed before production recorded it."
+      },
+      "publication": {
+        "batch": "20261109-064438-b0or32",
+        "job": "overlap-op1",
+        "vm": "bx_395wpmqp",
+        "time": "2026-11-08T23:49:14.054Z",
+        "archiveSha256": "d9db1362b4a999c01ccaba71546fc448ea9a4ccfd55d35301359825a7f43a5a9"
+      }
+    },
+    {
+      "law": "Inv2973: quorums overlap, or a config disabled",
+      "name": "Inv2973",
+      "op": 2,
+      "verdict": "unknown",
+      "units": 50000.0041584,
+      "wallMs": 155667.33029500002,
+      "allowance": 50000,
+      "limit": "counted-cap",
+      "stats": {
+        "cuts": 41,
+        "sat": 33,
+        "refuted": 40,
+        "unknown": 0,
+        "reused": 54,
+        "cached": 0,
+        "rawSat": 33,
+        "rawRefuted": 40,
+        "rawUnknown": 0
+      },
+      "ledger": [
+        {
+          "op": "0",
+          "units": 0,
+          "actionAttempts": 1,
+          "leafVisits": 0,
+          "leaves": 0,
+          "cuts": 0,
+          "sourceQueries": 0,
+          "sat": 0,
+          "refuted": 0,
+          "unknown": 0,
+          "reused": 0,
+          "cacheChecked": 0,
+          "cacheSat": 0,
+          "cacheUnknown": 0,
+          "rawRefuted": 0
+        },
+        {
+          "op": "1",
+          "units": 0,
+          "actionAttempts": 1,
+          "leafVisits": 0,
+          "leaves": 0,
+          "cuts": 0,
+          "sourceQueries": 0,
+          "sat": 0,
+          "refuted": 0,
+          "unknown": 0,
+          "reused": 0,
+          "cacheChecked": 0,
+          "cacheSat": 0,
+          "cacheUnknown": 0,
+          "rawRefuted": 0
+        },
+        {
+          "op": "2",
+          "units": 49999.9176928,
+          "actionAttempts": 1,
+          "leafVisits": 2,
+          "leaves": 2,
+          "cuts": 41,
+          "sourceQueries": 73,
+          "sat": 33,
+          "refuted": 40,
+          "unknown": 0,
+          "reused": 54,
+          "cacheChecked": 0,
+          "cacheSat": 0,
+          "cacheUnknown": 0,
+          "rawRefuted": 40
+        }
+      ],
+      "firstFailure": {
+        "kind": "stop",
+        "reason": "no-batch-core-or-model",
+        "path": [
+          [
+            "op:1",
+            {
+              "lin": {
+                "op": 1
+              },
+              "holds": false
+            }
+          ],
+          [
+            "1:-1,op:1",
+            {
+              "lin": {
+                "1": -1,
+                "op": 1
+              },
+              "holds": false
+            }
+          ],
+          [
+            "1:-2,op:1",
+            {
+              "lin": {
+                "1": -2,
+                "op": 1
+              },
+              "holds": true
+            }
+          ],
+          [
+            "1:-3,op:1",
+            {
+              "lin": {
+                "1": -3,
+                "op": 1
+              },
+              "holds": true
+            }
+          ],
+          [
+            "1:-4,op:1",
+            {
+              "lin": {
+                "1": -4,
+                "op": 1
+              },
+              "holds": true
+            }
+          ],
+          [
+            "1:-5,op:1",
+            {
+              "lin": {
+                "1": -5,
+                "op": 1
+              },
+              "holds": true
+            }
+          ],
+          [
+            "1:-6,op:1",
+            {
+              "lin": {
+                "1": -6,
+                "op": 1
+              },
+              "holds": true
+            }
+          ],
+          [
+            "started:1",
+            {
+              "lin": {
+                "started": 1
+              },
+              "holds": true
+            }
+          ],
+          [
+            "started:-1",
+            {
+              "lin": {
+                "started": -1
+              },
+              "holds": true
+            }
+          ],
+          [
+            "1:-1,?allCopied:1",
+            {
+              "lin": {
+                "1": -1,
+                "?allCopied": 1
+              },
+              "holds": true
+            }
+          ],
+          [
+            "1:1,?allCopied:-1",
+            {
+              "lin": {
+                "1": 1,
+                "?allCopied": -1
+              },
+              "holds": true
+            }
+          ],
+          [
+            "1:-1,?canVote:1",
+            {
+              "lin": {
+                "1": -1,
+                "?canVote": 1
+              },
+              "holds": true
+            }
+          ],
+          [
+            "1:1,i:1,size:-1",
+            {
+              "lin": {
+                "1": 1,
+                "i": 1,
+                "size": -1
+              },
+              "holds": true
+            }
+          ],
+          [
+            "1:-1,?committedQuorum:1",
+            {
+              "lin": {
+                "1": -1,
+                "?committedQuorum": 1
+              },
+              "holds": true
+            }
+          ],
+          [
+            "a$#:1,i:-1",
+            {
+              "lin": {
+                "a$#": 1,
+                "i": -1
+              },
+              "holds": true
+            }
+          ],
+          [
+            "a$#:-1,i:1",
+            {
+              "lin": {
+                "a$#": -1,
+                "i": 1
+              },
+              "holds": true
+            }
+          ],
+          [
+            "b$:1,i:-1",
+            {
+              "lin": {
+                "b$": 1,
+                "i": -1
+              },
+              "holds": true
+            }
+          ],
+          [
+            "b$:-1,i:1",
+            {
+              "lin": {
+                "b$": -1,
+                "i": 1
+              },
+              "holds": false
+            }
+          ]
+        ],
+        "model": {
+          "op": 2,
+          "started": 0,
+          "?allCopied": 1,
+          "?canVote": 0,
+          "i": 1,
+          "size": 2,
+          "?committedQuorum": 0,
+          "a$#": 1,
+          "b$": 0,
+          "j": 0,
+          "?all$1": 1,
+          "r$36": 0,
+          "r$22": 1,
+          "?noneCopied": 0,
+          "?all$2": 0,
+          "?all$3": 0,
+          "u$": 0,
+          "r$0": 1,
+          "w$": 0,
+          "r$1": 1,
+          "r$2": 1,
+          "r$3": 1,
+          "r$5": 0,
+          "r$6": 1,
+          "r$4": 1,
+          "r$31": 0,
+          "r$32": 0,
+          "r$13": 1,
+          "r$14": 1,
+          "r$15": 1,
+          "r$16": 1,
+          "r$23": 1,
+          "r$30": 1,
+          "r$38": 0,
+          "r$37": 0,
+          "r$40": 0,
+          "r$39": 0,
+          "r$19": 1,
+          "r$20": 0,
+          "r$21": 0,
+          "r$24": 1,
+          "r$25": 0,
+          "r$26": 0,
+          "r$17": 0,
+          "r$18": 0,
+          "r$10": 0,
+          "r$11": 0,
+          "r$12": 0,
+          "r$7": 0,
+          "r$34": 0,
+          "r$33": 0,
+          "r$8": 0,
+          "r$29": 0,
+          "r$27": 0,
+          "r$9": 0,
+          "r$28": 0,
+          "r$35": 0
+        },
+        "violatedSet": [
+          136,
+          165,
+          171,
+          177,
+          179,
+          181,
+          185,
+          190,
+          192,
+          211,
+          216,
+          220,
+          223,
+          231,
+          0,
+          2,
+          8,
+          10,
+          167,
+          173,
+          61,
+          65,
+          93,
+          94,
+          96,
+          98,
+          100,
+          102,
+          148,
+          161,
+          163,
+          206,
+          15,
+          17,
+          18,
+          19,
+          20,
+          24,
+          26,
+          27,
+          28,
+          29,
+          34,
+          36,
+          37,
+          38,
+          39,
+          44,
+          46,
+          47,
+          48,
+          49,
+          57,
+          58,
+          60,
+          62,
+          64,
+          66,
+          67,
+          68,
+          97,
+          101,
+          103,
+          104,
+          169,
+          175
+        ],
+        "sourceResults": [
+          {
+            "index": 136,
+            "result": "unattempted",
+            "units": 0,
+            "attempts": 0
+          },
+          {
+            "index": 165,
+            "result": "sat",
+            "units": 16.466236000000663,
+            "attempts": 1
+          },
+          {
+            "index": 171,
+            "result": "sat",
+            "units": 16.55843400000049,
+            "attempts": 1
+          },
+          {
+            "index": 177,
+            "result": "reused-model",
+            "units": 0,
+            "attempts": 1
+          },
+          {
+            "index": 179,
+            "result": "reused-model",
+            "units": 0,
+            "attempts": 1
+          },
+          {
+            "index": 181,
+            "result": "sat",
+            "units": 22.178442000000814,
+            "attempts": 1
+          },
+          {
+            "index": 185,
+            "result": "sat",
+            "units": 20.27780199999961,
+            "attempts": 1
+          },
+          {
+            "index": 190,
+            "result": "sat",
+            "units": 24.617035999999644,
+            "attempts": 1
+          },
+          {
+            "index": 192,
+            "result": "sat",
+            "units": 24.551972000000205,
+            "attempts": 1
+          },
+          {
+            "index": 211,
+            "result": "unattempted",
+            "units": 0,
+            "attempts": 0
+          },
+          {
+            "index": 216,
+            "result": "unattempted",
+            "units": 0,
+            "attempts": 0
+          },
+          {
+            "index": 220,
+            "result": "unattempted",
+            "units": 0,
+            "attempts": 0
+          },
+          {
+            "index": 223,
+            "result": "unattempted",
+            "units": 0,
+            "attempts": 0
+          },
+          {
+            "index": 231,
+            "result": "unattempted",
+            "units": 0,
+            "attempts": 0
+          },
+          {
+            "index": 0,
+            "result": "unattempted",
+            "units": 0,
+            "attempts": 0
+          },
+          {
+            "index": 2,
+            "result": "unattempted",
+            "units": 0,
+            "attempts": 0
+          },
+          {
+            "index": 8,
+            "result": "unattempted",
+            "units": 0,
+            "attempts": 0
+          },
+          {
+            "index": 10,
+            "result": "unattempted",
+            "units": 0,
+            "attempts": 0
+          },
+          {
+            "index": 167,
+            "result": "unattempted",
+            "units": 0,
+            "attempts": 0
+          },
+          {
+            "index": 173,
+            "result": "unattempted",
+            "units": 0,
+            "attempts": 0
+          },
+          {
+            "index": 61,
+            "result": "unattempted",
+            "units": 0,
+            "attempts": 0
+          },
+          {
+            "index": 65,
+            "result": "unattempted",
+            "units": 0,
+            "attempts": 0
+          },
+          {
+            "index": 93,
+            "result": "unattempted",
+            "units": 0,
+            "attempts": 0
+          },
+          {
+            "index": 94,
+            "result": "unattempted",
+            "units": 0,
+            "attempts": 0
+          },
+          {
+            "index": 96,
+            "result": "unattempted",
+            "units": 0,
+            "attempts": 0
+          },
+          {
+            "index": 98,
+            "result": "unattempted",
+            "units": 0,
+            "attempts": 0
+          },
+          {
+            "index": 100,
+            "result": "unattempted",
+            "units": 0,
+            "attempts": 0
+          },
+          {
+            "index": 102,
+            "result": "unattempted",
+            "units": 0,
+            "attempts": 0
+          },
+          {
+            "index": 148,
+            "result": "unattempted",
+            "units": 0,
+            "attempts": 0
+          },
+          {
+            "index": 161,
+            "result": "unattempted",
+            "units": 0,
+            "attempts": 0
+          },
+          {
+            "index": 163,
+            "result": "unattempted",
+            "units": 0,
+            "attempts": 0
+          },
+          {
+            "index": 206,
+            "result": "unattempted",
+            "units": 0,
+            "attempts": 0
+          },
+          {
+            "index": 15,
+            "result": "sat",
+            "units": 17.700501999999233,
+            "attempts": 1
+          },
+          {
+            "index": 17,
+            "result": "unattempted",
+            "units": 0,
+            "attempts": 0
+          },
+          {
+            "index": 18,
+            "result": "unattempted",
+            "units": 0,
+            "attempts": 0
+          },
+          {
+            "index": 19,
+            "result": "unattempted",
+            "units": 0,
+            "attempts": 0
+          },
+          {
+            "index": 20,
+            "result": "reused-model",
+            "units": 0,
+            "attempts": 1
+          },
+          {
+            "index": 24,
+            "result": "sat",
+            "units": 18.855850000000828,
+            "attempts": 1
+          },
+          {
+            "index": 26,
+            "result": "unattempted",
+            "units": 0,
+            "attempts": 0
+          },
+          {
+            "index": 27,
+            "result": "unattempted",
+            "units": 0,
+            "attempts": 0
+          },
+          {
+            "index": 28,
+            "result": "unattempted",
+            "units": 0,
+            "attempts": 0
+          },
+          {
+            "index": 29,
+            "result": "reused-model",
+            "units": 0,
+            "attempts": 1
+          },
+          {
+            "index": 34,
+            "result": "unattempted",
+            "units": 0,
+            "attempts": 0
+          },
+          {
+            "index": 36,
+            "result": "unattempted",
+            "units": 0,
+            "attempts": 0
+          },
+          {
+            "index": 37,
+            "result": "unattempted",
+            "units": 0,
+            "attempts": 0
+          },
+          {
+            "index": 38,
+            "result": "unattempted",
+            "units": 0,
+            "attempts": 0
+          },
+          {
+            "index": 39,
+            "result": "sat",
+            "units": 25.05676399999993,
+            "attempts": 1
+          },
+          {
+            "index": 44,
+            "result": "unattempted",
+            "units": 0,
+            "attempts": 0
+          },
+          {
+            "index": 46,
+            "result": "unattempted",
+            "units": 0,
+            "attempts": 0
+          },
+          {
+            "index": 47,
+            "result": "unattempted",
+            "units": 0,
+            "attempts": 0
+          },
+          {
+            "index": 48,
+            "result": "unattempted",
+            "units": 0,
+            "attempts": 0
+          },
+          {
+            "index": 49,
+            "result": "sat",
+            "units": 25.321125999999367,
+            "attempts": 1
+          },
+          {
+            "index": 57,
+            "result": "unattempted",
+            "units": 0,
+            "attempts": 0
+          },
+          {
+            "index": 58,
+            "result": "unattempted",
+            "units": 0,
+            "attempts": 0
+          },
+          {
+            "index": 60,
+            "result": "unattempted",
+            "units": 0,
+            "attempts": 0
+          },
+          {
+            "index": 62,
+            "result": "unattempted",
+            "units": 0,
+            "attempts": 0
+          },
+          {
+            "index": 64,
+            "result": "unattempted",
+            "units": 0,
+            "attempts": 0
+          },
+          {
+            "index": 66,
+            "result": "unattempted",
+            "units": 0,
+            "attempts": 0
+          },
+          {
+            "index": 67,
+            "result": "unattempted",
+            "units": 0,
+            "attempts": 0
+          },
+          {
+            "index": 68,
+            "result": "unattempted",
+            "units": 0,
+            "attempts": 0
+          },
+          {
+            "index": 97,
+            "result": "unattempted",
+            "units": 0,
+            "attempts": 0
+          },
+          {
+            "index": 101,
+            "result": "unattempted",
+            "units": 0,
+            "attempts": 0
+          },
+          {
+            "index": 103,
+            "result": "unattempted",
+            "units": 0,
+            "attempts": 0
+          },
+          {
+            "index": 104,
+            "result": "unattempted",
+            "units": 0,
+            "attempts": 0
+          },
+          {
+            "index": 169,
+            "result": "unattempted",
+            "units": 0,
+            "attempts": 0
+          },
+          {
+            "index": 175,
+            "result": "unattempted",
+            "units": 0,
+            "attempts": 0
+          }
+        ]
+      },
+      "validation": {
+        "model": true,
+        "exactViolatedSet": true,
+        "path": true,
+        "note": "Exact BigInt path/instance audit; complete numeric-model validation was performed before production recorded it."
+      },
+      "publication": {
+        "batch": "20261109-064438-b0or32",
+        "job": "overlap-op2",
+        "vm": "bx_2eg9t59n",
+        "time": "2026-11-08T23:49:15.723Z",
+        "archiveSha256": "e2f2d192d80eebd4c1698be931b9f51fa3f22d4f15d843d26f93bc76581cb1b9"
+      }
+    },
+    {
+      "law": "Inv2973: quorums overlap, or a config disabled",
+      "name": "Inv2973",
+      "op": 3,
+      "verdict": "unknown",
+      "units": 50000.04054799999,
+      "wallMs": 52740.092976,
+      "allowance": 50000,
+      "limit": "counted-cap",
+      "stats": {
+        "cuts": 0,
+        "sat": 0,
+        "refuted": 0,
+        "unknown": 0,
+        "reused": 0,
+        "cached": 0,
+        "rawSat": 0,
+        "rawRefuted": 0,
+        "rawUnknown": 0
+      },
+      "ledger": [
+        {
+          "op": "0",
+          "units": 0,
+          "actionAttempts": 1,
+          "leafVisits": 0,
+          "leaves": 0,
+          "cuts": 0,
+          "sourceQueries": 0,
+          "sat": 0,
+          "refuted": 0,
+          "unknown": 0,
+          "reused": 0,
+          "cacheChecked": 0,
+          "cacheSat": 0,
+          "cacheUnknown": 0,
+          "rawRefuted": 0
+        },
+        {
+          "op": "1",
+          "units": 0,
+          "actionAttempts": 1,
+          "leafVisits": 0,
+          "leaves": 0,
+          "cuts": 0,
+          "sourceQueries": 0,
+          "sat": 0,
+          "refuted": 0,
+          "unknown": 0,
+          "reused": 0,
+          "cacheChecked": 0,
+          "cacheSat": 0,
+          "cacheUnknown": 0,
+          "rawRefuted": 0
+        },
+        {
+          "op": "2",
+          "units": 0,
+          "actionAttempts": 1,
+          "leafVisits": 0,
+          "leaves": 0,
+          "cuts": 0,
+          "sourceQueries": 0,
+          "sat": 0,
+          "refuted": 0,
+          "unknown": 0,
+          "reused": 0,
+          "cacheChecked": 0,
+          "cacheSat": 0,
+          "cacheUnknown": 0,
+          "rawRefuted": 0
+        },
+        {
+          "op": "3",
+          "units": 49999.95408239999,
+          "actionAttempts": 1,
+          "leafVisits": 0,
+          "leaves": 0,
+          "cuts": 0,
+          "sourceQueries": 0,
+          "sat": 0,
+          "refuted": 0,
+          "unknown": 0,
+          "reused": 0,
+          "cacheChecked": 0,
+          "cacheSat": 0,
+          "cacheUnknown": 0,
+          "rawRefuted": 0
+        }
+      ],
+      "firstFailure": {
+        "kind": "budget",
+        "reason": "counted-cap",
+        "phase": "closure-preparation-before-numeric-leaf",
+        "path": [
+          [
+            "op:1",
+            {
+              "lin": {
+                "op": 1
+              },
+              "holds": false
+            }
+          ],
+          [
+            "1:-1,op:1",
+            {
+              "lin": {
+                "1": -1,
+                "op": 1
+              },
+              "holds": false
+            }
+          ],
+          [
+            "1:-2,op:1",
+            {
+              "lin": {
+                "1": -2,
+                "op": 1
+              },
+              "holds": false
+            }
+          ],
+          [
+            "1:-3,op:1",
+            {
+              "lin": {
+                "1": -3,
+                "op": 1
+              },
+              "holds": true
+            }
+          ],
+          [
+            "1:-4,op:1",
+            {
+              "lin": {
+                "1": -4,
+                "op": 1
+              },
+              "holds": true
+            }
+          ],
+          [
+            "1:-5,op:1",
+            {
+              "lin": {
+                "1": -5,
+                "op": 1
+              },
+              "holds": true
+            }
+          ],
+          [
+            "1:-6,op:1",
+            {
+              "lin": {
+                "1": -6,
+                "op": 1
+              },
+              "holds": true
+            }
+          ],
+          [
+            "1:-1,started:1",
+            {
+              "lin": {
+                "1": -1,
+                "started": 1
+              },
+              "holds": true
+            }
+          ],
+          [
+            "1:1,started:-1",
+            {
+              "lin": {
+                "1": 1,
+                "started": -1
+              },
+              "holds": true
+            }
+          ],
+          [
+            "1:1,CT[i:1]:-1,CT[j:1]:1",
+            {
+              "lin": {
+                "1": 1,
+                "CT[j:1]": 1,
+                "CT[i:1]": -1
+              },
+              "holds": true
+            }
+          ]
+        ],
+        "model": null,
+        "violatedSet": [],
+        "sourceResults": []
+      },
+      "validation": {
+        "model": false,
+        "exactViolatedSet": false,
+        "path": false
+      },
+      "publication": {
+        "batch": "20261109-064438-b0or32",
+        "job": "overlap-op3",
+        "vm": "bx_2hzfj2ah",
+        "time": "2026-11-08T23:49:17.849Z",
+        "archiveSha256": "a70777ed2b166aca75d74d2b11bc900a2e0dc37f7ad7176c4a464d1ba8d683bb"
+      }
+    },
+    {
+      "law": "Inv2973: quorums overlap, or a config disabled",
+      "name": "Inv2973",
+      "op": 4,
+      "verdict": "closed",
+      "units": 20732.0710988,
+      "wallMs": 510548.703906,
+      "allowance": 50000,
+      "limit": null,
+      "stats": {
+        "cuts": 130,
+        "sat": 237,
+        "refuted": 129,
+        "unknown": 45,
+        "reused": 604,
+        "cached": 4,
+        "rawSat": 237,
+        "rawRefuted": 174,
+        "rawUnknown": 0
+      },
+      "ledger": [
+        {
+          "op": "0",
+          "units": 0,
+          "actionAttempts": 1,
+          "leafVisits": 0,
+          "leaves": 0,
+          "cuts": 0,
+          "sourceQueries": 0,
+          "sat": 0,
+          "refuted": 0,
+          "unknown": 0,
+          "reused": 0,
+          "cacheChecked": 0,
+          "cacheSat": 0,
+          "cacheUnknown": 0,
+          "rawRefuted": 0
+        },
+        {
+          "op": "1",
+          "units": 0,
+          "actionAttempts": 1,
+          "leafVisits": 0,
+          "leaves": 0,
+          "cuts": 0,
+          "sourceQueries": 0,
+          "sat": 0,
+          "refuted": 0,
+          "unknown": 0,
+          "reused": 0,
+          "cacheChecked": 0,
+          "cacheSat": 0,
+          "cacheUnknown": 0,
+          "rawRefuted": 0
+        },
+        {
+          "op": "2",
+          "units": 0,
+          "actionAttempts": 1,
+          "leafVisits": 0,
+          "leaves": 0,
+          "cuts": 0,
+          "sourceQueries": 0,
+          "sat": 0,
+          "refuted": 0,
+          "unknown": 0,
+          "reused": 0,
+          "cacheChecked": 0,
+          "cacheSat": 0,
+          "cacheUnknown": 0,
+          "rawRefuted": 0
+        },
+        {
+          "op": "3",
+          "units": 0,
+          "actionAttempts": 1,
+          "leafVisits": 0,
+          "leaves": 0,
+          "cuts": 0,
+          "sourceQueries": 0,
+          "sat": 0,
+          "refuted": 0,
+          "unknown": 0,
+          "reused": 0,
+          "cacheChecked": 0,
+          "cacheSat": 0,
+          "cacheUnknown": 0,
+          "rawRefuted": 0
+        },
+        {
+          "op": "4",
+          "units": 20731.984633199998,
+          "actionAttempts": 1,
+          "leafVisits": 9,
+          "leaves": 9,
+          "cuts": 130,
+          "sourceQueries": 411,
+          "sat": 237,
+          "refuted": 129,
+          "unknown": 45,
+          "reused": 604,
+          "cacheChecked": 0,
+          "cacheSat": 3,
+          "cacheUnknown": 1,
+          "rawRefuted": 174
+        }
+      ],
+      "firstFailure": null,
+      "validation": {
+        "model": false,
+        "exactViolatedSet": false,
+        "path": false
+      },
+      "publication": {
+        "batch": "20261109-064438-b0or32",
+        "job": "overlap-op4",
+        "vm": "bx_25xas5gt",
+        "time": "2026-11-08T23:55:07.498Z",
+        "archiveSha256": "809ac48df2c27e9749ba450c4964e95469714d2b18c0bfa13260430f9e08a106"
+      }
+    },
+    {
+      "law": "Inv2973: quorums overlap, or a config disabled",
+      "name": "Inv2973",
+      "op": 5,
+      "verdict": "unknown",
+      "units": 50002.16639200001,
+      "wallMs": 229309.136372,
+      "allowance": 50000,
+      "limit": "counted-cap",
+      "stats": {
+        "cuts": 58,
+        "sat": 78,
+        "refuted": 58,
+        "unknown": 100,
+        "reused": 324,
+        "cached": 0,
+        "rawSat": 78,
+        "rawRefuted": 158,
+        "rawUnknown": 0
+      },
+      "ledger": [
+        {
+          "op": "0",
+          "units": 0,
+          "actionAttempts": 1,
+          "leafVisits": 0,
+          "leaves": 0,
+          "cuts": 0,
+          "sourceQueries": 0,
+          "sat": 0,
+          "refuted": 0,
+          "unknown": 0,
+          "reused": 0,
+          "cacheChecked": 0,
+          "cacheSat": 0,
+          "cacheUnknown": 0,
+          "rawRefuted": 0
+        },
+        {
+          "op": "1",
+          "units": 0,
+          "actionAttempts": 1,
+          "leafVisits": 0,
+          "leaves": 0,
+          "cuts": 0,
+          "sourceQueries": 0,
+          "sat": 0,
+          "refuted": 0,
+          "unknown": 0,
+          "reused": 0,
+          "cacheChecked": 0,
+          "cacheSat": 0,
+          "cacheUnknown": 0,
+          "rawRefuted": 0
+        },
+        {
+          "op": "2",
+          "units": 0,
+          "actionAttempts": 1,
+          "leafVisits": 0,
+          "leaves": 0,
+          "cuts": 0,
+          "sourceQueries": 0,
+          "sat": 0,
+          "refuted": 0,
+          "unknown": 0,
+          "reused": 0,
+          "cacheChecked": 0,
+          "cacheSat": 0,
+          "cacheUnknown": 0,
+          "rawRefuted": 0
+        },
+        {
+          "op": "3",
+          "units": 0,
+          "actionAttempts": 1,
+          "leafVisits": 0,
+          "leaves": 0,
+          "cuts": 0,
+          "sourceQueries": 0,
+          "sat": 0,
+          "refuted": 0,
+          "unknown": 0,
+          "reused": 0,
+          "cacheChecked": 0,
+          "cacheSat": 0,
+          "cacheUnknown": 0,
+          "rawRefuted": 0
+        },
+        {
+          "op": "4",
+          "units": 0,
+          "actionAttempts": 1,
+          "leafVisits": 0,
+          "leaves": 0,
+          "cuts": 0,
+          "sourceQueries": 0,
+          "sat": 0,
+          "refuted": 0,
+          "unknown": 0,
+          "reused": 0,
+          "cacheChecked": 0,
+          "cacheSat": 0,
+          "cacheUnknown": 0,
+          "rawRefuted": 0
+        },
+        {
+          "op": "5",
+          "units": 50002.07992640001,
+          "actionAttempts": 1,
+          "leafVisits": 5,
+          "leaves": 3,
+          "cuts": 58,
+          "sourceQueries": 236,
+          "sat": 78,
+          "refuted": 58,
+          "unknown": 100,
+          "reused": 324,
+          "cacheChecked": 0,
+          "cacheSat": 0,
+          "cacheUnknown": 0,
+          "rawRefuted": 158
+        }
+      ],
+      "firstFailure": {
+        "kind": "budget",
+        "reason": "counted-cap",
+        "path": [
+          [
+            "op:1",
+            {
+              "lin": {
+                "op": 1
+              },
+              "holds": false
+            }
+          ],
+          [
+            "1:-1,op:1",
+            {
+              "lin": {
+                "1": -1,
+                "op": 1
+              },
+              "holds": false
+            }
+          ],
+          [
+            "1:-2,op:1",
+            {
+              "lin": {
+                "1": -2,
+                "op": 1
+              },
+              "holds": false
+            }
+          ],
+          [
+            "1:-3,op:1",
+            {
+              "lin": {
+                "1": -3,
+                "op": 1
+              },
+              "holds": false
+            }
+          ],
+          [
+            "1:-4,op:1",
+            {
+              "lin": {
+                "1": -4,
+                "op": 1
+              },
+              "holds": false
+            }
+          ],
+          [
+            "1:-5,op:1",
+            {
+              "lin": {
+                "1": -5,
+                "op": 1
+              },
+              "holds": true
+            }
+          ],
+          [
+            "1:-6,op:1",
+            {
+              "lin": {
+                "1": -6,
+                "op": 1
+              },
+              "holds": true
+            }
+          ],
+          [
+            "1:-1,started:1",
+            {
+              "lin": {
+                "1": -1,
+                "started": 1
+              },
+              "holds": true
+            }
+          ],
+          [
+            "1:1,started:-1",
+            {
+              "lin": {
+                "1": 1,
+                "started": -1
+              },
+              "holds": true
+            }
+          ],
+          [
+            "1:-1,St[i:1]:1",
+            {
+              "lin": {
+                "1": -1,
+                "St[i:1]": 1
+              },
+              "holds": true
+            }
+          ],
+          [
+            "1:1,St[i:1]:-1",
+            {
+              "lin": {
+                "1": 1,
+                "St[i:1]": -1
+              },
+              "holds": true
+            }
+          ],
+          [
+            "CT[i:1]:-1,CfgT[i:1]:1",
+            {
+              "lin": {
+                "CfgT[i:1]": 1,
+                "CT[i:1]": -1
+              },
+              "holds": true
+            }
+          ],
+          [
+            "CT[i:1]:1,CfgT[i:1]:-1",
+            {
+              "lin": {
+                "CT[i:1]": 1,
+                "CfgT[i:1]": -1
+              },
+              "holds": true
+            }
+          ],
+          [
+            "1:-1,?committedQuorum:1",
+            {
+              "lin": {
+                "1": -1,
+                "?committedQuorum": 1
+              },
+              "holds": true
+            }
+          ],
+          [
+            "1:1,?committedQuorum:-1",
+            {
+              "lin": {
+                "1": 1,
+                "?committedQuorum": -1
+              },
+              "holds": true
+            }
+          ],
+          [
+            "1:1,xAndS[]:1,⟦344⟧:-1,⟦348⟧:-1",
+            {
+              "lin": {
+                "1": 1,
+                "xAndS[]": 1,
+                "⟦344⟧": -1,
+                "⟦348⟧": -1
+              },
+              "holds": true
+            }
+          ],
+          [
+            "1:1,S[i:1]:-1",
+            {
+              "lin": {
+                "1": 1,
+                "S[i:1]": -1
+              },
+              "holds": true
+            }
+          ],
+          [
+            "1:-1,?canVote:1",
+            {
+              "lin": {
+                "1": -1,
+                "?canVote": 1
+              },
+              "holds": true
+            }
+          ],
+          [
+            "1:1,i:1,size:-1",
+            {
+              "lin": {
+                "1": 1,
+                "i": 1,
+                "size": -1
+              },
+              "holds": true
+            }
+          ],
+          [
+            "a$#:1,i:-1",
+            {
+              "lin": {
+                "a$#": 1,
+                "i": -1
+              },
+              "holds": true
+            }
+          ],
+          [
+            "a$#:-1,i:1",
+            {
+              "lin": {
+                "a$#": -1,
+                "i": 1
+              },
+              "holds": true
+            }
+          ],
+          [
+            "b$:1,i:-1",
+            {
+              "lin": {
+                "b$": 1,
+                "i": -1
+              },
+              "holds": true
+            }
+          ],
+          [
+            "b$:-1,i:1",
+            {
+              "lin": {
+                "b$": -1,
+                "i": 1
+              },
+              "holds": false
+            }
+          ],
+          [
+            "1:1,CT[i:1]:1,CfgT[b$:1]:-1",
+            {
+              "lin": {
+                "1": 1,
+                "CT[i:1]": 1,
+                "CfgT[b$:1]": -1
+              },
+              "holds": false
+            }
+          ],
+          [
+            "1:1,CfgT[b$:1]:1,CfgT[i:1]:-1",
+            {
+              "lin": {
+                "1": 1,
+                "CfgT[b$:1]": 1,
+                "CfgT[i:1]": -1
+              },
+              "holds": true
+            }
+          ]
+        ],
+        "model": {
+          "op": 5,
+          "started": 1,
+          "St[i:1]": 1,
+          "CfgT[i:1]": 1,
+          "CT[i:1]": 1,
+          "?committedQuorum": 1,
+          "xAndS[]": 0,
+          "⟦344⟧": 0,
+          "⟦348⟧": 1,
+          "hx": 3,
+          "xNotS[]": 7,
+          "hy": 0,
+          "sNotX[]": 0,
+          "S[i:1]": 1,
+          "?canVote": 0,
+          "i": 1,
+          "size": 3,
+          "a$#": 1,
+          "b$": 0,
+          "CfgT[b$:1]": 0,
+          "r$11": 0,
+          "r$12": 0,
+          "r$39": 0,
+          "r$14": 3,
+          "r$10": 7,
+          "r$40": 0,
+          "r$22": 7,
+          "j": 0,
+          "?all$1": 1,
+          "?all$3": 1,
+          "r$7": 7,
+          "r$9": 4,
+          "r$36": 0,
+          "?noneCopied": 0,
+          "?allCopied": 0,
+          "?all$2": 0,
+          "u$": 0,
+          "r$0": 1,
+          "w$": 1,
+          "r$1": 3,
+          "r$2": 1,
+          "r$3": 3,
+          "r$5": 0,
+          "r$6": 2,
+          "r$4": 1,
+          "r$18": 0,
+          "r$17": 0,
+          "r$32": 3,
+          "r$30": 4,
+          "r$8": 1,
+          "r$23": 4,
+          "r$25": 0,
+          "r$24": 7,
+          "r$26": 0,
+          "r$31": 0,
+          "r$13": 4,
+          "r$21": 0,
+          "r$19": 3,
+          "r$29": 0,
+          "r$27": 3,
+          "r$16": 3,
+          "r$38": 0,
+          "r$37": 0,
+          "r$15": 0,
+          "r$20": 0,
+          "r$34": 0,
+          "r$33": 0,
+          "r$28": 0,
+          "r$35": 0
+        },
+        "violatedSet": [
+          196,
+          199,
+          165,
+          171,
+          177,
+          179,
+          181,
+          185,
+          190,
+          192,
+          214,
+          221,
+          223,
+          227,
+          0,
+          5,
+          9,
+          10,
+          173,
+          263,
+          264,
+          32,
+          65,
+          93,
+          94,
+          96,
+          98,
+          100,
+          102,
+          138,
+          140,
+          142,
+          144,
+          145,
+          148,
+          151,
+          153,
+          155,
+          156,
+          158,
+          161,
+          163,
+          166,
+          182,
+          108,
+          109,
+          113,
+          114,
+          116,
+          118,
+          119,
+          120,
+          123,
+          124,
+          128,
+          129,
+          131,
+          132,
+          133,
+          134,
+          135,
+          13,
+          15,
+          17,
+          18,
+          19,
+          20,
+          24,
+          26,
+          28,
+          29,
+          34,
+          36,
+          37,
+          38,
+          39,
+          44,
+          46,
+          48,
+          49,
+          54,
+          57,
+          58,
+          60,
+          62,
+          64,
+          66,
+          67,
+          68,
+          90,
+          101,
+          103,
+          104,
+          170,
+          176
+        ],
+        "sourceResults": [
+          {
+            "index": 196,
+            "result": "checked",
+            "units": 10.482093199999326,
+            "attempts": 1
+          },
+          {
+            "index": 199,
+            "result": "checked",
+            "units": 10.347539200000028,
+            "attempts": 1
+          },
+          {
+            "index": 165,
+            "result": "reused-model",
+            "units": 0,
+            "attempts": 1
+          },
+          {
+            "index": 171,
+            "result": "reused-model",
+            "units": 0,
+            "attempts": 1
+          },
+          {
+            "index": 177,
+            "result": "reused-model",
+            "units": 0,
+            "attempts": 1
+          },
+          {
+            "index": 179,
+            "result": "reused-model",
+            "units": 0,
+            "attempts": 1
+          },
+          {
+            "index": 181,
+            "result": "reused-model",
+            "units": 0,
+            "attempts": 1
+          },
+          {
+            "index": 185,
+            "result": "sat",
+            "units": 17.64226199999939,
+            "attempts": 1
+          },
+          {
+            "index": 190,
+            "result": "reused-model",
+            "units": 0,
+            "attempts": 1
+          },
+          {
+            "index": 192,
+            "result": "reused-model",
+            "units": 0,
+            "attempts": 1
+          },
+          {
+            "index": 214,
+            "result": "checked",
+            "units": 16.2525827999998,
+            "attempts": 1
+          },
+          {
+            "index": 221,
+            "result": "checked",
+            "units": 16.58817160000126,
+            "attempts": 1
+          },
+          {
+            "index": 223,
+            "result": "checked",
+            "units": 16.86581959999785,
+            "attempts": 1
+          },
+          {
+            "index": 227,
+            "result": "checked",
+            "units": 17.800630400000955,
+            "attempts": 1
+          },
+          {
+            "index": 0,
+            "result": "reused-model",
+            "units": 0,
+            "attempts": 1
+          },
+          {
+            "index": 5,
+            "result": "sat",
+            "units": 23.057718000000932,
+            "attempts": 1
+          },
+          {
+            "index": 9,
+            "result": "reused-model",
+            "units": 0,
+            "attempts": 1
+          },
+          {
+            "index": 10,
+            "result": "reused-model",
+            "units": 0,
+            "attempts": 1
+          },
+          {
+            "index": 173,
+            "result": "reused-model",
+            "units": 0,
+            "attempts": 1
+          },
+          {
+            "index": 263,
+            "result": "sat",
+            "units": 24.789365999999063,
+            "attempts": 1
+          },
+          {
+            "index": 264,
+            "result": "reused-model",
+            "units": 0,
+            "attempts": 1
+          },
+          {
+            "index": 32,
+            "result": "reused-model",
+            "units": 74.13772999999946,
+            "attempts": 6
+          },
+          {
+            "index": 65,
+            "result": "sat",
+            "units": 29.10204000000067,
+            "attempts": 1
+          },
+          {
+            "index": 93,
+            "result": "reused-model",
+            "units": 0,
+            "attempts": 1
+          },
+          {
+            "index": 94,
+            "result": "sat",
+            "units": 19.95943399999942,
+            "attempts": 1
+          },
+          {
+            "index": 96,
+            "result": "reused-model",
+            "units": 0,
+            "attempts": 1
+          },
+          {
+            "index": 98,
+            "result": "reused-model",
+            "units": 0,
+            "attempts": 1
+          },
+          {
+            "index": 100,
+            "result": "reused-model",
+            "units": 0,
+            "attempts": 1
+          },
+          {
+            "index": 102,
+            "result": "reused-model",
+            "units": 0,
+            "attempts": 1
+          },
+          {
+            "index": 138,
+            "result": "reused-model",
+            "units": 0,
+            "attempts": 1
+          },
+          {
+            "index": 140,
+            "result": "sat",
+            "units": 18.666650000001027,
+            "attempts": 1
+          },
+          {
+            "index": 142,
+            "result": "sat",
+            "units": 26.020682000000306,
+            "attempts": 1
+          },
+          {
+            "index": 144,
+            "result": "reused-model",
+            "units": 0,
+            "attempts": 1
+          },
+          {
+            "index": 145,
+            "result": "reused-model",
+            "units": 0,
+            "attempts": 1
+          },
+          {
+            "index": 148,
+            "result": "reused-model",
+            "units": 0,
+            "attempts": 1
+          },
+          {
+            "index": 151,
+            "result": "reused-model",
+            "units": 0,
+            "attempts": 1
+          },
+          {
+            "index": 153,
+            "result": "reused-model",
+            "units": 0,
+            "attempts": 1
+          },
+          {
+            "index": 155,
+            "result": "sat",
+            "units": 32.9343400000007,
+            "attempts": 2
+          },
+          {
+            "index": 156,
+            "result": "reused-model",
+            "units": 44.246406000001116,
+            "attempts": 6
+          },
+          {
+            "index": 158,
+            "result": "sat",
+            "units": 28.310413999998673,
+            "attempts": 1
+          },
+          {
+            "index": 161,
+            "result": "reused-model",
+            "units": 0,
+            "attempts": 1
+          },
+          {
+            "index": 163,
+            "result": "sat",
+            "units": 17.481793999999354,
+            "attempts": 1
+          },
+          {
+            "index": 166,
+            "result": "reused-model",
+            "units": 0,
+            "attempts": 1
+          },
+          {
+            "index": 182,
+            "result": "reused-model",
+            "units": 0,
+            "attempts": 1
+          },
+          {
+            "index": 108,
+            "result": "reused-model",
+            "units": 0,
+            "attempts": 1
+          },
+          {
+            "index": 109,
+            "result": "sat",
+            "units": 16.363474000001588,
+            "attempts": 1
+          },
+          {
+            "index": 113,
+            "result": "reused-model",
+            "units": 0,
+            "attempts": 1
+          },
+          {
+            "index": 114,
+            "result": "reused-model",
+            "units": 0,
+            "attempts": 1
+          },
+          {
+            "index": 116,
+            "result": "reused-model",
+            "units": 0,
+            "attempts": 1
+          },
+          {
+            "index": 118,
+            "result": "reused-model",
+            "units": 0,
+            "attempts": 1
+          },
+          {
+            "index": 119,
+            "result": "reused-model",
+            "units": 0,
+            "attempts": 1
+          },
+          {
+            "index": 120,
+            "result": "reused-model",
+            "units": 0,
+            "attempts": 1
+          },
+          {
+            "index": 123,
+            "result": "sat",
+            "units": 16.24908200000027,
+            "attempts": 1
+          },
+          {
+            "index": 124,
+            "result": "sat",
+            "units": 15.213203999999678,
+            "attempts": 1
+          },
+          {
+            "index": 128,
+            "result": "sat",
+            "units": 18.275057999998353,
+            "attempts": 1
+          },
+          {
+            "index": 129,
+            "result": "reused-model",
+            "units": 0,
+            "attempts": 1
+          },
+          {
+            "index": 131,
+            "result": "reused-model",
+            "units": 0,
+            "attempts": 1
+          },
+          {
+            "index": 132,
+            "result": "reused-model",
+            "units": 0,
+            "attempts": 1
+          },
+          {
+            "index": 133,
+            "result": "reused-model",
+            "units": 0,
+            "attempts": 1
+          },
+          {
+            "index": 134,
+            "result": "reused-model",
+            "units": 10.389594000000216,
+            "attempts": 2
+          },
+          {
+            "index": 135,
+            "result": "reused-model",
+            "units": 0,
+            "attempts": 1
+          },
+          {
+            "index": 13,
+            "result": "reused-model",
+            "units": 38.5426920000009,
+            "attempts": 6
+          },
+          {
+            "index": 15,
+            "result": "reused-model",
+            "units": 0,
+            "attempts": 1
+          },
+          {
+            "index": 17,
+            "result": "reused-model",
+            "units": 0,
+            "attempts": 1
+          },
+          {
+            "index": 18,
+            "result": "reused-model",
+            "units": 0,
+            "attempts": 1
+          },
+          {
+            "index": 19,
+            "result": "reused-model",
+            "units": 0,
+            "attempts": 1
+          },
+          {
+            "index": 20,
+            "result": "reused-model",
+            "units": 38.59575599999971,
+            "attempts": 6
+          },
+          {
+            "index": 24,
+            "result": "reused-model",
+            "units": 0,
+            "attempts": 1
+          },
+          {
+            "index": 26,
+            "result": "reused-model",
+            "units": 0,
+            "attempts": 1
+          },
+          {
+            "index": 28,
+            "result": "reused-model",
+            "units": 0,
+            "attempts": 1
+          },
+          {
+            "index": 29,
+            "result": "sat",
+            "units": 18.266154000001734,
+            "attempts": 2
+          },
+          {
+            "index": 34,
+            "result": "reused-model",
+            "units": 0,
+            "attempts": 1
+          },
+          {
+            "index": 36,
+            "result": "reused-model",
+            "units": 0,
+            "attempts": 1
+          },
+          {
+            "index": 37,
+            "result": "reused-model",
+            "units": 0,
+            "attempts": 1
+          },
+          {
+            "index": 38,
+            "result": "reused-model",
+            "units": 0,
+            "attempts": 1
+          },
+          {
+            "index": 39,
+            "result": "reused-model",
+            "units": 44.26073399999859,
+            "attempts": 6
+          },
+          {
+            "index": 44,
+            "result": "sat",
+            "units": 21.023039999999128,
+            "attempts": 1
+          },
+          {
+            "index": 46,
+            "result": "reused-model",
+            "units": 0,
+            "attempts": 1
+          },
+          {
+            "index": 48,
+            "result": "reused-model",
+            "units": 0,
+            "attempts": 1
+          },
+          {
+            "index": 49,
+            "result": "sat",
+            "units": 21.181099999999788,
+            "attempts": 2
+          },
+          {
+            "index": 54,
+            "result": "reused-model",
+            "units": 42.21996600000148,
+            "attempts": 6
+          },
+          {
+            "index": 57,
+            "result": "reused-model",
+            "units": 0,
+            "attempts": 1
+          },
+          {
+            "index": 58,
+            "result": "sat",
+            "units": 26.597231999999167,
+            "attempts": 1
+          },
+          {
+            "index": 60,
+            "result": "reused-model",
+            "units": 0,
+            "attempts": 1
+          },
+          {
+            "index": 62,
+            "result": "reused-model",
+            "units": 0,
+            "attempts": 1
+          },
+          {
+            "index": 64,
+            "result": "reused-model",
+            "units": 0,
+            "attempts": 1
+          },
+          {
+            "index": 66,
+            "result": "reused-model",
+            "units": 0,
+            "attempts": 1
+          },
+          {
+            "index": 67,
+            "result": "reused-model",
+            "units": 42.2730300000012,
+            "attempts": 6
+          },
+          {
+            "index": 68,
+            "result": "sat",
+            "units": 62.10429599999952,
+            "attempts": 2
+          },
+          {
+            "index": 90,
+            "result": "reused-model",
+            "units": 42.248945999999705,
+            "attempts": 6
+          },
+          {
+            "index": 101,
+            "result": "reused-model",
+            "units": 0,
+            "attempts": 1
+          },
+          {
+            "index": 103,
+            "result": "reused-model",
+            "units": 42.30201000000034,
+            "attempts": 6
+          },
+          {
+            "index": 104,
+            "result": "sat",
+            "units": 40.74970799999937,
+            "attempts": 2
+          },
+          {
+            "index": 170,
+            "result": "reused-model",
+            "units": 0,
+            "attempts": 1
+          },
+          {
+            "index": 176,
+            "result": "reused-model",
+            "units": 0,
+            "attempts": 1
+          }
+        ]
+      },
+      "validation": {
+        "model": true,
+        "exactViolatedSet": true,
+        "path": true,
+        "note": "Exact BigInt path/instance audit; complete numeric-model validation was performed before production recorded it."
+      },
+      "publication": {
+        "batch": "20261109-064438-b0or32",
+        "job": "overlap-op5",
+        "vm": "bx_4cma575j",
+        "time": "2026-11-08T23:51:23.447Z",
+        "archiveSha256": "8b7dcd9c6ee96b686ed6d1c87499580ed2b10a575bb41d4a5a4783a07e3bbe25"
+      }
+    },
+    {
+      "law": "Inv2973: quorums overlap, or a config disabled",
+      "name": "Inv2973",
+      "op": 6,
+      "verdict": "unknown",
+      "units": 50033.847734400006,
+      "wallMs": 47583.32750000001,
+      "allowance": 50000,
+      "limit": "counted-cap",
+      "stats": {
+        "cuts": 0,
+        "sat": 0,
+        "refuted": 0,
+        "unknown": 0,
+        "reused": 0,
+        "cached": 0,
+        "rawSat": 0,
+        "rawRefuted": 0,
+        "rawUnknown": 0
+      },
+      "ledger": [
+        {
+          "op": "0",
+          "units": 0,
+          "actionAttempts": 1,
+          "leafVisits": 0,
+          "leaves": 0,
+          "cuts": 0,
+          "sourceQueries": 0,
+          "sat": 0,
+          "refuted": 0,
+          "unknown": 0,
+          "reused": 0,
+          "cacheChecked": 0,
+          "cacheSat": 0,
+          "cacheUnknown": 0,
+          "rawRefuted": 0
+        },
+        {
+          "op": "1",
+          "units": 0,
+          "actionAttempts": 1,
+          "leafVisits": 0,
+          "leaves": 0,
+          "cuts": 0,
+          "sourceQueries": 0,
+          "sat": 0,
+          "refuted": 0,
+          "unknown": 0,
+          "reused": 0,
+          "cacheChecked": 0,
+          "cacheSat": 0,
+          "cacheUnknown": 0,
+          "rawRefuted": 0
+        },
+        {
+          "op": "2",
+          "units": 0,
+          "actionAttempts": 1,
+          "leafVisits": 0,
+          "leaves": 0,
+          "cuts": 0,
+          "sourceQueries": 0,
+          "sat": 0,
+          "refuted": 0,
+          "unknown": 0,
+          "reused": 0,
+          "cacheChecked": 0,
+          "cacheSat": 0,
+          "cacheUnknown": 0,
+          "rawRefuted": 0
+        },
+        {
+          "op": "3",
+          "units": 0,
+          "actionAttempts": 1,
+          "leafVisits": 0,
+          "leaves": 0,
+          "cuts": 0,
+          "sourceQueries": 0,
+          "sat": 0,
+          "refuted": 0,
+          "unknown": 0,
+          "reused": 0,
+          "cacheChecked": 0,
+          "cacheSat": 0,
+          "cacheUnknown": 0,
+          "rawRefuted": 0
+        },
+        {
+          "op": "4",
+          "units": 0,
+          "actionAttempts": 1,
+          "leafVisits": 0,
+          "leaves": 0,
+          "cuts": 0,
+          "sourceQueries": 0,
+          "sat": 0,
+          "refuted": 0,
+          "unknown": 0,
+          "reused": 0,
+          "cacheChecked": 0,
+          "cacheSat": 0,
+          "cacheUnknown": 0,
+          "rawRefuted": 0
+        },
+        {
+          "op": "5",
+          "units": 0,
+          "actionAttempts": 1,
+          "leafVisits": 0,
+          "leaves": 0,
+          "cuts": 0,
+          "sourceQueries": 0,
+          "sat": 0,
+          "refuted": 0,
+          "unknown": 0,
+          "reused": 0,
+          "cacheChecked": 0,
+          "cacheSat": 0,
+          "cacheUnknown": 0,
+          "rawRefuted": 0
+        },
+        {
+          "op": "6",
+          "units": 50033.76126880001,
+          "actionAttempts": 1,
+          "leafVisits": 0,
+          "leaves": 0,
+          "cuts": 0,
+          "sourceQueries": 0,
+          "sat": 0,
+          "refuted": 0,
+          "unknown": 0,
+          "reused": 0,
+          "cacheChecked": 0,
+          "cacheSat": 0,
+          "cacheUnknown": 0,
+          "rawRefuted": 0
+        }
+      ],
+      "firstFailure": {
+        "kind": "budget",
+        "reason": "counted-cap",
+        "phase": "closure-preparation-before-numeric-leaf",
+        "path": [
+          [
+            "op:1",
+            {
+              "lin": {
+                "op": 1
+              },
+              "holds": false
+            }
+          ],
+          [
+            "1:-1,op:1",
+            {
+              "lin": {
+                "1": -1,
+                "op": 1
+              },
+              "holds": false
+            }
+          ],
+          [
+            "1:-2,op:1",
+            {
+              "lin": {
+                "1": -2,
+                "op": 1
+              },
+              "holds": false
+            }
+          ],
+          [
+            "1:-3,op:1",
+            {
+              "lin": {
+                "1": -3,
+                "op": 1
+              },
+              "holds": false
+            }
+          ],
+          [
+            "1:-4,op:1",
+            {
+              "lin": {
+                "1": -4,
+                "op": 1
+              },
+              "holds": false
+            }
+          ],
+          [
+            "1:-5,op:1",
+            {
+              "lin": {
+                "1": -5,
+                "op": 1
+              },
+              "holds": false
+            }
+          ],
+          [
+            "1:-6,op:1",
+            {
+              "lin": {
+                "1": -6,
+                "op": 1
+              },
+              "holds": true
+            }
+          ],
+          [
+            "1:-1,started:1",
+            {
+              "lin": {
+                "1": -1,
+                "started": 1
+              },
+              "holds": true
+            }
+          ],
+          [
+            "1:1,started:-1",
+            {
+              "lin": {
+                "1": 1,
+                "started": -1
+              },
+              "holds": true
+            }
+          ],
+          [
+            "St[j:1]:1",
+            {
+              "lin": {
+                "St[j:1]": 1
+              },
+              "holds": true
+            }
+          ],
+          [
+            "St[j:1]:-1",
+            {
+              "lin": {
+                "St[j:1]": -1
+              },
+              "holds": true
+            }
+          ],
+          [
+            "1:1,CfgT[i:1]:-1,CfgT[j:1]:1",
+            {
+              "lin": {
+                "1": 1,
+                "CfgT[j:1]": 1,
+                "CfgT[i:1]": -1
+              },
+              "holds": false
+            }
+          ],
+          [
+            "CfgT[i:1]:-1,CfgT[j:1]:1",
+            {
+              "lin": {
+                "CfgT[j:1]": 1,
+                "CfgT[i:1]": -1
+              },
+              "holds": true
+            }
+          ],
+          [
+            "1:1,CV[i:1]:-1,CV[j:1]:1",
+            {
+              "lin": {
+                "1": 1,
+                "CV[j:1]": 1,
+                "CV[i:1]": -1
+              },
+              "holds": true
+            }
+          ]
+        ],
+        "model": null,
+        "violatedSet": [],
+        "sourceResults": []
+      },
+      "validation": {
+        "model": false,
+        "exactViolatedSet": false,
+        "path": false
+      },
+      "publication": {
+        "batch": "20261109-064438-b0or32",
+        "job": "overlap-op6",
+        "vm": "bx_2hzfj2ah",
+        "time": "2026-11-08T23:49:20.331Z",
+        "archiveSha256": "4b01f07dd9d33505469219a1c753bd7b83d10ec4c15f6cab6502c260d86507ed"
+      }
+    },
+    {
+      "law": "Inv*: no quorum of a config can still be gathered for a config term held",
+      "name": "Invstar",
+      "op": 3,
+      "verdict": "unknown",
+      "units": 50032.695596,
+      "wallMs": 49813.370554999994,
+      "allowance": 50000,
+      "limit": "counted-cap",
+      "stats": {
+        "cuts": 0,
+        "sat": 0,
+        "refuted": 0,
+        "unknown": 0,
+        "reused": 0,
+        "cached": 0,
+        "rawSat": 0,
+        "rawRefuted": 0,
+        "rawUnknown": 0
+      },
+      "ledger": [
+        {
+          "op": "0",
+          "units": 0,
+          "actionAttempts": 1,
+          "leafVisits": 0,
+          "leaves": 0,
+          "cuts": 0,
+          "sourceQueries": 0,
+          "sat": 0,
+          "refuted": 0,
+          "unknown": 0,
+          "reused": 0,
+          "cacheChecked": 0,
+          "cacheSat": 0,
+          "cacheUnknown": 0,
+          "rawRefuted": 0
+        },
+        {
+          "op": "1",
+          "units": 0,
+          "actionAttempts": 1,
+          "leafVisits": 0,
+          "leaves": 0,
+          "cuts": 0,
+          "sourceQueries": 0,
+          "sat": 0,
+          "refuted": 0,
+          "unknown": 0,
+          "reused": 0,
+          "cacheChecked": 0,
+          "cacheSat": 0,
+          "cacheUnknown": 0,
+          "rawRefuted": 0
+        },
+        {
+          "op": "2",
+          "units": 0,
+          "actionAttempts": 1,
+          "leafVisits": 0,
+          "leaves": 0,
+          "cuts": 0,
+          "sourceQueries": 0,
+          "sat": 0,
+          "refuted": 0,
+          "unknown": 0,
+          "reused": 0,
+          "cacheChecked": 0,
+          "cacheSat": 0,
+          "cacheUnknown": 0,
+          "rawRefuted": 0
+        },
+        {
+          "op": "3",
+          "units": 50032.6591176,
+          "actionAttempts": 1,
+          "leafVisits": 0,
+          "leaves": 0,
+          "cuts": 0,
+          "sourceQueries": 0,
+          "sat": 0,
+          "refuted": 0,
+          "unknown": 0,
+          "reused": 0,
+          "cacheChecked": 0,
+          "cacheSat": 0,
+          "cacheUnknown": 0,
+          "rawRefuted": 0
+        }
+      ],
+      "firstFailure": {
+        "kind": "budget",
+        "reason": "counted-cap",
+        "phase": "closure-preparation-before-numeric-leaf",
+        "path": [
+          [
+            "op:1",
+            {
+              "lin": {
+                "op": 1
+              },
+              "holds": false
+            }
+          ],
+          [
+            "1:-1,op:1",
+            {
+              "lin": {
+                "1": -1,
+                "op": 1
+              },
+              "holds": false
+            }
+          ],
+          [
+            "1:-2,op:1",
+            {
+              "lin": {
+                "1": -2,
+                "op": 1
+              },
+              "holds": false
+            }
+          ],
+          [
+            "1:-3,op:1",
+            {
+              "lin": {
+                "1": -3,
+                "op": 1
+              },
+              "holds": true
+            }
+          ],
+          [
+            "1:-4,op:1",
+            {
+              "lin": {
+                "1": -4,
+                "op": 1
+              },
+              "holds": true
+            }
+          ],
+          [
+            "1:-5,op:1",
+            {
+              "lin": {
+                "1": -5,
+                "op": 1
+              },
+              "holds": true
+            }
+          ],
+          [
+            "1:-6,op:1",
+            {
+              "lin": {
+                "1": -6,
+                "op": 1
+              },
+              "holds": true
+            }
+          ],
+          [
+            "1:-1,started:1",
+            {
+              "lin": {
+                "1": -1,
+                "started": 1
+              },
+              "holds": true
+            }
+          ],
+          [
+            "1:1,started:-1",
+            {
+              "lin": {
+                "1": 1,
+                "started": -1
+              },
+              "holds": true
+            }
+          ],
+          [
+            "1:1,CT[i:1]:-1,CT[j:1]:1",
+            {
+              "lin": {
+                "1": 1,
+                "CT[j:1]": 1,
+                "CT[i:1]": -1
+              },
+              "holds": true
+            }
+          ]
+        ],
+        "model": null,
+        "violatedSet": [],
+        "sourceResults": []
+      },
+      "validation": {
+        "model": false,
+        "exactViolatedSet": false,
+        "path": false
+      },
+      "publication": {
+        "batch": "20261109-064438-b0or32",
+        "job": "star-op3",
+        "vm": "bx_25xas5gt",
+        "time": "2026-11-08T23:49:09.689Z",
+        "archiveSha256": "542c7a0c693057528e1553001c0d903f71c82a5576a7b08d679d6ece73799162"
+      }
+    },
+    {
+      "law": "Inv*: no quorum of a config can still be gathered for a config term held",
+      "name": "Invstar",
+      "op": 4,
+      "verdict": "unknown",
+      "units": 50002.7244156,
+      "wallMs": 168956.429196,
+      "allowance": 50000,
+      "limit": "counted-cap",
+      "stats": {
+        "cuts": 23,
+        "sat": 32,
+        "refuted": 21,
+        "unknown": 8,
+        "reused": 97,
+        "cached": 0,
+        "rawSat": 32,
+        "rawRefuted": 29,
+        "rawUnknown": 0
+      },
+      "ledger": [
+        {
+          "op": "0",
+          "units": 0,
+          "actionAttempts": 1,
+          "leafVisits": 0,
+          "leaves": 0,
+          "cuts": 0,
+          "sourceQueries": 0,
+          "sat": 0,
+          "refuted": 0,
+          "unknown": 0,
+          "reused": 0,
+          "cacheChecked": 0,
+          "cacheSat": 0,
+          "cacheUnknown": 0,
+          "rawRefuted": 0
+        },
+        {
+          "op": "1",
+          "units": 0,
+          "actionAttempts": 1,
+          "leafVisits": 0,
+          "leaves": 0,
+          "cuts": 0,
+          "sourceQueries": 0,
+          "sat": 0,
+          "refuted": 0,
+          "unknown": 0,
+          "reused": 0,
+          "cacheChecked": 0,
+          "cacheSat": 0,
+          "cacheUnknown": 0,
+          "rawRefuted": 0
+        },
+        {
+          "op": "2",
+          "units": 0,
+          "actionAttempts": 1,
+          "leafVisits": 0,
+          "leaves": 0,
+          "cuts": 0,
+          "sourceQueries": 0,
+          "sat": 0,
+          "refuted": 0,
+          "unknown": 0,
+          "reused": 0,
+          "cacheChecked": 0,
+          "cacheSat": 0,
+          "cacheUnknown": 0,
+          "rawRefuted": 0
+        },
+        {
+          "op": "3",
+          "units": 0,
+          "actionAttempts": 1,
+          "leafVisits": 0,
+          "leaves": 0,
+          "cuts": 0,
+          "sourceQueries": 0,
+          "sat": 0,
+          "refuted": 0,
+          "unknown": 0,
+          "reused": 0,
+          "cacheChecked": 0,
+          "cacheSat": 0,
+          "cacheUnknown": 0,
+          "rawRefuted": 0
+        },
+        {
+          "op": "4",
+          "units": 50002.687937200004,
+          "actionAttempts": 1,
+          "leafVisits": 4,
+          "leaves": 4,
+          "cuts": 23,
+          "sourceQueries": 61,
+          "sat": 32,
+          "refuted": 21,
+          "unknown": 8,
+          "reused": 97,
+          "cacheChecked": 0,
+          "cacheSat": 0,
+          "cacheUnknown": 0,
+          "rawRefuted": 29
+        }
+      ],
+      "firstFailure": {
+        "kind": "stop",
+        "reason": "batch-exhausted",
+        "path": [
+          [
+            "op:1",
+            {
+              "lin": {
+                "op": 1
+              },
+              "holds": false
+            }
+          ],
+          [
+            "1:-1,op:1",
+            {
+              "lin": {
+                "1": -1,
+                "op": 1
+              },
+              "holds": false
+            }
+          ],
+          [
+            "1:-2,op:1",
+            {
+              "lin": {
+                "1": -2,
+                "op": 1
+              },
+              "holds": false
+            }
+          ],
+          [
+            "1:-3,op:1",
+            {
+              "lin": {
+                "1": -3,
+                "op": 1
+              },
+              "holds": false
+            }
+          ],
+          [
+            "1:-4,op:1",
+            {
+              "lin": {
+                "1": -4,
+                "op": 1
+              },
+              "holds": true
+            }
+          ],
+          [
+            "1:-5,op:1",
+            {
+              "lin": {
+                "1": -5,
+                "op": 1
+              },
+              "holds": true
+            }
+          ],
+          [
+            "1:-6,op:1",
+            {
+              "lin": {
+                "1": -6,
+                "op": 1
+              },
+              "holds": true
+            }
+          ],
+          [
+            "1:-1,started:1",
+            {
+              "lin": {
+                "1": -1,
+                "started": 1
+              },
+              "holds": true
+            }
+          ],
+          [
+            "1:1,started:-1",
+            {
+              "lin": {
+                "1": 1,
+                "started": -1
+              },
+              "holds": true
+            }
+          ],
+          [
+            "1:-1,Config[i:65]:1",
+            {
+              "lin": {
+                "1": -1,
+                "Config[i:65]": 1
+              },
+              "holds": true
+            }
+          ],
+          [
+            "1:1,Config[i:65]:-1",
+            {
+              "lin": {
+                "1": 1,
+                "Config[i:65]": -1
+              },
+              "holds": true
+            }
+          ],
+          [
+            "1:1,S[i:1]:-1",
+            {
+              "lin": {
+                "1": 1,
+                "S[i:1]": -1
+              },
+              "holds": true
+            }
+          ],
+          [
+            "1:-1,?canVote:1",
+            {
+              "lin": {
+                "1": -1,
+                "?canVote": 1
+              },
+              "holds": true
+            }
+          ],
+          [
+            "1:1,?canVote:-1",
+            {
+              "lin": {
+                "1": 1,
+                "?canVote": -1
+              },
+              "holds": true
+            }
+          ],
+          [
+            "1:1,i:1,size:-1",
+            {
+              "lin": {
+                "1": 1,
+                "i": 1,
+                "size": -1
+              },
+              "holds": true
+            }
+          ],
+          [
+            "1:-1,?committedQuorum:1",
+            {
+              "lin": {
+                "1": -1,
+                "?committedQuorum": 1
+              },
+              "holds": true
+            }
+          ],
+          [
+            "1:1,j$:1,size:-1",
+            {
+              "lin": {
+                "1": 1,
+                "j$": 1,
+                "size": -1
+              },
+              "holds": true
+            }
+          ],
+          [
+            "a$#:1,i:-1",
+            {
+              "lin": {
+                "a$#": 1,
+                "i": -1
+              },
+              "holds": true
+            }
+          ],
+          [
+            "a$#:-1,i:1",
+            {
+              "lin": {
+                "a$#": -1,
+                "i": 1
+              },
+              "holds": false
+            }
+          ],
+          [
+            "i:-1,j$:1",
+            {
+              "lin": {
+                "j$": 1,
+                "i": -1
+              },
+              "holds": true
+            }
+          ],
+          [
+            "i:1,j$:-1",
+            {
+              "lin": {
+                "j$": -1,
+                "i": 1
+              },
+              "holds": true
+            }
+          ]
+        ],
+        "model": {
+          "op": 4,
+          "started": 1,
+          "Config[i:65]": 1,
+          "S[i:1]": 1,
+          "?canVote": 1,
+          "i": 1,
+          "size": 2,
+          "?committedQuorum": 0,
+          "j$": 1,
+          "a$#": 0,
+          "j": 0,
+          "?all$1": 1,
+          "?all$2": 1,
+          "r$2": 1,
+          "r$3": 1,
+          "r$11": 0,
+          "r$12": 1,
+          "r$15": 0,
+          "r$9": 0,
+          "r$16": 0,
+          "?noneCopied": 0,
+          "?allCopied": 0,
+          "?all$3": 0,
+          "r$1": 1,
+          "r$0": 1,
+          "r$5": 0,
+          "r$6": 1,
+          "r$7": 0,
+          "r$8": 1,
+          "r$18": 0,
+          "r$10": 0,
+          "r$19": 0,
+          "r$17": 0,
+          "r$14": 0,
+          "r$13": 0,
+          "r$4": 0
+        },
+        "violatedSet": [
+          45,
+          47,
+          54,
+          78,
+          89,
+          2,
+          3,
+          4,
+          27,
+          32,
+          34,
+          36,
+          38,
+          40,
+          42,
+          11,
+          13,
+          14,
+          16,
+          17,
+          72,
+          82,
+          86,
+          6,
+          7,
+          8,
+          51,
+          71,
+          74,
+          81,
+          85
+        ],
+        "sourceResults": [
+          {
+            "index": 45,
+            "result": "reused-model",
+            "units": 0,
+            "attempts": 1
+          },
+          {
+            "index": 47,
+            "result": "reused-model",
+            "units": 0,
+            "attempts": 1
+          },
+          {
+            "index": 54,
+            "result": "sat",
+            "units": 18.75645799999984,
+            "attempts": 1
+          },
+          {
+            "index": 78,
+            "result": "reused-model",
+            "units": 0,
+            "attempts": 1
+          },
+          {
+            "index": 89,
+            "result": "reused-model",
+            "units": 0,
+            "attempts": 1
+          },
+          {
+            "index": 2,
+            "result": "reused-model",
+            "units": 39.804965999999695,
+            "attempts": 3
+          },
+          {
+            "index": 3,
+            "result": "reused-model",
+            "units": 0,
+            "attempts": 3
+          },
+          {
+            "index": 4,
+            "result": "reused-model",
+            "units": 0,
+            "attempts": 3
+          },
+          {
+            "index": 27,
+            "result": "reused-model",
+            "units": 0,
+            "attempts": 1
+          },
+          {
+            "index": 32,
+            "result": "reused-model",
+            "units": 0,
+            "attempts": 1
+          },
+          {
+            "index": 34,
+            "result": "reused-model",
+            "units": 0,
+            "attempts": 1
+          },
+          {
+            "index": 36,
+            "result": "sat",
+            "units": 15.518216000000166,
+            "attempts": 1
+          },
+          {
+            "index": 38,
+            "result": "reused-model",
+            "units": 20.543535999999676,
+            "attempts": 8
+          },
+          {
+            "index": 40,
+            "result": "reused-model",
+            "units": 0,
+            "attempts": 1
+          },
+          {
+            "index": 42,
+            "result": "reused-model",
+            "units": 0,
+            "attempts": 3
+          },
+          {
+            "index": 11,
+            "result": "sat",
+            "units": 10.573051999999961,
+            "attempts": 1
+          },
+          {
+            "index": 13,
+            "result": "reused-model",
+            "units": 0,
+            "attempts": 1
+          },
+          {
+            "index": 14,
+            "result": "sat",
+            "units": 12.178085999999894,
+            "attempts": 1
+          },
+          {
+            "index": 16,
+            "result": "reused-model",
+            "units": 0,
+            "attempts": 1
+          },
+          {
+            "index": 17,
+            "result": "reused-model",
+            "units": 0,
+            "attempts": 1
+          },
+          {
+            "index": 72,
+            "result": "reused-model",
+            "units": 0,
+            "attempts": 1
+          },
+          {
+            "index": 82,
+            "result": "reused-model",
+            "units": 0,
+            "attempts": 1
+          },
+          {
+            "index": 86,
+            "result": "reused-model",
+            "units": 0,
+            "attempts": 1
+          },
+          {
+            "index": 6,
+            "result": "reused-model",
+            "units": 0,
+            "attempts": 3
+          },
+          {
+            "index": 7,
+            "result": "reused-model",
+            "units": 0,
+            "attempts": 3
+          },
+          {
+            "index": 8,
+            "result": "reused-model",
+            "units": 0,
+            "attempts": 3
+          },
+          {
+            "index": 51,
+            "result": "reused-model",
+            "units": 0,
+            "attempts": 1
+          },
+          {
+            "index": 71,
+            "result": "reused-model",
+            "units": 0,
+            "attempts": 1
+          },
+          {
+            "index": 74,
+            "result": "reused-model",
+            "units": 0,
+            "attempts": 1
+          },
+          {
+            "index": 81,
+            "result": "reused-model",
+            "units": 0,
+            "attempts": 1
+          },
+          {
+            "index": 85,
+            "result": "reused-model",
+            "units": 0,
+            "attempts": 1
+          }
+        ]
+      },
+      "validation": {
+        "model": true,
+        "exactViolatedSet": true,
+        "path": true,
+        "note": "Exact BigInt path/instance audit; complete numeric-model validation was performed before production recorded it."
+      },
+      "publication": {
+        "batch": "20261109-064438-b0or32",
+        "job": "star-op4",
+        "vm": "bx_2uat3ctg",
+        "time": "2026-11-08T23:49:36.571Z",
+        "archiveSha256": "c1614364912e40386ed15ba14aaba44a2846d284c25a2b5c6c11fcbad68e7aed"
+      }
+    },
+    {
+      "law": "Inv*: no quorum of a config can still be gathered for a config term held",
+      "name": "Invstar",
+      "op": 5,
+      "verdict": "unknown",
+      "units": 50001.818790799996,
+      "wallMs": 364527.901467,
+      "allowance": 50000,
+      "limit": "counted-cap",
+      "stats": {
+        "cuts": 46,
+        "sat": 99,
+        "refuted": 45,
+        "unknown": 57,
+        "reused": 316,
+        "cached": 2,
+        "rawSat": 99,
+        "rawRefuted": 102,
+        "rawUnknown": 0
+      },
+      "ledger": [
+        {
+          "op": "0",
+          "units": 0,
+          "actionAttempts": 1,
+          "leafVisits": 0,
+          "leaves": 0,
+          "cuts": 0,
+          "sourceQueries": 0,
+          "sat": 0,
+          "refuted": 0,
+          "unknown": 0,
+          "reused": 0,
+          "cacheChecked": 0,
+          "cacheSat": 0,
+          "cacheUnknown": 0,
+          "rawRefuted": 0
+        },
+        {
+          "op": "1",
+          "units": 0,
+          "actionAttempts": 1,
+          "leafVisits": 0,
+          "leaves": 0,
+          "cuts": 0,
+          "sourceQueries": 0,
+          "sat": 0,
+          "refuted": 0,
+          "unknown": 0,
+          "reused": 0,
+          "cacheChecked": 0,
+          "cacheSat": 0,
+          "cacheUnknown": 0,
+          "rawRefuted": 0
+        },
+        {
+          "op": "2",
+          "units": 0,
+          "actionAttempts": 1,
+          "leafVisits": 0,
+          "leaves": 0,
+          "cuts": 0,
+          "sourceQueries": 0,
+          "sat": 0,
+          "refuted": 0,
+          "unknown": 0,
+          "reused": 0,
+          "cacheChecked": 0,
+          "cacheSat": 0,
+          "cacheUnknown": 0,
+          "rawRefuted": 0
+        },
+        {
+          "op": "3",
+          "units": 0,
+          "actionAttempts": 1,
+          "leafVisits": 0,
+          "leaves": 0,
+          "cuts": 0,
+          "sourceQueries": 0,
+          "sat": 0,
+          "refuted": 0,
+          "unknown": 0,
+          "reused": 0,
+          "cacheChecked": 0,
+          "cacheSat": 0,
+          "cacheUnknown": 0,
+          "rawRefuted": 0
+        },
+        {
+          "op": "4",
+          "units": 0,
+          "actionAttempts": 1,
+          "leafVisits": 0,
+          "leaves": 0,
+          "cuts": 0,
+          "sourceQueries": 0,
+          "sat": 0,
+          "refuted": 0,
+          "unknown": 0,
+          "reused": 0,
+          "cacheChecked": 0,
+          "cacheSat": 0,
+          "cacheUnknown": 0,
+          "rawRefuted": 0
+        },
+        {
+          "op": "5",
+          "units": 50001.7823124,
+          "actionAttempts": 1,
+          "leafVisits": 45,
+          "leaves": 41,
+          "cuts": 46,
+          "sourceQueries": 201,
+          "sat": 99,
+          "refuted": 45,
+          "unknown": 57,
+          "reused": 316,
+          "cacheChecked": 0,
+          "cacheSat": 1,
+          "cacheUnknown": 1,
+          "rawRefuted": 102
+        }
+      ],
+      "firstFailure": {
+        "kind": "budget",
+        "reason": "counted-cap",
+        "phase": "numeric-leaf-before-model",
+        "path": [
+          [
+            "op:1",
+            {
+              "lin": {
+                "op": 1
+              },
+              "holds": false
+            }
+          ],
+          [
+            "1:-1,op:1",
+            {
+              "lin": {
+                "1": -1,
+                "op": 1
+              },
+              "holds": false
+            }
+          ],
+          [
+            "1:-2,op:1",
+            {
+              "lin": {
+                "1": -2,
+                "op": 1
+              },
+              "holds": false
+            }
+          ],
+          [
+            "1:-3,op:1",
+            {
+              "lin": {
+                "1": -3,
+                "op": 1
+              },
+              "holds": false
+            }
+          ],
+          [
+            "1:-4,op:1",
+            {
+              "lin": {
+                "1": -4,
+                "op": 1
+              },
+              "holds": false
+            }
+          ],
+          [
+            "1:-5,op:1",
+            {
+              "lin": {
+                "1": -5,
+                "op": 1
+              },
+              "holds": true
+            }
+          ],
+          [
+            "1:-6,op:1",
+            {
+              "lin": {
+                "1": -6,
+                "op": 1
+              },
+              "holds": true
+            }
+          ],
+          [
+            "1:-1,started:1",
+            {
+              "lin": {
+                "1": -1,
+                "started": 1
+              },
+              "holds": true
+            }
+          ],
+          [
+            "1:1,started:-1",
+            {
+              "lin": {
+                "1": 1,
+                "started": -1
+              },
+              "holds": true
+            }
+          ],
+          [
+            "1:-1,St[i:1]:1",
+            {
+              "lin": {
+                "1": -1,
+                "St[i:1]": 1
+              },
+              "holds": true
+            }
+          ],
+          [
+            "1:1,St[i:1]:-1",
+            {
+              "lin": {
+                "1": 1,
+                "St[i:1]": -1
+              },
+              "holds": true
+            }
+          ],
+          [
+            "CT[i:1]:-1,CfgT[i:1]:1",
+            {
+              "lin": {
+                "CfgT[i:1]": 1,
+                "CT[i:1]": -1
+              },
+              "holds": true
+            }
+          ],
+          [
+            "CT[i:1]:1,CfgT[i:1]:-1",
+            {
+              "lin": {
+                "CT[i:1]": 1,
+                "CfgT[i:1]": -1
+              },
+              "holds": true
+            }
+          ],
+          [
+            "1:-1,?committedQuorum:1",
+            {
+              "lin": {
+                "1": -1,
+                "?committedQuorum": 1
+              },
+              "holds": true
+            }
+          ],
+          [
+            "1:1,?committedQuorum:-1",
+            {
+              "lin": {
+                "1": 1,
+                "?committedQuorum": -1
+              },
+              "holds": true
+            }
+          ],
+          [
+            "1:1,xAndS[]:1,⟦344⟧:-1,⟦348⟧:-1",
+            {
+              "lin": {
+                "1": 1,
+                "xAndS[]": 1,
+                "⟦344⟧": -1,
+                "⟦348⟧": -1
+              },
+              "holds": true
+            }
+          ],
+          [
+            "1:1,S[i:1]:-1",
+            {
+              "lin": {
+                "1": 1,
+                "S[i:1]": -1
+              },
+              "holds": true
+            }
+          ],
+          [
+            "1:-1,?canVote:1",
+            {
+              "lin": {
+                "1": -1,
+                "?canVote": 1
+              },
+              "holds": true
+            }
+          ],
+          [
+            "1:1,i:1,size:-1",
+            {
+              "lin": {
+                "1": 1,
+                "i": 1,
+                "size": -1
+              },
+              "holds": true
+            }
+          ],
+          [
+            "1:1,j$:1,size:-1",
+            {
+              "lin": {
+                "1": 1,
+                "j$": 1,
+                "size": -1
+              },
+              "holds": true
+            }
+          ],
+          [
+            "a$#:1,i:-1",
+            {
+              "lin": {
+                "a$#": 1,
+                "i": -1
+              },
+              "holds": false
+            }
+          ],
+          [
+            "i:-1,j$:1",
+            {
+              "lin": {
+                "j$": 1,
+                "i": -1
+              },
+              "holds": false
+            }
+          ],
+          [
+            "CT[i:1]:-1,CfgT[j$:1]:1",
+            {
+              "lin": {
+                "CT[i:1]": -1,
+                "CfgT[j$:1]": 1
+              },
+              "holds": false
+            }
+          ],
+          [
+            "1:1,CT[i:1]:1,CfgT[a$#:1]:-1",
+            {
+              "lin": {
+                "1": 1,
+                "CT[i:1]": 1,
+                "CfgT[a$#:1]": -1
+              },
+              "holds": false
+            }
+          ]
+        ],
+        "model": null,
+        "violatedSet": [],
+        "sourceResults": []
+      },
+      "validation": {
+        "model": false,
+        "exactViolatedSet": false,
+        "path": false
+      },
+      "publication": {
+        "batch": "20261109-064438-b0or32",
+        "job": "star-op5",
+        "vm": "bx_2kmf8w3s",
+        "time": "2026-11-08T23:52:26.896Z",
+        "archiveSha256": "2f17229c79e02df863a6d5f4f132438164899e1793009b5e2a19b3ed1f539fba"
+      }
+    },
+    {
+      "law": "Inv*: no quorum of a config can still be gathered for a config term held",
+      "name": "Invstar",
+      "op": 6,
+      "verdict": "unknown",
+      "units": 50084.732048800004,
+      "wallMs": 48117.927304,
+      "allowance": 50000,
+      "limit": "counted-cap",
+      "stats": {
+        "cuts": 0,
+        "sat": 0,
+        "refuted": 0,
+        "unknown": 0,
+        "reused": 0,
+        "cached": 0,
+        "rawSat": 0,
+        "rawRefuted": 0,
+        "rawUnknown": 0
+      },
+      "ledger": [
+        {
+          "op": "0",
+          "units": 0,
+          "actionAttempts": 1,
+          "leafVisits": 0,
+          "leaves": 0,
+          "cuts": 0,
+          "sourceQueries": 0,
+          "sat": 0,
+          "refuted": 0,
+          "unknown": 0,
+          "reused": 0,
+          "cacheChecked": 0,
+          "cacheSat": 0,
+          "cacheUnknown": 0,
+          "rawRefuted": 0
+        },
+        {
+          "op": "1",
+          "units": 0,
+          "actionAttempts": 1,
+          "leafVisits": 0,
+          "leaves": 0,
+          "cuts": 0,
+          "sourceQueries": 0,
+          "sat": 0,
+          "refuted": 0,
+          "unknown": 0,
+          "reused": 0,
+          "cacheChecked": 0,
+          "cacheSat": 0,
+          "cacheUnknown": 0,
+          "rawRefuted": 0
+        },
+        {
+          "op": "2",
+          "units": 0,
+          "actionAttempts": 1,
+          "leafVisits": 0,
+          "leaves": 0,
+          "cuts": 0,
+          "sourceQueries": 0,
+          "sat": 0,
+          "refuted": 0,
+          "unknown": 0,
+          "reused": 0,
+          "cacheChecked": 0,
+          "cacheSat": 0,
+          "cacheUnknown": 0,
+          "rawRefuted": 0
+        },
+        {
+          "op": "3",
+          "units": 0,
+          "actionAttempts": 1,
+          "leafVisits": 0,
+          "leaves": 0,
+          "cuts": 0,
+          "sourceQueries": 0,
+          "sat": 0,
+          "refuted": 0,
+          "unknown": 0,
+          "reused": 0,
+          "cacheChecked": 0,
+          "cacheSat": 0,
+          "cacheUnknown": 0,
+          "rawRefuted": 0
+        },
+        {
+          "op": "4",
+          "units": 0,
+          "actionAttempts": 1,
+          "leafVisits": 0,
+          "leaves": 0,
+          "cuts": 0,
+          "sourceQueries": 0,
+          "sat": 0,
+          "refuted": 0,
+          "unknown": 0,
+          "reused": 0,
+          "cacheChecked": 0,
+          "cacheSat": 0,
+          "cacheUnknown": 0,
+          "rawRefuted": 0
+        },
+        {
+          "op": "5",
+          "units": 0,
+          "actionAttempts": 1,
+          "leafVisits": 0,
+          "leaves": 0,
+          "cuts": 0,
+          "sourceQueries": 0,
+          "sat": 0,
+          "refuted": 0,
+          "unknown": 0,
+          "reused": 0,
+          "cacheChecked": 0,
+          "cacheSat": 0,
+          "cacheUnknown": 0,
+          "rawRefuted": 0
+        },
+        {
+          "op": "6",
+          "units": 50084.69557040001,
+          "actionAttempts": 1,
+          "leafVisits": 0,
+          "leaves": 0,
+          "cuts": 0,
+          "sourceQueries": 0,
+          "sat": 0,
+          "refuted": 0,
+          "unknown": 0,
+          "reused": 0,
+          "cacheChecked": 0,
+          "cacheSat": 0,
+          "cacheUnknown": 0,
+          "rawRefuted": 0
+        }
+      ],
+      "firstFailure": {
+        "kind": "budget",
+        "reason": "counted-cap",
+        "phase": "closure-preparation-before-numeric-leaf",
+        "path": [
+          [
+            "op:1",
+            {
+              "lin": {
+                "op": 1
+              },
+              "holds": false
+            }
+          ],
+          [
+            "1:-1,op:1",
+            {
+              "lin": {
+                "1": -1,
+                "op": 1
+              },
+              "holds": false
+            }
+          ],
+          [
+            "1:-2,op:1",
+            {
+              "lin": {
+                "1": -2,
+                "op": 1
+              },
+              "holds": false
+            }
+          ],
+          [
+            "1:-3,op:1",
+            {
+              "lin": {
+                "1": -3,
+                "op": 1
+              },
+              "holds": false
+            }
+          ],
+          [
+            "1:-4,op:1",
+            {
+              "lin": {
+                "1": -4,
+                "op": 1
+              },
+              "holds": false
+            }
+          ],
+          [
+            "1:-5,op:1",
+            {
+              "lin": {
+                "1": -5,
+                "op": 1
+              },
+              "holds": false
+            }
+          ],
+          [
+            "1:-6,op:1",
+            {
+              "lin": {
+                "1": -6,
+                "op": 1
+              },
+              "holds": true
+            }
+          ],
+          [
+            "1:-1,started:1",
+            {
+              "lin": {
+                "1": -1,
+                "started": 1
+              },
+              "holds": true
+            }
+          ],
+          [
+            "1:1,started:-1",
+            {
+              "lin": {
+                "1": 1,
+                "started": -1
+              },
+              "holds": true
+            }
+          ],
+          [
+            "St[j:1]:1",
+            {
+              "lin": {
+                "St[j:1]": 1
+              },
+              "holds": true
+            }
+          ],
+          [
+            "St[j:1]:-1",
+            {
+              "lin": {
+                "St[j:1]": -1
+              },
+              "holds": true
+            }
+          ],
+          [
+            "1:1,CfgT[i:1]:-1,CfgT[j:1]:1",
+            {
+              "lin": {
+                "1": 1,
+                "CfgT[j:1]": 1,
+                "CfgT[i:1]": -1
+              },
+              "holds": false
+            }
+          ],
+          [
+            "CfgT[i:1]:-1,CfgT[j:1]:1",
+            {
+              "lin": {
+                "CfgT[j:1]": 1,
+                "CfgT[i:1]": -1
+              },
+              "holds": true
+            }
+          ],
+          [
+            "1:1,CV[i:1]:-1,CV[j:1]:1",
+            {
+              "lin": {
+                "1": 1,
+                "CV[j:1]": 1,
+                "CV[i:1]": -1
+              },
+              "holds": true
+            }
+          ]
+        ],
+        "model": null,
+        "violatedSet": [],
+        "sourceResults": []
+      },
+      "validation": {
+        "model": false,
+        "exactViolatedSet": false,
+        "path": false
+      },
+      "publication": {
+        "batch": "20261109-064438-b0or32",
+        "job": "star-op6",
+        "vm": "bx_4cma575j",
+        "time": "2026-11-08T23:49:10.950Z",
+        "archiveSha256": "601a47eb399aae565e739685cc8fb34be9259df64983e78930709d41653006ab"
+      }
+    }
+  ]
+}

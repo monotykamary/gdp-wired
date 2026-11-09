@@ -1,0 +1,47 @@
+[
+  {
+    "name": "ic3-paxos_epr-s60-r1",
+    "cmd": "set -e; mkdir -p base; tar -xf replay-input/main.tar -C base; set -e; root=$PWD; base=$(cd 'base' && pwd); bun install --frozen-lockfile >/dev/null 2>&1; (cd \"$base\" && bun install --frozen-lockfile >/dev/null 2>&1); set +e; failed=0; for side in cand base; do dir=$root; [ \"$side\" = base ] && dir=$base; echo \"PAIR begin side=$side id=paxos_epr run=1\"; (cd \"$dir\" && GDP_INFER_TRACE=2 timeout -s KILL 60 bun research/protocols/ic3syn/run.ts --ms 60000 --only 'paxos_epr' --skip 'broken') > /tmp/pair-$side.out 2>/tmp/pair-$side.err; s=$?; cat /tmp/pair-$side.out; grep -E 'small instance|join (enumerated|end|failed|exists|set|cone|td|houdini|engine|ic3|undecided|pool|filter)' /tmp/pair-$side.err | cut -c1-300 | tail -c 60000; tail -c 2000 /tmp/pair-$side.err | grep -iE 'error|throw' | tail -5; echo \"PAIR end side=$side exit=$s\"; if [ $s -ne 0 ] && [ $s -ne 124 ] && [ $s -ne 137 ]; then failed=1; fi; done; exit $failed",
+    "timeout": 300,
+    "vm_type": "large",
+    "cpu": 8,
+    "memory": 14336
+  },
+  {
+    "name": "ic3-paxos_epr-s60-r2",
+    "cmd": "set -e; mkdir -p base; tar -xf replay-input/main.tar -C base; set -e; root=$PWD; base=$(cd 'base' && pwd); bun install --frozen-lockfile >/dev/null 2>&1; (cd \"$base\" && bun install --frozen-lockfile >/dev/null 2>&1); set +e; failed=0; for side in base cand; do dir=$root; [ \"$side\" = base ] && dir=$base; echo \"PAIR begin side=$side id=paxos_epr run=2\"; (cd \"$dir\" && GDP_INFER_TRACE=2 timeout -s KILL 60 bun research/protocols/ic3syn/run.ts --ms 60000 --only 'paxos_epr' --skip 'broken') > /tmp/pair-$side.out 2>/tmp/pair-$side.err; s=$?; cat /tmp/pair-$side.out; grep -E 'small instance|join (enumerated|end|failed|exists|set|cone|td|houdini|engine|ic3|undecided|pool|filter)' /tmp/pair-$side.err | cut -c1-300 | tail -c 60000; tail -c 2000 /tmp/pair-$side.err | grep -iE 'error|throw' | tail -5; echo \"PAIR end side=$side exit=$s\"; if [ $s -ne 0 ] && [ $s -ne 124 ] && [ $s -ne 137 ]; then failed=1; fi; done; exit $failed",
+    "timeout": 300,
+    "vm_type": "large",
+    "cpu": 8,
+    "memory": 14336
+  },
+  {
+    "name": "ic3-paxos_epr-s60-r3",
+    "cmd": "set -e; mkdir -p base; tar -xf replay-input/main.tar -C base; set -e; root=$PWD; base=$(cd 'base' && pwd); bun install --frozen-lockfile >/dev/null 2>&1; (cd \"$base\" && bun install --frozen-lockfile >/dev/null 2>&1); set +e; failed=0; for side in cand base; do dir=$root; [ \"$side\" = base ] && dir=$base; echo \"PAIR begin side=$side id=paxos_epr run=3\"; (cd \"$dir\" && GDP_INFER_TRACE=2 timeout -s KILL 60 bun research/protocols/ic3syn/run.ts --ms 60000 --only 'paxos_epr' --skip 'broken') > /tmp/pair-$side.out 2>/tmp/pair-$side.err; s=$?; cat /tmp/pair-$side.out; grep -E 'small instance|join (enumerated|end|failed|exists|set|cone|td|houdini|engine|ic3|undecided|pool|filter)' /tmp/pair-$side.err | cut -c1-300 | tail -c 60000; tail -c 2000 /tmp/pair-$side.err | grep -iE 'error|throw' | tail -5; echo \"PAIR end side=$side exit=$s\"; if [ $s -ne 0 ] && [ $s -ne 124 ] && [ $s -ne 137 ]; then failed=1; fi; done; exit $failed",
+    "timeout": 300,
+    "vm_type": "large",
+    "cpu": 8,
+    "memory": 14336
+  },
+  {
+    "name": "generation-pairs",
+    "cmd": "bash research/track-gen/generation-pairs.sh",
+    "cpu": 8,
+    "memory": 14336,
+    "timeout": 480
+  },
+  {
+    "name": "probe-pairs",
+    "cmd": "bash research/track-gen/probe-pairs.sh",
+    "cpu": 8,
+    "memory": 14336,
+    "timeout": 480
+  },
+  {
+    "name": "check-and-tests",
+    "cmd": "set -e; bash research/track-m/prepare-vendors.sh; bun install --frozen-lockfile >/dev/null; bun run check; bun test core/cube-rows.test.ts core/sample-step.test.ts core/compile.test.ts core/infer.test.ts kernel/model-values.test.ts core/count-witness.test.ts core/count-unions.test.ts core/counts-structured.test.ts core/count-support.test.ts core/count-focus-proof.test.ts",
+    "cpu": 8,
+    "memory": 14336,
+    "timeout": 300
+  }
+]

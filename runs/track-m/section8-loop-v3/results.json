@@ -1,0 +1,1150 @@
+[
+  {
+    "law": "Inv2973: quorums overlap, or a config disabled",
+    "wallMs": 5974.1453280000005,
+    "conditionalChecked": false,
+    "hyps": 305,
+    "instances": 58,
+    "complete": [
+      {
+        "stage": "closure-complete",
+        "cuts": 0,
+        "rounds": 1,
+        "fixedPoint": false,
+        "checked": false,
+        "total": 124.20948879999999
+      }
+    ],
+    "finals": [
+      {
+        "stage": "closure-final",
+        "mode": "model-driven",
+        "outcome": "unknown",
+        "reason": "unbound-pool-variables",
+        "model": {
+          "op": 5,
+          "started": 1,
+          "St[i:1]": 1,
+          "CfgT[i:1]": 0,
+          "CT[i:1]": 0,
+          "?committedQuorum": 1,
+          "xAndS[]": 1,
+          "⟦5⟧": 1,
+          "⟦9⟧": 1,
+          "hx": 0,
+          "xNotS[]": 0,
+          "hy": 0,
+          "sNotX[]": 0,
+          "S[i:1]": 1,
+          "?canVote": 0,
+          "i": 0,
+          "size": 1,
+          "a$#": 0,
+          "b$": 0,
+          "r$17": 0,
+          "r$11": 1,
+          "r$14": 0,
+          "r$39": 0,
+          "r$10": 0,
+          "r$9": 1,
+          "r$2": 1,
+          "r$3": 1,
+          "r$12": 0,
+          "j": 0,
+          "?all$1": 1,
+          "?all$3": 1,
+          "r$7": 1,
+          "r$36": 0,
+          "r$22": 0,
+          "?noneCopied": 0,
+          "?allCopied": 0,
+          "?all$2": 0,
+          "u$": 0,
+          "r$0": 1,
+          "w$": 0,
+          "r$1": 1,
+          "r$18": 0,
+          "r$5": 0,
+          "r$40": 0,
+          "r$6": 0,
+          "r$4": 2,
+          "r$38": 0,
+          "r$37": 0,
+          "r$13": 0,
+          "r$15": 0,
+          "r$23": 0
+        },
+        "path": [
+          [
+            "op:1",
+            {
+              "lin": {
+                "op": 1
+              },
+              "holds": false
+            }
+          ],
+          [
+            "1:-1,op:1",
+            {
+              "lin": {
+                "1": -1,
+                "op": 1
+              },
+              "holds": false
+            }
+          ],
+          [
+            "1:-2,op:1",
+            {
+              "lin": {
+                "1": -2,
+                "op": 1
+              },
+              "holds": false
+            }
+          ],
+          [
+            "1:-3,op:1",
+            {
+              "lin": {
+                "1": -3,
+                "op": 1
+              },
+              "holds": false
+            }
+          ],
+          [
+            "1:-4,op:1",
+            {
+              "lin": {
+                "1": -4,
+                "op": 1
+              },
+              "holds": false
+            }
+          ],
+          [
+            "1:-5,op:1",
+            {
+              "lin": {
+                "1": -5,
+                "op": 1
+              },
+              "holds": true
+            }
+          ],
+          [
+            "1:-6,op:1",
+            {
+              "lin": {
+                "1": -6,
+                "op": 1
+              },
+              "holds": true
+            }
+          ],
+          [
+            "1:-1,started:1",
+            {
+              "lin": {
+                "1": -1,
+                "started": 1
+              },
+              "holds": true
+            }
+          ],
+          [
+            "1:1,started:-1",
+            {
+              "lin": {
+                "1": 1,
+                "started": -1
+              },
+              "holds": true
+            }
+          ],
+          [
+            "1:-1,St[i:1]:1",
+            {
+              "lin": {
+                "1": -1,
+                "St[i:1]": 1
+              },
+              "holds": true
+            }
+          ],
+          [
+            "1:1,St[i:1]:-1",
+            {
+              "lin": {
+                "1": 1,
+                "St[i:1]": -1
+              },
+              "holds": true
+            }
+          ],
+          [
+            "CT[i:1]:-1,CfgT[i:1]:1",
+            {
+              "lin": {
+                "CfgT[i:1]": 1,
+                "CT[i:1]": -1
+              },
+              "holds": true
+            }
+          ],
+          [
+            "CT[i:1]:1,CfgT[i:1]:-1",
+            {
+              "lin": {
+                "CT[i:1]": 1,
+                "CfgT[i:1]": -1
+              },
+              "holds": true
+            }
+          ],
+          [
+            "1:-1,?committedQuorum:1",
+            {
+              "lin": {
+                "1": -1,
+                "?committedQuorum": 1
+              },
+              "holds": true
+            }
+          ],
+          [
+            "1:1,?committedQuorum:-1",
+            {
+              "lin": {
+                "1": 1,
+                "?committedQuorum": -1
+              },
+              "holds": true
+            }
+          ],
+          [
+            "1:1,xAndS[]:1,⟦5⟧:-1,⟦9⟧:-1",
+            {
+              "lin": {
+                "1": 1,
+                "xAndS[]": 1,
+                "⟦5⟧": -1,
+                "⟦9⟧": -1
+              },
+              "holds": true
+            }
+          ],
+          [
+            "1:1,S[i:1]:-1",
+            {
+              "lin": {
+                "1": 1,
+                "S[i:1]": -1
+              },
+              "holds": true
+            }
+          ],
+          [
+            "1:-1,?canVote:1",
+            {
+              "lin": {
+                "1": -1,
+                "?canVote": 1
+              },
+              "holds": true
+            }
+          ],
+          [
+            "1:1,i:1,size:-1",
+            {
+              "lin": {
+                "1": 1,
+                "i": 1,
+                "size": -1
+              },
+              "holds": true
+            }
+          ],
+          [
+            "a$#:1,i:-1",
+            {
+              "lin": {
+                "a$#": 1,
+                "i": -1
+              },
+              "holds": true
+            }
+          ],
+          [
+            "a$#:-1,i:1",
+            {
+              "lin": {
+                "a$#": -1,
+                "i": 1
+              },
+              "holds": true
+            }
+          ],
+          [
+            "b$:1,i:-1",
+            {
+              "lin": {
+                "b$": 1,
+                "i": -1
+              },
+              "holds": true
+            }
+          ],
+          [
+            "b$:-1,i:1",
+            {
+              "lin": {
+                "b$": -1,
+                "i": 1
+              },
+              "holds": true
+            }
+          ]
+        ],
+        "missing": [
+          {
+            "index": 27,
+            "names": [
+              "r$16"
+            ]
+          },
+          {
+            "index": 28,
+            "names": [
+              "r$25",
+              "r$24"
+            ]
+          },
+          {
+            "index": 29,
+            "names": [
+              "r$25",
+              "r$24"
+            ]
+          },
+          {
+            "index": 30,
+            "names": [
+              "r$32",
+              "r$30"
+            ]
+          },
+          {
+            "index": 31,
+            "names": [
+              "r$32",
+              "r$30"
+            ]
+          },
+          {
+            "index": 34,
+            "names": [
+              "r$26",
+              "r$24"
+            ]
+          },
+          {
+            "index": 35,
+            "names": [
+              "r$26",
+              "r$24"
+            ]
+          },
+          {
+            "index": 36,
+            "names": [
+              "r$25",
+              "r$24"
+            ]
+          },
+          {
+            "index": 37,
+            "names": [
+              "r$25",
+              "r$24"
+            ]
+          },
+          {
+            "index": 38,
+            "names": [
+              "r$31",
+              "r$30"
+            ]
+          },
+          {
+            "index": 39,
+            "names": [
+              "r$31",
+              "r$30"
+            ]
+          },
+          {
+            "index": 40,
+            "names": [
+              "r$32",
+              "r$30"
+            ]
+          },
+          {
+            "index": 41,
+            "names": [
+              "r$32",
+              "r$30"
+            ]
+          },
+          {
+            "index": 42,
+            "names": [
+              "r$20",
+              "r$19"
+            ]
+          },
+          {
+            "index": 43,
+            "names": [
+              "r$20",
+              "r$19"
+            ]
+          },
+          {
+            "index": 44,
+            "names": [
+              "r$34",
+              "r$33"
+            ]
+          },
+          {
+            "index": 45,
+            "names": [
+              "r$34",
+              "r$33"
+            ]
+          },
+          {
+            "index": 48,
+            "names": [
+              "r$8"
+            ]
+          },
+          {
+            "index": 49,
+            "names": [
+              "r$8"
+            ]
+          },
+          {
+            "index": 50,
+            "names": [
+              "r$21",
+              "r$19"
+            ]
+          },
+          {
+            "index": 51,
+            "names": [
+              "r$21",
+              "r$19"
+            ]
+          },
+          {
+            "index": 52,
+            "names": [
+              "r$29",
+              "r$27"
+            ]
+          },
+          {
+            "index": 53,
+            "names": [
+              "r$29",
+              "r$27"
+            ]
+          },
+          {
+            "index": 0,
+            "names": [
+              "r$8"
+            ]
+          },
+          {
+            "index": 54,
+            "names": [
+              "r$26",
+              "r$25",
+              "r$24"
+            ]
+          },
+          {
+            "index": 55,
+            "names": [
+              "r$31",
+              "r$32",
+              "r$30"
+            ]
+          },
+          {
+            "index": 56,
+            "names": [
+              "r$16",
+              "r$26",
+              "r$25",
+              "r$24"
+            ]
+          },
+          {
+            "index": 57,
+            "names": [
+              "r$16",
+              "r$31",
+              "r$32",
+              "r$30"
+            ]
+          }
+        ],
+        "ms": 123.85914239999998,
+        "total": 124.20948879999999
+      }
+    ],
+    "rounds": [
+      {
+        "stage": "closure-model-round",
+        "round": 1,
+        "scope": 7,
+        "violated": [
+          18,
+          3,
+          4,
+          7,
+          33,
+          10,
+          12,
+          8
+        ],
+        "pending": [
+          18,
+          3,
+          4,
+          7,
+          33,
+          10,
+          12,
+          8
+        ],
+        "excluded": [],
+        "missing": [
+          {
+            "index": 27,
+            "names": [
+              "r$16"
+            ]
+          },
+          {
+            "index": 28,
+            "names": [
+              "r$25",
+              "r$24"
+            ]
+          },
+          {
+            "index": 29,
+            "names": [
+              "r$25",
+              "r$24"
+            ]
+          },
+          {
+            "index": 30,
+            "names": [
+              "r$32",
+              "r$30"
+            ]
+          },
+          {
+            "index": 31,
+            "names": [
+              "r$32",
+              "r$30"
+            ]
+          },
+          {
+            "index": 34,
+            "names": [
+              "r$26",
+              "r$24"
+            ]
+          },
+          {
+            "index": 35,
+            "names": [
+              "r$26",
+              "r$24"
+            ]
+          },
+          {
+            "index": 36,
+            "names": [
+              "r$25",
+              "r$24"
+            ]
+          },
+          {
+            "index": 37,
+            "names": [
+              "r$25",
+              "r$24"
+            ]
+          },
+          {
+            "index": 38,
+            "names": [
+              "r$31",
+              "r$30"
+            ]
+          },
+          {
+            "index": 39,
+            "names": [
+              "r$31",
+              "r$30"
+            ]
+          },
+          {
+            "index": 40,
+            "names": [
+              "r$32",
+              "r$30"
+            ]
+          },
+          {
+            "index": 41,
+            "names": [
+              "r$32",
+              "r$30"
+            ]
+          },
+          {
+            "index": 42,
+            "names": [
+              "r$20",
+              "r$19"
+            ]
+          },
+          {
+            "index": 43,
+            "names": [
+              "r$20",
+              "r$19"
+            ]
+          },
+          {
+            "index": 44,
+            "names": [
+              "r$34",
+              "r$33"
+            ]
+          },
+          {
+            "index": 45,
+            "names": [
+              "r$34",
+              "r$33"
+            ]
+          },
+          {
+            "index": 48,
+            "names": [
+              "r$8"
+            ]
+          },
+          {
+            "index": 49,
+            "names": [
+              "r$8"
+            ]
+          },
+          {
+            "index": 50,
+            "names": [
+              "r$21",
+              "r$19"
+            ]
+          },
+          {
+            "index": 51,
+            "names": [
+              "r$21",
+              "r$19"
+            ]
+          },
+          {
+            "index": 52,
+            "names": [
+              "r$29",
+              "r$27"
+            ]
+          },
+          {
+            "index": 53,
+            "names": [
+              "r$29",
+              "r$27"
+            ]
+          },
+          {
+            "index": 0,
+            "names": [
+              "r$8"
+            ]
+          },
+          {
+            "index": 54,
+            "names": [
+              "r$26",
+              "r$25",
+              "r$24"
+            ]
+          },
+          {
+            "index": 55,
+            "names": [
+              "r$31",
+              "r$32",
+              "r$30"
+            ]
+          },
+          {
+            "index": 56,
+            "names": [
+              "r$16",
+              "r$26",
+              "r$25",
+              "r$24"
+            ]
+          },
+          {
+            "index": 57,
+            "names": [
+              "r$16",
+              "r$31",
+              "r$32",
+              "r$30"
+            ]
+          }
+        ],
+        "cuts": 0,
+        "pool": 58
+      }
+    ],
+    "sources": [],
+    "duplicates": []
+  },
+  {
+    "law": "Inv*: no quorum of a config can still be gathered for a config term held",
+    "wallMs": 7623.321231,
+    "conditionalChecked": false,
+    "hyps": 210,
+    "instances": 32,
+    "complete": [
+      {
+        "stage": "closure-complete",
+        "cuts": 0,
+        "rounds": 1,
+        "fixedPoint": false,
+        "checked": false,
+        "total": 547.2179451999999
+      }
+    ],
+    "finals": [
+      {
+        "stage": "closure-final",
+        "mode": "model-driven",
+        "outcome": "unknown",
+        "reason": "unbound-pool-variables",
+        "model": {
+          "op": 5,
+          "started": 1,
+          "St[i:1]": 1,
+          "CfgT[i:1]": 0,
+          "CT[i:1]": 0,
+          "?committedQuorum": 1,
+          "xAndS[]": 1,
+          "⟦5⟧": 1,
+          "⟦9⟧": 1,
+          "hx": 0,
+          "xNotS[]": 0,
+          "hy": 0,
+          "sNotX[]": 0,
+          "S[i:1]": 1,
+          "?canVote": 0,
+          "i": 0,
+          "size": 1,
+          "j$": 0,
+          "a$#": 0,
+          "r$13": 0,
+          "r$8": 0,
+          "r$6": 1,
+          "r$5": 0,
+          "r$7": 0,
+          "r$0": 1,
+          "r$4": 1,
+          "r$14": 0,
+          "j": 0,
+          "?all$1": 1,
+          "?all$3": 1,
+          "r$2": 1,
+          "r$11": 0,
+          "r$12": 0,
+          "r$15": 0,
+          "r$9": 0,
+          "r$16": 0,
+          "?noneCopied": 0,
+          "?allCopied": 0,
+          "?all$2": 0,
+          "r$1": 1,
+          "r$18": 0,
+          "r$10": 0,
+          "r$19": 0,
+          "r$17": 0
+        },
+        "path": [
+          [
+            "op:1",
+            {
+              "lin": {
+                "op": 1
+              },
+              "holds": false
+            }
+          ],
+          [
+            "1:-1,op:1",
+            {
+              "lin": {
+                "1": -1,
+                "op": 1
+              },
+              "holds": false
+            }
+          ],
+          [
+            "1:-2,op:1",
+            {
+              "lin": {
+                "1": -2,
+                "op": 1
+              },
+              "holds": false
+            }
+          ],
+          [
+            "1:-3,op:1",
+            {
+              "lin": {
+                "1": -3,
+                "op": 1
+              },
+              "holds": false
+            }
+          ],
+          [
+            "1:-4,op:1",
+            {
+              "lin": {
+                "1": -4,
+                "op": 1
+              },
+              "holds": false
+            }
+          ],
+          [
+            "1:-5,op:1",
+            {
+              "lin": {
+                "1": -5,
+                "op": 1
+              },
+              "holds": true
+            }
+          ],
+          [
+            "1:-6,op:1",
+            {
+              "lin": {
+                "1": -6,
+                "op": 1
+              },
+              "holds": true
+            }
+          ],
+          [
+            "1:-1,started:1",
+            {
+              "lin": {
+                "1": -1,
+                "started": 1
+              },
+              "holds": true
+            }
+          ],
+          [
+            "1:1,started:-1",
+            {
+              "lin": {
+                "1": 1,
+                "started": -1
+              },
+              "holds": true
+            }
+          ],
+          [
+            "1:-1,St[i:1]:1",
+            {
+              "lin": {
+                "1": -1,
+                "St[i:1]": 1
+              },
+              "holds": true
+            }
+          ],
+          [
+            "1:1,St[i:1]:-1",
+            {
+              "lin": {
+                "1": 1,
+                "St[i:1]": -1
+              },
+              "holds": true
+            }
+          ],
+          [
+            "CT[i:1]:-1,CfgT[i:1]:1",
+            {
+              "lin": {
+                "CfgT[i:1]": 1,
+                "CT[i:1]": -1
+              },
+              "holds": true
+            }
+          ],
+          [
+            "CT[i:1]:1,CfgT[i:1]:-1",
+            {
+              "lin": {
+                "CT[i:1]": 1,
+                "CfgT[i:1]": -1
+              },
+              "holds": true
+            }
+          ],
+          [
+            "1:-1,?committedQuorum:1",
+            {
+              "lin": {
+                "1": -1,
+                "?committedQuorum": 1
+              },
+              "holds": true
+            }
+          ],
+          [
+            "1:1,?committedQuorum:-1",
+            {
+              "lin": {
+                "1": 1,
+                "?committedQuorum": -1
+              },
+              "holds": true
+            }
+          ],
+          [
+            "1:1,xAndS[]:1,⟦5⟧:-1,⟦9⟧:-1",
+            {
+              "lin": {
+                "1": 1,
+                "xAndS[]": 1,
+                "⟦5⟧": -1,
+                "⟦9⟧": -1
+              },
+              "holds": true
+            }
+          ],
+          [
+            "1:1,S[i:1]:-1",
+            {
+              "lin": {
+                "1": 1,
+                "S[i:1]": -1
+              },
+              "holds": true
+            }
+          ],
+          [
+            "1:-1,?canVote:1",
+            {
+              "lin": {
+                "1": -1,
+                "?canVote": 1
+              },
+              "holds": true
+            }
+          ],
+          [
+            "1:1,i:1,size:-1",
+            {
+              "lin": {
+                "1": 1,
+                "i": 1,
+                "size": -1
+              },
+              "holds": true
+            }
+          ],
+          [
+            "1:1,j$:1,size:-1",
+            {
+              "lin": {
+                "1": 1,
+                "j$": 1,
+                "size": -1
+              },
+              "holds": true
+            }
+          ],
+          [
+            "a$#:1,i:-1",
+            {
+              "lin": {
+                "a$#": 1,
+                "i": -1
+              },
+              "holds": true
+            }
+          ],
+          [
+            "a$#:-1,i:1",
+            {
+              "lin": {
+                "a$#": -1,
+                "i": 1
+              },
+              "holds": true
+            }
+          ],
+          [
+            "i:-1,j$:1",
+            {
+              "lin": {
+                "j$": 1,
+                "i": -1
+              },
+              "holds": true
+            }
+          ],
+          [
+            "i:1,j$:-1",
+            {
+              "lin": {
+                "j$": -1,
+                "i": 1
+              },
+              "holds": true
+            }
+          ]
+        ],
+        "missing": [
+          {
+            "index": 28,
+            "names": [
+              "r$3"
+            ]
+          },
+          {
+            "index": 29,
+            "names": [
+              "r$3"
+            ]
+          },
+          {
+            "index": 11,
+            "names": [
+              "r$3"
+            ]
+          },
+          {
+            "index": 12,
+            "names": [
+              "r$3"
+            ]
+          }
+        ],
+        "ms": 46.86306039999994,
+        "total": 547.2179451999999
+      }
+    ],
+    "rounds": [
+      {
+        "stage": "closure-model-round",
+        "round": 1,
+        "scope": 7,
+        "violated": [
+          1,
+          25,
+          30,
+          5,
+          7,
+          9,
+          3,
+          31
+        ],
+        "pending": [
+          1,
+          25,
+          30,
+          5,
+          7,
+          9,
+          3,
+          31
+        ],
+        "excluded": [],
+        "missing": [
+          {
+            "index": 28,
+            "names": [
+              "r$3"
+            ]
+          },
+          {
+            "index": 29,
+            "names": [
+              "r$3"
+            ]
+          },
+          {
+            "index": 11,
+            "names": [
+              "r$3"
+            ]
+          },
+          {
+            "index": 12,
+            "names": [
+              "r$3"
+            ]
+          }
+        ],
+        "cuts": 0,
+        "pool": 32
+      }
+    ],
+    "sources": [],
+    "duplicates": []
+  }
+]

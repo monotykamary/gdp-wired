@@ -1,0 +1,29 @@
+$ tsc -p . && oxlint --type-aware --deny-warnings --disable-nested-config
+
+  x typescript(require-array-sort-compare): Require 'compare' argument.
+    ,-[research/track-m/audit-section11.ts:17:113]
+ 16 | for(const [file,wanted]of Object.entries(manifest.sourceHashes))if(hash(join('core',file))!==wanted)throw new Error('candidate source drift: '+file)
+ 17 | const profiles=lines(join(diag,'full.log')).filter(r=>r.mode==='family'),b=records.filter(r=>r.side==='B'),open=[...new Set(b.flatMap(r=>r.laws.filter((l:any)=>!l.checked).map((l:any)=>l.law)))].sort()
+    :                                                                                                                 ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+ 18 | if(JSON.stringify(profiles.filter(r=>!r.checked).map(r=>r.law).sort())!==JSON.stringify(open))throw new Error('diagnostic misses an open law')
+    `----
+
+  x typescript(require-array-sort-compare): Require 'compare' argument.
+    ,-[research/track-m/audit-section11.ts:18:19]
+ 17 | const profiles=lines(join(diag,'full.log')).filter(r=>r.mode==='family'),b=records.filter(r=>r.side==='B'),open=[...new Set(b.flatMap(r=>r.laws.filter((l:any)=>!l.checked).map((l:any)=>l.law)))].sort()
+ 18 | if(JSON.stringify(profiles.filter(r=>!r.checked).map(r=>r.law).sort())!==JSON.stringify(open))throw new Error('diagnostic misses an open law')
+    :                   ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+ 19 | const diagnostics=readdirSync(diag).filter(n=>n.endsWith('-full.json')).map(n=>json(join(diag,n)))
+    `----
+
+  x typescript(require-array-sort-compare): Require 'compare' argument.
+    ,-[research/track-m/audit-section11.ts:20:19]
+ 19 | const diagnostics=readdirSync(diag).filter(n=>n.endsWith('-full.json')).map(n=>json(join(diag,n)))
+ 20 | if(JSON.stringify(diagnostics.map(r=>r.production.label).sort())!==JSON.stringify(open))throw new Error('missing first-unfinished snapshot')
+    :                   ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+ 21 | for(const r of diagnostics){if(r.revision!==manifest.candidateCommit||!r.firstUnfinished)throw new Error('diagnostic revision or path missing')}
+    `----
+
+Found 0 warnings and 3 errors.
+Finished in 13.0s on 1245 files with 100 rules using 8 threads.
+error: script "check" exited with code 1

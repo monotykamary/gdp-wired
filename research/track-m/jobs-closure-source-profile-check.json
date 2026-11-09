@@ -1,0 +1,9 @@
+[
+  {
+    "name": "source-profile-check",
+    "cmd": "set -e; bun install --frozen-lockfile >/dev/null; bun x oxlint --type-aware --deny-warnings --disable-nested-config research/track-m/derivability-closure.ts research/track-m/closure-falsification.ts research/track-m/profile-closure-sources.ts; sha256sum profile-input/profile.json profile-input/union-39.json profile-input/table.md > before.sha256; bun research/track-m/profile-closure-sources.ts profile-input reference-input/summary.json >/dev/null; sha256sum -c before.sha256",
+    "cpu": 1,
+    "memory": 4000,
+    "timeout": 90
+  }
+]

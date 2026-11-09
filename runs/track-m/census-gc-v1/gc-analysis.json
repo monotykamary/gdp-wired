@@ -1,0 +1,111 @@
+{
+  "groups": [
+    {
+      "variant": "tf1-profile",
+      "defaultIds": [
+        "d1",
+        "d2"
+      ],
+      "syncIds": [
+        "c1",
+        "c2"
+      ],
+      "defaultKernelMs": [
+        1662.9457005000004,
+        2302.848661500001,
+        8434.00858200002
+      ],
+      "syncKernelMs": [
+        1614.4157564999998,
+        2366.329952000003,
+        8808.310435499998
+      ],
+      "syncToDefault": [
+        0.9708168799586127,
+        1.0275664187409745,
+        1.0443800655240993
+      ]
+    },
+    {
+      "variant": "census-extras",
+      "defaultIds": [
+        "d3",
+        "d4"
+      ],
+      "syncIds": [
+        "c3",
+        "c4"
+      ],
+      "defaultKernelMs": [
+        1411.8350655,
+        1945.8485610000005,
+        7924.550762999999
+      ],
+      "syncKernelMs": [
+        1432.1229764999998,
+        1925.6718804999994,
+        8955.9402615
+      ],
+      "syncToDefault": [
+        1.0143698874576508,
+        0.9896309091548049,
+        1.130151163055904
+      ]
+    }
+  ],
+  "logs": [
+    {
+      "id": "d1",
+      "rawLogRetained": true,
+      "completeCollections": 119,
+      "reportedPauseMs": 3129.025606000001,
+      "reportedCycleMs": 3388.2853130000008,
+      "maxReportedPauseMs": 114.19488
+    },
+    {
+      "id": "c1",
+      "rawLogRetained": false
+    },
+    {
+      "id": "c2",
+      "rawLogRetained": false
+    },
+    {
+      "id": "d2",
+      "rawLogRetained": true,
+      "completeCollections": 121,
+      "reportedPauseMs": 3091.1389,
+      "reportedCycleMs": 3390.274124,
+      "maxReportedPauseMs": 79.427637
+    },
+    {
+      "id": "d3",
+      "rawLogRetained": true,
+      "completeCollections": 116,
+      "reportedPauseMs": 2587.516604,
+      "reportedCycleMs": 2831.664463,
+      "maxReportedPauseMs": 92.437126
+    },
+    {
+      "id": "c3",
+      "rawLogRetained": false
+    },
+    {
+      "id": "c4",
+      "rawLogRetained": true,
+      "completeCollections": 126,
+      "reportedPauseMs": 3264.9661760000004,
+      "reportedCycleMs": 3262.0822670000002,
+      "maxReportedPauseMs": 155.376473
+    },
+    {
+      "id": "d4",
+      "rawLogRetained": true,
+      "completeCollections": 122,
+      "reportedPauseMs": 2943.909631,
+      "reportedCycleMs": 3248.059099,
+      "maxReportedPauseMs": 96.001493
+    }
+  ],
+  "note": "Structured measurements retained for all trials. Missing raw stderr is disclosed; GC p/cycle fields are reported engine timers, not an exclusive kernel-phase decomposition."
+}

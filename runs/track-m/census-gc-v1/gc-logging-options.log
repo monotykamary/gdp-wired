@@ -1,0 +1,4 @@
+Modified JSC options:
+   dumpOptions=1 (default: 0)
+   logGC=1 (default: 0)
+[GC<0x5d44a39c118>: starting 0.514477ms]

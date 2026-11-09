@@ -1,0 +1,16 @@
+[
+  {
+    "name": "layout-first",
+    "cmd": "set -e; bun install --frozen-lockfile >/dev/null; LAB_SOURCE_CERT=1 bun research/track-m/active-source-probe.ts replay-input/input.json 'Inv2973' 5 first",
+    "cpu": 1,
+    "memory": 4000,
+    "timeout": 45
+  },
+  {
+    "name": "layout-all",
+    "cmd": "set -e; bun install --frozen-lockfile >/dev/null; LAB_SOURCE_CERT=1 bun research/track-m/active-source-probe.ts replay-input/input.json 'Inv2973' 5 all",
+    "cpu": 1,
+    "memory": 4000,
+    "timeout": 45
+  }
+]

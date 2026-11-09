@@ -1,0 +1,47 @@
+Found 0 warnings and 0 errors.
+Finished in 12.7s on 1203 files with 100 rules using 8 threads.
+bun test v1.4.3 (c6da4a4d3)
+{
+  "test": "T-9A-final-validation",
+  "packetHash": "78b51495639d2e70ecdb871465c3d59c7cdfbc43e0abcf2804ab6b251f76f5c3",
+  "records": 12,
+  "packetComponentsChecked": [
+    "goal",
+    "certificate",
+    "path",
+    "numeric",
+    "fullCert",
+    "indices",
+    "24 active cuts and original-index mapping"
+  ],
+  "sourceModels": 42,
+  "numericModels": 14,
+  "scopeChecks": 56,
+  "recordedAdmissions": 4,
+  "strictDecision": "failed-or-inconsistent",
+  "complementDecision": "generator-gap",
+  "sourceReplay": "brokenOf + every original path atom; fresh empty opaque registry",
+  "noProtocolCounterexampleClaim": true,
+  "laterTestsRun": false
+}
+
+--- stderr ---
+$ tsc -p . && oxlint --type-aware --deny-warnings --disable-nested-config
+
+research/track-m/phase-census-meter.test.ts:
+(pass) wall phases are exclusive and kernel work is not double counted [0.34ms]
+(pass) phase-local solver work remains charged to its phase [0.13ms]
+(pass) cut-use audit distinguishes offered, core and checked proof references [0.61ms]
+
+research/track-m/section9-ta-audit.test.ts:
+(pass) a named gap requires validated SAT sources for every violated fact [0.13ms]
+(pass) an unknown source is not a generator gap [0.03ms]
+(pass) a refuted but unadmitted source is not SAT [0.02ms]
+(pass) an invalid model cannot establish a gap
+(pass) the guard branch is not the named complement gap
+(pass) both requested candidates must be queried even if absent from V [0.02ms]
+
+ 9 pass
+ 0 fail
+ 15 expect() calls
+Ran 9 tests across 2 files. [14.00ms]

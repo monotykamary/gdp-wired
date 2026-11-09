@@ -1,0 +1,1 @@
+[{"name":"relative","cmd":"bun install --frozen-lockfile && bun research/track-gen/t13-relative.ts","timeout":900}]

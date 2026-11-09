@@ -1,0 +1,15 @@
+Found 0 warnings and 0 errors.
+Finished in 332ms on 2 files with 100 rules using 8 threads.
+bun test v1.4.3 (c6da4a4d3)
+
+--- stderr ---
+
+core/count-recovery/derivability-closure.test.ts:
+(pass) closure checks a derived union [33.08ms]
+(pass) closure does not assume a false union [5.71ms]
+(pass) expired closure leaves no proof and never extends its deadline [2.22ms]
+
+ 3 pass
+ 0 fail
+ 5 expect() calls
+Ran 3 tests across 1 file. [57.00ms]

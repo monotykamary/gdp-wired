@@ -1,0 +1,498 @@
+{
+  "file": "p2.cpuprofile",
+  "sha256": "39f6583ef061f1fc6a3af9348b520056ba6000536cd7fb2fb147d679e8f8deca",
+  "bytes": 15044693,
+  "nodes": 75079,
+  "samples": 25114,
+  "profileWallMs": 31075.23325,
+  "sampledMs": 31065.788,
+  "kernelMs": 17785.224,
+  "gcMs": 0,
+  "self": [
+    {
+      "name": "decide@kernel.ts:65",
+      "ms": 6919.066
+    },
+    {
+      "name": "truthOf@kernel.ts:289",
+      "ms": 1573.89
+    },
+    {
+      "name": "reusing@kernel.ts:399",
+      "ms": 1542.087
+    },
+    {
+      "name": "truth@kernel.ts:280",
+      "ms": 1521.676
+    },
+    {
+      "name": "add@solver.ts:32",
+      "ms": 1190.39
+    },
+    {
+      "name": "leafRows@kernel.ts:426",
+      "ms": 907.031
+    },
+    {
+      "name": "canon@kernel.ts:43",
+      "ms": 750.097
+    },
+    {
+      "name": "sub@solver.ts:43",
+      "ms": 717.384
+    },
+    {
+      "name": "canonFlip@kernel.ts:49",
+      "ms": 709.216
+    },
+    {
+      "name": "Map@(native):0",
+      "ms": 695.346
+    },
+    {
+      "name": "(anon)@kernel.ts:402",
+      "ms": 673.386
+    },
+    {
+      "name": "sort@(native):0",
+      "ms": 593.686
+    },
+    {
+      "name": "map@(native):1",
+      "ms": 560.447
+    },
+    {
+      "name": "comparison@kernel.ts:254",
+      "ms": 524.156
+    },
+    {
+      "name": "filter@(native):1",
+      "ms": 520.486
+    },
+    {
+      "name": "values@(native):0",
+      "ms": 498.81
+    },
+    {
+      "name": "termColumn@kernel.ts:181",
+      "ms": 490.542
+    },
+    {
+      "name": "look@kernel.ts:76",
+      "ms": 446.307
+    },
+    {
+      "name": "scale@solver.ts:38",
+      "ms": 435.992
+    },
+    {
+      "name": "(anon)@prove.ts:848",
+      "ms": 408.128
+    },
+    {
+      "name": "every@(native):1",
+      "ms": 399.042
+    },
+    {
+      "name": "choiceFree@kernel.ts:85",
+      "ms": 365.808
+    },
+    {
+      "name": "v@solver.ts:27",
+      "ms": 354.333
+    },
+    {
+      "name": "entries@(native):0",
+      "ms": 295.96
+    },
+    {
+      "name": "(anon)@kernel.ts:45",
+      "ms": 294.365
+    },
+    {
+      "name": "(anon)@cdcl.ts:392",
+      "ms": 289.122
+    },
+    {
+      "name": "distance@source-memo.ts:25",
+      "ms": 282.265
+    },
+    {
+      "name": "rowsAt@prove.ts:774",
+      "ms": 280.278
+    },
+    {
+      "name": "linear@kernel.ts:99",
+      "ms": 267.309
+    },
+    {
+      "name": "search@cdcl.ts:607",
+      "ms": 261.489
+    },
+    {
+      "name": "(anon)@kernel.ts:429",
+      "ms": 247.184
+    },
+    {
+      "name": "(anon)@kernel.ts:303",
+      "ms": 226.352
+    },
+    {
+      "name": "performIteration@(native):1",
+      "ms": 209.118
+    },
+    {
+      "name": "stringify@(native):0",
+      "ms": 209.101
+    },
+    {
+      "name": "(anon)@kernel.ts:295",
+      "ms": 199.368
+    },
+    {
+      "name": "read@reader.ts:106",
+      "ms": 197.119
+    },
+    {
+      "name": "facts@kernel.ts:328",
+      "ms": 185.548
+    },
+    {
+      "name": "linearOp@kernel.ts:121",
+      "ms": 171.668
+    },
+    {
+      "name": "__phaseOriginal_solve@solver.ts:98",
+      "ms": 148.868
+    },
+    {
+      "name": "(anon)@rename-proof.ts:41",
+      "ms": 145.043
+    }
+  ],
+  "inclusive": [
+    {
+      "name": "(root)@(native):0",
+      "ms": 31065.788
+    },
+    {
+      "name": "(module)@run-phase-census.ts:2",
+      "ms": 31009.688
+    },
+    {
+      "name": "(anon)@run-phase-census.ts:17",
+      "ms": 31008.668
+    },
+    {
+      "name": "withTrees@prove.ts:306",
+      "ms": 31008.668
+    },
+    {
+      "name": "(anon)@run-phase-census.ts:24",
+      "ms": 31004.986
+    },
+    {
+      "name": "counted@prove.ts:224",
+      "ms": 31004.986
+    },
+    {
+      "name": "withWall@prove.ts:255",
+      "ms": 31004.986
+    },
+    {
+      "name": "run@phase-census-meter.ts:25",
+      "ms": 31004.986
+    },
+    {
+      "name": "leafRows@kernel.ts:426",
+      "ms": 22404.022
+    },
+    {
+      "name": "proveFocusedCounts@count-focus-proof.ts:15",
+      "ms": 22022.618
+    },
+    {
+      "name": "(anon)@count-cases.ts:93",
+      "ms": 21692.728
+    },
+    {
+      "name": "withDeadline@prove.ts:267",
+      "ms": 21692.728
+    },
+    {
+      "name": "map@(native):1",
+      "ms": 19691.511
+    },
+    {
+      "name": "facts@kernel.ts:328",
+      "ms": 18451.303
+    },
+    {
+      "name": "__phaseOriginal_check@kernel.ts:504",
+      "ms": 17766.402
+    },
+    {
+      "name": "truthOf@kernel.ts:289",
+      "ms": 17374.941
+    },
+    {
+      "name": "truth@kernel.ts:280",
+      "ms": 16482.489
+    },
+    {
+      "name": "filter@(native):1",
+      "ms": 14284.766
+    },
+    {
+      "name": "(anon)@kernel.ts:335",
+      "ms": 13566.567
+    },
+    {
+      "name": "guardCasesImpl@guard-cases.ts:17",
+      "ms": 11650.326
+    },
+    {
+      "name": "visit@guard-cases.ts:61",
+      "ms": 11649.03
+    },
+    {
+      "name": "leaf@guard-cases.ts:31",
+      "ms": 11642.23
+    },
+    {
+      "name": "comparisonOf@kernel.ts:267",
+      "ms": 10190.257
+    },
+    {
+      "name": "every@(native):1",
+      "ms": 10034.313
+    },
+    {
+      "name": "linearOf@kernel.ts:116",
+      "ms": 9386.477
+    },
+    {
+      "name": "linearOp@kernel.ts:121",
+      "ms": 9285.89
+    },
+    {
+      "name": "comparison@kernel.ts:254",
+      "ms": 9228.654
+    },
+    {
+      "name": "decide@kernel.ts:65",
+      "ms": 9073.803
+    },
+    {
+      "name": "(anon)@field-bound-lemmas.ts:72",
+      "ms": 8899.937
+    },
+    {
+      "name": "proveRowCasesImpl@row-cases.ts:65",
+      "ms": 8756.891
+    },
+    {
+      "name": "branch@row-cases.ts:113",
+      "ms": 8754.817
+    },
+    {
+      "name": "leaf@row-cases.ts:76",
+      "ms": 8753.815
+    },
+    {
+      "name": "linear@kernel.ts:99",
+      "ms": 8370.341
+    },
+    {
+      "name": "fieldBoundLemmasImpl@field-bound-lemmas.ts:81",
+      "ms": 7863.915
+    },
+    {
+      "name": "(anon)@field-bound-lemmas.ts:122",
+      "ms": 7461.508
+    },
+    {
+      "name": "fieldCase@field-case.ts:25",
+      "ms": 6196.964
+    },
+    {
+      "name": "fieldCaseImpl@field-case.ts:32",
+      "ms": 6090.472
+    },
+    {
+      "name": "flatIntoArrayWithCallback@(native):1",
+      "ms": 5909.98
+    },
+    {
+      "name": "flatMap@(native):1",
+      "ms": 5487.429
+    },
+    {
+      "name": "rowsAt@prove.ts:774",
+      "ms": 5169.191
+    }
+  ],
+  "kernelSelf": [
+    {
+      "name": "decide@kernel.ts:65",
+      "ms": 6587.533
+    },
+    {
+      "name": "truthOf@kernel.ts:289",
+      "ms": 1495.944
+    },
+    {
+      "name": "truth@kernel.ts:280",
+      "ms": 1452.321
+    },
+    {
+      "name": "add@solver.ts:32",
+      "ms": 799.829
+    },
+    {
+      "name": "leafRows@kernel.ts:426",
+      "ms": 602.222
+    },
+    {
+      "name": "comparison@kernel.ts:254",
+      "ms": 495.056
+    },
+    {
+      "name": "termColumn@kernel.ts:181",
+      "ms": 482.51
+    },
+    {
+      "name": "sub@solver.ts:43",
+      "ms": 451.595
+    },
+    {
+      "name": "canonFlip@kernel.ts:49",
+      "ms": 436.182
+    },
+    {
+      "name": "sort@(native):0",
+      "ms": 381.52
+    },
+    {
+      "name": "values@(native):0",
+      "ms": 339.038
+    },
+    {
+      "name": "look@kernel.ts:76",
+      "ms": 337.165
+    },
+    {
+      "name": "v@solver.ts:27",
+      "ms": 336.168
+    },
+    {
+      "name": "canon@kernel.ts:43",
+      "ms": 323.667
+    },
+    {
+      "name": "filter@(native):1",
+      "ms": 308.936
+    },
+    {
+      "name": "choiceFree@kernel.ts:85",
+      "ms": 306.492
+    },
+    {
+      "name": "map@(native):1",
+      "ms": 277.955
+    },
+    {
+      "name": "scale@solver.ts:38",
+      "ms": 270.767
+    },
+    {
+      "name": "linear@kernel.ts:99",
+      "ms": 233.7
+    },
+    {
+      "name": "every@(native):1",
+      "ms": 227.47
+    },
+    {
+      "name": "(anon)@kernel.ts:303",
+      "ms": 223.126
+    },
+    {
+      "name": "(anon)@kernel.ts:295",
+      "ms": 192.573
+    },
+    {
+      "name": "facts@kernel.ts:328",
+      "ms": 167.124
+    },
+    {
+      "name": "linearOp@kernel.ts:121",
+      "ms": 159.05
+    },
+    {
+      "name": "(anon)@kernel.ts:45",
+      "ms": 136.665
+    },
+    {
+      "name": "(anon)@kernel.ts:296",
+      "ms": 84.529
+    },
+    {
+      "name": "(anon)@kernel.ts:429",
+      "ms": 69.124
+    },
+    {
+      "name": "termId@kernel.ts:171",
+      "ms": 63.351
+    },
+    {
+      "name": "safe@kernel.ts:120",
+      "ms": 62.195
+    },
+    {
+      "name": "__phaseOriginal_checkRefutation@check.ts:21",
+      "ms": 53.635
+    },
+    {
+      "name": "k@solver.ts:28",
+      "ms": 53.258
+    },
+    {
+      "name": "Set@(native):0",
+      "ms": 41.846
+    },
+    {
+      "name": "comparisonOf@kernel.ts:267",
+      "ms": 27.874
+    },
+    {
+      "name": "cellParts@kernel.ts:455",
+      "ms": 25.826
+    },
+    {
+      "name": "flatIntoArray@(native):1",
+      "ms": 24.051
+    },
+    {
+      "name": "linearOf@kernel.ts:116",
+      "ms": 16.484
+    },
+    {
+      "name": "(anon)@kernel.ts:120",
+      "ms": 15.767
+    },
+    {
+      "name": "entries@(native):0",
+      "ms": 15.605
+    },
+    {
+      "name": "seenOf@kernel.ts:425",
+      "ms": 15.183
+    },
+    {
+      "name": "copyDataProperties@(native):0",
+      "ms": 15.088
+    }
+  ],
+  "note": "Sampling evidence, not an exclusive wall meter. Full profiles omitted from stdout to preserve bounded receipts."
+}

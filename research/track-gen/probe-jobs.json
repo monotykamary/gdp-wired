@@ -1,0 +1,1 @@
+[{"name":"probe-pairs","cmd":"bash research/track-gen/probe-pairs.sh","cpu":8,"memory":14336,"timeout":480},{"name":"units-fixed","cmd":"set -e; bun install --frozen-lockfile >/dev/null; bun test core/sample-step.test.ts core/compile.test.ts core/infer.test.ts","cpu":8,"memory":14336,"timeout":300}]

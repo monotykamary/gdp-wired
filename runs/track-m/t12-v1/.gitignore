@@ -1,0 +1,6 @@
+*
+!.gitignore
+!README.md
+!summary.json
+!receipts.br
+!archive-manifest.json

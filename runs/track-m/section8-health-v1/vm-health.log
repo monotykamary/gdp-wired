@@ -1,0 +1,2 @@
+{"test":"vm-health","wallMs":300.12244300000003,"cpuMs":306.465,"n":9326726,"load":"1.22 1.51 1.29 1/590 280422","pressure":"some avg10=0.00 avg60=0.14 avg300=0.11 total=70015547\nfull avg10=0.00 avg60=0.00 avg300=0.00 total=0"}
+{"process":" 280419  280414 93.7  0.1       0 bun research/track-m/section8-vm-health.ts","cwd":"/work/gdp-wired","hasTA":true}

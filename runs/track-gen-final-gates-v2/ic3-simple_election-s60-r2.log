@@ -1,0 +1,12 @@
+PAIR begin side=base id=simple_election run=2
+{"id":"simple_election","ic3syn":"ex-simple-election","search":{"verdict":"proven","found":["every Start cell is a value of its kind","every Promise cell is a value of its kind","every Promised cell is a value of its kind","every Leader cell is a value of its kind","one leader","Leader keeps members's bound through members$Leader","every x, y with x < 64 ∧ y <= 63: never Start[x] is 0 and 1 <= Promise[64·x + y]","every x, y with x < 64 ∧ y <= 63: never Promised[y] is 0 and 1 <= Promise[64·x + y]","every x, y with x < 64 ∧ y < 64 ∧ ¬(x = y): never 1 <= Leader[x] and 1 <= Leader[y]","every x, y, z with x < 64 ∧ y < 64 ∧ ¬(x = y) ∧ z <= 63: never 1 <= Promise[64·x + z] and 1 <= Promise[64·y + z]"],"ms":2343,"work":332692,"full":158981}}
+[infer join engine] {"wall":0,"eUntil":14049}
+[infer join small instance] {"states":72,"bfs":72,"params":1,"symmetric":"M:Leader","ms":346,"took":346}
+[infer join pool] {"made":6,"left":6,"states":282,"ms":2204,"real":1501}
+PAIR end side=base exit=0
+PAIR begin side=cand id=simple_election run=2
+{"id":"simple_election","ic3syn":"ex-simple-election","search":{"verdict":"proven","found":["every Start cell is a value of its kind","every Promise cell is a value of its kind","every Promised cell is a value of its kind","every Leader cell is a value of its kind","one leader","Leader keeps members's bound through members$Leader","every x, y with x < 64 ∧ y <= 63: never Start[x] is 0 and 1 <= Promise[64·x + y]","every x, y with x < 64 ∧ y <= 63: never Promised[y] is 0 and 1 <= Promise[64·x + y]","every x, y with x < 64 ∧ y < 64 ∧ ¬(x = y): never 1 <= Leader[x] and 1 <= Leader[y]","every x, y, z with x < 64 ∧ y < 64 ∧ ¬(x = y) ∧ z <= 63: never 1 <= Promise[64·x + z] and 1 <= Promise[64·y + z]"],"ms":4063,"work":2210765,"full":2687872}}
+[infer join engine] {"wall":0,"eUntil":14244}
+[infer join small instance] {"states":72,"bfs":72,"params":1,"symmetric":"M:Leader","ms":346,"took":346}
+[infer join pool] {"made":6,"left":6,"states":282,"ms":2204,"real":998}
+PAIR end side=cand exit=0

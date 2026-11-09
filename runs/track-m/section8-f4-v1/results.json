@@ -1,0 +1,2611 @@
+[
+  {
+    "artifact": "tf4-control.log",
+    "law": "one primary per term",
+    "checked": true,
+    "proven": true,
+    "wallMs": 4418.708955,
+    "countedUnits": 926.6334919999999,
+    "kernelMs": 2554.6678700000007,
+    "sites": {
+      "kernel/kernel.ts:check": {
+        "calls": 3,
+        "inclusiveMs": 2546.504014
+      },
+      "kernel/kernel.ts:checkMC": {
+        "calls": 3,
+        "inclusiveMs": 2553.8212810000005
+      }
+    },
+    "detail": {
+      "label": "one primary per term",
+      "buckets": {
+        "other": {
+          "other": 3.821057999999539,
+          "instance-seeds": 1.4686160000000044,
+          "obligation-build": 23.99265900000018,
+          "focused-pool": 16.657916999999543,
+          "witness-flags": 1.6605249999999927,
+          "case-control": 149.6010519999992,
+          "count-goal-build": 2.293000000000063,
+          "row-materialization": 277.74437600000215,
+          "field-control": 39.89355899999924,
+          "transport": 330.8420329999996,
+          "source-transform": 11.163649000000106,
+          "witness-filter": 0.16807599999992817
+        },
+        "proposals": {
+          "other": 64.64196300000013
+        },
+        "demand": {
+          "focused-pool": 1.3702800000001787
+        },
+        "search": {
+          "case-control": 551.4057769999995,
+          "field-control": 258.82846900000095,
+          "row-materialization": 91.81468399999915,
+          "transport": 35.7469259999998,
+          "other": 0.7693909999998141
+        },
+        "kernel": {
+          "transport": 0.8465890000005629,
+          "case-control": 5.063308000000234,
+          "kernel": 2546.550632,
+          "other": 2.207340999999815
+        }
+      },
+      "sites": {
+        "core/count-focused.ts:countLawSeeds": {
+          "calls": 2,
+          "wallMs": 0.9191329999999951,
+          "phases": {
+            "other": 0.9460239999999942
+          }
+        },
+        "core/count-focused.ts:fieldLawBridges": {
+          "calls": 2,
+          "wallMs": 0.3841610000000131,
+          "phases": {
+            "other": 0.3793529999999876
+          }
+        },
+        "core/count-focused.ts:countRowBridges": {
+          "calls": 2,
+          "wallMs": 0.14528199999998748,
+          "phases": {
+            "other": 0.14323900000002254
+          }
+        },
+        "kernel/kernel.ts:countedObligations": {
+          "calls": 6,
+          "wallMs": 24.07626300000019,
+          "phases": {
+            "other": 23.99265900000018
+          }
+        },
+        "core/count-focused.ts:focusCountCert": {
+          "calls": 9,
+          "wallMs": 17.941055000000006,
+          "phases": {
+            "other": 16.657916999999543,
+            "demand": 1.3702800000001787
+          }
+        },
+        "core/count-witness-flags.ts:seedCountWitnessFlags": {
+          "calls": 2,
+          "wallMs": 1.677897999999999,
+          "phases": {
+            "other": 1.6605249999999927
+          }
+        },
+        "kernel/kernel.ts:mcGoal": {
+          "calls": 3,
+          "wallMs": 2.258546999999652,
+          "phases": {
+            "other": 2.293000000000063
+          }
+        },
+        "kernel/prove.ts:rowsAt": {
+          "calls": 4915,
+          "wallMs": 621.309334999998,
+          "phases": {
+            "other": 529.1494279999918,
+            "search": 91.85292499999935
+          }
+        },
+        "kernel/prove.ts:widen": {
+          "calls": 50,
+          "wallMs": 352.0768290000001,
+          "phases": {
+            "other": 321.1314569999999,
+            "kernel": 0.8465890000005629,
+            "search": 30.149735999999848
+          }
+        },
+        "core/count-recovery/field-case.ts:fieldCase": {
+          "calls": 10,
+          "wallMs": 417.603273,
+          "phases": {
+            "other": 136.91479599999982,
+            "search": 279.8344679999997,
+            "kernel": 0.8465890000005629
+          }
+        },
+        "core/count-recovery/fold-path.ts:foldPath": {
+          "calls": 10,
+          "wallMs": 11.184110999999689,
+          "phases": {
+            "other": 11.163649000000106
+          }
+        },
+        "core/count-recovery/lift-count-proxies.ts:liftCountProxies": {
+          "calls": 2,
+          "wallMs": 15.307614999999942,
+          "phases": {
+            "other": 9.710575999999719,
+            "search": 5.597189999999955
+          }
+        },
+        "core/count-cases.ts:withoutCountWitnesses": {
+          "calls": 1,
+          "wallMs": 0.17499999999995453,
+          "phases": {
+            "other": 0.16807599999992817
+          }
+        },
+        "kernel/kernel.ts:check": {
+          "calls": 3,
+          "wallMs": 2546.6434480000003,
+          "phases": {
+            "kernel": 2546.5506320000004
+          }
+        },
+        "core/count-cases.ts:proveCountCases": {
+          "calls": 1,
+          "wallMs": 2715.050309,
+          "phases": {
+            "other": 811.6926810000001,
+            "search": 937.5905799999992,
+            "kernel": 965.7532120000006
+          }
+        }
+      },
+      "checks": {
+        "core/count-cases.ts:proveCountCases": {
+          "calls": 1,
+          "wallMs": 960.2915859999998,
+          "minHyps": 166,
+          "maxHyps": 166,
+          "leaf": 0
+        },
+        "outside": {
+          "calls": 2,
+          "wallMs": 1586.7921960000003,
+          "minHyps": 2,
+          "maxHyps": 166,
+          "leaf": 1
+        }
+      }
+    }
+  },
+  {
+    "artifact": "tf4-control.log",
+    "law": "Inv3915: one config term, the primary newest",
+    "checked": true,
+    "proven": true,
+    "wallMs": 8295.732898,
+    "countedUnits": 872.3352536000001,
+    "kernelMs": 6410.339700000001,
+    "sites": {
+      "kernel/kernel.ts:check": {
+        "calls": 3,
+        "inclusiveMs": 6401.020319
+      },
+      "kernel/kernel.ts:checkMC": {
+        "calls": 3,
+        "inclusiveMs": 6410.041808999999
+      }
+    },
+    "detail": {
+      "label": "Inv3915: one config term, the primary newest",
+      "buckets": {
+        "other": {
+          "other": 1.8409710000005362,
+          "instance-seeds": 0.6616619999995237,
+          "obligation-build": 16.275390999998308,
+          "focused-pool": 9.985222000003887,
+          "witness-flags": 1.3389710000001287,
+          "case-control": 111.66522600000553,
+          "count-goal-build": 2.3257520000015575,
+          "row-materialization": 265.04629899999145,
+          "field-control": 93.20758200000728,
+          "source-transform": 17.224534999999378,
+          "transport": 369.7449949999982,
+          "witness-filter": 0.016560999999455817
+        },
+        "proposals": {
+          "other": 42.04503199999999
+        },
+        "demand": {
+          "focused-pool": 62.837093999997705,
+          "write-frame-proposal": 14.035760999999184
+        },
+        "search": {
+          "case-control": 243.73860999999852,
+          "field-control": 347.77695099999346,
+          "row-materialization": 92.32442900000478,
+          "transport": 192.61759900000015,
+          "other": 0.6660289999999804
+        },
+        "kernel": {
+          "transport": 0.2978910000019823,
+          "case-control": 5.343481999999312,
+          "kernel": 6401.062616000001,
+          "other": 3.6357109999989916
+        }
+      },
+      "sites": {
+        "core/count-focused.ts:countLawSeeds": {
+          "calls": 2,
+          "wallMs": 0.3134670000008555,
+          "phases": {
+            "other": 0.3313909999997122
+          }
+        },
+        "core/count-focused.ts:fieldLawBridges": {
+          "calls": 2,
+          "wallMs": 0.2558099999996557,
+          "phases": {
+            "other": 0.2583749999994325
+          }
+        },
+        "core/count-focused.ts:countRowBridges": {
+          "calls": 2,
+          "wallMs": 0.07832799999960116,
+          "phases": {
+            "other": 0.07189600000037899
+          }
+        },
+        "kernel/kernel.ts:countedObligations": {
+          "calls": 6,
+          "wallMs": 16.298714000001382,
+          "phases": {
+            "other": 16.275390999998308
+          }
+        },
+        "core/count-focused.ts:focusCountCert": {
+          "calls": 9,
+          "wallMs": 86.83288300000004,
+          "phases": {
+            "other": 9.985222000003887,
+            "demand": 76.87285499999689
+          }
+        },
+        "core/count-write-frames.ts:proposeWriteCountFrames": {
+          "calls": 4,
+          "wallMs": 14.037543000000369,
+          "phases": {
+            "demand": 14.035760999999184
+          }
+        },
+        "core/count-witness-flags.ts:seedCountWitnessFlags": {
+          "calls": 2,
+          "wallMs": 1.3705499999996391,
+          "phases": {
+            "other": 1.3389710000001287
+          }
+        },
+        "kernel/kernel.ts:mcGoal": {
+          "calls": 3,
+          "wallMs": 2.343053000000509,
+          "phases": {
+            "other": 2.3257520000015575
+          }
+        },
+        "kernel/prove.ts:rowsAt": {
+          "calls": 4820,
+          "wallMs": 655.8432359999533,
+          "phases": {
+            "other": 560.5020629999826,
+            "search": 95.43600700000661
+          }
+        },
+        "core/count-recovery/fold-path.ts:foldPath": {
+          "calls": 13,
+          "wallMs": 17.31999999999971,
+          "phases": {
+            "other": 17.224534999999378
+          }
+        },
+        "kernel/prove.ts:widen": {
+          "calls": 85,
+          "wallMs": 562.5555520000007,
+          "phases": {
+            "other": 369.7449949999982,
+            "kernel": 0.2978910000019823,
+            "search": 192.61759900000015
+          }
+        },
+        "core/count-recovery/field-case.ts:fieldCase": {
+          "calls": 17,
+          "wallMs": 604.0641700000015,
+          "phases": {
+            "other": 230.24030999999923,
+            "search": 373.4619189999994,
+            "kernel": 0.2978910000019823
+          }
+        },
+        "core/count-cases.ts:withoutCountWitnesses": {
+          "calls": 1,
+          "wallMs": 0.02789200000006531,
+          "phases": {
+            "other": 0.016560999999455817
+          }
+        },
+        "kernel/kernel.ts:check": {
+          "calls": 3,
+          "wallMs": 6401.059463000002,
+          "phases": {
+            "kernel": 6401.062616000001
+          }
+        },
+        "core/count-cases.ts:proveCountCases": {
+          "calls": 1,
+          "wallMs": 5236.920332000001,
+          "phases": {
+            "other": 859.1954950000018,
+            "search": 876.3818359999977,
+            "kernel": 3501.3215820000014
+          }
+        }
+      },
+      "checks": {
+        "core/count-cases.ts:proveCountCases": {
+          "calls": 1,
+          "wallMs": 3495.720805000001,
+          "minHyps": 202,
+          "maxHyps": 202,
+          "leaf": 0
+        },
+        "outside": {
+          "calls": 2,
+          "wallMs": 2905.4281340000016,
+          "minHyps": 2,
+          "maxHyps": 202,
+          "leaf": 1
+        }
+      }
+    }
+  },
+  {
+    "artifact": "tf4-control.log",
+    "law": "Inv1758: one version and term, one config",
+    "checked": true,
+    "proven": true,
+    "wallMs": 24041.641908,
+    "countedUnits": 4310.4753532,
+    "kernelMs": 10984.910177000012,
+    "sites": {
+      "kernel/kernel.ts:check": {
+        "calls": 3,
+        "inclusiveMs": 10970.663857000003
+      },
+      "kernel/kernel.ts:checkMC": {
+        "calls": 3,
+        "inclusiveMs": 10976.122058
+      }
+    },
+    "detail": {
+      "label": "Inv1758: one version and term, one config",
+      "buckets": {
+        "other": {
+          "other": 1.5007800000075804,
+          "instance-seeds": 0.5790349999970203,
+          "obligation-build": 12.01892399999997,
+          "focused-pool": 6.904756999994788,
+          "witness-flags": 0.8928549999982351,
+          "case-control": 885.840602999986,
+          "count-goal-build": 5.9653199999957,
+          "row-materialization": 2959.4805840003028,
+          "field-control": 882.8578239997987,
+          "source-transform": 188.28601999998318,
+          "transport": 3730.542977999994,
+          "witness-filter": 0.00684200000250712
+        },
+        "proposals": {
+          "other": 53.84064899999794
+        },
+        "demand": {
+          "focused-pool": 20.555450000007113,
+          "write-frame-proposal": 7.417995999998311
+        },
+        "search": {
+          "case-control": 298.19595200001095,
+          "field-control": 3129.2706189999226,
+          "transport": 850.1454410000024,
+          "row-materialization": 22.16608999998425,
+          "other": 0.22864000000117812
+        },
+        "kernel": {
+          "transport": 8.788119000011648,
+          "case-control": 3.0099860000009357,
+          "kernel": 10970.686985000004,
+          "other": 2.425086999995983
+        }
+      },
+      "sites": {
+        "core/count-focused.ts:countLawSeeds": {
+          "calls": 2,
+          "wallMs": 0.2540260000005219,
+          "phases": {
+            "other": 0.26080999999976484
+          }
+        },
+        "core/count-focused.ts:fieldLawBridges": {
+          "calls": 2,
+          "wallMs": 0.23670400000264635,
+          "phases": {
+            "other": 0.23655199999848264
+          }
+        },
+        "core/count-focused.ts:countRowBridges": {
+          "calls": 2,
+          "wallMs": 0.08192300000155228,
+          "phases": {
+            "other": 0.08167299999877287
+          }
+        },
+        "kernel/kernel.ts:countedObligations": {
+          "calls": 6,
+          "wallMs": 12.023261000000275,
+          "phases": {
+            "other": 12.01892399999997
+          }
+        },
+        "core/count-focused.ts:focusCountCert": {
+          "calls": 9,
+          "wallMs": 34.8438610000012,
+          "phases": {
+            "other": 6.904756999994788,
+            "demand": 27.973446000005424
+          }
+        },
+        "core/count-write-frames.ts:proposeWriteCountFrames": {
+          "calls": 4,
+          "wallMs": 7.394989999997051,
+          "phases": {
+            "demand": 7.417995999998311
+          }
+        },
+        "core/count-witness-flags.ts:seedCountWitnessFlags": {
+          "calls": 2,
+          "wallMs": 0.9315759999990405,
+          "phases": {
+            "other": 0.8928549999982351
+          }
+        },
+        "kernel/kernel.ts:mcGoal": {
+          "calls": 11,
+          "wallMs": 5.978683999997884,
+          "phases": {
+            "other": 5.9653199999957
+          }
+        },
+        "kernel/prove.ts:rowsAt": {
+          "calls": 33686,
+          "wallMs": 6175.146983000004,
+          "phases": {
+            "other": 6055.012264000212,
+            "search": 118.01609299998017
+          }
+        },
+        "core/count-recovery/fold-path.ts:foldPath": {
+          "calls": 305,
+          "wallMs": 188.71277600002395,
+          "phases": {
+            "other": 188.28601999998318
+          }
+        },
+        "kernel/prove.ts:widen": {
+          "calls": 158,
+          "wallMs": 4589.3901770000175,
+          "phases": {
+            "other": 3730.542977999994,
+            "kernel": 8.788119000011648,
+            "search": 850.1454410000024
+          }
+        },
+        "core/count-recovery/field-case.ts:fieldCase": {
+          "calls": 100,
+          "wallMs": 11368.32168599998,
+          "phases": {
+            "other": 6282.147321000128,
+            "search": 5072.673098999867,
+            "kernel": 13.76275500000338
+          }
+        },
+        "core/count-cases.ts:withoutCountWitnesses": {
+          "calls": 1,
+          "wallMs": 0.0072529999997641426,
+          "phases": {
+            "other": 0.00684200000250712
+          }
+        },
+        "kernel/kernel.ts:check": {
+          "calls": 3,
+          "wallMs": 10970.690469000005,
+          "phases": {
+            "kernel": 10970.686985000004
+          }
+        },
+        "core/count-cases.ts:proveCountCases": {
+          "calls": 1,
+          "wallMs": 19188.114266999997,
+          "phases": {
+            "other": 8652.971344000065,
+            "search": 4299.6813899999215,
+            "kernel": 6235.453448000011
+          }
+        }
+      },
+      "checks": {
+        "core/count-cases.ts:proveCountCases": {
+          "calls": 1,
+          "wallMs": 6223.690508,
+          "minHyps": 210,
+          "maxHyps": 210,
+          "leaf": 0
+        },
+        "outside": {
+          "calls": 2,
+          "wallMs": 4747.068189000001,
+          "minHyps": 2,
+          "maxHyps": 210,
+          "leaf": 1
+        }
+      }
+    }
+  },
+  {
+    "artifact": "tf4-control.log",
+    "law": "Inv2973: quorums overlap, or a config disabled",
+    "checked": false,
+    "proven": false,
+    "wallMs": 48186.189805,
+    "countedUnits": 5002.6530103999985,
+    "kernelMs": 46.88171600000351,
+    "sites": {
+      "kernel/kernel.ts:check": {
+        "calls": 49,
+        "inclusiveMs": 46.88171600000351
+      }
+    },
+    "detail": {
+      "label": "Inv2973: quorums overlap, or a config disabled",
+      "buckets": {
+        "other": {
+          "other": 1.4752919999955338,
+          "instance-seeds": 0.3467109999983222,
+          "obligation-build": 108.14584900000773,
+          "focused-pool": 806.7655749999976,
+          "witness-flags": 9.658449999995355,
+          "case-control": 6034.8947519998765,
+          "count-goal-build": 230.7378990000143,
+          "row-materialization": 8551.363712000253,
+          "field-control": 32.57945599987579,
+          "transport": 17581.49928100001,
+          "finish": 0.8633500000287313,
+          "source-transform": 0.17072200000256998
+        },
+        "proposals": {
+          "other": 659.8782859999919
+        },
+        "demand": {
+          "focused-pool": 275.34767000000284,
+          "write-frame-proposal": 14.159212000005937
+        },
+        "search": {
+          "case-control": 6034.7396949999675,
+          "row-materialization": 1363.249928000012,
+          "transport": 1632.0861989999903
+        },
+        "A": {
+          "case-control": 305.993185000385,
+          "row-materialization": 453.80065899969486,
+          "transport": 670.4143229999099,
+          "source": 43.46341399999801,
+          "admission": 88.31469700000162,
+          "source-transform": 4.370232000015676
+        },
+        "kernel": {
+          "admission": 46.88171600000351
+        },
+        "B": {
+          "case-control": 690.548959000138,
+          "write-frame-proposal": 7.4025390000024345,
+          "source": 42.837384999962524,
+          "scalar-proposal": 30.33944200001133,
+          "row-materialization": 978.8560049998559,
+          "admission": 1194.7551160000148,
+          "source-transform": 2.1319320000111475
+        },
+        "C": {
+          "finish": 276.4668389999715,
+          "row-materialization": 11.64653399999952
+        }
+      },
+      "sites": {
+        "core/count-focused.ts:countLawSeeds": {
+          "calls": 2,
+          "wallMs": 0.1321779999998398,
+          "phases": {
+            "other": 0.13575399999535875
+          }
+        },
+        "core/count-focused.ts:fieldLawBridges": {
+          "calls": 2,
+          "wallMs": 0.08149400000547757,
+          "phases": {
+            "other": 0.08182400000077905
+          }
+        },
+        "core/count-focused.ts:countRowBridges": {
+          "calls": 2,
+          "wallMs": 0.12957299999834504,
+          "phases": {
+            "other": 0.12913300000218442
+          }
+        },
+        "kernel/kernel.ts:countedObligations": {
+          "calls": 4,
+          "wallMs": 108.19442900000286,
+          "phases": {
+            "other": 108.14584900000773
+          }
+        },
+        "core/count-write-frames.ts:proposeWriteCountFrames": {
+          "calls": 12,
+          "wallMs": 21.494505999995454,
+          "phases": {
+            "demand": 14.159212000005937,
+            "B": 7.4025390000024345
+          }
+        },
+        "core/count-focused.ts:focusCountCert": {
+          "calls": 8,
+          "wallMs": 1096.2486629999985,
+          "phases": {
+            "other": 806.7655749999976,
+            "demand": 289.5068820000088
+          }
+        },
+        "core/count-witness-flags.ts:seedCountWitnessFlags": {
+          "calls": 2,
+          "wallMs": 9.685680000002321,
+          "phases": {
+            "other": 9.658449999995355
+          }
+        },
+        "kernel/kernel.ts:mcGoal": {
+          "calls": 7,
+          "wallMs": 230.83803699999407,
+          "phases": {
+            "other": 230.7378990000143
+          }
+        },
+        "kernel/prove.ts:rowsAt": {
+          "calls": 13364,
+          "wallMs": 29045.22384399981,
+          "phases": {
+            "other": 25645.505418000095,
+            "search": 1363.2693040000086,
+            "A": 1038.1080269995,
+            "B": 978.8560049998559,
+            "C": 11.64653399999952
+          }
+        },
+        "core/count-recovery/field-case.ts:fieldCase": {
+          "calls": 16,
+          "wallMs": 844.9124379999994,
+          "phases": {
+            "other": 844.9336919999914
+          }
+        },
+        "kernel/prove.ts:widen": {
+          "calls": 194,
+          "wallMs": 19144.99848900002,
+          "phases": {
+            "other": 16863.906661000015,
+            "A": 670.4143229999099,
+            "search": 1611.0900889999903
+          }
+        },
+        "core/count-recovery/lift-count-proxies.ts:liftCountProxies": {
+          "calls": 4,
+          "wallMs": 738.5959430000003,
+          "phases": {
+            "other": 717.5926199999958,
+            "search": 20.996110000000044
+          }
+        },
+        "closure.source": {
+          "calls": 103,
+          "wallMs": 86.36165099997015,
+          "phases": {
+            "A": 43.46341399999801,
+            "B": 42.837384999962524
+          }
+        },
+        "core/count-recovery/conditional-cuts.ts:dependencies": {
+          "calls": 98,
+          "wallMs": 283.008847999954,
+          "phases": {
+            "A": 2.7542930000126944,
+            "B": 280.0985400000791
+          }
+        },
+        "core/count-recovery/conditional-cuts.ts:relevantHypotheses": {
+          "calls": 49,
+          "wallMs": 415.1570410000131,
+          "phases": {
+            "A": 85.90991100000247,
+            "B": 329.2087760000213
+          }
+        },
+        "core/count-recovery/conditional-cuts.ts:transport": {
+          "calls": 784,
+          "wallMs": 836.1428190000224,
+          "phases": {
+            "A": 0.961366999988968,
+            "B": 834.3735569998971
+          }
+        },
+        "core/count-recovery/conditional-cuts.ts:inline": {
+          "calls": 49,
+          "wallMs": 121.81183199999941,
+          "phases": {
+            "A": 0.7536690000051749,
+            "B": 121.03462500000751
+          }
+        },
+        "admitCut.trace-reduction": {
+          "calls": 49,
+          "wallMs": 20.11596799999097,
+          "phases": {
+            "A": 0.08261700000002747,
+            "B": 20.04764499997691
+          }
+        },
+        "admitCut.per-atom": {
+          "calls": 49,
+          "wallMs": 670.6242059999859,
+          "phases": {
+            "A": 0.3200809999980265,
+            "B": 670.3069269999833
+          }
+        },
+        "kernel/kernel.ts:check": {
+          "calls": 49,
+          "wallMs": 47.07150999997975,
+          "phases": {
+            "A": 0.004951000002620276,
+            "kernel": 46.88171600000351,
+            "B": 0.12888599999860162
+          }
+        },
+        "core/count-recovery/conditional-cuts.ts:checked": {
+          "calls": 49,
+          "wallMs": 48.02086699997017,
+          "phases": {
+            "A": 0.05282000000443077,
+            "kernel": 46.88171600000351,
+            "B": 1.0704520000217599
+          }
+        },
+        "admitCut.final-check": {
+          "calls": 49,
+          "wallMs": 48.361275000002934,
+          "phases": {
+            "A": 0.08422900000005029,
+            "kernel": 46.88171600000351,
+            "B": 1.403091999985918
+          }
+        },
+        "core/count-recovery/conditional-cuts.ts:admitCut": {
+          "calls": 49,
+          "wallMs": 912.9390040000217,
+          "phases": {
+            "A": 2.101294999993115,
+            "kernel": 46.88171600000351,
+            "B": 863.985105000007
+          }
+        },
+        "core/count-recovery/conditional-cuts.ts:admitConditionalCut": {
+          "calls": 49,
+          "wallMs": 1329.920219000007,
+          "phases": {
+            "A": 88.31469700000162,
+            "kernel": 46.88171600000351,
+            "B": 1194.7551160000148
+          }
+        },
+        "core/count-recovery/scalar-guards.ts:countScalarGuards": {
+          "calls": 50,
+          "wallMs": 30.38257199999498,
+          "phases": {
+            "B": 30.33944200001133
+          }
+        },
+        "core/count-recovery/fold-path.ts:foldPath": {
+          "calls": 62,
+          "wallMs": 2.515220999972371,
+          "phases": {
+            "B": 2.1319320000111475,
+            "other": 0.17072200000256998,
+            "A": 0.222477000017534
+          }
+        },
+        "closure.finish": {
+          "calls": 4,
+          "wallMs": 288.9422290000002,
+          "phases": {
+            "other": 0.8633500000287313,
+            "C": 288.11337299997103
+          }
+        },
+        "core/count-cases.ts:selectedCase": {
+          "calls": 6,
+          "wallMs": 2851.0221319999837,
+          "phases": {
+            "other": 223.16738399996393,
+            "search": 2627.8795300000056
+          }
+        },
+        "core/count-recovery/pre-state-source.ts:preStateCountSource": {
+          "calls": 1,
+          "wallMs": 4.160128000003169,
+          "phases": {
+            "A": 4.147754999998142
+          }
+        },
+        "core/count-cases.ts:proveCountCases": {
+          "calls": 1,
+          "wallMs": 46310.407791000005,
+          "phases": {
+            "other": 32432.109172000062,
+            "search": 9030.07582199997,
+            "A": 1566.356510000005,
+            "kernel": 46.88171600000351,
+            "B": 2946.871377999996,
+            "C": 288.11337299997103
+          }
+        }
+      },
+      "checks": {
+        "core/count-recovery/conditional-cuts.ts:checked": {
+          "calls": 49,
+          "wallMs": 47.480860999945435,
+          "minHyps": 1,
+          "maxHyps": 1,
+          "leaf": 44
+        }
+      }
+    }
+  },
+  {
+    "artifact": "tf4-control.log",
+    "law": "Inv*: no quorum of a config can still be gathered for a config term held",
+    "checked": false,
+    "proven": false,
+    "wallMs": 49330.74570699998,
+    "countedUnits": 5162.157604,
+    "kernelMs": 13344.591797000234,
+    "sites": {
+      "kernel/kernel.ts:check": {
+        "calls": 1799,
+        "inclusiveMs": 13330.90849800015
+      }
+    },
+    "detail": {
+      "label": "Inv*: no quorum of a config can still be gathered for a config term held",
+      "buckets": {
+        "other": {
+          "other": 0.9447090000321623,
+          "instance-seeds": 0.4919849999860162,
+          "obligation-build": 10.116466000006767,
+          "focused-pool": 65.46938100001717,
+          "witness-flags": 1.2963480000034906,
+          "case-control": 1834.637980999818,
+          "count-goal-build": 21.439375000016298,
+          "row-materialization": 4560.966720000273,
+          "field-control": 305.90397699979076,
+          "transport": 6561.929347999816,
+          "finish": 3.7118200000550132,
+          "source-transform": 0.15428000000247266
+        },
+        "proposals": {
+          "other": 80.54336499997589
+        },
+        "demand": {
+          "focused-pool": 31.928251000019372,
+          "write-frame-proposal": 5.463839999967604
+        },
+        "search": {
+          "case-control": 2705.3996500000358,
+          "row-materialization": 388.41587899990554,
+          "transport": 1165.3347470000008
+        },
+        "A": {
+          "case-control": 629.7618389993877,
+          "row-materialization": 168.3890360003279,
+          "transport": 548.84960900023,
+          "source": 77.6823779999977,
+          "admission": 144.9836590000341,
+          "source-transform": 9.060757000028389,
+          "field-control": 7.189063999991049
+        },
+        "kernel": {
+          "admission": 739.0026569999027,
+          "transport": 5608.734473000324,
+          "case-control": 0.06895900001109112,
+          "check": 12.238556000214885,
+          "kernel": 6984.547151999781
+        },
+        "B": {
+          "case-control": 1570.9815370000724,
+          "write-frame-proposal": 11.945776999986265,
+          "source": 195.31052699992142,
+          "scalar-proposal": 29.420264000014868,
+          "row-materialization": 2990.8963789999834,
+          "admission": 11253.304448000112,
+          "source-transform": 12.972425999963889,
+          "transport": 12.643196999997599
+        },
+        "C": {
+          "finish": 570.1412280000659,
+          "row-materialization": 4.893953999970108,
+          "transport": 3.5734469999588327
+        }
+      },
+      "sites": {
+        "core/count-focused.ts:countLawSeeds": {
+          "calls": 2,
+          "wallMs": 0.2188319999986561,
+          "phases": {
+            "other": 0.21091500000329688
+          }
+        },
+        "core/count-focused.ts:fieldLawBridges": {
+          "calls": 2,
+          "wallMs": 0.15324699999473523,
+          "phases": {
+            "other": 0.15377899998566136
+          }
+        },
+        "core/count-focused.ts:countRowBridges": {
+          "calls": 2,
+          "wallMs": 0.12807199999224395,
+          "phases": {
+            "other": 0.12729099999705795
+          }
+        },
+        "kernel/kernel.ts:countedObligations": {
+          "calls": 4,
+          "wallMs": 10.126242999991518,
+          "phases": {
+            "other": 10.116466000006767
+          }
+        },
+        "core/count-write-frames.ts:proposeWriteCountFrames": {
+          "calls": 15,
+          "wallMs": 17.38631000003079,
+          "phases": {
+            "demand": 5.463839999967604,
+            "B": 11.945776999986265
+          }
+        },
+        "core/count-focused.ts:focusCountCert": {
+          "calls": 8,
+          "wallMs": 102.85289900001953,
+          "phases": {
+            "other": 65.46938100001717,
+            "demand": 37.392090999986976
+          }
+        },
+        "core/count-witness-flags.ts:seedCountWitnessFlags": {
+          "calls": 2,
+          "wallMs": 1.3082520000025397,
+          "phases": {
+            "other": 1.2963480000034906
+          }
+        },
+        "kernel/kernel.ts:mcGoal": {
+          "calls": 8,
+          "wallMs": 21.499822000027052,
+          "phases": {
+            "other": 21.439375000016298
+          }
+        },
+        "kernel/prove.ts:rowsAt": {
+          "calls": 15054,
+          "wallMs": 12448.232120999484,
+          "phases": {
+            "other": 8352.04806200054,
+            "search": 388.4528059998993,
+            "A": 697.5260400002444,
+            "B": 2999.8015959999902,
+            "C": 7.5932339999999385
+          }
+        },
+        "core/count-recovery/field-case.ts:fieldCase": {
+          "calls": 30,
+          "wallMs": 684.1492080000316,
+          "phases": {
+            "other": 672.9698599999683,
+            "A": 11.19096300000092
+          }
+        },
+        "kernel/prove.ts:widen": {
+          "calls": 199,
+          "wallMs": 4897.638412999979,
+          "phases": {
+            "other": 3243.603089000142,
+            "A": 548.84960900023,
+            "B": 12.643196999997599,
+            "kernel": 0.07948200000100769,
+            "C": 3.5734469999588327,
+            "search": 1088.9686169999914
+          }
+        },
+        "core/count-recovery/lift-count-proxies.ts:liftCountProxies": {
+          "calls": 21,
+          "wallMs": 946.0688760000048,
+          "phases": {
+            "other": 869.7035629999737,
+            "search": 76.36613000000943
+          }
+        },
+        "closure.source": {
+          "calls": 241,
+          "wallMs": 273.22593100012455,
+          "phases": {
+            "A": 77.6823779999977,
+            "B": 195.31052699992142
+          }
+        },
+        "core/count-recovery/conditional-cuts.ts:dependencies": {
+          "calls": 200,
+          "wallMs": 870.0889710000483,
+          "phases": {
+            "A": 28.642655000003288,
+            "B": 841.2164009999688
+          }
+        },
+        "core/count-recovery/conditional-cuts.ts:relevantHypotheses": {
+          "calls": 100,
+          "wallMs": 704.0148849999678,
+          "phases": {
+            "A": 85.3609279999946,
+            "B": 618.614162999962
+          }
+        },
+        "core/count-recovery/conditional-cuts.ts:transport": {
+          "calls": 1778,
+          "wallMs": 10438.29571799966,
+          "phases": {
+            "A": 53.2044000000169,
+            "B": 10382.457441999955
+          }
+        },
+        "core/count-recovery/conditional-cuts.ts:inline": {
+          "calls": 100,
+          "wallMs": 634.0302850000007,
+          "phases": {
+            "A": 24.521982999984175,
+            "B": 608.7207209998742,
+            "kernel": 0.7975819999846863
+          }
+        },
+        "admitCut.trace-reduction": {
+          "calls": 100,
+          "wallMs": 15.314179000110016,
+          "phases": {
+            "A": 6.129098999983398,
+            "B": 9.19862599998305
+          }
+        },
+        "admitCut.per-atom": {
+          "calls": 100,
+          "wallMs": 9490.862939999948,
+          "phases": {
+            "A": 14.752880999963963,
+            "B": 9476.083153000014
+          }
+        },
+        "kernel/kernel.ts:check": {
+          "calls": 1799,
+          "wallMs": 13336.138082000136,
+          "phases": {
+            "A": 0.02020700003777165,
+            "kernel": 13332.204800000007,
+            "B": 0.2228640001558233,
+            "other": 2.0273849994700868
+          }
+        },
+        "core/count-recovery/conditional-cuts.ts:checked": {
+          "calls": 106,
+          "wallMs": 740.8018979999615,
+          "phases": {
+            "A": 0.1755690000136383,
+            "kernel": 739.0026569999027,
+            "B": 1.6110980001540156
+          }
+        },
+        "admitCut.final-check": {
+          "calls": 100,
+          "wallMs": 740.4756239999842,
+          "phases": {
+            "A": 0.2429460000275867,
+            "kernel": 738.205074999918,
+            "B": 2.0446570000931388
+          }
+        },
+        "core/count-recovery/conditional-cuts.ts:admitCut": {
+          "calls": 101,
+          "wallMs": 11430.773259000125,
+          "phases": {
+            "A": 59.23419199998898,
+            "kernel": 739.0026569999027,
+            "B": 10632.590102000046
+          }
+        },
+        "core/count-recovery/conditional-cuts.ts:admitConditionalCut": {
+          "calls": 100,
+          "wallMs": 12137.265345999986,
+          "phases": {
+            "A": 144.9836590000341,
+            "kernel": 739.0026569999027,
+            "B": 11253.304448000112
+          }
+        },
+        "core/count-recovery/scalar-guards.ts:countScalarGuards": {
+          "calls": 98,
+          "wallMs": 29.498900000035064,
+          "phases": {
+            "B": 29.420264000014868
+          }
+        },
+        "core/count-recovery/fold-path.ts:foldPath": {
+          "calls": 307,
+          "wallMs": 13.816797000079532,
+          "phases": {
+            "B": 12.972425999963889,
+            "other": 0.15428000000247266,
+            "A": 0.6430020000116201
+          }
+        },
+        "closure.finish": {
+          "calls": 20,
+          "wallMs": 1336.0958150000079,
+          "phases": {
+            "other": 695.4363380000141,
+            "C": 578.6086289999948,
+            "search": 62.11746300001687
+          }
+        },
+        "core/count-cases.ts:selectedCase": {
+          "calls": 7,
+          "wallMs": 608.5931979999732,
+          "phases": {
+            "other": 20.480940999957966,
+            "search": 588.1053530000063
+          }
+        },
+        "core/count-recovery/conditional-proof.ts:independent": {
+          "calls": 49,
+          "wallMs": 3696.456667000006,
+          "phases": {
+            "other": 7.856135999740218,
+            "kernel": 3688.646394000287
+          }
+        },
+        "core/count-recovery/conditional-proof.ts:leaf": {
+          "calls": 2162,
+          "wallMs": 2302.7399810001516,
+          "phases": {
+            "other": 2301.3308140000154
+          }
+        },
+        "core/count-recovery/conditional-proof.ts:ordinary": {
+          "calls": 463,
+          "wallMs": 617.4461720000836,
+          "phases": {
+            "other": 617.7589229998994
+          }
+        },
+        "core/count-recovery/conditional-proof.ts:retarget": {
+          "calls": 22,
+          "wallMs": 4002.8629789999977,
+          "phases": {
+            "other": 739.0767739997391,
+            "kernel": 3263.807459000236
+          }
+        },
+        "core/count-recovery/conditional-proof.ts:transportConditionalProof": {
+          "calls": 12,
+          "wallMs": 8057.269888000039,
+          "phases": {
+            "other": 2448.6226959997,
+            "kernel": 5608.654991000323
+          }
+        },
+        "core/count-recovery/conditional-proof.ts:checked": {
+          "calls": 11,
+          "wallMs": 9347.031577000002,
+          "phases": {
+            "other": 5.412349999896833,
+            "kernel": 9341.633240000083
+          }
+        },
+        "core/count-recovery/pre-state-source.ts:preStateCountSource": {
+          "calls": 7,
+          "wallMs": 8.45059599999513,
+          "phases": {
+            "A": 8.417755000016768
+          }
+        },
+        "core/count-cases.ts:proveCountCases": {
+          "calls": 1,
+          "wallMs": 49134.48538099999,
+          "phases": {
+            "other": 13288.743500999772,
+            "search": 4259.150275999942,
+            "A": 1585.9163419999968,
+            "kernel": 13344.591797000234,
+            "B": 16077.474555000052,
+            "C": 578.6086289999948
+          }
+        }
+      },
+      "checks": {
+        "core/count-recovery/conditional-cuts.ts:checked": {
+          "calls": 106,
+          "wallMs": 740.0379450000328,
+          "minHyps": 1,
+          "maxHyps": 11,
+          "leaf": 68
+        },
+        "core/count-recovery/conditional-proof.ts:independent": {
+          "calls": 1121,
+          "wallMs": 3688.6751319998,
+          "minHyps": 1,
+          "maxHyps": 2,
+          "leaf": 735
+        },
+        "core/count-recovery/conditional-proof.ts:retarget": {
+          "calls": 463,
+          "wallMs": 1352.9867949999607,
+          "minHyps": 1,
+          "maxHyps": 2,
+          "leaf": 300
+        },
+        "core/count-recovery/conditional-proof.ts:checked": {
+          "calls": 109,
+          "wallMs": 7559.482907999976,
+          "minHyps": 489,
+          "maxHyps": 490,
+          "leaf": 109
+        }
+      }
+    }
+  },
+  {
+    "artifact": "tf4-incremental.log",
+    "law": "one primary per term",
+    "checked": true,
+    "proven": true,
+    "wallMs": 2590.162984,
+    "countedUnits": 926.6334919999999,
+    "kernelMs": 1279.0135309999998,
+    "sites": {
+      "kernel/kernel.ts:check": {
+        "calls": 3,
+        "inclusiveMs": 1271.9368720000002
+      },
+      "kernel/kernel.ts:checkMC": {
+        "calls": 3,
+        "inclusiveMs": 1278.508262
+      }
+    },
+    "detail": {
+      "label": "one primary per term",
+      "buckets": {
+        "other": {
+          "other": 2.541408000000132,
+          "instance-seeds": 1.037113000000005,
+          "obligation-build": 12.365134000000253,
+          "focused-pool": 6.326411999999777,
+          "witness-flags": 0.5796909999999968,
+          "case-control": 106.33151800000032,
+          "count-goal-build": 1.6534199999999402,
+          "row-materialization": 212.14429400000046,
+          "field-control": 33.66540800000044,
+          "transport": 260.5263199999992,
+          "source-transform": 8.27712899999986,
+          "witness-filter": 0.17302599999993618
+        },
+        "proposals": {
+          "other": 35.542121999999964
+        },
+        "demand": {
+          "focused-pool": 0.5405040000000128
+        },
+        "search": {
+          "case-control": 296.87082199999924,
+          "field-control": 201.9517439999981,
+          "row-materialization": 109.88455300000268,
+          "transport": 20.07062900000028,
+          "other": 0.5945779999997285
+        },
+        "kernel": {
+          "transport": 0.5052689999997142,
+          "case-control": 4.687426999999843,
+          "kernel": 1271.980253,
+          "other": 1.8405820000002677
+        }
+      },
+      "sites": {
+        "core/count-focused.ts:countLawSeeds": {
+          "calls": 2,
+          "wallMs": 0.5973630000000014,
+          "phases": {
+            "other": 0.6435699999999969
+          }
+        },
+        "core/count-focused.ts:fieldLawBridges": {
+          "calls": 2,
+          "wallMs": 0.30485400000000595,
+          "phases": {
+            "other": 0.3021499999999975
+          }
+        },
+        "core/count-focused.ts:countRowBridges": {
+          "calls": 2,
+          "wallMs": 0.09216400000000391,
+          "phases": {
+            "other": 0.09139300000001072
+          }
+        },
+        "kernel/kernel.ts:countedObligations": {
+          "calls": 6,
+          "wallMs": 12.38713599999987,
+          "phases": {
+            "other": 12.365134000000253
+          }
+        },
+        "core/count-focused.ts:focusCountCert": {
+          "calls": 9,
+          "wallMs": 6.830379999999927,
+          "phases": {
+            "other": 6.326411999999777,
+            "demand": 0.5405040000000128
+          }
+        },
+        "core/count-witness-flags.ts:seedCountWitnessFlags": {
+          "calls": 2,
+          "wallMs": 0.5871250000000003,
+          "phases": {
+            "other": 0.5796909999999968
+          }
+        },
+        "kernel/kernel.ts:mcGoal": {
+          "calls": 3,
+          "wallMs": 1.6484400000001358,
+          "phases": {
+            "other": 1.6534199999999402
+          }
+        },
+        "kernel/prove.ts:rowsAt": {
+          "calls": 4915,
+          "wallMs": 513.1891010000083,
+          "phases": {
+            "other": 402.16849500000535,
+            "search": 109.89563500000278
+          }
+        },
+        "kernel/prove.ts:widen": {
+          "calls": 50,
+          "wallMs": 271.42670200000026,
+          "phases": {
+            "other": 254.5117779999992,
+            "kernel": 0.5052689999997142,
+            "search": 16.456077000000164
+          }
+        },
+        "core/count-recovery/field-case.ts:fieldCase": {
+          "calls": 10,
+          "wallMs": 321.1396139999999,
+          "phases": {
+            "other": 91.4212490000006,
+            "search": 229.19621199999972,
+            "kernel": 0.5052689999997142
+          }
+        },
+        "core/count-recovery/fold-path.ts:foldPath": {
+          "calls": 10,
+          "wallMs": 8.290433999999948,
+          "phases": {
+            "other": 8.27712899999986
+          }
+        },
+        "core/count-recovery/lift-count-proxies.ts:liftCountProxies": {
+          "calls": 2,
+          "wallMs": 9.630586000000108,
+          "phases": {
+            "other": 6.014542000000006,
+            "search": 3.614552000000117
+          }
+        },
+        "core/count-cases.ts:withoutCountWitnesses": {
+          "calls": 1,
+          "wallMs": 0.18105100000002494,
+          "phases": {
+            "other": 0.17302599999993618
+          }
+        },
+        "kernel/kernel.ts:check": {
+          "calls": 3,
+          "wallMs": 1272.002864,
+          "phases": {
+            "kernel": 1271.980253
+          }
+        },
+        "core/count-cases.ts:proveCountCases": {
+          "calls": 1,
+          "wallMs": 1905.607029,
+          "phases": {
+            "other": 622.7632400000001,
+            "search": 628.6815770000002,
+            "kernel": 654.1564209999997
+          }
+        }
+      },
+      "checks": {
+        "core/count-cases.ts:proveCountCases": {
+          "calls": 1,
+          "wallMs": 649.2363069999999,
+          "minHyps": 166,
+          "maxHyps": 166,
+          "leaf": 0
+        },
+        "outside": {
+          "calls": 2,
+          "wallMs": 623.0618440000001,
+          "minHyps": 2,
+          "maxHyps": 166,
+          "leaf": 1
+        }
+      }
+    }
+  },
+  {
+    "artifact": "tf4-incremental.log",
+    "law": "Inv3915: one config term, the primary newest",
+    "checked": true,
+    "proven": true,
+    "wallMs": 3345.974792,
+    "countedUnits": 872.3352536000001,
+    "kernelMs": 1928.1065759999997,
+    "sites": {
+      "kernel/kernel.ts:check": {
+        "calls": 3,
+        "inclusiveMs": 1923.969012000001
+      },
+      "kernel/kernel.ts:checkMC": {
+        "calls": 3,
+        "inclusiveMs": 1927.9472660000001
+      }
+    },
+    "detail": {
+      "label": "Inv3915: one config term, the primary newest",
+      "buckets": {
+        "other": {
+          "other": 0.8954400000043279,
+          "instance-seeds": 0.31519299999990835,
+          "obligation-build": 22.303506999998717,
+          "focused-pool": 4.817214999999578,
+          "witness-flags": 0.5490829999998823,
+          "case-control": 84.38304800000697,
+          "count-goal-build": 1.0095509999996466,
+          "row-materialization": 379.2108040000003,
+          "field-control": 53.6457989999908,
+          "source-transform": 9.568209000000024,
+          "transport": 405.23930000000064,
+          "witness-filter": 0.020067999999810127
+        },
+        "proposals": {
+          "other": 28.172427999998945
+        },
+        "demand": {
+          "focused-pool": 16.419304999999895,
+          "write-frame-proposal": 5.821984000000157
+        },
+        "search": {
+          "case-control": 110.01349699999764,
+          "field-control": 156.54295600000432,
+          "row-materialization": 35.818828999998004,
+          "transport": 102.8703570000007,
+          "other": 0.24098200000025827
+        },
+        "kernel": {
+          "transport": 0.1593099999995502,
+          "case-control": 1.9439470000002075,
+          "kernel": 1923.98432,
+          "other": 2.0189989999998943
+        }
+      },
+      "sites": {
+        "core/count-focused.ts:countLawSeeds": {
+          "calls": 2,
+          "wallMs": 0.13153700000020763,
+          "phases": {
+            "other": 0.13629599999967468
+          }
+        },
+        "core/count-focused.ts:fieldLawBridges": {
+          "calls": 2,
+          "wallMs": 0.14343099999996411,
+          "phases": {
+            "other": 0.14421200000015233
+          }
+        },
+        "core/count-focused.ts:countRowBridges": {
+          "calls": 2,
+          "wallMs": 0.03416400000014619,
+          "phases": {
+            "other": 0.034685000000081345
+          }
+        },
+        "kernel/kernel.ts:countedObligations": {
+          "calls": 6,
+          "wallMs": 22.331668000000263,
+          "phases": {
+            "other": 22.303506999998717
+          }
+        },
+        "core/count-focused.ts:focusCountCert": {
+          "calls": 9,
+          "wallMs": 27.053179999999884,
+          "phases": {
+            "other": 4.817214999999578,
+            "demand": 22.24128900000005
+          }
+        },
+        "core/count-write-frames.ts:proposeWriteCountFrames": {
+          "calls": 4,
+          "wallMs": 5.8161300000001575,
+          "phases": {
+            "demand": 5.821984000000157
+          }
+        },
+        "core/count-witness-flags.ts:seedCountWitnessFlags": {
+          "calls": 2,
+          "wallMs": 0.554834000000028,
+          "phases": {
+            "other": 0.5490829999998823
+          }
+        },
+        "kernel/kernel.ts:mcGoal": {
+          "calls": 3,
+          "wallMs": 1.0087880000005498,
+          "phases": {
+            "other": 1.0095509999996466
+          }
+        },
+        "kernel/prove.ts:rowsAt": {
+          "calls": 4820,
+          "wallMs": 755.0996820000146,
+          "phases": {
+            "other": 717.2504369999915,
+            "search": 37.22532299999784
+          }
+        },
+        "core/count-recovery/fold-path.ts:foldPath": {
+          "calls": 13,
+          "wallMs": 9.594464999999673,
+          "phases": {
+            "other": 9.568209000000024
+          }
+        },
+        "kernel/prove.ts:widen": {
+          "calls": 85,
+          "wallMs": 508.2686179999987,
+          "phases": {
+            "other": 405.23930000000064,
+            "kernel": 0.1593099999995502,
+            "search": 102.8703570000007
+          }
+        },
+        "core/count-recovery/field-case.ts:fieldCase": {
+          "calls": 17,
+          "wallMs": 337.8082099999997,
+          "phases": {
+            "other": 160.311181999999,
+            "search": 177.33525100000088,
+            "kernel": 0.1593099999995502
+          }
+        },
+        "core/count-cases.ts:withoutCountWitnesses": {
+          "calls": 1,
+          "wallMs": 0.03455500000018219,
+          "phases": {
+            "other": 0.020067999999810127
+          }
+        },
+        "kernel/kernel.ts:check": {
+          "calls": 3,
+          "wallMs": 1923.9974750000006,
+          "phases": {
+            "kernel": 1923.98432
+          }
+        },
+        "core/count-cases.ts:proveCountCases": {
+          "calls": 1,
+          "wallMs": 2378.876403,
+          "phases": {
+            "other": 933.0651659999985,
+            "search": 405.1522130000012,
+            "kernel": 1040.65731
+          }
+        }
+      },
+      "checks": {
+        "core/count-cases.ts:proveCountCases": {
+          "calls": 1,
+          "wallMs": 1038.5862740000002,
+          "minHyps": 202,
+          "maxHyps": 202,
+          "leaf": 0
+        },
+        "outside": {
+          "calls": 2,
+          "wallMs": 885.4664859999993,
+          "minHyps": 2,
+          "maxHyps": 202,
+          "leaf": 1
+        }
+      }
+    }
+  },
+  {
+    "artifact": "tf4-incremental.log",
+    "law": "Inv1758: one version and term, one config",
+    "checked": true,
+    "proven": true,
+    "wallMs": 15506.233991,
+    "countedUnits": 4310.4753532,
+    "kernelMs": 7689.676443000004,
+    "sites": {
+      "kernel/kernel.ts:check": {
+        "calls": 3,
+        "inclusiveMs": 7682.250203000001
+      },
+      "kernel/kernel.ts:checkMC": {
+        "calls": 3,
+        "inclusiveMs": 7685.582752999997
+      }
+    },
+    "detail": {
+      "label": "Inv1758: one version and term, one config",
+      "buckets": {
+        "other": {
+          "other": 0.7821079999976064,
+          "instance-seeds": 0.2933310000016718,
+          "obligation-build": 6.748789000002034,
+          "focused-pool": 5.701803999999356,
+          "witness-flags": 0.5904310000005353,
+          "case-control": 233.7247060000318,
+          "count-goal-build": 3.417750000002343,
+          "row-materialization": 2478.470497999984,
+          "field-control": 521.3314959999552,
+          "source-transform": 78.87196299999596,
+          "transport": 2598.0511409999945,
+          "witness-filter": 0.005169000000023516
+        },
+        "proposals": {
+          "other": 29.095672999999806
+        },
+        "demand": {
+          "focused-pool": 14.805081000004066,
+          "write-frame-proposal": 4.364762999998675
+        },
+        "search": {
+          "case-control": 86.48147199999767,
+          "field-control": 1376.449473000036,
+          "transport": 354.2943089999926,
+          "row-materialization": 22.864309000002322,
+          "other": 0.1803089999993972
+        },
+        "kernel": {
+          "transport": 4.093690000006973,
+          "case-control": 1.9903950000007171,
+          "kernel": 7682.262766999998,
+          "other": 1.3295909999978903
+        }
+      },
+      "sites": {
+        "core/count-focused.ts:countLawSeeds": {
+          "calls": 2,
+          "wallMs": 0.0999679999995351,
+          "phases": {
+            "other": 0.10217200000079174
+          }
+        },
+        "core/count-focused.ts:fieldLawBridges": {
+          "calls": 2,
+          "wallMs": 0.14305900000090332,
+          "phases": {
+            "other": 0.14391000000068743
+          }
+        },
+        "core/count-focused.ts:countRowBridges": {
+          "calls": 2,
+          "wallMs": 0.04739999999947031,
+          "phases": {
+            "other": 0.04724900000019261
+          }
+        },
+        "kernel/kernel.ts:countedObligations": {
+          "calls": 6,
+          "wallMs": 6.748547000004692,
+          "phases": {
+            "other": 6.748789000002034
+          }
+        },
+        "core/count-focused.ts:focusCountCert": {
+          "calls": 9,
+          "wallMs": 24.864786000001004,
+          "phases": {
+            "other": 5.701803999999356,
+            "demand": 19.16984400000274
+          }
+        },
+        "core/count-write-frames.ts:proposeWriteCountFrames": {
+          "calls": 4,
+          "wallMs": 4.36827699999958,
+          "phases": {
+            "demand": 4.364762999998675
+          }
+        },
+        "core/count-witness-flags.ts:seedCountWitnessFlags": {
+          "calls": 2,
+          "wallMs": 0.5968130000001111,
+          "phases": {
+            "other": 0.5904310000005353
+          }
+        },
+        "kernel/kernel.ts:mcGoal": {
+          "calls": 11,
+          "wallMs": 3.417939000001752,
+          "phases": {
+            "other": 3.417750000002343
+          }
+        },
+        "kernel/prove.ts:rowsAt": {
+          "calls": 33686,
+          "wallMs": 4821.816153999922,
+          "phases": {
+            "other": 4763.8403810001855,
+            "search": 59.029424000010295
+          }
+        },
+        "core/count-recovery/fold-path.ts:foldPath": {
+          "calls": 305,
+          "wallMs": 79.0285309999972,
+          "phases": {
+            "other": 78.87196299999596
+          }
+        },
+        "kernel/prove.ts:widen": {
+          "calls": 158,
+          "wallMs": 2956.4296100000092,
+          "phases": {
+            "other": 2598.0511409999945,
+            "kernel": 4.093690000006973,
+            "search": 354.2943089999926
+          }
+        },
+        "core/count-recovery/field-case.ts:fieldCase": {
+          "calls": 100,
+          "wallMs": 6935.878259999996,
+          "phases": {
+            "other": 4749.960839999925,
+            "search": 2178.799794000054,
+            "kernel": 7.2806300000138435
+          }
+        },
+        "core/count-cases.ts:withoutCountWitnesses": {
+          "calls": 1,
+          "wallMs": 0.006042000000888947,
+          "phases": {
+            "other": 0.005169000000023516
+          }
+        },
+        "kernel/kernel.ts:check": {
+          "calls": 3,
+          "wallMs": 7682.270711000003,
+          "phases": {
+            "kernel": 7682.262766999998
+          }
+        },
+        "core/count-cases.ts:proveCountCases": {
+          "calls": 1,
+          "wallMs": 12460.170314,
+          "phases": {
+            "other": 5913.864608999964,
+            "search": 1840.0180890000283,
+            "kernel": 4706.281134000008
+          }
+        }
+      },
+      "checks": {
+        "core/count-cases.ts:proveCountCases": {
+          "calls": 1,
+          "wallMs": 4700.222526,
+          "minHyps": 210,
+          "maxHyps": 210,
+          "leaf": 0
+        },
+        "outside": {
+          "calls": 2,
+          "wallMs": 2982.093660999999,
+          "minHyps": 2,
+          "maxHyps": 210,
+          "leaf": 1
+        }
+      }
+    }
+  },
+  {
+    "artifact": "tf4-incremental.log",
+    "law": "Inv2973: quorums overlap, or a config disabled",
+    "checked": false,
+    "proven": false,
+    "wallMs": 60799.677757,
+    "countedUnits": 4883.592478,
+    "kernelMs": 38.197561000008136,
+    "sites": {
+      "kernel/kernel.ts:check": {
+        "calls": 35,
+        "inclusiveMs": 38.197561000008136
+      }
+    },
+    "detail": {
+      "label": "Inv2973: quorums overlap, or a config disabled",
+      "buckets": {
+        "other": {
+          "other": 0.8474930000011227,
+          "instance-seeds": 0.2600670000028913,
+          "obligation-build": 9.230914999996457,
+          "focused-pool": 182.9392880000014,
+          "witness-flags": 4.634156000000075,
+          "case-control": 3768.1489730001376,
+          "count-goal-build": 182.78021599999556,
+          "row-materialization": 22997.35814799988,
+          "field-control": 32.03353200003767,
+          "transport": 24097.195820999896,
+          "finish": 0.6325700000088545,
+          "source-transform": 0.13549499999498948
+        },
+        "proposals": {
+          "other": 195.95501400000285
+        },
+        "demand": {
+          "focused-pool": 105.48913599999287,
+          "write-frame-proposal": 7.982575000005454
+        },
+        "search": {
+          "case-control": 3616.5302460001876,
+          "row-materialization": 799.9671629998738,
+          "transport": 1718.7727409999934
+        },
+        "A": {
+          "case-control": 195.0046849998762,
+          "row-materialization": 140.7216260000714,
+          "transport": 524.4968490000392,
+          "source": 43.56274800000392,
+          "admission": 96.15834900000482,
+          "source-transform": 3.7692099999985658
+        },
+        "kernel": {
+          "admission": 38.197561000008136
+        },
+        "B": {
+          "case-control": 680.5189249999094,
+          "write-frame-proposal": 4.461080000000948,
+          "source": 31.36391200000071,
+          "scalar-proposal": 18.758469000000332,
+          "row-materialization": 433.569951000085,
+          "admission": 689.1717819999903,
+          "source-transform": 2.036716000009619
+        },
+        "C": {
+          "finish": 168.226851000014,
+          "row-materialization": 8.760876999986067
+        }
+      },
+      "sites": {
+        "core/count-focused.ts:countLawSeeds": {
+          "calls": 2,
+          "wallMs": 0.09236400000008871,
+          "phases": {
+            "other": 0.09486800000013318
+          }
+        },
+        "core/count-focused.ts:fieldLawBridges": {
+          "calls": 2,
+          "wallMs": 0.038973999999143416,
+          "phases": {
+            "other": 0.03983399999924586
+          }
+        },
+        "core/count-focused.ts:countRowBridges": {
+          "calls": 2,
+          "wallMs": 0.12526600000273902,
+          "phases": {
+            "other": 0.12536500000351225
+          }
+        },
+        "kernel/kernel.ts:countedObligations": {
+          "calls": 4,
+          "wallMs": 9.23604400000113,
+          "phases": {
+            "other": 9.230914999996457
+          }
+        },
+        "core/count-write-frames.ts:proposeWriteCountFrames": {
+          "calls": 11,
+          "wallMs": 12.406144000011409,
+          "phases": {
+            "demand": 7.982575000005454,
+            "B": 4.461080000000948
+          }
+        },
+        "core/count-focused.ts:focusCountCert": {
+          "calls": 8,
+          "wallMs": 296.40493800000695,
+          "phases": {
+            "other": 182.9392880000014,
+            "demand": 113.47171099999832
+          }
+        },
+        "core/count-witness-flags.ts:seedCountWitnessFlags": {
+          "calls": 2,
+          "wallMs": 4.642982000001211,
+          "phases": {
+            "other": 4.634156000000075
+          }
+        },
+        "kernel/kernel.ts:mcGoal": {
+          "calls": 7,
+          "wallMs": 182.84436299999652,
+          "phases": {
+            "other": 182.78021599999556
+          }
+        },
+        "kernel/prove.ts:rowsAt": {
+          "calls": 12094,
+          "wallMs": 48635.22862700139,
+          "phases": {
+            "other": 46748.82086699973,
+            "search": 799.9961469998707,
+            "A": 637.321508999732,
+            "B": 433.569951000085,
+            "C": 8.760876999986067
+          }
+        },
+        "core/count-recovery/field-case.ts:fieldCase": {
+          "calls": 17,
+          "wallMs": 7660.881327000014,
+          "phases": {
+            "other": 7660.874983999987
+          }
+        },
+        "kernel/prove.ts:widen": {
+          "calls": 193,
+          "wallMs": 24848.18889800004,
+          "phases": {
+            "other": 22625.32170699989,
+            "A": 524.4968490000392,
+            "search": 1698.4902040000015
+          }
+        },
+        "core/count-recovery/lift-count-proxies.ts:liftCountProxies": {
+          "calls": 4,
+          "wallMs": 1492.1671629999983,
+          "phases": {
+            "other": 1471.8741140000056,
+            "search": 20.282536999991862
+          }
+        },
+        "closure.source": {
+          "calls": 73,
+          "wallMs": 74.9846400000315,
+          "phases": {
+            "A": 43.56274800000392,
+            "B": 31.36391200000071
+          }
+        },
+        "core/count-recovery/conditional-cuts.ts:dependencies": {
+          "calls": 70,
+          "wallMs": 76.32429599994794,
+          "phases": {
+            "A": 1.428234999992128,
+            "B": 74.82273999996687
+          }
+        },
+        "core/count-recovery/conditional-cuts.ts:relevantHypotheses": {
+          "calls": 35,
+          "wallMs": 156.8743190000023,
+          "phases": {
+            "A": 93.47379999999976,
+            "B": 63.36189799998101
+          }
+        },
+        "core/count-recovery/conditional-cuts.ts:transport": {
+          "calls": 508,
+          "wallMs": 603.8698809999551,
+          "phases": {
+            "A": 1.1761909999986528,
+            "B": 602.0620940000372
+          }
+        },
+        "core/count-recovery/conditional-cuts.ts:inline": {
+          "calls": 35,
+          "wallMs": 73.43871500001114,
+          "phases": {
+            "A": 1.1006800000031944,
+            "B": 72.31585699999414
+          }
+        },
+        "admitCut.trace-reduction": {
+          "calls": 35,
+          "wallMs": 13.553797000022314,
+          "phases": {
+            "A": 0.12423399999534013,
+            "B": 13.42945900002087
+          }
+        },
+        "admitCut.per-atom": {
+          "calls": 35,
+          "wallMs": 498.07936000000336,
+          "phases": {
+            "A": 0.20589800000016112,
+            "B": 497.8775149999783
+          }
+        },
+        "kernel/kernel.ts:check": {
+          "calls": 35,
+          "wallMs": 38.32900200000586,
+          "phases": {
+            "A": 0.007272999995620921,
+            "kernel": 38.197561000008136,
+            "B": 0.08829699998022988
+          }
+        },
+        "core/count-recovery/conditional-cuts.ts:checked": {
+          "calls": 35,
+          "wallMs": 38.99789600000804,
+          "phases": {
+            "A": 0.05472300000110408,
+            "kernel": 38.197561000008136,
+            "B": 0.7354510000150185
+          }
+        },
+        "admitCut.final-check": {
+          "calls": 35,
+          "wallMs": 39.231626000007964,
+          "phases": {
+            "A": 0.0905410000050324,
+            "kernel": 38.197561000008136,
+            "B": 0.9504339999839431
+          }
+        },
+        "core/count-recovery/conditional-cuts.ts:admitCut": {
+          "calls": 35,
+          "wallMs": 665.3630749999866,
+          "phases": {
+            "A": 2.3193430000028457,
+            "kernel": 38.197561000008136,
+            "B": 624.8537250000008
+          }
+        },
+        "core/count-recovery/conditional-cuts.ts:admitConditionalCut": {
+          "calls": 35,
+          "wallMs": 823.5175959999906,
+          "phases": {
+            "A": 96.15834900000482,
+            "kernel": 38.197561000008136,
+            "B": 689.1717819999903
+          }
+        },
+        "core/count-recovery/scalar-guards.ts:countScalarGuards": {
+          "calls": 35,
+          "wallMs": 18.795727999975497,
+          "phases": {
+            "B": 18.758469000000332
+          }
+        },
+        "core/count-recovery/fold-path.ts:foldPath": {
+          "calls": 62,
+          "wallMs": 2.3078419999874313,
+          "phases": {
+            "B": 2.036716000009619,
+            "other": 0.13549499999498948,
+            "A": 0.13286100000550505
+          }
+        },
+        "closure.finish": {
+          "calls": 3,
+          "wallMs": 177.6128839999874,
+          "phases": {
+            "other": 0.6325700000088545,
+            "C": 176.98772800000006
+          }
+        },
+        "core/count-cases.ts:selectedCase": {
+          "calls": 6,
+          "wallMs": 1552.9666670000151,
+          "phases": {
+            "other": 179.36507999999594,
+            "search": 1373.6237649999966
+          }
+        },
+        "core/count-recovery/pre-state-source.ts:preStateCountSource": {
+          "calls": 1,
+          "wallMs": 3.642268999989028,
+          "phases": {
+            "A": 3.6363489999930607
+          }
+        },
+        "core/count-cases.ts:proveCountCases": {
+          "calls": 1,
+          "wallMs": 60292.33474699999,
+          "phases": {
+            "other": 51078.28475499995,
+            "search": 6135.270150000055,
+            "A": 1003.7134669999941,
+            "kernel": 38.197561000008136,
+            "B": 1859.8808349999963,
+            "C": 176.98772800000006
+          }
+        }
+      },
+      "checks": {
+        "core/count-recovery/conditional-cuts.ts:checked": {
+          "calls": 35,
+          "wallMs": 38.62837099997705,
+          "minHyps": 1,
+          "maxHyps": 1,
+          "leaf": 30
+        }
+      }
+    }
+  },
+  {
+    "artifact": "tf4-incremental.log",
+    "law": "Inv*: no quorum of a config can still be gathered for a config term held",
+    "checked": false,
+    "proven": false,
+    "wallMs": 55760.312147000004,
+    "countedUnits": 5163.149832,
+    "kernelMs": 11219.736531000177,
+    "sites": {
+      "kernel/kernel.ts:check": {
+        "calls": 2119,
+        "inclusiveMs": 11208.329283
+      }
+    },
+    "detail": {
+      "label": "Inv*: no quorum of a config can still be gathered for a config term held",
+      "buckets": {
+        "other": {
+          "other": 0.9459389999101404,
+          "instance-seeds": 0.5548520000302233,
+          "obligation-build": 8.306229000008898,
+          "focused-pool": 58.74872100003995,
+          "witness-flags": 1.2333399999915855,
+          "case-control": 2359.2488889999368,
+          "count-goal-build": 21.09038199999486,
+          "row-materialization": 17582.343557000073,
+          "field-control": 48.982802999875275,
+          "transport": 9512.65640999985,
+          "finish": 2.144256000086898,
+          "source-transform": 0.1086150000046473
+        },
+        "proposals": {
+          "other": 70.37540900001477
+        },
+        "demand": {
+          "focused-pool": 31.97921399999177,
+          "write-frame-proposal": 4.942106000002241
+        },
+        "search": {
+          "case-control": 2164.0987779999705,
+          "row-materialization": 625.9751230000838,
+          "transport": 1227.3814969998784
+        },
+        "A": {
+          "case-control": 722.6695070003625,
+          "row-materialization": 296.4453559997055,
+          "transport": 1798.147220999992,
+          "source": 71.34587200000533,
+          "admission": 129.67934800000512,
+          "source-transform": 10.31523599998036,
+          "field-control": 6.419471999979578
+        },
+        "kernel": {
+          "admission": 190.74808299995493,
+          "transport": 5287.560041000223,
+          "case-control": 0.06572400000004563,
+          "check": 10.178155000088736,
+          "kernel": 5731.184527999911
+        },
+        "B": {
+          "case-control": 1365.425274999172,
+          "write-frame-proposal": 8.969544000035967,
+          "source": 128.75871499998902,
+          "scalar-proposal": 28.907415000110632,
+          "row-materialization": 1925.0259610006178,
+          "admission": 4127.060908000043,
+          "source-transform": 11.649765000067418,
+          "transport": 13.617574000018067
+        },
+        "C": {
+          "finish": 168.20674600003986,
+          "row-materialization": 4.857018999944557,
+          "transport": 1.9543739999935497
+        }
+      },
+      "sites": {
+        "core/count-focused.ts:countLawSeeds": {
+          "calls": 2,
+          "wallMs": 0.32702399999834597,
+          "phases": {
+            "other": 0.3229260000080103
+          }
+        },
+        "core/count-focused.ts:fieldLawBridges": {
+          "calls": 2,
+          "wallMs": 0.133722000013222,
+          "phases": {
+            "other": 0.13438300001143944
+          }
+        },
+        "core/count-focused.ts:countRowBridges": {
+          "calls": 2,
+          "wallMs": 0.09776299999793991,
+          "phases": {
+            "other": 0.09754300001077354
+          }
+        },
+        "kernel/kernel.ts:countedObligations": {
+          "calls": 4,
+          "wallMs": 8.312580999991042,
+          "phases": {
+            "other": 8.306229000008898
+          }
+        },
+        "core/count-write-frames.ts:proposeWriteCountFrames": {
+          "calls": 15,
+          "wallMs": 13.865905999933602,
+          "phases": {
+            "demand": 4.942106000002241,
+            "B": 8.969544000035967
+          }
+        },
+        "core/count-focused.ts:focusCountCert": {
+          "calls": 8,
+          "wallMs": 95.66215500001272,
+          "phases": {
+            "other": 58.74872100003995,
+            "demand": 36.92131999999401
+          }
+        },
+        "core/count-witness-flags.ts:seedCountWitnessFlags": {
+          "calls": 2,
+          "wallMs": 1.238389999998617,
+          "phases": {
+            "other": 1.2333399999915855
+          }
+        },
+        "kernel/kernel.ts:mcGoal": {
+          "calls": 8,
+          "wallMs": 21.1484560000099,
+          "phases": {
+            "other": 21.09038199999486
+          }
+        },
+        "kernel/prove.ts:rowsAt": {
+          "calls": 12036,
+          "wallMs": 29453.987370999443,
+          "phases": {
+            "other": 24810.236319000658,
+            "search": 626.0120220000972,
+            "A": 2070.3072689998517,
+            "B": 1935.3667710006412,
+            "C": 6.394988999920315
+          }
+        },
+        "core/count-recovery/field-case.ts:fieldCase": {
+          "calls": 30,
+          "wallMs": 7898.384814000005,
+          "phases": {
+            "other": 7885.033119999978,
+            "A": 13.366219999981695
+          }
+        },
+        "kernel/prove.ts:widen": {
+          "calls": 191,
+          "wallMs": 8179.56345599996,
+          "phases": {
+            "other": 5187.354134000023,
+            "A": 1798.147220999992,
+            "B": 13.617574000018067,
+            "kernel": 0.08803899998019915,
+            "C": 1.9543739999935497,
+            "search": 1178.4899329999898
+          }
+        },
+        "core/count-recovery/lift-count-proxies.ts:liftCountProxies": {
+          "calls": 16,
+          "wallMs": 2317.0876810000045,
+          "phases": {
+            "other": 2268.1997720000945,
+            "search": 48.891563999888604
+          }
+        },
+        "closure.source": {
+          "calls": 239,
+          "wallMs": 200.2332199999655,
+          "phases": {
+            "A": 71.34587200000533,
+            "B": 128.75871499998902
+          }
+        },
+        "core/count-recovery/conditional-cuts.ts:dependencies": {
+          "calls": 194,
+          "wallMs": 244.5996980001364,
+          "phases": {
+            "A": 25.79073999998218,
+            "B": 218.66190199996345
+          }
+        },
+        "core/count-recovery/conditional-cuts.ts:relevantHypotheses": {
+          "calls": 97,
+          "wallMs": 242.18472600002133,
+          "phases": {
+            "A": 83.85202399999253,
+            "B": 158.3016489998554
+          }
+        },
+        "core/count-recovery/conditional-cuts.ts:transport": {
+          "calls": 1717,
+          "wallMs": 3927.7444120003784,
+          "phases": {
+            "A": 40.80580899999768,
+            "B": 3885.3936599995504
+          }
+        },
+        "core/count-recovery/conditional-cuts.ts:inline": {
+          "calls": 97,
+          "wallMs": 253.78877899999497,
+          "phases": {
+            "A": 18.061688999980106,
+            "B": 235.01801299999352,
+            "kernel": 0.7265869999973802
+          }
+        },
+        "admitCut.trace-reduction": {
+          "calls": 97,
+          "wallMs": 15.465482000014163,
+          "phases": {
+            "A": 4.9559100000042235,
+            "B": 10.516788000051747
+          }
+        },
+        "admitCut.per-atom": {
+          "calls": 97,
+          "wallMs": 3561.576700000107,
+          "phases": {
+            "A": 11.482376999992994,
+            "B": 3550.0869059999677
+          }
+        },
+        "kernel/kernel.ts:check": {
+          "calls": 2119,
+          "wallMs": 11213.293530000301,
+          "phases": {
+            "A": 0.026299999983166344,
+            "kernel": 11209.404613000108,
+            "B": 0.167208000071696,
+            "other": 2.093263999806368
+          }
+        },
+        "core/count-recovery/conditional-cuts.ts:checked": {
+          "calls": 103,
+          "wallMs": 192.03659900005732,
+          "phases": {
+            "A": 0.15009399998234585,
+            "kernel": 190.74808299995493,
+            "B": 1.1147580001415918
+          }
+        },
+        "admitCut.final-check": {
+          "calls": 97,
+          "wallMs": 191.68693500001973,
+          "phases": {
+            "A": 0.19766500001423992,
+            "kernel": 190.02149599995755,
+            "B": 1.4669279999070568
+          }
+        },
+        "core/count-recovery/conditional-cuts.ts:admitCut": {
+          "calls": 97,
+          "wallMs": 4203.2320219999965,
+          "phases": {
+            "A": 45.44630799998413,
+            "kernel": 190.74808299995493,
+            "B": 3967.0625620001083
+          }
+        },
+        "core/count-recovery/conditional-cuts.ts:admitConditionalCut": {
+          "calls": 97,
+          "wallMs": 4447.451994000003,
+          "phases": {
+            "A": 129.67934800000512,
+            "kernel": 190.74808299995493,
+            "B": 4127.060908000043
+          }
+        },
+        "core/count-recovery/scalar-guards.ts:countScalarGuards": {
+          "calls": 97,
+          "wallMs": 28.966030999974464,
+          "phases": {
+            "B": 28.907415000110632
+          }
+        },
+        "core/count-recovery/fold-path.ts:foldPath": {
+          "calls": 272,
+          "wallMs": 12.2638059999299,
+          "phases": {
+            "B": 11.649765000067418,
+            "other": 0.1086150000046473,
+            "A": 0.5018209999689134
+          }
+        },
+        "closure.finish": {
+          "calls": 15,
+          "wallMs": 1609.7435569999798,
+          "phases": {
+            "other": 1399.4328100001585,
+            "C": 175.01813899997796,
+            "search": 35.34417199991003
+          }
+        },
+        "core/count-cases.ts:selectedCase": {
+          "calls": 7,
+          "wallMs": 442.15007500002685,
+          "phases": {
+            "other": 19.886994999993476,
+            "search": 422.263644000006
+          }
+        },
+        "core/count-recovery/conditional-proof.ts:independent": {
+          "calls": 58,
+          "wallMs": 2299.7297080000135,
+          "phases": {
+            "other": 8.721062000025995,
+            "kernel": 2291.0824929999944
+          }
+        },
+        "core/count-recovery/conditional-proof.ts:leaf": {
+          "calls": 2384,
+          "wallMs": 1901.8610250003112,
+          "phases": {
+            "other": 1900.7885390002775
+          }
+        },
+        "core/count-recovery/conditional-proof.ts:ordinary": {
+          "calls": 552,
+          "wallMs": 1145.1211509999848,
+          "phases": {
+            "other": 1145.437189999997
+          }
+        },
+        "core/count-recovery/conditional-proof.ts:retarget": {
+          "calls": 25,
+          "wallMs": 3117.46017200005,
+          "phases": {
+            "other": 1276.7875219996786,
+            "kernel": 1840.6885580003145
+          }
+        },
+        "core/count-recovery/conditional-proof.ts:checked": {
+          "calls": 13,
+          "wallMs": 9196.043680999981,
+          "phases": {
+            "other": 7.904077000115649,
+            "kernel": 9188.146126999927
+          }
+        },
+        "core/count-recovery/conditional-proof.ts:transportConditionalProof": {
+          "calls": 12,
+          "wallMs": 7344.554971999969,
+          "phases": {
+            "other": 2057.102503999733,
+            "kernel": 5287.472002000242
+          }
+        },
+        "core/count-recovery/pre-state-source.ts:preStateCountSource": {
+          "calls": 7,
+          "wallMs": 9.845391000038944,
+          "phases": {
+            "A": 9.813415000011446
+          }
+        },
+        "core/count-cases.ts:proveCountCases": {
+          "calls": 1,
+          "wallMs": 55583.221218000006,
+          "phases": {
+            "other": 29526.57491199982,
+            "search": 4017.4553979999328,
+            "A": 3035.0220120000304,
+            "kernel": 11219.736531000177,
+            "B": 7609.415157000054,
+            "C": 175.01813899997796
+          }
+        }
+      },
+      "checks": {
+        "core/count-recovery/conditional-cuts.ts:checked": {
+          "calls": 103,
+          "wallMs": 191.46201200001815,
+          "minHyps": 1,
+          "maxHyps": 11,
+          "leaf": 67
+        },
+        "core/count-recovery/conditional-proof.ts:independent": {
+          "calls": 1328,
+          "wallMs": 2291.8475800000015,
+          "minHyps": 1,
+          "maxHyps": 2,
+          "leaf": 870
+        },
+        "core/count-recovery/conditional-proof.ts:retarget": {
+          "calls": 552,
+          "wallMs": 871.62678100013,
+          "minHyps": 1,
+          "maxHyps": 2,
+          "leaf": 360
+        },
+        "core/count-recovery/conditional-proof.ts:checked": {
+          "calls": 136,
+          "wallMs": 7863.004123999985,
+          "minHyps": 489,
+          "maxHyps": 490,
+          "leaf": 136
+        }
+      }
+    }
+  },
+  {
+    "test": "T-F4-stats",
+    "roots": 669,
+    "children": 82413,
+    "hypotheses": 14331512,
+    "recomputed": 421944,
+    "reused": 14033332,
+    "clears": 33
+  }
+]

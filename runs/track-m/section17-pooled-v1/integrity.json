@@ -1,0 +1,29 @@
+[
+  {
+    "mode": "baseline",
+    "kernelIdentical": true,
+    "changed": [
+      "core/counts.ts"
+    ],
+    "bundleSha256": "0b9d29c80779ac2711ad527c7e018890b1c27592b022448efab2a4c7e1724b3a"
+  },
+  {
+    "mode": "pool",
+    "kernelIdentical": true,
+    "changed": [
+      "core/counts.ts"
+    ],
+    "bundleSha256": "cd0639d168c721e22010067ed3187b04831700b9a20f0e184d1aed09fdd5dd06"
+  },
+  {
+    "mode": "combo",
+    "kernelIdentical": true,
+    "changed": [
+      "core/count-cases.ts",
+      "core/count-recovery/derivability-closure.ts",
+      "core/count-recovery/guard-cases.ts",
+      "core/counts.ts"
+    ],
+    "bundleSha256": "b6ba936716268ab839dd08c02b10dd46523d5b5c497132b51a4723d32638c46d"
+  }
+]

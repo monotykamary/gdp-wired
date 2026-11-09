@@ -1,0 +1,6 @@
+PAIR begin side=cand id=mldr run=1
+{"id":"mldr","ic3syn":"mldr","broken":{"bug":"become_leader without a majority","verdict":"unknown","why":"a law fails on the small instances","found":["every Config cell is a value of its kind","one primary per term"],"ms":6749,"work":0,"full":0}}
+PAIR end side=cand exit=0
+PAIR begin side=base id=mldr run=1
+{"id":"mldr","ic3syn":"mldr","broken":{"bug":"become_leader without a majority","verdict":"unknown","why":"a law fails on the small instances","found":["every C0 cell is a value of its kind","every Copied cell is a value of its kind","every Config cell is a value of its kind","one primary per term"],"ms":7265,"work":0,"full":0}}
+PAIR end side=base exit=0

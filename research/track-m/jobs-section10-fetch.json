@@ -1,0 +1,23 @@
+[
+  {
+    "name": "part0",
+    "cmd": "bun -e \"const data=await Bun.file(\\\"/home/user/track-m-s10-receipts-CbwqcY/0.txt\\\").text();console.log(JSON.stringify({part:0,data}));\"",
+    "cpu": 8,
+    "memory": 1024,
+    "timeout": 30
+  },
+  {
+    "name": "part1",
+    "cmd": "bun -e \"const data=await Bun.file(\\\"/home/user/track-m-s10-receipts-CbwqcY/1.txt\\\").text();console.log(JSON.stringify({part:1,data}));\"",
+    "cpu": 8,
+    "memory": 1024,
+    "timeout": 30
+  },
+  {
+    "name": "part2",
+    "cmd": "bun -e \"const data=await Bun.file(\\\"/home/user/track-m-s10-receipts-CbwqcY/2.txt\\\").text();console.log(JSON.stringify({part:2,data}));\"",
+    "cpu": 8,
+    "memory": 1024,
+    "timeout": 30
+  }
+]

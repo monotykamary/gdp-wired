@@ -1,0 +1,18 @@
+{"audited":3,"exactPoints":3,"summary":"/home/user/track-m-section15-audit-1AoWS4/summary.json"}
+{"artifact":"section10-chunk-manifest","dir":"/home/user/track-m-s10-receipts-bbpoHm","parts":1,"bytes":3029,"sha256":"cac094df0a1a8fee02d2b0bbb1d3716905438a5a5f88fd63b314ac4d7759d386","files":["summary.json"]}
+Found 0 warnings and 0 errors.
+Finished in 14.1s on 1286 files with 100 rules using 8 threads.
+bun test v1.4.3 (c6da4a4d3)
+
+--- stderr ---
+$ tsc -p . && oxlint --type-aware --deny-warnings --disable-nested-config
+
+research/track-m/section15.test.ts:
+(pass) T12 action cap never extends a caller deadline [0.16ms]
+(pass) model-first skips natural probes for SAT and invokes them for unknown [0.09ms]
+(pass) syntactic class batches put zero claims after unchanged frames [1.32ms]
+
+ 3 pass
+ 0 fail
+ 8 expect() calls
+Ran 3 tests across 1 file. [20.00ms]
