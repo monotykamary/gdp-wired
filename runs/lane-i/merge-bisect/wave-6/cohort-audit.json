@@ -1,0 +1,3113 @@
+{
+  "issues": [],
+  "skips": 64,
+  "acceptedReceipts": 80,
+  "acceptedSha256": "d0a47b7a5a7ff2dcc4fc97a9b736d552f1744860f95d79e2b32618e16923b063",
+  "byRevision": [
+    {
+      "revision": "bf43554bb67be5d8864e2212958908ae866eeb6c",
+      "attempted": 8,
+      "complete": 5,
+      "bothProven": 4,
+      "qualified": true,
+      "paired": {
+        "msDelta": -922.5,
+        "generationDelta": -6096.3122465000015,
+        "postGenerationDelta": 4302.772463000001
+      },
+      "lost": [
+        {
+          "replica": 507,
+          "repeat": 1
+        }
+      ],
+      "base": {
+        "ms": 31461.5,
+        "work": 14498189,
+        "full": 2665853
+      },
+      "candidate": {
+        "ms": 30001,
+        "work": 18135054,
+        "full": 4898768
+      },
+      "generationWallMs": {
+        "base": 18150.825369000002,
+        "candidate": 11264.819669
+      },
+      "finitePassMs": {
+        "base": 0,
+        "candidate": 0
+      },
+      "lawDeltas": [
+        {
+          "law": "every x, y, z with x < size ∧ y < size ∧ ¬(x = y) ∧ z < 64: never Voted[x] is 0 and 1 <= Decided[64·y + z]",
+          "full": 1216734.677700001,
+          "work": 4458428,
+          "wallMs": 3274.0292950000003
+        },
+        {
+          "law": "every x, y, z with x < size ∧ y < size ∧ ¬(x = y) ∧ z < 64: never 1 <= Leader[x] and 1 <= Decided[64·y + z]",
+          "full": 784403.8302999993,
+          "work": 557487,
+          "wallMs": 1983.344036999999
+        },
+        {
+          "law": "every x, y with x < size ∧ y < size ∧ ¬(x = y): never 1 <= Leader[x] and 1 <= Leader[y]",
+          "full": 478331.31279999996,
+          "work": 143868,
+          "wallMs": 1449.499082999996
+        },
+        {
+          "law": "every x with x < size: never VoteRequestMsg[64·x + x] is 0 and 1 <= VoteMsg[64·x + x]",
+          "full": 52.8234999999695,
+          "work": -1952,
+          "wallMs": -19.991408499998215
+        },
+        {
+          "law": "every Voted cell is a value of its kind",
+          "full": 1.3969838619232178e-9,
+          "work": 0,
+          "wallMs": 0.7748690000025817
+        },
+        {
+          "law": "every Decided cell is a value of its kind",
+          "full": 9.313225746154785e-10,
+          "work": 0,
+          "wallMs": 1.388859999999113
+        },
+        {
+          "law": "every Votes cell is a value of its kind",
+          "full": 4.656612873077393e-10,
+          "work": 0,
+          "wallMs": -2.7013575000000856
+        },
+        {
+          "law": "every x, y with x < size ∧ y < size ∧ ¬(x = y): never 1 <= VoteMsg[64·x + x] and 1 <= VoteMsg[64·x + y]",
+          "full": 2.3283064365386963e-10,
+          "work": 0,
+          "wallMs": -6.925841000000219
+        },
+        {
+          "law": "every x, y with x < size ∧ y < 64: never 1 <= Decided[64·x + y] and started is 0",
+          "full": 1.1641532182693481e-10,
+          "work": 0,
+          "wallMs": -21.198416000002
+        },
+        {
+          "law": "every x with x < size: never 1 <= Leader[x] and started is 0",
+          "full": 2.9103830456733704e-11,
+          "work": 0,
+          "wallMs": 1.4617765000002692
+        },
+        {
+          "law": "members$VotingQuorum keeps members's bound 0",
+          "full": 0,
+          "work": 0,
+          "wallMs": 11.780784499999754
+        },
+        {
+          "law": "every x with x < size: never Voted[x] is 0 and 1 <= VoteMsg[64·x + x]",
+          "full": 0,
+          "work": 0,
+          "wallMs": 14.433436499999516
+        },
+        {
+          "law": "every x with x < size: never 1 <= VotingQuorum[x] and started is 0",
+          "full": 0,
+          "work": 0,
+          "wallMs": 1.8705974999984392
+        },
+        {
+          "law": "every x, y with x < size ∧ y < size ∧ ¬(x = y): never Voted[x] is 0 and 1 <= VoteMsg[64·x + y]",
+          "full": 0,
+          "work": 0,
+          "wallMs": -3.4810064999983297
+        },
+        {
+          "law": "every Leader cell is a value of its kind",
+          "full": 0,
+          "work": 0,
+          "wallMs": -1.885304499997801
+        },
+        {
+          "law": "every x with x < size: never 1 <= Voted[x] and started is 0",
+          "full": -2.9103830456733704e-11,
+          "work": 0,
+          "wallMs": 8.159560500000225
+        },
+        {
+          "law": "every x with x < size: never 1 <= Votes[64·x + x] and started is 0",
+          "full": -5.820766091346741e-11,
+          "work": 0,
+          "wallMs": -7.878778000001148
+        },
+        {
+          "law": "every x, y with x < size ∧ y < size ∧ ¬(x = y): never 1 <= VoteRequestMsg[64·x + y] and started is 0",
+          "full": -2.3283064365386963e-10,
+          "work": 0,
+          "wallMs": 8.485492000003433
+        },
+        {
+          "law": "every x, y with x < size ∧ y < size ∧ ¬(x = y): never 1 <= Votes[64·x + y] and started is 0",
+          "full": -2.3283064365386963e-10,
+          "work": 0,
+          "wallMs": 4.348378500000763
+        },
+        {
+          "law": "every VoteRequestMsg cell is a value of its kind",
+          "full": -4.656612873077393e-10,
+          "work": 0,
+          "wallMs": -3.098653999993985
+        },
+        {
+          "law": "every x, y, z with x < size ∧ y < size ∧ ¬(x = y) ∧ z < size ∧ ¬(x = z) ∧ ¬(y = z): never 1 <= VoteMsg[64·x + y] and 1 <= VoteMsg[64·x + z]",
+          "full": -9.313225746154785e-10,
+          "work": 0,
+          "wallMs": -24.76405999999588
+        },
+        {
+          "law": "every VotingQuorum cell is a value of its kind",
+          "full": -9.313225746154785e-10,
+          "work": 0,
+          "wallMs": 0.47719949999918754
+        },
+        {
+          "law": "every VoteMsg cell is a value of its kind",
+          "full": -1.862645149230957e-9,
+          "work": 0,
+          "wallMs": 8.635890499999732
+        },
+        {
+          "law": "members$VotingQuorum keeps members's bound 2",
+          "full": -3.146999999997206,
+          "work": -105,
+          "wallMs": 3.69324250000318
+        },
+        {
+          "law": "every x with x < size: never Voted[x] is 0 and 1 <= Votes[64·x + x]",
+          "full": -3.2234999999636784,
+          "work": -174,
+          "wallMs": 5.717064500000561
+        },
+        {
+          "law": "every x with x < size: never 1 <= VoteRequestMsg[64·x + x] and started is 0",
+          "full": -3.223500000021886,
+          "work": -106,
+          "wallMs": -5.104815000002418
+        },
+        {
+          "law": "every x with x < size: never 1 <= VoteMsg[64·x + x] and started is 0",
+          "full": -3.223500000021886,
+          "work": -108,
+          "wallMs": -7.168193499999688
+        },
+        {
+          "law": "every x, y with x < size ∧ y < size ∧ ¬(x = y): never Voted[x] is 0 and 1 <= Votes[64·y + x]",
+          "full": -3.300000000046566,
+          "work": -151,
+          "wallMs": -8.08803849999913
+        },
+        {
+          "law": "every x, y with x < size ∧ y < size ∧ ¬(x = y): never 1 <= VoteMsg[64·x + y] and started is 0",
+          "full": -3.3000000005122274,
+          "work": -129,
+          "wallMs": 12.14775550000013
+        },
+        {
+          "law": "every x, y with x < size ∧ y < size ∧ ¬(x = y): never 1 <= VoteMsg[64·x + y] and 1 <= Votes[64·x + x]",
+          "full": -4.058999999426305,
+          "work": -202,
+          "wallMs": -29.17103550000138
+        },
+        {
+          "law": "every x, y with x < size ∧ y < size ∧ ¬(x = y): never VoteRequestMsg[64·x + y] is 0 and 1 <= VoteMsg[64·y + x]",
+          "full": -17.00399999995716,
+          "work": -360,
+          "wallMs": 8.858125000000655
+        },
+        {
+          "law": "every x, y, z with x < size ∧ y < size ∧ ¬(x = y) ∧ z < size ∧ ¬(x = z) ∧ ¬(y = z): never 1 <= Votes[64·x + y] and 1 <= Votes[64·z + y]",
+          "full": -18.400499999988824,
+          "work": -1286,
+          "wallMs": -51.899499000001015
+        },
+        {
+          "law": "every x, y with x < size ∧ y < 64: never Leader[x] is 0 and 1 <= Decided[64·x + y]",
+          "full": -20.55900000006659,
+          "work": -1147,
+          "wallMs": 2.942285500002072
+        },
+        {
+          "law": "Leader keeps members$VotingQuorum's bound through members$VotingQuorum$Leader",
+          "full": -31.569000000003143,
+          "work": -2358,
+          "wallMs": 77.88540549999743
+        },
+        {
+          "law": "every x, y, z with x < size ∧ y < size ∧ ¬(x = y) ∧ z < size ∧ ¬(x = z) ∧ ¬(y = z): never 1 <= VoteMsg[64·x + y] and 1 <= Votes[64·z + x]",
+          "full": -38.54850000003353,
+          "work": -2933,
+          "wallMs": -6.3982599999999366
+        },
+        {
+          "law": "every x with x < size: never VoteMsg[64·x + x] is 0 and 1 <= Votes[64·x + x]",
+          "full": -85.50299999996787,
+          "work": -5551,
+          "wallMs": 15.531605999999556
+        },
+        {
+          "law": "every x, y with x < size ∧ y < size ∧ ¬(x = y): never 1 <= Votes[64·x + x] and 1 <= Votes[64·y + x]",
+          "full": -113.45750000001863,
+          "work": -5164,
+          "wallMs": -15.601425499997276
+        },
+        {
+          "law": "Decided: one second key a first",
+          "full": -283.6170000000129,
+          "work": -26425,
+          "wallMs": -175.1966244999985
+        },
+        {
+          "law": "every x, y with x < size ∧ y < size ∧ ¬(x = y): never VoteMsg[64·x + y] is 0 and 1 <= Votes[64·y + x]",
+          "full": -740.5240000006743,
+          "work": -40425,
+          "wallMs": -136.61015599999882
+        },
+        {
+          "law": "every x with x < size: never VoteRequestMsg[64·x + x] is 0 and 1 <= Votes[64·x + x]",
+          "full": -1314.0114999999641,
+          "work": -63069,
+          "wallMs": -99.42474700000184
+        },
+        {
+          "law": "every x, y with x < size ∧ y < size ∧ ¬(x = y): never 1 <= VoteMsg[64·x + x] and 1 <= Votes[64·y + x]",
+          "full": -1391.4249999998137,
+          "work": -21247,
+          "wallMs": -45.8317205000003
+        },
+        {
+          "law": "every x, y with x < size ∧ y < size ∧ ¬(x = y): never VoteRequestMsg[64·x + y] is 0 and 1 <= Votes[64·x + y]",
+          "full": -6111.336499999743,
+          "work": -249430,
+          "wallMs": -615.5237939999988
+        },
+        {
+          "law": "every x, y, z with x < size ∧ y < size ∧ ¬(x = y) ∧ z < 64: never 1 <= Decided[64·x + z] and 1 <= Decided[64·y + z]",
+          "full": -24311.074799999362,
+          "work": -57960,
+          "wallMs": -122.26206600000114
+        },
+        {
+          "law": "every x, y, z, w with x < size ∧ y < size ∧ ¬(x = y) ∧ z < 64 ∧ w < 64 ∧ ¬(z = w): never 1 <= Decided[64·x + z] and 1 <= Decided[64·y + w]",
+          "full": -51888.937499999534,
+          "work": -159000,
+          "wallMs": -207.63421200000084
+        },
+        {
+          "law": "one value decided",
+          "full": -75326.66460000118,
+          "work": -260115,
+          "wallMs": -278.0910795
+        },
+        {
+          "law": "every x, y, z with x < size ∧ y < 64 ∧ z < 64 ∧ ¬(y = z): never 1 <= Decided[64·x + y] and 1 <= Decided[64·x + z]",
+          "full": -84891.14600000007,
+          "work": -623521,
+          "wallMs": -556.0771305000007
+        }
+      ]
+    },
+    {
+      "revision": "1550512d3933434c5a2ad11a17031d1fa36284db",
+      "attempted": 8,
+      "complete": 7,
+      "bothProven": 7,
+      "qualified": true,
+      "paired": {
+        "msDelta": -2355,
+        "generationDelta": -10775.813791,
+        "postGenerationDelta": 5452.320713999994
+      },
+      "lost": [],
+      "base": {
+        "ms": 36318,
+        "work": 14498189,
+        "full": 2665853
+      },
+      "candidate": {
+        "ms": 32744,
+        "work": 18033903,
+        "full": 4894008
+      },
+      "generationWallMs": {
+        "base": 21991.030046,
+        "candidate": 11215.216255
+      },
+      "finitePassMs": {
+        "base": 0,
+        "candidate": 0
+      },
+      "lawDeltas": [
+        {
+          "law": "every x, y, z with x < size ∧ y < size ∧ ¬(x = y) ∧ z < 64: never Voted[x] is 0 and 1 <= Decided[64·y + z]",
+          "full": 1217870.5254000004,
+          "work": 4460680,
+          "wallMs": 3031.8885900000023
+        },
+        {
+          "law": "every x, y, z with x < size ∧ y < size ∧ ¬(x = y) ∧ z < 64: never 1 <= Leader[x] and 1 <= Decided[64·y + z]",
+          "full": 784691.8708000004,
+          "work": 558265,
+          "wallMs": 2450.027710999999
+        },
+        {
+          "law": "every x, y with x < size ∧ y < size ∧ ¬(x = y): never 1 <= Leader[x] and 1 <= Leader[y]",
+          "full": 478818.88679999963,
+          "work": 144254,
+          "wallMs": 1560.535090000003
+        },
+        {
+          "law": "members$VotingQuorum keeps members's bound 0",
+          "full": 3815.4446999999964,
+          "work": -8648,
+          "wallMs": -4.0896799999973155
+        },
+        {
+          "law": "members$VotingQuorum keeps members's bound 2",
+          "full": 2180.995800000015,
+          "work": -8392,
+          "wallMs": -13.084337999998752
+        },
+        {
+          "law": "every x with x < size: never VoteRequestMsg[64·x + x] is 0 and 1 <= VoteMsg[64·x + x]",
+          "full": 52.82350000005681,
+          "work": -1952,
+          "wallMs": -10.920959000000948
+        },
+        {
+          "law": "every VoteMsg cell is a value of its kind",
+          "full": 1.862645149230957e-9,
+          "work": 0,
+          "wallMs": 1.4721480000007432
+        },
+        {
+          "law": "every VotingQuorum cell is a value of its kind",
+          "full": 1.862645149230957e-9,
+          "work": 0,
+          "wallMs": 2.260150000001886
+        },
+        {
+          "law": "every VoteRequestMsg cell is a value of its kind",
+          "full": 4.656612873077393e-10,
+          "work": 0,
+          "wallMs": 8.739351000003808
+        },
+        {
+          "law": "every x, y with x < size ∧ y < size ∧ ¬(x = y): never 1 <= VoteMsg[64·x + x] and 1 <= VoteMsg[64·x + y]",
+          "full": 2.3283064365386963e-10,
+          "work": 0,
+          "wallMs": 22.9005300000008
+        },
+        {
+          "law": "every x with x < size: never 1 <= Voted[x] and started is 0",
+          "full": 8.731149137020111e-11,
+          "work": 0,
+          "wallMs": -8.105201000002126
+        },
+        {
+          "law": "every x with x < size: never Voted[x] is 0 and 1 <= VoteMsg[64·x + x]",
+          "full": 0,
+          "work": 0,
+          "wallMs": 12.33650200000011
+        },
+        {
+          "law": "every x with x < size: never 1 <= Votes[64·x + x] and started is 0",
+          "full": 0,
+          "work": 0,
+          "wallMs": 4.588811999996324
+        },
+        {
+          "law": "every x, y with x < size ∧ y < 64: never 1 <= Decided[64·x + y] and started is 0",
+          "full": 0,
+          "work": 0,
+          "wallMs": -11.86109800000122
+        },
+        {
+          "law": "every x, y with x < size ∧ y < size ∧ ¬(x = y): never Voted[x] is 0 and 1 <= VoteMsg[64·x + y]",
+          "full": 0,
+          "work": 0,
+          "wallMs": 11.555405999999493
+        },
+        {
+          "law": "every x, y, z with x < size ∧ y < size ∧ ¬(x = y) ∧ z < size ∧ ¬(x = z) ∧ ¬(y = z): never 1 <= VoteMsg[64·x + y] and 1 <= VoteMsg[64·x + z]",
+          "full": 0,
+          "work": 0,
+          "wallMs": 38.307989000000816
+        },
+        {
+          "law": "every x with x < size: never 1 <= Leader[x] and started is 0",
+          "full": -2.9103830456733704e-11,
+          "work": 0,
+          "wallMs": 4.891353999997591
+        },
+        {
+          "law": "every x with x < size: never 1 <= VotingQuorum[x] and started is 0",
+          "full": -2.9103830456733704e-11,
+          "work": 0,
+          "wallMs": 12.272420999999667
+        },
+        {
+          "law": "every x, y with x < size ∧ y < size ∧ ¬(x = y): never 1 <= VoteRequestMsg[64·x + y] and started is 0",
+          "full": -4.656612873077393e-10,
+          "work": 0,
+          "wallMs": 9.547397000002093
+        },
+        {
+          "law": "every Voted cell is a value of its kind",
+          "full": -4.656612873077393e-10,
+          "work": 0,
+          "wallMs": 1.9918140000008862
+        },
+        {
+          "law": "every Votes cell is a value of its kind",
+          "full": -4.656612873077393e-10,
+          "work": 0,
+          "wallMs": 2.352522000001045
+        },
+        {
+          "law": "every x, y with x < size ∧ y < size ∧ ¬(x = y): never 1 <= Votes[64·x + y] and started is 0",
+          "full": -6.984919309616089e-10,
+          "work": 0,
+          "wallMs": 12.41467399999965
+        },
+        {
+          "law": "every Leader cell is a value of its kind",
+          "full": -9.313225746154785e-10,
+          "work": 0,
+          "wallMs": 7.433436999999685
+        },
+        {
+          "law": "every Decided cell is a value of its kind",
+          "full": -9.313225746154785e-10,
+          "work": 0,
+          "wallMs": -1.7312000000019907
+        },
+        {
+          "law": "every x with x < size: never 1 <= VoteRequestMsg[64·x + x] and started is 0",
+          "full": -3.2234999999054708,
+          "work": -106,
+          "wallMs": -1.4065490000029968
+        },
+        {
+          "law": "every x with x < size: never 1 <= VoteMsg[64·x + x] and started is 0",
+          "full": -3.2234999999636784,
+          "work": -108,
+          "wallMs": 5.838003000000754
+        },
+        {
+          "law": "every x with x < size: never Voted[x] is 0 and 1 <= Votes[64·x + x]",
+          "full": -3.2234999999927823,
+          "work": -174,
+          "wallMs": 18.548875000000407
+        },
+        {
+          "law": "every x, y with x < size ∧ y < size ∧ ¬(x = y): never Voted[x] is 0 and 1 <= Votes[64·y + x]",
+          "full": -3.300000000046566,
+          "work": -151,
+          "wallMs": 3.6302940000059607
+        },
+        {
+          "law": "every x, y with x < size ∧ y < size ∧ ¬(x = y): never 1 <= VoteMsg[64·x + y] and started is 0",
+          "full": -3.300000000745058,
+          "work": -129,
+          "wallMs": -4.405488999997033
+        },
+        {
+          "law": "every x, y with x < size ∧ y < size ∧ ¬(x = y): never 1 <= VoteMsg[64·x + y] and 1 <= Votes[64·x + x]",
+          "full": -4.058999999659136,
+          "work": -202,
+          "wallMs": 10.275573999999324
+        },
+        {
+          "law": "every x, y with x < size ∧ y < size ∧ ¬(x = y): never VoteRequestMsg[64·x + y] is 0 and 1 <= VoteMsg[64·y + x]",
+          "full": -17.00399999972433,
+          "work": -360,
+          "wallMs": 59.66552599999886
+        },
+        {
+          "law": "every x, y, z with x < size ∧ y < size ∧ ¬(x = y) ∧ z < size ∧ ¬(x = z) ∧ ¬(y = z): never 1 <= Votes[64·x + y] and 1 <= Votes[64·z + y]",
+          "full": -18.400500000920147,
+          "work": -1286,
+          "wallMs": 4.541834999996354
+        },
+        {
+          "law": "every x, y with x < size ∧ y < 64: never Leader[x] is 0 and 1 <= Decided[64·x + y]",
+          "full": -20.559000000008382,
+          "work": -1147,
+          "wallMs": -21.617433999999776
+        },
+        {
+          "law": "every x, y, z with x < size ∧ y < size ∧ ¬(x = y) ∧ z < size ∧ ¬(x = z) ∧ ¬(y = z): never 1 <= VoteMsg[64·x + y] and 1 <= Votes[64·z + x]",
+          "full": -38.548499999102205,
+          "work": -2933,
+          "wallMs": -17.11694500000158
+        },
+        {
+          "law": "every x with x < size: never VoteMsg[64·x + x] is 0 and 1 <= Votes[64·x + x]",
+          "full": -85.50300000014249,
+          "work": -5551,
+          "wallMs": -22.863212000002022
+        },
+        {
+          "law": "every x, y with x < size ∧ y < size ∧ ¬(x = y): never 1 <= Votes[64·x + x] and 1 <= Votes[64·y + x]",
+          "full": -113.45749999932013,
+          "work": -5164,
+          "wallMs": -11.70118999999977
+        },
+        {
+          "law": "Decided: one second key a first",
+          "full": -283.6170000000275,
+          "work": -26425,
+          "wallMs": -147.79726400000072
+        },
+        {
+          "law": "every x, y with x < size ∧ y < size ∧ ¬(x = y): never VoteMsg[64·x + y] is 0 and 1 <= Votes[64·y + x]",
+          "full": -740.5240000002086,
+          "work": -40425,
+          "wallMs": 41.909087
+        },
+        {
+          "law": "every x with x < size: never VoteRequestMsg[64·x + x] is 0 and 1 <= Votes[64·x + x]",
+          "full": -1314.0115000000806,
+          "work": -63069,
+          "wallMs": -97.6172860000006
+        },
+        {
+          "law": "every x, y with x < size ∧ y < size ∧ ¬(x = y): never 1 <= VoteMsg[64·x + x] and 1 <= Votes[64·y + x]",
+          "full": -1391.4249999998137,
+          "work": -21247,
+          "wallMs": -5.193690999996761
+        },
+        {
+          "law": "every x, y with x < size ∧ y < size ∧ ¬(x = y): never VoteRequestMsg[64·x + y] is 0 and 1 <= Votes[64·x + y]",
+          "full": -6111.336499999743,
+          "work": -249430,
+          "wallMs": -578.6672670000044
+        },
+        {
+          "law": "Leader keeps members$VotingQuorum's bound through members$VotingQuorum$Leader",
+          "full": -12703.293800000029,
+          "work": -89990,
+          "wallMs": -99.2587739999999
+        },
+        {
+          "law": "every x, y, z with x < size ∧ y < size ∧ ¬(x = y) ∧ z < 64: never 1 <= Decided[64·x + z] and 1 <= Decided[64·y + z]",
+          "full": -24311.074800001225,
+          "work": -57960,
+          "wallMs": -132.81982300000163
+        },
+        {
+          "law": "every x, y, z, w with x < size ∧ y < size ∧ ¬(x = y) ∧ z < 64 ∧ w < 64 ∧ ¬(z = w): never 1 <= Decided[64·x + z] and 1 <= Decided[64·y + w]",
+          "full": -51888.937499999534,
+          "work": -159000,
+          "wallMs": -140.95862300000226
+        },
+        {
+          "law": "one value decided",
+          "full": -75326.66460000025,
+          "work": -260115,
+          "wallMs": -340.202114000007
+        },
+        {
+          "law": "every x, y, z with x < size ∧ y < 64 ∧ z < 64 ∧ ¬(y = z): never 1 <= Decided[64·x + y] and 1 <= Decided[64·x + z]",
+          "full": -84891.14599999995,
+          "work": -623521,
+          "wallMs": -603.867400000001
+        }
+      ]
+    },
+    {
+      "revision": "d6189c1e485edd3f2ceb2cdbe2e98ee26f5a0921",
+      "attempted": 8,
+      "complete": 7,
+      "bothProven": 7,
+      "qualified": true,
+      "paired": {
+        "msDelta": 1268,
+        "generationDelta": -6083.642881,
+        "postGenerationDelta": 8216.354900000002
+      },
+      "lost": [],
+      "base": {
+        "ms": 33202,
+        "work": 14498189,
+        "full": 2665853
+      },
+      "candidate": {
+        "ms": 34470,
+        "work": 18033903,
+        "full": 4894008
+      },
+      "generationWallMs": {
+        "base": 18535.677764,
+        "candidate": 12908.122792999999
+      },
+      "finitePassMs": {
+        "base": 0,
+        "candidate": 0
+      },
+      "lawDeltas": [
+        {
+          "law": "every x, y, z with x < size ∧ y < size ∧ ¬(x = y) ∧ z < 64: never Voted[x] is 0 and 1 <= Decided[64·y + z]",
+          "full": 1217870.5254000004,
+          "work": 4460680,
+          "wallMs": 3560.8678180000024
+        },
+        {
+          "law": "every x, y, z with x < size ∧ y < size ∧ ¬(x = y) ∧ z < 64: never 1 <= Leader[x] and 1 <= Decided[64·y + z]",
+          "full": 784691.8708000004,
+          "work": 558265,
+          "wallMs": 2950.997725999998
+        },
+        {
+          "law": "every x, y with x < size ∧ y < size ∧ ¬(x = y): never 1 <= Leader[x] and 1 <= Leader[y]",
+          "full": 478818.88679999963,
+          "work": 144254,
+          "wallMs": 1820.2959740000042
+        },
+        {
+          "law": "members$VotingQuorum keeps members's bound 0",
+          "full": 3815.4446999999964,
+          "work": -8648,
+          "wallMs": 59.55922699999974
+        },
+        {
+          "law": "members$VotingQuorum keeps members's bound 2",
+          "full": 2180.995800000015,
+          "work": -8392,
+          "wallMs": 2.752777999996397
+        },
+        {
+          "law": "every x with x < size: never VoteRequestMsg[64·x + x] is 0 and 1 <= VoteMsg[64·x + x]",
+          "full": 52.82350000005681,
+          "work": -1952,
+          "wallMs": -12.204288999999335
+        },
+        {
+          "law": "every VoteMsg cell is a value of its kind",
+          "full": 1.862645149230957e-9,
+          "work": 0,
+          "wallMs": 1.0644709999978659
+        },
+        {
+          "law": "every VotingQuorum cell is a value of its kind",
+          "full": 1.862645149230957e-9,
+          "work": 0,
+          "wallMs": 0.06793800000014016
+        },
+        {
+          "law": "every VoteRequestMsg cell is a value of its kind",
+          "full": 4.656612873077393e-10,
+          "work": 0,
+          "wallMs": 5.184472000000824
+        },
+        {
+          "law": "every x, y with x < size ∧ y < size ∧ ¬(x = y): never 1 <= VoteMsg[64·x + x] and 1 <= VoteMsg[64·x + y]",
+          "full": 2.3283064365386963e-10,
+          "work": 0,
+          "wallMs": 12.252244000002975
+        },
+        {
+          "law": "every x with x < size: never 1 <= Voted[x] and started is 0",
+          "full": 8.731149137020111e-11,
+          "work": 0,
+          "wallMs": 6.7024619999992865
+        },
+        {
+          "law": "every x with x < size: never Voted[x] is 0 and 1 <= VoteMsg[64·x + x]",
+          "full": 0,
+          "work": 0,
+          "wallMs": -10.403604999999516
+        },
+        {
+          "law": "every x with x < size: never 1 <= Votes[64·x + x] and started is 0",
+          "full": 0,
+          "work": 0,
+          "wallMs": 17.100695999997697
+        },
+        {
+          "law": "every x, y with x < size ∧ y < 64: never 1 <= Decided[64·x + y] and started is 0",
+          "full": 0,
+          "work": 0,
+          "wallMs": 4.048674000001483
+        },
+        {
+          "law": "every x, y with x < size ∧ y < size ∧ ¬(x = y): never Voted[x] is 0 and 1 <= VoteMsg[64·x + y]",
+          "full": 0,
+          "work": 0,
+          "wallMs": -3.744929000000411
+        },
+        {
+          "law": "every x, y, z with x < size ∧ y < size ∧ ¬(x = y) ∧ z < size ∧ ¬(x = z) ∧ ¬(y = z): never 1 <= VoteMsg[64·x + y] and 1 <= VoteMsg[64·x + z]",
+          "full": 0,
+          "work": 0,
+          "wallMs": 5.604767999997421
+        },
+        {
+          "law": "every x with x < size: never 1 <= Leader[x] and started is 0",
+          "full": -2.9103830456733704e-11,
+          "work": 0,
+          "wallMs": 1.043934999999692
+        },
+        {
+          "law": "every x with x < size: never 1 <= VotingQuorum[x] and started is 0",
+          "full": -2.9103830456733704e-11,
+          "work": 0,
+          "wallMs": -6.409159000000727
+        },
+        {
+          "law": "every x, y with x < size ∧ y < size ∧ ¬(x = y): never 1 <= VoteRequestMsg[64·x + y] and started is 0",
+          "full": -4.656612873077393e-10,
+          "work": 0,
+          "wallMs": -2.1038660000085656
+        },
+        {
+          "law": "every Voted cell is a value of its kind",
+          "full": -4.656612873077393e-10,
+          "work": 0,
+          "wallMs": 5.514452000003075
+        },
+        {
+          "law": "every Votes cell is a value of its kind",
+          "full": -4.656612873077393e-10,
+          "work": 0,
+          "wallMs": 3.250833000005514
+        },
+        {
+          "law": "every x, y with x < size ∧ y < size ∧ ¬(x = y): never 1 <= Votes[64·x + y] and started is 0",
+          "full": -6.984919309616089e-10,
+          "work": 0,
+          "wallMs": 5.793373999997129
+        },
+        {
+          "law": "every Leader cell is a value of its kind",
+          "full": -9.313225746154785e-10,
+          "work": 0,
+          "wallMs": 2.7909640000070794
+        },
+        {
+          "law": "every Decided cell is a value of its kind",
+          "full": -9.313225746154785e-10,
+          "work": 0,
+          "wallMs": 2.4179970000041067
+        },
+        {
+          "law": "every x with x < size: never 1 <= VoteRequestMsg[64·x + x] and started is 0",
+          "full": -3.2234999999054708,
+          "work": -106,
+          "wallMs": 12.631139999997686
+        },
+        {
+          "law": "every x with x < size: never 1 <= VoteMsg[64·x + x] and started is 0",
+          "full": -3.2234999999636784,
+          "work": -108,
+          "wallMs": 2.2059709999975894
+        },
+        {
+          "law": "every x with x < size: never Voted[x] is 0 and 1 <= Votes[64·x + x]",
+          "full": -3.2234999999927823,
+          "work": -174,
+          "wallMs": 2.732078000000911
+        },
+        {
+          "law": "every x, y with x < size ∧ y < size ∧ ¬(x = y): never Voted[x] is 0 and 1 <= Votes[64·y + x]",
+          "full": -3.300000000046566,
+          "work": -151,
+          "wallMs": -1.9429949999976088
+        },
+        {
+          "law": "every x, y with x < size ∧ y < size ∧ ¬(x = y): never 1 <= VoteMsg[64·x + y] and started is 0",
+          "full": -3.300000000745058,
+          "work": -129,
+          "wallMs": 4.66849899999761
+        },
+        {
+          "law": "every x, y with x < size ∧ y < size ∧ ¬(x = y): never 1 <= VoteMsg[64·x + y] and 1 <= Votes[64·x + x]",
+          "full": -4.058999999659136,
+          "work": -202,
+          "wallMs": -6.649376999999731
+        },
+        {
+          "law": "every x, y with x < size ∧ y < size ∧ ¬(x = y): never VoteRequestMsg[64·x + y] is 0 and 1 <= VoteMsg[64·y + x]",
+          "full": -17.00399999972433,
+          "work": -360,
+          "wallMs": 41.48055900000327
+        },
+        {
+          "law": "every x, y, z with x < size ∧ y < size ∧ ¬(x = y) ∧ z < size ∧ ¬(x = z) ∧ ¬(y = z): never 1 <= Votes[64·x + y] and 1 <= Votes[64·z + y]",
+          "full": -18.400500000920147,
+          "work": -1286,
+          "wallMs": 53.38552800000616
+        },
+        {
+          "law": "every x, y with x < size ∧ y < 64: never Leader[x] is 0 and 1 <= Decided[64·x + y]",
+          "full": -20.559000000008382,
+          "work": -1147,
+          "wallMs": -31.341307999997298
+        },
+        {
+          "law": "every x, y, z with x < size ∧ y < size ∧ ¬(x = y) ∧ z < size ∧ ¬(x = z) ∧ ¬(y = z): never 1 <= VoteMsg[64·x + y] and 1 <= Votes[64·z + x]",
+          "full": -38.548499999102205,
+          "work": -2933,
+          "wallMs": 51.52670399999624
+        },
+        {
+          "law": "every x with x < size: never VoteMsg[64·x + x] is 0 and 1 <= Votes[64·x + x]",
+          "full": -85.50300000014249,
+          "work": -5551,
+          "wallMs": -42.053789999998116
+        },
+        {
+          "law": "every x, y with x < size ∧ y < size ∧ ¬(x = y): never 1 <= Votes[64·x + x] and 1 <= Votes[64·y + x]",
+          "full": -113.45749999932013,
+          "work": -5164,
+          "wallMs": -1.089444999999614
+        },
+        {
+          "law": "Decided: one second key a first",
+          "full": -283.6170000000275,
+          "work": -26425,
+          "wallMs": -195.91267599999992
+        },
+        {
+          "law": "every x, y with x < size ∧ y < size ∧ ¬(x = y): never VoteMsg[64·x + y] is 0 and 1 <= Votes[64·y + x]",
+          "full": -740.5240000002086,
+          "work": -40425,
+          "wallMs": 19.469178999999713
+        },
+        {
+          "law": "every x with x < size: never VoteRequestMsg[64·x + x] is 0 and 1 <= Votes[64·x + x]",
+          "full": -1314.0115000000806,
+          "work": -63069,
+          "wallMs": -122.59894399999757
+        },
+        {
+          "law": "every x, y with x < size ∧ y < size ∧ ¬(x = y): never 1 <= VoteMsg[64·x + x] and 1 <= Votes[64·y + x]",
+          "full": -1391.4249999998137,
+          "work": -21247,
+          "wallMs": 15.333089999996446
+        },
+        {
+          "law": "every x, y with x < size ∧ y < size ∧ ¬(x = y): never VoteRequestMsg[64·x + y] is 0 and 1 <= Votes[64·x + y]",
+          "full": -6111.336499999743,
+          "work": -249430,
+          "wallMs": -393.32442400000036
+        },
+        {
+          "law": "Leader keeps members$VotingQuorum's bound through members$VotingQuorum$Leader",
+          "full": -12703.293800000029,
+          "work": -89990,
+          "wallMs": -29.38768600000003
+        },
+        {
+          "law": "every x, y, z with x < size ∧ y < size ∧ ¬(x = y) ∧ z < 64: never 1 <= Decided[64·x + z] and 1 <= Decided[64·y + z]",
+          "full": -24311.074800001225,
+          "work": -57960,
+          "wallMs": -110.56613799999832
+        },
+        {
+          "law": "every x, y, z, w with x < size ∧ y < size ∧ ¬(x = y) ∧ z < 64 ∧ w < 64 ∧ ¬(z = w): never 1 <= Decided[64·x + z] and 1 <= Decided[64·y + w]",
+          "full": -51888.937499999534,
+          "work": -159000,
+          "wallMs": -94.61572700000033
+        },
+        {
+          "law": "one value decided",
+          "full": -75326.66460000025,
+          "work": -260115,
+          "wallMs": -227.11467999999513
+        },
+        {
+          "law": "every x, y, z with x < size ∧ y < 64 ∧ z < 64 ∧ ¬(y = z): never 1 <= Decided[64·x + y] and 1 <= Decided[64·x + z]",
+          "full": -84891.14599999995,
+          "work": -623521,
+          "wallMs": -451.7078969999984
+        }
+      ]
+    },
+    {
+      "revision": "f70716da7d991288ea6e9e92fdda386f361bf0aa",
+      "attempted": 8,
+      "complete": 8,
+      "bothProven": 8,
+      "qualified": true,
+      "paired": {
+        "msDelta": -3153.5,
+        "generationDelta": -7999.5423165,
+        "postGenerationDelta": 5362.863966500003
+      },
+      "lost": [],
+      "base": {
+        "ms": 39054,
+        "work": 14498189,
+        "full": 2665853
+      },
+      "candidate": {
+        "ms": 36432,
+        "work": 18033903,
+        "full": 4894008
+      },
+      "generationWallMs": {
+        "base": 21686.710779,
+        "candidate": 13165.082965500002
+      },
+      "finitePassMs": {
+        "base": 0,
+        "candidate": 0
+      },
+      "lawDeltas": [
+        {
+          "law": "every x, y, z with x < size ∧ y < size ∧ ¬(x = y) ∧ z < 64: never Voted[x] is 0 and 1 <= Decided[64·y + z]",
+          "full": 1217870.5254000004,
+          "work": 4460680,
+          "wallMs": 3430.1889839999985
+        },
+        {
+          "law": "every x, y, z with x < size ∧ y < size ∧ ¬(x = y) ∧ z < 64: never 1 <= Leader[x] and 1 <= Decided[64·y + z]",
+          "full": 784691.8708000004,
+          "work": 558265,
+          "wallMs": 2074.608051500003
+        },
+        {
+          "law": "every x, y with x < size ∧ y < size ∧ ¬(x = y): never 1 <= Leader[x] and 1 <= Leader[y]",
+          "full": 478818.88679999963,
+          "work": 144254,
+          "wallMs": 1892.4878184999998
+        },
+        {
+          "law": "members$VotingQuorum keeps members's bound 0",
+          "full": 3815.4446999999964,
+          "work": -8648,
+          "wallMs": 26.98768300000029
+        },
+        {
+          "law": "members$VotingQuorum keeps members's bound 2",
+          "full": 2180.995800000015,
+          "work": -8392,
+          "wallMs": 4.255143500001395
+        },
+        {
+          "law": "every x with x < size: never VoteRequestMsg[64·x + x] is 0 and 1 <= VoteMsg[64·x + x]",
+          "full": 52.82350000005681,
+          "work": -1952,
+          "wallMs": 38.41891750000195
+        },
+        {
+          "law": "every VoteMsg cell is a value of its kind",
+          "full": 1.862645149230957e-9,
+          "work": 0,
+          "wallMs": 1.411780499998713
+        },
+        {
+          "law": "every VotingQuorum cell is a value of its kind",
+          "full": 1.862645149230957e-9,
+          "work": 0,
+          "wallMs": -0.3857494999992923
+        },
+        {
+          "law": "every VoteRequestMsg cell is a value of its kind",
+          "full": 4.656612873077393e-10,
+          "work": 0,
+          "wallMs": 1.8658544999962032
+        },
+        {
+          "law": "every x, y with x < size ∧ y < size ∧ ¬(x = y): never 1 <= VoteMsg[64·x + x] and 1 <= VoteMsg[64·x + y]",
+          "full": 2.3283064365386963e-10,
+          "work": 0,
+          "wallMs": 4.672965499998099
+        },
+        {
+          "law": "every x with x < size: never 1 <= Voted[x] and started is 0",
+          "full": 8.731149137020111e-11,
+          "work": 0,
+          "wallMs": 2.9213900000004287
+        },
+        {
+          "law": "every x with x < size: never Voted[x] is 0 and 1 <= VoteMsg[64·x + x]",
+          "full": 0,
+          "work": 0,
+          "wallMs": 22.210768499999176
+        },
+        {
+          "law": "every x with x < size: never 1 <= Votes[64·x + x] and started is 0",
+          "full": 0,
+          "work": 0,
+          "wallMs": 7.617269500000475
+        },
+        {
+          "law": "every x, y with x < size ∧ y < 64: never 1 <= Decided[64·x + y] and started is 0",
+          "full": 0,
+          "work": 0,
+          "wallMs": 2.8635815000006914
+        },
+        {
+          "law": "every x, y with x < size ∧ y < size ∧ ¬(x = y): never Voted[x] is 0 and 1 <= VoteMsg[64·x + y]",
+          "full": 0,
+          "work": 0,
+          "wallMs": 37.35528699999941
+        },
+        {
+          "law": "every x, y, z with x < size ∧ y < size ∧ ¬(x = y) ∧ z < size ∧ ¬(x = z) ∧ ¬(y = z): never 1 <= VoteMsg[64·x + y] and 1 <= VoteMsg[64·x + z]",
+          "full": 0,
+          "work": 0,
+          "wallMs": 37.750693999998475
+        },
+        {
+          "law": "every x with x < size: never 1 <= Leader[x] and started is 0",
+          "full": -2.9103830456733704e-11,
+          "work": 0,
+          "wallMs": 8.58080350000273
+        },
+        {
+          "law": "every x with x < size: never 1 <= VotingQuorum[x] and started is 0",
+          "full": -2.9103830456733704e-11,
+          "work": 0,
+          "wallMs": 15.452531499999168
+        },
+        {
+          "law": "every x, y with x < size ∧ y < size ∧ ¬(x = y): never 1 <= VoteRequestMsg[64·x + y] and started is 0",
+          "full": -4.656612873077393e-10,
+          "work": 0,
+          "wallMs": 29.593866999997772
+        },
+        {
+          "law": "every Voted cell is a value of its kind",
+          "full": -4.656612873077393e-10,
+          "work": 0,
+          "wallMs": -1.1536740000028658
+        },
+        {
+          "law": "every Votes cell is a value of its kind",
+          "full": -4.656612873077393e-10,
+          "work": 0,
+          "wallMs": -1.799950999999055
+        },
+        {
+          "law": "every x, y with x < size ∧ y < size ∧ ¬(x = y): never 1 <= Votes[64·x + y] and started is 0",
+          "full": -6.984919309616089e-10,
+          "work": 0,
+          "wallMs": 0.9711860000006709
+        },
+        {
+          "law": "every Leader cell is a value of its kind",
+          "full": -9.313225746154785e-10,
+          "work": 0,
+          "wallMs": 1.076759999998103
+        },
+        {
+          "law": "every Decided cell is a value of its kind",
+          "full": -9.313225746154785e-10,
+          "work": 0,
+          "wallMs": -0.7589555000013206
+        },
+        {
+          "law": "every x with x < size: never 1 <= VoteRequestMsg[64·x + x] and started is 0",
+          "full": -3.2234999999054708,
+          "work": -106,
+          "wallMs": 26.378099499999735
+        },
+        {
+          "law": "every x with x < size: never 1 <= VoteMsg[64·x + x] and started is 0",
+          "full": -3.2234999999636784,
+          "work": -108,
+          "wallMs": 14.954785999997512
+        },
+        {
+          "law": "every x with x < size: never Voted[x] is 0 and 1 <= Votes[64·x + x]",
+          "full": -3.2234999999927823,
+          "work": -174,
+          "wallMs": 26.016261000001577
+        },
+        {
+          "law": "every x, y with x < size ∧ y < size ∧ ¬(x = y): never Voted[x] is 0 and 1 <= Votes[64·y + x]",
+          "full": -3.300000000046566,
+          "work": -151,
+          "wallMs": 56.03585899999962
+        },
+        {
+          "law": "every x, y with x < size ∧ y < size ∧ ¬(x = y): never 1 <= VoteMsg[64·x + y] and started is 0",
+          "full": -3.300000000745058,
+          "work": -129,
+          "wallMs": -2.44129950000206
+        },
+        {
+          "law": "every x, y with x < size ∧ y < size ∧ ¬(x = y): never 1 <= VoteMsg[64·x + y] and 1 <= Votes[64·x + x]",
+          "full": -4.058999999659136,
+          "work": -202,
+          "wallMs": -20.74061100000108
+        },
+        {
+          "law": "every x, y with x < size ∧ y < size ∧ ¬(x = y): never VoteRequestMsg[64·x + y] is 0 and 1 <= VoteMsg[64·y + x]",
+          "full": -17.00399999972433,
+          "work": -360,
+          "wallMs": 40.56863500000327
+        },
+        {
+          "law": "every x, y, z with x < size ∧ y < size ∧ ¬(x = y) ∧ z < size ∧ ¬(x = z) ∧ ¬(y = z): never 1 <= Votes[64·x + y] and 1 <= Votes[64·z + y]",
+          "full": -18.400500000920147,
+          "work": -1286,
+          "wallMs": 8.466034999999465
+        },
+        {
+          "law": "every x, y with x < size ∧ y < 64: never Leader[x] is 0 and 1 <= Decided[64·x + y]",
+          "full": -20.559000000008382,
+          "work": -1147,
+          "wallMs": -2.4273740000016915
+        },
+        {
+          "law": "every x, y, z with x < size ∧ y < size ∧ ¬(x = y) ∧ z < size ∧ ¬(x = z) ∧ ¬(y = z): never 1 <= VoteMsg[64·x + y] and 1 <= Votes[64·z + x]",
+          "full": -38.548499999102205,
+          "work": -2933,
+          "wallMs": -52.42204050000146
+        },
+        {
+          "law": "every x with x < size: never VoteMsg[64·x + x] is 0 and 1 <= Votes[64·x + x]",
+          "full": -85.50300000014249,
+          "work": -5551,
+          "wallMs": 5.139566499999091
+        },
+        {
+          "law": "every x, y with x < size ∧ y < size ∧ ¬(x = y): never 1 <= Votes[64·x + x] and 1 <= Votes[64·y + x]",
+          "full": -113.45749999932013,
+          "work": -5164,
+          "wallMs": -26.8694265000031
+        },
+        {
+          "law": "Decided: one second key a first",
+          "full": -283.6170000000275,
+          "work": -26425,
+          "wallMs": -136.36761950000073
+        },
+        {
+          "law": "every x, y with x < size ∧ y < size ∧ ¬(x = y): never VoteMsg[64·x + y] is 0 and 1 <= Votes[64·y + x]",
+          "full": -740.5240000002086,
+          "work": -40425,
+          "wallMs": -92.85954750000383
+        },
+        {
+          "law": "every x with x < size: never VoteRequestMsg[64·x + x] is 0 and 1 <= Votes[64·x + x]",
+          "full": -1314.0115000000806,
+          "work": -63069,
+          "wallMs": -80.70724949999749
+        },
+        {
+          "law": "every x, y with x < size ∧ y < size ∧ ¬(x = y): never 1 <= VoteMsg[64·x + x] and 1 <= Votes[64·y + x]",
+          "full": -1391.4249999998137,
+          "work": -21247,
+          "wallMs": -29.847858500002985
+        },
+        {
+          "law": "every x, y with x < size ∧ y < size ∧ ¬(x = y): never VoteRequestMsg[64·x + y] is 0 and 1 <= Votes[64·x + y]",
+          "full": -6111.336499999743,
+          "work": -249430,
+          "wallMs": -687.8302395000001
+        },
+        {
+          "law": "Leader keeps members$VotingQuorum's bound through members$VotingQuorum$Leader",
+          "full": -12703.293800000029,
+          "work": -89990,
+          "wallMs": -44.908830500004115
+        },
+        {
+          "law": "every x, y, z with x < size ∧ y < size ∧ ¬(x = y) ∧ z < 64: never 1 <= Decided[64·x + z] and 1 <= Decided[64·y + z]",
+          "full": -24311.074800001225,
+          "work": -57960,
+          "wallMs": -134.92314899999838
+        },
+        {
+          "law": "every x, y, z, w with x < size ∧ y < size ∧ ¬(x = y) ∧ z < 64 ∧ w < 64 ∧ ¬(z = w): never 1 <= Decided[64·x + z] and 1 <= Decided[64·y + w]",
+          "full": -51888.937499999534,
+          "work": -159000,
+          "wallMs": -289.49717699999746
+        },
+        {
+          "law": "one value decided",
+          "full": -75326.66460000025,
+          "work": -260115,
+          "wallMs": -461.0196724999969
+        },
+        {
+          "law": "every x, y, z with x < size ∧ y < 64 ∧ z < 64 ∧ ¬(y = z): never 1 <= Decided[64·x + y] and 1 <= Decided[64·x + z]",
+          "full": -84891.14599999995,
+          "work": -623521,
+          "wallMs": -703.4699930000006
+        }
+      ]
+    },
+    {
+      "revision": "7eb1679752e8ddc1d446b43430f2d105e4a857ec",
+      "attempted": 8,
+      "complete": 8,
+      "bothProven": 8,
+      "qualified": true,
+      "paired": {
+        "msDelta": 510.5,
+        "generationDelta": -9834.193739500002,
+        "postGenerationDelta": 10056.503145499999
+      },
+      "lost": [],
+      "base": {
+        "ms": 43278,
+        "work": 14498189,
+        "full": 2665853
+      },
+      "candidate": {
+        "ms": 40699,
+        "work": 18033903,
+        "full": 4894008
+      },
+      "generationWallMs": {
+        "base": 25619.53418,
+        "candidate": 12280.937164500003
+      },
+      "finitePassMs": {
+        "base": 0,
+        "candidate": 0
+      },
+      "lawDeltas": [
+        {
+          "law": "every x, y, z with x < size ∧ y < size ∧ ¬(x = y) ∧ z < 64: never Voted[x] is 0 and 1 <= Decided[64·y + z]",
+          "full": 1217870.5254000004,
+          "work": 4460680,
+          "wallMs": 3773.8313754999945
+        },
+        {
+          "law": "every x, y, z with x < size ∧ y < size ∧ ¬(x = y) ∧ z < 64: never 1 <= Leader[x] and 1 <= Decided[64·y + z]",
+          "full": 784691.8708000004,
+          "work": 558265,
+          "wallMs": 3134.002530499998
+        },
+        {
+          "law": "every x, y with x < size ∧ y < size ∧ ¬(x = y): never 1 <= Leader[x] and 1 <= Leader[y]",
+          "full": 478818.88679999963,
+          "work": 144254,
+          "wallMs": 1781.1991970000036
+        },
+        {
+          "law": "members$VotingQuorum keeps members's bound 0",
+          "full": 3815.4446999999964,
+          "work": -8648,
+          "wallMs": 36.64487100000133
+        },
+        {
+          "law": "members$VotingQuorum keeps members's bound 2",
+          "full": 2180.995800000015,
+          "work": -8392,
+          "wallMs": -39.032359999997425
+        },
+        {
+          "law": "every x with x < size: never VoteRequestMsg[64·x + x] is 0 and 1 <= VoteMsg[64·x + x]",
+          "full": 52.82350000005681,
+          "work": -1952,
+          "wallMs": -4.4610370000009425
+        },
+        {
+          "law": "every VoteMsg cell is a value of its kind",
+          "full": 1.862645149230957e-9,
+          "work": 0,
+          "wallMs": 4.047320499999842
+        },
+        {
+          "law": "every VotingQuorum cell is a value of its kind",
+          "full": 1.862645149230957e-9,
+          "work": 0,
+          "wallMs": 1.8951694999996107
+        },
+        {
+          "law": "every VoteRequestMsg cell is a value of its kind",
+          "full": 4.656612873077393e-10,
+          "work": 0,
+          "wallMs": 8.994411499999842
+        },
+        {
+          "law": "every x, y with x < size ∧ y < size ∧ ¬(x = y): never 1 <= VoteMsg[64·x + x] and 1 <= VoteMsg[64·x + y]",
+          "full": 2.3283064365386963e-10,
+          "work": 0,
+          "wallMs": 8.555492999994385
+        },
+        {
+          "law": "every x with x < size: never 1 <= Voted[x] and started is 0",
+          "full": 8.731149137020111e-11,
+          "work": 0,
+          "wallMs": 7.2782475000003615
+        },
+        {
+          "law": "every x with x < size: never Voted[x] is 0 and 1 <= VoteMsg[64·x + x]",
+          "full": 0,
+          "work": 0,
+          "wallMs": 4.221402999996826
+        },
+        {
+          "law": "every x with x < size: never 1 <= Votes[64·x + x] and started is 0",
+          "full": 0,
+          "work": 0,
+          "wallMs": 20.923603999999614
+        },
+        {
+          "law": "every x, y with x < size ∧ y < 64: never 1 <= Decided[64·x + y] and started is 0",
+          "full": 0,
+          "work": 0,
+          "wallMs": 6.050825999997869
+        },
+        {
+          "law": "every x, y with x < size ∧ y < size ∧ ¬(x = y): never Voted[x] is 0 and 1 <= VoteMsg[64·x + y]",
+          "full": 0,
+          "work": 0,
+          "wallMs": 6.907756000002337
+        },
+        {
+          "law": "every x, y, z with x < size ∧ y < size ∧ ¬(x = y) ∧ z < size ∧ ¬(x = z) ∧ ¬(y = z): never 1 <= VoteMsg[64·x + y] and 1 <= VoteMsg[64·x + z]",
+          "full": 0,
+          "work": 0,
+          "wallMs": 79.53169150000213
+        },
+        {
+          "law": "every x with x < size: never 1 <= Leader[x] and started is 0",
+          "full": -2.9103830456733704e-11,
+          "work": 0,
+          "wallMs": -2.596975999999813
+        },
+        {
+          "law": "every x with x < size: never 1 <= VotingQuorum[x] and started is 0",
+          "full": -2.9103830456733704e-11,
+          "work": 0,
+          "wallMs": -7.668652499998643
+        },
+        {
+          "law": "every x, y with x < size ∧ y < size ∧ ¬(x = y): never 1 <= VoteRequestMsg[64·x + y] and started is 0",
+          "full": -4.656612873077393e-10,
+          "work": 0,
+          "wallMs": 6.27770899999814
+        },
+        {
+          "law": "every Voted cell is a value of its kind",
+          "full": -4.656612873077393e-10,
+          "work": 0,
+          "wallMs": 6.141255999997156
+        },
+        {
+          "law": "every Votes cell is a value of its kind",
+          "full": -4.656612873077393e-10,
+          "work": 0,
+          "wallMs": 5.195871000003535
+        },
+        {
+          "law": "every x, y with x < size ∧ y < size ∧ ¬(x = y): never 1 <= Votes[64·x + y] and started is 0",
+          "full": -6.984919309616089e-10,
+          "work": 0,
+          "wallMs": 16.17040399999678
+        },
+        {
+          "law": "every Leader cell is a value of its kind",
+          "full": -9.313225746154785e-10,
+          "work": 0,
+          "wallMs": 5.499720499999967
+        },
+        {
+          "law": "every Decided cell is a value of its kind",
+          "full": -9.313225746154785e-10,
+          "work": 0,
+          "wallMs": 4.651937000002363
+        },
+        {
+          "law": "every x with x < size: never 1 <= VoteRequestMsg[64·x + x] and started is 0",
+          "full": -3.2234999999054708,
+          "work": -106,
+          "wallMs": 35.515776999999616
+        },
+        {
+          "law": "every x with x < size: never 1 <= VoteMsg[64·x + x] and started is 0",
+          "full": -3.2234999999636784,
+          "work": -108,
+          "wallMs": -8.654343499999413
+        },
+        {
+          "law": "every x with x < size: never Voted[x] is 0 and 1 <= Votes[64·x + x]",
+          "full": -3.2234999999927823,
+          "work": -174,
+          "wallMs": 23.802244000001338
+        },
+        {
+          "law": "every x, y with x < size ∧ y < size ∧ ¬(x = y): never Voted[x] is 0 and 1 <= Votes[64·y + x]",
+          "full": -3.300000000046566,
+          "work": -151,
+          "wallMs": 3.253310499998406
+        },
+        {
+          "law": "every x, y with x < size ∧ y < size ∧ ¬(x = y): never 1 <= VoteMsg[64·x + y] and started is 0",
+          "full": -3.300000000745058,
+          "work": -129,
+          "wallMs": 1.1156035000021802
+        },
+        {
+          "law": "every x, y with x < size ∧ y < size ∧ ¬(x = y): never 1 <= VoteMsg[64·x + y] and 1 <= Votes[64·x + x]",
+          "full": -4.058999999659136,
+          "work": -202,
+          "wallMs": 7.5532155000000785
+        },
+        {
+          "law": "every x, y with x < size ∧ y < size ∧ ¬(x = y): never VoteRequestMsg[64·x + y] is 0 and 1 <= VoteMsg[64·y + x]",
+          "full": -17.00399999972433,
+          "work": -360,
+          "wallMs": 31.939078999999765
+        },
+        {
+          "law": "every x, y, z with x < size ∧ y < size ∧ ¬(x = y) ∧ z < size ∧ ¬(x = z) ∧ ¬(y = z): never 1 <= Votes[64·x + y] and 1 <= Votes[64·z + y]",
+          "full": -18.400500000920147,
+          "work": -1286,
+          "wallMs": 110.13619099999778
+        },
+        {
+          "law": "every x, y with x < size ∧ y < 64: never Leader[x] is 0 and 1 <= Decided[64·x + y]",
+          "full": -20.559000000008382,
+          "work": -1147,
+          "wallMs": -69.401645500001
+        },
+        {
+          "law": "every x, y, z with x < size ∧ y < size ∧ ¬(x = y) ∧ z < size ∧ ¬(x = z) ∧ ¬(y = z): never 1 <= VoteMsg[64·x + y] and 1 <= Votes[64·z + x]",
+          "full": -38.548499999102205,
+          "work": -2933,
+          "wallMs": 231.62275149999914
+        },
+        {
+          "law": "every x with x < size: never VoteMsg[64·x + x] is 0 and 1 <= Votes[64·x + x]",
+          "full": -85.50300000014249,
+          "work": -5551,
+          "wallMs": -13.337260000000242
+        },
+        {
+          "law": "every x, y with x < size ∧ y < size ∧ ¬(x = y): never 1 <= Votes[64·x + x] and 1 <= Votes[64·y + x]",
+          "full": -113.45749999932013,
+          "work": -5164,
+          "wallMs": 7.613610000000335
+        },
+        {
+          "law": "Decided: one second key a first",
+          "full": -283.6170000000275,
+          "work": -26425,
+          "wallMs": -173.74758050000128
+        },
+        {
+          "law": "every x, y with x < size ∧ y < size ∧ ¬(x = y): never VoteMsg[64·x + y] is 0 and 1 <= Votes[64·y + x]",
+          "full": -740.5240000002086,
+          "work": -40425,
+          "wallMs": 49.19444999999905
+        },
+        {
+          "law": "every x with x < size: never VoteRequestMsg[64·x + x] is 0 and 1 <= Votes[64·x + x]",
+          "full": -1314.0115000000806,
+          "work": -63069,
+          "wallMs": -167.8790265000016
+        },
+        {
+          "law": "every x, y with x < size ∧ y < size ∧ ¬(x = y): never 1 <= VoteMsg[64·x + x] and 1 <= Votes[64·y + x]",
+          "full": -1391.4249999998137,
+          "work": -21247,
+          "wallMs": -36.565858499999194
+        },
+        {
+          "law": "every x, y with x < size ∧ y < size ∧ ¬(x = y): never VoteRequestMsg[64·x + y] is 0 and 1 <= Votes[64·x + y]",
+          "full": -6111.336499999743,
+          "work": -249430,
+          "wallMs": -677.8469005000006
+        },
+        {
+          "law": "Leader keeps members$VotingQuorum's bound through members$VotingQuorum$Leader",
+          "full": -12703.293800000029,
+          "work": -89990,
+          "wallMs": 20.181046499998956
+        },
+        {
+          "law": "every x, y, z with x < size ∧ y < size ∧ ¬(x = y) ∧ z < 64: never 1 <= Decided[64·x + z] and 1 <= Decided[64·y + z]",
+          "full": -24311.074800001225,
+          "work": -57960,
+          "wallMs": -100.14018799999758
+        },
+        {
+          "law": "every x, y, z, w with x < size ∧ y < size ∧ ¬(x = y) ∧ z < 64 ∧ w < 64 ∧ ¬(z = w): never 1 <= Decided[64·x + z] and 1 <= Decided[64·y + w]",
+          "full": -51888.937499999534,
+          "work": -159000,
+          "wallMs": -213.7857249999979
+        },
+        {
+          "law": "one value decided",
+          "full": -75326.66460000025,
+          "work": -260115,
+          "wallMs": -194.50905050000256
+        },
+        {
+          "law": "every x, y, z with x < size ∧ y < 64 ∧ z < 64 ∧ ¬(y = z): never 1 <= Decided[64·x + y] and 1 <= Decided[64·x + z]",
+          "full": -84891.14599999995,
+          "work": -623521,
+          "wallMs": -809.6217764999983
+        }
+      ]
+    },
+    {
+      "revision": "8769061bea541a33396819be86f7a5bba0a7bf73",
+      "attempted": 8,
+      "complete": 8,
+      "bothProven": 8,
+      "qualified": true,
+      "paired": {
+        "msDelta": 980,
+        "generationDelta": -9214.318196,
+        "postGenerationDelta": 7119.544465000001
+      },
+      "lost": [],
+      "base": {
+        "ms": 41770,
+        "work": 14498189,
+        "full": 2665853
+      },
+      "candidate": {
+        "ms": 40394.5,
+        "work": 18033903,
+        "full": 4894008
+      },
+      "generationWallMs": {
+        "base": 21868.495856,
+        "candidate": 13748.7994315
+      },
+      "finitePassMs": {
+        "base": 0,
+        "candidate": 0
+      },
+      "lawDeltas": [
+        {
+          "law": "every x, y, z with x < size ∧ y < size ∧ ¬(x = y) ∧ z < 64: never Voted[x] is 0 and 1 <= Decided[64·y + z]",
+          "full": 1217870.5254000004,
+          "work": 4460680,
+          "wallMs": 4139.590947500006
+        },
+        {
+          "law": "every x, y, z with x < size ∧ y < size ∧ ¬(x = y) ∧ z < 64: never 1 <= Leader[x] and 1 <= Decided[64·y + z]",
+          "full": 784691.8708000004,
+          "work": 558265,
+          "wallMs": 2811.2644739999996
+        },
+        {
+          "law": "every x, y with x < size ∧ y < size ∧ ¬(x = y): never 1 <= Leader[x] and 1 <= Leader[y]",
+          "full": 478818.88679999963,
+          "work": 144254,
+          "wallMs": 2355.6196370000052
+        },
+        {
+          "law": "members$VotingQuorum keeps members's bound 0",
+          "full": 3815.4446999999964,
+          "work": -8648,
+          "wallMs": 18.658278499998232
+        },
+        {
+          "law": "members$VotingQuorum keeps members's bound 2",
+          "full": 2180.995800000015,
+          "work": -8392,
+          "wallMs": -20.83958349999557
+        },
+        {
+          "law": "every x with x < size: never VoteRequestMsg[64·x + x] is 0 and 1 <= VoteMsg[64·x + x]",
+          "full": 52.82350000005681,
+          "work": -1952,
+          "wallMs": 46.800781000001734
+        },
+        {
+          "law": "every VoteMsg cell is a value of its kind",
+          "full": 1.862645149230957e-9,
+          "work": 0,
+          "wallMs": 3.7061344999965513
+        },
+        {
+          "law": "every VotingQuorum cell is a value of its kind",
+          "full": 1.862645149230957e-9,
+          "work": 0,
+          "wallMs": 0.6641100000015285
+        },
+        {
+          "law": "every VoteRequestMsg cell is a value of its kind",
+          "full": 4.656612873077393e-10,
+          "work": 0,
+          "wallMs": 1.3429104999995616
+        },
+        {
+          "law": "every x, y with x < size ∧ y < size ∧ ¬(x = y): never 1 <= VoteMsg[64·x + x] and 1 <= VoteMsg[64·x + y]",
+          "full": 2.3283064365386963e-10,
+          "work": 0,
+          "wallMs": -8.346934999999576
+        },
+        {
+          "law": "every x with x < size: never 1 <= Voted[x] and started is 0",
+          "full": 8.731149137020111e-11,
+          "work": 0,
+          "wallMs": 6.648232499999722
+        },
+        {
+          "law": "every x with x < size: never Voted[x] is 0 and 1 <= VoteMsg[64·x + x]",
+          "full": 0,
+          "work": 0,
+          "wallMs": 12.32269400000041
+        },
+        {
+          "law": "every x with x < size: never 1 <= Votes[64·x + x] and started is 0",
+          "full": 0,
+          "work": 0,
+          "wallMs": -5.233485499999006
+        },
+        {
+          "law": "every x, y with x < size ∧ y < 64: never 1 <= Decided[64·x + y] and started is 0",
+          "full": 0,
+          "work": 0,
+          "wallMs": 14.242988999999397
+        },
+        {
+          "law": "every x, y with x < size ∧ y < size ∧ ¬(x = y): never Voted[x] is 0 and 1 <= VoteMsg[64·x + y]",
+          "full": 0,
+          "work": 0,
+          "wallMs": 25.980305500000213
+        },
+        {
+          "law": "every x, y, z with x < size ∧ y < size ∧ ¬(x = y) ∧ z < size ∧ ¬(x = z) ∧ ¬(y = z): never 1 <= VoteMsg[64·x + y] and 1 <= VoteMsg[64·x + z]",
+          "full": 0,
+          "work": 0,
+          "wallMs": 40.57184600000255
+        },
+        {
+          "law": "every x with x < size: never 1 <= Leader[x] and started is 0",
+          "full": -2.9103830456733704e-11,
+          "work": 0,
+          "wallMs": 8.05220350000127
+        },
+        {
+          "law": "every x with x < size: never 1 <= VotingQuorum[x] and started is 0",
+          "full": -2.9103830456733704e-11,
+          "work": 0,
+          "wallMs": 10.467752000001383
+        },
+        {
+          "law": "every x, y with x < size ∧ y < size ∧ ¬(x = y): never 1 <= VoteRequestMsg[64·x + y] and started is 0",
+          "full": -4.656612873077393e-10,
+          "work": 0,
+          "wallMs": 1.4116690000037124
+        },
+        {
+          "law": "every Voted cell is a value of its kind",
+          "full": -4.656612873077393e-10,
+          "work": 0,
+          "wallMs": 2.033918500001164
+        },
+        {
+          "law": "every Votes cell is a value of its kind",
+          "full": -4.656612873077393e-10,
+          "work": 0,
+          "wallMs": -1.1615674999975454
+        },
+        {
+          "law": "every x, y with x < size ∧ y < size ∧ ¬(x = y): never 1 <= Votes[64·x + y] and started is 0",
+          "full": -6.984919309616089e-10,
+          "work": 0,
+          "wallMs": 3.068926000000829
+        },
+        {
+          "law": "every Leader cell is a value of its kind",
+          "full": -9.313225746154785e-10,
+          "work": 0,
+          "wallMs": 0.775955499997508
+        },
+        {
+          "law": "every Decided cell is a value of its kind",
+          "full": -9.313225746154785e-10,
+          "work": 0,
+          "wallMs": 4.4693924999992305
+        },
+        {
+          "law": "every x with x < size: never 1 <= VoteRequestMsg[64·x + x] and started is 0",
+          "full": -3.2234999999054708,
+          "work": -106,
+          "wallMs": 2.1933094999994864
+        },
+        {
+          "law": "every x with x < size: never 1 <= VoteMsg[64·x + x] and started is 0",
+          "full": -3.2234999999636784,
+          "work": -108,
+          "wallMs": -6.659769999997479
+        },
+        {
+          "law": "every x with x < size: never Voted[x] is 0 and 1 <= Votes[64·x + x]",
+          "full": -3.2234999999927823,
+          "work": -174,
+          "wallMs": 13.796520000000783
+        },
+        {
+          "law": "every x, y with x < size ∧ y < size ∧ ¬(x = y): never Voted[x] is 0 and 1 <= Votes[64·y + x]",
+          "full": -3.300000000046566,
+          "work": -151,
+          "wallMs": 16.302882500001942
+        },
+        {
+          "law": "every x, y with x < size ∧ y < size ∧ ¬(x = y): never 1 <= VoteMsg[64·x + y] and started is 0",
+          "full": -3.300000000745058,
+          "work": -129,
+          "wallMs": 19.308092500004932
+        },
+        {
+          "law": "every x, y with x < size ∧ y < size ∧ ¬(x = y): never 1 <= VoteMsg[64·x + y] and 1 <= Votes[64·x + x]",
+          "full": -4.058999999659136,
+          "work": -202,
+          "wallMs": -3.967056499998762
+        },
+        {
+          "law": "every x, y with x < size ∧ y < size ∧ ¬(x = y): never VoteRequestMsg[64·x + y] is 0 and 1 <= VoteMsg[64·y + x]",
+          "full": -17.00399999972433,
+          "work": -360,
+          "wallMs": 113.32550199999969
+        },
+        {
+          "law": "every x, y, z with x < size ∧ y < size ∧ ¬(x = y) ∧ z < size ∧ ¬(x = z) ∧ ¬(y = z): never 1 <= Votes[64·x + y] and 1 <= Votes[64·z + y]",
+          "full": -18.400500000920147,
+          "work": -1286,
+          "wallMs": 71.5002014999991
+        },
+        {
+          "law": "every x, y with x < size ∧ y < 64: never Leader[x] is 0 and 1 <= Decided[64·x + y]",
+          "full": -20.559000000008382,
+          "work": -1147,
+          "wallMs": -54.942714499999965
+        },
+        {
+          "law": "every x, y, z with x < size ∧ y < size ∧ ¬(x = y) ∧ z < size ∧ ¬(x = z) ∧ ¬(y = z): never 1 <= VoteMsg[64·x + y] and 1 <= Votes[64·z + x]",
+          "full": -38.548499999102205,
+          "work": -2933,
+          "wallMs": 55.75937350000095
+        },
+        {
+          "law": "every x with x < size: never VoteMsg[64·x + x] is 0 and 1 <= Votes[64·x + x]",
+          "full": -85.50300000014249,
+          "work": -5551,
+          "wallMs": -19.2808825000011
+        },
+        {
+          "law": "every x, y with x < size ∧ y < size ∧ ¬(x = y): never 1 <= Votes[64·x + x] and 1 <= Votes[64·y + x]",
+          "full": -113.45749999932013,
+          "work": -5164,
+          "wallMs": -14.807011000001694
+        },
+        {
+          "law": "Decided: one second key a first",
+          "full": -283.6170000000275,
+          "work": -26425,
+          "wallMs": -149.7304965000012
+        },
+        {
+          "law": "every x, y with x < size ∧ y < size ∧ ¬(x = y): never VoteMsg[64·x + y] is 0 and 1 <= Votes[64·y + x]",
+          "full": -740.5240000002086,
+          "work": -40425,
+          "wallMs": -116.7629074999968
+        },
+        {
+          "law": "every x with x < size: never VoteRequestMsg[64·x + x] is 0 and 1 <= Votes[64·x + x]",
+          "full": -1314.0115000000806,
+          "work": -63069,
+          "wallMs": -88.30152799999996
+        },
+        {
+          "law": "every x, y with x < size ∧ y < size ∧ ¬(x = y): never 1 <= VoteMsg[64·x + x] and 1 <= Votes[64·y + x]",
+          "full": -1391.4249999998137,
+          "work": -21247,
+          "wallMs": -20.8498150000014
+        },
+        {
+          "law": "every x, y with x < size ∧ y < size ∧ ¬(x = y): never VoteRequestMsg[64·x + y] is 0 and 1 <= Votes[64·x + y]",
+          "full": -6111.336499999743,
+          "work": -249430,
+          "wallMs": -574.997857999997
+        },
+        {
+          "law": "Leader keeps members$VotingQuorum's bound through members$VotingQuorum$Leader",
+          "full": -12703.293800000029,
+          "work": -89990,
+          "wallMs": -28.47691600000053
+        },
+        {
+          "law": "every x, y, z with x < size ∧ y < size ∧ ¬(x = y) ∧ z < 64: never 1 <= Decided[64·x + z] and 1 <= Decided[64·y + z]",
+          "full": -24311.074800001225,
+          "work": -57960,
+          "wallMs": -133.1741185000028
+        },
+        {
+          "law": "every x, y, z, w with x < size ∧ y < size ∧ ¬(x = y) ∧ z < 64 ∧ w < 64 ∧ ¬(z = w): never 1 <= Decided[64·x + z] and 1 <= Decided[64·y + w]",
+          "full": -51888.937499999534,
+          "work": -159000,
+          "wallMs": -115.52575099999376
+        },
+        {
+          "law": "one value decided",
+          "full": -75326.66460000025,
+          "work": -260115,
+          "wallMs": -359.91568299999926
+        },
+        {
+          "law": "every x, y, z with x < size ∧ y < 64 ∧ z < 64 ∧ ¬(y = z): never 1 <= Decided[64·x + y] and 1 <= Decided[64·x + z]",
+          "full": -84891.14599999995,
+          "work": -623521,
+          "wallMs": -661.2077010000003
+        }
+      ]
+    },
+    {
+      "revision": "21db1e2285810ef8c66901bd783b24484f11399d",
+      "attempted": 8,
+      "complete": 7,
+      "bothProven": 6,
+      "qualified": true,
+      "paired": {
+        "msDelta": -2214.5,
+        "generationDelta": -6335.6641064999985,
+        "postGenerationDelta": 3347.533286500001
+      },
+      "lost": [
+        {
+          "replica": 510,
+          "repeat": 1
+        }
+      ],
+      "base": {
+        "ms": 33230,
+        "work": 14498189,
+        "full": 2665853
+      },
+      "candidate": {
+        "ms": 32330.5,
+        "work": 18135054,
+        "full": 4898768
+      },
+      "generationWallMs": {
+        "base": 19765.126954,
+        "candidate": 14152.643398
+      },
+      "finitePassMs": {
+        "base": 0,
+        "candidate": 0
+      },
+      "lawDeltas": [
+        {
+          "law": "every x, y, z with x < size ∧ y < size ∧ ¬(x = y) ∧ z < 64: never Voted[x] is 0 and 1 <= Decided[64·y + z]",
+          "full": 1216734.677700001,
+          "work": 4458428,
+          "wallMs": 3110.4600075
+        },
+        {
+          "law": "every x, y, z with x < size ∧ y < size ∧ ¬(x = y) ∧ z < 64: never 1 <= Leader[x] and 1 <= Decided[64·y + z]",
+          "full": 784403.8302999993,
+          "work": 557487,
+          "wallMs": 1753.2183545000007
+        },
+        {
+          "law": "every x, y with x < size ∧ y < size ∧ ¬(x = y): never 1 <= Leader[x] and 1 <= Leader[y]",
+          "full": 478331.31279999996,
+          "work": 143868,
+          "wallMs": 1286.3686339999986
+        },
+        {
+          "law": "every x with x < size: never VoteRequestMsg[64·x + x] is 0 and 1 <= VoteMsg[64·x + x]",
+          "full": 52.8234999999695,
+          "work": -1952,
+          "wallMs": -75.9259624999977
+        },
+        {
+          "law": "every Voted cell is a value of its kind",
+          "full": 1.3969838619232178e-9,
+          "work": 0,
+          "wallMs": -2.312610000000859
+        },
+        {
+          "law": "every Decided cell is a value of its kind",
+          "full": 9.313225746154785e-10,
+          "work": 0,
+          "wallMs": -0.27305750000232365
+        },
+        {
+          "law": "every Votes cell is a value of its kind",
+          "full": 4.656612873077393e-10,
+          "work": 0,
+          "wallMs": -2.187887000000046
+        },
+        {
+          "law": "every x, y with x < size ∧ y < size ∧ ¬(x = y): never 1 <= VoteMsg[64·x + x] and 1 <= VoteMsg[64·x + y]",
+          "full": 2.3283064365386963e-10,
+          "work": 0,
+          "wallMs": 15.87591650000104
+        },
+        {
+          "law": "every x, y with x < size ∧ y < 64: never 1 <= Decided[64·x + y] and started is 0",
+          "full": 1.1641532182693481e-10,
+          "work": 0,
+          "wallMs": 12.46044250000159
+        },
+        {
+          "law": "every x with x < size: never 1 <= Leader[x] and started is 0",
+          "full": 2.9103830456733704e-11,
+          "work": 0,
+          "wallMs": 3.026961499997924
+        },
+        {
+          "law": "members$VotingQuorum keeps members's bound 0",
+          "full": 0,
+          "work": 0,
+          "wallMs": 18.276747999998406
+        },
+        {
+          "law": "every x with x < size: never Voted[x] is 0 and 1 <= VoteMsg[64·x + x]",
+          "full": 0,
+          "work": 0,
+          "wallMs": -5.629205999998703
+        },
+        {
+          "law": "every x with x < size: never 1 <= VotingQuorum[x] and started is 0",
+          "full": 0,
+          "work": 0,
+          "wallMs": -2.3166034999994736
+        },
+        {
+          "law": "every x, y with x < size ∧ y < size ∧ ¬(x = y): never Voted[x] is 0 and 1 <= VoteMsg[64·x + y]",
+          "full": 0,
+          "work": 0,
+          "wallMs": 16.146326499995666
+        },
+        {
+          "law": "every Leader cell is a value of its kind",
+          "full": 0,
+          "work": 0,
+          "wallMs": -2.351080499996897
+        },
+        {
+          "law": "every x with x < size: never 1 <= Voted[x] and started is 0",
+          "full": -2.9103830456733704e-11,
+          "work": 0,
+          "wallMs": 3.3674900000005437
+        },
+        {
+          "law": "every x with x < size: never 1 <= Votes[64·x + x] and started is 0",
+          "full": -5.820766091346741e-11,
+          "work": 0,
+          "wallMs": 5.671234500002356
+        },
+        {
+          "law": "every x, y with x < size ∧ y < size ∧ ¬(x = y): never 1 <= VoteRequestMsg[64·x + y] and started is 0",
+          "full": -2.3283064365386963e-10,
+          "work": 0,
+          "wallMs": -0.940786000001026
+        },
+        {
+          "law": "every x, y with x < size ∧ y < size ∧ ¬(x = y): never 1 <= Votes[64·x + y] and started is 0",
+          "full": -2.3283064365386963e-10,
+          "work": 0,
+          "wallMs": -0.35635050000200863
+        },
+        {
+          "law": "every VoteRequestMsg cell is a value of its kind",
+          "full": -4.656612873077393e-10,
+          "work": 0,
+          "wallMs": -3.899975499998618
+        },
+        {
+          "law": "every x, y, z with x < size ∧ y < size ∧ ¬(x = y) ∧ z < size ∧ ¬(x = z) ∧ ¬(y = z): never 1 <= VoteMsg[64·x + y] and 1 <= VoteMsg[64·x + z]",
+          "full": -9.313225746154785e-10,
+          "work": 0,
+          "wallMs": -61.10377349999726
+        },
+        {
+          "law": "every VotingQuorum cell is a value of its kind",
+          "full": -9.313225746154785e-10,
+          "work": 0,
+          "wallMs": 0.09081049999622337
+        },
+        {
+          "law": "every VoteMsg cell is a value of its kind",
+          "full": -1.862645149230957e-9,
+          "work": 0,
+          "wallMs": -5.514265999998315
+        },
+        {
+          "law": "members$VotingQuorum keeps members's bound 2",
+          "full": -3.146999999997206,
+          "work": -105,
+          "wallMs": -15.402620999999272
+        },
+        {
+          "law": "every x with x < size: never Voted[x] is 0 and 1 <= Votes[64·x + x]",
+          "full": -3.2234999999636784,
+          "work": -174,
+          "wallMs": -26.40874950000034
+        },
+        {
+          "law": "every x with x < size: never 1 <= VoteRequestMsg[64·x + x] and started is 0",
+          "full": -3.223500000021886,
+          "work": -106,
+          "wallMs": 4.570565500000157
+        },
+        {
+          "law": "every x with x < size: never 1 <= VoteMsg[64·x + x] and started is 0",
+          "full": -3.223500000021886,
+          "work": -108,
+          "wallMs": 27.32900249999966
+        },
+        {
+          "law": "every x, y with x < size ∧ y < size ∧ ¬(x = y): never Voted[x] is 0 and 1 <= Votes[64·y + x]",
+          "full": -3.300000000046566,
+          "work": -151,
+          "wallMs": 6.503268999997999
+        },
+        {
+          "law": "every x, y with x < size ∧ y < size ∧ ¬(x = y): never 1 <= VoteMsg[64·x + y] and started is 0",
+          "full": -3.3000000005122274,
+          "work": -129,
+          "wallMs": -3.1880904999998165
+        },
+        {
+          "law": "every x, y with x < size ∧ y < size ∧ ¬(x = y): never 1 <= VoteMsg[64·x + y] and 1 <= Votes[64·x + x]",
+          "full": -4.058999999426305,
+          "work": -202,
+          "wallMs": -39.26847600000292
+        },
+        {
+          "law": "every x, y with x < size ∧ y < size ∧ ¬(x = y): never VoteRequestMsg[64·x + y] is 0 and 1 <= VoteMsg[64·y + x]",
+          "full": -17.00399999995716,
+          "work": -360,
+          "wallMs": 14.518755999999485
+        },
+        {
+          "law": "every x, y, z with x < size ∧ y < size ∧ ¬(x = y) ∧ z < size ∧ ¬(x = z) ∧ ¬(y = z): never 1 <= Votes[64·x + y] and 1 <= Votes[64·z + y]",
+          "full": -18.400499999988824,
+          "work": -1286,
+          "wallMs": -96.63506449999659
+        },
+        {
+          "law": "every x, y with x < size ∧ y < 64: never Leader[x] is 0 and 1 <= Decided[64·x + y]",
+          "full": -20.55900000006659,
+          "work": -1147,
+          "wallMs": 9.76017950000005
+        },
+        {
+          "law": "Leader keeps members$VotingQuorum's bound through members$VotingQuorum$Leader",
+          "full": -31.569000000003143,
+          "work": -2358,
+          "wallMs": -26.581285499998557
+        },
+        {
+          "law": "every x, y, z with x < size ∧ y < size ∧ ¬(x = y) ∧ z < size ∧ ¬(x = z) ∧ ¬(y = z): never 1 <= VoteMsg[64·x + y] and 1 <= Votes[64·z + x]",
+          "full": -38.54850000003353,
+          "work": -2933,
+          "wallMs": -118.66250000000218
+        },
+        {
+          "law": "every x with x < size: never VoteMsg[64·x + x] is 0 and 1 <= Votes[64·x + x]",
+          "full": -85.50299999996787,
+          "work": -5551,
+          "wallMs": -23.46518350000133
+        },
+        {
+          "law": "every x, y with x < size ∧ y < size ∧ ¬(x = y): never 1 <= Votes[64·x + x] and 1 <= Votes[64·y + x]",
+          "full": -113.45750000001863,
+          "work": -5164,
+          "wallMs": -6.095618500001365
+        },
+        {
+          "law": "Decided: one second key a first",
+          "full": -283.6170000000129,
+          "work": -26425,
+          "wallMs": -215.4771469999996
+        },
+        {
+          "law": "every x, y with x < size ∧ y < size ∧ ¬(x = y): never VoteMsg[64·x + y] is 0 and 1 <= Votes[64·y + x]",
+          "full": -740.5240000006743,
+          "work": -40425,
+          "wallMs": -17.649022999996305
+        },
+        {
+          "law": "every x with x < size: never VoteRequestMsg[64·x + x] is 0 and 1 <= Votes[64·x + x]",
+          "full": -1314.0114999999641,
+          "work": -63069,
+          "wallMs": -181.2703760000004
+        },
+        {
+          "law": "every x, y with x < size ∧ y < size ∧ ¬(x = y): never 1 <= VoteMsg[64·x + x] and 1 <= Votes[64·y + x]",
+          "full": -1391.4249999998137,
+          "work": -21247,
+          "wallMs": -40.18598750000092
+        },
+        {
+          "law": "every x, y with x < size ∧ y < size ∧ ¬(x = y): never VoteRequestMsg[64·x + y] is 0 and 1 <= Votes[64·x + y]",
+          "full": -6111.336499999743,
+          "work": -249430,
+          "wallMs": -499.27071700000124
+        },
+        {
+          "law": "every x, y, z with x < size ∧ y < size ∧ ¬(x = y) ∧ z < 64: never 1 <= Decided[64·x + z] and 1 <= Decided[64·y + z]",
+          "full": -24311.074799999362,
+          "work": -57960,
+          "wallMs": -119.01688300000205
+        },
+        {
+          "law": "every x, y, z, w with x < size ∧ y < size ∧ ¬(x = y) ∧ z < 64 ∧ w < 64 ∧ ¬(z = w): never 1 <= Decided[64·x + z] and 1 <= Decided[64·y + w]",
+          "full": -51888.937499999534,
+          "work": -159000,
+          "wallMs": -227.45790199999647
+        },
+        {
+          "law": "one value decided",
+          "full": -75326.66460000118,
+          "work": -260115,
+          "wallMs": -373.31160550000277
+        },
+        {
+          "law": "every x, y, z with x < size ∧ y < 64 ∧ z < 64 ∧ ¬(y = z): never 1 <= Decided[64·x + y] and 1 <= Decided[64·x + z]",
+          "full": -84891.14600000007,
+          "work": -623521,
+          "wallMs": -506.5248449999999
+        }
+      ]
+    },
+    {
+      "revision": "a1c528633863bc2c0af36893bbbb4c58fdef4495",
+      "attempted": 8,
+      "complete": 7,
+      "bothProven": 7,
+      "qualified": true,
+      "paired": {
+        "msDelta": -250,
+        "generationDelta": -4032.7582099999963,
+        "postGenerationDelta": 4969.074941999994
+      },
+      "lost": [],
+      "base": {
+        "ms": 31730,
+        "work": 14498189,
+        "full": 2665853
+      },
+      "candidate": {
+        "ms": 33629,
+        "work": 18135054,
+        "full": 4898768
+      },
+      "generationWallMs": {
+        "base": 15815.006807,
+        "candidate": 12744.931865000004
+      },
+      "finitePassMs": {
+        "base": 0,
+        "candidate": 0
+      },
+      "lawDeltas": [
+        {
+          "law": "every x, y, z with x < size ∧ y < size ∧ ¬(x = y) ∧ z < 64: never Voted[x] is 0 and 1 <= Decided[64·y + z]",
+          "full": 1216734.677700001,
+          "work": 4458428,
+          "wallMs": 3660.3830970000017
+        },
+        {
+          "law": "every x, y, z with x < size ∧ y < size ∧ ¬(x = y) ∧ z < 64: never 1 <= Leader[x] and 1 <= Decided[64·y + z]",
+          "full": 784403.8302999993,
+          "work": 557487,
+          "wallMs": 1963.2276999999995
+        },
+        {
+          "law": "every x, y with x < size ∧ y < size ∧ ¬(x = y): never 1 <= Leader[x] and 1 <= Leader[y]",
+          "full": 478331.31279999996,
+          "work": 143868,
+          "wallMs": 1636.0039529999976
+        },
+        {
+          "law": "every x with x < size: never VoteRequestMsg[64·x + x] is 0 and 1 <= VoteMsg[64·x + x]",
+          "full": 52.8234999999695,
+          "work": -1952,
+          "wallMs": 1.5710119999985181
+        },
+        {
+          "law": "every Voted cell is a value of its kind",
+          "full": 1.3969838619232178e-9,
+          "work": 0,
+          "wallMs": -4.071173999996972
+        },
+        {
+          "law": "every Decided cell is a value of its kind",
+          "full": 9.313225746154785e-10,
+          "work": 0,
+          "wallMs": 0.5218370000002324
+        },
+        {
+          "law": "every Votes cell is a value of its kind",
+          "full": 4.656612873077393e-10,
+          "work": 0,
+          "wallMs": 4.435104999996838
+        },
+        {
+          "law": "every x, y with x < size ∧ y < size ∧ ¬(x = y): never 1 <= VoteMsg[64·x + x] and 1 <= VoteMsg[64·x + y]",
+          "full": 2.3283064365386963e-10,
+          "work": 0,
+          "wallMs": 0.202289999999266
+        },
+        {
+          "law": "every x, y with x < size ∧ y < 64: never 1 <= Decided[64·x + y] and started is 0",
+          "full": 1.1641532182693481e-10,
+          "work": 0,
+          "wallMs": 18.58690899999965
+        },
+        {
+          "law": "every x with x < size: never 1 <= Leader[x] and started is 0",
+          "full": 2.9103830456733704e-11,
+          "work": 0,
+          "wallMs": 0.14600900000004913
+        },
+        {
+          "law": "members$VotingQuorum keeps members's bound 0",
+          "full": 0,
+          "work": 0,
+          "wallMs": -55.906300000000556
+        },
+        {
+          "law": "every x with x < size: never Voted[x] is 0 and 1 <= VoteMsg[64·x + x]",
+          "full": 0,
+          "work": 0,
+          "wallMs": -11.707423999998355
+        },
+        {
+          "law": "every x with x < size: never 1 <= VotingQuorum[x] and started is 0",
+          "full": 0,
+          "work": 0,
+          "wallMs": -0.07798899999943387
+        },
+        {
+          "law": "every x, y with x < size ∧ y < size ∧ ¬(x = y): never Voted[x] is 0 and 1 <= VoteMsg[64·x + y]",
+          "full": 0,
+          "work": 0,
+          "wallMs": -5.273089999998774
+        },
+        {
+          "law": "every Leader cell is a value of its kind",
+          "full": 0,
+          "work": 0,
+          "wallMs": -1.0480439999992086
+        },
+        {
+          "law": "every x with x < size: never 1 <= Voted[x] and started is 0",
+          "full": -2.9103830456733704e-11,
+          "work": 0,
+          "wallMs": 0.7038090000005468
+        },
+        {
+          "law": "every x with x < size: never 1 <= Votes[64·x + x] and started is 0",
+          "full": -5.820766091346741e-11,
+          "work": 0,
+          "wallMs": 8.627372999999352
+        },
+        {
+          "law": "every x, y with x < size ∧ y < size ∧ ¬(x = y): never 1 <= VoteRequestMsg[64·x + y] and started is 0",
+          "full": -2.3283064365386963e-10,
+          "work": 0,
+          "wallMs": -7.024392999999691
+        },
+        {
+          "law": "every x, y with x < size ∧ y < size ∧ ¬(x = y): never 1 <= Votes[64·x + y] and started is 0",
+          "full": -2.3283064365386963e-10,
+          "work": 0,
+          "wallMs": 3.9208030000008876
+        },
+        {
+          "law": "every VoteRequestMsg cell is a value of its kind",
+          "full": -4.656612873077393e-10,
+          "work": 0,
+          "wallMs": 1.4876210000038554
+        },
+        {
+          "law": "every x, y, z with x < size ∧ y < size ∧ ¬(x = y) ∧ z < size ∧ ¬(x = z) ∧ ¬(y = z): never 1 <= VoteMsg[64·x + y] and 1 <= VoteMsg[64·x + z]",
+          "full": -9.313225746154785e-10,
+          "work": 0,
+          "wallMs": 6.948200000006182
+        },
+        {
+          "law": "every VotingQuorum cell is a value of its kind",
+          "full": -9.313225746154785e-10,
+          "work": 0,
+          "wallMs": -0.16112199999770382
+        },
+        {
+          "law": "every VoteMsg cell is a value of its kind",
+          "full": -1.862645149230957e-9,
+          "work": 0,
+          "wallMs": -1.7406589999882272
+        },
+        {
+          "law": "members$VotingQuorum keeps members's bound 2",
+          "full": -3.146999999997206,
+          "work": -105,
+          "wallMs": -89.72050899998794
+        },
+        {
+          "law": "every x with x < size: never Voted[x] is 0 and 1 <= Votes[64·x + x]",
+          "full": -3.2234999999636784,
+          "work": -174,
+          "wallMs": -3.5944070000005013
+        },
+        {
+          "law": "every x with x < size: never 1 <= VoteRequestMsg[64·x + x] and started is 0",
+          "full": -3.223500000021886,
+          "work": -106,
+          "wallMs": 10.655605999998443
+        },
+        {
+          "law": "every x with x < size: never 1 <= VoteMsg[64·x + x] and started is 0",
+          "full": -3.223500000021886,
+          "work": -108,
+          "wallMs": 7.074605000005249
+        },
+        {
+          "law": "every x, y with x < size ∧ y < size ∧ ¬(x = y): never Voted[x] is 0 and 1 <= Votes[64·y + x]",
+          "full": -3.300000000046566,
+          "work": -151,
+          "wallMs": -3.0546489999996993
+        },
+        {
+          "law": "every x, y with x < size ∧ y < size ∧ ¬(x = y): never 1 <= VoteMsg[64·x + y] and started is 0",
+          "full": -3.3000000005122274,
+          "work": -129,
+          "wallMs": 12.09657999999763
+        },
+        {
+          "law": "every x, y with x < size ∧ y < size ∧ ¬(x = y): never 1 <= VoteMsg[64·x + y] and 1 <= Votes[64·x + x]",
+          "full": -4.058999999426305,
+          "work": -202,
+          "wallMs": -4.993053000000145
+        },
+        {
+          "law": "every x, y with x < size ∧ y < size ∧ ¬(x = y): never VoteRequestMsg[64·x + y] is 0 and 1 <= VoteMsg[64·y + x]",
+          "full": -17.00399999995716,
+          "work": -360,
+          "wallMs": 14.405510000000504
+        },
+        {
+          "law": "every x, y, z with x < size ∧ y < size ∧ ¬(x = y) ∧ z < size ∧ ¬(x = z) ∧ ¬(y = z): never 1 <= Votes[64·x + y] and 1 <= Votes[64·z + y]",
+          "full": -18.400499999988824,
+          "work": -1286,
+          "wallMs": -19.167640000003303
+        },
+        {
+          "law": "every x, y with x < size ∧ y < 64: never Leader[x] is 0 and 1 <= Decided[64·x + y]",
+          "full": -20.55900000006659,
+          "work": -1147,
+          "wallMs": 1.6895760000006703
+        },
+        {
+          "law": "Leader keeps members$VotingQuorum's bound through members$VotingQuorum$Leader",
+          "full": -31.569000000003143,
+          "work": -2358,
+          "wallMs": -49.34334200000012
+        },
+        {
+          "law": "every x, y, z with x < size ∧ y < size ∧ ¬(x = y) ∧ z < size ∧ ¬(x = z) ∧ ¬(y = z): never 1 <= VoteMsg[64·x + y] and 1 <= Votes[64·z + x]",
+          "full": -38.54850000003353,
+          "work": -2933,
+          "wallMs": 7.93401100000483
+        },
+        {
+          "law": "every x with x < size: never VoteMsg[64·x + x] is 0 and 1 <= Votes[64·x + x]",
+          "full": -85.50299999996787,
+          "work": -5551,
+          "wallMs": -7.505557000000408
+        },
+        {
+          "law": "every x, y with x < size ∧ y < size ∧ ¬(x = y): never 1 <= Votes[64·x + x] and 1 <= Votes[64·y + x]",
+          "full": -113.45750000001863,
+          "work": -5164,
+          "wallMs": -11.914693999999145
+        },
+        {
+          "law": "Decided: one second key a first",
+          "full": -283.6170000000129,
+          "work": -26425,
+          "wallMs": -214.26036599999497
+        },
+        {
+          "law": "every x, y with x < size ∧ y < size ∧ ¬(x = y): never VoteMsg[64·x + y] is 0 and 1 <= Votes[64·y + x]",
+          "full": -740.5240000006743,
+          "work": -40425,
+          "wallMs": 12.152796000002127
+        },
+        {
+          "law": "every x with x < size: never VoteRequestMsg[64·x + x] is 0 and 1 <= Votes[64·x + x]",
+          "full": -1314.0114999999641,
+          "work": -63069,
+          "wallMs": -135.4448110000012
+        },
+        {
+          "law": "every x, y with x < size ∧ y < size ∧ ¬(x = y): never 1 <= VoteMsg[64·x + x] and 1 <= Votes[64·y + x]",
+          "full": -1391.4249999998137,
+          "work": -21247,
+          "wallMs": -73.8565030000027
+        },
+        {
+          "law": "every x, y with x < size ∧ y < size ∧ ¬(x = y): never VoteRequestMsg[64·x + y] is 0 and 1 <= Votes[64·x + y]",
+          "full": -6111.336499999743,
+          "work": -249430,
+          "wallMs": -529.0299269999996
+        },
+        {
+          "law": "every x, y, z with x < size ∧ y < size ∧ ¬(x = y) ∧ z < 64: never 1 <= Decided[64·x + z] and 1 <= Decided[64·y + z]",
+          "full": -24311.074799999362,
+          "work": -57960,
+          "wallMs": -93.51161999999749
+        },
+        {
+          "law": "every x, y, z, w with x < size ∧ y < size ∧ ¬(x = y) ∧ z < 64 ∧ w < 64 ∧ ¬(z = w): never 1 <= Decided[64·x + z] and 1 <= Decided[64·y + w]",
+          "full": -51888.937499999534,
+          "work": -159000,
+          "wallMs": -200.8930690000052
+        },
+        {
+          "law": "one value decided",
+          "full": -75326.66460000118,
+          "work": -260115,
+          "wallMs": -312.4741879999965
+        },
+        {
+          "law": "every x, y, z with x < size ∧ y < 64 ∧ z < 64 ∧ ¬(y = z): never 1 <= Decided[64·x + y] and 1 <= Decided[64·x + z]",
+          "full": -84891.14600000007,
+          "work": -623521,
+          "wallMs": -608.527454000001
+        }
+      ]
+    },
+    {
+      "revision": "b8dbf1fd7be5f1190d95a431ca82fc73d9cfbfc3",
+      "attempted": 8,
+      "complete": 6,
+      "bothProven": 6,
+      "qualified": true,
+      "paired": {
+        "msDelta": 295,
+        "generationDelta": -5443.885092999999,
+        "postGenerationDelta": 5963.9416274999985
+      },
+      "lost": [],
+      "base": {
+        "ms": 39617.5,
+        "work": 14498189,
+        "full": 2665853
+      },
+      "candidate": {
+        "ms": 40110,
+        "work": 18135054,
+        "full": 4898768
+      },
+      "generationWallMs": {
+        "base": 21447.9310505,
+        "candidate": 16397.653198500004
+      },
+      "finitePassMs": {
+        "base": 0,
+        "candidate": 0
+      },
+      "lawDeltas": [
+        {
+          "law": "every x, y, z with x < size ∧ y < size ∧ ¬(x = y) ∧ z < 64: never Voted[x] is 0 and 1 <= Decided[64·y + z]",
+          "full": 1216734.677700001,
+          "work": 4458428,
+          "wallMs": 3011.4598499999956
+        },
+        {
+          "law": "every x, y, z with x < size ∧ y < size ∧ ¬(x = y) ∧ z < 64: never 1 <= Leader[x] and 1 <= Decided[64·y + z]",
+          "full": 784403.8302999993,
+          "work": 557487,
+          "wallMs": 3084.811724000001
+        },
+        {
+          "law": "every x, y with x < size ∧ y < size ∧ ¬(x = y): never 1 <= Leader[x] and 1 <= Leader[y]",
+          "full": 478331.31279999996,
+          "work": 143868,
+          "wallMs": 1669.109161999997
+        },
+        {
+          "law": "every x with x < size: never VoteRequestMsg[64·x + x] is 0 and 1 <= VoteMsg[64·x + x]",
+          "full": 52.8234999999695,
+          "work": -1952,
+          "wallMs": -20.963659999999436
+        },
+        {
+          "law": "every Voted cell is a value of its kind",
+          "full": 1.3969838619232178e-9,
+          "work": 0,
+          "wallMs": 0.7472109999998793
+        },
+        {
+          "law": "every Decided cell is a value of its kind",
+          "full": 9.313225746154785e-10,
+          "work": 0,
+          "wallMs": 1.9144750000014028
+        },
+        {
+          "law": "every Votes cell is a value of its kind",
+          "full": 4.656612873077393e-10,
+          "work": 0,
+          "wallMs": 0.9465804999981628
+        },
+        {
+          "law": "every x, y with x < size ∧ y < size ∧ ¬(x = y): never 1 <= VoteMsg[64·x + x] and 1 <= VoteMsg[64·x + y]",
+          "full": 2.3283064365386963e-10,
+          "work": 0,
+          "wallMs": 24.859371500004272
+        },
+        {
+          "law": "every x, y with x < size ∧ y < 64: never 1 <= Decided[64·x + y] and started is 0",
+          "full": 1.1641532182693481e-10,
+          "work": 0,
+          "wallMs": 15.507019999998192
+        },
+        {
+          "law": "every x with x < size: never 1 <= Leader[x] and started is 0",
+          "full": 2.9103830456733704e-11,
+          "work": 0,
+          "wallMs": 5.026092000000062
+        },
+        {
+          "law": "members$VotingQuorum keeps members's bound 0",
+          "full": 0,
+          "work": 0,
+          "wallMs": 53.00885550000021
+        },
+        {
+          "law": "every x with x < size: never Voted[x] is 0 and 1 <= VoteMsg[64·x + x]",
+          "full": 0,
+          "work": 0,
+          "wallMs": 3.661173999998937
+        },
+        {
+          "law": "every x with x < size: never 1 <= VotingQuorum[x] and started is 0",
+          "full": 0,
+          "work": 0,
+          "wallMs": -2.292984499999875
+        },
+        {
+          "law": "every x, y with x < size ∧ y < size ∧ ¬(x = y): never Voted[x] is 0 and 1 <= VoteMsg[64·x + y]",
+          "full": 0,
+          "work": 0,
+          "wallMs": 16.973363000001882
+        },
+        {
+          "law": "every Leader cell is a value of its kind",
+          "full": 0,
+          "work": 0,
+          "wallMs": 1.2384230000061507
+        },
+        {
+          "law": "every x with x < size: never 1 <= Voted[x] and started is 0",
+          "full": -2.9103830456733704e-11,
+          "work": 0,
+          "wallMs": 1.9477370000004157
+        },
+        {
+          "law": "every x with x < size: never 1 <= Votes[64·x + x] and started is 0",
+          "full": -5.820766091346741e-11,
+          "work": 0,
+          "wallMs": 10.642465499998252
+        },
+        {
+          "law": "every x, y with x < size ∧ y < size ∧ ¬(x = y): never 1 <= VoteRequestMsg[64·x + y] and started is 0",
+          "full": -2.3283064365386963e-10,
+          "work": 0,
+          "wallMs": -9.231072499998845
+        },
+        {
+          "law": "every x, y with x < size ∧ y < size ∧ ¬(x = y): never 1 <= Votes[64·x + y] and started is 0",
+          "full": -2.3283064365386963e-10,
+          "work": 0,
+          "wallMs": -14.926901499999076
+        },
+        {
+          "law": "every VoteRequestMsg cell is a value of its kind",
+          "full": -4.656612873077393e-10,
+          "work": 0,
+          "wallMs": 0.9415809999991325
+        },
+        {
+          "law": "every x, y, z with x < size ∧ y < size ∧ ¬(x = y) ∧ z < size ∧ ¬(x = z) ∧ ¬(y = z): never 1 <= VoteMsg[64·x + y] and 1 <= VoteMsg[64·x + z]",
+          "full": -9.313225746154785e-10,
+          "work": 0,
+          "wallMs": 60.02198000000135
+        },
+        {
+          "law": "every VotingQuorum cell is a value of its kind",
+          "full": -9.313225746154785e-10,
+          "work": 0,
+          "wallMs": 1.8969759999963571
+        },
+        {
+          "law": "every VoteMsg cell is a value of its kind",
+          "full": -1.862645149230957e-9,
+          "work": 0,
+          "wallMs": -1.5286449999948672
+        },
+        {
+          "law": "members$VotingQuorum keeps members's bound 2",
+          "full": -3.146999999997206,
+          "work": -105,
+          "wallMs": -19.789860499999122
+        },
+        {
+          "law": "every x with x < size: never Voted[x] is 0 and 1 <= Votes[64·x + x]",
+          "full": -3.2234999999636784,
+          "work": -174,
+          "wallMs": -8.869309500001691
+        },
+        {
+          "law": "every x with x < size: never 1 <= VoteRequestMsg[64·x + x] and started is 0",
+          "full": -3.223500000021886,
+          "work": -106,
+          "wallMs": 1.5195819999999003
+        },
+        {
+          "law": "every x with x < size: never 1 <= VoteMsg[64·x + x] and started is 0",
+          "full": -3.223500000021886,
+          "work": -108,
+          "wallMs": 2.1594795000019076
+        },
+        {
+          "law": "every x, y with x < size ∧ y < size ∧ ¬(x = y): never Voted[x] is 0 and 1 <= Votes[64·y + x]",
+          "full": -3.300000000046566,
+          "work": -151,
+          "wallMs": 8.555425499999728
+        },
+        {
+          "law": "every x, y with x < size ∧ y < size ∧ ¬(x = y): never 1 <= VoteMsg[64·x + y] and started is 0",
+          "full": -3.3000000005122274,
+          "work": -129,
+          "wallMs": -3.656171499998891
+        },
+        {
+          "law": "every x, y with x < size ∧ y < size ∧ ¬(x = y): never 1 <= VoteMsg[64·x + y] and 1 <= Votes[64·x + x]",
+          "full": -4.058999999426305,
+          "work": -202,
+          "wallMs": -1.7224949999963428
+        },
+        {
+          "law": "every x, y with x < size ∧ y < size ∧ ¬(x = y): never VoteRequestMsg[64·x + y] is 0 and 1 <= VoteMsg[64·y + x]",
+          "full": -17.00399999995716,
+          "work": -360,
+          "wallMs": -0.605318999998417
+        },
+        {
+          "law": "every x, y, z with x < size ∧ y < size ∧ ¬(x = y) ∧ z < size ∧ ¬(x = z) ∧ ¬(y = z): never 1 <= Votes[64·x + y] and 1 <= Votes[64·z + y]",
+          "full": -18.400499999988824,
+          "work": -1286,
+          "wallMs": 93.67978300000141
+        },
+        {
+          "law": "every x, y with x < size ∧ y < 64: never Leader[x] is 0 and 1 <= Decided[64·x + y]",
+          "full": -20.55900000006659,
+          "work": -1147,
+          "wallMs": 16.432653000001665
+        },
+        {
+          "law": "Leader keeps members$VotingQuorum's bound through members$VotingQuorum$Leader",
+          "full": -31.569000000003143,
+          "work": -2358,
+          "wallMs": 9.50474949999807
+        },
+        {
+          "law": "every x, y, z with x < size ∧ y < size ∧ ¬(x = y) ∧ z < size ∧ ¬(x = z) ∧ ¬(y = z): never 1 <= VoteMsg[64·x + y] and 1 <= Votes[64·z + x]",
+          "full": -38.54850000003353,
+          "work": -2933,
+          "wallMs": 54.62080500000229
+        },
+        {
+          "law": "every x with x < size: never VoteMsg[64·x + x] is 0 and 1 <= Votes[64·x + x]",
+          "full": -85.50299999996787,
+          "work": -5551,
+          "wallMs": 38.59622599999784
+        },
+        {
+          "law": "every x, y with x < size ∧ y < size ∧ ¬(x = y): never 1 <= Votes[64·x + x] and 1 <= Votes[64·y + x]",
+          "full": -113.45750000001863,
+          "work": -5164,
+          "wallMs": -55.413684499995725
+        },
+        {
+          "law": "Decided: one second key a first",
+          "full": -283.6170000000129,
+          "work": -26425,
+          "wallMs": -133.10966499999813
+        },
+        {
+          "law": "every x, y with x < size ∧ y < size ∧ ¬(x = y): never VoteMsg[64·x + y] is 0 and 1 <= Votes[64·y + x]",
+          "full": -740.5240000006743,
+          "work": -40425,
+          "wallMs": 19.75669299999754
+        },
+        {
+          "law": "every x with x < size: never VoteRequestMsg[64·x + x] is 0 and 1 <= Votes[64·x + x]",
+          "full": -1314.0114999999641,
+          "work": -63069,
+          "wallMs": -128.58730300000116
+        },
+        {
+          "law": "every x, y with x < size ∧ y < size ∧ ¬(x = y): never 1 <= VoteMsg[64·x + x] and 1 <= Votes[64·y + x]",
+          "full": -1391.4249999998137,
+          "work": -21247,
+          "wallMs": -45.5693554999998
+        },
+        {
+          "law": "every x, y with x < size ∧ y < size ∧ ¬(x = y): never VoteRequestMsg[64·x + y] is 0 and 1 <= Votes[64·x + y]",
+          "full": -6111.336499999743,
+          "work": -249430,
+          "wallMs": -681.4653540000018
+        },
+        {
+          "law": "every x, y, z with x < size ∧ y < size ∧ ¬(x = y) ∧ z < 64: never 1 <= Decided[64·x + z] and 1 <= Decided[64·y + z]",
+          "full": -24311.074799999362,
+          "work": -57960,
+          "wallMs": -95.40628299999844
+        },
+        {
+          "law": "every x, y, z, w with x < size ∧ y < size ∧ ¬(x = y) ∧ z < 64 ∧ w < 64 ∧ ¬(z = w): never 1 <= Decided[64·x + z] and 1 <= Decided[64·y + w]",
+          "full": -51888.937499999534,
+          "work": -159000,
+          "wallMs": -178.0517304999994
+        },
+        {
+          "law": "one value decided",
+          "full": -75326.66460000118,
+          "work": -260115,
+          "wallMs": -266.3635165000014
+        },
+        {
+          "law": "every x, y, z with x < size ∧ y < 64 ∧ z < 64 ∧ ¬(y = z): never 1 <= Decided[64·x + y] and 1 <= Decided[64·x + z]",
+          "full": -84891.14600000007,
+          "work": -623521,
+          "wallMs": -747.9068839999982
+        }
+      ]
+    },
+    {
+      "revision": "b09da82d9ada6e0cdc31f943292cfea727f5752e",
+      "attempted": 8,
+      "complete": 7,
+      "bothProven": 6,
+      "qualified": true,
+      "paired": {
+        "msDelta": 750.5,
+        "generationDelta": -5035.2554999999975,
+        "postGenerationDelta": 3123.2356865
+      },
+      "lost": [
+        {
+          "replica": 523,
+          "repeat": 1
+        }
+      ],
+      "base": {
+        "ms": 29375,
+        "work": 14498189,
+        "full": 2665853
+      },
+      "candidate": {
+        "ms": 26832.5,
+        "work": 18135054,
+        "full": 4898768
+      },
+      "generationWallMs": {
+        "base": 17453.453804999997,
+        "candidate": 10484.583696
+      },
+      "finitePassMs": {
+        "base": 0,
+        "candidate": 0
+      },
+      "lawDeltas": [
+        {
+          "law": "every x, y, z with x < size ∧ y < size ∧ ¬(x = y) ∧ z < 64: never Voted[x] is 0 and 1 <= Decided[64·y + z]",
+          "full": 1216734.677700001,
+          "work": 4458428,
+          "wallMs": 2529.2471209999985
+        },
+        {
+          "law": "every x, y, z with x < size ∧ y < size ∧ ¬(x = y) ∧ z < 64: never 1 <= Leader[x] and 1 <= Decided[64·y + z]",
+          "full": 784403.8302999993,
+          "work": 557487,
+          "wallMs": 1610.6754625000012
+        },
+        {
+          "law": "every x, y with x < size ∧ y < size ∧ ¬(x = y): never 1 <= Leader[x] and 1 <= Leader[y]",
+          "full": 478331.31279999996,
+          "work": 143868,
+          "wallMs": 1344.4806090000002
+        },
+        {
+          "law": "every x with x < size: never VoteRequestMsg[64·x + x] is 0 and 1 <= VoteMsg[64·x + x]",
+          "full": 52.8234999999695,
+          "work": -1952,
+          "wallMs": -19.215056000000004
+        },
+        {
+          "law": "every Voted cell is a value of its kind",
+          "full": 1.3969838619232178e-9,
+          "work": 0,
+          "wallMs": 2.626592000004166
+        },
+        {
+          "law": "every Decided cell is a value of its kind",
+          "full": 9.313225746154785e-10,
+          "work": 0,
+          "wallMs": -7.998671499999546
+        },
+        {
+          "law": "every Votes cell is a value of its kind",
+          "full": 4.656612873077393e-10,
+          "work": 0,
+          "wallMs": -1.7170304999999644
+        },
+        {
+          "law": "every x, y with x < size ∧ y < size ∧ ¬(x = y): never 1 <= VoteMsg[64·x + x] and 1 <= VoteMsg[64·x + y]",
+          "full": 2.3283064365386963e-10,
+          "work": 0,
+          "wallMs": 3.2338945000010426
+        },
+        {
+          "law": "every x, y with x < size ∧ y < 64: never 1 <= Decided[64·x + y] and started is 0",
+          "full": 1.1641532182693481e-10,
+          "work": 0,
+          "wallMs": -3.133679999999913
+        },
+        {
+          "law": "every x with x < size: never 1 <= Leader[x] and started is 0",
+          "full": 2.9103830456733704e-11,
+          "work": 0,
+          "wallMs": 1.8319449999999051
+        },
+        {
+          "law": "members$VotingQuorum keeps members's bound 0",
+          "full": 0,
+          "work": 0,
+          "wallMs": -3.231235999999626
+        },
+        {
+          "law": "every x with x < size: never Voted[x] is 0 and 1 <= VoteMsg[64·x + x]",
+          "full": 0,
+          "work": 0,
+          "wallMs": -12.600546499999837
+        },
+        {
+          "law": "every x with x < size: never 1 <= VotingQuorum[x] and started is 0",
+          "full": 0,
+          "work": 0,
+          "wallMs": -5.6391734999997425
+        },
+        {
+          "law": "every x, y with x < size ∧ y < size ∧ ¬(x = y): never Voted[x] is 0 and 1 <= VoteMsg[64·x + y]",
+          "full": 0,
+          "work": 0,
+          "wallMs": -4.659799000000021
+        },
+        {
+          "law": "every Leader cell is a value of its kind",
+          "full": 0,
+          "work": 0,
+          "wallMs": -3.381740999997419
+        },
+        {
+          "law": "every x with x < size: never 1 <= Voted[x] and started is 0",
+          "full": -2.9103830456733704e-11,
+          "work": 0,
+          "wallMs": -0.8630909999992582
+        },
+        {
+          "law": "every x with x < size: never 1 <= Votes[64·x + x] and started is 0",
+          "full": -5.820766091346741e-11,
+          "work": 0,
+          "wallMs": 4.238758999998936
+        },
+        {
+          "law": "every x, y with x < size ∧ y < size ∧ ¬(x = y): never 1 <= VoteRequestMsg[64·x + y] and started is 0",
+          "full": -2.3283064365386963e-10,
+          "work": 0,
+          "wallMs": -1.3888929999993707
+        },
+        {
+          "law": "every x, y with x < size ∧ y < size ∧ ¬(x = y): never 1 <= Votes[64·x + y] and started is 0",
+          "full": -2.3283064365386963e-10,
+          "work": 0,
+          "wallMs": -9.725314000001163
+        },
+        {
+          "law": "every VoteRequestMsg cell is a value of its kind",
+          "full": -4.656612873077393e-10,
+          "work": 0,
+          "wallMs": -0.7921735000018089
+        },
+        {
+          "law": "every x, y, z with x < size ∧ y < size ∧ ¬(x = y) ∧ z < size ∧ ¬(x = z) ∧ ¬(y = z): never 1 <= VoteMsg[64·x + y] and 1 <= VoteMsg[64·x + z]",
+          "full": -9.313225746154785e-10,
+          "work": 0,
+          "wallMs": -14.673664499998267
+        },
+        {
+          "law": "every VotingQuorum cell is a value of its kind",
+          "full": -9.313225746154785e-10,
+          "work": 0,
+          "wallMs": -0.9849304999988817
+        },
+        {
+          "law": "every VoteMsg cell is a value of its kind",
+          "full": -1.862645149230957e-9,
+          "work": 0,
+          "wallMs": -2.0492285000018455
+        },
+        {
+          "law": "members$VotingQuorum keeps members's bound 2",
+          "full": -3.146999999997206,
+          "work": -105,
+          "wallMs": -15.010827999999492
+        },
+        {
+          "law": "every x with x < size: never Voted[x] is 0 and 1 <= Votes[64·x + x]",
+          "full": -3.2234999999636784,
+          "work": -174,
+          "wallMs": -11.585950500000763
+        },
+        {
+          "law": "every x with x < size: never 1 <= VoteRequestMsg[64·x + x] and started is 0",
+          "full": -3.223500000021886,
+          "work": -106,
+          "wallMs": 1.583948500000588
+        },
+        {
+          "law": "every x with x < size: never 1 <= VoteMsg[64·x + x] and started is 0",
+          "full": -3.223500000021886,
+          "work": -108,
+          "wallMs": 11.199032999998963
+        },
+        {
+          "law": "every x, y with x < size ∧ y < size ∧ ¬(x = y): never Voted[x] is 0 and 1 <= Votes[64·y + x]",
+          "full": -3.300000000046566,
+          "work": -151,
+          "wallMs": 11.342525000001842
+        },
+        {
+          "law": "every x, y with x < size ∧ y < size ∧ ¬(x = y): never 1 <= VoteMsg[64·x + y] and started is 0",
+          "full": -3.3000000005122274,
+          "work": -129,
+          "wallMs": 6.65806049999992
+        },
+        {
+          "law": "every x, y with x < size ∧ y < size ∧ ¬(x = y): never 1 <= VoteMsg[64·x + y] and 1 <= Votes[64·x + x]",
+          "full": -4.058999999426305,
+          "work": -202,
+          "wallMs": -8.097314499998902
+        },
+        {
+          "law": "every x, y with x < size ∧ y < size ∧ ¬(x = y): never VoteRequestMsg[64·x + y] is 0 and 1 <= VoteMsg[64·y + x]",
+          "full": -17.00399999995716,
+          "work": -360,
+          "wallMs": 12.098197000001164
+        },
+        {
+          "law": "every x, y, z with x < size ∧ y < size ∧ ¬(x = y) ∧ z < size ∧ ¬(x = z) ∧ ¬(y = z): never 1 <= Votes[64·x + y] and 1 <= Votes[64·z + y]",
+          "full": -18.400499999988824,
+          "work": -1286,
+          "wallMs": -19.014681999999084
+        },
+        {
+          "law": "every x, y with x < size ∧ y < 64: never Leader[x] is 0 and 1 <= Decided[64·x + y]",
+          "full": -20.55900000006659,
+          "work": -1147,
+          "wallMs": 4.9690745000007155
+        },
+        {
+          "law": "Leader keeps members$VotingQuorum's bound through members$VotingQuorum$Leader",
+          "full": -31.569000000003143,
+          "work": -2358,
+          "wallMs": -39.45334649999768
+        },
+        {
+          "law": "every x, y, z with x < size ∧ y < size ∧ ¬(x = y) ∧ z < size ∧ ¬(x = z) ∧ ¬(y = z): never 1 <= VoteMsg[64·x + y] and 1 <= Votes[64·z + x]",
+          "full": -38.54850000003353,
+          "work": -2933,
+          "wallMs": -74.10481899999832
+        },
+        {
+          "law": "every x with x < size: never VoteMsg[64·x + x] is 0 and 1 <= Votes[64·x + x]",
+          "full": -85.50299999996787,
+          "work": -5551,
+          "wallMs": -12.351059499998883
+        },
+        {
+          "law": "every x, y with x < size ∧ y < size ∧ ¬(x = y): never 1 <= Votes[64·x + x] and 1 <= Votes[64·y + x]",
+          "full": -113.45750000001863,
+          "work": -5164,
+          "wallMs": -57.36442950000037
+        },
+        {
+          "law": "Decided: one second key a first",
+          "full": -283.6170000000129,
+          "work": -26425,
+          "wallMs": -210.80768200000057
+        },
+        {
+          "law": "every x, y with x < size ∧ y < size ∧ ¬(x = y): never VoteMsg[64·x + y] is 0 and 1 <= Votes[64·y + x]",
+          "full": -740.5240000006743,
+          "work": -40425,
+          "wallMs": -35.34678499999973
+        },
+        {
+          "law": "every x with x < size: never VoteRequestMsg[64·x + x] is 0 and 1 <= Votes[64·x + x]",
+          "full": -1314.0114999999641,
+          "work": -63069,
+          "wallMs": -106.5114250000006
+        },
+        {
+          "law": "every x, y with x < size ∧ y < size ∧ ¬(x = y): never 1 <= VoteMsg[64·x + x] and 1 <= Votes[64·y + x]",
+          "full": -1391.4249999998137,
+          "work": -21247,
+          "wallMs": -62.9094884999995
+        },
+        {
+          "law": "every x, y with x < size ∧ y < size ∧ ¬(x = y): never VoteRequestMsg[64·x + y] is 0 and 1 <= Votes[64·x + y]",
+          "full": -6111.336499999743,
+          "work": -249430,
+          "wallMs": -442.57729299999846
+        },
+        {
+          "law": "every x, y, z with x < size ∧ y < size ∧ ¬(x = y) ∧ z < 64: never 1 <= Decided[64·x + z] and 1 <= Decided[64·y + z]",
+          "full": -24311.074799999362,
+          "work": -57960,
+          "wallMs": -147.94471250000606
+        },
+        {
+          "law": "every x, y, z, w with x < size ∧ y < size ∧ ¬(x = y) ∧ z < 64 ∧ w < 64 ∧ ¬(z = w): never 1 <= Decided[64·x + z] and 1 <= Decided[64·y + w]",
+          "full": -51888.937499999534,
+          "work": -159000,
+          "wallMs": -184.21913049999785
+        },
+        {
+          "law": "one value decided",
+          "full": -75326.66460000118,
+          "work": -260115,
+          "wallMs": -215.3090865000031
+        },
+        {
+          "law": "every x, y, z with x < size ∧ y < 64 ∧ z < 64 ∧ ¬(y = z): never 1 <= Decided[64·x + y] and 1 <= Decided[64·x + z]",
+          "full": -84891.14600000007,
+          "work": -623521,
+          "wallMs": -483.8482855000002
+        }
+      ]
+    }
+  ]
+}

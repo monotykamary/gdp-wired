@@ -1,6 +1,6 @@
 {
   "task": "2dcdf22e-7899-4361-af50-29467f18da6c",
-  "status": "admitted",
+  "status": "audited",
   "batch": "20261110-043806-gopdl8",
   "snapshot": "f59d2d7a4055",
   "preflightSnapshot": "f59d2d7a4055",
@@ -15,5 +15,10 @@
   "class": "submission",
   "baseline": "b788e1959bba1f2e8aa1f94d4cf7c0eb163a2f9c",
   "measuredPairs": null,
-  "finalGate": false
+  "finalGate": false,
+  "cpuSkips": 64,
+  "acceptedReceipts": 80,
+  "completePairs": 70,
+  "historicalLosses": 3,
+  "coverageQualified": true
 }

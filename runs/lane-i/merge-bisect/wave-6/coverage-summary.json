@@ -1,0 +1,441 @@
+{
+  "issues": [],
+  "skips": 64,
+  "acceptedReceipts": 80,
+  "completePairs": 70,
+  "losses": 3,
+  "allTenCoverageQualified": true,
+  "notNoLoss": true,
+  "rows": [
+    {
+      "revision": "bf43554bb67be5d8864e2212958908ae866eeb6c",
+      "attempted": 8,
+      "complete": 5,
+      "bothProven": 4,
+      "lost": 1,
+      "qualified": true,
+      "pairedBothProven": {
+        "msDelta": -922.5,
+        "generationDelta": -6096.3122465000015,
+        "postGenerationDelta": 4302.772463000001
+      },
+      "baseBothProven": {
+        "ms": 31461.5,
+        "work": 14498189,
+        "full": 2665853
+      },
+      "candidateBothProven": {
+        "ms": 30001,
+        "work": 18135054,
+        "full": 4898768
+      },
+      "topLawDeltasBothProven": [
+        {
+          "law": "every x, y, z with x < size ∧ y < size ∧ ¬(x = y) ∧ z < 64: never Voted[x] is 0 and 1 <= Decided[64·y + z]",
+          "full": 1216734.677700001,
+          "work": 4458428,
+          "wallMs": 3274.0292950000003
+        },
+        {
+          "law": "every x, y, z with x < size ∧ y < size ∧ ¬(x = y) ∧ z < 64: never 1 <= Leader[x] and 1 <= Decided[64·y + z]",
+          "full": 784403.8302999993,
+          "work": 557487,
+          "wallMs": 1983.344036999999
+        },
+        {
+          "law": "every x, y with x < size ∧ y < size ∧ ¬(x = y): never 1 <= Leader[x] and 1 <= Leader[y]",
+          "full": 478331.31279999996,
+          "work": 143868,
+          "wallMs": 1449.499082999996
+        }
+      ]
+    },
+    {
+      "revision": "1550512d3933434c5a2ad11a17031d1fa36284db",
+      "attempted": 8,
+      "complete": 7,
+      "bothProven": 7,
+      "lost": 0,
+      "qualified": true,
+      "pairedBothProven": {
+        "msDelta": -2355,
+        "generationDelta": -10775.813791,
+        "postGenerationDelta": 5452.320713999994
+      },
+      "baseBothProven": {
+        "ms": 36318,
+        "work": 14498189,
+        "full": 2665853
+      },
+      "candidateBothProven": {
+        "ms": 32744,
+        "work": 18033903,
+        "full": 4894008
+      },
+      "topLawDeltasBothProven": [
+        {
+          "law": "every x, y, z with x < size ∧ y < size ∧ ¬(x = y) ∧ z < 64: never Voted[x] is 0 and 1 <= Decided[64·y + z]",
+          "full": 1217870.5254000004,
+          "work": 4460680,
+          "wallMs": 3031.8885900000023
+        },
+        {
+          "law": "every x, y, z with x < size ∧ y < size ∧ ¬(x = y) ∧ z < 64: never 1 <= Leader[x] and 1 <= Decided[64·y + z]",
+          "full": 784691.8708000004,
+          "work": 558265,
+          "wallMs": 2450.027710999999
+        },
+        {
+          "law": "every x, y with x < size ∧ y < size ∧ ¬(x = y): never 1 <= Leader[x] and 1 <= Leader[y]",
+          "full": 478818.88679999963,
+          "work": 144254,
+          "wallMs": 1560.535090000003
+        }
+      ]
+    },
+    {
+      "revision": "d6189c1e485edd3f2ceb2cdbe2e98ee26f5a0921",
+      "attempted": 8,
+      "complete": 7,
+      "bothProven": 7,
+      "lost": 0,
+      "qualified": true,
+      "pairedBothProven": {
+        "msDelta": 1268,
+        "generationDelta": -6083.642881,
+        "postGenerationDelta": 8216.354900000002
+      },
+      "baseBothProven": {
+        "ms": 33202,
+        "work": 14498189,
+        "full": 2665853
+      },
+      "candidateBothProven": {
+        "ms": 34470,
+        "work": 18033903,
+        "full": 4894008
+      },
+      "topLawDeltasBothProven": [
+        {
+          "law": "every x, y, z with x < size ∧ y < size ∧ ¬(x = y) ∧ z < 64: never Voted[x] is 0 and 1 <= Decided[64·y + z]",
+          "full": 1217870.5254000004,
+          "work": 4460680,
+          "wallMs": 3560.8678180000024
+        },
+        {
+          "law": "every x, y, z with x < size ∧ y < size ∧ ¬(x = y) ∧ z < 64: never 1 <= Leader[x] and 1 <= Decided[64·y + z]",
+          "full": 784691.8708000004,
+          "work": 558265,
+          "wallMs": 2950.997725999998
+        },
+        {
+          "law": "every x, y with x < size ∧ y < size ∧ ¬(x = y): never 1 <= Leader[x] and 1 <= Leader[y]",
+          "full": 478818.88679999963,
+          "work": 144254,
+          "wallMs": 1820.2959740000042
+        }
+      ]
+    },
+    {
+      "revision": "f70716da7d991288ea6e9e92fdda386f361bf0aa",
+      "attempted": 8,
+      "complete": 8,
+      "bothProven": 8,
+      "lost": 0,
+      "qualified": true,
+      "pairedBothProven": {
+        "msDelta": -3153.5,
+        "generationDelta": -7999.5423165,
+        "postGenerationDelta": 5362.863966500003
+      },
+      "baseBothProven": {
+        "ms": 39054,
+        "work": 14498189,
+        "full": 2665853
+      },
+      "candidateBothProven": {
+        "ms": 36432,
+        "work": 18033903,
+        "full": 4894008
+      },
+      "topLawDeltasBothProven": [
+        {
+          "law": "every x, y, z with x < size ∧ y < size ∧ ¬(x = y) ∧ z < 64: never Voted[x] is 0 and 1 <= Decided[64·y + z]",
+          "full": 1217870.5254000004,
+          "work": 4460680,
+          "wallMs": 3430.1889839999985
+        },
+        {
+          "law": "every x, y, z with x < size ∧ y < size ∧ ¬(x = y) ∧ z < 64: never 1 <= Leader[x] and 1 <= Decided[64·y + z]",
+          "full": 784691.8708000004,
+          "work": 558265,
+          "wallMs": 2074.608051500003
+        },
+        {
+          "law": "every x, y with x < size ∧ y < size ∧ ¬(x = y): never 1 <= Leader[x] and 1 <= Leader[y]",
+          "full": 478818.88679999963,
+          "work": 144254,
+          "wallMs": 1892.4878184999998
+        }
+      ]
+    },
+    {
+      "revision": "7eb1679752e8ddc1d446b43430f2d105e4a857ec",
+      "attempted": 8,
+      "complete": 8,
+      "bothProven": 8,
+      "lost": 0,
+      "qualified": true,
+      "pairedBothProven": {
+        "msDelta": 510.5,
+        "generationDelta": -9834.193739500002,
+        "postGenerationDelta": 10056.503145499999
+      },
+      "baseBothProven": {
+        "ms": 43278,
+        "work": 14498189,
+        "full": 2665853
+      },
+      "candidateBothProven": {
+        "ms": 40699,
+        "work": 18033903,
+        "full": 4894008
+      },
+      "topLawDeltasBothProven": [
+        {
+          "law": "every x, y, z with x < size ∧ y < size ∧ ¬(x = y) ∧ z < 64: never Voted[x] is 0 and 1 <= Decided[64·y + z]",
+          "full": 1217870.5254000004,
+          "work": 4460680,
+          "wallMs": 3773.8313754999945
+        },
+        {
+          "law": "every x, y, z with x < size ∧ y < size ∧ ¬(x = y) ∧ z < 64: never 1 <= Leader[x] and 1 <= Decided[64·y + z]",
+          "full": 784691.8708000004,
+          "work": 558265,
+          "wallMs": 3134.002530499998
+        },
+        {
+          "law": "every x, y with x < size ∧ y < size ∧ ¬(x = y): never 1 <= Leader[x] and 1 <= Leader[y]",
+          "full": 478818.88679999963,
+          "work": 144254,
+          "wallMs": 1781.1991970000036
+        }
+      ]
+    },
+    {
+      "revision": "8769061bea541a33396819be86f7a5bba0a7bf73",
+      "attempted": 8,
+      "complete": 8,
+      "bothProven": 8,
+      "lost": 0,
+      "qualified": true,
+      "pairedBothProven": {
+        "msDelta": 980,
+        "generationDelta": -9214.318196,
+        "postGenerationDelta": 7119.544465000001
+      },
+      "baseBothProven": {
+        "ms": 41770,
+        "work": 14498189,
+        "full": 2665853
+      },
+      "candidateBothProven": {
+        "ms": 40394.5,
+        "work": 18033903,
+        "full": 4894008
+      },
+      "topLawDeltasBothProven": [
+        {
+          "law": "every x, y, z with x < size ∧ y < size ∧ ¬(x = y) ∧ z < 64: never Voted[x] is 0 and 1 <= Decided[64·y + z]",
+          "full": 1217870.5254000004,
+          "work": 4460680,
+          "wallMs": 4139.590947500006
+        },
+        {
+          "law": "every x, y, z with x < size ∧ y < size ∧ ¬(x = y) ∧ z < 64: never 1 <= Leader[x] and 1 <= Decided[64·y + z]",
+          "full": 784691.8708000004,
+          "work": 558265,
+          "wallMs": 2811.2644739999996
+        },
+        {
+          "law": "every x, y with x < size ∧ y < size ∧ ¬(x = y): never 1 <= Leader[x] and 1 <= Leader[y]",
+          "full": 478818.88679999963,
+          "work": 144254,
+          "wallMs": 2355.6196370000052
+        }
+      ]
+    },
+    {
+      "revision": "21db1e2285810ef8c66901bd783b24484f11399d",
+      "attempted": 8,
+      "complete": 7,
+      "bothProven": 6,
+      "lost": 1,
+      "qualified": true,
+      "pairedBothProven": {
+        "msDelta": -2214.5,
+        "generationDelta": -6335.6641064999985,
+        "postGenerationDelta": 3347.533286500001
+      },
+      "baseBothProven": {
+        "ms": 33230,
+        "work": 14498189,
+        "full": 2665853
+      },
+      "candidateBothProven": {
+        "ms": 32330.5,
+        "work": 18135054,
+        "full": 4898768
+      },
+      "topLawDeltasBothProven": [
+        {
+          "law": "every x, y, z with x < size ∧ y < size ∧ ¬(x = y) ∧ z < 64: never Voted[x] is 0 and 1 <= Decided[64·y + z]",
+          "full": 1216734.677700001,
+          "work": 4458428,
+          "wallMs": 3110.4600075
+        },
+        {
+          "law": "every x, y, z with x < size ∧ y < size ∧ ¬(x = y) ∧ z < 64: never 1 <= Leader[x] and 1 <= Decided[64·y + z]",
+          "full": 784403.8302999993,
+          "work": 557487,
+          "wallMs": 1753.2183545000007
+        },
+        {
+          "law": "every x, y with x < size ∧ y < size ∧ ¬(x = y): never 1 <= Leader[x] and 1 <= Leader[y]",
+          "full": 478331.31279999996,
+          "work": 143868,
+          "wallMs": 1286.3686339999986
+        }
+      ]
+    },
+    {
+      "revision": "a1c528633863bc2c0af36893bbbb4c58fdef4495",
+      "attempted": 8,
+      "complete": 7,
+      "bothProven": 7,
+      "lost": 0,
+      "qualified": true,
+      "pairedBothProven": {
+        "msDelta": -250,
+        "generationDelta": -4032.7582099999963,
+        "postGenerationDelta": 4969.074941999994
+      },
+      "baseBothProven": {
+        "ms": 31730,
+        "work": 14498189,
+        "full": 2665853
+      },
+      "candidateBothProven": {
+        "ms": 33629,
+        "work": 18135054,
+        "full": 4898768
+      },
+      "topLawDeltasBothProven": [
+        {
+          "law": "every x, y, z with x < size ∧ y < size ∧ ¬(x = y) ∧ z < 64: never Voted[x] is 0 and 1 <= Decided[64·y + z]",
+          "full": 1216734.677700001,
+          "work": 4458428,
+          "wallMs": 3660.3830970000017
+        },
+        {
+          "law": "every x, y, z with x < size ∧ y < size ∧ ¬(x = y) ∧ z < 64: never 1 <= Leader[x] and 1 <= Decided[64·y + z]",
+          "full": 784403.8302999993,
+          "work": 557487,
+          "wallMs": 1963.2276999999995
+        },
+        {
+          "law": "every x, y with x < size ∧ y < size ∧ ¬(x = y): never 1 <= Leader[x] and 1 <= Leader[y]",
+          "full": 478331.31279999996,
+          "work": 143868,
+          "wallMs": 1636.0039529999976
+        }
+      ]
+    },
+    {
+      "revision": "b8dbf1fd7be5f1190d95a431ca82fc73d9cfbfc3",
+      "attempted": 8,
+      "complete": 6,
+      "bothProven": 6,
+      "lost": 0,
+      "qualified": true,
+      "pairedBothProven": {
+        "msDelta": 295,
+        "generationDelta": -5443.885092999999,
+        "postGenerationDelta": 5963.9416274999985
+      },
+      "baseBothProven": {
+        "ms": 39617.5,
+        "work": 14498189,
+        "full": 2665853
+      },
+      "candidateBothProven": {
+        "ms": 40110,
+        "work": 18135054,
+        "full": 4898768
+      },
+      "topLawDeltasBothProven": [
+        {
+          "law": "every x, y, z with x < size ∧ y < size ∧ ¬(x = y) ∧ z < 64: never Voted[x] is 0 and 1 <= Decided[64·y + z]",
+          "full": 1216734.677700001,
+          "work": 4458428,
+          "wallMs": 3011.4598499999956
+        },
+        {
+          "law": "every x, y, z with x < size ∧ y < size ∧ ¬(x = y) ∧ z < 64: never 1 <= Leader[x] and 1 <= Decided[64·y + z]",
+          "full": 784403.8302999993,
+          "work": 557487,
+          "wallMs": 3084.811724000001
+        },
+        {
+          "law": "every x, y with x < size ∧ y < size ∧ ¬(x = y): never 1 <= Leader[x] and 1 <= Leader[y]",
+          "full": 478331.31279999996,
+          "work": 143868,
+          "wallMs": 1669.109161999997
+        }
+      ]
+    },
+    {
+      "revision": "b09da82d9ada6e0cdc31f943292cfea727f5752e",
+      "attempted": 8,
+      "complete": 7,
+      "bothProven": 6,
+      "lost": 1,
+      "qualified": true,
+      "pairedBothProven": {
+        "msDelta": 750.5,
+        "generationDelta": -5035.2554999999975,
+        "postGenerationDelta": 3123.2356865
+      },
+      "baseBothProven": {
+        "ms": 29375,
+        "work": 14498189,
+        "full": 2665853
+      },
+      "candidateBothProven": {
+        "ms": 26832.5,
+        "work": 18135054,
+        "full": 4898768
+      },
+      "topLawDeltasBothProven": [
+        {
+          "law": "every x, y, z with x < size ∧ y < size ∧ ¬(x = y) ∧ z < 64: never Voted[x] is 0 and 1 <= Decided[64·y + z]",
+          "full": 1216734.677700001,
+          "work": 4458428,
+          "wallMs": 2529.2471209999985
+        },
+        {
+          "law": "every x, y, z with x < size ∧ y < size ∧ ¬(x = y) ∧ z < 64: never 1 <= Leader[x] and 1 <= Decided[64·y + z]",
+          "full": 784403.8302999993,
+          "work": 557487,
+          "wallMs": 1610.6754625000012
+        },
+        {
+          "law": "every x, y with x < size ∧ y < size ∧ ¬(x = y): never 1 <= Leader[x] and 1 <= Leader[y]",
+          "full": 478331.31279999996,
+          "work": 143868,
+          "wallMs": 1344.4806090000002
+        }
+      ]
+    }
+  ]
+}
