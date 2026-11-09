@@ -1,0 +1,806 @@
+{
+  "iterationOnly": true,
+  "observations": [
+    {
+      "name": "overlap-op1",
+      "rows": [
+        {
+          "conditional": true,
+          "directClosure": true,
+          "wholeHelper": false,
+          "law": "inX: stored guard reconfigs/inS or disabled/0",
+          "op": 1,
+          "packetSha256": "f85affd2f84babfeaef29618e14e68d14bf2c24b9e20369d2c8332a170ff3b9e",
+          "searchUnits": 1070.4044884,
+          "searchWallMs": 2818.8641930000003,
+          "units": 1070.4044884,
+          "wallMs": 2834.3905000000004,
+          "checked": false,
+          "reads": 60,
+          "instances": 290,
+          "pairs": [
+            [
+              {
+                "op": "var",
+                "name": "a$quorum#"
+              },
+              {
+                "op": "var",
+                "name": "i"
+              }
+            ],
+            [
+              {
+                "op": "var",
+                "name": "b$quorum"
+              },
+              {
+                "op": "var",
+                "name": "i"
+              }
+            ]
+          ],
+          "writes": true,
+          "rowQueries": 3,
+          "rowSplits": 2,
+          "rowMirrors": 0,
+          "side": "after"
+        },
+        {
+          "conditional": true,
+          "directClosure": true,
+          "wholeHelper": false,
+          "law": "inX: stored guard reconfigs/inS or disabled/0",
+          "op": 1,
+          "packetSha256": "f85affd2f84babfeaef29618e14e68d14bf2c24b9e20369d2c8332a170ff3b9e",
+          "searchUnits": 667.2983539999999,
+          "searchWallMs": 2700.138641,
+          "units": 667.2983539999999,
+          "wallMs": 2714.1449,
+          "checked": false,
+          "reads": 60,
+          "instances": 290,
+          "pairs": [
+            [
+              {
+                "op": "var",
+                "name": "a$quorum#"
+              },
+              {
+                "op": "var",
+                "name": "i"
+              }
+            ],
+            [
+              {
+                "op": "var",
+                "name": "b$quorum"
+              },
+              {
+                "op": "var",
+                "name": "i"
+              }
+            ]
+          ],
+          "writes": null,
+          "rowQueries": 1,
+          "rowSplits": 0,
+          "rowMirrors": 0,
+          "side": "before"
+        }
+      ]
+    },
+    {
+      "name": "overlap-op3",
+      "rows": [
+        {
+          "conditional": true,
+          "directClosure": true,
+          "wholeHelper": false,
+          "law": "inX: stored guard reconfigs/inS or disabled/0",
+          "op": 3,
+          "packetSha256": "f85affd2f84babfeaef29618e14e68d14bf2c24b9e20369d2c8332a170ff3b9e",
+          "searchUnits": 1071.7716016,
+          "searchWallMs": 2544.19362,
+          "units": 1071.7716016,
+          "wallMs": 2557.210726,
+          "checked": false,
+          "reads": 60,
+          "instances": 290,
+          "pairs": [
+            [
+              {
+                "op": "var",
+                "name": "a$quorum#"
+              },
+              {
+                "op": "var",
+                "name": "j"
+              }
+            ],
+            [
+              {
+                "op": "var",
+                "name": "b$quorum"
+              },
+              {
+                "op": "var",
+                "name": "j"
+              }
+            ]
+          ],
+          "writes": true,
+          "rowQueries": 3,
+          "rowSplits": 2,
+          "rowMirrors": 0,
+          "side": "after"
+        },
+        {
+          "conditional": true,
+          "directClosure": true,
+          "wholeHelper": false,
+          "law": "inX: stored guard reconfigs/inS or disabled/0",
+          "op": 3,
+          "packetSha256": "f85affd2f84babfeaef29618e14e68d14bf2c24b9e20369d2c8332a170ff3b9e",
+          "searchUnits": 667.2210932,
+          "searchWallMs": 2244.724263,
+          "units": 667.2210932,
+          "wallMs": 2257.836427,
+          "checked": false,
+          "reads": 60,
+          "instances": 290,
+          "pairs": [
+            [
+              {
+                "op": "var",
+                "name": "a$quorum#"
+              },
+              {
+                "op": "var",
+                "name": "j"
+              }
+            ],
+            [
+              {
+                "op": "var",
+                "name": "b$quorum"
+              },
+              {
+                "op": "var",
+                "name": "j"
+              }
+            ]
+          ],
+          "writes": null,
+          "rowQueries": 1,
+          "rowSplits": 0,
+          "rowMirrors": 0,
+          "side": "before"
+        }
+      ]
+    },
+    {
+      "name": "overlap-op5",
+      "rows": [
+        {
+          "conditional": true,
+          "directClosure": true,
+          "wholeHelper": false,
+          "law": "inX: stored guard reconfigs/inS or disabled/0",
+          "op": 5,
+          "packetSha256": "f85affd2f84babfeaef29618e14e68d14bf2c24b9e20369d2c8332a170ff3b9e",
+          "searchUnits": 1078.7402744,
+          "searchWallMs": 3242.7860499999997,
+          "units": 1078.7402744,
+          "wallMs": 3255.302948,
+          "checked": false,
+          "reads": 60,
+          "instances": 290,
+          "pairs": [
+            [
+              {
+                "op": "var",
+                "name": "a$quorum#"
+              },
+              {
+                "op": "var",
+                "name": "i"
+              }
+            ],
+            [
+              {
+                "op": "var",
+                "name": "b$quorum"
+              },
+              {
+                "op": "var",
+                "name": "i"
+              }
+            ]
+          ],
+          "writes": true,
+          "rowQueries": 3,
+          "rowSplits": 2,
+          "rowMirrors": 0,
+          "side": "after"
+        },
+        {
+          "conditional": true,
+          "directClosure": true,
+          "wholeHelper": false,
+          "law": "inX: stored guard reconfigs/inS or disabled/0",
+          "op": 5,
+          "packetSha256": "f85affd2f84babfeaef29618e14e68d14bf2c24b9e20369d2c8332a170ff3b9e",
+          "searchUnits": 667.1668628,
+          "searchWallMs": 2563.5571609999997,
+          "units": 667.1668628,
+          "wallMs": 2575.902921,
+          "checked": false,
+          "reads": 60,
+          "instances": 290,
+          "pairs": [
+            [
+              {
+                "op": "var",
+                "name": "a$quorum#"
+              },
+              {
+                "op": "var",
+                "name": "i"
+              }
+            ],
+            [
+              {
+                "op": "var",
+                "name": "b$quorum"
+              },
+              {
+                "op": "var",
+                "name": "i"
+              }
+            ]
+          ],
+          "writes": null,
+          "rowQueries": 1,
+          "rowSplits": 0,
+          "rowMirrors": 0,
+          "side": "before"
+        }
+      ]
+    },
+    {
+      "name": "overlap-op6",
+      "rows": [
+        {
+          "conditional": true,
+          "directClosure": true,
+          "wholeHelper": false,
+          "law": "inX: stored guard reconfigs/inS or disabled/0",
+          "op": 6,
+          "packetSha256": "f85affd2f84babfeaef29618e14e68d14bf2c24b9e20369d2c8332a170ff3b9e",
+          "searchUnits": 667.1943704,
+          "searchWallMs": 2592.815294,
+          "units": 667.1943704,
+          "wallMs": 2609.052708,
+          "checked": false,
+          "reads": 60,
+          "instances": 290,
+          "pairs": [
+            [
+              {
+                "op": "var",
+                "name": "a$quorum#"
+              },
+              {
+                "op": "var",
+                "name": "j"
+              }
+            ],
+            [
+              {
+                "op": "var",
+                "name": "b$quorum"
+              },
+              {
+                "op": "var",
+                "name": "j"
+              }
+            ]
+          ],
+          "writes": null,
+          "rowQueries": 1,
+          "rowSplits": 0,
+          "rowMirrors": 0,
+          "side": "before"
+        },
+        {
+          "conditional": true,
+          "directClosure": true,
+          "wholeHelper": false,
+          "law": "inX: stored guard reconfigs/inS or disabled/0",
+          "op": 6,
+          "packetSha256": "f85affd2f84babfeaef29618e14e68d14bf2c24b9e20369d2c8332a170ff3b9e",
+          "searchUnits": 1072.6727684000002,
+          "searchWallMs": 3082.9585389999997,
+          "units": 1072.6727684000002,
+          "wallMs": 3101.454666,
+          "checked": false,
+          "reads": 60,
+          "instances": 290,
+          "pairs": [
+            [
+              {
+                "op": "var",
+                "name": "a$quorum#"
+              },
+              {
+                "op": "var",
+                "name": "j"
+              }
+            ],
+            [
+              {
+                "op": "var",
+                "name": "b$quorum"
+              },
+              {
+                "op": "var",
+                "name": "j"
+              }
+            ]
+          ],
+          "writes": true,
+          "rowQueries": 3,
+          "rowSplits": 2,
+          "rowMirrors": 0,
+          "side": "after"
+        }
+      ]
+    },
+    {
+      "name": "star-op0",
+      "rows": [
+        {
+          "conditional": true,
+          "directClosure": true,
+          "wholeHelper": false,
+          "law": "inX: no quorum canVote/3",
+          "op": 0,
+          "packetSha256": "1c25119b2695c7284d2712d95c03823d677a9898a1ae20dc057592e07cd20ab6",
+          "searchUnits": 667.516218,
+          "searchWallMs": 2198.539687,
+          "units": 667.516218,
+          "wallMs": 2209.586399,
+          "checked": false,
+          "reads": 47,
+          "instances": 111,
+          "pairs": [
+            [
+              {
+                "op": "var",
+                "name": "a$quorum#"
+              },
+              {
+                "op": "var",
+                "name": "i"
+              }
+            ],
+            [
+              {
+                "op": "var",
+                "name": "b$quorum"
+              },
+              {
+                "op": "var",
+                "name": "i"
+              }
+            ]
+          ],
+          "writes": null,
+          "rowQueries": 1,
+          "rowSplits": 0,
+          "rowMirrors": 0,
+          "side": "before"
+        },
+        {
+          "conditional": true,
+          "directClosure": true,
+          "wholeHelper": false,
+          "law": "inX: no quorum canVote/3",
+          "op": 0,
+          "packetSha256": "1c25119b2695c7284d2712d95c03823d677a9898a1ae20dc057592e07cd20ab6",
+          "searchUnits": 879.957388,
+          "searchWallMs": 3044.878792,
+          "units": 879.957388,
+          "wallMs": 3058.8344020000004,
+          "checked": false,
+          "reads": 47,
+          "instances": 111,
+          "pairs": [
+            [
+              {
+                "op": "var",
+                "name": "a$quorum#"
+              },
+              {
+                "op": "var",
+                "name": "i"
+              }
+            ],
+            [
+              {
+                "op": "var",
+                "name": "b$quorum"
+              },
+              {
+                "op": "var",
+                "name": "i"
+              }
+            ]
+          ],
+          "writes": true,
+          "rowQueries": 3,
+          "rowSplits": 2,
+          "rowMirrors": 0,
+          "side": "after"
+        }
+      ]
+    },
+    {
+      "name": "star-op1",
+      "rows": [
+        {
+          "conditional": true,
+          "directClosure": true,
+          "wholeHelper": false,
+          "law": "inX: no quorum canVote/3",
+          "op": 1,
+          "packetSha256": "1c25119b2695c7284d2712d95c03823d677a9898a1ae20dc057592e07cd20ab6",
+          "searchUnits": 879.7296711999999,
+          "searchWallMs": 2152.783963,
+          "units": 879.7296711999999,
+          "wallMs": 2163.830654,
+          "checked": false,
+          "reads": 47,
+          "instances": 111,
+          "pairs": [
+            [
+              {
+                "op": "var",
+                "name": "a$quorum#"
+              },
+              {
+                "op": "var",
+                "name": "i"
+              }
+            ],
+            [
+              {
+                "op": "var",
+                "name": "b$quorum"
+              },
+              {
+                "op": "var",
+                "name": "i"
+              }
+            ]
+          ],
+          "writes": true,
+          "rowQueries": 3,
+          "rowSplits": 2,
+          "rowMirrors": 0,
+          "side": "after"
+        },
+        {
+          "conditional": true,
+          "directClosure": true,
+          "wholeHelper": false,
+          "law": "inX: no quorum canVote/3",
+          "op": 1,
+          "packetSha256": "1c25119b2695c7284d2712d95c03823d677a9898a1ae20dc057592e07cd20ab6",
+          "searchUnits": 667.3614972,
+          "searchWallMs": 2064.3151940000002,
+          "units": 667.3614972,
+          "wallMs": 2077.889142,
+          "checked": false,
+          "reads": 47,
+          "instances": 111,
+          "pairs": [
+            [
+              {
+                "op": "var",
+                "name": "a$quorum#"
+              },
+              {
+                "op": "var",
+                "name": "i"
+              }
+            ],
+            [
+              {
+                "op": "var",
+                "name": "b$quorum"
+              },
+              {
+                "op": "var",
+                "name": "i"
+              }
+            ]
+          ],
+          "writes": null,
+          "rowQueries": 1,
+          "rowSplits": 0,
+          "rowMirrors": 0,
+          "side": "before"
+        }
+      ]
+    },
+    {
+      "name": "star-op2",
+      "rows": [
+        {
+          "conditional": true,
+          "directClosure": true,
+          "wholeHelper": false,
+          "law": "inX: no quorum canVote/3",
+          "op": 2,
+          "packetSha256": "1c25119b2695c7284d2712d95c03823d677a9898a1ae20dc057592e07cd20ab6",
+          "searchUnits": 667.0050592,
+          "searchWallMs": 2545.480231,
+          "units": 667.0050592,
+          "wallMs": 2554.763132,
+          "checked": false,
+          "reads": 47,
+          "instances": 111,
+          "pairs": [
+            [
+              {
+                "op": "var",
+                "name": "a$quorum#"
+              },
+              {
+                "op": "var",
+                "name": "i"
+              }
+            ],
+            [
+              {
+                "op": "var",
+                "name": "b$quorum"
+              },
+              {
+                "op": "var",
+                "name": "i"
+              }
+            ]
+          ],
+          "writes": null,
+          "rowQueries": 1,
+          "rowSplits": 0,
+          "rowMirrors": 0,
+          "side": "before"
+        },
+        {
+          "conditional": true,
+          "directClosure": true,
+          "wholeHelper": false,
+          "law": "inX: no quorum canVote/3",
+          "op": 2,
+          "packetSha256": "1c25119b2695c7284d2712d95c03823d677a9898a1ae20dc057592e07cd20ab6",
+          "searchUnits": 879.7373728,
+          "searchWallMs": 3410.241505,
+          "units": 879.7373728,
+          "wallMs": 3418.951861,
+          "checked": false,
+          "reads": 47,
+          "instances": 111,
+          "pairs": [
+            [
+              {
+                "op": "var",
+                "name": "a$quorum#"
+              },
+              {
+                "op": "var",
+                "name": "i"
+              }
+            ],
+            [
+              {
+                "op": "var",
+                "name": "b$quorum"
+              },
+              {
+                "op": "var",
+                "name": "i"
+              }
+            ]
+          ],
+          "writes": true,
+          "rowQueries": 3,
+          "rowSplits": 2,
+          "rowMirrors": 0,
+          "side": "after"
+        }
+      ]
+    },
+    {
+      "name": "star-op4",
+      "rows": [
+        {
+          "conditional": true,
+          "directClosure": true,
+          "wholeHelper": false,
+          "law": "inX: no quorum canVote/3",
+          "op": 4,
+          "packetSha256": "1c25119b2695c7284d2712d95c03823d677a9898a1ae20dc057592e07cd20ab6",
+          "searchUnits": 666.9892020000001,
+          "searchWallMs": 1512.342862,
+          "units": 666.9892020000001,
+          "wallMs": 1521.8713320000002,
+          "checked": false,
+          "reads": 47,
+          "instances": 111,
+          "pairs": [
+            [
+              {
+                "op": "var",
+                "name": "a$quorum#"
+              },
+              {
+                "op": "var",
+                "name": "i"
+              }
+            ],
+            [
+              {
+                "op": "var",
+                "name": "b$quorum"
+              },
+              {
+                "op": "var",
+                "name": "i"
+              }
+            ]
+          ],
+          "writes": null,
+          "rowQueries": 1,
+          "rowSplits": 0,
+          "rowMirrors": 0,
+          "side": "before"
+        },
+        {
+          "conditional": true,
+          "directClosure": true,
+          "wholeHelper": false,
+          "law": "inX: no quorum canVote/3",
+          "op": 4,
+          "packetSha256": "1c25119b2695c7284d2712d95c03823d677a9898a1ae20dc057592e07cd20ab6",
+          "searchUnits": 883.2530839999998,
+          "searchWallMs": 1768.633391,
+          "units": 883.2530839999998,
+          "wallMs": 1778.03842,
+          "checked": false,
+          "reads": 47,
+          "instances": 111,
+          "pairs": [
+            [
+              {
+                "op": "var",
+                "name": "a$quorum#"
+              },
+              {
+                "op": "var",
+                "name": "i"
+              }
+            ],
+            [
+              {
+                "op": "var",
+                "name": "b$quorum"
+              },
+              {
+                "op": "var",
+                "name": "i"
+              }
+            ]
+          ],
+          "writes": true,
+          "rowQueries": 3,
+          "rowSplits": 2,
+          "rowMirrors": 0,
+          "side": "after"
+        }
+      ]
+    },
+    {
+      "name": "star-op6",
+      "rows": [
+        {
+          "conditional": true,
+          "directClosure": true,
+          "wholeHelper": false,
+          "law": "inX: no quorum canVote/3",
+          "op": 6,
+          "packetSha256": "1c25119b2695c7284d2712d95c03823d677a9898a1ae20dc057592e07cd20ab6",
+          "searchUnits": 666.9033584,
+          "searchWallMs": 3229.633129,
+          "units": 666.9033584,
+          "wallMs": 3240.9299619999997,
+          "checked": false,
+          "reads": 47,
+          "instances": 111,
+          "pairs": [
+            [
+              {
+                "op": "var",
+                "name": "a$quorum#"
+              },
+              {
+                "op": "var",
+                "name": "j"
+              }
+            ],
+            [
+              {
+                "op": "var",
+                "name": "b$quorum"
+              },
+              {
+                "op": "var",
+                "name": "j"
+              }
+            ]
+          ],
+          "writes": null,
+          "rowQueries": 1,
+          "rowSplits": 0,
+          "rowMirrors": 0,
+          "side": "before"
+        },
+        {
+          "conditional": true,
+          "directClosure": true,
+          "wholeHelper": false,
+          "law": "inX: no quorum canVote/3",
+          "op": 6,
+          "packetSha256": "1c25119b2695c7284d2712d95c03823d677a9898a1ae20dc057592e07cd20ab6",
+          "searchUnits": 879.2832616,
+          "searchWallMs": 4511.796792,
+          "units": 879.2832616,
+          "wallMs": 4524.551088,
+          "checked": false,
+          "reads": 47,
+          "instances": 111,
+          "pairs": [
+            [
+              {
+                "op": "var",
+                "name": "a$quorum#"
+              },
+              {
+                "op": "var",
+                "name": "j"
+              }
+            ],
+            [
+              {
+                "op": "var",
+                "name": "b$quorum"
+              },
+              {
+                "op": "var",
+                "name": "j"
+              }
+            ]
+          ],
+          "writes": true,
+          "rowQueries": 3,
+          "rowSplits": 2,
+          "rowMirrors": 0,
+          "side": "after"
+        }
+      ]
+    }
+  ]
+}

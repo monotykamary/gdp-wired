@@ -1,0 +1,194 @@
+[
+  {
+    "repeat": 0,
+    "side": "before",
+    "lineCount": 25,
+    "attempts": 0,
+    "ic3": 0,
+    "first": [
+      "[infer] start {\"ms\":8,\"counted\":0,\"work\":0,\"tries\":0,\"rows\":0,\"evals\":0,\"watched\":0,\"erows\":0,\"etries\":0}",
+      "[infer runs] {\"samples\":1251,\"trials\":0}",
+      "[infer] runs {\"ms\":15,\"counted\":0,\"work\":0,\"tries\":0,\"rows\":0,\"evals\":0,\"watched\":0,\"erows\":0,\"etries\":0,\"samples\":1251,\"trials\":0}",
+      "[infer candidates] {\"atoms\":7,\"shapes\":492,\"forms\":929}",
+      "[infer] candidates {\"ms\":131,\"counted\":122,\"work\":0,\"tries\":0,\"rows\":1220967,\"evals\":0,\"watched\":0,\"erows\":0,\"etries\":0,\"forms\":929}",
+      "[infer houdini] {\"alive\":929,\"ctis\":0}",
+      "[infer] houdini {\"ms\":2,\"counted\":0,\"work\":0,\"tries\":0,\"rows\":1220967,\"evals\":0,\"watched\":0,\"erows\":0,\"etries\":0,\"alive\":929}",
+      "[infer join start] {\"space\":\"state\",\"control\":\"\",\"groups\":1,\"dirs\":8,\"coords\":2}",
+      "[infer join start] {\"space\":\"cells\",\"control\":\"\",\"groups\":1,\"dirs\":98,\"coords\":7}",
+      "[infer join start] {\"space\":0,\"control\":\"\",\"groups\":1,\"dirs\":24,\"coords\":12}"
+    ],
+    "finalPhases": [
+      "[infer] start {\"ms\":8,\"counted\":0,\"work\":0,\"tries\":0,\"rows\":0,\"evals\":0,\"watched\":0,\"erows\":0,\"etries\":0}",
+      "[infer runs] {\"samples\":1251,\"trials\":0}",
+      "[infer] runs {\"ms\":15,\"counted\":0,\"work\":0,\"tries\":0,\"rows\":0,\"evals\":0,\"watched\":0,\"erows\":0,\"etries\":0,\"samples\":1251,\"trials\":0}",
+      "[infer candidates] {\"atoms\":7,\"shapes\":492,\"forms\":929}",
+      "[infer] candidates {\"ms\":131,\"counted\":122,\"work\":0,\"tries\":0,\"rows\":1220967,\"evals\":0,\"watched\":0,\"erows\":0,\"etries\":0,\"forms\":929}",
+      "[infer houdini] {\"alive\":929,\"ctis\":0}",
+      "[infer] houdini {\"ms\":2,\"counted\":0,\"work\":0,\"tries\":0,\"rows\":1220967,\"evals\":0,\"watched\":0,\"erows\":0,\"etries\":0,\"alive\":929}",
+      "{\"id\":\"mldr\",\"ic3syn\":\"mldr\",\"search\":{\"verdict\":\"unknown\",\"stuck\":\"unknown\",\"why\":\"time (rule result)\",\"ms\":59001,\"work\":25808267,\"full\":7835654}}",
+      ""
+    ],
+    "join": "[infer join pool] {\"made\":14,\"left\":14,\"states\":89,\"ms\":4223,\"real\":12357}",
+    "verdict": "{\"id\":\"mldr\",\"ic3syn\":\"mldr\",\"search\":{\"verdict\":\"unknown\",\"stuck\":\"unknown\",\"why\":\"time (rule result)\",\"ms\":59001,\"work\":25808267,\"full\":7835654}}"
+  },
+  {
+    "repeat": 0,
+    "side": "after",
+    "lineCount": 25,
+    "attempts": 0,
+    "ic3": 0,
+    "first": [
+      "[infer] start {\"ms\":7,\"counted\":0,\"work\":0,\"tries\":0,\"rows\":0,\"evals\":0,\"watched\":0,\"erows\":0,\"etries\":0}",
+      "[infer runs] {\"samples\":1251,\"trials\":0}",
+      "[infer] runs {\"ms\":8,\"counted\":0,\"work\":0,\"tries\":0,\"rows\":0,\"evals\":0,\"watched\":0,\"erows\":0,\"etries\":0,\"samples\":1251,\"trials\":0}",
+      "[infer candidates] {\"atoms\":7,\"shapes\":492,\"forms\":929}",
+      "[infer] candidates {\"ms\":102,\"counted\":122,\"work\":0,\"tries\":0,\"rows\":1220967,\"evals\":0,\"watched\":0,\"erows\":0,\"etries\":0,\"forms\":929}",
+      "[infer houdini] {\"alive\":929,\"ctis\":0}",
+      "[infer] houdini {\"ms\":6,\"counted\":0,\"work\":0,\"tries\":0,\"rows\":1220967,\"evals\":0,\"watched\":0,\"erows\":0,\"etries\":0,\"alive\":929}",
+      "[infer join start] {\"space\":\"state\",\"control\":\"\",\"groups\":1,\"dirs\":8,\"coords\":2}",
+      "[infer join start] {\"space\":\"cells\",\"control\":\"\",\"groups\":1,\"dirs\":98,\"coords\":7}",
+      "[infer join start] {\"space\":0,\"control\":\"\",\"groups\":1,\"dirs\":24,\"coords\":12}"
+    ],
+    "finalPhases": [
+      "[infer] start {\"ms\":7,\"counted\":0,\"work\":0,\"tries\":0,\"rows\":0,\"evals\":0,\"watched\":0,\"erows\":0,\"etries\":0}",
+      "[infer runs] {\"samples\":1251,\"trials\":0}",
+      "[infer] runs {\"ms\":8,\"counted\":0,\"work\":0,\"tries\":0,\"rows\":0,\"evals\":0,\"watched\":0,\"erows\":0,\"etries\":0,\"samples\":1251,\"trials\":0}",
+      "[infer candidates] {\"atoms\":7,\"shapes\":492,\"forms\":929}",
+      "[infer] candidates {\"ms\":102,\"counted\":122,\"work\":0,\"tries\":0,\"rows\":1220967,\"evals\":0,\"watched\":0,\"erows\":0,\"etries\":0,\"forms\":929}",
+      "[infer houdini] {\"alive\":929,\"ctis\":0}",
+      "[infer] houdini {\"ms\":6,\"counted\":0,\"work\":0,\"tries\":0,\"rows\":1220967,\"evals\":0,\"watched\":0,\"erows\":0,\"etries\":0,\"alive\":929}",
+      "{\"id\":\"mldr\",\"ic3syn\":\"mldr\",\"search\":{\"verdict\":\"unknown\",\"stuck\":\"unknown\",\"why\":\"time (rule result)\",\"ms\":59000,\"work\":26304213,\"full\":7900373}}",
+      ""
+    ],
+    "join": "[infer join pool] {\"made\":14,\"left\":14,\"states\":89,\"ms\":4223,\"real\":9809}",
+    "verdict": "{\"id\":\"mldr\",\"ic3syn\":\"mldr\",\"search\":{\"verdict\":\"unknown\",\"stuck\":\"unknown\",\"why\":\"time (rule result)\",\"ms\":59000,\"work\":26304213,\"full\":7900373}}"
+  },
+  {
+    "repeat": 1,
+    "side": "before",
+    "lineCount": 25,
+    "attempts": 0,
+    "ic3": 0,
+    "first": [
+      "[infer] start {\"ms\":3,\"counted\":0,\"work\":0,\"tries\":0,\"rows\":0,\"evals\":0,\"watched\":0,\"erows\":0,\"etries\":0}",
+      "[infer runs] {\"samples\":1251,\"trials\":0}",
+      "[infer] runs {\"ms\":7,\"counted\":0,\"work\":0,\"tries\":0,\"rows\":0,\"evals\":0,\"watched\":0,\"erows\":0,\"etries\":0,\"samples\":1251,\"trials\":0}",
+      "[infer candidates] {\"atoms\":7,\"shapes\":492,\"forms\":929}",
+      "[infer] candidates {\"ms\":72,\"counted\":122,\"work\":0,\"tries\":0,\"rows\":1220967,\"evals\":0,\"watched\":0,\"erows\":0,\"etries\":0,\"forms\":929}",
+      "[infer houdini] {\"alive\":929,\"ctis\":0}",
+      "[infer] houdini {\"ms\":1,\"counted\":0,\"work\":0,\"tries\":0,\"rows\":1220967,\"evals\":0,\"watched\":0,\"erows\":0,\"etries\":0,\"alive\":929}",
+      "[infer join start] {\"space\":\"state\",\"control\":\"\",\"groups\":1,\"dirs\":8,\"coords\":2}",
+      "[infer join start] {\"space\":\"cells\",\"control\":\"\",\"groups\":1,\"dirs\":98,\"coords\":7}",
+      "[infer join start] {\"space\":0,\"control\":\"\",\"groups\":1,\"dirs\":24,\"coords\":12}"
+    ],
+    "finalPhases": [
+      "[infer] start {\"ms\":3,\"counted\":0,\"work\":0,\"tries\":0,\"rows\":0,\"evals\":0,\"watched\":0,\"erows\":0,\"etries\":0}",
+      "[infer runs] {\"samples\":1251,\"trials\":0}",
+      "[infer] runs {\"ms\":7,\"counted\":0,\"work\":0,\"tries\":0,\"rows\":0,\"evals\":0,\"watched\":0,\"erows\":0,\"etries\":0,\"samples\":1251,\"trials\":0}",
+      "[infer candidates] {\"atoms\":7,\"shapes\":492,\"forms\":929}",
+      "[infer] candidates {\"ms\":72,\"counted\":122,\"work\":0,\"tries\":0,\"rows\":1220967,\"evals\":0,\"watched\":0,\"erows\":0,\"etries\":0,\"forms\":929}",
+      "[infer houdini] {\"alive\":929,\"ctis\":0}",
+      "[infer] houdini {\"ms\":1,\"counted\":0,\"work\":0,\"tries\":0,\"rows\":1220967,\"evals\":0,\"watched\":0,\"erows\":0,\"etries\":0,\"alive\":929}",
+      "{\"id\":\"mldr\",\"ic3syn\":\"mldr\",\"search\":{\"verdict\":\"unknown\",\"stuck\":\"unknown\",\"why\":\"time (rule result)\",\"ms\":59001,\"work\":40474830,\"full\":12227088}}",
+      ""
+    ],
+    "join": "[infer join pool] {\"made\":14,\"left\":14,\"states\":89,\"ms\":4223,\"real\":5790}",
+    "verdict": "{\"id\":\"mldr\",\"ic3syn\":\"mldr\",\"search\":{\"verdict\":\"unknown\",\"stuck\":\"unknown\",\"why\":\"time (rule result)\",\"ms\":59001,\"work\":40474830,\"full\":12227088}}"
+  },
+  {
+    "repeat": 1,
+    "side": "after",
+    "lineCount": 25,
+    "attempts": 0,
+    "ic3": 0,
+    "first": [
+      "[infer] start {\"ms\":7,\"counted\":0,\"work\":0,\"tries\":0,\"rows\":0,\"evals\":0,\"watched\":0,\"erows\":0,\"etries\":0}",
+      "[infer runs] {\"samples\":1251,\"trials\":0}",
+      "[infer] runs {\"ms\":8,\"counted\":0,\"work\":0,\"tries\":0,\"rows\":0,\"evals\":0,\"watched\":0,\"erows\":0,\"etries\":0,\"samples\":1251,\"trials\":0}",
+      "[infer candidates] {\"atoms\":7,\"shapes\":492,\"forms\":929}",
+      "[infer] candidates {\"ms\":82,\"counted\":122,\"work\":0,\"tries\":0,\"rows\":1220967,\"evals\":0,\"watched\":0,\"erows\":0,\"etries\":0,\"forms\":929}",
+      "[infer houdini] {\"alive\":929,\"ctis\":0}",
+      "[infer] houdini {\"ms\":1,\"counted\":0,\"work\":0,\"tries\":0,\"rows\":1220967,\"evals\":0,\"watched\":0,\"erows\":0,\"etries\":0,\"alive\":929}",
+      "[infer join start] {\"space\":\"state\",\"control\":\"\",\"groups\":1,\"dirs\":8,\"coords\":2}",
+      "[infer join start] {\"space\":\"cells\",\"control\":\"\",\"groups\":1,\"dirs\":98,\"coords\":7}",
+      "[infer join start] {\"space\":0,\"control\":\"\",\"groups\":1,\"dirs\":24,\"coords\":12}"
+    ],
+    "finalPhases": [
+      "[infer] start {\"ms\":7,\"counted\":0,\"work\":0,\"tries\":0,\"rows\":0,\"evals\":0,\"watched\":0,\"erows\":0,\"etries\":0}",
+      "[infer runs] {\"samples\":1251,\"trials\":0}",
+      "[infer] runs {\"ms\":8,\"counted\":0,\"work\":0,\"tries\":0,\"rows\":0,\"evals\":0,\"watched\":0,\"erows\":0,\"etries\":0,\"samples\":1251,\"trials\":0}",
+      "[infer candidates] {\"atoms\":7,\"shapes\":492,\"forms\":929}",
+      "[infer] candidates {\"ms\":82,\"counted\":122,\"work\":0,\"tries\":0,\"rows\":1220967,\"evals\":0,\"watched\":0,\"erows\":0,\"etries\":0,\"forms\":929}",
+      "[infer houdini] {\"alive\":929,\"ctis\":0}",
+      "[infer] houdini {\"ms\":1,\"counted\":0,\"work\":0,\"tries\":0,\"rows\":1220967,\"evals\":0,\"watched\":0,\"erows\":0,\"etries\":0,\"alive\":929}",
+      "{\"id\":\"mldr\",\"ic3syn\":\"mldr\",\"search\":{\"verdict\":\"unknown\",\"stuck\":\"unknown\",\"why\":\"time (rule result)\",\"ms\":59001,\"work\":35883144,\"full\":10818057}}",
+      ""
+    ],
+    "join": "[infer join pool] {\"made\":14,\"left\":14,\"states\":89,\"ms\":4223,\"real\":7158}",
+    "verdict": "{\"id\":\"mldr\",\"ic3syn\":\"mldr\",\"search\":{\"verdict\":\"unknown\",\"stuck\":\"unknown\",\"why\":\"time (rule result)\",\"ms\":59001,\"work\":35883144,\"full\":10818057}}"
+  },
+  {
+    "repeat": 2,
+    "side": "before",
+    "lineCount": 25,
+    "attempts": 0,
+    "ic3": 0,
+    "first": [
+      "[infer] start {\"ms\":12,\"counted\":0,\"work\":0,\"tries\":0,\"rows\":0,\"evals\":0,\"watched\":0,\"erows\":0,\"etries\":0}",
+      "[infer runs] {\"samples\":1251,\"trials\":0}",
+      "[infer] runs {\"ms\":15,\"counted\":0,\"work\":0,\"tries\":0,\"rows\":0,\"evals\":0,\"watched\":0,\"erows\":0,\"etries\":0,\"samples\":1251,\"trials\":0}",
+      "[infer candidates] {\"atoms\":7,\"shapes\":492,\"forms\":929}",
+      "[infer] candidates {\"ms\":219,\"counted\":122,\"work\":0,\"tries\":0,\"rows\":1220967,\"evals\":0,\"watched\":0,\"erows\":0,\"etries\":0,\"forms\":929}",
+      "[infer houdini] {\"alive\":929,\"ctis\":0}",
+      "[infer] houdini {\"ms\":4,\"counted\":0,\"work\":0,\"tries\":0,\"rows\":1220967,\"evals\":0,\"watched\":0,\"erows\":0,\"etries\":0,\"alive\":929}",
+      "[infer join start] {\"space\":\"state\",\"control\":\"\",\"groups\":1,\"dirs\":8,\"coords\":2}",
+      "[infer join start] {\"space\":\"cells\",\"control\":\"\",\"groups\":1,\"dirs\":98,\"coords\":7}",
+      "[infer join start] {\"space\":0,\"control\":\"\",\"groups\":1,\"dirs\":24,\"coords\":12}"
+    ],
+    "finalPhases": [
+      "[infer] start {\"ms\":12,\"counted\":0,\"work\":0,\"tries\":0,\"rows\":0,\"evals\":0,\"watched\":0,\"erows\":0,\"etries\":0}",
+      "[infer runs] {\"samples\":1251,\"trials\":0}",
+      "[infer] runs {\"ms\":15,\"counted\":0,\"work\":0,\"tries\":0,\"rows\":0,\"evals\":0,\"watched\":0,\"erows\":0,\"etries\":0,\"samples\":1251,\"trials\":0}",
+      "[infer candidates] {\"atoms\":7,\"shapes\":492,\"forms\":929}",
+      "[infer] candidates {\"ms\":219,\"counted\":122,\"work\":0,\"tries\":0,\"rows\":1220967,\"evals\":0,\"watched\":0,\"erows\":0,\"etries\":0,\"forms\":929}",
+      "[infer houdini] {\"alive\":929,\"ctis\":0}",
+      "[infer] houdini {\"ms\":4,\"counted\":0,\"work\":0,\"tries\":0,\"rows\":1220967,\"evals\":0,\"watched\":0,\"erows\":0,\"etries\":0,\"alive\":929}",
+      "{\"id\":\"mldr\",\"ic3syn\":\"mldr\",\"search\":{\"verdict\":\"unknown\",\"stuck\":\"unknown\",\"why\":\"time (rule result)\",\"ms\":59001,\"work\":7844080,\"full\":3194881}}",
+      ""
+    ],
+    "join": "[infer join pool] {\"made\":14,\"left\":14,\"states\":89,\"ms\":4223,\"real\":17138}",
+    "verdict": "{\"id\":\"mldr\",\"ic3syn\":\"mldr\",\"search\":{\"verdict\":\"unknown\",\"stuck\":\"unknown\",\"why\":\"time (rule result)\",\"ms\":59001,\"work\":7844080,\"full\":3194881}}"
+  },
+  {
+    "repeat": 2,
+    "side": "after",
+    "lineCount": 25,
+    "attempts": 0,
+    "ic3": 0,
+    "first": [
+      "[infer] start {\"ms\":12,\"counted\":0,\"work\":0,\"tries\":0,\"rows\":0,\"evals\":0,\"watched\":0,\"erows\":0,\"etries\":0}",
+      "[infer runs] {\"samples\":1251,\"trials\":0}",
+      "[infer] runs {\"ms\":15,\"counted\":0,\"work\":0,\"tries\":0,\"rows\":0,\"evals\":0,\"watched\":0,\"erows\":0,\"etries\":0,\"samples\":1251,\"trials\":0}",
+      "[infer candidates] {\"atoms\":7,\"shapes\":492,\"forms\":929}",
+      "[infer] candidates {\"ms\":152,\"counted\":122,\"work\":0,\"tries\":0,\"rows\":1220967,\"evals\":0,\"watched\":0,\"erows\":0,\"etries\":0,\"forms\":929}",
+      "[infer houdini] {\"alive\":929,\"ctis\":0}",
+      "[infer] houdini {\"ms\":2,\"counted\":0,\"work\":0,\"tries\":0,\"rows\":1220967,\"evals\":0,\"watched\":0,\"erows\":0,\"etries\":0,\"alive\":929}",
+      "[infer join start] {\"space\":\"state\",\"control\":\"\",\"groups\":1,\"dirs\":8,\"coords\":2}",
+      "[infer join start] {\"space\":\"cells\",\"control\":\"\",\"groups\":1,\"dirs\":98,\"coords\":7}",
+      "[infer join start] {\"space\":0,\"control\":\"\",\"groups\":1,\"dirs\":24,\"coords\":12}"
+    ],
+    "finalPhases": [
+      "[infer] start {\"ms\":12,\"counted\":0,\"work\":0,\"tries\":0,\"rows\":0,\"evals\":0,\"watched\":0,\"erows\":0,\"etries\":0}",
+      "[infer runs] {\"samples\":1251,\"trials\":0}",
+      "[infer] runs {\"ms\":15,\"counted\":0,\"work\":0,\"tries\":0,\"rows\":0,\"evals\":0,\"watched\":0,\"erows\":0,\"etries\":0,\"samples\":1251,\"trials\":0}",
+      "[infer candidates] {\"atoms\":7,\"shapes\":492,\"forms\":929}",
+      "[infer] candidates {\"ms\":152,\"counted\":122,\"work\":0,\"tries\":0,\"rows\":1220967,\"evals\":0,\"watched\":0,\"erows\":0,\"etries\":0,\"forms\":929}",
+      "[infer houdini] {\"alive\":929,\"ctis\":0}",
+      "[infer] houdini {\"ms\":2,\"counted\":0,\"work\":0,\"tries\":0,\"rows\":1220967,\"evals\":0,\"watched\":0,\"erows\":0,\"etries\":0,\"alive\":929}",
+      "{\"id\":\"mldr\",\"ic3syn\":\"mldr\",\"search\":{\"verdict\":\"unknown\",\"stuck\":\"unknown\",\"why\":\"time (rule result)\",\"ms\":59059,\"work\":10409909,\"full\":4345553}}",
+      ""
+    ],
+    "join": "[infer join pool] {\"made\":14,\"left\":14,\"states\":89,\"ms\":4223,\"real\":13030}",
+    "verdict": "{\"id\":\"mldr\",\"ic3syn\":\"mldr\",\"search\":{\"verdict\":\"unknown\",\"stuck\":\"unknown\",\"why\":\"time (rule result)\",\"ms\":59059,\"work\":10409909,\"full\":4345553}}"
+  }
+]
