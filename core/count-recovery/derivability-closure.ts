@@ -22,11 +22,12 @@ import {proposeWriteCountFrames} from '../count-write-frames.ts'
 import {countsForReads} from '../count-facts.ts'
 import {memberInclusions} from './member-inclusions.ts'
 import {leafAllowance} from './leaf-allowance.ts'
+import {type FieldDemand,beginFieldAttempt,endFieldAttempt} from './field-demand.ts'
 type Packet=Pick<CountCert,'reads'|'insts'>
 type Bound={op:'<=',a:E,b:E}
 type Saved={lemma:LemmaCut,good:Bound,index?:number}
 type SourceModel={witness:string,model:Record<string,number>}
-type Options={claim?:C,pairs?:RowPair[],conditional?:boolean,fieldSource?:(g:Goal,c:Packet,claim:C,p:Path,end:number)=>Tree|undefined}
+type Options={claim?:C,pairs?:RowPair[],conditional?:boolean,fieldDemand?:FieldDemand,fieldSource?:(g:Goal,c:Packet,claim:C,p:Path,end:number)=>Tree|undefined}
 const put=(p:Path,lin:Record<string,number>,holds:boolean):Path=>new Map(p).set(canon(lin),{lin,holds})
 const plain=(lin:Record<string,number>)=>!Object.keys(lin).some(k=>k.startsWith('⟦'))
 const fast=(g:Goal,p:Path):Tree|undefined=>{const q=refuteFast(rowsAt(g,p),256);return q?.kind==='refuted'?{leaf:q.steps}:undefined}
@@ -93,13 +94,15 @@ export function deriveCountClosure(m:Machine,ds:CountDecl[],g:Goal,cert:Packet,r
   if(condition&&truth(condition,scope)!==true)continue
   const good:Bound={op:'<=',a:guarded.a.op==='if'?guarded.a.then:guarded.a,b:guarded.b},a=linear(good.a,scope),b=linear(good.b,scope)
   if(!a||!b||!plain(sub(a,b))||truth(good,lemmaPath(saved.map(s=>s.lemma),scope))===true)continue
-  const before=clock(),traceStart=trace.length,noPath=put(scope,sub(a,b),false),small={name:g.name,hyps:source(scope)},direct=fast(small,noPath)
-  let accepted=!!direct&&accept(good,small,direct,noPath,scope)
+  const before=clock(),traceStart=trace.length,noPath=put(scope,sub(a,b),false),small={name:g.name,hyps:source(scope)},meter=beginFieldAttempt(guarded,scope,options.fieldDemand,'closure-scalar')
+  let accepted=false
+  try{const direct=fast(small,noPath);accepted=!!direct&&accept(good,small,direct,noPath,scope)
   if(!accepted&&options.fieldSource&&building()){
    const claim:C={op:'not',x:good},prior=preStateCountSource(g,cert,claim,scope),path=lemmaPath(saved.map(s=>s.lemma),scope)
    const tree=options.fieldSource(prior.goal,prior.cert,claim,path,Math.min(buildEnd,clock()+250))
    if(tree)accepted=accept(good,prior.goal,tree,path,scope)
   }
+  }finally{endFieldAttempt(meter,accepted)}
   trace.push({stage:'closure-scalar',plain:good,checked:accepted,ms:clock()-before,...(!accepted?{sourceTail:trace.slice(traceStart).slice(-8)}:{})})
  }
  // Conditional source scopes are data, not arithmetic proof leaves. Minimal

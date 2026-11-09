@@ -14,6 +14,7 @@ import {foldPath} from './fold-path.ts'
 import {fieldCase} from './field-case.ts'
 import {type SourceProofMemo} from './source-memo.ts'
 import {booleanCore} from './boolean-core.ts'
+import {type FieldDemand,fieldDemandAt,beginFieldAttempt,endFieldAttempt} from './field-demand.ts'
 import {selectCountBounds} from '../count-select.ts'
 import {activeWriteRow,proveRowCases,rowPairs} from './row-cases.ts'
 import {proveNaturalCases} from './natural-cases.ts'
@@ -78,7 +79,7 @@ export const fieldBoundLemmas:typeof fieldBoundLemmasImpl=(...args)=>wallTree('p
  if(tree&&!hasConditionalProof(tree))options.memo?.put(g,path,tree)
  return tree
 })
-function fieldBoundLemmasImpl(m:Machine,ds:CountDecl[],g:Goal,cert:Proposal,until:number,trace:object[],onModel?:(goal:Goal,witness:Record<string,number>)=>boolean,root:Path=new Map(),options:{splitRows?:boolean,deferCheck?:boolean,fieldClaim?:C,memo?:SourceProofMemo,closure?:boolean,conditional?:boolean,onSourceModel?:(goal:Goal,witness:Record<string,number>,path:Path)=>void}={}):Tree|undefined{
+function fieldBoundLemmasImpl(m:Machine,ds:CountDecl[],g:Goal,cert:Proposal,until:number,trace:object[],onModel?:(goal:Goal,witness:Record<string,number>)=>boolean,root:Path=new Map(),options:{splitRows?:boolean,deferCheck?:boolean,fieldClaim?:C,memo?:SourceProofMemo,closure?:boolean,conditional?:boolean,fieldDemand?:FieldDemand,onSourceModel?:(goal:Goal,witness:Record<string,number>,path:Path)=>void}={}):Tree|undefined{
  const pointOptions={deferCheck:!!options.deferCheck}
  const seq=modelSequence(root),ctx:C[]=[],path:Path=new Map(root),lemmas:{split:Record<string,number>,no:Tree}[]=[]
  const accept=(tree:Tree|undefined,path:Path)=>tree&&(options.deferCheck||check(g,tree,path))?tree:undefined
@@ -87,7 +88,7 @@ function fieldBoundLemmasImpl(m:Machine,ds:CountDecl[],g:Goal,cert:Proposal,unti
  let arithmetic:Tree|undefined
  const postMaps=new Set(cert.reads.filter(r=>r[1].endsWith('#')).map(r=>r[1])),postIds=new Set(cert.reads.filter(r=>r[1].endsWith('#')).map(r=>r[0]))
  if(options.closure!==false){
-  const closed=deriveCountClosure(m,ds,g,cert,root,until,trace,{claim:options.fieldClaim,pairs:rowPlan,conditional:options.conditional,fieldSource:(source,proposal,claim,path,end)=>fieldBoundLemmas(m,ds,source,proposal,end,trace,onModel,path,{...options,closure:false,splitRows:false,deferCheck:true,fieldClaim:claim})})
+  const closed=deriveCountClosure(m,ds,g,cert,root,until,trace,{claim:options.fieldClaim,pairs:rowPlan,conditional:options.conditional,fieldDemand:options.fieldDemand??fieldDemandAt(root),fieldSource:(source,proposal,claim,path,end)=>fieldBoundLemmas(m,ds,source,proposal,end,trace,onModel,path,{...options,closure:false,splitRows:false,deferCheck:true,fieldClaim:claim})})
   if(closed)return closed
  }
  // Split a packed field's guarded column domain once, outside the row cases.
@@ -245,7 +246,10 @@ function fieldBoundLemmasImpl(m:Machine,ds:CountDecl[],g:Goal,cert:Proposal,unti
   if(truth(good,path)===true)continue
   const a=linear(good.a,path),b=linear(good.b,path);if(!a||!b)continue
   const split=sub(a,b),noPath=new Map(path).set(canon(split),{lin:split,holds:false}),start=clock()
-  const facts=narrow(good),part={...g,hyps:[...facts,...ctx,{op:'not' as const,x:good}]},proof=solve(part,250),lifted=proof&&widen(part,g,proof,{},root,noPath),no=accept(lifted,noPath)
+  let no:Tree|undefined
+  const meter=beginFieldAttempt(good,path,options.fieldDemand??fieldDemandAt(root),'field-bound')
+  try{const facts=narrow(good),part={...g,hyps:[...facts,...ctx,{op:'not' as const,x:good}]},proof=solve(part,250),lifted=proof&&widen(part,g,proof,{},root,noPath);no=accept(lifted,noPath)}
+  finally{endFieldAttempt(meter,!!no)}
   trace.push({stage:'field-bound',bound:good,ms:Math.round(clock()-start),proved:!!no,...verdict(no)})
   if(no){
    lemmas.push({split,no});ctx.push(good);path.set(canon(split),{lin:split,holds:true})
