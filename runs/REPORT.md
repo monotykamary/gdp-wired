@@ -1,5 +1,51 @@
 # RESUMED — lane E, 2026-11-10
 
+## Executed results — 8e7e8630 source, not GATE GREEN
+
+`20261110-012704-cgh7wh` is complete. Exact source is the frozen 84a7a672
+base plus the two hash-verified, research-only preflight fixes in 8e7e8630.
+**Typecheck/lint pass; 82 focused tests / 280 assertions pass** (78/270 in
+8 core files, 4/10 in the lossless capture tests). New 3af3d9ad regression
+tooling is not covered by that claim; its check is running separately.
+
+The three unchanged original commands all return **UNKNOWN**, `why: time
+(rule result)`, with harness-reported times **59.029 / 59.092 / 59.002 s**.
+All ran alone on large VMs with eight pinned vCPUs. R1/R2 used Ryzen 9 9950X;
+R3 used EPYC 9455, so no cross-CPU performance comparison is claimed.
+
+The fresh generated family has **34 laws, no hand law, zero generation
+proof queries**. Conditional safety (helpers assumed) remains UNKNOWN:
+- 2700 allowance: **2700.128934 units**, 6 MBQI rounds, 987 hypotheses.
+- 6000 allowance: **6000.223364 units**, 9 rounds, 1994 hypotheses.
+There is **no new certificate to replay**. The lossless archive correctly
+contains only `family-source.json`, SHA-256
+`3c43d9ef808ca58e11764d0ab41b43c4cab10194a0e7551842f66befd9558199`.
+
+The historical cancelled-command diagnostic reached both conditional
+probes, then failed at the confirmed **invalid 300000-byte pack limit**.
+The earlier shell-quoting hypothesis was not demonstrated by that run.
+Its hard-coded 36a278e9 label is historical, not its actual source identity;
+use the verified source header/overlay and receipts instead.
+
+Compact parsed results, exact rows/CPU labels and necessary compressed logs:
+`runs/mldr-incl-resume-preflight-fixed-v1/`. No full suite/gate, original
+MLDR proof, or 29/29 is claimed.
+
+### For lane B / I: safety integration regression under investigation
+
+The paused pre-range E source reported a checked conditional certificate
+at 3817.24253 units. The present range-integrated source is UNKNOWN at 6000.
+This is a **regression hypothesis**, not yet attributed: the exact fresh
+and prior families must first be compared. Research commit **3af3d9ad**
+adds that comparison, same-VM initial-range on/off in both orders, and the
+corrected targeted-completion probes at unchanged 2700/6000 allowances.
+It changes no production code. Active task:
+`01d0b4ba-830f-4aa4-a730-c712b43219f5`, output
+`runs/mldr-incl-range-regression-v1/`; six jobs, no new whole-tree archive.
+All candidate certificates are freshly reconstructed/checked, and the
+helpers remain assumed. The targeted allowance remains 48 total tuples.
+
+
 ## Latest completed preflight: TypeScript passes, installer lint repaired
 
 The focused `f0eb7671` check completed: both overlay hashes verified and
