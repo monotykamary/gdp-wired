@@ -1,0 +1,3 @@
+[
+ {"name":"refined","cmd":"bash research/track-m/section15-derive-check.sh helpers","cpu":8,"memory":14336,"timeout":480}
+]
