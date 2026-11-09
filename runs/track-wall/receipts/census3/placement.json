@@ -1,0 +1,263 @@
+{
+ "gen-consensus": {
+  "vm": "bx_acxzr4wr",
+  "type": "large",
+  "cpu": "AMD Ryzen 9 9950X 16-Core Processor",
+  "vcpus": 4,
+  "vm_vcpus": 8,
+  "exclusive": false,
+  "co_tenants": 1
+ },
+ "gen-tcommit": {
+  "vm": "bx_633dfam7",
+  "type": "xlarge",
+  "cpu": "AMD Ryzen 9 9950X 16-Core Processor",
+  "vcpus": 4,
+  "vm_vcpus": 16,
+  "exclusive": false,
+  "co_tenants": 2
+ },
+ "gen-lock_server": {
+  "vm": "bx_6k9k52sn",
+  "type": "large",
+  "cpu": "AMD EPYC 4585PX 16-Core Processor",
+  "vcpus": 4,
+  "vm_vcpus": 8,
+  "exclusive": false,
+  "co_tenants": 1
+ },
+ "gen-quorum_leader_election": {
+  "vm": "bx_ackcvxnu",
+  "type": "large",
+  "cpu": "AMD Ryzen 9 9950X 16-Core Processor",
+  "vcpus": 4,
+  "vm_vcpus": 8,
+  "exclusive": false,
+  "co_tenants": 1
+ },
+ "gen-toy_consensus_forall": {
+  "vm": "bx_84e8hfw5",
+  "type": "large",
+  "cpu": "AMD EPYC 4585PX 16-Core Processor",
+  "vcpus": 4,
+  "vm_vcpus": 8,
+  "exclusive": false,
+  "co_tenants": 1
+ },
+ "gen-simple": {
+  "vm": "bx_a74cfp57",
+  "type": "large",
+  "cpu": "AMD Ryzen 9 9950X 16-Core Processor",
+  "vcpus": 4,
+  "vm_vcpus": 8,
+  "exclusive": false,
+  "co_tenants": 1
+ },
+ "gen-simple_regular": {
+  "vm": "bx_8sf3u958",
+  "type": "large",
+  "cpu": "AMD EPYC 4585PX 16-Core Processor",
+  "vcpus": 4,
+  "vm_vcpus": 8,
+  "exclusive": false,
+  "co_tenants": 2
+ },
+ "gen-lockserv_automaton": {
+  "vm": "bx_3qn8b65a",
+  "type": "large",
+  "cpu": "AMD Ryzen 9 9950X 16-Core Processor",
+  "vcpus": 4,
+  "vm_vcpus": 8,
+  "exclusive": false,
+  "co_tenants": 1
+ },
+ "gen-sharded_kv": {
+  "vm": "bx_2eg9t59n",
+  "type": "large",
+  "cpu": "AMD EPYC 9455 48-Core Processor",
+  "vcpus": 4,
+  "vm_vcpus": 8,
+  "exclusive": false,
+  "co_tenants": 1
+ },
+ "gen-sharded_kv_no_lost_keys": {
+  "vm": "bx_bucc8x77",
+  "type": "large",
+  "cpu": "AMD EPYC 9455 48-Core Processor",
+  "vcpus": 4,
+  "vm_vcpus": 8,
+  "exclusive": false,
+  "co_tenants": 1
+ },
+ "gen-lockserv": {
+  "vm": "bx_395wpmqp",
+  "type": "large",
+  "cpu": "AMD EPYC 4585PX 16-Core Processor",
+  "vcpus": 4,
+  "vm_vcpus": 8,
+  "exclusive": false,
+  "co_tenants": 1
+ },
+ "gen-twophase": {
+  "vm": "bx_bpdj4x2g",
+  "type": "large",
+  "cpu": "AMD Ryzen 9 9950X 16-Core Processor",
+  "vcpus": 4,
+  "vm_vcpus": 8,
+  "exclusive": false,
+  "co_tenants": 1
+ },
+ "gen-simple_decentralized_lock": {
+  "vm": "bx_ackcvxnu",
+  "type": "large",
+  "cpu": "AMD Ryzen 9 9950X 16-Core Processor",
+  "vcpus": 4,
+  "vm_vcpus": 8,
+  "exclusive": false,
+  "co_tenants": 1
+ },
+ "gen-two_phase_commit": {
+  "vm": "bx_7ah56czc",
+  "type": "large",
+  "cpu": "AMD Ryzen 9 9950X 16-Core Processor",
+  "vcpus": 4,
+  "vm_vcpus": 8,
+  "exclusive": false,
+  "co_tenants": 1
+ },
+ "gen-consensus_wo_decide": {
+  "vm": "bx_2uat3ctg",
+  "type": "large",
+  "cpu": "AMD EPYC 4585PX 16-Core Processor",
+  "vcpus": 4,
+  "vm_vcpus": 8,
+  "exclusive": false,
+  "co_tenants": 1
+ },
+ "gen-consensus_forall": {
+  "vm": "bx_2eg9t59n",
+  "type": "large",
+  "cpu": "AMD EPYC 9455 48-Core Processor",
+  "vcpus": 4,
+  "vm_vcpus": 8,
+  "exclusive": false,
+  "co_tenants": 2
+ },
+ "gen-naive_consensus": {
+  "vm": "bx_633dfam7",
+  "type": "xlarge",
+  "cpu": "AMD Ryzen 9 9950X 16-Core Processor",
+  "vcpus": 4,
+  "vm_vcpus": 16,
+  "exclusive": false,
+  "co_tenants": 3
+ },
+ "gen-client_server_ae": {
+  "vm": "bx_2hzfj2ah",
+  "type": "large",
+  "cpu": "AMD Ryzen 9 9950X 16-Core Processor",
+  "vcpus": 4,
+  "vm_vcpus": 8,
+  "exclusive": false,
+  "co_tenants": 1
+ },
+ "gen-client_server_db_ae": {
+  "vm": "bx_2uat3ctg",
+  "type": "large",
+  "cpu": "AMD EPYC 4585PX 16-Core Processor",
+  "vcpus": 4,
+  "vm_vcpus": 8,
+  "exclusive": false,
+  "co_tenants": 2
+ },
+ "gen-simple_election": {
+  "vm": "bx_7w3jpwcn",
+  "type": "large",
+  "cpu": "AMD Ryzen 7 9700X 8-Core Processor",
+  "vcpus": 4,
+  "vm_vcpus": 8,
+  "exclusive": false,
+  "co_tenants": 1
+ },
+ "gen-toy_consensus_epr": {
+  "vm": "bx_2kmf8w3s",
+  "type": "large",
+  "cpu": "AMD EPYC 4585PX 16-Core Processor",
+  "vcpus": 4,
+  "vm_vcpus": 8,
+  "exclusive": false,
+  "co_tenants": 1
+ },
+ "gen-toy_consensus": {
+  "vm": "bx_395wpmqp",
+  "type": "large",
+  "cpu": "AMD EPYC 4585PX 16-Core Processor",
+  "vcpus": 4,
+  "vm_vcpus": 8,
+  "exclusive": false,
+  "co_tenants": 1
+ },
+ "gen-firewall": {
+  "vm": "bx_8sf3u958",
+  "type": "large",
+  "cpu": "AMD EPYC 4585PX 16-Core Processor",
+  "vcpus": 4,
+  "vm_vcpus": 8,
+  "exclusive": false,
+  "co_tenants": 1
+ },
+ "gen-majorityset_leader_election": {
+  "vm": "bx_3qn8b65a",
+  "type": "large",
+  "cpu": "AMD Ryzen 9 9950X 16-Core Processor",
+  "vcpus": 4,
+  "vm_vcpus": 8,
+  "exclusive": false,
+  "co_tenants": 1
+ },
+ "gen-consensus_epr": {
+  "vm": "bx_2hzfj2ah",
+  "type": "large",
+  "cpu": "AMD Ryzen 9 9950X 16-Core Processor",
+  "vcpus": 4,
+  "vm_vcpus": 8,
+  "exclusive": false,
+  "co_tenants": 2
+ },
+ "gen-paxos_epr": {
+  "vm": "bx_bucc8x77",
+  "type": "large",
+  "cpu": "AMD EPYC 9455 48-Core Processor",
+  "vcpus": 4,
+  "vm_vcpus": 8,
+  "exclusive": false,
+  "co_tenants": 2
+ },
+ "gen-mldr": {
+  "vm": "bx_7w3jpwcn",
+  "type": "large",
+  "cpu": "AMD Ryzen 7 9700X 8-Core Processor",
+  "vcpus": 4,
+  "vm_vcpus": 8,
+  "exclusive": false,
+  "co_tenants": 1
+ },
+ "gen-learning_switch": {
+  "vm": "bx_7ah56czc",
+  "type": "large",
+  "cpu": "AMD Ryzen 9 9950X 16-Core Processor",
+  "vcpus": 4,
+  "vm_vcpus": 8,
+  "exclusive": false,
+  "co_tenants": 2
+ },
+ "gen-learning_switch_i4": {
+  "vm": "bx_5jvcbp5r",
+  "type": "large",
+  "cpu": "AMD Ryzen 9 9950X 16-Core Processor",
+  "vcpus": 4,
+  "vm_vcpus": 8,
+  "exclusive": false,
+  "co_tenants": 2
+ }
+}

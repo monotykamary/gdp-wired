@@ -6,6 +6,9 @@ the merged-tree tests/typecheck, the 29-list census against `bef4020f` and a per
 - Merged tree (`a6ae4be9`): **115 tests pass** across the 14 counted / compiled-step / finite-tiny files (`runs/track-wall/receipts/mtests3`);
   `bun run check` found one error of mine (a step rebuilt on a refutation core lacked the `all` read list, core/counts.ts:886) — fixed in
   `896a15fc`, typecheck rerunning; the remaining errors are the known `vendor/`-dependent ones of the shipped tree.
+- **Census guard on the merged tree (`a6ae4be9`) vs lane A's head `bef4020f`, 29 protocols (`runs/track-wall/receipts/census3`):
+  29 / 29 canonical law lists byte-identical;** generation walls summed 756.7 s → 517.3 s (−32 %, mixed warm VMs, not a timing
+  claim); mldr 14.6 → 11.0 s (small 6.8 → 3.8 s, candidates 7.8 → 7.2 s).
 - **Step 1 done — traced strict mldr pairs, violation-driven ranges (`72380dc1`) vs lane A's `c21a6e54`, three pinned large VMs
   (Ryzen 9 9950X ×2, EPYC 4585PX; `runs/track-wall/receipts/rmldr3`, logs gzipped):** verdict `unknown` (time) on all six runs;
   the four traced helpers (`no quorum canVote/1`, `canVote/3`, `stored guard reconfigs/inS`, `… or disabled/0`) read pass 0 `sat`
