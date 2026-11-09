@@ -1,0 +1,49 @@
+{
+  "ok": true,
+  "batch": "20261110-000834-wjnlsd",
+  "strict_once": false,
+  "retain_journals": false,
+  "admission_closed": false,
+  "closed": false,
+  "placements": [
+    {
+      "name": "commitlint",
+      "run_name": "commitlint",
+      "vm": "bx_2uat3ctg",
+      "image": "sc-f0d8daeee6c3",
+      "type": "large",
+      "identity": "c007ef5a4b00127eabba1564d8e13281a2171384e432f03d",
+      "t": 1794247071.207983
+    }
+  ],
+  "cancellation_receipts": [],
+  "rows": [
+    {
+      "name": "commitlint",
+      "code": 0,
+      "seconds": 4.47,
+      "vm": "bx_2uat3ctg",
+      "run_name": "commitlint",
+      "placement": {
+        "vm": "bx_2uat3ctg",
+        "type": "large",
+        "cpu": "AMD EPYC 4585PX 16-Core Processor",
+        "vcpus": 2,
+        "vm_vcpus": 8,
+        "exclusive": false,
+        "co_tenants": 3
+      }
+    }
+  ],
+  "items": [
+    {
+      "name": "commitlint",
+      "state": "done",
+      "placements": 1,
+      "reaped": false,
+      "start_inflight": false,
+      "admission_closed": false,
+      "result_error": null
+    }
+  ]
+}

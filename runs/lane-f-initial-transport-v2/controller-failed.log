@@ -1,0 +1,30 @@
+[Bounded shell log: starts with retained pre-spill tail; 8 MiB total cap, then further output is omitted. Not a full-output archive.]
+[boat] batch 20261110-000828-1phcme: gdp-wired, image sc-f0d8daeee6c3, tree cf22f1ef590a (3400 files), cache olean 001de680457b (16 here)
+[boat] 2 jobs to the scheduler (submission) + 2 large (times from the last run)
+Traceback (most recent call last):
+  File "/Users/monotykamary/.local/bin/supercomputer", line 10, in <module>
+    sys.exit(main())
+             ^^^^^^
+  File "/Users/monotykamary/.local/share/supercomputer/supercomputer/__main__.py", line 268, in main
+    _run(a)
+  File "/Users/monotykamary/.local/share/supercomputer/supercomputer/__main__.py", line 58, in _run
+    fanout.run_jobs(app, spec, a.out, pre, cmd, mjobs, backend=a.backend, vms=a.vms, idle=None if a.idle < 0 else a.idle, teardown=a.teardown,
+  File "/Users/monotykamary/.local/share/supercomputer/supercomputer/fanout.py", line 190, in run_jobs
+    got, bsum = boat.boat_jobs(mine, out, pre, cmd, vms=vms, idle=idle, teardown=teardown, durations=durations, vm_type=vm_type, max_vms=max_vms,
+                ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "/Users/monotykamary/.local/share/supercomputer/supercomputer/boat.py", line 2928, in boat_jobs
+    sess.run(items, done, on_lost=(lambda it, why: on_lost(it["name"], why)) if on_lost else None, max_wait=max_wait)
+  File "/Users/monotykamary/.local/share/supercomputer/supercomputer/boat.py", line 2472, in run
+    submit()
+  File "/Users/monotykamary/.local/share/supercomputer/supercomputer/boat.py", line 2465, in submit
+    r = self.client.req("/submit", msg)
+        ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "/Users/monotykamary/.local/share/supercomputer/supercomputer/scheduler.py", line 3967, in req
+    data = self._local(path, data_in, timeout)
+           ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "/Users/monotykamary/.local/share/supercomputer/supercomputer/scheduler.py", line 3996, in _local
+    raise RuntimeError(f"the scheduler didn't answer ({last})")
+RuntimeError: the scheduler didn't answer (timed out)
+
+
+[Process exited with code 1]

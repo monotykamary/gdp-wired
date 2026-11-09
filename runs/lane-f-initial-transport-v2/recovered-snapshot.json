@@ -1,0 +1,83 @@
+{
+  "ok": true,
+  "batch": "20261110-000828-1phcme",
+  "strict_once": false,
+  "retain_journals": false,
+  "admission_closed": false,
+  "closed": false,
+  "placements": [
+    {
+      "name": "original34-1",
+      "run_name": "original34-1",
+      "vm": "bx_5f56ms2a",
+      "image": "sc-f0d8daeee6c3",
+      "type": "large",
+      "identity": "cd25b3084124086e50f0030d62ee80b2674504496c1f2206",
+      "t": 1794247309.829822
+    },
+    {
+      "name": "original34-0",
+      "run_name": "original34-0",
+      "vm": "bx_74ss87e4",
+      "image": "sc-f0d8daeee6c3",
+      "type": "large",
+      "identity": "dad37b304569f373f69cde79cd3df7793e4a7656f5d75831",
+      "t": 1794247309.119356
+    }
+  ],
+  "cancellation_receipts": [],
+  "rows": [
+    {
+      "name": "original34-1",
+      "code": 0,
+      "seconds": 18.67,
+      "vm": "bx_5f56ms2a",
+      "run_name": "original34-1",
+      "placement": {
+        "vm": "bx_5f56ms2a",
+        "type": "large",
+        "cpu": "AMD Ryzen 9 9950X 16-Core Processor",
+        "vcpus": 4,
+        "vm_vcpus": 8,
+        "exclusive": true,
+        "co_tenants": 0
+      }
+    },
+    {
+      "name": "original34-0",
+      "code": 0,
+      "seconds": 17.32,
+      "vm": "bx_74ss87e4",
+      "run_name": "original34-0",
+      "placement": {
+        "vm": "bx_74ss87e4",
+        "type": "large",
+        "cpu": "AMD Ryzen 9 9950X 16-Core Processor",
+        "vcpus": 4,
+        "vm_vcpus": 8,
+        "exclusive": true,
+        "co_tenants": 0
+      }
+    }
+  ],
+  "items": [
+    {
+      "name": "original34-0",
+      "state": "done",
+      "placements": 1,
+      "reaped": false,
+      "start_inflight": false,
+      "admission_closed": false,
+      "result_error": null
+    },
+    {
+      "name": "original34-1",
+      "state": "done",
+      "placements": 1,
+      "reaped": false,
+      "start_inflight": false,
+      "admission_closed": false,
+      "result_error": null
+    }
+  ]
+}

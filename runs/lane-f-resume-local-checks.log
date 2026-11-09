@@ -1,0 +1,20 @@
+Lane F resume: lightweight local checks only; no proof/test/timing acceptance.
+
+PASS: git diff --check
+PASS: bash -n research/track-m/lane-f-triangle-pair.sh
+PASS: shasum -a 256 -c runs/lane-f-checkpoint-inputs.sha256 (all 7 inputs)
+
+Fixture hashes:
+40fb2376a8fd5f37e3b1da63026261a198b05f55def0f017afed13a9355f1aef  research/track-m/lane-f-triangle-pair.sh
+8e4ead8d30db6cc401c5a0d7d75de0791e01bcefc5b0351c52f660bccda3734d  research/track-m/lane-f-commitlint.jobs.json
+b1c94b5dbb9bce7e81c886394402f8bb043377867af735af9ed8dc794823c9d1  research/track-m/lane-f-final-check.jobs.json
+
+FAIL, local lint backstop only:
+bunx --no-install commitlint --default-config < /tmp/lane-f-resume-commit.txt
+exit 1: Could not find an existing 'commitlint' binary to run. Stopping because --no-install was passed.
+
+INCOMPLETE, local lint backstop only:
+bun "$HOME/.bun/install/cache/@commitlint/cli@21.2.4@@@1/cli.js" --default-config < /tmp/lane-f-resume-commit.txt
+8-second shell timeout. Warning: Slow filesystem detected. No lint pass is claimed.
+
+Remote reruns remain pending on the scheduler. Read-only status (10 seconds) and digest (120 seconds) timed out. Exact submission processes had the scheduler blob-cache.lock open and no controller output. No shared scheduler/VM restart or duplicate submission was attempted.

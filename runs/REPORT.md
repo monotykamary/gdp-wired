@@ -1,4 +1,69 @@
-# RESUME — PAUSED BY USER; START NOTHING UNTIL EXPLICIT RESUME
+# RESUMED — Lane F; original batches registered late
+
+## Recovered cancelled-run outcomes — no helper pass
+
+The read-only recovery watcher completed successfully. All three experiment workers and the three-message commitlint worker returned **worker exit 0**, despite their original local submission controllers timing out. Their actual compressed logs, worker rows, placement/CPU identities and exact hashes are retained in the existing v2 directories. No experiment was duplicated.
+
+- **Validation is green (not a merge gate):** `runs/lane-f-resume-check-v1/` ran **79 tests / 362 assertions, zero failures**, including the new guarded compensated-frame / wrong-orientation regression. `bun run check` reports zero warnings/errors, and all four file-backed commit messages (including the planned resume commit) pass explicit conventional commitlint. Worker exit 0; batch `20261110-003958-k3gwhl`, tree `49860262ef37`. The older three-message commitlint v2 also passed. This is a focused correctness check, not the 29×3 gate.
+- **Combined triangle + source projection, frozen closure:** both sides remain unchecked/unknown. Before: **1,552.469 units / 5,089.724 ms**; after: **1,553.050 / 4,841.901 ms**. Pool 290 → 294 instances, both four row queries / two splits / zero mirrors. One exclusive large AMD EPYC 4585PX VM. This is not a checked leaf or whole-helper gain. The targeted remote projection verified archive SHA-256 `b1b4216c31451a2f4d8f37cab71c8fe250acbe4441461e82cf491c627d79e95b` and confirms **exactly the same five cuts** on both sides: two diagonal-empty facts and three existing algebraic facts. The 93 projection rounds (86 sat, 7 unknown) admit no new source. No off-diagonal triangle cut is checked. Only the small projection returned locally (`source-projection-envelope.json`); raw context/traces were not downloaded.
+- **Initial-slot triangle selection, original generated 34-law family:** all four outcomes remain unchecked/unknown. The family SHA stays `54c58da465575dd41903b3c7712d70d0caa29400dd23d9c083a8ad366b236553`, generator-only, no supplied laws, unchanged 6,000-unit / 7,000-ms allowance. AB before **6,010.414 / 6,770.423 ms**, after **5,775.496 / 7,190.041 ms**; BA after **5,775.496 / 7,475.235 ms**, before **4,876.985 / 7,359.571 ms**. Each pair ran alone on its own large Ryzen 9 9950X VM. Lower work at a wall stop is not a speedup.
+
+The initial-slot treatment increases recorded MBQI rounds 10 → 12 and aggregate hypothesis visits 1,373 → 1,935; all sides add 48 completion instances. The recorded STEP wall stops do not become proofs. The separate trailing `@start` record on one unit-limited baseline does not mean STEP was skipped. Per-side `core/counts.ts` fingerprints are distinct (`cf6bd4...` before / `223bcf...` after), as are the frame-generator fingerprints. Compact data: `runs/lane-f-{triangle-source,initial-transport}-v2/summary-projection.json`; raw stdout/stderr stays compressed as `recovered-logs.tar.gz`.
+
+**No Section 16.5 pass, no original-harness improvement, no final gate claim.**
+
+## Disk
+
+**Offload policy applied.** `runs/KEEP-LOCAL.txt` exempts only `runs/lane-f-source-input/context.json` (25,619,723 bytes, SHA-256 `12d8e3b6beb1f1905c26b2e88534cf54b37272b25b42d4b9676e5c449d9914ba`), the active frozen source input for this lane's next bounded experiments. No duplicate context or historical raw trace is exempted. The coordinator may offload those to `gdp-wired-offload-20261110` after remote verification and leave `.offloaded.json` stubs. If a later diagnostic needs one, restore only its exact file through the stub's `store serve` / `store pull --only` instructions. Existing receipts, manifests and hashes remain local; this lane has not deleted or re-copied bulky evidence.
+
+Coordinator disk rules are in force: no new per-run whole-tree archives; any future necessary tree archive is shared once per commit SHA at `/private/tmp/gdp-archives/<sha>.tar`, reused via `--data`, never copied into `--out` or an input directory. No such tree archive is needed for the current jobs. Do not delete existing files. Any prospective write over 500 MB must first be declared here.
+
+The read-only recovery watcher requests worker rows and compressed stdout/stderr only to recover the original experiments' verdicts, source hashes and source-admission evidence. It does not fetch whole worktrees or automatically fetch the large proof/context archives named in stdout. Future archive inspection will extract only the required summary/result files rather than unpack every trace. No write over 500 MB is currently planned. No file has been deleted. Candidate for coordinator approval only:
+
+| Path | Size | Why potentially removable |
+|---|---:|---|
+| `runs/lane-f-source-zero-v1/receipts/source-zero/raw/result/context.json` | 25,619,723 bytes (24.43 MiB) | Byte-identical duplicate of required `runs/lane-f-source-input/context.json`; both SHA-256 `12d8e3b6beb1f1905c26b2e88534cf54b37272b25b42d4b9676e5c449d9914ba`. The original compressed receipt archive and manifest are also retained beside `raw/`. Keep the primary input and compressed evidence; remove this extracted duplicate only if approved. |
+
+A bounded scan found no `.tar`, `.tar.gz`, or `.tgz` larger than 100 MiB within four levels of this worktree's `runs/`. This is not a claim about deeper directories or other worktrees. Measured directories: source input 25,364 KiB, source-zero receipt run 51,496 KiB, triangle-detail run 236 KiB.
+
+## Submissions reopened: no duplicate proof jobs
+
+The coordinator reopened boat submissions after the blob-cache lock cleared. The recovered scheduler roster and exact `/snapshot` replies confirm **all three original v2 batches registered**: triangle/source `20261110-000831-t0pk2d` (one queued item), initial-slot `20261110-000828-1phcme` (two queued items), and commitlint `20261110-000834-wjnlsd` (one queued item). The client failures below are retained, not reclassified as worker failures. No original experiment has been resubmitted or cancelled.
+
+Authoritative snapshots: `runs/lane-f-{triangle,initial,lint}-after-hold.json`. A single bounded read-only watcher (`research/track-m/lane-f-resume-watch.ts`, task `aa2db2ae-99c3-4e00-99aa-2323a456618e`) long-polls the existing jobs and recovers worker rows and logs without submitting, closing or cancelling them. At most one subagent remains the cap; this lane uses none. Separate validation of the new unrun regression and repaired fixtures is submitted as `runs/lane-f-resume-check-v1/` (batch `20261110-003958-k3gwhl`, tree `49860262ef37`, controller task `022f2d67-5a54-4e7e-aeb4-df856303ebc6`), not another copy of the proof experiments. It mounts only four small message files, runs the focused tests and type/lint checks, and checks the planned commit message alongside the three retained messages. No validation result is claimed yet.
+
+---
+
+User explicitly resumed this lane. Read the entire MLDR-29 handoff (including PAUSED), COMMON, the saved RESUME below, and MLDR-DESIGN Sections 14, 15.4–15.6 and 16.5. Clean starting worktree at `27ca886f`; all seven `runs/lane-f-checkpoint-inputs.sha256` inputs verify. No reset, amend, push, merge, kernel edit or budget increase.
+
+## Coordinator memory-pressure hold
+
+Coordinator diagnosis: the laptop is out of memory (7.5/8 GB swap; approximately 4,500 pages/s in each direction), causing per-file `utime` under `blob-cache.lock` to stall submissions. This supersedes a scheduler-deadlock interpretation: timed-out controllers do **not** establish that their submissions are absent. **Do not resubmit or kill the three existing batches; they may register when the lock frees.** Do not create new parallel local work. This lane has spawned no subagents, so none need closing. Continue file-only review and keep all proof/lint claims pending actual receipts.
+
+## First work after resume — original controller failures (historical)
+
+- Repaired `research/track-m/lane-f-commitlint.jobs.json`: explicit `--default-config`, `set -euo pipefail`, message bodies still read from files. Applied the same fix to the reusable `lane-f-final-check.jobs.json` (its old `--edit` had the same absent-Git-root failure). Fresh `runs/lane-f-commitlint-v2/`; controller task `3b69aefe-84e3-4342-831c-eaca366e36ee`.
+- Added `core/counts.ts` to per-side hashes in `research/track-m/lane-f-triangle-pair.sh`, preserving atomic restoration and existing 6,000-unit / 7,000-ms diagnostic bounds.
+- Restarted combined triangle + model-demanded source projection in `runs/lane-f-triangle-source-v2/`; task `22676cca-a4d5-4f6c-b423-8e5fb0aca5c7`.
+- Restarted original-34-law initial-slot AB/BA pairs in `runs/lane-f-initial-transport-v2/`; task `6f35e80a-0d72-4b12-89c8-a3ad16e71252`.
+- Both proof batches used the exact RESUME commands: `--class submission --timing --vm-type large --data runs/lane-f-source-input:.`. **Both controllers failed after about 859 seconds, exit 1, at scheduler `/submit`: `RuntimeError: the scheduler didn't answer (timed out)`.** Triangle/source batch `20261110-000831-t0pk2d`; initial-slot batch `20261110-000828-1phcme`; tree `cf22f1ef590a`, image `sc-f0d8daeee6c3`. Full controller failures are retained in each v2 directory as `controller-failed.log`. At that first inspection neither directory contained a worker result, placement receipt or proof verdict; the recovered results above supersede that observation.
+- The commitlint controller also failed at scheduler `/submit`, exit 1 after about 1,164 seconds, batch `20261110-000834-wjnlsd`; full log: `runs/lane-f-commitlint-v2/controller-failed.log`. **All three owned resubmission controllers are terminal; none returned a worker result.** Exact local queue-file checks found **no persisted admission for any of these three IDs** at inspection; this is not a fence against an outstanding server request eventually being admitted. A bounded health/status recheck now responds (health exit 1 for starts/status latency, 27 VMs, no orphans), **but corrected file-backed `/snapshot` requests for all three exact IDs each time out after 10 seconds**. See `runs/lane-f-resume-reconciliation.log`. No safe reconciliation receipt exists yet, so no fresh duplicate batches were created. This pre-hold retry plan is superseded by the coordinator instruction above: leave these IDs untouched; no resubmission or cancellation while the hold is active. No shared scheduler restart, VM mutation, fallback, proof-budget increase or new performance claim.
+
+Lightweight local checks: `git diff --check` and `bash -n research/track-m/lane-f-triangle-pair.sh` pass. A cached local commitlint backstop did not produce a pass (`bunx --no-install` found no runnable binary; the direct cached CLI timed out after 8 seconds). Details: `runs/lane-f-resume-local-checks.log`. Those were controller-side failures, not final worker outcomes: late-admitted commitlint v2 and the subsequent four-message `resume-check-v1` both returned passing worker results. The fixture/test changes are validated and ready for their file-backed linted commit.
+
+## File-only progress during the hold — subsequently validated
+
+Added a regression in `core/count-write-frames.test.ts` that constructs the actual post body of a guarded `Stored[0]` point copy. It asks the unchanged checker to prove the generated `after <= before + |incoming \\ old|` transport under the copy/row guards, and to leave the opposite-difference candidate unproved for the concrete empty-old/empty-peer, one-incoming-member case. This distinguishes the already-tested abstract triangle identity from a generated guarded-source obligation. **The new test was initially unrun during the hold; it now passes in `resume-check-v1` (79 tests / 362 assertions).** The older 78-test receipt is not reused as validation. No production semantics, kernel rule, selected-slot cap or proof/time budget changed; the production edit only corrects the generator's stale two-term-only doc comment.
+
+The separate final-check job subsequently validated this test file. The three original snapshots were not changed or resubmitted; their negative experimental results remain bound to their original source fingerprints.
+
+**Hypothesis under test:** compensated transport plus demand-driven projection admits an actual guarded off-diagonal source; putting those proposals into existing initial non-range slots can reach the ordinary STEP bottleneck before deferred recovery. Falsifiers: no new checked source admission, no checked original-family helper within 6,000 units / 7 seconds, or a lost checked result. A frozen closure success alone does not pass Section 16.5.
+
+**For Lane I / Lane B / Lane D:** this remains an unpromoted research prototype; no GATE GREEN or full-helper improvement. Await verified worker receipts, not launcher exit 0. The checkpoint below is retained as historical evidence, not an active pause instruction.
+
+---
+
+# Historical RESUME — checkpoint before explicit user resume
 
 - **Branch:** `claude/mldr-leaves` in `/Users/monotykamary/VCS/working-remote/open-source/gdp-wired-trackL`.
 - **Last work/receipt SHA before this RESUME commit:** `6a4ed0880bf70374567de7edd4e3bc36f3378095`. The final checkpoint SHA is this RESUME commit (`git rev-parse HEAD`). Source prototype: `53bf1264`; audit report: `baaa7e42`; unfinished harness checkpoint: `dfa674f4` (`wip:`).

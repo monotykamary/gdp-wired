@@ -1,0 +1,24 @@
+Resume reconciliation after terminal controller failures
+
+Failed IDs:
+20261110-000831-t0pk2d (triangle/source)
+20261110-000828-1phcme (initial-slot AB/BA)
+Still-pending controller:
+20261110-000834-wjnlsd (commitlint)
+
+Local persisted queue files: absent for all three IDs at inspection.
+This is an observation, not proof that no outstanding HTTP handler can admit them later.
+
+One bounded supercomputer health --json call returned structured health:
+HTTP response obtained; CLI exit 1 for starts-per-100-items 2.41 > 1 and slowest-status 1.51s > 1.
+A subsequent supercomputer status returned scheduler pid 44811, code 67c53f02c77b, policy generation 42, 27 up/held VMs, 0 orphans.
+These status responses are not a worker result or proof of successful admission.
+
+Initial manually quoted snapshot requests were malformed JSON and returned JSONDecodeError; they are not scheduler failures.
+Corrected file-backed POST /snapshot requests with the exact IDs each timed out after 10 seconds with zero response bytes:
+triangle: curl exit 28, Operation timed out after 10006 milliseconds
+initial: curl exit 28, Operation timed out after 10004 milliseconds
+lint: curl exit 28, Operation timed out after 10004 milliseconds
+
+No fresh duplicate submissions, shared scheduler restart, VM mutation or fallback were made.
+Next safe action is authoritative reconciliation/fencing of these IDs when the admission/snapshot path responds.

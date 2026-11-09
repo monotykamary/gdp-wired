@@ -81,6 +81,57 @@ test('the directed triangle is an ordinary kernel-checked count instance', () =>
   if('tree'in proof)expect(checkCounted(g,{insts:[inst],tree:proof.tree})).toBe(true)
 })
 
+test('a generated compensated frame checks at its copying guard; the opposite difference does not', () => {
+  // One Boolean cell per row. This is a real point write to Stored[0], not an
+  // assumed relation between independent PRE and POST maps. The peer is row 1.
+  const packet = get('Packet', n(0)), stored = (row: E) => get('Stored', row)
+  const copying = same(x('copy'), n(1))
+  const post = (row: E) => ite(all(copying, same(row, n(0))), packet, stored(row))
+  const isMember = (value: E) => same(value, n(1))
+  const difference = (left: E, right: E) => bit(all(isMember(left), not(isMember(right))))
+  const m: Machine = {name: 'point-copy source regression', params: [], inputs: ['copy', 'actor', 'peer'], state: {},
+    maps: {Stored: 0}, inputMaps: ['Packet'], step: {maps: {
+      Stored: {key: n(0), value: ite(copying, packet, stored(n(0)))},
+    }}}
+  const ds: CountDecl[] = [
+    {map: 'minus', j: 'a', lo: 'b', base: 64, key: 'k', below: n(1), body: difference(stored(x('a')), stored(x('b')))},
+    {map: 'minus#', j: 'a', lo: 'b', base: 64, key: 'k', below: n(1), body: difference(post(x('a')), post(x('b')))},
+    {map: 'newOnly', j: 'unused', key: 'k', below: n(1), body: difference(packet, stored(n(0)))},
+    {map: 'oldOnly', j: 'unused', key: 'k', below: n(1), body: difference(stored(n(0)), packet)},
+  ]
+  const cert: Pick<CountCert, 'reads' | 'insts'> = {reads: [
+    ['after', 'minus#', packed(x('actor'), x('peer'))],
+    ['before', 'minus', packed(x('actor'), x('peer'))],
+    ['newOnly', 'newOnly', n(0)], ['oldOnly', 'oldOnly', n(0)],
+  ], insts: []}
+  const proposals = proposeWriteCountFrames(m, ds, cert, new Set(['after']))
+  const find = (change: string) => proposals.find(i => signature(i) === vector([[1, 'after'], [-1, 'before'], [-1, change]]))
+  const compensated = find('newOnly'), opposite = find('oldOnly')
+  expect(compensated).toBeDefined()
+  expect(opposite).toBeDefined()
+  if (!compensated || !opposite) throw new Error('missing directed transport proposals')
+  const counts = countsForReads(ds, cert.reads)!
+  const scope = [same(x('actor'), n(0)), same(x('peer'), n(1)), copying]
+  const valid = {name: 'checked guarded compensation', counts,
+    hyps: [...scope, less(plus(x('before'), x('newOnly')), x('after'))]}
+  expect(countedOk(valid.hyps, counts, [compensated])).toBe(true)
+  const proof = grow(countedGoal(valid, [compensated])!, new Map(), {nodes: 0, until: clock() + 2000})
+  expect('tree' in proof).toBe(true)
+  if ('tree' in proof) expect(checkCounted(valid, {insts: [compensated], tree: proof.tree})).toBe(true)
+
+  // Empty old/peer rows and one incoming member: after=1, before=0,
+  // |old \\ incoming|=0. The wrong orientation must retain its witness, not
+  // become a trusted cut merely because it has three terms or the copy guard.
+  const invalid = {name: 'opposite compensation remains untrusted', counts, hyps: [
+    ...scope, same(stored(n(0)), n(0)), same(stored(n(1)), n(0)), same(packet, n(1)),
+    same(x('after'), n(1)), same(x('before'), n(0)), same(x('oldOnly'), n(0)),
+  ]}
+  expect(countedOk(invalid.hyps, counts, [opposite])).toBe(true)
+  const model = grow(countedGoal(invalid, [opposite])!, new Map(), {nodes: 0, until: clock() + 2000})
+  expect('tree' in model).toBe(false)
+  expect('stuck' in model && model.stuck).toBe('sat')
+})
+
 test('copied row sizes and intersections of two overwritten rows get source-size bridges', () => {
   const f = fixture(), below = x('limit')
   f.ds.push({map: 'sourceSize', j: 'unused', key: 'k', below, body: bit(same(get(f.carried, x('k')), n(1)))},

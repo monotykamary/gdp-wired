@@ -1,0 +1,16 @@
+{
+  "kind": "lane-f-resume-submission-status",
+  "tree": "cf22f1ef590a",
+  "image": "sc-f0d8daeee6c3",
+  "proofResult": "Both frozen sides and all four original-family sides remain unchecked/unknown",
+  "timingResult": null,
+  "batches": [
+    {"batch":"20261110-000831-t0pk2d","task":"22676cca-a4d5-4f6c-b423-8e5fb0aca5c7","out":"runs/lane-f-triangle-source-v2","controller":"failed","exit":1,"error":"scheduler /submit timed out","persistedAdmissionObservedAtFirstInspection":false,"workerResultAtFirstInspection":false,"workerResultsRecovered":true},
+    {"batch":"20261110-000828-1phcme","task":"6f35e80a-0d72-4b12-89c8-a3ad16e71252","out":"runs/lane-f-initial-transport-v2","controller":"failed","exit":1,"error":"scheduler /submit timed out","persistedAdmissionObservedAtFirstInspection":false,"workerResultAtFirstInspection":false,"workerResultsRecovered":true},
+    {"batch":"20261110-000834-wjnlsd","task":"3b69aefe-84e3-4342-831c-eaca366e36ee","out":"runs/lane-f-commitlint-v2","controller":"failed","exit":1,"error":"scheduler /submit timed out","persistedAdmissionObservedAtFirstInspection":false,"workerResultAtFirstInspection":false,"workerResultsRecovered":true}
+  ],
+  "lateRegistration":"All three exact IDs confirmed queued by the recovered scheduler snapshot API; their timed-out controllers do not imply lost admission.",
+  "observerTask":"aa2db2ae-99c3-4e00-99aa-2323a456618e",
+  "recovery":"Observer exited 0; all four workers exited 0. Rows, CPU placements and compressed logs recovered. No duplicate runs.",
+  "retrySafety":"Do not resubmit these three admitted batches. New validation runs are separate work; at most one subagent at a time."
+}

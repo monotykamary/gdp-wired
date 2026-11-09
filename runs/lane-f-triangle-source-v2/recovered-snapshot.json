@@ -1,0 +1,49 @@
+{
+  "ok": true,
+  "batch": "20261110-000831-t0pk2d",
+  "strict_once": false,
+  "retain_journals": false,
+  "admission_closed": false,
+  "closed": false,
+  "placements": [
+    {
+      "name": "closure",
+      "run_name": "closure",
+      "vm": "bx_7qz5faa3",
+      "image": "sc-f0d8daeee6c3",
+      "type": "large",
+      "identity": "6f1cc5a5ebdba701ad6c6cd541d6c6a10d01b4aaae7016e6",
+      "t": 1794247308.203497
+    }
+  ],
+  "cancellation_receipts": [],
+  "rows": [
+    {
+      "name": "closure",
+      "code": 0,
+      "seconds": 15.25,
+      "vm": "bx_7qz5faa3",
+      "run_name": "closure",
+      "placement": {
+        "vm": "bx_7qz5faa3",
+        "type": "large",
+        "cpu": "AMD EPYC 4585PX 16-Core Processor",
+        "vcpus": 4,
+        "vm_vcpus": 8,
+        "exclusive": true,
+        "co_tenants": 0
+      }
+    }
+  ],
+  "items": [
+    {
+      "name": "closure",
+      "state": "done",
+      "placements": 1,
+      "reaped": false,
+      "start_inflight": false,
+      "admission_closed": false,
+      "result_error": null
+    }
+  ]
+}
