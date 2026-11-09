@@ -1,0 +1,1939 @@
+{
+  "researchOnly": true,
+  "allowance": 5000,
+  "kernelUnchanged": true,
+  "ledgerAudit": true,
+  "rows": [
+    {
+      "name": "overlap-op4",
+      "law": "Inv2973: quorums overlap, or a config disabled",
+      "op": 4,
+      "verdict": "unknown",
+      "units": 3988.8232120000002,
+      "wallMs": 10320.220727,
+      "insideClosureUnits": 259.3104895999996,
+      "outsideClosureUnits": 3729.5127224000007,
+      "checkedSourceQueryUnits": 17.229798000000073,
+      "checkedSourceAttemptUnits": 17.32292679999989,
+      "stopRuleTriggered": true,
+      "ledger": [
+        {
+          "op": "0",
+          "units": 0,
+          "actionAttempts": 1,
+          "leafVisits": 0,
+          "leaves": 0,
+          "cuts": 0,
+          "sourceQueries": 0,
+          "sat": 0,
+          "refuted": 0,
+          "unknown": 0,
+          "reused": 0,
+          "cacheChecked": 0,
+          "cacheSat": 0,
+          "cacheUnknown": 0,
+          "rawRefuted": 0
+        },
+        {
+          "op": "1",
+          "units": 0,
+          "actionAttempts": 1,
+          "leafVisits": 0,
+          "leaves": 0,
+          "cuts": 0,
+          "sourceQueries": 0,
+          "sat": 0,
+          "refuted": 0,
+          "unknown": 0,
+          "reused": 0,
+          "cacheChecked": 0,
+          "cacheSat": 0,
+          "cacheUnknown": 0,
+          "rawRefuted": 0
+        },
+        {
+          "op": "2",
+          "units": 0,
+          "actionAttempts": 1,
+          "leafVisits": 0,
+          "leaves": 0,
+          "cuts": 0,
+          "sourceQueries": 0,
+          "sat": 0,
+          "refuted": 0,
+          "unknown": 0,
+          "reused": 0,
+          "cacheChecked": 0,
+          "cacheSat": 0,
+          "cacheUnknown": 0,
+          "rawRefuted": 0
+        },
+        {
+          "op": "3",
+          "units": 0,
+          "actionAttempts": 1,
+          "leafVisits": 0,
+          "leaves": 0,
+          "cuts": 0,
+          "sourceQueries": 0,
+          "sat": 0,
+          "refuted": 0,
+          "unknown": 0,
+          "reused": 0,
+          "cacheChecked": 0,
+          "cacheSat": 0,
+          "cacheUnknown": 0,
+          "rawRefuted": 0
+        },
+        {
+          "op": "4",
+          "units": 3988.7367464000004,
+          "actionAttempts": 2,
+          "leafVisits": 2,
+          "leaves": 2,
+          "cuts": 4,
+          "sourceQueries": 7,
+          "sat": 2,
+          "refuted": 2,
+          "unknown": 3,
+          "reused": 3,
+          "cacheChecked": 0,
+          "cacheSat": 0,
+          "cacheUnknown": 0,
+          "rawRefuted": 3
+        },
+        {
+          "op": "5",
+          "units": 0,
+          "actionAttempts": 1,
+          "leafVisits": 0,
+          "leaves": 0,
+          "cuts": 0,
+          "sourceQueries": 0,
+          "sat": 0,
+          "refuted": 0,
+          "unknown": 0,
+          "reused": 0,
+          "cacheChecked": 0,
+          "cacheSat": 0,
+          "cacheUnknown": 0,
+          "rawRefuted": 0
+        },
+        {
+          "op": "6",
+          "units": 0,
+          "actionAttempts": 1,
+          "leafVisits": 0,
+          "leaves": 0,
+          "cuts": 0,
+          "sourceQueries": 0,
+          "sat": 0,
+          "refuted": 0,
+          "unknown": 0,
+          "reused": 0,
+          "cacheChecked": 0,
+          "cacheSat": 0,
+          "cacheUnknown": 0,
+          "rawRefuted": 0
+        },
+        {
+          "op": "else",
+          "units": 0,
+          "actionAttempts": 1,
+          "leafVisits": 0,
+          "leaves": 0,
+          "cuts": 0,
+          "sourceQueries": 0,
+          "sat": 0,
+          "refuted": 0,
+          "unknown": 0,
+          "reused": 0,
+          "cacheChecked": 0,
+          "cacheSat": 0,
+          "cacheUnknown": 0,
+          "rawRefuted": 0
+        }
+      ],
+      "sites": [
+        {
+          "site": "core/count-cases.ts:103:build",
+          "fn": "build",
+          "calls": 1,
+          "units": 0,
+          "exclusive": 0,
+          "maxUnits": 0
+        },
+        {
+          "site": "core/count-cases.ts:123:refuteFast",
+          "fn": "refuteFast",
+          "calls": 1,
+          "units": 0.08646559999999999,
+          "exclusive": 0.08646559999999999,
+          "maxUnits": 0.08646559999999999
+        },
+        {
+          "site": "core/count-cases.ts:123:rowsAt",
+          "fn": "rowsAt",
+          "calls": 1,
+          "units": 0,
+          "exclusive": 0,
+          "maxUnits": 0
+        },
+        {
+          "site": "core/count-cases.ts:154:guardCases",
+          "fn": "guardCases",
+          "calls": 1,
+          "units": 2217.598432,
+          "exclusive": 0,
+          "maxUnits": 2217.598432
+        },
+        {
+          "site": "core/count-recovery/guard-cases.ts:39:fieldCase",
+          "fn": "fieldCase",
+          "calls": 14,
+          "units": 0,
+          "exclusive": 0,
+          "maxUnits": 0
+        },
+        {
+          "site": "core/count-recovery/guard-cases.ts:41:frameLemmas",
+          "fn": "frameLemmas",
+          "calls": 2,
+          "units": 994.3743208000008,
+          "exclusive": 994.3743208000008,
+          "maxUnits": 497.1871604000007
+        },
+        {
+          "site": "core/count-recovery/guard-cases.ts:42:widen",
+          "fn": "widen",
+          "calls": 14,
+          "units": 0,
+          "exclusive": 0,
+          "maxUnits": 0
+        },
+        {
+          "site": "core/count-recovery/guard-cases.ts:50:fieldBoundLemmas",
+          "fn": "fieldBoundLemmas",
+          "calls": 2,
+          "units": 2443.115785599999,
+          "exclusive": 2183.8052959999995,
+          "maxUnits": 1720.4112715999997
+        },
+        {
+          "site": "core/count-cases.ts:159:selectedCase",
+          "fn": "selectedCase",
+          "calls": 1,
+          "units": 0,
+          "exclusive": 0,
+          "maxUnits": 0
+        },
+        {
+          "site": "core/count-cases.ts:160:build",
+          "fn": "build",
+          "calls": 1,
+          "units": 0,
+          "exclusive": 0,
+          "maxUnits": 0
+        },
+        {
+          "site": "core/count-cases.ts:205:guardCases",
+          "fn": "guardCases",
+          "calls": 1,
+          "units": 1219.8916743999998,
+          "exclusive": 0,
+          "maxUnits": 1219.8916743999998
+        },
+        {
+          "site": "core/count-cases.ts:208:grow",
+          "fn": "grow",
+          "calls": 1,
+          "units": 551.2466400000008,
+          "exclusive": 551.2466400000008,
+          "maxUnits": 551.2466400000008
+        }
+      ],
+      "rounds": [],
+      "phases": [
+        {
+          "phase": "initial",
+          "units": 2217.598432
+        },
+        {
+          "phase": "fallback",
+          "units": 1771.1383144000006
+        }
+      ],
+      "kinds": {
+        "action-site": {
+          "calls": 40,
+          "exclusive": 3729.5127224000007
+        },
+        "action": {
+          "calls": 9,
+          "exclusive": 0
+        },
+        "closure": {
+          "calls": 2,
+          "exclusive": 119.80829479999971
+        },
+        "row": {
+          "calls": 2,
+          "exclusive": 0
+        },
+        "leaf": {
+          "calls": 2,
+          "exclusive": 0
+        },
+        "numeric-query": {
+          "calls": 3,
+          "exclusive": 28.13397399999951
+        },
+        "batch-query": {
+          "calls": 3,
+          "exclusive": 38.984140000000366
+        },
+        "source-attempt": {
+          "calls": 10,
+          "exclusive": 0.0931287999998176
+        },
+        "source-query": {
+          "calls": 7,
+          "exclusive": 72.29095200000017
+        }
+      },
+      "firstFailure": {
+        "reason": "time",
+        "path": [
+          [
+            "op:1",
+            {
+              "lin": {
+                "op": 1
+              },
+              "holds": false
+            }
+          ],
+          [
+            "1:-1,op:1",
+            {
+              "lin": {
+                "1": -1,
+                "op": 1
+              },
+              "holds": false
+            }
+          ],
+          [
+            "1:-2,op:1",
+            {
+              "lin": {
+                "1": -2,
+                "op": 1
+              },
+              "holds": false
+            }
+          ],
+          [
+            "1:-3,op:1",
+            {
+              "lin": {
+                "1": -3,
+                "op": 1
+              },
+              "holds": false
+            }
+          ],
+          [
+            "1:-4,op:1",
+            {
+              "lin": {
+                "1": -4,
+                "op": 1
+              },
+              "holds": true
+            }
+          ],
+          [
+            "1:-5,op:1",
+            {
+              "lin": {
+                "1": -5,
+                "op": 1
+              },
+              "holds": true
+            }
+          ],
+          [
+            "1:-6,op:1",
+            {
+              "lin": {
+                "1": -6,
+                "op": 1
+              },
+              "holds": true
+            }
+          ],
+          [
+            "1:-1,started:1",
+            {
+              "lin": {
+                "1": -1,
+                "started": 1
+              },
+              "holds": true
+            }
+          ],
+          [
+            "1:1,started:-1",
+            {
+              "lin": {
+                "1": 1,
+                "started": -1
+              },
+              "holds": true
+            }
+          ],
+          [
+            "1:-1,Config[i:65]:1",
+            {
+              "lin": {
+                "1": -1,
+                "Config[i:65]": 1
+              },
+              "holds": true
+            }
+          ],
+          [
+            "1:1,Config[i:65]:-1",
+            {
+              "lin": {
+                "1": 1,
+                "Config[i:65]": -1
+              },
+              "holds": true
+            }
+          ],
+          [
+            "1:1,S[i:1]:-1",
+            {
+              "lin": {
+                "1": 1,
+                "S[i:1]": -1
+              },
+              "holds": true
+            }
+          ],
+          [
+            "1:-1,?canVote:1",
+            {
+              "lin": {
+                "1": -1,
+                "?canVote": 1
+              },
+              "holds": true
+            }
+          ],
+          [
+            "1:1,?canVote:-1",
+            {
+              "lin": {
+                "1": 1,
+                "?canVote": -1
+              },
+              "holds": true
+            }
+          ],
+          [
+            "1:1,i:1,size:-1",
+            {
+              "lin": {
+                "1": 1,
+                "i": 1,
+                "size": -1
+              },
+              "holds": true
+            }
+          ],
+          [
+            "1:-1,?committedQuorum:1",
+            {
+              "lin": {
+                "1": -1,
+                "?committedQuorum": 1
+              },
+              "holds": true
+            }
+          ],
+          [
+            "a$#:1,i:-1",
+            {
+              "lin": {
+                "a$#": 1,
+                "i": -1
+              },
+              "holds": true
+            }
+          ],
+          [
+            "a$#:-1,i:1",
+            {
+              "lin": {
+                "a$#": -1,
+                "i": 1
+              },
+              "holds": true
+            }
+          ],
+          [
+            "b$:1,i:-1",
+            {
+              "lin": {
+                "b$": 1,
+                "i": -1
+              },
+              "holds": true
+            }
+          ],
+          [
+            "b$:-1,i:1",
+            {
+              "lin": {
+                "b$": -1,
+                "i": 1
+              },
+              "holds": true
+            }
+          ]
+        ],
+        "model": {
+          "op": 4,
+          "started": 1,
+          "Config[i:65]": 1,
+          "S[i:1]": 1,
+          "?canVote": 1,
+          "i": 0,
+          "size": 1,
+          "?committedQuorum": 0,
+          "a$#": 0,
+          "b$": 0,
+          "j": 0,
+          "?all$1": 1,
+          "?all$2": 1,
+          "r$7": 0,
+          "r$8": 1,
+          "r$36": 0,
+          "r$22": 0,
+          "?noneCopied": 0,
+          "?allCopied": 0,
+          "?all$3": 0,
+          "u$": 0,
+          "r$0": 1,
+          "w$": 0,
+          "r$1": 1,
+          "r$2": 1,
+          "r$3": 1,
+          "r$17": 0,
+          "r$18": 0,
+          "r$5": 0,
+          "r$6": 0,
+          "r$4": 2,
+          "r$38": 0,
+          "r$37": 0,
+          "r$13": 0,
+          "r$40": 0,
+          "r$39": 0,
+          "r$14": 0,
+          "r$15": 0,
+          "r$23": 0,
+          "r$10": 0,
+          "r$11": 0,
+          "r$12": 0,
+          "r$16": 0,
+          "r$25": 0,
+          "r$24": 0,
+          "r$32": 0,
+          "r$30": 0,
+          "r$26": 0,
+          "r$31": 0,
+          "r$20": 0,
+          "r$19": 0,
+          "r$34": 0,
+          "r$33": 0,
+          "r$21": 0,
+          "r$29": 0,
+          "r$27": 0,
+          "r$9": 0,
+          "r$28": 0,
+          "r$35": 0
+        },
+        "violated": [
+          193,
+          50,
+          51,
+          165,
+          171,
+          177,
+          179,
+          181,
+          190,
+          192,
+          227,
+          0,
+          2,
+          261,
+          262,
+          265,
+          266,
+          269,
+          270,
+          273,
+          274,
+          277,
+          278,
+          281,
+          282,
+          285,
+          286,
+          12,
+          21,
+          32,
+          42,
+          56,
+          59,
+          61,
+          63,
+          65,
+          137,
+          139,
+          141,
+          143,
+          150,
+          152,
+          154,
+          156,
+          161,
+          163,
+          106,
+          107,
+          108,
+          109,
+          110,
+          111,
+          112,
+          113,
+          114,
+          115,
+          116,
+          117,
+          118,
+          119,
+          120,
+          204,
+          206,
+          13,
+          14,
+          15,
+          16,
+          17,
+          18,
+          19,
+          20,
+          22,
+          23,
+          24,
+          25,
+          26,
+          27,
+          28,
+          29,
+          31,
+          33,
+          34,
+          35,
+          36,
+          37,
+          38,
+          39,
+          41,
+          43,
+          44,
+          45,
+          46,
+          47,
+          48,
+          49,
+          52,
+          53,
+          54,
+          55,
+          57,
+          58,
+          60,
+          62,
+          64,
+          66,
+          67,
+          68,
+          169,
+          175,
+          233,
+          234,
+          235,
+          236,
+          237,
+          238,
+          239,
+          240,
+          241,
+          242,
+          243,
+          244,
+          245,
+          246,
+          247,
+          248,
+          249,
+          250,
+          251,
+          252,
+          253,
+          254,
+          257,
+          258
+        ]
+      },
+      "exactFirstPointAudit": true
+    },
+    {
+      "name": "overlap-op0",
+      "law": "Inv2973: quorums overlap, or a config disabled",
+      "op": 0,
+      "verdict": "unknown",
+      "units": 2709.5656931999997,
+      "wallMs": 7589.85546,
+      "insideClosureUnits": 26.96187800000007,
+      "outsideClosureUnits": 2682.6038151999996,
+      "checkedSourceQueryUnits": 0,
+      "checkedSourceAttemptUnits": 0,
+      "stopRuleTriggered": false,
+      "ledger": [
+        {
+          "op": "0",
+          "units": 2709.4792276,
+          "actionAttempts": 2,
+          "leafVisits": 1,
+          "leaves": 1,
+          "cuts": 1,
+          "sourceQueries": 1,
+          "sat": 0,
+          "refuted": 0,
+          "unknown": 1,
+          "reused": 0,
+          "cacheChecked": 0,
+          "cacheSat": 0,
+          "cacheUnknown": 0,
+          "rawRefuted": 0
+        },
+        {
+          "op": "1",
+          "units": 0,
+          "actionAttempts": 1,
+          "leafVisits": 0,
+          "leaves": 0,
+          "cuts": 0,
+          "sourceQueries": 0,
+          "sat": 0,
+          "refuted": 0,
+          "unknown": 0,
+          "reused": 0,
+          "cacheChecked": 0,
+          "cacheSat": 0,
+          "cacheUnknown": 0,
+          "rawRefuted": 0
+        },
+        {
+          "op": "2",
+          "units": 0,
+          "actionAttempts": 1,
+          "leafVisits": 0,
+          "leaves": 0,
+          "cuts": 0,
+          "sourceQueries": 0,
+          "sat": 0,
+          "refuted": 0,
+          "unknown": 0,
+          "reused": 0,
+          "cacheChecked": 0,
+          "cacheSat": 0,
+          "cacheUnknown": 0,
+          "rawRefuted": 0
+        },
+        {
+          "op": "3",
+          "units": 0,
+          "actionAttempts": 1,
+          "leafVisits": 0,
+          "leaves": 0,
+          "cuts": 0,
+          "sourceQueries": 0,
+          "sat": 0,
+          "refuted": 0,
+          "unknown": 0,
+          "reused": 0,
+          "cacheChecked": 0,
+          "cacheSat": 0,
+          "cacheUnknown": 0,
+          "rawRefuted": 0
+        },
+        {
+          "op": "4",
+          "units": 0,
+          "actionAttempts": 1,
+          "leafVisits": 0,
+          "leaves": 0,
+          "cuts": 0,
+          "sourceQueries": 0,
+          "sat": 0,
+          "refuted": 0,
+          "unknown": 0,
+          "reused": 0,
+          "cacheChecked": 0,
+          "cacheSat": 0,
+          "cacheUnknown": 0,
+          "rawRefuted": 0
+        },
+        {
+          "op": "5",
+          "units": 0,
+          "actionAttempts": 1,
+          "leafVisits": 0,
+          "leaves": 0,
+          "cuts": 0,
+          "sourceQueries": 0,
+          "sat": 0,
+          "refuted": 0,
+          "unknown": 0,
+          "reused": 0,
+          "cacheChecked": 0,
+          "cacheSat": 0,
+          "cacheUnknown": 0,
+          "rawRefuted": 0
+        },
+        {
+          "op": "6",
+          "units": 0,
+          "actionAttempts": 1,
+          "leafVisits": 0,
+          "leaves": 0,
+          "cuts": 0,
+          "sourceQueries": 0,
+          "sat": 0,
+          "refuted": 0,
+          "unknown": 0,
+          "reused": 0,
+          "cacheChecked": 0,
+          "cacheSat": 0,
+          "cacheUnknown": 0,
+          "rawRefuted": 0
+        },
+        {
+          "op": "else",
+          "units": 0,
+          "actionAttempts": 1,
+          "leafVisits": 0,
+          "leaves": 0,
+          "cuts": 0,
+          "sourceQueries": 0,
+          "sat": 0,
+          "refuted": 0,
+          "unknown": 0,
+          "reused": 0,
+          "cacheChecked": 0,
+          "cacheSat": 0,
+          "cacheUnknown": 0,
+          "rawRefuted": 0
+        }
+      ],
+      "sites": [
+        {
+          "site": "core/count-cases.ts:103:build",
+          "fn": "build",
+          "calls": 1,
+          "units": 0,
+          "exclusive": 0,
+          "maxUnits": 0
+        },
+        {
+          "site": "core/count-cases.ts:123:refuteFast",
+          "fn": "refuteFast",
+          "calls": 1,
+          "units": 0.08646559999999999,
+          "exclusive": 0.08646559999999999,
+          "maxUnits": 0.08646559999999999
+        },
+        {
+          "site": "core/count-cases.ts:123:rowsAt",
+          "fn": "rowsAt",
+          "calls": 1,
+          "units": 0,
+          "exclusive": 0,
+          "maxUnits": 0
+        },
+        {
+          "site": "core/count-cases.ts:154:guardCases",
+          "fn": "guardCases",
+          "calls": 1,
+          "units": 1122.0057816,
+          "exclusive": -2.2737367544323206e-13,
+          "maxUnits": 1122.0057816
+        },
+        {
+          "site": "core/count-recovery/guard-cases.ts:39:fieldCase",
+          "fn": "fieldCase",
+          "calls": 6,
+          "units": 0,
+          "exclusive": 0,
+          "maxUnits": 0
+        },
+        {
+          "site": "core/count-recovery/guard-cases.ts:41:frameLemmas",
+          "fn": "frameLemmas",
+          "calls": 2,
+          "units": 1536.0285315999997,
+          "exclusive": 1536.0285315999997,
+          "maxUnits": 1036.2346779999998
+        },
+        {
+          "site": "core/count-recovery/guard-cases.ts:42:widen",
+          "fn": "widen",
+          "calls": 5,
+          "units": 0,
+          "exclusive": 0,
+          "maxUnits": 0
+        },
+        {
+          "site": "core/count-recovery/guard-cases.ts:50:fieldBoundLemmas",
+          "fn": "fieldBoundLemmas",
+          "calls": 1,
+          "units": 622.2119280000003,
+          "exclusive": 595.2500500000002,
+          "maxUnits": 622.2119280000003
+        },
+        {
+          "site": "core/count-cases.ts:159:selectedCase",
+          "fn": "selectedCase",
+          "calls": 1,
+          "units": 0,
+          "exclusive": 0,
+          "maxUnits": 0
+        },
+        {
+          "site": "core/count-cases.ts:160:build",
+          "fn": "build",
+          "calls": 1,
+          "units": 0,
+          "exclusive": 0,
+          "maxUnits": 0
+        },
+        {
+          "site": "core/count-cases.ts:205:guardCases",
+          "fn": "guardCases",
+          "calls": 1,
+          "units": 1036.2346779999998,
+          "exclusive": 0,
+          "maxUnits": 1036.2346779999998
+        },
+        {
+          "site": "core/count-recovery/guard-cases.ts:49:solve",
+          "fn": "solve",
+          "calls": 1,
+          "units": 0,
+          "exclusive": 0,
+          "maxUnits": 0
+        },
+        {
+          "site": "core/count-recovery/guard-cases.ts:49:rowsAt",
+          "fn": "rowsAt",
+          "calls": 1,
+          "units": 0,
+          "exclusive": 0,
+          "maxUnits": 0
+        },
+        {
+          "site": "core/count-recovery/guard-cases.ts:57:widen",
+          "fn": "widen",
+          "calls": 1,
+          "units": 0,
+          "exclusive": 0,
+          "maxUnits": 0
+        },
+        {
+          "site": "core/count-cases.ts:208:grow",
+          "fn": "grow",
+          "calls": 1,
+          "units": 551.2387679999997,
+          "exclusive": 551.2387679999997,
+          "maxUnits": 551.2387679999997
+        }
+      ],
+      "rounds": [],
+      "phases": [
+        {
+          "phase": "initial",
+          "units": 1122.0057816
+        },
+        {
+          "phase": "fallback",
+          "units": 1587.4734459999995
+        }
+      ],
+      "kinds": {
+        "action-site": {
+          "calls": 25,
+          "exclusive": 2682.6038151999996
+        },
+        "action": {
+          "calls": 9,
+          "exclusive": 0
+        },
+        "closure": {
+          "calls": 1,
+          "exclusive": 0.3951820000000339
+        },
+        "row": {
+          "calls": 1,
+          "exclusive": 0
+        },
+        "leaf": {
+          "calls": 1,
+          "exclusive": 0
+        },
+        "numeric-query": {
+          "calls": 1,
+          "exclusive": 6.87429800000001
+        },
+        "batch-query": {
+          "calls": 1,
+          "exclusive": 16.356637999999975
+        },
+        "source-attempt": {
+          "calls": 1,
+          "exclusive": 0
+        },
+        "source-query": {
+          "calls": 1,
+          "exclusive": 3.3357600000000502
+        }
+      },
+      "firstFailure": {
+        "reason": "time",
+        "path": [
+          [
+            "op:1",
+            {
+              "lin": {
+                "op": 1
+              },
+              "holds": true
+            }
+          ],
+          [
+            "1:-1,op:1",
+            {
+              "lin": {
+                "1": -1,
+                "op": 1
+              },
+              "holds": true
+            }
+          ],
+          [
+            "1:-2,op:1",
+            {
+              "lin": {
+                "1": -2,
+                "op": 1
+              },
+              "holds": true
+            }
+          ],
+          [
+            "1:-3,op:1",
+            {
+              "lin": {
+                "1": -3,
+                "op": 1
+              },
+              "holds": true
+            }
+          ],
+          [
+            "1:-4,op:1",
+            {
+              "lin": {
+                "1": -4,
+                "op": 1
+              },
+              "holds": true
+            }
+          ],
+          [
+            "1:-5,op:1",
+            {
+              "lin": {
+                "1": -5,
+                "op": 1
+              },
+              "holds": true
+            }
+          ],
+          [
+            "1:-6,op:1",
+            {
+              "lin": {
+                "1": -6,
+                "op": 1
+              },
+              "holds": true
+            }
+          ],
+          [
+            "op:-1",
+            {
+              "lin": {
+                "op": -1
+              },
+              "holds": true
+            }
+          ],
+          [
+            "started:1",
+            {
+              "lin": {
+                "started": 1
+              },
+              "holds": true
+            }
+          ],
+          [
+            "started:-1",
+            {
+              "lin": {
+                "started": -1
+              },
+              "holds": true
+            }
+          ],
+          [
+            "1:-1,?noneCopied:1",
+            {
+              "lin": {
+                "1": -1,
+                "?noneCopied": 1
+              },
+              "holds": true
+            }
+          ],
+          [
+            "1:1,?noneCopied:-1",
+            {
+              "lin": {
+                "1": 1,
+                "?noneCopied": -1
+              },
+              "holds": true
+            }
+          ],
+          [
+            "1:-1,?canVote:1",
+            {
+              "lin": {
+                "1": -1,
+                "?canVote": 1
+              },
+              "holds": true
+            }
+          ],
+          [
+            "1:1,i:1,size:-1",
+            {
+              "lin": {
+                "1": 1,
+                "i": 1,
+                "size": -1
+              },
+              "holds": true
+            }
+          ],
+          [
+            "1:-1,?committedQuorum:1",
+            {
+              "lin": {
+                "1": -1,
+                "?committedQuorum": 1
+              },
+              "holds": true
+            }
+          ],
+          [
+            "a$#:1",
+            {
+              "lin": {
+                "a$#": 1
+              },
+              "holds": true
+            }
+          ],
+          [
+            "a$#:-1",
+            {
+              "lin": {
+                "a$#": -1
+              },
+              "holds": true
+            }
+          ],
+          [
+            "b$:1",
+            {
+              "lin": {
+                "b$": 1
+              },
+              "holds": true
+            }
+          ],
+          [
+            "b$:-1",
+            {
+              "lin": {
+                "b$": -1
+              },
+              "holds": true
+            }
+          ]
+        ],
+        "model": {
+          "op": 0,
+          "started": 0,
+          "?noneCopied": 1,
+          "?canVote": 0,
+          "i": 0,
+          "size": 1,
+          "?committedQuorum": 0,
+          "a$#": 0,
+          "b$": 0,
+          "j": 0,
+          "?all$1": 1,
+          "r$36": 0,
+          "r$22": 0,
+          "?allCopied": 0,
+          "?all$2": 0,
+          "?all$3": 0,
+          "u$": 0,
+          "r$0": 1,
+          "w$": 0,
+          "r$1": 1,
+          "r$2": 1,
+          "r$3": 1,
+          "r$14": 0,
+          "r$39": 0,
+          "r$5": 0,
+          "r$40": 0,
+          "r$6": 0,
+          "r$4": 2,
+          "r$38": 0,
+          "r$37": 0,
+          "r$13": 0,
+          "r$15": 0,
+          "r$23": 0,
+          "r$17": 0,
+          "r$18": 0,
+          "r$10": 0,
+          "r$11": 0,
+          "r$12": 0,
+          "r$16": 0,
+          "r$7": 0,
+          "r$25": 0,
+          "r$24": 0,
+          "r$32": 0,
+          "r$30": 0,
+          "r$26": 0,
+          "r$31": 0,
+          "r$20": 0,
+          "r$19": 0,
+          "r$34": 0,
+          "r$33": 0,
+          "r$8": 0,
+          "r$21": 0,
+          "r$29": 0,
+          "r$27": 0,
+          "r$9": 0,
+          "r$28": 0,
+          "r$35": 0
+        },
+        "violated": [
+          193,
+          50,
+          51,
+          165,
+          171,
+          177,
+          179,
+          181,
+          190,
+          192,
+          0,
+          2,
+          167,
+          173,
+          12,
+          21,
+          32,
+          42,
+          56,
+          59,
+          61,
+          63,
+          65,
+          137,
+          139,
+          141,
+          143,
+          150,
+          152,
+          154,
+          156,
+          161,
+          163,
+          204,
+          206,
+          13,
+          14,
+          15,
+          16,
+          17,
+          18,
+          19,
+          20,
+          22,
+          23,
+          24,
+          25,
+          26,
+          27,
+          28,
+          29,
+          31,
+          33,
+          34,
+          35,
+          36,
+          37,
+          38,
+          39,
+          41,
+          43,
+          44,
+          45,
+          46,
+          47,
+          48,
+          49,
+          52,
+          53,
+          54,
+          55,
+          57,
+          58,
+          60,
+          62,
+          64,
+          66,
+          67,
+          68,
+          169,
+          175,
+          233,
+          234,
+          235,
+          236,
+          237,
+          238,
+          239,
+          240,
+          241,
+          242,
+          243,
+          244,
+          245,
+          246,
+          247,
+          248,
+          249,
+          250,
+          251,
+          252
+        ]
+      },
+      "exactFirstPointAudit": true
+    },
+    {
+      "name": "star-op3",
+      "law": "Inv*: no quorum of a config can still be gathered for a config term held",
+      "op": 3,
+      "verdict": "unknown",
+      "units": 2452.3536191999997,
+      "wallMs": 4801.55147,
+      "insideClosureUnits": 1223.0391292000002,
+      "outsideClosureUnits": 1229.3144899999993,
+      "checkedSourceQueryUnits": 0,
+      "checkedSourceAttemptUnits": 0,
+      "stopRuleTriggered": false,
+      "ledger": [
+        {
+          "op": "0",
+          "units": 0,
+          "actionAttempts": 1,
+          "leafVisits": 0,
+          "leaves": 0,
+          "cuts": 0,
+          "sourceQueries": 0,
+          "sat": 0,
+          "refuted": 0,
+          "unknown": 0,
+          "reused": 0,
+          "cacheChecked": 0,
+          "cacheSat": 0,
+          "cacheUnknown": 0,
+          "rawRefuted": 0
+        },
+        {
+          "op": "1",
+          "units": 0,
+          "actionAttempts": 1,
+          "leafVisits": 0,
+          "leaves": 0,
+          "cuts": 0,
+          "sourceQueries": 0,
+          "sat": 0,
+          "refuted": 0,
+          "unknown": 0,
+          "reused": 0,
+          "cacheChecked": 0,
+          "cacheSat": 0,
+          "cacheUnknown": 0,
+          "rawRefuted": 0
+        },
+        {
+          "op": "2",
+          "units": 0,
+          "actionAttempts": 1,
+          "leafVisits": 0,
+          "leaves": 0,
+          "cuts": 0,
+          "sourceQueries": 0,
+          "sat": 0,
+          "refuted": 0,
+          "unknown": 0,
+          "reused": 0,
+          "cacheChecked": 0,
+          "cacheSat": 0,
+          "cacheUnknown": 0,
+          "rawRefuted": 0
+        },
+        {
+          "op": "3",
+          "units": 2452.3171408,
+          "actionAttempts": 2,
+          "leafVisits": 2,
+          "leaves": 2,
+          "cuts": 0,
+          "sourceQueries": 3,
+          "sat": 0,
+          "refuted": 0,
+          "unknown": 3,
+          "reused": 0,
+          "cacheChecked": 0,
+          "cacheSat": 0,
+          "cacheUnknown": 0,
+          "rawRefuted": 1
+        },
+        {
+          "op": "4",
+          "units": 0,
+          "actionAttempts": 1,
+          "leafVisits": 0,
+          "leaves": 0,
+          "cuts": 0,
+          "sourceQueries": 0,
+          "sat": 0,
+          "refuted": 0,
+          "unknown": 0,
+          "reused": 0,
+          "cacheChecked": 0,
+          "cacheSat": 0,
+          "cacheUnknown": 0,
+          "rawRefuted": 0
+        },
+        {
+          "op": "5",
+          "units": 0,
+          "actionAttempts": 1,
+          "leafVisits": 0,
+          "leaves": 0,
+          "cuts": 0,
+          "sourceQueries": 0,
+          "sat": 0,
+          "refuted": 0,
+          "unknown": 0,
+          "reused": 0,
+          "cacheChecked": 0,
+          "cacheSat": 0,
+          "cacheUnknown": 0,
+          "rawRefuted": 0
+        },
+        {
+          "op": "6",
+          "units": 0,
+          "actionAttempts": 1,
+          "leafVisits": 0,
+          "leaves": 0,
+          "cuts": 0,
+          "sourceQueries": 0,
+          "sat": 0,
+          "refuted": 0,
+          "unknown": 0,
+          "reused": 0,
+          "cacheChecked": 0,
+          "cacheSat": 0,
+          "cacheUnknown": 0,
+          "rawRefuted": 0
+        },
+        {
+          "op": "else",
+          "units": 0,
+          "actionAttempts": 1,
+          "leafVisits": 0,
+          "leaves": 0,
+          "cuts": 0,
+          "sourceQueries": 0,
+          "sat": 0,
+          "refuted": 0,
+          "unknown": 0,
+          "reused": 0,
+          "cacheChecked": 0,
+          "cacheSat": 0,
+          "cacheUnknown": 0,
+          "rawRefuted": 0
+        }
+      ],
+      "sites": [
+        {
+          "site": "core/count-cases.ts:103:build",
+          "fn": "build",
+          "calls": 1,
+          "units": 0,
+          "exclusive": 0,
+          "maxUnits": 0
+        },
+        {
+          "site": "core/count-cases.ts:123:refuteFast",
+          "fn": "refuteFast",
+          "calls": 1,
+          "units": 0.0364784,
+          "exclusive": 0.0364784,
+          "maxUnits": 0.0364784
+        },
+        {
+          "site": "core/count-cases.ts:123:rowsAt",
+          "fn": "rowsAt",
+          "calls": 1,
+          "units": 0,
+          "exclusive": 0,
+          "maxUnits": 0
+        },
+        {
+          "site": "core/count-cases.ts:154:guardCases",
+          "fn": "guardCases",
+          "calls": 1,
+          "units": 1414.7851352,
+          "exclusive": -2.2737367544323206e-13,
+          "maxUnits": 1414.7851352
+        },
+        {
+          "site": "core/count-recovery/guard-cases.ts:39:fieldCase",
+          "fn": "fieldCase",
+          "calls": 6,
+          "units": 0,
+          "exclusive": 0,
+          "maxUnits": 0
+        },
+        {
+          "site": "core/count-recovery/guard-cases.ts:41:frameLemmas",
+          "fn": "frameLemmas",
+          "calls": 2,
+          "units": 236.79977919999982,
+          "exclusive": 236.79977919999982,
+          "maxUnits": 118.39988960000001
+        },
+        {
+          "site": "core/count-recovery/guard-cases.ts:42:widen",
+          "fn": "widen",
+          "calls": 6,
+          "units": 0,
+          "exclusive": 0,
+          "maxUnits": 0
+        },
+        {
+          "site": "core/count-recovery/guard-cases.ts:50:fieldBoundLemmas",
+          "fn": "fieldBoundLemmas",
+          "calls": 2,
+          "units": 2055.1115855999997,
+          "exclusive": 832.0724563999997,
+          "maxUnits": 1296.3852456000002
+        },
+        {
+          "site": "core/count-cases.ts:159:selectedCase",
+          "fn": "selectedCase",
+          "calls": 1,
+          "units": 0,
+          "exclusive": 0,
+          "maxUnits": 0
+        },
+        {
+          "site": "core/count-cases.ts:160:build",
+          "fn": "build",
+          "calls": 1,
+          "units": 0,
+          "exclusive": 0,
+          "maxUnits": 0
+        },
+        {
+          "site": "core/count-cases.ts:205:guardCases",
+          "fn": "guardCases",
+          "calls": 1,
+          "units": 877.1262295999995,
+          "exclusive": 0,
+          "maxUnits": 877.1262295999995
+        },
+        {
+          "site": "core/count-cases.ts:208:grow",
+          "fn": "grow",
+          "calls": 1,
+          "units": 160.40577600000006,
+          "exclusive": 160.40577600000006,
+          "maxUnits": 160.40577600000006
+        }
+      ],
+      "rounds": [],
+      "phases": [
+        {
+          "phase": "initial",
+          "units": 1414.7851352
+        },
+        {
+          "phase": "fallback",
+          "units": 1037.5320055999996
+        }
+      ],
+      "kinds": {
+        "action-site": {
+          "calls": 24,
+          "exclusive": 1229.3144899999993
+        },
+        "action": {
+          "calls": 9,
+          "exclusive": 0
+        },
+        "closure": {
+          "calls": 2,
+          "exclusive": 1159.5128044
+        },
+        "row": {
+          "calls": 2,
+          "exclusive": 0
+        },
+        "leaf": {
+          "calls": 2,
+          "exclusive": 0
+        },
+        "numeric-query": {
+          "calls": 2,
+          "exclusive": 6.2272720000000845
+        },
+        "batch-query": {
+          "calls": 2,
+          "exclusive": 12.561379999999986
+        },
+        "source-attempt": {
+          "calls": 3,
+          "exclusive": 0.2563047999998389
+        },
+        "source-query": {
+          "calls": 3,
+          "exclusive": 44.4813680000002
+        }
+      },
+      "firstFailure": {
+        "reason": "time",
+        "path": [
+          [
+            "op:1",
+            {
+              "lin": {
+                "op": 1
+              },
+              "holds": false
+            }
+          ],
+          [
+            "1:-1,op:1",
+            {
+              "lin": {
+                "1": -1,
+                "op": 1
+              },
+              "holds": false
+            }
+          ],
+          [
+            "1:-2,op:1",
+            {
+              "lin": {
+                "1": -2,
+                "op": 1
+              },
+              "holds": false
+            }
+          ],
+          [
+            "1:-3,op:1",
+            {
+              "lin": {
+                "1": -3,
+                "op": 1
+              },
+              "holds": true
+            }
+          ],
+          [
+            "1:-4,op:1",
+            {
+              "lin": {
+                "1": -4,
+                "op": 1
+              },
+              "holds": true
+            }
+          ],
+          [
+            "1:-5,op:1",
+            {
+              "lin": {
+                "1": -5,
+                "op": 1
+              },
+              "holds": true
+            }
+          ],
+          [
+            "1:-6,op:1",
+            {
+              "lin": {
+                "1": -6,
+                "op": 1
+              },
+              "holds": true
+            }
+          ],
+          [
+            "1:-1,started:1",
+            {
+              "lin": {
+                "1": -1,
+                "started": 1
+              },
+              "holds": true
+            }
+          ],
+          [
+            "1:1,started:-1",
+            {
+              "lin": {
+                "1": 1,
+                "started": -1
+              },
+              "holds": true
+            }
+          ],
+          [
+            "1:1,CT[i:1]:-1,CT[j:1]:1",
+            {
+              "lin": {
+                "1": 1,
+                "CT[j:1]": 1,
+                "CT[i:1]": -1
+              },
+              "holds": true
+            }
+          ],
+          [
+            "1:-1,?canVote:1",
+            {
+              "lin": {
+                "1": -1,
+                "?canVote": 1
+              },
+              "holds": true
+            }
+          ],
+          [
+            "1:1,i:1,size:-1",
+            {
+              "lin": {
+                "1": 1,
+                "i": 1,
+                "size": -1
+              },
+              "holds": true
+            }
+          ],
+          [
+            "1:-1,?committedQuorum:1",
+            {
+              "lin": {
+                "1": -1,
+                "?committedQuorum": 1
+              },
+              "holds": true
+            }
+          ],
+          [
+            "1:1,j$:1,size:-1",
+            {
+              "lin": {
+                "1": 1,
+                "j$": 1,
+                "size": -1
+              },
+              "holds": true
+            }
+          ],
+          [
+            "a$#:1,j:-1",
+            {
+              "lin": {
+                "a$#": 1,
+                "j": -1
+              },
+              "holds": true
+            }
+          ],
+          [
+            "a$#:-1,j:1",
+            {
+              "lin": {
+                "a$#": -1,
+                "j": 1
+              },
+              "holds": true
+            }
+          ],
+          [
+            "j:-1,j$:1",
+            {
+              "lin": {
+                "j$": 1,
+                "j": -1
+              },
+              "holds": true
+            }
+          ],
+          [
+            "j:1,j$:-1",
+            {
+              "lin": {
+                "j$": -1,
+                "j": 1
+              },
+              "holds": true
+            }
+          ]
+        ],
+        "model": {
+          "op": 3,
+          "started": 1,
+          "CT[j:1]": 0,
+          "CT[i:1]": 1,
+          "?canVote": 0,
+          "i": 1,
+          "size": 2,
+          "?committedQuorum": 0,
+          "j$": 0,
+          "a$#": 0,
+          "j": 0,
+          "?all$1": 1,
+          "r$11": 0,
+          "r$12": 0,
+          "r$15": 0,
+          "r$9": 0,
+          "r$16": 0,
+          "?noneCopied": 0,
+          "?allCopied": 0,
+          "?all$2": 0,
+          "?all$3": 0,
+          "r$1": 1,
+          "r$0": 1,
+          "r$18": 0,
+          "r$10": 0,
+          "r$19": 0,
+          "r$8": 0,
+          "r$17": 0,
+          "r$14": 0,
+          "r$13": 0,
+          "r$5": 0,
+          "r$6": 0,
+          "r$7": 0,
+          "r$2": 0,
+          "r$3": 0,
+          "r$4": 0
+        },
+        "violated": [
+          45,
+          47,
+          54,
+          49,
+          2,
+          3,
+          4,
+          5,
+          27,
+          29,
+          32,
+          34,
+          36,
+          38,
+          40,
+          42,
+          82,
+          83,
+          86,
+          87,
+          1,
+          6,
+          7,
+          8,
+          51,
+          71,
+          74,
+          81,
+          84,
+          85,
+          88
+        ]
+      },
+      "exactFirstPointAudit": true
+    }
+  ],
+  "stop": "T-12 op 4 exceeds 2,500 units; no further policy work"
+}

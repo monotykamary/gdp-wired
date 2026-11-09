@@ -5463,3 +5463,43 @@ are retained. No complete-law proof, production improvement or gate pass is
 claimed. The implemented root lift misses the work/closure prediction; the
 proposed 51-template premise was not established, so this is not a clean
 falsification of a correctly specified full three-tier design.
+
+## Section 15 — T-12 stopping rule triggered
+
+The corrected three-flag, production-budget experiment is **unknown for all
+three requested ops**. Frozen `5974b916`, no root seeds, ordinary 5,000-unit
+law allowance, existing local ceilings and row draws intact; all three ran
+sequentially on one prepared, exclusive large VM (`bx_25xas5gt`, eight pinned
+vCPUs). Production and kernel are unchanged.
+
+| Op | Units | Replay seconds | New cuts | Checked source-query units |
+|---|---:|---:|---:|---:|
+| Inv2973 op 4 | 3,988.823212 | 10.320221 | 4 | 17.229798 |
+| Inv2973 op 0 | 2,709.565693 | 7.589855 | 1 | 0 |
+| Inv* op 3 | 2,452.353619 | 4.801551 | 0 | 0 |
+
+**Stop:** op 4 exceeds the prescribed 2,500-unit line without closing. No
+further policy optimization or production integration followed. The 600 remains
+a research-only deadline cap; the successful-test requirement for deriving a
+production rule was not reached.
+
+No six-round query-loop round ran. Op 4's outside-closure units split into
+**2,183.805296 field-bound preparation**, **994.374321 frame-lemma work**,
+**551.246640 retry grow**, and a **0.086466 global precheck**. Inside its
+closures: **259.310490** units. The preserved row draws were **116.660918**
+and **22.009527**; op 0's was **23.787147**. These are operation-boundary
+ceilings, with measured atomic overruns. Even dropping the final retry grow,
+op 4 spends 3,437.576572 units without a proof. This is a failure of the tested
+route, not a lower-bound theorem about every possible MLDR proof.
+
+The probe lets an unfinished op use its ordinary retry pass; unlike T-11.5's
+initial-pass extractor, totals include both passes. The first recorded
+unfinished scopes are op 4 `a$#=b$=i` (133 violated instances), op 0
+`a$#=b$=0` (101), and Inv* op 3 `a$#=j, j$=j, CT[j]<CT[i]` (31).
+
+[Full report](track-m/t12-v1/README.md), [audited summary](track-m/t12-v1/summary.json),
+and compressed receipts retain all stage counts, exact paths and numeric
+models. Independent frame/ledger and exact-integer point audits pass for all
+three; type/lint and **3 tests / 8 assertions** pass. The initial driver type
+error and an overly broad cross-key frame-class pilot are retained and excluded
+from the primary verdict. No complete-law or gate pass is claimed.

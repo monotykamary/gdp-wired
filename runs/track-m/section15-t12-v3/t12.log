@@ -1,0 +1,18 @@
+Found 0 warnings and 0 errors.
+Finished in 12.3s on 1285 files with 100 rules using 8 threads.
+bun test v1.4.3 (c6da4a4d3)
+source.tar.gz: OK
+{"artifact":"section10-chunk-manifest","dir":"/home/user/track-m-s10-receipts-1JYMfu","parts":2,"bytes":167097,"sha256":"be7aa7fd0fed7a7ea6c628ac4913743221b18344831156302de74eba8f040fb2","files":["build.log","diagnostic.json","integrity.json","ledger.json","overlap-op0-actions.jsonl","overlap-op0-result.json","overlap-op0.log","overlap-op4-actions.jsonl","overlap-op4-result.json","overlap-op4.log","policy.json","replay.js","runtime.sha256","shard.json","source-before.json","star-op3-actions.jsonl","star-op3-result.json","star-op3.log"]}
+
+--- stderr ---
+$ tsc -p . && oxlint --type-aware --deny-warnings --disable-nested-config
+
+research/track-m/section15.test.ts:
+(pass) T12 action cap never extends a caller deadline [0.13ms]
+(pass) model-first skips natural probes for SAT and invokes them for unknown [0.07ms]
+(pass) syntactic class batches put zero claims after unchanged frames [1.21ms]
+
+ 3 pass
+ 0 fail
+ 8 expect() calls
+Ran 3 tests across 1 file. [18.00ms]

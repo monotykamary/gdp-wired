@@ -1,0 +1,27 @@
+{
+  "artifact": "section10-chunk-manifest",
+  "dir": "/home/user/track-m-s10-receipts-CvpnTT",
+  "parts": 2,
+  "bytes": 166626,
+  "sha256": "17fac106e446545a12f78afd056da72e719e779050425632919c72f6a2d137ff",
+  "files": [
+    "build.log",
+    "diagnostic.json",
+    "integrity.json",
+    "ledger.json",
+    "overlap-op0-actions.jsonl",
+    "overlap-op0-result.json",
+    "overlap-op0.log",
+    "overlap-op4-actions.jsonl",
+    "overlap-op4-result.json",
+    "overlap-op4.log",
+    "policy.json",
+    "replay.js",
+    "runtime.sha256",
+    "shard.json",
+    "source-before.json",
+    "star-op3-actions.jsonl",
+    "star-op3-result.json",
+    "star-op3.log"
+  ]
+}
