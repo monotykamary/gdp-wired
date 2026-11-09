@@ -54,8 +54,17 @@ is 0, 32.05 s, on exclusive large Ryzen 7 9700X, 8/8 vCPUs. The new
 `runs/t16-group-check/bounded-group-check.log.gz`.
 
 This validates the implementation, not its removal rate or active wall.
-The six-probe task remains pending, so no performance gain or production
-promotion is claimed.
+The first six probes all exited 1 before producing `HYBRID_RESULT`: the
+job changed into its extracted source but had mounted `tiny-data/0.json`
+only at the outer sandbox root. This is an input-path setup failure, not a
+compiler/removal/wall result. All six error logs were inspected and gzip
+copies retained. The completed failing batch is `20261110-010407-6qnghm`.
+
+The corrected manifest checks the frozen input SHA-256, copies that small
+file into `$work/tiny-data/`, and reruns only those six jobs. Task
+`3a9c3826-7966-4737-83cc-593822d37f22` is pending. No compiler code, budget,
+domain, or archive changed, and the successful test suite was not repeated.
+No performance gain or production promotion is claimed.
 
 Individual native predicate calls may be replacing arithmetic work with call
 overhead. `core/finite-tiny.ts` now tries shared-DAG logical groups within the
@@ -65,10 +74,11 @@ domain, wall, proof fuel, law or production switch changes. A 4,096-clause
 regression exercises cap-driven splitting, alongside the exhaustive small
 polarity/request tests. This is a hypothesis, not a measured improvement.
 
-- Tests/type/lint: task `bfd09cd2-0b58-45b3-a140-ae756d934be1`, output
-  `runs/t16-group-check/`.
-- Six bounded probes: task `025406e0-0dc3-4837-953d-1c86433ae218`, output
-  `runs/t16-group-probe/`.
+- Tests/type/lint: completed; checked implementation committed as `27ff24fc`.
+- First six probes: failed before the experiment; batch
+  `20261110-010407-6qnghm`, output `runs/t16-group-probe/`.
+- Corrected six-probe retry: task `3a9c3826-7966-4737-83cc-593822d37f22`,
+  output `runs/t16-group-probe-retry/`.
 - Both reuse canonical archive `6288b666` with the small immutable overlay
   `runs/t16-group-overlay/`; no new tree archive or clone. Compiler SHA-256
   `2802f3dd4e4d53cc3382457db302f2ee7c1abcef5b394529ccf367f070d2a2a2`.
