@@ -32,7 +32,14 @@ Coordinator disk rule is in force: no new whole-tree archive per run;
 future archives are one per SHA in `/private/tmp/gdp-archives/<sha>.tar`,
 reused via data input. Keep return data to necessary compact receipts,
 hashes and compressed diagnostics. No write over 500 MB is planned.
-Nothing has been deleted to free space.
+Nothing has been deleted to free space. The coordinator's verified offload
+to `gdp-wired-offload-20261110` is welcome: no KEEP-LOCAL exception is
+requested for this lane. A bounded scan found no file over 20 MiB in the
+checked-input/checkpoint directories or the active snapshot's core and
+inclusion source paths. Historical bulk outputs may be offloaded; use each
+`.offloaded.json` receipt and its exact `store serve` / `store pull --only`
+instructions if those bytes are later needed. Do not interpret an offloaded
+file as a missing proof or generate a replacement result.
 
 | Path | Allocated size (`du -sk`) | Deletion assessment |
 |---|---:|---|
