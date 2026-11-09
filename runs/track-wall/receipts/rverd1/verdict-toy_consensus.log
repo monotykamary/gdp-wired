@@ -1,0 +1,6 @@
+PAIR mine
+VERDICT {"id":"toy_consensus","ic3syn":"ex-toy-consensus","search":{"verdict":"proven","found":["every Decision cell is a value of its kind","one value decided","Decision keeps members's bound through members$Decision","every x, y with x < 64 ∧ y < 64 ∧ ¬(x = y): never 1 <= Decision[x] and 1 <= Decision[y]"],"ms":1754,"work":77518,"full":66501}}
+PROCESS_SECONDS mine 2.90 EXIT 0
+PAIR base
+VERDICT {"id":"toy_consensus","ic3syn":"ex-toy-consensus","search":{"verdict":"proven","found":["every Decision cell is a value of its kind","one value decided","Decision keeps members's bound through members$Decision","every x, y with x < 64 ∧ y < 64 ∧ ¬(x = y): never 1 <= Decision[x] and 1 <= Decision[y]"],"ms":1269,"work":78435,"full":65258}}
+PROCESS_SECONDS base 1.34 EXIT 0

@@ -1,3 +1,44 @@
+# RESUME (checkpoint 2026-11-09, lane C / Fable, branch `claude/mldr-wall`)
+
+**Branch and head:** `claude/mldr-wall`, forked from `claude/mldr-gen` 1681e8e5, with lane A's head `c21a6e54` merged (d24a4196);
+last code commit before this checkpoint f8206bfc (this RESUME commit follows it). Worktree `gdp-wired-mldr-design`. No push, no merge.
+
+**Proven / measured so far (details in the sections below and MLDR-DESIGN.md Sections 15–16):**
+- 16.3 answered: the captured Inv2973-half pass-1 `sat` is spurious at every completion within n ≤ 3, T = V = 2 (0 CTIs for
+  Inv2973-half, Inv*, Inv1758, safety relative to T-14's family; lane A's default-zero audit agrees on all 45 witnesses).
+- 16.3 consequence implemented, on violation (a19a0713): range instance `r ≤ below` for a 0/1-bodied count read the moment a
+  model values it above its bound; 94 tests pass (incl. the 16-cell size-1 witness as a kernel regression); 29 / 29 verdicts
+  identical to `c21a6e54` (`runs/track-wall/receipts/rverd2`). The eager form (c21f301c) was rejected: it lost `consensus_forall`.
+- 16.4: compiled-step key helpers (`$unique`, own-property `$keys`, stamp wrap handled), `fastStep` computing only step-read
+  counts, finite Houdini re-reading only revived states / failure order / changed-reads filter (re-resolved on lane A's
+  frontier-sampling version), hashed BFS key in `small`. Paired generation harness: Ryzen 19.6–21.1 → 12.3–12.9 s, EPYC
+  22.0–26.9 → 15.5–16.7 s; 29 / 29 census lists byte-identical; strict harness non-attempt wall 23.3 / 28.7 / 19.1 → 21.1 /
+  17.3 / 13.0 s (one pinned VM). Receipts: `runs/track-wall/receipts/{check5,orig1,census1,rverd1,rverd2,rmldr1,relind3,audit1}`.
+- Lane D audit rounds one and two fixed (fc3a75c1, 57ac3f57); a per-step key cache was tried and reverted (3068e7b3).
+
+**Cancelled at the checkpoint (must be rerun):**
+- Background task `b9jsziduo` — `supercomputer run --jobs research/track-wall/ranges-mldr-jobs.json --out <scratch>/wall/rmldr2
+  --class submission --timing --vm-type large --data <scratch>/wall/base2:baselines`: the three traced strict mldr pairs
+  (mine vs `c21a6e54`) on the violation-driven range tree; stopped by exact task ID before any pair completed; **no usable
+  partial result** (`rmldr2/summary.tsv` absent). Rerun it as the first measurement after resuming; the earlier traced pairs on
+  the eager tree (`receipts/rmldr1`) stay valid as a comparison point only.
+- No other batch or background task of mine was running.
+
+**Open audit blockers on this branch:** none known. Lane D's last two findings are fixed; the branch has not been through
+lane D's one-command gate (the only merge evidence). `bun run check` in the shipped boat tree exits 2 for `vendor/`-dependent
+errors on both trees (environment), lane D's clean-checkout gate is authoritative.
+
+**Exact next steps:**
+1. Rerun the traced strict mldr pairs (`research/track-wall/ranges-mldr-jobs.json`, baseline archive of `c21a6e54` as
+   `baselines/base.tar`) and record Inv2973-half / Inv* pass 0/1 outcomes, `#hyps`, wall, and laws reached, in this report and
+   MLDR-DESIGN.md "16.3 consequence implemented".
+2. Pull lane A's later commits into `claude/mldr-wall` (merge, re-resolve `core/finite-houdini.ts` if it moved again: keep
+   lane A's version plus the `lawReads` / `rejecting` / revived-states / `dropped` changes).
+3. If round 0 still does not finish inside the wall on the merged tree, the three sampling policies of 16.4 under the census
+   guard (`research/track-wall/census-jobs.json`): the cube join's own BFS and filter BFS, `small`'s 300,000-step cap on a
+   wide request space, the finite pass's law evaluation.
+4. Hand `claude/mldr-wall` to lane D's gate; lanes F (Inv2973-half), B (Inv*) and I pull `a19a0713`+.
+
 # Lane C (Fable) — branch claude/mldr-wall, from claude/mldr-gen 1681e8e5
 
 **Current head for lane D's re-audit: 3068e7b3 (the revert of the per-step cache eb9aad68, which gained nothing on a paired measurement; the audited helpers are those of fc3a75c1 plus the test fix 57ac3f57; the confirming strict pair on a tree still carrying the cache read 15.2 s vs 20.1 s non-attempt wall).** Audit fixes, second round: commit fc3a75c1 — `$unique` zeroes its stamp buffer and restarts at 1

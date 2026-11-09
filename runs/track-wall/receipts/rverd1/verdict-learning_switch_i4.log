@@ -1,0 +1,6 @@
+PAIR base
+VERDICT {"id":"learning_switch_i4","ic3syn":"i4-learning-switch","search":{"verdict":"proven","found":["every x with x < packets: never Dst(x) in range is 0","every x with x < size: never LinkSet[x] is 0 and 1 <= started","every x with x < size: never 1 <= Pend[⟨_, ⟨x, _⟩⟩] and started is 0","every x with x < size: never 1 <= Dom[⟨x, _⟩] and started is 0","every x with x < size: never 1 <= T[⟨x, ⟨_, _⟩⟩] and started is 0","every x, y with x < size ∧ y < size ∧ ¬(x = y): never 1 <= T[⟨x, ⟨_, y⟩⟩] and 1 <= started","every x, y with x < size ∧ y < size ∧ ¬(x = y): ne
+PROCESS_SECONDS base 24.89 EXIT 0
+PAIR mine
+VERDICT {"id":"learning_switch_i4","ic3syn":"i4-learning-switch","search":{"verdict":"proven","found":["every x with x < packets: never Dst(x) in range is 0","every x with x < size: never LinkSet[x] is 0 and 1 <= started","every x with x < size: never 1 <= Pend[⟨_, ⟨x, _⟩⟩] and started is 0","every x with x < size: never 1 <= Dom[⟨x, _⟩] and started is 0","every x with x < size: never 1 <= T[⟨x, ⟨_, _⟩⟩] and started is 0","every x, y with x < size ∧ y < size ∧ ¬(x = y): never 1 <= T[⟨x, ⟨_, y⟩⟩] and 1 <= started","every x, y with x < size ∧ y < size ∧ ¬(x = y): ne
+PROCESS_SECONDS mine 23.60 EXIT 0

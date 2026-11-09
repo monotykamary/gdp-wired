@@ -1,0 +1,1 @@
+{"id":"lockserv_automaton","identical":true,"baseCount":17,"candidateCount":17,"baseWallMs":100,"candidateWallMs":116,"basePhases":{"guards":5.030452999999994,"small":22.37219499999999,"candidates":68.045961},"candidatePhases":{"guards":2.4720569999999995,"small":19.821390000000008,"candidates":90.45376200000001},"queries":[0,0]}

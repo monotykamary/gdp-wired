@@ -1,0 +1,1 @@
+{"id":"lockserv","identical":true,"baseCount":17,"candidateCount":17,"baseWallMs":83,"candidateWallMs":81,"basePhases":{"guards":2.5020200000000017,"small":14.139474,"candidates":62.872307000000006},"candidatePhases":{"guards":2.9021609999999995,"small":11.94556,"candidates":63.21555},"queries":[0,0]}

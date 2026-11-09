@@ -1,0 +1,6 @@
+PAIR base
+VERDICT {"id":"firewall","ic3syn":"pyv-firewall","search":{"verdict":"proven","found":["r.law('every k: started is 0 → Sent[k] <= 0', ({Sent, started}) => forall(k => started.eq(0).implies(Sent.at(k).n.atMost(0))))"],"ms":20523,"work":1350274,"full":1264172}}
+PROCESS_SECONDS base 20.60 EXIT 0
+PAIR mine
+VERDICT {"id":"firewall","ic3syn":"pyv-firewall","search":{"verdict":"proven","found":["r.law('every k: started is 0 → Sent[k] <= 0', ({Sent, started}) => forall(k => started.eq(0).implies(Sent.at(k).n.atMost(0))))"],"ms":17547,"work":1350274,"full":1264172}}
+PROCESS_SECONDS mine 17.62 EXIT 0

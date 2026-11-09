@@ -1,0 +1,6 @@
+PAIR base
+VERDICT {"id":"consensus","ic3syn":"tla-consensus","search":{"verdict":"proven","ms":1251,"work":4685,"full":52454}}
+PROCESS_SECONDS base 1.68 EXIT 0
+PAIR mine
+VERDICT {"id":"consensus","ic3syn":"tla-consensus","search":{"verdict":"proven","ms":411,"work":4685,"full":52454}}
+PROCESS_SECONDS mine 0.48 EXIT 0

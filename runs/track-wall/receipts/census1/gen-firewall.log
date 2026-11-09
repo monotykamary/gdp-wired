@@ -1,0 +1,1 @@
+{"id":"firewall","identical":true,"baseCount":7,"candidateCount":7,"baseWallMs":67,"candidateWallMs":72,"basePhases":{"guards":1.8253330000000005,"small":12.967606999999994,"candidates":49.87541499999999},"candidatePhases":{"guards":2.6969059999999985,"small":16.51551,"candidates":49.15679899999999},"queries":[0,0]}

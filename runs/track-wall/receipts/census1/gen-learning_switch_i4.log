@@ -1,0 +1,1 @@
+{"id":"learning_switch_i4","identical":true,"baseCount":463,"candidateCount":463,"baseWallMs":125012,"candidateWallMs":119879,"basePhases":{"guards":3.1164619999999985,"small":105676.304178,"candidates":19323.150274},"candidatePhases":{"guards":2.879016,"small":101930.802825,"candidates":17935.319671000005},"queries":[0,0]}

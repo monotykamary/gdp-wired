@@ -1,0 +1,1 @@
+{"id":"lock_server","identical":true,"baseCount":5,"candidateCount":5,"baseWallMs":61,"candidateWallMs":59,"basePhases":{"guards":3.2380130000000023,"small":12.257193000000001,"candidates":42.61334699999999},"candidatePhases":{"guards":1.8361440000000044,"small":13.66283,"candidates":41.663956000000006},"queries":[0,0]}

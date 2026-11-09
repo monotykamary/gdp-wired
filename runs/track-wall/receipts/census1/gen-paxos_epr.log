@@ -1,0 +1,1 @@
+{"id":"paxos_epr","identical":true,"baseCount":77,"candidateCount":77,"baseWallMs":15177,"candidateWallMs":12738,"basePhases":{"guards":3.841614,"small":5741.973989,"candidates":9389.460782},"candidatePhases":{"guards":3.9759750000000054,"small":4062.9697680000004,"candidates":8632.666636},"queries":[0,0]}

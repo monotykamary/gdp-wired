@@ -1,0 +1,1 @@
+{"id":"consensus_forall","identical":true,"baseCount":48,"candidateCount":48,"baseWallMs":9264,"candidateWallMs":7513,"basePhases":{"guards":4.425348,"small":4245.840985,"candidates":4938.98234},"candidatePhases":{"guards":3.254360999999996,"small":2769.8336219999997,"candidates":4658.247209},"queries":[0,0]}

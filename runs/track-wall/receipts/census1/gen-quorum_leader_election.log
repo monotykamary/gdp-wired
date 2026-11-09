@@ -1,0 +1,1 @@
+{"id":"quorum_leader_election","identical":true,"baseCount":7,"candidateCount":7,"baseWallMs":531,"candidateWallMs":444,"basePhases":{"guards":2.7621889999999993,"small":83.419345,"candidates":440.36698800000005},"candidatePhases":{"guards":2.8453659999999985,"small":68.591319,"candidates":367.757303},"queries":[0,0]}

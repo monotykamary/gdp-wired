@@ -1,0 +1,6 @@
+PAIR mine
+VERDICT {"id":"paxos_epr","ic3syn":"pyv-paxos-epr","search":{"verdict":"proven","found":["every OneA cell is a value of its kind","every OneB cell is a value of its kind","every Left cell is a value of its kind","every Proposal cell is a value of its kind","every Vote cell is a value of its kind","every Decision cell is a value of its kind","every Qs cell is a value of its kind","one value decided","members$Qs keeps members's bound 2","Decision keeps members's bound through members$Decision","Proposal at (c, d) bounds can$Vote$members at (a, b): a < c, b ≠ d","scan-prefix:cnt:rowOk:d93992f463f488aa:
+PROCESS_SECONDS mine 23.46 EXIT 0
+PAIR base
+VERDICT {"id":"paxos_epr","ic3syn":"pyv-paxos-epr","search":{"verdict":"proven","found":["every OneA cell is a value of its kind","every OneB cell is a value of its kind","every Left cell is a value of its kind","every Proposal cell is a value of its kind","every Vote cell is a value of its kind","every Decision cell is a value of its kind","every Qs cell is a value of its kind","one value decided","members$Qs keeps members's bound 2","Decision keeps members's bound through members$Decision","Proposal at (c, d) bounds can$Vote$members at (a, b): a < c, b ≠ d","scan-prefix:cnt:rowOk:d93992f463f488aa:
+PROCESS_SECONDS base 26.28 EXIT 0

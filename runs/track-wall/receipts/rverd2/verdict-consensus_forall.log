@@ -1,0 +1,6 @@
+PAIR mine
+VERDICT {"id":"consensus_forall","ic3syn":"pyv-consensus-forall","search":{"verdict":"proven","found":["every VoteRequestMsg cell is a value of its kind","every Voted cell is a value of its kind","every VoteMsg cell is a value of its kind","every Votes cell is a value of its kind","every Leader cell is a value of its kind","every VotingQuorum cell is a value of its kind","every Decided cell is a value of its kind","one value decided","members$VotingQuorum keeps members's bound 0","members$VotingQuorum keeps members's bound 2","Leader keeps members$VotingQuorum's bound through members$VotingQuorum$Lead
+PROCESS_SECONDS mine 43.21 EXIT 0
+PAIR base
+VERDICT {"id":"consensus_forall","ic3syn":"pyv-consensus-forall","search":{"verdict":"proven","found":["every VoteRequestMsg cell is a value of its kind","every Voted cell is a value of its kind","every VoteMsg cell is a value of its kind","every Votes cell is a value of its kind","every Leader cell is a value of its kind","every VotingQuorum cell is a value of its kind","every Decided cell is a value of its kind","one value decided","members$VotingQuorum keeps members's bound 0","members$VotingQuorum keeps members's bound 2","Leader keeps members$VotingQuorum's bound through members$VotingQuorum$Lead
+PROCESS_SECONDS base 26.42 EXIT 0

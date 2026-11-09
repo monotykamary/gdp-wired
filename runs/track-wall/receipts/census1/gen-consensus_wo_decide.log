@@ -1,0 +1,1 @@
+{"id":"consensus_wo_decide","identical":true,"baseCount":39,"candidateCount":39,"baseWallMs":5159,"candidateWallMs":4175,"basePhases":{"guards":3.4405610000000024,"small":2626.017459,"candidates":2482.5815279999997},"candidatePhases":{"guards":3.4311930000000004,"small":2025.3379639999998,"candidates":2095.929709},"queries":[0,0]}

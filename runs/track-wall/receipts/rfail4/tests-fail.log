@@ -1,0 +1,40 @@
+bun test v1.4.3 (c6da4a4d3)
+
+core/quorum-laws.test.ts:
+
+core/count-cubes.test.ts:
+
+core/count-witness.test.ts:
+
+core/compile.test.ts:
+compiled vs interpreted: 12,913 steps and 2,000 forks agree
+
+core/count-cases.test.ts:
+
+core/count-ranges.test.ts:
+
+core/count-focused.test.ts:
+
+core/count-admission.test.ts:
+
+core/exists.test.ts:
+cyclic: {"kind":"machine","name":"evens","cert":true,"usual":true,"cyclic":true,"ms":15,"usualMs":4,"route":"translated","leaves":16,"regrown":0,"splits":5,"carried":1,"uncarried":0,"cached":0}
+cyclic: {"kind":"machine","name":"members","cert":true,"usual":true,"cyclic":true,"ms":140,"usualMs":3,"route":"translated","leaves":116,"regrown":8,"splits":81,"carried":1,"uncarried":0,"cached":0}
+cyclic: {"kind":"machine","name":"ledger","cert":true,"usual":true,"cyclic":true,"ms":25,"usualMs":2,"route":"translated","leaves":14,"regrown":0,"splits":5,"carried":1,"uncarried":0,"cached":0}
+cyclic: {"kind":"machine","name":"window","cert":true,"usual":true,"cyclic":true,"ms":8,"usualMs":1,"route":"translated","leaves":9,"regrown":0,"splits":3,"carried":1,"uncarried":0,"cached":0}
+cyclic: {"kind":"machine","name":"window","cert":true,"usual":true,"cyclic":true,"ms":4,"usualMs":1,"route":"translated","leaves":9,"regrown":0,"splits":3,"carried":1,"uncarried":0,"cached":0}
+cyclic: {"kind":"machine","name":"evens","cert":true,"usual":true,"cyclic":true,"ms":8,"usualMs":3,"route":"translated","leaves":16,"regrown":0,"splits":5,"carried":1,"uncarried":0,"cached":0}
+cyclic: {"kind":"machine","name":"evens","cert":true,"usual":true,"cyclic":true,"ms":10,"usualMs":4,"route":"translated","leaves":16,"regrown":0,"splits":5,"carried":1,"uncarried":0,"cached":0}
+cyclic: {"kind":"step law","name":"evens","cert":true,"usual":true,"cyclic":true,"ms":12,"usualMs":2,"route":"translated","leaves":8,"regrown":0,"splits":4,"carried":1,"uncarried":0,"cached":0}
+cyclic: {"kind":"machine","name":"pair","cert":true,"usual":true,"cyclic":true,"ms":13,"usualMs":6,"route":"translated","leaves":19,"regrown":0,"splits":5,"carried":1,"uncarried":0,"cached":0}
+
+core/runtime-keys.test.ts:
+
+core/counts-preflight.test.ts:
+
+research/track-gen/t14-stutter.test.ts:
+
+ 94 pass
+ 0 fail
+ 70841 expect() calls
+Ran 94 tests across 12 files. [9.14s]

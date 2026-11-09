@@ -1,0 +1,6 @@
+PAIR mine
+VERDICT {"id":"learning_switch","ic3syn":"pyv-learning-switch","search":{"verdict":"proven","found":["every x, y with x < size ∧ y < size ∧ ¬(x = y): never 1 <= T[⟨x, ⟨x, y⟩⟩]","every x, y with x < size ∧ y < size ∧ ¬(x = y): never 1 <= T[⟨x, ⟨y, y⟩⟩]","every x with x < size: never 1 <= T[⟨x, ⟨x, x⟩⟩]","every x, y with x < size ∧ y < size ∧ ¬(x = y): never T[⟨x, ⟨y, x⟩⟩] is 0 and 1 <= P[⟨x, ⟨_, ⟨y, _⟩⟩⟩]","every x, y with x < size ∧ y < size ∧ ¬(x = y): never P[⟨x, ⟨x, ⟨x, x⟩⟩⟩] is 0 and 1 <= P[⟨x, ⟨x, ⟨x, y⟩⟩⟩]","
+PROCESS_SECONDS mine 24.54 EXIT 0
+PAIR base
+VERDICT {"id":"learning_switch","ic3syn":"pyv-learning-switch","search":{"verdict":"proven","found":["every x, y with x < size ∧ y < size ∧ ¬(x = y): never 1 <= T[⟨x, ⟨x, y⟩⟩]","every x, y with x < size ∧ y < size ∧ ¬(x = y): never 1 <= T[⟨x, ⟨y, y⟩⟩]","every x with x < size: never 1 <= T[⟨x, ⟨x, x⟩⟩]","every x, y with x < size ∧ y < size ∧ ¬(x = y): never T[⟨x, ⟨y, x⟩⟩] is 0 and 1 <= P[⟨x, ⟨_, ⟨y, _⟩⟩⟩]","every x, y with x < size ∧ y < size ∧ ¬(x = y): never P[⟨x, ⟨x, ⟨x, x⟩⟩⟩] is 0 and 1 <= P[⟨x, ⟨x, ⟨x, y⟩⟩⟩]","
+PROCESS_SECONDS base 19.79 EXIT 0

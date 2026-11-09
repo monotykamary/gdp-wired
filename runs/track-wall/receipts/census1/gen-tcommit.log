@@ -1,0 +1,1 @@
+{"id":"tcommit","identical":true,"baseCount":4,"candidateCount":4,"baseWallMs":48,"candidateWallMs":45,"basePhases":{"guards":2.1204349999999934,"small":8.220015000000004,"candidates":35.694514000000005},"candidatePhases":{"guards":2.221637000000001,"small":7.515802999999998,"candidates":33.821752000000004},"queries":[0,0]}

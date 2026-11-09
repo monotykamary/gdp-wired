@@ -1,0 +1,6 @@
+PAIR base
+VERDICT {"id":"mldr","ic3syn":"mldr","search":{"verdict":"unknown","stuck":"unknown","why":"time (rule result)","ms":59176,"work":16508388,"full":7390578}}
+PROCESS_SECONDS base 59.28 EXIT 0
+PAIR mine
+VERDICT {"id":"mldr","ic3syn":"mldr","search":{"verdict":"unknown","stuck":"unknown","why":"time (rule result)","ms":59080,"work":15847218,"full":7282879}}
+PROCESS_SECONDS mine 59.20 EXIT 0

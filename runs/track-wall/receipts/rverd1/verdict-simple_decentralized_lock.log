@@ -1,0 +1,6 @@
+PAIR base
+VERDICT {"id":"simple_decentralized_lock","ic3syn":"ex-simple-decentralized-lock","search":{"verdict":"proven","found":["r.law('sum$HasLock + sum$Message <= started', ({started, sum$HasLock, sum$Message}) => sum$HasLock.plus(sum$Message).atMost(started))"],"ms":3705,"work":241158,"full":351675}}
+PROCESS_SECONDS base 3.74 EXIT 0
+PAIR mine
+VERDICT {"id":"simple_decentralized_lock","ic3syn":"ex-simple-decentralized-lock","search":{"verdict":"proven","found":["r.law('sum$HasLock + sum$Message <= started', ({started, sum$HasLock, sum$Message}) => sum$HasLock.plus(sum$Message).atMost(started))"],"ms":2943,"work":241158,"full":351675}}
+PROCESS_SECONDS mine 2.98 EXIT 0

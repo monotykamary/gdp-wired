@@ -1,0 +1,6 @@
+PAIR base
+VERDICT {"id":"toy_consensus_forall","ic3syn":"pyv-toy-consensus-forall","search":{"verdict":"proven","found":["every Voted cell is a value of its kind","every Decided cell is a value of its kind","one value decided","Decided keeps members's bound through members$Decided","every x, y with x < 64 ∧ y < 64 ∧ ¬(x = y): never 1 <= Decided[x] and 1 <= Decided[y]","every x: never Vote[x] is 0 and 1 <= Voted[x]","every x: never Vote[x] is 1 and Voted[x] is 0","every x: never 2 <= Vote[x] and Voted[x] is 0"],"ms":3434,"work":117926,"full":92056}}
+PROCESS_SECONDS base 3.65 EXIT 0
+PAIR mine
+VERDICT {"id":"toy_consensus_forall","ic3syn":"pyv-toy-consensus-forall","search":{"verdict":"proven","found":["every Voted cell is a value of its kind","every Decided cell is a value of its kind","one value decided","Decided keeps members's bound through members$Decided","every x, y with x < 64 ∧ y < 64 ∧ ¬(x = y): never 1 <= Decided[x] and 1 <= Decided[y]","every x: never Vote[x] is 0 and 1 <= Voted[x]","every x: never Vote[x] is 1 and Voted[x] is 0","every x: never 2 <= Vote[x] and Voted[x] is 0"],"ms":3010,"work":124945,"full":94709}}
+PROCESS_SECONDS mine 3.08 EXIT 0

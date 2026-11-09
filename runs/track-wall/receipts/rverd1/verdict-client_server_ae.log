@@ -1,0 +1,6 @@
+PAIR mine
+VERDICT {"id":"client_server_ae","ic3syn":"pyv-client-server-ae","search":{"verdict":"proven","found":["every x, y with x < 64 ∧ y < 64: never ResponseSent[64·y + x] is 0 and 1 <= ResponseReceived[64·y + x]","every x, y with x < 64 ∧ y < 64: never 1 <= ResponseSent[64·y + x] and started is 0","every x, y with x < 64 ∧ y < 64: never 1 <= ResponseReceived[64·y + x] and started is 0","every x, y with x <= 63 ∧ y < 64: never 1 <= RequestSent[64·y + x] and started is 0"],"ms":31463,"work":1017296,"full":595146}}
+PROCESS_SECONDS mine 31.55 EXIT 0
+PAIR base
+VERDICT {"id":"client_server_ae","ic3syn":"pyv-client-server-ae","search":{"verdict":"proven","found":["every x, y with x < 64 ∧ y < 64: never ResponseSent[64·y + x] is 0 and 1 <= ResponseReceived[64·y + x]","every x, y with x < 64 ∧ y < 64: never 1 <= ResponseSent[64·y + x] and started is 0","every x, y with x < 64 ∧ y < 64: never 1 <= ResponseReceived[64·y + x] and started is 0","every x, y with x <= 63 ∧ y < 64: never 1 <= RequestSent[64·y + x] and started is 0"],"ms":27190,"work":1017296,"full":595146}}
+PROCESS_SECONDS base 27.40 EXIT 0
