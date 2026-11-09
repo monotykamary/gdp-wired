@@ -17,7 +17,47 @@ below refer to its new payloads, never to the cancelled batch. All twelve
 checkpoint/shortcut logs were independently replayed. Production tiny
 screening stays disabled: only three of the named seven were caught.
 Bounded grouping reached four named drops, not five. Operation-first was
-rejected; the checked state-first implementation has been restored.
+rejected. Per coordinator direction, post-target pruning is now an opt-in
+WIP on top of the checked state-first implementation; validation is pending.
+
+## Current work: post-target-directed partial pruning (differential tests first)
+
+Coordinator-directed successor to the rejected operation-first trial. The
+state-first traversal is retained. Each target's postcondition is substituted
+through the source operation and compiled in negative polarity. An unassigned
+atomic dependency means **unknown**, which the failure screen must retain;
+`false` means that target cannot fail under this partial assignment. A state
+is pruned only when every operation rules out all still-unaccepted targets.
+Request branches use the same screen after the state prefix. Unsupported
+post compilation falls back to always-possible and records unknown, never
+an assumed proof. Unchanged supported pre/post predicates may be skipped by
+structural identity because the complete pre-family requires them.
+
+- Core, caller protection, lifted declarations and independent interpreter
+  admission remain separate. No production enablement, kernel change,
+  protocol-name logic, domain enlargement or allowance increase.
+- `postTargetPruning` is opt-in. `T16_POST_TARGET=1` enables only the research
+  driver; its receipts and finite scope record the mode.
+- New `core/finite-tiny-target.test.ts` exhaustively compares all finite
+  pre/post transitions and violated-law sets with concrete interpretation,
+  in binary and ternary scopes: eight Boolean/conditional forms, late input
+  dependencies, whole-family/multi-target cases, point writes with recomputed
+  counts, accepted/rejected callbacks, declarations, unknowns and deadlines.
+  Only observationally equivalent request duplicates are collapsed; no
+  state transition or target is omitted from the expected set.
+- Missing any concrete violation falsifies the differential phase. Only after
+  this phase and type/lint pass will the six unchanged 1900-ms pilots run;
+  the admission bar remains five of seven in all originals and <= 2 s active
+  wall. All checks and pilots use **submission class**, as requested.
+
+Two independent validation jobs are submitted in task
+`eb55766c-4dd5-495a-bd52-a5fcbe32a678`; results in `runs/t16-target-check/`.
+No pilot submitted yet. Reused canonical archive `6288b666` plus the small
+`runs/t16-target-overlay/`. Compiler SHA-256
+`ed2a8ceeb8aad234015afa5a1122bd8e3c71f96318c55d404338c8963e440c02`,
+differential test `482003a3b3e83d404a54a7b71b142af9e353e3a6678c55bdd25889ecf043230d`,
+driver `4bb676f1a87a1eccc59706f8dbdd51699c354b8430a6b0982841e54e911849a2`.
+These WIP files are not covered by the preceding 40-test receipt.
 
 ## Operation-first pilot rejected; checked state-first implementation restored
 
