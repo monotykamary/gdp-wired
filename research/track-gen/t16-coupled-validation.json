@@ -1,0 +1,39 @@
+{
+  "trust": "Finite differential and static checks, not a performance or final-gate result.",
+  "batch": "20261110-024813-v2fcnw",
+  "base": "6288b666e7b23cb4a10e0e9e92cde919ea135854",
+  "overlay": "runs/t16-coupled-overlay/",
+  "tests": 73,
+  "assertions": 2247,
+  "typecheck": "pass",
+  "typeAwareLint": "zero warnings/errors",
+  "commitlint": "pass",
+  "hashes": {
+    "core/finite-tiny.ts": "a130bde06e36c60b177a78a88ef2a4672d390101af1ff3d80ac5e806fdff2c1f",
+    "core/finite-tiny.test.ts": "f3bf9bafa63ffe7150512ada101e5c781f5e0696ac6ce5175750bf77f9d8005c",
+    "core/finite-tiny-target.test.ts": "a9e2ece1f3e36eab0544c66a0afd13f236130a4d5d814435fc0224a05992287c",
+    "core/finite-tiny-seed.test.ts": "02966de2a49dd47fe4564676d89c212916cfd6d191e5d3fc968e08fa37bfaa59",
+    "research/track-gen/t16-domain-hybrid.ts": "cb23828858424c06227caa35a3c4b8fec7feae96b8ad230471c32c714c3fd563"
+  },
+  "caveat": "Previous instrumented seed run expired in setup before any seed attempts in both later passes.",
+  "pilot": {
+    "status": "rejected; independently replayed",
+    "batch": "20261110-031527-qmy0u0",
+    "originalNamedNew": [
+      4,
+      4,
+      2
+    ],
+    "originalWallsMs": [
+      1900.301311,
+      1900.132334,
+      1903.808103
+    ],
+    "allSixWallsWithinAllowance": true,
+    "replayBatch": "20261110-031701-9o3w3e",
+    "certifiedWitnesses": 22,
+    "results": "research/track-gen/t16-coupled-results.json"
+  },
+  "productionEnabled": false,
+  "sourceCommit": "2bdc025a8f0d7728f41d8e40b69d93908e6d6d01"
+}

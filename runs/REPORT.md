@@ -12,6 +12,12 @@ The coordinator moved main from `b788e195` to **`4497c4b05c3111959a2b8d808c426a0
 
 **For lane D:** the next final-gate base is `4497c4b0`, never the old base. The earlier exact-source request below is now historical only. Already running jobs need not be cancelled, but no result transfers across the new baseline. A fresh candidate SHA will follow qualification and the newly published lane-tip integrations. The consensus_forall bisection, its immutable source pack and all running historical jobs remain pinned to `b788e195` as explicitly requested.
 
+## New lane-tip integration after `4497c4b0` — active
+
+- **A `0bab28e2`:** production finite-search files merged automatically, preserving the existing whole-family/source-interpreter certification boundary. New interval/seed paths remain opt-in; front-loading replaces rather than doubles the 256-attempt allowance. The sole conflict is the lane report, preserved verbatim at `runs/lane-i/incoming/20261110/A-0bab28e2.md`, while this continuous integration report is retained. Added the two new seed test modules and the qualified diagnostic tests to the canonical quick roster and its coverage assertion. A's pilot is still pending and does not satisfy its five-of-seven criterion by assertion.
+
+All newly integrated source still requires combined qualification; no historical receipt or gate result is transferred to it.
+
 ## Coordinator follow-up: merge bisection and bar resource attribution — active
 
 The requested wide boat follow-up is admitted, with no production edit and no new passing gate claim. The source pack covers **all 62 first-parent merge boundaries** between `b788e195` and V12, plus the endpoints. It is a deduplicated **8,965,134-byte** incremental Git pack, not another whole-tree archive. Every pinned revision has the same vendor submodule identities. The first coarse wave includes the five explicitly requested lane merges and V12; matching Ryzen 9 9950X workers run **five strict 60,000 ms paired repeats per revision**, with generation/finite-pass wall time and full-name per-law solver/full/counted work. Nonmatching CPUs are explicit skips and cannot satisfy the repeat count. The fresh public-attempt trace wrapper is observation-only; source trees, original protected harness hashes, and before/after trace-patch hashes are retained.

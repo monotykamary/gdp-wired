@@ -1,0 +1,6 @@
+refactor(core): front-load bounded seed certification
+
+Reuse the same finite layout, model materialization and seed-vector walk
+before native compilation. Route early proposals through the existing
+whole-family interpreter check, keep one seed allowance and a frozen
+family per round, and retain ordinary search afterward.

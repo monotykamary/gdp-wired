@@ -1,0 +1,420 @@
+{
+  "trust": "Diagnostic only. onTiny records partial stats before the completion wall check. This is not a qualifying timing rerun.",
+  "batch": "20261110-024729-wzf17f",
+  "profileHoudiniSha256": "9087d2db26c0f5e81930eef85bf440b72bed1beebf260b6aca958980a9d9a6d4",
+  "result": {
+    "mode": "original",
+    "postTargetPruning": true,
+    "postTargetIntervals": false,
+    "counterexampleNeighbors": true,
+    "initial": 40,
+    "drops": [
+      {
+        "stage": 0,
+        "round": 0,
+        "ms": 435.39037400000007,
+        "law": "fields: CT[a]=CT[b] and CV[a]=CV[b] -> Config rows agree"
+      },
+      {
+        "stage": 0,
+        "round": 0,
+        "ms": 469.37245400000006,
+        "law": "inX: stored guard reconfigs/inS"
+      },
+      {
+        "stage": 0,
+        "round": 0,
+        "ms": 469.791113,
+        "law": "inX: stored guard reconfigs/inS or disabled/1"
+      },
+      {
+        "stage": 0,
+        "round": 0,
+        "ms": 677.128199,
+        "law": "every x with x < size: never Config[x] is 0 and 1 <= St[x]"
+      }
+    ],
+    "rounds": [
+      {
+        "stage": 0,
+        "round": 0,
+        "stats": {
+          "scope": {
+            "params": {
+              "size": 3
+            },
+            "scalarValues": [
+              0,
+              1
+            ],
+            "cellValues": [
+              0,
+              1
+            ],
+            "cells": {
+              "Config": [
+                0,
+                1,
+                2,
+                64,
+                65,
+                66,
+                128,
+                129,
+                130
+              ],
+              "CT": [
+                0,
+                1,
+                2
+              ],
+              "St": [
+                0,
+                1,
+                2
+              ],
+              "CV": [
+                0,
+                1,
+                2
+              ],
+              "CfgT": [
+                0,
+                1,
+                2
+              ]
+            },
+            "inputValues": {
+              "op": [
+                0,
+                1,
+                2,
+                3,
+                4,
+                5,
+                6
+              ],
+              "i": [
+                0,
+                1,
+                2
+              ],
+              "j": [
+                0,
+                1,
+                2
+              ],
+              "hx": [
+                0,
+                1,
+                2,
+                3
+              ],
+              "hy": [
+                0,
+                1,
+                2,
+                3
+              ]
+            },
+            "inputCells": {
+              "S": [
+                0,
+                1,
+                2
+              ],
+              "Q2": [
+                0,
+                1,
+                2
+              ]
+            },
+            "binderValues": [
+              0,
+              1,
+              2
+            ],
+            "postTargetPruning": true,
+            "postTargetIntervals": false,
+            "seedNeighborhood": true
+          },
+          "completed": true,
+          "exhausted": false,
+          "timedOut": false,
+          "unsupported": [],
+          "nodes": 56413,
+          "states": 782,
+          "steps": 3,
+          "scenarios": 7,
+          "candidates": 3,
+          "postStatePrunes": 0,
+          "postRequestPrunes": 4231,
+          "postIntervalFallbacks": 0,
+          "seedModels": 0,
+          "seedCandidates": 0,
+          "ms": 897.3021399999999
+        }
+      },
+      {
+        "stage": 0,
+        "round": 1,
+        "stats": {
+          "scope": {
+            "params": {
+              "size": 3
+            },
+            "scalarValues": [
+              0,
+              1
+            ],
+            "cellValues": [
+              0,
+              1
+            ],
+            "cells": {
+              "Config": [
+                0,
+                1,
+                2,
+                64,
+                65,
+                66,
+                128,
+                129,
+                130
+              ],
+              "CT": [
+                0,
+                1,
+                2
+              ],
+              "St": [
+                0,
+                1,
+                2
+              ],
+              "CV": [
+                0,
+                1,
+                2
+              ],
+              "CfgT": [
+                0,
+                1,
+                2
+              ]
+            },
+            "inputValues": {
+              "op": [
+                0,
+                1,
+                2,
+                3,
+                4,
+                5,
+                6
+              ],
+              "i": [
+                0,
+                1,
+                2
+              ],
+              "j": [
+                0,
+                1,
+                2
+              ],
+              "hx": [
+                0,
+                1,
+                2,
+                3
+              ],
+              "hy": [
+                0,
+                1,
+                2,
+                3
+              ]
+            },
+            "inputCells": {
+              "S": [
+                0,
+                1,
+                2
+              ],
+              "Q2": [
+                0,
+                1,
+                2
+              ]
+            },
+            "binderValues": [
+              0,
+              1,
+              2
+            ],
+            "postTargetPruning": true,
+            "postTargetIntervals": false,
+            "seedNeighborhood": true
+          },
+          "completed": false,
+          "exhausted": false,
+          "timedOut": true,
+          "unsupported": [],
+          "nodes": 0,
+          "states": 0,
+          "steps": 0,
+          "scenarios": 0,
+          "candidates": 0,
+          "postStatePrunes": 0,
+          "postRequestPrunes": 0,
+          "postIntervalFallbacks": 0,
+          "seedModels": 0,
+          "seedCandidates": 0,
+          "ms": 51.371290000000045
+        }
+      },
+      {
+        "stage": 1,
+        "round": 0,
+        "stats": {
+          "scope": {
+            "params": {
+              "size": 3
+            },
+            "scalarValues": [
+              0,
+              1,
+              2
+            ],
+            "cellValues": [
+              0,
+              1,
+              2
+            ],
+            "cells": {
+              "Config": [
+                0,
+                1,
+                2,
+                64,
+                65,
+                66,
+                128,
+                129,
+                130
+              ],
+              "CT": [
+                0,
+                1,
+                2
+              ],
+              "St": [
+                0,
+                1,
+                2
+              ],
+              "CV": [
+                0,
+                1,
+                2
+              ],
+              "CfgT": [
+                0,
+                1,
+                2
+              ]
+            },
+            "inputValues": {
+              "op": [
+                0,
+                1,
+                2,
+                3,
+                4,
+                5,
+                6
+              ],
+              "i": [
+                0,
+                1,
+                2
+              ],
+              "j": [
+                0,
+                1,
+                2
+              ],
+              "hx": [
+                0,
+                1,
+                2,
+                3
+              ],
+              "hy": [
+                0,
+                1,
+                2,
+                3
+              ]
+            },
+            "inputCells": {
+              "S": [
+                0,
+                1,
+                2
+              ],
+              "Q2": [
+                0,
+                1,
+                2
+              ]
+            },
+            "binderValues": [
+              0,
+              1,
+              2
+            ],
+            "postTargetPruning": true,
+            "postTargetIntervals": false,
+            "seedNeighborhood": true
+          },
+          "completed": false,
+          "exhausted": false,
+          "timedOut": true,
+          "unsupported": [],
+          "nodes": 0,
+          "states": 0,
+          "steps": 0,
+          "scenarios": 7,
+          "candidates": 0,
+          "postStatePrunes": 0,
+          "postRequestPrunes": 0,
+          "postIntervalFallbacks": 0,
+          "seedModels": 0,
+          "seedCandidates": 0,
+          "ms": 965.2140240000001
+        }
+      }
+    ],
+    "finishes": [
+      {
+        "stage": 0,
+        "timedOut": true,
+        "ms": 950.512704,
+        "dropped": 4
+      },
+      {
+        "stage": 1,
+        "timedOut": false,
+        "ms": 967.3888910000003,
+        "dropped": 0
+      }
+    ],
+    "timedOut": true,
+    "wall": 1918.2214609999999,
+    "removed": 4,
+    "survivors": 36
+  }
+}
