@@ -10,6 +10,8 @@ Files:
 
 Already running: `runs/track-m/lane-b-row-check-v1`, task `885371f9-bf41-4828-a5a0-0d9608158874`, submitted with `research/track-m/jobs-lane-b-row-check.json`. Do not duplicate it; result is pending at handoff. No row-policy measurement batch was submitted.
 
+Later receipt: both jobs passed on snapshot `965b67b87d4e`. Default ran 31 tests / 310 assertions plus 7 / 33; the disposable row prototype ran 37 / 277, with typecheck/lint passing. Logs are in `runs/track-m/lane-b-row-check-v1`. This validates the handed-off prototype only, not Lane F's subsequent implementation or any speedup.
+
 To use in another runner, apply `section15-row-variant.ts before|after` after the leaf/class variants, before importing the prover. Import `rowProbeStats` into that process and record its snapshot at the end. The original root-first prototype only handles callers that reach `proveRowCases`; write-free operations that bypass it still need F's own coverage analysis.
 
 Review before using: the root probe is bounded by the existing leaf callback allowance; a model-free failure takes the existing eager fallback. Internal probes can add queries even when terminal depth is <=2. Compare **all uncached queries**, not just terminal leaves; reject a regression under the design's falsifier. No complete-family, real E-14, or gate claim is supported.
