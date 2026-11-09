@@ -16,7 +16,7 @@
     "research/track-gen/t16-domain-hybrid.ts": "e8df5883ffc911b06a2a4555f244a6dd58a342c8ea86e68605d79ab3cbd1eb68"
   },
   "pilot": {
-    "status": "rejected; independent replay pending",
+    "status": "rejected; independently replayed",
     "batch": "20261110-024443-g6s11w",
     "originalNamedNew": [
       3,
@@ -35,7 +35,10 @@
     ],
     "replayTask": "5f26d2a8-9c04-4934-b356-cfa13e315f39",
     "diagnosticTask": "3ab68a0d-ac04-424c-a831-2b15271c4750",
-    "diagnostic": "Partial onTiny stats emitted before the final wall check; never a qualifying rerun."
+    "diagnostic": "Partial onTiny stats emitted before the final wall check; never a qualifying rerun.",
+    "replayBatch": "20261110-024725-59idfa",
+    "certifiedWitnesses": 22,
+    "results": "research/track-gen/t16-seed-results.json"
   },
   "productionEnabled": false,
   "sourceCommit": "94a443cc0dc6956e8899a1767dc7d822e2296097"

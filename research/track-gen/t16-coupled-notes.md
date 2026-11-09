@@ -5,7 +5,8 @@
 A radius-one seed move cannot cross a guard requiring multiple cells to change
 together. The checked seed pilot caught only 3/2/3 original named drops; two
 runs reported a non-named new law, and one exceeded 2 seconds. It fails the same
-five-of-seven bar. Independent replay is pending; no rerun can erase that result.
+five-of-seven bar. Independent replay confirmed all 22 witnesses; no rerun can
+erase that result.
 
 Try setting all modeled cells of one map to a common already-admitted value.
 This is a generic finite-map move, not a protocol/name-specific rewrite. Input

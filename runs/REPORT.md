@@ -59,8 +59,10 @@ Seed pilot `20261110-024443-g6s11w` completed six jobs with exits 0, but
 each. Two original runs reported an additional non-named law; it does not
 count toward the five-of-seven requirement. The overrun is retained.
 
-Independent replay is pending in `5f26d2a8-9c04-4934-b356-cfa13e315f39`,
-batch `20261110-024725-59idfa`, `runs/t16-seed-replay/`. A separate instrumented
+Independent replay **confirmed all 22 emitted witnesses** in batch
+`20261110-024725-59idfa`, `runs/t16-seed-replay/`; the original 3/2/3 named
+counts and 2362.200 ms overrun still fail the bar. Results are recorded in
+`research/track-gen/t16-seed-results.json`. A separate instrumented
 diagnostic (`3ab68a0d-ac04-424c-a831-2b15271c4750`, batch
 `20261110-024729-wzf17f`, `runs/t16-seed-profile/`) exposes onTiny counters
 before the final wall check. It is not a qualifying rerun and its one-line
