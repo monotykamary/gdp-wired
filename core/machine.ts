@@ -451,14 +451,15 @@ export function compileC(c: C, m: Machine): (env: Env, st: State) => boolean {
 // same value, which need not be the default), and past it the value is the new default.
 function writeEvery(w: {each: string, value: E}, env: Env, st: State, m: Machine, parts = 1, map?: string): {cells: Map<number, number>, default: number} {
   if (parts > 1) {
-    const t = eachParts(w, parts), same = map !== undefined && unchanged(t, map, env, st, m)
+    const t = tupleOf(w, parts), same = map !== undefined && unchanged(t, map, env, st, m)
     return same ? {cells: new Map(st.maps[map]!), default: st.defaults && Object.hasOwn(st.defaults, map) ? st.defaults[map]! : m.maps![map]!} : writeEveryTuple(t, env, st, m)
   }
   if (!plainKey(w.value, w.each)) {
     const ks = breakKeys(breaksOf(w.value, w.each), env, st, m), top = ks.at(-1)!
     // (each breakpoint on its own, and each stretch between two at one key of it: no read moves and no comparison turns
     // inside one, so it holds one value; most stretches hold the default, and a stretch that doesn't is filled)
-    const at = (key: number) => evalE(w.value, {...env, [w.each]: key}, st, m)
+    // (one environment for every key, the key written into it: evalE reads its environment and never keeps it)
+    const env1: Env = {...env}, at = (key: number) => { env1[w.each] = key; return evalE(w.value, env1, st, m) }
     const fallback = at(top), cells = new Map<number, number>()
     for (let i = 0; i + 1 < ks.length; i++) {
       const key = ks[i]!, v = at(key)
@@ -467,10 +468,25 @@ function writeEvery(w: {each: string, value: E}, env: Env, st: State, m: Machine
     }
     return {cells, default: fallback}
   }
-  const keys = keysAt(st, mapsIn(w.value)), past = keys.at(-1)!
-  const fallback = evalE(w.value, {...env, [w.each]: past}, st, m), cells = new Map<number, number>()
-  for (const key of keys.slice(0, -1)) { const v = evalE(w.value, {...env, [w.each]: key}, st, m); if (v !== fallback) cells.set(key, v) }
+  const keys = keysAt(st, mapsIn(w.value)), past = keys.at(-1)!, env1: Env = {...env, [w.each]: past}
+  const fallback = evalE(w.value, env1, st, m), cells = new Map<number, number>()
+  for (const key of keys.slice(0, -1)) { env1[w.each] = key; const v = evalE(w.value, env1, st, m); if (v !== fallback) cells.set(key, v) }
   return {cells, default: fallback}
+}
+// A write at every tuple, read once per write: its parts (kernel.ts's eachParts), the value with the comparisons between
+// parts freed (crossFree), each part's breakpoints and whether any comparison crossed parts. None of it reads the state.
+type TupleWrite = {names: string[], value: E, bs: Breaks[], crossed: boolean, reads: WeakMap<object, boolean>}
+const tupleWrites = new WeakMap<object, Map<number, TupleWrite>>()
+function tupleOf(w: {each: string, value: E}, parts: number): TupleWrite {
+  let byParts = tupleWrites.get(w)
+  if (!byParts) tupleWrites.set(w, (byParts = new Map()))
+  let t = byParts.get(parts)
+  if (!t) {
+    const e = eachParts(w, parts), body: C = {op: '=', a: e.value, b: {op: 'const', value: 0}}, free = crossFree(body, e.names)
+    t = {...e, bs: e.names.map(name => breaksOf(free, name)), crossed: JSON.stringify(free) !== JSON.stringify(body), reads: new WeakMap()}
+    byParts.set(parts, t)
+  }
+  return t
 }
 
 // A write at every tuple of a map of n parts, read at its parts (kernel.ts's eachParts): each part's breakpoints together
@@ -478,14 +494,13 @@ function writeEvery(w: {each: string, value: E}, env: Env, st: State, m: Machine
 // one key of it. Past the last breakpoint in any part the value must be the new default (a value other than it along an
 // unbounded stretch is cells without end), and a stretch filled in two parts or more at once must read no comparison
 // between the parts (the value along it then depends on more than the stretch).
-function writeEveryTuple(t: {names: string[], value: E}, env: Env, st: State, m: Machine): {cells: Map<number, number>, default: number} {
-  const n = t.names.length, body: C = {op: '=', a: t.value, b: {op: 'const', value: 0}}, free = crossFree(body, t.names)
-  const bs = t.names.map(name => breaksOf(free, name))
-  const crossed = JSON.stringify(free) !== JSON.stringify(body)
+function writeEveryTuple(t: TupleWrite, env: Env, st: State, m: Machine): {cells: Map<number, number>, default: number} {
+  const n = t.names.length, {bs, crossed} = t
   // (parts compared with no other part: each on its own breakpoints; else all of them together, n keys after each)
   const merged = crossed ? spread(breakKeys({reads: bs.flatMap(b => b.reads), cmps: bs.flatMap(b => b.cmps)}, env, st, m), n) : undefined
   const kss = bs.map(b => merged ?? breakKeys(b, env, st, m))
-  const at = (xs: number[]) => evalE(t.value, {...env, ...Object.fromEntries(t.names.map((name, i) => [name, xs[i]!]))}, st, m)
+  // (one environment for every tuple, the parts written into it: evalE reads its environment and never keeps it)
+  const env1: Env = {...env}, at = (xs: number[]) => { for (let i = 0; i < n; i++) env1[t.names[i]!] = xs[i]!; return evalE(t.value, env1, st, m) }
   const fallback = at(kss.map(ks => ks.at(-1)!)), cells = new Map<number, number>()
   // (each key of a part's keys, and after each the stretch up to the next, at its first key: [key, end) with end the
   // next; the last key stands for every key past it)
@@ -518,8 +533,9 @@ const tupleKey = (xs: number[]): number => xs.slice(0, -1).reduceRight((b, a) =>
 // Whether a write at every tuple leaves the map as it is at this step: its value, with every condition that reads no part
 // decided at the request (the flags, the inputs, the state), is the map's own cell at the tuple of the parts, as read
 // (M[k]) or as a member (if(1 <= M[k], 1, 0) where every cell is 0 or 1 already). Then no tuple need be visited.
-function unchanged(t: {names: string[], value: E}, map: string, env: Env, st: State, m: Machine): boolean {
-  const names = new Set(t.names), reads = (u: E | C) => JSON.stringify(u).match(/"name":"([^"]+)"/g)?.some(x => names.has(x.slice(8, -1))) ?? false
+function unchanged(t: TupleWrite, map: string, env: Env, st: State, m: Machine): boolean {
+  // (whether a condition reads a part is a fact of the term within its write, read once per term)
+  const names = new Set(t.names), reads = (u: E | C) => { let r = t.reads.get(u); if (r === undefined) t.reads.set(u, (r = JSON.stringify(u).match(/"name":"([^"]+)"/g)?.some(x => names.has(x.slice(8, -1))) ?? false)); return r }
   const cond = (c: C): boolean | C => {
     if (!reads(c)) { try { return evalC(c, env, st, m) } catch { return c } }
     if (c.op === 'and' || c.op === 'or') {
