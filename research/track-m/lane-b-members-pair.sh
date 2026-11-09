@@ -2,12 +2,15 @@
 set -euo pipefail
 tag=${1:?target}; first=${2:?before or after}
 variant=${LANE_B_VARIANT:-member-premises}
-[[ "$variant" == member-premises || "$variant" == row-premises || "$variant" == early-completion || "$variant" == flags-first ]]
+[[ "$variant" == member-premises || "$variant" == row-premises || "$variant" == early-completion || "$variant" == flags-first || "$variant" == unary-completion ]]
 [[ "$first" == before || "$first" == after ]]
 bash research/track-m/prepare-vendors.sh
 bun install --frozen-lockfile >/dev/null
 work=$(mktemp -d "$HOME/track-m-members-$tag-XXXXXX")
 trap 'bash research/track-m/pack-section18-archive.sh "$work"' EXIT
+if [[ "$variant" == unary-completion ]]; then
+ LAB_DISPOSABLE=1 bun research/track-m/member-premises-variant.ts flags
+fi
 cp core/counts.ts "$work/before-counts.ts"
 if [[ "$variant" == flags-first ]]; then
  LAB_DISPOSABLE=1 bun research/track-m/member-premises-variant.ts flags
