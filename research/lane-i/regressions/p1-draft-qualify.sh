@@ -4,7 +4,7 @@ cp -a frozen-paxos/. .
 packet=$PWD
 root=$(mktemp -d /tmp/lane-i-p1-draft.XXXXXX)
 trap 'rm -rf "$root"' EXIT
-bun regression-driver/paxos-fix-source.ts "$root"
+bun regression-driver/p1-draft-source.ts "$root"
 cp -a draft-overlay/. "$root/"
 mkdir -p "$root/research/lane-i-fastloop"
 cp regression-driver/p1-tools/*.ts "$root/research/lane-i-fastloop/"

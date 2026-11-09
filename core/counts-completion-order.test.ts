@@ -1,5 +1,5 @@
 import {expect,test} from 'bun:test'
-import {type Law,type Machine,get,n,x,ite,same} from './machine.ts'
+import {type Law,type Machine,get,n,x,ite,same,plus} from './machine.ts'
 import {countedAttempts,countsDump} from './counts.ts'
 import {clock,counted,fullRate,withDeadline,withWall} from '../kernel/prove.ts'
 import {checkMC,countedObligations} from '../kernel/kernel.ts'
@@ -34,6 +34,30 @@ test('count completion stays behind sparse queries and cannot prove a false INIT
    else expect(sizes).toHaveLength(0)
    if(law===fieldLaw)expect(completion).toBe(-1)
    expect(completedNames).not.toContain(unrelated.name)
+  }
+ }finally{countsDump.on=prior}
+})
+
+test('only single-key count goals with a separate count premise take early completion',()=>{
+ const m:Machine={name:'premise-sensitive completion',params:[],inputs:[],state:{},maps:{Cells:0},counts:{Total:{j:'countRow',key:'member',below:n(2),body:n(1)}},step:{}}
+ const premise:Law={name:'true count premise',forall:'sourceRow',holds:{op:'<=',a:get('Total',x('sourceRow')),b:n(2)}}
+ const prior=countsDump.on
+ try{
+  for(const shape of ['single','multi','concrete','aggregate','isolated'] as const){
+   const key=shape==='concrete'?n(0):shape==='multi'?plus(x('row'),x('other')):x('row')
+   const bound:Law['holds']={op:'<=',a:get('Total',key),b:n(1)}
+   const law:Law={name:'false count target',...(shape==='concrete'?{}:{forall:'row'}),...(shape==='multi'?{keys:['other']}:{}),holds:shape==='aggregate'?bound:{op:'or',xs:[{op:'not',x:same(get('Cells',key),n(0))},bound]}}
+   const family=shape==='isolated'?[law]:[law,premise]
+   const phases:string[]=[],sizes:number[]=[]
+   countsDump.on=event=>{if('phase'in event&&typeof event.phase==='string'){phases.push(event.phase);if(event.phase==='count-completion'&&'added'in event&&Array.isArray(event.added))sizes.push(event.added.length)}}
+   const result=withWall(performance.now()+3000,()=>counted(fullRate,()=>{const end=clock()+1000;return withDeadline(end,()=>countedAttempts(m,family,new Set(),end).traced(law,family,1,1000))},true))
+   expect('proof'in result).toBe(false) // Total=2: completion must never hide the false INIT.
+   const query=phases.indexOf('query'),completion=phases.indexOf('count-completion')
+   expect(query).toBeGreaterThanOrEqual(0)
+   if(shape==='single'){expect(completion).toBeGreaterThanOrEqual(0);expect(completion).toBeLessThan(query)}
+   else expect(completion===-1||completion>query).toBe(true)
+   expect(sizes.length).toBeLessThanOrEqual(1)
+   expect(sizes.every(size=>size<=48)).toBe(true)
   }
  }finally{countsDump.on=prior}
 })

@@ -1,0 +1,8 @@
+{
+ "task":"48d3771f-2b25-4743-afae-a123ba811f0b",
+ "status":"admitted; qualification pending",
+ "inputManifestSha256":"6e02d6a43d1c61f26c248808693ebd16108ab732f5b547148656bf06411f3e03",
+ "base":"d3adf3c9589ec014a158b6f42ecfb091c999bb43",
+ "policy":"mixed ordinary-map/count reads, exactly one quantified key, unary count maps and a separate relevant premise",
+ "finalGate":false
+}

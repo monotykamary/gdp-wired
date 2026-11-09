@@ -2,6 +2,24 @@
 
 Lane I resumed from `cca59f0c` on `claude/mldr-integ`; clean worktree verified, handoff including PAUSED, COMMON, and Section 14 read. **NOT GATE GREEN.** Historical baselines remain `b788e195` for the consensus diagnosis and `b09da82d` for the Paxos diagnosis; the coordinator now requires **`8214a543bc44e88d979f9e4457d7370e7e3c122b` for every next final gate**.
 
+## For lane B — mixed-clause repair passes targeted qualification
+
+The corrected policy takes early bounded completion only for a **single quantified key**, **unary count maps**, a **mixed ordinary-map/count clause**, and a **separate relevant count premise**. Aggregate-only, concrete, isolated and multi-key targets remain sparse-first. No proof rule, completion cap or deadline changed. Exact-source qualification restores `d3adf3c9` and passes **25 tests / 108 assertions**, clean TypeScript/lint, roster validation and commitlint. Native p1 replay is checked at **1152.3382236 units**; whole `paxos_epr` proves at exactly **6,915,544 solver / 1,037,946 full work**, equal to `d3adf3c9`. The qualified `core/counts.ts` SHA-256 is `7a4c830848afa2d05393bdd00c546393092cf1f94d5ce9cdee8a2aad9189abd4`.
+
+This is targeted qualification on one exclusive Ryzen 9 9950X, not a final gate or clean full suite. A five-pair exact-commit cost confirmation follows; Lane D's frozen `8214a543` → `d3adf3c9` gate remains unchanged. Receipt: `runs/lane-i/p1/draft-v2/qualification.json`. The prior wrong-source draft and +530-work prototypes remain failed evidence, not passing coverage.
+
+## New-main full suite collected — two unchanged test timeouts, not qualified
+
+All seven `d3adf3c9` shards are collected and source/placement checked. Five exit zero; two fail, with **1,147 recorded passes, two failures, five skips and 577,791 assertions** before the failed shards stop. `core/search.test.ts`'s invariant-discovery test takes 8,385.09 ms against its unchanged 5,000-ms timeout. `core/extract-py.test.ts`'s request-list fold test takes 61,074.58 ms against its unchanged 60,000-ms timeout. This is **not a clean full suite** and neither failure is attributed yet. Exact summary: `runs/lane-i/paxos/post-main/suite/suite-audit.json`.
+
+Three alternating pairs per case are admitted against **`8214a543` / `d3adf3c9`**, task `c6728778-f9a9-4c3b-8041-9ceb0419a1dc`. The search file is unchanged; the fold case uses an explicit name filter without editing its code or deadline. These isolated diagnostics cannot erase the original full-suite failures. The separate p1 mixed-field/count draft qualification remains active (`48d3771f-2b25-4743-afae-a123ba811f0b`); Lane D's existing gate is untouched.
+
+## For lane B — residual work isolated; corrected draft qualification running
+
+The paired per-law probe identifies the entire residual solver increase at the aggregate-only `members$Qs keeps members's bound 2` obligation: **20,007 → 21,411 solver work**, **27,916.6078 → 28,446.5038 full work**, explaining the whole-run +530 rounded full-work increase. Requiring another count premise alone does not remove it. Both three-repeat frozen-family probes preserve p1's exact original cost but fail the strict whole-Paxos neutrality criterion. The independent receipt audit passes with **zero issues**; six refusal tests execute in each of the two staged paths (**12 executions / 26 assertions**), explicitly rejecting the +530-work prototype.
+
+The conservative draft check is retained as a **failure**, not qualification: its new test reused the count binder name, and a staging copy overwrote its restore config with historical `8de9dadb`, also reintroducing that old revision's unused import. The original post-main full-suite packet still correctly names `d3adf3c9` and is unaffected. The corrected draft now explicitly restores and verifies `d3adf3c9`, uses a fresh test binder, and prioritizes only mixed ordinary-map/count clauses; aggregate-only bounds stay sparse. New controller **`48d3771f-2b25-4743-afae-a123ba811f0b`** checks exact-source type/lint, all scope/refusal cases, old p1 cost, exact whole-Paxos work, and commitlint. No check result or repaired-candidate claim yet. Lane D's existing gate remains untouched.
+
 ## For lane B — p1 regression reproduced; first prototype rejected on whole work
 
 The exact three-repeat boat comparison reproduces **1152.3382236 → 2046.9378360 p1 units** for validated control `97463c56` versus `d3adf3c9`; all nine p1 certificates independently replay. A disposable unary-priority policy recovers **1152.3382236** and preserves the frozen Paxos proof at **38,917 solver / 26,285.6192 full work**, with six successful frozen Paxos certificates independently replayed. But its whole-Paxos screening pair costs **530 extra full-work units** (1,037,946 → 1,038,476), so it is **not accepted** as the joint work-neutral fix. This completed on one exclusive EPYC 9455 worker; no timing claim. Raw receipts: `runs/lane-i/p1/probe/`.

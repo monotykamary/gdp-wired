@@ -881,8 +881,13 @@ export function countedAttempts(m: Machine, caller: Law[], support: Set<Law>, un
       countsDump.on?.({law: law.name, pass, phase: 'count-completion', added: completion.added})
       return true
     }
-    // Try the sparse obligations first: eager completion can crowd out an easy proof.
-    // Stuck-model paths below retain bounded completion for requested count maps.
+    // A single-key clause mixing field and count reads can need count premises now.
+    // Concrete goals and isolated or multi-key count targets stay sparse-first:
+    // speculative self-instances can crowd out an already easy proof.
+    if (pass && law.forall && !law.keys?.length && completionMaps.size &&
+        reads(law.holds, map => !isCount(map)).size && [...completionMaps].every(map => !m.counts![map]!.lo) &&
+        modelLaws.some(other => other.name !== law.name && reads(other.holds, map => completionMaps.has(map)).size)) completeCounts()
+    // Stuck-model paths retain the same bounded completion and attempt allowance.
     let built = build()
     const observe = (b: ReturnType<typeof build>[number], phase: string, witness?: Record<string, number>) => {
       if (countsDump.on) countsDump.on({law: law.name, goal: b.goal.name, pass, phase, generation: {...generation.state}, machine: m, laws: ls, rawGoal: b.goal, decls: b.decls, instances: at, certificateRequest: b.c, hyps: b.gg?.hyps, witness, seedCount})

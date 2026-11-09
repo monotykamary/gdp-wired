@@ -79,4 +79,32 @@ task `bff38ac0-d682-4852-8bf7-572f364ef00c`, batch `20261110-063659-6z5xy4`.
 The original work-increase receipt is also being independently audited with
 missing/duplicate/source/certificate/archive refusal tests.
 
-No new production repair or final-gate pass is claimed.
+## Residual-cost attribution and corrected draft
+
+The second probe again restores p1 but still adds exactly the same whole-run
+work. Its per-law trace isolates that increase to the aggregate-only
+`members$Qs keeps members's bound 2` goal: solver work 20,007 → 21,411;
+full work 27,916.6078 → 28,446.5038. Requiring another count premise alone
+is therefore insufficient. The corrected draft also requires ordinary map
+reads in the requested clause, so pure aggregate bounds remain sparse.
+
+The first draft validation is retained as failed: its new test reused a
+count binder, and staging overwrote its restore configuration with older
+`8de9dadb`. The original post-main full-suite packet correctly names
+`d3adf3c9`; it was not changed. The corrected helper explicitly verifies
+`d3adf3c9`. Its type/lint, scope tests, old p1 cost, exact whole-Paxos work and
+commitlint are running in `48d3771f-2b25-4743-afae-a123ba811f0b`.
+
+## Corrected policy: targeted qualification passed
+
+The mixed-clause guard additionally requires an ordinary-map read in the
+requested law. It passes exact-`d3adf3c9` source restoration, clean type/lint,
+25 tests / 108 assertions, roster validation and commitlint. Independent
+p1 replay is checked at **1152.3382236 units**. Whole `paxos_epr` is proven
+at exactly **6,915,544 solver / 1,037,946 full work**, matching the repaired
+baseline. Qualified count-source SHA-256:
+`7a4c830848afa2d05393bdd00c546393092cf1f94d5ce9cdee8a2aad9189abd4`.
+
+A five-pair exact-commit confirmation follows. This is not a full-suite or
+final-gate pass; the original failed prototypes and failed draft remain
+retained. Lane D's existing gate is unchanged.
