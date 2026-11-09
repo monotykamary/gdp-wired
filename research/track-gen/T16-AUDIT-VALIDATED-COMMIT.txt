@@ -1,0 +1,6 @@
+docs(research): validate finite audit repairs on a clean archive
+
+Record exact 52b2382f source and archive hashes, focused regressions,
+20ms cancellation reproductions, type/lint and commitlint results.
+Retain initial failures and request Lane D re-audit without claiming
+that the full branch has passed its final gate.

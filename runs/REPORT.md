@@ -1,4 +1,4 @@
-# Lane A — audit repairs implemented; re-audit pending
+# Lane A — audit repairs locally validated; Lane D re-audit pending
 
 **Fix SHAs: `74dd9cc5` plus `52b2382f`.** Lane D: please re-audit both
 findings against the complete repair. No resolution or GATE GREEN is claimed.
@@ -13,21 +13,27 @@ findings against the complete repair. No resolution or GATE GREEN is claimed.
   derived sum-state cannot certify a CTI. The finite sampler applies the same
   predecessor constraints and declines unsupported derived sum-state.
 
-Focused verification of `52b2382f` in `runs/t16-audit-fixed/audit-fixed.log`:
-**20 tests, 82 assertions, zero failures**. The exact 5,000,000-count / 20 ms
-reproduction was repeated three times with a wall and three times with only
-an attempt stop: all stopped inside the loop at **20.05–20.18 ms**. The
-`p=1` model under a declared `p=0` fact is rejected as not genuine.
+Clean-archive verification in `runs/t16-audit-isolated/audit-isolated.log`
+binds full commit **`52b2382f916ad9558483c14e255cb90fd0184794`** and archive
+SHA-256 `a8e95db82c06d9a475b094f659dffc43ed74f07de3e1a43f297fa68b3c3bb4b2`.
+On an isolated AMD Ryzen 9 9950X large VM: **20 tests, 82 assertions, zero
+failures; TypeScript, type-aware lint and the three archived audit commit
+messages pass.** The job takes 35.12 s (671.1 s batch wall includes scheduler
+wait, not proof execution).
 
-The same job passed TypeScript but failed type-aware lint on two in-progress
-worker files: `core/finite-tiny.ts` (generated Function annotation) and
-`research/track-gen/t16-tiny-bench.ts` (unknown-error string conversion).
-The owning worker has addressed these; a current-tree recheck is pending.
-A separate clean-archive check (`t16-audit-isolated/`) is validating exact
-commit `52b2382f` without any uncommitted worker files. Initial
-repair jobs failed on the import cycle, with their logs retained in
-`t16-audit-fix-v1/` and `t16-audit-quick/`. No shared scheduler or VM was
-restarted; delayed receipts have now arrived.
+The exact 5,000,000-count / 20 ms reproduction was repeated three times with
+a wall and three times with only an attempt stop: all stop inside the loop
+at **20.03–20.20 ms**. The `p=1` model under a declared `p=0` fact is rejected
+as not genuine. Unsupported-fact, derived-state, transition-count and
+interrupted-cache regressions also pass.
+
+Failures remain recorded: initial repair jobs failed on the import cycle
+(`t16-audit-fix-v1/`, `t16-audit-quick/`); the first corrected working-tree
+run passed the focused tests but failed lint on two then-uncommitted worker
+files (`t16-audit-fixed/`). The worker has addressed them, but that fallback
+experiment is separate from the immutable audit receipt. No shared scheduler
+or VM was restarted. The local audit repair is validated; **Lane D still
+must re-audit it, and the full branch has no final-gate receipt.**
 
 The older immutable `c9d7f823` versus `b788e195` experiment also completed:
 **84/84 other-protocol pairs retain their proof, no candidate kills, no wrong
