@@ -2,6 +2,7 @@
 // heavy fields reduced to sizes), the counted clock, wall and RSS at each, and the attempt's end (`S17_END`). Research
 // only: no proof is produced, nothing is admitted. Runs unchanged on the frozen 15eff72f tree and on this one.
 import {readFileSync} from 'node:fs'
+import {traceError} from './trace-error.ts'
 import {all, same, x, n, type Law, type Machine} from '../../core/machine.ts'
 import {countedAttempts, countsDump} from '../../core/counts.ts'
 import {finiteCountChoice} from '../../core/count-cases.ts'
@@ -30,7 +31,7 @@ countsDump.on = e => {
     out.keys = Object.fromEntries(Object.entries(w).filter(([k]) => !k.startsWith('?') && !k.startsWith('r$') && !k.startsWith('w$')))
     out.counts = Object.fromEntries(Object.entries(w).filter(([k]) => k.startsWith('r$')).map(([k, v]) => [`${k}=${readsOf[k] ?? '?'}`, v]))
   }
-  if (r.error !== undefined) out.error = String(r.error).slice(0, 200)
+  if (r.error !== undefined) out.error = traceError(r.error)
   if (r.completion && typeof r.completion === 'object') out.completion = {genuine: (r.completion as {genuine?: boolean}).genuine, reason: (r.completion as {reason?: string}).reason}
   for (const k of ['stuck', 'outcome', 'added', 'local', 'whole', 'context', 'required', 'known', 'round', 'seedCount']) if (k in r) out[k] = r[k]
   console.log('S17 ' + JSON.stringify(out))
