@@ -1,23 +1,57 @@
-COMMITLINT commits/0b85516edb772a5fd5ea981f9ff0b0d54f61e504.txt
-COMMITLINT commits/1ecbfb15e3932b73cd77fc07973a45a2aa0e9683.txt
-COMMITLINT commits/29ab7d06ef9b019b4f911a6021877ddebedec5b9.txt
-COMMITLINT commits/3779c7501633f0149e9036d32b16f4d410ae6b02.txt
-COMMITLINT commits/432625d76839f8a11179b9f7c62dc25d4d99fbd7.txt
-COMMITLINT commits/46570cafd93df935d1b48f670f8ada249d145761.txt
-COMMITLINT commits/4cf52e8d77d5708cf3f15c3d25659e88e86c6e1f.txt
-COMMITLINT commits/6953144769e9e8138892ab56225d98baace2bce5.txt
-COMMITLINT commits/6cb29e8040cac159b976eb0b804a45ef0c7514ac.txt
-COMMITLINT commits/70c566311c8c19f3f48d8187256d2d94ba738998.txt
-COMMITLINT commits/78eedf50661e23335c4bff905e8641614ed6d528.txt
-COMMITLINT commits/80621318d666eb691e13f2573c8b5f5ba1c5806c.txt
-COMMITLINT commits/98f67ed1ce6c44c4a3cb94bc29be1aa8e3627968.txt
-COMMITLINT commits/9c0ef65b50a7d89a311acc3943544b4e1429ec5d.txt
-COMMITLINT commits/b967a9520c7cb6a75b5919296cdb68f1261a6194.txt
-COMMITLINT commits/f1f1165816951812d42b28c206cf1a3d37fe3c8b.txt
-COMMITLINT commits/fbd437dda86ad66339e15175696af745f6c90b00.txt
-COMMITLINT commits/planned.txt
+COMMITLINT audit-fix-commit.txt
+⧗   --- input ---
+test(research): falsify the unqualified off-diagonal write frame
+
+Check an enabled step against all 34 pre-laws, all retained source
+premises and the exact row path. The target remains true while the
+candidate frame is false; do not turn the latter into an assumed fact.
+
+Continue bounded source-projection experiments and repair range test
+imports and atomic paired-source installation.
+✖   Please add rules to your `commitlint.config.js`
+    - Getting started guide: https://commitlint.js.org/guides/getting-started
+    - Example config: https://github.com/conventional-changelog/commitlint/blob/master/%40commitlint/config-conventional/src/index.ts
+    - Or run commitlint with the built-in default config: commitlint --default-config [empty-rules]
+
+✖   found 1 problems, 0 warnings
+ⓘ   Get help: https://github.com/conventional-changelog/commitlint/#what-is-commitlint
+
+COMMITLINT transport-commit.txt
+⧗   --- input ---
+feat(core): propose compensated directed-difference frames
+
+Keep the existing PRE row difference in candidate transport inequalities.
+The directed triangle has an ordinary kernel-checked count proof; all
+proposals still require proof under the actual write guards and the
+existing 32-slot proposal cap is unchanged.
+
+Record negative original-34-law pairs and source-query experiments.
+This checkpoint is not cleared for merge or a whole-helper speed claim.
+✖   Please add rules to your `commitlint.config.js`
+    - Getting started guide: https://commitlint.js.org/guides/getting-started
+    - Example config: https://github.com/conventional-changelog/commitlint/blob/master/%40commitlint/config-conventional/src/index.ts
+    - Or run commitlint with the built-in default config: commitlint --default-config [empty-rules]
+
+✖   found 1 problems, 0 warnings
+ⓘ   Get help: https://github.com/conventional-changelog/commitlint/#what-is-commitlint
+
+COMMITLINT audit-report-commit.txt
+⧗   --- input ---
+docs(research): record the passing range-test import audit
+
+Bind the corrected test and unchanged kernel modules to the import-fix
+commit. The dedicated boat job passes three tests and 14 assertions,
+with no load errors. Keep the unrelated performance gate explicitly open.
+✖   Please add rules to your `commitlint.config.js`
+    - Getting started guide: https://commitlint.js.org/guides/getting-started
+    - Example config: https://github.com/conventional-changelog/commitlint/blob/master/%40commitlint/config-conventional/src/index.ts
+    - Or run commitlint with the built-in default config: commitlint --default-config [empty-rules]
+
+✖   found 1 problems, 0 warnings
+ⓘ   Get help: https://github.com/conventional-changelog/commitlint/#what-is-commitlint
+
 
 --- stderr ---
 Resolving dependencies
-Resolved, downloaded and extracted [276]
+Resolved, downloaded and extracted [280]
 Saved lockfile

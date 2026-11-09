@@ -1,0 +1,9 @@
+FIELD_PAIR_BEGIN closure before
+dd311dd7188db859bdd74c7aaa3af2da4f572226030a68401649a4512f6d4ed2  core/count-recovery/derivability-closure.ts
+{"conditional":true,"directClosure":true,"wholeHelper":false,"law":"inX: stored guard reconfigs/inS or disabled/0","op":0,"packetSha256":"f85affd2f84babfeaef29618e14e68d14bf2c24b9e20369d2c8332a170ff3b9e","searchUnits":524.5843184,"searchWallMs":7001.000206000001,"units":524.5843184,"wallMs":7029.010599,"checked":false,"reads":60,"instances":290,"pairs":[[{"op":"var","name":"a$quorum#"},{"op":"var","name":"i"}],[{"op":"var","name":"b$quorum"},{"op":"var","name":"i"}]],"writes":true,"rowQueries":3,"rowSplits":2,"rowMirrors":0}
+FIELD_PAIR_END closure before
+FIELD_PAIR_BEGIN closure after
+ced396a9a6106a1a4e51e9c22234cc1546e4def4553685ee9c1c75ff47d85e3b  core/count-recovery/derivability-closure.ts
+{"conditional":true,"directClosure":true,"wholeHelper":false,"law":"inX: stored guard reconfigs/inS or disabled/0","op":0,"packetSha256":"f85affd2f84babfeaef29618e14e68d14bf2c24b9e20369d2c8332a170ff3b9e","searchUnits":931.0081708,"searchWallMs":7001.29886,"units":931.0081708,"wallMs":7029.6971539999995,"checked":false,"reads":60,"instances":290,"pairs":[[{"op":"var","name":"a$quorum#"},{"op":"var","name":"i"}],[{"op":"var","name":"b$quorum"},{"op":"var","name":"i"}]],"writes":true,"rowQueries":3,"rowSplits":2,"rowMirrors":0}
+FIELD_PAIR_END closure after
+{"artifact":"track-m-tar-v1","dir":"/home/user/track-m-s18-receipts-odwtvS","format":"tar.gz","parts":2,"bytes":213629,"sha256":"ff63a4e31d33788b800ea1426aef40957f5faee6db0bb6c2874ed332eb28e8f7"}

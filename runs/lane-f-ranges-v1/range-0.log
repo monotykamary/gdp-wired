@@ -1,0 +1,6 @@
+54c58da465575dd41903b3c7712d70d0caa29400dd23d9c083a8ad366b236553  family.json
+42b55a2c54e18b6059fcc8650869288475c185e49a6933d09b9b54564e02d6a9  before-counts.txt
+{"artifact":"track-m-tar-v1","dir":"/home/user/track-m-s18-receipts-TVjiyF","format":"tar.gz","parts":1,"bytes":24756,"sha256":"64d1c398b211fb2f43b4a19c78cc6ba41629af8d8d1660bcde248dda97096ac2"}
+
+--- stderr ---
+cp: 'before-counts.txt' and 'core/counts.ts' are the same file

@@ -1,0 +1,25 @@
+archives/overlap.tar.gz: OK
+archives/star.tar.gz: OK
+replays/family.json: OK
+controls.tar.gz: OK
+{"frozen":true,"tag":"overlap","source":"/home/user/lane-f-pair-S5ImH6/capture/overlap/capture.json.gz","sourceHash":"8409a080951d5c6baaa9bde45c2ec814263e4df73ccec53b93903c3c807b93dd","packetHash":"f85affd2f84babfeaef29618e14e68d14bf2c24b9e20369d2c8332a170ff3b9e","law":"inX: stored guard reconfigs/inS or disabled/0","pass":1,"reads":60,"instances":10}
+LANE_F_BEGIN closure overlap 0 before
+2f199822e39a59283385b16a0dc07a05334282411191c2dd95623ef7b3adc28d  core/count-cases.ts
+80bbbd88df002874f82dd96b8421d2cd9dca42b06659712880ff961f8a7721df  core/count-recovery/row-cases.ts
+e1a5260d63e5c9a84d8d488cb8adcfe69f57751b4ccfba565d820aa8a6227835  core/count-recovery/derivability-closure.ts
+{"conditional":true,"directClosure":true,"wholeHelper":false,"law":"inX: stored guard reconfigs/inS or disabled/0","op":0,"packetSha256":"f85affd2f84babfeaef29618e14e68d14bf2c24b9e20369d2c8332a170ff3b9e","searchUnits":667.1097048,"searchWallMs":4412.835916,"units":667.1097048,"wallMs":4433.102973999999,"checked":false,"reads":60,"instances":290,"pairs":[[{"op":"var","name":"a$quorum#"},{"op":"var","name":"i"}],[{"op":"var","name":"b$quorum"},{"op":"var","name":"i"}]],"writes":null,"rowQueries":1,"rowSplits":0,"rowMirrors":0}
+LANE_F_END closure overlap 0 before
+LANE_F_BEGIN closure overlap 0 after
+6dafd763471a716d77b39ef7424a0ecd48c64505f78554ef72e05a1e615af600  core/count-cases.ts
+d70f618833a9770f75316363b97bfb79efabb50662fc1dae446aa93826563018  core/count-recovery/row-cases.ts
+fdd8a6aee4f3878747401c0d3d58fd76dde2ec79bb4afd765814b1b0ba810b6b  core/count-recovery/derivability-closure.ts
+{"conditional":true,"directClosure":true,"wholeHelper":false,"law":"inX: stored guard reconfigs/inS or disabled/0","op":0,"packetSha256":"f85affd2f84babfeaef29618e14e68d14bf2c24b9e20369d2c8332a170ff3b9e","searchUnits":1070.6946844000001,"searchWallMs":3695.6436510000003,"units":1070.6946844000001,"wallMs":3716.6888979999994,"checked":false,"reads":60,"instances":290,"pairs":[[{"op":"var","name":"a$quorum#"},{"op":"var","name":"i"}],[{"op":"var","name":"b$quorum"},{"op":"var","name":"i"}]],"writes":true,"rowQueries":3,"rowSplits":2,"rowMirrors":0}
+LANE_F_END closure overlap 0 after
+{"artifact":"track-m-tar-v1","dir":"/home/user/track-m-s18-receipts-mW4lcj","format":"tar.gz","parts":7,"bytes":920489,"sha256":"4c349952613db41ce2433bc5f34432cbaa2bc6ce7a8b2427ab2e4548b972489a"}
+
+--- stderr ---
+tar: Ignoring unknown extended header keyword 'LIBARCHIVE.xattr.com.apple.provenance'
+tar: Ignoring unknown extended header keyword 'LIBARCHIVE.xattr.com.apple.provenance'
+tar: Ignoring unknown extended header keyword 'LIBARCHIVE.xattr.com.apple.provenance'
+tar: Ignoring unknown extended header keyword 'LIBARCHIVE.xattr.com.apple.provenance'
+tar: Ignoring unknown extended header keyword 'LIBARCHIVE.xattr.com.apple.provenance'

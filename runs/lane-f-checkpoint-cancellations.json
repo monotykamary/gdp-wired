@@ -1,0 +1,9 @@
+{
+  "reason": "User requested CHECKPOINT NOW; no new work until explicit resume",
+  "tasks": [
+    {"taskId":"3e3b584b-2579-4264-b51a-fc8180aac885","batch":"20261109-154216-0h09af","outDir":"runs/lane-f-triangle-source-v1","purpose":"Combined triangle plus model-demanded source projection, frozen closure pair","stopRequested":true,"terminalStatus":"killed","schedulerLeft":0,"schedulerRunning":0,"usablePartialResults":false,"note":"Output directory empty; only submission metadata/controller log exists. Rerun required."},
+    {"taskId":"0eb5f68c-e57f-409c-9e7f-56e4071a43f3","batch":"20261109-154615-ni19c5","outDir":"runs/lane-f-initial-transport-v1","purpose":"Initial-slot triangle selection, original 34-law AB/BA pairs","stopRequested":true,"terminalStatus":"killed","schedulerLeft":0,"schedulerRunning":0,"usablePartialResults":false,"note":"Output directory empty; no completed worker receipt. Rerun required."},
+    {"taskId":"f15b5ab2-6378-40a4-82b3-6a0e432179f1","batch":"20261109-155653-5l2a8i","outDir":"runs/lane-f-commitlint-v1","purpose":"File-backed commitlint checks","stopRequested":true,"terminalStatus":"already exited before stop","controllerExitCode":0,"workerExitCode":9,"usablePartialResults":true,"note":"Complete failure diagnostic: empty commitlint rules/configuration. Not a lint pass; rerun with explicit configuration after resume."}
+  ],
+  "verification": {"liveOwnedTasks":0,"remainingOwnedBatchWork":0,"noPush":true,"noMerge":true}
+}

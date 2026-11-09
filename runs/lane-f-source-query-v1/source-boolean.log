@@ -1,0 +1,2 @@
+{"mode":"source-boolean","index":0,"inst":{"wit":"writeFrame$0","below":{"op":"var","name":"size"},"terms":[[1,"r$0"],[-1,"r$10"]],"unit":0},"hyps":81,"checked":false,"admissible":false,"searchUnits":153.35176199999998,"searchWallMs":316.549715,"units":153.35176199999998,"wallMs":316.56856000000005}
+{"artifact":"track-m-tar-v1","dir":"/home/user/track-m-s18-receipts-Rjewaf","format":"tar.gz","parts":1,"bytes":3705,"sha256":"88c1ffd2cd965df5f277181f0434ea4433f3fb4786ea1941de2460806a2221ec"}

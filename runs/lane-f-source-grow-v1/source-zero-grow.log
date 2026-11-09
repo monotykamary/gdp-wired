@@ -1,0 +1,2 @@
+{"mode":"source-zero-grow","index":176,"inst":{"wit":"frame$30","below":{"op":"var","name":"size"},"terms":[[1,"r$0"]],"unit":0},"hyps":81,"checked":false,"admissible":false,"searchUnits":151.228728,"searchWallMs":183.44762100000014,"units":151.228728,"wallMs":183.45793000000015}
+{"artifact":"track-m-tar-v1","dir":"/home/user/track-m-s18-receipts-2UnhHt","format":"tar.gz","parts":1,"bytes":3085,"sha256":"cd2c9f1cb7b6b59f94b911507123653683448440e524074b2dec8f427481f268"}

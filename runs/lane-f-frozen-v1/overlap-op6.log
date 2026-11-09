@@ -1,0 +1,29 @@
+archives/overlap.tar.gz: OK
+archives/star.tar.gz: OK
+replays/family.json: OK
+control/core/count-cases.ts: OK
+control/core/count-recovery/derivability-closure.ts: OK
+control/core/count-recovery/row-cases.ts: OK
+{"frozen":true,"tag":"overlap","source":"/home/user/lane-f-pair-QQxAfq/capture/overlap/capture.json.gz","sourceHash":"8409a080951d5c6baaa9bde45c2ec814263e4df73ccec53b93903c3c807b93dd","packetHash":"57d29b7e0de045a73ed089bcfe1e0ee2a1eb462bcc91c90a8af53aca14a3e50f","law":"inX: stored guard reconfigs/inS or disabled/0","pass":1,"reads":60,"instances":10}
+LANE_F_BEGIN op overlap 6 before
+{"observationOnly":true,"changes":[{"path":"core/count-cases.ts","before":"2f199822e39a59283385b16a0dc07a05334282411191c2dd95623ef7b3adc28d","after":"215a169d7d3c4dc18b0e838e2d72a81b7703debb438176b1aec5a476771ae534"},{"path":"core/count-recovery/field-bound-lemmas.ts","before":"d3217b3cd64c716b161cf9a98286e7270f4e414f7aac09c124b2b82707c8859e","after":"749edbebd64449d28573e10571afa0762f3a97478eeebf7b671b50d1f4bd2904"},{"path":"core/count-recovery/frame-lemmas.ts","before":"f38e50d354cca9ccd39a2ee0dc71bff42f19a0833e9f3c6eff6abe90444210e6","after":"4f4cd10ab0a1d049fe4b847de55cc5e01b486e44802d86161213d3c941b5d11a"},{"path":"core/count-recovery/conditional-proof.ts","before":"8d7e0805c85a76235ba3b437b0ace0653794007119444be1eb12ca3eee5c4b4b","after":"761c15eeb5fb1c197b50ca9efefe0def257a56d1551567d31383ef8ae775df7c"}]}
+{"conditional":true,"law":"inX: stored guard reconfigs/inS","op":6,"packetSha256":"57d29b7e0de045a73ed089bcfe1e0ee2a1eb462bcc91c90a8af53aca14a3e50f","allowance":5000,"wallAllowance":4800,"searchUnits":2481.0476788,"searchWallMs":3671.320306,"checked":false,"fieldUnits":0,"frameUnits":0,"attemptCount":0,"knownDemand":0,"notDemandedUnits":0}
+LANE_F_END op overlap 6 before
+LANE_F_BEGIN op overlap 6 after
+{"artifact":"track-m-tar-v1","dir":"/home/user/track-m-s18-receipts-hCIqHR","format":"tar.gz","parts":8,"bytes":1081035,"sha256":"92b4254590b1cd1a4c357aecc8ac5b0d887fc0bdc356b62ecbd48f025ed72b95"}
+
+--- stderr ---
+2 | import {readFileSync,writeFileSync} from 'node:fs'
+3 | import {createHash} from 'node:crypto'
+4 | if(process.platform!=='linux'||process.env.LAB_DISPOSABLE!=='1')throw Error('disposable Linux copy required')
+5 | const changes:any[]=[]
+6 | const change=(p:string,f:(s:string)=>string)=>{const before=readFileSync(p,'utf8'),after=f(before);writeFileSync(p,after);changes.push({path:p,before:createHash('sha256').update(before).digest('hex'),after:createHash('sha256').update(after).digest('hex')})}
+7 | const replace=(s:string,a:string,b:string)=>{if(s.split(a).length!==2)throw Error('nonunique op hook: '+a);return s.replace(a,b)}
+                                                                                ^
+error: nonunique op hook: (...args)=>wallTree('proposal-control',()=>{
+      at replace (/work/gdp-wired/research/track-m/install-lane-b-op.ts:7:77)
+      at <anonymous> (/work/gdp-wired/research/track-m/install-lane-b-op.ts:18:67)
+      at change (/work/gdp-wired/research/track-m/install-lane-b-op.ts:6:90)
+      at /work/gdp-wired/research/track-m/install-lane-b-op.ts:18:1
+
+Bun v1.4.3 (Linux x64)

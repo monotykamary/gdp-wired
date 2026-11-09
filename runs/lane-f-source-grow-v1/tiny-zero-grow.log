@@ -1,0 +1,2 @@
+{"mode":"tiny-zero-grow","index":176,"inst":{"wit":"frame$30","below":{"op":"var","name":"size"},"terms":[[1,"r$0"]],"unit":0},"hyps":2,"checked":true,"admissible":true,"searchUnits":125.37105439999999,"searchWallMs":247.40852900000004,"units":125.37105439999999,"wallMs":685.5647919999999}
+{"artifact":"track-m-tar-v1","dir":"/home/user/track-m-s18-receipts-a4F0c9","format":"tar.gz","parts":1,"bytes":2665,"sha256":"ed158e21f2e5db07fbe6cc0729478385d4ece285f826eea960107e3840d88a77"}

@@ -1,0 +1,27 @@
+archives/overlap.tar.gz: OK
+archives/star.tar.gz: OK
+replays/family.json: OK
+controls.tar.gz: OK
+{"frozen":true,"tag":"overlap","source":"/home/user/lane-f-pair-vlFTsT/capture/overlap/capture.json.gz","sourceHash":"8409a080951d5c6baaa9bde45c2ec814263e4df73ccec53b93903c3c807b93dd","packetHash":"f85affd2f84babfeaef29618e14e68d14bf2c24b9e20369d2c8332a170ff3b9e","law":"inX: stored guard reconfigs/inS or disabled/0","pass":1,"reads":60,"instances":10}
+LANE_F_BEGIN op overlap 3 after
+6dafd763471a716d77b39ef7424a0ecd48c64505f78554ef72e05a1e615af600  core/count-cases.ts
+d70f618833a9770f75316363b97bfb79efabb50662fc1dae446aa93826563018  core/count-recovery/row-cases.ts
+fdd8a6aee4f3878747401c0d3d58fd76dde2ec79bb4afd765814b1b0ba810b6b  core/count-recovery/derivability-closure.ts
+{"observationOnly":true,"changes":[{"path":"core/count-cases.ts","before":"6dafd763471a716d77b39ef7424a0ecd48c64505f78554ef72e05a1e615af600","after":"fc9aaa3ff0e871ae23afd6df9c30136633457533014616c9ff592cf8a6b59fd9"},{"path":"core/count-recovery/field-bound-lemmas.ts","before":"d3217b3cd64c716b161cf9a98286e7270f4e414f7aac09c124b2b82707c8859e","after":"749edbebd64449d28573e10571afa0762f3a97478eeebf7b671b50d1f4bd2904"},{"path":"core/count-recovery/frame-lemmas.ts","before":"f38e50d354cca9ccd39a2ee0dc71bff42f19a0833e9f3c6eff6abe90444210e6","after":"4f4cd10ab0a1d049fe4b847de55cc5e01b486e44802d86161213d3c941b5d11a"},{"path":"core/count-recovery/conditional-proof.ts","before":"8d7e0805c85a76235ba3b437b0ace0653794007119444be1eb12ca3eee5c4b4b","after":"761c15eeb5fb1c197b50ca9efefe0def257a56d1551567d31383ef8ae775df7c"}]}
+{"conditional":true,"frozenActualFamily":true,"units":2001.9581448,"wallMs":2263.646967,"checkWallMs":0.3940869999996721,"checkUnits":0,"law":"inX: stored guard reconfigs/inS or disabled/0","op":3,"packetSha256":"f85affd2f84babfeaef29618e14e68d14bf2c24b9e20369d2c8332a170ff3b9e","allowance":5000,"wallAllowance":4800,"searchUnits":2001.9581448,"searchWallMs":2263.2524989999997,"checked":false,"fieldUnits":0,"frameUnits":0,"attemptCount":0,"rowQueries":0,"rowSplits":0,"rowMirrors":0,"writeFreeCases":0,"knownDemand":0,"notDemandedUnits":0}
+LANE_F_END op overlap 3 after
+LANE_F_BEGIN op overlap 3 before
+2f199822e39a59283385b16a0dc07a05334282411191c2dd95623ef7b3adc28d  core/count-cases.ts
+80bbbd88df002874f82dd96b8421d2cd9dca42b06659712880ff961f8a7721df  core/count-recovery/row-cases.ts
+e1a5260d63e5c9a84d8d488cb8adcfe69f57751b4ccfba565d820aa8a6227835  core/count-recovery/derivability-closure.ts
+{"observationOnly":true,"changes":[{"path":"core/count-cases.ts","before":"2f199822e39a59283385b16a0dc07a05334282411191c2dd95623ef7b3adc28d","after":"215a169d7d3c4dc18b0e838e2d72a81b7703debb438176b1aec5a476771ae534"},{"path":"core/count-recovery/field-bound-lemmas.ts","before":"d3217b3cd64c716b161cf9a98286e7270f4e414f7aac09c124b2b82707c8859e","after":"749edbebd64449d28573e10571afa0762f3a97478eeebf7b671b50d1f4bd2904"},{"path":"core/count-recovery/frame-lemmas.ts","before":"f38e50d354cca9ccd39a2ee0dc71bff42f19a0833e9f3c6eff6abe90444210e6","after":"4f4cd10ab0a1d049fe4b847de55cc5e01b486e44802d86161213d3c941b5d11a"},{"path":"core/count-recovery/conditional-proof.ts","before":"8d7e0805c85a76235ba3b437b0ace0653794007119444be1eb12ca3eee5c4b4b","after":"761c15eeb5fb1c197b50ca9efefe0def257a56d1551567d31383ef8ae775df7c"}]}
+{"conditional":true,"frozenActualFamily":true,"units":2001.9581448,"wallMs":2166.187875,"checkWallMs":0.38839699999971344,"checkUnits":0,"law":"inX: stored guard reconfigs/inS or disabled/0","op":3,"packetSha256":"f85affd2f84babfeaef29618e14e68d14bf2c24b9e20369d2c8332a170ff3b9e","allowance":5000,"wallAllowance":4800,"searchUnits":2001.9581448,"searchWallMs":2165.799529,"checked":false,"fieldUnits":0,"frameUnits":0,"attemptCount":0,"rowQueries":0,"rowSplits":0,"rowMirrors":0,"writeFreeCases":0,"knownDemand":0,"notDemandedUnits":0}
+LANE_F_END op overlap 3 before
+{"artifact":"track-m-tar-v1","dir":"/home/user/track-m-s18-receipts-sLCY0X","format":"tar.gz","parts":9,"bytes":1300634,"sha256":"eb3b54e6c87a848365c4e9a0ff3e571db292c526708b7599a8f220673ce3480e"}
+
+--- stderr ---
+tar: Ignoring unknown extended header keyword 'LIBARCHIVE.xattr.com.apple.provenance'
+tar: Ignoring unknown extended header keyword 'LIBARCHIVE.xattr.com.apple.provenance'
+tar: Ignoring unknown extended header keyword 'LIBARCHIVE.xattr.com.apple.provenance'
+tar: Ignoring unknown extended header keyword 'LIBARCHIVE.xattr.com.apple.provenance'
+tar: Ignoring unknown extended header keyword 'LIBARCHIVE.xattr.com.apple.provenance'

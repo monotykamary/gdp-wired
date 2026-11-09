@@ -1,0 +1,25 @@
+archives/overlap.tar.gz: OK
+archives/star.tar.gz: OK
+replays/family.json: OK
+controls.tar.gz: OK
+{"frozen":true,"tag":"star","source":"/home/user/lane-f-pair-qIo9yE/capture/star/capture.json.gz","sourceHash":"d679ec642e711c0b1b61d730f894961e06aed93c80244aa548d7cffd59766b01","packetHash":"1c25119b2695c7284d2712d95c03823d677a9898a1ae20dc057592e07cd20ab6","law":"inX: no quorum canVote/3","pass":1,"reads":47,"instances":10}
+LANE_F_BEGIN closure star 3 before
+2f199822e39a59283385b16a0dc07a05334282411191c2dd95623ef7b3adc28d  core/count-cases.ts
+80bbbd88df002874f82dd96b8421d2cd9dca42b06659712880ff961f8a7721df  core/count-recovery/row-cases.ts
+e1a5260d63e5c9a84d8d488cb8adcfe69f57751b4ccfba565d820aa8a6227835  core/count-recovery/derivability-closure.ts
+{"conditional":true,"directClosure":true,"wholeHelper":false,"law":"inX: no quorum canVote/3","op":3,"packetSha256":"1c25119b2695c7284d2712d95c03823d677a9898a1ae20dc057592e07cd20ab6","searchUnits":668.8157128000001,"searchWallMs":2567.515798,"units":668.8157128000001,"wallMs":2578.5169730000002,"checked":false,"reads":47,"instances":111,"pairs":[[{"op":"var","name":"a$quorum#"},{"op":"var","name":"j"}],[{"op":"var","name":"b$quorum"},{"op":"var","name":"j"}]],"writes":null,"rowQueries":1,"rowSplits":0,"rowMirrors":0}
+LANE_F_END closure star 3 before
+LANE_F_BEGIN closure star 3 after
+6dafd763471a716d77b39ef7424a0ecd48c64505f78554ef72e05a1e615af600  core/count-cases.ts
+d70f618833a9770f75316363b97bfb79efabb50662fc1dae446aa93826563018  core/count-recovery/row-cases.ts
+fdd8a6aee4f3878747401c0d3d58fd76dde2ec79bb4afd765814b1b0ba810b6b  core/count-recovery/derivability-closure.ts
+{"conditional":true,"directClosure":true,"wholeHelper":false,"law":"inX: no quorum canVote/3","op":3,"packetSha256":"1c25119b2695c7284d2712d95c03823d677a9898a1ae20dc057592e07cd20ab6","searchUnits":886.8751852,"searchWallMs":3781.208257,"units":886.8751852,"wallMs":3792.1781239999996,"checked":false,"reads":47,"instances":111,"pairs":[[{"op":"var","name":"a$quorum#"},{"op":"var","name":"j"}],[{"op":"var","name":"b$quorum"},{"op":"var","name":"j"}]],"writes":true,"rowQueries":3,"rowSplits":2,"rowMirrors":0}
+LANE_F_END closure star 3 after
+{"artifact":"track-m-tar-v1","dir":"/home/user/track-m-s18-receipts-OpgFhM","format":"tar.gz","parts":10,"bytes":1449118,"sha256":"e6b5cc0aced4238921145ae862a6a6814722ae6933a88193b0cc58538e679194"}
+
+--- stderr ---
+tar: Ignoring unknown extended header keyword 'LIBARCHIVE.xattr.com.apple.provenance'
+tar: Ignoring unknown extended header keyword 'LIBARCHIVE.xattr.com.apple.provenance'
+tar: Ignoring unknown extended header keyword 'LIBARCHIVE.xattr.com.apple.provenance'
+tar: Ignoring unknown extended header keyword 'LIBARCHIVE.xattr.com.apple.provenance'
+tar: Ignoring unknown extended header keyword 'LIBARCHIVE.xattr.com.apple.provenance'

@@ -1,0 +1,15 @@
+
+--- stderr ---
+336 | 
+337 | // (a value is a number: a name like constructor or toString, read through an object's prototype, is no value of it)
+338 | const num = (x: unknown): number | undefined => (typeof x === 'number' ? x : undefined)
+339 | export function evalE(e: E, env: Env, st: State, m: Machine): number {
+340 |   switch (e.op) {
+341 |     case 'var': { const v = num(env[e.name]) ?? num(st.scalars[e.name]); if (v === undefined) throw new Error(`no value for ${e.name}`); return v }
+                                                                                                              ^
+error: no value for u$quorum
+      at evalE (/work/gdp-wired/core/machine.ts:341:105)
+      at evalE (/work/gdp-wired/core/machine.ts:355:19)
+      at /work/gdp-wired/research/track-m/lane-f-frame-falsifier.ts:17:51
+
+Bun v1.4.3 (Linux x64)
