@@ -1,3 +1,4 @@
+import {paxosCpu} from './paxos-cpu.ts'
 // A matching worker runs one paired trial at every missing point. Five matching
 // workers give five repeats per commit without occupying a Ryzen for one point.
 import {readFileSync,writeFileSync,mkdtempSync} from 'node:fs'
@@ -12,7 +13,7 @@ const repeats=Number(process.argv[4]??1)
 if(!Number.isInteger(repeats)||repeats<1||repeats>5)throw new Error('invalid repeats')
 if(!Number.isInteger(id)||id<100||revisions.some(rev=>!/^[a-f0-9]{40}$/.test(rev)))throw new Error('invalid cohort')
 const cpu=/^model name\s*:\s*(.+)$/m.exec(readFileSync('/proc/cpuinfo','utf8'))?.[1]?.trim()
-if(cpu!=='AMD EPYC 9455 48-Core Processor'){console.log('PAXOS_COHORT_CPU_SKIP '+JSON.stringify({id,cpu,revisions}));process.exit(0)}
+if(cpu!==paxosCpu){console.log('PAXOS_COHORT_CPU_SKIP '+JSON.stringify({id,cpu,revisions}));process.exit(0)}
 const archive=mkdtempSync(join(tmpdir(),`lane-i-cohort-${id}-`))
 console.log('PAXOS_COHORT_ARCHIVE '+JSON.stringify({id,path:archive}))
 const order=revisions.map((_,i)=>revisions[(i+id)%revisions.length]!),results=[]

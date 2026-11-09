@@ -1,8 +1,9 @@
 import {readFileSync,writeFileSync,existsSync} from 'node:fs'
+import {paxosCpu} from './paxos-cpu.ts'
 import {join} from 'node:path'
 import {gunzipSync} from 'node:zlib'
 import {createHash} from 'node:crypto'
-export const base='b09da82d9ada6e0cdc31f943292cfea727f5752e',cpu='AMD EPYC 9455 48-Core Processor'
+export const base='b09da82d9ada6e0cdc31f943292cfea727f5752e',cpu=paxosCpu
 const hash=(s:string)=>createHash('sha256').update(s).digest('hex')
 export const expectedHarness:Record<string,Record<string,string>>=JSON.parse(readFileSync(new URL('./paxos-harness-hashes.json',import.meta.url),'utf8'))
 const lines=(s:string,prefix='')=>s.split('\n').flatMap(line=>{if(prefix&&!line.startsWith(prefix))return[];try{return[JSON.parse(line.slice(prefix.length))]}catch{return[]}})

@@ -1,0 +1,66 @@
+{
+  "issues": [],
+  "cpu": "AMD EPYC 9455 48-Core Processor",
+  "skips": 15,
+  "acceptedReceipts": 1,
+  "revision": "bf01190119f9409077a36e11a4a5b763fb6c1cad",
+  "attempted": 5,
+  "complete": 5,
+  "lost": 5,
+  "base": {
+    "ms": 21771,
+    "work": 6915544,
+    "full": 1037946
+  },
+  "candidate": {
+    "ms": 59004,
+    "work": 121496514,
+    "full": 11464485
+  },
+  "paired": {
+    "msDelta": 37233,
+    "generationDelta": -3039.7729359999976,
+    "postGenerationDelta": 40194.057109
+  },
+  "generationWallMs": {
+    "base": 16652.344218,
+    "candidate": 13691.287108999997
+  },
+  "finitePassMs": {
+    "base": 0,
+    "candidate": 0
+  },
+  "topLawDeltas": [
+    {
+      "law": "one value decided",
+      "full": 1224109.4092999997,
+      "work": 21074221,
+      "wallMs": 3369.184129000003
+    },
+    {
+      "law": "every x, y, z, w with x <= 63 ∧ y < 64 ∧ z < 64 ∧ w < 64 ∧ ¬(z = w): never 1 <= Vote[64·64·x + y + z] and 1 <= Proposal[64·y + w]",
+      "full": 694464.0320000015,
+      "work": 8950802,
+      "wallMs": 1848.4891209999987
+    },
+    {
+      "law": "every x, y, z, w with x <= 63 ∧ y < 64 ∧ z < 64 ∧ w < 64 ∧ ¬(z = w): never 1 <= Vote[64·64·x + y + z] and 1 <= Decision[64·y + w]",
+      "full": 694457.5010000002,
+      "work": 9012186,
+      "wallMs": 1796.4776530000017
+    },
+    {
+      "law": "every x, y, z with x <= 63 ∧ y < 64 ∧ z < 64: never 1 <= Vote[64·64·x + y + z] and pmaxr is 1",
+      "full": 584067.2881999994,
+      "work": 8534753,
+      "wallMs": 1754.0715389999968
+    },
+    {
+      "law": "every x, y, z, w with x <= 63 ∧ y < 64 ∧ z < 64 ∧ w < 64 ∧ ¬(z = w): never 1 <= Vote[64·64·x + y + z] and 1 <= Vote[64·64·x + y + w]",
+      "full": 563470.0839999979,
+      "work": 8502009,
+      "wallMs": 1378.8659210000042
+    }
+  ],
+  "finalGate": false
+}
