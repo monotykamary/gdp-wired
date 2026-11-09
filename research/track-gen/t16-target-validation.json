@@ -35,7 +35,9 @@
     "research/track-gen/t16-domain-hybrid.ts": "4bb676f1a87a1eccc59706f8dbdd51699c354b8430a6b0982841e54e911849a2"
   },
   "productionEnabled": false,
-  "pilot": "pending",
+  "pilot": "completed: six exits 0, zero named or other new drops; independent replay and phase diagnostic pending",
   "implementationCommit": "8dfb319e",
-  "pilotTask": "f691f675-baba-46d1-89a4-da15d1deb8a9"
+  "pilotTask": "f691f675-baba-46d1-89a4-da15d1deb8a9",
+  "pilotBatch": "20261110-015017-i4ke09",
+  "analysisTask": "3cc83099-96a4-4209-837f-6b35f5264892"
 }

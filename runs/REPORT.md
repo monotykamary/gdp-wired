@@ -18,9 +18,9 @@ checkpoint/shortcut logs were independently replayed. Production tiny
 screening stays disabled: only three of the named seven were caught.
 Bounded grouping reached four named drops, not five. Operation-first was
 rejected. Per coordinator direction, post-target pruning is now opt-in
-on top of state-first: 55 tests and static checks pass; the pilot is running.
+on top of state-first: 55 tests pass, but the first pilot caught no drops.
 
-## Current work: post-target pruning validated; six-probe pilot running
+## Current work: post-target differential checks pass; pilot caught zero
 
 Coordinator-directed successor to the rejected operation-first trial. The
 state-first traversal is retained. Each target's postcondition is substituted
@@ -57,10 +57,25 @@ Ryzen 9 9950X VMs (2/8 vCPUs for tests, 8/8 for type/lint). Receipts:
 `research/track-gen/t16-target-validation.json`; gzip logs under
 `runs/t16-target-check/`. Implementation committed as `8dfb319e`.
 
-The unchanged six-probe pilot is submitted: task
-`f691f675-baba-46d1-89a4-da15d1deb8a9`, output `runs/t16-target-probe/`,
-submission class, isolated large VMs, mode `T16_POST_TARGET=1`. Results and
-independent witness replay are pending. Reused canonical archive `6288b666`
+The six-probe pilot `20261110-015017-i4ke09` completed, all exits 0,
+mode `T16_POST_TARGET=1`. **Zero new drops in every run**, so it fails the
+five-of-seven bar. Active walls were 1900.179 / 1943.100 / 1901.265 ms for
+the original family and 1900.167 / 1900.104 / 1900.173 ms for survivors;
+all are below 2 s. Process durations (up to 9.9 s, including unpack/install)
+are not algorithm wall. Every round hits its wall before an `onTiny` receipt,
+so absence of round statistics does not establish where the time went.
+
+Two independent submission-class jobs now run in task
+`3cc83099-96a4-4209-837f-6b35f5264892`, output `runs/t16-target-analysis/`:
+full-family replay of all six compressed payloads, and a **diagnostic-only**
+profile of setup/target compilation versus enumeration. The diagnostic adds
+one final phase/counter log per pass, not a different time cap. Its separate
+core overlay hash is
+`d8bea066fad2f7b40b146008da4438320d2a8ca34c6094866217f19523175f6d`.
+The measured source is unchanged. If expansion is the bottleneck, the next
+candidate is a shared post-state expression circuit instead of repeatedly
+expanding the source transition into every target. This is a hypothesis,
+not a demonstrated cause or a promised speedup. Production remains disabled. Reused canonical archive `6288b666`
 plus the small
 `runs/t16-target-overlay/`. Compiler SHA-256
 `ed2a8ceeb8aad234015afa5a1122bd8e3c71f96318c55d404338c8963e440c02`,
