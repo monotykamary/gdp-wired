@@ -18,7 +18,34 @@ screening stays disabled. Next: collect all six exact exits/placements,
 independently replay their `HYBRID_CTI`s and count only the named seven;
 then keep iterating against the five-of-seven / <=2 s falsifier.
 
-## Current execution hold — coordinator memory notice
+## Execution reopened — immutable retries
+
+The coordinator lifted the submission hold after the blob lock freed, while
+retaining the at-most-one-subagent cap (this lane has none). Before any retry,
+`supercomputer scheduler status` and all four output directories were checked:
+`20261110-000752-9cbvob` is still registered with six left / zero running;
+the three failed later batches are absent, and their output directories are
+empty. The original batch was **not** resubmitted or killed.
+
+A new, unchanged local clone at `/tmp/gdp-lane-a-frozen.uLpIQc/current`
+is pinned to `19ad4ab4e378644d325d44b9e47c29d5c9d64129`, with exact vendor
+gitlinks and the frozen data copy. Two retries only are now submitted:
+
+- Required `t16-domain-check-jobs.json`, output
+  `runs/t16-partial-immutable-check/`, task
+  `a459f935-d7a4-4171-99da-0782e564d87b`.
+- Six optimized hybrid probes, output
+  `runs/t16-partial-immutable-hybrid/`, task
+  `828beead-707f-4141-b7d5-2bc133919cd7`.
+
+Both use `supercomputer --repo /tmp/gdp-lane-a-frozen.uLpIQc/current`,
+`--timing --vm-type large`, normal scheduler classes (gate / submission),
+no forced VM count. The required check includes the complete current source,
+so it supersedes a separate retry of the failed final-source check; there is
+no duplicate test batch. Results remain pending. Do not edit the clone while
+it uploads or runs. No gate or proof claim.
+
+## Historical execution hold — coordinator memory notice
 
 The coordinator reported laptop memory pressure and a blocked shared
 `blob-cache.lock`, and directed all lanes **not to resubmit or kill submitted
