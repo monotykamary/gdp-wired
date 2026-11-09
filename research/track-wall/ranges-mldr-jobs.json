@@ -1,0 +1,26 @@
+[
+ {
+  "name": "mldr-trace-1",
+  "vm_type": "large",
+  "cpu": 2,
+  "memory": 8192,
+  "timeout": 1500,
+  "cmd": "set -o pipefail; mkdir -p base && tar -xf baselines/base.tar -C base && (cp -R vendor/. base/vendor/ 2>/dev/null || true) && bun install --frozen-lockfile >/dev/null && (cd base && bun install --frozen-lockfile >/dev/null) && grep -m1 'model name' /proc/cpuinfo; echo PAIR mine; (cd . && GDP_COUNTS_TRACE=3 /usr/bin/time -f 'PROCESS_SECONDS mine %e EXIT %x' timeout -s KILL 60 bun research/protocols/ic3syn/run.ts --ms 60000 --only mldr --skip broken > out.json 2> err.log; echo VERDICT $(cut -c1-600 out.json); grep PROCESS_SECONDS err.log; grep 'counts: try' err.log | grep -i 'canVote/3\\|disabled/0\\|rows agree\\|one primary\\|canVote/1\\|reconfigs/inS |' | cut -c1-230; grep 'counts: round\\|counts: prof' err.log | cut -c1-300; grep -c 'counts: try' err.log) ; echo PAIR base; (cd base && GDP_COUNTS_TRACE=3 /usr/bin/time -f 'PROCESS_SECONDS base %e EXIT %x' timeout -s KILL 60 bun research/protocols/ic3syn/run.ts --ms 60000 --only mldr --skip broken > out.json 2> err.log; echo VERDICT $(cut -c1-600 out.json); grep PROCESS_SECONDS err.log; grep 'counts: try' err.log | grep -i 'canVote/3\\|disabled/0\\|rows agree\\|one primary\\|canVote/1\\|reconfigs/inS |' | cut -c1-230; grep 'counts: round\\|counts: prof' err.log | cut -c1-300; grep -c 'counts: try' err.log)"
+ },
+ {
+  "name": "mldr-trace-2",
+  "vm_type": "large",
+  "cpu": 2,
+  "memory": 8192,
+  "timeout": 1500,
+  "cmd": "set -o pipefail; mkdir -p base && tar -xf baselines/base.tar -C base && (cp -R vendor/. base/vendor/ 2>/dev/null || true) && bun install --frozen-lockfile >/dev/null && (cd base && bun install --frozen-lockfile >/dev/null) && grep -m1 'model name' /proc/cpuinfo; echo PAIR base; (cd base && GDP_COUNTS_TRACE=3 /usr/bin/time -f 'PROCESS_SECONDS base %e EXIT %x' timeout -s KILL 60 bun research/protocols/ic3syn/run.ts --ms 60000 --only mldr --skip broken > out.json 2> err.log; echo VERDICT $(cut -c1-600 out.json); grep PROCESS_SECONDS err.log; grep 'counts: try' err.log | grep -i 'canVote/3\\|disabled/0\\|rows agree\\|one primary\\|canVote/1\\|reconfigs/inS |' | cut -c1-230; grep 'counts: round\\|counts: prof' err.log | cut -c1-300; grep -c 'counts: try' err.log) ; echo PAIR mine; (cd . && GDP_COUNTS_TRACE=3 /usr/bin/time -f 'PROCESS_SECONDS mine %e EXIT %x' timeout -s KILL 60 bun research/protocols/ic3syn/run.ts --ms 60000 --only mldr --skip broken > out.json 2> err.log; echo VERDICT $(cut -c1-600 out.json); grep PROCESS_SECONDS err.log; grep 'counts: try' err.log | grep -i 'canVote/3\\|disabled/0\\|rows agree\\|one primary\\|canVote/1\\|reconfigs/inS |' | cut -c1-230; grep 'counts: round\\|counts: prof' err.log | cut -c1-300; grep -c 'counts: try' err.log)"
+ },
+ {
+  "name": "mldr-trace-3",
+  "vm_type": "large",
+  "cpu": 2,
+  "memory": 8192,
+  "timeout": 1500,
+  "cmd": "set -o pipefail; mkdir -p base && tar -xf baselines/base.tar -C base && (cp -R vendor/. base/vendor/ 2>/dev/null || true) && bun install --frozen-lockfile >/dev/null && (cd base && bun install --frozen-lockfile >/dev/null) && grep -m1 'model name' /proc/cpuinfo; echo PAIR mine; (cd . && GDP_COUNTS_TRACE=3 /usr/bin/time -f 'PROCESS_SECONDS mine %e EXIT %x' timeout -s KILL 60 bun research/protocols/ic3syn/run.ts --ms 60000 --only mldr --skip broken > out.json 2> err.log; echo VERDICT $(cut -c1-600 out.json); grep PROCESS_SECONDS err.log; grep 'counts: try' err.log | grep -i 'canVote/3\\|disabled/0\\|rows agree\\|one primary\\|canVote/1\\|reconfigs/inS |' | cut -c1-230; grep 'counts: round\\|counts: prof' err.log | cut -c1-300; grep -c 'counts: try' err.log) ; echo PAIR base; (cd base && GDP_COUNTS_TRACE=3 /usr/bin/time -f 'PROCESS_SECONDS base %e EXIT %x' timeout -s KILL 60 bun research/protocols/ic3syn/run.ts --ms 60000 --only mldr --skip broken > out.json 2> err.log; echo VERDICT $(cut -c1-600 out.json); grep PROCESS_SECONDS err.log; grep 'counts: try' err.log | grep -i 'canVote/3\\|disabled/0\\|rows agree\\|one primary\\|canVote/1\\|reconfigs/inS |' | cut -c1-230; grep 'counts: round\\|counts: prof' err.log | cut -c1-300; grep -c 'counts: try' err.log)"
+ }
+]
