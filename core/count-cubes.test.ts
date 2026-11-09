@@ -1,5 +1,5 @@
 import {expect, test} from 'bun:test'
-import {type Machine, type Law, type State, all, any, atMost, get, ite, less, n, not, plus, same, times, x} from './machine.ts'
+import {type Machine, type Law, type State, all, any, atMost, carriedView, get, ite, less, n, not, plus, same, times, x} from './machine.ts'
 import {countCubes} from './count-cubes.ts'
 import {finiteEvaluator, finiteHoudini} from './finite-houdini.ts'
 import {finiteModelChecker} from './finite-model.ts'
@@ -61,7 +61,7 @@ test('finite Houdini reaches a fixpoint as removed premises admit new predecesso
 test('a completed model is a CTI only after a real step from the whole family', () => {
   const m = counter(), law = {name: 'zero', holds: same(x('value'), n(0))}, check = finiteModelChecker(m)
   expect(check([law], law, {value: 0}).genuine).toBe(true)
-  expect(check([law], law, {value: 1}).genuine).toBe(false)
+  expect(check([law], law, {value: 1})).toMatchObject({genuine: false, reason: 'predecessor violates the family', failedLaw: 'zero'})
   expect(check([law, {name: 'inconsistent', holds: same(x('value'), n(1))}], law, {value: 0}).genuine).toBe(false)
   expect(check([law], law, {value: 0}, () => true).genuine).toBe(false)
   const unchanged = {...m, step: {}}
@@ -78,7 +78,41 @@ test('finite model certification recomputes count cells and rejects bad requests
 test('an unsupported predecessor law cannot certify a finite model', () => {
   const m = counter(), zero = {name: 'zero', holds: same(x('value'), n(0))}
   const unsupported: Law = {name: 'unbounded', forall: 'i', holds: same(times(2, x('i')), x('i'))}
-  expect(finiteModelChecker(m)([zero, unsupported], zero, {value: 0}).genuine).toBe(false)
+  expect(finiteModelChecker(m)([zero, unsupported], zero, {value: 0})).toMatchObject({genuine: false, reason: 'unsupported predecessor evaluation', failedLaw: 'unbounded'})
+})
+
+test('lazy derived counts stop inside the loop and do not cache partial sums', () => {
+  const m: Machine = {name: 'lazy count', params: ['N'], inputs: [], state: {}, counts: {Total: {j: 'row', key: 'member', below: x('N'), body: n(1)}}, step: {}}
+  let checkpoints = 0, cancel = true
+  const view = carriedView(m, {scalars: {}, maps: {}}, {}, undefined, {N: 1000}, () => { if (cancel && ++checkpoints === 3) throw new Error('stop count') })
+  expect(() => view.maps.Total!.get(0)).toThrow('stop count')
+  expect(checkpoints).toBe(3)
+  expect(view.maps.Total!.has(0)).toBe(false)
+  cancel = false
+  expect(view.maps.Total!.get(0)).toBe(1000)
+  const wall = performance.now() + 20
+  expect(() => withWall(wall, () => carriedView(m, {scalars: {}, maps: {}}, {}, undefined, {N: 5_000_000}).maps.Total!.get(0))).toThrow(WallExpired)
+})
+test('finite model stop reaches both precondition counts and transition counts', () => {
+  const m: Machine = {name: 'count cancellation', params: ['N'], inputs: [], state: {value: n(0)}, counts: {Total: {j: 'row', key: 'member', below: x('N'), body: n(1)}}, step: {state: {value: get('Total', n(0))}}}
+  const zero: Law = {name: 'zero', holds: same(x('value'), n(0))}, total: Law = {name: 'total', holds: same(get('Total', n(0)), x('N'))}
+  let before = 0
+  expect(finiteModelChecker(m)([total, zero], zero, {N: 1_000_000, value: 0}, () => ++before >= 5)).toMatchObject({genuine: false, reason: 'attempt exhausted'})
+  let during = 0
+  expect(finiteModelChecker(m)([zero], zero, {N: 1_000_000, value: 0}, () => ++during >= 6)).toMatchObject({genuine: false, reason: 'attempt exhausted'})
+  expect(before).toBeLessThan(10)
+  expect(during).toBeLessThan(10)
+})
+test('finite CTIs respect declared facts, including unsupported facts and derived state', () => {
+  const zero: Law = {name: 'zero', holds: same(x('value'), n(0))}
+  const m: Machine = {name: 'fact control', params: ['p'], inputs: [], state: {value: n(0)}, facts: [{name: 'p fixed', holds: same(x('p'), n(0))}], step: {state: {value: plus(x('p'), n(1))}}}
+  const check = finiteModelChecker(m)
+  expect(check([zero], zero, {p: 1, value: 0})).toMatchObject({genuine: false, reason: 'declared fact is false', failedLaw: 'p fixed'})
+  expect(check([zero], zero, {p: 0, value: 0}).genuine).toBe(true)
+  expect(finiteHoudini(m, m, [], [zero], [{p: {p: 1}, sts: [state(0)]}], {randomStates: 0, requests: 1})).toEqual([zero])
+  const unsupported: Machine = {...m, facts: [{name: 'function fact', forall: 'k', holds: same(get('f', x('k')), x('k'))}], fns: {f: {js: 'x => x'}}}
+  expect(finiteModelChecker(unsupported)([zero], zero, {p: 0, value: 0})).toMatchObject({genuine: false, reason: 'unsupported declared fact'})
+  expect(finiteModelChecker({...m, sums: {total: {key: 'k', term: n(0)}}})([zero], zero, {p: 0, value: 0}).genuine).toBe(false)
 })
 
 test('finite frontiers expose both one-sided cube boundaries and field limits', () => {

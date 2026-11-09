@@ -7,6 +7,7 @@
 // every other key the step reads).
 import {boundOf, crossFree, eachParts, historyMachine, tuple, keyTerm, mapArities, plainKey, scope, sumRuntime, tupleParts} from '../kernel/kernel.ts'
 import {type Constraint, type Lin, type Verdict, add, env, eq, k, le, lt, nat, scale, show, solve, sub, v} from './solver.ts'
+import {checkWall} from './wall.ts'
 
 // The one generator of the repo's random draws: x' = (1103515245 x + 12345) mod 2^31, exact (Math.imul). In doubles
 // the product passes 2^53 and rounds, which folds every seed into one of six short cycles (61 to 10,466 steps; 98.8% of
@@ -573,7 +574,7 @@ class CountCells extends Map<number, number> {
   constructor(private readonly at: (x: number) => number) { super() }
   override get(x: number): number { let v = super.get(x); if (v === undefined) { v = this.at(x); super.set(x, v) } return v }
 }
-export function carriedView(m: Machine, st: State, input: Request, rename: (map: string) => string = map => map, params?: Env): State {
+export function carriedView(m: Machine, st: State, input: Request, rename: (map: string) => string = map => map, params?: Env, checkpoint?: () => void): State {
   const counts = Object.entries(m.counts ?? {})
   if (!m.inputMaps?.length && !counts.length) return st
   const maps = {...st.maps}, defaults = {...st.defaults}
@@ -591,7 +592,10 @@ export function carriedView(m: Machine, st: State, input: Request, rename: (map:
       maps[rename(c)] = new CountCells(x => {
         const e1 = d.base ? {...env0, [d.j]: Math.floor(x / d.base), [d.lo!]: x % d.base} : {...env0, [d.j]: x}, n = evalE(d.below, e1, view, m)
         let sum = 0
-        for (let k = 0; k < n; k++) sum = exact(sum + evalE(d.body, {...e1, [d.key]: k}, view, m))
+        for (let k = 0; k < n; k++) {
+          if ((k & 255) === 0) { checkWall('derived count'); checkpoint?.() }
+          sum = exact(sum + evalE(d.body, {...e1, [d.key]: k}, view, m))
+        }
         return sum
       })
       defaults[rename(c)] = 0
@@ -606,7 +610,7 @@ export const numbersOf = (input: Request): Record<string, number> => Object.from
 // it (a caller that may send one checks first, as gdp-wired/gdp's gate does).
 const refused = (m: Machine) => `${m.name}: the request fails the rule's assumption, so no proof covers the step it would take`
 // The interpreter: persistent (a step leaves the state it was given as it was), so searches can branch from any state.
-export function interpret(m: Machine) {
+export function interpret(m: Machine, checkpoint?: () => void) {
   const {h, plain, carried} = runnable(m), arity = mapArities(plain)
   const args = (params: Env, input?: Request): Env => {
     const env: Env = {}
@@ -614,7 +618,7 @@ export function interpret(m: Machine) {
     if (input) for (const i of carried) env[i] = naturalIn(input[i], `input ${i}`)
     return env
   }
-  const viewed = (st: State, input: Request, params?: Env): State => carriedView(m, st, input, undefined, params)
+  const viewed = (st: State, input: Request, params?: Env): State => carriedView(m, st, input, undefined, params, checkpoint)
   // The records a request's queries read: with pruning, those not yet spent at its order.
   const live = (env: Env, st: State): Env[] => {
     const records = st.history!

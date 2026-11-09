@@ -7,12 +7,11 @@ import {keyValue} from '../kernel/prove.ts'
 import {checkWall, WallExpired} from './wall.ts'
 export type FiniteModel = {genuine: true, params: Record<string, number>, pre: State, request: Request, post: State} | {genuine: false, reason: string, failedLaw?: string}
 export function finiteModelChecker(m: Machine) {
-  const run = interpret(m)
   return (family: Law[], law: Law, model: Record<string, number>, stop: () => boolean = () => false): FiniteModel => {
     checkWall('finite model completion')
     const unknown = (reason: string, failedLaw?: string): FiniteModel => ({genuine: false, reason, ...(failedLaw ? {failedLaw} : {})})
     if (stop()) return unknown('attempt exhausted')
-    if (m.history || m.leasts) return unknown('unsupported state environment')
+    if (m.history || m.leasts || Object.keys(m.sums ?? {}).length) return unknown('unsupported state environment')
     const params = Object.fromEntries(m.params.map(k => [k, model[k] ?? 0]))
     const pre: State = {scalars: Object.fromEntries(Object.keys(m.state).map(k => [k, model[k] ?? 0])), maps: Object.fromEntries(Object.keys(m.maps ?? {}).map(k => [k, new Map<number, number>()])), defaults: Object.fromEntries(Object.keys(m.maps ?? {}).map(k => [k, 0]))}
     const request: Request = Object.fromEntries(m.inputs.map(k => [k, model[k] ?? 0]))
@@ -29,12 +28,18 @@ export function finiteModelChecker(m: Machine) {
       if (cells.has(key) && cells.get(key) !== value) return unknown('inconsistent finite aliases')
       cells.set(key, value)
     }
+    const checkpoint = () => { checkWall('finite transition'); if (stop()) throw new Error('finite transition stopped') }
     const evaluate = finiteEvaluator(m, stop)
     try {
+      const run = interpret(m, checkpoint)
       if (m.pre && evaluate({name: 'finite parameter precondition', holds: m.pre}, params, pre) !== true) return unknown('parameter precondition')
+      for (const fact of m.facts ?? []) {
+        const truth = evaluate(fact, params, pre)
+        if (truth !== true) return unknown(stop() ? 'attempt exhausted' : truth === false ? 'declared fact is false' : 'unsupported declared fact', fact.name)
+      }
       for (const member of new Set([...family, law])) {
         const truth = evaluate(member, params, pre)
-        if (truth !== true) return unknown(truth === false ? 'predecessor violates the family' : 'unsupported predecessor evaluation', member.name)
+        if (truth !== true) return unknown(stop() ? 'attempt exhausted' : truth === false ? 'predecessor violates the family' : 'unsupported predecessor evaluation', member.name)
       }
       if (stop()) return unknown('attempt exhausted')
       const post = run.step(params, pre, request)
@@ -42,7 +47,7 @@ export function finiteModelChecker(m: Machine) {
       return {genuine: true, params, pre, request, post}
     } catch (error) {
       if (error instanceof WallExpired) throw error
-      return unknown('unsupported evaluation or refused request')
+      return unknown(stop() ? 'attempt exhausted' : 'unsupported evaluation or refused request')
     }
   }
 }

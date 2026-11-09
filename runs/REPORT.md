@@ -4,6 +4,29 @@ NOT GATE GREEN. Branch `claude/mldr-leaves` starts at `d4479299`; baseline main 
 
 Overlap disclosure: a minimal model-observation hook in `core/count-recovery/derivability-closure.ts` is necessary to feed row selection; Lane B otherwise retains that file and §§15.4/15.5. No kernel edits, hand laws, production budget changes, or edits to other worktrees. Measurements will distinguish frozen legacy op packets, checksum-verified actual E-14 family, and strict original harness. Only Lane D's exact SHA-bound final receipt can support GATE GREEN.
 
+# Lane A — AUDIT-BLOCKER fixes under verification
+
+Lane D found two defects in `c9d7f823`: derived-count evaluation did not
+check cancellation inside its loop, and CTI certification omitted declared
+`m.facts`. Both are being fixed before further gates. The runtime count loop
+now checks the wall and accepts a propagated checkpoint; the finite evaluator
+and actual interpreter step pass the per-attempt stop through to that loop.
+Partial count sums are never cached. CTI certification checks every supported
+fact and refuses unsupported declarations; the finite sampler also includes
+preconditions/facts and declines unsupported derived sum-state machines.
+
+`runs/t16-audit-fix-v1` is validating focused regressions, including the exact
+5,000,000-bound / 20 ms wall case and the `p=1` model under a declared `p=0`
+fact. The repair commit is being published for review while test receipts are
+pending. Lane D re-audit remains required; no resolution or GATE GREEN is
+claimed. Both focused jobs are still awaiting remote receipts: gate batch
+`20261109-134201-sn9lie` and interactive batch `20261109-134617-k7jlfk`.
+Read-only scheduler status reports 58 idle large VMs while these jobs and
+the worker’s earlier short pilots remain marked running past their nominal
+timeouts. No shared scheduler or VM was restarted, and no duplicate gate
+is being launched. Previously launched
+`c9d7f823` regression probes and old sampler probes are not final gate evidence.
+
 # Lane A / T-14 iteration receipts complete; Section 16 in progress
 
 The E-14 + per-attempt-sharing implementation (`1681e8e5`) and the test-only
