@@ -12,7 +12,7 @@ Gate: **PENDING**. Branch `claude/ci-first-class`; starting revision `b788e1959b
 
 ## Item 2 — built-in mutation check
 
-**Starting status: missing.** `core/cli.ts:843-859` dispatches only `check` and `draft`; `package.json` has no mutation subpath or script. The existing research mutants are corpus-specific, not a source-edit/suite runner. Implemented `gdp-wired mutate` / `gdp-wired-cli mutate` and the separate Node-only `checkMutations` API. Preflight requires an unambiguous source match, unchanged baseline bytes, regular non-symlink files, and passing unmutated suites. Each mutant restores exact bytes in `finally`; timeouts, signals, missing commands and output overflow are errors, not kills. Markdown/JSON receipts and designated-law-suite failure are covered by the successful v4 focused tests. Automatic mutation derivation remains an explicitly deferred stretch goal.
+**Starting status: missing.** `core/cli.ts:843-859` dispatches only `check` and `draft`; `package.json` has no mutation subpath or script. The existing research mutants are corpus-specific, not a source-edit/suite runner. Implemented `gdp-wired mutate` / `gdp-wired-cli mutate` and the separate Node-only `checkMutations` API. Preflight requires an unambiguous source match, unchanged baseline bytes, regular non-symlink files, and passing unmutated suites. Each mutant restores exact bytes in `finally`; timeouts, signals, missing commands and output overflow are errors, not kills. Markdown/JSON receipts and designated-law-suite failure are covered by the successful v4 focused tests. The automatic term-mutant stretch goal was subsequently implemented at the coordinator's request; see the follow-up section below.
 
 ## Item 3 — explicit runtime compilation
 
@@ -156,6 +156,24 @@ console.log(f.run({ready: false})) // interpreted default
 ## Coverage-preservation correction
 
 Review of the runtime commit diff caught that the new CSP test file had replaced the pre-existing `core/runtime.test.ts` fuzz regressions. The original file was restored byte-for-byte from the baseline, and the new tests moved to `core/runtime-default.test.ts`; the quick-suite entry now names only that new file. No existing runtime coverage is intentionally removed. This is a separate corrective commit, not a history rewrite.
+
+## Coordinator follow-up: automatic candidates and independent review
+
+At the coordinator's request, the item-2 stretch goal is now implemented and under focused validation: `deriveDecisionMutants(machine, {file, render, choices?, maxCandidates?})` derives guard negations, dropped conjuncts, widened encoded choices and flipped comparisons. A trusted explicit printer maps the original and mutated scalar terms to the source artifact under test; it does not pretend to reverse arbitrary handwritten source. The normal mutation API performs preflight/baseline/restoration and runs individually named law suites for kill attribution. Original laws, assumptions, preconditions and initial state remain unchanged. Boat batch `20261110-014547-jg31oj` passed 33 mutation/export tests, including cap/determinism/refusal cases and the synthetic per-law end-to-end checks; check, lint, build and 28 built-export/runtime tests also passed. Every generated candidate was killed by the aggregate law suite and at least one individually named law. The detailed Markdown table will be captured in the follow-up review-fix validation.
+
+New automatic-candidate API (five-line example):
+
+```ts
+import {bool, fun} from 'gdp-wired'
+import {deriveDecisionMutants} from 'gdp-wired/mutate'
+const f = fun('permit').inputs({ready: bool}).returns(({ready}) => ({ok: ready}))
+const edits = deriveDecisionMutants(f.rule.machine, {file: 'decision.ts', render: m => `export default ${JSON.stringify(m)}\n`})
+console.log(edits) // use these as checkMutations({mutants: edits, ...})
+```
+
+The one independent read-only review is running with exact model `openai/gpt-6.1-terra` (agent `60bbeb8fce8246efb2c7a9e11af5a3ff`), pinned to `b788e195..a7aaa1b2`. It covers extractor source soundness, finite comparison claims, mutation safety and default dynamic-code paths. Findings will be recorded and fixed before final gates.
+
+The clean committed pre-integration test run (`a7aaa1b2`, batch `20261110-014415-u5ulmj`) is still active. Its separate original runtime-guards/history suite passed. The seven full quick-suite shards are not yet claimed. This is submission-class validation, not the final post-integration gate.
 
 ## Pending
 

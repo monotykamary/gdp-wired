@@ -10,7 +10,8 @@ noted), each with the command that reproduces it.
 - **Finite comparison:** `fun.compare` and `rule.compare` report input-domain coverage, with deterministic failing
   cases and bounded fallback for unbounded domains. Coverage is a test result, not a formal proof of every history.
 - **Mutation checking:** `gdp-wired/mutate` and `gdp-wired mutate suite.ts` run bounded source-edit checks in isolated
-  copies, retaining witnesses for killed and surviving variants.
+  copies, retaining witnesses for killed and surviving variants. `deriveDecisionMutants` derives bounded scalar-term
+  candidates through an explicit source printer; named per-law suites attribute their kills.
 - **Runtime migration:** `fun.run()` now interprets terms. `fun.compiled()` explicitly returns a cached generated
   callable; declared helper source requires this opt-in. Native arithmetic terms remain available without dynamic
   compilation. See [the CI-only guide](docs/ci-only.md) for limits, measurements and migration details.

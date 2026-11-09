@@ -75,6 +75,7 @@ test('mutation runner: separate public subpath with no runtime dependencies', as
   expect(build.files).toContain('core/mutate.ts')
   const mod = await import(built ? `${pkg.name}/mutate` : `${root}core/mutate.ts`) as Record<string, unknown>
   expect(typeof mod.checkMutations).toBe('function')
+  expect(typeof mod.deriveDecisionMutants).toBe('function')
 })
 
 test('Effect Schema: public typed frontend stays on the existing optional Effect subpath', async () => {

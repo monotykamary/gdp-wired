@@ -107,7 +107,17 @@ if (!result.passed) process.exitCode = 1
 
 The runner preflights every edit, requires exactly one `from` match, rejects source symlinks and no-op edits, verifies every suite passes **unmutated**, then applies each edit separately. It restores the exact original bytes in `finally`, even on a command error or timeout. A timeout, missing executable, signal, or output-overflow is **not** a caught mutant. Commands are argv arrays, never generated shell strings. The default timeout is 120 seconds per suite (`timeoutMs` changes it), with bounded output.
 
-Only run configurations you trust. They execute commands with your privileges. Use a disposable checkout, never concurrent mutation runs on the same source. No in-process tool can promise restoration after SIGKILL, machine failure, or loss of filesystem access. Automatic term-derived mutants and per-law kill attribution are not currently generated; suites can print their own failed law names.
+Only run configurations you trust. They execute commands with your privileges. Use a disposable checkout, never concurrent mutation runs on the same source. No in-process tool can promise restoration after SIGKILL, machine failure, or loss of filesystem access. For pure scalar decision terms, `deriveDecisionMutants` generates bounded candidates that negate a guard, drop a conjunct, flip a comparison, or widen a choice. Supply legal numeric choice encodings to enable widening; the generator does not guess a domain from literals. Supply a trusted deterministic `render(machine)` that prints the implementation artifact your suites actually execute. Both the original and each mutated machine use that same printer. This is an explicit source bridge, **not** an automatic inverse mapping to arbitrary hand-written TypeScript. The resulting ordinary source edits go through exactly the same preflight, baseline and restoration checks:
+
+```ts
+import {bool, fun} from 'gdp-wired'
+import {deriveDecisionMutants} from 'gdp-wired/mutate'
+const f = fun('permit').inputs({ready: bool}).returns(({ready}) => ({ok: ready}))
+const mutants = deriveDecisionMutants(f.rule.machine, {file: 'decision.ts', render: m => `export default ${JSON.stringify(m)}\n`})
+console.log(mutants.map(m => m.name)) // pass these edits to checkMutations with your suites
+```
+
+The default cap is 64 candidates (`maxCandidates`: 1–1000). Identical emitted variants are deduplicated. Only step flags and output expressions change; assumptions, preconditions, initial state and law facts are not mutated. Stateful, map/helper, history and quantified terms are refused. Candidates may be equivalent or survive: the generator never claims that every candidate is a bug. Add a named suite for each law plus a designated aggregate law suite to make the normal Markdown columns show exactly which laws kill each variant. Source restoration still happens after all suites for each candidate.
 
 ## Package and maintenance posture
 
