@@ -2,7 +2,7 @@
 # Same-VM Lane B policy comparison on the imported A/E/F source. Not a gate.
 set -euo pipefail
 tag=$1; first=${2:-before}; comparison=${3:-combined}
-[[ "$comparison" == combined || "$comparison" == isolate || "$comparison" == partition || "$comparison" == refined ]]
+[[ "$comparison" == combined || "$comparison" == isolate || "$comparison" == partition || "$comparison" == refined || "$comparison" == pass-order ]]
 [[ "$first" == before || "$first" == after ]]
 bash research/track-m/prepare-vendors.sh
 bun install --frozen-lockfile >/dev/null
@@ -25,6 +25,7 @@ for side in "${sides[@]}"; do
  case "$comparison:$side" in
   combined:after) flags=(LEAF_VARIANT=after DERIVE_VARIANT=after); policy=combined;;
   refined:after) flags=(LEAF_VARIANT=helpers DERIVE_VARIANT=after); policy=helper-caps-and-classes;;
+  pass-order:after) flags=(LANE_B_PASS_ORDER=count-first); policy=count-first;;
   isolate:before) flags=(LEAF_VARIANT=after); policy=leaf-only;;
   isolate:after) flags=(DERIVE_VARIANT=after); policy=class-only;;
   partition:helpers) flags=(LEAF_VARIANT=helpers); policy=leaf-helpers;;
