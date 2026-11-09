@@ -7,7 +7,7 @@ bash research/track-m/prepare-vendors.sh
 bun install --frozen-lockfile >/dev/null
 out=$(mktemp -d "$HOME/track-m-original-completion-$rep-XXXXXX")
 trap 'bash research/track-m/pack-section18-archive.sh "$out"' EXIT
-cp replays/control-counts.ts "$out/before-counts.ts"
+cp replays/control-counts.txt "$out/before-counts.ts"
 cp core/counts.ts "$out/after-counts.ts"
 failed=0
 for side in "$first" "$([[ "$first" == before ]] && echo after || echo before)"; do

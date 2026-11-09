@@ -1,0 +1,23 @@
+{
+  "scope":"three paired untouched MLDR original-harness diagnostics, not a final gate",
+  "source":"44e06e5c",
+  "control":"47215336",
+  "batch":"20261110-015612-t3yk5f",
+  "tree":"93563b2c00c1",
+  "strictLimitMs":60000,
+  "gateGreen":false,
+  "originalCheckExit":2,
+  "checkFailure":"Transported control-counts.ts was included in project TypeScript compilation; tests did not run",
+  "independentP1Replays":{"checked":4,"controls":2,"candidates":2,"candidateUnits":1258.1522216,"controlUnits":2175.5122859999997},
+  "rows":[
+    {"name":"original-0","cpu":"AMD Ryzen 7 9700X 8-Core Processor","exclusive":true,"vcpus":8,"archiveSha256":"04f86517d41263d980aff70e9aa8e2dc74ad49589e0dbac2b482f808e9bdedc7","arms":[
+      {"side":"before","harnessExit":0,"verdict":"unknown","strictProven":false,"ms":59004,"work":30803471,"full":9521765,"why":"time (rule result)"},
+      {"side":"after","harnessExit":0,"verdict":"unknown","strictProven":false,"ms":59001,"work":44145520,"full":11328047,"why":"time (rule result)"}]},
+    {"name":"original-1","cpu":"AMD Ryzen 9 9950X 16-Core Processor","exclusive":true,"vcpus":8,"archiveSha256":"01852707a9e0d244daa1048b63f728c173b62f13562aeebb477e1a6fdb63c600","arms":[
+      {"side":"after","harnessExit":0,"verdict":"unknown","strictProven":false,"ms":59001,"work":37439902,"full":9690886,"why":"time (rule result)"},
+      {"side":"before","harnessExit":0,"verdict":"unknown","strictProven":false,"ms":59003,"work":24142994,"full":7368945,"why":"time (rule result)"}]},
+    {"name":"original-2","cpu":"AMD EPYC 4585PX 16-Core Processor","exclusive":true,"vcpus":8,"archiveSha256":"5e0c00daf5d0633e78120c297c31e371fbcb19ee805eabadb48b3dbcfbbbbbf8","arms":[
+      {"side":"before","harnessExit":0,"verdict":"unknown","strictProven":false,"ms":59757,"work":8951036,"full":3660988,"why":"time (rule result)"},
+      {"side":"after","harnessExit":0,"verdict":"unknown","strictProven":false,"ms":59008,"work":11448218,"full":4125205,"why":"time (rule result)"}]}
+  ]
+}
