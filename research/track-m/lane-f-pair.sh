@@ -5,7 +5,7 @@ sha256sum -c SHA256SUMS
 bash research/track-m/prepare-vendors.sh
 bun install --frozen-lockfile >/dev/null
 work=$(mktemp -d "$HOME/lane-f-pair-XXXXXX")
-trap 'bash research/track-m/pack-section18-archive.sh "$work"' EXIT
+trap 'status=$?; if [[ $status -ne 0 ]]; then for log in "$work"/*.log; do [[ -f "$log" ]] && tail -n 25 "$log"; done; fi; bash research/track-m/pack-section18-archive.sh "$work"; exit "$status"' EXIT
 mkdir -p "$work/control"
 tar xzf controls.tar.gz -C "$work/control"
 for f in core/count-cases.ts core/count-recovery/{row-cases,derivability-closure,field-bound-lemmas,frame-lemmas,conditional-proof,guard-cases,field-demand}.ts; do mkdir -p "$work/candidate/$(dirname "$f")"; cp "$f" "$work/candidate/$f"; done
