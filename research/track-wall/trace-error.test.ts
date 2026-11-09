@@ -5,6 +5,9 @@ test('trace error text preserves real errors and stays bounded', () => {
   expect(traceError('x'.repeat(300))).toHaveLength(200)
   expect(traceError(null)).toBe('null')
   expect(traceError(7)).toBe('7')
+  expect(traceError(7n)).toBe('7')
+  expect(traceError(false)).toBe('false')
+  expect(traceError(Symbol('tag'))).toBe('Symbol(tag)')
   expect(traceError(undefined)).toBe('undefined')
 })
 test('trace errors never stringify or traverse arbitrary objects', () => {
