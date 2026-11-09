@@ -1,0 +1,12 @@
+{
+  "observerTask": "09ae80a4-de5a-4138-addd-93d17289872a",
+  "purpose": "Read-only long-poll and durable-log recovery after original controller deadlines",
+  "batches": [
+    "20261110-015518-rcbski",
+    "20261110-015805-vx6pzb"
+  ],
+  "deadlineSeconds": 600,
+  "submissions": 0,
+  "cancellations": 0,
+  "observedAt": "2026-11-09T19:12:03.361Z"
+}

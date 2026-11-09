@@ -1,5 +1,19 @@
 # RESUMED — user instruction, 2026-11-10
 
+**Current:** official quick suite is incomplete: seven shards pass (1,049
+reported tests / 393,383 assertions), one times out at its final score
+bundle. Only `research/security/score.test.ts` is rerunning unchanged:
+20261110-021006-ih70jv / task 48794f3e-aaa7-4ae8-ab58-972050aa4e7e.
+
+**Do not duplicate queued work:** the 9124348d validation and commitlint
+controllers timed out, but their authenticated scheduler snapshots still
+show registered work. Read-only collector task
+09ae80a4-de5a-4138-addd-93d17289872a watches batches
+20261110-015518-rcbski and 20261110-015805-vx6pzb. Source checks from all
+quick shards pass; production conditional, remaining original, lint and
+full-suite completion are not yet claimed. See top of runs/REPORT.md.
+
+
 **Ranking completed:** omitting only eager scalar-field proposals checks
 conditional safety at **2052.9079764 units** at both 2700 and 6000, versus
 control 3817.24253. Both phases and both independent replays pass. All seven

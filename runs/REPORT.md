@@ -1,5 +1,44 @@
 # RESUMED — lane E, 2026-11-10
 
+## Broader tests partial; registered validation preserved, not duplicated
+
+Quick-suite batch **20261110-015717-9fubkz** completed with **seven passing
+shards and one timed-out shard**. All eight source checks pass. The seven
+complete shards report **1,049 passing tests / 393,383 assertions**, zero
+assertion failures. This is **not a complete quick-suite result**.
+
+Shard 1 exits 124 after 570.04 s. Its unchanged sequential runner reached
+the final `research/security/score.test.ts` bundle, after its other ten
+units including `examples/data.ts`; those earlier units necessarily
+returned zero for execution to advance. Their test-summary stderr is
+absent from the timed-out worker log, so no numeric test total is inferred
+for them. The full log, exact roster, partial totals and CPU labels are in
+`runs/mldr-incl-flags-quick-suite-v1/`.
+
+Only the unfinished score bundle is being rerun, unmodified, under the same
+600 s job ceiling and unchanged per-test/proof budgets. Registered batch
+**20261110-021006-ih70jv**, task
+`48794f3e-aaa7-4ae8-ab58-972050aa4e7e`, output
+`runs/mldr-incl-quick-tail-v1/`. No passing shard or earlier unit was repeated.
+
+### Queue recovery / for the coordinator
+
+The production controller expired at 900 s; the commitlint controller
+expired at 600 s. Authenticated snapshots confirmed both batches still
+exist, open: **20261110-015518-rcbski** has original-r1/r3 finished, while
+integrated-check, original-r2, and fresh-conditional-and-replay are queued;
+**20261110-015805-vx6pzb** has its commitlint job queued. These are registered
+work, not failed proof or lint verdicts. Neither batch was resubmitted,
+cancelled, or removed. No shared scheduler/VM was touched.
+
+Read-only collection is reattached with one long-poll per batch, ten-minute
+observation ceiling, task **09ae80a4-de5a-4138-addd-93d17289872a**. It fetches
+the scheduler's durable logs as rows arrive, never submits or closes work.
+Observer provenance: `runs/mldr-incl-recovery.json`. Production 9124348d's
+conditional verdict remains unverified until that queued row executes.
+No 29/29, full-suite, commitlint-pass, or gate-green claim.
+
+
 ## Ranking result: conditional safety below its share; production validation running
 
 Completed **20261110-014758-a6x9cy**, seven rows, each with a passing source
