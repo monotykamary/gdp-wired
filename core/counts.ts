@@ -30,6 +30,7 @@ import {countCubes, liftedOneKeyCounts} from './count-cubes.ts'
 import {finiteHoudini} from './finite-houdini.ts'
 import {finiteModelChecker} from './finite-model.ts'
 import {countsForReads, proposeCountFacts} from './count-facts.ts'
+import {rangeInstances} from './count-ranges.ts'
 import {completeCountLawInstances} from './count-completion.ts'
 import {attemptShare, supportBudget} from './support-budget.ts'
 export {attemptShare, supportBudget} from './support-budget.ts'
@@ -730,6 +731,17 @@ export function countedAttempts(m: Machine, caller: Law[], support: Set<Law>, un
     type Selection = {chosen: Set<string>, cap: number, previous: Pick<CountCert, 'reads' | 'insts' | 'picks'>, decls: Parameters<typeof certFor>[1], reserve: ReturnType<typeof reservationState>, stable: ReturnType<typeof stableState>}
     const selections = new Map<string, Selection>()
     const poolCache = new Map<string, {key: string, value: ReturnType<typeof grammarPool>}>()
+    // Fable's initial range selection: ordinary checked count instances, not
+    // lazy-pool assumptions. Keep the existing inclusion preference intact.
+    const withRanges = <T extends Pick<CountCert, 'reads' | 'insts' | 'picks'> & {wits?: string[]}>(decls: CountDecl[], c: T, all: MapRead[]): T => {
+      if (!pass) return c
+      const taken = new Set<string>([...all.map(r => r[0]), ...c.insts.map(i => i.wit), ...m.params, ...m.inputs, ...Object.keys(m.state)])
+      const ranges = rangeInstances(decls, all, taken, c.insts)
+      if (!ranges.length) return c
+      const have = new Set(c.reads.map(r => r[0])), wanted = new Set(ranges.map(i => i.terms[0]![1]))
+      const reads = [...c.reads, ...all.filter(r => !have.has(r[0]) && wanted.has(r[0]))]
+      return {...c, reads, insts: [...c.insts, ...ranges], ...(c.wits ? {wits: [...c.wits, ...ranges.map(i => i.wit)]} : {})}
+    }
     const rawBuild = () => obligations(at).map(({goal, decls}) => {
       if (pass && supported && lazyMode === 'wide') {
         if (generation.state.deadline || performance.now() >= wallAt()) throw new UnsupportedCountProposal('reservation deadline')
@@ -754,20 +766,20 @@ export function countedAttempts(m: Machine, caller: Law[], support: Set<Law>, un
         const full = reservePool(goal, decls, pool0, selection.previous, selection.decls, selection.chosen, selection.reserve, pool, reservation).full
         const keys = ids(full), lazyRoom = selection.chosen.size < selection.cap
         const view = chosenView(full, selection.chosen, selection.cap)
-        const c = selectedCertificate(goal, decls, view, selection.stable, lazyRoom)
+        const c = withRanges(decls, selectedCertificate(goal, decls, view, selection.stable, lazyRoom), full.reads)
         const gg = mcGoal(goal.hyps, decls, c), fg = lazyRoom ? mcGoal(goal.hyps, decls, full) : undefined
         selection.previous = full; selection.decls = decls
         return {goal, decls, c, gg, pool: fg ? {fg, keys, wits: [...full.picks.map(() => undefined), ...full.insts.map(i => i.wit)], chosen: selection.chosen, cap: selection.cap} as Pool : undefined}
       }
       const full = pass ? certFor(goal, decls, wide, wide && lazyMode !== '0' ? pool : undefined, undefined, structured) : none
-      if (!pass || lazyMode === '0' || (lazyMode === 'wide' && !wide)) return {goal, decls, c: full, gg: ptime('encode', () => mcGoal(goal.hyps, decls, full)), pool: undefined as Pool | undefined}
+      if (!pass || lazyMode === '0' || (lazyMode === 'wide' && !wide)) { const c0 = withRanges(decls, full, full.reads); return {goal, decls, c: c0, gg: ptime('encode', () => mcGoal(goal.hyps, decls, c0)), pool: undefined as Pool | undefined} }
       const rd = new Map(full.reads.map(r => [r[0], json([r[1], r[2]])]))
       const keys = [...full.picks.map(q => `p${json([rd.get(q[0]), q[1]])}`), ...full.insts.map(i => `i${json([i.terms.map(([z, x]) => [z, rd.get(x)]), i.unit, i.below])}`)]
       if (lazyMode === 'wide') {
         const initial = preferMemberInclusions(m, decls, full, {...full, picks: [], insts: full.insts.slice(0, 10)}, 10, generation.tick)
         for (const inst of initial.insts) chosen.add(keys[full.picks.length + full.insts.indexOf(inst)]!)
       }
-      const c = {...full, picks: full.picks.filter((_, j) => chosen.has(keys[j]!)), insts: full.insts.filter((_, j) => chosen.has(keys[j + full.picks.length]!))}
+      const c = withRanges(decls, {...full, picks: full.picks.filter((_, j) => chosen.has(keys[j]!)), insts: full.insts.filter((_, j) => chosen.has(keys[j + full.picks.length]!))}, full.reads)
       const fg = ptime('encode', () => mcGoal(goal.hyps, decls, full))
       return {goal, decls, c, gg: ptime('encode', () => mcGoal(goal.hyps, decls, c)), pool: fg && keys.length ? {fg, keys, wits: [...full.picks.map(() => undefined), ...full.insts.map(i => i.wit)]} : undefined}
     })
