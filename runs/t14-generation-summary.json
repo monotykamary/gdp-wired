@@ -1,0 +1,1695 @@
+{
+  "records": [
+    {
+      "id": "simple",
+      "repeat": 1,
+      "source": "runs/t14-final-v1/gen-simple-1.log",
+      "baseline": 4,
+      "candidate": 4,
+      "baselineHash": "ecce4cd0151bd6b60fb404d99c25aa8be129e7860d6b1ba6a212e51c1f74f967",
+      "candidateHash": "ecce4cd0151bd6b60fb404d99c25aa8be129e7860d6b1ba6a212e51c1f74f967",
+      "identical": true,
+      "baselineMs": 44.722185999999994,
+      "candidateMs": 39.000282,
+      "candidateProfile": {
+        "small": 0.013365000000007399,
+        "cubes": 13.935864999999993,
+        "filter": 1.200446999999997,
+        "quorumFilter": 0.0050589999999886
+      }
+    },
+    {
+      "id": "simple",
+      "repeat": 2,
+      "source": "runs/t14-final-v1/gen-simple-2.log",
+      "baseline": 4,
+      "candidate": 4,
+      "baselineHash": "ecce4cd0151bd6b60fb404d99c25aa8be129e7860d6b1ba6a212e51c1f74f967",
+      "candidateHash": "ecce4cd0151bd6b60fb404d99c25aa8be129e7860d6b1ba6a212e51c1f74f967",
+      "identical": true,
+      "baselineMs": 36.39348400000001,
+      "candidateMs": 33.216134999999994,
+      "candidateProfile": {
+        "small": 0.012703999999999382,
+        "cubes": 12.813069999999996,
+        "filter": 1.3154399999999953,
+        "quorumFilter": 0.004988999999994803
+      }
+    },
+    {
+      "id": "simple",
+      "repeat": 3,
+      "source": "runs/t14-final-v1/gen-simple-3.log",
+      "baseline": 4,
+      "candidate": 4,
+      "baselineHash": "ecce4cd0151bd6b60fb404d99c25aa8be129e7860d6b1ba6a212e51c1f74f967",
+      "candidateHash": "ecce4cd0151bd6b60fb404d99c25aa8be129e7860d6b1ba6a212e51c1f74f967",
+      "identical": true,
+      "baselineMs": 41.197582999999995,
+      "candidateMs": 40.18236400000001,
+      "candidateProfile": {
+        "small": 0.016570999999999003,
+        "cubes": 17.481572999999997,
+        "filter": 1.1849299999999943,
+        "quorumFilter": 0.005428999999992357
+      }
+    },
+    {
+      "id": "majorityset_leader_election",
+      "repeat": 1,
+      "source": "runs/t14-final-v1/gen-majorityset_leader_election-1.log",
+      "baseline": 17,
+      "candidate": 17,
+      "baselineHash": "bb147d46a7fb370560860dfd5441416683ec8c4c8a845d78cba57f199aba247f",
+      "candidateHash": "bb147d46a7fb370560860dfd5441416683ec8c4c8a845d78cba57f199aba247f",
+      "identical": true,
+      "baselineMs": 1273.235177,
+      "candidateMs": 1350.0963270000002,
+      "candidateProfile": {
+        "small": 0.010589999999979227,
+        "cubes": 1211.032203,
+        "filter": 25.03163799999993,
+        "quorumFilter": 0.013445000000047003
+      }
+    },
+    {
+      "id": "paxos_epr",
+      "repeat": 2,
+      "source": "runs/t14-final-v1/gen-paxos_epr-2.log",
+      "baseline": 77,
+      "candidate": 77,
+      "baselineHash": "01f9c4f68d27630184f0d5268345ada29c31507eac21bfbf45d87e0bc6051e77",
+      "candidateHash": "01f9c4f68d27630184f0d5268345ada29c31507eac21bfbf45d87e0bc6051e77",
+      "identical": true,
+      "baselineMs": 22815.296940999997,
+      "candidateMs": 16969.022482,
+      "candidateProfile": {
+        "small": 0.021569999999883294,
+        "cubes": 9488.676673,
+        "filter": 815.989580999998,
+        "quorumFilter": 0.05451399999947171
+      }
+    },
+    {
+      "id": "sharded_kv",
+      "repeat": 1,
+      "source": "runs/t14-final-v1/gen-sharded_kv-1.log",
+      "baseline": 18,
+      "candidate": 18,
+      "baselineHash": "ed00314a85784d02f0740819b3c1323809c2fa6d31522bb43bdfb832f2bea282",
+      "candidateHash": "ed00314a85784d02f0740819b3c1323809c2fa6d31522bb43bdfb832f2bea282",
+      "identical": true,
+      "baselineMs": 2862.133731,
+      "candidateMs": 2843.903247,
+      "candidateProfile": {
+        "small": 0.02007699999990109,
+        "cubes": 528.8424620000001,
+        "filter": 1007.3109119999995,
+        "quorumFilter": 0.010029000000031374
+      }
+    },
+    {
+      "id": "paxos_epr",
+      "repeat": 3,
+      "source": "runs/t14-final-v1/gen-paxos_epr-3.log",
+      "baseline": 77,
+      "candidate": 77,
+      "baselineHash": "01f9c4f68d27630184f0d5268345ada29c31507eac21bfbf45d87e0bc6051e77",
+      "candidateHash": "01f9c4f68d27630184f0d5268345ada29c31507eac21bfbf45d87e0bc6051e77",
+      "identical": true,
+      "baselineMs": 19062.608664,
+      "candidateMs": 35776.345896000006,
+      "candidateProfile": {
+        "small": 0.0452240000013262,
+        "cubes": 20889.706456,
+        "filter": 881.0747539999938,
+        "quorumFilter": 0.10166100000060396
+      }
+    },
+    {
+      "id": "majorityset_leader_election",
+      "repeat": 2,
+      "source": "runs/t14-final-v1/gen-majorityset_leader_election-2.log",
+      "baseline": 17,
+      "candidate": 17,
+      "baselineHash": "bb147d46a7fb370560860dfd5441416683ec8c4c8a845d78cba57f199aba247f",
+      "candidateHash": "bb147d46a7fb370560860dfd5441416683ec8c4c8a845d78cba57f199aba247f",
+      "identical": true,
+      "baselineMs": 2915.078569,
+      "candidateMs": 2873.138364,
+      "candidateProfile": {
+        "small": 0.026267999999959102,
+        "cubes": 2605.366357,
+        "filter": 56.851667999999336,
+        "quorumFilter": 0.03210099999978411
+      }
+    },
+    {
+      "id": "paxos_epr",
+      "repeat": 1,
+      "source": "runs/t14-final-v1/gen-paxos_epr-1.log",
+      "baseline": 77,
+      "candidate": 77,
+      "baselineHash": "01f9c4f68d27630184f0d5268345ada29c31507eac21bfbf45d87e0bc6051e77",
+      "candidateHash": "01f9c4f68d27630184f0d5268345ada29c31507eac21bfbf45d87e0bc6051e77",
+      "identical": true,
+      "baselineMs": 13027.567224,
+      "candidateMs": 13316.382006999998,
+      "candidateProfile": {
+        "small": 0.009727999999995518,
+        "cubes": 7675.781259,
+        "filter": 731.1913720000011,
+        "quorumFilter": 0.04474500000105763
+      }
+    },
+    {
+      "id": "sharded_kv",
+      "repeat": 2,
+      "source": "runs/t14-final-v1/gen-sharded_kv-2.log",
+      "baseline": 18,
+      "candidate": 18,
+      "baselineHash": "ed00314a85784d02f0740819b3c1323809c2fa6d31522bb43bdfb832f2bea282",
+      "candidateHash": "ed00314a85784d02f0740819b3c1323809c2fa6d31522bb43bdfb832f2bea282",
+      "identical": true,
+      "baselineMs": 2994.212237,
+      "candidateMs": 2922.589331,
+      "candidateProfile": {
+        "small": 0.019209000000046217,
+        "cubes": 555.257372,
+        "filter": 1061.7363579999997,
+        "quorumFilter": 0.012478999999984808
+      }
+    },
+    {
+      "id": "sharded_kv",
+      "repeat": 3,
+      "source": "runs/t14-final-v1/gen-sharded_kv-3.log",
+      "baseline": 18,
+      "candidate": 18,
+      "baselineHash": "ed00314a85784d02f0740819b3c1323809c2fa6d31522bb43bdfb832f2bea282",
+      "candidateHash": "ed00314a85784d02f0740819b3c1323809c2fa6d31522bb43bdfb832f2bea282",
+      "identical": true,
+      "baselineMs": 2324.824325,
+      "candidateMs": 2474.636891,
+      "candidateProfile": {
+        "small": 0.015239000000065062,
+        "cubes": 453.94836699999996,
+        "filter": 866.3252580000003,
+        "quorumFilter": 0.006150000000161526
+      }
+    },
+    {
+      "id": "majorityset_leader_election",
+      "repeat": 3,
+      "source": "runs/t14-final-v1/gen-majorityset_leader_election-3.log",
+      "baseline": 17,
+      "candidate": 17,
+      "baselineHash": "bb147d46a7fb370560860dfd5441416683ec8c4c8a845d78cba57f199aba247f",
+      "candidateHash": "bb147d46a7fb370560860dfd5441416683ec8c4c8a845d78cba57f199aba247f",
+      "identical": true,
+      "baselineMs": 1417.2724899999998,
+      "candidateMs": 1833.7964049999998,
+      "candidateProfile": {
+        "small": 0.015438999999986436,
+        "cubes": 1637.793212,
+        "filter": 53.137161000000106,
+        "quorumFilter": 0.052649999999857755
+      }
+    },
+    {
+      "id": "lockserv",
+      "repeat": 1,
+      "source": "runs/t14-final-v1/gen-lockserv-1.log",
+      "baseline": 17,
+      "candidate": 17,
+      "baselineHash": "625d4a5b0bd1a44c77cb3d4f01f5b0c862d06f8dd00b2739f62af8732915be00",
+      "candidateHash": "625d4a5b0bd1a44c77cb3d4f01f5b0c862d06f8dd00b2739f62af8732915be00",
+      "identical": true,
+      "baselineMs": 71.94760000000001,
+      "candidateMs": 120.91272899999998,
+      "candidateProfile": {
+        "small": 0.023242999999993685,
+        "cubes": 74.022049,
+        "filter": 5.670186000000001,
+        "quorumFilter": 0.007864000000012084
+      }
+    },
+    {
+      "id": "consensus_wo_decide",
+      "repeat": 3,
+      "source": "runs/t14-final-v1/gen-consensus_wo_decide-3.log",
+      "baseline": 39,
+      "candidate": 39,
+      "baselineHash": "05af3c755b720768be509b2d936a89d3772804554d6a5e37c84c6188d592dd46",
+      "candidateHash": "05af3c755b720768be509b2d936a89d3772804554d6a5e37c84c6188d592dd46",
+      "identical": true,
+      "baselineMs": 6370.240124,
+      "candidateMs": 7051.113001,
+      "candidateProfile": {
+        "small": 0.01195200000074692,
+        "cubes": 2565.2012219999997,
+        "filter": 413.1916679999995,
+        "quorumFilter": 0.10635999999976775
+      }
+    },
+    {
+      "id": "toy_consensus_epr",
+      "repeat": 1,
+      "source": "runs/t14-final-v1/gen-toy_consensus_epr-1.log",
+      "baseline": 8,
+      "candidate": 8,
+      "baselineHash": "133630cb1e8c0acf2f7b1b1f30f8c5eb82f1ebd6ef16350af7b27e97f3fea9fc",
+      "candidateHash": "133630cb1e8c0acf2f7b1b1f30f8c5eb82f1ebd6ef16350af7b27e97f3fea9fc",
+      "identical": true,
+      "baselineMs": 1187.844445,
+      "candidateMs": 1104.076326,
+      "candidateProfile": {
+        "small": 0.01116100000001552,
+        "cubes": 962.896751,
+        "filter": 5.537455999999793,
+        "quorumFilter": 0.005869999999958964
+      }
+    },
+    {
+      "id": "lock_server",
+      "repeat": 1,
+      "source": "runs/t14-final-v1/gen-lock_server-1.log",
+      "baseline": 5,
+      "candidate": 5,
+      "baselineHash": "c1076284bf2ecddf1c752965c0332a92d24a58540f38714b94ad496712ed4de5",
+      "candidateHash": "c1076284bf2ecddf1c752965c0332a92d24a58540f38714b94ad496712ed4de5",
+      "identical": true,
+      "baselineMs": 71.670999,
+      "candidateMs": 68.471418,
+      "candidateProfile": {
+        "small": 0.018655000000009636,
+        "cubes": 39.994817999999995,
+        "filter": 4.3459729999999865,
+        "quorumFilter": 0.008214999999992756
+      }
+    },
+    {
+      "id": "consensus_wo_decide",
+      "repeat": 2,
+      "source": "runs/t14-final-v1/gen-consensus_wo_decide-2.log",
+      "baseline": 39,
+      "candidate": 39,
+      "baselineHash": "05af3c755b720768be509b2d936a89d3772804554d6a5e37c84c6188d592dd46",
+      "candidateHash": "05af3c755b720768be509b2d936a89d3772804554d6a5e37c84c6188d592dd46",
+      "identical": true,
+      "baselineMs": 5818.636721,
+      "candidateMs": 4563.874009,
+      "candidateProfile": {
+        "small": 0.011441999999988184,
+        "cubes": 1703.3501300000003,
+        "filter": 297.35737300000073,
+        "quorumFilter": 0.09709199999997509
+      }
+    },
+    {
+      "id": "two_phase_commit",
+      "repeat": 1,
+      "source": "runs/t14-final-v1/gen-two_phase_commit-1.log",
+      "baseline": 34,
+      "candidate": 34,
+      "baselineHash": "4a1828f36f3f69afb92df8b6e558119a6e771236afba62b1d7742faa6a656512",
+      "candidateHash": "4a1828f36f3f69afb92df8b6e558119a6e771236afba62b1d7742faa6a656512",
+      "identical": true,
+      "baselineMs": 1739.5799510000002,
+      "candidateMs": 1624.504853,
+      "candidateProfile": {
+        "small": 0.016530999999986307,
+        "cubes": 972.725917,
+        "filter": 62.22805299999982,
+        "quorumFilter": 0.0075459999998201965
+      }
+    },
+    {
+      "id": "two_phase_commit",
+      "repeat": 3,
+      "source": "runs/t14-final-v1/gen-two_phase_commit-3.log",
+      "baseline": 34,
+      "candidate": 34,
+      "baselineHash": "4a1828f36f3f69afb92df8b6e558119a6e771236afba62b1d7742faa6a656512",
+      "candidateHash": "4a1828f36f3f69afb92df8b6e558119a6e771236afba62b1d7742faa6a656512",
+      "identical": true,
+      "baselineMs": 2072.968814,
+      "candidateMs": 1587.677685,
+      "candidateProfile": {
+        "small": 0.026417999999978292,
+        "cubes": 1052.3259189999999,
+        "filter": 70.90573500000028,
+        "quorumFilter": 0.012302999999974418
+      }
+    },
+    {
+      "id": "lockserv",
+      "repeat": 2,
+      "source": "runs/t14-final-v1/gen-lockserv-2.log",
+      "baseline": 17,
+      "candidate": 17,
+      "baselineHash": "625d4a5b0bd1a44c77cb3d4f01f5b0c862d06f8dd00b2739f62af8732915be00",
+      "candidateHash": "625d4a5b0bd1a44c77cb3d4f01f5b0c862d06f8dd00b2739f62af8732915be00",
+      "identical": true,
+      "baselineMs": 90.42161899999999,
+      "candidateMs": 69.02462700000001,
+      "candidateProfile": {
+        "small": 0.018684999999990737,
+        "cubes": 41.632155999999995,
+        "filter": 4.018494000000018,
+        "quorumFilter": 0.0068630000000098335
+      }
+    },
+    {
+      "id": "toy_consensus_epr",
+      "repeat": 2,
+      "source": "runs/t14-final-v1/gen-toy_consensus_epr-2.log",
+      "baseline": 8,
+      "candidate": 8,
+      "baselineHash": "133630cb1e8c0acf2f7b1b1f30f8c5eb82f1ebd6ef16350af7b27e97f3fea9fc",
+      "candidateHash": "133630cb1e8c0acf2f7b1b1f30f8c5eb82f1ebd6ef16350af7b27e97f3fea9fc",
+      "identical": true,
+      "baselineMs": 1979.895826,
+      "candidateMs": 1649.367903,
+      "candidateProfile": {
+        "small": 0.02608799999995881,
+        "cubes": 1413.283754,
+        "filter": 6.176782000000003,
+        "quorumFilter": 0.009057000000211701
+      }
+    },
+    {
+      "id": "lock_server",
+      "repeat": 3,
+      "source": "runs/t14-final-v1/gen-lock_server-3.log",
+      "baseline": 5,
+      "candidate": 5,
+      "baselineHash": "c1076284bf2ecddf1c752965c0332a92d24a58540f38714b94ad496712ed4de5",
+      "candidateHash": "c1076284bf2ecddf1c752965c0332a92d24a58540f38714b94ad496712ed4de5",
+      "identical": true,
+      "baselineMs": 64.57513900000001,
+      "candidateMs": 61.97292699999999,
+      "candidateProfile": {
+        "small": 0.015560000000000684,
+        "cubes": 39.796243999999994,
+        "filter": 3.4051789999999897,
+        "quorumFilter": 0.009067999999999188
+      }
+    },
+    {
+      "id": "lock_server",
+      "repeat": 2,
+      "source": "runs/t14-final-v1/gen-lock_server-2.log",
+      "baseline": 5,
+      "candidate": 5,
+      "baselineHash": "c1076284bf2ecddf1c752965c0332a92d24a58540f38714b94ad496712ed4de5",
+      "candidateHash": "c1076284bf2ecddf1c752965c0332a92d24a58540f38714b94ad496712ed4de5",
+      "identical": true,
+      "baselineMs": 62.18128,
+      "candidateMs": 60.817796,
+      "candidateProfile": {
+        "small": 0.011782000000003734,
+        "cubes": 38.55376699999999,
+        "filter": 4.10259600000002,
+        "quorumFilter": 0.007042999999995914
+      }
+    },
+    {
+      "id": "toy_consensus_epr",
+      "repeat": 3,
+      "source": "runs/t14-final-v1/gen-toy_consensus_epr-3.log",
+      "baseline": 8,
+      "candidate": 8,
+      "baselineHash": "133630cb1e8c0acf2f7b1b1f30f8c5eb82f1ebd6ef16350af7b27e97f3fea9fc",
+      "candidateHash": "133630cb1e8c0acf2f7b1b1f30f8c5eb82f1ebd6ef16350af7b27e97f3fea9fc",
+      "identical": true,
+      "baselineMs": 816.628537,
+      "candidateMs": 945.578149,
+      "candidateProfile": {
+        "small": 0.015107999999997901,
+        "cubes": 809.03521,
+        "filter": 5.849605999999994,
+        "quorumFilter": 0.007704999999987194
+      }
+    },
+    {
+      "id": "consensus_wo_decide",
+      "repeat": 1,
+      "source": "runs/t14-final-v1/gen-consensus_wo_decide-1.log",
+      "baseline": 39,
+      "candidate": 39,
+      "baselineHash": "05af3c755b720768be509b2d936a89d3772804554d6a5e37c84c6188d592dd46",
+      "candidateHash": "05af3c755b720768be509b2d936a89d3772804554d6a5e37c84c6188d592dd46",
+      "identical": true,
+      "baselineMs": 8299.004448000002,
+      "candidateMs": 10813.279072,
+      "candidateProfile": {
+        "small": 0.014385999999831256,
+        "cubes": 2814.6341519999996,
+        "filter": 467.59886299999926,
+        "quorumFilter": 0.08432300000094983
+      }
+    },
+    {
+      "id": "lockserv",
+      "repeat": 3,
+      "source": "runs/t14-final-v1/gen-lockserv-3.log",
+      "baseline": 17,
+      "candidate": 17,
+      "baselineHash": "625d4a5b0bd1a44c77cb3d4f01f5b0c862d06f8dd00b2739f62af8732915be00",
+      "candidateHash": "625d4a5b0bd1a44c77cb3d4f01f5b0c862d06f8dd00b2739f62af8732915be00",
+      "identical": true,
+      "baselineMs": 58.661729,
+      "candidateMs": 83.153809,
+      "candidateProfile": {
+        "small": 0.013304999999988354,
+        "cubes": 52.767269999999996,
+        "filter": 4.175618000000014,
+        "quorumFilter": 0.005340000000018108
+      }
+    },
+    {
+      "id": "two_phase_commit",
+      "repeat": 2,
+      "source": "runs/t14-final-v1/gen-two_phase_commit-2.log",
+      "baseline": 34,
+      "candidate": 34,
+      "baselineHash": "4a1828f36f3f69afb92df8b6e558119a6e771236afba62b1d7742faa6a656512",
+      "candidateHash": "4a1828f36f3f69afb92df8b6e558119a6e771236afba62b1d7742faa6a656512",
+      "identical": true,
+      "baselineMs": 1291.4658,
+      "candidateMs": 1426.51594,
+      "candidateProfile": {
+        "small": 0.019374999999968168,
+        "cubes": 869.601669,
+        "filter": 60.40378400000009,
+        "quorumFilter": 0.008174000000053638
+      }
+    },
+    {
+      "id": "learning_switch_i4",
+      "repeat": 3,
+      "source": "runs/t14-final-v1/gen-learning_switch_i4-3.log",
+      "baseline": 463,
+      "candidate": 463,
+      "baselineHash": "1fee9ce40764701e37b1e4a0e854273ac3be8a73db8d48faa029d5fa5ebfc163",
+      "candidateHash": "1fee9ce40764701e37b1e4a0e854273ac3be8a73db8d48faa029d5fa5ebfc163",
+      "identical": true,
+      "baselineMs": 130298.266882,
+      "candidateMs": 131526.780136,
+      "candidateProfile": {
+        "small": 0.015759999994770624,
+        "cubes": 8182.221140000009,
+        "filter": 9654.21106500001,
+        "quorumFilter": 0.007224000000860542
+      }
+    },
+    {
+      "id": "learning_switch_i4",
+      "repeat": 2,
+      "source": "runs/t14-final-v1/gen-learning_switch_i4-2.log",
+      "baseline": 463,
+      "candidate": 463,
+      "baselineHash": "1fee9ce40764701e37b1e4a0e854273ac3be8a73db8d48faa029d5fa5ebfc163",
+      "candidateHash": "1fee9ce40764701e37b1e4a0e854273ac3be8a73db8d48faa029d5fa5ebfc163",
+      "identical": true,
+      "baselineMs": 133770.174145,
+      "candidateMs": 132116.990866,
+      "candidateProfile": {
+        "small": 0.015228999996907078,
+        "cubes": 8546.568322000006,
+        "filter": 10742.328958000027,
+        "quorumFilter": 0.007774999976390973
+      }
+    },
+    {
+      "id": "lockserv_automaton",
+      "repeat": 1,
+      "source": "runs/t14-final-v1/gen-lockserv_automaton-1.log",
+      "baseline": 17,
+      "candidate": 17,
+      "baselineHash": "28197b96f28bb0293452708bb2f3f1558343328d37086def3dc214f1d8740a2e",
+      "candidateHash": "28197b96f28bb0293452708bb2f3f1558343328d37086def3dc214f1d8740a2e",
+      "identical": true,
+      "baselineMs": 70.44056,
+      "candidateMs": 74.268306,
+      "candidateProfile": {
+        "small": 0.012725000000003206,
+        "cubes": 48.496492999999994,
+        "filter": 4.499673000000016,
+        "quorumFilter": 0.007153000000002407
+      }
+    },
+    {
+      "id": "lockserv_automaton",
+      "repeat": 3,
+      "source": "runs/t14-final-v1/gen-lockserv_automaton-3.log",
+      "baseline": 17,
+      "candidate": 17,
+      "baselineHash": "28197b96f28bb0293452708bb2f3f1558343328d37086def3dc214f1d8740a2e",
+      "candidateHash": "28197b96f28bb0293452708bb2f3f1558343328d37086def3dc214f1d8740a2e",
+      "identical": true,
+      "baselineMs": 133.22024199999998,
+      "candidateMs": 106.10079599999999,
+      "candidateProfile": {
+        "small": 0.015929999999997335,
+        "cubes": 60.213734999999986,
+        "filter": 7.686005999999992,
+        "quorumFilter": 0.008025000000003502
+      }
+    },
+    {
+      "id": "learning_switch_i4",
+      "repeat": 1,
+      "source": "runs/t14-final-v1/gen-learning_switch_i4-1.log",
+      "baseline": 463,
+      "candidate": 463,
+      "baselineHash": "1fee9ce40764701e37b1e4a0e854273ac3be8a73db8d48faa029d5fa5ebfc163",
+      "candidateHash": "1fee9ce40764701e37b1e4a0e854273ac3be8a73db8d48faa029d5fa5ebfc163",
+      "identical": true,
+      "baselineMs": 139350.380058,
+      "candidateMs": 224889.775158,
+      "candidateProfile": {
+        "small": 0.030927999992854893,
+        "cubes": 13998.614107000001,
+        "filter": 14888.133608000004,
+        "quorumFilter": 0.009417999972356483
+      }
+    },
+    {
+      "id": "lockserv_automaton",
+      "repeat": 2,
+      "source": "runs/t14-final-v1/gen-lockserv_automaton-2.log",
+      "baseline": 17,
+      "candidate": 17,
+      "baselineHash": "28197b96f28bb0293452708bb2f3f1558343328d37086def3dc214f1d8740a2e",
+      "candidateHash": "28197b96f28bb0293452708bb2f3f1558343328d37086def3dc214f1d8740a2e",
+      "identical": true,
+      "baselineMs": 94.93975499999999,
+      "candidateMs": 84.303217,
+      "candidateProfile": {
+        "small": 0.018343999999999028,
+        "cubes": 54.866128999999994,
+        "filter": 5.2188059999999865,
+        "quorumFilter": 0.0071019999999890615
+      }
+    },
+    {
+      "id": "consensus",
+      "repeat": 2,
+      "source": "runs/t14-final-v1/gen-consensus-2.log",
+      "baseline": 3,
+      "candidate": 3,
+      "baselineHash": "e14ce6d5523e14235e7be911e6585a4e341579f13af79146ee5c0272782c73fd",
+      "candidateHash": "e14ce6d5523e14235e7be911e6585a4e341579f13af79146ee5c0272782c73fd",
+      "identical": true,
+      "baselineMs": 31.586920000000006,
+      "candidateMs": 22.171380999999997,
+      "candidateProfile": {
+        "small": 0.0077049999999943,
+        "cubes": 13.435735999999999,
+        "filter": 0.7077870000000033,
+        "quorumFilter": 0.004798999999998443
+      }
+    },
+    {
+      "id": "simple_decentralized_lock",
+      "repeat": 2,
+      "source": "runs/t14-final-v1/gen-simple_decentralized_lock-2.log",
+      "baseline": 20,
+      "candidate": 20,
+      "baselineHash": "07fdd1070c44037616163044bb5fd27bb8a379c93424cdec53f8166f2eacb2e1",
+      "candidateHash": "07fdd1070c44037616163044bb5fd27bb8a379c93424cdec53f8166f2eacb2e1",
+      "identical": true,
+      "baselineMs": 48.70136599999999,
+      "candidateMs": 46.01979300000001,
+      "candidateProfile": {
+        "small": 0.01435599999999937,
+        "cubes": 27.244403999999996,
+        "filter": 3.0139030000000133,
+        "quorumFilter": 0.005639999999999645
+      }
+    },
+    {
+      "id": "toy_consensus",
+      "repeat": 1,
+      "source": "runs/t14-final-v1/gen-toy_consensus-1.log",
+      "baseline": 5,
+      "candidate": 5,
+      "baselineHash": "42a22a2106bf7bde3e8f00f847d72d7b426b493fe2c551d8b12760722db12bf2",
+      "candidateHash": "42a22a2106bf7bde3e8f00f847d72d7b426b493fe2c551d8b12760722db12bf2",
+      "identical": true,
+      "baselineMs": 524.52891,
+      "candidateMs": 574.505478,
+      "candidateProfile": {
+        "small": 0.010139000000009446,
+        "cubes": 466.32290400000005,
+        "filter": 1.493979999999965,
+        "quorumFilter": 0.005310000000008586
+      }
+    },
+    {
+      "id": "simple_decentralized_lock",
+      "repeat": 3,
+      "source": "runs/t14-final-v1/gen-simple_decentralized_lock-3.log",
+      "baseline": 20,
+      "candidate": 20,
+      "baselineHash": "07fdd1070c44037616163044bb5fd27bb8a379c93424cdec53f8166f2eacb2e1",
+      "candidateHash": "07fdd1070c44037616163044bb5fd27bb8a379c93424cdec53f8166f2eacb2e1",
+      "identical": true,
+      "baselineMs": 40.81441699999999,
+      "candidateMs": 47.63716399999999,
+      "candidateProfile": {
+        "small": 0.013474999999999682,
+        "cubes": 27.654483000000006,
+        "filter": 2.9687060000000116,
+        "quorumFilter": 0.006260999999994965
+      }
+    },
+    {
+      "id": "consensus",
+      "repeat": 3,
+      "source": "runs/t14-final-v1/gen-consensus-3.log",
+      "baseline": 3,
+      "candidate": 3,
+      "baselineHash": "e14ce6d5523e14235e7be911e6585a4e341579f13af79146ee5c0272782c73fd",
+      "candidateHash": "e14ce6d5523e14235e7be911e6585a4e341579f13af79146ee5c0272782c73fd",
+      "identical": true,
+      "baselineMs": 39.53026200000001,
+      "candidateMs": 36.789685000000006,
+      "candidateProfile": {
+        "small": 0.015855999999999426,
+        "cubes": 22.664956000000004,
+        "filter": 1.19632,
+        "quorumFilter": 0.008063000000007037
+      }
+    },
+    {
+      "id": "consensus",
+      "repeat": 1,
+      "source": "runs/t14-final-v1/gen-consensus-1.log",
+      "baseline": 3,
+      "candidate": 3,
+      "baselineHash": "e14ce6d5523e14235e7be911e6585a4e341579f13af79146ee5c0272782c73fd",
+      "candidateHash": "e14ce6d5523e14235e7be911e6585a4e341579f13af79146ee5c0272782c73fd",
+      "identical": true,
+      "baselineMs": 44.150774999999996,
+      "candidateMs": 36.559768000000005,
+      "candidateProfile": {
+        "small": 0.013676000000003796,
+        "cubes": 21.738246000000004,
+        "filter": 1.2367550000000165,
+        "quorumFilter": 0.008234999999999104
+      }
+    },
+    {
+      "id": "simple_decentralized_lock",
+      "repeat": 1,
+      "source": "runs/t14-final-v1/gen-simple_decentralized_lock-1.log",
+      "baseline": 20,
+      "candidate": 20,
+      "baselineHash": "07fdd1070c44037616163044bb5fd27bb8a379c93424cdec53f8166f2eacb2e1",
+      "candidateHash": "07fdd1070c44037616163044bb5fd27bb8a379c93424cdec53f8166f2eacb2e1",
+      "identical": true,
+      "baselineMs": 54.491175999999996,
+      "candidateMs": 62.483194999999995,
+      "candidateProfile": {
+        "small": 0.01986800000000244,
+        "cubes": 34.96475100000001,
+        "filter": 3.380104000000003,
+        "quorumFilter": 0.009317000000010012
+      }
+    },
+    {
+      "id": "toy_consensus",
+      "repeat": 2,
+      "source": "runs/t14-final-v1/gen-toy_consensus-2.log",
+      "baseline": 5,
+      "candidate": 5,
+      "baselineHash": "42a22a2106bf7bde3e8f00f847d72d7b426b493fe2c551d8b12760722db12bf2",
+      "candidateHash": "42a22a2106bf7bde3e8f00f847d72d7b426b493fe2c551d8b12760722db12bf2",
+      "identical": true,
+      "baselineMs": 557.27479,
+      "candidateMs": 613.5780460000001,
+      "candidateProfile": {
+        "small": 0.009128000000004022,
+        "cubes": 505.351743,
+        "filter": 2.3958559999999807,
+        "quorumFilter": 0.005460999999968408
+      }
+    },
+    {
+      "id": "toy_consensus",
+      "repeat": 3,
+      "source": "runs/t14-final-v1/gen-toy_consensus-3.log",
+      "baseline": 5,
+      "candidate": 5,
+      "baselineHash": "42a22a2106bf7bde3e8f00f847d72d7b426b493fe2c551d8b12760722db12bf2",
+      "candidateHash": "42a22a2106bf7bde3e8f00f847d72d7b426b493fe2c551d8b12760722db12bf2",
+      "identical": true,
+      "baselineMs": 626.5831880000001,
+      "candidateMs": 572.031434,
+      "candidateProfile": {
+        "small": 0.00950399999999263,
+        "cubes": 460.45639199999994,
+        "filter": 1.7438359999998738,
+        "quorumFilter": 0.005688000000077409
+      }
+    },
+    {
+      "id": "mldr",
+      "repeat": 3,
+      "source": "runs/t14-final-v1/gen-mldr-3.log",
+      "baseline": 34,
+      "candidate": 35,
+      "baselineHash": "cb1022f2d79f85eb3a0343a6e6fec92b48bddfebc0e4c99925985233a09b1d3b",
+      "candidateHash": "35b0da100cc1a3b922deb1f2ceab24068ff3d1d46f968b4cafbdd15d99f1e2bc",
+      "identical": false,
+      "baselineMs": 15476.373705999998,
+      "candidateMs": 25394.028718999998,
+      "candidateProfile": {
+        "small": 0.018153999999412918,
+        "cubes": 7665.477565000001,
+        "filter": 69.9614900000015,
+        "quorumFilter": 279.05011300000115,
+        "countCubes": 21.00521200000003,
+        "finiteHoudini": 6554.569546999999
+      },
+      "names": [
+        "every Config cell is a value of its kind",
+        "one primary per term",
+        "St at most 1",
+        "CV at most 2",
+        "fields: St[a]=1 -> CT[a]=CfgT[a]",
+        "fields: St[a]=1 -> CT[a]<=CfgT[a]",
+        "fields: St[a]=1 -> CT[a]=CT[b] -> CfgT[b]<=CfgT[a]",
+        "fields: St[a]=1 -> CfgT[a]<=CT[a]",
+        "fields: St[a]=1 -> CfgT[a]=CfgT[b] -> CV[b]<=CV[a]",
+        "every x with x < size: never CT[x] is 0 and 1 <= St[x]",
+        "every x with x < size: never 1 <= CT[x] and CV[x] is 0",
+        "every x with x < size: never 1 <= CT[x] and started is 0",
+        "every x with x < size: never 1 <= St[x] and CV[x] is 0",
+        "every x with x < size: never 1 <= St[x] and CfgT[x] is 0",
+        "every x with x < size: never 1 <= St[x] and started is 0",
+        "every x with x < size: never CV[x] is 0 and 1 <= CfgT[x]",
+        "every x with x < size: never CV[x] is 0 and 1 <= started",
+        "every x with x < size: never 1 <= CfgT[x] and started is 0",
+        "every x, y with x < size ∧ y < size ∧ ¬(x = y): never 1 <= CT[x] and CV[y] is 0",
+        "every x, y with x < size ∧ y < size ∧ ¬(x = y): never 1 <= St[x] and CV[y] is 0",
+        "every x, y with x < size ∧ y < size ∧ ¬(x = y): never CV[x] is 0 and 1 <= CfgT[y]",
+        "inX: no quorum canVote/1",
+        "inX: no quorum canVote/3",
+        "inX: stored guard reconfigs/inS",
+        "inX: stored guard reconfigs/inS or disabled/0",
+        "inX: stored guard reconfigs/inS or disabled/1",
+        "inX: stored guard reconfigs/inS or disabled/2",
+        "inX: stored guard reconfigs/inS or disabled/3",
+        "fields: CV[a]=CV[b] and CfgT[a]=CfgT[b] -> Config rows agree",
+        "count cubes: every x with x < {\"op\":\"var\",\"name\":\"size\"}: never 1 <= started and inX$row[x] is 0",
+        "count cubes: every x with x < {\"op\":\"var\",\"name\":\"size\"}: never 1 <= CT[x] and inX$row[x] is 0",
+        "count cubes: every x with x < {\"op\":\"var\",\"name\":\"size\"}: never CV[x] is 0 and 1 <= inX$row[x]",
+        "count cubes: every x with x < {\"op\":\"var\",\"name\":\"size\"}: never 1 <= CV[x] and inX$row[x] is 0",
+        "count cubes: every x with x < {\"op\":\"var\",\"name\":\"size\"}: never 1 <= CfgT[x] and inX$row[x] is 0",
+        "count cubes: every x with x < {\"op\":\"var\",\"name\":\"size\"}: never 1 <= St[x] and inX$row[x] is 0"
+      ]
+    },
+    {
+      "id": "client_server_db_ae",
+      "repeat": 1,
+      "source": "runs/t14-final-v1/gen-client_server_db_ae-1.log",
+      "baseline": 15,
+      "candidate": 15,
+      "baselineHash": "24c730901be1d47def8fd4ffa11b87143b70f2ca664f3d6feb205397336ca64f",
+      "candidateHash": "24c730901be1d47def8fd4ffa11b87143b70f2ca664f3d6feb205397336ca64f",
+      "identical": true,
+      "baselineMs": 5525.063269,
+      "candidateMs": 6000.227409,
+      "candidateProfile": {
+        "small": 0.01573999999982334,
+        "cubes": 2902.4944069999997,
+        "filter": 151.8633979999995,
+        "quorumFilter": 0.006533000000672473
+      }
+    },
+    {
+      "id": "twophase",
+      "repeat": 2,
+      "source": "runs/t14-final-v1/gen-twophase-2.log",
+      "baseline": 14,
+      "candidate": 14,
+      "baselineHash": "44bfbce553ff9457ee1e2df76ebef4d046e290ef831acd554bfbed2d74f44fd0",
+      "candidateHash": "44bfbce553ff9457ee1e2df76ebef4d046e290ef831acd554bfbed2d74f44fd0",
+      "identical": true,
+      "baselineMs": 1941.0127820000002,
+      "candidateMs": 1951.015765,
+      "candidateProfile": {
+        "small": 0.0534709999999734,
+        "cubes": 1759.437447,
+        "filter": 23.176533000000063,
+        "quorumFilter": 0.030347000000119806
+      }
+    },
+    {
+      "id": "twophase",
+      "repeat": 3,
+      "source": "runs/t14-final-v1/gen-twophase-3.log",
+      "baseline": 14,
+      "candidate": 14,
+      "baselineHash": "44bfbce553ff9457ee1e2df76ebef4d046e290ef831acd554bfbed2d74f44fd0",
+      "candidateHash": "44bfbce553ff9457ee1e2df76ebef4d046e290ef831acd554bfbed2d74f44fd0",
+      "identical": true,
+      "baselineMs": 713.978306,
+      "candidateMs": 878.813625,
+      "candidateProfile": {
+        "small": 0.020599000000004253,
+        "cubes": 774.055596,
+        "filter": 8.223940999999968,
+        "quorumFilter": 0.02410599999996066
+      }
+    },
+    {
+      "id": "mldr",
+      "repeat": 2,
+      "source": "runs/t14-final-v1/gen-mldr-2.log",
+      "baseline": 34,
+      "candidate": 35,
+      "baselineHash": "cb1022f2d79f85eb3a0343a6e6fec92b48bddfebc0e4c99925985233a09b1d3b",
+      "candidateHash": "35b0da100cc1a3b922deb1f2ceab24068ff3d1d46f968b4cafbdd15d99f1e2bc",
+      "identical": false,
+      "baselineMs": 17240.704633999998,
+      "candidateMs": 25308.638271,
+      "candidateProfile": {
+        "small": 0.012108000000807806,
+        "cubes": 7206.138820000002,
+        "filter": 80.37540400000216,
+        "quorumFilter": 319.29170800000065,
+        "countCubes": 23.873776999997062,
+        "finiteHoudini": 6714.209458999998
+      },
+      "names": [
+        "every Config cell is a value of its kind",
+        "one primary per term",
+        "St at most 1",
+        "CV at most 2",
+        "fields: St[a]=1 -> CT[a]=CfgT[a]",
+        "fields: St[a]=1 -> CT[a]<=CfgT[a]",
+        "fields: St[a]=1 -> CT[a]=CT[b] -> CfgT[b]<=CfgT[a]",
+        "fields: St[a]=1 -> CfgT[a]<=CT[a]",
+        "fields: St[a]=1 -> CfgT[a]=CfgT[b] -> CV[b]<=CV[a]",
+        "every x with x < size: never CT[x] is 0 and 1 <= St[x]",
+        "every x with x < size: never 1 <= CT[x] and CV[x] is 0",
+        "every x with x < size: never 1 <= CT[x] and started is 0",
+        "every x with x < size: never 1 <= St[x] and CV[x] is 0",
+        "every x with x < size: never 1 <= St[x] and CfgT[x] is 0",
+        "every x with x < size: never 1 <= St[x] and started is 0",
+        "every x with x < size: never CV[x] is 0 and 1 <= CfgT[x]",
+        "every x with x < size: never CV[x] is 0 and 1 <= started",
+        "every x with x < size: never 1 <= CfgT[x] and started is 0",
+        "every x, y with x < size ∧ y < size ∧ ¬(x = y): never 1 <= CT[x] and CV[y] is 0",
+        "every x, y with x < size ∧ y < size ∧ ¬(x = y): never 1 <= St[x] and CV[y] is 0",
+        "every x, y with x < size ∧ y < size ∧ ¬(x = y): never CV[x] is 0 and 1 <= CfgT[y]",
+        "inX: no quorum canVote/1",
+        "inX: no quorum canVote/3",
+        "inX: stored guard reconfigs/inS",
+        "inX: stored guard reconfigs/inS or disabled/0",
+        "inX: stored guard reconfigs/inS or disabled/1",
+        "inX: stored guard reconfigs/inS or disabled/2",
+        "inX: stored guard reconfigs/inS or disabled/3",
+        "fields: CV[a]=CV[b] and CfgT[a]=CfgT[b] -> Config rows agree",
+        "count cubes: every x with x < {\"op\":\"var\",\"name\":\"size\"}: never 1 <= started and inX$row[x] is 0",
+        "count cubes: every x with x < {\"op\":\"var\",\"name\":\"size\"}: never 1 <= CT[x] and inX$row[x] is 0",
+        "count cubes: every x with x < {\"op\":\"var\",\"name\":\"size\"}: never CV[x] is 0 and 1 <= inX$row[x]",
+        "count cubes: every x with x < {\"op\":\"var\",\"name\":\"size\"}: never 1 <= CV[x] and inX$row[x] is 0",
+        "count cubes: every x with x < {\"op\":\"var\",\"name\":\"size\"}: never 1 <= CfgT[x] and inX$row[x] is 0",
+        "count cubes: every x with x < {\"op\":\"var\",\"name\":\"size\"}: never 1 <= St[x] and inX$row[x] is 0"
+      ]
+    },
+    {
+      "id": "client_server_db_ae",
+      "repeat": 2,
+      "source": "runs/t14-final-v1/gen-client_server_db_ae-2.log",
+      "baseline": 15,
+      "candidate": 15,
+      "baselineHash": "24c730901be1d47def8fd4ffa11b87143b70f2ca664f3d6feb205397336ca64f",
+      "candidateHash": "24c730901be1d47def8fd4ffa11b87143b70f2ca664f3d6feb205397336ca64f",
+      "identical": true,
+      "baselineMs": 5123.879482,
+      "candidateMs": 5091.40585,
+      "candidateProfile": {
+        "small": 0.16960599999993065,
+        "cubes": 2478.4775290000002,
+        "filter": 145.6044409999995,
+        "quorumFilter": 0.0054799999998067506
+      }
+    },
+    {
+      "id": "twophase",
+      "repeat": 1,
+      "source": "runs/t14-final-v1/gen-twophase-1.log",
+      "baseline": 14,
+      "candidate": 14,
+      "baselineHash": "44bfbce553ff9457ee1e2df76ebef4d046e290ef831acd554bfbed2d74f44fd0",
+      "candidateHash": "44bfbce553ff9457ee1e2df76ebef4d046e290ef831acd554bfbed2d74f44fd0",
+      "identical": true,
+      "baselineMs": 787.176155,
+      "candidateMs": 1039.236923,
+      "candidateProfile": {
+        "small": 0.02344400000001201,
+        "cubes": 860.8195880000001,
+        "filter": 10.980400999999802,
+        "quorumFilter": 0.05689600000005157
+      }
+    },
+    {
+      "id": "client_server_db_ae",
+      "repeat": 3,
+      "source": "runs/t14-final-v1/gen-client_server_db_ae-3.log",
+      "baseline": 15,
+      "candidate": 15,
+      "baselineHash": "24c730901be1d47def8fd4ffa11b87143b70f2ca664f3d6feb205397336ca64f",
+      "candidateHash": "24c730901be1d47def8fd4ffa11b87143b70f2ca664f3d6feb205397336ca64f",
+      "identical": true,
+      "baselineMs": 6189.881151,
+      "candidateMs": 5330.955917,
+      "candidateProfile": {
+        "small": 0.014627999999902386,
+        "cubes": 2600.9847459999996,
+        "filter": 160.42955399999937,
+        "quorumFilter": 0.009257000000616245
+      }
+    },
+    {
+      "id": "mldr",
+      "repeat": 1,
+      "source": "runs/t14-final-v1/gen-mldr-1.log",
+      "baseline": 34,
+      "candidate": 35,
+      "baselineHash": "cb1022f2d79f85eb3a0343a6e6fec92b48bddfebc0e4c99925985233a09b1d3b",
+      "candidateHash": "35b0da100cc1a3b922deb1f2ceab24068ff3d1d46f968b4cafbdd15d99f1e2bc",
+      "identical": false,
+      "baselineMs": 15947.977066,
+      "candidateMs": 25506.51573,
+      "candidateProfile": {
+        "small": 0.014617000000725966,
+        "cubes": 8059.135854000002,
+        "filter": 67.65934099999868,
+        "quorumFilter": 286.9992490000004,
+        "countCubes": 29.3401440000016,
+        "finiteHoudini": 6306.3170979999995
+      },
+      "names": [
+        "every Config cell is a value of its kind",
+        "one primary per term",
+        "St at most 1",
+        "CV at most 2",
+        "fields: St[a]=1 -> CT[a]=CfgT[a]",
+        "fields: St[a]=1 -> CT[a]<=CfgT[a]",
+        "fields: St[a]=1 -> CT[a]=CT[b] -> CfgT[b]<=CfgT[a]",
+        "fields: St[a]=1 -> CfgT[a]<=CT[a]",
+        "fields: St[a]=1 -> CfgT[a]=CfgT[b] -> CV[b]<=CV[a]",
+        "every x with x < size: never CT[x] is 0 and 1 <= St[x]",
+        "every x with x < size: never 1 <= CT[x] and CV[x] is 0",
+        "every x with x < size: never 1 <= CT[x] and started is 0",
+        "every x with x < size: never 1 <= St[x] and CV[x] is 0",
+        "every x with x < size: never 1 <= St[x] and CfgT[x] is 0",
+        "every x with x < size: never 1 <= St[x] and started is 0",
+        "every x with x < size: never CV[x] is 0 and 1 <= CfgT[x]",
+        "every x with x < size: never CV[x] is 0 and 1 <= started",
+        "every x with x < size: never 1 <= CfgT[x] and started is 0",
+        "every x, y with x < size ∧ y < size ∧ ¬(x = y): never 1 <= CT[x] and CV[y] is 0",
+        "every x, y with x < size ∧ y < size ∧ ¬(x = y): never 1 <= St[x] and CV[y] is 0",
+        "every x, y with x < size ∧ y < size ∧ ¬(x = y): never CV[x] is 0 and 1 <= CfgT[y]",
+        "inX: no quorum canVote/1",
+        "inX: no quorum canVote/3",
+        "inX: stored guard reconfigs/inS",
+        "inX: stored guard reconfigs/inS or disabled/0",
+        "inX: stored guard reconfigs/inS or disabled/1",
+        "inX: stored guard reconfigs/inS or disabled/2",
+        "inX: stored guard reconfigs/inS or disabled/3",
+        "fields: CV[a]=CV[b] and CfgT[a]=CfgT[b] -> Config rows agree",
+        "count cubes: every x with x < {\"op\":\"var\",\"name\":\"size\"}: never 1 <= started and inX$row[x] is 0",
+        "count cubes: every x with x < {\"op\":\"var\",\"name\":\"size\"}: never 1 <= CT[x] and inX$row[x] is 0",
+        "count cubes: every x with x < {\"op\":\"var\",\"name\":\"size\"}: never CV[x] is 0 and 1 <= inX$row[x]",
+        "count cubes: every x with x < {\"op\":\"var\",\"name\":\"size\"}: never 1 <= CV[x] and inX$row[x] is 0",
+        "count cubes: every x with x < {\"op\":\"var\",\"name\":\"size\"}: never 1 <= CfgT[x] and inX$row[x] is 0",
+        "count cubes: every x with x < {\"op\":\"var\",\"name\":\"size\"}: never 1 <= St[x] and inX$row[x] is 0"
+      ]
+    },
+    {
+      "id": "consensus_epr",
+      "repeat": 3,
+      "source": "runs/t14-final-v1/gen-consensus_epr-3.log",
+      "baseline": 29,
+      "candidate": 29,
+      "baselineHash": "ab81a384b7f6afc1f8d207c9f6ea5fec0a1526cc98b4088e00b34cd69186db65",
+      "candidateHash": "ab81a384b7f6afc1f8d207c9f6ea5fec0a1526cc98b4088e00b34cd69186db65",
+      "identical": true,
+      "baselineMs": 8299.399097,
+      "candidateMs": 8454.475107,
+      "candidateProfile": {
+        "small": 0.01389500000004773,
+        "cubes": 4331.973179999999,
+        "filter": 213.22220200000083,
+        "quorumFilter": 0.019546000001355424
+      }
+    },
+    {
+      "id": "learning_switch",
+      "repeat": 1,
+      "source": "runs/t14-final-v1/gen-learning_switch-1.log",
+      "baseline": 16,
+      "candidate": 16,
+      "baselineHash": "30e01737accefb7cdd6842704aaadf370a3420d57fff3aefa81a435eb25c3761",
+      "candidateHash": "30e01737accefb7cdd6842704aaadf370a3420d57fff3aefa81a435eb25c3761",
+      "identical": true,
+      "baselineMs": 218483.102796,
+      "candidateMs": 178702.683203,
+      "candidateProfile": {
+        "small": 0.022882999997818843,
+        "cubes": 3186.601987000002,
+        "filter": 269.9539239999722,
+        "quorumFilter": 0.006302000023424625
+      }
+    },
+    {
+      "id": "quorum_leader_election",
+      "repeat": 3,
+      "source": "runs/t14-final-v1/gen-quorum_leader_election-3.log",
+      "baseline": 7,
+      "candidate": 7,
+      "baselineHash": "6354d3cdc634e6c8862532d3fe5e485059396f4c7fabbd7d4727c62c30242052",
+      "candidateHash": "6354d3cdc634e6c8862532d3fe5e485059396f4c7fabbd7d4727c62c30242052",
+      "identical": true,
+      "baselineMs": 564.9329789999999,
+      "candidateMs": 641.821799,
+      "candidateProfile": {
+        "small": 0.014567999999997028,
+        "cubes": 515.3359919999999,
+        "filter": 2.58400000000006,
+        "quorumFilter": 0.006091999999966902
+      }
+    },
+    {
+      "id": "sharded_kv_no_lost_keys",
+      "repeat": 2,
+      "source": "runs/t14-final-v1/gen-sharded_kv_no_lost_keys-2.log",
+      "baseline": 6,
+      "candidate": 6,
+      "baselineHash": "cb05fe1bc7dea38632ad678e7d4fa6df1277ffe5c8166b450c13a43b1c83597e",
+      "candidateHash": "cb05fe1bc7dea38632ad678e7d4fa6df1277ffe5c8166b450c13a43b1c83597e",
+      "identical": true,
+      "baselineMs": 6311.49198,
+      "candidateMs": 4872.487694,
+      "candidateProfile": {
+        "small": 0.019927999999708845,
+        "cubes": 215.56030499999997,
+        "filter": 40.70329800000036,
+        "quorumFilter": 0.00918900000033318
+      }
+    },
+    {
+      "id": "client_server_ae",
+      "repeat": 3,
+      "source": "runs/t14-final-v1/gen-client_server_ae-3.log",
+      "baseline": 10,
+      "candidate": 10,
+      "baselineHash": "1772d8c83ef06781cd23d6cfbe447b783864d76ee4b2a7004c5ac085a94040ea",
+      "candidateHash": "1772d8c83ef06781cd23d6cfbe447b783864d76ee4b2a7004c5ac085a94040ea",
+      "identical": true,
+      "baselineMs": 1868.4004989999999,
+      "candidateMs": 2401.81839,
+      "candidateProfile": {
+        "small": 0.034225000000105865,
+        "cubes": 1295.0401330000002,
+        "filter": 88.03465899999992,
+        "quorumFilter": 0.10057899999992514
+      }
+    },
+    {
+      "id": "simple_regular",
+      "repeat": 1,
+      "source": "runs/t14-final-v1/gen-simple_regular-1.log",
+      "baseline": 4,
+      "candidate": 4,
+      "baselineHash": "664a2153927102a496ca62016c1a489f577b00f84bc187cb666f4c7492cde64a",
+      "candidateHash": "664a2153927102a496ca62016c1a489f577b00f84bc187cb666f4c7492cde64a",
+      "identical": true,
+      "baselineMs": 38.422062999999994,
+      "candidateMs": 38.458932999999995,
+      "candidateProfile": {
+        "small": 0.014567999999997028,
+        "cubes": 17.948482,
+        "filter": 1.1623189999999965,
+        "quorumFilter": 0.005000000000009663
+      }
+    },
+    {
+      "id": "client_server_ae",
+      "repeat": 2,
+      "source": "runs/t14-final-v1/gen-client_server_ae-2.log",
+      "baseline": 10,
+      "candidate": 10,
+      "baselineHash": "1772d8c83ef06781cd23d6cfbe447b783864d76ee4b2a7004c5ac085a94040ea",
+      "candidateHash": "1772d8c83ef06781cd23d6cfbe447b783864d76ee4b2a7004c5ac085a94040ea",
+      "identical": true,
+      "baselineMs": 1437.585883,
+      "candidateMs": 1656.819391,
+      "candidateProfile": {
+        "small": 0.01907600000004095,
+        "cubes": 983.8494059999999,
+        "filter": 76.61676099999977,
+        "quorumFilter": 0.03578700000002755
+      }
+    },
+    {
+      "id": "sharded_kv_no_lost_keys",
+      "repeat": 3,
+      "source": "runs/t14-final-v1/gen-sharded_kv_no_lost_keys-3.log",
+      "baseline": 6,
+      "candidate": 6,
+      "baselineHash": "cb05fe1bc7dea38632ad678e7d4fa6df1277ffe5c8166b450c13a43b1c83597e",
+      "candidateHash": "cb05fe1bc7dea38632ad678e7d4fa6df1277ffe5c8166b450c13a43b1c83597e",
+      "identical": true,
+      "baselineMs": 3829.410546,
+      "candidateMs": 4934.71016,
+      "candidateProfile": {
+        "small": 0.019206999999369145,
+        "cubes": 237.63343299999997,
+        "filter": 45.1535759999997,
+        "quorumFilter": 0.0105890000004365
+      }
+    },
+    {
+      "id": "quorum_leader_election",
+      "repeat": 2,
+      "source": "runs/t14-final-v1/gen-quorum_leader_election-2.log",
+      "baseline": 7,
+      "candidate": 7,
+      "baselineHash": "6354d3cdc634e6c8862532d3fe5e485059396f4c7fabbd7d4727c62c30242052",
+      "candidateHash": "6354d3cdc634e6c8862532d3fe5e485059396f4c7fabbd7d4727c62c30242052",
+      "identical": true,
+      "baselineMs": 581.95771,
+      "candidateMs": 605.2193659999999,
+      "candidateProfile": {
+        "small": 0.010409999999978936,
+        "cubes": 495.879947,
+        "filter": 2.2428520000000844,
+        "quorumFilter": 0.005581000000006497
+      }
+    },
+    {
+      "id": "simple_election",
+      "repeat": 1,
+      "source": "runs/t14-final-v1/gen-simple_election-1.log",
+      "baseline": 12,
+      "candidate": 12,
+      "baselineHash": "30bc4cc549adbbd85c982849ae7b5cf741388b8750e135e1b96ba0e6b2204a4d",
+      "candidateHash": "30bc4cc549adbbd85c982849ae7b5cf741388b8750e135e1b96ba0e6b2204a4d",
+      "identical": true,
+      "baselineMs": 1400.6337,
+      "candidateMs": 1618.505264,
+      "candidateProfile": {
+        "small": 0.009738999999967746,
+        "cubes": 1275.6873500000002,
+        "filter": 17.538647999999966,
+        "quorumFilter": 0.027131000000053973
+      }
+    },
+    {
+      "id": "consensus_forall",
+      "repeat": 1,
+      "source": "runs/t14-final-v1/gen-consensus_forall-1.log",
+      "baseline": 48,
+      "candidate": 48,
+      "baselineHash": "5597b7cd11317d41db1e3204398864077a58857746c18b15db1cfb4ebcd1e3da",
+      "candidateHash": "5597b7cd11317d41db1e3204398864077a58857746c18b15db1cfb4ebcd1e3da",
+      "identical": true,
+      "baselineMs": 11732.383921999999,
+      "candidateMs": 11671.796828999999,
+      "candidateProfile": {
+        "small": 0.4008429999994405,
+        "cubes": 6299.361443999999,
+        "filter": 465.65785799999867,
+        "quorumFilter": 0.10428499999943597
+      }
+    },
+    {
+      "id": "consensus_epr",
+      "repeat": 2,
+      "source": "runs/t14-final-v1/gen-consensus_epr-2.log",
+      "baseline": 29,
+      "candidate": 29,
+      "baselineHash": "ab81a384b7f6afc1f8d207c9f6ea5fec0a1526cc98b4088e00b34cd69186db65",
+      "candidateHash": "ab81a384b7f6afc1f8d207c9f6ea5fec0a1526cc98b4088e00b34cd69186db65",
+      "identical": true,
+      "baselineMs": 8261.375571999999,
+      "candidateMs": 10025.046991000001,
+      "candidateProfile": {
+        "small": 0.01207200000044395,
+        "cubes": 5122.9643160000005,
+        "filter": 280.39417400000093,
+        "quorumFilter": 0.07911799999965297
+      }
+    },
+    {
+      "id": "learning_switch",
+      "repeat": 2,
+      "source": "runs/t14-final-v1/gen-learning_switch-2.log",
+      "baseline": 16,
+      "candidate": 16,
+      "baselineHash": "30e01737accefb7cdd6842704aaadf370a3420d57fff3aefa81a435eb25c3761",
+      "candidateHash": "30e01737accefb7cdd6842704aaadf370a3420d57fff3aefa81a435eb25c3761",
+      "identical": true,
+      "baselineMs": 190086.292569,
+      "candidateMs": 210462.990288,
+      "candidateProfile": {
+        "small": 0.0156989999813959,
+        "cubes": 4204.030066000007,
+        "filter": 385.3432089999842,
+        "quorumFilter": 0.008807000005617738
+      }
+    },
+    {
+      "id": "consensus_forall",
+      "repeat": 3,
+      "source": "runs/t14-final-v1/gen-consensus_forall-3.log",
+      "baseline": 48,
+      "candidate": 48,
+      "baselineHash": "5597b7cd11317d41db1e3204398864077a58857746c18b15db1cfb4ebcd1e3da",
+      "candidateHash": "5597b7cd11317d41db1e3204398864077a58857746c18b15db1cfb4ebcd1e3da",
+      "identical": true,
+      "baselineMs": 7779.16702,
+      "candidateMs": 8134.912560000001,
+      "candidateProfile": {
+        "small": 0.015799999999671854,
+        "cubes": 3933.3246969999996,
+        "filter": 323.21954600000026,
+        "quorumFilter": 0.0467369999987568
+      }
+    },
+    {
+      "id": "simple_election",
+      "repeat": 3,
+      "source": "runs/t14-final-v1/gen-simple_election-3.log",
+      "baseline": 12,
+      "candidate": 12,
+      "baselineHash": "30bc4cc549adbbd85c982849ae7b5cf741388b8750e135e1b96ba0e6b2204a4d",
+      "candidateHash": "30bc4cc549adbbd85c982849ae7b5cf741388b8750e135e1b96ba0e6b2204a4d",
+      "identical": true,
+      "baselineMs": 1619.936871,
+      "candidateMs": 1529.358595,
+      "candidateProfile": {
+        "small": 0.01036999999996624,
+        "cubes": 1173.870862,
+        "filter": 10.639732000000095,
+        "quorumFilter": 0.011823000000049433
+      }
+    },
+    {
+      "id": "sharded_kv_no_lost_keys",
+      "repeat": 1,
+      "source": "runs/t14-final-v1/gen-sharded_kv_no_lost_keys-1.log",
+      "baseline": 6,
+      "candidate": 6,
+      "baselineHash": "cb05fe1bc7dea38632ad678e7d4fa6df1277ffe5c8166b450c13a43b1c83597e",
+      "candidateHash": "cb05fe1bc7dea38632ad678e7d4fa6df1277ffe5c8166b450c13a43b1c83597e",
+      "identical": true,
+      "baselineMs": 2402.5076639999997,
+      "candidateMs": 3122.595576,
+      "candidateProfile": {
+        "small": 0.01573999999982334,
+        "cubes": 163.6203989999999,
+        "filter": 36.19084499999963,
+        "quorumFilter": 0.006863000000066677
+      }
+    },
+    {
+      "id": "simple_regular",
+      "repeat": 3,
+      "source": "runs/t14-final-v1/gen-simple_regular-3.log",
+      "baseline": 4,
+      "candidate": 4,
+      "baselineHash": "664a2153927102a496ca62016c1a489f577b00f84bc187cb666f4c7492cde64a",
+      "candidateHash": "664a2153927102a496ca62016c1a489f577b00f84bc187cb666f4c7492cde64a",
+      "identical": true,
+      "baselineMs": 51.037124,
+      "candidateMs": 55.770035,
+      "candidateProfile": {
+        "small": 0.012257000000005291,
+        "cubes": 28.740603000000007,
+        "filter": 1.5664739999999995,
+        "quorumFilter": 0.0053779999999932215
+      }
+    },
+    {
+      "id": "simple_regular",
+      "repeat": 2,
+      "source": "runs/t14-final-v1/gen-simple_regular-2.log",
+      "baseline": 4,
+      "candidate": 4,
+      "baselineHash": "664a2153927102a496ca62016c1a489f577b00f84bc187cb666f4c7492cde64a",
+      "candidateHash": "664a2153927102a496ca62016c1a489f577b00f84bc187cb666f4c7492cde64a",
+      "identical": true,
+      "baselineMs": 65.235897,
+      "candidateMs": 66.202864,
+      "candidateProfile": {
+        "small": 0.03972399999999254,
+        "cubes": 29.482103999999993,
+        "filter": 2.0953619999999944,
+        "quorumFilter": 0.00856600000000185
+      }
+    },
+    {
+      "id": "client_server_ae",
+      "repeat": 1,
+      "source": "runs/t14-final-v1/gen-client_server_ae-1.log",
+      "baseline": 10,
+      "candidate": 10,
+      "baselineHash": "1772d8c83ef06781cd23d6cfbe447b783864d76ee4b2a7004c5ac085a94040ea",
+      "candidateHash": "1772d8c83ef06781cd23d6cfbe447b783864d76ee4b2a7004c5ac085a94040ea",
+      "identical": true,
+      "baselineMs": 1531.0742269999998,
+      "candidateMs": 1522.120697,
+      "candidateProfile": {
+        "small": 0.01632100000006176,
+        "cubes": 871.2615,
+        "filter": 82.36835599999995,
+        "quorumFilter": 0.086812000000009
+      }
+    },
+    {
+      "id": "quorum_leader_election",
+      "repeat": 1,
+      "source": "runs/t14-final-v1/gen-quorum_leader_election-1.log",
+      "baseline": 7,
+      "candidate": 7,
+      "baselineHash": "6354d3cdc634e6c8862532d3fe5e485059396f4c7fabbd7d4727c62c30242052",
+      "candidateHash": "6354d3cdc634e6c8862532d3fe5e485059396f4c7fabbd7d4727c62c30242052",
+      "identical": true,
+      "baselineMs": 595.253362,
+      "candidateMs": 549.8720050000001,
+      "candidateProfile": {
+        "small": 0.009017000000000053,
+        "cubes": 453.93214600000005,
+        "filter": 2.088037999999983,
+        "quorumFilter": 0.005170000000020991
+      }
+    },
+    {
+      "id": "simple_election",
+      "repeat": 2,
+      "source": "runs/t14-final-v1/gen-simple_election-2.log",
+      "baseline": 12,
+      "candidate": 12,
+      "baselineHash": "30bc4cc549adbbd85c982849ae7b5cf741388b8750e135e1b96ba0e6b2204a4d",
+      "candidateHash": "30bc4cc549adbbd85c982849ae7b5cf741388b8750e135e1b96ba0e6b2204a4d",
+      "identical": true,
+      "baselineMs": 1489.401179,
+      "candidateMs": 1533.233297,
+      "candidateProfile": {
+        "small": 0.00988799999998946,
+        "cubes": 1166.042529,
+        "filter": 19.633859999999913,
+        "quorumFilter": 0.016871000000037384
+      }
+    },
+    {
+      "id": "consensus_forall",
+      "repeat": 2,
+      "source": "runs/t14-final-v1/gen-consensus_forall-2.log",
+      "baseline": 48,
+      "candidate": 48,
+      "baselineHash": "5597b7cd11317d41db1e3204398864077a58857746c18b15db1cfb4ebcd1e3da",
+      "candidateHash": "5597b7cd11317d41db1e3204398864077a58857746c18b15db1cfb4ebcd1e3da",
+      "identical": true,
+      "baselineMs": 15055.664213,
+      "candidateMs": 16031.414433,
+      "candidateProfile": {
+        "small": 0.020829999999477877,
+        "cubes": 7264.3625759999995,
+        "filter": 419.8171379999967,
+        "quorumFilter": 0.048471000000063214
+      }
+    },
+    {
+      "id": "learning_switch",
+      "repeat": 3,
+      "source": "runs/t14-final-v1/gen-learning_switch-3.log",
+      "baseline": 16,
+      "candidate": 16,
+      "baselineHash": "30e01737accefb7cdd6842704aaadf370a3420d57fff3aefa81a435eb25c3761",
+      "candidateHash": "30e01737accefb7cdd6842704aaadf370a3420d57fff3aefa81a435eb25c3761",
+      "identical": true,
+      "baselineMs": 168396.271717,
+      "candidateMs": 176294.51442700002,
+      "candidateProfile": {
+        "small": 0.016722000000299886,
+        "cubes": 3589.8040690000053,
+        "filter": 279.9855539999844,
+        "quorumFilter": 0.007072999986121431
+      }
+    },
+    {
+      "id": "consensus_epr",
+      "repeat": 1,
+      "source": "runs/t14-final-v1/gen-consensus_epr-1.log",
+      "baseline": 29,
+      "candidate": 29,
+      "baselineHash": "ab81a384b7f6afc1f8d207c9f6ea5fec0a1526cc98b4088e00b34cd69186db65",
+      "candidateHash": "ab81a384b7f6afc1f8d207c9f6ea5fec0a1526cc98b4088e00b34cd69186db65",
+      "identical": true,
+      "baselineMs": 11245.146599,
+      "candidateMs": 9752.478231000001,
+      "candidateProfile": {
+        "small": 0.015027999999801978,
+        "cubes": 4875.1663149999995,
+        "filter": 233.11071899999843,
+        "quorumFilter": 0.11061800000061339
+      }
+    },
+    {
+      "id": "naive_consensus",
+      "repeat": 3,
+      "source": "runs/t14-final-v1/gen-naive_consensus-3.log",
+      "baseline": 13,
+      "candidate": 13,
+      "baselineHash": "33063fbf32c2fe26d3a2543e077350c6d2d6a6bd9141f194c829ff390249325c",
+      "candidateHash": "33063fbf32c2fe26d3a2543e077350c6d2d6a6bd9141f194c829ff390249325c",
+      "identical": true,
+      "baselineMs": 1677.210004,
+      "candidateMs": 1478.681825,
+      "candidateProfile": {
+        "small": 0.01292599999999311,
+        "cubes": 1222.068142,
+        "filter": 10.249023999999963,
+        "quorumFilter": 0.01181300000007468
+      }
+    },
+    {
+      "id": "toy_consensus_forall",
+      "repeat": 1,
+      "source": "runs/t14-final-v1/gen-toy_consensus_forall-1.log",
+      "baseline": 9,
+      "candidate": 9,
+      "baselineHash": "36b95967eb139c572c4928f9fd291fcb711464d021b5ccb3b1b52b0ea91a33e6",
+      "candidateHash": "36b95967eb139c572c4928f9fd291fcb711464d021b5ccb3b1b52b0ea91a33e6",
+      "identical": true,
+      "baselineMs": 702.829176,
+      "candidateMs": 755.257874,
+      "candidateProfile": {
+        "small": 0.027421000000003914,
+        "cubes": 632.144724,
+        "filter": 2.5439850000000206,
+        "quorumFilter": 0.005189999999970496
+      }
+    },
+    {
+      "id": "tcommit",
+      "repeat": 1,
+      "source": "runs/t14-final-v1/gen-tcommit-1.log",
+      "baseline": 4,
+      "candidate": 4,
+      "baselineHash": "0fcdba2bffed25323343e97a11d2439514ab6a146a5f4039103365d216045e54",
+      "candidateHash": "0fcdba2bffed25323343e97a11d2439514ab6a146a5f4039103365d216045e54",
+      "identical": true,
+      "baselineMs": 56.653207,
+      "candidateMs": 58.69153,
+      "candidateProfile": {
+        "small": 0.011110999999999649,
+        "cubes": 42.212179,
+        "filter": 2.098376000000002,
+        "quorumFilter": 0.0063509999999951106
+      }
+    },
+    {
+      "id": "firewall",
+      "repeat": 1,
+      "source": "runs/t14-final-v1/gen-firewall-1.log",
+      "baseline": 7,
+      "candidate": 7,
+      "baselineHash": "0aeb72d28c1ed33a168870c883b14003290b1f6276c90ed6469aaee474a41dcc",
+      "candidateHash": "0aeb72d28c1ed33a168870c883b14003290b1f6276c90ed6469aaee474a41dcc",
+      "identical": true,
+      "baselineMs": 105.67093599999998,
+      "candidateMs": 95.182512,
+      "candidateProfile": {
+        "small": 0.02091999999999672,
+        "cubes": 64.974739,
+        "filter": 2.4380590000000097,
+        "quorumFilter": 0.006090999999997848
+      }
+    },
+    {
+      "id": "naive_consensus",
+      "repeat": 2,
+      "source": "runs/t14-final-v1/gen-naive_consensus-2.log",
+      "baseline": 13,
+      "candidate": 13,
+      "baselineHash": "33063fbf32c2fe26d3a2543e077350c6d2d6a6bd9141f194c829ff390249325c",
+      "candidateHash": "33063fbf32c2fe26d3a2543e077350c6d2d6a6bd9141f194c829ff390249325c",
+      "identical": true,
+      "baselineMs": 1111.1890859999999,
+      "candidateMs": 981.239953,
+      "candidateProfile": {
+        "small": 0.009136999999981299,
+        "cubes": 803.625661,
+        "filter": 6.392190999999912,
+        "quorumFilter": 0.009948000000008506
+      }
+    },
+    {
+      "id": "toy_consensus_forall",
+      "repeat": 2,
+      "source": "runs/t14-final-v1/gen-toy_consensus_forall-2.log",
+      "baseline": 9,
+      "candidate": 9,
+      "baselineHash": "36b95967eb139c572c4928f9fd291fcb711464d021b5ccb3b1b52b0ea91a33e6",
+      "candidateHash": "36b95967eb139c572c4928f9fd291fcb711464d021b5ccb3b1b52b0ea91a33e6",
+      "identical": true,
+      "baselineMs": 612.991383,
+      "candidateMs": 641.303082,
+      "candidateProfile": {
+        "small": 0.0076840000000117925,
+        "cubes": 530.903973,
+        "filter": 2.3019630000000006,
+        "quorumFilter": 0.005068999999934931
+      }
+    },
+    {
+      "id": "tcommit",
+      "repeat": 2,
+      "source": "runs/t14-final-v1/gen-tcommit-2.log",
+      "baseline": 4,
+      "candidate": 4,
+      "baselineHash": "0fcdba2bffed25323343e97a11d2439514ab6a146a5f4039103365d216045e54",
+      "candidateHash": "0fcdba2bffed25323343e97a11d2439514ab6a146a5f4039103365d216045e54",
+      "identical": true,
+      "baselineMs": 120.77373399999999,
+      "candidateMs": 117.239211,
+      "candidateProfile": {
+        "small": 0.026971000000003187,
+        "cubes": 76.436841,
+        "filter": 3.0869199999999637,
+        "quorumFilter": 0.010821000000021286
+      }
+    },
+    {
+      "id": "firewall",
+      "repeat": 2,
+      "source": "runs/t14-final-v1/gen-firewall-2.log",
+      "baseline": 7,
+      "candidate": 7,
+      "baselineHash": "0aeb72d28c1ed33a168870c883b14003290b1f6276c90ed6469aaee474a41dcc",
+      "candidateHash": "0aeb72d28c1ed33a168870c883b14003290b1f6276c90ed6469aaee474a41dcc",
+      "identical": true,
+      "baselineMs": 169.742782,
+      "candidateMs": 135.60352999999998,
+      "candidateProfile": {
+        "small": 0.027912000000000603,
+        "cubes": 91.04480199999999,
+        "filter": 2.7092079999999896,
+        "quorumFilter": 0.007373000000001184
+      }
+    },
+    {
+      "id": "firewall",
+      "repeat": 3,
+      "source": "runs/t14-final-v1/gen-firewall-3.log",
+      "baseline": 7,
+      "candidate": 7,
+      "baselineHash": "0aeb72d28c1ed33a168870c883b14003290b1f6276c90ed6469aaee474a41dcc",
+      "candidateHash": "0aeb72d28c1ed33a168870c883b14003290b1f6276c90ed6469aaee474a41dcc",
+      "identical": true,
+      "baselineMs": 139.282163,
+      "candidateMs": 126.41122100000001,
+      "candidateProfile": {
+        "small": 0.024376000000003728,
+        "cubes": 83.135044,
+        "filter": 4.530643999999995,
+        "quorumFilter": 0.010029000000002952
+      }
+    },
+    {
+      "id": "tcommit",
+      "repeat": 3,
+      "source": "runs/t14-final-v1/gen-tcommit-3.log",
+      "baseline": 4,
+      "candidate": 4,
+      "baselineHash": "0fcdba2bffed25323343e97a11d2439514ab6a146a5f4039103365d216045e54",
+      "candidateHash": "0fcdba2bffed25323343e97a11d2439514ab6a146a5f4039103365d216045e54",
+      "identical": true,
+      "baselineMs": 54.862427,
+      "candidateMs": 55.761204000000006,
+      "candidateProfile": {
+        "small": 0.017822000000002447,
+        "cubes": 39.360915000000006,
+        "filter": 1.481701000000001,
+        "quorumFilter": 0.005361000000007721
+      }
+    },
+    {
+      "id": "toy_consensus_forall",
+      "repeat": 3,
+      "source": "runs/t14-final-v1/gen-toy_consensus_forall-3.log",
+      "baseline": 9,
+      "candidate": 9,
+      "baselineHash": "36b95967eb139c572c4928f9fd291fcb711464d021b5ccb3b1b52b0ea91a33e6",
+      "candidateHash": "36b95967eb139c572c4928f9fd291fcb711464d021b5ccb3b1b52b0ea91a33e6",
+      "identical": true,
+      "baselineMs": 542.528512,
+      "candidateMs": 633.433489,
+      "candidateProfile": {
+        "small": 0.009136999999981299,
+        "cubes": 521.5975109999999,
+        "filter": 3.3965140000000247,
+        "quorumFilter": 0.00582099999996899
+      }
+    },
+    {
+      "id": "naive_consensus",
+      "repeat": 1,
+      "source": "runs/t14-final-v1/gen-naive_consensus-1.log",
+      "baseline": 13,
+      "candidate": 13,
+      "baselineHash": "33063fbf32c2fe26d3a2543e077350c6d2d6a6bd9141f194c829ff390249325c",
+      "candidateHash": "33063fbf32c2fe26d3a2543e077350c6d2d6a6bd9141f194c829ff390249325c",
+      "identical": true,
+      "baselineMs": 2654.383757,
+      "candidateMs": 1849.9029810000002,
+      "candidateProfile": {
+        "small": 0.014377000000024509,
+        "cubes": 1620.598309,
+        "filter": 11.384104999999863,
+        "quorumFilter": 0.028062000000090848
+      }
+    }
+  ],
+  "changed": [
+    "mldr/3",
+    "mldr/2",
+    "mldr/1"
+  ],
+  "protocols": 29,
+  "pairs": 87,
+  "queries": 0
+}

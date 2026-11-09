@@ -1,0 +1,214 @@
+[
+  {
+    "repeat": 1,
+    "records": [
+      {
+        "side": "baseline",
+        "verdict": "unknown",
+        "why": "not proven: one primary per term",
+        "wallMs": 48749,
+        "work": 37617663,
+        "full": 12070153,
+        "finalLaws": 18,
+        "safetyAttempts": 8,
+        "lastSafetyAttempts": [
+          "counts: try one primary per term | ls 25 pass 0 ms 1251 took 1267 wall 1102 [encode 5 decide 115 mbqi 7 #rounds 5 #hyps 403 focused 975] -> sat",
+          "counts: try one primary per term | ls 25 pass 1 ms 1251 took 330 wall 349 [encode 12 decide 286 mbqi 16 lazy 27 #rounds 7 #hyps 740 #lazy 11] -> sat",
+          "counts: try one primary per term | ls 18 pass 0 ms 16752 took 5033 wall 3099 [mbqi 2 focused 3097] -> sat",
+          "counts: try one primary per term | ls 18 pass 1 ms 11719 took 0 wall 2 [mbqi 2] -> sat"
+        ],
+        "quorumAttempts": 0,
+        "lastQuorumAttempts": [],
+        "overlapAttempts": 0,
+        "lastOverlapAttempts": [],
+        "fieldAttempts": 0,
+        "lastFieldAttempts": [],
+        "rounds": [
+          "counts: round 0: 25 laws, 0 kept, 0 carried, failed CT at most 44; CV at most 2; CfgT at most 44; fields: St[a]=1 -> CT[a]=CT[b] -> CV[b]<=CV[a]; fields: St[a]=1 -> CT[a]=CT[b] -> CfgT[b]<=CfgT[a]; fields: St[a]=1 -> CfgT[a]=CfgT[b] -> CV[b]<=CV[a]; every x with x < size: never Config[x] is 0 and 1 <= St[x]; one primary per term",
+          "counts: round 1: 18 laws, 0 kept, 17 carried, failed one primary per term",
+          "counts: round 0: 25 laws, 0 kept, 0 carried, failed CT at most 44; CV at most 2; CfgT at most 44; fields: St[a]=1 -> CT[a]=CT[b] -> CV[b]<=CV[a]; fields: St[a]=1 -> CT[a]=CT[b] -> CfgT[b]<=CfgT[a]; fields: St[a]=1 -> CfgT[a]=CfgT[b] -> CV[b]<=CV[a]; every x with x < size: never Config[x] is 0 and 1 <= St[x]; one primary per term",
+          "counts: round 1: 18 laws, 0 kept, 17 carried, failed one primary per term"
+        ],
+        "profile": "counts: prof total 40670 ms; small 8000, cubes 7319, filter 71, encode 435, decide 6882, mbqi 365, lazy 37, #rounds 240, #hyps 15647, focused 24138, grow 9, part 1289, #lazy 19; cdcl runs 694 conflicts 9010 decisions 104247 solveMs 1401 rowsMs 4756 coreMs 54 unfoldMs 179 lpMs 896 boundMs 1105 orderMs 4521 fmCalls 1 lpMisses 0 lpUnknown 0 missMs 245 fastMs 0 fmOpenMs 0 fmLeafMs 2 nodes 136569"
+      },
+      {
+        "side": "candidate",
+        "verdict": "unknown",
+        "why": "not proven: every Config cell is a value of its kind, one primary per term",
+        "wallMs": 133399,
+        "work": 29767798,
+        "full": 10968192,
+        "finalLaws": 2,
+        "safetyAttempts": 8,
+        "lastSafetyAttempts": [
+          "counts: try one primary per term | ls 34 pass 0 ms 485 took 2 wall 2 [encode 1] -> unknown",
+          "counts: try one primary per term | ls 34 pass 1 ms 485 took 4 wall 2 [encode 1] -> unknown",
+          "counts: try one primary per term | ls 2 pass 0 ms 8064 took 0 wall 1 [] -> unknown",
+          "counts: try one primary per term | ls 2 pass 1 ms 8064 took 0 wall 1 [] -> unknown"
+        ],
+        "quorumAttempts": 4,
+        "lastQuorumAttempts": [
+          "counts: try inX: no quorum canVote/3 | ls 34 pass 0 ms 1765 took 68 wall 82 [encode 12 decide 54 mbqi 16 #rounds 4 #hyps 201] -> sat",
+          "counts: try inX: no quorum canVote/3 | ls 34 pass 1 ms 1765 took 615 wall 1112 [encode 14 decide 1041 mbqi 52 #rounds 4 #hyps 281] -> sat",
+          "counts: try inX: no quorum canVote/3 | ls 34 pass 0 ms 485 took 2 wall 2 [encode 1] -> unknown",
+          "counts: try inX: no quorum canVote/3 | ls 34 pass 1 ms 485 took 33 wall 7 [encode 2 decide 5] -> unknown"
+        ],
+        "overlapAttempts": 4,
+        "lastOverlapAttempts": [
+          "counts: try inX: stored guard reconfigs/inS or disabled/0 | ls 34 pass 0 ms 1765 took 90 wall 116 [encode 11 decide 87 mbqi 18 #rounds 4 #hyps 257] -> sat",
+          "counts: try inX: stored guard reconfigs/inS or disabled/0 | ls 34 pass 1 ms 1765 took 6107 wall 22983 [encode 65 decide 5453 mbqi 77 lazy 341 #rounds 5 #hyps 485 grow 17012 #lazy 74] -> unknown",
+          "counts: try inX: stored guard reconfigs/inS or disabled/0 | ls 34 pass 0 ms 485 took 3 wall 2 [encode 1] -> unknown",
+          "counts: try inX: stored guard reconfigs/inS or disabled/0 | ls 34 pass 1 ms 485 took 29 wall 10 [encode 2 decide 6] -> unknown"
+        ],
+        "fieldAttempts": 4,
+        "lastFieldAttempts": [
+          "counts: try fields: CV[a]=CV[b] and CfgT[a]=CfgT[b] -> Config  | ls 34 pass 0 ms 1765 took 5 wall 4 [encode 2 decide 1] -> unknown",
+          "counts: try fields: CV[a]=CV[b] and CfgT[a]=CfgT[b] -> Config  | ls 34 pass 1 ms 1765 took 5 wall 4 [encode 2] -> unknown",
+          "counts: try fields: CV[a]=CV[b] and CfgT[a]=CfgT[b] -> Config  | ls 34 pass 0 ms 485 took 5 wall 3 [encode 2] -> unknown",
+          "counts: try fields: CV[a]=CV[b] and CfgT[a]=CfgT[b] -> Config  | ls 34 pass 1 ms 485 took 5 wall 3 [encode 2] -> unknown"
+        ],
+        "rounds": [
+          "counts: round 0: 34 laws, 0 kept, 0 carried, failed CT at most 44; CV at most 2; CfgT at most 44; fields: St[a]=1 -> CT[a]=CT[b] -> CV[b]<=CV[a]; fields: St[a]=1 -> CT[a]=CT[b] -> CfgT[b]<=CfgT[a]; fields: St[a]=1 -> CfgT[a]=CfgT[b] -> CV[b]<=CV[a]; every x with x < size: never Config[x] is 0 and 1 <= St[x]; inX: no quorum canVote/1; inX: no quorum canVote/3; inX: stored guard reconfigs/inS; inX: stored guard reconfigs/inS or disabled/0; inX: stored guard reconfigs/inS or disabled/1; inX: stored guard reconfigs/inS or disabled/2; inX: stored guard reconfigs/inS or disabled/3; fields: CT[a]=CT[b] and CV[a]=CV[b] -> Config rows agree; fields: CV[",
+          "counts: round 1: 18 laws, 0 kept, 16 carried, failed every Config cell is a value of its kind; one primary per term",
+          "counts: round 0: 34 laws, 0 kept, 0 carried, failed CT at most 44; St at most 1; CV at most 2; CfgT at most 44; fields: St[a]=1 -> CT[a]=CT[b] -> CV[b]<=CV[a]; fields: St[a]=1 -> CT[a]=CfgT[a]; fields: St[a]=1 -> CT[a]<=CfgT[a]; fields: St[a]=1 -> CT[a]=CT[b] -> CfgT[b]<=CfgT[a]; fields: St[a]=1 -> CfgT[a]<=CT[a]; fields: St[a]=1 -> CfgT[a]=CfgT[b] -> CV[b]<=CV[a]; every x with x < size: never Config[x] is 0 and 1 <= St[x]; every x with x < size: never CT[x] is 0 and 1 <= St[x]; every x with x < size: never 1 <= CT[x] and CV[x] is 0; every x with x < size: never 1 <= CT[x] and started is 0; every x with x < size: never 1 <= St[x] and CV[x] is 0",
+          "counts: round 1: 2 laws, 0 kept, 0 carried, failed every Config cell is a value of its kind; one primary per term"
+        ],
+        "profile": "counts: prof total 120644 ms; small 12528, cubes 15729, filter 172, quorumFilter 422, encode 1397, decide 37964, mbqi 2543, lazy 1754, #rounds 213, #hyps 19402, focused 14925, grow 44335, part 831, #lazy 477; cdcl runs 367 conflicts 5417 decisions 91359 solveMs 2101 rowsMs 11778 coreMs 77 unfoldMs 71 lpMs 1318 boundMs 3756 orderMs 16619 fmCalls 0 lpMisses 0 lpUnknown 0 missMs 377 fastMs 0 fmOpenMs 0 fmLeafMs 0 nodes 111916"
+      }
+    ]
+  },
+  {
+    "repeat": 2,
+    "records": [
+      {
+        "side": "baseline",
+        "verdict": "unknown",
+        "why": "not proven: one primary per term",
+        "wallMs": 82147,
+        "work": 37617663,
+        "full": 12070153,
+        "finalLaws": 18,
+        "safetyAttempts": 8,
+        "lastSafetyAttempts": [
+          "counts: try one primary per term | ls 25 pass 0 ms 1251 took 1267 wall 1913 [encode 9 decide 381 mbqi 12 #rounds 5 #hyps 403 focused 1510] -> sat",
+          "counts: try one primary per term | ls 25 pass 1 ms 1251 took 330 wall 361 [encode 17 decide 262 mbqi 22 lazy 47 #rounds 7 #hyps 740 #lazy 11] -> sat",
+          "counts: try one primary per term | ls 18 pass 0 ms 16752 took 5033 wall 5239 [mbqi 3 focused 5236] -> sat",
+          "counts: try one primary per term | ls 18 pass 1 ms 11719 took 0 wall 4 [mbqi 4] -> sat"
+        ],
+        "quorumAttempts": 0,
+        "lastQuorumAttempts": [],
+        "overlapAttempts": 0,
+        "lastOverlapAttempts": [],
+        "fieldAttempts": 0,
+        "lastFieldAttempts": [],
+        "rounds": [
+          "counts: round 0: 25 laws, 0 kept, 0 carried, failed CT at most 44; CV at most 2; CfgT at most 44; fields: St[a]=1 -> CT[a]=CT[b] -> CV[b]<=CV[a]; fields: St[a]=1 -> CT[a]=CT[b] -> CfgT[b]<=CfgT[a]; fields: St[a]=1 -> CfgT[a]=CfgT[b] -> CV[b]<=CV[a]; every x with x < size: never Config[x] is 0 and 1 <= St[x]; one primary per term",
+          "counts: round 1: 18 laws, 0 kept, 17 carried, failed one primary per term",
+          "counts: round 0: 25 laws, 0 kept, 0 carried, failed CT at most 44; CV at most 2; CfgT at most 44; fields: St[a]=1 -> CT[a]=CT[b] -> CV[b]<=CV[a]; fields: St[a]=1 -> CT[a]=CT[b] -> CfgT[b]<=CfgT[a]; fields: St[a]=1 -> CfgT[a]=CfgT[b] -> CV[b]<=CV[a]; every x with x < size: never Config[x] is 0 and 1 <= St[x]; one primary per term",
+          "counts: round 1: 18 laws, 0 kept, 17 carried, failed one primary per term"
+        ],
+        "profile": "counts: prof total 70604 ms; small 11284, cubes 12843, filter 124, encode 659, decide 11337, mbqi 620, lazy 64, #rounds 240, #hyps 15647, focused 42965, grow 10, part 1820, #lazy 19; cdcl runs 694 conflicts 9010 decisions 104247 solveMs 2290 rowsMs 9699 coreMs 227 unfoldMs 139 lpMs 1350 boundMs 1871 orderMs 7481 fmCalls 1 lpMisses 0 lpUnknown 0 missMs 583 fastMs 0 fmOpenMs 0 fmLeafMs 4 nodes 136569"
+      },
+      {
+        "side": "candidate",
+        "verdict": "unknown",
+        "why": "time",
+        "wallMs": 128164,
+        "work": 46998339,
+        "full": 15001127,
+        "finalLaws": 18,
+        "safetyAttempts": 2,
+        "lastSafetyAttempts": [
+          "counts: try one primary per term | ls 34 pass 0 ms 955 took 955 wall 1015 [encode 11 decide 327 mbqi 35 #rounds 8 #hyps 1013 focused 642] -> sat",
+          "counts: try one primary per term | ls 34 pass 1 ms 0 took 4 wall 8 [encode 5 decide 2] -> unknown"
+        ],
+        "quorumAttempts": 2,
+        "lastQuorumAttempts": [
+          "counts: try inX: no quorum canVote/3 | ls 34 pass 0 ms 1765 took 68 wall 65 [encode 7 decide 46 mbqi 11 #rounds 4 #hyps 201] -> sat",
+          "counts: try inX: no quorum canVote/3 | ls 34 pass 1 ms 1765 took 615 wall 952 [encode 10 decide 907 mbqi 32 #rounds 4 #hyps 281] -> sat"
+        ],
+        "overlapAttempts": 2,
+        "lastOverlapAttempts": [
+          "counts: try inX: stored guard reconfigs/inS or disabled/0 | ls 34 pass 0 ms 1765 took 90 wall 91 [encode 9 decide 67 mbqi 15 #rounds 4 #hyps 257] -> sat",
+          "counts: try inX: stored guard reconfigs/inS or disabled/0 | ls 34 pass 1 ms 1765 took 6107 wall 19027 [encode 56 decide 4390 mbqi 54 lazy 366 #rounds 5 #hyps 485 grow 14133 #lazy 74] -> unknown"
+        ],
+        "fieldAttempts": 2,
+        "lastFieldAttempts": [
+          "counts: try fields: CV[a]=CV[b] and CfgT[a]=CfgT[b] -> Config  | ls 34 pass 0 ms 1765 took 1934 wall 1614 [encode 19 decide 1519 mbqi 74 #rounds 11 #hyps 1278] -> unknown",
+          "counts: try fields: CV[a]=CV[b] and CfgT[a]=CfgT[b] -> Config  | ls 34 pass 1 ms 1765 took 2687 wall 1519 [encode 14 decide 1439 mbqi 55 #rounds 7 #hyps 839] -> unknown"
+        ],
+        "rounds": [
+          "counts: round 0: 34 laws, 0 kept, 0 carried, failed CT at most 44; CV at most 2; CfgT at most 44; fields: St[a]=1 -> CT[a]=CT[b] -> CV[b]<=CV[a]; fields: St[a]=1 -> CT[a]=CT[b] -> CfgT[b]<=CfgT[a]; fields: St[a]=1 -> CfgT[a]=CfgT[b] -> CV[b]<=CV[a]; every x with x < size: never Config[x] is 0 and 1 <= St[x]; inX: no quorum canVote/1; inX: no quorum canVote/3; inX: stored guard reconfigs/inS; inX: stored guard reconfigs/inS or disabled/0; inX: stored guard reconfigs/inS or disabled/1; inX: stored guard reconfigs/inS or disabled/2; inX: stored guard reconfigs/inS or disabled/3; fields: CT[a]=CT[b] and CV[a]=CV[b] -> Config rows agree; fields: CV["
+        ],
+        "profile": "counts: prof total 118081 ms; small 9958, cubes 8705, filter 107, quorumFilter 366, encode 1508, decide 38284, mbqi 1953, lazy 2244, #rounds 265, #hyps 25172, focused 10641, grow 53279, part 474, #lazy 551; cdcl runs 311 conflicts 7116 decisions 133458 solveMs 1816 rowsMs 12333 coreMs 73 unfoldMs 52 lpMs 1196 boundMs 3113 orderMs 19001 fmCalls 0 lpMisses 0 lpUnknown 0 missMs 313 fastMs 0 fmOpenMs 0 fmLeafMs 0 nodes 161411"
+      }
+    ]
+  },
+  {
+    "repeat": 3,
+    "records": [
+      {
+        "side": "baseline",
+        "verdict": "unknown",
+        "why": "not proven: one primary per term",
+        "wallMs": 41211,
+        "work": 37617663,
+        "full": 12070153,
+        "finalLaws": 18,
+        "safetyAttempts": 8,
+        "lastSafetyAttempts": [
+          "counts: try one primary per term | ls 25 pass 0 ms 1251 took 1267 wall 995 [encode 5 decide 186 mbqi 7 #rounds 5 #hyps 403 focused 797] -> sat",
+          "counts: try one primary per term | ls 25 pass 1 ms 1251 took 330 wall 297 [encode 9 decide 241 mbqi 13 lazy 26 #rounds 7 #hyps 740 #lazy 11] -> sat",
+          "counts: try one primary per term | ls 18 pass 0 ms 16752 took 5033 wall 2581 [mbqi 1 focused 2580] -> sat",
+          "counts: try one primary per term | ls 18 pass 1 ms 11719 took 0 wall 3 [mbqi 3] -> sat"
+        ],
+        "quorumAttempts": 0,
+        "lastQuorumAttempts": [],
+        "overlapAttempts": 0,
+        "lastOverlapAttempts": [],
+        "fieldAttempts": 0,
+        "lastFieldAttempts": [],
+        "rounds": [
+          "counts: round 0: 25 laws, 0 kept, 0 carried, failed CT at most 44; CV at most 2; CfgT at most 44; fields: St[a]=1 -> CT[a]=CT[b] -> CV[b]<=CV[a]; fields: St[a]=1 -> CT[a]=CT[b] -> CfgT[b]<=CfgT[a]; fields: St[a]=1 -> CfgT[a]=CfgT[b] -> CV[b]<=CV[a]; every x with x < size: never Config[x] is 0 and 1 <= St[x]; one primary per term",
+          "counts: round 1: 18 laws, 0 kept, 17 carried, failed one primary per term",
+          "counts: round 0: 25 laws, 0 kept, 0 carried, failed CT at most 44; CV at most 2; CfgT at most 44; fields: St[a]=1 -> CT[a]=CT[b] -> CV[b]<=CV[a]; fields: St[a]=1 -> CT[a]=CT[b] -> CfgT[b]<=CfgT[a]; fields: St[a]=1 -> CfgT[a]=CfgT[b] -> CV[b]<=CV[a]; every x with x < size: never Config[x] is 0 and 1 <= St[x]; one primary per term",
+          "counts: round 1: 18 laws, 0 kept, 17 carried, failed one primary per term"
+        ],
+        "profile": "counts: prof total 35227 ms; small 5910, cubes 6761, filter 56, encode 292, decide 5579, mbqi 428, lazy 35, #rounds 240, #hyps 15647, focused 20939, grow 6, part 1027, #lazy 19; cdcl runs 694 conflicts 9010 decisions 104247 solveMs 904 rowsMs 3987 coreMs 47 unfoldMs 72 lpMs 606 boundMs 785 orderMs 4459 fmCalls 1 lpMisses 0 lpUnknown 0 missMs 179 fastMs 0 fmOpenMs 0 fmLeafMs 2 nodes 136569"
+      },
+      {
+        "side": "candidate",
+        "verdict": "unknown",
+        "why": "time",
+        "wallMs": 88610,
+        "work": 46998339,
+        "full": 15001127,
+        "finalLaws": 18,
+        "safetyAttempts": 2,
+        "lastSafetyAttempts": [
+          "counts: try one primary per term | ls 34 pass 0 ms 955 took 955 wall 603 [encode 12 decide 305 mbqi 37 #rounds 8 #hyps 1013 focused 248] -> sat",
+          "counts: try one primary per term | ls 34 pass 1 ms 0 took 4 wall 2 [encode 1] -> unknown"
+        ],
+        "quorumAttempts": 2,
+        "lastQuorumAttempts": [
+          "counts: try inX: no quorum canVote/3 | ls 34 pass 0 ms 1765 took 68 wall 51 [encode 6 decide 36 mbqi 8 #rounds 4 #hyps 201] -> sat",
+          "counts: try inX: no quorum canVote/3 | ls 34 pass 1 ms 1765 took 615 wall 912 [encode 12 decide 855 mbqi 40 #rounds 4 #hyps 281] -> sat"
+        ],
+        "overlapAttempts": 2,
+        "lastOverlapAttempts": [
+          "counts: try inX: stored guard reconfigs/inS or disabled/0 | ls 34 pass 0 ms 1765 took 90 wall 56 [encode 6 decide 41 mbqi 9 #rounds 4 #hyps 257] -> sat",
+          "counts: try inX: stored guard reconfigs/inS or disabled/0 | ls 34 pass 1 ms 1765 took 6107 wall 13369 [encode 45 decide 3418 mbqi 41 lazy 162 #rounds 5 #hyps 485 grow 9683 #lazy 74] -> unknown"
+        ],
+        "fieldAttempts": 2,
+        "lastFieldAttempts": [
+          "counts: try fields: CV[a]=CV[b] and CfgT[a]=CfgT[b] -> Config  | ls 34 pass 0 ms 1765 took 1934 wall 2649 [encode 47 decide 2386 mbqi 215 #rounds 11 #hyps 1278] -> unknown",
+          "counts: try fields: CV[a]=CV[b] and CfgT[a]=CfgT[b] -> Config  | ls 34 pass 1 ms 1765 took 2687 wall 1399 [encode 14 decide 1320 mbqi 55 #rounds 7 #hyps 839] -> unknown"
+        ],
+        "rounds": [
+          "counts: round 0: 34 laws, 0 kept, 0 carried, failed CT at most 44; CV at most 2; CfgT at most 44; fields: St[a]=1 -> CT[a]=CT[b] -> CV[b]<=CV[a]; fields: St[a]=1 -> CT[a]=CT[b] -> CfgT[b]<=CfgT[a]; fields: St[a]=1 -> CfgT[a]=CfgT[b] -> CV[b]<=CV[a]; every x with x < size: never Config[x] is 0 and 1 <= St[x]; inX: no quorum canVote/1; inX: no quorum canVote/3; inX: stored guard reconfigs/inS; inX: stored guard reconfigs/inS or disabled/0; inX: stored guard reconfigs/inS or disabled/1; inX: stored guard reconfigs/inS or disabled/2; inX: stored guard reconfigs/inS or disabled/3; fields: CT[a]=CT[b] and CV[a]=CV[b] -> Config rows agree; fields: CV["
+        ],
+        "profile": "counts: prof total 83440 ms; small 5098, cubes 6000, filter 61, quorumFilter 259, encode 992, decide 29586, mbqi 1924, lazy 1041, #rounds 265, #hyps 25172, focused 6663, grow 35999, part 498, #lazy 551; cdcl runs 311 conflicts 7116 decisions 133458 solveMs 1326 rowsMs 9683 coreMs 44 unfoldMs 40 lpMs 869 boundMs 3271 orderMs 12976 fmCalls 0 lpMisses 0 lpUnknown 0 missMs 211 fastMs 0 fmOpenMs 0 fmLeafMs 0 nodes 161411"
+      }
+    ]
+  }
+]

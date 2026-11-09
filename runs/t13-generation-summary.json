@@ -1,0 +1,1882 @@
+{
+  "pairs": [
+    {
+      "repeat": 1,
+      "source": "runs/t13-paired-v3/generation-pair-1.log",
+      "queries": [
+        0,
+        0
+      ],
+      "records": [
+        {
+          "id": "consensus",
+          "baseline": 3,
+          "candidate": 3,
+          "baselineHash": "e14ce6d5523e14235e7be911e6585a4e341579f13af79146ee5c0272782c73fd",
+          "candidateHash": "e14ce6d5523e14235e7be911e6585a4e341579f13af79146ee5c0272782c73fd",
+          "identical": true,
+          "baselineMs": 28.625270000000008,
+          "candidateMs": 36.622632,
+          "baselinePhases": {
+            "guards": 1.719346999999999,
+            "small": 1.953243999999998,
+            "candidates": 22.93617499999999
+          },
+          "candidatePhases": {
+            "guards": 3.276707000000002,
+            "small": 2.6404870000000003,
+            "candidates": 27.826275999999993
+          }
+        },
+        {
+          "id": "tcommit",
+          "baseline": 4,
+          "candidate": 4,
+          "baselineHash": "0fcdba2bffed25323343e97a11d2439514ab6a146a5f4039103365d216045e54",
+          "candidateHash": "0fcdba2bffed25323343e97a11d2439514ab6a146a5f4039103365d216045e54",
+          "identical": true,
+          "baselineMs": 57.253426000000005,
+          "candidateMs": 64.83759300000001,
+          "baselinePhases": {
+            "guards": 0.5801930000000084,
+            "small": 15.371811000000008,
+            "candidates": 39.013633999999996
+          },
+          "candidatePhases": {
+            "guards": 0.6857119999999952,
+            "small": 19.52454399999999,
+            "candidates": 43.696697000000015
+          }
+        },
+        {
+          "id": "lock_server",
+          "baseline": 5,
+          "candidate": 5,
+          "baselineHash": "c1076284bf2ecddf1c752965c0332a92d24a58540f38714b94ad496712ed4de5",
+          "candidateHash": "c1076284bf2ecddf1c752965c0332a92d24a58540f38714b94ad496712ed4de5",
+          "identical": true,
+          "baselineMs": 62.908788,
+          "candidateMs": 50.00050400000001,
+          "baselinePhases": {
+            "guards": 0.5418109999999956,
+            "small": 16.4807,
+            "candidates": 44.17823799999999
+          },
+          "candidatePhases": {
+            "guards": 0.4031840000000102,
+            "small": 15.116903000000008,
+            "candidates": 33.239656
+          }
+        },
+        {
+          "id": "quorum_leader_election",
+          "baseline": 7,
+          "candidate": 7,
+          "baselineHash": "6354d3cdc634e6c8862532d3fe5e485059396f4c7fabbd7d4727c62c30242052",
+          "candidateHash": "6354d3cdc634e6c8862532d3fe5e485059396f4c7fabbd7d4727c62c30242052",
+          "identical": true,
+          "baselineMs": 685.020594,
+          "candidateMs": 565.387435,
+          "baselinePhases": {
+            "guards": 0.8961810000000128,
+            "small": 139.22723500000004,
+            "candidates": 542.573572
+          },
+          "candidatePhases": {
+            "guards": 1.0672549999999887,
+            "small": 112.110737,
+            "candidates": 450.420788
+          }
+        },
+        {
+          "id": "toy_consensus_forall",
+          "baseline": 9,
+          "candidate": 9,
+          "baselineHash": "36b95967eb139c572c4928f9fd291fcb711464d021b5ccb3b1b52b0ea91a33e6",
+          "candidateHash": "36b95967eb139c572c4928f9fd291fcb711464d021b5ccb3b1b52b0ea91a33e6",
+          "identical": true,
+          "baselineMs": 618.463195,
+          "candidateMs": 707.9662609999999,
+          "baselinePhases": {
+            "guards": 1.7666679999999815,
+            "small": 96.196415,
+            "candidates": 518.525468
+          },
+          "candidatePhases": {
+            "guards": 0.6601649999998926,
+            "small": 94.70644800000002,
+            "candidates": 610.90432
+          }
+        },
+        {
+          "id": "simple",
+          "baseline": 4,
+          "candidate": 4,
+          "baselineHash": "a92912ffab6a8797a6e16781cbc5bd187e7e018d032d1be4feab408dc61e47eb",
+          "candidateHash": "a92912ffab6a8797a6e16781cbc5bd187e7e018d032d1be4feab408dc61e47eb",
+          "identical": true,
+          "baselineMs": 12.67550099999994,
+          "candidateMs": 13.005646999999954,
+          "baselinePhases": {
+            "guards": 0.35265800000001946,
+            "small": 7.326931000000059,
+            "candidates": 4.099298999999974
+          },
+          "candidatePhases": {
+            "guards": 0.41062699999997676,
+            "small": 7.356062999999949,
+            "candidates": 4.20022199999994
+          }
+        },
+        {
+          "id": "simple_regular",
+          "baseline": 4,
+          "candidate": 4,
+          "baselineHash": "7338346b96cf252234c7a1463bc3b5abfc5aa19e1c34841bf4ccd45ede59db4c",
+          "candidateHash": "7338346b96cf252234c7a1463bc3b5abfc5aa19e1c34841bf4ccd45ede59db4c",
+          "identical": true,
+          "baselineMs": 21.13806999999997,
+          "candidateMs": 20.701354000000038,
+          "baselinePhases": {
+            "guards": 0.22042099999998754,
+            "small": 14.009880000000067,
+            "candidates": 6.189448000000084
+          },
+          "candidatePhases": {
+            "guards": 0.27874099999985447,
+            "small": 12.595828999999867,
+            "candidates": 6.962749000000031
+          }
+        },
+        {
+          "id": "lockserv_automaton",
+          "baseline": 17,
+          "candidate": 17,
+          "baselineHash": "28197b96f28bb0293452708bb2f3f1558343328d37086def3dc214f1d8740a2e",
+          "candidateHash": "28197b96f28bb0293452708bb2f3f1558343328d37086def3dc214f1d8740a2e",
+          "identical": true,
+          "baselineMs": 33.850038999999924,
+          "candidateMs": 44.01475299999993,
+          "baselinePhases": {
+            "guards": 0.3330109999999422,
+            "small": 7.950943999999936,
+            "candidates": 24.676161000000093
+          },
+          "candidatePhases": {
+            "guards": 0.4043059999999059,
+            "small": 12.397347999999965,
+            "candidates": 30.016720000000078
+          }
+        },
+        {
+          "id": "sharded_kv",
+          "baseline": 18,
+          "candidate": 18,
+          "baselineHash": "ed00314a85784d02f0740819b3c1323809c2fa6d31522bb43bdfb832f2bea282",
+          "candidateHash": "ed00314a85784d02f0740819b3c1323809c2fa6d31522bb43bdfb832f2bea282",
+          "identical": true,
+          "baselineMs": 2634.407368,
+          "candidateMs": 2586.5334700000003,
+          "baselinePhases": {
+            "guards": 0.7306340000000091,
+            "small": 1191.926582,
+            "candidates": 1440.2475490000002
+          },
+          "candidatePhases": {
+            "guards": 0.8018999999999323,
+            "small": 1178.972105,
+            "candidates": 1405.4675000000002
+          }
+        },
+        {
+          "id": "sharded_kv_no_lost_keys",
+          "baseline": 6,
+          "candidate": 6,
+          "baselineHash": "418e57ef2433f568f6a1f0a7c60386c4f76c63e7bc2e73bc658d3e722853b911",
+          "candidateHash": "418e57ef2433f568f6a1f0a7c60386c4f76c63e7bc2e73bc658d3e722853b911",
+          "identical": true,
+          "baselineMs": 2740.0543150000003,
+          "candidateMs": 2686.0223619999997,
+          "baselinePhases": {
+            "guards": 0.6151369999997769,
+            "small": 2527.0455949999996,
+            "candidates": 210.80583899999965
+          },
+          "candidatePhases": {
+            "guards": 0.5219859999997425,
+            "small": 2496.6287789999997,
+            "candidates": 187.36855699999978
+          }
+        },
+        {
+          "id": "lockserv",
+          "baseline": 17,
+          "candidate": 17,
+          "baselineHash": "625d4a5b0bd1a44c77cb3d4f01f5b0c862d06f8dd00b2739f62af8732915be00",
+          "candidateHash": "625d4a5b0bd1a44c77cb3d4f01f5b0c862d06f8dd00b2739f62af8732915be00",
+          "identical": true,
+          "baselineMs": 23.911424000000807,
+          "candidateMs": 22.52394000000004,
+          "baselinePhases": {
+            "guards": 0.40422399999988556,
+            "small": 6.771864999999707,
+            "candidates": 15.904585000000225
+          },
+          "candidatePhases": {
+            "guards": 0.4142439999995986,
+            "small": 6.892595999999685,
+            "candidates": 14.461636999999428
+          }
+        },
+        {
+          "id": "twophase",
+          "baseline": 14,
+          "candidate": 14,
+          "baselineHash": "44bfbce553ff9457ee1e2df76ebef4d046e290ef831acd554bfbed2d74f44fd0",
+          "candidateHash": "44bfbce553ff9457ee1e2df76ebef4d046e290ef831acd554bfbed2d74f44fd0",
+          "identical": true,
+          "baselineMs": 679.7070370000001,
+          "candidateMs": 620.291698,
+          "baselinePhases": {
+            "guards": 0.5176860000001398,
+            "small": 37.12086999999974,
+            "candidates": 640.74899
+          },
+          "candidatePhases": {
+            "guards": 0.44267799999943236,
+            "small": 35.667593000000124,
+            "candidates": 583.1247110000004
+          }
+        },
+        {
+          "id": "simple_decentralized_lock",
+          "baseline": 20,
+          "candidate": 20,
+          "baselineHash": "07fdd1070c44037616163044bb5fd27bb8a379c93424cdec53f8166f2eacb2e1",
+          "candidateHash": "07fdd1070c44037616163044bb5fd27bb8a379c93424cdec53f8166f2eacb2e1",
+          "identical": true,
+          "baselineMs": 18.0412809999998,
+          "candidateMs": 15.617567999999665,
+          "baselinePhases": {
+            "guards": 0.34179800000038085,
+            "small": 4.7971410000000105,
+            "candidates": 12.03661800000009
+          },
+          "candidatePhases": {
+            "guards": 0.3797309999999925,
+            "small": 4.356464999999844,
+            "candidates": 10.122745000000577
+          }
+        },
+        {
+          "id": "two_phase_commit",
+          "baseline": 34,
+          "candidate": 34,
+          "baselineHash": "4a1828f36f3f69afb92df8b6e558119a6e771236afba62b1d7742faa6a656512",
+          "candidateHash": "4a1828f36f3f69afb92df8b6e558119a6e771236afba62b1d7742faa6a656512",
+          "identical": true,
+          "baselineMs": 1227.596574000001,
+          "candidateMs": 1162.5737760000002,
+          "baselinePhases": {
+            "guards": 0.612833000000137,
+            "small": 458.83878299999924,
+            "candidates": 766.7863619999998
+          },
+          "candidatePhases": {
+            "guards": 0.572360000000117,
+            "small": 442.8645349999997,
+            "candidates": 717.7545160000009
+          }
+        },
+        {
+          "id": "consensus_wo_decide",
+          "baseline": 39,
+          "candidate": 39,
+          "baselineHash": "05af3c755b720768be509b2d936a89d3772804554d6a5e37c84c6188d592dd46",
+          "candidateHash": "05af3c755b720768be509b2d936a89d3772804554d6a5e37c84c6188d592dd46",
+          "identical": true,
+          "baselineMs": 5816.07007,
+          "candidateMs": 5542.961676000001,
+          "baselinePhases": {
+            "guards": 1.1896410000008473,
+            "small": 3483.3236990000005,
+            "candidates": 2277.672525
+          },
+          "candidatePhases": {
+            "guards": 0.8374359999997978,
+            "small": 3161.1564770000005,
+            "candidates": 2329.890596000001
+          }
+        },
+        {
+          "id": "consensus_forall",
+          "baseline": 48,
+          "candidate": 48,
+          "baselineHash": "5597b7cd11317d41db1e3204398864077a58857746c18b15db1cfb4ebcd1e3da",
+          "candidateHash": "5597b7cd11317d41db1e3204398864077a58857746c18b15db1cfb4ebcd1e3da",
+          "identical": true,
+          "baselineMs": 10185.650516000002,
+          "candidateMs": 9293.113533,
+          "baselinePhases": {
+            "guards": 0.670641999999134,
+            "small": 5060.822013999999,
+            "candidates": 5037.707420999999
+          },
+          "candidatePhases": {
+            "guards": 0.8439170000001468,
+            "small": 4512.052057999999,
+            "candidates": 4706.250975999999
+          }
+        },
+        {
+          "id": "naive_consensus",
+          "baseline": 13,
+          "candidate": 13,
+          "baselineHash": "33063fbf32c2fe26d3a2543e077350c6d2d6a6bd9141f194c829ff390249325c",
+          "candidateHash": "33063fbf32c2fe26d3a2543e077350c6d2d6a6bd9141f194c829ff390249325c",
+          "identical": true,
+          "baselineMs": 1107.4154589999998,
+          "candidateMs": 1105.477253000001,
+          "baselinePhases": {
+            "guards": 0.5539340000032098,
+            "small": 140.32042,
+            "candidates": 964.5080940000007
+          },
+          "candidatePhases": {
+            "guards": 0.6033580000002985,
+            "small": 142.77931000000171,
+            "candidates": 959.9376630000006
+          }
+        },
+        {
+          "id": "client_server_ae",
+          "baseline": 10,
+          "candidate": 10,
+          "baselineHash": "6e0507bf0c5ae5f8cbc4fff6136f9d35ace16ff8f49b165c216f5b3f49a67ef0",
+          "candidateHash": "6e0507bf0c5ae5f8cbc4fff6136f9d35ace16ff8f49b165c216f5b3f49a67ef0",
+          "identical": true,
+          "baselineMs": 1424.3131699999976,
+          "candidateMs": 1321.4971110000006,
+          "baselinePhases": {
+            "guards": 0.4727729999976873,
+            "small": 550.5860729999986,
+            "candidates": 871.8920739999994
+          },
+          "candidatePhases": {
+            "guards": 0.49771099999998114,
+            "small": 490.26220900000044,
+            "candidates": 829.2418859999998
+          }
+        },
+        {
+          "id": "client_server_db_ae",
+          "baseline": 15,
+          "candidate": 15,
+          "baselineHash": "11710f8a89c0fb18454cc1cd37cc6b918b2251bdfe8c652c131d1b21dfbc79a8",
+          "candidateHash": "11710f8a89c0fb18454cc1cd37cc6b918b2251bdfe8c652c131d1b21dfbc79a8",
+          "identical": true,
+          "baselineMs": 6411.2275340000015,
+          "candidateMs": 5921.892755000001,
+          "baselinePhases": {
+            "guards": 0.5525720000005094,
+            "small": 3380.702756999999,
+            "candidates": 3028.325213999997
+          },
+          "candidatePhases": {
+            "guards": 0.6509770000011486,
+            "small": 2927.6342179999992,
+            "candidates": 2991.7749840000033
+          }
+        },
+        {
+          "id": "simple_election",
+          "baseline": 12,
+          "candidate": 12,
+          "baselineHash": "30bc4cc549adbbd85c982849ae7b5cf741388b8750e135e1b96ba0e6b2204a4d",
+          "candidateHash": "30bc4cc549adbbd85c982849ae7b5cf741388b8750e135e1b96ba0e6b2204a4d",
+          "identical": true,
+          "baselineMs": 1574.5871049999987,
+          "candidateMs": 1620.3831520000022,
+          "baselinePhases": {
+            "guards": 0.5513490000012098,
+            "small": 400.10449399999925,
+            "candidates": 1170.0297929999942
+          },
+          "candidatePhases": {
+            "guards": 0.8682329999974172,
+            "small": 377.2047129999992,
+            "candidates": 1239.1882500000029
+          }
+        },
+        {
+          "id": "toy_consensus_epr",
+          "baseline": 8,
+          "candidate": 8,
+          "baselineHash": "133630cb1e8c0acf2f7b1b1f30f8c5eb82f1ebd6ef16350af7b27e97f3fea9fc",
+          "candidateHash": "133630cb1e8c0acf2f7b1b1f30f8c5eb82f1ebd6ef16350af7b27e97f3fea9fc",
+          "identical": true,
+          "baselineMs": 1061.1330489999964,
+          "candidateMs": 1188.9690220000048,
+          "baselinePhases": {
+            "guards": 0.5061339999956544,
+            "small": 111.16099100000429,
+            "candidates": 947.9400659999956
+          },
+          "candidatePhases": {
+            "guards": 0.534628999994311,
+            "small": 118.46446199999627,
+            "candidates": 1068.264823000005
+          }
+        },
+        {
+          "id": "toy_consensus",
+          "baseline": 5,
+          "candidate": 5,
+          "baselineHash": "42a22a2106bf7bde3e8f00f847d72d7b426b493fe2c551d8b12760722db12bf2",
+          "candidateHash": "42a22a2106bf7bde3e8f00f847d72d7b426b493fe2c551d8b12760722db12bf2",
+          "identical": true,
+          "baselineMs": 599.4696719999993,
+          "candidateMs": 656.870848999999,
+          "baselinePhases": {
+            "guards": 0.45232400000531925,
+            "small": 99.64376300000004,
+            "candidates": 496.19149599999946
+          },
+          "candidatePhases": {
+            "guards": 0.43457199999829754,
+            "small": 102.32315899999958,
+            "candidates": 552.729803000002
+          }
+        },
+        {
+          "id": "firewall",
+          "baseline": 7,
+          "candidate": 7,
+          "baselineHash": "62bd947b28577d7ae3b33f79ca6fcd5037c1a61429bfd81950381b432d9c71b7",
+          "candidateHash": "62bd947b28577d7ae3b33f79ca6fcd5037c1a61429bfd81950381b432d9c71b7",
+          "identical": true,
+          "baselineMs": 35.71942699999636,
+          "candidateMs": 31.24258800000098,
+          "baselinePhases": {
+            "guards": 0.3149370000028284,
+            "small": 10.347573000006378,
+            "candidates": 24.126539000004414
+          },
+          "candidatePhases": {
+            "guards": 0.4014900000038324,
+            "small": 7.432552999998734,
+            "candidates": 22.57213100000081
+          }
+        },
+        {
+          "id": "majorityset_leader_election",
+          "baseline": 17,
+          "candidate": 17,
+          "baselineHash": "bb147d46a7fb370560860dfd5441416683ec8c4c8a845d78cba57f199aba247f",
+          "candidateHash": "bb147d46a7fb370560860dfd5441416683ec8c4c8a845d78cba57f199aba247f",
+          "identical": true,
+          "baselineMs": 1184.1232940000045,
+          "candidateMs": 1112.2678349999987,
+          "baselinePhases": {
+            "guards": 0.501086000003852,
+            "small": 53.8728540000011,
+            "candidates": 1126.6330610000005
+          },
+          "candidatePhases": {
+            "guards": 0.5061459999997169,
+            "small": 58.62205299999914,
+            "candidates": 1049.9531790000037
+          }
+        },
+        {
+          "id": "consensus_epr",
+          "baseline": 29,
+          "candidate": 29,
+          "baselineHash": "ab81a384b7f6afc1f8d207c9f6ea5fec0a1526cc98b4088e00b34cd69186db65",
+          "candidateHash": "ab81a384b7f6afc1f8d207c9f6ea5fec0a1526cc98b4088e00b34cd69186db65",
+          "identical": true,
+          "baselineMs": 8595.975132,
+          "candidateMs": 8533.749323000004,
+          "baselinePhases": {
+            "guards": 0.615287000000535,
+            "small": 3961.5282510000034,
+            "candidates": 4569.2909199999995
+          },
+          "candidatePhases": {
+            "guards": 0.8504289999982575,
+            "small": 3987.037234000003,
+            "candidates": 4482.929173999997
+          }
+        },
+        {
+          "id": "learning_switch",
+          "baseline": 16,
+          "candidate": 16,
+          "baselineHash": "30e01737accefb7cdd6842704aaadf370a3420d57fff3aefa81a435eb25c3761",
+          "candidateHash": "30e01737accefb7cdd6842704aaadf370a3420d57fff3aefa81a435eb25c3761",
+          "identical": true,
+          "baselineMs": 165759.234184,
+          "candidateMs": 154439.43131,
+          "baselinePhases": {
+            "guards": 0.8730490000016289,
+            "small": 160851.37154199998,
+            "candidates": 4903.943813999998
+          },
+          "candidatePhases": {
+            "guards": 0.6744519999992917,
+            "small": 150786.92187000002,
+            "candidates": 3648.6427459999977
+          }
+        },
+        {
+          "id": "learning_switch_i4",
+          "baseline": 463,
+          "candidate": 463,
+          "baselineHash": "1fee9ce40764701e37b1e4a0e854273ac3be8a73db8d48faa029d5fa5ebfc163",
+          "candidateHash": "1fee9ce40764701e37b1e4a0e854273ac3be8a73db8d48faa029d5fa5ebfc163",
+          "identical": true,
+          "baselineMs": 160892.60851599998,
+          "candidateMs": 135622.44120699997,
+          "baselinePhases": {
+            "guards": 1.7899280000128783,
+            "small": 137582.401378,
+            "candidates": 23294.92527800001
+          },
+          "candidatePhases": {
+            "guards": 1.4011350000218954,
+            "small": 115780.15292100003,
+            "candidates": 19832.943993000023
+          }
+        },
+        {
+          "id": "paxos_epr",
+          "baseline": 77,
+          "candidate": 77,
+          "baselineHash": "01f9c4f68d27630184f0d5268345ada29c31507eac21bfbf45d87e0bc6051e77",
+          "candidateHash": "01f9c4f68d27630184f0d5268345ada29c31507eac21bfbf45d87e0bc6051e77",
+          "identical": true,
+          "baselineMs": 19965.217065000033,
+          "candidateMs": 16112.388245999988,
+          "baselinePhases": {
+            "guards": 4.994100000010803,
+            "small": 9019.510959999985,
+            "candidates": 10897.88652499998
+          },
+          "candidatePhases": {
+            "guards": 3.9427380000124685,
+            "small": 6860.377891000011,
+            "candidates": 9205.336538999982
+          }
+        },
+        {
+          "id": "mldr",
+          "baseline": 25,
+          "candidate": 34,
+          "baselineHash": "f60c50b878abc5b52fa479d946936da51bd61b919b7b0866e4b0d2d98733194d",
+          "candidateHash": "cb1022f2d79f85eb3a0343a6e6fec92b48bddfebc0e4c99925985233a09b1d3b",
+          "identical": false,
+          "baselineMs": 16928.67248900002,
+          "candidateMs": 16059.431612999993,
+          "baselinePhases": {
+            "guards": 2.0611009999993257,
+            "small": 7966.907669999986,
+            "candidates": 8950.52782399999
+          },
+          "candidatePhases": {
+            "guards": 5.125784999981988,
+            "small": 8786.277831999992,
+            "candidates": 7258.568166000012
+          },
+          "names": [
+            "every Config cell is a value of its kind",
+            "one primary per term",
+            "CT at most 44",
+            "St at most 1",
+            "CV at most 2",
+            "CfgT at most 44",
+            "fields: St[a]=1 -> CT[a]=CT[b] -> CV[b]<=CV[a]",
+            "fields: St[a]=1 -> CT[a]=CfgT[a]",
+            "fields: St[a]=1 -> CT[a]<=CfgT[a]",
+            "fields: St[a]=1 -> CT[a]=CT[b] -> CfgT[b]<=CfgT[a]",
+            "fields: St[a]=1 -> CfgT[a]<=CT[a]",
+            "fields: St[a]=1 -> CfgT[a]=CfgT[b] -> CV[b]<=CV[a]",
+            "every x with x < size: never Config[x] is 0 and 1 <= St[x]",
+            "every x with x < size: never CT[x] is 0 and 1 <= St[x]",
+            "every x with x < size: never 1 <= CT[x] and CV[x] is 0",
+            "every x with x < size: never 1 <= CT[x] and started is 0",
+            "every x with x < size: never 1 <= St[x] and CV[x] is 0",
+            "every x with x < size: never 1 <= St[x] and CfgT[x] is 0",
+            "every x with x < size: never 1 <= St[x] and started is 0",
+            "every x with x < size: never CV[x] is 0 and 1 <= CfgT[x]",
+            "every x with x < size: never CV[x] is 0 and 1 <= started",
+            "every x with x < size: never 1 <= CfgT[x] and started is 0",
+            "every x, y with x < size ∧ y < size ∧ ¬(x = y): never 1 <= CT[x] and CV[y] is 0",
+            "every x, y with x < size ∧ y < size ∧ ¬(x = y): never 1 <= St[x] and CV[y] is 0",
+            "every x, y with x < size ∧ y < size ∧ ¬(x = y): never CV[x] is 0 and 1 <= CfgT[y]",
+            "inX: no quorum canVote/1",
+            "inX: no quorum canVote/3",
+            "inX: stored guard reconfigs/inS",
+            "inX: stored guard reconfigs/inS or disabled/0",
+            "inX: stored guard reconfigs/inS or disabled/1",
+            "inX: stored guard reconfigs/inS or disabled/2",
+            "inX: stored guard reconfigs/inS or disabled/3",
+            "fields: CT[a]=CT[b] and CV[a]=CV[b] -> Config rows agree",
+            "fields: CV[a]=CV[b] and CfgT[a]=CfgT[b] -> Config rows agree"
+          ]
+        }
+      ]
+    },
+    {
+      "repeat": 2,
+      "source": "runs/t13-paired-r2-retry/generation-pair-2.log",
+      "queries": [
+        0,
+        0
+      ],
+      "records": [
+        {
+          "id": "consensus",
+          "baseline": 3,
+          "candidate": 3,
+          "baselineHash": "e14ce6d5523e14235e7be911e6585a4e341579f13af79146ee5c0272782c73fd",
+          "candidateHash": "e14ce6d5523e14235e7be911e6585a4e341579f13af79146ee5c0272782c73fd",
+          "identical": true,
+          "baselineMs": 61.15572,
+          "candidateMs": 25.598411999999996,
+          "baselinePhases": {
+            "guards": 3.9476959999999934,
+            "small": 9.266547000000003,
+            "candidates": 43.061871999999994
+          },
+          "candidatePhases": {
+            "guards": 2.018523000000002,
+            "small": 1.9865330000000085,
+            "candidates": 19.66688099999999
+          }
+        },
+        {
+          "id": "tcommit",
+          "baseline": 4,
+          "candidate": 4,
+          "baselineHash": "0fcdba2bffed25323343e97a11d2439514ab6a146a5f4039103365d216045e54",
+          "candidateHash": "0fcdba2bffed25323343e97a11d2439514ab6a146a5f4039103365d216045e54",
+          "identical": true,
+          "baselineMs": 126.19994499999999,
+          "candidateMs": 58.23435099999999,
+          "baselinePhases": {
+            "guards": 1.4570360000000164,
+            "small": 34.512562,
+            "candidates": 88.55378400000001
+          },
+          "candidatePhases": {
+            "guards": 0.4108279999999951,
+            "small": 13.560160999999994,
+            "candidates": 43.20328599999999
+          }
+        },
+        {
+          "id": "lock_server",
+          "baseline": 5,
+          "candidate": 5,
+          "baselineHash": "c1076284bf2ecddf1c752965c0332a92d24a58540f38714b94ad496712ed4de5",
+          "candidateHash": "c1076284bf2ecddf1c752965c0332a92d24a58540f38714b94ad496712ed4de5",
+          "identical": true,
+          "baselineMs": 89.97928999999999,
+          "candidateMs": 45.479434,
+          "baselinePhases": {
+            "guards": 0.4498790000000099,
+            "small": 28.40355900000003,
+            "candidates": 59.50494200000003
+          },
+          "candidatePhases": {
+            "guards": 1.1039399999999944,
+            "small": 10.950393999999989,
+            "candidates": 31.874326999999994
+          }
+        },
+        {
+          "id": "quorum_leader_election",
+          "baseline": 7,
+          "candidate": 7,
+          "baselineHash": "6354d3cdc634e6c8862532d3fe5e485059396f4c7fabbd7d4727c62c30242052",
+          "candidateHash": "6354d3cdc634e6c8862532d3fe5e485059396f4c7fabbd7d4727c62c30242052",
+          "identical": true,
+          "baselineMs": 803.5782410000002,
+          "candidateMs": 565.97955,
+          "baselinePhases": {
+            "guards": 1.4227510000000052,
+            "small": 173.67827699999998,
+            "candidates": 624.5821850000001
+          },
+          "candidatePhases": {
+            "guards": 0.9190639999999917,
+            "small": 106.890545,
+            "candidates": 456.321784
+          }
+        },
+        {
+          "id": "toy_consensus_forall",
+          "baseline": 9,
+          "candidate": 9,
+          "baselineHash": "36b95967eb139c572c4928f9fd291fcb711464d021b5ccb3b1b52b0ea91a33e6",
+          "candidateHash": "36b95967eb139c572c4928f9fd291fcb711464d021b5ccb3b1b52b0ea91a33e6",
+          "identical": true,
+          "baselineMs": 859.4817820000001,
+          "candidateMs": 715.752,
+          "baselinePhases": {
+            "guards": 1.094519999999875,
+            "small": 119.95653100000004,
+            "candidates": 735.862386
+          },
+          "candidatePhases": {
+            "guards": 0.5548139999999648,
+            "small": 109.55320199999994,
+            "candidates": 603.8160659999999
+          }
+        },
+        {
+          "id": "simple",
+          "baseline": 4,
+          "candidate": 4,
+          "baselineHash": "a92912ffab6a8797a6e16781cbc5bd187e7e018d032d1be4feab408dc61e47eb",
+          "candidateHash": "a92912ffab6a8797a6e16781cbc5bd187e7e018d032d1be4feab408dc61e47eb",
+          "identical": true,
+          "baselineMs": 17.539845000000014,
+          "candidateMs": 10.762739999999894,
+          "baselinePhases": {
+            "guards": 0.4560710000000654,
+            "small": 7.978968000000123,
+            "candidates": 8.040884000000005
+          },
+          "candidatePhases": {
+            "guards": 0.40775200000007317,
+            "small": 6.148227000000134,
+            "candidates": 3.372041000000081
+          }
+        },
+        {
+          "id": "simple_regular",
+          "baseline": 4,
+          "candidate": 4,
+          "baselineHash": "7338346b96cf252234c7a1463bc3b5abfc5aa19e1c34841bf4ccd45ede59db4c",
+          "candidateHash": "7338346b96cf252234c7a1463bc3b5abfc5aa19e1c34841bf4ccd45ede59db4c",
+          "identical": true,
+          "baselineMs": 20.45070799999985,
+          "candidateMs": 16.359501000000137,
+          "baselinePhases": {
+            "guards": 0.6551609999999073,
+            "small": 11.354356999999936,
+            "candidates": 7.506355999999869
+          },
+          "candidatePhases": {
+            "guards": 0.14365599999996448,
+            "small": 9.394655000000057,
+            "candidates": 6.313865999999962
+          }
+        },
+        {
+          "id": "lockserv_automaton",
+          "baseline": 17,
+          "candidate": 17,
+          "baselineHash": "28197b96f28bb0293452708bb2f3f1558343328d37086def3dc214f1d8740a2e",
+          "candidateHash": "28197b96f28bb0293452708bb2f3f1558343328d37086def3dc214f1d8740a2e",
+          "identical": true,
+          "baselineMs": 67.18017499999996,
+          "candidateMs": 37.50537499999996,
+          "baselinePhases": {
+            "guards": 0.4613510000003771,
+            "small": 9.950140999999803,
+            "candidates": 55.4467209999998
+          },
+          "candidatePhases": {
+            "guards": 0.398003000000017,
+            "small": 7.917060999999876,
+            "candidates": 28.13802099999998
+          }
+        },
+        {
+          "id": "sharded_kv",
+          "baseline": 18,
+          "candidate": 18,
+          "baselineHash": "ed00314a85784d02f0740819b3c1323809c2fa6d31522bb43bdfb832f2bea282",
+          "candidateHash": "ed00314a85784d02f0740819b3c1323809c2fa6d31522bb43bdfb832f2bea282",
+          "identical": true,
+          "baselineMs": 3076.871532,
+          "candidateMs": 2757.799836,
+          "baselinePhases": {
+            "guards": 4.158417999999983,
+            "small": 1372.5893070000002,
+            "candidates": 1692.5367779999997
+          },
+          "candidatePhases": {
+            "guards": 0.5946910000000116,
+            "small": 1343.3690020000001,
+            "candidates": 1412.6469330000004
+          }
+        },
+        {
+          "id": "sharded_kv_no_lost_keys",
+          "baseline": 6,
+          "candidate": 6,
+          "baselineHash": "418e57ef2433f568f6a1f0a7c60386c4f76c63e7bc2e73bc658d3e722853b911",
+          "candidateHash": "418e57ef2433f568f6a1f0a7c60386c4f76c63e7bc2e73bc658d3e722853b911",
+          "identical": true,
+          "baselineMs": 3955.477484,
+          "candidateMs": 2441.230506000001,
+          "baselinePhases": {
+            "guards": 0.7263140000004569,
+            "small": 3647.4379879999997,
+            "candidates": 304.3703769999993
+          },
+          "candidatePhases": {
+            "guards": 0.5202079999999114,
+            "small": 2234.592898,
+            "candidates": 204.72391599999992
+          }
+        },
+        {
+          "id": "lockserv",
+          "baseline": 17,
+          "candidate": 17,
+          "baselineHash": "625d4a5b0bd1a44c77cb3d4f01f5b0c862d06f8dd00b2739f62af8732915be00",
+          "candidateHash": "625d4a5b0bd1a44c77cb3d4f01f5b0c862d06f8dd00b2739f62af8732915be00",
+          "identical": true,
+          "baselineMs": 39.03085000000101,
+          "candidateMs": 29.745271000000685,
+          "baselinePhases": {
+            "guards": 0.8266299999995681,
+            "small": 12.016552000000956,
+            "candidates": 23.78435999999965
+          },
+          "candidatePhases": {
+            "guards": 0.4483700000000681,
+            "small": 8.693787000000157,
+            "candidates": 19.652408999999352
+          }
+        },
+        {
+          "id": "twophase",
+          "baseline": 14,
+          "candidate": 14,
+          "baselineHash": "44bfbce553ff9457ee1e2df76ebef4d046e290ef831acd554bfbed2d74f44fd0",
+          "candidateHash": "44bfbce553ff9457ee1e2df76ebef4d046e290ef831acd554bfbed2d74f44fd0",
+          "identical": true,
+          "baselineMs": 863.8969429999997,
+          "candidateMs": 621.2342630000003,
+          "baselinePhases": {
+            "guards": 0.5001919999995152,
+            "small": 47.2286550000008,
+            "candidates": 814.5777610000005
+          },
+          "candidatePhases": {
+            "guards": 0.4961720000001151,
+            "small": 35.22651700000006,
+            "candidates": 584.3448760000001
+          }
+        },
+        {
+          "id": "simple_decentralized_lock",
+          "baseline": 20,
+          "candidate": 20,
+          "baselineHash": "07fdd1070c44037616163044bb5fd27bb8a379c93424cdec53f8166f2eacb2e1",
+          "candidateHash": "07fdd1070c44037616163044bb5fd27bb8a379c93424cdec53f8166f2eacb2e1",
+          "identical": true,
+          "baselineMs": 18.642829000000347,
+          "candidateMs": 18.988964999999553,
+          "baselinePhases": {
+            "guards": 0.5361689999990631,
+            "small": 3.094857999998567,
+            "candidates": 14.055070000000342
+          },
+          "candidatePhases": {
+            "guards": 0.40022700000008626,
+            "small": 2.759925000000294,
+            "candidates": 15.031112000000576
+          }
+        },
+        {
+          "id": "two_phase_commit",
+          "baseline": 34,
+          "candidate": 34,
+          "baselineHash": "4a1828f36f3f69afb92df8b6e558119a6e771236afba62b1d7742faa6a656512",
+          "candidateHash": "4a1828f36f3f69afb92df8b6e558119a6e771236afba62b1d7742faa6a656512",
+          "identical": true,
+          "baselineMs": 1285.786983,
+          "candidateMs": 1159.6055729999998,
+          "baselinePhases": {
+            "guards": 0.861004000000321,
+            "small": 523.4554099999987,
+            "candidates": 759.3440960000007
+          },
+          "candidatePhases": {
+            "guards": 0.6052410000002055,
+            "small": 456.104832,
+            "candidates": 701.3348369999994
+          }
+        },
+        {
+          "id": "consensus_wo_decide",
+          "baseline": 39,
+          "candidate": 39,
+          "baselineHash": "05af3c755b720768be509b2d936a89d3772804554d6a5e37c84c6188d592dd46",
+          "candidateHash": "05af3c755b720768be509b2d936a89d3772804554d6a5e37c84c6188d592dd46",
+          "identical": true,
+          "baselineMs": 6100.760339999999,
+          "candidateMs": 5363.753524,
+          "baselinePhases": {
+            "guards": 1.0509169999986625,
+            "small": 3393.3352619999987,
+            "candidates": 2669.4449760000007
+          },
+          "candidatePhases": {
+            "guards": 0.8521040000014182,
+            "small": 3102.682782,
+            "candidates": 2221.5326339999992
+          }
+        },
+        {
+          "id": "consensus_forall",
+          "baseline": 48,
+          "candidate": 48,
+          "baselineHash": "5597b7cd11317d41db1e3204398864077a58857746c18b15db1cfb4ebcd1e3da",
+          "candidateHash": "5597b7cd11317d41db1e3204398864077a58857746c18b15db1cfb4ebcd1e3da",
+          "identical": true,
+          "baselineMs": 13017.808741,
+          "candidateMs": 10724.924933,
+          "baselinePhases": {
+            "guards": 0.8558249999987311,
+            "small": 6316.448390000001,
+            "candidates": 6569.247492999999
+          },
+          "candidatePhases": {
+            "guards": 0.836063999999169,
+            "small": 5040.035507999999,
+            "candidates": 5607.5061639999985
+          }
+        },
+        {
+          "id": "naive_consensus",
+          "baseline": 13,
+          "candidate": 13,
+          "baselineHash": "33063fbf32c2fe26d3a2543e077350c6d2d6a6bd9141f194c829ff390249325c",
+          "candidateHash": "33063fbf32c2fe26d3a2543e077350c6d2d6a6bd9141f194c829ff390249325c",
+          "identical": true,
+          "baselineMs": 1398.9538319999992,
+          "candidateMs": 1340.0469739999971,
+          "baselinePhases": {
+            "guards": 0.7358409999978903,
+            "small": 228.3788220000024,
+            "candidates": 1167.1710669999993
+          },
+          "candidatePhases": {
+            "guards": 0.5573880000010831,
+            "small": 156.99848999999813,
+            "candidates": 1180.2877829999998
+          }
+        },
+        {
+          "id": "client_server_ae",
+          "baseline": 10,
+          "candidate": 10,
+          "baselineHash": "6e0507bf0c5ae5f8cbc4fff6136f9d35ace16ff8f49b165c216f5b3f49a67ef0",
+          "candidateHash": "6e0507bf0c5ae5f8cbc4fff6136f9d35ace16ff8f49b165c216f5b3f49a67ef0",
+          "identical": true,
+          "baselineMs": 1729.461852000004,
+          "candidateMs": 1424.7637590000013,
+          "baselinePhases": {
+            "guards": 0.46087899999838555,
+            "small": 614.7583840000007,
+            "candidates": 1112.6138329999994
+          },
+          "candidatePhases": {
+            "guards": 0.566354999999021,
+            "small": 571.43433,
+            "candidates": 851.046113999997
+          }
+        },
+        {
+          "id": "client_server_db_ae",
+          "baseline": 15,
+          "candidate": 15,
+          "baselineHash": "11710f8a89c0fb18454cc1cd37cc6b918b2251bdfe8c652c131d1b21dfbc79a8",
+          "candidateHash": "11710f8a89c0fb18454cc1cd37cc6b918b2251bdfe8c652c131d1b21dfbc79a8",
+          "identical": true,
+          "baselineMs": 8165.093668000001,
+          "candidateMs": 7806.006233999997,
+          "baselinePhases": {
+            "guards": 1.295484000002034,
+            "small": 4312.204738,
+            "candidates": 3848.65509
+          },
+          "candidatePhases": {
+            "guards": 0.6152689999980794,
+            "small": 3968.240557000001,
+            "candidates": 3835.4083299999984
+          }
+        },
+        {
+          "id": "simple_election",
+          "baseline": 12,
+          "candidate": 12,
+          "baselineHash": "30bc4cc549adbbd85c982849ae7b5cf741388b8750e135e1b96ba0e6b2204a4d",
+          "candidateHash": "30bc4cc549adbbd85c982849ae7b5cf741388b8750e135e1b96ba0e6b2204a4d",
+          "identical": true,
+          "baselineMs": 1994.5817989999996,
+          "candidateMs": 1764.2807270000048,
+          "baselinePhases": {
+            "guards": 1.5902139999961946,
+            "small": 500.92233600000327,
+            "candidates": 1487.9006630000003
+          },
+          "candidatePhases": {
+            "guards": 0.8378060000031837,
+            "small": 458.25535300000047,
+            "candidates": 1301.1267110000044
+          }
+        },
+        {
+          "id": "toy_consensus_epr",
+          "baseline": 8,
+          "candidate": 8,
+          "baselineHash": "133630cb1e8c0acf2f7b1b1f30f8c5eb82f1ebd6ef16350af7b27e97f3fea9fc",
+          "candidateHash": "133630cb1e8c0acf2f7b1b1f30f8c5eb82f1ebd6ef16350af7b27e97f3fea9fc",
+          "identical": true,
+          "baselineMs": 1452.547734000007,
+          "candidateMs": 1190.8718789999984,
+          "baselinePhases": {
+            "guards": 0.665049999995972,
+            "small": 154.7971880000041,
+            "candidates": 1295.0240340000018
+          },
+          "candidatePhases": {
+            "guards": 0.7580420000012964,
+            "small": 146.00231399999757,
+            "candidates": 1041.6746829999975
+          }
+        },
+        {
+          "id": "toy_consensus",
+          "baseline": 5,
+          "candidate": 5,
+          "baselineHash": "42a22a2106bf7bde3e8f00f847d72d7b426b493fe2c551d8b12760722db12bf2",
+          "candidateHash": "42a22a2106bf7bde3e8f00f847d72d7b426b493fe2c551d8b12760722db12bf2",
+          "identical": true,
+          "baselineMs": 877.0162479999999,
+          "candidateMs": 717.3102489999947,
+          "baselinePhases": {
+            "guards": 0.5392159999973956,
+            "small": 133.80073399999674,
+            "candidates": 740.8831460000001
+          },
+          "candidatePhases": {
+            "guards": 0.5606029999980819,
+            "small": 99.59277299999667,
+            "candidates": 615.434405
+          }
+        },
+        {
+          "id": "firewall",
+          "baseline": 7,
+          "candidate": 7,
+          "baselineHash": "62bd947b28577d7ae3b33f79ca6fcd5037c1a61429bfd81950381b432d9c71b7",
+          "candidateHash": "62bd947b28577d7ae3b33f79ca6fcd5037c1a61429bfd81950381b432d9c71b7",
+          "identical": true,
+          "baselineMs": 59.679651999998896,
+          "candidateMs": 46.09034000000247,
+          "baselinePhases": {
+            "guards": 0.6647690000027069,
+            "small": 19.795546000001195,
+            "candidates": 37.42865200000233
+          },
+          "candidatePhases": {
+            "guards": 0.3263650000008056,
+            "small": 13.831463000002259,
+            "candidates": 30.842704000002414
+          }
+        },
+        {
+          "id": "majorityset_leader_election",
+          "baseline": 17,
+          "candidate": 17,
+          "baselineHash": "bb147d46a7fb370560860dfd5441416683ec8c4c8a845d78cba57f199aba247f",
+          "candidateHash": "bb147d46a7fb370560860dfd5441416683ec8c4c8a845d78cba57f199aba247f",
+          "identical": true,
+          "baselineMs": 1882.7451010000004,
+          "candidateMs": 1437.6767059999984,
+          "baselinePhases": {
+            "guards": 1.6637199999968288,
+            "small": 93.79274699999951,
+            "candidates": 1780.117895000003
+          },
+          "candidatePhases": {
+            "guards": 0.6025850000005448,
+            "small": 75.87685300000157,
+            "candidates": 1355.968154000002
+          }
+        },
+        {
+          "id": "consensus_epr",
+          "baseline": 29,
+          "candidate": 29,
+          "baselineHash": "ab81a384b7f6afc1f8d207c9f6ea5fec0a1526cc98b4088e00b34cd69186db65",
+          "candidateHash": "ab81a384b7f6afc1f8d207c9f6ea5fec0a1526cc98b4088e00b34cd69186db65",
+          "identical": true,
+          "baselineMs": 12208.544785999999,
+          "candidateMs": 10507.728281000003,
+          "baselinePhases": {
+            "guards": 2.0913569999975152,
+            "small": 6323.248718000003,
+            "candidates": 5756.479884
+          },
+          "candidatePhases": {
+            "guards": 0.676484999996319,
+            "small": 5044.346283999999,
+            "candidates": 5383.943702000004
+          }
+        },
+        {
+          "id": "learning_switch",
+          "baseline": 16,
+          "candidate": 16,
+          "baselineHash": "30e01737accefb7cdd6842704aaadf370a3420d57fff3aefa81a435eb25c3761",
+          "candidateHash": "30e01737accefb7cdd6842704aaadf370a3420d57fff3aefa81a435eb25c3761",
+          "identical": true,
+          "baselineMs": 158929.026274,
+          "candidateMs": 157340.606165,
+          "baselinePhases": {
+            "guards": 0.7853529999993043,
+            "small": 153760.35863499998,
+            "candidates": 5155.441667999985
+          },
+          "candidatePhases": {
+            "guards": 0.9491669999988517,
+            "small": 152704.11201600003,
+            "candidates": 4631.837479999987
+          }
+        },
+        {
+          "id": "learning_switch_i4",
+          "baseline": 463,
+          "candidate": 463,
+          "baselineHash": "1fee9ce40764701e37b1e4a0e854273ac3be8a73db8d48faa029d5fa5ebfc163",
+          "candidateHash": "1fee9ce40764701e37b1e4a0e854273ac3be8a73db8d48faa029d5fa5ebfc163",
+          "identical": true,
+          "baselineMs": 147494.594454,
+          "candidateMs": 164155.85055099998,
+          "baselinePhases": {
+            "guards": 2.060499000013806,
+            "small": 125712.37229400003,
+            "candidates": 21768.712795
+          },
+          "candidatePhases": {
+            "guards": 1.6750670000037644,
+            "small": 140583.03440699997,
+            "candidates": 23555.09743100003
+          }
+        },
+        {
+          "id": "paxos_epr",
+          "baseline": 77,
+          "candidate": 77,
+          "baselineHash": "01f9c4f68d27630184f0d5268345ada29c31507eac21bfbf45d87e0bc6051e77",
+          "candidateHash": "01f9c4f68d27630184f0d5268345ada29c31507eac21bfbf45d87e0bc6051e77",
+          "identical": true,
+          "baselineMs": 19701.520582000026,
+          "candidateMs": 20497.436231,
+          "baselinePhases": {
+            "guards": 3.861985999974422,
+            "small": 7869.8900129999965,
+            "candidates": 11760.752500000002
+          },
+          "candidatePhases": {
+            "guards": 6.84858799999347,
+            "small": 7984.333887999994,
+            "candidates": 12460.041090000013
+          }
+        },
+        {
+          "id": "mldr",
+          "baseline": 25,
+          "candidate": 34,
+          "baselineHash": "f60c50b878abc5b52fa479d946936da51bd61b919b7b0866e4b0d2d98733194d",
+          "candidateHash": "cb1022f2d79f85eb3a0343a6e6fec92b48bddfebc0e4c99925985233a09b1d3b",
+          "identical": false,
+          "baselineMs": 15459.809102999978,
+          "candidateMs": 19004.190919000015,
+          "baselinePhases": {
+            "guards": 2.557403000013437,
+            "small": 8225.532065999985,
+            "candidates": 7220.671354999999
+          },
+          "candidatePhases": {
+            "guards": 6.206224999972619,
+            "small": 9935.251657999994,
+            "candidates": 9052.016105999995
+          },
+          "names": [
+            "every Config cell is a value of its kind",
+            "one primary per term",
+            "CT at most 44",
+            "St at most 1",
+            "CV at most 2",
+            "CfgT at most 44",
+            "fields: St[a]=1 -> CT[a]=CT[b] -> CV[b]<=CV[a]",
+            "fields: St[a]=1 -> CT[a]=CfgT[a]",
+            "fields: St[a]=1 -> CT[a]<=CfgT[a]",
+            "fields: St[a]=1 -> CT[a]=CT[b] -> CfgT[b]<=CfgT[a]",
+            "fields: St[a]=1 -> CfgT[a]<=CT[a]",
+            "fields: St[a]=1 -> CfgT[a]=CfgT[b] -> CV[b]<=CV[a]",
+            "every x with x < size: never Config[x] is 0 and 1 <= St[x]",
+            "every x with x < size: never CT[x] is 0 and 1 <= St[x]",
+            "every x with x < size: never 1 <= CT[x] and CV[x] is 0",
+            "every x with x < size: never 1 <= CT[x] and started is 0",
+            "every x with x < size: never 1 <= St[x] and CV[x] is 0",
+            "every x with x < size: never 1 <= St[x] and CfgT[x] is 0",
+            "every x with x < size: never 1 <= St[x] and started is 0",
+            "every x with x < size: never CV[x] is 0 and 1 <= CfgT[x]",
+            "every x with x < size: never CV[x] is 0 and 1 <= started",
+            "every x with x < size: never 1 <= CfgT[x] and started is 0",
+            "every x, y with x < size ∧ y < size ∧ ¬(x = y): never 1 <= CT[x] and CV[y] is 0",
+            "every x, y with x < size ∧ y < size ∧ ¬(x = y): never 1 <= St[x] and CV[y] is 0",
+            "every x, y with x < size ∧ y < size ∧ ¬(x = y): never CV[x] is 0 and 1 <= CfgT[y]",
+            "inX: no quorum canVote/1",
+            "inX: no quorum canVote/3",
+            "inX: stored guard reconfigs/inS",
+            "inX: stored guard reconfigs/inS or disabled/0",
+            "inX: stored guard reconfigs/inS or disabled/1",
+            "inX: stored guard reconfigs/inS or disabled/2",
+            "inX: stored guard reconfigs/inS or disabled/3",
+            "fields: CT[a]=CT[b] and CV[a]=CV[b] -> Config rows agree",
+            "fields: CV[a]=CV[b] and CfgT[a]=CfgT[b] -> Config rows agree"
+          ]
+        }
+      ]
+    },
+    {
+      "repeat": 3,
+      "source": "runs/t13-paired-v3/generation-pair-3.log",
+      "queries": [
+        0,
+        0
+      ],
+      "records": [
+        {
+          "id": "consensus",
+          "baseline": 3,
+          "candidate": 3,
+          "baselineHash": "e14ce6d5523e14235e7be911e6585a4e341579f13af79146ee5c0272782c73fd",
+          "candidateHash": "e14ce6d5523e14235e7be911e6585a4e341579f13af79146ee5c0272782c73fd",
+          "identical": true,
+          "baselineMs": 22.670156,
+          "candidateMs": 27.486243,
+          "baselinePhases": {
+            "guards": 1.6404089999999982,
+            "small": 1.943610999999997,
+            "candidates": 17.297608000000004
+          },
+          "candidatePhases": {
+            "guards": 2.9404210000000006,
+            "small": 2.8012879999999996,
+            "candidates": 19.490680000000005
+          }
+        },
+        {
+          "id": "tcommit",
+          "baseline": 4,
+          "candidate": 4,
+          "baselineHash": "0fcdba2bffed25323343e97a11d2439514ab6a146a5f4039103365d216045e54",
+          "candidateHash": "0fcdba2bffed25323343e97a11d2439514ab6a146a5f4039103365d216045e54",
+          "identical": true,
+          "baselineMs": 63.529196999999996,
+          "candidateMs": 40.59773200000001,
+          "baselinePhases": {
+            "guards": 0.4211829999999992,
+            "small": 13.740628999999998,
+            "candidates": 47.678245000000004
+          },
+          "candidatePhases": {
+            "guards": 0.3632949999999937,
+            "small": 6.6240629999999925,
+            "candidates": 32.87411300000001
+          }
+        },
+        {
+          "id": "lock_server",
+          "baseline": 5,
+          "candidate": 5,
+          "baselineHash": "c1076284bf2ecddf1c752965c0332a92d24a58540f38714b94ad496712ed4de5",
+          "candidateHash": "c1076284bf2ecddf1c752965c0332a92d24a58540f38714b94ad496712ed4de5",
+          "identical": true,
+          "baselineMs": 76.30421600000001,
+          "candidateMs": 44.358170000000015,
+          "baselinePhases": {
+            "guards": 0.33868800000000476,
+            "small": 15.753680000000003,
+            "candidates": 58.39578
+          },
+          "candidatePhases": {
+            "guards": 1.6126950000000022,
+            "small": 9.61813500000001,
+            "candidates": 31.925602999999995
+          }
+        },
+        {
+          "id": "quorum_leader_election",
+          "baseline": 7,
+          "candidate": 7,
+          "baselineHash": "6354d3cdc634e6c8862532d3fe5e485059396f4c7fabbd7d4727c62c30242052",
+          "candidateHash": "6354d3cdc634e6c8862532d3fe5e485059396f4c7fabbd7d4727c62c30242052",
+          "identical": true,
+          "baselineMs": 558.907782,
+          "candidateMs": 509.55486899999994,
+          "baselinePhases": {
+            "guards": 0.8398919999999919,
+            "small": 102.97558700000002,
+            "candidates": 452.552379
+          },
+          "candidatePhases": {
+            "guards": 1.2293010000000208,
+            "small": 86.530145,
+            "candidates": 420.04035999999996
+          }
+        },
+        {
+          "id": "toy_consensus_forall",
+          "baseline": 9,
+          "candidate": 9,
+          "baselineHash": "36b95967eb139c572c4928f9fd291fcb711464d021b5ccb3b1b52b0ea91a33e6",
+          "candidateHash": "36b95967eb139c572c4928f9fd291fcb711464d021b5ccb3b1b52b0ea91a33e6",
+          "identical": true,
+          "baselineMs": 617.583937,
+          "candidateMs": 595.7079019999999,
+          "baselinePhases": {
+            "guards": 0.4845830000000433,
+            "small": 90.70721299999991,
+            "candidates": 520.7311300000001
+          },
+          "candidatePhases": {
+            "guards": 0.49972300000001724,
+            "small": 86.57337700000005,
+            "candidates": 506.2975220000001
+          }
+        },
+        {
+          "id": "simple",
+          "baseline": 4,
+          "candidate": 4,
+          "baselineHash": "a92912ffab6a8797a6e16781cbc5bd187e7e018d032d1be4feab408dc61e47eb",
+          "candidateHash": "a92912ffab6a8797a6e16781cbc5bd187e7e018d032d1be4feab408dc61e47eb",
+          "identical": true,
+          "baselineMs": 9.754420999999866,
+          "candidateMs": 10.816486999999825,
+          "baselinePhases": {
+            "guards": 0.36439500000005864,
+            "small": 5.391614000000118,
+            "candidates": 3.2670530000000326
+          },
+          "candidatePhases": {
+            "guards": 0.3125390000000152,
+            "small": 5.385406000000103,
+            "candidates": 4.31819100000007
+          }
+        },
+        {
+          "id": "simple_regular",
+          "baseline": 4,
+          "candidate": 4,
+          "baselineHash": "7338346b96cf252234c7a1463bc3b5abfc5aa19e1c34841bf4ccd45ede59db4c",
+          "candidateHash": "7338346b96cf252234c7a1463bc3b5abfc5aa19e1c34841bf4ccd45ede59db4c",
+          "identical": true,
+          "baselineMs": 15.240432999999939,
+          "candidateMs": 13.298813999999993,
+          "baselinePhases": {
+            "guards": 0.11503700000002937,
+            "small": 8.038839000000053,
+            "candidates": 5.394580000000133
+          },
+          "candidatePhases": {
+            "guards": 0.14655600000014601,
+            "small": 7.4838770000001205,
+            "candidates": 5.266140000000178
+          }
+        },
+        {
+          "id": "lockserv_automaton",
+          "baseline": 17,
+          "candidate": 17,
+          "baselineHash": "28197b96f28bb0293452708bb2f3f1558343328d37086def3dc214f1d8740a2e",
+          "candidateHash": "28197b96f28bb0293452708bb2f3f1558343328d37086def3dc214f1d8740a2e",
+          "identical": true,
+          "baselineMs": 34.72036100000014,
+          "candidateMs": 38.44449800000007,
+          "baselinePhases": {
+            "guards": 0.39067500000010114,
+            "small": 7.001888000000008,
+            "candidates": 26.48746499999993
+          },
+          "candidatePhases": {
+            "guards": 0.2867510000000948,
+            "small": 7.239685000000009,
+            "candidates": 30.024955999999975
+          }
+        },
+        {
+          "id": "sharded_kv",
+          "baseline": 18,
+          "candidate": 18,
+          "baselineHash": "ed00314a85784d02f0740819b3c1323809c2fa6d31522bb43bdfb832f2bea282",
+          "candidateHash": "ed00314a85784d02f0740819b3c1323809c2fa6d31522bb43bdfb832f2bea282",
+          "identical": true,
+          "baselineMs": 2318.975176,
+          "candidateMs": 2384.4688669999996,
+          "baselinePhases": {
+            "guards": 0.6282330000001366,
+            "small": 1009.3828139999998,
+            "candidates": 1307.852335
+          },
+          "candidatePhases": {
+            "guards": 0.5283250000002226,
+            "small": 1061.3350820000003,
+            "candidates": 1321.394089
+          }
+        },
+        {
+          "id": "sharded_kv_no_lost_keys",
+          "baseline": 6,
+          "candidate": 6,
+          "baselineHash": "418e57ef2433f568f6a1f0a7c60386c4f76c63e7bc2e73bc658d3e722853b911",
+          "candidateHash": "418e57ef2433f568f6a1f0a7c60386c4f76c63e7bc2e73bc658d3e722853b911",
+          "identical": true,
+          "baselineMs": 2407.4460480000002,
+          "candidateMs": 2053.3135410000004,
+          "baselinePhases": {
+            "guards": 0.5462880000000041,
+            "small": 2216.8736590000003,
+            "candidates": 188.7386059999999
+          },
+          "candidatePhases": {
+            "guards": 0.6902929999996559,
+            "small": 1898.0624319999997,
+            "candidates": 153.44332699999995
+          }
+        },
+        {
+          "id": "lockserv",
+          "baseline": 17,
+          "candidate": 17,
+          "baselineHash": "625d4a5b0bd1a44c77cb3d4f01f5b0c862d06f8dd00b2739f62af8732915be00",
+          "candidateHash": "625d4a5b0bd1a44c77cb3d4f01f5b0c862d06f8dd00b2739f62af8732915be00",
+          "identical": true,
+          "baselineMs": 24.300798000000214,
+          "candidateMs": 19.916885999999977,
+          "baselinePhases": {
+            "guards": 0.4211029999996754,
+            "small": 7.608970999999656,
+            "candidates": 15.446724000000359
+          },
+          "candidatePhases": {
+            "guards": 0.35407000000031985,
+            "small": 5.882493999999497,
+            "candidates": 12.993416000000252
+          }
+        },
+        {
+          "id": "twophase",
+          "baseline": 14,
+          "candidate": 14,
+          "baselineHash": "44bfbce553ff9457ee1e2df76ebef4d046e290ef831acd554bfbed2d74f44fd0",
+          "candidateHash": "44bfbce553ff9457ee1e2df76ebef4d046e290ef831acd554bfbed2d74f44fd0",
+          "identical": true,
+          "baselineMs": 668.5527149999998,
+          "candidateMs": 470.09997699999985,
+          "baselinePhases": {
+            "guards": 0.4056930000006105,
+            "small": 31.204631999999947,
+            "candidates": 635.855082
+          },
+          "candidatePhases": {
+            "guards": 0.36373699999967357,
+            "small": 27.31862699999965,
+            "candidates": 441.48851900000045
+          }
+        },
+        {
+          "id": "simple_decentralized_lock",
+          "baseline": 20,
+          "candidate": 20,
+          "baselineHash": "07fdd1070c44037616163044bb5fd27bb8a379c93424cdec53f8166f2eacb2e1",
+          "candidateHash": "07fdd1070c44037616163044bb5fd27bb8a379c93424cdec53f8166f2eacb2e1",
+          "identical": true,
+          "baselineMs": 19.16556599999967,
+          "candidateMs": 15.406662000000324,
+          "baselinePhases": {
+            "guards": 0.437022999999499,
+            "small": 2.8395879999998215,
+            "candidates": 15.024045999999544
+          },
+          "candidatePhases": {
+            "guards": 0.43047200000000885,
+            "small": 2.4051589999999123,
+            "candidates": 11.86832400000003
+          }
+        },
+        {
+          "id": "two_phase_commit",
+          "baseline": 34,
+          "candidate": 34,
+          "baselineHash": "4a1828f36f3f69afb92df8b6e558119a6e771236afba62b1d7742faa6a656512",
+          "candidateHash": "4a1828f36f3f69afb92df8b6e558119a6e771236afba62b1d7742faa6a656512",
+          "identical": true,
+          "baselineMs": 1160.389615,
+          "candidateMs": 987.4041440000001,
+          "baselinePhases": {
+            "guards": 1.0028689999999187,
+            "small": 506.46737399999984,
+            "candidates": 651.0563520000005
+          },
+          "candidatePhases": {
+            "guards": 0.5683429999999134,
+            "small": 394.1747180000002,
+            "candidates": 591.3798740000002
+          }
+        },
+        {
+          "id": "consensus_wo_decide",
+          "baseline": 39,
+          "candidate": 39,
+          "baselineHash": "05af3c755b720768be509b2d936a89d3772804554d6a5e37c84c6188d592dd46",
+          "candidateHash": "05af3c755b720768be509b2d936a89d3772804554d6a5e37c84c6188d592dd46",
+          "identical": true,
+          "baselineMs": 4820.165457,
+          "candidateMs": 4675.102426000001,
+          "baselinePhases": {
+            "guards": 0.8412040000002889,
+            "small": 2788.287703000001,
+            "candidates": 1998.9016040000006
+          },
+          "candidatePhases": {
+            "guards": 0.8383119999998598,
+            "small": 2653.6322170000003,
+            "candidates": 1974.0042990000002
+          }
+        },
+        {
+          "id": "consensus_forall",
+          "baseline": 48,
+          "candidate": 48,
+          "baselineHash": "5597b7cd11317d41db1e3204398864077a58857746c18b15db1cfb4ebcd1e3da",
+          "candidateHash": "5597b7cd11317d41db1e3204398864077a58857746c18b15db1cfb4ebcd1e3da",
+          "identical": true,
+          "baselineMs": 9811.026863999998,
+          "candidateMs": 10753.864019999999,
+          "baselinePhases": {
+            "guards": 0.6530999999995402,
+            "small": 4716.413300000002,
+            "candidates": 5003.663992000002
+          },
+          "candidatePhases": {
+            "guards": 0.637112000000343,
+            "small": 5231.186551999997,
+            "candidates": 5435.123755999997
+          }
+        },
+        {
+          "id": "naive_consensus",
+          "baseline": 13,
+          "candidate": 13,
+          "baselineHash": "33063fbf32c2fe26d3a2543e077350c6d2d6a6bd9141f194c829ff390249325c",
+          "candidateHash": "33063fbf32c2fe26d3a2543e077350c6d2d6a6bd9141f194c829ff390249325c",
+          "identical": true,
+          "baselineMs": 1092.6248089999972,
+          "candidateMs": 1221.3485150000015,
+          "baselinePhases": {
+            "guards": 0.5114040000007662,
+            "small": 137.24302199999875,
+            "candidates": 953.047760999998
+          },
+          "candidatePhases": {
+            "guards": 0.6000029999995604,
+            "small": 165.60301400000026,
+            "candidates": 1053.0107679999965
+          }
+        },
+        {
+          "id": "client_server_ae",
+          "baseline": 10,
+          "candidate": 10,
+          "baselineHash": "6e0507bf0c5ae5f8cbc4fff6136f9d35ace16ff8f49b165c216f5b3f49a67ef0",
+          "candidateHash": "6e0507bf0c5ae5f8cbc4fff6136f9d35ace16ff8f49b165c216f5b3f49a67ef0",
+          "identical": true,
+          "baselineMs": 1329.2125290000004,
+          "candidateMs": 1479.4608740000003,
+          "baselinePhases": {
+            "guards": 0.41363799999817275,
+            "small": 453.73172200000045,
+            "candidates": 873.6790739999997
+          },
+          "candidatePhases": {
+            "guards": 0.40573500000027707,
+            "small": 532.3725449999984,
+            "candidates": 945.387028000001
+          }
+        },
+        {
+          "id": "client_server_db_ae",
+          "baseline": 15,
+          "candidate": 15,
+          "baselineHash": "11710f8a89c0fb18454cc1cd37cc6b918b2251bdfe8c652c131d1b21dfbc79a8",
+          "candidateHash": "11710f8a89c0fb18454cc1cd37cc6b918b2251bdfe8c652c131d1b21dfbc79a8",
+          "identical": true,
+          "baselineMs": 6746.4605200000005,
+          "candidateMs": 6941.422609000001,
+          "baselinePhases": {
+            "guards": 0.5425430000032065,
+            "small": 3040.153417999998,
+            "candidates": 3704.097028
+          },
+          "candidatePhases": {
+            "guards": 0.6791420000008657,
+            "small": 3557.3092830000023,
+            "candidates": 3381.1743779999997
+          }
+        },
+        {
+          "id": "simple_election",
+          "baseline": 12,
+          "candidate": 12,
+          "baselineHash": "30bc4cc549adbbd85c982849ae7b5cf741388b8750e135e1b96ba0e6b2204a4d",
+          "candidateHash": "30bc4cc549adbbd85c982849ae7b5cf741388b8750e135e1b96ba0e6b2204a4d",
+          "identical": true,
+          "baselineMs": 1339.7886469999976,
+          "candidateMs": 1488.3032679999997,
+          "baselinePhases": {
+            "guards": 0.5447460000032152,
+            "small": 332.02906000000075,
+            "candidates": 1004.0452289999994
+          },
+          "candidatePhases": {
+            "guards": 0.6461589999998978,
+            "small": 364.3880850000023,
+            "candidates": 1120.3954489999996
+          }
+        },
+        {
+          "id": "toy_consensus_epr",
+          "baseline": 8,
+          "candidate": 8,
+          "baselineHash": "133630cb1e8c0acf2f7b1b1f30f8c5eb82f1ebd6ef16350af7b27e97f3fea9fc",
+          "candidateHash": "133630cb1e8c0acf2f7b1b1f30f8c5eb82f1ebd6ef16350af7b27e97f3fea9fc",
+          "identical": true,
+          "baselineMs": 1061.2364729999972,
+          "candidateMs": 1131.4778379999989,
+          "baselinePhases": {
+            "guards": 0.5051019999955315,
+            "small": 119.25369300000602,
+            "candidates": 939.4435259999955
+          },
+          "candidatePhases": {
+            "guards": 0.7345369999966351,
+            "small": 117.17689499999688,
+            "candidates": 1011.2272929999963
+          }
+        },
+        {
+          "id": "toy_consensus",
+          "baseline": 5,
+          "candidate": 5,
+          "baselineHash": "42a22a2106bf7bde3e8f00f847d72d7b426b493fe2c551d8b12760722db12bf2",
+          "candidateHash": "42a22a2106bf7bde3e8f00f847d72d7b426b493fe2c551d8b12760722db12bf2",
+          "identical": true,
+          "baselineMs": 574.9307899999985,
+          "candidateMs": 792.252622,
+          "baselinePhases": {
+            "guards": 0.5116740000012214,
+            "small": 93.81881099999737,
+            "candidates": 478.88298999999824
+          },
+          "candidatePhases": {
+            "guards": 0.6621109999978216,
+            "small": 115.14113199999701,
+            "candidates": 674.5355149999959
+          }
+        },
+        {
+          "id": "firewall",
+          "baseline": 7,
+          "candidate": 7,
+          "baselineHash": "62bd947b28577d7ae3b33f79ca6fcd5037c1a61429bfd81950381b432d9c71b7",
+          "candidateHash": "62bd947b28577d7ae3b33f79ca6fcd5037c1a61429bfd81950381b432d9c71b7",
+          "identical": true,
+          "baselineMs": 29.319464000000153,
+          "candidateMs": 40.050702000000456,
+          "baselinePhases": {
+            "guards": 0.30443299999751616,
+            "small": 7.993599000001268,
+            "candidates": 20.184304000002157
+          },
+          "candidatePhases": {
+            "guards": 0.33781699999963166,
+            "small": 8.664859000004071,
+            "candidates": 30.22604300000239
+          }
+        },
+        {
+          "id": "majorityset_leader_election",
+          "baseline": 17,
+          "candidate": 17,
+          "baselineHash": "bb147d46a7fb370560860dfd5441416683ec8c4c8a845d78cba57f199aba247f",
+          "candidateHash": "bb147d46a7fb370560860dfd5441416683ec8c4c8a845d78cba57f199aba247f",
+          "identical": true,
+          "baselineMs": 1232.7580199999938,
+          "candidateMs": 1438.9410449999996,
+          "baselinePhases": {
+            "guards": 0.5291859999997541,
+            "small": 50.617404999997234,
+            "candidates": 1178.4205860000002
+          },
+          "candidatePhases": {
+            "guards": 0.5327360000010231,
+            "small": 71.89176299999963,
+            "candidates": 1362.6292469999971
+          }
+        },
+        {
+          "id": "consensus_epr",
+          "baseline": 29,
+          "candidate": 29,
+          "baselineHash": "ab81a384b7f6afc1f8d207c9f6ea5fec0a1526cc98b4088e00b34cd69186db65",
+          "candidateHash": "ab81a384b7f6afc1f8d207c9f6ea5fec0a1526cc98b4088e00b34cd69186db65",
+          "identical": true,
+          "baselineMs": 8064.555708,
+          "candidateMs": 8923.890121000004,
+          "baselinePhases": {
+            "guards": 0.8427990000054706,
+            "small": 3907.551057000004,
+            "candidates": 4093.5753850000037
+          },
+          "candidatePhases": {
+            "guards": 1.0979220000008354,
+            "small": 4192.998833999998,
+            "candidates": 4640.037861999997
+          }
+        },
+        {
+          "id": "learning_switch",
+          "baseline": 16,
+          "candidate": 16,
+          "baselineHash": "30e01737accefb7cdd6842704aaadf370a3420d57fff3aefa81a435eb25c3761",
+          "candidateHash": "30e01737accefb7cdd6842704aaadf370a3420d57fff3aefa81a435eb25c3761",
+          "identical": true,
+          "baselineMs": 139828.4643,
+          "candidateMs": 148524.191713,
+          "baselinePhases": {
+            "guards": 0.9859290000022156,
+            "small": 135531.229013,
+            "candidates": 4292.517798000015
+          },
+          "candidatePhases": {
+            "guards": 0.7042999999976018,
+            "small": 144500.206808,
+            "candidates": 4019.775106999994
+          }
+        },
+        {
+          "id": "learning_switch_i4",
+          "baseline": 463,
+          "candidate": 463,
+          "baselineHash": "1fee9ce40764701e37b1e4a0e854273ac3be8a73db8d48faa029d5fa5ebfc163",
+          "candidateHash": "1fee9ce40764701e37b1e4a0e854273ac3be8a73db8d48faa029d5fa5ebfc163",
+          "identical": true,
+          "baselineMs": 149110.845997,
+          "candidateMs": 133600.888542,
+          "baselinePhases": {
+            "guards": 1.3839089999964926,
+            "small": 129566.292582,
+            "candidates": 19533.362618999963
+          },
+          "candidatePhases": {
+            "guards": 2.031167999986792,
+            "small": 113141.03678299999,
+            "candidates": 20445.85894800001
+          }
+        },
+        {
+          "id": "paxos_epr",
+          "baseline": 77,
+          "candidate": 77,
+          "baselineHash": "01f9c4f68d27630184f0d5268345ada29c31507eac21bfbf45d87e0bc6051e77",
+          "candidateHash": "01f9c4f68d27630184f0d5268345ada29c31507eac21bfbf45d87e0bc6051e77",
+          "identical": true,
+          "baselineMs": 16506.60963600001,
+          "candidateMs": 15395.917599999986,
+          "baselinePhases": {
+            "guards": 2.5448709999909624,
+            "small": 5772.140847999952,
+            "candidates": 10684.854931999987
+          },
+          "candidatePhases": {
+            "guards": 3.1654100000159815,
+            "small": 6555.718047000002,
+            "candidates": 8796.23888900003
+          }
+        },
+        {
+          "id": "mldr",
+          "baseline": 25,
+          "candidate": 34,
+          "baselineHash": "f60c50b878abc5b52fa479d946936da51bd61b919b7b0866e4b0d2d98733194d",
+          "candidateHash": "cb1022f2d79f85eb3a0343a6e6fec92b48bddfebc0e4c99925985233a09b1d3b",
+          "identical": false,
+          "baselineMs": 15444.912634000008,
+          "candidateMs": 15239.342519999947,
+          "baselinePhases": {
+            "guards": 2.035740999970585,
+            "small": 8434.511090999993,
+            "candidates": 6997.622938000015
+          },
+          "candidatePhases": {
+            "guards": 4.748981999990065,
+            "small": 7838.633650999982,
+            "candidates": 7387.120473000046
+          },
+          "names": [
+            "every Config cell is a value of its kind",
+            "one primary per term",
+            "CT at most 44",
+            "St at most 1",
+            "CV at most 2",
+            "CfgT at most 44",
+            "fields: St[a]=1 -> CT[a]=CT[b] -> CV[b]<=CV[a]",
+            "fields: St[a]=1 -> CT[a]=CfgT[a]",
+            "fields: St[a]=1 -> CT[a]<=CfgT[a]",
+            "fields: St[a]=1 -> CT[a]=CT[b] -> CfgT[b]<=CfgT[a]",
+            "fields: St[a]=1 -> CfgT[a]<=CT[a]",
+            "fields: St[a]=1 -> CfgT[a]=CfgT[b] -> CV[b]<=CV[a]",
+            "every x with x < size: never Config[x] is 0 and 1 <= St[x]",
+            "every x with x < size: never CT[x] is 0 and 1 <= St[x]",
+            "every x with x < size: never 1 <= CT[x] and CV[x] is 0",
+            "every x with x < size: never 1 <= CT[x] and started is 0",
+            "every x with x < size: never 1 <= St[x] and CV[x] is 0",
+            "every x with x < size: never 1 <= St[x] and CfgT[x] is 0",
+            "every x with x < size: never 1 <= St[x] and started is 0",
+            "every x with x < size: never CV[x] is 0 and 1 <= CfgT[x]",
+            "every x with x < size: never CV[x] is 0 and 1 <= started",
+            "every x with x < size: never 1 <= CfgT[x] and started is 0",
+            "every x, y with x < size ∧ y < size ∧ ¬(x = y): never 1 <= CT[x] and CV[y] is 0",
+            "every x, y with x < size ∧ y < size ∧ ¬(x = y): never 1 <= St[x] and CV[y] is 0",
+            "every x, y with x < size ∧ y < size ∧ ¬(x = y): never CV[x] is 0 and 1 <= CfgT[y]",
+            "inX: no quorum canVote/1",
+            "inX: no quorum canVote/3",
+            "inX: stored guard reconfigs/inS",
+            "inX: stored guard reconfigs/inS or disabled/0",
+            "inX: stored guard reconfigs/inS or disabled/1",
+            "inX: stored guard reconfigs/inS or disabled/2",
+            "inX: stored guard reconfigs/inS or disabled/3",
+            "fields: CT[a]=CT[b] and CV[a]=CV[b] -> Config rows agree",
+            "fields: CV[a]=CV[b] and CfgT[a]=CfgT[b] -> Config rows agree"
+          ]
+        }
+      ]
+    }
+  ]
+}

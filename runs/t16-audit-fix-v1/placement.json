@@ -1,0 +1,11 @@
+{
+ "audit-fix-tests": {
+  "vm": "bx_bhrz6uyc",
+  "type": "large",
+  "cpu": "AMD EPYC 4585PX 16-Core Processor",
+  "vcpus": 8,
+  "vm_vcpus": 8,
+  "exclusive": true,
+  "co_tenants": 0
+ }
+}

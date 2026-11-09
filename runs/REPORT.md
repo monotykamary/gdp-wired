@@ -109,6 +109,70 @@ Measurements (boat, same VM per pair, alternating order, AMD Ryzen 9 9950X large
 Profiles: `research/track-wall/profile-jobs.json`. `bun run check` in the shipped tree exits 2 on both trees for the same
 `vendor/handwired`-dependent errors (no vendor in the shipped tree); lane D's clean-checkout gate is the authority.
 
+---
+
+# Lane A (merged bef4020f) — RESUME — PAUSED AT USER REQUEST
+
+**Start nothing until the user explicitly resumes. No push or merge.**
+
+## Branch and checkpoint
+
+- Branch: `claude/mldr-gen`.
+- Last work SHA: **`cd31a2bfaef250c2872f72ab1900846745926e06`**, `chore: wip: checkpoint finite-domain experiments`.
+- This RESUME-only commit follows that SHA; the final checkpoint SHA is `HEAD` and is given in the checkpoint reply.
+- Finished earlier work: `c21a6e54` (paired-side failure propagation) and `fdabeba4` (binary tiny-instance proposer/checker).
+- All pending source, tests, scripts and diagnostic inputs are committed as WIP. The allowed commitlint types exclude `wip`, so the conventional subject is explicitly labelled `wip:`.
+- 254 compact collected receipts (about 699 KB) are catalogued in `research/track-gen/CHECKPOINT-RECEIPTS.json`. Large logs, captures and archives stay locally under `runs/`, outside Git. Temporary trace inputs are preserved in `research/track-gen/checkpoint-trace/*.ts.txt`.
+
+## Proven / measured, and limits
+
+- **MLDR safety remains unproved. No GATE GREEN or independently admitted final census.** The audited repair's three strict candidate process walls were 59.08 / 59.16 / 59.10 s, all `unknown`.
+- Lane D independently cleared runtime cancellation, declared-fact and import-cycle repairs (`74dd9cc5` / `52b2382f`). The other-28 proof and canonical-list comparisons below remain reported iteration observations, not authoritative admission.
+- Paired-exit validation: **11 tests / 33 assertions**, full type/lint and commitlint pass. Exit 137 is simulated in that regression, not an actual timeout kill.
+- Binary tiny search: original 40 -> 35 in all three runs, 1.356–1.801 s, but only three newly caught costly helpers. One post-boundary 34 -> 31 run completed; two hit their wall. Finite screening is not a proof or semantic completeness result.
+- The ternary probe found additional CV-bound and CfgT-field witnesses, but original-family active walls **2.337–2.922 s violate the 2 s allowance** and are rejected. Completed binary/ternary probes collectively catch **four of the named seven**, not five; the extra CfgT field witness is not one of those seven.
+- WIP: optional state-value domains/round caps and smaller checked native predicates, bounded to 64 KiB. **Production remains disabled.** Last collected validation: **37 tests / 117 assertions**, full TypeScript/type-aware lint and commitlint, `runs/t16-domain-chunk-check-v2/`, batch `20261109-154013-z431iv`. No validation jobs were started during checkpointing. New checkpoint headers were checked locally against all configured commitlint rules.
+
+## Cancelled work — exact inventory
+
+Only one owned background task and its corresponding boat batch were active at checkpoint. Other tasks, including worker `01a9d7c596a34bfa8aab78764f248cff`, were already terminal.
+
+| Task / batch / output | Purpose | Cancellation and partial-result status |
+| --- | --- | --- |
+| Task `49ba03f8-9004-4c26-ad20-6ece1fd110ee`; batch `20261109-153518-o1nkb4`; `runs/t16-domain-hybrid/` | Six bounded two-domain probes: `original-hybrid-{1,2,3}` and `survivors-hybrid-{1,2,3}` | Stopped by exact task ID, confirmed `killed`; exact batch closed via scoped scheduler `/close` and verified absent. Initial observation had six queued/zero running; by the close snapshot all six were remotely done. Scheduler rows/hardware were saved, but no result payloads were collected. Metadata is usable only as execution history, **not** removal or active-wall evidence. **All six must be rerun** after resume. |
+
+Receipt: `runs/checkpoint-cancellation.json`. Its 1.96–2.08 s process durations are not the missing algorithm-wall measurements. No shared scheduler/VM was stopped and no broad PID kill was used. No new batch was started. Final task/batch inventories must be empty before the checkpoint reply.
+
+## Open audit blockers
+
+Lane D's `final-audit-G-side-exit.md` reviewed only through `c21a6e54`:
+
+1. Historical receipts need both actual side statuses revalidated, or reruns with the repaired bound launcher. An old scheduler success can mask a failed side; expected kills are not proofs.
+2. The 29-ID/three-repeat roster and command mapping remain mutable rather than independently bound.
+3. Archive IDs are caller-labelled; trusted archive/vendor/launcher digests and their binding to each receipt remain absent.
+4. Conflicting/duplicate receipts, CPU claims, MLDR list equality and proof preservation are not established by formatter completeness alone.
+5. A failed CPU probe inside `printf` command substitution can be masked; a nonempty CPU string is not provenance. This is distinct from repaired side-exit propagation.
+
+No new authoritative gate tooling: the coordinator assigned admission to Lane D. Later WIP tiny-domain code is not covered by that static audit or by earlier 28-protocol measurements.
+
+## Exact next steps — only after explicit user resume
+
+1. Read this handoff, inspect branch/HEAD and read live `supercomputer --skill`. Do not reuse cancelled scheduler rows as CTI/timing results.
+2. Rerun into a new output directory:
+
+   ```sh
+   supercomputer run --jobs research/track-gen/t16-domain-hybrid-jobs.json \
+     --out runs/t16-domain-hybrid-resume --class submission --timing \
+     --vm-type large --data runs/t16-frontier-capture:tiny-data
+   ```
+
+   Required local input: `runs/t16-frontier-capture/0.json`; its expected SHA-256 is in `research/track-gen/t16-tiny-results.json`. Inspect actual `HYBRID_RESULT`, independently certified CTIs, all six exits, hardware labels and active wall. Count only the named seven; not the extra field witness.
+3. If fewer than five of the named seven are caught, or any active wall exceeds 2 s, keep production disabled and report the falsifier. Do not increase proof fuel or add protocol-specific constants.
+4. For subsequent code edits rerun `research/track-gen/t16-domain-check-jobs.json` on boat into a new output directory. Retain the already-collected failures and avoid repeating completed work blindly.
+5. Only after the fast loop meets its criterion consider integration, three original-harness pairs under the strict 60 s wrapper, and other-28 generation/proof guardrails. Route final provenance/admission to Lane D.
+
+---
+
 # Lane A — runtime audit resolved; paired-exit repair locally validated
 
 Lane D independently resolves the runtime findings at `5e4f4956` / `52b2382f`.
@@ -121,7 +185,8 @@ execution driver before delegating, without modifying the measured engine.
 
 Focused boat validation: **11 tests / 33 assertions pass**, covering both
 modes, both side orders, either side failing after output, successful pairs,
-and a killed side. TypeScript, type-aware lint and commitlint also pass.
+and a simulated exit-137 side (not a real timeout kill). TypeScript,
+type-aware lint and commitlint also pass.
 Receipts: `runs/t16-side-exit/` and `runs/t16-side-exit-lint/`.
 
 The numerical comparisons below remain reported observations, **not
@@ -200,6 +265,68 @@ quorum_leader_election, simple, simple_election, simple_regular,
 toy_consensus, toy_consensus_epr, toy_consensus_forall. These are audit-repair
 iteration results, not evidence for the later uncommitted fallback and
 not Lane D's authoritative final gate.
+
+## Richer-domain follow-up: useful witnesses, rejected timing
+
+The binary baseline is preserved at `fdabeba4`. An optional explicit
+`[0,1,2]` state-cell domain (Boolean request maps unchanged) passes 36 tests /
+115 assertions plus full type/lint, but is **not production-enabled**.
+
+All three original-family probes found six total drops: the binary first-pass
+four plus `CV at most 2` and
+`fields: St[a]=1 -> CT[a]=CT[b] -> CfgT[b]<=CfgT[a]`. They did not reach the
+later canVote/1 removal. The post-boundary probes found three drops each:
+stored guard, disabled/1, and the new CfgT field implication. All six searches
+hit their wall. Original-family active walls were **2.337–2.922 s**, exceeding
+the 2 s allowance; those timings are rejected. Post-boundary walls were
+1.901–1.914 s. Raw evidence: `runs/t16-domain/`, batch
+`20261109-150826-nqfxx2`. An original-family exit 0 means only its existing
+five-total-drop assertion passed, not five costly helpers or a valid timing.
+
+This adds a useful witness but does not satisfy the replacement criterion.
+The temporary-copy trace completed: native execution/request-entry gaps of
+55–271 ms were observed between cooperative checkpoints. The experimental
+compiler now splits predicates into individually checked clauses and caps
+native function bodies at 64 KiB. A round-limit option allows a two-domain
+research schedule under one 1.9 s search wall; no deadline, counted proof
+budget or production switch was changed. **37 tests / 117 assertions**, full
+type/lint and commitlint pass (`runs/t16-domain-chunk-check-v2/`). The preceding
+check's sole failure was an undefined identifier in the new round-cap fixture;
+that fixture is corrected.
+
+At checkpoint, task `49ba03f8-9004-4c26-ad20-6ece1fd110ee` was stopped and its exact boat batch `20261109-153518-o1nkb4` closed. By the cancellation snapshot all six probes were remotely done, but their result payloads were not collected. Only scheduler rows and hardware metadata were preserved in `runs/checkpoint-cancellation.json`; these are not CTI or active-wall results. The implementation is WIP `cd31a2bf`, not promoted. Rerun all six only after explicit user resume.
+
+The named seven-law criterion still matters: the new CfgT field implication
+is **not** one of those seven. The union of completed binary/ternary probes
+currently covers four of the seven (unweakened overlap, disabled/1, CV bound,
+canVote/1), not five. No replacement criterion or GATE GREEN is claimed.
+
+## Experimental binary-domain fallback: prediction not met
+
+The generic tiny-instance proposer and independent `finiteTinyHoudini`
+wrapper are implemented, but **not enabled in production generation**.
+The source uses structural count grids and shared transition screens; no
+protocol/law names are production conditions. Every removal is independently
+checked against preconditions, all facts, the complete current family and
+the source interpreter's actual step. Caller laws are protected.
+
+On the original 40-law family, all three binary-domain runs remove the same
+five laws in 1.356–1.801 s. **Only three are the previously missed costly
+helpers**: unweakened stored guard, disabled/1, and canVote/1. The other two
+were already caught by boundary sampling. Starting after the six certified
+boundary removals, one run reaches a 31-law fixed point in 1.356 s; two runs
+are wall-limited. Disabled/0, /2 and /3 remain in the completed 0/1 scope.
+Thus the five-costly-helper prediction is **not met**. The next bounded
+experiment is a richer value domain; no missing-law or semantic-exhaustion
+conclusion is drawn from this untrusted screen.
+
+The scope is exactly 22 state bits at size 3, structurally inferred rows,
+Boolean carried sets and binder values 0–2. Completed screening is not a
+semantic completeness or proof claim. `research/track-gen/t16-tiny-notes.md`
+and `t16-tiny-results.json` preserve exact scope, failed earlier pilots,
+input/source hashes, independent witnesses, CPU labels and remaining laws.
+The final worker check passes 12 tests / 40 assertions and full type/lint;
+the wrapper suite passes 35 tests / 112 assertions and full type/lint.
 
 # Lane A / T-14 iteration receipts complete; Section 16 in progress
 
