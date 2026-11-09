@@ -43,12 +43,32 @@ SHA-256 `4b97fb96467ee51e9b80ff0a13b33f00d2731452fd93e6191f65c17c8882d64a`.
 `replay.ts` and `conditional-safety.ts` accept `ARCHIVE.br#ENTRY.json` as well
 as a plain JSON file. Every replay records the entry's SHA-256.
 
+`fixtures/e14-safety.br` is the conditional safety capture from the actual
+35-law generated family (no supplied p1), SHA-256
+`b9c7abfae8b30ed2c9de6a665aeebc2956599b8ec28fa3d5a97707719e8f3134`.
+It is **partial: 31 retained files, 22 omitted files**. Its origin and omissions
+are recorded in `fixtures/e14-safety.meta.json`; complete retained packets, not
+truncated JSON, are replayed. This is not an original-harness proof.
+
 `make-replays.ts` deduplicates identical raw goal/instance/pool packets across
 trace phases before making the matrix: nine distinct STEP packets, four modes,
 and 250/1,000/2,700 units, for 108 independent jobs. The jobs are self-contained;
 no large `--data` stage bundle is needed. `refinement-variant.ts` is a separate
 research-only scheduling experiment: it never changes the 65,536 proposal
 ceiling or the 2,700-unit safety share and is not enabled in production.
+
+For a separate fixture and sampled early/middle/late packets, use:
+
+```sh
+bun research/mldr-incl/make-replays.ts INPUT_DIR FIXTURE.br PLAN.json 3
+bun research/mldr-incl/analyze-replays.ts RESULTS_DIR FIXTURE.br PLAN.json
+```
+
+The analyzer rejects duplicate/unexpected receipts, mode/budget mismatches,
+wrong input hashes and unchecked proof claims. `preferred` rebuilds a small
+selection; it does not preserve every instance from the original raw packet.
+Thus a raw UNKNOWN becoming a preferred SAT is possible and is reported, not
+called a proof regression or suppressed.
 
 A successful conditional replay warrants strict original-harness confirmation;
 it does not warrant a merge. The full 29x3, DuoAI, broken, bar, type/lint and test

@@ -1,9 +1,9 @@
 # Lane E — guarded inclusion integration
 
-Branch: `claude/mldr-incl`. **NOT GATE GREEN; AUDIT BLOCKER; no merge claim.**
+Branch: `claude/mldr-incl`. **NOT GATE GREEN; full gate pending; no merge claim.**
 
 The audit code repair is committed as **`3f976cba`**, with archive-preflight
-ordering corrected in the follow-up. On boat, `mldr-incl-audit-check-v2` passed
+ordering corrected in **`8d275256`**. On boat, `mldr-incl-audit-check-v2` passed
 type/lint and **31 tests**, including the exact duplicate-protocol regression.
 `mldr-incl-audit-source-smoke/results-v2` passed both a real two-revision pair
 and a tampered-candidate archive rejected before either proof. The first
@@ -18,7 +18,8 @@ the independent exact roster and both source archives; acceptance will use
 Lane D's one-command final gate.
 
 Production commits: **`f6ec83db`** (ordinary preference), **`7dc52140`**
-(raw lazy-pool admission and shared-cap correction). No kernel rule, trusted
+(raw lazy-pool admission and shared-cap correction), and **`0ee27c7a`**
+(member upper-bound selection). No kernel rule, trusted
 fact, protocol-name branch, or proof-budget increase was added.
 
 ## Implementation
@@ -79,21 +80,66 @@ selection. Separate full-pool/selected-certificate diagnostics and controls
 test those hypotheses. The stage-0 and stage-26 packets preserve the direct
 observations, including phase/work counters.
 
-The current fast loop compares nine distinct frozen STEP packets at
-250/1,000/2,700 units, across raw, preferred, own-key completion, and
-witness-seeded modes: **108 independent jobs**. A separate eight-way real-E-14
-experiment limits optional pre-query refinement and moves completion earlier.
-Four additional controls refresh preferences when new count reads arrive,
-without increasing the existing proposal ceiling or safety share. Neither
-research scheduling variant has been put into production.
+The first frozen matrices are complete and independently checked for receipt,
+input-hash and mode/budget identity: **108 Gp1 jobs plus 36 actual E-14 jobs**.
+No job produced a checked proof. Each cell below is SAT / UNKNOWN; all proof
+counts are zero.
+
+| Input | Raw | Preferred selection | Own-key completion | Completion + flags |
+|---|---:|---:|---:|---:|
+| Gp1, 27 jobs/mode | 9 / 18 | 9 / 18 | 2 / 25 | 0 / 27 |
+| Actual E-14, 9 jobs/mode | 4 / 5 | 5 / 4 | 0 / 9 | 0 / 9 |
+
+Receipts: `runs/mldr-incl-step-v1/analysis.json` and
+`runs/mldr-incl-e14-step-v1/analysis.json`. Preferred rebuilds a small
+selection rather than preserving all raw instances, so the additional E-14
+SAT result is disclosed, not hidden. These are conditional packet experiments,
+not original-harness verdicts or a completed proof improvement.
+
+The supported-path scheduling controls proved ineffective: the actual E-14
+capture has an empty production support set. Completed ordinary/reserve
+controls both returned UNKNOWN at 2,700.734 units; the remaining redundant
+controls were stopped and their exact admissions closed. Their partial
+receipts are retained under `runs/mldr-incl-recovered/`.
+
+The upper-bound selector in **`0ee27c7a`** passed type/lint and **35 tests**
+on boat (`mldr-incl-upper-bound-check-v1`). Scalar guards remain provenance,
+not asserted facts. Both new replay matrices completed with exact identity and
+input-hash validation: their SAT/UNKNOWN counts are **unchanged from the table
+above**, and again no checked proof was produced.
+
+The new diagnostics verify selection of the intended **S-to-full-quorum**
+instance, not merely its presence in the pool:
+
+| Input | Preferred | Keyed | Keyed + flags |
+|---|---:|---:|---:|
+| Gp1 | 24/27 packets | 27/27 | 27/27 |
+| Actual E-14 | 6/9 packets | 9/9 | 9/9 |
+
+Evidence: `mldr-incl-gp1-upper-v1/analysis.json` and
+`mldr-incl-e14-upper-v1/analysis.json`. Thus the voter inclusion is now selected,
+but selection alone did **not** remove the proof-cost or instance gap. The
+standalone conditional pointwise test, seven shards, and exact-source paired
+diagnostics are still pending.
+
+The isolated original-harness A/A+E v1 probe failed all three jobs **in patch
+setup**, before any protocol verdict. Lane A changed an import
+(`attemptShare`), invalidating the patch context. V2 changes only that context,
+passes an exact archive patch check, and is submitted. The pinned Lane A source
+is `48533517bf7b6ef1bee47e58d2a9a517babd5488`. These composite probes are not
+a full merge gate.
 
 ## Real E-14 input
 
 `runs/mldr-incl-e14-generation-v2/` completed on boat from Lane A `1681e8e5`:
 **35 generated laws, zero proof queries**, generation wall 23,359.980 ms.
 No hand law was added. The result includes the count-cube p1/TypeOK forms.
-The exact archive is `research/mldr-incl/fixtures/e14-generated.br`, SHA-256
-`4b97fb96467ee51e9b80ff0a13b33f00d2731452fd93e6191f65c17c8882d64a`.
+The exact generation archive is `research/mldr-incl/fixtures/e14-generated.br`,
+SHA-256 `4b97fb96467ee51e9b80ff0a13b33f00d2731452fd93e6191f65c17c8882d64a`.
+The subsequent conditional safety archive is `fixtures/e14-safety.br`, SHA-256
+`b9c7abfae8b30ed2c9de6a665aeebc2956599b8ec28fa3d5a97707719e8f3134`: **31 retained
+files and 22 omitted files**. Three complete retained early/middle/late packets
+were sampled; omitted packets were not reconstructed.
 
 ## Infrastructure and remaining work
 
