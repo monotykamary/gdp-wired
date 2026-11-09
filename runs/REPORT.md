@@ -22,7 +22,9 @@ The coordinator moved main from `b788e195` to **`4497c4b05c3111959a2b8d808c426a0
 
 - **F `c1521262`:** production merged automatically. Preserve compensated single-set count transports as untrusted proposals and their copying/conjuring negative controls; the kernel still checks every retained frame. Only the report conflicted, archived at `runs/lane-i/incoming/20261110/F-c1521262.md`.
 
-All newly integrated source still requires combined qualification; no historical receipt or gate result is transferred to it.
+- **Fable `f6b383f0`:** `core/machine.ts` merged automatically with new main. Retain both CI's source-free helper/runtime defaults and the interpreter's per-write environment reuse / tuple-write memoization. Lane A's newer finite-search implementation remains intact. Only the report conflicted, archived at `runs/lane-i/incoming/20261110/Fable-f6b383f0.md`. Two incoming raw receipt tables contain pre-existing trailing spaces; their bytes are preserved rather than normalized. The source diff passes whitespace checking; those two historical receipt files are the explicit exception.
+
+All five reviewed lane tips and main `4497c4b0` are now integrated. All newly integrated source still requires combined qualification; no historical receipt or gate result is transferred to it.
 
 ## Coordinator follow-up: merge bisection and bar resource attribution — active
 

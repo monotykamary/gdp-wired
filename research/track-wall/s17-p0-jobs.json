@@ -1,0 +1,114 @@
+[
+ {
+  "name": "s17-mine-star-op0-p0",
+  "vm_type": "large",
+  "cpu": 2,
+  "memory": 14336,
+  "timeout": 600,
+  "cmd": "set -o pipefail; bun install --frozen-lockfile >/dev/null && grep -m1 'model name' /proc/cpuinfo && mkdir -p s17 && cp s17data/family.json s17/family.json && (cd . && mkdir -p prof && GDP_COUNTS_TRACE=3 GDP_COUNTS_DUMP_ALL_PASSES=1 timeout -s TERM -k 10 300 bun --cpu-prof --cpu-prof-md --cpu-prof-dir=prof --cpu-prof-interval=4000 research/track-wall/s17-trace.ts s17/family.json star 0 0 60000 > trace.out 2> trace.err; echo EXIT $?; echo EVENTS $(grep -c '^S17 ' trace.out); grep 'S17_END' trace.out | cut -c1-600; grep 'counts: try' trace.err | cut -c1-300; echo HEAD; grep '^S17 ' trace.out | head -12 | cut -c1-700; echo TAIL; grep '^S17 ' trace.out | tail -25 | cut -c1-700; echo PHASES; grep '^S17 ' trace.out | grep -o '\"phase\":\"[^\"]*\"' | sort | uniq -c | sort -rn | head -20; echo ERRORS; grep '^S17 ' trace.out | grep -o '\"error\":\"[^\"]*\"' | sort | uniq -c | sort -rn | head -12 | cut -c1-400; echo PROFILE; f=$(ls prof/*.md 2>/dev/null | head -1); [ -n \"$f\" ] && head -c 5000 \"$f\")"
+ },
+ {
+  "name": "s17-mine-star-op1-p0",
+  "vm_type": "large",
+  "cpu": 2,
+  "memory": 14336,
+  "timeout": 600,
+  "cmd": "set -o pipefail; bun install --frozen-lockfile >/dev/null && grep -m1 'model name' /proc/cpuinfo && mkdir -p s17 && cp s17data/family.json s17/family.json && (cd . && mkdir -p prof && GDP_COUNTS_TRACE=3 GDP_COUNTS_DUMP_ALL_PASSES=1 timeout -s TERM -k 10 300 bun --cpu-prof --cpu-prof-md --cpu-prof-dir=prof --cpu-prof-interval=4000 research/track-wall/s17-trace.ts s17/family.json star 1 0 60000 > trace.out 2> trace.err; echo EXIT $?; echo EVENTS $(grep -c '^S17 ' trace.out); grep 'S17_END' trace.out | cut -c1-600; grep 'counts: try' trace.err | cut -c1-300; echo HEAD; grep '^S17 ' trace.out | head -12 | cut -c1-700; echo TAIL; grep '^S17 ' trace.out | tail -25 | cut -c1-700; echo PHASES; grep '^S17 ' trace.out | grep -o '\"phase\":\"[^\"]*\"' | sort | uniq -c | sort -rn | head -20; echo ERRORS; grep '^S17 ' trace.out | grep -o '\"error\":\"[^\"]*\"' | sort | uniq -c | sort -rn | head -12 | cut -c1-400; echo PROFILE; f=$(ls prof/*.md 2>/dev/null | head -1); [ -n \"$f\" ] && head -c 5000 \"$f\")"
+ },
+ {
+  "name": "s17-mine-star-op2-p0",
+  "vm_type": "large",
+  "cpu": 2,
+  "memory": 14336,
+  "timeout": 600,
+  "cmd": "set -o pipefail; bun install --frozen-lockfile >/dev/null && grep -m1 'model name' /proc/cpuinfo && mkdir -p s17 && cp s17data/family.json s17/family.json && (cd . && mkdir -p prof && GDP_COUNTS_TRACE=3 GDP_COUNTS_DUMP_ALL_PASSES=1 timeout -s TERM -k 10 300 bun --cpu-prof --cpu-prof-md --cpu-prof-dir=prof --cpu-prof-interval=4000 research/track-wall/s17-trace.ts s17/family.json star 2 0 60000 > trace.out 2> trace.err; echo EXIT $?; echo EVENTS $(grep -c '^S17 ' trace.out); grep 'S17_END' trace.out | cut -c1-600; grep 'counts: try' trace.err | cut -c1-300; echo HEAD; grep '^S17 ' trace.out | head -12 | cut -c1-700; echo TAIL; grep '^S17 ' trace.out | tail -25 | cut -c1-700; echo PHASES; grep '^S17 ' trace.out | grep -o '\"phase\":\"[^\"]*\"' | sort | uniq -c | sort -rn | head -20; echo ERRORS; grep '^S17 ' trace.out | grep -o '\"error\":\"[^\"]*\"' | sort | uniq -c | sort -rn | head -12 | cut -c1-400; echo PROFILE; f=$(ls prof/*.md 2>/dev/null | head -1); [ -n \"$f\" ] && head -c 5000 \"$f\")"
+ },
+ {
+  "name": "s17-mine-star-op3-p0",
+  "vm_type": "large",
+  "cpu": 2,
+  "memory": 14336,
+  "timeout": 600,
+  "cmd": "set -o pipefail; bun install --frozen-lockfile >/dev/null && grep -m1 'model name' /proc/cpuinfo && mkdir -p s17 && cp s17data/family.json s17/family.json && (cd . && mkdir -p prof && GDP_COUNTS_TRACE=3 GDP_COUNTS_DUMP_ALL_PASSES=1 timeout -s TERM -k 10 300 bun --cpu-prof --cpu-prof-md --cpu-prof-dir=prof --cpu-prof-interval=4000 research/track-wall/s17-trace.ts s17/family.json star 3 0 60000 > trace.out 2> trace.err; echo EXIT $?; echo EVENTS $(grep -c '^S17 ' trace.out); grep 'S17_END' trace.out | cut -c1-600; grep 'counts: try' trace.err | cut -c1-300; echo HEAD; grep '^S17 ' trace.out | head -12 | cut -c1-700; echo TAIL; grep '^S17 ' trace.out | tail -25 | cut -c1-700; echo PHASES; grep '^S17 ' trace.out | grep -o '\"phase\":\"[^\"]*\"' | sort | uniq -c | sort -rn | head -20; echo ERRORS; grep '^S17 ' trace.out | grep -o '\"error\":\"[^\"]*\"' | sort | uniq -c | sort -rn | head -12 | cut -c1-400; echo PROFILE; f=$(ls prof/*.md 2>/dev/null | head -1); [ -n \"$f\" ] && head -c 5000 \"$f\")"
+ },
+ {
+  "name": "s17-mine-star-op4-p0",
+  "vm_type": "large",
+  "cpu": 2,
+  "memory": 14336,
+  "timeout": 600,
+  "cmd": "set -o pipefail; bun install --frozen-lockfile >/dev/null && grep -m1 'model name' /proc/cpuinfo && mkdir -p s17 && cp s17data/family.json s17/family.json && (cd . && mkdir -p prof && GDP_COUNTS_TRACE=3 GDP_COUNTS_DUMP_ALL_PASSES=1 timeout -s TERM -k 10 300 bun --cpu-prof --cpu-prof-md --cpu-prof-dir=prof --cpu-prof-interval=4000 research/track-wall/s17-trace.ts s17/family.json star 4 0 60000 > trace.out 2> trace.err; echo EXIT $?; echo EVENTS $(grep -c '^S17 ' trace.out); grep 'S17_END' trace.out | cut -c1-600; grep 'counts: try' trace.err | cut -c1-300; echo HEAD; grep '^S17 ' trace.out | head -12 | cut -c1-700; echo TAIL; grep '^S17 ' trace.out | tail -25 | cut -c1-700; echo PHASES; grep '^S17 ' trace.out | grep -o '\"phase\":\"[^\"]*\"' | sort | uniq -c | sort -rn | head -20; echo ERRORS; grep '^S17 ' trace.out | grep -o '\"error\":\"[^\"]*\"' | sort | uniq -c | sort -rn | head -12 | cut -c1-400; echo PROFILE; f=$(ls prof/*.md 2>/dev/null | head -1); [ -n \"$f\" ] && head -c 5000 \"$f\")"
+ },
+ {
+  "name": "s17-mine-star-op5-p0",
+  "vm_type": "large",
+  "cpu": 2,
+  "memory": 14336,
+  "timeout": 600,
+  "cmd": "set -o pipefail; bun install --frozen-lockfile >/dev/null && grep -m1 'model name' /proc/cpuinfo && mkdir -p s17 && cp s17data/family.json s17/family.json && (cd . && mkdir -p prof && GDP_COUNTS_TRACE=3 GDP_COUNTS_DUMP_ALL_PASSES=1 timeout -s TERM -k 10 300 bun --cpu-prof --cpu-prof-md --cpu-prof-dir=prof --cpu-prof-interval=4000 research/track-wall/s17-trace.ts s17/family.json star 5 0 60000 > trace.out 2> trace.err; echo EXIT $?; echo EVENTS $(grep -c '^S17 ' trace.out); grep 'S17_END' trace.out | cut -c1-600; grep 'counts: try' trace.err | cut -c1-300; echo HEAD; grep '^S17 ' trace.out | head -12 | cut -c1-700; echo TAIL; grep '^S17 ' trace.out | tail -25 | cut -c1-700; echo PHASES; grep '^S17 ' trace.out | grep -o '\"phase\":\"[^\"]*\"' | sort | uniq -c | sort -rn | head -20; echo ERRORS; grep '^S17 ' trace.out | grep -o '\"error\":\"[^\"]*\"' | sort | uniq -c | sort -rn | head -12 | cut -c1-400; echo PROFILE; f=$(ls prof/*.md 2>/dev/null | head -1); [ -n \"$f\" ] && head -c 5000 \"$f\")"
+ },
+ {
+  "name": "s17-mine-star-op6-p0",
+  "vm_type": "large",
+  "cpu": 2,
+  "memory": 14336,
+  "timeout": 600,
+  "cmd": "set -o pipefail; bun install --frozen-lockfile >/dev/null && grep -m1 'model name' /proc/cpuinfo && mkdir -p s17 && cp s17data/family.json s17/family.json && (cd . && mkdir -p prof && GDP_COUNTS_TRACE=3 GDP_COUNTS_DUMP_ALL_PASSES=1 timeout -s TERM -k 10 300 bun --cpu-prof --cpu-prof-md --cpu-prof-dir=prof --cpu-prof-interval=4000 research/track-wall/s17-trace.ts s17/family.json star 6 0 60000 > trace.out 2> trace.err; echo EXIT $?; echo EVENTS $(grep -c '^S17 ' trace.out); grep 'S17_END' trace.out | cut -c1-600; grep 'counts: try' trace.err | cut -c1-300; echo HEAD; grep '^S17 ' trace.out | head -12 | cut -c1-700; echo TAIL; grep '^S17 ' trace.out | tail -25 | cut -c1-700; echo PHASES; grep '^S17 ' trace.out | grep -o '\"phase\":\"[^\"]*\"' | sort | uniq -c | sort -rn | head -20; echo ERRORS; grep '^S17 ' trace.out | grep -o '\"error\":\"[^\"]*\"' | sort | uniq -c | sort -rn | head -12 | cut -c1-400; echo PROFILE; f=$(ls prof/*.md 2>/dev/null | head -1); [ -n \"$f\" ] && head -c 5000 \"$f\")"
+ },
+ {
+  "name": "s17-mine-half-op0-p0",
+  "vm_type": "large",
+  "cpu": 2,
+  "memory": 14336,
+  "timeout": 600,
+  "cmd": "set -o pipefail; bun install --frozen-lockfile >/dev/null && grep -m1 'model name' /proc/cpuinfo && mkdir -p s17 && cp s17data/family.json s17/family.json && (cd . && mkdir -p prof && GDP_COUNTS_TRACE=3 GDP_COUNTS_DUMP_ALL_PASSES=1 timeout -s TERM -k 10 300 bun --cpu-prof --cpu-prof-md --cpu-prof-dir=prof --cpu-prof-interval=4000 research/track-wall/s17-trace.ts s17/family.json half 0 0 60000 > trace.out 2> trace.err; echo EXIT $?; echo EVENTS $(grep -c '^S17 ' trace.out); grep 'S17_END' trace.out | cut -c1-600; grep 'counts: try' trace.err | cut -c1-300; echo HEAD; grep '^S17 ' trace.out | head -12 | cut -c1-700; echo TAIL; grep '^S17 ' trace.out | tail -25 | cut -c1-700; echo PHASES; grep '^S17 ' trace.out | grep -o '\"phase\":\"[^\"]*\"' | sort | uniq -c | sort -rn | head -20; echo ERRORS; grep '^S17 ' trace.out | grep -o '\"error\":\"[^\"]*\"' | sort | uniq -c | sort -rn | head -12 | cut -c1-400; echo PROFILE; f=$(ls prof/*.md 2>/dev/null | head -1); [ -n \"$f\" ] && head -c 5000 \"$f\")"
+ },
+ {
+  "name": "s17-mine-half-op1-p0",
+  "vm_type": "large",
+  "cpu": 2,
+  "memory": 14336,
+  "timeout": 600,
+  "cmd": "set -o pipefail; bun install --frozen-lockfile >/dev/null && grep -m1 'model name' /proc/cpuinfo && mkdir -p s17 && cp s17data/family.json s17/family.json && (cd . && mkdir -p prof && GDP_COUNTS_TRACE=3 GDP_COUNTS_DUMP_ALL_PASSES=1 timeout -s TERM -k 10 300 bun --cpu-prof --cpu-prof-md --cpu-prof-dir=prof --cpu-prof-interval=4000 research/track-wall/s17-trace.ts s17/family.json half 1 0 60000 > trace.out 2> trace.err; echo EXIT $?; echo EVENTS $(grep -c '^S17 ' trace.out); grep 'S17_END' trace.out | cut -c1-600; grep 'counts: try' trace.err | cut -c1-300; echo HEAD; grep '^S17 ' trace.out | head -12 | cut -c1-700; echo TAIL; grep '^S17 ' trace.out | tail -25 | cut -c1-700; echo PHASES; grep '^S17 ' trace.out | grep -o '\"phase\":\"[^\"]*\"' | sort | uniq -c | sort -rn | head -20; echo ERRORS; grep '^S17 ' trace.out | grep -o '\"error\":\"[^\"]*\"' | sort | uniq -c | sort -rn | head -12 | cut -c1-400; echo PROFILE; f=$(ls prof/*.md 2>/dev/null | head -1); [ -n \"$f\" ] && head -c 5000 \"$f\")"
+ },
+ {
+  "name": "s17-mine-half-op2-p0",
+  "vm_type": "large",
+  "cpu": 2,
+  "memory": 14336,
+  "timeout": 600,
+  "cmd": "set -o pipefail; bun install --frozen-lockfile >/dev/null && grep -m1 'model name' /proc/cpuinfo && mkdir -p s17 && cp s17data/family.json s17/family.json && (cd . && mkdir -p prof && GDP_COUNTS_TRACE=3 GDP_COUNTS_DUMP_ALL_PASSES=1 timeout -s TERM -k 10 300 bun --cpu-prof --cpu-prof-md --cpu-prof-dir=prof --cpu-prof-interval=4000 research/track-wall/s17-trace.ts s17/family.json half 2 0 60000 > trace.out 2> trace.err; echo EXIT $?; echo EVENTS $(grep -c '^S17 ' trace.out); grep 'S17_END' trace.out | cut -c1-600; grep 'counts: try' trace.err | cut -c1-300; echo HEAD; grep '^S17 ' trace.out | head -12 | cut -c1-700; echo TAIL; grep '^S17 ' trace.out | tail -25 | cut -c1-700; echo PHASES; grep '^S17 ' trace.out | grep -o '\"phase\":\"[^\"]*\"' | sort | uniq -c | sort -rn | head -20; echo ERRORS; grep '^S17 ' trace.out | grep -o '\"error\":\"[^\"]*\"' | sort | uniq -c | sort -rn | head -12 | cut -c1-400; echo PROFILE; f=$(ls prof/*.md 2>/dev/null | head -1); [ -n \"$f\" ] && head -c 5000 \"$f\")"
+ },
+ {
+  "name": "s17-mine-half-op3-p0",
+  "vm_type": "large",
+  "cpu": 2,
+  "memory": 14336,
+  "timeout": 600,
+  "cmd": "set -o pipefail; bun install --frozen-lockfile >/dev/null && grep -m1 'model name' /proc/cpuinfo && mkdir -p s17 && cp s17data/family.json s17/family.json && (cd . && mkdir -p prof && GDP_COUNTS_TRACE=3 GDP_COUNTS_DUMP_ALL_PASSES=1 timeout -s TERM -k 10 300 bun --cpu-prof --cpu-prof-md --cpu-prof-dir=prof --cpu-prof-interval=4000 research/track-wall/s17-trace.ts s17/family.json half 3 0 60000 > trace.out 2> trace.err; echo EXIT $?; echo EVENTS $(grep -c '^S17 ' trace.out); grep 'S17_END' trace.out | cut -c1-600; grep 'counts: try' trace.err | cut -c1-300; echo HEAD; grep '^S17 ' trace.out | head -12 | cut -c1-700; echo TAIL; grep '^S17 ' trace.out | tail -25 | cut -c1-700; echo PHASES; grep '^S17 ' trace.out | grep -o '\"phase\":\"[^\"]*\"' | sort | uniq -c | sort -rn | head -20; echo ERRORS; grep '^S17 ' trace.out | grep -o '\"error\":\"[^\"]*\"' | sort | uniq -c | sort -rn | head -12 | cut -c1-400; echo PROFILE; f=$(ls prof/*.md 2>/dev/null | head -1); [ -n \"$f\" ] && head -c 5000 \"$f\")"
+ },
+ {
+  "name": "s17-mine-half-op4-p0",
+  "vm_type": "large",
+  "cpu": 2,
+  "memory": 14336,
+  "timeout": 600,
+  "cmd": "set -o pipefail; bun install --frozen-lockfile >/dev/null && grep -m1 'model name' /proc/cpuinfo && mkdir -p s17 && cp s17data/family.json s17/family.json && (cd . && mkdir -p prof && GDP_COUNTS_TRACE=3 GDP_COUNTS_DUMP_ALL_PASSES=1 timeout -s TERM -k 10 300 bun --cpu-prof --cpu-prof-md --cpu-prof-dir=prof --cpu-prof-interval=4000 research/track-wall/s17-trace.ts s17/family.json half 4 0 60000 > trace.out 2> trace.err; echo EXIT $?; echo EVENTS $(grep -c '^S17 ' trace.out); grep 'S17_END' trace.out | cut -c1-600; grep 'counts: try' trace.err | cut -c1-300; echo HEAD; grep '^S17 ' trace.out | head -12 | cut -c1-700; echo TAIL; grep '^S17 ' trace.out | tail -25 | cut -c1-700; echo PHASES; grep '^S17 ' trace.out | grep -o '\"phase\":\"[^\"]*\"' | sort | uniq -c | sort -rn | head -20; echo ERRORS; grep '^S17 ' trace.out | grep -o '\"error\":\"[^\"]*\"' | sort | uniq -c | sort -rn | head -12 | cut -c1-400; echo PROFILE; f=$(ls prof/*.md 2>/dev/null | head -1); [ -n \"$f\" ] && head -c 5000 \"$f\")"
+ },
+ {
+  "name": "s17-mine-half-op5-p0",
+  "vm_type": "large",
+  "cpu": 2,
+  "memory": 14336,
+  "timeout": 600,
+  "cmd": "set -o pipefail; bun install --frozen-lockfile >/dev/null && grep -m1 'model name' /proc/cpuinfo && mkdir -p s17 && cp s17data/family.json s17/family.json && (cd . && mkdir -p prof && GDP_COUNTS_TRACE=3 GDP_COUNTS_DUMP_ALL_PASSES=1 timeout -s TERM -k 10 300 bun --cpu-prof --cpu-prof-md --cpu-prof-dir=prof --cpu-prof-interval=4000 research/track-wall/s17-trace.ts s17/family.json half 5 0 60000 > trace.out 2> trace.err; echo EXIT $?; echo EVENTS $(grep -c '^S17 ' trace.out); grep 'S17_END' trace.out | cut -c1-600; grep 'counts: try' trace.err | cut -c1-300; echo HEAD; grep '^S17 ' trace.out | head -12 | cut -c1-700; echo TAIL; grep '^S17 ' trace.out | tail -25 | cut -c1-700; echo PHASES; grep '^S17 ' trace.out | grep -o '\"phase\":\"[^\"]*\"' | sort | uniq -c | sort -rn | head -20; echo ERRORS; grep '^S17 ' trace.out | grep -o '\"error\":\"[^\"]*\"' | sort | uniq -c | sort -rn | head -12 | cut -c1-400; echo PROFILE; f=$(ls prof/*.md 2>/dev/null | head -1); [ -n \"$f\" ] && head -c 5000 \"$f\")"
+ },
+ {
+  "name": "s17-mine-half-op6-p0",
+  "vm_type": "large",
+  "cpu": 2,
+  "memory": 14336,
+  "timeout": 600,
+  "cmd": "set -o pipefail; bun install --frozen-lockfile >/dev/null && grep -m1 'model name' /proc/cpuinfo && mkdir -p s17 && cp s17data/family.json s17/family.json && (cd . && mkdir -p prof && GDP_COUNTS_TRACE=3 GDP_COUNTS_DUMP_ALL_PASSES=1 timeout -s TERM -k 10 300 bun --cpu-prof --cpu-prof-md --cpu-prof-dir=prof --cpu-prof-interval=4000 research/track-wall/s17-trace.ts s17/family.json half 6 0 60000 > trace.out 2> trace.err; echo EXIT $?; echo EVENTS $(grep -c '^S17 ' trace.out); grep 'S17_END' trace.out | cut -c1-600; grep 'counts: try' trace.err | cut -c1-300; echo HEAD; grep '^S17 ' trace.out | head -12 | cut -c1-700; echo TAIL; grep '^S17 ' trace.out | tail -25 | cut -c1-700; echo PHASES; grep '^S17 ' trace.out | grep -o '\"phase\":\"[^\"]*\"' | sort | uniq -c | sort -rn | head -20; echo ERRORS; grep '^S17 ' trace.out | grep -o '\"error\":\"[^\"]*\"' | sort | uniq -c | sort -rn | head -12 | cut -c1-400; echo PROFILE; f=$(ls prof/*.md 2>/dev/null | head -1); [ -n \"$f\" ] && head -c 5000 \"$f\")"
+ }
+]

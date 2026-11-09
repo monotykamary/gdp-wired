@@ -1,0 +1,10 @@
+[
+ {
+  "name": "drift-trace",
+  "vm_type": "large",
+  "cpu": 2,
+  "memory": 8192,
+  "timeout": 900,
+  "cmd": "set -o pipefail; grep -m1 'model name' /proc/cpuinfo; bun install --frozen-lockfile >/dev/null && for r in 1 2; do echo RUN $r; GDP_COUNTS_TRACE=3 /usr/bin/time -f 'PROCESS_SECONDS %e EXIT %x' timeout -s KILL 60 bun research/protocols/ic3syn/run.ts --ms 60000 --only mldr --skip broken > out.json 2> err.log; echo VERDICT $(cut -c1-300 out.json); grep PROCESS_SECONDS err.log; grep 'counts: try' err.log | cut -c1-330; done"
+ }
+]

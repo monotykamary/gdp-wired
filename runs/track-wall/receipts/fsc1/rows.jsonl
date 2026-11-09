@@ -1,0 +1,29 @@
+{"id":"consensus","fast":true,"history":false,"counts":0,"everyWrites":[],"why":""}
+{"id":"tcommit","fast":true,"history":false,"counts":0,"everyWrites":[],"why":""}
+{"id":"lock_server","fast":true,"history":false,"counts":0,"everyWrites":[],"why":""}
+{"id":"quorum_leader_election","fast":true,"history":false,"counts":2,"everyWrites":[],"why":"quorum leader election's assumption reads the map members, which it doesn't declare"}
+{"id":"toy_consensus_forall","fast":true,"history":false,"counts":2,"everyWrites":[],"why":"toy consensus forall's assumption reads the map members, which it doesn't declare"}
+{"id":"simple","fast":true,"history":false,"counts":0,"everyWrites":[],"why":""}
+{"id":"simple_regular","fast":true,"history":false,"counts":0,"everyWrites":[],"why":""}
+{"id":"lockserv_automaton","fast":true,"history":false,"counts":0,"everyWrites":[],"why":""}
+{"id":"sharded_kv","fast":true,"history":false,"counts":0,"everyWrites":["TransferMsg"],"why":""}
+{"id":"sharded_kv_no_lost_keys","fast":true,"history":false,"counts":0,"everyWrites":["TransferMsg"],"why":""}
+{"id":"lockserv","fast":true,"history":false,"counts":0,"everyWrites":[],"why":""}
+{"id":"twophase","fast":true,"history":false,"counts":0,"everyWrites":[],"why":""}
+{"id":"simple_decentralized_lock","fast":true,"history":false,"counts":0,"everyWrites":["HasLock"],"why":""}
+{"id":"two_phase_commit","fast":true,"history":false,"counts":0,"everyWrites":["GoCommit","GoAbort"],"why":""}
+{"id":"consensus_wo_decide","fast":true,"history":false,"counts":3,"everyWrites":["VotingQuorum"],"why":"consensus wo decide's assumption reads the map members, which it doesn't declare"}
+{"id":"consensus_forall","fast":true,"history":false,"counts":3,"everyWrites":["VotingQuorum"],"why":"consensus forall's assumption reads the map members, which it doesn't declare"}
+{"id":"naive_consensus","fast":true,"history":false,"counts":2,"everyWrites":[],"why":"naive consensus's assumption reads the map members, which it doesn't declare"}
+{"id":"client_server_ae","fast":true,"history":false,"counts":0,"everyWrites":[],"why":""}
+{"id":"client_server_db_ae","fast":false,"history":false,"counts":0,"everyWrites":[],"why":"compileJs takes no tuple key at every key (interpret runs it)"}
+{"id":"simple_election","fast":true,"history":false,"counts":2,"everyWrites":[],"why":"simple election's assumption reads the map members, which it doesn't declare"}
+{"id":"toy_consensus_epr","fast":true,"history":false,"counts":2,"everyWrites":[],"why":"toy consensus epr's assumption reads the map members, which it doesn't declare"}
+{"id":"toy_consensus","fast":true,"history":false,"counts":2,"everyWrites":[],"why":"toy consensus's assumption reads the map members, which it doesn't declare"}
+{"id":"firewall","fast":true,"history":false,"counts":0,"everyWrites":[],"why":""}
+{"id":"majorityset_leader_election","fast":true,"history":false,"counts":1,"everyWrites":[],"why":"majorityset leader election's assumption reads the map voters, which it doesn't declare"}
+{"id":"consensus_epr","fast":true,"history":false,"counts":2,"everyWrites":[],"why":"consensus epr's assumption reads the map members, which it doesn't declare"}
+{"id":"learning_switch","fast":false,"history":false,"counts":0,"everyWrites":["T","P"],"why":"compileJs takes no tuple key at every key (interpret runs it)"}
+{"id":"learning_switch_i4","fast":false,"history":false,"counts":0,"everyWrites":["Link","LinkSet","T","Pend"],"why":"compileJs takes no tuple key at every key (interpret runs it)"}
+{"id":"paxos_epr","fast":true,"history":false,"counts":5,"everyWrites":["Qs","Left"],"why":"paxos epr's flag decides reads the map missing, which it doesn't declare"}
+{"id":"mldr","fast":true,"history":false,"counts":22,"everyWrites":["CT","CV","CfgT","Config","St"],"why":"mongo logless dynamic raft's flag reconfigs reads the map xAndS, which it doesn't declare"}

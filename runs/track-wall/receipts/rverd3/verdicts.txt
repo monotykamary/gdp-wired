@@ -1,0 +1,58 @@
+== verdict-client_server_ae.log
+PAIR mine "verdict":"proven" PAIR base "verdict":"proven" 
+== verdict-client_server_db_ae.log
+PAIR base "verdict":"proven" PAIR mine "verdict":"proven" 
+== verdict-consensus_epr.log
+PAIR base "verdict":"proven" PAIR mine "verdict":"proven" 
+== verdict-consensus_forall.log
+PAIR mine "verdict":"proven" PAIR base "verdict":"proven" 
+== verdict-consensus_wo_decide.log
+PAIR base "verdict":"proven" PAIR mine "verdict":"proven" 
+== verdict-consensus.log
+PAIR base "verdict":"proven" PAIR mine "verdict":"proven" 
+== verdict-firewall.log
+PAIR base "verdict":"proven" PAIR mine "verdict":"proven" 
+== verdict-learning_switch_i4.log
+PAIR base "verdict":"proven" PAIR mine "verdict":"proven" 
+== verdict-learning_switch.log
+PAIR mine "verdict":"proven" PAIR base "verdict":"proven" 
+== verdict-lock_server.log
+PAIR base "verdict":"proven" PAIR mine "verdict":"proven" 
+== verdict-lockserv_automaton.log
+PAIR mine "verdict":"proven" PAIR base "verdict":"proven" 
+== verdict-lockserv.log
+PAIR base "verdict":"proven" PAIR mine "verdict":"proven" 
+== verdict-majorityset_leader_election.log
+PAIR mine "verdict":"proven" PAIR base "verdict":"proven" 
+== verdict-mldr.log
+PAIR base "verdict":"unknown" PAIR mine "verdict":"unknown" 
+== verdict-naive_consensus.log
+PAIR base "verdict":"proven" PAIR mine "verdict":"proven" 
+== verdict-paxos_epr.log
+PAIR mine "verdict":"proven" PAIR base "verdict":"proven" 
+== verdict-quorum_leader_election.log
+PAIR mine "verdict":"proven" PAIR base "verdict":"proven" 
+== verdict-sharded_kv_no_lost_keys.log
+PAIR mine "verdict":"proven" PAIR base "verdict":"proven" 
+== verdict-sharded_kv.log
+PAIR base "verdict":"proven" PAIR mine "verdict":"proven" 
+== verdict-simple_decentralized_lock.log
+PAIR base "verdict":"proven" PAIR mine "verdict":"proven" 
+== verdict-simple_election.log
+PAIR mine "verdict":"proven" PAIR base "verdict":"proven" 
+== verdict-simple_regular.log
+PAIR base "verdict":"proven" PAIR mine "verdict":"proven" 
+== verdict-simple.log
+PAIR mine "verdict":"proven" PAIR base "verdict":"proven" 
+== verdict-tcommit.log
+PAIR mine "verdict":"proven" PAIR base "verdict":"proven" 
+== verdict-toy_consensus_epr.log
+PAIR base "verdict":"proven" PAIR mine "verdict":"proven" 
+== verdict-toy_consensus_forall.log
+PAIR base "verdict":"proven" PAIR mine "verdict":"proven" 
+== verdict-toy_consensus.log
+PAIR mine "verdict":"proven" PAIR base "verdict":"proven" 
+== verdict-two_phase_commit.log
+PAIR mine "verdict":"proven" PAIR base "verdict":"proven" 
+== verdict-twophase.log
+PAIR mine "verdict":"proven" PAIR base "verdict":"proven" 

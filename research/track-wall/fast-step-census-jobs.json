@@ -1,0 +1,9 @@
+[
+ {
+  "name": "fast-step-census",
+  "cpu": 2,
+  "memory": 8192,
+  "timeout": 600,
+  "cmd": "set -o pipefail; bun install --frozen-lockfile >/dev/null && bun research/track-wall/fast-step-census.ts 2>&1 | grep -v '^\\s*$' | cut -c1-400"
+ }
+]
