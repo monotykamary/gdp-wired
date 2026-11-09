@@ -38,11 +38,22 @@ false merely because its slot still contains an old value.
   sequential operations may starve later operations under the wall. The
   six actual probes, not the small fixture, decide the five-of-seven bar.
 
-Pending on boat (one small overlay, no new archive):
+The first validation batch `20261110-013903-jm3fgc` returned 41 pass /
+1 fail: the new fixture inherited count binder `a` while declaring state
+`a`, so the source interpreter rejected its scope before the new search
+ran. Typecheck/lint were not reached. The fixture now uses binder `row`;
+only this test file changed. Corrected validation task
+`90db37a7-3f2d-4239-8f19-f5f52b23614b` uses a separate one-file overlay
+(test SHA-256 `270c15ac8a857813e72fda8a27600974c9b493048e70012a79d54fa775be7e9d`).
+The compiler/driver and the already-submitted probes are untouched; no
+probes were repeated. Failure log retained as
+`runs/t16-operation-check/operation-first-check.log.gz`.
+
+Work on boat (small overlays, no new archive):
 
 | Work | Task | Output |
 | --- | --- | --- |
-| Tests/type/lint | `7a1c890e-4b68-40c3-abb5-131a1cabb8d7` | `runs/t16-operation-check/` |
+| Corrected tests/type/lint | `90db37a7-3f2d-4239-8f19-f5f52b23614b` | `runs/t16-operation-fixture-check/` |
 | Six probes | `9f01547d-1cc2-40a0-9111-689886bb9c86` | `runs/t16-operation-probe/` |
 
 Overlay `runs/t16-operation-overlay/` uses canonical source archive
