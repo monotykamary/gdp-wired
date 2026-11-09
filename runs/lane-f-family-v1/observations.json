@@ -1,0 +1,634 @@
+{
+  "iterationOnly": true,
+  "familySha256": "5c9aa44bca08790afdf331b290f101b6ca5d177133e662f5f6f1e80aa6cebc6f",
+  "observations": [
+    {
+      "name": "overlap-current",
+      "placement": {
+        "vm": "bx_7vpz29xf",
+        "type": "large",
+        "cpu": "AMD EPYC 4585PX 16-Core Processor",
+        "vcpus": 4,
+        "vm_vcpus": 8,
+        "exclusive": true,
+        "co_tenants": 0
+      },
+      "rows": [
+        {
+          "side": "before",
+          "law": "inX: stored guard reconfigs/inS or disabled/0",
+          "checked": false,
+          "units": 3042.9053719999997,
+          "wallMs": 7118.857885,
+          "withinDiagnosticLine": false,
+          "results": [
+            {
+              "pass": 0,
+              "outcome": "sat",
+              "units": 141.58539000000002,
+              "wallMs": 333.603598
+            },
+            {
+              "pass": 1,
+              "outcome": "unknown",
+              "units": 2901.3199819999995,
+              "wallMs": 6778.9473689999995
+            }
+          ],
+          "familySize": 35,
+          "generatorOnly": true,
+          "suppliedLaws": []
+        },
+        {
+          "side": "after",
+          "law": "inX: stored guard reconfigs/inS or disabled/0",
+          "checked": false,
+          "units": 3905.415618,
+          "wallMs": 7039.0239950000005,
+          "withinDiagnosticLine": false,
+          "results": [
+            {
+              "pass": 0,
+              "outcome": "sat",
+              "units": 141.58539000000002,
+              "wallMs": 232.591398
+            },
+            {
+              "pass": 1,
+              "outcome": "unknown",
+              "units": 3763.830228,
+              "wallMs": 6802.675234
+            }
+          ],
+          "familySize": 35,
+          "generatorOnly": true,
+          "suppliedLaws": []
+        }
+      ]
+    },
+    {
+      "name": "overlap-class",
+      "placement": {
+        "vm": "bx_2hzfj2ah",
+        "type": "large",
+        "cpu": "AMD EPYC 4585PX 16-Core Processor",
+        "vcpus": 4,
+        "vm_vcpus": 8,
+        "exclusive": true,
+        "co_tenants": 0
+      },
+      "rows": [
+        {
+          "side": "before",
+          "law": "inX: stored guard reconfigs/inS or disabled/0",
+          "checked": false,
+          "units": 6002.344303999999,
+          "wallMs": 5316.970534,
+          "withinDiagnosticLine": false,
+          "results": [
+            {
+              "pass": 0,
+              "outcome": "sat",
+              "units": 141.58539000000002,
+              "wallMs": 150.184286
+            },
+            {
+              "pass": 1,
+              "outcome": "unknown",
+              "units": 5860.758914,
+              "wallMs": 5162.192979
+            }
+          ],
+          "familySize": 35,
+          "generatorOnly": true,
+          "suppliedLaws": []
+        },
+        {
+          "side": "after",
+          "law": "inX: stored guard reconfigs/inS or disabled/0",
+          "checked": false,
+          "units": 6002.344303999999,
+          "wallMs": 4553.639034,
+          "withinDiagnosticLine": false,
+          "results": [
+            {
+              "pass": 0,
+              "outcome": "sat",
+              "units": 141.58539000000002,
+              "wallMs": 149.757727
+            },
+            {
+              "pass": 1,
+              "outcome": "unknown",
+              "units": 5860.758914,
+              "wallMs": 4401.042677
+            }
+          ],
+          "familySize": 35,
+          "generatorOnly": true,
+          "suppliedLaws": []
+        }
+      ]
+    },
+    {
+      "name": "rows-current",
+      "placement": {
+        "vm": "bx_bqtyjgvd",
+        "type": "large",
+        "cpu": "AMD Ryzen 9 9950X 16-Core Processor",
+        "vcpus": 4,
+        "vm_vcpus": 8,
+        "exclusive": true,
+        "co_tenants": 0
+      },
+      "rows": [
+        {
+          "side": "after",
+          "law": "fields: CV[a]=CV[b] and CfgT[a]=CfgT[b] -> Config rows agree",
+          "checked": false,
+          "units": 3555.8490284000004,
+          "wallMs": 7003.909946000001,
+          "withinDiagnosticLine": false,
+          "results": [
+            {
+              "pass": 0,
+              "outcome": "unknown",
+              "units": 3555.8490284000004,
+              "wallMs": 6998.948024
+            },
+            {
+              "pass": 1,
+              "outcome": "unknown",
+              "units": 0,
+              "wallMs": 0.3096029999996972
+            }
+          ],
+          "familySize": 35,
+          "generatorOnly": true,
+          "suppliedLaws": []
+        },
+        {
+          "side": "before",
+          "law": "fields: CV[a]=CV[b] and CfgT[a]=CfgT[b] -> Config rows agree",
+          "checked": false,
+          "units": 3777.4300236000004,
+          "wallMs": 7001.979228,
+          "withinDiagnosticLine": false,
+          "results": [
+            {
+              "pass": 0,
+              "outcome": "unknown",
+              "units": 3777.4300236000004,
+              "wallMs": 6998.753259
+            },
+            {
+              "pass": 1,
+              "outcome": "unknown",
+              "units": 0,
+              "wallMs": 0.23263799999949697
+            }
+          ],
+          "familySize": 35,
+          "generatorOnly": true,
+          "suppliedLaws": []
+        }
+      ]
+    },
+    {
+      "name": "rows-class",
+      "placement": {
+        "vm": "bx_cagf46bu",
+        "type": "large",
+        "cpu": "AMD Ryzen 9 9950X 16-Core Processor",
+        "vcpus": 4,
+        "vm_vcpus": 8,
+        "exclusive": true,
+        "co_tenants": 0
+      },
+      "rows": [
+        {
+          "side": "after",
+          "law": "fields: CV[a]=CV[b] and CfgT[a]=CfgT[b] -> Config rows agree",
+          "checked": false,
+          "units": 3940.0607448,
+          "wallMs": 7034.001285,
+          "withinDiagnosticLine": false,
+          "results": [
+            {
+              "pass": 0,
+              "outcome": "unknown",
+              "units": 3940.0607448,
+              "wallMs": 7029.596305
+            },
+            {
+              "pass": 1,
+              "outcome": "unknown",
+              "units": 0,
+              "wallMs": 0.23526200000014796
+            }
+          ],
+          "familySize": 35,
+          "generatorOnly": true,
+          "suppliedLaws": []
+        },
+        {
+          "side": "before",
+          "law": "fields: CV[a]=CV[b] and CfgT[a]=CfgT[b] -> Config rows agree",
+          "checked": false,
+          "units": 5366.4211092,
+          "wallMs": 7001.6976509999995,
+          "withinDiagnosticLine": false,
+          "results": [
+            {
+              "pass": 0,
+              "outcome": "unknown",
+              "units": 5366.4211092,
+              "wallMs": 6998.161546
+            },
+            {
+              "pass": 1,
+              "outcome": "unknown",
+              "units": 0,
+              "wallMs": 0.1507449999999153
+            }
+          ],
+          "familySize": 35,
+          "generatorOnly": true,
+          "suppliedLaws": []
+        }
+      ]
+    },
+    {
+      "name": "star-current",
+      "placement": {
+        "vm": "bx_dcvyxe5r",
+        "type": "large",
+        "cpu": "AMD EPYC 4585PX 16-Core Processor",
+        "vcpus": 4,
+        "vm_vcpus": 8,
+        "exclusive": true,
+        "co_tenants": 0
+      },
+      "rows": [
+        {
+          "side": "before",
+          "law": "inX: no quorum canVote/3",
+          "checked": false,
+          "units": 2314.416576,
+          "wallMs": 7005.856572,
+          "withinDiagnosticLine": false,
+          "results": [
+            {
+              "pass": 0,
+              "outcome": "sat",
+              "units": 97.810094,
+              "wallMs": 208.33095200000002
+            },
+            {
+              "pass": 1,
+              "outcome": "unknown",
+              "units": 2216.6064819999997,
+              "wallMs": 6795.14331
+            }
+          ],
+          "familySize": 35,
+          "generatorOnly": true,
+          "suppliedLaws": []
+        },
+        {
+          "side": "after",
+          "law": "inX: no quorum canVote/3",
+          "checked": false,
+          "units": 2918.7363,
+          "wallMs": 7125.455430999999,
+          "withinDiagnosticLine": false,
+          "results": [
+            {
+              "pass": 0,
+              "outcome": "sat",
+              "units": 97.810094,
+              "wallMs": 239.742508
+            },
+            {
+              "pass": 1,
+              "outcome": "unknown",
+              "units": 2820.9262059999996,
+              "wallMs": 6882.408184
+            }
+          ],
+          "familySize": 35,
+          "generatorOnly": true,
+          "suppliedLaws": []
+        }
+      ]
+    },
+    {
+      "name": "star-class",
+      "placement": {
+        "vm": "bx_de53z2q5",
+        "type": "large",
+        "cpu": "AMD Ryzen 9 9950X 16-Core Processor",
+        "vcpus": 4,
+        "vm_vcpus": 8,
+        "exclusive": true,
+        "co_tenants": 0
+      },
+      "rows": [
+        {
+          "side": "before",
+          "law": "inX: no quorum canVote/3",
+          "checked": false,
+          "units": 2308.351624,
+          "wallMs": 7005.331993,
+          "withinDiagnosticLine": false,
+          "results": [
+            {
+              "pass": 0,
+              "outcome": "sat",
+              "units": 97.810094,
+              "wallMs": 299.363666
+            },
+            {
+              "pass": 1,
+              "outcome": "unknown",
+              "units": 2210.54153,
+              "wallMs": 6700.655406
+            }
+          ],
+          "familySize": 35,
+          "generatorOnly": true,
+          "suppliedLaws": []
+        },
+        {
+          "side": "after",
+          "law": "inX: no quorum canVote/3",
+          "checked": false,
+          "units": 2295.568042,
+          "wallMs": 7025.708884,
+          "withinDiagnosticLine": false,
+          "results": [
+            {
+              "pass": 0,
+              "outcome": "sat",
+              "units": 97.810094,
+              "wallMs": 201.204319
+            },
+            {
+              "pass": 1,
+              "outcome": "unknown",
+              "units": 2197.757948,
+              "wallMs": 6821.087382000001
+            }
+          ],
+          "familySize": 35,
+          "generatorOnly": true,
+          "suppliedLaws": []
+        }
+      ]
+    },
+    {
+      "name": "safety-current",
+      "placement": {
+        "vm": "bx_dqvsbkv6",
+        "type": "large",
+        "cpu": "AMD Ryzen 9 9950X 16-Core Processor",
+        "vcpus": 4,
+        "vm_vcpus": 8,
+        "exclusive": true,
+        "co_tenants": 0
+      },
+      "rows": [
+        {
+          "side": "after",
+          "law": "one primary per term",
+          "checked": true,
+          "units": 4488.588814,
+          "wallMs": 4753.181726000001,
+          "withinDiagnosticLine": true,
+          "results": [
+            {
+              "pass": 0,
+              "outcome": "proof",
+              "units": 4488.588814,
+              "wallMs": 4281.884873
+            }
+          ],
+          "familySize": 35,
+          "generatorOnly": true,
+          "suppliedLaws": []
+        },
+        {
+          "side": "before",
+          "law": "one primary per term",
+          "checked": true,
+          "units": 4384.2812264,
+          "wallMs": 5324.222566,
+          "withinDiagnosticLine": true,
+          "results": [
+            {
+              "pass": 0,
+              "outcome": "proof",
+              "units": 4384.2812264,
+              "wallMs": 4376.900505
+            }
+          ],
+          "familySize": 35,
+          "generatorOnly": true,
+          "suppliedLaws": []
+        }
+      ]
+    },
+    {
+      "name": "safety-class",
+      "placement": {
+        "vm": "bx_eevtp6uv",
+        "type": "large",
+        "cpu": "AMD EPYC 4585PX 16-Core Processor",
+        "vcpus": 4,
+        "vm_vcpus": 8,
+        "exclusive": true,
+        "co_tenants": 0
+      },
+      "rows": [
+        {
+          "side": "after",
+          "law": "one primary per term",
+          "checked": false,
+          "units": 6000.5000887999995,
+          "wallMs": 6307.121746,
+          "withinDiagnosticLine": false,
+          "results": [
+            {
+              "pass": 0,
+              "outcome": "sat",
+              "units": 5205.4083908,
+              "wallMs": 4706.1591579999995
+            },
+            {
+              "pass": 1,
+              "outcome": "unknown",
+              "units": 795.0916979999989,
+              "wallMs": 1598.0315009999995
+            }
+          ],
+          "familySize": 35,
+          "generatorOnly": true,
+          "suppliedLaws": []
+        },
+        {
+          "side": "before",
+          "law": "one primary per term",
+          "checked": false,
+          "units": 6000.1840156,
+          "wallMs": 4376.584136,
+          "withinDiagnosticLine": false,
+          "results": [
+            {
+              "pass": 0,
+              "outcome": "sat",
+              "units": 5025.9545935999995,
+              "wallMs": 3559.116104
+            },
+            {
+              "pass": 1,
+              "outcome": "unknown",
+              "units": 974.2294220000002,
+              "wallMs": 815.8732520000003
+            }
+          ],
+          "familySize": 35,
+          "generatorOnly": true,
+          "suppliedLaws": []
+        }
+      ]
+    },
+    {
+      "name": "p1-current",
+      "placement": {
+        "vm": "bx_efx32zbt",
+        "type": "large",
+        "cpu": "AMD Ryzen 9 9950X 16-Core Processor",
+        "vcpus": 4,
+        "vm_vcpus": 8,
+        "exclusive": true,
+        "co_tenants": 0
+      },
+      "rows": [
+        {
+          "side": "before",
+          "law": "count cubes: every x with x < {\"op\":\"var\",\"name\":\"size\"}: never CV[x] is 0 and 1 <= inX$row[x]",
+          "checked": true,
+          "units": 2292.235458,
+          "wallMs": 2198.2897270000003,
+          "withinDiagnosticLine": true,
+          "results": [
+            {
+              "pass": 0,
+              "outcome": "sat",
+              "units": 116.723172,
+              "wallMs": 174.12064500000002
+            },
+            {
+              "pass": 1,
+              "outcome": "proof",
+              "units": 2175.512286,
+              "wallMs": 1855.774408
+            }
+          ],
+          "familySize": 35,
+          "generatorOnly": true,
+          "suppliedLaws": []
+        },
+        {
+          "side": "after",
+          "law": "count cubes: every x with x < {\"op\":\"var\",\"name\":\"size\"}: never CV[x] is 0 and 1 <= inX$row[x]",
+          "checked": true,
+          "units": 2292.235458,
+          "wallMs": 2135.799422,
+          "withinDiagnosticLine": true,
+          "results": [
+            {
+              "pass": 0,
+              "outcome": "sat",
+              "units": 116.723172,
+              "wallMs": 184.38730800000002
+            },
+            {
+              "pass": 1,
+              "outcome": "proof",
+              "units": 2175.512286,
+              "wallMs": 1782.1535939999999
+            }
+          ],
+          "familySize": 35,
+          "generatorOnly": true,
+          "suppliedLaws": []
+        }
+      ]
+    },
+    {
+      "name": "p1-class",
+      "placement": {
+        "vm": "bx_5f56ms2a",
+        "type": "large",
+        "cpu": "AMD EPYC 4585PX 16-Core Processor",
+        "vcpus": 4,
+        "vm_vcpus": 8,
+        "exclusive": true,
+        "co_tenants": 0
+      },
+      "rows": [
+        {
+          "side": "before",
+          "law": "count cubes: every x with x < {\"op\":\"var\",\"name\":\"size\"}: never CV[x] is 0 and 1 <= inX$row[x]",
+          "checked": true,
+          "units": 2292.235458,
+          "wallMs": 2334.152226,
+          "withinDiagnosticLine": true,
+          "results": [
+            {
+              "pass": 0,
+              "outcome": "sat",
+              "units": 116.723172,
+              "wallMs": 155.980043
+            },
+            {
+              "pass": 1,
+              "outcome": "proof",
+              "units": 2175.512286,
+              "wallMs": 2011.396609
+            }
+          ],
+          "familySize": 35,
+          "generatorOnly": true,
+          "suppliedLaws": []
+        },
+        {
+          "side": "after",
+          "law": "count cubes: every x with x < {\"op\":\"var\",\"name\":\"size\"}: never CV[x] is 0 and 1 <= inX$row[x]",
+          "checked": true,
+          "units": 2292.235458,
+          "wallMs": 2105.681782,
+          "withinDiagnosticLine": true,
+          "results": [
+            {
+              "pass": 0,
+              "outcome": "sat",
+              "units": 116.723172,
+              "wallMs": 185.063425
+            },
+            {
+              "pass": 1,
+              "outcome": "proof",
+              "units": 2175.512286,
+              "wallMs": 1756.525415
+            }
+          ],
+          "familySize": 35,
+          "generatorOnly": true,
+          "suppliedLaws": []
+        }
+      ]
+    }
+  ]
+}
