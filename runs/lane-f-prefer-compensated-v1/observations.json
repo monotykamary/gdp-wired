@@ -1,0 +1,204 @@
+[
+  {
+    "name": "closure-AB",
+    "side": "before",
+    "result": {
+      "conditional": true,
+      "directClosure": true,
+      "wholeHelper": false,
+      "law": "inX: stored guard reconfigs/inS or disabled/0",
+      "op": 0,
+      "packetSha256": "f85affd2f84babfeaef29618e14e68d14bf2c24b9e20369d2c8332a170ff3b9e",
+      "searchUnits": 1407.6949172000002,
+      "searchWallMs": 4675.047202,
+      "units": 1407.6949172000002,
+      "wallMs": 4689.545025,
+      "checked": false,
+      "reads": 60,
+      "instances": 294,
+      "pairs": [
+        [
+          {
+            "op": "var",
+            "name": "a$quorum#"
+          },
+          {
+            "op": "var",
+            "name": "i"
+          }
+        ],
+        [
+          {
+            "op": "var",
+            "name": "b$quorum"
+          },
+          {
+            "op": "var",
+            "name": "i"
+          }
+        ]
+      ],
+      "writes": true,
+      "rowQueries": 4,
+      "rowSplits": 2,
+      "rowMirrors": 0
+    }
+  },
+  {
+    "name": "closure-AB",
+    "side": "after",
+    "result": {
+      "conditional": true,
+      "directClosure": true,
+      "wholeHelper": false,
+      "law": "inX: stored guard reconfigs/inS or disabled/0",
+      "op": 0,
+      "packetSha256": "f85affd2f84babfeaef29618e14e68d14bf2c24b9e20369d2c8332a170ff3b9e",
+      "searchUnits": 1407.7753392000002,
+      "searchWallMs": 4123.102195,
+      "units": 1407.7753392000002,
+      "wallMs": 4135.138802,
+      "checked": false,
+      "reads": 60,
+      "instances": 294,
+      "pairs": [
+        [
+          {
+            "op": "var",
+            "name": "a$quorum#"
+          },
+          {
+            "op": "var",
+            "name": "i"
+          }
+        ],
+        [
+          {
+            "op": "var",
+            "name": "b$quorum"
+          },
+          {
+            "op": "var",
+            "name": "i"
+          }
+        ]
+      ],
+      "writes": true,
+      "rowQueries": 4,
+      "rowSplits": 2,
+      "rowMirrors": 0
+    }
+  },
+  {
+    "name": "closure-AB",
+    "archive": {
+      "artifact": "track-m-tar-v1",
+      "dir": "/home/user/track-m-s18-receipts-GUfI5X",
+      "format": "tar.gz",
+      "parts": 2,
+      "bytes": 205082,
+      "sha256": "2b8ccad651673837344276bcd03f8b7f733220490acbbf639e1fddc5a8e26b33"
+    }
+  },
+  {
+    "name": "closure-BA",
+    "side": "after",
+    "result": {
+      "conditional": true,
+      "directClosure": true,
+      "wholeHelper": false,
+      "law": "inX: stored guard reconfigs/inS or disabled/0",
+      "op": 0,
+      "packetSha256": "f85affd2f84babfeaef29618e14e68d14bf2c24b9e20369d2c8332a170ff3b9e",
+      "searchUnits": 1407.7753392000002,
+      "searchWallMs": 6158.757165,
+      "units": 1407.7753392000002,
+      "wallMs": 6173.987566,
+      "checked": false,
+      "reads": 60,
+      "instances": 294,
+      "pairs": [
+        [
+          {
+            "op": "var",
+            "name": "a$quorum#"
+          },
+          {
+            "op": "var",
+            "name": "i"
+          }
+        ],
+        [
+          {
+            "op": "var",
+            "name": "b$quorum"
+          },
+          {
+            "op": "var",
+            "name": "i"
+          }
+        ]
+      ],
+      "writes": true,
+      "rowQueries": 4,
+      "rowSplits": 2,
+      "rowMirrors": 0
+    }
+  },
+  {
+    "name": "closure-BA",
+    "side": "before",
+    "result": {
+      "conditional": true,
+      "directClosure": true,
+      "wholeHelper": false,
+      "law": "inX: stored guard reconfigs/inS or disabled/0",
+      "op": 0,
+      "packetSha256": "f85affd2f84babfeaef29618e14e68d14bf2c24b9e20369d2c8332a170ff3b9e",
+      "searchUnits": 1407.6949172000002,
+      "searchWallMs": 6391.5110589999995,
+      "units": 1407.6949172000002,
+      "wallMs": 6418.948591,
+      "checked": false,
+      "reads": 60,
+      "instances": 294,
+      "pairs": [
+        [
+          {
+            "op": "var",
+            "name": "a$quorum#"
+          },
+          {
+            "op": "var",
+            "name": "i"
+          }
+        ],
+        [
+          {
+            "op": "var",
+            "name": "b$quorum"
+          },
+          {
+            "op": "var",
+            "name": "i"
+          }
+        ]
+      ],
+      "writes": true,
+      "rowQueries": 4,
+      "rowSplits": 2,
+      "rowMirrors": 0
+    }
+  },
+  {
+    "name": "closure-BA",
+    "archive": {
+      "artifact": "track-m-tar-v1",
+      "dir": "/home/user/track-m-s18-receipts-YKnXJG",
+      "format": "tar.gz",
+      "parts": 2,
+      "bytes": 205092,
+      "sha256": "27f420c049a9ae73ebff407f33178696fb12740dffabb0cc69805e9494503ca3"
+    }
+  }
+]
