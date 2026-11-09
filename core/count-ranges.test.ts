@@ -1,7 +1,8 @@
 import {expect, test} from 'bun:test'
 import {type Machine, get, ite, n, same, x} from './machine.ts'
 import {type CountDecl, type MapRead, checkCounted, countedGoal} from '../kernel/kernel.ts'
-import {clock, grow, modelSequence} from '../kernel/prove.ts'
+import {clock, grow} from '../kernel/prove.ts'
+import {modelSequence} from '../kernel/model-sequence.ts'
 import {countsForReads} from './count-facts.ts'
 import {rangeInstances, rangeViolations, zeroOne} from './count-ranges.ts'
 
