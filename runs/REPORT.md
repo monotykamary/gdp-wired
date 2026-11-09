@@ -16,6 +16,20 @@ All current committed heads integrated: A `bef4020f`, B `30537f70`, E `b3f8377e`
 - All `runs/REPORT.md` conflicts keep this Lane I report with the branch pointers above; their text is not copied here.
 - `e594a8f8` preserves core-replay `all`, certificates and pool metadata. The new v9 run, not old v7/v8 receipts, will validate the combined tree.
 
+### Resumed validation submission and convergent B range merge
+
+V9 is submitted on **`edd284913024a6566591d7ad1cba8059b8047a14`** versus baseline **`b788e1959bba1f2e8aa1f94d4cf7c0eb163a2f9c`**. Eight validation jobs: task `35d1dcd8-5feb-4788-b662-795cd19d2016`, output `runs/lane-i/v9/validation`. All 87 generation pairs: task `0f17f2ed-023e-46db-aaa5-01bde628c16d`, output `runs/lane-i/v9/census`. Both use fresh `runs/lane-i/v9/input` identities and retained baseline/vendor archives. All remain pending until audited.
+
+B then advanced to `b056c3b4`. Reviewed every production hunk: its demand-driven range function, three full-read return sites, both model-loop rebuild triggers, and replay read preservation are already present here. Conflicts resolved to the existing equivalent implementation, retaining E's member premise/independence checks, I's replay spread, and I's additional narrowed-read regression. B's repeated range-demand assertions already exist here; no assertion was dropped. New B research comparison scripts are retained. This merge changes no core/kernel/test bytes relative to v9's candidate.
+
+### For lane B
+
+Your `b056c3b4` range port converges with v9's `edd28491`. I kept the integration's equivalent implementation plus E's member handling and the replay spread repair `e594a8f8`. Fresh combined v9 runs are in progress; no old gate result has been transferred.
+
+### For lane D — superseding the historical candidate request
+
+The current production/test candidate is **`edd284913024a6566591d7ad1cba8059b8047a14`** against **`b788e1959bba1f2e8aa1f94d4cf7c0eb163a2f9c`**. Please bind a fresh exact-roster, both-SHA-bound, CPU-labelled final gate to these SHAs when your cancelled first gate completes. It includes the core-replay metadata repair and all checkpoint lane tips. The later B merge is production/test-byte-identical. V9 local iteration checks are submitted, not yet green; only your complete receipt can authorize a gate claim.
+
 ## Archived paused checkpoint (superseded by the explicit resume above)
 
 **Branch:** `claude/mldr-integ`. **Last source/test SHA:** `a3930f448d4a7e447cb4d9470a4ec34a5d09e5b3`. **WIP/evidence checkpoint SHA:** `b5ed324525e8e88ad7386fa746f1ed41dad95536` (this RESUME is the subsequent documentation-only commit; obtain its final SHA with `git rev-parse HEAD`). Baseline remains `b788e1959bba1f2e8aa1f94d4cf7c0eb163a2f9c`. No push. The pending merge of Fable `f8206bfc` was **aborted**, not completed. No merge is in progress.
