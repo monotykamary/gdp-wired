@@ -4,6 +4,7 @@
   "ownedHelpers":["p1","Inv*"],
   "reassignedHelpers":{"Inv1758":"lane E","Inv2973-half":"lane F"},
   "gateGreen":false,
+  "gateBase":"4497c4b05c3111959a2b8d808c426a0e3cab3f01",
   "completedMeasurementsRepeated":false,
   "memoryPolicy":"at most one subagent; this lane owns none",
   "diskPolicy":"one source archive per SHA; small receipts; no deletions",
@@ -30,6 +31,6 @@
     {"sourceAtLaunch":"f4150f9c","task":"9281d660-645e-49c2-873f-3d63fdf25bae","batch":"20261110-031310-p9grdd","tree":"1a3ebd8f65ea","state":"complete-input-mount-failure","typecheckLintPassed":true,"checkExit":1,"jobs":1,"output":"runs/track-m/lane-b-frame-evidence-check-v1","note":"typecheck/lint passed; ignored input directory prevented reproduction; repaired in the data-only replay"},
     {"sourceAtLaunch":"12d62b2b","task":"b88dd91f-8f10-4052-9e69-fe78c1ac165b","batch":"20261110-031540-2w9vcf","tree":"c30e02fec0a7","state":"complete","jobs":1,"checkExit":0,"exactEvidenceMatch":true,"output":"runs/track-m/lane-b-frame-evidence-replay-v2","note":"deterministic reproduction and commitlint only; no proof search"},
     {"sourceAtLaunch":"5587aa5f","task":"26042d71-b3c6-4002-9af0-66ef59a4a77f","batch":"20261110-031743-flmbc8","tree":"9fd7a37aaf83","state":"complete","checkExit":0,"frameGeneratedIndex":62,"frameSelected":false,"generationExhausted":true,"jobs":1,"output":"runs/track-m/lane-b-frame-pool-v1","note":"captured generator equality check and fresh bounded full-pool reconstruction; this does not establish the original runtime pool contents; no proof search"},
-    {"sourceAtLaunch":"2930e960","task":"a624bf59-fdb4-447f-ab2a-0b56e98fbc57","state":"registration-pending","jobs":1,"output":"runs/track-m/lane-b-frame-completions-v1","note":"candidate-local completion filter audit against an exactly re-encoded captured model; no proof search"}
+    {"sourceAtLaunch":"2930e960","task":"a624bf59-fdb4-447f-ab2a-0b56e98fbc57","batch":"20261110-032434-odw486","tree":"1fa25823e415","state":"complete","checkExit":0,"baseModelValid":true,"defaultCompletionTrials":320,"strictCompletionTrials":16,"frameRemainsBroken":true,"supported":false,"pass":1,"jobs":1,"output":"runs/track-m/lane-b-frame-completions-v1","note":"candidate-local completion filter audit against an exactly re-encoded captured model; no proof search"}
   ]
 }
