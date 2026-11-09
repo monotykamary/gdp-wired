@@ -42,5 +42,6 @@
     {"sourceAtLaunch":"6daee22a","task":"77321568-f65d-454d-b59a-334cec40e651","batch":"20261110-033743-dmg0kz","tree":"f9a9f9cda18b","state":"complete","jobs":9,"failedJobs":0,"p1Checked":8,"p1NativeUnits":1258.1522216,"p1FlagsUnits":1152.3382236,"starUnknown":8,"output":"runs/track-m/lane-b-completion-scope-preserve-v1","note":"tooling check plus 8 original-family pair jobs; native and flags-first compositions for p1 and Inv*"}
     ,{"sourceAtLaunch":"b9621ef9","task":"795ddd4c-bfb1-47fe-92e1-4d03ddab1323","state":"registration-pending","jobs":2,"output":"runs/track-m/lane-b-completion-scope-census-retry-v1","note":"only the two incomplete learning-switch models; exclusive placement; original 120-second outer deadline"},
     {"task":"efa71a05-c1da-4975-b253-fa1321f9d6bf","state":"complete","archivesVerified":10,"compressedBytes":9335670,"expandedRawProofs":false,"note":"two failed census metadata archives and all eight preservation proof archives"}
+    ,{"sourceAtLaunch":"2446e659","task":"46b116fb-2a58-44c1-a08a-44afb32f58df","state":"registration-pending","jobs":1,"output":"runs/track-m/lane-b-completion-audit-check-v1","note":"strict receipt-auditor typecheck, four negative/positive tests, and commitlint"}
   ]
 }
