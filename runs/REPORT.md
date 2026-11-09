@@ -16,7 +16,42 @@ Batch `20261110-000752-9cbvob`, snapshot tree `99439867caf3`, task
 below refer to its new payloads, never to the cancelled batch. All twelve
 checkpoint/shortcut logs were independently replayed. Production tiny
 screening stays disabled: only three of the named seven were caught.
-The current experiment is bounded native grouping, measured below as it returns.
+Bounded grouping reached four named drops, not five. The current experiment
+is an opt-in operation/request-first traversal; its validation is pending.
+
+## Current pilot: opt-in operation-first traversal (WIP; not yet validated)
+
+After the certified four-of-seven result below, the generic next experiment
+closes relevant requests per operation before assigning states. Its
+partial enablement predicate now sees the full request/state assignment
+order; the separate shared pre-family predicate is checked only after the
+request prefix is complete. An unknown state atom stays unknown, never
+false merely because its slot still contains an old value.
+
+- `operationFirst` is opt-in; the default state-first path is unchanged.
+- The research driver sets it only with `T16_OPERATION_FIRST=1` and records
+  the mode in its result; the scope also records the mode.
+- Added exhaustive concrete-proposal-set equality and accepted-target tests.
+- Independent CTI admission, domains, native-body cap, 1900-ms outer pilot
+  wall and production-disabled status are unchanged.
+- Equal complete finite proposal sets would not guarantee equal prefixes:
+  sequential operations may starve later operations under the wall. The
+  six actual probes, not the small fixture, decide the five-of-seven bar.
+
+Pending on boat (one small overlay, no new archive):
+
+| Work | Task | Output |
+| --- | --- | --- |
+| Tests/type/lint | `7a1c890e-4b68-40c3-abb5-131a1cabb8d7` | `runs/t16-operation-check/` |
+| Six probes | `9f01547d-1cc2-40a0-9111-689886bb9c86` | `runs/t16-operation-probe/` |
+
+Overlay `runs/t16-operation-overlay/` uses canonical source archive
+`6288b666`, compiler SHA-256
+`779cd5b0953697a33f1a3b6e016bd34958e55e0606a9b8bea9636fc4ad165da4`,
+test `d8b4af69d189ced49b54ea595da6c241f5236874a574c35dd75693168bcd4d2f`,
+and driver `e59a1a84281ff57a31d71062483a14b6edc7d56068ed2bbc0c902fbf25739fe1`.
+These WIP files are **not** covered by the earlier 40-test receipt. No new
+performance, proof or gate success is claimed; no subagents are running.
 
 ## Resumed hybrid probes: independently replayed, criterion fails
 
