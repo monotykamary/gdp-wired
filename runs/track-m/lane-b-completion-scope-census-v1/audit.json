@@ -1,0 +1,642 @@
+{
+  "mode": "census",
+  "expectedJobs": 29,
+  "acceptedJobs": 27,
+  "skippedJobs": 0,
+  "pairs": 81,
+  "provenPairs": 0,
+  "verdictLosses": 0,
+  "issues": [
+    {
+      "job": "gen-learning_switch",
+      "error": "AssertionError [ERR_ASSERTION]: worker failed\n\n1 !== 0\n"
+    },
+    {
+      "job": "gen-learning_switch_i4",
+      "error": "AssertionError [ERR_ASSERTION]: worker failed\n\n1 !== 0\n"
+    }
+  ],
+  "accepted": [
+    {
+      "job": "gen-consensus",
+      "skipped": false,
+      "cpu": "AMD EPYC 4585PX 16-Core Processor",
+      "model": "consensus",
+      "pairs": 3,
+      "provenPairs": 0,
+      "verdictLosses": 0,
+      "source": {
+        "before": "32db658d1bf9c6641c3e3d6473fd90e81a474b21bbe4f77ea0a577c77f5aec8c",
+        "after": "054b7c7a135e975f0bb1297fda15bbe63bfb75764e06ea518dfd7d7793cb9b8a"
+      },
+      "commonHashes": {
+        "core/machine.ts": "603148bbbf539d654667ba6b749147a79206e8cf41fad200a31dca6617ee6ee7",
+        "core/dsl.ts": "e086d09d529364b0b33e9c05aad91cb4b8c1100068eaff765a430ae8f07a4197",
+        "core/solver.ts": "d3fa9d9ec582b5899542ff32214ce20d9ffc8c8838d8b216063a86b8530e32fb",
+        "kernel/kernel.ts": "7ec8b310d23fab7eb3ba452b659e7051ceefe97aea01ffa6f16d990a7bea7f33",
+        "kernel/prove.ts": "b7e2b08edeba02e3714964741463b7e7748634d5800502ca8f3b9fe6e6f2d2b3",
+        "research/protocols/ic3syn/run.ts": "a9fa1e966acf503db0804419f8af7b82cfec671f8fba528716ec5440ea70dd66",
+        "research/protocols/ic3syn/models.ts": "7264a41611c0bab74b8b3549ac86663f4cb4d8ef8cac00528df0c2c7bcfbae93"
+      },
+      "measurements": []
+    },
+    {
+      "job": "gen-tcommit",
+      "skipped": false,
+      "cpu": "AMD EPYC 4585PX 16-Core Processor",
+      "model": "tcommit",
+      "pairs": 3,
+      "provenPairs": 0,
+      "verdictLosses": 0,
+      "source": {
+        "before": "32db658d1bf9c6641c3e3d6473fd90e81a474b21bbe4f77ea0a577c77f5aec8c",
+        "after": "054b7c7a135e975f0bb1297fda15bbe63bfb75764e06ea518dfd7d7793cb9b8a"
+      },
+      "commonHashes": {
+        "core/machine.ts": "603148bbbf539d654667ba6b749147a79206e8cf41fad200a31dca6617ee6ee7",
+        "core/dsl.ts": "e086d09d529364b0b33e9c05aad91cb4b8c1100068eaff765a430ae8f07a4197",
+        "core/solver.ts": "d3fa9d9ec582b5899542ff32214ce20d9ffc8c8838d8b216063a86b8530e32fb",
+        "kernel/kernel.ts": "7ec8b310d23fab7eb3ba452b659e7051ceefe97aea01ffa6f16d990a7bea7f33",
+        "kernel/prove.ts": "b7e2b08edeba02e3714964741463b7e7748634d5800502ca8f3b9fe6e6f2d2b3",
+        "research/protocols/ic3syn/run.ts": "a9fa1e966acf503db0804419f8af7b82cfec671f8fba528716ec5440ea70dd66",
+        "research/protocols/ic3syn/models.ts": "7264a41611c0bab74b8b3549ac86663f4cb4d8ef8cac00528df0c2c7bcfbae93"
+      },
+      "measurements": []
+    },
+    {
+      "job": "gen-lock_server",
+      "skipped": false,
+      "cpu": "AMD Ryzen 7 9700X 8-Core Processor",
+      "model": "lock_server",
+      "pairs": 3,
+      "provenPairs": 0,
+      "verdictLosses": 0,
+      "source": {
+        "before": "32db658d1bf9c6641c3e3d6473fd90e81a474b21bbe4f77ea0a577c77f5aec8c",
+        "after": "054b7c7a135e975f0bb1297fda15bbe63bfb75764e06ea518dfd7d7793cb9b8a"
+      },
+      "commonHashes": {
+        "core/machine.ts": "603148bbbf539d654667ba6b749147a79206e8cf41fad200a31dca6617ee6ee7",
+        "core/dsl.ts": "e086d09d529364b0b33e9c05aad91cb4b8c1100068eaff765a430ae8f07a4197",
+        "core/solver.ts": "d3fa9d9ec582b5899542ff32214ce20d9ffc8c8838d8b216063a86b8530e32fb",
+        "kernel/kernel.ts": "7ec8b310d23fab7eb3ba452b659e7051ceefe97aea01ffa6f16d990a7bea7f33",
+        "kernel/prove.ts": "b7e2b08edeba02e3714964741463b7e7748634d5800502ca8f3b9fe6e6f2d2b3",
+        "research/protocols/ic3syn/run.ts": "a9fa1e966acf503db0804419f8af7b82cfec671f8fba528716ec5440ea70dd66",
+        "research/protocols/ic3syn/models.ts": "7264a41611c0bab74b8b3549ac86663f4cb4d8ef8cac00528df0c2c7bcfbae93"
+      },
+      "measurements": []
+    },
+    {
+      "job": "gen-quorum_leader_election",
+      "skipped": false,
+      "cpu": "AMD EPYC 4585PX 16-Core Processor",
+      "model": "quorum_leader_election",
+      "pairs": 3,
+      "provenPairs": 0,
+      "verdictLosses": 0,
+      "source": {
+        "before": "32db658d1bf9c6641c3e3d6473fd90e81a474b21bbe4f77ea0a577c77f5aec8c",
+        "after": "054b7c7a135e975f0bb1297fda15bbe63bfb75764e06ea518dfd7d7793cb9b8a"
+      },
+      "commonHashes": {
+        "core/machine.ts": "603148bbbf539d654667ba6b749147a79206e8cf41fad200a31dca6617ee6ee7",
+        "core/dsl.ts": "e086d09d529364b0b33e9c05aad91cb4b8c1100068eaff765a430ae8f07a4197",
+        "core/solver.ts": "d3fa9d9ec582b5899542ff32214ce20d9ffc8c8838d8b216063a86b8530e32fb",
+        "kernel/kernel.ts": "7ec8b310d23fab7eb3ba452b659e7051ceefe97aea01ffa6f16d990a7bea7f33",
+        "kernel/prove.ts": "b7e2b08edeba02e3714964741463b7e7748634d5800502ca8f3b9fe6e6f2d2b3",
+        "research/protocols/ic3syn/run.ts": "a9fa1e966acf503db0804419f8af7b82cfec671f8fba528716ec5440ea70dd66",
+        "research/protocols/ic3syn/models.ts": "7264a41611c0bab74b8b3549ac86663f4cb4d8ef8cac00528df0c2c7bcfbae93"
+      },
+      "measurements": []
+    },
+    {
+      "job": "gen-toy_consensus_forall",
+      "skipped": false,
+      "cpu": "AMD Ryzen 9 9950X 16-Core Processor",
+      "model": "toy_consensus_forall",
+      "pairs": 3,
+      "provenPairs": 0,
+      "verdictLosses": 0,
+      "source": {
+        "before": "32db658d1bf9c6641c3e3d6473fd90e81a474b21bbe4f77ea0a577c77f5aec8c",
+        "after": "054b7c7a135e975f0bb1297fda15bbe63bfb75764e06ea518dfd7d7793cb9b8a"
+      },
+      "commonHashes": {
+        "core/machine.ts": "603148bbbf539d654667ba6b749147a79206e8cf41fad200a31dca6617ee6ee7",
+        "core/dsl.ts": "e086d09d529364b0b33e9c05aad91cb4b8c1100068eaff765a430ae8f07a4197",
+        "core/solver.ts": "d3fa9d9ec582b5899542ff32214ce20d9ffc8c8838d8b216063a86b8530e32fb",
+        "kernel/kernel.ts": "7ec8b310d23fab7eb3ba452b659e7051ceefe97aea01ffa6f16d990a7bea7f33",
+        "kernel/prove.ts": "b7e2b08edeba02e3714964741463b7e7748634d5800502ca8f3b9fe6e6f2d2b3",
+        "research/protocols/ic3syn/run.ts": "a9fa1e966acf503db0804419f8af7b82cfec671f8fba528716ec5440ea70dd66",
+        "research/protocols/ic3syn/models.ts": "7264a41611c0bab74b8b3549ac86663f4cb4d8ef8cac00528df0c2c7bcfbae93"
+      },
+      "measurements": []
+    },
+    {
+      "job": "gen-simple",
+      "skipped": false,
+      "cpu": "AMD Ryzen 7 9700X 8-Core Processor",
+      "model": "simple",
+      "pairs": 3,
+      "provenPairs": 0,
+      "verdictLosses": 0,
+      "source": {
+        "before": "32db658d1bf9c6641c3e3d6473fd90e81a474b21bbe4f77ea0a577c77f5aec8c",
+        "after": "054b7c7a135e975f0bb1297fda15bbe63bfb75764e06ea518dfd7d7793cb9b8a"
+      },
+      "commonHashes": {
+        "core/machine.ts": "603148bbbf539d654667ba6b749147a79206e8cf41fad200a31dca6617ee6ee7",
+        "core/dsl.ts": "e086d09d529364b0b33e9c05aad91cb4b8c1100068eaff765a430ae8f07a4197",
+        "core/solver.ts": "d3fa9d9ec582b5899542ff32214ce20d9ffc8c8838d8b216063a86b8530e32fb",
+        "kernel/kernel.ts": "7ec8b310d23fab7eb3ba452b659e7051ceefe97aea01ffa6f16d990a7bea7f33",
+        "kernel/prove.ts": "b7e2b08edeba02e3714964741463b7e7748634d5800502ca8f3b9fe6e6f2d2b3",
+        "research/protocols/ic3syn/run.ts": "a9fa1e966acf503db0804419f8af7b82cfec671f8fba528716ec5440ea70dd66",
+        "research/protocols/ic3syn/models.ts": "7264a41611c0bab74b8b3549ac86663f4cb4d8ef8cac00528df0c2c7bcfbae93"
+      },
+      "measurements": []
+    },
+    {
+      "job": "gen-simple_regular",
+      "skipped": false,
+      "cpu": "AMD EPYC 4585PX 16-Core Processor",
+      "model": "simple_regular",
+      "pairs": 3,
+      "provenPairs": 0,
+      "verdictLosses": 0,
+      "source": {
+        "before": "32db658d1bf9c6641c3e3d6473fd90e81a474b21bbe4f77ea0a577c77f5aec8c",
+        "after": "054b7c7a135e975f0bb1297fda15bbe63bfb75764e06ea518dfd7d7793cb9b8a"
+      },
+      "commonHashes": {
+        "core/machine.ts": "603148bbbf539d654667ba6b749147a79206e8cf41fad200a31dca6617ee6ee7",
+        "core/dsl.ts": "e086d09d529364b0b33e9c05aad91cb4b8c1100068eaff765a430ae8f07a4197",
+        "core/solver.ts": "d3fa9d9ec582b5899542ff32214ce20d9ffc8c8838d8b216063a86b8530e32fb",
+        "kernel/kernel.ts": "7ec8b310d23fab7eb3ba452b659e7051ceefe97aea01ffa6f16d990a7bea7f33",
+        "kernel/prove.ts": "b7e2b08edeba02e3714964741463b7e7748634d5800502ca8f3b9fe6e6f2d2b3",
+        "research/protocols/ic3syn/run.ts": "a9fa1e966acf503db0804419f8af7b82cfec671f8fba528716ec5440ea70dd66",
+        "research/protocols/ic3syn/models.ts": "7264a41611c0bab74b8b3549ac86663f4cb4d8ef8cac00528df0c2c7bcfbae93"
+      },
+      "measurements": []
+    },
+    {
+      "job": "gen-lockserv_automaton",
+      "skipped": false,
+      "cpu": "AMD EPYC 4585PX 16-Core Processor",
+      "model": "lockserv_automaton",
+      "pairs": 3,
+      "provenPairs": 0,
+      "verdictLosses": 0,
+      "source": {
+        "before": "32db658d1bf9c6641c3e3d6473fd90e81a474b21bbe4f77ea0a577c77f5aec8c",
+        "after": "054b7c7a135e975f0bb1297fda15bbe63bfb75764e06ea518dfd7d7793cb9b8a"
+      },
+      "commonHashes": {
+        "core/machine.ts": "603148bbbf539d654667ba6b749147a79206e8cf41fad200a31dca6617ee6ee7",
+        "core/dsl.ts": "e086d09d529364b0b33e9c05aad91cb4b8c1100068eaff765a430ae8f07a4197",
+        "core/solver.ts": "d3fa9d9ec582b5899542ff32214ce20d9ffc8c8838d8b216063a86b8530e32fb",
+        "kernel/kernel.ts": "7ec8b310d23fab7eb3ba452b659e7051ceefe97aea01ffa6f16d990a7bea7f33",
+        "kernel/prove.ts": "b7e2b08edeba02e3714964741463b7e7748634d5800502ca8f3b9fe6e6f2d2b3",
+        "research/protocols/ic3syn/run.ts": "a9fa1e966acf503db0804419f8af7b82cfec671f8fba528716ec5440ea70dd66",
+        "research/protocols/ic3syn/models.ts": "7264a41611c0bab74b8b3549ac86663f4cb4d8ef8cac00528df0c2c7bcfbae93"
+      },
+      "measurements": []
+    },
+    {
+      "job": "gen-sharded_kv",
+      "skipped": false,
+      "cpu": "AMD EPYC 4585PX 16-Core Processor",
+      "model": "sharded_kv",
+      "pairs": 3,
+      "provenPairs": 0,
+      "verdictLosses": 0,
+      "source": {
+        "before": "32db658d1bf9c6641c3e3d6473fd90e81a474b21bbe4f77ea0a577c77f5aec8c",
+        "after": "054b7c7a135e975f0bb1297fda15bbe63bfb75764e06ea518dfd7d7793cb9b8a"
+      },
+      "commonHashes": {
+        "core/machine.ts": "603148bbbf539d654667ba6b749147a79206e8cf41fad200a31dca6617ee6ee7",
+        "core/dsl.ts": "e086d09d529364b0b33e9c05aad91cb4b8c1100068eaff765a430ae8f07a4197",
+        "core/solver.ts": "d3fa9d9ec582b5899542ff32214ce20d9ffc8c8838d8b216063a86b8530e32fb",
+        "kernel/kernel.ts": "7ec8b310d23fab7eb3ba452b659e7051ceefe97aea01ffa6f16d990a7bea7f33",
+        "kernel/prove.ts": "b7e2b08edeba02e3714964741463b7e7748634d5800502ca8f3b9fe6e6f2d2b3",
+        "research/protocols/ic3syn/run.ts": "a9fa1e966acf503db0804419f8af7b82cfec671f8fba528716ec5440ea70dd66",
+        "research/protocols/ic3syn/models.ts": "7264a41611c0bab74b8b3549ac86663f4cb4d8ef8cac00528df0c2c7bcfbae93"
+      },
+      "measurements": []
+    },
+    {
+      "job": "gen-sharded_kv_no_lost_keys",
+      "skipped": false,
+      "cpu": "AMD EPYC 4585PX 16-Core Processor",
+      "model": "sharded_kv_no_lost_keys",
+      "pairs": 3,
+      "provenPairs": 0,
+      "verdictLosses": 0,
+      "source": {
+        "before": "32db658d1bf9c6641c3e3d6473fd90e81a474b21bbe4f77ea0a577c77f5aec8c",
+        "after": "054b7c7a135e975f0bb1297fda15bbe63bfb75764e06ea518dfd7d7793cb9b8a"
+      },
+      "commonHashes": {
+        "core/machine.ts": "603148bbbf539d654667ba6b749147a79206e8cf41fad200a31dca6617ee6ee7",
+        "core/dsl.ts": "e086d09d529364b0b33e9c05aad91cb4b8c1100068eaff765a430ae8f07a4197",
+        "core/solver.ts": "d3fa9d9ec582b5899542ff32214ce20d9ffc8c8838d8b216063a86b8530e32fb",
+        "kernel/kernel.ts": "7ec8b310d23fab7eb3ba452b659e7051ceefe97aea01ffa6f16d990a7bea7f33",
+        "kernel/prove.ts": "b7e2b08edeba02e3714964741463b7e7748634d5800502ca8f3b9fe6e6f2d2b3",
+        "research/protocols/ic3syn/run.ts": "a9fa1e966acf503db0804419f8af7b82cfec671f8fba528716ec5440ea70dd66",
+        "research/protocols/ic3syn/models.ts": "7264a41611c0bab74b8b3549ac86663f4cb4d8ef8cac00528df0c2c7bcfbae93"
+      },
+      "measurements": []
+    },
+    {
+      "job": "gen-lockserv",
+      "skipped": false,
+      "cpu": "AMD Ryzen 7 9700X 8-Core Processor",
+      "model": "lockserv",
+      "pairs": 3,
+      "provenPairs": 0,
+      "verdictLosses": 0,
+      "source": {
+        "before": "32db658d1bf9c6641c3e3d6473fd90e81a474b21bbe4f77ea0a577c77f5aec8c",
+        "after": "054b7c7a135e975f0bb1297fda15bbe63bfb75764e06ea518dfd7d7793cb9b8a"
+      },
+      "commonHashes": {
+        "core/machine.ts": "603148bbbf539d654667ba6b749147a79206e8cf41fad200a31dca6617ee6ee7",
+        "core/dsl.ts": "e086d09d529364b0b33e9c05aad91cb4b8c1100068eaff765a430ae8f07a4197",
+        "core/solver.ts": "d3fa9d9ec582b5899542ff32214ce20d9ffc8c8838d8b216063a86b8530e32fb",
+        "kernel/kernel.ts": "7ec8b310d23fab7eb3ba452b659e7051ceefe97aea01ffa6f16d990a7bea7f33",
+        "kernel/prove.ts": "b7e2b08edeba02e3714964741463b7e7748634d5800502ca8f3b9fe6e6f2d2b3",
+        "research/protocols/ic3syn/run.ts": "a9fa1e966acf503db0804419f8af7b82cfec671f8fba528716ec5440ea70dd66",
+        "research/protocols/ic3syn/models.ts": "7264a41611c0bab74b8b3549ac86663f4cb4d8ef8cac00528df0c2c7bcfbae93"
+      },
+      "measurements": []
+    },
+    {
+      "job": "gen-twophase",
+      "skipped": false,
+      "cpu": "AMD EPYC 4585PX 16-Core Processor",
+      "model": "twophase",
+      "pairs": 3,
+      "provenPairs": 0,
+      "verdictLosses": 0,
+      "source": {
+        "before": "32db658d1bf9c6641c3e3d6473fd90e81a474b21bbe4f77ea0a577c77f5aec8c",
+        "after": "054b7c7a135e975f0bb1297fda15bbe63bfb75764e06ea518dfd7d7793cb9b8a"
+      },
+      "commonHashes": {
+        "core/machine.ts": "603148bbbf539d654667ba6b749147a79206e8cf41fad200a31dca6617ee6ee7",
+        "core/dsl.ts": "e086d09d529364b0b33e9c05aad91cb4b8c1100068eaff765a430ae8f07a4197",
+        "core/solver.ts": "d3fa9d9ec582b5899542ff32214ce20d9ffc8c8838d8b216063a86b8530e32fb",
+        "kernel/kernel.ts": "7ec8b310d23fab7eb3ba452b659e7051ceefe97aea01ffa6f16d990a7bea7f33",
+        "kernel/prove.ts": "b7e2b08edeba02e3714964741463b7e7748634d5800502ca8f3b9fe6e6f2d2b3",
+        "research/protocols/ic3syn/run.ts": "a9fa1e966acf503db0804419f8af7b82cfec671f8fba528716ec5440ea70dd66",
+        "research/protocols/ic3syn/models.ts": "7264a41611c0bab74b8b3549ac86663f4cb4d8ef8cac00528df0c2c7bcfbae93"
+      },
+      "measurements": []
+    },
+    {
+      "job": "gen-simple_decentralized_lock",
+      "skipped": false,
+      "cpu": "AMD EPYC 4585PX 16-Core Processor",
+      "model": "simple_decentralized_lock",
+      "pairs": 3,
+      "provenPairs": 0,
+      "verdictLosses": 0,
+      "source": {
+        "before": "32db658d1bf9c6641c3e3d6473fd90e81a474b21bbe4f77ea0a577c77f5aec8c",
+        "after": "054b7c7a135e975f0bb1297fda15bbe63bfb75764e06ea518dfd7d7793cb9b8a"
+      },
+      "commonHashes": {
+        "core/machine.ts": "603148bbbf539d654667ba6b749147a79206e8cf41fad200a31dca6617ee6ee7",
+        "core/dsl.ts": "e086d09d529364b0b33e9c05aad91cb4b8c1100068eaff765a430ae8f07a4197",
+        "core/solver.ts": "d3fa9d9ec582b5899542ff32214ce20d9ffc8c8838d8b216063a86b8530e32fb",
+        "kernel/kernel.ts": "7ec8b310d23fab7eb3ba452b659e7051ceefe97aea01ffa6f16d990a7bea7f33",
+        "kernel/prove.ts": "b7e2b08edeba02e3714964741463b7e7748634d5800502ca8f3b9fe6e6f2d2b3",
+        "research/protocols/ic3syn/run.ts": "a9fa1e966acf503db0804419f8af7b82cfec671f8fba528716ec5440ea70dd66",
+        "research/protocols/ic3syn/models.ts": "7264a41611c0bab74b8b3549ac86663f4cb4d8ef8cac00528df0c2c7bcfbae93"
+      },
+      "measurements": []
+    },
+    {
+      "job": "gen-two_phase_commit",
+      "skipped": false,
+      "cpu": "AMD Ryzen 7 9700X 8-Core Processor",
+      "model": "two_phase_commit",
+      "pairs": 3,
+      "provenPairs": 0,
+      "verdictLosses": 0,
+      "source": {
+        "before": "32db658d1bf9c6641c3e3d6473fd90e81a474b21bbe4f77ea0a577c77f5aec8c",
+        "after": "054b7c7a135e975f0bb1297fda15bbe63bfb75764e06ea518dfd7d7793cb9b8a"
+      },
+      "commonHashes": {
+        "core/machine.ts": "603148bbbf539d654667ba6b749147a79206e8cf41fad200a31dca6617ee6ee7",
+        "core/dsl.ts": "e086d09d529364b0b33e9c05aad91cb4b8c1100068eaff765a430ae8f07a4197",
+        "core/solver.ts": "d3fa9d9ec582b5899542ff32214ce20d9ffc8c8838d8b216063a86b8530e32fb",
+        "kernel/kernel.ts": "7ec8b310d23fab7eb3ba452b659e7051ceefe97aea01ffa6f16d990a7bea7f33",
+        "kernel/prove.ts": "b7e2b08edeba02e3714964741463b7e7748634d5800502ca8f3b9fe6e6f2d2b3",
+        "research/protocols/ic3syn/run.ts": "a9fa1e966acf503db0804419f8af7b82cfec671f8fba528716ec5440ea70dd66",
+        "research/protocols/ic3syn/models.ts": "7264a41611c0bab74b8b3549ac86663f4cb4d8ef8cac00528df0c2c7bcfbae93"
+      },
+      "measurements": []
+    },
+    {
+      "job": "gen-consensus_wo_decide",
+      "skipped": false,
+      "cpu": "AMD Ryzen 9 9950X 16-Core Processor",
+      "model": "consensus_wo_decide",
+      "pairs": 3,
+      "provenPairs": 0,
+      "verdictLosses": 0,
+      "source": {
+        "before": "32db658d1bf9c6641c3e3d6473fd90e81a474b21bbe4f77ea0a577c77f5aec8c",
+        "after": "054b7c7a135e975f0bb1297fda15bbe63bfb75764e06ea518dfd7d7793cb9b8a"
+      },
+      "commonHashes": {
+        "core/machine.ts": "603148bbbf539d654667ba6b749147a79206e8cf41fad200a31dca6617ee6ee7",
+        "core/dsl.ts": "e086d09d529364b0b33e9c05aad91cb4b8c1100068eaff765a430ae8f07a4197",
+        "core/solver.ts": "d3fa9d9ec582b5899542ff32214ce20d9ffc8c8838d8b216063a86b8530e32fb",
+        "kernel/kernel.ts": "7ec8b310d23fab7eb3ba452b659e7051ceefe97aea01ffa6f16d990a7bea7f33",
+        "kernel/prove.ts": "b7e2b08edeba02e3714964741463b7e7748634d5800502ca8f3b9fe6e6f2d2b3",
+        "research/protocols/ic3syn/run.ts": "a9fa1e966acf503db0804419f8af7b82cfec671f8fba528716ec5440ea70dd66",
+        "research/protocols/ic3syn/models.ts": "7264a41611c0bab74b8b3549ac86663f4cb4d8ef8cac00528df0c2c7bcfbae93"
+      },
+      "measurements": []
+    },
+    {
+      "job": "gen-consensus_forall",
+      "skipped": false,
+      "cpu": "AMD EPYC 4585PX 16-Core Processor",
+      "model": "consensus_forall",
+      "pairs": 3,
+      "provenPairs": 0,
+      "verdictLosses": 0,
+      "source": {
+        "before": "32db658d1bf9c6641c3e3d6473fd90e81a474b21bbe4f77ea0a577c77f5aec8c",
+        "after": "054b7c7a135e975f0bb1297fda15bbe63bfb75764e06ea518dfd7d7793cb9b8a"
+      },
+      "commonHashes": {
+        "core/machine.ts": "603148bbbf539d654667ba6b749147a79206e8cf41fad200a31dca6617ee6ee7",
+        "core/dsl.ts": "e086d09d529364b0b33e9c05aad91cb4b8c1100068eaff765a430ae8f07a4197",
+        "core/solver.ts": "d3fa9d9ec582b5899542ff32214ce20d9ffc8c8838d8b216063a86b8530e32fb",
+        "kernel/kernel.ts": "7ec8b310d23fab7eb3ba452b659e7051ceefe97aea01ffa6f16d990a7bea7f33",
+        "kernel/prove.ts": "b7e2b08edeba02e3714964741463b7e7748634d5800502ca8f3b9fe6e6f2d2b3",
+        "research/protocols/ic3syn/run.ts": "a9fa1e966acf503db0804419f8af7b82cfec671f8fba528716ec5440ea70dd66",
+        "research/protocols/ic3syn/models.ts": "7264a41611c0bab74b8b3549ac86663f4cb4d8ef8cac00528df0c2c7bcfbae93"
+      },
+      "measurements": []
+    },
+    {
+      "job": "gen-naive_consensus",
+      "skipped": false,
+      "cpu": "AMD EPYC 4585PX 16-Core Processor",
+      "model": "naive_consensus",
+      "pairs": 3,
+      "provenPairs": 0,
+      "verdictLosses": 0,
+      "source": {
+        "before": "32db658d1bf9c6641c3e3d6473fd90e81a474b21bbe4f77ea0a577c77f5aec8c",
+        "after": "054b7c7a135e975f0bb1297fda15bbe63bfb75764e06ea518dfd7d7793cb9b8a"
+      },
+      "commonHashes": {
+        "core/machine.ts": "603148bbbf539d654667ba6b749147a79206e8cf41fad200a31dca6617ee6ee7",
+        "core/dsl.ts": "e086d09d529364b0b33e9c05aad91cb4b8c1100068eaff765a430ae8f07a4197",
+        "core/solver.ts": "d3fa9d9ec582b5899542ff32214ce20d9ffc8c8838d8b216063a86b8530e32fb",
+        "kernel/kernel.ts": "7ec8b310d23fab7eb3ba452b659e7051ceefe97aea01ffa6f16d990a7bea7f33",
+        "kernel/prove.ts": "b7e2b08edeba02e3714964741463b7e7748634d5800502ca8f3b9fe6e6f2d2b3",
+        "research/protocols/ic3syn/run.ts": "a9fa1e966acf503db0804419f8af7b82cfec671f8fba528716ec5440ea70dd66",
+        "research/protocols/ic3syn/models.ts": "7264a41611c0bab74b8b3549ac86663f4cb4d8ef8cac00528df0c2c7bcfbae93"
+      },
+      "measurements": []
+    },
+    {
+      "job": "gen-client_server_ae",
+      "skipped": false,
+      "cpu": "AMD EPYC 4585PX 16-Core Processor",
+      "model": "client_server_ae",
+      "pairs": 3,
+      "provenPairs": 0,
+      "verdictLosses": 0,
+      "source": {
+        "before": "32db658d1bf9c6641c3e3d6473fd90e81a474b21bbe4f77ea0a577c77f5aec8c",
+        "after": "054b7c7a135e975f0bb1297fda15bbe63bfb75764e06ea518dfd7d7793cb9b8a"
+      },
+      "commonHashes": {
+        "core/machine.ts": "603148bbbf539d654667ba6b749147a79206e8cf41fad200a31dca6617ee6ee7",
+        "core/dsl.ts": "e086d09d529364b0b33e9c05aad91cb4b8c1100068eaff765a430ae8f07a4197",
+        "core/solver.ts": "d3fa9d9ec582b5899542ff32214ce20d9ffc8c8838d8b216063a86b8530e32fb",
+        "kernel/kernel.ts": "7ec8b310d23fab7eb3ba452b659e7051ceefe97aea01ffa6f16d990a7bea7f33",
+        "kernel/prove.ts": "b7e2b08edeba02e3714964741463b7e7748634d5800502ca8f3b9fe6e6f2d2b3",
+        "research/protocols/ic3syn/run.ts": "a9fa1e966acf503db0804419f8af7b82cfec671f8fba528716ec5440ea70dd66",
+        "research/protocols/ic3syn/models.ts": "7264a41611c0bab74b8b3549ac86663f4cb4d8ef8cac00528df0c2c7bcfbae93"
+      },
+      "measurements": []
+    },
+    {
+      "job": "gen-client_server_db_ae",
+      "skipped": false,
+      "cpu": "AMD Ryzen 9 9950X 16-Core Processor",
+      "model": "client_server_db_ae",
+      "pairs": 3,
+      "provenPairs": 0,
+      "verdictLosses": 0,
+      "source": {
+        "before": "32db658d1bf9c6641c3e3d6473fd90e81a474b21bbe4f77ea0a577c77f5aec8c",
+        "after": "054b7c7a135e975f0bb1297fda15bbe63bfb75764e06ea518dfd7d7793cb9b8a"
+      },
+      "commonHashes": {
+        "core/machine.ts": "603148bbbf539d654667ba6b749147a79206e8cf41fad200a31dca6617ee6ee7",
+        "core/dsl.ts": "e086d09d529364b0b33e9c05aad91cb4b8c1100068eaff765a430ae8f07a4197",
+        "core/solver.ts": "d3fa9d9ec582b5899542ff32214ce20d9ffc8c8838d8b216063a86b8530e32fb",
+        "kernel/kernel.ts": "7ec8b310d23fab7eb3ba452b659e7051ceefe97aea01ffa6f16d990a7bea7f33",
+        "kernel/prove.ts": "b7e2b08edeba02e3714964741463b7e7748634d5800502ca8f3b9fe6e6f2d2b3",
+        "research/protocols/ic3syn/run.ts": "a9fa1e966acf503db0804419f8af7b82cfec671f8fba528716ec5440ea70dd66",
+        "research/protocols/ic3syn/models.ts": "7264a41611c0bab74b8b3549ac86663f4cb4d8ef8cac00528df0c2c7bcfbae93"
+      },
+      "measurements": []
+    },
+    {
+      "job": "gen-simple_election",
+      "skipped": false,
+      "cpu": "AMD EPYC 4585PX 16-Core Processor",
+      "model": "simple_election",
+      "pairs": 3,
+      "provenPairs": 0,
+      "verdictLosses": 0,
+      "source": {
+        "before": "32db658d1bf9c6641c3e3d6473fd90e81a474b21bbe4f77ea0a577c77f5aec8c",
+        "after": "054b7c7a135e975f0bb1297fda15bbe63bfb75764e06ea518dfd7d7793cb9b8a"
+      },
+      "commonHashes": {
+        "core/machine.ts": "603148bbbf539d654667ba6b749147a79206e8cf41fad200a31dca6617ee6ee7",
+        "core/dsl.ts": "e086d09d529364b0b33e9c05aad91cb4b8c1100068eaff765a430ae8f07a4197",
+        "core/solver.ts": "d3fa9d9ec582b5899542ff32214ce20d9ffc8c8838d8b216063a86b8530e32fb",
+        "kernel/kernel.ts": "7ec8b310d23fab7eb3ba452b659e7051ceefe97aea01ffa6f16d990a7bea7f33",
+        "kernel/prove.ts": "b7e2b08edeba02e3714964741463b7e7748634d5800502ca8f3b9fe6e6f2d2b3",
+        "research/protocols/ic3syn/run.ts": "a9fa1e966acf503db0804419f8af7b82cfec671f8fba528716ec5440ea70dd66",
+        "research/protocols/ic3syn/models.ts": "7264a41611c0bab74b8b3549ac86663f4cb4d8ef8cac00528df0c2c7bcfbae93"
+      },
+      "measurements": []
+    },
+    {
+      "job": "gen-toy_consensus_epr",
+      "skipped": false,
+      "cpu": "AMD EPYC 4585PX 16-Core Processor",
+      "model": "toy_consensus_epr",
+      "pairs": 3,
+      "provenPairs": 0,
+      "verdictLosses": 0,
+      "source": {
+        "before": "32db658d1bf9c6641c3e3d6473fd90e81a474b21bbe4f77ea0a577c77f5aec8c",
+        "after": "054b7c7a135e975f0bb1297fda15bbe63bfb75764e06ea518dfd7d7793cb9b8a"
+      },
+      "commonHashes": {
+        "core/machine.ts": "603148bbbf539d654667ba6b749147a79206e8cf41fad200a31dca6617ee6ee7",
+        "core/dsl.ts": "e086d09d529364b0b33e9c05aad91cb4b8c1100068eaff765a430ae8f07a4197",
+        "core/solver.ts": "d3fa9d9ec582b5899542ff32214ce20d9ffc8c8838d8b216063a86b8530e32fb",
+        "kernel/kernel.ts": "7ec8b310d23fab7eb3ba452b659e7051ceefe97aea01ffa6f16d990a7bea7f33",
+        "kernel/prove.ts": "b7e2b08edeba02e3714964741463b7e7748634d5800502ca8f3b9fe6e6f2d2b3",
+        "research/protocols/ic3syn/run.ts": "a9fa1e966acf503db0804419f8af7b82cfec671f8fba528716ec5440ea70dd66",
+        "research/protocols/ic3syn/models.ts": "7264a41611c0bab74b8b3549ac86663f4cb4d8ef8cac00528df0c2c7bcfbae93"
+      },
+      "measurements": []
+    },
+    {
+      "job": "gen-toy_consensus",
+      "skipped": false,
+      "cpu": "AMD EPYC 4585PX 16-Core Processor",
+      "model": "toy_consensus",
+      "pairs": 3,
+      "provenPairs": 0,
+      "verdictLosses": 0,
+      "source": {
+        "before": "32db658d1bf9c6641c3e3d6473fd90e81a474b21bbe4f77ea0a577c77f5aec8c",
+        "after": "054b7c7a135e975f0bb1297fda15bbe63bfb75764e06ea518dfd7d7793cb9b8a"
+      },
+      "commonHashes": {
+        "core/machine.ts": "603148bbbf539d654667ba6b749147a79206e8cf41fad200a31dca6617ee6ee7",
+        "core/dsl.ts": "e086d09d529364b0b33e9c05aad91cb4b8c1100068eaff765a430ae8f07a4197",
+        "core/solver.ts": "d3fa9d9ec582b5899542ff32214ce20d9ffc8c8838d8b216063a86b8530e32fb",
+        "kernel/kernel.ts": "7ec8b310d23fab7eb3ba452b659e7051ceefe97aea01ffa6f16d990a7bea7f33",
+        "kernel/prove.ts": "b7e2b08edeba02e3714964741463b7e7748634d5800502ca8f3b9fe6e6f2d2b3",
+        "research/protocols/ic3syn/run.ts": "a9fa1e966acf503db0804419f8af7b82cfec671f8fba528716ec5440ea70dd66",
+        "research/protocols/ic3syn/models.ts": "7264a41611c0bab74b8b3549ac86663f4cb4d8ef8cac00528df0c2c7bcfbae93"
+      },
+      "measurements": []
+    },
+    {
+      "job": "gen-firewall",
+      "skipped": false,
+      "cpu": "AMD Ryzen 9 9950X 16-Core Processor",
+      "model": "firewall",
+      "pairs": 3,
+      "provenPairs": 0,
+      "verdictLosses": 0,
+      "source": {
+        "before": "32db658d1bf9c6641c3e3d6473fd90e81a474b21bbe4f77ea0a577c77f5aec8c",
+        "after": "054b7c7a135e975f0bb1297fda15bbe63bfb75764e06ea518dfd7d7793cb9b8a"
+      },
+      "commonHashes": {
+        "core/machine.ts": "603148bbbf539d654667ba6b749147a79206e8cf41fad200a31dca6617ee6ee7",
+        "core/dsl.ts": "e086d09d529364b0b33e9c05aad91cb4b8c1100068eaff765a430ae8f07a4197",
+        "core/solver.ts": "d3fa9d9ec582b5899542ff32214ce20d9ffc8c8838d8b216063a86b8530e32fb",
+        "kernel/kernel.ts": "7ec8b310d23fab7eb3ba452b659e7051ceefe97aea01ffa6f16d990a7bea7f33",
+        "kernel/prove.ts": "b7e2b08edeba02e3714964741463b7e7748634d5800502ca8f3b9fe6e6f2d2b3",
+        "research/protocols/ic3syn/run.ts": "a9fa1e966acf503db0804419f8af7b82cfec671f8fba528716ec5440ea70dd66",
+        "research/protocols/ic3syn/models.ts": "7264a41611c0bab74b8b3549ac86663f4cb4d8ef8cac00528df0c2c7bcfbae93"
+      },
+      "measurements": []
+    },
+    {
+      "job": "gen-majorityset_leader_election",
+      "skipped": false,
+      "cpu": "AMD Ryzen 7 9700X 8-Core Processor",
+      "model": "majorityset_leader_election",
+      "pairs": 3,
+      "provenPairs": 0,
+      "verdictLosses": 0,
+      "source": {
+        "before": "32db658d1bf9c6641c3e3d6473fd90e81a474b21bbe4f77ea0a577c77f5aec8c",
+        "after": "054b7c7a135e975f0bb1297fda15bbe63bfb75764e06ea518dfd7d7793cb9b8a"
+      },
+      "commonHashes": {
+        "core/machine.ts": "603148bbbf539d654667ba6b749147a79206e8cf41fad200a31dca6617ee6ee7",
+        "core/dsl.ts": "e086d09d529364b0b33e9c05aad91cb4b8c1100068eaff765a430ae8f07a4197",
+        "core/solver.ts": "d3fa9d9ec582b5899542ff32214ce20d9ffc8c8838d8b216063a86b8530e32fb",
+        "kernel/kernel.ts": "7ec8b310d23fab7eb3ba452b659e7051ceefe97aea01ffa6f16d990a7bea7f33",
+        "kernel/prove.ts": "b7e2b08edeba02e3714964741463b7e7748634d5800502ca8f3b9fe6e6f2d2b3",
+        "research/protocols/ic3syn/run.ts": "a9fa1e966acf503db0804419f8af7b82cfec671f8fba528716ec5440ea70dd66",
+        "research/protocols/ic3syn/models.ts": "7264a41611c0bab74b8b3549ac86663f4cb4d8ef8cac00528df0c2c7bcfbae93"
+      },
+      "measurements": []
+    },
+    {
+      "job": "gen-consensus_epr",
+      "skipped": false,
+      "cpu": "AMD EPYC 4585PX 16-Core Processor",
+      "model": "consensus_epr",
+      "pairs": 3,
+      "provenPairs": 0,
+      "verdictLosses": 0,
+      "source": {
+        "before": "32db658d1bf9c6641c3e3d6473fd90e81a474b21bbe4f77ea0a577c77f5aec8c",
+        "after": "054b7c7a135e975f0bb1297fda15bbe63bfb75764e06ea518dfd7d7793cb9b8a"
+      },
+      "commonHashes": {
+        "core/machine.ts": "603148bbbf539d654667ba6b749147a79206e8cf41fad200a31dca6617ee6ee7",
+        "core/dsl.ts": "e086d09d529364b0b33e9c05aad91cb4b8c1100068eaff765a430ae8f07a4197",
+        "core/solver.ts": "d3fa9d9ec582b5899542ff32214ce20d9ffc8c8838d8b216063a86b8530e32fb",
+        "kernel/kernel.ts": "7ec8b310d23fab7eb3ba452b659e7051ceefe97aea01ffa6f16d990a7bea7f33",
+        "kernel/prove.ts": "b7e2b08edeba02e3714964741463b7e7748634d5800502ca8f3b9fe6e6f2d2b3",
+        "research/protocols/ic3syn/run.ts": "a9fa1e966acf503db0804419f8af7b82cfec671f8fba528716ec5440ea70dd66",
+        "research/protocols/ic3syn/models.ts": "7264a41611c0bab74b8b3549ac86663f4cb4d8ef8cac00528df0c2c7bcfbae93"
+      },
+      "measurements": []
+    },
+    {
+      "job": "gen-paxos_epr",
+      "skipped": false,
+      "cpu": "AMD Ryzen 7 9700X 8-Core Processor",
+      "model": "paxos_epr",
+      "pairs": 3,
+      "provenPairs": 0,
+      "verdictLosses": 0,
+      "source": {
+        "before": "32db658d1bf9c6641c3e3d6473fd90e81a474b21bbe4f77ea0a577c77f5aec8c",
+        "after": "054b7c7a135e975f0bb1297fda15bbe63bfb75764e06ea518dfd7d7793cb9b8a"
+      },
+      "commonHashes": {
+        "core/machine.ts": "603148bbbf539d654667ba6b749147a79206e8cf41fad200a31dca6617ee6ee7",
+        "core/dsl.ts": "e086d09d529364b0b33e9c05aad91cb4b8c1100068eaff765a430ae8f07a4197",
+        "core/solver.ts": "d3fa9d9ec582b5899542ff32214ce20d9ffc8c8838d8b216063a86b8530e32fb",
+        "kernel/kernel.ts": "7ec8b310d23fab7eb3ba452b659e7051ceefe97aea01ffa6f16d990a7bea7f33",
+        "kernel/prove.ts": "b7e2b08edeba02e3714964741463b7e7748634d5800502ca8f3b9fe6e6f2d2b3",
+        "research/protocols/ic3syn/run.ts": "a9fa1e966acf503db0804419f8af7b82cfec671f8fba528716ec5440ea70dd66",
+        "research/protocols/ic3syn/models.ts": "7264a41611c0bab74b8b3549ac86663f4cb4d8ef8cac00528df0c2c7bcfbae93"
+      },
+      "measurements": []
+    },
+    {
+      "job": "gen-mldr",
+      "skipped": false,
+      "cpu": "AMD Ryzen 7 9700X 8-Core Processor",
+      "model": "mldr",
+      "pairs": 3,
+      "provenPairs": 0,
+      "verdictLosses": 0,
+      "source": {
+        "before": "32db658d1bf9c6641c3e3d6473fd90e81a474b21bbe4f77ea0a577c77f5aec8c",
+        "after": "054b7c7a135e975f0bb1297fda15bbe63bfb75764e06ea518dfd7d7793cb9b8a"
+      },
+      "commonHashes": {
+        "core/machine.ts": "603148bbbf539d654667ba6b749147a79206e8cf41fad200a31dca6617ee6ee7",
+        "core/dsl.ts": "e086d09d529364b0b33e9c05aad91cb4b8c1100068eaff765a430ae8f07a4197",
+        "core/solver.ts": "d3fa9d9ec582b5899542ff32214ce20d9ffc8c8838d8b216063a86b8530e32fb",
+        "kernel/kernel.ts": "7ec8b310d23fab7eb3ba452b659e7051ceefe97aea01ffa6f16d990a7bea7f33",
+        "kernel/prove.ts": "b7e2b08edeba02e3714964741463b7e7748634d5800502ca8f3b9fe6e6f2d2b3",
+        "research/protocols/ic3syn/run.ts": "a9fa1e966acf503db0804419f8af7b82cfec671f8fba528716ec5440ea70dd66",
+        "research/protocols/ic3syn/models.ts": "7264a41611c0bab74b8b3549ac86663f4cb4d8ef8cac00528df0c2c7bcfbae93"
+      },
+      "measurements": []
+    }
+  ]
+}

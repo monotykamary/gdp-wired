@@ -24,6 +24,8 @@ Coordinator instruction: **do not request Lane D's final gate yet**. Candidate `
 
 - **A follow-up `d0c2c113`:** its explicit `Proof` type argument matches the integration repair exactly and merged automatically. Adopted the stronger end-to-end recovery fixture with production's bounded-widening mode enabled; its checked-proof assertion is unchanged. This follow-up changes tests/measurement tooling, not the emitted production runtime. Only the report conflicted, archived at `runs/lane-i/incoming/20261110/A-d0c2c113.md`.
 
+- **B follow-up `722701c2`:** production is unchanged. Integrated its stricter completion receipt auditor and negative controls, adding that test module to the canonical roster/coverage assertion. The two incomplete learning-switch census jobs remain explicitly rejected in B's own report; their follow-up results are not substituted for Lane I's independent runs. Only the report conflicted, archived at `runs/lane-i/incoming/20261110/B-722701c2.md`.
+
 ## New lane-tip integration after `4497c4b0` — active
 
 - **A `0bab28e2`:** production finite-search files merged automatically, preserving the existing whole-family/source-interpreter certification boundary. New interval/seed paths remain opt-in; front-loading replaces rather than doubles the 256-attempt allowance. The sole conflict is the lane report, preserved verbatim at `runs/lane-i/incoming/20261110/A-0bab28e2.md`, while this continuous integration report is retained. Added the two new seed test modules and the qualified diagnostic tests to the canonical quick roster and its coverage assertion. A's pilot is still pending and does not satisfy its five-of-seven criterion by assertion.
