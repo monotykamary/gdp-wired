@@ -1,0 +1,114 @@
+[
+  {
+    "name": "ryzen-1",
+    "cmd": "bash research/track-m/completion-scope-run.sh 1 strict",
+    "cpu": 8,
+    "memory": 14336,
+    "timeout": 780
+  },
+  {
+    "name": "ryzen-2",
+    "cmd": "bash research/track-m/completion-scope-run.sh 2 strict",
+    "cpu": 8,
+    "memory": 14336,
+    "timeout": 780
+  },
+  {
+    "name": "ryzen-3",
+    "cmd": "bash research/track-m/completion-scope-run.sh 3 strict",
+    "cpu": 8,
+    "memory": 14336,
+    "timeout": 780
+  },
+  {
+    "name": "ryzen-4",
+    "cmd": "bash research/track-m/completion-scope-run.sh 4 strict",
+    "cpu": 8,
+    "memory": 14336,
+    "timeout": 780
+  },
+  {
+    "name": "ryzen-5",
+    "cmd": "bash research/track-m/completion-scope-run.sh 5 strict",
+    "cpu": 8,
+    "memory": 14336,
+    "timeout": 780
+  },
+  {
+    "name": "ryzen-6",
+    "cmd": "bash research/track-m/completion-scope-run.sh 6 strict",
+    "cpu": 8,
+    "memory": 14336,
+    "timeout": 780
+  },
+  {
+    "name": "ryzen-7",
+    "cmd": "bash research/track-m/completion-scope-run.sh 7 strict",
+    "cpu": 8,
+    "memory": 14336,
+    "timeout": 780
+  },
+  {
+    "name": "ryzen-8",
+    "cmd": "bash research/track-m/completion-scope-run.sh 8 strict",
+    "cpu": 8,
+    "memory": 14336,
+    "timeout": 780
+  },
+  {
+    "name": "ryzen-9",
+    "cmd": "bash research/track-m/completion-scope-run.sh 9 strict",
+    "cpu": 8,
+    "memory": 14336,
+    "timeout": 780
+  },
+  {
+    "name": "ryzen-10",
+    "cmd": "bash research/track-m/completion-scope-run.sh 10 strict",
+    "cpu": 8,
+    "memory": 14336,
+    "timeout": 780
+  },
+  {
+    "name": "ryzen-11",
+    "cmd": "bash research/track-m/completion-scope-run.sh 11 strict",
+    "cpu": 8,
+    "memory": 14336,
+    "timeout": 780
+  },
+  {
+    "name": "ryzen-12",
+    "cmd": "bash research/track-m/completion-scope-run.sh 12 strict",
+    "cpu": 8,
+    "memory": 14336,
+    "timeout": 780
+  },
+  {
+    "name": "ryzen-13",
+    "cmd": "bash research/track-m/completion-scope-run.sh 13 strict",
+    "cpu": 8,
+    "memory": 14336,
+    "timeout": 780
+  },
+  {
+    "name": "ryzen-14",
+    "cmd": "bash research/track-m/completion-scope-run.sh 14 strict",
+    "cpu": 8,
+    "memory": 14336,
+    "timeout": 780
+  },
+  {
+    "name": "ryzen-15",
+    "cmd": "bash research/track-m/completion-scope-run.sh 15 strict",
+    "cpu": 8,
+    "memory": 14336,
+    "timeout": 780
+  },
+  {
+    "name": "ryzen-16",
+    "cmd": "bash research/track-m/completion-scope-run.sh 16 strict",
+    "cpu": 8,
+    "memory": 14336,
+    "timeout": 780
+  }
+]
