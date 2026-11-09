@@ -19,9 +19,10 @@ screening stays disabled: only three of the named seven were caught.
 Bounded grouping reached four named drops, not five. Operation-first was
 rejected. Per coordinator direction, post-target pruning is now opt-in
 on top of state-first: the first pilot caught no drops during target build.
-A shared partial-post circuit revision is now in differential validation.
+Shared circuits passed 57 tests; the pilot recovered four named drops,
+but still fails the unchanged five-of-seven bar.
 
-## Current revision: shared partial post-state circuits (code checks pass; pilot running)
+## Current revision: shared partial post-state circuits (checked; four named drops)
 
 The profile below found that repeated target substitution exhausted both
 stages before enumeration. The revision preserves state-first traversal
@@ -45,18 +46,30 @@ Completed validation batch: `20261110-015609-9e1odk`, output
 `runs/t16-target-circuit-check/`. The aggregate type/lint/message job exits
 1 only because of that message-type failure, not because type/lint failed.
 
-Now running, both on submission-class isolated large VMs:
-- Message-only check: `cb000223-ec7e-4d7f-9cf9-186ffb49d29d`,
-  `runs/t16-target-circuit-message-check/`.
-- Six unchanged pilots: `57a29a35-1b15-4561-bdd7-73ec8d17bc38`,
-  `runs/t16-target-circuit-probe/`. Differential and static code checks passed
-  before these pilots were submitted.
+Corrected message check `20261110-022942-atcrqq` passed (exit 0).
+The six-probe batch `20261110-022939-6om3bw` also completed, six exits 0:
+- Original active walls: **1900.229 / 1900.192 / 1900.223 ms**, six total
+  drops each but only **four of the named seven**.
+- Survivor active walls: 2075.011 / 1914.668 / 1900.217 ms, two new named
+  drops each. The first exceeds 2 s. Historical CV removal is separate.
+- Every original first binary round now completes: 56,413 nodes, 782 states,
+  three candidate transitions, **4,231 request prunes**, zero state prunes,
+  and 462–560 ms. Construction no longer consumes the whole round.
+- Five-of-seven still fails. There is no production or final-gate promotion.
+- Full-family/source-interpreter replay is pending in
+  `67e7c26f-d57f-4ff8-9259-7bf2622faadd`, `runs/t16-target-circuit-replay/`.
+
+Next refinement: conservative intervals for still-unknown post values, so
+count and arithmetic bounds can rule out a target before every output is
+exact. Preserve unknown when bounds overlap, and fall back to the checked
+readiness screen if interval code is unsupported or too large. Differential
+tests must precede another unchanged-budget pilot.
 Same canonical archive `6288b666` plus small overlay
 `runs/t16-target-circuit-overlay/`. Compiler SHA-256
 `59bf1a68ae755e7a57c4c5085c7db0c87f5923c69d08bb199344f24604ee181a`;
 test `9809622223dacfac7c3b35e568a7c30019c6bdb7081afdae769a501c9113115f`.
 These files are covered by the new 57-test receipt, not the earlier 55-test
-receipt. The corrected message check and pilot results remain pending.
+receipt. Corrected commitlint passed; independent witness replay is pending.
 Production, all domains, the native-body cap and the five-of-seven / 2 s bar
 are unchanged.
 

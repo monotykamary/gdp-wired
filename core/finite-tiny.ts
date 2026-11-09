@@ -25,18 +25,6 @@ const disjunction = (xs: Pred[]): Pred => {
   return ys.length === 0 ? false : ys.length === 1 ? ys[0]! : {op: 'or', xs: ys}
 }
 const negate = (x: Pred): Pred => typeof x === 'boolean' ? !x : x.op === 'not' ? x.x : {op: 'not', x}
-// Sufficient structural identity only: a supported whole-family pre-law that
-// is unchanged by this operation cannot be a relative CTI target. No theorem
-// is inferred from a failed identity check or from an unsupported expression.
-function samePredicate(a: Pred, b: Pred): boolean {
-  checkWall('tiny predicate identity')
-  if (a === b) return true
-  if (typeof a === 'boolean' || typeof b === 'boolean' || a.op !== b.op) return false
-  if (a.op === 'atom' && b.op === 'atom') return a.cmp === b.cmp && a.a.id === b.a.id && a.b.id === b.b.id
-  if (a.op === 'not' && b.op === 'not') return samePredicate(a.x, b.x)
-  if ((a.op === 'and' || a.op === 'or') && (b.op === 'and' || b.op === 'or')) return a.xs.length === b.xs.length && a.xs.every((x, i) => samePredicate(x, b.xs[i]!))
-  return false
-}
 const dependencyCache = new WeakMap<object, number[]>()
 const depsOf = (p: Pred): number[] => {
   if (typeof p === 'boolean') return []
@@ -214,15 +202,17 @@ class Compiler {
     const test = `(${this.ref(p.a)}${p.cmp === '=' ? '===' : p.cmp}${this.ref(p.b)})`
     return `(${rank && ready > 0 ? `d<${ready}||` : ''}${polarity ? test : '!' + test})`
   }
-  compileValues(values: Term[]): (v: number[]) => number[] {
+  compileValues(values: Term[], order?: number[]): (v: number[], depth?: number) => number[] {
     checkWall('tiny transition code')
+    const rank = order ? this.slots.map((_, i) => order.indexOf(i)) : undefined
     const seen = new Set<number>(), lines: string[] = []
     let chars = 0
     const emit = (t: Term): void => {
       checkWall('tiny transition terms')
       if (seen.has(t.id)) return
       seen.add(t.id); t.args.forEach(emit)
-      const line = `const t${t.id}=${t.code};`
+      const ready = rank ? Math.max(-1, ...t.deps.map(i => rank[i]!)) + 1 : 0
+      const line = `const t${t.id}=${ready > 0 ? `d>=${ready}?${t.code}:0` : t.code};`
       chars += line.length
       if (chars > 65_536) throw new Unsupported('large transition screen')
       lines.push(line)
@@ -231,28 +221,28 @@ class Compiler {
     // Only closed AST operators, validated numerical literals and slot indices;
     // callback replay, never this generated transition, authorizes a CTI.
     // oxlint-disable-next-line typescript/no-implied-eval
-    return new Function('v', `${lines.join('')}return [${values.map(t => this.ref(t)).join(',')}];`) as (v: number[]) => number[]
+    return new Function('v', 'd', `${lines.join('')}return [${values.map(t => this.ref(t)).join(',')}];`) as (v: number[], depth?: number) => number[]
   }
   // Upper truth bound, not a two-valued evaluation of an incomplete state.
   // true includes UNKNOWN; false rules out this polarity for every completion.
   // In particular, polarity=false cannot prune on an unassigned atom.
-  compile(p: Pred, order?: number[], polarity = true): (v: number[], depth: number) => boolean {
+  compile(p: Pred, order?: number[], polarity = true, readyAt?: number[]): (v: number[], depth: number) => boolean {
     checkWall('tiny generate screen')
     // Keep native compilation and hot execution in bounded clauses rather
     // than one giant predicate. Partial-assignment polarity is unchanged.
     if (typeof p === 'boolean') return () => p === polarity
-    if (p.op === 'not') return this.compile(p.x, order, !polarity)
+    if (p.op === 'not') return this.compile(p.x, order, !polarity, readyAt)
     if (p.op === 'and' || p.op === 'or') {
       if (!p.xs.length) return () => (p.op === 'and') === polarity
-      if (p.xs.length === 1) return this.compile(p.xs[0]!, order, polarity)
+      if (p.xs.length === 1) return this.compile(p.xs[0]!, order, polarity, readyAt)
       // Share the expression DAG inside one bounded native clause. Split only
       // when the existing code-size cap demands it, not once per atomic test.
-      try { return this.compileNative(p, order, polarity) } catch (e) {
+      try { return this.compileNative(p, order, polarity, readyAt) } catch (e) {
         if (!(e instanceof Unsupported) || e.message !== 'large generated screen') throw e
       }
       const middle = Math.ceil(p.xs.length / 2), all = (p.op === 'and') === polarity
-      const tests = [this.compile({op: p.op, xs: p.xs.slice(0, middle)}, order, polarity),
-        this.compile({op: p.op, xs: p.xs.slice(middle)}, order, polarity)]
+      const tests = [this.compile({op: p.op, xs: p.xs.slice(0, middle)}, order, polarity, readyAt),
+        this.compile({op: p.op, xs: p.xs.slice(middle)}, order, polarity, readyAt)]
       return (v, depth) => {
         for (const test of tests) {
           checkWall('tiny predicate clause')
@@ -261,11 +251,11 @@ class Compiler {
         return all
       }
     }
-    return this.compileNative(p, order, polarity)
+    return this.compileNative(p, order, polarity, readyAt)
   }
-  compileNative(p: Pred, order?: number[], polarity = true): (v: number[], depth: number) => boolean {
+  compileNative(p: Pred, order?: number[], polarity = true, readyAt?: number[]): (v: number[], depth: number) => boolean {
     checkWall('tiny native clause')
-    const rank = order ? this.slots.map((_, i) => order.indexOf(i)) : undefined, used: Term[] = []
+    const rank = readyAt ? readyAt.map(depth => depth - 1) : order ? this.slots.map((_, i) => order.indexOf(i)) : undefined, used: Term[] = []
     // An atomic predicate is unknown until ALL of its dependencies are set.
     // Its old per-term placeholders could not affect that result, so return
     // before evaluating the closed expression DAG instead. Once ready, every
@@ -375,7 +365,7 @@ export function tinyFiniteCandidates(source: Machine, m: Machine, family: Law[],
     const compiler = new Compiler(source, m, params, slots, scope.cells, scope.binderValues)
     const pres: Pred[] = []
     if (source.pre) pres.push(compiler.condition(source.pre, params))
-    const instances = new Map<Law, Env[]>(), prePredicates = new Map<Law, Pred>()
+    const instances = new Map<Law, Env[]>()
     for (const law of family) {
       checkWall('tiny family compile')
       if (law.some?.length) { unknown(new Unsupported('existential law')); continue }
@@ -383,7 +373,7 @@ export function tinyFiniteCandidates(source: Machine, m: Machine, family: Law[],
       try {
         const ats = bindings(uniqueNames([law.forall, ...law.keys ?? []]), scope.binderValues, params)
         const ps = ats.map(at => compiler.condition(law.holds, at))
-        pres.push(...ps); instances.set(law, ats); prePredicates.set(law, conjunction(ps))
+        pres.push(...ps); instances.set(law, ats)
       } catch (e) { if (e instanceof WallExpired) throw e; unknown(e) }
     }
     const pre = conjunction(pres)
@@ -419,7 +409,7 @@ export function tinyFiniteCandidates(source: Machine, m: Machine, family: Law[],
       inactiveIdentity = slots.slice(0,stateSlots).every((_,i)=>slotValue(off,i,params,true).id===off.slot(i).id)
     } catch(e) { if(e instanceof WallExpired) throw e; if(!(e instanceof Unsupported)) throw e }
     const flatPreds = (p: Pred): Pred[] => typeof p !== 'boolean' && p.op === 'and' ? p.xs.flatMap(flatPreds) : [p]
-    const operations: {fixed: Env, order: number[], gate: (v:number[],d:number)=>boolean, step:(v:number[])=>number[], mayFail?: (v:number[],d:number)=>boolean}[] = []
+    const operations: {fixed: Env, order: number[], gate: (v:number[],d:number)=>boolean, step:(v:number[])=>number[], outputs: Term[], mayFail?: (v:number[],d:number)=>boolean}[] = []
     for(const fixed of slices){
       checkWall('tiny operation compile')
       try {
@@ -432,7 +422,7 @@ export function tinyFiniteCandidates(source: Machine, m: Machine, family: Law[],
         const clauses = flatPreds(enabled).map(depsOf)
         const degrees = slots.map((_,i)=>clauses.reduce((sum,ds)=>sum+(ds.includes(i)?1/Math.max(1,ds.length):0),0))
         const order = slots.map((_,i)=>i).filter(i=>i>=stateSlots&&relevant.has(i)).sort((a,b)=>degrees[b]!-degrees[a]!||a-b)
-        operations.push({fixed,order,gate:compiler.compile(enabled,order),step:compiler.compileValues(outputs)})
+        operations.push({fixed,order,gate:compiler.compile(enabled,order),step:compiler.compileValues(outputs),outputs})
         outputs.forEach((t,i)=>{checkWall('tiny post ranges'); highs[i]=Math.max(highs[i]!,t.hi)})
         stats.scenarios++
       } catch(e) { if(e instanceof WallExpired) throw e; unknown(e) }
@@ -454,24 +444,45 @@ export function tinyFiniteCandidates(source: Machine, m: Machine, family: Law[],
     const stateOrder = slots.slice(0,stateSlots).map((_,i)=>i).sort((a,b)=>degrees[b]!-degrees[a]!||a-b)
     const preTest = compiler.compile(pre,stateOrder), v = slots.map(s=>s.values[0]!)
     if (options.postTargetPruning) for (const op of operations) {
-      checkWall('tiny post-target slice')
-      const order = [...stateOrder, ...op.order], screens: {law: Law, mayFail: (v: number[], d: number) => boolean}[] = []
-      for (const law of targets) {
-        checkWall('tiny post-target substitution')
-        try {
-          const post = conjunction(instances.get(law)!.map(at => compiler.condition(law.holds, {...at, ...op.fixed}, true)))
-          if (post === true || samePredicate(post, prePredicates.get(law)!)) continue
-          // Substitution is through this operation's source step. UNKNOWN is
-          // retained: the negative-polarity screen returns false only when
-          // the target holds for every completion of the current assignment.
-          screens.push({law, mayFail: compiler.compile(post, order, false)})
-        } catch (e) {
-          if (e instanceof WallExpired) throw e
-          if (!(e instanceof Unsupported)) throw e
-          unknown(e); screens.push({law, mayFail: () => true})
+      checkWall('tiny post-target circuit')
+      try {
+        const order = [...stateOrder, ...op.order], rank = slots.map((_, i) => order.indexOf(i))
+        // A post coordinate is unknown until every source dependency of its
+        // output is assigned. Distinct outputs need not become ready together.
+        const readyAt = slots.map((_, i) => i < stateSlots ? Math.max(-1, ...op.outputs[i]!.deps.map(j => rank[j]!)) + 1 : rank[i]! + 1)
+        const changed = new Set(op.outputs.flatMap((t, i) => t.id === compiler.slot(i).id ? [] : [i]))
+        const needed = new Set<number>(), screens: {law: Law, mayFail: (v: number[], d: number) => boolean}[] = []
+        for (const [i, law] of targets.entries()) {
+          checkWall('tiny post-target predicate')
+          const p = predicates[i]!, deps = depsOf(p)
+          // Unchanged primitive dependencies preserve this full-family law.
+          if (!deps.some(j => changed.has(j))) continue
+          deps.forEach(j => needed.add(j))
+          try { screens.push({law, mayFail: postCompiler.compile(p, undefined, false, readyAt)}) }
+          catch (e) {
+            if (e instanceof WallExpired) throw e
+            if (!(e instanceof Unsupported)) throw e
+            unknown(e); screens.push({law, mayFail: () => true})
+          }
         }
+        // Share one let-bound output DAG instead of distributing each source
+        // conditional through every target. Placeholder zeroes are never read
+        // by a known atom until its readyAt depth has been reached.
+        const partial = compiler.compileValues(op.outputs.map((t, i) => needed.has(i) ? t : compiler.constant(0)), order)
+        op.mayFail = (values, depth) => {
+          if (!screens.some(screen => !emitted.has(screen.law))) return false
+          const post = partial(values, depth)
+          for (let i = stateSlots; i < slots.length; i++) {
+            const slot = slots[i]!
+            post[i] = slot.key === undefined && Object.hasOwn(op.fixed, slot.name) ? op.fixed[slot.name]! : rank[i]! < 0 ? slot.values[0]! : values[i]!
+          }
+          return screens.some(screen => !emitted.has(screen.law) && screen.mayFail(post, depth))
+        }
+      } catch (e) {
+        if (e instanceof WallExpired) throw e
+        if (!(e instanceof Unsupported)) throw e
+        unknown(e); op.mayFail = () => true
       }
-      op.mayFail = (values, depth) => screens.some(screen => !emitted.has(screen.law) && screen.mayFail(values, depth))
     }
     const propose = (fixed:Env, violated:Law[]):void=>{
       const preState: State = {scalars:{},maps:Object.fromEntries(Object.keys(source.maps??{}).map(name=>[name,new Map<number,number>()]))}

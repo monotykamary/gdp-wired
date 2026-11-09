@@ -58,6 +58,18 @@ const forms: [string, C][] = [
 for (const [title, holds] of forms) test(`post-target pruning preserves all concrete transitions: ${title}`, () => {
   for (const domain of [[0, 1], [0, 1, 2]]) differential(sourcePair(), [{name: title, holds}], pairStates(domain), [0, 1, 2].map(amount => ({amount})), {}, domain)
 })
+test('partial post coordinates retain their own source readiness after a swap', () => {
+  const source = sourcePair()
+  source.step = {state: {left: x('right'), right: plus(x('left'), x('amount'))}}
+  const family: Law[] = [{name: 'swapped disjunction', holds: any(less(x('right'), n(1)), same(x('left'), n(1)))}]
+  differential(source, family, pairStates([0, 1, 2]), [0, 1, 2].map(amount => ({amount})), {}, [0, 1, 2])
+})
+test('a target unaffected by another output is not made to depend on that output', () => {
+  const source = sourcePair()
+  source.step = {state: {left: x('left'), right: plus(x('right'), x('amount'))}}
+  const family: Law[] = [{name: 'left is zero', holds: same(x('left'), n(0))}]
+  differential(source, family, pairStates([0, 1, 2]), [0, 1, 2].map(amount => ({amount})), {}, [0, 1, 2])
+})
 test('post-target pruning retains unknown late request dependencies', () => {
   const source = sourcePair()
   source.step = {state: {left: plus(x('left'), x('amount')), right: x('right')}}

@@ -1,0 +1,19 @@
+{
+  "trust": "Checked generic implementation and finite differential fixtures; not a performance pass or final gate.",
+  "validationBatch": "20261110-015609-9e1odk",
+  "tests": 57,
+  "assertions": 814,
+  "typecheck": "pass",
+  "typeAwareLint": "zero warnings/errors",
+  "initialAggregateExit": 1,
+  "initialFailure": "Only commitlint rejected the disallowed perf type; source checks passed.",
+  "commitlintBatch": "20261110-022942-atcrqq",
+  "commitlintExit": 0,
+  "correctedMessageSha256": "a67b5f7d8aaff1c0f343ae7a09303195f56e86cbc61f495aeb5d202d015946fb",
+  "compilerSha256": "59bf1a68ae755e7a57c4c5085c7db0c87f5923c69d08bb199344f24604ee181a",
+  "differentialTestSha256": "9809622223dacfac7c3b35e568a7c30019c6bdb7081afdae769a501c9113115f",
+  "pilotBatch": "20261110-022939-6om3bw",
+  "pilot": "All original runs caught four named-seven drops in 1900.192-1900.229 ms; one survivor exceeded 2 seconds. Criterion fails. Independent replay pending.",
+  "replayTask": "67e7c26f-d57f-4ff8-9259-7bf2622faadd",
+  "productionEnabled": false
+}
