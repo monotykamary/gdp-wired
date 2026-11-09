@@ -18,7 +18,44 @@ screening stays disabled. Next: collect all six exact exits/placements,
 independently replay their `HYBRID_CTI`s and count only the named seven;
 then keep iterating against the five-of-seven / <=2 s falsifier.
 
-## In-flight follow-up (not yet validated)
+## Current execution hold — coordinator memory notice
+
+The coordinator reported laptop memory pressure and a blocked shared
+`blob-cache.lock`, and directed all lanes **not to resubmit or kill submitted
+boat runs until further notice**, with at most one subagent. This lane has no
+subagents. No new jobs were submitted after that notice; the original
+cancelled-probe rerun remains owned by its existing client.
+
+Three later clients have terminated with a **pre-execution snapshot error**,
+`ValueError: blob bytes do not match their key` from `push_tree` /
+`store_blobs` / `blobcache.put`:
+
+- `a434a908-dd22-4bb7-b955-130b396ec578` / `20261110-001417-gd15iy`:
+  required domain check, exit 1 after 1,144 s, no result files.
+- `1c1edd9f-b30c-458a-93e3-7d4d17d66a28` / `20261110-001508-ez9go1`:
+  optimized six-probe experiment, exit 1 after 1,151 s.
+- `7c638a8f-675f-42da-80ca-337c34e13594` / `20261110-001813-riu69e`:
+  final-source validation, exit 1 after 965 s.
+
+These are **not test failures or timing measurements**. The first domain
+check's output directory is empty. Delayed uploads read source files after
+tree hashing, so the intervening edits are a plausible cause of the hash
+mismatch; memory pressure explains the delay, not a proven hash diagnosis.
+
+Before the coordinator's hold arrived, immutable local clones were prepared
+at `/tmp/gdp-lane-a-frozen.uLpIQc/{checkpoint,wip}` (no retries launched):
+checkpoint `bef4020f07c42058534515b99a15214fb4ae649a`, WIP
+`32772de69e7f5ef9c3b360fbed97b61a32964950`, with both vendor gitlinks checked
+out exactly. `/tmp/gdp-lane-a-frozen.uLpIQc/data/0.json` matches the frozen
+input SHA above. Leave these clones unchanged. After the hold is lifted,
+use them to avoid edit/upload races; do not rerun any completed work or
+replace the still-active original client blindly.
+
+The earlier bounded waits have expired; the original shell client's own
+completion event remains enabled. No shared process, scheduler, VM, lease,
+cache, or policy was changed. No tests or gate have passed for this WIP.
+
+## Follow-up implementation and original submissions (not validated)
 
 `core/finite-tiny.ts` now returns unknown before evaluating an atomic
 predicate's closed expression DAG when any dependency is unassigned. The
