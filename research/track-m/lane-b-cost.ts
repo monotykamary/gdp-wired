@@ -16,5 +16,5 @@ counted(fullRate,()=>withWall(start+4800,()=>{const until=clock()+budget,attempt
 countsDump.on=undefined
 const units=(fullWork()-before)/fullRate,wallMs=performance.now()-start,checked=!!proof&&countedObligations(p.m,p.laws,{[law.name]:proof.instances},index).every(({goal,decls})=>{const c=proof.certs[goal.name];return !!c&&checkMC(goal.hyps,decls,c)}),columns=[]
 for(let i=0;;i++){const t=columnTerm(`⟦${i}⟧`);if(t===undefined)break;columns.push(t)}
-const record={conditional:true,tag,law:law.name,familySize:p.laws.length,budget,wallAllowance:4800,units,wallMs,checked,results,profile:{...cprof},last:events.at(-1),events}
+const record={conditional:true,generatorOnly:p.generatorOnly??false,familySource:p.source,suppliedLaws:p.suppliedLaws??[],tag,law:law.name,familySize:p.laws.length,budget,wallAllowance:4800,units,wallMs,checked,results,profile:{...cprof},last:events.at(-1),events}
 writeFileSync(join(out,'summary.json'),JSON.stringify(record,null,2)+'\n');writeFileSync(join(out,'capture.json.gz'),gzipSync(JSON.stringify({record,m:p.m,laws:p.laws,columns,captures,proof})));console.log(JSON.stringify(record))

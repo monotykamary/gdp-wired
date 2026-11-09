@@ -5824,3 +5824,11 @@ control; three strict pairs isolate scheduling, while three further strict
 pairs compare the combined branch with main. CPU model, VM identity and
 pinning for every strict pair will be read from its `placement.json` into
 the final gate report. These pairs and the generation census are pending.
+
+## Lane B — scheduler recovery and real E-14 integration (2026-11-09 12:46 +0700)
+
+The coordinator identified 12:28–12:40 as an infrastructure stall. A read-only scheduler receipt at 12:45 reports recovery `ready: true`, no missing batches and no recovery errors. All four existing clients remain live: share has five jobs left after its first completed pair; op, conditional-completion and leaf have 8, 11 and 9 left respectively, all currently awaiting placement. None has reported a failed execution or timeout, so no duplicate or replacement was submitted. A failure attributable to the stalled window will be excluded from proof results and rerun with the same source/input snapshot.
+
+Integrated Lane E's raw-pool admission (`7dc52140` → `3837bb36`) and Lane A's E-14 generator plus 15.1 share scheduler (`1681e8e5` → `05338fee`). Conflict resolution preserved bounded count-law completion, both test lists and all reports. This is a research integration, not a gate endorsement. The existing held batches retain their earlier source snapshots and are not evidence for this integrated tree.
+
+`lane-b-family.ts --generated-only` now captures actual generator output without adding p1 or any other law. Missing targets are reported explicitly; ordinary per-law certificates remain conditional on their supplied family, not a jointly accepted proof. `lane-b-generated-v1` is queued for an actual-family capture and integrated type/lint/unit validation. Production has not adopted the disposable 15.4 policy or 15.5/15.6. The kernel and production allowances are unchanged. No complete-law result, 28/29 recertification or GATE GREEN is claimed.

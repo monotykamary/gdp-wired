@@ -65,4 +65,10 @@ preparer used filesystem-absolute data paths, but `--data` places files relative
 repository tree; that failure and the passing sibling check are retained. Corrected input
 preparation succeeded. None of these failures is counted as a prover outcome.
 
+## Recovery and integrated generator checkpoint
+
+At 2026-11-09 12:45 +0700 the scheduler reported recovery ready, no missing batches and no recovery errors. The four clients were still live, with 5/8/11/9 jobs left and none running; no duplicate reruns were submitted. Infrastructure failures from the coordinator's 12:28–12:40 stall are not proof outcomes and will be rerun if any are reported.
+
+Lane A's E-14/15.1 commit is integrated as `05338fee`; Lane E's raw inclusion pool is `3837bb36`. Earlier queued jobs keep their original snapshots. New `lane-b-generated-v1` captures actual generator output with `--generated-only` (no supplied p1) and validates the integrated tree. This is pending, not accepted evidence. The earlier share patch is now present through Lane A's integration, but the disposable 15.4 policy is still not a production change.
+
 **No complete-law proof, 29/29 result, 28/29 recertification, or GATE GREEN is claimed.**
