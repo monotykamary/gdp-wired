@@ -1,6 +1,13 @@
 # Lane E — guarded inclusion integration
 
-Branch: `claude/mldr-incl`. **NOT GATE GREEN; no merge claim.**
+Branch: `claude/mldr-incl`. **NOT GATE GREEN; AUDIT BLOCKER; no merge claim.**
+
+Lane D rejected the v1 paired-gate analyzer: counts alone did not enforce the
+exact roster, pair identity could change between sides, and the candidate SHA
+was not bound. All v1 `pass:true` / component-pass claims are **withdrawn**.
+Raw logs are retained only as diagnostic observations. The replacement enforces
+the independent exact roster and both source archives; acceptance will use
+Lane D's one-command final gate.
 
 Production commits: **`f6ec83db`** (ordinary preference), **`7dc52140`**
 (raw lazy-pool admission and shared-cap correction). No kernel rule, trusted
@@ -25,8 +32,9 @@ unguarded strengthening.
 * `runs/mldr-incl-shards-v1/`: all seven full-suite shards passed on boat:
   **1,073 tests passed, 18 skipped, zero failures**, with one pinned large VM per
   shard and zero starts charged to the batch.
-* `runs/mldr-incl-gates-v1/duoai/`: **10/10 proofs on both sides**, zero lost
-  proofs, against current main `b788e195`; the other gate components are pending.
+* `runs/mldr-incl-gates-v1/`: historical diagnostic logs report IC3Syn 84 vs
+  83, DuoAI 10 vs 10, and zero broken proofs. **These are not accepted gate
+  evidence** because v1 did not bind the exact roster/pair identity/both SHAs.
 * `runs/mldr-incl-baseline-v1/`: three unchanged original MLDR trials remained
   UNKNOWN at strict 60 seconds (job times 59.59, 59.61, 59.57 seconds).
 
@@ -53,13 +61,15 @@ These are one-law diagnostics, not proofs of the whole family, not original
 harness passes, and not a fair uninstrumented wall-time comparison.
 Completion is Lane B's `60b8c37a`, applied only in isolated experimental jobs.
 
-**Falsifier found:** before the first numeric query, the shared proposal meter
-has already consumed all **65,536** steps. The initial certificate pool contains
+**Observed blockers:** before the first numeric query, the shared proposal
+meter has already consumed all **65,536** steps. The selected certificate has
 only five reads. In the final raw STEP goal, quantified count laws already
-supply the needed packed quorum-count reads, but the certificate pool still
-has only those five reads. Adding a late completion callback cannot repair a
-pool whose shared proposal meter is already exhausted. The stage-0 and stage-26
-packets preserve this directly, including phase/work counters.
+supply packed quorum-count reads, but the selected certificate still has five
+reads. The trace does **not** expose the full proposal pool: it cannot alone
+distinguish failed pool population from failure to refresh the initial
+selection. Separate full-pool/selected-certificate diagnostics and controls
+test those hypotheses. The stage-0 and stage-26 packets preserve the direct
+observations, including phase/work counters.
 
 The current fast loop compares nine distinct frozen STEP packets at
 250/1,000/2,700 units, across raw, preferred, own-key completion, and

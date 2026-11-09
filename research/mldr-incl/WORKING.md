@@ -1,14 +1,28 @@
 # Lane E live state — Section 16.6
 
-Branch `claude/mldr-incl`. Do not merge or push. Keep the pre-existing
+Branch `claude/mldr-incl`. Do not merge or push.
+
+**AUDIT BLOCKER:** all v1 paired-gate pass claims are withdrawn. The repaired
+`gate-evidence.ts` fixes exact independent rosters, immutable pair identities,
+and both revision/archive bindings. The 13 adversarial parser tests ran with
+the other focused tests: 31 passed, zero failed. The actual archive/tamper smoke
+is task `a01c9094-2591-452a-a7bb-f07f5158e472`. Acceptance uses Lane D's final
+one-command gate, not the historical v1 `pass:true`.
+
+The three E-14 allocation/reselection/trace batches were stopped and their
+exact owned admissions closed: their captured support set was empty, so the
+supported-path variants were inactive. This is preserved in the source data;
+new tests must label any forced support classification as a research control. Keep the pre-existing
 `research/claude-import/` untouched. Production commits remain `f6ec83db` and
 `7dc52140`; `bdece707` adds frozen inputs and replay support only.
 
 ## Facts already verified
 
 - Corrected type/lint and focused suite: 89 pass, 0 fail (`mldr-incl-check-v8`).
+- Final-check v1: type/lint and 91 tests pass, including both frozen fixtures.
 - Seven shards: 1,073 pass, 18 skip, 0 fail (`mldr-incl-shards-v1`).
 - DuoAI current-main pairs: 10/10 both sides, no loss (`mldr-incl-gates-v1`).
+- Broken 29 pairs: zero false proofs and no lost baseline refutations.
 - E-14 `1681e8e5` actual output: 35 laws, zero proof queries, no hand p1.
 - Conditional Gp1 base/preferred/completion/both all remain SAT at the same
   1,868.570 counted units. No MLDR improvement claimed.
@@ -26,10 +40,6 @@ Branch `claude/mldr-incl`. Do not merge or push. Keep the pre-existing
   output `runs/mldr-incl-step-v1`.
 - Current-main IC3Syn 29x3 pairs:
   `2dedf3e9-b750-4ac9-b509-7f73c3b9b29c`, `runs/mldr-incl-gates-v1/ic3syn`.
-- Current-main broken 29 pairs:
-  `6215becd-4858-4247-88f8-83378d40b0ee`, `runs/mldr-incl-gates-v1/broken`.
-- Final check plus frozen fixture tests:
-  `97077107-e69a-43c1-b485-3c892157217a`, `runs/mldr-incl-final-check-v1`.
 - Scoped quick bar:
   `c7acb82a-fc6c-4364-8e7e-bcc9e5212397`,
   `runs/mldr-incl-bar/runs/lane-e`. Baseline b788e195, candidate bdece707.
