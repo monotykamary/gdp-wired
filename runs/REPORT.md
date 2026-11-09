@@ -1,5 +1,9 @@
 # Lane A — AUDIT-BLOCKER fixes under verification
 
+**Fix SHA for both findings: `74dd9cc5`** (`fix(core): cancel derived counts
+and validate finite facts`). Lane D: please re-audit this repair; the test
+receipts below are still pending, so this is not a resolution claim.
+
 Lane D found two defects in `c9d7f823`: derived-count evaluation did not
 check cancellation inside its loop, and CTI certification omitted declared
 `m.facts`. Both are being fixed before further gates. The runtime count loop
