@@ -16,7 +16,7 @@ const view = (st: State) => JSON.stringify([st.scalars, ['A', 'B', 'C'].map(map 
 
 test('the compiled key helpers are sorted arrays and agree with the interpreter on every-key writes', () => {
   const js = compileJs(m)
-  expect(js).toContain('function $sorted')
+  expect(js).toContain('function $unique')
   expect(js).toContain('$breaks(')
   const run = interpret(m), fast = fastStep(m)!
   let steps = 0
@@ -33,4 +33,19 @@ test('the compiled key helpers are sorted arrays and agree with the interpreter 
     }
   }
   expect(steps).toBe(2400)
+})
+
+test('an inherited enumerable member of the maps dictionary is not a map of the state', () => {
+  const run = interpret(m), fast = fastStep(m)!
+  const params = {size: 3}, st = run.init(params)
+  // A dictionary whose prototype carries an enumerable Map: only own properties are the state's maps.
+  st.maps = Object.assign(Object.create({Z: new Map([[7, 1]])}), st.maps) as State['maps']
+  st.maps['A'] = new Map([[1, 1], [2, 1]])
+  const own = {...st, maps: {A: st.maps['A']!, B: st.maps['B']!, C: st.maps['C']!}}
+  for (const input of [{i: 2, j: 0}, {i: 9, j: 1}, {i: 0, j: 3}]) {
+    const quick = fast(params, st, input), plain = fast(params, own, input), slow = run.step(params, own, input)
+    expect(view(quick)).toBe(view(slow))
+    expect(view(quick)).toBe(view(plain))
+    expect(Object.keys(quick.maps).sort()).toEqual(['A', 'B', 'C'])
+  }
 })

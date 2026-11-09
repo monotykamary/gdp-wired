@@ -1,6 +1,18 @@
 [
-  {"name": "prof-original", "vm_type": "large", "cpu": 2, "memory": 8192, "timeout": 900,
-   "cmd": "bun install --frozen-lockfile >/dev/null && mkdir -p prof && GDP_INFER_TRACE=2 GDP_COUNTS_TRACE=1 GDP_COUNTS_PROF=1 timeout -s KILL 90 bun --cpu-prof --cpu-prof-md --cpu-prof-dir=prof --cpu-prof-interval=2000 research/protocols/ic3syn/run.ts --ms 60000 --only mldr --skip broken > run.out 2> run.err; echo EXIT $?; grep -v 'counts: try' run.err | grep '\\[infer\\]\\|\\[infer join\\|counts: prof\\|counts: candidates at\\|counts: small\\|finite Houdini' | cut -c1-300; echo PROFILE; ls -la prof; f=$(ls prof/*.md | head -1); head -c 70000 \"$f\""},
-  {"name": "prof-generation", "vm_type": "large", "cpu": 2, "memory": 8192, "timeout": 900,
-   "cmd": "bun install --frozen-lockfile >/dev/null && mkdir -p prof && GDP_INFER_TRACE=2 timeout -s KILL 120 bun --cpu-prof --cpu-prof-md --cpu-prof-dir=prof --cpu-prof-interval=2000 research/track-gen/t13-generation.ts mldr > gen.out 2> gen.err; echo EXIT $?; grep -v 'T13_DATA' gen.err | grep '\\[infer\\]\\|\\[infer join\\|\"phases\"' | cut -c1-400; echo PROFILE; f=$(ls prof/*.md | head -1); head -c 70000 \"$f\""}
+ {
+  "name": "prof-original",
+  "vm_type": "large",
+  "cpu": 2,
+  "memory": 8192,
+  "timeout": 900,
+  "cmd": "set -o pipefail; bun install --frozen-lockfile >/dev/null && mkdir -p prof && GDP_INFER_TRACE=2 GDP_COUNTS_TRACE=1 GDP_COUNTS_PROF=1 timeout -s KILL 90 bun --cpu-prof --cpu-prof-md --cpu-prof-dir=prof --cpu-prof-interval=2000 research/protocols/ic3syn/run.ts --ms 60000 --only mldr --skip broken > run.out 2> run.err; echo EXIT $?; grep -v 'counts: try' run.err | grep '\\[infer\\]\\|\\[infer join\\|counts: prof\\|counts: candidates at\\|counts: small\\|finite Houdini' | cut -c1-300; echo PROFILE; ls -la prof; f=$(ls prof/*.md | head -1); head -c 70000 \"$f\""
+ },
+ {
+  "name": "prof-generation",
+  "vm_type": "large",
+  "cpu": 2,
+  "memory": 8192,
+  "timeout": 900,
+  "cmd": "set -o pipefail; bun install --frozen-lockfile >/dev/null && mkdir -p prof && GDP_INFER_TRACE=2 timeout -s KILL 120 bun --cpu-prof --cpu-prof-md --cpu-prof-dir=prof --cpu-prof-interval=2000 research/track-gen/t13-generation.ts mldr > gen.out 2> gen.err; echo EXIT $?; grep -v 'T13_DATA' gen.err | grep '\\[infer\\]\\|\\[infer join\\|\"phases\"' | cut -c1-400; echo PROFILE; f=$(ls prof/*.md | head -1); head -c 70000 \"$f\""
+ }
 ]
