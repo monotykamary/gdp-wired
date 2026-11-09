@@ -12,7 +12,7 @@ Gate: **PENDING**. Branch `claude/ci-first-class`; starting revision `b788e1959b
 
 ## Item 2 — built-in mutation check
 
-**Starting status: missing.** `core/cli.ts:843-859` dispatches only `check` and `draft`; `package.json` has no mutation subpath or script. The existing research mutants are corpus-specific, not a source-edit/suite runner. Adding a generic command and API with preflight, unmutated baselines, exact restoration, and fail-closed execution errors.
+**Starting status: missing.** `core/cli.ts:843-859` dispatches only `check` and `draft`; `package.json` has no mutation subpath or script. The existing research mutants are corpus-specific, not a source-edit/suite runner. Implemented `gdp-wired mutate` / `gdp-wired-cli mutate` and the separate Node-only `checkMutations` API. Preflight requires an unambiguous source match, unchanged baseline bytes, regular non-symlink files, and passing unmutated suites. Each mutant restores exact bytes in `finally`; timeouts, signals, missing commands and output overflow are errors, not kills. Markdown/JSON receipts and designated-law-suite failure are covered by the successful v4 focused tests. Automatic mutation derivation remains an explicitly deferred stretch goal.
 
 ## Item 3 — explicit runtime compilation
 
