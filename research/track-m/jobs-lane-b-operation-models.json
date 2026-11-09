@@ -1,0 +1,3 @@
+[
+ {"name":"operations","cmd":"bash research/track-m/prepare-vendors.sh && bun install --frozen-lockfile >/dev/null && LAB_DISPOSABLE=1 bun research/track-m/member-premises-variant.ts flags && LAB_DISPOSABLE=1 bun research/track-m/operation-step-variant.ts && bun run check && bunx commitlint --default-config < replays/commit-message.txt && work=$(mktemp -d \"$HOME/track-m-operation-models-XXXXXX\") && trap 'bash research/track-m/pack-section18-archive.sh \"$work\"' EXIT && for op in 0 1 2 3 4 5 6; do GDP_COUNTS_DUMP_ALL_PASSES=1 bun research/track-m/operation-models.ts replays/family.json \"$op\" \"$work/op$op\"; done","cpu":8,"memory":14336,"timeout":180}
+]
