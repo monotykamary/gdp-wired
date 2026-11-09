@@ -7,7 +7,8 @@ trap 'status=$?; if [[ $status -ne 0 ]]; then for f in "$work"/*.log; do [[ -f "
 cp core/counts.ts "$work/candidate.txt"
 sha256sum family.json before-counts.txt
 for side in "$1" "$([[ "$1" == before ]] && echo after || echo before)"; do
- if [[ "$side" == before ]]; then cp before-counts.txt core/counts.ts; else cp "$work/candidate.txt" core/counts.ts; fi
+ if [[ "$side" == before ]]; then cp before-counts.txt "$work/selected.txt"; else cp "$work/candidate.txt" "$work/selected.txt"; fi
+ mv "$work/selected.txt" core/counts.ts
  echo "RANGE_PAIR_BEGIN $side"
  sha256sum core/counts.ts
  timeout 20s bun research/track-m/lane-b-cost.ts family.json overlap "$work/$side" 6000 7000 > "$work/$side.log" 2>&1
