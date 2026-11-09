@@ -1,0 +1,1724 @@
+{
+ "rawFiles": 457,
+ "unique": 271,
+ "selected": [
+  {
+   "id": "1db3e95647aa4edc",
+   "name": "counted",
+   "hyps": 187,
+   "sources": [
+    {
+     "file": "runs/track-m/lane-b-roots-v1/raw/before/dump/41524-240.json",
+     "kind": "model",
+     "priorOutcome": "unknown",
+     "priorWall": 1334
+    },
+    {
+     "file": "runs/track-m/lane-b-roots-v1/raw/after/dump/21563-214.json",
+     "kind": "model",
+     "priorOutcome": "unknown",
+     "priorWall": 846
+    }
+   ]
+  },
+  {
+   "id": "899b321b3755e426",
+   "name": "counted",
+   "hyps": 216,
+   "sources": [
+    {
+     "file": "runs/track-m/lane-b-roots-v1/raw/before/dump/41524-140.json",
+     "kind": "model",
+     "priorOutcome": "sat",
+     "priorWall": 371
+    },
+    {
+     "file": "runs/track-m/lane-b-roots-v1/raw/after/dump/21563-138.json",
+     "kind": "model",
+     "priorOutcome": "sat",
+     "priorWall": 681
+    }
+   ]
+  },
+  {
+   "id": "96a6faa98ee7154e",
+   "name": "counted",
+   "hyps": 228,
+   "sources": [
+    {
+     "file": "runs/track-m/lane-b-roots-v1/raw/before/dump/41524-187.json",
+     "kind": "model",
+     "priorOutcome": "sat",
+     "priorWall": 423
+    },
+    {
+     "file": "runs/track-m/lane-b-roots-v1/raw/after/dump/21563-163.json",
+     "kind": "model",
+     "priorOutcome": "sat",
+     "priorWall": 496
+    }
+   ]
+  },
+  {
+   "id": "97670a95529e0fdd",
+   "name": "counted",
+   "hyps": 215,
+   "sources": [
+    {
+     "file": "runs/track-m/lane-b-roots-v1/raw/before/dump/41524-141.json",
+     "kind": "model",
+     "priorOutcome": "sat",
+     "priorWall": 311
+    },
+    {
+     "file": "runs/track-m/lane-b-roots-v1/raw/after/dump/21563-139.json",
+     "kind": "model",
+     "priorOutcome": "sat",
+     "priorWall": 451
+    }
+   ]
+  },
+  {
+   "id": "299d461d0f6ca586",
+   "name": "counted",
+   "hyps": 289,
+   "sources": [
+    {
+     "file": "runs/track-m/lane-b-roots-v1/raw/before/dump/41524-207.json",
+     "kind": "model",
+     "priorOutcome": "sat",
+     "priorWall": 248
+    },
+    {
+     "file": "runs/track-m/lane-b-roots-v1/raw/after/dump/21563-183.json",
+     "kind": "model",
+     "priorOutcome": "sat",
+     "priorWall": 435
+    }
+   ]
+  },
+  {
+   "id": "39a4aabf4610f1e0",
+   "name": "counted",
+   "hyps": 201,
+   "sources": [
+    {
+     "file": "runs/track-m/lane-b-roots-v1/raw/before/dump/41524-185.json",
+     "kind": "model",
+     "priorOutcome": "sat",
+     "priorWall": 340
+    },
+    {
+     "file": "runs/track-m/lane-b-roots-v1/raw/after/dump/21563-161.json",
+     "kind": "model",
+     "priorOutcome": "sat",
+     "priorWall": 422
+    }
+   ]
+  },
+  {
+   "id": "8392200616ad6e0c",
+   "name": "counted",
+   "hyps": 111,
+   "sources": [
+    {
+     "file": "runs/track-m/lane-b-roots-v1/raw/before/dump/41524-239.json",
+     "kind": "model",
+     "priorOutcome": "sat",
+     "priorWall": 292
+    },
+    {
+     "file": "runs/track-m/lane-b-roots-v1/raw/after/dump/21563-213.json",
+     "kind": "model",
+     "priorOutcome": "sat",
+     "priorWall": 410
+    }
+   ]
+  },
+  {
+   "id": "66bd95ae47a73412",
+   "name": "counted",
+   "hyps": 217,
+   "sources": [
+    {
+     "file": "runs/track-m/lane-b-roots-v1/raw/before/dump/41524-205.json",
+     "kind": "model",
+     "priorOutcome": "sat",
+     "priorWall": 226
+    },
+    {
+     "file": "runs/track-m/lane-b-roots-v1/raw/after/dump/21563-181.json",
+     "kind": "model",
+     "priorOutcome": "sat",
+     "priorWall": 402
+    }
+   ]
+  },
+  {
+   "id": "c8b693932bb4da73",
+   "name": "counted",
+   "hyps": 203,
+   "sources": [
+    {
+     "file": "runs/track-m/lane-b-roots-v1/raw/before/dump/41524-184.json",
+     "kind": "model",
+     "priorOutcome": "sat",
+     "priorWall": 106
+    },
+    {
+     "file": "runs/track-m/lane-b-roots-v1/raw/after/dump/21563-160.json",
+     "kind": "model",
+     "priorOutcome": "sat",
+     "priorWall": 276
+    }
+   ]
+  },
+  {
+   "id": "d667d55a3766d315",
+   "name": "counted",
+   "hyps": 86,
+   "sources": [
+    {
+     "file": "runs/track-m/lane-b-roots-v1/raw/before/dump/41524-235.json",
+     "kind": "model",
+     "priorOutcome": "sat",
+     "priorWall": 87
+    },
+    {
+     "file": "runs/track-m/lane-b-roots-v1/raw/after/dump/21563-209.json",
+     "kind": "model",
+     "priorOutcome": "sat",
+     "priorWall": 273
+    }
+   ]
+  },
+  {
+   "id": "ff0fbc8328a094ad",
+   "name": "counted",
+   "hyps": 190,
+   "sources": [
+    {
+     "file": "runs/track-m/lane-b-roots-v1/raw/before/dump/41524-183.json",
+     "kind": "model",
+     "priorOutcome": "sat",
+     "priorWall": 215
+    },
+    {
+     "file": "runs/track-m/lane-b-roots-v1/raw/after/dump/21563-159.json",
+     "kind": "model",
+     "priorOutcome": "sat",
+     "priorWall": 267
+    }
+   ]
+  },
+  {
+   "id": "c7efe912c1f2dac6",
+   "name": "counted",
+   "hyps": 59,
+   "sources": [
+    {
+     "file": "runs/track-m/lane-b-roots-v1/raw/before/dump/41524-225.json",
+     "kind": "model",
+     "priorOutcome": "unknown",
+     "priorWall": 48
+    },
+    {
+     "file": "runs/track-m/lane-b-roots-v1/raw/after/dump/21563-199.json",
+     "kind": "model",
+     "priorOutcome": "unknown",
+     "priorWall": 261
+    }
+   ]
+  },
+  {
+   "id": "5901e2dea33243e0",
+   "name": "counted",
+   "hyps": 202,
+   "sources": [
+    {
+     "file": "runs/track-m/lane-b-roots-v1/raw/before/dump/41524-203.json",
+     "kind": "model",
+     "priorOutcome": "sat",
+     "priorWall": 227
+    },
+    {
+     "file": "runs/track-m/lane-b-roots-v1/raw/after/dump/21563-179.json",
+     "kind": "model",
+     "priorOutcome": "sat",
+     "priorWall": 257
+    }
+   ]
+  },
+  {
+   "id": "3b5f5368113a34a4",
+   "name": "counted",
+   "hyps": 214,
+   "sources": [
+    {
+     "file": "runs/track-m/lane-b-roots-v1/raw/before/dump/41524-186.json",
+     "kind": "model",
+     "priorOutcome": "sat",
+     "priorWall": 207
+    },
+    {
+     "file": "runs/track-m/lane-b-roots-v1/raw/after/dump/21563-162.json",
+     "kind": "model",
+     "priorOutcome": "sat",
+     "priorWall": 216
+    }
+   ]
+  },
+  {
+   "id": "a3f339c0801942e2",
+   "name": "counted",
+   "hyps": 184,
+   "sources": [
+    {
+     "file": "runs/track-m/lane-b-roots-v1/raw/before/dump/41524-139.json",
+     "kind": "model",
+     "priorOutcome": "sat",
+     "priorWall": 74
+    },
+    {
+     "file": "runs/track-m/lane-b-roots-v1/raw/after/dump/21563-137.json",
+     "kind": "model",
+     "priorOutcome": "sat",
+     "priorWall": 198
+    }
+   ]
+  },
+  {
+   "id": "137e32708aea68b8",
+   "name": "counted",
+   "hyps": 91,
+   "sources": [
+    {
+     "file": "runs/track-m/lane-b-roots-v1/raw/before/dump/41524-236.json",
+     "kind": "model",
+     "priorOutcome": "sat",
+     "priorWall": 76
+    },
+    {
+     "file": "runs/track-m/lane-b-roots-v1/raw/after/dump/21563-210.json",
+     "kind": "model",
+     "priorOutcome": "sat",
+     "priorWall": 198
+    }
+   ]
+  },
+  {
+   "id": "36af62733e31128c",
+   "name": "counted",
+   "hyps": 192,
+   "sources": [
+    {
+     "file": "runs/track-m/lane-b-roots-v1/raw/before/dump/41524-182.json",
+     "kind": "model",
+     "priorOutcome": "sat",
+     "priorWall": 108
+    },
+    {
+     "file": "runs/track-m/lane-b-roots-v1/raw/after/dump/21563-158.json",
+     "kind": "model",
+     "priorOutcome": "sat",
+     "priorWall": 189
+    }
+   ]
+  },
+  {
+   "id": "6b4ef407a7ddebf4",
+   "name": "counted",
+   "hyps": 94,
+   "sources": [
+    {
+     "file": "runs/track-m/lane-b-roots-v1/raw/before/dump/41524-237.json",
+     "kind": "model",
+     "priorOutcome": "sat",
+     "priorWall": 89
+    },
+    {
+     "file": "runs/track-m/lane-b-roots-v1/raw/after/dump/21563-211.json",
+     "kind": "model",
+     "priorOutcome": "sat",
+     "priorWall": 183
+    }
+   ]
+  },
+  {
+   "id": "7d56111a95041e39",
+   "name": "fields: St[a]=1 -> CT[a]=CT[b] -> CfgT[b]<=CfgT[a] @step",
+   "hyps": 288,
+   "sources": [
+    {
+     "file": "runs/track-m/lane-b-roots-v1/raw/after/dump/21563-151.json",
+     "kind": "model",
+     "priorOutcome": "unknown",
+     "priorWall": 182
+    }
+   ]
+  },
+  {
+   "id": "e29a833b1a3496d9",
+   "name": "CV at most 2 @step",
+   "hyps": 220,
+   "sources": [
+    {
+     "file": "runs/track-m/lane-b-roots-v1/raw/before/dump/41524-54.json",
+     "kind": "grow",
+     "priorOutcome": "unknown",
+     "priorWall": 4
+    },
+    {
+     "file": "runs/track-m/lane-b-roots-v1/raw/after/dump/21563-81.json",
+     "kind": "model",
+     "priorOutcome": "unknown",
+     "priorWall": 167
+    }
+   ]
+  },
+  {
+   "id": "c71a144ae03fceeb",
+   "name": "counted",
+   "hyps": 152,
+   "sources": [
+    {
+     "file": "runs/track-m/lane-b-roots-v1/raw/before/dump/41524-180.json",
+     "kind": "model",
+     "priorOutcome": "sat",
+     "priorWall": 132
+    },
+    {
+     "file": "runs/track-m/lane-b-roots-v1/raw/after/dump/21563-156.json",
+     "kind": "model",
+     "priorOutcome": "sat",
+     "priorWall": 166
+    }
+   ]
+  },
+  {
+   "id": "a02fefedf8f1c242",
+   "name": "counted",
+   "hyps": 170,
+   "sources": [
+    {
+     "file": "runs/track-m/lane-b-roots-v1/raw/before/dump/41524-213.json",
+     "kind": "model",
+     "priorOutcome": "sat",
+     "priorWall": 83
+    },
+    {
+     "file": "runs/track-m/lane-b-roots-v1/raw/after/dump/21563-189.json",
+     "kind": "model",
+     "priorOutcome": "sat",
+     "priorWall": 165
+    }
+   ]
+  },
+  {
+   "id": "b01897db13b277dc",
+   "name": "counted",
+   "hyps": 120,
+   "sources": [
+    {
+     "file": "runs/track-m/lane-b-roots-v1/raw/before/dump/41524-137.json",
+     "kind": "model",
+     "priorOutcome": "sat",
+     "priorWall": 164
+    },
+    {
+     "file": "runs/track-m/lane-b-roots-v1/raw/after/dump/21563-135.json",
+     "kind": "model",
+     "priorOutcome": "sat",
+     "priorWall": 145
+    }
+   ]
+  },
+  {
+   "id": "88aea4e0f5b4ccc3",
+   "name": "counted",
+   "hyps": 62,
+   "sources": [
+    {
+     "file": "runs/track-m/lane-b-roots-v1/raw/before/dump/41524-145.json",
+     "kind": "model",
+     "priorOutcome": "unknown",
+     "priorWall": 93
+    },
+    {
+     "file": "runs/track-m/lane-b-roots-v1/raw/after/dump/21563-143.json",
+     "kind": "model",
+     "priorOutcome": "unknown",
+     "priorWall": 148
+    }
+   ]
+  },
+  {
+   "id": "38aeed38a2d906e4",
+   "name": "counted",
+   "hyps": 127,
+   "sources": [
+    {
+     "file": "runs/track-m/lane-b-roots-v1/raw/before/dump/41524-178.json",
+     "kind": "model",
+     "priorOutcome": "sat",
+     "priorWall": 59
+    },
+    {
+     "file": "runs/track-m/lane-b-roots-v1/raw/after/dump/21563-154.json",
+     "kind": "model",
+     "priorOutcome": "sat",
+     "priorWall": 144
+    }
+   ]
+  },
+  {
+   "id": "30819f6e607d318d",
+   "name": "counted",
+   "hyps": 143,
+   "sources": [
+    {
+     "file": "runs/track-m/lane-b-roots-v1/raw/before/dump/41524-179.json",
+     "kind": "model",
+     "priorOutcome": "sat",
+     "priorWall": 73
+    },
+    {
+     "file": "runs/track-m/lane-b-roots-v1/raw/after/dump/21563-155.json",
+     "kind": "model",
+     "priorOutcome": "sat",
+     "priorWall": 140
+    }
+   ]
+  },
+  {
+   "id": "9508ddd112688b8d",
+   "name": "counted",
+   "hyps": 191,
+   "sources": [
+    {
+     "file": "runs/track-m/lane-b-roots-v1/raw/after/dump/21563-80.json",
+     "kind": "model",
+     "priorOutcome": "unknown",
+     "priorWall": 133
+    }
+   ]
+  },
+  {
+   "id": "a08d332d15818792",
+   "name": "counted",
+   "hyps": 104,
+   "sources": [
+    {
+     "file": "runs/track-m/lane-b-roots-v1/raw/before/dump/41524-94.json",
+     "kind": "model",
+     "priorOutcome": "sat",
+     "priorWall": 68
+    },
+    {
+     "file": "runs/track-m/lane-b-roots-v1/raw/after/dump/21563-119.json",
+     "kind": "model",
+     "priorOutcome": "sat",
+     "priorWall": 132
+    }
+   ]
+  },
+  {
+   "id": "997b5f8af5965787",
+   "name": "counted",
+   "hyps": 226,
+   "sources": [
+    {
+     "file": "runs/track-m/lane-b-roots-v1/raw/before/dump/41524-197.json",
+     "kind": "model",
+     "priorOutcome": "sat",
+     "priorWall": 132
+    },
+    {
+     "file": "runs/track-m/lane-b-roots-v1/raw/after/dump/21563-173.json",
+     "kind": "model",
+     "priorOutcome": "sat",
+     "priorWall": 78
+    }
+   ]
+  },
+  {
+   "id": "793e8375b4a4a190",
+   "name": "counted",
+   "hyps": 255,
+   "sources": [
+    {
+     "file": "runs/track-m/lane-b-roots-v1/raw/after/dump/21563-127.json",
+     "kind": "model",
+     "priorOutcome": "unknown",
+     "priorWall": 129
+    }
+   ]
+  },
+  {
+   "id": "c0ec0eefcf63bb08",
+   "name": "fields: St[a]=1 -> CT[a]=CT[b] -> CfgT[b]<=CfgT[a] @step",
+   "hyps": 195,
+   "sources": [
+    {
+     "file": "runs/track-m/lane-b-roots-v1/raw/before/dump/41524-154.json",
+     "kind": "model",
+     "priorOutcome": "sat",
+     "priorWall": 124
+    }
+   ]
+  },
+  {
+   "id": "5fde7df32f7cd4cf",
+   "name": "counted",
+   "hyps": 173,
+   "sources": [
+    {
+     "file": "runs/track-m/lane-b-roots-v1/raw/before/dump/41524-193.json",
+     "kind": "model",
+     "priorOutcome": "sat",
+     "priorWall": 77
+    },
+    {
+     "file": "runs/track-m/lane-b-roots-v1/raw/after/dump/21563-169.json",
+     "kind": "model",
+     "priorOutcome": "sat",
+     "priorWall": 123
+    }
+   ]
+  },
+  {
+   "id": "90ff0c9804d066bb",
+   "name": "counted",
+   "hyps": 99,
+   "sources": [
+    {
+     "file": "runs/track-m/lane-b-roots-v1/raw/before/dump/41524-238.json",
+     "kind": "model",
+     "priorOutcome": "sat",
+     "priorWall": 68
+    },
+    {
+     "file": "runs/track-m/lane-b-roots-v1/raw/after/dump/21563-212.json",
+     "kind": "model",
+     "priorOutcome": "sat",
+     "priorWall": 120
+    }
+   ]
+  },
+  {
+   "id": "552fc21f9d2cce54",
+   "name": "counted",
+   "hyps": 223,
+   "sources": [
+    {
+     "file": "runs/track-m/lane-b-roots-v1/raw/before/dump/41524-196.json",
+     "kind": "model",
+     "priorOutcome": "sat",
+     "priorWall": 43
+    },
+    {
+     "file": "runs/track-m/lane-b-roots-v1/raw/after/dump/21563-172.json",
+     "kind": "model",
+     "priorOutcome": "sat",
+     "priorWall": 118
+    }
+   ]
+  },
+  {
+   "id": "55129b6c79b5a521",
+   "name": "counted",
+   "hyps": 218,
+   "sources": [
+    {
+     "file": "runs/track-m/lane-b-roots-v1/raw/before/dump/41524-215.json",
+     "kind": "model",
+     "priorOutcome": "sat",
+     "priorWall": 117
+    },
+    {
+     "file": "runs/track-m/lane-b-roots-v1/raw/after/dump/21563-191.json",
+     "kind": "model",
+     "priorOutcome": "sat",
+     "priorWall": 90
+    }
+   ]
+  },
+  {
+   "id": "01929a2dca2b67a1",
+   "name": "CfgT at most 44 @step",
+   "hyps": 220,
+   "sources": [
+    {
+     "file": "runs/track-m/lane-b-roots-v1/raw/before/dump/41524-87.json",
+     "kind": "grow",
+     "priorOutcome": "unknown",
+     "priorWall": 4
+    },
+    {
+     "file": "runs/track-m/lane-b-roots-v1/raw/after/dump/21563-107.json",
+     "kind": "model",
+     "priorOutcome": "unknown",
+     "priorWall": 115
+    }
+   ]
+  },
+  {
+   "id": "e0a54af85b5be728",
+   "name": "CT at most 44 @step",
+   "hyps": 150,
+   "sources": [
+    {
+     "file": "runs/track-m/lane-b-roots-v1/raw/after/dump/21563-47.json",
+     "kind": "grow",
+     "priorOutcome": "unknown",
+     "priorWall": 114
+    }
+   ]
+  },
+  {
+   "id": "789f0bfa52b7dfea",
+   "name": "CT at most 44 @step",
+   "hyps": 158,
+   "sources": [
+    {
+     "file": "runs/track-m/lane-b-roots-v1/raw/before/dump/41524-19.json",
+     "kind": "grow",
+     "priorOutcome": "unknown",
+     "priorWall": 3
+    },
+    {
+     "file": "runs/track-m/lane-b-roots-v1/raw/after/dump/21563-25.json",
+     "kind": "model",
+     "priorOutcome": "sat",
+     "priorWall": 113
+    }
+   ]
+  },
+  {
+   "id": "7627b3b784a17a7f",
+   "name": "counted",
+   "hyps": 70,
+   "sources": [
+    {
+     "file": "runs/track-m/lane-b-roots-v1/raw/before/dump/41524-232.json",
+     "kind": "model",
+     "priorOutcome": "sat",
+     "priorWall": 65
+    },
+    {
+     "file": "runs/track-m/lane-b-roots-v1/raw/after/dump/21563-206.json",
+     "kind": "model",
+     "priorOutcome": "sat",
+     "priorWall": 108
+    }
+   ]
+  },
+  {
+   "id": "0ecc169396b5a662",
+   "name": "counted",
+   "hyps": 154,
+   "sources": [
+    {
+     "file": "runs/track-m/lane-b-roots-v1/raw/before/dump/41524-211.json",
+     "kind": "model",
+     "priorOutcome": "sat",
+     "priorWall": 32
+    },
+    {
+     "file": "runs/track-m/lane-b-roots-v1/raw/after/dump/21563-187.json",
+     "kind": "model",
+     "priorOutcome": "sat",
+     "priorWall": 108
+    }
+   ]
+  },
+  {
+   "id": "e7320ad40e31c0bd",
+   "name": "counted",
+   "hyps": 206,
+   "sources": [
+    {
+     "file": "runs/track-m/lane-b-roots-v1/raw/before/dump/41524-204.json",
+     "kind": "model",
+     "priorOutcome": "sat",
+     "priorWall": 107
+    },
+    {
+     "file": "runs/track-m/lane-b-roots-v1/raw/after/dump/21563-180.json",
+     "kind": "model",
+     "priorOutcome": "sat",
+     "priorWall": 84
+    }
+   ]
+  },
+  {
+   "id": "217a275f7ba88093",
+   "name": "counted",
+   "hyps": 93,
+   "sources": [
+    {
+     "file": "runs/track-m/lane-b-roots-v1/raw/before/dump/41524-146.json",
+     "kind": "model",
+     "priorOutcome": "sat",
+     "priorWall": 27
+    },
+    {
+     "file": "runs/track-m/lane-b-roots-v1/raw/after/dump/21563-144.json",
+     "kind": "model",
+     "priorOutcome": "sat",
+     "priorWall": 105
+    }
+   ]
+  },
+  {
+   "id": "3b24d347d3eef66c",
+   "name": "counted",
+   "hyps": 66,
+   "sources": [
+    {
+     "file": "runs/track-m/lane-b-roots-v1/raw/before/dump/41524-143.json",
+     "kind": "model",
+     "priorOutcome": "unknown",
+     "priorWall": 69
+    },
+    {
+     "file": "runs/track-m/lane-b-roots-v1/raw/after/dump/21563-141.json",
+     "kind": "model",
+     "priorOutcome": "unknown",
+     "priorWall": 103
+    }
+   ]
+  },
+  {
+   "id": "85a693dd1bb1e0ca",
+   "name": "counted",
+   "hyps": 207,
+   "sources": [
+    {
+     "file": "runs/track-m/lane-b-roots-v1/raw/before/dump/41524-214.json",
+     "kind": "model",
+     "priorOutcome": "sat",
+     "priorWall": 66
+    },
+    {
+     "file": "runs/track-m/lane-b-roots-v1/raw/after/dump/21563-190.json",
+     "kind": "model",
+     "priorOutcome": "sat",
+     "priorWall": 97
+    }
+   ]
+  },
+  {
+   "id": "509160b4fe4fd68f",
+   "name": "counted",
+   "hyps": 125,
+   "sources": [
+    {
+     "file": "runs/track-m/lane-b-roots-v1/raw/before/dump/41524-95.json",
+     "kind": "model",
+     "priorOutcome": "sat",
+     "priorWall": 73
+    },
+    {
+     "file": "runs/track-m/lane-b-roots-v1/raw/after/dump/21563-120.json",
+     "kind": "model",
+     "priorOutcome": "sat",
+     "priorWall": 96
+    }
+   ]
+  },
+  {
+   "id": "35ed5f6cb7a2b55f",
+   "name": "counted",
+   "hyps": 144,
+   "sources": [
+    {
+     "file": "runs/track-m/lane-b-roots-v1/raw/after/dump/21563-17.json",
+     "kind": "model",
+     "priorOutcome": "sat",
+     "priorWall": 92
+    }
+   ]
+  },
+  {
+   "id": "acff4f7580c8e30e",
+   "name": "counted",
+   "hyps": 47,
+   "sources": [
+    {
+     "file": "runs/track-m/lane-b-roots-v1/raw/before/dump/41524-222.json",
+     "kind": "model",
+     "priorOutcome": "unknown",
+     "priorWall": 16
+    },
+    {
+     "file": "runs/track-m/lane-b-roots-v1/raw/after/dump/21563-196.json",
+     "kind": "model",
+     "priorOutcome": "unknown",
+     "priorWall": 89
+    }
+   ]
+  },
+  {
+   "id": "83a6e052e6d3f2c9",
+   "name": "counted",
+   "hyps": 220,
+   "sources": [
+    {
+     "file": "runs/track-m/lane-b-roots-v1/raw/before/dump/41524-206.json",
+     "kind": "model",
+     "priorOutcome": "sat",
+     "priorWall": 88
+    },
+    {
+     "file": "runs/track-m/lane-b-roots-v1/raw/after/dump/21563-182.json",
+     "kind": "model",
+     "priorOutcome": "sat",
+     "priorWall": 74
+    }
+   ]
+  },
+  {
+   "id": "568404835584fb51",
+   "name": "counted",
+   "hyps": 51,
+   "sources": [
+    {
+     "file": "runs/track-m/lane-b-roots-v1/raw/before/dump/41524-59.json",
+     "kind": "model",
+     "priorOutcome": "sat",
+     "priorWall": 48
+    },
+    {
+     "file": "runs/track-m/lane-b-roots-v1/raw/after/dump/21563-86.json",
+     "kind": "model",
+     "priorOutcome": "sat",
+     "priorWall": 88
+    }
+   ]
+  },
+  {
+   "id": "de9c005287b2f663",
+   "name": "counted",
+   "hyps": 110,
+   "sources": [
+    {
+     "file": "runs/track-m/lane-b-roots-v1/raw/before/dump/41524-177.json",
+     "kind": "model",
+     "priorOutcome": "sat",
+     "priorWall": 85
+    },
+    {
+     "file": "runs/track-m/lane-b-roots-v1/raw/after/dump/21563-153.json",
+     "kind": "model",
+     "priorOutcome": "sat",
+     "priorWall": 71
+    }
+   ]
+  },
+  {
+   "id": "07cb0ef2f4d37ad4",
+   "name": "counted",
+   "hyps": 139,
+   "sources": [
+    {
+     "file": "runs/track-m/lane-b-roots-v1/raw/before/dump/41524-210.json",
+     "kind": "model",
+     "priorOutcome": "sat",
+     "priorWall": 84
+    },
+    {
+     "file": "runs/track-m/lane-b-roots-v1/raw/after/dump/21563-186.json",
+     "kind": "model",
+     "priorOutcome": "sat",
+     "priorWall": 49
+    }
+   ]
+  },
+  {
+   "id": "4693467c11fc997e",
+   "name": "counted",
+   "hyps": 161,
+   "sources": [
+    {
+     "file": "runs/track-m/lane-b-roots-v1/raw/before/dump/41524-212.json",
+     "kind": "model",
+     "priorOutcome": "sat",
+     "priorWall": 66
+    },
+    {
+     "file": "runs/track-m/lane-b-roots-v1/raw/after/dump/21563-188.json",
+     "kind": "model",
+     "priorOutcome": "sat",
+     "priorWall": 83
+    }
+   ]
+  },
+  {
+   "id": "4a6414d4ea64bd88",
+   "name": "fields: St[a]=1 -> CT[a]=CT[b] -> CV[b]<=CV[a] @step",
+   "hyps": 288,
+   "sources": [
+    {
+     "file": "runs/track-m/lane-b-roots-v1/raw/after/dump/21563-128.json",
+     "kind": "model",
+     "priorOutcome": "unknown",
+     "priorWall": 83
+    }
+   ]
+  },
+  {
+   "id": "696e431cf9856da0",
+   "name": "counted",
+   "hyps": 132,
+   "sources": [
+    {
+     "file": "runs/track-m/lane-b-roots-v1/raw/after/dump/21563-40.json",
+     "kind": "model",
+     "priorOutcome": "sat",
+     "priorWall": 82
+    }
+   ]
+  },
+  {
+   "id": "1b3510951b7924a2",
+   "name": "counted",
+   "hyps": 205,
+   "sources": [
+    {
+     "file": "runs/track-m/lane-b-roots-v1/raw/before/dump/41524-194.json",
+     "kind": "model",
+     "priorOutcome": "sat",
+     "priorWall": 40
+    },
+    {
+     "file": "runs/track-m/lane-b-roots-v1/raw/after/dump/21563-170.json",
+     "kind": "model",
+     "priorOutcome": "sat",
+     "priorWall": 78
+    }
+   ]
+  },
+  {
+   "id": "8bf8d59b3385b41a",
+   "name": "counted",
+   "hyps": 211,
+   "sources": [
+    {
+     "file": "runs/track-m/lane-b-roots-v1/raw/before/dump/41524-195.json",
+     "kind": "model",
+     "priorOutcome": "sat",
+     "priorWall": 58
+    },
+    {
+     "file": "runs/track-m/lane-b-roots-v1/raw/after/dump/21563-171.json",
+     "kind": "model",
+     "priorOutcome": "sat",
+     "priorWall": 76
+    }
+   ]
+  },
+  {
+   "id": "88d4d675d30b9aa0",
+   "name": "counted",
+   "hyps": 75,
+   "sources": [
+    {
+     "file": "runs/track-m/lane-b-roots-v1/raw/before/dump/41524-132.json",
+     "kind": "model",
+     "priorOutcome": "sat",
+     "priorWall": 45
+    },
+    {
+     "file": "runs/track-m/lane-b-roots-v1/raw/after/dump/21563-130.json",
+     "kind": "model",
+     "priorOutcome": "sat",
+     "priorWall": 74
+    }
+   ]
+  },
+  {
+   "id": "afa042c8f340cc43",
+   "name": "counted",
+   "hyps": 38,
+   "sources": [
+    {
+     "file": "runs/track-m/lane-b-roots-v1/raw/before/dump/41524-0.json",
+     "kind": "model",
+     "priorOutcome": "sat",
+     "priorWall": 39
+    },
+    {
+     "file": "runs/track-m/lane-b-roots-v1/raw/after/dump/21563-0.json",
+     "kind": "model",
+     "priorOutcome": "sat",
+     "priorWall": 73
+    }
+   ]
+  },
+  {
+   "id": "a4586a6140170c23",
+   "name": "CV at most 2 @step",
+   "hyps": 223,
+   "sources": [
+    {
+     "file": "runs/track-m/lane-b-roots-v1/raw/before/dump/41524-53.json",
+     "kind": "model",
+     "priorOutcome": "unknown",
+     "priorWall": 73
+    }
+   ]
+  },
+  {
+   "id": "2ffedbd98c47ba70",
+   "name": "counted",
+   "hyps": 56,
+   "sources": [
+    {
+     "file": "runs/track-m/lane-b-roots-v1/raw/before/dump/41524-226.json",
+     "kind": "model",
+     "priorOutcome": "sat",
+     "priorWall": 41
+    },
+    {
+     "file": "runs/track-m/lane-b-roots-v1/raw/after/dump/21563-200.json",
+     "kind": "model",
+     "priorOutcome": "sat",
+     "priorWall": 72
+    }
+   ]
+  },
+  {
+   "id": "975a777ebb405aeb",
+   "name": "CfgT at most 44 @step",
+   "hyps": 229,
+   "sources": [
+    {
+     "file": "runs/track-m/lane-b-roots-v1/raw/before/dump/41524-86.json",
+     "kind": "model",
+     "priorOutcome": "unknown",
+     "priorWall": 72
+    }
+   ]
+  },
+  {
+   "id": "57f0770c6ca37506",
+   "name": "counted",
+   "hyps": 80,
+   "sources": [
+    {
+     "file": "runs/track-m/lane-b-roots-v1/raw/before/dump/41524-93.json",
+     "kind": "model",
+     "priorOutcome": "sat",
+     "priorWall": 27
+    },
+    {
+     "file": "runs/track-m/lane-b-roots-v1/raw/after/dump/21563-118.json",
+     "kind": "model",
+     "priorOutcome": "sat",
+     "priorWall": 71
+    }
+   ]
+  },
+  {
+   "id": "1e6375e9a09dff78",
+   "name": "counted",
+   "hyps": 89,
+   "sources": [
+    {
+     "file": "runs/track-m/lane-b-roots-v1/raw/before/dump/41524-133.json",
+     "kind": "model",
+     "priorOutcome": "sat",
+     "priorWall": 37
+    },
+    {
+     "file": "runs/track-m/lane-b-roots-v1/raw/after/dump/21563-131.json",
+     "kind": "model",
+     "priorOutcome": "sat",
+     "priorWall": 71
+    }
+   ]
+  },
+  {
+   "id": "4f462fb3765c6c8d",
+   "name": "fields: St[a]=1 -> CT[a]=CT[b] -> CV[b]<=CV[a] @step",
+   "hyps": 200,
+   "sources": [
+    {
+     "file": "runs/track-m/lane-b-roots-v1/raw/before/dump/41524-101.json",
+     "kind": "model",
+     "priorOutcome": "unknown",
+     "priorWall": 23
+    },
+    {
+     "file": "runs/track-m/lane-b-roots-v1/raw/after/dump/21563-124.json",
+     "kind": "model",
+     "priorOutcome": "unknown",
+     "priorWall": 70
+    }
+   ]
+  },
+  {
+   "id": "9a9c4a21ae602238",
+   "name": "counted",
+   "hyps": 122,
+   "sources": [
+    {
+     "file": "runs/track-m/lane-b-roots-v1/raw/before/dump/41524-138.json",
+     "kind": "model",
+     "priorOutcome": "sat",
+     "priorWall": 16
+    },
+    {
+     "file": "runs/track-m/lane-b-roots-v1/raw/after/dump/21563-136.json",
+     "kind": "model",
+     "priorOutcome": "sat",
+     "priorWall": 69
+    }
+   ]
+  },
+  {
+   "id": "220f9a0fa689f052",
+   "name": "counted",
+   "hyps": 114,
+   "sources": [
+    {
+     "file": "runs/track-m/lane-b-roots-v1/raw/before/dump/41524-220.json",
+     "kind": "model",
+     "priorOutcome": "sat",
+     "priorWall": 39
+    },
+    {
+     "file": "runs/track-m/lane-b-roots-v1/raw/after/dump/21563-195.json",
+     "kind": "model",
+     "priorOutcome": "sat",
+     "priorWall": 68
+    }
+   ]
+  },
+  {
+   "id": "0749531da9e5938c",
+   "name": "counted",
+   "hyps": 92,
+   "sources": [
+    {
+     "file": "runs/track-m/lane-b-roots-v1/raw/before/dump/41524-88.json",
+     "kind": "model",
+     "priorOutcome": "sat",
+     "priorWall": 48
+    },
+    {
+     "file": "runs/track-m/lane-b-roots-v1/raw/after/dump/21563-113.json",
+     "kind": "model",
+     "priorOutcome": "sat",
+     "priorWall": 66
+    }
+   ]
+  },
+  {
+   "id": "2eda2328d3d8c73c",
+   "name": "counted",
+   "hyps": 155,
+   "sources": [
+    {
+     "file": "runs/track-m/lane-b-roots-v1/raw/before/dump/41524-98.json",
+     "kind": "model",
+     "priorOutcome": "sat",
+     "priorWall": 23
+    },
+    {
+     "file": "runs/track-m/lane-b-roots-v1/raw/after/dump/21563-121.json",
+     "kind": "model",
+     "priorOutcome": "sat",
+     "priorWall": 65
+    }
+   ]
+  },
+  {
+   "id": "8077bebc65aff80e",
+   "name": "fields: St[a]=1 -> CfgT[a]=CfgT[b] -> CV[b]<=CV[a] @step",
+   "hyps": 288,
+   "sources": [
+    {
+     "file": "runs/track-m/lane-b-roots-v1/raw/after/dump/21563-177.json",
+     "kind": "model",
+     "priorOutcome": "unknown",
+     "priorWall": 61
+    }
+   ]
+  },
+  {
+   "id": "005aa87a933bcf0e",
+   "name": "counted",
+   "hyps": 73,
+   "sources": [
+    {
+     "file": "runs/track-m/lane-b-roots-v1/raw/before/dump/41524-56.json",
+     "kind": "model",
+     "priorOutcome": "sat",
+     "priorWall": 27
+    },
+    {
+     "file": "runs/track-m/lane-b-roots-v1/raw/after/dump/21563-83.json",
+     "kind": "model",
+     "priorOutcome": "sat",
+     "priorWall": 58
+    }
+   ]
+  },
+  {
+   "id": "424aa4b051d7f483",
+   "name": "fields: St[a]=1 -> CT[a]=CT[b] -> CV[b]<=CV[a] @step",
+   "hyps": 191,
+   "sources": [
+    {
+     "file": "runs/track-m/lane-b-roots-v1/raw/before/dump/41524-129.json",
+     "kind": "model",
+     "priorOutcome": "unknown",
+     "priorWall": 30
+    },
+    {
+     "file": "runs/track-m/lane-b-roots-v1/raw/after/dump/21563-129.json",
+     "kind": "model",
+     "priorOutcome": "unknown",
+     "priorWall": 58
+    }
+   ]
+  },
+  {
+   "id": "45fa858f2076aed2",
+   "name": "counted",
+   "hyps": 61,
+   "sources": [
+    {
+     "file": "runs/track-m/lane-b-roots-v1/raw/before/dump/41524-2.json",
+     "kind": "model",
+     "priorOutcome": "sat",
+     "priorWall": 22
+    },
+    {
+     "file": "runs/track-m/lane-b-roots-v1/raw/after/dump/21563-2.json",
+     "kind": "model",
+     "priorOutcome": "sat",
+     "priorWall": 58
+    }
+   ]
+  },
+  {
+   "id": "5ec9e8585ef0b0c5",
+   "name": "counted",
+   "hyps": 106,
+   "sources": [
+    {
+     "file": "runs/track-m/lane-b-roots-v1/raw/before/dump/41524-136.json",
+     "kind": "model",
+     "priorOutcome": "sat",
+     "priorWall": 38
+    },
+    {
+     "file": "runs/track-m/lane-b-roots-v1/raw/after/dump/21563-134.json",
+     "kind": "model",
+     "priorOutcome": "sat",
+     "priorWall": 57
+    }
+   ]
+  },
+  {
+   "id": "ea267d9ae7f8d59a",
+   "name": "counted",
+   "hyps": 81,
+   "sources": [
+    {
+     "file": "runs/track-m/lane-b-roots-v1/raw/before/dump/41524-230.json",
+     "kind": "model",
+     "priorOutcome": "sat",
+     "priorWall": 46
+    },
+    {
+     "file": "runs/track-m/lane-b-roots-v1/raw/after/dump/21563-204.json",
+     "kind": "model",
+     "priorOutcome": "sat",
+     "priorWall": 57
+    }
+   ]
+  },
+  {
+   "id": "60cadfeaefb32d64",
+   "name": "CT at most 44 @step",
+   "hyps": 157,
+   "sources": [
+    {
+     "file": "runs/track-m/lane-b-roots-v1/raw/before/dump/41524-18.json",
+     "kind": "model",
+     "priorOutcome": "sat",
+     "priorWall": 57
+    }
+   ]
+  },
+  {
+   "id": "8fa20ba47a750058",
+   "name": "CT at most 44 @step",
+   "hyps": 166,
+   "sources": [
+    {
+     "file": "runs/track-m/lane-b-roots-v1/raw/after/dump/21563-26.json",
+     "kind": "model",
+     "priorOutcome": "sat",
+     "priorWall": 57
+    }
+   ]
+  },
+  {
+   "id": "6d9ded8e4efcce11",
+   "name": "counted",
+   "hyps": 165,
+   "sources": [
+    {
+     "file": "runs/track-m/lane-b-roots-v1/raw/before/dump/41524-192.json",
+     "kind": "model",
+     "priorOutcome": "sat",
+     "priorWall": 35
+    },
+    {
+     "file": "runs/track-m/lane-b-roots-v1/raw/after/dump/21563-168.json",
+     "kind": "model",
+     "priorOutcome": "sat",
+     "priorWall": 54
+    }
+   ]
+  },
+  {
+   "id": "d505bade882d95b4",
+   "name": "counted",
+   "hyps": 57,
+   "sources": [
+    {
+     "file": "runs/track-m/lane-b-roots-v1/raw/before/dump/41524-92.json",
+     "kind": "model",
+     "priorOutcome": "sat",
+     "priorWall": 52
+    },
+    {
+     "file": "runs/track-m/lane-b-roots-v1/raw/after/dump/21563-117.json",
+     "kind": "model",
+     "priorOutcome": "sat",
+     "priorWall": 54
+    }
+   ]
+  },
+  {
+   "id": "ffbd66adebf28f37",
+   "name": "CT at most 44 @step",
+   "hyps": 139,
+   "sources": [
+    {
+     "file": "runs/track-m/lane-b-roots-v1/raw/after/dump/21563-30.json",
+     "kind": "model",
+     "priorOutcome": "unknown",
+     "priorWall": 54
+    }
+   ]
+  },
+  {
+   "id": "fc72d7af96757152",
+   "name": "fields: St[a]=1 -> CT[a]=CT[b] -> CfgT[b]<=CfgT[a] @step",
+   "hyps": 184,
+   "sources": [
+    {
+     "file": "runs/track-m/lane-b-roots-v1/raw/before/dump/41524-175.json",
+     "kind": "model",
+     "priorOutcome": "unknown",
+     "priorWall": 27
+    },
+    {
+     "file": "runs/track-m/lane-b-roots-v1/raw/after/dump/21563-152.json",
+     "kind": "model",
+     "priorOutcome": "unknown",
+     "priorWall": 53
+    }
+   ]
+  },
+  {
+   "id": "c93e18974697291e",
+   "name": "counted",
+   "hyps": 72,
+   "sources": [
+    {
+     "file": "runs/track-m/lane-b-roots-v1/raw/before/dump/41524-202.json",
+     "kind": "model",
+     "priorOutcome": "sat",
+     "priorWall": 40
+    },
+    {
+     "file": "runs/track-m/lane-b-roots-v1/raw/after/dump/21563-178.json",
+     "kind": "model",
+     "priorOutcome": "sat",
+     "priorWall": 52
+    }
+   ]
+  },
+  {
+   "id": "a26c1bfa0d7be51a",
+   "name": "counted",
+   "hyps": 109,
+   "sources": [
+    {
+     "file": "runs/track-m/lane-b-roots-v1/raw/before/dump/41524-208.json",
+     "kind": "model",
+     "priorOutcome": "sat",
+     "priorWall": 19
+    },
+    {
+     "file": "runs/track-m/lane-b-roots-v1/raw/after/dump/21563-184.json",
+     "kind": "model",
+     "priorOutcome": "sat",
+     "priorWall": 51
+    }
+   ]
+  },
+  {
+   "id": "52275e43c58ee5cb",
+   "name": "CT at most 44 @step",
+   "hyps": 142,
+   "sources": [
+    {
+     "file": "runs/track-m/lane-b-roots-v1/raw/after/dump/21563-44.json",
+     "kind": "model",
+     "priorOutcome": "sat",
+     "priorWall": 51
+    }
+   ]
+  },
+  {
+   "id": "e4096c0f60d0412f",
+   "name": "counted",
+   "hyps": 118,
+   "sources": [
+    {
+     "file": "runs/track-m/lane-b-roots-v1/raw/before/dump/41524-147.json",
+     "kind": "model",
+     "priorOutcome": "sat",
+     "priorWall": 49
+    },
+    {
+     "file": "runs/track-m/lane-b-roots-v1/raw/after/dump/21563-145.json",
+     "kind": "model",
+     "priorOutcome": "sat",
+     "priorWall": 26
+    }
+   ]
+  },
+  {
+   "id": "546200907a0c2d01",
+   "name": "counted",
+   "hyps": 49,
+   "sources": [
+    {
+     "file": "runs/track-m/lane-b-roots-v1/raw/before/dump/41524-1.json",
+     "kind": "model",
+     "priorOutcome": "sat",
+     "priorWall": 22
+    },
+    {
+     "file": "runs/track-m/lane-b-roots-v1/raw/after/dump/21563-1.json",
+     "kind": "model",
+     "priorOutcome": "sat",
+     "priorWall": 46
+    }
+   ]
+  },
+  {
+   "id": "3eb6b07bce4f5e1c",
+   "name": "counted",
+   "hyps": 60,
+   "sources": [
+    {
+     "file": "runs/track-m/lane-b-roots-v1/raw/before/dump/41524-55.json",
+     "kind": "model",
+     "priorOutcome": "sat",
+     "priorWall": 19
+    },
+    {
+     "file": "runs/track-m/lane-b-roots-v1/raw/after/dump/21563-82.json",
+     "kind": "model",
+     "priorOutcome": "sat",
+     "priorWall": 46
+    }
+   ]
+  },
+  {
+   "id": "3ed663245c1344fa",
+   "name": "counted",
+   "hyps": 63,
+   "sources": [
+    {
+     "file": "runs/track-m/lane-b-roots-v1/raw/before/dump/41524-29.json",
+     "kind": "model",
+     "priorOutcome": "sat",
+     "priorWall": 19
+    },
+    {
+     "file": "runs/track-m/lane-b-roots-v1/raw/after/dump/21563-57.json",
+     "kind": "model",
+     "priorOutcome": "sat",
+     "priorWall": 44
+    }
+   ]
+  },
+  {
+   "id": "98025c614489fd00",
+   "name": "counted",
+   "hyps": 126,
+   "sources": [
+    {
+     "file": "runs/track-m/lane-b-roots-v1/raw/before/dump/41524-209.json",
+     "kind": "model",
+     "priorOutcome": "sat",
+     "priorWall": 19
+    },
+    {
+     "file": "runs/track-m/lane-b-roots-v1/raw/after/dump/21563-185.json",
+     "kind": "model",
+     "priorOutcome": "sat",
+     "priorWall": 42
+    }
+   ]
+  },
+  {
+   "id": "c229f5bf53ce2144",
+   "name": "CfgT at most 44 @step",
+   "hyps": 109,
+   "sources": [
+    {
+     "file": "runs/track-m/lane-b-roots-v1/raw/before/dump/41524-64.json",
+     "kind": "model",
+     "priorOutcome": "sat",
+     "priorWall": 11
+    },
+    {
+     "file": "runs/track-m/lane-b-roots-v1/raw/after/dump/21563-91.json",
+     "kind": "model",
+     "priorOutcome": "sat",
+     "priorWall": 42
+    }
+   ]
+  },
+  {
+   "id": "f8c2df91ca04c34d",
+   "name": "counted",
+   "hyps": 119,
+   "sources": [
+    {
+     "file": "runs/track-m/lane-b-roots-v1/raw/before/dump/41524-90.json",
+     "kind": "model",
+     "priorOutcome": "sat",
+     "priorWall": 14
+    },
+    {
+     "file": "runs/track-m/lane-b-roots-v1/raw/after/dump/21563-115.json",
+     "kind": "model",
+     "priorOutcome": "sat",
+     "priorWall": 42
+    }
+   ]
+  },
+  {
+   "id": "a726cda14ad79bc0",
+   "name": "CT at most 44 @step",
+   "hyps": 173,
+   "sources": [
+    {
+     "file": "runs/track-m/lane-b-roots-v1/raw/after/dump/21563-28.json",
+     "kind": "grow",
+     "priorOutcome": "unknown",
+     "priorWall": 42
+    }
+   ]
+  },
+  {
+   "id": "82f488ae7718c107",
+   "name": "CT at most 44 @step",
+   "hyps": 147,
+   "sources": [
+    {
+     "file": "runs/track-m/lane-b-roots-v1/raw/after/dump/21563-45.json",
+     "kind": "model",
+     "priorOutcome": "sat",
+     "priorWall": 42
+    }
+   ]
+  },
+  {
+   "id": "65b09c5fc35d7201",
+   "name": "fields: St[a]=1 -> CT[a]=CT[b] -> CV[b]<=CV[a] @step",
+   "hyps": 203,
+   "sources": [
+    {
+     "file": "runs/track-m/lane-b-roots-v1/raw/before/dump/41524-107.json",
+     "kind": "model",
+     "priorOutcome": "unknown",
+     "priorWall": 41
+    }
+   ]
+  },
+  {
+   "id": "5008e82738c1a3b1",
+   "name": "CfgT at most 44 @step",
+   "hyps": 101,
+   "sources": [
+    {
+     "file": "runs/track-m/lane-b-roots-v1/raw/before/dump/41524-83.json",
+     "kind": "model",
+     "priorOutcome": "sat",
+     "priorWall": 12
+    },
+    {
+     "file": "runs/track-m/lane-b-roots-v1/raw/after/dump/21563-111.json",
+     "kind": "model",
+     "priorOutcome": "sat",
+     "priorWall": 41
+    }
+   ]
+  },
+  {
+   "id": "7af1a643e81ca9ae",
+   "name": "counted",
+   "hyps": 138,
+   "sources": [
+    {
+     "file": "runs/track-m/lane-b-roots-v1/raw/before/dump/41524-191.json",
+     "kind": "model",
+     "priorOutcome": "sat",
+     "priorWall": 18
+    },
+    {
+     "file": "runs/track-m/lane-b-roots-v1/raw/after/dump/21563-167.json",
+     "kind": "model",
+     "priorOutcome": "sat",
+     "priorWall": 40
+    }
+   ]
+  },
+  {
+   "id": "af6b1845a73bd301",
+   "name": "fields: St[a]=1 -> CT[a]=CT[b] -> CfgT[b]<=CfgT[a] @step",
+   "hyps": 158,
+   "sources": [
+    {
+     "file": "runs/track-m/lane-b-roots-v1/raw/before/dump/41524-151.json",
+     "kind": "model",
+     "priorOutcome": "sat",
+     "priorWall": 33
+    },
+    {
+     "file": "runs/track-m/lane-b-roots-v1/raw/after/dump/21563-149.json",
+     "kind": "model",
+     "priorOutcome": "sat",
+     "priorWall": 39
+    }
+   ]
+  }
+ ],
+ "skipped": [],
+ "jobs": 288
+}

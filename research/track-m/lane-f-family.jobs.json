@@ -1,0 +1,72 @@
+[
+  {
+    "name": "overlap-current",
+    "cmd": "CLASS_FIRST=0 bash research/track-m/lane-f-pair.sh family overlap 0 before",
+    "cpu": 2,
+    "memory": 8192,
+    "timeout": 180
+  },
+  {
+    "name": "overlap-class",
+    "cmd": "CLASS_FIRST=1 bash research/track-m/lane-f-pair.sh family overlap 0 before",
+    "cpu": 2,
+    "memory": 8192,
+    "timeout": 180
+  },
+  {
+    "name": "rows-current",
+    "cmd": "CLASS_FIRST=0 bash research/track-m/lane-f-pair.sh family rows 0 after",
+    "cpu": 2,
+    "memory": 8192,
+    "timeout": 180
+  },
+  {
+    "name": "rows-class",
+    "cmd": "CLASS_FIRST=1 bash research/track-m/lane-f-pair.sh family rows 0 after",
+    "cpu": 2,
+    "memory": 8192,
+    "timeout": 180
+  },
+  {
+    "name": "star-current",
+    "cmd": "CLASS_FIRST=0 bash research/track-m/lane-f-pair.sh family star 0 before",
+    "cpu": 2,
+    "memory": 8192,
+    "timeout": 180
+  },
+  {
+    "name": "star-class",
+    "cmd": "CLASS_FIRST=1 bash research/track-m/lane-f-pair.sh family star 0 before",
+    "cpu": 2,
+    "memory": 8192,
+    "timeout": 180
+  },
+  {
+    "name": "safety-current",
+    "cmd": "CLASS_FIRST=0 bash research/track-m/lane-f-pair.sh family safety 0 after",
+    "cpu": 2,
+    "memory": 8192,
+    "timeout": 180
+  },
+  {
+    "name": "safety-class",
+    "cmd": "CLASS_FIRST=1 bash research/track-m/lane-f-pair.sh family safety 0 after",
+    "cpu": 2,
+    "memory": 8192,
+    "timeout": 180
+  },
+  {
+    "name": "p1-current",
+    "cmd": "CLASS_FIRST=0 bash research/track-m/lane-f-pair.sh family p1 0 before",
+    "cpu": 2,
+    "memory": 8192,
+    "timeout": 180
+  },
+  {
+    "name": "p1-class",
+    "cmd": "CLASS_FIRST=1 bash research/track-m/lane-f-pair.sh family p1 0 before",
+    "cpu": 2,
+    "memory": 8192,
+    "timeout": 180
+  }
+]

@@ -1,7 +1,7 @@
 import {expect,test} from 'bun:test'
 import {type Law,type Machine,n,x} from './machine.ts'
 import {countedAttempts,countsDump} from './counts.ts'
-import {clock,counted,fullRate,withDeadline,withWall} from '../kernel/prove.ts'
+import {clock,counted,fullRate,withinDeadline,withDeadline,withWall} from '../kernel/prove.ts'
 import {checkMC,countedObligations} from '../kernel/kernel.ts'
 
 test('bounded relevance preflight lifts a proof and never promotes a subset model',()=>{
@@ -20,3 +20,18 @@ test('bounded relevance preflight lifts a proof and never promotes a subset mode
   expect(events.some(e=>e.phase==='preflight-proven'&&e.hyps>64)).toBe(true)
  }finally{countsDump.on=old}
 },10000)
+
+test('counted model queries inherit the attempt end, not the outer allowance', () => {
+ const m:Machine={name:'attempt cap',params:[],inputs:[],state:{},maps:{A:0},counts:{Total:{j:'row',key:'key',below:n(2),body:{op:'get',map:'A',key:x('key')}}},step:{maps:{A:{key:n(0),value:n(1)}}}}
+ const law:Law={name:'empty count',holds:{op:'=',a:{op:'get',map:'Total',key:n(0)},b:n(0)}}
+ const prior=countsDump.on
+ try {
+  for(const pass of [0,1] as const) counted(fullRate,()=>{
+   const end=clock()+100, observed:number[]=[]
+   countsDump.on=e=>{if('phase'in e&&e.phase==='query')observed.push(withinDeadline(Infinity))}
+   withDeadline(end+5000,()=>countedAttempts(m,[law],new Set(),end+5000).traced(law,[law],pass,100))
+   expect(observed.length).toBeGreaterThan(0)
+   expect(observed.every(x=>x<=end)).toBe(true)
+  },true)
+ }finally{countsDump.on=prior}
+})

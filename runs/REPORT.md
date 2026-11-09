@@ -1,5 +1,15 @@
 # Lane E — guarded inclusion integration
 
+## Production-premise continuation
+
+Pulled Lane B `568fc570` into this branch, including its existing Lane A
+audit/finite-generation repairs and Lane F row-policy integration. Core
+conflicts merged automatically; this report preserves the Lane E history.
+Upstream reports remain available with `git show 568fc570:runs/REPORT.md`.
+Those upstream diagnostic claims are not transferred to this branch.
+The new task is to derive and instantiate member-inclusion premises in
+production, without saved proof assumptions, protocol names or packing widths.
+
 Branch: `claude/mldr-incl`. **NOT GATE GREEN; full gate pending; no merge claim.**
 
 The audit code repair is committed as **`3f976cba`**, with archive-preflight

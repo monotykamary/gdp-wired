@@ -1,0 +1,15 @@
+[
+ {"name":"check","cmd":"bash research/track-m/lane-b-parallel.sh check","cpu":8,"memory":14336,"timeout":300},
+ {"name":"capture-before","cmd":"bash research/track-m/lane-b-parallel.sh capture before","cpu":8,"memory":14336,"timeout":240},
+ {"name":"capture-after","cmd":"bash research/track-m/lane-b-parallel.sh capture after","cpu":8,"memory":14336,"timeout":240},
+ {"name":"overlap-before","cmd":"bash research/track-m/lane-b-parallel.sh cost before overlap","cpu":8,"memory":14336,"timeout":240},
+ {"name":"overlap-after","cmd":"bash research/track-m/lane-b-parallel.sh cost after overlap","cpu":8,"memory":14336,"timeout":240},
+ {"name":"rows-before","cmd":"bash research/track-m/lane-b-parallel.sh cost before rows","cpu":8,"memory":14336,"timeout":240},
+ {"name":"rows-after","cmd":"bash research/track-m/lane-b-parallel.sh cost after rows","cpu":8,"memory":14336,"timeout":240},
+ {"name":"star-before","cmd":"bash research/track-m/lane-b-parallel.sh cost before star","cpu":8,"memory":14336,"timeout":240},
+ {"name":"star-after","cmd":"bash research/track-m/lane-b-parallel.sh cost after star","cpu":8,"memory":14336,"timeout":240},
+ {"name":"safety-before","cmd":"bash research/track-m/lane-b-parallel.sh cost before safety","cpu":8,"memory":14336,"timeout":240},
+ {"name":"safety-after","cmd":"bash research/track-m/lane-b-parallel.sh cost after safety","cpu":8,"memory":14336,"timeout":240},
+ {"name":"p1-before","cmd":"bash research/track-m/lane-b-parallel.sh cost before p1","cpu":8,"memory":14336,"timeout":240},
+ {"name":"p1-after","cmd":"bash research/track-m/lane-b-parallel.sh cost after p1","cpu":8,"memory":14336,"timeout":240}
+]

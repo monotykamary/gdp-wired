@@ -1,0 +1,75 @@
+Found 0 warnings and 0 errors.
+Finished in 28.5s on 1343 files with 100 rules using 2 threads.
+bun test v1.4.3 (c6da4a4d3)
+bun test v1.4.3 (c6da4a4d3)
+
+--- stderr ---
+$ tsc -p . && oxlint --type-aware --deny-warnings --disable-nested-config
+
+core/count-completion.test.ts:
+(pass) completes whole tuples of assumed laws, deduplicated, without mutating the old map [1.11ms]
+(pass) completion is bounded to four terms, binary laws, 48 new tuples and existing generation fuel [0.29ms]
+(pass) a complete original premise, not a trusted fact, closes the ordinary checked goal [2.78ms]
+
+core/count-recovery/guard-cases.test.ts:
+(pass) default Boolean activation covers both branches (impossible=true) [3.74ms]
+(pass) default Boolean activation covers both branches (impossible=false) [5.92ms]
+(pass) activation proofs retain their original non-empty path scope [0.33ms]
+(pass) activation proposals pass the complete source check (deferred=false) [0.57ms]
+(pass) activation proposals pass the complete source check (deferred=true) [0.22ms]
+
+core/count-recovery/field-bound-budget.test.ts:
+(pass) an expired source budget returns before inspecting machine rows [0.04ms]
+(pass) an expired wall stops source construction even when counted work remains [0.71ms]
+
+core/count-recovery/field-demand.test.ts:
+(pass) active leaf draws conserve the original allowance and never extend it [0.03ms]
+(pass) field demand distinguishes core, model, absence and missing observation [0.30ms]
+(pass) a parent observation cannot claim demand absence at a stronger child scope [0.06ms]
+(pass) nested attempt costs are exclusive and both are recorded on unwind [0.08ms]
+(pass) disabled observer does not inspect a goal or alter the candidate [0.01ms]
+
+core/count-recovery/field-bound-lemmas.test.ts:
+(pass) packed column domains are split once before row reconstruction and checked [32.57ms]
+(pass) empty-count candidates are post-state singleton upper bounds on field comparisons [0.15ms]
+(pass) a singleton empty count checks at a zero threshold [12.19ms]
+(pass) a singleton empty count is not assumed empty [7.28ms]
+(pass) numeric count bridges include nested path cells but omit unrelated reads [0.13ms]
+(pass) strict successor member bounds suggest checked field ceilings without protocol names [4.87ms]
+(pass) ceilings retain input-key fields used by a write beside the post-count target [0.17ms]
+(pass) field conclusions retain their own ceiling target beside a write actor [0.12ms]
+(pass) equal per-member fields also suggest checked ceiling candidates [0.84ms]
+(pass) a sufficient field ceiling closes before unrelated ceiling proposals [12.14ms]
+(pass) equal row keys produce checked count-read alias cuts [1.43ms]
+(pass) ceiling slices keep carried membership encoded as 1 <= the set cell [20.56ms]
+
+core/count-recovery/leaf-allowance.test.ts:
+(pass) leaf draws take an even remaining share with a one-third ceiling [0.09ms]
+(pass) one third is a ceiling, not a floor or a last-leaf windfall [0.01ms]
+(pass) successive draws conserve spent plus unspent allowance [0.05ms]
+(pass) split children spend one parent draw and cannot obtain another [0.01ms]
+
+ 31 pass
+ 0 fail
+ 309 expect() calls
+Ran 31 tests across 6 files. [132.00ms]
+
+core/count-recovery/member-inclusions.test.ts:
+(pass) equality consequents discharge reflexive bodies and retain scalar residue  [1.19ms]
+(pass) equality consequents discharge reflexive bodies and retain scalar residue renamed_ [0.17ms]
+(pass) unknown membership is not treated as implied [0.11ms]
+(pass) an inequality is not a substitution [0.07ms]
+(pass) different domains cannot form an inclusion [0.07ms]
+(pass) another carried map does not supply these member facts [0.08ms]
+(pass) a still-member-dependent predicate is not a scalar residue [0.11ms]
+(pass) without an equality rewrite, ordinary membership stays with the old family [0.06ms]
+(pass) a discharged equality may yield an unconditional candidate, never an asserted cut [0.06ms]
+(pass) cyclic input is refused before recursive substitution [0.03ms]
+(pass) ordinary selection receives an existing guarded inclusion within its unchanged cap [0.59ms]
+(pass) selection cannot manufacture a missing instance or borrow unrelated member flags [0.09ms]
+(pass) selection respects an explicitly smaller cap and does not assert its scalar residue [0.10ms]
+
+ 13 pass
+ 0 fail
+ 21 expect() calls
+Ran 13 tests across 1 file. [11.00ms]

@@ -1,0 +1,4 @@
+[
+ {"name":"real-certificates","cmd":"bun install --frozen-lockfile >/dev/null && for f in receipts/real/*.json.gz; do timeout -s KILL 120 bun research/track-m/audit-lane-b-cost.ts \"$f\"; done","cpu":2,"memory":8192,"timeout":180},
+ {"name":"leaf-ledgers","cmd":"bun install --frozen-lockfile >/dev/null && for f in receipts/leaf/*.json; do bun research/track-m/audit-lane-b-op.ts \"$f\"; done","cpu":2,"memory":8192,"timeout":180}
+]

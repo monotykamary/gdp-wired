@@ -1,0 +1,13 @@
+fix(core): certify finite CTIs and cap each counted attempt
+
+Complete solver models to finite states, recompute derived counts, check
+the whole relative family, and execute the actual enabled transition.
+Only a certified counterexample skips the other counted pass. Unsupported
+or spurious pass-1 models are unknown, not asserted counterexamples.
+
+Pass one attempt end through decisions, refinement and both grow paths.
+Remove the doubled decision share and restarted growth windows. Preserve
+caller priority in supportBudget and the existing failed-proof policy.
+
+Test full-family checks, spoofed counts, requests, finite aliases and both
+passes' inherited deadlines. Kernel and protocol models are unchanged.

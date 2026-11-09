@@ -1,0 +1,7 @@
+{"artifact":"track-m-tar-v1","dir":"/home/user/track-m-s18-receipts-ou9hCs","format":"tar.gz","parts":1,"bytes":105,"sha256":"34975297dc52b90ef5b4abed2c5316d9a49c81ad079cff8b32de796ef9b613c4"}
+
+--- stderr ---
+tar (child): /work/before/receipts.tar.gz: Cannot open: No such file or directory
+tar (child): Error is not recoverable: exiting now
+tar: Child returned status 2
+tar: Error is not recoverable: exiting now

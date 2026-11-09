@@ -1,0 +1,328 @@
+{
+  "iterationOnly": true,
+  "gateGreen": false,
+  "independentAuditPending": false,
+  "familySha256": "5c9aa44bca08790afdf331b290f101b6ca5d177133e662f5f6f1e80aa6cebc6f",
+  "rows": [
+    {
+      "name": "safety-base-helpers-reconstruction-full",
+      "comparison": "partition",
+      "placement": {
+        "vm": "bx_a83zj5st",
+        "type": "large",
+        "cpu": "AMD Ryzen 9 9950X 16-Core Processor",
+        "vcpus": 8,
+        "vm_vcpus": 8,
+        "exclusive": true,
+        "co_tenants": 0
+      },
+      "archiveSha256": "9e9dc77bd7e2b40f6aaa484f6ccb8e17c197690b9e5a44c83bbd87eb10d8eaec",
+      "logSha256": "d18fa70fa001d8399e463750e44a7688d2dec9807d6a8d120a1f061c24e62ea1",
+      "order": [
+        "base",
+        "helpers",
+        "reconstruction",
+        "full"
+      ],
+      "arms": [
+        {
+          "side": "base",
+          "policy": "base",
+          "tag": "safety",
+          "law": "one primary per term",
+          "workerChecked": true,
+          "withinPassLine": true,
+          "units": 4488.588814,
+          "wallMs": 5471.040002000001,
+          "searchWallMs": 4806.83209,
+          "checkWallMs": 664.208122,
+          "sourceHashes": [
+            "6dafd763471a716d77b39ef7424a0ecd48c64505f78554ef72e05a1e615af600  core/count-cases.ts",
+            "5e2f668bc304e1bdeb0c4b8126d4289cf757bbd88ffb182e67a35a2d84642b77  core/count-recovery/guard-cases.ts",
+            "d3217b3cd64c716b161cf9a98286e7270f4e414f7aac09c124b2b82707c8859e  core/count-recovery/field-bound-lemmas.ts",
+            "d70f618833a9770f75316363b97bfb79efabb50662fc1dae446aa93826563018  core/count-recovery/row-cases.ts",
+            "fdd8a6aee4f3878747401c0d3d58fd76dde2ec79bb4afd765814b1b0ba810b6b  core/count-recovery/derivability-closure.ts",
+            "8381ff0a8ac4f982d1346de897741b907d13edc4541c8575d3ba2d30443943d3  core/count-recovery/field-demand.ts"
+          ],
+          "sourceBytesVerified": true,
+          "audit": {
+            "sourceLog": "runs/track-m/lane-b-partition-audit-v1/safety.log",
+            "logSha256": "9917ea6c26bb8fcd3e0303bb22d169b8e88ef3c6ef6e9f33b0b92748769e4bf2",
+            "conditional": true,
+            "checked": true
+          }
+        },
+        {
+          "side": "helpers",
+          "policy": "leaf-helpers",
+          "tag": "safety",
+          "law": "one primary per term",
+          "workerChecked": true,
+          "withinPassLine": true,
+          "units": 4496.6660403999995,
+          "wallMs": 4564.437801,
+          "searchWallMs": 3984.678647,
+          "checkWallMs": 579.7592440000003,
+          "sourceHashes": [
+            "6dafd763471a716d77b39ef7424a0ecd48c64505f78554ef72e05a1e615af600  core/count-cases.ts",
+            "0a0778508c5dec30138360d877fe3eefed2980ddcd52f7b6a6a8f31c9fab3531  core/count-recovery/guard-cases.ts",
+            "cf2a74ccb71a62d85466745ab04b8a416c933e140cf9ed2679c07eede4020cb7  core/count-recovery/field-bound-lemmas.ts",
+            "63219fd99bd030d276a7f2329e4c022f7d3d29712b805bd0983376faab9c1f89  core/count-recovery/row-cases.ts",
+            "fdd8a6aee4f3878747401c0d3d58fd76dde2ec79bb4afd765814b1b0ba810b6b  core/count-recovery/derivability-closure.ts",
+            "8381ff0a8ac4f982d1346de897741b907d13edc4541c8575d3ba2d30443943d3  core/count-recovery/field-demand.ts"
+          ],
+          "sourceBytesVerified": true,
+          "audit": {
+            "sourceLog": "runs/track-m/lane-b-partition-audit-v1/safety.log",
+            "logSha256": "9917ea6c26bb8fcd3e0303bb22d169b8e88ef3c6ef6e9f33b0b92748769e4bf2",
+            "conditional": true,
+            "checked": true
+          }
+        },
+        {
+          "side": "reconstruction",
+          "policy": "leaf-reconstruction",
+          "tag": "safety",
+          "law": "one primary per term",
+          "workerChecked": false,
+          "withinPassLine": false,
+          "units": 5962.3620468,
+          "wallMs": 7013.071869,
+          "searchWallMs": 7012.902181,
+          "checkWallMs": 0.1695369999997638,
+          "sourceHashes": [
+            "f90b52382aed2614854735e38350c74d241dae4908ad4d6d28fc7b7925868ff3  core/count-cases.ts",
+            "5e2f668bc304e1bdeb0c4b8126d4289cf757bbd88ffb182e67a35a2d84642b77  core/count-recovery/guard-cases.ts",
+            "d3217b3cd64c716b161cf9a98286e7270f4e414f7aac09c124b2b82707c8859e  core/count-recovery/field-bound-lemmas.ts",
+            "d70f618833a9770f75316363b97bfb79efabb50662fc1dae446aa93826563018  core/count-recovery/row-cases.ts",
+            "fdd8a6aee4f3878747401c0d3d58fd76dde2ec79bb4afd765814b1b0ba810b6b  core/count-recovery/derivability-closure.ts",
+            "8381ff0a8ac4f982d1346de897741b907d13edc4541c8575d3ba2d30443943d3  core/count-recovery/field-demand.ts"
+          ],
+          "sourceBytesVerified": true,
+          "audit": {
+            "sourceLog": "runs/track-m/lane-b-partition-audit-v1/safety.log",
+            "logSha256": "9917ea6c26bb8fcd3e0303bb22d169b8e88ef3c6ef6e9f33b0b92748769e4bf2",
+            "conditional": true,
+            "checked": false
+          }
+        },
+        {
+          "side": "full",
+          "policy": "leaf-full",
+          "tag": "safety",
+          "law": "one primary per term",
+          "workerChecked": false,
+          "withinPassLine": false,
+          "units": 5964.4010908,
+          "wallMs": 7014.514981,
+          "searchWallMs": 7013.675218,
+          "checkWallMs": 0.8400330000004033,
+          "sourceHashes": [
+            "f90b52382aed2614854735e38350c74d241dae4908ad4d6d28fc7b7925868ff3  core/count-cases.ts",
+            "0a0778508c5dec30138360d877fe3eefed2980ddcd52f7b6a6a8f31c9fab3531  core/count-recovery/guard-cases.ts",
+            "cf2a74ccb71a62d85466745ab04b8a416c933e140cf9ed2679c07eede4020cb7  core/count-recovery/field-bound-lemmas.ts",
+            "63219fd99bd030d276a7f2329e4c022f7d3d29712b805bd0983376faab9c1f89  core/count-recovery/row-cases.ts",
+            "fdd8a6aee4f3878747401c0d3d58fd76dde2ec79bb4afd765814b1b0ba810b6b  core/count-recovery/derivability-closure.ts",
+            "8381ff0a8ac4f982d1346de897741b907d13edc4541c8575d3ba2d30443943d3  core/count-recovery/field-demand.ts"
+          ],
+          "sourceBytesVerified": true,
+          "audit": {
+            "sourceLog": "runs/track-m/lane-b-partition-audit-v1/safety.log",
+            "logSha256": "9917ea6c26bb8fcd3e0303bb22d169b8e88ef3c6ef6e9f33b0b92748769e4bf2",
+            "conditional": true,
+            "checked": false
+          }
+        }
+      ],
+      "before": {
+        "side": "base",
+        "policy": "base",
+        "tag": "safety",
+        "law": "one primary per term",
+        "workerChecked": true,
+        "withinPassLine": true,
+        "units": 4488.588814,
+        "wallMs": 5471.040002000001,
+        "searchWallMs": 4806.83209,
+        "checkWallMs": 664.208122,
+        "sourceHashes": [
+          "6dafd763471a716d77b39ef7424a0ecd48c64505f78554ef72e05a1e615af600  core/count-cases.ts",
+          "5e2f668bc304e1bdeb0c4b8126d4289cf757bbd88ffb182e67a35a2d84642b77  core/count-recovery/guard-cases.ts",
+          "d3217b3cd64c716b161cf9a98286e7270f4e414f7aac09c124b2b82707c8859e  core/count-recovery/field-bound-lemmas.ts",
+          "d70f618833a9770f75316363b97bfb79efabb50662fc1dae446aa93826563018  core/count-recovery/row-cases.ts",
+          "fdd8a6aee4f3878747401c0d3d58fd76dde2ec79bb4afd765814b1b0ba810b6b  core/count-recovery/derivability-closure.ts",
+          "8381ff0a8ac4f982d1346de897741b907d13edc4541c8575d3ba2d30443943d3  core/count-recovery/field-demand.ts"
+        ],
+        "sourceBytesVerified": true
+      },
+      "workerCheckedLost": true,
+      "unitDelta": null,
+      "wallDelta": null
+    },
+    {
+      "name": "safety-full-reconstruction-helpers-base",
+      "comparison": "partition",
+      "placement": {
+        "vm": "bx_7vpz29xf",
+        "type": "large",
+        "cpu": "AMD EPYC 4585PX 16-Core Processor",
+        "vcpus": 8,
+        "vm_vcpus": 8,
+        "exclusive": true,
+        "co_tenants": 0
+      },
+      "archiveSha256": "315747d65b1855f0db4b3802ddfdf37725ae0b8e629a625589e2332dabf3b754",
+      "logSha256": "1656817bd689db1599e4e9ac9d945b1a1ef93c23bfda37c221b45355814aad9b",
+      "order": [
+        "full",
+        "reconstruction",
+        "helpers",
+        "base"
+      ],
+      "arms": [
+        {
+          "side": "full",
+          "policy": "leaf-full",
+          "tag": "safety",
+          "law": "one primary per term",
+          "workerChecked": false,
+          "withinPassLine": false,
+          "units": 6000.5000887999995,
+          "wallMs": 4857.03597,
+          "searchWallMs": 4856.381572,
+          "checkWallMs": 0.6559400000005553,
+          "sourceHashes": [
+            "f90b52382aed2614854735e38350c74d241dae4908ad4d6d28fc7b7925868ff3  core/count-cases.ts",
+            "0a0778508c5dec30138360d877fe3eefed2980ddcd52f7b6a6a8f31c9fab3531  core/count-recovery/guard-cases.ts",
+            "cf2a74ccb71a62d85466745ab04b8a416c933e140cf9ed2679c07eede4020cb7  core/count-recovery/field-bound-lemmas.ts",
+            "63219fd99bd030d276a7f2329e4c022f7d3d29712b805bd0983376faab9c1f89  core/count-recovery/row-cases.ts",
+            "fdd8a6aee4f3878747401c0d3d58fd76dde2ec79bb4afd765814b1b0ba810b6b  core/count-recovery/derivability-closure.ts",
+            "8381ff0a8ac4f982d1346de897741b907d13edc4541c8575d3ba2d30443943d3  core/count-recovery/field-demand.ts"
+          ],
+          "sourceBytesVerified": true,
+          "audit": {
+            "sourceLog": "runs/track-m/lane-b-partition-audit-v1/safety.log",
+            "logSha256": "9917ea6c26bb8fcd3e0303bb22d169b8e88ef3c6ef6e9f33b0b92748769e4bf2",
+            "conditional": true,
+            "checked": false
+          }
+        },
+        {
+          "side": "reconstruction",
+          "policy": "leaf-reconstruction",
+          "tag": "safety",
+          "law": "one primary per term",
+          "workerChecked": false,
+          "withinPassLine": false,
+          "units": 6000.3900248,
+          "wallMs": 5527.157638000001,
+          "searchWallMs": 5526.354661,
+          "checkWallMs": 0.8035280000003695,
+          "sourceHashes": [
+            "f90b52382aed2614854735e38350c74d241dae4908ad4d6d28fc7b7925868ff3  core/count-cases.ts",
+            "5e2f668bc304e1bdeb0c4b8126d4289cf757bbd88ffb182e67a35a2d84642b77  core/count-recovery/guard-cases.ts",
+            "d3217b3cd64c716b161cf9a98286e7270f4e414f7aac09c124b2b82707c8859e  core/count-recovery/field-bound-lemmas.ts",
+            "d70f618833a9770f75316363b97bfb79efabb50662fc1dae446aa93826563018  core/count-recovery/row-cases.ts",
+            "fdd8a6aee4f3878747401c0d3d58fd76dde2ec79bb4afd765814b1b0ba810b6b  core/count-recovery/derivability-closure.ts",
+            "8381ff0a8ac4f982d1346de897741b907d13edc4541c8575d3ba2d30443943d3  core/count-recovery/field-demand.ts"
+          ],
+          "sourceBytesVerified": true,
+          "audit": {
+            "sourceLog": "runs/track-m/lane-b-partition-audit-v1/safety.log",
+            "logSha256": "9917ea6c26bb8fcd3e0303bb22d169b8e88ef3c6ef6e9f33b0b92748769e4bf2",
+            "conditional": true,
+            "checked": false
+          }
+        },
+        {
+          "side": "helpers",
+          "policy": "leaf-helpers",
+          "tag": "safety",
+          "law": "one primary per term",
+          "workerChecked": true,
+          "withinPassLine": true,
+          "units": 4496.6660403999995,
+          "wallMs": 5011.752861,
+          "searchWallMs": 3409.956205,
+          "checkWallMs": 1601.7970450000003,
+          "sourceHashes": [
+            "6dafd763471a716d77b39ef7424a0ecd48c64505f78554ef72e05a1e615af600  core/count-cases.ts",
+            "0a0778508c5dec30138360d877fe3eefed2980ddcd52f7b6a6a8f31c9fab3531  core/count-recovery/guard-cases.ts",
+            "cf2a74ccb71a62d85466745ab04b8a416c933e140cf9ed2679c07eede4020cb7  core/count-recovery/field-bound-lemmas.ts",
+            "63219fd99bd030d276a7f2329e4c022f7d3d29712b805bd0983376faab9c1f89  core/count-recovery/row-cases.ts",
+            "fdd8a6aee4f3878747401c0d3d58fd76dde2ec79bb4afd765814b1b0ba810b6b  core/count-recovery/derivability-closure.ts",
+            "8381ff0a8ac4f982d1346de897741b907d13edc4541c8575d3ba2d30443943d3  core/count-recovery/field-demand.ts"
+          ],
+          "sourceBytesVerified": true,
+          "audit": {
+            "sourceLog": "runs/track-m/lane-b-partition-audit-v1/safety.log",
+            "logSha256": "9917ea6c26bb8fcd3e0303bb22d169b8e88ef3c6ef6e9f33b0b92748769e4bf2",
+            "conditional": true,
+            "checked": true
+          }
+        },
+        {
+          "side": "base",
+          "policy": "base",
+          "tag": "safety",
+          "law": "one primary per term",
+          "workerChecked": true,
+          "withinPassLine": true,
+          "units": 4488.588814,
+          "wallMs": 5405.544751,
+          "searchWallMs": 4940.6120630000005,
+          "checkWallMs": 464.9327379999995,
+          "sourceHashes": [
+            "6dafd763471a716d77b39ef7424a0ecd48c64505f78554ef72e05a1e615af600  core/count-cases.ts",
+            "5e2f668bc304e1bdeb0c4b8126d4289cf757bbd88ffb182e67a35a2d84642b77  core/count-recovery/guard-cases.ts",
+            "d3217b3cd64c716b161cf9a98286e7270f4e414f7aac09c124b2b82707c8859e  core/count-recovery/field-bound-lemmas.ts",
+            "d70f618833a9770f75316363b97bfb79efabb50662fc1dae446aa93826563018  core/count-recovery/row-cases.ts",
+            "fdd8a6aee4f3878747401c0d3d58fd76dde2ec79bb4afd765814b1b0ba810b6b  core/count-recovery/derivability-closure.ts",
+            "8381ff0a8ac4f982d1346de897741b907d13edc4541c8575d3ba2d30443943d3  core/count-recovery/field-demand.ts"
+          ],
+          "sourceBytesVerified": true,
+          "audit": {
+            "sourceLog": "runs/track-m/lane-b-partition-audit-v1/safety.log",
+            "logSha256": "9917ea6c26bb8fcd3e0303bb22d169b8e88ef3c6ef6e9f33b0b92748769e4bf2",
+            "conditional": true,
+            "checked": true
+          }
+        }
+      ],
+      "before": {
+        "side": "base",
+        "policy": "base",
+        "tag": "safety",
+        "law": "one primary per term",
+        "workerChecked": true,
+        "withinPassLine": true,
+        "units": 4488.588814,
+        "wallMs": 5405.544751,
+        "searchWallMs": 4940.6120630000005,
+        "checkWallMs": 464.9327379999995,
+        "sourceHashes": [
+          "6dafd763471a716d77b39ef7424a0ecd48c64505f78554ef72e05a1e615af600  core/count-cases.ts",
+          "5e2f668bc304e1bdeb0c4b8126d4289cf757bbd88ffb182e67a35a2d84642b77  core/count-recovery/guard-cases.ts",
+          "d3217b3cd64c716b161cf9a98286e7270f4e414f7aac09c124b2b82707c8859e  core/count-recovery/field-bound-lemmas.ts",
+          "d70f618833a9770f75316363b97bfb79efabb50662fc1dae446aa93826563018  core/count-recovery/row-cases.ts",
+          "fdd8a6aee4f3878747401c0d3d58fd76dde2ec79bb4afd765814b1b0ba810b6b  core/count-recovery/derivability-closure.ts",
+          "8381ff0a8ac4f982d1346de897741b907d13edc4541c8575d3ba2d30443943d3  core/count-recovery/field-demand.ts"
+        ],
+        "sourceBytesVerified": true
+      },
+      "workerCheckedLost": true,
+      "unitDelta": null,
+      "wallDelta": null
+    }
+  ],
+  "workerCheckedLosses": [
+    "safety-base-helpers-reconstruction-full",
+    "safety-full-reconstruction-helpers-base"
+  ],
+  "outsidePassLine": [],
+  "independentAudit": {
+    "outcomes": 8,
+    "checked": 4,
+    "unknown": 4
+  }
+}

@@ -1,0 +1,20 @@
+{
+ "safety-base-helpers-reconstruction-full": {
+  "vm": "bx_a83zj5st",
+  "type": "large",
+  "cpu": "AMD Ryzen 9 9950X 16-Core Processor",
+  "vcpus": 8,
+  "vm_vcpus": 8,
+  "exclusive": true,
+  "co_tenants": 0
+ },
+ "safety-full-reconstruction-helpers-base": {
+  "vm": "bx_7vpz29xf",
+  "type": "large",
+  "cpu": "AMD EPYC 4585PX 16-Core Processor",
+  "vcpus": 8,
+  "vm_vcpus": 8,
+  "exclusive": true,
+  "co_tenants": 0
+ }
+}

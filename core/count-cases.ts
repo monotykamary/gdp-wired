@@ -17,7 +17,8 @@ import {independentCountInstances} from './count-focused.ts'
 import {fieldCase} from './count-recovery/field-case.ts'
 import {sourceProofMemo} from './count-recovery/source-memo.ts'
 import {collectConditionalCertificate,hasConditionalProof,transportConditionalProof} from './count-recovery/conditional-proof.ts'
-import {activeWriteKey,rowPairs} from './count-recovery/row-cases.ts'
+import {activeWriteKey,rowPairs,writesReadState} from './count-recovery/row-cases.ts'
+import {frameLemmas} from './count-recovery/frame-lemmas.ts'
 import {refuteFast,rowsAt} from './count-recovery/ops.ts'
 
 type Packet={goal:Goal,decls:CountDecl[]}
@@ -138,6 +139,11 @@ export function proveCountCases(m:Machine,laws:Law[],at:Instances,cert:Pick<Coun
       const claim=packet.goal.hyps.at(-1),rowDependent=activeWriteKey(m,path)!==undefined&&rowPairs(m,cert,path,claim).length>0
       tree=rowDependent?undefined:fieldCase(m,goal,cert,claim,path,Math.min(caseEnd,clock()+150),e=>options.trace?.({value,...e}))
       if(tree){source=goal;from=new Map(path)}
+      if(!tree&&!writesReadState(m,cert,path,claim)){
+       tree=frameLemmas(goal,cert,Math.min(caseEnd,clock()+150),[],path,{deferCheck:true})
+       options.trace?.({value,stage:'write-free-case',proposed:!!tree})
+       if(tree){source=goal;from=new Map(path)}
+      }
       const guard=actionGuard(m,name,value)
       if(!tree&&guard){
        const events:object[]=[],begun=clock(),derived=guardCases(m,packet.decls,goal,cert,guard,caseEnd,events,0,path,{deferCheck:true,claim:packet.goal.hyps.at(-1),memo,conditional:true})

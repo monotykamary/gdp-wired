@@ -1,0 +1,9 @@
+[
+ {
+  "name": "audit-r1",
+  "cmd": "bun install --frozen-lockfile && bun research/track-gen/t14-audit.ts captures/r1/0.json",
+  "cpu": 4,
+  "memory": 14336,
+  "timeout": 180
+ }
+]

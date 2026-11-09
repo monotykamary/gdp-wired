@@ -1,0 +1,1 @@
+[{"name":"prepare","cmd":"bash research/track-m/lane-b-prepare.sh","cpu":2,"memory":4096,"timeout":180},{"name":"check","cmd":"bash research/track-m/lane-b-parallel.sh check","cpu":2,"memory":4096,"timeout":300}]

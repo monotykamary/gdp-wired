@@ -1,0 +1,4 @@
+[
+ {"name":"safety-base-leaf-class","cmd":"bash research/track-m/lane-b-integrated-pair.sh safety before isolate","cpu":8,"memory":14336,"timeout":150},
+ {"name":"safety-class-leaf-base","cmd":"bash research/track-m/lane-b-integrated-pair.sh safety after isolate","cpu":8,"memory":14336,"timeout":150}
+]

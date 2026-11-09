@@ -1,0 +1,4 @@
+[
+ {"name":"generation","cmd":"bash research/track-m/lane-b-generated.sh","cpu":8,"memory":14336,"timeout":150},
+ {"name":"check","cmd":"bash research/track-m/lane-b-parallel.sh check && bun test core/count-recovery/member-inclusions.test.ts core/count-cubes.test.ts core/support-order.test.ts research/track-m/section15-share.test.ts research/track-m/section15-leaf-count.test.ts","cpu":8,"memory":14336,"timeout":420}
+]

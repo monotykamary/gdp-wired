@@ -1,0 +1,1234 @@
+[
+ {
+  "name": "safe-consensus-1",
+  "cmd": "bash research/track-gen/t14-paired.sh original consensus 1 main",
+  "timeout": 300,
+  "cpu": 4,
+  "memory": 14336,
+  "vm_type": "large"
+ },
+ {
+  "name": "safe-consensus-2",
+  "cmd": "bash research/track-gen/t14-paired.sh original consensus 2 main",
+  "timeout": 300,
+  "cpu": 4,
+  "memory": 14336,
+  "vm_type": "large"
+ },
+ {
+  "name": "safe-consensus-3",
+  "cmd": "bash research/track-gen/t14-paired.sh original consensus 3 main",
+  "timeout": 300,
+  "cpu": 4,
+  "memory": 14336,
+  "vm_type": "large"
+ },
+ {
+  "name": "safe-tcommit-1",
+  "cmd": "bash research/track-gen/t14-paired.sh original tcommit 1 main",
+  "timeout": 300,
+  "cpu": 4,
+  "memory": 14336,
+  "vm_type": "large"
+ },
+ {
+  "name": "safe-tcommit-2",
+  "cmd": "bash research/track-gen/t14-paired.sh original tcommit 2 main",
+  "timeout": 300,
+  "cpu": 4,
+  "memory": 14336,
+  "vm_type": "large"
+ },
+ {
+  "name": "safe-tcommit-3",
+  "cmd": "bash research/track-gen/t14-paired.sh original tcommit 3 main",
+  "timeout": 300,
+  "cpu": 4,
+  "memory": 14336,
+  "vm_type": "large"
+ },
+ {
+  "name": "safe-lock_server-1",
+  "cmd": "bash research/track-gen/t14-paired.sh original lock_server 1 main",
+  "timeout": 300,
+  "cpu": 4,
+  "memory": 14336,
+  "vm_type": "large"
+ },
+ {
+  "name": "safe-lock_server-2",
+  "cmd": "bash research/track-gen/t14-paired.sh original lock_server 2 main",
+  "timeout": 300,
+  "cpu": 4,
+  "memory": 14336,
+  "vm_type": "large"
+ },
+ {
+  "name": "safe-lock_server-3",
+  "cmd": "bash research/track-gen/t14-paired.sh original lock_server 3 main",
+  "timeout": 300,
+  "cpu": 4,
+  "memory": 14336,
+  "vm_type": "large"
+ },
+ {
+  "name": "safe-quorum_leader_election-1",
+  "cmd": "bash research/track-gen/t14-paired.sh original quorum_leader_election 1 main",
+  "timeout": 300,
+  "cpu": 4,
+  "memory": 14336,
+  "vm_type": "large"
+ },
+ {
+  "name": "safe-quorum_leader_election-2",
+  "cmd": "bash research/track-gen/t14-paired.sh original quorum_leader_election 2 main",
+  "timeout": 300,
+  "cpu": 4,
+  "memory": 14336,
+  "vm_type": "large"
+ },
+ {
+  "name": "safe-quorum_leader_election-3",
+  "cmd": "bash research/track-gen/t14-paired.sh original quorum_leader_election 3 main",
+  "timeout": 300,
+  "cpu": 4,
+  "memory": 14336,
+  "vm_type": "large"
+ },
+ {
+  "name": "safe-toy_consensus_forall-1",
+  "cmd": "bash research/track-gen/t14-paired.sh original toy_consensus_forall 1 main",
+  "timeout": 300,
+  "cpu": 4,
+  "memory": 14336,
+  "vm_type": "large"
+ },
+ {
+  "name": "safe-toy_consensus_forall-2",
+  "cmd": "bash research/track-gen/t14-paired.sh original toy_consensus_forall 2 main",
+  "timeout": 300,
+  "cpu": 4,
+  "memory": 14336,
+  "vm_type": "large"
+ },
+ {
+  "name": "safe-toy_consensus_forall-3",
+  "cmd": "bash research/track-gen/t14-paired.sh original toy_consensus_forall 3 main",
+  "timeout": 300,
+  "cpu": 4,
+  "memory": 14336,
+  "vm_type": "large"
+ },
+ {
+  "name": "safe-simple-1",
+  "cmd": "bash research/track-gen/t14-paired.sh original simple 1 main",
+  "timeout": 300,
+  "cpu": 4,
+  "memory": 14336,
+  "vm_type": "large"
+ },
+ {
+  "name": "safe-simple-2",
+  "cmd": "bash research/track-gen/t14-paired.sh original simple 2 main",
+  "timeout": 300,
+  "cpu": 4,
+  "memory": 14336,
+  "vm_type": "large"
+ },
+ {
+  "name": "safe-simple-3",
+  "cmd": "bash research/track-gen/t14-paired.sh original simple 3 main",
+  "timeout": 300,
+  "cpu": 4,
+  "memory": 14336,
+  "vm_type": "large"
+ },
+ {
+  "name": "safe-simple_regular-1",
+  "cmd": "bash research/track-gen/t14-paired.sh original simple_regular 1 main",
+  "timeout": 300,
+  "cpu": 4,
+  "memory": 14336,
+  "vm_type": "large"
+ },
+ {
+  "name": "safe-simple_regular-2",
+  "cmd": "bash research/track-gen/t14-paired.sh original simple_regular 2 main",
+  "timeout": 300,
+  "cpu": 4,
+  "memory": 14336,
+  "vm_type": "large"
+ },
+ {
+  "name": "safe-simple_regular-3",
+  "cmd": "bash research/track-gen/t14-paired.sh original simple_regular 3 main",
+  "timeout": 300,
+  "cpu": 4,
+  "memory": 14336,
+  "vm_type": "large"
+ },
+ {
+  "name": "safe-lockserv_automaton-1",
+  "cmd": "bash research/track-gen/t14-paired.sh original lockserv_automaton 1 main",
+  "timeout": 300,
+  "cpu": 4,
+  "memory": 14336,
+  "vm_type": "large"
+ },
+ {
+  "name": "safe-lockserv_automaton-2",
+  "cmd": "bash research/track-gen/t14-paired.sh original lockserv_automaton 2 main",
+  "timeout": 300,
+  "cpu": 4,
+  "memory": 14336,
+  "vm_type": "large"
+ },
+ {
+  "name": "safe-lockserv_automaton-3",
+  "cmd": "bash research/track-gen/t14-paired.sh original lockserv_automaton 3 main",
+  "timeout": 300,
+  "cpu": 4,
+  "memory": 14336,
+  "vm_type": "large"
+ },
+ {
+  "name": "safe-sharded_kv-1",
+  "cmd": "bash research/track-gen/t14-paired.sh original sharded_kv 1 main",
+  "timeout": 300,
+  "cpu": 4,
+  "memory": 14336,
+  "vm_type": "large"
+ },
+ {
+  "name": "safe-sharded_kv-2",
+  "cmd": "bash research/track-gen/t14-paired.sh original sharded_kv 2 main",
+  "timeout": 300,
+  "cpu": 4,
+  "memory": 14336,
+  "vm_type": "large"
+ },
+ {
+  "name": "safe-sharded_kv-3",
+  "cmd": "bash research/track-gen/t14-paired.sh original sharded_kv 3 main",
+  "timeout": 300,
+  "cpu": 4,
+  "memory": 14336,
+  "vm_type": "large"
+ },
+ {
+  "name": "safe-sharded_kv_no_lost_keys-1",
+  "cmd": "bash research/track-gen/t14-paired.sh original sharded_kv_no_lost_keys 1 main",
+  "timeout": 300,
+  "cpu": 4,
+  "memory": 14336,
+  "vm_type": "large"
+ },
+ {
+  "name": "safe-sharded_kv_no_lost_keys-2",
+  "cmd": "bash research/track-gen/t14-paired.sh original sharded_kv_no_lost_keys 2 main",
+  "timeout": 300,
+  "cpu": 4,
+  "memory": 14336,
+  "vm_type": "large"
+ },
+ {
+  "name": "safe-sharded_kv_no_lost_keys-3",
+  "cmd": "bash research/track-gen/t14-paired.sh original sharded_kv_no_lost_keys 3 main",
+  "timeout": 300,
+  "cpu": 4,
+  "memory": 14336,
+  "vm_type": "large"
+ },
+ {
+  "name": "safe-lockserv-1",
+  "cmd": "bash research/track-gen/t14-paired.sh original lockserv 1 main",
+  "timeout": 300,
+  "cpu": 4,
+  "memory": 14336,
+  "vm_type": "large"
+ },
+ {
+  "name": "safe-lockserv-2",
+  "cmd": "bash research/track-gen/t14-paired.sh original lockserv 2 main",
+  "timeout": 300,
+  "cpu": 4,
+  "memory": 14336,
+  "vm_type": "large"
+ },
+ {
+  "name": "safe-lockserv-3",
+  "cmd": "bash research/track-gen/t14-paired.sh original lockserv 3 main",
+  "timeout": 300,
+  "cpu": 4,
+  "memory": 14336,
+  "vm_type": "large"
+ },
+ {
+  "name": "safe-twophase-1",
+  "cmd": "bash research/track-gen/t14-paired.sh original twophase 1 main",
+  "timeout": 300,
+  "cpu": 4,
+  "memory": 14336,
+  "vm_type": "large"
+ },
+ {
+  "name": "safe-twophase-2",
+  "cmd": "bash research/track-gen/t14-paired.sh original twophase 2 main",
+  "timeout": 300,
+  "cpu": 4,
+  "memory": 14336,
+  "vm_type": "large"
+ },
+ {
+  "name": "safe-twophase-3",
+  "cmd": "bash research/track-gen/t14-paired.sh original twophase 3 main",
+  "timeout": 300,
+  "cpu": 4,
+  "memory": 14336,
+  "vm_type": "large"
+ },
+ {
+  "name": "safe-simple_decentralized_lock-1",
+  "cmd": "bash research/track-gen/t14-paired.sh original simple_decentralized_lock 1 main",
+  "timeout": 300,
+  "cpu": 4,
+  "memory": 14336,
+  "vm_type": "large"
+ },
+ {
+  "name": "safe-simple_decentralized_lock-2",
+  "cmd": "bash research/track-gen/t14-paired.sh original simple_decentralized_lock 2 main",
+  "timeout": 300,
+  "cpu": 4,
+  "memory": 14336,
+  "vm_type": "large"
+ },
+ {
+  "name": "safe-simple_decentralized_lock-3",
+  "cmd": "bash research/track-gen/t14-paired.sh original simple_decentralized_lock 3 main",
+  "timeout": 300,
+  "cpu": 4,
+  "memory": 14336,
+  "vm_type": "large"
+ },
+ {
+  "name": "safe-two_phase_commit-1",
+  "cmd": "bash research/track-gen/t14-paired.sh original two_phase_commit 1 main",
+  "timeout": 300,
+  "cpu": 4,
+  "memory": 14336,
+  "vm_type": "large"
+ },
+ {
+  "name": "safe-two_phase_commit-2",
+  "cmd": "bash research/track-gen/t14-paired.sh original two_phase_commit 2 main",
+  "timeout": 300,
+  "cpu": 4,
+  "memory": 14336,
+  "vm_type": "large"
+ },
+ {
+  "name": "safe-two_phase_commit-3",
+  "cmd": "bash research/track-gen/t14-paired.sh original two_phase_commit 3 main",
+  "timeout": 300,
+  "cpu": 4,
+  "memory": 14336,
+  "vm_type": "large"
+ },
+ {
+  "name": "safe-consensus_wo_decide-1",
+  "cmd": "bash research/track-gen/t14-paired.sh original consensus_wo_decide 1 main",
+  "timeout": 300,
+  "cpu": 4,
+  "memory": 14336,
+  "vm_type": "large"
+ },
+ {
+  "name": "safe-consensus_wo_decide-2",
+  "cmd": "bash research/track-gen/t14-paired.sh original consensus_wo_decide 2 main",
+  "timeout": 300,
+  "cpu": 4,
+  "memory": 14336,
+  "vm_type": "large"
+ },
+ {
+  "name": "safe-consensus_wo_decide-3",
+  "cmd": "bash research/track-gen/t14-paired.sh original consensus_wo_decide 3 main",
+  "timeout": 300,
+  "cpu": 4,
+  "memory": 14336,
+  "vm_type": "large"
+ },
+ {
+  "name": "safe-consensus_forall-1",
+  "cmd": "bash research/track-gen/t14-paired.sh original consensus_forall 1 main",
+  "timeout": 300,
+  "cpu": 4,
+  "memory": 14336,
+  "vm_type": "large"
+ },
+ {
+  "name": "safe-consensus_forall-2",
+  "cmd": "bash research/track-gen/t14-paired.sh original consensus_forall 2 main",
+  "timeout": 300,
+  "cpu": 4,
+  "memory": 14336,
+  "vm_type": "large"
+ },
+ {
+  "name": "safe-consensus_forall-3",
+  "cmd": "bash research/track-gen/t14-paired.sh original consensus_forall 3 main",
+  "timeout": 300,
+  "cpu": 4,
+  "memory": 14336,
+  "vm_type": "large"
+ },
+ {
+  "name": "safe-naive_consensus-1",
+  "cmd": "bash research/track-gen/t14-paired.sh original naive_consensus 1 main",
+  "timeout": 300,
+  "cpu": 4,
+  "memory": 14336,
+  "vm_type": "large"
+ },
+ {
+  "name": "safe-naive_consensus-2",
+  "cmd": "bash research/track-gen/t14-paired.sh original naive_consensus 2 main",
+  "timeout": 300,
+  "cpu": 4,
+  "memory": 14336,
+  "vm_type": "large"
+ },
+ {
+  "name": "safe-naive_consensus-3",
+  "cmd": "bash research/track-gen/t14-paired.sh original naive_consensus 3 main",
+  "timeout": 300,
+  "cpu": 4,
+  "memory": 14336,
+  "vm_type": "large"
+ },
+ {
+  "name": "safe-client_server_ae-1",
+  "cmd": "bash research/track-gen/t14-paired.sh original client_server_ae 1 main",
+  "timeout": 300,
+  "cpu": 4,
+  "memory": 14336,
+  "vm_type": "large"
+ },
+ {
+  "name": "safe-client_server_ae-2",
+  "cmd": "bash research/track-gen/t14-paired.sh original client_server_ae 2 main",
+  "timeout": 300,
+  "cpu": 4,
+  "memory": 14336,
+  "vm_type": "large"
+ },
+ {
+  "name": "safe-client_server_ae-3",
+  "cmd": "bash research/track-gen/t14-paired.sh original client_server_ae 3 main",
+  "timeout": 300,
+  "cpu": 4,
+  "memory": 14336,
+  "vm_type": "large"
+ },
+ {
+  "name": "safe-client_server_db_ae-1",
+  "cmd": "bash research/track-gen/t14-paired.sh original client_server_db_ae 1 main",
+  "timeout": 300,
+  "cpu": 4,
+  "memory": 14336,
+  "vm_type": "large"
+ },
+ {
+  "name": "safe-client_server_db_ae-2",
+  "cmd": "bash research/track-gen/t14-paired.sh original client_server_db_ae 2 main",
+  "timeout": 300,
+  "cpu": 4,
+  "memory": 14336,
+  "vm_type": "large"
+ },
+ {
+  "name": "safe-client_server_db_ae-3",
+  "cmd": "bash research/track-gen/t14-paired.sh original client_server_db_ae 3 main",
+  "timeout": 300,
+  "cpu": 4,
+  "memory": 14336,
+  "vm_type": "large"
+ },
+ {
+  "name": "safe-simple_election-1",
+  "cmd": "bash research/track-gen/t14-paired.sh original simple_election 1 main",
+  "timeout": 300,
+  "cpu": 4,
+  "memory": 14336,
+  "vm_type": "large"
+ },
+ {
+  "name": "safe-simple_election-2",
+  "cmd": "bash research/track-gen/t14-paired.sh original simple_election 2 main",
+  "timeout": 300,
+  "cpu": 4,
+  "memory": 14336,
+  "vm_type": "large"
+ },
+ {
+  "name": "safe-simple_election-3",
+  "cmd": "bash research/track-gen/t14-paired.sh original simple_election 3 main",
+  "timeout": 300,
+  "cpu": 4,
+  "memory": 14336,
+  "vm_type": "large"
+ },
+ {
+  "name": "safe-toy_consensus_epr-1",
+  "cmd": "bash research/track-gen/t14-paired.sh original toy_consensus_epr 1 main",
+  "timeout": 300,
+  "cpu": 4,
+  "memory": 14336,
+  "vm_type": "large"
+ },
+ {
+  "name": "safe-toy_consensus_epr-2",
+  "cmd": "bash research/track-gen/t14-paired.sh original toy_consensus_epr 2 main",
+  "timeout": 300,
+  "cpu": 4,
+  "memory": 14336,
+  "vm_type": "large"
+ },
+ {
+  "name": "safe-toy_consensus_epr-3",
+  "cmd": "bash research/track-gen/t14-paired.sh original toy_consensus_epr 3 main",
+  "timeout": 300,
+  "cpu": 4,
+  "memory": 14336,
+  "vm_type": "large"
+ },
+ {
+  "name": "safe-toy_consensus-1",
+  "cmd": "bash research/track-gen/t14-paired.sh original toy_consensus 1 main",
+  "timeout": 300,
+  "cpu": 4,
+  "memory": 14336,
+  "vm_type": "large"
+ },
+ {
+  "name": "safe-toy_consensus-2",
+  "cmd": "bash research/track-gen/t14-paired.sh original toy_consensus 2 main",
+  "timeout": 300,
+  "cpu": 4,
+  "memory": 14336,
+  "vm_type": "large"
+ },
+ {
+  "name": "safe-toy_consensus-3",
+  "cmd": "bash research/track-gen/t14-paired.sh original toy_consensus 3 main",
+  "timeout": 300,
+  "cpu": 4,
+  "memory": 14336,
+  "vm_type": "large"
+ },
+ {
+  "name": "safe-firewall-1",
+  "cmd": "bash research/track-gen/t14-paired.sh original firewall 1 main",
+  "timeout": 300,
+  "cpu": 4,
+  "memory": 14336,
+  "vm_type": "large"
+ },
+ {
+  "name": "safe-firewall-2",
+  "cmd": "bash research/track-gen/t14-paired.sh original firewall 2 main",
+  "timeout": 300,
+  "cpu": 4,
+  "memory": 14336,
+  "vm_type": "large"
+ },
+ {
+  "name": "safe-firewall-3",
+  "cmd": "bash research/track-gen/t14-paired.sh original firewall 3 main",
+  "timeout": 300,
+  "cpu": 4,
+  "memory": 14336,
+  "vm_type": "large"
+ },
+ {
+  "name": "safe-majorityset_leader_election-1",
+  "cmd": "bash research/track-gen/t14-paired.sh original majorityset_leader_election 1 main",
+  "timeout": 300,
+  "cpu": 4,
+  "memory": 14336,
+  "vm_type": "large"
+ },
+ {
+  "name": "safe-majorityset_leader_election-2",
+  "cmd": "bash research/track-gen/t14-paired.sh original majorityset_leader_election 2 main",
+  "timeout": 300,
+  "cpu": 4,
+  "memory": 14336,
+  "vm_type": "large"
+ },
+ {
+  "name": "safe-majorityset_leader_election-3",
+  "cmd": "bash research/track-gen/t14-paired.sh original majorityset_leader_election 3 main",
+  "timeout": 300,
+  "cpu": 4,
+  "memory": 14336,
+  "vm_type": "large"
+ },
+ {
+  "name": "safe-consensus_epr-1",
+  "cmd": "bash research/track-gen/t14-paired.sh original consensus_epr 1 main",
+  "timeout": 300,
+  "cpu": 4,
+  "memory": 14336,
+  "vm_type": "large"
+ },
+ {
+  "name": "safe-consensus_epr-2",
+  "cmd": "bash research/track-gen/t14-paired.sh original consensus_epr 2 main",
+  "timeout": 300,
+  "cpu": 4,
+  "memory": 14336,
+  "vm_type": "large"
+ },
+ {
+  "name": "safe-consensus_epr-3",
+  "cmd": "bash research/track-gen/t14-paired.sh original consensus_epr 3 main",
+  "timeout": 300,
+  "cpu": 4,
+  "memory": 14336,
+  "vm_type": "large"
+ },
+ {
+  "name": "safe-paxos_epr-1",
+  "cmd": "bash research/track-gen/t14-paired.sh original paxos_epr 1 main",
+  "timeout": 300,
+  "cpu": 4,
+  "memory": 14336,
+  "vm_type": "large"
+ },
+ {
+  "name": "safe-paxos_epr-2",
+  "cmd": "bash research/track-gen/t14-paired.sh original paxos_epr 2 main",
+  "timeout": 300,
+  "cpu": 4,
+  "memory": 14336,
+  "vm_type": "large"
+ },
+ {
+  "name": "safe-paxos_epr-3",
+  "cmd": "bash research/track-gen/t14-paired.sh original paxos_epr 3 main",
+  "timeout": 300,
+  "cpu": 4,
+  "memory": 14336,
+  "vm_type": "large"
+ },
+ {
+  "name": "safe-mldr-1",
+  "cmd": "bash research/track-gen/t14-paired.sh original mldr 1 main",
+  "timeout": 300,
+  "cpu": 4,
+  "memory": 14336,
+  "vm_type": "large"
+ },
+ {
+  "name": "safe-mldr-2",
+  "cmd": "bash research/track-gen/t14-paired.sh original mldr 2 main",
+  "timeout": 300,
+  "cpu": 4,
+  "memory": 14336,
+  "vm_type": "large"
+ },
+ {
+  "name": "safe-mldr-3",
+  "cmd": "bash research/track-gen/t14-paired.sh original mldr 3 main",
+  "timeout": 300,
+  "cpu": 4,
+  "memory": 14336,
+  "vm_type": "large"
+ },
+ {
+  "name": "safe-learning_switch-1",
+  "cmd": "bash research/track-gen/t14-paired.sh original learning_switch 1 main",
+  "timeout": 300,
+  "cpu": 4,
+  "memory": 14336,
+  "vm_type": "large"
+ },
+ {
+  "name": "safe-learning_switch-2",
+  "cmd": "bash research/track-gen/t14-paired.sh original learning_switch 2 main",
+  "timeout": 300,
+  "cpu": 4,
+  "memory": 14336,
+  "vm_type": "large"
+ },
+ {
+  "name": "safe-learning_switch-3",
+  "cmd": "bash research/track-gen/t14-paired.sh original learning_switch 3 main",
+  "timeout": 300,
+  "cpu": 4,
+  "memory": 14336,
+  "vm_type": "large"
+ },
+ {
+  "name": "safe-learning_switch_i4-1",
+  "cmd": "bash research/track-gen/t14-paired.sh original learning_switch_i4 1 main",
+  "timeout": 300,
+  "cpu": 4,
+  "memory": 14336,
+  "vm_type": "large"
+ },
+ {
+  "name": "safe-learning_switch_i4-2",
+  "cmd": "bash research/track-gen/t14-paired.sh original learning_switch_i4 2 main",
+  "timeout": 300,
+  "cpu": 4,
+  "memory": 14336,
+  "vm_type": "large"
+ },
+ {
+  "name": "safe-learning_switch_i4-3",
+  "cmd": "bash research/track-gen/t14-paired.sh original learning_switch_i4 3 main",
+  "timeout": 300,
+  "cpu": 4,
+  "memory": 14336,
+  "vm_type": "large"
+ },
+ {
+  "name": "duo-lock_server_sync-1",
+  "cmd": "bash research/track-gen/t14-paired.sh duoai lock_server_sync 1 main",
+  "timeout": 300,
+  "cpu": 4,
+  "memory": 14336,
+  "vm_type": "large"
+ },
+ {
+  "name": "duo-lock_server_sync-2",
+  "cmd": "bash research/track-gen/t14-paired.sh duoai lock_server_sync 2 main",
+  "timeout": 300,
+  "cpu": 4,
+  "memory": 14336,
+  "vm_type": "large"
+ },
+ {
+  "name": "duo-lock_server_sync-3",
+  "cmd": "bash research/track-gen/t14-paired.sh duoai lock_server_sync 3 main",
+  "timeout": 300,
+  "cpu": 4,
+  "memory": 14336,
+  "vm_type": "large"
+ },
+ {
+  "name": "duo-lock_server_async-1",
+  "cmd": "bash research/track-gen/t14-paired.sh duoai lock_server_async 1 main",
+  "timeout": 300,
+  "cpu": 4,
+  "memory": 14336,
+  "vm_type": "large"
+ },
+ {
+  "name": "duo-lock_server_async-2",
+  "cmd": "bash research/track-gen/t14-paired.sh duoai lock_server_async 2 main",
+  "timeout": 300,
+  "cpu": 4,
+  "memory": 14336,
+  "vm_type": "large"
+ },
+ {
+  "name": "duo-lock_server_async-3",
+  "cmd": "bash research/track-gen/t14-paired.sh duoai lock_server_async 3 main",
+  "timeout": 300,
+  "cpu": 4,
+  "memory": 14336,
+  "vm_type": "large"
+ },
+ {
+  "name": "duo-decentralized_lock-1",
+  "cmd": "bash research/track-gen/t14-paired.sh duoai decentralized_lock 1 main",
+  "timeout": 300,
+  "cpu": 4,
+  "memory": 14336,
+  "vm_type": "large"
+ },
+ {
+  "name": "duo-decentralized_lock-2",
+  "cmd": "bash research/track-gen/t14-paired.sh duoai decentralized_lock 2 main",
+  "timeout": 300,
+  "cpu": 4,
+  "memory": 14336,
+  "vm_type": "large"
+ },
+ {
+  "name": "duo-decentralized_lock-3",
+  "cmd": "bash research/track-gen/t14-paired.sh duoai decentralized_lock 3 main",
+  "timeout": 300,
+  "cpu": 4,
+  "memory": 14336,
+  "vm_type": "large"
+ },
+ {
+  "name": "duo-distributed_lock-1",
+  "cmd": "bash research/track-gen/t14-paired.sh duoai distributed_lock 1 main",
+  "timeout": 300,
+  "cpu": 4,
+  "memory": 14336,
+  "vm_type": "large"
+ },
+ {
+  "name": "duo-distributed_lock-2",
+  "cmd": "bash research/track-gen/t14-paired.sh duoai distributed_lock 2 main",
+  "timeout": 300,
+  "cpu": 4,
+  "memory": 14336,
+  "vm_type": "large"
+ },
+ {
+  "name": "duo-distributed_lock-3",
+  "cmd": "bash research/track-gen/t14-paired.sh duoai distributed_lock 3 main",
+  "timeout": 300,
+  "cpu": 4,
+  "memory": 14336,
+  "vm_type": "large"
+ },
+ {
+  "name": "duo-two_phase_commit-1",
+  "cmd": "bash research/track-gen/t14-paired.sh duoai two_phase_commit 1 main",
+  "timeout": 300,
+  "cpu": 4,
+  "memory": 14336,
+  "vm_type": "large"
+ },
+ {
+  "name": "duo-two_phase_commit-2",
+  "cmd": "bash research/track-gen/t14-paired.sh duoai two_phase_commit 2 main",
+  "timeout": 300,
+  "cpu": 4,
+  "memory": 14336,
+  "vm_type": "large"
+ },
+ {
+  "name": "duo-two_phase_commit-3",
+  "cmd": "bash research/track-gen/t14-paired.sh duoai two_phase_commit 3 main",
+  "timeout": 300,
+  "cpu": 4,
+  "memory": 14336,
+  "vm_type": "large"
+ },
+ {
+  "name": "duo-ticket_lock-1",
+  "cmd": "bash research/track-gen/t14-paired.sh duoai ticket_lock 1 main",
+  "timeout": 300,
+  "cpu": 4,
+  "memory": 14336,
+  "vm_type": "large"
+ },
+ {
+  "name": "duo-ticket_lock-2",
+  "cmd": "bash research/track-gen/t14-paired.sh duoai ticket_lock 2 main",
+  "timeout": 300,
+  "cpu": 4,
+  "memory": 14336,
+  "vm_type": "large"
+ },
+ {
+  "name": "duo-ticket_lock-3",
+  "cmd": "bash research/track-gen/t14-paired.sh duoai ticket_lock 3 main",
+  "timeout": 300,
+  "cpu": 4,
+  "memory": 14336,
+  "vm_type": "large"
+ },
+ {
+  "name": "duo-toy_consensus_forall-1",
+  "cmd": "bash research/track-gen/t14-paired.sh duoai toy_consensus_forall 1 main",
+  "timeout": 300,
+  "cpu": 4,
+  "memory": 14336,
+  "vm_type": "large"
+ },
+ {
+  "name": "duo-toy_consensus_forall-2",
+  "cmd": "bash research/track-gen/t14-paired.sh duoai toy_consensus_forall 2 main",
+  "timeout": 300,
+  "cpu": 4,
+  "memory": 14336,
+  "vm_type": "large"
+ },
+ {
+  "name": "duo-toy_consensus_forall-3",
+  "cmd": "bash research/track-gen/t14-paired.sh duoai toy_consensus_forall 3 main",
+  "timeout": 300,
+  "cpu": 4,
+  "memory": 14336,
+  "vm_type": "large"
+ },
+ {
+  "name": "duo-consensus_wo_decide-1",
+  "cmd": "bash research/track-gen/t14-paired.sh duoai consensus_wo_decide 1 main",
+  "timeout": 300,
+  "cpu": 4,
+  "memory": 14336,
+  "vm_type": "large"
+ },
+ {
+  "name": "duo-consensus_wo_decide-2",
+  "cmd": "bash research/track-gen/t14-paired.sh duoai consensus_wo_decide 2 main",
+  "timeout": 300,
+  "cpu": 4,
+  "memory": 14336,
+  "vm_type": "large"
+ },
+ {
+  "name": "duo-consensus_wo_decide-3",
+  "cmd": "bash research/track-gen/t14-paired.sh duoai consensus_wo_decide 3 main",
+  "timeout": 300,
+  "cpu": 4,
+  "memory": 14336,
+  "vm_type": "large"
+ },
+ {
+  "name": "duo-ring_leader_election-1",
+  "cmd": "bash research/track-gen/t14-paired.sh duoai ring_leader_election 1 main",
+  "timeout": 300,
+  "cpu": 4,
+  "memory": 14336,
+  "vm_type": "large"
+ },
+ {
+  "name": "duo-ring_leader_election-2",
+  "cmd": "bash research/track-gen/t14-paired.sh duoai ring_leader_election 2 main",
+  "timeout": 300,
+  "cpu": 4,
+  "memory": 14336,
+  "vm_type": "large"
+ },
+ {
+  "name": "duo-ring_leader_election-3",
+  "cmd": "bash research/track-gen/t14-paired.sh duoai ring_leader_election 3 main",
+  "timeout": 300,
+  "cpu": 4,
+  "memory": 14336,
+  "vm_type": "large"
+ },
+ {
+  "name": "duo-sharded_key_value_store-1",
+  "cmd": "bash research/track-gen/t14-paired.sh duoai sharded_key_value_store 1 main",
+  "timeout": 300,
+  "cpu": 4,
+  "memory": 14336,
+  "vm_type": "large"
+ },
+ {
+  "name": "duo-sharded_key_value_store-2",
+  "cmd": "bash research/track-gen/t14-paired.sh duoai sharded_key_value_store 2 main",
+  "timeout": 300,
+  "cpu": 4,
+  "memory": 14336,
+  "vm_type": "large"
+ },
+ {
+  "name": "duo-sharded_key_value_store-3",
+  "cmd": "bash research/track-gen/t14-paired.sh duoai sharded_key_value_store 3 main",
+  "timeout": 300,
+  "cpu": 4,
+  "memory": 14336,
+  "vm_type": "large"
+ },
+ {
+  "name": "broken-consensus",
+  "cmd": "bash research/track-gen/t14-paired.sh broken consensus 1 main",
+  "timeout": 300,
+  "cpu": 4,
+  "memory": 14336,
+  "vm_type": "large"
+ },
+ {
+  "name": "broken-tcommit",
+  "cmd": "bash research/track-gen/t14-paired.sh broken tcommit 1 main",
+  "timeout": 300,
+  "cpu": 4,
+  "memory": 14336,
+  "vm_type": "large"
+ },
+ {
+  "name": "broken-lock_server",
+  "cmd": "bash research/track-gen/t14-paired.sh broken lock_server 1 main",
+  "timeout": 300,
+  "cpu": 4,
+  "memory": 14336,
+  "vm_type": "large"
+ },
+ {
+  "name": "broken-quorum_leader_election",
+  "cmd": "bash research/track-gen/t14-paired.sh broken quorum_leader_election 1 main",
+  "timeout": 300,
+  "cpu": 4,
+  "memory": 14336,
+  "vm_type": "large"
+ },
+ {
+  "name": "broken-toy_consensus_forall",
+  "cmd": "bash research/track-gen/t14-paired.sh broken toy_consensus_forall 1 main",
+  "timeout": 300,
+  "cpu": 4,
+  "memory": 14336,
+  "vm_type": "large"
+ },
+ {
+  "name": "broken-simple",
+  "cmd": "bash research/track-gen/t14-paired.sh broken simple 1 main",
+  "timeout": 300,
+  "cpu": 4,
+  "memory": 14336,
+  "vm_type": "large"
+ },
+ {
+  "name": "broken-simple_regular",
+  "cmd": "bash research/track-gen/t14-paired.sh broken simple_regular 1 main",
+  "timeout": 300,
+  "cpu": 4,
+  "memory": 14336,
+  "vm_type": "large"
+ },
+ {
+  "name": "broken-lockserv_automaton",
+  "cmd": "bash research/track-gen/t14-paired.sh broken lockserv_automaton 1 main",
+  "timeout": 300,
+  "cpu": 4,
+  "memory": 14336,
+  "vm_type": "large"
+ },
+ {
+  "name": "broken-sharded_kv",
+  "cmd": "bash research/track-gen/t14-paired.sh broken sharded_kv 1 main",
+  "timeout": 300,
+  "cpu": 4,
+  "memory": 14336,
+  "vm_type": "large"
+ },
+ {
+  "name": "broken-sharded_kv_no_lost_keys",
+  "cmd": "bash research/track-gen/t14-paired.sh broken sharded_kv_no_lost_keys 1 main",
+  "timeout": 300,
+  "cpu": 4,
+  "memory": 14336,
+  "vm_type": "large"
+ },
+ {
+  "name": "broken-lockserv",
+  "cmd": "bash research/track-gen/t14-paired.sh broken lockserv 1 main",
+  "timeout": 300,
+  "cpu": 4,
+  "memory": 14336,
+  "vm_type": "large"
+ },
+ {
+  "name": "broken-twophase",
+  "cmd": "bash research/track-gen/t14-paired.sh broken twophase 1 main",
+  "timeout": 300,
+  "cpu": 4,
+  "memory": 14336,
+  "vm_type": "large"
+ },
+ {
+  "name": "broken-simple_decentralized_lock",
+  "cmd": "bash research/track-gen/t14-paired.sh broken simple_decentralized_lock 1 main",
+  "timeout": 300,
+  "cpu": 4,
+  "memory": 14336,
+  "vm_type": "large"
+ },
+ {
+  "name": "broken-two_phase_commit",
+  "cmd": "bash research/track-gen/t14-paired.sh broken two_phase_commit 1 main",
+  "timeout": 300,
+  "cpu": 4,
+  "memory": 14336,
+  "vm_type": "large"
+ },
+ {
+  "name": "broken-consensus_wo_decide",
+  "cmd": "bash research/track-gen/t14-paired.sh broken consensus_wo_decide 1 main",
+  "timeout": 300,
+  "cpu": 4,
+  "memory": 14336,
+  "vm_type": "large"
+ },
+ {
+  "name": "broken-consensus_forall",
+  "cmd": "bash research/track-gen/t14-paired.sh broken consensus_forall 1 main",
+  "timeout": 300,
+  "cpu": 4,
+  "memory": 14336,
+  "vm_type": "large"
+ },
+ {
+  "name": "broken-naive_consensus",
+  "cmd": "bash research/track-gen/t14-paired.sh broken naive_consensus 1 main",
+  "timeout": 300,
+  "cpu": 4,
+  "memory": 14336,
+  "vm_type": "large"
+ },
+ {
+  "name": "broken-client_server_ae",
+  "cmd": "bash research/track-gen/t14-paired.sh broken client_server_ae 1 main",
+  "timeout": 300,
+  "cpu": 4,
+  "memory": 14336,
+  "vm_type": "large"
+ },
+ {
+  "name": "broken-client_server_db_ae",
+  "cmd": "bash research/track-gen/t14-paired.sh broken client_server_db_ae 1 main",
+  "timeout": 300,
+  "cpu": 4,
+  "memory": 14336,
+  "vm_type": "large"
+ },
+ {
+  "name": "broken-simple_election",
+  "cmd": "bash research/track-gen/t14-paired.sh broken simple_election 1 main",
+  "timeout": 300,
+  "cpu": 4,
+  "memory": 14336,
+  "vm_type": "large"
+ },
+ {
+  "name": "broken-toy_consensus_epr",
+  "cmd": "bash research/track-gen/t14-paired.sh broken toy_consensus_epr 1 main",
+  "timeout": 300,
+  "cpu": 4,
+  "memory": 14336,
+  "vm_type": "large"
+ },
+ {
+  "name": "broken-toy_consensus",
+  "cmd": "bash research/track-gen/t14-paired.sh broken toy_consensus 1 main",
+  "timeout": 300,
+  "cpu": 4,
+  "memory": 14336,
+  "vm_type": "large"
+ },
+ {
+  "name": "broken-firewall",
+  "cmd": "bash research/track-gen/t14-paired.sh broken firewall 1 main",
+  "timeout": 300,
+  "cpu": 4,
+  "memory": 14336,
+  "vm_type": "large"
+ },
+ {
+  "name": "broken-majorityset_leader_election",
+  "cmd": "bash research/track-gen/t14-paired.sh broken majorityset_leader_election 1 main",
+  "timeout": 300,
+  "cpu": 4,
+  "memory": 14336,
+  "vm_type": "large"
+ },
+ {
+  "name": "broken-consensus_epr",
+  "cmd": "bash research/track-gen/t14-paired.sh broken consensus_epr 1 main",
+  "timeout": 300,
+  "cpu": 4,
+  "memory": 14336,
+  "vm_type": "large"
+ },
+ {
+  "name": "broken-paxos_epr",
+  "cmd": "bash research/track-gen/t14-paired.sh broken paxos_epr 1 main",
+  "timeout": 300,
+  "cpu": 4,
+  "memory": 14336,
+  "vm_type": "large"
+ },
+ {
+  "name": "broken-mldr",
+  "cmd": "bash research/track-gen/t14-paired.sh broken mldr 1 main",
+  "timeout": 300,
+  "cpu": 4,
+  "memory": 14336,
+  "vm_type": "large"
+ },
+ {
+  "name": "broken-learning_switch",
+  "cmd": "bash research/track-gen/t14-paired.sh broken learning_switch 1 main",
+  "timeout": 300,
+  "cpu": 4,
+  "memory": 14336,
+  "vm_type": "large"
+ },
+ {
+  "name": "broken-learning_switch_i4",
+  "cmd": "bash research/track-gen/t14-paired.sh broken learning_switch_i4 1 main",
+  "timeout": 300,
+  "cpu": 4,
+  "memory": 14336,
+  "vm_type": "large"
+ },
+ {
+  "name": "tests-1",
+  "cmd": "bun install --frozen-lockfile && bun scripts/test-shards.ts --shard 1/7",
+  "timeout": 1800,
+  "cpu": 4,
+  "memory": 14336,
+  "vm_type": "large"
+ },
+ {
+  "name": "tests-2",
+  "cmd": "bun install --frozen-lockfile && bun scripts/test-shards.ts --shard 2/7",
+  "timeout": 1800,
+  "cpu": 4,
+  "memory": 14336,
+  "vm_type": "large"
+ },
+ {
+  "name": "tests-3",
+  "cmd": "bun install --frozen-lockfile && bun scripts/test-shards.ts --shard 3/7",
+  "timeout": 1800,
+  "cpu": 4,
+  "memory": 14336,
+  "vm_type": "large"
+ },
+ {
+  "name": "tests-4",
+  "cmd": "bun install --frozen-lockfile && bun scripts/test-shards.ts --shard 4/7",
+  "timeout": 1800,
+  "cpu": 4,
+  "memory": 14336,
+  "vm_type": "large"
+ },
+ {
+  "name": "tests-5",
+  "cmd": "bun install --frozen-lockfile && bun scripts/test-shards.ts --shard 5/7",
+  "timeout": 1800,
+  "cpu": 4,
+  "memory": 14336,
+  "vm_type": "large"
+ },
+ {
+  "name": "tests-6",
+  "cmd": "bun install --frozen-lockfile && bun scripts/test-shards.ts --shard 6/7",
+  "timeout": 1800,
+  "cpu": 4,
+  "memory": 14336,
+  "vm_type": "large"
+ },
+ {
+  "name": "tests-7",
+  "cmd": "bun install --frozen-lockfile && bun scripts/test-shards.ts --shard 7/7",
+  "timeout": 1800,
+  "cpu": 4,
+  "memory": 14336,
+  "vm_type": "large"
+ },
+ {
+  "name": "check",
+  "cmd": "bun install --frozen-lockfile && bun run check && bun test core/count-cubes.test.ts core/quorum-laws.test.ts core/field-laws.test.ts core/small-counts.test.ts core/wall.test.ts && bunx --yes @commitlint/cli --config research/egraph/historical/commitlint.config.cjs < research/track-gen/T14-COMMIT.txt",
+  "timeout": 600,
+  "cpu": 4,
+  "memory": 14336,
+  "vm_type": "large"
+ }
+]

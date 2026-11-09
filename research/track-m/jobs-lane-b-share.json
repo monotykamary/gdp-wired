@@ -1,0 +1,51 @@
+[
+ {
+  "name": "mldr-before-1",
+  "cmd": "bash research/track-m/lane-b-share-run.sh before",
+  "cpu": 8,
+  "memory": 14336,
+  "timeout": 150
+ },
+ {
+  "name": "mldr-after-1",
+  "cmd": "bash research/track-m/lane-b-share-run.sh after",
+  "cpu": 8,
+  "memory": 14336,
+  "timeout": 150
+ },
+ {
+  "name": "mldr-before-2",
+  "cmd": "bash research/track-m/lane-b-share-run.sh before",
+  "cpu": 8,
+  "memory": 14336,
+  "timeout": 150
+ },
+ {
+  "name": "mldr-after-2",
+  "cmd": "bash research/track-m/lane-b-share-run.sh after",
+  "cpu": 8,
+  "memory": 14336,
+  "timeout": 150
+ },
+ {
+  "name": "mldr-before-3",
+  "cmd": "bash research/track-m/lane-b-share-run.sh before",
+  "cpu": 8,
+  "memory": 14336,
+  "timeout": 150
+ },
+ {
+  "name": "mldr-after-3",
+  "cmd": "bash research/track-m/lane-b-share-run.sh after",
+  "cpu": 8,
+  "memory": 14336,
+  "timeout": 150
+ },
+ {
+  "name": "check",
+  "cmd": "bash research/track-m/lane-b-parallel.sh check && bun test research/track-m/section15-share.test.ts",
+  "cpu": 8,
+  "memory": 14336,
+  "timeout": 300
+ }
+]
