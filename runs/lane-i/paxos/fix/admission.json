@@ -26,5 +26,8 @@
   },
   "nextGateBaseline": "8214a543bc44e88d979f9e4457d7370e7e3c122b",
   "integratedMain": "8214a543bc44e88d979f9e4457d7370e7e3c122b",
-  "activeRunsScope": "Frozen historical-source repair diagnostics, not a gate against the new main."
+  "activeRunsScope": "Frozen historical-source repair diagnostics, not a gate against the new main.",
+  "checkStatus": "TypeScript passed; lint failed on unused join import in helper; corrected after main merge.",
+  "postMainCandidate": "d3adf3c9589ec014a158b6f42ecfb091c999bb43",
+  "postMainValidationTask": "17e9227a-a575-4e49-a177-d69592a10186"
 }
