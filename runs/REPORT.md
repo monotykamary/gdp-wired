@@ -31,11 +31,21 @@ unknown; an oversize or unsupported interval screen falls back to the existing
 readiness screen. See `research/track-gen/t16-target-interval-notes.md`.
 
 Tests compare all three modes and add arithmetic, a three-cell count-prefix
-case and forced native-cap fallback. Validation is running wide on submission
-in task `f4d7a0ec-4025-4b32-a4b0-0920158442f4`, output
-`runs/t16-target-interval-check/`. **No interval pilot has been submitted.**
+case and forced native-cap fallback. First batch `20261110-023426-7otqkj`
+passed 63 tests / 1,743 assertions. TypeScript stopped on two possibly-undefined
+test-mode expectations; lint and commitlint were not reached. The mode matrix
+now has tuple typing (`as const`), with no compiler/runtime change.
+
+An overlay audit also found the existing native-cap regression file absent
+from that first overlay. It is restored and hash-checked. The complete expected
+64-test suite and full static checks are running on submission in task
+`4a23b469-8834-4089-ae41-6c5a576346cb`, output
+`runs/t16-target-interval-check-v2/`, immutable overlay
+`runs/t16-target-interval-overlay-v2/`. **No interval pilot has been submitted.**
+The six-probe manifest is prepared only; it preserves all budgets and domains.
 Core SHA-256 `0e1a570230e81f53821eaf606ae0dbcf64c0a0fc8f0ebc14f9d1bc3f27582795`;
-test `d7185cbe0ad68fed206df36ee743eb7c9a7ce794f710abe30e7cb7f4be4e3194`;
+test `a9e2ece1f3e36eab0544c66a0afd13f236130a4d5d814435fc0224a05992287c`;
+restored regression file `f3bf9bafa63ffe7150512ada101e5c781f5e0696ac6ce5175750bf77f9d8005c`;
 driver `f10cbeb2e11c1270e094cf7afd7afd9f3477c38024b32d6fd7b92863085b415c`.
 The canonical base archive is reused with a small overlay. No >500 MB write,
 whole-tree archive or deletion is planned. No subagents are running.
