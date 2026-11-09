@@ -5863,3 +5863,52 @@ Final production git blob hashes:
 Reproduction commands, baseline overlay and receipt semantics:
 `research/track-gen/WALL.md`. All jobs are finished. No merge, push, full-suite
 merge gate or successful MLDR proof is claimed.
+
+## Lane A / E-14 — in progress (2026-11-09)
+
+Handoff `MLDR-29.md` and design Section 14 read. Baseline for the full merge
+comparison is local main `b788e195`; the E-14 generation-only control is this
+branch at `cd0a1aa4`. Hypothesis: extending width-2 cubes to fresh lifted one-key
+counts supplies the missing initialization law; finite relative-CTI filtering
+then removes false/non-inductive candidates before allocating proof shares.
+The other 28 candidate lists must remain byte-identical. Finite filtering is a
+falsifier only: it never supplies a trusted invariant, drops a caller, or drops
+on an unknown evaluation. All survivors still require ordinary checked proof.
+
+Initial probe (`runs/t14-check-v1/`): 23 tests / 83 assertions passed; the
+check then correctly rejected three `Rule | Machine` adapter type errors.
+Both required count cubes were present. This first version incorrectly exposed
+unused lifted-count vocabulary (53 helpers before filtering) and spent 35.88 s
+in finite filtering, retaining 50. Corrective work restricts atoms to counts
+read by admitted candidates, covers the full finite action range, and avoids
+exception-driven binder dependency tests. The initial probe is not acceptance
+evidence. Second probe (`runs/t14-check-v2/`) passed TypeScript, type-aware
+lint and all 23 targeted tests, but generation hit its cooperative wall during
+the second finite round (not an acceptance run). Its trace exposed costly
+exception-driven dependency checks and insufficiently diverse neighbor states.
+The next version uses explicit dependency tests, independent finite configurations
+as well as neighbors, and stored-row cardinality atoms rather than filtered
+quorum bodies. All 29 generation controls ×3 are submitted separately through
+the warm-VM scheduler. No MLDR proof or green merge gate is claimed.
+
+Validated E-14 implementation (`runs/t14-verify-v6/`): all 24 targeted tests
+passed, with TypeScript and type-aware lint reporting zero errors/warnings.
+The generation probe completed in 23.14 s on an isolated **AMD EPYC 4585PX
+16-Core Processor**, large VM, four pinned vCPUs. It retained **35 total laws**,
+not the design's ≈22 prediction: the finite pass removed five helpers, but
+several other predicted CTIs were not sampled. The pass is a falsifier, not
+an exhaustive search, and no additional laws are dropped on that basis.
+The two required initialization cubes are present. The phase timings and
+exact surviving list are in `generation-acceptance.log`; the CPU receipt is
+`placement.json`.
+
+Section 15.1 is now implemented: the denominator excludes laws already tried,
+kept or carried, and the share is recomputed immediately before each law.
+Order, `supportBudget`, counted fuel and wall deadline are unchanged.
+`runs/t14-share-check/` passed **13 tests / 2,538 assertions**, including
+conservation and redistribution cases (isolated AMD Ryzen 9 9950X).
+The same E-14 source with the old round-fixed share is archived as a research
+control; three strict pairs isolate scheduling, while three further strict
+pairs compare the combined branch with main. CPU model, VM identity and
+pinning for every strict pair will be read from its `placement.json` into
+the final gate report. These pairs and the generation census are pending.
