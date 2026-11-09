@@ -1,0 +1,10 @@
+[
+  {
+    "name": "type-recheck-v2",
+    "cmd": "set -euo pipefail; bash research/lane-i/validate.sh setup; bun integ-input/type-runtime-check.ts; mv integ-input/type-before-counts.ts integ-input/type-before-counts.source; bun run check",
+    "cpu": 4,
+    "memory": 14336,
+    "timeout": 900,
+    "vm_type": "large"
+  }
+]

@@ -1,0 +1,126 @@
+gdp-ts.tar: OK
+handwired.tar: OK
+main.tar: OK
+COUNT_RUNTIME_IDENTICAL 2da24a9a74a03b527c1ba111cbcc510ea0bc8627e5dcb7b5dd81a2d15d136efa
+integ-input/type-before-counts.ts(18,54): error TS2307: Cannot find module './machine.ts' or its corresponding type declarations.
+integ-input/type-before-counts.ts(23,25): error TS2307: Cannot find module './infer.ts' or its corresponding type declarations.
+integ-input/type-before-counts.ts(24,45): error TS2307: Cannot find module './carry.ts' or its corresponding type declarations.
+integ-input/type-before-counts.ts(25,43): error TS2307: Cannot find module './relevance.ts' or its corresponding type declarations.
+integ-input/type-before-counts.ts(26,339): error TS2307: Cannot find module './count-support.ts' or its corresponding type declarations.
+integ-input/type-before-counts.ts(27,25): error TS2307: Cannot find module './field-laws.ts' or its corresponding type declarations.
+integ-input/type-before-counts.ts(28,26): error TS2307: Cannot find module './quorum-laws.ts' or its corresponding type declarations.
+integ-input/type-before-counts.ts(29,46): error TS2307: Cannot find module './count-cubes.ts' or its corresponding type declarations.
+integ-input/type-before-counts.ts(30,29): error TS2307: Cannot find module './finite-houdini.ts' or its corresponding type declarations.
+integ-input/type-before-counts.ts(31,34): error TS2307: Cannot find module './finite-model.ts' or its corresponding type declarations.
+integ-input/type-before-counts.ts(32,49): error TS2307: Cannot find module './count-facts.ts' or its corresponding type declarations.
+integ-input/type-before-counts.ts(33,41): error TS2307: Cannot find module './count-completion.ts' or its corresponding type declarations.
+integ-input/type-before-counts.ts(34,47): error TS2307: Cannot find module './count-ranges.ts' or its corresponding type declarations.
+integ-input/type-before-counts.ts(35,43): error TS2307: Cannot find module './support-budget.ts' or its corresponding type declarations.
+integ-input/type-before-counts.ts(36,43): error TS2307: Cannot find module './support-budget.ts' or its corresponding type declarations.
+integ-input/type-before-counts.ts(37,34): error TS2307: Cannot find module './count-unions.ts' or its corresponding type declarations.
+integ-input/type-before-counts.ts(38,62): error TS2307: Cannot find module './count-focus-proof.ts' or its corresponding type declarations.
+integ-input/type-before-counts.ts(39,38): error TS2307: Cannot find module './count-recovery/member-inclusions.ts' or its corresponding type declarations.
+integ-input/type-before-counts.ts(40,41): error TS2307: Cannot find module './count-focused.ts' or its corresponding type declarations.
+integ-input/type-before-counts.ts(41,109): error TS2307: Cannot find module './count-recovery/member-premises.ts' or its corresponding type declarations.
+integ-input/type-before-counts.ts(42,34): error TS2307: Cannot find module './exists.ts' or its corresponding type declarations.
+integ-input/type-before-counts.ts(43,50): error TS2307: Cannot find module './wall.ts' or its corresponding type declarations.
+integ-input/type-before-counts.ts(44,19): error TS2307: Cannot find module './solver.ts' or its corresponding type declarations.
+integ-input/type-before-counts.ts(45,46): error TS2307: Cannot find module './lemma-cuts.ts' or its corresponding type declarations.
+integ-input/type-before-counts.ts(46,64): error TS2307: Cannot find module './count-cert-transport.ts' or its corresponding type declarations.
+integ-input/type-before-counts.ts(86,134): error TS18046: 'fc' is of type 'unknown'.
+integ-input/type-before-counts.ts(96,63): error TS18046: 'f' is of type 'unknown'.
+integ-input/type-before-counts.ts(98,21): error TS18046: 'w' is of type 'unknown'.
+integ-input/type-before-counts.ts(100,11): error TS18046: 'd' is of type 'unknown'.
+integ-input/type-before-counts.ts(100,41): error TS2339: Property 'value' does not exist on type 'Record<"each", unknown>'.
+integ-input/type-before-counts.ts(100,69): error TS18046: 'd' is of type 'unknown'.
+integ-input/type-before-counts.ts(100,88): error TS18046: 'd' is of type 'unknown'.
+integ-input/type-before-counts.ts(100,98): error TS2345: Argument of type 'unknown' is not assignable to parameter of type 'string'.
+integ-input/type-before-counts.ts(102,63): error TS18046: 'd' is of type 'unknown'.
+integ-input/type-before-counts.ts(118,19): error TS18046: 'w' is of type 'unknown'.
+integ-input/type-before-counts.ts(119,16): error TS18046: 'w' is of type 'unknown'.
+integ-input/type-before-counts.ts(121,139): error TS18046: 'w' is of type 'unknown'.
+integ-input/type-before-counts.ts(129,25): error TS7006: Parameter 'i' implicitly has an 'any' type.
+integ-input/type-before-counts.ts(136,11): error TS18046: 'q' is of type 'unknown'.
+integ-input/type-before-counts.ts(136,29): error TS18046: 'q' is of type 'unknown'.
+integ-input/type-before-counts.ts(136,78): error TS18046: 'q' is of type 'unknown'.
+integ-input/type-before-counts.ts(136,97): error TS18046: 'q' is of type 'unknown'.
+integ-input/type-before-counts.ts(137,22): error TS18046: 'q' is of type 'unknown'.
+integ-input/type-before-counts.ts(137,49): error TS18046: 'q' is of type 'unknown'.
+integ-input/type-before-counts.ts(137,63): error TS18046: 'q' is of type 'unknown'.
+integ-input/type-before-counts.ts(137,78): error TS18046: 'q' is of type 'unknown'.
+integ-input/type-before-counts.ts(137,104): error TS18046: 'q' is of type 'unknown'.
+integ-input/type-before-counts.ts(137,130): error TS18046: 'q' is of type 'unknown'.
+integ-input/type-before-counts.ts(138,35): error TS18046: 'q' is of type 'unknown'.
+integ-input/type-before-counts.ts(142,18): error TS18046: 'd0' is of type 'unknown'.
+integ-input/type-before-counts.ts(142,41): error TS18046: 'd0' is of type 'unknown'.
+integ-input/type-before-counts.ts(142,67): error TS18046: 'd0' is of type 'unknown'.
+integ-input/type-before-counts.ts(142,95): error TS18046: 'd0' is of type 'unknown'.
+integ-input/type-before-counts.ts(143,38): error TS18046: 'd0' is of type 'unknown'.
+integ-input/type-before-counts.ts(143,47): error TS18046: 'd0' is of type 'unknown'.
+integ-input/type-before-counts.ts(143,58): error TS18046: 'd0' is of type 'unknown'.
+integ-input/type-before-counts.ts(145,35): error TS18046: 'd0' is of type 'unknown'.
+integ-input/type-before-counts.ts(150,22): error TS18046: 'd' is of type 'unknown'.
+integ-input/type-before-counts.ts(150,43): error TS18046: 'd' is of type 'unknown'.
+integ-input/type-before-counts.ts(151,49): error TS18046: 'd' is of type 'unknown'.
+integ-input/type-before-counts.ts(152,27): error TS7006: Parameter 'i' implicitly has an 'any' type.
+integ-input/type-before-counts.ts(154,40): error TS18046: 'd' is of type 'unknown'.
+integ-input/type-before-counts.ts(176,19): error TS18046: 'w' is of type 'unknown'.
+integ-input/type-before-counts.ts(177,19): error TS18046: 'w' is of type 'unknown'.
+integ-input/type-before-counts.ts(183,11): error TS18046: 'fc' is of type 'unknown'.
+integ-input/type-before-counts.ts(183,36): error TS18046: 'w' is of type 'unknown'.
+integ-input/type-before-counts.ts(185,54): error TS7006: Parameter 'i' implicitly has an 'any' type.
+integ-input/type-before-counts.ts(190,13): error TS18046: 'd' is of type 'unknown'.
+integ-input/type-before-counts.ts(190,88): error TS18046: 'd' is of type 'unknown'.
+integ-input/type-before-counts.ts(192,36): error TS18046: 'd' is of type 'unknown'.
+integ-input/type-before-counts.ts(192,44): error TS18046: 'd' is of type 'unknown'.
+integ-input/type-before-counts.ts(194,143): error TS18046: 'w' is of type 'unknown'.
+integ-input/type-before-counts.ts(195,50): error TS18046: 'd' is of type 'unknown'.
+integ-input/type-before-counts.ts(319,50): error TS7031: Binding element 'sts' implicitly has an 'any' type.
+integ-input/type-before-counts.ts(319,71): error TS7006: Parameter 'st' implicitly has an 'any' type.
+integ-input/type-before-counts.ts(326,27): error TS18046: 'w' is of type 'unknown'.
+integ-input/type-before-counts.ts(326,43): error TS18046: 'w' is of type 'unknown'.
+integ-input/type-before-counts.ts(329,81): error TS18046: 'q' is of type 'unknown'.
+integ-input/type-before-counts.ts(329,100): error TS18046: 'q' is of type 'unknown'.
+integ-input/type-before-counts.ts(329,123): error TS18046: 'q' is of type 'unknown'.
+integ-input/type-before-counts.ts(329,157): error TS18046: 'q' is of type 'unknown'.
+integ-input/type-before-counts.ts(329,187): error TS18046: 'q' is of type 'unknown'.
+integ-input/type-before-counts.ts(336,47): error TS7031: Binding element 'p' implicitly has an 'any' type.
+integ-input/type-before-counts.ts(336,50): error TS7031: Binding element 'sts' implicitly has an 'any' type.
+integ-input/type-before-counts.ts(336,67): error TS7006: Parameter 'st' implicitly has an 'any' type.
+integ-input/type-before-counts.ts(338,180): error TS7006: Parameter 'f' implicitly has an 'any' type.
+integ-input/type-before-counts.ts(344,79): error TS7006: Parameter 'd' implicitly has an 'any' type.
+integ-input/type-before-counts.ts(354,134): error TS7006: Parameter 'd' implicitly has an 'any' type.
+integ-input/type-before-counts.ts(360,73): error TS7031: Binding element 'sts' implicitly has an 'any' type.
+integ-input/type-before-counts.ts(360,175): error TS7006: Parameter 'l' implicitly has an 'any' type.
+integ-input/type-before-counts.ts(378,44): error TS7006: Parameter 'name' implicitly has an 'any' type.
+integ-input/type-before-counts.ts(381,19): error TS7006: Parameter 'row' implicitly has an 'any' type.
+integ-input/type-before-counts.ts(382,17): error TS7006: Parameter 'd' implicitly has an 'any' type.
+integ-input/type-before-counts.ts(383,18): error TS7006: Parameter 'row' implicitly has an 'any' type.
+integ-input/type-before-counts.ts(490,52): error TS18046: 'e' is of type 'unknown'.
+integ-input/type-before-counts.ts(665,164): error TS18046: 'w' is of type 'unknown'.
+integ-input/type-before-counts.ts(665,174): error TS18046: 'w' is of type 'unknown'.
+integ-input/type-before-counts.ts(666,33): error TS7006: Parameter 'i' implicitly has an 'any' type.
+integ-input/type-before-counts.ts(707,130): error TS7006: Parameter 'g' implicitly has an 'any' type.
+integ-input/type-before-counts.ts(707,133): error TS7006: Parameter 'ds' implicitly has an 'any' type.
+integ-input/type-before-counts.ts(726,126): error TS18046: 'q' is of type 'unknown'.
+integ-input/type-before-counts.ts(726,145): error TS18046: 'q' is of type 'unknown'.
+integ-input/type-before-counts.ts(760,80): error TS7006: Parameter 'i' implicitly has an 'any' type.
+integ-input/type-before-counts.ts(762,106): error TS7006: Parameter 'i' implicitly has an 'any' type.
+integ-input/type-before-counts.ts(783,45): error TS18048: 'cached' is possibly 'undefined'.
+integ-input/type-before-counts.ts(786,81): error TS7031: Binding element 'mp' implicitly has an 'any' type.
+integ-input/type-before-counts.ts(788,102): error TS7031: Binding element 'key' implicitly has an 'any' type.
+integ-input/type-before-counts.ts(800,137): error TS7006: Parameter 'i' implicitly has an 'any' type.
+integ-input/type-before-counts.ts(877,71): error TS7006: Parameter 'l' implicitly has an 'any' type.
+integ-input/type-before-counts.ts(956,130): error TS7006: Parameter 'i' implicitly has an 'any' type.
+integ-input/type-before-counts.ts(974,132): error TS7006: Parameter 'g' implicitly has an 'any' type.
+integ-input/type-before-counts.ts(974,135): error TS7006: Parameter 'ds' implicitly has an 'any' type.
+integ-input/type-before-counts.ts(991,143): error TS7006: Parameter 'i' implicitly has an 'any' type.
+integ-input/type-before-counts.ts(1014,5): error TS2322: Type 'Tried<unknown>' is not assignable to type 'Tried<Proof>'.
+  Type '{ proof: unknown; }' is not assignable to type 'Tried<Proof>'.
+    Type '{ proof: unknown; }' is not assignable to type '{ proof: Proof; }'.
+      Types of property 'proof' are incompatible.
+        Type 'unknown' is not assignable to type 'Proof'.
+integ-input/type-before-counts.ts(1025,184): error TS7006: Parameter 'local' implicitly has an 'any' type.
+
+--- stderr ---
+$ tsc -p . && oxlint --type-aware --deny-warnings --disable-nested-config
