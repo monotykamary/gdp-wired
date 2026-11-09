@@ -10,10 +10,10 @@ type Term = {id: number, code: string, args: Term[], deps: number[], lo: number,
 type Pred = boolean | {op: 'atom', a: Term, b: Term, cmp: '<' | '<=' | '='} | {op: 'and', xs: Pred[]} | {op: 'or', xs: Pred[]} | {op: 'not', x: Pred}
 type Slot = {name: string, key?: number, request?: boolean, values: number[]}
 export type TinyFiniteSeed = {params: Env, pre: State, request: Request}
-export type TinyFiniteOptions = {valueDomain?: readonly number[], postTargetPruning?: boolean, postTargetIntervals?: boolean, seedTransitions?: readonly TinyFiniteSeed[]}
+export type TinyFiniteOptions = {valueDomain?: readonly number[], postTargetPruning?: boolean, postTargetIntervals?: boolean, seedTransitions?: readonly TinyFiniteSeed[], seedUniformMaps?: boolean}
 export type TinyFiniteStatistics = {
-  scope: {params: Env, scalarValues: number[], cellValues: number[], cells: Record<string, number[]>, inputValues: Record<string, number[]>, inputCells: Record<string, number[]>, binderValues: number[], postTargetPruning: boolean, postTargetIntervals: boolean, seedNeighborhood: boolean}
-  completed: boolean, exhausted: boolean, timedOut: boolean, unsupported: string[], nodes: number, states: number, steps: number, scenarios: number, candidates: number, postStatePrunes: number, postRequestPrunes: number, postIntervalFallbacks: number, seedModels: number, seedCandidates: number, ms: number
+  scope: {params: Env, scalarValues: number[], cellValues: number[], cells: Record<string, number[]>, inputValues: Record<string, number[]>, inputCells: Record<string, number[]>, binderValues: number[], postTargetPruning: boolean, postTargetIntervals: boolean, seedNeighborhood: boolean, seedUniformMaps: boolean}
+  completed: boolean, exhausted: boolean, timedOut: boolean, unsupported: string[], nodes: number, states: number, steps: number, scenarios: number, candidates: number, postStatePrunes: number, postRequestPrunes: number, postIntervalFallbacks: number, seedModels: number, seedCandidates: number, seedCoupledModels: number, seedCoupledCandidates: number, ms: number
 }
 const unique = (xs: number[]) => [...new Set(xs)]
 const conjunction = (xs: Pred[]): Pred => {
@@ -384,8 +384,8 @@ function gridKeys(m: Machine, size: number): Record<string, number[]> {
 export function tinyFiniteCandidates(source: Machine, m: Machine, family: Law[], params: Env,
   onCandidate: (pre: State, request: Request, violated: Law[]) => boolean | void, options: TinyFiniteOptions = {}): TinyFiniteStatistics {
   const stateValues = unique([...(options.valueDomain ?? [0, 1])]).sort((a, b) => a - b)
-  const start = performance.now(), scope: TinyFiniteStatistics['scope'] = {params: {...params}, scalarValues: [...stateValues], cellValues: [...stateValues], cells: {}, inputValues: {}, inputCells: {}, binderValues: [], postTargetPruning: options.postTargetPruning === true, postTargetIntervals: options.postTargetIntervals === true, seedNeighborhood: options.seedTransitions !== undefined}
-  const stats: TinyFiniteStatistics = {scope, completed: false, exhausted: false, timedOut: false, unsupported: [], nodes: 0, states: 0, steps: 0, scenarios: 0, candidates: 0, postStatePrunes: 0, postRequestPrunes: 0, postIntervalFallbacks: 0, seedModels: 0, seedCandidates: 0, ms: 0}
+  const start = performance.now(), scope: TinyFiniteStatistics['scope'] = {params: {...params}, scalarValues: [...stateValues], cellValues: [...stateValues], cells: {}, inputValues: {}, inputCells: {}, binderValues: [], postTargetPruning: options.postTargetPruning === true, postTargetIntervals: options.postTargetIntervals === true, seedNeighborhood: options.seedTransitions !== undefined, seedUniformMaps: options.seedTransitions !== undefined && options.seedUniformMaps === true}
+  const stats: TinyFiniteStatistics = {scope, completed: false, exhausted: false, timedOut: false, unsupported: [], nodes: 0, states: 0, steps: 0, scenarios: 0, candidates: 0, postStatePrunes: 0, postRequestPrunes: 0, postIntervalFallbacks: 0, seedModels: 0, seedCandidates: 0, seedCoupledModels: 0, seedCoupledCandidates: 0, ms: 0}
   const unknown = (e: unknown) => { const reason = e instanceof Error ? e.message : String(e); if (!stats.unsupported.includes(reason)) stats.unsupported.push(reason) }
   try {
     checkWall('tiny start')
@@ -625,12 +625,13 @@ export function tinyFiniteCandidates(source: Machine, m: Machine, family: Law[],
         }
         if (values.length === slots.length) bases.push(values)
       }
-      const attempt = (values: number[]): boolean => {
+      const attempt = (values: number[], coupled = false): boolean => {
         checkWall('tiny seed attempt')
         if (stats.seedModels >= 256) return false
         const key = values.join(',')
         if (seen.has(key)) return true
         seen.add(key); stats.seedModels++; stats.nodes++
+        if (coupled) stats.seedCoupledModels++
         for (let i = 0; i < values.length; i++) v[i] = values[i]!
         if (!preTest(v, stateOrder.length)) return true
         for (const op of operations) {
@@ -642,11 +643,31 @@ export function tinyFiniteCandidates(source: Machine, m: Machine, family: Law[],
           stats.steps++
           const post = v.slice(); for (let i = 0; i < stateSlots; i++) post[i] = outputs[i]!
           const violated = targets.filter((law, i) => !emitted.has(law) && !postTests[i]!(post, 0))
-          if (violated.length) { stats.seedCandidates++; propose(op.fixed, violated) }
+          if (violated.length) {
+            stats.seedCandidates++; if (coupled) stats.seedCoupledCandidates++
+            propose(op.fixed, violated)
+          }
         }
         return true
       }
       for (const base of bases) if (!attempt(base)) return
+      if (options.seedUniformMaps) {
+        const grouped = new Map<string, number[]>()
+        for (const [i, slot] of slots.entries()) {
+          checkWall('tiny seed map grouping')
+          if (slot.key === undefined) continue
+          const key = `${Number(!!slot.request)}:${slot.name}`, group = grouped.get(key) ?? []
+          group.push(i); grouped.set(key, group)
+        }
+        const groups = [...grouped.values()].filter(group => group.length > 1)
+          .sort((a, b) => Number(!!slots[b[0]!]!.request) - Number(!!slots[a[0]!]!.request))
+        for (const group of groups) for (const base of bases) for (const value of slots[group[0]!]!.values) {
+          checkWall('tiny seed uniform map')
+          if (!group.every(i => slots[i]!.values.includes(value)) || group.every(i => base[i] === value)) continue
+          const values = base.slice(); for (const i of group) values[i] = value
+          if (!attempt(values, true)) return
+        }
+      }
       // Request axes first; round-robin across seeds avoids one long seed
       // neighborhood consuming the entire fixed attempt allowance.
       const axes = [...slots.keys()].sort((a, b) => Number(!!slots[b]!.request) - Number(!!slots[a]!.request) || a - b)

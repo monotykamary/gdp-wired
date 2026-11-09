@@ -123,3 +123,43 @@ test('seed processing never extends the finite wall or swallows an outer expirat
   expect(timedOut).toBe(true)
   expect(() => withWall(performance.now() - 1, () => finiteTinyHoudini(source, source, [], [law], [{}], {seedTransitions: [seed]}))).toThrow(WallExpired)
 })
+
+for (const requestMap of [false, true]) test(`uniform ${requestMap ? 'request' : 'state'} map seeds preserve all concrete transitions`, () => {
+  const source: Machine = {name: 'uniform map seed fixture', params: [], inputs: [], state: {value: n(0)},
+    ...(requestMap ? {inputMaps: ['table']} : {maps: {table: 0}}),
+    counts: {total: {j: 'row', key: 'member', below: n(3), body: get('table', x('member'))}},
+    step: {state: {value: get('total', n(0))}}}
+  const law: Law = {name: 'bounded aggregate', holds: atMost(x('value'), n(2))}
+  const run = interpret(source), evaluate = finiteEvaluator(source)
+  const bits = (values: number[]) => new Map(values.map((value, i) => [i, value]))
+  const pre: State = {scalars: {value: 0}, maps: requestMap ? {} : {table: bits([0, 0, 0])}}
+  const request: Request = requestMap ? {table: bits([0, 0, 0])} : {}
+  const seeds = [{params: {}, pre, request}], canonical = (a: State, b: State) => JSON.stringify([a.scalars.value, [0, 1, 2].map(i => a.maps.table?.get(i) ?? 0), b.scalars.value])
+  for (const domain of [[0, 1], [0, 1, 2]]) {
+    const cells = requestMap ? [0, 1] : domain, expected = new Set<string>()
+    for (const value of domain) for (const a of cells) for (const b of cells) for (const c of cells) {
+      const table = bits([a, b, c]), state: State = {scalars: {value}, maps: requestMap ? {} : {table}}
+      const input: Request = requestMap ? {table} : {}, post = run.step({}, state, input)
+      if (evaluate(law, {}, state) === true && evaluate(law, {}, post) === false) expected.add(canonical(state, post))
+    }
+    for (const seedUniformMaps of [false, true]) {
+      const actual = new Set<string>()
+      const stats = tinyFiniteCandidates(source, source, [law], {}, (state, input) => {
+        expect(evaluate(law, {}, state)).toBe(true)
+        const post = run.step({}, state, input)
+        expect(evaluate(law, {}, post)).toBe(false)
+        actual.add(canonical(state, post)); return false
+      }, {valueDomain: domain, postTargetPruning: true, seedTransitions: seeds, seedUniformMaps})
+      expect([...actual].sort()).toEqual([...expected].sort())
+      expect(stats.completed).toBe(true)
+      expect(stats.seedModels).toBeLessThanOrEqual(256)
+      if (seedUniformMaps) {
+        expect(stats.seedCoupledModels).toBeGreaterThan(0)
+        expect(stats.seedCoupledCandidates).toBeGreaterThan(0)
+      } else expect(stats.seedCandidates).toBe(0)
+    }
+    expect(finiteTinyHoudini(source, {...source, facts: [{name: 'impossible', holds: same(n(0), n(1))}]}, [], [law], [{}], {valueDomain: domain, seedTransitions: seeds, seedUniformMaps: true})).toEqual([law])
+    expect(finiteTinyHoudini(source, source, [law], [law], [{}], {valueDomain: domain, seedTransitions: seeds, seedUniformMaps: true})).toEqual([law])
+  }
+  expect([0, 1, 2].map(i => (requestMap ? request.table as Map<number, number> : pre.maps.table!)?.get(i))).toEqual([0, 0, 0])
+})

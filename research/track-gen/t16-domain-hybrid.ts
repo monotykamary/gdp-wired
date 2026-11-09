@@ -31,13 +31,13 @@ const initial=caller.length+candidates.length,drops:{stage:number,round:number,m
 const removed=new Set<Law>(),started=performance.now()
 let timedOut=false
 const postTargetPruning=process.env.T16_POST_TARGET==='1',postTargetIntervals=process.env.T16_POST_INTERVALS==='1'
-const counterexampleNeighbors=process.env.T16_SEED_NEIGHBORS==='1',seedTransitions:TinyFiniteSeed[]=[]
+const counterexampleNeighbors=process.env.T16_SEED_NEIGHBORS==='1',seedUniformMaps=process.env.T16_SEED_UNIFORM==='1',seedTransitions:TinyFiniteSeed[]=[]
 try {
   withWall(started+1900,()=>{
     const stages=[{valueDomain:[0,1],rounds:2,wallMs:1000},{valueDomain:[0,1,2],rounds:1,wallMs:2000}]
     for(const [stage,options] of stages.entries()) {
       checkWall('hybrid stage')
-      candidates=finiteTinyHoudini(source,m,caller,candidates,[params],{...options,postTargetPruning,postTargetIntervals,...(counterexampleNeighbors?{seedTransitions}:{}),
+      candidates=finiteTinyHoudini(source,m,caller,candidates,[params],{...options,postTargetPruning,postTargetIntervals,seedUniformMaps,...(counterexampleNeighbors?{seedTransitions}:{}),
         onDrop:drop=>{
           if(counterexampleNeighbors&&seedTransitions.at(-1)?.pre!==drop.pre){
             if(seedTransitions.length>=8)seedTransitions.shift()
@@ -57,4 +57,4 @@ try {
   if(!(error instanceof Error)||error.name!=='WallExpired')throw error
   checkWall('hybrid outer completion');timedOut=true
 }
-console.log('HYBRID_RESULT',JSON.stringify({mode,postTargetPruning,postTargetIntervals,counterexampleNeighbors,initial,drops,rounds,finishes,timedOut,wall:performance.now()-started,removed:removed.size,survivors:initial-removed.size}))
+console.log('HYBRID_RESULT',JSON.stringify({mode,postTargetPruning,postTargetIntervals,counterexampleNeighbors,seedUniformMaps,initial,drops,rounds,finishes,timedOut,wall:performance.now()-started,removed:removed.size,survivors:initial-removed.size}))

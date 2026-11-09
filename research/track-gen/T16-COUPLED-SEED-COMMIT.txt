@@ -1,0 +1,6 @@
+feat(core): add bounded uniform-map seed moves
+
+Try coupled values on all modeled cells of one map before single-axis
+neighbors, using the same eight-seed and 256-attempt limits. Keep request
+and state map groups distinct and reject values outside any cell domain.
+Preserve ordinary search and independent full-family certification.
