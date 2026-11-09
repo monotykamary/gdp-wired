@@ -78,9 +78,9 @@ test('a concrete-key count target retains an independently checked conditional c
 })
 
 
-test('an easy concrete count proof is certificate-checked without completing universal premises',()=>{
- const m:Machine={name:'sparse count',params:[],inputs:[],state:{},maps:{},counts:{Total:{j:'countRow',key:'member',below:n(2),body:n(0)}},step:{}}
- const law:Law={name:'zero total',holds:same(get('Total',n(0)),n(0))},premise:Law={name:'zero every total',forall:'row',holds:same(get('Total',x('row')),n(0))},family=[law,premise]
+test('an initialized three-element count proof needs no premise completion',()=>{
+ const m:Machine={name:'sparse count',params:[],inputs:[],state:{ready:n(0)},maps:{Cells:0},counts:{Total:{j:'countRow',key:'member',below:n(3),body:ite(same(get('Cells',x('member')),n(1)),n(1),n(0))}},step:{state:{ready:n(1)}}}
+ const law:Law={name:'bounded target',holds:{op:'or',xs:[same(x('ready'),n(0)),{op:'<=',a:get('Total',n(0)),b:n(3)}]}},premise:Law={name:'bounded source',forall:'row',holds:{op:'<=',a:get('Total',x('row')),b:n(3)}},family=[law,premise]
  const phases:string[]=[],prior=countsDump.on
  try{
   countsDump.on=event=>{if('phase'in event&&typeof event.phase==='string')phases.push(event.phase)}
