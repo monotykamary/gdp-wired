@@ -1,0 +1,1 @@
+[{"name":"check","cmd":"bun install --frozen-lockfile && bun run check","timeout":300},{"name":"candidate-mldr","cmd":"bun install --frozen-lockfile && bun research/track-gen/t13-generation.ts mldr","timeout":300}]

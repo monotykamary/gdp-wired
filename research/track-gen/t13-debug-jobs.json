@@ -1,0 +1,1 @@
+[{"name":"debug","cmd":"bun install --frozen-lockfile && bun research/track-gen/t13-debug.ts","timeout":180},{"name":"tests","cmd":"bun install --frozen-lockfile && bun test core/quorum-laws.test.ts core/field-laws.test.ts","timeout":180},{"name":"check","cmd":"bun install --frozen-lockfile && bun run check","timeout":300}]

@@ -25,6 +25,7 @@ import {carryCandidates, scanPrefixes} from './carry.ts'
 import {relevantGoals, relevantLaws} from './relevance.ts'
 import {countPoolKey, countSignature, grammarPool, ids, polaritySelection, readTuples, refinementSignature, reservationReadClosure, reservationState, reservePool, prepareSupport, smallSelection, sparseReadInstances, sourceContext, coarseContext, selectedCertificate, chosenView, candidateWork, stableState, UnsupportedCountProposal} from './count-support.ts'
 import {fieldLaws} from './field-laws.ts'
+import {quorumLaws} from './quorum-laws.ts'
 import {countsForReads, proposeCountFacts} from './count-facts.ts'
 import {supportBudget} from './support-budget.ts'
 export {supportBudget} from './support-budget.ts'
@@ -68,6 +69,8 @@ const mentions = (t: unknown, name: string) => json(t).includes(`"name":${json(n
 const some = (t0: unknown, p: (x: any) => boolean): boolean => !!t0 && typeof t0 === 'object' && (p(t0) || Object.values(t0).some(y => some(y, p)))
 const atoms = (c: C): C[] => (c.op === 'and' || c.op === 'or' ? c.xs.flatMap(atoms) : c.op === 'not' ? atoms(c.x) : [c])
 
+const quorumCandidates = new WeakSet<Law>()
+
 // --- candidates from the guard's shape -----------------------------------------------------------------------------------
 export function guardLaws(m: Machine): {counts: Machine['counts'], laws: Law[]} {
   const counts: NonNullable<Machine['counts']> = {}, laws: Law[] = []
@@ -95,6 +98,11 @@ export function guardLaws(m: Machine): {counts: Machine['counts'], laws: Law[]} 
       }
     }
   }
+  // Lift row-majority bodies beside the stored-set loop. Their laws are admitted
+  // after the old candidate families; merely recognizing a shape trusts nothing.
+  const lifted = quorumLaws(m)
+  Object.assign(counts, lifted.counts)
+  for (const law of lifted.laws) { laws.push(law); quorumCandidates.add(law) }
   for (const [mp, w] of Object.entries(m.step.maps ?? {})) {
     // (the written key: a request's value t, or two, t and u, composed N·t + u (a relation's cell): a count of two
     // parameters, read at the law's N·a + b with b < N)
@@ -336,7 +344,9 @@ export function candidates(src: Parameters<typeof inferLaws>[0], m: Machine, cal
     const w: Law = {...c, name: name === c.name ? `${c.name} (any ${shown.join(', ')})` : name, holds: {op: 'or', xs: c.holds.xs.map(d => (d.op === 'not' ? {op: 'not', x: {op: 'and', xs: conjs(d.x).filter(keep)}} : d))}}
     return trueAll(w) ? w : c
   }
-  const cubes = cubes0.map(loosened), fields = fieldLaws(m)
+  const cubes = cubes0.map(loosened), fields = fieldLaws(m, false)
+  const lifted = guarded.filter(l => quorumCandidates.has(l)), ordinary = guarded.filter(l => !quorumCandidates.has(l))
+  const newFields = fieldLaws(m).slice(fields.length, fields.length + Math.max(0, 32 - lifted.length))
   if (env.GDP_COUNTS_TRACE) console.error(`counts: small ${states.map(({sts}) => sts.length).join('/')}; cubes ${cubes.length} in ${Math.round(clock() - t1)} ms: ${cubes.map(l => l.name).join('; ')}`)
   // (a candidate whose every conjunct a law before it states, its keys named apart by place, is not proposed again: a
   // cell's maximum its kind's law states, a cube a guard's)
@@ -347,9 +357,16 @@ export function candidates(src: Parameters<typeof inferLaws>[0], m: Machine, cal
   for (const l of caller) for (const q of parts(l)) said.add(q)
   const prefixes = scanPrefixes(m, [...caller, ...kinds, ...guarded, ...rowLaws, ...cubes])
   const admit = (l: Law) => { const ps = parts(l); if (ps.every(q => said.has(q)) || !trueAll(l)) return false; for (const q of ps) said.add(q); return true }
-  const out = ptime('filter', () => [...kinds, ...guarded, ...rowLaws, ...fields, ...prefixes, ...cubes].filter(admit))
+  const out = ptime('filter', () => [...kinds, ...ordinary, ...rowLaws, ...fields, ...prefixes, ...cubes].filter(admit))
   const carried = carryCandidates(m, [...caller, ...kinds, ...guarded, ...rowLaws, ...cubes])
   out.push(...ptime('filter', () => carried.filter(admit)))
+  out.push(...ptime('quorumFilter', () => [...lifted, ...newFields].filter(admit)))
+  // A rejected proposal must not enlarge every later counted goal. Retain only
+  // lifted counts read by an admitted law (and their transitive dependencies).
+  const proposed = new Set([...reads(lifted, mp => !!m.counts?.[mp]).values()].map(([mp]) => mp))
+  const used = new Set([...reads([...caller, ...out], () => true).values()].map(([mp]) => mp))
+  for (const name of used) if (m.counts?.[name]) for (const [mp] of reads(m.counts[name]!.body, () => true).values()) used.add(mp)
+  for (const name of proposed) if (!used.has(name)) delete m.counts![name]
   for (const l of out) if (prefixes.includes(l) || carried.includes(l)) support.add(l)
   if (env.GDP_COUNTS_TRACE) console.error(`counts: ${kinds.length + guarded.length + rowLaws.length + fields.length + prefixes.length + carried.length + cubes.length - out.length} candidates said before or false on the small instances`)
   return out
@@ -440,7 +457,7 @@ function structuredFallback(until: number, attempt: (structured: boolean) => Cou
 }
 export function searchCounted(m0: Machine, caller: Law[], ms = 60_000): Counted {
   const g = guardLaws(m0), m: Machine = {...m0, counts: {...m0.counts, ...g.counts}}
-  ptime('small', () => smallOf(m))
+  ptime('small', () => smallOf(m, m0))
   const run = () => withWall(performance.now() + 2 * ms, () => counted(fullRate, () => searchCounted0(m0, g, m, caller, ms), true))
   if (!env.GDP_COUNTS_PROF) return run()
   cdclStats.on = true
