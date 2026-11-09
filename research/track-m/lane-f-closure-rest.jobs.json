@@ -1,0 +1,65 @@
+[
+  {
+    "name": "overlap-op1",
+    "cmd": "bash research/track-m/lane-f-pair.sh closure overlap 1 after",
+    "cpu": 2,
+    "memory": 8192,
+    "timeout": 120
+  },
+  {
+    "name": "overlap-op3",
+    "cmd": "bash research/track-m/lane-f-pair.sh closure overlap 3 after",
+    "cpu": 2,
+    "memory": 8192,
+    "timeout": 120
+  },
+  {
+    "name": "overlap-op5",
+    "cmd": "bash research/track-m/lane-f-pair.sh closure overlap 5 after",
+    "cpu": 2,
+    "memory": 8192,
+    "timeout": 120
+  },
+  {
+    "name": "overlap-op6",
+    "cmd": "bash research/track-m/lane-f-pair.sh closure overlap 6 before",
+    "cpu": 2,
+    "memory": 8192,
+    "timeout": 120
+  },
+  {
+    "name": "star-op0",
+    "cmd": "bash research/track-m/lane-f-pair.sh closure star 0 before",
+    "cpu": 2,
+    "memory": 8192,
+    "timeout": 120
+  },
+  {
+    "name": "star-op1",
+    "cmd": "bash research/track-m/lane-f-pair.sh closure star 1 after",
+    "cpu": 2,
+    "memory": 8192,
+    "timeout": 120
+  },
+  {
+    "name": "star-op2",
+    "cmd": "bash research/track-m/lane-f-pair.sh closure star 2 before",
+    "cpu": 2,
+    "memory": 8192,
+    "timeout": 120
+  },
+  {
+    "name": "star-op4",
+    "cmd": "bash research/track-m/lane-f-pair.sh closure star 4 before",
+    "cpu": 2,
+    "memory": 8192,
+    "timeout": 120
+  },
+  {
+    "name": "star-op6",
+    "cmd": "bash research/track-m/lane-f-pair.sh closure star 6 before",
+    "cpu": 2,
+    "memory": 8192,
+    "timeout": 120
+  }
+]

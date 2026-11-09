@@ -1,0 +1,5 @@
+[
+ {"name":"mldr-0","cmd":"bash research/track-m/lane-f-original-pair.sh 0 before","cpu":2,"memory":8192,"timeout":180},
+ {"name":"mldr-1","cmd":"bash research/track-m/lane-f-original-pair.sh 1 after","cpu":2,"memory":8192,"timeout":180},
+ {"name":"mldr-2","cmd":"bash research/track-m/lane-f-original-pair.sh 2 before","cpu":2,"memory":8192,"timeout":180}
+]
