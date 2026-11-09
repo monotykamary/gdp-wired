@@ -5,6 +5,8 @@
   "reassignedHelpers":{"Inv1758":"lane E","Inv2973-half":"lane F"},
   "gateGreen":false,
   "gateBase":"4497c4b05c3111959a2b8d808c426a0e3cab3f01",
+  "mainMerge":"b3eb35bb",
+  "mainMergeConflictResolution":"union of test inventories in scripts/test-shards.ts",
   "completedMeasurementsRepeated":false,
   "memoryPolicy":"at most one subagent; this lane owns none",
   "diskPolicy":"one source archive per SHA; small receipts; no deletions",

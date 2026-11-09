@@ -50,7 +50,7 @@ The second broad check again passes 411 existing tests, but the new order fixtur
 
 **Next observation:** one newly instrumented execution of the archived flags-first arm will capture `wide`, support mode, and actual lazy pool membership. It keeps the original 6000-unit / 7-second bound and changes only observation metadata. This is not a timing comparison or a gate.
 
-**Gate-base update:** coordinator advanced local main to `4497c4b05c3111959a2b8d808c426a0e3cab3f01`; every future gate must use that base. The branch is merging it after checkpointing the diagnostic work. Frozen historical receipts keep their original source identities.
+**Gate-base update:** coordinator advanced local main to `4497c4b05c3111959a2b8d808c426a0e3cab3f01`; every future gate must use that base. Merged as `b3eb35bb` after checkpointing the diagnostic work. The only conflict, `scripts/test-shards.ts`, was resolved by retaining both main’s two new extractor tests and this lane’s count/kernel regression inventory. Ancestry is verified. The next boat job validates the actual merged source and focused integration tests before restoring the archived count-source arm for the observation. Frozen historical receipts keep their original source identities; this new instrumented run is on the merged substrate, not a replay of the entire historical tree.
 
 ### Historical resume log
 

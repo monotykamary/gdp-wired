@@ -1,1 +1,1 @@
-[{"name":"trace","cmd":"bash research/track-m/lane-b-pool-trace.sh","cpu":8,"memory":14336,"timeout":240}]
+[{"name":"trace","cmd":"bash research/track-m/lane-b-pool-trace.sh","cpu":8,"memory":14336,"timeout":360}]
