@@ -1,0 +1,12 @@
+{
+  "taskId": "01d0b4ba-830f-4aa4-a730-c712b43219f5",
+  "batch": "20261110-014116-r49824",
+  "tree": "aaf82124bc2f",
+  "image": "sc-f0d8daeee6c3",
+  "exitCode": 0,
+  "jobs": 6,
+  "failed": 0,
+  "wallSeconds": 97.8,
+  "jobSeconds": 176.1,
+  "source": "tasks.get completed controller receipt"
+}

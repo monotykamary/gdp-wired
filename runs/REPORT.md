@@ -2,7 +2,7 @@
 
 ## Confirmed eager-range regression; demand-driven integration under validation
 
-Completed `20261110-013619-7w0tar`, six rows, all exit 0. The exact fresh
+Completed `20261110-014116-r49824`, six rows, all exit 0. The exact fresh
 34-law family equals the prior machine **and** law array (canonical object
 key order; array order preserved). Family SHA-256:
 `ad1f3875ea61c34145adfaec3e015311bb096c5f5d69deb98b9e7ad9c0fc0d2f`.
