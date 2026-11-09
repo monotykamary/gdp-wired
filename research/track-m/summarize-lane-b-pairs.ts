@@ -6,7 +6,8 @@ import {strict as assert} from 'node:assert'
 const [dir,familyFile]=process.argv.slice(2);if(!dir||!familyFile)throw Error('BATCH FAMILY required')
 const hash=(b:string|Buffer)=>createHash('sha256').update(b).digest('hex'),familySha256=hash(readFileSync(familyFile)),placement=JSON.parse(readFileSync(join(dir,'placement.json'),'utf8'))
 const expected=['overlap','rows','star','safety','p1'].flatMap(tag=>['ab','ba'].map(order=>`${tag}-${order}`)),lines=readFileSync(join(dir,'summary.tsv'),'utf8').trim().split('\n').map(line=>line.split('\t'))
-assert.deepEqual(lines.map(r=>r[0]).sort(),[...expected].sort())
+const order=(a:string|undefined,b:string|undefined)=>(a??'')<(b??'')?-1:(a??'')>(b??'')?1:0
+assert.deepEqual(lines.map(r=>r[0]).sort(order),[...expected].sort(order))
 const rows=lines.map(([name,exit])=>{
  assert(name);assert.equal(Number(exit),0)
  const text=readFileSync(join(dir,name+'.log'),'utf8'),records=text.split('\n').flatMap(line=>{try{const x=JSON.parse(line);return x.side?[x]:[]}catch{return[]}})
