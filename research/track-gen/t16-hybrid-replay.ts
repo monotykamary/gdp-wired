@@ -62,5 +62,8 @@ const rows = withWall(performance.now() + 30_000, () => roster.map(job => {
     namedSevenNew: named, namedSevenIncludingHistorical: seven.filter(name => named.includes(name) || historical.includes(name)),
     remaining: alive.map(l => l.name), meetsNewFiveAndWall: exit === 0 && named.length >= 5 && result.wall <= 2000}
 }))
-console.log('HYBRID_REPLAY', JSON.stringify({inputHash, rows, allNewFiveAndWall: rows.every(r => r.meetsNewFiveAndWall),
+console.log('HYBRID_REPLAY', JSON.stringify({inputHash, rows,
+  originalThreeMeetNewFive: rows.filter(r => r.mode === 'original').every(r => r.meetsNewFiveAndWall),
+  allSixExitsZero: rows.every(r => r.exit === 0), allSixWallsWithinAllowance: rows.every(r => r.wall <= 2000),
+  replaySourceSha256: Object.fromEntries(['research/protocols/ic3syn/mldr.ts', 'core/machine.ts', 'core/finite-houdini.ts'].map(path => [path, createHash('sha256').update(readFileSync(path)).digest('hex')])),
   trust: 'Independent interpreter/full-round-family replay only; no proof, completeness, or final-gate claim.'}))
