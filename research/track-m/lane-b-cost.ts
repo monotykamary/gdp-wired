@@ -6,6 +6,7 @@ import {countedAttempts,countsDump,cprof} from '../../core/counts.ts'
 import {clock,counted,fullRate,fullWork,withDeadline,withWall} from '../../kernel/prove.ts'
 import {checkMC,columnTerm,countedObligations} from '../../kernel/kernel.ts'
 import {conditionalProofStats} from '../../core/count-recovery/conditional-proof.ts'
+import {readCheckProfile} from './check-cost-profile.ts'
 const [input,tag,out,budgetArg='2700',wallArg='4800']=process.argv.slice(2),p=JSON.parse(readFileSync(input!,'utf8')),index=p.targets[tag!],law=p.laws[index],budget=Number(budgetArg),wallAllowance=Number(wallArg)
 const section16=budget===6000&&wallAllowance===7000&&p.generatorOnly===true&&(p.suppliedLaws?.length??0)===0
 if(!law||!out||!((budget>0&&budget<=5000&&wallAllowance===4800)||section16))throw Error('FAMILY TARGET OUTPUT [budget <=5000] [4800], or actual generated family with 6000 7000')
@@ -19,5 +20,5 @@ countsDump.on=undefined
 const units=(fullWork()-before)/fullRate,searchWallMs=performance.now()-start,checkStart=performance.now(),checked=!!proof&&countedObligations(p.m,p.laws,{[law.name]:proof.instances},index).every(({goal,decls})=>{const c=proof.certs[goal.name];return !!c&&checkMC(goal.hyps,decls,c)}),columns=[]
 for(let i=0;;i++){const t=columnTerm(`⟦${i}⟧`);if(t===undefined)break;columns.push(t)}
 const wallMs=performance.now()-start,checkWallMs=performance.now()-checkStart,cacheAfter=conditionalProofStats(),cache=Object.fromEntries(Object.entries(cacheAfter).map(([k,v])=>[k,v-cacheBefore[k as keyof typeof cacheBefore]]))
-const record={conditional:true,standalone:true,measurementVersion:2,diagnostic:section16?'section16.5':'legacy',generatorOnly:p.generatorOnly??false,familySource:p.source,suppliedLaws:p.suppliedLaws??[],tag,law:law.name,familySize:p.laws.length,budget,wallAllowance,units,searchWallMs,checkWallMs,wallMs,checked,withinDiagnosticLine:section16&&checked&&units<=6000&&wallMs<=7000,cache,results,profile:{...cprof},last:events.at(-1),events}
+const record={conditional:true,standalone:true,measurementVersion:2,diagnostic:section16?'section16.5':'legacy',generatorOnly:p.generatorOnly??false,familySource:p.source,suppliedLaws:p.suppliedLaws??[],tag,law:law.name,familySize:p.laws.length,budget,wallAllowance,units,searchWallMs,checkWallMs,wallMs,checked,withinDiagnosticLine:section16&&checked&&units<=6000&&wallMs<=7000,cache,checkProfile:readCheckProfile(),results,profile:{...cprof},last:events.at(-1),events}
 writeFileSync(join(out,'summary.json'),JSON.stringify(record,null,2)+'\n');writeFileSync(join(out,'capture.json.gz'),gzipSync(JSON.stringify({record,m:p.m,laws:p.laws,columns,captures,proof})));console.log(JSON.stringify(record))

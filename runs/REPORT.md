@@ -5863,3 +5863,9 @@ F1–F3 are back in scope. F2 slicing and F3 memoization already exist in `condi
 Field work is zero in three after arms because the captured prefixes stop in inactive guard paths before reaching it, not because it was proved cheaply. The fourth arm's closure draws are only 13.816 and 7.470 units. No demand attribution becomes known. This does not support adopting the full policy as a speedup.
 
 Direct class-pass probes of the exact recorded legacy op-0/op-4 leaf scopes are queued in `lane-b-seeded-leaf-v1`, with root-lineage and seed-proof checks. They separate derivability from the guard/case allocation route and are explicitly not actual E-14 pass evidence. The 16.5 actual-family calibration, before/after class comparison, independent audits and clean leaf validation remain pending. No gate is claimed.
+
+## Lane B — authoritative gate rule and F1–F3 observation
+
+Read the new `MLDR-29.md` Gate evidence note. **Only Lane D's one-command final gate** (exact roster, pair identity, both SHAs bound, CPU-labelled) can support a merge; `GATE GREEN` must cite its receipt. Every Lane B analyzer and experiment remains iteration evidence only. No local summary substitutes for that gate.
+
+F1–F3 work now includes an observation-only disposable check profiler: per-site calls and inclusive/exclusive wall for the count-case pre-check, transported-certificate check, final family check, sliced leaf checks, independent lemma checks, retargeting and the standalone worker's final checks. Every original checker still executes; no result is cached differently, deferred or skipped by this instrumentation. `lane-b-check-profile-v1` measures the five actual-family targets under the 16.5 standalone line and validates the wrapper/profiler. These results are pending. The profile is not a proof-policy change or a gate.

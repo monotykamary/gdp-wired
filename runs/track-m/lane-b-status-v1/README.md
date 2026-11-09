@@ -1,5 +1,7 @@
 # Lane B running checkpoint (not a merge gate)
 
+**Authoritative merge evidence:** only Lane D's one-command final gate with the exact roster, pair identity, both SHAs bound and CPU labels. Any future `GATE GREEN` statement must cite that receipt. These lane-local experiments, checks and analyzers are iteration evidence only.
+
 Code checkpoints: `33df6258` (active slice and initial observer), `60b8c37a`
 (bounded count-law completion), `bd82e993` (Lane E `f6ec83db` inclusion selector).
 
