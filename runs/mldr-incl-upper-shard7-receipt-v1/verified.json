@@ -1,0 +1,32 @@
+{
+  "shard": "7/7",
+  "childExit": 0,
+  "logSha256": "9586b9eb8b1b71947dd600e386978272c2e483d5382db3e22e481fa257c04629",
+  "logBytes": 368228,
+  "pass": 227,
+  "fail": 0,
+  "skip": 0,
+  "runs": [
+    {
+      "tests": 164,
+      "files": 11
+    },
+    {
+      "tests": 8,
+      "files": 2
+    },
+    {
+      "tests": 6,
+      "files": 2
+    },
+    {
+      "tests": 21,
+      "files": 1
+    },
+    {
+      "tests": 28,
+      "files": 1
+    }
+  ],
+  "complete": true
+}
