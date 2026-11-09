@@ -1,0 +1,102 @@
+{
+  "originalBatch": "20261110-015931-92u7qg",
+  "availableWorkers": 2,
+  "stoppedWorkers": 5,
+  "oldJobReceiptsMissingOnAvailableWorkers": true,
+  "bio": {
+    "vm": "bx_7vs7decr",
+    "kernelDeaths": [
+      {
+        "at": "2026-11-09T19:29:04+00:00",
+        "pid": 168302,
+        "anonRssKiB": 14420088
+      },
+      {
+        "at": "2026-11-09T19:29:36+00:00",
+        "pid": 169591,
+        "anonRssKiB": 14427044
+      },
+      {
+        "at": "2026-11-09T19:30:07+00:00",
+        "pid": 170276,
+        "anonRssKiB": 14417032
+      },
+      {
+        "at": "2026-11-09T19:30:41+00:00",
+        "pid": 170635,
+        "anonRssKiB": 14441936
+      },
+      {
+        "at": "2026-11-09T19:31:18+00:00",
+        "pid": 171542,
+        "anonRssKiB": 14424268
+      },
+      {
+        "at": "2026-11-09T19:31:48+00:00",
+        "pid": 171757,
+        "anonRssKiB": 14430360
+      }
+    ],
+    "children": [
+      {
+        "repeat": 1,
+        "side": "candidate",
+        "exit": null,
+        "signal": "SIGKILL",
+        "wallMs": 40078.640715
+      },
+      {
+        "repeat": 1,
+        "side": "base",
+        "exit": null,
+        "signal": "SIGKILL",
+        "wallMs": 32069.933836999997
+      },
+      {
+        "repeat": 2,
+        "side": "base",
+        "exit": null,
+        "signal": "SIGKILL",
+        "wallMs": 29773.999662000002
+      },
+      {
+        "repeat": 2,
+        "side": "candidate",
+        "exit": null,
+        "signal": "SIGKILL",
+        "wallMs": 33912.280782999995
+      },
+      {
+        "repeat": 3,
+        "side": "candidate",
+        "exit": null,
+        "signal": "SIGKILL",
+        "wallMs": 36494.783769
+      },
+      {
+        "repeat": 3,
+        "side": "base",
+        "exit": null,
+        "signal": "SIGKILL",
+        "wallMs": 30346.913822000002
+      }
+    ],
+    "intervalResidualMs": [
+      -69.93383699999686,
+      1226.000337999998,
+      87.7192170000053,
+      505.2162309999985,
+      -346.91382200000226
+    ],
+    "classification": "six confirmed kernel OOM deaths on original worker; sequence strongly matches all six original bio SIGKILL children, but original child PIDs were not retained"
+  },
+  "tip": {
+    "vm": "bx_a74cfp57",
+    "kernelOomInQueriedWindow": 0,
+    "originalChildren": "all six exit 124 at 60.26–60.58 s; bilateral strict timeouts, not completed candidate losses"
+  },
+  "newResourceTelemetry": {
+    "rssV1": "Do not interpret zero RSS peaks: the admitted v1 parser does not recognize tab-separated VmRSS. OOM counters, PIDs, kernel evidence and exit/time remain usable.",
+    "rssV2": "Whitespace-normalizing parser qualified: 1 test, 2 assertions; check/lint zero warnings/errors in batch 20261110-025454-ex3k2j."
+  }
+}

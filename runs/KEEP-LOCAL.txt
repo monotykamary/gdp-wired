@@ -1,6 +1,11 @@
 # Lane I: the 140 frozen upper-bound shards finished; their source pin is released.
 # Compressed receipts and frozen source/family hashes are retained; no input was deleted.
-# The b09 strict/bar and diagnostic controllers all returned. Lane I releases
-# its active-job pins on Lane D’s source packs; no source/input was deleted.
+# Coordinator follow-up is active: retain the source packs below until Lane I releases them.
+/private/tmp/gdp-gate-b09da82d/gate-inputs
+/Users/monotykamary/VCS/working-remote/open-source/gdp-wired-verifyP/runs/final-gate/integration-704efc27/inputs
+/private/tmp/gdp-archives/.mounts/b788e1959bba1f2e8aa1f94d4cf7c0eb163a2f9c
+/Users/monotykamary/VCS/working-remote/open-source/gdp-wired-integ/runs/lane-i/merge-bisect/input
+/Users/monotykamary/VCS/working-remote/open-source/gdp-wired-integ/runs/lane-i/merge-bisect/input-v2
+# No source/input was deleted.
 # Preserve Lane F's explicit context pin in its own worktree, not a nonexistent local copy.
 /Users/monotykamary/VCS/working-remote/open-source/gdp-wired-trackL/runs/lane-f-source-input/context.json
