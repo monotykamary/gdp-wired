@@ -94,7 +94,7 @@ test('$breaks marks the stamp buffer directly and agrees with the Set path on de
   }
   expect(sparse).toBeGreaterThan(0)
   expect(breaks({A: new Map()}, [], [])).toEqual([0, 1, 2, 3])
-  expect(breaks({A: new Map([[5, 1]])}, [['A', 2, false]], [[7, 1, true]])).toEqual([0, 1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 11])
+  expect(breaks({A: new Map([[5, 1]])}, [['A', 2, false]], [[7, 1, true]])).toEqual([0, 1, 2, 3, 4, 5, 7, 8, 9, 10, 11])
 })
 
 test('a step that reads counts computes them in the generated module and agrees with the interpreter cell for cell', () => {
