@@ -12,6 +12,10 @@ Coordinator reports the shared blob-cache lock freed at 00:35 and normal wide bo
 
 Integrated A `19ad4ab4`: the atom-readiness shortcut and two finite-domain equivalence tests remain confined to the experimental tiny backend; original generation still does not invoke it. New witness-replay diagnostics distinguish newly found from historical drops. Only the report conflicted; Lane I keeps pointers to A's report. V9 remains bound to its older source SHA; new mechanics are required for this source update.
 
+### Subsequent resumed lane merges
+
+Refreshed E to `84a7a672`, B to `432bbc37`, and Fable to `c40acb07`; F remains `27ca886f`. Their report conflicts retain Lane I text with these pointers. E's duplicate-import removal auto-merged, but post-merge inspection found the integration had separate `rangeInstances` and `rangeViolations` imports rather than E's duplicate combined imports. Fixed the resulting missing constructor by consolidating both symbols into one canonical import; neither range construction nor violation detection is removed. A new current-source check will verify the fix. V9's shipped source is unchanged.
+
 ## Coordinator memory-pressure guidance (historical; submission hold lifted, memory cap retained)
 
 The coordinator confirmed that laptop memory pressure (7.5/8 GB swap and heavy paging) is stalling shared blob-cache admission while a client's per-file `utime` crawls. This supersedes the unconfirmed contention hypothesis below; it is not a proof-engine failure. All four existing Lane I controllers remain untouched: no resubmission, no cancellation, no scheduler/cache changes.
