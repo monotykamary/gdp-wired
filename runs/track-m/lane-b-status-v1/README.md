@@ -189,8 +189,21 @@ p1 remains checked in all four arms at 2,292.235 units. Inv2973-half, Inv1758 an
 
 `lane-b-allocation-partition-v1` isolates the loss to the four experimental changes in `core/count-cases.ts`. Its helper-only caps leave that file unchanged and preserve safety twice at **4,496.666 units**, with **4,564.438 / 5,011.753 ms** total wall. Reconstruction-only caps and full caps both remain unknown in both orders. Both raw archives and all saved per-arm policy-source files are checksum-verified. Independent replay checks all four conditional certificates and reconciles all four unknown outcomes. Across these three series there are 34 independently reconciled outcomes, 14 with checked conditional certificates. This is a falsifier for adopting full 15.4, not permission to expand any allowance.
 
-`lane-b-refined-pairs-v1` now compares helper-only caps plus 15.5 class ordering against the base policy on all five actual-family targets, in both same-VM orders. It is pending; no partial policy is adopted.
+## Refined candidate: no proof loss, no new proof
 
-Integrated validation failed on type errors, not tests: an optional callback closure in `row-cases.ts`, the Lane F summary's optional array destructuring, and the new seeded auditor's inferred local type. Lane F had already published repairs; they were imported with snapshot `0b85516e` in `c6336bf8`. Validation v2 then found an unused Lane F binding, fixed by importing `78eedf50` in `5bf5b8da`; v3 found a missing explicit sort comparator in the new Lane B receipt reader. That owned lint error is fixed, and v4 is running. Integrated/profile tests now run even if lint fails, so another lint issue cannot conceal their results. Completed measurements are not rerun for source-only validation fixes.
+`lane-b-refined-pairs-v1` (source tree `73dd63856da3`) compares helper-only caps plus 15.5 class ordering against the base policy on all five actual-family targets, in both same-VM orders. All ten archives and the six saved policy-source files for every arm verify.
+
+| Target | Base → refined units | Outcome in both orders |
+|---|---:|---|
+| p1 | 2,292.235 → 2,292.235 | checked → checked |
+| safety | 4,488.589 → 4,496.666 | checked → checked |
+| Inv2973-half | varying clock-limited prefixes | unknown → unknown |
+| Inv1758 | 6,000.238 → 6,000.277 | unknown → unknown |
+| Inv* | varying clock-limited prefixes | unknown → unknown |
+
+All eight checked arm results are below 6,000 units and seven seconds. The two refined safety walls are **3,093.313 / 3,162.851 ms**; p1 is **2,364.230 / 3,010.666 ms**. Safety costs **8.077** extra units. No new proof or reliable saving is demonstrated, so this partial policy is not adopted. Independent replay of all twenty outcomes is running in `lane-b-refined-audit-v1`.
+
+
+Integrated validation failed on type errors, not tests: an optional callback closure in `row-cases.ts`, the Lane F summary's optional array destructuring, and the new seeded auditor's inferred local type. Lane F had already published repairs; they were imported with snapshot `0b85516e` in `c6336bf8`. Validation v2 then found an unused Lane F binding, fixed by importing `78eedf50` in `5bf5b8da`; v3 found a missing explicit sort comparator in the new Lane B receipt reader. That owned lint error is fixed. Validation v4 passes typecheck/lint and all three test groups: 73 integrated tests / 246 assertions, 52 full-policy tests / 544 assertions, and 27 profile tests / 257 assertions, on snapshot `c01676bb0da4`. The exact final helper-only variant is undergoing its own fresh validation. Integrated/profile tests now run even if lint fails, so another lint issue cannot conceal their results. Completed measurements are not rerun for source-only validation fixes.
 
 **No accepted complete family, 29/29 result, 28/29 recertification, or GATE GREEN is claimed.**
