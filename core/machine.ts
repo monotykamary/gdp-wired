@@ -812,7 +812,12 @@ function compileJsMode(m: Machine, persistent: boolean, cells?: CompiledCells): 
     const parts = names.map(n => breaksOf(body, n))
     return `$spread(${breaksJs({reads: parts.flatMap(b => b.reads), cmps: parts.flatMap(b => b.cmps)})}, ${names.length})`
   }
-  const every = (w: {each: string, value: E}) => { const keys = keysJs(w.value, w.each), dense = !plainKey(w.value, w.each), outer = bound; bound = {[w.each]: 'k'}; const body = ex(w.value); bound = outer; return `${dense ? '$dense' : '$every'}(${keys}, k => ${body})` }
+  const every = (w: {each: string, value: E}, shared?: string) => { const dense = !plainKey(w.value, w.each), keys = shared ?? keysJs(w.value, w.each), outer = bound; bound = {[w.each]: 'k'}; const body = ex(w.value); bound = outer; return `${dense ? '$dense' : '$every'}(${keys}, k => ${body})` }
+  // The writes at every key whose keys are breakpoints share one list per step: the breakpoints of them all (each write's
+  // value is constant between its own, so between the union's too, and $dense fills the same cells in the same order from
+  // a list that holds more of them), computed once instead of once per write.
+  const denseWrites = Object.entries(plain.step.maps ?? {}).filter((e): e is [string, {each: string, value: E}] => 'each' in e[1] && !plainKey(e[1].value, e[1].each))
+  const sharedBreaks = denseWrites.length > 1 ? (() => { const parts = denseWrites.map(([, w]) => breaksOf(w.value, w.each)), once = <T>(xs: T[]) => [...new Map(xs.map(x => [JSON.stringify(x), x])).values()]; return breaksJs({reads: once(parts.flatMap(b => b.reads)), cmps: once(parts.flatMap(b => b.cmps))}) })() : undefined
   const writes = Object.entries(plain.step.maps ?? {})
   const env = (input: boolean) => `{${[...m.params.map(p => `${id(p)}: $n(params[${id(p)}], ${id(`param ${p}`)})`), ...(input ? carried.map(i => `${id(i)}: $n(input[${id(i)}], ${id(`input ${i}`)})`) : [])].join(', ')}}`
   // Reads go through `maps` (with the maps the request carries); writes go to the state's own.
@@ -844,7 +849,8 @@ function compileJsMode(m: Machine, persistent: boolean, cells?: CompiledCells): 
     // The rule's own assumption, as `allowed` (core/watch.ts) reads it (a history's machine assumes more: its relations).
     ...(m.assume ? [`if (!${cx(m.assume)}) throw new RangeError(${id(refused(m))});`] : []),
     `const scalars = {...s, ${Object.entries(plain.step.state ?? {}).map(([name, e]) => `${id(name)}: ${ex(e)}`).join(', ')}};`,
-    ...writes.map(([, w], i) => ('each' in w ? `const write${i} = ${every(w)};` : `const key${i} = ${ex(w.key)}, value${i} = ${ex(w.value)};`)))
+    ...(sharedBreaks ? [`const bk = ${sharedBreaks};`] : []),
+    ...writes.map(([, w], i) => ('each' in w ? `const write${i} = ${every(w, sharedBreaks && !plainKey(w.value, w.each) ? 'bk' : undefined)};` : `const key${i} = ${ex(w.key)}, value${i} = ${ex(w.value)};`)))
   if (h) lines.push(`const keep = ${cx(h.keep)};`)
   if (persistent) lines.push('state = fork(state);')
   lines.push(...writes.map(([name, w], i) => ('each' in w ? `state.maps[${id(name)}] = write${i}.cells; dft[${id(name)}] = write${i}.d;` : `state.maps[${id(name)}].set(key${i}, value${i});`)))
@@ -854,11 +860,12 @@ function compileJsMode(m: Machine, persistent: boolean, cells?: CompiledCells): 
     `return {scalars, maps: state.maps, history: records, head${h.prune ? ', last: order' : ''}};`)
   else lines.push('return Object.keys(dft).length ? {scalars, maps: state.maps, defaults: dft} : {scalars, maps: state.maps};')
   const fnDefs = fns.map((name, i) => `const fn${i} = (${m.fns![name]!.js});\n${m.fns![name]!.call ? `const fnc${i} = (${m.fns![name]!.call});\n` : ''}`).join('')
-  // The request's counts (carriedView's CountCells, compiled): the view's maps (the state's, the maps the request carries,
+  // The request's counts (carriedView's CountCells, compiled): the view's maps (the state's, the maps the request carries as
+  // given — the step validates them before any write, so a bad one still ends in its RangeError —,
   // then each count as a $cells whose cell at x is the sum of its body over the keys below its bound, read through the same
   // view, so a count's body may read another count), as the step reads them through `input`.
   const cellsCode = cells ? `export function cells(params, state, input, tick) {
-  const env = ${env(true)}, s = state.scalars, dft = {...state.defaults}, maps = {...state.maps${cells.inputMaps.map(mp => `, ${id(mp)}: $m(input[${id(mp)}], ${id(`input ${mp}`)})`).join('')}};
+  const env = ${env(true)}, s = state.scalars, dft = {...state.defaults}, maps = {...state.maps${cells.inputMaps.map(mp => `, ${id(mp)}: input[${id(mp)}]`).join('')}};
   ${Object.entries(cells.decls).map(([c, d]) => {
     const outer = bound
     bound = {...bound, [d.j]: 'cj', ...(d.base ? {[d.lo!]: 'clo'} : {})}
