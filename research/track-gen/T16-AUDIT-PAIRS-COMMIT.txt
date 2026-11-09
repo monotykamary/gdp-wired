@@ -1,0 +1,8 @@
+test(research): record strict audit repair comparisons
+
+Keep the three strict MLDR pairs and all generation attempts bound to
+immutable source archives. Fan out the census by protocol and repeat,
+and retain the aggregate timeout and upload failures as failed probes.
+
+The strict candidate walls are below 60 seconds. The final six slow
+sampling comparisons remain pending; no merge gate is claimed.

@@ -27,6 +27,28 @@ at **20.03–20.20 ms**. The `p=1` model under a declared `p=0` fact is rejected
 as not genuine. Unsupported-fact, derived-state, transition-count and
 interrupted-cache regressions also pass.
 
+Post-repair original-harness pairs (`t16-audit-paired/`, immutable `52b2382f`
+versus `b788e195`) return **unknown** in all three candidate runs, with
+strict process walls **59.08 / 59.16 / 59.10 s**, all exit 0. Baseline repeat
+1 is unknown at 20.66 s; repeats 2 and 3 are strict 60 s kills, not proofs.
+The current-tree audit plus isolated fallback tests also pass **30 tests /
+113 assertions**, full type/lint and all audit commit messages
+(`t16-audit-current-check/`); this is not a committed fallback or proof claim.
+
+The first all-protocol generation census was incorrectly serialized inside
+three jobs and timed out at 330 s per job. Its replacement is one job per
+protocol/repeat (87 paired jobs). The first submission failed locally on a
+snapshot blob/hash mismatch before execution; a stable temporary driver
+fixture now avoids concurrent source-edit races (`t16-audit-generation-v2/`).
+The stable-fixture census has 81/87 complete comparisons: all 26 completed
+non-MLDR ports are byte-identical in all three repeats, with zero generation
+queries. MLDR emits the same 34-law canonical list in all repeats. The six
+learning_switch / learning_switch_i4 comparisons exceeded the initial
+generation-job timeout; only those six are continuing with enough job wall
+for the unchanged full BFS (the proof budget and strict wrapper are untouched).
+`runs/t16-audit-generation-partial.json` records exact pair/source identities.
+No full generation nonregression claim is made until those receipts finish.
+
 Failures remain recorded: initial repair jobs failed on the import cycle
 (`t16-audit-fix-v1/`, `t16-audit-quick/`); the first corrected working-tree
 run passed the focused tests but failed lint on two then-uncommitted worker
@@ -68,7 +90,20 @@ authorize a merge. GATE GREEN requires Lane D's one-command final receipt
 with both SHAs, exact roster, pair identity, and CPU labels bound. No such
 claim is made here.
 
-Section 16.1 first half / 16.2: concrete relative-CTI certification and a\nsingle counted deadline per attempt are implemented. The finite checker\nrecomputes count cells, checks the entire predecessor family, executes the\nactual request, and requires a post-state violation. Only that result skips\nthe other pass. An uncertified pass-1 model is `unknown`; it does not carry\nthe new `refuted` marker. The existing failed-proof elimination policy is\notherwise unchanged. The exact end now bounds refinement, decision, part\ngrowth, and final growth; supportBudget remains the caller-priority owner.\n\nValidation: `t16-check-v1` has 23 pass / 0 fail / 2,572 assertions, plus\nTypeScript and type-aware lint. `t16-probe-v1` is running three strict paired\nrepeats against main and three against the clean T-14 parent (`8b44e4b3`).\nThese changes are NOT covered by the T-14 iteration results or a Lane D\nmerge receipt. Geometry-biased finite sampling is now under test; Lane C owns 16.4.
+Section 16.1 first half / 16.2: concrete relative-CTI certification and a
+single counted deadline per attempt are implemented. The finite checker
+recomputes count cells, checks the entire predecessor family, executes the
+actual request, and requires a post-state violation. Only that result skips
+the other pass. An uncertified pass-1 model is `unknown`; it does not carry
+the new `refuted` marker. The existing failed-proof elimination policy is
+otherwise unchanged. The exact end now bounds refinement, decision, part
+growth, and final growth; supportBudget remains the caller-priority owner.
+
+Validation: `t16-check-v1` has 23 pass / 0 fail / 2,572 assertions, plus
+TypeScript and type-aware lint. `t16-probe-v1` is running three strict paired
+repeats against main and three against the clean T-14 parent (`8b44e4b3`).
+These changes are NOT covered by the T-14 iteration results or a Lane D
+merge receipt. Geometry-biased finite sampling is now under test; Lane C owns 16.4.
 
 First-half measurement (`t16-probe-v1`, six pairs on AMD Ryzen 9 9950X):
 all six candidate runs end cleanly at 59.12–59.42 seconds, all `unknown`.
@@ -111,7 +146,8 @@ root replays, not full-helper or end-to-end proofs. No owned old T-14 job
 remains pending. The 28 unaffected protocols are now running x3 from an
 immutable `c9d7f823` archive against immutable `b788e195`, not the changing
 working tree (`t16-others-v1`). These are iteration probes, not Lane D's
-final merge gate.\n
+final merge gate.
+
 
 # Track P report
 
