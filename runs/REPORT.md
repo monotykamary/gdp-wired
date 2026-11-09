@@ -6,6 +6,17 @@ the merged-tree tests/typecheck, the 29-list census against `bef4020f` and a per
 - Merged tree (`a6ae4be9`): **115 tests pass** across the 14 counted / compiled-step / finite-tiny files (`runs/track-wall/receipts/mtests3`);
   `bun run check` found one error of mine (a step rebuilt on a refutation core lacked the `all` read list, core/counts.ts:886) — fixed in
   `896a15fc`, typecheck rerunning; the remaining errors are the known `vendor/`-dependent ones of the shipped tree.
+- **Step 1 done — traced strict mldr pairs, violation-driven ranges (`72380dc1`) vs lane A's `c21a6e54`, three pinned large VMs
+  (Ryzen 9 9950X ×2, EPYC 4585PX; `runs/track-wall/receipts/rmldr3`, logs gzipped):** verdict `unknown` (time) on all six runs;
+  the four traced helpers (`no quorum canVote/1`, `canVote/3`, `stored guard reconfigs/inS`, `… or disabled/0`) read pass 0 `sat`
+  and pass 1 `unknown` on both sides in every pair — **no `sat` survives pass 1 on either side** (lane A's certification), so the
+  range instances change no outcome; they fired on one goal only (`reconfigs/inS`: `#hyps` 652 vs 649, `#lazy` 131 vs 79), the
+  other three goals' models never put a 0/1 read above its bound. Laws reached (`try` lines): 37/33/29 mine vs 41/31/33 base — VM noise,
+  no systematic cost. **The finding that matters:** every pass-1 attempt overruns its share — share 3,212–3,237 ms, walls 2,675–8,710 ms
+  (`decide` 2,449–8,061 ms) on both trees — so round 0 needs ≈ 68 attempts (34 laws × 2 passes) at ≥ 3.2 s each and cannot end inside
+  60 s whatever the generation wall is; 16.2 (bound every inner call by the attempt's end) is not holding on `c21a6e54` either. Routed to
+  lane A in MLDR-DESIGN.md. Step 3's sampling policies are therefore worth at most 2–3 more attempts; I take the cheaper, census-safe cost
+  cuts the merged-tree profile names first (`$breaks` 20.7 % self of the generation run; per-step count-view allocation ≈ 13 %).
 
 **Branch and head:** `claude/mldr-wall`, forked from `claude/mldr-gen` 1681e8e5, with lane A's head `c21a6e54` merged (d24a4196);
 last code commit before this checkpoint f8206bfc (this RESUME commit follows it). Worktree `gdp-wired-mldr-design`. No push, no merge.
