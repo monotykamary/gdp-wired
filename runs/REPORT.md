@@ -48,6 +48,11 @@ Diagnostics:
 Next: pull landed A/B/F, rerun checks and the real original harness x3.
 Only Lane D's authoritative gate can establish suite acceptance.
 
+Lane A `fdabeba4` is imported as its new commit only: its older changes were
+already integrated with local/Fable repairs. Tiny-instance proposals remain
+disabled in production, as upstream specifies. The attempted whole-branch
+merge was aborted before commit to avoid overwriting those prior repairs.
+
 ## Upstream merge after the conditional checkpoint
 
 Imported Lane B `6d69e094`, including Fable initial range instances. Both
