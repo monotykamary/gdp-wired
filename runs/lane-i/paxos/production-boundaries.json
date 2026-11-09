@@ -1,0 +1,132 @@
+[
+  {
+    "revision": "da40d6befb32e05cd47355a8e811bef423ee5213",
+    "subject": "chore(merge): integrate bounded finite clause batching",
+    "files": [
+      "core/finite-tiny.ts"
+    ]
+  },
+  {
+    "revision": "33c942c12b66dc2cbf051dbfa4a3c3f92be2beeb",
+    "subject": "chore(merge): integrate bounded member and row premise probes",
+    "files": [
+      "core/count-recovery/row-premises.ts"
+    ]
+  },
+  {
+    "revision": "f6d2a94c76d949f4343cda59ac896fd61ed332b6",
+    "subject": "chore(merge): integrate member-range preservation and probes",
+    "files": [
+      "core/count-ranges.ts",
+      "core/counts.ts"
+    ]
+  },
+  {
+    "revision": "ff5c7ce1b6312b92bdad3f8a7469ebf13c077b29",
+    "subject": "chore(merge): integrate compiled count cells and shared breakpoints",
+    "files": [
+      "core/machine.ts"
+    ]
+  },
+  {
+    "revision": "929c0b2cd16d71b160223161d69b16d26a629e72",
+    "subject": "chore(merge): integrate guarded source reconstruction probes",
+    "files": [
+      "core/count-write-frames.ts"
+    ]
+  },
+  {
+    "revision": "bf43554bb67be5d8864e2212958908ae866eeb6c",
+    "subject": "chore(merge): integrate opt-in finite post-target pruning",
+    "files": [
+      "core/finite-tiny.ts"
+    ]
+  },
+  {
+    "revision": "1550512d3933434c5a2ad11a17031d1fa36284db",
+    "subject": "merge(research): integrate latest Lane b evidence",
+    "files": [
+      "core/counts.ts"
+    ]
+  },
+  {
+    "revision": "d6189c1e485edd3f2ceb2cdbe2e98ee26f5a0921",
+    "subject": "merge(research): integrate latest Lane e evidence",
+    "files": [
+      "core/count-recovery/member-premises.ts",
+      "core/counts.ts"
+    ]
+  },
+  {
+    "revision": "7eb1679752e8ddc1d446b43430f2d105e4a857ec",
+    "subject": "merge(research): integrate latest Lane fable evidence",
+    "files": [
+      "core/machine.ts"
+    ]
+  },
+  {
+    "revision": "91f2d2d97e7f32d98b4b81df7db121a05ba09c39",
+    "subject": "chore(integ): merge main baseline 4497c4b0",
+    "files": [
+      "core/cli.ts",
+      "core/dsl.ts",
+      "core/extract-read.ts",
+      "core/extract-shapes.ts",
+      "core/extract-standalone.ts",
+      "core/extract.ts",
+      "core/laws.ts",
+      "core/machine.ts",
+      "core/mutate.ts"
+    ]
+  },
+  {
+    "revision": "c59ad709d4a8db4d3e2bb4e186fd8392c86b7fb1",
+    "subject": "chore(integ): merge lane A seed-search refinements",
+    "files": [
+      "core/finite-houdini.ts",
+      "core/finite-tiny.ts"
+    ]
+  },
+  {
+    "revision": "0f14611f442069d6bbc2fb82843b65a57e27a91b",
+    "subject": "chore(integ): merge strict member-inclusion guards",
+    "files": [
+      "core/count-recovery/member-inclusions.ts"
+    ]
+  },
+  {
+    "revision": "43c364f52dede7f8fe414a055b6264aa60819139",
+    "subject": "chore(integ): merge compensated single-set transports",
+    "files": [
+      "core/count-write-frames.ts"
+    ]
+  },
+  {
+    "revision": "399c328a8a646958a1a9c24cb19bf68532bf9df9",
+    "subject": "chore(integ): merge interpreter allocation improvements",
+    "files": [
+      "core/machine.ts"
+    ]
+  },
+  {
+    "revision": "f879272b6c5414c2f7bdbf6b1da2f680eb95db56",
+    "subject": "chore(integ): merge ordinary-first count recovery",
+    "files": [
+      "core/counts.ts"
+    ]
+  },
+  {
+    "revision": "6ca0a5fcc2f294c46a4ba98e35ea0389d8c93a04",
+    "subject": "chore(integ): merge target-scoped count completion",
+    "files": [
+      "core/counts.ts"
+    ]
+  },
+  {
+    "revision": "a197ab4f832cba5f5905e544db0502bb373ea16a",
+    "subject": "fix(counts): preserve proof type in deferred recovery inference",
+    "files": [
+      "core/counts.ts"
+    ]
+  }
+]

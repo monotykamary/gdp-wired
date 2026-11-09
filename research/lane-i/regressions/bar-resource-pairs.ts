@@ -6,7 +6,7 @@ import {runResourceMeasured} from './resource-run.ts'
 import {gzipSync} from 'node:zlib'
 import {createHash} from 'node:crypto'
 const {restore,command,harnessHashes}=await import(resolve('research/verify-all/final-gate-common.ts'))
-const roster: {view:string,task:string}[]=JSON.parse(readFileSync(resolve('regression-driver/bar-roster.json'),'utf8'))
+const roster: {view:string,task:string}[]=JSON.parse(readFileSync(resolve(process.argv[3]??'regression-driver/bar-roster.json'),'utf8'))
 const index=Number(process.argv[2]),row=roster[index]
 if(!row)throw new Error('invalid roster index')
 const input=resolve('gate-inputs'),config=JSON.parse(readFileSync(join(input,'gate.json'),'utf8'))
