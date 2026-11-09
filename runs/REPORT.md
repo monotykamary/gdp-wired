@@ -1,3 +1,109 @@
+# RESUME — PAUSED at the user's request
+
+**Do not start work until the user explicitly resumes it.**
+Branch: **`claude/mldr-incl`**. Last work/receipt SHA before this documentation
+checkpoint: **`3e0d2b647608239305618f73ebc9d27890eed0ea`**. The final checkpoint
+is the commit containing this RESUME section (`git rev-parse HEAD`).
+
+## Committed state and established results
+
+- Finished production change **`2047d2be`**: generic, declaration-backed member
+  witnesses, actual quantified-flag/field-law instances, and existing freshness
+  filtering for ordinary/cached MBQI. Its tests are committed with the code.
+  No fixed protocol names or packing widths, trusted premises, kernel edits,
+  or proof-budget increases were introduced.
+- On the captured **34-law generated family, with helpers assumed first**,
+  the pre-range-integration E source returned START and STEP certificates
+  accepted by `checkMC` at **3817.24253 counted units** under the 6000-unit
+  diagnostic limit. The 2700-unit probe remains UNKNOWN. This is conditional,
+  not a complete MLDR safety proof. Recorded whole-probe wall was 9.625 s.
+- Pre-integration type/lint and **53 focused tests / 195 assertions** pass.
+  Earlier rejected self-dependent count-witness certificates and earlier
+  type/fixture failures remain preserved. Complete-all early ordering did not
+  improve the result and was **not adopted**.
+- Integrated source **`36a278e9`** includes B `6d69e094`, A `fdabeba4` as
+  cherry-pick `3b500f8f`, and F `682c8dc6`. Range and member proposals are both
+  preserved. A's tiny proposals remain disabled, as upstream specifies.
+  **This integrated source is not validated:** its final check and
+  conditional/replay job have failure exit rows but no downloaded logs.
+- Unfinished research is clearly isolated in **`738764ff` (`wip:`)**:
+  `research/mldr-incl/targeted-completion.ts`, its disposable installer and
+  job manifest, plus the integrated validation manifest. It is **not enabled
+  in production** and must not be promoted from exit status alone.
+- Compact receipts and small accepted/rejected proof archives are committed
+  in `runs/mldr-incl-checkpoint/` by **`3e0d2b64`**. Large/raw output stays out
+  of git. `receipt-manifest.json` records original file hashes; compact logs
+  explicitly omit artifact bodies. Pre-existing `research/claude-import/`
+  remains untracked and untouched.
+
+## Cancelled controllers and closed boat batches
+
+Every owned active controller was stopped by its exact task ID, then its
+exact scheduler batch was closed. Final authenticated snapshots return
+**`no such batch`** for all three; the final task list has **no active tasks**.
+No shared scheduler or another user's VM was stopped. The scheduler jobs had
+terminal rows by the time of closure, but their raw outputs had not been
+collected. Those rows are diagnostic metadata, **not proof verdicts**.
+
+| Exact task ID | Batch / output directory | Purpose and usable partial evidence |
+|---|---|---|
+| `f11ae145-a0d5-4bc9-8372-add45e25265d` | `20261109-154101-p0ocxa` / `runs/mldr-incl-integrated-production-v1` | Original harness x3, fresh generated-family conditional/replay, integrated checks. Scheduler rows: originals exit 0 at 59.48/59.58/59.69 s; conditional/replay exit 1; check exit 2. **No downloaded verdicts or failure logs.** Usable only as scheduling/failure observations; recover logs or rerun all five jobs. |
+| `909380dd-2e23-47d5-9759-420c2527c0f2` | `20261109-154340-h0gizc` / `runs/mldr-incl-targeted-completion-v1` | Targeted ordering and frozen control. Original helper omitted its closing brace; scheduler exits 1/1/2. Invalid fixture; **no proof or timing claim**. Retain as failed evidence, do not rerun this invalid source. |
+| `2d21c31c-c946-4177-81ef-9f6a7e45c45f` | `20261109-154505-9np97s` / `runs/mldr-incl-targeted-completion-v2` | Corrected targeted ordering at 2700/6000 plus frozen control/check. Scheduler exits 0/0/2, but no downloaded proof output. **No checked win established**; recover logs or rerun corrected source. |
+
+Authoritative cancellation record: `runs/mldr-incl-checkpoint/cancellation.jsonl`.
+The earlier per-batch `*-snapshot.json` / `*-close.json` files record an
+unauthenticated API attempt (`token` error), **not** successful cancellation.
+`cancellation.jsonl` records the subsequent authenticated successful closures.
+`tasks-final.json` records the stopped controllers. No new batch was launched
+after the pause request.
+
+## Open blockers
+
+1. The integrated type/check job exited 2; obtain its actual error before
+   claiming the integrated branch checks clean. The conditional/replay job
+   exited 1 and needs the same treatment.
+2. Explicit fresh-process source reconstruction and used-premise analysis
+   of the integrated proof are not completed. A proposed inclusion or a
+   scheduler exit 0 is not evidence of that reconstruction.
+3. No original-harness MLDR proof or 29/29 result has been established here.
+   Original exit-zero scheduler rows cannot establish their verdicts.
+4. Lane D's `final-audit-P80.md` blocker remains: earlier 84/87 vs 83/87 and
+   1073/18 totals are **iteration observations only**. Exact roster, unique
+   pair identity, source binding and six shard receipts were missing.
+   Stronger interpretations remain withdrawn (`3f3a523c`). Only Lane D's
+   authoritative final gate can establish acceptance; do not build more
+   lane-local gate tooling.
+5. No GATE GREEN, main merge, push, or publication is claimed. No new merge
+   or push was performed during the checkpoint.
+
+## Exact next steps, only after explicit resume
+
+1. Read this RESUME section and `research/mldr-incl/WORKING.md`; verify the
+   branch/HEAD and leave `research/claude-import/` alone.
+2. Recover existing logs if still possible. Otherwise rerun the unchanged
+   integrated-check command from
+   `research/mldr-incl/integrated-production-v1-jobs.json` on boat. Diagnose
+   its exit 2 first; run no new proof experiment until the integrated source
+   type-checks. Keep failure receipts distinct from reruns.
+3. Rerun that manifest's fresh-family conditional/replay job, retaining the
+   actual generated family, exact instances and both phase certificates.
+   `research/mldr-incl/inspect-production.ts` must reconstruct and check
+   both source obligations and identify used count witnesses/premises.
+4. Rerun its three **unchanged original harness** commands on exclusive large
+   boat VMs: `bun research/protocols/ic3syn/run.ts --only mldr --ms 60000
+   --skip broken`, with the existing 75 s outer watchdog. Inspect JSON
+   verdicts and actual wall times, not only exit codes.
+5. Only if useful after the failures are understood, rerun the corrected
+   research-only targeted manifest on the frozen 34-law input. Preserve the
+   existing 48-tuple completion allowance. Promote nothing without tests,
+   independent checking and a measured improvement.
+6. Continue with the coordinator/Lane I integration and Lane D's authoritative
+   paired/gate workflow. Until that completes, report conditional and
+   iteration results as such.
+
+---
+
 # Lane E — guarded inclusion integration
 
 **Lane D evidence blocker accepted:** the prior 84/87 vs 83/87 and
