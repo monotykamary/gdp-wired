@@ -228,7 +228,16 @@ class Compiler {
     if (typeof p === 'boolean') return () => p === polarity
     if (p.op === 'not') return this.compile(p.x, order, !polarity)
     if (p.op === 'and' || p.op === 'or') {
-      const tests = p.xs.map(x => this.compile(x, order, polarity)), all = (p.op === 'and') === polarity
+      if (!p.xs.length) return () => (p.op === 'and') === polarity
+      if (p.xs.length === 1) return this.compile(p.xs[0]!, order, polarity)
+      // Share the expression DAG inside one bounded native clause. Split only
+      // when the existing code-size cap demands it, not once per atomic test.
+      try { return this.compileNative(p, order, polarity) } catch (e) {
+        if (!(e instanceof Unsupported) || e.message !== 'large generated screen') throw e
+      }
+      const middle = Math.ceil(p.xs.length / 2), all = (p.op === 'and') === polarity
+      const tests = [this.compile({op: p.op, xs: p.xs.slice(0, middle)}, order, polarity),
+        this.compile({op: p.op, xs: p.xs.slice(middle)}, order, polarity)]
       return (v, depth) => {
         for (const test of tests) {
           checkWall('tiny predicate clause')
@@ -237,21 +246,27 @@ class Compiler {
         return all
       }
     }
+    return this.compileNative(p, order, polarity)
+  }
+  compileNative(p: Pred, order?: number[], polarity = true): (v: number[], depth: number) => boolean {
+    checkWall('tiny native clause')
     const rank = order ? this.slots.map((_, i) => order.indexOf(i)) : undefined, used: Term[] = []
     // An atomic predicate is unknown until ALL of its dependencies are set.
     // Its old per-term placeholders could not affect that result, so return
     // before evaluating the closed expression DAG instead. Once ready, every
     // dependency of every prerequisite term is ready too.
-    const ready = rank ? Math.max(-1, ...depsOf(p).map(i => rank[i]!)) + 1 : 0
+    const atomic = typeof p !== 'boolean' && p.op === 'atom'
+    const ready = rank && atomic ? Math.max(-1, ...depsOf(p).map(i => rank[i]!)) + 1 : 0
     const guard = ready > 0 ? `if(d<${ready})return true;` : ''
-    const code = this.predicateCode(p, undefined, used, polarity), seen = new Set<number>(), lines: string[] = []
+    const code = this.predicateCode(p, atomic ? undefined : rank, used, polarity), seen = new Set<number>(), lines: string[] = []
     let chars = guard.length + code.length
     if (chars > 65_536) throw new Unsupported('large generated screen')
     const emit = (t: Term): void => {
       checkWall('tiny term code')
       if (seen.has(t.id)) return
       seen.add(t.id); t.args.forEach(emit)
-      const line = `const t${t.id}=${t.code};`
+      const termReady = rank && !atomic ? Math.max(-1, ...t.deps.map(i => rank[i]!)) + 1 : 0
+      const line = `const t${t.id}=${termReady > 0 ? `d>=${termReady}?${t.code}:0` : t.code};`
       chars += line.length
       if (chars > 65_536) throw new Unsupported('large generated screen')
       lines.push(line)

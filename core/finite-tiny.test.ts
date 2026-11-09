@@ -101,9 +101,10 @@ test('inactive flags cannot prune an unconditional update elsewhere',()=>{
   expect(stats.candidates).toBe(1);expect(stats.completed).toBe(true)
 })
 test('partial atoms preserve all finite pre-states through both polarities', () => {
-  const source: Machine = {...counter(), state: {a: n(0), b: n(0)}, step: {state: {a: plus(x('b'), n(1)), b: x('a')}}}
+  const source: Machine = {...counter(), counts: {unused: {j: 'row', key: 'k', below: n(1), body: n(0)}},
+    state: {a: n(0), b: n(0)}, step: {state: {a: plus(x('b'), n(1)), b: x('a')}}}
   const a = x('a'), b = x('b'), choose = ite(less(a, b), plus(a, n(1)), b)
-  const predicates = [same(a, b), not(same(a, b)), less(a, b), atMost(choose, b),
+  const predicates = [same(a, b), not(same(a, b)), less(a, b), atMost(choose, b), same(choose, n(1)),
     all(not(same(a, n(0))), any(same(b, n(0)), less(a, b))),
     not(any(less(a, b), same(a, n(0))))]
   const evaluate = finiteEvaluator(source), run = interpret(source)
@@ -137,6 +138,19 @@ test('request atoms wait for every conditional-term dependency', () => {
   })
   expect(stats.completed).toBe(true)
   expect(actual.sort()).toEqual(['0,1', '0,2', '1,0', '1,1', '1,2', '2,0', '2,1', '2,2'])
+})
+test('large logical predicates split at the native-body cap without losing proposals', () => {
+  const source = counter(), law: Law = {name: 'many equalities', holds: all(...Array.from({length: 4096}, () => same(x('value'), n(0))))}
+  let proposals = 0
+  const stats = tinyFiniteCandidates(source, source, [law], {}, (pre, request) => {
+    proposals++
+    const evaluate = finiteEvaluator(source)
+    expect(evaluate(law, {}, pre)).toBe(true)
+    expect(evaluate(law, {}, interpret(source).step({}, pre, request))).toBe(false)
+  })
+  expect(stats.unsupported).toEqual([])
+  expect(stats.completed).toBe(true)
+  expect(proposals).toBe(1)
 })
 test('state-only no-op has no proposals in the recorded finite scope', () => {
   const source = counter(); source.step = {}

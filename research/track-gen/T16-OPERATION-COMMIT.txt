@@ -1,0 +1,6 @@
+refactor(core): add an opt-in operation-first finite search
+
+Close relevant request coordinates before state enumeration and prune
+with both whole-family constraints and partial operation enablement.
+Keep the state-first default and independent CTI checker unchanged.
+Record the search order; production remains disabled.
