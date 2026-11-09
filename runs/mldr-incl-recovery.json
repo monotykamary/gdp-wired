@@ -1,12 +1,11 @@
 {
-  "observerTask": "aaf38a3b-7d3f-40e1-bfa5-41bd5af42f86",
-  "supersedesCompletedObserver": "09ae80a4-de5a-4138-addd-93d17289872a",
-  "batches": [
-    "20261110-015518-rcbski"
-  ],
-  "sinceRow": 2,
-  "deadlineSeconds": 600,
-  "submissions": 0,
-  "cancellations": 0,
-  "observedAt": "2026-11-09T19:25:37.850Z"
+  "batch": "20261110-015518-rcbski",
+  "terminal": true,
+  "collectorTask": "6096ee44-b894-4bca-a261-7344468f2603",
+  "completedRows": 5,
+  "submissionsDuringRecovery": 0,
+  "cancellationsDuringRecovery": 0,
+  "supersededFailedObserver": "aaf38a3b-7d3f-40e1-bfa5-41bd5af42f86",
+  "failure": "JSON response parsing; file-backed recovery retrieved all original rows and artifacts",
+  "receipt": "runs/mldr-incl-flags-first-v1/file-collection.json"
 }

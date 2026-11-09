@@ -1,0 +1,18 @@
+{
+  "batch": "20261110-022553-z01lcl",
+  "task": "f4d495dc-0199-47d1-89fb-07d54bc1d1a9",
+  "exitCode": 0,
+  "commits": [
+    "d0c479a5",
+    "3f0b0df4",
+    "34206459"
+  ],
+  "messageBytesMatchGit": true,
+  "messageSha256": [
+    "a8b21d79aeb82e6f0dac80e31e7aa96c566cdc48da95717dde02c9537fe1f06a  /private/tmp/gdp-wired-incl-lint-tail-34206459/34206459.txt",
+    "54ce43b8c7158ec0639add7644e077714f3f4899e457abe0c1e150fed54ee6a5  /private/tmp/gdp-wired-incl-lint-tail-34206459/3f0b0df4.txt",
+    "e8a2b2ce64abf942586feee50f8d2f2036cd46d1a389f46fbc59a4f700234243  /private/tmp/gdp-wired-incl-lint-tail-34206459/d0c479a5.txt"
+  ],
+  "scope": "Exact three reporting-commit messages only; no production proof or final-gate result",
+  "workerSeconds": 3.51
+}

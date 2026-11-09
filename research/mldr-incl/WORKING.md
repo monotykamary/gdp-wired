@@ -1,5 +1,20 @@
 # RESUMED — user instruction, 2026-11-10
 
+**Fresh production-source result verified:** 9124348d proves conditional
+safety on the freshly captured 34-law family at 2052.9079764 counted units,
+under both 2700 and 6000 allowances. Both phase checks and both independent
+replays pass; no hand laws, zero generation proof queries. Still conditional.
+
+**Original harness: UNKNOWN 3/3**, 59.187 / 59.003 / 59.060 s. Focused tests:
+91 pass / 314 assertions; source check clean. All five registered validation
+jobs are complete and recovered. No running observer or duplicate job.
+Receipts and reproduction: runs/mldr-incl-flags-first-v1/README.md.
+
+**Integration:** 9124348d is already in V12 8769061b. Share these receipts with
+I/D through the report; do not duplicate the active combined validation.
+No original proof, 29/29 or final-gate admission is claimed.
+
+
 **Commitlint complete:** eight submitted messages pass, including 9124348d;
 exact scope is in runs/mldr-incl-commitlint-v1/verified-result.json. Later
 report-only commits are outside that receipt.

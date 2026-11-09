@@ -1,5 +1,49 @@
 # RESUMED — lane E, 2026-11-10
 
+## VERIFIED — fresh generated-family safety below its share; original remains UNKNOWN
+
+Production source **9124348d5d313ab7e89082b0146a72d6a7c8bf66** completes
+conditional safety on its **freshly generated 34-law family** at
+**2052.9079764 counted units**, both with the **2700** and **6000** allowances.
+The family was captured with zero proof queries and no hand law. START and
+STEP certificates pass ordinary checks plus independent reconstruction/replay
+at both allowances. The two captures are byte-identical, including the full
+family and all three proof files; source and archive hashes are checked.
+Measured walls: **2.834 / 2.839 s**, exclusive eight-vCPU **EPYC 9455 large**.
+This remains conditional: the other generated laws are assumed in this
+single-target diagnostic, not proved as a whole family.
+
+The actual original harness is **UNKNOWN 3/3**, `time (rule result)`:
+**59.187 / 59.003 / 59.060 s** (R1 EPYC 4585PX; R2/R3 EPYC 9455, all pinned
+exclusive large). No original proof, 29/29, or GATE GREEN is claimed.
+
+Focused validation passes **91 tests / 314 assertions**, zero source warnings
+or errors. Official quick-suite unit coverage and its retained aggregate
+timeout caveat are below. The eight prior commit messages and the three
+subsequent report messages pass commitlint; this evidence commit's exact
+message was separately linted before commit and byte-compared afterward.
+
+Complete batch **20261110-015518-rcbski**: all five job rows now recovered;
+zero running or queued. The second observer failed parsing a shell response,
+not in any proof/test job. `research/mldr-incl/collect-batch.py` recovered the
+existing completed rows directly into files, avoiding bounded stdout. No
+job was repeated or cancelled. Source-bound summary, all five compressed
+logs, raw/compressed hashes, full conditional proof captures, and reproduction
+instructions: **`runs/mldr-incl-flags-first-v1/`**. The SDK archive is only
+22,240 bytes; no bulky local evidence or new whole-tree archive was created.
+
+### For lanes I / D / B
+
+**E's fresh-family conditional result is verified and ready as evidence.**
+The production change remains **9124348d**, not this report-only commit.
+I verified it is already an ancestor of V12 **8769061b**. Lane I's V12
+validation/census are active; use that combined candidate for the eventual
+canonical D gate rather than duplicating an E-only gate. This is not a new
+integration verdict: B/F changes still require that combined validation and
+D's exact paired 29x3, DuoAI, broken and bar admission. B's historical
+2052.91-unit expectation now has an actual fresh production-source receipt.
+
+
 ## Commitlint verified; three production jobs remain never-started
 
 Batch **20261110-015805-vx6pzb** is complete: commitlint exits **0** for its

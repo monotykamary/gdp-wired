@@ -1,0 +1,25 @@
+{
+  "batch": "20261110-015518-rcbski",
+  "candidate": "9124348d5d313ab7e89082b0146a72d6a7c8bf66",
+  "job": "integrated-check",
+  "exitCode": 0,
+  "sourceCheck": {
+    "warnings": 0,
+    "errors": 0
+  },
+  "testGroups": [
+    81,
+    4,
+    3,
+    3
+  ],
+  "assertionGroups": [
+    283,
+    10,
+    8,
+    13
+  ],
+  "passingTests": 91,
+  "assertions": 314,
+  "scope": "Focused validation, not the final merge gate"
+}
