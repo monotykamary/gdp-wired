@@ -1,3 +1,9 @@
+## Lane F — start / scope (2026-11-09)
+
+NOT GATE GREEN. Branch `claude/mldr-leaves` starts at `d4479299`; baseline main is `b788e195`. Read COMMON, MLDR-DESIGN §§14–16 and all MLDR-29 rules, Speed, Gate evidence and Merging. Lane F owns row/activation leaf reduction (§15.6). Hypothesis: probing the unsplit scope and splitting only on a numeric model's unresolved row equality reduces reconstructed leaves without changing checked obligations; syntactically write-free operations need no row cases. Falsifiers: more leaves/cost, lost checked results, or any accepted unchecked branch.
+
+Overlap disclosure: a minimal model-observation hook in `core/count-recovery/derivability-closure.ts` is necessary to feed row selection; Lane B otherwise retains that file and §§15.4/15.5. No kernel edits, hand laws, production budget changes, or edits to other worktrees. Measurements will distinguish frozen legacy op packets, checksum-verified actual E-14 family, and strict original harness. Only Lane D's exact SHA-bound final receipt can support GATE GREEN.
+
 # Track P report
 
 Current assignment: [Track Gen — production invariant-generation cost](#track-gen).
