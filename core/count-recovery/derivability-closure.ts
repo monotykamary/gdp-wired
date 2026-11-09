@@ -22,11 +22,12 @@ import {proposeWriteCountFrames} from '../count-write-frames.ts'
 import {countsForReads} from '../count-facts.ts'
 import {memberInclusions} from './member-inclusions.ts'
 import {leafAllowance} from './leaf-allowance.ts'
+import {type FieldDemand,beginFieldAttempt,endFieldAttempt} from './field-demand.ts'
 type Packet=Pick<CountCert,'reads'|'insts'>
 type Bound={op:'<=',a:E,b:E}
 type Saved={lemma:LemmaCut,good:Bound,index?:number}
 type SourceModel={witness:string,model:Record<string,number>}
-type Options={claim?:C,pairs?:RowPair[],conditional?:boolean,fieldSource?:(g:Goal,c:Packet,claim:C,p:Path,end:number)=>Tree|undefined}
+type Options={claim?:C,pairs?:RowPair[],conditional?:boolean,fieldDemand?:FieldDemand,fieldSource?:(g:Goal,c:Packet,claim:C,p:Path,end:number)=>Tree|undefined}
 const put=(p:Path,lin:Record<string,number>,holds:boolean):Path=>new Map(p).set(canon(lin),{lin,holds})
 const plain=(lin:Record<string,number>)=>!Object.keys(lin).some(k=>k.startsWith('⟦'))
 const fast=(g:Goal,p:Path):Tree|undefined=>{const q=refuteFast(rowsAt(g,p),256);return q?.kind==='refuted'?{leaf:q.steps}:undefined}
@@ -93,13 +94,15 @@ export function deriveCountClosure(m:Machine,ds:CountDecl[],g:Goal,cert:Packet,r
   if(condition&&truth(condition,scope)!==true)continue
   const good:Bound={op:'<=',a:guarded.a.op==='if'?guarded.a.then:guarded.a,b:guarded.b},a=linear(good.a,scope),b=linear(good.b,scope)
   if(!a||!b||!plain(sub(a,b))||truth(good,lemmaPath(saved.map(s=>s.lemma),scope))===true)continue
-  const before=clock(),traceStart=trace.length,noPath=put(scope,sub(a,b),false),small={name:g.name,hyps:source(scope)},direct=fast(small,noPath)
-  let accepted=!!direct&&accept(good,small,direct,noPath,scope)
+  const before=clock(),traceStart=trace.length,noPath=put(scope,sub(a,b),false),small={name:g.name,hyps:source(scope)},meter=beginFieldAttempt(guarded,scope,options.fieldDemand,'closure-scalar')
+  let accepted=false
+  try{const direct=fast(small,noPath);accepted=!!direct&&accept(good,small,direct,noPath,scope)
   if(!accepted&&options.fieldSource&&building()){
    const claim:C={op:'not',x:good},prior=preStateCountSource(g,cert,claim,scope),path=lemmaPath(saved.map(s=>s.lemma),scope)
    const tree=options.fieldSource(prior.goal,prior.cert,claim,path,Math.min(buildEnd,clock()+250))
    if(tree)accepted=accept(good,prior.goal,tree,path,scope)
   }
+  }finally{endFieldAttempt(meter,accepted)}
   trace.push({stage:'closure-scalar',plain:good,checked:accepted,ms:clock()-before,...(!accepted?{sourceTail:trace.slice(traceStart).slice(-8)}:{})})
  }
  // Conditional source scopes are data, not arithmetic proof leaves. Minimal
@@ -197,7 +200,8 @@ export function deriveCountClosure(m:Machine,ds:CountDecl[],g:Goal,cert:Packet,r
   if(had?.version===version)return had.outcome
   const inst=cert.insts[index]!,h=g.hyps[raw.length+index];if(h?.op!=='or'||h.xs[0]?.op!=='<=')return 'unknown'
   const good:Bound={op:'<=',a:h.xs[0].a,b:h.xs[0].b},available=active(saved,scope),path=scope,before=clock()
-  const part:Goal={name:g.name,hyps:[...source(path,inst.wit),...available.map(s=>s.good),h,{op:'not',x:good}]}
+  const meter=beginFieldAttempt(good,scope,options.fieldDemand,'closure-count');let emitted=false
+  try{const part:Goal={name:g.name,hyps:[...source(path,inst.wit),...available.map(s=>s.good),h,{op:'not',x:good}]}
   const reused=models.some(m=>validPoint({...part,hyps:part.hyps.map(c=>substC(c,{vars:{[inst.wit]:x(m.witness)},maps:{},flags:{}}))},path,m.model)!==undefined)
   if(reused){attempted.set(key,{version,outcome:'sat'});trace.push({stage:'closure-source',scope:scopes.indexOf(scope),index,outcome:'reused-model',ms:clock()-before});return 'sat'}
   const queryLimit=Math.min(end,clock()+(inst.terms.length===5?150:50)),q=modelSequence(path)(part,queryLimit)
@@ -209,10 +213,11 @@ export function deriveCountClosure(m:Machine,ds:CountDecl[],g:Goal,cert:Packet,r
    const limit=Math.min(end,Math.max(queryLimit,clock()+100)),small={...part,hyps:q.core.map(i=>part.hyps[i]!)},oldPoint=atPoint.on;atPoint.on=false
    try{let local=booleanCore(small,path,new Set([inst.wit]),limit,trace,{deferCheck:true,extended:true,scalarGuards:true,model:true});if(!local&&clock()<limit){const folded=foldPath(small,path),out=grow(folded.goal,path,{nodes:0,until:Math.min(limit,clock()+25),units:false});local='tree'in out?withDeadline(limit,()=>widen(folded.goal,small,out.tree,folded.opaque,path,path)):undefined}if(local){tree=local;proofSource=small}}finally{atPoint.on=oldPoint}
   }
-  const accepted=!!tree&&accept(good,proofSource,tree,path,scope,index),outcome=accepted?'checked':validModel?'sat':'unknown'
+  const accepted=!!tree&&accept(good,proofSource,tree,path,scope,index),outcome=accepted?'checked':validModel?'sat':'unknown';emitted=accepted
   attempted.set(key,{version,outcome})
   trace.push({stage:'closure-source',scope:scopes.indexOf(scope),index,core:'tree'in q?undefined:q.core?.length,tree:!!tree,outcome,ms:clock()-before})
   return outcome
+  }finally{endFieldAttempt(meter,emitted)}
  }
  // Phase C only: use active proved facts, then decide one numeric goal per
  // leaf. Natural-subtraction splitting is confined to this arithmetic phase.
@@ -247,7 +252,9 @@ export function deriveCountClosure(m:Machine,ds:CountDecl[],g:Goal,cert:Packet,r
     const point={...q.witness}
     for(const index of pool){const h=g.hyps[raw.length+index];if(h?.op==='or'&&h.xs[0]?.op==='<=')walkLive(h.xs[0],scope,(o:any)=>{if(o.op==='var'&&!Object.hasOwn(point,o.name))point[o.name]=0})}
     const model=validPoint(numeric,scope,point);if(!model)return stop('invalid-numeric-model')
+    rowModel=point
     const violated=pool.filter(index=>{const h=g.hyps[raw.length+index];return h?.op==='or'&&h.xs[0]?.op==='<='&&brokenOf({name:'candidate',hyps:[h.xs[0]]})(model).length>0}),pending=new Set(violated.filter(i=>!excluded.has(i))),startedVersion=saved.length
+    if(pairs.some(([a,b])=>truth({op:'=',a,b},scope)===undefined)){rowSources=new Set(violated.flatMap(index=>[...sourceRows.get(index)??[]]));return stop('row-demand')}
     trace.push({stage:'closure-model-round',round:round+1,scope:scopes.indexOf(scope),violated,pending:[...pending],excluded:[...excluded],cuts:available.length,pool:pool.length})
     if(!pending.size){fixedPoint=true;return stop('no-unexcluded-violated-fact')}
     while(pending.size&&building()){
@@ -301,14 +308,16 @@ export function deriveCountClosure(m:Machine,ds:CountDecl[],g:Goal,cert:Packet,r
   trace.push({stage:'closure-scalar-case',depth,split:next.atom,proposed:!!yes&&!!no})
   return yes&&no?{split:next.atom,yes,no}:undefined
  }
+ let rowModel:Record<string,number>|undefined,rowSources=new Set<string>()
  let leavesLeft=Math.max(1,complete.length)
  const atLeaf=(path:Path,end:number):Tree|undefined=>{
+  rowModel=undefined;rowSources=new Set()
   const before=clock(),remaining=Math.max(0,until-before),draw=leafAllowance(remaining,leavesLeft),stop=Math.min(end,before+draw)
   trace.push({stage:'closure-leaf-budget',remaining,leavesLeft,draw,granted:Math.max(0,stop-before),end:stop})
   return scalar(path,stop)
  }
  const rowTrace=(event:object)=>{const e=event as {stage?:string};if(e.stage==='row-case'||e.stage==='row-mirror')leavesLeft=Math.max(1,leavesLeft-1);trace.push(event)}
- let tree=pairs.length?proveRowCases(g,base,pairs,until,atLeaf,rowTrace,{deferToCaller:true,splitEqual:true}):atLeaf(base,until)
+ let tree=pairs.length?proveRowCases(g,base,pairs,until,atLeaf,rowTrace,{deferToCaller:true,splitEqual:true,model:()=>rowModel,sources:()=>rowSources}):atLeaf(base,until)
  for(let i=pins.length-1;tree&&i>=0;i--)tree={split:pins[i]!.split,yes:tree,no:pins[i]!.no}
  const checked=!!tree&&alive()&&(options.conditional?checkConditionalProof(g,tree,root):check(g,tree,root))
  trace.push({stage:'closure-complete',cuts:saved.length,rounds,fixedPoint,checked,total:clock()-started})

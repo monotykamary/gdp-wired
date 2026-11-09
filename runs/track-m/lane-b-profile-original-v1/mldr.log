@@ -1,0 +1,58 @@
+{"observationOnly":true,"finalCheckUnchanged":true,"changes":[{"path":"core/counts.ts","before":"b8eec04a1a0b41137c376fc9b5bd004c8a9861e9800b15c2b86880f092d7e98c","after":"96d0be6f1929be4642eb2f390ed6b21105c7b9c4a06756570799c42bafcd1ed4"},{"path":"core/count-cases.ts","before":"2f199822e39a59283385b16a0dc07a05334282411191c2dd95623ef7b3adc28d","after":"5126164d9554e3bc6e40512102343f78574f5fa646f05115f0c546720ff8b714"},{"path":"core/count-recovery/conditional-proof.ts","before":"8d7e0805c85a76235ba3b437b0ace0653794007119444be1eb12ca3eee5c4b4b","after":"6299784d05f38bbac95881895c4d167da937287a9997e67dbecb164095e49ffc"},{"path":"core/count-recovery/conditional-check-cache.ts","before":"3c09491a38a39d560dc7a5976a6ab92234c48cecf78a33773bdadb930c85ef17","after":"4bcc63e588ff85f2afe89164104e2b468ef35fcac5e8bf09f308d1d2fa3d2879"},{"path":"research/track-m/lane-b-cost.ts","before":"c35467838932c3d3374064f888b987b1ae44d04264fba2ccbb674950b35ba02d","after":"14d6f75dd288807613cb971307374faa5e534c007f2aacbee0a39c08026f8010"}]}
+STRICT_EXIT=0
+counts: small 46/1205; cubes 14 in 0 ms: every x with x < size: never Config[x] is 0 and 1 <= St[x]; every x with x < size: never CT[x] is 0 and 1 <= St[x]; every x with x < size: never 1 <= CT[x] and CV[x] is 0; every x with x < size: never 1 <= CT[x] and started is 0; every x with x < size: never 1 <= St[x] and CV[x] is 0; every x with x < size: never 1 <= St[x] and CfgT[x] is 0; every x with x < size: never 1 <= St[x] and started is 0; every x with x < size: never CV[x] is 0 and 1 <= CfgT[x]; every x with x < size: never CV[x] is 0 and 1 <= started; every x with x < size: never 1 <= CfgT[x] and started is 0; every x, y with x < size ∧ y < size ∧ ¬(x = y): never 1 <= CT[x] and CV[y] is 0; every x, y with x < size ∧ y < size ∧ ¬(x = y): never 1 <= St[x] and 1 <= St[y]; every x, y with x < size ∧ y < size ∧ ¬(x = y): never 1 <= St[x] and CV[y] is 0; every x, y with x < size ∧ y < size ∧ ¬(x = y): never CV[x] is 0 and 1 <= CfgT[y]
+counts: finite drop 0 fields: St[a]=1 -> CT[a]=CT[b] -> CV[b]<=CV[a]
+counts: finite drop 0 CT at most 44
+counts: finite drop 0 CfgT at most 44
+counts: finite drop 0 fields: CT[a]=CT[b] and CV[a]=CV[b] -> Config rows agree
+counts: finite drop 0 every x with x < size: never Config[x] is 0 and 1 <= St[x]
+counts: finite Houdini {"round":0,"alive":38,"dropped":5,"randomStates":2000,"steps":56290}
+counts: finite Houdini {"round":1,"alive":33,"dropped":0,"randomStates":2000,"steps":56341}
+counts: 73 candidates said before or false on the small instances
+counts: candidates at 0 ms: every Config cell is a value of its kind; one primary per term; St at most 1; CV at most 2; fields: St[a]=1 -> CT[a]=CfgT[a]; fields: St[a]=1 -> CT[a]<=CfgT[a]; fields: St[a]=1 -> CT[a]=CT[b] -> CfgT[b]<=CfgT[a]; fields: St[a]=1 -> CfgT[a]<=CT[a]; fields: St[a]=1 -> CfgT[a]=CfgT[b] -> CV[b]<=CV[a]; every x with x < size: never CT[x] is 0 and 1 <= St[x]; every x with x < size: never 1 <= CT[x] and CV[x] is 0; every x with x < size: never 1 <= CT[x] and started is 0; every x with x < size: never 1 <= St[x] and CV[x] is 0; every x with x < size: never 1 <= St[x] and CfgT[x] is 0; every x with x < size: never 1 <= St[x] and started is 0; every x with x < size: never CV[x] is 0 and 1 <= CfgT[x]; every x with x < size: never CV[x] is 0 and 1 <= started; every x with x < size: never 1 <= CfgT[x] and started is 0; every x, y with x < size ∧ y < size ∧ ¬(x = y): never 1 <= CT[x] and CV[y] is 0; every x, y with x < size ∧ y < size ∧ ¬(x = y): never 1 <= St[x] and CV[y] is 0; every x, y with x < size ∧ y < size ∧ ¬(x = y): never CV[x] is 0 and 1 <= CfgT[y]; inX: no quorum canVote/1; inX: no quorum canVote/3; inX: stored guard reconfigs/inS; inX: stored guard reconfigs/inS or disabled/0; inX: stored guard reconfigs/inS or disabled/1; inX: stored guard reconfigs/inS or disabled/2; inX: stored guard reconfigs/inS or disabled/3; fields: CV[a]=CV[b] and CfgT[a]=CfgT[b] -> Config rows agree; count cubes: every x with x < {"op":"var","name":"size"}: never 1 <= started and inX$row[x] is 0; count cubes: every x with x < {"op":"var","name":"size"}: never 1 <= CT[x] and inX$row[x] is 0; count cubes: every x with x < {"op":"var","name":"size"}: never CV[x] is 0 and 1 <= inX$row[x]; count cubes: every x with x < {"op":"var","name":"size"}: never 1 <= CV[x] and inX$row[x] is 0; count cubes: every x with x < {"op":"var","name":"size"}: never 1 <= CfgT[x] and inX$row[x] is 0; count cubes: every x with x < {"op":"var","name":"size"}: never 1 <= St[x] and inX$row[x] is 0
+counts: decide 0 St at most 1 @step: sat 38 hyps 11 ms
+counts: decide 0 St at most 1 @step: unknown 50 hyps 52 ms
+counts: with 35 0 St at most 1 @start: proven 2 hyps (insts 0 picks 0) 0 ms
+counts: with 35 0 St at most 1 @step: proven 41 hyps (insts 0 picks 0) 25 ms
+counts: try St at most 1 | ls 35 pass 0 ms 1714 took 88 wall 272 [encode 17 decide 155 mbqi 17 #rounds 1 #hyps 38 grow 3 part 74] -> kept
+counts: decide 0 CV at most 2 @step: sat 38 hyps 12 ms
+counts: decide 0 CV at most 2 @step: sat 46 hyps 40 ms
+counts: decide 0 CV at most 2 @step: sat 69 hyps 79 ms
+counts: decide 0 CV at most 2 @step: sat 72 hyps 13 ms
+counts: try CV at most 2 | ls 35 pass 0 ms 1762 took 1769 wall 3520 [encode 24 decide 256 mbqi 33 #rounds 4 #hyps 225 focused 3206] -> sat
+counts: decide 1 CV at most 2 @step: sat 54 hyps 18 ms
+counts: decide 1 CV at most 2 @step: sat 64 hyps 90 ms
+counts: decide 1 CV at most 2 @step: sat 85 hyps 137 ms
+counts: decide 1 CV at most 2 @step: sat 96 hyps 207 ms
+counts: decide 1 CV at most 2 @step: sat 147 hyps 228 ms
+counts: decide 1 CV at most 2 @step: sat 147 hyps 230 ms
+counts: decide 1 CV at most 2 @step: unknown 395 hyps 3525 ms
+counts: with 35 1 CV at most 2 @start: proven 2 hyps (insts 0 picks 0 wide) 0 ms
+counts: with 35 1 CV at most 2 @step: unknown 395 hyps (insts 230 picks 28 wide of 1660) 1769 ms
+counts: try CV at most 2 | ls 35 pass 1 ms 1762 took 6205 wall 7666 [encode 66 decide 5191 mbqi 151 lazy 324 #rounds 6 #hyps 593 #count-completion 32 #lazy 248 grow>300 1867] -> unknown
+counts: decide 0 fields: St[a]=1 -> CT[a]=CfgT[a] @step: sat 38 hyps 13 ms
+counts: decide 0 fields: St[a]=1 -> CT[a]=CfgT[a] @step: sat 52 hyps 24 ms
+counts: decide 0 fields: St[a]=1 -> CT[a]=CfgT[a] @step: unknown 75 hyps 201 ms
+counts: with 35 0 fields: St[a]=1 -> CT[a]=CfgT[a] @start: proven 2 hyps (insts 0 picks 0) 0 ms
+counts: with 35 0 fields: St[a]=1 -> CT[a]=CfgT[a] @step: proven 43 hyps (insts 0 picks 0) 62 ms
+counts: try fields: St[a]=1 -> CT[a]=CfgT[a] | ls 35 pass 0 ms 1574 took 301 wall 488 [encode 19 decide 333 mbqi 12 #rounds 2 #hyps 90 part 121] -> kept
+counts: decide 0 fields: St[a]=1 -> CT[a]<=CfgT[a] @step: sat 38 hyps 14 ms
+counts: decide 0 fields: St[a]=1 -> CT[a]<=CfgT[a] @step: sat 50 hyps 23 ms
+counts: decide 0 fields: St[a]=1 -> CT[a]<=CfgT[a] @step: unknown 69 hyps 210 ms
+counts: with 35 0 fields: St[a]=1 -> CT[a]<=CfgT[a] @start: proven 2 hyps (insts 0 picks 0) 0 ms
+counts: with 35 0 fields: St[a]=1 -> CT[a]<=CfgT[a] @step: proven 42 hyps (insts 0 picks 0) 72 ms
+counts: try fields: St[a]=1 -> CT[a]<=CfgT[a] | ls 35 pass 0 ms 1614 took 318 wall 715 [encode 23 decide 439 mbqi 97 #rounds 2 #hyps 88 part 152] -> kept
+counts: decide 0 fields: St[a]=1 -> CT[a]=CT[b] -> CfgT[b]<=CfgT[a] @step: sat 45 hyps 18 ms
+counts: decide 0 fields: St[a]=1 -> CT[a]=CT[b] -> CfgT[b]<=CfgT[a] @step: sat 64 hyps 60 ms
+counts: decide 0 fields: St[a]=1 -> CT[a]=CT[b] -> CfgT[b]<=CfgT[a] @step: sat 100 hyps 112 ms
+counts: decide 0 fields: St[a]=1 -> CT[a]=CT[b] -> CfgT[b]<=CfgT[a] @step: sat 120 hyps 17 ms
+counts: try fields: St[a]=1 -> CT[a]=CT[b] -> CfgT[b]<=CfgT[a] | ls 35 pass 0 ms 1655 took 1656 wall 2993 [encode 20 decide 424 mbqi 23 #rounds 4 #hyps 329 focused 2524] -> sat
+counts: decide 1 fields: St[a]=1 -> CT[a]=CT[b] -> CfgT[b]<=CfgT[a] @step: sat 61 hyps 24 ms
+counts: decide 1 fields: St[a]=1 -> CT[a]=CT[b] -> CfgT[b]<=CfgT[a] @step: sat 82 hyps 42 ms
+counts: decide 1 fields: St[a]=1 -> CT[a]=CT[b] -> CfgT[b]<=CfgT[a] @step: sat 109 hyps 63 ms
+counts: decide 1 fields: St[a]=1 -> CT[a]=CT[b] -> CfgT[b]<=CfgT[a] @step: sat 113 hyps 49 ms
+counts: decide 1 fields: St[a]=1 -> CT[a]=CT[b] -> CfgT[b]<=CfgT[a] @step: sat 120 hyps 18 ms
+counts: try fields: St[a]=1 -> CT[a]=CT[b] -> CfgT[b]<=CfgT[a] | ls 35 pass 1 ms 1655 took 351 wall 828 [encode 24 decide 747 mbqi 47 #rounds 5 #hyps 485 #count-completion 43] -> unknown
+{"id":"mldr","ic3syn":"mldr","search":{"verdict":"unknown","stuck":"unknown","why":"time (rule result)","ms":59004,"work":5530186,"full":2671764}}
+{"observationOnly":true,"checkProfile":{}}
+{"artifact":"track-m-tar-v1","dir":"/home/user/track-m-s18-receipts-utpp64","format":"tar.gz","parts":1,"bytes":1705,"sha256":"85cc95e4bad2655f89e75297f22528c426a7b676945bf852c2fcc1a216979850"}

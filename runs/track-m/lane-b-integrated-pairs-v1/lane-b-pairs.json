@@ -1,0 +1,562 @@
+{
+  "iterationOnly": true,
+  "gateGreen": false,
+  "independentAuditPending": true,
+  "familySha256": "5c9aa44bca08790afdf331b290f101b6ca5d177133e662f5f6f1e80aa6cebc6f",
+  "rows": [
+    {
+      "name": "overlap-ab",
+      "placement": {
+        "vm": "bx_2uat3ctg",
+        "type": "large",
+        "cpu": "AMD Ryzen 9 9950X 16-Core Processor",
+        "vcpus": 8,
+        "vm_vcpus": 8,
+        "exclusive": true,
+        "co_tenants": 0
+      },
+      "archiveSha256": "155f524271a84014c0b2232f99abd7e44eea7ddf3ecfb5c495c8e07525575884",
+      "logSha256": "217201d140c60ea9a97dcc9df9d9036095658dc7e674c6ea4c7453b04de5775f",
+      "order": [
+        "before",
+        "after"
+      ],
+      "before": {
+        "tag": "overlap",
+        "law": "inX: stored guard reconfigs/inS or disabled/0",
+        "workerChecked": false,
+        "units": 2834.4053839999997,
+        "wallMs": 7310.394423000001,
+        "searchWallMs": 7307.867691,
+        "checkWallMs": 2.528596000000107,
+        "sourceHashes": [
+          "6dafd763471a716d77b39ef7424a0ecd48c64505f78554ef72e05a1e615af600  core/count-cases.ts",
+          "5e2f668bc304e1bdeb0c4b8126d4289cf757bbd88ffb182e67a35a2d84642b77  core/count-recovery/guard-cases.ts",
+          "d3217b3cd64c716b161cf9a98286e7270f4e414f7aac09c124b2b82707c8859e  core/count-recovery/field-bound-lemmas.ts",
+          "7989e785c46ae055eab838bcac9c8053c6f7b1a0ecb90b1f1d464e07e4e85531  core/count-recovery/row-cases.ts",
+          "fdd8a6aee4f3878747401c0d3d58fd76dde2ec79bb4afd765814b1b0ba810b6b  core/count-recovery/derivability-closure.ts",
+          "8381ff0a8ac4f982d1346de897741b907d13edc4541c8575d3ba2d30443943d3  core/count-recovery/field-demand.ts"
+        ]
+      },
+      "after": {
+        "tag": "overlap",
+        "law": "inX: stored guard reconfigs/inS or disabled/0",
+        "workerChecked": false,
+        "units": 2996.871404,
+        "wallMs": 7028.481727,
+        "searchWallMs": 7026.743912,
+        "checkWallMs": 1.7398990000001504,
+        "sourceHashes": [
+          "f90b52382aed2614854735e38350c74d241dae4908ad4d6d28fc7b7925868ff3  core/count-cases.ts",
+          "0a0778508c5dec30138360d877fe3eefed2980ddcd52f7b6a6a8f31c9fab3531  core/count-recovery/guard-cases.ts",
+          "cf2a74ccb71a62d85466745ab04b8a416c933e140cf9ed2679c07eede4020cb7  core/count-recovery/field-bound-lemmas.ts",
+          "f230e4675dc055b0943ce24ebbfc8904638dd6df31e403263f29428585226545  core/count-recovery/row-cases.ts",
+          "086de083e59fe9cea0388c5863b20b0721ec862f1c9e41c7e12d8e3b5366e703  core/count-recovery/derivability-closure.ts",
+          "36c0e5d18d438c710cef02ab487da3ba8d722c89b74971001b33f4168828dda3  core/count-recovery/field-demand.ts"
+        ]
+      },
+      "workerCheckedLost": false,
+      "unitDelta": 162.4660200000003,
+      "wallDelta": -281.9126960000003
+    },
+    {
+      "name": "overlap-ba",
+      "placement": {
+        "vm": "bx_af3p9nak",
+        "type": "large",
+        "cpu": "AMD Ryzen 9 9950X 16-Core Processor",
+        "vcpus": 8,
+        "vm_vcpus": 8,
+        "exclusive": true,
+        "co_tenants": 0
+      },
+      "archiveSha256": "b411e790e8c1d53ce2495d476c0bcc54691a33646c552d3d8fce647ba54a6952",
+      "logSha256": "1ca4d1b8cf30e1c0f727a27054c2de980eea39c06a6213f42e71afccccff3304",
+      "order": [
+        "after",
+        "before"
+      ],
+      "before": {
+        "tag": "overlap",
+        "law": "inX: stored guard reconfigs/inS or disabled/0",
+        "workerChecked": false,
+        "units": 4110.3467120000005,
+        "wallMs": 7021.432025,
+        "searchWallMs": 7019.71125,
+        "checkWallMs": 1.7227389999998195,
+        "sourceHashes": [
+          "6dafd763471a716d77b39ef7424a0ecd48c64505f78554ef72e05a1e615af600  core/count-cases.ts",
+          "5e2f668bc304e1bdeb0c4b8126d4289cf757bbd88ffb182e67a35a2d84642b77  core/count-recovery/guard-cases.ts",
+          "d3217b3cd64c716b161cf9a98286e7270f4e414f7aac09c124b2b82707c8859e  core/count-recovery/field-bound-lemmas.ts",
+          "7989e785c46ae055eab838bcac9c8053c6f7b1a0ecb90b1f1d464e07e4e85531  core/count-recovery/row-cases.ts",
+          "fdd8a6aee4f3878747401c0d3d58fd76dde2ec79bb4afd765814b1b0ba810b6b  core/count-recovery/derivability-closure.ts",
+          "8381ff0a8ac4f982d1346de897741b907d13edc4541c8575d3ba2d30443943d3  core/count-recovery/field-demand.ts"
+        ]
+      },
+      "after": {
+        "tag": "overlap",
+        "law": "inX: stored guard reconfigs/inS or disabled/0",
+        "workerChecked": false,
+        "units": 3042.9053719999997,
+        "wallMs": 7181.063494999999,
+        "searchWallMs": 7178.990288,
+        "checkWallMs": 2.074609000000237,
+        "sourceHashes": [
+          "f90b52382aed2614854735e38350c74d241dae4908ad4d6d28fc7b7925868ff3  core/count-cases.ts",
+          "0a0778508c5dec30138360d877fe3eefed2980ddcd52f7b6a6a8f31c9fab3531  core/count-recovery/guard-cases.ts",
+          "cf2a74ccb71a62d85466745ab04b8a416c933e140cf9ed2679c07eede4020cb7  core/count-recovery/field-bound-lemmas.ts",
+          "f230e4675dc055b0943ce24ebbfc8904638dd6df31e403263f29428585226545  core/count-recovery/row-cases.ts",
+          "086de083e59fe9cea0388c5863b20b0721ec862f1c9e41c7e12d8e3b5366e703  core/count-recovery/derivability-closure.ts",
+          "36c0e5d18d438c710cef02ab487da3ba8d722c89b74971001b33f4168828dda3  core/count-recovery/field-demand.ts"
+        ]
+      },
+      "workerCheckedLost": false,
+      "unitDelta": -1067.4413400000008,
+      "wallDelta": 159.63146999999935
+    },
+    {
+      "name": "rows-ab",
+      "placement": {
+        "vm": "bx_8y6xda5y",
+        "type": "large",
+        "cpu": "AMD EPYC 4585PX 16-Core Processor",
+        "vcpus": 8,
+        "vm_vcpus": 8,
+        "exclusive": true,
+        "co_tenants": 0
+      },
+      "archiveSha256": "b4250080f666f45622da93aeca2d5f687b56bdd093ffc34a8617beac9fd09f13",
+      "logSha256": "4700aeb72f410737d99f8a3e3a63b8eac8a04ba45334866ab0c5a4acdc64f735",
+      "order": [
+        "before",
+        "after"
+      ],
+      "before": {
+        "tag": "rows",
+        "law": "fields: CV[a]=CV[b] and CfgT[a]=CfgT[b] -> Config rows agree",
+        "workerChecked": false,
+        "units": 2211.421836,
+        "wallMs": 7054.796174,
+        "searchWallMs": 7054.248186,
+        "checkWallMs": 0.5480090000000928,
+        "sourceHashes": [
+          "6dafd763471a716d77b39ef7424a0ecd48c64505f78554ef72e05a1e615af600  core/count-cases.ts",
+          "5e2f668bc304e1bdeb0c4b8126d4289cf757bbd88ffb182e67a35a2d84642b77  core/count-recovery/guard-cases.ts",
+          "d3217b3cd64c716b161cf9a98286e7270f4e414f7aac09c124b2b82707c8859e  core/count-recovery/field-bound-lemmas.ts",
+          "7989e785c46ae055eab838bcac9c8053c6f7b1a0ecb90b1f1d464e07e4e85531  core/count-recovery/row-cases.ts",
+          "fdd8a6aee4f3878747401c0d3d58fd76dde2ec79bb4afd765814b1b0ba810b6b  core/count-recovery/derivability-closure.ts",
+          "8381ff0a8ac4f982d1346de897741b907d13edc4541c8575d3ba2d30443943d3  core/count-recovery/field-demand.ts"
+        ]
+      },
+      "after": {
+        "tag": "rows",
+        "law": "fields: CV[a]=CV[b] and CfgT[a]=CfgT[b] -> Config rows agree",
+        "workerChecked": false,
+        "units": 3254.1823464000004,
+        "wallMs": 7002.4168070000005,
+        "searchWallMs": 7001.905088,
+        "checkWallMs": 0.5115880000003017,
+        "sourceHashes": [
+          "f90b52382aed2614854735e38350c74d241dae4908ad4d6d28fc7b7925868ff3  core/count-cases.ts",
+          "0a0778508c5dec30138360d877fe3eefed2980ddcd52f7b6a6a8f31c9fab3531  core/count-recovery/guard-cases.ts",
+          "cf2a74ccb71a62d85466745ab04b8a416c933e140cf9ed2679c07eede4020cb7  core/count-recovery/field-bound-lemmas.ts",
+          "f230e4675dc055b0943ce24ebbfc8904638dd6df31e403263f29428585226545  core/count-recovery/row-cases.ts",
+          "086de083e59fe9cea0388c5863b20b0721ec862f1c9e41c7e12d8e3b5366e703  core/count-recovery/derivability-closure.ts",
+          "36c0e5d18d438c710cef02ab487da3ba8d722c89b74971001b33f4168828dda3  core/count-recovery/field-demand.ts"
+        ]
+      },
+      "workerCheckedLost": false,
+      "unitDelta": 1042.7605104000004,
+      "wallDelta": -52.37936699999955
+    },
+    {
+      "name": "rows-ba",
+      "placement": {
+        "vm": "bx_9qj8fsd3",
+        "type": "large",
+        "cpu": "AMD Ryzen 9 9950X 16-Core Processor",
+        "vcpus": 8,
+        "vm_vcpus": 8,
+        "exclusive": true,
+        "co_tenants": 0
+      },
+      "archiveSha256": "5f8a0984a230cc2e42e47a804dc5540eb39bb4fc736c36b48f5448a4cecdcf47",
+      "logSha256": "a878b72b48564eddb529a55b1546a2a4268f7561ef401b7143d730afa5d50a32",
+      "order": [
+        "after",
+        "before"
+      ],
+      "before": {
+        "tag": "rows",
+        "law": "fields: CV[a]=CV[b] and CfgT[a]=CfgT[b] -> Config rows agree",
+        "workerChecked": false,
+        "units": 6000.238164400001,
+        "wallMs": 4481.523293,
+        "searchWallMs": 4481.168217,
+        "checkWallMs": 0.35490500000014435,
+        "sourceHashes": [
+          "6dafd763471a716d77b39ef7424a0ecd48c64505f78554ef72e05a1e615af600  core/count-cases.ts",
+          "5e2f668bc304e1bdeb0c4b8126d4289cf757bbd88ffb182e67a35a2d84642b77  core/count-recovery/guard-cases.ts",
+          "d3217b3cd64c716b161cf9a98286e7270f4e414f7aac09c124b2b82707c8859e  core/count-recovery/field-bound-lemmas.ts",
+          "7989e785c46ae055eab838bcac9c8053c6f7b1a0ecb90b1f1d464e07e4e85531  core/count-recovery/row-cases.ts",
+          "fdd8a6aee4f3878747401c0d3d58fd76dde2ec79bb4afd765814b1b0ba810b6b  core/count-recovery/derivability-closure.ts",
+          "8381ff0a8ac4f982d1346de897741b907d13edc4541c8575d3ba2d30443943d3  core/count-recovery/field-demand.ts"
+        ]
+      },
+      "after": {
+        "tag": "rows",
+        "law": "fields: CV[a]=CV[b] and CfgT[a]=CfgT[b] -> Config rows agree",
+        "workerChecked": false,
+        "units": 6000.459003599999,
+        "wallMs": 5116.836743,
+        "searchWallMs": 5116.451621,
+        "checkWallMs": 0.3850320000001375,
+        "sourceHashes": [
+          "f90b52382aed2614854735e38350c74d241dae4908ad4d6d28fc7b7925868ff3  core/count-cases.ts",
+          "0a0778508c5dec30138360d877fe3eefed2980ddcd52f7b6a6a8f31c9fab3531  core/count-recovery/guard-cases.ts",
+          "cf2a74ccb71a62d85466745ab04b8a416c933e140cf9ed2679c07eede4020cb7  core/count-recovery/field-bound-lemmas.ts",
+          "f230e4675dc055b0943ce24ebbfc8904638dd6df31e403263f29428585226545  core/count-recovery/row-cases.ts",
+          "086de083e59fe9cea0388c5863b20b0721ec862f1c9e41c7e12d8e3b5366e703  core/count-recovery/derivability-closure.ts",
+          "36c0e5d18d438c710cef02ab487da3ba8d722c89b74971001b33f4168828dda3  core/count-recovery/field-demand.ts"
+        ]
+      },
+      "workerCheckedLost": false,
+      "unitDelta": 0.22083919999840873,
+      "wallDelta": 635.3134499999996
+    },
+    {
+      "name": "star-ab",
+      "placement": {
+        "vm": "bx_a74cfp57",
+        "type": "large",
+        "cpu": "AMD Ryzen 9 9950X 16-Core Processor",
+        "vcpus": 8,
+        "vm_vcpus": 8,
+        "exclusive": true,
+        "co_tenants": 0
+      },
+      "archiveSha256": "47252775769c7a7ec45802815434399f710cd5401c9b4e0fd4a8681b7db5ab0a",
+      "logSha256": "2c7770738ebca26af52788abf856d2b8c0e63284c5091257d578428fc80110f1",
+      "order": [
+        "before",
+        "after"
+      ],
+      "before": {
+        "tag": "star",
+        "law": "inX: no quorum canVote/3",
+        "workerChecked": false,
+        "units": 6001.892994,
+        "wallMs": 4923.397174,
+        "searchWallMs": 4922.295127,
+        "checkWallMs": 1.1024379999998928,
+        "sourceHashes": [
+          "6dafd763471a716d77b39ef7424a0ecd48c64505f78554ef72e05a1e615af600  core/count-cases.ts",
+          "5e2f668bc304e1bdeb0c4b8126d4289cf757bbd88ffb182e67a35a2d84642b77  core/count-recovery/guard-cases.ts",
+          "d3217b3cd64c716b161cf9a98286e7270f4e414f7aac09c124b2b82707c8859e  core/count-recovery/field-bound-lemmas.ts",
+          "7989e785c46ae055eab838bcac9c8053c6f7b1a0ecb90b1f1d464e07e4e85531  core/count-recovery/row-cases.ts",
+          "fdd8a6aee4f3878747401c0d3d58fd76dde2ec79bb4afd765814b1b0ba810b6b  core/count-recovery/derivability-closure.ts",
+          "8381ff0a8ac4f982d1346de897741b907d13edc4541c8575d3ba2d30443943d3  core/count-recovery/field-demand.ts"
+        ]
+      },
+      "after": {
+        "tag": "star",
+        "law": "inX: no quorum canVote/3",
+        "workerChecked": false,
+        "units": 6001.892994,
+        "wallMs": 4904.186362,
+        "searchWallMs": 4903.086097,
+        "checkWallMs": 1.1010960000003251,
+        "sourceHashes": [
+          "f90b52382aed2614854735e38350c74d241dae4908ad4d6d28fc7b7925868ff3  core/count-cases.ts",
+          "0a0778508c5dec30138360d877fe3eefed2980ddcd52f7b6a6a8f31c9fab3531  core/count-recovery/guard-cases.ts",
+          "cf2a74ccb71a62d85466745ab04b8a416c933e140cf9ed2679c07eede4020cb7  core/count-recovery/field-bound-lemmas.ts",
+          "f230e4675dc055b0943ce24ebbfc8904638dd6df31e403263f29428585226545  core/count-recovery/row-cases.ts",
+          "086de083e59fe9cea0388c5863b20b0721ec862f1c9e41c7e12d8e3b5366e703  core/count-recovery/derivability-closure.ts",
+          "36c0e5d18d438c710cef02ab487da3ba8d722c89b74971001b33f4168828dda3  core/count-recovery/field-demand.ts"
+        ]
+      },
+      "workerCheckedLost": false,
+      "unitDelta": 0,
+      "wallDelta": -19.21081199999935
+    },
+    {
+      "name": "star-ba",
+      "placement": {
+        "vm": "bx_a83zj5st",
+        "type": "large",
+        "cpu": "AMD Ryzen 9 9950X 16-Core Processor",
+        "vcpus": 8,
+        "vm_vcpus": 8,
+        "exclusive": true,
+        "co_tenants": 0
+      },
+      "archiveSha256": "d5b8c5c3e253506f8af35c039b403517974314fecd12a3fa03cdcaca3ebc32d4",
+      "logSha256": "bfdc05231c7a08dd689e4369fdd8d44cdb44d444e6ed9c32a7b9fcec1af57b29",
+      "order": [
+        "after",
+        "before"
+      ],
+      "before": {
+        "tag": "star",
+        "law": "inX: no quorum canVote/3",
+        "workerChecked": false,
+        "units": 2276.502298,
+        "wallMs": 7025.96694,
+        "searchWallMs": 7025.144340000001,
+        "checkWallMs": 0.8224389999995765,
+        "sourceHashes": [
+          "6dafd763471a716d77b39ef7424a0ecd48c64505f78554ef72e05a1e615af600  core/count-cases.ts",
+          "5e2f668bc304e1bdeb0c4b8126d4289cf757bbd88ffb182e67a35a2d84642b77  core/count-recovery/guard-cases.ts",
+          "d3217b3cd64c716b161cf9a98286e7270f4e414f7aac09c124b2b82707c8859e  core/count-recovery/field-bound-lemmas.ts",
+          "7989e785c46ae055eab838bcac9c8053c6f7b1a0ecb90b1f1d464e07e4e85531  core/count-recovery/row-cases.ts",
+          "fdd8a6aee4f3878747401c0d3d58fd76dde2ec79bb4afd765814b1b0ba810b6b  core/count-recovery/derivability-closure.ts",
+          "8381ff0a8ac4f982d1346de897741b907d13edc4541c8575d3ba2d30443943d3  core/count-recovery/field-demand.ts"
+        ]
+      },
+      "after": {
+        "tag": "star",
+        "law": "inX: no quorum canVote/3",
+        "workerChecked": false,
+        "units": 1733.17499,
+        "wallMs": 7026.715384,
+        "searchWallMs": 7023.765061,
+        "checkWallMs": 2.953309000000445,
+        "sourceHashes": [
+          "f90b52382aed2614854735e38350c74d241dae4908ad4d6d28fc7b7925868ff3  core/count-cases.ts",
+          "0a0778508c5dec30138360d877fe3eefed2980ddcd52f7b6a6a8f31c9fab3531  core/count-recovery/guard-cases.ts",
+          "cf2a74ccb71a62d85466745ab04b8a416c933e140cf9ed2679c07eede4020cb7  core/count-recovery/field-bound-lemmas.ts",
+          "f230e4675dc055b0943ce24ebbfc8904638dd6df31e403263f29428585226545  core/count-recovery/row-cases.ts",
+          "086de083e59fe9cea0388c5863b20b0721ec862f1c9e41c7e12d8e3b5366e703  core/count-recovery/derivability-closure.ts",
+          "36c0e5d18d438c710cef02ab487da3ba8d722c89b74971001b33f4168828dda3  core/count-recovery/field-demand.ts"
+        ]
+      },
+      "workerCheckedLost": false,
+      "unitDelta": -543.3273079999999,
+      "wallDelta": 0.7484439999998358
+    },
+    {
+      "name": "safety-ab",
+      "placement": {
+        "vm": "bx_3qn8b65a",
+        "type": "large",
+        "cpu": "AMD EPYC 4585PX 16-Core Processor",
+        "vcpus": 8,
+        "vm_vcpus": 8,
+        "exclusive": true,
+        "co_tenants": 0
+      },
+      "archiveSha256": "d97cc169924227df2fb3ecf8597e0a06a2ef3d8bfda373603c8c4c402d0c5f00",
+      "logSha256": "68a81bd52f1d212b40617a6fa0028d86b0d47cfd0ad629be4d8aa7b8cfa21bea",
+      "order": [
+        "before",
+        "after"
+      ],
+      "before": {
+        "tag": "safety",
+        "law": "one primary per term",
+        "workerChecked": true,
+        "units": 4488.588814,
+        "wallMs": 3237.475441,
+        "searchWallMs": 2817.077304,
+        "checkWallMs": 420.3985590000002,
+        "sourceHashes": [
+          "6dafd763471a716d77b39ef7424a0ecd48c64505f78554ef72e05a1e615af600  core/count-cases.ts",
+          "5e2f668bc304e1bdeb0c4b8126d4289cf757bbd88ffb182e67a35a2d84642b77  core/count-recovery/guard-cases.ts",
+          "d3217b3cd64c716b161cf9a98286e7270f4e414f7aac09c124b2b82707c8859e  core/count-recovery/field-bound-lemmas.ts",
+          "7989e785c46ae055eab838bcac9c8053c6f7b1a0ecb90b1f1d464e07e4e85531  core/count-recovery/row-cases.ts",
+          "fdd8a6aee4f3878747401c0d3d58fd76dde2ec79bb4afd765814b1b0ba810b6b  core/count-recovery/derivability-closure.ts",
+          "8381ff0a8ac4f982d1346de897741b907d13edc4541c8575d3ba2d30443943d3  core/count-recovery/field-demand.ts"
+        ]
+      },
+      "after": {
+        "tag": "safety",
+        "law": "one primary per term",
+        "workerChecked": false,
+        "units": 6000.5000887999995,
+        "wallMs": 4203.235745999999,
+        "searchWallMs": 4202.642158,
+        "checkWallMs": 0.5952010000000882,
+        "sourceHashes": [
+          "f90b52382aed2614854735e38350c74d241dae4908ad4d6d28fc7b7925868ff3  core/count-cases.ts",
+          "0a0778508c5dec30138360d877fe3eefed2980ddcd52f7b6a6a8f31c9fab3531  core/count-recovery/guard-cases.ts",
+          "cf2a74ccb71a62d85466745ab04b8a416c933e140cf9ed2679c07eede4020cb7  core/count-recovery/field-bound-lemmas.ts",
+          "f230e4675dc055b0943ce24ebbfc8904638dd6df31e403263f29428585226545  core/count-recovery/row-cases.ts",
+          "086de083e59fe9cea0388c5863b20b0721ec862f1c9e41c7e12d8e3b5366e703  core/count-recovery/derivability-closure.ts",
+          "36c0e5d18d438c710cef02ab487da3ba8d722c89b74971001b33f4168828dda3  core/count-recovery/field-demand.ts"
+        ]
+      },
+      "workerCheckedLost": true,
+      "unitDelta": 1511.9112747999998,
+      "wallDelta": 965.7603049999993
+    },
+    {
+      "name": "safety-ba",
+      "placement": {
+        "vm": "bx_69nkhdf7",
+        "type": "large",
+        "cpu": "AMD Ryzen 9 9950X 16-Core Processor",
+        "vcpus": 8,
+        "vm_vcpus": 8,
+        "exclusive": true,
+        "co_tenants": 0
+      },
+      "archiveSha256": "ef06e0cd705936eaf27137ab1d1cb9e8977405406f5577bd102a763e5a8033e7",
+      "logSha256": "41db27eef0721cf03a003e6bc2b293dd0f553cd06e5a720c6c69a92b3e768a37",
+      "order": [
+        "after",
+        "before"
+      ],
+      "before": {
+        "tag": "safety",
+        "law": "one primary per term",
+        "workerChecked": true,
+        "units": 4488.588814,
+        "wallMs": 3445.907156,
+        "searchWallMs": 3051.7349870000003,
+        "checkWallMs": 394.1722289999998,
+        "sourceHashes": [
+          "6dafd763471a716d77b39ef7424a0ecd48c64505f78554ef72e05a1e615af600  core/count-cases.ts",
+          "5e2f668bc304e1bdeb0c4b8126d4289cf757bbd88ffb182e67a35a2d84642b77  core/count-recovery/guard-cases.ts",
+          "d3217b3cd64c716b161cf9a98286e7270f4e414f7aac09c124b2b82707c8859e  core/count-recovery/field-bound-lemmas.ts",
+          "7989e785c46ae055eab838bcac9c8053c6f7b1a0ecb90b1f1d464e07e4e85531  core/count-recovery/row-cases.ts",
+          "fdd8a6aee4f3878747401c0d3d58fd76dde2ec79bb4afd765814b1b0ba810b6b  core/count-recovery/derivability-closure.ts",
+          "8381ff0a8ac4f982d1346de897741b907d13edc4541c8575d3ba2d30443943d3  core/count-recovery/field-demand.ts"
+        ]
+      },
+      "after": {
+        "tag": "safety",
+        "law": "one primary per term",
+        "workerChecked": false,
+        "units": 6000.5000887999995,
+        "wallMs": 4729.845505,
+        "searchWallMs": 4729.333704000001,
+        "checkWallMs": 0.5123619999994844,
+        "sourceHashes": [
+          "f90b52382aed2614854735e38350c74d241dae4908ad4d6d28fc7b7925868ff3  core/count-cases.ts",
+          "0a0778508c5dec30138360d877fe3eefed2980ddcd52f7b6a6a8f31c9fab3531  core/count-recovery/guard-cases.ts",
+          "cf2a74ccb71a62d85466745ab04b8a416c933e140cf9ed2679c07eede4020cb7  core/count-recovery/field-bound-lemmas.ts",
+          "f230e4675dc055b0943ce24ebbfc8904638dd6df31e403263f29428585226545  core/count-recovery/row-cases.ts",
+          "086de083e59fe9cea0388c5863b20b0721ec862f1c9e41c7e12d8e3b5366e703  core/count-recovery/derivability-closure.ts",
+          "36c0e5d18d438c710cef02ab487da3ba8d722c89b74971001b33f4168828dda3  core/count-recovery/field-demand.ts"
+        ]
+      },
+      "workerCheckedLost": true,
+      "unitDelta": 1511.9112747999998,
+      "wallDelta": 1283.938349
+    },
+    {
+      "name": "p1-ab",
+      "placement": {
+        "vm": "bx_5jvcbp5r",
+        "type": "large",
+        "cpu": "AMD Ryzen 9 9950X 16-Core Processor",
+        "vcpus": 8,
+        "vm_vcpus": 8,
+        "exclusive": true,
+        "co_tenants": 0
+      },
+      "archiveSha256": "3f75227029ec88e3e0d76d4c1b4f948e31d5c75966671f003dbc53c29550abc5",
+      "logSha256": "1f2fd5ab2647dacca91c2ef4ed993a6b2d91592a3dfec44a51e728e165ae5293",
+      "order": [
+        "before",
+        "after"
+      ],
+      "before": {
+        "tag": "p1",
+        "law": "count cubes: every x with x < {\"op\":\"var\",\"name\":\"size\"}: never CV[x] is 0 and 1 <= inX$row[x]",
+        "workerChecked": true,
+        "units": 2292.235458,
+        "wallMs": 2874.655249,
+        "searchWallMs": 2693.92981,
+        "checkWallMs": 180.7252880000001,
+        "sourceHashes": [
+          "6dafd763471a716d77b39ef7424a0ecd48c64505f78554ef72e05a1e615af600  core/count-cases.ts",
+          "5e2f668bc304e1bdeb0c4b8126d4289cf757bbd88ffb182e67a35a2d84642b77  core/count-recovery/guard-cases.ts",
+          "d3217b3cd64c716b161cf9a98286e7270f4e414f7aac09c124b2b82707c8859e  core/count-recovery/field-bound-lemmas.ts",
+          "7989e785c46ae055eab838bcac9c8053c6f7b1a0ecb90b1f1d464e07e4e85531  core/count-recovery/row-cases.ts",
+          "fdd8a6aee4f3878747401c0d3d58fd76dde2ec79bb4afd765814b1b0ba810b6b  core/count-recovery/derivability-closure.ts",
+          "8381ff0a8ac4f982d1346de897741b907d13edc4541c8575d3ba2d30443943d3  core/count-recovery/field-demand.ts"
+        ]
+      },
+      "after": {
+        "tag": "p1",
+        "law": "count cubes: every x with x < {\"op\":\"var\",\"name\":\"size\"}: never CV[x] is 0 and 1 <= inX$row[x]",
+        "workerChecked": true,
+        "units": 2292.235458,
+        "wallMs": 2481.94803,
+        "searchWallMs": 2334.323985,
+        "checkWallMs": 147.62435499999992,
+        "sourceHashes": [
+          "f90b52382aed2614854735e38350c74d241dae4908ad4d6d28fc7b7925868ff3  core/count-cases.ts",
+          "0a0778508c5dec30138360d877fe3eefed2980ddcd52f7b6a6a8f31c9fab3531  core/count-recovery/guard-cases.ts",
+          "cf2a74ccb71a62d85466745ab04b8a416c933e140cf9ed2679c07eede4020cb7  core/count-recovery/field-bound-lemmas.ts",
+          "f230e4675dc055b0943ce24ebbfc8904638dd6df31e403263f29428585226545  core/count-recovery/row-cases.ts",
+          "086de083e59fe9cea0388c5863b20b0721ec862f1c9e41c7e12d8e3b5366e703  core/count-recovery/derivability-closure.ts",
+          "36c0e5d18d438c710cef02ab487da3ba8d722c89b74971001b33f4168828dda3  core/count-recovery/field-demand.ts"
+        ]
+      },
+      "workerCheckedLost": false,
+      "unitDelta": 0,
+      "wallDelta": -392.7072189999999
+    },
+    {
+      "name": "p1-ba",
+      "placement": {
+        "vm": "bx_8f8tzqk2",
+        "type": "large",
+        "cpu": "AMD Ryzen 9 9950X 16-Core Processor",
+        "vcpus": 8,
+        "vm_vcpus": 8,
+        "exclusive": true,
+        "co_tenants": 0
+      },
+      "archiveSha256": "5ab936c3109eb4b7c5e8cdd155fb7367c08d9715c16a0db950bdf16159ea2c1c",
+      "logSha256": "9b497637e577300db269af5c12f629cb1b857ee86cba3b2c8e3b2043e00077c4",
+      "order": [
+        "after",
+        "before"
+      ],
+      "before": {
+        "tag": "p1",
+        "law": "count cubes: every x with x < {\"op\":\"var\",\"name\":\"size\"}: never CV[x] is 0 and 1 <= inX$row[x]",
+        "workerChecked": true,
+        "units": 2292.235458,
+        "wallMs": 3613.0022750000003,
+        "searchWallMs": 3365.1320020000003,
+        "checkWallMs": 247.8710930000002,
+        "sourceHashes": [
+          "6dafd763471a716d77b39ef7424a0ecd48c64505f78554ef72e05a1e615af600  core/count-cases.ts",
+          "5e2f668bc304e1bdeb0c4b8126d4289cf757bbd88ffb182e67a35a2d84642b77  core/count-recovery/guard-cases.ts",
+          "d3217b3cd64c716b161cf9a98286e7270f4e414f7aac09c124b2b82707c8859e  core/count-recovery/field-bound-lemmas.ts",
+          "7989e785c46ae055eab838bcac9c8053c6f7b1a0ecb90b1f1d464e07e4e85531  core/count-recovery/row-cases.ts",
+          "fdd8a6aee4f3878747401c0d3d58fd76dde2ec79bb4afd765814b1b0ba810b6b  core/count-recovery/derivability-closure.ts",
+          "8381ff0a8ac4f982d1346de897741b907d13edc4541c8575d3ba2d30443943d3  core/count-recovery/field-demand.ts"
+        ]
+      },
+      "after": {
+        "tag": "p1",
+        "law": "count cubes: every x with x < {\"op\":\"var\",\"name\":\"size\"}: never CV[x] is 0 and 1 <= inX$row[x]",
+        "workerChecked": true,
+        "units": 2292.235458,
+        "wallMs": 3316.364534,
+        "searchWallMs": 3025.294122,
+        "checkWallMs": 291.0704509999996,
+        "sourceHashes": [
+          "f90b52382aed2614854735e38350c74d241dae4908ad4d6d28fc7b7925868ff3  core/count-cases.ts",
+          "0a0778508c5dec30138360d877fe3eefed2980ddcd52f7b6a6a8f31c9fab3531  core/count-recovery/guard-cases.ts",
+          "cf2a74ccb71a62d85466745ab04b8a416c933e140cf9ed2679c07eede4020cb7  core/count-recovery/field-bound-lemmas.ts",
+          "f230e4675dc055b0943ce24ebbfc8904638dd6df31e403263f29428585226545  core/count-recovery/row-cases.ts",
+          "086de083e59fe9cea0388c5863b20b0721ec862f1c9e41c7e12d8e3b5366e703  core/count-recovery/derivability-closure.ts",
+          "36c0e5d18d438c710cef02ab487da3ba8d722c89b74971001b33f4168828dda3  core/count-recovery/field-demand.ts"
+        ]
+      },
+      "workerCheckedLost": false,
+      "unitDelta": 0,
+      "wallDelta": -296.63774100000046
+    }
+  ],
+  "workerCheckedLosses": [
+    "safety-ab",
+    "safety-ba"
+  ]
+}

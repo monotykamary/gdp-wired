@@ -1,0 +1,58 @@
+[
+ {
+  "name": "overlap-0-before",
+  "cmd": "bash research/track-m/lane-b-op.sh overlap 0 before",
+  "cpu": 8,
+  "memory": 14336,
+  "timeout": 100
+ },
+ {
+  "name": "overlap-0-after",
+  "cmd": "bash research/track-m/lane-b-op.sh overlap 0 after",
+  "cpu": 8,
+  "memory": 14336,
+  "timeout": 100
+ },
+ {
+  "name": "overlap-4-before",
+  "cmd": "bash research/track-m/lane-b-op.sh overlap 4 before",
+  "cpu": 8,
+  "memory": 14336,
+  "timeout": 100
+ },
+ {
+  "name": "overlap-4-after",
+  "cmd": "bash research/track-m/lane-b-op.sh overlap 4 after",
+  "cpu": 8,
+  "memory": 14336,
+  "timeout": 100
+ },
+ {
+  "name": "star-3-before",
+  "cmd": "bash research/track-m/lane-b-op.sh star 3 before",
+  "cpu": 8,
+  "memory": 14336,
+  "timeout": 100
+ },
+ {
+  "name": "star-3-after",
+  "cmd": "bash research/track-m/lane-b-op.sh star 3 after",
+  "cpu": 8,
+  "memory": 14336,
+  "timeout": 100
+ },
+ {
+  "name": "star-5-before",
+  "cmd": "bash research/track-m/lane-b-op.sh star 5 before",
+  "cpu": 8,
+  "memory": 14336,
+  "timeout": 100
+ },
+ {
+  "name": "star-5-after",
+  "cmd": "bash research/track-m/lane-b-op.sh star 5 after",
+  "cpu": 8,
+  "memory": 14336,
+  "timeout": 100
+ }
+]

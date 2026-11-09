@@ -30,10 +30,12 @@ import {countCubes, liftedOneKeyCounts} from './count-cubes.ts'
 import {finiteHoudini} from './finite-houdini.ts'
 import {finiteModelChecker} from './finite-model.ts'
 import {countsForReads, proposeCountFacts} from './count-facts.ts'
+import {completeCountLawInstances} from './count-completion.ts'
 import {attemptShare, supportBudget} from './support-budget.ts'
 export {attemptShare, supportBudget} from './support-budget.ts'
 import {proposeCountUnions} from './count-unions.ts'
 import {focusedCountRecoveryEnabled,proveFocusedCounts} from './count-focus-proof.ts'
+import {preferMemberInclusions} from './count-recovery/member-inclusions.ts'
 import {smallOf, trueSmall} from './exists.ts'
 import {WallExpired, checkWall, searchWall} from './wall.ts'
 import {env} from './solver.ts'
@@ -739,12 +741,13 @@ export function countedAttempts(m: Machine, caller: Law[], support: Set<Law>, un
         // for failure-driven widening. This caches proposals, never a proof.
         const key = countPoolKey(goal, decls)
         const cached = poolCache.get(goal.name)
-        const pool0 = cached?.key === key ? cached.value : grammarPool(goal, decls, pool, generation, structured)
+        const pool0 = cached?.key === key ? cached.value : grammarPool(goal, decls, pool, generation, structured, m)
         if (cached?.key !== key) poolCache.set(goal.name, {key, value: pool0})
         if (!selection) {
-          const pick = readTuples(goal.hyps.at(-1), generation.tick).some(([mp]) => mp.endsWith('#') && decls.some(d => d.map === mp))
+          const ordinary = readTuples(goal.hyps.at(-1), generation.tick).some(([mp]) => mp.endsWith('#') && decls.some(d => d.map === mp))
             ? polaritySelection(goal, decls, pool0, generation, sourceMaps).pick
             : smallSelection(goal, decls, pool0.full, readTuples(law.holds, generation.tick).map(([, key]) => key), none, generation)
+          const pick = preferMemberInclusions(m, decls, pool0.full, ordinary, 10, generation.tick)
           selection = {chosen: new Set(ids(pick)), cap: Math.min(10, pick.insts.length + 2), previous: pick, decls, reserve: reservationState(goal, [m, ls, goal], pool), stable: stableState([m, ls, goal])}
           selections.set(goal.name, selection)
         }
@@ -760,7 +763,10 @@ export function countedAttempts(m: Machine, caller: Law[], support: Set<Law>, un
       if (!pass || lazyMode === '0' || (lazyMode === 'wide' && !wide)) return {goal, decls, c: full, gg: ptime('encode', () => mcGoal(goal.hyps, decls, full)), pool: undefined as Pool | undefined}
       const rd = new Map(full.reads.map(r => [r[0], json([r[1], r[2]])]))
       const keys = [...full.picks.map(q => `p${json([rd.get(q[0]), q[1]])}`), ...full.insts.map(i => `i${json([i.terms.map(([z, x]) => [z, rd.get(x)]), i.unit, i.below])}`)]
-      if (lazyMode === 'wide') for (const q of keys.slice(full.picks.length, full.picks.length + 10)) chosen.add(q)
+      if (lazyMode === 'wide') {
+        const initial = preferMemberInclusions(m, decls, full, {...full, picks: [], insts: full.insts.slice(0, 10)}, 10, generation.tick)
+        for (const inst of initial.insts) chosen.add(keys[full.picks.length + full.insts.indexOf(inst)]!)
+      }
       const c = {...full, picks: full.picks.filter((_, j) => chosen.has(keys[j]!)), insts: full.insts.filter((_, j) => chosen.has(keys[j + full.picks.length]!))}
       const fg = ptime('encode', () => mcGoal(goal.hyps, decls, full))
       return {goal, decls, c, gg: ptime('encode', () => mcGoal(goal.hyps, decls, c)), pool: fg && keys.length ? {fg, keys, wits: [...full.picks.map(() => undefined), ...full.insts.map(i => i.wit)]} : undefined}
@@ -808,6 +814,17 @@ export function countedAttempts(m: Machine, caller: Law[], support: Set<Law>, un
     let built = build()
     const observe = (b: ReturnType<typeof build>[number], phase: string, witness?: Record<string, number>) => {
       if (countsDump.on) countsDump.on({law: law.name, goal: b.goal.name, pass, phase, generation: {...generation.state}, machine: m, laws: ls, rawGoal: b.goal, decls: b.decls, instances: at, certificateRequest: b.c, hyps: b.gg?.hyps, witness, seedCount})
+    }
+    let countCompleted = false
+    const completeCounts = (): boolean => {
+      if (!pass || countCompleted) return false
+      countCompleted = true
+      const completion = completeCountLawInstances(modelLaws, at, ts, l => reads(l.holds, isCount).size > 0, generation.tick)
+      if (!completion.added.length) return false
+      at = completion.at
+      tally('#count-completion', completion.added.length)
+      countsDump.on?.({law: law.name, pass, phase: 'count-completion', added: completion.added})
+      return true
     }
     let decideStep = decisions.get(id)
     if (!decideStep) {
@@ -871,6 +888,7 @@ export function countedAttempts(m: Machine, caller: Law[], support: Set<Law>, un
         tally('#rounds'); tally('#hyps', step.gg.hyps.length)
         if (lz && !asked) { built = build(); continue }
         if (!asked) {
+          if (completeCounts()) { built = build(); continue }
           if (countsDump.on && (pass || env.GDP_COUNTS_DUMP_ALL_PASSES === '1') && dumped < Number(env.GDP_COUNTS_DUMP_N ?? 3)) { dumped++; countsDump.on({law: law.name, goal: step.goal.name, ls: ls.map(l => l.name), stuck: 'sat', witness: q.witness, reads: step.c.reads, insts: step.c.insts, hyps: step.gg.hyps, base: step.goal, decls: step.decls, cert: step.c, at, laws: ls, wide, pass}) }
           if (pass && !wide && houdini && 'loose' in step.c && (step.c.loose || isCaller) && more()) { wide = true; widened.add(law.name); built = build(); continue }
           return refuted(step.gg, q.witness, at)
@@ -901,6 +919,7 @@ export function countedAttempts(m: Machine, caller: Law[], support: Set<Law>, un
         if (gg && o && !('tree' in o) && o.stuck === 'sat' && o.witness && gg === built.at(-1)!.gg && more()) {
           const asked = ptime('mbqi', () => modelInstances(m, modelLaws, at, gg, o.witness!)), lz = breaks(built.at(-1), o.witness) || (!asked && breaks(built.at(-1), o.witness, true))
           if (asked || lz) { if (asked) at = asked; built = build(); again = true; break }
+          if (completeCounts()) { built = build(); again = true; break }
         }
         if (gg && o && !('tree' in o) && o.stuck === 'sat' && o.witness && gg === built.at(-1)!.gg && pass && !wide && houdini && 'loose' in c && (c.loose || isCaller) && more()) { wide = true; widened.add(law.name); built = build(); again = true; break }
         if (gg && o && !('tree' in o) && o.stuck === 'sat' && o.witness && gg === built.at(-1)!.gg) return refuted(gg, o.witness, at)

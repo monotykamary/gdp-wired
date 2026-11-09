@@ -1,0 +1,16 @@
+{
+  "allStartedJobsExited": true,
+  "searches": {"count": 4, "vm": "bx_25xas5gt", "exclusive": true, "status": "all exited"},
+  "preflightFailures": {"count": 2, "searchesExecuted": 0, "logsRetained": true},
+  "audit": {"vm": "bx_25xas5gt", "status": "exited 0"},
+  "presentation": {"vm": "bx_2hzfj2ah", "status": "exited 0"},
+  "liveStagingRemoved": ["bx_2hzfj2ah:/home/user/track-m-section19-report-lNTCZU", "bx_2hzfj2ah:/home/user/track-m-s10-receipts-E6Db1o"],
+  "stoppedVmStaging": {
+    "vm": "bx_25xas5gt",
+    "statusAtCleanup": "machine_not_running",
+    "disposition": "Not resumed solely for cleanup; verified local archives retained.",
+    "knownPaths": ["/home/user/track-m-s18-receipts-JOYh8Q", "/home/user/track-m-section19-audit-TRk8Bj", "/home/user/track-m-s10-receipts-R9pgR6"],
+    "additionalCaptureOutput": "The preparation script's uniquely named /home/user/track-m-section19-* directory may also remain on this stopped VM."
+  },
+  "schedulerOwnedVmsStoppedByThisTask": false
+}

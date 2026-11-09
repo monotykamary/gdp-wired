@@ -1,0 +1,8 @@
+[
+ {"name":"overlap","cmd":"PROFILE_CHECKS=1 bash research/track-m/lane-b-section16.sh overlap","cpu":8,"memory":14336,"timeout":90},
+ {"name":"rows","cmd":"PROFILE_CHECKS=1 bash research/track-m/lane-b-section16.sh rows","cpu":8,"memory":14336,"timeout":90},
+ {"name":"star","cmd":"PROFILE_CHECKS=1 bash research/track-m/lane-b-section16.sh star","cpu":8,"memory":14336,"timeout":90},
+ {"name":"safety","cmd":"PROFILE_CHECKS=1 bash research/track-m/lane-b-section16.sh safety","cpu":8,"memory":14336,"timeout":90},
+ {"name":"p1","cmd":"PROFILE_CHECKS=1 bash research/track-m/lane-b-section16.sh p1","cpu":8,"memory":14336,"timeout":90},
+ {"name":"check","cmd":"bash research/track-m/prepare-vendors.sh && bun install --frozen-lockfile >/dev/null && LAB_DISPOSABLE=1 bun research/track-m/install-check-cost-profile.ts && bun run check && bun test research/track-m/check-cost-profile.test.ts core/count-recovery/conditional-check-cache.test.ts core/count-recovery/conditional-proof.test.ts","cpu":8,"memory":14336,"timeout":420}
+]

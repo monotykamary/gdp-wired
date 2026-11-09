@@ -1,0 +1,3 @@
+{"phase":"family","conditional":true,"laws":35,"targets":{"overlap":"inX: stored guard reconfigs/inS or disabled/0","rows":"fields: CV[a]=CV[b] and CfgT[a]=CfgT[b] -> Config rows agree","star":"inX: no quorum canVote/3","safety":"one primary per term","p1":"research Gp1: CV=0 implies empty row"},"generationWallMs":16468.7405,"sha256":"2e9905210ba46fceda95499e549075c76ef3cb8ae545e4cca90d02e950de50c8"}
+{"rawFiles":457,"unique":0,"selected":0,"jobs":0,"skipped":0}
+{"artifact":"track-m-tar-v1","dir":"/home/user/track-m-s18-receipts-SBE5P7","format":"tar.gz","parts":1,"bytes":3648,"sha256":"9d4ca07dd8614b40bd1ad794d3349dfb2b7c7a03745025824cb8c4586eb042f2"}

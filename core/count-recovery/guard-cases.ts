@@ -8,6 +8,8 @@ import {fieldBoundLemmas} from './field-bound-lemmas.ts'
 import {frameLemmas} from './frame-lemmas.ts'
 import {fieldCase} from './field-case.ts'
 import {rowPairs} from './row-cases.ts'
+import {leafAllowance} from './leaf-allowance.ts'
+import {fieldDemandAt} from './field-demand.ts'
 import {type SourceProofMemo} from './source-memo.ts'
 import {checkConditionalProof as check,hasConditionalProof,transportConditionalProof} from './conditional-proof.ts'
 import {wallTree,solve,grow,rowsAt,widen} from './ops.ts'
@@ -30,7 +32,8 @@ function guardCasesImpl(m:Machine,ds:CountDecl[],g:Goal,cert:Proposal,guard:C,un
  let inactive:Tree|undefined,attempted=false,inactiveLeaf:{tree:Tree,path:Path}|undefined
  const leaf=(hyps:C[],path:Path,active:boolean):Tree|undefined=>{
   if(clock()>=until)return undefined
-  const assumption=active?guard:{op:'and' as const,xs:hyps},sourceOnly=false,goal=sourceOnly?g:{...g,hyps:[...g.hyps.slice(0,slot),assumption,...g.hyps.slice(slot)]},start=clock(),end=active?until:Math.min(until,clock()+500)
+  const assumption=active?guard:{op:'and' as const,xs:hyps},sourceOnly=false,goal=sourceOnly?g:{...g,hyps:[...g.hyps.slice(0,slot),assumption,...g.hyps.slice(slot)]},start=clock(),end=active?Math.min(until,start+leafAllowance(until-start,1)):Math.min(until,start+500)
+  trace.push({stage:'guard-leaf-budget',active,start,until,end,draw:Math.max(0,end-start)})
   const cached=options.memo?.get(g,path,end)
   if(cached&&(deferNested||check(g,cached,path))){trace.push({stage:'source-memo',scope:'guard',active});return cached}
   const rowDependent=active&&rowPairs(m,cert,path,options.claim).length>0
@@ -45,7 +48,7 @@ function guardCasesImpl(m:Machine,ds:CountDecl[],g:Goal,cert:Proposal,guard:C,un
    if(accepted)return shared
   }
   if(!proof&&!active){const simple=solve(rowsAt(goal,path),500);if(simple.kind==='refuted')proof={leaf:simple.steps}}
-  if(!proof)proof=active?fieldBoundLemmas(m,ds,goal,cert,end,trace,undefined,path,{deferCheck:true,fieldClaim:options.claim,memo:options.memo,conditional:options.conditional}):frameLemmas(goal,cert,end,trace,path,{deferCheck:deferNested})
+  if(!proof)proof=active?fieldBoundLemmas(m,ds,goal,cert,end,trace,undefined,path,{deferCheck:true,fieldClaim:options.claim,memo:options.memo,conditional:options.conditional,fieldDemand:fieldDemandAt(path)}):frameLemmas(goal,cert,end,trace,path,{deferCheck:deferNested})
   if(!proof&&clock()<end){
    const before=atPoint.on;atPoint.on=false
    try{const out=grow(goal,path,{nodes:0,until:end,units:false});if('tree'in out)proof=out.tree}finally{atPoint.on=before}

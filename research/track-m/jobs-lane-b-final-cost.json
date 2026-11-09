@@ -1,0 +1,4 @@
+[
+ {"name":"p1","cmd":"bash research/track-m/lane-b-section16.sh p1","cpu":8,"memory":14336,"timeout":90},
+ {"name":"safety","cmd":"bash research/track-m/lane-b-section16.sh safety","cpu":8,"memory":14336,"timeout":90}
+]

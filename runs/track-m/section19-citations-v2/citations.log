@@ -1,0 +1,17 @@
+
+  x eslint(no-unused-vars): Parameter 'records' is declared but never used. Unused parameters should start with a '_'.
+    ,-[research/track-m/audit-section19.ts:72:57]
+ 71 |  writeFileSync(join(out,'summary.json'),JSON.stringify({researchOnly:true,noNewSearch:true,inputSha256:manifest.sha256,rows},null,2)+'\n');const csv=['law,op,id,helper,kind,checked,proof_cited,core_cited,any_observed_use,units,source_units,uses'];for(const r of rows)for(const e of r.records)csv.push([r.law,r.op,e.id,e.helper,e.kind,e.targetChecked,e.proofCited,e.coreCited,e.anyObservedUse,e.totalUnits,e.units.source,JSON.stringify(e.uses)].map(v=>'"'+String(v).replaceAll('"','""')+'"').join(','));writeFileSync(join(out,'citations.csv'),csv.join('\n')+'\n')
+ 72 |  console.log(JSON.stringify({output:out,rows:rows.map(({records,consumerAudit,...r})=>({...r,checkedConsumerProofs:consumerAudit.filter((c:any)=>c.checked).length}))}));p=Bun.spawn([process.execPath,'research/track-m/pack-section10-archive.ts',join(out,'summary.json'),join(out,'citations.csv')],{stdout:'inherit',stderr:'inherit'});assert.equal(await p.exited,0);p=Bun.spawn(['rm','-rf','--',tmp],{stdout:'inherit',stderr:'inherit'});assert.equal(await p.exited,0)
+    :                                                         ^^^|^^^
+    :                                                            `-- 'records' is declared here
+ 73 | }
+    `----
+  help: Consider removing this parameter.
+
+Found 0 warnings and 1 error.
+Finished in 14.0s on 1309 files with 100 rules using 8 threads.
+
+--- stderr ---
+$ tsc -p . && oxlint --type-aware --deny-warnings --disable-nested-config
+error: script "check" exited with code 1

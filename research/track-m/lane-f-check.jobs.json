@@ -1,0 +1,1 @@
+[{"name":"check","cmd":"bash research/track-m/prepare-vendors.sh && bun install --frozen-lockfile && bun run check && bun test core/count-recovery/row-demand.test.ts core/count-recovery/row-cases.test.ts core/count-recovery/derivability-closure.test.ts core/count-cases.test.ts","cpu":4,"memory":8192,"timeout":420}]

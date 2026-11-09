@@ -1,0 +1,1 @@
+[{"name":"report","cmd":"bash research/track-m/prepare-vendors.sh && bun install --frozen-lockfile >/dev/null && bun run check && bun test research/track-m/section18.test.ts research/track-m/section19.test.ts && bun research/track-m/section19-report.ts audited-input","cpu":8,"memory":14336,"timeout":300}]

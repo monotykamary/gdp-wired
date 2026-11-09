@@ -14,6 +14,7 @@ import {foldPath} from './fold-path.ts'
 import {fieldCase} from './field-case.ts'
 import {type SourceProofMemo} from './source-memo.ts'
 import {booleanCore} from './boolean-core.ts'
+import {type FieldDemand,fieldDemandAt,beginFieldAttempt,endFieldAttempt} from './field-demand.ts'
 import {selectCountBounds} from '../count-select.ts'
 import {activeWriteRow,proveRowCases,rowPairs} from './row-cases.ts'
 import {proveNaturalCases} from './natural-cases.ts'
@@ -78,7 +79,7 @@ export const fieldBoundLemmas:typeof fieldBoundLemmasImpl=(...args)=>wallTree('p
  if(tree&&!hasConditionalProof(tree))options.memo?.put(g,path,tree)
  return tree
 })
-function fieldBoundLemmasImpl(m:Machine,ds:CountDecl[],g:Goal,cert:Proposal,until:number,trace:object[],onModel?:(goal:Goal,witness:Record<string,number>)=>boolean,root:Path=new Map(),options:{splitRows?:boolean,deferCheck?:boolean,fieldClaim?:C,memo?:SourceProofMemo,closure?:boolean,conditional?:boolean,onSourceModel?:(goal:Goal,witness:Record<string,number>,path:Path)=>void}={}):Tree|undefined{
+function fieldBoundLemmasImpl(m:Machine,ds:CountDecl[],g:Goal,cert:Proposal,until:number,trace:object[],onModel?:(goal:Goal,witness:Record<string,number>)=>boolean,root:Path=new Map(),options:{splitRows?:boolean,deferCheck?:boolean,fieldClaim?:C,memo?:SourceProofMemo,closure?:boolean,conditional?:boolean,fieldDemand?:FieldDemand,onSourceModel?:(goal:Goal,witness:Record<string,number>,path:Path)=>void}={}):Tree|undefined{
  const pointOptions={deferCheck:!!options.deferCheck}
  const seq=modelSequence(root),ctx:C[]=[],path:Path=new Map(root),lemmas:{split:Record<string,number>,no:Tree}[]=[]
  const accept=(tree:Tree|undefined,path:Path)=>tree&&(options.deferCheck||check(g,tree,path))?tree:undefined
@@ -87,7 +88,7 @@ function fieldBoundLemmasImpl(m:Machine,ds:CountDecl[],g:Goal,cert:Proposal,unti
  let arithmetic:Tree|undefined
  const postMaps=new Set(cert.reads.filter(r=>r[1].endsWith('#')).map(r=>r[1])),postIds=new Set(cert.reads.filter(r=>r[1].endsWith('#')).map(r=>r[0]))
  if(options.closure!==false){
-  const closed=deriveCountClosure(m,ds,g,cert,root,until,trace,{claim:options.fieldClaim,pairs:rowPlan,conditional:options.conditional,fieldSource:(source,proposal,claim,path,end)=>fieldBoundLemmas(m,ds,source,proposal,end,trace,onModel,path,{...options,closure:false,splitRows:false,deferCheck:true,fieldClaim:claim})})
+  const closed=deriveCountClosure(m,ds,g,cert,root,until,trace,{claim:options.fieldClaim,pairs:rowPlan,conditional:options.conditional,fieldDemand:options.fieldDemand??fieldDemandAt(root),fieldSource:(source,proposal,claim,path,end)=>fieldBoundLemmas(m,ds,source,proposal,end,trace,onModel,path,{...options,closure:false,splitRows:false,deferCheck:true,fieldClaim:claim})})
   if(closed)return closed
  }
  // Split a packed field's guarded column domain once, outside the row cases.
@@ -108,7 +109,8 @@ function fieldBoundLemmasImpl(m:Machine,ds:CountDecl[],g:Goal,cert:Proposal,unti
    if(a&&b){
     const split=sub(a,b);split['1']=(split['1']??0)+1
     const id=canon(split),negative=new Map(root).set(id,{lin:split,holds:false}),positive=new Map(root).set(id,{lin:split,holds:true})
-    const no=fieldCase(m,g,cert,options.fieldClaim,negative,Math.min(until,clock()+50),e=>trace.push(e),0,options.memo)
+    let no:Tree|undefined;const meter=beginFieldAttempt(domain,root,options.fieldDemand??fieldDemandAt(root),'field-column-domain')
+    try{no=fieldCase(m,g,cert,options.fieldClaim,negative,Math.min(until,clock()+50),e=>trace.push(e),0,options.memo)}finally{endFieldAttempt(meter,!!no)}
     if(no){
      const yes=fieldBoundLemmas(m,ds,g,cert,until,trace,onModel,positive,options),tree=yes?{split,yes,no}:undefined
      trace.push({stage:'field-column-domain',domain,proposed:!!tree})
@@ -199,13 +201,15 @@ function fieldBoundLemmasImpl(m:Machine,ds:CountDecl[],g:Goal,cert:Proposal,unti
    const split=sub({[left!]:1},{[right!]:1});if(path.get(canon(split))?.holds===true)continue
    const noPath=new Map(path).set(canon(split),{lin:split,holds:false}),begun=clock()
    trace.push({stage:'read-alias-start',left,right})
-   const bindings=g.hyps.filter(c=>c.op==='='&&[[c.a,c.b],[c.b,c.a]].some(([v,e])=>v?.op==='var'&&[left,right].includes(v.name)&&e?.op==='get'&&e.map===a[1]))
+   const meter=beginFieldAttempt({op:'<=',a:x(left!),b:x(right!)},path,options.fieldDemand??fieldDemandAt(root),'read-alias');let emitted=false
+   try{const bindings=g.hyps.filter(c=>c.op==='='&&[[c.a,c.b],[c.b,c.a]].some(([v,e])=>v?.op==='var'&&[left,right].includes(v.name)&&e?.op==='get'&&e.map===a[1]))
    if(bindings.length!==2)continue
    const small:Goal={name:'equal-key count reads',hyps:bindings},out=refuteFast(rowsAt(small,noPath),256)
    const local:Tree|undefined=out?.kind==='refuted'?{leaf:out.steps}:undefined
-   const no=local&&check(small,local,noPath)?liftCountProxies(small,g,local,[],noPath,noPath,undefined,options):undefined,accepted=!!no&&(options.deferCheck||check(g,no,noPath))
+   const no=local&&check(small,local,noPath)?liftCountProxies(small,g,local,[],noPath,noPath,undefined,options):undefined,accepted=!!no&&(options.deferCheck||check(g,no,noPath));emitted=accepted
    trace.push({stage:'read-alias',left,right,ms:Math.round(clock()-begun),checked:!options.deferCheck&&accepted,...(options.deferCheck?{proposed:accepted,deferred:true}:{})})
    if(accepted&&no){lemmas.push({split,no});ctx.push({op:'<=',a:x(left!),b:x(right!)});path.set(canon(split),{lin:split,holds:true})}
+   }finally{endFieldAttempt(meter,emitted)}
   }
  }
  if((clock()>=until||pastWall()))return undefined
@@ -220,11 +224,13 @@ function fieldBoundLemmasImpl(m:Machine,ds:CountDecl[],g:Goal,cert:Proposal,unti
   const a=linear(domain.a,root),b=linear(domain.b,root);if(!a||!b)continue
   const split=sub(a,b);split['1']=(split['1']??0)+1
   const noPath=new Map(path).set(canon(split),{lin:split,holds:false}),start=clock()
-  const part={...g,hyps:[...g.hyps.slice(0,g.hyps.length-cert.insts.length),...ctx,{op:'not' as const,x:domain}]},direct=refuteFast(rowsAt(part,root),256)
+  const meter=beginFieldAttempt(domain,path,options.fieldDemand??fieldDemandAt(root),'field-domain');let emitted=false
+  try{const part={...g,hyps:[...g.hyps.slice(0,g.hyps.length-cert.insts.length),...ctx,{op:'not' as const,x:domain}]},direct=refuteFast(rowsAt(part,root),256)
   const proof:Tree|undefined=direct?.kind==='refuted'?{leaf:direct.steps}:solve(part,50)
-  const lifted=proof&&widen(part,g,proof,{},root,noPath),no=accept(lifted,noPath)
+  const lifted=proof&&widen(part,g,proof,{},root,noPath),no=accept(lifted,noPath);emitted=!!no
   trace.push({stage:'field-domain',domain,direct:direct?.kind==='refuted',ms:Math.round(clock()-start),...verdict(no)})
   if(no){lemmas.push({split,no});ctx.push(domain);path.set(canon(split),{lin:split,holds:true})}
+  }finally{endFieldAttempt(meter,emitted)}
  }
  const finishField=():Tree|undefined=>{
   if(postIds.size||!options.fieldClaim||!lemmas.length||(clock()>=until||pastWall()))return undefined
@@ -245,7 +251,10 @@ function fieldBoundLemmasImpl(m:Machine,ds:CountDecl[],g:Goal,cert:Proposal,unti
   if(truth(good,path)===true)continue
   const a=linear(good.a,path),b=linear(good.b,path);if(!a||!b)continue
   const split=sub(a,b),noPath=new Map(path).set(canon(split),{lin:split,holds:false}),start=clock()
-  const facts=narrow(good),part={...g,hyps:[...facts,...ctx,{op:'not' as const,x:good}]},proof=solve(part,250),lifted=proof&&widen(part,g,proof,{},root,noPath),no=accept(lifted,noPath)
+  let no:Tree|undefined
+  const meter=beginFieldAttempt(good,path,options.fieldDemand??fieldDemandAt(root),'field-bound')
+  try{const facts=narrow(good),part={...g,hyps:[...facts,...ctx,{op:'not' as const,x:good}]},proof=solve(part,250),lifted=proof&&widen(part,g,proof,{},root,noPath);no=accept(lifted,noPath)}
+  finally{endFieldAttempt(meter,!!no)}
   trace.push({stage:'field-bound',bound:good,ms:Math.round(clock()-start),proved:!!no,...verdict(no)})
   if(no){
    lemmas.push({split,no});ctx.push(good);path.set(canon(split),{lin:split,holds:true})
@@ -374,7 +383,8 @@ function fieldBoundLemmasImpl(m:Machine,ds:CountDecl[],g:Goal,cert:Proposal,unti
    const h=g.hyps[raw.length+index];if(h?.op!=='or'||h.xs[0]?.op!=='<=')continue
    const good=h.xs[0];if(truth(good,path)===true)continue
    const split=Object.fromEntries(inst.terms.map(([n,v])=>[v,n])),noPath=new Map(path).set(canon(split),{lin:split,holds:false})
-   const relevant=raw.flatMap(c=>pieces(c)).filter(c=>{let skip=false;walkLive(c,root,(o:any)=>{if(o.op==='get'&&countMaps.has(o.map)||o.op==='var'&&(countIds.has(o.name)||wits.has(o.name)&&o.name!==inst.wit))skip=true});return !skip})
+   let no:Tree|undefined;const meter=beginFieldAttempt(good,path,options.fieldDemand??fieldDemandAt(root),'field-count')
+   try{const relevant=raw.flatMap(c=>pieces(c)).filter(c=>{let skip=false;walkLive(c,root,(o:any)=>{if(o.op==='get'&&countMaps.has(o.map)||o.op==='var'&&(countIds.has(o.name)||wits.has(o.name)&&o.name!==inst.wit))skip=true});return !skip})
    const part={...g,hyps:[...relevant,...ctx,h,{op:'not' as const,x:good}]},started=clock()
    let proof:Tree|undefined
    if(inst.terms.length===3&&inst.terms.every(([,id])=>!postIds.has(id))){
@@ -393,8 +403,9 @@ function fieldBoundLemmasImpl(m:Machine,ds:CountDecl[],g:Goal,cert:Proposal,unti
    }
    // Reallocate the existing 80 + 150 ms copy window, rather than extend it.
    proof??=solve(part,directCopy?Math.max(0,230-(clock()-started)):150)
-   const lifted=proof&&withDeadline(Math.min(until,started+(directCopy?230:150)),()=>widen(part,g,proof,{},root,noPath)),no=accept(lifted,noPath)
+   const lifted=proof&&withDeadline(Math.min(until,started+(directCopy?230:150)),()=>widen(part,g,proof,{},root,noPath));no=accept(lifted,noPath)
    trace.push({stage:'count-lemma',index,arity:inst.terms.length,terms:inst.terms,ms:Math.round(clock()-started),...verdict(no)})
+   }finally{endFieldAttempt(meter,!!no)}
    if(no){confirmed.add(index);lemmas.push({split,no});ctx.push(good);path.set(canon(split),{lin:split,holds:true});finish()}
    else{
     excluded.add(index)

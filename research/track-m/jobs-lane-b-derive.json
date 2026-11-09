@@ -1,0 +1,13 @@
+[
+ {"name":"overlap-before","cmd":"LEAF_VARIANT=after DERIVE_VARIANT=before bash research/track-m/lane-b-section16.sh overlap","cpu":8,"memory":14336,"timeout":90},
+ {"name":"overlap-after","cmd":"LEAF_VARIANT=after DERIVE_VARIANT=after bash research/track-m/lane-b-section16.sh overlap","cpu":8,"memory":14336,"timeout":90},
+ {"name":"rows-before","cmd":"LEAF_VARIANT=after DERIVE_VARIANT=before bash research/track-m/lane-b-section16.sh rows","cpu":8,"memory":14336,"timeout":90},
+ {"name":"rows-after","cmd":"LEAF_VARIANT=after DERIVE_VARIANT=after bash research/track-m/lane-b-section16.sh rows","cpu":8,"memory":14336,"timeout":90},
+ {"name":"star-before","cmd":"LEAF_VARIANT=after DERIVE_VARIANT=before bash research/track-m/lane-b-section16.sh star","cpu":8,"memory":14336,"timeout":90},
+ {"name":"star-after","cmd":"LEAF_VARIANT=after DERIVE_VARIANT=after bash research/track-m/lane-b-section16.sh star","cpu":8,"memory":14336,"timeout":90},
+ {"name":"safety-before","cmd":"LEAF_VARIANT=after DERIVE_VARIANT=before bash research/track-m/lane-b-section16.sh safety","cpu":8,"memory":14336,"timeout":90},
+ {"name":"safety-after","cmd":"LEAF_VARIANT=after DERIVE_VARIANT=after bash research/track-m/lane-b-section16.sh safety","cpu":8,"memory":14336,"timeout":90},
+ {"name":"p1-before","cmd":"LEAF_VARIANT=after DERIVE_VARIANT=before bash research/track-m/lane-b-section16.sh p1","cpu":8,"memory":14336,"timeout":90},
+ {"name":"p1-after","cmd":"LEAF_VARIANT=after DERIVE_VARIANT=after bash research/track-m/lane-b-section16.sh p1","cpu":8,"memory":14336,"timeout":90},
+ {"name":"check","cmd":"bash research/track-m/section15-derive-check.sh","cpu":8,"memory":14336,"timeout":420}
+]

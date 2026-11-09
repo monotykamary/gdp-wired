@@ -1,0 +1,29 @@
+Found 0 warnings and 0 errors.
+Finished in 37.2s on 1303 files with 100 rules using 8 threads.
+bun test v1.4.3 (c6da4a4d3)
+source.tar.gz: OK
+
+--- stderr ---
+$ tsc -p . && oxlint --type-aware --deny-warnings --disable-nested-config
+
+research/track-m/section18.test.ts:
+(pass) goal table round-trips shared proof context without column renaming [9.41ms]
+(pass) normalization removes read allocation identities but preserves keys and post-state [24.33ms]
+(pass) a quantified hash suffix is not a post-state scalar or a guard [2.15ms]
+(pass) observer frames nest exactly and are disabled in controls [1.13ms]
+
+ 4 pass
+ 0 fail
+ 12 expect() calls
+Ran 4 tests across 1 file. [324.00ms]
+3 | import {basename,join} from 'node:path'
+4 | import {homedir} from 'node:os'
+5 | import {createHash} from 'node:crypto'
+6 | import {brotliCompressSync,constants} from 'node:zlib'
+7 | const inputs=process.argv.slice(2).flatMap(p=>statSync(p).isDirectory()?readdirSync(p).map(n=>[basename(p)+'-'+n,join(p,n)]):[[basename(p),p]])
+8 | const files=Object.fromEntries(inputs.map(([name,path])=>[name!,readFileSync(path!,'utf8')])),bytes=brotliCompressSync(Buffer.from(JSON.stringify(files)),{params:{[constants.BROTLI_PARAM_QUALITY]:9}}),dir=mkdtempSync(join(homedir(),'track-m-s10-receipts-')),encoded=bytes.toString('base64'),size=200000
+                                                                                                                                            ^
+RangeError: Out of memory
+      at /work/gdp-wired/research/track-m/pack-section10-archive.ts:8:137
+
+Bun v1.4.3 (Linux x64)

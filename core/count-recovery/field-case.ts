@@ -11,6 +11,7 @@ import {fieldOnlyGoal} from './field-only.ts'
 import {foldPath} from './fold-path.ts'
 import {booleanCore,walkChoices} from './boolean-core.ts'
 import {type SourceProofMemo} from './source-memo.ts'
+import {observeFieldLeaf} from './field-demand.ts'
 export function fieldDirection(claim:C|undefined,path:Path):Record<string,number>|undefined{
  let direction:Record<string,number>|undefined
  walkChoices(claim,path,(read:any)=>{
@@ -44,6 +45,7 @@ function fieldCaseImpl(m:Machine,g:Goal,cert:Pick<CountCert,'reads'|'insts'>,cla
  // Expose a scalar direction before natural subtraction makes copied read
  // keys opaque. Both source paths are proved; no direction is assumed.
  const folded=foldPath(field,path),query=modelSequence(path)(folded.goal,until)
+ observeFieldLeaf(folded.goal,path,query)
  if(!('tree'in query)&&query.stuck==='sat'){
   trace?.({stage:'field-case',hyps:field.hyps.length,ms:Math.round(clock()-began),proposed:false,outcome:query.stuck,model:query.witness})
   return undefined

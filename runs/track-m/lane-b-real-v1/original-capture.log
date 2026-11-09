@@ -1,0 +1,119 @@
+STRICT_EXIT=0
+unknown 71 hyps 11 ms
+counts: with 35 0 every x with x < size: never CV[x] is 0 and 1 <= CfgT[x] @start: proven 2 hyps (insts 0 picks 0) 0 ms
+counts: with 35 0 every x with x < size: never CV[x] is 0 and 1 <= CfgT[x] @step: proven 43 hyps (insts 0 picks 0) 40 ms
+counts: try every x with x < size: never CV[x] is 0 and 1 <= C | ls 35 pass 0 ms 1808 took 259 wall 93 [encode 6 decide 62 mbqi 5 #rounds 3 #hyps 148 part 20] -> kept
+counts: decide 0 every x with x < size: never CV[x] is 0 and 1 <= started @step: sat 38 hyps 13 ms
+counts: decide 0 every x with x < size: never CV[x] is 0 and 1 <= started @step: sat 46 hyps 26 ms
+counts: decide 0 every x with x < size: never CV[x] is 0 and 1 <= started @step: sat 53 hyps 93 ms
+counts: decide 0 every x with x < size: never CV[x] is 0 and 1 <= started @step: unknown 65 hyps 11 ms
+counts: with 35 0 every x with x < size: never CV[x] is 0 and 1 <= started @start: proven 2 hyps (insts 0 picks 0) 0 ms
+counts: with 35 0 every x with x < size: never CV[x] is 0 and 1 <= started @step: proven 42 hyps (insts 0 picks 0) 37 ms
+counts: try every x with x < size: never CV[x] is 0 and 1 <= s | ls 35 pass 0 ms 1882 took 180 wall 188 [encode 8 decide 152 mbqi 6 #rounds 3 #hyps 137 part 21] -> kept
+counts: decide 0 every x with x < size: never 1 <= CfgT[x] and started is 0 @step: sat 38 hyps 13 ms
+counts: decide 0 every x with x < size: never 1 <= CfgT[x] and started is 0 @step: sat 47 hyps 21 ms
+counts: decide 0 every x with x < size: never 1 <= CfgT[x] and started is 0 @step: sat 55 hyps 23 ms
+counts: decide 0 every x with x < size: never 1 <= CfgT[x] and started is 0 @step: unknown 62 hyps 2 ms
+counts: with 35 0 every x with x < size: never 1 <= CfgT[x] and started is 0 @start: proven 2 hyps (insts 0 picks 0) 0 ms
+counts: with 35 0 every x with x < size: never 1 <= CfgT[x] and started is 0 @step: proven 41 hyps (insts 0 picks 0) 5 ms
+counts: try every x with x < size: never 1 <= CfgT[x] and star | ls 35 pass 0 ms 1967 took 64 wall 48 [encode 7 decide 31 mbqi 6 #rounds 3 #hyps 140 part 4] -> kept
+counts: decide 0 every x, y with x < size ∧ y < size ∧ ¬(x = y): never 1 <= CT[x] and CV[y] is 0 @step: sat 45 hyps 16 ms
+counts: decide 0 every x, y with x < size ∧ y < size ∧ ¬(x = y): never 1 <= CT[x] and CV[y] is 0 @step: sat 55 hyps 45 ms
+counts: decide 0 every x, y with x < size ∧ y < size ∧ ¬(x = y): never 1 <= CT[x] and CV[y] is 0 @step: sat 61 hyps 105 ms
+counts: decide 0 every x, y with x < size ∧ y < size ∧ ¬(x = y): never 1 <= CT[x] and CV[y] is 0 @step: unknown 75 hyps 20 ms
+counts: with 35 0 every x, y with x < size ∧ y < size ∧ ¬(x = y): never 1 <= CT[x] and CV[y] is 0 @start: proven 2 hyps (insts 0 picks 0) 0 ms
+counts: with 35 0 every x, y with x < size ∧ y < size ∧ ¬(x = y): never 1 <= CT[x] and CV[y] is 0 @step: proven 50 hyps (insts 0 picks 0) 38 ms
+counts: try every x, y with x < size ∧ y < size ∧ ¬(x = y): ne | ls 35 pass 0 ms 2067 took 225 wall 99 [encode 7 decide 65 mbqi 7 #rounds 3 #hyps 161 part 20] -> kept
+counts: decide 0 every x, y with x < size ∧ y < size ∧ ¬(x = y): never 1 <= St[x] and CV[y] is 0 @step: sat 45 hyps 16 ms
+counts: decide 0 every x, y with x < size ∧ y < size ∧ ¬(x = y): never 1 <= St[x] and CV[y] is 0 @step: sat 62 hyps 58 ms
+counts: decide 0 every x, y with x < size ∧ y < size ∧ ¬(x = y): never 1 <= St[x] and CV[y] is 0 @step: sat 70 hyps 19 ms
+counts: decide 0 every x, y with x < size ∧ y < size ∧ ¬(x = y): never 1 <= St[x] and CV[y] is 0 @step: sat 81 hyps 87 ms
+counts: decide 0 every x, y with x < size ∧ y < size ∧ ¬(x = y): never 1 <= St[x] and CV[y] is 0 @step: unknown 101 hyps 84 ms
+counts: with 35 0 every x, y with x < size ∧ y < size ∧ ¬(x = y): never 1 <= St[x] and CV[y] is 0 @start: proven 2 hyps (insts 0 picks 0) 0 ms
+counts: with 35 0 every x, y with x < size ∧ y < size ∧ ¬(x = y): never 1 <= St[x] and CV[y] is 0 @step: proven 52 hyps (insts 0 picks 0) 39 ms
+counts: try every x, y with x < size ∧ y < size ∧ ¬(x = y): ne | ls 35 pass 0 ms 2170 took 305 wall 131 [encode 8 decide 91 mbqi 10 #rounds 4 #hyps 258 part 21] -> kept
+counts: decide 0 every x, y with x < size ∧ y < size ∧ ¬(x = y): never CV[x] is 0 and 1 <= CfgT[y] @step: sat 45 hyps 16 ms
+counts: decide 0 every x, y with x < size ∧ y < size ∧ ¬(x = y): never CV[x] is 0 and 1 <= CfgT[y] @step: sat 57 hyps 48 ms
+counts: decide 0 every x, y with x < size ∧ y < size ∧ ¬(x = y): never CV[x] is 0 and 1 <= CfgT[y] @step: sat 64 hyps 117 ms
+counts: decide 0 every x, y with x < size ∧ y < size ∧ ¬(x = y): never CV[x] is 0 and 1 <= CfgT[y] @step: unknown 78 hyps 17 ms
+counts: with 35 0 every x, y with x < size ∧ y < size ∧ ¬(x = y): never CV[x] is 0 and 1 <= CfgT[y] @start: proven 2 hyps (insts 0 picks 0) 0 ms
+counts: with 35 0 every x, y with x < size ∧ y < size ∧ ¬(x = y): never CV[x] is 0 and 1 <= CfgT[y] @step: proven 49 hyps (insts 0 picks 0) 42 ms
+counts: try every x, y with x < size ∧ y < size ∧ ¬(x = y): ne | ls 35 pass 0 ms 2279 took 240 wall 160 [encode 7 decide 120 mbqi 8 #rounds 3 #hyps 166 part 24] -> kept
+counts: decide 0 inX: no quorum canVote/1 @step: sat 45 hyps 19 ms
+counts: decide 0 inX: no quorum canVote/1 @step: sat 51 hyps 24 ms
+counts: decide 0 inX: no quorum canVote/1 @step: sat 61 hyps 40 ms
+counts: decide 0 inX: no quorum canVote/1 @step: sat 62 hyps 15 ms
+counts: try inX: no quorum canVote/1 | ls 35 pass 0 ms 2407 took 98 wall 47 [encode 5 decide 33 mbqi 8 #rounds 4 #hyps 219] -> sat
+counts: decide 1 inX: no quorum canVote/1 @step: sat 65 hyps 104 ms
+counts: decide 1 inX: no quorum canVote/1 @step: sat 72 hyps 91 ms
+counts: decide 1 inX: no quorum canVote/1 @step: sat 88 hyps 109 ms
+counts: decide 1 inX: no quorum canVote/1 @step: sat 92 hyps 106 ms
+counts: decide 1 inX: no quorum canVote/1 @step: sat 96 hyps 110 ms
+counts: decide 1 inX: no quorum canVote/1 @step: sat 175 hyps 211 ms
+counts: decide 1 inX: no quorum canVote/1 @step: sat 176 hyps 179 ms
+counts: decide 1 inX: no quorum canVote/1 @step: sat 179 hyps 100 ms
+counts: decide 1 inX: no quorum canVote/1 @step: sat 182 hyps 155 ms
+counts: decide 1 inX: no quorum canVote/1 @step: sat 183 hyps 99 ms
+counts: decide 1 inX: no quorum canVote/1 @step: sat 188 hyps 334 ms
+counts: decide 1 inX: no quorum canVote/1 @step: sat 190 hyps 184 ms
+counts: decide 1 inX: no quorum canVote/1 @step: sat 192 hyps 144 ms
+counts: decide 1 inX: no quorum canVote/1 @step: sat 194 hyps 174 ms
+counts: decide 1 inX: no quorum canVote/1 @step: unknown 253 hyps 4813 ms
+counts: with 35 1 inX: no quorum canVote/1 @start: proven 11 hyps (insts 7 picks 0 wide of 7) 3 ms
+counts: with 35 1 inX: no quorum canVote/1 @step: unknown 253 hyps (insts 54 picks 8 wide of 2056) 2414 ms
+counts: try inX: no quorum canVote/1 | ls 35 pass 1 ms 2407 took 9331 wall 9452 [encode 49 decide 5360 mbqi 98 lazy 126 #rounds 14 #hyps 2072 grow 3669 #count-completion 48 #lazy 50] -> unknown
+counts: decide 0 inX: no quorum canVote/3 @step: sat 45 hyps 19 ms
+counts: decide 0 inX: no quorum canVote/3 @step: sat 51 hyps 24 ms
+counts: decide 0 inX: no quorum canVote/3 @step: sat 61 hyps 40 ms
+counts: decide 0 inX: no quorum canVote/3 @step: sat 62 hyps 15 ms
+counts: try inX: no quorum canVote/3 | ls 35 pass 0 ms 1939 took 98 wall 54 [encode 6 decide 39 mbqi 9 #rounds 4 #hyps 219] -> sat
+counts: decide 1 inX: no quorum canVote/3 @step: sat 65 hyps 151 ms
+counts: decide 1 inX: no quorum canVote/3 @step: sat 72 hyps 130 ms
+counts: decide 1 inX: no quorum canVote/3 @step: sat 88 hyps 160 ms
+counts: decide 1 inX: no quorum canVote/3 @step: sat 92 hyps 155 ms
+counts: decide 1 inX: no quorum canVote/3 @step: sat 96 hyps 159 ms
+counts: decide 1 inX: no quorum canVote/3 @step: sat 175 hyps 281 ms
+counts: decide 1 inX: no quorum canVote/3 @step: sat 176 hyps 245 ms
+counts: decide 1 inX: no quorum canVote/3 @step: sat 179 hyps 135 ms
+counts: decide 1 inX: no quorum canVote/3 @step: sat 182 hyps 199 ms
+counts: decide 1 inX: no quorum canVote/3 @step: sat 183 hyps 128 ms
+counts: decide 1 inX: no quorum canVote/3 @step: sat 188 hyps 465 ms
+counts: try inX: no quorum canVote/3 | ls 35 pass 1 ms 1939 took 2208 wall 3136 [encode 22 decide 3013 mbqi 65 #rounds 10 #hyps 1308 #count-completion 48] -> unknown
+counts: decide 0 inX: stored guard reconfigs/inS @step: sat 59 hyps 19 ms
+counts: decide 0 inX: stored guard reconfigs/inS @step: sat 65 hyps 33 ms
+counts: decide 0 inX: stored guard reconfigs/inS @step: sat 75 hyps 36 ms
+counts: decide 0 inX: stored guard reconfigs/inS @step: sat 79 hyps 45 ms
+counts: try inX: stored guard reconfigs/inS | ls 35 pass 0 ms 1912 took 132 wall 66 [encode 7 decide 50 mbqi 10 #rounds 4 #hyps 278] -> sat
+counts: decide 1 inX: stored guard reconfigs/inS @step: sat 81 hyps 89 ms
+counts: decide 1 inX: stored guard reconfigs/inS @step: sat 88 hyps 124 ms
+counts: decide 1 inX: stored guard reconfigs/inS @step: sat 110 hyps 172 ms
+counts: decide 1 inX: stored guard reconfigs/inS @step: sat 117 hyps 148 ms
+counts: decide 1 inX: stored guard reconfigs/inS @step: sat 124 hyps 150 ms
+counts: decide 1 inX: stored guard reconfigs/inS @step: sat 205 hyps 339 ms
+counts: decide 1 inX: stored guard reconfigs/inS @step: sat 207 hyps 890 ms
+counts: decide 1 inX: stored guard reconfigs/inS @step: unknown 329 hyps 3831 ms
+counts: with 35 1 inX: stored guard reconfigs/inS @start: proven 11 hyps (insts 7 picks 0 wide of 7) 14 ms
+counts: with 35 1 inX: stored guard reconfigs/inS @step: unknown 329 hyps (insts 108 picks 22 wide of 2188) 1922 ms
+counts: try inX: stored guard reconfigs/inS | ls 35 pass 1 ms 1912 took 7679 wall 12061 [encode 44 decide 4231 mbqi 70 lazy 204 #rounds 7 #hyps 932 grow 4 #count-completion 48 #lazy 118 grow>300 7437] -> unknown
+counts: decide 0 inX: stored guard reconfigs/inS or disabled/0 @step: sat 59 hyps 27 ms
+counts: decide 0 inX: stored guard reconfigs/inS or disabled/0 @step: sat 65 hyps 33 ms
+counts: decide 0 inX: stored guard reconfigs/inS or disabled/0 @step: sat 75 hyps 36 ms
+counts: decide 0 inX: stored guard reconfigs/inS or disabled/0 @step: sat 79 hyps 45 ms
+counts: try inX: stored guard reconfigs/inS or disabled/0 | ls 35 pass 0 ms 1459 took 141 wall 91 [encode 7 decide 72 mbqi 12 #rounds 4 #hyps 278] -> sat
+counts: decide 1 inX: stored guard reconfigs/inS or disabled/0 @step: sat 89 hyps 154 ms
+counts: decide 1 inX: stored guard reconfigs/inS or disabled/0 @step: sat 96 hyps 280 ms
+counts: decide 1 inX: stored guard reconfigs/inS or disabled/0 @step: sat 123 hyps 237 ms
+counts: decide 1 inX: stored guard reconfigs/inS or disabled/0 @step: sat 134 hyps 275 ms
+counts: decide 1 inX: stored guard reconfigs/inS or disabled/0 @step: sat 215 hyps 431 ms
+counts: decide 1 inX: stored guard reconfigs/inS or disabled/0 @step: sat 225 hyps 232 ms
+counts: try inX: stored guard reconfigs/inS or disabled/0 | ls 35 pass 1 ms 1459 took 1608 wall 2054 [encode 30 decide 1763 mbqi 194 #rounds 5 #hyps 657 #count-completion 48] -> unknown
+counts: decide 0 inX: stored guard reconfigs/inS or disabled/1 @step: sat 59 hyps 27 ms
+counts: decide 0 inX: stored guard reconfigs/inS or disabled/1 @step: sat 65 hyps 33 ms
+counts: decide 0 inX: stored guard reconfigs/inS or disabled/1 @step: sat 75 hyps 36 ms
+counts: decide 0 inX: stored guard reconfigs/inS or disabled/1 @step: sat 79 hyps 45 ms
+counts: try inX: stored guard reconfigs/inS or disabled/1 | ls 35 pass 0 ms 1434 took 141 wall 79 [encode 6 decide 61 mbqi 11 #rounds 4 #hyps 278] -> sat
+counts: decide 1 inX: stored guard reconfigs/inS or disabled/1 @step: sat 89 hyps 154 ms
+counts: decide 1 inX: stored guard reconfigs/inS or disabled/1 @step: sat 96 hyps 280 ms
+counts: try inX: stored guard reconfigs/inS or disabled/1 | ls 35 pass 1 ms 1434 took 670 wall 988 [encode 7 decide 957 mbqi 15 #rounds 2 #hyps 185] -> unknown
+{"id":"mldr","ic3syn":"mldr","search":{"verdict":"unknown","stuck":"unknown","why":"time (rule result)","ms":59048,"work":51286292,"full":10900113}}
+{"artifact":"track-m-tar-v1","dir":"/home/user/track-m-s18-receipts-i0HUwb","format":"tar.gz","parts":5,"bytes":632104,"sha256":"9bee0ddbb4a467c196cb52b0ef69ba09b40d79cfa8cf7cb5e508b646d72524b4"}

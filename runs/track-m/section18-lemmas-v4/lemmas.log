@@ -1,0 +1,18 @@
+Found 0 warnings and 0 errors.
+Finished in 22.8s on 1301 files with 100 rules using 8 threads.
+bun test v1.4.3 (c6da4a4d3)
+source.tar.gz: OK
+{"artifact":"section10-chunk-manifest","dir":"/home/user/track-m-s10-receipts-rMSSv0","parts":7,"bytes":991424,"sha256":"c767399f4800537b7d05dc96603fce993ca6b12302b0a666fbd090bcb2c720b2","files":["before.json","build.log","instrumentation.json","integrity.json","overlap-op0-control-result.json","overlap-op0-control.log","overlap-op0-observe-result.json","overlap-op0-observe.log","overlap-op4-control-result.json","overlap-op4-control.log","overlap-op4-observe-result.json","overlap-op4-observe.log","replay.js","runtime.sha256","star-op3-control-result.json","star-op3-control.log","star-op3-observe-result.json","star-op3-observe.log","star-op5-control-result.json","star-op5-control.log","star-op5-observe-result.json","star-op5-observe.log"]}
+
+--- stderr ---
+$ tsc -p . && oxlint --type-aware --deny-warnings --disable-nested-config
+
+research/track-m/section18.test.ts:
+(pass) normalization removes read allocation identities but preserves keys and post-state [2.16ms]
+(pass) a quantified hash suffix is not a post-state scalar or a guard [0.40ms]
+(pass) observer frames nest exactly and are disabled in controls [0.24ms]
+
+ 3 pass
+ 0 fail
+ 10 expect() calls
+Ran 3 tests across 1 file. [29.00ms]

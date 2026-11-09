@@ -1,0 +1,3698 @@
+{
+  "note": "Standalone and per-op receipts, not joint family acceptance. Audit scope is listed separately. CPU models differ between arms; clock-limited prefixes are not whole-law costs.",
+  "sourceTrees": {
+    "share": "f31965ab921f",
+    "op": "37cca604b140",
+    "conditionalCompletion": "fe77a8e3c0d2",
+    "generated": "4d442ca21342",
+    "leafPolicy": "899fd3a9bcc8",
+    "realFamily": "623591ddda81",
+    "section16": "00d1e747bee8",
+    "derive": "9f3d96925fd7",
+    "checkProfile": "1c10c1400c3a",
+    "finalCost": "060ae1061036"
+  },
+  "share": [
+    {
+      "name": "mldr-after-2",
+      "strictExit": 0,
+      "verdict": "unknown",
+      "stuck": "unknown",
+      "why": "time (rule result)",
+      "ms": 59231,
+      "work": 34459161,
+      "full": 10603380,
+      "units": 42413.52,
+      "attempts": 38,
+      "reachedRows": false,
+      "reachedSafety": false,
+      "placement": {
+        "vm": "bx_a22r988n",
+        "type": "large",
+        "cpu": "AMD EPYC 9455 48-Core Processor",
+        "vcpus": 8,
+        "vm_vcpus": 8,
+        "exclusive": true,
+        "co_tenants": 0
+      }
+    },
+    {
+      "name": "mldr-after-3",
+      "strictExit": 0,
+      "verdict": "unknown",
+      "stuck": "unknown",
+      "why": "time (rule result)",
+      "ms": 59128,
+      "work": 34764102,
+      "full": 11160026,
+      "units": 44640.104,
+      "attempts": 38,
+      "reachedRows": false,
+      "reachedSafety": false,
+      "placement": {
+        "vm": "bx_74ss87e4",
+        "type": "large",
+        "cpu": "AMD EPYC 9455 48-Core Processor",
+        "vcpus": 8,
+        "vm_vcpus": 8,
+        "exclusive": true,
+        "co_tenants": 0
+      }
+    },
+    {
+      "name": "mldr-after-1",
+      "strictExit": 0,
+      "verdict": "unknown",
+      "stuck": "unknown",
+      "why": "time (rule result)",
+      "ms": 59341,
+      "work": 34761784,
+      "full": 11158396,
+      "units": 44633.584,
+      "attempts": 38,
+      "reachedRows": false,
+      "reachedSafety": false,
+      "placement": {
+        "vm": "bx_5wr3bs76",
+        "type": "large",
+        "cpu": "AMD Ryzen 9 9950X 16-Core Processor",
+        "vcpus": 8,
+        "vm_vcpus": 8,
+        "exclusive": true,
+        "co_tenants": 0
+      }
+    },
+    {
+      "name": "mldr-before-1",
+      "strictExit": 0,
+      "verdict": "unknown",
+      "stuck": "unknown",
+      "why": "time (rule result)",
+      "ms": 59075,
+      "work": 28714916,
+      "full": 9274821,
+      "units": 37099.284,
+      "attempts": 40,
+      "reachedRows": false,
+      "reachedSafety": false,
+      "placement": {
+        "vm": "bx_6aqepfyv",
+        "type": "large",
+        "cpu": "AMD EPYC 4585PX 16-Core Processor",
+        "vcpus": 8,
+        "vm_vcpus": 8,
+        "exclusive": true,
+        "co_tenants": 0
+      }
+    },
+    {
+      "name": "mldr-before-2",
+      "strictExit": 0,
+      "verdict": "unknown",
+      "stuck": "unknown",
+      "why": "time (rule result)",
+      "ms": 59384,
+      "work": 28736404,
+      "full": 9297385,
+      "units": 37189.54,
+      "attempts": 40,
+      "reachedRows": false,
+      "reachedSafety": false,
+      "placement": {
+        "vm": "bx_8nqy7xab",
+        "type": "large",
+        "cpu": "AMD Ryzen 9 9950X 16-Core Processor",
+        "vcpus": 8,
+        "vm_vcpus": 8,
+        "exclusive": true,
+        "co_tenants": 0
+      }
+    },
+    {
+      "name": "mldr-before-3",
+      "strictExit": 0,
+      "verdict": "unknown",
+      "stuck": "unknown",
+      "why": "time (rule result)",
+      "ms": 59300,
+      "work": 28704383,
+      "full": 9259870,
+      "units": 37039.48,
+      "attempts": 40,
+      "reachedRows": false,
+      "reachedSafety": false,
+      "placement": {
+        "vm": "bx_2hzfj2ah",
+        "type": "large",
+        "cpu": "AMD EPYC 4585PX 16-Core Processor",
+        "vcpus": 8,
+        "vm_vcpus": 8,
+        "exclusive": true,
+        "co_tenants": 0
+      }
+    }
+  ],
+  "op": [
+    {
+      "name": "star-5-before",
+      "conditional": true,
+      "law": "Inv*: no quorum of a config can still be gathered for a config term held",
+      "op": 5,
+      "packetSha256": "2753fe18bb69a55b9dfa7bc50f5445d22de0616cb6c621597943611eb9fb3415",
+      "allowance": 5000,
+      "wallAllowance": 4800,
+      "searchUnits": 2583.4456943999994,
+      "searchWallMs": 4973.295183,
+      "checked": false,
+      "fieldUnits": 2377.4040363999993,
+      "frameUnits": 205.80013959999997,
+      "attemptCount": 4,
+      "knownDemand": 0,
+      "notDemandedUnits": 0,
+      "completionTuples": 0,
+      "placement": {
+        "vm": "bx_a83zj5st",
+        "type": "large",
+        "cpu": "AMD EPYC 4585PX 16-Core Processor",
+        "vcpus": 8,
+        "vm_vcpus": 8,
+        "exclusive": true,
+        "co_tenants": 0
+      }
+    },
+    {
+      "name": "overlap-0-after",
+      "conditional": true,
+      "law": "Inv2973: quorums overlap, or a config disabled",
+      "op": 0,
+      "packetSha256": "09e194fd15f1d927a3bfd7c87fa7bd69d37e825ee0692d26f729a3eb48c858a2",
+      "allowance": 5000,
+      "wallAllowance": 4800,
+      "searchUnits": 501.04695719999995,
+      "searchWallMs": 4851.940711,
+      "checked": false,
+      "fieldUnits": 1.1666380000000345,
+      "frameUnits": 499.7938535999999,
+      "attemptCount": 1,
+      "knownDemand": 0,
+      "notDemandedUnits": 0,
+      "completionTuples": 0,
+      "placement": {
+        "vm": "bx_akfb4v39",
+        "type": "large",
+        "cpu": "AMD Ryzen 9 9950X 16-Core Processor",
+        "vcpus": 8,
+        "vm_vcpus": 8,
+        "exclusive": true,
+        "co_tenants": 0
+      }
+    },
+    {
+      "name": "overlap-4-before",
+      "conditional": true,
+      "law": "Inv2973: quorums overlap, or a config disabled",
+      "op": 4,
+      "packetSha256": "09e194fd15f1d927a3bfd7c87fa7bd69d37e825ee0692d26f729a3eb48c858a2",
+      "allowance": 5000,
+      "wallAllowance": 4800,
+      "searchUnits": 1439.1659176,
+      "searchWallMs": 5940.8258559999995,
+      "checked": false,
+      "fieldUnits": 941.8922916000001,
+      "frameUnits": 497.1871604,
+      "attemptCount": 3,
+      "knownDemand": 0,
+      "notDemandedUnits": 0,
+      "completionTuples": 0,
+      "placement": {
+        "vm": "bx_7m649ges",
+        "type": "large",
+        "cpu": "AMD Ryzen 9 9950X 16-Core Processor",
+        "vcpus": 8,
+        "vm_vcpus": 8,
+        "exclusive": true,
+        "co_tenants": 0
+      }
+    },
+    {
+      "name": "star-3-after",
+      "conditional": true,
+      "law": "Inv*: no quorum of a config can still be gathered for a config term held",
+      "op": 3,
+      "packetSha256": "2753fe18bb69a55b9dfa7bc50f5445d22de0616cb6c621597943611eb9fb3415",
+      "allowance": 5000,
+      "wallAllowance": 4800,
+      "searchUnits": 1535.9848676,
+      "searchWallMs": 5056.3346,
+      "checked": false,
+      "fieldUnits": 537.4299292000001,
+      "frameUnits": 403.91324319999984,
+      "attemptCount": 10,
+      "knownDemand": 0,
+      "notDemandedUnits": 0,
+      "completionTuples": 0,
+      "placement": {
+        "vm": "bx_7y8uwqen",
+        "type": "large",
+        "cpu": "AMD EPYC 4585PX 16-Core Processor",
+        "vcpus": 8,
+        "vm_vcpus": 8,
+        "exclusive": true,
+        "co_tenants": 0
+      }
+    },
+    {
+      "name": "star-5-after",
+      "conditional": true,
+      "law": "Inv*: no quorum of a config can still be gathered for a config term held",
+      "op": 5,
+      "packetSha256": "2753fe18bb69a55b9dfa7bc50f5445d22de0616cb6c621597943611eb9fb3415",
+      "allowance": 5000,
+      "wallAllowance": 4800,
+      "searchUnits": 1771.7884655999997,
+      "searchWallMs": 4980.696889,
+      "checked": false,
+      "fieldUnits": 925.532648,
+      "frameUnits": 205.80013959999997,
+      "attemptCount": 3,
+      "knownDemand": 0,
+      "notDemandedUnits": 0,
+      "completionTuples": 0,
+      "placement": {
+        "vm": "bx_936hescv",
+        "type": "large",
+        "cpu": "AMD Ryzen 9 9950X 16-Core Processor",
+        "vcpus": 8,
+        "vm_vcpus": 8,
+        "exclusive": true,
+        "co_tenants": 0
+      }
+    },
+    {
+      "name": "overlap-0-before",
+      "conditional": true,
+      "law": "Inv2973: quorums overlap, or a config disabled",
+      "op": 0,
+      "packetSha256": "09e194fd15f1d927a3bfd7c87fa7bd69d37e825ee0692d26f729a3eb48c858a2",
+      "allowance": 5000,
+      "wallAllowance": 4800,
+      "searchUnits": 1114.8853544,
+      "searchWallMs": 5527.746475,
+      "checked": false,
+      "fieldUnits": 615.0050352000002,
+      "frameUnits": 499.7938535999999,
+      "attemptCount": 2,
+      "knownDemand": 0,
+      "notDemandedUnits": 0,
+      "completionTuples": 0,
+      "placement": {
+        "vm": "bx_395wpmqp",
+        "type": "large",
+        "cpu": "AMD Ryzen 9 9950X 16-Core Processor",
+        "vcpus": 8,
+        "vm_vcpus": 8,
+        "exclusive": true,
+        "co_tenants": 0
+      }
+    },
+    {
+      "name": "star-3-before",
+      "conditional": true,
+      "law": "Inv*: no quorum of a config can still be gathered for a config term held",
+      "op": 3,
+      "packetSha256": "2753fe18bb69a55b9dfa7bc50f5445d22de0616cb6c621597943611eb9fb3415",
+      "allowance": 5000,
+      "wallAllowance": 4800,
+      "searchUnits": 1200.8437812000002,
+      "searchWallMs": 5245.229781999999,
+      "checked": false,
+      "fieldUnits": 1082.4074132,
+      "frameUnits": 118.39988960000001,
+      "attemptCount": 15,
+      "knownDemand": 0,
+      "notDemandedUnits": 0,
+      "completionTuples": 0,
+      "placement": {
+        "vm": "bx_8y6xda5y",
+        "type": "large",
+        "cpu": "AMD Ryzen 9 9950X 16-Core Processor",
+        "vcpus": 8,
+        "vm_vcpus": 8,
+        "exclusive": true,
+        "co_tenants": 0
+      }
+    },
+    {
+      "name": "overlap-4-after",
+      "conditional": true,
+      "law": "Inv2973: quorums overlap, or a config disabled",
+      "op": 4,
+      "packetSha256": "09e194fd15f1d927a3bfd7c87fa7bd69d37e825ee0692d26f729a3eb48c858a2",
+      "allowance": 5000,
+      "wallAllowance": 4800,
+      "searchUnits": 616.6843916,
+      "searchWallMs": 5200.6971490000005,
+      "checked": false,
+      "fieldUnits": 119.41076560000005,
+      "frameUnits": 497.1871604,
+      "attemptCount": 2,
+      "knownDemand": 0,
+      "notDemandedUnits": 0,
+      "completionTuples": 0,
+      "placement": {
+        "vm": "bx_25xas5gt",
+        "type": "large",
+        "cpu": "AMD EPYC 9455 48-Core Processor",
+        "vcpus": 8,
+        "vm_vcpus": 8,
+        "exclusive": true,
+        "co_tenants": 0
+      }
+    }
+  ],
+  "leafPolicy": [
+    {
+      "name": "star-5-before",
+      "conditional": true,
+      "law": "Inv*: no quorum of a config can still be gathered for a config term held",
+      "op": 5,
+      "packetSha256": "2753fe18bb69a55b9dfa7bc50f5445d22de0616cb6c621597943611eb9fb3415",
+      "allowance": 5000,
+      "wallAllowance": 4800,
+      "searchUnits": 1873.9898068000002,
+      "searchWallMs": 4879.9701270000005,
+      "checked": false,
+      "fieldUnits": 925.532648,
+      "frameUnits": 205.80013959999997,
+      "attemptCount": 3,
+      "knownDemand": 0,
+      "notDemandedUnits": 0,
+      "completionTuples": 0,
+      "placement": {
+        "vm": "bx_7uaxjs82",
+        "type": "large",
+        "cpu": "AMD Ryzen 9 9950X 16-Core Processor",
+        "vcpus": 8,
+        "vm_vcpus": 8,
+        "exclusive": true,
+        "co_tenants": 0
+      }
+    },
+    {
+      "name": "overlap-0-after",
+      "conditional": true,
+      "law": "Inv2973: quorums overlap, or a config disabled",
+      "op": 0,
+      "packetSha256": "09e194fd15f1d927a3bfd7c87fa7bd69d37e825ee0692d26f729a3eb48c858a2",
+      "allowance": 5000,
+      "wallAllowance": 4800,
+      "searchUnits": 1409.302516,
+      "searchWallMs": 4690.980531,
+      "checked": false,
+      "fieldUnits": 0,
+      "frameUnits": 227.13307519999995,
+      "attemptCount": 0,
+      "knownDemand": 0,
+      "notDemandedUnits": 0,
+      "completionTuples": 0,
+      "placement": {
+        "vm": "bx_5wr3bs76",
+        "type": "large",
+        "cpu": "AMD Ryzen 9 9950X 16-Core Processor",
+        "vcpus": 8,
+        "vm_vcpus": 8,
+        "exclusive": true,
+        "co_tenants": 0
+      }
+    },
+    {
+      "name": "overlap-4-before",
+      "conditional": true,
+      "law": "Inv2973: quorums overlap, or a config disabled",
+      "op": 4,
+      "packetSha256": "09e194fd15f1d927a3bfd7c87fa7bd69d37e825ee0692d26f729a3eb48c858a2",
+      "allowance": 5000,
+      "wallAllowance": 4800,
+      "searchUnits": 612.9651727999999,
+      "searchWallMs": 5106.172920999999,
+      "checked": false,
+      "fieldUnits": 115.69154679999991,
+      "frameUnits": 497.1871604,
+      "attemptCount": 2,
+      "knownDemand": 0,
+      "notDemandedUnits": 0,
+      "completionTuples": 0,
+      "placement": {
+        "vm": "bx_76nnjrpb",
+        "type": "large",
+        "cpu": "AMD EPYC 4585PX 16-Core Processor",
+        "vcpus": 8,
+        "vm_vcpus": 8,
+        "exclusive": true,
+        "co_tenants": 0
+      }
+    },
+    {
+      "name": "star-3-after",
+      "conditional": true,
+      "law": "Inv*: no quorum of a config can still be gathered for a config term held",
+      "op": 3,
+      "packetSha256": "2753fe18bb69a55b9dfa7bc50f5445d22de0616cb6c621597943611eb9fb3415",
+      "allowance": 5000,
+      "wallAllowance": 4800,
+      "searchUnits": 1774.0173379999999,
+      "searchWallMs": 4831.060329,
+      "checked": false,
+      "fieldUnits": 728.9388412,
+      "frameUnits": 236.7997791999996,
+      "attemptCount": 14,
+      "knownDemand": 0,
+      "notDemandedUnits": 0,
+      "completionTuples": 0,
+      "placement": {
+        "vm": "bx_af3p9nak",
+        "type": "large",
+        "cpu": "AMD Ryzen 9 9950X 16-Core Processor",
+        "vcpus": 8,
+        "vm_vcpus": 8,
+        "exclusive": true,
+        "co_tenants": 0
+      }
+    },
+    {
+      "name": "star-5-after",
+      "conditional": true,
+      "law": "Inv*: no quorum of a config can still be gathered for a config term held",
+      "op": 5,
+      "packetSha256": "2753fe18bb69a55b9dfa7bc50f5445d22de0616cb6c621597943611eb9fb3415",
+      "allowance": 5000,
+      "wallAllowance": 4800,
+      "searchUnits": 876.4904316,
+      "searchWallMs": 4882.501802000001,
+      "checked": false,
+      "fieldUnits": 0,
+      "frameUnits": 151.86497,
+      "attemptCount": 0,
+      "knownDemand": 0,
+      "notDemandedUnits": 0,
+      "completionTuples": 0,
+      "placement": {
+        "vm": "bx_8f8tzqk2",
+        "type": "large",
+        "cpu": "AMD Ryzen 9 9950X 16-Core Processor",
+        "vcpus": 8,
+        "vm_vcpus": 8,
+        "exclusive": true,
+        "co_tenants": 0
+      }
+    },
+    {
+      "name": "overlap-0-before",
+      "conditional": true,
+      "law": "Inv2973: quorums overlap, or a config disabled",
+      "op": 0,
+      "packetSha256": "09e194fd15f1d927a3bfd7c87fa7bd69d37e825ee0692d26f729a3eb48c858a2",
+      "allowance": 5000,
+      "wallAllowance": 4800,
+      "searchUnits": 499.8803191999999,
+      "searchWallMs": 4918.584689,
+      "checked": false,
+      "fieldUnits": 0,
+      "frameUnits": 499.7938535999999,
+      "attemptCount": 0,
+      "knownDemand": 0,
+      "notDemandedUnits": 0,
+      "completionTuples": 0,
+      "placement": {
+        "vm": "bx_7y8uwqen",
+        "type": "large",
+        "cpu": "AMD EPYC 4585PX 16-Core Processor",
+        "vcpus": 8,
+        "vm_vcpus": 8,
+        "exclusive": true,
+        "co_tenants": 0
+      }
+    },
+    {
+      "name": "star-3-before",
+      "conditional": true,
+      "law": "Inv*: no quorum of a config can still be gathered for a config term held",
+      "op": 3,
+      "packetSha256": "2753fe18bb69a55b9dfa7bc50f5445d22de0616cb6c621597943611eb9fb3415",
+      "allowance": 5000,
+      "wallAllowance": 4800,
+      "searchUnits": 1070.1939552,
+      "searchWallMs": 5170.1501499999995,
+      "checked": false,
+      "fieldUnits": 537.4299292000001,
+      "frameUnits": 118.39988960000001,
+      "attemptCount": 10,
+      "knownDemand": 0,
+      "notDemandedUnits": 0,
+      "completionTuples": 0,
+      "placement": {
+        "vm": "bx_7vpz29xf",
+        "type": "large",
+        "cpu": "AMD EPYC 4585PX 16-Core Processor",
+        "vcpus": 8,
+        "vm_vcpus": 8,
+        "exclusive": true,
+        "co_tenants": 0
+      }
+    },
+    {
+      "name": "overlap-4-after",
+      "conditional": true,
+      "law": "Inv2973: quorums overlap, or a config disabled",
+      "op": 4,
+      "packetSha256": "09e194fd15f1d927a3bfd7c87fa7bd69d37e825ee0692d26f729a3eb48c858a2",
+      "allowance": 5000,
+      "wallAllowance": 4800,
+      "searchUnits": 2329.6044832,
+      "searchWallMs": 5190.99562,
+      "checked": false,
+      "fieldUnits": 0,
+      "frameUnits": 313.7560719999999,
+      "attemptCount": 0,
+      "knownDemand": 0,
+      "notDemandedUnits": 0,
+      "completionTuples": 0,
+      "placement": {
+        "vm": "bx_ahemkzme",
+        "type": "large",
+        "cpu": "AMD EPYC 4585PX 16-Core Processor",
+        "vcpus": 8,
+        "vm_vcpus": 8,
+        "exclusive": true,
+        "co_tenants": 0
+      }
+    }
+  ],
+  "conditionalCompletion": [
+    {
+      "name": "star-after",
+      "conditional": true,
+      "tag": "star",
+      "law": "inX: no quorum canVote/3",
+      "familySize": 35,
+      "budget": 2700,
+      "wallAllowance": 4800,
+      "units": 2701.6105700000003,
+      "wallMs": 3434.6520219999998,
+      "checked": false,
+      "results": [
+        {
+          "pass": 0,
+          "outcome": "sat",
+          "units": 68.44284599999999,
+          "wallMs": 140.258578
+        },
+        {
+          "pass": 1,
+          "outcome": "unknown",
+          "units": 2633.1677240000004,
+          "wallMs": 3293.128182
+        }
+      ],
+      "last": {
+        "phase": "unknown",
+        "pass": 1,
+        "goal": "inX: no quorum canVote/3 @start",
+        "law": "inX: no quorum canVote/3",
+        "hyps": 11
+      },
+      "completionTuples": 36,
+      "placement": {
+        "vm": "bx_2uat3ctg",
+        "type": "large",
+        "cpu": "AMD Ryzen 9 9950X 16-Core Processor",
+        "vcpus": 8,
+        "vm_vcpus": 8,
+        "exclusive": true,
+        "co_tenants": 0
+      }
+    },
+    {
+      "name": "star-before",
+      "conditional": true,
+      "tag": "star",
+      "law": "inX: no quorum canVote/3",
+      "familySize": 35,
+      "budget": 2700,
+      "wallAllowance": 4800,
+      "units": 684.658474,
+      "wallMs": 844.9935790000001,
+      "checked": false,
+      "results": [
+        {
+          "pass": 0,
+          "outcome": "sat",
+          "units": 68.44284599999999,
+          "wallMs": 151.41067199999998
+        },
+        {
+          "pass": 1,
+          "outcome": "sat",
+          "units": 616.2156279999999,
+          "wallMs": 692.127761
+        }
+      ],
+      "last": {
+        "pass": 1,
+        "goal": "inX: no quorum canVote/3 @step",
+        "law": "inX: no quorum canVote/3",
+        "hyps": 74
+      },
+      "completionTuples": 0,
+      "placement": {
+        "vm": "bx_5wr3bs76",
+        "type": "large",
+        "cpu": "AMD Ryzen 9 9950X 16-Core Processor",
+        "vcpus": 8,
+        "vm_vcpus": 8,
+        "exclusive": true,
+        "co_tenants": 0
+      }
+    },
+    {
+      "name": "safety-before",
+      "conditional": true,
+      "tag": "safety",
+      "law": "one primary per term",
+      "familySize": 35,
+      "budget": 2700,
+      "wallAllowance": 4800,
+      "units": 2705.3694868000002,
+      "wallMs": 2330.415266,
+      "checked": false,
+      "results": [
+        {
+          "pass": 0,
+          "outcome": "sat",
+          "units": 2705.3694868000002,
+          "wallMs": 2329.23104
+        }
+      ],
+      "last": {
+        "phase": "model",
+        "pass": 0,
+        "goal": "one primary per term @step",
+        "law": "one primary per term",
+        "hyps": 194
+      },
+      "completionTuples": 0,
+      "placement": {
+        "vm": "bx_ahemkzme",
+        "type": "large",
+        "cpu": "AMD EPYC 4585PX 16-Core Processor",
+        "vcpus": 8,
+        "vm_vcpus": 8,
+        "exclusive": true,
+        "co_tenants": 0
+      }
+    },
+    {
+      "name": "safety-after",
+      "conditional": true,
+      "tag": "safety",
+      "law": "one primary per term",
+      "familySize": 35,
+      "budget": 2700,
+      "wallAllowance": 4800,
+      "units": 2705.3694868000002,
+      "wallMs": 2105.7674309999998,
+      "checked": false,
+      "results": [
+        {
+          "pass": 0,
+          "outcome": "sat",
+          "units": 2705.3694868000002,
+          "wallMs": 2104.524333
+        }
+      ],
+      "last": {
+        "phase": "model",
+        "pass": 0,
+        "goal": "one primary per term @step",
+        "law": "one primary per term",
+        "hyps": 194
+      },
+      "completionTuples": 0,
+      "placement": {
+        "vm": "bx_8nqy7xab",
+        "type": "large",
+        "cpu": "AMD Ryzen 9 9950X 16-Core Processor",
+        "vcpus": 8,
+        "vm_vcpus": 8,
+        "exclusive": true,
+        "co_tenants": 0
+      }
+    },
+    {
+      "name": "overlap-after",
+      "conditional": true,
+      "tag": "overlap",
+      "law": "inX: stored guard reconfigs/inS or disabled/0",
+      "familySize": 35,
+      "budget": 2700,
+      "wallAllowance": 4800,
+      "units": 2715.752374,
+      "wallMs": 4030.407112,
+      "checked": false,
+      "results": [
+        {
+          "pass": 0,
+          "outcome": "sat",
+          "units": 90.58333799999998,
+          "wallMs": 142.23363899999998
+        },
+        {
+          "pass": 1,
+          "outcome": "unknown",
+          "units": 2625.1690360000002,
+          "wallMs": 3886.6563229999997
+        }
+      ],
+      "last": {
+        "phase": "unknown",
+        "pass": 1,
+        "goal": "inX: stored guard reconfigs/inS or disabled/0 @start",
+        "law": "inX: stored guard reconfigs/inS or disabled/0",
+        "hyps": 16
+      },
+      "completionTuples": 36,
+      "placement": {
+        "vm": "bx_4cma575j",
+        "type": "large",
+        "cpu": "AMD EPYC 4585PX 16-Core Processor",
+        "vcpus": 8,
+        "vm_vcpus": 8,
+        "exclusive": true,
+        "co_tenants": 0
+      }
+    },
+    {
+      "name": "rows-before",
+      "conditional": true,
+      "tag": "rows",
+      "law": "fields: CV[a]=CV[b] and CfgT[a]=CfgT[b] -> Config rows agree",
+      "familySize": 35,
+      "budget": 2700,
+      "wallAllowance": 4800,
+      "units": 2700.41548,
+      "wallMs": 2151.4269990000003,
+      "checked": false,
+      "results": [
+        {
+          "pass": 0,
+          "outcome": "unknown",
+          "units": 2700.41548,
+          "wallMs": 2149.706493
+        }
+      ],
+      "last": {
+        "phase": "unknown",
+        "pass": 0,
+        "goal": "fields: CV[a]=CV[b] and CfgT[a]=CfgT[b] -> Config rows agree @start",
+        "law": "fields: CV[a]=CV[b] and CfgT[a]=CfgT[b] -> Config rows agree",
+        "hyps": 2
+      },
+      "completionTuples": 0,
+      "placement": {
+        "vm": "bx_69nkhdf7",
+        "type": "large",
+        "cpu": "AMD EPYC 4585PX 16-Core Processor",
+        "vcpus": 8,
+        "vm_vcpus": 8,
+        "exclusive": true,
+        "co_tenants": 0
+      }
+    },
+    {
+      "name": "p1-after",
+      "conditional": true,
+      "tag": "p1",
+      "law": "research Gp1: CV=0 implies empty row",
+      "familySize": 35,
+      "budget": 2700,
+      "wallAllowance": 4800,
+      "units": 2078.8483376000004,
+      "wallMs": 2739.7525889999997,
+      "checked": true,
+      "results": [
+        {
+          "pass": 0,
+          "outcome": "sat",
+          "units": 74.922846,
+          "wallMs": 165.278383
+        },
+        {
+          "pass": 1,
+          "outcome": "proof",
+          "units": 2003.9254916000002,
+          "wallMs": 2572.7671929999997
+        }
+      ],
+      "last": {
+        "phase": "decision:refuted",
+        "pass": 1,
+        "goal": "research Gp1: CV=0 implies empty row @step",
+        "law": "research Gp1: CV=0 implies empty row",
+        "hyps": 171
+      },
+      "completionTuples": 21,
+      "placement": {
+        "vm": "bx_8sf3u958",
+        "type": "large",
+        "cpu": "AMD EPYC 4585PX 16-Core Processor",
+        "vcpus": 8,
+        "vm_vcpus": 8,
+        "exclusive": true,
+        "co_tenants": 0
+      }
+    },
+    {
+      "name": "overlap-before",
+      "conditional": true,
+      "tag": "overlap",
+      "law": "inX: stored guard reconfigs/inS or disabled/0",
+      "familySize": 35,
+      "budget": 2700,
+      "wallAllowance": 4800,
+      "units": 2702.251678,
+      "wallMs": 3741.196049,
+      "checked": false,
+      "results": [
+        {
+          "pass": 0,
+          "outcome": "sat",
+          "units": 90.58333799999998,
+          "wallMs": 163.444771
+        },
+        {
+          "pass": 1,
+          "outcome": "unknown",
+          "units": 2611.66834,
+          "wallMs": 3576.429731
+        }
+      ],
+      "last": {
+        "phase": "unknown",
+        "pass": 1,
+        "goal": "inX: stored guard reconfigs/inS or disabled/0 @start",
+        "law": "inX: stored guard reconfigs/inS or disabled/0",
+        "hyps": 17
+      },
+      "completionTuples": 0,
+      "placement": {
+        "vm": "bx_2kmf8w3s",
+        "type": "large",
+        "cpu": "AMD Ryzen 9 9950X 16-Core Processor",
+        "vcpus": 8,
+        "vm_vcpus": 8,
+        "exclusive": true,
+        "co_tenants": 0
+      }
+    },
+    {
+      "name": "rows-after",
+      "conditional": true,
+      "tag": "rows",
+      "law": "fields: CV[a]=CV[b] and CfgT[a]=CfgT[b] -> Config rows agree",
+      "familySize": 35,
+      "budget": 2700,
+      "wallAllowance": 4800,
+      "units": 2700.41548,
+      "wallMs": 2052.314666,
+      "checked": false,
+      "results": [
+        {
+          "pass": 0,
+          "outcome": "unknown",
+          "units": 2700.41548,
+          "wallMs": 2051.1079870000003
+        }
+      ],
+      "last": {
+        "phase": "unknown",
+        "pass": 0,
+        "goal": "fields: CV[a]=CV[b] and CfgT[a]=CfgT[b] -> Config rows agree @start",
+        "law": "fields: CV[a]=CV[b] and CfgT[a]=CfgT[b] -> Config rows agree",
+        "hyps": 2
+      },
+      "completionTuples": 0,
+      "placement": {
+        "vm": "bx_6aqepfyv",
+        "type": "large",
+        "cpu": "AMD EPYC 4585PX 16-Core Processor",
+        "vcpus": 8,
+        "vm_vcpus": 8,
+        "exclusive": true,
+        "co_tenants": 0
+      }
+    },
+    {
+      "name": "p1-before",
+      "conditional": true,
+      "tag": "p1",
+      "law": "research Gp1: CV=0 implies empty row",
+      "familySize": 35,
+      "budget": 2700,
+      "wallAllowance": 4800,
+      "units": 319.11102999999997,
+      "wallMs": 369.74403,
+      "checked": false,
+      "results": [
+        {
+          "pass": 0,
+          "outcome": "sat",
+          "units": 74.922846,
+          "wallMs": 107.022318
+        },
+        {
+          "pass": 1,
+          "outcome": "sat",
+          "units": 244.18818399999995,
+          "wallMs": 261.747166
+        }
+      ],
+      "last": {
+        "pass": 1,
+        "goal": "research Gp1: CV=0 implies empty row @step",
+        "law": "research Gp1: CV=0 implies empty row",
+        "hyps": 70
+      },
+      "completionTuples": 0,
+      "placement": {
+        "vm": "bx_85wyqdj5",
+        "type": "large",
+        "cpu": "AMD Ryzen 7 9700X 8-Core Processor",
+        "vcpus": 8,
+        "vm_vcpus": 8,
+        "exclusive": true,
+        "co_tenants": 0
+      }
+    }
+  ],
+  "realFamily": [
+    {
+      "name": "star-after",
+      "conditional": true,
+      "generatorOnly": true,
+      "familySource": "actual generator output; no supplied laws",
+      "suppliedLaws": [],
+      "tag": "star",
+      "law": "inX: no quorum canVote/3",
+      "familySize": 35,
+      "budget": 2700,
+      "wallAllowance": 4800,
+      "units": 2685.536,
+      "wallMs": 4901.724016,
+      "checked": false,
+      "results": [
+        {
+          "pass": 0,
+          "outcome": "sat",
+          "units": 97.810094,
+          "wallMs": 162.153071
+        },
+        {
+          "pass": 1,
+          "outcome": "unknown",
+          "units": 2587.725906,
+          "wallMs": 4738.3476470000005
+        }
+      ],
+      "last": {
+        "phase": "rejected proposal",
+        "pass": 1,
+        "law": "inX: no quorum canVote/3",
+        "error": "WallExpired: time (decide)"
+      },
+      "completionTuples": 48,
+      "placement": {
+        "vm": "bx_2uat3ctg",
+        "type": "large",
+        "cpu": "AMD Ryzen 9 9950X 16-Core Processor",
+        "vcpus": 8,
+        "vm_vcpus": 8,
+        "exclusive": true,
+        "co_tenants": 0
+      }
+    },
+    {
+      "name": "star-before",
+      "conditional": true,
+      "generatorOnly": true,
+      "familySource": "actual generator output; no supplied laws",
+      "suppliedLaws": [],
+      "tag": "star",
+      "law": "inX: no quorum canVote/3",
+      "familySize": 35,
+      "budget": 2700,
+      "wallAllowance": 4800,
+      "units": 1646.607222,
+      "wallMs": 4804.45377,
+      "checked": false,
+      "results": [
+        {
+          "pass": 0,
+          "outcome": "sat",
+          "units": 97.810094,
+          "wallMs": 256.713816
+        },
+        {
+          "pass": 1,
+          "outcome": "unknown",
+          "units": 1548.797128,
+          "wallMs": 4545.8595700000005
+        }
+      ],
+      "last": {
+        "phase": "rejected proposal",
+        "pass": 1,
+        "law": "inX: no quorum canVote/3",
+        "error": "WallExpired: time (decide)"
+      },
+      "completionTuples": 0,
+      "placement": {
+        "vm": "bx_de53z2q5",
+        "type": "large",
+        "cpu": "AMD Ryzen 9 9950X 16-Core Processor",
+        "vcpus": 8,
+        "vm_vcpus": 8,
+        "exclusive": true,
+        "co_tenants": 0
+      }
+    },
+    {
+      "name": "safety-before",
+      "conditional": true,
+      "generatorOnly": true,
+      "familySource": "actual generator output; no supplied laws",
+      "suppliedLaws": [],
+      "tag": "safety",
+      "law": "one primary per term",
+      "familySize": 35,
+      "budget": 2700,
+      "wallAllowance": 4800,
+      "units": 2700.1415312,
+      "wallMs": 1640.662047,
+      "checked": false,
+      "results": [
+        {
+          "pass": 0,
+          "outcome": "sat",
+          "units": 2700.1415312,
+          "wallMs": 1639.670534
+        }
+      ],
+      "last": {
+        "phase": "model",
+        "pass": 0,
+        "goal": "one primary per term @step",
+        "law": "one primary per term",
+        "hyps": 150
+      },
+      "completionTuples": 0,
+      "placement": {
+        "vm": "bx_7ah56czc",
+        "type": "large",
+        "cpu": "AMD Ryzen 7 9700X 8-Core Processor",
+        "vcpus": 8,
+        "vm_vcpus": 8,
+        "exclusive": true,
+        "co_tenants": 0
+      }
+    },
+    {
+      "name": "safety-after",
+      "conditional": true,
+      "generatorOnly": true,
+      "familySource": "actual generator output; no supplied laws",
+      "suppliedLaws": [],
+      "tag": "safety",
+      "law": "one primary per term",
+      "familySize": 35,
+      "budget": 2700,
+      "wallAllowance": 4800,
+      "units": 2700.1415312,
+      "wallMs": 2566.9312099999997,
+      "checked": false,
+      "results": [
+        {
+          "pass": 0,
+          "outcome": "sat",
+          "units": 2700.1415312,
+          "wallMs": 2565.594363
+        }
+      ],
+      "last": {
+        "phase": "model",
+        "pass": 0,
+        "goal": "one primary per term @step",
+        "law": "one primary per term",
+        "hyps": 150
+      },
+      "completionTuples": 0,
+      "placement": {
+        "vm": "bx_drzdm3cg",
+        "type": "large",
+        "cpu": "AMD Ryzen 9 9950X 16-Core Processor",
+        "vcpus": 8,
+        "vm_vcpus": 8,
+        "exclusive": true,
+        "co_tenants": 0
+      }
+    },
+    {
+      "name": "overlap-after",
+      "conditional": true,
+      "generatorOnly": true,
+      "familySource": "actual generator output; no supplied laws",
+      "suppliedLaws": [],
+      "tag": "overlap",
+      "law": "inX: stored guard reconfigs/inS or disabled/0",
+      "familySize": 35,
+      "budget": 2700,
+      "wallAllowance": 4800,
+      "units": 2711.8259500000004,
+      "wallMs": 2956.037658,
+      "checked": false,
+      "results": [
+        {
+          "pass": 0,
+          "outcome": "sat",
+          "units": 141.58539000000002,
+          "wallMs": 135.373936
+        },
+        {
+          "pass": 1,
+          "outcome": "unknown",
+          "units": 2570.24056,
+          "wallMs": 2819.651435
+        }
+      ],
+      "last": {
+        "phase": "unknown",
+        "pass": 1,
+        "goal": "inX: stored guard reconfigs/inS or disabled/0 @start",
+        "law": "inX: stored guard reconfigs/inS or disabled/0",
+        "hyps": 16
+      },
+      "completionTuples": 48,
+      "placement": {
+        "vm": "bx_69nkhdf7",
+        "type": "large",
+        "cpu": "AMD EPYC 4585PX 16-Core Processor",
+        "vcpus": 8,
+        "vm_vcpus": 8,
+        "exclusive": true,
+        "co_tenants": 0
+      }
+    },
+    {
+      "name": "rows-before",
+      "conditional": true,
+      "generatorOnly": true,
+      "familySource": "actual generator output; no supplied laws",
+      "suppliedLaws": [],
+      "tag": "rows",
+      "law": "fields: CV[a]=CV[b] and CfgT[a]=CfgT[b] -> Config rows agree",
+      "familySize": 35,
+      "budget": 2700,
+      "wallAllowance": 4800,
+      "units": 2700.8705128,
+      "wallMs": 2629.786554,
+      "checked": false,
+      "results": [
+        {
+          "pass": 0,
+          "outcome": "sat",
+          "units": 2700.8705128,
+          "wallMs": 2628.4658649999997
+        }
+      ],
+      "last": {
+        "phase": "model",
+        "pass": 0,
+        "goal": "fields: CV[a]=CV[b] and CfgT[a]=CfgT[b] -> Config rows agree @step",
+        "law": "fields: CV[a]=CV[b] and CfgT[a]=CfgT[b] -> Config rows agree",
+        "hyps": 150
+      },
+      "completionTuples": 0,
+      "placement": {
+        "vm": "bx_7vs7decr",
+        "type": "large",
+        "cpu": "AMD Ryzen 9 9950X 16-Core Processor",
+        "vcpus": 8,
+        "vm_vcpus": 8,
+        "exclusive": true,
+        "co_tenants": 0
+      }
+    },
+    {
+      "name": "p1-after",
+      "conditional": true,
+      "generatorOnly": true,
+      "familySource": "actual generator output; no supplied laws",
+      "suppliedLaws": [],
+      "tag": "p1",
+      "law": "count cubes: every x with x < {\"op\":\"var\",\"name\":\"size\"}: never CV[x] is 0 and 1 <= inX$row[x]",
+      "familySize": 35,
+      "budget": 2700,
+      "wallAllowance": 4800,
+      "units": 2459.7500499999996,
+      "wallMs": 2165.206708,
+      "checked": true,
+      "results": [
+        {
+          "pass": 0,
+          "outcome": "sat",
+          "units": 116.723172,
+          "wallMs": 168.92807
+        },
+        {
+          "pass": 1,
+          "outcome": "proof",
+          "units": 2343.026878,
+          "wallMs": 1995.303521
+        }
+      ],
+      "last": {
+        "phase": "decision:refuted",
+        "pass": 1,
+        "goal": "count cubes: every x with x < {\"op\":\"var\",\"name\":\"size\"}: never CV[x] is 0 and 1 <= inX$row[x] @step",
+        "law": "count cubes: every x with x < {\"op\":\"var\",\"name\":\"size\"}: never CV[x] is 0 and 1 <= inX$row[x]",
+        "hyps": 173
+      },
+      "completionTuples": 30,
+      "placement": {
+        "vm": "bx_bhrz6uyc",
+        "type": "large",
+        "cpu": "AMD EPYC 4585PX 16-Core Processor",
+        "vcpus": 8,
+        "vm_vcpus": 8,
+        "exclusive": true,
+        "co_tenants": 0
+      }
+    },
+    {
+      "name": "overlap-before",
+      "conditional": true,
+      "generatorOnly": true,
+      "familySource": "actual generator output; no supplied laws",
+      "suppliedLaws": [],
+      "tag": "overlap",
+      "law": "inX: stored guard reconfigs/inS or disabled/0",
+      "familySize": 35,
+      "budget": 2700,
+      "wallAllowance": 4800,
+      "units": 2712.1907119999996,
+      "wallMs": 4091.888872,
+      "checked": false,
+      "results": [
+        {
+          "pass": 0,
+          "outcome": "sat",
+          "units": 141.58539000000002,
+          "wallMs": 211.029359
+        },
+        {
+          "pass": 1,
+          "outcome": "unknown",
+          "units": 2570.605322,
+          "wallMs": 3878.5068359999996
+        }
+      ],
+      "last": {
+        "phase": "unknown",
+        "pass": 1,
+        "goal": "inX: stored guard reconfigs/inS or disabled/0 @start",
+        "law": "inX: stored guard reconfigs/inS or disabled/0",
+        "hyps": 16
+      },
+      "completionTuples": 0,
+      "placement": {
+        "vm": "bx_cqvf6nd4",
+        "type": "large",
+        "cpu": "AMD Ryzen 9 9950X 16-Core Processor",
+        "vcpus": 8,
+        "vm_vcpus": 8,
+        "exclusive": true,
+        "co_tenants": 0
+      }
+    },
+    {
+      "name": "rows-after",
+      "conditional": true,
+      "generatorOnly": true,
+      "familySource": "actual generator output; no supplied laws",
+      "suppliedLaws": [],
+      "tag": "rows",
+      "law": "fields: CV[a]=CV[b] and CfgT[a]=CfgT[b] -> Config rows agree",
+      "familySize": 35,
+      "budget": 2700,
+      "wallAllowance": 4800,
+      "units": 2700.8705128,
+      "wallMs": 3448.939223,
+      "checked": false,
+      "results": [
+        {
+          "pass": 0,
+          "outcome": "sat",
+          "units": 2700.8705128,
+          "wallMs": 3447.1505740000002
+        }
+      ],
+      "last": {
+        "phase": "model",
+        "pass": 0,
+        "goal": "fields: CV[a]=CV[b] and CfgT[a]=CfgT[b] -> Config rows agree @step",
+        "law": "fields: CV[a]=CV[b] and CfgT[a]=CfgT[b] -> Config rows agree",
+        "hyps": 150
+      },
+      "completionTuples": 0,
+      "placement": {
+        "vm": "bx_2uat3ctg",
+        "type": "large",
+        "cpu": "AMD Ryzen 9 9950X 16-Core Processor",
+        "vcpus": 8,
+        "vm_vcpus": 8,
+        "exclusive": true,
+        "co_tenants": 0
+      }
+    },
+    {
+      "name": "p1-before",
+      "conditional": true,
+      "generatorOnly": true,
+      "familySource": "actual generator output; no supplied laws",
+      "suppliedLaws": [],
+      "tag": "p1",
+      "law": "count cubes: every x with x < {\"op\":\"var\",\"name\":\"size\"}: never CV[x] is 0 and 1 <= inX$row[x]",
+      "familySize": 35,
+      "budget": 2700,
+      "wallAllowance": 4800,
+      "units": 2700.961082,
+      "wallMs": 2941.3014479999997,
+      "checked": false,
+      "results": [
+        {
+          "pass": 0,
+          "outcome": "sat",
+          "units": 116.723172,
+          "wallMs": 239.89982400000002
+        },
+        {
+          "pass": 1,
+          "outcome": "unknown",
+          "units": 2584.2379100000003,
+          "wallMs": 2699.988245
+        }
+      ],
+      "last": {
+        "phase": "unknown",
+        "pass": 1,
+        "goal": "count cubes: every x with x < {\"op\":\"var\",\"name\":\"size\"}: never CV[x] is 0 and 1 <= inX$row[x] @start",
+        "law": "count cubes: every x with x < {\"op\":\"var\",\"name\":\"size\"}: never CV[x] is 0 and 1 <= inX$row[x]",
+        "hyps": 5
+      },
+      "completionTuples": 0,
+      "placement": {
+        "vm": "bx_c4ctxdwz",
+        "type": "large",
+        "cpu": "AMD Ryzen 9 9950X 16-Core Processor",
+        "vcpus": 8,
+        "vm_vcpus": 8,
+        "exclusive": true,
+        "co_tenants": 0
+      }
+    }
+  ],
+  "section16": [
+    {
+      "name": "star",
+      "conditional": true,
+      "standalone": true,
+      "measurementVersion": 2,
+      "diagnostic": "section16.5",
+      "generatorOnly": true,
+      "familySource": "actual generator output; no supplied laws",
+      "suppliedLaws": [],
+      "tag": "star",
+      "law": "inX: no quorum canVote/3",
+      "familySize": 35,
+      "budget": 6000,
+      "wallAllowance": 7000,
+      "units": 4505.987501999999,
+      "searchWallMs": 7007.411120999999,
+      "checkWallMs": 1.7423840000001292,
+      "wallMs": 7009.147043,
+      "checked": false,
+      "withinDiagnosticLine": false,
+      "cache": {
+        "leafChecks": 0,
+        "leafHits": 0,
+        "leafFallbacks": 0,
+        "fullHyps": 0,
+        "sliceHyps": 0,
+        "independentChecks": 0,
+        "independentHits": 0,
+        "retargetChecks": 0,
+        "retargetHits": 0
+      },
+      "results": [
+        {
+          "pass": 0,
+          "outcome": "sat",
+          "units": 97.810094,
+          "wallMs": 240.32869699999998
+        },
+        {
+          "pass": 1,
+          "outcome": "unknown",
+          "units": 4408.177408,
+          "wallMs": 6765.295198000001
+        }
+      ],
+      "last": {
+        "phase": "rejected proposal",
+        "pass": 1,
+        "law": "inX: no quorum canVote/3",
+        "error": "WallExpired: time (decide)"
+      },
+      "completionTuples": 48,
+      "placement": {
+        "vm": "bx_2uat3ctg",
+        "type": "large",
+        "cpu": "AMD Ryzen 9 9950X 16-Core Processor",
+        "vcpus": 8,
+        "vm_vcpus": 8,
+        "exclusive": true,
+        "co_tenants": 0
+      }
+    },
+    {
+      "name": "p1",
+      "conditional": true,
+      "standalone": true,
+      "measurementVersion": 2,
+      "diagnostic": "section16.5",
+      "generatorOnly": true,
+      "familySource": "actual generator output; no supplied laws",
+      "suppliedLaws": [],
+      "tag": "p1",
+      "law": "count cubes: every x with x < {\"op\":\"var\",\"name\":\"size\"}: never CV[x] is 0 and 1 <= inX$row[x]",
+      "familySize": 35,
+      "budget": 6000,
+      "wallAllowance": 7000,
+      "units": 2459.7500499999996,
+      "searchWallMs": 3894.524722,
+      "checkWallMs": 829.2271650000002,
+      "wallMs": 4723.751666,
+      "checked": true,
+      "withinDiagnosticLine": true,
+      "cache": {
+        "leafChecks": 0,
+        "leafHits": 0,
+        "leafFallbacks": 0,
+        "fullHyps": 0,
+        "sliceHyps": 0,
+        "independentChecks": 0,
+        "independentHits": 0,
+        "retargetChecks": 0,
+        "retargetHits": 0
+      },
+      "results": [
+        {
+          "pass": 0,
+          "outcome": "sat",
+          "units": 116.723172,
+          "wallMs": 406.964828
+        },
+        {
+          "pass": 1,
+          "outcome": "proof",
+          "units": 2343.026878,
+          "wallMs": 3484.177748
+        }
+      ],
+      "last": {
+        "phase": "decision:refuted",
+        "pass": 1,
+        "goal": "count cubes: every x with x < {\"op\":\"var\",\"name\":\"size\"}: never CV[x] is 0 and 1 <= inX$row[x] @step",
+        "law": "count cubes: every x with x < {\"op\":\"var\",\"name\":\"size\"}: never CV[x] is 0 and 1 <= inX$row[x]",
+        "hyps": 173
+      },
+      "completionTuples": 30,
+      "placement": {
+        "vm": "bx_bucc8x77",
+        "type": "large",
+        "cpu": "AMD EPYC 4585PX 16-Core Processor",
+        "vcpus": 8,
+        "vm_vcpus": 8,
+        "exclusive": true,
+        "co_tenants": 0
+      }
+    },
+    {
+      "name": "rows",
+      "conditional": true,
+      "standalone": true,
+      "measurementVersion": 2,
+      "diagnostic": "section16.5",
+      "generatorOnly": true,
+      "familySource": "actual generator output; no supplied laws",
+      "suppliedLaws": [],
+      "tag": "rows",
+      "law": "fields: CV[a]=CV[b] and CfgT[a]=CfgT[b] -> Config rows agree",
+      "familySize": 35,
+      "budget": 6000,
+      "wallAllowance": 7000,
+      "units": 5972.174190400001,
+      "searchWallMs": 7000.640597,
+      "checkWallMs": 0.32106300000032206,
+      "wallMs": 7000.9617100000005,
+      "checked": false,
+      "withinDiagnosticLine": false,
+      "cache": {
+        "leafChecks": 0,
+        "leafHits": 0,
+        "leafFallbacks": 0,
+        "fullHyps": 0,
+        "sliceHyps": 0,
+        "independentChecks": 0,
+        "independentHits": 0,
+        "retargetChecks": 0,
+        "retargetHits": 0
+      },
+      "results": [
+        {
+          "pass": 0,
+          "outcome": "sat",
+          "units": 5751.002704399999,
+          "wallMs": 6702.165962
+        },
+        {
+          "pass": 1,
+          "outcome": "unknown",
+          "units": 221.17148600000144,
+          "wallMs": 296.59251499999937
+        }
+      ],
+      "last": {
+        "phase": "rejected proposal",
+        "pass": 1,
+        "law": "fields: CV[a]=CV[b] and CfgT[a]=CfgT[b] -> Config rows agree",
+        "error": "WallExpired: time (decide)"
+      },
+      "completionTuples": 0,
+      "placement": {
+        "vm": "bx_drzdm3cg",
+        "type": "large",
+        "cpu": "AMD Ryzen 9 9950X 16-Core Processor",
+        "vcpus": 8,
+        "vm_vcpus": 8,
+        "exclusive": true,
+        "co_tenants": 0
+      }
+    },
+    {
+      "name": "safety",
+      "conditional": true,
+      "standalone": true,
+      "measurementVersion": 2,
+      "diagnostic": "section16.5",
+      "generatorOnly": true,
+      "familySource": "actual generator output; no supplied laws",
+      "suppliedLaws": [],
+      "tag": "safety",
+      "law": "one primary per term",
+      "familySize": 35,
+      "budget": 6000,
+      "wallAllowance": 7000,
+      "units": 4311.1134436,
+      "searchWallMs": 3332.381001,
+      "checkWallMs": 709.8386110000001,
+      "wallMs": 4042.2194210000002,
+      "checked": true,
+      "withinDiagnosticLine": true,
+      "cache": {
+        "leafChecks": 0,
+        "leafHits": 0,
+        "leafFallbacks": 0,
+        "fullHyps": 0,
+        "sliceHyps": 0,
+        "independentChecks": 0,
+        "independentHits": 0,
+        "retargetChecks": 0,
+        "retargetHits": 0
+      },
+      "results": [
+        {
+          "pass": 0,
+          "outcome": "proof",
+          "units": 4311.1134436,
+          "wallMs": 3331.0125519999997
+        }
+      ],
+      "last": {
+        "phase": "model",
+        "pass": 0,
+        "goal": "one primary per term @step",
+        "law": "one primary per term",
+        "hyps": 150
+      },
+      "completionTuples": 0,
+      "placement": {
+        "vm": "bx_395wpmqp",
+        "type": "large",
+        "cpu": "AMD Ryzen 9 9950X 16-Core Processor",
+        "vcpus": 8,
+        "vm_vcpus": 8,
+        "exclusive": true,
+        "co_tenants": 0
+      }
+    },
+    {
+      "name": "overlap",
+      "conditional": true,
+      "standalone": true,
+      "measurementVersion": 2,
+      "diagnostic": "section16.5",
+      "generatorOnly": true,
+      "familySource": "actual generator output; no supplied laws",
+      "suppliedLaws": [],
+      "tag": "overlap",
+      "law": "inX: stored guard reconfigs/inS or disabled/0",
+      "familySize": 35,
+      "budget": 6000,
+      "wallAllowance": 7000,
+      "units": 5159.553112,
+      "searchWallMs": 7005.340328,
+      "checkWallMs": 1.920803999999407,
+      "wallMs": 7007.252927,
+      "checked": false,
+      "withinDiagnosticLine": false,
+      "cache": {
+        "leafChecks": 0,
+        "leafHits": 0,
+        "leafFallbacks": 0,
+        "fullHyps": 0,
+        "sliceHyps": 0,
+        "independentChecks": 0,
+        "independentHits": 0,
+        "retargetChecks": 0,
+        "retargetHits": 0
+      },
+      "results": [
+        {
+          "pass": 0,
+          "outcome": "sat",
+          "units": 141.58539000000002,
+          "wallMs": 278.960279
+        },
+        {
+          "pass": 1,
+          "outcome": "unknown",
+          "units": 5017.967722,
+          "wallMs": 6724.889335
+        }
+      ],
+      "last": {
+        "phase": "rejected proposal",
+        "pass": 1,
+        "law": "inX: stored guard reconfigs/inS or disabled/0",
+        "error": "WallExpired: time (decide)"
+      },
+      "completionTuples": 48,
+      "placement": {
+        "vm": "bx_d8ucfdbn",
+        "type": "large",
+        "cpu": "AMD Ryzen 9 9950X 16-Core Processor",
+        "vcpus": 8,
+        "vm_vcpus": 8,
+        "exclusive": true,
+        "co_tenants": 0
+      }
+    }
+  ],
+  "derive": [
+    {
+      "name": "star-after",
+      "conditional": true,
+      "standalone": true,
+      "measurementVersion": 2,
+      "diagnostic": "section16.5",
+      "generatorOnly": true,
+      "familySource": "actual generator output; no supplied laws",
+      "suppliedLaws": [],
+      "tag": "star",
+      "law": "inX: no quorum canVote/3",
+      "familySize": 35,
+      "budget": 6000,
+      "wallAllowance": 7000,
+      "units": 4518.982536,
+      "searchWallMs": 7005.035102,
+      "checkWallMs": 1.4033649999992122,
+      "wallMs": 7006.434059,
+      "checked": false,
+      "withinDiagnosticLine": false,
+      "cache": {
+        "leafChecks": 0,
+        "leafHits": 0,
+        "leafFallbacks": 0,
+        "fullHyps": 0,
+        "sliceHyps": 0,
+        "independentChecks": 0,
+        "independentHits": 0,
+        "retargetChecks": 0,
+        "retargetHits": 0
+      },
+      "results": [
+        {
+          "pass": 0,
+          "outcome": "sat",
+          "units": 97.810094,
+          "wallMs": 240.37798100000003
+        },
+        {
+          "pass": 1,
+          "outcome": "unknown",
+          "units": 4421.172442000001,
+          "wallMs": 6762.7893619999995
+        }
+      ],
+      "last": {
+        "phase": "rejected proposal",
+        "pass": 1,
+        "law": "inX: no quorum canVote/3",
+        "error": "WallExpired: time (decide)"
+      },
+      "completionTuples": 48,
+      "placement": {
+        "vm": "bx_4cma575j",
+        "type": "large",
+        "cpu": "AMD EPYC 4585PX 16-Core Processor",
+        "vcpus": 8,
+        "vm_vcpus": 8,
+        "exclusive": true,
+        "co_tenants": 0
+      }
+    },
+    {
+      "name": "star-before",
+      "conditional": true,
+      "standalone": true,
+      "measurementVersion": 2,
+      "diagnostic": "section16.5",
+      "generatorOnly": true,
+      "familySource": "actual generator output; no supplied laws",
+      "suppliedLaws": [],
+      "tag": "star",
+      "law": "inX: no quorum canVote/3",
+      "familySize": 35,
+      "budget": 6000,
+      "wallAllowance": 7000,
+      "units": 2276.502298,
+      "searchWallMs": 7153.733706,
+      "checkWallMs": 0.5906070000000909,
+      "wallMs": 7154.323590999999,
+      "checked": false,
+      "withinDiagnosticLine": false,
+      "cache": {
+        "leafChecks": 0,
+        "leafHits": 0,
+        "leafFallbacks": 0,
+        "fullHyps": 0,
+        "sliceHyps": 0,
+        "independentChecks": 0,
+        "independentHits": 0,
+        "retargetChecks": 0,
+        "retargetHits": 0
+      },
+      "results": [
+        {
+          "pass": 0,
+          "outcome": "sat",
+          "units": 97.810094,
+          "wallMs": 298.606298
+        },
+        {
+          "pass": 1,
+          "outcome": "unknown",
+          "units": 2178.692204,
+          "wallMs": 6852.776510000001
+        }
+      ],
+      "last": {
+        "phase": "rejected proposal",
+        "pass": 1,
+        "law": "inX: no quorum canVote/3",
+        "error": "WallExpired: time (decide)"
+      },
+      "completionTuples": 48,
+      "placement": {
+        "vm": "bx_69nkhdf7",
+        "type": "large",
+        "cpu": "AMD EPYC 4585PX 16-Core Processor",
+        "vcpus": 8,
+        "vm_vcpus": 8,
+        "exclusive": true,
+        "co_tenants": 0
+      }
+    },
+    {
+      "name": "safety-before",
+      "conditional": true,
+      "standalone": true,
+      "measurementVersion": 2,
+      "diagnostic": "section16.5",
+      "generatorOnly": true,
+      "familySource": "actual generator output; no supplied laws",
+      "suppliedLaws": [],
+      "tag": "safety",
+      "law": "one primary per term",
+      "familySize": 35,
+      "budget": 6000,
+      "wallAllowance": 7000,
+      "units": 5551.6767304,
+      "searchWallMs": 7003.8883000000005,
+      "checkWallMs": 0.3490039999996952,
+      "wallMs": 7004.237384,
+      "checked": false,
+      "withinDiagnosticLine": false,
+      "cache": {
+        "leafChecks": 0,
+        "leafHits": 0,
+        "leafFallbacks": 0,
+        "fullHyps": 0,
+        "sliceHyps": 0,
+        "independentChecks": 0,
+        "independentHits": 0,
+        "retargetChecks": 0,
+        "retargetHits": 0
+      },
+      "results": [
+        {
+          "pass": 0,
+          "outcome": "sat",
+          "units": 5025.7017204,
+          "wallMs": 6412.623385
+        },
+        {
+          "pass": 1,
+          "outcome": "unknown",
+          "units": 525.9750100000007,
+          "wallMs": 590.0021200000001
+        }
+      ],
+      "last": {
+        "phase": "rejected proposal",
+        "pass": 1,
+        "law": "one primary per term",
+        "error": "WallExpired: time (decide)"
+      },
+      "completionTuples": 36,
+      "placement": {
+        "vm": "bx_cqvf6nd4",
+        "type": "large",
+        "cpu": "AMD Ryzen 9 9950X 16-Core Processor",
+        "vcpus": 8,
+        "vm_vcpus": 8,
+        "exclusive": true,
+        "co_tenants": 0
+      }
+    },
+    {
+      "name": "safety-after",
+      "conditional": true,
+      "standalone": true,
+      "measurementVersion": 2,
+      "diagnostic": "section16.5",
+      "generatorOnly": true,
+      "familySource": "actual generator output; no supplied laws",
+      "suppliedLaws": [],
+      "tag": "safety",
+      "law": "one primary per term",
+      "familySize": 35,
+      "budget": 6000,
+      "wallAllowance": 7000,
+      "units": 6000.413166400001,
+      "searchWallMs": 6582.361974,
+      "checkWallMs": 0.600999999999658,
+      "wallMs": 6582.9628840000005,
+      "checked": false,
+      "withinDiagnosticLine": false,
+      "cache": {
+        "leafChecks": 0,
+        "leafHits": 0,
+        "leafFallbacks": 0,
+        "fullHyps": 0,
+        "sliceHyps": 0,
+        "independentChecks": 0,
+        "independentHits": 0,
+        "retargetChecks": 0,
+        "retargetHits": 0
+      },
+      "results": [
+        {
+          "pass": 0,
+          "outcome": "sat",
+          "units": 5025.7017204,
+          "wallMs": 5173.915451999999
+        },
+        {
+          "pass": 1,
+          "outcome": "unknown",
+          "units": 974.7114460000005,
+          "wallMs": 1406.9215599999998
+        }
+      ],
+      "last": {
+        "phase": "unknown",
+        "pass": 1,
+        "goal": "one primary per term @start",
+        "law": "one primary per term",
+        "hyps": 2
+      },
+      "completionTuples": 36,
+      "placement": {
+        "vm": "bx_4cma575j",
+        "type": "large",
+        "cpu": "AMD EPYC 4585PX 16-Core Processor",
+        "vcpus": 8,
+        "vm_vcpus": 8,
+        "exclusive": true,
+        "co_tenants": 0
+      }
+    },
+    {
+      "name": "overlap-after",
+      "conditional": true,
+      "standalone": true,
+      "measurementVersion": 2,
+      "diagnostic": "section16.5",
+      "generatorOnly": true,
+      "familySource": "actual generator output; no supplied laws",
+      "suppliedLaws": [],
+      "tag": "overlap",
+      "law": "inX: stored guard reconfigs/inS or disabled/0",
+      "familySize": 35,
+      "budget": 6000,
+      "wallAllowance": 7000,
+      "units": 6002.344303999999,
+      "searchWallMs": 5314.493038,
+      "checkWallMs": 1.9217960000005405,
+      "wallMs": 5316.409745,
+      "checked": false,
+      "withinDiagnosticLine": false,
+      "cache": {
+        "leafChecks": 0,
+        "leafHits": 0,
+        "leafFallbacks": 0,
+        "fullHyps": 0,
+        "sliceHyps": 0,
+        "independentChecks": 0,
+        "independentHits": 0,
+        "retargetChecks": 0,
+        "retargetHits": 0
+      },
+      "results": [
+        {
+          "pass": 0,
+          "outcome": "sat",
+          "units": 141.58539000000002,
+          "wallMs": 142.27482300000003
+        },
+        {
+          "pass": 1,
+          "outcome": "unknown",
+          "units": 5860.758914,
+          "wallMs": 5171.254319
+        }
+      ],
+      "last": {
+        "phase": "unknown",
+        "pass": 1,
+        "goal": "inX: stored guard reconfigs/inS or disabled/0 @start",
+        "law": "inX: stored guard reconfigs/inS or disabled/0",
+        "hyps": 16
+      },
+      "completionTuples": 48,
+      "placement": {
+        "vm": "bx_5mqd7ek5",
+        "type": "large",
+        "cpu": "AMD EPYC 4585PX 16-Core Processor",
+        "vcpus": 8,
+        "vm_vcpus": 8,
+        "exclusive": true,
+        "co_tenants": 0
+      }
+    },
+    {
+      "name": "rows-before",
+      "conditional": true,
+      "standalone": true,
+      "measurementVersion": 2,
+      "diagnostic": "section16.5",
+      "generatorOnly": true,
+      "familySource": "actual generator output; no supplied laws",
+      "suppliedLaws": [],
+      "tag": "rows",
+      "law": "fields: CV[a]=CV[b] and CfgT[a]=CfgT[b] -> Config rows agree",
+      "familySize": 35,
+      "budget": 6000,
+      "wallAllowance": 7000,
+      "units": 6000.263527200001,
+      "searchWallMs": 6228.609272000001,
+      "checkWallMs": 0.3594780000003084,
+      "wallMs": 6228.96877,
+      "checked": false,
+      "withinDiagnosticLine": false,
+      "cache": {
+        "leafChecks": 0,
+        "leafHits": 0,
+        "leafFallbacks": 0,
+        "fullHyps": 0,
+        "sliceHyps": 0,
+        "independentChecks": 0,
+        "independentHits": 0,
+        "retargetChecks": 0,
+        "retargetHits": 0
+      },
+      "results": [
+        {
+          "pass": 0,
+          "outcome": "sat",
+          "units": 5785.3121132,
+          "wallMs": 5963.960312
+        },
+        {
+          "pass": 1,
+          "outcome": "unknown",
+          "units": 214.9514140000008,
+          "wallMs": 263.49072799999976
+        }
+      ],
+      "last": {
+        "phase": "unknown",
+        "pass": 1,
+        "goal": "fields: CV[a]=CV[b] and CfgT[a]=CfgT[b] -> Config rows agree @start",
+        "law": "fields: CV[a]=CV[b] and CfgT[a]=CfgT[b] -> Config rows agree",
+        "hyps": 2
+      },
+      "completionTuples": 0,
+      "placement": {
+        "vm": "bx_b4q8bzub",
+        "type": "large",
+        "cpu": "AMD EPYC 9455 48-Core Processor",
+        "vcpus": 8,
+        "vm_vcpus": 8,
+        "exclusive": true,
+        "co_tenants": 0
+      }
+    },
+    {
+      "name": "p1-after",
+      "conditional": true,
+      "standalone": true,
+      "measurementVersion": 2,
+      "diagnostic": "section16.5",
+      "generatorOnly": true,
+      "familySource": "actual generator output; no supplied laws",
+      "suppliedLaws": [],
+      "tag": "p1",
+      "law": "count cubes: every x with x < {\"op\":\"var\",\"name\":\"size\"}: never CV[x] is 0 and 1 <= inX$row[x]",
+      "familySize": 35,
+      "budget": 6000,
+      "wallAllowance": 7000,
+      "units": 2459.7500499999996,
+      "searchWallMs": 2545.186918,
+      "checkWallMs": 370.2168660000002,
+      "wallMs": 2915.403434,
+      "checked": true,
+      "withinDiagnosticLine": true,
+      "cache": {
+        "leafChecks": 0,
+        "leafHits": 0,
+        "leafFallbacks": 0,
+        "fullHyps": 0,
+        "sliceHyps": 0,
+        "independentChecks": 0,
+        "independentHits": 0,
+        "retargetChecks": 0,
+        "retargetHits": 0
+      },
+      "results": [
+        {
+          "pass": 0,
+          "outcome": "sat",
+          "units": 116.723172,
+          "wallMs": 223.210733
+        },
+        {
+          "pass": 1,
+          "outcome": "proof",
+          "units": 2343.026878,
+          "wallMs": 2320.540003
+        }
+      ],
+      "last": {
+        "phase": "decision:refuted",
+        "pass": 1,
+        "goal": "count cubes: every x with x < {\"op\":\"var\",\"name\":\"size\"}: never CV[x] is 0 and 1 <= inX$row[x] @step",
+        "law": "count cubes: every x with x < {\"op\":\"var\",\"name\":\"size\"}: never CV[x] is 0 and 1 <= inX$row[x]",
+        "hyps": 173
+      },
+      "completionTuples": 30,
+      "placement": {
+        "vm": "bx_c4ctxdwz",
+        "type": "large",
+        "cpu": "AMD Ryzen 9 9950X 16-Core Processor",
+        "vcpus": 8,
+        "vm_vcpus": 8,
+        "exclusive": true,
+        "co_tenants": 0
+      }
+    },
+    {
+      "name": "overlap-before",
+      "conditional": true,
+      "standalone": true,
+      "measurementVersion": 2,
+      "diagnostic": "section16.5",
+      "generatorOnly": true,
+      "familySource": "actual generator output; no supplied laws",
+      "suppliedLaws": [],
+      "tag": "overlap",
+      "law": "inX: stored guard reconfigs/inS or disabled/0",
+      "familySize": 35,
+      "budget": 6000,
+      "wallAllowance": 7000,
+      "units": 5264.120937999999,
+      "searchWallMs": 7030.258269,
+      "checkWallMs": 2.262630000000172,
+      "wallMs": 7032.514888,
+      "checked": false,
+      "withinDiagnosticLine": false,
+      "cache": {
+        "leafChecks": 0,
+        "leafHits": 0,
+        "leafFallbacks": 0,
+        "fullHyps": 0,
+        "sliceHyps": 0,
+        "independentChecks": 0,
+        "independentHits": 0,
+        "retargetChecks": 0,
+        "retargetHits": 0
+      },
+      "results": [
+        {
+          "pass": 0,
+          "outcome": "sat",
+          "units": 141.58539000000002,
+          "wallMs": 259.22632300000004
+        },
+        {
+          "pass": 1,
+          "outcome": "unknown",
+          "units": 5122.535548,
+          "wallMs": 6769.423075
+        }
+      ],
+      "last": {
+        "phase": "rejected proposal",
+        "pass": 1,
+        "law": "inX: stored guard reconfigs/inS or disabled/0",
+        "error": "WallExpired: time (decide)"
+      },
+      "completionTuples": 48,
+      "placement": {
+        "vm": "bx_ag96cka8",
+        "type": "large",
+        "cpu": "AMD Ryzen 9 9950X 16-Core Processor",
+        "vcpus": 8,
+        "vm_vcpus": 8,
+        "exclusive": true,
+        "co_tenants": 0
+      }
+    },
+    {
+      "name": "rows-after",
+      "conditional": true,
+      "standalone": true,
+      "measurementVersion": 2,
+      "diagnostic": "section16.5",
+      "generatorOnly": true,
+      "familySource": "actual generator output; no supplied laws",
+      "suppliedLaws": [],
+      "tag": "rows",
+      "law": "fields: CV[a]=CV[b] and CfgT[a]=CfgT[b] -> Config rows agree",
+      "familySize": 35,
+      "budget": 6000,
+      "wallAllowance": 7000,
+      "units": 6000.263527200001,
+      "searchWallMs": 5111.445742999999,
+      "checkWallMs": 0.26034600000002683,
+      "wallMs": 5111.706039,
+      "checked": false,
+      "withinDiagnosticLine": false,
+      "cache": {
+        "leafChecks": 0,
+        "leafHits": 0,
+        "leafFallbacks": 0,
+        "fullHyps": 0,
+        "sliceHyps": 0,
+        "independentChecks": 0,
+        "independentHits": 0,
+        "retargetChecks": 0,
+        "retargetHits": 0
+      },
+      "results": [
+        {
+          "pass": 0,
+          "outcome": "sat",
+          "units": 5785.3121132,
+          "wallMs": 4853.8511929999995
+        },
+        {
+          "pass": 1,
+          "outcome": "unknown",
+          "units": 214.9514140000008,
+          "wallMs": 256.42765899999995
+        }
+      ],
+      "last": {
+        "phase": "unknown",
+        "pass": 1,
+        "goal": "fields: CV[a]=CV[b] and CfgT[a]=CfgT[b] -> Config rows agree @start",
+        "law": "fields: CV[a]=CV[b] and CfgT[a]=CfgT[b] -> Config rows agree",
+        "hyps": 2
+      },
+      "completionTuples": 0,
+      "placement": {
+        "vm": "bx_7ah56czc",
+        "type": "large",
+        "cpu": "AMD Ryzen 7 9700X 8-Core Processor",
+        "vcpus": 8,
+        "vm_vcpus": 8,
+        "exclusive": true,
+        "co_tenants": 0
+      }
+    },
+    {
+      "name": "p1-before",
+      "conditional": true,
+      "standalone": true,
+      "measurementVersion": 2,
+      "diagnostic": "section16.5",
+      "generatorOnly": true,
+      "familySource": "actual generator output; no supplied laws",
+      "suppliedLaws": [],
+      "tag": "p1",
+      "law": "count cubes: every x with x < {\"op\":\"var\",\"name\":\"size\"}: never CV[x] is 0 and 1 <= inX$row[x]",
+      "familySize": 35,
+      "budget": 6000,
+      "wallAllowance": 7000,
+      "units": 2459.7500499999996,
+      "searchWallMs": 3004.3066209999997,
+      "checkWallMs": 497.90157899999986,
+      "wallMs": 3502.20828,
+      "checked": true,
+      "withinDiagnosticLine": true,
+      "cache": {
+        "leafChecks": 0,
+        "leafHits": 0,
+        "leafFallbacks": 0,
+        "fullHyps": 0,
+        "sliceHyps": 0,
+        "independentChecks": 0,
+        "independentHits": 0,
+        "retargetChecks": 0,
+        "retargetHits": 0
+      },
+      "results": [
+        {
+          "pass": 0,
+          "outcome": "sat",
+          "units": 116.723172,
+          "wallMs": 264.091987
+        },
+        {
+          "pass": 1,
+          "outcome": "proof",
+          "units": 2343.026878,
+          "wallMs": 2738.648411
+        }
+      ],
+      "last": {
+        "phase": "decision:refuted",
+        "pass": 1,
+        "goal": "count cubes: every x with x < {\"op\":\"var\",\"name\":\"size\"}: never CV[x] is 0 and 1 <= inX$row[x] @step",
+        "law": "count cubes: every x with x < {\"op\":\"var\",\"name\":\"size\"}: never CV[x] is 0 and 1 <= inX$row[x]",
+        "hyps": 173
+      },
+      "completionTuples": 30,
+      "placement": {
+        "vm": "bx_ag96cka8",
+        "type": "large",
+        "cpu": "AMD Ryzen 9 9950X 16-Core Processor",
+        "vcpus": 8,
+        "vm_vcpus": 8,
+        "exclusive": true,
+        "co_tenants": 0
+      }
+    }
+  ],
+  "checkProfile": [
+    {
+      "name": "star",
+      "conditional": true,
+      "standalone": true,
+      "measurementVersion": 2,
+      "diagnostic": "section16.5",
+      "generatorOnly": true,
+      "familySource": "actual generator output; no supplied laws",
+      "suppliedLaws": [],
+      "tag": "star",
+      "law": "inX: no quorum canVote/3",
+      "familySize": 35,
+      "budget": 6000,
+      "wallAllowance": 7000,
+      "units": 3905.599022,
+      "searchWallMs": 7004.500549,
+      "checkWallMs": 1.2590879999997924,
+      "wallMs": 7005.754277,
+      "checked": false,
+      "withinDiagnosticLine": false,
+      "cache": {
+        "leafChecks": 0,
+        "leafHits": 0,
+        "leafFallbacks": 0,
+        "fullHyps": 0,
+        "sliceHyps": 0,
+        "independentChecks": 0,
+        "independentHits": 0,
+        "retargetChecks": 0,
+        "retargetHits": 0
+      },
+      "checkProfile": {},
+      "results": [
+        {
+          "pass": 0,
+          "outcome": "sat",
+          "units": 97.810094,
+          "wallMs": 198.597662
+        },
+        {
+          "pass": 1,
+          "outcome": "unknown",
+          "units": 3807.788928,
+          "wallMs": 6804.746029
+        }
+      ],
+      "last": {
+        "phase": "rejected proposal",
+        "pass": 1,
+        "law": "inX: no quorum canVote/3",
+        "error": "WallExpired: time (decide)"
+      },
+      "completionTuples": 48,
+      "placement": {
+        "vm": "bx_cqvf6nd4",
+        "type": "large",
+        "cpu": "AMD Ryzen 9 9950X 16-Core Processor",
+        "vcpus": 8,
+        "vm_vcpus": 8,
+        "exclusive": true,
+        "co_tenants": 0
+      }
+    },
+    {
+      "name": "p1",
+      "conditional": true,
+      "standalone": true,
+      "measurementVersion": 2,
+      "diagnostic": "section16.5",
+      "generatorOnly": true,
+      "familySource": "actual generator output; no supplied laws",
+      "suppliedLaws": [],
+      "tag": "p1",
+      "law": "count cubes: every x with x < {\"op\":\"var\",\"name\":\"size\"}: never CV[x] is 0 and 1 <= inX$row[x]",
+      "familySize": 35,
+      "budget": 6000,
+      "wallAllowance": 7000,
+      "units": 2459.7500499999996,
+      "searchWallMs": 1802.256044,
+      "checkWallMs": 230.3464059999999,
+      "wallMs": 2032.602361,
+      "checked": true,
+      "withinDiagnosticLine": true,
+      "cache": {
+        "leafChecks": 0,
+        "leafHits": 0,
+        "leafFallbacks": 0,
+        "fullHyps": 0,
+        "sliceHyps": 0,
+        "independentChecks": 0,
+        "independentHits": 0,
+        "retargetChecks": 0,
+        "retargetHits": 0
+      },
+      "checkProfile": {
+        "worker.finalCheckMC": {
+          "calls": 2,
+          "totalMs": 228.19480199999998,
+          "selfMs": 228.19480199999998,
+          "maxMs": 227.49471300000005
+        }
+      },
+      "results": [
+        {
+          "pass": 0,
+          "outcome": "sat",
+          "units": 116.723172,
+          "wallMs": 142.555925
+        },
+        {
+          "pass": 1,
+          "outcome": "proof",
+          "units": 2343.026878,
+          "wallMs": 1658.785352
+        }
+      ],
+      "last": {
+        "phase": "decision:refuted",
+        "pass": 1,
+        "goal": "count cubes: every x with x < {\"op\":\"var\",\"name\":\"size\"}: never CV[x] is 0 and 1 <= inX$row[x] @step",
+        "law": "count cubes: every x with x < {\"op\":\"var\",\"name\":\"size\"}: never CV[x] is 0 and 1 <= inX$row[x]",
+        "hyps": 173
+      },
+      "completionTuples": 30,
+      "placement": {
+        "vm": "bx_6aqepfyv",
+        "type": "large",
+        "cpu": "AMD EPYC 4585PX 16-Core Processor",
+        "vcpus": 8,
+        "vm_vcpus": 8,
+        "exclusive": true,
+        "co_tenants": 0
+      }
+    },
+    {
+      "name": "rows",
+      "conditional": true,
+      "standalone": true,
+      "measurementVersion": 2,
+      "diagnostic": "section16.5",
+      "generatorOnly": true,
+      "familySource": "actual generator output; no supplied laws",
+      "suppliedLaws": [],
+      "tag": "rows",
+      "law": "fields: CV[a]=CV[b] and CfgT[a]=CfgT[b] -> Config rows agree",
+      "familySize": 35,
+      "budget": 6000,
+      "wallAllowance": 7000,
+      "units": 6000.144352400001,
+      "searchWallMs": 4928.478593,
+      "checkWallMs": 0.36141499999939697,
+      "wallMs": 4928.839899,
+      "checked": false,
+      "withinDiagnosticLine": false,
+      "cache": {
+        "leafChecks": 0,
+        "leafHits": 0,
+        "leafFallbacks": 0,
+        "fullHyps": 0,
+        "sliceHyps": 0,
+        "independentChecks": 0,
+        "independentHits": 0,
+        "retargetChecks": 0,
+        "retargetHits": 0
+      },
+      "checkProfile": {},
+      "results": [
+        {
+          "pass": 0,
+          "outcome": "sat",
+          "units": 5751.002704399999,
+          "wallMs": 4667.971587999999
+        },
+        {
+          "pass": 1,
+          "outcome": "unknown",
+          "units": 249.14164800000097,
+          "wallMs": 259.2607230000003
+        }
+      ],
+      "last": {
+        "phase": "unknown",
+        "pass": 1,
+        "goal": "fields: CV[a]=CV[b] and CfgT[a]=CfgT[b] -> Config rows agree @start",
+        "law": "fields: CV[a]=CV[b] and CfgT[a]=CfgT[b] -> Config rows agree",
+        "hyps": 2
+      },
+      "completionTuples": 0,
+      "placement": {
+        "vm": "bx_5mqd7ek5",
+        "type": "large",
+        "cpu": "AMD EPYC 4585PX 16-Core Processor",
+        "vcpus": 8,
+        "vm_vcpus": 8,
+        "exclusive": true,
+        "co_tenants": 0
+      }
+    },
+    {
+      "name": "safety",
+      "conditional": true,
+      "standalone": true,
+      "measurementVersion": 2,
+      "diagnostic": "section16.5",
+      "generatorOnly": true,
+      "familySource": "actual generator output; no supplied laws",
+      "suppliedLaws": [],
+      "tag": "safety",
+      "law": "one primary per term",
+      "familySize": 35,
+      "budget": 6000,
+      "wallAllowance": 7000,
+      "units": 4311.1134436,
+      "searchWallMs": 4162.660633,
+      "checkWallMs": 843.4527029999999,
+      "wallMs": 5006.113186,
+      "checked": true,
+      "withinDiagnosticLine": true,
+      "cache": {
+        "leafChecks": 0,
+        "leafHits": 0,
+        "leafFallbacks": 0,
+        "fullHyps": 0,
+        "sliceHyps": 0,
+        "independentChecks": 0,
+        "independentHits": 0,
+        "retargetChecks": 0,
+        "retargetHits": 0
+      },
+      "checkProfile": {
+        "worker.finalCheckMC": {
+          "calls": 2,
+          "totalMs": 840.0682090000009,
+          "selfMs": 840.0682090000009,
+          "maxMs": 839.6459270000005
+        }
+      },
+      "results": [
+        {
+          "pass": 0,
+          "outcome": "proof",
+          "units": 4311.1134436,
+          "wallMs": 4160.84018
+        }
+      ],
+      "last": {
+        "phase": "model",
+        "pass": 0,
+        "goal": "one primary per term @step",
+        "law": "one primary per term",
+        "hyps": 150
+      },
+      "completionTuples": 0,
+      "placement": {
+        "vm": "bx_69nkhdf7",
+        "type": "large",
+        "cpu": "AMD EPYC 4585PX 16-Core Processor",
+        "vcpus": 8,
+        "vm_vcpus": 8,
+        "exclusive": true,
+        "co_tenants": 0
+      }
+    },
+    {
+      "name": "overlap",
+      "conditional": true,
+      "standalone": true,
+      "measurementVersion": 2,
+      "diagnostic": "section16.5",
+      "generatorOnly": true,
+      "familySource": "actual generator output; no supplied laws",
+      "suppliedLaws": [],
+      "tag": "overlap",
+      "law": "inX: stored guard reconfigs/inS or disabled/0",
+      "familySize": 35,
+      "budget": 6000,
+      "wallAllowance": 7000,
+      "units": 6002.344303999999,
+      "searchWallMs": 6230.309656,
+      "checkWallMs": 2.2148489999999583,
+      "wallMs": 6232.518006,
+      "checked": false,
+      "withinDiagnosticLine": false,
+      "cache": {
+        "leafChecks": 0,
+        "leafHits": 0,
+        "leafFallbacks": 0,
+        "fullHyps": 0,
+        "sliceHyps": 0,
+        "independentChecks": 0,
+        "independentHits": 0,
+        "retargetChecks": 0,
+        "retargetHits": 0
+      },
+      "checkProfile": {},
+      "results": [
+        {
+          "pass": 0,
+          "outcome": "sat",
+          "units": 141.58539000000002,
+          "wallMs": 191.835527
+        },
+        {
+          "pass": 1,
+          "outcome": "unknown",
+          "units": 5860.758914,
+          "wallMs": 6037.200895999999
+        }
+      ],
+      "last": {
+        "phase": "unknown",
+        "pass": 1,
+        "goal": "inX: stored guard reconfigs/inS or disabled/0 @start",
+        "law": "inX: stored guard reconfigs/inS or disabled/0",
+        "hyps": 16
+      },
+      "completionTuples": 48,
+      "placement": {
+        "vm": "bx_b4q8bzub",
+        "type": "large",
+        "cpu": "AMD EPYC 9455 48-Core Processor",
+        "vcpus": 8,
+        "vm_vcpus": 8,
+        "exclusive": true,
+        "co_tenants": 0
+      }
+    }
+  ],
+  "finalCost": [
+    {
+      "name": "p1",
+      "conditional": true,
+      "standalone": true,
+      "measurementVersion": 3,
+      "diagnostic": "section16.5",
+      "generatorOnly": true,
+      "familySource": "actual generator output; no supplied laws",
+      "suppliedLaws": [],
+      "tag": "p1",
+      "law": "count cubes: every x with x < {\"op\":\"var\",\"name\":\"size\"}: never CV[x] is 0 and 1 <= inX$row[x]",
+      "familySize": 35,
+      "budget": 6000,
+      "wallAllowance": 7000,
+      "units": 2459.7500499999996,
+      "searchUnits": 2459.7500499999996,
+      "checkUnits": 0,
+      "searchWallMs": 3804.726331,
+      "checkWallMs": 447.1229500000004,
+      "wallMs": 4251.849712,
+      "checked": true,
+      "withinDiagnosticLine": true,
+      "cache": {
+        "leafChecks": 0,
+        "leafHits": 0,
+        "leafFallbacks": 0,
+        "fullHyps": 0,
+        "sliceHyps": 0,
+        "independentChecks": 0,
+        "independentHits": 0,
+        "retargetChecks": 0,
+        "retargetHits": 0
+      },
+      "checkProfile": {},
+      "results": [
+        {
+          "pass": 0,
+          "outcome": "sat",
+          "units": 116.723172,
+          "wallMs": 378.11442400000004
+        },
+        {
+          "pass": 1,
+          "outcome": "proof",
+          "units": 2343.026878,
+          "wallMs": 3423.534892
+        }
+      ],
+      "last": {
+        "phase": "decision:refuted",
+        "pass": 1,
+        "goal": "count cubes: every x with x < {\"op\":\"var\",\"name\":\"size\"}: never CV[x] is 0 and 1 <= inX$row[x] @step",
+        "law": "count cubes: every x with x < {\"op\":\"var\",\"name\":\"size\"}: never CV[x] is 0 and 1 <= inX$row[x]",
+        "hyps": 173
+      },
+      "completionTuples": 30,
+      "placement": {
+        "vm": "bx_7y8uwqen",
+        "type": "large",
+        "cpu": "AMD EPYC 4585PX 16-Core Processor",
+        "vcpus": 8,
+        "vm_vcpus": 8,
+        "exclusive": true,
+        "co_tenants": 0
+      }
+    },
+    {
+      "name": "safety",
+      "conditional": true,
+      "standalone": true,
+      "measurementVersion": 3,
+      "diagnostic": "section16.5",
+      "generatorOnly": true,
+      "familySource": "actual generator output; no supplied laws",
+      "suppliedLaws": [],
+      "tag": "safety",
+      "law": "one primary per term",
+      "familySize": 35,
+      "budget": 6000,
+      "wallAllowance": 7000,
+      "units": 4311.1134436,
+      "searchUnits": 4311.1134436,
+      "checkUnits": 0,
+      "searchWallMs": 2674.9344739999997,
+      "checkWallMs": 728.0533689999997,
+      "wallMs": 3402.9877619999997,
+      "checked": true,
+      "withinDiagnosticLine": true,
+      "cache": {
+        "leafChecks": 0,
+        "leafHits": 0,
+        "leafFallbacks": 0,
+        "fullHyps": 0,
+        "sliceHyps": 0,
+        "independentChecks": 0,
+        "independentHits": 0,
+        "retargetChecks": 0,
+        "retargetHits": 0
+      },
+      "checkProfile": {},
+      "results": [
+        {
+          "pass": 0,
+          "outcome": "proof",
+          "units": 4311.1134436,
+          "wallMs": 2672.384131
+        }
+      ],
+      "last": {
+        "phase": "model",
+        "pass": 0,
+        "goal": "one primary per term @step",
+        "law": "one primary per term",
+        "hyps": 150
+      },
+      "completionTuples": 0,
+      "placement": {
+        "vm": "bx_bucc8x77",
+        "type": "large",
+        "cpu": "AMD EPYC 4585PX 16-Core Processor",
+        "vcpus": 8,
+        "vm_vcpus": 8,
+        "exclusive": true,
+        "co_tenants": 0
+      }
+    }
+  ],
+  "audit": {
+    "cost": [
+      {
+        "conditional": true,
+        "tag": "overlap",
+        "law": "inX: stored guard reconfigs/inS or disabled/0",
+        "checked": false,
+        "units": 2715.752374,
+        "wallMs": 4030.407112,
+        "unitsAboveRequested": 15.752374000000145,
+        "results": [
+          {
+            "pass": 0,
+            "outcome": "sat",
+            "units": 90.58333799999998,
+            "wallMs": 142.23363899999998
+          },
+          {
+            "pass": 1,
+            "outcome": "unknown",
+            "units": 2625.1690360000002,
+            "wallMs": 3886.6563229999997
+          }
+        ],
+        "completionTuples": 36
+      },
+      {
+        "conditional": true,
+        "tag": "overlap",
+        "law": "inX: stored guard reconfigs/inS or disabled/0",
+        "checked": false,
+        "units": 2702.251678,
+        "wallMs": 3741.196049,
+        "unitsAboveRequested": 2.2516780000000836,
+        "results": [
+          {
+            "pass": 0,
+            "outcome": "sat",
+            "units": 90.58333799999998,
+            "wallMs": 163.444771
+          },
+          {
+            "pass": 1,
+            "outcome": "unknown",
+            "units": 2611.66834,
+            "wallMs": 3576.429731
+          }
+        ],
+        "completionTuples": 0
+      },
+      {
+        "conditional": true,
+        "tag": "p1",
+        "law": "research Gp1: CV=0 implies empty row",
+        "checked": true,
+        "units": 2078.8483376000004,
+        "wallMs": 2739.7525889999997,
+        "unitsAboveRequested": 0,
+        "results": [
+          {
+            "pass": 0,
+            "outcome": "sat",
+            "units": 74.922846,
+            "wallMs": 165.278383
+          },
+          {
+            "pass": 1,
+            "outcome": "proof",
+            "units": 2003.9254916000002,
+            "wallMs": 2572.7671929999997
+          }
+        ],
+        "completionTuples": 21
+      },
+      {
+        "conditional": true,
+        "tag": "p1",
+        "law": "research Gp1: CV=0 implies empty row",
+        "checked": false,
+        "units": 319.11102999999997,
+        "wallMs": 369.74403,
+        "unitsAboveRequested": 0,
+        "results": [
+          {
+            "pass": 0,
+            "outcome": "sat",
+            "units": 74.922846,
+            "wallMs": 107.022318
+          },
+          {
+            "pass": 1,
+            "outcome": "sat",
+            "units": 244.18818399999995,
+            "wallMs": 261.747166
+          }
+        ],
+        "completionTuples": 0
+      },
+      {
+        "conditional": true,
+        "tag": "rows",
+        "law": "fields: CV[a]=CV[b] and CfgT[a]=CfgT[b] -> Config rows agree",
+        "checked": false,
+        "units": 2700.41548,
+        "wallMs": 2052.314666,
+        "unitsAboveRequested": 0.415480000000116,
+        "results": [
+          {
+            "pass": 0,
+            "outcome": "unknown",
+            "units": 2700.41548,
+            "wallMs": 2051.1079870000003
+          }
+        ],
+        "completionTuples": 0
+      },
+      {
+        "conditional": true,
+        "tag": "rows",
+        "law": "fields: CV[a]=CV[b] and CfgT[a]=CfgT[b] -> Config rows agree",
+        "checked": false,
+        "units": 2700.41548,
+        "wallMs": 2151.4269990000003,
+        "unitsAboveRequested": 0.415480000000116,
+        "results": [
+          {
+            "pass": 0,
+            "outcome": "unknown",
+            "units": 2700.41548,
+            "wallMs": 2149.706493
+          }
+        ],
+        "completionTuples": 0
+      },
+      {
+        "conditional": true,
+        "tag": "safety",
+        "law": "one primary per term",
+        "checked": false,
+        "units": 2705.3694868000002,
+        "wallMs": 2105.7674309999998,
+        "unitsAboveRequested": 5.369486800000232,
+        "results": [
+          {
+            "pass": 0,
+            "outcome": "sat",
+            "units": 2705.3694868000002,
+            "wallMs": 2104.524333
+          }
+        ],
+        "completionTuples": 0
+      },
+      {
+        "conditional": true,
+        "tag": "safety",
+        "law": "one primary per term",
+        "checked": false,
+        "units": 2705.3694868000002,
+        "wallMs": 2330.415266,
+        "unitsAboveRequested": 5.369486800000232,
+        "results": [
+          {
+            "pass": 0,
+            "outcome": "sat",
+            "units": 2705.3694868000002,
+            "wallMs": 2329.23104
+          }
+        ],
+        "completionTuples": 0
+      },
+      {
+        "conditional": true,
+        "tag": "star",
+        "law": "inX: no quorum canVote/3",
+        "checked": false,
+        "units": 2701.6105700000003,
+        "wallMs": 3434.6520219999998,
+        "unitsAboveRequested": 1.6105700000002798,
+        "results": [
+          {
+            "pass": 0,
+            "outcome": "sat",
+            "units": 68.44284599999999,
+            "wallMs": 140.258578
+          },
+          {
+            "pass": 1,
+            "outcome": "unknown",
+            "units": 2633.1677240000004,
+            "wallMs": 3293.128182
+          }
+        ],
+        "completionTuples": 36
+      },
+      {
+        "conditional": true,
+        "tag": "star",
+        "law": "inX: no quorum canVote/3",
+        "checked": false,
+        "units": 684.658474,
+        "wallMs": 844.9935790000001,
+        "unitsAboveRequested": 0,
+        "results": [
+          {
+            "pass": 0,
+            "outcome": "sat",
+            "units": 68.44284599999999,
+            "wallMs": 151.41067199999998
+          },
+          {
+            "pass": 1,
+            "outcome": "sat",
+            "units": 616.2156279999999,
+            "wallMs": 692.127761
+          }
+        ],
+        "completionTuples": 0
+      }
+    ],
+    "op": [
+      {
+        "law": "Inv2973: quorums overlap, or a config disabled",
+        "op": 0,
+        "proofChecked": false,
+        "recordedChecked": false,
+        "searchUnits": 501.04695719999995,
+        "attempts": 1,
+        "attemptUnits": 0.026561200000003282,
+        "unknownDemand": 1,
+        "unknownDemandUnits": 0.026561200000003282,
+        "unrequested": 0,
+        "potentialFixedPrefixSaving": 0,
+        "potentialFailedOnlySaving": 0,
+        "notAPolicyReplay": true
+      },
+      {
+        "law": "Inv2973: quorums overlap, or a config disabled",
+        "op": 0,
+        "proofChecked": false,
+        "recordedChecked": false,
+        "searchUnits": 1114.8853544,
+        "attempts": 2,
+        "attemptUnits": 589.2855024,
+        "unknownDemand": 2,
+        "unknownDemandUnits": 589.2855024,
+        "unrequested": 0,
+        "potentialFixedPrefixSaving": 0,
+        "potentialFailedOnlySaving": 0,
+        "notAPolicyReplay": true
+      },
+      {
+        "law": "Inv2973: quorums overlap, or a config disabled",
+        "op": 4,
+        "proofChecked": false,
+        "recordedChecked": false,
+        "searchUnits": 616.6843916,
+        "attempts": 2,
+        "attemptUnits": 119.20413239999993,
+        "unknownDemand": 2,
+        "unknownDemandUnits": 119.20413239999993,
+        "unrequested": 0,
+        "potentialFixedPrefixSaving": 0,
+        "potentialFailedOnlySaving": 0,
+        "notAPolicyReplay": true
+      },
+      {
+        "law": "Inv2973: quorums overlap, or a config disabled",
+        "op": 4,
+        "proofChecked": false,
+        "recordedChecked": false,
+        "searchUnits": 1439.1659176,
+        "attempts": 3,
+        "attemptUnits": 811.310938,
+        "unknownDemand": 3,
+        "unknownDemandUnits": 811.310938,
+        "unrequested": 0,
+        "potentialFixedPrefixSaving": 0,
+        "potentialFailedOnlySaving": 0,
+        "notAPolicyReplay": true
+      },
+      {
+        "law": "Inv*: no quorum of a config can still be gathered for a config term held",
+        "op": 3,
+        "proofChecked": false,
+        "recordedChecked": false,
+        "searchUnits": 1535.9848676,
+        "attempts": 10,
+        "attemptUnits": 361.7652492000001,
+        "unknownDemand": 10,
+        "unknownDemandUnits": 361.7652492000001,
+        "unrequested": 0,
+        "potentialFixedPrefixSaving": 0,
+        "potentialFailedOnlySaving": 0,
+        "notAPolicyReplay": true
+      },
+      {
+        "law": "Inv*: no quorum of a config can still be gathered for a config term held",
+        "op": 3,
+        "proofChecked": false,
+        "recordedChecked": false,
+        "searchUnits": 1200.8437812000002,
+        "attempts": 15,
+        "attemptUnits": 878.4933623999999,
+        "unknownDemand": 15,
+        "unknownDemandUnits": 878.4933623999999,
+        "unrequested": 0,
+        "potentialFixedPrefixSaving": 0,
+        "potentialFailedOnlySaving": 0,
+        "notAPolicyReplay": true
+      },
+      {
+        "law": "Inv*: no quorum of a config can still be gathered for a config term held",
+        "op": 5,
+        "proofChecked": false,
+        "recordedChecked": false,
+        "searchUnits": 1771.7884655999997,
+        "attempts": 3,
+        "attemptUnits": 181.56308720000004,
+        "unknownDemand": 3,
+        "unknownDemandUnits": 181.56308720000004,
+        "unrequested": 0,
+        "potentialFixedPrefixSaving": 0,
+        "potentialFailedOnlySaving": 0,
+        "notAPolicyReplay": true
+      },
+      {
+        "law": "Inv*: no quorum of a config can still be gathered for a config term held",
+        "op": 5,
+        "proofChecked": false,
+        "recordedChecked": false,
+        "searchUnits": 2583.4456943999994,
+        "attempts": 4,
+        "attemptUnits": 181.5772568000001,
+        "unknownDemand": 4,
+        "unknownDemandUnits": 181.5772568000001,
+        "unrequested": 0,
+        "potentialFixedPrefixSaving": 0,
+        "potentialFailedOnlySaving": 0,
+        "notAPolicyReplay": true
+      }
+    ],
+    "realFamily": [
+      {
+        "conditional": true,
+        "tag": "overlap",
+        "law": "inX: stored guard reconfigs/inS or disabled/0",
+        "checked": false,
+        "units": 2711.8259500000004,
+        "wallMs": 2956.037658,
+        "unitsAboveRequested": 11.825950000000375,
+        "results": [
+          {
+            "pass": 0,
+            "outcome": "sat",
+            "units": 141.58539000000002,
+            "wallMs": 135.373936
+          },
+          {
+            "pass": 1,
+            "outcome": "unknown",
+            "units": 2570.24056,
+            "wallMs": 2819.651435
+          }
+        ],
+        "completionTuples": 48
+      },
+      {
+        "conditional": true,
+        "tag": "overlap",
+        "law": "inX: stored guard reconfigs/inS or disabled/0",
+        "checked": false,
+        "units": 2712.1907119999996,
+        "wallMs": 4091.888872,
+        "unitsAboveRequested": 12.190711999999621,
+        "results": [
+          {
+            "pass": 0,
+            "outcome": "sat",
+            "units": 141.58539000000002,
+            "wallMs": 211.029359
+          },
+          {
+            "pass": 1,
+            "outcome": "unknown",
+            "units": 2570.605322,
+            "wallMs": 3878.5068359999996
+          }
+        ],
+        "completionTuples": 0
+      },
+      {
+        "conditional": true,
+        "tag": "p1",
+        "law": "count cubes: every x with x < {\"op\":\"var\",\"name\":\"size\"}: never CV[x] is 0 and 1 <= inX$row[x]",
+        "checked": true,
+        "units": 2459.7500499999996,
+        "wallMs": 2165.206708,
+        "unitsAboveRequested": 0,
+        "results": [
+          {
+            "pass": 0,
+            "outcome": "sat",
+            "units": 116.723172,
+            "wallMs": 168.92807
+          },
+          {
+            "pass": 1,
+            "outcome": "proof",
+            "units": 2343.026878,
+            "wallMs": 1995.303521
+          }
+        ],
+        "completionTuples": 30
+      },
+      {
+        "conditional": true,
+        "tag": "p1",
+        "law": "count cubes: every x with x < {\"op\":\"var\",\"name\":\"size\"}: never CV[x] is 0 and 1 <= inX$row[x]",
+        "checked": false,
+        "units": 2700.961082,
+        "wallMs": 2941.3014479999997,
+        "unitsAboveRequested": 0.9610819999998057,
+        "results": [
+          {
+            "pass": 0,
+            "outcome": "sat",
+            "units": 116.723172,
+            "wallMs": 239.89982400000002
+          },
+          {
+            "pass": 1,
+            "outcome": "unknown",
+            "units": 2584.2379100000003,
+            "wallMs": 2699.988245
+          }
+        ],
+        "completionTuples": 0
+      },
+      {
+        "conditional": true,
+        "tag": "rows",
+        "law": "fields: CV[a]=CV[b] and CfgT[a]=CfgT[b] -> Config rows agree",
+        "checked": false,
+        "units": 2700.8705128,
+        "wallMs": 3448.939223,
+        "unitsAboveRequested": 0.8705128000001423,
+        "results": [
+          {
+            "pass": 0,
+            "outcome": "sat",
+            "units": 2700.8705128,
+            "wallMs": 3447.1505740000002
+          }
+        ],
+        "completionTuples": 0
+      },
+      {
+        "conditional": true,
+        "tag": "rows",
+        "law": "fields: CV[a]=CV[b] and CfgT[a]=CfgT[b] -> Config rows agree",
+        "checked": false,
+        "units": 2700.8705128,
+        "wallMs": 2629.786554,
+        "unitsAboveRequested": 0.8705128000001423,
+        "results": [
+          {
+            "pass": 0,
+            "outcome": "sat",
+            "units": 2700.8705128,
+            "wallMs": 2628.4658649999997
+          }
+        ],
+        "completionTuples": 0
+      },
+      {
+        "conditional": true,
+        "tag": "safety",
+        "law": "one primary per term",
+        "checked": false,
+        "units": 2700.1415312,
+        "wallMs": 2566.9312099999997,
+        "unitsAboveRequested": 0.1415311999999176,
+        "results": [
+          {
+            "pass": 0,
+            "outcome": "sat",
+            "units": 2700.1415312,
+            "wallMs": 2565.594363
+          }
+        ],
+        "completionTuples": 0
+      },
+      {
+        "conditional": true,
+        "tag": "safety",
+        "law": "one primary per term",
+        "checked": false,
+        "units": 2700.1415312,
+        "wallMs": 1640.662047,
+        "unitsAboveRequested": 0.1415311999999176,
+        "results": [
+          {
+            "pass": 0,
+            "outcome": "sat",
+            "units": 2700.1415312,
+            "wallMs": 1639.670534
+          }
+        ],
+        "completionTuples": 0
+      },
+      {
+        "conditional": true,
+        "tag": "star",
+        "law": "inX: no quorum canVote/3",
+        "checked": false,
+        "units": 2685.536,
+        "wallMs": 4901.724016,
+        "unitsAboveRequested": 0,
+        "results": [
+          {
+            "pass": 0,
+            "outcome": "sat",
+            "units": 97.810094,
+            "wallMs": 162.153071
+          },
+          {
+            "pass": 1,
+            "outcome": "unknown",
+            "units": 2587.725906,
+            "wallMs": 4738.3476470000005
+          }
+        ],
+        "completionTuples": 48
+      },
+      {
+        "conditional": true,
+        "tag": "star",
+        "law": "inX: no quorum canVote/3",
+        "checked": false,
+        "units": 1646.607222,
+        "wallMs": 4804.45377,
+        "unitsAboveRequested": 0,
+        "results": [
+          {
+            "pass": 0,
+            "outcome": "sat",
+            "units": 97.810094,
+            "wallMs": 256.713816
+          },
+          {
+            "pass": 1,
+            "outcome": "unknown",
+            "units": 1548.797128,
+            "wallMs": 4545.8595700000005
+          }
+        ],
+        "completionTuples": 0
+      }
+    ],
+    "leafPolicy": [
+      {
+        "law": "Inv2973: quorums overlap, or a config disabled",
+        "op": 0,
+        "proofChecked": false,
+        "recordedChecked": false,
+        "searchUnits": 1409.302516,
+        "attempts": 0,
+        "attemptUnits": 0,
+        "unknownDemand": 0,
+        "unknownDemandUnits": 0,
+        "unrequested": 0,
+        "potentialFixedPrefixSaving": 0,
+        "potentialFailedOnlySaving": 0,
+        "notAPolicyReplay": true
+      },
+      {
+        "law": "Inv2973: quorums overlap, or a config disabled",
+        "op": 0,
+        "proofChecked": false,
+        "recordedChecked": false,
+        "searchUnits": 499.8803191999999,
+        "attempts": 0,
+        "attemptUnits": 0,
+        "unknownDemand": 0,
+        "unknownDemandUnits": 0,
+        "unrequested": 0,
+        "potentialFixedPrefixSaving": 0,
+        "potentialFailedOnlySaving": 0,
+        "notAPolicyReplay": true
+      },
+      {
+        "law": "Inv2973: quorums overlap, or a config disabled",
+        "op": 4,
+        "proofChecked": false,
+        "recordedChecked": false,
+        "searchUnits": 2329.6044832,
+        "attempts": 0,
+        "attemptUnits": 0,
+        "unknownDemand": 0,
+        "unknownDemandUnits": 0,
+        "unrequested": 0,
+        "potentialFixedPrefixSaving": 0,
+        "potentialFailedOnlySaving": 0,
+        "notAPolicyReplay": true
+      },
+      {
+        "law": "Inv2973: quorums overlap, or a config disabled",
+        "op": 4,
+        "proofChecked": false,
+        "recordedChecked": false,
+        "searchUnits": 612.9651727999999,
+        "attempts": 2,
+        "attemptUnits": 115.59268279999992,
+        "unknownDemand": 2,
+        "unknownDemandUnits": 115.59268279999992,
+        "unrequested": 0,
+        "potentialFixedPrefixSaving": 0,
+        "potentialFailedOnlySaving": 0,
+        "notAPolicyReplay": true
+      },
+      {
+        "law": "Inv*: no quorum of a config can still be gathered for a config term held",
+        "op": 3,
+        "proofChecked": false,
+        "recordedChecked": false,
+        "searchUnits": 1774.0173379999999,
+        "attempts": 14,
+        "attemptUnits": 541.8576751999996,
+        "unknownDemand": 14,
+        "unknownDemandUnits": 541.8576751999996,
+        "unrequested": 0,
+        "potentialFixedPrefixSaving": 0,
+        "potentialFailedOnlySaving": 0,
+        "notAPolicyReplay": true
+      },
+      {
+        "law": "Inv*: no quorum of a config can still be gathered for a config term held",
+        "op": 3,
+        "proofChecked": false,
+        "recordedChecked": false,
+        "searchUnits": 1070.1939552,
+        "attempts": 10,
+        "attemptUnits": 361.7652492000001,
+        "unknownDemand": 10,
+        "unknownDemandUnits": 361.7652492000001,
+        "unrequested": 0,
+        "potentialFixedPrefixSaving": 0,
+        "potentialFailedOnlySaving": 0,
+        "notAPolicyReplay": true
+      },
+      {
+        "law": "Inv*: no quorum of a config can still be gathered for a config term held",
+        "op": 5,
+        "proofChecked": false,
+        "recordedChecked": false,
+        "searchUnits": 876.4904316,
+        "attempts": 0,
+        "attemptUnits": 0,
+        "unknownDemand": 0,
+        "unknownDemandUnits": 0,
+        "unrequested": 0,
+        "potentialFixedPrefixSaving": 0,
+        "potentialFailedOnlySaving": 0,
+        "notAPolicyReplay": true
+      },
+      {
+        "law": "Inv*: no quorum of a config can still be gathered for a config term held",
+        "op": 5,
+        "proofChecked": false,
+        "recordedChecked": false,
+        "searchUnits": 1873.9898068000002,
+        "attempts": 3,
+        "attemptUnits": 181.56308720000004,
+        "unknownDemand": 3,
+        "unknownDemandUnits": 181.56308720000004,
+        "unrequested": 0,
+        "potentialFixedPrefixSaving": 0,
+        "potentialFailedOnlySaving": 0,
+        "notAPolicyReplay": true
+      }
+    ],
+    "finalCost": [
+      {
+        "conditional": true,
+        "tag": "p1",
+        "law": "count cubes: every x with x < {\"op\":\"var\",\"name\":\"size\"}: never CV[x] is 0 and 1 <= inX$row[x]",
+        "checked": true,
+        "units": 2459.7500499999996,
+        "searchUnits": 2459.7500499999996,
+        "replayCheckUnits": 0,
+        "unitsWithReplayCheck": 2459.7500499999996,
+        "wallMs": 4251.849712,
+        "unitsAboveRequested": 0,
+        "results": [
+          {
+            "pass": 0,
+            "outcome": "sat",
+            "units": 116.723172,
+            "wallMs": 378.11442400000004
+          },
+          {
+            "pass": 1,
+            "outcome": "proof",
+            "units": 2343.026878,
+            "wallMs": 3423.534892
+          }
+        ],
+        "completionTuples": 30
+      },
+      {
+        "conditional": true,
+        "tag": "safety",
+        "law": "one primary per term",
+        "checked": true,
+        "units": 4311.1134436,
+        "searchUnits": 4311.1134436,
+        "replayCheckUnits": 0,
+        "unitsWithReplayCheck": 4311.1134436,
+        "wallMs": 3402.9877619999997,
+        "unitsAboveRequested": 0,
+        "results": [
+          {
+            "pass": 0,
+            "outcome": "proof",
+            "units": 4311.1134436,
+            "wallMs": 2672.384131
+          }
+        ],
+        "completionTuples": 0
+      }
+    ],
+    "section16": [
+      {
+        "conditional": true,
+        "tag": "overlap",
+        "law": "inX: stored guard reconfigs/inS or disabled/0",
+        "checked": false,
+        "units": 5159.553112,
+        "wallMs": 7007.252927,
+        "unitsAboveRequested": 0,
+        "results": [
+          {
+            "pass": 0,
+            "outcome": "sat",
+            "units": 141.58539000000002,
+            "wallMs": 278.960279
+          },
+          {
+            "pass": 1,
+            "outcome": "unknown",
+            "units": 5017.967722,
+            "wallMs": 6724.889335
+          }
+        ],
+        "completionTuples": 48
+      },
+      {
+        "conditional": true,
+        "tag": "p1",
+        "law": "count cubes: every x with x < {\"op\":\"var\",\"name\":\"size\"}: never CV[x] is 0 and 1 <= inX$row[x]",
+        "checked": true,
+        "units": 2459.7500499999996,
+        "wallMs": 4723.751666,
+        "unitsAboveRequested": 0,
+        "results": [
+          {
+            "pass": 0,
+            "outcome": "sat",
+            "units": 116.723172,
+            "wallMs": 406.964828
+          },
+          {
+            "pass": 1,
+            "outcome": "proof",
+            "units": 2343.026878,
+            "wallMs": 3484.177748
+          }
+        ],
+        "completionTuples": 30
+      },
+      {
+        "conditional": true,
+        "tag": "rows",
+        "law": "fields: CV[a]=CV[b] and CfgT[a]=CfgT[b] -> Config rows agree",
+        "checked": false,
+        "units": 5972.174190400001,
+        "wallMs": 7000.9617100000005,
+        "unitsAboveRequested": 0,
+        "results": [
+          {
+            "pass": 0,
+            "outcome": "sat",
+            "units": 5751.002704399999,
+            "wallMs": 6702.165962
+          },
+          {
+            "pass": 1,
+            "outcome": "unknown",
+            "units": 221.17148600000144,
+            "wallMs": 296.59251499999937
+          }
+        ],
+        "completionTuples": 0
+      },
+      {
+        "conditional": true,
+        "tag": "safety",
+        "law": "one primary per term",
+        "checked": true,
+        "units": 4311.1134436,
+        "wallMs": 4042.2194210000002,
+        "unitsAboveRequested": 0,
+        "results": [
+          {
+            "pass": 0,
+            "outcome": "proof",
+            "units": 4311.1134436,
+            "wallMs": 3331.0125519999997
+          }
+        ],
+        "completionTuples": 0
+      },
+      {
+        "conditional": true,
+        "tag": "star",
+        "law": "inX: no quorum canVote/3",
+        "checked": false,
+        "units": 4505.987501999999,
+        "wallMs": 7009.147043,
+        "unitsAboveRequested": 0,
+        "results": [
+          {
+            "pass": 0,
+            "outcome": "sat",
+            "units": 97.810094,
+            "wallMs": 240.32869699999998
+          },
+          {
+            "pass": 1,
+            "outcome": "unknown",
+            "units": 4408.177408,
+            "wallMs": 6765.295198000001
+          }
+        ],
+        "completionTuples": 48
+      }
+    ]
+  },
+  "generation": {
+    "phase": "family",
+    "conditional": true,
+    "generatorOnly": true,
+    "suppliedLaws": [],
+    "missingTargets": [],
+    "laws": 35,
+    "targets": {
+      "overlap": "inX: stored guard reconfigs/inS or disabled/0",
+      "rows": "fields: CV[a]=CV[b] and CfgT[a]=CfgT[b] -> Config rows agree",
+      "star": "inX: no quorum canVote/3",
+      "safety": "one primary per term",
+      "p1": "count cubes: every x with x < {\"op\":\"var\",\"name\":\"size\"}: never CV[x] is 0 and 1 <= inX$row[x]"
+    },
+    "generationWallMs": 27305.675963,
+    "sha256": "5c9aa44bca08790afdf331b290f101b6ca5d177133e662f5f6f1e80aa6cebc6f"
+  },
+  "validation": {
+    "tests": 66,
+    "assertions": 5417,
+    "typecheck": true,
+    "lint": true,
+    "log": "../lane-b-generated-v1/check.log"
+  }
+}
