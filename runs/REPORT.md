@@ -22,8 +22,11 @@ unguarded strengthening.
 * `runs/mldr-incl-check-v8/`: type/lint and all four focused files passed:
   **89 tests, zero failures**. This supersedes the earlier cap-expectation
   failures; their logs remain retained.
-* `runs/mldr-incl-shards-v1/`: all seven full-suite shards exited zero on boat,
-  with one pinned large VM per shard and zero starts charged to the batch.
+* `runs/mldr-incl-shards-v1/`: all seven full-suite shards passed on boat:
+  **1,073 tests passed, 18 skipped, zero failures**, with one pinned large VM per
+  shard and zero starts charged to the batch.
+* `runs/mldr-incl-gates-v1/duoai/`: **10/10 proofs on both sides**, zero lost
+  proofs, against current main `b788e195`; the other gate components are pending.
 * `runs/mldr-incl-baseline-v1/`: three unchanged original MLDR trials remained
   UNKNOWN at strict 60 seconds (job times 59.59, 59.61, 59.57 seconds).
 
@@ -61,7 +64,8 @@ packets preserve this directly, including phase/work counters.
 The current fast loop compares nine distinct frozen STEP packets at
 250/1,000/2,700 units, across raw, preferred, own-key completion, and
 witness-seeded modes: **108 independent jobs**. A separate eight-way real-E-14
-experiment limits optional pre-query refinement and moves completion earlier,
+experiment limits optional pre-query refinement and moves completion earlier.
+Four additional controls refresh preferences when new count reads arrive,
 without increasing the existing proposal ceiling or safety share. Neither
 research scheduling variant has been put into production.
 
@@ -77,14 +81,21 @@ The exact archive is `research/mldr-incl/fixtures/e14-generated.br`, SHA-256
 
 The earlier recovery/quarantine window invalidated incomplete client receipts;
 retries and recovered raw receipts are identified separately. The two-job v3
-conditional client subsequently hit its outer queue-wait timeout; it is not
-counted as a completed experiment. Actual proof limits were not extended.
+conditional client subsequently hit its outer queue-wait timeout. Its two
+completed payloads were later recovered from the exact owned admission: base
+and preferred both remain SAT at 1,868.570 counted units (instrumented walls
+2,012.967 and 2,505.420 ms). They are diagnostic payloads, not a successful
+client/gate receipt. Actual proof limits were not extended.
 
 The documented generic `queue add` accepted the 108-job backlog, but this
 repository's custom treadmill only consumes idea-tagged entries. Its exact
 owned, still-queued entry was marked withdrawn (receipt retained), and the
 same jobs were submitted once through `supercomputer run --class submission`.
 No scheduler resource policy, ownership guard or other submission was changed.
+
+Section **16.6** is now the active instruction: use the actual frozen 35-law
+family for conditional safety until Lane A 16.1/16.2 lets the original harness
+reach safety, then replace this measurement with the real attempt.
 
 Remaining before merge: checked conditional improvement on Gp1 and real E-14;
 strict original-harness confirmation; 29x3 paired versus current main, DuoAI,

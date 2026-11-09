@@ -1,0 +1,170 @@
+[
+  {
+    "name": "base-no-1000-r1",
+    "cmd": "set -e; bash research/track-m/prepare-vendors.sh; bun install --frozen-lockfile >/dev/null; git apply -R research/mldr-incl/proposal.diff; timeout -s KILL 45 bun research/mldr-incl/conditional-safety.ts inputs/family-first.json 1000 no 1",
+    "cpu": 8,
+    "memory": 14336,
+    "timeout": 90
+  },
+  {
+    "name": "base-no-1000-r2",
+    "cmd": "set -e; bash research/track-m/prepare-vendors.sh; bun install --frozen-lockfile >/dev/null; git apply -R research/mldr-incl/proposal.diff; timeout -s KILL 45 bun research/mldr-incl/conditional-safety.ts inputs/family-first.json 1000 no 2",
+    "cpu": 8,
+    "memory": 14336,
+    "timeout": 90
+  },
+  {
+    "name": "base-no-2700-r1",
+    "cmd": "set -e; bash research/track-m/prepare-vendors.sh; bun install --frozen-lockfile >/dev/null; git apply -R research/mldr-incl/proposal.diff; timeout -s KILL 45 bun research/mldr-incl/conditional-safety.ts inputs/family-first.json 2700 no 1",
+    "cpu": 8,
+    "memory": 14336,
+    "timeout": 90
+  },
+  {
+    "name": "base-no-2700-r2",
+    "cmd": "set -e; bash research/track-m/prepare-vendors.sh; bun install --frozen-lockfile >/dev/null; git apply -R research/mldr-incl/proposal.diff; timeout -s KILL 45 bun research/mldr-incl/conditional-safety.ts inputs/family-first.json 2700 no 2",
+    "cpu": 8,
+    "memory": 14336,
+    "timeout": 90
+  },
+  {
+    "name": "base-no-5000-r1",
+    "cmd": "set -e; bash research/track-m/prepare-vendors.sh; bun install --frozen-lockfile >/dev/null; git apply -R research/mldr-incl/proposal.diff; timeout -s KILL 45 bun research/mldr-incl/conditional-safety.ts inputs/family-first.json 5000 no 1",
+    "cpu": 8,
+    "memory": 14336,
+    "timeout": 90
+  },
+  {
+    "name": "base-no-5000-r2",
+    "cmd": "set -e; bash research/track-m/prepare-vendors.sh; bun install --frozen-lockfile >/dev/null; git apply -R research/mldr-incl/proposal.diff; timeout -s KILL 45 bun research/mldr-incl/conditional-safety.ts inputs/family-first.json 5000 no 2",
+    "cpu": 8,
+    "memory": 14336,
+    "timeout": 90
+  },
+  {
+    "name": "base-yes-1000-r1",
+    "cmd": "set -e; bash research/track-m/prepare-vendors.sh; bun install --frozen-lockfile >/dev/null; git apply -R research/mldr-incl/proposal.diff; timeout -s KILL 45 bun research/mldr-incl/conditional-safety.ts inputs/family-first.json 1000 yes 1",
+    "cpu": 8,
+    "memory": 14336,
+    "timeout": 90
+  },
+  {
+    "name": "base-yes-1000-r2",
+    "cmd": "set -e; bash research/track-m/prepare-vendors.sh; bun install --frozen-lockfile >/dev/null; git apply -R research/mldr-incl/proposal.diff; timeout -s KILL 45 bun research/mldr-incl/conditional-safety.ts inputs/family-first.json 1000 yes 2",
+    "cpu": 8,
+    "memory": 14336,
+    "timeout": 90
+  },
+  {
+    "name": "base-yes-2700-r1",
+    "cmd": "set -e; bash research/track-m/prepare-vendors.sh; bun install --frozen-lockfile >/dev/null; git apply -R research/mldr-incl/proposal.diff; DUMP_DIR=/tmp/conditional DUMP_MIN=0 DUMP_N=10000 DUMP_ALL=1 timeout -s KILL 45 bun --preload ./research/query/dump.ts --preload ./research/track-p/capture.ts research/mldr-incl/conditional-safety.ts inputs/family-first.json 2700 yes 1; bun research/mldr-incl/pack-capture.ts /tmp/conditional",
+    "cpu": 8,
+    "memory": 14336,
+    "timeout": 90
+  },
+  {
+    "name": "base-yes-2700-r2",
+    "cmd": "set -e; bash research/track-m/prepare-vendors.sh; bun install --frozen-lockfile >/dev/null; git apply -R research/mldr-incl/proposal.diff; timeout -s KILL 45 bun research/mldr-incl/conditional-safety.ts inputs/family-first.json 2700 yes 2",
+    "cpu": 8,
+    "memory": 14336,
+    "timeout": 90
+  },
+  {
+    "name": "base-yes-5000-r1",
+    "cmd": "set -e; bash research/track-m/prepare-vendors.sh; bun install --frozen-lockfile >/dev/null; git apply -R research/mldr-incl/proposal.diff; timeout -s KILL 45 bun research/mldr-incl/conditional-safety.ts inputs/family-first.json 5000 yes 1",
+    "cpu": 8,
+    "memory": 14336,
+    "timeout": 90
+  },
+  {
+    "name": "base-yes-5000-r2",
+    "cmd": "set -e; bash research/track-m/prepare-vendors.sh; bun install --frozen-lockfile >/dev/null; git apply -R research/mldr-incl/proposal.diff; timeout -s KILL 45 bun research/mldr-incl/conditional-safety.ts inputs/family-first.json 5000 yes 2",
+    "cpu": 8,
+    "memory": 14336,
+    "timeout": 90
+  },
+  {
+    "name": "preferred-no-1000-r1",
+    "cmd": "set -e; bash research/track-m/prepare-vendors.sh; bun install --frozen-lockfile >/dev/null; timeout -s KILL 45 bun research/mldr-incl/conditional-safety.ts inputs/family-first.json 1000 no 1",
+    "cpu": 8,
+    "memory": 14336,
+    "timeout": 90
+  },
+  {
+    "name": "preferred-no-1000-r2",
+    "cmd": "set -e; bash research/track-m/prepare-vendors.sh; bun install --frozen-lockfile >/dev/null; timeout -s KILL 45 bun research/mldr-incl/conditional-safety.ts inputs/family-first.json 1000 no 2",
+    "cpu": 8,
+    "memory": 14336,
+    "timeout": 90
+  },
+  {
+    "name": "preferred-no-2700-r1",
+    "cmd": "set -e; bash research/track-m/prepare-vendors.sh; bun install --frozen-lockfile >/dev/null; timeout -s KILL 45 bun research/mldr-incl/conditional-safety.ts inputs/family-first.json 2700 no 1",
+    "cpu": 8,
+    "memory": 14336,
+    "timeout": 90
+  },
+  {
+    "name": "preferred-no-2700-r2",
+    "cmd": "set -e; bash research/track-m/prepare-vendors.sh; bun install --frozen-lockfile >/dev/null; timeout -s KILL 45 bun research/mldr-incl/conditional-safety.ts inputs/family-first.json 2700 no 2",
+    "cpu": 8,
+    "memory": 14336,
+    "timeout": 90
+  },
+  {
+    "name": "preferred-no-5000-r1",
+    "cmd": "set -e; bash research/track-m/prepare-vendors.sh; bun install --frozen-lockfile >/dev/null; timeout -s KILL 45 bun research/mldr-incl/conditional-safety.ts inputs/family-first.json 5000 no 1",
+    "cpu": 8,
+    "memory": 14336,
+    "timeout": 90
+  },
+  {
+    "name": "preferred-no-5000-r2",
+    "cmd": "set -e; bash research/track-m/prepare-vendors.sh; bun install --frozen-lockfile >/dev/null; timeout -s KILL 45 bun research/mldr-incl/conditional-safety.ts inputs/family-first.json 5000 no 2",
+    "cpu": 8,
+    "memory": 14336,
+    "timeout": 90
+  },
+  {
+    "name": "preferred-yes-1000-r1",
+    "cmd": "set -e; bash research/track-m/prepare-vendors.sh; bun install --frozen-lockfile >/dev/null; timeout -s KILL 45 bun research/mldr-incl/conditional-safety.ts inputs/family-first.json 1000 yes 1",
+    "cpu": 8,
+    "memory": 14336,
+    "timeout": 90
+  },
+  {
+    "name": "preferred-yes-1000-r2",
+    "cmd": "set -e; bash research/track-m/prepare-vendors.sh; bun install --frozen-lockfile >/dev/null; timeout -s KILL 45 bun research/mldr-incl/conditional-safety.ts inputs/family-first.json 1000 yes 2",
+    "cpu": 8,
+    "memory": 14336,
+    "timeout": 90
+  },
+  {
+    "name": "preferred-yes-2700-r1",
+    "cmd": "set -e; bash research/track-m/prepare-vendors.sh; bun install --frozen-lockfile >/dev/null; DUMP_DIR=/tmp/conditional DUMP_MIN=0 DUMP_N=10000 DUMP_ALL=1 timeout -s KILL 45 bun --preload ./research/query/dump.ts --preload ./research/track-p/capture.ts research/mldr-incl/conditional-safety.ts inputs/family-first.json 2700 yes 1; bun research/mldr-incl/pack-capture.ts /tmp/conditional",
+    "cpu": 8,
+    "memory": 14336,
+    "timeout": 90
+  },
+  {
+    "name": "preferred-yes-2700-r2",
+    "cmd": "set -e; bash research/track-m/prepare-vendors.sh; bun install --frozen-lockfile >/dev/null; timeout -s KILL 45 bun research/mldr-incl/conditional-safety.ts inputs/family-first.json 2700 yes 2",
+    "cpu": 8,
+    "memory": 14336,
+    "timeout": 90
+  },
+  {
+    "name": "preferred-yes-5000-r1",
+    "cmd": "set -e; bash research/track-m/prepare-vendors.sh; bun install --frozen-lockfile >/dev/null; timeout -s KILL 45 bun research/mldr-incl/conditional-safety.ts inputs/family-first.json 5000 yes 1",
+    "cpu": 8,
+    "memory": 14336,
+    "timeout": 90
+  },
+  {
+    "name": "preferred-yes-5000-r2",
+    "cmd": "set -e; bash research/track-m/prepare-vendors.sh; bun install --frozen-lockfile >/dev/null; timeout -s KILL 45 bun research/mldr-incl/conditional-safety.ts inputs/family-first.json 5000 yes 2",
+    "cpu": 8,
+    "memory": 14336,
+    "timeout": 90
+  }
+]
