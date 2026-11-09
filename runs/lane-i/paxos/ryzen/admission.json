@@ -1,10 +1,15 @@
 {
-  "preflightTask":"efbaec73-4b44-4629-aef1-193a9c12720c",
-  "status":"preflight-active",
-  "data":"/private/tmp/lane-i-paxos-ryzen-data.9b5PMj",
-  "cpu":"AMD Ryzen 9 9950X 16-Core Processor",
-  "groups":3,
-  "pointsPerGroup":7,
-  "wideSubmitted":false,
-  "finalGate":false
+  "preflightTask": "efbaec73-4b44-4629-aef1-193a9c12720c",
+  "status": "qualified-but-timing-census-superseded",
+  "data": "/private/tmp/lane-i-paxos-ryzen-data.9b5PMj",
+  "cpu": "AMD Ryzen 9 9950X 16-Core Processor",
+  "groups": 3,
+  "pointsPerGroup": 7,
+  "wideSubmitted": false,
+  "finalGate": false,
+  "batch": "20261110-051735-em54ey",
+  "snapshot": "b34eb10f3339",
+  "tests": 7,
+  "assertions": 22,
+  "allSourcesRestored": 21
 }

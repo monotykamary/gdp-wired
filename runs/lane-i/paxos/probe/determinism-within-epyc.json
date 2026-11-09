@@ -1,0 +1,62 @@
+{
+  "cpu": "AMD EPYC 9455 48-Core Processor",
+  "samples": [
+    {
+      "repeat": 1,
+      "base": {
+        "work": 6915544,
+        "full": 1037946
+      },
+      "candidate": {
+        "work": 120626795,
+        "full": 11365077
+      }
+    },
+    {
+      "repeat": 2,
+      "base": {
+        "work": 6915544,
+        "full": 1037946
+      },
+      "candidate": {
+        "work": 130811115,
+        "full": 12268637
+      }
+    },
+    {
+      "repeat": 3,
+      "base": {
+        "work": 6915544,
+        "full": 1037946
+      },
+      "candidate": {
+        "work": 121496514,
+        "full": 11464485
+      }
+    },
+    {
+      "repeat": 4,
+      "base": {
+        "work": 6915544,
+        "full": 1037946
+      },
+      "candidate": {
+        "work": 130031769,
+        "full": 12220881
+      }
+    },
+    {
+      "repeat": 5,
+      "base": {
+        "work": 6915544,
+        "full": 1037946
+      },
+      "candidate": {
+        "work": 120553305,
+        "full": 11355285
+      }
+    }
+  ],
+  "baseIdentical": true,
+  "candidateIdentical": false
+}

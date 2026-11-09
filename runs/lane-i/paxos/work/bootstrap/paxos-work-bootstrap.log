@@ -1,0 +1,24 @@
+bun test v1.4.3 (c6da4a4d3)
+PAXOS_BOOTSTRAP_RESTORE {"meta":{"revision":"b09da82d9ada6e0cdc31f943292cfea727f5752e","tree":"19803daf80024fa074a1678c8a4feb6f57ee3c7f","submodules":"0b6ebeeec827b05210f3acfa4149a70dda9a0de5 vendor/gdp-ts (0b6ebee)\n d47141cce2caf5b86b0c2c0c372a5174f424bc15 vendor/handwired (d47141c)","clean":true},"hashes":{"research/protocols/ic3syn/jobs.ts":"3b72741a5b6ff1ce9ee86a4e8ba30a6318ee10554f9bf675c1c217cd92a1ea9c","research/protocols/ic3syn/run.ts":"a9fa1e966acf503db0804419f8af7b82cfec671f8fba528716ec5440ea70dd66","research/protocols/ic3syn/models.ts":"7264a41611c0bab74b8b3549ac86663f4cb4d8ef8cac00528df0c2c7bcfbae93","research/protocols/models.ts":"ae2acd68175231e54e8590c2e35e04996282da22523d2fbac47d40e0adb078e4","research/protocols/run.ts":"f739b1d8c3f94e7718ae1029df4675f27b5d81211250b223678b6c5229946f87"}}
+PAXOS_BOOTSTRAP_RESTORE {"meta":{"revision":"bf01190119f9409077a36e11a4a5b763fb6c1cad","tree":"364c3e4474d4a4c0ac35d29626ddb5bb9f233230","submodules":"0b6ebeeec827b05210f3acfa4149a70dda9a0de5 vendor/gdp-ts (0b6ebee)\n d47141cce2caf5b86b0c2c0c372a5174f424bc15 vendor/handwired (d47141c)","clean":true},"hashes":{"research/protocols/ic3syn/jobs.ts":"3b72741a5b6ff1ce9ee86a4e8ba30a6318ee10554f9bf675c1c217cd92a1ea9c","research/protocols/ic3syn/run.ts":"a9fa1e966acf503db0804419f8af7b82cfec671f8fba528716ec5440ea70dd66","research/protocols/ic3syn/models.ts":"7264a41611c0bab74b8b3549ac86663f4cb4d8ef8cac00528df0c2c7bcfbae93","research/protocols/models.ts":"ae2acd68175231e54e8590c2e35e04996282da22523d2fbac47d40e0adb078e4","research/protocols/run.ts":"f739b1d8c3f94e7718ae1029df4675f27b5d81211250b223678b6c5229946f87"}}
+PAXOS_BOOTSTRAP_PASS {"baseline":"b09da82d9ada6e0cdc31f943292cfea727f5752e","hashedFiles":123,"restored":2,"manifestPoints":21,"measuredPairs":0}
+
+--- stderr ---
+
+regression-driver/paxos-cpu.test.ts:
+(pass) Paxos timing CPU is explicit and limited to separate qualified cohorts [0.58ms]
+
+regression-driver/paxos-audit.test.ts:
+(pass) decoded cohort transport retains raw audit and rejects forged work [15.76ms]
+(pass) bisection summary needs full raw traces and five valid repeats [1.29ms]
+(pass) one cohort trial cannot satisfy an ordinary five-repeat receipt [0.22ms]
+(pass) wrong source, CPU and fabricated law work are rejected [0.34ms]
+(pass) unknown candidate work remains visible instead of selecting only proven pairs [0.15ms]
+
+regression-driver/resource-run.test.ts:
+(pass) kernel resource counters accept tab and space separators [0.49ms]
+
+ 7 pass
+ 0 fail
+ 23 expect() calls
+Ran 7 tests across 3 files. [36.00ms]

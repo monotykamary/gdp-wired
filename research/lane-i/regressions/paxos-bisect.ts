@@ -10,7 +10,7 @@ const revision=process.argv[2]!,replica=Number(process.argv[3]),repeats=Number(p
 const cohort=process.argv.includes('--cohort')
 if(!/^[a-f0-9]{40}$/.test(revision)||!Number.isInteger(repeats)||repeats<1||(!cohort&&repeats<5))throw new Error('exact revision and five repeats, or one explicit cohort repeat, required')
 const cpu=/^model name\s*:\s*(.+)$/m.exec(readFileSync('/proc/cpuinfo','utf8'))?.[1]?.trim()
-if(cpu!==paxosCpu){console.log('BISECT_CPU_SKIP '+JSON.stringify({revision,replica,cpu}));process.exit(0)}
+if(paxosCpu!=='any'&&cpu!==paxosCpu){console.log('BISECT_CPU_SKIP '+JSON.stringify({revision,replica,cpu}));process.exit(0)}
 const {restore,command,harnessHashes}=await import(resolve('research/verify-all/final-gate-common.ts'))
 const input=resolve('paxos-input'),baseline=JSON.parse(readFileSync(join(input,'gate.json'),'utf8')).baseline,temp=mkdtempSync(join(tmpdir(),'lane-i-bisect-')),digest=(s:string)=>createHash('sha256').update(s).digest('hex')
 const anchor='return {traced, get counted()'

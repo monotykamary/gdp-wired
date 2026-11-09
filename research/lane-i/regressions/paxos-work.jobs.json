@@ -1,0 +1,233 @@
+[
+  {
+    "name": "paxos-cohort-5101",
+    "cmd": "set -euo pipefail; cp -a frozen-paxos/. .; bun regression-driver/paxos-cohort.ts 5101 regression-driver/paxos-work-points/5101.json 1",
+    "env": {
+      "PAXOS_TARGET_CPU": "any"
+    },
+    "cpu": 4,
+    "memory": 14336,
+    "timeout": 300,
+    "vm_type": "large"
+  },
+  {
+    "name": "paxos-cohort-5102",
+    "cmd": "set -euo pipefail; cp -a frozen-paxos/. .; bun regression-driver/paxos-cohort.ts 5102 regression-driver/paxos-work-points/5102.json 1",
+    "env": {
+      "PAXOS_TARGET_CPU": "any"
+    },
+    "cpu": 4,
+    "memory": 14336,
+    "timeout": 300,
+    "vm_type": "large"
+  },
+  {
+    "name": "paxos-cohort-5103",
+    "cmd": "set -euo pipefail; cp -a frozen-paxos/. .; bun regression-driver/paxos-cohort.ts 5103 regression-driver/paxos-work-points/5103.json 1",
+    "env": {
+      "PAXOS_TARGET_CPU": "any"
+    },
+    "cpu": 4,
+    "memory": 14336,
+    "timeout": 300,
+    "vm_type": "large"
+  },
+  {
+    "name": "paxos-cohort-5104",
+    "cmd": "set -euo pipefail; cp -a frozen-paxos/. .; bun regression-driver/paxos-cohort.ts 5104 regression-driver/paxos-work-points/5104.json 1",
+    "env": {
+      "PAXOS_TARGET_CPU": "any"
+    },
+    "cpu": 4,
+    "memory": 14336,
+    "timeout": 300,
+    "vm_type": "large"
+  },
+  {
+    "name": "paxos-cohort-5105",
+    "cmd": "set -euo pipefail; cp -a frozen-paxos/. .; bun regression-driver/paxos-cohort.ts 5105 regression-driver/paxos-work-points/5105.json 1",
+    "env": {
+      "PAXOS_TARGET_CPU": "any"
+    },
+    "cpu": 4,
+    "memory": 14336,
+    "timeout": 300,
+    "vm_type": "large"
+  },
+  {
+    "name": "paxos-cohort-5106",
+    "cmd": "set -euo pipefail; cp -a frozen-paxos/. .; bun regression-driver/paxos-cohort.ts 5106 regression-driver/paxos-work-points/5106.json 1",
+    "env": {
+      "PAXOS_TARGET_CPU": "any"
+    },
+    "cpu": 4,
+    "memory": 14336,
+    "timeout": 300,
+    "vm_type": "large"
+  },
+  {
+    "name": "paxos-cohort-5107",
+    "cmd": "set -euo pipefail; cp -a frozen-paxos/. .; bun regression-driver/paxos-cohort.ts 5107 regression-driver/paxos-work-points/5107.json 1",
+    "env": {
+      "PAXOS_TARGET_CPU": "any"
+    },
+    "cpu": 4,
+    "memory": 14336,
+    "timeout": 300,
+    "vm_type": "large"
+  },
+  {
+    "name": "paxos-cohort-5108",
+    "cmd": "set -euo pipefail; cp -a frozen-paxos/. .; bun regression-driver/paxos-cohort.ts 5108 regression-driver/paxos-work-points/5108.json 1",
+    "env": {
+      "PAXOS_TARGET_CPU": "any"
+    },
+    "cpu": 4,
+    "memory": 14336,
+    "timeout": 300,
+    "vm_type": "large"
+  },
+  {
+    "name": "paxos-cohort-5109",
+    "cmd": "set -euo pipefail; cp -a frozen-paxos/. .; bun regression-driver/paxos-cohort.ts 5109 regression-driver/paxos-work-points/5109.json 1",
+    "env": {
+      "PAXOS_TARGET_CPU": "any"
+    },
+    "cpu": 4,
+    "memory": 14336,
+    "timeout": 300,
+    "vm_type": "large"
+  },
+  {
+    "name": "paxos-cohort-5110",
+    "cmd": "set -euo pipefail; cp -a frozen-paxos/. .; bun regression-driver/paxos-cohort.ts 5110 regression-driver/paxos-work-points/5110.json 1",
+    "env": {
+      "PAXOS_TARGET_CPU": "any"
+    },
+    "cpu": 4,
+    "memory": 14336,
+    "timeout": 300,
+    "vm_type": "large"
+  },
+  {
+    "name": "paxos-cohort-5111",
+    "cmd": "set -euo pipefail; cp -a frozen-paxos/. .; bun regression-driver/paxos-cohort.ts 5111 regression-driver/paxos-work-points/5111.json 1",
+    "env": {
+      "PAXOS_TARGET_CPU": "any"
+    },
+    "cpu": 4,
+    "memory": 14336,
+    "timeout": 300,
+    "vm_type": "large"
+  },
+  {
+    "name": "paxos-cohort-5112",
+    "cmd": "set -euo pipefail; cp -a frozen-paxos/. .; bun regression-driver/paxos-cohort.ts 5112 regression-driver/paxos-work-points/5112.json 1",
+    "env": {
+      "PAXOS_TARGET_CPU": "any"
+    },
+    "cpu": 4,
+    "memory": 14336,
+    "timeout": 300,
+    "vm_type": "large"
+  },
+  {
+    "name": "paxos-cohort-5113",
+    "cmd": "set -euo pipefail; cp -a frozen-paxos/. .; bun regression-driver/paxos-cohort.ts 5113 regression-driver/paxos-work-points/5113.json 1",
+    "env": {
+      "PAXOS_TARGET_CPU": "any"
+    },
+    "cpu": 4,
+    "memory": 14336,
+    "timeout": 300,
+    "vm_type": "large"
+  },
+  {
+    "name": "paxos-cohort-5114",
+    "cmd": "set -euo pipefail; cp -a frozen-paxos/. .; bun regression-driver/paxos-cohort.ts 5114 regression-driver/paxos-work-points/5114.json 1",
+    "env": {
+      "PAXOS_TARGET_CPU": "any"
+    },
+    "cpu": 4,
+    "memory": 14336,
+    "timeout": 300,
+    "vm_type": "large"
+  },
+  {
+    "name": "paxos-cohort-5115",
+    "cmd": "set -euo pipefail; cp -a frozen-paxos/. .; bun regression-driver/paxos-cohort.ts 5115 regression-driver/paxos-work-points/5115.json 1",
+    "env": {
+      "PAXOS_TARGET_CPU": "any"
+    },
+    "cpu": 4,
+    "memory": 14336,
+    "timeout": 300,
+    "vm_type": "large"
+  },
+  {
+    "name": "paxos-cohort-5116",
+    "cmd": "set -euo pipefail; cp -a frozen-paxos/. .; bun regression-driver/paxos-cohort.ts 5116 regression-driver/paxos-work-points/5116.json 1",
+    "env": {
+      "PAXOS_TARGET_CPU": "any"
+    },
+    "cpu": 4,
+    "memory": 14336,
+    "timeout": 300,
+    "vm_type": "large"
+  },
+  {
+    "name": "paxos-cohort-5117",
+    "cmd": "set -euo pipefail; cp -a frozen-paxos/. .; bun regression-driver/paxos-cohort.ts 5117 regression-driver/paxos-work-points/5117.json 1",
+    "env": {
+      "PAXOS_TARGET_CPU": "any"
+    },
+    "cpu": 4,
+    "memory": 14336,
+    "timeout": 300,
+    "vm_type": "large"
+  },
+  {
+    "name": "paxos-cohort-5118",
+    "cmd": "set -euo pipefail; cp -a frozen-paxos/. .; bun regression-driver/paxos-cohort.ts 5118 regression-driver/paxos-work-points/5118.json 1",
+    "env": {
+      "PAXOS_TARGET_CPU": "any"
+    },
+    "cpu": 4,
+    "memory": 14336,
+    "timeout": 300,
+    "vm_type": "large"
+  },
+  {
+    "name": "paxos-cohort-5119",
+    "cmd": "set -euo pipefail; cp -a frozen-paxos/. .; bun regression-driver/paxos-cohort.ts 5119 regression-driver/paxos-work-points/5119.json 1",
+    "env": {
+      "PAXOS_TARGET_CPU": "any"
+    },
+    "cpu": 4,
+    "memory": 14336,
+    "timeout": 300,
+    "vm_type": "large"
+  },
+  {
+    "name": "paxos-cohort-5120",
+    "cmd": "set -euo pipefail; cp -a frozen-paxos/. .; bun regression-driver/paxos-cohort.ts 5120 regression-driver/paxos-work-points/5120.json 1",
+    "env": {
+      "PAXOS_TARGET_CPU": "any"
+    },
+    "cpu": 4,
+    "memory": 14336,
+    "timeout": 300,
+    "vm_type": "large"
+  },
+  {
+    "name": "paxos-cohort-5121",
+    "cmd": "set -euo pipefail; cp -a frozen-paxos/. .; bun regression-driver/paxos-cohort.ts 5121 regression-driver/paxos-work-points/5121.json 1",
+    "env": {
+      "PAXOS_TARGET_CPU": "any"
+    },
+    "cpu": 4,
+    "memory": 14336,
+    "timeout": 300,
+    "vm_type": "large"
+  }
+]

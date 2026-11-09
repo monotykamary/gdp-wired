@@ -1,0 +1,20 @@
+{
+  "previousQualification": "runs/lane-i/paxos/bootstrap/bootstrap-audit.json",
+  "unchangedSourceFiles": [
+    "paxos-input/merges.pack",
+    "paxos-input/gate.json",
+    "paxos-input/manifest.json",
+    "paxos-input/late.pack",
+    "gate-shared-inputs/module-0.pack",
+    "gate-shared-inputs/root.pack",
+    "gate-shared-inputs/module-1.pack",
+    "gate-shared-inputs/gate.json",
+    "gate-shared-inputs/manifest.json",
+    "gate-original-input/gate.json",
+    "gate-original-input/delta.pack",
+    "gate-original-input/manifest.json",
+    "research/verify-all/final-gate-common.ts"
+  ],
+  "all21SourcesPreviouslyRestored": true,
+  "newChecks": "CPU/roster logic, endpoint source restores; no solver/protocol changes"
+}

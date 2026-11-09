@@ -19,7 +19,7 @@ export function decodeReceipt(text:string){
 }
 export function auditSummary(row:any,traces:any[],revision:string,minimumRepeats=5){
  const issues:string[]=[],check=(ok:boolean,message:string)=>{if(!ok)issues.push(message)}
- check(row.revision===revision&&row.baseline===base,'revision mismatch');check(row.cpu===cpu,'wrong CPU');check(row.strictMs===60000,'budget mismatch');check(row.repeats>=minimumRepeats&&row.records?.length===row.repeats,'missing repeats')
+ check(row.revision===revision&&row.baseline===base,'revision mismatch');check(cpu==='any'?typeof row.cpu==='string'&&row.cpu.length>0&&row.cpu!=='any':row.cpu===cpu,'wrong CPU');check(row.strictMs===60000,'budget mismatch');check(row.repeats>=minimumRepeats&&row.records?.length===row.repeats,'missing repeats')
  check(row.meta?.base?.revision===base&&row.meta?.candidate?.revision===revision&&row.meta?.base?.clean===true&&row.meta?.candidate?.clean===true,'source restore mismatch')
  for(const side of ['base','candidate']){const expected=expectedHarness[side==='base'?base:revision];check(!!expected&&Object.keys(row.hashes?.[side]??{}).length===Object.keys(expected).length&&Object.entries(expected).every(([path,digest])=>row.hashes?.[side]?.[path]===digest),'protected harness differs from pinned source: '+side)}
  const seen=new Set<number>()
@@ -66,7 +66,7 @@ if(import.meta.main){
    if(s.length!==1||s[0]?.[1]!=='0'||s[0]?.[3]!=='boat'){issues.push(job.name+': failed scheduler result');continue}
    const cpuSkips=lines(text,'BISECT_CPU_SKIP ')
    if(cpuSkips.length){if(cpuSkips.length!==1||cpuSkips[0].cpu===cpu||cpuSkips[0].cpu!==p?.cpu||text.includes('BISECT_SUMMARY_GZIP'))issues.push(job.name+': invalid CPU skip');else skips.push({name:job.name,...cpuSkips[0]});continue}
-   try{const {summary,traces}=decodeReceipt(text),errors=auditSummary(summary,traces,identity[1]!);if(summary.replica!==Number(identity[2])||summary.repeats!==Number(identity[3]))errors.push('job identity mismatch');if(p?.exclusive!==true||p.co_tenants!==0||p.cpu!==cpu)errors.push('placement mismatch');const key=summary.revision+':'+summary.replica;if(seen.has(key))errors.push('duplicate replica');seen.add(key);if(errors.length)issues.push(...errors.map(error=>job.name+': '+error));else accepted.push(summary)}catch(e){issues.push(job.name+': '+String(e))}
+   try{const {summary,traces}=decodeReceipt(text),errors=auditSummary(summary,traces,identity[1]!);if(summary.replica!==Number(identity[2])||summary.repeats!==Number(identity[3]))errors.push('job identity mismatch');if(p?.exclusive!==true||p.co_tenants!==0||p.cpu!==summary.cpu||(cpu!=='any'&&p.cpu!==cpu))errors.push('placement mismatch');const key=summary.revision+':'+summary.replica;if(seen.has(key))errors.push('duplicate replica');seen.add(key);if(errors.length)issues.push(...errors.map(error=>job.name+': '+error));else accepted.push(summary)}catch(e){issues.push(job.name+': '+String(e))}
   }
  }
  const output={issues,skips,acceptedJobs:accepted.length,byRevision:summarize(accepted)};writeFileSync(join(args[0]!,'bisection-audit.json'),JSON.stringify(output,null,2)+'\n');console.log(JSON.stringify(output));if(issues.length)process.exitCode=1

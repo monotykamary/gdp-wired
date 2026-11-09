@@ -12,12 +12,13 @@ const protectedHashes:Record<string,Record<string,string>>=JSON.parse(readFileSy
 const build=await Bun.build({entrypoints:[resolve('regression-driver/paxos-cohort.ts'),resolve('regression-driver/bar-resource-pairs.ts')],target:'bun'})
 if(!build.success)throw Error(build.logs.map(message=>message.message).join('; '))
 const temp=mkdtempSync(join(tmpdir(),'lane-i-paxos-bootstrap-'))
+const restorePoints=process.env.PAXOS_ENDPOINTS_ONLY==='1'?[points[0]!,points.at(-1)!]:points
 let restored=0
-try{for(const [index,revision] of points.entries()){
+try{for(const [index,revision] of restorePoints.entries()){
  const dest=join(temp,String(index)),meta=restore(input,dest,revision),hashes=harnessHashes(dest)
  if(Object.keys(hashes).length!==Object.keys(protectedHashes[revision]??{}).length||Object.entries(protectedHashes[revision]??{}).some(([path,hash])=>hashes[path]!==hash))throw Error('protected source mismatch: '+revision)
  if(readFileSync(join(dest,'core/counts.ts'),'utf8').split('return {traced, get counted()').length!==2)throw Error('trace anchor mismatch: '+revision)
- if(index===0||index===points.length-1)command('bun',['install','--frozen-lockfile'],dest)
+ if(index===0||index===restorePoints.length-1)command('bun',['install','--frozen-lockfile'],dest)
  console.log('PAXOS_BOOTSTRAP_RESTORE '+JSON.stringify({meta,hashes}));restored++;rmSync(dest,{recursive:true,force:true})
 }}finally{rmSync(temp,{recursive:true,force:true})}
-console.log('PAXOS_BOOTSTRAP_PASS '+JSON.stringify({baseline,hashedFiles:Object.keys(expected).length,restored,measuredPairs:0}))
+console.log('PAXOS_BOOTSTRAP_PASS '+JSON.stringify({baseline,hashedFiles:Object.keys(expected).length,restored,manifestPoints:points.length,measuredPairs:0}))
