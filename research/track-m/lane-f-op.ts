@@ -12,7 +12,7 @@ import {shardControl as s} from './section13-control.ts'
 import {lemmaRecorder as ledger} from './section18-recorder.ts'
 import {fieldAttemptObserver,type FieldAttempt} from '../../core/count-recovery/field-demand.ts'
 import {pack} from './section18-codec.ts'
-const [file,opText,out]=process.argv.slice(2),op=Number(opText),raw=readFileSync(file!,'utf8'),p=JSON.parse(raw),{m,laws,at,cert,packet,context,options}=p,law=laws.find((l:any)=>l.name===p.lawName),index=laws.indexOf(law)
+const [file,opText,out]=process.argv.slice(2),op=Number(opText),raw=readFileSync(file!,'utf8'),p=JSON.parse(raw),{m,laws,at,cert,context,options}=p,law=laws.find((l:any)=>l.name===p.lawName),index=laws.indexOf(law)
 if(!law||!out||!Number.isInteger(op))throw Error('PACKET OP OUT required')
 for(const [i,t]of p.columns.entries())if(termColumn(t)!==`⟦${i}⟧`)throw Error('column restoration failed')
 mkdirSync(out,{recursive:true});ledger.reset(m,law.name,op);s.mode='run';s.op=op;s.capture=()=>{}
