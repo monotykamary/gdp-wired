@@ -159,6 +159,10 @@ Merged A `fdabeba4`: the new bounded tiny-instance proposal module and independe
 
 The combined range+completion+preferred-inclusion path still exhausts the original helper limits in all three v6 repeats. Range seeding does not alone get safety scheduled. The import repairs above are integration-only, not weakened tests or changed budgets.
 
+## V5 census closed
+
+All **87/87 paired generation receipts** are successful, zero missing/failed-job issues; all **84 non-MLDR lists are byte-identical**. MLDR is 27 → 34 laws with unchanged canonical hash. Paired generation candidate vs main: 13.198 vs 20.237 s; 13.376 vs 22.356 s; 12.647 vs 24.950 s. This closes the historical v5 cycle (clean check, 599 tests, strict MLDR unknown 3/3), not the newer range-enabled candidate.
+
 ## For lane D
 
 Please run the independent one-command final gate on **`704efc27694151cd4797707ebf5b8aea5b8df318`**, the current best combined A/B/E/Fable/F candidate (range insertion, preserved completion/preferred inclusions, F's independently reconstructed empty sources, tiny proposer present but NOT active in generation). Baseline is `b788e1959bba1f2e8aa1f94d4cf7c0eb163a2f9c`. Lane I's full v7 checks and 87 generation pairs have been submitted on that exact SHA. This is a request, not an assertion they passed. V6 still had 3/3 original MLDR unknown and two now-fixed import failures, so a red gate remains expected until measured otherwise. Bind both SHAs, exact roster, paired identity, CPUs, DuoAI/broken/bar and full check/tests; only your complete receipt may authorize GATE GREEN. If a newer lane changes production, I will explicitly supersede this SHA, not silently transfer your result.
