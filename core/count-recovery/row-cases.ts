@@ -9,6 +9,54 @@ import {wallTree,widen} from './ops.ts'
 import {checkConditionalProof as check,hasConditionalProof,transportConditionalProof} from './conditional-proof.ts'
 import {renameProof} from './rename-proof.ts'
 export type RowPair=readonly [E,E]
+// A syntactic dependency test only. Unknown count declarations stay conservative;
+// this selects a search strategy, never supplies a frame as a trusted fact.
+export function writesReadState(m:Machine,cert:Pick<CountCert,'reads'>,path:Path,claim?:C):boolean{
+ const maps=new Set<string>(),vars=new Set<string>(),seen=new Set<string>()
+ const flags:Record<string,C>={}
+ for(const [name,c]of Object.entries(m.step.flags??{}))flags[name]=c.op==='all'?same(x(`?${name}`),n(1)):substC(c,{vars:{},maps:{},flags})
+ const visit=(value:unknown)=>walkLive(value,path,(o:any)=>{
+  if(o.op==='var')vars.add(o.name)
+  if(o.op==='get')read(o.map)
+ })
+ const read=(name:string):void=>{
+  name=name.endsWith('#')?name.slice(0,-1):name
+  if(seen.has(name))return;seen.add(name)
+  const count=m.counts?.[name]
+  if(count){visit(count.below);visit(count.body)}else maps.add(name)
+ }
+ const wanted=new Set<string>()
+ if(claim)walkLive(claim,path,(o:any)=>{for(const [id,name,key]of cert.reads)if(o.op==='var'&&o.name===id||o.op==='get'&&o.map===name&&JSON.stringify(o.key)===JSON.stringify(key))wanted.add(id)})
+ for(const [id,name,key]of cert.reads)if(!claim||wanted.has(id)){read(name);visit(key)}
+ visit(claim)
+ const identity=(value:E,want:E):boolean=>{
+  if(JSON.stringify(value)===JSON.stringify(want))return true
+  if(value.op!=='if')return false
+  const t=truth(value.c,path)
+  return t===undefined?identity(value.then,want)&&identity(value.else,want):identity(t?value.then:value.else,want)
+ }
+ for(const [name,write]of Object.entries(m.step.maps??{}))if(maps.has(name)){
+  const key='each'in write?x(write.each):write.key
+  if(!identity(substE(write.value,{vars:{},maps:{},flags}),{op:'get',map:name,key}))return true
+ }
+ for(const [name,value]of Object.entries(m.step.state??{}))if(vars.has(name)&&!identity(substE(value,{vars:{},maps:{},flags}),x(name)))return true
+ // A packet may use a synthetic count not retained on the machine.
+ return [...maps].some(name=>!(name in (m.maps??{}))&&!(m.inputMaps??[]).includes(name)&&Object.keys(m.step.maps??{}).length>0)
+}
+
+// Prefer a row equal in the model, then another fully assigned unresolved row.
+// Missing/NaN model cells cannot choose a split. A model is a hint, not a proof.
+export function demandedRowPair(pairs:RowPair[],path:Path,model:Record<string,number>,sources:ReadonlySet<string>=new Set()):RowPair|undefined{
+ const ranked=pairs.flatMap((pair,index)=>{
+  if(truth({op:'=',a:pair[0],b:pair[1]},path)!==undefined)return []
+  const a=linear(pair[0],path),b=linear(pair[1],path);if(!a||!b)return []
+  let value=0
+  for(const [key,k]of Object.entries(sub(a,b))){const v=key==='1'?1:model[key];if(!Number.isFinite(v))return [];value+=k*v!}
+  let relevant=false;walkOnce(pair[0],(o:any)=>{if(o.op==='var'&&sources.has(o.name))relevant=true})
+  return [{pair,index,equal:value===0,relevant}]
+ }).sort((a,b)=>Number(b.equal&&b.relevant)-Number(a.equal&&a.relevant)||Number(b.relevant)-Number(a.relevant)||Number(b.equal)-Number(a.equal)||a.index-b.index)
+ return ranked[0]?.pair
+}
 // Prefer exact scalar destinations, including constant-index initialization.
 export function activeWriteKey(m:Machine,root:Path):E|undefined{
  const flags:Record<string,C>={},found=new Map<string,{key:E,rank:number}>()
@@ -50,6 +98,7 @@ export function activeWriteRow(m:Machine,root:Path):string|undefined{
  return [...ranks].sort((a,b)=>b[1]-a[1]||a[0].localeCompare(b[0]))[0]?.[0]
 }
 export function rowPairs(m:Machine,cert:Pick<CountCert,'reads'>,root:Path=new Map(),fieldClaim?:C):RowPair[]{
+ if(!writesReadState(m,cert,root,fieldClaim))return []
  const ranks=new Map<string,number>(),inputs=new Set(m.inputs)
  walkOnce(m.step.maps,(o:any)=>{if(o.op==='get'&&o.key.op==='var'&&inputs.has(o.key.name))ranks.set(o.key.name,(ranks.get(o.key.name)??0)+1)})
  const fallback=[...ranks].sort((a,b)=>b[1]-a[1]||a[0].localeCompare(b[0]))[0]?.[0],exact=activeWriteKey(m,root),named=exact?undefined:activeWriteRow(m,root)??fallback,actor=exact??(named?x(named):undefined)
@@ -62,7 +111,7 @@ export function rowPairs(m:Machine,cert:Pick<CountCert,'reads'>,root:Path=new Ma
  return [...names].slice(0,2).map(name=>[x(name),actor] as const)
 }
 export const proveRowCases:typeof proveRowCasesImpl=(...args)=>wallTree('row-case-reconstruction',()=>proveRowCasesImpl(...args))
-function proveRowCasesImpl(g:Goal,root:Path,pairs:RowPair[],until:number,prove:(path:Path,until:number)=>Tree|undefined,trace?:(e:object)=>void,options:{deferToCaller?:boolean,splitEqual?:boolean}={}):Tree|undefined{
+function proveRowCasesImpl(g:Goal,root:Path,pairs:RowPair[],until:number,prove:(path:Path,until:number)=>Tree|undefined,trace?:(e:object)=>void,options:{deferToCaller?:boolean,splitEqual?:boolean,model?:()=>Record<string,number>|undefined,sources?:()=>ReadonlySet<string>}={}):Tree|undefined{
  if(!pairs.length||clock()>=until)return undefined
  const cache=new Map<string,{path:Path,tree:Tree}>(),history=new Map<string,{path:Path,tree:Tree}[]>()
  const renaming:Record<string,string>={},pair=pairs.length===2?pairs:undefined
@@ -117,6 +166,20 @@ function proveRowCasesImpl(g:Goal,root:Path,pairs:RowPair[],until:number,prove:(
    const n=off(new Map(p).set(id,{lin,holds:false}));return n?{split:lin,yes:y,no:n}:undefined
   }
   return branch(diff,path,p=>branch(back,p,yes,no),no)
+ }
+ if(options.model){
+  const visit=(path:Path,_key:string,remaining:RowPair[],depth:number):Tree|undefined=>{
+   const key=pairs.map(([a,b])=>{const t=truth({op:'=',a,b},path);return t===undefined?'any':t?'equal':'different'}).join('/')
+   const direct=leaf(path,key);if(direct)return direct
+   if(clock()>=until||depth>=pairs.length)return undefined
+   const model=options.model(),next=model&&demandedRowPair(remaining,path,model,options.sources?.())
+   if(!next)return undefined
+   trace?.({stage:'row-demand',depth,pair:next,key})
+   const rest=remaining.filter(pair=>pair!==next)
+   return split(next,path,p=>visit(p,`${key}/equal`,rest,depth+1),p=>visit(p,`${key}/different`,rest,depth+1))
+  }
+  const out=visit(root,'root',pairs,0)
+  return options.deferToCaller?out:out&&check(g,out,root)?out:undefined
  }
  // Try the primary-equal case without a secondary split. Its returned proof
  // must cover every secondary key. The other two logical cases are shared

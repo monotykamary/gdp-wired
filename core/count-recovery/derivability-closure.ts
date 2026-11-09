@@ -252,7 +252,9 @@ export function deriveCountClosure(m:Machine,ds:CountDecl[],g:Goal,cert:Packet,r
     const point={...q.witness}
     for(const index of pool){const h=g.hyps[raw.length+index];if(h?.op==='or'&&h.xs[0]?.op==='<=')walkLive(h.xs[0],scope,(o:any)=>{if(o.op==='var'&&!Object.hasOwn(point,o.name))point[o.name]=0})}
     const model=validPoint(numeric,scope,point);if(!model)return stop('invalid-numeric-model')
+    rowModel=point
     const violated=pool.filter(index=>{const h=g.hyps[raw.length+index];return h?.op==='or'&&h.xs[0]?.op==='<='&&brokenOf({name:'candidate',hyps:[h.xs[0]]})(model).length>0}),pending=new Set(violated.filter(i=>!excluded.has(i))),startedVersion=saved.length
+    if(pairs.some(([a,b])=>truth({op:'=',a,b},scope)===undefined)){rowSources=new Set(violated.flatMap(index=>[...sourceRows.get(index)??[]]));return stop('row-demand')}
     trace.push({stage:'closure-model-round',round:round+1,scope:scopes.indexOf(scope),violated,pending:[...pending],excluded:[...excluded],cuts:available.length,pool:pool.length})
     if(!pending.size){fixedPoint=true;return stop('no-unexcluded-violated-fact')}
     while(pending.size&&building()){
@@ -306,14 +308,16 @@ export function deriveCountClosure(m:Machine,ds:CountDecl[],g:Goal,cert:Packet,r
   trace.push({stage:'closure-scalar-case',depth,split:next.atom,proposed:!!yes&&!!no})
   return yes&&no?{split:next.atom,yes,no}:undefined
  }
+ let rowModel:Record<string,number>|undefined,rowSources=new Set<string>()
  let leavesLeft=Math.max(1,complete.length)
  const atLeaf=(path:Path,end:number):Tree|undefined=>{
+  rowModel=undefined;rowSources=new Set()
   const before=clock(),remaining=Math.max(0,until-before),draw=leafAllowance(remaining,leavesLeft),stop=Math.min(end,before+draw)
   trace.push({stage:'closure-leaf-budget',remaining,leavesLeft,draw,granted:Math.max(0,stop-before),end:stop})
   return scalar(path,stop)
  }
  const rowTrace=(event:object)=>{const e=event as {stage?:string};if(e.stage==='row-case'||e.stage==='row-mirror')leavesLeft=Math.max(1,leavesLeft-1);trace.push(event)}
- let tree=pairs.length?proveRowCases(g,base,pairs,until,atLeaf,rowTrace,{deferToCaller:true,splitEqual:true}):atLeaf(base,until)
+ let tree=pairs.length?proveRowCases(g,base,pairs,until,atLeaf,rowTrace,{deferToCaller:true,splitEqual:true,model:()=>rowModel,sources:()=>rowSources}):atLeaf(base,until)
  for(let i=pins.length-1;tree&&i>=0;i--)tree={split:pins[i]!.split,yes:tree,no:pins[i]!.no}
  const checked=!!tree&&alive()&&(options.conditional?checkConditionalProof(g,tree,root):check(g,tree,root))
  trace.push({stage:'closure-complete',cuts:saved.length,rounds,fixedPoint,checked,total:clock()-started})

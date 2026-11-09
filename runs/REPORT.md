@@ -1,3 +1,110 @@
+## Lane F — implementation and integration checkpoint
+
+Lane F proposal: `3779c750`, refined at `4cf52e8d`. The model-driven path tries the unsplit scope, uses only a validated numeric model to choose an unresolved equality (preferring source rows of violated count facts), covers both orderings of disequality, and retains checked cache/mirror transport. Non-model callers retain the old eager route. Write-free target dependencies follow count bodies/bounds and scalar changes; activation recovery first tries existing frame proofs without splitting a guard. All returned trees still go through the unchanged checker. These are experimental changes, **not validated performance wins**.
+
+Pulled Lane B `b6fa0a50`/`c1d2185f`, Lane A `8b44e4b3`/`c9d7f823`/`48533517`/`74dd9cc5`/`52b2382f`, and Lane E `0ee27c7a`. Report-only integration conflicts preserved both histories. Lane A's finite-CTI audit fixes remain pending their external audit; no prior gate is transferred to this combined tree.
+
+Submitted on boat: no-data focused check `runs/lane-f-check-v1` (batch `20261109-140200-5f9h4w`, tree `d8b0ccdc3c09`) and nine same-VM frozen-op pairs plus a check in `runs/lane-f-frozen-v1` (batch `20261109-140314-cksbws`, tree `663f93d73008`). The frozen input is the actual E-14 capture, not Gp1: family SHA-256 `5c9aa44bca08790afdf331b290f101b6ca5d177133e662f5f6f1e80aa6cebc6f`, zero supplied laws. Control files are exactly `d4479299`. Both batches are pending; no verdict or saving is inferred from submission. The check inside the data-mounted batch may encounter the known fixture problem of `.ts` control copies under the repo; the first check is isolated from those files. No replacement run is being silently substituted.
+
+At 14:07 +0700 the controllers still had no receipts; read-only pool status showed 42 idle large warm agents. This resembles Lane A's recorded stalled receipts, but is not yet classified as a test failure or a definitive scheduler failure. Work continues on source integration and reproducible receipt analysis while a single bounded observer waits per batch. The original harness and Lane D final gate have not run for this candidate.
+
+## Lane F — start / scope (2026-11-09)
+
+NOT GATE GREEN. Branch `claude/mldr-leaves` starts at `d4479299`; baseline main is `b788e195`. Read COMMON, MLDR-DESIGN §§14–16 and all MLDR-29 rules, Speed, Gate evidence and Merging. Lane F owns row/activation leaf reduction (§15.6). Hypothesis: probing the unsplit scope and splitting only on a numeric model's unresolved row equality reduces reconstructed leaves without changing checked obligations; syntactically write-free operations need no row cases. Falsifiers: more leaves/cost, lost checked results, or any accepted unchecked branch.
+
+Overlap disclosure: a minimal model-observation hook in `core/count-recovery/derivability-closure.ts` is necessary to feed row selection; Lane B otherwise retains that file and §§15.4/15.5. No kernel edits, hand laws, production budget changes, or edits to other worktrees. Measurements will distinguish frozen legacy op packets, checksum-verified actual E-14 family, and strict original harness. Only Lane D's exact SHA-bound final receipt can support GATE GREEN.
+
+# Lane A — AUDIT-BLOCKER fixes under verification
+
+Lane D found two defects in `c9d7f823`: derived-count evaluation did not
+check cancellation inside its loop, and CTI certification omitted declared
+`m.facts`. Both are being fixed before further gates. The runtime count loop
+now checks the wall and accepts a propagated checkpoint; the finite evaluator
+and actual interpreter step pass the per-attempt stop through to that loop.
+Partial count sums are never cached. CTI certification checks every supported
+fact and refuses unsupported declarations; the finite sampler also includes
+preconditions/facts and declines unsupported derived sum-state machines.
+
+`runs/t16-audit-fix-v1` is validating focused regressions, including the exact
+5,000,000-bound / 20 ms wall case and the `p=1` model under a declared `p=0`
+fact. The repair commit is being published for review while test receipts are
+pending. Lane D re-audit remains required; no resolution or GATE GREEN is
+claimed. Both focused jobs are still awaiting remote receipts: gate batch
+`20261109-134201-sn9lie` and interactive batch `20261109-134617-k7jlfk`.
+Read-only scheduler status reports 58 idle large VMs while these jobs and
+the worker’s earlier short pilots remain marked running past their nominal
+timeouts. No shared scheduler or VM was restarted, and no duplicate gate
+is being launched. Previously launched
+`c9d7f823` regression probes and old sampler probes are not final gate evidence.
+
+# Lane A / T-14 iteration receipts complete; Section 16 in progress
+
+The E-14 + per-attempt-sharing implementation (`1681e8e5`) and the test-only
+packed-domain clock repair pass the lane-local iteration checks against `b788e195`:
+84/84 retained IC3Syn safety proofs, 30/30 DuoAI proofs, no broken variant
+proved, all seven test shards and type/lint/commitlint green. The recovered
+quick bar has wrong 0 and solid losses 0 (three non-solid CHC losses remain).
+The 28 other generation lists are identical x3; MLDR has 35 laws and is still
+**unknown**, not 29/29. `T14-GATE.md` records all work deltas and CPU models
+for every strict pair. Original logs and failed probes remain in this worktree.
+
+Counted-work changes occurred in: `consensus_epr`, `consensus_forall`,
+`consensus_wo_decide`, `distributed_lock`, `learning_switch_i4` (broken),
+`majorityset_leader_election`, `mldr`, `naive_consensus`, `paxos_epr`,
+`quorum_leader_election`, `ring_leader_election`, `simple`, `simple_election`,
+`simple_regular`, `toy_consensus`, `toy_consensus_epr`, `toy_consensus_forall`.
+No safety verdict or returned helper law was lost.
+
+Under the revised Gate evidence rule, these lane-local receipts do **not**
+authorize a merge. GATE GREEN requires Lane D's one-command final receipt
+with both SHAs, exact roster, pair identity, and CPU labels bound. No such
+claim is made here.
+
+Section 16.1 first half / 16.2: concrete relative-CTI certification and a\nsingle counted deadline per attempt are implemented. The finite checker\nrecomputes count cells, checks the entire predecessor family, executes the\nactual request, and requires a post-state violation. Only that result skips\nthe other pass. An uncertified pass-1 model is `unknown`; it does not carry\nthe new `refuted` marker. The existing failed-proof elimination policy is\notherwise unchanged. The exact end now bounds refinement, decision, part\ngrowth, and final growth; supportBudget remains the caller-priority owner.\n\nValidation: `t16-check-v1` has 23 pass / 0 fail / 2,572 assertions, plus\nTypeScript and type-aware lint. `t16-probe-v1` is running three strict paired\nrepeats against main and three against the clean T-14 parent (`8b44e4b3`).\nThese changes are NOT covered by the T-14 iteration results or a Lane D\nmerge receipt. Geometry-biased finite sampling is now under test; Lane C owns 16.4.
+
+First-half measurement (`t16-probe-v1`, six pairs on AMD Ryzen 9 9950X):
+all six candidate runs end cleanly at 59.12–59.42 seconds, all `unknown`.
+All 214 completed candidate attempts are within 1.011× their declared share
+(the actual maximum is 1.010216); no >1.1× attempt. **16.1's prediction is
+falsified:** zero completed models certify as genuine relative CTIs; each
+fails the whole-family predecessor check. The initial family remains 35,
+round 0 never completes, and safety is not reached. The second-half sampler
+is therefore necessary. Raw results and all classifications are retained
+in `t16-probe-v1/` and `t16-probe-inspect.json`. The inspector initially
+included later baseline phases on odd repeats; it was corrected to stop at
+the candidate's own end marker before reporting any of these numbers.
+
+The committed first half (`c9d7f823`) is confirmed again in `t16-confirm`:
+23 tests / 2,572 assertions, type/lint checks and commitlint all pass. The
+new boundary-state tests pass; their first type check found a test-record
+annotation missing the `ms` field, now repaired. `t16-frontier-v1` is running
+that exact repair plus three bounded-generation repeats. The new sampler
+uses only law atoms (guards, one-sided cubes, and exact field bounds), and
+its entire pass has a two-second local cap; timeout retains only already
+certified drops and cannot extend an earlier outer deadline.
+
+Second-half first probe (`t16-frontier-v1`): three identical 34-law outputs,
+zero generation queries. The finite pass removes six laws, including the
+five earlier removals and **CV at most 2**, but this is only **one of the
+seven** costly survivors. The required tiny-state fallback is therefore in
+progress in an isolated new module. This is not reported as success of the
+five-law prediction. The first raw local cap finished at 2,000.2–2,001.7 ms;
+the implementation now reserves the existing generic wall-completion
+headroom (1,900 ms active allowance) and is being remeasured in
+`t16-filter-v2` now confirms all six paired filter walls at 1,900.05–1,901.27 ms, zero queries, on an isolated AMD Ryzen 9 9950X. Random-only filtering removes none within that cap; boundary-first filtering removes the same six in all three repeats. Every drop is independently rechecked against the round’s full family and the interpreter’s actual step. Complete generation is still 31.56–34.45 s: sampled-state
+construction costs 16.00–19.81 s and scalar cube construction
+10.29–15.52 s, which is concrete input for Lane C's 16.4 work.
+
+The older audit/replay jobs are now terminal. `t14-replay-v1` has eight root
+replays: all return an abstract `sat`, none a checked proof, at their original
+2,838/3,004-unit allowances. Three concrete audits (including the symbolic
+identity diagnostic) establish no genuine relative CTI. These are research
+root replays, not full-helper or end-to-end proofs. No owned old T-14 job
+remains pending. The 28 unaffected protocols are now running x3 from an
+immutable `c9d7f823` archive against immutable `b788e195`, not the changing
+working tree (`t16-others-v1`). These are iteration probes, not Lane D's
+final merge gate.\n
+
 # Track P report
 
 Current assignment: [Track Gen — production invariant-generation cost](#track-gen).
@@ -5898,3 +6005,64 @@ The legacy class-first diagnostic has a real negative: op 4 records 52 class att
 **Exact complete-cost replay received:** `lane-b-final-cost-audit-v1` independently checks both p1 and safety from the v3 receipts and agrees that added checker units are zero in this meter. Audit tree `677692b7a171`, exclusive Ryzen 9 9950X, four pinned vCPUs. Their nonzero checker wall and conditional/standalone scope remain unchanged; this is still not original-harness ×3 or Lane D gate evidence.
 
 The class-ranking follow-up remains unresolved: op 0 now returns unknown normally at 986.595 units / 7.001 s (56 class attempts), op 4 at 778.798 / 7.003 s (52 attempts). These are legacy conditional leaf prefixes with 31 imported seeds and separate setup time. The pre-handoff prototype check passed both jobs: default 31 tests / 310 assertions plus 7 / 33; row prototype 37 / 277. This validates that snapshot only and supplies no row-policy speedup or gate evidence. Lane F has now published its own core implementation and integration snapshot; those changes are being reviewed for import. All detailed receipts and caveats remain in `lane-b-status-v1`; only Lane D's final gate can support GATE GREEN.
+
+### First full gate: not green
+
+`runs/t14-gate-v1/` completed all 154 jobs on boat. Both sides proved all
+**28 already-solved IC3Syn protocols in all three repeats (84/84 each)**
+and all **10 DuoAI protocols in all three repeats (30/30 each)**. MLDR was
+unknown on both sides, all three times. No broken variant was proved:
+11 were refuted, 17 returned unknown, and `sharded_kv_no_lost_keys` hit the
+strict wrapper on both sides. The killed broken check is not a safety proof.
+
+Six test shards and type/lint/commitlint passed. Shard 2 failed the existing
+`packed column domains are split once before row reconstruction and checked`
+assertion in `core/count-recovery/field-bound-lemmas.test.ts`: its tree was
+defined and checked, but the expected route-trace event was absent. Paired
+isolated reproductions on unchanged main and this branch are submitted;
+this is not yet classified as a regression or a pre-existing test defect.
+
+The coordinator reported a scheduler recovery stall from about 12:28–12:40.
+No completed assertion failure is being relabelled as infrastructure. The
+restart blanked 72 CPU labels in the placement receipt: 68 can be recovered
+from a nonblank receipt for the same immutable VM ID, and one more from the
+earlier v6 check. Three cases without an existing CPU label are being rerun.
+Future paired logs print the guest CPU model themselves. The final-source
+29×3 census/capture batch was held, not discarded, and remains in progress.
+The full report will list every protocol whose counted totals moved; the
+raw first-gate pairs and aggregation are retained. Cross-receipt recovery
+now supplies CPU labels for every original pair, without inferring a model
+from a VM class. No GATE GREEN claim is made while the test and bar are pending.
+
+### T-14 generation and first strict confirmations
+
+`runs/t14-final-v1/` completed all 94 jobs after recovery. The generation-only
+census has **87 pairs, zero prover queries, and all other 28 canonical lists
+byte-identical in all three repeats**. MLDR changed from 34 to 35 laws in each
+repeat, with the same candidate hash
+`35b0da100cc1a3b922deb1f2ceab24068ff3d1d46f968b4cafbdd15d99f1e2bc`.
+Candidate generation took 25.51, 25.31 and 25.39 s.
+
+The three original-harness candidate processes returned unknown cleanly in
+59.41, 59.64 and 59.17 s; main returned unknown in 22.70, 37.57 and 19.85 s.
+Repeats 1/2/3 used AMD EPYC 4585PX / AMD Ryzen 9 9950X / AMD Ryzen 9 9950X,
+respectively, each pair isolated on one pinned large VM.
+
+Section 15.1 lifted Inv*'s share from 1,714 to 3,004 and Inv2973-half's
+to 2,838 in the isolated control. All 15 distinct early kept-law labels
+were retained in all three share pairs, and no returned helper was lost
+on any of the other 28 protocols. The top-level verdict did not improve.
+Inv* returned pass-0 sat and pass-1 unknown. Inv2973-half still returned
+pass-0 sat, and pass-1 sat in repeats 2/3 (repeat 1 hit the wall). Inv1758
+and the count cubes were not reached before the wall; no claim that all
+three helpers got the predicted allowance is made.
+
+The first capture transported repeat 1, but duplicates of whole families
+inside each witness overflowed repeats 2/3. The bounded transport now keeps
+all scalar witnesses separately from replay roots and is being rerun.
+The initial standalone test comparison was invalid on main, which does
+not contain the branch's field-recovery test; the candidate passed it 3/3.
+The route assertion has a 50 ms internal wall window and is being retested
+under the deterministic counted clock, without changing production code.
+The bar's failed-window runs were retained as infrastructure failures;
+the old controller was stopped and a fresh paired quick bar completed: wrong 0, solid losses 0. Three non-solid CHC losses (1/4 candidate solves versus 3/4 or 4/4 baseline solves) are retained in its report, not hidden.

@@ -1,0 +1,8 @@
+fix(core): decouple runtime wall checks from proof imports
+
+Keep the derived-count wall checkpoint without importing the proof
+engine into machine initialization. A dependency-free runtime hook is
+registered by the wall module; explicit attempt checkpoints still run.
+
+This avoids a cycle through cyclic proof constants while retaining the
+in-loop cancellation fix in 74dd9cc5. No proof rule or kernel is changed.
