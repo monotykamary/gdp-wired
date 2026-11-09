@@ -1,3 +1,67 @@
+## RESUME — PAUSED BY USER (2026-11-09)
+
+**Do not start work until the user explicitly resumes. No push or merge.**
+
+- Branch: **`claude/track-mldr`** in `/Users/monotykamary/VCS/working-remote/open-source/gdp-wired-trackM`.
+- Last work/WIP SHA: **`e4e4745cbe1c4ff136325290ccf65dc0330806cf`**. This RESUME section is committed immediately after it; use `git rev-parse HEAD` for the resume-document commit.
+- Finished range integration: `803129c4`; tested compatibility/dual-clock correction: `6d69e094`; measured evidence checkpoint: `00a7d516`; unfinished final audit/projection code: `1876f718`, explicitly marked WIP by `e4e4745c`.
+- All owned background tasks are stopped. All four remaining owned boat batch registrations were closed by exact ID; final scheduler verification found no owned batches or running items. No new jobs were started during checkpointing.
+
+### Proven / measured so far
+
+All numbers below concern the **exact original-harness 34-law family**, count-first, **6,000 counted units / 7,000 ms**; they are conditional helper results, not a complete-family proof.
+
+- **p1** worker-checks in both same-VM orders: pre-range **2,175.512 units / 2.137–2.261 s**, with ranges **2,295.746 / 2.849–3.232 s**. Range overhead is **120.234 units (5.53%)**. Four paired certificates still need the final independent replay; do not label those independently accepted yet.
+- A separate fresh pre-range p1 result (**2,175.512 units / 5.336 s**) and seven unknown outcomes passed the completed eight-record exact-model/roster audit (`lane-b-range-followup-v1/audit.log`).
+- **Inv1758 remains unknown.** Original counted STEP refinement asks 12–13 queries, grows 68 → 284/295 hypotheses and consumes the allowance before recovery. Early focused entry plus helper caps/class order still leaves active field/row cases 1/4/5/6 unresolved. The field-only live claim bypasses class ordering's two-live-count-read precondition. The corrected dual-clock experiment uses **6,001.003 units / 4.291 s**, still unknown; early/fallback costs are **2,000.791 + 4,000.213 units**. No tested generic change brings it under the line; Lane F has the remaining row/field gaps.
+- **Inv* remains unknown** with ranges in both execution orders. Captured after-queries prove the integration is active: one range per count read (10 initially, 47 after completion). Lower wall-truncated unit totals are not a saving.
+- Finished source passed typecheck/lint and **17 tests / 65 assertions** (`lane-b-range-followup-v1/check.log`). The later expanded 13-record projection script has **not** completed its final source check.
+- Nine completed measurement archives were fetched and checksum-verified. Small manifests, logs and CPU placement remain committed. Large `receipts.tar.gz` files were removed from the current Git index but **remain at their original local paths**, along with expanded raw receipts and prepared input directories. Do not run `git clean`; preserve/copy these ignored artifacts before moving machines. Existing history was not rewritten.
+
+### Cancellation inventory (all closed; nothing to await)
+
+| Exact task / batch | Output / purpose | Partial result status |
+|---|---|---|
+| Task `1d02306c-85e3-46cc-848a-8a55e2a6d00a` (PID 23225); batch `20261109-154233-07us9f` | `runs/track-m/lane-b-range-final-audit-v1`: five remaining exact-family replays, final source check and consolidated 13-record projection | **No usable partials**: no per-job logs/receipts were written. Task was stopped by exact ID; queued batch was then closed explicitly. Rerun its three jobs after resume. |
+| Batch `20261109-000842-7lxjwd` | Stale single-item `gdp-wired-trackM` submission; original task ID, output path and exact purpose are not retained in the task registry | No attributable usable result found. Closed by exact batch ID. Do not blindly rerun. |
+| Batch `20261109-001003-ts9wn1` | Stale single-item `gdp-wired-trackM` submission; original task ID, output path and exact purpose are not retained in the task registry | No attributable usable result found. Closed by exact batch ID. Do not blindly rerun. |
+| Batch `20261109-120151-t1kpp9` | Stale single-item `gdp-wired-trackM` submission; original task ID, output path and exact purpose are not retained in the task registry | No attributable usable result found. Closed by exact batch ID. Do not blindly rerun. |
+
+Detailed close receipts: `runs/track-m/checkpoint-20261109/cancellations.json`.
+The nine completed measurement runs and completed eight-record audit are reusable; cancellation does **not** require repeating them.
+
+### Open audit blockers
+
+1. Independently replay the **four paired p1 certificates** plus the **corrected Inv1758 unknown**. Require exact equality to the captured original model and all 34 laws.
+2. Finish typecheck/lint for `research/track-m/summarize-lane-b-focus.ts` as expanded in `1876f718`; its 13-record projection is WIP, not verified output. The old eight-record summary is not a substitute.
+3. Run the boat-side projection over all nine archives and reconcile **13 records** with the two completed audit sets. Keep large proof decompression off the laptop.
+4. No Inv1758/Inv* complete proof exists. Do not widen allowances, assume helper SATs are protocol counterexamples, import unrelated generation changes, or claim GATE GREEN.
+
+### Exact next steps — only after explicit user resume
+
+1. Verify the branch/head and preserve ignored archives/inputs. Read `supercomputer --skill`. The temporary worktree `/tmp/gdp-wired-lane-b-final-audit-v1` remains at `1876f718`; it has no active process and need not be reused.
+2. Create a fresh immutable worktree at the checkpoint HEAD, then rerun **only** the cancelled final-audit jobs under a new output directory:
+
+```bash
+base=/Users/monotykamary/VCS/working-remote/open-source/gdp-wired-trackM
+cd "$base"
+git status --short
+supercomputer --skill
+git worktree add --detach /tmp/gdp-wired-lane-b-resume "$(git rev-parse HEAD)"
+cd /tmp/gdp-wired-lane-b-resume
+supercomputer run \
+  --jobs research/track-m/jobs-lane-b-range-final-audit.json \
+  --out "$base/runs/track-m/lane-b-range-final-audit-resume-v1" \
+  --class submission --timing --vm-type large \
+  --data "$base/runs/track-m/lane-b-range-final-audit-input:receipts" \
+  --data "$base/runs/track-m/lane-b-projection-input:projection"
+```
+
+3. Inspect `audit.log`, `check.log` and `projection.log`; require all three to succeed. Fetch the completed projection receipt with `research/track-m/fetch-lane-b-batch.ts` and retain its small `summary.json`. The prepared inputs already exist locally; rebuild them from the retained archives if necessary, not by rerunning measurements.
+4. If a source check fails, fix only that failure and rerun the affected validation. If a certificate fails replay, retain the failure and do not claim acceptance. After all five new records reconcile, remove the WIP marker, update the Lane B status and this RESUME section, and commit the small receipts/metadata. Keep large outputs outside Git.
+
+---
+
 ## Lane F — first receipts / repair (2026-11-09)
 
 The first batches completed; the earlier absence of receipts was **queue latency, not an established scheduler failure**. `lane-f-check-v1` failed the optional callback TypeScript narrowing (`TS2722`/`TS18048`), fixed by capturing the callback immutably in `1ecbfb15`. `lane-f-frozen-v1` passed **30 tests / 96 assertions**, then failed the same narrowing and data-mounted control-source imports. Its nine paired workers are **invalid fixture runs**: the second side reused instrumentation already installed in the first side; an additional discovered law-prefix lookup selected the unweakened overlap rather than the exact captured half law. No v1 number is performance evidence.
