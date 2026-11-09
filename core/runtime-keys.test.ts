@@ -129,3 +129,24 @@ test('a step that reads counts computes them in the generated module and agrees 
   }
   expect(steps).toBe(1200)
 })
+
+test('only writes with equal breakpoints share a compiled breakpoint list', () => {
+  const model: Machine = {name: 'separate breakpoint groups', params: [], inputs: ['i', 'j'], state: {}, maps: {A: 0, B: 0, C: 0}, step: {maps: {
+    A: {each: 'a', value: ite(less(x('a'), x('i')), n(1), n(0))},
+    B: {each: 'b', value: ite(less(x('b'), x('i')), n(2), n(0))},
+    C: {each: 'c', value: ite(less(x('c'), x('j')), n(3), n(0))},
+  }}}
+  const js = compileJs(model)
+  expect(js.match(/const bk\d+ = /g)).toHaveLength(1)
+  expect(js).toContain('const write0 = $dense(bk0,')
+  expect(js).toContain('const write1 = $dense(bk0,')
+  expect(js).toContain('const write2 = $dense($breaks(')
+  const run = interpret(model), fast = fastStep(model)!
+  for (const [i, j] of [[0, 2], [2, 0], [2, 1000], [1000, 2], [5, 5]] as const) {
+    const state = run.init({}), input = {i, j}, expected = run.step({}, state, input), actual = fast({}, state, input)
+    for (const map of ['A', 'B', 'C']) for (const k of [0, 1, i, Math.max(0, i - 1), j, Math.max(0, j - 1), 1001]) {
+      const value = (st: State) => st.maps[map]?.get(k) ?? st.defaults?.[map] ?? 0
+      expect(value(actual)).toBe(value(expected))
+    }
+  }
+})

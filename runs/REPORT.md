@@ -6,9 +6,13 @@ Lane I resumed from `cca59f0c` on `claude/mldr-integ`; clean worktree verified, 
 - Repair: core-replay reconstruction now spreads the previous obligation before replacing its goal/decls/encoded goal, retaining `all`, certificate and pool. Added a focused range-demand test for a read omitted by the selected certificate. No budget, law, or kernel change.
 - Current integrated production source candidate: `e48a109efc5ee029d658702ac45a7e7a8ff4c9b6`. V11 validation completed with **one failed check** (new runtime-key test used `Function`); its four test shards, original MLDR pairs and replay negative control returned zero process exits. The V11 generation census remains pending. The frozen upper-bound and test-only VM repair have returned and are qualified below. Lane D's `b09da82d` gate is **RED**, not pending or green; the exact-source paired diagnosis below is active.
 
-## Latest lane-tip integration — active
+## Latest lane-tip integration — merged, V12 validation prepared
 
-The latest committed lane tips are being integrated without substituting them into any already frozen experiment. Lane A `d7d6a9e6` is documentation/evidence only; its exact incoming report is preserved at `runs/lane-i/incoming/20261110/lane-a-d7d6a9e6.md`. Incoming B `72e9da1a`, E `34206459`, F `60704669` and Fable `546be441` are under review. The production deltas are early count-law completion, flags-first member seeding, and equal-breakpoint-only runtime sharing. Combined-source validation is not yet submitted or green.
+The latest committed lane tips are now integrated without substitution into any frozen experiment: A `d7d6a9e6` (merge `e11eeebd`, evidence only), B `72e9da1a` (merge `1550512d`), E `34206459` (merge `d6189c1e`), F `60704669` (merge `f70716da`, research/test only), and Fable `546be441` (merge `7eb16797`). All source merges were automatic; each report conflict preserves Lane I’s continuous report plus the exact incoming report in `runs/lane-i/incoming/20261110/`.
+
+Production deltas: early count-law completion, flags-first member seeding, and sharing runtime breakpoint lists only among writes with identical breakpoint descriptions. No kernel, law set, deadline or counted budget was changed. The guard prototype remains unapplied. An integration test covers shared equal-breakpoint writes alongside a nonshared unequal-breakpoint write, including cell-by-cell interpreter agreement. The new completion-order test is explicitly included in both canonical rosters.
+
+V12 prepares 9 validation jobs (check, four changed-test shards, three original-MLDR pairs, negative replay control) and 87 generation pairs against the unchanged baseline. The existing baseline/vendor archives are reused by directory mount; only small identity metadata will be new. These validate a **new combined production source**, not duplicates of the still-pending V11 or b09 experiments. Combined-source validation is not yet submitted or green.
 
 ## Frozen 140-shard upper-bound census returned — conditional evidence only
 
