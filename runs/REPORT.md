@@ -1,3 +1,11 @@
+# Lane F — source zero identified; original 34-law baseline reproduced
+
+Fresh captures from the actual `proveRule(..., {search:{ms:60000}})` generation callback both give **34 laws**, exact SHA-256 **54c58da465575dd41903b3c7712d70d0caa29400dd23d9c083a8ad366b236553**, no supplied laws. Standalone overlap checks on that exact family both end unknown at **6,003.392446 units**, total wall **5.671 / 5.318 s**. Receipts: `runs/lane-f-original-family-v1/` (generation and cost); both full archived contexts were checksum-verified.
+
+The exact frozen source index 0 is **writeFrame$0**, `r$0 <= r$10`, where `r$0 = inX$rows$xNotS#[64*a$quorum# + b$quorum]` and `r$10 = xNotS[0]`. At the stalled all-equal scope (`a$quorum# = b$quorum = i`), the post-row difference is empty. Its narrower **`r$0 <= 0` is already in the pool**, index 176 / `frame$30`; this is not an absent range proposal. Both two-hypothesis source queries yield **`refuted, not unfolded`, core [0,1]**: the logical contradiction is found but no ordinary reconstruction tree is returned. Plain folding and current Boolean reconstruction did not discharge either obligation within the bounded diagnostic. This narrows the issue to conditional write / equal-key reconstruction, not a new helper law or a valid counterexample.
+
+Current experiments add generic scalar-if selector candidates in a disposable worker only, ahead of inner field values, and compare existing `grow` reconstruction on the same core. Paired actual-34-law cost checks hold everything else fixed. These are unpromoted experiments; no production or kernel edit has yet been made for this assignment.
+
 # Lane F — Inv2973-half assignment / source-zero investigation
 
 Coordinator assigns Lane F the stored-guard `... or disabled/0` helper exclusively; Lane B retains Inv*, Inv1758 and p1. Hypothesis: closure-source index 0 fails because a specific checked count range/instance/frame obligation is absent or not exposed to its source query; adding a generic derivation must close that source and the actual helper within 6,000 units / 7 seconds. This is falsified by a valid model of the source obligation, an unchanged frontier after the proposed instance, or a lost checked result. No law will be weakened.

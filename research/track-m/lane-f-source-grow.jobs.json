@@ -1,0 +1,30 @@
+[
+  {
+    "name": "tiny-grow",
+    "cmd": "bash research/track-m/lane-f-source-query.sh tiny-grow",
+    "cpu": 2,
+    "memory": 8192,
+    "timeout": 60
+  },
+  {
+    "name": "source-grow",
+    "cmd": "bash research/track-m/lane-f-source-query.sh source-grow",
+    "cpu": 2,
+    "memory": 8192,
+    "timeout": 60
+  },
+  {
+    "name": "tiny-zero-grow",
+    "cmd": "bash research/track-m/lane-f-source-query.sh tiny-zero-grow",
+    "cpu": 2,
+    "memory": 8192,
+    "timeout": 60
+  },
+  {
+    "name": "source-zero-grow",
+    "cmd": "bash research/track-m/lane-f-source-query.sh source-zero-grow",
+    "cpu": 2,
+    "memory": 8192,
+    "timeout": 60
+  }
+]
