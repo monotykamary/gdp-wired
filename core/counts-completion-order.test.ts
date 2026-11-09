@@ -4,8 +4,8 @@ import {countedAttempts,countsDump} from './counts.ts'
 import {clock,counted,fullRate,withDeadline,withWall} from '../kernel/prove.ts'
 import {checkMC,countedObligations} from '../kernel/kernel.ts'
 
-test('count targets complete existing premises once before the first model query; fields stay lazy',()=>{
- const m:Machine={name:'completion order',params:[],inputs:[],state:{},maps:{Cells:0},counts:{Total:{j:'countRow',key:'member',below:n(2),body:get('Cells',x('member'))}},step:{}}
+test('count completion precedes the first query without proving a false law; fields stay lazy',()=>{
+ const m:Machine={name:'completion order',params:[],inputs:[],state:{},maps:{Cells:0},counts:{Total:{j:'countRow',key:'member',below:n(2),body:n(1)}},step:{}}
  const countLaw:Law={name:'bounded total',forall:'row',holds:{op:'<=',a:get('Total',x('row')),b:n(1)}}
  const fieldLaw:Law={name:'bounded field',forall:'row',holds:{op:'<=',a:get('Cells',x('row')),b:n(1)}}
  const prior=countsDump.on
@@ -22,7 +22,8 @@ test('count targets complete existing premises once before the first model query
     const until=clock()+1000
     return withDeadline(until,()=>countedAttempts(m,[law],new Set(),until).traced(law,[law],1,1000))
    },true))
-   expect('proof'in result).toBe(true)
+   // Total is always 2: its assumed bound cannot discharge the false INIT.
+   expect('proof'in result).toBe(law===fieldLaw)
    if('proof'in result)for(const {goal,decls}of countedObligations(m,[law],{[law.name]:result.proof.instances},0))expect(checkMC(goal.hyps,decls,result.proof.certs[goal.name]!)).toBe(true)
    const first=phases.indexOf('query'),completion=phases.indexOf('count-completion')
    expect(first).toBeGreaterThanOrEqual(0)

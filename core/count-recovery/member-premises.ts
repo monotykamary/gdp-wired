@@ -47,6 +47,8 @@ export function admitMemberWitnesses<T extends Packet>(m:Machine,decls:CountDecl
  return {cert:{...cert,insts,...('wits'in cert?{wits:insts.map(q=>q.wit)}:{})},hints:hints.filter(h=>insts.includes(h.instance))}
 }
 
+// An empty scalar-law proposal list seeds only member flags and preserves
+// every previously learned tuple; model-driven field instantiation is separate.
 export function instantiateMemberPremises(m:Machine,laws:Law[],at:Instances,decls:CountDecl[],hints:MemberHint[],state:State,cap:number,more:()=>boolean=()=>true){
  let next=at
  const added:{law:string,tuple:E[],kind:'flag'|'law'}[]=[]
