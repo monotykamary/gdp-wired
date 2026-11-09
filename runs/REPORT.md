@@ -35,6 +35,31 @@ use one canonical archive per SHA, reused by hard-linked data mounts, not
 another whole-tree clone. Payload estimate is about 142 MiB including both
 vendors, below the 500-MB disclosure threshold. This is not a proof or gate.
 
+## Fixture-repair validation and offload retention
+
+Repair commit: `6288b666e7b23cb4a10e0e9e92cde919ea135854`. One canonical
+archive was created at `/private/tmp/gdp-archives/<that-sha>.tar` (121,344,000
+bytes). SHA-256:
+`26824362de21cb4ea3c87e78f09aa37dc49077b88ab8a6bb1421dd3eeb311979`.
+Existing exact vendor archives are reused, not rebuilt. The data mount at
+`/private/tmp/gdp-archives/mount/<that-sha>/` contains **hard links**, not
+additional archive copies. No write over 500 MB occurred.
+
+Validation task `617d5ea0-36b4-49a7-bc1b-3d25d275a3f4`, output
+`runs/t16-partial-archive-check/`, extracts that source on boat, verifies
+all three archive hashes, runs the required three test files, full type/lint,
+and commitlint for both the shortcut and fixture repair. It uses the existing
+immutable `current` clone only as a stable launcher envelope. No new clone
+was made. The optimized probes are not duplicated: the fixture-only change
+does not change their measured algorithm.
+
+In response to the offload notice, `runs/KEEP-LOCAL.txt` now names the frozen
+input. `/private/tmp/gdp-archives/KEEP-LOCAL.txt` preserves its existing
+entries and adds the active source/vendor archives and their mount hard-link
+paths. No source file in the active clone is over 20 MB. Previously listed
+unused clones remain cleanup candidates; no file was deleted. Results are
+still pending for this repair.
+
 ## Execution reopened — immutable retries
 
 The coordinator lifted the submission hold after the blob lock freed, while
