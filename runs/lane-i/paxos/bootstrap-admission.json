@@ -9,10 +9,11 @@
   "selectedEndpoints": 21,
   "strictMs": 60000,
   "latePackSha256": "27a8c537bd0abef90030e98af0ac1874d2f05d5cc2dbcf7639d22ca11190dfc2",
-  "probeSubmitted": false,
+  "probeSubmitted": true,
   "wideSubmitted": false,
   "finalGate": false,
   "batch": "20261110-045959-qf633y",
   "snapshot": "ba0a48893118",
-  "audit": "bootstrap/bootstrap-audit.json"
+  "audit": "bootstrap/bootstrap-audit.json",
+  "probeTask": "df20e57f-d555-476b-b3a6-b9c1b8b6b6d7"
 }

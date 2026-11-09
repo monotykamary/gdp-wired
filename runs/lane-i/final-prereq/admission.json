@@ -52,6 +52,6 @@
     "baseline": "4497c4b05c3111959a2b8d808c426a0e3cab3f01",
     "status": "completed-red",
     "delivery": "lane-d-delivery.json",
-    "result": "../../paxos/lane-d-final-bf011901-results.md"
+    "result": "runs/lane-i/paxos/lane-d-final-bf011901-results.md"
   }
 }
