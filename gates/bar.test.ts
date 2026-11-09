@@ -120,6 +120,14 @@ test('quick-bar CLI waits before demand, read-only CLI bypasses slots, and exits
     expect(readFileSync(calls, 'utf8').trim().split('\n').every(c => c === 'submission')).toBe(true)
     const freed = tryBarSlot(dir)!
     expect(freed.slot).toBe(0); freed.release()
+    writeFileSync(calls, '')
+    const defaultEnv: Record<string, string | undefined> = {...env}
+    delete defaultEnv.SUPERCOMPUTER_CLASS
+    const defaultClass = start([process.execPath, bar, '--quick', '--only', 'not-a-group'], home, defaultEnv); children.push(defaultClass)
+    expect(await result(defaultClass)).toMatchObject({code: 1})
+    const defaults = readFileSync(calls, 'utf8').trim().split('\n')
+    expect(defaults.length).toBeGreaterThan(0)
+    expect(defaults.every(c => c === 'gate')).toBe(true)
   } finally { await Promise.all(children.map(stop)); a.release(); b.release(); rmSync(home, {recursive: true, force: true}) }
 }, 30_000)
 

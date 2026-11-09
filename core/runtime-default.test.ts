@@ -265,7 +265,7 @@ for(const source of ['x => x + 1', x=>x+1, x=>Function('x','return x + 1')(x), '
 if(attempts || refused!==24 || JSON.stringify(got)!==JSON.stringify({q:2,r:1,rounded:6,enabled:true,mode:'right',selected:5})) throw Error(JSON.stringify({attempts,refused,got}));
 console.log('CSP default passed');
 `
-  const result = spawnSync(process.execPath, ['--eval', source], {encoding: 'utf8', timeout: 15000})
+  const result = spawnSync(process.execPath, ['--eval', source], {encoding: 'utf8', timeout: 15000, env: {...process.env, GDP_CYCLIC_LOG: '0'}})
   expect({status: result.status, stderr: result.stderr}).toEqual({status: 0, stderr: ''})
   expect(result.stdout.trim()).toBe('CSP default passed')
 })
