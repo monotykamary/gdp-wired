@@ -6,6 +6,12 @@ First action: reran exactly the three cancelled final-audit jobs from immutable 
 
 Working hypothesis: the retained four p1 certificates replay against the exact original 34-law model/roster, and the corrected Inv1758 outcome reconciles as unknown. A failed replay, source check or record identity invalidates completion of this audit. While these run, Lane B is reviewing the field-only recovery and the newer on-violation range proposal; neither is credited as a performance improvement without matched receipts.
 
+### On-demand range integration (under validation)
+
+Ported only Fable `b89dd77a`'s on-violation range algorithm. Lane B's count-law completion and both inclusion-selection branches remain intact; the reduced-core rebuild now preserves all count reads for model inspection. No generation/row-policy/kernel changes were imported. Prediction: demand-driven ranges remove the previously measured 120.234-unit p1 eager overhead without losing its checked certificate; either unresolved helper may remain unknown. Falsifiers: p1 loses its certificate, range demand fails to reject the impossible-count model, or a reported reduction is only an earlier wall cutoff.
+
+Prepared `research/track-m/jobs-lane-b-demand-range.json`: six balanced same-VM original-34 comparisons (p1, Inv1758, Inv*, both arm orders), plus typecheck/lint and focused tests. Controls contain the exact two eager source files from `a4dc71d0`; each arm archives its restored bytes, exact family, full costs and checker-only replay. These are standalone conditional measurements under unchanged 6,000-unit / 7-second limits, not original-harness or merge-gate evidence.
+
 ### Historical pause instructions (superseded by explicit resume above)
 
 **The following inventory records the 2026-11-09 pause, not a current instruction to wait. No push or merge.**

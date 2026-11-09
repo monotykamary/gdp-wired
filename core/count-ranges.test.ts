@@ -4,7 +4,7 @@ import {type CountDecl, type MapRead, checkCounted, countedGoal} from '../kernel
 import {clock, grow} from '../kernel/prove.ts'
 import {modelSequence} from '../kernel/model-sequence.ts'
 import {countsForReads} from './count-facts.ts'
-import {rangeInstances, zeroOne} from './count-ranges.ts'
+import {rangeInstances, rangeViolations, zeroOne} from './count-ranges.ts'
 
 const bit = (c: Parameters<typeof ite>[0]) => ite(c, n(1), n(0))
 // A stored row's cardinality (0/1 body over the keys below size) and a count that sums values (not 0/1).
@@ -47,4 +47,14 @@ test('a row count above its universe is refuted once its range instance is in th
   const model = modelSequence(new Map())(without, clock() + 500)
   expect('tree' in model).toBe(false)
   if (!('tree' in model)) expect(model.stuck).toBe('sat')
+})
+
+test('range demand ignores open bounds, non-0/1 bodies, and in-range reads', () => {
+  expect(rangeViolations(ds, reads, {size: 1, r$0: 2, r$1: 2, r$2: 2}).map(r => r[0])).toEqual(['r$0', 'r$1'])
+  expect(rangeViolations(ds, reads, {size: 3, r$0: 2, r$1: 3, r$2: 9})).toEqual([])
+  expect(rangeViolations(ds, reads, {r$0: 2, r$1: 2})).toEqual([])
+  expect(rangeViolations(ds, reads, {size: 1, r$1: 2}).map(r => r[0])).toEqual(['r$1'])
+  const sized: CountDecl[] = [{...ds[0]!, below: {op: 'add', a: x('size'), b: n(1)}}]
+  expect(rangeViolations(sized, [reads[0]!], {size: 1, r$0: 3}).map(r => r[0])).toEqual(['r$0'])
+  expect(rangeViolations(sized, [reads[0]!], {size: 1, r$0: 2})).toEqual([])
 })

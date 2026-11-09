@@ -27,7 +27,7 @@ import {countPoolKey, countSignature, grammarPool, ids, polaritySelection, readT
 import {fieldLaws} from './field-laws.ts'
 import {quorumLaws} from './quorum-laws.ts'
 import {countCubes, liftedOneKeyCounts} from './count-cubes.ts'
-import {rangeInstances} from './count-ranges.ts'
+import {rangeInstances, rangeViolations} from './count-ranges.ts'
 import {finiteHoudini} from './finite-houdini.ts'
 import {finiteModelChecker} from './finite-model.ts'
 import {countsForReads, proposeCountFacts} from './count-facts.ts'
@@ -731,15 +731,26 @@ export function countedAttempts(m: Machine, caller: Law[], support: Set<Law>, un
     type Selection = {chosen: Set<string>, cap: number, previous: Pick<CountCert, 'reads' | 'insts' | 'picks'>, decls: Parameters<typeof certFor>[1], reserve: ReturnType<typeof reservationState>, stable: ReturnType<typeof stableState>}
     const selections = new Map<string, Selection>()
     const poolCache = new Map<string, {key: string, value: ReturnType<typeof grammarPool>}>()
-    // Fable's 16.3 range seeding, outside the lazy selector's cap.
-    const withRanges = <T extends Pick<CountCert, 'reads' | 'insts' | 'picks'> & {wits?: string[]}>(decls: CountDecl[], c: T, all: MapRead[]): T => {
-      if (!pass) return c
+    // Fable b89dd77a: demand-driven ranges, outside the lazy selector's cap.
+    // Keep the demand per obligation through MBQI rebuilds; every added fact
+    // remains an ordinary witness-bearing, kernel-checked count instance.
+    const rangeWanted = new Map<string, Set<string>>()
+    const withRanges = <T extends Pick<CountCert, 'reads' | 'insts' | 'picks'> & {wits?: string[]}>(goal: Goal, decls: CountDecl[], c: T, all: MapRead[]): T => {
+      const wanted = rangeWanted.get(goal.name)
+      if (!pass || !wanted?.size) return c
       const taken = new Set<string>([...all.map(r => r[0]), ...c.insts.map(i => i.wit), ...m.params, ...m.inputs, ...Object.keys(m.state)])
-      const ranges = rangeInstances(decls, all, taken, c.insts)
+      const ranges = rangeInstances(decls, all.filter(r => wanted.has(r[0])), taken, c.insts)
       if (!ranges.length) return c
-      const have = new Set(c.reads.map(r => r[0])), wanted = new Set(ranges.map(i => i.terms[0]![1]))
-      const reads = [...c.reads, ...all.filter(r => !have.has(r[0]) && wanted.has(r[0]))]
+      const have = new Set(c.reads.map(r => r[0])), named = new Set(ranges.map(i => i.terms[0]![1]))
+      const reads = [...c.reads, ...all.filter(r => !have.has(r[0]) && named.has(r[0]))]
       return {...c, reads, insts: [...c.insts, ...ranges], ...(c.wits ? {wits: [...c.wits, ...ranges.map(i => i.wit)]} : {})}
+    }
+    const wantRanges = (goal: Goal, decls: CountDecl[], all: MapRead[], model: Record<string, number>): boolean => {
+      let wanted = rangeWanted.get(goal.name)
+      if (!wanted) rangeWanted.set(goal.name, (wanted = new Set()))
+      let grew = false
+      for (const read of rangeViolations(decls, all, model)) if (!wanted.has(read[0])) { wanted.add(read[0]); grew = true }
+      return grew
     }
     const rawBuild = () => obligations(at).map(({goal, decls}) => {
       if (pass && supported && lazyMode === 'wide') {
@@ -765,22 +776,22 @@ export function countedAttempts(m: Machine, caller: Law[], support: Set<Law>, un
         const full = reservePool(goal, decls, pool0, selection.previous, selection.decls, selection.chosen, selection.reserve, pool, reservation).full
         const keys = ids(full), lazyRoom = selection.chosen.size < selection.cap
         const view = chosenView(full, selection.chosen, selection.cap)
-        const c = withRanges(decls, selectedCertificate(goal, decls, view, selection.stable, lazyRoom), full.reads)
+        const c = withRanges(goal, decls, selectedCertificate(goal, decls, view, selection.stable, lazyRoom), full.reads)
         const gg = mcGoal(goal.hyps, decls, c), fg = lazyRoom ? mcGoal(goal.hyps, decls, full) : undefined
         selection.previous = full; selection.decls = decls
-        return {goal, decls, c, gg, pool: fg ? {fg, keys, wits: [...full.picks.map(() => undefined), ...full.insts.map(i => i.wit)], chosen: selection.chosen, cap: selection.cap} as Pool : undefined}
+        return {goal, decls, c, gg, all: full.reads, pool: fg ? {fg, keys, wits: [...full.picks.map(() => undefined), ...full.insts.map(i => i.wit)], chosen: selection.chosen, cap: selection.cap} as Pool : undefined}
       }
       const full = pass ? certFor(goal, decls, wide, wide && lazyMode !== '0' ? pool : undefined, undefined, structured) : none
-      if (!pass || lazyMode === '0' || (lazyMode === 'wide' && !wide)) { const c0 = withRanges(decls, full, full.reads); return {goal, decls, c: c0, gg: ptime('encode', () => mcGoal(goal.hyps, decls, c0)), pool: undefined as Pool | undefined} }
+      if (!pass || lazyMode === '0' || (lazyMode === 'wide' && !wide)) { const c0 = withRanges(goal, decls, full, full.reads); return {goal, decls, c: c0, gg: ptime('encode', () => mcGoal(goal.hyps, decls, c0)), all: full.reads, pool: undefined as Pool | undefined} }
       const rd = new Map(full.reads.map(r => [r[0], json([r[1], r[2]])]))
       const keys = [...full.picks.map(q => `p${json([rd.get(q[0]), q[1]])}`), ...full.insts.map(i => `i${json([i.terms.map(([z, x]) => [z, rd.get(x)]), i.unit, i.below])}`)]
       if (lazyMode === 'wide') {
         const initial = preferMemberInclusions(m, decls, full, {...full, picks: [], insts: full.insts.slice(0, 10)}, 10, generation.tick)
         for (const inst of initial.insts) chosen.add(keys[full.picks.length + full.insts.indexOf(inst)]!)
       }
-      const c = withRanges(decls, {...full, picks: full.picks.filter((_, j) => chosen.has(keys[j]!)), insts: full.insts.filter((_, j) => chosen.has(keys[j + full.picks.length]!))}, full.reads)
+      const c = withRanges(goal, decls, {...full, picks: full.picks.filter((_, j) => chosen.has(keys[j]!)), insts: full.insts.filter((_, j) => chosen.has(keys[j + full.picks.length]!))}, full.reads)
       const fg = ptime('encode', () => mcGoal(goal.hyps, decls, full))
-      return {goal, decls, c, gg: ptime('encode', () => mcGoal(goal.hyps, decls, c)), pool: fg && keys.length ? {fg, keys, wits: [...full.picks.map(() => undefined), ...full.insts.map(i => i.wit)]} : undefined}
+      return {goal, decls, c, gg: ptime('encode', () => mcGoal(goal.hyps, decls, c)), all: full.reads, pool: fg && keys.length ? {fg, keys, wits: [...full.picks.map(() => undefined), ...full.insts.map(i => i.wit)]} : undefined}
     })
     let lastSignature = ''
     const build = () => {
@@ -888,7 +899,7 @@ export function countedAttempts(m: Machine, caller: Law[], support: Set<Law>, un
             cut[name] = !l ? ts2 : Array.from({length: ts2.length / n}, (_, t) => ts2.slice(t * n, t * n + n)).filter(t => used.has(json(assumed([l], {[name]: t})[0]))).flat()
           }
           at = cut
-          built = obligations(at).map(({goal, decls}, j) => ({goal, decls, c: built[j]!.c, gg: mcGoal(goal.hyps, decls, built[j]!.c), pool: built[j]!.pool}))
+          built = obligations(at).map(({goal, decls}, j) => ({goal, decls, c: built[j]!.c, gg: mcGoal(goal.hyps, decls, built[j]!.c), all: built[j]!.all, pool: built[j]!.pool}))
           part = {gg: built.at(-1)!.gg!, core: {name: gg.name, hyps: (q.core.includes(last) ? q.core : [...q.core, last]).map(h => gg.hyps[h]!)}}
           break
         }
@@ -897,7 +908,8 @@ export function countedAttempts(m: Machine, caller: Law[], support: Set<Law>, un
         if (!more()) return {stuck: 'unknown'}
         const asked = ptime('mbqi', () => modelInstances(m, modelLaws, at, step.gg!, q.witness!)), lz = breaks(step, q.witness) || (!asked && breaks(step, q.witness, true))
         tally('#rounds'); tally('#hyps', step.gg.hyps.length)
-        if (lz && !asked) { built = build(); continue }
+        const ranged = pass && wantRanges(step.goal, step.decls, step.all, q.witness)
+        if ((lz || ranged) && !asked) { built = build(); continue }
         if (!asked) {
           if (completeCounts()) { built = build(); continue }
           if (countsDump.on && (pass || env.GDP_COUNTS_DUMP_ALL_PASSES === '1') && dumped < Number(env.GDP_COUNTS_DUMP_N ?? 3)) { dumped++; countsDump.on({law: law.name, goal: step.goal.name, ls: ls.map(l => l.name), stuck: 'sat', witness: q.witness, reads: step.c.reads, insts: step.c.insts, hyps: step.gg.hyps, base: step.goal, decls: step.decls, cert: step.c, at, laws: ls, wide, pass}) }
@@ -928,8 +940,9 @@ export function countedAttempts(m: Machine, caller: Law[], support: Set<Law>, un
         if (env.GDP_COUNTS_TRACE?.includes('2')) console.error(`counts: ${ls.length === 1 ? 'alone' : `with ${ls.length}`} ${pass} ${goal.name}: ${o && 'tree' in o ? 'proven' : gg ? (o as {stuck?: string}).stuck : 'no read'} ${gg?.hyps.length ?? 0} hyps (insts ${'insts' in c ? c.insts.length : 0} picks ${'picks' in c ? c.picks.length : 0}${wide ? ' wide' : ''}${built.find(b => b.gg === gg)?.pool ? ` of ${built.find(b => b.gg === gg)!.pool!.keys.length}` : ''}) ${Math.round(clock() - t0)} ms`)
         // (the tree search's model of the step goal: the instances it asks for, as the CDCL search's, and the goals again)
         if (gg && o && !('tree' in o) && o.stuck === 'sat' && o.witness && gg === built.at(-1)!.gg && more()) {
-          const asked = ptime('mbqi', () => modelInstances(m, modelLaws, at, gg, o.witness!)), lz = breaks(built.at(-1), o.witness) || (!asked && breaks(built.at(-1), o.witness, true))
-          if (asked || lz) { if (asked) at = asked; built = build(); again = true; break }
+          const last = built.at(-1)!, asked = ptime('mbqi', () => modelInstances(m, modelLaws, at, gg, o.witness!)), lz = breaks(last, o.witness) || (!asked && breaks(last, o.witness, true))
+          const ranged = pass && wantRanges(last.goal, last.decls, last.all, o.witness)
+          if (asked || lz || ranged) { if (asked) at = asked; built = build(); again = true; break }
           if (completeCounts()) { built = build(); again = true; break }
         }
         if (gg && o && !('tree' in o) && o.stuck === 'sat' && o.witness && gg === built.at(-1)!.gg && pass && !wide && houdini && 'loose' in c && (c.loose || isCaller) && more()) { wide = true; widened.add(law.name); built = build(); again = true; break }
