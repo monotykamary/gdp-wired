@@ -21,7 +21,15 @@ the merged-tree tests/typecheck, the 29-list census against `bef4020f` and a per
   (small 4.3–5.2 vs 11.0–12.6 s; `runs/track-wall/receipts/cells1`); incremental vs `b25ab7c4` on an EPYC 4585PX: 14.1 / 12.6 / 10.4 s vs
   13.0 / 15.6 / 15.1 s — the small phase 4.6 / 4.0 / 3.4 vs 5.3 / 6.7 / 6.2 s, the candidate phase mixed (9.5 / 8.6 / 7.0 vs 7.7 / 8.9 / 8.9 s,
   pair 1 against; `runs/track-wall/receipts/incr1`). The compiled-cells agreement test did not run in these batches (a missing test
-  import, fixed in the following commit, rerunning); the census of this head vs `bef4020f` and the strict pairs are running.
+  import, fixed in the following commit, rerunning); the census of this head vs `bef4020f` is running.
+  **Strict harness (the 16.4 metric), this head vs `bef4020f`, one pinned exclusive VM per pair, `GDP_COUNTS_PROF=1`
+  (`runs/track-wall/receipts/orig2`; the jobs exit 1 only because the final `grep -c 'counts: try'` finds no trace lines at trace level 1):**
+  non-attempt wall = small + cubes + filter + quorumFilter + countCubes + finiteHoudini —
+  EPYC 4585PX **10.9 s vs 29.1 s** (small 4.2 vs 13.9, cubes 4.4 vs 12.8); Ryzen 7 9700X **9.9 s vs 20.5 s** (small 3.4 vs 9.9, cubes 4.1 vs
+  8.3); Ryzen 9 9950X 34.8 s vs 54.1 s on a VM running ≈ 3× slower than its class that minute (base small 28.1 s against 10–14 s elsewhere;
+  kept, not a timing claim). The time freed goes to attempts: `decide` 38.9 / 39.0 s vs 23.2 / 29.7 s, `#rounds` 113 / 142 vs 109 / 115,
+  `#hyps` 9,183 / 12,101 vs 8,683 / 9,304; verdict `unknown` on time on all six (round 0 still cannot end: 16.2, above). finiteHoudini is
+  a fixed 1.9 s (its wall cap) on both sides.
 - **Step 1 done — traced strict mldr pairs, violation-driven ranges (`72380dc1`) vs lane A's `c21a6e54`, three pinned large VMs
   (Ryzen 9 9950X ×2, EPYC 4585PX; `runs/track-wall/receipts/rmldr3`, logs gzipped):** verdict `unknown` (time) on all six runs;
   the four traced helpers (`no quorum canVote/1`, `canVote/3`, `stored guard reconfigs/inS`, `… or disabled/0`) read pass 0 `sat`
