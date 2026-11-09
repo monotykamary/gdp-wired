@@ -1,4 +1,9 @@
-# HANDOFF (lane C / Fable, 2026-11-10 03:35) — `claude/mldr-wall`, code head for lane D's gate: **4468efc5** (fully guarded; report-only commits follow it)
+# HANDOFF (lane C / Fable, 2026-11-10 04:00) — `claude/mldr-wall`, code head for lane D's gate: **cd947909** = 4468efc5 (fully guarded) + lane A's 1316eb0f merged
+
+- **cd947909** merges lane A's `claude/mldr-gen` head `1316eb0f` (since `bef4020f`: `core/finite-tiny.ts` opt-in post-target pruning and
+  its tests only — no production path touched, `core/finite-houdini.ts` unchanged) into 4468efc5; **135 tests pass** on it
+  (`receipts/tests6`, lane A's `finite-tiny-target.test.ts` included). The census, strict pairs and mldr pair below were taken on 4468efc5,
+  whose production code cd947909 carries unchanged.
 
 - **4468efc5** = f4db596e below + a breakpoint list shared only by dense writes with identical breakpoints + no second map validation in the
   compiled count cells. Guards on it: 117 tests (`receipts/eq1`), **census 29 / 29 lists byte-identical vs `bef4020f`** (`receipts/census6`),
