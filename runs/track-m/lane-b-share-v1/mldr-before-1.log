@@ -1,0 +1,46 @@
+STRICT_EXIT=0
+counts: small 46/1205; cubes 14 in 0 ms: every x with x < size: never Config[x] is 0 and 1 <= St[x]; every x with x < size: never CT[x] is 0 and 1 <= St[x]; every x with x < size: never 1 <= CT[x] and CV[x] is 0; every x with x < size: never 1 <= CT[x] and started is 0; every x with x < size: never 1 <= St[x] and CV[x] is 0; every x with x < size: never 1 <= St[x] and CfgT[x] is 0; every x with x < size: never 1 <= St[x] and started is 0; every x with x < size: never CV[x] is 0 and 1 <= CfgT[x]; every x with x < size: never CV[x] is 0 and 1 <= started; every x with x < size: never 1 <= CfgT[x] and started is 0; every x, y with x < size ∧ y < size ∧ ¬(x = y): never 1 <= CT[x] and CV[y] is 0; every x, y with x < size ∧ y < size ∧ ¬(x = y): never 1 <= St[x] and 1 <= St[y]; every x, y with x < size ∧ y < size ∧ ¬(x = y): never 1 <= St[x] and CV[y] is 0; every x, y with x < size ∧ y < size ∧ ¬(x = y): never CV[x] is 0 and 1 <= CfgT[y]
+counts: 74 candidates said before or false on the small instances
+counts: candidates at 0 ms: every Config cell is a value of its kind; one primary per term; CT at most 44; St at most 1; CV at most 2; CfgT at most 44; fields: St[a]=1 -> CT[a]=CT[b] -> CV[b]<=CV[a]; fields: St[a]=1 -> CT[a]=CfgT[a]; fields: St[a]=1 -> CT[a]<=CfgT[a]; fields: St[a]=1 -> CT[a]=CT[b] -> CfgT[b]<=CfgT[a]; fields: St[a]=1 -> CfgT[a]<=CT[a]; fields: St[a]=1 -> CfgT[a]=CfgT[b] -> CV[b]<=CV[a]; every x with x < size: never Config[x] is 0 and 1 <= St[x]; every x with x < size: never CT[x] is 0 and 1 <= St[x]; every x with x < size: never 1 <= CT[x] and CV[x] is 0; every x with x < size: never 1 <= CT[x] and started is 0; every x with x < size: never 1 <= St[x] and CV[x] is 0; every x with x < size: never 1 <= St[x] and CfgT[x] is 0; every x with x < size: never 1 <= St[x] and started is 0; every x with x < size: never CV[x] is 0 and 1 <= CfgT[x]; every x with x < size: never CV[x] is 0 and 1 <= started; every x with x < size: never 1 <= CfgT[x] and started is 0; every x, y with x < size ∧ y < size ∧ ¬(x = y): never 1 <= CT[x] and CV[y] is 0; every x, y with x < size ∧ y < size ∧ ¬(x = y): never 1 <= St[x] and CV[y] is 0; every x, y with x < size ∧ y < size ∧ ¬(x = y): never CV[x] is 0 and 1 <= CfgT[y]; inX: no quorum canVote/1; inX: no quorum canVote/3; inX: stored guard reconfigs/inS; inX: stored guard reconfigs/inS or disabled/0; inX: stored guard reconfigs/inS or disabled/1; inX: stored guard reconfigs/inS or disabled/2; inX: stored guard reconfigs/inS or disabled/3; fields: CT[a]=CT[b] and CV[a]=CV[b] -> Config rows agree; fields: CV[a]=CV[b] and CfgT[a]=CfgT[b] -> Config rows agree
+counts: try CT at most 44 | ls 34 pass 0 ms 1765 took 1766 wall 1899 [encode 19 decide 104 mbqi 30 #rounds 6 #hyps 356 focused 1744] -> sat
+counts: try CT at most 44 | ls 34 pass 1 ms 1765 took 164 wall 188 [encode 13 decide 113 mbqi 60 #rounds 6 #hyps 464] -> sat
+counts: try St at most 1 | ls 34 pass 0 ms 1765 took 87 wall 48 [encode 5 decide 25 mbqi 2 #rounds 1 #hyps 38 part 15] -> kept
+counts: try CV at most 2 | ls 34 pass 0 ms 1765 took 1765 wall 1223 [encode 9 decide 88 mbqi 21 #rounds 4 #hyps 206 focused 1105] -> sat
+counts: try CV at most 2 | ls 34 pass 1 ms 1765 took 199 wall 193 [encode 13 decide 139 mbqi 40 #rounds 6 #hyps 419] -> sat
+counts: try CfgT at most 44 | ls 34 pass 0 ms 1765 took 1770 wall 1160 [encode 11 decide 135 mbqi 26 #rounds 5 #hyps 336 focused 988] -> sat
+counts: try CfgT at most 44 | ls 34 pass 1 ms 1765 took 282 wall 223 [encode 9 decide 165 mbqi 47 #rounds 5 #hyps 424] -> sat
+counts: try fields: St[a]=1 -> CT[a]=CT[b] -> CV[b]<=CV[a] | ls 34 pass 0 ms 1765 took 1765 wall 1592 [encode 30 decide 381 mbqi 46 #rounds 9 #hyps 906 focused 1135] -> sat
+counts: try fields: St[a]=1 -> CT[a]=CT[b] -> CV[b]<=CV[a] | ls 34 pass 1 ms 1765 took 1822 wall 1618 [encode 69 decide 1297 mbqi 76 lazy 141 #rounds 12 #hyps 1408 #lazy 86] -> unknown
+counts: try fields: St[a]=1 -> CT[a]=CfgT[a] | ls 34 pass 0 ms 1765 took 274 wall 135 [encode 7 decide 87 mbqi 4 #rounds 2 #hyps 87 part 36] -> kept
+counts: try fields: St[a]=1 -> CT[a]<=CfgT[a] | ls 34 pass 0 ms 1765 took 291 wall 168 [encode 7 decide 114 mbqi 5 #rounds 2 #hyps 86 part 41] -> kept
+counts: try fields: St[a]=1 -> CT[a]=CT[b] -> CfgT[b]<=CfgT[a] | ls 34 pass 0 ms 1765 took 1765 wall 1475 [encode 9 decide 119 mbqi 18 #rounds 5 #hyps 427 focused 1329] -> sat
+counts: try fields: St[a]=1 -> CT[a]=CT[b] -> CfgT[b]<=CfgT[a] | ls 34 pass 1 ms 1765 took 2008 wall 2157 [encode 60 decide 1744 mbqi 129 lazy 85 #rounds 13 #hyps 1989 #lazy 82] -> unknown
+counts: try fields: St[a]=1 -> CfgT[a]<=CT[a] | ls 34 pass 0 ms 1765 took 288 wall 217 [encode 8 decide 106 mbqi 5 #rounds 2 #hyps 87 part 97] -> kept
+counts: try fields: St[a]=1 -> CfgT[a]=CfgT[b] -> CV[b]<=CV[a] | ls 34 pass 0 ms 1765 took 1765 wall 1740 [encode 31 decide 790 mbqi 169 #rounds 15 #hyps 2192 focused 749] -> sat
+counts: try fields: St[a]=1 -> CfgT[a]=CfgT[b] -> CV[b]<=CV[a] | ls 34 pass 1 ms 1765 took 1866 wall 1493 [encode 38 decide 1260 mbqi 78 lazy 70 #rounds 10 #hyps 1554 #lazy 69] -> unknown
+counts: try every x with x < size: never Config[x] is 0 and 1  | ls 34 pass 0 ms 1765 took 1765 wall 1484 [encode 34 decide 1052 mbqi 113 #rounds 17 #hyps 2239 focused 284] -> sat
+counts: try every x with x < size: never Config[x] is 0 and 1  | ls 34 pass 1 ms 1765 took 509 wall 365 [encode 14 decide 298 mbqi 50 #rounds 8 #hyps 751] -> sat
+counts: try every x with x < size: never CT[x] is 0 and 1 <= S | ls 34 pass 0 ms 1765 took 98 wall 57 [encode 5 decide 30 mbqi 2 #rounds 1 #hyps 38 part 19] -> kept
+counts: try every x with x < size: never 1 <= CT[x] and CV[x]  | ls 34 pass 0 ms 1765 took 155 wall 87 [encode 7 decide 45 mbqi 6 #rounds 3 #hyps 125 part 29] -> kept
+counts: try every x with x < size: never 1 <= CT[x] and starte | ls 34 pass 0 ms 1765 took 41 wall 42 [encode 7 decide 27 mbqi 5 #rounds 3 #hyps 126 part 3] -> kept
+counts: try every x with x < size: never 1 <= St[x] and CV[x]  | ls 34 pass 0 ms 1765 took 129 wall 143 [encode 6 decide 104 mbqi 3 #rounds 2 #hyps 86 part 29] -> kept
+counts: try every x with x < size: never 1 <= St[x] and CfgT[x | ls 34 pass 0 ms 1765 took 252 wall 124 [encode 7 decide 77 mbqi 5 #rounds 2 #hyps 86 part 34] -> kept
+counts: try every x with x < size: never 1 <= St[x] and starte | ls 34 pass 0 ms 1765 took 46 wall 51 [encode 8 decide 31 mbqi 6 #rounds 3 #hyps 146 part 4] -> kept
+counts: try every x with x < size: never CV[x] is 0 and 1 <= C | ls 34 pass 0 ms 1765 took 210 wall 173 [encode 7 decide 79 mbqi 6 #rounds 3 #hyps 136 part 80] -> kept
+counts: try every x with x < size: never CV[x] is 0 and 1 <= s | ls 34 pass 0 ms 1765 took 140 wall 110 [encode 10 decide 65 mbqi 9 #rounds 3 #hyps 124 part 25] -> kept
+counts: try every x with x < size: never 1 <= CfgT[x] and star | ls 34 pass 0 ms 1765 took 43 wall 40 [encode 6 decide 23 mbqi 5 #rounds 3 #hyps 130 part 5] -> kept
+counts: try every x, y with x < size ∧ y < size ∧ ¬(x = y): ne | ls 34 pass 0 ms 1765 took 175 wall 85 [encode 6 decide 51 mbqi 7 #rounds 3 #hyps 149 part 20] -> kept
+counts: try every x, y with x < size ∧ y < size ∧ ¬(x = y): ne | ls 34 pass 0 ms 1765 took 223 wall 207 [encode 10 decide 144 mbqi 11 #rounds 4 #hyps 245 part 41] -> kept
+counts: try every x, y with x < size ∧ y < size ∧ ¬(x = y): ne | ls 34 pass 0 ms 1765 took 181 wall 145 [encode 11 decide 88 mbqi 11 #rounds 3 #hyps 153 part 34] -> kept
+counts: try inX: no quorum canVote/1 | ls 34 pass 0 ms 1765 took 68 wall 54 [encode 7 decide 38 mbqi 10 #rounds 4 #hyps 201] -> sat
+counts: try inX: no quorum canVote/1 | ls 34 pass 1 ms 1765 took 422 wall 407 [encode 9 decide 368 mbqi 28 #rounds 4 #hyps 281] -> sat
+counts: try inX: no quorum canVote/3 | ls 34 pass 0 ms 1765 took 68 wall 208 [encode 28 decide 167 mbqi 13 #rounds 4 #hyps 201] -> sat
+counts: try inX: no quorum canVote/3 | ls 34 pass 1 ms 1765 took 615 wall 555 [encode 9 decide 512 mbqi 31 #rounds 4 #hyps 281] -> sat
+counts: try inX: stored guard reconfigs/inS | ls 34 pass 0 ms 1765 took 81 wall 74 [encode 7 decide 53 mbqi 13 #rounds 4 #hyps 257] -> sat
+counts: try inX: stored guard reconfigs/inS | ls 34 pass 1 ms 1765 took 1943 wall 2157 [encode 28 decide 1919 mbqi 56 lazy 142 #rounds 5 #hyps 442 #lazy 20] -> unknown
+counts: try inX: stored guard reconfigs/inS or disabled/0 | ls 34 pass 0 ms 1765 took 90 wall 80 [encode 7 decide 61 mbqi 11 #rounds 4 #hyps 257] -> sat
+counts: try inX: stored guard reconfigs/inS or disabled/0 | ls 34 pass 1 ms 1765 took 6107 wall 14721 [encode 135 decide 3827 mbqi 54 lazy 199 #rounds 5 #hyps 485 grow 10484 #lazy 74] -> unknown
+counts: try inX: stored guard reconfigs/inS or disabled/1 | ls 34 pass 0 ms 1765 took 90 wall 74 [encode 9 decide 52 mbqi 13 #rounds 4 #hyps 257] -> sat
+counts: try inX: stored guard reconfigs/inS or disabled/1 | ls 34 pass 1 ms 1765 took 5768 wall 8763 [encode 41 decide 2876 mbqi 42 lazy 310 #rounds 5 #hyps 485 grow 5471 #lazy 74] -> unknown
+{"id":"mldr","ic3syn":"mldr","search":{"verdict":"unknown","stuck":"unknown","why":"time (rule result)","ms":59075,"work":28714916,"full":9274821}}
+{"artifact":"track-m-tar-v1","dir":"/home/user/track-m-s18-receipts-DCRlMv","format":"tar.gz","parts":1,"bytes":1838,"sha256":"59cd0e7c5a57adad40b1870848fbfccf0a1f00a96aeeba4da3cb663872f163ab"}

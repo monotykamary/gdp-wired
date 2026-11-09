@@ -5832,3 +5832,14 @@ The coordinator identified 12:28–12:40 as an infrastructure stall. A read-only
 Integrated Lane E's raw-pool admission (`7dc52140` → `3837bb36`) and Lane A's E-14 generator plus 15.1 share scheduler (`1681e8e5` → `05338fee`). Conflict resolution preserved bounded count-law completion, both test lists and all reports. This is a research integration, not a gate endorsement. The existing held batches retain their earlier source snapshots and are not evidence for this integrated tree.
 
 `lane-b-family.ts --generated-only` now captures actual generator output without adding p1 or any other law. Missing targets are reported explicitly; ordinary per-law certificates remain conditional on their supplied family, not a jointly accepted proof. `lane-b-generated-v1` is queued for an actual-family capture and integrated type/lint/unit validation. Production has not adopted the disposable 15.4 policy or 15.5/15.6. The kernel and production allowances are unchanged. No complete-law result, 28/29 recertification or GATE GREEN is claimed.
+
+## Lane B — first recovered measurements and real-family continuation
+
+Detailed tables and reproducible receipts: `runs/track-m/lane-b-status-v1/README.md` and `measurements.json`.
+
+- Six original-harness share runs are all unknown. Fixed-share totals: 37,099 / 37,190 / 37,039 units; recomputed share: 44,634 / 42,414 / 44,640. None reached Inv1758 or safety; local overshoot still dominates. CPU models differ between arms, so this is not a same-VM timing comparison.
+- Conditional Gp1: bounded tuple completion produces a worker-checked **p1** certificate in 2,078.848 units (21 completed tuples). It is relative to the supplied 35-law family, not a whole-family proof. Independent replay is queued. Inv2973-half, Inv1758, Inv* and safety remain unresolved at 2,700 units.
+- All eight captured-op runs remain unknown. Active slicing reduces observed work for Inv2973 ops 0/4 and Inv* op 5, but increases Inv* op 3's total while reaching more frame work. Cooperative wall overshoot is disclosed. All 40 scalar-attempt demand values are unknown; no demand-driven saving can be credited.
+- Actual E-14 capture: 35 generated laws, **no supplied laws**, all five targets present, generation 27.306 s. SHA-256 `5c9aa44bca08790afdf331b290f101b6ca5d177133e662f5f6f1e80aa6cebc6f`. Integrated typecheck/lint and **66 tests / 5,417 assertions** passed on source tree `4d442ca21342`.
+
+The five-target comparison is now running against the actual family in `lane-b-real-v1`, alongside a strict original-harness capture. The full 15.4 policy and root-variant backlog remain pending. All 28 jobs in the four completed batches exited successfully after recovery and charged zero starts; no failed infrastructure execution has been mistaken for a prover result. No whole-family proof, 28/29 recertification or GATE GREEN is claimed.

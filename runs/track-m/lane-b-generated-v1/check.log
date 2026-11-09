@@ -1,0 +1,105 @@
+Found 0 warnings and 0 errors.
+Finished in 13.3s on 1352 files with 100 rules using 8 threads.
+bun test v1.4.3 (c6da4a4d3)
+bun test v1.4.3 (c6da4a4d3)
+
+--- stderr ---
+$ tsc -p . && oxlint --type-aware --deny-warnings --disable-nested-config
+
+core/count-completion.test.ts:
+(pass) completes whole tuples of assumed laws, deduplicated, without mutating the old map [0.59ms]
+(pass) completion is bounded to four terms, binary laws, 48 new tuples and existing generation fuel [0.49ms]
+(pass) a complete original premise, not a trusted fact, closes the ordinary checked goal [3.65ms]
+
+core/count-recovery/guard-cases.test.ts:
+(pass) default Boolean activation covers both branches (impossible=true) [5.14ms]
+(pass) default Boolean activation covers both branches (impossible=false) [8.18ms]
+(pass) activation proofs retain their original non-empty path scope [0.41ms]
+(pass) activation proposals pass the complete source check (deferred=false) [0.90ms]
+(pass) activation proposals pass the complete source check (deferred=true) [0.48ms]
+
+core/count-recovery/field-bound-budget.test.ts:
+(pass) an expired source budget returns before inspecting machine rows [0.05ms]
+(pass) an expired wall stops source construction even when counted work remains [0.78ms]
+
+core/count-recovery/field-demand.test.ts:
+(pass) active leaf draws conserve the original allowance and never extend it [0.05ms]
+(pass) field demand distinguishes core, model, absence and missing observation [0.38ms]
+(pass) a parent observation cannot claim demand absence at a stronger child scope [0.08ms]
+(pass) nested attempt costs are exclusive and both are recorded on unwind [0.13ms]
+(pass) disabled observer does not inspect a goal or alter the candidate [0.02ms]
+
+core/count-recovery/field-bound-lemmas.test.ts:
+(pass) packed column domains are split once before row reconstruction and checked [36.83ms]
+(pass) empty-count candidates are post-state singleton upper bounds on field comparisons [0.16ms]
+(pass) a singleton empty count checks at a zero threshold [11.57ms]
+(pass) a singleton empty count is not assumed empty [4.90ms]
+(pass) numeric count bridges include nested path cells but omit unrelated reads [0.16ms]
+(pass) strict successor member bounds suggest checked field ceilings without protocol names [7.76ms]
+(pass) ceilings retain input-key fields used by a write beside the post-count target [0.22ms]
+(pass) field conclusions retain their own ceiling target beside a write actor [0.13ms]
+(pass) equal per-member fields also suggest checked ceiling candidates [0.94ms]
+(pass) a sufficient field ceiling closes before unrelated ceiling proposals [13.02ms]
+(pass) equal row keys produce checked count-read alias cuts [1.42ms]
+(pass) ceiling slices keep carried membership encoded as 1 <= the set cell [25.24ms]
+
+core/count-recovery/leaf-allowance.test.ts:
+(pass) leaf draws take an even remaining share with a one-third ceiling [0.10ms]
+(pass) one third is a ceiling, not a floor or a last-leaf windfall [0.04ms]
+(pass) successive draws conserve spent plus unspent allowance [0.05ms]
+(pass) split children spend one parent draw and cannot obtain another [0.02ms]
+
+ 31 pass
+ 0 fail
+ 310 expect() calls
+Ran 31 tests across 6 files. [152.00ms]
+
+core/count-cubes.test.ts:
+(pass) fresh one-key count cells extend the width-two cube vocabulary [2.06ms]
+(pass) finite cover checks every explicit cell, not just small key numbers [0.52ms]
+(pass) finite cover derives auxiliary half-count bounds and preserves equality cases [0.65ms]
+(pass) Houdini drops only post-violations from the current whole family, never callers [1.82ms]
+(pass) finite Houdini reaches a fixpoint as removed premises admit new predecessors [0.41ms]
+(pass) finite filtering obeys the outer wall rather than extending it [0.19ms]
+
+core/support-order.test.ts:
+(pass) support ordering preserves no-support model traversal and original helper order [0.13ms]
+(pass) per-attempt shares redistribute cheap proofs without reviving tried or carried laws [0.05ms]
+(pass) equal per-attempt spending conserves the total remaining allowance [0.58ms]
+(pass) structural and priority slices never create a budget [0.06ms]
+(pass) stale support cannot grant priority time to unresolved callers [0.04ms]
+(pass) count scheduling requires count or global-state context, not a primitive implication [0.40ms]
+(pass) exhausted outer budget cannot restart in counted search [13.16ms]
+
+core/count-recovery/member-inclusions.test.ts:
+(pass) equality consequents discharge reflexive bodies and retain scalar residue  [1.01ms]
+(pass) equality consequents discharge reflexive bodies and retain scalar residue renamed_ [0.48ms]
+(pass) unknown membership is not treated as implied [0.35ms]
+(pass) an inequality is not a substitution [0.15ms]
+(pass) different domains cannot form an inclusion [0.09ms]
+(pass) another carried map does not supply these member facts [0.04ms]
+(pass) a still-member-dependent predicate is not a scalar residue [0.11ms]
+(pass) without an equality rewrite, ordinary membership stays with the old family [0.08ms]
+(pass) a discharged equality may yield an unconditional candidate, never an asserted cut [0.07ms]
+(pass) cyclic input is refused before recursive substitution [0.03ms]
+(pass) ordinary selection receives an existing guarded inclusion within its unchanged cap [0.58ms]
+(pass) selection cannot manufacture a missing instance or borrow unrelated member flags [0.13ms]
+(pass) selection respects an explicitly smaller cap and does not assert its scalar residue [0.11ms]
+(pass) initial selection shares its cap with existing picks and respects exhausted proposal work [0.12ms]
+(pass) the raw lazy pool admits a genuinely missing bound-specialized inclusion with a fresh witness [3.06ms]
+(pass) an ordinary selected witness proves the conditional inclusion but not its unguarded strengthening [64.69ms]
+
+research/track-m/section15-share.test.ts:
+(pass) each attempt receives an even share of what remains, not the round-start balance [0.06ms]
+(pass) shares and unchanged support draws are nonnegative and bounded by the current pool [0.52ms]
+(pass) local support and caller ceilings are unchanged [0.07ms]
+
+research/track-m/section15-leaf-count.test.ts:
+(pass) counts conjunction short-circuit leaves exactly [0.18ms]
+(pass) counts mixed Boolean guard leaves without assuming a conjunction [0.07ms]
+(pass) a decided guard needs one leaf and repeated tests add none [0.04ms]
+
+ 35 pass
+ 0 fail
+ 5107 expect() calls
+Ran 35 tests across 5 files. [137.00ms]

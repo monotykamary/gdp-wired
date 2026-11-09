@@ -71,4 +71,37 @@ At 2026-11-09 12:45 +0700 the scheduler reported recovery ready, no missing batc
 
 Lane A's E-14/15.1 commit is integrated as `05338fee`; Lane E's raw inclusion pool is `3837bb36`. Earlier queued jobs keep their original snapshots. New `lane-b-generated-v1` captures actual generator output with `--generated-only` (no supplied p1) and validates the integrated tree. This is pending, not accepted evidence. The earlier share patch is now present through Lane A's integration, but the disposable 15.4 policy is still not a production change.
 
-**No complete-law proof, 29/29 result, 28/29 recertification, or GATE GREEN is claimed.**
+## Completed first wave (source snapshots above, not the real E-14 proof repeat)
+
+All 28 jobs in share/op/conditional-completion/generated batches exited successfully after recovery; none is an infrastructure rerun. These batches charged zero VM starts. The share runs remain six **unknown** original-harness outcomes; all generated the old 34-law family, never reaching the row-agreement helper or safety attempt before the wall. Fixed-share total units were 37,099 / 37,190 / 37,039; recomputed-share units were 44,634 / 42,414 / 44,640. All strict exits were zero and in-harness walls were 59.075–59.384 seconds. Larger early draws and local overshoot consumed the pool sooner; no improvement is established. Arms ran exclusively with eight vCPUs but across differing CPU models, not same-VM pairs.
+
+### Conditional Gp1: 15.2 before/after, 2,700 units and 4.8 s
+
+| Target | Before units | After units | Checked before / after |
+|---|---:|---:|---|
+| Inv2973-half | 2,702.252 | 2,715.752 | no / no |
+| Inv1758 | 2,700.415 | 2,700.415 | no / no |
+| Inv* | 684.658 | 2,701.611 | no / no |
+| Safety | 2,705.369 | 2,705.369 | no / no |
+| Supplied p1 | 319.111 | 2,078.848 | no / **yes, worker check** |
+
+The after arm completed 21 count-law tuples for p1 and 36 each for Inv* and Inv2973-half; safety and Inv1758 did not reach completion. The p1 certificate proves both start and step relative to the supplied 35-law family, **not** the whole family. Independent certificate replay is queued in `lane-b-audit-v1`. Reported unit overshoot is retained, not clipped. SAT exits are not claimed to be concrete protocol counterexamples.
+
+### Captured op packets: active-slice before/after
+
+| Law/op | Before units | After units | Before wall ms | After wall ms |
+|---|---:|---:|---:|---:|
+| Inv2973 / 0 | 1,114.885 | 501.047 | 5,527.746 | 4,851.941 |
+| Inv2973 / 4 | 1,439.166 | 616.684 | 5,940.826 | 5,200.697 |
+| Inv* / 3 | 1,200.844 | 1,535.985 | 5,245.230 | 5,056.335 |
+| Inv* / 5 | 2,583.446 | 1,771.788 | 4,973.295 | 4,980.697 |
+
+All eight remained unknown with 5,000-unit allowances and a 4.8-second cooperative clock. Active slicing reduces three observed prefixes but not Inv* op 3; that arm reached additional frame work. This is not the full 15.4 experiment. Every recorded field-demand status was unknown (40 scalar attempts total), so **no demand-driven saving is measurable** from this snapshot. Helper-query models exist, but are not an active root-leaf demand model. Complete-coverage/scope-aware instrumentation is in the still-pending 15.4 batch. Independent span-ledger audit is queued.
+
+### Actual E-14 output and continuation
+
+The real generator emitted **35 laws**, including the p1 cube, with `suppliedLaws: []` and no missing target. Family SHA-256: `5c9aa44bca08790afdf331b290f101b6ca5d177133e662f5f6f1e80aa6cebc6f`. Generation took 27.306 s. This is different input from the earlier supplied-p1 family, despite the same law count. Typecheck/lint and **66 tests / 5,417 assertions** passed on the captured integrated tree `4d442ca21342`.
+
+`lane-b-real-v1` now repeats all five targets with/without completion against that actual family and runs one strict original-harness capture. The 15.4 leaf batch and 288-root treadmill backlog remain pending. Machine-readable observations and CPU/VM provenance are in [measurements.json](measurements.json); compressed, checksum-verified source receipts are retained in each batch's `receipts/` directory. No earlier validation is silently applied to later edits.
+
+**No accepted complete family, 29/29 result, 28/29 recertification, or GATE GREEN is claimed.**

@@ -1,0 +1,797 @@
+{
+  "note": "Worker receipts; conditional certificates and op ledgers await independent audit. CPU models differ between arms; clock-limited prefixes are not whole-law costs.",
+  "sourceTrees": {
+    "share": "f31965ab921f",
+    "op": "37cca604b140",
+    "conditionalCompletion": "fe77a8e3c0d2",
+    "generated": "4d442ca21342"
+  },
+  "share": [
+    {
+      "name": "mldr-after-2",
+      "strictExit": 0,
+      "verdict": "unknown",
+      "stuck": "unknown",
+      "why": "time (rule result)",
+      "ms": 59231,
+      "work": 34459161,
+      "full": 10603380,
+      "units": 42413.52,
+      "attempts": 38,
+      "reachedRows": false,
+      "reachedSafety": false,
+      "placement": {
+        "vm": "bx_a22r988n",
+        "type": "large",
+        "cpu": "AMD EPYC 9455 48-Core Processor",
+        "vcpus": 8,
+        "vm_vcpus": 8,
+        "exclusive": true,
+        "co_tenants": 0
+      }
+    },
+    {
+      "name": "mldr-after-3",
+      "strictExit": 0,
+      "verdict": "unknown",
+      "stuck": "unknown",
+      "why": "time (rule result)",
+      "ms": 59128,
+      "work": 34764102,
+      "full": 11160026,
+      "units": 44640.104,
+      "attempts": 38,
+      "reachedRows": false,
+      "reachedSafety": false,
+      "placement": {
+        "vm": "bx_74ss87e4",
+        "type": "large",
+        "cpu": "AMD EPYC 9455 48-Core Processor",
+        "vcpus": 8,
+        "vm_vcpus": 8,
+        "exclusive": true,
+        "co_tenants": 0
+      }
+    },
+    {
+      "name": "mldr-after-1",
+      "strictExit": 0,
+      "verdict": "unknown",
+      "stuck": "unknown",
+      "why": "time (rule result)",
+      "ms": 59341,
+      "work": 34761784,
+      "full": 11158396,
+      "units": 44633.584,
+      "attempts": 38,
+      "reachedRows": false,
+      "reachedSafety": false,
+      "placement": {
+        "vm": "bx_5wr3bs76",
+        "type": "large",
+        "cpu": "AMD Ryzen 9 9950X 16-Core Processor",
+        "vcpus": 8,
+        "vm_vcpus": 8,
+        "exclusive": true,
+        "co_tenants": 0
+      }
+    },
+    {
+      "name": "mldr-before-1",
+      "strictExit": 0,
+      "verdict": "unknown",
+      "stuck": "unknown",
+      "why": "time (rule result)",
+      "ms": 59075,
+      "work": 28714916,
+      "full": 9274821,
+      "units": 37099.284,
+      "attempts": 40,
+      "reachedRows": false,
+      "reachedSafety": false,
+      "placement": {
+        "vm": "bx_6aqepfyv",
+        "type": "large",
+        "cpu": "AMD EPYC 4585PX 16-Core Processor",
+        "vcpus": 8,
+        "vm_vcpus": 8,
+        "exclusive": true,
+        "co_tenants": 0
+      }
+    },
+    {
+      "name": "mldr-before-2",
+      "strictExit": 0,
+      "verdict": "unknown",
+      "stuck": "unknown",
+      "why": "time (rule result)",
+      "ms": 59384,
+      "work": 28736404,
+      "full": 9297385,
+      "units": 37189.54,
+      "attempts": 40,
+      "reachedRows": false,
+      "reachedSafety": false,
+      "placement": {
+        "vm": "bx_8nqy7xab",
+        "type": "large",
+        "cpu": "AMD Ryzen 9 9950X 16-Core Processor",
+        "vcpus": 8,
+        "vm_vcpus": 8,
+        "exclusive": true,
+        "co_tenants": 0
+      }
+    },
+    {
+      "name": "mldr-before-3",
+      "strictExit": 0,
+      "verdict": "unknown",
+      "stuck": "unknown",
+      "why": "time (rule result)",
+      "ms": 59300,
+      "work": 28704383,
+      "full": 9259870,
+      "units": 37039.48,
+      "attempts": 40,
+      "reachedRows": false,
+      "reachedSafety": false,
+      "placement": {
+        "vm": "bx_2hzfj2ah",
+        "type": "large",
+        "cpu": "AMD EPYC 4585PX 16-Core Processor",
+        "vcpus": 8,
+        "vm_vcpus": 8,
+        "exclusive": true,
+        "co_tenants": 0
+      }
+    }
+  ],
+  "op": [
+    {
+      "name": "star-5-before",
+      "conditional": true,
+      "law": "Inv*: no quorum of a config can still be gathered for a config term held",
+      "op": 5,
+      "packetSha256": "2753fe18bb69a55b9dfa7bc50f5445d22de0616cb6c621597943611eb9fb3415",
+      "allowance": 5000,
+      "wallAllowance": 4800,
+      "searchUnits": 2583.4456943999994,
+      "searchWallMs": 4973.295183,
+      "checked": false,
+      "fieldUnits": 2377.4040363999993,
+      "frameUnits": 205.80013959999997,
+      "attemptCount": 4,
+      "knownDemand": 0,
+      "notDemandedUnits": 0,
+      "completionTuples": 0,
+      "placement": {
+        "vm": "bx_a83zj5st",
+        "type": "large",
+        "cpu": "AMD EPYC 4585PX 16-Core Processor",
+        "vcpus": 8,
+        "vm_vcpus": 8,
+        "exclusive": true,
+        "co_tenants": 0
+      }
+    },
+    {
+      "name": "overlap-0-after",
+      "conditional": true,
+      "law": "Inv2973: quorums overlap, or a config disabled",
+      "op": 0,
+      "packetSha256": "09e194fd15f1d927a3bfd7c87fa7bd69d37e825ee0692d26f729a3eb48c858a2",
+      "allowance": 5000,
+      "wallAllowance": 4800,
+      "searchUnits": 501.04695719999995,
+      "searchWallMs": 4851.940711,
+      "checked": false,
+      "fieldUnits": 1.1666380000000345,
+      "frameUnits": 499.7938535999999,
+      "attemptCount": 1,
+      "knownDemand": 0,
+      "notDemandedUnits": 0,
+      "completionTuples": 0,
+      "placement": {
+        "vm": "bx_akfb4v39",
+        "type": "large",
+        "cpu": "AMD Ryzen 9 9950X 16-Core Processor",
+        "vcpus": 8,
+        "vm_vcpus": 8,
+        "exclusive": true,
+        "co_tenants": 0
+      }
+    },
+    {
+      "name": "overlap-4-before",
+      "conditional": true,
+      "law": "Inv2973: quorums overlap, or a config disabled",
+      "op": 4,
+      "packetSha256": "09e194fd15f1d927a3bfd7c87fa7bd69d37e825ee0692d26f729a3eb48c858a2",
+      "allowance": 5000,
+      "wallAllowance": 4800,
+      "searchUnits": 1439.1659176,
+      "searchWallMs": 5940.8258559999995,
+      "checked": false,
+      "fieldUnits": 941.8922916000001,
+      "frameUnits": 497.1871604,
+      "attemptCount": 3,
+      "knownDemand": 0,
+      "notDemandedUnits": 0,
+      "completionTuples": 0,
+      "placement": {
+        "vm": "bx_7m649ges",
+        "type": "large",
+        "cpu": "AMD Ryzen 9 9950X 16-Core Processor",
+        "vcpus": 8,
+        "vm_vcpus": 8,
+        "exclusive": true,
+        "co_tenants": 0
+      }
+    },
+    {
+      "name": "star-3-after",
+      "conditional": true,
+      "law": "Inv*: no quorum of a config can still be gathered for a config term held",
+      "op": 3,
+      "packetSha256": "2753fe18bb69a55b9dfa7bc50f5445d22de0616cb6c621597943611eb9fb3415",
+      "allowance": 5000,
+      "wallAllowance": 4800,
+      "searchUnits": 1535.9848676,
+      "searchWallMs": 5056.3346,
+      "checked": false,
+      "fieldUnits": 537.4299292000001,
+      "frameUnits": 403.91324319999984,
+      "attemptCount": 10,
+      "knownDemand": 0,
+      "notDemandedUnits": 0,
+      "completionTuples": 0,
+      "placement": {
+        "vm": "bx_7y8uwqen",
+        "type": "large",
+        "cpu": "AMD EPYC 4585PX 16-Core Processor",
+        "vcpus": 8,
+        "vm_vcpus": 8,
+        "exclusive": true,
+        "co_tenants": 0
+      }
+    },
+    {
+      "name": "star-5-after",
+      "conditional": true,
+      "law": "Inv*: no quorum of a config can still be gathered for a config term held",
+      "op": 5,
+      "packetSha256": "2753fe18bb69a55b9dfa7bc50f5445d22de0616cb6c621597943611eb9fb3415",
+      "allowance": 5000,
+      "wallAllowance": 4800,
+      "searchUnits": 1771.7884655999997,
+      "searchWallMs": 4980.696889,
+      "checked": false,
+      "fieldUnits": 925.532648,
+      "frameUnits": 205.80013959999997,
+      "attemptCount": 3,
+      "knownDemand": 0,
+      "notDemandedUnits": 0,
+      "completionTuples": 0,
+      "placement": {
+        "vm": "bx_936hescv",
+        "type": "large",
+        "cpu": "AMD Ryzen 9 9950X 16-Core Processor",
+        "vcpus": 8,
+        "vm_vcpus": 8,
+        "exclusive": true,
+        "co_tenants": 0
+      }
+    },
+    {
+      "name": "overlap-0-before",
+      "conditional": true,
+      "law": "Inv2973: quorums overlap, or a config disabled",
+      "op": 0,
+      "packetSha256": "09e194fd15f1d927a3bfd7c87fa7bd69d37e825ee0692d26f729a3eb48c858a2",
+      "allowance": 5000,
+      "wallAllowance": 4800,
+      "searchUnits": 1114.8853544,
+      "searchWallMs": 5527.746475,
+      "checked": false,
+      "fieldUnits": 615.0050352000002,
+      "frameUnits": 499.7938535999999,
+      "attemptCount": 2,
+      "knownDemand": 0,
+      "notDemandedUnits": 0,
+      "completionTuples": 0,
+      "placement": {
+        "vm": "bx_395wpmqp",
+        "type": "large",
+        "cpu": "AMD Ryzen 9 9950X 16-Core Processor",
+        "vcpus": 8,
+        "vm_vcpus": 8,
+        "exclusive": true,
+        "co_tenants": 0
+      }
+    },
+    {
+      "name": "star-3-before",
+      "conditional": true,
+      "law": "Inv*: no quorum of a config can still be gathered for a config term held",
+      "op": 3,
+      "packetSha256": "2753fe18bb69a55b9dfa7bc50f5445d22de0616cb6c621597943611eb9fb3415",
+      "allowance": 5000,
+      "wallAllowance": 4800,
+      "searchUnits": 1200.8437812000002,
+      "searchWallMs": 5245.229781999999,
+      "checked": false,
+      "fieldUnits": 1082.4074132,
+      "frameUnits": 118.39988960000001,
+      "attemptCount": 15,
+      "knownDemand": 0,
+      "notDemandedUnits": 0,
+      "completionTuples": 0,
+      "placement": {
+        "vm": "bx_8y6xda5y",
+        "type": "large",
+        "cpu": "AMD Ryzen 9 9950X 16-Core Processor",
+        "vcpus": 8,
+        "vm_vcpus": 8,
+        "exclusive": true,
+        "co_tenants": 0
+      }
+    },
+    {
+      "name": "overlap-4-after",
+      "conditional": true,
+      "law": "Inv2973: quorums overlap, or a config disabled",
+      "op": 4,
+      "packetSha256": "09e194fd15f1d927a3bfd7c87fa7bd69d37e825ee0692d26f729a3eb48c858a2",
+      "allowance": 5000,
+      "wallAllowance": 4800,
+      "searchUnits": 616.6843916,
+      "searchWallMs": 5200.6971490000005,
+      "checked": false,
+      "fieldUnits": 119.41076560000005,
+      "frameUnits": 497.1871604,
+      "attemptCount": 2,
+      "knownDemand": 0,
+      "notDemandedUnits": 0,
+      "completionTuples": 0,
+      "placement": {
+        "vm": "bx_25xas5gt",
+        "type": "large",
+        "cpu": "AMD EPYC 9455 48-Core Processor",
+        "vcpus": 8,
+        "vm_vcpus": 8,
+        "exclusive": true,
+        "co_tenants": 0
+      }
+    }
+  ],
+  "conditionalCompletion": [
+    {
+      "name": "star-after",
+      "conditional": true,
+      "tag": "star",
+      "law": "inX: no quorum canVote/3",
+      "familySize": 35,
+      "budget": 2700,
+      "wallAllowance": 4800,
+      "units": 2701.6105700000003,
+      "wallMs": 3434.6520219999998,
+      "checked": false,
+      "results": [
+        {
+          "pass": 0,
+          "outcome": "sat",
+          "units": 68.44284599999999,
+          "wallMs": 140.258578
+        },
+        {
+          "pass": 1,
+          "outcome": "unknown",
+          "units": 2633.1677240000004,
+          "wallMs": 3293.128182
+        }
+      ],
+      "last": {
+        "phase": "unknown",
+        "pass": 1,
+        "goal": "inX: no quorum canVote/3 @start",
+        "law": "inX: no quorum canVote/3",
+        "hyps": 11
+      },
+      "completionTuples": 36,
+      "placement": {
+        "vm": "bx_2uat3ctg",
+        "type": "large",
+        "cpu": "AMD Ryzen 9 9950X 16-Core Processor",
+        "vcpus": 8,
+        "vm_vcpus": 8,
+        "exclusive": true,
+        "co_tenants": 0
+      }
+    },
+    {
+      "name": "star-before",
+      "conditional": true,
+      "tag": "star",
+      "law": "inX: no quorum canVote/3",
+      "familySize": 35,
+      "budget": 2700,
+      "wallAllowance": 4800,
+      "units": 684.658474,
+      "wallMs": 844.9935790000001,
+      "checked": false,
+      "results": [
+        {
+          "pass": 0,
+          "outcome": "sat",
+          "units": 68.44284599999999,
+          "wallMs": 151.41067199999998
+        },
+        {
+          "pass": 1,
+          "outcome": "sat",
+          "units": 616.2156279999999,
+          "wallMs": 692.127761
+        }
+      ],
+      "last": {
+        "pass": 1,
+        "goal": "inX: no quorum canVote/3 @step",
+        "law": "inX: no quorum canVote/3",
+        "hyps": 74
+      },
+      "completionTuples": 0,
+      "placement": {
+        "vm": "bx_5wr3bs76",
+        "type": "large",
+        "cpu": "AMD Ryzen 9 9950X 16-Core Processor",
+        "vcpus": 8,
+        "vm_vcpus": 8,
+        "exclusive": true,
+        "co_tenants": 0
+      }
+    },
+    {
+      "name": "safety-before",
+      "conditional": true,
+      "tag": "safety",
+      "law": "one primary per term",
+      "familySize": 35,
+      "budget": 2700,
+      "wallAllowance": 4800,
+      "units": 2705.3694868000002,
+      "wallMs": 2330.415266,
+      "checked": false,
+      "results": [
+        {
+          "pass": 0,
+          "outcome": "sat",
+          "units": 2705.3694868000002,
+          "wallMs": 2329.23104
+        }
+      ],
+      "last": {
+        "phase": "model",
+        "pass": 0,
+        "goal": "one primary per term @step",
+        "law": "one primary per term",
+        "hyps": 194
+      },
+      "completionTuples": 0,
+      "placement": {
+        "vm": "bx_ahemkzme",
+        "type": "large",
+        "cpu": "AMD EPYC 4585PX 16-Core Processor",
+        "vcpus": 8,
+        "vm_vcpus": 8,
+        "exclusive": true,
+        "co_tenants": 0
+      }
+    },
+    {
+      "name": "safety-after",
+      "conditional": true,
+      "tag": "safety",
+      "law": "one primary per term",
+      "familySize": 35,
+      "budget": 2700,
+      "wallAllowance": 4800,
+      "units": 2705.3694868000002,
+      "wallMs": 2105.7674309999998,
+      "checked": false,
+      "results": [
+        {
+          "pass": 0,
+          "outcome": "sat",
+          "units": 2705.3694868000002,
+          "wallMs": 2104.524333
+        }
+      ],
+      "last": {
+        "phase": "model",
+        "pass": 0,
+        "goal": "one primary per term @step",
+        "law": "one primary per term",
+        "hyps": 194
+      },
+      "completionTuples": 0,
+      "placement": {
+        "vm": "bx_8nqy7xab",
+        "type": "large",
+        "cpu": "AMD Ryzen 9 9950X 16-Core Processor",
+        "vcpus": 8,
+        "vm_vcpus": 8,
+        "exclusive": true,
+        "co_tenants": 0
+      }
+    },
+    {
+      "name": "overlap-after",
+      "conditional": true,
+      "tag": "overlap",
+      "law": "inX: stored guard reconfigs/inS or disabled/0",
+      "familySize": 35,
+      "budget": 2700,
+      "wallAllowance": 4800,
+      "units": 2715.752374,
+      "wallMs": 4030.407112,
+      "checked": false,
+      "results": [
+        {
+          "pass": 0,
+          "outcome": "sat",
+          "units": 90.58333799999998,
+          "wallMs": 142.23363899999998
+        },
+        {
+          "pass": 1,
+          "outcome": "unknown",
+          "units": 2625.1690360000002,
+          "wallMs": 3886.6563229999997
+        }
+      ],
+      "last": {
+        "phase": "unknown",
+        "pass": 1,
+        "goal": "inX: stored guard reconfigs/inS or disabled/0 @start",
+        "law": "inX: stored guard reconfigs/inS or disabled/0",
+        "hyps": 16
+      },
+      "completionTuples": 36,
+      "placement": {
+        "vm": "bx_4cma575j",
+        "type": "large",
+        "cpu": "AMD EPYC 4585PX 16-Core Processor",
+        "vcpus": 8,
+        "vm_vcpus": 8,
+        "exclusive": true,
+        "co_tenants": 0
+      }
+    },
+    {
+      "name": "rows-before",
+      "conditional": true,
+      "tag": "rows",
+      "law": "fields: CV[a]=CV[b] and CfgT[a]=CfgT[b] -> Config rows agree",
+      "familySize": 35,
+      "budget": 2700,
+      "wallAllowance": 4800,
+      "units": 2700.41548,
+      "wallMs": 2151.4269990000003,
+      "checked": false,
+      "results": [
+        {
+          "pass": 0,
+          "outcome": "unknown",
+          "units": 2700.41548,
+          "wallMs": 2149.706493
+        }
+      ],
+      "last": {
+        "phase": "unknown",
+        "pass": 0,
+        "goal": "fields: CV[a]=CV[b] and CfgT[a]=CfgT[b] -> Config rows agree @start",
+        "law": "fields: CV[a]=CV[b] and CfgT[a]=CfgT[b] -> Config rows agree",
+        "hyps": 2
+      },
+      "completionTuples": 0,
+      "placement": {
+        "vm": "bx_69nkhdf7",
+        "type": "large",
+        "cpu": "AMD EPYC 4585PX 16-Core Processor",
+        "vcpus": 8,
+        "vm_vcpus": 8,
+        "exclusive": true,
+        "co_tenants": 0
+      }
+    },
+    {
+      "name": "p1-after",
+      "conditional": true,
+      "tag": "p1",
+      "law": "research Gp1: CV=0 implies empty row",
+      "familySize": 35,
+      "budget": 2700,
+      "wallAllowance": 4800,
+      "units": 2078.8483376000004,
+      "wallMs": 2739.7525889999997,
+      "checked": true,
+      "results": [
+        {
+          "pass": 0,
+          "outcome": "sat",
+          "units": 74.922846,
+          "wallMs": 165.278383
+        },
+        {
+          "pass": 1,
+          "outcome": "proof",
+          "units": 2003.9254916000002,
+          "wallMs": 2572.7671929999997
+        }
+      ],
+      "last": {
+        "phase": "decision:refuted",
+        "pass": 1,
+        "goal": "research Gp1: CV=0 implies empty row @step",
+        "law": "research Gp1: CV=0 implies empty row",
+        "hyps": 171
+      },
+      "completionTuples": 21,
+      "placement": {
+        "vm": "bx_8sf3u958",
+        "type": "large",
+        "cpu": "AMD EPYC 4585PX 16-Core Processor",
+        "vcpus": 8,
+        "vm_vcpus": 8,
+        "exclusive": true,
+        "co_tenants": 0
+      }
+    },
+    {
+      "name": "overlap-before",
+      "conditional": true,
+      "tag": "overlap",
+      "law": "inX: stored guard reconfigs/inS or disabled/0",
+      "familySize": 35,
+      "budget": 2700,
+      "wallAllowance": 4800,
+      "units": 2702.251678,
+      "wallMs": 3741.196049,
+      "checked": false,
+      "results": [
+        {
+          "pass": 0,
+          "outcome": "sat",
+          "units": 90.58333799999998,
+          "wallMs": 163.444771
+        },
+        {
+          "pass": 1,
+          "outcome": "unknown",
+          "units": 2611.66834,
+          "wallMs": 3576.429731
+        }
+      ],
+      "last": {
+        "phase": "unknown",
+        "pass": 1,
+        "goal": "inX: stored guard reconfigs/inS or disabled/0 @start",
+        "law": "inX: stored guard reconfigs/inS or disabled/0",
+        "hyps": 17
+      },
+      "completionTuples": 0,
+      "placement": {
+        "vm": "bx_2kmf8w3s",
+        "type": "large",
+        "cpu": "AMD Ryzen 9 9950X 16-Core Processor",
+        "vcpus": 8,
+        "vm_vcpus": 8,
+        "exclusive": true,
+        "co_tenants": 0
+      }
+    },
+    {
+      "name": "rows-after",
+      "conditional": true,
+      "tag": "rows",
+      "law": "fields: CV[a]=CV[b] and CfgT[a]=CfgT[b] -> Config rows agree",
+      "familySize": 35,
+      "budget": 2700,
+      "wallAllowance": 4800,
+      "units": 2700.41548,
+      "wallMs": 2052.314666,
+      "checked": false,
+      "results": [
+        {
+          "pass": 0,
+          "outcome": "unknown",
+          "units": 2700.41548,
+          "wallMs": 2051.1079870000003
+        }
+      ],
+      "last": {
+        "phase": "unknown",
+        "pass": 0,
+        "goal": "fields: CV[a]=CV[b] and CfgT[a]=CfgT[b] -> Config rows agree @start",
+        "law": "fields: CV[a]=CV[b] and CfgT[a]=CfgT[b] -> Config rows agree",
+        "hyps": 2
+      },
+      "completionTuples": 0,
+      "placement": {
+        "vm": "bx_6aqepfyv",
+        "type": "large",
+        "cpu": "AMD EPYC 4585PX 16-Core Processor",
+        "vcpus": 8,
+        "vm_vcpus": 8,
+        "exclusive": true,
+        "co_tenants": 0
+      }
+    },
+    {
+      "name": "p1-before",
+      "conditional": true,
+      "tag": "p1",
+      "law": "research Gp1: CV=0 implies empty row",
+      "familySize": 35,
+      "budget": 2700,
+      "wallAllowance": 4800,
+      "units": 319.11102999999997,
+      "wallMs": 369.74403,
+      "checked": false,
+      "results": [
+        {
+          "pass": 0,
+          "outcome": "sat",
+          "units": 74.922846,
+          "wallMs": 107.022318
+        },
+        {
+          "pass": 1,
+          "outcome": "sat",
+          "units": 244.18818399999995,
+          "wallMs": 261.747166
+        }
+      ],
+      "last": {
+        "pass": 1,
+        "goal": "research Gp1: CV=0 implies empty row @step",
+        "law": "research Gp1: CV=0 implies empty row",
+        "hyps": 70
+      },
+      "completionTuples": 0,
+      "placement": {
+        "vm": "bx_85wyqdj5",
+        "type": "large",
+        "cpu": "AMD Ryzen 7 9700X 8-Core Processor",
+        "vcpus": 8,
+        "vm_vcpus": 8,
+        "exclusive": true,
+        "co_tenants": 0
+      }
+    }
+  ],
+  "generation": {
+    "phase": "family",
+    "conditional": true,
+    "generatorOnly": true,
+    "suppliedLaws": [],
+    "missingTargets": [],
+    "laws": 35,
+    "targets": {
+      "overlap": "inX: stored guard reconfigs/inS or disabled/0",
+      "rows": "fields: CV[a]=CV[b] and CfgT[a]=CfgT[b] -> Config rows agree",
+      "star": "inX: no quorum canVote/3",
+      "safety": "one primary per term",
+      "p1": "count cubes: every x with x < {\"op\":\"var\",\"name\":\"size\"}: never CV[x] is 0 and 1 <= inX$row[x]"
+    },
+    "generationWallMs": 27305.675963,
+    "sha256": "5c9aa44bca08790afdf331b290f101b6ca5d177133e662f5f6f1e80aa6cebc6f"
+  },
+  "validation": {
+    "tests": 66,
+    "assertions": 5417,
+    "typecheck": true,
+    "lint": true,
+    "log": "../lane-b-generated-v1/check.log"
+  }
+}

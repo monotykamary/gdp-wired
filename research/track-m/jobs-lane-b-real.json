@@ -1,0 +1,13 @@
+[
+ {"name":"overlap-before","cmd":"bash research/track-m/lane-b-completion.sh before overlap","cpu":8,"memory":14336,"timeout":90},
+ {"name":"overlap-after","cmd":"bash research/track-m/lane-b-completion.sh after overlap","cpu":8,"memory":14336,"timeout":90},
+ {"name":"rows-before","cmd":"bash research/track-m/lane-b-completion.sh before rows","cpu":8,"memory":14336,"timeout":90},
+ {"name":"rows-after","cmd":"bash research/track-m/lane-b-completion.sh after rows","cpu":8,"memory":14336,"timeout":90},
+ {"name":"star-before","cmd":"bash research/track-m/lane-b-completion.sh before star","cpu":8,"memory":14336,"timeout":90},
+ {"name":"star-after","cmd":"bash research/track-m/lane-b-completion.sh after star","cpu":8,"memory":14336,"timeout":90},
+ {"name":"safety-before","cmd":"bash research/track-m/lane-b-completion.sh before safety","cpu":8,"memory":14336,"timeout":90},
+ {"name":"safety-after","cmd":"bash research/track-m/lane-b-completion.sh after safety","cpu":8,"memory":14336,"timeout":90},
+ {"name":"p1-before","cmd":"bash research/track-m/lane-b-completion.sh before p1","cpu":8,"memory":14336,"timeout":90},
+ {"name":"p1-after","cmd":"bash research/track-m/lane-b-completion.sh after p1","cpu":8,"memory":14336,"timeout":90},
+ {"name":"original-capture","cmd":"GDP_COUNTS_DUMP_ALL_PASSES=1 GDP_COUNTS_DUMP_N=100000 bash research/track-m/lane-b-parallel.sh capture after","cpu":8,"memory":14336,"timeout":150}
+]

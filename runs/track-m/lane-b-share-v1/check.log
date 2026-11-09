@@ -1,0 +1,45 @@
+Found 0 warnings and 0 errors.
+Finished in 18.9s on 1334 files with 100 rules using 8 threads.
+bun test v1.4.3 (c6da4a4d3)
+bun test v1.4.3 (c6da4a4d3)
+
+--- stderr ---
+$ tsc -p . && oxlint --type-aware --deny-warnings --disable-nested-config
+
+core/count-recovery/guard-cases.test.ts:
+(pass) default Boolean activation covers both branches (impossible=true) [7.85ms]
+(pass) default Boolean activation covers both branches (impossible=false) [8.88ms]
+(pass) activation proofs retain their original non-empty path scope [0.37ms]
+(pass) activation proposals pass the complete source check (deferred=false) [0.89ms]
+(pass) activation proposals pass the complete source check (deferred=true) [0.36ms]
+
+core/count-recovery/field-bound-budget.test.ts:
+(pass) an expired source budget returns before inspecting machine rows [0.53ms]
+(pass) an expired wall stops source construction even when counted work remains [1.17ms]
+
+core/count-recovery/field-demand.test.ts:
+(pass) active leaf draws conserve the original allowance and never extend it [0.03ms]
+(pass) field demand distinguishes core, model, absence and missing observation [0.36ms]
+(pass) nested attempt costs are exclusive and both are recorded on unwind [0.07ms]
+(pass) disabled observer does not inspect a goal or alter the candidate [0.01ms]
+
+core/count-recovery/leaf-allowance.test.ts:
+(pass) leaf draws take an even remaining share with a one-third ceiling [0.06ms]
+(pass) one third is a ceiling, not a floor or a last-leaf windfall [0.02ms]
+(pass) successive draws conserve spent plus unspent allowance [0.04ms]
+(pass) split children spend one parent draw and cannot obtain another [0.01ms]
+
+ 15 pass
+ 0 fail
+ 263 expect() calls
+Ran 15 tests across 4 files. [48.00ms]
+
+core/support-budget.test.ts:
+(pass) each attempt receives an even share of what remains, not the round-start balance [0.09ms]
+(pass) shares and unchanged support draws are nonnegative and bounded by the current pool [0.59ms]
+(pass) local support and caller ceilings are unchanged [0.04ms]
+
+ 3 pass
+ 0 fail
+ 2527 expect() calls
+Ran 3 tests across 1 file. [6.00ms]
