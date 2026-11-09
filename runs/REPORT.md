@@ -1,6 +1,16 @@
+GATE GREEN 43acabeec4bbbdbf8b4f6096be7e0f050886a639
+
 # CI-first-class track
 
-Gate: **PENDING**. Branch `claude/ci-first-class`; starting revision `b788e1959bba1f2e8aa1f94d4cf7c0eb163a2f9c`. No merge/push/release is authorized.
+Branch `claude/ci-first-class`; starting revision `b788e1959bba1f2e8aa1f94d4cf7c0eb163a2f9c`. Final tested code/tree: **`43acabeec4bbbdbf8b4f6096be7e0f050886a639` / `8aeaf0d3ea547151236a409445fe055bcdf81e77`**. No merge, push or release was performed.
+
+- **Exact-SHA clean checks:** check/typecheck/lint, build, exports/CSP (38 tests), commitlint and gate tests (13) passed in `runs/final-repair/check-build-exports-and-gates.log`.
+- **All seven exact-SHA test shards passed:** 1,085 test executions, zero failures. Shard 5: `runs/final-repair/test-5-of-7.log`; other six: `runs/final-provenance-43acabee/test-*-of-7.log`.
+- **Exact-SHA census:** all 29 verdicts unchanged against the baseline (28 proven, `mldr` unknown); `runs/final-provenance-43acabee/census-*.log`, compact `runs/census-final.json`.
+- **Exact-SHA private replay:** all 20 per-input laws proven, 212 finite cases matched and all 24 branch arms covered; `/tmp/gdp-ci-replay-43acabee/plain-laws-replay-on.log`.
+- **Quick bar passed the coordinator-confirmed criterion: zero wrong answers and nothing lost solid.** All ten non-solid majority flips (seven losses, three gains) remain listed below with samples and late flags; retained full receipt `runs/bar/runs/quick-9f8fa632/REPORT.md`, compact `runs/bar-final-summary.json`.
+
+The bar measured `9f8fa6328041646f7353dc4817ea5d06b604f15f`. Final `43acabee` differs **only in `core/runtime-default.test.ts` and `gates/bar.test.ts`; all production code is byte-identical**. Both pinned submodules were present in every clean validation checkout. The final reporting commit changes documentation/receipts only. Historical investigations and failures below are retained, not relabelled as passes.
 
 ## Item 0 — plain-file decision laws
 
@@ -30,7 +40,7 @@ Gate: **PENDING**. Branch `claude/ci-first-class`; starting revision `b788e1959b
 - Validation infrastructure failures: initial mutation and health submissions failed before execution in `scheduler.store_blobs` (`ValueError: blob bytes do not match their key`). A pre-existing bounded runtime retry program timed out two further Boat submissions and its Modal fallback then refused a changing `.pi/fabric/mesh/state.json`. No timing or test pass is inferred from these failures. Added `.pi/**` to upload exclusions for future runs. The coordinator diagnosed laptop memory pressure and blob-cache lock contention, limited this lane to one subagent, and directed that existing Boat submissions be left alone. Extra agents were stopped/closed; no further resubmission is being made under that instruction. No other client or shared scheduler process was stopped.
 - Customer files are read-only; copies and their experiment outputs stay in private scratch directories outside repositories. Public fixtures are independently written synthetic decisions.
 
-## API review examples (candidate code; validation pending)
+## API review examples (validated candidate APIs)
 
 `Fun.compare` (existing API, now finite input coverage):
 
@@ -262,7 +272,9 @@ Actual 0.32.0 and 0.47.0 bundled CLIs confirmed the user-facing switch: put `[ch
 
 For the TypeScript `extract` path used here, concrete source/model checking is on by default (`core/extract.ts` calls the checker with `opts.check` merged into its defaults). Current defaults are **200 runs × 12 requests**, **400 drawn-state steps**, plus branch/witness probes unless disabled (`core/extract-check.ts`). The CLI passes source-reader options/configuration through and normally uses these defaults. This checking is sampled/probe-based evidence, not a formal correctness proof of the extractor. API users can suppress those observations with `{check: {runs: 0, states: 0, probes: false}}`; configuration forwarded by the CLI can likewise change the budgets. There is no universal guarantee that every `extract*` API uses this exact contract: XState checks its actor, and other language frontends use their own replay harnesses and budgets. In particular, Solidity re-entrancy checking retains a minimum of four attempts even when its requested run count is zero (`core/extract-sol.ts:742`); do not treat the TypeScript zero-budget recipe as a universal replay-off flag. Counterexample replay for a broken law is also a separate operation from the initial source-conformance check.
 
-### Private plain-file proof replay — PASS
+### Private plain-file proof replay — PASS on final candidate
+
+The complete replay was repeated on exact final code/test commit **`43acabeec4bbbdbf8b4f6096be7e0f050886a639`**, with the same 20 proven laws, 212 matching finite cases, and all 24 branch arms covered. Final receipt: `/tmp/gdp-ci-replay-43acabee/plain-laws-replay-on.log`.
 
 On clean `ed5af69b`, **all 20 per-input laws passed** with normal replay enabled (13 + 7, both CLI exits 0). Four actual plain decisions matched their extracted models on **all 212 finite input tuples** (4 + 128 + 32 + 48). Each decision received 2,400 start-state requests and 400 drawn-state checks; the branch-bearing decisions also received 6 and 4 witness probes. **All 24 instrumented branch arms were hit** (0 + 12 + 3 + 9). The sanitized receipt is outside the repository at `/tmp/gdp-ci-replay-final-results/plain-laws-replay-on.log`; no private source or customer names were copied into this report.
 
@@ -286,7 +298,7 @@ Migration inventory:
 | `core/functions.test.ts` — library `modBy` decision | No opt-in; checks default and compiled parity |
 | `examples/jev-fabric/laws.ts` — library `modBy` cap witness | No opt-in; restored to `.run()` |
 
-No pre-existing example requires a new source-helper opt-in after this correction. Existing explicit compiled-engine tests/examples remain explicit by choice, not because data-built helpers require compilation. Focused Boat validation before final freezing passed **47 tests / 3,941 expectations**, check (typecheck + lint), and build. CSP coverage blocks `Function` before import, construction, materialization and execution, and covers serialized machines, multiargument/nested recurrences, proved recurrences, list helpers and direct/transitive custom-source rejection. Independent review found no ordinary-input arithmetic, memoization or argument-pairing mismatch. It did identify stale public helper metadata after a JavaScript/arity override, plus generated-code identifier shadowing; a focused consistency follow-up addresses source/arity/descriptor changes, warm caches, actual transitive dependencies, and invalid generated-code parameter names. Direct metadata remains a trusted representation, not provenance for manually forged objects. The final focused follow-up passed **55 tests / 4,082 assertions**, check and build (`/tmp/gdp-builtins-run-v7/`). A final compatibility regression preserves `Map` as a safe recurrence argument; the clean final gate includes it. Final quick-gate validation remains pending.
+No pre-existing example requires a new source-helper opt-in after this correction. Existing explicit compiled-engine tests/examples remain explicit by choice, not because data-built helpers require compilation. Focused Boat validation before final freezing passed **47 tests / 3,941 expectations**, check (typecheck + lint), and build. CSP coverage blocks `Function` before import, construction, materialization and execution, and covers serialized machines, multiargument/nested recurrences, proved recurrences, list helpers and direct/transitive custom-source rejection. Independent review found no ordinary-input arithmetic, memoization or argument-pairing mismatch. It did identify stale public helper metadata after a JavaScript/arity override, plus generated-code identifier shadowing; a focused consistency follow-up addresses source/arity/descriptor changes, warm caches, actual transitive dependencies, and invalid generated-code parameter names. Direct metadata remains a trusted representation, not provenance for manually forged objects. The final focused follow-up passed **55 tests / 4,082 assertions**, check and build (`/tmp/gdp-builtins-run-v7/`). A final compatibility regression preserves `Map` as a safe recurrence argument; the clean final gate includes it. Final gates are green; exact-SHA receipts follow below.
 
 ## Earlier full-gate attempt (superseded)
 
@@ -296,8 +308,42 @@ The initial final-test wrapper used the shard label `1/7` inside a log filename,
 
 ## Scheduling change — quick submission gate
 
-At the coordinator's explicit priority change, the full gate-class bar was stopped by exact PID **33220**. Its partial receipts remain in `runs/bar/runs/final-ed5af69b`; they are not a completed green gate. The merge standard is now **`--quick --together --cand <final head> --base b788e195 --runs 3`** with **`SUPERCOMPUTER_CLASS=submission`**, plus check, tests, and the census. The census will also run as submission work to share capacity with the primary MLDR lanes. Inspection found that `gates/bar.ts` previously overwrote the explicit scheduler class (globally and in g332); the launcher now honors `SUPERCOMPUTER_CLASS`, with a submission-class CLI regression in the final checks.
+At the coordinator's explicit priority change, the full gate-class bar was stopped by exact PID **33220**. Its partial receipts remain in `runs/bar/runs/final-ed5af69b`; they are not a completed green gate. The merge standard is now **`--quick --together --cand <final head> --base b788e195 --runs 3`** with **`SUPERCOMPUTER_CLASS=submission`**, plus check, tests, and the census. The census will also run as submission work to share capacity with the primary MLDR lanes. Inspection found that `gates/bar.ts` previously overwrote the explicit scheduler class (globally and in g332); the launcher now honors `SUPERCOMPUTER_CLASS`, with CLI regressions pinning both cases: an explicit `SUPERCOMPUTER_CLASS=submission` is propagated, and an **unset variable still defaults to `gate`**, preserving lane D's behavior. The added default-case assertion is a test-only follow-up to production candidate `9f8fa632`. Both cases passed in `/tmp/gdp-ci-bar-default-results/bar-default-and-submission.log` (submission-class job, exit 0).
 
-## Remaining validation
+## Final candidate launched
 
-The source-free built-in helper follow-up is under independent review. Freeze and commit that candidate, then run the affected clean-checkout tests/build, the **quick, together, submission-class Boat bar** against unchanged `b788e195`, and the final submission-class census. Do not substitute the earlier `ed5af69b`/`f62eeb59` receipts for a production change. The coordinator explicitly said main will not move soon; no rebase wait is required. An exhaustive comparison is a test, never a proof. No kernel proof logic or protected MLDR file was changed.
+Production/helper fix: `dd335e38ac7b89ade1d06c6647ca7a1b16721609`. Scheduler-class fix and final gate candidate: **`9f8fa6328041646f7353dc4817ea5d06b604f15f`**, tree `be6740c3c9b1a091df66e67c3d114972b0fe67cd`. All final work is submission class: 15 clean-checkout jobs (check/build/exports/commitlint/bar regressions, seven test shards, seven candidate census shards), the requested quick/together bar, and a fresh replay-on private-law check. The final 29-protocol census completed: **28 proven and `mldr` unknown, all 29 verdicts unchanged** against the clean `b788e195` baseline (`runs/census-final.json`). All checks and tests are now green. The initial remaining-shard/exports failure was the CSP child assertion expecting empty stderr while optional cyclic-proof diagnostics were enabled (the child itself exited 0 with zero dynamic-code attempts). Test-only commit **`43acabee`** fixes that environment assumption and pins both scheduler-class cases. The two affected checks were rerun from a clean checkout of `43acabee`: check/typecheck/lint, build, exports (38 tests), commitlint, gate tests (13), and shard 5 all passed. After repeating the other six shards on exact `43acabee`, this is **1,085 passing test executions, zero failures**. Final receipts: `runs/final-repair/` (check + shard 5), `runs/final-provenance-43acabee/` (other six shards + all seven census shards), and `/tmp/gdp-ci-replay-43acabee/` (private laws). Production code is identical to `9f8fa632`. The quick bar subsequently completed, with zero wrong answers and nothing lost solid, meeting the coordinator-confirmed quick-bar criterion below. All exact-`43acabee` provenance receipts passed; the gate is green under the confirmed criterion.
+
+## Final quick bar — PASS under the confirmed common criterion
+
+The coordinator confirmed that `COMMON.md` controls: **“quick bar wrong 0 and nothing lost solid.”** Per `gates/README.md`, solid means every run on one side against none on the other. The completed quick bar has **zero wrong answers and nothing lost solid** in every view. Do not abbreviate this to “nothing lost”: the majority flips below remain visible.
+
+Production candidate **`9f8fa6328041646f7353dc4817ea5d06b604f15f`** was compared with baseline **`b788e1959bba1f2e8aa1f94d4cf7c0eb163a2f9c`**, together on Boat at submission priority, three additional runs per side of each first-pass disagreement. The run finished 2026-11-09 20:16:36 in 2,141 s. Final code/test commit **`43acabeec4bbbdbf8b4f6096be7e0f050886a639`** differs from the measured candidate **only in `core/runtime-default.test.ts` and `gates/bar.test.ts`**; all production code is byte-identical (`git diff 9f8fa632 43acabee --name-only`). Check/build/exports/commitlint, gate tests, all seven test shards, the 29-protocol census and private replay all passed on clean exact-43acabee checkouts, without changing or rerunning the measured production bar. The census is 28 proven / `mldr` unknown, all 29 verdicts unchanged against the baseline.
+
+### Every majority flip, including samples and late flags
+
+All ten flips are non-solid. CHC: 5 lost / 2 gained; ITS task statement: 1 lost; ITS component: 1 lost / 1 gained. Every other view has no majority gain or loss. `Late=yes` means some successful sample answered in the final quarter of the limit, not that every sample was late.
+
+| View / task | Majority | Candidate | Base | Late flag | Answers (candidate / base, seconds) |
+| --- | --- | --- | --- | --- | --- |
+| CHC-COMP LIA-Lin: `vmt-chc-benchmarks/lustre/cd_000_001.yml` | gained | 3/4 | 2/4 | yes | sat 50.7, sat 51.1, sat 48.5, unknown 58.1 / unknown 58.1, sat 39.3, unknown 58.2, sat 46.5 |
+| CHC-COMP LIA-Lin: `vmt-chc-benchmarks/lustre/FIREFLY_luke_2_000_001.yml` | gained | 3/4 | 2/4 | yes | sat 36.1, unknown 58.1, sat 26.3, sat 40.8 / unknown 58.2, sat 51.7, unknown 58.6, sat 40 |
+| CHC-COMP LIA-Lin: `eldarica-misc/LIA/HOLA/12.c_000.yml` | lost | 1/4 | 4/4 | yes | unknown 58.6, unknown 58.6, sat 44, unknown 58.6 / sat 46.7, sat 49.7, sat 46.8, sat 44.8 |
+| CHC-COMP LIA-Lin: `vmt-chc-benchmarks/lustre/DRAGON_13_e3_1418_e3_2761_000_001.yml` | lost | 1/4 | 3/4 | yes | unknown 58.1, sat 57.2, unknown 58.7, unknown 58.6 / sat 56.9, unknown 58.6, sat 57.5, sat 58.2 |
+| CHC-COMP LIA-Lin: `vmt-chc-benchmarks/lustre/DRAGON_13_e7_2336_e8_1940_000.yml` | lost | 0/4 | 3/4 | yes | unknown 58.1, unknown 58.1, unknown 58.2, unknown 58.1 / sat 57.3, sat 45.4, sat 50.8, unknown 58.1 |
+| CHC-COMP LIA-Lin: `vmt-chc-benchmarks/lustre/DRAGON_5_e2_3018_e2_936_000_001.yml` | lost | 2/4 | 3/4 | yes | sat 45.8, sat 49.5, unknown 58.7, unknown 58.7 / unknown 58.9, sat 36.5, sat 55.6, sat 43.4 |
+| CHC-COMP LIA-Lin: `vmt-chc-benchmarks/lustre/DRAGON_5_e7_2017_e8_4841_000.yml` | lost | 2/4 | 3/4 | yes | sat 51.2, unknown 58.1, sat 31.3, unknown 58.1 / unknown 58.6, sat 37.9, sat 54.4, sat 55 |
+| TermComp ITS, the task's statement (gdp): `Integer_Transition_Systems/From_T2/slayer-3.t2_fixed.ari` | lost | 2/4 | 3/4 | yes | unknown 58.2, nonterminating 44.6, nonterminating 47.5, unknown 58.1 / nonterminating 47.7, nonterminating 50.5, nonterminating 46, unknown 58.1 |
+| TermComp ITS, per component (gdp-scc): `Integer_Transition_Systems/From_T2/hqr.c.i.hqr.pl.t2.nor.t2.rlgfixed.t2_fixed.ari` | gained | 3/4 | 2/4 | no | nonterminating 26.5, nonterminating 26.7, unknown 58.1, nonterminating 25.9 / unknown 58.1, nonterminating 25.5, unknown 58.1, nonterminating 25.8 |
+| TermComp ITS, per component (gdp-scc): `Integer_Transition_Systems/From_T2/slayer-n3-filtered.t2.ari` | lost | 1/4 | 3/4 | no | unknown 58.1, unknown 58.1, unknown 58.1, terminates 9.1 / terminates 10.5, terminates 9.7, unknown 58.1, terminates 11 |
+
+Full receipt: `runs/bar/runs/quick-9f8fa632/REPORT.md`; machine-readable compact receipt: `runs/bar-final-summary.json`.
+
+### Additional checks from the same bar
+
+- g332: **identical search on 332/332 goals** (outcome, leaves, splits, decisions, conflicts, nodes). Summed search time 249,361 ms candidate / 222,446 ms baseline; per-goal ratio p10 0.606, p50 1.123, p90 2.250. This is one paired timing measurement, not a stable speedup or a conclusive overhead estimate.
+- 1-vCPU tests: **no failed jobs on either side**, three runs each.
+- Lean recurrence certificates: **6/6 checked**, maximum 7.75 s per file.
+- All launches used Boat, no Modal apps. The report's $5.06 is a task-time estimate, not a verified charge.
+
+No kernel proof logic or protected MLDR file was changed. An exhaustive comparison is a test, never a proof. No push, publishing, tagging, merge or GitHub write was performed.

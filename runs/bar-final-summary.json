@@ -1,0 +1,454 @@
+{
+  "source": "runs/bar/runs/quick-9f8fa632/report.json",
+  "views": [
+    {
+      "view": "chc",
+      "candidate": {
+        "solved": 525,
+        "sat": 377,
+        "unsat": 148,
+        "wrong": 0,
+        "disputed": 1,
+        "unknown": 136,
+        "timeout": 0,
+        "error": 0,
+        "tasks": 662
+      },
+      "base": [
+        {
+          "solved": 523,
+          "sat": 375,
+          "unsat": 148,
+          "wrong": 0,
+          "disputed": 1,
+          "unknown": 138,
+          "timeout": 0,
+          "error": 0,
+          "tasks": 662
+        }
+      ],
+      "majorityLosses": [
+        {
+          "task": "eldarica-misc/LIA/HOLA/12.c_000.yml",
+          "solid": false,
+          "atLimit": true,
+          "cand": "1/4",
+          "base": "4/4"
+        },
+        {
+          "task": "vmt-chc-benchmarks/lustre/DRAGON_13_e3_1418_e3_2761_000_001.yml",
+          "solid": false,
+          "atLimit": true,
+          "cand": "1/4",
+          "base": "3/4"
+        },
+        {
+          "task": "vmt-chc-benchmarks/lustre/DRAGON_13_e7_2336_e8_1940_000.yml",
+          "solid": false,
+          "atLimit": true,
+          "cand": "0/4",
+          "base": "3/4"
+        },
+        {
+          "task": "vmt-chc-benchmarks/lustre/DRAGON_5_e2_3018_e2_936_000_001.yml",
+          "solid": false,
+          "atLimit": true,
+          "cand": "2/4",
+          "base": "3/4"
+        },
+        {
+          "task": "vmt-chc-benchmarks/lustre/DRAGON_5_e7_2017_e8_4841_000.yml",
+          "solid": false,
+          "atLimit": true,
+          "cand": "2/4",
+          "base": "3/4"
+        }
+      ],
+      "majorityGains": [
+        {
+          "task": "vmt-chc-benchmarks/lustre/FIREFLY_luke_2_000_001.yml",
+          "solid": false,
+          "atLimit": true,
+          "cand": "3/4",
+          "base": "2/4"
+        },
+        {
+          "task": "vmt-chc-benchmarks/lustre/cd_000_001.yml",
+          "solid": false,
+          "atLimit": true,
+          "cand": "3/4",
+          "base": "2/4"
+        }
+      ],
+      "wrong": []
+    },
+    {
+      "view": "its",
+      "candidate": {
+        "solved": 364,
+        "terminates": 259,
+        "nonterminating": 105,
+        "wrong": 0,
+        "unknown": 28,
+        "timeout": 6,
+        "error": 0,
+        "tasks": 398
+      },
+      "base": [
+        {
+          "solved": 364,
+          "terminates": 259,
+          "nonterminating": 105,
+          "wrong": 0,
+          "unknown": 29,
+          "timeout": 5,
+          "error": 0,
+          "tasks": 398
+        }
+      ],
+      "majorityLosses": [
+        {
+          "task": "Integer_Transition_Systems/From_T2/slayer-3.t2_fixed.ari",
+          "solid": false,
+          "atLimit": true,
+          "cand": "2/4",
+          "base": "3/4"
+        }
+      ],
+      "majorityGains": [],
+      "wrong": []
+    },
+    {
+      "view": "its-scc",
+      "candidate": {
+        "solved": 361,
+        "terminates": 255,
+        "nonterminating": 106,
+        "wrong": 0,
+        "unknown": 34,
+        "timeout": 2,
+        "error": 1,
+        "tasks": 398
+      },
+      "base": [
+        {
+          "solved": 362,
+          "terminates": 257,
+          "nonterminating": 105,
+          "wrong": 0,
+          "unknown": 34,
+          "timeout": 1,
+          "error": 1,
+          "tasks": 398
+        }
+      ],
+      "majorityLosses": [
+        {
+          "task": "Integer_Transition_Systems/From_T2/slayer-n3-filtered.t2.ari",
+          "solid": false,
+          "atLimit": false,
+          "cand": "1/4",
+          "base": "3/4"
+        }
+      ],
+      "majorityGains": [
+        {
+          "task": "Integer_Transition_Systems/From_T2/hqr.c.i.hqr.pl.t2.nor.t2.rlgfixed.t2_fixed.ari",
+          "solid": false,
+          "atLimit": false,
+          "cand": "3/4",
+          "base": "2/4"
+        }
+      ],
+      "wrong": []
+    },
+    {
+      "view": "sv",
+      "candidate": {
+        "solved": 111,
+        "terminates": 92,
+        "nonterminating": 19,
+        "wrong": 0,
+        "unknown": 15,
+        "timeout": 0,
+        "error": 0,
+        "tasks": 129
+      },
+      "base": [
+        {
+          "solved": 110,
+          "terminates": 91,
+          "nonterminating": 19,
+          "wrong": 0,
+          "unknown": 16,
+          "timeout": 0,
+          "error": 0,
+          "tasks": 129
+        }
+      ],
+      "majorityLosses": [],
+      "majorityGains": [],
+      "wrong": []
+    },
+    {
+      "view": "sv-scc",
+      "candidate": {
+        "solved": 97,
+        "terminates": 78,
+        "nonterminating": 19,
+        "wrong": 0,
+        "unknown": 27,
+        "timeout": 2,
+        "error": 0,
+        "tasks": 129
+      },
+      "base": [
+        {
+          "solved": 97,
+          "terminates": 78,
+          "nonterminating": 19,
+          "wrong": 0,
+          "unknown": 27,
+          "timeout": 2,
+          "error": 0,
+          "tasks": 129
+        }
+      ],
+      "majorityLosses": [],
+      "majorityGains": [],
+      "wrong": []
+    },
+    {
+      "view": "tip",
+      "candidate": {
+        "proven": 105,
+        "refuted": 6,
+        "wrong": 0,
+        "unknown": 85,
+        "timeout": 35,
+        "unsupported": 7,
+        "error": 1,
+        "tasks": 239
+      },
+      "base": [
+        {
+          "proven": 105,
+          "refuted": 6,
+          "wrong": 0,
+          "unknown": 79,
+          "timeout": 41,
+          "unsupported": 7,
+          "error": 1,
+          "tasks": 239
+        }
+      ],
+      "majorityLosses": [],
+      "majorityGains": [],
+      "wrong": []
+    },
+    {
+      "view": "f1",
+      "candidate": {
+        "proven": 34,
+        "laws": 35,
+        "refused": 13,
+        "broken": 13,
+        "wrong": 0,
+        "timeout": 0
+      },
+      "base": [
+        {
+          "proven": 34,
+          "laws": 35,
+          "refused": 13,
+          "broken": 13,
+          "wrong": 0,
+          "timeout": 0
+        }
+      ],
+      "majorityLosses": [],
+      "majorityGains": [],
+      "wrong": []
+    },
+    {
+      "view": "f2",
+      "candidate": {
+        "proven": 25,
+        "laws": 33,
+        "refused": 31,
+        "broken": 31,
+        "wrong": 0,
+        "timeout": 1
+      },
+      "base": [
+        {
+          "proven": 25,
+          "laws": 33,
+          "refused": 31,
+          "broken": 31,
+          "wrong": 0,
+          "timeout": 1
+        }
+      ],
+      "majorityLosses": [],
+      "majorityGains": [],
+      "wrong": []
+    },
+    {
+      "view": "rw",
+      "candidate": {
+        "proven": 74,
+        "refuted": 14,
+        "unknown": 3,
+        "timeout": 0,
+        "laws": 91
+      },
+      "base": [
+        {
+          "proven": 74,
+          "refuted": 14,
+          "unknown": 3,
+          "timeout": 0,
+          "laws": 91
+        }
+      ],
+      "majorityLosses": [],
+      "majorityGains": [],
+      "wrong": []
+    },
+    {
+      "view": "g332",
+      "candidate": {
+        "proven": 332,
+        "goals": 332,
+        "search_s": 249.4
+      },
+      "base": [
+        {
+          "proven": 332,
+          "goals": 332,
+          "search_s": 222.4
+        }
+      ],
+      "majorityLosses": [],
+      "majorityGains": [],
+      "wrong": []
+    }
+  ],
+  "lean": {
+    "candidate": {
+      "checked": 6,
+      "sampled": 6,
+      "max_s": 7.753
+    }
+  },
+  "trees": {
+    "cand": {
+      "path": "/Users/monotykamary/VCS/working-remote/open-source/gdp-wired-ci/runs/bar/trees/9f8fa6328041",
+      "sha": "9f8fa6328041646f7353dc4817ea5d06b604f15f",
+      "clean": true,
+      "key": "9f8fa6328041",
+      "label": "9f8fa6328041646f7353dc4817ea5d06b604f15f (9f8fa6328041)"
+    },
+    "base": {
+      "path": "/Users/monotykamary/VCS/working-remote/open-source/gdp-wired-ci/runs/bar/trees/b788e1959bba",
+      "sha": "b788e1959bba1f2e8aa1f94d4cf7c0eb163a2f9c",
+      "clean": true,
+      "key": "b788e1959bba",
+      "label": "b788e1959bba1f2e8aa1f94d4cf7c0eb163a2f9c (b788e1959bba)"
+    }
+  },
+  "flipSamples": [
+    {
+      "view": "CHC-COMP LIA-Lin",
+      "task": "vmt-chc-benchmarks/lustre/cd_000_001.yml",
+      "kind": "gained",
+      "cand": "3/4",
+      "base": "2/4",
+      "late": "yes",
+      "answers": "sat 50.7, sat 51.1, sat 48.5, unknown 58.1 / unknown 58.1, sat 39.3, unknown 58.2, sat 46.5"
+    },
+    {
+      "view": "CHC-COMP LIA-Lin",
+      "task": "vmt-chc-benchmarks/lustre/FIREFLY_luke_2_000_001.yml",
+      "kind": "gained",
+      "cand": "3/4",
+      "base": "2/4",
+      "late": "yes",
+      "answers": "sat 36.1, unknown 58.1, sat 26.3, sat 40.8 / unknown 58.2, sat 51.7, unknown 58.6, sat 40"
+    },
+    {
+      "view": "CHC-COMP LIA-Lin",
+      "task": "eldarica-misc/LIA/HOLA/12.c_000.yml",
+      "kind": "lost",
+      "cand": "1/4",
+      "base": "4/4",
+      "late": "yes",
+      "answers": "unknown 58.6, unknown 58.6, sat 44, unknown 58.6 / sat 46.7, sat 49.7, sat 46.8, sat 44.8"
+    },
+    {
+      "view": "CHC-COMP LIA-Lin",
+      "task": "vmt-chc-benchmarks/lustre/DRAGON_13_e3_1418_e3_2761_000_001.yml",
+      "kind": "lost",
+      "cand": "1/4",
+      "base": "3/4",
+      "late": "yes",
+      "answers": "unknown 58.1, sat 57.2, unknown 58.7, unknown 58.6 / sat 56.9, unknown 58.6, sat 57.5, sat 58.2"
+    },
+    {
+      "view": "CHC-COMP LIA-Lin",
+      "task": "vmt-chc-benchmarks/lustre/DRAGON_13_e7_2336_e8_1940_000.yml",
+      "kind": "lost",
+      "cand": "0/4",
+      "base": "3/4",
+      "late": "yes",
+      "answers": "unknown 58.1, unknown 58.1, unknown 58.2, unknown 58.1 / sat 57.3, sat 45.4, sat 50.8, unknown 58.1"
+    },
+    {
+      "view": "CHC-COMP LIA-Lin",
+      "task": "vmt-chc-benchmarks/lustre/DRAGON_5_e2_3018_e2_936_000_001.yml",
+      "kind": "lost",
+      "cand": "2/4",
+      "base": "3/4",
+      "late": "yes",
+      "answers": "sat 45.8, sat 49.5, unknown 58.7, unknown 58.7 / unknown 58.9, sat 36.5, sat 55.6, sat 43.4"
+    },
+    {
+      "view": "CHC-COMP LIA-Lin",
+      "task": "vmt-chc-benchmarks/lustre/DRAGON_5_e7_2017_e8_4841_000.yml",
+      "kind": "lost",
+      "cand": "2/4",
+      "base": "3/4",
+      "late": "yes",
+      "answers": "sat 51.2, unknown 58.1, sat 31.3, unknown 58.1 / unknown 58.6, sat 37.9, sat 54.4, sat 55"
+    },
+    {
+      "view": "TermComp ITS, the task's statement (gdp)",
+      "task": "Integer_Transition_Systems/From_T2/slayer-3.t2_fixed.ari",
+      "kind": "lost",
+      "cand": "2/4",
+      "base": "3/4",
+      "late": "yes",
+      "answers": "unknown 58.2, nonterminating 44.6, nonterminating 47.5, unknown 58.1 / nonterminating 47.7, nonterminating 50.5, nonterminating 46, unknown 58.1"
+    },
+    {
+      "view": "TermComp ITS, per component (gdp-scc)",
+      "task": "Integer_Transition_Systems/From_T2/hqr.c.i.hqr.pl.t2.nor.t2.rlgfixed.t2_fixed.ari",
+      "kind": "gained",
+      "cand": "3/4",
+      "base": "2/4",
+      "late": "no",
+      "answers": "nonterminating 26.5, nonterminating 26.7, unknown 58.1, nonterminating 25.9 / unknown 58.1, nonterminating 25.5, unknown 58.1, nonterminating 25.8"
+    },
+    {
+      "view": "TermComp ITS, per component (gdp-scc)",
+      "task": "Integer_Transition_Systems/From_T2/slayer-n3-filtered.t2.ari",
+      "kind": "lost",
+      "cand": "1/4",
+      "base": "3/4",
+      "late": "no",
+      "answers": "unknown 58.1, unknown 58.1, unknown 58.1, terminates 9.1 / terminates 10.5, terminates 9.7, unknown 58.1, terminates 11"
+    }
+  ],
+  "criterion": "wrong 0 and nothing lost solid (COMMON.md; coordinator clarification)"
+}
