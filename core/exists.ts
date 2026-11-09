@@ -17,6 +17,7 @@
 import {type C, type E, type Law, type Machine, type Request, type SomeProof, type SomeWitness, type State, carriedView, compileC, evalC, evalE, fastStep, interpret, n as k, walk, x as v} from './machine.ts'
 import {type Report, clock, proveLaw, proveLaws, withDeadline, withinDeadline} from '../kernel/prove.ts'
 import {env} from './solver.ts'
+import {WallExpired, checkWall} from './wall.ts'
 import {type Ghosted, ghostedMachine, ghostedOk, substC} from '../kernel/kernel.ts'
 
 type Env = Record<string, number>
@@ -138,6 +139,7 @@ const pathTo = new WeakMap<State, [State, Request]>()
 export function small(m: Machine, p: Env, b: number, cap = 3000, work = 300_000, walks = 0): State[] {
   // (past a thousand steps, through the generated JavaScript, fastStep: the interpreter's states, as compile.test.ts holds
   // them; a small machine's few steps cost less than its compiling)
+  checkWall('sample setup')
   const run = interpret(m), start = run.init(p)
   let steps = 0, fast = run.step
   const step = (p2: Env, st: State, r: Request): State => { if (++steps === 1000) fast = fastStep(m) ?? run.step; return fast(p2, st, r) }
@@ -153,6 +155,7 @@ export function small(m: Machine, p: Env, b: number, cap = 3000, work = 300_000,
   while (queue.length && seen.size < cap && work > 0) {
     const st = queue.shift()!
     for (const r of reqs) {
+      checkWall('sample BFS')
       if (--work < 0) break
       let next: State
       try { next = step(p, st, r) } catch { continue }
@@ -171,6 +174,7 @@ export function small(m: Machine, p: Env, b: number, cap = 3000, work = 300_000,
     for (let d = 0; d < 40 && walks > 0; d++) {
       const by = new Map<string, [State, Request][]>()
       for (let i = 0; i < 48; i++, walks--) {
+        checkWall('sample walks')
         const r = reqs[rnd(reqs.length)]!
         let next: State
         try { next = step(p, st, r) } catch { continue }
@@ -212,6 +216,7 @@ const smalls = new WeakMap<Machine, {p: Env, sts: State[]}[]>()
 // with every speculative count attached to every request. The structural check
 // rejects changed transitions, replaced counts, and shadowed map reads.
 export function smallOf(m: Machine, source?: Machine): {p: Env, sts: State[]}[] {
+  checkWall('sample cache')
   let out = smalls.get(m)
   if (!out && source && source !== m) {
     const fields = new Set([...Object.keys(m), ...Object.keys(source)])
@@ -220,7 +225,7 @@ export function smallOf(m: Machine, source?: Machine): {p: Env, sts: State[]}[] 
     walk(source, o => { if (o.op === 'get' && added.has(o.map as string)) safe = false })
     if (safe) smalls.set(m, (out = smallOf(source)))
   }
-  if (!out) smalls.set(m, (out = (m.params.length ? [2, 3] : [2]).map(x => { const p = Object.fromEntries(m.params.map(q => [q, x])); try { return {p, sts: small(m, p, 3, 3000, 300_000, 100_000)} } catch { return {p, sts: []} } })))
+  if (!out) smalls.set(m, (out = (m.params.length ? [2, 3] : [2]).map(x => { const p = Object.fromEntries(m.params.map(q => [q, x])); try { return {p, sts: small(m, p, 3, 3000, 300_000, 100_000)} } catch (e) { if (e instanceof WallExpired) throw e; return {p, sts: []} } })))
   return out
 }
 // Laws true at every small state, at every key below one past their values. With `ghosted`, the machine with ghosts
@@ -266,7 +271,11 @@ export function holdsAt(m: Machine, law: Law, p: Env, st: State, b: number): boo
   // shadow binders, as in the interpreter path; restore duplicate binder names.
   for (const name of keys) if (!fixed.has(name)) Object.defineProperty(env, name, {value: env[name], writable: true, enumerable: true, configurable: true})
   const values = keys.length ? Array.from({length: b}, (_, x) => x) : []
+  // Poll at entry and every 256 visited tuple prefixes, rather than paying for
+  // a wall-clock read at every binding. Each new state/law starts with a poll.
+  let visited = 0
   const go = (depth: number): boolean => {
+    if ((visited++ & 255) === 0) checkWall('sample law bindings')
     if (depth === keys.length) return test!(env, view!)
     const name = keys[depth]!, was = env[name]
     try {
