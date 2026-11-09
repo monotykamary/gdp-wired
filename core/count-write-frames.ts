@@ -71,7 +71,8 @@ function copySources(value: E, inputs: ReadonlySet<string>, out = new Set<string
  * Difference counts deliberately offer both incoming directions: which row is
  * written/equal is a guarded proof obligation, not a syntactic equivalence.
  * No reads/declarations are added, no input is mutated, and at most 32 ordinary
- * two-term, unit-zero instances are returned (a deterministic prefix).
+ * unit-zero instances are returned (two-term frames or three-term compensated
+ * differences, in a deterministic prefix).
  */
 export function proposeWriteCountFrames(m: Machine, ds: CountDecl[], cert: Pick<CountCert, 'reads' | 'insts'>,
   demanded: ReadonlySet<string>, maxFacts = 32): CountInst[] {

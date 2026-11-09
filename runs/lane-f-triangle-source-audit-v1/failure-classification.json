@@ -1,0 +1,54 @@
+[
+  {
+    "triangleOrdinal": 0,
+    "index": 0,
+    "checked": false,
+    "admissible": false,
+    "firstPass": "unknown",
+    "why": "refuted, not unfolded",
+    "core": [
+      25,
+      79,
+      80
+    ],
+    "scopeAtoms": 10,
+    "semanticCounterexampleValidated": false
+  },
+  {
+    "triangleOrdinal": 1,
+    "index": 3,
+    "checked": false,
+    "admissible": false,
+    "firstPass": "sat",
+    "why": "a model",
+    "core": null,
+    "scopeAtoms": 10,
+    "semanticCounterexampleValidated": false
+  },
+  {
+    "triangleOrdinal": 2,
+    "index": 10,
+    "checked": false,
+    "admissible": false,
+    "firstPass": "sat",
+    "why": "a model",
+    "core": null,
+    "scopeAtoms": 10,
+    "semanticCounterexampleValidated": false
+  },
+  {
+    "triangleOrdinal": 3,
+    "index": 13,
+    "checked": false,
+    "admissible": false,
+    "firstPass": "unknown",
+    "why": "refuted, not unfolded",
+    "core": [
+      25,
+      79,
+      80
+    ],
+    "scopeAtoms": 10,
+    "semanticCounterexampleValidated": false
+  }
+]

@@ -1,0 +1,598 @@
+[
+  {
+    "name": "triangle-0",
+    "result": {
+      "mode": "triangle-0-grow",
+      "sourceBudget": 1000,
+      "contextSha256": "12d8e3b6beb1f1905c26b2e88534cf54b37272b25b42d4b9676e5c449d9914ba",
+      "triangleOrdinal": 0,
+      "triangleCandidates": [
+        {
+          "index": 0,
+          "inst": {
+            "wit": "writeFrame$0",
+            "below": {
+              "op": "var",
+              "name": "size"
+            },
+            "terms": [
+              [
+                1,
+                "r$0"
+              ],
+              [
+                -1,
+                "r$55"
+              ],
+              [
+                -1,
+                "r$10"
+              ]
+            ],
+            "unit": 0
+          }
+        },
+        {
+          "index": 3,
+          "inst": {
+            "wit": "writeFrame$3",
+            "below": {
+              "op": "var",
+              "name": "size"
+            },
+            "terms": [
+              [
+                1,
+                "r$0"
+              ],
+              [
+                -1,
+                "r$55"
+              ],
+              [
+                -1,
+                "r$12"
+              ]
+            ],
+            "unit": 0
+          }
+        },
+        {
+          "index": 10,
+          "inst": {
+            "wit": "writeFrame$10",
+            "below": {
+              "op": "var",
+              "name": "size"
+            },
+            "terms": [
+              [
+                1,
+                "r$2"
+              ],
+              [
+                -1,
+                "r$57"
+              ],
+              [
+                -1,
+                "r$10"
+              ]
+            ],
+            "unit": 0
+          }
+        },
+        {
+          "index": 13,
+          "inst": {
+            "wit": "writeFrame$13",
+            "below": {
+              "op": "var",
+              "name": "size"
+            },
+            "terms": [
+              [
+                1,
+                "r$2"
+              ],
+              [
+                -1,
+                "r$57"
+              ],
+              [
+                -1,
+                "r$12"
+              ]
+            ],
+            "unit": 0
+          }
+        }
+      ],
+      "index": 0,
+      "inst": {
+        "wit": "writeFrame$0",
+        "below": {
+          "op": "var",
+          "name": "size"
+        },
+        "terms": [
+          [
+            1,
+            "r$0"
+          ],
+          [
+            -1,
+            "r$55"
+          ],
+          [
+            -1,
+            "r$10"
+          ]
+        ],
+        "unit": 0
+      },
+      "hyps": 81,
+      "checked": false,
+      "admissible": false,
+      "searchUnits": 1006.3371728,
+      "searchWallMs": 1879.5002259999999,
+      "units": 1006.3371728,
+      "wallMs": 1879.601938
+    },
+    "archive": {
+      "artifact": "track-m-tar-v1",
+      "dir": "/home/user/track-m-s18-receipts-2TuDWp",
+      "format": "tar.gz",
+      "parts": 1,
+      "bytes": 3164,
+      "sha256": "da786d4ff2823629407ff6bd8ef5c70e5df5fe074c4c0c6eecf5c443defabcb6"
+    }
+  },
+  {
+    "name": "triangle-1",
+    "result": {
+      "mode": "triangle-1-grow",
+      "sourceBudget": 1000,
+      "contextSha256": "12d8e3b6beb1f1905c26b2e88534cf54b37272b25b42d4b9676e5c449d9914ba",
+      "triangleOrdinal": 1,
+      "triangleCandidates": [
+        {
+          "index": 0,
+          "inst": {
+            "wit": "writeFrame$0",
+            "below": {
+              "op": "var",
+              "name": "size"
+            },
+            "terms": [
+              [
+                1,
+                "r$0"
+              ],
+              [
+                -1,
+                "r$55"
+              ],
+              [
+                -1,
+                "r$10"
+              ]
+            ],
+            "unit": 0
+          }
+        },
+        {
+          "index": 3,
+          "inst": {
+            "wit": "writeFrame$3",
+            "below": {
+              "op": "var",
+              "name": "size"
+            },
+            "terms": [
+              [
+                1,
+                "r$0"
+              ],
+              [
+                -1,
+                "r$55"
+              ],
+              [
+                -1,
+                "r$12"
+              ]
+            ],
+            "unit": 0
+          }
+        },
+        {
+          "index": 10,
+          "inst": {
+            "wit": "writeFrame$10",
+            "below": {
+              "op": "var",
+              "name": "size"
+            },
+            "terms": [
+              [
+                1,
+                "r$2"
+              ],
+              [
+                -1,
+                "r$57"
+              ],
+              [
+                -1,
+                "r$10"
+              ]
+            ],
+            "unit": 0
+          }
+        },
+        {
+          "index": 13,
+          "inst": {
+            "wit": "writeFrame$13",
+            "below": {
+              "op": "var",
+              "name": "size"
+            },
+            "terms": [
+              [
+                1,
+                "r$2"
+              ],
+              [
+                -1,
+                "r$57"
+              ],
+              [
+                -1,
+                "r$12"
+              ]
+            ],
+            "unit": 0
+          }
+        }
+      ],
+      "index": 3,
+      "inst": {
+        "wit": "writeFrame$3",
+        "below": {
+          "op": "var",
+          "name": "size"
+        },
+        "terms": [
+          [
+            1,
+            "r$0"
+          ],
+          [
+            -1,
+            "r$55"
+          ],
+          [
+            -1,
+            "r$12"
+          ]
+        ],
+        "unit": 0
+      },
+      "hyps": 81,
+      "checked": false,
+      "admissible": false,
+      "searchUnits": 1003.01173,
+      "searchWallMs": 559.338381,
+      "units": 1003.01173,
+      "wallMs": 559.3713930000001
+    },
+    "archive": {
+      "artifact": "track-m-tar-v1",
+      "dir": "/home/user/track-m-s18-receipts-05exTG",
+      "format": "tar.gz",
+      "parts": 1,
+      "bytes": 3405,
+      "sha256": "4c150ef1bf75debd9c7b02f69ca6b0dcf243dfc07ccc086b305a9aac15f5913b"
+    }
+  },
+  {
+    "name": "triangle-2",
+    "result": {
+      "mode": "triangle-2-grow",
+      "sourceBudget": 1000,
+      "contextSha256": "12d8e3b6beb1f1905c26b2e88534cf54b37272b25b42d4b9676e5c449d9914ba",
+      "triangleOrdinal": 2,
+      "triangleCandidates": [
+        {
+          "index": 0,
+          "inst": {
+            "wit": "writeFrame$0",
+            "below": {
+              "op": "var",
+              "name": "size"
+            },
+            "terms": [
+              [
+                1,
+                "r$0"
+              ],
+              [
+                -1,
+                "r$55"
+              ],
+              [
+                -1,
+                "r$10"
+              ]
+            ],
+            "unit": 0
+          }
+        },
+        {
+          "index": 3,
+          "inst": {
+            "wit": "writeFrame$3",
+            "below": {
+              "op": "var",
+              "name": "size"
+            },
+            "terms": [
+              [
+                1,
+                "r$0"
+              ],
+              [
+                -1,
+                "r$55"
+              ],
+              [
+                -1,
+                "r$12"
+              ]
+            ],
+            "unit": 0
+          }
+        },
+        {
+          "index": 10,
+          "inst": {
+            "wit": "writeFrame$10",
+            "below": {
+              "op": "var",
+              "name": "size"
+            },
+            "terms": [
+              [
+                1,
+                "r$2"
+              ],
+              [
+                -1,
+                "r$57"
+              ],
+              [
+                -1,
+                "r$10"
+              ]
+            ],
+            "unit": 0
+          }
+        },
+        {
+          "index": 13,
+          "inst": {
+            "wit": "writeFrame$13",
+            "below": {
+              "op": "var",
+              "name": "size"
+            },
+            "terms": [
+              [
+                1,
+                "r$2"
+              ],
+              [
+                -1,
+                "r$57"
+              ],
+              [
+                -1,
+                "r$12"
+              ]
+            ],
+            "unit": 0
+          }
+        }
+      ],
+      "index": 10,
+      "inst": {
+        "wit": "writeFrame$10",
+        "below": {
+          "op": "var",
+          "name": "size"
+        },
+        "terms": [
+          [
+            1,
+            "r$2"
+          ],
+          [
+            -1,
+            "r$57"
+          ],
+          [
+            -1,
+            "r$10"
+          ]
+        ],
+        "unit": 0
+      },
+      "hyps": 81,
+      "checked": false,
+      "admissible": false,
+      "searchUnits": 1003.1117508,
+      "searchWallMs": 798.740836,
+      "units": 1003.1117508,
+      "wallMs": 798.785772
+    },
+    "archive": {
+      "artifact": "track-m-tar-v1",
+      "dir": "/home/user/track-m-s18-receipts-WwnoK6",
+      "format": "tar.gz",
+      "parts": 1,
+      "bytes": 3405,
+      "sha256": "19fcb97005647576cf67c251322df6f20bfb1f145475f6c39d8e7639d6efe447"
+    }
+  },
+  {
+    "name": "triangle-3",
+    "result": {
+      "mode": "triangle-3-grow",
+      "sourceBudget": 1000,
+      "contextSha256": "12d8e3b6beb1f1905c26b2e88534cf54b37272b25b42d4b9676e5c449d9914ba",
+      "triangleOrdinal": 3,
+      "triangleCandidates": [
+        {
+          "index": 0,
+          "inst": {
+            "wit": "writeFrame$0",
+            "below": {
+              "op": "var",
+              "name": "size"
+            },
+            "terms": [
+              [
+                1,
+                "r$0"
+              ],
+              [
+                -1,
+                "r$55"
+              ],
+              [
+                -1,
+                "r$10"
+              ]
+            ],
+            "unit": 0
+          }
+        },
+        {
+          "index": 3,
+          "inst": {
+            "wit": "writeFrame$3",
+            "below": {
+              "op": "var",
+              "name": "size"
+            },
+            "terms": [
+              [
+                1,
+                "r$0"
+              ],
+              [
+                -1,
+                "r$55"
+              ],
+              [
+                -1,
+                "r$12"
+              ]
+            ],
+            "unit": 0
+          }
+        },
+        {
+          "index": 10,
+          "inst": {
+            "wit": "writeFrame$10",
+            "below": {
+              "op": "var",
+              "name": "size"
+            },
+            "terms": [
+              [
+                1,
+                "r$2"
+              ],
+              [
+                -1,
+                "r$57"
+              ],
+              [
+                -1,
+                "r$10"
+              ]
+            ],
+            "unit": 0
+          }
+        },
+        {
+          "index": 13,
+          "inst": {
+            "wit": "writeFrame$13",
+            "below": {
+              "op": "var",
+              "name": "size"
+            },
+            "terms": [
+              [
+                1,
+                "r$2"
+              ],
+              [
+                -1,
+                "r$57"
+              ],
+              [
+                -1,
+                "r$12"
+              ]
+            ],
+            "unit": 0
+          }
+        }
+      ],
+      "index": 13,
+      "inst": {
+        "wit": "writeFrame$13",
+        "below": {
+          "op": "var",
+          "name": "size"
+        },
+        "terms": [
+          [
+            1,
+            "r$2"
+          ],
+          [
+            -1,
+            "r$57"
+          ],
+          [
+            -1,
+            "r$12"
+          ]
+        ],
+        "unit": 0
+      },
+      "hyps": 81,
+      "checked": false,
+      "admissible": false,
+      "searchUnits": 1005.4624067999998,
+      "searchWallMs": 720.717858,
+      "units": 1005.4624067999998,
+      "wallMs": 720.762424
+    },
+    "archive": {
+      "artifact": "track-m-tar-v1",
+      "dir": "/home/user/track-m-s18-receipts-kDnqbm",
+      "format": "tar.gz",
+      "parts": 1,
+      "bytes": 3169,
+      "sha256": "9c815cd8a9dbff644a4b466f0c6b1b68b4d7a95ac13915449b287c281bd1ae72"
+    }
+  }
+]

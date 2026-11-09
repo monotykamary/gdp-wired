@@ -1,0 +1,1 @@
+{"ok": true, "batch": "20261110-000834-wjnlsd", "strict_once": false, "retain_journals": false, "admission_closed": false, "closed": false, "placements": [], "cancellation_receipts": [], "rows": [], "items": [{"name": "commitlint", "state": "queued", "placements": 0, "reaped": false, "start_inflight": false, "admission_closed": false, "result_error": null}]}

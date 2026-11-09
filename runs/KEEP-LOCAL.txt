@@ -1,3 +1,5 @@
 # Lane I: preserve the exact frozen source while the upper-bound batch is live.
 # Other historical run packaging may be offloaded after remote verification.
 runs/lane-i/upper-bound/resumed/input/frozen.tar
+# Preserve Lane F's explicit context pin in its own worktree, not a nonexistent local copy.
+/Users/monotykamary/VCS/working-remote/open-source/gdp-wired-trackL/runs/lane-f-source-input/context.json

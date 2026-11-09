@@ -16,7 +16,7 @@ for side in "$2" "$([[ "$2" == before ]] && echo after || echo before)"; do
  install_source triangle-counts.txt core/counts.ts
  if [[ "$side" == after && "${INITIAL_TRANSPORT:-0}" == 1 ]]; then LAB_DISPOSABLE=1 bun research/track-m/lane-f-initial-transport-variant.ts; fi
  echo "TRIANGLE_PAIR_BEGIN $1 $side"
- sha256sum core/count-write-frames.ts core/count-recovery/derivability-closure.ts
+ sha256sum core/counts.ts core/count-write-frames.ts core/count-recovery/derivability-closure.ts
  if [[ "$1" == closure ]]; then timeout 20s bun research/track-m/lane-f-closure.ts "$work/packet.json" 0 "$work/$side" > "$work/$side.log" 2>&1; else timeout 20s bun research/track-m/lane-b-cost.ts family.json overlap "$work/$side" 6000 7000 > "$work/$side.log" 2>&1; fi
  tail -n 1 "$work/$side.log"
  echo "TRIANGLE_PAIR_END $1 $side"
