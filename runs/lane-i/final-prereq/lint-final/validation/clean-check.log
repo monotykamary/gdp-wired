@@ -1,0 +1,9 @@
+gdp-ts.tar: OK
+handwired.tar: OK
+main.tar: OK
+COUNT_RUNTIME_IDENTICAL 2da24a9a74a03b527c1ba111cbcc510ea0bc8627e5dcb7b5dd81a2d15d136efa
+Found 0 warnings and 0 errors.
+Finished in 32.2s on 1607 files with 100 rules using 8 threads.
+
+--- stderr ---
+$ tsc -p . && oxlint --type-aware --deny-warnings --disable-nested-config

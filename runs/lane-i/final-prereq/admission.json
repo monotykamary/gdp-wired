@@ -39,7 +39,17 @@
   "lintFinal": {
     "candidate": "bf01190119f9409077a36e11a4a5b763fb6c1cad",
     "task": "18442b80-e0ea-4723-ac52-14f7df76e6e8",
-    "status": "pending",
-    "productionIdenticalTo": "8d35b7f17506fcd1f8c1d9a05ec2624c924c855d"
+    "status": "passed",
+    "productionIdenticalTo": "8d35b7f17506fcd1f8c1d9a05ec2624c924c855d",
+    "batch": "20261110-035600-xl5s32",
+    "snapshot": "31b4c9d28b5a",
+    "tests": 173,
+    "assertions": 3410,
+    "issues": []
+  },
+  "gateRequest": {
+    "candidate": "bf01190119f9409077a36e11a4a5b763fb6c1cad",
+    "baseline": "4497c4b05c3111959a2b8d808c426a0e3cab3f01",
+    "status": "ready-not-yet-delivered"
   }
 }

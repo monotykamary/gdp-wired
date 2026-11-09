@@ -1,0 +1,216 @@
+gdp-ts.tar: OK
+handwired.tar: OK
+main.tar: OK
+bun test v1.4.3 (c6da4a4d3)
+
+--- stderr ---
+
+core/finite-tiny.test.ts:
+(pass) proposals cross the independent full-family/interpreter trust boundary [5.37ms]
+(pass) whole family constrains pre, not just the proposed target [0.44ms]
+(pass) row strides come from lifted count bodies; identifiers have no meaning [2.21ms]
+(pass) unsupported external function never establishes exhaustion [0.29ms]
+(pass) expired wall returns honest interruption and never extends the parent [0.17ms]
+(pass) a rejected proposal resumes rather than stopping or dropping [0.40ms]
+(pass) dispatch slicing and irrelevant-coordinate quotienting use syntax, not names [0.95ms]
+(pass) native tuple rows are inferred without a row-name convention [1.39ms]
+(pass) the callback, not a screen, must enforce lifted preconditions and facts [0.44ms]
+(pass) one shared transition may propose several independently checked helpers [0.40ms]
+(pass) inactive flags cannot prune an unconditional update elsewhere [0.44ms]
+(pass) partial atoms preserve all finite pre-states through both polarities [3.13ms]
+(pass) request atoms wait for every conditional-term dependency [1.08ms]
+(pass) large logical predicates split at the native-body cap without losing proposals [32.18ms]
+(pass) state-only no-op has no proposals in the recorded finite scope [0.64ms]
+
+core/count-support.test.ts:
+(pass) source contexts keep original definition support and unary guards without protocol names [3.92ms]
+(pass) v4 single complete root reads retain every guard across unrelated names and radices [14.28ms]
+(pass) free transition reads close whole guarded laws and their exact primitive ranges [7.33ms]
+(pass) root flag arguments retain fixed state/input coordinates without asserting aliases [0.92ms]
+(pass) root and free transition ranges precede ambient read slots [2.10ms]
+(pass) count pool keys ignore primitive and duplicate growth but retain exact reads and definitions [0.29ms]
+(pass) v4 selected single-read triples exclude stale, unselected and captured witnesses [5.36ms]
+(pass) v4 complete matches precede optional exhaustion without minting work or source slots [3.68ms]
+(pass) v4 incomplete or fixed-coordinate matches are never labelled complete [0.37ms]
+(pass) bound-only projection keeps NONALIAS satisfiable [19.85ms]
+(pass) vacuous query binder is definition-derived [0.51ms]
+(pass) selected witness joins reject stale and wrong-map sources [5.27ms]
+(pass) count preparation reserves the same global budget for actual selected witnesses [12.91ms]
+(pass) affine remainder preserves exact polynomial [1.00ms]
+(pass) stable selected closure rejects capture and alias [6.27ms]
+(pass) current target kind instances retain guards [5.21ms]
+(pass) current flag terms retain flag-false guards [7.59ms]
+(pass) own PRE instances retain count anchors [4.12ms]
+(pass) remaining-coordinate proposals never assert alias [44.82ms]
+(pass) generic root-linked terms retain anchors and cross the real early phase gate [10.54ms]
+(pass) full source occupancy replaces only structurally true slots; substantive slots refuse [2.77ms]
+(pass) replacement reuses a cold source debit without exceeding the reserved initial cap [7.18ms]
+(pass) pre-existing CTI tuples do not consume the new source-proposal budget or trigger a new global refusal [1.11ms]
+(pass) selection covers both concrete root keys before redundant and keyless differences [8.54ms]
+(pass) definition-linked PRE candidates, reservation and ten/1000 limits [18.78ms]
+(pass) regenerated cold binders cannot steal a selected witness owner [6.64ms]
+(pass) present vacuous source survives an idempotent second seed [0.21ms]
+(pass) picked selected view falls back without renaming or extending a budget; captured views reject [0.27ms]
+(pass) cold range reads cannot fill count-pass slots before current selected-body reads [2.03ms]
+(pass) sparse generation counts no-op read/read pairs and exits before cap-zero/full-source work [6.30ms]
+(pass) pool enumeration has finite work even when cubic candidates never admit [67.08ms]
+(pass) affine-alias picks unconditionally select one kernel-valid representative [2.16ms]
+(pass) per-law slots cover distinct real roots without symmetric or unrelated-value backfill [12.02ms]
+(pass) v2 pattern reuse saves actual work only within the same bounded attempt [7.58ms]
+(pass) v2 no-POST pools skip only impossible narrow triples and retain one shared meter [15.29ms]
+(pass) v3 existing overlap and exact projection survive pair dominance with both root keys [29.73ms]
+(pass) v3 first coverage of ten required root keys cannot be displaced by overlap triples [6.33ms]
+(pass) v3 irrelevant, wrong-bound, wrong-key and POST lifts do not outrank required differences [16.65ms]
+(pass) v3 overlap priority retains exhausted/deadline refusal and the shared generation meter [5.10ms]
+(pass) count-pool invalidation follows only count-dependent flags, including quantified bodies and cycles [0.44ms]
+(pass) seeded upper bound starts with nonincrease and one relevant overlap, not pool fillers [22.36ms]
+(pass) selected affine remainder matching ignores unused pool reads and keeps the complete original law [1.00ms]
+(pass) keyless stored-copy bounds prioritize both retained and incoming counts [76.55ms]
+(pass) semantic aliases select one live representative across PRE/POST and reordered keys [16.60ms]
+
+core/finite-tiny-early.test.ts:
+(pass) seed-only enumeration does not compile native steps or claim exhaustion [0.91ms]
+(pass) seed-only enumeration has the same 256-model cap and finite domains [1.82ms]
+(pass) front-loaded seeds certify before native work and never get a second allowance [1.78ms]
+(pass) early and native phases share one frozen whole family per round [1.05ms]
+(pass) front-loaded seeds preserve callers, source preconditions and unknown facts [1.68ms]
+(pass) ordinary search still runs after front-loaded seeds find nothing [0.92ms]
+(pass) seed-only and front-loaded paths preserve expiration and pending survivors [0.40ms]
+
+core/finite-tiny-seed.test.ts:
+(pass) seed neighborhoods retain every concrete transition in the unchanged finite grids [4.94ms]
+(pass) seed attempts stop at 256 and keep only the last eight seed projections [2.64ms]
+(pass) wrong parameters and out-of-grid seed coordinates are ignored, not clamped [0.34ms]
+(pass) seeded proposals still require the whole family, callers and supported declarations [1.54ms]
+(pass) certified drops can seed later rounds without mutating earlier witnesses [0.61ms]
+(pass) seed neighborhoods cover carried request cells without changing their domain [0.99ms]
+(pass) seed processing never extends the finite wall or swallows an outer expiration [0.31ms]
+(pass) uniform state map seeds preserve all concrete transitions [12.26ms]
+(pass) uniform request map seeds preserve all concrete transitions [5.31ms]
+
+core/count-focused.test.ts:
+(pass) goal demand uses a primitive read for a missing pre-state union [5.84ms]
+(pass) goal demand follows a named flag to a missing pre-state union [2.02ms]
+(pass) demand discovers post-state Boolean identities without expanding the write [1.08ms]
+(pass) field guards receive row instances without adding carried-set witnesses [0.32ms]
+(pass) a copy starting subset retains source substitutions without unrelated tuples [0.45ms]
+(pass) copy source discovery ignores inputs read only by update guards [0.13ms]
+(pass) copy starting subsets preserve algebraic and post-empty proposals [0.07ms]
+(pass) copy-frame proposals compare the same counted definition at different rows within a cap [1.91ms]
+(pass) copy-frame slots are shared across result counts and prioritize input sources [0.94ms]
+(pass) focused comparisons follow carried sets and indicator bodies, not names [1.10ms]
+(pass) algebraic selection reserves union bounds and their row identities within the same cap [0.78ms]
+(pass) packed count coordinates are row keys but scalar comparison witnesses are not [0.13ms]
+(pass) equal Boolean views survive the narrow selector despite duplicated conjuncts [0.17ms]
+(pass) new count keys remain independent of certificate witnesses [0.19ms]
+(pass) counted row bridges preserve half-cardinality witnesses [0.18ms]
+(pass) targeted carried-set comparisons omit unrelated row reads [0.21ms]
+(pass) algebraic focus keeps equivalent pre-count views but not different rows [0.24ms]
+(pass) a carried subset can target its declared input-keyed row view [0.31ms]
+(pass) request frames propose only same-shaped carried-region comparisons [0.27ms]
+(pass) request frames normalize equality and threshold membership indicators [0.16ms]
+(pass) frames retain a structural range bound between two post counts [0.18ms]
+(pass) request partition identities outrank misleading triples within sixteen algebraic slots [1.47ms]
+(pass) post remainder and carried set propose a three-term coverage certificate [0.33ms]
+(pass) post counts can propose a bound from the stored membership they read [0.34ms]
+(pass) post-state frame comparisons are opt-in witness-bearing proposals [0.22ms]
+(pass) field bridges preserve the goal column independently of row-key aliases [0.27ms]
+(pass) count-law bridges seed only unary/binary count laws and preserve input [0.34ms]
+
+core/finite-tiny-target.test.ts:
+(pass) post-target pruning preserves all concrete transitions: atom [4.12ms]
+(pass) post-target pruning preserves all concrete transitions: negated atom [5.60ms]
+(pass) post-target pruning preserves all concrete transitions: disjunction [24.08ms]
+(pass) post-target pruning preserves all concrete transitions: conjunction [2.25ms]
+(pass) post-target pruning preserves all concrete transitions: negated conjunction [3.08ms]
+(pass) post-target pruning preserves all concrete transitions: negated disjunction [2.60ms]
+(pass) post-target pruning preserves all concrete transitions: nested polarity [3.08ms]
+(pass) post-target pruning preserves all concrete transitions: conditional term [3.11ms]
+(pass) post-target pruning preserves all concrete transitions: interval sum [4.19ms]
+(pass) post-target pruning preserves all concrete transitions: interval truncated subtraction [2.96ms]
+(pass) post-target pruning preserves all concrete transitions: interval product [2.45ms]
+(pass) post-target pruning preserves all concrete transitions: interval minimum [1.89ms]
+(pass) post-target pruning preserves all concrete transitions: interval maximum [1.76ms]
+(pass) partial post coordinates retain their own source readiness after a swap [1.25ms]
+(pass) a target unaffected by another output is not made to depend on that output [0.44ms]
+(pass) post-target pruning retains unknown late request dependencies [1.23ms]
+(pass) a definitely holding postcondition prunes states without claiming universal proof [0.41ms]
+(pass) whole-family and multiple-target transitions survive post-target pruning [1.54ms]
+(pass) source map writes and recomputed lifted counts preserve every transition [2.59ms]
+(pass) interval counts prune before every unchanged post cell is exact [1.46ms]
+(pass) oversize interval predicates fall back to bounded readiness screens [124.30ms]
+(pass) accepted targets may stop but rejected proposals do not consume a target [1.48ms]
+(pass) post-target pruning cannot drop callers or bypass declared facts [1.65ms]
+(pass) unsupported syntax and expired walls remain unknown with target pruning [1.03ms]
+
+core/counts-completion-order.test.ts:
+(pass) count completion precedes the first query only for requested count maps, without proving a false INIT [14.95ms]
+(pass) count targets complete existing premises once before the first model query; fields stay lazy [4.87ms]
+(pass) a concrete-key count target retains an independently checked conditional certificate [11.58ms]
+
+core/count-focus-proof.test.ts:
+(pass) finite-input focused recovery is the default and keeps an explicit opt-out [0.13ms]
+(pass) focused finite-count recovery keeps the selected step packet instead of rebuilding its full pool [21.23ms]
+
+core/count-completion.test.ts:
+(pass) completes whole tuples of assumed laws, deduplicated, without mutating the old map [0.22ms]
+(pass) completion is bounded to four terms, binary laws, 48 new tuples and existing generation fuel [0.31ms]
+(pass) a complete original premise, not a trusted fact, closes the ordinary checked goal [0.53ms]
+
+core/finite-tiny-houdini.test.ts:
+(pass) tiny Houdini certifies drops independently and never drops a caller [1.10ms]
+(pass) tiny Houdini repeats under the surviving family after certified drops [0.44ms]
+(pass) tiny Houdini checks declared facts and parameter preconditions [0.66ms]
+(pass) unsupported declarations cannot authorize tiny Houdini drops [0.16ms]
+(pass) tiny Houdini preserves survivors on its own timeout and propagates an outer wall [0.27ms]
+(pass) an explicit round cap retains untested later-round helpers [0.52ms]
+(pass) an explicit richer state domain can expose a new real violation [0.55ms]
+(pass) an unsupported count grid retains every candidate [0.07ms]
+(pass) tiny Houdini does not confuse a true natural bound with a witnessed violation [0.16ms]
+
+core/count-recovery-order.test.ts:
+(pass) ordinary checked proposals take priority over deferred count recovery [0.08ms]
+(pass) an unsuccessful ordinary attempt can recover within its remaining allowance [0.05ms]
+(pass) failed recovery preserves the exact ordinary result, including a model outcome [0.04ms]
+(pass) expired attempts never borrow a fresh recovery allowance [0.03ms]
+(pass) deferred recovery uses only the latest warmed proposal context [0.13ms]
+(pass) recovery readiness is checked after ordinary work, without spending a new allowance [0.09ms]
+(pass) a successful counted attempt suppresses recovery deferred by a failed plain attempt [0.08ms]
+(pass) focused recovery remains available when both ordinary passes fail [0.10ms]
+(pass) a certified counterexample cannot be rescued by a proof under the same family [0.03ms]
+(pass) ordinary counted reasoning gets a chance before finite-input recovery [18.05ms]
+(pass) an ordinary failure without a recovery proposal is unchanged [0.27ms]
+
+research/lane-i/validation-audit.test.ts:
+(pass) exit zero without a semantic result is not a successful receipt [0.72ms]
+(pass) unknown stays unknown and wall excludes the measured first attempt [0.20ms]
+(pass) duplicate or swapped phases and malformed results fail closed [0.19ms]
+(pass) a non-MLDR strict pair keeps its protocol identity and rejects the wrong roster [0.18ms]
+(pass) a replay control requires the specific metadata rejection, not just an exit marker [0.23ms]
+(pass) a passing test beside a load error is not a clean test summary [0.10ms]
+
+research/lane-i/test-load-propagation.test.ts:
+(pass) the quick roster explicitly includes the range and member-premise test modules [16.30ms]
+(pass) one passing file cannot mask an unexported import in a second test file [11.77ms]
+(pass) the quick suite propagates a real load failure and stops before the next group [28.25ms]
+
+research/track-m/audit-completion-scope.test.ts:
+(pass) census requires three unique complete source-bound matching pairs [8.88ms]
+(pass) mismatched laws, source identity, or terminal cardinality are rejected [0.79ms]
+(pass) strict repeats require the right CPU; censored results are not counted as proofs [0.83ms]
+(pass) a CPU skip is zero accepted pairs, never a complete run [0.20ms]
+
+research/track-wall/trace-error.test.ts:
+(pass) trace error text preserves real errors and stays bounded [0.09ms]
+(pass) trace errors never stringify or traverse arbitrary objects [0.05ms]
+
+research/lane-i/regressions/consensus-recheck.test.ts:
+(pass) five source-bound strict proven pairs satisfy only the prerequisite [0.76ms]
+(pass) an unknown result is retained as a loss, not a proven pair [0.73ms]
+(pass) duplicates, wrong source hashes and altered raw logs fail closed [1.84ms]
+(pass) five process exits without semantic results do not satisfy the prerequisite [0.52ms]
+
+ 173 pass
+ 0 fail
+ 3410 expect() calls
+Ran 173 tests across 16 files. [1065.00ms]
