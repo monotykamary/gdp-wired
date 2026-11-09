@@ -1,6 +1,6 @@
 // Restore and verify the exact committed repair for remote validation only.
 import {readFileSync} from 'node:fs'
-import {resolve,join} from 'node:path'
+import {resolve} from 'node:path'
 import {createHash} from 'node:crypto'
 const hashes:Record<string,string>=JSON.parse(readFileSync('frozen-paxos/checksums.json','utf8'))
 for(const [path,hash]of Object.entries(hashes))if(createHash('sha256').update(readFileSync(path)).digest('hex')!==hash)throw Error('input hash mismatch: '+path)
