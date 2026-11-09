@@ -39,6 +39,12 @@ Integrated A `19ad4ab4`: the atom-readiness shortcut and two finite-domain equiv
 
 Refreshed E to `84a7a672`, B to `432bbc37`, and Fable to `c40acb07`; F remains `27ca886f`. Their report conflicts retain Lane I text with these pointers. E's duplicate-import removal auto-merged, but post-merge inspection found the integration had separate `rangeInstances` and `rangeViolations` imports rather than E's duplicate combined imports. Fixed the resulting missing constructor by consolidating both symbols into one canonical import; neither range construction nor violation detection is removed. A new current-source check will verify the fix. V9's shipped source is unchanged.
 
+### Report-only admission refresh
+
+Merged A `81f19fdb`, E `ab869755`, and Fable `72c6acc3`: report/admission/disk evidence only, no production or test changes. Kept Lane I report and pointers to each branch's `runs/REPORT.md`; E's `research/mldr-incl/WORKING.md` update is retained. B remains `432bbc37`, F `27ca886f`. V10's source binding remains valid; no duplicate validation was submitted for these documentation-only merges.
+
+The five-minute observation of the already-registered receipt-audit controller expired without a worker result. That is **only an observation timeout**: the controller remains active and its two-job batch is not failed or resubmitted. All awaited evidence remains pending.
+
 ### V10 source-bound submission / for lane D
 
 Candidate **`b37c4e2ce8172d0e3e1546b6c099ceff33b2d7ae`**, unchanged baseline **`b788e1959bba1f2e8aa1f94d4cf7c0eb163a2f9c`**. This includes A's inactive tiny-atom optimization, the canonical range import repair `2e8e3bbb`, and explicit inclusion of the new receipt-audit regressions in the quick/changed-test rosters. Fresh identity and archive checksums are under `runs/lane-i/v10/input`.
