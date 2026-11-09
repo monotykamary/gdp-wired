@@ -64,9 +64,17 @@ Independent replay **confirmed all 22 emitted witnesses** in batch
 counts and 2362.200 ms overrun still fail the bar. Results are recorded in
 `research/track-gen/t16-seed-results.json`. A separate instrumented
 diagnostic (`3ab68a0d-ac04-424c-a831-2b15271c4750`, batch
-`20261110-024729-wzf17f`, `runs/t16-seed-profile/`) exposes onTiny counters
-before the final wall check. It is not a qualifying rerun and its one-line
-overlay is not applied to production source. No jobs were resubmitted.
+`20261110-024729-wzf17f`, `runs/t16-seed-profile/`) has now completed:
+- First binary pass: 56,413 nodes and 897.3 ms, with no initial seeds.
+- Second binary pass: 51.4 ms, zero operations/nodes/seed attempts; setup timeout.
+- Ternary pass: 965.2 ms, seven operations but zero nodes/seed attempts;
+  timeout before any seed or global search.
+This is evidence of a setup bottleneck in that diagnostic, not evidence that
+neighborhood geometry fixes it. Coupled-map correctness checks continue; a
+front-loaded independently certified seed screen is the next hypothesis if
+coupled moves fail the unchanged bar. Diagnostic details are in
+`research/track-gen/t16-seed-profile.json`. This is not a qualifying timing
+rerun; its one-line overlay is not applied to production. No jobs were resubmitted.
 Compiler SHA-256 `75ad5d2b681ce9b5fd167139d94858712da2c7bbd2cdd5df987bfd1fff074b8e`;
 new suite `992a86b0a27247b78834b5b3fee370be9d947888a71aef1b1afb0ed483c41542`;
 driver `e8df5883ffc911b06a2a4555f244a6dd58a342c8ea86e68605d79ab3cbd1eb68`.

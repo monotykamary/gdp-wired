@@ -38,4 +38,10 @@ unchanged seed objects, and caller/impossible-fact barriers. Retain all previous
 A separate diagnostic of the *previous* seed implementation moves only the
 onTiny observation before its final completion-wall check, to expose counters
 from interrupted passes. It is not a qualifying timing run and changes no
-production file. Independent replay also remains separate from this experiment.
+production file. That diagnostic completed with zero seed attempts in all
+three passes; the second binary pass and ternary pass expired in setup.
+Consequently, coupled moves alone do not address the setup bottleneck shown
+in that run, even if their correctness checks pass. Front-loading a fully
+certified seed screen before expensive native setup is the next hypothesis
+if this geometry change misses the unchanged pilot bar. Independent replay
+remains separate from this experiment.

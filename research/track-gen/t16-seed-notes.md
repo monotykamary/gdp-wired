@@ -53,5 +53,7 @@ zero lint warnings/errors. The checked source is `94a443cc`. Its pilot
 failed: original named drops 3/2/3 and one 2362.200 ms wall. Two runs also
 reported one new non-named law; that is not a five-of-seven pass. Independent
 replay confirmed all 22 emitted witnesses in batch `20261110-024725-59idfa`.
-The interrupted-statistics diagnostic remains pending. No production or
-final-gate promotion is made.
+The completed diagnostic reports zero seed models in all three passes: the
+second binary and ternary passes expire during setup, before enumeration.
+It is not a qualifying timing rerun. No production or final-gate promotion
+is made.

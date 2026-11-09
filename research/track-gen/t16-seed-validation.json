@@ -35,7 +35,18 @@
     ],
     "replayTask": "5f26d2a8-9c04-4934-b356-cfa13e315f39",
     "diagnosticTask": "3ab68a0d-ac04-424c-a831-2b15271c4750",
-    "diagnostic": "Partial onTiny stats emitted before the final wall check; never a qualifying rerun.",
+    "diagnostic": {
+      "status": "complete",
+      "batch": "20261110-024729-wzf17f",
+      "result": "research/track-gen/t16-seed-profile.json",
+      "qualifyingTiming": false,
+      "seedModelsByPass": [
+        0,
+        0,
+        0
+      ],
+      "finding": "Second binary and ternary passes expired in setup, before seed/global enumeration; ternary compiled seven operations."
+    },
     "replayBatch": "20261110-024725-59idfa",
     "certifiedWitnesses": 22,
     "results": "research/track-gen/t16-seed-results.json"
