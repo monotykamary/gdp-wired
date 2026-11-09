@@ -621,6 +621,10 @@ export class Exec {
     }
     if (a.t === 'num' && b.t === 'num') return I.cmp('=', a.e, b.e)
     if (a.t === 'bool' && b.t === 'bool') return I.or(I.and(a.e, b.e), I.and(I.not(a.e), I.not(b.e)))
+    // Choices are encoded by position. Standalone arguments may have different
+    // domains or orders, so comparing their indices would equate different strings.
+    if (this.standalone && a.t === 'choice' && b.t === 'choice')
+      return I.or(...a.values.filter(x => b.values.includes(x)).map(x => I.and(I.is(a.e, x), I.is(b.e, x))))
     if (a.t === 'choice' && (b.t === 'choice' || b.t === 'str')) return I.leq(a.e, b.t === 'str' && b.e.op === 'slit' && !a.values.includes(b.e.value) ? I.llit(b.e.value, [...a.values, b.e.value]) : this.asChoice(b, a.values, at))
     if (b.t === 'choice' && a.t === 'str') return this.equal(b, a, at)
     if (a.t === 'str' && b.t === 'str') return I.keq(a.e, b.e)

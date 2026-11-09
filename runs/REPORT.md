@@ -1,0 +1,135 @@
+# CI-first-class track
+
+Gate: **PENDING**. Branch `claude/ci-first-class`; starting revision `b788e1959bba1f2e8aa1f94d4cf7c0eb163a2f9c`. No merge/push/release is authorized.
+
+## Item 0 — plain-file decision laws
+
+**Starting status: partly.** `core/extract-standalone.ts:93-97` already walks binary expressions, returns, and if chains, but its expression whitelist omits string and null literals. `core/extract-shapes.ts:346-382` requires opt-in standalone mode and accepts only numeric/boolean inputs and results; null results are explicitly refused. Implemented finite string/record inputs, early-return predicates, nullable choice results, result-field laws and cross-domain choice equality. Whole-file Boat replay now proves all 20 per-input laws with exit 0 (13 + 7); the protocol laws remain models, not extracted implementation proofs. Synthetic regression coverage and the standalone CLI tests passed.
+
+## Item 1 — exhaustive comparison
+
+**Starting status: partly.** Both `rule.compare` (`core/dsl.ts:2293`) and `fun.compare` (`core/dsl.ts:2494`) already exist; the latter is not missing. Both currently sample and increment `checked` per output field, return no `exhaustive` flag, and have no finite-domain enumeration. Finite kinds already expose their shape in `core/dsl.ts:361-633`. Implementing input-domain coverage, explicitly not exhaustive state-history coverage or a proof.
+
+## Item 2 — built-in mutation check
+
+**Starting status: missing.** `core/cli.ts:843-859` dispatches only `check` and `draft`; `package.json` has no mutation subpath or script. The existing research mutants are corpus-specific, not a source-edit/suite runner. Adding a generic command and API with preflight, unmutated baselines, exact restoration, and fail-closed execution errors.
+
+## Item 3 — explicit runtime compilation
+
+**Starting status: partly.** `Rule.interpreter()` and explicit `Rule.compiled()` already exist (`core/dsl.ts:2417-2420`), but `Fun.run` always compiles (`core/dsl.ts:2513-2521`). The interpreter itself compiles declared helper source (`core/machine.ts:351-371`), and building those machines validates helper source through compilation (`core/dsl.ts:1540-1544,2131`). No default change is selected until the requested actual-example cost measurement completes. The recovered first benchmark contains valid synthetic-only measurements, but its private stage failed because of the same data-path error; corrected actual-example timings are pending. A corrected benchmark is now owned by the main session; the earlier child-owned command terminated without a receipt when its worker finished, and its private harness also had a missing import. No timings are claimed.
+
+## Item 4 — CI-only docs and package posture
+
+**Starting status: partly.** The README leads with runtime installation (`README.md:17-19`); the skill recommends shipping compiled rules (`skills/gdp-wired/SKILL.md:67-70`). The library already has no runtime dependencies and no install lifecycle hooks (`package.json`); only dev dependencies and optional peers. The separate CLI wrapper deliberately depends on the library and TypeScript (`packages/cli/package.json:27-30`). `.github/workflows/publish.yml:43-45,149` already uses OIDC and `--provenance`. Registry metadata confirmed by bounded read-only GETs on 2026-11-09 UTC: [library 0.47.0](https://registry.npmjs.org/gdp-wired/0.47.0) has neither dependencies nor optional dependencies, and has only `prepublishOnly`, not install lifecycle hooks; [CLI 0.47.0](https://registry.npmjs.org/gdp-wired-cli/0.47.0) has the two expected tooling dependencies and no scripts. Both advertise npm SLSA provenance attestations ([library](https://registry.npmjs.org/-/npm/v1/attestations/gdp-wired@0.47.0), [CLI](https://registry.npmjs.org/-/npm/v1/attestations/gdp-wired-cli@0.47.0)). This confirms registry posture, not an independent cryptographic audit. Adding explicit CI-first guidance and package-posture regressions; no ownership or publishing changes.
+
+## Execution notes
+
+- All builds, tests, experiments, and timings run on Boat through `supercomputer`. Laptop work is file inspection/editing, Git, and remote controllers only.
+- Initial item-0 worker failed authentication before doing the experiment; restarted with an authenticated, exactly selected model.
+- Initial submodule initialization refused the repository's preconfigured local-file transport. Retried with command-scoped `-c protocol.file.allow=always`; no global Git settings changed. Both pinned submodules now initialized successfully.
+- Validation infrastructure failures: initial mutation and health submissions failed before execution in `scheduler.store_blobs` (`ValueError: blob bytes do not match their key`). A pre-existing bounded runtime retry program timed out two further Boat submissions and its Modal fallback then refused a changing `.pi/fabric/mesh/state.json`. No timing or test pass is inferred from these failures. Added `.pi/**` to upload exclusions for future runs. The coordinator diagnosed laptop memory pressure and blob-cache lock contention, limited this lane to one subagent, and directed that existing Boat submissions be left alone. Extra agents were stopped/closed; no further resubmission is being made under that instruction. No other client or shared scheduler process was stopped.
+- Customer files are read-only; copies and their experiment outputs stay in private scratch directories outside repositories. Public fixtures are independently written synthetic decisions.
+
+## API review examples (candidate code; validation pending)
+
+`Fun.compare` (existing API, now finite input coverage):
+
+```ts
+import {bool, fun} from 'gdp-wired'
+const f = fun('permit').inputs({a: bool, b: bool}).returns(({a, b}) => ({ok: a.and(b)}))
+const result = f.compare(({a, b}) => ({ok: a && b}))
+if (result.failure || !result.exhaustive || result.checked !== 4) throw Error('mismatch')
+console.log(result)
+```
+
+`Rule.compare` (existing API, now finite parameter/input coverage, not every history):
+
+```ts
+import {bool, rule} from 'gdp-wired'
+const r = rule('switch').inputs({on: bool}).state({value: bool.from(false)}).step(({on}) => ({value: on}))
+const result = r.compare({init: () => ({value: false}), step: (_p, _s, {on}) => ({value: on})})
+if (result.failure || !result.exhaustive || result.checked !== 2) throw Error('mismatch')
+console.log(result)
+```
+
+`checkMutations` (new Node-only subpath API):
+
+```ts
+import {checkMutations} from 'gdp-wired/mutate'
+const result = checkMutations({lawSuite: 'laws', suites: [{name: 'laws', command: ['bun', 'test', 'policy.test.ts']}], mutants: [{file: 'policy.ts', from: 'return ready;', to: 'return true;', bug: 'ignores readiness'}]})
+console.log(result.markdown)
+if (!result.passed) process.exitCode = 1
+// Equivalent CLI: gdp-wired mutate mutants.json (paths relative to the config directory).
+```
+
+## Maintenance recommendations
+
+An organization-owned repository/package, a second authorized publisher and reviewer, protected releases, documented account recovery/succession, and independent review address the single-maintainer concern beyond code. Keep the prover in dev dependencies and pin reviewed versions/lockfiles. Provenance identifies build origin, not correctness or the absence of malicious maintainers. No ownership, npm publisher, release, tag, push, or GitHub write was changed by this track.
+
+## Disk
+
+Coordinator disk limits received: no new whole-tree archive per run; future source archives will be created once, only at `/private/tmp/gdp-archives/<sha>.tar`, and reused via `--data`. No tree tar will be copied into an output/input directory. New result collection will request summaries, receipts and hashes; raw logs only for a specific diagnostic, compressed. No planned write exceeds 500 MB. No files were deleted.
+
+2026-11-10 local inventory: this checkout's `runs/` uses 70 MB; `/tmp/gdp-ci-gate-inputs/` contains 15 MB of existing shared baseline Git packs, `/tmp/gdp-ci-probe/` 72 KB of fixed patch/control files, and `/tmp/ci-item3-private/` 36 KB of private benchmark controls. Laptop reports 31 GiB free. The 15 MB baseline pack directory predates this instruction; it is still used by active submissions, not a new per-run archive.
+
+Deletion candidates for coordinator decision only: `/tmp/gdp-ci-gate-inputs/` (15 MB, duplicate transport material after all existing consumers finish and a canonical SHA archive is available); `/tmp/gdp-ci-probe/` (72 KB, superseded diagnostic snapshot after its receipts are captured); `/tmp/ci-item3-private/` (36 KB, private benchmark scratch after the runtime study completes). These are not safe to remove while their jobs/observers are pending. `runs/bar/trees/` (67 MB, immutable baseline worktree plus dependencies) is another candidate only after all baseline/probe consumers finish, and should be removed through `git worktree remove`, not manual deletion. No other lane's files were inspected for deletion.
+
+## Newly diagnosed validation failure
+
+The initial IC3Syn baseline batch `20261110-001629-nug8n1` completed with all seven jobs exiting 127 because `/tmp/ci-gate/setup.sh` was absent. The `supercomputer run` wrapper itself exited 0; this is **not** a gate pass. The attached data is shipped inside the source tree, not at an absolute `/tmp` mount (`boat.py:815–827` strips leading slashes from the destination). The same wrong absolute-path assumption affects the still-pending earlier probes. Corrected probe-v3 uses relative mounts and the existing canonical archives plus raw commit metadata to verify source tree and commit hashes before running tests. Existing probes are being allowed to finish; subsequent commands will use the verified relative data path. No census verdicts were produced by this batch.
+
+## Corrected validation, first actual results
+
+`runs/probe-v3` / batch `20261110-005350-3gjxur` restored an exact clean baseline: commit `b788e1959bba1f2e8aa1f94d4cf7c0eb163a2f9c`, tree `c46b265c960ff6b905bde5134844a175b40c12c9`, submodules `d47141cce2caf5b86b0c2c0c372a5174f424bc15` and `0b6ebeeec827b05210f3acfa4149a70dda9a0de5`. After applying the frozen candidate delta, installation passed. Focused tests: **53 passed, 8 failed**; typecheck failed on two readonly writes in a mutation-isolation test. The failures were a test fixture that enumerated extra builder environment fields, changed reserved-parameter wording, and an obsolete expectation that a nullable numeric result must be refused. Fixes are in the next snapshot; these results are not a green gate.
+
+Corrected v4 work: focused tests and check/build (`7be49f30-8d14-4ae3-a64d-be3bd4059984`, `runs/probe-v4`); original published/source/final private-law table plus actual-example runtime measurements (`cd319e6f-d109-421e-9fba-6915542a3e8a`, private output `/tmp/gdp-ci-private-v4-results`); all 29 original baseline generation verdicts (`1d551c24-c89e-483b-a52b-f3ebe0a1987a`, `runs/main-census-v4`). Each has one active controller. Earlier absolute-path probes finished without testing candidate code and are not counted as passes.
+
+The published-metadata job completed successfully (`runs/package-posture/published-metadata.log`), confirming the registry details above. The separate baseline-check job failed at its missing absolute data path.
+
+Recovered synthetic runtime measurements are in `runs/item3-synthetic-baseline.json`: warm compiled/interpreter ns/op were 1525.7/1474.3 (4 inputs), 3206.5/2118.7 (128), and 2240.1/1620.0 (32). Cold model-create/first-call compiled/interpreter ns/op were 52336.7/16079.9, 59082.4/29587.6, and 53802.7/36660.4 respectively. These include encoding/decoding and wrapper overhead, on the exclusive large AMD Ryzen 9 9950X placement; they are not isolated expression timings. The requested private-example measurements still need to complete before choosing the public default.
+
+## Main bar baseline recovery
+
+The original full baseline controller is still completing its successful f1/f2/rw/suite groups; it is not restarted. Four other groups stopped during remote **task enumeration**, before any solver measurement: CHC/ITS/SV/TIP `/submit` calls timed out. A scheduler snapshot of CHC shows only the completed `call-tasks` enumeration row, not any prover jobs. These missing groups are retried separately after reconciling their old registrations; no successful solver measurements are repeated. Compressed original failure logs are retained in `runs/bar/infra-pilot-failures/`. The retried groups use the same immutable baseline and existing shared cache. No shared scheduler policy or foreign VM is changed.
+
+## Coordinator-directed baseline stop
+
+The coordinator directed that baseline bar work stop while main is expected to advance through the MLDR integration gate. Exact bar controller PIDs `75585` and `2147` received SIGTERM and exited 130; completed receipts remain intact. Scheduler verification found no remaining batches for either controller after closing their eight abandoned metadata-only registrations. The stale census controller also exited 130 and its batch and VM runs are gone. The stale baseline-only census batch `20261110-010529-6ckjrw` is also being cancelled to release gate capacity. No successful candidate gate is claimed. Focused checks, private-law replay and runtime measurements remain submission-class work. Before final gates, rebase onto the resulting main and make the candidate ready; then run the bar against that main rather than the obsolete b788 baseline.
+
+## Item 0 per-law evidence
+
+The private v4 replay proved all **20 per-input decision laws** with the existing checked prover. Published 0.47.0 and source baseline b788 refused the corresponding functions. Selecting one entry in a file containing other stated laws correctly leaves those other laws unread and exits 2; this is not a proof failure. The whole-file replay (omit `--entry`) passed with exit 0 for both files (13 + 7 laws), in `/tmp/gdp-ci-private-v5-results/whole-file-laws.log`, batch `20261110-013105-8mw8rm`; its adjacent synthetic standalone CLI regression also passed. No source text or law expressions are reproduced here.
+
+| Law | Construct | Published 0.47 | Source baseline | Current proof verdict |
+| --- | --- | --- | --- | --- |
+| CLI-A01 | Finite string input; flat boolean result record | refused | refused | proven |
+| CLI-A02 | Finite string input; flat boolean result record | refused | refused | proven |
+| CLI-A03 | Finite string input; flat boolean result record | refused | refused | proven |
+| CLI-A04 | Boolean/string record input; early returns; nullable choice result | refused | refused | proven |
+| CLI-A05 | Boolean/string record input; early returns; nullable choice result | refused | refused | proven |
+| CLI-A06 | Boolean/string record input; early returns; nullable choice result | refused | refused | proven |
+| CLI-A07 | Boolean/string record input; early returns; nullable choice result | refused | refused | proven |
+| CLI-A08 | Boolean/string record input; early returns; nullable choice result | refused | refused | proven |
+| CLI-A09 | Boolean/string record input; early returns; nullable choice result | refused | refused | proven |
+| CLI-A10 | Boolean/string record input; equality of choice comparisons | refused | refused | proven |
+| CLI-A11 | Boolean/string record input; equality of choice comparisons | refused | refused | proven |
+| CLI-A12 | Boolean/string record input; equality of choice comparisons | refused | refused | proven |
+| CLI-A13 | Boolean/string record input; equality of choice comparisons | refused | refused | proven |
+| MCP-B01 | Destructured finite record; early-return choice guards | refused | refused | proven |
+| MCP-B02 | Destructured finite record; early-return choice guards | refused | refused | proven |
+| MCP-B03 | Destructured finite record; early-return choice guards | refused | refused | proven |
+| MCP-B04 | Destructured finite record; early-return choice guards | refused | refused | proven |
+| MCP-B05 | Destructured finite record; early-return choice guards | refused | refused | proven |
+| MCP-B06 | Stateful protocol step law, not a per-input decision | model retained | model retained | model retained |
+| MCP-B07 | Destructured finite record; early-return choice guards | refused | refused | proven |
+| MCP-B08 | Destructured finite record; early-return choice guards | refused | refused | proven |
+
+The separate CLI-P01 flow law also remains a model law; decision proofs do not establish protocol order.
+
+## Focused green evidence
+
+`runs/probe-v4` / batch `20261110-010526-s9tq8y`: **61 tests passed, 0 failed** across seven focused files; `bun run check` passed with 0 warnings/errors and the build passed. This is a clean-baseline-plus-frozen-patch validation, not the required final committed-candidate gate. The new whole-file CLI regression is in the next snapshot.
+
+## Pending
+
+Items 0–4, ordered commits, package evidence, full clean-checkout gate with both pinned submodules, Boat bar against main, and 29-protocol generation census. An exhaustive comparison is a test, never a proof. Kernel trust is unchanged.
