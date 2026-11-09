@@ -5,6 +5,19 @@ description: "Prove the laws of stateful rules in TypeScript, or in Python, Ruby
 
 # gdp-wired
 
+**Default: install as a dev dependency, prove in tests/CI, and ship plain code.** Use
+`npm install --save-dev gdp-wired typescript`. Supported plain functions can carry `// gdp: law`
+comments and be checked with `npx gdp-wired-cli check policy.ts --mode standalone --entry decide`;
+no duplicate model is needed for their per-input laws. A stateful protocol model remains a separate test.
+For unsupported source, keep a tests-only model and compare against the real implementation.
+Finite input-domain comparison is a test, not a kernel proof or exhaustive state-history exploration.
+For deliberate runtime use, `fun.run()` interprets terms; `fun.compiled()` returns an explicitly compiled callable.
+User-supplied `.fns(...)` JavaScript (strings or callbacks, including transitive dependencies) requires the compiled opt-in.
+Library `divBy`/`modBy`, source-free `recur` equations and native arithmetic terms interpret without opt-in.
+`rule.interpreter()` refuses user JavaScript source unless `{compileHelpers: true}` is explicitly passed.
+Do not claim that the prover, comparison tooling or low-level machine helpers are CSP-safe.
+See the repository's `docs/ci-only.md` and [shipping](references/shipping.md).
+
 A rule is a state machine: params, a request's inputs, state, and one step.
 A law is a claim about every run of it. `proveRule(rule, [law])` either
 proves the law (a kernel checks the proof tree; nothing to write) or says
@@ -63,9 +76,10 @@ When adding or changing a rule whose invariants matter:
    (`assumes`). If the code steps the rule from states it is handed (a
    host's, a stored one), prove with `{from: 'any'}` and require
    `proven && checked && !assumes`.
-5. **Never prove a different rule than the one that ships.** Ship the rule
-   itself (`rule.compiled()`), or hold hand-written code to it with
-   `rule.compare(reference)`; run `rule.crossCheck(laws)` in tests
+5. **Keep the prover in CI; ship plain code by default.** Check supported source directly with law comments;
+   otherwise hold hand-written code to a tests-only model with `fun.compare(reference)` or
+   `rule.compare(reference)`. Exhaustive input comparison is a test, not a proof of the implementation
+   or all state histories. Run `rule.crossCheck(laws)` in tests
    ([shipping](references/shipping.md)). With gdp-ts, mint its proofs from
    the proven check (`guard`, `gate` from `gdp-wired/gdp`) so every call site
    is held to it ([with gdp-ts](references/gdp-ts.md)).
@@ -137,7 +151,7 @@ From `gdp-wired`:
 | `extract`, `extractPython`, `extractRuby`, `extractElixir`, `extractJava`, `extractKotlin`, `extractGo`, `extractRust`, `extractSwift`, `extractC`, `extractCpp`, `extractEffect`, `extractXState` | One way in: `(file, options?)`, the file a path or a URL (a Go package or Rust crate by its directory or any file; TypeScript, Effect, XState also `{code, file}`); the class, service or machine inferred (`entry` names one; `entry: [...]` several functions, each a request); `methods`, `failures`, `onError`, `strict`, `answers`, `skip`, `stores`, `domains`, `check` mean the same in each that has them. Each module also exports `proveRule` and `proveSteps`: `proveRule(x.rule!, [...x.invariants ?? [], law])`. |
 | `extractPython(file, {entry, answers, skip, stores})` | `gdp-wired/extract-py`: a Python class or module functions read through Python's own parser into a rule and checked by running the module beside it (python3 needed only then); a failure the step's refusal or, with `failures: 'kept'`, its result; calls of other code answered by the request, skipped, or a cache stated as a store |
 | `extractRust(crateDir, {entry, methods, failures})` | `gdp-wired/extract-rs`: a Rust struct and its methods read through syn into a rule and checked by building the crate beside a generated harness (cargo needed only then); integers keep their width (a panic past it is the step's failure), Option and Result, Instant and Duration, atomics as fields |
-| `fun(name)`, `loop(name)` | Pure functions (`.returns`, `.law`, `.relate`, `.run`) and loops (`.while`, `.body`, `.rank`; with no `.rank`, `proveLoop` finds one from the loop's runs, with the invariants it needs, in `found`). |
+| `fun(name)`, `loop(name)` | Pure functions (`.returns`, `.law`, `.relate`, interpreted `.run`, explicit `.compiled`) and loops (`.while`, `.body`, `.rank`; with no `.rank`, `proveLoop` finds one from the loop's runs, with the invariants it needs, in `found`). |
 | `findCycles(facts, claims)`, `findRank(loop, laws)`, `cycleLemmas(machine, laws)` | `gdp-wired/cycles`: cyclic proofs nobody shaped, for claims about functions defined by their equations: ranks (linear, in order) from the runs, back-edges at the calls a goal reads, companions (constants abstracted, bounds on what a goal reads); checked by `kernel/cyclic.ts`. `proveRule`'s search tries `cycleLemmas` for functions known by their facts (`{search: {cycles: false}}` leaves it out). |
 | `fn(arity, js, {facts, lean})`, `divBy(c)`, `modBy(c)` | Functions known by their facts. |
 | `recur(name, {args, fns, zero, next}, lemmas, between)` | A function defined by a recurrence on its first argument (up to four further arguments fixed, other functions read), its lemmas and laws between two points proven by induction when made (`Unproven` otherwise); its equations, lemmas and laws are its facts, checked again by Lean as the kernel's own proof. |

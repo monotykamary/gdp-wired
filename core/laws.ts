@@ -64,7 +64,7 @@ export function lawsIn(text: string, where = ''): LawText[] {
 
 // --- the expression's syntax ---------------------------------------------------------------------------------------------
 type Seg = {f: string} | {i: X} | {call: true, args?: string}
-type X = {k: 'num', v: number} | {k: 'str', v: string, holes?: X[], parts?: string[]} | {k: 'bool', v: boolean} | {k: 'null'}
+type X = {k: 'num', v: number} | {k: 'str', v: string, holes?: X[], parts?: string[]} | {k: 'bool', v: boolean} | {k: 'null', absence?: 'null' | 'undefined'}
   | {k: 'path', head: string, segs: Seg[]} | {k: 'un', op: '-' | 'not', x: X}
   | {k: 'bin', op: string, a: X, b: X} | {k: 'old', x: X} | {k: 'fn', f: string, xs: X[]} | {k: 'forall', v: string, over: X, body: X}
   | {k: 'dur', v: number, text: string} | {k: 'bdur', v: number, text: string}
@@ -139,7 +139,7 @@ export function parse(s: string): X {
     if (x === ':' && /^[A-Za-z_]/.test(peek() ?? '') && !operand(t[i - 2])) return {k: 'str', v: eat()}
     if (['true', 'True'].includes(x)) return {k: 'bool', v: true}
     if (['false', 'False'].includes(x)) return {k: 'bool', v: false}
-    if (['None', 'nil', 'null', 'undefined', 'NULL', 'nullptr'].includes(x)) return {k: 'null'}
+    if (['None', 'nil', 'null', 'undefined', 'NULL', 'nullptr'].includes(x)) return {k: 'null', ...(x === 'null' || x === 'undefined' ? {absence: x} : {})}
     if (!/^@?[A-Za-z_]/.test(x)) throw new LawError(`unexpected ${JSON.stringify(x)}`)
     if (x === 'old' && peek() === '(') { eat(); const e = top(); eat(')'); return {k: 'old', x: e} }
     if (['min', 'max', 'abs', 'sum'].includes(x) && peek() === '(') { eat(); const xs = [top()]; while (peek() === ',') { eat(); xs.push(top()) } eat(')'); return {k: 'fn', f: x, xs} }
@@ -175,11 +175,11 @@ export function parse(s: string): X {
 // A value: a number (an integer of the builders'), a condition, a string, a choice, a literal string, None, a map's
 // cell, a value that may be None (its flag beside it), a map, a key.
 type V = {t: 'num', v: Int} | {t: 'cond', v: Cond} | {t: 'str', v: Str} | {t: 'choice', v: Choice<string>} | {t: 'lit', v: string, err?: LawError}
-  | {t: 'null'} | {t: 'cell', rec: Record<string, unknown>, fields: string[]} | {t: 'opt', none: Cond, v?: V} | {t: 'map', n: Name, maps: Name[], env?: Record<string, unknown>} | {t: 'key', v: Term}
+  | {t: 'null', absence?: 'null' | 'undefined'} | {t: 'cell', rec: Record<string, unknown>, fields: string[]} | {t: 'opt', none: Cond, v?: V, absence?: 'null' | 'undefined'} | {t: 'map', n: Name, maps: Name[], env?: Record<string, unknown>} | {t: 'key', v: Term}
 // (bits: in a law of one step, which reads no function, each run of a mask's bits named by keys the law holds at every
 // value of, with the facts that make them that run: ks the keys, used how many are taken, hyps the facts)
 type Bits = {ks: Term[], used: number, hyps: Cond[]}
-type Ctx = {strictOptional?: boolean, consts?: Record<string, number | string | boolean>, b: Record<string, unknown>, a: Record<string, unknown>, step: boolean, method?: string, keys: Map<string, Term>, roles: Set<string>, methods: Set<string>, clock?: number, bits?: Bits,
+type Ctx = {strictOptional?: boolean, absence?: Record<string, 'null' | 'undefined'>, consts?: Record<string, number | string | boolean>, b: Record<string, unknown>, a: Record<string, unknown>, step: boolean, method?: string, keys: Map<string, Term>, roles: Set<string>, methods: Set<string>, clock?: number, bits?: Bits,
   // (business days: the calendar, and in a law of one step each time's week, a key: `pins` collects the times on a
   // first reading, then holds each one's pinned week and the guard on it)
   cal?: BusinessDays, pins?: Pins,
@@ -201,20 +201,22 @@ const calendarOf = (opts: LawOpts): BusinessDays | undefined => {
 }
 export function buildLaw(x: Extraction, l: LawText, opts: LawOpts = {}): Built {
   const strictOptional = x.model?.standalone === true
+  const absence: Record<string, 'null' | 'undefined'> = {}
+  for (const r of Object.values(x.model?.results ?? {})) if (r.k === 'maybe') absence[r.missing] = r.null ? 'null' : 'undefined'
   const names = namesWithClock(x), r = x.rule as unknown as {law: (n: string, f: (e: never) => unknown) => unknown, stepLaw: (n: string, f: (b: never, a: never) => unknown, w?: (b: never) => Cond) => unknown}
   if (!r) throw new LawError('the extraction has no rule')
   if (!l.expr) throw new LawError(`${l.name}: a law is stated as <name>: <expr>`)
   const e = parse(l.expr)
   // A first reading finds what the law reads: a request, a result, the failure or the state before make it a step law.
   const cal = opts.clock === undefined ? undefined : calendarOf(opts)
-  const probe: Ctx = {strictOptional, consts: x.consts, b: {}, a: {}, step: true, method: l.method, keys: new Map(), roles: new Set(), methods: new Set(), clock: opts.clock, cal}
+  const probe: Ctx = {strictOptional, absence, consts: x.consts, b: {}, a: {}, step: true, method: l.method, keys: new Map(), roles: new Set(), methods: new Set(), clock: opts.clock, cal}
   read(e, probe, names, true)
   // (a law on a method, the line above it, is a law of its step: the state after it, old(x) before)
   const step = !!l.method || ['input', 'answer', 'result', 'failed', 'clock', 'method', 'old'].some(k => probe.roles.has(k))
   const method = probe.methods.size === 1 ? [...probe.methods][0] : l.method
   if (probe.methods.size > 1) throw new LawError(`it reads the arguments of ${[...probe.methods].join(' and ')}: a law of one step is about one method`)
   const gate = step && method && names.some(n => n.role === 'method') ? method : undefined
-  const body0 = (b: Record<string, unknown>, a: Record<string, unknown>, pins?: Ctx['pins'], bits?: Bits) => read(e, {strictOptional, consts: x.consts, b, a, step, method, keys: new Map(), roles: new Set(), methods: new Set(), clock: opts.clock, cal, pins, ...(bits ? {bits} : {})}, names, false) as Cond
+  const body0 = (b: Record<string, unknown>, a: Record<string, unknown>, pins?: Ctx['pins'], bits?: Bits) => read(e, {strictOptional, absence, consts: x.consts, b, a, step, method, keys: new Map(), roles: new Set(), methods: new Set(), clock: opts.clock, cal, pins, ...(bits ? {bits} : {})}, names, false) as Cond
   // (a step law's bit tests: read once to count the keys they take, then at every value of them, the facts implying it)
   const bitBody = (b: Record<string, unknown>, a: Record<string, unknown>): Cond | ReturnType<typeof forall> => {
     const count: Bits = {ks: [], used: 0, hyps: []}
@@ -302,7 +304,7 @@ function val(e: X, c: Ctx, names: Name[], dry: boolean): V {
     case 'bdur': throw new LawError(`${e.text}: business days are elapsed between two times, compared: now - received <= ${e.v} business days`)
     case 'dur': if (c.clock === undefined) throw new LawError(`${e.text}: the clock's unit isn't known here (clock = "s" or "ms" in gdp.toml)`); if (!Number.isInteger(e.v * c.clock)) throw new LawError(`${e.text}: not a whole number of the clock's units`); return {t: 'num', v: Int.of(e.v * c.clock)}
     case 'bool': return {t: 'cond', v: e.v ? yes : no}
-    case 'null': return {t: 'null'}
+    case 'null': return {t: 'null', absence: e.absence}
     case 'str': if (e.holes) throw new LawError('a string template outside a store\'s key'); return {t: 'lit', v: e.v}
     case 'old': { c.roles.add('old'); return val(e.x, {...c, a: c.b}, names, dry) }
     case 'fn': {
@@ -427,7 +429,9 @@ const lastName = (x: X & {k: 'path'}): string | undefined => (x.segs.length ? (x
 const constOf = (x: X): number | undefined => (x.k === 'num' ? x.v : x.k === 'un' && x.op === '-' && x.x.k === 'num' ? -x.x.v : undefined)
 function compare(op: string, a: V, b: V, e: X & {k: 'bin'}, strictOptional = false): Cond {
   if (b.t === 'null' || a.t === 'null') {
+    const literal = a.t === 'null' ? a : b as V & {t: 'null'}
     const o = a.t === 'null' ? b : a, none = o.t === 'opt' ? o.none : o.t === 'cell' ? not(o.rec.has as Cond) : undefined
+    if (strictOptional && o.t === 'opt' && literal.absence && o.absence && literal.absence !== o.absence) return op === '==' ? no : op === '!=' ? yes : fail(`${op} with None`)
     if (!none) throw new LawError(`${show(a.t === 'null' ? e.b : e.a)} is never None here (the rule holds no None for it)`)
     return op === '==' ? none : op === '!=' ? not(none) : fail(`${op} with None`)
   }
@@ -437,7 +441,7 @@ function compare(op: string, a: V, b: V, e: X & {k: 'bin'}, strictOptional = fal
     const av = a.t === 'opt' ? a.v : a, bv = b.t === 'opt' ? b.v : b
     const present = all(a.t === 'opt' ? not(a.none) : yes, b.t === 'opt' ? not(b.none) : yes)
     if (op === '==' || op === '!=') {
-      const absent = a.t === 'opt' && b.t === 'opt' ? all(a.none, b.none) : no
+      const absent = a.t === 'opt' && b.t === 'opt' && (!a.absence || !b.absence || a.absence === b.absence) ? all(a.none, b.none) : no
       const equal = any(absent, av && bv ? all(present, compare('==', av, bv, e)) : no)
       return op === '==' ? equal : not(equal)
     }
@@ -450,7 +454,11 @@ function compare(op: string, a: V, b: V, e: X & {k: 'bin'}, strictOptional = fal
   const eq = (c: Cond) => (op === '==' ? c : op === '!=' ? not(c) : fail(`${op} of values that aren't numbers`))
   if (a.t === 'choice' || b.t === 'choice') {
     const [ch, o, ox] = a.t === 'choice' ? [a.v, b, e.b] : [(b as {v: Choice<string>}).v, a, e.a]
-    if (o.t === 'choice') return eq(ch.eq(o.v))
+    // Choice encodings are local to each domain: the same index can name
+    // different strings. In standalone laws compare common names, not indices.
+    if (o.t === 'choice') return eq(strictOptional
+      ? any(...ch.values.filter(v => o.v.values.includes(v)).map(v => all(ch.is(v), o.v.is(v))))
+      : ch.eq(o.v))
     const lit = o.t === 'lit' ? o.v : ox.k === 'path' ? lastName(ox) : undefined
     if (lit === undefined || !ch.values.includes(lit)) throw new LawError(`${show(ox)} isn't one of ${ch.values.join(', ')}`)
     return eq(ch.is(lit))
@@ -482,6 +490,12 @@ function path(e: X & {k: 'path'}, c: Ctx, names: Name[], dry: boolean): V {
   if (c.keys.has(e.head) && dry) return DRY
   // (result and failed are the step's, unless the code has a name of its own so: a field named failed, read bare, is
   // that field, as self.failed always is)
+  if (e.head === 'result' && e.segs[0] && 'f' in e.segs[0]) {
+    const field = `result.${e.segs[0].f}`, rs = names.filter(n => n.role === 'result' && n.code === field)
+    const hit = rs.find(n => n.method === c.method) ?? (rs.length === 1 ? rs[0] : undefined)
+    if (hit) { c.roles.add('result'); if (hit.method) c.methods.add(hit.method); return rest(e.segs.slice(1), leaf(hit, c, dry), c, names, dry, e) }
+    if (rs.length > 1) throw new LawError(`${field}: name the method it belongs to`)
+  }
   if ((e.head === 'result' || e.head === 'failed') && !names.some(n => n.code === e.head && n.role !== 'failed' && n.role !== 'result')) {
     const n = e.head === 'failed' ? names.find(x => x.role === 'failed') : results(names, c)
     if (!n) throw new LawError(e.head === 'failed' ? 'the rule keeps no failure (with failures: \'kept\' it does: `failures = "kept"` in gdp.toml or --failures kept)' : 'the method returns nothing the rule keeps')
@@ -569,7 +583,7 @@ function leaf(n: Name, c: Ctx, dry: boolean): V {
   const env = c.step && (n.role === 'state' || n.role === 'result' || n.role === 'failed') ? c.a : c.b
   const get = (r: string) => { if (!(r in env) && !(r in c.b)) throw new LawError(`${n.code}: ${r} isn't in the rule's environment here`); return r in env ? env[r] : c.b[r] }
   const v = n.rule ? wrap(get(n.rule)) : undefined
-  return n.none ? {t: 'opt', none: get(n.none) as Cond, ...(v ? {v} : {})} : v!
+  return n.none ? {t: 'opt', none: get(n.none) as Cond, absence: c.strictOptional ? c.absence?.[n.none] ?? 'undefined' : undefined, ...(v ? {v} : {})} : v!
 }
 // The rest of a path: a map at a key (m[k], m.get(k)), a cell's field, has/contains/key? of a map.
 function rest(segs: Seg[], v: V, c: Ctx, names: Name[], dry: boolean, e: X): V {

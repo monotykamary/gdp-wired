@@ -59,6 +59,25 @@ test('standalone mode ships through the existing extract public subpath', async 
   if (built) expect(existsSync(`${root}dist/core/extract-standalone.js`)).toBe(true)
 })
 
+test('CI package posture: no library runtime dependencies or install hooks; provenance stays enabled', () => {
+  const manifest = JSON.parse(readFileSync(`${root}package.json`, 'utf8')) as {dependencies?: object, optionalDependencies?: object, scripts: Record<string, string>}
+  expect(Object.keys(manifest.dependencies ?? {})).toEqual([])
+  expect(Object.keys(manifest.optionalDependencies ?? {})).toEqual([])
+  for (const hook of ['preinstall', 'install', 'postinstall', 'prepare']) expect(manifest.scripts[hook]).toBeUndefined()
+  const publish = readFileSync(`${root}.github/workflows/publish.yml`, 'utf8')
+  expect(publish).toContain('id-token: write')
+  expect(publish).toContain('npm publish "$tarball" --access public --provenance')
+})
+
+test('mutation runner: separate public subpath with no runtime dependencies', async () => {
+  const e = pkg.exports['./mutate']!
+  expect(e.types).toBe('./dist/core/mutate.d.ts')
+  expect(build.files).toContain('core/mutate.ts')
+  const mod = await import(built ? `${pkg.name}/mutate` : `${root}core/mutate.ts`) as Record<string, unknown>
+  expect(typeof mod.checkMutations).toBe('function')
+  expect(typeof mod.deriveDecisionMutants).toBe('function')
+})
+
 test('Effect Schema: public typed frontend stays on the existing optional Effect subpath', async () => {
   const mod = await import(built ? `${pkg.name}/effect` : `${root}core/effect.ts`)
   expect(typeof mod.fromSchema).toBe('function')

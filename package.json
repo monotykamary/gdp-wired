@@ -32,6 +32,10 @@
       "types": "./dist/core/dsl.d.ts",
       "default": "./dist/core/dsl.js"
     },
+    "./mutate": {
+      "types": "./dist/core/mutate.d.ts",
+      "default": "./dist/core/mutate.js"
+    },
     "./machine": {
       "types": "./dist/core/machine.d.ts",
       "default": "./dist/core/machine.js"
