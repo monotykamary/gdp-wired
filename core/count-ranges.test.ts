@@ -60,6 +60,12 @@ test('a narrowed certificate still needs the complete read pool for replay range
   expect(replay.c).toBe(selected)
 })
 
+test('unsupported map and conditional bounds stay unknown even when scalar values are present', () => {
+  for (const below of [get('Limits', n(0)), ite(same(x('size'), n(1)), n(1), n(2))]) {
+    expect(rangeViolations([{...ds[0]!, below}], [reads[0]!], {size: 1, r$0: 3})).toEqual([])
+  }
+})
+
 test('rangeViolations names the reads a model puts above their evaluated bound, nothing it leaves open', () => {
   // The T-14 witness: size 1, every row count at 2.
   expect(rangeViolations(ds, reads, {size: 1, r$0: 2, r$1: 2, r$2: 2}).map(r => r[0])).toEqual(['r$0', 'r$1'])
