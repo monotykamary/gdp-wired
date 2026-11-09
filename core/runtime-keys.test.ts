@@ -96,3 +96,34 @@ test('$breaks marks the stamp buffer directly and agrees with the Set path on de
   expect(breaks({A: new Map()}, [], [])).toEqual([0, 1, 2, 3])
   expect(breaks({A: new Map([[5, 1]])}, [['A', 2, false]], [[7, 1, true]])).toEqual([0, 1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 11])
 })
+
+test('a step that reads counts computes them in the generated module and agrees with the interpreter cell for cell', () => {
+  // (three counts: one over the rows of a map at stride 8, one reading that count and a map the request carries, one on a
+  // two-parameter key (base 4) whose bound is another count; the step reads all three)
+  const cm: Machine = {name: 'counted step', params: ['n'], inputs: ['op', 'i'], inputMaps: ['S'], state: {t: n(0)}, maps: {Rows: 0, Votes: 0},
+    assume: {op: 'and', xs: [less(x('op'), n(8)), less(x('i'), n(3))]},
+    counts: {
+      sizeOfRow: {j: 'row', key: 'member', below: x('n'), body: ite(same(get('Rows', plus(times(8, x('row')), x('member'))), n(1)), n(1), n(0))},
+      inS: {j: 'row', key: 'k', below: x('n'), body: ite({op: 'and', xs: [same(get('S', x('k')), n(1)), less(n(0), get('sizeOfRow', x('row')))]}, n(1), n(0))},
+      pair: {j: 'a', lo: 'b', base: 4, key: 'k', below: get('sizeOfRow', x('a')), body: ite(less(x('k'), x('b')), n(1), n(0))},
+    },
+    step: {state: {t: plus(get('inS', x('i')), get('pair', x('op')))}, maps: {Votes: {key: x('i'), value: plus(get('sizeOfRow', x('i')), get('Votes', x('i')))}}}}
+  const run = interpret(cm), fast = fastStep(cm)!
+  const text = (st: State) => JSON.stringify([st.scalars, ['Rows', 'Votes'].map(map => Array.from({length: 24}, (_, k) => st.maps[map]?.get(k) ?? 0))])
+  let steps = 0
+  for (let trial = 0; trial < 300; trial++) {
+    const params = {n: 1 + rand(3)}, st = run.init(params), rows = new Map<number, number>()
+    for (let q = rand(10); q > 0; q--) rows.set(rand(24), 1)
+    st.maps.Rows = rows
+    let a: State = st, b: State = st
+    for (let d = 0; d < 4; d++) {
+      const s = new Map<number, number>()
+      for (let k = 0; k < 3; k++) if (rand(2)) s.set(k, 1)
+      const input = {op: rand(8), i: rand(3), S: s}
+      const next = run.step(params, a, input), quick = fast(params, b, input)
+      expect(text(quick)).toBe(text(next))
+      a = next; b = quick; steps++
+    }
+  }
+  expect(steps).toBe(1200)
+})

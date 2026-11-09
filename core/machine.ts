@@ -704,6 +704,8 @@ const RUNTIME: [string, string][] = [
   // (the interpreter's writeEvery: each breakpoint, and each stretch between two at one key of it, filled only where it
   // holds other than the value past the last)
   ['$dense', `function $dense(keys, f) { const top = keys[keys.length - 1], d = f(top), cells = new Map(); for (let i = 0; i + 1 < keys.length; i++) { const key = keys[i], v = f(key); if (v !== d) cells.set(key, v); if (keys[i + 1] > key + 1) { const u = f(key + 1); if (u !== d) { if (keys[i + 1] - key > 1000000) throw new RangeError('a write at every key fills a stretch of more than a million keys (' + (key + 1) + ' to ' + (keys[i + 1] - 1) + ')'); for (let k2 = key + 1; k2 < keys[i + 1]; k2++) cells.set(k2, u); } } } return {cells, d}; }`],
+  // (a request's count map in the generated code: each cell its sum, computed when first read, as carriedView's CountCells)
+  ['$cells', `class $cells extends Map { constructor(at) { super(); this.at = at; } get(x) { let v = super.get(x); if (v === undefined) { v = this.at(x); super.set(x, v); } return v; } }`],
   ['$every', `function $every(keys, f) { const past = keys[keys.length - 1], d = f(past), cells = new Map(); for (let i = 0; i < keys.length - 1; i++) { const v = f(keys[i]); if (v !== d) cells.set(keys[i], v); } return {cells, d}; }`],
 ]
 function runtimeFor(code: string): string {
@@ -734,7 +736,7 @@ export function compileJs(m: Machine): string { return compileJsMode(m, false) }
 
 // fastStep keeps the input state persistent. Its fork can wait until every
 // precondition and right-hand side has been evaluated, just before the writes.
-function compileJsMode(m: Machine, persistent: boolean): string {
+function compileJsMode(m: Machine, persistent: boolean, cells?: CompiledCells): string {
   const {h, plain, queries, carried} = runnable(m)
   // (a condition or a write at every key over a tuple key: the interpreter decides those, part by part)
   const atEvery = [...Object.values(plain.step.flags ?? {}).filter(c => c.op === 'all'), ...Object.values(plain.step.maps ?? {}).filter(w => 'each' in w)]
@@ -852,7 +854,24 @@ function compileJsMode(m: Machine, persistent: boolean): string {
     `return {scalars, maps: state.maps, history: records, head${h.prune ? ', last: order' : ''}};`)
   else lines.push('return Object.keys(dft).length ? {scalars, maps: state.maps, defaults: dft} : {scalars, maps: state.maps};')
   const fnDefs = fns.map((name, i) => `const fn${i} = (${m.fns![name]!.js});\n${m.fns![name]!.call ? `const fnc${i} = (${m.fns![name]!.call});\n` : ''}`).join('')
-  const code = `export function init(params) {
+  // The request's counts (carriedView's CountCells, compiled): the view's maps (the state's, the maps the request carries,
+  // then each count as a $cells whose cell at x is the sum of its body over the keys below its bound, read through the same
+  // view, so a count's body may read another count), as the step reads them through `input`.
+  const cellsCode = cells ? `export function cells(params, state, input, tick) {
+  const env = ${env(true)}, s = state.scalars, dft = {...state.defaults}, maps = {...state.maps${cells.inputMaps.map(mp => `, ${id(mp)}: $m(input[${id(mp)}], ${id(`input ${mp}`)})`).join('')}};
+  ${Object.entries(cells.decls).map(([c, d]) => {
+    const outer = bound
+    bound = {...bound, [d.j]: 'cj', ...(d.base ? {[d.lo!]: 'clo'} : {})}
+    const below = ex(d.below)
+    bound = {...bound, [d.key]: 'ck'}
+    const body = ex(d.body)
+    bound = outer
+    return `maps[${id(c)}] = new $cells(x => { const cj = ${d.base ? `Math.floor(x / ${d.base}), clo = x % ${d.base}` : 'x'}; const n = ${below}; let sum = 0; for (let ck = 0; ck < n; ck++) { if ((ck & 255) === 0) tick(); sum = $x(sum + ${body}); } return sum; });`
+  }).join('\n  ')}
+  return maps;
+}
+` : ''
+  const code = `${cellsCode}export function init(params) {
   const env = ${env(false)}, s = {};
   return {scalars: {${Object.entries(plain.state).map(([name, e]) => `${id(name)}: ${ex(e)}`).join(', ')}}, maps: {${Object.keys(plain.maps ?? {}).map(name => `${id(name)}: new Map()`).join(', ')}}${h ? ', history: [], head: 0' : ''}};
 }
@@ -875,9 +894,11 @@ export function compileFunction<F>(params: string[], body: string): F {
   return new Function(...params, body) as F
 }
 // compileJs's module, loaded: init, fork and step.
-export type Compiled = {init: (params: object) => State & {head?: number}, fork: (st: State) => State, step: (params: object, st: State, input: object) => State & {head?: number}}
+export type Compiled = {init: (params: object) => State & {head?: number}, fork: (st: State) => State, step: (params: object, st: State, input: object) => State & {head?: number}, cells?: (params: object, st: State, input: object, tick: () => void) => Record<string, Map<number, number>>}
+// The counts the generated `cells` computes (their declarations) and the maps the request carries besides them.
+type CompiledCells = {decls: NonNullable<Machine['counts']>, inputMaps: string[]}
 export const loadJs = (m: Machine): Compiled => loadJsMode(m, false)
-const loadJsMode = (m: Machine, persistent: boolean): Compiled => compileFunction<() => Compiled>([], `${compileJsMode(m, persistent).replace(/^export function/gm, 'function')}\nreturn {init, fork, step}`)()
+const loadJsMode = (m: Machine, persistent: boolean, cells?: CompiledCells): Compiled => compileFunction<() => Compiled>([], `${compileJsMode(m, persistent, cells).replace(/^export function/gm, 'function')}\nreturn {init, fork, step${cells ? ', cells' : ''}}`)()
 // The interpreter's step (persistent: a copy of the state each) through loadJs's, several times faster, a request's counts
 // given to it as maps the request carries (carriedView's, each cell its sum when read); none with a history, or where the
 // generator refuses the machine.
@@ -889,11 +910,16 @@ export function fastStep(m: Machine): ((params: Env, st: State, input: Request) 
   for (let grew = true; grew;) { grew = false; for (const c of [...read]) walk([all[c]!.below, all[c]!.body], o => { if (o.op === 'get' && (o.map as string) in all && !read.has(o.map as string)) { read.add(o.map as string); grew = true } }) }
   const cs = Object.keys(all).filter(c => read.has(c))
   let js: Compiled
-  try { if (m.history) return undefined; js = loadJsMode({...m, counts: undefined, inputMaps: [...m.inputMaps ?? [], ...cs]}, true) } catch { return undefined }
-  const only = cs.length ? {...m, counts: Object.fromEntries(cs.map(c => [c, all[c]!]))} : m
+  const decls = Object.fromEntries(cs.map(c => [c, all[c]!]))
+  // (the counts compiled with the step, unless the machine has least keys, whose names the step alone computes)
+  const compiledCells = cs.length && !Object.keys(m.leasts ?? {}).length
+  try { if (m.history) return undefined; js = loadJsMode({...m, counts: undefined, inputMaps: [...m.inputMaps ?? [], ...cs]}, true, compiledCells ? {decls, inputMaps: m.inputMaps ?? []} : undefined) } catch { return undefined }
+  const only = cs.length ? {...m, counts: decls} : m, tick = () => runtimeWall.check?.('derived count')
   return (params, st, input) => {
-    const view = cs.length ? carriedView(only, st, input, undefined, params).maps : {}
-    return js.step(params, st, cs.length ? {...input, ...Object.fromEntries(cs.map(c => [c, view[c]!]))} : input)
+    if (!cs.length) return js.step(params, st, input)
+    const view = compiledCells ? js.cells!(params, st, input, tick) : carriedView(only, st, input, undefined, params).maps, carried: Request = {...input}
+    for (const c of cs) carried[c] = view[c]!
+    return js.step(params, st, carried)
   }
 }
 
