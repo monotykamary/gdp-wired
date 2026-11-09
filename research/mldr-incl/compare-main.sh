@@ -13,6 +13,9 @@ for side in base cand; do
  actual_hash=$(sha256sum "$archive"); actual_hash=${actual_hash%% *}
  [[ "$actual_hash" == "$want_hash" ]] || { echo "$side archive hash mismatch"; exit 2; }
  [[ "$(git get-tar-commit-id <"$archive")" == "$want_sha" ]] || { echo "$side archive revision mismatch"; exit 2; }
+done
+for side in base cand; do
+ archive="$root/gate-input/$side.tar"
  mkdir -p "$scratch/$side"; tar xf "$archive" -C "$scratch/$side"
  (cd "$scratch/$side" && bash "$root/research/track-m/prepare-vendors.sh" && test "$(git -C vendor/gdp-ts rev-parse HEAD)" = 0b6ebeeec827b05210f3acfa4149a70dda9a0de5 && test "$(git -C vendor/handwired rev-parse HEAD)" = d47141cce2caf5b86b0c2c0c372a5174f424bc15 && bun install --frozen-lockfile >/dev/null 2>&1)
 done

@@ -2,6 +2,14 @@
 
 Branch: `claude/mldr-incl`. **NOT GATE GREEN; AUDIT BLOCKER; no merge claim.**
 
+The audit code repair is committed as **`3f976cba`**, with archive-preflight
+ordering corrected in the follow-up. On boat, `mldr-incl-audit-check-v2` passed
+type/lint and **31 tests**, including the exact duplicate-protocol regression.
+`mldr-incl-audit-source-smoke/results-v2` passed both a real two-revision pair
+and a tampered-candidate archive rejected before either proof. The first
+tamper smoke failed and is retained; neither it nor the corrected smoke is a
+full merge gate. **All v1 pass flags remain withdrawn.**
+
 Lane D rejected the v1 paired-gate analyzer: counts alone did not enforce the
 exact roster, pair identity could change between sides, and the candidate SHA
 was not bound. All v1 `pass:true` / component-pass claims are **withdrawn**.
