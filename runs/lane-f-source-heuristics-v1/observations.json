@@ -1,0 +1,1318 @@
+[
+  {
+    "name": "source-0-boolean-plain",
+    "result": {
+      "mode": "triangle-0-projected-core-boolean",
+      "sourceBudget": 150,
+      "queryBudget": 50,
+      "coreBudget": 100,
+      "reconstructionPoint": "off",
+      "booleanMode": "plain",
+      "growUnitFirst": true,
+      "queryHyps": 9,
+      "reconstructionHyps": 3,
+      "coreQueryUnits": 19.577636000000002,
+      "coreSearchUnits": 5.533778399999999,
+      "contextSha256": "12d8e3b6beb1f1905c26b2e88534cf54b37272b25b42d4b9676e5c449d9914ba",
+      "triangleOrdinal": 0,
+      "triangleCandidates": [
+        {
+          "index": 0,
+          "inst": {
+            "wit": "writeFrame$0",
+            "below": {
+              "op": "var",
+              "name": "size"
+            },
+            "terms": [
+              [
+                1,
+                "r$0"
+              ],
+              [
+                -1,
+                "r$55"
+              ],
+              [
+                -1,
+                "r$10"
+              ]
+            ],
+            "unit": 0
+          }
+        },
+        {
+          "index": 3,
+          "inst": {
+            "wit": "writeFrame$3",
+            "below": {
+              "op": "var",
+              "name": "size"
+            },
+            "terms": [
+              [
+                1,
+                "r$0"
+              ],
+              [
+                -1,
+                "r$55"
+              ],
+              [
+                -1,
+                "r$12"
+              ]
+            ],
+            "unit": 0
+          }
+        },
+        {
+          "index": 10,
+          "inst": {
+            "wit": "writeFrame$10",
+            "below": {
+              "op": "var",
+              "name": "size"
+            },
+            "terms": [
+              [
+                1,
+                "r$2"
+              ],
+              [
+                -1,
+                "r$57"
+              ],
+              [
+                -1,
+                "r$10"
+              ]
+            ],
+            "unit": 0
+          }
+        },
+        {
+          "index": 13,
+          "inst": {
+            "wit": "writeFrame$13",
+            "below": {
+              "op": "var",
+              "name": "size"
+            },
+            "terms": [
+              [
+                1,
+                "r$2"
+              ],
+              [
+                -1,
+                "r$57"
+              ],
+              [
+                -1,
+                "r$12"
+              ]
+            ],
+            "unit": 0
+          }
+        }
+      ],
+      "coreIndices": [
+        0,
+        6,
+        8
+      ],
+      "coreTree": false,
+      "coreWidened": false,
+      "index": 0,
+      "inst": {
+        "wit": "writeFrame$0",
+        "below": {
+          "op": "var",
+          "name": "size"
+        },
+        "terms": [
+          [
+            1,
+            "r$0"
+          ],
+          [
+            -1,
+            "r$55"
+          ],
+          [
+            -1,
+            "r$10"
+          ]
+        ],
+        "unit": 0
+      },
+      "hyps": 81,
+      "checked": false,
+      "admissible": false,
+      "searchUnits": 25.1114144,
+      "searchWallMs": 130.383153,
+      "units": 25.1114144,
+      "wallMs": 130.4200380000002
+    },
+    "archive": {
+      "artifact": "track-m-tar-v1",
+      "dir": "/home/user/track-m-s18-receipts-TQAlkJ",
+      "format": "tar.gz",
+      "parts": 1,
+      "bytes": 4538,
+      "sha256": "d3219353ee64b2cda66ed63e8f629f0362c60f911398b32705f0349f420de740"
+    }
+  },
+  {
+    "name": "source-0-boolean-extended",
+    "result": {
+      "mode": "triangle-0-projected-core-boolean",
+      "sourceBudget": 150,
+      "queryBudget": 50,
+      "coreBudget": 100,
+      "reconstructionPoint": "off",
+      "booleanMode": "extended",
+      "growUnitFirst": true,
+      "queryHyps": 9,
+      "reconstructionHyps": 3,
+      "coreQueryUnits": 19.577636000000002,
+      "coreSearchUnits": 101.5334264,
+      "contextSha256": "12d8e3b6beb1f1905c26b2e88534cf54b37272b25b42d4b9676e5c449d9914ba",
+      "triangleOrdinal": 0,
+      "triangleCandidates": [
+        {
+          "index": 0,
+          "inst": {
+            "wit": "writeFrame$0",
+            "below": {
+              "op": "var",
+              "name": "size"
+            },
+            "terms": [
+              [
+                1,
+                "r$0"
+              ],
+              [
+                -1,
+                "r$55"
+              ],
+              [
+                -1,
+                "r$10"
+              ]
+            ],
+            "unit": 0
+          }
+        },
+        {
+          "index": 3,
+          "inst": {
+            "wit": "writeFrame$3",
+            "below": {
+              "op": "var",
+              "name": "size"
+            },
+            "terms": [
+              [
+                1,
+                "r$0"
+              ],
+              [
+                -1,
+                "r$55"
+              ],
+              [
+                -1,
+                "r$12"
+              ]
+            ],
+            "unit": 0
+          }
+        },
+        {
+          "index": 10,
+          "inst": {
+            "wit": "writeFrame$10",
+            "below": {
+              "op": "var",
+              "name": "size"
+            },
+            "terms": [
+              [
+                1,
+                "r$2"
+              ],
+              [
+                -1,
+                "r$57"
+              ],
+              [
+                -1,
+                "r$10"
+              ]
+            ],
+            "unit": 0
+          }
+        },
+        {
+          "index": 13,
+          "inst": {
+            "wit": "writeFrame$13",
+            "below": {
+              "op": "var",
+              "name": "size"
+            },
+            "terms": [
+              [
+                1,
+                "r$2"
+              ],
+              [
+                -1,
+                "r$57"
+              ],
+              [
+                -1,
+                "r$12"
+              ]
+            ],
+            "unit": 0
+          }
+        }
+      ],
+      "coreIndices": [
+        0,
+        6,
+        8
+      ],
+      "coreTree": false,
+      "coreWidened": false,
+      "index": 0,
+      "inst": {
+        "wit": "writeFrame$0",
+        "below": {
+          "op": "var",
+          "name": "size"
+        },
+        "terms": [
+          [
+            1,
+            "r$0"
+          ],
+          [
+            -1,
+            "r$55"
+          ],
+          [
+            -1,
+            "r$10"
+          ]
+        ],
+        "unit": 0
+      },
+      "hyps": 81,
+      "checked": false,
+      "admissible": false,
+      "searchUnits": 121.1110624,
+      "searchWallMs": 468.07998799999996,
+      "units": 121.1110624,
+      "wallMs": 468.1350010000001
+    },
+    "archive": {
+      "artifact": "track-m-tar-v1",
+      "dir": "/home/user/track-m-s18-receipts-TsD8hP",
+      "format": "tar.gz",
+      "parts": 1,
+      "bytes": 4148,
+      "sha256": "c548abc71c0cc3486c0f0fa1815850df674d12f3ae31558e1bbe29039f0c5928"
+    }
+  },
+  {
+    "name": "source-0-boolean-guards",
+    "result": {
+      "mode": "triangle-0-projected-core-boolean",
+      "sourceBudget": 150,
+      "queryBudget": 50,
+      "coreBudget": 100,
+      "reconstructionPoint": "off",
+      "booleanMode": "guards",
+      "growUnitFirst": true,
+      "queryHyps": 9,
+      "reconstructionHyps": 3,
+      "coreQueryUnits": 19.577636000000002,
+      "coreSearchUnits": 5.049388800000003,
+      "contextSha256": "12d8e3b6beb1f1905c26b2e88534cf54b37272b25b42d4b9676e5c449d9914ba",
+      "triangleOrdinal": 0,
+      "triangleCandidates": [
+        {
+          "index": 0,
+          "inst": {
+            "wit": "writeFrame$0",
+            "below": {
+              "op": "var",
+              "name": "size"
+            },
+            "terms": [
+              [
+                1,
+                "r$0"
+              ],
+              [
+                -1,
+                "r$55"
+              ],
+              [
+                -1,
+                "r$10"
+              ]
+            ],
+            "unit": 0
+          }
+        },
+        {
+          "index": 3,
+          "inst": {
+            "wit": "writeFrame$3",
+            "below": {
+              "op": "var",
+              "name": "size"
+            },
+            "terms": [
+              [
+                1,
+                "r$0"
+              ],
+              [
+                -1,
+                "r$55"
+              ],
+              [
+                -1,
+                "r$12"
+              ]
+            ],
+            "unit": 0
+          }
+        },
+        {
+          "index": 10,
+          "inst": {
+            "wit": "writeFrame$10",
+            "below": {
+              "op": "var",
+              "name": "size"
+            },
+            "terms": [
+              [
+                1,
+                "r$2"
+              ],
+              [
+                -1,
+                "r$57"
+              ],
+              [
+                -1,
+                "r$10"
+              ]
+            ],
+            "unit": 0
+          }
+        },
+        {
+          "index": 13,
+          "inst": {
+            "wit": "writeFrame$13",
+            "below": {
+              "op": "var",
+              "name": "size"
+            },
+            "terms": [
+              [
+                1,
+                "r$2"
+              ],
+              [
+                -1,
+                "r$57"
+              ],
+              [
+                -1,
+                "r$12"
+              ]
+            ],
+            "unit": 0
+          }
+        }
+      ],
+      "coreIndices": [
+        0,
+        6,
+        8
+      ],
+      "coreTree": false,
+      "coreWidened": false,
+      "index": 0,
+      "inst": {
+        "wit": "writeFrame$0",
+        "below": {
+          "op": "var",
+          "name": "size"
+        },
+        "terms": [
+          [
+            1,
+            "r$0"
+          ],
+          [
+            -1,
+            "r$55"
+          ],
+          [
+            -1,
+            "r$10"
+          ]
+        ],
+        "unit": 0
+      },
+      "hyps": 81,
+      "checked": false,
+      "admissible": false,
+      "searchUnits": 24.627024800000004,
+      "searchWallMs": 113.26443600000005,
+      "units": 24.627024800000004,
+      "wallMs": 113.29035499999998
+    },
+    "archive": {
+      "artifact": "track-m-tar-v1",
+      "dir": "/home/user/track-m-s18-receipts-PwGDG2",
+      "format": "tar.gz",
+      "parts": 1,
+      "bytes": 4207,
+      "sha256": "133f422a2bbecc6c4bf49adbf04dba61ad38b472f5b1ccd7b3b2e1bba3213fcb"
+    }
+  },
+  {
+    "name": "source-0-grow-order",
+    "result": {
+      "mode": "triangle-0-projected-core-grow",
+      "sourceBudget": 150,
+      "queryBudget": 50,
+      "coreBudget": 100,
+      "reconstructionPoint": "off",
+      "booleanMode": "full",
+      "growUnitFirst": false,
+      "queryHyps": 9,
+      "reconstructionHyps": 3,
+      "coreQueryUnits": 19.577636000000002,
+      "coreSearchUnits": 101.18271479999999,
+      "contextSha256": "12d8e3b6beb1f1905c26b2e88534cf54b37272b25b42d4b9676e5c449d9914ba",
+      "triangleOrdinal": 0,
+      "triangleCandidates": [
+        {
+          "index": 0,
+          "inst": {
+            "wit": "writeFrame$0",
+            "below": {
+              "op": "var",
+              "name": "size"
+            },
+            "terms": [
+              [
+                1,
+                "r$0"
+              ],
+              [
+                -1,
+                "r$55"
+              ],
+              [
+                -1,
+                "r$10"
+              ]
+            ],
+            "unit": 0
+          }
+        },
+        {
+          "index": 3,
+          "inst": {
+            "wit": "writeFrame$3",
+            "below": {
+              "op": "var",
+              "name": "size"
+            },
+            "terms": [
+              [
+                1,
+                "r$0"
+              ],
+              [
+                -1,
+                "r$55"
+              ],
+              [
+                -1,
+                "r$12"
+              ]
+            ],
+            "unit": 0
+          }
+        },
+        {
+          "index": 10,
+          "inst": {
+            "wit": "writeFrame$10",
+            "below": {
+              "op": "var",
+              "name": "size"
+            },
+            "terms": [
+              [
+                1,
+                "r$2"
+              ],
+              [
+                -1,
+                "r$57"
+              ],
+              [
+                -1,
+                "r$10"
+              ]
+            ],
+            "unit": 0
+          }
+        },
+        {
+          "index": 13,
+          "inst": {
+            "wit": "writeFrame$13",
+            "below": {
+              "op": "var",
+              "name": "size"
+            },
+            "terms": [
+              [
+                1,
+                "r$2"
+              ],
+              [
+                -1,
+                "r$57"
+              ],
+              [
+                -1,
+                "r$12"
+              ]
+            ],
+            "unit": 0
+          }
+        }
+      ],
+      "coreIndices": [
+        0,
+        6,
+        8
+      ],
+      "coreTree": false,
+      "coreWidened": false,
+      "index": 0,
+      "inst": {
+        "wit": "writeFrame$0",
+        "below": {
+          "op": "var",
+          "name": "size"
+        },
+        "terms": [
+          [
+            1,
+            "r$0"
+          ],
+          [
+            -1,
+            "r$55"
+          ],
+          [
+            -1,
+            "r$10"
+          ]
+        ],
+        "unit": 0
+      },
+      "hyps": 81,
+      "checked": false,
+      "admissible": false,
+      "searchUnits": 120.76035079999998,
+      "searchWallMs": 319.78663600000004,
+      "units": 120.76035079999998,
+      "wallMs": 319.846096
+    },
+    "archive": {
+      "artifact": "track-m-tar-v1",
+      "dir": "/home/user/track-m-s18-receipts-ShJho9",
+      "format": "tar.gz",
+      "parts": 1,
+      "bytes": 3515,
+      "sha256": "b3dbc6b42103b97d0c3ba456450a6435302f9b3b81c7a0d2287f49d6a38d3e06"
+    }
+  },
+  {
+    "name": "source-3-boolean-plain",
+    "result": {
+      "mode": "triangle-3-projected-core-boolean",
+      "sourceBudget": 150,
+      "queryBudget": 50,
+      "coreBudget": 100,
+      "reconstructionPoint": "off",
+      "booleanMode": "plain",
+      "growUnitFirst": true,
+      "queryHyps": 9,
+      "reconstructionHyps": 2,
+      "coreQueryUnits": 18.858562,
+      "coreSearchUnits": 5.1890531999999965,
+      "contextSha256": "12d8e3b6beb1f1905c26b2e88534cf54b37272b25b42d4b9676e5c449d9914ba",
+      "triangleOrdinal": 3,
+      "triangleCandidates": [
+        {
+          "index": 0,
+          "inst": {
+            "wit": "writeFrame$0",
+            "below": {
+              "op": "var",
+              "name": "size"
+            },
+            "terms": [
+              [
+                1,
+                "r$0"
+              ],
+              [
+                -1,
+                "r$55"
+              ],
+              [
+                -1,
+                "r$10"
+              ]
+            ],
+            "unit": 0
+          }
+        },
+        {
+          "index": 3,
+          "inst": {
+            "wit": "writeFrame$3",
+            "below": {
+              "op": "var",
+              "name": "size"
+            },
+            "terms": [
+              [
+                1,
+                "r$0"
+              ],
+              [
+                -1,
+                "r$55"
+              ],
+              [
+                -1,
+                "r$12"
+              ]
+            ],
+            "unit": 0
+          }
+        },
+        {
+          "index": 10,
+          "inst": {
+            "wit": "writeFrame$10",
+            "below": {
+              "op": "var",
+              "name": "size"
+            },
+            "terms": [
+              [
+                1,
+                "r$2"
+              ],
+              [
+                -1,
+                "r$57"
+              ],
+              [
+                -1,
+                "r$10"
+              ]
+            ],
+            "unit": 0
+          }
+        },
+        {
+          "index": 13,
+          "inst": {
+            "wit": "writeFrame$13",
+            "below": {
+              "op": "var",
+              "name": "size"
+            },
+            "terms": [
+              [
+                1,
+                "r$2"
+              ],
+              [
+                -1,
+                "r$57"
+              ],
+              [
+                -1,
+                "r$12"
+              ]
+            ],
+            "unit": 0
+          }
+        }
+      ],
+      "coreIndices": [
+        0,
+        8
+      ],
+      "coreTree": false,
+      "coreWidened": false,
+      "index": 13,
+      "inst": {
+        "wit": "writeFrame$13",
+        "below": {
+          "op": "var",
+          "name": "size"
+        },
+        "terms": [
+          [
+            1,
+            "r$2"
+          ],
+          [
+            -1,
+            "r$57"
+          ],
+          [
+            -1,
+            "r$12"
+          ]
+        ],
+        "unit": 0
+      },
+      "hyps": 81,
+      "checked": false,
+      "admissible": false,
+      "searchUnits": 24.047615199999996,
+      "searchWallMs": 251.09958099999994,
+      "units": 24.047615199999996,
+      "wallMs": 251.14465599999994
+    },
+    "archive": {
+      "artifact": "track-m-tar-v1",
+      "dir": "/home/user/track-m-s18-receipts-Z3B4Bx",
+      "format": "tar.gz",
+      "parts": 1,
+      "bytes": 4540,
+      "sha256": "f5f83c7142684f713f1d7606dc04562c79384cc3468b7795ab551e69647707c8"
+    }
+  },
+  {
+    "name": "source-3-boolean-extended",
+    "result": {
+      "mode": "triangle-3-projected-core-boolean",
+      "sourceBudget": 150,
+      "queryBudget": 50,
+      "coreBudget": 100,
+      "reconstructionPoint": "off",
+      "booleanMode": "extended",
+      "growUnitFirst": true,
+      "queryHyps": 9,
+      "reconstructionHyps": 2,
+      "coreQueryUnits": 18.858562,
+      "coreSearchUnits": 100.11187879999997,
+      "contextSha256": "12d8e3b6beb1f1905c26b2e88534cf54b37272b25b42d4b9676e5c449d9914ba",
+      "triangleOrdinal": 3,
+      "triangleCandidates": [
+        {
+          "index": 0,
+          "inst": {
+            "wit": "writeFrame$0",
+            "below": {
+              "op": "var",
+              "name": "size"
+            },
+            "terms": [
+              [
+                1,
+                "r$0"
+              ],
+              [
+                -1,
+                "r$55"
+              ],
+              [
+                -1,
+                "r$10"
+              ]
+            ],
+            "unit": 0
+          }
+        },
+        {
+          "index": 3,
+          "inst": {
+            "wit": "writeFrame$3",
+            "below": {
+              "op": "var",
+              "name": "size"
+            },
+            "terms": [
+              [
+                1,
+                "r$0"
+              ],
+              [
+                -1,
+                "r$55"
+              ],
+              [
+                -1,
+                "r$12"
+              ]
+            ],
+            "unit": 0
+          }
+        },
+        {
+          "index": 10,
+          "inst": {
+            "wit": "writeFrame$10",
+            "below": {
+              "op": "var",
+              "name": "size"
+            },
+            "terms": [
+              [
+                1,
+                "r$2"
+              ],
+              [
+                -1,
+                "r$57"
+              ],
+              [
+                -1,
+                "r$10"
+              ]
+            ],
+            "unit": 0
+          }
+        },
+        {
+          "index": 13,
+          "inst": {
+            "wit": "writeFrame$13",
+            "below": {
+              "op": "var",
+              "name": "size"
+            },
+            "terms": [
+              [
+                1,
+                "r$2"
+              ],
+              [
+                -1,
+                "r$57"
+              ],
+              [
+                -1,
+                "r$12"
+              ]
+            ],
+            "unit": 0
+          }
+        }
+      ],
+      "coreIndices": [
+        0,
+        8
+      ],
+      "coreTree": false,
+      "coreWidened": false,
+      "index": 13,
+      "inst": {
+        "wit": "writeFrame$13",
+        "below": {
+          "op": "var",
+          "name": "size"
+        },
+        "terms": [
+          [
+            1,
+            "r$2"
+          ],
+          [
+            -1,
+            "r$57"
+          ],
+          [
+            -1,
+            "r$12"
+          ]
+        ],
+        "unit": 0
+      },
+      "hyps": 81,
+      "checked": false,
+      "admissible": false,
+      "searchUnits": 118.97044079999998,
+      "searchWallMs": 321.6656570000001,
+      "units": 118.97044079999998,
+      "wallMs": 321.7045300000001
+    },
+    "archive": {
+      "artifact": "track-m-tar-v1",
+      "dir": "/home/user/track-m-s18-receipts-bQkBKx",
+      "format": "tar.gz",
+      "parts": 1,
+      "bytes": 4063,
+      "sha256": "d826ecab68aba29de50c5803e6e65ddeb17101aeb696244df7ca2b7b4bd789be"
+    }
+  },
+  {
+    "name": "source-3-boolean-guards",
+    "result": {
+      "mode": "triangle-3-projected-core-boolean",
+      "sourceBudget": 150,
+      "queryBudget": 50,
+      "coreBudget": 100,
+      "reconstructionPoint": "off",
+      "booleanMode": "guards",
+      "growUnitFirst": true,
+      "queryHyps": 9,
+      "reconstructionHyps": 2,
+      "coreQueryUnits": 18.858562,
+      "coreSearchUnits": 4.773790399999999,
+      "contextSha256": "12d8e3b6beb1f1905c26b2e88534cf54b37272b25b42d4b9676e5c449d9914ba",
+      "triangleOrdinal": 3,
+      "triangleCandidates": [
+        {
+          "index": 0,
+          "inst": {
+            "wit": "writeFrame$0",
+            "below": {
+              "op": "var",
+              "name": "size"
+            },
+            "terms": [
+              [
+                1,
+                "r$0"
+              ],
+              [
+                -1,
+                "r$55"
+              ],
+              [
+                -1,
+                "r$10"
+              ]
+            ],
+            "unit": 0
+          }
+        },
+        {
+          "index": 3,
+          "inst": {
+            "wit": "writeFrame$3",
+            "below": {
+              "op": "var",
+              "name": "size"
+            },
+            "terms": [
+              [
+                1,
+                "r$0"
+              ],
+              [
+                -1,
+                "r$55"
+              ],
+              [
+                -1,
+                "r$12"
+              ]
+            ],
+            "unit": 0
+          }
+        },
+        {
+          "index": 10,
+          "inst": {
+            "wit": "writeFrame$10",
+            "below": {
+              "op": "var",
+              "name": "size"
+            },
+            "terms": [
+              [
+                1,
+                "r$2"
+              ],
+              [
+                -1,
+                "r$57"
+              ],
+              [
+                -1,
+                "r$10"
+              ]
+            ],
+            "unit": 0
+          }
+        },
+        {
+          "index": 13,
+          "inst": {
+            "wit": "writeFrame$13",
+            "below": {
+              "op": "var",
+              "name": "size"
+            },
+            "terms": [
+              [
+                1,
+                "r$2"
+              ],
+              [
+                -1,
+                "r$57"
+              ],
+              [
+                -1,
+                "r$12"
+              ]
+            ],
+            "unit": 0
+          }
+        }
+      ],
+      "coreIndices": [
+        0,
+        8
+      ],
+      "coreTree": false,
+      "coreWidened": false,
+      "index": 13,
+      "inst": {
+        "wit": "writeFrame$13",
+        "below": {
+          "op": "var",
+          "name": "size"
+        },
+        "terms": [
+          [
+            1,
+            "r$2"
+          ],
+          [
+            -1,
+            "r$57"
+          ],
+          [
+            -1,
+            "r$12"
+          ]
+        ],
+        "unit": 0
+      },
+      "hyps": 81,
+      "checked": false,
+      "admissible": false,
+      "searchUnits": 23.6323524,
+      "searchWallMs": 168.25993100000005,
+      "units": 23.6323524,
+      "wallMs": 168.3046139999999
+    },
+    "archive": {
+      "artifact": "track-m-tar-v1",
+      "dir": "/home/user/track-m-s18-receipts-KxnLIi",
+      "format": "tar.gz",
+      "parts": 1,
+      "bytes": 4202,
+      "sha256": "50d7b18ba26d906737385695d3e0d181e83331a386ff296728cec2a3f36d9409"
+    }
+  },
+  {
+    "name": "source-3-grow-order",
+    "result": {
+      "mode": "triangle-3-projected-core-grow",
+      "sourceBudget": 150,
+      "queryBudget": 50,
+      "coreBudget": 100,
+      "reconstructionPoint": "off",
+      "booleanMode": "full",
+      "growUnitFirst": false,
+      "queryHyps": 9,
+      "reconstructionHyps": 2,
+      "coreQueryUnits": 18.858562,
+      "coreSearchUnits": 100.67812559999999,
+      "contextSha256": "12d8e3b6beb1f1905c26b2e88534cf54b37272b25b42d4b9676e5c449d9914ba",
+      "triangleOrdinal": 3,
+      "triangleCandidates": [
+        {
+          "index": 0,
+          "inst": {
+            "wit": "writeFrame$0",
+            "below": {
+              "op": "var",
+              "name": "size"
+            },
+            "terms": [
+              [
+                1,
+                "r$0"
+              ],
+              [
+                -1,
+                "r$55"
+              ],
+              [
+                -1,
+                "r$10"
+              ]
+            ],
+            "unit": 0
+          }
+        },
+        {
+          "index": 3,
+          "inst": {
+            "wit": "writeFrame$3",
+            "below": {
+              "op": "var",
+              "name": "size"
+            },
+            "terms": [
+              [
+                1,
+                "r$0"
+              ],
+              [
+                -1,
+                "r$55"
+              ],
+              [
+                -1,
+                "r$12"
+              ]
+            ],
+            "unit": 0
+          }
+        },
+        {
+          "index": 10,
+          "inst": {
+            "wit": "writeFrame$10",
+            "below": {
+              "op": "var",
+              "name": "size"
+            },
+            "terms": [
+              [
+                1,
+                "r$2"
+              ],
+              [
+                -1,
+                "r$57"
+              ],
+              [
+                -1,
+                "r$10"
+              ]
+            ],
+            "unit": 0
+          }
+        },
+        {
+          "index": 13,
+          "inst": {
+            "wit": "writeFrame$13",
+            "below": {
+              "op": "var",
+              "name": "size"
+            },
+            "terms": [
+              [
+                1,
+                "r$2"
+              ],
+              [
+                -1,
+                "r$57"
+              ],
+              [
+                -1,
+                "r$12"
+              ]
+            ],
+            "unit": 0
+          }
+        }
+      ],
+      "coreIndices": [
+        0,
+        8
+      ],
+      "coreTree": false,
+      "coreWidened": false,
+      "index": 13,
+      "inst": {
+        "wit": "writeFrame$13",
+        "below": {
+          "op": "var",
+          "name": "size"
+        },
+        "terms": [
+          [
+            1,
+            "r$2"
+          ],
+          [
+            -1,
+            "r$57"
+          ],
+          [
+            -1,
+            "r$12"
+          ]
+        ],
+        "unit": 0
+      },
+      "hyps": 81,
+      "checked": false,
+      "admissible": false,
+      "searchUnits": 119.5366876,
+      "searchWallMs": 144.57981800000005,
+      "units": 119.5366876,
+      "wallMs": 144.62900100000002
+    },
+    "archive": {
+      "artifact": "track-m-tar-v1",
+      "dir": "/home/user/track-m-s18-receipts-bBJGzj",
+      "format": "tar.gz",
+      "parts": 1,
+      "bytes": 3516,
+      "sha256": "45cb539c8c704018e78e8646e9afeccdcaa20352865d3487c965a71b0da12fc5"
+    }
+  }
+]

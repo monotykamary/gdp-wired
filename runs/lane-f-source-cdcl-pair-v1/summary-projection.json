@@ -1,0 +1,456 @@
+[
+  {
+    "name": "closure-AB",
+    "mode": "closure",
+    "side": "before",
+    "result": {
+      "conditional": true,
+      "directClosure": true,
+      "wholeHelper": false,
+      "law": "inX: stored guard reconfigs/inS or disabled/0",
+      "op": 0,
+      "packetSha256": "f85affd2f84babfeaef29618e14e68d14bf2c24b9e20369d2c8332a170ff3b9e",
+      "searchUnits": 1555.8111519999998,
+      "searchWallMs": 3996.222648,
+      "units": 1555.8111519999998,
+      "wallMs": 4007.6146020000006,
+      "checked": false,
+      "reads": 60,
+      "instances": 294,
+      "pairs": [
+        [
+          {
+            "op": "var",
+            "name": "a$quorum#"
+          },
+          {
+            "op": "var",
+            "name": "i"
+          }
+        ],
+        [
+          {
+            "op": "var",
+            "name": "b$quorum"
+          },
+          {
+            "op": "var",
+            "name": "i"
+          }
+        ]
+      ],
+      "writes": true,
+      "rowQueries": 4,
+      "rowSplits": 2,
+      "rowMirrors": 0
+    }
+  },
+  {
+    "name": "closure-AB",
+    "mode": "closure",
+    "side": "after",
+    "result": {
+      "conditional": true,
+      "directClosure": true,
+      "wholeHelper": false,
+      "law": "inX: stored guard reconfigs/inS or disabled/0",
+      "op": 0,
+      "packetSha256": "f85affd2f84babfeaef29618e14e68d14bf2c24b9e20369d2c8332a170ff3b9e",
+      "searchUnits": 1407.6949172000002,
+      "searchWallMs": 3791.212684,
+      "units": 1407.6949172000002,
+      "wallMs": 3802.597855,
+      "checked": false,
+      "reads": 60,
+      "instances": 294,
+      "pairs": [
+        [
+          {
+            "op": "var",
+            "name": "a$quorum#"
+          },
+          {
+            "op": "var",
+            "name": "i"
+          }
+        ],
+        [
+          {
+            "op": "var",
+            "name": "b$quorum"
+          },
+          {
+            "op": "var",
+            "name": "i"
+          }
+        ]
+      ],
+      "writes": true,
+      "rowQueries": 4,
+      "rowSplits": 2,
+      "rowMirrors": 0
+    }
+  },
+  {
+    "name": "closure-AB",
+    "archive": {
+      "artifact": "track-m-tar-v1",
+      "dir": "/home/user/track-m-s18-receipts-Ee6j68",
+      "format": "tar.gz",
+      "parts": 2,
+      "bytes": 205548,
+      "sha256": "d844c188613dc74a4dae6dbd0160c7a0acada0413bb108f50df79ee4fc9ec258"
+    }
+  },
+  {
+    "name": "closure-BA",
+    "mode": "closure",
+    "side": "after",
+    "result": {
+      "conditional": true,
+      "directClosure": true,
+      "wholeHelper": false,
+      "law": "inX: stored guard reconfigs/inS or disabled/0",
+      "op": 0,
+      "packetSha256": "f85affd2f84babfeaef29618e14e68d14bf2c24b9e20369d2c8332a170ff3b9e",
+      "searchUnits": 1407.6949172000002,
+      "searchWallMs": 5047.4559500000005,
+      "units": 1407.6949172000002,
+      "wallMs": 5063.024244,
+      "checked": false,
+      "reads": 60,
+      "instances": 294,
+      "pairs": [
+        [
+          {
+            "op": "var",
+            "name": "a$quorum#"
+          },
+          {
+            "op": "var",
+            "name": "i"
+          }
+        ],
+        [
+          {
+            "op": "var",
+            "name": "b$quorum"
+          },
+          {
+            "op": "var",
+            "name": "i"
+          }
+        ]
+      ],
+      "writes": true,
+      "rowQueries": 4,
+      "rowSplits": 2,
+      "rowMirrors": 0
+    }
+  },
+  {
+    "name": "closure-BA",
+    "mode": "closure",
+    "side": "before",
+    "result": {
+      "conditional": true,
+      "directClosure": true,
+      "wholeHelper": false,
+      "law": "inX: stored guard reconfigs/inS or disabled/0",
+      "op": 0,
+      "packetSha256": "f85affd2f84babfeaef29618e14e68d14bf2c24b9e20369d2c8332a170ff3b9e",
+      "searchUnits": 1555.8111519999998,
+      "searchWallMs": 5593.483662,
+      "units": 1555.8111519999998,
+      "wallMs": 5611.7054769999995,
+      "checked": false,
+      "reads": 60,
+      "instances": 294,
+      "pairs": [
+        [
+          {
+            "op": "var",
+            "name": "a$quorum#"
+          },
+          {
+            "op": "var",
+            "name": "i"
+          }
+        ],
+        [
+          {
+            "op": "var",
+            "name": "b$quorum"
+          },
+          {
+            "op": "var",
+            "name": "i"
+          }
+        ]
+      ],
+      "writes": true,
+      "rowQueries": 4,
+      "rowSplits": 2,
+      "rowMirrors": 0
+    }
+  },
+  {
+    "name": "closure-BA",
+    "archive": {
+      "artifact": "track-m-tar-v1",
+      "dir": "/home/user/track-m-s18-receipts-OXQnG9",
+      "format": "tar.gz",
+      "parts": 2,
+      "bytes": 205546,
+      "sha256": "9a296f940616e7fa061a20f08a75b7538f1041660b0103d1135e58a8f80d17e9"
+    }
+  },
+  {
+    "name": "original-AB",
+    "mode": "original",
+    "side": "before",
+    "result": {
+      "conditional": true,
+      "standalone": true,
+      "measurementVersion": 3,
+      "diagnostic": "section16.5",
+      "generatorOnly": true,
+      "familySource": "original proveRule/run.ts generation callback before admission",
+      "suppliedLaws": [],
+      "tag": "overlap",
+      "law": "inX: stored guard reconfigs/inS or disabled/0",
+      "familySize": 34,
+      "budget": 6000,
+      "wallAllowance": 7000,
+      "units": 4876.985224,
+      "searchUnits": 4876.985224,
+      "checkUnits": 0,
+      "searchWallMs": 7087.192025,
+      "checkWallMs": 2.6568939999997383,
+      "wallMs": 7089.847597,
+      "checked": false,
+      "withinDiagnosticLine": false,
+      "results": [
+        {
+          "pass": 0,
+          "outcome": "sat",
+          "units": 141.58539000000002,
+          "wallMs": 178.153616
+        },
+        {
+          "pass": 1,
+          "outcome": "unknown",
+          "units": 4735.399834000001,
+          "wallMs": 6907.626294
+        }
+      ],
+      "profile": {
+        "encode": 184.4516110000004,
+        "decide": 6279.060375,
+        "mbqi": 127.88168899999982,
+        "lazy": 349.59729499999867,
+        "#rounds": 10,
+        "#hyps": 1373,
+        "#count-completion": 48,
+        "#lazy": 113
+      },
+      "last": {
+        "phase": "rejected proposal",
+        "pass": 1,
+        "law": "inX: stored guard reconfigs/inS or disabled/0",
+        "error": "WallExpired: time (decide)"
+      }
+    }
+  },
+  {
+    "name": "original-AB",
+    "mode": "original",
+    "side": "after",
+    "result": {
+      "conditional": true,
+      "standalone": true,
+      "measurementVersion": 3,
+      "diagnostic": "section16.5",
+      "generatorOnly": true,
+      "familySource": "original proveRule/run.ts generation callback before admission",
+      "suppliedLaws": [],
+      "tag": "overlap",
+      "law": "inX: stored guard reconfigs/inS or disabled/0",
+      "familySize": 34,
+      "budget": 6000,
+      "wallAllowance": 7000,
+      "units": 4997.363892,
+      "searchUnits": 4997.363892,
+      "checkUnits": 0,
+      "searchWallMs": 7018.0166229999995,
+      "checkWallMs": 2.0754009999991467,
+      "wallMs": 7020.091042,
+      "checked": false,
+      "withinDiagnosticLine": false,
+      "results": [
+        {
+          "pass": 0,
+          "outcome": "sat",
+          "units": 141.58539000000002,
+          "wallMs": 192.987286
+        },
+        {
+          "pass": 1,
+          "outcome": "unknown",
+          "units": 4855.778502,
+          "wallMs": 6823.626474
+        }
+      ],
+      "profile": {
+        "encode": 113.38325899999745,
+        "decide": 6170.910115000001,
+        "mbqi": 124.81079299999965,
+        "lazy": 414.204971000001,
+        "#rounds": 10,
+        "#hyps": 1373,
+        "#count-completion": 48,
+        "#lazy": 113
+      },
+      "last": {
+        "phase": "rejected proposal",
+        "pass": 1,
+        "law": "inX: stored guard reconfigs/inS or disabled/0",
+        "error": "WallExpired: time (decide)"
+      }
+    }
+  },
+  {
+    "name": "original-AB",
+    "archive": {
+      "artifact": "track-m-tar-v1",
+      "dir": "/home/user/track-m-s18-receipts-3uxjY6",
+      "format": "tar.gz",
+      "parts": 13,
+      "bytes": 1819707,
+      "sha256": "076caeb606ff20157f26e0e1613a34fce638c3fa61fb62619937edc7233c4632"
+    }
+  },
+  {
+    "name": "original-BA",
+    "mode": "original",
+    "side": "after",
+    "result": {
+      "conditional": true,
+      "standalone": true,
+      "measurementVersion": 3,
+      "diagnostic": "section16.5",
+      "generatorOnly": true,
+      "familySource": "original proveRule/run.ts generation callback before admission",
+      "suppliedLaws": [],
+      "tag": "overlap",
+      "law": "inX: stored guard reconfigs/inS or disabled/0",
+      "familySize": 34,
+      "budget": 6000,
+      "wallAllowance": 7000,
+      "units": 3065.581568,
+      "searchUnits": 3065.581568,
+      "checkUnits": 0,
+      "searchWallMs": 7025.756152,
+      "checkWallMs": 1.55452299999979,
+      "wallMs": 7027.310495,
+      "checked": false,
+      "withinDiagnosticLine": false,
+      "results": [
+        {
+          "pass": 0,
+          "outcome": "sat",
+          "units": 141.58539000000002,
+          "wallMs": 320.517
+        },
+        {
+          "pass": 1,
+          "outcome": "unknown",
+          "units": 2923.996178,
+          "wallMs": 6703.454981
+        }
+      ],
+      "profile": {
+        "encode": 110.77701999999863,
+        "decide": 6435.158463999998,
+        "mbqi": 281.9957540000005,
+        "lazy": 0.2785469999998895,
+        "#rounds": 9,
+        "#hyps": 1088,
+        "#count-completion": 48
+      },
+      "last": {
+        "phase": "rejected proposal",
+        "pass": 1,
+        "law": "inX: stored guard reconfigs/inS or disabled/0",
+        "error": "WallExpired: time (decide)"
+      }
+    }
+  },
+  {
+    "name": "original-BA",
+    "mode": "original",
+    "side": "before",
+    "result": {
+      "conditional": true,
+      "standalone": true,
+      "measurementVersion": 3,
+      "diagnostic": "section16.5",
+      "generatorOnly": true,
+      "familySource": "original proveRule/run.ts generation callback before admission",
+      "suppliedLaws": [],
+      "tag": "overlap",
+      "law": "inX: stored guard reconfigs/inS or disabled/0",
+      "familySize": 34,
+      "budget": 6000,
+      "wallAllowance": 7000,
+      "units": 2916.456896,
+      "searchUnits": 2916.456896,
+      "checkUnits": 0,
+      "searchWallMs": 7014.657974999999,
+      "checkWallMs": 1.1907530000007682,
+      "wallMs": 7015.847175,
+      "checked": false,
+      "withinDiagnosticLine": false,
+      "results": [
+        {
+          "pass": 0,
+          "outcome": "sat",
+          "units": 141.58539000000002,
+          "wallMs": 392.746489
+        },
+        {
+          "pass": 1,
+          "outcome": "unknown",
+          "units": 2774.871506,
+          "wallMs": 6618.112711
+        }
+      ],
+      "profile": {
+        "encode": 117.22834700000112,
+        "decide": 6446.102221999999,
+        "mbqi": 247.54455199999938,
+        "lazy": 0.23685399999976653,
+        "#rounds": 9,
+        "#hyps": 1088,
+        "#count-completion": 48
+      },
+      "last": {
+        "phase": "rejected proposal",
+        "pass": 1,
+        "law": "inX: stored guard reconfigs/inS or disabled/0",
+        "error": "WallExpired: time (decide)"
+      }
+    }
+  },
+  {
+    "name": "original-BA",
+    "archive": {
+      "artifact": "track-m-tar-v1",
+      "dir": "/home/user/track-m-s18-receipts-qZxOn4",
+      "format": "tar.gz",
+      "parts": 8,
+      "bytes": 1138847,
+      "sha256": "0cd129caf24aaf699bc9fc29cb2fad23ff3b5aabb2236f715e0861838d5edde8"
+    }
+  }
+]

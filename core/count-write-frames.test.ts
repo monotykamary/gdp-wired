@@ -132,6 +132,69 @@ test('a generated compensated frame checks at its copying guard; the opposite di
   expect('stuck' in model && model.stuck).toBe('sat')
 })
 
+function singleTransportFixture(conjure = false, prefix = '') {
+  const stored = `${prefix}Stored`, carried = `${prefix}Parcel`
+  const cell = (row: E) => get(stored, row), packet = get(carried, n(0))
+  const copying = same(x('copy'), n(1)), member = (value: E) => bit(same(value, n(1)))
+  const value = ite(copying, packet, conjure ? n(1) : cell(n(0)))
+  const m: Machine = {name: 'single-set point writer', params: [], inputs: ['copy'], state: {},
+    maps: {[stored]: 0}, inputMaps: [carried], step: {maps: {[stored]: {key: n(0), value}}}}
+  const ds: CountDecl[] = [
+    {map: `${prefix}row`, j: 'row', key: 'k', below: n(1), body: member(cell(x('row')))},
+    {map: `${prefix}row#`, j: 'row', key: 'k', below: n(1), body: member(ite(same(x('row'), n(0)), value, cell(x('row'))))},
+    {map: `${prefix}source`, j: 'unused', key: 'k', below: n(1), body: member(packet)},
+  ]
+  const cert: Pick<CountCert, 'reads' | 'insts'> = {reads: [
+    ['after', `${prefix}row#`, n(0)], ['before', `${prefix}row`, n(0)], ['incoming', `${prefix}source`, n(0)],
+  ], insts: []}
+  return {m, ds, cert, packet, cell}
+}
+
+test('single-set growth retains the old count and checks while a disabled unqualified transport is false', () => {
+  for (const prefix of ['', 'renamed/']) {
+    const f = singleTransportFixture(false, prefix), snapshot = JSON.stringify(f)
+    const proposals = proposeWriteCountFrames(f.m, f.ds, f.cert, new Set(['after']))
+    const compensated = proposals.find(i => signature(i) === vector([[1, 'after'], [-1, 'before'], [-1, 'incoming']]))!
+    const unqualified = proposals.find(i => signature(i) === vector([[1, 'after'], [-1, 'incoming']]))!
+    expect(compensated).toBeDefined()
+    expect(unqualified).toBeDefined()
+    expect(proposals).toHaveLength(3)
+    expect(proposeWriteCountFrames(f.m, f.ds, f.cert, new Set(['after']), 1)).toEqual([compensated])
+    expect(JSON.stringify(f)).toBe(snapshot)
+    const counts = countsForReads(f.ds, f.cert.reads)!
+    const valid = {name: 'single-set compensated growth', counts,
+      hyps: [less(plus(x('before'), x('incoming')), x('after'))]}
+    expect(countedOk(valid.hyps, counts, [compensated])).toBe(true)
+    const proof = grow(countedGoal(valid, [compensated])!, new Map(), {nodes: 0, until: clock() + 2000})
+    expect('tree' in proof).toBe(true)
+    if ('tree' in proof) expect(checkCounted(valid, {insts: [compensated], tree: proof.tree})).toBe(true)
+    const invalid = {name: 'disabled write keeps the old member', counts, hyps: [
+      same(x('copy'), n(0)), same(f.cell(n(0)), n(1)), same(f.packet, n(0)),
+      same(x('after'), n(1)), same(x('before'), n(1)), same(x('incoming'), n(0)),
+    ]}
+    expect(countedOk(invalid.hyps, counts, [unqualified])).toBe(true)
+    const model = grow(countedGoal(invalid, [unqualified])!, new Map(), {nodes: 0, until: clock() + 2000})
+    expect('tree' in model).toBe(false)
+    expect('stuck' in model && model.stuck).toBe('sat')
+  }
+})
+
+test('single-set compensation is still untrusted when the write can conjure a member', () => {
+  const f = singleTransportFixture(true)
+  const compensated = proposeWriteCountFrames(f.m, f.ds, f.cert, new Set(['after']))
+    .find(i => signature(i) === vector([[1, 'after'], [-1, 'before'], [-1, 'incoming']]))!
+  expect(compensated).toBeDefined()
+  const counts = countsForReads(f.ds, f.cert.reads)!
+  const invalid = {name: 'old plus incoming does not justify conjuring a member', counts, hyps: [
+    same(x('copy'), n(0)), same(f.cell(n(0)), n(0)), same(f.packet, n(0)),
+    same(x('after'), n(1)), same(x('before'), n(0)), same(x('incoming'), n(0)),
+  ]}
+  expect(countedOk(invalid.hyps, counts, [compensated])).toBe(true)
+  const model = grow(countedGoal(invalid, [compensated])!, new Map(), {nodes: 0, until: clock() + 2000})
+  expect('tree' in model).toBe(false)
+  expect('stuck' in model && model.stuck).toBe('sat')
+})
+
 test('copied row sizes and intersections of two overwritten rows get source-size bridges', () => {
   const f = fixture(), below = x('limit')
   f.ds.push({map: 'sourceSize', j: 'unused', key: 'k', below, body: bit(same(get(f.carried, x('k')), n(1)))},

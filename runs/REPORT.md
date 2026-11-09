@@ -20,6 +20,8 @@ The coordinator moved main from `b788e195` to **`4497c4b05c3111959a2b8d808c426a0
 
 - **E `e1b8d3b7`:** production merged automatically. Preserve source-bound strictness when constructing sufficient member-inclusion guards; retain the four strict/inclusive combinations and boundary proof/refusal tests. Only the report conflicted; incoming report is at `runs/lane-i/incoming/20261110/E-e1b8d3b7.md`.
 
+- **F `c1521262`:** production merged automatically. Preserve compensated single-set count transports as untrusted proposals and their copying/conjuring negative controls; the kernel still checks every retained frame. Only the report conflicted, archived at `runs/lane-i/incoming/20261110/F-c1521262.md`.
+
 All newly integrated source still requires combined qualification; no historical receipt or gate result is transferred to it.
 
 ## Coordinator follow-up: merge bisection and bar resource attribution — active

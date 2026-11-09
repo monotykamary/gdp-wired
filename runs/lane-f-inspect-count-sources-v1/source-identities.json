@@ -1,0 +1,594 @@
+{
+  "contextSha256": "12d8e3b6beb1f1905c26b2e88534cf54b37272b25b42d4b9676e5c449d9914ba",
+  "instances": 294,
+  "rows": [
+    {
+      "index": 0,
+      "inst": {
+        "wit": "writeFrame$0",
+        "below": {
+          "op": "var",
+          "name": "size"
+        },
+        "terms": [
+          [
+            1,
+            "r$0"
+          ],
+          [
+            -1,
+            "r$55"
+          ],
+          [
+            -1,
+            "r$10"
+          ]
+        ],
+        "unit": 0
+      },
+      "reads": [
+        {
+          "coefficient": 1,
+          "id": "r$0",
+          "read": [
+            "r$0",
+            "inX$rows$xNotS#",
+            {
+              "op": "add",
+              "a": {
+                "op": "mul",
+                "k": 64,
+                "a": {
+                  "op": "var",
+                  "name": "a$quorum#"
+                }
+              },
+              "b": {
+                "op": "var",
+                "name": "b$quorum"
+              }
+            }
+          ],
+          "below": {
+            "op": "var",
+            "name": "size"
+          },
+          "key": "member$quorum",
+          "body": {
+            "op": "if",
+            "sha256": "0ec5802ee91332adc372615e44b8b4c3e37f9cffa21baed52eb1e45647723ab8",
+            "maps": [
+              "S",
+              "CV",
+              "Config",
+              "St",
+              "CfgT",
+              "CT",
+              "xAndS",
+              "xNotS",
+              "sNotX"
+            ],
+            "variables": [
+              "op",
+              "started",
+              "?noneCopied",
+              "a$quorum#",
+              "member$quorum",
+              "i",
+              "?committedQuorum",
+              "hx",
+              "hy",
+              "j",
+              "b$quorum"
+            ]
+          }
+        },
+        {
+          "coefficient": -1,
+          "id": "r$55",
+          "read": [
+            "r$55",
+            "inX$rows$xNotS",
+            {
+              "op": "add",
+              "a": {
+                "op": "mul",
+                "k": 64,
+                "a": {
+                  "op": "var",
+                  "name": "a$quorum#"
+                }
+              },
+              "b": {
+                "op": "var",
+                "name": "b$quorum"
+              }
+            }
+          ],
+          "below": {
+            "op": "var",
+            "name": "size"
+          },
+          "key": "member$quorum",
+          "body": {
+            "op": "if",
+            "sha256": "79779290e1a18e6ea50d8928efef35fa43db49ac3c2cc5fb5497f14fbe0507b3",
+            "maps": [
+              "Config"
+            ],
+            "variables": [
+              "a$quorum#",
+              "member$quorum",
+              "b$quorum"
+            ]
+          }
+        },
+        {
+          "coefficient": -1,
+          "id": "r$10",
+          "read": [
+            "r$10",
+            "xNotS",
+            {
+              "op": "const",
+              "value": 0
+            }
+          ],
+          "below": {
+            "op": "var",
+            "name": "size"
+          },
+          "key": "xNotS$k",
+          "body": {
+            "op": "if",
+            "sha256": "e8ebe95514579784372e1357244c71e1cdef5d7a0eac5de5b9850f1e2069ac53",
+            "maps": [
+              "Config",
+              "S"
+            ],
+            "variables": [
+              "i",
+              "xNotS$k"
+            ]
+          }
+        }
+      ]
+    },
+    {
+      "index": 13,
+      "inst": {
+        "wit": "writeFrame$13",
+        "below": {
+          "op": "var",
+          "name": "size"
+        },
+        "terms": [
+          [
+            1,
+            "r$2"
+          ],
+          [
+            -1,
+            "r$57"
+          ],
+          [
+            -1,
+            "r$12"
+          ]
+        ],
+        "unit": 0
+      },
+      "reads": [
+        {
+          "coefficient": 1,
+          "id": "r$2",
+          "read": [
+            "r$2",
+            "inX$rows$xNotS#",
+            {
+              "op": "add",
+              "a": {
+                "op": "mul",
+                "k": 64,
+                "a": {
+                  "op": "var",
+                  "name": "b$quorum"
+                }
+              },
+              "b": {
+                "op": "var",
+                "name": "a$quorum#"
+              }
+            }
+          ],
+          "below": {
+            "op": "var",
+            "name": "size"
+          },
+          "key": "member$quorum",
+          "body": {
+            "op": "if",
+            "sha256": "841d8209e59185267de1f432315f0b4423277cf732167196a966b7f9c1d3ff90",
+            "maps": [
+              "S",
+              "CV",
+              "Config",
+              "St",
+              "CfgT",
+              "CT",
+              "xAndS",
+              "xNotS",
+              "sNotX"
+            ],
+            "variables": [
+              "op",
+              "started",
+              "?noneCopied",
+              "b$quorum",
+              "member$quorum",
+              "i",
+              "?committedQuorum",
+              "hx",
+              "hy",
+              "j",
+              "a$quorum#"
+            ]
+          }
+        },
+        {
+          "coefficient": -1,
+          "id": "r$57",
+          "read": [
+            "r$57",
+            "inX$rows$xNotS",
+            {
+              "op": "add",
+              "a": {
+                "op": "mul",
+                "k": 64,
+                "a": {
+                  "op": "var",
+                  "name": "b$quorum"
+                }
+              },
+              "b": {
+                "op": "var",
+                "name": "a$quorum#"
+              }
+            }
+          ],
+          "below": {
+            "op": "var",
+            "name": "size"
+          },
+          "key": "member$quorum",
+          "body": {
+            "op": "if",
+            "sha256": "ca8ed0c764609147408038cf6ad52550d87779f7403b26a98f30c0e2fb3cfa5b",
+            "maps": [
+              "Config"
+            ],
+            "variables": [
+              "b$quorum",
+              "member$quorum",
+              "a$quorum#"
+            ]
+          }
+        },
+        {
+          "coefficient": -1,
+          "id": "r$12",
+          "read": [
+            "r$12",
+            "sNotX",
+            {
+              "op": "const",
+              "value": 0
+            }
+          ],
+          "below": {
+            "op": "var",
+            "name": "size"
+          },
+          "key": "sNotX$k",
+          "body": {
+            "op": "if",
+            "sha256": "148506b0c979169eb2ad87b934dcc5e1a0a5d2cf337794fb15e8ec079142e05d",
+            "maps": [
+              "S",
+              "Config"
+            ],
+            "variables": [
+              "sNotX$k",
+              "i"
+            ]
+          }
+        }
+      ]
+    },
+    {
+      "index": 188,
+      "inst": {
+        "wit": "frame$38",
+        "below": {
+          "op": "var",
+          "name": "size"
+        },
+        "terms": [
+          [
+            1,
+            "r$4"
+          ]
+        ],
+        "unit": 0
+      },
+      "reads": [
+        {
+          "coefficient": 1,
+          "id": "r$4",
+          "read": [
+            "r$4",
+            "inX$row#",
+            {
+              "op": "var",
+              "name": "a$quorum#"
+            }
+          ],
+          "below": {
+            "op": "var",
+            "name": "size"
+          },
+          "key": "member$quorum",
+          "body": {
+            "op": "if",
+            "sha256": "3eeef5df27cd2780acae5e14d7237d8675038ef684367aa919341c193fc8a5e3",
+            "maps": [
+              "S",
+              "CV",
+              "Config",
+              "St",
+              "CfgT",
+              "CT",
+              "xAndS",
+              "xNotS",
+              "sNotX"
+            ],
+            "variables": [
+              "op",
+              "started",
+              "?noneCopied",
+              "a$quorum#",
+              "member$quorum",
+              "i",
+              "?committedQuorum",
+              "hx",
+              "hy",
+              "j"
+            ]
+          }
+        }
+      ]
+    },
+    {
+      "index": 190,
+      "inst": {
+        "wit": "frame$40",
+        "below": {
+          "op": "var",
+          "name": "size"
+        },
+        "terms": [
+          [
+            1,
+            "r$4"
+          ],
+          [
+            -1,
+            "r$8"
+          ]
+        ],
+        "unit": 0
+      },
+      "reads": [
+        {
+          "coefficient": 1,
+          "id": "r$4",
+          "read": [
+            "r$4",
+            "inX$row#",
+            {
+              "op": "var",
+              "name": "a$quorum#"
+            }
+          ],
+          "below": {
+            "op": "var",
+            "name": "size"
+          },
+          "key": "member$quorum",
+          "body": {
+            "op": "if",
+            "sha256": "3eeef5df27cd2780acae5e14d7237d8675038ef684367aa919341c193fc8a5e3",
+            "maps": [
+              "S",
+              "CV",
+              "Config",
+              "St",
+              "CfgT",
+              "CT",
+              "xAndS",
+              "xNotS",
+              "sNotX"
+            ],
+            "variables": [
+              "op",
+              "started",
+              "?noneCopied",
+              "a$quorum#",
+              "member$quorum",
+              "i",
+              "?committedQuorum",
+              "hx",
+              "hy",
+              "j"
+            ]
+          }
+        },
+        {
+          "coefficient": -1,
+          "id": "r$8",
+          "read": [
+            "r$8",
+            "inS",
+            {
+              "op": "const",
+              "value": 0
+            }
+          ],
+          "below": {
+            "op": "var",
+            "name": "size"
+          },
+          "key": "inS$k",
+          "body": {
+            "op": "if",
+            "sha256": "c187a050817132d79b46d165585fd3e2e29c2b2bdeae0af5a76901c80aedbc82",
+            "maps": [
+              "S"
+            ],
+            "variables": [
+              "inS$k"
+            ]
+          }
+        }
+      ]
+    },
+    {
+      "index": 194,
+      "inst": {
+        "wit": "frame$44",
+        "below": {
+          "op": "var",
+          "name": "size"
+        },
+        "terms": [
+          [
+            1,
+            "r$5"
+          ]
+        ],
+        "unit": 0
+      },
+      "reads": [
+        {
+          "coefficient": 1,
+          "id": "r$5",
+          "read": [
+            "r$5",
+            "inX$canVote$2#",
+            {
+              "op": "var",
+              "name": "b$quorum"
+            }
+          ],
+          "below": {
+            "op": "var",
+            "name": "size"
+          },
+          "key": "member$quorum",
+          "body": {
+            "op": "if",
+            "sha256": "1f4f025569566999538bad67a903acaebb8e64b575e58ce00eae9ec3fd9f63d8",
+            "maps": [
+              "S",
+              "CV",
+              "Config",
+              "St",
+              "CfgT",
+              "CT",
+              "xAndS",
+              "xNotS",
+              "sNotX"
+            ],
+            "variables": [
+              "op",
+              "started",
+              "?noneCopied",
+              "b$quorum",
+              "member$quorum",
+              "i",
+              "?committedQuorum",
+              "hx",
+              "hy",
+              "j",
+              "?canVote"
+            ]
+          }
+        }
+      ]
+    },
+    {
+      "index": 196,
+      "inst": {
+        "wit": "frame$46",
+        "below": {
+          "op": "var",
+          "name": "size"
+        },
+        "terms": [
+          [
+            1,
+            "r$6"
+          ]
+        ],
+        "unit": 0
+      },
+      "reads": [
+        {
+          "coefficient": 1,
+          "id": "r$6",
+          "read": [
+            "r$6",
+            "inX$row#",
+            {
+              "op": "var",
+              "name": "b$quorum"
+            }
+          ],
+          "below": {
+            "op": "var",
+            "name": "size"
+          },
+          "key": "member$quorum",
+          "body": {
+            "op": "if",
+            "sha256": "cf940895a025640f73796113d755646d39dbcbabe5982514a7069f100ed347b2",
+            "maps": [
+              "S",
+              "CV",
+              "Config",
+              "St",
+              "CfgT",
+              "CT",
+              "xAndS",
+              "xNotS",
+              "sNotX"
+            ],
+            "variables": [
+              "op",
+              "started",
+              "?noneCopied",
+              "b$quorum",
+              "member$quorum",
+              "i",
+              "?committedQuorum",
+              "hx",
+              "hy",
+              "j"
+            ]
+          }
+        }
+      ]
+    }
+  ]
+}

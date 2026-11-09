@@ -1,0 +1,302 @@
+{
+  "summary": [
+    {
+      "op": 0,
+      "checked": false,
+      "result": {
+        "stuck": "sat"
+      },
+      "searchUnits": 135.133524,
+      "searchWallMs": 196.035912,
+      "completion": {
+        "genuine": false,
+        "reason": "predecessor violates the family",
+        "failedLaw": "count cubes: every x with x < {\"op\":\"var\",\"name\":\"size\"}: never 1 <= started and inX$row[x] is 0"
+      },
+      "queries": 4,
+      "modelCount": 4,
+      "artifact": {
+        "file": "symbolic-model.json.gz",
+        "bytes": 2339,
+        "sha256": "fb1090690cd07f9c5b21e13af6e8170d06d3297d05f26f29606c4894587b9fe2"
+      }
+    },
+    {
+      "op": 1,
+      "checked": false,
+      "result": {
+        "stuck": "sat"
+      },
+      "searchUnits": 161.05722,
+      "searchWallMs": 310.78716299999996,
+      "completion": {
+        "genuine": false,
+        "reason": "predecessor violates the family",
+        "failedLaw": "count cubes: every x with x < {\"op\":\"var\",\"name\":\"size\"}: never 1 <= CV[x] and inX$row[x] is 0"
+      },
+      "queries": 5,
+      "modelCount": 5,
+      "artifact": {
+        "file": "symbolic-model.json.gz",
+        "bytes": 2354,
+        "sha256": "7ed479bb1969cfb289a802ccab145a230aaf3200366711f77626a5849c44fcbd"
+      }
+    },
+    {
+      "op": 2,
+      "checked": false,
+      "result": {
+        "stuck": "sat"
+      },
+      "searchUnits": 161.05722,
+      "searchWallMs": 293.96146400000003,
+      "completion": {
+        "genuine": false,
+        "reason": "predecessor violates the family",
+        "failedLaw": "count cubes: every x with x < {\"op\":\"var\",\"name\":\"size\"}: never 1 <= CV[x] and inX$row[x] is 0"
+      },
+      "queries": 5,
+      "modelCount": 5,
+      "artifact": {
+        "file": "symbolic-model.json.gz",
+        "bytes": 2354,
+        "sha256": "6bc2d2a1dd0460fc89cb1b9e7c04ff19c7af92be181af699326367b86ca00d89"
+      }
+    },
+    {
+      "op": 3,
+      "checked": false,
+      "result": {
+        "stuck": "sat"
+      },
+      "searchUnits": 161.059908,
+      "searchWallMs": 406.296328,
+      "completion": {
+        "genuine": false,
+        "reason": "predecessor violates the family",
+        "failedLaw": "count cubes: every x with x < {\"op\":\"var\",\"name\":\"size\"}: never 1 <= CV[x] and inX$row[x] is 0"
+      },
+      "queries": 5,
+      "modelCount": 5,
+      "artifact": {
+        "file": "symbolic-model.json.gz",
+        "bytes": 2355,
+        "sha256": "539d7a3984f31c6405a9f1f4f612665bce7f1f5b11ea5d85a00766bd49730bf1"
+      }
+    },
+    {
+      "op": 4,
+      "checked": false,
+      "result": {
+        "stuck": "sat"
+      },
+      "searchUnits": 185.11187600000005,
+      "searchWallMs": 296.405016,
+      "completion": {
+        "genuine": false,
+        "reason": "predecessor violates the family",
+        "failedLaw": "count cubes: every x with x < {\"op\":\"var\",\"name\":\"size\"}: never 1 <= CV[x] and inX$row[x] is 0"
+      },
+      "queries": 7,
+      "modelCount": 7,
+      "artifact": {
+        "file": "symbolic-model.json.gz",
+        "bytes": 2900,
+        "sha256": "54777f94469aa086feb7217a02a4738f0691a3b9fda10733a987dbc6b52beeba"
+      }
+    },
+    {
+      "op": 5,
+      "checked": false,
+      "result": {
+        "stuck": "sat"
+      },
+      "searchUnits": 185.63508200000004,
+      "searchWallMs": 422.577927,
+      "completion": {
+        "genuine": false,
+        "reason": "predecessor violates the family",
+        "failedLaw": "count cubes: every x with x < {\"op\":\"var\",\"name\":\"size\"}: never 1 <= CV[x] and inX$row[x] is 0"
+      },
+      "queries": 7,
+      "modelCount": 7,
+      "artifact": {
+        "file": "symbolic-model.json.gz",
+        "bytes": 2992,
+        "sha256": "edde2a70a999737bb75537298b590876b2113ad459978941548d72483b75ff9d"
+      }
+    },
+    {
+      "op": 6,
+      "checked": false,
+      "result": {
+        "stuck": "sat"
+      },
+      "searchUnits": 161.059908,
+      "searchWallMs": 254.11658599999998,
+      "completion": {
+        "genuine": false,
+        "reason": "predecessor violates the family",
+        "failedLaw": "count cubes: every x with x < {\"op\":\"var\",\"name\":\"size\"}: never 1 <= CV[x] and inX$row[x] is 0"
+      },
+      "queries": 5,
+      "modelCount": 5,
+      "artifact": {
+        "file": "symbolic-model.json.gz",
+        "bytes": 2354,
+        "sha256": "d63e247338f0c437066f74dc1c065dcc856c8ea9c0466e58f802523b40a03431"
+      }
+    }
+  ],
+  "evidence": [
+    {
+      "op": 0,
+      "verified": true,
+      "failedLaw": "count cubes: every x with x < {\"op\":\"var\",\"name\":\"size\"}: never 1 <= started and inX$row[x] is 0",
+      "size": 4,
+      "started": 1,
+      "tuples": [
+        {
+          "term": {
+            "op": "var",
+            "name": "w?noneCopied"
+          },
+          "value": 2
+        },
+        {
+          "term": {
+            "op": "var",
+            "name": "w?allCopied"
+          },
+          "value": 3
+        },
+        {
+          "term": {
+            "op": "var",
+            "name": "u$quorum"
+          },
+          "value": 1
+        },
+        {
+          "term": {
+            "op": "var",
+            "name": "w?canVote"
+          },
+          "value": 2
+        }
+      ],
+      "distinctRows": [
+        1,
+        2,
+        3
+      ],
+      "configAssignments": [
+        [
+          "Config[i:64,w?all$2:1]",
+          0
+        ],
+        [
+          "Config[i:64,w?all$3:1]",
+          0
+        ]
+      ],
+      "abstractRowCounts": [
+        [
+          "inX$row[w?allCopied:1]",
+          1
+        ],
+        [
+          "inX$row[j:1]",
+          1
+        ],
+        [
+          "inX$row[u$quorum:1]",
+          1
+        ],
+        [
+          "inX$row[w?noneCopied:1]",
+          1
+        ],
+        [
+          "inX$row[w?canVote:1]",
+          1
+        ]
+      ]
+    },
+    {
+      "op": 1,
+      "verified": true,
+      "failedLaw": "count cubes: every x with x < {\"op\":\"var\",\"name\":\"size\"}: never 1 <= CV[x] and inX$row[x] is 0",
+      "size": 4,
+      "started": 0,
+      "tuples": [
+        {
+          "term": {
+            "op": "var",
+            "name": "j"
+          },
+          "value": 0
+        },
+        {
+          "term": {
+            "op": "var",
+            "name": "w?canVote"
+          },
+          "value": 2
+        },
+        {
+          "term": {
+            "op": "var",
+            "name": "w?committedQuorum"
+          },
+          "value": 3
+        },
+        {
+          "term": {
+            "op": "var",
+            "name": "i"
+          },
+          "value": 1
+        }
+      ],
+      "distinctRows": [
+        0,
+        1,
+        2,
+        3
+      ],
+      "configAssignments": [
+        [
+          "Config[i:64,w?all$2:1]",
+          0
+        ],
+        [
+          "Config[i:64,w?all$3:1]",
+          0
+        ]
+      ],
+      "abstractRowCounts": [
+        [
+          "inX$row[i:1]",
+          0
+        ],
+        [
+          "inX$row[w?canVote:1]",
+          1
+        ],
+        [
+          "inX$row[j:1]",
+          1
+        ],
+        [
+          "inX$row[w?committedQuorum:1]",
+          1
+        ],
+        [
+          "inX$row[w?allCopied:1]",
+          0
+        ]
+      ]
+    }
+  ]
+}

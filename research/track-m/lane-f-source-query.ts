@@ -14,8 +14,8 @@ import {admitConditionalCut} from '../../core/count-recovery/conditional-cuts.ts
 import {sub} from '../../core/solver.ts'
 import {pack,unpack} from './section18-codec.ts'
 const sourceBudget=Number(process.env.LAB_SOURCE_UNITS??150);if(!(sourceBudget>0&&sourceBudget<=1000))throw Error('bounded source audit required')
-const queryBudget=Number(process.env.LAB_QUERY_UNITS??250),coreBudget=Number(process.env.LAB_CORE_UNITS??sourceBudget),reconstructionPoint=process.env.LAB_POINT??'on'
-if(!(queryBudget>0&&queryBudget<=250&&coreBudget>0&&coreBudget<=1000)||!['on','off'].includes(reconstructionPoint))throw Error('invalid reconstruction settings')
+const queryBudget=Number(process.env.LAB_QUERY_UNITS??250),coreBudget=Number(process.env.LAB_CORE_UNITS??sourceBudget),reconstructionPoint=process.env.LAB_POINT??'on',booleanMode=process.env.LAB_BOOLEAN_MODE??'full',growUnitFirst=process.env.LAB_GROW_UNITS!=='off'
+if(!(queryBudget>0&&queryBudget<=250&&coreBudget>0&&coreBudget<=1000)||!['on','off'].includes(reconstructionPoint)||!['full','plain','extended','guards'].includes(booleanMode)||!['on','off'].includes(process.env.LAB_GROW_UNITS??'on'))throw Error('invalid reconstruction settings')
 const [input,traceFile,mode,out]=process.argv.slice(2),context=readFileSync(input!,'utf8'),{p}=unpack(context),traceData=JSON.parse(readFileSync(traceFile!,'utf8'))
 const contextSha256=createHash('sha256').update(context).digest('hex')
 if(!out||!mode)throw Error('CONTEXT TRACE MODE OUT')
@@ -49,13 +49,13 @@ try{withWall(start+7000,()=>counted(fullRate,()=>withDeadline(clock()+sourceBudg
    reconstructionHyps=small.hyps.length
    if(reconstructionPoint==='off')atPoint.on=false
    try{withDeadline(coreEnd,()=>{
-    if(mode.endsWith('boolean'))proof=booleanCore(small,scope,new Set([inst.wit]),coreEnd,events,{deferCheck:true,extended:true,scalarGuards:true,model:true})
+    if(mode.endsWith('boolean'))proof=booleanCore(small,scope,new Set([inst.wit]),coreEnd,events,{deferCheck:true,extended:booleanMode==='full'||booleanMode==='extended',scalarGuards:booleanMode==='full'||booleanMode==='guards',model:true})
     else if(mode.endsWith('folded')){
-     const folded=foldPath(small,scope),r=grow(folded.goal,scope,{nodes:0,until:coreEnd,units:true})
+     const folded=foldPath(small,scope),r=grow(folded.goal,scope,{nodes:0,until:coreEnd,units:growUnitFirst})
      if('tree'in r)proof=widen(folded.goal,small,r.tree,folded.opaque,scope,scope)
      else events.push({stage:'core-folded',stuck:r.stuck,why:r.why})
     }else{
-     const r=grow(small,scope,{nodes:0,until:coreEnd,units:true})
+     const r=grow(small,scope,{nodes:0,until:coreEnd,units:growUnitFirst})
      if('tree'in r)proof=r.tree
      else events.push({stage:'core-grow',stuck:r.stuck,why:r.why})
     }
@@ -70,5 +70,5 @@ try{withWall(start+7000,()=>counted(fullRate,()=>withDeadline(clock()+sourceBudg
  else {const q=modelSequence(scope)(part,Math.min(end,clock()+(sourceBudget>150?250:sourceBudget)));if('tree'in q)tree=q.tree;else events.push(q);if(mode.endsWith('grow')&&!tree){const r=grow(part,scope,{nodes:0,until:end,units:true});if('tree'in r)tree=r.tree}}
 }),true))}catch(e){error=String(e)}
 const searchUnits=(fullWork()-work)/fullRate,searchWallMs=performance.now()-start,checked=!!tree&&check(part,tree,scope),a=linear(good.a,scope),b=linear(good.b,scope),lemma=checked&&a&&b?admitConditionalCut(g,part,tree!,scope,scope,sub(a,b),[],performance.now()+1000):undefined
-const result={mode,sourceBudget,queryBudget,coreBudget,reconstructionPoint,queryHyps,reconstructionHyps,coreQueryUnits,coreSearchUnits,contextSha256,triangleOrdinal,triangleCandidates:triangles.map(({index,q})=>({index,inst:q})),coreIndices,coreTree,coreWidened,index,inst,hyps:part.hyps.length,checked,admissible:!!lemma,error,searchUnits,searchWallMs,units:(fullWork()-work)/fullRate,wallMs:performance.now()-start,events}
+const result={mode,sourceBudget,queryBudget,coreBudget,reconstructionPoint,booleanMode,growUnitFirst,queryHyps,reconstructionHyps,coreQueryUnits,coreSearchUnits,contextSha256,triangleOrdinal,triangleCandidates:triangles.map(({index,q})=>({index,inst:q})),coreIndices,coreTree,coreWidened,index,inst,hyps:part.hyps.length,checked,admissible:!!lemma,error,searchUnits,searchWallMs,units:(fullWork()-work)/fullRate,wallMs:performance.now()-start,events}
 mkdirSync(out,{recursive:true});writeFileSync(join(out,'result.json'),pack({result,part,tree,scope:[...scope],lemma}));console.log(JSON.stringify({...result,events:undefined}))
