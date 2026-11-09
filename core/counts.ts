@@ -867,11 +867,14 @@ export function countedAttempts(m: Machine, caller: Law[], support: Set<Law>, un
       tally('#lazy', bad.length)
       return bad.length > 0
     })
+    // Complete only assumptions about count maps the requested law reads.
+    // Unrelated count laws keep their ordinary demand-driven instantiation.
+    const completionMaps = new Set([...reads(law.holds, isCount).values()].map(([map]) => map))
     let countCompleted = false
     const completeCounts = (): boolean => {
-      if (!pass || countCompleted) return false
+      if (!pass || countCompleted || !completionMaps.size) return false
       countCompleted = true
-      const completion = completeCountLawInstances(modelLaws, at, ts, l => reads(l.holds, isCount).size > 0, generation.tick)
+      const completion = completeCountLawInstances(modelLaws, at, ts, l => reads(l.holds, map => completionMaps.has(map)).size > 0, generation.tick)
       if (!completion.added.length) return false
       at = completion.at
       tally('#count-completion', completion.added.length)
@@ -879,8 +882,8 @@ export function countedAttempts(m: Machine, caller: Law[], support: Set<Law>, un
       return true
     }
     // Complete existing count-law instances before paying for discovery queries.
-    // Field-only targets keep their original lazy completion path.
-    if (pass && reads(law.holds, isCount).size) completeCounts()
+    // Field-only targets do not eagerly or speculatively complete count laws.
+    if (pass && completionMaps.size) completeCounts()
     let built = build()
     const observe = (b: ReturnType<typeof build>[number], phase: string, witness?: Record<string, number>) => {
       if (countsDump.on) countsDump.on({law: law.name, goal: b.goal.name, pass, phase, generation: {...generation.state}, machine: m, laws: ls, rawGoal: b.goal, decls: b.decls, instances: at, certificateRequest: b.c, hyps: b.gg?.hyps, witness, seedCount})
