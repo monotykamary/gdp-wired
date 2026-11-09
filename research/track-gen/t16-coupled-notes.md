@@ -33,7 +33,10 @@ every removal through the unchanged independent callback. Intervals stay off.
 Add complete binary/ternary state-map and carried-input-map comparisons against
 the interpreter, cases where only a coupled seed reaches the failing aggregate,
 unchanged seed objects, and caller/impossible-fact barriers. Retain all previous
-71 tests and all static checks. The new overlay's validation is pending.
+71 tests and all static checks. The new overlay passed 73 tests / 2,247
+assertions, TypeScript, type-aware lint and commitlint in batch
+`20261110-024813-v2fcnw`. Checked source `2bdc025a` is now in the six-pilot
+experiment. No performance success is claimed.
 
 A separate diagnostic of the *previous* seed implementation moves only the
 onTiny observation before its final completion-wall check, to expose counters

@@ -16,6 +16,14 @@
     "research/track-gen/t16-domain-hybrid.ts": "cb23828858424c06227caa35a3c4b8fec7feae96b8ad230471c32c714c3fd563"
   },
   "caveat": "Previous instrumented seed run expired in setup before any seed attempts in both later passes.",
-  "pilot": "pending",
-  "productionEnabled": false
+  "pilot": {
+    "status": "running",
+    "task": "e5b5ab17-920c-4509-944e-ca20ce9e0bac",
+    "output": "runs/t16-coupled-probe/",
+    "intervals": false,
+    "seedNeighborhood": true,
+    "uniformMaps": true
+  },
+  "productionEnabled": false,
+  "sourceCommit": "2bdc025a8f0d7728f41d8e40b69d93908e6d6d01"
 }

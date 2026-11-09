@@ -22,7 +22,7 @@ on top of state-first: the first pilot caught no drops during target build.
 Shared circuits passed 57 tests; the pilot recovered four named drops,
 but still fails the unchanged five-of-seven bar.
 
-## Current WIP: coupled map seed moves (validation pending)
+## Current revision: coupled map seed moves (checked; pilot running)
 
 The radius-one seed pilot below failed the criterion. The next opt-in move
 sets all modeled cells of one map to an already-admitted common value, under
@@ -30,13 +30,21 @@ the same eight-seed / 256-attempt cap. Request and state maps stay distinct;
 no values, keys, walls or certification rules change. Intervals remain off.
 See `research/track-gen/t16-coupled-notes.md`.
 
-The previous 71 tests plus two exhaustive state/input-map cases and static
-checks are running on submission: `e1134538-3985-474b-8948-ece80d07c5d9`,
-`runs/t16-coupled-check/`, overlay `runs/t16-coupled-overlay/`.
+The complete expanded suite passed in submission batch `20261110-024813-v2fcnw`:
+**73 tests / 2,247 assertions**, TypeScript, type-aware lint (zero warnings/errors),
+and commitlint. Receipts: `runs/t16-coupled-check/`; immutable overlay:
+`runs/t16-coupled-overlay/`. Checked source commit: `2bdc025a`.
+
+Six fixed-budget pilots are now running on isolated submission-class large VMs:
+`e5b5ab17-920c-4509-944e-ca20ce9e0bac`, output `runs/t16-coupled-probe/`.
+Every source/test hash was checked before commit and launch. Shared post-target
+pruning, seed neighborhoods and uniform-map moves are on; intervals are off.
+The setup-time diagnostic caveat remains: this geometry change cannot help a
+pass that never reaches seed processing. No pilot outcome is claimed yet.
 Compiler SHA-256 `a130bde06e36c60b177a78a88ef2a4672d390101af1ff3d80ac5e806fdff2c1f`;
 seed suite `02966de2a49dd47fe4564676d89c212916cfd6d191e5d3fc968e08fa37bfaa59`;
 driver `cb23828858424c06227caa35a3c4b8fec7feae96b8ad230471c32c714c3fd563`.
-No coupled pilot has been submitted. This source is not covered by the prior
+This source is covered by the new 73-test receipt, not merely the prior
 71-test receipt. Archives are reused; no >500 MB write or deletion is planned.
 
 ## Previous revision: bounded seed neighborhoods (checked; pilot failed)
