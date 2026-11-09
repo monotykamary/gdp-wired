@@ -35,7 +35,12 @@ permits bounded widening after a narrow model. That setup is now included;
 the original count body, bound and checked-proof assertion remain unchanged.
 Measurement source SHAs/hashes now come from a separate immutable manifest,
 so a repaired candidate cannot silently measure the older hard-coded SHA.
-New remote validation is required before any strict measurements.
+Repair commit `5ae71d28` is now in new validation task
+`5206b153-acfa-4b29-af3f-a1ec8e43ea6b`, output `runs/t17-focus-check-v2/`.
+This covers the unchanged 130 tests plus the measurement driver in full static
+checks. A separate three-way one-protocol generation smoke test qualifies
+archive reconstruction; it is not a census or a strict performance result.
+Both must finish successfully before any strict measurements are submitted.
 
 ## Priority: focused-recovery full-work regression
 
