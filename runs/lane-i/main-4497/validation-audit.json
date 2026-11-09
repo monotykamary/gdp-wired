@@ -1,0 +1,66 @@
+{
+  "finalGate": false,
+  "scope": "Mechanical main-merge qualification only, before later lane-tip integrations",
+  "source": "91f2d2d97e7f32d98b4b81df7db121a05ba09c39",
+  "snapshot": "60b56e8cdad1",
+  "batch": "20261110-033045-5mxrqt",
+  "issues": [],
+  "passed": 202,
+  "assertions": 89632,
+  "jobs": [
+    {
+      "name": "main4497-check",
+      "exit": 0,
+      "seconds": 55.52,
+      "placement": {
+        "vm": "bx_7y8uwqen",
+        "type": "large",
+        "cpu": "AMD EPYC 9455 48-Core Processor",
+        "vcpus": 6,
+        "vm_vcpus": 8,
+        "exclusive": true,
+        "co_tenants": 0
+      },
+      "sha256": "7b6af52981da367d7708b61b3677e69351a3954755c49eb7a27a5cecb3f70b99",
+      "issues": [],
+      "passed": 0,
+      "assertions": 0
+    },
+    {
+      "name": "main4497-runtime",
+      "exit": 0,
+      "seconds": 39.21,
+      "placement": {
+        "vm": "bx_69nkhdf7",
+        "type": "large",
+        "cpu": "AMD Ryzen 9 9950X 16-Core Processor",
+        "vcpus": 6,
+        "vm_vcpus": 8,
+        "exclusive": true,
+        "co_tenants": 0
+      },
+      "sha256": "a8d23deab2a8ff0fb903eb95286f528529de0d25831095d5a63cc71b5360ae9f",
+      "issues": [],
+      "passed": 102,
+      "assertions": 88234
+    },
+    {
+      "name": "main4497-extraction",
+      "exit": 0,
+      "seconds": 343,
+      "placement": {
+        "vm": "bx_a22r988n",
+        "type": "large",
+        "cpu": "AMD Ryzen 9 9950X 16-Core Processor",
+        "vcpus": 6,
+        "vm_vcpus": 8,
+        "exclusive": true,
+        "co_tenants": 0
+      },
+      "sha256": "bf106d24ceca294e79a0115046b5aeda3c8d3309a7d4c1de914082bacc407564",
+      "issues": [],
+      "passed": 100,
+      "assertions": 1398
+    }
+  ]
+}

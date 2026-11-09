@@ -1,0 +1,444 @@
+gdp-ts.tar: OK
+handwired.tar: OK
+main.tar: OK
+bun test v1.4.3 (c6da4a4d3)
+
+--- stderr ---
+
+core/extract-choice-joins.test.ts:
+(pass) different ordered choice domains cannot be silently joined or assigned [197.11ms]
+(pass) same-domain joins preserve every choice with source replay disabled [142.90ms]
+
+core/cli.test.ts:
+cyclic: {"kind":"machine","name":"Limiter","cert":true,"usual":true,"cyclic":true,"ms":71,"usualMs":10,"route":"translated","leaves":6,"regrown":0,"splits":3,"carried":1,"uncarried":0,"cached":0}
+cyclic: {"kind":"step law","name":"Limiter","cert":true,"usual":true,"cyclic":true,"ms":69,"usualMs":18,"route":"translated","leaves":15,"regrown":0,"splits":8,"carried":1,"uncarried":0,"cached":0}
+(pass) python: a law stated in the code proven, one broken with its run, exit 1 [746.90ms]
+cyclic: {"kind":"machine","name":"Limiter","cert":true,"usual":true,"cyclic":true,"ms":13,"usualMs":3,"route":"translated","leaves":6,"regrown":0,"splits":3,"carried":1,"uncarried":0,"cached":0}
+cyclic: {"kind":"step law","name":"Limiter","cert":true,"usual":true,"cyclic":true,"ms":12,"usualMs":1,"route":"translated","leaves":6,"regrown":0,"splits":3,"carried":1,"uncarried":0,"cached":0}
+(pass) ruby: a law stated in the code proven, one broken with its run, exit 1 [693.36ms]
+warning: module attribute @gdp_law was set but never used
+  /tmp/gdp-clicase-WlXIPk/counter.ex:7
+
+cyclic: {"kind":"machine","name":"Counter","cert":true,"usual":true,"cyclic":true,"ms":9,"usualMs":3,"route":"translated","leaves":6,"regrown":0,"splits":3,"carried":1,"uncarried":0,"cached":0}
+cyclic: {"kind":"step law","name":"Counter","cert":true,"usual":true,"cyclic":true,"ms":11,"usualMs":1,"route":"translated","leaves":6,"regrown":0,"splits":3,"carried":1,"uncarried":0,"cached":0}
+(pass) elixir: a law stated in the code proven, one broken with its run, exit 1 [3934.93ms]
+cyclic: {"kind":"machine","name":"Limiter","cert":true,"usual":true,"cyclic":true,"ms":80,"usualMs":38,"route":"translated","leaves":44,"regrown":0,"splits":13,"carried":3,"uncarried":0,"cached":0}
+cyclic: {"kind":"step law","name":"Limiter","cert":true,"usual":true,"cyclic":true,"ms":52,"usualMs":9,"route":"translated","leaves":9,"regrown":0,"splits":3,"carried":1,"uncarried":0,"cached":0}
+(pass) java: a law stated in the code proven, one broken with its run, exit 1 [4012.89ms]
+cyclic: {"kind":"machine","name":"Limiter","cert":true,"usual":true,"cyclic":true,"ms":0,"usualMs":31,"route":"translated","leaves":0,"regrown":0,"splits":0,"carried":0,"uncarried":0,"cached":1}
+cyclic: {"kind":"step law","name":"Limiter","cert":true,"usual":true,"cyclic":true,"ms":0,"usualMs":5,"route":"translated","leaves":0,"regrown":0,"splits":0,"carried":0,"uncarried":0,"cached":1}
+(pass) kotlin: a law stated in the code proven, one broken with its run, exit 1 [8475.70ms]
+cyclic: {"kind":"machine","name":"Limiter","cert":true,"usual":true,"cyclic":true,"ms":16,"usualMs":2,"route":"translated","leaves":6,"regrown":0,"splits":3,"carried":1,"uncarried":0,"cached":0}
+cyclic: {"kind":"step law","name":"Limiter","cert":true,"usual":true,"cyclic":true,"ms":34,"usualMs":2,"route":"translated","leaves":8,"regrown":0,"splits":3,"carried":1,"uncarried":0,"cached":0}
+(pass) go: a law stated in the code proven, one broken with its run, exit 1 [10560.68ms]
+cyclic: {"kind":"machine","name":"Limiter","cert":true,"usual":true,"cyclic":true,"ms":15,"usualMs":2,"route":"translated","leaves":6,"regrown":0,"splits":3,"carried":1,"uncarried":0,"cached":0}
+cyclic: {"kind":"step law","name":"Limiter","cert":true,"usual":true,"cyclic":true,"ms":22,"usualMs":1,"route":"translated","leaves":4,"regrown":0,"splits":1,"carried":1,"uncarried":0,"cached":0}
+cyclic: {"kind":"machine","name":"Limiter","cert":true,"usual":true,"cyclic":true,"ms":50,"usualMs":6,"route":"translated","leaves":33,"regrown":0,"splits":17,"carried":3,"uncarried":0,"cached":0}
+cyclic: {"kind":"step law","name":"Limiter","cert":true,"usual":true,"cyclic":true,"ms":30,"usualMs":1,"route":"translated","leaves":6,"regrown":0,"splits":3,"carried":1,"uncarried":0,"cached":0}
+(pass) rust: a law stated in the code proven, one broken with its run, exit 1 [18647.38ms]
+cyclic: {"kind":"machine","name":"Limiter","cert":true,"usual":true,"cyclic":true,"ms":11,"usualMs":2,"route":"translated","leaves":6,"regrown":0,"splits":3,"carried":1,"uncarried":0,"cached":0}
+cyclic: {"kind":"step law","name":"Limiter","cert":true,"usual":true,"cyclic":true,"ms":11,"usualMs":1,"route":"translated","leaves":6,"regrown":0,"splits":3,"carried":1,"uncarried":0,"cached":0}
+(pass) swift: a law stated in the code proven, one broken with its run, exit 1 [37246.40ms]
+cyclic: {"kind":"machine","name":"lim","cert":true,"usual":true,"cyclic":true,"ms":2,"usualMs":0,"route":"translated","leaves":0,"regrown":0,"splits":0,"carried":0,"uncarried":0,"cached":0}
+cyclic: {"kind":"step law","name":"lim","cert":true,"usual":true,"cyclic":true,"ms":128,"usualMs":5,"route":"translated","leaves":11,"regrown":0,"splits":2,"carried":1,"uncarried":0,"cached":0}
+cyclic: {"kind":"machine","name":"lim","cert":true,"usual":true,"cyclic":true,"ms":0,"usualMs":0,"route":"translated","leaves":0,"regrown":0,"splits":0,"carried":0,"uncarried":0,"cached":1}
+cyclic: {"kind":"step law","name":"lim","cert":true,"usual":true,"cyclic":true,"ms":55,"usualMs":3,"route":"translated","leaves":9,"regrown":0,"splits":2,"carried":1,"uncarried":0,"cached":0}
+cyclic: {"kind":"machine","name":"lim","cert":true,"usual":true,"cyclic":true,"ms":0,"usualMs":1,"route":"translated","leaves":0,"regrown":0,"splits":0,"carried":0,"uncarried":0,"cached":1}
+cyclic: {"kind":"step law","name":"lim","cert":true,"usual":true,"cyclic":true,"ms":83,"usualMs":3,"route":"translated","leaves":9,"regrown":0,"splits":2,"carried":1,"uncarried":0,"cached":0}
+cyclic: {"kind":"machine","name":"lim","cert":true,"usual":true,"cyclic":true,"ms":337,"usualMs":123,"route":"translated","leaves":76,"regrown":0,"splits":24,"carried":3,"uncarried":0,"cached":0}
+cyclic: {"kind":"step law","name":"lim","cert":true,"usual":true,"cyclic":true,"ms":276,"usualMs":16,"route":"translated","leaves":10,"regrown":0,"splits":3,"carried":1,"uncarried":0,"cached":0}
+(pass) c: a law stated in the code proven, one broken with its run, exit 1 [2213.48ms]
+cyclic: {"kind":"machine","name":"Lim","cert":true,"usual":true,"cyclic":true,"ms":56,"usualMs":5,"route":"translated","leaves":6,"regrown":0,"splits":3,"carried":1,"uncarried":0,"cached":0}
+cyclic: {"kind":"step law","name":"Lim","cert":true,"usual":true,"cyclic":true,"ms":71,"usualMs":5,"route":"translated","leaves":6,"regrown":0,"splits":1,"carried":1,"uncarried":0,"cached":0}
+cyclic: {"kind":"machine","name":"Lim","cert":true,"usual":true,"cyclic":true,"ms":83,"usualMs":43,"route":"translated","leaves":44,"regrown":0,"splits":13,"carried":3,"uncarried":0,"cached":0}
+cyclic: {"kind":"step law","name":"Lim","cert":true,"usual":true,"cyclic":true,"ms":138,"usualMs":6,"route":"translated","leaves":8,"regrown":0,"splits":3,"carried":1,"uncarried":0,"cached":0}
+(pass) cpp: a law stated in the code proven, one broken with its run, exit 1 [1154.11ms]
+cyclic: {"kind":"machine","name":"Limiter","cert":true,"usual":true,"cyclic":true,"ms":35,"usualMs":3,"route":"translated","leaves":6,"regrown":0,"splits":3,"carried":1,"uncarried":0,"cached":0}
+cyclic: {"kind":"step law","name":"Limiter","cert":true,"usual":true,"cyclic":true,"ms":30,"usualMs":7,"route":"translated","leaves":6,"regrown":0,"splits":3,"carried":1,"uncarried":0,"cached":0}
+(pass) ts: a law stated in the code proven, one broken with its run, exit 1 [446.33ms]
+cyclic: {"kind":"machine","name":"make","cert":true,"usual":true,"cyclic":true,"ms":7,"usualMs":2,"route":"translated","leaves":6,"regrown":0,"splits":3,"carried":1,"uncarried":0,"cached":0}
+cyclic: {"kind":"step law","name":"make","cert":true,"usual":true,"cyclic":true,"ms":13,"usualMs":2,"route":"translated","leaves":6,"regrown":0,"splits":3,"carried":1,"uncarried":0,"cached":0}
+(pass) effect: a law stated in the code proven, one broken with its run, exit 1 [3904.81ms]
+cyclic: {"kind":"machine","name":"machine","cert":true,"usual":true,"cyclic":true,"ms":32,"usualMs":2,"route":"translated","leaves":16,"regrown":0,"splits":8,"carried":2,"uncarried":0,"cached":0}
+cyclic: {"kind":"machine","name":"machine","cert":true,"usual":true,"cyclic":true,"ms":0,"usualMs":2,"route":"translated","leaves":0,"regrown":0,"splits":0,"carried":0,"uncarried":0,"cached":1}
+cyclic: {"kind":"step law","name":"machine","cert":true,"usual":true,"cyclic":true,"ms":21,"usualMs":3,"route":"translated","leaves":8,"regrown":0,"splits":3,"carried":1,"uncarried":0,"cached":0}
+(pass) xstate: a law stated in the code proven, one broken with its run, exit 1 [969.10ms]
+cyclic: {"kind":"machine","name":"Limiter","cert":true,"usual":true,"cyclic":true,"ms":0,"usualMs":1,"route":"translated","leaves":0,"regrown":0,"splits":0,"carried":0,"uncarried":0,"cached":1}
+cyclic: {"kind":"step law","name":"Limiter","cert":true,"usual":true,"cyclic":true,"ms":0,"usualMs":1,"route":"translated","leaves":0,"regrown":0,"splits":0,"carried":0,"uncarried":0,"cached":1}
+cyclic: {"kind":"machine","name":"Limiter","cert":true,"usual":true,"cyclic":true,"ms":0,"usualMs":5,"route":"translated","leaves":0,"regrown":0,"splits":0,"carried":0,"uncarried":0,"cached":1}
+cyclic: {"kind":"step law","name":"Limiter","cert":true,"usual":true,"cyclic":true,"ms":0,"usualMs":1,"route":"translated","leaves":0,"regrown":0,"splits":0,"carried":0,"uncarried":0,"cached":1}
+(pass) rust: check . in the crate prints the target as ., not its absolute path [1334.16ms]
+(pass) python: one way in, a URL and nothing else read the rule the call as it was reads [1482.91ms]
+(pass) ruby: one way in, a URL and nothing else read the rule the call as it was reads [767.48ms]
+warning: module attribute @gdp_law was set but never used
+  /tmp/gdp-clicase-JYjgWt/counter.ex:7
+
+warning: module attribute @gdp_law was set but never used
+  /tmp/gdp-clicase-JYjgWt/counter.ex:7
+
+(pass) elixir: one way in, a URL and nothing else read the rule the call as it was reads [9323.36ms]
+(pass) java: one way in, a URL and nothing else read the rule the call as it was reads [1831.83ms]
+(pass) kotlin: one way in, a URL and nothing else read the rule the call as it was reads [12483.72ms]
+(pass) go: one way in, a URL and nothing else read the rule the call as it was reads [1181.91ms]
+cyclic: {"kind":"machine","name":"Limiter","cert":true,"usual":true,"cyclic":true,"ms":0,"usualMs":1,"route":"translated","leaves":0,"regrown":0,"splits":0,"carried":0,"uncarried":0,"cached":1}
+cyclic: {"kind":"step law","name":"Limiter","cert":true,"usual":true,"cyclic":true,"ms":0,"usualMs":1,"route":"translated","leaves":0,"regrown":0,"splits":0,"carried":0,"uncarried":0,"cached":1}
+cyclic: {"kind":"machine","name":"Limiter","cert":true,"usual":true,"cyclic":true,"ms":0,"usualMs":1,"route":"translated","leaves":0,"regrown":0,"splits":0,"carried":0,"uncarried":0,"cached":1}
+cyclic: {"kind":"step law","name":"Limiter","cert":true,"usual":true,"cyclic":true,"ms":0,"usualMs":1,"route":"translated","leaves":0,"regrown":0,"splits":0,"carried":0,"uncarried":0,"cached":1}
+(pass) rust: one way in, a URL and nothing else read the rule the call as it was reads [1516.15ms]
+(pass) swift: one way in, a URL and nothing else read the rule the call as it was reads [9787.38ms]
+cyclic: {"kind":"machine","name":"lim","cert":true,"usual":true,"cyclic":true,"ms":0,"usualMs":0,"route":"translated","leaves":0,"regrown":0,"splits":0,"carried":0,"uncarried":0,"cached":1}
+cyclic: {"kind":"step law","name":"lim","cert":true,"usual":true,"cyclic":true,"ms":0,"usualMs":4,"route":"translated","leaves":0,"regrown":0,"splits":0,"carried":0,"uncarried":0,"cached":1}
+cyclic: {"kind":"machine","name":"lim","cert":true,"usual":true,"cyclic":true,"ms":0,"usualMs":0,"route":"translated","leaves":0,"regrown":0,"splits":0,"carried":0,"uncarried":0,"cached":1}
+cyclic: {"kind":"step law","name":"lim","cert":true,"usual":true,"cyclic":true,"ms":0,"usualMs":2,"route":"translated","leaves":0,"regrown":0,"splits":0,"carried":0,"uncarried":0,"cached":1}
+cyclic: {"kind":"machine","name":"lim","cert":true,"usual":true,"cyclic":true,"ms":0,"usualMs":0,"route":"translated","leaves":0,"regrown":0,"splits":0,"carried":0,"uncarried":0,"cached":1}
+cyclic: {"kind":"step law","name":"lim","cert":true,"usual":true,"cyclic":true,"ms":0,"usualMs":2,"route":"translated","leaves":0,"regrown":0,"splits":0,"carried":0,"uncarried":0,"cached":1}
+cyclic: {"kind":"machine","name":"lim","cert":true,"usual":true,"cyclic":true,"ms":0,"usualMs":0,"route":"translated","leaves":0,"regrown":0,"splits":0,"carried":0,"uncarried":0,"cached":1}
+cyclic: {"kind":"step law","name":"lim","cert":true,"usual":true,"cyclic":true,"ms":0,"usualMs":2,"route":"translated","leaves":0,"regrown":0,"splits":0,"carried":0,"uncarried":0,"cached":1}
+cyclic: {"kind":"machine","name":"lim","cert":true,"usual":true,"cyclic":true,"ms":0,"usualMs":0,"route":"translated","leaves":0,"regrown":0,"splits":0,"carried":0,"uncarried":0,"cached":1}
+cyclic: {"kind":"step law","name":"lim","cert":true,"usual":true,"cyclic":true,"ms":0,"usualMs":2,"route":"translated","leaves":0,"regrown":0,"splits":0,"carried":0,"uncarried":0,"cached":1}
+cyclic: {"kind":"machine","name":"lim","cert":true,"usual":true,"cyclic":true,"ms":0,"usualMs":0,"route":"translated","leaves":0,"regrown":0,"splits":0,"carried":0,"uncarried":0,"cached":1}
+cyclic: {"kind":"step law","name":"lim","cert":true,"usual":true,"cyclic":true,"ms":0,"usualMs":2,"route":"translated","leaves":0,"regrown":0,"splits":0,"carried":0,"uncarried":0,"cached":1}
+(pass) c: one way in, a URL and nothing else read the rule the call as it was reads [605.81ms]
+cyclic: {"kind":"machine","name":"Lim","cert":true,"usual":true,"cyclic":true,"ms":0,"usualMs":1,"route":"translated","leaves":0,"regrown":0,"splits":0,"carried":0,"uncarried":0,"cached":1}
+cyclic: {"kind":"step law","name":"Lim","cert":true,"usual":true,"cyclic":true,"ms":0,"usualMs":1,"route":"translated","leaves":0,"regrown":0,"splits":0,"carried":0,"uncarried":0,"cached":1}
+cyclic: {"kind":"machine","name":"Lim","cert":true,"usual":true,"cyclic":true,"ms":0,"usualMs":2,"route":"translated","leaves":0,"regrown":0,"splits":0,"carried":0,"uncarried":0,"cached":1}
+cyclic: {"kind":"step law","name":"Lim","cert":true,"usual":true,"cyclic":true,"ms":0,"usualMs":1,"route":"translated","leaves":0,"regrown":0,"splits":0,"carried":0,"uncarried":0,"cached":1}
+(pass) cpp: one way in, a URL and nothing else read the rule the call as it was reads [622.37ms]
+(pass) ts: one way in, a URL and nothing else read the rule the call as it was reads [348.53ms]
+(pass) effect: one way in, a URL and nothing else read the rule the call as it was reads [4430.84ms]
+(pass) xstate: one way in, a URL and nothing else read the rule the call as it was reads [775.69ms]
+(pass) the forms a law is stated in, and the expression syntax [3.92ms]
+cyclic: {"kind":"machine","name":"W","cert":true,"usual":true,"cyclic":true,"ms":0,"usualMs":0,"route":"translated","leaves":0,"regrown":0,"splits":0,"carried":0,"uncarried":0,"cached":0}
+cyclic: {"kind":"step law","name":"W","cert":true,"usual":true,"cyclic":true,"ms":7,"usualMs":1,"route":"translated","leaves":7,"regrown":0,"splits":4,"carried":1,"uncarried":0,"cached":0}
+(pass) a law is known by its name, after.x and before.x are the view of a step, and what isn't read is refused [153.85ms]
+cyclic: {"kind":"machine","name":"decide","cert":true,"usual":true,"cyclic":true,"ms":16,"usualMs":1,"route":"translated","leaves":6,"regrown":0,"splits":3,"carried":1,"uncarried":0,"cached":0}
+cyclic: {"kind":"step law","name":"decide","cert":true,"usual":true,"cyclic":true,"ms":49,"usualMs":1,"route":"translated","leaves":6,"regrown":0,"splits":1,"carried":1,"uncarried":0,"cached":0}
+cyclic: {"kind":"machine","name":"decide","cert":true,"usual":true,"cyclic":true,"ms":0,"usualMs":1,"route":"translated","leaves":0,"regrown":0,"splits":0,"carried":0,"uncarried":0,"cached":1}
+cyclic: {"kind":"step law","name":"decide","cert":true,"usual":true,"cyclic":true,"ms":26,"usualMs":2,"route":"translated","leaves":17,"regrown":0,"splits":11,"carried":1,"uncarried":0,"cached":0}
+cyclic: {"kind":"machine","name":"decide","cert":true,"usual":true,"cyclic":true,"ms":0,"usualMs":1,"route":"translated","leaves":0,"regrown":0,"splits":0,"carried":0,"uncarried":0,"cached":1}
+cyclic: {"kind":"step law","name":"decide","cert":true,"usual":true,"cyclic":true,"ms":0,"usualMs":1,"route":"translated","leaves":0,"regrown":0,"splits":0,"carried":0,"uncarried":0,"cached":1}
+cyclic: {"kind":"machine","name":"decide","cert":true,"usual":true,"cyclic":true,"ms":0,"usualMs":1,"route":"translated","leaves":0,"regrown":0,"splits":0,"carried":0,"uncarried":0,"cached":1}
+cyclic: {"kind":"step law","name":"decide","cert":true,"usual":true,"cyclic":true,"ms":0,"usualMs":1,"route":"translated","leaves":0,"regrown":0,"splits":0,"carried":0,"uncarried":0,"cached":1}
+(pass) standalone scalar mode is explicit through CLI and gdp.toml [1607.90ms]
+cyclic: {"kind":"machine","name":"permit","cert":true,"usual":true,"cyclic":true,"ms":6,"usualMs":1,"route":"translated","leaves":6,"regrown":0,"splits":3,"carried":1,"uncarried":0,"cached":0}
+cyclic: {"kind":"step law","name":"permit","cert":true,"usual":true,"cyclic":true,"ms":9,"usualMs":1,"route":"translated","leaves":11,"regrown":0,"splits":8,"carried":1,"uncarried":0,"cached":0}
+cyclic: {"kind":"machine","name":"hold","cert":true,"usual":true,"cyclic":true,"ms":10,"usualMs":2,"route":"translated","leaves":12,"regrown":0,"splits":6,"carried":2,"uncarried":0,"cached":0}
+cyclic: {"kind":"step law","name":"hold","cert":true,"usual":true,"cyclic":true,"ms":10,"usualMs":1,"route":"translated","leaves":10,"regrown":0,"splits":6,"carried":1,"uncarried":0,"cached":0}
+cyclic: {"kind":"machine","name":"permit","cert":true,"usual":true,"cyclic":true,"ms":0,"usualMs":1,"route":"translated","leaves":0,"regrown":0,"splits":0,"carried":0,"uncarried":0,"cached":1}
+cyclic: {"kind":"step law","name":"permit","cert":true,"usual":true,"cyclic":true,"ms":0,"usualMs":1,"route":"translated","leaves":0,"regrown":0,"splits":0,"carried":0,"uncarried":0,"cached":1}
+(pass) standalone CLI accounts for every annotated function in a file [390.19ms]
+cyclic: {"kind":"machine","name":"SessionLimit","cert":true,"usual":true,"cyclic":true,"ms":128,"usualMs":23,"route":"translated","leaves":64,"regrown":0,"splits":39,"carried":3,"uncarried":0,"cached":0}
+cyclic: {"kind":"step law","name":"SessionLimit","cert":true,"usual":true,"cyclic":true,"ms":88,"usualMs":4,"route":"translated","leaves":18,"regrown":0,"splits":10,"carried":1,"uncarried":0,"cached":0}
+(pass) gdp.toml, pyproject.toml's [tool.gdp] and package.json's "gdp": the options of every rule and of one [1289.06ms]
+cyclic: {"kind":"machine","name":"SessionLimit (atomic)","cert":true,"usual":true,"cyclic":true,"ms":84,"usualMs":13,"route":"translated","leaves":55,"regrown":0,"splits":31,"carried":1,"uncarried":0,"cached":0}
+cyclic: {"kind":"step law","name":"SessionLimit (atomic)","cert":true,"usual":true,"cyclic":true,"ms":95,"usualMs":10,"route":"translated","leaves":20,"regrown":0,"splits":12,"carried":1,"uncarried":0,"cached":0}
+(pass) gdp: env and gdp.toml's env: the law of every call at once [5128.03ms]
+(pass) flows, leases and effects: at most one call between, keys that expire, a charge made once [10574.47ms]
+(pass) the CLI refuses a dependency given the rule's state (the adversarial j01, j03, j04) [2571.82ms]
+cyclic: {"kind":"machine","name":"Counter","cert":true,"usual":true,"cyclic":true,"ms":5,"usualMs":1,"route":"translated","leaves":11,"regrown":0,"splits":5,"carried":2,"uncarried":0,"cached":0}
+cyclic: {"kind":"machine","name":"Counter","cert":true,"usual":true,"cyclic":true,"ms":0,"usualMs":1,"route":"translated","leaves":0,"regrown":0,"splits":0,"carried":0,"uncarried":0,"cached":1}
+(pass) Java constructor alternatives all keep their class laws and replay receipts [6994.13ms]
+cyclic: {"kind":"machine","name":"Counter","cert":true,"usual":true,"cyclic":true,"ms":20,"usualMs":2,"route":"translated","leaves":14,"regrown":0,"splits":8,"carried":2,"uncarried":0,"cached":0}
+cyclic: {"kind":"machine","name":"Counter","cert":true,"usual":true,"cyclic":true,"ms":7,"usualMs":1,"route":"translated","leaves":14,"regrown":0,"splits":8,"carried":2,"uncarried":0,"cached":0}
+(pass) constructor variants keep separate certificates [5283.30ms]
+cyclic: {"kind":"machine","name":"Counter","cert":true,"usual":true,"cyclic":true,"ms":0,"usualMs":1,"route":"translated","leaves":0,"regrown":0,"splits":0,"carried":0,"uncarried":0,"cached":1}
+(pass) a supported Java constructor never hides an unread constructor [3373.27ms]
+cyclic: {"kind":"machine","name":"Meter","cert":true,"usual":true,"cyclic":true,"ms":3,"usualMs":1,"route":"translated","leaves":5,"regrown":0,"splits":2,"carried":1,"uncarried":0,"cached":0}
+(pass) Swift initializers each keep their own starts and class laws [8187.83ms]
+cyclic: {"kind":"machine","name":"Meter","cert":true,"usual":true,"cyclic":true,"ms":0,"usualMs":2,"route":"translated","leaves":0,"regrown":0,"splits":0,"carried":0,"uncarried":0,"cached":1}
+(pass) a supported Swift initializer never hides a failable alternative or its law [11696.76ms]
+(pass) color on a terminal only, NO_COLOR over a terminal, FORCE_COLOR on, and the same text without it [3905.17ms]
+cyclic: {"kind":"machine","name":"Fate","cert":true,"usual":true,"cyclic":true,"ms":245,"usualMs":33,"route":"translated","leaves":86,"regrown":0,"splits":44,"carried":3,"uncarried":0,"cached":0}
+cyclic: {"kind":"machine","name":"Fate","cert":true,"usual":true,"cyclic":true,"ms":0,"usualMs":23,"route":"translated","leaves":0,"regrown":0,"splits":0,"carried":0,"uncarried":0,"cached":1}
+cyclic: {"kind":"step law","name":"Fate","cert":true,"usual":true,"cyclic":true,"ms":271,"usualMs":8,"route":"translated","leaves":57,"regrown":0,"splits":46,"carried":1,"uncarried":0,"cached":0}
+cyclic: {"kind":"machine","name":"Counter","cert":true,"usual":true,"cyclic":true,"ms":11,"usualMs":1,"route":"translated","leaves":7,"regrown":0,"splits":3,"carried":1,"uncarried":0,"cached":0}
+cyclic: {"kind":"machine","name":"Fate","cert":true,"usual":true,"cyclic":true,"ms":272,"usualMs":36,"route":"translated","leaves":80,"regrown":0,"splits":44,"carried":3,"uncarried":0,"cached":0}
+cyclic: {"kind":"machine","name":"Counter","cert":true,"usual":true,"cyclic":true,"ms":0,"usualMs":1,"route":"translated","leaves":0,"regrown":0,"splits":0,"carried":0,"uncarried":0,"cached":1}
+(pass) the CLI on two classes with no bases: their laws by class, a field named state, k in old(s) [10060.81ms]
+(pass) the CLI on a law reading an argument the code ignores: broken, with its run [1676.26ms]
+cyclic: {"kind":"machine","name":"Mirror","cert":true,"usual":true,"cyclic":true,"ms":10,"usualMs":2,"route":"translated","leaves":14,"regrown":0,"splits":6,"carried":2,"uncarried":0,"cached":0}
+cyclic: {"kind":"machine","name":"Mirror","cert":true,"usual":true,"cyclic":true,"ms":7,"usualMs":2,"route":"translated","leaves":14,"regrown":0,"splits":6,"carried":2,"uncarried":0,"cached":0}
+cyclic: {"kind":"machine","name":"Mirror","cert":true,"usual":true,"cyclic":true,"ms":0,"usualMs":1,"route":"translated","leaves":0,"regrown":0,"splits":0,"carried":0,"uncarried":0,"cached":1}
+(pass) the CLI from any state: a law needing an invariant refuted from a state alone, proven with it stated [6045.06ms]
+cyclic: {"kind":"machine","name":"Mirror","cert":true,"usual":true,"cyclic":true,"ms":3,"usualMs":1,"route":"translated","leaves":5,"regrown":0,"splits":2,"carried":1,"uncarried":0,"cached":0}
+cyclic: {"kind":"machine","name":"Mirror","cert":true,"usual":true,"cyclic":true,"ms":3,"usualMs":1,"route":"translated","leaves":5,"regrown":0,"splits":2,"carried":1,"uncarried":0,"cached":0}
+cyclic: {"kind":"machine","name":"Counter","cert":true,"usual":true,"cyclic":true,"ms":12,"usualMs":2,"route":"translated","leaves":11,"regrown":0,"splits":5,"carried":2,"uncarried":0,"cached":0}
+cyclic: {"kind":"machine","name":"Counter","cert":true,"usual":true,"cyclic":true,"ms":5,"usualMs":1,"route":"translated","leaves":6,"regrown":0,"splits":3,"carried":1,"uncarried":0,"cached":0}
+cyclic: {"kind":"step law","name":"Counter","cert":true,"usual":true,"cyclic":true,"ms":15,"usualMs":1,"route":"translated","leaves":12,"regrown":0,"splits":8,"carried":1,"uncarried":0,"cached":0}
+cyclic: {"kind":"machine","name":"Counter","cert":true,"usual":true,"cyclic":true,"ms":0,"usualMs":1,"route":"translated","leaves":0,"regrown":0,"splits":0,"carried":0,"uncarried":0,"cached":1}
+cyclic: {"kind":"machine","name":"Counter","cert":true,"usual":true,"cyclic":true,"ms":0,"usualMs":0,"route":"translated","leaves":0,"regrown":0,"splits":0,"carried":0,"uncarried":0,"cached":1}
+cyclic: {"kind":"step law","name":"Counter","cert":true,"usual":true,"cyclic":true,"ms":0,"usualMs":1,"route":"translated","leaves":0,"regrown":0,"splits":0,"carried":0,"uncarried":0,"cached":1}
+cyclic: {"kind":"machine","name":"Mirror","cert":true,"usual":true,"cyclic":true,"ms":0,"usualMs":0,"route":"translated","leaves":0,"regrown":0,"splits":0,"carried":0,"uncarried":0,"cached":1}
+cyclic: {"kind":"machine","name":"Mirror","cert":true,"usual":true,"cyclic":true,"ms":0,"usualMs":0,"route":"translated","leaves":0,"regrown":0,"splits":0,"carried":0,"uncarried":0,"cached":1}
+cyclic: {"kind":"machine","name":"Counter","cert":true,"usual":true,"cyclic":true,"ms":0,"usualMs":1,"route":"translated","leaves":0,"regrown":0,"splits":0,"carried":0,"uncarried":0,"cached":1}
+cyclic: {"kind":"machine","name":"Counter","cert":true,"usual":true,"cyclic":true,"ms":0,"usualMs":1,"route":"translated","leaves":0,"regrown":0,"splits":0,"carried":0,"uncarried":0,"cached":1}
+cyclic: {"kind":"step law","name":"Counter","cert":true,"usual":true,"cyclic":true,"ms":0,"usualMs":2,"route":"translated","leaves":0,"regrown":0,"splits":0,"carried":0,"uncarried":0,"cached":1}
+cyclic: {"kind":"machine","name":"Counter","cert":true,"usual":true,"cyclic":true,"ms":0,"usualMs":2,"route":"translated","leaves":0,"regrown":0,"splits":0,"carried":0,"uncarried":0,"cached":1}
+cyclic: {"kind":"machine","name":"Counter","cert":true,"usual":true,"cyclic":true,"ms":0,"usualMs":2,"route":"translated","leaves":0,"regrown":0,"splits":0,"carried":0,"uncarried":0,"cached":1}
+cyclic: {"kind":"step law","name":"Counter","cert":true,"usual":true,"cyclic":true,"ms":0,"usualMs":2,"route":"translated","leaves":0,"regrown":0,"splits":0,"carried":0,"uncarried":0,"cached":1}
+cyclic: {"kind":"machine","name":"Mirror","cert":true,"usual":true,"cyclic":true,"ms":0,"usualMs":0,"route":"translated","leaves":0,"regrown":0,"splits":0,"carried":0,"uncarried":0,"cached":1}
+cyclic: {"kind":"machine","name":"Mirror","cert":true,"usual":true,"cyclic":true,"ms":0,"usualMs":0,"route":"translated","leaves":0,"regrown":0,"splits":0,"carried":0,"uncarried":0,"cached":1}
+cyclic: {"kind":"machine","name":"Counter","cert":true,"usual":true,"cyclic":true,"ms":0,"usualMs":2,"route":"translated","leaves":0,"regrown":0,"splits":0,"carried":0,"uncarried":0,"cached":1}
+cyclic: {"kind":"machine","name":"Counter","cert":true,"usual":true,"cyclic":true,"ms":0,"usualMs":2,"route":"translated","leaves":0,"regrown":0,"splits":0,"carried":0,"uncarried":0,"cached":1}
+cyclic: {"kind":"step law","name":"Counter","cert":true,"usual":true,"cyclic":true,"ms":0,"usualMs":1,"route":"translated","leaves":0,"regrown":0,"splits":0,"carried":0,"uncarried":0,"cached":1}
+cyclic: {"kind":"machine","name":"Counter","cert":true,"usual":true,"cyclic":true,"ms":0,"usualMs":4,"route":"translated","leaves":0,"regrown":0,"splits":0,"carried":0,"uncarried":0,"cached":1}
+cyclic: {"kind":"machine","name":"Counter","cert":true,"usual":true,"cyclic":true,"ms":0,"usualMs":1,"route":"translated","leaves":0,"regrown":0,"splits":0,"carried":0,"uncarried":0,"cached":1}
+cyclic: {"kind":"step law","name":"Counter","cert":true,"usual":true,"cyclic":true,"ms":0,"usualMs":2,"route":"translated","leaves":0,"regrown":0,"splits":0,"carried":0,"uncarried":0,"cached":1}
+cyclic: {"kind":"machine","name":"Counter","cert":true,"usual":true,"cyclic":true,"ms":0,"usualMs":2,"route":"translated","leaves":0,"regrown":0,"splits":0,"carried":0,"uncarried":0,"cached":1}
+cyclic: {"kind":"machine","name":"Counter","cert":true,"usual":true,"cyclic":true,"ms":0,"usualMs":1,"route":"translated","leaves":0,"regrown":0,"splits":0,"carried":0,"uncarried":0,"cached":1}
+cyclic: {"kind":"step law","name":"Counter","cert":true,"usual":true,"cyclic":true,"ms":0,"usualMs":1,"route":"translated","leaves":0,"regrown":0,"splits":0,"carried":0,"uncarried":0,"cached":1}
+cyclic: {"kind":"machine","name":"Counter","cert":true,"usual":true,"cyclic":true,"ms":0,"usualMs":2,"route":"translated","leaves":0,"regrown":0,"splits":0,"carried":0,"uncarried":0,"cached":1}
+cyclic: {"kind":"machine","name":"Counter","cert":true,"usual":true,"cyclic":true,"ms":0,"usualMs":2,"route":"translated","leaves":0,"regrown":0,"splits":0,"carried":0,"uncarried":0,"cached":1}
+cyclic: {"kind":"step law","name":"Counter","cert":true,"usual":true,"cyclic":true,"ms":0,"usualMs":2,"route":"translated","leaves":0,"regrown":0,"splits":0,"carried":0,"uncarried":0,"cached":1}
+cyclic: {"kind":"machine","name":"Mirror","cert":true,"usual":true,"cyclic":true,"ms":0,"usualMs":1,"route":"translated","leaves":0,"regrown":0,"splits":0,"carried":0,"uncarried":0,"cached":1}
+cyclic: {"kind":"machine","name":"Mirror","cert":true,"usual":true,"cyclic":true,"ms":0,"usualMs":1,"route":"translated","leaves":0,"regrown":0,"splits":0,"carried":0,"uncarried":0,"cached":1}
+cyclic: {"kind":"machine","name":"Counter","cert":true,"usual":true,"cyclic":true,"ms":0,"usualMs":2,"route":"translated","leaves":0,"regrown":0,"splits":0,"carried":0,"uncarried":0,"cached":1}
+cyclic: {"kind":"machine","name":"Counter","cert":true,"usual":true,"cyclic":true,"ms":0,"usualMs":1,"route":"translated","leaves":0,"regrown":0,"splits":0,"carried":0,"uncarried":0,"cached":1}
+cyclic: {"kind":"step law","name":"Counter","cert":true,"usual":true,"cyclic":true,"ms":0,"usualMs":2,"route":"translated","leaves":0,"regrown":0,"splits":0,"carried":0,"uncarried":0,"cached":1}
+(pass) the CLI prioritizes mixed stated verdicts over review-only candidates [5723.38ms]
+cyclic: {"kind":"machine","name":"Retry","cert":true,"usual":true,"cyclic":true,"ms":23,"usualMs":13,"route":"translated","leaves":15,"regrown":0,"splits":3,"carried":1,"uncarried":0,"cached":0}
+cyclic: {"kind":"step law","name":"Retry","cert":true,"usual":true,"cyclic":true,"ms":230,"usualMs":36,"route":"translated","leaves":59,"regrown":0,"splits":34,"carried":3,"uncarried":0,"cached":0}
+cyclic: {"kind":"machine","name":"Retry","cert":true,"usual":true,"cyclic":true,"ms":0,"usualMs":9,"route":"translated","leaves":0,"regrown":0,"splits":0,"carried":0,"uncarried":0,"cached":1}
+cyclic: {"kind":"progress","name":"Retry","cert":true,"usual":true,"cyclic":true,"ms":14,"usualMs":13,"route":"translated","leaves":3,"regrown":0,"splits":1,"carried":1,"uncarried":0,"cached":0}
+cyclic: {"kind":"liveness","name":"Retry","cert":true,"usual":true,"cyclic":true,"route":"its step laws","parts":3}
+(pass) the CLI on laws of "eventually": proven with their rank and helpful requests, not where a step undoes it [2955.64ms]
+cyclic: {"kind":"machine","name":"Store","cert":true,"usual":true,"cyclic":true,"ms":10,"usualMs":2,"route":"translated","leaves":6,"regrown":0,"splits":3,"carried":1,"uncarried":0,"cached":0}
+cyclic: {"kind":"step law","name":"Store","cert":true,"usual":true,"cyclic":true,"ms":17,"usualMs":2,"route":"translated","leaves":12,"regrown":0,"splits":8,"carried":1,"uncarried":0,"cached":0}
+cyclic: {"kind":"machine","name":"Gate","cert":true,"usual":true,"cyclic":true,"ms":14,"usualMs":4,"route":"translated","leaves":6,"regrown":0,"splits":3,"carried":1,"uncarried":0,"cached":0}
+cyclic: {"kind":"step law","name":"Gate","cert":true,"usual":true,"cyclic":true,"ms":45,"usualMs":3,"route":"translated","leaves":13,"regrown":0,"splits":7,"carried":1,"uncarried":0,"cached":0}
+(pass) the CLI accounts for every law: a stateless class, a later function of a method's name, a law no rule takes [2698.65ms]
+(pass) a law above a class or contract is the class's; a type written like a call is never a function [2.80ms]
+cyclic: {"kind":"machine","name":"Tries","cert":true,"usual":true,"cyclic":true,"ms":19,"usualMs":2,"route":"translated","leaves":14,"regrown":0,"splits":9,"carried":1,"uncarried":0,"cached":0}
+(pass) the CLI on a constructor whose arithmetic may pass 2^53: those starts left out, the class read [1072.42ms]
+cyclic: {"kind":"machine","name":"Creation","cert":true,"usual":true,"cyclic":true,"ms":50,"usualMs":22,"route":"translated","leaves":35,"regrown":0,"splits":8,"carried":2,"uncarried":0,"cached":0}
+cyclic: {"kind":"machine","name":"Creation","cert":true,"usual":true,"cyclic":true,"ms":45,"usualMs":20,"route":"translated","leaves":35,"regrown":0,"splits":8,"carried":2,"uncarried":0,"cached":0}
+cyclic: {"kind":"machine","name":"Creation","cert":true,"usual":true,"cyclic":true,"ms":0,"usualMs":16,"route":"translated","leaves":0,"regrown":0,"splits":0,"carried":0,"uncarried":0,"cached":1}
+(pass) the CLI reads laws in the code's names: a field named failed, a module constant, a class not taken from prose; an integer sum read [6702.71ms]
+cyclic: {"kind":"machine","name":"budget","cert":true,"usual":true,"cyclic":true,"ms":1,"usualMs":1,"route":"translated","leaves":0,"regrown":0,"splits":0,"carried":0,"uncarried":0,"cached":0}
+cyclic: {"kind":"step law","name":"budget","cert":true,"usual":true,"cyclic":true,"ms":25,"usualMs":4,"route":"translated","leaves":5,"regrown":0,"splits":2,"carried":1,"uncarried":0,"cached":0}
+cyclic: {"kind":"machine","name":"budget","cert":true,"usual":true,"cyclic":true,"ms":0,"usualMs":1,"route":"translated","leaves":0,"regrown":0,"splits":0,"carried":0,"uncarried":0,"cached":1}
+cyclic: {"kind":"step law","name":"budget","cert":true,"usual":true,"cyclic":true,"ms":24,"usualMs":2,"route":"translated","leaves":5,"regrown":0,"splits":2,"carried":1,"uncarried":0,"cached":0}
+cyclic: {"kind":"machine","name":"Entry","cert":true,"usual":true,"cyclic":true,"ms":17,"usualMs":2,"route":"translated","leaves":6,"regrown":0,"splits":3,"carried":1,"uncarried":0,"cached":0}
+cyclic: {"kind":"step law","name":"Entry","cert":true,"usual":true,"cyclic":true,"ms":145,"usualMs":5,"route":"translated","leaves":52,"regrown":0,"splits":45,"carried":1,"uncarried":0,"cached":0}
+cyclic: {"kind":"machine","name":"Grow","cert":true,"usual":true,"cyclic":true,"ms":1,"usualMs":0,"route":"translated","leaves":0,"regrown":0,"splits":0,"carried":0,"uncarried":0,"cached":0}
+cyclic: {"kind":"step law","name":"Grow","cert":true,"usual":true,"cyclic":true,"ms":26,"usualMs":20,"route":"translated","leaves":27,"regrown":0,"splits":6,"carried":1,"uncarried":0,"cached":0}
+cyclic: {"kind":"machine","name":"Item","cert":true,"usual":true,"cyclic":true,"ms":26,"usualMs":6,"route":"translated","leaves":21,"regrown":0,"splits":6,"carried":2,"uncarried":0,"cached":0}
+cyclic: {"kind":"machine","name":"Item","cert":true,"usual":true,"cyclic":true,"ms":0,"usualMs":5,"route":"translated","leaves":0,"regrown":0,"splits":0,"carried":0,"uncarried":0,"cached":1}
+cyclic: {"kind":"machine","name":"Holder","cert":true,"usual":true,"cyclic":true,"ms":0,"usualMs":0,"route":"translated","leaves":0,"regrown":0,"splits":0,"carried":0,"uncarried":0,"cached":0}
+cyclic: {"kind":"step law","name":"Holder","cert":true,"usual":true,"cyclic":true,"ms":6,"usualMs":1,"route":"translated","leaves":7,"regrown":0,"splits":4,"carried":1,"uncarried":0,"cached":0}
+cyclic: {"kind":"machine","name":"release_ttl","cert":true,"usual":true,"cyclic":true,"ms":0,"usualMs":0,"route":"translated","leaves":0,"regrown":0,"splits":0,"carried":0,"uncarried":0,"cached":0}
+cyclic: {"kind":"step law","name":"release_ttl","cert":true,"usual":true,"cyclic":true,"ms":7,"usualMs":1,"route":"translated","leaves":7,"regrown":0,"splits":4,"carried":1,"uncarried":0,"cached":0}
+cyclic: {"kind":"machine","name":"ceiling","cert":true,"usual":true,"cyclic":true,"ms":1,"usualMs":0,"route":"translated","leaves":0,"regrown":0,"splits":0,"carried":0,"uncarried":0,"cached":0}
+cyclic: {"kind":"step law","name":"ceiling","cert":true,"usual":true,"cyclic":true,"ms":31,"usualMs":17,"route":"translated","leaves":21,"regrown":0,"splits":6,"carried":1,"uncarried":0,"cached":0}
+cyclic: {"kind":"machine","name":"budget","cert":true,"usual":true,"cyclic":true,"ms":0,"usualMs":0,"route":"translated","leaves":0,"regrown":0,"splits":0,"carried":0,"uncarried":0,"cached":1}
+cyclic: {"kind":"step law","name":"budget","cert":true,"usual":true,"cyclic":true,"ms":86,"usualMs":40,"route":"translated","leaves":49,"regrown":0,"splits":4,"carried":1,"uncarried":0,"cached":0}
+(pass) the CLI on supercomputer's shapes: aliases, shadowing, guarded products, floor division, integer sums, scoping, Houdini [29575.48ms]
+cyclic: {"kind":"machine","name":"Limiter","cert":true,"usual":true,"cyclic":true,"ms":21,"usualMs":1,"route":"translated","leaves":6,"regrown":0,"splits":3,"carried":1,"uncarried":0,"cached":0}
+cyclic: {"kind":"step law","name":"Limiter","cert":true,"usual":true,"cyclic":true,"ms":52,"usualMs":6,"route":"translated","leaves":12,"regrown":0,"splits":7,"carried":1,"uncarried":0,"cached":0}
+cyclic: {"kind":"machine","name":"Limiter","cert":true,"usual":true,"cyclic":true,"ms":0,"usualMs":2,"route":"translated","leaves":0,"regrown":0,"splits":0,"carried":0,"uncarried":0,"cached":1}
+cyclic: {"kind":"step law","name":"Limiter","cert":true,"usual":true,"cyclic":true,"ms":0,"usualMs":3,"route":"translated","leaves":0,"regrown":0,"splits":0,"carried":0,"uncarried":0,"cached":1}
+cyclic: {"kind":"machine","name":"Limiter","cert":true,"usual":true,"cyclic":true,"ms":0,"usualMs":1,"route":"translated","leaves":0,"regrown":0,"splits":0,"carried":0,"uncarried":0,"cached":1}
+cyclic: {"kind":"step law","name":"Limiter","cert":true,"usual":true,"cyclic":true,"ms":0,"usualMs":3,"route":"translated","leaves":0,"regrown":0,"splits":0,"carried":0,"uncarried":0,"cached":1}
+(pass) python: the fix a refusal suggests, applied as it says, is read (gdp.toml at the top, under the rule, and the comment) [1419.28ms]
+cyclic: {"kind":"machine","name":"Limiter","cert":true,"usual":true,"cyclic":true,"ms":17,"usualMs":1,"route":"translated","leaves":6,"regrown":0,"splits":3,"carried":1,"uncarried":0,"cached":0}
+cyclic: {"kind":"step law","name":"Limiter","cert":true,"usual":true,"cyclic":true,"ms":45,"usualMs":4,"route":"translated","leaves":12,"regrown":0,"splits":7,"carried":1,"uncarried":0,"cached":0}
+cyclic: {"kind":"machine","name":"Limiter","cert":true,"usual":true,"cyclic":true,"ms":0,"usualMs":1,"route":"translated","leaves":0,"regrown":0,"splits":0,"carried":0,"uncarried":0,"cached":1}
+cyclic: {"kind":"step law","name":"Limiter","cert":true,"usual":true,"cyclic":true,"ms":0,"usualMs":2,"route":"translated","leaves":0,"regrown":0,"splits":0,"carried":0,"uncarried":0,"cached":1}
+cyclic: {"kind":"machine","name":"Limiter","cert":true,"usual":true,"cyclic":true,"ms":0,"usualMs":1,"route":"translated","leaves":0,"regrown":0,"splits":0,"carried":0,"uncarried":0,"cached":1}
+cyclic: {"kind":"step law","name":"Limiter","cert":true,"usual":true,"cyclic":true,"ms":0,"usualMs":2,"route":"translated","leaves":0,"regrown":0,"splits":0,"carried":0,"uncarried":0,"cached":1}
+(pass) ruby: the fix a refusal suggests, applied as it says, is read (gdp.toml at the top, under the rule, and the comment) [1592.79ms]
+warning: variable "model" is unused (if the variable is not meant to be used, prefix it with an underscore)
+  /tmp/gdp-clicase-jHqRhr/limiter.ex:8: Limiter.handle_call/3
+
+cyclic: {"kind":"machine","name":"Limiter","cert":true,"usual":true,"cyclic":true,"ms":19,"usualMs":2,"route":"translated","leaves":6,"regrown":0,"splits":3,"carried":1,"uncarried":0,"cached":0}
+cyclic: {"kind":"step law","name":"Limiter","cert":true,"usual":true,"cyclic":true,"ms":52,"usualMs":5,"route":"translated","leaves":12,"regrown":0,"splits":7,"carried":1,"uncarried":0,"cached":0}
+warning: variable "model" is unused (if the variable is not meant to be used, prefix it with an underscore)
+  /tmp/gdp-clicase-iUInku/limiter.ex:8: Limiter.handle_call/3
+
+cyclic: {"kind":"machine","name":"Limiter","cert":true,"usual":true,"cyclic":true,"ms":0,"usualMs":1,"route":"translated","leaves":0,"regrown":0,"splits":0,"carried":0,"uncarried":0,"cached":1}
+cyclic: {"kind":"step law","name":"Limiter","cert":true,"usual":true,"cyclic":true,"ms":0,"usualMs":2,"route":"translated","leaves":0,"regrown":0,"splits":0,"carried":0,"uncarried":0,"cached":1}
+warning: variable "model" is unused (if the variable is not meant to be used, prefix it with an underscore)
+  /tmp/gdp-clicase-JgRwtl/limiter.ex:8: Limiter.handle_call/3
+
+cyclic: {"kind":"machine","name":"Limiter","cert":true,"usual":true,"cyclic":true,"ms":0,"usualMs":1,"route":"translated","leaves":0,"regrown":0,"splits":0,"carried":0,"uncarried":0,"cached":1}
+cyclic: {"kind":"step law","name":"Limiter","cert":true,"usual":true,"cyclic":true,"ms":0,"usualMs":4,"route":"translated","leaves":0,"regrown":0,"splits":0,"carried":0,"uncarried":0,"cached":1}
+(pass) elixir: the fix a refusal suggests, applied as it says, is read (gdp.toml at the top, under the rule, and the comment) [14624.52ms]
+cyclic: {"kind":"machine","name":"Limiter","cert":true,"usual":true,"cyclic":true,"ms":58,"usualMs":2,"route":"translated","leaves":6,"regrown":0,"splits":3,"carried":1,"uncarried":0,"cached":0}
+cyclic: {"kind":"step law","name":"Limiter","cert":true,"usual":true,"cyclic":true,"ms":123,"usualMs":1,"route":"translated","leaves":3,"regrown":0,"splits":1,"carried":1,"uncarried":0,"cached":0}
+cyclic: {"kind":"machine","name":"Limiter","cert":true,"usual":true,"cyclic":true,"ms":0,"usualMs":3,"route":"translated","leaves":0,"regrown":0,"splits":0,"carried":0,"uncarried":0,"cached":1}
+cyclic: {"kind":"step law","name":"Limiter","cert":true,"usual":true,"cyclic":true,"ms":65,"usualMs":1,"route":"translated","leaves":3,"regrown":0,"splits":1,"carried":1,"uncarried":0,"cached":0}
+cyclic: {"kind":"machine","name":"Limiter","cert":true,"usual":true,"cyclic":true,"ms":156,"usualMs":28,"route":"translated","leaves":56,"regrown":0,"splits":13,"carried":3,"uncarried":0,"cached":0}
+cyclic: {"kind":"step law","name":"Limiter","cert":true,"usual":true,"cyclic":true,"ms":204,"usualMs":13,"route":"translated","leaves":15,"regrown":0,"splits":7,"carried":1,"uncarried":0,"cached":0}
+cyclic: {"kind":"machine","name":"Limiter","cert":true,"usual":true,"cyclic":true,"ms":0,"usualMs":1,"route":"translated","leaves":0,"regrown":0,"splits":0,"carried":0,"uncarried":0,"cached":1}
+cyclic: {"kind":"step law","name":"Limiter","cert":true,"usual":true,"cyclic":true,"ms":0,"usualMs":1,"route":"translated","leaves":0,"regrown":0,"splits":0,"carried":0,"uncarried":0,"cached":1}
+cyclic: {"kind":"machine","name":"Limiter","cert":true,"usual":true,"cyclic":true,"ms":0,"usualMs":1,"route":"translated","leaves":0,"regrown":0,"splits":0,"carried":0,"uncarried":0,"cached":1}
+cyclic: {"kind":"step law","name":"Limiter","cert":true,"usual":true,"cyclic":true,"ms":0,"usualMs":1,"route":"translated","leaves":0,"regrown":0,"splits":0,"carried":0,"uncarried":0,"cached":1}
+cyclic: {"kind":"machine","name":"Limiter","cert":true,"usual":true,"cyclic":true,"ms":0,"usualMs":16,"route":"translated","leaves":0,"regrown":0,"splits":0,"carried":0,"uncarried":0,"cached":1}
+cyclic: {"kind":"step law","name":"Limiter","cert":true,"usual":true,"cyclic":true,"ms":0,"usualMs":6,"route":"translated","leaves":0,"regrown":0,"splits":0,"carried":0,"uncarried":0,"cached":1}
+cyclic: {"kind":"machine","name":"Limiter","cert":true,"usual":true,"cyclic":true,"ms":0,"usualMs":2,"route":"translated","leaves":0,"regrown":0,"splits":0,"carried":0,"uncarried":0,"cached":1}
+cyclic: {"kind":"step law","name":"Limiter","cert":true,"usual":true,"cyclic":true,"ms":0,"usualMs":1,"route":"translated","leaves":0,"regrown":0,"splits":0,"carried":0,"uncarried":0,"cached":1}
+cyclic: {"kind":"machine","name":"Limiter","cert":true,"usual":true,"cyclic":true,"ms":0,"usualMs":1,"route":"translated","leaves":0,"regrown":0,"splits":0,"carried":0,"uncarried":0,"cached":1}
+cyclic: {"kind":"step law","name":"Limiter","cert":true,"usual":true,"cyclic":true,"ms":0,"usualMs":1,"route":"translated","leaves":0,"regrown":0,"splits":0,"carried":0,"uncarried":0,"cached":1}
+cyclic: {"kind":"machine","name":"Limiter","cert":true,"usual":true,"cyclic":true,"ms":0,"usualMs":18,"route":"translated","leaves":0,"regrown":0,"splits":0,"carried":0,"uncarried":0,"cached":1}
+cyclic: {"kind":"step law","name":"Limiter","cert":true,"usual":true,"cyclic":true,"ms":0,"usualMs":7,"route":"translated","leaves":0,"regrown":0,"splits":0,"carried":0,"uncarried":0,"cached":1}
+(pass) java: the fix a refusal suggests, applied as it says, is read (gdp.toml at the top, under the rule, and the comment) [6052.36ms]
+cyclic: {"kind":"machine","name":"Limiter","cert":true,"usual":true,"cyclic":true,"ms":90,"usualMs":3,"route":"translated","leaves":6,"regrown":0,"splits":3,"carried":1,"uncarried":0,"cached":0}
+cyclic: {"kind":"step law","name":"Limiter","cert":true,"usual":true,"cyclic":true,"ms":142,"usualMs":4,"route":"translated","leaves":7,"regrown":0,"splits":1,"carried":1,"uncarried":0,"cached":0}
+cyclic: {"kind":"machine","name":"Limiter","cert":true,"usual":true,"cyclic":true,"ms":0,"usualMs":2,"route":"translated","leaves":0,"regrown":0,"splits":0,"carried":0,"uncarried":0,"cached":1}
+cyclic: {"kind":"step law","name":"Limiter","cert":true,"usual":true,"cyclic":true,"ms":201,"usualMs":4,"route":"translated","leaves":7,"regrown":0,"splits":1,"carried":1,"uncarried":0,"cached":0}
+cyclic: {"kind":"machine","name":"Limiter","cert":true,"usual":true,"cyclic":true,"ms":152,"usualMs":21,"route":"translated","leaves":41,"regrown":0,"splits":13,"carried":3,"uncarried":0,"cached":0}
+cyclic: {"kind":"step law","name":"Limiter","cert":true,"usual":true,"cyclic":true,"ms":311,"usualMs":8,"route":"translated","leaves":15,"regrown":0,"splits":7,"carried":1,"uncarried":0,"cached":0}
+cyclic: {"kind":"machine","name":"Limiter","cert":true,"usual":true,"cyclic":true,"ms":0,"usualMs":2,"route":"translated","leaves":0,"regrown":0,"splits":0,"carried":0,"uncarried":0,"cached":1}
+cyclic: {"kind":"step law","name":"Limiter","cert":true,"usual":true,"cyclic":true,"ms":0,"usualMs":3,"route":"translated","leaves":0,"regrown":0,"splits":0,"carried":0,"uncarried":0,"cached":1}
+cyclic: {"kind":"machine","name":"Limiter","cert":true,"usual":true,"cyclic":true,"ms":0,"usualMs":2,"route":"translated","leaves":0,"regrown":0,"splits":0,"carried":0,"uncarried":0,"cached":1}
+cyclic: {"kind":"step law","name":"Limiter","cert":true,"usual":true,"cyclic":true,"ms":0,"usualMs":3,"route":"translated","leaves":0,"regrown":0,"splits":0,"carried":0,"uncarried":0,"cached":1}
+cyclic: {"kind":"machine","name":"Limiter","cert":true,"usual":true,"cyclic":true,"ms":0,"usualMs":19,"route":"translated","leaves":0,"regrown":0,"splits":0,"carried":0,"uncarried":0,"cached":1}
+cyclic: {"kind":"step law","name":"Limiter","cert":true,"usual":true,"cyclic":true,"ms":0,"usualMs":6,"route":"translated","leaves":0,"regrown":0,"splits":0,"carried":0,"uncarried":0,"cached":1}
+cyclic: {"kind":"machine","name":"Limiter","cert":true,"usual":true,"cyclic":true,"ms":0,"usualMs":2,"route":"translated","leaves":0,"regrown":0,"splits":0,"carried":0,"uncarried":0,"cached":1}
+cyclic: {"kind":"step law","name":"Limiter","cert":true,"usual":true,"cyclic":true,"ms":0,"usualMs":3,"route":"translated","leaves":0,"regrown":0,"splits":0,"carried":0,"uncarried":0,"cached":1}
+cyclic: {"kind":"machine","name":"Limiter","cert":true,"usual":true,"cyclic":true,"ms":0,"usualMs":2,"route":"translated","leaves":0,"regrown":0,"splits":0,"carried":0,"uncarried":0,"cached":1}
+cyclic: {"kind":"step law","name":"Limiter","cert":true,"usual":true,"cyclic":true,"ms":0,"usualMs":4,"route":"translated","leaves":0,"regrown":0,"splits":0,"carried":0,"uncarried":0,"cached":1}
+cyclic: {"kind":"machine","name":"Limiter","cert":true,"usual":true,"cyclic":true,"ms":0,"usualMs":16,"route":"translated","leaves":0,"regrown":0,"splits":0,"carried":0,"uncarried":0,"cached":1}
+cyclic: {"kind":"step law","name":"Limiter","cert":true,"usual":true,"cyclic":true,"ms":0,"usualMs":5,"route":"translated","leaves":0,"regrown":0,"splits":0,"carried":0,"uncarried":0,"cached":1}
+(pass) rust: the fix a refusal suggests, applied as it says, is read (gdp.toml at the top, under the rule, and the comment) [3354.10ms]
+cyclic: {"kind":"machine","name":"limiter","cert":true,"usual":true,"cyclic":true,"ms":180,"usualMs":2,"route":"translated","leaves":6,"regrown":0,"splits":3,"carried":1,"uncarried":0,"cached":0}
+cyclic: {"kind":"step law","name":"limiter","cert":true,"usual":true,"cyclic":true,"ms":122,"usualMs":3,"route":"translated","leaves":5,"regrown":0,"splits":1,"carried":1,"uncarried":0,"cached":0}
+cyclic: {"kind":"machine","name":"limiter","cert":true,"usual":true,"cyclic":true,"ms":0,"usualMs":2,"route":"translated","leaves":0,"regrown":0,"splits":0,"carried":0,"uncarried":0,"cached":1}
+cyclic: {"kind":"step law","name":"limiter","cert":true,"usual":true,"cyclic":true,"ms":160,"usualMs":2,"route":"translated","leaves":5,"regrown":0,"splits":1,"carried":1,"uncarried":0,"cached":0}
+cyclic: {"kind":"machine","name":"limiter","cert":true,"usual":true,"cyclic":true,"ms":0,"usualMs":2,"route":"translated","leaves":0,"regrown":0,"splits":0,"carried":0,"uncarried":0,"cached":1}
+cyclic: {"kind":"step law","name":"limiter","cert":true,"usual":true,"cyclic":true,"ms":139,"usualMs":2,"route":"translated","leaves":5,"regrown":0,"splits":1,"carried":1,"uncarried":0,"cached":0}
+cyclic: {"kind":"machine","name":"limiter","cert":true,"usual":true,"cyclic":true,"ms":0,"usualMs":2,"route":"translated","leaves":0,"regrown":0,"splits":0,"carried":0,"uncarried":0,"cached":1}
+cyclic: {"kind":"step law","name":"limiter","cert":true,"usual":true,"cyclic":true,"ms":172,"usualMs":2,"route":"translated","leaves":5,"regrown":0,"splits":1,"carried":1,"uncarried":0,"cached":0}
+cyclic: {"kind":"machine","name":"limiter","cert":true,"usual":true,"cyclic":true,"ms":0,"usualMs":2,"route":"translated","leaves":0,"regrown":0,"splits":0,"carried":0,"uncarried":0,"cached":1}
+cyclic: {"kind":"step law","name":"limiter","cert":true,"usual":true,"cyclic":true,"ms":176,"usualMs":3,"route":"translated","leaves":6,"regrown":0,"splits":1,"carried":1,"uncarried":0,"cached":0}
+cyclic: {"kind":"machine","name":"limiter","cert":true,"usual":true,"cyclic":true,"ms":0,"usualMs":2,"route":"translated","leaves":0,"regrown":0,"splits":0,"carried":0,"uncarried":0,"cached":1}
+cyclic: {"kind":"step law","name":"limiter","cert":true,"usual":true,"cyclic":true,"ms":217,"usualMs":3,"route":"translated","leaves":6,"regrown":0,"splits":1,"carried":1,"uncarried":0,"cached":0}
+cyclic: {"kind":"machine","name":"limiter","cert":true,"usual":true,"cyclic":true,"ms":264,"usualMs":32,"route":"translated","leaves":75,"regrown":0,"splits":21,"carried":3,"uncarried":0,"cached":0}
+cyclic: {"kind":"step law","name":"limiter","cert":true,"usual":true,"cyclic":true,"ms":362,"usualMs":13,"route":"translated","leaves":17,"regrown":0,"splits":9,"carried":1,"uncarried":0,"cached":0}
+cyclic: {"kind":"machine","name":"limiter","cert":true,"usual":true,"cyclic":true,"ms":0,"usualMs":2,"route":"translated","leaves":0,"regrown":0,"splits":0,"carried":0,"uncarried":0,"cached":1}
+cyclic: {"kind":"step law","name":"limiter","cert":true,"usual":true,"cyclic":true,"ms":0,"usualMs":2,"route":"translated","leaves":0,"regrown":0,"splits":0,"carried":0,"uncarried":0,"cached":1}
+cyclic: {"kind":"machine","name":"limiter","cert":true,"usual":true,"cyclic":true,"ms":0,"usualMs":2,"route":"translated","leaves":0,"regrown":0,"splits":0,"carried":0,"uncarried":0,"cached":1}
+cyclic: {"kind":"step law","name":"limiter","cert":true,"usual":true,"cyclic":true,"ms":0,"usualMs":2,"route":"translated","leaves":0,"regrown":0,"splits":0,"carried":0,"uncarried":0,"cached":1}
+cyclic: {"kind":"machine","name":"limiter","cert":true,"usual":true,"cyclic":true,"ms":0,"usualMs":2,"route":"translated","leaves":0,"regrown":0,"splits":0,"carried":0,"uncarried":0,"cached":1}
+cyclic: {"kind":"step law","name":"limiter","cert":true,"usual":true,"cyclic":true,"ms":0,"usualMs":3,"route":"translated","leaves":0,"regrown":0,"splits":0,"carried":0,"uncarried":0,"cached":1}
+cyclic: {"kind":"machine","name":"limiter","cert":true,"usual":true,"cyclic":true,"ms":0,"usualMs":3,"route":"translated","leaves":0,"regrown":0,"splits":0,"carried":0,"uncarried":0,"cached":1}
+cyclic: {"kind":"step law","name":"limiter","cert":true,"usual":true,"cyclic":true,"ms":0,"usualMs":2,"route":"translated","leaves":0,"regrown":0,"splits":0,"carried":0,"uncarried":0,"cached":1}
+cyclic: {"kind":"machine","name":"limiter","cert":true,"usual":true,"cyclic":true,"ms":0,"usualMs":2,"route":"translated","leaves":0,"regrown":0,"splits":0,"carried":0,"uncarried":0,"cached":1}
+cyclic: {"kind":"step law","name":"limiter","cert":true,"usual":true,"cyclic":true,"ms":0,"usualMs":4,"route":"translated","leaves":0,"regrown":0,"splits":0,"carried":0,"uncarried":0,"cached":1}
+cyclic: {"kind":"machine","name":"limiter","cert":true,"usual":true,"cyclic":true,"ms":0,"usualMs":3,"route":"translated","leaves":0,"regrown":0,"splits":0,"carried":0,"uncarried":0,"cached":1}
+cyclic: {"kind":"step law","name":"limiter","cert":true,"usual":true,"cyclic":true,"ms":0,"usualMs":3,"route":"translated","leaves":0,"regrown":0,"splits":0,"carried":0,"uncarried":0,"cached":1}
+cyclic: {"kind":"machine","name":"limiter","cert":true,"usual":true,"cyclic":true,"ms":0,"usualMs":38,"route":"translated","leaves":0,"regrown":0,"splits":0,"carried":0,"uncarried":0,"cached":1}
+cyclic: {"kind":"step law","name":"limiter","cert":true,"usual":true,"cyclic":true,"ms":0,"usualMs":10,"route":"translated","leaves":0,"regrown":0,"splits":0,"carried":0,"uncarried":0,"cached":1}
+cyclic: {"kind":"machine","name":"limiter","cert":true,"usual":true,"cyclic":true,"ms":0,"usualMs":2,"route":"translated","leaves":0,"regrown":0,"splits":0,"carried":0,"uncarried":0,"cached":1}
+cyclic: {"kind":"step law","name":"limiter","cert":true,"usual":true,"cyclic":true,"ms":0,"usualMs":6,"route":"translated","leaves":0,"regrown":0,"splits":0,"carried":0,"uncarried":0,"cached":1}
+cyclic: {"kind":"machine","name":"limiter","cert":true,"usual":true,"cyclic":true,"ms":0,"usualMs":2,"route":"translated","leaves":0,"regrown":0,"splits":0,"carried":0,"uncarried":0,"cached":1}
+cyclic: {"kind":"step law","name":"limiter","cert":true,"usual":true,"cyclic":true,"ms":0,"usualMs":2,"route":"translated","leaves":0,"regrown":0,"splits":0,"carried":0,"uncarried":0,"cached":1}
+cyclic: {"kind":"machine","name":"limiter","cert":true,"usual":true,"cyclic":true,"ms":0,"usualMs":2,"route":"translated","leaves":0,"regrown":0,"splits":0,"carried":0,"uncarried":0,"cached":1}
+cyclic: {"kind":"step law","name":"limiter","cert":true,"usual":true,"cyclic":true,"ms":0,"usualMs":2,"route":"translated","leaves":0,"regrown":0,"splits":0,"carried":0,"uncarried":0,"cached":1}
+cyclic: {"kind":"machine","name":"limiter","cert":true,"usual":true,"cyclic":true,"ms":0,"usualMs":2,"route":"translated","leaves":0,"regrown":0,"splits":0,"carried":0,"uncarried":0,"cached":1}
+cyclic: {"kind":"step law","name":"limiter","cert":true,"usual":true,"cyclic":true,"ms":0,"usualMs":2,"route":"translated","leaves":0,"regrown":0,"splits":0,"carried":0,"uncarried":0,"cached":1}
+cyclic: {"kind":"machine","name":"limiter","cert":true,"usual":true,"cyclic":true,"ms":0,"usualMs":2,"route":"translated","leaves":0,"regrown":0,"splits":0,"carried":0,"uncarried":0,"cached":1}
+cyclic: {"kind":"step law","name":"limiter","cert":true,"usual":true,"cyclic":true,"ms":0,"usualMs":3,"route":"translated","leaves":0,"regrown":0,"splits":0,"carried":0,"uncarried":0,"cached":1}
+cyclic: {"kind":"machine","name":"limiter","cert":true,"usual":true,"cyclic":true,"ms":0,"usualMs":2,"route":"translated","leaves":0,"regrown":0,"splits":0,"carried":0,"uncarried":0,"cached":1}
+cyclic: {"kind":"step law","name":"limiter","cert":true,"usual":true,"cyclic":true,"ms":0,"usualMs":3,"route":"translated","leaves":0,"regrown":0,"splits":0,"carried":0,"uncarried":0,"cached":1}
+cyclic: {"kind":"machine","name":"limiter","cert":true,"usual":true,"cyclic":true,"ms":0,"usualMs":28,"route":"translated","leaves":0,"regrown":0,"splits":0,"carried":0,"uncarried":0,"cached":1}
+cyclic: {"kind":"step law","name":"limiter","cert":true,"usual":true,"cyclic":true,"ms":0,"usualMs":10,"route":"translated","leaves":0,"regrown":0,"splits":0,"carried":0,"uncarried":0,"cached":1}
+(pass) c: the fix a refusal suggests, applied as it says, is read (gdp.toml at the top, under the rule, and the comment) [3748.07ms]
+cyclic: {"kind":"machine","name":"Limiter","cert":true,"usual":true,"cyclic":true,"ms":18,"usualMs":2,"route":"translated","leaves":6,"regrown":0,"splits":3,"carried":1,"uncarried":0,"cached":0}
+cyclic: {"kind":"step law","name":"Limiter","cert":true,"usual":true,"cyclic":true,"ms":45,"usualMs":9,"route":"translated","leaves":15,"regrown":0,"splits":7,"carried":1,"uncarried":0,"cached":0}
+cyclic: {"kind":"machine","name":"Limiter","cert":true,"usual":true,"cyclic":true,"ms":0,"usualMs":1,"route":"translated","leaves":0,"regrown":0,"splits":0,"carried":0,"uncarried":0,"cached":1}
+cyclic: {"kind":"step law","name":"Limiter","cert":true,"usual":true,"cyclic":true,"ms":0,"usualMs":6,"route":"translated","leaves":0,"regrown":0,"splits":0,"carried":0,"uncarried":0,"cached":1}
+cyclic: {"kind":"machine","name":"Limiter","cert":true,"usual":true,"cyclic":true,"ms":0,"usualMs":2,"route":"translated","leaves":0,"regrown":0,"splits":0,"carried":0,"uncarried":0,"cached":1}
+cyclic: {"kind":"step law","name":"Limiter","cert":true,"usual":true,"cyclic":true,"ms":0,"usualMs":7,"route":"translated","leaves":0,"regrown":0,"splits":0,"carried":0,"uncarried":0,"cached":1}
+(pass) go: the fix a refusal suggests, applied as it says, is read (gdp.toml at the top, under the rule, and the comment) [2163.53ms]
+cyclic: {"kind":"machine","name":"Limiter","cert":true,"usual":true,"cyclic":true,"ms":61,"usualMs":2,"route":"translated","leaves":6,"regrown":0,"splits":3,"carried":1,"uncarried":0,"cached":0}
+cyclic: {"kind":"step law","name":"Limiter","cert":true,"usual":true,"cyclic":true,"ms":71,"usualMs":1,"route":"translated","leaves":3,"regrown":0,"splits":1,"carried":1,"uncarried":0,"cached":0}
+cyclic: {"kind":"machine","name":"Limiter","cert":true,"usual":true,"cyclic":true,"ms":0,"usualMs":2,"route":"translated","leaves":0,"regrown":0,"splits":0,"carried":0,"uncarried":0,"cached":1}
+cyclic: {"kind":"step law","name":"Limiter","cert":true,"usual":true,"cyclic":true,"ms":127,"usualMs":1,"route":"translated","leaves":3,"regrown":0,"splits":1,"carried":1,"uncarried":0,"cached":0}
+cyclic: {"kind":"machine","name":"Limiter","cert":true,"usual":true,"cyclic":true,"ms":0,"usualMs":2,"route":"translated","leaves":0,"regrown":0,"splits":0,"carried":0,"uncarried":0,"cached":1}
+cyclic: {"kind":"step law","name":"Limiter","cert":true,"usual":true,"cyclic":true,"ms":86,"usualMs":1,"route":"translated","leaves":3,"regrown":0,"splits":1,"carried":1,"uncarried":0,"cached":0}
+cyclic: {"kind":"machine","name":"Limiter","cert":true,"usual":true,"cyclic":true,"ms":154,"usualMs":27,"route":"translated","leaves":54,"regrown":0,"splits":13,"carried":3,"uncarried":0,"cached":0}
+cyclic: {"kind":"step law","name":"Limiter","cert":true,"usual":true,"cyclic":true,"ms":254,"usualMs":12,"route":"translated","leaves":15,"regrown":0,"splits":7,"carried":1,"uncarried":0,"cached":0}
+(pass) kotlin: repeat(n) { } refused at its line as a loop; require(c) { msg } read [8293.92ms]
+cyclic: {"kind":"machine","name":"Counter","cert":true,"usual":true,"cyclic":true,"ms":11,"usualMs":1,"route":"translated","leaves":9,"regrown":0,"splits":4,"carried":1,"uncarried":0,"cached":0}
+cyclic: {"kind":"machine","name":"Counter","cert":true,"usual":true,"cyclic":true,"ms":14,"usualMs":2,"route":"translated","leaves":10,"regrown":0,"splits":5,"carried":1,"uncarried":0,"cached":0}
+(pass) a TypeScript base class in a relative import, and Python's super(C, self), read as the code's own [1939.32ms]
+
+core/extract-standalone-prototype.test.ts:
+(pass) opt-in returns exact scalar or undefined for all finite cases and repeated calls [204.22ms]
+(pass) boolean result present and absent is observable [66.10ms]
+(pass) unchanged default is the reducer path, not standalone [119.45ms]
+(pass) nullable inputs, unsupported types, effects, external calls, mutable globals and extra executable module code are refused [519.55ms]
+(pass) standalone requires explicit single entry and excludes other shape and ORM options [2.00ms]
+
+core/extract-standalone.test.ts:
+(pass) closed constants, erased import, pure helper and uncalled callback declaration [96.83ms]
+(pass) finite string choices preserve early returns and comparison equivalence [70.83ms]
+(pass) finite choice result preserves each case [91.26ms]
+cyclic: {"kind":"machine","name":"decide","cert":true,"usual":true,"cyclic":true,"ms":31,"usualMs":3,"route":"translated","leaves":12,"regrown":0,"splits":6,"carried":2,"uncarried":0,"cached":0}
+cyclic: {"kind":"step law","name":"decide","cert":true,"usual":true,"cyclic":true,"ms":16,"usualMs":6,"route":"translated","leaves":10,"regrown":0,"splits":6,"carried":1,"uncarried":0,"cached":0}
+(pass) nullable choice results distinguish null from undefined in false laws [337.87ms]
+cyclic: {"kind":"machine","name":"decide","cert":true,"usual":true,"cyclic":true,"ms":18,"usualMs":2,"route":"translated","leaves":12,"regrown":0,"splits":6,"carried":2,"uncarried":0,"cached":0}
+cyclic: {"kind":"step law","name":"decide","cert":true,"usual":true,"cyclic":true,"ms":21,"usualMs":1,"route":"translated","leaves":10,"regrown":0,"splits":6,"carried":1,"uncarried":0,"cached":0}
+(pass) flat record input and result replay all values [116.13ms]
+cyclic: {"kind":"machine","name":"decide","cert":true,"usual":true,"cyclic":true,"ms":20,"usualMs":2,"route":"translated","leaves":12,"regrown":0,"splits":6,"carried":2,"uncarried":0,"cached":0}
+cyclic: {"kind":"step law","name":"decide","cert":true,"usual":true,"cyclic":true,"ms":21,"usualMs":20,"route":"translated","leaves":9,"regrown":0,"splits":5,"carried":1,"uncarried":0,"cached":0}
+(pass) destructured record input supports early returns [172.84ms]
+(pass) different choice domains compare by string, never encoded index [70.18ms]
+(pass) finite choice support still refuses unrestricted strings and effects [100.17ms]
+(pass) helper parameters bind by symbol rather than a same-named module constant [57.59ms]
+(pass) multi-return helper retains present false separately from undefined [58.04ms]
+(pass) numeric union works through a supplied erased type module [58.80ms]
+(pass) prover witnesses replay returns, not prior result fields as source state [128.86ms]
+(pass) empty source state never hides a wrong return or missing bit in prover probes [241.62ms]
+cyclic: {"kind":"machine","name":"decide","cert":true,"usual":true,"cyclic":true,"ms":25,"usualMs":3,"route":"translated","leaves":12,"regrown":0,"splits":6,"carried":2,"uncarried":0,"cached":0}
+cyclic: {"kind":"step law","name":"decide","cert":true,"usual":true,"cyclic":true,"ms":32,"usualMs":5,"route":"translated","leaves":16,"regrown":0,"splits":10,"carried":1,"uncarried":0,"cached":0}
+cyclic: {"kind":"machine","name":"decide","cert":true,"usual":true,"cyclic":true,"ms":0,"usualMs":1,"route":"translated","leaves":0,"regrown":0,"splits":0,"carried":0,"uncarried":0,"cached":1}
+cyclic: {"kind":"step law","name":"decide","cert":true,"usual":true,"cyclic":true,"ms":29,"usualMs":4,"route":"translated","leaves":15,"regrown":0,"splits":9,"carried":1,"uncarried":0,"cached":0}
+cyclic: {"kind":"machine","name":"decide","cert":true,"usual":true,"cyclic":true,"ms":0,"usualMs":3,"route":"translated","leaves":0,"regrown":0,"splits":0,"carried":0,"uncarried":0,"cached":1}
+cyclic: {"kind":"step law","name":"decide","cert":true,"usual":true,"cyclic":true,"ms":17,"usualMs":2,"route":"translated","leaves":10,"regrown":0,"splits":6,"carried":1,"uncarried":0,"cached":0}
+cyclic: {"kind":"machine","name":"decide","cert":true,"usual":true,"cyclic":true,"ms":0,"usualMs":2,"route":"translated","leaves":0,"regrown":0,"splits":0,"carried":0,"uncarried":0,"cached":1}
+cyclic: {"kind":"step law","name":"decide","cert":true,"usual":true,"cyclic":true,"ms":18,"usualMs":2,"route":"translated","leaves":9,"regrown":0,"splits":5,"carried":1,"uncarried":0,"cached":0}
+cyclic: {"kind":"machine","name":"decide","cert":true,"usual":true,"cyclic":true,"ms":0,"usualMs":2,"route":"translated","leaves":0,"regrown":0,"splits":0,"carried":0,"uncarried":0,"cached":1}
+cyclic: {"kind":"step law","name":"decide","cert":true,"usual":true,"cyclic":true,"ms":15,"usualMs":1,"route":"translated","leaves":7,"regrown":0,"splits":4,"carried":1,"uncarried":0,"cached":0}
+cyclic: {"kind":"machine","name":"decide","cert":true,"usual":true,"cyclic":true,"ms":0,"usualMs":2,"route":"translated","leaves":0,"regrown":0,"splits":0,"carried":0,"uncarried":0,"cached":1}
+cyclic: {"kind":"step law","name":"decide","cert":true,"usual":true,"cyclic":true,"ms":22,"usualMs":3,"route":"translated","leaves":16,"regrown":0,"splits":10,"carried":1,"uncarried":0,"cached":0}
+cyclic: {"kind":"machine","name":"decide","cert":true,"usual":true,"cyclic":true,"ms":0,"usualMs":3,"route":"translated","leaves":0,"regrown":0,"splits":0,"carried":0,"uncarried":0,"cached":1}
+cyclic: {"kind":"step law","name":"decide","cert":true,"usual":true,"cyclic":true,"ms":34,"usualMs":4,"route":"translated","leaves":17,"regrown":0,"splits":11,"carried":1,"uncarried":0,"cached":0}
+cyclic: {"kind":"machine","name":"decide","cert":true,"usual":true,"cyclic":true,"ms":0,"usualMs":2,"route":"translated","leaves":0,"regrown":0,"splits":0,"carried":0,"uncarried":0,"cached":1}
+cyclic: {"kind":"step law","name":"decide","cert":true,"usual":true,"cyclic":true,"ms":29,"usualMs":4,"route":"translated","leaves":9,"regrown":0,"splits":5,"carried":1,"uncarried":0,"cached":0}
+(pass) standalone laws preserve optional boolean truth, absence and hidden payloads [440.80ms]
+cyclic: {"kind":"machine","name":"decide","cert":true,"usual":true,"cyclic":true,"ms":15,"usualMs":4,"route":"translated","leaves":6,"regrown":0,"splits":3,"carried":1,"uncarried":0,"cached":0}
+cyclic: {"kind":"step law","name":"decide","cert":true,"usual":true,"cyclic":true,"ms":14,"usualMs":3,"route":"translated","leaves":8,"regrown":0,"splits":4,"carried":1,"uncarried":0,"cached":0}
+cyclic: {"kind":"machine","name":"decide","cert":true,"usual":true,"cyclic":true,"ms":0,"usualMs":1,"route":"translated","leaves":0,"regrown":0,"splits":0,"carried":0,"uncarried":0,"cached":1}
+cyclic: {"kind":"step law","name":"decide","cert":true,"usual":true,"cyclic":true,"ms":10,"usualMs":4,"route":"translated","leaves":8,"regrown":0,"splits":4,"carried":1,"uncarried":0,"cached":0}
+cyclic: {"kind":"machine","name":"decide","cert":true,"usual":true,"cyclic":true,"ms":0,"usualMs":1,"route":"translated","leaves":0,"regrown":0,"splits":0,"carried":0,"uncarried":0,"cached":1}
+cyclic: {"kind":"step law","name":"decide","cert":true,"usual":true,"cyclic":true,"ms":14,"usualMs":2,"route":"translated","leaves":12,"regrown":0,"splits":8,"carried":1,"uncarried":0,"cached":0}
+(pass) standalone laws preserve optional numeric comparisons and refuse absent arithmetic [175.49ms]
+(pass) standalone optional predicates check both hidden boolean values and present values [70.78ms]
+(pass) optional floor-division refuses original numerators before comparison rewrites [55.78ms]
+(pass) nonoptional division rewrites retain standalone and default-reader semantics [231.09ms]
+(pass) scalar constants may depend on earlier constants [67.26ms]
+(pass) module evaluation and imported runtime code are refused before execution [416.75ms]
+(pass) reachable helper effects, closures, mutation and recursion are refused statically [430.47ms]
+(pass) invalid modes and contradictory numeric domains are not silently ignored [57.36ms]
+(pass) nonintegral declared numeric domains and literals cannot be widened silently [87.73ms]
+
+core/extract-absence.test.ts:
+(pass) absence narrowing distinguishes strict/loose null and undefined and preserves the absent tag [971.03ms]
+(pass) strict comparison to a different absence kind cannot prove a false decision law [85.53ms]
+
+gates/bar.test.ts:
+(pass) two slots, idempotent release, and stale metadata cannot strand a slot [32.32ms]
+(pass) waiting is reported and abort does not consume or release another owner slot [9.23ms]
+(pass) different worktrees and racing processes never admit more than two bars [352.21ms]
+(pass) SIGKILL releases the kernel lock and the next owner clears stale PID metadata [27.07ms]
+(pass) quick-bar CLI waits before demand, read-only CLI bypasses slots, and exits release ownership [165.83ms]
+(pass) dirty candidate pilots resolve a real snapshot root without changing its content key [16531.14ms]
+(pass) report CLI rejects zero candidate coverage per view and preserves the failed report [351.35ms]
+(pass) one explicit-boat driver preserves arguments without importing or re-execing Modal [95.28ms]
+
+ 100 pass
+ 0 fail
+ 1398 expect() calls
+Ran 100 tests across 6 files. [340.72s]
