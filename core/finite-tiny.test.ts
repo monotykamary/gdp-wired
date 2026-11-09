@@ -4,7 +4,7 @@ import {tinyFiniteCandidates} from './finite-tiny.ts'
 import {finiteEvaluator} from './finite-houdini.ts'
 import {withWall} from '../kernel/prove.ts'
 import {checkWall, WallExpired} from './wall.ts'
-const counter = (): Machine => ({name: 'anonymous', params: [], inputs: [], state: {value: n(0)}, counts: {unused: {j: 'a', key: 'k', below: n(1), body: n(0)}}, step: {state: {value: plus(x('value'), n(1))}}})
+const counter = (): Machine => ({name: 'anonymous', params: [], inputs: [], state: {value: n(0)}, counts: {unused: {j: 'unusedRow', key: 'k', below: n(1), body: n(0)}}, step: {state: {value: plus(x('value'), n(1))}}})
 test('proposals cross the independent full-family/interpreter trust boundary', () => {
   const source = counter(), law: Law = {name: 'arbitrary', holds: atMost(x('value'), n(0))}, test = finiteEvaluator(source), run = interpret(source)
   let accepted = 0
