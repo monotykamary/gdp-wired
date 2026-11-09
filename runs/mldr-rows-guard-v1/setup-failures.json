@@ -1,0 +1,74 @@
+[
+  {
+    "name": "guard-plain-before",
+    "code": 1,
+    "stage": "missing-frozen-family-copy",
+    "solverStarted": false,
+    "sourceCheckStarted": false,
+    "sha256": "5fb08a2140f5750edcbe8021d5a4b6f456075274803bfe7680c38ae86d8f3e45"
+  },
+  {
+    "name": "guard-plain-check",
+    "code": 1,
+    "stage": "missing-frozen-family-copy",
+    "solverStarted": false,
+    "sourceCheckStarted": false,
+    "sha256": "864eaa1d83075e85e835805bd3b5336f68986342c1f6f0e540e1aa012dd1238b"
+  },
+  {
+    "name": "guard-plain-after",
+    "code": 1,
+    "stage": "missing-frozen-family-copy",
+    "solverStarted": false,
+    "sourceCheckStarted": false,
+    "sha256": "5be5b260b183f8b7def628169dd762061f22a67c00fd5ed5152063a533b1e930"
+  },
+  {
+    "name": "guard-early-before",
+    "code": 1,
+    "stage": "missing-frozen-family-copy",
+    "solverStarted": false,
+    "sourceCheckStarted": false,
+    "sha256": "c5c0d245eba9ae7784724fe13a7f53fc5ccc3328bae0edb6361a4c483b2eddd6"
+  },
+  {
+    "name": "guard-early-after",
+    "code": 1,
+    "stage": "missing-frozen-family-copy",
+    "solverStarted": false,
+    "sourceCheckStarted": false,
+    "sha256": "3bd5d5148dd8dbafa59d61a95c1643a2632f1501b3c9f7bd6d514eb240372599"
+  },
+  {
+    "name": "guard-early-check",
+    "code": 1,
+    "stage": "missing-frozen-family-copy",
+    "solverStarted": false,
+    "sourceCheckStarted": false,
+    "sha256": "3a94e495a4dd8c503d813845eae36293865568d20df34d98beb299f5ac373a90"
+  },
+  {
+    "name": "guard-row-first-before",
+    "code": 1,
+    "stage": "missing-frozen-family-copy",
+    "solverStarted": false,
+    "sourceCheckStarted": false,
+    "sha256": "6242f44bde526e025e6a365736979c61ed22398edbe96a327e705227b91642b0"
+  },
+  {
+    "name": "guard-row-first-check",
+    "code": 1,
+    "stage": "missing-frozen-family-copy",
+    "solverStarted": false,
+    "sourceCheckStarted": false,
+    "sha256": "152ca3334072f1e0386fd5f66a532d496820efa180b88bd326af1c290ca2f184"
+  },
+  {
+    "name": "guard-row-first-after",
+    "code": 1,
+    "stage": "missing-frozen-family-copy",
+    "solverStarted": false,
+    "sourceCheckStarted": false,
+    "sha256": "afcef47cb39024ce00dad41465852409f10780b473de84e843e5a17c2e68e71c"
+  }
+]

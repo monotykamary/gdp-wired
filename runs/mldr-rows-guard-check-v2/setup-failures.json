@@ -1,0 +1,26 @@
+[
+  {
+    "name": "check-plain-v2",
+    "code": 1,
+    "stage": "missing-frozen-family-copy",
+    "solverStarted": false,
+    "sourceCheckStarted": false,
+    "sha256": "4b67dc2ca92b543b104e664a7e41cbea7eb8a0a9bf8c9390cfd909054f7573d0"
+  },
+  {
+    "name": "check-early-v2",
+    "code": 1,
+    "stage": "missing-frozen-family-copy",
+    "solverStarted": false,
+    "sourceCheckStarted": false,
+    "sha256": "f6d931bf9613c70fe3c09d191b7f6805370ff83178742e5e9ed93097994fa6a3"
+  },
+  {
+    "name": "check-row-first-v2",
+    "code": 1,
+    "stage": "missing-frozen-family-copy",
+    "solverStarted": false,
+    "sourceCheckStarted": false,
+    "sha256": "a1259c37d9591b4cfb7edd216ac5582fa5c7848d9ebc1482e56901d6b36a9a57"
+  }
+]

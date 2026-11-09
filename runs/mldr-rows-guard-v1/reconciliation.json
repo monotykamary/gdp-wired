@@ -1,0 +1,12 @@
+{
+  "batch": "20261110-024949-vm5h1o",
+  "snapshot": {
+    "registered": true,
+    "queued": 9,
+    "running": 0
+  },
+  "clientTimedOutSeconds": 900,
+  "observer": "7644ac42-bf1d-474a-b4bf-28b34c5cdce7",
+  "resubmitted": false,
+  "cancelled": false
+}

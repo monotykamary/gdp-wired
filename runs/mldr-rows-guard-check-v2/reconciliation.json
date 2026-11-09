@@ -1,0 +1,12 @@
+{
+  "batch": "20261110-025531-hmx2jj",
+  "snapshot": {
+    "registered": true,
+    "queued": 3,
+    "running": 0
+  },
+  "clientTimedOutSeconds": 600,
+  "observer": "a17b7cfa-4921-43c2-8f5d-8ebc38583976",
+  "resubmitted": false,
+  "cancelled": false
+}

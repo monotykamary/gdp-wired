@@ -6,6 +6,64 @@ unchanged. No other lane worktree is edited.
 
 ## Current result and active next falsifier
 
+Guard v3 is complete: all three source checks pass 89 tests / 305 assertions.
+All 12 proof arms are unproved. Plain guard repair exactly matches the
+control at 2700.233514 units / nine rounds; early completion exactly matches
+its prior 2700.272896 / five rounds. Row-first stops at the wall. This is a
+tested correctness repair, not a measured search improvement. Preserve the
+negative result and test the proof-producing guarded closure next.
+
+### Earlier hypothesis and submission history
+
+Both initial schedules are rejected: all 16 arms remained unchecked. The two
+source checks passed 14 tests / 63 assertions each. Proposal-only inspection
+on the retained archives shows that the control never finds an actor-row
+inclusion, while early/row-first supplies 16 proposals and admits 10.
+The remaining scalar guard was too strong at the leader boundary: a strict
+member upper bound only requires an inclusive comparison with the target.
+The new typed patch retains source strictness and is being tested at the
+unchanged 2700-unit share (plain, early and row-first; paired orders), with
+source checks and kernel-positive/negative controls. Task:
+`8769a096-6698-465c-b9ba-0e8edbd6be25` (batch `20261110-024949-vm5h1o`). Not yet a measured improvement.
+
+Static review caught missing undefined checks for the newly read flag in
+the test fixture under `noUncheckedIndexedAccess`. The original frozen
+checks remain untouched. Test-only v2 checks add those guards; production
+bytes are identical and no proof job is repeated. V2 task:
+`b8fc0df3-4514-4277-9209-e4ea8e904e9a`. Commitlint passed separately.
+
+The proposal truth table is deliberately only sufficient:
+
+| Member premise | Target predicate | Scalar proposal |
+| --- | --- | --- |
+| `v < U` | `v < B` | `U <= B` |
+| `v <= U` | `v < B` | `U < B` |
+| `v < U` | `v <= B` | `U <= B` |
+| `v <= U` | `v <= B` | `U <= B` |
+
+No scalar proposal is asserted as a fact. Every accepted inclusion still
+needs the original flag instances and a kernel-checked count certificate.
+
+Call-chain caveat: `instantiateMemberPremises` uses only maps/keys in these
+guards. The comparison operator is consumed in `deriveCountClosure`, via
+deferred focused recovery. Consequently this patch alone may leave the
+initial counted search unchanged. Do not call the boundary mismatch the
+measured cause of nonconvergence; retain and inspect the paired result.
+
+Both clients timed out, then passive observers recovered all 12 terminal
+jobs. Every job failed setup because the submission used nonexistent
+`inputs-v1`, not `input-v1`; no source check, test or solver measurement ran.
+`submit-guard.sh` now validates the actual input/hash before submission, and
+proof workers validate the same hash. Test-only workers do not copy it.
+Replacement nine-job task: `624a22b5-2f78-426c-9b1f-42bdaada5efc`, output
+`runs/mldr-rows-guard-v3/`. Proof/job budgets are unchanged; only the client
+queue wait is longer. No duplicate work and no successful outcome claimed.
+
+Coordinator census: isolated Inv1758 operations close 7/7 in pass 0 without
+a share limit, 5/7 in pass 1; aim at convergence, not a larger budget.
+
+### Previous checkpoint (superseded)
+
 Baseline: no checked proof in all four jobs. At 2700, ordinary-first returns
 uncertified SAT at 2700.129 units, counted-first UNKNOWN at 2700.234. Both
 6000 jobs exhaust seven-second walls, not their work allowances.

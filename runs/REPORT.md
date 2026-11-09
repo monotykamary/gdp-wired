@@ -1,5 +1,86 @@
 # RESUMED — lane E, 2026-11-10
 
+## Strict-bound repair validated; not an Inv1758 speedup
+
+Replacement batch **`20261110-031307-hyqtwf`** completed all nine jobs. Each
+of its three source variants passes **89 tests / 305 assertions**, zero
+warnings/errors. All **12 measured arms remain unproved** at the unchanged
+2700-unit share. The plain repaired candidate has exactly the control's
+**2700.233514 units / nine refinement rounds** in both orders. Early
+completion is **2700.272896 / five rounds**, also unchanged from the prior
+unrepaired experiment. Row-first is wall-censored, not a saving.
+
+This confirms the call-chain caveat below. The source-bound strictness repair
+is tested proposal correctness (including a checked boundary certificate and
+negative controls), **not** an Inv1758 performance fix or a full-helper proof.
+No production scheduling change is promoted. Exact source/test/runner hashes,
+paired results, CPU labels and validation: `runs/mldr-rows-guard-v3/`.
+
+The next discriminator must enter the proof-producing guarded closure, not
+merely change metadata used for the initial witness selection. Lane B's old
+early-focused failure is retained as contrary evidence; a new experiment
+must isolate the new strict-bound source under that route, not repeat its
+old row/eager-member/cap experiments. Original-harness and final-gate status
+remain unchanged and unproved.
+
+
+## Inv1758: first schedules rejected; strict-bound gap isolated
+
+Batch `20261110-024132-w69iz6` completed all ten jobs. All **16 measured
+arms are unproved** (early/row-first, controls, 2700/6000, both orders).
+Several lower work totals are wall-censored and are not improvements.
+Both source checks passed **14 tests / 63 assertions**, zero warnings/errors.
+Measurements and retained-archive hashes: `runs/mldr-rows-early-v1/`.
+
+Proposal-only replay (`20261110-024655-340opd`) supplies the discriminant:
+controls have zero matching member inclusions; the new contexts have 16,
+with ten admitted. At the actual actor/other-row pair the existing proposer
+requires `CT[i]+1 < CfgT[b]`. The source flag instead establishes
+`CT[n] < CT[i]+1`, so **`CT[i]+1 <= CfgT[b]` suffices** for `CT[n] < CfgT[b]`.
+The captured leader boundary has equality. No new law or trusted fact is needed.
+Raw/projection: `runs/mldr-rows-inclusions-v1/`.
+
+The typed proposal fix retains source strictness. Its new tests cover all
+four source/target strictness combinations, a checked equality-boundary
+certificate, omitted flags, and a non-strict-source counterexample. The
+nine-job frozen test batch compares plain/early/row-first at **2700 only**
+and runs three source/test checks. Task
+`8769a096-6698-465c-b9ba-0e8edbd6be25`, output `runs/mldr-rows-guard-v1/`.
+The local patch is pending validation, not a demonstrated Inv1758 improvement.
+Static review then caught missing undefined guards in the new test fixture;
+test-only v2 checks add them with identical production bytes. No proof jobs
+are repeated. V2 task: `b8fc0df3-4514-4277-9209-e4ea8e904e9a`.
+Commitlint passed in `20261110-025106-jgmtei`; it is not a source/test verdict.
+`core/counts.ts`, the kernel, laws, and allowances remain unchanged.
+
+Both timed-out clients were recovered without duplicate work. All **12 jobs
+are terminal setup failures**: the submission misspelled the local input
+directory (`inputs-v1`, not the existing `input-v1`), and every job stopped
+at the missing `lane-e-rows/family.json` copy. **No source check, test or
+proof measurement ran** in these batches. Full logs, hash/placement records
+and setup-stage classification are retained in both output directories.
+
+Replacement batch `20261110-031307-hyqtwf`, task
+`624a22b5-2f78-426c-9b1f-42bdaada5efc`, submits only the nine
+needed jobs, now with the corrected test fixture and mount. The new launcher
+checks the actual input hash before submitting; proof workers check it again.
+Test-only workers no longer depend on a family copy. The 2700-unit share,
+4800 ms proof wall and 240 s job watchdog are unchanged. The longer client
+wait covers scheduler queue time only. Output: `runs/mldr-rows-guard-v3/`.
+All test/proof outcomes for this replacement remain pending.
+
+Scope correction from the downstream audit: the initial member-premise path
+uses guard maps/keys, not its comparison operator. The operator is consumed
+by deferred derivability closure, which may not be reached before the share
+is gone. Thus the strict-bound change is a correct proposal repair, but it
+may not change the initial search at all. The paired jobs must decide that;
+the boundary mismatch alone is not a demonstrated convergence diagnosis.
+
+Coordinator's isolated no-share census closes Inv1758 7/7 in pass 0 and
+5/7 in pass 1. This does not imply a bounded full-helper or original-order
+proof; the next experiment targets convergence rather than a larger share.
+
+
 ## Inv1758 baseline returned; missing actor-row count context under test
 
 All four baseline jobs completed in **20261110-023802-tbr25k**. None produced

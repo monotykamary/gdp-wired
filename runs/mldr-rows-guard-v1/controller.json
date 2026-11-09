@@ -1,0 +1,10 @@
+{
+  "batch": "20261110-024949-vm5h1o",
+  "task": "8769a096-6698-465c-b9ba-0e8edbd6be25",
+  "sourceParent": "9124348d",
+  "proposalBefore": "a27effa47270110be45afe4a4596430612c8da2c34b3d57ee6e3245eac85ec1e",
+  "proposalAfter": "0a3d72ea6a22e2dde9e5758d431672954c178deec81dffe9c3946af2eabc845b",
+  "budget": 2700,
+  "wallMs": 4800,
+  "jobs": 9
+}

@@ -1,0 +1,8 @@
+{
+  "task": "8769a096-6698-465c-b9ba-0e8edbd6be25",
+  "batch": "20261110-024949-vm5h1o",
+  "status": "client_timeout",
+  "seconds": 900,
+  "remoteOutcome": "unreconciled",
+  "resubmitted": false
+}

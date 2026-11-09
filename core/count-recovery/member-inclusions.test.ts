@@ -30,6 +30,28 @@ test('member upper bounds propose sufficient scalar guards without equality anch
  expect(f.run()).toEqual([{positive:'input',negative:'eligible',carried:'Parcel',below:n(12),guards:[less(get('Epoch',x('actor')),get('Epoch',x('other')))]}])
  expect(JSON.stringify([f.m,f.ds,f.reads])).toBe(before)
 })
+for(const strict of [false,true])for(const targetStrict of [false,true])test(`upper-bound guards preserve strictness: source ${strict?'strict':'inclusive'}, target ${targetStrict?'strict':'inclusive'}`,()=>{
+ const f=upperBoundFixture(),q=f.m.step.flags!.aligned,body=f.ds[1]!.body
+ if(!q||q.op!=='all'||q.c.op!=='or'||q.c.xs[1]?.op!=='and'||body.op!=='if'||body.c.op!=='and')throw Error('fixture')
+ q.c.xs[1].xs[0]={op:strict?'<':'<=',a:get('Epoch',x('k')),b:get('Epoch',x('actor'))}
+ body.c.xs[1]={op:targetStrict?'<':'<=',a:get('Epoch',x('k')),b:get('Epoch',x('other'))}
+ expect(f.run()[0]!.guards).toEqual([{op:strict||!targetStrict?'<=':'<',a:get('Epoch',x('actor')),b:get('Epoch',x('other'))}])
+})
+test('strict carried-member bounds prove equality at the target boundary only with the original flags',()=>{
+ const f=upperBoundFixture(),q=f.m.step.flags!.aligned
+ if(!q||q.op!=='all'||q.c.op!=='or'||q.c.xs[1]?.op!=='and')throw Error('fixture')
+ q.c.xs[1].xs[0]=less(get('Epoch',x('k')),get('Epoch',x('actor')))
+ const boundary=same(get('Epoch',x('actor')),get('Epoch',x('other'))),claim:C={op:'<=',a:get('Incoming',n(0)),b:get('Eligible',n(0))}
+ const initial={name:'strict member boundary',hyps:[boundary,not(claim)]},pool=grammarPool(initial,f.ds,100,candidateWork(),true,f.m),picked=preferMemberInclusions(f.m,f.ds,pool.full,{...pool.full,insts:[],picks:[]})
+ expect(f.run()[0]!.guards).toEqual([{op:'<=',a:get('Epoch',x('actor')),b:get('Epoch',x('other'))}])
+ expect(picked.insts).toHaveLength(1)
+ const wit=x(picked.insts[0]!.wit),member=get('Parcel',wit),booleanMember=any(same(member,n(0)),same(member,n(1))),flagsAt=()=>Object.values(f.m.step.flags!).flatMap(q=>q.op==='all'?[substC(q.c,{vars:{[q.key]:wit},maps:{},flags:{}})]:[])
+ const raw=[boundary,booleanMember,...flagsAt(),not(claim)],numeric=mcGoal(raw,f.ds,picked)!,out=grow(numeric,new Map(),{nodes:0,until:clock()+1000})
+ expect('tree'in out).toBe(true)
+ if('tree'in out){expect(checkMC(raw,f.ds,{...picked,tree:out.tree})).toBe(true);expect(checkMC([boundary,booleanMember,not(claim)],f.ds,{...picked,tree:out.tree})).toBe(false)}
+ q.c.xs[1].xs[0]={op:'<=',a:get('Epoch',x('k')),b:get('Epoch',x('actor'))}
+ expect('tree'in grow(mcGoal([boundary,booleanMember,...flagsAt(),not(claim)],f.ds,picked)!,new Map(),{nodes:0,until:clock()+1000})).toBe(false)
+})
 test('an upper bound is not rewritten in a negative comparison',()=>{
  const f=upperBoundFixture()
  f.ds[1]!.body=ite(all(same(get('Rows',x('k')),n(1)),not(less(get('Epoch',x('k')),get('Epoch',x('other'))))),n(1),n(0))

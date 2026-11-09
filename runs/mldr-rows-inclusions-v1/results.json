@@ -1,0 +1,346 @@
+[
+  {
+    "name": "early-6000-before-before",
+    "position": "first",
+    "hyps": 68,
+    "seedCount": 0,
+    "readCount": 6,
+    "existingInstances": 10,
+    "proposals": 0,
+    "admitted": 0,
+    "hypotheticalActorPair": {
+      "proposalCount": 1,
+      "guards": [
+        [
+          {
+            "op": "<",
+            "a": {
+              "op": "add",
+              "a": {
+                "op": "get",
+                "map": "CT",
+                "key": {
+                  "op": "var",
+                  "name": "i"
+                }
+              },
+              "b": {
+                "op": "const",
+                "value": 1
+              }
+            },
+            "b": {
+              "op": "get",
+              "map": "CfgT",
+              "key": {
+                "op": "var",
+                "name": "b$field"
+              }
+            }
+          }
+        ]
+      ]
+    }
+  },
+  {
+    "name": "early-6000-before-before",
+    "position": "last",
+    "hyps": 295,
+    "seedCount": 0,
+    "readCount": 64,
+    "existingInstances": 10,
+    "proposals": 0,
+    "admitted": 0,
+    "hypotheticalActorPair": {
+      "proposalCount": 1,
+      "guards": [
+        [
+          {
+            "op": "<",
+            "a": {
+              "op": "add",
+              "a": {
+                "op": "get",
+                "map": "CT",
+                "key": {
+                  "op": "var",
+                  "name": "i"
+                }
+              },
+              "b": {
+                "op": "const",
+                "value": 1
+              }
+            },
+            "b": {
+              "op": "get",
+              "map": "CfgT",
+              "key": {
+                "op": "var",
+                "name": "b$field"
+              }
+            }
+          }
+        ]
+      ]
+    }
+  },
+  {
+    "name": "early-6000-before-after",
+    "position": "first",
+    "hyps": 172,
+    "seedCount": 20,
+    "readCount": 42,
+    "existingInstances": 10,
+    "proposals": 16,
+    "admitted": 10,
+    "hypotheticalActorPair": {
+      "proposalCount": 1,
+      "guards": [
+        [
+          {
+            "op": "<",
+            "a": {
+              "op": "add",
+              "a": {
+                "op": "get",
+                "map": "CT",
+                "key": {
+                  "op": "var",
+                  "name": "i"
+                }
+              },
+              "b": {
+                "op": "const",
+                "value": 1
+              }
+            },
+            "b": {
+              "op": "get",
+              "map": "CfgT",
+              "key": {
+                "op": "var",
+                "name": "b$field"
+              }
+            }
+          }
+        ]
+      ]
+    }
+  },
+  {
+    "name": "early-6000-before-after",
+    "position": "last",
+    "hyps": 268,
+    "seedCount": 20,
+    "readCount": 57,
+    "existingInstances": 10,
+    "proposals": 16,
+    "admitted": 10,
+    "hypotheticalActorPair": {
+      "proposalCount": 1,
+      "guards": [
+        [
+          {
+            "op": "<",
+            "a": {
+              "op": "add",
+              "a": {
+                "op": "get",
+                "map": "CT",
+                "key": {
+                  "op": "var",
+                  "name": "i"
+                }
+              },
+              "b": {
+                "op": "const",
+                "value": 1
+              }
+            },
+            "b": {
+              "op": "get",
+              "map": "CfgT",
+              "key": {
+                "op": "var",
+                "name": "b$field"
+              }
+            }
+          }
+        ]
+      ]
+    }
+  },
+  {
+    "name": "row-first-2700-after-before",
+    "position": "first",
+    "hyps": 68,
+    "seedCount": 0,
+    "readCount": 6,
+    "existingInstances": 10,
+    "proposals": 0,
+    "admitted": 0,
+    "hypotheticalActorPair": {
+      "proposalCount": 1,
+      "guards": [
+        [
+          {
+            "op": "<",
+            "a": {
+              "op": "add",
+              "a": {
+                "op": "get",
+                "map": "CT",
+                "key": {
+                  "op": "var",
+                  "name": "i"
+                }
+              },
+              "b": {
+                "op": "const",
+                "value": 1
+              }
+            },
+            "b": {
+              "op": "get",
+              "map": "CfgT",
+              "key": {
+                "op": "var",
+                "name": "b$field"
+              }
+            }
+          }
+        ]
+      ]
+    }
+  },
+  {
+    "name": "row-first-2700-after-before",
+    "position": "last",
+    "hyps": 244,
+    "seedCount": 0,
+    "readCount": 59,
+    "existingInstances": 10,
+    "proposals": 0,
+    "admitted": 0,
+    "hypotheticalActorPair": {
+      "proposalCount": 1,
+      "guards": [
+        [
+          {
+            "op": "<",
+            "a": {
+              "op": "add",
+              "a": {
+                "op": "get",
+                "map": "CT",
+                "key": {
+                  "op": "var",
+                  "name": "i"
+                }
+              },
+              "b": {
+                "op": "const",
+                "value": 1
+              }
+            },
+            "b": {
+              "op": "get",
+              "map": "CfgT",
+              "key": {
+                "op": "var",
+                "name": "b$field"
+              }
+            }
+          }
+        ]
+      ]
+    }
+  },
+  {
+    "name": "row-first-2700-after-after",
+    "position": "first",
+    "hyps": 172,
+    "seedCount": 20,
+    "readCount": 42,
+    "existingInstances": 10,
+    "proposals": 16,
+    "admitted": 10,
+    "hypotheticalActorPair": {
+      "proposalCount": 1,
+      "guards": [
+        [
+          {
+            "op": "<",
+            "a": {
+              "op": "add",
+              "a": {
+                "op": "get",
+                "map": "CT",
+                "key": {
+                  "op": "var",
+                  "name": "i"
+                }
+              },
+              "b": {
+                "op": "const",
+                "value": 1
+              }
+            },
+            "b": {
+              "op": "get",
+              "map": "CfgT",
+              "key": {
+                "op": "var",
+                "name": "b$field"
+              }
+            }
+          }
+        ]
+      ]
+    }
+  },
+  {
+    "name": "row-first-2700-after-after",
+    "position": "last",
+    "hyps": 279,
+    "seedCount": 20,
+    "readCount": 59,
+    "existingInstances": 10,
+    "proposals": 16,
+    "admitted": 10,
+    "hypotheticalActorPair": {
+      "proposalCount": 1,
+      "guards": [
+        [
+          {
+            "op": "<",
+            "a": {
+              "op": "add",
+              "a": {
+                "op": "get",
+                "map": "CT",
+                "key": {
+                  "op": "var",
+                  "name": "i"
+                }
+              },
+              "b": {
+                "op": "const",
+                "value": 1
+              }
+            },
+            "b": {
+              "op": "get",
+              "map": "CfgT",
+              "key": {
+                "op": "var",
+                "name": "b$field"
+              }
+            }
+          }
+        ]
+      ]
+    }
+  }
+]

@@ -1,0 +1,19 @@
+{
+  "batch": "20261110-031307-hyqtwf",
+  "task": "624a22b5-2f78-426c-9b1f-42bdaada5efc",
+  "replacesTerminalSetupFailures": [
+    "20261110-024949-vm5h1o",
+    "20261110-025531-hmx2jj"
+  ],
+  "inputDirectory": "/private/tmp/gdp-wired-inv1758-input-v1",
+  "inputSha256": "f14f538ea14763ced6f8aac5227ae9bc9fbc6dd18acea4f150cbaadd3eeca639",
+  "proposalBefore": "a27effa47270110be45afe4a4596430612c8da2c34b3d57ee6e3245eac85ec1e",
+  "proposalAfter": "0a3d72ea6a22e2dde9e5758d431672954c178deec81dffe9c3946af2eabc845b",
+  "testSha256": "61441840d51ff82d571feecfb77ad47acf5280a95b94adc4d857a4816af90a7d",
+  "runnerSha256": "d1fa12f4e3a3e72c37923bbc03fc6c1f9faae18c0b470de106a7328cb25cc4eb",
+  "countedBudget": 2700,
+  "proofWallMs": 4800,
+  "jobTimeoutSeconds": 240,
+  "jobs": 9,
+  "results": "pending"
+}
