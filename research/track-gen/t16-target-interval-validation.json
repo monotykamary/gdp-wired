@@ -20,6 +20,11 @@
     "assertions": 1743,
     "status": "test-mode tuple type error; existing native-cap fixture omitted from first overlay, restored in final validation"
   },
-  "pilot": "pending",
-  "productionEnabled": false
+  "pilot": {
+    "status": "running",
+    "task": "1cbe1ec3-b2db-49a2-96eb-2826a1289268",
+    "output": "runs/t16-target-interval-probe/"
+  },
+  "productionEnabled": false,
+  "sourceCommit": "e559b0d3fcb54ae6298009e7365c76cf669c4fc7"
 }

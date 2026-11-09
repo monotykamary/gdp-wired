@@ -22,7 +22,7 @@ on top of state-first: the first pilot caught no drops during target build.
 Shared circuits passed 57 tests; the pilot recovered four named drops,
 but still fails the unchanged five-of-seven bar.
 
-## Current WIP: interval post-target pruning (validation pending)
+## Current revision: interval post-target pruning (checked; pilot running)
 
 The shared-circuit implementation below is checked and replayed, but misses
 the performance criterion. The next opt-in refinement encloses unknown post
@@ -37,12 +37,18 @@ test-mode expectations; lint and commitlint were not reached. The mode matrix
 now has tuple typing (`as const`), with no compiler/runtime change.
 
 An overlay audit also found the existing native-cap regression file absent
-from that first overlay. It is restored and hash-checked. The complete expected
-64-test suite and full static checks are running on submission in task
-`4a23b469-8834-4089-ae41-6c5a576346cb`, output
-`runs/t16-target-interval-check-v2/`, immutable overlay
-`runs/t16-target-interval-overlay-v2/`. **No interval pilot has been submitted.**
-The six-probe manifest is prepared only; it preserves all budgets and domains.
+from that first overlay. It was restored and hash-checked. The complete final
+validation batch `20261110-023555-2ihu75` passed **64 tests / 1,748 assertions**,
+TypeScript, type-aware lint (zero warnings/errors), and commitlint. Receipts:
+`runs/t16-target-interval-check-v2/`; immutable overlay:
+`runs/t16-target-interval-overlay-v2/`. Checked source commit: `e559b0d3`.
+
+Six pilots are now running on submission-class isolated large VMs in task
+`1cbe1ec3-b2db-49a2-96eb-2826a1289268`, output
+`runs/t16-target-interval-probe/`. The compiler, both test files and driver
+were checked for exact hash equality before launch. Only the opt-in interval
+flag changes the pilot behavior; all budgets, domains, full-family checks and
+the five-of-seven / 2 s criterion stay unchanged. No result is claimed yet.
 Core SHA-256 `0e1a570230e81f53821eaf606ae0dbcf64c0a0fc8f0ebc14f9d1bc3f27582795`;
 test `a9e2ece1f3e36eab0544c66a0afd13f236130a4d5d814435fc0224a05992287c`;
 restored regression file `f3bf9bafa63ffe7150512ada101e5c781f5e0696ac6ce5175750bf77f9d8005c`;
