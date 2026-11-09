@@ -48,7 +48,8 @@ the merged-tree tests/typecheck, the 29-list census against `bef4020f` and a per
   self (4.4 s: its cost is the per-call Map-key iteration and allocation, not the neighbour array), `step` 14.8 %, `cells` + `$cells` 5.4 %,
   `$m` 3.5 % (the request's maps were validated twice per step, in `cells` and in `step`), `Map` 2.9 % + `cloneObject` 2.5 % (the persistent
   fork), `RangeError` 2.2 % (refused requests in the BFS), `stringify` + `keyOf3` + `sampleStateText` 5 % (state keys of the cube join's BFS).
-  Next cut, `7bc4e5fd` (tests, pair, census and strict pairs running): one breakpoint list per step shared by every dense write (the union of their breakpoints; `$dense`
+  Next cut, `7bc4e5fd` — **117 tests pass; incremental pair vs `b25ab7c4` on one pinned 9950X: 11.3 / 10.4 / 11.1 s vs 12.7 / 12.2 / 12.7 s,
+  every pair in favour (`runs/track-wall/receipts/incr2`); census and strict pairs running:** one breakpoint list per step shared by every dense write (the union of their breakpoints; `$dense`
   fills the same cells from it), and no second validation in `cells`.
 , violation-driven ranges (`72380dc1`) vs lane A's `c21a6e54`, three pinned large VMs
   (Ryzen 9 9950X ×2, EPYC 4585PX; `runs/track-wall/receipts/rmldr3`, logs gzipped):** verdict `unknown` (time) on all six runs;
