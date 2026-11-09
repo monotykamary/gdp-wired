@@ -98,14 +98,15 @@ test('$breaks marks the stamp buffer directly and agrees with the Set path on de
 })
 
 test('a step that reads counts computes them in the generated module and agrees with the interpreter cell for cell', () => {
-  // (three counts: one over the rows of a map at stride 8, one reading that count and a map the request carries, one on a
-  // two-parameter key (base 4) whose bound is another count; the step reads all three)
+  // (three counts over the rows of a map at stride 8: one plain, one reading a map the request carries too, one on a
+  // two-parameter key (base 4) reading its second parameter; a count reads no other count (the kernel's scope); the step
+  // reads all three)
   const cm: Machine = {name: 'counted step', params: ['n'], inputs: ['op', 'i'], inputMaps: ['S'], state: {t: n(0)}, maps: {Rows: 0, Votes: 0},
     assume: {op: 'and', xs: [less(x('op'), n(8)), less(x('i'), n(3))]},
     counts: {
       sizeOfRow: {j: 'row', key: 'member', below: x('n'), body: ite(same(get('Rows', plus(times(8, x('row')), x('member'))), n(1)), n(1), n(0))},
-      inS: {j: 'row', key: 'k', below: x('n'), body: ite({op: 'and', xs: [same(get('S', x('k')), n(1)), less(n(0), get('sizeOfRow', x('row')))]}, n(1), n(0))},
-      pair: {j: 'a', lo: 'b', base: 4, key: 'k', below: get('sizeOfRow', x('a')), body: ite(less(x('k'), x('b')), n(1), n(0))},
+      inS: {j: 'row', key: 'k', below: x('n'), body: ite({op: 'and', xs: [same(get('S', x('k')), n(1)), same(get('Rows', plus(times(8, x('row')), x('k'))), n(1))]}, n(1), n(0))},
+      pair: {j: 'a', lo: 'b', base: 4, key: 'k', below: x('n'), body: ite({op: 'and', xs: [less(x('k'), x('b')), same(get('Rows', plus(times(8, x('a')), x('k'))), n(1))]}, n(1), n(0))},
     },
     step: {state: {t: plus(get('inS', x('i')), get('pair', x('op')))}, maps: {Votes: {key: x('i'), value: plus(get('sizeOfRow', x('i')), get('Votes', x('i')))}}}}
   const run = interpret(cm), fast = fastStep(cm)!
