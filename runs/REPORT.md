@@ -18,9 +18,9 @@ checkpoint/shortcut logs were independently replayed. Production tiny
 screening stays disabled: only three of the named seven were caught.
 Bounded grouping reached four named drops, not five. Operation-first was
 rejected. Per coordinator direction, post-target pruning is now an opt-in
-WIP on top of the checked state-first implementation; validation is pending.
+on top of state-first: 55 tests and static checks pass; the pilot is next.
 
-## Current work: post-target-directed partial pruning (differential tests first)
+## Current work: post-target pruning validated; pilot next
 
 Coordinator-directed successor to the rejected operation-first trial. The
 state-first traversal is retained. Each target's postcondition is substituted
@@ -50,14 +50,18 @@ structural identity because the complete pre-family requires them.
   the admission bar remains five of seven in all originals and <= 2 s active
   wall. All checks and pilots use **submission class**, as requested.
 
-Two independent validation jobs are submitted in task
-`eb55766c-4dd5-495a-bd52-a5fcbe32a678`; results in `runs/t16-target-check/`.
-No pilot submitted yet. Reused canonical archive `6288b666` plus the small
+Validation batch `20261110-014802-tdfixg` passed both jobs: **55 tests /
+732 assertions**, full TypeScript, type-aware lint (zero warnings/errors),
+and the intended commit-message check. Both jobs ran on exclusive large
+Ryzen 9 9950X VMs (2/8 vCPUs for tests, 8/8 for type/lint). Receipts:
+`research/track-gen/t16-target-validation.json`; gzip logs under
+`runs/t16-target-check/`. The unchanged six-probe pilot is next. Reused canonical archive `6288b666` plus the small
 `runs/t16-target-overlay/`. Compiler SHA-256
 `ed2a8ceeb8aad234015afa5a1122bd8e3c71f96318c55d404338c8963e440c02`,
 differential test `482003a3b3e83d404a54a7b71b142af9e353e3a6678c55bdd25889ecf043230d`,
 driver `4bb676f1a87a1eccc59706f8dbdd51699c354b8430a6b0982841e54e911849a2`.
-These WIP files are not covered by the preceding 40-test receipt.
+These files are covered by the new 55-test receipt, not by the earlier
+40-test receipt. No pilot outcome, safety proof or final gate is claimed.
 
 ## Operation-first pilot rejected; checked state-first implementation restored
 

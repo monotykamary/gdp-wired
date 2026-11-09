@@ -8,10 +8,10 @@ type Env = Record<string, number>
 type Term = {id: number, code: string, args: Term[], deps: number[], lo: number, hi: number, values?: number[], choice?: {c: Pred, a: Term, b: Term}}
 type Pred = boolean | {op: 'atom', a: Term, b: Term, cmp: '<' | '<=' | '='} | {op: 'and', xs: Pred[]} | {op: 'or', xs: Pred[]} | {op: 'not', x: Pred}
 type Slot = {name: string, key?: number, request?: boolean, values: number[]}
-export type TinyFiniteOptions = {valueDomain?: readonly number[]}
+export type TinyFiniteOptions = {valueDomain?: readonly number[], postTargetPruning?: boolean}
 export type TinyFiniteStatistics = {
-  scope: {params: Env, scalarValues: number[], cellValues: number[], cells: Record<string, number[]>, inputValues: Record<string, number[]>, inputCells: Record<string, number[]>, binderValues: number[]}
-  completed: boolean, exhausted: boolean, timedOut: boolean, unsupported: string[], nodes: number, states: number, steps: number, scenarios: number, candidates: number, ms: number
+  scope: {params: Env, scalarValues: number[], cellValues: number[], cells: Record<string, number[]>, inputValues: Record<string, number[]>, inputCells: Record<string, number[]>, binderValues: number[], postTargetPruning: boolean}
+  completed: boolean, exhausted: boolean, timedOut: boolean, unsupported: string[], nodes: number, states: number, steps: number, scenarios: number, candidates: number, postStatePrunes: number, postRequestPrunes: number, ms: number
 }
 const unique = (xs: number[]) => [...new Set(xs)]
 const conjunction = (xs: Pred[]): Pred => {
@@ -25,6 +25,18 @@ const disjunction = (xs: Pred[]): Pred => {
   return ys.length === 0 ? false : ys.length === 1 ? ys[0]! : {op: 'or', xs: ys}
 }
 const negate = (x: Pred): Pred => typeof x === 'boolean' ? !x : x.op === 'not' ? x.x : {op: 'not', x}
+// Sufficient structural identity only: a supported whole-family pre-law that
+// is unchanged by this operation cannot be a relative CTI target. No theorem
+// is inferred from a failed identity check or from an unsupported expression.
+function samePredicate(a: Pred, b: Pred): boolean {
+  checkWall('tiny predicate identity')
+  if (a === b) return true
+  if (typeof a === 'boolean' || typeof b === 'boolean' || a.op !== b.op) return false
+  if (a.op === 'atom' && b.op === 'atom') return a.cmp === b.cmp && a.a.id === b.a.id && a.b.id === b.b.id
+  if (a.op === 'not' && b.op === 'not') return samePredicate(a.x, b.x)
+  if ((a.op === 'and' || a.op === 'or') && (b.op === 'and' || b.op === 'or')) return a.xs.length === b.xs.length && a.xs.every((x, i) => samePredicate(x, b.xs[i]!))
+  return false
+}
 const dependencyCache = new WeakMap<object, number[]>()
 const depsOf = (p: Pred): number[] => {
   if (typeof p === 'boolean') return []
@@ -221,6 +233,9 @@ class Compiler {
     // oxlint-disable-next-line typescript/no-implied-eval
     return new Function('v', `${lines.join('')}return [${values.map(t => this.ref(t)).join(',')}];`) as (v: number[]) => number[]
   }
+  // Upper truth bound, not a two-valued evaluation of an incomplete state.
+  // true includes UNKNOWN; false rules out this polarity for every completion.
+  // In particular, polarity=false cannot prune on an unassigned atom.
   compile(p: Pred, order?: number[], polarity = true): (v: number[], depth: number) => boolean {
     checkWall('tiny generate screen')
     // Keep native compilation and hot execution in bounded clauses rather
@@ -316,8 +331,8 @@ function gridKeys(m: Machine, size: number): Record<string, number[]> {
 export function tinyFiniteCandidates(source: Machine, m: Machine, family: Law[], params: Env,
   onCandidate: (pre: State, request: Request, violated: Law[]) => boolean | void, options: TinyFiniteOptions = {}): TinyFiniteStatistics {
   const stateValues = unique([...(options.valueDomain ?? [0, 1])]).sort((a, b) => a - b)
-  const start = performance.now(), scope: TinyFiniteStatistics['scope'] = {params: {...params}, scalarValues: [...stateValues], cellValues: [...stateValues], cells: {}, inputValues: {}, inputCells: {}, binderValues: []}
-  const stats: TinyFiniteStatistics = {scope, completed: false, exhausted: false, timedOut: false, unsupported: [], nodes: 0, states: 0, steps: 0, scenarios: 0, candidates: 0, ms: 0}
+  const start = performance.now(), scope: TinyFiniteStatistics['scope'] = {params: {...params}, scalarValues: [...stateValues], cellValues: [...stateValues], cells: {}, inputValues: {}, inputCells: {}, binderValues: [], postTargetPruning: options.postTargetPruning === true}
+  const stats: TinyFiniteStatistics = {scope, completed: false, exhausted: false, timedOut: false, unsupported: [], nodes: 0, states: 0, steps: 0, scenarios: 0, candidates: 0, postStatePrunes: 0, postRequestPrunes: 0, ms: 0}
   const unknown = (e: unknown) => { const reason = e instanceof Error ? e.message : String(e); if (!stats.unsupported.includes(reason)) stats.unsupported.push(reason) }
   try {
     checkWall('tiny start')
@@ -360,7 +375,7 @@ export function tinyFiniteCandidates(source: Machine, m: Machine, family: Law[],
     const compiler = new Compiler(source, m, params, slots, scope.cells, scope.binderValues)
     const pres: Pred[] = []
     if (source.pre) pres.push(compiler.condition(source.pre, params))
-    const instances = new Map<Law, Env[]>()
+    const instances = new Map<Law, Env[]>(), prePredicates = new Map<Law, Pred>()
     for (const law of family) {
       checkWall('tiny family compile')
       if (law.some?.length) { unknown(new Unsupported('existential law')); continue }
@@ -368,7 +383,7 @@ export function tinyFiniteCandidates(source: Machine, m: Machine, family: Law[],
       try {
         const ats = bindings(uniqueNames([law.forall, ...law.keys ?? []]), scope.binderValues, params)
         const ps = ats.map(at => compiler.condition(law.holds, at))
-        pres.push(...ps); instances.set(law, ats)
+        pres.push(...ps); instances.set(law, ats); prePredicates.set(law, conjunction(ps))
       } catch (e) { if (e instanceof WallExpired) throw e; unknown(e) }
     }
     const pre = conjunction(pres)
@@ -404,7 +419,7 @@ export function tinyFiniteCandidates(source: Machine, m: Machine, family: Law[],
       inactiveIdentity = slots.slice(0,stateSlots).every((_,i)=>slotValue(off,i,params,true).id===off.slot(i).id)
     } catch(e) { if(e instanceof WallExpired) throw e; if(!(e instanceof Unsupported)) throw e }
     const flatPreds = (p: Pred): Pred[] => typeof p !== 'boolean' && p.op === 'and' ? p.xs.flatMap(flatPreds) : [p]
-    const operations: {fixed: Env, order: number[], gate: (v:number[],d:number)=>boolean, step:(v:number[])=>number[]}[] = []
+    const operations: {fixed: Env, order: number[], gate: (v:number[],d:number)=>boolean, step:(v:number[])=>number[], mayFail?: (v:number[],d:number)=>boolean}[] = []
     for(const fixed of slices){
       checkWall('tiny operation compile')
       try {
@@ -438,6 +453,26 @@ export function tinyFiniteCandidates(source: Machine, m: Machine, family: Law[],
     const degrees = slots.map((_,i)=>preDeps.reduce((sum,ds)=>sum+(ds.includes(i)?1/Math.max(1,ds.length):0),0))
     const stateOrder = slots.slice(0,stateSlots).map((_,i)=>i).sort((a,b)=>degrees[b]!-degrees[a]!||a-b)
     const preTest = compiler.compile(pre,stateOrder), v = slots.map(s=>s.values[0]!)
+    if (options.postTargetPruning) for (const op of operations) {
+      checkWall('tiny post-target slice')
+      const order = [...stateOrder, ...op.order], screens: {law: Law, mayFail: (v: number[], d: number) => boolean}[] = []
+      for (const law of targets) {
+        checkWall('tiny post-target substitution')
+        try {
+          const post = conjunction(instances.get(law)!.map(at => compiler.condition(law.holds, {...at, ...op.fixed}, true)))
+          if (post === true || samePredicate(post, prePredicates.get(law)!)) continue
+          // Substitution is through this operation's source step. UNKNOWN is
+          // retained: the negative-polarity screen returns false only when
+          // the target holds for every completion of the current assignment.
+          screens.push({law, mayFail: compiler.compile(post, order, false)})
+        } catch (e) {
+          if (e instanceof WallExpired) throw e
+          if (!(e instanceof Unsupported)) throw e
+          unknown(e); screens.push({law, mayFail: () => true})
+        }
+      }
+      op.mayFail = (values, depth) => screens.some(screen => !emitted.has(screen.law) && screen.mayFail(values, depth))
+    }
     const propose = (fixed:Env, violated:Law[]):void=>{
       const preState: State = {scalars:{},maps:Object.fromEntries(Object.keys(source.maps??{}).map(name=>[name,new Map<number,number>()]))}
       const request: Request = Object.fromEntries((source.inputMaps??[]).map(name=>[name,new Map<number,number>()]))
@@ -460,6 +495,7 @@ export function tinyFiniteCandidates(source: Machine, m: Machine, family: Law[],
         const requests = (d:number):void=>{
           stats.nodes++;checkWall('tiny request assignment')
           if(!op.gate(v,d))return
+          if (op.mayFail && !op.mayFail(v, stateOrder.length + d)) { stats.postRequestPrunes++; return }
           if(d<op.order.length){
             const i=op.order[d]!
             for(const value of slots[i]!.values){checkWall('tiny request values');v[i]=value;requests(d+1)}
@@ -478,6 +514,7 @@ export function tinyFiniteCandidates(source: Machine, m: Machine, family: Law[],
     const states = (d:number):void=>{
       stats.nodes++;checkWall('tiny state assignment')
       if(!preTest(v,d))return
+      if (options.postTargetPruning && operations.every(op => !op.mayFail!(v, d))) { stats.postStatePrunes++; return }
       if(d===stateOrder.length){visit();return}
       const i=stateOrder[d]!
       // Ones first reaches enabled guards early; both values remain enumerated.

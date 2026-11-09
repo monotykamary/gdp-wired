@@ -1,0 +1,23 @@
+{
+  "trust": "Implementation/differential validation only; no pilot, safety proof, completeness or final-gate admission claim.",
+  "batch": "20261110-014802-tdfixg",
+  "snapshot": "e2fee7aa82df",
+  "class": "submission",
+  "archiveCommit": "6288b666e7b23cb4a10e0e9e92cde919ea135854",
+  "overlay": "runs/t16-target-overlay",
+  "tests": 55,
+  "assertions": 732,
+  "differentialJob": {"name": "post-target-differential", "exitCode": 0, "seconds": 1.5, "cpu": "AMD Ryzen 9 9950X 16-Core Processor", "vcpus": 2, "vmVcpus": 8, "exclusive": true},
+  "staticJob": {"name": "post-target-types-lint", "exitCode": 0, "seconds": 61.31, "cpu": "AMD Ryzen 9 9950X 16-Core Processor", "vcpus": 8, "vmVcpus": 8, "exclusive": true},
+  "typecheck": "pass",
+  "typeAwareLintWarnings": 0,
+  "typeAwareLintErrors": 0,
+  "commitlint": "research/track-gen/T16-TARGET-COMMIT.txt passed",
+  "sha256": {
+    "core/finite-tiny.ts": "ed2a8ceeb8aad234015afa5a1122bd8e3c71f96318c55d404338c8963e440c02",
+    "core/finite-tiny-target.test.ts": "482003a3b3e83d404a54a7b71b142af9e353e3a6678c55bdd25889ecf043230d",
+    "research/track-gen/t16-domain-hybrid.ts": "4bb676f1a87a1eccc59706f8dbdd51699c354b8430a6b0982841e54e911849a2"
+  },
+  "productionEnabled": false,
+  "pilot": "pending"
+}
