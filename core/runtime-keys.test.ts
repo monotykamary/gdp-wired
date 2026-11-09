@@ -1,7 +1,7 @@
 // The compiled step's key helpers ($keys, $breaks, $spread via $sorted) against the interpreter's keysAt/breakKeys:
 // every-key writes whose values read other maps at offset keys and compare keys with inputs, from random states.
 import {expect, test} from 'bun:test'
-import {type Machine, type State, compileJs, fastStep, get, interpret, ite, lcg, less, n, plus, same, x} from './machine.ts'
+import {type Machine, type State, compileJs, fastStep, get, interpret, ite, lcg, less, n, plus, same, times, x} from './machine.ts'
 
 const m: Machine = {name: 'dense writes', params: ['size'], inputs: ['i', 'j'], state: {t: n(0)}, maps: {A: 0, B: 0, C: 1},
   step: {state: {t: plus(x('t'), n(1))}, maps: {
