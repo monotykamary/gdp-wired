@@ -100,8 +100,10 @@ the merged-tree tests/typecheck, the 29-list census against `bef4020f` and a per
   `stringify` 3 %): **`8feee82e`** keeps one environment per write (the key or the parts written into it) instead of a spread per key or
   tuple, reads a tuple write's parts / freed value / breakpoints / crossing once per write instead of once per step, and memoizes
   `unchanged`'s part-reading facts per term — exact by construction (the interpreter's results are unchanged; only allocation goes).
-  **135 tests pass on it** (`receipts/tests7`, the interpreter-vs-compiled comparisons included); a paired learning_switch profile vs `cd947909`
-  and the census vs `bef4020f` are running. Not a gate head until they hold. one breakpoint list per step shared by every dense write (the union of their breakpoints; `$dense`
+  **135 tests pass on it** (`receipts/tests7`, the interpreter-vs-compiled comparisons included); **census vs `bef4020f`: 29 / 29 lists byte-identical**
+  (`receipts/census7`), total generation wall 475.6 → 283.9 s (−40 % on mixed warm VMs): learning_switch 204 → 131 s, learning_switch_i4
+  153 → 71 s, client_server_db_ae 6.1 → 6.0 s, mldr 28.6 → 15.1 s. The paired pinned profile vs `cd947909` is running; it becomes the gate
+  head when that confirms the shape. one breakpoint list per step shared by every dense write (the union of their breakpoints; `$dense`
   fills the same cells from it), and no second validation in `cells`.
 , violation-driven ranges (`72380dc1`) vs lane A's `c21a6e54`, three pinned large VMs
   (Ryzen 9 9950X ×2, EPYC 4585PX; `runs/track-wall/receipts/rmldr3`, logs gzipped):** verdict `unknown` (time) on all six runs;
