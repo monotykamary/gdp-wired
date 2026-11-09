@@ -4,7 +4,7 @@ import {unpack} from './section18-codec.ts'
 import {certFor} from '../../core/counts.ts'
 import {focusCountCert} from '../../core/count-focused.ts'
 import {finiteEvaluator} from '../../core/finite-houdini.ts'
-import {carriedView,evalC,evalE,interpret,walkOnce} from '../../core/machine.ts'
+import {type C,carriedView,evalC,evalE,interpret,walkOnce} from '../../core/machine.ts'
 import {canon,mcGoal,termColumn,type Path} from '../../kernel/kernel.ts'
 import {piecesAt,walkLive} from '../../core/count-recovery/live-dependencies.ts'
 const {p}=unpack(readFileSync('context.json','utf8')),family=JSON.parse(readFileSync('family.json','utf8')),m=p.m
@@ -22,6 +22,6 @@ for(const lin of [{'b$quorum':1,i:-1},{'b$quorum':-1,i:1}])path.set(canon(lin),{
 const source=raw.flatMap((c:any)=>piecesAt(c,path)).filter((c:any)=>{let skip=false;const owners=new Set<string>();walkLive(c,path,(o:any)=>{if(o.op==='get'&&maps.has(o.map)||o.op==='var'&&ids.has(o.name))skip=true;else if(o.op==='var'&&wits.has(o.name))owners.add(o.name)});return !skip&&owners.size<=1&&(!owners.size||owners.has(inst.wit))})
 walkOnce(source,(o:any)=>{if(o.op==='var'&&!(o.name in env))env[o.name]=0})
 const view={...before,maps:{...before.maps,...Object.fromEntries(Object.entries(after.maps).map(([k,v])=>[k+'#',v]))}}
-const failed=source.flatMap((c:any,index:number)=>{try{return evalC(c,env,view,m)?[]:[{index,condition:c}]}catch(e){return [{index,error:String(e)}]}}),pathValues=[...path].map(([key,{lin,holds}])=>({key,holds,value:Object.entries(lin).reduce((n,[k,v])=>n+v*(k==='1'?1:env[k]??NaN),0)}))
+const failed=source.flatMap<{index:number,condition:C}|{index:number,error:string}>((c:any,index:number)=>{try{return evalC(c,env,view,m)?[]:[{index,condition:c}]}catch(e){return [{index,error:String(e)}]}}),pathValues=[...path].map(([key,{lin,holds}])=>({key,holds,value:Object.entries(lin).reduce((n,[k,v])=>n+v*(k==='1'?1:env[k]??NaN),0)}))
 if(!pres.every((x:any)=>x.value===true)||failed.length||sum<=bound||pathValues.some(x=>!Number.isFinite(x.value)||(x.value<=0)!==x.holds))throw Error('frame counterexample not established')
 console.log(JSON.stringify({familySize:family.laws.length,preFamily:pres.every((x:any)=>x.value===true),preFailures:pres.filter((x:any)=>x.value!==true),postTarget:posts[family.targets.overlap],enabled:true,request:{...request,S:[...request.S],Q2:[]},inst,values:inst.terms.map(([k,id]:[number,string])=>({k,id,value:values.get(id),read:cert.reads.find((r:any)=>r[0]===id)})),sum,bound,frameHolds:sum<=bound,sourceHyps:source.length,failed,pathValues}))
