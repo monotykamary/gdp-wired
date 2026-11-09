@@ -37,7 +37,12 @@ No protocol name, new proof fact, enlarged cap, or extra deadline enters the
 engine. No-count and previously wide-pool recovery remain available. Pending
 validation must include strict Ryzen 9 9950X consensus pairs (at least five per
 side), MLDR helper observations and all 29 generation lists. Future gates still
-use main `4497c4b0`. The old pruning pilot remains untouched and lower priority.
+use main `4497c4b0`. The old pruning pilot remains untouched and lower priority. Candidate source
+commit: `1564709f`. Focus regression tests and static checks are submitted in
+`runs/t17-focus-check/` (task `eca5057d-c5ae-4a65-9875-2919e22cfaf9`).
+The three-way measurement driver is being qualified separately; strict Ryzen
+repeats and the 29-protocol census are prepared but not yet submitted.
+Comparators are new main `4497c4b0`, pre-fix merge `6bcdf421`, and `1564709f`.
 
 Post-merge validation of `6bcdf421` is already submitted as eight regression
 shards plus static checks: task `45a869de-99d7-4842-aac6-7f5dfad8bec2`, outputs
