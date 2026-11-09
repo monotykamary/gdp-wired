@@ -1,3 +1,48 @@
+# RESUME — PAUSED BY USER; START NOTHING UNTIL EXPLICIT RESUME
+
+- **Branch:** `claude/mldr-leaves` in `/Users/monotykamary/VCS/working-remote/open-source/gdp-wired-trackL`.
+- **Last work/receipt SHA before this RESUME commit:** `6a4ed0880bf70374567de7edd4e3bc36f3378095`. The final checkpoint SHA is this RESUME commit (`git rev-parse HEAD`). Source prototype: `53bf1264`; audit report: `baaa7e42`; unfinished harness checkpoint: `dfa674f4` (`wip:`).
+- **State:** all owned background tasks stopped or already exited; both cancelled boat batches verified at **0 remaining / 0 running**. No new jobs were started after the checkpoint request. No push, merge, reset, amend, or GATE GREEN.
+
+## Proven / measured before the pause
+
+1. `682c8dc6` fixes `core/count-ranges.test.ts` to import `modelSequence` from `kernel/model-sequence.ts`. No kernel source or export changed. Dedicated boat receipt `runs/lane-f-range-load-check-v1/range-load.log`: **3 tests / 14 assertions / zero load failures**, worker exit 0; test and kernel hashes match the fix commit. The earlier bb61cb8d test-load failure remains recorded, not erased.
+2. `53bf1264` adds bounded, untrusted three-term directed-difference transport proposals and tests. **78 tests / 354 assertions, typecheck, type-aware lint pass** (`runs/lane-f-triangle-check-v2/` and the test/type/lint portion of `runs/lane-f-final-check-v1/`). The abstract directed triangle is kernel checked. No new off-diagonal transport proof was admitted on the frozen real source; it is still a research prototype, not cleared for merge.
+3. The original two-term off-diagonal `writeFrame$0` is not universally true. A legal size-2 step satisfies all 34 pre-laws, all 79 retained source hypotheses, and the row path, preserves the target, but has post difference 1 and request difference 0. This falsifies the candidate frame, **not** the protocol law (`runs/lane-f-offdiag-source-v1/frame-falsifier.log`). Do not manufacture a proof of that unqualified frame.
+4. Fable's range selection is integrated (`bb61cb8d`, preserving Lane E inclusion and Lane B completion work). Corrected range-only and triangle-only AB/BA original-34-law pairs all remain **unknown**. No 6,000-unit / 7-second helper pass, no 29/29 result, and no final-gate receipt. Frozen triangle and source-projection-only experiments also remain unknown. Details and source hashes follow below.
+5. Collected small receipts, failure logs, placement metadata, archive manifests, cancellation records and input hashes are committed in `6a4ed088`. Large archives, raw proof traces and the 25.6 MB context remain local and ignored; they were not added to Git.
+
+## Cancelled / completed-at-stop inventory
+
+| Exact task ID | Boat batch / output directory | Purpose | Stop and partial-result status |
+|---|---|---|---|
+| `3e3b584b-2579-4264-b51a-fc8180aac885` | `20261109-154216-0h09af`; `runs/lane-f-triangle-source-v1/` | Combined triangle + model-demanded source projection, frozen closure pair | Stopped by exact task ID; task terminal `killed`, batch 0 remaining / 0 running. No worker result was collected; directory was empty before saving `controller-cancelled.log`. **No usable proof/timing result; must rerun.** |
+| `0eb5f68c-e57f-409c-9e7f-56e4071a43f3` | `20261109-154615-ni19c5`; `runs/lane-f-initial-transport-v1/` | Initial-slot triangle selection, original 34-law AB/BA pairs | Stopped by exact task ID; task terminal `killed`, batch 0 remaining / 0 running. Only `controller-cancelled.log` is retained. **No usable proof/timing result; must rerun.** |
+| `f15b5ab2-6378-40a4-82b3-6a0e432179f1` | `20261109-155653-5l2a8i`; `runs/lane-f-commitlint-v1/` | File-backed lint of three commit messages | Stop requested by exact ID, but it had already exited. Controller exit 0 masked **worker exit 9**: commitlint had no configured rules. Complete failure diagnostic is usable; **not a lint pass**, must rerun after configuration repair. |
+
+Machine-readable inventory: `runs/lane-f-checkpoint-cancellations.json`. Every other owned task was already terminal; final task inventory had no live entries.
+
+## Open blockers / unfinished work
+
+- **Range-test load blocker is fixed locally and dedicated-test validated.** Lane D still owns independent audit acceptance; do not represent this as its final gate.
+- **Commitlint validation remains open.** `runs/lane-f-final-check-v1/` passed 78 tests and type/lint, then failed because `--edit` requires a Git root absent from the worker snapshot. File-backed stdin avoided that but the next run failed `empty-rules`. No commit-message lint pass is claimed. Conventional checkpoint commit subjects were used; no history was rewritten.
+- **Performance/proof blocker:** no original Inv2973-half pass within 6,000 units and 7 seconds; ordinary STEP search can exhaust the budget before deferred recovery. The unqualified frame has a counterexample; the three-term replacement still needs a real guarded-source proof.
+- Initial-slot and combined projection installers are unfinished experiments. Their code is saved; cancelled v1 jobs provide no evidence. No full 29x3 gate, DuoAI/broken/bar validation, or Lane D final receipt has been run for this prototype.
+
+## Exact next steps — only after the user resumes
+
+1. Read this RESUME and the handoff rules; inspect `git status --short` and `git log -4 --oneline`. Do not reset or amend. Read `supercomputer --skill` before restarting remote work.
+2. Verify retained inputs with `shasum -a 256 -c runs/lane-f-checkpoint-inputs.sha256`. Required local data are under `runs/lane-f-source-input/`: `context.json`, `family.json`, `offdiag-trace.json`, `source-projection-base.txt`, `triangles-before.txt`, `triangles-after.txt`, `triangle-counts.txt`. Large `context.json` is intentionally not in Git; an additional local copy is under `runs/lane-f-source-zero-v1/receipts/source-zero/raw/result/context.json`. Preserve these before cleaning the worktree.
+3. Repair `research/track-m/lane-f-commitlint.jobs.json` to use an explicit installed conventional config (the CLI advertises `--default-config`) and strict failure propagation; keep message bodies in files. Rerun on boat with a **new** output directory. Do not repeat the failed `--edit` invocation against a snapshot without `.git`.
+4. Rerun the two cancelled experiments, retaining the existing budgets and fresh output paths:
+   - `supercomputer run --jobs research/track-m/lane-f-triangle-source.jobs.json --out runs/lane-f-triangle-source-v2 --class submission --timing --vm-type large --data runs/lane-f-source-input:.`
+   - `supercomputer run --jobs research/track-m/lane-f-initial-transport.jobs.json --out runs/lane-f-initial-transport-v2 --class submission --timing --vm-type large --data runs/lane-f-source-input:.`
+   The current pair driver atomically restores both sides; add the changed `core/counts.ts` hash to per-side logging before relying on initial-slot timing. Do not enlarge slot count or proof/time budgets.
+5. Inspect **worker** exit codes, checked proof status, source fingerprints and detailed source-admission traces; launcher exit 0 is insufficient. Keep failures and cancellations in the evidence. If no checked 6,000-unit/7-second original-family win, report the remaining blocker rather than promoting the prototype.
+6. Only if the required helper and regression comparisons succeed, run Lane D's authoritative full gate and cite its receipt. No push or merge without the user's resumed instructions and the gate.
+
+---
+
 **Range-test AUDIT-BLOCKER fixed in `682c8dc6`; dedicated boat rerun at descendant `53bf1264`: 3 tests / 14 assertions pass, 0 load errors (worker exit 0).** Receipt: `runs/lane-f-range-load-check-v1/range-load.log`. The corrected test and both kernel modules are byte-identical to the fix commit: test SHA-256 `736cb7965aa45853605e7daf6e4a6cc837facebbf71696c65ecd5b3b6e8a9493`, `kernel/prove.ts` `b7e2b08edeba02e3714964741463b7e7748634d5800502ca8f3b9fe6e6f2d2b3`, and `kernel/model-sequence.ts` `2dcd146665dbbb111cab9f5351e922cfd2d36f62386e1e1ed47efc2b9f697102`. The test imports `modelSequence` from `kernel/model-sequence.ts`; no kernel file or export was changed. The integrated 78-test run also passed.
 
 # Lane F — checked transport prototype; no 16.5 win
