@@ -181,7 +181,7 @@ All ten jobs of `lane-b-integrated-pairs-v1` exited normally (source tree `e3203
 | base → combined | 4,488.589 / 3,237.475 | 6,000.500 / 4,203.236 | checked → unknown |
 | combined → base | 4,488.589 / 3,445.907 | 6,000.500 / 4,729.846 | checked → unknown |
 
-p1 remains checked in all four arms at 2,292.235 units. Inv2973-half, Inv1758 and Inv* remain unresolved. Local checker calls are not being promoted into joint-family acceptance; archive verification and independent paired-certificate replay are pending. This result rejects recommending the combined policy as a default.
+p1 remains checked in all four arms at 2,292.235 units. Inv2973-half, Inv1758 and Inv* remain unresolved. Local checker calls are not being promoted into joint-family acceptance; all ten paired archives are now checksum-verified, and the strict receipt projection matches both arm records, family hashes, source digests and CPU-labelled placement. Independent paired-certificate replay is pending. This result rejects recommending the combined policy as a default.
 
 The falsifiable next hypothesis is that 15.4's broader reconstruction allocation, not class ordering itself, causes the safety loss. `lane-b-safety-ablation-v1` runs base, leaf-only and class-only in opposite orders under the unchanged 6,000-unit/7-second search line. It is pending.
 
