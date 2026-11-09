@@ -3,9 +3,11 @@ import {extract} from './extract.ts'
 import {buildLaw} from './laws.ts'
 
 test('CI audit B1: default replay cannot validate optional calendar law translation', () => {
-  for (const absent of ['undefined', 'null']) for (const standalone of [true, false]) {
-    const method = `decide(flag: boolean): number | ${absent} { if (flag) return 0; return ${absent}; }`
-    const source = standalone ? `export function ${method}` : `export class Decision { ${method} }`
+  for (const [source, standalone] of [
+    ['export function decide(flag: boolean): number | undefined { if (flag) return 0; }', true],
+    ['export function decide(flag: boolean): number | null { return flag ? 0 : null; }', true],
+    ['export class Decision { values = new Map<string, number>(); decide(key: string): number | undefined { return this.values.get(key); } }', false],
+  ] as const) {
     const x = extract(source, standalone ? {entry: 'decide', mode: 'standalone'} : {entry: 'Decision'})
     expect({ok: x.ok, refusals: x.refusals}).toEqual({ok: true, refusals: []})
     expect(x.evidence!.requests).toBeGreaterThan(0)
