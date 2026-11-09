@@ -18,8 +18,12 @@
   other large VM (base 54.1 s and 54.8 s of non-attempt wall against 20–29 s elsewhere; `receipts/orig2` pair 3, `receipts/orig3` pair 2).
   A timing claim should not rest on it; the pairs on it still favour the candidate.
 - No open audit blockers. No push, no merge. Kernel untouched since the Lean-first frame-cut work (branch `claude/mldr-design`).
-- Routed to lane A (MLDR-DESIGN.md "16.3 consequence — measured"): every pass-1 attempt overruns its 3.2 s share by 1–2.7× on both
-  trees (`decide` is not cut at the attempt's end), so round 0 needs > 200 s of attempts in a 60 s run whatever the generation wall is.
+- Routed to lanes A / B (MLDR-DESIGN.md "16.3 consequence — measured", corrected 03:50): **pass-1 attempts do obey their share on the
+  counted clock** (`took` 3,214–3,237 of a 3,2xx share, every attempt, both trees); what overruns is the **wall per counted unit**: 0.83–1.1
+  real ms per counted ms at `#hyps` ≈ 600, 1.4–2.7 at 864–1,288 (24 attempts, `receipts/rmldr3`). The kernel's cost model (kernel/prove.ts,
+  `fullRate` 250, the `model` weights fitted on 332 step goals) under-counts the larger counted goals, so a 60 s real run holds ≈ 25–35 s of
+  counted attempt time, not 60. A recalibration is a cost-model change (lane B with lane D), not a budget increase; with or without it, 34
+  laws × 2 passes at ≥ 3.2 s counted each cannot end round 0 inside 60 s — 16.1 (fewer pass-1 attempts) and 15.x (cheaper goals) are the levers.
 
 # RESUME (checkpoint 2026-11-09, lane C / Fable, branch `claude/mldr-wall`)
 
@@ -78,10 +82,10 @@ the merged-tree tests/typecheck, the 29-list census against `bef4020f` and a per
   and pass 1 `unknown` on both sides in every pair — **no `sat` survives pass 1 on either side** (lane A's certification), so the
   range instances change no outcome; they fired on one goal only (`reconfigs/inS`: `#hyps` 652 vs 649, `#lazy` 131 vs 79), the
   other three goals' models never put a 0/1 read above its bound. Laws reached (`try` lines): 37/33/29 mine vs 41/31/33 base — VM noise,
-  no systematic cost. **The finding that matters:** every pass-1 attempt overruns its share — share 3,212–3,237 ms, walls 2,675–8,710 ms
-  (`decide` 2,449–8,061 ms) on both trees — so round 0 needs ≈ 68 attempts (34 laws × 2 passes) at ≥ 3.2 s each and cannot end inside
-  60 s whatever the generation wall is; 16.2 (bound every inner call by the attempt's end) is not holding on `c21a6e54` either. Routed to
-  lane A in MLDR-DESIGN.md. Step 3's sampling policies are therefore worth at most 2–3 more attempts; I take the cheaper, census-safe cost
+  no systematic cost. **The finding that matters (corrected below in the HANDOFF):** every pass-1 attempt ends at its counted share (`took` 3,214–3,237)
+  but its wall is 2,675–8,710 ms — the counted clock under-counts the larger goals (0.83–1.1 real ms per counted ms at ≈ 600 hyps, 1.4–2.7
+  at 864–1,288), so round 0's ≈ 68 attempts (34 laws × 2 passes) at ≥ 3.2 s counted each cannot end inside 60 s whatever the generation
+  wall is. Routed to lanes A / B in MLDR-DESIGN.md. Step 3's sampling policies are therefore worth at most 2–3 more attempts; I take the cheaper, census-safe cost
   cuts the merged-tree profile names first (`$breaks` 20.7 % self of the generation run; per-step count-view allocation ≈ 13 %).
 
 **Branch and head:** `claude/mldr-wall`, forked from `claude/mldr-gen` 1681e8e5, with lane A's head `c21a6e54` merged (d24a4196);
