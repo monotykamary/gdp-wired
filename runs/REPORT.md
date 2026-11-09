@@ -27,7 +27,50 @@ authorize a merge. GATE GREEN requires Lane D's one-command final receipt
 with both SHAs, exact roster, pair identity, and CPU labels bound. No such
 claim is made here.
 
-Section 16.1 first half / 16.2: concrete relative-CTI certification and a\nsingle counted deadline per attempt are implemented. The finite checker\nrecomputes count cells, checks the entire predecessor family, executes the\nactual request, and requires a post-state violation. Only that result skips\nthe other pass. An uncertified pass-1 model is `unknown`; it does not carry\nthe new `refuted` marker. The existing failed-proof elimination policy is\notherwise unchanged. The exact end now bounds refinement, decision, part\ngrowth, and final growth; supportBudget remains the caller-priority owner.\n\nValidation: `t16-check-v1` has 23 pass / 0 fail / 2,572 assertions, plus\nTypeScript and type-aware lint. `t16-probe-v1` is running three strict paired\nrepeats against main and three against the clean T-14 parent (`8b44e4b3`).\nThese changes are NOT covered by the T-14 iteration results or a Lane D\nmerge receipt. Geometry-biased finite sampling is next; Lane C owns 16.4.\n
+Section 16.1 first half / 16.2: concrete relative-CTI certification and a\nsingle counted deadline per attempt are implemented. The finite checker\nrecomputes count cells, checks the entire predecessor family, executes the\nactual request, and requires a post-state violation. Only that result skips\nthe other pass. An uncertified pass-1 model is `unknown`; it does not carry\nthe new `refuted` marker. The existing failed-proof elimination policy is\notherwise unchanged. The exact end now bounds refinement, decision, part\ngrowth, and final growth; supportBudget remains the caller-priority owner.\n\nValidation: `t16-check-v1` has 23 pass / 0 fail / 2,572 assertions, plus\nTypeScript and type-aware lint. `t16-probe-v1` is running three strict paired\nrepeats against main and three against the clean T-14 parent (`8b44e4b3`).\nThese changes are NOT covered by the T-14 iteration results or a Lane D\nmerge receipt. Geometry-biased finite sampling is now under test; Lane C owns 16.4.
+
+First-half measurement (`t16-probe-v1`, six pairs on AMD Ryzen 9 9950X):
+all six candidate runs end cleanly at 59.12–59.42 seconds, all `unknown`.
+All 214 completed candidate attempts are within 1.011× their declared share
+(the actual maximum is 1.010216); no >1.1× attempt. **16.1's prediction is
+falsified:** zero completed models certify as genuine relative CTIs; each
+fails the whole-family predecessor check. The initial family remains 35,
+round 0 never completes, and safety is not reached. The second-half sampler
+is therefore necessary. Raw results and all classifications are retained
+in `t16-probe-v1/` and `t16-probe-inspect.json`. The inspector initially
+included later baseline phases on odd repeats; it was corrected to stop at
+the candidate's own end marker before reporting any of these numbers.
+
+The committed first half (`c9d7f823`) is confirmed again in `t16-confirm`:
+23 tests / 2,572 assertions, type/lint checks and commitlint all pass. The
+new boundary-state tests pass; their first type check found a test-record
+annotation missing the `ms` field, now repaired. `t16-frontier-v1` is running
+that exact repair plus three bounded-generation repeats. The new sampler
+uses only law atoms (guards, one-sided cubes, and exact field bounds), and
+its entire pass has a two-second local cap; timeout retains only already
+certified drops and cannot extend an earlier outer deadline.
+
+Second-half first probe (`t16-frontier-v1`): three identical 34-law outputs,
+zero generation queries. The finite pass removes six laws, including the
+five earlier removals and **CV at most 2**, but this is only **one of the
+seven** costly survivors. The required tiny-state fallback is therefore in
+progress in an isolated new module. This is not reported as success of the
+five-law prediction. The first raw local cap finished at 2,000.2–2,001.7 ms;
+the implementation now reserves the existing generic wall-completion
+headroom (1,900 ms active allowance) and is being remeasured in
+`t16-filter-v2` now confirms all six paired filter walls at 1,900.05–1,901.27 ms, zero queries, on an isolated AMD Ryzen 9 9950X. Random-only filtering removes none within that cap; boundary-first filtering removes the same six in all three repeats. Every drop is independently rechecked against the round’s full family and the interpreter’s actual step. Complete generation is still 31.56–34.45 s: sampled-state
+construction costs 16.00–19.81 s and scalar cube construction
+10.29–15.52 s, which is concrete input for Lane C's 16.4 work.
+
+The older audit/replay jobs are now terminal. `t14-replay-v1` has eight root
+replays: all return an abstract `sat`, none a checked proof, at their original
+2,838/3,004-unit allowances. Three concrete audits (including the symbolic
+identity diagnostic) establish no genuine relative CTI. These are research
+root replays, not full-helper or end-to-end proofs. No owned old T-14 job
+remains pending. The 28 unaffected protocols are now running x3 from an
+immutable `c9d7f823` archive against immutable `b788e195`, not the changing
+working tree (`t16-others-v1`). These are iteration probes, not Lane D's
+final merge gate.\n
 
 # Track P report
 

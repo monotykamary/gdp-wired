@@ -2,7 +2,9 @@
 // unknown; only an actual enabled step from a state satisfying the WHOLE
 // current family may remove a non-caller. The checked prover sees survivors.
 import {type C, type E, type Law, type Machine, type Request, type State, carriedView, compileC, compileE, fastStep, interpret, seeded, walk} from './machine.ts'
-import {checkWall, WallExpired} from './wall.ts'
+import {checkWall, searchWall, WallExpired} from './wall.ts'
+import {boundaryState, lawFrontiers} from './finite-frontiers.ts'
+import {wallAt, withWall} from '../kernel/prove.ts'
 type Env = Record<string, number>
 type Samples = {p: Env, sts: State[]}[]
 type Truth = boolean | undefined
@@ -94,8 +96,25 @@ export function finiteEvaluator(m: Machine, stop: () => boolean = () => false): 
 }
 export type FiniteDrop = {round: number, law: Law, params: Env, pre: State, request: Request, post: State}
 export const finiteDump: {onStart?: (value: {machine: Machine, caller: Law[], candidates: Law[]}) => void, onDrop?: (drop: FiniteDrop) => void} = {}
-export type FiniteOptions = {randomStates?: number, requests?: number, seed?: number, onDrop?: (drop: FiniteDrop) => void, onRound?: (row: {round: number, alive: number, dropped: number, randomStates: number, steps: number}) => void}
+export type FiniteOptions = {randomStates?: number, requests?: number, seed?: number, targeted?: boolean, wallMs?: number, onFinish?: (row: {timedOut: boolean, ms: number, dropped: number}) => void, onDrop?: (drop: FiniteDrop) => void, onRound?: (row: {round: number, alive: number, dropped: number, randomStates: number, steps: number}) => void}
 export function finiteHoudini(source: Machine, m: Machine, caller: Law[], candidates: Law[], samples: Samples, options: FiniteOptions = {}): Law[] {
+  const start = performance.now(), end = Math.min(wallAt(), searchWall(Math.max(0, options.wallMs ?? 2_000)))
+  let survivors = candidates.slice(), timedOut = false
+  try {
+    return withWall(end, () => finiteHoudiniWithin(source, m, caller, candidates, samples, {...options, onDrop: drop => {
+      survivors = survivors.filter(law => law !== drop.law)
+      options.onDrop?.(drop)
+    }}))
+  } catch (error) {
+    if (!(error instanceof WallExpired)) throw error
+    // An enclosing deadline must still cancel the caller. Only expiration of
+    // this local sampling allowance returns the already-certified survivors.
+    checkWall('finite sampling completion')
+    timedOut = true
+    return survivors
+  } finally { options.onFinish?.({timedOut, ms: performance.now() - start, dropped: candidates.length - survivors.length}) }
+}
+function finiteHoudiniWithin(source: Machine, m: Machine, caller: Law[], candidates: Law[], samples: Samples, options: FiniteOptions): Law[] {
   finiteDump.onStart?.({machine: m, caller, candidates})
   const evaluate = finiteEvaluator(m), rng = seeded(options.seed ?? 17), run = interpret(source), step = fastStep(source) ?? run.step
   const base = samples.flatMap(({p, sts}) => sts.map(st => ({p, st})))
@@ -131,6 +150,16 @@ export function finiteHoudini(source: Machine, m: Machine, caller: Law[], candid
         for (const law of alive) if (!protectedLaws.has(law) && !removed.has(law) && evaluate(law, p, post) === false) { removed.add(law); const drop = {round, law, params: p, pre, request, post}; options.onDrop?.(drop); finiteDump.onDrop?.(drop) }
       }
       return true
+    }
+    // Use each law's own atoms before spending the random budget: a cube's
+    // one-sided boundary, a guard enabled, or a bounded field at its limit.
+    const frontiers = options.targeted === false ? [] : alive.flatMap(law => lawFrontiers(law).map(conditions => ({law, conditions})))
+    for (let i = 0; frontiers.length && i < Math.min(requested, frontiers.length * 8); i++) {
+      checkWall('finite frontiers')
+      const {p, st: old} = base[rng(base.length)]!, {law, conditions} = frontiers[i % frontiers.length]!
+      const bound = Math.max(1, ...Object.values(p)), keys = Object.fromEntries([law.forall, ...law.keys ?? []].filter((k): k is string => !!k).map(k => [k, rng(bound)]))
+      const st = boundaryState(source, m, conditions, p, old, keys)
+      if (st) visit(p, st)
     }
     for (const {p, st} of base) visit(p, st)
     for (let tries = 0; accepted < requested && tries < Math.max(requested * 8, requested); tries++) {

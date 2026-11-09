@@ -375,6 +375,7 @@ export function candidates(src: Parameters<typeof inferLaws>[0], m: Machine, cal
     if (liftedOneKeyCounts(source, m).some(name => liftedCounts.has(name))) {
       out.push(...ptime('countCubes', () => countCubes(source, m, states, liftedCounts).filter(admit)))
       out = ptime('finiteHoudini', () => finiteHoudini(source, m, caller, out, states, {
+        onFinish: row => { if (env.GDP_COUNTS_TRACE) console.error(`counts: finite result ${JSON.stringify(row)}`) },
         onDrop: d => { if (env.GDP_COUNTS_TRACE) console.error(`counts: finite drop ${d.round} ${d.law.name}`) },
         onRound: row => { if (env.GDP_COUNTS_TRACE) console.error(`counts: finite Houdini ${JSON.stringify(row)}`) },
       }))

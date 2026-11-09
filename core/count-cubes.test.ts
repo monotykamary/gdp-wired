@@ -3,6 +3,7 @@ import {type Machine, type Law, type State, all, any, atMost, get, ite, less, n,
 import {countCubes} from './count-cubes.ts'
 import {finiteEvaluator, finiteHoudini} from './finite-houdini.ts'
 import {finiteModelChecker} from './finite-model.ts'
+import {boundaryState, lawFrontiers} from './finite-frontiers.ts'
 import {holdsAt} from './exists.ts'
 import {WallExpired} from './wall.ts'
 import {withWall} from '../kernel/prove.ts'
@@ -78,6 +79,37 @@ test('an unsupported predecessor law cannot certify a finite model', () => {
   const m = counter(), zero = {name: 'zero', holds: same(x('value'), n(0))}
   const unsupported: Law = {name: 'unbounded', forall: 'i', holds: same(times(2, x('i')), x('i'))}
   expect(finiteModelChecker(m)([zero, unsupported], zero, {value: 0}).genuine).toBe(false)
+})
+
+test('finite frontiers expose both one-sided cube boundaries and field limits', () => {
+  const a = same(x('a'), n(1)), b = same(x('b'), n(1)), cube: Law = {name: 'cube', holds: not(all(a, b))}
+  const frontiers = lawFrontiers(cube)
+  expect(frontiers).toContainEqual([a, not(b)])
+  expect(frontiers).toContainEqual([b, not(a)])
+  expect(lawFrontiers({name: 'bound', holds: atMost(x('a'), n(2))})).toEqual([[same(x('a'), n(2))]])
+})
+test('finite boundary states update real count bodies without mutating samples', () => {
+  const source: Machine = {name: 'row', params: ['n'], inputs: [], state: {ready: n(0)}, maps: {Rows: 0}, step: {}}
+  const m: Machine = {...source, counts: {Count: {j: 'row', key: 'member', below: x('n'), body: ite(same(get('Rows', plus(times(8, x('row')), x('member'))), n(1)), n(1), n(0))}}}
+  const old: State = {scalars: {ready: 0}, maps: {Rows: new Map()}}, condition = same(get('Count', n(1)), n(2))
+  const st = boundaryState(source, m, [condition, same(x('ready'), n(1))], {n: 3}, old, {})!
+  expect(st).toBeDefined()
+  expect(finiteEvaluator(m)({name: 'boundary', holds: condition}, {n: 3}, st)).toBe(true)
+  expect(st.scalars.ready).toBe(1)
+  expect(old.maps.Rows!.size).toBe(0)
+  expect(old.scalars.ready).toBe(0)
+  expect(boundaryState(source, m, [same(get('Count', n(0)), n(4))], {n: 3}, old, {})).toBeUndefined()
+})
+
+test('a finite sampling allowance returns survivors but never extends the outer wall', () => {
+  const m = counter(), law = {name: 'zero', holds: same(x('value'), n(0))}, results: {timedOut: boolean, dropped: number, ms: number}[] = []
+  expect(finiteHoudini(m, m, [], [law], [{p: {}, sts: [state(0)]}], {wallMs: 0, onFinish: row => results.push(row)})).toEqual([law])
+  expect(results).toEqual([{timedOut: true, dropped: 0, ms: expect.any(Number)}])
+})
+
+test('completed finite drops survive cancellation of the rest of the local pass', () => {
+  const m = counter(), law = {name: 'zero', holds: same(x('value'), n(0))}
+  expect(finiteHoudini(m, m, [], [law], [{p: {}, sts: [state(0)]}], {randomStates: 0, requests: 1, onDrop: () => { throw new WallExpired('after certified drop') }})).toEqual([])
 })
 
 test('finite filtering obeys the outer wall rather than extending it', () => {
