@@ -16,12 +16,35 @@ negative controls), **not** an Inv1758 performance fix or a full-helper proof.
 No production scheduling change is promoted. Exact source/test/runner hashes,
 paired results, CPU labels and validation: `runs/mldr-rows-guard-v3/`.
 
-The next discriminator must enter the proof-producing guarded closure, not
-merely change metadata used for the initial witness selection. Lane B's old
-early-focused failure is retained as contrary evidence; a new experiment
-must isolate the new strict-bound source under that route, not repeat its
-old row/eager-member/cap experiments. Original-harness and final-gate status
-remain unchanged and unproved.
+The validated repair and complete negative evidence are committed in
+**`9528c134`**. The follow-up focused-route batch `20261110-031705-ar91sv`
+also completed: **25 downstream tests / 76 assertions pass**, but all eight
+focused-only / one-third-share arms remain unproved. The unit-limited
+one-third pair is exactly unchanged at **2700.696015 units** (900.543481
+focused + 1800.152534 ordinary). The other runs are wall-censored; their
+lower reached work is not a speedup. Measurements and placement:
+`runs/mldr-rows-focus-guard-v1/`. The retained operation trace reaches a
+scalar SAT hint on op4, then a 192-hypothesis field query remains unknown;
+these are not validated counterexamples or checked operation closures.
+
+The next disposable hypothesis is the field-only demand gate: closure
+requires two live count reads in the claim, while Inv1758 claims primitive
+fields. A bounded declaration-backed bridge selects existing pre-count
+reads and already proposed coupled reads, without adding any premise.
+Paired/test task `981ca35b-2773-4d0d-b1f7-bf306f456c61`, batch
+`20261110-032020-cxko7e`, is active in `runs/mldr-rows-field-demand-v1/`.
+The prototype's four paired arms remain unproved; one pair is fully
+unit-limited and the other candidate arm is wall-censored. The first source
+check failed because the mounted `.ts` payloads were typechecked at their
+data-directory paths, not their copied module paths; tests did not run.
+The packaging-only replacement (`20261110-032233-wyx97d`) passes source
+check with zero warnings/errors and **31 tests / 90 assertions**, including
+checked primitive-field closure and the false-union negative control. Exact
+helper/test byte equality is recorded. No proof jobs were repeated. The
+new gate is reached (ten field-demand events and eight internal cut events),
+but no whole helper or independently replayed operation proof is claimed. Production closure source is unchanged. Lane B's old
+row/eager-member/cap failures remain contrary evidence.
+Original-harness and final-gate status remain unchanged and unproved.
 
 
 ## Inv1758: first schedules rejected; strict-bound gap isolated

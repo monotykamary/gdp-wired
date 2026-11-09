@@ -1,0 +1,14 @@
+{
+  "batch": "20261110-031705-ar91sv",
+  "task": "491a39f8-e02a-4680-9b9b-288b1c5b3808",
+  "sourceCommit": "9528c134",
+  "productionDelta": "member-inclusions.ts: a27effa47270110be45afe4a4596430612c8da2c34b3d57ee6e3245eac85ec1e -> 0a3d72ea6a22e2dde9e5758d431672954c178deec81dffe9c3946af2eabc845b",
+  "modes": [
+    "only",
+    "third"
+  ],
+  "budget": 2700,
+  "wallMs": 4800,
+  "jobs": 5,
+  "status": "pending"
+}

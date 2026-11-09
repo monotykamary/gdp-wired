@@ -1,0 +1,11 @@
+{
+  "batch": "20261110-032233-wyx97d",
+  "sourceWarnings": 0,
+  "sourceErrors": 0,
+  "tests": 31,
+  "assertions": 90,
+  "failures": 0,
+  "positiveKernelReplay": true,
+  "falseUnionNegativeControl": true,
+  "productionClosureUnchanged": true
+}

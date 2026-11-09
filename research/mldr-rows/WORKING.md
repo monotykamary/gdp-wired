@@ -12,6 +12,38 @@ control at 2700.233514 units / nine rounds; early completion exactly matches
 its prior 2700.272896 / five rounds. Row-first stops at the wall. This is a
 tested correctness repair, not a measured search improvement. Preserve the
 negative result and test the proof-producing guarded closure next.
+Committed source/evidence: `9528c134`.
+
+Active five-job experiment: `491a39f8-e02a-4680-9b9b-288b1c5b3808`, output
+`runs/mldr-rows-focus-guard-v1/`. Paired old/new guards use the existing
+focused-only and one-third-share entry modes at 2700 units, plus downstream
+closure/field/guard/focused regression tests. This isolates the new guard
+from Lane B's historical failed early-focus scheduling experiment.
+
+### Active field-only demand discriminator
+
+Focused guard comparison also failed all eight arms; 25 downstream tests /
+76 assertions passed. A unit-limited third-share pair was exactly unchanged
+at 2700.696015 units. The retained per-operation trace has no checked full
+proof; op4 reaches a scalar SAT hint followed by a 192-hypothesis unknown.
+
+Static call-chain evidence: `deriveCountClosure` immediately returns unless
+the claim itself identifies at least two count reads. Inv1758 has a primitive
+field claim. The new **disposable-only** prototype finds pre-counts whose
+declarations read an exact claimed primitive cell, and their already
+proposed coupled reads (cap 12). No fact, law, or count instance is added.
+
+Task `981ca35b-2773-4d0d-b1f7-bf306f456c61` compares that bridge in both
+orders at 2700 units and adds scalar-field positive/negative kernel replay.
+Production `derivability-closure.ts` is unchanged. The four measured arms
+returned unproved. Source check failed because mounted `.ts` payload files
+were also typechecked at the wrong data-root relative path; tests did not
+run. Packaging-only v2 uses `.txt` payloads and identical copied source.
+Validation-only batch `20261110-032233-wyx97d` passes source check and
+31 tests / 90 assertions, including positive and negative scalar-field
+closure fixtures. No proof run was repeated. The recovered candidate trace
+has ten field-demand events and eight internal cut events, but all four
+full arms remain unproved. Production closure is still unchanged.
 
 ### Earlier hypothesis and submission history
 

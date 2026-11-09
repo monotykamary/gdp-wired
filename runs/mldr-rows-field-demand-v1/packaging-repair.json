@@ -1,0 +1,10 @@
+{
+  "productionClosureUnchanged": true,
+  "identicalHelperSource": true,
+  "hashes": {
+    "field-count-demand.ts": "94f493e7503a25f9fae4d34c3665c4419259c4671cda155658a322fa4fa639ad",
+    "field-count-demand.test.ts": "1f959e1e17264a316ee4404ddd253a18daabaf713b831a3da4c1c78f2b781f3a"
+  },
+  "validationOnlyTask": "907006c4-f06a-4cae-b0f0-f6fe9747ed06",
+  "proofsRepeated": false
+}
