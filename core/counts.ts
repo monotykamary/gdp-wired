@@ -861,10 +861,6 @@ export function countedAttempts(m: Machine, caller: Law[], support: Set<Law>, un
       tally('#lazy', bad.length)
       return bad.length > 0
     })
-    let built = build()
-    const observe = (b: ReturnType<typeof build>[number], phase: string, witness?: Record<string, number>) => {
-      if (countsDump.on) countsDump.on({law: law.name, goal: b.goal.name, pass, phase, generation: {...generation.state}, machine: m, laws: ls, rawGoal: b.goal, decls: b.decls, instances: at, certificateRequest: b.c, hyps: b.gg?.hyps, witness, seedCount})
-    }
     let countCompleted = false
     const completeCounts = (): boolean => {
       if (!pass || countCompleted) return false
@@ -875,6 +871,13 @@ export function countedAttempts(m: Machine, caller: Law[], support: Set<Law>, un
       tally('#count-completion', completion.added.length)
       countsDump.on?.({law: law.name, pass, phase: 'count-completion', added: completion.added})
       return true
+    }
+    // Complete existing count-law instances before paying for discovery queries.
+    // Field-only targets keep their original lazy completion path.
+    if (pass && reads(law.holds, isCount).size) completeCounts()
+    let built = build()
+    const observe = (b: ReturnType<typeof build>[number], phase: string, witness?: Record<string, number>) => {
+      if (countsDump.on) countsDump.on({law: law.name, goal: b.goal.name, pass, phase, generation: {...generation.state}, machine: m, laws: ls, rawGoal: b.goal, decls: b.decls, instances: at, certificateRequest: b.c, hyps: b.gg?.hyps, witness, seedCount})
     }
     let decideStep = decisions.get(id)
     if (!decideStep) {

@@ -1,0 +1,456 @@
+{
+  "conditional": true,
+  "standalone": true,
+  "gateGreen": false,
+  "validationExit": 2,
+  "checks": {
+    "base": 2,
+    "candidate": 2
+  },
+  "source": "9c8a07ba",
+  "control": "47215336",
+  "rows": [
+    {
+      "name": "p1-ab",
+      "cpu": {
+        "vm": "bx_7m649ges",
+        "type": "large",
+        "cpu": "AMD Ryzen 9 9950X 16-Core Processor",
+        "vcpus": 8,
+        "vm_vcpus": 8,
+        "exclusive": true,
+        "co_tenants": 0
+      },
+      "logSha256": "0fe51bd51fb58b2167fefeba76fbd055f38d7ed9538d46691d40777d1a464fa9",
+      "archive": {
+        "artifact": "track-m-tar-v1",
+        "dir": "/home/user/track-m-s18-receipts-on70Bh",
+        "format": "tar.gz",
+        "parts": 6,
+        "bytes": 823649,
+        "sha256": "ee3b86b2de67abcf2c09d75013990a39213bb23ccea53f607406bdbd2d6bf0f2"
+      },
+      "arms": [
+        {
+          "side": "before",
+          "tag": "p1",
+          "law": "count cubes: every x with x < {\"op\":\"var\",\"name\":\"size\"}: never CV[x] is 0 and 1 <= inX$row[x]",
+          "checked": true,
+          "units": 2175.5122859999997,
+          "wallMs": 2826.00384,
+          "withinDiagnosticLine": true,
+          "results": [
+            {
+              "pass": 1,
+              "outcome": "proof",
+              "units": 2175.5122859999997,
+              "wallMs": 2622.612357
+            }
+          ],
+          "memberPremiseEvents": 0,
+          "memberPremiseTuples": 0,
+          "rowPremiseEvents": 0,
+          "rowPremiseTuples": 0,
+          "originalFamilyVerified": true
+        },
+        {
+          "side": "after",
+          "tag": "p1",
+          "law": "count cubes: every x with x < {\"op\":\"var\",\"name\":\"size\"}: never CV[x] is 0 and 1 <= inX$row[x]",
+          "checked": true,
+          "units": 2175.5122859999997,
+          "wallMs": 2565.297836,
+          "withinDiagnosticLine": true,
+          "results": [
+            {
+              "pass": 1,
+              "outcome": "proof",
+              "units": 2175.5122859999997,
+              "wallMs": 2339.053143
+            }
+          ],
+          "memberPremiseEvents": 0,
+          "memberPremiseTuples": 0,
+          "rowPremiseEvents": 0,
+          "rowPremiseTuples": 0,
+          "originalFamilyVerified": true
+        }
+      ],
+      "unitDelta": 0,
+      "wallDeltaMs": -260.70600399999967
+    },
+    {
+      "name": "p1-ba",
+      "cpu": {
+        "vm": "bx_7y8uwqen",
+        "type": "large",
+        "cpu": "AMD Ryzen 9 9950X 16-Core Processor",
+        "vcpus": 8,
+        "vm_vcpus": 8,
+        "exclusive": true,
+        "co_tenants": 0
+      },
+      "logSha256": "51ed0a8d080f14c594bc9cd209f45cf77ce311b88fdab8875a0a81d161a4f8ef",
+      "archive": {
+        "artifact": "track-m-tar-v1",
+        "dir": "/home/user/track-m-s18-receipts-BvPGU8",
+        "format": "tar.gz",
+        "parts": 6,
+        "bytes": 815780,
+        "sha256": "7f19f07b87d8e35460c65c914b05dfe98aeef75133a3b2328ebd74d06104b509"
+      },
+      "arms": [
+        {
+          "side": "after",
+          "tag": "p1",
+          "law": "count cubes: every x with x < {\"op\":\"var\",\"name\":\"size\"}: never CV[x] is 0 and 1 <= inX$row[x]",
+          "checked": true,
+          "units": 2175.5122859999997,
+          "wallMs": 3373.055614,
+          "withinDiagnosticLine": true,
+          "results": [
+            {
+              "pass": 1,
+              "outcome": "proof",
+              "units": 2175.5122859999997,
+              "wallMs": 3015.23616
+            }
+          ],
+          "memberPremiseEvents": 0,
+          "memberPremiseTuples": 0,
+          "rowPremiseEvents": 0,
+          "rowPremiseTuples": 0,
+          "originalFamilyVerified": true
+        },
+        {
+          "side": "before",
+          "tag": "p1",
+          "law": "count cubes: every x with x < {\"op\":\"var\",\"name\":\"size\"}: never CV[x] is 0 and 1 <= inX$row[x]",
+          "checked": true,
+          "units": 2175.5122859999997,
+          "wallMs": 3607.3464529999997,
+          "withinDiagnosticLine": true,
+          "results": [
+            {
+              "pass": 1,
+              "outcome": "proof",
+              "units": 2175.5122859999997,
+              "wallMs": 3321.0820089999997
+            }
+          ],
+          "memberPremiseEvents": 0,
+          "memberPremiseTuples": 0,
+          "rowPremiseEvents": 0,
+          "rowPremiseTuples": 0,
+          "originalFamilyVerified": true
+        }
+      ],
+      "unitDelta": 0,
+      "wallDeltaMs": -234.29083899999978
+    },
+    {
+      "name": "rows-ab",
+      "cpu": {
+        "vm": "bx_76nnjrpb",
+        "type": "large",
+        "cpu": "AMD Ryzen 9 9950X 16-Core Processor",
+        "vcpus": 8,
+        "vm_vcpus": 8,
+        "exclusive": true,
+        "co_tenants": 0
+      },
+      "logSha256": "a12acc053c6a61d08c7109737971dabaee41c42b2839beb5634903559739c51a",
+      "archive": {
+        "artifact": "track-m-tar-v1",
+        "dir": "/home/user/track-m-s18-receipts-qzjjAR",
+        "format": "tar.gz",
+        "parts": 6,
+        "bytes": 798993,
+        "sha256": "c35e29754a82c3e478446a5344634f80286e6db7ad9d749bcf212e310fe20483"
+      },
+      "arms": [
+        {
+          "side": "before",
+          "tag": "rows",
+          "law": "fields: CV[a]=CV[b] and CfgT[a]=CfgT[b] -> Config rows agree",
+          "checked": false,
+          "units": 3108.828302,
+          "wallMs": 7036.000108,
+          "withinDiagnosticLine": false,
+          "results": [
+            {
+              "pass": 1,
+              "outcome": "unknown",
+              "units": 3108.828302,
+              "wallMs": 7033.27307
+            },
+            {
+              "pass": 0,
+              "outcome": "unknown",
+              "units": 0,
+              "wallMs": 0.38443200000074285
+            }
+          ],
+          "memberPremiseEvents": 0,
+          "memberPremiseTuples": 0,
+          "rowPremiseEvents": 0,
+          "rowPremiseTuples": 0,
+          "originalFamilyVerified": true
+        },
+        {
+          "side": "after",
+          "tag": "rows",
+          "law": "fields: CV[a]=CV[b] and CfgT[a]=CfgT[b] -> Config rows agree",
+          "checked": false,
+          "units": 6000.256105999999,
+          "wallMs": 5859.057028,
+          "withinDiagnosticLine": false,
+          "results": [
+            {
+              "pass": 1,
+              "outcome": "unknown",
+              "units": 6000.256105999999,
+              "wallMs": 5857.780659
+            }
+          ],
+          "memberPremiseEvents": 0,
+          "memberPremiseTuples": 0,
+          "rowPremiseEvents": 1,
+          "rowPremiseTuples": 64,
+          "originalFamilyVerified": true
+        }
+      ],
+      "unitDelta": 2891.427803999999,
+      "wallDeltaMs": -1176.94308
+    },
+    {
+      "name": "rows-ba",
+      "cpu": {
+        "vm": "bx_bucc8x77",
+        "type": "large",
+        "cpu": "AMD EPYC 9455 48-Core Processor",
+        "vcpus": 8,
+        "vm_vcpus": 8,
+        "exclusive": true,
+        "co_tenants": 0
+      },
+      "logSha256": "5469b52d9b400240a277b149b656c4414b39932241b5f1beafef8a89c4b16f48",
+      "archive": {
+        "artifact": "track-m-tar-v1",
+        "dir": "/home/user/track-m-s18-receipts-s1y89i",
+        "format": "tar.gz",
+        "parts": 7,
+        "bytes": 965422,
+        "sha256": "abe9e849e4e6e4308fe40f1d1ef2d13eb6cd32a78f4ddd7ddbb9e7b05ef764fd"
+      },
+      "arms": [
+        {
+          "side": "after",
+          "tag": "rows",
+          "law": "fields: CV[a]=CV[b] and CfgT[a]=CfgT[b] -> Config rows agree",
+          "checked": false,
+          "units": 6000.256105999999,
+          "wallMs": 4628.299735,
+          "withinDiagnosticLine": false,
+          "results": [
+            {
+              "pass": 1,
+              "outcome": "unknown",
+              "units": 6000.256105999999,
+              "wallMs": 4626.3356619999995
+            }
+          ],
+          "memberPremiseEvents": 0,
+          "memberPremiseTuples": 0,
+          "rowPremiseEvents": 1,
+          "rowPremiseTuples": 64,
+          "originalFamilyVerified": true
+        },
+        {
+          "side": "before",
+          "tag": "rows",
+          "law": "fields: CV[a]=CV[b] and CfgT[a]=CfgT[b] -> Config rows agree",
+          "checked": false,
+          "units": 6000.308358,
+          "wallMs": 5159.785063,
+          "withinDiagnosticLine": false,
+          "results": [
+            {
+              "pass": 1,
+              "outcome": "unknown",
+              "units": 6000.308358,
+              "wallMs": 5158.800963
+            }
+          ],
+          "memberPremiseEvents": 0,
+          "memberPremiseTuples": 0,
+          "rowPremiseEvents": 0,
+          "rowPremiseTuples": 0,
+          "originalFamilyVerified": true
+        }
+      ],
+      "unitDelta": -0.052252000001317356,
+      "wallDeltaMs": -531.4853280000007
+    },
+    {
+      "name": "star-ab",
+      "cpu": {
+        "vm": "bx_7y8uwqen",
+        "type": "large",
+        "cpu": "AMD Ryzen 9 9950X 16-Core Processor",
+        "vcpus": 8,
+        "vm_vcpus": 8,
+        "exclusive": true,
+        "co_tenants": 0
+      },
+      "logSha256": "3cfa6c19ecf2b52fe0d2a3a972f143ad88d2a0dd41e0233de6e9fe39817c3644",
+      "archive": {
+        "artifact": "track-m-tar-v1",
+        "dir": "/home/user/track-m-s18-receipts-NDf5pK",
+        "format": "tar.gz",
+        "parts": 11,
+        "bytes": 1608734,
+        "sha256": "181bf9c1fe3e083693d95d2255b68ea19ca3439194ebb97bd95f2eeff419f8bb"
+      },
+      "arms": [
+        {
+          "side": "before",
+          "tag": "star",
+          "law": "inX: no quorum canVote/3",
+          "checked": false,
+          "units": 6001.712424,
+          "wallMs": 6414.175025,
+          "withinDiagnosticLine": false,
+          "results": [
+            {
+              "pass": 1,
+              "outcome": "unknown",
+              "units": 6001.712424,
+              "wallMs": 6411.411368
+            }
+          ],
+          "memberPremiseEvents": 0,
+          "memberPremiseTuples": 0,
+          "rowPremiseEvents": 0,
+          "rowPremiseTuples": 0,
+          "originalFamilyVerified": true
+        },
+        {
+          "side": "after",
+          "tag": "star",
+          "law": "inX: no quorum canVote/3",
+          "checked": false,
+          "units": 4977.447866,
+          "wallMs": 7009.566148,
+          "withinDiagnosticLine": false,
+          "results": [
+            {
+              "pass": 1,
+              "outcome": "unknown",
+              "units": 4977.447866,
+              "wallMs": 7005.715724000001
+            },
+            {
+              "pass": 0,
+              "outcome": "unknown",
+              "units": 0,
+              "wallMs": 0.2567170000002079
+            }
+          ],
+          "memberPremiseEvents": 0,
+          "memberPremiseTuples": 0,
+          "rowPremiseEvents": 0,
+          "rowPremiseTuples": 0,
+          "originalFamilyVerified": true
+        }
+      ],
+      "unitDelta": -1024.2645579999999,
+      "wallDeltaMs": 595.3911230000003
+    },
+    {
+      "name": "star-ba",
+      "cpu": {
+        "vm": "bx_by6phc8p",
+        "type": "large",
+        "cpu": "AMD Ryzen 9 9950X 16-Core Processor",
+        "vcpus": 8,
+        "vm_vcpus": 8,
+        "exclusive": true,
+        "co_tenants": 0
+      },
+      "logSha256": "9f0eb5f1e792c5d9d5306a67f68e63013b91d7e89ef88cd920a3ca541d0bf183",
+      "archive": {
+        "artifact": "track-m-tar-v1",
+        "dir": "/home/user/track-m-s18-receipts-9n6ImF",
+        "format": "tar.gz",
+        "parts": 11,
+        "bytes": 1550628,
+        "sha256": "ed6cdc75442b9a2a18ddd4f2cc736c6fb8593cb46231aacba16a43a2c9b60abd"
+      },
+      "arms": [
+        {
+          "side": "after",
+          "tag": "star",
+          "law": "inX: no quorum canVote/3",
+          "checked": false,
+          "units": 4958.603796,
+          "wallMs": 7013.895955,
+          "withinDiagnosticLine": false,
+          "results": [
+            {
+              "pass": 1,
+              "outcome": "unknown",
+              "units": 4958.603796,
+              "wallMs": 7009.74484
+            },
+            {
+              "pass": 0,
+              "outcome": "unknown",
+              "units": 0,
+              "wallMs": 0.2375160000001415
+            }
+          ],
+          "memberPremiseEvents": 0,
+          "memberPremiseTuples": 0,
+          "rowPremiseEvents": 0,
+          "rowPremiseTuples": 0,
+          "originalFamilyVerified": true
+        },
+        {
+          "side": "before",
+          "tag": "star",
+          "law": "inX: no quorum canVote/3",
+          "checked": false,
+          "units": 3851.1953520000006,
+          "wallMs": 7009.9459130000005,
+          "withinDiagnosticLine": false,
+          "results": [
+            {
+              "pass": 1,
+              "outcome": "unknown",
+              "units": 3851.1953520000006,
+              "wallMs": 7005.596646
+            },
+            {
+              "pass": 0,
+              "outcome": "unknown",
+              "units": 0,
+              "wallMs": 0.27454500000021653
+            }
+          ],
+          "memberPremiseEvents": 0,
+          "memberPremiseTuples": 0,
+          "rowPremiseEvents": 0,
+          "rowPremiseTuples": 0,
+          "originalFamilyVerified": true
+        }
+      ],
+      "unitDelta": 1107.4084439999997,
+      "wallDeltaMs": 3.9500419999994847
+    }
+  ],
+  "independentAudit": {
+    "outcomes": 12,
+    "checked": 4
+  }
+}
