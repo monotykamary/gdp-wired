@@ -1,0 +1,10 @@
+{
+  "baseline":"b788e1959bba1f2e8aa1f94d4cf7c0eb163a2f9c",
+  "task":"b9e88b69-007f-497f-ada0-eb503b961f07",
+  "jobs":"research/lane-i/regressions/merge-cohort-wave5.jobs.json",
+  "class":"submission",
+  "cohortRange":[401,472],
+  "purpose":"Fill the still-incomplete historical five-repeat coverage; independent of the new-main final gate",
+  "status":"controller-started-admission-not-yet-recorded",
+  "finalGate":false
+}
