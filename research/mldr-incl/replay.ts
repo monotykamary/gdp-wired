@@ -1,6 +1,8 @@
 // Frozen conditional safety packets. All additions are original universal
 // instances; every returned numeric tree is checked against its rebuilt packet.
 import {readFileSync} from 'node:fs'
+import {brotliDecompressSync} from 'node:zlib'
+import {createHash} from 'node:crypto'
 import {type E,walkOnce,x} from '../../core/machine.ts'
 import {countLawSeeds} from '../../core/count-focused.ts'
 import {candidateWork,grammarPool,smallSelection} from '../../core/count-support.ts'
@@ -8,7 +10,7 @@ import {preferMemberInclusions,memberInclusions} from '../../core/count-recovery
 import {seedCountWitnessFlags} from '../../core/count-witness-flags.ts'
 import {check,checkMC,countedObligations,mcGoal} from '../../kernel/kernel.ts'
 import {clock,counted,fullRate,fullWork,grow,withWall} from '../../kernel/prove.ts'
-const [file,mode='raw',msText='1000']=process.argv.slice(2),d=JSON.parse(readFileSync(file!,'utf8')),ms=Number(msText),start=performance.now(),work=fullWork()
+const [file,mode='raw',msText='1000']=process.argv.slice(2),[archive,entry]=file!.split('#'),text=entry?JSON.parse(brotliDecompressSync(readFileSync(archive!)).toString())[entry]:readFileSync(file!,'utf8'),d=JSON.parse(text),inputSha256=createHash('sha256').update(text).digest('hex'),ms=Number(msText),start=performance.now(),work=fullWork()
 const answer=withWall(start+Math.max(1000,ms*4),()=>counted(fullRate,()=>{
  const until=clock()+ms
  let raw=d.rawGoal,decls=d.decls,cert=d.certificateRequest,goal=typeof d.goal==='object'?d.goal:d.hyps?{name:d.goal,hyps:d.hyps}:undefined,preferred=0,seeded=false,addedLawTerms=0,poolAdded=0
@@ -28,4 +30,4 @@ const answer=withWall(start+Math.max(1000,ms*4),()=>counted(fullRate,()=>{
  const out=grow(goal,new Map(),{nodes:0,until}),proven='tree'in out,checked=proven&&(raw&&cert?checkMC(raw.hyps,decls,{...cert,tree:out.tree}):check(goal,out.tree))
  return {mode,ms,goal:goal.name,hyps:goal.hyps.length,preferred,seeded,addedLawTerms,poolAdded,proven,checked,...(!proven?{stuck:out.stuck,why:out.why}:{}),...(raw&&cert?{selected:cert.insts.map((q:any)=>({terms:q.terms,unit:q.unit}))}:{})}
 },true))
-console.log(JSON.stringify({...answer,wallMs:performance.now()-start,countedMs:(fullWork()-work)/fullRate}))
+console.log(JSON.stringify({...answer,inputSha256,wallMs:performance.now()-start,countedMs:(fullWork()-work)/fullRate}))

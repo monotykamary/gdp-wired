@@ -31,6 +31,25 @@ than buying replacement starts. Never alter another worktree.
    from this lane. Every successful replay is checked with `checkMC` (or `check`
    for an already numeric packet).
 
+## Frozen replay inputs
+
+`fixtures/safety-gp1.br` is the exact 23,581-byte captured archive from the
+unmodified pool baseline at the 2,700-unit conditional safety attempt. Its
+SHA-256 is `b96c779fda332e17778af88d76e69a8682b98de04739c1e07e6d3d4b154c0f0c`.
+It contains 39 files, with zero omissions; neither the candidate matcher nor
+new key-completion code constructs these inputs. `fixtures/e14-generated.br`
+is Lane A `1681e8e5`'s real generation output: 35 laws, zero proof queries,
+SHA-256 `4b97fb96467ee51e9b80ff0a13b33f00d2731452fd93e6191f65c17c8882d64a`.
+`replay.ts` and `conditional-safety.ts` accept `ARCHIVE.br#ENTRY.json` as well
+as a plain JSON file. Every replay records the entry's SHA-256.
+
+`make-replays.ts` deduplicates identical raw goal/instance/pool packets across
+trace phases before making the matrix: nine distinct STEP packets, four modes,
+and 250/1,000/2,700 units, for 108 independent jobs. The jobs are self-contained;
+no large `--data` stage bundle is needed. `refinement-variant.ts` is a separate
+research-only scheduling experiment: it never changes the 65,536 proposal
+ceiling or the 2,700-unit safety share and is not enabled in production.
+
 A successful conditional replay warrants strict original-harness confirmation;
 it does not warrant a merge. The full 29x3, DuoAI, broken, bar, type/lint and test
 nonregression gate is still required. See `runs/REPORT.md` for actual receipts,

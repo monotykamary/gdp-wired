@@ -1,59 +1,93 @@
-# Lane E — guarded inclusion integration (in progress)
+# Lane E — guarded inclusion integration
 
-Branch: `claude/mldr-incl`. This section supersedes the old assignment below.
-**NOT GATE GREEN; not a merge candidate yet.**
+Branch: `claude/mldr-incl`. **NOT GATE GREEN; no merge claim.**
 
-Source commits: **`f6ec83db`** (ordinary preference) and **`7dc52140`**
-(raw-pool admission and shared-cap correction).
+Production commits: **`f6ec83db`** (ordinary preference), **`7dc52140`**
+(raw lazy-pool admission and shared-cap correction). No kernel rule, trusted
+fact, protocol-name branch, or proof-budget increase was added.
 
-The existing generic member matcher now reaches `rawBuild`'s ordinary lazy
-pool through `grammarPool`. New entries use the pool's existing semantic dedup,
-fresh-witness allocation, cap and proposal meter. Initial selection can prefer
-those entries while sharing the ten-slot bound with picks. No scalar residue is
-asserted: each entry is the ordinary count-witness disjunction, and source
-branches and the final certificate still pass the unchanged kernel.
+## Implementation
 
-Checks on boat (`runs/mldr-incl-check-v1/`): `bun run check` passed and the four
-focused test files passed **86 tests, zero failures**. New tests cover bounded
-selection, reuse of the exact existing witness, immutable inputs, missing source
-flags, and refusal to manufacture a missing pool instance.
+The generic member matcher reaches `rawBuild` through `grammarPool`. Entries
+use existing semantic deduplication, fresh witnesses, the pool cap and proposal
+meter. Initial preference shares the ten-slot bound with picks. A scalar
+residue is never asserted: each entry is the ordinary count-witness
+disjunction, and source branches and final certificates pass the unchanged
+kernel. Tests cover immutable inputs, exact-witness reuse, full-cap refusal,
+missing flags, a checked generic conditional proof, and rejection of its
+unguarded strengthening.
 
-Unchanged-source original MLDR baseline (`runs/mldr-incl-baseline-v1/`): three
-strict 60 s trials returned UNKNOWN; job times were 59.59, 59.61, and 59.57 s.
-The production-query capture (`runs/mldr-incl-capture-v1/`) also returned UNKNOWN,
-ending amid generated stored-guard helper attempts. The full query ledger has
-794 rows. The bounded archive retained 142 files and omitted 752; it must not be
-represented as a complete archive of every raw stage.
+## Verified receipts
 
-The 24-job conditional matrices v1/v2 did not produce a complete receipt and
-were stopped by exact owned task ID after scheduler turnover/stalls. They are
-not acceptance evidence. The current v3 batch has only the baseline/preferred
-2,700-unit safety captures and a 55 KiB input instead of the unnecessary 51 MiB
-stage archive. All remain **conditional one-law diagnostics**, not complete
-family proofs. The optional 5,000-unit matrix points are above the target share.
+* `runs/mldr-incl-check-v8/`: type/lint and all four focused files passed:
+  **89 tests, zero failures**. This supersedes the earlier cap-expectation
+  failures; their logs remain retained.
+* `runs/mldr-incl-shards-v1/`: all seven full-suite shards exited zero on boat,
+  with one pinned large VM per shard and zero starts charged to the batch.
+* `runs/mldr-incl-baseline-v1/`: three unchanged original MLDR trials remained
+  UNKNOWN at strict 60 seconds (job times 59.59, 59.61, 59.57 seconds).
 
-Later validation (`mldr-incl-check-v3` through `v5`) exposed one replay-harness
-type error and two incorrect expectations in a synthetic bound/cap test. The
-harness type error is fixed; type/lint passed in v4/v5. The test now checks the
-new bound-specialized instance independently of invalid legacy tuples and tests
-refusal with an actually full one-entry cap. In `mldr-incl-members-v6`, the new
-generic conditional proof passed `checkMC`, and its unguarded strengthening was
-not proved. That run had **15 passes / 1 cap-expectation failure**; the corrected
-16-test rerun is pending, not claimed green.
+These are not the full paired merge gate.
 
-**Infrastructure block:** boat refused the E-14 capture submission with
-`recovery quarantined; ownership held`. Controller status reported no controller
-VM. No ownership guard or shared policy was bypassed; no other client's VMs were
-touched. The corrected member regression and two conditional captures remain
-owned pending jobs; IDs and next steps are in `research/mldr-incl/WORKING.md`.
+## Conditional safety: the failure is now localized
 
-Lane A's E-14 is now available as `1681e8e5`. A generation-only capture in an
-isolated checkout is prepared, with zero proof queries asserted and no hand law.
-Its first submission was refused before execution. Lane B's key completion is
-available as `60b8c37a`; no counterpart changes were silently imported into this
-lane. No MLDR proof improvement, integrated sub-60 s result, or gate pass is
+The first 24-job matrix lost its client during scheduler recovery, but its
+completed logs were recovered from the exact owned admission before closing
+that admission. No other client's batch or VM was touched. The frozen
+baseline safety archive has **39 files, zero omissions**, SHA-256
+`b96c779fda332e17778af88d76e69a8682b98de04739c1e07e6d3d4b154c0f0c`.
+It is retained as `research/mldr-incl/fixtures/safety-gp1.br`.
+
+At the 2,700-unit share with Gp1 (generated laws plus a supplied p1 hypothesis):
+
+| Configuration | Result | Checked proof | Counted units | Instrumented wall |
+|---|---|---|---:|---:|
+| Baseline | SAT / not proved | no | 1,868.570 | 1,887.404 ms |
+| Lane B completion only | SAT / not proved | no | 1,868.570 | 3,335.020 ms |
+| Completion + Lane E pool | SAT / not proved | no | 1,868.570 | 2,623.211 ms |
+
+These are one-law diagnostics, not proofs of the whole family, not original
+harness passes, and not a fair uninstrumented wall-time comparison.
+Completion is Lane B's `60b8c37a`, applied only in isolated experimental jobs.
+
+**Falsifier found:** before the first numeric query, the shared proposal meter
+has already consumed all **65,536** steps. The initial certificate pool contains
+only five reads. In the final raw STEP goal, quantified count laws already
+supply the needed packed quorum-count reads, but the certificate pool still
+has only those five reads. Adding a late completion callback cannot repair a
+pool whose shared proposal meter is already exhausted. The stage-0 and stage-26
+packets preserve this directly, including phase/work counters.
+
+The current fast loop compares nine distinct frozen STEP packets at
+250/1,000/2,700 units, across raw, preferred, own-key completion, and
+witness-seeded modes: **108 independent jobs**. A separate eight-way real-E-14
+experiment limits optional pre-query refinement and moves completion earlier,
+without increasing the existing proposal ceiling or safety share. Neither
+research scheduling variant has been put into production.
+
+## Real E-14 input
+
+`runs/mldr-incl-e14-generation-v2/` completed on boat from Lane A `1681e8e5`:
+**35 generated laws, zero proof queries**, generation wall 23,359.980 ms.
+No hand law was added. The result includes the count-cube p1/TypeOK forms.
+The exact archive is `research/mldr-incl/fixtures/e14-generated.br`, SHA-256
+`4b97fb96467ee51e9b80ff0a13b33f00d2731452fd93e6191f65c17c8882d64a`.
+
+## Infrastructure and remaining work
+
+The earlier recovery/quarantine window invalidated incomplete client receipts;
+retries and recovered raw receipts are identified separately. The two-job v3
+conditional client subsequently hit its outer queue-wait timeout; it is not
+counted as a completed experiment. Actual proof limits were not extended.
+
+The documented generic `queue add` accepted the 108-job backlog, but this
+repository's custom treadmill only consumes idea-tagged entries. Its exact
+owned, still-queued entry was marked withdrawn (receipt retained), and the
+same jobs were submitted once through `supercomputer run --class submission`.
+No scheduler resource policy, ownership guard or other submission was changed.
+
+Remaining before merge: checked conditional improvement on Gp1 and real E-14;
+strict original-harness confirmation; 29x3 paired versus current main, DuoAI,
+broken variants, bar, and final type/lint. All failures remain in the evidence.
+No MLDR proof improvement, integrated sub-60-second result, merge, or push is
 claimed.
-
-Required before a merge claim: checked conditional safety improvement; replay on
-E-14's actual output; strict original MLDR confirmation; paired IC3Syn 29x3 versus
-main, DuoAI, broken variants, bar, type/lint and tests. No merge or push performed.
