@@ -1,5 +1,6 @@
 // Untrusted carried-set inclusions. Flag equalities suggest substitutions;
-// ordinary count witnesses and independent conditional cuts prove every result.
+// upper bounds suggest sufficient scalar guards, not substitutions. Ordinary
+// count witnesses and independent conditional cuts prove every result.
 import {type C,type E,type Machine,n,same,walkOnce,x} from '../machine.ts'
 import {type CountCert,type CountDecl,type CountInst,substC,substE} from '../../kernel/kernel.ts'
 import {countsForReads} from '../count-facts.ts'
@@ -40,7 +41,7 @@ export function memberInclusions(m:Machine,ds:CountDecl[],reads:CountCert['reads
  const used=new Set<string>();walkOnce([m.step.flags,decls,picked],(o:any)=>{if(o.op==='var')used.add(o.name)})
  let key='inclusion$member';while(used.has(key))key+='$'
  const mentions=(v:unknown)=>{let found=false;walkOnce(v,(o:any)=>{if(o.op==='var'&&o.name===key)found=true});return found}
- const inputs=new Set(m.inputMaps),facts=new Map<string,{known:Set<string>,anchors:Map<string,E>}>()
+ const inputs=new Set(m.inputMaps),facts=new Map<string,{known:Set<string>,conditions:Set<string>,anchors:Map<string,E>,upper:Map<string,E>}>()
  for(const q of Object.values(m.step.flags??{})){
   if(more&&!more())return []
   if(q.op!=='all'||q.keys?.length)continue
@@ -49,9 +50,11 @@ export function memberInclusions(m:Machine,ds:CountDecl[],reads:CountCert['reads
   for(let i=0;i<2;i++){
    const a=c.xs[i]!,source=a.op==='not'?member(a.x):undefined
    if(!source||!inputs.has(source.map)||source.key.op!=='var'||source.key.name!==key)continue
-   const entry=facts.get(source.map)??{known:new Set<string>(),anchors:new Map<string,E>()}
+   const entry=facts.get(source.map)??{known:new Set<string>(),conditions:new Set<string>(),anchors:new Map<string,E>(),upper:new Map<string,E>()}
    for(const consequent of parts(c.xs[1-i]!)){
+    entry.conditions.add(text(consequent))
     const membership=member(consequent);if(membership)entry.known.add(text(membership))
+    if((consequent.op==='<'||consequent.op==='<=')&&consequent.a.op==='get'&&mentions(consequent.a.key)&&!mentions(consequent.b)&&!entry.upper.has(text(consequent.a)))entry.upper.set(text(consequent.a),consequent.b)
     if(consequent.op!=='=')continue
     for(const [from,to]of [[consequent.a,consequent.b],[consequent.b,consequent.a]]){
      if(from!.op==='get'&&to!.op==='get'&&mentions(from!.key)&&!mentions(to)&&!entry.anchors.has(text(from)))entry.anchors.set(text(from),to!)
@@ -64,7 +67,7 @@ export function memberInclusions(m:Machine,ds:CountDecl[],reads:CountCert['reads
  for(const a of counts){
   const body=substE(a.body,{vars:{[a.key]:x(key)},maps:{},flags:{}}),p=predicate(body),source=p&&member(p)
   if(!source||!inputs.has(source.map)||source.key.op!=='var'||source.key.name!==key)continue
-  const entry=facts.get(source.map);if(!entry?.anchors.size)continue
+  const entry=facts.get(source.map);if(!entry||!entry.anchors.size&&!entry.upper.size)continue
   const known=new Set([...entry.known,text(source)])
   for(const b of counts){
    if(--work<0||out.length>=128||more&&!more())return out
@@ -75,23 +78,26 @@ export function memberInclusions(m:Machine,ds:CountDecl[],reads:CountCert['reads
     const from={op:'get' as const,map,key:at},to=entry.anchors.get(text(from));if(to){changed=true;return to}return from
    }]))
    const rewritten=substC(target,{vars:{},maps,flags:{}})
-   if(!changed)continue
-   const simplify=(c:C):C|boolean=>{
+   const simplify=(c:C,positive=true):C|boolean=>{
+    if(entry.conditions.has(text(c)))return true
     const view=member(c);if(view&&known.has(text(view)))return true
     if(c.op==='and'||c.op==='or'){
-     const xs=c.xs.map(simplify),and=c.op==='and'
+     const xs=c.xs.map(q=>simplify(q,positive)),and=c.op==='and'
      if(xs.includes(!and))return !and
      const rest=xs.filter(v=>typeof v!=='boolean') as C[]
      return !rest.length?and:rest.length===1?rest[0]!:{op:c.op,xs:rest}
     }
-    if(c.op==='not'){const v=simplify(c.x);return typeof v==='boolean'?!v:{op:'not',x:v}}
+    if(c.op==='not'){const v=simplify(c.x,!positive);return typeof v==='boolean'?!v:{op:'not',x:v}}
+    // An upper bound is not an equality substitution. In a positive
+    // comparison only, its scalar bound gives a sufficient guard.
+    if(positive&&(c.op==='<'||c.op==='<=')){const upper=entry.upper.get(text(c.a));if(upper){c={...c,a:upper};changed=true}}
     if(c.op==='='||c.op==='<'||c.op==='<='){
      if(text(c.a)===text(c.b))return c.op!=='<'
      if(c.a.op==='const'&&c.b.op==='const')return c.op==='='?c.a.value===c.b.value:c.op==='<'?c.a.value<c.b.value:c.a.value<=c.b.value
     }
     return c
    }
-   const reduced=simplify(rewritten);if(reduced===false||typeof reduced!=='boolean'&&mentions(reduced))continue
+   const reduced=simplify(rewritten);if(!changed||reduced===false||typeof reduced!=='boolean'&&mentions(reduced))continue
    const guards=reduced===true?[]:parts(reduced)
    if(guards.some(c=>!['=','<','<='].includes(c.op)))continue
    const id=text([a.v,b.v,guards]);if(seen.has(id))continue;seen.add(id)
