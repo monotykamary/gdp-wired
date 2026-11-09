@@ -17,10 +17,10 @@ below refer to its new payloads, never to the cancelled batch. All twelve
 checkpoint/shortcut logs were independently replayed. Production tiny
 screening stays disabled: only three of the named seven were caught.
 Bounded grouping reached four named drops, not five. Operation-first was
-rejected. Per coordinator direction, post-target pruning is now an opt-in
-on top of state-first: 55 tests and static checks pass; the pilot is next.
+rejected. Per coordinator direction, post-target pruning is now opt-in
+on top of state-first: 55 tests and static checks pass; the pilot is running.
 
-## Current work: post-target pruning validated; pilot next
+## Current work: post-target pruning validated; six-probe pilot running
 
 Coordinator-directed successor to the rejected operation-first trial. The
 state-first traversal is retained. Each target's postcondition is substituted
@@ -55,7 +55,13 @@ Validation batch `20261110-014802-tdfixg` passed both jobs: **55 tests /
 and the intended commit-message check. Both jobs ran on exclusive large
 Ryzen 9 9950X VMs (2/8 vCPUs for tests, 8/8 for type/lint). Receipts:
 `research/track-gen/t16-target-validation.json`; gzip logs under
-`runs/t16-target-check/`. The unchanged six-probe pilot is next. Reused canonical archive `6288b666` plus the small
+`runs/t16-target-check/`. Implementation committed as `8dfb319e`.
+
+The unchanged six-probe pilot is submitted: task
+`f691f675-baba-46d1-89a4-da15d1deb8a9`, output `runs/t16-target-probe/`,
+submission class, isolated large VMs, mode `T16_POST_TARGET=1`. Results and
+independent witness replay are pending. Reused canonical archive `6288b666`
+plus the small
 `runs/t16-target-overlay/`. Compiler SHA-256
 `ed2a8ceeb8aad234015afa5a1122bd8e3c71f96318c55d404338c8963e440c02`,
 differential test `482003a3b3e83d404a54a7b71b142af9e353e3a6678c55bdd25889ecf043230d`,
