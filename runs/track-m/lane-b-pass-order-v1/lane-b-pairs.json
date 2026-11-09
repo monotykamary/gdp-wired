@@ -1,0 +1,754 @@
+{
+  "iterationOnly": true,
+  "gateGreen": false,
+  "independentAuditPending": true,
+  "familySha256": "737c233d0efc2f750df5253aa9269f1ddd1db44bf2dbbed9d523b7d6952e22dc",
+  "rows": [
+    {
+      "name": "rows-ab",
+      "comparison": "pass-order",
+      "placement": {
+        "vm": "bx_3qn8b65a",
+        "type": "large",
+        "cpu": "AMD EPYC 4585PX 16-Core Processor",
+        "vcpus": 8,
+        "vm_vcpus": 8,
+        "exclusive": true,
+        "co_tenants": 0
+      },
+      "archiveSha256": "38d39e4925dc7f6a6c8fe2fd1a4fb39fcb8a92070891d7a2efb3efb2d8dcb98b",
+      "logSha256": "648950a69715d851d7ab747142b7f6b4ad7409e5d07fa9ef3a292047227ba95a",
+      "order": [
+        "before",
+        "after"
+      ],
+      "arms": [
+        {
+          "side": "before",
+          "passOrder": [
+            0,
+            1
+          ],
+          "policy": "base",
+          "tag": "rows",
+          "law": "fields: CV[a]=CV[b] and CfgT[a]=CfgT[b] -> Config rows agree",
+          "workerChecked": false,
+          "withinPassLine": false,
+          "units": 6000.1785604,
+          "wallMs": 6519.456586,
+          "searchWallMs": 6518.923963,
+          "checkWallMs": 0.5326029999996535,
+          "sourceHashes": [
+            "6dafd763471a716d77b39ef7424a0ecd48c64505f78554ef72e05a1e615af600  core/count-cases.ts",
+            "5e2f668bc304e1bdeb0c4b8126d4289cf757bbd88ffb182e67a35a2d84642b77  core/count-recovery/guard-cases.ts",
+            "d3217b3cd64c716b161cf9a98286e7270f4e414f7aac09c124b2b82707c8859e  core/count-recovery/field-bound-lemmas.ts",
+            "d70f618833a9770f75316363b97bfb79efabb50662fc1dae446aa93826563018  core/count-recovery/row-cases.ts",
+            "fdd8a6aee4f3878747401c0d3d58fd76dde2ec79bb4afd765814b1b0ba810b6b  core/count-recovery/derivability-closure.ts",
+            "8381ff0a8ac4f982d1346de897741b907d13edc4541c8575d3ba2d30443943d3  core/count-recovery/field-demand.ts"
+          ],
+          "sourceBytesVerified": true
+        },
+        {
+          "side": "after",
+          "passOrder": [
+            1,
+            0
+          ],
+          "policy": "count-first",
+          "tag": "rows",
+          "law": "fields: CV[a]=CV[b] and CfgT[a]=CfgT[b] -> Config rows agree",
+          "workerChecked": false,
+          "withinPassLine": false,
+          "units": 4193.685635999999,
+          "wallMs": 7001.778297,
+          "searchWallMs": 7001.550657999999,
+          "checkWallMs": 0.2275790000003326,
+          "sourceHashes": [
+            "6dafd763471a716d77b39ef7424a0ecd48c64505f78554ef72e05a1e615af600  core/count-cases.ts",
+            "5e2f668bc304e1bdeb0c4b8126d4289cf757bbd88ffb182e67a35a2d84642b77  core/count-recovery/guard-cases.ts",
+            "d3217b3cd64c716b161cf9a98286e7270f4e414f7aac09c124b2b82707c8859e  core/count-recovery/field-bound-lemmas.ts",
+            "d70f618833a9770f75316363b97bfb79efabb50662fc1dae446aa93826563018  core/count-recovery/row-cases.ts",
+            "fdd8a6aee4f3878747401c0d3d58fd76dde2ec79bb4afd765814b1b0ba810b6b  core/count-recovery/derivability-closure.ts",
+            "8381ff0a8ac4f982d1346de897741b907d13edc4541c8575d3ba2d30443943d3  core/count-recovery/field-demand.ts"
+          ],
+          "sourceBytesVerified": true
+        }
+      ],
+      "before": {
+        "side": "before",
+        "passOrder": [
+          0,
+          1
+        ],
+        "policy": "base",
+        "tag": "rows",
+        "law": "fields: CV[a]=CV[b] and CfgT[a]=CfgT[b] -> Config rows agree",
+        "workerChecked": false,
+        "withinPassLine": false,
+        "units": 6000.1785604,
+        "wallMs": 6519.456586,
+        "searchWallMs": 6518.923963,
+        "checkWallMs": 0.5326029999996535,
+        "sourceHashes": [
+          "6dafd763471a716d77b39ef7424a0ecd48c64505f78554ef72e05a1e615af600  core/count-cases.ts",
+          "5e2f668bc304e1bdeb0c4b8126d4289cf757bbd88ffb182e67a35a2d84642b77  core/count-recovery/guard-cases.ts",
+          "d3217b3cd64c716b161cf9a98286e7270f4e414f7aac09c124b2b82707c8859e  core/count-recovery/field-bound-lemmas.ts",
+          "d70f618833a9770f75316363b97bfb79efabb50662fc1dae446aa93826563018  core/count-recovery/row-cases.ts",
+          "fdd8a6aee4f3878747401c0d3d58fd76dde2ec79bb4afd765814b1b0ba810b6b  core/count-recovery/derivability-closure.ts",
+          "8381ff0a8ac4f982d1346de897741b907d13edc4541c8575d3ba2d30443943d3  core/count-recovery/field-demand.ts"
+        ],
+        "sourceBytesVerified": true
+      },
+      "after": {
+        "side": "after",
+        "passOrder": [
+          1,
+          0
+        ],
+        "policy": "count-first",
+        "tag": "rows",
+        "law": "fields: CV[a]=CV[b] and CfgT[a]=CfgT[b] -> Config rows agree",
+        "workerChecked": false,
+        "withinPassLine": false,
+        "units": 4193.685635999999,
+        "wallMs": 7001.778297,
+        "searchWallMs": 7001.550657999999,
+        "checkWallMs": 0.2275790000003326,
+        "sourceHashes": [
+          "6dafd763471a716d77b39ef7424a0ecd48c64505f78554ef72e05a1e615af600  core/count-cases.ts",
+          "5e2f668bc304e1bdeb0c4b8126d4289cf757bbd88ffb182e67a35a2d84642b77  core/count-recovery/guard-cases.ts",
+          "d3217b3cd64c716b161cf9a98286e7270f4e414f7aac09c124b2b82707c8859e  core/count-recovery/field-bound-lemmas.ts",
+          "d70f618833a9770f75316363b97bfb79efabb50662fc1dae446aa93826563018  core/count-recovery/row-cases.ts",
+          "fdd8a6aee4f3878747401c0d3d58fd76dde2ec79bb4afd765814b1b0ba810b6b  core/count-recovery/derivability-closure.ts",
+          "8381ff0a8ac4f982d1346de897741b907d13edc4541c8575d3ba2d30443943d3  core/count-recovery/field-demand.ts"
+        ],
+        "sourceBytesVerified": true
+      },
+      "workerCheckedLost": false,
+      "unitDelta": -1806.4929244000004,
+      "wallDelta": 482.3217109999996
+    },
+    {
+      "name": "rows-ba",
+      "comparison": "pass-order",
+      "placement": {
+        "vm": "bx_2eg9t59n",
+        "type": "large",
+        "cpu": "AMD EPYC 4585PX 16-Core Processor",
+        "vcpus": 8,
+        "vm_vcpus": 8,
+        "exclusive": true,
+        "co_tenants": 0
+      },
+      "archiveSha256": "4b382bad6ef8255b9ad65799f8a2b184d94c6af416aa7968078a9f79cb8cf0a9",
+      "logSha256": "786dacbd0f41a88a638a5650048cebaa090a0f4f9aa77629fdef0e7a34a04e12",
+      "order": [
+        "after",
+        "before"
+      ],
+      "arms": [
+        {
+          "side": "after",
+          "passOrder": [
+            1,
+            0
+          ],
+          "policy": "count-first",
+          "tag": "rows",
+          "law": "fields: CV[a]=CV[b] and CfgT[a]=CfgT[b] -> Config rows agree",
+          "workerChecked": false,
+          "withinPassLine": false,
+          "units": 6000.308358,
+          "wallMs": 5534.172022,
+          "searchWallMs": 5534.033029,
+          "checkWallMs": 0.13891200000034587,
+          "sourceHashes": [
+            "6dafd763471a716d77b39ef7424a0ecd48c64505f78554ef72e05a1e615af600  core/count-cases.ts",
+            "5e2f668bc304e1bdeb0c4b8126d4289cf757bbd88ffb182e67a35a2d84642b77  core/count-recovery/guard-cases.ts",
+            "d3217b3cd64c716b161cf9a98286e7270f4e414f7aac09c124b2b82707c8859e  core/count-recovery/field-bound-lemmas.ts",
+            "d70f618833a9770f75316363b97bfb79efabb50662fc1dae446aa93826563018  core/count-recovery/row-cases.ts",
+            "fdd8a6aee4f3878747401c0d3d58fd76dde2ec79bb4afd765814b1b0ba810b6b  core/count-recovery/derivability-closure.ts",
+            "8381ff0a8ac4f982d1346de897741b907d13edc4541c8575d3ba2d30443943d3  core/count-recovery/field-demand.ts"
+          ],
+          "sourceBytesVerified": true
+        },
+        {
+          "side": "before",
+          "passOrder": [
+            0,
+            1
+          ],
+          "policy": "base",
+          "tag": "rows",
+          "law": "fields: CV[a]=CV[b] and CfgT[a]=CfgT[b] -> Config rows agree",
+          "workerChecked": false,
+          "withinPassLine": false,
+          "units": 6000.1785604,
+          "wallMs": 6396.8152119999995,
+          "searchWallMs": 6396.333255,
+          "checkWallMs": 0.4820270000000164,
+          "sourceHashes": [
+            "6dafd763471a716d77b39ef7424a0ecd48c64505f78554ef72e05a1e615af600  core/count-cases.ts",
+            "5e2f668bc304e1bdeb0c4b8126d4289cf757bbd88ffb182e67a35a2d84642b77  core/count-recovery/guard-cases.ts",
+            "d3217b3cd64c716b161cf9a98286e7270f4e414f7aac09c124b2b82707c8859e  core/count-recovery/field-bound-lemmas.ts",
+            "d70f618833a9770f75316363b97bfb79efabb50662fc1dae446aa93826563018  core/count-recovery/row-cases.ts",
+            "fdd8a6aee4f3878747401c0d3d58fd76dde2ec79bb4afd765814b1b0ba810b6b  core/count-recovery/derivability-closure.ts",
+            "8381ff0a8ac4f982d1346de897741b907d13edc4541c8575d3ba2d30443943d3  core/count-recovery/field-demand.ts"
+          ],
+          "sourceBytesVerified": true
+        }
+      ],
+      "before": {
+        "side": "before",
+        "passOrder": [
+          0,
+          1
+        ],
+        "policy": "base",
+        "tag": "rows",
+        "law": "fields: CV[a]=CV[b] and CfgT[a]=CfgT[b] -> Config rows agree",
+        "workerChecked": false,
+        "withinPassLine": false,
+        "units": 6000.1785604,
+        "wallMs": 6396.8152119999995,
+        "searchWallMs": 6396.333255,
+        "checkWallMs": 0.4820270000000164,
+        "sourceHashes": [
+          "6dafd763471a716d77b39ef7424a0ecd48c64505f78554ef72e05a1e615af600  core/count-cases.ts",
+          "5e2f668bc304e1bdeb0c4b8126d4289cf757bbd88ffb182e67a35a2d84642b77  core/count-recovery/guard-cases.ts",
+          "d3217b3cd64c716b161cf9a98286e7270f4e414f7aac09c124b2b82707c8859e  core/count-recovery/field-bound-lemmas.ts",
+          "d70f618833a9770f75316363b97bfb79efabb50662fc1dae446aa93826563018  core/count-recovery/row-cases.ts",
+          "fdd8a6aee4f3878747401c0d3d58fd76dde2ec79bb4afd765814b1b0ba810b6b  core/count-recovery/derivability-closure.ts",
+          "8381ff0a8ac4f982d1346de897741b907d13edc4541c8575d3ba2d30443943d3  core/count-recovery/field-demand.ts"
+        ],
+        "sourceBytesVerified": true
+      },
+      "after": {
+        "side": "after",
+        "passOrder": [
+          1,
+          0
+        ],
+        "policy": "count-first",
+        "tag": "rows",
+        "law": "fields: CV[a]=CV[b] and CfgT[a]=CfgT[b] -> Config rows agree",
+        "workerChecked": false,
+        "withinPassLine": false,
+        "units": 6000.308358,
+        "wallMs": 5534.172022,
+        "searchWallMs": 5534.033029,
+        "checkWallMs": 0.13891200000034587,
+        "sourceHashes": [
+          "6dafd763471a716d77b39ef7424a0ecd48c64505f78554ef72e05a1e615af600  core/count-cases.ts",
+          "5e2f668bc304e1bdeb0c4b8126d4289cf757bbd88ffb182e67a35a2d84642b77  core/count-recovery/guard-cases.ts",
+          "d3217b3cd64c716b161cf9a98286e7270f4e414f7aac09c124b2b82707c8859e  core/count-recovery/field-bound-lemmas.ts",
+          "d70f618833a9770f75316363b97bfb79efabb50662fc1dae446aa93826563018  core/count-recovery/row-cases.ts",
+          "fdd8a6aee4f3878747401c0d3d58fd76dde2ec79bb4afd765814b1b0ba810b6b  core/count-recovery/derivability-closure.ts",
+          "8381ff0a8ac4f982d1346de897741b907d13edc4541c8575d3ba2d30443943d3  core/count-recovery/field-demand.ts"
+        ],
+        "sourceBytesVerified": true
+      },
+      "workerCheckedLost": false,
+      "unitDelta": 0.1297976000005292,
+      "wallDelta": -862.6431899999998
+    },
+    {
+      "name": "star-ab",
+      "comparison": "pass-order",
+      "placement": {
+        "vm": "bx_af3p9nak",
+        "type": "large",
+        "cpu": "AMD Ryzen 9 9950X 16-Core Processor",
+        "vcpus": 8,
+        "vm_vcpus": 8,
+        "exclusive": true,
+        "co_tenants": 0
+      },
+      "archiveSha256": "434fa99ea88b295b18bc94c3d2cbed62938cadd7542491b6804d191a8b58fff1",
+      "logSha256": "b9584f183dd9e94fd506b7af5339884c912cc3beefc38c0d6724ab5b9edb817c",
+      "order": [
+        "before",
+        "after"
+      ],
+      "arms": [
+        {
+          "side": "before",
+          "passOrder": [
+            0,
+            1
+          ],
+          "policy": "base",
+          "tag": "star",
+          "law": "inX: no quorum canVote/3",
+          "workerChecked": false,
+          "withinPassLine": false,
+          "units": 6001.319071999999,
+          "wallMs": 5364.819368,
+          "searchWallMs": 5363.5560940000005,
+          "checkWallMs": 1.2649670000000697,
+          "sourceHashes": [
+            "6dafd763471a716d77b39ef7424a0ecd48c64505f78554ef72e05a1e615af600  core/count-cases.ts",
+            "5e2f668bc304e1bdeb0c4b8126d4289cf757bbd88ffb182e67a35a2d84642b77  core/count-recovery/guard-cases.ts",
+            "d3217b3cd64c716b161cf9a98286e7270f4e414f7aac09c124b2b82707c8859e  core/count-recovery/field-bound-lemmas.ts",
+            "d70f618833a9770f75316363b97bfb79efabb50662fc1dae446aa93826563018  core/count-recovery/row-cases.ts",
+            "fdd8a6aee4f3878747401c0d3d58fd76dde2ec79bb4afd765814b1b0ba810b6b  core/count-recovery/derivability-closure.ts",
+            "8381ff0a8ac4f982d1346de897741b907d13edc4541c8575d3ba2d30443943d3  core/count-recovery/field-demand.ts"
+          ],
+          "sourceBytesVerified": true
+        },
+        {
+          "side": "after",
+          "passOrder": [
+            1,
+            0
+          ],
+          "policy": "count-first",
+          "tag": "star",
+          "law": "inX: no quorum canVote/3",
+          "workerChecked": false,
+          "withinPassLine": false,
+          "units": 6001.712424,
+          "wallMs": 4257.3044150000005,
+          "searchWallMs": 4256.177342,
+          "checkWallMs": 1.1274830000002112,
+          "sourceHashes": [
+            "6dafd763471a716d77b39ef7424a0ecd48c64505f78554ef72e05a1e615af600  core/count-cases.ts",
+            "5e2f668bc304e1bdeb0c4b8126d4289cf757bbd88ffb182e67a35a2d84642b77  core/count-recovery/guard-cases.ts",
+            "d3217b3cd64c716b161cf9a98286e7270f4e414f7aac09c124b2b82707c8859e  core/count-recovery/field-bound-lemmas.ts",
+            "d70f618833a9770f75316363b97bfb79efabb50662fc1dae446aa93826563018  core/count-recovery/row-cases.ts",
+            "fdd8a6aee4f3878747401c0d3d58fd76dde2ec79bb4afd765814b1b0ba810b6b  core/count-recovery/derivability-closure.ts",
+            "8381ff0a8ac4f982d1346de897741b907d13edc4541c8575d3ba2d30443943d3  core/count-recovery/field-demand.ts"
+          ],
+          "sourceBytesVerified": true
+        }
+      ],
+      "before": {
+        "side": "before",
+        "passOrder": [
+          0,
+          1
+        ],
+        "policy": "base",
+        "tag": "star",
+        "law": "inX: no quorum canVote/3",
+        "workerChecked": false,
+        "withinPassLine": false,
+        "units": 6001.319071999999,
+        "wallMs": 5364.819368,
+        "searchWallMs": 5363.5560940000005,
+        "checkWallMs": 1.2649670000000697,
+        "sourceHashes": [
+          "6dafd763471a716d77b39ef7424a0ecd48c64505f78554ef72e05a1e615af600  core/count-cases.ts",
+          "5e2f668bc304e1bdeb0c4b8126d4289cf757bbd88ffb182e67a35a2d84642b77  core/count-recovery/guard-cases.ts",
+          "d3217b3cd64c716b161cf9a98286e7270f4e414f7aac09c124b2b82707c8859e  core/count-recovery/field-bound-lemmas.ts",
+          "d70f618833a9770f75316363b97bfb79efabb50662fc1dae446aa93826563018  core/count-recovery/row-cases.ts",
+          "fdd8a6aee4f3878747401c0d3d58fd76dde2ec79bb4afd765814b1b0ba810b6b  core/count-recovery/derivability-closure.ts",
+          "8381ff0a8ac4f982d1346de897741b907d13edc4541c8575d3ba2d30443943d3  core/count-recovery/field-demand.ts"
+        ],
+        "sourceBytesVerified": true
+      },
+      "after": {
+        "side": "after",
+        "passOrder": [
+          1,
+          0
+        ],
+        "policy": "count-first",
+        "tag": "star",
+        "law": "inX: no quorum canVote/3",
+        "workerChecked": false,
+        "withinPassLine": false,
+        "units": 6001.712424,
+        "wallMs": 4257.3044150000005,
+        "searchWallMs": 4256.177342,
+        "checkWallMs": 1.1274830000002112,
+        "sourceHashes": [
+          "6dafd763471a716d77b39ef7424a0ecd48c64505f78554ef72e05a1e615af600  core/count-cases.ts",
+          "5e2f668bc304e1bdeb0c4b8126d4289cf757bbd88ffb182e67a35a2d84642b77  core/count-recovery/guard-cases.ts",
+          "d3217b3cd64c716b161cf9a98286e7270f4e414f7aac09c124b2b82707c8859e  core/count-recovery/field-bound-lemmas.ts",
+          "d70f618833a9770f75316363b97bfb79efabb50662fc1dae446aa93826563018  core/count-recovery/row-cases.ts",
+          "fdd8a6aee4f3878747401c0d3d58fd76dde2ec79bb4afd765814b1b0ba810b6b  core/count-recovery/derivability-closure.ts",
+          "8381ff0a8ac4f982d1346de897741b907d13edc4541c8575d3ba2d30443943d3  core/count-recovery/field-demand.ts"
+        ],
+        "sourceBytesVerified": true
+      },
+      "workerCheckedLost": false,
+      "unitDelta": 0.3933520000009594,
+      "wallDelta": -1107.5149529999999
+    },
+    {
+      "name": "star-ba",
+      "comparison": "pass-order",
+      "placement": {
+        "vm": "bx_af3p9nak",
+        "type": "large",
+        "cpu": "AMD Ryzen 9 9950X 16-Core Processor",
+        "vcpus": 8,
+        "vm_vcpus": 8,
+        "exclusive": true,
+        "co_tenants": 0
+      },
+      "archiveSha256": "442485a5fee5e070a1510b3a7427cb478f9ef45135e14070ef5fc676eb4382b2",
+      "logSha256": "df4062aac78505118e98701d8f89b6446fb56fe2c498e1e05915cc0c80baf410",
+      "order": [
+        "after",
+        "before"
+      ],
+      "arms": [
+        {
+          "side": "after",
+          "passOrder": [
+            1,
+            0
+          ],
+          "policy": "count-first",
+          "tag": "star",
+          "law": "inX: no quorum canVote/3",
+          "workerChecked": false,
+          "withinPassLine": false,
+          "units": 6001.712424,
+          "wallMs": 4318.517995,
+          "searchWallMs": 4317.577939,
+          "checkWallMs": 0.9406859999999142,
+          "sourceHashes": [
+            "6dafd763471a716d77b39ef7424a0ecd48c64505f78554ef72e05a1e615af600  core/count-cases.ts",
+            "5e2f668bc304e1bdeb0c4b8126d4289cf757bbd88ffb182e67a35a2d84642b77  core/count-recovery/guard-cases.ts",
+            "d3217b3cd64c716b161cf9a98286e7270f4e414f7aac09c124b2b82707c8859e  core/count-recovery/field-bound-lemmas.ts",
+            "d70f618833a9770f75316363b97bfb79efabb50662fc1dae446aa93826563018  core/count-recovery/row-cases.ts",
+            "fdd8a6aee4f3878747401c0d3d58fd76dde2ec79bb4afd765814b1b0ba810b6b  core/count-recovery/derivability-closure.ts",
+            "8381ff0a8ac4f982d1346de897741b907d13edc4541c8575d3ba2d30443943d3  core/count-recovery/field-demand.ts"
+          ],
+          "sourceBytesVerified": true
+        },
+        {
+          "side": "before",
+          "passOrder": [
+            0,
+            1
+          ],
+          "policy": "base",
+          "tag": "star",
+          "law": "inX: no quorum canVote/3",
+          "workerChecked": false,
+          "withinPassLine": false,
+          "units": 6001.319071999999,
+          "wallMs": 4186.183449,
+          "searchWallMs": 4185.08438,
+          "checkWallMs": 1.0995200000006662,
+          "sourceHashes": [
+            "6dafd763471a716d77b39ef7424a0ecd48c64505f78554ef72e05a1e615af600  core/count-cases.ts",
+            "5e2f668bc304e1bdeb0c4b8126d4289cf757bbd88ffb182e67a35a2d84642b77  core/count-recovery/guard-cases.ts",
+            "d3217b3cd64c716b161cf9a98286e7270f4e414f7aac09c124b2b82707c8859e  core/count-recovery/field-bound-lemmas.ts",
+            "d70f618833a9770f75316363b97bfb79efabb50662fc1dae446aa93826563018  core/count-recovery/row-cases.ts",
+            "fdd8a6aee4f3878747401c0d3d58fd76dde2ec79bb4afd765814b1b0ba810b6b  core/count-recovery/derivability-closure.ts",
+            "8381ff0a8ac4f982d1346de897741b907d13edc4541c8575d3ba2d30443943d3  core/count-recovery/field-demand.ts"
+          ],
+          "sourceBytesVerified": true
+        }
+      ],
+      "before": {
+        "side": "before",
+        "passOrder": [
+          0,
+          1
+        ],
+        "policy": "base",
+        "tag": "star",
+        "law": "inX: no quorum canVote/3",
+        "workerChecked": false,
+        "withinPassLine": false,
+        "units": 6001.319071999999,
+        "wallMs": 4186.183449,
+        "searchWallMs": 4185.08438,
+        "checkWallMs": 1.0995200000006662,
+        "sourceHashes": [
+          "6dafd763471a716d77b39ef7424a0ecd48c64505f78554ef72e05a1e615af600  core/count-cases.ts",
+          "5e2f668bc304e1bdeb0c4b8126d4289cf757bbd88ffb182e67a35a2d84642b77  core/count-recovery/guard-cases.ts",
+          "d3217b3cd64c716b161cf9a98286e7270f4e414f7aac09c124b2b82707c8859e  core/count-recovery/field-bound-lemmas.ts",
+          "d70f618833a9770f75316363b97bfb79efabb50662fc1dae446aa93826563018  core/count-recovery/row-cases.ts",
+          "fdd8a6aee4f3878747401c0d3d58fd76dde2ec79bb4afd765814b1b0ba810b6b  core/count-recovery/derivability-closure.ts",
+          "8381ff0a8ac4f982d1346de897741b907d13edc4541c8575d3ba2d30443943d3  core/count-recovery/field-demand.ts"
+        ],
+        "sourceBytesVerified": true
+      },
+      "after": {
+        "side": "after",
+        "passOrder": [
+          1,
+          0
+        ],
+        "policy": "count-first",
+        "tag": "star",
+        "law": "inX: no quorum canVote/3",
+        "workerChecked": false,
+        "withinPassLine": false,
+        "units": 6001.712424,
+        "wallMs": 4318.517995,
+        "searchWallMs": 4317.577939,
+        "checkWallMs": 0.9406859999999142,
+        "sourceHashes": [
+          "6dafd763471a716d77b39ef7424a0ecd48c64505f78554ef72e05a1e615af600  core/count-cases.ts",
+          "5e2f668bc304e1bdeb0c4b8126d4289cf757bbd88ffb182e67a35a2d84642b77  core/count-recovery/guard-cases.ts",
+          "d3217b3cd64c716b161cf9a98286e7270f4e414f7aac09c124b2b82707c8859e  core/count-recovery/field-bound-lemmas.ts",
+          "d70f618833a9770f75316363b97bfb79efabb50662fc1dae446aa93826563018  core/count-recovery/row-cases.ts",
+          "fdd8a6aee4f3878747401c0d3d58fd76dde2ec79bb4afd765814b1b0ba810b6b  core/count-recovery/derivability-closure.ts",
+          "8381ff0a8ac4f982d1346de897741b907d13edc4541c8575d3ba2d30443943d3  core/count-recovery/field-demand.ts"
+        ],
+        "sourceBytesVerified": true
+      },
+      "workerCheckedLost": false,
+      "unitDelta": 0.3933520000009594,
+      "wallDelta": 132.33454600000005
+    },
+    {
+      "name": "p1-ab",
+      "comparison": "pass-order",
+      "placement": {
+        "vm": "bx_af3p9nak",
+        "type": "large",
+        "cpu": "AMD Ryzen 9 9950X 16-Core Processor",
+        "vcpus": 8,
+        "vm_vcpus": 8,
+        "exclusive": true,
+        "co_tenants": 0
+      },
+      "archiveSha256": "e140cbf28040508ad01e5488eb0fb22fe0bfd7cc8cbfa53e9a534211bd44d535",
+      "logSha256": "227c9756dc0daf1c7907d03ba5317a2ec5dc060ea3ad38a427c696c1fa532f77",
+      "order": [
+        "before",
+        "after"
+      ],
+      "arms": [
+        {
+          "side": "before",
+          "passOrder": [
+            0,
+            1
+          ],
+          "policy": "base",
+          "tag": "p1",
+          "law": "count cubes: every x with x < {\"op\":\"var\",\"name\":\"size\"}: never CV[x] is 0 and 1 <= inX$row[x]",
+          "workerChecked": true,
+          "withinPassLine": true,
+          "units": 2292.235458,
+          "wallMs": 2088.077902,
+          "searchWallMs": 1942.915675,
+          "checkWallMs": 145.16226600000005,
+          "sourceHashes": [
+            "6dafd763471a716d77b39ef7424a0ecd48c64505f78554ef72e05a1e615af600  core/count-cases.ts",
+            "5e2f668bc304e1bdeb0c4b8126d4289cf757bbd88ffb182e67a35a2d84642b77  core/count-recovery/guard-cases.ts",
+            "d3217b3cd64c716b161cf9a98286e7270f4e414f7aac09c124b2b82707c8859e  core/count-recovery/field-bound-lemmas.ts",
+            "d70f618833a9770f75316363b97bfb79efabb50662fc1dae446aa93826563018  core/count-recovery/row-cases.ts",
+            "fdd8a6aee4f3878747401c0d3d58fd76dde2ec79bb4afd765814b1b0ba810b6b  core/count-recovery/derivability-closure.ts",
+            "8381ff0a8ac4f982d1346de897741b907d13edc4541c8575d3ba2d30443943d3  core/count-recovery/field-demand.ts"
+          ],
+          "sourceBytesVerified": true
+        },
+        {
+          "side": "after",
+          "passOrder": [
+            1,
+            0
+          ],
+          "policy": "count-first",
+          "tag": "p1",
+          "law": "count cubes: every x with x < {\"op\":\"var\",\"name\":\"size\"}: never CV[x] is 0 and 1 <= inX$row[x]",
+          "workerChecked": true,
+          "withinPassLine": true,
+          "units": 2175.5122859999997,
+          "wallMs": 1986.536332,
+          "searchWallMs": 1838.674978,
+          "checkWallMs": 147.86146399999984,
+          "sourceHashes": [
+            "6dafd763471a716d77b39ef7424a0ecd48c64505f78554ef72e05a1e615af600  core/count-cases.ts",
+            "5e2f668bc304e1bdeb0c4b8126d4289cf757bbd88ffb182e67a35a2d84642b77  core/count-recovery/guard-cases.ts",
+            "d3217b3cd64c716b161cf9a98286e7270f4e414f7aac09c124b2b82707c8859e  core/count-recovery/field-bound-lemmas.ts",
+            "d70f618833a9770f75316363b97bfb79efabb50662fc1dae446aa93826563018  core/count-recovery/row-cases.ts",
+            "fdd8a6aee4f3878747401c0d3d58fd76dde2ec79bb4afd765814b1b0ba810b6b  core/count-recovery/derivability-closure.ts",
+            "8381ff0a8ac4f982d1346de897741b907d13edc4541c8575d3ba2d30443943d3  core/count-recovery/field-demand.ts"
+          ],
+          "sourceBytesVerified": true
+        }
+      ],
+      "before": {
+        "side": "before",
+        "passOrder": [
+          0,
+          1
+        ],
+        "policy": "base",
+        "tag": "p1",
+        "law": "count cubes: every x with x < {\"op\":\"var\",\"name\":\"size\"}: never CV[x] is 0 and 1 <= inX$row[x]",
+        "workerChecked": true,
+        "withinPassLine": true,
+        "units": 2292.235458,
+        "wallMs": 2088.077902,
+        "searchWallMs": 1942.915675,
+        "checkWallMs": 145.16226600000005,
+        "sourceHashes": [
+          "6dafd763471a716d77b39ef7424a0ecd48c64505f78554ef72e05a1e615af600  core/count-cases.ts",
+          "5e2f668bc304e1bdeb0c4b8126d4289cf757bbd88ffb182e67a35a2d84642b77  core/count-recovery/guard-cases.ts",
+          "d3217b3cd64c716b161cf9a98286e7270f4e414f7aac09c124b2b82707c8859e  core/count-recovery/field-bound-lemmas.ts",
+          "d70f618833a9770f75316363b97bfb79efabb50662fc1dae446aa93826563018  core/count-recovery/row-cases.ts",
+          "fdd8a6aee4f3878747401c0d3d58fd76dde2ec79bb4afd765814b1b0ba810b6b  core/count-recovery/derivability-closure.ts",
+          "8381ff0a8ac4f982d1346de897741b907d13edc4541c8575d3ba2d30443943d3  core/count-recovery/field-demand.ts"
+        ],
+        "sourceBytesVerified": true
+      },
+      "after": {
+        "side": "after",
+        "passOrder": [
+          1,
+          0
+        ],
+        "policy": "count-first",
+        "tag": "p1",
+        "law": "count cubes: every x with x < {\"op\":\"var\",\"name\":\"size\"}: never CV[x] is 0 and 1 <= inX$row[x]",
+        "workerChecked": true,
+        "withinPassLine": true,
+        "units": 2175.5122859999997,
+        "wallMs": 1986.536332,
+        "searchWallMs": 1838.674978,
+        "checkWallMs": 147.86146399999984,
+        "sourceHashes": [
+          "6dafd763471a716d77b39ef7424a0ecd48c64505f78554ef72e05a1e615af600  core/count-cases.ts",
+          "5e2f668bc304e1bdeb0c4b8126d4289cf757bbd88ffb182e67a35a2d84642b77  core/count-recovery/guard-cases.ts",
+          "d3217b3cd64c716b161cf9a98286e7270f4e414f7aac09c124b2b82707c8859e  core/count-recovery/field-bound-lemmas.ts",
+          "d70f618833a9770f75316363b97bfb79efabb50662fc1dae446aa93826563018  core/count-recovery/row-cases.ts",
+          "fdd8a6aee4f3878747401c0d3d58fd76dde2ec79bb4afd765814b1b0ba810b6b  core/count-recovery/derivability-closure.ts",
+          "8381ff0a8ac4f982d1346de897741b907d13edc4541c8575d3ba2d30443943d3  core/count-recovery/field-demand.ts"
+        ],
+        "sourceBytesVerified": true
+      },
+      "workerCheckedLost": false,
+      "unitDelta": -116.72317200000043,
+      "wallDelta": -101.54157000000009
+    },
+    {
+      "name": "p1-ba",
+      "comparison": "pass-order",
+      "placement": {
+        "vm": "bx_akfb4v39",
+        "type": "large",
+        "cpu": "AMD Ryzen 9 9950X 16-Core Processor",
+        "vcpus": 8,
+        "vm_vcpus": 8,
+        "exclusive": true,
+        "co_tenants": 0
+      },
+      "archiveSha256": "a0bd2f00c85120f7d51f06315d372df8edacd811a31676b6c0bc3d6f53572e92",
+      "logSha256": "7739845facfbba3177c99e1570461bc6e045e459306023d3a0afc352ef61427f",
+      "order": [
+        "after",
+        "before"
+      ],
+      "arms": [
+        {
+          "side": "after",
+          "passOrder": [
+            1,
+            0
+          ],
+          "policy": "count-first",
+          "tag": "p1",
+          "law": "count cubes: every x with x < {\"op\":\"var\",\"name\":\"size\"}: never CV[x] is 0 and 1 <= inX$row[x]",
+          "workerChecked": true,
+          "withinPassLine": true,
+          "units": 2175.5122859999997,
+          "wallMs": 1649.630695,
+          "searchWallMs": 1515.3627000000001,
+          "checkWallMs": 134.26803500000005,
+          "sourceHashes": [
+            "6dafd763471a716d77b39ef7424a0ecd48c64505f78554ef72e05a1e615af600  core/count-cases.ts",
+            "5e2f668bc304e1bdeb0c4b8126d4289cf757bbd88ffb182e67a35a2d84642b77  core/count-recovery/guard-cases.ts",
+            "d3217b3cd64c716b161cf9a98286e7270f4e414f7aac09c124b2b82707c8859e  core/count-recovery/field-bound-lemmas.ts",
+            "d70f618833a9770f75316363b97bfb79efabb50662fc1dae446aa93826563018  core/count-recovery/row-cases.ts",
+            "fdd8a6aee4f3878747401c0d3d58fd76dde2ec79bb4afd765814b1b0ba810b6b  core/count-recovery/derivability-closure.ts",
+            "8381ff0a8ac4f982d1346de897741b907d13edc4541c8575d3ba2d30443943d3  core/count-recovery/field-demand.ts"
+          ],
+          "sourceBytesVerified": true
+        },
+        {
+          "side": "before",
+          "passOrder": [
+            0,
+            1
+          ],
+          "policy": "base",
+          "tag": "p1",
+          "law": "count cubes: every x with x < {\"op\":\"var\",\"name\":\"size\"}: never CV[x] is 0 and 1 <= inX$row[x]",
+          "workerChecked": true,
+          "withinPassLine": true,
+          "units": 2292.235458,
+          "wallMs": 1726.100135,
+          "searchWallMs": 1588.063052,
+          "checkWallMs": 138.03708199999983,
+          "sourceHashes": [
+            "6dafd763471a716d77b39ef7424a0ecd48c64505f78554ef72e05a1e615af600  core/count-cases.ts",
+            "5e2f668bc304e1bdeb0c4b8126d4289cf757bbd88ffb182e67a35a2d84642b77  core/count-recovery/guard-cases.ts",
+            "d3217b3cd64c716b161cf9a98286e7270f4e414f7aac09c124b2b82707c8859e  core/count-recovery/field-bound-lemmas.ts",
+            "d70f618833a9770f75316363b97bfb79efabb50662fc1dae446aa93826563018  core/count-recovery/row-cases.ts",
+            "fdd8a6aee4f3878747401c0d3d58fd76dde2ec79bb4afd765814b1b0ba810b6b  core/count-recovery/derivability-closure.ts",
+            "8381ff0a8ac4f982d1346de897741b907d13edc4541c8575d3ba2d30443943d3  core/count-recovery/field-demand.ts"
+          ],
+          "sourceBytesVerified": true
+        }
+      ],
+      "before": {
+        "side": "before",
+        "passOrder": [
+          0,
+          1
+        ],
+        "policy": "base",
+        "tag": "p1",
+        "law": "count cubes: every x with x < {\"op\":\"var\",\"name\":\"size\"}: never CV[x] is 0 and 1 <= inX$row[x]",
+        "workerChecked": true,
+        "withinPassLine": true,
+        "units": 2292.235458,
+        "wallMs": 1726.100135,
+        "searchWallMs": 1588.063052,
+        "checkWallMs": 138.03708199999983,
+        "sourceHashes": [
+          "6dafd763471a716d77b39ef7424a0ecd48c64505f78554ef72e05a1e615af600  core/count-cases.ts",
+          "5e2f668bc304e1bdeb0c4b8126d4289cf757bbd88ffb182e67a35a2d84642b77  core/count-recovery/guard-cases.ts",
+          "d3217b3cd64c716b161cf9a98286e7270f4e414f7aac09c124b2b82707c8859e  core/count-recovery/field-bound-lemmas.ts",
+          "d70f618833a9770f75316363b97bfb79efabb50662fc1dae446aa93826563018  core/count-recovery/row-cases.ts",
+          "fdd8a6aee4f3878747401c0d3d58fd76dde2ec79bb4afd765814b1b0ba810b6b  core/count-recovery/derivability-closure.ts",
+          "8381ff0a8ac4f982d1346de897741b907d13edc4541c8575d3ba2d30443943d3  core/count-recovery/field-demand.ts"
+        ],
+        "sourceBytesVerified": true
+      },
+      "after": {
+        "side": "after",
+        "passOrder": [
+          1,
+          0
+        ],
+        "policy": "count-first",
+        "tag": "p1",
+        "law": "count cubes: every x with x < {\"op\":\"var\",\"name\":\"size\"}: never CV[x] is 0 and 1 <= inX$row[x]",
+        "workerChecked": true,
+        "withinPassLine": true,
+        "units": 2175.5122859999997,
+        "wallMs": 1649.630695,
+        "searchWallMs": 1515.3627000000001,
+        "checkWallMs": 134.26803500000005,
+        "sourceHashes": [
+          "6dafd763471a716d77b39ef7424a0ecd48c64505f78554ef72e05a1e615af600  core/count-cases.ts",
+          "5e2f668bc304e1bdeb0c4b8126d4289cf757bbd88ffb182e67a35a2d84642b77  core/count-recovery/guard-cases.ts",
+          "d3217b3cd64c716b161cf9a98286e7270f4e414f7aac09c124b2b82707c8859e  core/count-recovery/field-bound-lemmas.ts",
+          "d70f618833a9770f75316363b97bfb79efabb50662fc1dae446aa93826563018  core/count-recovery/row-cases.ts",
+          "fdd8a6aee4f3878747401c0d3d58fd76dde2ec79bb4afd765814b1b0ba810b6b  core/count-recovery/derivability-closure.ts",
+          "8381ff0a8ac4f982d1346de897741b907d13edc4541c8575d3ba2d30443943d3  core/count-recovery/field-demand.ts"
+        ],
+        "sourceBytesVerified": true
+      },
+      "workerCheckedLost": false,
+      "unitDelta": -116.72317200000043,
+      "wallDelta": -76.46943999999985
+    }
+  ],
+  "workerCheckedLosses": [],
+  "outsidePassLine": []
+}
