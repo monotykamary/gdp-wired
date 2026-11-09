@@ -80,7 +80,7 @@ export function checkGoalFrames(goal: Goal, counts: Count[], tree: Tree, lemmas:
     // Each lemma as kernel.ts checks it: alone, under its own conditions and the negated cut, without frames.
     const alone = (l: LemmaCut): boolean => {
       const hyps = l.slice === undefined ? goal.hyps : l.slice.map(i => goal.hyps[i]!)
-      const path: Path = new Map([[canon(l.cut), {lin: l.cut, holds: false}], ...l.when.map(w => [canon(w), {lin: w, holds: true}] as const)])
+      const path: Path = new Map<string, {lin: Lin, holds: boolean}>([[canon(l.cut), {lin: l.cut, holds: false}], ...l.when.map(w => [canon(w), {lin: w, holds: true}] as const)])
       return check({...goal, hyps}, l.tree, path)
     }
     if (!lemmas.every(alone)) return false
