@@ -404,10 +404,10 @@ export function candidates(src: Parameters<typeof inferLaws>[0], m: Machine, cal
 export type Tried<P> = {proof: P} | {stuck: string, refuted?: boolean}
 // Recovery proposals must not consume a successful ordinary attempt's allowance.
 // A deferred proposal keeps the latest warmed context, but never extends its deadline.
-export function withDeferredCountRecovery<P>(until: number, attempt: (defer: (recover: () => P | undefined) => void) => Tried<P>): Tried<P> {
+export function withDeferredCountRecovery<P>(until: number, attempt: (defer: (recover: () => P | undefined) => void) => Tried<P>, ready: () => boolean = () => true): Tried<P> {
   let recover: (() => P | undefined) | undefined
   const ordinary = attempt(next => { recover = next })
-  if ('proof' in ordinary || !recover || clock() >= until) return ordinary
+  if ('proof' in ordinary || ordinary.refuted === true || !recover || !ready() || clock() >= until) return ordinary
   const proof = recover()
   return proof === undefined ? ordinary : {proof}
 }
@@ -681,6 +681,9 @@ export function countedAttempts(m: Machine, caller: Law[], support: Set<Law>, un
   // bounded set of sessions; each independently resets unless its hypotheses are
   // still present verbatim. This reuses work, never a verdict from a weaker goal.
   const decisions = new Map<string, ReturnType<typeof modelSequence>>(), focusEnabled=focusedCountRecoveryEnabled(m)
+  // Scheduling history only, never a cached verdict. A different family must
+  // earn its own ordinary attempts before using the finite recovery search.
+  const plainFailures = new WeakMap<Law, WeakSet<Law[]>>()
   let finite: ReturnType<typeof finiteModelChecker> | undefined
   const ordinaryAttempt = (law: Law, ls: Law[], pass: 0 | 1, ms: number, attemptEnd: number, defer: (recover: () => Proof | undefined) => void): Tried<Proof> => {
     // A cached model can return before the no-count optimization below. A helper
@@ -697,9 +700,10 @@ export function countedAttempts(m: Machine, caller: Law[], support: Set<Law>, un
       const blocked=[...memberState?.witnesses.values()??[],...cti?.wits??[]]
       return blocked.length?independentCountInstances(m,modelLaws,before,next,[...blocked,...wits]):next
     }
-    // Finite-input recovery remains on by default, but ordinary search goes first.
-    // A failed attempt may use the remainder of its original share, never a new one.
-    if (!pass && focusEnabled && m.inputMaps?.length && !reads(law.holds, isCount).size) {
+    // Try ordinary counted reasoning before finite recovery when the plain
+    // pass needs counts. Keep the no-count fallback and the existing wide-pool
+    // recovery, using only the current attempt's remaining allowance.
+    if (focusEnabled && m.inputMaps?.length && !reads(law.holds, isCount).size && (!pass || plainFailures.get(law)?.has(ls))) {
       defer(() => ptime('focused', () => proveFocusedCounts(m, ls, law, {}, Math.min(attemptEnd, clock() + Math.min(ms, 5000)), (g, ds) => certFor(g, ds, true, pool, undefined, structured))))
     }
     // (the model broken: the attempt starts at the instances it asks for, its last attempt's and the tuples the new laws
@@ -996,7 +1000,15 @@ export function countedAttempts(m: Machine, caller: Law[], support: Set<Law>, un
   }
   const attempt = (law: Law, ls: Law[], pass: 0 | 1, ms: number): Tried<Proof> => {
     const end = Math.min(until, clock() + ms)
-    return withDeadline(end, () => withDeferredCountRecovery(end, defer => ordinaryAttempt(law, ls, pass, ms, end, defer)))
+    const result = withDeadline(end, () => withDeferredCountRecovery(end,
+      defer => ordinaryAttempt(law, ls, pass, ms, end, defer), () => !!pass || !counted))
+    if (!pass) {
+      const failures = plainFailures.get(law) ?? new WeakSet<Law[]>()
+      if (!('proof' in result) && !result.refuted) failures.add(ls)
+      else failures.delete(ls)
+      plainFailures.set(law, failures)
+    }
+    return result
   }
   const traced = (law: Law, ls: Law[], pass: 0 | 1, ms: number): Tried<Proof> => {
     const t0 = clock(), w0 = performance.now(), p0 = {...cprof}

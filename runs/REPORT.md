@@ -16,6 +16,10 @@ The coordinator moved main from `b788e195` to **`4497c4b05c3111959a2b8d808c426a0
 
 Coordinator instruction: **do not request Lane D's final gate yet**. Candidate `5829b23d` still carries both isolated causes: default focused recovery (`55b5846a`) and eager count-law completion (`60b8c37a`). Integrate both Lane A and Lane B fixes as they commit. Before any new final-gate request, Lane I must run and audit **at least five strict repeats per side on Ryzen 9 9950X against `4497c4b0`**, showing no `consensus_forall` loss. Historical b788-based bisection results cannot satisfy this new-baseline check. Existing cheaper validations continue and are not cancelled or relabelled.
 
+## Consensus fix integration — qualification pending
+
+- **A `47dfc340`, production fix `1564709f`:** ordinary counted reasoning gets its opportunity before finite-input recovery, within the existing attempt deadline. Resolved `core/counts.ts` by retaining integrated member-witness freshness handling plus the new readiness/scheduling logic; no proof verifier was changed. Resolved the quick-roster conflict as a union without duplicate seed entries, and added the previously unlisted `finite-tiny.test.ts` / `finite-tiny-houdini.test.ts` to both the roster and its coverage assertion. New recovery tests include certified-CTI refusal and a checked ordinary counted proof. The incoming report is archived at `runs/lane-i/incoming/20261110/A-47dfc340.md`. No performance or gate claim yet.
+
 ## New lane-tip integration after `4497c4b0` — active
 
 - **A `0bab28e2`:** production finite-search files merged automatically, preserving the existing whole-family/source-interpreter certification boundary. New interval/seed paths remain opt-in; front-loading replaces rather than doubles the 256-attempt allowance. The sole conflict is the lane report, preserved verbatim at `runs/lane-i/incoming/20261110/A-0bab28e2.md`, while this continuous integration report is retained. Added the two new seed test modules and the qualified diagnostic tests to the canonical quick roster and its coverage assertion. A's pilot is still pending and does not satisfy its five-of-seven criterion by assertion.
