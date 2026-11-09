@@ -1,8 +1,9 @@
 import {expect,test} from 'bun:test'
-import {type Machine,get,ite,n,same,x} from '../machine.ts'
-import {canon,check,type Path,truth} from '../../kernel/kernel.ts'
+import {type Machine,any,get,ite,less,n,same,x} from '../machine.ts'
+import {canon,check,checkMC,type CountDecl,type CountCert,type Path,truth} from '../../kernel/kernel.ts'
 import {clock,grow} from '../../kernel/prove.ts'
 import {demandedRowPair,proveRowCases,writesReadState} from './row-cases.ts'
+import {proveCountCases} from '../count-cases.ts'
 const pairs=[[x('a'),x('i')],[x('b'),x('i')]] as const
 const impossible={name:'contradiction',hyps:[same(n(0),n(1))]}
 const close=(path:Path,end:number)=>{const out=grow(impossible,path,{nodes:0,until:end});return 'tree'in out?out.tree:undefined}
@@ -42,4 +43,17 @@ test('write-free detection follows count bodies, bounds, scalar writes, and inac
  expect(writesReadState(frame,cert,new Map())).toBe(false)
  expect(writesReadState({...frame,step:{...frame.step,state:{limit:n(3)}}},cert,new Map())).toBe(true)
  expect(writesReadState(m,{reads:[['x','missing#',x('a')]]},new Map())).toBe(true)
+})
+
+test('write-free activation uses one frame leaf rather than guard cases',()=>{
+ const op=x('op'),zero=n(0),choices=any(same(op,n(0)),same(op,n(1)),same(op,n(2)))
+ const machine:Machine={name:'write-free frames',params:[],inputs:['op'],state:{},maps:{V:0},assume:choices,counts:{Rows:{j:'r',key:'k',below:n(2),body:n(0)}},step:{flags:{active:same(op,n(0))},maps:{V:{each:'k',value:get('V',x('k'))}}}}
+ const decls:CountDecl[]=[{map:'Rows',...machine.counts!.Rows!},{map:'Rows#',...machine.counts!.Rows!}]
+ const cert:Pick<CountCert,'reads'|'insts'>={reads:[['pre','Rows',zero],['post','Rows#',zero]],insts:[{wit:'frame',below:n(2),terms:[[1,'post'],[-1,'pre']],unit:0}]}
+ const packet={goal:{name:'write-free @step',hyps:[choices,less(get('Rows',zero),get('Rows#',zero))]},decls},events:Record<string,unknown>[]=[]
+ const result=proveCountCases(machine,[],{},cert,clock()+3000,()=>packet,{trace:e=>events.push(e)})
+ expect(result).toBeDefined()
+ if(result)expect(checkMC(packet.goal.hyps,decls,result.cert)).toBe(true)
+ expect(events.some(e=>e.stage==='write-free-case'&&e.proposed)).toBe(true)
+ expect(events.some(e=>e.stage==='case-derivations')).toBe(false)
 })
