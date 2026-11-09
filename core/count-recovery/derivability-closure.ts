@@ -22,6 +22,7 @@ import {proposeWriteCountFrames} from '../count-write-frames.ts'
 import {countsForReads} from '../count-facts.ts'
 import {memberInclusions} from './member-inclusions.ts'
 import {leafAllowance} from './leaf-allowance.ts'
+import {emptyCountSource} from './empty-count-source.ts'
 import {type FieldDemand,beginFieldAttempt,endFieldAttempt} from './field-demand.ts'
 type Packet=Pick<CountCert,'reads'|'insts'>
 type Bound={op:'<=',a:E,b:E}
@@ -186,6 +187,7 @@ export function deriveCountClosure(m:Machine,ds:CountDecl[],g:Goal,cert:Packet,r
  let rounds=0,fixedPoint=false
  for(const index of pool)scopesFor(index)
  const excludedAt=new Map<string,Set<number>>(),attempted=new Map<string,{version:number,outcome:'checked'|'sat'|'unknown'}>()
+ const countBodies=new Map<string,E|undefined>()
  const validPoint=(part:Goal,path:Path,point:Record<string,number>):Record<string,number>|undefined=>{
   const model={...point}
   walkLive(part.hyps,path,(o:any)=>{if(o.op==='var'&&!Object.hasOwn(model,o.name))model[o.name]=0})
@@ -201,7 +203,12 @@ export function deriveCountClosure(m:Machine,ds:CountDecl[],g:Goal,cert:Packet,r
   const inst=cert.insts[index]!,h=g.hyps[raw.length+index];if(h?.op!=='or'||h.xs[0]?.op!=='<=')return 'unknown'
   const good:Bound={op:'<=',a:h.xs[0].a,b:h.xs[0].b},available=active(saved,scope),path=scope,before=clock()
   const meter=beginFieldAttempt(good,scope,options.fieldDemand,'closure-count');let emitted=false
-  try{const part:Goal={name:g.name,hyps:[...source(path,inst.wit),...available.map(s=>s.good),h,{op:'not',x:good}]}
+  const aliases:Record<string,E>={}
+  for(const [a,b]of pairs)if(a.op==='var'&&truth({op:'=',a,b},path)===true)aliases[a.name]=b
+  const id=inst.unit===0&&inst.terms.length===1&&inst.terms[0]![0]===1?inst.terms[0]![1]:undefined
+  if(id&&!countBodies.has(id)){const read=cert.reads.find(r=>r[0]===id);countBodies.set(id,read?countsForReads(ds,[read])?.[0]?.body:undefined)}
+  const body=id?countBodies.get(id):undefined,independent=!!body&&emptyCountSource(body,aliases)
+  try{const part:Goal={name:g.name,hyps:[...(independent?[]:source(path,inst.wit)),...(independent?[]:available.map(s=>s.good)),h,{op:'not',x:good}]}
   const reused=models.some(m=>validPoint({...part,hyps:part.hyps.map(c=>substC(c,{vars:{[inst.wit]:x(m.witness)},maps:{},flags:{}}))},path,m.model)!==undefined)
   if(reused){attempted.set(key,{version,outcome:'sat'});trace.push({stage:'closure-source',scope:scopes.indexOf(scope),index,outcome:'reused-model',ms:clock()-before});return 'sat'}
   const queryLimit=Math.min(end,clock()+(inst.terms.length===5?150:50)),q=modelSequence(path)(part,queryLimit)
@@ -210,12 +217,19 @@ export function deriveCountClosure(m:Machine,ds:CountDecl[],g:Goal,cert:Packet,r
    const model=validPoint(part,path,q.witness)
    if(model){validModel=true;models.push({witness:inst.wit,model});if(models.length>32)models.shift()}
   }else if(!tree&&!('tree'in q)&&q.why===REFUTED&&q.core?.length&&q.core.length<=8&&building()){
-   const limit=Math.min(end,Math.max(queryLimit,clock()+100)),small={...part,hyps:q.core.map(i=>part.hyps[i]!)},oldPoint=atPoint.on;atPoint.on=false
-   try{let local=booleanCore(small,path,new Set([inst.wit]),limit,trace,{deferCheck:true,extended:true,scalarGuards:true,model:true});if(!local&&clock()<limit){const folded=foldPath(small,path),out=grow(folded.goal,path,{nodes:0,until:Math.min(limit,clock()+25),units:false});local='tree'in out?withDeadline(limit,()=>widen(folded.goal,small,out.tree,folded.opaque,path,path)):undefined}if(local){tree=local;proofSource=small}}finally{atPoint.on=oldPoint}
+   const limit=Math.min(end,independent?before+150:Math.max(queryLimit,clock()+100)),small={...part,hyps:q.core.map(i=>part.hyps[i]!)},oldPoint=atPoint.on;atPoint.on=false
+   try{let local:Tree|undefined
+    // Spend the existing 50+100 fallback envelope on the independent core,
+    // not unrelated field choices. No syntactic observation is a proof.
+    if(independent){const out=grow(small,path,{nodes:0,until:limit,units:true});if('tree'in out)local=out.tree}
+    if(!local&&clock()<limit)local=booleanCore(small,path,new Set([inst.wit]),limit,trace,{deferCheck:true,extended:true,scalarGuards:true,model:true})
+    if(!local&&clock()<limit){const folded=foldPath(small,path),out=grow(folded.goal,path,{nodes:0,until:Math.min(limit,clock()+25),units:false});local='tree'in out?withDeadline(limit,()=>widen(folded.goal,small,out.tree,folded.opaque,path,path)):undefined}
+    if(local){tree=local;proofSource=small}
+   }finally{atPoint.on=oldPoint}
   }
   const accepted=!!tree&&accept(good,proofSource,tree,path,scope,index),outcome=accepted?'checked':validModel?'sat':'unknown';emitted=accepted
   attempted.set(key,{version,outcome})
-  trace.push({stage:'closure-source',scope:scopes.indexOf(scope),index,core:'tree'in q?undefined:q.core?.length,tree:!!tree,outcome,ms:clock()-before})
+  trace.push({stage:'closure-source',scope:scopes.indexOf(scope),index,independent,core:'tree'in q?undefined:q.core?.length,tree:!!tree,outcome,ms:clock()-before})
   return outcome
   }finally{endFieldAttempt(meter,emitted)}
  }
