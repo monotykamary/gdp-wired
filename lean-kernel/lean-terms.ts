@@ -9,6 +9,17 @@ import {type C, type E, unreachable} from '../core/machine.ts'
 // the runtimes do. terra's review of gen/laneQ.)
 export const exactNat = (x: number): string => (Number.isSafeInteger(x) ? String(x) : BigInt(x).toString())
 
+// Keep a singleton's connective: TS facts can close a contradicted disjunction (or a
+// negated conjunction) directly. Erasing its wrapper preserves truth but loses that row.
+// A neutral binary child preserves both truth and that path-sensitive extraction.
+// Semantic/retained-tree checks: research/verify-all/export-shape.lean.
+export function leanConnective(op: 'and' | 'or', xs: readonly string[]): string {
+  const neutral = op === 'and' ? '.le (.const 0) (.const 0)' : '.lt (.const 0) (.const 0)'
+  if (!xs.length) return neutral
+  if (xs.length === 1) return `.${op} (${xs[0]}) (${neutral})`
+  return xs.reduceRight((acc, y) => `.${op} (${y}) (${acc})`)
+}
+
 export function leanTerms(vars: readonly string[], maps: readonly string[], where: string) {
   const ix = (name: string) => { const j = vars.indexOf(name); if (j < 0) throw new Error(`${where}: no variable for ${name}`); return j }
   const mx = (name: string) => { const j = maps.indexOf(name); if (j < 0) throw new Error(`${where}: no map for ${name}`); return j }
@@ -31,10 +42,7 @@ export function leanTerms(vars: readonly string[], maps: readonly string[], wher
       case '<': return `.lt (${e(t.a)}) (${e(t.b)})`
       case '=': return `.eq (${e(t.a)}) (${e(t.b)})`
       case 'not': return `.not (${c(t.x)})`
-      case 'and': case 'or': {
-        if (t.xs.length === 0) return t.op === 'and' ? '.le (.const 0) (.const 0)' : '.lt (.const 0) (.const 0)'
-        return t.xs.map(c).reduceRight((acc, y) => `.${t.op} (${y}) (${acc})`)
-      }
+      case 'and': case 'or': return leanConnective(t.op, t.xs.map(c))
       case 'flag': return `.eq (.var ${ix(`?${t.name}`)}) (.const 1)`
       case 'all': throw new Error(`${where}: a quantified flag goes to Lean as a flag of its own, not a condition`)
       default: return unreachable(t)

@@ -63,10 +63,10 @@ test('unchanged default is the reducer path, not standalone', () => {
   expect(r.model.shape).toBe('reducer')
 })
 
-test('null, non-scalar types, effects, external calls, mutable globals and extra executable module code are refused', () => {
+test('nullable inputs, unsupported types, effects, external calls, mutable globals and extra executable module code are refused', () => {
   const bad = [
     'export function f(x: boolean | null): number { return x ? 1 : 0 }',
-    'export function f(x: boolean): number | null { if (x) return null; return 1 }',
+    'export function f(x: boolean): number | null | undefined { if (x) return null; return 1 }',
     'export function f(x: number | undefined): number { return x ?? 0 }',
     'export function f(x: string): number { return 1 }',
     'export function f(x: number): number { return Math.abs(x) }',

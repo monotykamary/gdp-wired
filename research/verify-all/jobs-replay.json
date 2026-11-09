@@ -1,0 +1,234 @@
+[
+  {
+    "name": "replay-consensus",
+    "cmd": "bash research/verify-all/run-capture.sh consensus broken",
+    "cpu": 4,
+    "memory": 14336,
+    "timeout": 300,
+    "vm_type": "large"
+  },
+  {
+    "name": "replay-tcommit",
+    "cmd": "bash research/verify-all/run-capture.sh tcommit broken",
+    "cpu": 4,
+    "memory": 14336,
+    "timeout": 300,
+    "vm_type": "large"
+  },
+  {
+    "name": "replay-lock_server",
+    "cmd": "bash research/verify-all/run-capture.sh lock_server broken",
+    "cpu": 4,
+    "memory": 14336,
+    "timeout": 300,
+    "vm_type": "large"
+  },
+  {
+    "name": "replay-quorum_leader_election",
+    "cmd": "bash research/verify-all/run-capture.sh quorum_leader_election broken",
+    "cpu": 4,
+    "memory": 14336,
+    "timeout": 300,
+    "vm_type": "large"
+  },
+  {
+    "name": "replay-toy_consensus_forall",
+    "cmd": "bash research/verify-all/run-capture.sh toy_consensus_forall broken",
+    "cpu": 4,
+    "memory": 14336,
+    "timeout": 300,
+    "vm_type": "large"
+  },
+  {
+    "name": "replay-simple",
+    "cmd": "bash research/verify-all/run-capture.sh simple broken",
+    "cpu": 4,
+    "memory": 14336,
+    "timeout": 300,
+    "vm_type": "large"
+  },
+  {
+    "name": "replay-simple_regular",
+    "cmd": "bash research/verify-all/run-capture.sh simple_regular broken",
+    "cpu": 4,
+    "memory": 14336,
+    "timeout": 300,
+    "vm_type": "large"
+  },
+  {
+    "name": "replay-lockserv_automaton",
+    "cmd": "bash research/verify-all/run-capture.sh lockserv_automaton broken",
+    "cpu": 4,
+    "memory": 14336,
+    "timeout": 300,
+    "vm_type": "large"
+  },
+  {
+    "name": "replay-sharded_kv",
+    "cmd": "bash research/verify-all/run-capture.sh sharded_kv broken",
+    "cpu": 4,
+    "memory": 14336,
+    "timeout": 300,
+    "vm_type": "large"
+  },
+  {
+    "name": "replay-sharded_kv_no_lost_keys",
+    "cmd": "bash research/verify-all/run-capture.sh sharded_kv_no_lost_keys broken",
+    "cpu": 4,
+    "memory": 14336,
+    "timeout": 300,
+    "vm_type": "large"
+  },
+  {
+    "name": "replay-lockserv",
+    "cmd": "bash research/verify-all/run-capture.sh lockserv broken",
+    "cpu": 4,
+    "memory": 14336,
+    "timeout": 300,
+    "vm_type": "large"
+  },
+  {
+    "name": "replay-twophase",
+    "cmd": "bash research/verify-all/run-capture.sh twophase broken",
+    "cpu": 4,
+    "memory": 14336,
+    "timeout": 300,
+    "vm_type": "large"
+  },
+  {
+    "name": "replay-simple_decentralized_lock",
+    "cmd": "bash research/verify-all/run-capture.sh simple_decentralized_lock broken",
+    "cpu": 4,
+    "memory": 14336,
+    "timeout": 300,
+    "vm_type": "large"
+  },
+  {
+    "name": "replay-two_phase_commit",
+    "cmd": "bash research/verify-all/run-capture.sh two_phase_commit broken",
+    "cpu": 4,
+    "memory": 14336,
+    "timeout": 300,
+    "vm_type": "large"
+  },
+  {
+    "name": "replay-consensus_wo_decide",
+    "cmd": "bash research/verify-all/run-capture.sh consensus_wo_decide broken",
+    "cpu": 4,
+    "memory": 14336,
+    "timeout": 300,
+    "vm_type": "large"
+  },
+  {
+    "name": "replay-consensus_forall",
+    "cmd": "bash research/verify-all/run-capture.sh consensus_forall broken",
+    "cpu": 4,
+    "memory": 14336,
+    "timeout": 300,
+    "vm_type": "large"
+  },
+  {
+    "name": "replay-naive_consensus",
+    "cmd": "bash research/verify-all/run-capture.sh naive_consensus broken",
+    "cpu": 4,
+    "memory": 14336,
+    "timeout": 300,
+    "vm_type": "large"
+  },
+  {
+    "name": "replay-client_server_ae",
+    "cmd": "bash research/verify-all/run-capture.sh client_server_ae broken",
+    "cpu": 4,
+    "memory": 14336,
+    "timeout": 300,
+    "vm_type": "large"
+  },
+  {
+    "name": "replay-client_server_db_ae",
+    "cmd": "bash research/verify-all/run-capture.sh client_server_db_ae broken",
+    "cpu": 4,
+    "memory": 14336,
+    "timeout": 300,
+    "vm_type": "large"
+  },
+  {
+    "name": "replay-simple_election",
+    "cmd": "bash research/verify-all/run-capture.sh simple_election broken",
+    "cpu": 4,
+    "memory": 14336,
+    "timeout": 300,
+    "vm_type": "large"
+  },
+  {
+    "name": "replay-toy_consensus_epr",
+    "cmd": "bash research/verify-all/run-capture.sh toy_consensus_epr broken",
+    "cpu": 4,
+    "memory": 14336,
+    "timeout": 300,
+    "vm_type": "large"
+  },
+  {
+    "name": "replay-toy_consensus",
+    "cmd": "bash research/verify-all/run-capture.sh toy_consensus broken",
+    "cpu": 4,
+    "memory": 14336,
+    "timeout": 300,
+    "vm_type": "large"
+  },
+  {
+    "name": "replay-firewall",
+    "cmd": "bash research/verify-all/run-capture.sh firewall broken",
+    "cpu": 4,
+    "memory": 14336,
+    "timeout": 300,
+    "vm_type": "large"
+  },
+  {
+    "name": "replay-majorityset_leader_election",
+    "cmd": "bash research/verify-all/run-capture.sh majorityset_leader_election broken",
+    "cpu": 4,
+    "memory": 14336,
+    "timeout": 300,
+    "vm_type": "large"
+  },
+  {
+    "name": "replay-consensus_epr",
+    "cmd": "bash research/verify-all/run-capture.sh consensus_epr broken",
+    "cpu": 4,
+    "memory": 14336,
+    "timeout": 300,
+    "vm_type": "large"
+  },
+  {
+    "name": "replay-learning_switch",
+    "cmd": "bash research/verify-all/run-capture.sh learning_switch broken",
+    "cpu": 4,
+    "memory": 14336,
+    "timeout": 300,
+    "vm_type": "large"
+  },
+  {
+    "name": "replay-learning_switch_i4",
+    "cmd": "bash research/verify-all/run-capture.sh learning_switch_i4 broken",
+    "cpu": 4,
+    "memory": 14336,
+    "timeout": 300,
+    "vm_type": "large"
+  },
+  {
+    "name": "replay-paxos_epr",
+    "cmd": "bash research/verify-all/run-capture.sh paxos_epr broken",
+    "cpu": 4,
+    "memory": 14336,
+    "timeout": 300,
+    "vm_type": "large"
+  },
+  {
+    "name": "replay-mldr",
+    "cmd": "bash research/verify-all/run-capture.sh mldr broken",
+    "cpu": 4,
+    "memory": 14336,
+    "timeout": 300,
+    "vm_type": "large"
+  }
+]

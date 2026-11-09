@@ -1,0 +1,52 @@
+[
+  {
+    "name": "engine-trust-names-862592db-v4",
+    "cmd": "bun research/verify-all/engine-trust-scan-862592db.ts",
+    "env": {
+      "AUDIT_SECTION": "names"
+    },
+    "cpu": 1,
+    "memory": 2,
+    "timeout": 120
+  },
+  {
+    "name": "engine-trust-knobs-862592db-v4",
+    "cmd": "bun research/verify-all/engine-trust-scan-862592db.ts",
+    "env": {
+      "AUDIT_SECTION": "knobs"
+    },
+    "cpu": 1,
+    "memory": 2,
+    "timeout": 120
+  },
+  {
+    "name": "engine-trust-io-862592db-v4",
+    "cmd": "bun research/verify-all/engine-trust-scan-862592db.ts",
+    "env": {
+      "AUDIT_SECTION": "io"
+    },
+    "cpu": 1,
+    "memory": 2,
+    "timeout": 120
+  },
+  {
+    "name": "engine-trust-shape-862592db-v4",
+    "cmd": "bun research/verify-all/engine-trust-scan-862592db.ts",
+    "env": {
+      "AUDIT_SECTION": "shape"
+    },
+    "cpu": 1,
+    "memory": 2,
+    "timeout": 120
+  },
+  {
+    "name": "engine-trust-laws-862592db-v4",
+    "cmd": "bun research/verify-all/engine-trust-scan-862592db.ts",
+    "env": {
+      "AUDIT_SECTION": "laws"
+    },
+    "cpu": 1,
+    "memory": 2,
+    "timeout": 120
+  }
+]

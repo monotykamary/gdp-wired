@@ -128,8 +128,8 @@ process.on('exit', () => {
 // uploaded), and every launch reads this checkout's supercomputer.toml (SUPERCOMPUTER_CONFIG), so every launch spends
 // starts under one policy, reaches warm VMs by their agents, and is in the ledger.
 const CLIENT = `bar-${process.pid}`
-// (and every launch is the supercomputer scheduler's class 2, a gate: it takes the treadmill's slots first)
-const SC_CONFIG: Record<string, string> = {SUPERCOMPUTER_CLASS: 'gate', ...(existsSync(join(HERE, '..', 'supercomputer.toml')) ? {SUPERCOMPUTER_CONFIG: resolve(HERE, '..', 'supercomputer.toml')} : {})}
+// Default to gate priority, but honor an explicit class so shared experiments can request fair submission slots.
+const SC_CONFIG: Record<string, string> = {SUPERCOMPUTER_CLASS: process.env.SUPERCOMPUTER_CLASS || 'gate', ...(existsSync(join(HERE, '..', 'supercomputer.toml')) ? {SUPERCOMPUTER_CONFIG: resolve(HERE, '..', 'supercomputer.toml')} : {})}
 function declare(done = false) {
   if (!workStarted || backend === 'modal') return
   Bun.spawnSync(['python3', join(HERE, '..', 'supercomputer', 'boat.py'), 'demand', CLIENT, ...(done ? ['--done'] : ['--for', '300', '--pid', String(process.pid)])], {stdout: 'ignore', stderr: 'ignore', env: {...process.env, ...SC_CONFIG}})
@@ -273,7 +273,7 @@ const GROUPS: Group[] = [
     const runner = join(p.tree.path, 'research/query/modal_query.py'), mine = join(HERE, '..', 'research/query/modal_query.py')
     if (!readFileSync(runner, 'utf8').includes('fanout.cli') && resolve(runner) !== resolve(mine)) cpSync(mine, runner)
     return py(p, 'research/query/modal_query.py', ['--jobs', `${p.dir}.jobs.json`], 1200,
-      {GDP_QUERY_BASE: join(BAR, 'none'), SUPERCOMPUTER_CLASS: 'gate'})
+      {GDP_QUERY_BASE: join(BAR, 'none')})
   }},
   {key: 'suite', views: ['suite'], cap: 2400, inQuick: false, launch: p => jobsPass(p, readJson<Job[]>(join(p.tree.path, sc(p.tree.path), 'suite.json')), j => j.name, 2400)},
   {key: 'suite-usual', views: ['suite-usual'], cap: 2400, inQuick: false, after: 'suite', launch: p => jobsPass(p, readJson<Job[]>(join(p.tree.path, sc(p.tree.path), 'suite.json')), j => j.name, 2400, ['--usual'])},

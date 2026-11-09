@@ -124,7 +124,7 @@ export function namesOf(m: Model): Name[] {
   const arg = (a: Arg, at: string, method: string) => {
     if (a.k === 'input') out.push({code: at, rule: a.name, role: 'input', method})
     else if (a.k === 'maybe-bool') out.push({code: at, rule: a.name, none: a.missing, role: 'input', method})
-    else if (a.k === 'rec') for (const [f, x] of a.fields) arg(x, `${at}.${f}`, method)
+    else if (a.k === 'rec') for (const [f, x] of a.fields) arg(x, m.standalone && at === '__gdp_destructured' ? f : `${at}.${f}`, method)
   }
   for (const e of m.events) e.args.forEach((a, i) => { const n = e.names?.[i]; if (n) arg(a, n, e.call) })
   for (const [method, r] of Object.entries(m.results ?? {})) {

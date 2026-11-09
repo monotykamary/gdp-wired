@@ -1,0 +1,37 @@
+[
+  {
+    "name": "tlc-paxos_epr",
+    "cmd": "python3 research/verify-all/tlc-audit-run-20261109.py paxos_epr 600000",
+    "cpu": 4,
+    "memory": 14336,
+    "timeout": 2100
+  },
+  {
+    "name": "tlc-consensus_forall",
+    "cmd": "python3 research/verify-all/tlc-audit-run-20261109.py consensus_forall 600000",
+    "cpu": 4,
+    "memory": 14336,
+    "timeout": 2100
+  },
+  {
+    "name": "tlc-learning_switch",
+    "cmd": "python3 research/verify-all/tlc-audit-run-20261109.py learning_switch 600000",
+    "cpu": 4,
+    "memory": 14336,
+    "timeout": 2100
+  },
+  {
+    "name": "tlc-consensus_epr",
+    "cmd": "python3 research/verify-all/tlc-audit-run-20261109.py consensus_epr 600000",
+    "cpu": 4,
+    "memory": 14336,
+    "timeout": 2100
+  },
+  {
+    "name": "tlc-consensus_wo_decide",
+    "cmd": "python3 research/verify-all/tlc-audit-run-20261109.py consensus_wo_decide 600000",
+    "cpu": 4,
+    "memory": 14336,
+    "timeout": 2100
+  }
+]

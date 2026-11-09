@@ -264,7 +264,7 @@ example : smghostOk { grants_gm with orig := ${lit(tOrig)} } = false := by decid
   for (const t of pTampers) if (checkCountedLaws(pe.m, pe.laws, {instances: pe.instances, certs: t.certs})) throw new Error(`two members: kernel.ts accepts the tampered certificate (${t.what})`)
   parts.push(cmachineToLean('twom', pe.m, pe.laws, {instances: pe.instances, certs: pcerts}, pTampers))
   return `import Count
-import CountMachine
+import QAlpha
 import GhostMap
 open Kern Cert
 set_option maxRecDepth 100000

@@ -789,6 +789,7 @@ function printRule(r: RuleOut, o: Opts) {
 const label = (n: Name) => (n.role === 'answer' ? `${n.code.split('.').pop()}(...)` : n.role === 'input' && n.method ? `${n.method}(${n.code})` : n.role === 'result' && n.method ? `${n.method}() result` : n.code)
 
 const USAGE = `gdp-wired check <file|dir>... [--entry X] [--mode standalone] [--methods a,b] [--failures kept] [--on-error discard] [--json] [--ms 10000] [--no-propose] [--clock s|ms] [--cert <dir>] [--from any] [--require-review] [--security]
+gdp-wired mutate <config.json> [--json]
 gdp-wired draft <file> --clause <text> | --clause-file <file> --cite <ref> [--llm <command> | --answer <file>] [--by <who>]
 
 Reads the rule in each file (Python, Ruby, Elixir, Java, Kotlin, Go, Rust, Swift, C, C++, TypeScript, Effect, XState), checks it
@@ -842,6 +843,13 @@ async function draft(target: string, o: Opts): Promise<number> {
 // --require-review, one cited unreviewed).
 export async function main(argv: string[]): Promise<number> {
   const {cmd, targets, o} = args(argv)
+  if (cmd === 'mutate' && targets.length === 1) {
+    const {checkMutations} = await import('./mutate.ts')
+    const file = path.resolve(targets[0]!), config = JSON.parse(fs.readFileSync(file, 'utf8')) as import('./mutate.ts').MutationConfig
+    const result = checkMutations({...config, cwd: path.resolve(path.dirname(file), config.cwd ?? '.')})
+    out(o.json ? JSON.stringify(result, null, 1) : result.markdown)
+    return result.passed ? 0 : 1
+  }
   if (cmd === 'draft' && targets.length === 1) return draft(targets[0]!, o)
   if (cmd !== 'check' || !targets.length) { out(USAGE); return cmd === 'help' || cmd === '--help' || cmd === '-h' || !cmd ? 0 : 2 }
   tint = colors(proc.env, !!proc.stdout.isTTY, !!o.json)

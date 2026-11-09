@@ -1,0 +1,373 @@
+{
+  "baseline": "e11165280a1bab4944a692a64ab1554e5f53c82e",
+  "summary": [
+    [
+      "combined",
+      "0",
+      "105.1",
+      "boat"
+    ],
+    [
+      "law12-probe",
+      "0",
+      "8.57",
+      "boat"
+    ],
+    [
+      "census",
+      "0",
+      "0.81",
+      "boat"
+    ]
+  ],
+  "logSha256": {
+    "combined": "278d28cc084413909306b36f9076c42fdb66dcc2118c98b4b33ce0afb1c74865",
+    "probe": "22b3db73fca9ba409288591453a4863567fe1b1c10085021daad2ccb630fe6e9",
+    "census": "566b4415a57f4b592817a8615861be4d88e33272744fcfc3e2f43eae86f517f8",
+    "inheritedTree": "17ce685be65380ae37a1b086168b8e6017bf4773f742a417e8b41b38af4aa5e1"
+  },
+  "combined": {
+    "originalSha256": "e31b4c24e46e021c0b0187d1c2b71736530c16e47db15c18eb4d8cd77cfc15b1",
+    "alphaSha256": "453822882fcabdab514a04a2a2ddd570bfa9ea449199cfc8ca96d9e95b4a26ed",
+    "adaptSha256": "3d47991d66529c90181efd31fe6165307164a2cf64e04e90978c41a1ef262966",
+    "combinedSha256": "170ac978ac261a918fc5917466fcc987aca19ccf3300ce4ef25600836bda2c2d",
+    "changedEntries": [
+      20
+    ],
+    "changedLeafPaths": [
+      "YYYYN",
+      "N"
+    ],
+    "alphaBinder": {
+      "flag": 72,
+      "from": 29,
+      "to": 131
+    },
+    "claim": "all original captured entries on original counted-machine reachable states; not the original certificate bytes"
+  },
+  "leanWall": {
+    "combined": [
+      "LEAN_WALL seconds=0.25 maxrss_kb=506156 exit=0",
+      "LEAN_WALL seconds=82.52 maxrss_kb=6891264 exit=0"
+    ],
+    "probe": [
+      "LEAN_WALL seconds=0.30 maxrss_kb=539768 exit=0"
+    ]
+  },
+  "law12": {
+    "trials": 24,
+    "acceptedTrueLaws": 2,
+    "falseLawTrialsRejected": 16,
+    "reusedProofsRejected": 4,
+    "interpreter": [
+      {
+        "mode": "collision",
+        "kind": "bounded",
+        "keys": {
+          "a": 0,
+          "g": 1
+        },
+        "values": [
+          true,
+          true,
+          true
+        ]
+      },
+      {
+        "mode": "collision",
+        "kind": "zero",
+        "keys": {
+          "a": 0,
+          "g": 1
+        },
+        "values": [
+          true,
+          false,
+          true
+        ]
+      },
+      {
+        "mode": "collision",
+        "kind": "uniform",
+        "keys": {
+          "a": 0,
+          "g": 1
+        },
+        "values": [
+          true,
+          false,
+          true
+        ]
+      },
+      {
+        "mode": "fresh",
+        "kind": "bounded",
+        "keys": {
+          "a": 0,
+          "g": 1
+        },
+        "values": [
+          true,
+          true,
+          true
+        ]
+      },
+      {
+        "mode": "fresh",
+        "kind": "zero",
+        "keys": {
+          "a": 0,
+          "g": 1
+        },
+        "values": [
+          true,
+          false,
+          true
+        ]
+      },
+      {
+        "mode": "fresh",
+        "kind": "uniform",
+        "keys": {
+          "a": 0,
+          "g": 1
+        },
+        "values": [
+          true,
+          false,
+          true
+        ]
+      }
+    ]
+  },
+  "census": {
+    "totals": {
+      "rows": 29,
+      "accepted": 28,
+      "otherAccepted": 27,
+      "otherLeanChecked": 27,
+      "otherScanPrefix": [],
+      "otherCarryCoWrite": [],
+      "otherCollisions": [],
+      "censusSha256": "32fd650fc0f6f74fc6d8d69209e5e982f3135833ebcd86808271fcc101b698e9"
+    },
+    "otherCertificates": [
+      {
+        "id": "client_server_ae",
+        "otherFurtherKeys": 6,
+        "packetSha256": "f0718ac3a082397ebdbab9aab1d17376229c65f5ac3a5d907731543349174476",
+        "leanSha256": "b2302cf4dc4d7741600778c8ff14f5aaf7f2257f3baa9a7d382fcf4e3ff74579",
+        "receipt": "recheck-capture/recheck-client_server_ae.log",
+        "receiptSha256": "939074981193d28b229eeefe4b16517e30b3b50bc035d6c26efbefc9653595c6"
+      },
+      {
+        "id": "client_server_db_ae",
+        "otherFurtherKeys": 27,
+        "packetSha256": "281af1206130f84dbc9d9c1894690d53aa0b04bc51bc4e0b50d68de6fde5254d",
+        "leanSha256": "dbd9dba52992a0608c7c5c0668c7ac47ba341ce21c0bac43979f38a3afabbd46",
+        "receipt": "recheck-capture/recheck-client_server_db_ae.log",
+        "receiptSha256": "e1f8d7d05d0fcda2734455fe3ca84434671486273f9e95fec4a35885b91394d9"
+      },
+      {
+        "id": "consensus",
+        "otherFurtherKeys": 1,
+        "packetSha256": "9b9ddc75902e4d9cdc66f2f063778fb12f8c96c2f674414d1a7dea6681822197",
+        "leanSha256": "f281d66ae9f314e9201274e183b4a2f5fbde9d77024fb061efed09b291b96f2e",
+        "receipt": "capture-all/capture-consensus.log",
+        "receiptSha256": "1bf545f0b1ed1315cdb5f33851c45e8fffef609795417de62ace04984108a925"
+      },
+      {
+        "id": "consensus_epr",
+        "otherFurtherKeys": 18,
+        "packetSha256": "c81f53591d19ff998dbe8f458d07c65f6bc05ffc36d0e3a0971de24a06bbe0d3",
+        "leanSha256": "0552c33ca5fb5d1b157512e5e53435478fe70497d2655a8fc69295f822d920e4",
+        "receipt": "capture-all/capture-consensus_epr.log",
+        "receiptSha256": "550ab457c5c99bfd77d5fdc051aa67551b83c2f94a7de47e41e1812771f3e2b5"
+      },
+      {
+        "id": "consensus_forall",
+        "otherFurtherKeys": 23,
+        "packetSha256": "ea67fc7ff8388391325a64e6269072b08874ccea93d509390e7f074461c259f9",
+        "leanSha256": "ccf620ae160c3b090447ddaf4b52b597fa31c4af5aabf09596e0c01c775d6822",
+        "receipt": "capture-all/capture-consensus_forall.log",
+        "receiptSha256": "4106b6a0133c5d952eee9c240b3fc3be32a1c6ff9a3904e8cd1fd8069528aa46"
+      },
+      {
+        "id": "consensus_wo_decide",
+        "otherFurtherKeys": 17,
+        "packetSha256": "9f755c0b03c30faaeb4e2c4f82d72139a316b2bafcb074ef6024a667f42a1b37",
+        "leanSha256": "ae0ee366c05239632a04eb4ca253f92d80bba8d3f30d9a8e043d4be4192e9442",
+        "receipt": "capture-all/capture-consensus_wo_decide.log",
+        "receiptSha256": "2393f680444f69d2dc023cfc1bca4af18002cf1d842e9a13897739d194504e9f"
+      },
+      {
+        "id": "firewall",
+        "otherFurtherKeys": 2,
+        "packetSha256": "289208b43bb920b6623d10b7f23bd25ece13bcea79b2120982bc243d77d37b35",
+        "leanSha256": "8017ae2950ea734e48bffd31dbb2dd3976f3b771f25c31e51a2ecc8286163d44",
+        "receipt": "recheck-capture/recheck-firewall.log",
+        "receiptSha256": "7528462f7f405764aa04663aece732f0cf4ec588f3942cf61dd1016c5e3f0ebe"
+      },
+      {
+        "id": "learning_switch",
+        "otherFurtherKeys": 15,
+        "packetSha256": "3fad96e4b916c6915f0d3b5498bdb513882c0dd9750efe9564b58bf06cac7483",
+        "leanSha256": "985f87fef35d310552dc4fba159201b015b1f374cf0744786f51dad1a7e5cc5f",
+        "receipt": "capture-all/capture-learning_switch.log",
+        "receiptSha256": "b161b0d517a961eb3c44a287313204e9a15379642d014abfbeb5ab003d9d3d8f"
+      },
+      {
+        "id": "learning_switch_i4",
+        "otherFurtherKeys": 19,
+        "packetSha256": "ad44f31b148aa0a703886783768e32216ea9c0b90dd7529aac2f1cc4daec9c59",
+        "leanSha256": "1e096a70a955feaaf138964dca580397ac01e24fac2b3f6158e372c52a0c317d",
+        "receipt": "capture-all/capture-learning_switch_i4.log",
+        "receiptSha256": "78b1c0c3f48710dc534b1c66ed904d4c7f9aca976a11537c8534c0e1ab45b081"
+      },
+      {
+        "id": "lock_server",
+        "otherFurtherKeys": 2,
+        "packetSha256": "e68b6d5bdd30e3b86be00d674977afd718c7d984c93dee4aa83adf3c14202e4e",
+        "leanSha256": "2fbb0c3b07fa47e11d57fd05fc69c360cf4df80a9b6025f0ba606e46599b452f",
+        "receipt": "capture-all/capture-lock_server.log",
+        "receiptSha256": "c917cb10884c516581d909a01d0450eee2990213f626bd19aa93d8db3be30552"
+      },
+      {
+        "id": "lockserv",
+        "otherFurtherKeys": 7,
+        "packetSha256": "6ffc9529116e8afdac5b2022f9b4cfc730c94c9a7fd65a06ea0437a4e0389e17",
+        "leanSha256": "b7b355d6f1178bf68b6530c5493b5bca9cdf9c6fe56924bc3cb3f6c4442c6d86",
+        "receipt": "capture-all/capture-lockserv.log",
+        "receiptSha256": "d4fae36b1145d65778a2ef4a3917dbbed40d0dd994b4300e82c73394744a8613"
+      },
+      {
+        "id": "lockserv_automaton",
+        "otherFurtherKeys": 7,
+        "packetSha256": "cc0bb87f7107a989efb68b6af660a8f72954d7ce7e767b55d35bd05ee6271d35",
+        "leanSha256": "904b3db5f0ec1035a34f1850348c48fbce68de2ef3b71ae404343b9b30d28f0a",
+        "receipt": "capture-all/capture-lockserv_automaton.log",
+        "receiptSha256": "abfdfc14c4694e87a6d3449bc545a453ff56ceb6f4bf81bb905e34e92b41c2d2"
+      },
+      {
+        "id": "majorityset_leader_election",
+        "otherFurtherKeys": 11,
+        "packetSha256": "3901663828912775846610d10f9853c135a25ab95f89afeb1eb86999f5cde1d8",
+        "leanSha256": "869f5ccff2ecdf9eb429dd7f19cdc24c1c9462691dc4cbd8b7f778ad5ba3b2c6",
+        "receipt": "capture-all/capture-majorityset_leader_election.log",
+        "receiptSha256": "24cbfe78f69fed1349968573a3a8357bdffb10671569ceeb29752f6b2e391ac9"
+      },
+      {
+        "id": "naive_consensus",
+        "otherFurtherKeys": 6,
+        "packetSha256": "7771870abacbf648204fe36578b0fc8e0e24c0529eb2ff3e3257104b58c27f2b",
+        "leanSha256": "2cab86aad542fece7fcdc005368f1d58280310bd81da2daebd08f0072d19ac6b",
+        "receipt": "capture-all/capture-naive_consensus.log",
+        "receiptSha256": "a28ae360def79d28182484b1e485454546fd1084d30e1d1d516d3216e73c6799"
+      },
+      {
+        "id": "quorum_leader_election",
+        "otherFurtherKeys": 3,
+        "packetSha256": "47c9462ca80094ac32bedf82eb46e3c962783305c07d47bdc2c256d65a3e57db",
+        "leanSha256": "453ee5b909430b441f7ce7c0ef4bcfb02b93ed64ec06d098dd33aca3ebb8ded8",
+        "receipt": "capture-all/capture-quorum_leader_election.log",
+        "receiptSha256": "bf2fb59cbdd82bd378c71bc9be4e0360ba270cdb8eb2006b5fb7eed751d011f3"
+      },
+      {
+        "id": "sharded_kv",
+        "otherFurtherKeys": 21,
+        "packetSha256": "74258416c940209a14f85bec2a195cecda1a0744c2b916a3295ab38787bdc892",
+        "leanSha256": "cd1cd99deda38517d6b2adb9c9c7ada3c1dc9e455ca12508cb0cc0f62abef20d",
+        "receipt": "capture-all/capture-sharded_kv.log",
+        "receiptSha256": "9cd4eac4158ba580d27a88086e830e7032f16883d6bc2812e2966db599caa75b"
+      },
+      {
+        "id": "sharded_kv_no_lost_keys",
+        "otherFurtherKeys": 0,
+        "packetSha256": "d47393774cf908be72b8cb1fe329d2ce4e68461b3e534cf21a4c7e13e19a02fa",
+        "leanSha256": "ff93c0fe2e6e54182d8739e0da01f4dc5009e1d2d354b84aca76136abbb62a01",
+        "receipt": "recheck-final/recheck-sharded_kv_no_lost_keys.log",
+        "receiptSha256": "83babf219eee822a363f913bb4a77676b18d6c366e922200aae732316eb56283"
+      },
+      {
+        "id": "simple",
+        "otherFurtherKeys": 0,
+        "packetSha256": "83784cec64acd8b107ca18f48c3d7993b1008e9d73d2e39fb7b610d6682732e0",
+        "leanSha256": "fa61bf842aa778e21be7e63da5c6bea31666489657bd2d2406089eb6042b68d5",
+        "receipt": "recheck-capture/recheck-simple.log",
+        "receiptSha256": "8a181b505cb3072b75cc7fd34910d6d148acc2dd0960941fe9807d9479e38a83"
+      },
+      {
+        "id": "simple_decentralized_lock",
+        "otherFurtherKeys": 1,
+        "packetSha256": "f9b38416b0e6cc2fc51fe3d5560822528ebc28326fb2ac65a9018aef001c8e45",
+        "leanSha256": "c3c42cdce60c48bf2f58283caea5523841db28d8da3e0010dc14f605d324b5ee",
+        "receipt": "recheck-final/recheck-simple_decentralized_lock.log",
+        "receiptSha256": "1a91e4f2bbc43657be79a906f5ec289c38bd0c4a2a2152d707df1acabae3c79d"
+      },
+      {
+        "id": "simple_election",
+        "otherFurtherKeys": 5,
+        "packetSha256": "7183bd7019cbc76e1b843d9c137f45277313f1b91eea8fd1b005100a771ee384",
+        "leanSha256": "9bd870ff4b497621682b0d176719e6e7551fb1219d608a8d9ab4dd93138e91f7",
+        "receipt": "capture-all/capture-simple_election.log",
+        "receiptSha256": "e49b17ff589d453e2bee5a33eac359901ac095daa50eb8f334ff2f14261ea36e"
+      },
+      {
+        "id": "simple_regular",
+        "otherFurtherKeys": 0,
+        "packetSha256": "7c441755a1dee88073d55e2d8ff701416508c8f132a6fcf176dd7cb7ec76bbfa",
+        "leanSha256": "9393aa7b5681df0cf021c4792e2133191ef5bf78077e31a2461310d91278b059",
+        "receipt": "recheck-capture/recheck-simple_regular.log",
+        "receiptSha256": "31c71035dabafa8e54a21a865d618fa41203efb4a1c6e1c8d199fe8239559504"
+      },
+      {
+        "id": "tcommit",
+        "otherFurtherKeys": 1,
+        "packetSha256": "03944dbe7f5de1b013c03ba5db13bbccbbb55746e397615550749b373a4c535d",
+        "leanSha256": "da6b2d936d4646fb63839bd973f689961feefec15df2e97519ecc901dc47e7b1",
+        "receipt": "capture-all/capture-tcommit.log",
+        "receiptSha256": "370d80332b1984f0a5eaf65a69c06522af647f86212e6bf8100bf568e28b109f"
+      },
+      {
+        "id": "toy_consensus",
+        "otherFurtherKeys": 2,
+        "packetSha256": "98e0fd726d198c96167162cf4c4fc1ca232276c7beec676bc99e33cfec658fc8",
+        "leanSha256": "e2379369c2a6b3bd8a82c10ab6cfa1cc50424ddbd976b2ac7d5a64a504ecba05",
+        "receipt": "capture-all/capture-toy_consensus.log",
+        "receiptSha256": "79e8c143d8f31e5be20bbc3a76aa4272b175b2842a6dc87fcaec6d5bd8133ba8"
+      },
+      {
+        "id": "toy_consensus_epr",
+        "otherFurtherKeys": 4,
+        "packetSha256": "0e40c141413b088f90357b527c14c9fef7962de965716b0c05bf7a0dd59d781e",
+        "leanSha256": "207dd48950b6aa1c280b1a2e40faccb5d3cc2f7485c50296b76b20b6930ab4fe",
+        "receipt": "capture-all/capture-toy_consensus_epr.log",
+        "receiptSha256": "a487136c8c2502799d7c4c71d953e2e3bd44beaa14a03a8ee201452763f3c5d6"
+      },
+      {
+        "id": "toy_consensus_forall",
+        "otherFurtherKeys": 2,
+        "packetSha256": "07b9eefc1d67934f2264e2da3774dacc4a4b85c8fd76bf7a1874c58136084b11",
+        "leanSha256": "ca5f69dc699e4cb81ce74deffb495c4c4ab05b821f44baa2aa16004115aaf330",
+        "receipt": "capture-all/capture-toy_consensus_forall.log",
+        "receiptSha256": "c6a3bc2852b407680eb5b71dc26ad0462dcf333a3e87d34bbca79244c68e37f5"
+      },
+      {
+        "id": "two_phase_commit",
+        "otherFurtherKeys": 2,
+        "packetSha256": "b17e1a47997f7de4e80b0d2c2cce353375c1279f7ff771e27eb1f3ba587c5359",
+        "leanSha256": "8289ca3313d0ee7bb77fdbcbca8b56cf01947ef641d2aade2e0e5b2dfa4401ba",
+        "receipt": "capture-all/capture-two_phase_commit.log",
+        "receiptSha256": "c18f60c9357e0335e69931448d8d094bb1d14fef3d9ff4cc96731e49d70d92df"
+      },
+      {
+        "id": "twophase",
+        "otherFurtherKeys": 6,
+        "packetSha256": "48007eac85b8ea0a01d3b595f9330bddc125082d498c8ab074b54a550e8c2f79",
+        "leanSha256": "76a60333bb61f6e1dcce0ed0276cb74cd91355e77bc508e5938c5c4831c38ce0",
+        "receipt": "capture-all/capture-twophase.log",
+        "receiptSha256": "6f8e32951f3a8cac8f556a3625ab0e5a1e6f1d3cd3a76715c6cef7628c031c46"
+      }
+    ]
+  }
+}

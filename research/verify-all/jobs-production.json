@@ -1,0 +1,1170 @@
+[
+  {
+    "name": "ic3syn-consensus-r1",
+    "cmd": "bash research/verify-all/run-production.sh ic3syn consensus 1 search",
+    "cpu": 4,
+    "memory": 14336,
+    "timeout": 180,
+    "vm_type": "large"
+  },
+  {
+    "name": "ic3syn-consensus-r2",
+    "cmd": "bash research/verify-all/run-production.sh ic3syn consensus 2 search",
+    "cpu": 4,
+    "memory": 14336,
+    "timeout": 180,
+    "vm_type": "large"
+  },
+  {
+    "name": "ic3syn-consensus-r3",
+    "cmd": "bash research/verify-all/run-production.sh ic3syn consensus 3 search",
+    "cpu": 4,
+    "memory": 14336,
+    "timeout": 180,
+    "vm_type": "large"
+  },
+  {
+    "name": "ic3syn-tcommit-r1",
+    "cmd": "bash research/verify-all/run-production.sh ic3syn tcommit 1 search",
+    "cpu": 4,
+    "memory": 14336,
+    "timeout": 180,
+    "vm_type": "large"
+  },
+  {
+    "name": "ic3syn-tcommit-r2",
+    "cmd": "bash research/verify-all/run-production.sh ic3syn tcommit 2 search",
+    "cpu": 4,
+    "memory": 14336,
+    "timeout": 180,
+    "vm_type": "large"
+  },
+  {
+    "name": "ic3syn-tcommit-r3",
+    "cmd": "bash research/verify-all/run-production.sh ic3syn tcommit 3 search",
+    "cpu": 4,
+    "memory": 14336,
+    "timeout": 180,
+    "vm_type": "large"
+  },
+  {
+    "name": "ic3syn-lock_server-r1",
+    "cmd": "bash research/verify-all/run-production.sh ic3syn lock_server 1 search",
+    "cpu": 4,
+    "memory": 14336,
+    "timeout": 180,
+    "vm_type": "large"
+  },
+  {
+    "name": "ic3syn-lock_server-r2",
+    "cmd": "bash research/verify-all/run-production.sh ic3syn lock_server 2 search",
+    "cpu": 4,
+    "memory": 14336,
+    "timeout": 180,
+    "vm_type": "large"
+  },
+  {
+    "name": "ic3syn-lock_server-r3",
+    "cmd": "bash research/verify-all/run-production.sh ic3syn lock_server 3 search",
+    "cpu": 4,
+    "memory": 14336,
+    "timeout": 180,
+    "vm_type": "large"
+  },
+  {
+    "name": "ic3syn-quorum_leader_election-r1",
+    "cmd": "bash research/verify-all/run-production.sh ic3syn quorum_leader_election 1 search",
+    "cpu": 4,
+    "memory": 14336,
+    "timeout": 180,
+    "vm_type": "large"
+  },
+  {
+    "name": "ic3syn-quorum_leader_election-r2",
+    "cmd": "bash research/verify-all/run-production.sh ic3syn quorum_leader_election 2 search",
+    "cpu": 4,
+    "memory": 14336,
+    "timeout": 180,
+    "vm_type": "large"
+  },
+  {
+    "name": "ic3syn-quorum_leader_election-r3",
+    "cmd": "bash research/verify-all/run-production.sh ic3syn quorum_leader_election 3 search",
+    "cpu": 4,
+    "memory": 14336,
+    "timeout": 180,
+    "vm_type": "large"
+  },
+  {
+    "name": "ic3syn-toy_consensus_forall-r1",
+    "cmd": "bash research/verify-all/run-production.sh ic3syn toy_consensus_forall 1 search",
+    "cpu": 4,
+    "memory": 14336,
+    "timeout": 180,
+    "vm_type": "large"
+  },
+  {
+    "name": "ic3syn-toy_consensus_forall-r2",
+    "cmd": "bash research/verify-all/run-production.sh ic3syn toy_consensus_forall 2 search",
+    "cpu": 4,
+    "memory": 14336,
+    "timeout": 180,
+    "vm_type": "large"
+  },
+  {
+    "name": "ic3syn-toy_consensus_forall-r3",
+    "cmd": "bash research/verify-all/run-production.sh ic3syn toy_consensus_forall 3 search",
+    "cpu": 4,
+    "memory": 14336,
+    "timeout": 180,
+    "vm_type": "large"
+  },
+  {
+    "name": "ic3syn-simple-r1",
+    "cmd": "bash research/verify-all/run-production.sh ic3syn simple 1 search",
+    "cpu": 4,
+    "memory": 14336,
+    "timeout": 180,
+    "vm_type": "large"
+  },
+  {
+    "name": "ic3syn-simple-r2",
+    "cmd": "bash research/verify-all/run-production.sh ic3syn simple 2 search",
+    "cpu": 4,
+    "memory": 14336,
+    "timeout": 180,
+    "vm_type": "large"
+  },
+  {
+    "name": "ic3syn-simple-r3",
+    "cmd": "bash research/verify-all/run-production.sh ic3syn simple 3 search",
+    "cpu": 4,
+    "memory": 14336,
+    "timeout": 180,
+    "vm_type": "large"
+  },
+  {
+    "name": "ic3syn-simple_regular-r1",
+    "cmd": "bash research/verify-all/run-production.sh ic3syn simple_regular 1 search",
+    "cpu": 4,
+    "memory": 14336,
+    "timeout": 180,
+    "vm_type": "large"
+  },
+  {
+    "name": "ic3syn-simple_regular-r2",
+    "cmd": "bash research/verify-all/run-production.sh ic3syn simple_regular 2 search",
+    "cpu": 4,
+    "memory": 14336,
+    "timeout": 180,
+    "vm_type": "large"
+  },
+  {
+    "name": "ic3syn-simple_regular-r3",
+    "cmd": "bash research/verify-all/run-production.sh ic3syn simple_regular 3 search",
+    "cpu": 4,
+    "memory": 14336,
+    "timeout": 180,
+    "vm_type": "large"
+  },
+  {
+    "name": "ic3syn-lockserv_automaton-r1",
+    "cmd": "bash research/verify-all/run-production.sh ic3syn lockserv_automaton 1 search",
+    "cpu": 4,
+    "memory": 14336,
+    "timeout": 180,
+    "vm_type": "large"
+  },
+  {
+    "name": "ic3syn-lockserv_automaton-r2",
+    "cmd": "bash research/verify-all/run-production.sh ic3syn lockserv_automaton 2 search",
+    "cpu": 4,
+    "memory": 14336,
+    "timeout": 180,
+    "vm_type": "large"
+  },
+  {
+    "name": "ic3syn-lockserv_automaton-r3",
+    "cmd": "bash research/verify-all/run-production.sh ic3syn lockserv_automaton 3 search",
+    "cpu": 4,
+    "memory": 14336,
+    "timeout": 180,
+    "vm_type": "large"
+  },
+  {
+    "name": "ic3syn-sharded_kv-r1",
+    "cmd": "bash research/verify-all/run-production.sh ic3syn sharded_kv 1 search",
+    "cpu": 4,
+    "memory": 14336,
+    "timeout": 180,
+    "vm_type": "large"
+  },
+  {
+    "name": "ic3syn-sharded_kv-r2",
+    "cmd": "bash research/verify-all/run-production.sh ic3syn sharded_kv 2 search",
+    "cpu": 4,
+    "memory": 14336,
+    "timeout": 180,
+    "vm_type": "large"
+  },
+  {
+    "name": "ic3syn-sharded_kv-r3",
+    "cmd": "bash research/verify-all/run-production.sh ic3syn sharded_kv 3 search",
+    "cpu": 4,
+    "memory": 14336,
+    "timeout": 180,
+    "vm_type": "large"
+  },
+  {
+    "name": "ic3syn-sharded_kv_no_lost_keys-r1",
+    "cmd": "bash research/verify-all/run-production.sh ic3syn sharded_kv_no_lost_keys 1 search",
+    "cpu": 4,
+    "memory": 14336,
+    "timeout": 180,
+    "vm_type": "large"
+  },
+  {
+    "name": "ic3syn-sharded_kv_no_lost_keys-r2",
+    "cmd": "bash research/verify-all/run-production.sh ic3syn sharded_kv_no_lost_keys 2 search",
+    "cpu": 4,
+    "memory": 14336,
+    "timeout": 180,
+    "vm_type": "large"
+  },
+  {
+    "name": "ic3syn-sharded_kv_no_lost_keys-r3",
+    "cmd": "bash research/verify-all/run-production.sh ic3syn sharded_kv_no_lost_keys 3 search",
+    "cpu": 4,
+    "memory": 14336,
+    "timeout": 180,
+    "vm_type": "large"
+  },
+  {
+    "name": "ic3syn-lockserv-r1",
+    "cmd": "bash research/verify-all/run-production.sh ic3syn lockserv 1 search",
+    "cpu": 4,
+    "memory": 14336,
+    "timeout": 180,
+    "vm_type": "large"
+  },
+  {
+    "name": "ic3syn-lockserv-r2",
+    "cmd": "bash research/verify-all/run-production.sh ic3syn lockserv 2 search",
+    "cpu": 4,
+    "memory": 14336,
+    "timeout": 180,
+    "vm_type": "large"
+  },
+  {
+    "name": "ic3syn-lockserv-r3",
+    "cmd": "bash research/verify-all/run-production.sh ic3syn lockserv 3 search",
+    "cpu": 4,
+    "memory": 14336,
+    "timeout": 180,
+    "vm_type": "large"
+  },
+  {
+    "name": "ic3syn-twophase-r1",
+    "cmd": "bash research/verify-all/run-production.sh ic3syn twophase 1 search",
+    "cpu": 4,
+    "memory": 14336,
+    "timeout": 180,
+    "vm_type": "large"
+  },
+  {
+    "name": "ic3syn-twophase-r2",
+    "cmd": "bash research/verify-all/run-production.sh ic3syn twophase 2 search",
+    "cpu": 4,
+    "memory": 14336,
+    "timeout": 180,
+    "vm_type": "large"
+  },
+  {
+    "name": "ic3syn-twophase-r3",
+    "cmd": "bash research/verify-all/run-production.sh ic3syn twophase 3 search",
+    "cpu": 4,
+    "memory": 14336,
+    "timeout": 180,
+    "vm_type": "large"
+  },
+  {
+    "name": "ic3syn-simple_decentralized_lock-r1",
+    "cmd": "bash research/verify-all/run-production.sh ic3syn simple_decentralized_lock 1 search",
+    "cpu": 4,
+    "memory": 14336,
+    "timeout": 180,
+    "vm_type": "large"
+  },
+  {
+    "name": "ic3syn-simple_decentralized_lock-r2",
+    "cmd": "bash research/verify-all/run-production.sh ic3syn simple_decentralized_lock 2 search",
+    "cpu": 4,
+    "memory": 14336,
+    "timeout": 180,
+    "vm_type": "large"
+  },
+  {
+    "name": "ic3syn-simple_decentralized_lock-r3",
+    "cmd": "bash research/verify-all/run-production.sh ic3syn simple_decentralized_lock 3 search",
+    "cpu": 4,
+    "memory": 14336,
+    "timeout": 180,
+    "vm_type": "large"
+  },
+  {
+    "name": "ic3syn-two_phase_commit-r1",
+    "cmd": "bash research/verify-all/run-production.sh ic3syn two_phase_commit 1 search",
+    "cpu": 4,
+    "memory": 14336,
+    "timeout": 180,
+    "vm_type": "large"
+  },
+  {
+    "name": "ic3syn-two_phase_commit-r2",
+    "cmd": "bash research/verify-all/run-production.sh ic3syn two_phase_commit 2 search",
+    "cpu": 4,
+    "memory": 14336,
+    "timeout": 180,
+    "vm_type": "large"
+  },
+  {
+    "name": "ic3syn-two_phase_commit-r3",
+    "cmd": "bash research/verify-all/run-production.sh ic3syn two_phase_commit 3 search",
+    "cpu": 4,
+    "memory": 14336,
+    "timeout": 180,
+    "vm_type": "large"
+  },
+  {
+    "name": "ic3syn-consensus_wo_decide-r1",
+    "cmd": "bash research/verify-all/run-production.sh ic3syn consensus_wo_decide 1 search",
+    "cpu": 4,
+    "memory": 14336,
+    "timeout": 180,
+    "vm_type": "large"
+  },
+  {
+    "name": "ic3syn-consensus_wo_decide-r2",
+    "cmd": "bash research/verify-all/run-production.sh ic3syn consensus_wo_decide 2 search",
+    "cpu": 4,
+    "memory": 14336,
+    "timeout": 180,
+    "vm_type": "large"
+  },
+  {
+    "name": "ic3syn-consensus_wo_decide-r3",
+    "cmd": "bash research/verify-all/run-production.sh ic3syn consensus_wo_decide 3 search",
+    "cpu": 4,
+    "memory": 14336,
+    "timeout": 180,
+    "vm_type": "large"
+  },
+  {
+    "name": "ic3syn-consensus_forall-r1",
+    "cmd": "bash research/verify-all/run-production.sh ic3syn consensus_forall 1 search",
+    "cpu": 4,
+    "memory": 14336,
+    "timeout": 180,
+    "vm_type": "large"
+  },
+  {
+    "name": "ic3syn-consensus_forall-r2",
+    "cmd": "bash research/verify-all/run-production.sh ic3syn consensus_forall 2 search",
+    "cpu": 4,
+    "memory": 14336,
+    "timeout": 180,
+    "vm_type": "large"
+  },
+  {
+    "name": "ic3syn-consensus_forall-r3",
+    "cmd": "bash research/verify-all/run-production.sh ic3syn consensus_forall 3 search",
+    "cpu": 4,
+    "memory": 14336,
+    "timeout": 180,
+    "vm_type": "large"
+  },
+  {
+    "name": "ic3syn-naive_consensus-r1",
+    "cmd": "bash research/verify-all/run-production.sh ic3syn naive_consensus 1 search",
+    "cpu": 4,
+    "memory": 14336,
+    "timeout": 180,
+    "vm_type": "large"
+  },
+  {
+    "name": "ic3syn-naive_consensus-r2",
+    "cmd": "bash research/verify-all/run-production.sh ic3syn naive_consensus 2 search",
+    "cpu": 4,
+    "memory": 14336,
+    "timeout": 180,
+    "vm_type": "large"
+  },
+  {
+    "name": "ic3syn-naive_consensus-r3",
+    "cmd": "bash research/verify-all/run-production.sh ic3syn naive_consensus 3 search",
+    "cpu": 4,
+    "memory": 14336,
+    "timeout": 180,
+    "vm_type": "large"
+  },
+  {
+    "name": "ic3syn-client_server_ae-r1",
+    "cmd": "bash research/verify-all/run-production.sh ic3syn client_server_ae 1 search",
+    "cpu": 4,
+    "memory": 14336,
+    "timeout": 180,
+    "vm_type": "large"
+  },
+  {
+    "name": "ic3syn-client_server_ae-r2",
+    "cmd": "bash research/verify-all/run-production.sh ic3syn client_server_ae 2 search",
+    "cpu": 4,
+    "memory": 14336,
+    "timeout": 180,
+    "vm_type": "large"
+  },
+  {
+    "name": "ic3syn-client_server_ae-r3",
+    "cmd": "bash research/verify-all/run-production.sh ic3syn client_server_ae 3 search",
+    "cpu": 4,
+    "memory": 14336,
+    "timeout": 180,
+    "vm_type": "large"
+  },
+  {
+    "name": "ic3syn-client_server_db_ae-r1",
+    "cmd": "bash research/verify-all/run-production.sh ic3syn client_server_db_ae 1 search",
+    "cpu": 4,
+    "memory": 14336,
+    "timeout": 180,
+    "vm_type": "large"
+  },
+  {
+    "name": "ic3syn-client_server_db_ae-r2",
+    "cmd": "bash research/verify-all/run-production.sh ic3syn client_server_db_ae 2 search",
+    "cpu": 4,
+    "memory": 14336,
+    "timeout": 180,
+    "vm_type": "large"
+  },
+  {
+    "name": "ic3syn-client_server_db_ae-r3",
+    "cmd": "bash research/verify-all/run-production.sh ic3syn client_server_db_ae 3 search",
+    "cpu": 4,
+    "memory": 14336,
+    "timeout": 180,
+    "vm_type": "large"
+  },
+  {
+    "name": "ic3syn-simple_election-r1",
+    "cmd": "bash research/verify-all/run-production.sh ic3syn simple_election 1 search",
+    "cpu": 4,
+    "memory": 14336,
+    "timeout": 180,
+    "vm_type": "large"
+  },
+  {
+    "name": "ic3syn-simple_election-r2",
+    "cmd": "bash research/verify-all/run-production.sh ic3syn simple_election 2 search",
+    "cpu": 4,
+    "memory": 14336,
+    "timeout": 180,
+    "vm_type": "large"
+  },
+  {
+    "name": "ic3syn-simple_election-r3",
+    "cmd": "bash research/verify-all/run-production.sh ic3syn simple_election 3 search",
+    "cpu": 4,
+    "memory": 14336,
+    "timeout": 180,
+    "vm_type": "large"
+  },
+  {
+    "name": "ic3syn-toy_consensus_epr-r1",
+    "cmd": "bash research/verify-all/run-production.sh ic3syn toy_consensus_epr 1 search",
+    "cpu": 4,
+    "memory": 14336,
+    "timeout": 180,
+    "vm_type": "large"
+  },
+  {
+    "name": "ic3syn-toy_consensus_epr-r2",
+    "cmd": "bash research/verify-all/run-production.sh ic3syn toy_consensus_epr 2 search",
+    "cpu": 4,
+    "memory": 14336,
+    "timeout": 180,
+    "vm_type": "large"
+  },
+  {
+    "name": "ic3syn-toy_consensus_epr-r3",
+    "cmd": "bash research/verify-all/run-production.sh ic3syn toy_consensus_epr 3 search",
+    "cpu": 4,
+    "memory": 14336,
+    "timeout": 180,
+    "vm_type": "large"
+  },
+  {
+    "name": "ic3syn-toy_consensus-r1",
+    "cmd": "bash research/verify-all/run-production.sh ic3syn toy_consensus 1 search",
+    "cpu": 4,
+    "memory": 14336,
+    "timeout": 180,
+    "vm_type": "large"
+  },
+  {
+    "name": "ic3syn-toy_consensus-r2",
+    "cmd": "bash research/verify-all/run-production.sh ic3syn toy_consensus 2 search",
+    "cpu": 4,
+    "memory": 14336,
+    "timeout": 180,
+    "vm_type": "large"
+  },
+  {
+    "name": "ic3syn-toy_consensus-r3",
+    "cmd": "bash research/verify-all/run-production.sh ic3syn toy_consensus 3 search",
+    "cpu": 4,
+    "memory": 14336,
+    "timeout": 180,
+    "vm_type": "large"
+  },
+  {
+    "name": "ic3syn-firewall-r1",
+    "cmd": "bash research/verify-all/run-production.sh ic3syn firewall 1 search",
+    "cpu": 4,
+    "memory": 14336,
+    "timeout": 180,
+    "vm_type": "large"
+  },
+  {
+    "name": "ic3syn-firewall-r2",
+    "cmd": "bash research/verify-all/run-production.sh ic3syn firewall 2 search",
+    "cpu": 4,
+    "memory": 14336,
+    "timeout": 180,
+    "vm_type": "large"
+  },
+  {
+    "name": "ic3syn-firewall-r3",
+    "cmd": "bash research/verify-all/run-production.sh ic3syn firewall 3 search",
+    "cpu": 4,
+    "memory": 14336,
+    "timeout": 180,
+    "vm_type": "large"
+  },
+  {
+    "name": "ic3syn-majorityset_leader_election-r1",
+    "cmd": "bash research/verify-all/run-production.sh ic3syn majorityset_leader_election 1 search",
+    "cpu": 4,
+    "memory": 14336,
+    "timeout": 180,
+    "vm_type": "large"
+  },
+  {
+    "name": "ic3syn-majorityset_leader_election-r2",
+    "cmd": "bash research/verify-all/run-production.sh ic3syn majorityset_leader_election 2 search",
+    "cpu": 4,
+    "memory": 14336,
+    "timeout": 180,
+    "vm_type": "large"
+  },
+  {
+    "name": "ic3syn-majorityset_leader_election-r3",
+    "cmd": "bash research/verify-all/run-production.sh ic3syn majorityset_leader_election 3 search",
+    "cpu": 4,
+    "memory": 14336,
+    "timeout": 180,
+    "vm_type": "large"
+  },
+  {
+    "name": "ic3syn-consensus_epr-r1",
+    "cmd": "bash research/verify-all/run-production.sh ic3syn consensus_epr 1 search",
+    "cpu": 4,
+    "memory": 14336,
+    "timeout": 180,
+    "vm_type": "large"
+  },
+  {
+    "name": "ic3syn-consensus_epr-r2",
+    "cmd": "bash research/verify-all/run-production.sh ic3syn consensus_epr 2 search",
+    "cpu": 4,
+    "memory": 14336,
+    "timeout": 180,
+    "vm_type": "large"
+  },
+  {
+    "name": "ic3syn-consensus_epr-r3",
+    "cmd": "bash research/verify-all/run-production.sh ic3syn consensus_epr 3 search",
+    "cpu": 4,
+    "memory": 14336,
+    "timeout": 180,
+    "vm_type": "large"
+  },
+  {
+    "name": "ic3syn-learning_switch-r1",
+    "cmd": "bash research/verify-all/run-production.sh ic3syn learning_switch 1 search",
+    "cpu": 4,
+    "memory": 14336,
+    "timeout": 180,
+    "vm_type": "large"
+  },
+  {
+    "name": "ic3syn-learning_switch-r2",
+    "cmd": "bash research/verify-all/run-production.sh ic3syn learning_switch 2 search",
+    "cpu": 4,
+    "memory": 14336,
+    "timeout": 180,
+    "vm_type": "large"
+  },
+  {
+    "name": "ic3syn-learning_switch-r3",
+    "cmd": "bash research/verify-all/run-production.sh ic3syn learning_switch 3 search",
+    "cpu": 4,
+    "memory": 14336,
+    "timeout": 180,
+    "vm_type": "large"
+  },
+  {
+    "name": "ic3syn-learning_switch_i4-r1",
+    "cmd": "bash research/verify-all/run-production.sh ic3syn learning_switch_i4 1 search",
+    "cpu": 4,
+    "memory": 14336,
+    "timeout": 180,
+    "vm_type": "large"
+  },
+  {
+    "name": "ic3syn-learning_switch_i4-r2",
+    "cmd": "bash research/verify-all/run-production.sh ic3syn learning_switch_i4 2 search",
+    "cpu": 4,
+    "memory": 14336,
+    "timeout": 180,
+    "vm_type": "large"
+  },
+  {
+    "name": "ic3syn-learning_switch_i4-r3",
+    "cmd": "bash research/verify-all/run-production.sh ic3syn learning_switch_i4 3 search",
+    "cpu": 4,
+    "memory": 14336,
+    "timeout": 180,
+    "vm_type": "large"
+  },
+  {
+    "name": "ic3syn-paxos_epr-r1",
+    "cmd": "bash research/verify-all/run-production.sh ic3syn paxos_epr 1 search",
+    "cpu": 4,
+    "memory": 14336,
+    "timeout": 180,
+    "vm_type": "large"
+  },
+  {
+    "name": "ic3syn-paxos_epr-r2",
+    "cmd": "bash research/verify-all/run-production.sh ic3syn paxos_epr 2 search",
+    "cpu": 4,
+    "memory": 14336,
+    "timeout": 180,
+    "vm_type": "large"
+  },
+  {
+    "name": "ic3syn-paxos_epr-r3",
+    "cmd": "bash research/verify-all/run-production.sh ic3syn paxos_epr 3 search",
+    "cpu": 4,
+    "memory": 14336,
+    "timeout": 180,
+    "vm_type": "large"
+  },
+  {
+    "name": "ic3syn-mldr-r1",
+    "cmd": "bash research/verify-all/run-production.sh ic3syn mldr 1 search",
+    "cpu": 4,
+    "memory": 14336,
+    "timeout": 180,
+    "vm_type": "large"
+  },
+  {
+    "name": "ic3syn-mldr-r2",
+    "cmd": "bash research/verify-all/run-production.sh ic3syn mldr 2 search",
+    "cpu": 4,
+    "memory": 14336,
+    "timeout": 180,
+    "vm_type": "large"
+  },
+  {
+    "name": "ic3syn-mldr-r3",
+    "cmd": "bash research/verify-all/run-production.sh ic3syn mldr 3 search",
+    "cpu": 4,
+    "memory": 14336,
+    "timeout": 180,
+    "vm_type": "large"
+  },
+  {
+    "name": "duoai-lock_server_sync-r1",
+    "cmd": "bash research/verify-all/run-production.sh duoai lock_server_sync 1 search",
+    "cpu": 4,
+    "memory": 14336,
+    "timeout": 180,
+    "vm_type": "large"
+  },
+  {
+    "name": "duoai-lock_server_sync-r2",
+    "cmd": "bash research/verify-all/run-production.sh duoai lock_server_sync 2 search",
+    "cpu": 4,
+    "memory": 14336,
+    "timeout": 180,
+    "vm_type": "large"
+  },
+  {
+    "name": "duoai-lock_server_sync-r3",
+    "cmd": "bash research/verify-all/run-production.sh duoai lock_server_sync 3 search",
+    "cpu": 4,
+    "memory": 14336,
+    "timeout": 180,
+    "vm_type": "large"
+  },
+  {
+    "name": "duoai-lock_server_async-r1",
+    "cmd": "bash research/verify-all/run-production.sh duoai lock_server_async 1 search",
+    "cpu": 4,
+    "memory": 14336,
+    "timeout": 180,
+    "vm_type": "large"
+  },
+  {
+    "name": "duoai-lock_server_async-r2",
+    "cmd": "bash research/verify-all/run-production.sh duoai lock_server_async 2 search",
+    "cpu": 4,
+    "memory": 14336,
+    "timeout": 180,
+    "vm_type": "large"
+  },
+  {
+    "name": "duoai-lock_server_async-r3",
+    "cmd": "bash research/verify-all/run-production.sh duoai lock_server_async 3 search",
+    "cpu": 4,
+    "memory": 14336,
+    "timeout": 180,
+    "vm_type": "large"
+  },
+  {
+    "name": "duoai-decentralized_lock-r1",
+    "cmd": "bash research/verify-all/run-production.sh duoai decentralized_lock 1 search",
+    "cpu": 4,
+    "memory": 14336,
+    "timeout": 180,
+    "vm_type": "large"
+  },
+  {
+    "name": "duoai-decentralized_lock-r2",
+    "cmd": "bash research/verify-all/run-production.sh duoai decentralized_lock 2 search",
+    "cpu": 4,
+    "memory": 14336,
+    "timeout": 180,
+    "vm_type": "large"
+  },
+  {
+    "name": "duoai-decentralized_lock-r3",
+    "cmd": "bash research/verify-all/run-production.sh duoai decentralized_lock 3 search",
+    "cpu": 4,
+    "memory": 14336,
+    "timeout": 180,
+    "vm_type": "large"
+  },
+  {
+    "name": "duoai-distributed_lock-r1",
+    "cmd": "bash research/verify-all/run-production.sh duoai distributed_lock 1 search",
+    "cpu": 4,
+    "memory": 14336,
+    "timeout": 180,
+    "vm_type": "large"
+  },
+  {
+    "name": "duoai-distributed_lock-r2",
+    "cmd": "bash research/verify-all/run-production.sh duoai distributed_lock 2 search",
+    "cpu": 4,
+    "memory": 14336,
+    "timeout": 180,
+    "vm_type": "large"
+  },
+  {
+    "name": "duoai-distributed_lock-r3",
+    "cmd": "bash research/verify-all/run-production.sh duoai distributed_lock 3 search",
+    "cpu": 4,
+    "memory": 14336,
+    "timeout": 180,
+    "vm_type": "large"
+  },
+  {
+    "name": "duoai-two_phase_commit-r1",
+    "cmd": "bash research/verify-all/run-production.sh duoai two_phase_commit 1 search",
+    "cpu": 4,
+    "memory": 14336,
+    "timeout": 180,
+    "vm_type": "large"
+  },
+  {
+    "name": "duoai-two_phase_commit-r2",
+    "cmd": "bash research/verify-all/run-production.sh duoai two_phase_commit 2 search",
+    "cpu": 4,
+    "memory": 14336,
+    "timeout": 180,
+    "vm_type": "large"
+  },
+  {
+    "name": "duoai-two_phase_commit-r3",
+    "cmd": "bash research/verify-all/run-production.sh duoai two_phase_commit 3 search",
+    "cpu": 4,
+    "memory": 14336,
+    "timeout": 180,
+    "vm_type": "large"
+  },
+  {
+    "name": "duoai-ticket_lock-r1",
+    "cmd": "bash research/verify-all/run-production.sh duoai ticket_lock 1 search",
+    "cpu": 4,
+    "memory": 14336,
+    "timeout": 180,
+    "vm_type": "large"
+  },
+  {
+    "name": "duoai-ticket_lock-r2",
+    "cmd": "bash research/verify-all/run-production.sh duoai ticket_lock 2 search",
+    "cpu": 4,
+    "memory": 14336,
+    "timeout": 180,
+    "vm_type": "large"
+  },
+  {
+    "name": "duoai-ticket_lock-r3",
+    "cmd": "bash research/verify-all/run-production.sh duoai ticket_lock 3 search",
+    "cpu": 4,
+    "memory": 14336,
+    "timeout": 180,
+    "vm_type": "large"
+  },
+  {
+    "name": "duoai-toy_consensus_forall-r1",
+    "cmd": "bash research/verify-all/run-production.sh duoai toy_consensus_forall 1 search",
+    "cpu": 4,
+    "memory": 14336,
+    "timeout": 180,
+    "vm_type": "large"
+  },
+  {
+    "name": "duoai-toy_consensus_forall-r2",
+    "cmd": "bash research/verify-all/run-production.sh duoai toy_consensus_forall 2 search",
+    "cpu": 4,
+    "memory": 14336,
+    "timeout": 180,
+    "vm_type": "large"
+  },
+  {
+    "name": "duoai-toy_consensus_forall-r3",
+    "cmd": "bash research/verify-all/run-production.sh duoai toy_consensus_forall 3 search",
+    "cpu": 4,
+    "memory": 14336,
+    "timeout": 180,
+    "vm_type": "large"
+  },
+  {
+    "name": "duoai-consensus_wo_decide-r1",
+    "cmd": "bash research/verify-all/run-production.sh duoai consensus_wo_decide 1 search",
+    "cpu": 4,
+    "memory": 14336,
+    "timeout": 180,
+    "vm_type": "large"
+  },
+  {
+    "name": "duoai-consensus_wo_decide-r2",
+    "cmd": "bash research/verify-all/run-production.sh duoai consensus_wo_decide 2 search",
+    "cpu": 4,
+    "memory": 14336,
+    "timeout": 180,
+    "vm_type": "large"
+  },
+  {
+    "name": "duoai-consensus_wo_decide-r3",
+    "cmd": "bash research/verify-all/run-production.sh duoai consensus_wo_decide 3 search",
+    "cpu": 4,
+    "memory": 14336,
+    "timeout": 180,
+    "vm_type": "large"
+  },
+  {
+    "name": "duoai-ring_leader_election-r1",
+    "cmd": "bash research/verify-all/run-production.sh duoai ring_leader_election 1 search",
+    "cpu": 4,
+    "memory": 14336,
+    "timeout": 180,
+    "vm_type": "large"
+  },
+  {
+    "name": "duoai-ring_leader_election-r2",
+    "cmd": "bash research/verify-all/run-production.sh duoai ring_leader_election 2 search",
+    "cpu": 4,
+    "memory": 14336,
+    "timeout": 180,
+    "vm_type": "large"
+  },
+  {
+    "name": "duoai-ring_leader_election-r3",
+    "cmd": "bash research/verify-all/run-production.sh duoai ring_leader_election 3 search",
+    "cpu": 4,
+    "memory": 14336,
+    "timeout": 180,
+    "vm_type": "large"
+  },
+  {
+    "name": "duoai-sharded_key_value_store-r1",
+    "cmd": "bash research/verify-all/run-production.sh duoai sharded_key_value_store 1 search",
+    "cpu": 4,
+    "memory": 14336,
+    "timeout": 180,
+    "vm_type": "large"
+  },
+  {
+    "name": "duoai-sharded_key_value_store-r2",
+    "cmd": "bash research/verify-all/run-production.sh duoai sharded_key_value_store 2 search",
+    "cpu": 4,
+    "memory": 14336,
+    "timeout": 180,
+    "vm_type": "large"
+  },
+  {
+    "name": "duoai-sharded_key_value_store-r3",
+    "cmd": "bash research/verify-all/run-production.sh duoai sharded_key_value_store 3 search",
+    "cpu": 4,
+    "memory": 14336,
+    "timeout": 180,
+    "vm_type": "large"
+  },
+  {
+    "name": "broken-consensus",
+    "cmd": "bash research/verify-all/run-production.sh ic3syn consensus 1 broken",
+    "cpu": 4,
+    "memory": 14336,
+    "timeout": 180,
+    "vm_type": "large"
+  },
+  {
+    "name": "broken-tcommit",
+    "cmd": "bash research/verify-all/run-production.sh ic3syn tcommit 1 broken",
+    "cpu": 4,
+    "memory": 14336,
+    "timeout": 180,
+    "vm_type": "large"
+  },
+  {
+    "name": "broken-lock_server",
+    "cmd": "bash research/verify-all/run-production.sh ic3syn lock_server 1 broken",
+    "cpu": 4,
+    "memory": 14336,
+    "timeout": 180,
+    "vm_type": "large"
+  },
+  {
+    "name": "broken-quorum_leader_election",
+    "cmd": "bash research/verify-all/run-production.sh ic3syn quorum_leader_election 1 broken",
+    "cpu": 4,
+    "memory": 14336,
+    "timeout": 180,
+    "vm_type": "large"
+  },
+  {
+    "name": "broken-toy_consensus_forall",
+    "cmd": "bash research/verify-all/run-production.sh ic3syn toy_consensus_forall 1 broken",
+    "cpu": 4,
+    "memory": 14336,
+    "timeout": 180,
+    "vm_type": "large"
+  },
+  {
+    "name": "broken-simple",
+    "cmd": "bash research/verify-all/run-production.sh ic3syn simple 1 broken",
+    "cpu": 4,
+    "memory": 14336,
+    "timeout": 180,
+    "vm_type": "large"
+  },
+  {
+    "name": "broken-simple_regular",
+    "cmd": "bash research/verify-all/run-production.sh ic3syn simple_regular 1 broken",
+    "cpu": 4,
+    "memory": 14336,
+    "timeout": 180,
+    "vm_type": "large"
+  },
+  {
+    "name": "broken-lockserv_automaton",
+    "cmd": "bash research/verify-all/run-production.sh ic3syn lockserv_automaton 1 broken",
+    "cpu": 4,
+    "memory": 14336,
+    "timeout": 180,
+    "vm_type": "large"
+  },
+  {
+    "name": "broken-sharded_kv",
+    "cmd": "bash research/verify-all/run-production.sh ic3syn sharded_kv 1 broken",
+    "cpu": 4,
+    "memory": 14336,
+    "timeout": 180,
+    "vm_type": "large"
+  },
+  {
+    "name": "broken-sharded_kv_no_lost_keys",
+    "cmd": "bash research/verify-all/run-production.sh ic3syn sharded_kv_no_lost_keys 1 broken",
+    "cpu": 4,
+    "memory": 14336,
+    "timeout": 180,
+    "vm_type": "large"
+  },
+  {
+    "name": "broken-lockserv",
+    "cmd": "bash research/verify-all/run-production.sh ic3syn lockserv 1 broken",
+    "cpu": 4,
+    "memory": 14336,
+    "timeout": 180,
+    "vm_type": "large"
+  },
+  {
+    "name": "broken-twophase",
+    "cmd": "bash research/verify-all/run-production.sh ic3syn twophase 1 broken",
+    "cpu": 4,
+    "memory": 14336,
+    "timeout": 180,
+    "vm_type": "large"
+  },
+  {
+    "name": "broken-simple_decentralized_lock",
+    "cmd": "bash research/verify-all/run-production.sh ic3syn simple_decentralized_lock 1 broken",
+    "cpu": 4,
+    "memory": 14336,
+    "timeout": 180,
+    "vm_type": "large"
+  },
+  {
+    "name": "broken-two_phase_commit",
+    "cmd": "bash research/verify-all/run-production.sh ic3syn two_phase_commit 1 broken",
+    "cpu": 4,
+    "memory": 14336,
+    "timeout": 180,
+    "vm_type": "large"
+  },
+  {
+    "name": "broken-consensus_wo_decide",
+    "cmd": "bash research/verify-all/run-production.sh ic3syn consensus_wo_decide 1 broken",
+    "cpu": 4,
+    "memory": 14336,
+    "timeout": 180,
+    "vm_type": "large"
+  },
+  {
+    "name": "broken-consensus_forall",
+    "cmd": "bash research/verify-all/run-production.sh ic3syn consensus_forall 1 broken",
+    "cpu": 4,
+    "memory": 14336,
+    "timeout": 180,
+    "vm_type": "large"
+  },
+  {
+    "name": "broken-naive_consensus",
+    "cmd": "bash research/verify-all/run-production.sh ic3syn naive_consensus 1 broken",
+    "cpu": 4,
+    "memory": 14336,
+    "timeout": 180,
+    "vm_type": "large"
+  },
+  {
+    "name": "broken-client_server_ae",
+    "cmd": "bash research/verify-all/run-production.sh ic3syn client_server_ae 1 broken",
+    "cpu": 4,
+    "memory": 14336,
+    "timeout": 180,
+    "vm_type": "large"
+  },
+  {
+    "name": "broken-client_server_db_ae",
+    "cmd": "bash research/verify-all/run-production.sh ic3syn client_server_db_ae 1 broken",
+    "cpu": 4,
+    "memory": 14336,
+    "timeout": 180,
+    "vm_type": "large"
+  },
+  {
+    "name": "broken-simple_election",
+    "cmd": "bash research/verify-all/run-production.sh ic3syn simple_election 1 broken",
+    "cpu": 4,
+    "memory": 14336,
+    "timeout": 180,
+    "vm_type": "large"
+  },
+  {
+    "name": "broken-toy_consensus_epr",
+    "cmd": "bash research/verify-all/run-production.sh ic3syn toy_consensus_epr 1 broken",
+    "cpu": 4,
+    "memory": 14336,
+    "timeout": 180,
+    "vm_type": "large"
+  },
+  {
+    "name": "broken-toy_consensus",
+    "cmd": "bash research/verify-all/run-production.sh ic3syn toy_consensus 1 broken",
+    "cpu": 4,
+    "memory": 14336,
+    "timeout": 180,
+    "vm_type": "large"
+  },
+  {
+    "name": "broken-firewall",
+    "cmd": "bash research/verify-all/run-production.sh ic3syn firewall 1 broken",
+    "cpu": 4,
+    "memory": 14336,
+    "timeout": 180,
+    "vm_type": "large"
+  },
+  {
+    "name": "broken-majorityset_leader_election",
+    "cmd": "bash research/verify-all/run-production.sh ic3syn majorityset_leader_election 1 broken",
+    "cpu": 4,
+    "memory": 14336,
+    "timeout": 180,
+    "vm_type": "large"
+  },
+  {
+    "name": "broken-consensus_epr",
+    "cmd": "bash research/verify-all/run-production.sh ic3syn consensus_epr 1 broken",
+    "cpu": 4,
+    "memory": 14336,
+    "timeout": 180,
+    "vm_type": "large"
+  },
+  {
+    "name": "broken-learning_switch",
+    "cmd": "bash research/verify-all/run-production.sh ic3syn learning_switch 1 broken",
+    "cpu": 4,
+    "memory": 14336,
+    "timeout": 180,
+    "vm_type": "large"
+  },
+  {
+    "name": "broken-learning_switch_i4",
+    "cmd": "bash research/verify-all/run-production.sh ic3syn learning_switch_i4 1 broken",
+    "cpu": 4,
+    "memory": 14336,
+    "timeout": 180,
+    "vm_type": "large"
+  },
+  {
+    "name": "broken-paxos_epr",
+    "cmd": "bash research/verify-all/run-production.sh ic3syn paxos_epr 1 broken",
+    "cpu": 4,
+    "memory": 14336,
+    "timeout": 180,
+    "vm_type": "large"
+  },
+  {
+    "name": "broken-mldr",
+    "cmd": "bash research/verify-all/run-production.sh ic3syn mldr 1 broken",
+    "cpu": 4,
+    "memory": 14336,
+    "timeout": 180,
+    "vm_type": "large"
+  }
+]

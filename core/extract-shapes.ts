@@ -353,13 +353,26 @@ export function readStandalone(code: string, file: string, opts: ReadOptions): M
   const domains: Record<string, number[]> = {}, limits: B[] = []
   let p: Path = {pc: [], locals: new Map(), heap, wrote: [], nows: 0}
   for (const param of fn.parameters) {
-    const name = (param.name as ts.Identifier).text, t = s.checker.getTypeAtLocation(param), parts = t.isUnion() ? t.types : [t]
+    const name = ts.isIdentifier(param.name) ? param.name.text : 'arg', t = s.checker.getTypeAtLocation(param), parts = t.isUnion() ? t.types : [t]
+    if (!t.isUnion() && (t.flags & ts.TypeFlags.Object)) {
+      const sh = shapeOf(t, s.checker, param)
+      if (sh.k !== 'rec' || !sh.fields.length || sh.fields.some(([key, field]) => ['__proto__', 'prototype', 'constructor'].includes(key) || (field.k !== 'bool' && field.k !== 'choice') || (field.k === 'choice' && (field.values.length > 64 || field.values.some(x => !x))))) refuse(param, 'standalone: record inputs need boolean or finite string choice fields')
+      const a = argOf(ex, param, `${name}_`, fn.body ?? fn)
+      if (a.events.length !== 1 || Object.keys(a.events[0]!.select).length) refuse(param, 'standalone: record input has multiple variants')
+      for (const [id, object] of a.heap) p.heap.set(id, object)
+      args.push(a.events[0]!.arg)
+      p = ex.bind(param.name, a.v, p)
+      continue
+    }
     const missing = parts.filter(x => !!(x.flags & ts.TypeFlags.Undefined)), rest = parts.filter(x => !(x.flags & ts.TypeFlags.Undefined))
     if (parts.some(x => !!(x.flags & ts.TypeFlags.Null))) refuse(param, 'standalone: null input is outside the subset')
     const bool = rest.length > 0 && rest.every(x => !!(x.flags & ts.TypeFlags.BooleanLike))
     const num = rest.length > 0 && rest.every(x => !!(x.flags & ts.TypeFlags.NumberLike))
-    if ((!bool && !num) || (missing.length && !bool)) refuse(param, 'standalone: only numeric, boolean, or boolean | undefined inputs')
-    const x = ex.newVar(name, {k: bool ? 'bool' : 'num'}, 'input')
+    const choice = rest.length > 0 && rest.every(x => !!(x.flags & ts.TypeFlags.StringLiteral))
+    if ((!bool && !num && !choice) || (missing.length && !bool)) refuse(param, 'standalone: only numeric, boolean, finite string choice, or boolean | undefined inputs')
+    const values = choice ? [...new Set(rest.map(x => (x as ts.StringLiteralType).value))] : []
+    if (choice && (values.length > 64 || values.some(x => !x))) refuse(param, 'standalone: string literal domain must contain at most 64 nonempty choices')
+    const x = ex.newVar(name, choice ? {k: 'choice', values} : {k: bool ? 'bool' : 'num'}, 'input')
     let v: V = Exec.valueOf(x)
     if (num && rest.every(t => !!(t.flags & ts.TypeFlags.NumberLiteral))) {
       const values = [...new Set(rest.map(t => (t as ts.NumberLiteralType).value))].sort((a, b) => a - b)
@@ -375,12 +388,47 @@ export function readStandalone(code: string, file: string, opts: ReadOptions): M
     p = ex.bind(param.name, v, p)
   }
   const sig = s.checker.getSignatureFromDeclaration(fn)!, rt = s.checker.getReturnTypeOfSignature(sig), parts = rt.isUnion() ? rt.types : [rt]
-  if (parts.some(x => !!(x.flags & ts.TypeFlags.Null))) refuse(fn, 'standalone: null result is outside the subset')
-  const rest = parts.filter(x => !(x.flags & (ts.TypeFlags.Undefined | ts.TypeFlags.Void)))
+  if (!rt.isUnion() && (rt.flags & ts.TypeFlags.Object)) {
+    const shape = shapeOf(rt, s.checker, fn)
+    if (shape.k !== 'rec' || !shape.fields.length || shape.fields.some(([key, field]) => ['__proto__', 'prototype', 'constructor'].includes(key) || (field.k !== 'bool' && field.k !== 'num'))) refuse(fn, 'standalone: record results need scalar boolean or numeric fields')
+    const {layout} = build(ex, shape, [`${opts.entry}_result`], p.heap, 'fresh', fn)
+    if (layout.k !== 'rec') throw new Error('standalone: record layout expected')
+    const fields: [string, string][] = layout.fields.map(([f, sub]) => {
+      if (sub.k !== 'scalar') return refuse(fn, 'standalone: nested result field')
+      return [f, sub.name]
+    })
+    let outs: [Path, V][]
+    if (ts.isBlock(fn.body!)) {
+      const flow = ex.block(fn.body!.statements, p)
+      if (flow.live && ex.feasible(flow.live)) refuse(fn, 'standalone: record result missing on a path')
+      outs = flow.rets
+    } else { const [v, q] = ex.ev(fn.body! as ts.Expression, p); outs = [[q, v]] }
+    outs = outs.filter(([q]) => ex.feasible(q))
+    if (!outs.length) refuse(fn, 'standalone: no reachable return')
+    const final = joinAll(ex, outs.map(([q, v]) => [q, materialize(ex, v, layout, q, fn)]), fn)
+    const init: Record<string, Term> = {}
+    for (const [, n] of fields) init[n] = termOf(Exec.defaultOf(s.vars.get(n)!.sort))
+    const model = finish(s, {name: opts.entry, shape: 'functions', file, entry: opts.entry,
+      layout: {k: 'rec', fields: []}, init, final, refuse: I.or(refusalOf(ex), I.not(I.and(...limits))), pre: I.T,
+      events: [{select: {}, call: opts.entry, args, names: fn.parameters.map(x => ts.isIdentifier(x.name) ? x.name.text : '__gdp_destructured')}], outputs: fields.map(([, n]) => n)})
+    model.standalone = true
+    model.kind = 'a standalone function with a scalar record result'
+    model.standaloneDomains = domains
+    model.standaloneBindings = bindings
+    model.results = {[opts.entry]: {k: 'rec', fields}}
+    model.notes.push('standalone function: closed scalar inputs and record result; numbers are safe integers', `closed reachable bindings: ${bindings.join(', ')}`)
+    return model
+  }
+  const nullable = parts.some(x => !!(x.flags & ts.TypeFlags.Null))
+  if (nullable && parts.some(x => !!(x.flags & (ts.TypeFlags.Undefined | ts.TypeFlags.Void)))) refuse(fn, 'standalone: a result cannot be both null and undefined')
+  const rest = parts.filter(x => !(x.flags & (ts.TypeFlags.Undefined | ts.TypeFlags.Void | ts.TypeFlags.Null)))
   const bool = rest.length > 0 && rest.every(x => !!(x.flags & ts.TypeFlags.BooleanLike))
   const num = rest.length > 0 && rest.every(x => !!(x.flags & ts.TypeFlags.NumberLike))
-  if (!bool && !num) refuse(fn, 'standalone: result must be numeric or boolean, optionally undefined')
-  const val = ex.newVar(`${opts.entry}_result`, {k: bool ? 'bool' : 'num'}, 'state')
+  const choice = rest.length > 0 && rest.every(x => !!(x.flags & ts.TypeFlags.StringLiteral))
+  if (!bool && !num && !choice) refuse(fn, 'standalone: result must be numeric, boolean, or a finite string choice, optionally absent')
+  const values = choice ? [...new Set(rest.map(x => (x as ts.StringLiteralType).value))] : []
+  if (choice && (values.length > 64 || values.some(x => !x))) refuse(fn, 'standalone: string literal result must contain at most 64 nonempty choices')
+  const val = ex.newVar(`${opts.entry}_result`, choice ? {k: 'choice', values} : {k: bool ? 'bool' : 'num'}, 'state')
   const absent = ex.newVar(`${opts.entry}_result_missing`, {k: 'bool'}, 'state')
   let outs: [Path, V][]
   if (ts.isBlock(fn.body!)) {
@@ -390,9 +438,12 @@ export function readStandalone(code: string, file: string, opts: ReadOptions): M
   outs = outs.filter(([q]) => ex.feasible(q))
   if (!outs.length) refuse(fn, 'standalone: no reachable return')
   const final = joinAll(ex, outs.map(([q, v]) => {
-    if ((v.t === 'undef' && v.null) || (v.t === 'opt' && v.null)) refuse(fn, 'standalone: null result')
+    if ((v.t === 'undef' || v.t === 'opt') && !!v.null !== nullable) refuse(fn, 'standalone: result absence differs from its declared null or undefined type')
     const has = v.t === 'undef' ? I.F : v.t === 'opt' ? v.has : I.T
     const inner = v.t === 'undef' ? undefined : v.t === 'opt' ? v.v : v
+    // Choice variables are indexed by their own domain. Do not silently copy
+    // an index into a result with a different domain or ordering.
+    if (inner?.t === 'choice' && val.sort.k === 'choice' && JSON.stringify(inner.values) !== JSON.stringify(val.sort.values)) refuse(fn, 'standalone: choice result domain differs from returned choice')
     const there = inner ? outValue(ex, inner, val, {...q, pc: [...q.pc, has]}, fn) : Exec.defaultOf(val.sort)
     const sv: StateVal = {leaves: new Map(), maps: new Map()}
     sv.leaves.set(val.name, ex.mergeScalar(has, there, Exec.defaultOf(val.sort), fn))
@@ -401,13 +452,13 @@ export function readStandalone(code: string, file: string, opts: ReadOptions): M
   }), fn)
   const model = finish(s, {name: opts.entry, shape: 'functions', file, entry: opts.entry,
     layout: {k: 'rec', fields: []}, init: {[val.name]: termOf(Exec.defaultOf(val.sort)), [absent.name]: termOf(Exec.defaultOf(absent.sort))},
-    final, refuse: I.or(refusalOf(ex), I.not(I.and(...limits))), pre: I.T, events: [{select: {}, call: opts.entry, args, names: fn.parameters.map(x => x.name.getText())}], outputs: [val.name, absent.name]})
+    final, refuse: I.or(refusalOf(ex), I.not(I.and(...limits))), pre: I.T, events: [{select: {}, call: opts.entry, args, names: fn.parameters.map(x => ts.isIdentifier(x.name) ? x.name.text : '__gdp_destructured')}], outputs: [val.name, absent.name]})
   model.standalone = true
   model.kind = 'a standalone scalar function'
   model.standaloneDomains = domains
   model.standaloneBindings = bindings
   model.notes.push('standalone scalar function: separate arguments and optional result; numbers are safe integers, not arbitrary JavaScript numbers', `closed reachable bindings: ${bindings.join(', ')}`, ...Object.entries(domains).map(([n, xs]) => `declared numeric input domain ${n}: ${xs.join(', ')}; other values are outside the claim`))
-  model.results = {[opts.entry]: {k: 'maybe', name: val.name, missing: absent.name, null: false}}
+  model.results = {[opts.entry]: {k: 'maybe', name: val.name, missing: absent.name, null: nullable}}
   return model
 }
 
