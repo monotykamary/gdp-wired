@@ -18,6 +18,23 @@ screening stays disabled. Next: collect all six exact exits/placements,
 independently replay their `HYBRID_CTI`s and count only the named seven;
 then keep iterating against the five-of-seven / <=2 s falsifier.
 
+## First executed validation — fixture failure, not green
+
+Batch `20261110-003848-r92jez`, tree `e258b9207ea3`, completed its one job
+with **exit 1** (the outer client exited 0). `domain-check` ran on exclusive
+large Ryzen 9 9950X, 8/8 vCPUs, in 0.88 s: **38 pass, 1 fail, 127 assertions**.
+The new predecessor-equivalence fixture inherited count binder `a` and also
+introduced state scalar `a`; the interpreter correctly rejected the name
+collision before the test could run. Typecheck/lint were not reached.
+
+The fixture now uses count binder `row`, with no production-code change, and
+its conditional case tests a nontrivial equality rather than a tautological
+bound. The original failure is retained in
+`runs/t16-partial-immutable-check/domain-check.log`. Next validation will
+use one canonical archive per SHA, reused by hard-linked data mounts, not
+another whole-tree clone. Payload estimate is about 142 MiB including both
+vendors, below the 500-MB disclosure threshold. This is not a proof or gate.
+
 ## Execution reopened — immutable retries
 
 The coordinator lifted the submission hold after the blob lock freed, while

@@ -1,0 +1,6 @@
+test(core): avoid count binder collision in finite fixture
+
+Use a distinct inherited count binder so the new predecessor-equivalence
+fixture passes the interpreter's scope checks. Exercise a nontrivial
+conditional equality as well. The prior validation had 38 passing tests
+and one fixture failure; production code is unchanged by this repair.
