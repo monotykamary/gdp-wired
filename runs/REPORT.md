@@ -65,17 +65,21 @@ all are below 2 s. Process durations (up to 9.9 s, including unpack/install)
 are not algorithm wall. Every round hits its wall before an `onTiny` receipt,
 so absence of round statistics does not establish where the time went.
 
-Two independent submission-class jobs now run in task
-`3cc83099-96a4-4209-837f-6b35f5264892`, output `runs/t16-target-analysis/`:
-full-family replay of all six compressed payloads, and a **diagnostic-only**
-profile of setup/target compilation versus enumeration. The diagnostic adds
-one final phase/counter log per pass, not a different time cap. Its separate
-core overlay hash is
-`d8bea066fad2f7b40b146008da4438320d2a8ca34c6094866217f19523175f6d`.
-The measured source is unchanged. If expansion is the bottleneck, the next
-candidate is a shared post-state expression circuit instead of repeatedly
-expanding the source transition into every target. This is a hypothesis,
-not a demonstrated cause or a promised speedup. Production remains disabled. Reused canonical archive `6288b666`
+Independent replay and the separate profile completed in submission batch
+`20261110-015407-21wuam`. Replay confirms all six rosters, zero new drops,
+and all active walls below 2 s (`research/track-gen/t16-target-results.json`).
+The diagnostic-only original run stops in **target-build in both stages**,
+with **zero nodes, states, steps and candidates**. It also records
+`large generated screen`. This directly identifies construction, not failed
+enumeration, as the budget consumer in that profiled run; it is not a new
+acceptance timing. Details: `research/track-gen/t16-target-profile.json`.
+
+Next: share one bounded partial post-state circuit per operation, then test
+negated targets over its ready output coordinates. Unready outputs must
+still mean unknown; complete assignments must agree with the interpreter.
+This avoids expanding the whole source step into each target, without
+raising the native-code cap, domain, or wall. Differential tests first,
+then the same six submission-class pilots. Production stays disabled. Reused canonical archive `6288b666`
 plus the small
 `runs/t16-target-overlay/`. Compiler SHA-256
 `ed2a8ceeb8aad234015afa5a1122bd8e3c71f96318c55d404338c8963e440c02`,

@@ -1,0 +1,11 @@
+{
+  "trust": "Diagnostic-only instrumented run, not an acceptance timing.",
+  "batch": "20261110-015407-21wuam",
+  "profileSourceSha256": "d8bea066fad2f7b40b146008da4438320d2a8ca34c6094866217f19523175f6d",
+  "rows": [
+    {"stage": 0, "phase": "target-build", "target": "inX: no quorum canVote/3", "nodes": 0, "states": 0, "steps": 0, "candidates": 0, "ms": 949.295912, "unsupported": ["large generated screen"]},
+    {"stage": 1, "phase": "target-build", "target": "inX: no quorum canVote/1", "nodes": 0, "states": 0, "steps": 0, "candidates": 0, "ms": 947.951724, "unsupported": ["large generated screen"]}
+  ],
+  "conclusion": "In this instrumented original-family run both stage budgets were spent before enumeration, during expanded post-target construction.",
+  "next": "Share a bounded partial post-state circuit; retain conservative readiness and unchanged acceptance criteria."
+}
