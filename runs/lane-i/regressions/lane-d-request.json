@@ -1,0 +1,9 @@
+{
+  "recipient": "t6p",
+  "lane": "D",
+  "candidate": "b4f9018f72010fc1bac07fd47d70348448ad5379",
+  "baseline": "b788e1959bba1f2e8aa1f94d4cf7c0eb163a2f9c",
+  "reportCommitAtSend": "a4e0a0cf",
+  "delivery": {"started": true, "status": "done", "turn": 14},
+  "gateRunOrPassClaimed": false
+}

@@ -1,0 +1,46 @@
+[
+  {
+    "mode": "completion-and-focus-off",
+    "repeat": 1,
+    "cpu": "AMD EPYC 4585PX 16-Core Processor",
+    "sameNames": true,
+    "generationMs": {
+      "candidate": 13818.625791,
+      "candidate-ablation": 13542.692341,
+      "base": 17783.137078
+    }
+  },
+  {
+    "mode": "completion-and-focus-off",
+    "repeat": 2,
+    "cpu": "AMD EPYC 4585PX 16-Core Processor",
+    "sameNames": true,
+    "generationMs": {
+      "candidate-ablation": 17968.738295,
+      "base": 27788.901437,
+      "candidate": 19881.754663
+    }
+  },
+  {
+    "mode": "focus-off",
+    "repeat": 1,
+    "cpu": "AMD Ryzen 9 9950X 16-Core Processor",
+    "sameNames": true,
+    "generationMs": {
+      "candidate": 11126.876639,
+      "candidate-ablation": 12102.946242,
+      "base": 11186.802265
+    }
+  },
+  {
+    "mode": "focus-off",
+    "repeat": 2,
+    "cpu": "AMD Ryzen 9 9950X 16-Core Processor",
+    "sameNames": true,
+    "generationMs": {
+      "candidate-ablation": 10720.883764,
+      "base": 10865.596558,
+      "candidate": 8860.311071
+    }
+  }
+]
