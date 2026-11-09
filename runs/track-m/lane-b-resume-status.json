@@ -11,7 +11,7 @@
     {"batch":"20261110-001834-eu43wb","source":"30537f70","state":"complete-duplicate-audit","exits":{"audit":0,"check":0,"projection":0},"note":"late registration of retry, not substituted for first batch evidence; no third submission"},
     {"batch":"20261110-002114-ovy5ii","source":"b056c3b4","tree":"c5c63c1bf723","state":"complete","pairedOutcomes":12,"checked":4,"checkExit":1,"note":"exhaustive-switch lint; all six pair jobs exit 0","output":"runs/track-m/lane-b-demand-range-v1"},
     {"batch":"20261110-001852-88p0sl","source":"201a21a2","tree":"91adfc0ed7f4","state":"complete","checkExit":2,"note":"optional-input TypeScript narrowing; tests not run"},
-    {"task":"e3774a52-f411-475e-9812-0ee68b20730d","source":"d91a53e4","state":"pending","output":"runs/track-m/lane-b-audit-link-check-v2","note":"archive-based validation; subsequent explicit-switch lint repair not included"},
+    {"task":"e3774a52-f411-475e-9812-0ee68b20730d","source":"d91a53e4","state":"complete","checkExit":1,"output":"runs/track-m/lane-b-audit-link-check-v2","note":"TypeScript passed; already-repaired exhaustive-switch lint failed; tests not run"},
     {"batch":"20261110-010856-07ox2p","source":"27c8cb26","tree":"7e9cc9f8c7bd","task":"749d54a5-79a6-4cf8-b03e-b263f039277b","state":"pending","output":"runs/track-m/lane-b-audit-link-check-v3"},
     {"task":"e11eb951-62ce-4a42-9a38-342bd7fcbfda","state":"pending","output":"runs/track-m/lane-b-resume-commitlint-v1"}
   ]
