@@ -1,0 +1,41 @@
+{
+  "issues": [],
+  "selected": [
+    {
+      "revision": "bf01190119f9409077a36e11a4a5b763fb6c1cad",
+      "variant": "conditional-three",
+      "proven": true,
+      "checks": [
+        true,
+        true
+      ],
+      "phases": [
+        "query",
+        "decision:sat",
+        "model",
+        "query",
+        "decision:refuted",
+        "core-replay"
+      ]
+    },
+    {
+      "revision": "dd036dd714728fd4d1431d56bf33d96a18b21f60",
+      "variant": "conditional-three",
+      "proven": true,
+      "checks": [
+        true,
+        true
+      ],
+      "phases": [
+        "query",
+        "decision:sat",
+        "model",
+        "query",
+        "decision:refuted",
+        "core-replay"
+      ]
+    }
+  ],
+  "zeroEqualityProved": false,
+  "scope": "Test-fixture diagnosis only; not a benchmark gate."
+}

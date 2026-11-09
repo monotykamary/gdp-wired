@@ -152,5 +152,12 @@
     "research/protocols/ic3syn/run.ts": "a9fa1e966acf503db0804419f8af7b82cfec671f8fba528716ec5440ea70dd66",
     "research/protocols/models.ts": "ae2acd68175231e54e8590c2e35e04996282da22523d2fbac47d40e0adb078e4",
     "research/protocols/run.ts": "f739b1d8c3f94e7718ae1029df4675f27b5d81211250b223678b6c5229946f87"
+  },
+  "8de9dadbe10925c2377121ee220faf97bcca4d59": {
+    "research/protocols/ic3syn/jobs.ts": "3b72741a5b6ff1ce9ee86a4e8ba30a6318ee10554f9bf675c1c217cd92a1ea9c",
+    "research/protocols/ic3syn/models.ts": "7264a41611c0bab74b8b3549ac86663f4cb4d8ef8cac00528df0c2c7bcfbae93",
+    "research/protocols/ic3syn/run.ts": "a9fa1e966acf503db0804419f8af7b82cfec671f8fba528716ec5440ea70dd66",
+    "research/protocols/models.ts": "ae2acd68175231e54e8590c2e35e04996282da22523d2fbac47d40e0adb078e4",
+    "research/protocols/run.ts": "f739b1d8c3f94e7718ae1029df4675f27b5d81211250b223678b6c5229946f87"
   }
 }
