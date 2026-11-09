@@ -16,7 +16,7 @@
 //      support survives. Avoid proving the same helpers in several preliminary cone contexts; checkCountedLaws
 //      checks the final set. The ∃ search still uses `cone`: relative induction from already-kept candidates.
 import {type C, type E, type Law, type Machine} from './machine.ts'
-import {type CountCert, type CountInst, type Goal, type Instances, type MapRead, assumed, checkCountedLaws, checkMC, countedObligations, mcGoal, scope, substC, substE} from '../kernel/kernel.ts'
+import {type CountCert, type CountDecl, type CountInst, type Goal, type Instances, type MapRead, assumed, checkCountedLaws, checkMC, countedObligations, mcGoal, scope, substC, substE} from '../kernel/kernel.ts'
 import {brokenOf, clock, counted, fullRate, grow, modelInstances, wallAt, widen, withDeadline, withWall} from '../kernel/prove.ts'
 import {REFUTED, cdclStats} from '../kernel/cdcl.ts'
 import {modelSequence} from '../kernel/model-sequence.ts'
