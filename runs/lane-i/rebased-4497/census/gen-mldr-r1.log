@@ -1,0 +1,27 @@
+gdp-ts.tar: OK
+handwired.tar: OK
+main.tar: OK
+{
+  "candidate": "5829b23d7e7d64136625154c9b161402a89aff19",
+  "baseline": "4497c4b05c3111959a2b8d808c426a0e3cab3f01",
+  "archives": {
+    "main.tar": "9508c2e454b4b6eefa4093bbf6efba569d09bea4bc89646b6e8df7bc0a3a6dc6",
+    "handwired.tar": "73d44548dbe109a40ac933406324e17d7dee39e7dff1a6f1270ed030c31c1da4",
+    "gdp-ts.tar": "75d367da15decb1fefce2ae72ae50e7f3f737989094a760fde643c5b1f5c1496"
+  },
+  "integratedHeads": {
+    "A": "0bab28e2a2ac83ef1dc67991317d8eeeeb7716b5",
+    "B": "4ce50c00ac693a036f9d3df79aa46f0f8f344161",
+    "E": "e1b8d3b7d55be33fd6434c589bcac903bb58fd02",
+    "F": "c15212624e394fca9e2051ab494d4f50017da059",
+    "Fable": "f6b383f0ceed7cc52cb15d1ea91b2c75e7b8e0f9"
+  }
+}
+model name	: AMD EPYC 4585PX 16-Core Processor
+LANE_I_BEGIN census 1 mldr base
+{"id":"mldr","count":27,"wallMs":35514.196192999996,"phases":{"guards":4.027879999999996,"small":10778.766378,"candidates":24703.814441999995},"states":[32,1504],"counts":["inS","inQ2","inX","xNotS","sNotX","xAndS","inS$CT","inS$C0","inS$St"],"cprof":{"small":0.030107000000498374,"cubes":24624.067869000002,"filter":57.678546000002825}}
+LANE_I_END census 1 mldr base
+LANE_I_BEGIN census 1 mldr candidate
+{"id":"mldr","count":34,"wallMs":11392.474889000001,"phases":{"guards":7.5926430000000025,"small":3642.1704550000004,"candidates":7723.3801539999995},"states":[46,1205],"counts":["inS","inQ2","inX","xNotS","sNotX","xAndS","inS$CT","inS$Config","inS$St","inX$canVote$1","inX$row","inX$canVote$2","inX$canVote$3","inX$committedQuorum$1","inX$committedQuorum$2","inX$committedQuorum$3","inX$rows$xNotS","inX$rows$xAndS"],"cprof":{"small":0.020829000000048836,"cubes":5434.362036,"filter":73.78395600000113,"quorumFilter":278.060598,"countCubes":23.064935000000332,"finiteHoudini":1900.606151}}
+LANE_I_END census 1 mldr candidate
+LANE_I_CENSUS {"id":"mldr","repeat":1,"identical":false,"base":{"count":27,"hash":"182e714c9c0384d3113f03bbbafba40ec5f19f7c19b2d00377c1d4ef4b567329","wallMs":35514.196192999996,"phases":{"guards":4.027879999999996,"small":10778.766378,"candidates":24703.814441999995}},"candidate":{"count":34,"hash":"dd495ab653ff4376b1c7b8c462c7dfafbcf9b3f5fc27949b8d61543ad5c69563","wallMs":11392.474889000001,"phases":{"guards":7.5926430000000025,"small":3642.1704550000004,"candidates":7723.3801539999995}},"names":["every Config cell is a value of its kind","one primary per term","St at most 1","fields: St[a]=1 -> CT[a]=CfgT[a]","fields: St[a]=1 -> CT[a]<=CfgT[a]","fields: St[a]=1 -> CT[a]=CT[b] -> CfgT[b]<=CfgT[a]","fields: St[a]=1 -> CfgT[a]<=CT[a]","fields: St[a]=1 -> CfgT[a]=CfgT[b] -> CV[b]<=CV[a]","every x with x < size: never CT[x] is 0 and 1 <= St[x]","every x with x < size: never 1 <= CT[x] and CV[x] is 0","every x with x < size: never 1 <= CT[x] and started is 0","every x with x < size: never 1 <= St[x] and CV[x] is 0","every x with x < size: never 1 <= St[x] and CfgT[x] is 0","every x with x < size: never 1 <= St[x] and started is 0","every x with x < size: never CV[x] is 0 and 1 <= CfgT[x]","every x with x < size: never CV[x] is 0 and 1 <= started","every x with x < size: never 1 <= CfgT[x] and started is 0","every x, y with x < size ∧ y < size ∧ ¬(x = y): never 1 <= CT[x] and CV[y] is 0","every x, y with x < size ∧ y < size ∧ ¬(x = y): never 1 <= St[x] and CV[y] is 0","every x, y with x < size ∧ y < size ∧ ¬(x = y): never CV[x] is 0 and 1 <= CfgT[y]","inX: no quorum canVote/1","inX: no quorum canVote/3","inX: stored guard reconfigs/inS","inX: stored guard reconfigs/inS or disabled/0","inX: stored guard reconfigs/inS or disabled/1","inX: stored guard reconfigs/inS or disabled/2","inX: stored guard reconfigs/inS or disabled/3","fields: CV[a]=CV[b] and CfgT[a]=CfgT[b] -> Config rows agree","count cubes: every x with x < {\"op\":\"var\",\"name\":\"size\"}: never 1 <= started and inX$row[x] is 0","count cubes: every x with x < {\"op\":\"var\",\"name\":\"size\"}: never 1 <= CT[x] and inX$row[x] is 0","count cubes: every x with x < {\"op\":\"var\",\"name\":\"size\"}: never CV[x] is 0 and 1 <= inX$row[x]","count cubes: every x with x < {\"op\":\"var\",\"name\":\"size\"}: never 1 <= CV[x] and inX$row[x] is 0","count cubes: every x with x < {\"op\":\"var\",\"name\":\"size\"}: never 1 <= CfgT[x] and inX$row[x] is 0","count cubes: every x with x < {\"op\":\"var\",\"name\":\"size\"}: never 1 <= St[x] and inX$row[x] is 0"]}

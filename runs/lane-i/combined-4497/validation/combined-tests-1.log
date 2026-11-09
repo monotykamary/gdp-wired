@@ -1,0 +1,361 @@
+gdp-ts.tar: OK
+handwired.tar: OK
+main.tar: OK
+bun test v1.4.3 (c6da4a4d3)
+bun test v1.4.3 (c6da4a4d3)
+bun test v1.4.3 (c6da4a4d3)
+bun test v1.4.3 (c6da4a4d3)
+bun test v1.4.3 (c6da4a4d3)
+ok   length of append: proven, 506 ms (recursion of append on xs)
+ok   append is associative: proven, 1589 ms (recursion of append on xs)
+ok   reverse of reverse: proven, 16086 ms (recursion of reverse on xs; lemmas: reverse(append(list_c3, List.1(n_c1, List.0))) = List.1(n_c1, reverse(list_c3)); reverse(append(list_c3, List.1(0, List.0))) = List.1(0, reverse(list_c3)))
+ok   map fusion: proven, 347 ms (recursion of mapG on xs)
+ok   length of map: proven, 76 ms (recursion of mapF on xs)
+ok   mirror of mirror: proven, 682 ms (recursion of mirror on t)
+ok   size of mirror: proven, 192 ms (recursion of mirror on t)
+ok   sum of flatten: proven, 11695 ms (recursion of flatten on t; lemmas: sum(append(v0, v1)) = sum(v0) + sum(v1); sum(flatten(v0)) = observer1(v0); sum(append(list1, list2)) = sum(list1) + sum(list2))
+ok   insertion keeps a list sorted: proven, 4465 ms (recursion of sorted on xs)
+ok   insertion adds one of the item: proven, 2023 ms (recursion of insert on xs)
+ok   insertion adds one item: proven, 110 ms (recursion of insert on xs)
+ok   search tree insertion keeps the order: proven, 17972 ms (recursion of bst on t; lemmas: allBelow(tree1, n1) and n2 < n1 implies allBelow(bstInsert(n2, tree1), n1); allAbove(tree1, n1) and n1 < n2 implies allAbove(bstInsert(n2, tree1), n1))
+ok   sum of a flattened rose tree: proven, 4667 ms (mutual structure of t; lemmas: sum(append(v0, v1)) = sum(v0) + sum(v1); sum(fflat(v0)) = observer3(v0); sum(rflat(v0)) = observer2(v0); sum(append(list1, list2)) = sum(list1) + sum(list2))
+ok   size of a mirrored rose tree: proven, 5262 ms (no induction; lemmas: fsize(snoc(v0, v1)) = fsize(v0) + rsize(v1); fsize(fmirror(v0)) = fsize(v0))
+ok   length of a concatenation: proven, 5067 ms (recursion of concat on b; lemmas: len(append(list_c1, list_c3)) = len(list_c1) + len(list_c3); len(append(list_c1, List.0)) = len(list_c1); len(append(list_c2, list_c3)) + 1 = len(list_c2) + 1 + len(list_c3))
+ok   length of n copies: proven, 40 ms (recursion of replicate on n)
+ok   the first n and the rest: proven, 494 ms (recursion of take on n)
+ok   length after dropping n: proven, 250 ms (recursion of len on xs)
+ok   length of a merge: proven, 3871 ms (recursion of merge on xs, ys)
+ok   length of an interleaving: proven, 483 ms (recursion of interleave on xs, ys)
+ok   add3acc adds its three: proven, 70 ms (recursion of add3acc on x, y)
+ok   length of a merge, its measure stated: proven, 3657 ms (recursion of mergeSum on xs, ys)
+ok   quicksort of one item: proven, 453 ms (no induction)
+ok   n is at most n plus m: proven, 53 ms (no induction, through the law n is at most n plus m, said through the built-ins; lemmas: leq is ≤; plus is +)
+ok   n is at most m plus n: proven, 56 ms (no induction, through the law n is at most m plus n, said through the built-ins; lemmas: leq is ≤; plus is +)
+ok   x is at least itself: proven, 53 ms (no induction, through the law x is at least itself, said through the built-ins; lemmas: leq is ≤)
+ok   one more of n after n: proven, 830 ms (recursion of occurs_bi on xs, through the law one more of n after n, said through the built-ins; lemmas: same is =; occurs is occurs_bi)
+ok   at most zero is zero: proven, 6 ms (no induction)
+ok   length of append (broken): refused, broken at {"xs":"cons(1, nil)","ys":"cons(4, nil)"}
+ok   reverse of reverse (broken): refused, broken at {"xs":"cons(5, nil)"}
+ok   mirror of mirror (broken): refused, broken at {"t":"node(leaf, 0, leaf)"}
+ok   insertion keeps a list sorted (broken): refused, broken at {"x":"2","xs":"cons(0, nil)"}
+ok   search tree insertion keeps the order (broken): refused, broken at {"x":"1","t":"node(node(leaf, 0, leaf), 4, leaf)"}
+ok   search tree insertion keeps the order (broken): refused, broken at {"x":"0","t":"node(leaf, 3, node(leaf, 0, leaf))"}
+ok   sum of a flattened rose tree (broken): refused, broken at {"t":"node(1, nil)"}
+ok   size of a mirrored rose tree (broken): refused, broken at {"t":"node(4, cons(node(0, nil), nil))"}
+ok   length of a concatenation (broken): refused, broken at {"b":"more(cons(3, nil), none)"}
+ok   length of n copies (broken): refused, broken at {"n":"3","x":"1"}
+ok   the first n and the rest (broken): refused, broken at {"n":"0","xs":"cons(3, nil)"}
+ok   length after dropping n (broken): refused, broken at {"n":"0","xs":"cons(3, nil)"}
+ok   length of a merge (broken): refused, broken at {"xs":"cons(2, cons(4, nil))","ys":"cons(0, cons(3, nil))"}
+ok   add3acc adds its three (broken): refused, broken at {"x":"3","y":"1","z":"1"}
+ok   n plus m is at most n (broken): refused, broken at {"n":"3","m":"1"}
+ok   bitonic sort of one item: proven, 251 ms (no induction)
+ok   an integer counted down is never negative: proven, 56 ms (recursion of countDown on x)
+ok   every integer counts down to 0: proven, 25 ms (recursion of reachesZero on x)
+ok   an expression has a token: proven, 40 ms (recursion of tokens on e)
+ok   one run merged is itself: proven, 612 ms (structure of xs)
+ok   a selection sort of one item is itself: proven, 489 ms (no induction)
+ok   a merge sort of one item is itself: proven, 19 ms (no induction)
+ok   mergeStays (doesn't terminate): refused: mergeStay: not structural recursion (no parameter whose field every recursive call passes), and no measure is proven to fall at every call (size(xs): a call of its runs doesn't lower it (from [2,2] to [2,2], the parameters' sizes))
+ok   interleaveSwaps (doesn't terminate): refused: interleaveSwap: not structural recursion (no parameter whose field every recursive call passes), and no measure is proven to fall at every call (size(xs): a call of its runs doesn't lower it (from [2,2] to [2,2], the parameters' sizes))
+ok   add3accKeeps (doesn't terminate): refused: add3accKeep: not structural recursion (no parameter whose field every recursive call passes), and no measure is proven to fall at every call (x: a call of its runs doesn't lower it (from [0,7,2] to [0,7,3], the parameters' sizes); 2·x + y − z + 1990: its call 1 not proven to lower it)
+ok   mergeStatedWrong (doesn't terminate): refused: mergeWrong: not structural recursion (no parameter whose field every recursive call passes; a measure is given), and no measure is proven to fall at every call (size(xs): a call of its runs doesn't lower it (from [2,2] to [2,1], the parameters' sizes))
+ok   intBelow (doesn't terminate): refused: intBelow: not structural recursion (no parameter whose field every recursive call passes), and no measure is proven to fall at every call (toNat(x): a call of its runs doesn't lower it (from [0] to [0], the parameters' sizes))
+ok   intBelowBool (doesn't terminate): refused: intBelowBool: not structural recursion (no parameter whose field every recursive call passes), and no measure is proven to fall at every call (toNat(x): a call of its runs doesn't lower it (from [0] to [0], the parameters' sizes))
+ok   passRound (doesn't terminate): refused: passB: not structural recursion (no parameter whose field every recursive call passes, in its ring passB, passA), and no measure is proven to fall at every call within the ring (passB size(xs), passA size(xs): a call of its runs doesn't lower it (from [2] to [2], the parameters' sizes, passB to passA))
+ok   lowerRaise (doesn't terminate): refused: raiseB: not structural recursion (no parameter whose field every recursive call passes, in its ring raiseB, lowerA), and no measure is proven to fall at every call within the ring (raiseB size(xs), lowerA size(xs): a call of its runs doesn't lower it (from [2] to [3], the parameters' sizes, raiseB to lowerA))
+ok   lateRing (doesn't terminate): refused: lateB: not structural recursion (no parameter whose field every recursive call passes, in its ring lateB, lateA), and no measure is proven to fall at every call within the ring (lateB n + 1, lateA n: its lateA's call 1 not proven to lower it)
+ok   swapRing (doesn't terminate): refused: swapB: not structural recursion (no parameter whose field every recursive call passes, in its ring swapB, swapA), and no measure is proven to fall at every call within the ring (swapB size(xs) + size(ys), swapA size(xs) + size(ys): a call of its runs doesn't lower it (from [2,2] to [2,2], the parameters' sizes, swapB to swapA))
+ok   stepUp (doesn't terminate): refused: oddUp: not structural recursion (no parameter whose field every recursive call passes, in its ring oddUp, evenUp), and no measure is proven to fall at every call within the ring (oddUp −2·n + 2007, evenUp −2·n + 2010: its oddUp's call 1 not proven to lower it)
+ok   nearTail (doesn't terminate): refused: nearTailLoop: not structural recursion (no parameter whose field every recursive call passes), and no measure is proven to fall at every call (size(xs): its call 1 not proven to lower it; out of time)
+ok   nearTailRing (doesn't terminate): refused: nearRingB: not structural recursion (no parameter whose field every recursive call passes, in its ring nearRingB, nearRingA), and no measure is proven to fall at every call within the ring (nearRingB (size(xs), 1), nearRingA (size(xs), 0): its nearRingA's call 1 not proven to lower it; out of time)
+ok   halvesTill9 (doesn't terminate): refused: halvesTill9: not structural recursion (no parameter whose field every recursive call passes), and no measure is proven to fall at every call (size(xs): its call 1 not proven to lower it; out of time)
+ok   guardKeeps (doesn't terminate): refused: readKeeps: not structural recursion (no parameter whose field every recursive call passes), and no measure is proven to fall at every call (size(x): a call of its runs doesn't lower it (from [7] to [7], the parameters' sizes))
+ok   upDown (doesn't terminate): refused: upDown: not structural recursion (no parameter whose field every recursive call passes), and no measure is proven to fall at every call (n: a call of its runs doesn't lower it (from [0] to [1], the parameters' sizes))
+ok   sumStays (doesn't terminate): refused: sumStays: not structural recursion (no parameter whose field every recursive call passes), and no measure is proven to fall at every call (x: a call of its runs doesn't lower it (from [0,7] to [7,6], the parameters' sizes); −x − 3·y + 7041: its call 1 doesn't lower it at {"pred#226":"1"})
+ok   nested (doesn't terminate): refused: nestedLoop: not structural recursion (no parameter whose field every recursive call passes), and no measure is proven to fall at every call (n: a call of its runs doesn't lower it (from [4] to [4], the parameters' sizes))
+ok   nestedBump (doesn't terminate): refused: nestedBump: not structural recursion (no parameter whose field every recursive call passes), and no measure is proven to fall at every call (n: a call of its runs doesn't lower it (from [1] to [1], the parameters' sizes))
+ok   nestedLate (doesn't terminate): refused: nestedLate: not structural recursion (no parameter whose field every recursive call passes), and no measure is proven to fall at every call (n: its call 2 doesn't lower it at {"pred#228":"1","nestedLate#r1":"4"}; n, keeping nestedLate.n <= nestedLate(…) + 5 and nestedLate(…) <= nestedLate.n: its nestedLate's value 2 doesn't keep its invariant at {"pred#228":"5","nestedLate#r1":"4","nestedLate#r2":"0"}; n, keeping nestedLate(…) <= nestedLate.n: its nestedLate's value 3 not proven to keep its invariant)
+ok   nestedGrow (doesn't terminate): refused: nestedGrow: not structural recursion (no parameter whose field every recursive call passes), and no measure is proven to fall at every call (size(xs): its call 2 doesn't lower it at {"head#229":"3","tail#230":"nil","nestedGrow#r2":"cons(0, nil)"}; size(xs), keeping size(nestedGrow(…)) = size(nestedGrow.xs): its nestedGrow's value 3 not proven to keep its invariant; out of time)
+ok   nestedGrowRing (doesn't terminate): refused: nestedGrowB: not structural recursion (no parameter whose field every recursive call passes, in its ring nestedGrowB, nestedGrowA), and no measure is proven to fall at every call within the ring (nestedGrowB (size(xs), 1), nestedGrowA (size(xs), 0): its nestedGrowA's call 2 doesn't lower it at {"head#231":"3","tail#232":"nil","nestedGrowA#r2":"cons(0, nil)"}; nestedGrowB (size(xs), 1), nestedGrowA (size(xs), 0), keeping size(nestedGrowB(…)) = size(nestedGrowB.xs) and size(nestedGrowA(…)) = size(nestedGrowA.xs): its nestedGrowA's value 3 not proven to keep its invariant; out of time)
+ok   foldSwapLate (doesn't terminate): refused: bothLate: not structural recursion (no parameter whose field every recursive call passes, in its ring bothLate, evLate), and no measure is proven to fall at every call within the ring (bothLate (foldForm_0112(f), 1), evLate (foldForm_0112(f), 0): its evLate's call 3 doesn't lower it at {"evLate.k":"5","l#238":"and(atom(2), and(and(atom(5), atom(1)), and(atom(3), atom(5))))","r#239":"and(and(and(atom(3), atom(4)), and(atom(4), atom(4))), not(and(atom(5), atom(2))))"}; bothLate (foldForm_0112(f), 1), evLate (foldForm_0112(f), 0), keeping bothLate.k + 1 <= bothLate(…) and bothLate(…) <= bothLate.k + 21 and evLate.k <= evLate(…) and evLate(…) <= evLate.k + 20: its evLate's call 3 doesn't lower it at {"evLate.k":"5","l#238":"and(atom(2), and(and(atom(5), atom(1)), and(atom(3), atom(5))))","r#239":"and(and(and(atom(3), atom(4)), and(atom(4), atom(4))), not(and(atom(5), atom(2))))"}; bothLate (foldForm_0112(f), 1), evLate (foldForm_0112(f), 0), keeping bothLate(…) <= bothLate.k + 21 and evLate(…) <= evLate.k + 20: its evLate's call 3 doesn't lower it at {"evLate.k":"5","l#238":"and(atom(2), and(and(atom(5), atom(1)), and(atom(3), atom(5))))","r#239":"and(and(and(atom(3), atom(4)), and(atom(4), atom(4))), not(and(atom(5), atom(2))))"})
+ok   intDown (doesn't terminate): refused: intDown: not structural recursion (no parameter whose field every recursive call passes), and no measure is proven to fall at every call (toNat(i): a call of its runs doesn't lower it (from [0] to [0], the parameters' sizes))
+ok   ringStatedWrong (doesn't terminate): refused: statedB: not structural recursion (no parameter whose field every recursive call passes, in its ring statedB, statedA; a measure is given), and no measure is proven to fall at every call within the ring (statedB size(xs), statedA size(xs): a call of its runs doesn't lower it (from [2] to [3], the parameters' sizes, statedB to statedA))
+ok   removeNear (doesn't terminate): refused: ssortNear: not structural recursion (no parameter whose field every recursive call passes), and no measure is proven to fall at every call (size(xs): its call 1 not proven to lower it; out of time)
+ok   takeNear (doesn't terminate): refused: msortNear: not structural recursion (no parameter whose field every recursive call passes), and no measure is proven to fall at every call (size(xs): its call 1 not proven to lower it; out of time)
+bun test v1.4.3 (c6da4a4d3)
+OWNED_FAMILY_CONTROL {"scope":"self-owned native Java only; no upstream recall","hashes":["32d5e6cca7db8e231de5bcdf4c81cf46df117eaa0d9945351c547d502622f0ed","3d12e03c2814a5ddbe3f2f44276393cf397a24715c7f0a3fc5f73d32d0373538","475302fc5708e64a15ed8a3928f5385a66fadf83b3c25489eacbea437e795d3f"],"controls":[{"version":"original","ctor":"()","choice":null,"broken":true,"steps":2},{"version":"partial","ctor":"()","choice":null,"broken":false,"steps":2},{"version":"complete","ctor":"()","choice":null,"broken":false,"steps":2},{"version":"original","ctor":"(boolean)","choice":true,"broken":true,"steps":1},{"version":"partial","ctor":"(boolean)","choice":true,"broken":true,"steps":1},{"version":"complete","ctor":"(boolean)","choice":true,"broken":false,"steps":1}],"partialAdmitted":false,"completeAdmitted":true}
+OWNED_ADDED_CONSTRUCTOR {"scope":"self-owned native Java only; no upstream recall","hashes":["e01ed8b3c47bbf99d1420cb49b5bbc878b99a454340ab6cfdcf2b1eb3118de7b","68788e59db3373031d1e0b6dc40957f05ce57b5a4a2873f2b75fe4074b066374","b72a1bb6fd00251d88ea9fa0078df225755abead0b56b39106323a1dd5631d68"],"constructors":[["()","(boolean)"],["()","(boolean)","(int)"],["()","(boolean)","(int)"]],"controls":[{"from":"original","version":"original","ctor":"()","argument":null,"witness":["hit(allowed=true)","hit(allowed=false)"],"broken":true,"steps":2},{"from":"original","version":"partial","ctor":"()","argument":null,"witness":["hit(allowed=true)","hit(allowed=false)"],"broken":false,"steps":2},{"from":"original","version":"complete","ctor":"()","argument":null,"witness":["hit(allowed=true)","hit(allowed=false)"],"broken":false,"steps":2},{"from":"original","version":"original","ctor":"(boolean)","argument":"true","witness":["made with choice = true","hit(allowed=false)"],"broken":true,"steps":1},{"from":"original","version":"partial","ctor":"(boolean)","argument":"true","witness":["made with choice = true","hit(allowed=false)"],"broken":false,"steps":1},{"from":"original","version":"complete","ctor":"(boolean)","argument":"true","witness":["made with choice = true","hit(allowed=false)"],"broken":false,"steps":1},{"from":"partial","version":"partial","ctor":"(int)","argument":"1","witness":["made with seed = 1","hit(allowed=false)"],"broken":true,"steps":1},{"from":"partial","version":"complete","ctor":"(int)","argument":"1","witness":["made with seed = 1","hit(allowed=false)"],"broken":false,"steps":1}],"partialAdmitted":false,"completeAdmitted":true}
+OWNED_POLICY_IDENTITY {"scope":"self-owned native Java only; no upstream recall","hashes":["34956730d7145210e1003b34f6da1ffdb9286aa4fc7af52f9bf35b8fbb923bbf","e957965f945fec98581db181ae270d6fb342fae2e74d520bf55580a3f72aab1f","efd69d220f29a1a158bf4c603e664473f51a7ce222c5f65c7af01997adc27513","ccc910f11f7d530d5cf2e9db56a1786de6603a9c939b8fe21ded69887274eefa"],"policies":[{"variant":"original","name":"only allowed changes","expr":"value != old(value) implies allowed","verdict":"broken"},{"variant":"renamed","name":"renamed allowed changes","expr":"value != old(value) implies allowed","verdict":"proven"},{"variant":"weakened","name":"only allowed changes","expr":"true","verdict":"proven"},{"variant":"repaired","name":"only allowed changes","expr":"value != old(value) implies allowed","verdict":"proven"}],"witness":["hit(allowed=true)","hit(allowed=false)"],"controls":[{"variant":"original","originalContractBroken":true,"steps":2},{"variant":"renamed","originalContractBroken":false,"steps":2},{"variant":"weakened","originalContractBroken":true,"steps":2},{"variant":"repaired","originalContractBroken":false,"steps":2}],"admissions":[{"variant":"renamed","found":false},{"variant":"weakened","found":false},{"variant":"repaired","found":true}]}
+OWNED_DUPLICATE_POLICIES {"scope":"self-owned native Java only; no upstream recall","hashes":["1082e80c61bbc50102caaddcca9cc72626f2c098f26f09a691f00e741bddc18b","28339349d2011b5ef99729cd9d6e503aa6aa9f1a398cc8338ea4b36ca5114b53","9171ecbb05f7255ecb896064dfe0ecb9dad6ce23345d867c111e6e2217b40a3b","b38dc8fbe933cddb443b8ea3b57f10547a9f72b34a839fadd3317ae6ab463251","bf6ce75a04a2579b78c77269bbc7003a52031fcb5bd13539201c36fb2bf90696","058175902d2221eb95cd4015bf77fe275e8fda86c6686fc5e8fa81b27b5902e3"],"policies":[{"variant":"original","declarations":[{"name":"only allowed changes","expr":"value != old(value) implies allowed","verdict":"broken"}]},{"variant":"repaired","declarations":[{"name":"only allowed changes","expr":"value != old(value) implies allowed","verdict":"proven"}]},{"variant":"duplicate-fixed","declarations":[{"name":"only allowed changes","expr":"value != old(value) implies allowed","verdict":"not read","why":"a law of this name is stated twice (OwnedDuplicate.java:5, OwnedDuplicate.java:6): a law is known by its name"},{"name":"only allowed changes","expr":"value != old(value) implies allowed","verdict":"not read","why":"a law of this name is stated twice (OwnedDuplicate.java:5, OwnedDuplicate.java:6): a law is known by its name"}]},{"variant":"conflicting-fixed","declarations":[{"name":"only allowed changes","expr":"value != old(value) implies allowed","verdict":"not read","why":"a law of this name is stated twice (OwnedDuplicate.java:5, OwnedDuplicate.java:6): a law is known by its name"},{"name":"only allowed changes","expr":"true","verdict":"not read","why":"a law of this name is stated twice (OwnedDuplicate.java:5, OwnedDuplicate.java:6): a law is known by its name"}]},{"variant":"reordered-fixed","declarations":[{"name":"only allowed changes","expr":"true","verdict":"not read","why":"a law of this name is stated twice (OwnedDuplicate.java:5, OwnedDuplicate.java:6): a law is known by its name"},{"name":"only allowed changes","expr":"value != old(value) implies allowed","verdict":"not read","why":"a law of this name is stated twice (OwnedDuplicate.java:5, OwnedDuplicate.java:6): a law is known by its name"}]},{"variant":"conflicting-original","declarations":[{"name":"only allowed changes","expr":"value != old(value) implies allowed","verdict":"not read","why":"a law of this name is stated twice (OwnedDuplicate.java:5, OwnedDuplicate.java:6): a law is known by its name"},{"name":"only allowed changes","expr":"true","verdict":"not read","why":"a law of this name is stated twice (OwnedDuplicate.java:5, OwnedDuplicate.java:6): a law is known by its name"}]}],"witness":["hit(allowed=true)","hit(allowed=false)"],"controls":[{"variant":"original","broken":true,"steps":2},{"variant":"repaired","broken":false,"steps":2},{"variant":"duplicate-fixed","broken":false,"steps":2},{"variant":"conflicting-fixed","broken":false,"steps":2},{"variant":"reordered-fixed","broken":false,"steps":2},{"variant":"conflicting-original","broken":true,"steps":2}],"admissions":[{"variant":"duplicate-fixed","found":false,"reason":"reader refused, incomplete or ambiguous original evidence"},{"variant":"conflicting-fixed","found":false,"reason":"reader refused, incomplete or ambiguous original evidence"},{"variant":"reordered-fixed","found":false,"reason":"reader refused, incomplete or ambiguous original evidence"},{"variant":"conflicting-original","found":false,"reason":"reader refused, incomplete or ambiguous original evidence"}]}
+OWNED_BOOLEAN_ARGUMENT {"scope":"finite owned boolean-argument contrast only; no general forwarding or upstream recall guarantee","hashes":["71f95edfe80c248e8bd31a9a7c947d06128bbaacec1a07cfa25a9a656537d666","6ae1a63856abc99cff96ca2de31a655ab391a450acb1cb4c1f2bc8a53b31b129"],"witness":["made with enforce = false","hit(allowed=false)"],"flippedWitness":["made with enforce = true","hit(allowed=false)"],"controls":[{"version":"original","scenario":"exact","argument":"false","calls":["false"],"initialGuarded":false,"broken":true,"value":1,"steps":1,"sourceSha256":"71f95edfe80c248e8bd31a9a7c947d06128bbaacec1a07cfa25a9a656537d666"},{"version":"original","scenario":"flipped","argument":"true","calls":["false"],"initialGuarded":true,"broken":false,"value":0,"steps":1,"sourceSha256":"71f95edfe80c248e8bd31a9a7c947d06128bbaacec1a07cfa25a9a656537d666"},{"version":"repaired","scenario":"exact","argument":"false","calls":["false"],"initialGuarded":true,"broken":false,"value":0,"steps":1,"sourceSha256":"6ae1a63856abc99cff96ca2de31a655ab391a450acb1cb4c1f2bc8a53b31b129"},{"version":"repaired","scenario":"flipped","argument":"true","calls":["false"],"initialGuarded":true,"broken":false,"value":0,"steps":1,"sourceSha256":"6ae1a63856abc99cff96ca2de31a655ab391a450acb1cb4c1f2bc8a53b31b129"}],"repairedAdmitted":true,"unchangedAdmitted":false}
+OWNED_ARGUMENT_SWAP {"scope":"finite owned same-type argument contrast only; no general forwarding or upstream recall guarantee","hashes":["efdc64bc02887e444a533db2ff0843d6501203a791206d4f15ae0e3722e7b017","60d80a0e3b54644e88fc097c008ae9c43ab7ab390f45e41fa334ff904131ae8c"],"witness":["made with permit = false, deny = true","hit(allowed=false)"],"parameterOrder":["permit","deny"],"controls":[{"version":"original","scenario":"exact","arguments":["false","true"],"calls":["false"],"initialGuarded":false,"broken":true,"value":1,"steps":1,"sourceSha256":"efdc64bc02887e444a533db2ff0843d6501203a791206d4f15ae0e3722e7b017"},{"version":"original","scenario":"swapped","arguments":["true","false"],"calls":["false"],"initialGuarded":true,"broken":false,"value":0,"steps":1,"sourceSha256":"efdc64bc02887e444a533db2ff0843d6501203a791206d4f15ae0e3722e7b017"},{"version":"original","scenario":"permit-only-flip","arguments":["true","true"],"calls":["false"],"initialGuarded":true,"broken":false,"value":0,"steps":1,"sourceSha256":"efdc64bc02887e444a533db2ff0843d6501203a791206d4f15ae0e3722e7b017"},{"version":"original","scenario":"deny-only-flip","arguments":["false","false"],"calls":["false"],"initialGuarded":true,"broken":false,"value":0,"steps":1,"sourceSha256":"efdc64bc02887e444a533db2ff0843d6501203a791206d4f15ae0e3722e7b017"},{"version":"repaired","scenario":"exact","arguments":["false","true"],"calls":["false"],"initialGuarded":true,"broken":false,"value":0,"steps":1,"sourceSha256":"60d80a0e3b54644e88fc097c008ae9c43ab7ab390f45e41fa334ff904131ae8c"},{"version":"repaired","scenario":"swapped","arguments":["true","false"],"calls":["false"],"initialGuarded":true,"broken":false,"value":0,"steps":1,"sourceSha256":"60d80a0e3b54644e88fc097c008ae9c43ab7ab390f45e41fa334ff904131ae8c"},{"version":"repaired","scenario":"permit-only-flip","arguments":["true","true"],"calls":["false"],"initialGuarded":true,"broken":false,"value":0,"steps":1,"sourceSha256":"60d80a0e3b54644e88fc097c008ae9c43ab7ab390f45e41fa334ff904131ae8c"},{"version":"repaired","scenario":"deny-only-flip","arguments":["false","false"],"calls":["false"],"initialGuarded":true,"broken":false,"value":0,"steps":1,"sourceSha256":"60d80a0e3b54644e88fc097c008ae9c43ab7ab390f45e41fa334ff904131ae8c"}]}
+OWNED_TRACE_REJECTION {"scope":"fixture-only malformed-input controls; no general replay guarantee","cases":34,"dispatches":0,"coercions":0}
+OWNED_REPLAY_ASSOCIATION {"scope":"trusted fixture-runner source/invocation consistency only; not authenticity, freshness or lifecycle","matching":2,"collected":2,"markerBeforeEvidence":null,"mismatches":[{"kind":"source","expected":{"sourceSha256":"38672644fd3c23aeccfb5eb1827f504c670eb2ba8da586d08bccb1111529e9e0","entry":"OwnedOrder","ctor":"()","constructorArguments":[],"policyName":"no value writes","policyExpr":"value == old(value)","calls":["hit","hit","arm","arm"]},"actual":{"sourceSha256":"2e86e2bcc765a85561d2185d9f3b86bdbfa40494fb881f650cbda2d4acd421da","entry":"OwnedOrder","ctor":"()","constructorArguments":[],"policyName":"no value writes","policyExpr":"value == old(value)","calls":["hit","hit","arm","arm"]},"status":0,"signal":null,"stdout":"false:0:4:true\n"},{"kind":"order","expected":{"sourceSha256":"38672644fd3c23aeccfb5eb1827f504c670eb2ba8da586d08bccb1111529e9e0","entry":"OwnedOrder","ctor":"()","constructorArguments":[],"policyName":"no value writes","policyExpr":"value == old(value)","calls":["hit","arm","arm","hit"]},"actual":{"sourceSha256":"38672644fd3c23aeccfb5eb1827f504c670eb2ba8da586d08bccb1111529e9e0","entry":"OwnedOrder","ctor":"()","constructorArguments":[],"policyName":"no value writes","policyExpr":"value == old(value)","calls":["hit","hit","arm","arm"]},"status":0,"signal":null,"stdout":"false:0:4:true\n"},{"kind":"policyExpr","expected":{"sourceSha256":"38672644fd3c23aeccfb5eb1827f504c670eb2ba8da586d08bccb1111529e9e0","entry":"OwnedOrder","ctor":"()","constructorArguments":[],"policyName":"no value writes","policyExpr":"value != old(value)","calls":["hit","arm","arm","hit"]},"actual":{"sourceSha256":"38672644fd3c23aeccfb5eb1827f504c670eb2ba8da586d08bccb1111529e9e0","entry":"OwnedOrder","ctor":"()","constructorArguments":[],"policyName":"no value writes","policyExpr":"value == old(value)","calls":["hit","arm","arm","hit"]},"status":0,"signal":null,"stdout":"false:0:4:true\n"}]}
+OWNED_CALL_ORDER {"scope":"finite owned allowlisted method-order contrast only; no general replay or upstream recall guarantee","hashes":["2e86e2bcc765a85561d2185d9f3b86bdbfa40494fb881f650cbda2d4acd421da","38672644fd3c23aeccfb5eb1827f504c670eb2ba8da586d08bccb1111529e9e0"],"constructorArguments":[],"methodArguments":[],"witness":["hit()","arm()","arm()","hit()"],"reorderedWitness":["hit()","hit()","arm()","arm()"],"controls":[{"version":"original","scenario":"exact","calls":["hit","arm","arm","hit"],"broken":true,"value":1,"steps":4,"finalArmed":true,"sourceSha256":"2e86e2bcc765a85561d2185d9f3b86bdbfa40494fb881f650cbda2d4acd421da"},{"version":"original","scenario":"reordered","calls":["hit","hit","arm","arm"],"broken":false,"value":0,"steps":4,"finalArmed":true,"sourceSha256":"2e86e2bcc765a85561d2185d9f3b86bdbfa40494fb881f650cbda2d4acd421da"},{"version":"repaired","scenario":"exact","calls":["hit","arm","arm","hit"],"broken":false,"value":0,"steps":4,"finalArmed":true,"sourceSha256":"38672644fd3c23aeccfb5eb1827f504c670eb2ba8da586d08bccb1111529e9e0"},{"version":"repaired","scenario":"reordered","calls":["hit","hit","arm","arm"],"broken":false,"value":0,"steps":4,"finalArmed":true,"sourceSha256":"38672644fd3c23aeccfb5eb1827f504c670eb2ba8da586d08bccb1111529e9e0"}]}
+OWNED_NATIVE_RESULT_FAILURES {"scope":"finite owned process/row probes; accepted means fixture row validation only, not policy proof","sourceSha256":"0826c696676f9d0c4a79e8f3a0f66b1760a3bef51c8fbffabafd98d549d434d1","observations":[{"mode":"ok","status":0,"signal":null,"error":null,"stdout":"false:0:1:true\n","accepted":true},{"mode":"absent","status":0,"signal":null,"error":null,"stdout":"","accepted":false},{"mode":"invalid","status":0,"signal":null,"error":null,"stdout":"not a result row\n","accepted":false},{"mode":"truncated","status":0,"signal":null,"error":null,"stdout":"false:0:1:","accepted":false},{"mode":"no-newline","status":0,"signal":null,"error":null,"stdout":"false:0:1:true","accepted":false},{"mode":"extra-row","status":0,"signal":null,"error":null,"stdout":"false:0:1:true\nfalse:0:1:true\n","accepted":false},{"mode":"extra-newline","status":0,"signal":null,"error":null,"stdout":"false:0:1:true\n\n","accepted":false},{"mode":"wrong-count","status":0,"signal":null,"error":null,"stdout":"false:0:2:true\n","accepted":false},{"mode":"overflow","status":0,"signal":null,"error":null,"stdout":"false:9007199254740992:1:true\n","accepted":false},{"mode":"nonzero","status":7,"signal":null,"error":null,"stdout":"false:0:1:true\n","accepted":false},{"mode":"timeout","status":143,"signal":null,"error":"spawnSync java ETIMEDOUT","stdout":"false:0:1:true\n","accepted":false}]}
+OWNED_NO_NATIVE_LAUNCH {"scope":"finite owned replay-entry probe, not a general process isolation guarantee","sourceSha256":"b19093fd15fa3324fa804f9d39c8afc791e9254ad73dab0937b657eb186cf614","rejectedCases":12,"rejectedReplayLaunches":0,"rejectedEntryMarkers":0,"positiveReplayLaunches":2,"positiveOrders":["arm,hit","hit,arm"]}
+OWNED_RECALL_CONTROL {"scope":"self-owned synthetic source only; not upstream recall","originalSha256":"e471066fda416be6e0b416943ab790015eb7d0fca763cf37b2781d79d8458b2e","fixedSha256":"2cbccca912ffa3896aaf1c744936f77947a8d1b850a6f8282c7af9a1f311deaf","strict":{"found":1,"total":1},"fixedRefuted":0,"sourceReplays":2,"candidatesCounted":0}
+OWNED_CONSTRUCTOR_REPLAY {"scope":"self-owned Java source only; not upstream recall","hashes":["cdb389c02cee68283409399aa818648b905621913ca658d6ba73c926ef78df15","52af5b06a5cab086dfda14f452c0b3cffe485b2deba9edb1804e30f4692a1525"],"controls":[{"version":"original","ctor":"()","broken":true,"value":2,"steps":2},{"version":"original","ctor":"(boolean)","broken":false,"value":1,"steps":2},{"version":"fixed","ctor":"()","broken":false,"value":1,"steps":2},{"version":"fixed","ctor":"(boolean)","broken":false,"value":1,"steps":2}],"matchingFixedAdmitted":true,"unchangedOriginalAdmitted":false}
+
+--- stderr ---
+$ (cd core) bun test security.test.ts extract-absence.test.ts extract-orm.test.ts count-write-frames.test.ts count-cases.test.ts sample-cache.test.ts count-support.test.ts
+
+count-cases.test.ts:
+(pass) finite count recovery returns an original-kernel-checked tree and restores search scope [24.24ms]
+(pass) finite cases use checked activation and witness derivations without an opt-in [16.41ms]
+(pass) ranked bounds use the arithmetic core rather than every preceding proposal [2.00ms]
+(pass) default case recovery excludes a false bound and retains the successful slim certificate [16.36ms]
+(pass) selected cases retain newly seeded universal-flag witnesses in the final source [35.82ms]
+(pass) an arithmetic core of an unprovable bound cannot certify a false law [17.03ms]
+(pass) slimming witness instances removes complete tuples without mutating the caller [0.15ms]
+(pass) compact recovery keeps its saturated branches and local model scope checked [17.02ms]
+(pass) explicit pre-transport deferral still requires the final kernel check [9.78ms]
+(pass) finite count recovery does not turn a satisfiable goal into a proof [8.27ms]
+
+count-support.test.ts:
+(pass) source contexts keep original definition support and unary guards without protocol names [4.26ms]
+(pass) v4 single complete root reads retain every guard across unrelated names and radices [21.69ms]
+(pass) free transition reads close whole guarded laws and their exact primitive ranges [9.94ms]
+(pass) root flag arguments retain fixed state/input coordinates without asserting aliases [1.49ms]
+(pass) root and free transition ranges precede ambient read slots [2.55ms]
+(pass) count pool keys ignore primitive and duplicate growth but retain exact reads and definitions [0.33ms]
+(pass) v4 selected single-read triples exclude stale, unselected and captured witnesses [9.12ms]
+(pass) v4 complete matches precede optional exhaustion without minting work or source slots [8.36ms]
+(pass) v4 incomplete or fixed-coordinate matches are never labelled complete [0.74ms]
+(pass) bound-only projection keeps NONALIAS satisfiable [11.15ms]
+(pass) vacuous query binder is definition-derived [0.87ms]
+(pass) selected witness joins reject stale and wrong-map sources [21.22ms]
+(pass) count preparation reserves the same global budget for actual selected witnesses [10.55ms]
+(pass) affine remainder preserves exact polynomial [1.20ms]
+(pass) stable selected closure rejects capture and alias [5.77ms]
+(pass) current target kind instances retain guards [5.72ms]
+(pass) current flag terms retain flag-false guards [7.04ms]
+(pass) own PRE instances retain count anchors [3.77ms]
+(pass) remaining-coordinate proposals never assert alias [34.98ms]
+(pass) generic root-linked terms retain anchors and cross the real early phase gate [11.35ms]
+(pass) full source occupancy replaces only structurally true slots; substantive slots refuse [3.67ms]
+(pass) replacement reuses a cold source debit without exceeding the reserved initial cap [17.90ms]
+(pass) pre-existing CTI tuples do not consume the new source-proposal budget or trigger a new global refusal [3.21ms]
+(pass) selection covers both concrete root keys before redundant and keyless differences [5.19ms]
+(pass) definition-linked PRE candidates, reservation and ten/1000 limits [32.39ms]
+(pass) regenerated cold binders cannot steal a selected witness owner [4.66ms]
+(pass) present vacuous source survives an idempotent second seed [0.29ms]
+(pass) picked selected view falls back without renaming or extending a budget; captured views reject [0.50ms]
+(pass) cold range reads cannot fill count-pass slots before current selected-body reads [3.22ms]
+(pass) sparse generation counts no-op read/read pairs and exits before cap-zero/full-source work [12.53ms]
+(pass) pool enumeration has finite work even when cubic candidates never admit [100.47ms]
+(pass) affine-alias picks unconditionally select one kernel-valid representative [1.49ms]
+(pass) per-law slots cover distinct real roots without symmetric or unrelated-value backfill [15.06ms]
+(pass) v2 pattern reuse saves actual work only within the same bounded attempt [5.97ms]
+(pass) v2 no-POST pools skip only impossible narrow triples and retain one shared meter [7.83ms]
+(pass) v3 existing overlap and exact projection survive pair dominance with both root keys [37.79ms]
+(pass) v3 first coverage of ten required root keys cannot be displaced by overlap triples [4.17ms]
+(pass) v3 irrelevant, wrong-bound, wrong-key and POST lifts do not outrank required differences [13.47ms]
+(pass) v3 overlap priority retains exhausted/deadline refusal and the shared generation meter [4.90ms]
+(pass) count-pool invalidation follows only count-dependent flags, including quantified bodies and cycles [0.45ms]
+(pass) seeded upper bound starts with nonincrease and one relevant overlap, not pool fillers [30.32ms]
+(pass) selected affine remainder matching ignores unused pool reads and keeps the complete original law [1.02ms]
+(pass) keyless stored-copy bounds prioritize both retained and incoming counts [110.94ms]
+(pass) semantic aliases select one live representative across PRE/POST and reordered keys [27.69ms]
+
+count-write-frames.test.ts:
+(pass) generic renamed writers propose the missing 2/4/4 directional frames [3.78ms]
+(pass) directed-difference transports retain the matching old difference within the same cap [2.57ms]
+(pass) the directed triangle is an ordinary kernel-checked count instance [21.54ms]
+(pass) a generated compensated frame checks at its copying guard; the opposite difference does not [65.97ms]
+(pass) single-set growth retains the old count and checks while a disabled unqualified transport is false [50.96ms]
+(pass) single-set compensation is still untrusted when the write can conjure a member [6.55ms]
+(pass) copied row sizes and intersections of two overwritten rows get source-size bridges [0.63ms]
+(pass) only demanded post heads participate, never unrelated carried sets or pre heads [0.66ms]
+(pass) a carried map read only in the write guard or arithmetic is not a copied source [0.48ms]
+(pass) point writes and Boolean membership-copy values are supported without reading guard sources [0.44ms]
+(pass) lowered Boolean copy values preserve guarded membership arms [0.31ms]
+(pass) membership syntaxes, conjunction order and double negation do not change pair selection [0.43ms]
+(pass) non-membership predicates and malformed binary regions are not frame shapes [0.71ms]
+(pass) incoming, PRE and actual post bounds must match exactly; unsupported packed reads are skipped [0.52ms]
+(pass) existing coefficient vectors, including reordered reverse directions, are deduplicated independently [0.42ms]
+(pass) caps are stable, at most 32, with fresh witnesses and no input mutation [2.95ms]
+(pass) false frames stay untrusted: a witness survives without the copying guard [9.34ms]
+
+extract-absence.test.ts:
+(pass) absence narrowing distinguishes strict/loose null and undefined and preserves the absent tag [1303.54ms]
+(pass) strict comparison to a different absence kind cannot prove a false decision law [76.95ms]
+
+extract-orm.test.ts:
+(pass) ORM create checks the original async handler [79.98ms]
+(pass) ORM update checks the original async handler [44.70ms]
+(pass) ORM read checks the original async handler [32.28ms]
+(pass) ORM lookup checks the original async handler [30.69ms]
+(pass) ORM save checks the original async handler [43.24ms]
+(pass) nullable reads and incomplete saves fail closed [5.19ms]
+(pass) the harness imports the original module, not generated code [17.50ms]
+(pass) multiple handlers share one table [60.58ms]
+cyclic: {"kind":"machine","name":"ts","cert":true,"usual":true,"cyclic":true,"ms":2633,"usualMs":61,"route":"translated","leaves":847,"regrown":0,"splits":661,"carried":2,"uncarried":0,"cached":0}
+(pass) ORM map representation invariant is proved and kernel checked [2792.64ms]
+(pass) exported service method executes the actual class [40.77ms]
+(pass) refuses generator, rest, client shadowing and custom constructor [8.31ms]
+(pass) schema spoofing and duplicate keys refuse [2.04ms]
+(pass) harness snapshots isolate rows, prototype keys and duplicate creates [15.03ms]
+(pass) query diagnostics: report schema primary keys and supplied where fields [12.35ms]
+(pass) non-key updates refuse [2.91ms]
+
+sample-cache.test.ts:
+(pass) relational sampling shares unchanged maps and states without mutating earlier samples [39.44ms]
+(pass) sample state keys preserve the nested-array oracle, defaults, ordering and unusual numbers [3.68ms]
+(pass) sample predicate sharing > equal literals share only evaluated rows, including false values [0.48ms]
+(pass) sample predicate sharing > preserves first-hit and preceding near misses against direct evaluation [0.38ms]
+
+security.test.ts:
+cyclic: {"kind":"machine","name":"Vault","cert":true,"usual":true,"cyclic":true,"ms":19,"usualMs":2,"route":"translated","leaves":6,"regrown":0,"splits":3,"carried":1,"uncarried":0,"cached":0}
+cyclic: {"kind":"step law","name":"Vault","cert":true,"usual":true,"cyclic":true,"ms":38,"usualMs":6,"route":"translated","leaves":17,"regrown":0,"splits":10,"carried":1,"uncarried":0,"cached":0}
+(pass) authorization candidates are reviewed policy, never extra assumptions; a stated law breaks with a real run [615.48ms]
+cyclic: {"kind":"machine","name":"Counter","cert":true,"usual":true,"cyclic":true,"ms":19,"usualMs":1,"route":"translated","leaves":5,"regrown":0,"splits":2,"carried":1,"uncarried":0,"cached":0}
+(pass) a broken candidate alone is not a claimed vulnerability or a failing policy [397.16ms]
+(pass) workflow checks the prerequisite BEFORE the effect, not a flag set by the bypass [1110.67ms]
+(pass) quota and ledger laws cover adversarial negative costs as well as over-limit credits [2688.04ms]
+cyclic: {"kind":"machine","name":"Rows","cert":true,"usual":true,"cyclic":true,"ms":214,"usualMs":25,"route":"translated","leaves":93,"regrown":0,"splits":60,"carried":2,"uncarried":0,"cached":0}
+cyclic: {"kind":"step law","name":"Rows","cert":true,"usual":true,"cyclic":true,"ms":323,"usualMs":27,"route":"translated","leaves":89,"regrown":0,"splits":62,"carried":1,"uncarried":0,"cached":0}
+cyclic: {"kind":"machine","name":"Rows","cert":true,"usual":true,"cyclic":true,"ms":0,"usualMs":23,"route":"translated","leaves":0,"regrown":0,"splits":0,"carried":0,"uncarried":0,"cached":1}
+cyclic: {"kind":"step law","name":"Rows","cert":true,"usual":true,"cyclic":true,"ms":283,"usualMs":42,"route":"translated","leaves":95,"regrown":0,"splits":66,"carried":1,"uncarried":0,"cached":0}
+cyclic: {"kind":"machine","name":"Rows","cert":true,"usual":true,"cyclic":true,"ms":467,"usualMs":18,"route":"translated","leaves":284,"regrown":0,"splits":200,"carried":2,"uncarried":0,"cached":0}
+cyclic: {"kind":"step law","name":"Rows","cert":true,"usual":true,"cyclic":false,"ms":256,"usualMs":14,"route":"fallback","leaves":186,"regrown":0,"splits":177,"carried":0,"uncarried":1,"cached":0,"fellBack":"Rows: own rows only (new rows): unknown"}
+cyclic: {"kind":"step law","name":"Rows","uncovered":true,"why":"no cyclic proof found (not translated: Rows: own rows only (new rows): unknown)"}
+(pass) tenant isolation templates cover creation, updates and deletion including a zero-valued foreign row [3194.23ms]
+cyclic: {"kind":"machine","name":"Rows: isolation of the owner","cert":true,"usual":true,"cyclic":true,"ms":2839,"usualMs":192,"route":"translated","leaves":595,"regrown":2,"splits":437,"carried":5,"uncarried":0,"cached":0}
+cyclic: {"kind":"step law","name":"Rows: isolation of the owner","cert":true,"usual":true,"cyclic":true,"ms":1902,"usualMs":59,"route":"translated","leaves":100,"regrown":0,"splits":64,"carried":1,"uncarried":0,"cached":0}
+(pass) read isolation is two-run noninterference, not absence of foreign writes [6065.17ms]
+(pass) security mode refuses unsupported concurrency rather than proving the atomic handler [213.70ms]
+(pass) a bound key cannot shadow the identity and make isolation vacuous [0.31ms]
+cyclic: {"kind":"machine","name":"Counter","cert":true,"usual":true,"cyclic":true,"ms":7,"usualMs":0,"route":"translated","leaves":5,"regrown":0,"splits":2,"carried":1,"uncarried":0,"cached":0}
+(pass) bad policy names and unsupported code are refused, never proven [164.73ms]
+
+ 101 pass
+ 0 fail
+ 1882 expect() calls
+Ran 101 tests across 7 files. [20.26s]
+$ (cd core/count-recovery) bun test action-guard.test.ts key-closure.test.ts source-memo.test.ts
+
+action-guard.test.ts:
+(pass) action guards use the selected operation and ground its quantified flag [0.61ms]
+(pass) the active quantified flag selects its carried set without protocol names [1.15ms]
+
+key-closure.test.ts:
+(pass) read-key closure checks the packed subtraction guard [6.70ms]
+(pass) read-key closure does not equate a wrong offset [2.86ms]
+
+source-memo.test.ts:
+(pass) source memo reuses only a transported tree at the same logical path [1.39ms]
+(pass) source memo reuses unchanged used rows across activation paths, not missing assumptions [0.39ms]
+(pass) source memo tries an exact match beyond two geometrically nearer paths [0.62ms]
+(pass) shared source scopes reuse exact rows despite different enclosing hypotheses [0.48ms]
+(pass) source memo cannot turn a changed satisfiable goal into a checked proof [0.17ms]
+
+ 9 pass
+ 0 fail
+ 22 expect() calls
+Ran 9 tests across 3 files. [32.00ms]
+$ (cd kernel) bun test share.test.ts
+
+share.test.ts:
+(pass) structural sharing ignores field insertion order, not operands or types [2.14ms]
+(pass) sharing is reader-local and does not mutate inputs [0.31ms]
+
+ 2 pass
+ 0 fail
+ 14 expect() calls
+Ran 2 tests across 1 file. [7.00ms]
+$ (cd research/query) bun test goal-pack.test.ts
+
+goal-pack.test.ts:
+(pass) each packed hardlink is a regular, independently extractable goal [51.27ms]
+(pass) a symlinked goal is packed by value, not as an unresolved link [42.21ms]
+(pass) goal packing handles a repository root containing spaces [47.06ms]
+(pass) an empty goal selection creates no archive [30.94ms]
+(pass) a missing goal fails packing without leaving an incomplete archive [29.68ms]
+(pass) failed packing preserves a previously complete archive atomically [45.09ms]
+(pass) a compressor failure leaves no archive or temporary output [42.23ms]
+
+ 7 pass
+ 0 fail
+ 7 expect() calls
+Ran 7 tests across 1 file. [299.00ms]
+$ bun test research/lane-i/upper-bound/summarize.test.ts core/finite-tiny-early.test.ts
+
+core/finite-tiny-early.test.ts:
+(pass) seed-only enumeration does not compile native steps or claim exhaustion [1.26ms]
+(pass) seed-only enumeration has the same 256-model cap and finite domains [3.66ms]
+(pass) front-loaded seeds certify before native work and never get a second allowance [6.12ms]
+(pass) early and native phases share one frozen whole family per round [1.19ms]
+(pass) front-loaded seeds preserve callers, source preconditions and unknown facts [1.20ms]
+(pass) ordinary search still runs after front-loaded seeds find nothing [0.67ms]
+(pass) seed-only and front-loaded paths preserve expiration and pending survivors [0.31ms]
+
+research/lane-i/upper-bound/summarize.test.ts:
+(pass) a missing shard stays pending [0.32ms]
+(pass) a closed worker without independent verification is not closed [0.15ms]
+(pass) a fresh checked result retains resource and leaf metrics [0.11ms]
+(pass) a forced stop retains only a lower bound [0.03ms]
+(pass) a closed label without the worker check cannot bypass independent verification [0.04ms]
+(pass) duplicate terminal records cannot be promoted even with a verifier [0.06ms]
+(pass) an unrecognized terminal label is unknown [0.03ms]
+(pass) a different family cannot be admitted [0.05ms]
+
+ 15 pass
+ 0 fail
+ 56 expect() calls
+Ran 15 tests across 2 files. [43.00ms]
+$ bun examples/data.ts
+$ bun test research/security/score.test.ts
+
+research/security/score.test.ts:
+(pass) constructor family refuses a partial repair in either initializer [1.22ms]
+(pass) constructor family retains every original context and the same policy in each [0.26ms]
+(pass) constructor family checks newly added contexts without conflating unrelated entries [0.11ms]
+(pass) owned constructor family requires a complete native repair [7396.16ms]
+(pass) owned fixed source exposes and replays its added constructor [8194.08ms]
+cyclic: {"kind":"machine","name":"OwnedPolicy","cert":true,"usual":true,"cyclic":true,"ms":40,"usualMs":10,"route":"translated","leaves":38,"regrown":0,"splits":8,"carried":2,"uncarried":0,"cached":0}
+cyclic: {"kind":"step law","name":"OwnedPolicy","cert":true,"usual":true,"cyclic":true,"ms":17,"usualMs":0,"route":"translated","leaves":3,"regrown":0,"splits":1,"carried":1,"uncarried":0,"cached":0}
+(pass) owned source policy identity cannot be renamed or weakened into a repair [3980.47ms]
+(pass) owned duplicate policy declarations remain ambiguous in either order [5796.44ms]
+(pass) owned boolean constructor argument changes the native witness outcome [2468.95ms]
+(pass) owned same-type constructor arguments require their original positions [2567.84ms]
+(pass) owned association snapshots identity without bypassing raw result guards [0.94ms]
+(pass) owned native rows reject inconsistent process or output fields [0.07ms]
+(pass) owned replay validates the whole trace before any dispatch [0.18ms]
+(pass) owned replay dispatches one frozen order-preserving snapshot [0.09ms]
+cyclic: {"kind":"machine","name":"OwnedOrder","cert":true,"usual":true,"cyclic":true,"ms":12,"usualMs":2,"route":"translated","leaves":12,"regrown":0,"splits":6,"carried":2,"uncarried":0,"cached":0}
+cyclic: {"kind":"step law","name":"OwnedOrder","cert":true,"usual":true,"cyclic":true,"ms":23,"usualMs":0,"route":"translated","leaves":6,"regrown":0,"splits":4,"carried":1,"uncarried":0,"cached":0}
+(pass) owned multi-call witness order changes the native policy outcome [1960.46ms]
+(pass) owned native process failures never produce an accepted result row [2528.40ms]
+(pass) owned invalid traces do not launch the armed native entry probe [459.89ms]
+(pass) recall requires the same stated policy, original replay and fixed counterpart [0.65ms]
+(pass) deliberate training flaws require reproduction but no fictional fixed revision [0.16ms]
+(pass) refusals, absent laws and un-replayed environment schedules never count [0.14ms]
+(pass) duplicate or unexpected revision receipts cannot inflate strict recall [0.18ms]
+(pass) failed, incomplete and unreviewable receipts never count despite surviving law data [0.41ms]
+(pass) strict recall requires an unambiguous entry, constructor and policy match [0.21ms]
+(pass) blank replay, empty trace and unnamed policies are not original-code evidence [0.28ms]
+cyclic: {"kind":"machine","name":"OwnedCounter","cert":true,"usual":true,"cyclic":true,"ms":9,"usualMs":1,"route":"translated","leaves":5,"regrown":0,"splits":2,"carried":1,"uncarried":0,"cached":0}
+cyclic: {"kind":"machine","name":"OwnedCounter","cert":true,"usual":true,"cyclic":true,"ms":0,"usualMs":0,"route":"translated","leaves":0,"regrown":0,"splits":0,"carried":0,"uncarried":0,"cached":0}
+cyclic: {"kind":"step law","name":"OwnedCounter","cert":true,"usual":true,"cyclic":true,"ms":17,"usualMs":2,"route":"translated","leaves":18,"regrown":0,"splits":11,"carried":1,"uncarried":0,"cached":0}
+cyclic: {"kind":"machine","name":"OwnedCounter","cert":true,"usual":true,"cyclic":true,"ms":6,"usualMs":1,"route":"translated","leaves":5,"regrown":0,"splits":2,"carried":1,"uncarried":0,"cached":0}
+cyclic: {"kind":"machine","name":"OwnedCounter","cert":true,"usual":true,"cyclic":true,"ms":0,"usualMs":0,"route":"translated","leaves":0,"regrown":0,"splits":0,"carried":0,"uncarried":0,"cached":1}
+cyclic: {"kind":"step law","name":"OwnedCounter","cert":true,"usual":true,"cyclic":true,"ms":12,"usualMs":1,"route":"translated","leaves":18,"regrown":0,"splits":11,"carried":1,"uncarried":0,"cached":0}
+(pass) owned paired source is checked and the exact witness replays before strict admission [511.61ms]
+(pass) owned Java constructor contexts retain exact native replay identity [5174.38ms]
+(pass) published recall seeds are distinct pinned policy cases with explicit fixes [0.82ms]
+(pass) published measurement covers both exact revisions without hiding refusals [0.71ms]
+(pass) Solidity harness recall preserves original pairs and reports deployment assumptions, not findings [1.03ms]
+
+ 28 pass
+ 0 fail
+ 1305 expect() calls
+Ran 28 tests across 1 file. [41.83s]
+   20.3 s  core/security.test.ts core/extract-absence.test.ts core/extract-orm.test.ts core/count-write-frames.test.ts core/count-cases.test.ts core/sample-cache.test.ts core/count-support.test.ts
+    0.0 s  core/count-recovery/action-guard.test.ts core/count-recovery/key-closure.test.ts core/count-recovery/source-memo.test.ts
+    0.0 s  kernel/share.test.ts
+    0.3 s  research/query/goal-pack.test.ts
+    0.0 s  research/lane-i/upper-bound/summarize.test.ts core/finite-tiny-early.test.ts
+  183.3 s  examples/data.ts
+   41.9 s  research/security/score.test.ts

@@ -1,0 +1,9 @@
+{
+  "source": "44ad3947d887aa9e5269bb8ca98ed9b1fea2ad8b",
+  "baseline": "4497c4b05c3111959a2b8d808c426a0e3cab3f01",
+  "snapshot": "2a77bdce4309",
+  "validation": {"batch":"20261110-034241-psw272","task":"2d96103e-fdc4-4028-a574-cd0e32808295","status":"failed-check-tests-passed"},
+  "strict": {"batch":"20261110-034240-kp8mpv","task":"e88b75c0-1ad7-43aa-bcbd-b26df6ca5461","status":"pending","cpu":"AMD Ryzen 9 9950X 16-Core Processor","requiredPairs":5},
+  "typeRecheck": {"source":"a197ab4f832cba5f5905e544db0502bb373ea16a","task":"402a7171-6b71-4cae-a79c-820e738cc2db","status":"pending"},
+  "finalGate":false
+}

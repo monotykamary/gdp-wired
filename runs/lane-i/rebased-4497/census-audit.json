@@ -1,0 +1,3437 @@
+{
+  "finalGate": false,
+  "identity": {
+    "candidate": "5829b23d7e7d64136625154c9b161402a89aff19",
+    "baseline": "4497c4b05c3111959a2b8d808c426a0e3cab3f01",
+    "archives": {
+      "main.tar": "9508c2e454b4b6eefa4093bbf6efba569d09bea4bc89646b6e8df7bc0a3a6dc6",
+      "handwired.tar": "73d44548dbe109a40ac933406324e17d7dee39e7dff1a6f1270ed030c31c1da4",
+      "gdp-ts.tar": "75d367da15decb1fefce2ae72ae50e7f3f737989094a760fde643c5b1f5c1496"
+    },
+    "integratedHeads": {
+      "A": "0bab28e2a2ac83ef1dc67991317d8eeeeb7716b5",
+      "B": "4ce50c00ac693a036f9d3df79aa46f0f8f344161",
+      "E": "e1b8d3b7d55be33fd6434c589bcac903bb58fd02",
+      "F": "c15212624e394fca9e2051ab494d4f50017da059",
+      "Fable": "f6b383f0ceed7cc52cb15d1ea91b2c75e7b8e0f9"
+    }
+  },
+  "issues": [],
+  "census": [
+    {
+      "name": "gen-consensus-r1",
+      "exit": "0",
+      "seconds": "1.97",
+      "placement": {
+        "vm": "bx_8y6xda5y",
+        "type": "large",
+        "cpu": "AMD EPYC 9455 48-Core Processor",
+        "vcpus": 4,
+        "vm_vcpus": 8,
+        "exclusive": true,
+        "co_tenants": 0
+      },
+      "sha256": "b255d8f03e1df0cff82d5bee9c52ebd6b5dd9d32d319cc2c31653d115408a9d0",
+      "id": "consensus",
+      "repeat": 1,
+      "identical": true,
+      "base": {
+        "count": 3,
+        "hash": "e14ce6d5523e14235e7be911e6585a4e341579f13af79146ee5c0272782c73fd",
+        "wallMs": 290.07143,
+        "phases": {
+          "guards": 1.765271999999996,
+          "small": 2.2310469999999967,
+          "candidates": 284.270109
+        }
+      },
+      "candidate": {
+        "count": 3,
+        "hash": "e14ce6d5523e14235e7be911e6585a4e341579f13af79146ee5c0272782c73fd",
+        "wallMs": 23.189588,
+        "phases": {
+          "guards": 2.103026,
+          "small": 2.265789000000005,
+          "candidates": 17.117924999999993
+        }
+      }
+    },
+    {
+      "name": "gen-consensus-r2",
+      "exit": "0",
+      "seconds": "1.84",
+      "placement": {
+        "vm": "bx_84e8hfw5",
+        "type": "large",
+        "cpu": "AMD EPYC 4585PX 16-Core Processor",
+        "vcpus": 4,
+        "vm_vcpus": 8,
+        "exclusive": true,
+        "co_tenants": 0
+      },
+      "sha256": "d6b3835f9bc9cb163c26507f3f531168da5620658c68a3f9e4cd737ac942013e",
+      "id": "consensus",
+      "repeat": 2,
+      "identical": true,
+      "base": {
+        "count": 3,
+        "hash": "e14ce6d5523e14235e7be911e6585a4e341579f13af79146ee5c0272782c73fd",
+        "wallMs": 342.42555200000004,
+        "phases": {
+          "guards": 1.8161720000000017,
+          "small": 2.627147000000001,
+          "candidates": 336.021561
+        }
+      },
+      "candidate": {
+        "count": 3,
+        "hash": "e14ce6d5523e14235e7be911e6585a4e341579f13af79146ee5c0272782c73fd",
+        "wallMs": 26.922624999999996,
+        "phases": {
+          "guards": 2.3272869999999983,
+          "small": 2.527932,
+          "candidates": 20.082731000000003
+        }
+      }
+    },
+    {
+      "name": "gen-consensus-r3",
+      "exit": "0",
+      "seconds": "1.35",
+      "placement": {
+        "vm": "bx_69nkhdf7",
+        "type": "large",
+        "cpu": "AMD Ryzen 9 9950X 16-Core Processor",
+        "vcpus": 4,
+        "vm_vcpus": 8,
+        "exclusive": true,
+        "co_tenants": 0
+      },
+      "sha256": "be0bc12fc1cb26d429fcce050d1953ebbbd5706bd648361122e8e786ada68a00",
+      "id": "consensus",
+      "repeat": 3,
+      "identical": true,
+      "base": {
+        "count": 3,
+        "hash": "e14ce6d5523e14235e7be911e6585a4e341579f13af79146ee5c0272782c73fd",
+        "wallMs": 246.34398099999999,
+        "phases": {
+          "guards": 1.5194299999999998,
+          "small": 1.9514819999999986,
+          "candidates": 241.278746
+        }
+      },
+      "candidate": {
+        "count": 3,
+        "hash": "e14ce6d5523e14235e7be911e6585a4e341579f13af79146ee5c0272782c73fd",
+        "wallMs": 21.851675,
+        "phases": {
+          "guards": 1.9112579999999966,
+          "small": 2.332560000000001,
+          "candidates": 15.986123
+        }
+      }
+    },
+    {
+      "name": "gen-tcommit-r1",
+      "exit": "0",
+      "seconds": "2.04",
+      "placement": {
+        "vm": "bx_5wr3bs76",
+        "type": "large",
+        "cpu": "AMD EPYC 4585PX 16-Core Processor",
+        "vcpus": 4,
+        "vm_vcpus": 8,
+        "exclusive": true,
+        "co_tenants": 0
+      },
+      "sha256": "b0cbd44391326fa1b45b82d05abcb52acd117a2bbe72f890bd234fad740a1c5d",
+      "id": "tcommit",
+      "repeat": 1,
+      "identical": true,
+      "base": {
+        "count": 4,
+        "hash": "0fcdba2bffed25323343e97a11d2439514ab6a146a5f4039103365d216045e54",
+        "wallMs": 747.433457,
+        "phases": {
+          "guards": 2.3418859999999952,
+          "small": 11.854478,
+          "candidates": 730.354782
+        }
+      },
+      "candidate": {
+        "count": 4,
+        "hash": "0fcdba2bffed25323343e97a11d2439514ab6a146a5f4039103365d216045e54",
+        "wallMs": 71.768134,
+        "phases": {
+          "guards": 2.786719000000005,
+          "small": 14.599862000000002,
+          "candidates": 51.46845400000001
+        }
+      }
+    },
+    {
+      "name": "gen-tcommit-r2",
+      "exit": "0",
+      "seconds": "1.65",
+      "placement": {
+        "vm": "bx_5mqd7ek5",
+        "type": "large",
+        "cpu": "AMD Ryzen 7 9700X 8-Core Processor",
+        "vcpus": 4,
+        "vm_vcpus": 8,
+        "exclusive": true,
+        "co_tenants": 0
+      },
+      "sha256": "97b6b27baec90842490dff36705d7cfda36fa68ec10f4248836a3a1ddd2777fb",
+      "id": "tcommit",
+      "repeat": 2,
+      "identical": true,
+      "base": {
+        "count": 4,
+        "hash": "0fcdba2bffed25323343e97a11d2439514ab6a146a5f4039103365d216045e54",
+        "wallMs": 467.474134,
+        "phases": {
+          "guards": 1.7449869999999947,
+          "small": 8.878754999999998,
+          "candidates": 454.92109999999997
+        }
+      },
+      "candidate": {
+        "count": 4,
+        "hash": "0fcdba2bffed25323343e97a11d2439514ab6a146a5f4039103365d216045e54",
+        "wallMs": 62.440033,
+        "phases": {
+          "guards": 2.416488000000001,
+          "small": 8.736455999999997,
+          "candidates": 48.770822
+        }
+      }
+    },
+    {
+      "name": "gen-tcommit-r3",
+      "exit": "0",
+      "seconds": "2.01",
+      "placement": {
+        "vm": "bx_5wr3bs76",
+        "type": "large",
+        "cpu": "AMD EPYC 4585PX 16-Core Processor",
+        "vcpus": 4,
+        "vm_vcpus": 8,
+        "exclusive": true,
+        "co_tenants": 0
+      },
+      "sha256": "32d390863625d0f24c2e79d312f4c8c5d7fcb8c22433f496fac32f211c98ee27",
+      "id": "tcommit",
+      "repeat": 3,
+      "identical": true,
+      "base": {
+        "count": 4,
+        "hash": "0fcdba2bffed25323343e97a11d2439514ab6a146a5f4039103365d216045e54",
+        "wallMs": 757.532412,
+        "phases": {
+          "guards": 1.953870000000002,
+          "small": 10.264870000000002,
+          "candidates": 743.243554
+        }
+      },
+      "candidate": {
+        "count": 4,
+        "hash": "0fcdba2bffed25323343e97a11d2439514ab6a146a5f4039103365d216045e54",
+        "wallMs": 96.499393,
+        "phases": {
+          "guards": 4.100412999999996,
+          "small": 17.554405000000003,
+          "candidates": 71.10390699999999
+        }
+      }
+    },
+    {
+      "name": "gen-lock_server-r1",
+      "exit": "0",
+      "seconds": "1.43",
+      "placement": {
+        "vm": "bx_5mqd7ek5",
+        "type": "large",
+        "cpu": "AMD Ryzen 7 9700X 8-Core Processor",
+        "vcpus": 4,
+        "vm_vcpus": 8,
+        "exclusive": true,
+        "co_tenants": 0
+      },
+      "sha256": "cbd2f2fbdeab59135894cdc2bd11c9c77539d525ac5f5403cf8ffde8faa033cc",
+      "id": "lock_server",
+      "repeat": 1,
+      "identical": true,
+      "base": {
+        "count": 5,
+        "hash": "c1076284bf2ecddf1c752965c0332a92d24a58540f38714b94ad496712ed4de5",
+        "wallMs": 214.412517,
+        "phases": {
+          "guards": 1.5726130000000005,
+          "small": 11.248514999999998,
+          "candidates": 199.764958
+        }
+      },
+      "candidate": {
+        "count": 5,
+        "hash": "c1076284bf2ecddf1c752965c0332a92d24a58540f38714b94ad496712ed4de5",
+        "wallMs": 48.994864,
+        "phases": {
+          "guards": 1.8567169999999962,
+          "small": 8.653421999999999,
+          "candidates": 36.681778
+        }
+      }
+    },
+    {
+      "name": "gen-lock_server-r2",
+      "exit": "0",
+      "seconds": "1.72",
+      "placement": {
+        "vm": "bx_7y8uwqen",
+        "type": "large",
+        "cpu": "AMD EPYC 9455 48-Core Processor",
+        "vcpus": 4,
+        "vm_vcpus": 8,
+        "exclusive": true,
+        "co_tenants": 0
+      },
+      "sha256": "152a97aeb558797c2ad78125bbe806d6f11d0b6b90d6d8cd48622bc9e6bc3106",
+      "id": "lock_server",
+      "repeat": 2,
+      "identical": true,
+      "base": {
+        "count": 5,
+        "hash": "c1076284bf2ecddf1c752965c0332a92d24a58540f38714b94ad496712ed4de5",
+        "wallMs": 275.796373,
+        "phases": {
+          "guards": 2.006789999999995,
+          "small": 12.764981999999996,
+          "candidates": 258.74886399999997
+        }
+      },
+      "candidate": {
+        "count": 5,
+        "hash": "c1076284bf2ecddf1c752965c0332a92d24a58540f38714b94ad496712ed4de5",
+        "wallMs": 67.31399300000001,
+        "phases": {
+          "guards": 2.425981,
+          "small": 12.53418,
+          "candidates": 50.132865
+        }
+      }
+    },
+    {
+      "name": "gen-lock_server-r3",
+      "exit": "0",
+      "seconds": "2.22",
+      "placement": {
+        "vm": "bx_5mqd7ek5",
+        "type": "large",
+        "cpu": "AMD Ryzen 7 9700X 8-Core Processor",
+        "vcpus": 4,
+        "vm_vcpus": 8,
+        "exclusive": true,
+        "co_tenants": 0
+      },
+      "sha256": "21035c67224a05d2d0058bb28a97e33edcc4f5db8bdf7c451a97368dc6bf8729",
+      "id": "lock_server",
+      "repeat": 3,
+      "identical": true,
+      "base": {
+        "count": 5,
+        "hash": "c1076284bf2ecddf1c752965c0332a92d24a58540f38714b94ad496712ed4de5",
+        "wallMs": 858.908727,
+        "phases": {
+          "guards": 2.158704,
+          "small": 59.697449999999996,
+          "candidates": 794.7471730000001
+        }
+      },
+      "candidate": {
+        "count": 5,
+        "hash": "c1076284bf2ecddf1c752965c0332a92d24a58540f38714b94ad496712ed4de5",
+        "wallMs": 125.499155,
+        "phases": {
+          "guards": 9.353355000000008,
+          "small": 51.256378,
+          "candidates": 58.19854500000001
+        }
+      }
+    },
+    {
+      "name": "gen-quorum_leader_election-r1",
+      "exit": "0",
+      "seconds": "3.54",
+      "placement": {
+        "vm": "bx_8sf3u958",
+        "type": "large",
+        "cpu": "AMD EPYC 4585PX 16-Core Processor",
+        "vcpus": 4,
+        "vm_vcpus": 8,
+        "exclusive": true,
+        "co_tenants": 0
+      },
+      "sha256": "91bda8f3a99e789a2743856c1c48c0dd4fe9e23b2a0339e6d4c40f4df1b11dc1",
+      "id": "quorum_leader_election",
+      "repeat": 1,
+      "identical": true,
+      "base": {
+        "count": 7,
+        "hash": "6354d3cdc634e6c8862532d3fe5e485059396f4c7fabbd7d4727c62c30242052",
+        "wallMs": 1983.061131,
+        "phases": {
+          "guards": 2.6452489999999997,
+          "small": 145.16651099999999,
+          "candidates": 1829.58949
+        }
+      },
+      "candidate": {
+        "count": 7,
+        "hash": "6354d3cdc634e6c8862532d3fe5e485059396f4c7fabbd7d4727c62c30242052",
+        "wallMs": 415.333,
+        "phases": {
+          "guards": 3.4228880000000004,
+          "small": 62.01828299999999,
+          "candidates": 346.191112
+        }
+      }
+    },
+    {
+      "name": "gen-quorum_leader_election-r2",
+      "exit": "0",
+      "seconds": "6.84",
+      "placement": {
+        "vm": "bx_ackcvxnu",
+        "type": "large",
+        "cpu": "AMD Ryzen 9 9950X 16-Core Processor",
+        "vcpus": 4,
+        "vm_vcpus": 8,
+        "exclusive": true,
+        "co_tenants": 0
+      },
+      "sha256": "808b0460a55d2ad0526611aaffca72b23b24ad19c3dc63c37c1f4556ada4513a",
+      "id": "quorum_leader_election",
+      "repeat": 2,
+      "identical": true,
+      "base": {
+        "count": 7,
+        "hash": "6354d3cdc634e6c8862532d3fe5e485059396f4c7fabbd7d4727c62c30242052",
+        "wallMs": 2791.508768,
+        "phases": {
+          "guards": 2.8801810000000003,
+          "small": 126.57635800000001,
+          "candidates": 2656.752188
+        }
+      },
+      "candidate": {
+        "count": 7,
+        "hash": "6354d3cdc634e6c8862532d3fe5e485059396f4c7fabbd7d4727c62c30242052",
+        "wallMs": 543.258361,
+        "phases": {
+          "guards": 3.198699000000005,
+          "small": 87.85430099999999,
+          "candidates": 446.179277
+        }
+      }
+    },
+    {
+      "name": "gen-quorum_leader_election-r3",
+      "exit": "0",
+      "seconds": "8.43",
+      "placement": {
+        "vm": "bx_25xas5gt",
+        "type": "large",
+        "cpu": "AMD EPYC 4585PX 16-Core Processor",
+        "vcpus": 4,
+        "vm_vcpus": 8,
+        "exclusive": true,
+        "co_tenants": 0
+      },
+      "sha256": "eb5c71f57d1882c225c09b128ec3a11514fa9bfd32b9a4e5d85be57a3855618b",
+      "id": "quorum_leader_election",
+      "repeat": 3,
+      "identical": true,
+      "base": {
+        "count": 7,
+        "hash": "6354d3cdc634e6c8862532d3fe5e485059396f4c7fabbd7d4727c62c30242052",
+        "wallMs": 5435.021823,
+        "phases": {
+          "guards": 5.780324999999998,
+          "small": 271.857588,
+          "candidates": 5149.951598000001
+        }
+      },
+      "candidate": {
+        "count": 7,
+        "hash": "6354d3cdc634e6c8862532d3fe5e485059396f4c7fabbd7d4727c62c30242052",
+        "wallMs": 1413.7684729999999,
+        "phases": {
+          "guards": 5.228290999999999,
+          "small": 220.773933,
+          "candidates": 1171.449574
+        }
+      }
+    },
+    {
+      "name": "gen-toy_consensus_forall-r1",
+      "exit": "0",
+      "seconds": "4.59",
+      "placement": {
+        "vm": "bx_5wr3bs76",
+        "type": "large",
+        "cpu": "AMD EPYC 4585PX 16-Core Processor",
+        "vcpus": 4,
+        "vm_vcpus": 8,
+        "exclusive": true,
+        "co_tenants": 0
+      },
+      "sha256": "c40e2e8c2e5fb070f53d6caaaaed5e45ae9d0357ac7eff0bb70f1705987ecfd2",
+      "id": "toy_consensus_forall",
+      "repeat": 1,
+      "identical": true,
+      "base": {
+        "count": 9,
+        "hash": "36b95967eb139c572c4928f9fd291fcb711464d021b5ccb3b1b52b0ea91a33e6",
+        "wallMs": 2630.633287,
+        "phases": {
+          "guards": 4.232970000000002,
+          "small": 172.123468,
+          "candidates": 2446.820233
+        }
+      },
+      "candidate": {
+        "count": 9,
+        "hash": "36b95967eb139c572c4928f9fd291fcb711464d021b5ccb3b1b52b0ea91a33e6",
+        "wallMs": 688.933235,
+        "phases": {
+          "guards": 3.4499619999999993,
+          "small": 105.07622699999999,
+          "candidates": 571.924786
+        }
+      }
+    },
+    {
+      "name": "gen-toy_consensus_forall-r2",
+      "exit": "0",
+      "seconds": "3.82",
+      "placement": {
+        "vm": "bx_5f32uf5a",
+        "type": "large",
+        "cpu": "AMD Ryzen 9 9950X 16-Core Processor",
+        "vcpus": 4,
+        "vm_vcpus": 8,
+        "exclusive": true,
+        "co_tenants": 0
+      },
+      "sha256": "a7017a5043cc1c9f679af515012a0320b755123ac40f21f475cf3bc34e738f0f",
+      "id": "toy_consensus_forall",
+      "repeat": 2,
+      "identical": true,
+      "base": {
+        "count": 9,
+        "hash": "36b95967eb139c572c4928f9fd291fcb711464d021b5ccb3b1b52b0ea91a33e6",
+        "wallMs": 1885.5512709999998,
+        "phases": {
+          "guards": 2.599926999999994,
+          "small": 133.096795,
+          "candidates": 1744.148144
+        }
+      },
+      "candidate": {
+        "count": 9,
+        "hash": "36b95967eb139c572c4928f9fd291fcb711464d021b5ccb3b1b52b0ea91a33e6",
+        "wallMs": 526.200729,
+        "phases": {
+          "guards": 3.5681499999999957,
+          "small": 99.85103699999999,
+          "candidates": 416.62790400000006
+        }
+      }
+    },
+    {
+      "name": "gen-toy_consensus_forall-r3",
+      "exit": "0",
+      "seconds": "3.12",
+      "placement": {
+        "vm": "bx_acxzr4wr",
+        "type": "large",
+        "cpu": "AMD EPYC 9455 48-Core Processor",
+        "vcpus": 4,
+        "vm_vcpus": 8,
+        "exclusive": true,
+        "co_tenants": 0
+      },
+      "sha256": "63869e4a3b869b04656f44e3493c8221747a646d78a27c2012f39b1e90dcb9b3",
+      "id": "toy_consensus_forall",
+      "repeat": 3,
+      "identical": true,
+      "base": {
+        "count": 9,
+        "hash": "36b95967eb139c572c4928f9fd291fcb711464d021b5ccb3b1b52b0ea91a33e6",
+        "wallMs": 1584.0499610000002,
+        "phases": {
+          "guards": 3.250670999999997,
+          "small": 101.206962,
+          "candidates": 1474.247728
+        }
+      },
+      "candidate": {
+        "count": 9,
+        "hash": "36b95967eb139c572c4928f9fd291fcb711464d021b5ccb3b1b52b0ea91a33e6",
+        "wallMs": 426.10301200000004,
+        "phases": {
+          "guards": 2.9712420000000037,
+          "small": 71.764949,
+          "candidates": 346.30832
+        }
+      }
+    },
+    {
+      "name": "gen-simple-r1",
+      "exit": "0",
+      "seconds": "1.46",
+      "placement": {
+        "vm": "bx_8y6xda5y",
+        "type": "large",
+        "cpu": "AMD EPYC 9455 48-Core Processor",
+        "vcpus": 4,
+        "vm_vcpus": 8,
+        "exclusive": true,
+        "co_tenants": 0
+      },
+      "sha256": "c313acaad7fc5f1d23370ff3b037d676810598958091a3320fc77f6b5f21fdb2",
+      "id": "simple",
+      "repeat": 1,
+      "identical": true,
+      "base": {
+        "count": 4,
+        "hash": "ecce4cd0151bd6b60fb404d99c25aa8be129e7860d6b1ba6a212e51c1f74f967",
+        "wallMs": 264.445819,
+        "phases": {
+          "guards": 1.9667829999999995,
+          "small": 11.732585,
+          "candidates": 248.409558
+        }
+      },
+      "candidate": {
+        "count": 4,
+        "hash": "ecce4cd0151bd6b60fb404d99c25aa8be129e7860d6b1ba6a212e51c1f74f967",
+        "wallMs": 35.198274999999995,
+        "phases": {
+          "guards": 2.291415999999998,
+          "small": 11.607697000000002,
+          "candidates": 18.57643999999999
+        }
+      }
+    },
+    {
+      "name": "gen-simple-r2",
+      "exit": "0",
+      "seconds": "1.72",
+      "placement": {
+        "vm": "bx_7m649ges",
+        "type": "large",
+        "cpu": "AMD Ryzen 9 9950X 16-Core Processor",
+        "vcpus": 4,
+        "vm_vcpus": 8,
+        "exclusive": true,
+        "co_tenants": 0
+      },
+      "sha256": "8fb8c0d9edc94a7a2d73d6b37e3c93be8f85300d7a6b34bd4f1ec7bd693d7fe3",
+      "id": "simple",
+      "repeat": 2,
+      "identical": true,
+      "base": {
+        "count": 4,
+        "hash": "ecce4cd0151bd6b60fb404d99c25aa8be129e7860d6b1ba6a212e51c1f74f967",
+        "wallMs": 299.543121,
+        "phases": {
+          "guards": 1.9510819999999995,
+          "small": 12.760566000000004,
+          "candidates": 282.039337
+        }
+      },
+      "candidate": {
+        "count": 4,
+        "hash": "ecce4cd0151bd6b60fb404d99c25aa8be129e7860d6b1ba6a212e51c1f74f967",
+        "wallMs": 36.210730000000005,
+        "phases": {
+          "guards": 2.212030999999996,
+          "small": 10.979953000000002,
+          "candidates": 20.604377
+        }
+      }
+    },
+    {
+      "name": "gen-simple-r3",
+      "exit": "0",
+      "seconds": "1.38",
+      "placement": {
+        "vm": "bx_5f32uf5a",
+        "type": "large",
+        "cpu": "AMD Ryzen 9 9950X 16-Core Processor",
+        "vcpus": 4,
+        "vm_vcpus": 8,
+        "exclusive": true,
+        "co_tenants": 0
+      },
+      "sha256": "7209e2af2e7a8b1b98ede89fbc0021a9822a6d08f9c4af1e47a383366674572c",
+      "id": "simple",
+      "repeat": 3,
+      "identical": true,
+      "base": {
+        "count": 4,
+        "hash": "ecce4cd0151bd6b60fb404d99c25aa8be129e7860d6b1ba6a212e51c1f74f967",
+        "wallMs": 232.06606899999997,
+        "phases": {
+          "guards": 2.3670779999999993,
+          "small": 15.392005000000005,
+          "candidates": 210.959432
+        }
+      },
+      "candidate": {
+        "count": 4,
+        "hash": "ecce4cd0151bd6b60fb404d99c25aa8be129e7860d6b1ba6a212e51c1f74f967",
+        "wallMs": 39.206621999999996,
+        "phases": {
+          "guards": 2.059789000000002,
+          "small": 14.214058000000001,
+          "candidates": 20.142793000000005
+        }
+      }
+    },
+    {
+      "name": "gen-simple_regular-r1",
+      "exit": "0",
+      "seconds": "1.8",
+      "placement": {
+        "vm": "bx_4cma575j",
+        "type": "large",
+        "cpu": "AMD Ryzen 9 9950X 16-Core Processor",
+        "vcpus": 4,
+        "vm_vcpus": 8,
+        "exclusive": true,
+        "co_tenants": 0
+      },
+      "sha256": "e6c8d2e0e92e63ef20d805a09c07fb83c5f117ca211be2e585ffe9c834204a30",
+      "id": "simple_regular",
+      "repeat": 1,
+      "identical": true,
+      "base": {
+        "count": 4,
+        "hash": "664a2153927102a496ca62016c1a489f577b00f84bc187cb666f4c7492cde64a",
+        "wallMs": 315.444503,
+        "phases": {
+          "guards": 2.3497410000000016,
+          "small": 25.835804000000003,
+          "candidates": 283.554155
+        }
+      },
+      "candidate": {
+        "count": 4,
+        "hash": "664a2153927102a496ca62016c1a489f577b00f84bc187cb666f4c7492cde64a",
+        "wallMs": 59.94615,
+        "phases": {
+          "guards": 2.851664999999997,
+          "small": 26.278047,
+          "candidates": 27.321700000000007
+        }
+      }
+    },
+    {
+      "name": "gen-simple_regular-r2",
+      "exit": "0",
+      "seconds": "1.77",
+      "placement": {
+        "vm": "bx_4cma575j",
+        "type": "large",
+        "cpu": "AMD Ryzen 9 9950X 16-Core Processor",
+        "vcpus": 4,
+        "vm_vcpus": 8,
+        "exclusive": true,
+        "co_tenants": 0
+      },
+      "sha256": "846211cd55eec89589e2c9d5455d5d18825632d5a79d8b1e66e9d3fe48f801f8",
+      "id": "simple_regular",
+      "repeat": 2,
+      "identical": true,
+      "base": {
+        "count": 4,
+        "hash": "664a2153927102a496ca62016c1a489f577b00f84bc187cb666f4c7492cde64a",
+        "wallMs": 323.687907,
+        "phases": {
+          "guards": 2.943529000000005,
+          "small": 25.311358999999996,
+          "candidates": 290.784985
+        }
+      },
+      "candidate": {
+        "count": 4,
+        "hash": "664a2153927102a496ca62016c1a489f577b00f84bc187cb666f4c7492cde64a",
+        "wallMs": 72.710939,
+        "phases": {
+          "guards": 3.0626040000000003,
+          "small": 23.923935999999998,
+          "candidates": 41.52123900000001
+        }
+      }
+    },
+    {
+      "name": "gen-simple_regular-r3",
+      "exit": "0",
+      "seconds": "1.43",
+      "placement": {
+        "vm": "bx_acxzr4wr",
+        "type": "large",
+        "cpu": "AMD EPYC 9455 48-Core Processor",
+        "vcpus": 4,
+        "vm_vcpus": 8,
+        "exclusive": true,
+        "co_tenants": 0
+      },
+      "sha256": "1065a053541aee0063e89a87602e4d1d5380f252df8404f8ac3f6a517af1fd95",
+      "id": "simple_regular",
+      "repeat": 3,
+      "identical": true,
+      "base": {
+        "count": 4,
+        "hash": "664a2153927102a496ca62016c1a489f577b00f84bc187cb666f4c7492cde64a",
+        "wallMs": 231.85174200000003,
+        "phases": {
+          "guards": 1.7995969999999986,
+          "small": 14.819288,
+          "candidates": 213.008833
+        }
+      },
+      "candidate": {
+        "count": 4,
+        "hash": "664a2153927102a496ca62016c1a489f577b00f84bc187cb666f4c7492cde64a",
+        "wallMs": 39.392796000000004,
+        "phases": {
+          "guards": 2.176453000000002,
+          "small": 14.804896999999997,
+          "candidates": 20.094764999999995
+        }
+      }
+    },
+    {
+      "name": "gen-lockserv_automaton-r1",
+      "exit": "0",
+      "seconds": "2.24",
+      "placement": {
+        "vm": "bx_ackcvxnu",
+        "type": "large",
+        "cpu": "AMD Ryzen 9 9950X 16-Core Processor",
+        "vcpus": 4,
+        "vm_vcpus": 8,
+        "exclusive": true,
+        "co_tenants": 0
+      },
+      "sha256": "3dcbcd898d624e09c51c6e88d9a8e9fe980b6e4a8740fc950d8373a29d5fff93",
+      "id": "lockserv_automaton",
+      "repeat": 1,
+      "identical": true,
+      "base": {
+        "count": 17,
+        "hash": "28197b96f28bb0293452708bb2f3f1558343328d37086def3dc214f1d8740a2e",
+        "wallMs": 409.97309800000005,
+        "phases": {
+          "guards": 2.482976999999998,
+          "small": 14.632714999999997,
+          "candidates": 390.04978
+        }
+      },
+      "candidate": {
+        "count": 17,
+        "hash": "28197b96f28bb0293452708bb2f3f1558343328d37086def3dc214f1d8740a2e",
+        "wallMs": 71.727914,
+        "phases": {
+          "guards": 2.3850339999999974,
+          "small": 13.863714000000002,
+          "candidates": 52.864143
+        }
+      }
+    },
+    {
+      "name": "gen-lockserv_automaton-r2",
+      "exit": "0",
+      "seconds": "1.55",
+      "placement": {
+        "vm": "bx_5mqd7ek5",
+        "type": "large",
+        "cpu": "AMD Ryzen 7 9700X 8-Core Processor",
+        "vcpus": 4,
+        "vm_vcpus": 8,
+        "exclusive": true,
+        "co_tenants": 0
+      },
+      "sha256": "de1bb6c40a7c7336f29e93b3dba185d4b69cc73cf409a76dce2186c6650e525a",
+      "id": "lockserv_automaton",
+      "repeat": 2,
+      "identical": true,
+      "base": {
+        "count": 17,
+        "hash": "28197b96f28bb0293452708bb2f3f1558343328d37086def3dc214f1d8740a2e",
+        "wallMs": 263.65167499999995,
+        "phases": {
+          "guards": 1.6721310000000003,
+          "small": 9.945467,
+          "candidates": 249.96402100000003
+        }
+      },
+      "candidate": {
+        "count": 17,
+        "hash": "28197b96f28bb0293452708bb2f3f1558343328d37086def3dc214f1d8740a2e",
+        "wallMs": 59.269798,
+        "phases": {
+          "guards": 2.042596000000003,
+          "small": 11.197388000000004,
+          "candidates": 43.897299000000004
+        }
+      }
+    },
+    {
+      "name": "gen-lockserv_automaton-r3",
+      "exit": "0",
+      "seconds": "3.79",
+      "placement": {
+        "vm": "bx_25xas5gt",
+        "type": "large",
+        "cpu": "AMD EPYC 4585PX 16-Core Processor",
+        "vcpus": 4,
+        "vm_vcpus": 8,
+        "exclusive": true,
+        "co_tenants": 0
+      },
+      "sha256": "93bc0fbf3f29401345229b4b7ddcaac6212fead3e1161ff29a554654c46242cd",
+      "id": "lockserv_automaton",
+      "repeat": 3,
+      "identical": true,
+      "base": {
+        "count": 17,
+        "hash": "28197b96f28bb0293452708bb2f3f1558343328d37086def3dc214f1d8740a2e",
+        "wallMs": 1237.855179,
+        "phases": {
+          "guards": 2.9825799999999987,
+          "small": 40.609531,
+          "candidates": 1189.266742
+        }
+      },
+      "candidate": {
+        "count": 17,
+        "hash": "28197b96f28bb0293452708bb2f3f1558343328d37086def3dc214f1d8740a2e",
+        "wallMs": 211.917361,
+        "phases": {
+          "guards": 3.762292000000002,
+          "small": 62.092861,
+          "candidates": 140.50623399999998
+        }
+      }
+    },
+    {
+      "name": "gen-sharded_kv-r1",
+      "exit": "0",
+      "seconds": "5.63",
+      "placement": {
+        "vm": "bx_5mqd7ek5",
+        "type": "large",
+        "cpu": "AMD Ryzen 7 9700X 8-Core Processor",
+        "vcpus": 4,
+        "vm_vcpus": 8,
+        "exclusive": true,
+        "co_tenants": 0
+      },
+      "sha256": "b3626f6422efe6c463be243c570e88d52fe84ad98ed9b97b22dd69d4a4a11d8d",
+      "id": "sharded_kv",
+      "repeat": 1,
+      "identical": true,
+      "base": {
+        "count": 18,
+        "hash": "ed00314a85784d02f0740819b3c1323809c2fa6d31522bb43bdfb832f2bea282",
+        "wallMs": 2540.6914220000003,
+        "phases": {
+          "guards": 2.7006119999999996,
+          "small": 1013.4457160000001,
+          "candidates": 1521.254045
+        }
+      },
+      "candidate": {
+        "count": 18,
+        "hash": "ed00314a85784d02f0740819b3c1323809c2fa6d31522bb43bdfb832f2bea282",
+        "wallMs": 2154.311973,
+        "phases": {
+          "guards": 2.508150999999998,
+          "small": 799.1194,
+          "candidates": 1349.6738770000002
+        }
+      }
+    },
+    {
+      "name": "gen-sharded_kv-r2",
+      "exit": "0",
+      "seconds": "7.75",
+      "placement": {
+        "vm": "bx_84e8hfw5",
+        "type": "large",
+        "cpu": "AMD EPYC 4585PX 16-Core Processor",
+        "vcpus": 4,
+        "vm_vcpus": 8,
+        "exclusive": true,
+        "co_tenants": 0
+      },
+      "sha256": "fe798d23410f9890f774f6c7fefa2a202d74c197597323fac447f31b26ff59d8",
+      "id": "sharded_kv",
+      "repeat": 2,
+      "identical": true,
+      "base": {
+        "count": 18,
+        "hash": "ed00314a85784d02f0740819b3c1323809c2fa6d31522bb43bdfb832f2bea282",
+        "wallMs": 3396.912451,
+        "phases": {
+          "guards": 2.142941999999998,
+          "small": 1530.924605,
+          "candidates": 1860.488617
+        }
+      },
+      "candidate": {
+        "count": 18,
+        "hash": "ed00314a85784d02f0740819b3c1323809c2fa6d31522bb43bdfb832f2bea282",
+        "wallMs": 3158.330012,
+        "phases": {
+          "guards": 2.841124999999998,
+          "small": 1415.333896,
+          "candidates": 1736.516957
+        }
+      }
+    },
+    {
+      "name": "gen-sharded_kv-r3",
+      "exit": "0",
+      "seconds": "7.76",
+      "placement": {
+        "vm": "bx_7w3jpwcn",
+        "type": "large",
+        "cpu": "AMD Ryzen 9 9950X 16-Core Processor",
+        "vcpus": 4,
+        "vm_vcpus": 8,
+        "exclusive": true,
+        "co_tenants": 0
+      },
+      "sha256": "d1c49f14c8478715d816d9c112065fa0765014f5047dabb1fa666c7d0b8ce36a",
+      "id": "sharded_kv",
+      "repeat": 3,
+      "identical": true,
+      "base": {
+        "count": 18,
+        "hash": "ed00314a85784d02f0740819b3c1323809c2fa6d31522bb43bdfb832f2bea282",
+        "wallMs": 3429.068072,
+        "phases": {
+          "guards": 2.286428000000001,
+          "small": 1433.887894,
+          "candidates": 1989.424209
+        }
+      },
+      "candidate": {
+        "count": 18,
+        "hash": "ed00314a85784d02f0740819b3c1323809c2fa6d31522bb43bdfb832f2bea282",
+        "wallMs": 3079.430592,
+        "phases": {
+          "guards": 3.8999430000000004,
+          "small": 1129.7549820000002,
+          "candidates": 1941.062919
+        }
+      }
+    },
+    {
+      "name": "gen-sharded_kv_no_lost_keys-r1",
+      "exit": "0",
+      "seconds": "7.46",
+      "placement": {
+        "vm": "bx_69nkhdf7",
+        "type": "large",
+        "cpu": "AMD Ryzen 9 9950X 16-Core Processor",
+        "vcpus": 4,
+        "vm_vcpus": 8,
+        "exclusive": true,
+        "co_tenants": 0
+      },
+      "sha256": "1e6220037237d90a5c1326268809469ce529f8219ef0bb12c4b3ff3c615e0318",
+      "id": "sharded_kv_no_lost_keys",
+      "repeat": 1,
+      "identical": true,
+      "base": {
+        "count": 6,
+        "hash": "cb05fe1bc7dea38632ad678e7d4fa6df1277ffe5c8166b450c13a43b1c83597e",
+        "wallMs": 4246.83768,
+        "phases": {
+          "guards": 2.455524000000004,
+          "small": 3302.565842,
+          "candidates": 938.5135440000004
+        }
+      },
+      "candidate": {
+        "count": 6,
+        "hash": "cb05fe1bc7dea38632ad678e7d4fa6df1277ffe5c8166b450c13a43b1c83597e",
+        "wallMs": 1987.328378,
+        "phases": {
+          "guards": 2.897947000000002,
+          "small": 1763.86978,
+          "candidates": 217.2721100000001
+        }
+      }
+    },
+    {
+      "name": "gen-sharded_kv_no_lost_keys-r2",
+      "exit": "0",
+      "seconds": "9.74",
+      "placement": {
+        "vm": "bx_4cma575j",
+        "type": "large",
+        "cpu": "AMD Ryzen 9 9950X 16-Core Processor",
+        "vcpus": 4,
+        "vm_vcpus": 8,
+        "exclusive": true,
+        "co_tenants": 0
+      },
+      "sha256": "0fddf735924142ac5ada9c1ae9c2682410cd48b724eae27749676763807d5100",
+      "id": "sharded_kv_no_lost_keys",
+      "repeat": 2,
+      "identical": true,
+      "base": {
+        "count": 6,
+        "hash": "cb05fe1bc7dea38632ad678e7d4fa6df1277ffe5c8166b450c13a43b1c83597e",
+        "wallMs": 5650.394699,
+        "phases": {
+          "guards": 4.150680000000001,
+          "small": 4460.732035999999,
+          "candidates": 1180.2131829999998
+        }
+      },
+      "candidate": {
+        "count": 6,
+        "hash": "cb05fe1bc7dea38632ad678e7d4fa6df1277ffe5c8166b450c13a43b1c83597e",
+        "wallMs": 2704.123787,
+        "phases": {
+          "guards": 3.0604799999999983,
+          "small": 2412.582835,
+          "candidates": 284.7221330000002
+        }
+      }
+    },
+    {
+      "name": "gen-sharded_kv_no_lost_keys-r3",
+      "exit": "0",
+      "seconds": "7.42",
+      "placement": {
+        "vm": "bx_7y8uwqen",
+        "type": "large",
+        "cpu": "AMD EPYC 9455 48-Core Processor",
+        "vcpus": 4,
+        "vm_vcpus": 8,
+        "exclusive": true,
+        "co_tenants": 0
+      },
+      "sha256": "ab7661a2662f7c0bc6c73cd39dd9e827513f8260be51250bccef1427b33aaf92",
+      "id": "sharded_kv_no_lost_keys",
+      "repeat": 3,
+      "identical": true,
+      "base": {
+        "count": 6,
+        "hash": "cb05fe1bc7dea38632ad678e7d4fa6df1277ffe5c8166b450c13a43b1c83597e",
+        "wallMs": 3366.2716659999996,
+        "phases": {
+          "guards": 2.7260750000000016,
+          "small": 2472.878213,
+          "candidates": 886.9734939999998
+        }
+      },
+      "candidate": {
+        "count": 6,
+        "hash": "cb05fe1bc7dea38632ad678e7d4fa6df1277ffe5c8166b450c13a43b1c83597e",
+        "wallMs": 2023.108495,
+        "phases": {
+          "guards": 3.231763000000001,
+          "small": 1772.458563,
+          "candidates": 243.474514
+        }
+      }
+    },
+    {
+      "name": "gen-lockserv-r1",
+      "exit": "0",
+      "seconds": "1.55",
+      "placement": {
+        "vm": "bx_8sf3u958",
+        "type": "large",
+        "cpu": "AMD EPYC 4585PX 16-Core Processor",
+        "vcpus": 4,
+        "vm_vcpus": 8,
+        "exclusive": true,
+        "co_tenants": 0
+      },
+      "sha256": "d454ff3fdb559a94c3e11d1e9e1c8e46b1eb6cf6f439a9b52c1fa4a2ba04fcc3",
+      "id": "lockserv",
+      "repeat": 1,
+      "identical": true,
+      "base": {
+        "count": 17,
+        "hash": "625d4a5b0bd1a44c77cb3d4f01f5b0c862d06f8dd00b2739f62af8732915be00",
+        "wallMs": 322.18361,
+        "phases": {
+          "guards": 2.085619000000001,
+          "small": 16.293987,
+          "candidates": 301.308154
+        }
+      },
+      "candidate": {
+        "count": 17,
+        "hash": "625d4a5b0bd1a44c77cb3d4f01f5b0c862d06f8dd00b2739f62af8732915be00",
+        "wallMs": 81.158611,
+        "phases": {
+          "guards": 2.2630940000000024,
+          "small": 17.649408,
+          "candidates": 58.337056000000004
+        }
+      }
+    },
+    {
+      "name": "gen-lockserv-r2",
+      "exit": "0",
+      "seconds": "1.53",
+      "placement": {
+        "vm": "bx_8sf3u958",
+        "type": "large",
+        "cpu": "AMD EPYC 4585PX 16-Core Processor",
+        "vcpus": 4,
+        "vm_vcpus": 8,
+        "exclusive": true,
+        "co_tenants": 0
+      },
+      "sha256": "d31845b68da88eb0195d8dff1780efc04b01062d2b04ff4fa1f9f9b262a5ed95",
+      "id": "lockserv",
+      "repeat": 2,
+      "identical": true,
+      "base": {
+        "count": 17,
+        "hash": "625d4a5b0bd1a44c77cb3d4f01f5b0c862d06f8dd00b2739f62af8732915be00",
+        "wallMs": 372.760685,
+        "phases": {
+          "guards": 1.9094910000000027,
+          "small": 12.129970999999998,
+          "candidates": 356.09395
+        }
+      },
+      "candidate": {
+        "count": 17,
+        "hash": "625d4a5b0bd1a44c77cb3d4f01f5b0c862d06f8dd00b2739f62af8732915be00",
+        "wallMs": 72.09361799999999,
+        "phases": {
+          "guards": 2.5610420000000005,
+          "small": 12.095526,
+          "candidates": 54.557612999999996
+        }
+      }
+    },
+    {
+      "name": "gen-lockserv-r3",
+      "exit": "0",
+      "seconds": "1.6",
+      "placement": {
+        "vm": "bx_69nkhdf7",
+        "type": "large",
+        "cpu": "AMD Ryzen 9 9950X 16-Core Processor",
+        "vcpus": 4,
+        "vm_vcpus": 8,
+        "exclusive": true,
+        "co_tenants": 0
+      },
+      "sha256": "cd1f599b701ff51492fb895edfc263a2f205f183cbfb5d8e029fc9887f0ff752",
+      "id": "lockserv",
+      "repeat": 3,
+      "identical": true,
+      "base": {
+        "count": 17,
+        "hash": "625d4a5b0bd1a44c77cb3d4f01f5b0c862d06f8dd00b2739f62af8732915be00",
+        "wallMs": 341.700009,
+        "phases": {
+          "guards": 2.051572,
+          "small": 12.639004,
+          "candidates": 324.527391
+        }
+      },
+      "candidate": {
+        "count": 17,
+        "hash": "625d4a5b0bd1a44c77cb3d4f01f5b0c862d06f8dd00b2739f62af8732915be00",
+        "wallMs": 72.026284,
+        "phases": {
+          "guards": 2.277245999999998,
+          "small": 12.041359,
+          "candidates": 54.428115
+        }
+      }
+    },
+    {
+      "name": "gen-twophase-r1",
+      "exit": "0",
+      "seconds": "2.82",
+      "placement": {
+        "vm": "bx_7y8uwqen",
+        "type": "large",
+        "cpu": "AMD EPYC 9455 48-Core Processor",
+        "vcpus": 4,
+        "vm_vcpus": 8,
+        "exclusive": true,
+        "co_tenants": 0
+      },
+      "sha256": "791aecd479bf8df036a450264e23d856910cb1515914a12d8440cb5a6db20737",
+      "id": "twophase",
+      "repeat": 1,
+      "identical": true,
+      "base": {
+        "count": 14,
+        "hash": "44bfbce553ff9457ee1e2df76ebef4d046e290ef831acd554bfbed2d74f44fd0",
+        "wallMs": 761.929078,
+        "phases": {
+          "guards": 2.502734000000004,
+          "small": 47.792058999999995,
+          "candidates": 708.308142
+        }
+      },
+      "candidate": {
+        "count": 14,
+        "hash": "44bfbce553ff9457ee1e2df76ebef4d046e290ef831acd554bfbed2d74f44fd0",
+        "wallMs": 787.320921,
+        "phases": {
+          "guards": 3.3401519999999962,
+          "small": 51.060275999999995,
+          "candidates": 729.515581
+        }
+      }
+    },
+    {
+      "name": "gen-twophase-r2",
+      "exit": "0",
+      "seconds": "2.42",
+      "placement": {
+        "vm": "bx_84e8hfw5",
+        "type": "large",
+        "cpu": "AMD EPYC 4585PX 16-Core Processor",
+        "vcpus": 4,
+        "vm_vcpus": 8,
+        "exclusive": true,
+        "co_tenants": 0
+      },
+      "sha256": "38ed8ab7b0a0900ca91c9d35490e615c4dd9905d0b1745cc72756801b81ed547",
+      "id": "twophase",
+      "repeat": 2,
+      "identical": true,
+      "base": {
+        "count": 14,
+        "hash": "44bfbce553ff9457ee1e2df76ebef4d046e290ef831acd554bfbed2d74f44fd0",
+        "wallMs": 725.039776,
+        "phases": {
+          "guards": 2.337015000000001,
+          "small": 40.343919,
+          "candidates": 679.408783
+        }
+      },
+      "candidate": {
+        "count": 14,
+        "hash": "44bfbce553ff9457ee1e2df76ebef4d046e290ef831acd554bfbed2d74f44fd0",
+        "wallMs": 626.0414629999999,
+        "phases": {
+          "guards": 2.569187999999997,
+          "small": 36.2478,
+          "candidates": 584.4181040000001
+        }
+      }
+    },
+    {
+      "name": "gen-twophase-r3",
+      "exit": "0",
+      "seconds": "4.87",
+      "placement": {
+        "vm": "bx_ackcvxnu",
+        "type": "large",
+        "cpu": "AMD Ryzen 9 9950X 16-Core Processor",
+        "vcpus": 4,
+        "vm_vcpus": 8,
+        "exclusive": true,
+        "co_tenants": 0
+      },
+      "sha256": "35cad317126419df03e0023b22f6f1c3677b5e7cf665205350ec8cf9114b959f",
+      "id": "twophase",
+      "repeat": 3,
+      "identical": true,
+      "base": {
+        "count": 14,
+        "hash": "44bfbce553ff9457ee1e2df76ebef4d046e290ef831acd554bfbed2d74f44fd0",
+        "wallMs": 860.937119,
+        "phases": {
+          "guards": 2.483196999999997,
+          "small": 44.71485799999999,
+          "candidates": 809.372164
+        }
+      },
+      "candidate": {
+        "count": 14,
+        "hash": "44bfbce553ff9457ee1e2df76ebef4d046e290ef831acd554bfbed2d74f44fd0",
+        "wallMs": 1165.244332,
+        "phases": {
+          "guards": 4.128703999999999,
+          "small": 57.907962,
+          "candidates": 1098.013834
+        }
+      }
+    },
+    {
+      "name": "gen-simple_decentralized_lock-r1",
+      "exit": "0",
+      "seconds": "3.68",
+      "placement": {
+        "vm": "bx_7w3jpwcn",
+        "type": "large",
+        "cpu": "AMD Ryzen 9 9950X 16-Core Processor",
+        "vcpus": 4,
+        "vm_vcpus": 8,
+        "exclusive": true,
+        "co_tenants": 0
+      },
+      "sha256": "439996ea48424ea079641e95f9218674cc86514ec2d9f02d67a43563b6fac891",
+      "id": "simple_decentralized_lock",
+      "repeat": 1,
+      "identical": true,
+      "base": {
+        "count": 20,
+        "hash": "07fdd1070c44037616163044bb5fd27bb8a379c93424cdec53f8166f2eacb2e1",
+        "wallMs": 720.361307,
+        "phases": {
+          "guards": 3.329913999999995,
+          "small": 17.276447000000005,
+          "candidates": 694.2088630000001
+        }
+      },
+      "candidate": {
+        "count": 20,
+        "hash": "07fdd1070c44037616163044bb5fd27bb8a379c93424cdec53f8166f2eacb2e1",
+        "wallMs": 126.290485,
+        "phases": {
+          "guards": 3.1928839999999994,
+          "small": 13.581672999999995,
+          "candidates": 100.546695
+        }
+      }
+    },
+    {
+      "name": "gen-simple_decentralized_lock-r2",
+      "exit": "0",
+      "seconds": "1.69",
+      "placement": {
+        "vm": "bx_8y6xda5y",
+        "type": "large",
+        "cpu": "AMD EPYC 9455 48-Core Processor",
+        "vcpus": 4,
+        "vm_vcpus": 8,
+        "exclusive": true,
+        "co_tenants": 0
+      },
+      "sha256": "05e770c57a9d75d146254bb877e0299266e0db171d6c3a3671560638d2ac016c",
+      "id": "simple_decentralized_lock",
+      "repeat": 2,
+      "identical": true,
+      "base": {
+        "count": 20,
+        "hash": "07fdd1070c44037616163044bb5fd27bb8a379c93424cdec53f8166f2eacb2e1",
+        "wallMs": 306.431706,
+        "phases": {
+          "guards": 1.9890359999999987,
+          "small": 9.520937000000004,
+          "candidates": 292.41834
+        }
+      },
+      "candidate": {
+        "count": 20,
+        "hash": "07fdd1070c44037616163044bb5fd27bb8a379c93424cdec53f8166f2eacb2e1",
+        "wallMs": 56.814708,
+        "phases": {
+          "guards": 2.5099130000000045,
+          "small": 10.163125,
+          "candidates": 40.866798
+        }
+      }
+    },
+    {
+      "name": "gen-simple_decentralized_lock-r3",
+      "exit": "0",
+      "seconds": "1.68",
+      "placement": {
+        "vm": "bx_69nkhdf7",
+        "type": "large",
+        "cpu": "AMD Ryzen 9 9950X 16-Core Processor",
+        "vcpus": 4,
+        "vm_vcpus": 8,
+        "exclusive": true,
+        "co_tenants": 0
+      },
+      "sha256": "5df80393d40ab5e95edd85c9e4f87aa63e5161684b15bfaa0801caaacbf39982",
+      "id": "simple_decentralized_lock",
+      "repeat": 3,
+      "identical": true,
+      "base": {
+        "count": 20,
+        "hash": "07fdd1070c44037616163044bb5fd27bb8a379c93424cdec53f8166f2eacb2e1",
+        "wallMs": 316.005119,
+        "phases": {
+          "guards": 1.9623939999999962,
+          "small": 8.487639000000001,
+          "candidates": 302.98089
+        }
+      },
+      "candidate": {
+        "count": 20,
+        "hash": "07fdd1070c44037616163044bb5fd27bb8a379c93424cdec53f8166f2eacb2e1",
+        "wallMs": 43.42275899999999,
+        "phases": {
+          "guards": 2.0410210000000006,
+          "small": 7.696069000000001,
+          "candidates": 31.366332
+        }
+      }
+    },
+    {
+      "name": "gen-two_phase_commit-r1",
+      "exit": "0",
+      "seconds": "4.29",
+      "placement": {
+        "vm": "bx_69nkhdf7",
+        "type": "large",
+        "cpu": "AMD Ryzen 9 9950X 16-Core Processor",
+        "vcpus": 4,
+        "vm_vcpus": 8,
+        "exclusive": true,
+        "co_tenants": 0
+      },
+      "sha256": "114af4db7156c477ca9a0e385d6c30bec6d73f579ca03608d3447b4bd050b353",
+      "id": "two_phase_commit",
+      "repeat": 1,
+      "identical": true,
+      "base": {
+        "count": 34,
+        "hash": "4a1828f36f3f69afb92df8b6e558119a6e771236afba62b1d7742faa6a656512",
+        "wallMs": 2106.12735,
+        "phases": {
+          "guards": 12.572260999999997,
+          "small": 489.46893200000005,
+          "candidates": 1599.3390359999999
+        }
+      },
+      "candidate": {
+        "count": 34,
+        "hash": "4a1828f36f3f69afb92df8b6e558119a6e771236afba62b1d7742faa6a656512",
+        "wallMs": 997.471322,
+        "phases": {
+          "guards": 3.0530779999999993,
+          "small": 276.2614,
+          "candidates": 713.7859950000001
+        }
+      }
+    },
+    {
+      "name": "gen-two_phase_commit-r2",
+      "exit": "0",
+      "seconds": "3.53",
+      "placement": {
+        "vm": "bx_8sf3u958",
+        "type": "large",
+        "cpu": "AMD EPYC 4585PX 16-Core Processor",
+        "vcpus": 4,
+        "vm_vcpus": 8,
+        "exclusive": true,
+        "co_tenants": 0
+      },
+      "sha256": "a8818fbb3bfd76260a07d3f45a1e6d38344ea679112e4a8e6b6e87bcbd699ea3",
+      "id": "two_phase_commit",
+      "repeat": 2,
+      "identical": true,
+      "base": {
+        "count": 34,
+        "hash": "4a1828f36f3f69afb92df8b6e558119a6e771236afba62b1d7742faa6a656512",
+        "wallMs": 1664.27972,
+        "phases": {
+          "guards": 2.2809159999999977,
+          "small": 334.23787200000004,
+          "candidates": 1324.5811099999999
+        }
+      },
+      "candidate": {
+        "count": 34,
+        "hash": "4a1828f36f3f69afb92df8b6e558119a6e771236afba62b1d7742faa6a656512",
+        "wallMs": 792.096188,
+        "phases": {
+          "guards": 2.991298999999998,
+          "small": 201.052658,
+          "candidates": 584.349779
+        }
+      }
+    },
+    {
+      "name": "gen-two_phase_commit-r3",
+      "exit": "0",
+      "seconds": "7.29",
+      "placement": {
+        "vm": "bx_25xas5gt",
+        "type": "large",
+        "cpu": "AMD EPYC 4585PX 16-Core Processor",
+        "vcpus": 4,
+        "vm_vcpus": 8,
+        "exclusive": true,
+        "co_tenants": 0
+      },
+      "sha256": "d83bad0ec6e64565114615e829be8835b6da19bcf6471317757067584fd1a7ee",
+      "id": "two_phase_commit",
+      "repeat": 3,
+      "identical": true,
+      "base": {
+        "count": 34,
+        "hash": "4a1828f36f3f69afb92df8b6e558119a6e771236afba62b1d7742faa6a656512",
+        "wallMs": 3882.160646,
+        "phases": {
+          "guards": 3.121241000000005,
+          "small": 1118.04457,
+          "candidates": 2754.6404059999995
+        }
+      },
+      "candidate": {
+        "count": 34,
+        "hash": "4a1828f36f3f69afb92df8b6e558119a6e771236afba62b1d7742faa6a656512",
+        "wallMs": 1939.570444,
+        "phases": {
+          "guards": 5.6166179999999954,
+          "small": 552.043757,
+          "candidates": 1374.5594179999998
+        }
+      }
+    },
+    {
+      "name": "gen-consensus_wo_decide-r1",
+      "exit": "0",
+      "seconds": "21.83",
+      "placement": {
+        "vm": "bx_395wpmqp",
+        "type": "large",
+        "cpu": "AMD EPYC 4585PX 16-Core Processor",
+        "vcpus": 4,
+        "vm_vcpus": 8,
+        "exclusive": true,
+        "co_tenants": 0
+      },
+      "sha256": "0d0877bda1681662638befba092d65f54765cf1089fc264f99905ba842ab5eda",
+      "id": "consensus_wo_decide",
+      "repeat": 1,
+      "identical": true,
+      "base": {
+        "count": 39,
+        "hash": "05af3c755b720768be509b2d936a89d3772804554d6a5e37c84c6188d592dd46",
+        "wallMs": 11769.690192,
+        "phases": {
+          "guards": 6.792284000000002,
+          "small": 5102.553996000001,
+          "candidates": 6592.041534
+        }
+      },
+      "candidate": {
+        "count": 39,
+        "hash": "05af3c755b720768be509b2d936a89d3772804554d6a5e37c84c6188d592dd46",
+        "wallMs": 7684.769002,
+        "phases": {
+          "guards": 7.646432000000004,
+          "small": 3602.406073,
+          "candidates": 4000.2542150000004
+        }
+      }
+    },
+    {
+      "name": "gen-consensus_wo_decide-r2",
+      "exit": "0",
+      "seconds": "9.42",
+      "placement": {
+        "vm": "bx_5mqd7ek5",
+        "type": "large",
+        "cpu": "AMD Ryzen 7 9700X 8-Core Processor",
+        "vcpus": 4,
+        "vm_vcpus": 8,
+        "exclusive": true,
+        "co_tenants": 0
+      },
+      "sha256": "9d55ac96ae887463ef4a5db3c88640102238c0b44f59cc68288849efc2d89790",
+      "id": "consensus_wo_decide",
+      "repeat": 2,
+      "identical": true,
+      "base": {
+        "count": 39,
+        "hash": "05af3c755b720768be509b2d936a89d3772804554d6a5e37c84c6188d592dd46",
+        "wallMs": 5436.701822999999,
+        "phases": {
+          "guards": 2.9822700000000033,
+          "small": 2250.740844,
+          "candidates": 3142.1363490000003
+        }
+      },
+      "candidate": {
+        "count": 39,
+        "hash": "05af3c755b720768be509b2d936a89d3772804554d6a5e37c84c6188d592dd46",
+        "wallMs": 2996.904068,
+        "phases": {
+          "guards": 3.1827069999999935,
+          "small": 1311.831947,
+          "candidates": 1648.346702
+        }
+      }
+    },
+    {
+      "name": "gen-consensus_wo_decide-r3",
+      "exit": "0",
+      "seconds": "19.0",
+      "placement": {
+        "vm": "bx_395wpmqp",
+        "type": "large",
+        "cpu": "AMD EPYC 4585PX 16-Core Processor",
+        "vcpus": 4,
+        "vm_vcpus": 8,
+        "exclusive": true,
+        "co_tenants": 0
+      },
+      "sha256": "451ba0be1dc01869e323269bee92e29f9f4ef558a7066ef8255682d00cee2cd8",
+      "id": "consensus_wo_decide",
+      "repeat": 3,
+      "identical": true,
+      "base": {
+        "count": 39,
+        "hash": "05af3c755b720768be509b2d936a89d3772804554d6a5e37c84c6188d592dd46",
+        "wallMs": 11781.617361,
+        "phases": {
+          "guards": 7.656657999999993,
+          "small": 5315.711114,
+          "candidates": 6379.673337000001
+        }
+      },
+      "candidate": {
+        "count": 39,
+        "hash": "05af3c755b720768be509b2d936a89d3772804554d6a5e37c84c6188d592dd46",
+        "wallMs": 5599.983266,
+        "phases": {
+          "guards": 10.593728000000013,
+          "small": 2576.6764759999996,
+          "candidates": 2957.3699110000002
+        }
+      }
+    },
+    {
+      "name": "gen-consensus_forall-r1",
+      "exit": "0",
+      "seconds": "23.7",
+      "placement": {
+        "vm": "bx_25xas5gt",
+        "type": "large",
+        "cpu": "AMD EPYC 4585PX 16-Core Processor",
+        "vcpus": 4,
+        "vm_vcpus": 8,
+        "exclusive": true,
+        "co_tenants": 0
+      },
+      "sha256": "ef3526f18ae2fd2004e455172d5a45600604ee13006050479cea9dfde8b5f93f",
+      "id": "consensus_forall",
+      "repeat": 1,
+      "identical": true,
+      "base": {
+        "count": 48,
+        "hash": "5597b7cd11317d41db1e3204398864077a58857746c18b15db1cfb4ebcd1e3da",
+        "wallMs": 14598.693506,
+        "phases": {
+          "guards": 3.724121000000004,
+          "small": 5903.401027,
+          "candidates": 8583.370444
+        }
+      },
+      "candidate": {
+        "count": 48,
+        "hash": "5597b7cd11317d41db1e3204398864077a58857746c18b15db1cfb4ebcd1e3da",
+        "wallMs": 7936.782795,
+        "phases": {
+          "guards": 3.914156999999996,
+          "small": 2957.581442,
+          "candidates": 4878.367152
+        }
+      }
+    },
+    {
+      "name": "gen-consensus_forall-r2",
+      "exit": "0",
+      "seconds": "20.86",
+      "placement": {
+        "vm": "bx_8y6xda5y",
+        "type": "large",
+        "cpu": "AMD EPYC 9455 48-Core Processor",
+        "vcpus": 4,
+        "vm_vcpus": 8,
+        "exclusive": true,
+        "co_tenants": 0
+      },
+      "sha256": "fd974ed301db39562b6020fc011a606030250e400b4111d218995486b2934eaa",
+      "id": "consensus_forall",
+      "repeat": 2,
+      "identical": true,
+      "base": {
+        "count": 48,
+        "hash": "5597b7cd11317d41db1e3204398864077a58857746c18b15db1cfb4ebcd1e3da",
+        "wallMs": 11946.536042000002,
+        "phases": {
+          "guards": 3.918562999999999,
+          "small": 4262.718563,
+          "candidates": 7569.984405
+        }
+      },
+      "candidate": {
+        "count": 48,
+        "hash": "5597b7cd11317d41db1e3204398864077a58857746c18b15db1cfb4ebcd1e3da",
+        "wallMs": 6970.819707000001,
+        "phases": {
+          "guards": 4.4774380000000065,
+          "small": 2197.066472,
+          "candidates": 4681.864583999999
+        }
+      }
+    },
+    {
+      "name": "gen-consensus_forall-r3",
+      "exit": "0",
+      "seconds": "17.27",
+      "placement": {
+        "vm": "bx_8sf3u958",
+        "type": "large",
+        "cpu": "AMD EPYC 4585PX 16-Core Processor",
+        "vcpus": 4,
+        "vm_vcpus": 8,
+        "exclusive": true,
+        "co_tenants": 0
+      },
+      "sha256": "dcc17530c55fa741d38eb5a2fa5c305b2513bc3a3eab154b6e4049d119d479d7",
+      "id": "consensus_forall",
+      "repeat": 3,
+      "identical": true,
+      "base": {
+        "count": 48,
+        "hash": "5597b7cd11317d41db1e3204398864077a58857746c18b15db1cfb4ebcd1e3da",
+        "wallMs": 9707.778568,
+        "phases": {
+          "guards": 2.993033000000004,
+          "small": 3448.94898,
+          "candidates": 6180.719623000001
+        }
+      },
+      "candidate": {
+        "count": 48,
+        "hash": "5597b7cd11317d41db1e3204398864077a58857746c18b15db1cfb4ebcd1e3da",
+        "wallMs": 6371.861218,
+        "phases": {
+          "guards": 3.7817310000000006,
+          "small": 2143.069386,
+          "candidates": 4141.085545
+        }
+      }
+    },
+    {
+      "name": "gen-naive_consensus-r1",
+      "exit": "0",
+      "seconds": "4.4",
+      "placement": {
+        "vm": "bx_8y6xda5y",
+        "type": "large",
+        "cpu": "AMD EPYC 9455 48-Core Processor",
+        "vcpus": 4,
+        "vm_vcpus": 8,
+        "exclusive": true,
+        "co_tenants": 0
+      },
+      "sha256": "1425dfb2585e6dda43d05548bf8d365299356444c4384c2f450fc7adca3abbdb",
+      "id": "naive_consensus",
+      "repeat": 1,
+      "identical": true,
+      "base": {
+        "count": 13,
+        "hash": "33063fbf32c2fe26d3a2543e077350c6d2d6a6bd9141f194c829ff390249325c",
+        "wallMs": 2040.042232,
+        "phases": {
+          "guards": 3.452697999999998,
+          "small": 170.070326,
+          "candidates": 1859.2658629999999
+        }
+      },
+      "candidate": {
+        "count": 13,
+        "hash": "33063fbf32c2fe26d3a2543e077350c6d2d6a6bd9141f194c829ff390249325c",
+        "wallMs": 771.656392,
+        "phases": {
+          "guards": 3.791474000000001,
+          "small": 101.40165199999998,
+          "candidates": 657.70639
+        }
+      }
+    },
+    {
+      "name": "gen-naive_consensus-r2",
+      "exit": "0",
+      "seconds": "6.8",
+      "placement": {
+        "vm": "bx_7m649ges",
+        "type": "large",
+        "cpu": "AMD Ryzen 9 9950X 16-Core Processor",
+        "vcpus": 4,
+        "vm_vcpus": 8,
+        "exclusive": true,
+        "co_tenants": 0
+      },
+      "sha256": "e36be0a2982240f04b0ccb60ed0e78dd3a5b79d02f4f0ac64b802f6f8b6d3989",
+      "id": "naive_consensus",
+      "repeat": 2,
+      "identical": true,
+      "base": {
+        "count": 13,
+        "hash": "33063fbf32c2fe26d3a2543e077350c6d2d6a6bd9141f194c829ff390249325c",
+        "wallMs": 3042.5587330000003,
+        "phases": {
+          "guards": 3.6571560000000005,
+          "small": 269.519894,
+          "candidates": 2761.295681
+        }
+      },
+      "candidate": {
+        "count": 13,
+        "hash": "33063fbf32c2fe26d3a2543e077350c6d2d6a6bd9141f194c829ff390249325c",
+        "wallMs": 1523.499787,
+        "phases": {
+          "guards": 5.1980390000000085,
+          "small": 197.314556,
+          "candidates": 1311.103408
+        }
+      }
+    },
+    {
+      "name": "gen-naive_consensus-r3",
+      "exit": "0",
+      "seconds": "8.18",
+      "placement": {
+        "vm": "bx_7w3jpwcn",
+        "type": "large",
+        "cpu": "AMD Ryzen 9 9950X 16-Core Processor",
+        "vcpus": 4,
+        "vm_vcpus": 8,
+        "exclusive": true,
+        "co_tenants": 0
+      },
+      "sha256": "3ad2c556c8f1972fee5d68f8c963488150b59e538ab66bc75a85fe88a43935e9",
+      "id": "naive_consensus",
+      "repeat": 3,
+      "identical": true,
+      "base": {
+        "count": 13,
+        "hash": "33063fbf32c2fe26d3a2543e077350c6d2d6a6bd9141f194c829ff390249325c",
+        "wallMs": 4532.155606,
+        "phases": {
+          "guards": 3.5908469999999966,
+          "small": 306.961772,
+          "candidates": 4212.212524
+        }
+      },
+      "candidate": {
+        "count": 13,
+        "hash": "33063fbf32c2fe26d3a2543e077350c6d2d6a6bd9141f194c829ff390249325c",
+        "wallMs": 2153.927537,
+        "phases": {
+          "guards": 5.858874999999998,
+          "small": 296.523522,
+          "candidates": 1834.950063
+        }
+      }
+    },
+    {
+      "name": "gen-client_server_ae-r1",
+      "exit": "0",
+      "seconds": "6.5",
+      "placement": {
+        "vm": "bx_4cma575j",
+        "type": "large",
+        "cpu": "AMD Ryzen 9 9950X 16-Core Processor",
+        "vcpus": 4,
+        "vm_vcpus": 8,
+        "exclusive": true,
+        "co_tenants": 0
+      },
+      "sha256": "fe220699dac0171e9e1a2466f5d4a743615d53c9a83bf4a55acc2c81b57163d6",
+      "id": "client_server_ae",
+      "repeat": 1,
+      "identical": true,
+      "base": {
+        "count": 10,
+        "hash": "1772d8c83ef06781cd23d6cfbe447b783864d76ee4b2a7004c5ac085a94040ea",
+        "wallMs": 2840.4911159999997,
+        "phases": {
+          "guards": 2.706621999999996,
+          "small": 992.0504189999999,
+          "candidates": 1841.2043720000001
+        }
+      },
+      "candidate": {
+        "count": 10,
+        "hash": "1772d8c83ef06781cd23d6cfbe447b783864d76ee4b2a7004c5ac085a94040ea",
+        "wallMs": 2221.188539,
+        "phases": {
+          "guards": 3.148342999999997,
+          "small": 740.307192,
+          "candidates": 1472.488465
+        }
+      }
+    },
+    {
+      "name": "gen-client_server_ae-r2",
+      "exit": "0",
+      "seconds": "3.79",
+      "placement": {
+        "vm": "bx_5mqd7ek5",
+        "type": "large",
+        "cpu": "AMD Ryzen 7 9700X 8-Core Processor",
+        "vcpus": 4,
+        "vm_vcpus": 8,
+        "exclusive": true,
+        "co_tenants": 0
+      },
+      "sha256": "a8f6c6a662fb929a0feea4cd42acf58ca7671abb25205a2783789ff7fa561b82",
+      "id": "client_server_ae",
+      "repeat": 2,
+      "identical": true,
+      "base": {
+        "count": 10,
+        "hash": "1772d8c83ef06781cd23d6cfbe447b783864d76ee4b2a7004c5ac085a94040ea",
+        "wallMs": 1531.910323,
+        "phases": {
+          "guards": 1.6647859999999994,
+          "small": 433.25309899999996,
+          "candidates": 1094.3428009999998
+        }
+      },
+      "candidate": {
+        "count": 10,
+        "hash": "1772d8c83ef06781cd23d6cfbe447b783864d76ee4b2a7004c5ac085a94040ea",
+        "wallMs": 1217.57771,
+        "phases": {
+          "guards": 1.8411279999999977,
+          "small": 349.366892,
+          "candidates": 863.69584
+        }
+      }
+    },
+    {
+      "name": "gen-client_server_ae-r3",
+      "exit": "0",
+      "seconds": "6.1",
+      "placement": {
+        "vm": "bx_7w3jpwcn",
+        "type": "large",
+        "cpu": "AMD Ryzen 9 9950X 16-Core Processor",
+        "vcpus": 4,
+        "vm_vcpus": 8,
+        "exclusive": true,
+        "co_tenants": 0
+      },
+      "sha256": "d36bbffe3a591dfdce5257d8b39c08596ab68ecc58d6b0b58cd69fc1645379ee",
+      "id": "client_server_ae",
+      "repeat": 3,
+      "identical": true,
+      "base": {
+        "count": 10,
+        "hash": "1772d8c83ef06781cd23d6cfbe447b783864d76ee4b2a7004c5ac085a94040ea",
+        "wallMs": 2661.3429340000002,
+        "phases": {
+          "guards": 2.5206890000000044,
+          "small": 843.5681000000001,
+          "candidates": 1810.9298820000001
+        }
+      },
+      "candidate": {
+        "count": 10,
+        "hash": "1772d8c83ef06781cd23d6cfbe447b783864d76ee4b2a7004c5ac085a94040ea",
+        "wallMs": 2060.5742649999997,
+        "phases": {
+          "guards": 2.956420999999999,
+          "small": 660.329726,
+          "candidates": 1393.1163220000003
+        }
+      }
+    },
+    {
+      "name": "gen-client_server_db_ae-r1",
+      "exit": "0",
+      "seconds": "22.46",
+      "placement": {
+        "vm": "bx_25xas5gt",
+        "type": "large",
+        "cpu": "AMD EPYC 4585PX 16-Core Processor",
+        "vcpus": 4,
+        "vm_vcpus": 8,
+        "exclusive": true,
+        "co_tenants": 0
+      },
+      "sha256": "834377532569678f891aa624673ddff5e4fa7c0260597d320185e9802f983d12",
+      "id": "client_server_db_ae",
+      "repeat": 1,
+      "identical": true,
+      "base": {
+        "count": 15,
+        "hash": "24c730901be1d47def8fd4ffa11b87143b70f2ca664f3d6feb205397336ca64f",
+        "wallMs": 10507.521819,
+        "phases": {
+          "guards": 1.6659229999999994,
+          "small": 4799.218425,
+          "candidates": 5702.852516
+        }
+      },
+      "candidate": {
+        "count": 15,
+        "hash": "24c730901be1d47def8fd4ffa11b87143b70f2ca664f3d6feb205397336ca64f",
+        "wallMs": 10991.30691,
+        "phases": {
+          "guards": 3.080053999999997,
+          "small": 4691.951951999999,
+          "candidates": 6291.620878999999
+        }
+      }
+    },
+    {
+      "name": "gen-client_server_db_ae-r2",
+      "exit": "0",
+      "seconds": "15.62",
+      "placement": {
+        "vm": "bx_69nkhdf7",
+        "type": "large",
+        "cpu": "AMD Ryzen 9 9950X 16-Core Processor",
+        "vcpus": 4,
+        "vm_vcpus": 8,
+        "exclusive": true,
+        "co_tenants": 0
+      },
+      "sha256": "1a14a500c3a1a77aa88563cb5e75d06c55d38800d35bfebf12f5c939bf6d5c2e",
+      "id": "client_server_db_ae",
+      "repeat": 2,
+      "identical": true,
+      "base": {
+        "count": 15,
+        "hash": "24c730901be1d47def8fd4ffa11b87143b70f2ca664f3d6feb205397336ca64f",
+        "wallMs": 7163.625889999999,
+        "phases": {
+          "guards": 2.563277999999997,
+          "small": 3480.0535069999996,
+          "candidates": 3677.49736
+        }
+      },
+      "candidate": {
+        "count": 15,
+        "hash": "24c730901be1d47def8fd4ffa11b87143b70f2ca664f3d6feb205397336ca64f",
+        "wallMs": 7057.219778,
+        "phases": {
+          "guards": 3.0875449999999987,
+          "small": 3052.786665,
+          "candidates": 3997.25255
+        }
+      }
+    },
+    {
+      "name": "gen-client_server_db_ae-r3",
+      "exit": "0",
+      "seconds": "10.68",
+      "placement": {
+        "vm": "bx_5mqd7ek5",
+        "type": "large",
+        "cpu": "AMD Ryzen 7 9700X 8-Core Processor",
+        "vcpus": 4,
+        "vm_vcpus": 8,
+        "exclusive": true,
+        "co_tenants": 0
+      },
+      "sha256": "cd598b2c3295216282857bdcf165cfe6c55667456cdc7df5aa49d748048b0fe8",
+      "id": "client_server_db_ae",
+      "repeat": 3,
+      "identical": true,
+      "base": {
+        "count": 15,
+        "hash": "24c730901be1d47def8fd4ffa11b87143b70f2ca664f3d6feb205397336ca64f",
+        "wallMs": 4925.705965,
+        "phases": {
+          "guards": 1.5702890000000025,
+          "small": 2282.293116,
+          "candidates": 2639.3978190000003
+        }
+      },
+      "candidate": {
+        "count": 15,
+        "hash": "24c730901be1d47def8fd4ffa11b87143b70f2ca664f3d6feb205397336ca64f",
+        "wallMs": 4763.985655,
+        "phases": {
+          "guards": 2.334645000000002,
+          "small": 2069.936977,
+          "candidates": 2688.9801099999995
+        }
+      }
+    },
+    {
+      "name": "gen-simple_election-r1",
+      "exit": "0",
+      "seconds": "5.34",
+      "placement": {
+        "vm": "bx_7y8uwqen",
+        "type": "large",
+        "cpu": "AMD EPYC 9455 48-Core Processor",
+        "vcpus": 4,
+        "vm_vcpus": 8,
+        "exclusive": true,
+        "co_tenants": 0
+      },
+      "sha256": "586b03b10c76c35653ed605ece76176a7187743cf9c2f996f7b98bec963f3d22",
+      "id": "simple_election",
+      "repeat": 1,
+      "identical": true,
+      "base": {
+        "count": 12,
+        "hash": "30bc4cc549adbbd85c982849ae7b5cf741388b8750e135e1b96ba0e6b2204a4d",
+        "wallMs": 2529.757329,
+        "phases": {
+          "guards": 3.2480059999999966,
+          "small": 313.93163000000004,
+          "candidates": 2202.133266
+        }
+      },
+      "candidate": {
+        "count": 12,
+        "hash": "30bc4cc549adbbd85c982849ae7b5cf741388b8750e135e1b96ba0e6b2204a4d",
+        "wallMs": 1149.2317340000002,
+        "phases": {
+          "guards": 3.666496000000002,
+          "small": 243.070519,
+          "candidates": 891.817419
+        }
+      }
+    },
+    {
+      "name": "gen-simple_election-r2",
+      "exit": "0",
+      "seconds": "4.91",
+      "placement": {
+        "vm": "bx_5f32uf5a",
+        "type": "large",
+        "cpu": "AMD Ryzen 9 9950X 16-Core Processor",
+        "vcpus": 4,
+        "vm_vcpus": 8,
+        "exclusive": true,
+        "co_tenants": 0
+      },
+      "sha256": "807375cbf1fd72b534050e5e197be08511b73a511db29996ac5ce7025b408d58",
+      "id": "simple_election",
+      "repeat": 2,
+      "identical": true,
+      "base": {
+        "count": 12,
+        "hash": "30bc4cc549adbbd85c982849ae7b5cf741388b8750e135e1b96ba0e6b2204a4d",
+        "wallMs": 2551.094782,
+        "phases": {
+          "guards": 4.154120999999996,
+          "small": 359.233403,
+          "candidates": 2178.706775
+        }
+      },
+      "candidate": {
+        "count": 12,
+        "hash": "30bc4cc549adbbd85c982849ae7b5cf741388b8750e135e1b96ba0e6b2204a4d",
+        "wallMs": 1181.1777299999999,
+        "phases": {
+          "guards": 3.865699999999997,
+          "small": 234.709011,
+          "candidates": 933.473346
+        }
+      }
+    },
+    {
+      "name": "gen-simple_election-r3",
+      "exit": "0",
+      "seconds": "6.12",
+      "placement": {
+        "vm": "bx_395wpmqp",
+        "type": "large",
+        "cpu": "AMD EPYC 4585PX 16-Core Processor",
+        "vcpus": 4,
+        "vm_vcpus": 8,
+        "exclusive": true,
+        "co_tenants": 0
+      },
+      "sha256": "53f6cd095948af6556120de28d304f550ffa1000f4a10615e040768b52c74c5c",
+      "id": "simple_election",
+      "repeat": 3,
+      "identical": true,
+      "base": {
+        "count": 12,
+        "hash": "30bc4cc549adbbd85c982849ae7b5cf741388b8750e135e1b96ba0e6b2204a4d",
+        "wallMs": 3344.133686,
+        "phases": {
+          "guards": 5.1014279999999985,
+          "small": 636.0357740000001,
+          "candidates": 2690.358347
+        }
+      },
+      "candidate": {
+        "count": 12,
+        "hash": "30bc4cc549adbbd85c982849ae7b5cf741388b8750e135e1b96ba0e6b2204a4d",
+        "wallMs": 1365.109767,
+        "phases": {
+          "guards": 5.0416489999999925,
+          "small": 292.57255000000004,
+          "candidates": 1055.6348
+        }
+      }
+    },
+    {
+      "name": "gen-toy_consensus_epr-r1",
+      "exit": "0",
+      "seconds": "6.41",
+      "placement": {
+        "vm": "bx_4cma575j",
+        "type": "large",
+        "cpu": "AMD Ryzen 9 9950X 16-Core Processor",
+        "vcpus": 4,
+        "vm_vcpus": 8,
+        "exclusive": true,
+        "co_tenants": 0
+      },
+      "sha256": "88bff8b36a6c003731de2399d34cb9ae3ae8779637ffe7039d096bd89b66e246",
+      "id": "toy_consensus_epr",
+      "repeat": 1,
+      "identical": true,
+      "base": {
+        "count": 8,
+        "hash": "133630cb1e8c0acf2f7b1b1f30f8c5eb82f1ebd6ef16350af7b27e97f3fea9fc",
+        "wallMs": 3641.639385,
+        "phases": {
+          "guards": 4.1360130000000055,
+          "small": 229.422116,
+          "candidates": 3398.978269
+        }
+      },
+      "candidate": {
+        "count": 8,
+        "hash": "133630cb1e8c0acf2f7b1b1f30f8c5eb82f1ebd6ef16350af7b27e97f3fea9fc",
+        "wallMs": 1251.39238,
+        "phases": {
+          "guards": 5.257964000000001,
+          "small": 148.699217,
+          "candidates": 1088.551976
+        }
+      }
+    },
+    {
+      "name": "gen-toy_consensus_epr-r2",
+      "exit": "0",
+      "seconds": "5.99",
+      "placement": {
+        "vm": "bx_ackcvxnu",
+        "type": "large",
+        "cpu": "AMD Ryzen 9 9950X 16-Core Processor",
+        "vcpus": 4,
+        "vm_vcpus": 8,
+        "exclusive": true,
+        "co_tenants": 0
+      },
+      "sha256": "d6a6655a6fc83a378292966ee5be43242853814a6896b7f6be8d349d237c6945",
+      "id": "toy_consensus_epr",
+      "repeat": 2,
+      "identical": true,
+      "base": {
+        "count": 8,
+        "hash": "133630cb1e8c0acf2f7b1b1f30f8c5eb82f1ebd6ef16350af7b27e97f3fea9fc",
+        "wallMs": 3071.850057,
+        "phases": {
+          "guards": 4.190649999999998,
+          "small": 248.354196,
+          "candidates": 2809.98511
+        }
+      },
+      "candidate": {
+        "count": 8,
+        "hash": "133630cb1e8c0acf2f7b1b1f30f8c5eb82f1ebd6ef16350af7b27e97f3fea9fc",
+        "wallMs": 991.4638280000001,
+        "phases": {
+          "guards": 4.982714999999999,
+          "small": 113.969291,
+          "candidates": 866.2094300000001
+        }
+      }
+    },
+    {
+      "name": "gen-toy_consensus_epr-r3",
+      "exit": "0",
+      "seconds": "4.07",
+      "placement": {
+        "vm": "bx_8sf3u958",
+        "type": "large",
+        "cpu": "AMD EPYC 4585PX 16-Core Processor",
+        "vcpus": 4,
+        "vm_vcpus": 8,
+        "exclusive": true,
+        "co_tenants": 0
+      },
+      "sha256": "0358e323e0142a934dc1c93cd9386e2e79208df9f019903fbfcf3b30ed1f1fdc",
+      "id": "toy_consensus_epr",
+      "repeat": 3,
+      "identical": true,
+      "base": {
+        "count": 8,
+        "hash": "133630cb1e8c0acf2f7b1b1f30f8c5eb82f1ebd6ef16350af7b27e97f3fea9fc",
+        "wallMs": 2217.090355,
+        "phases": {
+          "guards": 2.605364999999999,
+          "small": 90.66914500000001,
+          "candidates": 2116.952498
+        }
+      },
+      "candidate": {
+        "count": 8,
+        "hash": "133630cb1e8c0acf2f7b1b1f30f8c5eb82f1ebd6ef16350af7b27e97f3fea9fc",
+        "wallMs": 702.344931,
+        "phases": {
+          "guards": 3.523995999999997,
+          "small": 90.903253,
+          "candidates": 602.082181
+        }
+      }
+    },
+    {
+      "name": "gen-toy_consensus-r1",
+      "exit": "0",
+      "seconds": "3.51",
+      "placement": {
+        "vm": "bx_acxzr4wr",
+        "type": "large",
+        "cpu": "AMD EPYC 9455 48-Core Processor",
+        "vcpus": 4,
+        "vm_vcpus": 8,
+        "exclusive": true,
+        "co_tenants": 0
+      },
+      "sha256": "b5d624e2783bf4f15bbd6c3355b9d537422ac5ed0e42c63c6d169a9aa7467c41",
+      "id": "toy_consensus",
+      "repeat": 1,
+      "identical": true,
+      "base": {
+        "count": 5,
+        "hash": "42a22a2106bf7bde3e8f00f847d72d7b426b493fe2c551d8b12760722db12bf2",
+        "wallMs": 1587.376757,
+        "phases": {
+          "guards": 2.529551000000005,
+          "small": 121.43810100000002,
+          "candidates": 1458.371165
+        }
+      },
+      "candidate": {
+        "count": 5,
+        "hash": "42a22a2106bf7bde3e8f00f847d72d7b426b493fe2c551d8b12760722db12bf2",
+        "wallMs": 416.10992400000003,
+        "phases": {
+          "guards": 3.0255849999999995,
+          "small": 73.257446,
+          "candidates": 335.10378599999996
+        }
+      }
+    },
+    {
+      "name": "gen-toy_consensus-r2",
+      "exit": "0",
+      "seconds": "4.17",
+      "placement": {
+        "vm": "bx_395wpmqp",
+        "type": "large",
+        "cpu": "AMD EPYC 4585PX 16-Core Processor",
+        "vcpus": 4,
+        "vm_vcpus": 8,
+        "exclusive": true,
+        "co_tenants": 0
+      },
+      "sha256": "5d9b24d92f3648ca6935aa01758e18e961d0b1abcd43bcaa4f9eda18f548deaa",
+      "id": "toy_consensus",
+      "repeat": 2,
+      "identical": true,
+      "base": {
+        "count": 5,
+        "hash": "42a22a2106bf7bde3e8f00f847d72d7b426b493fe2c551d8b12760722db12bf2",
+        "wallMs": 2367.4785220000003,
+        "phases": {
+          "guards": 2.5214519999999965,
+          "small": 177.31651000000002,
+          "candidates": 2181.2336480000004
+        }
+      },
+      "candidate": {
+        "count": 5,
+        "hash": "42a22a2106bf7bde3e8f00f847d72d7b426b493fe2c551d8b12760722db12bf2",
+        "wallMs": 639.844926,
+        "phases": {
+          "guards": 4.244129000000001,
+          "small": 115.502939,
+          "candidates": 511.79629400000005
+        }
+      }
+    },
+    {
+      "name": "gen-toy_consensus-r3",
+      "exit": "0",
+      "seconds": "3.28",
+      "placement": {
+        "vm": "bx_acxzr4wr",
+        "type": "large",
+        "cpu": "AMD EPYC 9455 48-Core Processor",
+        "vcpus": 4,
+        "vm_vcpus": 8,
+        "exclusive": true,
+        "co_tenants": 0
+      },
+      "sha256": "47cd1160e40ccaf8299cd61d4dbb36673d4cce358d2c6d901b75e1bcfcc90370",
+      "id": "toy_consensus",
+      "repeat": 3,
+      "identical": true,
+      "base": {
+        "count": 5,
+        "hash": "42a22a2106bf7bde3e8f00f847d72d7b426b493fe2c551d8b12760722db12bf2",
+        "wallMs": 1599.994251,
+        "phases": {
+          "guards": 2.3588649999999944,
+          "small": 104.913387,
+          "candidates": 1488.2654200000002
+        }
+      },
+      "candidate": {
+        "count": 5,
+        "hash": "42a22a2106bf7bde3e8f00f847d72d7b426b493fe2c551d8b12760722db12bf2",
+        "wallMs": 367.732365,
+        "phases": {
+          "guards": 2.7586340000000007,
+          "small": 64.953542,
+          "candidates": 295.758464
+        }
+      }
+    },
+    {
+      "name": "gen-firewall-r1",
+      "exit": "0",
+      "seconds": "1.63",
+      "placement": {
+        "vm": "bx_84e8hfw5",
+        "type": "large",
+        "cpu": "AMD EPYC 4585PX 16-Core Processor",
+        "vcpus": 4,
+        "vm_vcpus": 8,
+        "exclusive": true,
+        "co_tenants": 0
+      },
+      "sha256": "9456d21f5b63e0103204a54de62755eab421dcd826c036d2eee9ec37405538f8",
+      "id": "firewall",
+      "repeat": 1,
+      "identical": true,
+      "base": {
+        "count": 7,
+        "hash": "0aeb72d28c1ed33a168870c883b14003290b1f6276c90ed6469aaee474a41dcc",
+        "wallMs": 482.88017,
+        "phases": {
+          "guards": 2.4527810000000017,
+          "small": 19.177458,
+          "candidates": 457.69732500000003
+        }
+      },
+      "candidate": {
+        "count": 7,
+        "hash": "0aeb72d28c1ed33a168870c883b14003290b1f6276c90ed6469aaee474a41dcc",
+        "wallMs": 89.62393300000001,
+        "phases": {
+          "guards": 2.393459,
+          "small": 20.243899000000006,
+          "candidates": 63.845727
+        }
+      }
+    },
+    {
+      "name": "gen-firewall-r2",
+      "exit": "0",
+      "seconds": "1.74",
+      "placement": {
+        "vm": "bx_395wpmqp",
+        "type": "large",
+        "cpu": "AMD EPYC 4585PX 16-Core Processor",
+        "vcpus": 4,
+        "vm_vcpus": 8,
+        "exclusive": true,
+        "co_tenants": 0
+      },
+      "sha256": "4c1f103935cec3294b7ea83d0d1606c8480a2074deceacaa1f6ca1dc66020f61",
+      "id": "firewall",
+      "repeat": 2,
+      "identical": true,
+      "base": {
+        "count": 7,
+        "hash": "0aeb72d28c1ed33a168870c883b14003290b1f6276c90ed6469aaee474a41dcc",
+        "wallMs": 474.862158,
+        "phases": {
+          "guards": 2.1855130000000003,
+          "small": 18.986112999999996,
+          "candidates": 450.580813
+        }
+      },
+      "candidate": {
+        "count": 7,
+        "hash": "0aeb72d28c1ed33a168870c883b14003290b1f6276c90ed6469aaee474a41dcc",
+        "wallMs": 98.221121,
+        "phases": {
+          "guards": 2.727864000000004,
+          "small": 19.063587,
+          "candidates": 73.352454
+        }
+      }
+    },
+    {
+      "name": "gen-firewall-r3",
+      "exit": "0",
+      "seconds": "1.76",
+      "placement": {
+        "vm": "bx_5f32uf5a",
+        "type": "large",
+        "cpu": "AMD Ryzen 9 9950X 16-Core Processor",
+        "vcpus": 4,
+        "vm_vcpus": 8,
+        "exclusive": true,
+        "co_tenants": 0
+      },
+      "sha256": "d8cca6ddae7f1ffb09b0fa9e00c1217a14dd6c4595c64fe9df7cef8b5c83415b",
+      "id": "firewall",
+      "repeat": 3,
+      "identical": true,
+      "base": {
+        "count": 7,
+        "hash": "0aeb72d28c1ed33a168870c883b14003290b1f6276c90ed6469aaee474a41dcc",
+        "wallMs": 496.812897,
+        "phases": {
+          "guards": 2.6223779999999977,
+          "small": 19.268155000000007,
+          "candidates": 470.75423500000005
+        }
+      },
+      "candidate": {
+        "count": 7,
+        "hash": "0aeb72d28c1ed33a168870c883b14003290b1f6276c90ed6469aaee474a41dcc",
+        "wallMs": 97.23974700000001,
+        "phases": {
+          "guards": 2.971164999999999,
+          "small": 20.980699,
+          "candidates": 69.73985100000002
+        }
+      }
+    },
+    {
+      "name": "gen-majorityset_leader_election-r1",
+      "exit": "0",
+      "seconds": "3.91",
+      "placement": {
+        "vm": "bx_8sf3u958",
+        "type": "large",
+        "cpu": "AMD EPYC 4585PX 16-Core Processor",
+        "vcpus": 4,
+        "vm_vcpus": 8,
+        "exclusive": true,
+        "co_tenants": 0
+      },
+      "sha256": "6596839b5d75ce0583fe17d675961d34885857e6c3e5904cb0ef450f134ec893",
+      "id": "majorityset_leader_election",
+      "repeat": 1,
+      "identical": true,
+      "base": {
+        "count": 17,
+        "hash": "bb147d46a7fb370560860dfd5441416683ec8c4c8a845d78cba57f199aba247f",
+        "wallMs": 1848.0562490000002,
+        "phases": {
+          "guards": 2.327594999999995,
+          "small": 58.573446999999994,
+          "candidates": 1778.588749
+        }
+      },
+      "candidate": {
+        "count": 17,
+        "hash": "bb147d46a7fb370560860dfd5441416683ec8c4c8a845d78cba57f199aba247f",
+        "wallMs": 983.94563,
+        "phases": {
+          "guards": 4.53351,
+          "small": 58.500609,
+          "candidates": 912.0705350000001
+        }
+      }
+    },
+    {
+      "name": "gen-majorityset_leader_election-r2",
+      "exit": "0",
+      "seconds": "4.87",
+      "placement": {
+        "vm": "bx_8y6xda5y",
+        "type": "large",
+        "cpu": "AMD EPYC 9455 48-Core Processor",
+        "vcpus": 4,
+        "vm_vcpus": 8,
+        "exclusive": true,
+        "co_tenants": 0
+      },
+      "sha256": "94950a0ea0adc891c1621e025913cbadcf2788c0d5e705dad608a6ef09c5d2ff",
+      "id": "majorityset_leader_election",
+      "repeat": 2,
+      "identical": true,
+      "base": {
+        "count": 17,
+        "hash": "bb147d46a7fb370560860dfd5441416683ec8c4c8a845d78cba57f199aba247f",
+        "wallMs": 1957.992352,
+        "phases": {
+          "guards": 2.7907219999999953,
+          "small": 65.660068,
+          "candidates": 1880.296558
+        }
+      },
+      "candidate": {
+        "count": 17,
+        "hash": "bb147d46a7fb370560860dfd5441416683ec8c4c8a845d78cba57f199aba247f",
+        "wallMs": 1054.116593,
+        "phases": {
+          "guards": 2.9263639999999995,
+          "small": 44.587766,
+          "candidates": 997.177949
+        }
+      }
+    },
+    {
+      "name": "gen-majorityset_leader_election-r3",
+      "exit": "0",
+      "seconds": "5.59",
+      "placement": {
+        "vm": "bx_5wr3bs76",
+        "type": "large",
+        "cpu": "AMD EPYC 4585PX 16-Core Processor",
+        "vcpus": 4,
+        "vm_vcpus": 8,
+        "exclusive": true,
+        "co_tenants": 0
+      },
+      "sha256": "bbb34db565ec86fe8a4680a00f1eb2a0ad4e438ff255b11624ee911577a45ca8",
+      "id": "majorityset_leader_election",
+      "repeat": 3,
+      "identical": true,
+      "base": {
+        "count": 17,
+        "hash": "bb147d46a7fb370560860dfd5441416683ec8c4c8a845d78cba57f199aba247f",
+        "wallMs": 2898.211168,
+        "phases": {
+          "guards": 2.8718709999999987,
+          "small": 71.42174299999999,
+          "candidates": 2814.714016
+        }
+      },
+      "candidate": {
+        "count": 17,
+        "hash": "bb147d46a7fb370560860dfd5441416683ec8c4c8a845d78cba57f199aba247f",
+        "wallMs": 1439.5151979999998,
+        "phases": {
+          "guards": 3.154670000000003,
+          "small": 75.654684,
+          "candidates": 1348.7257519999998
+        }
+      }
+    },
+    {
+      "name": "gen-consensus_epr-r1",
+      "exit": "0",
+      "seconds": "19.47",
+      "placement": {
+        "vm": "bx_8sf3u958",
+        "type": "large",
+        "cpu": "AMD EPYC 4585PX 16-Core Processor",
+        "vcpus": 4,
+        "vm_vcpus": 8,
+        "exclusive": true,
+        "co_tenants": 0
+      },
+      "sha256": "4537f9c40ac2b074773541f5d02f2c7f036c63785b2655fe0f96a6836d4ce9a7",
+      "id": "consensus_epr",
+      "repeat": 1,
+      "identical": true,
+      "base": {
+        "count": 29,
+        "hash": "ab81a384b7f6afc1f8d207c9f6ea5fec0a1526cc98b4088e00b34cd69186db65",
+        "wallMs": 11674.770051,
+        "phases": {
+          "guards": 3.5681300000000036,
+          "small": 4423.102348,
+          "candidates": 7154.948329
+        }
+      },
+      "candidate": {
+        "count": 29,
+        "hash": "ab81a384b7f6afc1f8d207c9f6ea5fec0a1526cc98b4088e00b34cd69186db65",
+        "wallMs": 5573.252009999999,
+        "phases": {
+          "guards": 4.299043000000005,
+          "small": 1704.552473,
+          "candidates": 3778.260943
+        }
+      }
+    },
+    {
+      "name": "gen-consensus_epr-r2",
+      "exit": "0",
+      "seconds": "21.36",
+      "placement": {
+        "vm": "bx_69nkhdf7",
+        "type": "large",
+        "cpu": "AMD Ryzen 9 9950X 16-Core Processor",
+        "vcpus": 4,
+        "vm_vcpus": 8,
+        "exclusive": true,
+        "co_tenants": 0
+      },
+      "sha256": "dbb5960fa6f0c0790f9ccb0db874828b213aa2301dea7c0993b2747dbf8ddb0e",
+      "id": "consensus_epr",
+      "repeat": 2,
+      "identical": true,
+      "base": {
+        "count": 29,
+        "hash": "ab81a384b7f6afc1f8d207c9f6ea5fec0a1526cc98b4088e00b34cd69186db65",
+        "wallMs": 12539.830589,
+        "phases": {
+          "guards": 4.040662999999995,
+          "small": 5550.645347,
+          "candidates": 6897.943960999999
+        }
+      },
+      "candidate": {
+        "count": 29,
+        "hash": "ab81a384b7f6afc1f8d207c9f6ea5fec0a1526cc98b4088e00b34cd69186db65",
+        "wallMs": 7015.139302,
+        "phases": {
+          "guards": 3.7992379999999955,
+          "small": 2206.6272449999997,
+          "candidates": 4726.867756
+        }
+      }
+    },
+    {
+      "name": "gen-consensus_epr-r3",
+      "exit": "0",
+      "seconds": "23.34",
+      "placement": {
+        "vm": "bx_4cma575j",
+        "type": "large",
+        "cpu": "AMD Ryzen 9 9950X 16-Core Processor",
+        "vcpus": 4,
+        "vm_vcpus": 8,
+        "exclusive": true,
+        "co_tenants": 0
+      },
+      "sha256": "1c456066988425c4bf6b0d06f711f995bcf308abff5b1d1b1dc15d5c5c733b18",
+      "id": "consensus_epr",
+      "repeat": 3,
+      "identical": true,
+      "base": {
+        "count": 29,
+        "hash": "ab81a384b7f6afc1f8d207c9f6ea5fec0a1526cc98b4088e00b34cd69186db65",
+        "wallMs": 14184.84379,
+        "phases": {
+          "guards": 3.7460080000000033,
+          "small": 6510.981215,
+          "candidates": 7581.441865999999
+        }
+      },
+      "candidate": {
+        "count": 29,
+        "hash": "ab81a384b7f6afc1f8d207c9f6ea5fec0a1526cc98b4088e00b34cd69186db65",
+        "wallMs": 7713.597572999999,
+        "phases": {
+          "guards": 5.393307,
+          "small": 2648.5128600000003,
+          "candidates": 4962.707087999999
+        }
+      }
+    },
+    {
+      "name": "gen-learning_switch-r1",
+      "exit": "0",
+      "seconds": "245.95",
+      "placement": {
+        "vm": "bx_a83zj5st",
+        "type": "large",
+        "cpu": "AMD EPYC 9455 48-Core Processor",
+        "vcpus": 4,
+        "vm_vcpus": 8,
+        "exclusive": true,
+        "co_tenants": 0
+      },
+      "sha256": "aa86b9c60c578e9bb16f0df7bb1304f3cbfb26f4d2f0f3481d022eb5642f221a",
+      "id": "learning_switch",
+      "repeat": 1,
+      "identical": true,
+      "base": {
+        "count": 16,
+        "hash": "30e01737accefb7cdd6842704aaadf370a3420d57fff3aefa81a435eb25c3761",
+        "wallMs": 163157.43039700002,
+        "phases": {
+          "guards": 2.177297000000003,
+          "small": 159348.299087,
+          "candidates": 3802.527285999997
+        }
+      },
+      "candidate": {
+        "count": 16,
+        "hash": "30e01737accefb7cdd6842704aaadf370a3420d57fff3aefa81a435eb25c3761",
+        "wallMs": 81327.53485699999,
+        "phases": {
+          "guards": 2.401282000000002,
+          "small": 77341.862146,
+          "candidates": 3978.871392999994
+        }
+      }
+    },
+    {
+      "name": "gen-learning_switch-r2",
+      "exit": "0",
+      "seconds": "322.68",
+      "placement": {
+        "vm": "bx_ahemkzme",
+        "type": "large",
+        "cpu": "AMD Ryzen 9 9950X 16-Core Processor",
+        "vcpus": 4,
+        "vm_vcpus": 8,
+        "exclusive": true,
+        "co_tenants": 0
+      },
+      "sha256": "2eb16e29e561c0c8b0fa1b6e71809d3dd0c297af8e02cae5c87e7f804756f545",
+      "id": "learning_switch",
+      "repeat": 2,
+      "identical": true,
+      "base": {
+        "count": 16,
+        "hash": "30e01737accefb7cdd6842704aaadf370a3420d57fff3aefa81a435eb25c3761",
+        "wallMs": 232652.32831100002,
+        "phases": {
+          "guards": 2.2416750000000008,
+          "small": 224788.031017,
+          "candidates": 7855.431391999999
+        }
+      },
+      "candidate": {
+        "count": 16,
+        "hash": "30e01737accefb7cdd6842704aaadf370a3420d57fff3aefa81a435eb25c3761",
+        "wallMs": 87952.09435700001,
+        "phases": {
+          "guards": 2.5051190000000005,
+          "small": 82739.18951899999,
+          "candidates": 5205.718278
+        }
+      }
+    },
+    {
+      "name": "gen-learning_switch-r3",
+      "exit": "0",
+      "seconds": "248.85",
+      "placement": {
+        "vm": "bx_2eg9t59n",
+        "type": "large",
+        "cpu": "AMD EPYC 9455 48-Core Processor",
+        "vcpus": 4,
+        "vm_vcpus": 8,
+        "exclusive": true,
+        "co_tenants": 0
+      },
+      "sha256": "e0d1c261a45188e22dedf9fef40d1ceedeab1ad81e36f248e8531dfda9b7cf14",
+      "id": "learning_switch",
+      "repeat": 3,
+      "identical": true,
+      "base": {
+        "count": 16,
+        "hash": "30e01737accefb7cdd6842704aaadf370a3420d57fff3aefa81a435eb25c3761",
+        "wallMs": 165104.702441,
+        "phases": {
+          "guards": 2.6467090000000013,
+          "small": 160892.21850000002,
+          "candidates": 4195.853973999998
+        }
+      },
+      "candidate": {
+        "count": 16,
+        "hash": "30e01737accefb7cdd6842704aaadf370a3420d57fff3aefa81a435eb25c3761",
+        "wallMs": 79384.232267,
+        "phases": {
+          "guards": 2.448394999999998,
+          "small": 74939.634835,
+          "candidates": 4432.4692369999975
+        }
+      }
+    },
+    {
+      "name": "gen-learning_switch_i4-r1",
+      "exit": "0",
+      "seconds": "450.17",
+      "placement": {
+        "vm": "bx_a22r988n",
+        "type": "large",
+        "cpu": "AMD Ryzen 9 9950X 16-Core Processor",
+        "vcpus": 4,
+        "vm_vcpus": 8,
+        "exclusive": true,
+        "co_tenants": 0
+      },
+      "sha256": "0b8b733d375dc9b811fe790527fb1302c3b73cf1694c80b6897d80c7a2d52b54",
+      "id": "learning_switch_i4",
+      "repeat": 1,
+      "identical": true,
+      "base": {
+        "count": 463,
+        "hash": "1fee9ce40764701e37b1e4a0e854273ac3be8a73db8d48faa029d5fa5ebfc163",
+        "wallMs": 305624.604558,
+        "phases": {
+          "guards": 8.961530999999994,
+          "small": 264312.862369,
+          "candidates": 41265.747334000014
+        }
+      },
+      "candidate": {
+        "count": 463,
+        "hash": "1fee9ce40764701e37b1e4a0e854273ac3be8a73db8d48faa029d5fa5ebfc163",
+        "wallMs": 140524.541499,
+        "phases": {
+          "guards": 6.391265000000004,
+          "small": 100349.541032,
+          "candidates": 40147.872229000015
+        }
+      }
+    },
+    {
+      "name": "gen-learning_switch_i4-r2",
+      "exit": "0",
+      "seconds": "270.56",
+      "placement": {
+        "vm": "bx_2kmf8w3s",
+        "type": "large",
+        "cpu": "AMD EPYC 4585PX 16-Core Processor",
+        "vcpus": 4,
+        "vm_vcpus": 8,
+        "exclusive": true,
+        "co_tenants": 0
+      },
+      "sha256": "1af043c20a438c790c801998472a8eaa9a27516088f8a96016d1ff8eea71b348",
+      "id": "learning_switch_i4",
+      "repeat": 2,
+      "identical": true,
+      "base": {
+        "count": 463,
+        "hash": "1fee9ce40764701e37b1e4a0e854273ac3be8a73db8d48faa029d5fa5ebfc163",
+        "wallMs": 183907.715102,
+        "phases": {
+          "guards": 4.285302999999999,
+          "small": 160115.02533600002,
+          "candidates": 23774.948982
+        }
+      },
+      "candidate": {
+        "count": 463,
+        "hash": "1fee9ce40764701e37b1e4a0e854273ac3be8a73db8d48faa029d5fa5ebfc163",
+        "wallMs": 84472.75149000001,
+        "phases": {
+          "guards": 4.043900000000001,
+          "small": 52447.128107000004,
+          "candidates": 32008.316531000004
+        }
+      }
+    },
+    {
+      "name": "gen-learning_switch_i4-r3",
+      "exit": "0",
+      "seconds": "209.92",
+      "placement": {
+        "vm": "bx_7ah56czc",
+        "type": "large",
+        "cpu": "AMD Ryzen 9 9950X 16-Core Processor",
+        "vcpus": 4,
+        "vm_vcpus": 8,
+        "exclusive": true,
+        "co_tenants": 0
+      },
+      "sha256": "81541ca81666ac907257afc7519fedf1c4e483c1ccb29967fbc606d600ab8c40",
+      "id": "learning_switch_i4",
+      "repeat": 3,
+      "identical": true,
+      "base": {
+        "count": 463,
+        "hash": "1fee9ce40764701e37b1e4a0e854273ac3be8a73db8d48faa029d5fa5ebfc163",
+        "wallMs": 149501.687977,
+        "phases": {
+          "guards": 3.0260839999999973,
+          "small": 128797.23975899999,
+          "candidates": 20631.27185399999
+        }
+      },
+      "candidate": {
+        "count": 463,
+        "hash": "1fee9ce40764701e37b1e4a0e854273ac3be8a73db8d48faa029d5fa5ebfc163",
+        "wallMs": 59215.589538,
+        "phases": {
+          "guards": 3.132100000000001,
+          "small": 40749.828151,
+          "candidates": 18454.023454999995
+        }
+      }
+    },
+    {
+      "name": "gen-paxos_epr-r1",
+      "exit": "0",
+      "seconds": "32.43",
+      "placement": {
+        "vm": "bx_5f32uf5a",
+        "type": "large",
+        "cpu": "AMD Ryzen 9 9950X 16-Core Processor",
+        "vcpus": 4,
+        "vm_vcpus": 8,
+        "exclusive": true,
+        "co_tenants": 0
+      },
+      "sha256": "d97fbeba999f0ae2d47c4e7faaa9bdbf6882305cae7bccacdb3cfb4714d61b9a",
+      "id": "paxos_epr",
+      "repeat": 1,
+      "identical": true,
+      "base": {
+        "count": 77,
+        "hash": "01f9c4f68d27630184f0d5268345ada29c31507eac21bfbf45d87e0bc6051e77",
+        "wallMs": 17938.067704,
+        "phases": {
+          "guards": 4.384939000000003,
+          "small": 7166.383280999999,
+          "candidates": 10718.601193999999
+        }
+      },
+      "candidate": {
+        "count": 77,
+        "hash": "01f9c4f68d27630184f0d5268345ada29c31507eac21bfbf45d87e0bc6051e77",
+        "wallMs": 12947.028416,
+        "phases": {
+          "guards": 5.204901999999997,
+          "small": 3488.102313,
+          "candidates": 9408.545732
+        }
+      }
+    },
+    {
+      "name": "gen-paxos_epr-r2",
+      "exit": "0",
+      "seconds": "62.72",
+      "placement": {
+        "vm": "bx_7uaxjs82",
+        "type": "large",
+        "cpu": "AMD Ryzen 9 9950X 16-Core Processor",
+        "vcpus": 4,
+        "vm_vcpus": 8,
+        "exclusive": true,
+        "co_tenants": 0
+      },
+      "sha256": "d63f86ceaab36a098492dd4fbbac26f62844ac596f9602b11cec055d5a74ba36",
+      "id": "paxos_epr",
+      "repeat": 2,
+      "identical": true,
+      "base": {
+        "count": 77,
+        "hash": "01f9c4f68d27630184f0d5268345ada29c31507eac21bfbf45d87e0bc6051e77",
+        "wallMs": 25466.464702,
+        "phases": {
+          "guards": 4.497926,
+          "small": 11271.315358,
+          "candidates": 14154.194379
+        }
+      },
+      "candidate": {
+        "count": 77,
+        "hash": "01f9c4f68d27630184f0d5268345ada29c31507eac21bfbf45d87e0bc6051e77",
+        "wallMs": 20313.808177,
+        "phases": {
+          "guards": 11.363772000000012,
+          "small": 4668.136162,
+          "candidates": 15586.078259000002
+        }
+      }
+    },
+    {
+      "name": "gen-paxos_epr-r3",
+      "exit": "0",
+      "seconds": "54.8",
+      "placement": {
+        "vm": "bx_7qz5faa3",
+        "type": "large",
+        "cpu": "AMD EPYC 4585PX 16-Core Processor",
+        "vcpus": 4,
+        "vm_vcpus": 8,
+        "exclusive": true,
+        "co_tenants": 0
+      },
+      "sha256": "be6df144bd9f5959f80ea9f583e75f620588ff180b47718014426b897515c0b0",
+      "id": "paxos_epr",
+      "repeat": 3,
+      "identical": true,
+      "base": {
+        "count": 77,
+        "hash": "01f9c4f68d27630184f0d5268345ada29c31507eac21bfbf45d87e0bc6051e77",
+        "wallMs": 33681.752779,
+        "phases": {
+          "guards": 4.640963000000006,
+          "small": 15327.102817,
+          "candidates": 18297.052596
+        }
+      },
+      "candidate": {
+        "count": 77,
+        "hash": "01f9c4f68d27630184f0d5268345ada29c31507eac21bfbf45d87e0bc6051e77",
+        "wallMs": 18839.700488,
+        "phases": {
+          "guards": 5.963017000000008,
+          "small": 5403.349002000001,
+          "candidates": 13373.163549999997
+        }
+      }
+    },
+    {
+      "name": "gen-mldr-r1",
+      "exit": "0",
+      "seconds": "48.11",
+      "placement": {
+        "vm": "bx_25xas5gt",
+        "type": "large",
+        "cpu": "AMD EPYC 4585PX 16-Core Processor",
+        "vcpus": 4,
+        "vm_vcpus": 8,
+        "exclusive": true,
+        "co_tenants": 0
+      },
+      "sha256": "156b194e43f1baa50aefd26c46baef411bdea88d8766c04088ab8407085ae334",
+      "id": "mldr",
+      "repeat": 1,
+      "identical": false,
+      "base": {
+        "count": 27,
+        "hash": "182e714c9c0384d3113f03bbbafba40ec5f19f7c19b2d00377c1d4ef4b567329",
+        "wallMs": 35514.196192999996,
+        "phases": {
+          "guards": 4.027879999999996,
+          "small": 10778.766378,
+          "candidates": 24703.814441999995
+        }
+      },
+      "candidate": {
+        "count": 34,
+        "hash": "dd495ab653ff4376b1c7b8c462c7dfafbcf9b3f5fc27949b8d61543ad5c69563",
+        "wallMs": 11392.474889000001,
+        "phases": {
+          "guards": 7.5926430000000025,
+          "small": 3642.1704550000004,
+          "candidates": 7723.3801539999995
+        }
+      },
+      "names": [
+        "every Config cell is a value of its kind",
+        "one primary per term",
+        "St at most 1",
+        "fields: St[a]=1 -> CT[a]=CfgT[a]",
+        "fields: St[a]=1 -> CT[a]<=CfgT[a]",
+        "fields: St[a]=1 -> CT[a]=CT[b] -> CfgT[b]<=CfgT[a]",
+        "fields: St[a]=1 -> CfgT[a]<=CT[a]",
+        "fields: St[a]=1 -> CfgT[a]=CfgT[b] -> CV[b]<=CV[a]",
+        "every x with x < size: never CT[x] is 0 and 1 <= St[x]",
+        "every x with x < size: never 1 <= CT[x] and CV[x] is 0",
+        "every x with x < size: never 1 <= CT[x] and started is 0",
+        "every x with x < size: never 1 <= St[x] and CV[x] is 0",
+        "every x with x < size: never 1 <= St[x] and CfgT[x] is 0",
+        "every x with x < size: never 1 <= St[x] and started is 0",
+        "every x with x < size: never CV[x] is 0 and 1 <= CfgT[x]",
+        "every x with x < size: never CV[x] is 0 and 1 <= started",
+        "every x with x < size: never 1 <= CfgT[x] and started is 0",
+        "every x, y with x < size ∧ y < size ∧ ¬(x = y): never 1 <= CT[x] and CV[y] is 0",
+        "every x, y with x < size ∧ y < size ∧ ¬(x = y): never 1 <= St[x] and CV[y] is 0",
+        "every x, y with x < size ∧ y < size ∧ ¬(x = y): never CV[x] is 0 and 1 <= CfgT[y]",
+        "inX: no quorum canVote/1",
+        "inX: no quorum canVote/3",
+        "inX: stored guard reconfigs/inS",
+        "inX: stored guard reconfigs/inS or disabled/0",
+        "inX: stored guard reconfigs/inS or disabled/1",
+        "inX: stored guard reconfigs/inS or disabled/2",
+        "inX: stored guard reconfigs/inS or disabled/3",
+        "fields: CV[a]=CV[b] and CfgT[a]=CfgT[b] -> Config rows agree",
+        "count cubes: every x with x < {\"op\":\"var\",\"name\":\"size\"}: never 1 <= started and inX$row[x] is 0",
+        "count cubes: every x with x < {\"op\":\"var\",\"name\":\"size\"}: never 1 <= CT[x] and inX$row[x] is 0",
+        "count cubes: every x with x < {\"op\":\"var\",\"name\":\"size\"}: never CV[x] is 0 and 1 <= inX$row[x]",
+        "count cubes: every x with x < {\"op\":\"var\",\"name\":\"size\"}: never 1 <= CV[x] and inX$row[x] is 0",
+        "count cubes: every x with x < {\"op\":\"var\",\"name\":\"size\"}: never 1 <= CfgT[x] and inX$row[x] is 0",
+        "count cubes: every x with x < {\"op\":\"var\",\"name\":\"size\"}: never 1 <= St[x] and inX$row[x] is 0"
+      ]
+    },
+    {
+      "name": "gen-mldr-r2",
+      "exit": "0",
+      "seconds": "48.55",
+      "placement": {
+        "vm": "bx_a74cfp57",
+        "type": "large",
+        "cpu": "AMD Ryzen 9 9950X 16-Core Processor",
+        "vcpus": 4,
+        "vm_vcpus": 8,
+        "exclusive": true,
+        "co_tenants": 0
+      },
+      "sha256": "f84e02aea73f10dcef68a10e2ea067421d3754015aee1317ddc88b483d213038",
+      "id": "mldr",
+      "repeat": 2,
+      "identical": false,
+      "base": {
+        "count": 27,
+        "hash": "182e714c9c0384d3113f03bbbafba40ec5f19f7c19b2d00377c1d4ef4b567329",
+        "wallMs": 30906.833081999997,
+        "phases": {
+          "guards": 5.699382999999997,
+          "small": 9725.724252,
+          "candidates": 21151.836465
+        }
+      },
+      "candidate": {
+        "count": 34,
+        "hash": "dd495ab653ff4376b1c7b8c462c7dfafbcf9b3f5fc27949b8d61543ad5c69563",
+        "wallMs": 13275.925913,
+        "phases": {
+          "guards": 22.887412999999995,
+          "small": 4937.479525,
+          "candidates": 8291.400242
+        }
+      },
+      "names": [
+        "every Config cell is a value of its kind",
+        "one primary per term",
+        "St at most 1",
+        "fields: St[a]=1 -> CT[a]=CfgT[a]",
+        "fields: St[a]=1 -> CT[a]<=CfgT[a]",
+        "fields: St[a]=1 -> CT[a]=CT[b] -> CfgT[b]<=CfgT[a]",
+        "fields: St[a]=1 -> CfgT[a]<=CT[a]",
+        "fields: St[a]=1 -> CfgT[a]=CfgT[b] -> CV[b]<=CV[a]",
+        "every x with x < size: never CT[x] is 0 and 1 <= St[x]",
+        "every x with x < size: never 1 <= CT[x] and CV[x] is 0",
+        "every x with x < size: never 1 <= CT[x] and started is 0",
+        "every x with x < size: never 1 <= St[x] and CV[x] is 0",
+        "every x with x < size: never 1 <= St[x] and CfgT[x] is 0",
+        "every x with x < size: never 1 <= St[x] and started is 0",
+        "every x with x < size: never CV[x] is 0 and 1 <= CfgT[x]",
+        "every x with x < size: never CV[x] is 0 and 1 <= started",
+        "every x with x < size: never 1 <= CfgT[x] and started is 0",
+        "every x, y with x < size ∧ y < size ∧ ¬(x = y): never 1 <= CT[x] and CV[y] is 0",
+        "every x, y with x < size ∧ y < size ∧ ¬(x = y): never 1 <= St[x] and CV[y] is 0",
+        "every x, y with x < size ∧ y < size ∧ ¬(x = y): never CV[x] is 0 and 1 <= CfgT[y]",
+        "inX: no quorum canVote/1",
+        "inX: no quorum canVote/3",
+        "inX: stored guard reconfigs/inS",
+        "inX: stored guard reconfigs/inS or disabled/0",
+        "inX: stored guard reconfigs/inS or disabled/1",
+        "inX: stored guard reconfigs/inS or disabled/2",
+        "inX: stored guard reconfigs/inS or disabled/3",
+        "fields: CV[a]=CV[b] and CfgT[a]=CfgT[b] -> Config rows agree",
+        "count cubes: every x with x < {\"op\":\"var\",\"name\":\"size\"}: never 1 <= started and inX$row[x] is 0",
+        "count cubes: every x with x < {\"op\":\"var\",\"name\":\"size\"}: never 1 <= CT[x] and inX$row[x] is 0",
+        "count cubes: every x with x < {\"op\":\"var\",\"name\":\"size\"}: never CV[x] is 0 and 1 <= inX$row[x]",
+        "count cubes: every x with x < {\"op\":\"var\",\"name\":\"size\"}: never 1 <= CV[x] and inX$row[x] is 0",
+        "count cubes: every x with x < {\"op\":\"var\",\"name\":\"size\"}: never 1 <= CfgT[x] and inX$row[x] is 0",
+        "count cubes: every x with x < {\"op\":\"var\",\"name\":\"size\"}: never 1 <= St[x] and inX$row[x] is 0"
+      ]
+    },
+    {
+      "name": "gen-mldr-r3",
+      "exit": "0",
+      "seconds": "54.96",
+      "placement": {
+        "vm": "bx_ackcvxnu",
+        "type": "large",
+        "cpu": "AMD Ryzen 9 9950X 16-Core Processor",
+        "vcpus": 4,
+        "vm_vcpus": 8,
+        "exclusive": true,
+        "co_tenants": 0
+      },
+      "sha256": "3988eea4118b7b4884b93b11816e39e4e71cf2183875dc2b449e8bfc4833c98e",
+      "id": "mldr",
+      "repeat": 3,
+      "identical": false,
+      "base": {
+        "count": 27,
+        "hash": "182e714c9c0384d3113f03bbbafba40ec5f19f7c19b2d00377c1d4ef4b567329",
+        "wallMs": 36562.674316,
+        "phases": {
+          "guards": 3.806479000000003,
+          "small": 12709.034327,
+          "candidates": 23807.431961000002
+        }
+      },
+      "candidate": {
+        "count": 34,
+        "hash": "dd495ab653ff4376b1c7b8c462c7dfafbcf9b3f5fc27949b8d61543ad5c69563",
+        "wallMs": 16352.667495,
+        "phases": {
+          "guards": 21.847337999999993,
+          "small": 7070.442165,
+          "candidates": 9215.56868
+        }
+      },
+      "names": [
+        "every Config cell is a value of its kind",
+        "one primary per term",
+        "St at most 1",
+        "fields: St[a]=1 -> CT[a]=CfgT[a]",
+        "fields: St[a]=1 -> CT[a]<=CfgT[a]",
+        "fields: St[a]=1 -> CT[a]=CT[b] -> CfgT[b]<=CfgT[a]",
+        "fields: St[a]=1 -> CfgT[a]<=CT[a]",
+        "fields: St[a]=1 -> CfgT[a]=CfgT[b] -> CV[b]<=CV[a]",
+        "every x with x < size: never CT[x] is 0 and 1 <= St[x]",
+        "every x with x < size: never 1 <= CT[x] and CV[x] is 0",
+        "every x with x < size: never 1 <= CT[x] and started is 0",
+        "every x with x < size: never 1 <= St[x] and CV[x] is 0",
+        "every x with x < size: never 1 <= St[x] and CfgT[x] is 0",
+        "every x with x < size: never 1 <= St[x] and started is 0",
+        "every x with x < size: never CV[x] is 0 and 1 <= CfgT[x]",
+        "every x with x < size: never CV[x] is 0 and 1 <= started",
+        "every x with x < size: never 1 <= CfgT[x] and started is 0",
+        "every x, y with x < size ∧ y < size ∧ ¬(x = y): never 1 <= CT[x] and CV[y] is 0",
+        "every x, y with x < size ∧ y < size ∧ ¬(x = y): never 1 <= St[x] and CV[y] is 0",
+        "every x, y with x < size ∧ y < size ∧ ¬(x = y): never CV[x] is 0 and 1 <= CfgT[y]",
+        "inX: no quorum canVote/1",
+        "inX: no quorum canVote/3",
+        "inX: stored guard reconfigs/inS",
+        "inX: stored guard reconfigs/inS or disabled/0",
+        "inX: stored guard reconfigs/inS or disabled/1",
+        "inX: stored guard reconfigs/inS or disabled/2",
+        "inX: stored guard reconfigs/inS or disabled/3",
+        "fields: CV[a]=CV[b] and CfgT[a]=CfgT[b] -> Config rows agree",
+        "count cubes: every x with x < {\"op\":\"var\",\"name\":\"size\"}: never 1 <= started and inX$row[x] is 0",
+        "count cubes: every x with x < {\"op\":\"var\",\"name\":\"size\"}: never 1 <= CT[x] and inX$row[x] is 0",
+        "count cubes: every x with x < {\"op\":\"var\",\"name\":\"size\"}: never CV[x] is 0 and 1 <= inX$row[x]",
+        "count cubes: every x with x < {\"op\":\"var\",\"name\":\"size\"}: never 1 <= CV[x] and inX$row[x] is 0",
+        "count cubes: every x with x < {\"op\":\"var\",\"name\":\"size\"}: never 1 <= CfgT[x] and inX$row[x] is 0",
+        "count cubes: every x with x < {\"op\":\"var\",\"name\":\"size\"}: never 1 <= St[x] and inX$row[x] is 0"
+      ]
+    }
+  ],
+  "scope": "Worker-generated canonical digest comparisons. No local reconstruction of canonical arrays and no proof or no-loss gate claim."
+}

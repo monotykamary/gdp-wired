@@ -1,0 +1,85 @@
+gdp-ts.tar: OK
+handwired.tar: OK
+main.tar: OK
+bun test v1.4.3 (c6da4a4d3)
+
+--- stderr ---
+
+core/finite-tiny.test.ts:
+(pass) proposals cross the independent full-family/interpreter trust boundary [3.31ms]
+(pass) whole family constrains pre, not just the proposed target [0.26ms]
+(pass) row strides come from lifted count bodies; identifiers have no meaning [1.40ms]
+(pass) unsupported external function never establishes exhaustion [0.18ms]
+(pass) expired wall returns honest interruption and never extends the parent [0.12ms]
+(pass) a rejected proposal resumes rather than stopping or dropping [0.17ms]
+(pass) dispatch slicing and irrelevant-coordinate quotienting use syntax, not names [0.49ms]
+(pass) native tuple rows are inferred without a row-name convention [0.84ms]
+(pass) the callback, not a screen, must enforce lifted preconditions and facts [0.28ms]
+(pass) one shared transition may propose several independently checked helpers [0.26ms]
+(pass) inactive flags cannot prune an unconditional update elsewhere [0.29ms]
+(pass) partial atoms preserve all finite pre-states through both polarities [2.00ms]
+(pass) request atoms wait for every conditional-term dependency [0.87ms]
+(pass) large logical predicates split at the native-body cap without losing proposals [20.58ms]
+(pass) state-only no-op has no proposals in the recorded finite scope [0.27ms]
+
+core/finite-tiny-early.test.ts:
+(pass) seed-only enumeration does not compile native steps or claim exhaustion [0.75ms]
+(pass) seed-only enumeration has the same 256-model cap and finite domains [0.87ms]
+(pass) front-loaded seeds certify before native work and never get a second allowance [1.01ms]
+(pass) early and native phases share one frozen whole family per round [0.56ms]
+(pass) front-loaded seeds preserve callers, source preconditions and unknown facts [0.81ms]
+(pass) ordinary search still runs after front-loaded seeds find nothing [0.43ms]
+(pass) seed-only and front-loaded paths preserve expiration and pending survivors [0.20ms]
+
+core/finite-tiny-seed.test.ts:
+(pass) seed neighborhoods retain every concrete transition in the unchanged finite grids [2.50ms]
+(pass) seed attempts stop at 256 and keep only the last eight seed projections [1.33ms]
+(pass) wrong parameters and out-of-grid seed coordinates are ignored, not clamped [0.15ms]
+(pass) seeded proposals still require the whole family, callers and supported declarations [2.10ms]
+(pass) certified drops can seed later rounds without mutating earlier witnesses [0.43ms]
+(pass) seed neighborhoods cover carried request cells without changing their domain [0.46ms]
+(pass) seed processing never extends the finite wall or swallows an outer expiration [0.18ms]
+(pass) uniform state map seeds preserve all concrete transitions [3.99ms]
+(pass) uniform request map seeds preserve all concrete transitions [1.96ms]
+
+core/finite-tiny-target.test.ts:
+(pass) post-target pruning preserves all concrete transitions: atom [2.18ms]
+(pass) post-target pruning preserves all concrete transitions: negated atom [1.39ms]
+(pass) post-target pruning preserves all concrete transitions: disjunction [1.37ms]
+(pass) post-target pruning preserves all concrete transitions: conjunction [2.95ms]
+(pass) post-target pruning preserves all concrete transitions: negated conjunction [1.17ms]
+(pass) post-target pruning preserves all concrete transitions: negated disjunction [0.75ms]
+(pass) post-target pruning preserves all concrete transitions: nested polarity [1.04ms]
+(pass) post-target pruning preserves all concrete transitions: conditional term [0.90ms]
+(pass) post-target pruning preserves all concrete transitions: interval sum [1.18ms]
+(pass) post-target pruning preserves all concrete transitions: interval truncated subtraction [0.98ms]
+(pass) post-target pruning preserves all concrete transitions: interval product [1.11ms]
+(pass) post-target pruning preserves all concrete transitions: interval minimum [0.91ms]
+(pass) post-target pruning preserves all concrete transitions: interval maximum [0.90ms]
+(pass) partial post coordinates retain their own source readiness after a swap [2.04ms]
+(pass) a target unaffected by another output is not made to depend on that output [0.39ms]
+(pass) post-target pruning retains unknown late request dependencies [0.50ms]
+(pass) a definitely holding postcondition prunes states without claiming universal proof [0.16ms]
+(pass) whole-family and multiple-target transitions survive post-target pruning [0.65ms]
+(pass) source map writes and recomputed lifted counts preserve every transition [1.15ms]
+(pass) interval counts prune before every unchanged post cell is exact [1.11ms]
+(pass) oversize interval predicates fall back to bounded readiness screens [64.45ms]
+(pass) accepted targets may stop but rejected proposals do not consume a target [0.64ms]
+(pass) post-target pruning cannot drop callers or bypass declared facts [1.13ms]
+(pass) unsupported syntax and expired walls remain unknown with target pruning [0.51ms]
+
+core/finite-tiny-houdini.test.ts:
+(pass) tiny Houdini certifies drops independently and never drops a caller [0.53ms]
+(pass) tiny Houdini repeats under the surviving family after certified drops [0.32ms]
+(pass) tiny Houdini checks declared facts and parameter preconditions [0.32ms]
+(pass) unsupported declarations cannot authorize tiny Houdini drops [0.17ms]
+(pass) tiny Houdini preserves survivors on its own timeout and propagates an outer wall [0.20ms]
+(pass) an explicit round cap retains untested later-round helpers [0.38ms]
+(pass) an explicit richer state domain can expose a new real violation [0.28ms]
+(pass) an unsupported count grid retains every candidate [0.07ms]
+(pass) tiny Houdini does not confuse a true natural bound with a witnessed violation [0.09ms]
+
+ 64 pass
+ 0 fail
+ 2232 expect() calls
+Ran 64 tests across 5 files. [164.00ms]

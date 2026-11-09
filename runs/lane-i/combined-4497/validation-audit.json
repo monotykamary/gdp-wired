@@ -1,0 +1,150 @@
+{
+  "finalGate": false,
+  "source": "399c328a8a646958a1a9c24cb19bf68532bf9df9",
+  "snapshot": "d0c41b3366da",
+  "scope": "Pre-consensus-fix combined source; original failed check retained",
+  "issues": [
+    "combined-check: exit 2",
+    "combined-check: no clean check summary"
+  ],
+  "passed": 1294,
+  "assertions": 335448,
+  "jobs": [
+    {
+      "name": "combined-check",
+      "exit": 2,
+      "placement": {
+        "vm": "bx_2uat3ctg",
+        "type": "large",
+        "cpu": "AMD EPYC 9455 48-Core Processor",
+        "vcpus": 8,
+        "vm_vcpus": 8,
+        "exclusive": true,
+        "co_tenants": 0
+      },
+      "sha256": "08192468b2aff4ba302341de027501aed3ecb061972bb0af13d10d903f55a3df",
+      "testGroups": 0,
+      "passed": 0,
+      "assertions": 0
+    },
+    {
+      "name": "combined-tests-1",
+      "exit": 0,
+      "placement": {
+        "vm": "bx_5wr3bs76",
+        "type": "large",
+        "cpu": "AMD EPYC 4585PX 16-Core Processor",
+        "vcpus": 8,
+        "vm_vcpus": 8,
+        "exclusive": true,
+        "co_tenants": 0
+      },
+      "sha256": "2e8cf94128cd230b365e1bf8adf0fc62f2ed894855c155dcfc505bea7579ef3e",
+      "testGroups": 6,
+      "passed": 162,
+      "assertions": 3286
+    },
+    {
+      "name": "combined-tests-2",
+      "exit": 0,
+      "placement": {
+        "vm": "bx_2uat3ctg",
+        "type": "large",
+        "cpu": "AMD EPYC 9455 48-Core Processor",
+        "vcpus": 8,
+        "vm_vcpus": 8,
+        "exclusive": true,
+        "co_tenants": 0
+      },
+      "sha256": "d98562a6bd39ef5a8e5a387a788eb726f7ab99a0083851c295354ea30bce50f3",
+      "testGroups": 4,
+      "passed": 45,
+      "assertions": 1192
+    },
+    {
+      "name": "combined-tests-3",
+      "exit": 0,
+      "placement": {
+        "vm": "bx_acxzr4wr",
+        "type": "large",
+        "cpu": "AMD EPYC 9455 48-Core Processor",
+        "vcpus": 8,
+        "vm_vcpus": 8,
+        "exclusive": true,
+        "co_tenants": 0
+      },
+      "sha256": "5ad2db3568e9f1e2b2696802775676f13e3a373ac78915c5d813bb3bf82a39aa",
+      "testGroups": 6,
+      "passed": 235,
+      "assertions": 42864
+    },
+    {
+      "name": "combined-tests-4",
+      "exit": 0,
+      "placement": {
+        "vm": "bx_7y8uwqen",
+        "type": "large",
+        "cpu": "AMD EPYC 9455 48-Core Processor",
+        "vcpus": 8,
+        "vm_vcpus": 8,
+        "exclusive": true,
+        "co_tenants": 0
+      },
+      "sha256": "344bed6bb895429c4e4e184d61744cf7bf268bbca093866c6694a63ce084a1d8",
+      "testGroups": 6,
+      "passed": 134,
+      "assertions": 195577
+    },
+    {
+      "name": "combined-tests-5",
+      "exit": 0,
+      "placement": {
+        "vm": "bx_5jvcbp5r",
+        "type": "large",
+        "cpu": "AMD Ryzen 7 9700X 8-Core Processor",
+        "vcpus": 8,
+        "vm_vcpus": 8,
+        "exclusive": true,
+        "co_tenants": 0
+      },
+      "sha256": "5d882949c81f26e8e565545952df09d28981d07ac4b75e93fd34963dfa9fd594",
+      "testGroups": 5,
+      "passed": 239,
+      "assertions": 63593
+    },
+    {
+      "name": "combined-tests-6",
+      "exit": 0,
+      "placement": {
+        "vm": "bx_6k9k52sn",
+        "type": "large",
+        "cpu": "AMD EPYC 4585PX 16-Core Processor",
+        "vcpus": 8,
+        "vm_vcpus": 8,
+        "exclusive": true,
+        "co_tenants": 0
+      },
+      "sha256": "5cd4fbb162d0eb8cf2958973d9af56e1adce5ef713ebed68bbb69a1ae1f51ebf",
+      "testGroups": 4,
+      "passed": 203,
+      "assertions": 6494
+    },
+    {
+      "name": "combined-tests-7",
+      "exit": 0,
+      "placement": {
+        "vm": "bx_8y6xda5y",
+        "type": "large",
+        "cpu": "AMD EPYC 9455 48-Core Processor",
+        "vcpus": 8,
+        "vm_vcpus": 8,
+        "exclusive": true,
+        "co_tenants": 0
+      },
+      "sha256": "2cc73a09725d83ec3ba3eb715d47e794d8a9c674978ec7f38c96a4e144237172",
+      "testGroups": 5,
+      "passed": 276,
+      "assertions": 22442
+    }
+  ]
+}

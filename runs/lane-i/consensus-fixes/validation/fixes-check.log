@@ -1,0 +1,11 @@
+gdp-ts.tar: OK
+handwired.tar: OK
+main.tar: OK
+core/counts.ts(1014,5): error TS2322: Type 'Tried<unknown>' is not assignable to type 'Tried<Proof>'.
+  Type '{ proof: unknown; }' is not assignable to type 'Tried<Proof>'.
+    Type '{ proof: unknown; }' is not assignable to type '{ proof: Proof; }'.
+      Types of property 'proof' are incompatible.
+        Type 'unknown' is not assignable to type 'Proof'.
+
+--- stderr ---
+$ tsc -p . && oxlint --type-aware --deny-warnings --disable-nested-config

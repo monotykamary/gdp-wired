@@ -1,0 +1,27 @@
+gdp-ts.tar: OK
+handwired.tar: OK
+main.tar: OK
+{
+  "candidate": "5829b23d7e7d64136625154c9b161402a89aff19",
+  "baseline": "4497c4b05c3111959a2b8d808c426a0e3cab3f01",
+  "archives": {
+    "main.tar": "9508c2e454b4b6eefa4093bbf6efba569d09bea4bc89646b6e8df7bc0a3a6dc6",
+    "handwired.tar": "73d44548dbe109a40ac933406324e17d7dee39e7dff1a6f1270ed030c31c1da4",
+    "gdp-ts.tar": "75d367da15decb1fefce2ae72ae50e7f3f737989094a760fde643c5b1f5c1496"
+  },
+  "integratedHeads": {
+    "A": "0bab28e2a2ac83ef1dc67991317d8eeeeb7716b5",
+    "B": "4ce50c00ac693a036f9d3df79aa46f0f8f344161",
+    "E": "e1b8d3b7d55be33fd6434c589bcac903bb58fd02",
+    "F": "c15212624e394fca9e2051ab494d4f50017da059",
+    "Fable": "f6b383f0ceed7cc52cb15d1ea91b2c75e7b8e0f9"
+  }
+}
+model name	: AMD Ryzen 9 9950X 16-Core Processor
+LANE_I_BEGIN census 1 client_server_ae base
+{"id":"client_server_ae","count":10,"wallMs":2840.4911159999997,"phases":{"guards":2.706621999999996,"small":992.0504189999999,"candidates":1841.2043720000001},"states":[4538],"counts":[],"cprof":{"small":0.012302999999974418,"cubes":1705.903252,"filter":107.33773199999996}}
+LANE_I_END census 1 client_server_ae base
+LANE_I_BEGIN census 1 client_server_ae candidate
+{"id":"client_server_ae","count":10,"wallMs":2221.188539,"phases":{"guards":3.148342999999997,"small":740.307192,"candidates":1472.488465},"states":[4538],"counts":[],"cprof":{"small":0.0265910000000531,"cubes":1335.3980179999999,"filter":105.81937500000004,"quorumFilter":0.11453500000015993}}
+LANE_I_END census 1 client_server_ae candidate
+LANE_I_CENSUS {"id":"client_server_ae","repeat":1,"identical":true,"base":{"count":10,"hash":"1772d8c83ef06781cd23d6cfbe447b783864d76ee4b2a7004c5ac085a94040ea","wallMs":2840.4911159999997,"phases":{"guards":2.706621999999996,"small":992.0504189999999,"candidates":1841.2043720000001}},"candidate":{"count":10,"hash":"1772d8c83ef06781cd23d6cfbe447b783864d76ee4b2a7004c5ac085a94040ea","wallMs":2221.188539,"phases":{"guards":3.148342999999997,"small":740.307192,"candidates":1472.488465}}}

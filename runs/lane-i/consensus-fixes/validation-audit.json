@@ -1,0 +1,66 @@
+{
+  "finalGate": false,
+  "source": "44ad3947d887aa9e5269bb8ca98ed9b1fea2ad8b",
+  "snapshot": "2a77bdce4309",
+  "issues": [
+    "fixes-check: exit 2",
+    "fixes-check: no clean check summary"
+  ],
+  "passed": 167,
+  "assertions": 3386,
+  "jobs": [
+    {
+      "name": "fixes-check",
+      "exit": 2,
+      "placement": {
+        "vm": "bx_2eg9t59n",
+        "type": "large",
+        "cpu": "AMD EPYC 9455 48-Core Processor",
+        "vcpus": 8,
+        "vm_vcpus": 8,
+        "exclusive": true,
+        "co_tenants": 0
+      },
+      "sha256": "a8cfe234720bdf3fda87cc745cde7036d3f5bd3ba02f454fbc613adffae742f8",
+      "issues": [
+        "no clean check summary"
+      ],
+      "passed": 0,
+      "assertions": 0
+    },
+    {
+      "name": "fixes-count-tests",
+      "exit": 0,
+      "placement": {
+        "vm": "bx_6k9k52sn",
+        "type": "large",
+        "cpu": "AMD EPYC 4585PX 16-Core Processor",
+        "vcpus": 8,
+        "vm_vcpus": 8,
+        "exclusive": true,
+        "co_tenants": 0
+      },
+      "sha256": "e8a5ff2946caccde4cc084a4697a8ef84426f1800487546c779d268549911bea",
+      "issues": [],
+      "passed": 103,
+      "assertions": 1154
+    },
+    {
+      "name": "fixes-finite-tests",
+      "exit": 0,
+      "placement": {
+        "vm": "bx_7qz5faa3",
+        "type": "large",
+        "cpu": "AMD EPYC 4585PX 16-Core Processor",
+        "vcpus": 8,
+        "vm_vcpus": 8,
+        "exclusive": true,
+        "co_tenants": 0
+      },
+      "sha256": "40c4956338df405e72627b6a5ca5e4224d6e4c654cf78354b9dd644f5d88f859",
+      "issues": [],
+      "passed": 64,
+      "assertions": 2232
+    }
+  ]
+}

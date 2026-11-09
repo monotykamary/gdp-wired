@@ -1,0 +1,27 @@
+gdp-ts.tar: OK
+handwired.tar: OK
+main.tar: OK
+{
+  "candidate": "5829b23d7e7d64136625154c9b161402a89aff19",
+  "baseline": "4497c4b05c3111959a2b8d808c426a0e3cab3f01",
+  "archives": {
+    "main.tar": "9508c2e454b4b6eefa4093bbf6efba569d09bea4bc89646b6e8df7bc0a3a6dc6",
+    "handwired.tar": "73d44548dbe109a40ac933406324e17d7dee39e7dff1a6f1270ed030c31c1da4",
+    "gdp-ts.tar": "75d367da15decb1fefce2ae72ae50e7f3f737989094a760fde643c5b1f5c1496"
+  },
+  "integratedHeads": {
+    "A": "0bab28e2a2ac83ef1dc67991317d8eeeeb7716b5",
+    "B": "4ce50c00ac693a036f9d3df79aa46f0f8f344161",
+    "E": "e1b8d3b7d55be33fd6434c589bcac903bb58fd02",
+    "F": "c15212624e394fca9e2051ab494d4f50017da059",
+    "Fable": "f6b383f0ceed7cc52cb15d1ea91b2c75e7b8e0f9"
+  }
+}
+model name	: AMD EPYC 9455 48-Core Processor
+LANE_I_BEGIN census 2 consensus_forall candidate
+{"id":"consensus_forall","count":48,"wallMs":6970.819707000001,"phases":{"guards":4.4774380000000065,"small":2197.066472,"candidates":4681.864583999999},"states":[177,2311],"counts":["members","members$VotingQuorum","members$VotingQuorum$Leader"],"cprof":{"small":0.013551000000006752,"cubes":4269.283088,"filter":393.34495399999923,"quorumFilter":0.030104999999821302}}
+LANE_I_END census 2 consensus_forall candidate
+LANE_I_BEGIN census 2 consensus_forall base
+{"id":"consensus_forall","count":48,"wallMs":11946.536042000002,"phases":{"guards":3.918562999999999,"small":4262.718563,"candidates":7569.984405},"states":[177,2311],"counts":["members","members$VotingQuorum","members$VotingQuorum$Leader"],"cprof":{"small":0.013128999999935331,"cubes":7107.0147449999995,"filter":438.97065400000065}}
+LANE_I_END census 2 consensus_forall base
+LANE_I_CENSUS {"id":"consensus_forall","repeat":2,"identical":true,"base":{"count":48,"hash":"5597b7cd11317d41db1e3204398864077a58857746c18b15db1cfb4ebcd1e3da","wallMs":11946.536042000002,"phases":{"guards":3.918562999999999,"small":4262.718563,"candidates":7569.984405}},"candidate":{"count":48,"hash":"5597b7cd11317d41db1e3204398864077a58857746c18b15db1cfb4ebcd1e3da","wallMs":6970.819707000001,"phases":{"guards":4.4774380000000065,"small":2197.066472,"candidates":4681.864583999999}}}

@@ -1,0 +1,27 @@
+gdp-ts.tar: OK
+handwired.tar: OK
+main.tar: OK
+{
+  "candidate": "5829b23d7e7d64136625154c9b161402a89aff19",
+  "baseline": "4497c4b05c3111959a2b8d808c426a0e3cab3f01",
+  "archives": {
+    "main.tar": "9508c2e454b4b6eefa4093bbf6efba569d09bea4bc89646b6e8df7bc0a3a6dc6",
+    "handwired.tar": "73d44548dbe109a40ac933406324e17d7dee39e7dff1a6f1270ed030c31c1da4",
+    "gdp-ts.tar": "75d367da15decb1fefce2ae72ae50e7f3f737989094a760fde643c5b1f5c1496"
+  },
+  "integratedHeads": {
+    "A": "0bab28e2a2ac83ef1dc67991317d8eeeeb7716b5",
+    "B": "4ce50c00ac693a036f9d3df79aa46f0f8f344161",
+    "E": "e1b8d3b7d55be33fd6434c589bcac903bb58fd02",
+    "F": "c15212624e394fca9e2051ab494d4f50017da059",
+    "Fable": "f6b383f0ceed7cc52cb15d1ea91b2c75e7b8e0f9"
+  }
+}
+model name	: AMD Ryzen 9 9950X 16-Core Processor
+LANE_I_BEGIN census 2 learning_switch candidate
+{"id":"learning_switch","count":16,"wallMs":87952.09435700001,"phases":{"guards":2.5051190000000005,"small":82739.18951899999,"candidates":5205.718278},"states":[750,3420],"counts":[],"cprof":{"small":0.1054370000056224,"cubes":4825.225951999993,"filter":366.15768099999696,"quorumFilter":0.011882000006153248}}
+LANE_I_END census 2 learning_switch candidate
+LANE_I_BEGIN census 2 learning_switch base
+{"id":"learning_switch","count":16,"wallMs":232652.32831100002,"phases":{"guards":2.2416750000000008,"small":224788.031017,"candidates":7855.431391999999},"states":[750,3420],"counts":[],"cprof":{"small":0.024776000005658716,"cubes":7291.469539999991,"filter":543.6838129999815}}
+LANE_I_END census 2 learning_switch base
+LANE_I_CENSUS {"id":"learning_switch","repeat":2,"identical":true,"base":{"count":16,"hash":"30e01737accefb7cdd6842704aaadf370a3420d57fff3aefa81a435eb25c3761","wallMs":232652.32831100002,"phases":{"guards":2.2416750000000008,"small":224788.031017,"candidates":7855.431391999999}},"candidate":{"count":16,"hash":"30e01737accefb7cdd6842704aaadf370a3420d57fff3aefa81a435eb25c3761","wallMs":87952.09435700001,"phases":{"guards":2.5051190000000005,"small":82739.18951899999,"candidates":5205.718278}}}

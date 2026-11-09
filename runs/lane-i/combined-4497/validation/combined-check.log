@@ -1,0 +1,21 @@
+gdp-ts.tar: OK
+handwired.tar: OK
+main.tar: OK
+research/track-wall/fast-step-census.ts(11,79): error TS18046: 'w' is of type 'unknown'.
+research/track-wall/frame-cut.ts(83,30): error TS2769: No overload matches this call.
+  Overload 1 of 4, '(iterable?: Iterable<readonly [string, { readonly lin: Lin; readonly holds: true; }]> | null | undefined): Map<string, { readonly lin: Lin; readonly holds: true; }>', gave the following error.
+    Argument of type '(readonly [string, { readonly lin: Lin; readonly holds: true; }] | [string, { lin: Lin; holds: false; }])[]' is not assignable to parameter of type 'Iterable<readonly [string, { readonly lin: Lin; readonly holds: true; }]>'.
+      The types returned by '[Symbol.iterator]().next(...)' are incompatible between these types.
+        Type 'IteratorResult<readonly [string, { readonly lin: Lin; readonly holds: true; }] | [string, { lin: Lin; holds: false; }], undefined>' is not assignable to type 'IteratorResult<readonly [string, { readonly lin: Lin; readonly holds: true; }], any>'.
+          Type 'IteratorYieldResult<readonly [string, { readonly lin: Lin; readonly holds: true; }] | [string, { lin: Lin; holds: false; }]>' is not assignable to type 'IteratorResult<readonly [string, { readonly lin: Lin; readonly holds: true; }], any>'.
+            Type 'IteratorYieldResult<readonly [string, { readonly lin: Lin; readonly holds: true; }] | [string, { lin: Lin; holds: false; }]>' is not assignable to type 'IteratorYieldResult<readonly [string, { readonly lin: Lin; readonly holds: true; }]>'.
+              Type 'readonly [string, { readonly lin: Lin; readonly holds: true; }] | [string, { lin: Lin; holds: false; }]' is not assignable to type 'readonly [string, { readonly lin: Lin; readonly holds: true; }]'.
+                Type '[string, { lin: Lin; holds: false; }]' is not assignable to type 'readonly [string, { readonly lin: Lin; readonly holds: true; }]'.
+                  Type at position 1 in source is not compatible with type at position 1 in target.
+                    The types of 'holds' are incompatible between these types.
+                      Type 'false' is not assignable to type 'true'.
+  Overload 2 of 4, '(entries?: readonly (readonly [string, { readonly lin: Lin; readonly holds: true; }])[] | null | undefined): Map<string, { readonly lin: Lin; readonly holds: true; }>', gave the following error.
+    Type 'false' is not assignable to type 'true'.
+
+--- stderr ---
+$ tsc -p . && oxlint --type-aware --deny-warnings --disable-nested-config
