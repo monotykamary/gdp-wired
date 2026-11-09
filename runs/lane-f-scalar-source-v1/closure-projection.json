@@ -1,0 +1,390 @@
+[
+  {
+    "pair": "projection-AB",
+    "side": "before",
+    "conditional": true,
+    "directClosure": true,
+    "wholeHelper": false,
+    "law": "inX: stored guard reconfigs/inS or disabled/0",
+    "op": 0,
+    "packetSha256": "f85affd2f84babfeaef29618e14e68d14bf2c24b9e20369d2c8332a170ff3b9e",
+    "searchUnits": 999.2449419999999,
+    "searchWallMs": 7029.653859,
+    "units": 999.2449419999999,
+    "wallMs": 7065.382973999999,
+    "checked": false,
+    "reads": 60,
+    "instances": 294,
+    "pairs": [
+      [
+        {
+          "op": "var",
+          "name": "a$quorum#"
+        },
+        {
+          "op": "var",
+          "name": "i"
+        }
+      ],
+      [
+        {
+          "op": "var",
+          "name": "b$quorum"
+        },
+        {
+          "op": "var",
+          "name": "i"
+        }
+      ]
+    ],
+    "writes": true,
+    "rowQueries": 4,
+    "rowSplits": 2,
+    "rowMirrors": 0
+  },
+  {
+    "pair": "projection-AB",
+    "side": "after",
+    "conditional": true,
+    "directClosure": true,
+    "wholeHelper": false,
+    "law": "inX: stored guard reconfigs/inS or disabled/0",
+    "op": 0,
+    "packetSha256": "f85affd2f84babfeaef29618e14e68d14bf2c24b9e20369d2c8332a170ff3b9e",
+    "searchUnits": 785.465516,
+    "searchWallMs": 7007.219744,
+    "units": 785.465516,
+    "wallMs": 7038.713887999999,
+    "checked": false,
+    "reads": 60,
+    "instances": 294,
+    "pairs": [
+      [
+        {
+          "op": "var",
+          "name": "a$quorum#"
+        },
+        {
+          "op": "var",
+          "name": "i"
+        }
+      ],
+      [
+        {
+          "op": "var",
+          "name": "b$quorum"
+        },
+        {
+          "op": "var",
+          "name": "i"
+        }
+      ]
+    ],
+    "writes": true,
+    "rowQueries": 4,
+    "rowSplits": 2,
+    "rowMirrors": 0
+  },
+  {
+    "pair": "projection-AB",
+    "archive": {
+      "artifact": "track-m-tar-v1",
+      "dir": "/home/user/track-m-s18-receipts-16Mul0",
+      "format": "tar.gz",
+      "parts": 2,
+      "bytes": 204379,
+      "sha256": "09b903cdcd308bbf8412a788b9f405979a19fb05cd2a0d0b04782b6ed3a1661e"
+    }
+  },
+  {
+    "pair": "projection-BA",
+    "side": "after",
+    "conditional": true,
+    "directClosure": true,
+    "wholeHelper": false,
+    "law": "inX: stored guard reconfigs/inS or disabled/0",
+    "op": 0,
+    "packetSha256": "f85affd2f84babfeaef29618e14e68d14bf2c24b9e20369d2c8332a170ff3b9e",
+    "searchUnits": 1552.8196151999998,
+    "searchWallMs": 5617.079954,
+    "units": 1552.8196151999998,
+    "wallMs": 5641.7761789999995,
+    "checked": false,
+    "reads": 60,
+    "instances": 294,
+    "pairs": [
+      [
+        {
+          "op": "var",
+          "name": "a$quorum#"
+        },
+        {
+          "op": "var",
+          "name": "i"
+        }
+      ],
+      [
+        {
+          "op": "var",
+          "name": "b$quorum"
+        },
+        {
+          "op": "var",
+          "name": "i"
+        }
+      ]
+    ],
+    "writes": true,
+    "rowQueries": 4,
+    "rowSplits": 2,
+    "rowMirrors": 0
+  },
+  {
+    "pair": "projection-BA",
+    "side": "before",
+    "conditional": true,
+    "directClosure": true,
+    "wholeHelper": false,
+    "law": "inX: stored guard reconfigs/inS or disabled/0",
+    "op": 0,
+    "packetSha256": "f85affd2f84babfeaef29618e14e68d14bf2c24b9e20369d2c8332a170ff3b9e",
+    "searchUnits": 1555.8111519999998,
+    "searchWallMs": 5509.309724999999,
+    "units": 1555.8111519999998,
+    "wallMs": 5526.318590000001,
+    "checked": false,
+    "reads": 60,
+    "instances": 294,
+    "pairs": [
+      [
+        {
+          "op": "var",
+          "name": "a$quorum#"
+        },
+        {
+          "op": "var",
+          "name": "i"
+        }
+      ],
+      [
+        {
+          "op": "var",
+          "name": "b$quorum"
+        },
+        {
+          "op": "var",
+          "name": "i"
+        }
+      ]
+    ],
+    "writes": true,
+    "rowQueries": 4,
+    "rowSplits": 2,
+    "rowMirrors": 0
+  },
+  {
+    "pair": "projection-BA",
+    "archive": {
+      "artifact": "track-m-tar-v1",
+      "dir": "/home/user/track-m-s18-receipts-KO8Bcx",
+      "format": "tar.gz",
+      "parts": 2,
+      "bytes": 206111,
+      "sha256": "67aeeddee5c674ee2a1a7a5b4d6df1024ce27f63f5c748dad7c72274994c2ca1"
+    }
+  },
+  {
+    "pair": "projection-core-AB",
+    "side": "before",
+    "conditional": true,
+    "directClosure": true,
+    "wholeHelper": false,
+    "law": "inX: stored guard reconfigs/inS or disabled/0",
+    "op": 0,
+    "packetSha256": "f85affd2f84babfeaef29618e14e68d14bf2c24b9e20369d2c8332a170ff3b9e",
+    "searchUnits": 1555.8111519999998,
+    "searchWallMs": 4311.076857999999,
+    "units": 1555.8111519999998,
+    "wallMs": 4323.945305,
+    "checked": false,
+    "reads": 60,
+    "instances": 294,
+    "pairs": [
+      [
+        {
+          "op": "var",
+          "name": "a$quorum#"
+        },
+        {
+          "op": "var",
+          "name": "i"
+        }
+      ],
+      [
+        {
+          "op": "var",
+          "name": "b$quorum"
+        },
+        {
+          "op": "var",
+          "name": "i"
+        }
+      ]
+    ],
+    "writes": true,
+    "rowQueries": 4,
+    "rowSplits": 2,
+    "rowMirrors": 0
+  },
+  {
+    "pair": "projection-core-AB",
+    "side": "after",
+    "conditional": true,
+    "directClosure": true,
+    "wholeHelper": false,
+    "law": "inX: stored guard reconfigs/inS or disabled/0",
+    "op": 0,
+    "packetSha256": "f85affd2f84babfeaef29618e14e68d14bf2c24b9e20369d2c8332a170ff3b9e",
+    "searchUnits": 1557.4652535999999,
+    "searchWallMs": 4046.804516,
+    "units": 1557.4652535999999,
+    "wallMs": 4057.61207,
+    "checked": false,
+    "reads": 60,
+    "instances": 294,
+    "pairs": [
+      [
+        {
+          "op": "var",
+          "name": "a$quorum#"
+        },
+        {
+          "op": "var",
+          "name": "i"
+        }
+      ],
+      [
+        {
+          "op": "var",
+          "name": "b$quorum"
+        },
+        {
+          "op": "var",
+          "name": "i"
+        }
+      ]
+    ],
+    "writes": true,
+    "rowQueries": 4,
+    "rowSplits": 2,
+    "rowMirrors": 0
+  },
+  {
+    "pair": "projection-core-AB",
+    "archive": {
+      "artifact": "track-m-tar-v1",
+      "dir": "/home/user/track-m-s18-receipts-xKBnDx",
+      "format": "tar.gz",
+      "parts": 2,
+      "bytes": 205466,
+      "sha256": "4fa776abb9ea2952feba02efcced677d11df0e8667d163da0385f1174fb33307"
+    }
+  },
+  {
+    "pair": "projection-core-BA",
+    "side": "after",
+    "conditional": true,
+    "directClosure": true,
+    "wholeHelper": false,
+    "law": "inX: stored guard reconfigs/inS or disabled/0",
+    "op": 0,
+    "packetSha256": "f85affd2f84babfeaef29618e14e68d14bf2c24b9e20369d2c8332a170ff3b9e",
+    "searchUnits": 1557.4652535999999,
+    "searchWallMs": 3850.282074,
+    "units": 1557.4652535999999,
+    "wallMs": 3862.8914200000004,
+    "checked": false,
+    "reads": 60,
+    "instances": 294,
+    "pairs": [
+      [
+        {
+          "op": "var",
+          "name": "a$quorum#"
+        },
+        {
+          "op": "var",
+          "name": "i"
+        }
+      ],
+      [
+        {
+          "op": "var",
+          "name": "b$quorum"
+        },
+        {
+          "op": "var",
+          "name": "i"
+        }
+      ]
+    ],
+    "writes": true,
+    "rowQueries": 4,
+    "rowSplits": 2,
+    "rowMirrors": 0
+  },
+  {
+    "pair": "projection-core-BA",
+    "side": "before",
+    "conditional": true,
+    "directClosure": true,
+    "wholeHelper": false,
+    "law": "inX: stored guard reconfigs/inS or disabled/0",
+    "op": 0,
+    "packetSha256": "f85affd2f84babfeaef29618e14e68d14bf2c24b9e20369d2c8332a170ff3b9e",
+    "searchUnits": 1555.8111519999998,
+    "searchWallMs": 4351.278078,
+    "units": 1555.8111519999998,
+    "wallMs": 4364.182666000001,
+    "checked": false,
+    "reads": 60,
+    "instances": 294,
+    "pairs": [
+      [
+        {
+          "op": "var",
+          "name": "a$quorum#"
+        },
+        {
+          "op": "var",
+          "name": "i"
+        }
+      ],
+      [
+        {
+          "op": "var",
+          "name": "b$quorum"
+        },
+        {
+          "op": "var",
+          "name": "i"
+        }
+      ]
+    ],
+    "writes": true,
+    "rowQueries": 4,
+    "rowSplits": 2,
+    "rowMirrors": 0
+  },
+  {
+    "pair": "projection-core-BA",
+    "archive": {
+      "artifact": "track-m-tar-v1",
+      "dir": "/home/user/track-m-s18-receipts-7V8MbW",
+      "format": "tar.gz",
+      "parts": 2,
+      "bytes": 205477,
+      "sha256": "f7b6420f2e5011b56d642693763c9b97c041501dbdd5be3f69daa27bffebde36"
+    }
+  }
+]

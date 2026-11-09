@@ -13,6 +13,18 @@ for(const bounded of [true,false])test(`scalar context ${bounded?'retains the so
  const tree=booleanCore(g,new Map(),new Set(['w']),clock()+1000,[])
  if(bounded){expect(tree).toBeDefined();if(tree){const lifted=widen(g,source,tree,{});expect(lifted&&check(source,lifted)).toBe(true)}}else expect(tree).toBeUndefined()
 })
+test('scalar source projection keeps live guard domains without importing field facts',()=>{
+ const value=ite(atMost(x('guard'),n(1)),n(0),n(1)),claim=same(value,n(1)),bound=atMost(x('guard'),n(1)),field=same(get('Unrelated',n(0)),n(7)),core={name:'scalar seed',hyps:[claim]},source={name:'scalar source',hyps:[bound,field,claim]},names=new Set<string>()
+ walkLive(core.hyps,new Map(),o=>{if(o.op==='var')names.add(o.name)})
+ const projected=sourceScalarContext(source,core,names,new Map())
+ expect(projected.hyps).toEqual([claim,bound])
+ const out=grow(projected,new Map(),{nodes:0,until:clock()+1000})
+ expect('tree'in out).toBe(true)
+ if('tree'in out){const tree=widen(projected,source,out.tree);expect(tree).toBeDefined();if(tree)expect(check(source,tree)).toBe(true)}
+ const missing=sourceScalarContext({...source,hyps:[field,claim]},core,names,new Map())
+ expect(missing).toBe(core)
+ expect('tree'in grow(missing,new Map(),{nodes:0,until:clock()+1000})).toBe(false)
+})
 test('dependency slices ignore inactive witnesses without rewriting source terms',()=>{
  const term=ite(same(x('op'),n(0)),x('foreignWitness'),x('liveWitness')),before=JSON.stringify(term),lin={op:-1,'1':1},path:Path=new Map([[canon(lin),{lin,holds:true}]])
  const names=(path:Path)=>{const out=new Set<string>();walkLive(term,path,o=>{if(o.op==='var')out.add(o.name)});return [...out].sort()}
