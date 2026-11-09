@@ -25,6 +25,17 @@ for(const prefix of ['alpha_','other_'])test('ordinary admission and source tupl
  const again=admitMemberWitnesses(f.m,f.ds,f.cert,state,10)
  expect(again.cert.insts[0]!.wit).toBe(p.cert.insts[0]!.wit)
 })
+test('flags-first admission leaves scalar laws demand-driven and preserves learned tuples',()=>{
+ const f=fixture(),state=memberPremiseState([f.m,[f.law]]),p=admitMemberWitnesses(f.m,f.ds,f.cert,state,10)
+ const out=instantiateMemberPremises(f.m,[],{},f.ds,p.hints,state,64)
+ expect(out.at['?'+f.name('view')]).toEqual([x(p.cert.insts[0]!.wit)])
+ expect(out.at['?'+f.name('aligned')]).toEqual([x(p.cert.insts[0]!.wit)])
+ expect(out.at[f.law.name]).toBeUndefined()
+ expect(out.added.every(a=>a.kind==='flag')).toBe(true)
+ const learned={[f.law.name]:[f.actor]},kept=instantiateMemberPremises(f.m,[],learned,f.ds,p.hints,memberPremiseState(f.m),64)
+ expect(kept.at[f.law.name]).toBe(learned[f.law.name])
+ expect(learned).toEqual({[f.law.name]:[f.actor]})
+})
 test('the emitted ordinary witness is proved from actual instantiated premises',()=>{
  const f=fixture(),state=memberPremiseState([f.m,[f.law]]),p=admitMemberWitnesses(f.m,f.ds,f.cert,state,10),out=instantiateMemberPremises(f.m,[f.law],{},f.ds,p.hints,state,64)
  const wit=x(p.cert.insts[0]!.wit),flags=Object.entries(f.m.step.flags!).flatMap(([name,q])=>q.op==='all'&&(out.at['?'+name]??[]).some(t=>JSON.stringify(t)===JSON.stringify(wit))?[substC(q.c,{vars:{[q.key]:wit},maps:{},flags:{}})]:[]),claim:C={op:'<=',a:get(f.name('Incoming'),n(0)),b:get(f.name('Allowed'),n(0))},hyps=[...assumed([f.law],out.at),...flags,not(claim)],g=mcGoal(hyps,f.ds,p.cert)!
