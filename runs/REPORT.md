@@ -45,6 +45,28 @@ so it supersedes a separate retry of the failed final-source check; there is
 no duplicate test batch. Results remain pending. Do not edit the clone while
 it uploads or runs. No gate or proof claim.
 
+## Disk
+
+Coordinator disk rules are in force. No files are being deleted. No further
+whole-tree clone/archive per run will be made. Future archive-based work must
+reuse `/private/tmp/gdp-archives/<sha>.tar`, creating it only if missing, and
+pass it with `--data`; no tree tar goes in output/input directories. Retrieve
+compact summaries/receipts/hashes; request raw logs only for a specific
+question and gzip them. No write over 500 MB is planned; such a write would
+be reported here first.
+
+Measured lane-owned scratch (created before the disk notice):
+
+| Path | Size | Suggested disposition and why |
+| --- | ---: | --- |
+| `/tmp/gdp-lane-a-frozen.uLpIQc/checkpoint` | 160 MB | Coordinator may delete: never submitted; exact source `bef4020f` remains in Git. The registered original batch uses the original worktree, not this clone. |
+| `/tmp/gdp-lane-a-frozen.uLpIQc/wip` | 160 MB | Coordinator may delete: never submitted; superseded by the current clone and source `32772de6` remains in Git. |
+| `/tmp/gdp-lane-a-frozen.uLpIQc/current` | 160 MB | **Keep until the two immutable submissions terminate**; deferred upload reads this source. Then a cleanup candidate because `19ad4ab4` remains in Git. |
+| `/tmp/gdp-lane-a-frozen.uLpIQc/data` | 68 KB | Keep while the optimized probe submission can read it; frozen input is separately preserved in this worktree. |
+
+Only the first two paths (about 320 MB total) are immediate cleanup
+candidates. Nothing was deleted, and no current upload source was changed.
+
 ## Historical execution hold — coordinator memory notice
 
 The coordinator reported laptop memory pressure and a blocked shared
