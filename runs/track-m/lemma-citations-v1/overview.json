@@ -1,0 +1,258 @@
+{
+  "researchOnly": true,
+  "inputSha256": "2250878789dc6ac1ea443173477e6536b677c45c6992f5998c0dd2816d820594",
+  "rows": [
+    {
+      "law": "Inv2973: quorums overlap, or a config disabled",
+      "op": 0,
+      "searchUnits": 500.27550119999995,
+      "searchWallMs": 5000.175781,
+      "closed": false,
+      "helperUnits": 500.18903559999995,
+      "otherHelperUnits": 68.9062707999999,
+      "nonEmittedAttemptUnits": 0.09387360000005174,
+      "summaries": {
+        "all": {
+          "emitted": 13,
+          "checked": 12,
+          "proofCited": 9,
+          "coreCited": 9,
+          "requestedBefore": 12,
+          "decisionRead": 0,
+          "possibleOnly": 0,
+          "noObservedUse": 4,
+          "emittedUnits": 431.1888912,
+          "notProofCitedUnits": 0.30130839999998216,
+          "noObservedUseUnits": 0.30130839999998216,
+          "noObservedUseSourceUnits": 0.30130839999998216
+        },
+        "field": {
+          "emitted": 4,
+          "checked": 3,
+          "proofCited": 0,
+          "coreCited": 0,
+          "requestedBefore": 3,
+          "decisionRead": 0,
+          "possibleOnly": 0,
+          "noObservedUse": 4,
+          "emittedUnits": 0.30130839999998216,
+          "notProofCitedUnits": 0.30130839999998216,
+          "noObservedUseUnits": 0.30130839999998216,
+          "noObservedUseSourceUnits": 0.30130839999998216
+        },
+        "frame": {
+          "emitted": 9,
+          "checked": 9,
+          "proofCited": 9,
+          "coreCited": 9,
+          "requestedBefore": 9,
+          "decisionRead": 0,
+          "possibleOnly": 0,
+          "noObservedUse": 0,
+          "emittedUnits": 430.8875828,
+          "notProofCitedUnits": 0,
+          "noObservedUseUnits": 0,
+          "noObservedUseSourceUnits": 0
+        }
+      },
+      "proofStages": {
+        "closure": 0,
+        "leaf": 9,
+        "later-lemma": 0,
+        "other": 0
+      },
+      "consumerCalls": 69,
+      "auditedConsumers": 63,
+      "checkedConsumerProofs": 52
+    },
+    {
+      "law": "Inv2973: quorums overlap, or a config disabled",
+      "op": 4,
+      "searchUnits": 616.6843916,
+      "searchWallMs": 5422.418017,
+      "closed": false,
+      "helperUnits": 616.597926,
+      "otherHelperUnits": 69.05399679999994,
+      "nonEmittedAttemptUnits": 0,
+      "summaries": {
+        "all": {
+          "emitted": 13,
+          "checked": 12,
+          "proofCited": 10,
+          "coreCited": 9,
+          "requestedBefore": 11,
+          "decisionRead": 0,
+          "possibleOnly": 1,
+          "noObservedUse": 2,
+          "emittedUnits": 547.5439292000001,
+          "notProofCitedUnits": 119.31190160000006,
+          "noObservedUseUnits": 0.11534600000010187,
+          "noObservedUseSourceUnits": 0.10776920000012069
+        },
+        "field": {
+          "emitted": 4,
+          "checked": 3,
+          "proofCited": 1,
+          "coreCited": 0,
+          "requestedBefore": 2,
+          "decisionRead": 0,
+          "possibleOnly": 1,
+          "noObservedUse": 2,
+          "emittedUnits": 119.41076560000005,
+          "notProofCitedUnits": 119.31190160000006,
+          "noObservedUseUnits": 0.11534600000010187,
+          "noObservedUseSourceUnits": 0.10776920000012069
+        },
+        "frame": {
+          "emitted": 9,
+          "checked": 9,
+          "proofCited": 9,
+          "coreCited": 9,
+          "requestedBefore": 9,
+          "decisionRead": 0,
+          "possibleOnly": 0,
+          "noObservedUse": 0,
+          "emittedUnits": 428.13316360000005,
+          "notProofCitedUnits": 0,
+          "noObservedUseUnits": 0,
+          "noObservedUseSourceUnits": 0
+        }
+      },
+      "proofStages": {
+        "closure": 1,
+        "leaf": 9,
+        "later-lemma": 0,
+        "other": 0
+      },
+      "consumerCalls": 76,
+      "auditedConsumers": 70,
+      "checkedConsumerProofs": 58
+    },
+    {
+      "law": "Inv*: no quorum of a config can still be gathered for a config term held",
+      "op": 3,
+      "searchUnits": 1934.9738599999998,
+      "searchWallMs": 4814.191475,
+      "closed": false,
+      "helperUnits": 1934.9373816,
+      "otherHelperUnits": 209.6137500000002,
+      "nonEmittedAttemptUnits": 1394.3279072,
+      "summaries": {
+        "all": {
+          "emitted": 54,
+          "checked": 54,
+          "proofCited": 5,
+          "coreCited": 2,
+          "requestedBefore": 24,
+          "decisionRead": 4,
+          "possibleOnly": 9,
+          "noObservedUse": 36,
+          "emittedUnits": 330.9957243999995,
+          "notProofCitedUnits": 118.48467999999959,
+          "noObservedUseUnits": 36.24720559999963,
+          "noObservedUseSourceUnits": 3.366179599999697
+        },
+        "field": {
+          "emitted": 50,
+          "checked": 50,
+          "proofCited": 1,
+          "coreCited": 0,
+          "requestedBefore": 20,
+          "decisionRead": 4,
+          "possibleOnly": 9,
+          "noObservedUse": 36,
+          "emittedUnits": 118.52455319999957,
+          "notProofCitedUnits": 118.48467999999959,
+          "noObservedUseUnits": 36.24720559999963,
+          "noObservedUseSourceUnits": 3.366179599999697
+        },
+        "frame": {
+          "emitted": 4,
+          "checked": 4,
+          "proofCited": 4,
+          "coreCited": 2,
+          "requestedBefore": 4,
+          "decisionRead": 0,
+          "possibleOnly": 0,
+          "noObservedUse": 0,
+          "emittedUnits": 212.47117119999996,
+          "notProofCitedUnits": 0,
+          "noObservedUseUnits": 0,
+          "noObservedUseSourceUnits": 0
+        }
+      },
+      "proofStages": {
+        "closure": 0,
+        "leaf": 4,
+        "later-lemma": 1,
+        "other": 0
+      },
+      "consumerCalls": 786,
+      "auditedConsumers": 513,
+      "checkedConsumerProofs": 489
+    },
+    {
+      "law": "Inv*: no quorum of a config can still be gathered for a config term held",
+      "op": 5,
+      "searchUnits": 1541.7363308,
+      "searchWallMs": 4913.572924,
+      "closed": false,
+      "helperUnits": 1541.4948123999998,
+      "otherHelperUnits": 288.21198439999966,
+      "nonEmittedAttemptUnits": 918.8079879999998,
+      "summaries": {
+        "all": {
+          "emitted": 28,
+          "checked": 23,
+          "proofCited": 8,
+          "coreCited": 7,
+          "requestedBefore": 11,
+          "decisionRead": 13,
+          "possibleOnly": 7,
+          "noObservedUse": 3,
+          "emittedUnits": 334.4748400000002,
+          "notProofCitedUnits": 239.50477080000002,
+          "noObservedUseUnits": 38.977424799999994,
+          "noObservedUseSourceUnits": 0.7231007999999974
+        },
+        "field": {
+          "emitted": 26,
+          "checked": 21,
+          "proofCited": 6,
+          "coreCited": 5,
+          "requestedBefore": 9,
+          "decisionRead": 13,
+          "possibleOnly": 7,
+          "noObservedUse": 3,
+          "emittedUnits": 275.1200564000002,
+          "notProofCitedUnits": 239.50477080000002,
+          "noObservedUseUnits": 38.977424799999994,
+          "noObservedUseSourceUnits": 0.7231007999999974
+        },
+        "frame": {
+          "emitted": 2,
+          "checked": 2,
+          "proofCited": 2,
+          "coreCited": 2,
+          "requestedBefore": 2,
+          "decisionRead": 0,
+          "possibleOnly": 0,
+          "noObservedUse": 0,
+          "emittedUnits": 59.35478359999999,
+          "notProofCitedUnits": 0,
+          "noObservedUseUnits": 0,
+          "noObservedUseSourceUnits": 0
+        }
+      },
+      "proofStages": {
+        "closure": 2,
+        "leaf": 2,
+        "later-lemma": 4,
+        "other": 0
+      },
+      "consumerCalls": 467,
+      "auditedConsumers": 350,
+      "checkedConsumerProofs": 321
+    }
+  ]
+}

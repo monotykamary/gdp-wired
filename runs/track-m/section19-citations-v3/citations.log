@@ -1,0 +1,25 @@
+Found 0 warnings and 0 errors.
+Finished in 31.0s on 1309 files with 100 rules using 8 threads.
+bun test v1.4.3 (c6da4a4d3)
+source.tar.gz: OK
+{"artifact":"track-m-tar-v1","dir":"/home/user/track-m-s18-receipts-JOYh8Q","format":"tar.gz","parts":130,"bytes":19398134,"sha256":"2250878789dc6ac1ea443173477e6536b677c45c6992f5998c0dd2816d820594"}
+
+--- stderr ---
+$ tsc -p . && oxlint --type-aware --deny-warnings --disable-nested-config
+
+research/track-m/section18.test.ts:
+(pass) goal table round-trips shared proof context without column renaming [1.12ms]
+(pass) normalization removes read allocation identities but preserves keys and post-state [0.50ms]
+(pass) a quantified hash suffix is not a post-state scalar or a guard [0.15ms]
+(pass) linear comparison keys coalesce strict bounds, zero terms and common factors [1.53ms]
+(pass) observer frames nest exactly and are disabled in controls [0.15ms]
+
+research/track-m/section19.test.ts:
+(pass) citation cone excludes unused inputs and zero-coefficient branches [0.07ms]
+(pass) consumer provenance is frozen before later emissions [0.40ms]
+(pass) only emitted trees get producer identities [0.05ms]
+
+ 8 pass
+ 0 fail
+ 23 expect() calls
+Ran 8 tests across 2 files. [29.00ms]

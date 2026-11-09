@@ -1,0 +1,10 @@
+research/track-m/audit-section19.ts(69,156): error TS2322: Type 'Subprocess<"ignore", "inherit", "inherit">' is not assignable to type 'Subprocess<"ignore", "pipe", "inherit">'.
+  Type '"inherit"' is not assignable to type '"pipe"'.
+research/track-m/audit-section19.ts(71,170): error TS2322: Type 'Subprocess<"ignore", "inherit", "inherit">' is not assignable to type 'Subprocess<"ignore", "pipe", "inherit">'.
+  Type '"inherit"' is not assignable to type '"pipe"'.
+research/track-m/section19-recorder.ts(17,107): error TS2339: Property 'length' does not exist on type 'false | Ids'.
+  Property 'length' does not exist on type 'false'.
+research/track-m/section19-recorder.ts(17,124): error TS2488: Type 'false | Ids' must have a '[Symbol.iterator]()' method that returns an iterator.
+
+--- stderr ---
+$ tsc -p . && oxlint --type-aware --deny-warnings --disable-nested-config

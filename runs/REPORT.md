@@ -5545,3 +5545,13 @@ Once-per-law successful-proof deduplication leaves **1,322.193** units for Inv29
 Type/lint and **5 tests / 16 assertions** pass. The original capture's post-search archive OOM was recovered from the same outputs with streaming compression; no measured rerun replaced it. Final checksums and independent certificate replay pass. No complete-law proof or gate pass is claimed; the existing 28/29 result was not re-certified here.
 
 [Full report](track-m/lemma-recapture-v1/README.md) · [compact overview](track-m/lemma-recapture-v1/overview.json) · [per-lemma inventory](track-m/lemma-recapture-v1/lemmas.csv).
+
+## Track M Section 19 — actual helper citations
+
+Research instrumentation `eea1d978`; production/kernel/generator/allowances unchanged. The old 71-emission capture did not retain all later proof trees, so four fresh citation-traced shards ran with the original production ceilings and cooperative clock. All returned unknown. Their new clock-limited prefixes emit 13 / 13 / 54 / 28 instances; these are not retroactive use counts for the old 3 / 9 / 30 / 29.
+
+All **24 frame emissions** are cited by checked local proofs. Only **8 / 84 field emissions** are directly proof-cited; one cited field emission fails its own recorded target-context check, so it receives no proved-instance credit. Of 108 emissions, 76 are proof-uncited (477.603 units), but many have context/decision/core uses or ambiguous matches. Only 45 have no recorded use in those channels (75.641 total units; 4.498 successful-source units); 40 of those are target-checked (36.630 total units).
+
+The large bucket is **2,313.230 units on attempts that emitted nothing**, versus 4,593.219 helper units overall. This does not establish the saving of a demand-driven policy. No policy change, complete-law proof, or new 28/29 gate certification is claimed. Offline audit checked 920 returned consumer proofs; type/lint and 9 tests / 26 assertions pass. All jobs exited; stopped-VM staging is documented rather than silently declared deleted.
+
+[Full report](track-m/lemma-citations-v1/README.md) · [overview](track-m/lemma-citations-v1/overview.json) · [per-emission citations](track-m/lemma-citations-v1/citations.csv).
