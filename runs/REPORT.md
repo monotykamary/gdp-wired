@@ -6,7 +6,7 @@ Read COMMON.md, MLDR-DESIGN.md Sections 14–16 (including the answered 16.3 aud
 
 ## Current status
 
-All A/B/E/Fable-wall/F tips through A `c21a6e54`, B `5c2d3b70`, E `3f3a523c`, wall `c21f301c`, F `36210941` are integrated. V5 (`b2c6aa20308b3c18f607210cbf652c9ae56550c7`) passes full check and **599 tests / 19,620 assertions**; MLDR remains unknown 3/3 and the census is still running. Newly pushed count-range instances and the latest finite-state revisit change require a fresh v6 run; these are not covered by v5. See the dated ledgers below. No Lane D final gate or 29/29 proof exists. Historical commitlint failures remain disclosed; no history was rewritten.
+Current lane tips A `fdabeba4`, B `803129c4`, E `3f3a523c`, wall `cc7bb326`, F `36210941` are integrated. V6 exposes two import failures (missing `CountDecl`, range test importing `modelSequence` from the wrong module); both are fixed. V6 MLDR is still unknown 3/3, with 16 kept helpers and no safety attempt. The fresh v7 run includes the new tiny-proposer tests; tiny proposals remain unwired from production generation. Older v5/v6 censuses continue and will not be restarted or silently promoted. No Lane D final gate or 29/29 proof exists. Historical failures are retained; no history was rewritten.
 
 ## Plan and falsifiable hypothesis
 
@@ -146,6 +146,18 @@ These are new production changes, so completed v4 results are historical rather 
 V5 full check is clean (zero warnings/errors), and 599 tests / 19,620 assertions pass. Original MLDR verdicts: unknown at 59.006 / 59.010 / 59.049 s; candidate count 34; pre-attempt walls 13.897 / 12.809 / 11.256 s. CPUs are EPYC 4585PX / Ryzen 9950X / EPYC 4585PX. Inv* pass 1 takes 3,071 units, unknown all three; Inv2973-half 3,055 units, unknown all three. Inv1758 is not reached in r1, wall-cut at 0 units in r2, unknown at 2,997 in r3. Sixteen helpers are kept at deterministic units `[88,301,318,316,97,198,64,148,271,70,259,180,64,225,305,240]`; r3 additionally keeps one count-cube helper at 2,170 units. Its trace name is truncated, so no exact helper identity is inferred. Safety is never tried. The v5 census continues independently.
 
 Wall `c21f301c` arrived during validation. Its range constructor is wired into counted passes through parent `d24a4196`; inspecting only the tip's two new files would have missed this. Resolved `core/counts.ts` by keeping B's completion retry and E's preferred member-inclusion selection, adding ordinary kernel-checked range instances at all three certificate construction sites, and retaining the existing shared `attemptEnd`. Resolved `core/finite-houdini.ts` by using the updated dropped-set revisit filter, preserving preconditions, certified drops, changed-read/no-op filtering and outer cancellation; removed only the duplicate relocated `lawReads`. F's independent-empty-source reconstruction stays intact. Removed the new range test's unused `Machine` import and added it to the validation jobs. No checker or Lean source changed. V6 is a new full validation/census snapshot, not a promotion of prior receipts.
+
+## Range follow-ups and tiny-proposer merge
+
+Merged wall `cc7bb326` (missing `CountDecl` type import) and B `803129c4` (the same range integration). Retained one range import, the earlier unused-test-import repair, B's completion and inclusion selection, and all three range insertion sites. The actual v6 check found an additional wrong `modelSequence` import in the range regression test; fixed it to `kernel/model-sequence.ts`. V6 failures remain in `v6/validation/`; they are not recast as passes.
+
+V6 original MLDR is unknown at 59.017 / 59.004 / 59.003 s; pre-attempt walls 14.085 / 14.813 / 12.040 s. Sixteen helpers kept in each repeat. Inv* costs 3,071 units, Inv2973-half 3,056, Inv1758 2,997, all unknown in all three. Safety is not attempted.
+
+Merged A `fdabeba4`: the new bounded tiny-instance proposal module and independent replay wrapper are experimental, not called by production generation. Resolved the added wrapper versus relocated `lawReads` by keeping both; the optimized ordinary finite path and outer cancellation remain. Added both new test files to Lane I's changed-file jobs. A tiny screen is never itself a proof or a certified drop: the wrapper requires the full family, facts/precondition and source interpreter replay. The complete v7 validation/census is the next snapshot.
+
+### For lane A / B / Fable
+
+The combined range+completion+preferred-inclusion path still exhausts the original helper limits in all three v6 repeats. Range seeding does not alone get safety scheduled. The import repairs above are integration-only, not weakened tests or changed budgets.
 
 ## For lane D
 

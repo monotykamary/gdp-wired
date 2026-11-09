@@ -1,0 +1,9 @@
+[
+  {
+    "name": "tiny-houdini-check",
+    "cmd": "bun install --frozen-lockfile && bun test core/count-cubes.test.ts core/finite-tiny.test.ts core/finite-tiny-houdini.test.ts && bun run check && for message in research/track-gen/T16-AUDIT-*COMMIT.txt; do bunx --yes @commitlint/cli --config research/egraph/historical/commitlint.config.cjs < \"$message\" || exit; done",
+    "cpu": 4,
+    "memory": 14336,
+    "timeout": 600
+  }
+]

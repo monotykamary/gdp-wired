@@ -1,0 +1,1 @@
+[{"name":"unit","cmd":"bun install --frozen-lockfile && bun test core/finite-tiny.test.ts && bun run typecheck","timeout":180,"cpu":4,"memory":14336},{"name":"tiny-2s","cmd":"bun research/track-gen/t16-tiny-bench.ts 2000","timeout":30,"cpu":2,"memory":4096},{"name":"tiny-20s","cmd":"bun research/track-gen/t16-tiny-bench.ts 20000","timeout":40,"cpu":2,"memory":4096}]
