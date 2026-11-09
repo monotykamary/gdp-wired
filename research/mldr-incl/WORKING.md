@@ -1,5 +1,15 @@
 # RESUMED — user instruction, 2026-11-10
 
+**Latest:** `f0eb7671` preflight passed TypeScript, then failed four
+no-useless-escape lint errors in the disabled research installer. Repair
+`8e7e8630` changes only those escapes, preserving emitted code. No focused
+tests or new proofs have passed yet. Active corrected six-job run:
+`da84933a-c5b8-4201-984f-ae4940c2b139`, output
+`runs/mldr-incl-resume-preflight-fixed-v1/`. It reuses the frozen base plus
+two tiny hash-checked source replacements. Every proof is source-check
+guarded. The older five-job batch remains untouched until terminal.
+
+
 **Actual execution now available:** frozen-v3 finished; all six jobs exited
 2 on TS2345 in `research/track-m/lane-f-frame-falsifier.ts:25`. No original
 or conditional proof command ran. Repair `f0eb7671` is an explicit type

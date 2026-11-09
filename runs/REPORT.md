@@ -1,5 +1,28 @@
 # RESUMED — lane E, 2026-11-10
 
+## Latest completed preflight: TypeScript passes, installer lint repaired
+
+The focused `f0eb7671` check completed: both overlay hashes verified and
+`tsc -p .` passed. `oxlint` then rejected **four `no-useless-escape` errors**
+in `research/mldr-incl/install-targeted-completion.ts:8`. Therefore the
+focused tests still did not execute. Receipt:
+`runs/mldr-incl-resume-typefix-check-v1/` (summary, CPU placement, compressed
+necessary error log). This is not a proof result.
+
+**`8e7e8630`** removes only those redundant double-quote escapes inside a
+single-quoted installer string. The emitted code is unchanged; the
+research-only experiment is still not enabled in production.
+
+A new six-job guarded batch is submitted with the same frozen base and
+only two small hash-checked replacement files (6.5 KB total payload, no
+new tree archive): task `da84933a-c5b8-4201-984f-ae4940c2b139`, output
+`runs/mldr-incl-resume-preflight-fixed-v1/`, source label
+`8e7e863060d3b27582f605ce51411035997ea5dd`. Both old/new hashes are checked
+before any source check. All proof commands remain behind `bun run check`.
+The older five-job typefix batch is left to finish unchanged; its first
+collected row is the same lint failure, not a proof verdict.
+
+
 ## First executed rerun: source check blocked; no proof query executed
 
 Batch `20261110-004001-gs8s50` completed all six jobs. Each exited **2** at
