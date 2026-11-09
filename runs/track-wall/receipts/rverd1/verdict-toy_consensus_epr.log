@@ -1,0 +1,6 @@
+PAIR base
+VERDICT {"id":"toy_consensus_epr","ic3syn":"pyv-toy-consensus-epr","search":{"verdict":"proven","found":["every Voted cell is a value of its kind","every Vote cell is a value of its kind","every Decided cell is a value of its kind","one value decided","Decided keeps members's bound through members$Decided","every x, y with x < 64 ∧ y < 64 ∧ ¬(x = y): never 1 <= Decided[x] and 1 <= Decided[y]","every x, y with x <= 63 ∧ y < 64: never Voted[x] is 0 and 1 <= Vote[64·y + x]","every x, y, z with x <= 63 ∧ y < 64 ∧ z < 64 ∧ ¬(y = z): never 1 <= Vote[64·y + x] and 1 <= Vote[64·z + x]"],"ms":
+PROCESS_SECONDS base 6.63 EXIT 0
+PAIR mine
+VERDICT {"id":"toy_consensus_epr","ic3syn":"pyv-toy-consensus-epr","search":{"verdict":"proven","found":["every Voted cell is a value of its kind","every Vote cell is a value of its kind","every Decided cell is a value of its kind","one value decided","Decided keeps members's bound through members$Decided","every x, y with x < 64 ∧ y < 64 ∧ ¬(x = y): never 1 <= Decided[x] and 1 <= Decided[y]","every x, y with x <= 63 ∧ y < 64: never Voted[x] is 0 and 1 <= Vote[64·y + x]","every x, y, z with x <= 63 ∧ y < 64 ∧ z < 64 ∧ ¬(y = z): never 1 <= Vote[64·y + x] and 1 <= Vote[64·z + x]"],"ms":
+PROCESS_SECONDS mine 5.94 EXIT 0

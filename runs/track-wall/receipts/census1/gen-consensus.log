@@ -1,0 +1,1 @@
+{"id":"consensus","identical":true,"baseCount":3,"candidateCount":3,"baseWallMs":20,"candidateWallMs":21,"basePhases":{"guards":1.7274279999999962,"small":1.9452379999999962,"candidates":14.424557999999998},"candidatePhases":{"guards":1.881337000000002,"small":1.94632,"candidates":15.423370999999996},"queries":[0,0]}

@@ -1,0 +1,17 @@
+model name	: AMD Ryzen 9 9950X 16-Core Processor
+PAIR 2 base
+VERDICT {"id":"mldr","ic3syn":"mldr","search":{"verdict":"unknown","stuck":"unknown","why":"time (rule result)","ms":59025,"work":26053708,"full":4834544}}
+0
+counts: finite Houdini {"round":0,"alive":38,"dropped":5,"randomStates":2000,"steps":56290}
+counts: finite Houdini {"round":1,"alive":33,"dropped":0,"randomStates":2000,"steps":56341}
+counts: candidates at 0 ms: every Config cell is a value of its kind; one primary per term; St at most 1; CV at most 2; fields: St[a]=1 -> CT[a]=CfgT[a]; fields: St[a]=1 -> CT[a]<=CfgT[a]; fields: St[a]=1 -> CT[a]=CT[b] -> CfgT[b]<=CfgT[a]; fields: St[a]=1 -> CfgT[a]<=CT[a]; fields: St[a]=1 -> CfgT[a]=CfgT[b] -> CV[b]<=CV[a]; ev
+counts: prof total 58914 ms; guards 6, small 9364, cubes 10919, filter 101, quorumFilter 308, countCubes 28, finiteHoudini 8449, encode 438, decide 21785, mbqi 546, lazy 791, #rounds 96, #hyps 6889, grow 6, part 535, focused 5424, #lazy 189; cdcl runs 158 conflicts 3609 decisions 58087 solveMs 1326 rowsMs 4469 coreMs 32 unfoldMs
+PROCESS_SECONDS base 59.13 EXIT 0
+PAIR 2 mine
+VERDICT {"id":"mldr","ic3syn":"mldr","search":{"verdict":"unknown","stuck":"unknown","why":"time (rule result)","ms":59090,"work":31915349,"full":6164780}}
+0
+counts: finite Houdini {"round":0,"alive":38,"dropped":5,"randomStates":2000,"steps":56290}
+counts: finite Houdini {"round":1,"alive":33,"dropped":0,"randomStates":132,"steps":2337}
+counts: candidates at 0 ms: every Config cell is a value of its kind; one primary per term; St at most 1; CV at most 2; fields: St[a]=1 -> CT[a]=CfgT[a]; fields: St[a]=1 -> CT[a]<=CfgT[a]; fields: St[a]=1 -> CT[a]=CT[b] -> CfgT[b]<=CfgT[a]; fields: St[a]=1 -> CfgT[a]<=CT[a]; fields: St[a]=1 -> CfgT[a]=CfgT[b] -> CV[b]<=CV[a]; ev
+counts: prof total 59025 ms; guards 5, small 6094, cubes 7261, filter 164, quorumFilter 412, countCubes 33, finiteHoudini 3934, encode 585, decide 32524, mbqi 887, lazy 1223, #rounds 109, #hyps 8235, grow 6, part 511, focused 5098, #lazy 397; cdcl runs 170 conflicts 3865 decisions 67852 solveMs 1704 rowsMs 6608 coreMs 36 unfoldM
+PROCESS_SECONDS mine 59.19 EXIT 0

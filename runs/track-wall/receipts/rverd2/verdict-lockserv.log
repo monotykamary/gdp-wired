@@ -1,0 +1,6 @@
+PAIR base
+VERDICT {"id":"lockserv","ic3syn":"pyv-lockserv","search":{"verdict":"proven","found":["r.law('every x, y with ¬(x = y): GrantMsg[x] + HoldsLock[y] <= 1', ({GrantMsg, HoldsLock}) => forall((x, y) => x.eq(y).not().implies(GrantMsg.at(x).n.plus(HoldsLock.at(y).n).atMost(1))))","r.law('every k: serverHoldsLock + HoldsLock[k] <= 1', ({serverHoldsLock, HoldsLock}) => forall(k => serverHoldsLock.plus(HoldsLock.at(k).n).atMost(1)))","r.law('every x, y with ¬(x = y): GrantMsg[x] + GrantMsg[y] <= 1', ({GrantMsg}) => forall((x, y) => x.eq(y).not().implies(GrantMsg.at(x).n.plus(GrantMsg.at(y).n).atMost(1))))",
+PROCESS_SECONDS base 11.20 EXIT 0
+PAIR mine
+VERDICT {"id":"lockserv","ic3syn":"pyv-lockserv","search":{"verdict":"proven","found":["r.law('every x, y with ¬(x = y): GrantMsg[x] + HoldsLock[y] <= 1', ({GrantMsg, HoldsLock}) => forall((x, y) => x.eq(y).not().implies(GrantMsg.at(x).n.plus(HoldsLock.at(y).n).atMost(1))))","r.law('every k: serverHoldsLock + HoldsLock[k] <= 1', ({serverHoldsLock, HoldsLock}) => forall(k => serverHoldsLock.plus(HoldsLock.at(k).n).atMost(1)))","r.law('every x, y with ¬(x = y): GrantMsg[x] + GrantMsg[y] <= 1', ({GrantMsg}) => forall((x, y) => x.eq(y).not().implies(GrantMsg.at(x).n.plus(GrantMsg.at(y).n).atMost(1))))",
+PROCESS_SECONDS mine 9.65 EXIT 0

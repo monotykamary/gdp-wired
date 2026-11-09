@@ -1,0 +1,1 @@
+{"id":"consensus_epr","identical":true,"baseCount":29,"candidateCount":29,"baseWallMs":8337,"candidateWallMs":6359,"basePhases":{"guards":3.930892,"small":3726.649832,"candidates":4541.7936580000005},"candidatePhases":{"guards":3.0293999999999954,"small":2441.034173,"candidates":3845.999157},"queries":[0,0]}

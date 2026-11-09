@@ -1,0 +1,6 @@
+PAIR base
+VERDICT {"id":"client_server_db_ae","ic3syn":"pyv-client-server-db-ae","search":{"verdict":"proven","found":["Match row guard (1)","Match row guard (2)","RequestSent row guard (3)","RequestSent row guard (4)","RequestSent row guard (5)","ResponseSent row guard (6)","ResponseSent row guard (7)","ResponseSent row guard (8)","ResponseReceived row guard (9)","ResponseReceived row guard (10)","ResponseReceived row guard (11)","ResponseReceived row guard (12)","DbRequestSent row guard (13)","DbRequestSent row guard (14)","DbRequestSent row guard (15)","DbRequestSent / T joined guard (16)","DbResponseSent ro
+PROCESS_SECONDS base 42.52 EXIT 0
+PAIR mine
+VERDICT {"id":"client_server_db_ae","ic3syn":"pyv-client-server-db-ae","search":{"verdict":"proven","found":["Match row guard (1)","Match row guard (2)","RequestSent row guard (3)","RequestSent row guard (4)","RequestSent row guard (5)","ResponseSent row guard (6)","ResponseSent row guard (7)","ResponseSent row guard (8)","ResponseReceived row guard (9)","ResponseReceived row guard (10)","ResponseReceived row guard (11)","ResponseReceived row guard (12)","DbRequestSent row guard (13)","DbRequestSent row guard (14)","DbRequestSent row guard (15)","DbRequestSent / T joined guard (16)","DbResponseSent ro
+PROCESS_SECONDS mine 31.41 EXIT 0

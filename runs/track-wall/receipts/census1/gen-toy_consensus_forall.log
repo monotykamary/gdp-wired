@@ -1,0 +1,1 @@
+{"id":"toy_consensus_forall","identical":true,"baseCount":9,"candidateCount":9,"baseWallMs":702,"candidateWallMs":522,"basePhases":{"guards":2.908953000000004,"small":115.99359600000001,"candidates":578.695241},"candidatePhases":{"guards":3.1343340000000026,"small":88.63423900000001,"candidates":424.9611480000001},"queries":[0,0]}

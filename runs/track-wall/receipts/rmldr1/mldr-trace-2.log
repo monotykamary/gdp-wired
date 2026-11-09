@@ -1,0 +1,25 @@
+model name	: AMD Ryzen 9 9950X 16-Core Processor
+PAIR base
+VERDICT {"id":"mldr","ic3syn":"mldr","search":{"verdict":"unknown","stuck":"unknown","why":"time (rule result)","ms":59001,"work":25715567,"full":9963799}}
+PROCESS_SECONDS base 59.09 EXIT 0
+counts: try inX: no quorum canVote/1 | ls 34 pass 0 ms 3236 took 98 wall 71 [encode 7 decide 48 mbqi 13 #rounds 4 #hyps 219] -> sat
+counts: try inX: no quorum canVote/1 | ls 34 pass 1 ms 3236 took 3237 wall 5171 [encode 73 decide 4445 mbqi 168 lazy 418 #rounds 10 #hyps 1288 grow 2 #lazy 77] -> unknown
+counts: try inX: no quorum canVote/3 | ls 34 pass 0 ms 3229 took 98 wall 57 [encode 6 decide 41 mbqi 8 #rounds 4 #hyps 219] -> sat
+counts: try inX: no quorum canVote/3 | ls 34 pass 1 ms 3229 took 3231 wall 5172 [encode 62 decide 4392 mbqi 180 lazy 491 #rounds 8 #hyps 864 #lazy 68] -> unknown
+counts: try inX: stored guard reconfigs/inS | ls 34 pass 0 ms 3222 took 132 wall 73 [encode 6 decide 56 mbqi 9 #rounds 4 #hyps 278] -> sat
+counts: try inX: stored guard reconfigs/inS | ls 34 pass 1 ms 3222 took 3223 wall 2533 [encode 29 decide 2291 mbqi 56 lazy 139 #rounds 6 #hyps 649 grow 1 #lazy 79] -> unknown
+counts: try inX: stored guard reconfigs/inS or disabled/0 | ls 34 pass 0 ms 3212 took 141 wall 75 [encode 6 decide 56 mbqi 11 #rounds 4 #hyps 278] -> sat
+counts: try inX: stored guard reconfigs/inS or disabled/0 | ls 34 pass 1 ms 3212 took 3214 wall 2925 [encode 51 decide 2497 mbqi 48 lazy 293 #rounds 5 #hyps 586 grow 1 #lazy 114] -> unknown
+37
+PAIR mine
+VERDICT {"id":"mldr","ic3syn":"mldr","search":{"verdict":"unknown","stuck":"unknown","why":"time (rule result)","ms":59000,"work":19627289,"full":8860955}}
+PROCESS_SECONDS mine 59.15 EXIT 0
+counts: try inX: no quorum canVote/1 | ls 34 pass 0 ms 3236 took 98 wall 100 [encode 6 decide 81 mbqi 10 #rounds 4 #hyps 219] -> sat
+counts: try inX: no quorum canVote/1 | ls 34 pass 1 ms 3236 took 3238 wall 3890 [encode 49 decide 3397 mbqi 91 lazy 308 #rounds 8 #hyps 969 #lazy 131] -> unknown
+counts: try inX: no quorum canVote/3 | ls 34 pass 0 ms 3229 took 98 wall 53 [encode 6 decide 37 mbqi 8 #rounds 4 #hyps 219] -> sat
+counts: try inX: no quorum canVote/3 | ls 34 pass 1 ms 3229 took 3233 wall 4041 [encode 42 decide 3758 mbqi 68 lazy 141 #rounds 7 #hyps 782 #lazy 68] -> unknown
+counts: try inX: stored guard reconfigs/inS | ls 34 pass 0 ms 3222 took 132 wall 95 [encode 7 decide 74 mbqi 12 #rounds 4 #hyps 278] -> sat
+counts: try inX: stored guard reconfigs/inS | ls 34 pass 1 ms 3222 took 3223 wall 4590 [encode 139 decide 4136 mbqi 79 lazy 209 #rounds 6 #hyps 750 grow 1 #lazy 129] -> unknown
+counts: try inX: stored guard reconfigs/inS or disabled/0 | ls 34 pass 0 ms 3211 took 141 wall 98 [encode 7 decide 75 mbqi 13 #rounds 4 #hyps 278] -> sat
+counts: try inX: stored guard reconfigs/inS or disabled/0 | ls 34 pass 1 ms 3211 took 3225 wall 4648 [encode 48 decide 4207 mbqi 85 lazy 265 #rounds 5 #hyps 706 grow 1 #lazy 144] -> unknown
+35

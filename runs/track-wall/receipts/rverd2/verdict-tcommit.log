@@ -1,0 +1,6 @@
+PAIR mine
+VERDICT {"id":"tcommit","ic3syn":"tla-tcommit","search":{"verdict":"proven","ms":446,"work":11200,"full":120024}}
+PROCESS_SECONDS mine 0.50 EXIT 0
+PAIR base
+VERDICT {"id":"tcommit","ic3syn":"tla-tcommit","search":{"verdict":"proven","ms":427,"work":11200,"full":120024}}
+PROCESS_SECONDS base 0.47 EXIT 0

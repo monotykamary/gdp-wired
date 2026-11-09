@@ -1,0 +1,1 @@
+{"id":"simple_election","identical":true,"baseCount":12,"candidateCount":12,"baseWallMs":2153,"candidateWallMs":1659,"basePhases":{"guards":3.935783999999998,"small":520.731022,"candidates":1619.038181},"candidatePhases":{"guards":3.8689779999999985,"small":333.12132499999996,"candidates":1311.6354999999999},"queries":[0,0]}

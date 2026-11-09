@@ -1,0 +1,25 @@
+model name	: AMD Ryzen 9 9950X 16-Core Processor
+PAIR 1 mine
+counts: finite Houdini {"round":0,"alive":38,"dropped":5,"randomStates":2000,"steps":56290}
+counts: finite Houdini {"round":1,"alive":33,"dropped":0,"randomStates":132,"steps":2337}
+{"id":"mldr","count":35,"wallMs":12278.614693,"phases":{"guards":6.67512,"small":4216.423906,"candidates":8039.170599000001},"states":[46,1205],"counts":["inS","inQ2","inX","xNotS","sNotX","xAndS","inS$CT","inS$Config","inS$St","inX$canVote$1","inX$row","inX$c
+PAIR 1 base
+counts: finite Houdini {"round":0,"alive":38,"dropped":5,"randomStates":2000,"steps":56290}
+counts: finite Houdini {"round":1,"alive":33,"dropped":0,"randomStates":2000,"steps":56341}
+{"id":"mldr","count":35,"wallMs":19604.307945,"phases":{"guards":5.8940079999999995,"small":6988.915266999999,"candidates":12596.104045999999},"states":[46,1205],"counts":["inS","inQ2","inX","xNotS","sNotX","xAndS","inS$CT","inS$Config","inS$St","inX$canVote$1
+PAIR 2 mine
+counts: finite Houdini {"round":0,"alive":38,"dropped":5,"randomStates":2000,"steps":56290}
+counts: finite Houdini {"round":1,"alive":33,"dropped":0,"randomStates":132,"steps":2337}
+{"id":"mldr","count":35,"wallMs":12909.918904,"phases":{"guards":7.549356000000003,"small":4375.792045,"candidates":8510.803901},"states":[46,1205],"counts":["inS","inQ2","inX","xNotS","sNotX","xAndS","inS$CT","inS$Config","inS$St","inX$canVote$1","inX$row","i
+PAIR 2 base
+counts: finite Houdini {"round":0,"alive":38,"dropped":5,"randomStates":2000,"steps":56290}
+counts: finite Houdini {"round":1,"alive":33,"dropped":0,"randomStates":2000,"steps":56341}
+{"id":"mldr","count":35,"wallMs":20163.846127999997,"phases":{"guards":7.757137,"small":7601.073876,"candidates":12536.474521},"states":[46,1205],"counts":["inS","inQ2","inX","xNotS","sNotX","xAndS","inS$CT","inS$Config","inS$St","inX$canVote$1","inX$row","inX
+PAIR 3 mine
+counts: finite Houdini {"round":0,"alive":38,"dropped":5,"randomStates":2000,"steps":56290}
+counts: finite Houdini {"round":1,"alive":33,"dropped":0,"randomStates":132,"steps":2337}
+{"id":"mldr","count":35,"wallMs":12834.966907,"phases":{"guards":6.929237999999998,"small":4543.259524,"candidates":8270.675349000001},"states":[46,1205],"counts":["inS","inQ2","inX","xNotS","sNotX","xAndS","inS$CT","inS$Config","inS$St","inX$canVote$1","inX$r
+PAIR 3 base
+counts: finite Houdini {"round":0,"alive":38,"dropped":5,"randomStates":2000,"steps":56290}
+counts: finite Houdini {"round":1,"alive":33,"dropped":0,"randomStates":2000,"steps":56341}
+{"id":"mldr","count":35,"wallMs":21071.076764,"phases":{"guards":6.111598999999998,"small":7509.5940630000005,"candidates":13538.593157},"states":[46,1205],"counts":["inS","inQ2","inX","xNotS","sNotX","xAndS","inS$CT","inS$Config","inS$St","inX$canVote$1","inX

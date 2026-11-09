@@ -1,0 +1,1 @@
+{"id":"simple_decentralized_lock","identical":true,"baseCount":20,"candidateCount":20,"baseWallMs":52,"candidateWallMs":56,"basePhases":{"guards":2.0206579999999974,"small":10.446789000000003,"candidates":36.953996000000004},"candidatePhases":{"guards":3.2579799999999963,"small":9.107999,"candidates":40.006198},"queries":[0,0]}

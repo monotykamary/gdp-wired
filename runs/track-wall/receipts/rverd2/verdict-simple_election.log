@@ -1,0 +1,6 @@
+PAIR mine
+VERDICT {"id":"simple_election","ic3syn":"ex-simple-election","search":{"verdict":"proven","found":["every Start cell is a value of its kind","every Promise cell is a value of its kind","every Promised cell is a value of its kind","every Leader cell is a value of its kind","one leader","Leader keeps members's bound through members$Leader","every x, y with x < 64 ∧ y <= 63: never Start[x] is 0 and 1 <= Promise[64·x + y]","every x, y with x < 64 ∧ y <= 63: never Promised[y] is 0 and 1 <= Promise[64·x + y]","every x, y with x < 64 ∧ y < 64 ∧ ¬(x = y): never 1 <= Leader[x] and 1 <= Leader[y]","
+PROCESS_SECONDS mine 5.43 EXIT 0
+PAIR base
+VERDICT {"id":"simple_election","ic3syn":"ex-simple-election","search":{"verdict":"proven","found":["every Start cell is a value of its kind","every Promise cell is a value of its kind","every Promised cell is a value of its kind","every Leader cell is a value of its kind","one leader","Leader keeps members's bound through members$Leader","every x, y with x < 64 ∧ y <= 63: never Start[x] is 0 and 1 <= Promise[64·x + y]","every x, y with x < 64 ∧ y <= 63: never Promised[y] is 0 and 1 <= Promise[64·x + y]","every x, y with x < 64 ∧ y < 64 ∧ ¬(x = y): never 1 <= Leader[x] and 1 <= Leader[y]","
+PROCESS_SECONDS base 5.02 EXIT 0

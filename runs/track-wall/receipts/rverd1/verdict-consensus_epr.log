@@ -1,0 +1,6 @@
+PAIR base
+VERDICT {"id":"consensus_epr","ic3syn":"pyv-consensus-epr","search":{"verdict":"proven","found":["every VoteRequestMsg cell is a value of its kind","every Voted cell is a value of its kind","every VoteMsg cell is a value of its kind","every Votes cell is a value of its kind","every Leader cell is a value of its kind","every Decided cell is a value of its kind","one value decided","Leader keeps members's bound through members$Leader","Decided: one second key a first","every x with x < size: never Voted[x] is 0 and 1 <= VoteMsg[64·x + x]","every x with x < size: never Voted[x] is 0 and 1 <= Votes[64·x
+PROCESS_SECONDS base 22.15 EXIT 0
+PAIR mine
+VERDICT {"id":"consensus_epr","ic3syn":"pyv-consensus-epr","search":{"verdict":"proven","found":["every VoteRequestMsg cell is a value of its kind","every Voted cell is a value of its kind","every VoteMsg cell is a value of its kind","every Votes cell is a value of its kind","every Leader cell is a value of its kind","every Decided cell is a value of its kind","one value decided","Leader keeps members's bound through members$Leader","Decided: one second key a first","every x with x < size: never Voted[x] is 0 and 1 <= VoteMsg[64·x + x]","every x with x < size: never Voted[x] is 0 and 1 <= Votes[64·x
+PROCESS_SECONDS mine 19.81 EXIT 0

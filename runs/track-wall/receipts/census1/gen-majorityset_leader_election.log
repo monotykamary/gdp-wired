@@ -1,0 +1,1 @@
+{"id":"majorityset_leader_election","identical":true,"baseCount":17,"candidateCount":17,"baseWallMs":1187,"candidateWallMs":1189,"basePhases":{"guards":2.7601760000000013,"small":54.845777000000005,"candidates":1122.957073},"candidatePhases":{"guards":2.6797650000000033,"small":49.704565,"candidates":1128.7227440000001},"queries":[0,0]}

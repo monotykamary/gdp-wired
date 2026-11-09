@@ -1,0 +1,1 @@
+{"id":"simple","identical":true,"baseCount":4,"candidateCount":4,"baseWallMs":37,"candidateWallMs":35,"basePhases":{"guards":2.004240000000003,"small":10.707175999999997,"candidates":21.964109},"candidatePhases":{"guards":2.2748670000000004,"small":12.445619,"candidates":17.416891999999997},"queries":[0,0]}

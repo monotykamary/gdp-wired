@@ -1,0 +1,6 @@
+PAIR mine
+VERDICT {"id":"quorum_leader_election","ic3syn":"ex-quorum-leader-election","search":{"verdict":"proven","found":["every IsLeader cell is a value of its kind","one leader","IsLeader keeps members's bound through members$IsLeader","every x with x < size: never Voted[x] is 0 and x + 1 <= Voted[x]","every x, y with x < size ∧ y < size ∧ ¬(x = y): never 1 <= IsLeader[x] and 1 <= IsLeader[y]","every x, y with x < size ∧ y < size ∧ ¬(x = y): never Voted[x] is 0 and y + 1 <= Voted[x]"],"ms":868,"work":86385,"full":71996}}
+PROCESS_SECONDS mine 0.90 EXIT 0
+PAIR base
+VERDICT {"id":"quorum_leader_election","ic3syn":"ex-quorum-leader-election","search":{"verdict":"proven","found":["every IsLeader cell is a value of its kind","one leader","IsLeader keeps members's bound through members$IsLeader","every x with x < size: never Voted[x] is 0 and x + 1 <= Voted[x]","every x, y with x < size ∧ y < size ∧ ¬(x = y): never 1 <= IsLeader[x] and 1 <= IsLeader[y]","every x, y with x < size ∧ y < size ∧ ¬(x = y): never Voted[x] is 0 and y + 1 <= Voted[x]"],"ms":850,"work":80240,"full":68971}}
+PROCESS_SECONDS base 0.88 EXIT 0

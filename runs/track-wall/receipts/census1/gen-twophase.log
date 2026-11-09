@@ -1,0 +1,1 @@
+{"id":"twophase","identical":true,"baseCount":14,"candidateCount":14,"baseWallMs":565,"candidateWallMs":533,"basePhases":{"guards":2.982110999999996,"small":44.606254,"candidates":514.582506},"candidatePhases":{"guards":2.323506000000002,"small":32.962590000000006,"candidates":494.95441999999997},"queries":[0,0]}

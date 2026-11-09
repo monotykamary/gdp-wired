@@ -1,0 +1,1 @@
+{"id":"client_server_db_ae","identical":true,"baseCount":15,"candidateCount":15,"baseWallMs":7660,"candidateWallMs":6470,"basePhases":{"guards":2.639489000000026,"small":4084.8779130000003,"candidates":3569.0360409999994},"candidatePhases":{"guards":2.1507250000000013,"small":2937.164709,"candidates":3527.86789},"queries":[0,0]}

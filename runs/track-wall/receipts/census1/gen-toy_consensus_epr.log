@@ -1,0 +1,1 @@
+{"id":"toy_consensus_epr","identical":true,"baseCount":8,"candidateCount":8,"baseWallMs":993,"candidateWallMs":845,"basePhases":{"guards":2.8781180000000006,"small":109.84050099999999,"candidates":875.082356},"candidatePhases":{"guards":3.495734000000006,"small":92.524259,"candidates":743.3463879999999},"queries":[0,0]}

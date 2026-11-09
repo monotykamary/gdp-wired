@@ -1,0 +1,6 @@
+PAIR mine
+VERDICT {"id":"twophase","ic3syn":"tla-twophase","search":{"verdict":"proven","found":["every x, y with x < size ∧ y < size ∧ ¬(x = y): never Rm[x] is 0 and Rm[y] is 2","every x, y with x < size ∧ y < size ∧ ¬(x = y): never Rm[x] is 2 and TmPrepared[y] is 0","every x, y with x < size ∧ y < size ∧ ¬(x = y): never Rm[x] is 2 and PreparedMsg[y] is 0","every x with x < size: never Rm[x] is 0 and tm is 1","every x with x < size: never TmPrepared[x] is 0 and tm is 1","every x with x < size: never 1 <= TmPrepared[x] and PreparedMsg[x] is 0","every x with x < size: never PreparedMsg[x] is 0 and
+PROCESS_SECONDS mine 11.78 EXIT 0
+PAIR base
+VERDICT {"id":"twophase","ic3syn":"tla-twophase","search":{"verdict":"proven","found":["every x, y with x < size ∧ y < size ∧ ¬(x = y): never Rm[x] is 0 and Rm[y] is 2","every x, y with x < size ∧ y < size ∧ ¬(x = y): never Rm[x] is 2 and TmPrepared[y] is 0","every x, y with x < size ∧ y < size ∧ ¬(x = y): never Rm[x] is 2 and PreparedMsg[y] is 0","every x with x < size: never Rm[x] is 0 and tm is 1","every x with x < size: never TmPrepared[x] is 0 and tm is 1","every x with x < size: never 1 <= TmPrepared[x] and PreparedMsg[x] is 0","every x with x < size: never PreparedMsg[x] is 0 and
+PROCESS_SECONDS base 11.38 EXIT 0

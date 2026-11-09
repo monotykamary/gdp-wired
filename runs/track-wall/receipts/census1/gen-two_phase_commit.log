@@ -1,0 +1,1 @@
+{"id":"two_phase_commit","identical":true,"baseCount":34,"candidateCount":34,"baseWallMs":986,"candidateWallMs":893,"basePhases":{"guards":2.688352000000002,"small":352.53790699999996,"candidates":627.446618},"candidatePhases":{"guards":2.4205380000000005,"small":233.31679999999997,"candidates":654.3229859999999},"queries":[0,0]}

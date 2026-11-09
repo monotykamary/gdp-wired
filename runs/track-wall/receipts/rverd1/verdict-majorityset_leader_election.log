@@ -1,0 +1,6 @@
+PAIR mine
+VERDICT {"id":"majorityset_leader_election","ic3syn":"ex-majorityset-leader-election","search":{"verdict":"proven","found":["every Vote cell is a value of its kind","every Voters cell is a value of its kind","every Leader cell is a value of its kind","one leader","Leader keeps voters's bound","Vote: one second key a first","every x with x < size: never Vote[64·x + x] is 0 and 1 <= Voters[64·x + x]","every x, y with x < size ∧ y < size ∧ ¬(x = y): never 1 <= Leader[x] and 1 <= Leader[y]","every x, y with x < size ∧ y < size ∧ ¬(x = y): never 1 <= Vote[64·x + x] and 1 <= Vote[64·x + y]","e
+PROCESS_SECONDS mine 4.21 EXIT 0
+PAIR base
+VERDICT {"id":"majorityset_leader_election","ic3syn":"ex-majorityset-leader-election","search":{"verdict":"proven","found":["every Vote cell is a value of its kind","every Voters cell is a value of its kind","every Leader cell is a value of its kind","one leader","Leader keeps voters's bound","Vote: one second key a first","every x with x < size: never Vote[64·x + x] is 0 and 1 <= Voters[64·x + x]","every x, y with x < size ∧ y < size ∧ ¬(x = y): never 1 <= Leader[x] and 1 <= Leader[y]","every x, y with x < size ∧ y < size ∧ ¬(x = y): never 1 <= Vote[64·x + x] and 1 <= Vote[64·x + y]","e
+PROCESS_SECONDS base 3.95 EXIT 0

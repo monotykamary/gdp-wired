@@ -1,0 +1,1274 @@
+{
+  "scope": "concrete default-zero completion; not an exhaustive completion search or an unbounded proof",
+  "gp1Laws": 35,
+  "witnesses": [
+    {
+      "law": "CV at most 2",
+      "pass": 0,
+      "params": {
+        "size": 4
+      },
+      "scalar": {
+        "started": 1
+      },
+      "cells": [
+        "S[j:1]",
+        "Q2[j:1]",
+        "S[i:1]",
+        "Q2[i:1]",
+        "S[a$c#:1]",
+        "Q2[a$c#:1]",
+        "CV[w?noneCopied:1]",
+        "CV[a$c#:1]",
+        "S[w?canVote:1]",
+        "Q2[w?canVote:1]",
+        "S[w?committedQuorum:1]",
+        "Q2[w?committedQuorum:1]",
+        "CV[w?allCopied:1]",
+        "CV[w?canVote:1]",
+        "CV[i:1]",
+        "CfgT[i:1]",
+        "CT[i:1]",
+        "St[i:1]",
+        "CfgT[w?canVote:1]",
+        "CT[w?canVote:1]",
+        "S[w?all$2:1]",
+        "Config[i:64,w?all$2:1]",
+        "St[a$c#:1]",
+        "CfgT[a$c#:1]",
+        "CT[a$c#:1]",
+        "CV[w?committedQuorum:1]",
+        "CV[j:1]"
+      ],
+      "missingScalars": [],
+      "unreadable": [],
+      "classification": "default-zero completion does not establish a relative CTI",
+      "preFailures": [
+        {
+          "law": "every x with x < size: never Config[x] is 0 and 1 <= St[x]",
+          "truth": false
+        }
+      ],
+      "enabled": false,
+      "error": "RangeError: mongo logless dynamic raft: the request fails the rule's assumption, so no proof covers the step it would take"
+    },
+    {
+      "law": "CV at most 2",
+      "pass": 0,
+      "params": {
+        "size": 4
+      },
+      "scalar": {
+        "started": 1
+      },
+      "cells": [
+        "S[j:1]",
+        "Q2[j:1]",
+        "S[i:1]",
+        "Q2[i:1]",
+        "S[a$c#:1]",
+        "Q2[a$c#:1]",
+        "CV[w?noneCopied:1]",
+        "CV[a$c#:1]",
+        "S[w?canVote:1]",
+        "Q2[w?canVote:1]",
+        "S[w?committedQuorum:1]",
+        "Q2[w?committedQuorum:1]",
+        "CV[w?allCopied:1]",
+        "CV[w?canVote:1]",
+        "CV[i:1]",
+        "CfgT[i:1]",
+        "CT[i:1]",
+        "St[i:1]",
+        "CfgT[w?canVote:1]",
+        "CT[w?canVote:1]",
+        "S[w?all$2:1]",
+        "Config[i:64,w?all$2:1]",
+        "St[a$c#:1]",
+        "CfgT[a$c#:1]",
+        "CT[a$c#:1]",
+        "CV[w?committedQuorum:1]",
+        "CV[j:1]"
+      ],
+      "missingScalars": [],
+      "unreadable": [],
+      "classification": "default-zero completion does not establish a relative CTI",
+      "preFailures": [
+        {
+          "law": "every x with x < size: never Config[x] is 0 and 1 <= St[x]",
+          "truth": false
+        }
+      ],
+      "enabled": false,
+      "error": "RangeError: mongo logless dynamic raft: the request fails the rule's assumption, so no proof covers the step it would take"
+    },
+    {
+      "law": "CV at most 2",
+      "pass": 1,
+      "params": {
+        "size": 3
+      },
+      "scalar": {
+        "started": 1
+      },
+      "cells": [
+        "CV[a$c#:1]",
+        "CV[w?noneCopied:1]",
+        "CV[w?canVote:1]",
+        "CV[i:1]",
+        "S[w?committedQuorum:1]",
+        "Q2[w?committedQuorum:1]",
+        "Q2[w?canVote:1]",
+        "S[w?canVote:1]",
+        "S[j:1]",
+        "Q2[j:1]",
+        "S[i:1]",
+        "Q2[i:1]",
+        "S[a$c#:1]",
+        "Q2[a$c#:1]",
+        "CV[j:1]",
+        "CV[w?committedQuorum:1]",
+        "CT[a$c#:1]",
+        "St[i:1]",
+        "St[a$c#:1]",
+        "CfgT[w?canVote:1]",
+        "CfgT[i:1]",
+        "CfgT[a$c#:1]",
+        "CT[w?canVote:1]",
+        "CT[i:1]",
+        "CV[w?allCopied:1]",
+        "CfgT[w?noneCopied:1]",
+        "CfgT[j:1]",
+        "S[w?all$2:1]",
+        "Config[i:64,w?all$2:1]"
+      ],
+      "missingScalars": [],
+      "unreadable": [],
+      "classification": "default-zero completion does not establish a relative CTI",
+      "preFailures": [
+        {
+          "law": "every x with x < size: never Config[x] is 0 and 1 <= St[x]",
+          "truth": false
+        }
+      ],
+      "enabled": false,
+      "error": "RangeError: mongo logless dynamic raft: the request fails the rule's assumption, so no proof covers the step it would take"
+    },
+    {
+      "law": "CV at most 2",
+      "pass": 1,
+      "params": {
+        "size": 3
+      },
+      "scalar": {
+        "started": 1
+      },
+      "cells": [
+        "CV[a$c#:1]",
+        "CV[w?noneCopied:1]",
+        "CV[w?canVote:1]",
+        "CV[i:1]",
+        "S[w?committedQuorum:1]",
+        "Q2[w?committedQuorum:1]",
+        "Q2[w?canVote:1]",
+        "S[w?canVote:1]",
+        "S[j:1]",
+        "Q2[j:1]",
+        "S[i:1]",
+        "Q2[i:1]",
+        "S[a$c#:1]",
+        "Q2[a$c#:1]",
+        "CV[j:1]",
+        "CV[w?committedQuorum:1]",
+        "CT[a$c#:1]",
+        "St[i:1]",
+        "St[a$c#:1]",
+        "CfgT[w?canVote:1]",
+        "CfgT[i:1]",
+        "CfgT[a$c#:1]",
+        "CT[w?canVote:1]",
+        "CT[i:1]",
+        "CV[w?allCopied:1]",
+        "CfgT[w?noneCopied:1]",
+        "CfgT[j:1]",
+        "S[w?all$2:1]",
+        "Config[i:64,w?all$2:1]"
+      ],
+      "missingScalars": [],
+      "unreadable": [],
+      "classification": "default-zero completion does not establish a relative CTI",
+      "preFailures": [
+        {
+          "law": "every x with x < size: never Config[x] is 0 and 1 <= St[x]",
+          "truth": false
+        }
+      ],
+      "enabled": false,
+      "error": "RangeError: mongo logless dynamic raft: the request fails the rule's assumption, so no proof covers the step it would take"
+    },
+    {
+      "law": "fields: St[a]=1 -> CT[a]=CT[b] -> CfgT[b]<=CfgT[a]",
+      "pass": 0,
+      "params": {
+        "size": 4
+      },
+      "scalar": {
+        "started": 1
+      },
+      "cells": [
+        "CT[a$field#:1]",
+        "CfgT[b$field:1]",
+        "St[a$field#:1]",
+        "CV[w?canVote:1]",
+        "CV[j:1]",
+        "CfgT[a$field#:1]",
+        "S[j:1]",
+        "Q2[j:1]",
+        "S[i:1]",
+        "Q2[i:1]",
+        "S[b$field:1]",
+        "Q2[b$field:1]",
+        "S[a$field#:1]",
+        "Q2[a$field#:1]",
+        "CV[w?noneCopied:1]",
+        "Q2[w?canVote:1]",
+        "S[w?canVote:1]",
+        "S[w?committedQuorum:1]",
+        "Q2[w?committedQuorum:1]",
+        "CV[b$field:1]",
+        "CV[w?committedQuorum:1]",
+        "CT[b$field:1]",
+        "CfgT[i:1]",
+        "CfgT[w?canVote:1]",
+        "CT[j:1]",
+        "CV[a$field#:1]",
+        "St[j:1]",
+        "CT[w?canVote:1]",
+        "CT[i:1]",
+        "CT[w?committedQuorum:1]",
+        "CV[w?allCopied:1]",
+        "S[w?all$2:1]",
+        "Config[i:64,w?all$2:1]",
+        "Q2[w?all$3:1]",
+        "Config[i:64,w?all$3:1]"
+      ],
+      "missingScalars": [
+        "hx",
+        "hy"
+      ],
+      "unreadable": [],
+      "classification": "default-zero completion does not establish a relative CTI",
+      "preFailures": [
+        {
+          "law": "every x with x < size: never Config[x] is 0 and 1 <= St[x]",
+          "truth": false
+        }
+      ],
+      "enabled": true,
+      "postViolation": true
+    },
+    {
+      "law": "fields: St[a]=1 -> CT[a]=CT[b] -> CfgT[b]<=CfgT[a]",
+      "pass": 0,
+      "params": {
+        "size": 4
+      },
+      "scalar": {
+        "started": 1
+      },
+      "cells": [
+        "CT[a$field#:1]",
+        "CfgT[b$field:1]",
+        "St[a$field#:1]",
+        "CV[w?canVote:1]",
+        "CV[j:1]",
+        "CfgT[a$field#:1]",
+        "S[j:1]",
+        "Q2[j:1]",
+        "S[i:1]",
+        "Q2[i:1]",
+        "S[b$field:1]",
+        "Q2[b$field:1]",
+        "S[a$field#:1]",
+        "Q2[a$field#:1]",
+        "CV[w?noneCopied:1]",
+        "Q2[w?canVote:1]",
+        "S[w?canVote:1]",
+        "S[w?committedQuorum:1]",
+        "Q2[w?committedQuorum:1]",
+        "CV[b$field:1]",
+        "CV[w?committedQuorum:1]",
+        "CT[b$field:1]",
+        "CfgT[i:1]",
+        "CfgT[w?canVote:1]",
+        "CT[j:1]",
+        "CV[a$field#:1]",
+        "St[j:1]",
+        "CT[w?canVote:1]",
+        "CT[i:1]",
+        "CT[w?committedQuorum:1]",
+        "CV[w?allCopied:1]",
+        "S[w?all$2:1]",
+        "Config[i:64,w?all$2:1]",
+        "Q2[w?all$3:1]",
+        "Config[i:64,w?all$3:1]"
+      ],
+      "missingScalars": [
+        "hx",
+        "hy"
+      ],
+      "unreadable": [],
+      "classification": "default-zero completion does not establish a relative CTI",
+      "preFailures": [
+        {
+          "law": "every x with x < size: never Config[x] is 0 and 1 <= St[x]",
+          "truth": false
+        }
+      ],
+      "enabled": true,
+      "postViolation": true
+    },
+    {
+      "law": "fields: St[a]=1 -> CT[a]=CT[b] -> CfgT[b]<=CfgT[a]",
+      "pass": 1,
+      "params": {
+        "size": 4
+      },
+      "scalar": {
+        "started": 1
+      },
+      "cells": [
+        "St[a$field#:1]",
+        "CfgT[b$field:1]",
+        "CT[a$field#:1]",
+        "CT[i:1]",
+        "CfgT[a$field#:1]",
+        "CV[b$field:1]",
+        "CV[w?allCopied:1]",
+        "S[w?committedQuorum:1]",
+        "Q2[w?committedQuorum:1]",
+        "S[w?canVote:1]",
+        "Q2[w?canVote:1]",
+        "S[j:1]",
+        "Q2[j:1]",
+        "S[i:1]",
+        "Q2[i:1]",
+        "S[b$field:1]",
+        "Q2[b$field:1]",
+        "S[a$field#:1]",
+        "Q2[a$field#:1]",
+        "CV[w?noneCopied:1]",
+        "CT[j:1]",
+        "CT[b$field:1]",
+        "CfgT[w?canVote:1]",
+        "CfgT[i:1]",
+        "S[w?all$2:1]",
+        "CT[w?committedQuorum:1]",
+        "St[j:1]",
+        "CV[w?canVote:1]",
+        "CV[a$field#:1]",
+        "CV[j:1]",
+        "CT[w?canVote:1]",
+        "Config[i:64,w?all$2:1]",
+        "Q2[w?all$3:1]",
+        "Config[i:64,w?all$3:1]",
+        "CV[i:1]"
+      ],
+      "missingScalars": [
+        "hx",
+        "hy"
+      ],
+      "unreadable": [],
+      "classification": "default-zero completion does not establish a relative CTI",
+      "preFailures": [
+        {
+          "law": "every x with x < size: never Config[x] is 0 and 1 <= St[x]",
+          "truth": false
+        }
+      ],
+      "enabled": true,
+      "postViolation": true
+    },
+    {
+      "law": "fields: St[a]=1 -> CfgT[a]=CfgT[b] -> CV[b]<=CV[a]",
+      "pass": 0,
+      "params": {
+        "size": 6
+      },
+      "scalar": {
+        "started": 1
+      },
+      "cells": [
+        "Config[i:65]",
+        "CV[a$field#:1]",
+        "CT[i:1]",
+        "CfgT[a$field#:1]",
+        "S[a$field#:1]",
+        "Q2[j:1]",
+        "S[j:1]",
+        "S[i:1]",
+        "Q2[i:1]",
+        "S[b$field:1]",
+        "Q2[b$field:1]",
+        "Q2[a$field#:1]",
+        "CV[w?noneCopied:1]",
+        "S[w?committedQuorum:1]",
+        "Q2[w?committedQuorum:1]",
+        "CV[w?allCopied:1]",
+        "CV[b$field:1]",
+        "CV[w?committedQuorum:1]",
+        "CV[j:1]",
+        "CV[w?all$3:1]",
+        "CfgT[b$field:1]",
+        "St[a$field#:1]",
+        "CT[a$field#:1]",
+        "CfgT[i:1]",
+        "CfgT[j:1]",
+        "St[j:1]",
+        "CT[j:1]",
+        "Config[i:64,j:1]",
+        "Config[i:64,w?all$3:1]",
+        "CV[i:1]",
+        "CT[w?committedQuorum:1]",
+        "CT[b$field:1]",
+        "Config[b$field:1,i:64]",
+        "Q2[w?all$3:1]",
+        "Config[b$field:64,j:1]",
+        "Config[j:65]",
+        "Config[b$field:65]",
+        "Config[b$field:1,j:64]"
+      ],
+      "missingScalars": [
+        "hx",
+        "hy"
+      ],
+      "unreadable": [],
+      "classification": "default-zero completion does not establish a relative CTI",
+      "preFailures": [
+        {
+          "law": "every x with x < size: never Config[x] is 0 and 1 <= St[x]",
+          "truth": false
+        }
+      ],
+      "enabled": false,
+      "error": "RangeError: mongo logless dynamic raft: the request fails the rule's assumption, so no proof covers the step it would take"
+    },
+    {
+      "law": "fields: St[a]=1 -> CfgT[a]=CfgT[b] -> CV[b]<=CV[a]",
+      "pass": 0,
+      "params": {
+        "size": 6
+      },
+      "scalar": {
+        "started": 1
+      },
+      "cells": [
+        "Config[i:65]",
+        "CV[a$field#:1]",
+        "CT[i:1]",
+        "CfgT[a$field#:1]",
+        "S[a$field#:1]",
+        "Q2[j:1]",
+        "S[j:1]",
+        "S[i:1]",
+        "Q2[i:1]",
+        "S[b$field:1]",
+        "Q2[b$field:1]",
+        "Q2[a$field#:1]",
+        "CV[w?noneCopied:1]",
+        "S[w?committedQuorum:1]",
+        "Q2[w?committedQuorum:1]",
+        "CV[w?allCopied:1]",
+        "CV[b$field:1]",
+        "CV[w?committedQuorum:1]",
+        "CV[j:1]",
+        "CV[w?all$3:1]",
+        "CfgT[b$field:1]",
+        "St[a$field#:1]",
+        "CT[a$field#:1]",
+        "CfgT[i:1]",
+        "CfgT[j:1]",
+        "St[j:1]",
+        "CT[j:1]",
+        "Config[i:64,j:1]",
+        "Config[i:64,w?all$3:1]",
+        "CV[i:1]",
+        "CT[w?committedQuorum:1]",
+        "CT[b$field:1]",
+        "Config[b$field:1,i:64]",
+        "Q2[w?all$3:1]",
+        "Config[b$field:64,j:1]",
+        "Config[j:65]",
+        "Config[b$field:65]",
+        "Config[b$field:1,j:64]"
+      ],
+      "missingScalars": [
+        "hx",
+        "hy"
+      ],
+      "unreadable": [],
+      "classification": "default-zero completion does not establish a relative CTI",
+      "preFailures": [
+        {
+          "law": "every x with x < size: never Config[x] is 0 and 1 <= St[x]",
+          "truth": false
+        }
+      ],
+      "enabled": false,
+      "error": "RangeError: mongo logless dynamic raft: the request fails the rule's assumption, so no proof covers the step it would take"
+    },
+    {
+      "law": "inX: no quorum canVote/1",
+      "pass": 0,
+      "params": {
+        "size": 4
+      },
+      "scalar": {
+        "started": 1
+      },
+      "cells": [
+        "S[j:1]",
+        "Q2[j:1]",
+        "S[i:1]",
+        "Q2[i:1]",
+        "S[b$quorum:1]",
+        "Q2[b$quorum:1]",
+        "S[a$quorum#:1]",
+        "Q2[a$quorum#:1]",
+        "CV[w?noneCopied:1]",
+        "Q2[w?canVote:1]",
+        "S[w?canVote:1]",
+        "S[w?committedQuorum:1]",
+        "Q2[w?committedQuorum:1]",
+        "CV[j:1]",
+        "CV[w?allCopied:1]",
+        "CT[j:1]",
+        "CV[i:1]",
+        "CV[w?canVote:1]",
+        "CT[w?canVote:1]",
+        "CT[i:1]",
+        "CfgT[w?canVote:1]",
+        "CfgT[i:1]",
+        "CT[w?committedQuorum:1]",
+        "CV[a$quorum#:1]",
+        "CV[b$quorum:1]",
+        "S[w?all$2:1]",
+        "Config[i:64,w?all$2:1]",
+        "Q2[w?all$3:1]",
+        "Config[i:64,w?all$3:1]",
+        "CV[w?committedQuorum:1]"
+      ],
+      "missingScalars": [
+        "hx",
+        "hy"
+      ],
+      "unreadable": [],
+      "classification": "default-zero completion does not establish a relative CTI",
+      "preFailures": [],
+      "enabled": true,
+      "postViolation": false
+    },
+    {
+      "law": "inX: no quorum canVote/1",
+      "pass": 0,
+      "params": {
+        "size": 4
+      },
+      "scalar": {
+        "started": 1
+      },
+      "cells": [
+        "S[j:1]",
+        "Q2[j:1]",
+        "S[i:1]",
+        "Q2[i:1]",
+        "S[b$quorum:1]",
+        "Q2[b$quorum:1]",
+        "S[a$quorum#:1]",
+        "Q2[a$quorum#:1]",
+        "CV[w?noneCopied:1]",
+        "Q2[w?canVote:1]",
+        "S[w?canVote:1]",
+        "S[w?committedQuorum:1]",
+        "Q2[w?committedQuorum:1]",
+        "CV[j:1]",
+        "CV[w?allCopied:1]",
+        "CT[j:1]",
+        "CV[i:1]",
+        "CV[w?canVote:1]",
+        "CT[w?canVote:1]",
+        "CT[i:1]",
+        "CfgT[w?canVote:1]",
+        "CfgT[i:1]",
+        "CT[w?committedQuorum:1]",
+        "CV[a$quorum#:1]",
+        "CV[b$quorum:1]",
+        "S[w?all$2:1]",
+        "Config[i:64,w?all$2:1]",
+        "Q2[w?all$3:1]",
+        "Config[i:64,w?all$3:1]",
+        "CV[w?committedQuorum:1]"
+      ],
+      "missingScalars": [
+        "hx",
+        "hy"
+      ],
+      "unreadable": [],
+      "classification": "default-zero completion does not establish a relative CTI",
+      "preFailures": [],
+      "enabled": true,
+      "postViolation": false
+    },
+    {
+      "law": "inX: no quorum canVote/1",
+      "pass": 1,
+      "params": {
+        "size": 3
+      },
+      "scalar": {
+        "started": 1
+      },
+      "cells": [
+        "S[w?committedQuorum:1]",
+        "Q2[w?committedQuorum:1]",
+        "S[w?canVote:1]",
+        "Q2[w?canVote:1]",
+        "S[j:1]",
+        "Q2[j:1]",
+        "S[i:1]",
+        "Q2[i:1]",
+        "S[b$quorum:1]",
+        "Q2[b$quorum:1]",
+        "S[a$quorum#:1]",
+        "Q2[a$quorum#:1]",
+        "CV[j:1]",
+        "CV[w?noneCopied:1]",
+        "CT[j:1]",
+        "CV[w?allCopied:1]",
+        "CT[w?canVote:1]",
+        "CT[i:1]",
+        "CfgT[w?canVote:1]",
+        "CfgT[i:1]",
+        "CV[i:1]",
+        "CV[w?canVote:1]",
+        "CV[w?committedQuorum:1]",
+        "CfgT[w?committedQuorum:1]",
+        "CT[w?committedQuorum:1]",
+        "S[w?all$2:1]",
+        "Config[i:64,w?all$2:1]",
+        "Q2[w?all$3:1]",
+        "Config[i:64,w?all$3:1]"
+      ],
+      "missingScalars": [
+        "hx",
+        "hy"
+      ],
+      "unreadable": [],
+      "classification": "default-zero completion does not establish a relative CTI",
+      "preFailures": [],
+      "enabled": true,
+      "postViolation": false
+    },
+    {
+      "law": "inX: no quorum canVote/3",
+      "pass": 0,
+      "params": {
+        "size": 4
+      },
+      "scalar": {
+        "started": 1
+      },
+      "cells": [
+        "S[j:1]",
+        "Q2[j:1]",
+        "S[i:1]",
+        "Q2[i:1]",
+        "S[b$quorum:1]",
+        "Q2[b$quorum:1]",
+        "S[a$quorum#:1]",
+        "Q2[a$quorum#:1]",
+        "CV[w?noneCopied:1]",
+        "Q2[w?canVote:1]",
+        "S[w?canVote:1]",
+        "S[w?committedQuorum:1]",
+        "Q2[w?committedQuorum:1]",
+        "CV[j:1]",
+        "CV[w?allCopied:1]",
+        "CT[j:1]",
+        "CV[i:1]",
+        "CV[w?canVote:1]",
+        "CT[w?canVote:1]",
+        "CT[i:1]",
+        "CfgT[w?canVote:1]",
+        "CfgT[i:1]",
+        "CT[w?committedQuorum:1]",
+        "CV[a$quorum#:1]",
+        "CV[b$quorum:1]",
+        "S[w?all$2:1]",
+        "Config[i:64,w?all$2:1]",
+        "Q2[w?all$3:1]",
+        "Config[i:64,w?all$3:1]",
+        "CV[w?committedQuorum:1]"
+      ],
+      "missingScalars": [
+        "hx",
+        "hy"
+      ],
+      "unreadable": [],
+      "classification": "default-zero completion does not establish a relative CTI",
+      "preFailures": [],
+      "enabled": true,
+      "postViolation": false
+    },
+    {
+      "law": "inX: no quorum canVote/3",
+      "pass": 0,
+      "params": {
+        "size": 4
+      },
+      "scalar": {
+        "started": 1
+      },
+      "cells": [
+        "S[j:1]",
+        "Q2[j:1]",
+        "S[i:1]",
+        "Q2[i:1]",
+        "S[b$quorum:1]",
+        "Q2[b$quorum:1]",
+        "S[a$quorum#:1]",
+        "Q2[a$quorum#:1]",
+        "CV[w?noneCopied:1]",
+        "Q2[w?canVote:1]",
+        "S[w?canVote:1]",
+        "S[w?committedQuorum:1]",
+        "Q2[w?committedQuorum:1]",
+        "CV[j:1]",
+        "CV[w?allCopied:1]",
+        "CT[j:1]",
+        "CV[i:1]",
+        "CV[w?canVote:1]",
+        "CT[w?canVote:1]",
+        "CT[i:1]",
+        "CfgT[w?canVote:1]",
+        "CfgT[i:1]",
+        "CT[w?committedQuorum:1]",
+        "CV[a$quorum#:1]",
+        "CV[b$quorum:1]",
+        "S[w?all$2:1]",
+        "Config[i:64,w?all$2:1]",
+        "Q2[w?all$3:1]",
+        "Config[i:64,w?all$3:1]",
+        "CV[w?committedQuorum:1]"
+      ],
+      "missingScalars": [
+        "hx",
+        "hy"
+      ],
+      "unreadable": [],
+      "classification": "default-zero completion does not establish a relative CTI",
+      "preFailures": [],
+      "enabled": true,
+      "postViolation": false
+    },
+    {
+      "law": "inX: no quorum canVote/3",
+      "pass": 1,
+      "params": {
+        "size": 3
+      },
+      "scalar": {
+        "started": 1
+      },
+      "cells": [
+        "S[w?committedQuorum:1]",
+        "Q2[w?committedQuorum:1]",
+        "S[w?canVote:1]",
+        "Q2[w?canVote:1]",
+        "S[j:1]",
+        "Q2[j:1]",
+        "S[i:1]",
+        "Q2[i:1]",
+        "S[b$quorum:1]",
+        "Q2[b$quorum:1]",
+        "S[a$quorum#:1]",
+        "Q2[a$quorum#:1]",
+        "CV[j:1]",
+        "CV[w?noneCopied:1]",
+        "CT[j:1]",
+        "CV[w?allCopied:1]",
+        "CT[w?canVote:1]",
+        "CT[i:1]",
+        "CfgT[w?canVote:1]",
+        "CfgT[i:1]",
+        "CV[i:1]",
+        "CV[w?canVote:1]",
+        "CV[w?committedQuorum:1]",
+        "CfgT[w?committedQuorum:1]",
+        "CT[w?committedQuorum:1]",
+        "S[w?all$2:1]",
+        "Config[i:64,w?all$2:1]",
+        "Q2[w?all$3:1]",
+        "Config[i:64,w?all$3:1]"
+      ],
+      "missingScalars": [
+        "hx",
+        "hy"
+      ],
+      "unreadable": [],
+      "classification": "default-zero completion does not establish a relative CTI",
+      "preFailures": [],
+      "enabled": true,
+      "postViolation": false
+    },
+    {
+      "law": "inX: stored guard reconfigs/inS",
+      "pass": 0,
+      "params": {
+        "size": 4
+      },
+      "scalar": {
+        "started": 1
+      },
+      "cells": [
+        "Q2[a$quorum#:1]",
+        "Q2[b$quorum:1]",
+        "S[a$quorum#:1]",
+        "CV[w?noneCopied:1]",
+        "S[j:1]",
+        "Q2[j:1]",
+        "S[i:1]",
+        "Q2[i:1]",
+        "S[w$quorum:1]",
+        "Q2[w$quorum:1]",
+        "S[u$quorum:1]",
+        "Q2[u$quorum:1]",
+        "S[b$quorum:1]",
+        "Q2[w?canVote:1]",
+        "S[w?canVote:1]",
+        "S[w?committedQuorum:1]",
+        "Q2[w?committedQuorum:1]",
+        "CV[u$quorum:1]",
+        "CV[w?allCopied:1]",
+        "CT[w?canVote:1]",
+        "CT[i:1]",
+        "CfgT[w?canVote:1]",
+        "CfgT[i:1]",
+        "CV[i:1]",
+        "CV[w?canVote:1]",
+        "CT[j:1]",
+        "CT[w?committedQuorum:1]",
+        "S[w?all$2:1]",
+        "Config[i:64,w?all$2:1]",
+        "Q2[w?all$3:1]",
+        "Config[i:64,w?all$3:1]",
+        "CV[j:1]"
+      ],
+      "missingScalars": [
+        "hx",
+        "hy"
+      ],
+      "unreadable": [],
+      "classification": "default-zero completion does not establish a relative CTI",
+      "preFailures": [],
+      "enabled": true,
+      "postViolation": false
+    },
+    {
+      "law": "inX: stored guard reconfigs/inS",
+      "pass": 0,
+      "params": {
+        "size": 4
+      },
+      "scalar": {
+        "started": 1
+      },
+      "cells": [
+        "Q2[a$quorum#:1]",
+        "Q2[b$quorum:1]",
+        "S[a$quorum#:1]",
+        "CV[w?noneCopied:1]",
+        "S[j:1]",
+        "Q2[j:1]",
+        "S[i:1]",
+        "Q2[i:1]",
+        "S[w$quorum:1]",
+        "Q2[w$quorum:1]",
+        "S[u$quorum:1]",
+        "Q2[u$quorum:1]",
+        "S[b$quorum:1]",
+        "Q2[w?canVote:1]",
+        "S[w?canVote:1]",
+        "S[w?committedQuorum:1]",
+        "Q2[w?committedQuorum:1]",
+        "CV[u$quorum:1]",
+        "CV[w?allCopied:1]",
+        "CT[w?canVote:1]",
+        "CT[i:1]",
+        "CfgT[w?canVote:1]",
+        "CfgT[i:1]",
+        "CV[i:1]",
+        "CV[w?canVote:1]",
+        "CT[j:1]",
+        "CT[w?committedQuorum:1]",
+        "S[w?all$2:1]",
+        "Config[i:64,w?all$2:1]",
+        "Q2[w?all$3:1]",
+        "Config[i:64,w?all$3:1]",
+        "CV[j:1]"
+      ],
+      "missingScalars": [
+        "hx",
+        "hy"
+      ],
+      "unreadable": [],
+      "classification": "default-zero completion does not establish a relative CTI",
+      "preFailures": [],
+      "enabled": true,
+      "postViolation": false
+    },
+    {
+      "law": "inX: stored guard reconfigs/inS",
+      "pass": 1,
+      "params": {
+        "size": 3
+      },
+      "scalar": {
+        "started": 1
+      },
+      "cells": [
+        "CV[w?canVote:1]",
+        "Config[i:64,w?all$3:1]",
+        "Q2[w?all$3:1]",
+        "S[w?committedQuorum:1]",
+        "Q2[w?committedQuorum:1]",
+        "S[w?canVote:1]",
+        "Q2[w?canVote:1]",
+        "S[j:1]",
+        "Q2[j:1]",
+        "S[i:1]",
+        "Q2[i:1]",
+        "S[w$quorum:1]",
+        "Q2[w$quorum:1]",
+        "S[u$quorum:1]",
+        "Q2[u$quorum:1]",
+        "S[b$quorum:1]",
+        "Q2[b$quorum:1]",
+        "S[a$quorum#:1]",
+        "Q2[a$quorum#:1]",
+        "CV[j:1]",
+        "CV[w?allCopied:1]",
+        "CT[j:1]",
+        "CV[w?noneCopied:1]",
+        "CT[w?canVote:1]",
+        "CT[i:1]",
+        "CfgT[w?canVote:1]",
+        "CfgT[i:1]",
+        "CV[i:1]",
+        "CV[w?committedQuorum:1]",
+        "CfgT[w?committedQuorum:1]",
+        "CT[w?committedQuorum:1]",
+        "S[w?all$2:1]",
+        "Config[i:64,w?all$2:1]"
+      ],
+      "missingScalars": [
+        "hx",
+        "hy"
+      ],
+      "unreadable": [],
+      "classification": "default-zero completion does not establish a relative CTI",
+      "preFailures": [],
+      "enabled": true,
+      "postViolation": false
+    },
+    {
+      "law": "inX: stored guard reconfigs/inS or disabled/0",
+      "pass": 0,
+      "params": {
+        "size": 4
+      },
+      "scalar": {
+        "started": 1
+      },
+      "cells": [
+        "Q2[a$quorum#:1]",
+        "Q2[b$quorum:1]",
+        "S[a$quorum#:1]",
+        "CV[w?noneCopied:1]",
+        "S[j:1]",
+        "Q2[j:1]",
+        "S[i:1]",
+        "Q2[i:1]",
+        "S[w$quorum:1]",
+        "Q2[w$quorum:1]",
+        "S[u$quorum:1]",
+        "Q2[u$quorum:1]",
+        "S[b$quorum:1]",
+        "Q2[w?canVote:1]",
+        "S[w?canVote:1]",
+        "S[w?committedQuorum:1]",
+        "Q2[w?committedQuorum:1]",
+        "CV[u$quorum:1]",
+        "CV[w?allCopied:1]",
+        "CT[w?canVote:1]",
+        "CT[i:1]",
+        "CfgT[w?canVote:1]",
+        "CfgT[i:1]",
+        "CV[i:1]",
+        "CV[w?canVote:1]",
+        "CT[j:1]",
+        "CT[w?committedQuorum:1]",
+        "S[w?all$2:1]",
+        "Config[i:64,w?all$2:1]",
+        "Q2[w?all$3:1]",
+        "Config[i:64,w?all$3:1]",
+        "CV[j:1]"
+      ],
+      "missingScalars": [
+        "hx",
+        "hy"
+      ],
+      "unreadable": [],
+      "classification": "default-zero completion does not establish a relative CTI",
+      "preFailures": [],
+      "enabled": true,
+      "postViolation": false
+    },
+    {
+      "law": "inX: stored guard reconfigs/inS or disabled/0",
+      "pass": 0,
+      "params": {
+        "size": 4
+      },
+      "scalar": {
+        "started": 1
+      },
+      "cells": [
+        "Q2[a$quorum#:1]",
+        "Q2[b$quorum:1]",
+        "S[a$quorum#:1]",
+        "CV[w?noneCopied:1]",
+        "S[j:1]",
+        "Q2[j:1]",
+        "S[i:1]",
+        "Q2[i:1]",
+        "S[w$quorum:1]",
+        "Q2[w$quorum:1]",
+        "S[u$quorum:1]",
+        "Q2[u$quorum:1]",
+        "S[b$quorum:1]",
+        "Q2[w?canVote:1]",
+        "S[w?canVote:1]",
+        "S[w?committedQuorum:1]",
+        "Q2[w?committedQuorum:1]",
+        "CV[u$quorum:1]",
+        "CV[w?allCopied:1]",
+        "CT[w?canVote:1]",
+        "CT[i:1]",
+        "CfgT[w?canVote:1]",
+        "CfgT[i:1]",
+        "CV[i:1]",
+        "CV[w?canVote:1]",
+        "CT[j:1]",
+        "CT[w?committedQuorum:1]",
+        "S[w?all$2:1]",
+        "Config[i:64,w?all$2:1]",
+        "Q2[w?all$3:1]",
+        "Config[i:64,w?all$3:1]",
+        "CV[j:1]"
+      ],
+      "missingScalars": [
+        "hx",
+        "hy"
+      ],
+      "unreadable": [],
+      "classification": "default-zero completion does not establish a relative CTI",
+      "preFailures": [],
+      "enabled": true,
+      "postViolation": false
+    },
+    {
+      "law": "inX: stored guard reconfigs/inS or disabled/0",
+      "pass": 1,
+      "params": {
+        "size": 2
+      },
+      "scalar": {
+        "started": 1
+      },
+      "cells": [
+        "Config[i:64,w?all$3:1]",
+        "Q2[w?all$3:1]",
+        "S[w?committedQuorum:1]",
+        "Q2[w?committedQuorum:1]",
+        "S[w?canVote:1]",
+        "Q2[w?canVote:1]",
+        "S[j:1]",
+        "Q2[j:1]",
+        "S[i:1]",
+        "Q2[i:1]",
+        "S[w$quorum:1]",
+        "Q2[w$quorum:1]",
+        "S[u$quorum:1]",
+        "Q2[u$quorum:1]",
+        "S[b$quorum:1]",
+        "Q2[b$quorum:1]",
+        "S[a$quorum#:1]",
+        "Q2[a$quorum#:1]",
+        "CV[j:1]",
+        "CV[w?allCopied:1]",
+        "CV[b$quorum:1]",
+        "CV[w?committedQuorum:1]",
+        "CT[w?canVote:1]",
+        "CT[i:1]",
+        "CfgT[w?canVote:1]",
+        "CfgT[i:1]",
+        "CV[i:1]",
+        "CV[w?canVote:1]",
+        "CT[j:1]",
+        "CV[w?noneCopied:1]",
+        "S[w?all$2:1]",
+        "Config[i:64,w?all$2:1]"
+      ],
+      "missingScalars": [
+        "hx",
+        "hy"
+      ],
+      "unreadable": [],
+      "classification": "default-zero completion does not establish a relative CTI",
+      "preFailures": [],
+      "enabled": true,
+      "postViolation": false
+    },
+    {
+      "law": "inX: stored guard reconfigs/inS or disabled/0",
+      "pass": 1,
+      "params": {
+        "size": 1
+      },
+      "scalar": {
+        "started": 0
+      },
+      "cells": [],
+      "missingScalars": [
+        "started",
+        "op",
+        "i",
+        "j",
+        "hx",
+        "hy"
+      ],
+      "unreadable": [],
+      "classification": "default-zero completion does not establish a relative CTI",
+      "preFailures": [],
+      "enabled": false,
+      "error": "RangeError: mongo logless dynamic raft: the request fails the rule's assumption, so no proof covers the step it would take"
+    },
+    {
+      "law": "inX: stored guard reconfigs/inS or disabled/1",
+      "pass": 0,
+      "params": {
+        "size": 4
+      },
+      "scalar": {
+        "started": 1
+      },
+      "cells": [
+        "Q2[a$quorum#:1]",
+        "Q2[b$quorum:1]",
+        "S[a$quorum#:1]",
+        "CV[w?noneCopied:1]",
+        "S[j:1]",
+        "Q2[j:1]",
+        "S[i:1]",
+        "Q2[i:1]",
+        "S[w$quorum:1]",
+        "Q2[w$quorum:1]",
+        "S[u$quorum:1]",
+        "Q2[u$quorum:1]",
+        "S[b$quorum:1]",
+        "Q2[w?canVote:1]",
+        "S[w?canVote:1]",
+        "S[w?committedQuorum:1]",
+        "Q2[w?committedQuorum:1]",
+        "CV[u$quorum:1]",
+        "CV[w?allCopied:1]",
+        "CT[w?canVote:1]",
+        "CT[i:1]",
+        "CfgT[w?canVote:1]",
+        "CfgT[i:1]",
+        "CV[i:1]",
+        "CV[w?canVote:1]",
+        "CT[j:1]",
+        "CT[w?committedQuorum:1]",
+        "S[w?all$2:1]",
+        "Config[i:64,w?all$2:1]",
+        "Q2[w?all$3:1]",
+        "Config[i:64,w?all$3:1]",
+        "CV[j:1]"
+      ],
+      "missingScalars": [
+        "hx",
+        "hy"
+      ],
+      "unreadable": [],
+      "classification": "default-zero completion does not establish a relative CTI",
+      "preFailures": [],
+      "enabled": true,
+      "postViolation": false
+    },
+    {
+      "law": "inX: stored guard reconfigs/inS or disabled/1",
+      "pass": 0,
+      "params": {
+        "size": 4
+      },
+      "scalar": {
+        "started": 1
+      },
+      "cells": [
+        "Q2[a$quorum#:1]",
+        "Q2[b$quorum:1]",
+        "S[a$quorum#:1]",
+        "CV[w?noneCopied:1]",
+        "S[j:1]",
+        "Q2[j:1]",
+        "S[i:1]",
+        "Q2[i:1]",
+        "S[w$quorum:1]",
+        "Q2[w$quorum:1]",
+        "S[u$quorum:1]",
+        "Q2[u$quorum:1]",
+        "S[b$quorum:1]",
+        "Q2[w?canVote:1]",
+        "S[w?canVote:1]",
+        "S[w?committedQuorum:1]",
+        "Q2[w?committedQuorum:1]",
+        "CV[u$quorum:1]",
+        "CV[w?allCopied:1]",
+        "CT[w?canVote:1]",
+        "CT[i:1]",
+        "CfgT[w?canVote:1]",
+        "CfgT[i:1]",
+        "CV[i:1]",
+        "CV[w?canVote:1]",
+        "CT[j:1]",
+        "CT[w?committedQuorum:1]",
+        "S[w?all$2:1]",
+        "Config[i:64,w?all$2:1]",
+        "Q2[w?all$3:1]",
+        "Config[i:64,w?all$3:1]",
+        "CV[j:1]"
+      ],
+      "missingScalars": [
+        "hx",
+        "hy"
+      ],
+      "unreadable": [],
+      "classification": "default-zero completion does not establish a relative CTI",
+      "preFailures": [],
+      "enabled": true,
+      "postViolation": false
+    }
+  ]
+}

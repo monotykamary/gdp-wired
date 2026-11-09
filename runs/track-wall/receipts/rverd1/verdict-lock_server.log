@@ -1,0 +1,6 @@
+PAIR base
+VERDICT {"id":"lock_server","ic3syn":"i4-lock-server","search":{"verdict":"proven","found":["every x, y with x < 64 ∧ y < 64: Semaphore[y] + Link[64·x + y] <= 1"],"ms":3314,"work":56883,"full":39220}}
+PROCESS_SECONDS base 3.37 EXIT 0
+PAIR mine
+VERDICT {"id":"lock_server","ic3syn":"i4-lock-server","search":{"verdict":"proven","found":["every x, y with x < 64 ∧ y < 64: Semaphore[y] + Link[64·x + y] <= 1"],"ms":3122,"work":56883,"full":39220}}
+PROCESS_SECONDS mine 3.16 EXIT 0

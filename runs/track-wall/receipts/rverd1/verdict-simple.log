@@ -1,0 +1,6 @@
+PAIR mine
+VERDICT {"id":"simple","ic3syn":"tla-simple","search":{"verdict":"proven","found":["X at most 1","Y at most 1","Pc at most 2","every x with x < n: never X[x] is 0 and 1 <= Y[x]","every x with x < n: never X[x] is 0 and Pc[x] is 1","every x with x < n: never X[x] is 0 and 2 <= Pc[x]","every x with x < n: never 1 <= X[x] and Pc[x] is 0","every x with x < n: never 1 <= Y[x] and Pc[x] is 0","every x with x < n: never 1 <= Y[x] and Pc[x] is 1"],"ms":13153,"work":954687,"full":2291914}}
+PROCESS_SECONDS mine 13.28 EXIT 0
+PAIR base
+VERDICT {"id":"simple","ic3syn":"tla-simple","search":{"verdict":"proven","found":["X at most 1","Y at most 1","Pc at most 2","every x with x < n: never X[x] is 0 and 1 <= Y[x]","every x with x < n: never X[x] is 0 and Pc[x] is 1","every x with x < n: never X[x] is 0 and 2 <= Pc[x]","every x with x < n: never 1 <= X[x] and Pc[x] is 0","every x with x < n: never 1 <= Y[x] and Pc[x] is 0","every x with x < n: never 1 <= Y[x] and Pc[x] is 1"],"ms":13172,"work":1375372,"full":3211689}}
+PROCESS_SECONDS base 13.26 EXIT 0
