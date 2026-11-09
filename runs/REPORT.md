@@ -1,7 +1,7 @@
-# Lane A / T-14 gate complete; Section 16 in progress
+# Lane A / T-14 iteration receipts complete; Section 16 in progress
 
 The E-14 + per-attempt-sharing implementation (`1681e8e5`) and the test-only
-packed-domain clock repair pass the complete merge gate against `b788e195`:
+packed-domain clock repair pass the lane-local iteration checks against `b788e195`:
 84/84 retained IC3Syn safety proofs, 30/30 DuoAI proofs, no broken variant
 proved, all seven test shards and type/lint/commitlint green. The recovered
 quick bar has wrong 0 and solid losses 0 (three non-solid CHC losses remain).
@@ -16,8 +16,12 @@ Counted-work changes occurred in: `consensus_epr`, `consensus_forall`,
 `simple_regular`, `toy_consensus`, `toy_consensus_epr`, `toy_consensus_forall`.
 No safety verdict or returned helper law was lost.
 
-Section 16.1/16.2 are now assigned and being implemented. Their new production
-code is NOT covered by the T-14 green result and will be re-gated separately.
+Under the revised Gate evidence rule, these lane-local receipts do **not**
+authorize a merge. GATE GREEN requires Lane D's one-command final receipt
+with both SHAs, exact roster, pair identity, and CPU labels bound. No such
+claim is made here.
+
+Section 16.1 first half / 16.2: concrete relative-CTI certification and a\nsingle counted deadline per attempt are implemented. The finite checker\nrecomputes count cells, checks the entire predecessor family, executes the\nactual request, and requires a post-state violation. Only that result skips\nthe other pass. An uncertified pass-1 model is `unknown`; it does not carry\nthe new `refuted` marker. The existing failed-proof elimination policy is\notherwise unchanged. The exact end now bounds refinement, decision, part\ngrowth, and final growth; supportBudget remains the caller-priority owner.\n\nValidation: `t16-check-v1` has 23 pass / 0 fail / 2,572 assertions, plus\nTypeScript and type-aware lint. `t16-probe-v1` is running three strict paired\nrepeats against main and three against the clean T-14 parent (`8b44e4b3`).\nThese changes are NOT covered by the T-14 iteration results or a Lane D\nmerge receipt. Geometry-biased finite sampling is next; Lane C owns 16.4.\n
 
 # Track P report
 

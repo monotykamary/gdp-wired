@@ -1,4 +1,6 @@
-# T-14 merge-gate evidence (before Section 16)
+# T-14 lane-local iteration evidence (before Section 16)
+
+Not a Lane D one-command final-gate receipt; this evidence alone does not authorize a merge.
 
 Implementation: `1681e8e5` plus the test-only deterministic packed-domain route check.
 Baseline: `b788e195`. All original-harness verdicts use `--ms 60000` under `timeout -s KILL 60`.
