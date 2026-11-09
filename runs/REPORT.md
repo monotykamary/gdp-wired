@@ -22,7 +22,26 @@ on top of state-first: the first pilot caught no drops during target build.
 Shared circuits passed 57 tests; the pilot recovered four named drops,
 but still fails the unchanged five-of-seven bar.
 
-## Current revision: coupled map seed moves (checked; pilot running)
+## Current WIP: front-loaded seed certification (validation pending)
+
+Coupled moves below still missed five-of-seven. The next hypothesis moves the
+same bounded seed-vector work before native setup, using shared layout and
+materialization code and the exact same whole-family/source-step certifier.
+The early phase replaces the late phase: no second 256-attempt allowance.
+The original native traversal, domains, rounds and wall limits remain.
+
+The previous suite plus seven early-phase fixtures and static checks are
+running on submission: `8a2d16e5-ea62-4756-a3a1-fb7992daa016`, output
+`runs/t16-early-check/`, immutable overlay `runs/t16-early-overlay/`.
+No early-phase pilot is submitted, and the new WIP is not covered by the
+prior 73-test receipt. Details: `research/track-gen/t16-early-notes.md`.
+Compiler SHA-256 `be1bd8f0d285eabe77716160e31fbe316d9fa031f8f07d6ab88c221387699578`;
+wrapper `a38433e20e843f347bdc28deaba3951778e21544fd7c36bd24c16b4eaf27c28b`;
+new tests `d5568b5d66778efd4297121e2681db5a9cb2fc65bcf2c47e593480d1090d125c`;
+driver `36930ec341f78b429e07f233390e91f1b2143437c9ad36f24ea9ef8cfbcd60a6`.
+No new archive or >500 MB write; no deletion or subagent is planned.
+
+## Previous revision: coupled map seed moves (checked; pilot rejected)
 
 The radius-one seed pilot below failed the criterion. The next opt-in move
 sets all modeled cells of one map to an already-admitted common value, under
@@ -35,12 +54,13 @@ The complete expanded suite passed in submission batch `20261110-024813-v2fcnw`:
 and commitlint. Receipts: `runs/t16-coupled-check/`; immutable overlay:
 `runs/t16-coupled-overlay/`. Checked source commit: `2bdc025a`.
 
-Six fixed-budget pilots are now running on isolated submission-class large VMs:
-`e5b5ab17-920c-4509-944e-ca20ce9e0bac`, output `runs/t16-coupled-probe/`.
-Every source/test hash was checked before commit and launch. Shared post-target
-pruning, seed neighborhoods and uniform-map moves are on; intervals are off.
-The setup-time diagnostic caveat remains: this geometry change cannot help a
-pass that never reaches seed processing. No pilot outcome is claimed yet.
+Pilot `20261110-031527-qmy0u0` completed six jobs (all exits 0) and stayed
+under 2 s in all six active walls. It still **failed** five-of-seven: original
+named new drops **4 / 4 / 2**, active walls **1900.301 / 1900.132 / 1903.808 ms**.
+Survivors caught two new named drops each. Independent replay batch
+`20261110-031701-9o3w3e` confirmed all **22** emitted witnesses. Evidence:
+`research/track-gen/t16-coupled-results.json`. The setup bottleneck caveat
+remains; no production or final-gate promotion follows from this result.
 Compiler SHA-256 `a130bde06e36c60b177a78a88ef2a4672d390101af1ff3d80ac5e806fdff2c1f`;
 seed suite `02966de2a49dd47fe4564676d89c212916cfd6d191e5d3fc968e08fa37bfaa59`;
 driver `cb23828858424c06227caa35a3c4b8fec7feae96b8ad230471c32c714c3fd563`.

@@ -17,12 +17,22 @@
   },
   "caveat": "Previous instrumented seed run expired in setup before any seed attempts in both later passes.",
   "pilot": {
-    "status": "running",
-    "task": "e5b5ab17-920c-4509-944e-ca20ce9e0bac",
-    "output": "runs/t16-coupled-probe/",
-    "intervals": false,
-    "seedNeighborhood": true,
-    "uniformMaps": true
+    "status": "rejected; independently replayed",
+    "batch": "20261110-031527-qmy0u0",
+    "originalNamedNew": [
+      4,
+      4,
+      2
+    ],
+    "originalWallsMs": [
+      1900.301311,
+      1900.132334,
+      1903.808103
+    ],
+    "allSixWallsWithinAllowance": true,
+    "replayBatch": "20261110-031701-9o3w3e",
+    "certifiedWitnesses": 22,
+    "results": "research/track-gen/t16-coupled-results.json"
   },
   "productionEnabled": false,
   "sourceCommit": "2bdc025a8f0d7728f41d8e40b69d93908e6d6d01"
