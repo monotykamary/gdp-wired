@@ -14,6 +14,6 @@
     {"task":"e3774a52-f411-475e-9812-0ee68b20730d","source":"d91a53e4","state":"complete","checkExit":1,"output":"runs/track-m/lane-b-audit-link-check-v2","note":"TypeScript passed; already-repaired exhaustive-switch lint failed; tests not run"},
     {"batch":"20261110-010856-07ox2p","source":"27c8cb26","tree":"7e9cc9f8c7bd","task":"749d54a5-79a6-4cf8-b03e-b263f039277b","state":"complete","checkExit":0,"tests":25,"assertions":101,"output":"runs/track-m/lane-b-audit-link-check-v3"},
     {"task":"e11eb951-62ce-4a42-9a38-342bd7fcbfda","state":"complete","exitCode":0,"output":"runs/track-m/lane-b-resume-commitlint-v1"},
-    {"source":"09d3d172","control":"47215336","upstream":"2047d2be","task":"2d0d8363-da4f-4d7c-b1bf-3629ccd11a1e","state":"submission-pending","jobs":8,"output":"runs/track-m/lane-b-members-v1","note":"research-only disposable variant; production counts/ranges unchanged; do not duplicate on timeout"}
+    {"source":"09d3d172","control":"47215336","upstream":"2047d2be","task":"2d0d8363-da4f-4d7c-b1bf-3629ccd11a1e","batch":"20261110-013121-bhvcxb","tree":"e34b93627925","state":"complete-negative","jobs":8,"failedJobs":0,"testsPerVariant":13,"assertionsPerVariant":61,"output":"runs/track-m/lane-b-members-v1","note":"p1 +166.3193948 units in both orders; row unchanged; star wall-limited unknown; production counts/ranges unchanged"}
   ]
 }

@@ -36,10 +36,10 @@ const rows = names.map(name => {
   }
   const before = arms.find(a => a.side === 'before')!, after = arms.find(a => a.side === 'after')!
   return {name, cpu, logSha256: createHash('sha256').update(text).digest('hex'), archive: manifests.at(-1),
-    arms: arms.map(({side, tag, law, checked, units, wallMs, withinDiagnosticLine, results, memberPremiseEvents, memberPremiseTuples}) => ({side, tag, law, checked, units, wallMs, withinDiagnosticLine, results, memberPremiseEvents, memberPremiseTuples, originalFamilyVerified: true})),
+    arms: arms.map(({side, tag, law, checked, units, wallMs, withinDiagnosticLine, results, memberPremiseEvents, memberPremiseTuples, rowPremiseEvents, rowPremiseTuples}) => ({side, tag, law, checked, units, wallMs, withinDiagnosticLine, results, memberPremiseEvents, memberPremiseTuples, rowPremiseEvents, rowPremiseTuples, originalFamilyVerified: true})),
     unitDelta: after.units - before.units, wallDeltaMs: after.wallMs - before.wallMs}
 })
-const checks = exits.has('check') ? {check: exits.get('check')!} : {base: exits.get('check-base'), candidate: exits.get('check-members')}
+const checks = exits.has('check') ? {check: exits.get('check')!} : {base: exits.get('check-base'), candidate: exits.get('check-candidate') ?? exits.get('check-members')}
 assert(Object.values(checks).every(code => code !== undefined), 'missing validation receipt')
 if (!exits.has('check')) assert(process.argv[3] && process.argv[4], 'paired source identities required')
 const out = {conditional: true, standalone: true, gateGreen: false, validationExit: Math.max(...Object.values(checks) as number[]), checks, source: process.argv[3] ?? 'b056c3b4', control: process.argv[4] ?? 'a4dc71d0', rows,
