@@ -4,7 +4,15 @@ Lane I resumed from `cca59f0c` on `claude/mldr-integ`; clean worktree verified, 
 
 - First cancelled work rerun: all **140 upper-bound shards** submitted through the scheduler, fresh output `runs/lane-i/upper-bound/resumed/full`, task `cf1d3fc9-6a88-4e12-8403-974717b1ed42`. Every guest unpacks frozen production `15eff72f` and checks the retained source manifest; the current integration is not substituted. No supplied laws; original 34-law family; 30 minutes per operation; no share; independent verification still required. Pending, not a result.
 - Repair: core-replay reconstruction now spreads the previous obligation before replacing its goal/decls/encoded goal, retaining `all`, certificate and pool. Added a focused range-demand test for a read omitted by the selected certificate. No budget, law, or kernel change.
-- Current source/test candidate: `b09da82d`. Final-candidate check is clean; **660 tests / 19,846 assertions pass**, including the real core-replay regression. The old-shape negative control also passed by detecting dropped reads. All three fresh MLDR pairs remain unknown, with no MLDR proof. **Not gate green**: frozen/census results and Lane D's final gate remain pending.
+- Latest lane tips are now integrated; the new source includes finite batching/optional post-target pruning and compiled runtime/count changes. V11 check/tests, original MLDR pairs, mutation control and 87-pair census are being prepared. The earlier `b09da82d` has 660 passing tests and a clean check, but that result is not transferred to this new source. **Not gate green**; frozen upper-bound and Lane D's final gate remain pending.
+
+## New lane integration / V11 preparation
+
+Pinned merges: A `5632e5e9` then `8dfb319e` (bounded native-clause splitting and default-off post-target pruning); B `e17ed54f` (bounded member/row-premise probes and stricter receipt tooling); E `5c3686f0` (member/range preservation and ranked-source experiments); Fable `b74b2f00` (compiled derived cells and shared dense-write breakpoints); F `0775159a` (guarded frame tests/source reconstruction probes).
+
+Conflict decisions: kept the verified full-record core replay and its read/pool/certificate diagnostic rather than an explicit-field reconstruction; retained both range test sets; deduplicated the range import; retained both `runInNewContext` and `times` runtime-test imports; used the stricter frame-falsifier result union; kept the checked scalar/audit input guards; kept both partial-predicate cases. Lane reports remain at their pinned branch tips. Offload keep lists were combined, making F's external context path absolute.
+
+The four newly added test modules (finite target pruning, row premises, range-input preparation, ranked-source installation) are added to both the validation and quick-suite roster assertions. The original replay negative control remains in the next validation. New behavior has **not yet been validated in this integrated source**; prior green mechanics and V9/V10 census results retain their original source bindings.
 
 ## V10 generation census completed; newer production tips require integration
 
