@@ -1,0 +1,3 @@
+[
+ {"name":"capture-check","cmd":"bash research/track-m/prepare-vendors.sh && bun install --frozen-lockfile >/dev/null && LAB_DISPOSABLE=1 bun research/track-m/install-lane-b-original-family.ts && bun run check && bun test core/counts-preflight.test.ts research/track-m/section16.test.ts","cpu":8,"memory":14336,"timeout":360}
+]

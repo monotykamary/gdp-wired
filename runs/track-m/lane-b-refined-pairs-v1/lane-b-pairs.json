@@ -1,7 +1,7 @@
 {
   "iterationOnly": true,
   "gateGreen": false,
-  "independentAuditPending": true,
+  "independentAuditPending": false,
   "familySha256": "5c9aa44bca08790afdf331b290f101b6ca5d177133e662f5f6f1e80aa6cebc6f",
   "rows": [
     {
@@ -42,7 +42,13 @@
             "fdd8a6aee4f3878747401c0d3d58fd76dde2ec79bb4afd765814b1b0ba810b6b  core/count-recovery/derivability-closure.ts",
             "8381ff0a8ac4f982d1346de897741b907d13edc4541c8575d3ba2d30443943d3  core/count-recovery/field-demand.ts"
           ],
-          "sourceBytesVerified": true
+          "sourceBytesVerified": true,
+          "audit": {
+            "sourceLog": "runs/track-m/lane-b-refined-audit-v1/overlap.log",
+            "logSha256": "c8cba302fa59c38b3a4e8bb6cbfcfe36393daab911160e134310ae72d391501b",
+            "conditional": true,
+            "checked": false
+          }
         },
         {
           "side": "after",
@@ -63,7 +69,13 @@
             "086de083e59fe9cea0388c5863b20b0721ec862f1c9e41c7e12d8e3b5366e703  core/count-recovery/derivability-closure.ts",
             "36c0e5d18d438c710cef02ab487da3ba8d722c89b74971001b33f4168828dda3  core/count-recovery/field-demand.ts"
           ],
-          "sourceBytesVerified": true
+          "sourceBytesVerified": true,
+          "audit": {
+            "sourceLog": "runs/track-m/lane-b-refined-audit-v1/overlap.log",
+            "logSha256": "c8cba302fa59c38b3a4e8bb6cbfcfe36393daab911160e134310ae72d391501b",
+            "conditional": true,
+            "checked": false
+          }
         }
       ],
       "before": {
@@ -150,7 +162,13 @@
             "086de083e59fe9cea0388c5863b20b0721ec862f1c9e41c7e12d8e3b5366e703  core/count-recovery/derivability-closure.ts",
             "36c0e5d18d438c710cef02ab487da3ba8d722c89b74971001b33f4168828dda3  core/count-recovery/field-demand.ts"
           ],
-          "sourceBytesVerified": true
+          "sourceBytesVerified": true,
+          "audit": {
+            "sourceLog": "runs/track-m/lane-b-refined-audit-v1/overlap.log",
+            "logSha256": "c8cba302fa59c38b3a4e8bb6cbfcfe36393daab911160e134310ae72d391501b",
+            "conditional": true,
+            "checked": false
+          }
         },
         {
           "side": "before",
@@ -171,7 +189,13 @@
             "fdd8a6aee4f3878747401c0d3d58fd76dde2ec79bb4afd765814b1b0ba810b6b  core/count-recovery/derivability-closure.ts",
             "8381ff0a8ac4f982d1346de897741b907d13edc4541c8575d3ba2d30443943d3  core/count-recovery/field-demand.ts"
           ],
-          "sourceBytesVerified": true
+          "sourceBytesVerified": true,
+          "audit": {
+            "sourceLog": "runs/track-m/lane-b-refined-audit-v1/overlap.log",
+            "logSha256": "c8cba302fa59c38b3a4e8bb6cbfcfe36393daab911160e134310ae72d391501b",
+            "conditional": true,
+            "checked": false
+          }
         }
       ],
       "before": {
@@ -258,7 +282,13 @@
             "fdd8a6aee4f3878747401c0d3d58fd76dde2ec79bb4afd765814b1b0ba810b6b  core/count-recovery/derivability-closure.ts",
             "8381ff0a8ac4f982d1346de897741b907d13edc4541c8575d3ba2d30443943d3  core/count-recovery/field-demand.ts"
           ],
-          "sourceBytesVerified": true
+          "sourceBytesVerified": true,
+          "audit": {
+            "sourceLog": "runs/track-m/lane-b-refined-audit-v1/rows.log",
+            "logSha256": "0d4ec00bef2744c8df2e0ac1f4d66f99329f4b14ff125a9bc516a1f77a4c7370",
+            "conditional": true,
+            "checked": false
+          }
         },
         {
           "side": "after",
@@ -279,7 +309,13 @@
             "086de083e59fe9cea0388c5863b20b0721ec862f1c9e41c7e12d8e3b5366e703  core/count-recovery/derivability-closure.ts",
             "36c0e5d18d438c710cef02ab487da3ba8d722c89b74971001b33f4168828dda3  core/count-recovery/field-demand.ts"
           ],
-          "sourceBytesVerified": true
+          "sourceBytesVerified": true,
+          "audit": {
+            "sourceLog": "runs/track-m/lane-b-refined-audit-v1/rows.log",
+            "logSha256": "0d4ec00bef2744c8df2e0ac1f4d66f99329f4b14ff125a9bc516a1f77a4c7370",
+            "conditional": true,
+            "checked": false
+          }
         }
       ],
       "before": {
@@ -366,7 +402,13 @@
             "086de083e59fe9cea0388c5863b20b0721ec862f1c9e41c7e12d8e3b5366e703  core/count-recovery/derivability-closure.ts",
             "36c0e5d18d438c710cef02ab487da3ba8d722c89b74971001b33f4168828dda3  core/count-recovery/field-demand.ts"
           ],
-          "sourceBytesVerified": true
+          "sourceBytesVerified": true,
+          "audit": {
+            "sourceLog": "runs/track-m/lane-b-refined-audit-v1/rows.log",
+            "logSha256": "0d4ec00bef2744c8df2e0ac1f4d66f99329f4b14ff125a9bc516a1f77a4c7370",
+            "conditional": true,
+            "checked": false
+          }
         },
         {
           "side": "before",
@@ -387,7 +429,13 @@
             "fdd8a6aee4f3878747401c0d3d58fd76dde2ec79bb4afd765814b1b0ba810b6b  core/count-recovery/derivability-closure.ts",
             "8381ff0a8ac4f982d1346de897741b907d13edc4541c8575d3ba2d30443943d3  core/count-recovery/field-demand.ts"
           ],
-          "sourceBytesVerified": true
+          "sourceBytesVerified": true,
+          "audit": {
+            "sourceLog": "runs/track-m/lane-b-refined-audit-v1/rows.log",
+            "logSha256": "0d4ec00bef2744c8df2e0ac1f4d66f99329f4b14ff125a9bc516a1f77a4c7370",
+            "conditional": true,
+            "checked": false
+          }
         }
       ],
       "before": {
@@ -474,7 +522,13 @@
             "fdd8a6aee4f3878747401c0d3d58fd76dde2ec79bb4afd765814b1b0ba810b6b  core/count-recovery/derivability-closure.ts",
             "8381ff0a8ac4f982d1346de897741b907d13edc4541c8575d3ba2d30443943d3  core/count-recovery/field-demand.ts"
           ],
-          "sourceBytesVerified": true
+          "sourceBytesVerified": true,
+          "audit": {
+            "sourceLog": "runs/track-m/lane-b-refined-audit-v1/star.log",
+            "logSha256": "48e3e3fe6176c4fc35849e551bb12d9e763fa01c54090cfce33f9cae5bda91cc",
+            "conditional": true,
+            "checked": false
+          }
         },
         {
           "side": "after",
@@ -495,7 +549,13 @@
             "086de083e59fe9cea0388c5863b20b0721ec862f1c9e41c7e12d8e3b5366e703  core/count-recovery/derivability-closure.ts",
             "36c0e5d18d438c710cef02ab487da3ba8d722c89b74971001b33f4168828dda3  core/count-recovery/field-demand.ts"
           ],
-          "sourceBytesVerified": true
+          "sourceBytesVerified": true,
+          "audit": {
+            "sourceLog": "runs/track-m/lane-b-refined-audit-v1/star.log",
+            "logSha256": "48e3e3fe6176c4fc35849e551bb12d9e763fa01c54090cfce33f9cae5bda91cc",
+            "conditional": true,
+            "checked": false
+          }
         }
       ],
       "before": {
@@ -582,7 +642,13 @@
             "086de083e59fe9cea0388c5863b20b0721ec862f1c9e41c7e12d8e3b5366e703  core/count-recovery/derivability-closure.ts",
             "36c0e5d18d438c710cef02ab487da3ba8d722c89b74971001b33f4168828dda3  core/count-recovery/field-demand.ts"
           ],
-          "sourceBytesVerified": true
+          "sourceBytesVerified": true,
+          "audit": {
+            "sourceLog": "runs/track-m/lane-b-refined-audit-v1/star.log",
+            "logSha256": "48e3e3fe6176c4fc35849e551bb12d9e763fa01c54090cfce33f9cae5bda91cc",
+            "conditional": true,
+            "checked": false
+          }
         },
         {
           "side": "before",
@@ -603,7 +669,13 @@
             "fdd8a6aee4f3878747401c0d3d58fd76dde2ec79bb4afd765814b1b0ba810b6b  core/count-recovery/derivability-closure.ts",
             "8381ff0a8ac4f982d1346de897741b907d13edc4541c8575d3ba2d30443943d3  core/count-recovery/field-demand.ts"
           ],
-          "sourceBytesVerified": true
+          "sourceBytesVerified": true,
+          "audit": {
+            "sourceLog": "runs/track-m/lane-b-refined-audit-v1/star.log",
+            "logSha256": "48e3e3fe6176c4fc35849e551bb12d9e763fa01c54090cfce33f9cae5bda91cc",
+            "conditional": true,
+            "checked": false
+          }
         }
       ],
       "before": {
@@ -690,7 +762,13 @@
             "fdd8a6aee4f3878747401c0d3d58fd76dde2ec79bb4afd765814b1b0ba810b6b  core/count-recovery/derivability-closure.ts",
             "8381ff0a8ac4f982d1346de897741b907d13edc4541c8575d3ba2d30443943d3  core/count-recovery/field-demand.ts"
           ],
-          "sourceBytesVerified": true
+          "sourceBytesVerified": true,
+          "audit": {
+            "sourceLog": "runs/track-m/lane-b-refined-audit-v1/safety.log",
+            "logSha256": "83bb181da04dc647ce01fb143b2f2b12a86a9dd3d9d33a0a303b6be780bbedef",
+            "conditional": true,
+            "checked": true
+          }
         },
         {
           "side": "after",
@@ -711,7 +789,13 @@
             "086de083e59fe9cea0388c5863b20b0721ec862f1c9e41c7e12d8e3b5366e703  core/count-recovery/derivability-closure.ts",
             "36c0e5d18d438c710cef02ab487da3ba8d722c89b74971001b33f4168828dda3  core/count-recovery/field-demand.ts"
           ],
-          "sourceBytesVerified": true
+          "sourceBytesVerified": true,
+          "audit": {
+            "sourceLog": "runs/track-m/lane-b-refined-audit-v1/safety.log",
+            "logSha256": "83bb181da04dc647ce01fb143b2f2b12a86a9dd3d9d33a0a303b6be780bbedef",
+            "conditional": true,
+            "checked": true
+          }
         }
       ],
       "before": {
@@ -798,7 +882,13 @@
             "086de083e59fe9cea0388c5863b20b0721ec862f1c9e41c7e12d8e3b5366e703  core/count-recovery/derivability-closure.ts",
             "36c0e5d18d438c710cef02ab487da3ba8d722c89b74971001b33f4168828dda3  core/count-recovery/field-demand.ts"
           ],
-          "sourceBytesVerified": true
+          "sourceBytesVerified": true,
+          "audit": {
+            "sourceLog": "runs/track-m/lane-b-refined-audit-v1/safety.log",
+            "logSha256": "83bb181da04dc647ce01fb143b2f2b12a86a9dd3d9d33a0a303b6be780bbedef",
+            "conditional": true,
+            "checked": true
+          }
         },
         {
           "side": "before",
@@ -819,7 +909,13 @@
             "fdd8a6aee4f3878747401c0d3d58fd76dde2ec79bb4afd765814b1b0ba810b6b  core/count-recovery/derivability-closure.ts",
             "8381ff0a8ac4f982d1346de897741b907d13edc4541c8575d3ba2d30443943d3  core/count-recovery/field-demand.ts"
           ],
-          "sourceBytesVerified": true
+          "sourceBytesVerified": true,
+          "audit": {
+            "sourceLog": "runs/track-m/lane-b-refined-audit-v1/safety.log",
+            "logSha256": "83bb181da04dc647ce01fb143b2f2b12a86a9dd3d9d33a0a303b6be780bbedef",
+            "conditional": true,
+            "checked": true
+          }
         }
       ],
       "before": {
@@ -906,7 +1002,13 @@
             "fdd8a6aee4f3878747401c0d3d58fd76dde2ec79bb4afd765814b1b0ba810b6b  core/count-recovery/derivability-closure.ts",
             "8381ff0a8ac4f982d1346de897741b907d13edc4541c8575d3ba2d30443943d3  core/count-recovery/field-demand.ts"
           ],
-          "sourceBytesVerified": true
+          "sourceBytesVerified": true,
+          "audit": {
+            "sourceLog": "runs/track-m/lane-b-refined-audit-v1/p1.log",
+            "logSha256": "1a8829022cd04c2f854e414b660db39396edc9d17ab0b60cff76e53cfbf81ed8",
+            "conditional": true,
+            "checked": true
+          }
         },
         {
           "side": "after",
@@ -927,7 +1029,13 @@
             "086de083e59fe9cea0388c5863b20b0721ec862f1c9e41c7e12d8e3b5366e703  core/count-recovery/derivability-closure.ts",
             "36c0e5d18d438c710cef02ab487da3ba8d722c89b74971001b33f4168828dda3  core/count-recovery/field-demand.ts"
           ],
-          "sourceBytesVerified": true
+          "sourceBytesVerified": true,
+          "audit": {
+            "sourceLog": "runs/track-m/lane-b-refined-audit-v1/p1.log",
+            "logSha256": "1a8829022cd04c2f854e414b660db39396edc9d17ab0b60cff76e53cfbf81ed8",
+            "conditional": true,
+            "checked": true
+          }
         }
       ],
       "before": {
@@ -1014,7 +1122,13 @@
             "086de083e59fe9cea0388c5863b20b0721ec862f1c9e41c7e12d8e3b5366e703  core/count-recovery/derivability-closure.ts",
             "36c0e5d18d438c710cef02ab487da3ba8d722c89b74971001b33f4168828dda3  core/count-recovery/field-demand.ts"
           ],
-          "sourceBytesVerified": true
+          "sourceBytesVerified": true,
+          "audit": {
+            "sourceLog": "runs/track-m/lane-b-refined-audit-v1/p1.log",
+            "logSha256": "1a8829022cd04c2f854e414b660db39396edc9d17ab0b60cff76e53cfbf81ed8",
+            "conditional": true,
+            "checked": true
+          }
         },
         {
           "side": "before",
@@ -1035,7 +1149,13 @@
             "fdd8a6aee4f3878747401c0d3d58fd76dde2ec79bb4afd765814b1b0ba810b6b  core/count-recovery/derivability-closure.ts",
             "8381ff0a8ac4f982d1346de897741b907d13edc4541c8575d3ba2d30443943d3  core/count-recovery/field-demand.ts"
           ],
-          "sourceBytesVerified": true
+          "sourceBytesVerified": true,
+          "audit": {
+            "sourceLog": "runs/track-m/lane-b-refined-audit-v1/p1.log",
+            "logSha256": "1a8829022cd04c2f854e414b660db39396edc9d17ab0b60cff76e53cfbf81ed8",
+            "conditional": true,
+            "checked": true
+          }
         }
       ],
       "before": {
@@ -1086,5 +1206,10 @@
     }
   ],
   "workerCheckedLosses": [],
-  "outsidePassLine": []
+  "outsidePassLine": [],
+  "independentAudit": {
+    "outcomes": 20,
+    "checked": 8,
+    "unknown": 12
+  }
 }

@@ -1,0 +1,5 @@
+[
+ {"name":"original-0","cmd":"bun install --frozen-lockfile >/dev/null && for f in receipts/original-0-*.gz; do echo INPUT=\"$f\"; bun research/track-m/audit-lane-b-cost.ts \"$f\" receipts/original-0.family.json; done","cpu":2,"memory":8192,"timeout":180},
+ {"name":"original-1","cmd":"bun install --frozen-lockfile >/dev/null && for f in receipts/original-1-*.gz; do echo INPUT=\"$f\"; bun research/track-m/audit-lane-b-cost.ts \"$f\" receipts/original-1.family.json; done","cpu":2,"memory":8192,"timeout":180},
+ {"name":"original-2","cmd":"bun install --frozen-lockfile >/dev/null && for f in receipts/original-2-*.gz; do echo INPUT=\"$f\"; bun research/track-m/audit-lane-b-cost.ts \"$f\" receipts/original-2.family.json; done","cpu":2,"memory":8192,"timeout":180}
+]

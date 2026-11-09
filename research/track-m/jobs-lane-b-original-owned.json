@@ -1,0 +1,5 @@
+[
+ {"name":"original-0","cmd":"bash research/track-m/lane-b-original-owned.sh 0","cpu":8,"memory":14336,"timeout":160},
+ {"name":"original-1","cmd":"bash research/track-m/lane-b-original-owned.sh 1","cpu":8,"memory":14336,"timeout":160},
+ {"name":"original-2","cmd":"bash research/track-m/lane-b-original-owned.sh 2","cpu":8,"memory":14336,"timeout":160}
+]
