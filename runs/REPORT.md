@@ -5880,3 +5880,17 @@ F1–F3 work now includes an observation-only disposable check profiler: per-sit
 - Validation retries exposed a research profiler's unsafe `finally` throw, now removed so it cannot replace a checker exception. The seed diagnostic's timed retry isolated redundant full-root transport during preparation; the next version keeps the checked slice and exact root lineage. Both corrected validations and direct legacy leaf probes are pending.
 
 Tables, hardware labels and version-specific limitations: `runs/track-m/lane-b-status-v1/README.md` and `measurements.json`. Production/kernel unchanged. Only Lane D's exact, SHA-bound final receipt can support `GATE GREEN`.
+
+### Calibration audit received
+
+`lane-b-calibration-audit-v1` independently rechecked both obligations for **actual-family safety and p1** and matched all five recorded statuses. Audit source tree `77c74318575a`; AMD EPYC 4585PX, exclusive VM, four pinned vCPUs. These are conditional certificates with the other generated laws available, not an accepted complete family. The historical v2 unit figures remain search-only; final-cost and validation retries are still pending.
+
+## Lane B — complete-cost repeat and Lane F handoff
+
+The new measurement-version-3 repeat checks **p1: 2,459.750 total counted units / 4.252 s**, **safety: 4,311.113 / 3.403 s** on exclusive EPYC 4585PX VMs. Final checking consumes **447 ms / 728 ms** but adds zero units in the current meter. Both raw archives are checksum-verified; exact-receipt replay is pending. This is standalone conditional evidence, not original-harness ×3 or a family proof.
+
+Default validation passed typecheck/lint plus 31 tests (310 assertions) and 5 more tests (19 assertions); leaf+class validation passed 52 tests (541 assertions). Profile validation passed typecheck/lint, then a malformed Bun command selected the package test script and hit the watchdog. Only its corrected filtered invocation is rerunning.
+
+The legacy class-first diagnostic has a real negative: op 4 records 52 class attempts but remains unknown at 1,246.483 units / 7.132 s; op 0 expires during repeated frame-body classification. A branch-local canonicalization cache and explicit timeout reporting are being checked. The imported seed array is now copied before search so derived additions cannot masquerade as imported-seed counts.
+
+**15.6 belongs to Lane F now.** Existing, unvalidated root-first prototype isolated in **`b6fa0a50`**, with task ID and limits in `research/track-m/LANE-F-HANDOFF.md`. Lane B removed row-policy hooks and continues 15.4/15.5/16.5. Future direct-leaf receipts now retain exact MC inputs and conditional mark metadata, with a checker-only `audit-seeded-leaf.ts`; this capture addition and branch-local frame canonicalization still await fresh validation. All detailed receipts and caveats remain in `lane-b-status-v1`; only Lane D's final gate can support GATE GREEN.

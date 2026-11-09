@@ -1,0 +1,62 @@
+{"researchOnly":true,"deriveFirst":true,"cap":24,"sourceModelsRevalidated":true,"sharedBareSatExclusions":false,"before":"e1a5260d63e5c9a84d8d488cb8adcfe69f57751b4ccfba565d820aa8a6227835","after":"ed635f776bc510aaa6575e02bd2a14eef821cedfad81e2ea6b9cd1eae808d3aa"}
+{"file":"core/count-recovery/derivability-closure.ts","before":"ed635f776bc510aaa6575e02bd2a14eef821cedfad81e2ea6b9cd1eae808d3aa","after":"063f1bc75336ee99ae3c6bfca24843ef8be5cc1254fcd237fd54f30ab4d4b2e4","productionLocalDeadlines":true}
+{"phase":"load-fixture"}
+{"phase":"restore-columns","count":19611}
+{"phase":"construct-root"}
+{"phase":"seed-verification","candidates":31}
+{"phase":"verified-seed","count":1,"index":30,"wallMs":293.25879800000007}
+{"phase":"verified-seed","count":2,"index":40,"wallMs":645.191372}
+{"phase":"verified-seed","count":3,"index":50,"wallMs":935.528838}
+{"phase":"verified-seed","count":4,"index":51,"wallMs":1100.436176}
+{"phase":"verified-seed","count":5,"index":105,"wallMs":1100.761467}
+{"phase":"verified-seed","count":6,"index":136,"wallMs":1100.8768429999998}
+{"phase":"verified-seed","count":7,"index":187,"wallMs":1103.453139}
+{"phase":"verified-seed","count":8,"index":188,"wallMs":1106.383469}
+{"phase":"verified-seed","count":9,"index":191,"wallMs":1110.707627}
+{"phase":"verified-seed","count":10,"index":193,"wallMs":1115.016735}
+{"phase":"verified-seed","count":11,"index":199,"wallMs":1115.2303049999998}
+{"phase":"verified-seed","count":12,"index":204,"wallMs":2685.913026}
+{"phase":"verified-seed","count":13,"index":206,"wallMs":4246.946763999999}
+{"phase":"verified-seed","count":14,"index":207,"wallMs":4247.302452}
+{"phase":"verified-seed","count":15,"index":208,"wallMs":4247.524458}
+{"phase":"verified-seed","count":16,"index":209,"wallMs":4247.768046}
+{"phase":"verified-seed","count":17,"index":210,"wallMs":4248.004589}
+{"phase":"verified-seed","count":18,"index":213,"wallMs":4248.230914}
+{"phase":"verified-seed","count":19,"index":214,"wallMs":4248.463471}
+{"phase":"verified-seed","count":20,"index":215,"wallMs":4248.704503}
+{"phase":"verified-seed","count":21,"index":217,"wallMs":4249.160529}
+{"phase":"verified-seed","count":22,"index":219,"wallMs":4249.373759}
+{"phase":"verified-seed","count":23,"index":220,"wallMs":4249.5868789999995}
+{"phase":"verified-seed","count":24,"index":221,"wallMs":4249.86996}
+{"phase":"verified-seed","count":25,"index":222,"wallMs":4250.152751}
+{"phase":"verified-seed","count":26,"index":223,"wallMs":4250.363988}
+{"phase":"verified-seed","count":27,"index":225,"wallMs":4250.5197}
+{"phase":"verified-seed","count":28,"index":227,"wallMs":4250.664011}
+{"phase":"verified-seed","count":29,"index":229,"wallMs":4250.850611}
+{"phase":"verified-seed","count":30,"index":230,"wallMs":4251.054174}
+{"phase":"verified-seed","count":31,"index":231,"wallMs":4251.243348}
+{"artifact":"track-m-tar-v1","dir":"/home/user/track-m-s18-receipts-11akeK","format":"tar.gz","parts":1,"bytes":105,"sha256":"a3c660fed6f0ac00308dae828668b9f0e4bb92bbd69cab46c033e5b66e149340"}
+
+--- stderr ---
+ 7 | export const searchWall = (ms: number): number => performance.now() + ms - Math.min(1000, Math.max(0, ms) / 20)
+ 8 | export class WallExpired extends Error {
+ 9 |   constructor(readonly phase: string) { super(`time (${phase})`); this.name = 'WallExpired' }
+10 | }
+11 | export function checkWall(phase: string): void {
+12 |   if (pastWall()) throw new WallExpired(phase)
+                             ^
+WallExpired: time (derive frame classification)
+ phase: "derive frame classification",
+
+      at checkWall (/work/gdp-wired/core/wall.ts:12:25)
+      at normalize (/work/gdp-wired/research/track-m/section15-derive-order.ts:17:23)
+      at <anonymous> (/work/gdp-wired/research/track-m/section15-derive-order.ts:21:109)
+      at map (1:11)
+      at normalize (/work/gdp-wired/research/track-m/section15-derive-order.ts:21:93)
+      at <anonymous> (/work/gdp-wired/research/track-m/section15-derive-order.ts:21:109)
+      at map (1:11)
+      at normalize (/work/gdp-wired/research/track-m/section15-derive-order.ts:21:93)
+      at <anonymous> (/work/gdp-wired/research/track-m/section15-derive-order.ts:21:109)
+      at map (1:11)
+
+Bun v1.4.3 (Linux x64)
