@@ -1,0 +1,12 @@
+PAIR 1 mine
+{"id":"mldr","count":34,"wallMs":12419.333023,"phases":{"guards":9.458255000000001,"small":4285.101173,"candidates":8098.980648999999},"states":[46,1205],"counts":["inS","inQ2","inX","xNotS","sNotX","
+PAIR 1 base
+{"id":"mldr","count":34,"wallMs":21641.96749,"phases":{"guards":9.966606000000006,"small":11241.216468,"candidates":10369.920785},"states":[46,1205],"counts":["inS","inQ2","inX","xNotS","sNotX","xAndS
+PAIR 2 mine
+{"id":"mldr","count":34,"wallMs":13885.050572,"phases":{"guards":11.186498,"small":5173.300929999999,"candidates":8669.024718},"states":[46,1205],"counts":["inS","inQ2","inX","xNotS","sNotX","xAndS","
+PAIR 2 base
+{"id":"mldr","count":34,"wallMs":21470.813599,"phases":{"guards":7.963035999999995,"small":11024.771706000001,"candidates":10414.744816},"states":[46,1205],"counts":["inS","inQ2","inX","xNotS","sNotX"
+PAIR 3 mine
+{"id":"mldr","count":34,"wallMs":11712.895798000001,"phases":{"guards":8.237988000000001,"small":4230.845762,"candidates":7454.766135000001},"states":[46,1205],"counts":["inS","inQ2","inX","xNotS","sN
+PAIR 3 base
+{"id":"mldr","count":34,"wallMs":26170.940683,"phases":{"guards":8.500900999999999,"small":12580.621648,"candidates":13558.078544000002},"states":[46,1205],"counts":["inS","inQ2","inX","xNotS","sNotX"

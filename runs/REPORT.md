@@ -16,7 +16,12 @@ the merged-tree tests/typecheck, the 29-list census against `bef4020f` and a per
   `CountCells`) instead of the interpreter's `evalE` per cell and per key (agreement test against the interpreter on three counts,
   one on a two-parameter key, one reading another count). Paired generation of (a) alone vs `bef4020f` on one pinned 9950X (a slow one
   this time): 18.3 / 26.2 / 21.2 s vs 32.3 / 35.1 / 36.4 s (`runs/track-wall/receipts/breaks1`) — the branch as a whole, not (a)'s own
-  share; the incremental pair (both cuts vs `b25ab7c4`, the head before them) is the measurement and is running.
+  share; the incremental pair (both cuts vs `b25ab7c4`, the head before them) is the measurement.
+  **Paired generation, both cuts, pinned exclusive VMs:** vs `bef4020f` on an EPYC 9455: **12.4 / 13.9 / 11.7 s vs 21.6 / 21.5 / 26.2 s**
+  (small 4.3–5.2 vs 11.0–12.6 s; `runs/track-wall/receipts/cells1`); incremental vs `b25ab7c4` on an EPYC 4585PX: 14.1 / 12.6 / 10.4 s vs
+  13.0 / 15.6 / 15.1 s — the small phase 4.6 / 4.0 / 3.4 vs 5.3 / 6.7 / 6.2 s, the candidate phase mixed (9.5 / 8.6 / 7.0 vs 7.7 / 8.9 / 8.9 s,
+  pair 1 against; `runs/track-wall/receipts/incr1`). The compiled-cells agreement test did not run in these batches (a missing test
+  import, fixed in the following commit, rerunning); the census of this head vs `bef4020f` and the strict pairs are running.
 - **Step 1 done — traced strict mldr pairs, violation-driven ranges (`72380dc1`) vs lane A's `c21a6e54`, three pinned large VMs
   (Ryzen 9 9950X ×2, EPYC 4585PX; `runs/track-wall/receipts/rmldr3`, logs gzipped):** verdict `unknown` (time) on all six runs;
   the four traced helpers (`no quorum canVote/1`, `canVote/3`, `stored guard reconfigs/inS`, `… or disabled/0`) read pass 0 `sat`
