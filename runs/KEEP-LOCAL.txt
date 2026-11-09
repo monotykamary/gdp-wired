@@ -1,0 +1,3 @@
+# Lane I: preserve the exact frozen source while the upper-bound batch is live.
+# Other historical run packaging may be offloaded after remote verification.
+runs/lane-i/upper-bound/resumed/input/frozen.tar

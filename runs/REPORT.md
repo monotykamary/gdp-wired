@@ -4,7 +4,31 @@ Lane I resumed from `cca59f0c` on `claude/mldr-integ`; clean worktree verified, 
 
 - First cancelled work rerun: all **140 upper-bound shards** submitted through the scheduler, fresh output `runs/lane-i/upper-bound/resumed/full`, task `cf1d3fc9-6a88-4e12-8403-974717b1ed42`. Every guest unpacks frozen production `15eff72f` and checks the retained source manifest; the current integration is not substituted. No supplied laws; original 34-law family; 30 minutes per operation; no share; independent verification still required. Pending, not a result.
 - Repair: core-replay reconstruction now spreads the previous obligation before replacing its goal/decls/encoded goal, retaining `all`, certificate and pool. Added a focused range-demand test for a read omitted by the selected certificate. No budget, law, or kernel change.
-- Current source/test candidate: `b37c4e2ce8172d0e3e1546b6c099ceff33b2d7ae`; fresh v10 validation and 87 generation pairs are submitted for it. Registered v9 jobs remain untouched and bound to `edd284913024a6566591d7ad1cba8059b8047a14`. Results remain pending; Lane D's final gate is mandatory.
+- Current repair candidate: `5abc2ddf` (behavior-preserving lint fixes plus unsupported-bound regression). Five mechanics jobs are submitted; v10 remains independently pinned to `b37c4e2ce8172d0e3e1546b6c099ceff33b2d7ae`. V9 `edd284913024a6566591d7ad1cba8059b8047a14` results are now audited below. **Not gate green**; Lane D's final gate remains mandatory.
+
+## V9 completed: tests green, check red, no MLDR proof
+
+Batch `20261110-001619-awzeif` completed all eight jobs. The controller exited zero but `check` exited **1**; the conservative receipt audit also correctly exits **1**. TypeScript reached the subsequent lint phase; lint found four redundant quote escapes in `research/mldr-incl/install-targeted-completion.ts` and an exhaustive-switch requirement in `core/count-ranges.ts`.
+
+Four changed-test shards passed: **203 + 142 + 136 + 160 = 641 tests, 19,762 assertions, no failures**. These counts include the then-rostered focused source tests, not the unsupported-bound regression added afterward.
+
+All three MLDR pairs were normal returned results, **unknown on both sides**, with no independently checked MLDR proof. Candidate used 34 generated laws versus 27 baseline. Candidate trace-kept counts were 18/16/16, not successful final families. Candidate returned `time (rule result)` at 59,033 / 59,066 / 59,016 ms.
+
+| Repeat / CPU | Baseline pre-attempt wall ms | Candidate pre-attempt wall ms | Candidate trace-kept | Candidate safety attempted |
+|---|---:|---:|---:|---|
+| r1 Ryzen 9 9950X | 18,421.151 | 11,900.413 | 18 | yes; unknown |
+| r2 EPYC 9455 | 21,078.238 | 13,631.399 | 16 | no |
+| r3 Ryzen 9 9950X | 41,471.579 | 24,473.019 | 16 | no |
+
+The helper obligations remain unresolved: `canVote/3` pass 1 consumed 3078 units each; `disabled/0` consumed 3054/3054/2058; CV/CfgT row agreement consumed 2997/1219 in r1/r2 pass 1 and was not reached in r3. R1 safety consumed only 48 pass-0 units then 0 pass-1 units, both unknown. Thus faster candidate generation is **not** a proof win or a whole-run performance claim; scheduling/CPU variability is explicit in receipts.
+
+`runs/lane-i/v9/validation-audit.json` preserves the source-bound parsed evidence. Compressed logs, `summary.tsv`, CPU `placement.json`, and `compressed-receipts.sha256` are retained. Raw logs remain until the coordinator approves cleanup/offload.
+
+### Confirmed lint repair and focused rerun
+
+`5abc2ddf` removes only redundant quote escapes and replaces the default unsupported-bound branch with the explicit identical-return expression cases. The new test checks that map/conditional bounds remain unknown rather than gaining unsupported evaluation. Five fresh check/changed-test jobs are submitted as task `c2647ee8-0869-43f6-b868-848c3c92677b`, output `runs/lane-i/lint-repair/results`. No archive was recreated/copied: `--data` uses a hard-linked baseline cache view, with only a small source identity in the run's input directory. Pending, not passed. Existing v10/census/upper-bound workloads remain untouched.
+
+The separate receipt-audit batch completed too: **12 tests, 28 assertions passed**, then the same five lint errors caused its check job to fail. Its historical-v8 audit correctly rejected v8's failed check (expected nonzero audit verdict); the wrapper's exit zero does not make v8 green.
 
 ## Disk
 
@@ -25,9 +49,17 @@ Created **hard links, not archive copies**, from retained archives into the shar
 - `runs/lane-i/upper-bound/input/{main,handwired,gdp-ts}.tar`: **63,334,400 bytes (~60.4 MiB)**, old smoke/capture packaging; resumed full census uses `upper-bound/resumed/input`. Same retained baseline/vendor archive hashes. Keep its `family.json` and `source.sha256`.
 - **Do not remove active inputs** `runs/lane-i/v9/input`, `runs/lane-i/v10/input`, or `runs/lane-i/upper-bound/resumed/input` while their registered controllers may still read them. Their hard-linked cache names are not additional copies and removing only one alias would not reclaim its blocks.
 
+### Coordinator offload plan
+
+The coordinator may archive eligible old files to boat snapshot `gdp-wired-offload-20261110`, verify them there, then free their local copies with `.offloaded.json` hash/pull receipts. No local removal was performed by Lane I. Historical duplicate tar candidates above may follow that process; compact manifests, audits, compressed receipts and hashes remain local.
+
+Added the canonical baseline/vendor/frozen archive names and their hard-linked mount aliases to `/private/tmp/gdp-archives/KEEP-LOCAL.txt`, preserving the other lane's existing entries. `runs/KEEP-LOCAL.txt` protects the exact live frozen-source input. The cache view exists because current `--data` accepts **directories only** and ignores symlinks: `/private/tmp/gdp-archives/.mounts/b788e1959bba1f2e8aa1f94d4cf7c0eb163a2f9c/` contains hard links to canonical tar inodes, not copied data. No archive sits in the new run's input/output directories.
+
+Additional optional cleanup candidates after approval: uncompressed v9 validation logs (147,729 bytes total; all eight have retained `.gz` versions and hashes), and `runs/lane-i/v9/validation-audit-output.json` (116,897 bytes; duplicate of the retained audit JSON). Nothing over 500 MB was written.
+
 ### Real replay regression discovery
 
-Lane D correctly notes that the small `all`-versus-selected regression does not itself run the production core-cut path. Started one focused ordinary-attempt diagnostic (`research/lane-i/core-replay-probe.ts`, task `d8f871e2-a9db-4599-a57d-381205795954`, `runs/lane-i/core-replay-probe/results`) to find a deterministic core-refutation fixture and independently check its actual certificate. This does not modify the engine or use supplied protocol laws. Result pending; no end-to-end regression coverage is claimed yet.
+Lane D correctly notes that the small `all`-versus-selected regression does not itself run the production core-cut path. Started one focused ordinary-attempt diagnostic (`research/lane-i/core-replay-probe.ts`, task `d8f871e2-a9db-4599-a57d-381205795954`, `runs/lane-i/core-replay-probe/results`) to find a deterministic core-refutation fixture and independently check its actual certificate. This does not modify the engine or use supplied protocol laws. Completed on Ryzen 9950X in 2.3 guest seconds. None of the three fixtures returned a proof; `upper` reached `decision:refuted`, while `frame`/`equal` stopped at finite-model handling. This is a **discovery miss**, not a passing regression or independently checked proof. The end-to-end replay coverage gap remains open.
 
 ## Admission recovered; one-subagent cap remains
 
