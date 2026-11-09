@@ -4,7 +4,8 @@ import {gunzipSync} from 'node:zlib'
 import {strict as assert} from 'node:assert'
 import {checkMC,countedObligations,termColumn} from '../../kernel/kernel.ts'
 const p=JSON.parse(gunzipSync(readFileSync(process.argv[2]!)).toString()),r=p.record
-assert.equal(r.conditional,true);assert.equal(r.budget,2700);assert.equal(r.wallAllowance,4800)
+assert.equal(r.conditional,true)
+if(r.diagnostic==='section16.5'){assert.equal(r.generatorOnly,true);assert.deepEqual(r.suppliedLaws,[]);assert.equal(r.budget,6000);assert.equal(r.wallAllowance,7000)}else{assert.equal(r.budget,2700);assert.equal(r.wallAllowance,4800)}
 for(const [i,t]of p.columns.entries())assert.equal(termColumn(t),`⟦${i}⟧`)
 const index=p.laws.findIndex((l:any)=>l.name===r.law);assert(index>=0)
 const obligations=countedObligations(p.m,p.laws,{[r.law]:p.proof?.instances??{}},index);assert.equal(obligations.length,2)

@@ -104,4 +104,10 @@ The real generator emitted **35 laws**, including the p1 cube, with `suppliedLaw
 
 `lane-b-real-v1` now repeats all five targets with/without completion against that actual family and runs one strict original-harness capture. The 15.4 leaf batch and 288-root treadmill backlog remain pending. Its first check worker failed lint on the attached generated `packets/runtime.js` (39 bundled-code diagnostics), not on the edited source. A separate no-data `lane-b-leaf-recheck-v1` runs the same leaf-policy transform and source/test checks without linting a generated packet runtime. This is a validation-fixture defect, not a scheduler-stall or proof result; valid measurement workers are not being repeated. Machine-readable observations and CPU/VM provenance are in [measurements.json](measurements.json); compressed, checksum-verified source receipts are retained in each batch's `receipts/` directory. No earlier validation is silently applied to later edits.
 
+## Section 16.5 continuation
+
+The target is now **≤6,000 units and ≤7 s total helper wall on actual E-14 output, followed by original-harness ×3 confirmation**. Old 2,700-unit controls retain their original meaning. `lane-b-section16-v1` calibrates the five real-family targets at the new research line and records search, check/finalization and total wall, plus F2/F3 cache counters. Its larger standalone limits do not alter production.
+
+`lane-b-derive-v1` is the disposable 15.5 comparison with 15.4 held fixed: up to 24 class-fact attempts at each leaf, numeric query, existing model-selected batch, natural cases only on fallback; zero-claims last. Frames are selected by path-simplified count bodies, not protocol names. All facts and the final result are still checked. This prototype retains context-validated model reuse rather than sharing bare SAT exclusions across stronger scopes. The new class-order/frame-selector tests and proof-transport tests are pending. 15.6 follows the class-pass evidence; F1–F3 are explicitly back on the measurement list.
+
 **No accepted complete family, 29/29 result, 28/29 recertification, or GATE GREEN is claimed.**

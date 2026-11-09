@@ -5843,3 +5843,15 @@ Detailed tables and reproducible receipts: `runs/track-m/lane-b-status-v1/README
 - Actual E-14 capture: 35 generated laws, **no supplied laws**, all five targets present, generation 27.306 s. SHA-256 `5c9aa44bca08790afdf331b290f101b6ca5d177133e662f5f6f1e80aa6cebc6f`. Integrated typecheck/lint and **66 tests / 5,417 assertions** passed on source tree `4d442ca21342`.
 
 The five-target comparison is now running against the actual family in `lane-b-real-v1`, alongside a strict original-harness capture. The full 15.4 policy and root-variant backlog remain pending. All 28 jobs in the four completed batches exited successfully after recovery and charged zero starts; no failed infrastructure execution has been mistaken for a prover result. No whole-family proof, 28/29 recertification or GATE GREEN is claimed.
+
+## Lane B — Section 16.5 pass line and derive-first experiment
+
+Read Section 16 in full. The pass line is now **6,000 units and 7 seconds per helper on the actual E-14 family, ultimately in the original harness ×3**. The existing 2,700/4,800-ms runs remain lower-budget controls and are not re-labelled. Production allowances and the strict outer 60-second gate are unchanged.
+
+`lane-b-section16-v1` is a standalone five-target calibration at the authorized 6,000-unit/7-second research limits, using the checksum-verified actual family with no supplied laws. New records separate search wall from check/finalization wall, retain total wall for the diagnostic pass line, and expose the existing conditional pre-check/cache counters. A standalone success remains conditional and is not original-harness evidence.
+
+Implemented a **disposable 15.5 prototype**, not a production adoption: at most 24 distinct class attempts per leaf (path-simplified frames, write bridges, guarded inclusions, body aliases, pre-state three-term identities), then the numeric query and existing model-driven batch. Zero-claims rank last. Natural cases move to no-model/batch-exhausted fallback. Every class fact still uses the existing source proof and cut checker, and the whole result still uses the unchanged checker. Source slices are traced for the predicted failure diagnosis. Exact-scope numeric models now feed the passive demand observer in that prototype.
+
+`lane-b-derive-v1` compares before/after 15.5 with the disposable 15.4 leaf policy held fixed on all five actual-family targets, plus source and transport tests. It is pending. The prototype deliberately retains **validated model reuse**, not unchecked reuse of a bare SAT label across stronger scopes; the latter could exclude a fact after its context changes. Model-driven row reduction (15.6) is next after this class-pass measurement.
+
+F1–F3 are back in scope. F2 slicing and F3 memoization already exist in `conditional-check-cache.ts`; measure their current counters rather than assuming the old savings still apply. F1's final family check remains mandatory. No kernel change, new trusted fact, production allowance change or gate claim.
