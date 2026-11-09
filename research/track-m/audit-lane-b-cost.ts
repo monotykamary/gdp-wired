@@ -15,5 +15,6 @@ const replayCheckStart=fullWork(),obligations=countedObligations(p.m,p.laws,{[r.
 const checked=!!p.proof&&obligations.every(({goal,decls})=>{const cert=p.proof.certs[goal.name];return !!cert&&checkMC(goal.hyps,decls,cert)})
 const replayCheckUnits=(fullWork()-replayCheckStart)/fullRate
 assert.equal(checked,r.checked)
-assert(r.results.length<=2);assert(r.results.every((x:any)=>x.units>=0));assert(r.units+1e-5>=r.results.reduce((n:number,x:any)=>n+x.units,0))
+const early=r.measurementVersion>=4&&r.earlyFocusMode!=='off'&&r.earlyEligible
+assert(r.results.length<=(early?3:2));if(early)assert.equal(r.results[0]?.pass,'early-focus');assert(r.results.every((x:any)=>x.units>=0));assert(r.units+1e-5>=r.results.reduce((n:number,x:any)=>n+x.units,0))
 console.log(JSON.stringify({conditional:true,familyVerified:!!familyFile,originalHarness:!!familyFile,tag:r.tag,law:r.law,checked,units:r.units,searchUnits:r.searchUnits??r.units,replayCheckUnits,unitsWithReplayCheck:r.measurementVersion>=3?r.units:r.units+replayCheckUnits,wallMs:r.wallMs,unitsAboveRequested:Math.max(0,r.units-r.budget),results:r.results,completionTuples:r.events.filter((e:any)=>e.phase==='count-completion').flatMap((e:any)=>e.added??[])}))

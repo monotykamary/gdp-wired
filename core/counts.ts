@@ -37,6 +37,8 @@ export {attemptShare, supportBudget} from './support-budget.ts'
 import {proposeCountUnions} from './count-unions.ts'
 import {focusedCountRecoveryEnabled,proveFocusedCounts} from './count-focus-proof.ts'
 import {preferMemberInclusions} from './count-recovery/member-inclusions.ts'
+import {independentCountInstances} from './count-focused.ts'
+import {admitMemberWitnesses,instantiateMemberPremises,memberHints,memberPremiseState,type MemberHint} from './count-recovery/member-premises.ts'
 import {smallOf, trueSmall} from './exists.ts'
 import {WallExpired, checkWall, searchWall} from './wall.ts'
 import {env} from './solver.ts'
@@ -674,7 +676,7 @@ export function countedAttempts(m: Machine, caller: Law[], support: Set<Law>, un
   // tier, Houdini's round), the model is first read against them as the attempt reads a model (modelInstances: a law
   // broken at a tuple of the goal's keys); none broken, it is still a model, and the law is refuted again without a
   // solve. (Not where a law added reads a count: its goal's count instances aren't read here.)
-  const models = new Map<string, {gg: Goal, w: Record<string, number>, at: Instances, ls: Set<string>}>(), isCount = (mp: string) => !!m.counts?.[mp]
+  const models = new Map<string, {gg: Goal, w: Record<string, number>, at: Instances, ls: Set<string>, wits?: string[]}>(), isCount = (mp: string) => !!m.counts?.[mp]
   // Cone tiers and Houdini may ask the same law again with more instances. Keep a
   // bounded set of sessions; each independently resets unless its hypotheses are
   // still present verbatim. This reuses work, never a verdict from a weaker goal.
@@ -686,6 +688,15 @@ export function countedAttempts(m: Machine, caller: Law[], support: Set<Law>, un
     if (!pass) counted = true
     const ts = terms(law), id = `${pass} ${law.name}`, cti = models.get(id)
     const supported = ls.some(l => support.has(l)), modelLaws = supportOrder(ls, caller, support, true)
+    let memberState: ReturnType<typeof memberPremiseState> | undefined
+    const members = () => memberState ??= memberPremiseState([m,ls])
+    // A source predicate may be instantiated at a count witness, but no
+    // count-read key may depend on that same witness (checkMC freshness).
+    const independent = (before: Instances, next: Instances | undefined, wits: string[] = []) => {
+      if(!next)return undefined
+      const blocked=[...memberState?.witnesses.values()??[],...cti?.wits??[]]
+      return blocked.length?independentCountInstances(m,modelLaws,before,next,[...blocked,...wits]):next
+    }
     // Finite-input recovery remains on by default, but ordinary search goes first.
     // A failed attempt may use the remainder of its original share, never a new one.
     if (!pass && focusEnabled && m.inputMaps?.length && !reads(law.holds, isCount).size) {
@@ -698,13 +709,13 @@ export function countedAttempts(m: Machine, caller: Law[], support: Set<Law>, un
       const completion = (finite ??= finiteModelChecker(m))(ls, law, w, () => clock() >= attemptEnd)
       countsDump.on?.({phase: 'finite-model', law: law.name, pass, completion})
       if (env.GDP_COUNTS_DUMP_ALL_PASSES === '1') countsDump.on?.({phase: completion.genuine ? 'final-sat' : 'uncertified-model', stuck: completion.genuine || !pass ? 'sat' : 'unknown', law: law.name, pass, machine: m, laws: ls, goal: gg, witness: w, at: instances})
-      models.set(id, {gg, w, at: instances, ls: new Set(ls.map(l => l.name))})
+      models.set(id, {gg, w, at: instances, ls: new Set(ls.map(l => l.name)), wits:[...memberState?.witnesses.values()??[],...cti?.wits??[]]})
       return completion.genuine ? {stuck: 'sat', refuted: true} : {stuck: pass ? 'unknown' : 'sat'}
     }
     // (not where the attempt may widen: its narrow model is no model of the widened goal)
     if (cti && !(supported && pass) && !(houdini && caller.some(l => l.name === law.name) && !widened.has(law.name)) && !ls.some(l => !cti.ls.has(l.name) && reads(l.holds, isCount).size)) {
       const at0 = Object.fromEntries(Object.entries(cti.at).filter(([n]) => n.startsWith('?') || ls.some(l => l.name === n)))
-      if (!(seed = ptime('mbqi', () => modelInstances(m, modelLaws, at0, cti.gg, cti.w)))) return refuted(cti.gg, cti.w, cti.at)
+      if (!(seed = ptime('mbqi', () => independent(at0,modelInstances(m, modelLaws, at0, cti.gg, cti.w))))) return refuted(cti.gg, cti.w, cti.at)
     }
     // Supported obligations seed quantified flags only at demanded source terms.
     // Ordinary MBQI remains the fallback; arbitrary inputs are not initial witnesses.
@@ -731,6 +742,7 @@ export function countedAttempts(m: Machine, caller: Law[], support: Set<Law>, un
     type Selection = {chosen: Set<string>, cap: number, previous: Pick<CountCert, 'reads' | 'insts' | 'picks'>, decls: Parameters<typeof certFor>[1], reserve: ReturnType<typeof reservationState>, stable: ReturnType<typeof stableState>}
     const selections = new Map<string, Selection>()
     const poolCache = new Map<string, {key: string, value: ReturnType<typeof grammarPool>}>()
+    const memberSources = new Map<string,MemberHint[]>()
     // Every 0/1-bodied count the goal reads is at most its bound (core/count-ranges.ts): the range instances join the
     // initial selection of each counted pass, outside the lazy pool and its cap, so no model puts a count above the keys it
     // ranges over. The reads they name are the proposer's own reads of the goal.
@@ -770,14 +782,20 @@ export function countedAttempts(m: Machine, caller: Law[], support: Set<Law>, un
         const c = withRanges(decls, selectedCertificate(goal, decls, view, selection.stable, lazyRoom), full.reads)
         const gg = mcGoal(goal.hyps, decls, c), fg = lazyRoom ? mcGoal(goal.hyps, decls, full) : undefined
         selection.previous = full; selection.decls = decls
+        memberSources.set(goal.name,memberHints(m,decls,c,generation.tick))
         return {goal, decls, c, gg, pool: fg ? {fg, keys, wits: [...full.picks.map(() => undefined), ...full.insts.map(i => i.wit)], chosen: selection.chosen, cap: selection.cap} as Pool : undefined}
       }
-      const full = pass ? certFor(goal, decls, wide, wide && lazyMode !== '0' ? pool : undefined, undefined, structured) : none
+      let full = pass ? certFor(goal, decls, wide, wide && lazyMode !== '0' ? pool : undefined, undefined, structured) : none
+      if(pass&&m.inputMaps?.length&&lazyMode!=='0'){
+        const proposed=admitMemberWitnesses(m,decls,full,members(),wide?pool:10,generation.tick)
+        full=proposed.cert;memberSources.set(goal.name,proposed.hints)
+      }
       if (!pass || lazyMode === '0' || (lazyMode === 'wide' && !wide)) { const c0 = withRanges(decls, full, full.reads); return {goal, decls, c: c0, gg: ptime('encode', () => mcGoal(goal.hyps, decls, c0)), pool: undefined as Pool | undefined} }
       const rd = new Map(full.reads.map(r => [r[0], json([r[1], r[2]])]))
       const keys = [...full.picks.map(q => `p${json([rd.get(q[0]), q[1]])}`), ...full.insts.map(i => `i${json([i.terms.map(([z, x]) => [z, rd.get(x)]), i.unit, i.below])}`)]
       if (lazyMode === 'wide') {
-        const initial = preferMemberInclusions(m, decls, full, {...full, picks: [], insts: full.insts.slice(0, 10)}, 10, generation.tick)
+        const prefix = {...full, picks: [], insts: full.insts.slice(0, 10)}
+        const initial = memberSources.get(goal.name)?.length ? prefix : preferMemberInclusions(m, decls, full, prefix, 10, generation.tick)
         for (const inst of initial.insts) chosen.add(keys[full.picks.length + full.insts.indexOf(inst)]!)
       }
       const c = withRanges(decls, {...full, picks: full.picks.filter((_, j) => chosen.has(keys[j]!)), insts: full.insts.filter((_, j) => chosen.has(keys[j + full.picks.length]!))}, full.reads)
@@ -787,6 +805,15 @@ export function countedAttempts(m: Machine, caller: Law[], support: Set<Law>, un
     let lastSignature = ''
     const build = () => {
       let built = rawBuild()
+      if(pass)while(seedCount<64&&clock()<attemptEnd){
+        const step=built.at(-1),hints=step&&memberSources.get(step.goal.name)
+        if(!step||!hints?.length)break
+        const seeded=instantiateMemberPremises(m,ls,at,step.decls,hints,members(),64-seedCount,generation.tick)
+        if(!seeded.added.length)break
+        at=seeded.at;seedCount+=seeded.added.length
+        countsDump.on?.({phase:'member-premises',law:law.name,goal:step.goal.name,pass,added:seeded.added})
+        built=rawBuild()
+      }
       if (pass && supported) while (seedCount < 64 && clock() < attemptEnd) {
         const step = built.at(-1)
         if (!step?.gg) break
@@ -897,7 +924,7 @@ export function countedAttempts(m: Machine, caller: Law[], support: Set<Law>, un
         if (q.stuck !== 'sat' || !q.witness) break
         observe(step, 'model', q.witness)
         if (!more()) return {stuck: 'unknown'}
-        const asked = ptime('mbqi', () => modelInstances(m, modelLaws, at, step.gg!, q.witness!)), lz = breaks(step, q.witness) || (!asked && breaks(step, q.witness, true))
+        const asked = ptime('mbqi', () => independent(at,modelInstances(m, modelLaws, at, step.gg!, q.witness!),step.c.insts.map(i=>i.wit))), lz = breaks(step, q.witness) || (!asked && breaks(step, q.witness, true))
         tally('#rounds'); tally('#hyps', step.gg.hyps.length)
         if (lz && !asked) { built = build(); continue }
         if (!asked) {
@@ -930,7 +957,7 @@ export function countedAttempts(m: Machine, caller: Law[], support: Set<Law>, un
         if (env.GDP_COUNTS_TRACE?.includes('2')) console.error(`counts: ${ls.length === 1 ? 'alone' : `with ${ls.length}`} ${pass} ${goal.name}: ${o && 'tree' in o ? 'proven' : gg ? (o as {stuck?: string}).stuck : 'no read'} ${gg?.hyps.length ?? 0} hyps (insts ${'insts' in c ? c.insts.length : 0} picks ${'picks' in c ? c.picks.length : 0}${wide ? ' wide' : ''}${built.find(b => b.gg === gg)?.pool ? ` of ${built.find(b => b.gg === gg)!.pool!.keys.length}` : ''}) ${Math.round(clock() - t0)} ms`)
         // (the tree search's model of the step goal: the instances it asks for, as the CDCL search's, and the goals again)
         if (gg && o && !('tree' in o) && o.stuck === 'sat' && o.witness && gg === built.at(-1)!.gg && more()) {
-          const asked = ptime('mbqi', () => modelInstances(m, modelLaws, at, gg, o.witness!)), lz = breaks(built.at(-1), o.witness) || (!asked && breaks(built.at(-1), o.witness, true))
+          const asked = ptime('mbqi', () => independent(at,modelInstances(m, modelLaws, at, gg, o.witness!),c.insts.map(i=>i.wit))), lz = breaks(built.at(-1), o.witness) || (!asked && breaks(built.at(-1), o.witness, true))
           if (asked || lz) { if (asked) at = asked; built = build(); again = true; break }
           if (completeCounts()) { built = build(); again = true; break }
         }

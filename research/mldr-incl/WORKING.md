@@ -1,54 +1,67 @@
-# Lane E checkpoint
+# Lane E — production member premises
 
-Branch `claude/mldr-incl`. Production is **0ee27c7a**, unchanged by the latest
-research follow-up. Main is b788e195. No owned jobs or waiters remain running.
-No merge, push, GATE GREEN or complete MLDR proof is claimed.
+## Current checkpoint
 
-## Current deliverables
+Production commit **2047d2be**, on claude/mldr-incl. It adds ordinary bounded
+member witnesses and real source-law/flag instantiation. No assertions, fixed
+protocol names/widths, kernel edits, or proof-budget changes. The source is
+still on the 30c4c889 A/B/F integration base plus the prior audit withdrawal.
 
-- Production commits f6ec83db, 7dc52140, 0ee27c7a: ordinary guarded inclusion
-  admission and bounded selection. No kernel or budget changes.
-- Exact-source paired diagnostics: **126 pairs**, IC3Syn **84/87 vs 83/87**,
-  DuoAI **10/10 each**, broken **0/29 each**; no lost proof/refutation or false
-  proof. Source pins and full roster checked. This is NOT Lane D acceptance.
-- Seven full shards: **1073 pass, 18 skip, 0 fail**. Complete shard-7 gzip
-  and hash prove 227 pass. The original wrapper's singular/plural parsing
-  failure is retained. Type/lint + **38 focused tests** pass; the final
-  follow-up reconfirms type/lint, three parser tests and four extractor checks.
-- Conditional lemma: both original guarded variants check at **39.79/39.78**
-  counted units. Greedy reduction retains **five of twenty premises**, with
-  the conclusion, declarations and witness instances unchanged. Fresh kernel
-  processes check both reduced certificates. Full reduction costs
-  **572.91/572.77 units**, NOT one-proof cost. The positive numeric contexts
-  and missing-guard controls are SAT, not certified finite-state models.
-- Read `research/mldr-incl/CONDITIONAL-LEMMA.md` for the exact five premises,
-  original indices 1/13/16/17/19 and unchanged conclusion at 20. They use the
-  canVote and all$2 bodies, not all$1. Never assume these flag bodies globally.
-- Certs/index/17 hashes: `runs/mldr-incl-pointwise-minimized/`.
-  Parent certs: `runs/mldr-incl-pointwise-certificates-v2/`.
-- Reduction v1 failed before proof (runs/ omitted from source snapshot).
-  V2 mounted the committed inputs and passed. Final extractor tests reject
-  changed conclusions, reordered premises and forged parent hashes even with
-  success labels. All failures and exact executed plans remain retained.
+Latest captured 34-law family has no supplied p1. Frozen conditional safety
+(no support, helpers assumed first):
+- baseline UNKNOWN at 6001.055494 units;
+- fixed v2 2700: UNKNOWN;
+- fixed v2 6000: both START and STEP checkMC true at 3817.24253 units,
+  whole-probe 9.625 s wall. NOT original-harness success.
 
-## Original-harness boundary
+V1 returned a rejected certificate: arithmetic tree checked, but three count
+read coordinates depended on their own member witnesses. Existing kernel
+rejected it. V2 uses independentCountInstances at all ordinary/cached MBQI
+boundaries when member witnesses are active. Preserve the failed evidence.
+The new fixture is consistent (non-strict field law, indicator count), with
+missing-guard and freshness controls.
 
-144 frozen full-STEP replays selected the desired full-S inclusion but gave
-no checked safety proof. Original A/A+E v2, pinned A=48533517, gave six
-UNKNOWNs around 59 s. The partial instrumented capture retains 144 files,
-omits 405, has 34 initial laws and 284 model queries; retained stages are
-pass 0 and show no prioritized safety stage. No 29/29 claim.
+## Active task — do not duplicate
 
-New upstream history, read only: A's 74dd9cc5/52b2382f fixes cancellation and
-fact checking, still awaiting Lane D re-audit. B's 1db3dc67 rejects its
-combined policy after a conditional safety loss. Do not blindly compose it
-or transfer our local diagnostic acceptance. These commits are NOT inputs
-to the recorded A/A+E experiments. Lane I owns continuous integration.
+8efd60c7-747c-4dfd-a1de-831744254f75, runs/mldr-incl-production-premises-check-v3:
+- type/lint and 53 focused tests after fixing missing Counted.j and tuple type;
+- isolated early-completion ordering experiment at 6000 (not production).
+Class interactive, pinned large. Collect terminal result. V2 already had all
+53 tests / 195 assertions passing but its type-check failed on those two fixes.
 
-## Next boundary
+## Immediate continuation
 
-Lane B can use the five-premise conditional obligation while still proving
-actual branch assumptions and rechecking declaration/term transport. Lane D
-must run its authoritative exact-source final gate before any merge. Until
-original MLDR is proved, do not move to AFTER-MLDR or call the task green.
-Leave the pre-existing untracked research/claude-import/ directory alone.
+1. Import **actual lane mappings**: A claude/mldr-gen fdabeba4; B
+   claude/track-mldr (was 803129c4, now 6d69e094 research follow-up); F
+   claude/mldr-leaves (was 36210941, now 682c8dc6 and initial range integration
+   bb61cb8d). The separate Fable wall branch is not Lane F. Read fresh refs.
+   Preserve both sides of counts.ts edits. Lane I integrates all lanes later.
+2. Run type/lint + targeted tests on merged source. Generate latest family
+   afresh, then conditional STEP at 2700/6000. The runner now saves
+   production-proof.json including machine, laws, exact instances and certs;
+   inspect-production.ts reconstructs both obligations in a fresh process.
+3. Run original unchanged harness x3 on pinned large, no preload/env changes:
+   bun research/protocols/ic3syn/run.ts --only mldr --ms 60000 --skip broken.
+   Keep the 75 s outer watchdog and report actual strict-60 s outcomes.
+4. Check used member CInsts and original source premises, not just proposal
+   logs. If still above 2700, study existing checked conditional-cut support;
+   do not add assumptions. Current 2047d2be changes are sufficient for the
+   checked 6000 conditional proof but NOT the whole protocol.
+5. Commit small follow-ups and compact evidence. Never edit another worktree;
+   research/claude-import/ stays untouched.
+
+## Evidence and acceptance boundary
+
+runs/REPORT.md has the newest conditional result and historical audit warning.
+Captured checked archive:
+runs/mldr-incl-production-checked-input/archive.br,
+SHA256 bc13d4b9c0124e23412a6093affe48bb91062102c44ae675cecd6f72910a0327.
+Latest family archive hash:
+5c0621847c3b166736d6bbf8bddd6dc6677d743aaa7b91402cccd9fdd467aa78.
+Old five-premise conditional files: runs/mldr-incl-pointwise-minimized/.
+
+Lane D final-audit-P80 was read in full. Old 84/87 vs 83/87 and 1073/18
+numbers are iteration observations ONLY: roster/unique identity/source binding
+and six shard receipts were missing. Withdrawn in 3f3a523c. Do not create more
+lane-local gate tooling. Acceptance belongs to Lane D's authoritative gate.
+No original 29/29, GATE GREEN, main merge or push is claimed.
