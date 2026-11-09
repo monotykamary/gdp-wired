@@ -6,6 +6,29 @@ Lane I resumed from `cca59f0c` on `claude/mldr-integ`; clean worktree verified, 
 - Repair: core-replay reconstruction now spreads the previous obligation before replacing its goal/decls/encoded goal, retaining `all`, certificate and pool. Added a focused range-demand test for a read omitted by the selected certificate. No budget, law, or kernel change.
 - Current source/test candidate: `b37c4e2ce8172d0e3e1546b6c099ceff33b2d7ae`; fresh v10 validation and 87 generation pairs are submitted for it. Registered v9 jobs remain untouched and bound to `edd284913024a6566591d7ad1cba8059b8047a14`. Results remain pending; Lane D's final gate is mandatory.
 
+## Disk
+
+Coordinator disk rules are active: no new per-run whole-tree archives; one reusable `/private/tmp/gdp-archives/<sha>.tar`; no deletion without the coordinator's decision; record any planned write over 500 MB before doing it. Retrieve compact summaries/receipts/hashes; retrieve raw traces only for a concrete question and compressed. Existing submitted controllers and their input paths are left intact.
+
+Created **hard links, not archive copies**, from retained archives into the shared cache (no new archive data blocks):
+
+| Source SHA / canonical path under `/private/tmp/gdp-archives/` | Bytes | SHA-256 |
+|---|---:|---|
+| `b788e1959bba1f2e8aa1f94d4cf7c0eb163a2f9c.tar` | 30,167,040 | `c593e659eb2d22592f82ab291a63a057679eaf11e8086ed0eed5a972c57745fe` |
+| `d47141cce2caf5b86b0c2c0c372a5174f424bc15.tar` (handwired) | 32,501,760 | `73d44548dbe109a40ac933406324e17d7dee39e7dff1a6f1270ed030c31c1da4` |
+| `0b6ebeeec827b05210f3acfa4149a70dda9a0de5.tar` (gdp-ts) | 665,600 | `75d367da15decb1fefce2ae72ae50e7f3f737989094a760fde643c5b1f5c1496` |
+| `15eff72f04f74351b622b02d08e47bfb9dfdb131.tar` (frozen census source) | 234,588,160 | `7d697a87edba36cc65a6ca33e4998fe67e677c6a5fe02617a759fc9df25252b5` |
+
+**Deletion candidates for coordinator approval only; nothing deleted:**
+
+- `runs/lane-i/v1/input/{main,handwired,gdp-ts}.tar` through `runs/lane-i/v8/input/{main,handwired,gdp-ts}.tar`: eight historical sets, **506,675,200 bytes total (~483.2 MiB)**. Each set is 63,334,400 bytes; current Lane I controllers use v9/v10 or resumed-upper input, not these archives. Baseline/vendor identities are preserved in the shared cache and committed manifests. Retain the small identities, manifests and receipts.
+- `runs/lane-i/upper-bound/input/{main,handwired,gdp-ts}.tar`: **63,334,400 bytes (~60.4 MiB)**, old smoke/capture packaging; resumed full census uses `upper-bound/resumed/input`. Same retained baseline/vendor archive hashes. Keep its `family.json` and `source.sha256`.
+- **Do not remove active inputs** `runs/lane-i/v9/input`, `runs/lane-i/v10/input`, or `runs/lane-i/upper-bound/resumed/input` while their registered controllers may still read them. Their hard-linked cache names are not additional copies and removing only one alias would not reclaim its blocks.
+
+### Real replay regression discovery
+
+Lane D correctly notes that the small `all`-versus-selected regression does not itself run the production core-cut path. Started one focused ordinary-attempt diagnostic (`research/lane-i/core-replay-probe.ts`, task `d8f871e2-a9db-4599-a57d-381205795954`, `runs/lane-i/core-replay-probe/results`) to find a deterministic core-refutation fixture and independently check its actual certificate. This does not modify the engine or use supplied protocol laws. Result pending; no end-to-end regression coverage is claimed yet.
+
 ## Admission recovered; one-subagent cap remains
 
 Coordinator reports the shared blob-cache lock freed at 00:35 and normal wide boat submissions are open again. Verified **all four original Lane I batch IDs are now persisted in the scheduler queue**: `20261110-001227-5qxos1` (140 shards), `20261110-001619-awzeif` (validation), `20261110-001623-9q08uz` (generation census), `20261110-001947-ek072a` (receipt audits). Their existing controllers remain owners. Nothing was killed or resubmitted, and no duplicate run was created.
