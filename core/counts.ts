@@ -881,9 +881,8 @@ export function countedAttempts(m: Machine, caller: Law[], support: Set<Law>, un
       countsDump.on?.({law: law.name, pass, phase: 'count-completion', added: completion.added})
       return true
     }
-    // Complete existing count-law instances before paying for discovery queries.
-    // Field-only targets do not eagerly or speculatively complete count laws.
-    if (pass && completionMaps.size) completeCounts()
+    // Try the sparse obligations first: eager completion can crowd out an easy proof.
+    // Stuck-model paths below retain bounded completion for requested count maps.
     let built = build()
     const observe = (b: ReturnType<typeof build>[number], phase: string, witness?: Record<string, number>) => {
       if (countsDump.on) countsDump.on({law: law.name, goal: b.goal.name, pass, phase, generation: {...generation.state}, machine: m, laws: ls, rawGoal: b.goal, decls: b.decls, instances: at, certificateRequest: b.c, hyps: b.gg?.hyps, witness, seedCount})
