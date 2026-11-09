@@ -1,0 +1,20 @@
+gdp-ts.tar: OK
+handwired.tar: OK
+main.tar: OK
+COUNT_RUNTIME_IDENTICAL 2da24a9a74a03b527c1ba111cbcc510ea0bc8627e5dcb7b5dd81a2d15d136efa
+
+  x typescript(no-base-to-string): 'value' may use Object's default stringification format ('[object Object]') when stringified.
+   ,-[research/track-wall/trace-error.ts:6:18]
+ 5 |       : typeof value === 'object' || typeof value === 'function' ? '<non-Error object>'
+ 6 |         : String(value)
+   :                  ^^^^^
+ 7 |   return text.slice(0, 200)
+   `----
+  help: Consider picking a property (e.g. `user.name`), using a formatter (or `JSON.stringify`), or implementing a custom `toString()`/`toLocaleString()` on the type.
+
+Found 0 warnings and 1 error.
+Finished in 39.6s on 1607 files with 100 rules using 8 threads.
+
+--- stderr ---
+$ tsc -p . && oxlint --type-aware --deny-warnings --disable-nested-config
+error: script "check" exited with code 1
