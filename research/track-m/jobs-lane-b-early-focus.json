@@ -1,0 +1,6 @@
+[
+ {"name":"rows-only","cmd":"bash research/track-m/lane-b-early-focus.sh rows only","cpu":8,"memory":14336,"timeout":120},
+ {"name":"rows-third","cmd":"bash research/track-m/lane-b-early-focus.sh rows third","cpu":8,"memory":14336,"timeout":120},
+ {"name":"rows-classes","cmd":"bash research/track-m/lane-b-early-focus.sh rows only classes","cpu":8,"memory":14336,"timeout":120},
+ {"name":"p1-base","cmd":"bash research/track-m/lane-b-early-focus.sh p1 off","cpu":8,"memory":14336,"timeout":120}
+]
