@@ -1,0 +1,299 @@
+{
+  "expectedJobs": 72,
+  "missingDriver": 72,
+  "acceptedPairs": 0,
+  "measurementStarted": false,
+  "issues": [
+    "submission omitted the regression-driver and frozen input bootstrap"
+  ],
+  "rows": [
+    {
+      "name": "mb-cohort-401",
+      "missingDriver": true
+    },
+    {
+      "name": "mb-cohort-402",
+      "missingDriver": true
+    },
+    {
+      "name": "mb-cohort-403",
+      "missingDriver": true
+    },
+    {
+      "name": "mb-cohort-404",
+      "missingDriver": true
+    },
+    {
+      "name": "mb-cohort-405",
+      "missingDriver": true
+    },
+    {
+      "name": "mb-cohort-406",
+      "missingDriver": true
+    },
+    {
+      "name": "mb-cohort-407",
+      "missingDriver": true
+    },
+    {
+      "name": "mb-cohort-408",
+      "missingDriver": true
+    },
+    {
+      "name": "mb-cohort-409",
+      "missingDriver": true
+    },
+    {
+      "name": "mb-cohort-410",
+      "missingDriver": true
+    },
+    {
+      "name": "mb-cohort-411",
+      "missingDriver": true
+    },
+    {
+      "name": "mb-cohort-412",
+      "missingDriver": true
+    },
+    {
+      "name": "mb-cohort-413",
+      "missingDriver": true
+    },
+    {
+      "name": "mb-cohort-414",
+      "missingDriver": true
+    },
+    {
+      "name": "mb-cohort-415",
+      "missingDriver": true
+    },
+    {
+      "name": "mb-cohort-416",
+      "missingDriver": true
+    },
+    {
+      "name": "mb-cohort-417",
+      "missingDriver": true
+    },
+    {
+      "name": "mb-cohort-418",
+      "missingDriver": true
+    },
+    {
+      "name": "mb-cohort-419",
+      "missingDriver": true
+    },
+    {
+      "name": "mb-cohort-420",
+      "missingDriver": true
+    },
+    {
+      "name": "mb-cohort-421",
+      "missingDriver": true
+    },
+    {
+      "name": "mb-cohort-422",
+      "missingDriver": true
+    },
+    {
+      "name": "mb-cohort-423",
+      "missingDriver": true
+    },
+    {
+      "name": "mb-cohort-424",
+      "missingDriver": true
+    },
+    {
+      "name": "mb-cohort-425",
+      "missingDriver": true
+    },
+    {
+      "name": "mb-cohort-426",
+      "missingDriver": true
+    },
+    {
+      "name": "mb-cohort-427",
+      "missingDriver": true
+    },
+    {
+      "name": "mb-cohort-428",
+      "missingDriver": true
+    },
+    {
+      "name": "mb-cohort-429",
+      "missingDriver": true
+    },
+    {
+      "name": "mb-cohort-430",
+      "missingDriver": true
+    },
+    {
+      "name": "mb-cohort-431",
+      "missingDriver": true
+    },
+    {
+      "name": "mb-cohort-432",
+      "missingDriver": true
+    },
+    {
+      "name": "mb-cohort-433",
+      "missingDriver": true
+    },
+    {
+      "name": "mb-cohort-434",
+      "missingDriver": true
+    },
+    {
+      "name": "mb-cohort-435",
+      "missingDriver": true
+    },
+    {
+      "name": "mb-cohort-436",
+      "missingDriver": true
+    },
+    {
+      "name": "mb-cohort-437",
+      "missingDriver": true
+    },
+    {
+      "name": "mb-cohort-438",
+      "missingDriver": true
+    },
+    {
+      "name": "mb-cohort-439",
+      "missingDriver": true
+    },
+    {
+      "name": "mb-cohort-440",
+      "missingDriver": true
+    },
+    {
+      "name": "mb-cohort-441",
+      "missingDriver": true
+    },
+    {
+      "name": "mb-cohort-442",
+      "missingDriver": true
+    },
+    {
+      "name": "mb-cohort-443",
+      "missingDriver": true
+    },
+    {
+      "name": "mb-cohort-444",
+      "missingDriver": true
+    },
+    {
+      "name": "mb-cohort-445",
+      "missingDriver": true
+    },
+    {
+      "name": "mb-cohort-446",
+      "missingDriver": true
+    },
+    {
+      "name": "mb-cohort-447",
+      "missingDriver": true
+    },
+    {
+      "name": "mb-cohort-448",
+      "missingDriver": true
+    },
+    {
+      "name": "mb-cohort-449",
+      "missingDriver": true
+    },
+    {
+      "name": "mb-cohort-450",
+      "missingDriver": true
+    },
+    {
+      "name": "mb-cohort-451",
+      "missingDriver": true
+    },
+    {
+      "name": "mb-cohort-452",
+      "missingDriver": true
+    },
+    {
+      "name": "mb-cohort-453",
+      "missingDriver": true
+    },
+    {
+      "name": "mb-cohort-454",
+      "missingDriver": true
+    },
+    {
+      "name": "mb-cohort-455",
+      "missingDriver": true
+    },
+    {
+      "name": "mb-cohort-456",
+      "missingDriver": true
+    },
+    {
+      "name": "mb-cohort-457",
+      "missingDriver": true
+    },
+    {
+      "name": "mb-cohort-458",
+      "missingDriver": true
+    },
+    {
+      "name": "mb-cohort-459",
+      "missingDriver": true
+    },
+    {
+      "name": "mb-cohort-460",
+      "missingDriver": true
+    },
+    {
+      "name": "mb-cohort-461",
+      "missingDriver": true
+    },
+    {
+      "name": "mb-cohort-462",
+      "missingDriver": true
+    },
+    {
+      "name": "mb-cohort-463",
+      "missingDriver": true
+    },
+    {
+      "name": "mb-cohort-464",
+      "missingDriver": true
+    },
+    {
+      "name": "mb-cohort-465",
+      "missingDriver": true
+    },
+    {
+      "name": "mb-cohort-466",
+      "missingDriver": true
+    },
+    {
+      "name": "mb-cohort-467",
+      "missingDriver": true
+    },
+    {
+      "name": "mb-cohort-468",
+      "missingDriver": true
+    },
+    {
+      "name": "mb-cohort-469",
+      "missingDriver": true
+    },
+    {
+      "name": "mb-cohort-470",
+      "missingDriver": true
+    },
+    {
+      "name": "mb-cohort-471",
+      "missingDriver": true
+    },
+    {
+      "name": "mb-cohort-472",
+      "missingDriver": true
+    }
+  ]
+}

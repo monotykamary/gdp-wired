@@ -1,0 +1,3 @@
+
+--- stderr ---
+error: Module not found "regression-driver/merge-bisect-cohort.ts"
