@@ -1,0 +1,19 @@
+{
+  "batch": "20261110-025119-n94i0d",
+  "reason": "superseded by Section 17 pass-0 diagnosis and Fable traces; no proof run needed",
+  "before": {
+    "rows": [],
+    "done": false,
+    "running": 0,
+    "queued": 1
+  },
+  "closed": {
+    "vms": 0,
+    "starts": 0,
+    "preempted": 0,
+    "class": "submission",
+    "wall_s": 1113.7
+  },
+  "submissionSha256": "44908afd026b656316e756e8da9ae46c34f3fb35a93f151755a60371bcec294b",
+  "workersStarted": 0
+}

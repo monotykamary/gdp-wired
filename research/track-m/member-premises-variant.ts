@@ -2,6 +2,8 @@
 // Production counts.ts is unchanged unless this research script is invoked.
 import {readFileSync, writeFileSync} from 'node:fs'
 if (process.env.LAB_DISPOSABLE !== '1') throw Error('LAB_DISPOSABLE=1 required')
+const mode = process.argv[2] ?? 'eager'
+if (!['eager', 'flags'].includes(mode)) throw Error('MODE must be eager or flags')
 const path = 'core/counts.ts'
 let source = readFileSync(path, 'utf8')
 const edits: [string, string][] = [
@@ -42,5 +44,10 @@ for (const [before, after] of edits) {
   if (source.split(before).length !== 2) throw Error('non-unique variant anchor: ' + before)
   source = source.replace(before, after)
 }
+if (mode === 'flags') {
+  const before = 'instantiateMemberPremises(m,ls,at,step.decls,hints,members(),64-seedCount,generation.tick)'
+  if (source.split(before).length !== 2) throw Error('non-unique flags-first anchor')
+  source = source.replace(before, 'instantiateMemberPremises(m,[],at,step.decls,hints,members(),64-seedCount,generation.tick)')
+}
 writeFileSync(path, source)
-console.log(JSON.stringify({variant: 'lane-e-member-premises', upstream: '2047d2be', edits: edits.length}))
+console.log(JSON.stringify({variant: 'lane-e-member-premises', mode, upstream: mode === 'flags' ? '9124348d' : '2047d2be', edits: edits.length + (mode === 'flags' ? 1 : 0)}))

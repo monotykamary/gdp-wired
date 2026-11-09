@@ -1,0 +1,14 @@
+import {get,n,x,ite,same} from '../../core/machine.ts'
+import {countedAttempts,countsDump} from '../../core/counts.ts'
+import {clock,counted,fullRate,withDeadline,withWall} from '../../kernel/prove.ts'
+import {checkMC,countedObligations} from '../../kernel/kernel.ts'
+for(const bodyKind of ['field','indicator','one'] as const)for(const bound of [1,2]){
+ const body=bodyKind==='field'?get('Cells',x('member')):bodyKind==='indicator'?ite(same(get('Cells',x('member')),n(1)),n(1),n(0)):n(1)
+ const m={name:'fixture probe',params:[],inputs:[],state:{},maps:{Cells:0},counts:{Total:{j:'countRow',key:'member',below:n(2),body}},step:{}}
+ const law={name:'bounded total',forall:'row',holds:{op:'<=' as const,a:get('Total',x('row')),b:n(bound)}}
+ const events:string[]=[];countsDump.on=e=>{if('phase'in e&&typeof e.phase==='string')events.push(e.phase)}
+ const result=withWall(performance.now()+3000,()=>counted(fullRate,()=>{const end=clock()+1000;return withDeadline(end,()=>countedAttempts(m,[law],new Set(),end).traced(law,[law],1,1000))},true))
+ countsDump.on=undefined
+ const checked='proof'in result&&countedObligations(m,[law],{[law.name]:result.proof.instances},0).every(({goal,decls})=>checkMC(goal.hyps,decls,result.proof.certs[goal.name]!))
+ console.log(JSON.stringify({bodyKind,bound,checked,stuck:'stuck'in result?result.stuck:undefined,events}))
+}

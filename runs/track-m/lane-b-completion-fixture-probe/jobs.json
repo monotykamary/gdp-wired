@@ -1,0 +1,1 @@
+[{"name":"probe","cmd":"bun install --frozen-lockfile >/dev/null && cp fixtures/probe.txt research/track-m/probe-completion-order.ts && bun research/track-m/probe-completion-order.ts","cpu":8,"memory":14336,"timeout":90}]

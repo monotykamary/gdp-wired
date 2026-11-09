@@ -1,0 +1,15 @@
+{
+  "source":"44e06e5c",
+  "control":"47215336",
+  "runs":["original-0","original-1","original-2"],
+  "verification":"Recorded archive source manifests compared with git show of the two commits; all six counts hashes agree",
+  "beforeCountsSha256":"e1fe49eada04ab279bda1b340bac0516c42bf4394a748167a353fb393c6d4e8f",
+  "afterCountsSha256":"32db658d1bf9c6641c3e3d6473fd90e81a474b21bbe4f77ea0a577c77f5aec8c",
+  "unchangedFiles":{
+    "core/count-ranges.ts":"201af06339593acc8b7796b87394bd73876afa4f6da124fdc6a25f509dfdbf12",
+    "kernel/kernel.ts":"7ec8b310d23fab7eb3ba452b659e7051ceefe97aea01ffa6f16d990a7bea7f33",
+    "kernel/prove.ts":"b7e2b08edeba02e3714964741463b7e7748634d5800502ca8f3b9fe6e6f2d2b3",
+    "research/protocols/ic3syn/run.ts":"a9fa1e966acf503db0804419f8af7b82cfec671f8fba528716ec5440ea70dd66"
+  },
+  "gateGreen":false
+}

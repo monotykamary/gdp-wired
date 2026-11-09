@@ -6,7 +6,9 @@ import {join, basename} from 'node:path'
 import {createHash} from 'node:crypto'
 const dir = process.argv[2]
 if (!dir) throw Error('BATCH_OUTPUT required')
-const names = ['p1-ab', 'p1-ba', 'rows-ab', 'rows-ba', 'star-ab', 'star-ba']
+const targets = process.argv[5]?.split(',') ?? ['p1', 'rows', 'star']
+assert(targets.length > 0 && new Set(targets).size === targets.length && targets.every(tag => ['p1', 'rows', 'star'].includes(tag)), 'invalid explicit target scope')
+const names = targets.flatMap(tag => [tag + '-ab', tag + '-ba'])
 const placement = JSON.parse(readFileSync(join(dir, 'placement.json'), 'utf8'))
 const exits = new Map(readFileSync(join(dir, 'summary.tsv'), 'utf8').trim().split('\n').map(line => { const [name, code] = line.split('\t'); return [name, Number(code)] }))
 const rows = names.map(name => {
@@ -42,7 +44,7 @@ const rows = names.map(name => {
 const checks = exits.has('check') ? {check: exits.get('check')!} : {base: exits.get('check-base'), candidate: exits.get('check-candidate') ?? exits.get('check-members')}
 assert(Object.values(checks).every(code => code !== undefined), 'missing validation receipt')
 if (!exits.has('check')) assert(process.argv[3] && process.argv[4], 'paired source identities required')
-const out = {conditional: true, standalone: true, gateGreen: false, validationExit: Math.max(...Object.values(checks) as number[]), checks, source: process.argv[3] ?? 'b056c3b4', control: process.argv[4] ?? 'a4dc71d0', rows,
+const out = {conditional: true, standalone: true, gateGreen: false, targets, validationExit: Math.max(...Object.values(checks) as number[]), checks, source: process.argv[3] ?? 'b056c3b4', control: process.argv[4] ?? 'a4dc71d0', rows,
   independentAudit: {outcomes: rows.length * 2, checked: rows.flatMap(r => r.arms).filter(a => a.checked).length}}
 writeFileSync(join(dir, 'summary.json'), JSON.stringify(out, null, 2) + '\n')
 console.log(JSON.stringify({validationExit: out.validationExit, audit: out.independentAudit, rows: rows.map(({name, unitDelta, arms}) => ({name, unitDelta, arms: arms.map(({side, checked, units, wallMs}) => ({side, checked, units, wallMs}))}))}, null, 2))

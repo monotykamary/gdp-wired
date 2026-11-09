@@ -16,6 +16,8 @@ The coordinator moved main from `b788e195` to **`4497c4b05c3111959a2b8d808c426a0
 
 - **A `0bab28e2`:** production finite-search files merged automatically, preserving the existing whole-family/source-interpreter certification boundary. New interval/seed paths remain opt-in; front-loading replaces rather than doubles the 256-attempt allowance. The sole conflict is the lane report, preserved verbatim at `runs/lane-i/incoming/20261110/A-0bab28e2.md`, while this continuous integration report is retained. Added the two new seed test modules and the qualified diagnostic tests to the canonical quick roster and its coverage assertion. A's pilot is still pending and does not satisfy its five-of-seven criterion by assertion.
 
+- **B `4ce50c00`:** preserved the scalar-premise documentation and new coverage. Resolved `core/counts-completion-order.test.ts` by retaining **all three intents**: the existing scheduling/positive field probe, Lane I's independently checked concrete-key count certificate, and B's explicit false-INIT regression (`Total=2`, claimed `<=1`). No completion behavior was changed. The incoming report is at `runs/lane-i/incoming/20261110/B-4ce50c00.md`; B's unary-only scheduling prototype remains rejected/research-only, not silently promoted as a performance fix.
+
 All newly integrated source still requires combined qualification; no historical receipt or gate result is transferred to it.
 
 ## Coordinator follow-up: merge bisection and bar resource attribution — active
