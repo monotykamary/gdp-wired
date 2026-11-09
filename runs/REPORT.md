@@ -29,6 +29,10 @@
   `fullRate` 250, the `model` weights fitted on 332 step goals) under-counts the larger counted goals, so a 60 s real run holds ≈ 25–35 s of
   counted attempt time, not 60. A recalibration is a cost-model change (lane B with lane D), not a budget increase; with or without it, 34
   laws × 2 passes at ≥ 3.2 s counted each cannot end round 0 inside 60 s — 16.1 (fewer pass-1 attempts) and 15.x (cheaper goals) are the levers.
+  **Drift table for the refit** (`receipts/drift1/drift-table.tsv`: 70 attempts, two strict runs on one pinned EPYC 4585PX, every attempt's
+  pass, share, `took`, wall, `#hyps`, encode / decide / mbqi / lazy, outcome, law): wall per counted ms by `#hyps` — < 300: median 0.81
+  (46 pass-0 attempts), 300–600: 1.3–1.5, 600–900: 1.9, 900–1,300: 1.6–1.9 (max 2.26); summed over both runs 67.0 s counted against 95.3 s
+  of wall. Per run: pass 0 — 17 `kept`, 8 `sat`, 1 `unknown`; pass 1 — 9 `unknown`, 0 proofs.
 
 # RESUME (checkpoint 2026-11-09, lane C / Fable, branch `claude/mldr-wall`)
 

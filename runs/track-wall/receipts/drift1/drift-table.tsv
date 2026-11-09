@@ -1,0 +1,71 @@
+pass	ms	took	wall	ratio	hyps	encode	decide	mbqi	lazy	outcome	law
+0	1765	88	100	1.14	38	7	58	10	0	kept	St at most 1
+0	1816	301	245	0.81	90	9	167	8	0	kept	fields: St[a]=1 -> CT[a]=CfgT[a]
+0	1863	318	187	0.59	88	8	115	5	0	kept	fields: St[a]=1 -> CT[a]<=CfgT[a]
+0	1913	1913	2439	1.27	329	9	153	14	0	sat	fields: St[a]=1 -> CT[a]=CT[b] -> CfgT[b]<=CfgT[a]
+1	1913	1913	1568	0.82	1103	38	1352	59	83	unknown	fields: St[a]=1 -> CT[a]=CT[b] -> CfgT[b]<=CfgT[a]
+0	1849	316	258	0.82	90	10	173	6	0	kept	fields: St[a]=1 -> CfgT[a]<=CT[a]
+0	1902	1260	1834	1.46	547	14	231	106	0	kept	fields: St[a]=1 -> CfgT[a]=CfgT[b] -> CV[b]<=CV[a]
+0	1925	97	53	0.55	38	5	27	2	0	kept	every x with x < size: never CT[x] is 0 and 1 <= S
+0	1992	198	137	0.69	139	9	90	8	0	kept	every x with x < size: never 1 <= CT[x] and CV[x] 
+0	2061	64	58	0.91	134	9	38	6	0	kept	every x with x < size: never 1 <= CT[x] and starte
+0	2141	148	129	0.87	90	7	56	4	0	kept	every x with x < size: never 1 <= St[x] and CV[x] 
+0	2224	271	153	0.56	88	9	102	6	0	kept	every x with x < size: never 1 <= St[x] and CfgT[x
+0	2309	70	113	1.61	151	10	87	8	0	kept	every x with x < size: never 1 <= St[x] and starte
+0	2411	259	191	0.74	148	9	98	7	0	kept	every x with x < size: never CV[x] is 0 and 1 <= C
+0	2514	180	127	0.71	137	11	79	8	0	kept	every x with x < size: never CV[x] is 0 and 1 <= s
+0	2630	64	69	1.08	140	9	47	6	0	kept	every x with x < size: never 1 <= CfgT[x] and star
+0	2765	225	192	0.85	161	12	138	11	0	kept	every x, y with x < size ∧ y < size ∧ ¬(x = y): ne
+0	2906	305	270	0.89	258	14	170	55	0	kept	every x, y with x < size ∧ y < size ∧ ¬(x = y): ne
+0	3059	240	277	1.15	166	14	196	12	0	kept	every x, y with x < size ∧ y < size ∧ ¬(x = y): ne
+0	3236	98	127	1.3	219	13	93	17	0	sat	inX: no quorum canVote/1
+1	3236	3237	7314	2.26	1288	99	6482	202	433	unknown	inX: no quorum canVote/1
+0	3229	98	83	0.85	219	9	60	12	0	sat	inX: no quorum canVote/3
+1	3229	3231	6180	1.91	864	98	5593	107	247	unknown	inX: no quorum canVote/3
+0	3222	132	220	1.67	278	8	191	18	0	sat	inX: stored guard reconfigs/inS
+1	3222	3223	3988	1.24	652	57	3612	83	204	unknown	inX: stored guard reconfigs/inS
+0	3212	141	81	0.57	278	7	60	12	0	sat	inX: stored guard reconfigs/inS or disabled/0
+1	3212	3214	4225	1.31	586	53	3795	56	274	unknown	inX: stored guard reconfigs/inS or disabled/0
+0	3200	141	97	0.69	278	8	70	15	0	sat	inX: stored guard reconfigs/inS or disabled/1
+1	3200	3202	4957	1.55	586	58	4476	79	304	unknown	inX: stored guard reconfigs/inS or disabled/1
+0	3187	141	107	0.76	278	8	84	13	0	sat	inX: stored guard reconfigs/inS or disabled/2
+1	3187	3201	4788	1.5	586	59	4121	249	313	unknown	inX: stored guard reconfigs/inS or disabled/2
+0	3171	141	125	0.89	278	9	98	15	0	sat	inX: stored guard reconfigs/inS or disabled/3
+1	3171	3183	4922	1.55	586	57	4530	64	232	unknown	inX: stored guard reconfigs/inS or disabled/3
+0	3154	1576	2304	1.46	1190	19	713	76	0	unknown	fields: CV[a]=CV[b] and CfgT[a]=CfgT[b] -> Config 
+1	3154	0	0	0.0	0	0	0	0	0	unknown	fields: CV[a]=CV[b] and CfgT[a]=CfgT[b] -> Config 
+0	1765	88	103	1.17	38	7	64	9	0	kept	St at most 1
+0	1816	301	226	0.75	90	9	133	5	0	kept	fields: St[a]=1 -> CT[a]=CfgT[a]
+0	1863	318	206	0.65	88	9	136	6	0	kept	fields: St[a]=1 -> CT[a]<=CfgT[a]
+0	1913	1913	2344	1.23	329	17	148	14	0	sat	fields: St[a]=1 -> CT[a]=CT[b] -> CfgT[b]<=CfgT[a]
+1	1913	1913	1719	0.9	1103	68	1427	94	88	unknown	fields: St[a]=1 -> CT[a]=CT[b] -> CfgT[b]<=CfgT[a]
+0	1849	316	188	0.59	90	9	125	6	0	kept	fields: St[a]=1 -> CfgT[a]<=CT[a]
+0	1902	1260	1626	1.29	547	39	228	37	0	kept	fields: St[a]=1 -> CfgT[a]=CfgT[b] -> CV[b]<=CV[a]
+0	1925	97	107	1.1	38	8	70	3	0	kept	every x with x < size: never CT[x] is 0 and 1 <= S
+0	1992	198	138	0.7	139	10	88	9	0	kept	every x with x < size: never 1 <= CT[x] and CV[x] 
+0	2061	64	96	1.5	134	9	74	7	0	kept	every x with x < size: never 1 <= CT[x] and starte
+0	2141	148	107	0.72	90	8	60	5	0	kept	every x with x < size: never 1 <= St[x] and CV[x] 
+0	2224	271	169	0.62	88	8	114	6	0	kept	every x with x < size: never 1 <= St[x] and CfgT[x
+0	2309	70	67	0.96	151	9	44	7	0	kept	every x with x < size: never 1 <= St[x] and starte
+0	2411	259	197	0.76	148	49	109	9	0	kept	every x with x < size: never CV[x] is 0 and 1 <= C
+0	2514	180	213	1.18	137	9	75	31	0	kept	every x with x < size: never CV[x] is 0 and 1 <= s
+0	2630	64	58	0.91	140	9	36	7	0	kept	every x with x < size: never 1 <= CfgT[x] and star
+0	2765	225	144	0.64	161	9	96	10	0	kept	every x, y with x < size ∧ y < size ∧ ¬(x = y): ne
+0	2906	305	229	0.75	258	13	129	52	0	kept	every x, y with x < size ∧ y < size ∧ ¬(x = y): ne
+0	3059	240	185	0.77	166	11	129	12	0	kept	every x, y with x < size ∧ y < size ∧ ¬(x = y): ne
+0	3236	98	134	1.37	219	13	104	14	0	sat	inX: no quorum canVote/1
+1	3236	3237	6266	1.94	1288	138	5506	133	407	unknown	inX: no quorum canVote/1
+0	3229	98	68	0.69	219	7	49	10	0	sat	inX: no quorum canVote/3
+1	3229	3231	6517	2.02	864	151	5913	106	291	unknown	inX: no quorum canVote/3
+0	3222	132	242	1.83	278	10	97	132	0	sat	inX: stored guard reconfigs/inS
+1	3222	3223	4442	1.38	652	149	4038	69	157	unknown	inX: stored guard reconfigs/inS
+0	3212	141	143	1.01	278	10	114	16	0	sat	inX: stored guard reconfigs/inS or disabled/0
+1	3212	3214	4183	1.3	586	61	3619	58	396	unknown	inX: stored guard reconfigs/inS or disabled/0
+0	3200	141	96	0.68	278	8	75	11	0	sat	inX: stored guard reconfigs/inS or disabled/1
+1	3200	3202	4237	1.32	586	44	3798	65	292	unknown	inX: stored guard reconfigs/inS or disabled/1
+0	3187	141	114	0.81	278	9	90	13	0	sat	inX: stored guard reconfigs/inS or disabled/2
+1	3187	3201	5082	1.59	586	62	4591	65	316	unknown	inX: stored guard reconfigs/inS or disabled/2
+0	3171	141	95	0.67	278	7	72	13	0	sat	inX: stored guard reconfigs/inS or disabled/3
+1	3171	3183	4107	1.29	586	45	3702	51	271	unknown	inX: stored guard reconfigs/inS or disabled/3
+0	3154	2219	3498	1.58	1190	20	700	71	0	unknown	fields: CV[a]=CV[b] and CfgT[a]=CfgT[b] -> Config 
+1	3154	0	0	0.0	0	0	0	0	0	unknown	fields: CV[a]=CV[b] and CfgT[a]=CfgT[b] -> Config 
