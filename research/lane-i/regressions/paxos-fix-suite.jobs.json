@@ -1,0 +1,58 @@
+[
+  {
+    "name": "paxos-fix-suite-1",
+    "cmd": "set -euo pipefail; cp -a frozen-paxos/. .; root=$(mktemp -d /tmp/lane-i-fix-check.XXXXXX); trap 'rm -rf \"$root\"' EXIT; bun regression-driver/paxos-fix-source.ts \"$root\"; cd \"$root\"; bun install --frozen-lockfile; bun scripts/test-shards.ts --shard 1/7; echo PAXOS_FIX_VALIDATION_PASS shard-1",
+    "cpu": 4,
+    "memory": 14336,
+    "timeout": 900,
+    "vm_type": "large"
+  },
+  {
+    "name": "paxos-fix-suite-2",
+    "cmd": "set -euo pipefail; cp -a frozen-paxos/. .; root=$(mktemp -d /tmp/lane-i-fix-check.XXXXXX); trap 'rm -rf \"$root\"' EXIT; bun regression-driver/paxos-fix-source.ts \"$root\"; cd \"$root\"; bun install --frozen-lockfile; bun scripts/test-shards.ts --shard 2/7; echo PAXOS_FIX_VALIDATION_PASS shard-2",
+    "cpu": 4,
+    "memory": 14336,
+    "timeout": 900,
+    "vm_type": "large"
+  },
+  {
+    "name": "paxos-fix-suite-3",
+    "cmd": "set -euo pipefail; cp -a frozen-paxos/. .; root=$(mktemp -d /tmp/lane-i-fix-check.XXXXXX); trap 'rm -rf \"$root\"' EXIT; bun regression-driver/paxos-fix-source.ts \"$root\"; cd \"$root\"; bun install --frozen-lockfile; bun scripts/test-shards.ts --shard 3/7; echo PAXOS_FIX_VALIDATION_PASS shard-3",
+    "cpu": 4,
+    "memory": 14336,
+    "timeout": 900,
+    "vm_type": "large"
+  },
+  {
+    "name": "paxos-fix-suite-4",
+    "cmd": "set -euo pipefail; cp -a frozen-paxos/. .; root=$(mktemp -d /tmp/lane-i-fix-check.XXXXXX); trap 'rm -rf \"$root\"' EXIT; bun regression-driver/paxos-fix-source.ts \"$root\"; cd \"$root\"; bun install --frozen-lockfile; bun scripts/test-shards.ts --shard 4/7; echo PAXOS_FIX_VALIDATION_PASS shard-4",
+    "cpu": 4,
+    "memory": 14336,
+    "timeout": 900,
+    "vm_type": "large"
+  },
+  {
+    "name": "paxos-fix-suite-5",
+    "cmd": "set -euo pipefail; cp -a frozen-paxos/. .; root=$(mktemp -d /tmp/lane-i-fix-check.XXXXXX); trap 'rm -rf \"$root\"' EXIT; bun regression-driver/paxos-fix-source.ts \"$root\"; cd \"$root\"; bun install --frozen-lockfile; bun scripts/test-shards.ts --shard 5/7; echo PAXOS_FIX_VALIDATION_PASS shard-5",
+    "cpu": 4,
+    "memory": 14336,
+    "timeout": 900,
+    "vm_type": "large"
+  },
+  {
+    "name": "paxos-fix-suite-6",
+    "cmd": "set -euo pipefail; cp -a frozen-paxos/. .; root=$(mktemp -d /tmp/lane-i-fix-check.XXXXXX); trap 'rm -rf \"$root\"' EXIT; bun regression-driver/paxos-fix-source.ts \"$root\"; cd \"$root\"; bun install --frozen-lockfile; bun scripts/test-shards.ts --shard 6/7; echo PAXOS_FIX_VALIDATION_PASS shard-6",
+    "cpu": 4,
+    "memory": 14336,
+    "timeout": 900,
+    "vm_type": "large"
+  },
+  {
+    "name": "paxos-fix-suite-7",
+    "cmd": "set -euo pipefail; cp -a frozen-paxos/. .; root=$(mktemp -d /tmp/lane-i-fix-check.XXXXXX); trap 'rm -rf \"$root\"' EXIT; bun regression-driver/paxos-fix-source.ts \"$root\"; cd \"$root\"; bun install --frozen-lockfile; bun scripts/test-shards.ts --shard 7/7; echo PAXOS_FIX_VALIDATION_PASS shard-7",
+    "cpu": 4,
+    "memory": 14336,
+    "timeout": 900,
+    "vm_type": "large"
+  }
+]

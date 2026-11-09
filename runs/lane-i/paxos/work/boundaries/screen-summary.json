@@ -1,0 +1,643 @@
+{
+  "issues": [],
+  "accepted": 21,
+  "rows": [
+    {
+      "revision": "b09da82d9ada6e0cdc31f943292cfea727f5752e",
+      "cpu": "AMD EPYC 9455 48-Core Processor",
+      "base": {
+        "verdict": "proven",
+        "ms": 29205,
+        "work": 6915544,
+        "full": 1037946
+      },
+      "candidate": {
+        "verdict": "proven",
+        "ms": 28136,
+        "work": 6915544,
+        "full": 1037946
+      },
+      "target": {
+        "full": 26245.767200000002,
+        "work": 38917,
+        "outcome": "kept",
+        "profile": {
+          "encode": 4.47379699999874,
+          "grow": 0.3696189999973285,
+          "decide": 27.448163000000932,
+          "part": 68.33212799999819
+        }
+      }
+    },
+    {
+      "revision": "da40d6befb32e05cd47355a8e811bef423ee5213",
+      "cpu": "AMD Ryzen 9 9950X 16-Core Processor",
+      "base": {
+        "verdict": "proven",
+        "ms": 20809,
+        "work": 6915544,
+        "full": 1037946
+      },
+      "candidate": {
+        "verdict": "proven",
+        "ms": 21605,
+        "work": 6915544,
+        "full": 1037946
+      },
+      "target": {
+        "full": 26245.767200000002,
+        "work": 38917,
+        "outcome": "kept",
+        "profile": {
+          "encode": 3.2463749999988067,
+          "grow": 0.35945600000195554,
+          "decide": 20.570480999998836,
+          "part": 33.97915799999828
+        }
+      }
+    },
+    {
+      "revision": "33c942c12b66dc2cbf051dbfa4a3c3f92be2beeb",
+      "cpu": "AMD Ryzen 9 9950X 16-Core Processor",
+      "base": {
+        "verdict": "proven",
+        "ms": 33094,
+        "work": 6915544,
+        "full": 1037946
+      },
+      "candidate": {
+        "verdict": "proven",
+        "ms": 25738,
+        "work": 6915544,
+        "full": 1037946
+      },
+      "target": {
+        "full": 26245.767200000002,
+        "work": 38917,
+        "outcome": "kept",
+        "profile": {
+          "encode": 5.249472999996215,
+          "grow": 0.3649860000004992,
+          "decide": 28.83320299999832,
+          "part": 65.15628099999958
+        }
+      }
+    },
+    {
+      "revision": "f6d2a94c76d949f4343cda59ac896fd61ed332b6",
+      "cpu": "AMD Ryzen 9 9950X 16-Core Processor",
+      "base": {
+        "verdict": "proven",
+        "ms": 24309,
+        "work": 6915544,
+        "full": 1037946
+      },
+      "candidate": {
+        "verdict": "proven",
+        "ms": 21075,
+        "work": 6915544,
+        "full": 1037946
+      },
+      "target": {
+        "full": 26245.767200000002,
+        "work": 38917,
+        "outcome": "kept",
+        "profile": {
+          "encode": 2.1378719999956957,
+          "grow": 0.26651500000298256,
+          "decide": 15.536643999999797,
+          "part": 26.44836700000087
+        }
+      }
+    },
+    {
+      "revision": "ff5c7ce1b6312b92bdad3f8a7469ebf13c077b29",
+      "cpu": "AMD Ryzen 9 9950X 16-Core Processor",
+      "base": {
+        "verdict": "proven",
+        "ms": 43870,
+        "work": 6915544,
+        "full": 1037946
+      },
+      "candidate": {
+        "verdict": "proven",
+        "ms": 28540,
+        "work": 6915544,
+        "full": 1037946
+      },
+      "target": {
+        "full": 26245.767200000002,
+        "work": 38917,
+        "outcome": "kept",
+        "profile": {
+          "encode": 6.069658000000345,
+          "grow": 0.4255009999978938,
+          "decide": 51.44230999999854,
+          "part": 67.58125300000029
+        }
+      }
+    },
+    {
+      "revision": "929c0b2cd16d71b160223161d69b16d26a629e72",
+      "cpu": "AMD Ryzen 9 9950X 16-Core Processor",
+      "base": {
+        "verdict": "proven",
+        "ms": 20014,
+        "work": 6915544,
+        "full": 1037946
+      },
+      "candidate": {
+        "verdict": "proven",
+        "ms": 17972,
+        "work": 6915544,
+        "full": 1037946
+      },
+      "target": {
+        "full": 26245.767200000002,
+        "work": 38917,
+        "outcome": "kept",
+        "profile": {
+          "encode": 2.8313820000003034,
+          "grow": 0.28542900000138616,
+          "decide": 22.335204999999405,
+          "part": 49.66327799999999
+        }
+      }
+    },
+    {
+      "revision": "bf43554bb67be5d8864e2212958908ae866eeb6c",
+      "cpu": "AMD EPYC 9455 48-Core Processor",
+      "base": {
+        "verdict": "proven",
+        "ms": 28468,
+        "work": 6915544,
+        "full": 1037946
+      },
+      "candidate": {
+        "verdict": "proven",
+        "ms": 23918,
+        "work": 6915544,
+        "full": 1037946
+      },
+      "target": {
+        "full": 26245.767200000002,
+        "work": 38917,
+        "outcome": "kept",
+        "profile": {
+          "encode": 3.1639590000049793,
+          "grow": 0.3574059999991732,
+          "decide": 21.201052000000345,
+          "part": 61.00278299999991
+        }
+      }
+    },
+    {
+      "revision": "1550512d3933434c5a2ad11a17031d1fa36284db",
+      "cpu": "AMD Ryzen 9 9950X 16-Core Processor",
+      "base": {
+        "verdict": "proven",
+        "ms": 30295,
+        "work": 6915544,
+        "full": 1037946
+      },
+      "candidate": {
+        "verdict": "unknown",
+        "ms": 59005,
+        "work": 50625401,
+        "full": 6617181
+      },
+      "target": {
+        "full": 225271.97650000008,
+        "work": 4894670,
+        "outcome": "unknown",
+        "profile": {
+          "encode": 3.584061000001384,
+          "preflight": 2.836946999999782,
+          "grow": 0.3599079999985406,
+          "decide": 754.5275300000067,
+          "mbqi": 7.145799000001716,
+          "lazy": 0.009877999997115694,
+          "#rounds": 3,
+          "#hyps": 235,
+          "#count-completion": 46
+        }
+      }
+    },
+    {
+      "revision": "d6189c1e485edd3f2ceb2cdbe2e98ee26f5a0921",
+      "cpu": "AMD Ryzen 9 9950X 16-Core Processor",
+      "base": {
+        "verdict": "proven",
+        "ms": 17928,
+        "work": 6915544,
+        "full": 1037946
+      },
+      "candidate": {
+        "verdict": "unknown",
+        "ms": 59026,
+        "work": 72667314,
+        "full": 11193403
+      },
+      "target": {
+        "full": 225271.97650000008,
+        "work": 4894670,
+        "outcome": "unknown",
+        "profile": {
+          "encode": 3.305919000000358,
+          "preflight": 2.044502000000648,
+          "grow": 0.16800100000000384,
+          "decide": 703.3115039999993,
+          "mbqi": 8.43306499999926,
+          "lazy": 0.014318999998067738,
+          "#rounds": 3,
+          "#hyps": 235,
+          "#count-completion": 46
+        }
+      }
+    },
+    {
+      "revision": "f70716da7d991288ea6e9e92fdda386f361bf0aa",
+      "cpu": "AMD Ryzen 9 9950X 16-Core Processor",
+      "base": {
+        "verdict": "proven",
+        "ms": 33396,
+        "work": 6915544,
+        "full": 1037946
+      },
+      "candidate": {
+        "verdict": "unknown",
+        "ms": 59006,
+        "work": 28773026,
+        "full": 3876182
+      },
+      "target": {
+        "full": 225271.97650000008,
+        "work": 4894670,
+        "outcome": "unknown",
+        "profile": {
+          "encode": 5.728320999998687,
+          "preflight": 4.5771180000010645,
+          "grow": 0.3804759999984526,
+          "decide": 1220.611014000002,
+          "mbqi": 13.97652300000118,
+          "lazy": 0.015561000003799563,
+          "#rounds": 3,
+          "#hyps": 235,
+          "#count-completion": 46
+        }
+      }
+    },
+    {
+      "revision": "7eb1679752e8ddc1d446b43430f2d105e4a857ec",
+      "cpu": "AMD Ryzen 9 9950X 16-Core Processor",
+      "base": {
+        "verdict": "proven",
+        "ms": 57742,
+        "work": 6915544,
+        "full": 1037946
+      },
+      "candidate": {
+        "verdict": "unknown",
+        "ms": 59009,
+        "work": 39569863,
+        "full": 4503676
+      },
+      "target": {
+        "full": 225271.97650000008,
+        "work": 4894670,
+        "outcome": "unknown",
+        "profile": {
+          "encode": 6.01428300000407,
+          "preflight": 5.820337000001018,
+          "grow": 0.44044600000052014,
+          "decide": 1282.9464449999978,
+          "mbqi": 11.481736000005185,
+          "lazy": 0.014187000000674743,
+          "#rounds": 3,
+          "#hyps": 235,
+          "#count-completion": 46
+        }
+      }
+    },
+    {
+      "revision": "8769061bea541a33396819be86f7a5bba0a7bf73",
+      "cpu": "AMD Ryzen 9 9950X 16-Core Processor",
+      "base": {
+        "verdict": "proven",
+        "ms": 34095,
+        "work": 6915544,
+        "full": 1037946
+      },
+      "candidate": {
+        "verdict": "unknown",
+        "ms": 59015,
+        "work": 54025942,
+        "full": 6971749
+      },
+      "target": {
+        "full": 225271.97650000008,
+        "work": 4894670,
+        "outcome": "unknown",
+        "profile": {
+          "encode": 5.976841999996395,
+          "preflight": 3.1618669999988924,
+          "grow": 0.429959000000963,
+          "decide": 919.9598930000029,
+          "mbqi": 11.627430000004097,
+          "lazy": 0.018545999999332707,
+          "#rounds": 3,
+          "#hyps": 235,
+          "#count-completion": 46
+        }
+      }
+    },
+    {
+      "revision": "91f2d2d97e7f32d98b4b81df7db121a05ba09c39",
+      "cpu": "AMD Ryzen 9 9950X 16-Core Processor",
+      "base": {
+        "verdict": "proven",
+        "ms": 37819,
+        "work": 6915544,
+        "full": 1037946
+      },
+      "candidate": {
+        "verdict": "unknown",
+        "ms": 59001,
+        "work": 54378828,
+        "full": 7210198
+      },
+      "target": {
+        "full": 225271.97650000008,
+        "work": 4894670,
+        "outcome": "unknown",
+        "profile": {
+          "encode": 5.446417000002839,
+          "preflight": 3.583748999997624,
+          "grow": 0.22521399999823188,
+          "decide": 832.0320489999976,
+          "mbqi": 11.34481600000072,
+          "lazy": 0.015218000000459142,
+          "#rounds": 3,
+          "#hyps": 235,
+          "#count-completion": 46
+        }
+      }
+    },
+    {
+      "revision": "c59ad709d4a8db4d3e2bb4e186fd8392c86b7fb1",
+      "cpu": "AMD Ryzen 7 9700X 8-Core Processor",
+      "base": {
+        "verdict": "proven",
+        "ms": 19887,
+        "work": 6915544,
+        "full": 1037946
+      },
+      "candidate": {
+        "verdict": "unknown",
+        "ms": 59033,
+        "work": 57627229,
+        "full": 7976243
+      },
+      "target": {
+        "full": 225271.97650000008,
+        "work": 4894670,
+        "outcome": "unknown",
+        "profile": {
+          "encode": 3.9547380000039993,
+          "preflight": 2.9561929999981658,
+          "grow": 0.18622099999993225,
+          "decide": 620.8788679999998,
+          "mbqi": 9.36563599999863,
+          "lazy": 0.008656000001792563,
+          "#rounds": 3,
+          "#hyps": 235,
+          "#count-completion": 46
+        }
+      }
+    },
+    {
+      "revision": "0f14611f442069d6bbc2fb82843b65a57e27a91b",
+      "cpu": "AMD Ryzen 9 9950X 16-Core Processor",
+      "base": {
+        "verdict": "proven",
+        "ms": 18884,
+        "work": 6915544,
+        "full": 1037946
+      },
+      "candidate": {
+        "verdict": "unknown",
+        "ms": 59003,
+        "work": 64599834,
+        "full": 10077609
+      },
+      "target": {
+        "full": 225271.97650000008,
+        "work": 4894670,
+        "outcome": "unknown",
+        "profile": {
+          "encode": 2.7918660000013915,
+          "preflight": 2.064522999999099,
+          "grow": 0.15138800000022457,
+          "decide": 528.7705229999992,
+          "mbqi": 6.682640999997602,
+          "lazy": 0.0068620000001828885,
+          "#rounds": 3,
+          "#hyps": 235,
+          "#count-completion": 46
+        }
+      }
+    },
+    {
+      "revision": "43c364f52dede7f8fe414a055b6264aa60819139",
+      "cpu": "AMD Ryzen 9 9950X 16-Core Processor",
+      "base": {
+        "verdict": "proven",
+        "ms": 47576,
+        "work": 6915544,
+        "full": 1037946
+      },
+      "candidate": {
+        "verdict": "unknown",
+        "ms": 59030,
+        "work": 18979626,
+        "full": 2594174
+      },
+      "target": {
+        "full": 225271.97650000008,
+        "work": 4894670,
+        "outcome": "unknown",
+        "profile": {
+          "encode": 7.718886999988172,
+          "preflight": 5.5499369999961345,
+          "grow": 0.6830150000023423,
+          "decide": 1931.5976030000093,
+          "mbqi": 20.382872999995016,
+          "lazy": 0.018614999993587844,
+          "#rounds": 3,
+          "#hyps": 235,
+          "#count-completion": 46
+        }
+      }
+    },
+    {
+      "revision": "399c328a8a646958a1a9c24cb19bf68532bf9df9",
+      "cpu": "AMD Ryzen 9 9950X 16-Core Processor",
+      "base": {
+        "verdict": "proven",
+        "ms": 38641,
+        "work": 6915544,
+        "full": 1037946
+      },
+      "candidate": {
+        "verdict": "unknown",
+        "ms": 59001,
+        "work": 35815320,
+        "full": 4792003
+      },
+      "target": {
+        "full": 225271.97650000008,
+        "work": 4894670,
+        "outcome": "unknown",
+        "profile": {
+          "encode": 4.846298999997089,
+          "preflight": 3.900558999997884,
+          "grow": 0.33815599999797996,
+          "decide": 1049.2925769999965,
+          "mbqi": 13.408633999999438,
+          "lazy": 0.01589899999453337,
+          "#rounds": 3,
+          "#hyps": 235,
+          "#count-completion": 46
+        }
+      }
+    },
+    {
+      "revision": "f879272b6c5414c2f7bdbf6b1da2f680eb95db56",
+      "cpu": "AMD Ryzen 7 9700X 8-Core Processor",
+      "base": {
+        "verdict": "proven",
+        "ms": 24007,
+        "work": 6915544,
+        "full": 1037946
+      },
+      "candidate": {
+        "verdict": "unknown",
+        "ms": 59116,
+        "work": 116185721,
+        "full": 10887820
+      },
+      "target": {
+        "full": 225271.97650000008,
+        "work": 4894670,
+        "outcome": "unknown",
+        "profile": {
+          "encode": 2.954130999998597,
+          "preflight": 2.26122899999973,
+          "grow": 0.18964799999957904,
+          "decide": 584.7912439999964,
+          "mbqi": 8.612419999999474,
+          "lazy": 0.010408000000097672,
+          "#rounds": 3,
+          "#hyps": 235,
+          "#count-completion": 46
+        }
+      }
+    },
+    {
+      "revision": "6ca0a5fcc2f294c46a4ba98e35ea0389d8c93a04",
+      "cpu": "AMD Ryzen 9 9950X 16-Core Processor",
+      "base": {
+        "verdict": "proven",
+        "ms": 24585,
+        "work": 6915544,
+        "full": 1037946
+      },
+      "candidate": {
+        "verdict": "unknown",
+        "ms": 59001,
+        "work": 46535971,
+        "full": 6255462
+      },
+      "target": {
+        "full": 224058.04050000003,
+        "work": 4720424,
+        "outcome": "unknown",
+        "profile": {
+          "encode": 5.379120999994484,
+          "preflight": 6.78628899999967,
+          "grow": 1.0778390000014042,
+          "decide": 1058.8958459999958,
+          "mbqi": 24.950245000003633,
+          "lazy": 0.014035000000149012,
+          "#rounds": 3,
+          "#hyps": 211,
+          "#count-completion": 30
+        }
+      }
+    },
+    {
+      "revision": "a197ab4f832cba5f5905e544db0502bb373ea16a",
+      "cpu": "AMD Ryzen 7 9700X 8-Core Processor",
+      "base": {
+        "verdict": "proven",
+        "ms": 18548,
+        "work": 6915544,
+        "full": 1037946
+      },
+      "candidate": {
+        "verdict": "unknown",
+        "ms": 59003,
+        "work": 124592527,
+        "full": 11728782
+      },
+      "target": {
+        "full": 224058.04050000003,
+        "work": 4720424,
+        "outcome": "unknown",
+        "profile": {
+          "encode": 2.8879670000005717,
+          "preflight": 3.333842000000004,
+          "grow": 0.580948000000717,
+          "decide": 646.0403900000001,
+          "mbqi": 6.940593999999692,
+          "lazy": 0.015028000001620967,
+          "#rounds": 3,
+          "#hyps": 211,
+          "#count-completion": 30
+        }
+      }
+    },
+    {
+      "revision": "bf01190119f9409077a36e11a4a5b763fb6c1cad",
+      "cpu": "AMD Ryzen 9 9950X 16-Core Processor",
+      "base": {
+        "verdict": "proven",
+        "ms": 38738,
+        "work": 6915544,
+        "full": 1037946
+      },
+      "candidate": {
+        "verdict": "unknown",
+        "ms": 59004,
+        "work": 37105022,
+        "full": 4493423
+      },
+      "target": {
+        "full": 224058.04050000003,
+        "work": 4720424,
+        "outcome": "unknown",
+        "profile": {
+          "encode": 9.203871999998228,
+          "preflight": 7.158833000001323,
+          "grow": 0.9534649999986868,
+          "decide": 1158.0522450000026,
+          "mbqi": 24.78957499999524,
+          "lazy": 0.012874999996711267,
+          "#rounds": 3,
+          "#hyps": 211,
+          "#count-completion": 30
+        }
+      }
+    }
+  ]
+}

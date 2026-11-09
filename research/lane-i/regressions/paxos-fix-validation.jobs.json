@@ -1,0 +1,18 @@
+[
+  {
+    "name": "paxos-fix-focused",
+    "cmd": "set -euo pipefail; cp -a frozen-paxos/. .; root=$(mktemp -d /tmp/lane-i-fix-check.XXXXXX); trap 'rm -rf \"$root\"' EXIT; bun regression-driver/paxos-fix-source.ts \"$root\"; cd \"$root\"; bun install --frozen-lockfile; bun test ./core/counts-completion-order.test.ts ./core/count-completion.test.ts ./core/count-recovery-order.test.ts ./core/count-focus-proof.test.ts ./core/counts-preflight.test.ts ./core/count-cert-grow.test.ts; echo PAXOS_FIX_VALIDATION_PASS focused",
+    "cpu": 4,
+    "memory": 14336,
+    "timeout": 600,
+    "vm_type": "large"
+  },
+  {
+    "name": "paxos-fix-check",
+    "cmd": "set -euo pipefail; cp -a frozen-paxos/. .; root=$(mktemp -d /tmp/lane-i-fix-check.XXXXXX); trap 'rm -rf \"$root\"' EXIT; bun regression-driver/paxos-fix-source.ts \"$root\"; cd \"$root\"; bun install --frozen-lockfile; bun run check; echo PAXOS_FIX_VALIDATION_PASS check",
+    "cpu": 4,
+    "memory": 14336,
+    "timeout": 600,
+    "vm_type": "large"
+  }
+]

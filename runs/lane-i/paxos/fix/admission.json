@@ -1,0 +1,11 @@
+{
+  "candidate":"dd036dd714728fd4d1431d56bf33d96a18b21f60",
+  "culprit":"1550512d3933434c5a2ad11a17031d1fa36284db",
+  "data":"/private/tmp/lane-i-paxos-fix-data.x4ucBe",
+  "status":"focused-validation-active",
+  "validationTask":"faf8af80-c961-4eba-a68f-2ec7a0ef0e31",
+  "timingSubmitted":false,
+  "suiteSubmitted":false,
+  "consensusSubmitted":false,
+  "finalGate":false
+}
