@@ -171,14 +171,34 @@ const choiceLaw = (source: string, expr: string) => {
 for (const [label, source] of [
   ['singleton', 'export function decide(a: "red"): "green" { return "green"; }'],
   ['same-index multi-value', 'export function decide(a: "red" | "blue"): "green" | "amber" { if (a === "red") return "green"; return "amber"; }'],
-  ['shared value at different indices', 'export function decide(a: "red" | "blue"): "blue" | "red" { if (a === "red") return "red"; return "blue"; }'],
 ] as const) test(`optional choice law: ${label} equality and inequality use strings`, () => {
-  const same = label === 'shared value at different indices'
   for (const expr of ['result == a', 'a == result']) {
-    expect(choiceLaw(source, expr)).toMatchObject({proven: same, checked: same})
+    expect(choiceLaw(source, expr)).toMatchObject({proven: false, checked: false})
   }
   for (const expr of ['result != a', 'a != result']) {
-    expect(choiceLaw(source, expr)).toMatchObject({proven: !same, checked: !same})
+    expect(choiceLaw(source, expr)).toMatchObject({proven: true, checked: true})
+  }
+})
+
+test('optional choice law: a shared value at different indices compares by name', () => {
+  // Unlike reordered unions (which TypeScript can normalize to the same type),
+  // these genuinely different domains put the common string at different indices.
+  const source = 'export function decide(a: "red" | "blue"): "blue" | "amber" { return "blue"; }'
+  const x = extract(source, {...options, check: {runs: 0, states: 0, probes: false}})
+  expect(x.ok).toBe(true)
+  const input = x.model!.inputs.find(v => v.name === 'a')!.sort
+  const out = x.model!.results!.decide!
+  if (out.k !== 'maybe') throw new Error('expected optional result')
+  const result = x.model!.state.find(v => v.name === out.name)!.sort
+  if (input.k !== 'choice' || result.k !== 'choice') throw new Error('expected choice domains')
+  expect(input.values).toContain('blue')
+  expect(result.values).toContain('blue')
+  expect(input.values.indexOf('blue')).not.toBe(result.values.indexOf('blue'))
+  for (const expr of ['(result == a) == (a == "blue")', '(result != a) == (a != "blue")']) {
+    expect(choiceLaw(source, expr)).toMatchObject({proven: true, checked: true})
+  }
+  for (const expr of ['result == a', 'result != a']) {
+    expect(choiceLaw(source, expr)).toMatchObject({proven: false, checked: false})
   }
 })
 

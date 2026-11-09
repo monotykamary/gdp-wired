@@ -1,0 +1,18 @@
+{
+  "candidate": "d4907b6f43609bd22e57ddc331e33e60cb50c7a7",
+  "tree": "918a7696771ceb37579c45572be8c4fbd934f4bd",
+  "batch": "20261110-045857-y1h9u7",
+  "replayEnabled": true,
+  "lostLaws": [],
+  "provenLaws": ["CLI-A01", "CLI-A02", "CLI-A03", "CLI-A04", "CLI-A05", "CLI-A06", "CLI-A07", "CLI-A08", "CLI-A09", "CLI-A10", "CLI-A11", "CLI-A12", "CLI-A13", "MCP-B01", "MCP-B02", "MCP-B03", "MCP-B04", "MCP-B05", "MCP-B07", "MCP-B08"],
+  "cliExits": [0, 0],
+  "decisions": [
+    {"id": 1, "cases": 4, "requests": 2400, "drawnStateChecks": 400, "arms": 0, "hit": 0},
+    {"id": 2, "cases": 128, "requests": 2400, "drawnStateChecks": 400, "arms": 12, "hit": 12},
+    {"id": 3, "cases": 32, "requests": 2400, "drawnStateChecks": 400, "arms": 3, "hit": 3},
+    {"id": 4, "cases": 48, "requests": 2400, "drawnStateChecks": 400, "arms": 9, "hit": 9}
+  ],
+  "receipt": "/tmp/gdp-ci-fix-optional/replay-results/plain-laws-replay-on.log",
+  "inputs": "/tmp/gdp-ci-replay-source/",
+  "note": "Exhaustive finite comparison and source replay are tests, not proofs of extraction correctness."
+}
