@@ -22,6 +22,21 @@ on top of state-first: the first pilot caught no drops during target build.
 Shared circuits passed 57 tests; the pilot recovered four named drops,
 but still fails the unchanged five-of-seven bar.
 
+## Focus qualification repair (not yet qualified)
+
+Batch `20261110-033405-264cu0` failed: **129 pass / 1 fail** plus one TypeScript
+inference error (`Tried<unknown>`). The measurement admission batch
+`20261110-033515-b3pdhl` failed on the same type error, not on a reported driver
+error. These failures are retained; no timing or census jobs were admitted.
+
+The source fix explicitly carries `Proof` through the deferred callback. The
+end-to-end fixture omitted `attempts.houdini=true`, the production mode that
+permits bounded widening after a narrow model. That setup is now included;
+the original count body, bound and checked-proof assertion remain unchanged.
+Measurement source SHAs/hashes now come from a separate immutable manifest,
+so a repaired candidate cannot silently measure the older hard-coded SHA.
+New remote validation is required before any strict measurements.
+
 ## Priority: focused-recovery full-work regression
 
 Coordinator reprioritized the consensus_forall regression ahead of pruning.

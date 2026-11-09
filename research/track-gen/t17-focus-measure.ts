@@ -12,9 +12,11 @@ const cpu=/^model name\s*:\s*(.+)$/m.exec(readFileSync('/proc/cpuinfo','utf8'))?
 if(mode==='strict'&&cpu!=='AMD Ryzen 9 9950X 16-Core Processor'){console.log('T17_CPU_SKIP '+JSON.stringify({id,group,cpu}));process.exit(0)}
 const root=process.cwd(),input=resolve('source-input'),archives=resolve('archives'),temp=mkdtempSync(join(tmpdir(),'t17-focus-'))
 const digest=(value:string|Uint8Array)=>createHash('sha256').update(value).digest('hex')
-const expected:Record<string,string>={'source.tar':'26824362de21cb4ea3c87e78f09aa37dc49077b88ab8a6bb1421dd3eeb311979','handwired.tar':'73d44548dbe109a40ac933406324e17d7dee39e7dff1a6f1270ed030c31c1da4','gdp-ts.tar':'75d367da15decb1fefce2ae72ae50e7f3f737989094a760fde643c5b1f5c1496','main.patch':'cc0554f46989e318c27e91ff21b0040848039b01abb10ff4348f43dbe79bb446','prior.patch':'b4f74394e3e77be1c3120acc8f1d945be712e2e2c4e629b90b8d861ca28bccc2','focus.patch':'424e1e8f764ce07ff1d3d786c77b97e9a4813259199c76b980dd8b98dde5928c'}
+const manifest=JSON.parse(readFileSync(join(input,'manifest.json'),'utf8')) as {shas:{main:string,prior:string,focus:string},hashes:{main:string,prior:string,focus:string}}
+if(manifest.shas.main!=='4497c4b05c3111959a2b8d808c426a0e3cab3f01'||Object.values(manifest.shas).some(s=>!/^[a-f0-9]{40}$/.test(s))||Object.values(manifest.hashes).some(s=>!/^[a-f0-9]{64}$/.test(s)))throw Error('invalid immutable source manifest')
+const expected:Record<string,string>={'source.tar':'26824362de21cb4ea3c87e78f09aa37dc49077b88ab8a6bb1421dd3eeb311979','handwired.tar':'73d44548dbe109a40ac933406324e17d7dee39e7dff1a6f1270ed030c31c1da4','gdp-ts.tar':'75d367da15decb1fefce2ae72ae50e7f3f737989094a760fde643c5b1f5c1496','main.patch':manifest.hashes.main,'prior.patch':manifest.hashes.prior,'focus.patch':manifest.hashes.focus}
 const command=(bin:string,args:string[],cwd=temp)=>{const p=spawnSync(bin,args,{cwd,encoding:'utf8',maxBuffer:16*1024*1024});if(p.status!==0)throw Error(`${bin}: ${p.status}: ${p.stderr}\n${p.stdout}`);return p.stdout}
-const shas={main:'4497c4b05c3111959a2b8d808c426a0e3cab3f01',prior:'6bcdf421be21bf03912989834fd23e37350b112d',focus:'1564709f64e44df2f666353b9299e74e944ff71a'}
+const shas=manifest.shas
 const dirs={main:join(temp,'main'),prior:join(temp,'prior'),focus:join(temp,'focus')},sides=Object.keys(dirs) as (keyof typeof dirs)[]
 const anchor='return {traced, get counted()'
 const observer=`const __t17Trace = (...args: Parameters<typeof traced>): ReturnType<typeof traced> => {
