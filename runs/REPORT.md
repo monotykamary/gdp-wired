@@ -4,7 +4,7 @@ Lane I resumed from `cca59f0c` on `claude/mldr-integ`; clean worktree verified, 
 
 - First cancelled work rerun: all **140 upper-bound shards** submitted through the scheduler, fresh output `runs/lane-i/upper-bound/resumed/full`, task `cf1d3fc9-6a88-4e12-8403-974717b1ed42`. Every guest unpacks frozen production `15eff72f` and checks the retained source manifest; the current integration is not substituted. No supplied laws; original 34-law family; 30 minutes per operation; no share; independent verification still required. Pending, not a result.
 - Repair: core-replay reconstruction now spreads the previous obligation before replacing its goal/decls/encoded goal, retaining `all`, certificate and pool. Added a focused range-demand test for a read omitted by the selected certificate. No budget, law, or kernel change.
-- Current source/test candidate: `edd284913024a6566591d7ad1cba8059b8047a14`; all eight v9 validation jobs and all 87 generation pairs were launched with new pinned inputs. Later B/report/audit changes do not alter the tested engine. Results are still pending. Lane D's final gate is mandatory; the earlier `704efc27` request is superseded below.
+- Current source/test candidate: `b37c4e2ce8172d0e3e1546b6c099ceff33b2d7ae`; fresh v10 validation and 87 generation pairs are submitted for it. Registered v9 jobs remain untouched and bound to `edd284913024a6566591d7ad1cba8059b8047a14`. Results remain pending; Lane D's final gate is mandatory.
 
 ## Admission recovered; one-subagent cap remains
 
@@ -15,6 +15,17 @@ Integrated A `19ad4ab4`: the atom-readiness shortcut and two finite-domain equiv
 ### Subsequent resumed lane merges
 
 Refreshed E to `84a7a672`, B to `432bbc37`, and Fable to `c40acb07`; F remains `27ca886f`. Their report conflicts retain Lane I text with these pointers. E's duplicate-import removal auto-merged, but post-merge inspection found the integration had separate `rangeInstances` and `rangeViolations` imports rather than E's duplicate combined imports. Fixed the resulting missing constructor by consolidating both symbols into one canonical import; neither range construction nor violation detection is removed. A new current-source check will verify the fix. V9's shipped source is unchanged.
+
+### V10 source-bound submission / for lane D
+
+Candidate **`b37c4e2ce8172d0e3e1546b6c099ceff33b2d7ae`**, unchanged baseline **`b788e1959bba1f2e8aa1f94d4cf7c0eb163a2f9c`**. This includes A's inactive tiny-atom optimization, the canonical range import repair `2e8e3bbb`, and explicit inclusion of the new receipt-audit regressions in the quick/changed-test rosters. Fresh identity and archive checksums are under `runs/lane-i/v10/input`.
+
+- Validation task `aec69c1d-36a6-4209-bcbc-98cf8b755111`, output `runs/lane-i/v10/validation`.
+- Generation task `1d5b236b-821e-47f1-8dba-db994bd90c31`, output `runs/lane-i/v10/census`.
+
+These are new-source runs, not retries or replacements of registered v9 batches. All run strict `--timing --vm-type large` through the scheduler. The upper-bound experiment stays frozen on `15eff72f` and is not rebound. All outcomes pending.
+
+**For lane D:** this supersedes the current-candidate request for `edd28491`; bind the next final gate to **`b37c4e2c` vs `b788e195`**. Historical gates and v9 receipts stay with their own SHAs. No result or green claim is transferred across the source change.
 
 ## Coordinator memory-pressure guidance (historical; submission hold lifted, memory cap retained)
 
