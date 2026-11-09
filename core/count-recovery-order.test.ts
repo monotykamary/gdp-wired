@@ -106,6 +106,8 @@ test('ordinary counted reasoning gets a chance before finite-input recovery',()=
  const law:Law={name:'bounded',holds:atMost(x('value'),n(2))},family=[law]
  withWall(performance.now()+5000,()=>counted(fullRate,()=>{
   const attempts=countedAttempts(m,[],new Set(),clock()+5000),before=cprof.focused??0
+  // Production family admission enables bounded widening after a narrow model.
+  attempts.houdini=true
   const plain=attempts.traced(law,family,0,1000)
   expect('proof' in plain).toBe(false)
   expect(cprof.focused??0).toBe(before)

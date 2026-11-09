@@ -1,0 +1,1284 @@
+{
+  "source": "af32bd46",
+  "base": "6288b666e7b23cb4a10e0e9e92cde919ea135854",
+  "batch": "20261110-032156-aue177",
+  "trust": "Pre-merge pilot receipts only; independent witness replay deferred behind focused-recovery priority. No proof or final-gate claim.",
+  "rows": [
+    {
+      "job": "original-hybrid-1",
+      "initial": 40,
+      "removed": 6,
+      "wall": 1901.220304,
+      "timedOut": true,
+      "drops": [
+        "fields: CT[a]=CT[b] and CV[a]=CV[b] -> Config rows agree",
+        "inX: stored guard reconfigs/inS",
+        "inX: stored guard reconfigs/inS or disabled/1",
+        "every x with x < size: never Config[x] is 0 and 1 <= St[x]",
+        "CV at most 2",
+        "fields: St[a]=1 -> CT[a]=CT[b] -> CV[b]<=CV[a]"
+      ],
+      "seedRounds": [
+        {
+          "stage": 0,
+          "stats": {
+            "phase": "seed-only",
+            "scope": {
+              "params": {
+                "size": 3
+              },
+              "scalarValues": [
+                0,
+                1
+              ],
+              "cellValues": [
+                0,
+                1
+              ],
+              "cells": {
+                "Config": [
+                  0,
+                  1,
+                  2,
+                  64,
+                  65,
+                  66,
+                  128,
+                  129,
+                  130
+                ],
+                "CT": [
+                  0,
+                  1,
+                  2
+                ],
+                "St": [
+                  0,
+                  1,
+                  2
+                ],
+                "CV": [
+                  0,
+                  1,
+                  2
+                ],
+                "CfgT": [
+                  0,
+                  1,
+                  2
+                ]
+              },
+              "inputValues": {
+                "op": [
+                  0,
+                  1,
+                  2,
+                  3,
+                  4,
+                  5,
+                  6
+                ],
+                "i": [
+                  0,
+                  1,
+                  2
+                ],
+                "j": [
+                  0,
+                  1,
+                  2
+                ],
+                "hx": [
+                  0,
+                  1,
+                  2,
+                  3
+                ],
+                "hy": [
+                  0,
+                  1,
+                  2,
+                  3
+                ]
+              },
+              "inputCells": {
+                "S": [
+                  0,
+                  1,
+                  2
+                ],
+                "Q2": [
+                  0,
+                  1,
+                  2
+                ]
+              },
+              "binderValues": [
+                0,
+                1,
+                2
+              ],
+              "postTargetPruning": true,
+              "postTargetIntervals": false,
+              "seedNeighborhood": true,
+              "seedUniformMaps": true
+            },
+            "completed": false,
+            "timedOut": true,
+            "unsupported": [],
+            "models": 45,
+            "accepted": 0,
+            "coupledModels": 35,
+            "coupledAccepted": 0,
+            "ms": 232.88066199999992
+          }
+        },
+        {
+          "stage": 1,
+          "stats": {
+            "phase": "seed-only",
+            "scope": {
+              "params": {
+                "size": 3
+              },
+              "scalarValues": [
+                0,
+                1,
+                2
+              ],
+              "cellValues": [
+                0,
+                1,
+                2
+              ],
+              "cells": {
+                "Config": [
+                  0,
+                  1,
+                  2,
+                  64,
+                  65,
+                  66,
+                  128,
+                  129,
+                  130
+                ],
+                "CT": [
+                  0,
+                  1,
+                  2
+                ],
+                "St": [
+                  0,
+                  1,
+                  2
+                ],
+                "CV": [
+                  0,
+                  1,
+                  2
+                ],
+                "CfgT": [
+                  0,
+                  1,
+                  2
+                ]
+              },
+              "inputValues": {
+                "op": [
+                  0,
+                  1,
+                  2,
+                  3,
+                  4,
+                  5,
+                  6
+                ],
+                "i": [
+                  0,
+                  1,
+                  2
+                ],
+                "j": [
+                  0,
+                  1,
+                  2
+                ],
+                "hx": [
+                  0,
+                  1,
+                  2,
+                  3
+                ],
+                "hy": [
+                  0,
+                  1,
+                  2,
+                  3
+                ]
+              },
+              "inputCells": {
+                "S": [
+                  0,
+                  1,
+                  2
+                ],
+                "Q2": [
+                  0,
+                  1,
+                  2
+                ]
+              },
+              "binderValues": [
+                0,
+                1,
+                2
+              ],
+              "postTargetPruning": true,
+              "postTargetIntervals": false,
+              "seedNeighborhood": true,
+              "seedUniformMaps": true
+            },
+            "completed": true,
+            "timedOut": false,
+            "unsupported": [],
+            "models": 238,
+            "accepted": 2,
+            "coupledModels": 50,
+            "coupledAccepted": 1,
+            "ms": 546.4344020000001
+          }
+        }
+      ],
+      "namedSevenNew": [
+        "CV at most 2",
+        "inX: stored guard reconfigs/inS",
+        "inX: stored guard reconfigs/inS or disabled/1"
+      ]
+    },
+    {
+      "job": "original-hybrid-2",
+      "initial": 40,
+      "removed": 6,
+      "wall": 2062.239721,
+      "timedOut": true,
+      "drops": [
+        "fields: CT[a]=CT[b] and CV[a]=CV[b] -> Config rows agree",
+        "inX: stored guard reconfigs/inS",
+        "inX: stored guard reconfigs/inS or disabled/1",
+        "every x with x < size: never Config[x] is 0 and 1 <= St[x]",
+        "CV at most 2",
+        "fields: St[a]=1 -> CT[a]=CT[b] -> CV[b]<=CV[a]"
+      ],
+      "seedRounds": [
+        {
+          "stage": 0,
+          "stats": {
+            "phase": "seed-only",
+            "scope": {
+              "params": {
+                "size": 3
+              },
+              "scalarValues": [
+                0,
+                1
+              ],
+              "cellValues": [
+                0,
+                1
+              ],
+              "cells": {
+                "Config": [
+                  0,
+                  1,
+                  2,
+                  64,
+                  65,
+                  66,
+                  128,
+                  129,
+                  130
+                ],
+                "CT": [
+                  0,
+                  1,
+                  2
+                ],
+                "St": [
+                  0,
+                  1,
+                  2
+                ],
+                "CV": [
+                  0,
+                  1,
+                  2
+                ],
+                "CfgT": [
+                  0,
+                  1,
+                  2
+                ]
+              },
+              "inputValues": {
+                "op": [
+                  0,
+                  1,
+                  2,
+                  3,
+                  4,
+                  5,
+                  6
+                ],
+                "i": [
+                  0,
+                  1,
+                  2
+                ],
+                "j": [
+                  0,
+                  1,
+                  2
+                ],
+                "hx": [
+                  0,
+                  1,
+                  2,
+                  3
+                ],
+                "hy": [
+                  0,
+                  1,
+                  2,
+                  3
+                ]
+              },
+              "inputCells": {
+                "S": [
+                  0,
+                  1,
+                  2
+                ],
+                "Q2": [
+                  0,
+                  1,
+                  2
+                ]
+              },
+              "binderValues": [
+                0,
+                1,
+                2
+              ],
+              "postTargetPruning": true,
+              "postTargetIntervals": false,
+              "seedNeighborhood": true,
+              "seedUniformMaps": true
+            },
+            "completed": false,
+            "timedOut": true,
+            "unsupported": [],
+            "models": 8,
+            "accepted": 0,
+            "coupledModels": 5,
+            "coupledAccepted": 0,
+            "ms": 23.162362999999914
+          }
+        },
+        {
+          "stage": 1,
+          "stats": {
+            "phase": "seed-only",
+            "scope": {
+              "params": {
+                "size": 3
+              },
+              "scalarValues": [
+                0,
+                1,
+                2
+              ],
+              "cellValues": [
+                0,
+                1,
+                2
+              ],
+              "cells": {
+                "Config": [
+                  0,
+                  1,
+                  2,
+                  64,
+                  65,
+                  66,
+                  128,
+                  129,
+                  130
+                ],
+                "CT": [
+                  0,
+                  1,
+                  2
+                ],
+                "St": [
+                  0,
+                  1,
+                  2
+                ],
+                "CV": [
+                  0,
+                  1,
+                  2
+                ],
+                "CfgT": [
+                  0,
+                  1,
+                  2
+                ]
+              },
+              "inputValues": {
+                "op": [
+                  0,
+                  1,
+                  2,
+                  3,
+                  4,
+                  5,
+                  6
+                ],
+                "i": [
+                  0,
+                  1,
+                  2
+                ],
+                "j": [
+                  0,
+                  1,
+                  2
+                ],
+                "hx": [
+                  0,
+                  1,
+                  2,
+                  3
+                ],
+                "hy": [
+                  0,
+                  1,
+                  2,
+                  3
+                ]
+              },
+              "inputCells": {
+                "S": [
+                  0,
+                  1,
+                  2
+                ],
+                "Q2": [
+                  0,
+                  1,
+                  2
+                ]
+              },
+              "binderValues": [
+                0,
+                1,
+                2
+              ],
+              "postTargetPruning": true,
+              "postTargetIntervals": false,
+              "seedNeighborhood": true,
+              "seedUniformMaps": true
+            },
+            "completed": true,
+            "timedOut": false,
+            "unsupported": [],
+            "models": 238,
+            "accepted": 2,
+            "coupledModels": 50,
+            "coupledAccepted": 1,
+            "ms": 709.4951130000002
+          }
+        }
+      ],
+      "namedSevenNew": [
+        "CV at most 2",
+        "inX: stored guard reconfigs/inS",
+        "inX: stored guard reconfigs/inS or disabled/1"
+      ]
+    },
+    {
+      "job": "original-hybrid-3",
+      "initial": 40,
+      "removed": 6,
+      "wall": 1900.231145,
+      "timedOut": true,
+      "drops": [
+        "fields: CT[a]=CT[b] and CV[a]=CV[b] -> Config rows agree",
+        "inX: stored guard reconfigs/inS",
+        "inX: stored guard reconfigs/inS or disabled/1",
+        "every x with x < size: never Config[x] is 0 and 1 <= St[x]",
+        "CV at most 2",
+        "fields: St[a]=1 -> CT[a]=CT[b] -> CV[b]<=CV[a]"
+      ],
+      "seedRounds": [
+        {
+          "stage": 0,
+          "stats": {
+            "phase": "seed-only",
+            "scope": {
+              "params": {
+                "size": 3
+              },
+              "scalarValues": [
+                0,
+                1
+              ],
+              "cellValues": [
+                0,
+                1
+              ],
+              "cells": {
+                "Config": [
+                  0,
+                  1,
+                  2,
+                  64,
+                  65,
+                  66,
+                  128,
+                  129,
+                  130
+                ],
+                "CT": [
+                  0,
+                  1,
+                  2
+                ],
+                "St": [
+                  0,
+                  1,
+                  2
+                ],
+                "CV": [
+                  0,
+                  1,
+                  2
+                ],
+                "CfgT": [
+                  0,
+                  1,
+                  2
+                ]
+              },
+              "inputValues": {
+                "op": [
+                  0,
+                  1,
+                  2,
+                  3,
+                  4,
+                  5,
+                  6
+                ],
+                "i": [
+                  0,
+                  1,
+                  2
+                ],
+                "j": [
+                  0,
+                  1,
+                  2
+                ],
+                "hx": [
+                  0,
+                  1,
+                  2,
+                  3
+                ],
+                "hy": [
+                  0,
+                  1,
+                  2,
+                  3
+                ]
+              },
+              "inputCells": {
+                "S": [
+                  0,
+                  1,
+                  2
+                ],
+                "Q2": [
+                  0,
+                  1,
+                  2
+                ]
+              },
+              "binderValues": [
+                0,
+                1,
+                2
+              ],
+              "postTargetPruning": true,
+              "postTargetIntervals": false,
+              "seedNeighborhood": true,
+              "seedUniformMaps": true
+            },
+            "completed": false,
+            "timedOut": true,
+            "unsupported": [],
+            "models": 89,
+            "accepted": 0,
+            "coupledModels": 35,
+            "coupledAccepted": 0,
+            "ms": 419.574304
+          }
+        },
+        {
+          "stage": 1,
+          "stats": {
+            "phase": "seed-only",
+            "scope": {
+              "params": {
+                "size": 3
+              },
+              "scalarValues": [
+                0,
+                1,
+                2
+              ],
+              "cellValues": [
+                0,
+                1,
+                2
+              ],
+              "cells": {
+                "Config": [
+                  0,
+                  1,
+                  2,
+                  64,
+                  65,
+                  66,
+                  128,
+                  129,
+                  130
+                ],
+                "CT": [
+                  0,
+                  1,
+                  2
+                ],
+                "St": [
+                  0,
+                  1,
+                  2
+                ],
+                "CV": [
+                  0,
+                  1,
+                  2
+                ],
+                "CfgT": [
+                  0,
+                  1,
+                  2
+                ]
+              },
+              "inputValues": {
+                "op": [
+                  0,
+                  1,
+                  2,
+                  3,
+                  4,
+                  5,
+                  6
+                ],
+                "i": [
+                  0,
+                  1,
+                  2
+                ],
+                "j": [
+                  0,
+                  1,
+                  2
+                ],
+                "hx": [
+                  0,
+                  1,
+                  2,
+                  3
+                ],
+                "hy": [
+                  0,
+                  1,
+                  2,
+                  3
+                ]
+              },
+              "inputCells": {
+                "S": [
+                  0,
+                  1,
+                  2
+                ],
+                "Q2": [
+                  0,
+                  1,
+                  2
+                ]
+              },
+              "binderValues": [
+                0,
+                1,
+                2
+              ],
+              "postTargetPruning": true,
+              "postTargetIntervals": false,
+              "seedNeighborhood": true,
+              "seedUniformMaps": true
+            },
+            "completed": true,
+            "timedOut": false,
+            "unsupported": [],
+            "models": 238,
+            "accepted": 2,
+            "coupledModels": 50,
+            "coupledAccepted": 1,
+            "ms": 260.115687
+          }
+        }
+      ],
+      "namedSevenNew": [
+        "CV at most 2",
+        "inX: stored guard reconfigs/inS",
+        "inX: stored guard reconfigs/inS or disabled/1"
+      ]
+    },
+    {
+      "job": "survivors-hybrid-1",
+      "initial": 34,
+      "removed": 2,
+      "wall": 1900.2077179999999,
+      "timedOut": true,
+      "drops": [
+        "inX: stored guard reconfigs/inS",
+        "inX: stored guard reconfigs/inS or disabled/1"
+      ],
+      "seedRounds": [
+        {
+          "stage": 1,
+          "stats": {
+            "phase": "seed-only",
+            "scope": {
+              "params": {
+                "size": 3
+              },
+              "scalarValues": [
+                0,
+                1,
+                2
+              ],
+              "cellValues": [
+                0,
+                1,
+                2
+              ],
+              "cells": {
+                "Config": [
+                  0,
+                  1,
+                  2,
+                  64,
+                  65,
+                  66,
+                  128,
+                  129,
+                  130
+                ],
+                "CT": [
+                  0,
+                  1,
+                  2
+                ],
+                "St": [
+                  0,
+                  1,
+                  2
+                ],
+                "CV": [
+                  0,
+                  1,
+                  2
+                ],
+                "CfgT": [
+                  0,
+                  1,
+                  2
+                ]
+              },
+              "inputValues": {
+                "op": [
+                  0,
+                  1,
+                  2,
+                  3,
+                  4,
+                  5,
+                  6
+                ],
+                "i": [
+                  0,
+                  1,
+                  2
+                ],
+                "j": [
+                  0,
+                  1,
+                  2
+                ],
+                "hx": [
+                  0,
+                  1,
+                  2,
+                  3
+                ],
+                "hy": [
+                  0,
+                  1,
+                  2,
+                  3
+                ]
+              },
+              "inputCells": {
+                "S": [
+                  0,
+                  1,
+                  2
+                ],
+                "Q2": [
+                  0,
+                  1,
+                  2
+                ]
+              },
+              "binderValues": [
+                0,
+                1,
+                2
+              ],
+              "postTargetPruning": true,
+              "postTargetIntervals": false,
+              "seedNeighborhood": true,
+              "seedUniformMaps": true
+            },
+            "completed": true,
+            "timedOut": false,
+            "unsupported": [],
+            "models": 80,
+            "accepted": 0,
+            "coupledModels": 17,
+            "coupledAccepted": 0,
+            "ms": 479.0090480000001
+          }
+        }
+      ],
+      "namedSevenNew": [
+        "inX: stored guard reconfigs/inS",
+        "inX: stored guard reconfigs/inS or disabled/1"
+      ]
+    },
+    {
+      "job": "survivors-hybrid-2",
+      "initial": 34,
+      "removed": 2,
+      "wall": 1900.196862,
+      "timedOut": true,
+      "drops": [
+        "inX: stored guard reconfigs/inS",
+        "inX: stored guard reconfigs/inS or disabled/1"
+      ],
+      "seedRounds": [
+        {
+          "stage": 0,
+          "stats": {
+            "phase": "seed-only",
+            "scope": {
+              "params": {
+                "size": 3
+              },
+              "scalarValues": [
+                0,
+                1
+              ],
+              "cellValues": [
+                0,
+                1
+              ],
+              "cells": {
+                "Config": [
+                  0,
+                  1,
+                  2,
+                  64,
+                  65,
+                  66,
+                  128,
+                  129,
+                  130
+                ],
+                "CT": [
+                  0,
+                  1,
+                  2
+                ],
+                "St": [
+                  0,
+                  1,
+                  2
+                ],
+                "CV": [
+                  0,
+                  1,
+                  2
+                ],
+                "CfgT": [
+                  0,
+                  1,
+                  2
+                ]
+              },
+              "inputValues": {
+                "op": [
+                  0,
+                  1,
+                  2,
+                  3,
+                  4,
+                  5,
+                  6
+                ],
+                "i": [
+                  0,
+                  1,
+                  2
+                ],
+                "j": [
+                  0,
+                  1,
+                  2
+                ],
+                "hx": [
+                  0,
+                  1,
+                  2,
+                  3
+                ],
+                "hy": [
+                  0,
+                  1,
+                  2,
+                  3
+                ]
+              },
+              "inputCells": {
+                "S": [
+                  0,
+                  1,
+                  2
+                ],
+                "Q2": [
+                  0,
+                  1,
+                  2
+                ]
+              },
+              "binderValues": [
+                0,
+                1,
+                2
+              ],
+              "postTargetPruning": true,
+              "postTargetIntervals": false,
+              "seedNeighborhood": true,
+              "seedUniformMaps": true
+            },
+            "completed": true,
+            "timedOut": false,
+            "unsupported": [],
+            "models": 53,
+            "accepted": 0,
+            "coupledModels": 12,
+            "coupledAccepted": 0,
+            "ms": 84.37921200000005
+          }
+        },
+        {
+          "stage": 1,
+          "stats": {
+            "phase": "seed-only",
+            "scope": {
+              "params": {
+                "size": 3
+              },
+              "scalarValues": [
+                0,
+                1,
+                2
+              ],
+              "cellValues": [
+                0,
+                1,
+                2
+              ],
+              "cells": {
+                "Config": [
+                  0,
+                  1,
+                  2,
+                  64,
+                  65,
+                  66,
+                  128,
+                  129,
+                  130
+                ],
+                "CT": [
+                  0,
+                  1,
+                  2
+                ],
+                "St": [
+                  0,
+                  1,
+                  2
+                ],
+                "CV": [
+                  0,
+                  1,
+                  2
+                ],
+                "CfgT": [
+                  0,
+                  1,
+                  2
+                ]
+              },
+              "inputValues": {
+                "op": [
+                  0,
+                  1,
+                  2,
+                  3,
+                  4,
+                  5,
+                  6
+                ],
+                "i": [
+                  0,
+                  1,
+                  2
+                ],
+                "j": [
+                  0,
+                  1,
+                  2
+                ],
+                "hx": [
+                  0,
+                  1,
+                  2,
+                  3
+                ],
+                "hy": [
+                  0,
+                  1,
+                  2,
+                  3
+                ]
+              },
+              "inputCells": {
+                "S": [
+                  0,
+                  1,
+                  2
+                ],
+                "Q2": [
+                  0,
+                  1,
+                  2
+                ]
+              },
+              "binderValues": [
+                0,
+                1,
+                2
+              ],
+              "postTargetPruning": true,
+              "postTargetIntervals": false,
+              "seedNeighborhood": true,
+              "seedUniformMaps": true
+            },
+            "completed": true,
+            "timedOut": false,
+            "unsupported": [],
+            "models": 80,
+            "accepted": 0,
+            "coupledModels": 17,
+            "coupledAccepted": 0,
+            "ms": 86.80587700000001
+          }
+        }
+      ],
+      "namedSevenNew": [
+        "inX: stored guard reconfigs/inS",
+        "inX: stored guard reconfigs/inS or disabled/1"
+      ]
+    },
+    {
+      "job": "survivors-hybrid-3",
+      "initial": 34,
+      "removed": 2,
+      "wall": 1900.1355130000002,
+      "timedOut": true,
+      "drops": [
+        "inX: stored guard reconfigs/inS",
+        "inX: stored guard reconfigs/inS or disabled/1"
+      ],
+      "seedRounds": [
+        {
+          "stage": 1,
+          "stats": {
+            "phase": "seed-only",
+            "scope": {
+              "params": {
+                "size": 3
+              },
+              "scalarValues": [
+                0,
+                1,
+                2
+              ],
+              "cellValues": [
+                0,
+                1,
+                2
+              ],
+              "cells": {
+                "Config": [
+                  0,
+                  1,
+                  2,
+                  64,
+                  65,
+                  66,
+                  128,
+                  129,
+                  130
+                ],
+                "CT": [
+                  0,
+                  1,
+                  2
+                ],
+                "St": [
+                  0,
+                  1,
+                  2
+                ],
+                "CV": [
+                  0,
+                  1,
+                  2
+                ],
+                "CfgT": [
+                  0,
+                  1,
+                  2
+                ]
+              },
+              "inputValues": {
+                "op": [
+                  0,
+                  1,
+                  2,
+                  3,
+                  4,
+                  5,
+                  6
+                ],
+                "i": [
+                  0,
+                  1,
+                  2
+                ],
+                "j": [
+                  0,
+                  1,
+                  2
+                ],
+                "hx": [
+                  0,
+                  1,
+                  2,
+                  3
+                ],
+                "hy": [
+                  0,
+                  1,
+                  2,
+                  3
+                ]
+              },
+              "inputCells": {
+                "S": [
+                  0,
+                  1,
+                  2
+                ],
+                "Q2": [
+                  0,
+                  1,
+                  2
+                ]
+              },
+              "binderValues": [
+                0,
+                1,
+                2
+              ],
+              "postTargetPruning": true,
+              "postTargetIntervals": false,
+              "seedNeighborhood": true,
+              "seedUniformMaps": true
+            },
+            "completed": true,
+            "timedOut": false,
+            "unsupported": [],
+            "models": 80,
+            "accepted": 0,
+            "coupledModels": 17,
+            "coupledAccepted": 0,
+            "ms": 190.4000749999998
+          }
+        }
+      ],
+      "namedSevenNew": [
+        "inX: stored guard reconfigs/inS",
+        "inX: stored guard reconfigs/inS or disabled/1"
+      ]
+    }
+  ],
+  "originalNamed": [
+    3,
+    3,
+    3
+  ],
+  "allSixWallsWithinAllowance": false,
+  "qualifies": false
+}
