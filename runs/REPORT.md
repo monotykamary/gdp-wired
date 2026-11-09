@@ -6,6 +6,14 @@ Lane I resumed from `cca59f0c` on `claude/mldr-integ`; clean worktree verified, 
 - Repair: core-replay reconstruction now spreads the previous obligation before replacing its goal/decls/encoded goal, retaining `all`, certificate and pool. Added a focused range-demand test for a read omitted by the selected certificate. No budget, law, or kernel change.
 - Current integrated production source candidate: `e48a109efc5ee029d658702ac45a7e7a8ff4c9b6`. V11 validation completed with **one failed check** (new runtime-key test used `Function`); its four test shards, original MLDR pairs and replay negative control returned zero process exits. The generation census and frozen upper-bound remain pending. The test-only VM repair is being revalidated. Lane D's `b09da82d` gate is **RED**, not pending or green; the exact-source paired diagnosis below is active.
 
+## Diagnostic evidence audit / scheduler observation
+
+The lint repair is verified below; its compressed logs, source identity, placement and raw/compressed SHA-256 receipts are retained in `runs/lane-i/v11-lint-repair/`. The original failing V11 check is preserved.
+
+The bounded scheduler observation after that completion found the already registered strict batch with **16 left / 0 running** and targeted bar batch with **12 left / 0 running**. The pool was ready but reported a churn health breach. These are queued batches, not completed experiments or fresh failures. No submission was duplicated, cancelled or promoted through private scheduler state; shared settings remain untouched.
+
+`research/lane-i/regressions/receipt-audit.ts` will reject wrong-source/CPU/budget records, missing/duplicate repeats, nonexclusive or non-boat placement, changed raw traces, and summaries/per-law work not supported by the compressed trace. CPU skips cannot count toward the ten-pair requirement. Its own fault-injection tests and the full source check are being submitted separately; until they return this auditor is not marked validated.
+
 ## Coordinator red-gate diagnosis — active
 
 Lane D reports `b09da82d` RED: `consensus_forall` repeat 3 was baseline proven at 44.711 s versus candidate unknown at 59.218 s on Ryzen 9950X, with identical generated lists; four CHC losses, two ITS-SCC losses and ITS/SCC/TIP error rows also need paired diagnosis. Both requested tracks are being prepared in parallel; existing V11 and frozen work stays active.
@@ -24,7 +32,7 @@ A separate falsifiable strict-regression hypothesis is generic prover overhead o
 
 Batch `20261110-015357-ekhlb4` / controller `702a89c9-25de-445c-821b-4a1e2d20550c` finished in 130 s. All **124 changed modules** ran: **221 + 165 + 142 + 162 = 690 passing tests, zero failures**. The real replay negative control failed specifically with `readCount: 2`, `readsRetained: false` after the old reconstruction was restored, then emitted `CORE_REPLAY_NEGATIVE_CONTROL_OK`. Its expected failure is not counted as a test-suite failure or a new proof.
 
-`check` failed on `typescript(no-implied-eval)` at the newly merged runtime-key test's `new Function`. Commit `ab131920` uses the existing `runInNewContext` helper instead; no production semantics changed. A fresh full check and runtime-key test pair are running on boat as task `1f713e51-f7ca-4bd2-b755-6742d0d208d4`, output `runs/lane-i/v11-lint-repair/results`, source-bound to `ab131920d8e5d67b9f6172ca5182bae8552da0ee`. That repair is **pending validation**, not yet clean.
+`check` failed on `typescript(no-implied-eval)` at the newly merged runtime-key test's `new Function`. Commit `ab131920` uses the existing `runInNewContext` helper instead; no production semantics changed. A fresh full check and runtime-key test pair are running on boat as task `1f713e51-f7ca-4bd2-b755-6742d0d208d4`, output `runs/lane-i/v11-lint-repair/results`, source-bound to `ab131920d8e5d67b9f6172ca5182bae8552da0ee`. That repair is now **validated**: batch `20261110-020048-e1u4gi` / source snapshot `cba531fadc55` returned zero TypeScript/lint warnings or errors, and all **five runtime-key tests passed**. Both workers were exclusively placed on boat. This closes the observed test-fixture check failure only; it does not repair or admit any failed strict/bar proof.
 
 All three original MLDR pairs remain unknown on both sides. Candidate internal search times: **58,523 / 59,779 / 59,025 ms**; first says `not proven: one primary per term`, the other two `time (rule result)`. No MLDR proof or strict proof margin is claimed. The V11 generation census and frozen upper-bound run remain active and untouched.
 
