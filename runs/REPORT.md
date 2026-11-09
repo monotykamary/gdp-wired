@@ -53,6 +53,15 @@ already integrated with local/Fable repairs. Tiny-instance proposals remain
 disabled in production, as upstream specifies. The attempted whole-branch
 merge was aborted before commit to avoid overwriting those prior repairs.
 
+Lane F `682c8dc6` is merged: independent empty-count source cores and its
+initial-range integration remain intact alongside E member witnesses. Its
+research-only counterexample notes are retained upstream; no stronger frame
+claim is imported. See `git show 682c8dc6:runs/REPORT.md`.
+
+The pre-merge E source passed type/lint and all 53 focused tests in
+`runs/mldr-incl-production-premises-check-v3/`. Early completion at 6000
+remained UNKNOWN and was **not adopted**.
+
 ## Upstream merge after the conditional checkpoint
 
 Imported Lane B `6d69e094`, including Fable initial range instances. Both

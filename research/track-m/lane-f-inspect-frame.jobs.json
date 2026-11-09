@@ -1,0 +1,1 @@
+[{"name":"inspect","cmd":"bash research/track-m/prepare-vendors.sh && bun install --frozen-lockfile >/dev/null && bun research/track-m/lane-f-inspect-frame.ts","cpu":2,"memory":8192,"timeout":60}]

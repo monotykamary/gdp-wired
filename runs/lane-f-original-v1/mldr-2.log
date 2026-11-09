@@ -1,0 +1,20 @@
+e04a7ea9118ea51e8368e8b9370b39cc2175d4a494eda6a2682b53e9b7517c5e  controls.tar.gz
+LANE_F_ORIGINAL_BEGIN 2 before baseline-overlay=d4479299 candidate-source=78eedf50
+2f199822e39a59283385b16a0dc07a05334282411191c2dd95623ef7b3adc28d  core/count-cases.ts
+80bbbd88df002874f82dd96b8421d2cd9dca42b06659712880ff961f8a7721df  core/count-recovery/row-cases.ts
+e1a5260d63e5c9a84d8d488cb8adcfe69f57751b4ccfba565d820aa8a6227835  core/count-recovery/derivability-closure.ts
+{"id":"mldr","ic3syn":"mldr","search":{"verdict":"unknown","stuck":"unknown","why":"time (rule result)","ms":59001,"work":7844080,"full":3194881}}
+[infer join meters] {"at":"filter read 0","read":89,"lastKill":0,"bfs":156,"real":17138,"v":5770,"now":123,"full":0,"epr":0,"erows":116666,"etries":458793,"tries":0,"rows":1232175,"evals":0,"work":0}
+[infer join pool] {"made":14,"left":14,"states":89,"ms":4223,"real":17138}
+{"id":"mldr","ic3syn":"mldr","search":{"verdict":"unknown","stuck":"unknown","why":"time (rule result)","ms":59001,"work":7844080,"full":3194881}}
+LANE_F_ORIGINAL_END 2 before status=0
+LANE_F_ORIGINAL_BEGIN 2 after baseline-overlay=d4479299 candidate-source=78eedf50
+6dafd763471a716d77b39ef7424a0ecd48c64505f78554ef72e05a1e615af600  core/count-cases.ts
+d70f618833a9770f75316363b97bfb79efabb50662fc1dae446aa93826563018  core/count-recovery/row-cases.ts
+fdd8a6aee4f3878747401c0d3d58fd76dde2ec79bb4afd765814b1b0ba810b6b  core/count-recovery/derivability-closure.ts
+{"id":"mldr","ic3syn":"mldr","search":{"verdict":"unknown","stuck":"unknown","why":"time (rule result)","ms":59059,"work":10409909,"full":4345553}}
+[infer join meters] {"at":"filter read 0","read":89,"lastKill":0,"bfs":156,"real":13030,"v":5770,"now":123,"full":0,"epr":0,"erows":116666,"etries":458793,"tries":0,"rows":1232175,"evals":0,"work":0}
+[infer join pool] {"made":14,"left":14,"states":89,"ms":4223,"real":13030}
+{"id":"mldr","ic3syn":"mldr","search":{"verdict":"unknown","stuck":"unknown","why":"time (rule result)","ms":59059,"work":10409909,"full":4345553}}
+LANE_F_ORIGINAL_END 2 after status=0
+{"artifact":"track-m-tar-v1","dir":"/home/user/track-m-s18-receipts-Op0L1A","format":"tar.gz","parts":1,"bytes":31562,"sha256":"7f497f7815eb36127a12562330528d38e28c65c9dc7f0bc0e5fd05c342b15d95"}

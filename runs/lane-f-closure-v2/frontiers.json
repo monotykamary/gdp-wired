@@ -1,0 +1,1755 @@
+[
+  {
+    "name": "overlap-op0",
+    "side": "before",
+    "packetSha256": "f85affd2f84babfeaef29618e14e68d14bf2c24b9e20369d2c8332a170ff3b9e",
+    "checked": false,
+    "units": 667.1097048,
+    "wallMs": 4433.102973999999,
+    "rowQueries": 1,
+    "rowSplits": 0,
+    "rowMirrors": 0,
+    "stageCounts": {
+      "closure-scalar": 4,
+      "closure-leaf-budget": 1,
+      "natural-case-leaf": 1,
+      "natural-cases": 1,
+      "closure-model-round": 1,
+      "closure-batch-core": 6,
+      "closure-source": 11,
+      "key-closure": 2,
+      "pin-prune": 2,
+      "boolean-core": 2,
+      "closure-cut": 2,
+      "closure-final": 1,
+      "row-case": 1,
+      "closure-complete": 1
+    },
+    "closureFinal": [
+      {
+        "stage": "closure-final",
+        "mode": "model-driven",
+        "outcome": "unknown",
+        "reason": "time",
+        "cuts": 2,
+        "ms": 666.723892,
+        "total": 667.1097048,
+        "pathSize": 10
+      }
+    ],
+    "sources": [
+      {
+        "stage": "closure-source",
+        "scope": 7,
+        "index": 176,
+        "tree": false,
+        "outcome": "unknown",
+        "ms": 50.361728
+      },
+      {
+        "stage": "closure-source",
+        "scope": 7,
+        "index": 180,
+        "tree": false,
+        "outcome": "unknown",
+        "ms": 50.40500799999998
+      },
+      {
+        "stage": "closure-source",
+        "scope": 7,
+        "index": 202,
+        "tree": false,
+        "outcome": "sat",
+        "ms": 48.689103999999986
+      },
+      {
+        "stage": "closure-source",
+        "scope": 7,
+        "index": 182,
+        "outcome": "reused-model",
+        "ms": 0
+      },
+      {
+        "stage": "closure-source",
+        "scope": 7,
+        "index": 205,
+        "tree": false,
+        "outcome": "sat",
+        "ms": 48.68788000000001
+      },
+      {
+        "stage": "closure-source",
+        "scope": 7,
+        "index": 190,
+        "outcome": "reused-model",
+        "ms": 0
+      },
+      {
+        "stage": "closure-source",
+        "scope": 7,
+        "index": 184,
+        "tree": false,
+        "outcome": "sat",
+        "ms": 44.218503999999996
+      },
+      {
+        "stage": "closure-source",
+        "scope": 7,
+        "index": 192,
+        "tree": false,
+        "outcome": "sat",
+        "ms": 44.21850399999994
+      },
+      {
+        "stage": "closure-source",
+        "scope": 7,
+        "index": 218,
+        "core": 2,
+        "tree": true,
+        "outcome": "checked",
+        "ms": 42.4973708
+      },
+      {
+        "stage": "closure-source",
+        "scope": 7,
+        "index": 220,
+        "core": 2,
+        "tree": true,
+        "outcome": "checked",
+        "ms": 43.554662800000074
+      },
+      {
+        "stage": "closure-source",
+        "scope": 7,
+        "index": 226,
+        "tree": false,
+        "outcome": "unknown",
+        "ms": 16.385271999999986
+      }
+    ],
+    "cuts": 2
+  },
+  {
+    "name": "overlap-op0",
+    "side": "after",
+    "packetSha256": "f85affd2f84babfeaef29618e14e68d14bf2c24b9e20369d2c8332a170ff3b9e",
+    "checked": false,
+    "units": 1070.6946844000001,
+    "wallMs": 3716.6888979999994,
+    "rowQueries": 3,
+    "rowSplits": 2,
+    "rowMirrors": 0,
+    "stageCounts": {
+      "closure-scalar": 4,
+      "closure-leaf-budget": 3,
+      "natural-case-leaf": 3,
+      "natural-cases": 3,
+      "closure-final": 3,
+      "row-case": 3,
+      "row-demand": 2,
+      "closure-model-round": 1,
+      "closure-batch-core": 6,
+      "closure-source": 14,
+      "key-closure": 3,
+      "pin-prune": 3,
+      "boolean-core": 3,
+      "closure-cut": 3,
+      "closure-complete": 1
+    },
+    "closureFinal": [
+      {
+        "stage": "closure-final",
+        "mode": "model-driven",
+        "outcome": "unknown",
+        "reason": "row-demand",
+        "cuts": 0,
+        "ms": 123.37123639999999,
+        "total": 123.75704919999998,
+        "pathSize": 6
+      },
+      {
+        "stage": "closure-final",
+        "mode": "model-driven",
+        "outcome": "unknown",
+        "reason": "row-demand",
+        "cuts": 0,
+        "ms": 125.13803240000001,
+        "total": 248.8950816,
+        "pathSize": 8
+      },
+      {
+        "stage": "closure-final",
+        "mode": "model-driven",
+        "outcome": "unknown",
+        "reason": "time",
+        "cuts": 3,
+        "ms": 821.7996028000001,
+        "total": 1070.6946844000001,
+        "pathSize": 10
+      }
+    ],
+    "sources": [
+      {
+        "stage": "closure-source",
+        "scope": 7,
+        "index": 176,
+        "tree": false,
+        "outcome": "unknown",
+        "ms": 50.36172799999997
+      },
+      {
+        "stage": "closure-source",
+        "scope": 7,
+        "index": 180,
+        "tree": false,
+        "outcome": "unknown",
+        "ms": 50.405008000000066
+      },
+      {
+        "stage": "closure-source",
+        "scope": 7,
+        "index": 202,
+        "tree": false,
+        "outcome": "sat",
+        "ms": 48.68910400000004
+      },
+      {
+        "stage": "closure-source",
+        "scope": 7,
+        "index": 182,
+        "outcome": "reused-model",
+        "ms": 0
+      },
+      {
+        "stage": "closure-source",
+        "scope": 7,
+        "index": 205,
+        "tree": false,
+        "outcome": "sat",
+        "ms": 48.687880000000064
+      },
+      {
+        "stage": "closure-source",
+        "scope": 7,
+        "index": 190,
+        "outcome": "reused-model",
+        "ms": 0
+      },
+      {
+        "stage": "closure-source",
+        "scope": 7,
+        "index": 184,
+        "tree": false,
+        "outcome": "sat",
+        "ms": 44.21850400000005
+      },
+      {
+        "stage": "closure-source",
+        "scope": 7,
+        "index": 192,
+        "tree": false,
+        "outcome": "sat",
+        "ms": 44.21850399999971
+      },
+      {
+        "stage": "closure-source",
+        "scope": 7,
+        "index": 218,
+        "core": 2,
+        "tree": true,
+        "outcome": "checked",
+        "ms": 42.4973708
+      },
+      {
+        "stage": "closure-source",
+        "scope": 7,
+        "index": 220,
+        "core": 2,
+        "tree": true,
+        "outcome": "checked",
+        "ms": 43.5546628000003
+      },
+      {
+        "stage": "closure-source",
+        "scope": 7,
+        "index": 226,
+        "core": 2,
+        "tree": true,
+        "outcome": "checked",
+        "ms": 43.842170799999735
+      },
+      {
+        "stage": "closure-source",
+        "scope": 7,
+        "index": 0,
+        "tree": false,
+        "outcome": "unknown",
+        "ms": 50.0009
+      },
+      {
+        "stage": "closure-source",
+        "scope": 91,
+        "index": 0,
+        "tree": false,
+        "outcome": "unknown",
+        "ms": 50.003840000000196
+      },
+      {
+        "stage": "closure-source",
+        "scope": 92,
+        "index": 0,
+        "tree": false,
+        "outcome": "unknown",
+        "ms": 27.61407200000008
+      }
+    ],
+    "cuts": 3
+  },
+  {
+    "name": "overlap-op2",
+    "side": "before",
+    "packetSha256": "f85affd2f84babfeaef29618e14e68d14bf2c24b9e20369d2c8332a170ff3b9e",
+    "checked": false,
+    "units": 667.2410083999999,
+    "wallMs": 3322.108021,
+    "rowQueries": 1,
+    "rowSplits": 0,
+    "rowMirrors": 0,
+    "stageCounts": {
+      "closure-scalar": 4,
+      "closure-leaf-budget": 1,
+      "natural-case-leaf": 1,
+      "natural-cases": 1,
+      "closure-model-round": 1,
+      "closure-batch-core": 6,
+      "closure-source": 11,
+      "key-closure": 2,
+      "pin-prune": 2,
+      "boolean-core": 2,
+      "closure-cut": 2,
+      "closure-final": 1,
+      "row-case": 1,
+      "closure-complete": 1
+    },
+    "closureFinal": [
+      {
+        "stage": "closure-final",
+        "mode": "model-driven",
+        "outcome": "unknown",
+        "reason": "time",
+        "cuts": 2,
+        "ms": 666.771408,
+        "total": 667.2410083999999,
+        "pathSize": 10
+      }
+    ],
+    "sources": [
+      {
+        "stage": "closure-source",
+        "scope": 7,
+        "index": 176,
+        "tree": false,
+        "outcome": "unknown",
+        "ms": 51.51816599999998
+      },
+      {
+        "stage": "closure-source",
+        "scope": 7,
+        "index": 180,
+        "tree": false,
+        "outcome": "unknown",
+        "ms": 51.56205799999998
+      },
+      {
+        "stage": "closure-source",
+        "scope": 7,
+        "index": 202,
+        "tree": false,
+        "outcome": "sat",
+        "ms": 49.581673999999964
+      },
+      {
+        "stage": "closure-source",
+        "scope": 7,
+        "index": 182,
+        "outcome": "reused-model",
+        "ms": 0
+      },
+      {
+        "stage": "closure-source",
+        "scope": 7,
+        "index": 205,
+        "tree": false,
+        "outcome": "sat",
+        "ms": 49.58045000000004
+      },
+      {
+        "stage": "closure-source",
+        "scope": 7,
+        "index": 190,
+        "outcome": "reused-model",
+        "ms": 0
+      },
+      {
+        "stage": "closure-source",
+        "scope": 7,
+        "index": 184,
+        "tree": false,
+        "outcome": "sat",
+        "ms": 45.68294599999996
+      },
+      {
+        "stage": "closure-source",
+        "scope": 7,
+        "index": 192,
+        "tree": false,
+        "outcome": "sat",
+        "ms": 45.682946000000015
+      },
+      {
+        "stage": "closure-source",
+        "scope": 7,
+        "index": 218,
+        "core": 2,
+        "tree": true,
+        "outcome": "checked",
+        "ms": 42.281118799999945
+      },
+      {
+        "stage": "closure-source",
+        "scope": 7,
+        "index": 220,
+        "core": 2,
+        "tree": true,
+        "outcome": "checked",
+        "ms": 43.33905640000012
+      },
+      {
+        "stage": "closure-source",
+        "scope": 7,
+        "index": 226,
+        "tree": false,
+        "outcome": "unknown",
+        "ms": 9.35118599999987
+      }
+    ],
+    "cuts": 2
+  },
+  {
+    "name": "overlap-op2",
+    "side": "after",
+    "packetSha256": "f85affd2f84babfeaef29618e14e68d14bf2c24b9e20369d2c8332a170ff3b9e",
+    "checked": false,
+    "units": 1071.4713840000002,
+    "wallMs": 3699.3580349999997,
+    "rowQueries": 3,
+    "rowSplits": 2,
+    "rowMirrors": 0,
+    "stageCounts": {
+      "closure-scalar": 4,
+      "closure-leaf-budget": 3,
+      "natural-case-leaf": 3,
+      "natural-cases": 3,
+      "closure-final": 3,
+      "row-case": 3,
+      "row-demand": 2,
+      "closure-model-round": 1,
+      "closure-batch-core": 6,
+      "closure-source": 14,
+      "key-closure": 3,
+      "pin-prune": 3,
+      "boolean-core": 3,
+      "closure-cut": 3,
+      "closure-complete": 1
+    },
+    "closureFinal": [
+      {
+        "stage": "closure-final",
+        "mode": "model-driven",
+        "outcome": "unknown",
+        "reason": "row-demand",
+        "cuts": 0,
+        "ms": 123.84685279999998,
+        "total": 124.31645319999998,
+        "pathSize": 6
+      },
+      {
+        "stage": "closure-final",
+        "mode": "model-driven",
+        "outcome": "unknown",
+        "reason": "row-demand",
+        "cuts": 0,
+        "ms": 125.6197004,
+        "total": 249.93615359999998,
+        "pathSize": 8
+      },
+      {
+        "stage": "closure-final",
+        "mode": "model-driven",
+        "outcome": "unknown",
+        "reason": "time",
+        "cuts": 3,
+        "ms": 821.5352304000002,
+        "total": 1071.4713840000002,
+        "pathSize": 10
+      }
+    ],
+    "sources": [
+      {
+        "stage": "closure-source",
+        "scope": 7,
+        "index": 176,
+        "tree": false,
+        "outcome": "unknown",
+        "ms": 51.518165999999894
+      },
+      {
+        "stage": "closure-source",
+        "scope": 7,
+        "index": 180,
+        "tree": false,
+        "outcome": "unknown",
+        "ms": 51.562058000000036
+      },
+      {
+        "stage": "closure-source",
+        "scope": 7,
+        "index": 202,
+        "tree": false,
+        "outcome": "sat",
+        "ms": 49.58167399999991
+      },
+      {
+        "stage": "closure-source",
+        "scope": 7,
+        "index": 182,
+        "outcome": "reused-model",
+        "ms": 0
+      },
+      {
+        "stage": "closure-source",
+        "scope": 7,
+        "index": 205,
+        "tree": false,
+        "outcome": "sat",
+        "ms": 49.58044999999993
+      },
+      {
+        "stage": "closure-source",
+        "scope": 7,
+        "index": 190,
+        "outcome": "reused-model",
+        "ms": 0
+      },
+      {
+        "stage": "closure-source",
+        "scope": 7,
+        "index": 184,
+        "tree": false,
+        "outcome": "sat",
+        "ms": 45.6829459999999
+      },
+      {
+        "stage": "closure-source",
+        "scope": 7,
+        "index": 192,
+        "tree": false,
+        "outcome": "sat",
+        "ms": 45.6829459999999
+      },
+      {
+        "stage": "closure-source",
+        "scope": 7,
+        "index": 218,
+        "core": 2,
+        "tree": true,
+        "outcome": "checked",
+        "ms": 42.281118799999945
+      },
+      {
+        "stage": "closure-source",
+        "scope": 7,
+        "index": 220,
+        "core": 2,
+        "tree": true,
+        "outcome": "checked",
+        "ms": 43.33905640000023
+      },
+      {
+        "stage": "closure-source",
+        "scope": 7,
+        "index": 226,
+        "core": 2,
+        "tree": true,
+        "outcome": "checked",
+        "ms": 43.62656440000001
+      },
+      {
+        "stage": "closure-source",
+        "scope": 7,
+        "index": 0,
+        "tree": false,
+        "outcome": "unknown",
+        "ms": 50.00752399999999
+      },
+      {
+        "stage": "closure-source",
+        "scope": 91,
+        "index": 0,
+        "tree": false,
+        "outcome": "unknown",
+        "ms": 50.01046400000007
+      },
+      {
+        "stage": "closure-source",
+        "scope": 92,
+        "index": 0,
+        "tree": false,
+        "outcome": "unknown",
+        "ms": 20.470456000000013
+      }
+    ],
+    "cuts": 3
+  },
+  {
+    "name": "overlap-op4",
+    "side": "before",
+    "packetSha256": "f85affd2f84babfeaef29618e14e68d14bf2c24b9e20369d2c8332a170ff3b9e",
+    "checked": false,
+    "units": 667.2567051999999,
+    "wallMs": 1753.838369,
+    "rowQueries": 1,
+    "rowSplits": 0,
+    "rowMirrors": 0,
+    "stageCounts": {
+      "closure-scalar": 4,
+      "closure-leaf-budget": 1,
+      "natural-case-leaf": 1,
+      "natural-cases": 1,
+      "closure-model-round": 1,
+      "closure-batch-core": 6,
+      "closure-source": 8,
+      "closure-final": 1,
+      "row-case": 1,
+      "closure-complete": 1
+    },
+    "closureFinal": [
+      {
+        "stage": "closure-final",
+        "mode": "model-driven",
+        "outcome": "unknown",
+        "reason": "time",
+        "cuts": 0,
+        "ms": 666.7823324,
+        "total": 667.2567051999999,
+        "pathSize": 10
+      }
+    ],
+    "sources": [
+      {
+        "stage": "closure-source",
+        "scope": 7,
+        "index": 176,
+        "tree": false,
+        "outcome": "unknown",
+        "ms": 51.23674600000001
+      },
+      {
+        "stage": "closure-source",
+        "scope": 7,
+        "index": 180,
+        "tree": false,
+        "outcome": "unknown",
+        "ms": 51.279414
+      },
+      {
+        "stage": "closure-source",
+        "scope": 7,
+        "index": 202,
+        "tree": false,
+        "outcome": "unknown",
+        "ms": 50.04057400000005
+      },
+      {
+        "stage": "closure-source",
+        "scope": 7,
+        "index": 182,
+        "tree": false,
+        "outcome": "unknown",
+        "ms": 50.040573999999935
+      },
+      {
+        "stage": "closure-source",
+        "scope": 7,
+        "index": 205,
+        "tree": false,
+        "outcome": "unknown",
+        "ms": 50.01263199999988
+      },
+      {
+        "stage": "closure-source",
+        "scope": 7,
+        "index": 190,
+        "tree": false,
+        "outcome": "unknown",
+        "ms": 50.01263200000005
+      },
+      {
+        "stage": "closure-source",
+        "scope": 7,
+        "index": 184,
+        "tree": false,
+        "outcome": "sat",
+        "ms": 45.346997999999985
+      },
+      {
+        "stage": "closure-source",
+        "scope": 7,
+        "index": 229,
+        "tree": false,
+        "outcome": "unknown",
+        "ms": 32.729307999999946
+      }
+    ],
+    "cuts": 0
+  },
+  {
+    "name": "overlap-op4",
+    "side": "after",
+    "packetSha256": "f85affd2f84babfeaef29618e14e68d14bf2c24b9e20369d2c8332a170ff3b9e",
+    "checked": false,
+    "units": 1074.6349255999999,
+    "wallMs": 2042.087588,
+    "rowQueries": 3,
+    "rowSplits": 2,
+    "rowMirrors": 0,
+    "stageCounts": {
+      "closure-scalar": 4,
+      "closure-leaf-budget": 3,
+      "natural-case-leaf": 3,
+      "natural-cases": 3,
+      "closure-final": 3,
+      "row-case": 3,
+      "row-demand": 2,
+      "closure-model-round": 1,
+      "closure-batch-core": 8,
+      "closure-source": 11,
+      "closure-complete": 1
+    },
+    "closureFinal": [
+      {
+        "stage": "closure-final",
+        "mode": "model-driven",
+        "outcome": "unknown",
+        "reason": "row-demand",
+        "cuts": 0,
+        "ms": 125.7003092,
+        "total": 126.174682,
+        "pathSize": 6
+      },
+      {
+        "stage": "closure-final",
+        "mode": "model-driven",
+        "outcome": "unknown",
+        "reason": "row-demand",
+        "cuts": 0,
+        "ms": 127.39666519999999,
+        "total": 253.5713472,
+        "pathSize": 8
+      },
+      {
+        "stage": "closure-final",
+        "mode": "model-driven",
+        "outcome": "unknown",
+        "reason": "time",
+        "cuts": 0,
+        "ms": 821.0635783999999,
+        "total": 1074.6349255999999,
+        "pathSize": 10
+      }
+    ],
+    "sources": [
+      {
+        "stage": "closure-source",
+        "scope": 7,
+        "index": 176,
+        "tree": false,
+        "outcome": "unknown",
+        "ms": 51.23674600000004
+      },
+      {
+        "stage": "closure-source",
+        "scope": 7,
+        "index": 180,
+        "tree": false,
+        "outcome": "unknown",
+        "ms": 51.279413999999974
+      },
+      {
+        "stage": "closure-source",
+        "scope": 7,
+        "index": 202,
+        "tree": false,
+        "outcome": "unknown",
+        "ms": 50.040574000000106
+      },
+      {
+        "stage": "closure-source",
+        "scope": 7,
+        "index": 182,
+        "tree": false,
+        "outcome": "unknown",
+        "ms": 50.04057399999988
+      },
+      {
+        "stage": "closure-source",
+        "scope": 7,
+        "index": 205,
+        "tree": false,
+        "outcome": "unknown",
+        "ms": 50.01263200000005
+      },
+      {
+        "stage": "closure-source",
+        "scope": 7,
+        "index": 190,
+        "tree": false,
+        "outcome": "unknown",
+        "ms": 50.01263200000017
+      },
+      {
+        "stage": "closure-source",
+        "scope": 7,
+        "index": 184,
+        "tree": false,
+        "outcome": "sat",
+        "ms": 45.346997999999985
+      },
+      {
+        "stage": "closure-source",
+        "scope": 7,
+        "index": 229,
+        "tree": false,
+        "outcome": "sat",
+        "ms": 45.16205000000002
+      },
+      {
+        "stage": "closure-source",
+        "scope": 7,
+        "index": 192,
+        "tree": false,
+        "outcome": "sat",
+        "ms": 45.3469980000001
+      },
+      {
+        "stage": "closure-source",
+        "scope": 7,
+        "index": 230,
+        "outcome": "reused-model",
+        "ms": 0
+      },
+      {
+        "stage": "closure-source",
+        "scope": 7,
+        "index": 218,
+        "tree": false,
+        "outcome": "unknown",
+        "ms": 33.28922599999987
+      }
+    ],
+    "cuts": 0
+  },
+  {
+    "name": "star-op3",
+    "side": "before",
+    "packetSha256": "1c25119b2695c7284d2712d95c03823d677a9898a1ae20dc057592e07cd20ab6",
+    "checked": false,
+    "units": 668.8157128000001,
+    "wallMs": 2578.5169730000002,
+    "rowQueries": 1,
+    "rowSplits": 0,
+    "rowMirrors": 0,
+    "stageCounts": {
+      "closure-scalar": 4,
+      "closure-leaf-budget": 1,
+      "closure-model-round": 1,
+      "closure-batch-core": 3,
+      "closure-source": 19,
+      "pin-prune": 3,
+      "boolean-core": 4,
+      "closure-cut": 3,
+      "key-closure": 3,
+      "closure-final": 1,
+      "closure-scalar-case": 1,
+      "closure-model-split": 1,
+      "row-case": 1,
+      "closure-complete": 1
+    },
+    "closureFinal": [
+      {
+        "stage": "closure-final",
+        "mode": "model-driven",
+        "outcome": "unknown",
+        "reason": "time",
+        "cuts": 3,
+        "ms": 0,
+        "total": 668.8157128000001,
+        "pathSize": 12
+      }
+    ],
+    "sources": [
+      {
+        "stage": "closure-source",
+        "scope": 7,
+        "index": 86,
+        "tree": false,
+        "outcome": "sat",
+        "ms": 41.380369999999985
+      },
+      {
+        "stage": "closure-source",
+        "scope": 7,
+        "index": 77,
+        "outcome": "reused-model",
+        "ms": 0
+      },
+      {
+        "stage": "closure-source",
+        "scope": 7,
+        "index": 46,
+        "core": 2,
+        "tree": true,
+        "outcome": "checked",
+        "ms": 7.68407959999999
+      },
+      {
+        "stage": "closure-source",
+        "scope": 7,
+        "index": 79,
+        "tree": false,
+        "outcome": "sat",
+        "ms": 35.186525999999986
+      },
+      {
+        "stage": "closure-source",
+        "scope": 7,
+        "index": 97,
+        "core": 2,
+        "tree": true,
+        "outcome": "checked",
+        "ms": 32.874912800000004
+      },
+      {
+        "stage": "closure-source",
+        "scope": 7,
+        "index": 81,
+        "outcome": "reused-model",
+        "ms": 0
+      },
+      {
+        "stage": "closure-source",
+        "scope": 66,
+        "index": 81,
+        "outcome": "reused-model",
+        "ms": 0
+      },
+      {
+        "stage": "closure-source",
+        "scope": 67,
+        "index": 81,
+        "tree": false,
+        "outcome": "sat",
+        "ms": 36.864401999999984
+      },
+      {
+        "stage": "closure-source",
+        "scope": 68,
+        "index": 81,
+        "outcome": "reused-model",
+        "ms": 0
+      },
+      {
+        "stage": "closure-source",
+        "scope": 69,
+        "index": 81,
+        "tree": false,
+        "outcome": "sat",
+        "ms": 36.53871000000001
+      },
+      {
+        "stage": "closure-source",
+        "scope": 70,
+        "index": 81,
+        "outcome": "reused-model",
+        "ms": 0
+      },
+      {
+        "stage": "closure-source",
+        "scope": 71,
+        "index": 81,
+        "tree": false,
+        "outcome": "sat",
+        "ms": 36.81141800000006
+      },
+      {
+        "stage": "closure-source",
+        "scope": 7,
+        "index": 110,
+        "tree": false,
+        "outcome": "sat",
+        "ms": 36.02341199999995
+      },
+      {
+        "stage": "closure-source",
+        "scope": 7,
+        "index": 6,
+        "tree": false,
+        "outcome": "unknown",
+        "ms": 50.01134799999994
+      },
+      {
+        "stage": "closure-source",
+        "scope": 66,
+        "index": 6,
+        "tree": false,
+        "outcome": "unknown",
+        "ms": 50.1530120000001
+      },
+      {
+        "stage": "closure-source",
+        "scope": 67,
+        "index": 6,
+        "tree": false,
+        "outcome": "unknown",
+        "ms": 50.17224999999996
+      },
+      {
+        "stage": "closure-source",
+        "scope": 68,
+        "index": 6,
+        "core": 2,
+        "tree": true,
+        "outcome": "checked",
+        "ms": 46.75058320000005
+      },
+      {
+        "stage": "closure-source",
+        "scope": 7,
+        "index": 7,
+        "core": 2,
+        "tree": false,
+        "outcome": "unknown",
+        "ms": 147.66949880000004
+      },
+      {
+        "stage": "closure-source",
+        "scope": 66,
+        "index": 7,
+        "tree": false,
+        "outcome": "unknown",
+        "ms": 7.342608000000041
+      }
+    ],
+    "cuts": 3
+  },
+  {
+    "name": "star-op3",
+    "side": "after",
+    "packetSha256": "1c25119b2695c7284d2712d95c03823d677a9898a1ae20dc057592e07cd20ab6",
+    "checked": false,
+    "units": 886.8751852,
+    "wallMs": 3792.1781239999996,
+    "rowQueries": 3,
+    "rowSplits": 2,
+    "rowMirrors": 0,
+    "stageCounts": {
+      "closure-scalar": 4,
+      "closure-leaf-budget": 3,
+      "closure-final": 3,
+      "row-case": 3,
+      "row-demand": 2,
+      "closure-model-round": 1,
+      "closure-batch-core": 3,
+      "closure-source": 22,
+      "pin-prune": 4,
+      "boolean-core": 5,
+      "closure-cut": 4,
+      "key-closure": 4,
+      "closure-scalar-case": 2,
+      "closure-model-split": 1,
+      "closure-complete": 1
+    },
+    "closureFinal": [
+      {
+        "stage": "closure-final",
+        "mode": "model-driven",
+        "outcome": "unknown",
+        "reason": "row-demand",
+        "cuts": 0,
+        "ms": 12.950847999999999,
+        "total": 13.1862564,
+        "pathSize": 6
+      },
+      {
+        "stage": "closure-final",
+        "mode": "model-driven",
+        "outcome": "unknown",
+        "reason": "row-demand",
+        "cuts": 0,
+        "ms": 12.956727999999996,
+        "total": 26.142984399999996,
+        "pathSize": 8
+      },
+      {
+        "stage": "closure-final",
+        "mode": "model-driven",
+        "outcome": "unknown",
+        "reason": "time",
+        "cuts": 4,
+        "ms": 0,
+        "total": 886.8751852,
+        "pathSize": 13
+      }
+    ],
+    "sources": [
+      {
+        "stage": "closure-source",
+        "scope": 7,
+        "index": 86,
+        "tree": false,
+        "outcome": "sat",
+        "ms": 41.38036999999999
+      },
+      {
+        "stage": "closure-source",
+        "scope": 7,
+        "index": 77,
+        "outcome": "reused-model",
+        "ms": 0
+      },
+      {
+        "stage": "closure-source",
+        "scope": 7,
+        "index": 46,
+        "core": 2,
+        "tree": true,
+        "outcome": "checked",
+        "ms": 7.684079600000004
+      },
+      {
+        "stage": "closure-source",
+        "scope": 7,
+        "index": 79,
+        "tree": false,
+        "outcome": "sat",
+        "ms": 35.186526000000015
+      },
+      {
+        "stage": "closure-source",
+        "scope": 7,
+        "index": 97,
+        "core": 2,
+        "tree": true,
+        "outcome": "checked",
+        "ms": 32.874912799999976
+      },
+      {
+        "stage": "closure-source",
+        "scope": 7,
+        "index": 81,
+        "outcome": "reused-model",
+        "ms": 0
+      },
+      {
+        "stage": "closure-source",
+        "scope": 66,
+        "index": 81,
+        "outcome": "reused-model",
+        "ms": 0
+      },
+      {
+        "stage": "closure-source",
+        "scope": 67,
+        "index": 81,
+        "tree": false,
+        "outcome": "sat",
+        "ms": 36.86440200000001
+      },
+      {
+        "stage": "closure-source",
+        "scope": 68,
+        "index": 81,
+        "outcome": "reused-model",
+        "ms": 0
+      },
+      {
+        "stage": "closure-source",
+        "scope": 69,
+        "index": 81,
+        "tree": false,
+        "outcome": "sat",
+        "ms": 36.53871000000004
+      },
+      {
+        "stage": "closure-source",
+        "scope": 70,
+        "index": 81,
+        "outcome": "reused-model",
+        "ms": 0
+      },
+      {
+        "stage": "closure-source",
+        "scope": 71,
+        "index": 81,
+        "tree": false,
+        "outcome": "sat",
+        "ms": 36.811418
+      },
+      {
+        "stage": "closure-source",
+        "scope": 7,
+        "index": 110,
+        "tree": false,
+        "outcome": "sat",
+        "ms": 36.02341199999995
+      },
+      {
+        "stage": "closure-source",
+        "scope": 7,
+        "index": 6,
+        "tree": false,
+        "outcome": "unknown",
+        "ms": 50.011348
+      },
+      {
+        "stage": "closure-source",
+        "scope": 66,
+        "index": 6,
+        "tree": false,
+        "outcome": "unknown",
+        "ms": 50.15301199999999
+      },
+      {
+        "stage": "closure-source",
+        "scope": 67,
+        "index": 6,
+        "tree": false,
+        "outcome": "unknown",
+        "ms": 50.17225000000002
+      },
+      {
+        "stage": "closure-source",
+        "scope": 68,
+        "index": 6,
+        "core": 2,
+        "tree": true,
+        "outcome": "checked",
+        "ms": 46.75058319999988
+      },
+      {
+        "stage": "closure-source",
+        "scope": 7,
+        "index": 7,
+        "core": 2,
+        "tree": false,
+        "outcome": "unknown",
+        "ms": 147.66949880000016
+      },
+      {
+        "stage": "closure-source",
+        "scope": 66,
+        "index": 7,
+        "core": 2,
+        "tree": true,
+        "outcome": "checked",
+        "ms": 91.98586039999998
+      },
+      {
+        "stage": "closure-source",
+        "scope": 7,
+        "index": 8,
+        "tree": false,
+        "outcome": "unknown",
+        "ms": 50.01245800000004
+      },
+      {
+        "stage": "closure-source",
+        "scope": 66,
+        "index": 8,
+        "tree": false,
+        "outcome": "unknown",
+        "ms": 50.15357800000004
+      },
+      {
+        "stage": "closure-source",
+        "scope": 67,
+        "index": 8,
+        "tree": false,
+        "outcome": "unknown",
+        "ms": 7.342607999999927
+      }
+    ],
+    "cuts": 4
+  },
+  {
+    "name": "star-op5",
+    "side": "before",
+    "packetSha256": "1c25119b2695c7284d2712d95c03823d677a9898a1ae20dc057592e07cd20ab6",
+    "checked": false,
+    "units": 666.9825368,
+    "wallMs": 1862.4885990000002,
+    "rowQueries": 1,
+    "rowSplits": 0,
+    "rowMirrors": 0,
+    "stageCounts": {
+      "closure-scalar": 4,
+      "closure-leaf-budget": 1,
+      "closure-model-round": 1,
+      "closure-batch-core": 4,
+      "closure-source": 21,
+      "key-closure": 2,
+      "pin-prune": 2,
+      "boolean-core": 2,
+      "closure-cut": 2,
+      "closure-final": 1,
+      "row-case": 1,
+      "closure-complete": 1
+    },
+    "closureFinal": [
+      {
+        "stage": "closure-final",
+        "mode": "model-driven",
+        "outcome": "unknown",
+        "reason": "time",
+        "cuts": 2,
+        "ms": 666.7238076000001,
+        "total": 666.9825368,
+        "pathSize": 10
+      }
+    ],
+    "sources": [
+      {
+        "stage": "closure-source",
+        "scope": 7,
+        "index": 86,
+        "tree": false,
+        "outcome": "sat",
+        "ms": 39.189066
+      },
+      {
+        "stage": "closure-source",
+        "scope": 7,
+        "index": 77,
+        "outcome": "reused-model",
+        "ms": 0
+      },
+      {
+        "stage": "closure-source",
+        "scope": 7,
+        "index": 79,
+        "tree": false,
+        "outcome": "sat",
+        "ms": 30.757648000000003
+      },
+      {
+        "stage": "closure-source",
+        "scope": 7,
+        "index": 105,
+        "tree": false,
+        "outcome": "sat",
+        "ms": 40.774180000000015
+      },
+      {
+        "stage": "closure-source",
+        "scope": 7,
+        "index": 97,
+        "core": 2,
+        "tree": true,
+        "outcome": "checked",
+        "ms": 31.219144799999953
+      },
+      {
+        "stage": "closure-source",
+        "scope": 7,
+        "index": 99,
+        "core": 2,
+        "tree": true,
+        "outcome": "checked",
+        "ms": 31.427872800000046
+      },
+      {
+        "stage": "closure-source",
+        "scope": 7,
+        "index": 81,
+        "outcome": "reused-model",
+        "ms": 0
+      },
+      {
+        "stage": "closure-source",
+        "scope": 65,
+        "index": 81,
+        "outcome": "reused-model",
+        "ms": 0
+      },
+      {
+        "stage": "closure-source",
+        "scope": 66,
+        "index": 81,
+        "tree": false,
+        "outcome": "sat",
+        "ms": 33.030888000000004
+      },
+      {
+        "stage": "closure-source",
+        "scope": 67,
+        "index": 81,
+        "tree": false,
+        "outcome": "sat",
+        "ms": 32.76979000000006
+      },
+      {
+        "stage": "closure-source",
+        "scope": 68,
+        "index": 81,
+        "outcome": "reused-model",
+        "ms": 0
+      },
+      {
+        "stage": "closure-source",
+        "scope": 69,
+        "index": 81,
+        "outcome": "reused-model",
+        "ms": 0
+      },
+      {
+        "stage": "closure-source",
+        "scope": 70,
+        "index": 81,
+        "tree": false,
+        "outcome": "sat",
+        "ms": 33.26453199999992
+      },
+      {
+        "stage": "closure-source",
+        "scope": 71,
+        "index": 81,
+        "outcome": "reused-model",
+        "ms": 0
+      },
+      {
+        "stage": "closure-source",
+        "scope": 7,
+        "index": 110,
+        "tree": false,
+        "outcome": "sat",
+        "ms": 34.83250600000008
+      },
+      {
+        "stage": "closure-source",
+        "scope": 7,
+        "index": 6,
+        "tree": false,
+        "outcome": "unknown",
+        "ms": 50.15592799999985
+      },
+      {
+        "stage": "closure-source",
+        "scope": 65,
+        "index": 6,
+        "tree": false,
+        "outcome": "unknown",
+        "ms": 50.1588680000001
+      },
+      {
+        "stage": "closure-source",
+        "scope": 66,
+        "index": 6,
+        "tree": false,
+        "outcome": "unknown",
+        "ms": 51.146860000000004
+      },
+      {
+        "stage": "closure-source",
+        "scope": 67,
+        "index": 6,
+        "tree": false,
+        "outcome": "unknown",
+        "ms": 50.07672400000001
+      },
+      {
+        "stage": "closure-source",
+        "scope": 72,
+        "index": 6,
+        "tree": false,
+        "outcome": "unknown",
+        "ms": 50.150092000000086
+      },
+      {
+        "stage": "closure-source",
+        "scope": 73,
+        "index": 6,
+        "tree": false,
+        "outcome": "unknown",
+        "ms": 28.39979399999993
+      }
+    ],
+    "cuts": 2
+  },
+  {
+    "name": "star-op5",
+    "side": "after",
+    "packetSha256": "1c25119b2695c7284d2712d95c03823d677a9898a1ae20dc057592e07cd20ab6",
+    "checked": false,
+    "units": 884.8788648000001,
+    "wallMs": 2101.950509,
+    "rowQueries": 3,
+    "rowSplits": 2,
+    "rowMirrors": 0,
+    "stageCounts": {
+      "closure-scalar": 4,
+      "closure-leaf-budget": 3,
+      "closure-final": 3,
+      "row-case": 3,
+      "row-demand": 2,
+      "closure-model-round": 1,
+      "closure-batch-core": 4,
+      "closure-source": 25,
+      "key-closure": 2,
+      "pin-prune": 2,
+      "boolean-core": 2,
+      "closure-cut": 2,
+      "closure-complete": 1
+    },
+    "closureFinal": [
+      {
+        "stage": "closure-final",
+        "mode": "model-driven",
+        "outcome": "unknown",
+        "reason": "row-demand",
+        "cuts": 0,
+        "ms": 15.55892,
+        "total": 15.8176492,
+        "pathSize": 6
+      },
+      {
+        "stage": "closure-final",
+        "mode": "model-driven",
+        "outcome": "unknown",
+        "reason": "row-demand",
+        "cuts": 0,
+        "ms": 15.5648,
+        "total": 31.3824492,
+        "pathSize": 8
+      },
+      {
+        "stage": "closure-final",
+        "mode": "model-driven",
+        "outcome": "unknown",
+        "reason": "time",
+        "cuts": 2,
+        "ms": 853.4964156000001,
+        "total": 884.8788648000001,
+        "pathSize": 10
+      }
+    ],
+    "sources": [
+      {
+        "stage": "closure-source",
+        "scope": 7,
+        "index": 86,
+        "tree": false,
+        "outcome": "sat",
+        "ms": 39.189066000000025
+      },
+      {
+        "stage": "closure-source",
+        "scope": 7,
+        "index": 77,
+        "outcome": "reused-model",
+        "ms": 0
+      },
+      {
+        "stage": "closure-source",
+        "scope": 7,
+        "index": 79,
+        "tree": false,
+        "outcome": "sat",
+        "ms": 30.75764799999999
+      },
+      {
+        "stage": "closure-source",
+        "scope": 7,
+        "index": 105,
+        "tree": false,
+        "outcome": "sat",
+        "ms": 40.77418000000003
+      },
+      {
+        "stage": "closure-source",
+        "scope": 7,
+        "index": 97,
+        "core": 2,
+        "tree": true,
+        "outcome": "checked",
+        "ms": 31.21914480000001
+      },
+      {
+        "stage": "closure-source",
+        "scope": 7,
+        "index": 99,
+        "core": 2,
+        "tree": true,
+        "outcome": "checked",
+        "ms": 31.42787279999999
+      },
+      {
+        "stage": "closure-source",
+        "scope": 7,
+        "index": 81,
+        "outcome": "reused-model",
+        "ms": 0
+      },
+      {
+        "stage": "closure-source",
+        "scope": 65,
+        "index": 81,
+        "outcome": "reused-model",
+        "ms": 0
+      },
+      {
+        "stage": "closure-source",
+        "scope": 66,
+        "index": 81,
+        "tree": false,
+        "outcome": "sat",
+        "ms": 33.030888000000004
+      },
+      {
+        "stage": "closure-source",
+        "scope": 67,
+        "index": 81,
+        "tree": false,
+        "outcome": "sat",
+        "ms": 32.76979
+      },
+      {
+        "stage": "closure-source",
+        "scope": 68,
+        "index": 81,
+        "outcome": "reused-model",
+        "ms": 0
+      },
+      {
+        "stage": "closure-source",
+        "scope": 69,
+        "index": 81,
+        "outcome": "reused-model",
+        "ms": 0
+      },
+      {
+        "stage": "closure-source",
+        "scope": 70,
+        "index": 81,
+        "tree": false,
+        "outcome": "sat",
+        "ms": 33.26453200000003
+      },
+      {
+        "stage": "closure-source",
+        "scope": 71,
+        "index": 81,
+        "outcome": "reused-model",
+        "ms": 0
+      },
+      {
+        "stage": "closure-source",
+        "scope": 7,
+        "index": 110,
+        "tree": false,
+        "outcome": "sat",
+        "ms": 34.83250599999997
+      },
+      {
+        "stage": "closure-source",
+        "scope": 7,
+        "index": 6,
+        "tree": false,
+        "outcome": "unknown",
+        "ms": 50.15592799999996
+      },
+      {
+        "stage": "closure-source",
+        "scope": 65,
+        "index": 6,
+        "tree": false,
+        "outcome": "unknown",
+        "ms": 50.15886800000004
+      },
+      {
+        "stage": "closure-source",
+        "scope": 66,
+        "index": 6,
+        "tree": false,
+        "outcome": "unknown",
+        "ms": 51.14685999999995
+      },
+      {
+        "stage": "closure-source",
+        "scope": 67,
+        "index": 6,
+        "tree": false,
+        "outcome": "unknown",
+        "ms": 50.07672400000001
+      },
+      {
+        "stage": "closure-source",
+        "scope": 72,
+        "index": 6,
+        "tree": false,
+        "outcome": "unknown",
+        "ms": 50.150092000000086
+      },
+      {
+        "stage": "closure-source",
+        "scope": 73,
+        "index": 6,
+        "tree": false,
+        "outcome": "unknown",
+        "ms": 50.15162399999997
+      },
+      {
+        "stage": "closure-source",
+        "scope": 68,
+        "index": 6,
+        "tree": false,
+        "outcome": "unknown",
+        "ms": 50.23396200000002
+      },
+      {
+        "stage": "closure-source",
+        "scope": 69,
+        "index": 6,
+        "tree": false,
+        "outcome": "unknown",
+        "ms": 50.138868
+      },
+      {
+        "stage": "closure-source",
+        "scope": 70,
+        "index": 6,
+        "tree": false,
+        "outcome": "unknown",
+        "ms": 51.17198399999995
+      },
+      {
+        "stage": "closure-source",
+        "scope": 74,
+        "index": 6,
+        "tree": false,
+        "outcome": "unknown",
+        "ms": 13.47596400000009
+      }
+    ],
+    "cuts": 2
+  }
+]

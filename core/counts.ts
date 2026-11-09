@@ -31,6 +31,7 @@ import {rangeInstances} from './count-ranges.ts'
 import {finiteHoudini} from './finite-houdini.ts'
 import {finiteModelChecker} from './finite-model.ts'
 import {countsForReads, proposeCountFacts} from './count-facts.ts'
+import {rangeInstances} from './count-ranges.ts'
 import {completeCountLawInstances} from './count-completion.ts'
 import {attemptShare, supportBudget} from './support-budget.ts'
 export {attemptShare, supportBudget} from './support-budget.ts'
@@ -743,7 +744,8 @@ export function countedAttempts(m: Machine, caller: Law[], support: Set<Law>, un
     const selections = new Map<string, Selection>()
     const poolCache = new Map<string, {key: string, value: ReturnType<typeof grammarPool>}>()
     const memberSources = new Map<string,MemberHint[]>()
-    // Fable's 16.3 range seeding, outside the lazy selector's cap.
+    // Fable's initial range selection: ordinary checked count instances, not
+    // lazy-pool assumptions. Keep the existing inclusion preference intact.
     const withRanges = <T extends Pick<CountCert, 'reads' | 'insts' | 'picks'> & {wits?: string[]}>(decls: CountDecl[], c: T, all: MapRead[]): T => {
       if (!pass) return c
       const taken = new Set<string>([...all.map(r => r[0]), ...c.insts.map(i => i.wit), ...m.params, ...m.inputs, ...Object.keys(m.state)])

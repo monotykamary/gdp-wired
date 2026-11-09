@@ -1,0 +1,128 @@
+{
+  "iterationOnly": true,
+  "baselineOverlay": "d4479299",
+  "candidateCore": "78eedf50661e23335c4bff905e8641614ed6d528",
+  "command": "GDP_INFER_TRACE=2 bun research/protocols/ic3syn/run.ts --ms 60000 --only mldr --skip broken",
+  "observations": [
+    {
+      "repeat": 0,
+      "placement": {
+        "vm": "bx_25xas5gt",
+        "type": "large",
+        "cpu": "AMD Ryzen 9 9950X 16-Core Processor",
+        "vcpus": 4,
+        "vm_vcpus": 8,
+        "exclusive": true,
+        "co_tenants": 0
+      },
+      "rows": [
+        {
+          "side": "before",
+          "id": "mldr",
+          "ic3syn": "mldr",
+          "search": {
+            "verdict": "unknown",
+            "stuck": "unknown",
+            "why": "time (rule result)",
+            "ms": 59001,
+            "work": 25808267,
+            "full": 7835654
+          }
+        },
+        {
+          "side": "after",
+          "id": "mldr",
+          "ic3syn": "mldr",
+          "search": {
+            "verdict": "unknown",
+            "stuck": "unknown",
+            "why": "time (rule result)",
+            "ms": 59000,
+            "work": 26304213,
+            "full": 7900373
+          }
+        }
+      ]
+    },
+    {
+      "repeat": 1,
+      "placement": {
+        "vm": "bx_bqtyjgvd",
+        "type": "large",
+        "cpu": "AMD Ryzen 9 9950X 16-Core Processor",
+        "vcpus": 4,
+        "vm_vcpus": 8,
+        "exclusive": true,
+        "co_tenants": 0
+      },
+      "rows": [
+        {
+          "side": "after",
+          "id": "mldr",
+          "ic3syn": "mldr",
+          "search": {
+            "verdict": "unknown",
+            "stuck": "unknown",
+            "why": "time (rule result)",
+            "ms": 59001,
+            "work": 35883144,
+            "full": 10818057
+          }
+        },
+        {
+          "side": "before",
+          "id": "mldr",
+          "ic3syn": "mldr",
+          "search": {
+            "verdict": "unknown",
+            "stuck": "unknown",
+            "why": "time (rule result)",
+            "ms": 59001,
+            "work": 40474830,
+            "full": 12227088
+          }
+        }
+      ]
+    },
+    {
+      "repeat": 2,
+      "placement": {
+        "vm": "bx_9qj8fsd3",
+        "type": "large",
+        "cpu": "AMD Ryzen 9 9950X 16-Core Processor",
+        "vcpus": 4,
+        "vm_vcpus": 8,
+        "exclusive": true,
+        "co_tenants": 0
+      },
+      "rows": [
+        {
+          "side": "before",
+          "id": "mldr",
+          "ic3syn": "mldr",
+          "search": {
+            "verdict": "unknown",
+            "stuck": "unknown",
+            "why": "time (rule result)",
+            "ms": 59001,
+            "work": 7844080,
+            "full": 3194881
+          }
+        },
+        {
+          "side": "after",
+          "id": "mldr",
+          "ic3syn": "mldr",
+          "search": {
+            "verdict": "unknown",
+            "stuck": "unknown",
+            "why": "time (rule result)",
+            "ms": 59059,
+            "work": 10409909,
+            "full": 4345553
+          }
+        }
+      ]
+    }
+  ]
+}
