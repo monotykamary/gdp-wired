@@ -22,7 +22,7 @@ on top of state-first: the first pilot caught no drops during target build.
 Shared circuits passed 57 tests; the pilot recovered four named drops,
 but still fails the unchanged five-of-seven bar.
 
-## Current WIP: front-loaded seed certification (validation pending)
+## Current revision: front-loaded seed certification (checked; pilot running)
 
 Coupled moves below still missed five-of-seven. The next hypothesis moves the
 same bounded seed-vector work before native setup, using shared layout and
@@ -30,11 +30,17 @@ materialization code and the exact same whole-family/source-step certifier.
 The early phase replaces the late phase: no second 256-attempt allowance.
 The original native traversal, domains, rounds and wall limits remain.
 
-The previous suite plus seven early-phase fixtures and static checks are
-running on submission: `8a2d16e5-ea62-4756-a3a1-fb7992daa016`, output
-`runs/t16-early-check/`, immutable overlay `runs/t16-early-overlay/`.
-No early-phase pilot is submitted, and the new WIP is not covered by the
-prior 73-test receipt. Details: `research/track-gen/t16-early-notes.md`.
+The full expanded suite passed on submission in `20261110-031855-qrrixs`:
+**80 tests / 2,287 assertions**, TypeScript, type-aware lint (zero warnings/errors),
+and commitlint. Receipts: `runs/t16-early-check/`; immutable overlay:
+`runs/t16-early-overlay/`; checked source commit: `af32bd46`.
+
+Six same-budget pilots are running on isolated submission-class large VMs:
+`0d3e5862-5fdf-4e5d-914a-4165d67fe318`, output `runs/t16-early-probe/`.
+The checked wrapper and new suite are now hash-checked by every pilot as well
+as the compiler and driver. Post-target pruning, uniform seeds and front-loading
+are on; intervals remain off. No performance outcome is claimed.
+Details: `research/track-gen/t16-early-notes.md`.
 Compiler SHA-256 `be1bd8f0d285eabe77716160e31fbe316d9fa031f8f07d6ab88c221387699578`;
 wrapper `a38433e20e843f347bdc28deaba3951778e21544fd7c36bd24c16b4eaf27c28b`;
 new tests `d5568b5d66778efd4297121e2681db5a9cb2fc65bcf2c47e593480d1090d125c`;

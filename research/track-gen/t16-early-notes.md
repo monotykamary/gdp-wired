@@ -11,7 +11,7 @@ attempt, so a richer neighborhood cannot help if it never executes.
 Run the SAME seed vectors before native compilation. The finite layout,
 materialization and vector enumerator are factored out, not independently
 reimplemented. The new seed-only helper constructs coordinate suggestions and
-never claims exhaustion, completeness or validity. Its callback is responsible
+never claims exhaustion, universal completeness or validity. Its callback is responsible
 for checking them. It retains the last-eight, 256-attempt and finite-domain
 limits, including uniform-map moves when explicitly enabled.
 
@@ -29,11 +29,13 @@ allowance. Native enumeration still follows under the same wall and round cap.
 The added `onSeed` receipt is separate from native traversal statistics, and a
 bounded seed batch has no `exhausted` field. Defaults and production stay off.
 
-## Validation pending
+## Validation
 
-Run all previous 73 tests plus seven early-phase fixtures: no native compilation
+All previous 73 tests plus seven early-phase fixtures passed: no native compilation
 for seed-only suggestions, exact attempt cap, certification before native work,
 no duplicate allowance, frozen-family cascade, caller/source-precondition and
-unknown-fact rejection, fallback native search, and expired walls. Run complete
-TypeScript, type-aware lint and commitlint. Only then submit the same six pilots
-against the unchanged five-of-seven / 2 s criterion.
+unknown-fact rejection, fallback native search, and expired walls. Submission
+batch `20261110-031855-qrrixs` passed 80 tests / 2,287 assertions, complete
+TypeScript, type-aware lint and commitlint. Checked source `af32bd46` is in the
+same six pilots against the unchanged five-of-seven / 2 s criterion. Results
+remain pending; no performance or production success is inferred.
