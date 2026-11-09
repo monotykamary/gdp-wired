@@ -26,10 +26,12 @@ import {relevantGoals, relevantLaws} from './relevance.ts'
 import {countPoolKey, countSignature, grammarPool, ids, polaritySelection, readTuples, refinementSignature, reservationReadClosure, reservationState, reservePool, prepareSupport, smallSelection, sparseReadInstances, sourceContext, coarseContext, selectedCertificate, chosenView, candidateWork, stableState, UnsupportedCountProposal} from './count-support.ts'
 import {fieldLaws} from './field-laws.ts'
 import {quorumLaws} from './quorum-laws.ts'
+import {countCubes, liftedOneKeyCounts} from './count-cubes.ts'
+import {finiteHoudini} from './finite-houdini.ts'
 import {countsForReads, proposeCountFacts} from './count-facts.ts'
 import {completeCountLawInstances} from './count-completion.ts'
-import {supportBudget} from './support-budget.ts'
-export {supportBudget} from './support-budget.ts'
+import {attemptShare, supportBudget} from './support-budget.ts'
+export {attemptShare, supportBudget} from './support-budget.ts'
 import {proposeCountUnions} from './count-unions.ts'
 import {focusedCountRecoveryEnabled,proveFocusedCounts} from './count-focus-proof.ts'
 import {preferMemberInclusions} from './count-recovery/member-inclusions.ts'
@@ -303,6 +305,7 @@ export function certFor(goal: {hyps: C[]}, decls: {map: string, below: E, j: str
 // cubes of at most two literals (core/infer.ts's `cubes`, read off these small states, within a quarter of the search's
 // budget `ms`, 15 s at most), its template `shapes` (the caller's laws, or an ∃ law's frame), each guard `u < param` loosened where a caller reads u with no param bound.
 export function candidates(src: Parameters<typeof inferLaws>[0], m: Machine, caller: Law[], shapes: Law[], guarded: Law[], ms: number, until: number, support = new Set<Law>()): Law[] {
+  const source = 'machine' in src ? src.machine : src
   const states = ptime('small', () => smallOf(m))
   // (a law of the state only: one the kernel's scope refuses, reading an input or a count of the request (a guard's
   // comparison with a second request count), has no value at a state, and is not proposed)
@@ -360,10 +363,22 @@ export function candidates(src: Parameters<typeof inferLaws>[0], m: Machine, cal
   for (const l of caller) for (const q of parts(l)) said.add(q)
   const prefixes = scanPrefixes(m, [...caller, ...kinds, ...guarded, ...rowLaws, ...cubes])
   const admit = (l: Law) => { const ps = parts(l); if (ps.every(q => said.has(q)) || !trueAll(l)) return false; for (const q of ps) said.add(q); return true }
-  const out = ptime('filter', () => [...kinds, ...ordinary, ...rowLaws, ...fields, ...prefixes, ...cubes].filter(admit))
+  let out = ptime('filter', () => [...kinds, ...ordinary, ...rowLaws, ...fields, ...prefixes, ...cubes].filter(admit))
   const carried = carryCandidates(m, [...caller, ...kinds, ...guarded, ...rowLaws, ...cubes])
   out.push(...ptime('filter', () => carried.filter(admit)))
   out.push(...ptime('quorumFilter', () => [...lifted, ...newFields].filter(admit)))
+  if (lifted.length) {
+    // Counts used only by rejected liftings must not spawn another family.
+    const liftedCounts = new Set([...reads([...caller, ...out], mp => !!m.counts?.[mp]).values()].map(([mp]) => mp))
+    for (const name of liftedCounts) for (const [mp] of reads(m.counts![name]!.body, () => true).values()) if (m.counts?.[mp]) liftedCounts.add(mp)
+    if (liftedOneKeyCounts(source, m).some(name => liftedCounts.has(name))) {
+      out.push(...ptime('countCubes', () => countCubes(source, m, states, liftedCounts).filter(admit)))
+      out = ptime('finiteHoudini', () => finiteHoudini(source, m, caller, out, states, {
+        onDrop: d => { if (env.GDP_COUNTS_TRACE) console.error(`counts: finite drop ${d.round} ${d.law.name}`) },
+        onRound: row => { if (env.GDP_COUNTS_TRACE) console.error(`counts: finite Houdini ${JSON.stringify(row)}`) },
+      }))
+    }
+  }
   // A rejected proposal must not enlarge every later counted goal. Retain only
   // lifted counts read by an admitted law (and their transitive dependencies).
   const proposed = new Set([...reads(lifted, mp => !!m.counts?.[mp]).values()].map(([mp]) => mp))
@@ -536,18 +551,22 @@ function admitCountedFamily0(m:Machine,caller:Law[],initial:Law[],support:Set<La
   const join = (kept = new Map<string, Proof>()): Counted => {
     const keptProof = () => ({instances: Object.fromEntries([...kept].map(([n, pr]) => [n, pr.instances])), certs: Object.assign({}, ...[...kept.values()].map(pr => pr.certs))})
     if (caller.every(l => kept.has(l.name))) return finish(set.filter(l => kept.has(l.name)), keptProof())
-    // (each law without a carried proof an even share of what is left a round)
+    // Each untried law gets an even share of what remains now, not what
+    // remained at round entry. Cheap proofs return their underspend to the pool.
     let carried = new Map<string, Proof>()
     attempts.houdini = true
     for (let round = 0; clock() < until; round++) {
       const {instances, certs} = keptProof()
-      const failed = new Set<string>(), proofs = new Map<string, Proof>(), share = (until - clock()) / Math.max(1, set.filter(l => !kept.has(l.name) && !carried.has(l.name)).length)
+      const failed = new Set<string>(), proofs = new Map<string, Proof>()
+      const pending = new Set(set.filter(l => !kept.has(l.name) && !carried.has(l.name)).map(l => l.name))
       // Structural supports first; no-support scheduling is unchanged.
       for (const law of supportOrder(set, caller, support)) {
         checkWall('Houdini round')
         if (clock() > until) return {proven: false, laws: set, m, why: 'time'}
         if (kept.has(law.name)) continue
         const was = carried.get(law.name)
+        const share = attemptShare(until - clock(), pending)
+        pending.delete(law.name)
         const structural = support.has(law) && !caller.includes(law)
         const boundedSupport = activeSupport(set, support)
         const allotted = supportBudget(until - clock(), share, boundedSupport && caller.includes(law), structural)
@@ -676,7 +695,10 @@ export function countedAttempts(m: Machine, caller: Law[], support: Set<Law>, un
       const at0 = Object.fromEntries(Object.entries(cti.at).filter(([n]) => n.startsWith('?') || ls.some(l => l.name === n)))
       if (!(seed = ptime('mbqi', () => modelInstances(m, modelLaws, at0, cti.gg, cti.w)))) return {stuck: 'sat'}
     }
-    const refuted = (gg: Goal, w: Record<string, number>): Tried<Proof> => { models.set(id, {gg, w, at, ls: new Set(ls.map(l => l.name))}); return {stuck: 'sat'} }
+    const refuted = (gg: Goal, w: Record<string, number>): Tried<Proof> => {
+      if (env.GDP_COUNTS_DUMP_ALL_PASSES === '1') countsDump.on?.({phase: 'final-sat', stuck: 'sat', law: law.name, pass, machine: m, laws: ls, goal: gg, witness: w, at})
+      models.set(id, {gg, w, at, ls: new Set(ls.map(l => l.name))}); return {stuck: 'sat'}
+    }
     // Supported obligations seed quantified flags only at demanded source terms.
     // Ordinary MBQI remains the fallback; arbitrary inputs are not initial witnesses.
     let at: Instances = seed ?? (supported ? {} : Object.fromEntries(Object.entries(m.step.flags ?? {}).flatMap(([f, q]) => (q.op === 'all' && !q.keys?.length ? [[`?${f}`, ts]] : []))))
@@ -859,7 +881,7 @@ export function countedAttempts(m: Machine, caller: Law[], support: Set<Law>, un
         if (lz && !asked) { built = build(); continue }
         if (!asked) {
           if (completeCounts()) { built = build(); continue }
-          if (countsDump.on && pass && dumped < Number(env.GDP_COUNTS_DUMP_N ?? 3)) { dumped++; countsDump.on({law: law.name, goal: step.goal.name, ls: ls.map(l => l.name), stuck: 'sat', witness: q.witness, reads: step.c.reads, insts: step.c.insts, hyps: step.gg.hyps, base: step.goal, decls: step.decls, cert: step.c, at, laws: ls, wide, pass}) }
+          if (countsDump.on && (pass || env.GDP_COUNTS_DUMP_ALL_PASSES === '1') && dumped < Number(env.GDP_COUNTS_DUMP_N ?? 3)) { dumped++; countsDump.on({law: law.name, goal: step.goal.name, ls: ls.map(l => l.name), stuck: 'sat', witness: q.witness, reads: step.c.reads, insts: step.c.insts, hyps: step.gg.hyps, base: step.goal, decls: step.decls, cert: step.c, at, laws: ls, wide, pass}) }
           if (pass && !wide && houdini && 'loose' in step.c && (step.c.loose || isCaller) && more()) { wide = true; widened.add(law.name); built = build(); continue }
           return refuted(step.gg, q.witness)
         }

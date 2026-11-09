@@ -5581,3 +5581,246 @@ The exit-130 statuses of `lane-b-parallel-v1` and `lane-b-check-v2` were **inten
 The first 15.1 research pair is a warning for Lane A: both unknown; Inv*'s share rose 1,765 → 3,743, but an earlier stored-guard attempt used 12,942 units against 4,083 requested, leaving Inv2973-half only 2,965. Neither arm reached Inv1758 or safety in that pair. Full three-pair results remain pending. The allocator stays research-only on Lane B.
 
 The verified captures yielded 271 distinct unproved roots. Their actual kernel name is `counted`, not a law name. After correcting that filter, **288 independent short root replays** were queued via treadmill backlog `track-m-lane-b-roots-v1`; no opaque-registry-dependent capture was admitted. A **research-only** 15.4 leaf-bounding variant is running on the four existing op packets with unchanged ceilings; production has not adopted it. No 15.5/15.6 or kernel change has landed, and no gate is claimed. [Running checkpoint](track-m/lane-b-status-v1/README.md).
+
+## Imported Lane A notes (1681e8e5)
+
+- The initial 34-law family gives safety a 955-unit first-pass share. Its STEP
+  stays `sat` through eight rounds / 1,013 accumulated hypotheses. The retry has
+  zero share left and returns `unknown`; the final reason is `time`.
+- Inv* (`no quorum canVote/3`) returns `sat` in both passes (68 and 615 counted
+  units), so it is not retained as an established invariant.
+- Inv2973's generated half form returns `sat` on its initial pass, then
+  `unknown` on retry (6,107 counted units, 485 accumulated hypotheses). That
+  retry costs 19.027 s wall in repeat 2 and 13.369 s in repeat 3.
+- Inv1758's generated row equality stays `unknown` (1,934 and 2,687 counted
+  units). None of the three required helpers becomes an established invariant.
+- Repeat 1 reaches the existing absolute wall ceiling during the broader
+  fallback; the final two-law family still cannot establish either caller.
+  Its early Inv2973 retry is likewise `unknown` at 6,107 counted units.
+
+Thus the generation gap is closed; **the original MLDR safety proof is not**.
+The limit observed here is helper/STEP proof cost under the unchanged scheduler,
+not missing quorum candidates. No full-suite merge gate or successful MLDR
+proof is claimed.
+
+T-13.1 completed: three paired all-29 generation censuses, **zero root proof
+queries**, and byte-identical canonical lists on **all other 28 protocols in
+all three pairs**. MLDR has **25 → 34** laws in every pair, with the semantic
+matches recorded above. Complete lists are retained in compressed form in
+`runs/t13-paired-v3/generation-pair-{1,3}.log` and
+`runs/t13-paired-r2-retry/generation-pair-2.log`.
+`runs/t13-generation-summary.json` records their source paths, per-list SHA-256
+hashes, counts and phase walls; it is a decoded receipt, not a new experiment.
+
+Each successful pair ran sequentially on one exclusive large VM, two pinned
+vCPUs, zero co-tenants, AMD Ryzen 9 9950X. Pairs 1 and 3 ran candidate first;
+pair 2 ran baseline first. Placement labels remain in each run directory.
+The following are per-protocol **generation seconds**, not proof times. The
+large `learning_switch` walls occur on both sides and are mostly existing
+sampling; the 60,000-unit candidate budget and all sampling bounds are unchanged.
+These are paired observations, not a claim of statistically significant speedup.
+
+| protocol | baseline → candidate laws | canonical comparison | baseline seconds, repeats 1/2/3 | candidate seconds, repeats 1/2/3 |
+|---|---:|---|---|---|
+| consensus | 3 → 3 | identical ×3 | 0.03, 0.06, 0.02 | 0.04, 0.03, 0.03 |
+| tcommit | 4 → 4 | identical ×3 | 0.06, 0.13, 0.06 | 0.06, 0.06, 0.04 |
+| lock_server | 5 → 5 | identical ×3 | 0.06, 0.09, 0.08 | 0.05, 0.05, 0.04 |
+| quorum_leader_election | 7 → 7 | identical ×3 | 0.69, 0.80, 0.56 | 0.57, 0.57, 0.51 |
+| toy_consensus_forall | 9 → 9 | identical ×3 | 0.62, 0.86, 0.62 | 0.71, 0.72, 0.60 |
+| simple | 4 → 4 | identical ×3 | 0.01, 0.02, 0.01 | 0.01, 0.01, 0.01 |
+| simple_regular | 4 → 4 | identical ×3 | 0.02, 0.02, 0.02 | 0.02, 0.02, 0.01 |
+| lockserv_automaton | 17 → 17 | identical ×3 | 0.03, 0.07, 0.03 | 0.04, 0.04, 0.04 |
+| sharded_kv | 18 → 18 | identical ×3 | 2.63, 3.08, 2.32 | 2.59, 2.76, 2.38 |
+| sharded_kv_no_lost_keys | 6 → 6 | identical ×3 | 2.74, 3.96, 2.41 | 2.69, 2.44, 2.05 |
+| lockserv | 17 → 17 | identical ×3 | 0.02, 0.04, 0.02 | 0.02, 0.03, 0.02 |
+| twophase | 14 → 14 | identical ×3 | 0.68, 0.86, 0.67 | 0.62, 0.62, 0.47 |
+| simple_decentralized_lock | 20 → 20 | identical ×3 | 0.02, 0.02, 0.02 | 0.02, 0.02, 0.02 |
+| two_phase_commit | 34 → 34 | identical ×3 | 1.23, 1.29, 1.16 | 1.16, 1.16, 0.99 |
+| consensus_wo_decide | 39 → 39 | identical ×3 | 5.82, 6.10, 4.82 | 5.54, 5.36, 4.68 |
+| consensus_forall | 48 → 48 | identical ×3 | 10.19, 13.02, 9.81 | 9.29, 10.72, 10.75 |
+| naive_consensus | 13 → 13 | identical ×3 | 1.11, 1.40, 1.09 | 1.11, 1.34, 1.22 |
+| client_server_ae | 10 → 10 | identical ×3 | 1.42, 1.73, 1.33 | 1.32, 1.42, 1.48 |
+| client_server_db_ae | 15 → 15 | identical ×3 | 6.41, 8.17, 6.75 | 5.92, 7.81, 6.94 |
+| simple_election | 12 → 12 | identical ×3 | 1.57, 1.99, 1.34 | 1.62, 1.76, 1.49 |
+| toy_consensus_epr | 8 → 8 | identical ×3 | 1.06, 1.45, 1.06 | 1.19, 1.19, 1.13 |
+| toy_consensus | 5 → 5 | identical ×3 | 0.60, 0.88, 0.57 | 0.66, 0.72, 0.79 |
+| firewall | 7 → 7 | identical ×3 | 0.04, 0.06, 0.03 | 0.03, 0.05, 0.04 |
+| majorityset_leader_election | 17 → 17 | identical ×3 | 1.18, 1.88, 1.23 | 1.11, 1.44, 1.44 |
+| consensus_epr | 29 → 29 | identical ×3 | 8.60, 12.21, 8.06 | 8.53, 10.51, 8.92 |
+| learning_switch | 16 → 16 | identical ×3 | 165.76, 158.93, 139.83 | 154.44, 157.34, 148.52 |
+| learning_switch_i4 | 463 → 463 | identical ×3 | 160.89, 147.49, 149.11 | 135.62, 164.16, 133.60 |
+| paxos_epr | 77 → 77 | identical ×3 | 19.97, 19.70, 16.51 | 16.11, 20.50, 15.40 |
+| mldr | 25 → 34 | changed | 16.93, 15.46, 15.44 | 16.06, 19.00, 15.24 |
+
+`runs/t13-census/census.log` separately confirms the structural trigger is
+**1 of 29**: MLDR proposes 15 quorum/guard laws and 3 composed-row laws; all
+other ports propose zero of both. Full type/lint and file-input commitlint
+checks passed again in `runs/t13-report-check` after the final research-tooling
+changes. No production file changed after implementation commit `74a8a0e9`.
+
+Reproduction commands and receipt formats: `research/track-gen/T13.md`.
+All started jobs are finished or explicitly stopped. No merge or push was done;
+large logs and decoded receipt archives remain outside git.
+
+## MLDR-GEN: strict 60 s deadline follow-up (2026-11-09)
+
+The earlier 88.610–133.399 s candidate runs above are **not strict-gate passes**.
+This follow-up compares the completed generation branch at **`189eefcd`** with
+the deadline fix, not the earlier 25-law `346fbcd9` baseline. Both sides generate
+34 MLDR laws. No kernel/solver file, law or trusted fact changed.
+
+### Where the wall escaped, and the generic fix
+
+1. `searchCounted` called `guardLaws` and `smallOf` **before** starting its wall,
+   then granted `2 * ms` to proof search. `proveRule` also did preparation and
+   refutation preflight before reaching that scope. Thus `--ms 60000` was not a
+   60 s end-to-end deadline.
+2. Sampling's BFS and random walks, sample-law binding enumeration, and the
+   preflight watcher's binding enumeration had no enclosing-wall checkpoints.
+   The counted clock does not debit this work. Several counted phase, Houdini,
+   refinement and fallback boundaries could also continue after wall expiry.
+3. `proveRule` now puts preparation, preflight, generation and proof under one
+   absolute wall. `searchCounted` starts its own nested scope before generation
+   and no longer doubles it. Nested scopes only shorten the caller's deadline.
+4. `core/wall.ts` supplies cooperative cancellation for untrusted search only.
+   Sampling checks each request; binding enumeration checks at entry and every
+   256 tuple prefixes, with a fresh poll for each state/law. Counted phases and
+   refinement/Houdini/fallback boundaries check the wall. A local attempt's
+   expired wall returns `unknown` for that attempt. A whole-run expiry returns
+   an unchecked `unknown`, never a proof. Interrupted sample graphs are not
+   cached as complete or replaced by an empty successful filter.
+5. The first fix still returned at 60.142 s inside the engine / 60.37 s as a
+   process (`runs/t13-wall-diagnose/engine-60s.log`): an in-flight synchronous
+   operation plus process setup/output straddled the deadline. Work now leaves
+   **`min(1000 ms, requested_ms / 20)`** of completion headroom, generically.
+   For 60 s the work wall is 59 s; the external hard wrapper stays exactly 60 s.
+   This is a wall-only reduction. The requested 60,000 counted units, rates,
+   counters, per-law shares and search ordering are unchanged.
+
+### Strict three-pair gate — final source
+
+`runs/t13-wall-final-v2`: every individual process ran the **unchanged original
+harness** under:
+
+```sh
+timeout -s KILL 60 bun research/protocols/ic3syn/run.ts \
+  --ms 60000 --only mldr --skip broken
+```
+
+`GDP_COUNTS_TRACE=123` / `GDP_COUNTS_PROF=1` only observe. `/usr/bin/time`
+measures the process including startup and output, separately from `search.ms`.
+Each pair is sequential on one exclusive large AMD Ryzen 9 9950X VM, two pinned
+vCPUs and zero co-tenants (`placement.json`). The middle pair is baseline first;
+the other two are candidate first. Exit 137 is a **kill**, not an unknown verdict.
+
+| repeat | parent process / exit | fixed process / exit | fixed engine wall | fixed result |
+|---|---|---|---|---|
+| 1 | 60.00 s / 137 (killed) | 59.36 s / 0 | 59.223 s | unknown |
+| 2 | 60.00 s / 137 (killed) | 59.19 s / 0 | 59.028 s | unknown |
+| 3 | 60.00 s / 137 (killed) | 59.24 s / 0 | 59.127 s | unknown |
+
+All three fixed processes finish cleanly under 60 s and emit their JSON verdict.
+The final reason is `time (rule result)`. The MLDR proof remains **unknown**;
+this fixes the deadline, not the remaining proof-cost limitation.
+
+### Counted-work preservation and generation nonregression
+
+The trace audit strips wall/profiling fields but retains the law, pass, share,
+counted work and outcome. All **37 / 39 / 41** completed parent attempts are
+identical prefixes of the corresponding fixed traces. Each fixed run then logs
+one additional, deadline-interrupted attempt; no completed parent attempt was
+reordered or assigned different counted work. Whole-run work differs with host
+throughput and the cutoff: it is not claimed equal after a wall interruption.
+Tests separately verify that checkpoints/headroom do not debit `fullWork` or the
+counted clock, and an expired preflight does not debit another watched tuple.
+
+The final paired generation census covers **all 29 protocols**, in three disjoint
+subsets (`generation-rest`, `generation-switch`, `generation-switch-i4`). It
+makes **zero root proof queries**. Every canonical list is byte-identical to
+`189eefcd`, including MLDR's **34** laws; therefore all other **28** are unchanged.
+Their SHA-256 hashes also all equal the earlier full, unsharded T-13 census.
+MLDR generation was 14.866 s parent / 15.471 s fixed in this pair. This is one
+paired observation, not a statistically significant speed claim.
+
+Full exit-code, timing, counted-prefix and 29-list hash receipts:
+`runs/t13-wall-summary-v2.json` (decoded by
+`research/track-gen/t13-wall-report.ts`). Full logs remain in
+`runs/t13-wall-final-v2`, outside git.
+
+### Tests, failures retained, and reproduction
+
+`runs/t13-wall-checks-v2`: **40 tests / 177 assertions passed**, including six new
+wall/caching/accounting tests and the neighboring search, exists, quorum and
+field-law tests. Full TypeScript, type-aware lint and file-input commitlint passed.
+No baseline fragments were mounted into this check job.
+
+- `runs/t13-wall-probe`: first cooperative fix still got exit 137 under the
+  strict wrapper. It is a failure, not included among the final three pairs.
+- `runs/t13-wall-diagnose`: the 10/60 s diagnostic runs used wider outer wrappers
+  solely to measure the residual overrun; they are not strict-gate evidence.
+- `runs/t13-wall-final/checks.log`: TypeScript saw the four mounted baseline
+  fragments under `baseline/core` and reported unresolved imports. This was a
+  job-layout failure, not fixed by weakening checks. Checks now run separately
+  without that data mount. The earlier unamortized polling experiment is also
+  not substituted for the final source's timings above.
+
+Final production git blob hashes:
+
+- `core/counts.ts`: `4f67e82158e82979957df4925120d8c30b6d6e82`
+- `core/dsl.ts`: `a714df3e14440ae640014a9005e58d73cecc01df`
+- `core/exists.ts`: `f87beb2c46ace579ef0c21ec7917aa3ee25637d6`
+- `core/watch.ts`: `0dde3d54af8eb67841e0e64ef4dc31afba7b9618`
+- `core/wall.ts`: `3fd094c12de30c5bba73ace61c6f72388d780620`
+
+Reproduction commands, baseline overlay and receipt semantics:
+`research/track-gen/WALL.md`. All jobs are finished. No merge, push, full-suite
+merge gate or successful MLDR proof is claimed.
+
+## Lane A / E-14 — in progress (2026-11-09)
+
+Handoff `MLDR-29.md` and design Section 14 read. Baseline for the full merge
+comparison is local main `b788e195`; the E-14 generation-only control is this
+branch at `cd0a1aa4`. Hypothesis: extending width-2 cubes to fresh lifted one-key
+counts supplies the missing initialization law; finite relative-CTI filtering
+then removes false/non-inductive candidates before allocating proof shares.
+The other 28 candidate lists must remain byte-identical. Finite filtering is a
+falsifier only: it never supplies a trusted invariant, drops a caller, or drops
+on an unknown evaluation. All survivors still require ordinary checked proof.
+
+Initial probe (`runs/t14-check-v1/`): 23 tests / 83 assertions passed; the
+check then correctly rejected three `Rule | Machine` adapter type errors.
+Both required count cubes were present. This first version incorrectly exposed
+unused lifted-count vocabulary (53 helpers before filtering) and spent 35.88 s
+in finite filtering, retaining 50. Corrective work restricts atoms to counts
+read by admitted candidates, covers the full finite action range, and avoids
+exception-driven binder dependency tests. The initial probe is not acceptance
+evidence. Second probe (`runs/t14-check-v2/`) passed TypeScript, type-aware
+lint and all 23 targeted tests, but generation hit its cooperative wall during
+the second finite round (not an acceptance run). Its trace exposed costly
+exception-driven dependency checks and insufficiently diverse neighbor states.
+The next version uses explicit dependency tests, independent finite configurations
+as well as neighbors, and stored-row cardinality atoms rather than filtered
+quorum bodies. All 29 generation controls ×3 are submitted separately through
+the warm-VM scheduler. No MLDR proof or green merge gate is claimed.
+
+Validated E-14 implementation (`runs/t14-verify-v6/`): all 24 targeted tests
+passed, with TypeScript and type-aware lint reporting zero errors/warnings.
+The generation probe completed in 23.14 s on an isolated **AMD EPYC 4585PX
+16-Core Processor**, large VM, four pinned vCPUs. It retained **35 total laws**,
+not the design's ≈22 prediction: the finite pass removed five helpers, but
+several other predicted CTIs were not sampled. The pass is a falsifier, not
+an exhaustive search, and no additional laws are dropped on that basis.
+The two required initialization cubes are present. The phase timings and
+exact surviving list are in `generation-acceptance.log`; the CPU receipt is
+`placement.json`.
+
+Section 15.1 is now implemented: the denominator excludes laws already tried,
+kept or carried, and the share is recomputed immediately before each law.
+Order, `supportBudget`, counted fuel and wall deadline are unchanged.
+`runs/t14-share-check/` passed **13 tests / 2,538 assertions**, including
+conservation and redistribution cases (isolated AMD Ryzen 9 9950X).
+The same E-14 source with the old round-fixed share is archived as a research
+control; three strict pairs isolate scheduling, while three further strict
+pairs compare the combined branch with main. CPU model, VM identity and
+pinning for every strict pair will be read from its `placement.json` into
+the final gate report. These pairs and the generation census are pending.
