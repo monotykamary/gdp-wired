@@ -17,6 +17,7 @@ for side in "$order" "$([[ "$order" == before ]] && echo after || echo before)";
   if [[ "$side" == before ]]; then cp "control/$f" "$f"; else cp "$work/candidate/$f" "$f"; fi
  done
  echo "LANE_F_BEGIN $kind $tag $op $side"
+ for f in core/count-cases.ts core/count-recovery/{row-cases,derivability-closure}.ts; do sha256sum "$f"; done
  if [[ "$kind" == op ]]; then
   LAB_DISPOSABLE=1 bun research/track-m/install-lane-b-op.ts
   timeout -s KILL 20 bun research/track-m/lane-b-op.ts "packets/$tag.packet.json" "$op" "$work/$side" > "$work/$side.log" 2>&1

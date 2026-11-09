@@ -1,3 +1,13 @@
+## Lane F — implementation and integration checkpoint
+
+Lane F proposal: `3779c750`, refined at `4cf52e8d`. The model-driven path tries the unsplit scope, uses only a validated numeric model to choose an unresolved equality (preferring source rows of violated count facts), covers both orderings of disequality, and retains checked cache/mirror transport. Non-model callers retain the old eager route. Write-free target dependencies follow count bodies/bounds and scalar changes; activation recovery first tries existing frame proofs without splitting a guard. All returned trees still go through the unchanged checker. These are experimental changes, **not validated performance wins**.
+
+Pulled Lane B `b6fa0a50`/`c1d2185f`, Lane A `8b44e4b3`/`c9d7f823`/`48533517`/`74dd9cc5`/`52b2382f`, and Lane E `0ee27c7a`. Report-only integration conflicts preserved both histories. Lane A's finite-CTI audit fixes remain pending their external audit; no prior gate is transferred to this combined tree.
+
+Submitted on boat: no-data focused check `runs/lane-f-check-v1` (batch `20261109-140200-5f9h4w`, tree `d8b0ccdc3c09`) and nine same-VM frozen-op pairs plus a check in `runs/lane-f-frozen-v1` (batch `20261109-140314-cksbws`, tree `663f93d73008`). The frozen input is the actual E-14 capture, not Gp1: family SHA-256 `5c9aa44bca08790afdf331b290f101b6ca5d177133e662f5f6f1e80aa6cebc6f`, zero supplied laws. Control files are exactly `d4479299`. Both batches are pending; no verdict or saving is inferred from submission. The check inside the data-mounted batch may encounter the known fixture problem of `.ts` control copies under the repo; the first check is isolated from those files. No replacement run is being silently substituted.
+
+At 14:07 +0700 the controllers still had no receipts; read-only pool status showed 42 idle large warm agents. This resembles Lane A's recorded stalled receipts, but is not yet classified as a test failure or a definitive scheduler failure. Work continues on source integration and reproducible receipt analysis while a single bounded observer waits per batch. The original harness and Lane D final gate have not run for this candidate.
+
 ## Lane F — start / scope (2026-11-09)
 
 NOT GATE GREEN. Branch `claude/mldr-leaves` starts at `d4479299`; baseline main is `b788e195`. Read COMMON, MLDR-DESIGN §§14–16 and all MLDR-29 rules, Speed, Gate evidence and Merging. Lane F owns row/activation leaf reduction (§15.6). Hypothesis: probing the unsplit scope and splitting only on a numeric model's unresolved row equality reduces reconstructed leaves without changing checked obligations; syntactically write-free operations need no row cases. Falsifiers: more leaves/cost, lost checked results, or any accepted unchecked branch.
