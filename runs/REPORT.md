@@ -6,8 +6,9 @@
   `vendor/` errors of the shipped tree), **census 29 / 29 lists byte-identical vs `bef4020f`** (`receipts/census4`), strict-harness
   non-attempt wall **10.9 / 9.9 s vs 29.1 / 20.5 s** on EPYC 4585PX / Ryzen 7 9700X (`receipts/orig2`), 29 / 29 verdicts identical to
   `c21a6e54` at a19a0713 (`receipts/rverd2`; the later commits are generation-only and census-identical). Lanes F / B / I can pull it.
-- **7bc4e5fd** (one shared breakpoint list per step, no duplicate map validation in `cells`) is running its tests, incremental pair,
-  census and strict pairs; it becomes the head for the gate only when all four hold, else f4db596e stays.
+- **7bc4e5fd** (one union breakpoint list per step) is **not promoted**: census identical, mldr faster, but `learning_switch`'s small phase
+  +50 % (every dense write evaluated at the other writes' breakpoints). Its successor shares a list only among writes with identical
+  breakpoints and is under tests, mldr + learning_switch pairs vs f4db596e, and a census; f4db596e stays the head until those hold.
 - **VM note for lane D and the coordinator:** `bx_8nqy7xab` (large, Ryzen 9 9950X) ran both of its strict pairs ≈ 3× slower than every
   other large VM (base 54.1 s and 54.8 s of non-attempt wall against 20–29 s elsewhere; `receipts/orig2` pair 3, `receipts/orig3` pair 2).
   A timing claim should not rest on it; the pairs on it still favour the candidate.
@@ -54,7 +55,11 @@ the merged-tree tests/typecheck, the 29-list census against `bef4020f` and a per
   Next cut, `7bc4e5fd` — **117 tests pass; incremental pair vs `b25ab7c4` on one pinned 9950X: 11.3 / 10.4 / 11.1 s vs 12.7 / 12.2 / 12.7 s,
   every pair in favour (`runs/track-wall/receipts/incr2`); **strict pairs vs `bef4020f`: non-attempt wall EPYC 4585PX 11.7 s vs 24.3 s and
   13.2 s vs 26.0 s** (small 4.2 / 4.8 vs 9.8 / 10.9, cubes 5.2 / 5.9 vs 12.0 / 12.6; `decide` 37.7 / 37.0 vs 25.8 / 24.3 s), and on a Ryzen 9
-  9950X VM that was again ≈ 3× slower than its class 20.0 s vs 54.8 s (`runs/track-wall/receipts/orig3`); census running:** one breakpoint list per step shared by every dense write (the union of their breakpoints; `$dense`
+  9950X VM that was again ≈ 3× slower than its class 20.0 s vs 54.8 s (`runs/track-wall/receipts/orig3`); **census 29 / 29 identical but not promoted:** `learning_switch` and `learning_switch_i4` ran their small
+  phase +55 % / +47 % (172 → 270 s, 130 → 191 s; `runs/track-wall/receipts/census5`), where `f4db596e` had read +16 % / −8 % on the same
+  harness — the union list makes every dense write evaluate its value at the other writes' breakpoints, a real cost when the sets differ.
+  Replaced by sharing only among writes with the same breakpoints (no write evaluates at another's), measured on mldr and learning_switch
+  against `f4db596e`:** one breakpoint list per step shared by every dense write (the union of their breakpoints; `$dense`
   fills the same cells from it), and no second validation in `cells`.
 , violation-driven ranges (`72380dc1`) vs lane A's `c21a6e54`, three pinned large VMs
   (Ryzen 9 9950X ×2, EPYC 4585PX; `runs/track-wall/receipts/rmldr3`, logs gzipped):** verdict `unknown` (time) on all six runs;
