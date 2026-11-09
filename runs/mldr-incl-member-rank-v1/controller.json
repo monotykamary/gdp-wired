@@ -1,0 +1,11 @@
+{
+  "taskId": "8b23c143-90b0-4846-8b18-d72b4bfc14b3",
+  "batch": "20261110-014758-a6x9cy",
+  "tree": "5bf90e3c9f52",
+  "image": "sc-f0d8daeee6c3",
+  "exitCode": 0,
+  "jobs": 7,
+  "failed": 0,
+  "wallSeconds": 347.7,
+  "jobSeconds": 754.2
+}

@@ -1,5 +1,51 @@
 # RESUMED — lane E, 2026-11-10
 
+## Ranking result: conditional safety below its share; production validation running
+
+Completed **20261110-014758-a6x9cy**, seven rows, each with a passing source
+check and 6 installer/provenance tests / 21 assertions. This is a controlled
+research change to the prior exact generated family, with initial ranges
+disabled, not yet a production result.
+
+| early field-law prefix | at 2700 | checked cost at 6000 |
+|---|---|---|
+| unchanged control | UNKNOWN | 3817.24253 |
+| none | **checked, 2052.9079764** | **2052.9079764** |
+| top 1 | checked, 2116.7015284 | 2116.7015284 |
+| top 2 | checked, 2125.2738472 | 2125.2738472 |
+| top 3 | UNKNOWN | 4851.5793732 |
+| top 4 | UNKNOWN | 4877.7164352 |
+| top 6 | UNKNOWN | UNKNOWN, stopped at 6000.11004 |
+
+Rank zero keeps every flag premise and all scalar laws available to MBQI;
+it only avoids proposing scalar-field tuples before a model asks. Both
+allowances independently reconstruct/check START and STEP, use `member$4`,
+`member$5`, and row inclusion `w$280`, and produce the same complete archive:
+`5475f29a04a0818277664657ce123974a6809dc3e4af7c3ae64707b422949891`.
+The measured cost reduction is 1764.3345536 units (46.2%). These are counted
+work comparisons, not cross-CPU speedups. Rank-zero walls are 6.606 / 5.772 s
+on its Ryzen 9950X; no unconditional safety or original-harness win follows.
+All exact outcomes, CPU labels and compressed receipts:
+`runs/mldr-incl-member-rank-v1/`.
+
+### For lane B / I: production candidate 9124348d
+
+**9124348d** applies flags-first admission to the demand-range production
+candidate. It passes an empty *proposal* law list to initial member seeding;
+the actual law family, model-driven field instantiation, independence
+filters, kernel checker, and every budget are unchanged. The helper's
+explicit field-bridge behavior and existing tests remain intact. A new
+regression checks flags-only seeding and preservation of learned tuples.
+
+Do not call it validated yet. Five guarded jobs are registered as
+**20261110-015518-rcbski**, task
+`f151cb88-2215-4e96-bdee-55837243e46e`, output
+`runs/mldr-incl-flags-first-v1/`: source/focused tests, original MLDR x3, and
+fresh generated conditional checks with separate-process replay at **both**
+2700 and 6000. It reuses the frozen base and prior tiny overlays; no new
+whole-tree archive, no subagents, no deletions. No 29/29 or gate-green claim.
+
+
 ## ac7eacfe validated: conditional safety restored; originals remain UNKNOWN
 
 Completed **20261110-014532-stsqg4**, all five rows exit 0. The production

@@ -1,5 +1,18 @@
 # RESUMED — user instruction, 2026-11-10
 
+**Ranking completed:** omitting only eager scalar-field proposals checks
+conditional safety at **2052.9079764 units** at both 2700 and 6000, versus
+control 3817.24253. Both phases and both independent replays pass. All seven
+source checks and 6-test/21-assertion runs pass. Receipts:
+`runs/mldr-incl-member-rank-v1/`. Conditional research result only.
+
+**Production candidate 9124348d pending:** flags-first initial member
+seeding; all scalar laws remain available to MBQI. Task
+f151cb88-2215-4e96-bdee-55837243e46e, batch 20261110-015518-rcbski,
+`runs/mldr-incl-flags-first-v1/`: checks/tests, original x3, fresh generated
+2700/6000 probes and independent replay at both. No full gate claimed.
+
+
 **Latest completed source ac7eacfe:** type/lint and 87 tests / 295 assertions
 pass. Fresh generated conditional safety checks at 3817.24253 units with
 both member inclusions, 8.762 s wall; still UNKNOWN at 2700. Original MLDR
