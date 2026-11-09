@@ -1,0 +1,24 @@
+PAIR 1 mine
+VERDICT {"id":"mldr","ic3syn":"mldr","search":{"verdict":"unknown","stuck":"unknown","why":"time (rule result)","ms":59004,"work":14954458,"full":6982379}}
+counts: prof total 58940 ms; guards 4, small 4213, cubes 5154, filter 105, quorumFilter 342, countCubes 29, finiteHoudini 1901, encode 916, decide 37702, mbqi 1041, lazy 2662, #rounds 122, #hyps 10047, grow 17, part 622, focused 3345, #lazy 728; cdcl runs 145 conflicts 3539 decisions 49068 solveMs 1102 rowsMs 7689 coreMs 31 unfo
+PROCESS_SECONDS mine 59.13 EXIT 0
+PAIR 1 base
+VERDICT {"id":"mldr","ic3syn":"mldr","search":{"verdict":"unknown","stuck":"unknown","why":"time (rule result)","ms":59022,"work":13853970,"full":5485609}}
+counts: prof total 58880 ms; guards 7, small 9829, cubes 11966, filter 116, quorumFilter 438, countCubes 60, finiteHoudini 1901, encode 691, decide 25767, mbqi 916, lazy 1561, #rounds 109, #hyps 8683, grow 13, part 774, focused 4265, #lazy 400; cdcl runs 124 conflicts 3339 decisions 44344 solveMs 918 rowsMs 5888 coreMs 34 unfold
+PROCESS_SECONDS base 59.14 EXIT 0
+PAIR 2 base
+VERDICT {"id":"mldr","ic3syn":"mldr","search":{"verdict":"unknown","stuck":"unknown","why":"time (rule result)","ms":59034,"work":818495,"full":376725}}
+counts: prof total 58741 ms; guards 13, small 30074, cubes 21778, filter 262, quorumFilter 653, countCubes 86, finiteHoudini 1902, encode 100, decide 1508, mbqi 86, lazy 0, #rounds 9, #hyps 545, grow 6, part 450, focused 1719; cdcl runs 18 conflicts 678 decisions 4766 solveMs 218 rowsMs 892 coreMs 21 unfoldMs 43 lpMs 131 boundMs
+PROCESS_SECONDS base 59.14 EXIT 0
+PAIR 2 mine
+VERDICT {"id":"mldr","ic3syn":"mldr","search":{"verdict":"unknown","stuck":"unknown","why":"time (rule result)","ms":59216,"work":9983257,"full":3423281}}
+counts: prof total 59023 ms; guards 7, small 8981, cubes 8461, filter 186, quorumFilter 453, countCubes 46, finiteHoudini 1901, encode 589, decide 29848, mbqi 890, lazy 1385, #rounds 84, #hyps 6325, grow 12, part 846, focused 5047, #lazy 192; cdcl runs 100 conflicts 2872 decisions 33526 solveMs 969 rowsMs 5565 coreMs 38 unfoldMs
+PROCESS_SECONDS mine 59.36 EXIT 0
+PAIR 3 mine
+VERDICT {"id":"mldr","ic3syn":"mldr","search":{"verdict":"unknown","stuck":"unknown","why":"time (rule result)","ms":59002,"work":13876932,"full":5980201}}
+counts: prof total 58937 ms; guards 5, small 4815, cubes 5912, filter 121, quorumFilter 368, countCubes 37, finiteHoudini 1902, encode 655, decide 36962, mbqi 924, lazy 1792, #rounds 113, #hyps 9183, grow 14, part 671, focused 4227, #lazy 579; cdcl runs 133 conflicts 3385 decisions 45446 solveMs 1295 rowsMs 6163 coreMs 31 unfold
+PROCESS_SECONDS mine 59.12 EXIT 0
+PAIR 3 base
+VERDICT {"id":"mldr","ic3syn":"mldr","search":{"verdict":"unknown","stuck":"unknown","why":"time (rule result)","ms":59004,"work":12739537,"full":4646803}}
+counts: prof total 58911 ms; guards 6, small 10902, cubes 12641, filter 137, quorumFilter 349, countCubes 37, finiteHoudini 1901, encode 720, decide 24263, mbqi 1114, lazy 1099, #rounds 100, #hyps 7819, grow 17, part 900, focused 4483, #lazy 286; cdcl runs 112 conflicts 3185 decisions 40672 solveMs 981 rowsMs 5009 coreMs 37 unfo
+PROCESS_SECONDS base 59.11 EXIT 0
