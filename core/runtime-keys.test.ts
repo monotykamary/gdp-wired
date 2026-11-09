@@ -70,3 +70,29 @@ test('$unique cannot observe a stamp wrap: at 2^32 − 1 the buffer is zeroed an
   expect(unique.stamp).toBe(1)
   expect(unique.buf!.length).toBeGreaterThan(240)
 })
+
+test('$breaks marks the stamp buffer directly and agrees with the Set path on dense and sparse inputs', () => {
+  const src = compileJs(m), cut = (name: string) => { const start = src.indexOf(`function ${name}(`); return src.slice(start, src.indexOf('\n', start)) }
+  const breaks = new Function(`${cut('$unique')}; ${cut('$breaks')}; return $breaks;`)() as (maps: Record<string, Map<number, number>>, reads: [string, number, boolean][], cmps: [number, number, boolean][]) => number[]
+  // (the reference: every breakpoint's neighbours −1 .. +2, unique, sorted, then one past the last)
+  const reference = (maps: Record<string, Map<number, number>>, reads: [string, number, boolean][], cmps: [number, number, boolean][]) => {
+    const p = [0]
+    for (const [n, d, minus] of reads) { for (const s of maps[n]!.keys()) { const q = minus ? s + d : s - d; if (q >= 0) p.push(q) } if (minus) p.push(d) }
+    for (const [v, d, minus] of cmps) { if (minus) p.push(v + d, d); else if (v >= d) p.push(v - d) }
+    const out = [...new Set(p.flatMap(q => [q - 1, q, q + 1, q + 2].filter(x => x >= 0)))].sort((a, b) => a - b)
+    return [...out, out[out.length - 1]! + 1]
+  }
+  let sparse = 0
+  for (let trial = 0; trial < 300; trial++) {
+    const wide = trial % 5 === 0, maps: Record<string, Map<number, number>> = {}
+    for (const name of ['A', 'B']) { const cells = new Map<number, number>(); for (let q = rand(5); q > 0; q--) cells.set(wide ? rand(5000) * 100 : rand(20), 1 + rand(2)); maps[name] = cells }
+    const reads: [string, number, boolean][] = Array.from({length: 1 + rand(3)}, () => [rand(2) ? 'A' : 'B', rand(4), rand(2) === 1])
+    const cmps: [number, number, boolean][] = Array.from({length: rand(3)}, () => [wide ? rand(100000) : rand(12), rand(4), rand(2) === 1])
+    const want = reference(maps, reads, cmps)
+    if (want[want.length - 2]! > 16 * (1 + reads.length * 5 + cmps.length * 2) + 64) sparse++
+    expect(breaks(maps, reads, cmps)).toEqual(want)
+  }
+  expect(sparse).toBeGreaterThan(0)
+  expect(breaks({A: new Map()}, [], [])).toEqual([0, 1, 2, 3])
+  expect(breaks({A: new Map([[5, 1]])}, [['A', 2, false]], [[7, 1, true]])).toEqual([0, 1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 11])
+})
