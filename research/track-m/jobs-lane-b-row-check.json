@@ -1,0 +1,4 @@
+[
+ {"name":"row-policy","cmd":"bash research/track-m/section15-row-check.sh","cpu":8,"memory":14336,"timeout":420},
+ {"name":"default","cmd":"bash research/track-m/lane-b-parallel.sh check && bun test research/track-m/section15-row-probe.test.ts research/track-m/section15-derive-order.test.ts research/track-m/check-cost-profile.test.ts","cpu":8,"memory":14336,"timeout":420}
+]
