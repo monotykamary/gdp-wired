@@ -18,6 +18,35 @@ for(const prefix of ['', 'renamed_'])test('equality consequents discharge reflex
  expect(JSON.stringify([f.m,f.ds,f.reads])).toBe(before)
 })
 test('unknown membership is not treated as implied',()=>{const f=fixture();delete f.m.step.flags!.view;expect(f.run()).toEqual([])})
+function upperBoundFixture(){
+ const f=fixture(),body=f.ds[1]!.body
+ if(body.op!=='if'||body.c.op!=='and')throw Error('fixture')
+ const notNewer=body.c.xs[2]!
+ f.m.step.flags!.aligned={op:'all',key:'k',c:any(not(same(get('Parcel',x('k')),n(1))),all({op:'<=',a:get('Epoch',x('k')),b:get('Epoch',x('actor'))},notNewer))}
+ return f
+}
+test('member upper bounds propose sufficient scalar guards without equality anchors',()=>{
+ const f=upperBoundFixture(),before=JSON.stringify([f.m,f.ds,f.reads])
+ expect(f.run()).toEqual([{positive:'input',negative:'eligible',carried:'Parcel',below:n(12),guards:[less(get('Epoch',x('actor')),get('Epoch',x('other')))]}])
+ expect(JSON.stringify([f.m,f.ds,f.reads])).toBe(before)
+})
+test('an upper bound is not rewritten in a negative comparison',()=>{
+ const f=upperBoundFixture()
+ f.ds[1]!.body=ite(all(same(get('Rows',x('k')),n(1)),not(less(get('Epoch',x('k')),get('Epoch',x('other'))))),n(1),n(0))
+ expect(f.run()).toEqual([])
+})
+test('upper-bound suggestions still require the scalar guard and checked witness flags',()=>{
+ const f=upperBoundFixture(),guard=less(get('Epoch',x('actor')),get('Epoch',x('other'))),claim:C={op:'<=',a:get('Incoming',n(0)),b:get('Eligible',n(0))}
+ const initial={name:'bounded-member inclusion',hyps:[guard,not(claim)]},pool=grammarPool(initial,f.ds,100,candidateWork(),true,f.m),picked=preferMemberInclusions(f.m,f.ds,pool.full,{...pool.full,insts:[],picks:[]})
+ expect(picked.insts).toHaveLength(1)
+ const wit=x(picked.insts[0]!.wit),member=get('Parcel',wit),booleanMember=any(same(member,n(0)),same(member,n(1))),flags=Object.values(f.m.step.flags!).flatMap(q=>q.op==='all'?[substC(q.c,{vars:{[q.key]:wit},maps:{},flags:{}})]:[])
+ const raw=[guard,booleanMember,...flags,not(claim)],numeric=mcGoal(raw,f.ds,picked)!
+ const out=grow(numeric,new Map(),{nodes:0,until:clock()+1000})
+ expect('tree'in out).toBe(true)
+ if('tree'in out)expect(checkMC(raw,f.ds,{...picked,tree:out.tree})).toBe(true)
+ const unguarded=mcGoal([booleanMember,...flags,not(claim)],f.ds,picked)!
+ expect('tree'in grow(unguarded,new Map(),{nodes:0,until:clock()+1000})).toBe(false)
+})
 test('an inequality is not a substitution',()=>{const f=fixture();f.m.step.flags!.aligned={op:'all',key:'k',c:any(not(same(get('Parcel',x('k')),n(1))),less(get('Epoch',x('k')),get('Epoch',x('actor'))))};expect(f.run()).toEqual([])})
 test('different domains cannot form an inclusion',()=>{const f=fixture();f.ds[1]!.below=n(13);expect(f.run()).toEqual([])})
 test('another carried map does not supply these member facts',()=>{const f=fixture();f.m.inputMaps=['Unrelated'];expect(f.run()).toEqual([])})
