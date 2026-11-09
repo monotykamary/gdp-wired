@@ -6,6 +6,7 @@ import {type CountCert,type CountDecl,type CountInst,substC,substE} from '../../
 import {countsForReads} from '../count-facts.ts'
 import {bounded} from './scalar-guards.ts'
 export type MemberInclusion={positive:string,negative:string,carried:string,below:E,guards:C[]}
+type UpperBound={bound:E,strict:boolean}
 // The ordinary pool already contains many pairs, but model-driven selection can
 // miss a useful inclusion when its target count is otherwise unconstrained.
 // Prefer only existing witness instances suggested by the flag syntax. Their
@@ -41,7 +42,7 @@ export function memberInclusions(m:Machine,ds:CountDecl[],reads:CountCert['reads
  const used=new Set<string>();walkOnce([m.step.flags,decls,picked],(o:any)=>{if(o.op==='var')used.add(o.name)})
  let key='inclusion$member';while(used.has(key))key+='$'
  const mentions=(v:unknown)=>{let found=false;walkOnce(v,(o:any)=>{if(o.op==='var'&&o.name===key)found=true});return found}
- const inputs=new Set(m.inputMaps),facts=new Map<string,{known:Set<string>,conditions:Set<string>,anchors:Map<string,E>,upper:Map<string,E>}>()
+ const inputs=new Set(m.inputMaps),facts=new Map<string,{known:Set<string>,conditions:Set<string>,anchors:Map<string,E>,upper:Map<string,UpperBound>}>()
  for(const q of Object.values(m.step.flags??{})){
   if(more&&!more())return []
   if(q.op!=='all'||q.keys?.length)continue
@@ -50,11 +51,11 @@ export function memberInclusions(m:Machine,ds:CountDecl[],reads:CountCert['reads
   for(let i=0;i<2;i++){
    const a=c.xs[i]!,source=a.op==='not'?member(a.x):undefined
    if(!source||!inputs.has(source.map)||source.key.op!=='var'||source.key.name!==key)continue
-   const entry=facts.get(source.map)??{known:new Set<string>(),conditions:new Set<string>(),anchors:new Map<string,E>(),upper:new Map<string,E>()}
+   const entry=facts.get(source.map)??{known:new Set<string>(),conditions:new Set<string>(),anchors:new Map<string,E>(),upper:new Map<string,UpperBound>()}
    for(const consequent of parts(c.xs[1-i]!)){
     entry.conditions.add(text(consequent))
     const membership=member(consequent);if(membership)entry.known.add(text(membership))
-    if((consequent.op==='<'||consequent.op==='<=')&&consequent.a.op==='get'&&mentions(consequent.a.key)&&!mentions(consequent.b)&&!entry.upper.has(text(consequent.a)))entry.upper.set(text(consequent.a),consequent.b)
+    if((consequent.op==='<'||consequent.op==='<=')&&consequent.a.op==='get'&&mentions(consequent.a.key)&&!mentions(consequent.b)&&!entry.upper.has(text(consequent.a)))entry.upper.set(text(consequent.a),{bound:consequent.b,strict:consequent.op==='<'})
     if(consequent.op!=='=')continue
     for(const [from,to]of [[consequent.a,consequent.b],[consequent.b,consequent.a]]){
      if(from!.op==='get'&&to!.op==='get'&&mentions(from!.key)&&!mentions(to)&&!entry.anchors.has(text(from)))entry.anchors.set(text(from),to!)
@@ -89,8 +90,9 @@ export function memberInclusions(m:Machine,ds:CountDecl[],reads:CountCert['reads
     }
     if(c.op==='not'){const v=simplify(c.x,!positive);return typeof v==='boolean'?!v:{op:'not',x:v}}
     // An upper bound is not an equality substitution. In a positive
-    // comparison only, its scalar bound gives a sufficient guard.
-    if(positive&&(c.op==='<'||c.op==='<=')){const upper=entry.upper.get(text(c.a));if(upper){c={...c,a:upper};changed=true}}
+    // comparison only, its scalar bound gives a sufficient guard. A strict
+    // source bound u < U only needs U <= B to prove the strict target u < B.
+    if(positive&&(c.op==='<'||c.op==='<=')){const upper=entry.upper.get(text(c.a));if(upper){c={...c,op:upper.strict?'<=':c.op,a:upper.bound};changed=true}}
     if(c.op==='='||c.op==='<'||c.op==='<='){
      if(text(c.a)===text(c.b))return c.op!=='<'
      if(c.a.op==='const'&&c.b.op==='const')return c.op==='='?c.a.value===c.b.value:c.op==='<'?c.a.value<c.b.value:c.a.value<=c.b.value

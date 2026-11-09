@@ -1,0 +1,50 @@
+[
+  {
+    "name": "check-plain-v2",
+    "code": 1,
+    "seconds": 2.46,
+    "vm": "bx_6aqepfyv",
+    "run_name": "check-plain-v2",
+    "placement": {
+      "vm": "bx_6aqepfyv",
+      "type": "large",
+      "cpu": "AMD EPYC 9455 48-Core Processor",
+      "vcpus": 8,
+      "vm_vcpus": 8,
+      "exclusive": false,
+      "co_tenants": 0
+    }
+  },
+  {
+    "name": "check-early-v2",
+    "code": 1,
+    "seconds": 2.99,
+    "vm": "bx_7vs7decr",
+    "run_name": "check-early-v2",
+    "placement": {
+      "vm": "bx_7vs7decr",
+      "type": "large",
+      "cpu": "AMD Ryzen 9 9950X 16-Core Processor",
+      "vcpus": 8,
+      "vm_vcpus": 8,
+      "exclusive": false,
+      "co_tenants": 0
+    }
+  },
+  {
+    "name": "check-row-first-v2",
+    "code": 1,
+    "seconds": 2.36,
+    "vm": "bx_76nnjrpb",
+    "run_name": "check-row-first-v2",
+    "placement": {
+      "vm": "bx_76nnjrpb",
+      "type": "large",
+      "cpu": "AMD Ryzen 9 9950X 16-Core Processor",
+      "vcpus": 8,
+      "vm_vcpus": 8,
+      "exclusive": false,
+      "co_tenants": 0
+    }
+  }
+]

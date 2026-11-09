@@ -1,0 +1,123 @@
+{
+  "batch": "20261110-015518-rcbski",
+  "rows": [
+    {
+      "name": "original-r1",
+      "code": 0,
+      "seconds": 108.62,
+      "vm": "bx_2kmf8w3s",
+      "run_name": "original-r1",
+      "placement": {
+        "vm": "bx_2kmf8w3s",
+        "type": "large",
+        "cpu": "AMD EPYC 4585PX 16-Core Processor",
+        "vcpus": 8,
+        "vm_vcpus": 8,
+        "exclusive": true,
+        "co_tenants": 0
+      }
+    },
+    {
+      "name": "original-r3",
+      "code": 0,
+      "seconds": 116.56,
+      "vm": "bx_2eg9t59n",
+      "run_name": "original-r3",
+      "placement": {
+        "vm": "bx_2eg9t59n",
+        "type": "large",
+        "cpu": "AMD EPYC 9455 48-Core Processor",
+        "vcpus": 8,
+        "vm_vcpus": 8,
+        "exclusive": true,
+        "co_tenants": 0
+      }
+    },
+    {
+      "name": "integrated-check",
+      "code": 0,
+      "seconds": 50.8,
+      "vm": "bx_2uat3ctg",
+      "run_name": "integrated-check",
+      "placement": {
+        "vm": "bx_2uat3ctg",
+        "type": "large",
+        "cpu": "AMD EPYC 9455 48-Core Processor",
+        "vcpus": 8,
+        "vm_vcpus": 8,
+        "exclusive": true,
+        "co_tenants": 0
+      }
+    },
+    {
+      "name": "fresh-conditional-and-replay",
+      "code": 0,
+      "seconds": 90.05,
+      "vm": "bx_7y8uwqen",
+      "run_name": "fresh-conditional-and-replay",
+      "placement": {
+        "vm": "bx_7y8uwqen",
+        "type": "large",
+        "cpu": "AMD EPYC 9455 48-Core Processor",
+        "vcpus": 8,
+        "vm_vcpus": 8,
+        "exclusive": true,
+        "co_tenants": 0
+      }
+    },
+    {
+      "name": "original-r2",
+      "code": 0,
+      "seconds": 112.9,
+      "vm": "bx_a83zj5st",
+      "run_name": "original-r2",
+      "placement": {
+        "vm": "bx_a83zj5st",
+        "type": "large",
+        "cpu": "AMD EPYC 9455 48-Core Processor",
+        "vcpus": 8,
+        "vm_vcpus": 8,
+        "exclusive": true,
+        "co_tenants": 0
+      }
+    }
+  ],
+  "done": true,
+  "running": 0,
+  "queued": 0,
+  "logArchiveSha256": "bfd2e49bb343df6f83a2da6d5dc17327d343935b40a46feef08d0efac87a5ca1",
+  "logArchiveBytes": 22240,
+  "recoveredLogs": [
+    {
+      "name": "original-r1",
+      "code": 0,
+      "sha256": "b38a049819d772bcc364ee1265f6733753b98b2b03a1faf9ec58ad5530a95ad0",
+      "gzipSha256": "d17e66a33c7c3abf6cff44f7a8d774ac9448bf6aac45fb772297b86e4b8baa61"
+    },
+    {
+      "name": "original-r3",
+      "code": 0,
+      "sha256": "9ff2aba981c412909b6fa46704c5626564f4bb91d8e5dc03bacfb2e0fae447f9",
+      "gzipSha256": "90b070a9598771b4a7b0172dbc850f3b76d8ef0b8a3875168752edeb77a26635"
+    },
+    {
+      "name": "integrated-check",
+      "code": 0,
+      "sha256": "6b74faae8baa5ed812379ab0f86969e2d0c989f20e1f29386d1f19d2b3969e23",
+      "gzipSha256": "dfd16f39c84298f7dea16c06097f681385e2cd6a233a85009e8e06cf2a1b31ca"
+    },
+    {
+      "name": "fresh-conditional-and-replay",
+      "code": 0,
+      "sha256": "211c988fd4fdaafd3188a92ec33f215cb8a12f763e17f6ec0b446f87e32e078b",
+      "gzipSha256": "2d9d58444b3d7f29d22eb8b740cf136d22e411bfb20ea0e50c330cddfdd401fc"
+    },
+    {
+      "name": "original-r2",
+      "code": 0,
+      "sha256": "9049282bd66d1826135ebde1494d56da3ffe7df67b6fed69d1b26067ca3880ac",
+      "gzipSha256": "0d00a082ac44be55845c931bfa758536c097206d9fd8c8f15c104677aae690e9"
+    }
+  ],
+  "readOnly": true
+}

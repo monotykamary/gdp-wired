@@ -1,0 +1,9 @@
+{
+  "batch": "20261110-032020-cxko7e",
+  "task": "981ca35b-2773-4d0d-b1f7-bf306f456c61",
+  "jobs": 3,
+  "productionClosureUnchanged": true,
+  "parentClosure": "dd311dd7188db859bdd74c7aaa3af2da4f572226030a68401649a4512f6d4ed2",
+  "budget": 2700,
+  "wallMs": 4800
+}

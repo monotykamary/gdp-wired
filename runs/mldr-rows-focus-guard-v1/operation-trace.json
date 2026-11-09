@@ -1,0 +1,1862 @@
+[
+  {
+    "side": "before",
+    "stages": {
+      "focused-packet": 1,
+      "case-fallback": 1,
+      "guard-leaf-budget": 36,
+      "field-case": 15,
+      "guard-leaf": 6,
+      "key-closure": 9,
+      "pin-prune": 9,
+      "boolean-core": 9,
+      "source-memo": 35,
+      "field-row-pairs": 4,
+      "row-case": 16,
+      "source-budget-exhausted": 3,
+      "field-column-domain": 4,
+      "guard-complete": 5,
+      "case-derivations": 5,
+      "count-core-select": 4,
+      "query": 4,
+      "read-alias-start": 6,
+      "read-alias": 2,
+      "field-domain": 2,
+      "field-query": 1,
+      "field-bound": 1,
+      "row-mirror": 1
+    },
+    "operations": {
+      "0": [
+        {
+          "stage": "guard-leaf-budget"
+        },
+        {
+          "stage": "field-case",
+          "proposed": true,
+          "outcome": "linear",
+          "ms": 0,
+          "hyps": 139
+        },
+        {
+          "stage": "guard-leaf",
+          "proposed": true,
+          "checked": false,
+          "ms": 0,
+          "hyps": 2
+        },
+        {
+          "stage": "guard-leaf-budget"
+        },
+        {
+          "stage": "key-closure",
+          "proposed": true,
+          "ms": 0
+        },
+        {
+          "stage": "pin-prune"
+        },
+        {
+          "stage": "boolean-core",
+          "proposed": true,
+          "checked": false,
+          "ms": 0
+        },
+        {
+          "stage": "field-case",
+          "proposed": true,
+          "outcome": "unknown",
+          "ms": 41,
+          "hyps": 139
+        },
+        {
+          "stage": "guard-leaf",
+          "proposed": true,
+          "checked": false,
+          "ms": 41,
+          "hyps": 3
+        },
+        {
+          "stage": "guard-leaf-budget"
+        },
+        {
+          "stage": "source-memo"
+        },
+        {
+          "stage": "guard-leaf-budget"
+        },
+        {
+          "stage": "source-memo"
+        },
+        {
+          "stage": "guard-leaf-budget"
+        },
+        {
+          "stage": "source-memo"
+        },
+        {
+          "stage": "guard-leaf-budget"
+        },
+        {
+          "stage": "field-case",
+          "proposed": true,
+          "outcome": "linear",
+          "ms": 0,
+          "hyps": 142
+        },
+        {
+          "stage": "field-row-pairs"
+        },
+        {
+          "stage": "key-closure",
+          "proposed": true,
+          "ms": 0
+        },
+        {
+          "stage": "pin-prune"
+        },
+        {
+          "stage": "boolean-core",
+          "proposed": true,
+          "checked": false,
+          "ms": 0
+        },
+        {
+          "stage": "field-case",
+          "proposed": true,
+          "outcome": "unknown",
+          "ms": 22,
+          "hyps": 142
+        },
+        {
+          "stage": "row-case",
+          "proposed": true,
+          "checked": false,
+          "ms": 22
+        },
+        {
+          "stage": "source-memo"
+        },
+        {
+          "stage": "row-case",
+          "proposed": true,
+          "checked": false,
+          "ms": 0
+        },
+        {
+          "stage": "source-memo"
+        },
+        {
+          "stage": "row-case",
+          "proposed": true,
+          "checked": false,
+          "ms": 0
+        },
+        {
+          "stage": "row-case",
+          "proposed": true,
+          "checked": false,
+          "ms": 42
+        },
+        {
+          "stage": "row-case",
+          "proposed": true,
+          "checked": false,
+          "ms": 31
+        },
+        {
+          "stage": "row-case",
+          "proposed": true,
+          "checked": false,
+          "ms": 13
+        },
+        {
+          "stage": "field-case",
+          "proposed": false,
+          "outcome": "unknown",
+          "ms": 24,
+          "hyps": 142
+        },
+        {
+          "stage": "source-budget-exhausted"
+        },
+        {
+          "stage": "row-case",
+          "proposed": false,
+          "checked": false,
+          "ms": 79
+        },
+        {
+          "stage": "field-column-domain",
+          "proposed": false
+        },
+        {
+          "stage": "guard-leaf",
+          "proposed": false,
+          "checked": false,
+          "ms": 186,
+          "hyps": 6
+        },
+        {
+          "stage": "guard-complete",
+          "proposed": false,
+          "checked": false
+        },
+        {
+          "stage": "case-derivations",
+          "proposed": false,
+          "ms": 228
+        },
+        {
+          "stage": "query",
+          "outcome": "unknown",
+          "ms": 172,
+          "hyps": 344
+        }
+      ],
+      "1": [
+        {
+          "stage": "guard-leaf-budget"
+        },
+        {
+          "stage": "source-memo"
+        },
+        {
+          "stage": "guard-leaf-budget"
+        },
+        {
+          "stage": "source-memo"
+        },
+        {
+          "stage": "guard-leaf-budget"
+        },
+        {
+          "stage": "source-memo"
+        },
+        {
+          "stage": "guard-leaf-budget"
+        },
+        {
+          "stage": "source-memo"
+        },
+        {
+          "stage": "guard-leaf-budget"
+        },
+        {
+          "stage": "source-memo"
+        },
+        {
+          "stage": "guard-leaf-budget"
+        },
+        {
+          "stage": "source-memo"
+        },
+        {
+          "stage": "guard-leaf-budget"
+        },
+        {
+          "stage": "source-memo"
+        },
+        {
+          "stage": "field-row-pairs"
+        },
+        {
+          "stage": "key-closure",
+          "proposed": true,
+          "ms": 0
+        },
+        {
+          "stage": "pin-prune"
+        },
+        {
+          "stage": "boolean-core",
+          "proposed": true,
+          "checked": false,
+          "ms": 0
+        },
+        {
+          "stage": "field-case",
+          "proposed": true,
+          "outcome": "unknown",
+          "ms": 67,
+          "hyps": 143
+        },
+        {
+          "stage": "row-case",
+          "proposed": true,
+          "checked": false,
+          "ms": 67
+        },
+        {
+          "stage": "key-closure",
+          "proposed": true,
+          "ms": 1
+        },
+        {
+          "stage": "pin-prune"
+        },
+        {
+          "stage": "boolean-core",
+          "proposed": true,
+          "checked": false,
+          "ms": 1
+        },
+        {
+          "stage": "field-case",
+          "proposed": true,
+          "outcome": "unknown",
+          "ms": 69,
+          "hyps": 143
+        },
+        {
+          "stage": "row-case",
+          "proposed": true,
+          "checked": false,
+          "ms": 69
+        },
+        {
+          "stage": "field-case",
+          "proposed": false,
+          "outcome": "unknown",
+          "ms": 10,
+          "hyps": 143
+        },
+        {
+          "stage": "source-budget-exhausted"
+        },
+        {
+          "stage": "row-case",
+          "proposed": false,
+          "checked": false,
+          "ms": 64
+        },
+        {
+          "stage": "field-column-domain",
+          "proposed": false
+        },
+        {
+          "stage": "guard-leaf",
+          "proposed": false,
+          "checked": false,
+          "ms": 201,
+          "hyps": 8
+        },
+        {
+          "stage": "guard-complete",
+          "proposed": false,
+          "checked": false
+        },
+        {
+          "stage": "case-derivations",
+          "proposed": false,
+          "ms": 201
+        },
+        {
+          "stage": "query",
+          "outcome": "unknown",
+          "ms": 199,
+          "hyps": 344
+        }
+      ],
+      "2": [
+        {
+          "stage": "key-closure",
+          "proposed": true,
+          "ms": 0
+        },
+        {
+          "stage": "pin-prune"
+        },
+        {
+          "stage": "boolean-core",
+          "proposed": true,
+          "checked": false,
+          "ms": 0
+        },
+        {
+          "stage": "field-case",
+          "proposed": true,
+          "outcome": "unknown",
+          "ms": 47,
+          "hyps": 138
+        }
+      ],
+      "3": [
+        {
+          "stage": "guard-leaf-budget"
+        },
+        {
+          "stage": "source-memo"
+        },
+        {
+          "stage": "guard-leaf-budget"
+        },
+        {
+          "stage": "source-memo"
+        },
+        {
+          "stage": "guard-leaf-budget"
+        },
+        {
+          "stage": "source-memo"
+        },
+        {
+          "stage": "guard-leaf-budget"
+        },
+        {
+          "stage": "source-memo"
+        },
+        {
+          "stage": "guard-complete",
+          "proposed": true,
+          "checked": false
+        },
+        {
+          "stage": "case-derivations",
+          "proposed": true,
+          "ms": 0
+        }
+      ],
+      "4": [
+        {
+          "stage": "guard-leaf-budget"
+        },
+        {
+          "stage": "source-memo"
+        },
+        {
+          "stage": "guard-leaf-budget"
+        },
+        {
+          "stage": "source-memo"
+        },
+        {
+          "stage": "guard-leaf-budget"
+        },
+        {
+          "stage": "source-memo"
+        },
+        {
+          "stage": "guard-leaf-budget"
+        },
+        {
+          "stage": "source-memo"
+        },
+        {
+          "stage": "guard-leaf-budget"
+        },
+        {
+          "stage": "source-memo"
+        },
+        {
+          "stage": "guard-leaf-budget"
+        },
+        {
+          "stage": "source-memo"
+        },
+        {
+          "stage": "guard-leaf-budget"
+        },
+        {
+          "stage": "source-memo"
+        },
+        {
+          "stage": "guard-leaf-budget"
+        },
+        {
+          "stage": "source-memo"
+        },
+        {
+          "stage": "field-row-pairs"
+        },
+        {
+          "stage": "key-closure",
+          "proposed": true,
+          "ms": 0
+        },
+        {
+          "stage": "pin-prune"
+        },
+        {
+          "stage": "boolean-core",
+          "proposed": true,
+          "checked": false,
+          "ms": 0
+        },
+        {
+          "stage": "field-case",
+          "proposed": true,
+          "outcome": "unknown",
+          "ms": 81,
+          "hyps": 139
+        },
+        {
+          "stage": "row-case",
+          "proposed": true,
+          "checked": false,
+          "ms": 81
+        },
+        {
+          "stage": "field-case",
+          "proposed": false,
+          "outcome": "sat",
+          "ms": 56,
+          "hyps": 139
+        },
+        {
+          "stage": "read-alias-start"
+        },
+        {
+          "stage": "read-alias",
+          "proposed": true,
+          "checked": false,
+          "ms": 0
+        },
+        {
+          "stage": "read-alias-start"
+        },
+        {
+          "stage": "read-alias",
+          "proposed": true,
+          "checked": false,
+          "ms": 0
+        },
+        {
+          "stage": "read-alias-start"
+        },
+        {
+          "stage": "read-alias-start"
+        },
+        {
+          "stage": "read-alias-start"
+        },
+        {
+          "stage": "read-alias-start"
+        },
+        {
+          "stage": "field-domain",
+          "proposed": true,
+          "checked": false,
+          "ms": 0
+        },
+        {
+          "stage": "field-domain",
+          "proposed": true,
+          "checked": false,
+          "ms": 0
+        },
+        {
+          "stage": "field-query",
+          "outcome": "unknown",
+          "ms": 63,
+          "hyps": 192
+        },
+        {
+          "stage": "field-bound",
+          "proposed": false,
+          "checked": false,
+          "ms": 63
+        },
+        {
+          "stage": "row-case",
+          "proposed": false,
+          "checked": false,
+          "ms": 119
+        },
+        {
+          "stage": "field-column-domain",
+          "proposed": false
+        },
+        {
+          "stage": "guard-leaf",
+          "proposed": false,
+          "checked": false,
+          "ms": 200,
+          "hyps": 9
+        },
+        {
+          "stage": "guard-complete",
+          "proposed": false,
+          "checked": false
+        },
+        {
+          "stage": "case-derivations",
+          "proposed": false,
+          "ms": 200
+        },
+        {
+          "stage": "query",
+          "outcome": "unknown",
+          "ms": 200,
+          "hyps": 344
+        }
+      ],
+      "5": [
+        {
+          "stage": "guard-leaf-budget"
+        },
+        {
+          "stage": "source-memo"
+        },
+        {
+          "stage": "guard-leaf-budget"
+        },
+        {
+          "stage": "source-memo"
+        },
+        {
+          "stage": "guard-leaf-budget"
+        },
+        {
+          "stage": "source-memo"
+        },
+        {
+          "stage": "guard-leaf-budget"
+        },
+        {
+          "stage": "source-memo"
+        },
+        {
+          "stage": "guard-leaf-budget"
+        },
+        {
+          "stage": "source-memo"
+        },
+        {
+          "stage": "guard-leaf-budget"
+        },
+        {
+          "stage": "source-memo"
+        },
+        {
+          "stage": "guard-leaf-budget"
+        },
+        {
+          "stage": "source-memo"
+        },
+        {
+          "stage": "guard-leaf-budget"
+        },
+        {
+          "stage": "source-memo"
+        },
+        {
+          "stage": "guard-leaf-budget"
+        },
+        {
+          "stage": "source-memo"
+        },
+        {
+          "stage": "guard-leaf-budget"
+        },
+        {
+          "stage": "source-memo"
+        },
+        {
+          "stage": "guard-leaf-budget"
+        },
+        {
+          "stage": "source-memo"
+        },
+        {
+          "stage": "field-row-pairs"
+        },
+        {
+          "stage": "key-closure",
+          "proposed": true,
+          "ms": 0
+        },
+        {
+          "stage": "pin-prune"
+        },
+        {
+          "stage": "boolean-core",
+          "proposed": true,
+          "checked": false,
+          "ms": 0
+        },
+        {
+          "stage": "field-case",
+          "proposed": true,
+          "outcome": "unknown",
+          "ms": 63,
+          "hyps": 139
+        },
+        {
+          "stage": "row-case",
+          "proposed": true,
+          "checked": false,
+          "ms": 63
+        },
+        {
+          "stage": "key-closure",
+          "proposed": true,
+          "ms": 0
+        },
+        {
+          "stage": "pin-prune"
+        },
+        {
+          "stage": "boolean-core",
+          "proposed": true,
+          "checked": false,
+          "ms": 1
+        },
+        {
+          "stage": "field-case",
+          "proposed": true,
+          "outcome": "unknown",
+          "ms": 27,
+          "hyps": 139
+        },
+        {
+          "stage": "row-case",
+          "proposed": true,
+          "checked": false,
+          "ms": 27
+        },
+        {
+          "stage": "key-closure",
+          "proposed": true,
+          "ms": 0
+        },
+        {
+          "stage": "pin-prune"
+        },
+        {
+          "stage": "boolean-core",
+          "proposed": true,
+          "checked": false,
+          "ms": 1
+        },
+        {
+          "stage": "field-case",
+          "proposed": true,
+          "outcome": "unknown",
+          "ms": 27,
+          "hyps": 139
+        },
+        {
+          "stage": "row-case",
+          "proposed": true,
+          "checked": false,
+          "ms": 81
+        },
+        {
+          "stage": "row-mirror",
+          "proposed": true,
+          "checked": false,
+          "ms": 0
+        },
+        {
+          "stage": "field-case",
+          "proposed": false,
+          "outcome": "unknown",
+          "ms": 30,
+          "hyps": 139
+        },
+        {
+          "stage": "source-budget-exhausted"
+        },
+        {
+          "stage": "row-case",
+          "proposed": false,
+          "checked": false,
+          "ms": 30
+        },
+        {
+          "stage": "field-column-domain",
+          "proposed": false
+        },
+        {
+          "stage": "guard-leaf",
+          "proposed": false,
+          "checked": false,
+          "ms": 201,
+          "hyps": 12
+        },
+        {
+          "stage": "guard-complete",
+          "proposed": false,
+          "checked": false
+        },
+        {
+          "stage": "case-derivations",
+          "proposed": false,
+          "ms": 201
+        },
+        {
+          "stage": "query",
+          "outcome": "unknown",
+          "ms": 138,
+          "hyps": 344
+        }
+      ]
+    },
+    "last": [
+      {
+        "phase": "early-focus",
+        "value": 5,
+        "stage": "source-budget-exhausted"
+      },
+      {
+        "phase": "early-focus",
+        "value": 5,
+        "stage": "row-case",
+        "key": "different/different",
+        "cached": false,
+        "ms": 30,
+        "checked": false,
+        "proposed": false,
+        "deferred": true
+      },
+      {
+        "phase": "early-focus",
+        "value": 5,
+        "stage": "field-column-domain",
+        "domain": {
+          "op": "<",
+          "a": {
+            "op": "var",
+            "name": "c$field"
+          },
+          "b": {
+            "op": "const",
+            "value": 64
+          }
+        },
+        "proposed": false
+      },
+      {
+        "phase": "early-focus",
+        "value": 5,
+        "stage": "guard-leaf",
+        "active": true,
+        "sourceOnly": false,
+        "hyps": 12,
+        "ms": 201,
+        "checked": false,
+        "proposed": false,
+        "transported": false,
+        "deferred": true
+      },
+      {
+        "phase": "early-focus",
+        "value": 5,
+        "stage": "guard-complete",
+        "cuts": 12,
+        "checked": false,
+        "proposed": false,
+        "deferred": true
+      },
+      {
+        "phase": "early-focus",
+        "value": 5,
+        "stage": "case-derivations",
+        "ms": 201,
+        "proposed": false
+      },
+      {
+        "phase": "early-focus",
+        "stage": "count-core-select",
+        "pool": 39,
+        "indices": [
+          0,
+          1,
+          2,
+          3,
+          4,
+          5,
+          6,
+          7,
+          8,
+          9,
+          10,
+          11,
+          12,
+          13,
+          14,
+          15,
+          16,
+          17,
+          18,
+          19,
+          20,
+          21,
+          22,
+          23,
+          24,
+          25,
+          26,
+          27,
+          28,
+          29,
+          30,
+          31,
+          32,
+          33,
+          34,
+          35,
+          36,
+          37,
+          38
+        ],
+        "fallback": true,
+        "ms": 200
+      },
+      {
+        "phase": "early-focus",
+        "value": 5,
+        "stage": "query",
+        "round": 0,
+        "hyps": 344,
+        "ms": 138,
+        "outcome": "unknown"
+      }
+    ]
+  },
+  {
+    "side": "after",
+    "stages": {
+      "focused-packet": 1,
+      "case-fallback": 1,
+      "guard-leaf-budget": 37,
+      "field-case": 16,
+      "guard-leaf": 7,
+      "key-closure": 9,
+      "pin-prune": 9,
+      "boolean-core": 9,
+      "source-memo": 35,
+      "field-row-pairs": 4,
+      "row-case": 16,
+      "source-budget-exhausted": 3,
+      "field-column-domain": 4,
+      "guard-complete": 6,
+      "case-derivations": 6,
+      "count-core-select": 4,
+      "query": 4,
+      "read-alias-start": 6,
+      "read-alias": 2,
+      "field-domain": 2,
+      "field-query": 1,
+      "field-bound": 1,
+      "row-mirror": 1,
+      "shared-frame": 1
+    },
+    "operations": {
+      "0": [
+        {
+          "stage": "guard-leaf-budget"
+        },
+        {
+          "stage": "field-case",
+          "proposed": true,
+          "outcome": "linear",
+          "ms": 0,
+          "hyps": 139
+        },
+        {
+          "stage": "guard-leaf",
+          "proposed": true,
+          "checked": false,
+          "ms": 0,
+          "hyps": 2
+        },
+        {
+          "stage": "guard-leaf-budget"
+        },
+        {
+          "stage": "key-closure",
+          "proposed": true,
+          "ms": 0
+        },
+        {
+          "stage": "pin-prune"
+        },
+        {
+          "stage": "boolean-core",
+          "proposed": true,
+          "checked": false,
+          "ms": 0
+        },
+        {
+          "stage": "field-case",
+          "proposed": true,
+          "outcome": "unknown",
+          "ms": 41,
+          "hyps": 139
+        },
+        {
+          "stage": "guard-leaf",
+          "proposed": true,
+          "checked": false,
+          "ms": 41,
+          "hyps": 3
+        },
+        {
+          "stage": "guard-leaf-budget"
+        },
+        {
+          "stage": "source-memo"
+        },
+        {
+          "stage": "guard-leaf-budget"
+        },
+        {
+          "stage": "source-memo"
+        },
+        {
+          "stage": "guard-leaf-budget"
+        },
+        {
+          "stage": "source-memo"
+        },
+        {
+          "stage": "guard-leaf-budget"
+        },
+        {
+          "stage": "field-case",
+          "proposed": true,
+          "outcome": "linear",
+          "ms": 0,
+          "hyps": 142
+        },
+        {
+          "stage": "field-row-pairs"
+        },
+        {
+          "stage": "key-closure",
+          "proposed": true,
+          "ms": 0
+        },
+        {
+          "stage": "pin-prune"
+        },
+        {
+          "stage": "boolean-core",
+          "proposed": true,
+          "checked": false,
+          "ms": 0
+        },
+        {
+          "stage": "field-case",
+          "proposed": true,
+          "outcome": "unknown",
+          "ms": 22,
+          "hyps": 142
+        },
+        {
+          "stage": "row-case",
+          "proposed": true,
+          "checked": false,
+          "ms": 22
+        },
+        {
+          "stage": "source-memo"
+        },
+        {
+          "stage": "row-case",
+          "proposed": true,
+          "checked": false,
+          "ms": 0
+        },
+        {
+          "stage": "source-memo"
+        },
+        {
+          "stage": "row-case",
+          "proposed": true,
+          "checked": false,
+          "ms": 0
+        },
+        {
+          "stage": "row-case",
+          "proposed": true,
+          "checked": false,
+          "ms": 42
+        },
+        {
+          "stage": "row-case",
+          "proposed": true,
+          "checked": false,
+          "ms": 31
+        },
+        {
+          "stage": "row-case",
+          "proposed": true,
+          "checked": false,
+          "ms": 13
+        },
+        {
+          "stage": "field-case",
+          "proposed": false,
+          "outcome": "unknown",
+          "ms": 24,
+          "hyps": 142
+        },
+        {
+          "stage": "source-budget-exhausted"
+        },
+        {
+          "stage": "row-case",
+          "proposed": false,
+          "checked": false,
+          "ms": 79
+        },
+        {
+          "stage": "field-column-domain",
+          "proposed": false
+        },
+        {
+          "stage": "guard-leaf",
+          "proposed": false,
+          "checked": false,
+          "ms": 186,
+          "hyps": 6
+        },
+        {
+          "stage": "guard-complete",
+          "proposed": false,
+          "checked": false
+        },
+        {
+          "stage": "case-derivations",
+          "proposed": false,
+          "ms": 228
+        },
+        {
+          "stage": "query",
+          "outcome": "unknown",
+          "ms": 172,
+          "hyps": 344
+        }
+      ],
+      "1": [
+        {
+          "stage": "guard-leaf-budget"
+        },
+        {
+          "stage": "source-memo"
+        },
+        {
+          "stage": "guard-leaf-budget"
+        },
+        {
+          "stage": "source-memo"
+        },
+        {
+          "stage": "guard-leaf-budget"
+        },
+        {
+          "stage": "source-memo"
+        },
+        {
+          "stage": "guard-leaf-budget"
+        },
+        {
+          "stage": "source-memo"
+        },
+        {
+          "stage": "guard-leaf-budget"
+        },
+        {
+          "stage": "source-memo"
+        },
+        {
+          "stage": "guard-leaf-budget"
+        },
+        {
+          "stage": "source-memo"
+        },
+        {
+          "stage": "guard-leaf-budget"
+        },
+        {
+          "stage": "source-memo"
+        },
+        {
+          "stage": "field-row-pairs"
+        },
+        {
+          "stage": "key-closure",
+          "proposed": true,
+          "ms": 0
+        },
+        {
+          "stage": "pin-prune"
+        },
+        {
+          "stage": "boolean-core",
+          "proposed": true,
+          "checked": false,
+          "ms": 0
+        },
+        {
+          "stage": "field-case",
+          "proposed": true,
+          "outcome": "unknown",
+          "ms": 67,
+          "hyps": 143
+        },
+        {
+          "stage": "row-case",
+          "proposed": true,
+          "checked": false,
+          "ms": 67
+        },
+        {
+          "stage": "key-closure",
+          "proposed": true,
+          "ms": 1
+        },
+        {
+          "stage": "pin-prune"
+        },
+        {
+          "stage": "boolean-core",
+          "proposed": true,
+          "checked": false,
+          "ms": 1
+        },
+        {
+          "stage": "field-case",
+          "proposed": true,
+          "outcome": "unknown",
+          "ms": 69,
+          "hyps": 143
+        },
+        {
+          "stage": "row-case",
+          "proposed": true,
+          "checked": false,
+          "ms": 69
+        },
+        {
+          "stage": "field-case",
+          "proposed": false,
+          "outcome": "unknown",
+          "ms": 10,
+          "hyps": 143
+        },
+        {
+          "stage": "source-budget-exhausted"
+        },
+        {
+          "stage": "row-case",
+          "proposed": false,
+          "checked": false,
+          "ms": 64
+        },
+        {
+          "stage": "field-column-domain",
+          "proposed": false
+        },
+        {
+          "stage": "guard-leaf",
+          "proposed": false,
+          "checked": false,
+          "ms": 201,
+          "hyps": 8
+        },
+        {
+          "stage": "guard-complete",
+          "proposed": false,
+          "checked": false
+        },
+        {
+          "stage": "case-derivations",
+          "proposed": false,
+          "ms": 201
+        },
+        {
+          "stage": "query",
+          "outcome": "unknown",
+          "ms": 199,
+          "hyps": 344
+        }
+      ],
+      "2": [
+        {
+          "stage": "key-closure",
+          "proposed": true,
+          "ms": 0
+        },
+        {
+          "stage": "pin-prune"
+        },
+        {
+          "stage": "boolean-core",
+          "proposed": true,
+          "checked": false,
+          "ms": 0
+        },
+        {
+          "stage": "field-case",
+          "proposed": true,
+          "outcome": "unknown",
+          "ms": 47,
+          "hyps": 138
+        }
+      ],
+      "3": [
+        {
+          "stage": "guard-leaf-budget"
+        },
+        {
+          "stage": "source-memo"
+        },
+        {
+          "stage": "guard-leaf-budget"
+        },
+        {
+          "stage": "source-memo"
+        },
+        {
+          "stage": "guard-leaf-budget"
+        },
+        {
+          "stage": "source-memo"
+        },
+        {
+          "stage": "guard-leaf-budget"
+        },
+        {
+          "stage": "source-memo"
+        },
+        {
+          "stage": "guard-complete",
+          "proposed": true,
+          "checked": false
+        },
+        {
+          "stage": "case-derivations",
+          "proposed": true,
+          "ms": 0
+        }
+      ],
+      "4": [
+        {
+          "stage": "guard-leaf-budget"
+        },
+        {
+          "stage": "source-memo"
+        },
+        {
+          "stage": "guard-leaf-budget"
+        },
+        {
+          "stage": "source-memo"
+        },
+        {
+          "stage": "guard-leaf-budget"
+        },
+        {
+          "stage": "source-memo"
+        },
+        {
+          "stage": "guard-leaf-budget"
+        },
+        {
+          "stage": "source-memo"
+        },
+        {
+          "stage": "guard-leaf-budget"
+        },
+        {
+          "stage": "source-memo"
+        },
+        {
+          "stage": "guard-leaf-budget"
+        },
+        {
+          "stage": "source-memo"
+        },
+        {
+          "stage": "guard-leaf-budget"
+        },
+        {
+          "stage": "source-memo"
+        },
+        {
+          "stage": "guard-leaf-budget"
+        },
+        {
+          "stage": "source-memo"
+        },
+        {
+          "stage": "field-row-pairs"
+        },
+        {
+          "stage": "key-closure",
+          "proposed": true,
+          "ms": 0
+        },
+        {
+          "stage": "pin-prune"
+        },
+        {
+          "stage": "boolean-core",
+          "proposed": true,
+          "checked": false,
+          "ms": 0
+        },
+        {
+          "stage": "field-case",
+          "proposed": true,
+          "outcome": "unknown",
+          "ms": 81,
+          "hyps": 139
+        },
+        {
+          "stage": "row-case",
+          "proposed": true,
+          "checked": false,
+          "ms": 81
+        },
+        {
+          "stage": "field-case",
+          "proposed": false,
+          "outcome": "sat",
+          "ms": 56,
+          "hyps": 139
+        },
+        {
+          "stage": "read-alias-start"
+        },
+        {
+          "stage": "read-alias",
+          "proposed": true,
+          "checked": false,
+          "ms": 0
+        },
+        {
+          "stage": "read-alias-start"
+        },
+        {
+          "stage": "read-alias",
+          "proposed": true,
+          "checked": false,
+          "ms": 0
+        },
+        {
+          "stage": "read-alias-start"
+        },
+        {
+          "stage": "read-alias-start"
+        },
+        {
+          "stage": "read-alias-start"
+        },
+        {
+          "stage": "read-alias-start"
+        },
+        {
+          "stage": "field-domain",
+          "proposed": true,
+          "checked": false,
+          "ms": 0
+        },
+        {
+          "stage": "field-domain",
+          "proposed": true,
+          "checked": false,
+          "ms": 0
+        },
+        {
+          "stage": "field-query",
+          "outcome": "unknown",
+          "ms": 63,
+          "hyps": 192
+        },
+        {
+          "stage": "field-bound",
+          "proposed": false,
+          "checked": false,
+          "ms": 63
+        },
+        {
+          "stage": "row-case",
+          "proposed": false,
+          "checked": false,
+          "ms": 119
+        },
+        {
+          "stage": "field-column-domain",
+          "proposed": false
+        },
+        {
+          "stage": "guard-leaf",
+          "proposed": false,
+          "checked": false,
+          "ms": 200,
+          "hyps": 9
+        },
+        {
+          "stage": "guard-complete",
+          "proposed": false,
+          "checked": false
+        },
+        {
+          "stage": "case-derivations",
+          "proposed": false,
+          "ms": 200
+        },
+        {
+          "stage": "query",
+          "outcome": "unknown",
+          "ms": 200,
+          "hyps": 344
+        }
+      ],
+      "5": [
+        {
+          "stage": "guard-leaf-budget"
+        },
+        {
+          "stage": "source-memo"
+        },
+        {
+          "stage": "guard-leaf-budget"
+        },
+        {
+          "stage": "source-memo"
+        },
+        {
+          "stage": "guard-leaf-budget"
+        },
+        {
+          "stage": "source-memo"
+        },
+        {
+          "stage": "guard-leaf-budget"
+        },
+        {
+          "stage": "source-memo"
+        },
+        {
+          "stage": "guard-leaf-budget"
+        },
+        {
+          "stage": "source-memo"
+        },
+        {
+          "stage": "guard-leaf-budget"
+        },
+        {
+          "stage": "source-memo"
+        },
+        {
+          "stage": "guard-leaf-budget"
+        },
+        {
+          "stage": "source-memo"
+        },
+        {
+          "stage": "guard-leaf-budget"
+        },
+        {
+          "stage": "source-memo"
+        },
+        {
+          "stage": "guard-leaf-budget"
+        },
+        {
+          "stage": "source-memo"
+        },
+        {
+          "stage": "guard-leaf-budget"
+        },
+        {
+          "stage": "source-memo"
+        },
+        {
+          "stage": "guard-leaf-budget"
+        },
+        {
+          "stage": "source-memo"
+        },
+        {
+          "stage": "field-row-pairs"
+        },
+        {
+          "stage": "key-closure",
+          "proposed": true,
+          "ms": 0
+        },
+        {
+          "stage": "pin-prune"
+        },
+        {
+          "stage": "boolean-core",
+          "proposed": true,
+          "checked": false,
+          "ms": 0
+        },
+        {
+          "stage": "field-case",
+          "proposed": true,
+          "outcome": "unknown",
+          "ms": 63,
+          "hyps": 139
+        },
+        {
+          "stage": "row-case",
+          "proposed": true,
+          "checked": false,
+          "ms": 63
+        },
+        {
+          "stage": "key-closure",
+          "proposed": true,
+          "ms": 0
+        },
+        {
+          "stage": "pin-prune"
+        },
+        {
+          "stage": "boolean-core",
+          "proposed": true,
+          "checked": false,
+          "ms": 1
+        },
+        {
+          "stage": "field-case",
+          "proposed": true,
+          "outcome": "unknown",
+          "ms": 27,
+          "hyps": 139
+        },
+        {
+          "stage": "row-case",
+          "proposed": true,
+          "checked": false,
+          "ms": 27
+        },
+        {
+          "stage": "key-closure",
+          "proposed": true,
+          "ms": 0
+        },
+        {
+          "stage": "pin-prune"
+        },
+        {
+          "stage": "boolean-core",
+          "proposed": true,
+          "checked": false,
+          "ms": 1
+        },
+        {
+          "stage": "field-case",
+          "proposed": true,
+          "outcome": "unknown",
+          "ms": 27,
+          "hyps": 139
+        },
+        {
+          "stage": "row-case",
+          "proposed": true,
+          "checked": false,
+          "ms": 81
+        },
+        {
+          "stage": "row-mirror",
+          "proposed": true,
+          "checked": false,
+          "ms": 0
+        },
+        {
+          "stage": "field-case",
+          "proposed": false,
+          "outcome": "unknown",
+          "ms": 30,
+          "hyps": 139
+        },
+        {
+          "stage": "source-budget-exhausted"
+        },
+        {
+          "stage": "row-case",
+          "proposed": false,
+          "checked": false,
+          "ms": 30
+        },
+        {
+          "stage": "field-column-domain",
+          "proposed": false
+        },
+        {
+          "stage": "guard-leaf",
+          "proposed": false,
+          "checked": false,
+          "ms": 201,
+          "hyps": 12
+        },
+        {
+          "stage": "guard-complete",
+          "proposed": false,
+          "checked": false
+        },
+        {
+          "stage": "case-derivations",
+          "proposed": false,
+          "ms": 201
+        },
+        {
+          "stage": "query",
+          "outcome": "unknown",
+          "ms": 200,
+          "hyps": 344
+        }
+      ],
+      "6": [
+        {
+          "stage": "guard-leaf-budget"
+        },
+        {
+          "stage": "field-case",
+          "proposed": false,
+          "outcome": "unknown",
+          "ms": 5,
+          "hyps": 139
+        },
+        {
+          "stage": "shared-frame",
+          "ms": 0
+        },
+        {
+          "stage": "guard-leaf",
+          "proposed": false,
+          "checked": false,
+          "ms": 5,
+          "hyps": 3
+        },
+        {
+          "stage": "guard-complete",
+          "proposed": false,
+          "checked": false
+        },
+        {
+          "stage": "case-derivations",
+          "proposed": false,
+          "ms": 5
+        }
+      ]
+    },
+    "last": [
+      {
+        "phase": "early-focus",
+        "stage": "count-core-select",
+        "pool": 39,
+        "indices": [
+          0,
+          1,
+          2,
+          3,
+          4,
+          5,
+          6,
+          7,
+          8,
+          9,
+          10,
+          11,
+          12,
+          13,
+          14,
+          15,
+          16,
+          17,
+          18,
+          19,
+          20,
+          21,
+          22,
+          23,
+          24,
+          25,
+          26,
+          27,
+          28,
+          29,
+          30,
+          31,
+          32,
+          33,
+          34,
+          35,
+          36,
+          37,
+          38
+        ],
+        "fallback": true,
+        "ms": 200
+      },
+      {
+        "phase": "early-focus",
+        "value": 5,
+        "stage": "query",
+        "round": 0,
+        "hyps": 344,
+        "ms": 200,
+        "outcome": "unknown"
+      },
+      {
+        "phase": "early-focus",
+        "value": 6,
+        "stage": "guard-leaf-budget",
+        "active": false,
+        "start": 2448.9100211999994,
+        "until": 2700,
+        "end": 2700,
+        "draw": 251.0899788000006
+      },
+      {
+        "phase": "early-focus",
+        "value": 6,
+        "stage": "field-case",
+        "hyps": 139,
+        "ms": 5,
+        "proposed": false,
+        "outcome": "unknown",
+        "guardActive": false
+      },
+      {
+        "phase": "early-focus",
+        "value": 6,
+        "stage": "shared-frame",
+        "ms": 0,
+        "proved": false
+      },
+      {
+        "phase": "early-focus",
+        "value": 6,
+        "stage": "guard-leaf",
+        "active": false,
+        "sourceOnly": false,
+        "hyps": 3,
+        "ms": 5,
+        "checked": false,
+        "proposed": false,
+        "transported": false,
+        "deferred": true
+      },
+      {
+        "phase": "early-focus",
+        "value": 6,
+        "stage": "guard-complete",
+        "cuts": 10,
+        "checked": false,
+        "proposed": false,
+        "deferred": true
+      },
+      {
+        "phase": "early-focus",
+        "value": 6,
+        "stage": "case-derivations",
+        "ms": 5,
+        "proposed": false
+      }
+    ]
+  }
+]

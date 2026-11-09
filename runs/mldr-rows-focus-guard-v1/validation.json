@@ -1,0 +1,11 @@
+{
+  "batch": "20261110-031705-ar91sv",
+  "tests": 25,
+  "assertions": 76,
+  "failures": 0,
+  "measuredArms": 8,
+  "checkedProofs": 0,
+  "focusActuallyEntered": true,
+  "unitLimitedThirdPairEqual": true,
+  "performancePromotion": false
+}

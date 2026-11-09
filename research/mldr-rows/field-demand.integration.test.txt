@@ -1,0 +1,14 @@
+import {expect,test} from 'bun:test'
+import {type Machine,all,any,get,ite,less,n,not,plus,same,x} from '../machine.ts'
+import {type CountCert,checkMC,mcGoal} from '../../kernel/kernel.ts'
+import {clock,counted,fullRate} from '../../kernel/prove.ts'
+import {deriveCountClosure} from './derivability-closure.ts'
+for(const gate of [0,1])test(`primitive field count closure at gate ${gate}`,()=>{
+ const k=x('k'),a=same(get('A',k),n(1)),b=same(get('B',k),n(1)),v=same(get('Vote',k),n(1)),cell=get('Gate',n(0)),d={j:'row',key:'k',below:n(4)},bit=(c:Parameters<typeof ite>[0])=>ite(c,n(1),n(0))
+ const ds=[{...d,map:'Remaining',body:bit(all(a,any(not(v),less(n(0),cell))))},{...d,map:'Voters',body:bit(all(b,v))},{...d,map:'Left',body:bit(all(a,not(b)))},{...d,map:'Both',body:bit(all(a,b))},{...d,map:'Right',body:bit(all(not(a),b))}]
+ const cert:Pick<CountCert,'reads'|'insts'>={reads:ds.map((c,i)=>[`r${i}`,c.map,n(0)]),insts:[{wit:'w',below:n(4),unit:0,terms:[[1,'r0'],[1,'r1'],[-1,'r2'],[-1,'r3'],[-1,'r4']]}]}
+ const value=(map:string)=>get(map,n(0)),countViolation=less(plus(plus(value('Left'),value('Both')),value('Right')),plus(value('Remaining'),value('Voters'))),claim=same(cell,n(gate)),raw=[claim,countViolation],g=mcGoal(raw,ds,cert)!,events:object[]=[],m:Machine={name:'primitive field gate',params:[],inputs:[],state:{},maps:{A:0,B:0,Vote:0,Gate:0},inputMaps:['Vote'],step:{}}
+ const tree=counted(fullRate,()=>deriveCountClosure(m,ds,g,cert,new Map(),clock()+1500,events,{claim}),true)
+ expect(events.some((e:any)=>e.stage==='field-count-demand')).toBe(true)
+ if(gate===0){expect(tree).toBeDefined();if(tree)expect(checkMC(raw,ds,{...cert,tree})).toBe(true)}else expect(tree).toBeUndefined()
+})

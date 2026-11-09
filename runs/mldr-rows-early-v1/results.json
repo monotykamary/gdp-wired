@@ -1,0 +1,604 @@
+[
+  {
+    "name": "early-2700-after",
+    "arms": [
+      {
+        "side": "after",
+        "checked": false,
+        "units": 2700.2728959999995,
+        "searchUnits": 2700.2728959999995,
+        "wallMs": 3387.675781,
+        "results": [
+          {
+            "pass": 1,
+            "outcome": "unknown",
+            "units": 2700.2728959999995,
+            "wallMs": 3386.445576
+          }
+        ],
+        "eventCount": 21,
+        "profile": {
+          "#count-completion": 48,
+          "encode": 29.877499999999145,
+          "decide": 3193.347689,
+          "mbqi": 75.38819000000012,
+          "lazy": 0.12248899999985952,
+          "#rounds": 5,
+          "#hyps": 980,
+          "grow": 1.88808999999992
+        },
+        "last": {
+          "pass": 1
+        }
+      },
+      {
+        "side": "before",
+        "checked": false,
+        "units": 2700.2335139999996,
+        "searchUnits": 2700.2335139999996,
+        "wallMs": 2471.933555,
+        "results": [
+          {
+            "pass": 1,
+            "outcome": "unknown",
+            "units": 2700.2335139999996,
+            "wallMs": 2470.6359110000003
+          }
+        ],
+        "eventCount": 31,
+        "profile": {
+          "encode": 48.57994000000053,
+          "decide": 2256.9076309999996,
+          "mbqi": 106.04390599999942,
+          "lazy": 0.1622179999999389,
+          "#rounds": 9,
+          "#hyps": 1083,
+          "grow": 1.7741329999998925
+        },
+        "last": {
+          "pass": 1
+        }
+      }
+    ],
+    "archive": {
+      "artifact": "track-m-tar-v1",
+      "dir": "/home/user/track-m-s18-receipts-vpqWWr",
+      "format": "tar.gz",
+      "parts": 5,
+      "bytes": 624658,
+      "sha256": "c5712b594162b019f68681a86a813a6cb983ef6a27cb599657bf9962f00931f9"
+    }
+  },
+  {
+    "name": "early-2700-before",
+    "arms": [
+      {
+        "side": "before",
+        "checked": false,
+        "units": 2700.2335139999996,
+        "searchUnits": 2700.2335139999996,
+        "wallMs": 2946.427177,
+        "results": [
+          {
+            "pass": 1,
+            "outcome": "unknown",
+            "units": 2700.2335139999996,
+            "wallMs": 2939.3507130000003
+          }
+        ],
+        "eventCount": 31,
+        "profile": {
+          "encode": 75.89334300000064,
+          "decide": 2693.6128909999993,
+          "mbqi": 107.3189099999995,
+          "lazy": 0.15869400000019596,
+          "#rounds": 9,
+          "#hyps": 1083,
+          "grow": 2.0379760000000715
+        },
+        "last": {
+          "pass": 1
+        }
+      },
+      {
+        "side": "after",
+        "checked": false,
+        "units": 2700.2728959999995,
+        "searchUnits": 2700.2728959999995,
+        "wallMs": 3204.080239,
+        "results": [
+          {
+            "pass": 1,
+            "outcome": "unknown",
+            "units": 2700.2728959999995,
+            "wallMs": 3202.780765
+          }
+        ],
+        "eventCount": 21,
+        "profile": {
+          "#count-completion": 48,
+          "encode": 33.27553299999954,
+          "decide": 3013.993838,
+          "mbqi": 85.11282699999992,
+          "lazy": 0.10510299999987183,
+          "#rounds": 5,
+          "#hyps": 980,
+          "grow": 2.6790649999998095
+        },
+        "last": {
+          "pass": 1
+        }
+      }
+    ],
+    "archive": {
+      "artifact": "track-m-tar-v1",
+      "dir": "/home/user/track-m-s18-receipts-UoyCrR",
+      "format": "tar.gz",
+      "parts": 5,
+      "bytes": 627481,
+      "sha256": "620bba08faf8c480e955fbc7a8c2b450156af31562ffafee962952d39164b074"
+    }
+  },
+  {
+    "name": "early-6000-after",
+    "arms": [
+      {
+        "side": "after",
+        "checked": false,
+        "units": 5600.407952,
+        "searchUnits": 5600.407952,
+        "wallMs": 7003.634103,
+        "results": [
+          {
+            "pass": 1,
+            "outcome": "unknown",
+            "units": 5600.407952,
+            "wallMs": 6999.818061
+          },
+          {
+            "pass": 0,
+            "outcome": "unknown",
+            "units": 0,
+            "wallMs": 0.15932799999973213
+          }
+        ],
+        "eventCount": 23,
+        "profile": {
+          "#count-completion": 48,
+          "encode": 37.1703209999996,
+          "decide": 6814.121005,
+          "mbqi": 70.7409889999999,
+          "lazy": 0.14270699999997305,
+          "#rounds": 6,
+          "#hyps": 1230
+        },
+        "last": {
+          "phase": "rejected proposal",
+          "pass": 0,
+          "error": "WallExpired: time (encode)"
+        }
+      },
+      {
+        "side": "before",
+        "checked": false,
+        "units": 6000.308358,
+        "searchUnits": 6000.308358,
+        "wallMs": 5330.29784,
+        "results": [
+          {
+            "pass": 1,
+            "outcome": "unknown",
+            "units": 6000.308358,
+            "wallMs": 5329.211884
+          }
+        ],
+        "eventCount": 40,
+        "profile": {
+          "encode": 64.40671800000109,
+          "decide": 5030.618636,
+          "mbqi": 139.68617200000062,
+          "lazy": 0.16293599999971775,
+          "#rounds": 12,
+          "#hyps": 1891,
+          "grow": 1.693515999999363
+        },
+        "last": {
+          "pass": 1
+        }
+      }
+    ],
+    "archive": {
+      "artifact": "track-m-tar-v1",
+      "dir": "/home/user/track-m-s18-receipts-pE6kSm",
+      "format": "tar.gz",
+      "parts": 6,
+      "bytes": 788939,
+      "sha256": "4e858fee8d71d0e7fed81019bb93a483819f92051da90a979dbd3874ab36df91"
+    }
+  },
+  {
+    "name": "early-6000-before",
+    "arms": [
+      {
+        "side": "before",
+        "checked": false,
+        "units": 6000.308358,
+        "searchUnits": 6000.308358,
+        "wallMs": 5137.146569,
+        "results": [
+          {
+            "pass": 1,
+            "outcome": "unknown",
+            "units": 6000.308358,
+            "wallMs": 5135.970712
+          }
+        ],
+        "eventCount": 40,
+        "profile": {
+          "encode": 46.19408999999905,
+          "decide": 4868.497285000002,
+          "mbqi": 124.98087899999973,
+          "lazy": 0.1649280000001454,
+          "#rounds": 12,
+          "#hyps": 1891,
+          "grow": 1.7941539999992528
+        },
+        "last": {
+          "pass": 1
+        }
+      },
+      {
+        "side": "after",
+        "checked": false,
+        "units": 6000.139034,
+        "searchUnits": 6000.139034,
+        "wallMs": 5790.211044000001,
+        "results": [
+          {
+            "pass": 1,
+            "outcome": "unknown",
+            "units": 6000.139034,
+            "wallMs": 5788.691753
+          }
+        ],
+        "eventCount": 24,
+        "profile": {
+          "#count-completion": 48,
+          "encode": 54.415042000000085,
+          "decide": 5556.342398999999,
+          "mbqi": 76.9362500000002,
+          "lazy": 0.105504999999539,
+          "#rounds": 6,
+          "#hyps": 1230,
+          "grow": 2.3895000000002256
+        },
+        "last": {
+          "pass": 1
+        }
+      }
+    ],
+    "archive": {
+      "artifact": "track-m-tar-v1",
+      "dir": "/home/user/track-m-s18-receipts-a5Pmhf",
+      "format": "tar.gz",
+      "parts": 6,
+      "bytes": 812417,
+      "sha256": "40a2cea57cf28fc6a292ee1e610e069d87285c6a5bb3147fd836b4ce4d1363b0"
+    }
+  },
+  {
+    "name": "row-first-2700-after",
+    "arms": [
+      {
+        "side": "after",
+        "checked": false,
+        "units": 2700.408088,
+        "searchUnits": 2700.408088,
+        "wallMs": 4517.116209,
+        "results": [
+          {
+            "pass": 1,
+            "outcome": "unknown",
+            "units": 2700.408088,
+            "wallMs": 4516.0027310000005
+          }
+        ],
+        "eventCount": 24,
+        "profile": {
+          "#count-completion": 48,
+          "encode": 32.80068099999971,
+          "decide": 4320.386684000001,
+          "mbqi": 95.31141000000116,
+          "lazy": 0.10254499999973632,
+          "#rounds": 6,
+          "#hyps": 1310,
+          "grow": 1.5866759999998976
+        },
+        "last": {
+          "pass": 1
+        }
+      },
+      {
+        "side": "before",
+        "checked": false,
+        "units": 2700.2335139999996,
+        "searchUnits": 2700.2335139999996,
+        "wallMs": 1948.418539,
+        "results": [
+          {
+            "pass": 1,
+            "outcome": "unknown",
+            "units": 2700.2335139999996,
+            "wallMs": 1947.167654
+          }
+        ],
+        "eventCount": 31,
+        "profile": {
+          "encode": 37.13641000000007,
+          "decide": 1774.3671519999998,
+          "mbqi": 79.60461400000008,
+          "lazy": 0.11461599999984173,
+          "#rounds": 9,
+          "#hyps": 1083,
+          "grow": 1.8740649999999732
+        },
+        "last": {
+          "pass": 1
+        }
+      }
+    ],
+    "archive": {
+      "artifact": "track-m-tar-v1",
+      "dir": "/home/user/track-m-s18-receipts-dPs2k0",
+      "format": "tar.gz",
+      "parts": 5,
+      "bytes": 661660,
+      "sha256": "8dc998d08538eb2a661554e23440bf6b383c928b685c1e06cb4d86c6206f6444"
+    }
+  },
+  {
+    "name": "row-first-2700-before",
+    "arms": [
+      {
+        "side": "before",
+        "checked": false,
+        "units": 2700.2335139999996,
+        "searchUnits": 2700.2335139999996,
+        "wallMs": 4291.923457,
+        "results": [
+          {
+            "pass": 1,
+            "outcome": "unknown",
+            "units": 2700.2335139999996,
+            "wallMs": 4290.183355
+          }
+        ],
+        "eventCount": 31,
+        "profile": {
+          "encode": 71.07728900000029,
+          "decide": 3992.4184409999993,
+          "mbqi": 165.37342199999966,
+          "lazy": 0.18734400000039386,
+          "#rounds": 9,
+          "#hyps": 1083,
+          "grow": 2.644991000000118
+        },
+        "last": {
+          "pass": 1
+        }
+      },
+      {
+        "side": "after",
+        "checked": false,
+        "units": 1496.350498,
+        "searchUnits": 1496.350498,
+        "wallMs": 4801.464765000001,
+        "results": [
+          {
+            "pass": 1,
+            "outcome": "unknown",
+            "units": 1496.350498,
+            "wallMs": 4799.618974
+          },
+          {
+            "pass": 0,
+            "outcome": "unknown",
+            "units": 0,
+            "wallMs": 0.34054899999955524
+          }
+        ],
+        "eventCount": 17,
+        "profile": {
+          "#count-completion": 48,
+          "encode": 71.01096999999936,
+          "decide": 4545.106262,
+          "mbqi": 99.9247150000001,
+          "lazy": 0.2229090000000724,
+          "#rounds": 4,
+          "#hyps": 779
+        },
+        "last": {
+          "phase": "rejected proposal",
+          "pass": 0,
+          "error": "WallExpired: time (encode)"
+        }
+      }
+    ],
+    "archive": {
+      "artifact": "track-m-tar-v1",
+      "dir": "/home/user/track-m-s18-receipts-PENc8L",
+      "format": "tar.gz",
+      "parts": 4,
+      "bytes": 544649,
+      "sha256": "a916322d2a11ca40dbf9fce9ada7972fafa364d106ecbf05446c51fd8d3376ed"
+    }
+  },
+  {
+    "name": "row-first-6000-after",
+    "arms": [
+      {
+        "side": "after",
+        "checked": false,
+        "units": 3900.8751140000004,
+        "searchUnits": 3900.8751140000004,
+        "wallMs": 7000.592047,
+        "results": [
+          {
+            "pass": 1,
+            "outcome": "unknown",
+            "units": 3900.8751140000004,
+            "wallMs": 6999.298040000001
+          },
+          {
+            "pass": 0,
+            "outcome": "unknown",
+            "units": 0,
+            "wallMs": 0.14237600000069506
+          }
+        ],
+        "eventCount": 26,
+        "profile": {
+          "#count-completion": 48,
+          "encode": 37.96823900000072,
+          "decide": 6758.832243000002,
+          "mbqi": 101.29984599999989,
+          "lazy": 0.18083800000022165,
+          "#rounds": 7,
+          "#hyps": 1589
+        },
+        "last": {
+          "phase": "rejected proposal",
+          "pass": 0,
+          "error": "WallExpired: time (encode)"
+        }
+      },
+      {
+        "side": "before",
+        "checked": false,
+        "units": 5823.439092,
+        "searchUnits": 5823.439092,
+        "wallMs": 7000.865763,
+        "results": [
+          {
+            "pass": 1,
+            "outcome": "unknown",
+            "units": 5823.439092,
+            "wallMs": 6999.28008
+          },
+          {
+            "pass": 0,
+            "outcome": "unknown",
+            "units": 0,
+            "wallMs": 0.191859999999906
+          }
+        ],
+        "eventCount": 39,
+        "profile": {
+          "encode": 55.578825999999935,
+          "decide": 6697.828105999999,
+          "mbqi": 159.75272500000028,
+          "lazy": 0.17076900000029127,
+          "#rounds": 12,
+          "#hyps": 1891
+        },
+        "last": {
+          "phase": "rejected proposal",
+          "pass": 0,
+          "error": "WallExpired: time (encode)"
+        }
+      }
+    ],
+    "archive": {
+      "artifact": "track-m-tar-v1",
+      "dir": "/home/user/track-m-s18-receipts-guH1NV",
+      "format": "tar.gz",
+      "parts": 6,
+      "bytes": 832641,
+      "sha256": "ce97256553d00ac21d9425fe2a94bd8bbeed5638202366b1acaeb27a0337be73"
+    }
+  },
+  {
+    "name": "row-first-6000-before",
+    "arms": [
+      {
+        "side": "before",
+        "checked": false,
+        "units": 3113.0461359999995,
+        "searchUnits": 3113.0461359999995,
+        "wallMs": 7008.983204,
+        "results": [
+          {
+            "pass": 1,
+            "outcome": "unknown",
+            "units": 3113.0461359999995,
+            "wallMs": 7002.887407
+          },
+          {
+            "pass": 0,
+            "outcome": "unknown",
+            "units": 0,
+            "wallMs": 0.6708500000004278
+          }
+        ],
+        "eventCount": 30,
+        "profile": {
+          "encode": 70.12750600000072,
+          "decide": 6621.05856,
+          "mbqi": 242.28249399999913,
+          "lazy": 0.2223809999995865,
+          "#rounds": 9,
+          "#hyps": 1083
+        },
+        "last": {
+          "phase": "rejected proposal",
+          "pass": 0,
+          "error": "WallExpired: time (encode)"
+        }
+      },
+      {
+        "side": "after",
+        "checked": false,
+        "units": 2278.1074260000005,
+        "searchUnits": 2278.1074260000005,
+        "wallMs": 7009.497987,
+        "results": [
+          {
+            "pass": 1,
+            "outcome": "unknown",
+            "units": 2278.1074260000005,
+            "wallMs": 7007.13251
+          },
+          {
+            "pass": 0,
+            "outcome": "unknown",
+            "units": 0,
+            "wallMs": 0.31052399999953195
+          }
+        ],
+        "eventCount": 17,
+        "profile": {
+          "#count-completion": 48,
+          "encode": 59.81928400000015,
+          "decide": 6720.489424999999,
+          "mbqi": 113.88706899999943,
+          "lazy": 0.32072300000072573,
+          "#rounds": 4,
+          "#hyps": 779
+        },
+        "last": {
+          "phase": "rejected proposal",
+          "pass": 0,
+          "error": "WallExpired: time (encode)"
+        }
+      }
+    ],
+    "archive": {
+      "artifact": "track-m-tar-v1",
+      "dir": "/home/user/track-m-s18-receipts-lxSwDN",
+      "format": "tar.gz",
+      "parts": 4,
+      "bytes": 535955,
+      "sha256": "02062ad68af46daa40d9c8ad8d46e30814340a9af8cf3acc9863dbd1606d06a4"
+    }
+  }
+]

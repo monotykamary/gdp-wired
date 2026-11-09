@@ -1,0 +1,108 @@
+[
+  {
+    "name": "field-demand-after",
+    "arms": [
+      {
+        "side": "after",
+        "checked": false,
+        "earlyEligible": true,
+        "earlyFocusMode": "only",
+        "units": 2077.1465588,
+        "wallMs": 4814.424988,
+        "results": [
+          {
+            "pass": "early-focus",
+            "outcome": "unknown",
+            "units": 2077.1465588,
+            "wallMs": 4812.020818999999
+          }
+        ],
+        "eventCount": 266,
+        "last": {
+          "phase": "early-focus"
+        }
+      },
+      {
+        "side": "before",
+        "checked": false,
+        "earlyEligible": true,
+        "earlyFocusMode": "only",
+        "units": 2701.7127968,
+        "wallMs": 4321.9715479999995,
+        "results": [
+          {
+            "pass": "early-focus",
+            "outcome": "unknown",
+            "units": 2701.7127968,
+            "wallMs": 4319.836243
+          }
+        ],
+        "eventCount": 201,
+        "last": {
+          "phase": "early-focus"
+        }
+      }
+    ],
+    "archive": {
+      "artifact": "track-m-tar-v1",
+      "dir": "/home/user/track-m-s18-receipts-ho42DH",
+      "format": "tar.gz",
+      "parts": 1,
+      "bytes": 66074,
+      "sha256": "4c626f88a8544f088eaf7d8a164e244b2b440d136e351d74e7fee73d43752b32"
+    }
+  },
+  {
+    "name": "field-demand-before",
+    "arms": [
+      {
+        "side": "before",
+        "checked": false,
+        "earlyEligible": true,
+        "earlyFocusMode": "only",
+        "units": 2701.7127968,
+        "wallMs": 3317.737422,
+        "results": [
+          {
+            "pass": "early-focus",
+            "outcome": "unknown",
+            "units": 2701.7127968,
+            "wallMs": 3316.109293
+          }
+        ],
+        "eventCount": 201,
+        "last": {
+          "phase": "early-focus"
+        }
+      },
+      {
+        "side": "after",
+        "checked": false,
+        "earlyEligible": true,
+        "earlyFocusMode": "only",
+        "units": 2700.6205575999998,
+        "wallMs": 3504.716043,
+        "results": [
+          {
+            "pass": "early-focus",
+            "outcome": "unknown",
+            "units": 2700.6205575999998,
+            "wallMs": 3502.9708870000004
+          }
+        ],
+        "eventCount": 305,
+        "last": {
+          "phase": "early-focus"
+        }
+      }
+    ],
+    "archive": {
+      "artifact": "track-m-tar-v1",
+      "dir": "/home/user/track-m-s18-receipts-hogOhO",
+      "format": "tar.gz",
+      "parts": 1,
+      "bytes": 67638,
+      "sha256": "e0ab8deaab9062f9bad9803553e0645f56af62f12b799516d0ba3e00b78994a8"
+    }
+  }
+]

@@ -1,0 +1,34 @@
+{
+  "batch": "20261110-031307-hyqtwf",
+  "source": "0a3d72ea6a22e2dde9e5758d431672954c178deec81dffe9c3946af2eabc845b",
+  "checks": [
+    {
+      "mode": "plain",
+      "sourceWarnings": 0,
+      "sourceErrors": 0,
+      "tests": 89,
+      "assertions": 305,
+      "failures": 0
+    },
+    {
+      "mode": "early",
+      "sourceWarnings": 0,
+      "sourceErrors": 0,
+      "tests": 89,
+      "assertions": 305,
+      "failures": 0
+    },
+    {
+      "mode": "row-first",
+      "sourceWarnings": 0,
+      "sourceErrors": 0,
+      "tests": 89,
+      "assertions": 305,
+      "failures": 0
+    }
+  ],
+  "measuredArms": 12,
+  "checkedProofs": 0,
+  "plainCountedWorkEqual": true,
+  "performancePromotion": false
+}

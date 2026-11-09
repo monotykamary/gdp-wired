@@ -18,6 +18,8 @@ The coordinator moved main from `b788e195` to **`4497c4b05c3111959a2b8d808c426a0
 
 - **B `4ce50c00`:** preserved the scalar-premise documentation and new coverage. Resolved `core/counts-completion-order.test.ts` by retaining **all three intents**: the existing scheduling/positive field probe, Lane I's independently checked concrete-key count certificate, and B's explicit false-INIT regression (`Total=2`, claimed `<=1`). No completion behavior was changed. The incoming report is at `runs/lane-i/incoming/20261110/B-4ce50c00.md`; B's unary-only scheduling prototype remains rejected/research-only, not silently promoted as a performance fix.
 
+- **E `e1b8d3b7`:** production merged automatically. Preserve source-bound strictness when constructing sufficient member-inclusion guards; retain the four strict/inclusive combinations and boundary proof/refusal tests. Only the report conflicted; incoming report is at `runs/lane-i/incoming/20261110/E-e1b8d3b7.md`.
+
 All newly integrated source still requires combined qualification; no historical receipt or gate result is transferred to it.
 
 ## Coordinator follow-up: merge bisection and bar resource attribution — active

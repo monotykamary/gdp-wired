@@ -1,0 +1,83 @@
+{
+  "conditional": true,
+  "notAReachableCounterexample": true,
+  "source": "rows-2700-count-first",
+  "first": {
+    "hyps": 68,
+    "seedCount": 0,
+    "nonFlagLawTuples": [],
+    "countReads": [
+      [
+        "r$0",
+        "xNotS",
+        {
+          "op": "const",
+          "value": 0
+        }
+      ],
+      [
+        "r$1",
+        "xAndS",
+        {
+          "op": "const",
+          "value": 0
+        }
+      ],
+      [
+        "r$2",
+        "sNotX",
+        {
+          "op": "const",
+          "value": 0
+        }
+      ],
+      [
+        "r$3",
+        "inX",
+        {
+          "op": "const",
+          "value": 0
+        }
+      ],
+      [
+        "r$4",
+        "inS",
+        {
+          "op": "const",
+          "value": 0
+        }
+      ],
+      [
+        "r$5",
+        "inQ2",
+        {
+          "op": "const",
+          "value": 0
+        }
+      ]
+    ],
+    "countInstances": 10
+  },
+  "lastModel": {
+    "hyps": 220,
+    "selectedValues": {
+      "size": 64,
+      "op": 4,
+      "i": 5,
+      "j": 1,
+      "a$field#": 5,
+      "b$field": 4,
+      "c$field": 63,
+      "started": 1,
+      "CT[a$field#:1]": 0,
+      "CfgT[a$field#:1]": 2,
+      "CfgT[b$field:1]": 1,
+      "CV[a$field#:1]": 2,
+      "CV[b$field:1]": 2,
+      "Config[a$field#:64,c$field:1]": 0,
+      "Config[b$field:64,c$field:1]": 1
+    },
+    "countReads": 55,
+    "countInstances": 10
+  }
+}

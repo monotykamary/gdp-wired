@@ -1,0 +1,29 @@
+{
+  "check-plain-v2": {
+    "vm": "bx_6aqepfyv",
+    "type": "large",
+    "cpu": "AMD EPYC 9455 48-Core Processor",
+    "vcpus": 8,
+    "vm_vcpus": 8,
+    "exclusive": false,
+    "co_tenants": 0
+  },
+  "check-early-v2": {
+    "vm": "bx_7vs7decr",
+    "type": "large",
+    "cpu": "AMD Ryzen 9 9950X 16-Core Processor",
+    "vcpus": 8,
+    "vm_vcpus": 8,
+    "exclusive": false,
+    "co_tenants": 0
+  },
+  "check-row-first-v2": {
+    "vm": "bx_76nnjrpb",
+    "type": "large",
+    "cpu": "AMD Ryzen 9 9950X 16-Core Processor",
+    "vcpus": 8,
+    "vm_vcpus": 8,
+    "exclusive": false,
+    "co_tenants": 0
+  }
+}

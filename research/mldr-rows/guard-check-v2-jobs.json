@@ -1,0 +1,23 @@
+[
+  {
+    "name": "check-plain-v2",
+    "cmd": "bash row-guard/guard-pair.sh plain check",
+    "cpu": 8,
+    "memory": 14336,
+    "timeout": 240
+  },
+  {
+    "name": "check-early-v2",
+    "cmd": "bash row-guard/guard-pair.sh early check",
+    "cpu": 8,
+    "memory": 14336,
+    "timeout": 240
+  },
+  {
+    "name": "check-row-first-v2",
+    "cmd": "bash row-guard/guard-pair.sh row-first check",
+    "cpu": 8,
+    "memory": 14336,
+    "timeout": 240
+  }
+]

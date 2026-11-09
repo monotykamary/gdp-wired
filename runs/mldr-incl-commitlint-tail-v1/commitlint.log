@@ -1,0 +1,8 @@
+COMMITLINT commits/34206459.txt
+COMMITLINT commits/3f0b0df4.txt
+COMMITLINT commits/d0c479a5.txt
+
+--- stderr ---
+Resolving dependencies
+Resolved, downloaded and extracted [276]
+Saved lockfile

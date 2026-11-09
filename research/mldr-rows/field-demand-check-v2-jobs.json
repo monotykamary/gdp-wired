@@ -1,0 +1,9 @@
+[
+  {
+    "name": "field-demand-check-v2",
+    "cmd": "bash row-field-demand/field-demand-pair.sh check",
+    "cpu": 2,
+    "memory": 4096,
+    "timeout": 240
+  }
+]

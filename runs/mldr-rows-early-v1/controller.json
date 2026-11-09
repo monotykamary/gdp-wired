@@ -1,0 +1,11 @@
+{
+  "batch": "20261110-024132-w69iz6",
+  "task": "ce05e3b2-32d6-47f4-a62d-8d9896fada63",
+  "jobs": 10,
+  "productionSource": "9124348d",
+  "disposableVariants": [
+    "early",
+    "row-first"
+  ],
+  "productionChanged": false
+}
