@@ -1,0 +1,55 @@
+bun test v1.4.3 (c6da4a4d3)
+
+--- stderr ---
+
+core/count-witness-flags.test.ts:
+(pass) selected count witnesses receive relevant universal flags, without recursive count reads [10.97ms]
+
+core/count-recovery/member-premises.test.ts:
+(pass) ordinary admission and source tuples use declarations, not names or width alpha_ [1.54ms]
+(pass) ordinary admission and source tuples use declarations, not names or width other_ [0.33ms]
+25 |  expect(again.cert.insts[0]!.wit).toBe(p.cert.insts[0]!.wit)
+26 | })
+27 | test('the emitted ordinary witness is proved from actual instantiated premises',()=>{
+28 |  const f=fixture(),state=memberPremiseState([f.m,[f.law]]),p=admitMemberWitnesses(f.m,f.ds,f.cert,state,10),out=instantiateMemberPremises(f.m,[f.law],{},f.ds,p.hints,state,64)
+29 |  const wit=x(p.cert.insts[0]!.wit),flags=Object.entries(f.m.step.flags!).flatMap(([name,q])=>q.op==='all'&&(out.at['?'+name]??[]).some(t=>JSON.stringify(t)===JSON.stringify(wit))?[substC(q.c,{vars:{[q.key]:wit},maps:{},flags:{}})]:[]),claim:C={op:'<=',a:get(f.name('Incoming'),n(0)),b:get(f.name('Allowed'),n(0))},hyps=[...assumed([f.law],out.at),...flags,not(claim)],g=mcGoal(hyps,f.ds,p.cert)!
+30 |  const r=grow(g,new Map(),{nodes:0,until:clock()+1000});expect('tree'in r).toBe(true)
+                                                                                ^
+error: expect(received).toBe(expected)
+
+Expected: true
+Received: false
+
+      at <anonymous> (/work/gdp-wired/core/count-recovery/member-premises.test.ts:30:76)
+(fail) the emitted ordinary witness is proved from actual instantiated premises [16.89ms]
+(pass) caps, absent facts and exhausted work do not manufacture premises [0.64ms]
+(pass) existing caller names cannot be captured by a fresh member witness [0.17ms]
+
+core/count-recovery/member-inclusions.test.ts:
+(pass) equality consequents discharge reflexive bodies and retain scalar residue  [0.40ms]
+(pass) equality consequents discharge reflexive bodies and retain scalar residue renamed_ [0.16ms]
+(pass) unknown membership is not treated as implied [0.18ms]
+(pass) member upper bounds propose sufficient scalar guards without equality anchors [0.16ms]
+(pass) an upper bound is not rewritten in a negative comparison [0.08ms]
+(pass) upper-bound suggestions still require the scalar guard and checked witness flags [27.56ms]
+(pass) an inequality is not a substitution [0.28ms]
+(pass) different domains cannot form an inclusion [0.10ms]
+(pass) another carried map does not supply these member facts [0.05ms]
+(pass) a still-member-dependent predicate is not a scalar residue [0.11ms]
+(pass) without an equality rewrite, ordinary membership stays with the old family [0.06ms]
+(pass) a discharged equality may yield an unconditional candidate, never an asserted cut [0.06ms]
+(pass) cyclic input is refused before recursive substitution [0.03ms]
+(pass) ordinary selection receives an existing guarded inclusion within its unchanged cap [0.21ms]
+(pass) selection cannot manufacture a missing instance or borrow unrelated member flags [0.08ms]
+(pass) selection respects an explicitly smaller cap and does not assert its scalar residue [0.08ms]
+(pass) initial selection shares its cap with existing picks and respects exhausted proposal work [0.10ms]
+(pass) the raw lazy pool admits a genuinely missing bound-specialized inclusion with a fresh witness [1.12ms]
+(pass) an ordinary selected witness proves the conditional inclusion but not its unguarded strengthening [20.59ms]
+
+1 tests failed:
+(fail) the emitted ordinary witness is proved from actual instantiated premises [16.89ms]
+
+ 24 pass
+ 1 fail
+ 80 expect() calls
+Ran 25 tests across 3 files. [118.00ms]

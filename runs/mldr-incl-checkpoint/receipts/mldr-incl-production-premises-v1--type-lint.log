@@ -1,0 +1,6 @@
+core/count-recovery/member-premises.test.ts(9,81): error TS2322: Type '{ [x: string]: number; }' is not assignable to type 'Record<string, E>'.
+  'string' index signatures are incompatible.
+    Type 'number' is not assignable to type 'E'.
+
+--- stderr ---
+$ tsc -p . && oxlint --type-aware --deny-warnings --disable-nested-config

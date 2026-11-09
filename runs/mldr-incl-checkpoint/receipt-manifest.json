@@ -1,0 +1,200 @@
+[
+  {
+    "path": "runs/mldr-incl-production-premises-baseline-v1/latest-family-and-step.log",
+    "bytes": 85645,
+    "sha256": "61681dd9c35b9ed501047d2cfa86f64598e53fd82e95824bb7bdad2588007f92",
+    "compact": true
+  },
+  {
+    "path": "runs/mldr-incl-production-premises-baseline-v1/backends.json",
+    "bytes": 770,
+    "sha256": "2dc648f5bda74dad0888ce843aeaf230ca3345dd7dbf6505bce1c9fa2892221b",
+    "compact": true
+  },
+  {
+    "path": "runs/mldr-incl-production-premises-baseline-v1/placement.json",
+    "bytes": 387,
+    "sha256": "28b55c41f1c0e9fc524db8c1c3c1f9f5f0046be56aabd2de7d40a40c91fa0b4f",
+    "compact": true
+  },
+  {
+    "path": "runs/mldr-incl-production-premises-baseline-v1/integrated-base-check.log",
+    "bytes": 2914,
+    "sha256": "14ed00bbcf89bf9107b942dc508b4e2eca1cc4738d3d7ff1272dad533cf69564",
+    "compact": true
+  },
+  {
+    "path": "runs/mldr-incl-production-premises-baseline-v1/summary.tsv",
+    "bytes": 71,
+    "sha256": "b2fde80ccf7f4145a0171b2a255ccad27656bbb731d8eb4ea98bc738b16ae9c2",
+    "compact": true
+  },
+  {
+    "path": "runs/mldr-incl-production-premises-v1/latest-step-2700.log",
+    "bytes": 7726,
+    "sha256": "f4796d6735df8b84d7ea3bc538ae6e125ed42dad18182ab37c29b3a1af0f28e2",
+    "compact": true
+  },
+  {
+    "path": "runs/mldr-incl-production-premises-v1/latest-step-6000.log",
+    "bytes": 81107,
+    "sha256": "92480b0d24d263238f5a910ec2c7b007209a37346ac979580f7d2fa23012fcf6",
+    "compact": true
+  },
+  {
+    "path": "runs/mldr-incl-production-premises-v1/backends.json",
+    "bytes": 770,
+    "sha256": "689d84766605253f3fbf387f3de603e92e3bb63c49fa76e0c39019837de602fe",
+    "compact": true
+  },
+  {
+    "path": "runs/mldr-incl-production-premises-v1/type-lint.log",
+    "bytes": 329,
+    "sha256": "bd89321590bdf62b533c9e8d18b1248a8c9e54d04f6e7997ad57cf4c33d4d97f",
+    "compact": true
+  },
+  {
+    "path": "runs/mldr-incl-production-premises-v1/placement.json",
+    "bytes": 737,
+    "sha256": "80b9e18f399492b4e6f4882a5bb3587f42bfce2c4ee52b5f71670f8e942d01f0",
+    "compact": true
+  },
+  {
+    "path": "runs/mldr-incl-production-premises-v1/member-tests.log",
+    "bytes": 2801,
+    "sha256": "25344d36645dfde99006a6a71bfbe6b18bd4d1fddf8d7f947c0d7c53ebd102f8",
+    "compact": true
+  },
+  {
+    "path": "runs/mldr-incl-production-premises-v1/summary.tsv",
+    "bytes": 105,
+    "sha256": "94d489f6bb650c6c8ef2130f8eedb6f4b4c8a116c34dcffe456b55798aac1c75",
+    "compact": true
+  },
+  {
+    "path": "runs/mldr-incl-production-premises-debug-v1/backends.json",
+    "bytes": 770,
+    "sha256": "2565fc3b0b86683b2689647713373b1eda3bfe2461f01573c5a091c8e35e45a2",
+    "compact": true
+  },
+  {
+    "path": "runs/mldr-incl-production-premises-debug-v1/fixed-tests-and-check.log",
+    "bytes": 3652,
+    "sha256": "352cddb0006d8ba9a9da171240dd13fa9db6a06df86c42421aca6dee0bc601b6",
+    "compact": true
+  },
+  {
+    "path": "runs/mldr-incl-production-premises-debug-v1/placement.json",
+    "bytes": 383,
+    "sha256": "f6d2f34bd1fc629be710581564a5493d1d9fb25aa1ce547531e9d0c98a649583",
+    "compact": true
+  },
+  {
+    "path": "runs/mldr-incl-production-premises-debug-v1/check-returned-proof.log",
+    "bytes": 86264,
+    "sha256": "60a599b419c27ec0ffa644ed59ba937e1b7fbecde4d17009642a22d46a57fb84",
+    "compact": true
+  },
+  {
+    "path": "runs/mldr-incl-production-premises-debug-v1/summary.tsv",
+    "bytes": 66,
+    "sha256": "9ccaa75fd63302d3eac8c8bc72c57a9d6dc3005dc16f1b37468ce98b4defaa65",
+    "compact": true
+  },
+  {
+    "path": "runs/mldr-incl-production-premises-v2/early-2700.log",
+    "bytes": 7988,
+    "sha256": "62638c11be031cab9aac8d8c8680b25f89f7010810240c801ff248c1e1028b5e",
+    "compact": true
+  },
+  {
+    "path": "runs/mldr-incl-production-premises-v2/tests-and-check.log",
+    "bytes": 6839,
+    "sha256": "3331234f60d0be5f5ecefb93aef8e1ed6ebe6dd340673adce90cc3af12ce0982",
+    "compact": true
+  },
+  {
+    "path": "runs/mldr-incl-production-premises-v2/backends.json",
+    "bytes": 772,
+    "sha256": "a5a8f640f55f0861074ff21b4d85520db0b326c746cda664ca0504e6a8c6cc3e",
+    "compact": true
+  },
+  {
+    "path": "runs/mldr-incl-production-premises-v2/ordinary-6000.log",
+    "bytes": 79168,
+    "sha256": "232a20f96aa5870c7e4332b2666f6a2dd3fd5982e298e599e4f482844c5a4955",
+    "compact": true
+  },
+  {
+    "path": "runs/mldr-incl-production-premises-v2/placement.json",
+    "bytes": 735,
+    "sha256": "f0e073b106d7a8940668984ec0a867c8385bc5b8ab0d78e635041000a3f5aeb5",
+    "compact": true
+  },
+  {
+    "path": "runs/mldr-incl-production-premises-v2/ordinary-2700.log",
+    "bytes": 7739,
+    "sha256": "5b75971992595e13b2bfb00b097992f1851d9499c0e3129b13fcccdcbff711be",
+    "compact": true
+  },
+  {
+    "path": "runs/mldr-incl-production-premises-v2/summary.tsv",
+    "bytes": 105,
+    "sha256": "5e3aa0712222acc804178a07b610f70b658f8438ba06d696a5df249c252d315a",
+    "compact": true
+  },
+  {
+    "path": "runs/mldr-incl-production-premises-check-v3/type-tests.log",
+    "bytes": 5088,
+    "sha256": "02f4f71c974bfa64bd4aabc3aea57f7715e3841d1af69441500165f68752f09b",
+    "compact": true
+  },
+  {
+    "path": "runs/mldr-incl-production-premises-check-v3/early-6000.log",
+    "bytes": 7981,
+    "sha256": "216b8e39a28744be95121423b1812377d89573920e4bb08ba60da9dd33e4ca0a",
+    "compact": true
+  },
+  {
+    "path": "runs/mldr-incl-production-premises-check-v3/backends.json",
+    "bytes": 773,
+    "sha256": "9a200bb6ff2d5ace46596fb0217a7b2f7defe325e23653de205aebe6050728a1",
+    "compact": true
+  },
+  {
+    "path": "runs/mldr-incl-production-premises-check-v3/placement.json",
+    "bytes": 360,
+    "sha256": "3cf92f21585c8370896c6fb42fdeb3008479921506f243b4066633e3b9936ec8",
+    "compact": true
+  },
+  {
+    "path": "runs/mldr-incl-production-premises-check-v3/summary.tsv",
+    "bytes": 47,
+    "sha256": "166e0f88c2d7072c2d06e0295772b7c053c5ade289fb84c75944a7226dfc31d9",
+    "compact": true
+  },
+  {
+    "path": "/var/folders/hc/3k4lvfw90yv7kghsnynghcvm0000gn/T/pi-fabric-shell-bcIqVX/output.log",
+    "bytes": 582,
+    "sha256": "fde3e6d5bf856e8f915752ee0750bc2aaf9251115fd29fcdc38625f62ae9258c",
+    "compact": true
+  },
+  {
+    "path": "/var/folders/hc/3k4lvfw90yv7kghsnynghcvm0000gn/T/pi-fabric-shell-4Qy5nZ/output.log",
+    "bytes": 582,
+    "sha256": "20df7f1db9e3c1be3878dab01980f7d187449d00f710ab3e0bc7b34056cd453d",
+    "compact": true
+  },
+  {
+    "path": "/var/folders/hc/3k4lvfw90yv7kghsnynghcvm0000gn/T/pi-fabric-shell-aNwJJE/output.log",
+    "bytes": 582,
+    "sha256": "18773a564b9c5799cad195459724ee24c5714349f56b01f37802fc7527370436",
+    "compact": true
+  },
+  {
+    "path": "runs/mldr-incl-production-checked-input/archive.br",
+    "bytes": 51855,
+    "sha256": "bc13d4b9c0124e23412a6093affe48bb91062102c44ae675cecd6f72910a0327",
+    "compact": false
+  }
+]

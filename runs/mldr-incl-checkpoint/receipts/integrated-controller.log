@@ -1,0 +1,10 @@
+[Bounded shell log: starts with retained pre-spill tail; 8 MiB total cap, then further output is omitted. Not a full-output archive.]
+[boat] batch 20261109-154101-p0ocxa: gdp-wired, image sc-f0d8daeee6c3, tree 60644fe172bc (3842 files), cache olean 001de680457b (16 here)
+[boat] 5 jobs to the scheduler (submission) + 5 large (times from a guess)
+
+
+[[boat] batch 20261109-154101-p0ocxa: gdp-wired, image sc-f0d8daeee6c3, tree 60644fe172bc (3842 files), cache olean 001de680457b (16 here)
+[boat] 5 jobs to the scheduler (submission) + 5 large (times from a guess)
+
+
+Command aborted]
