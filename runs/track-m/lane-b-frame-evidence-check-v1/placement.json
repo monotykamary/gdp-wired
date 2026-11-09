@@ -1,0 +1,11 @@
+{
+ "check": {
+  "vm": "bx_a83zj5st",
+  "type": "large",
+  "cpu": "AMD EPYC 9455 48-Core Processor",
+  "vcpus": 8,
+  "vm_vcpus": 8,
+  "exclusive": false,
+  "co_tenants": 0
+ }
+}
