@@ -5,16 +5,25 @@
 
 # gdp-wired
 
-An automatic prover for stateful rules: budgets, caps, rate limits, workflows, access policies. You write the rule and
-the laws it must keep. gdp-wired proves them with no proof to write, shows a real run that breaks a law when it's false
-(found by searching on the GPU), has every proof checked again by Lean, and ships the rule as JavaScript.
+Use gdp-wired **as a dev dependency, in tests and CI; ship plain application code**. It proves laws for stateful
+rules—budgets, caps, rate limits, workflows, access policies—with no proof to write, checks proof trees in its
+kernel, and can export them for Lean to check again. A false law can be refuted by a real run.
+
+For supported TypeScript decisions, put `// gdp: law ...` comments on the plain source and check it directly:
+**no duplicate model and no runtime dependency are needed**. For code outside the reader's subset, keep the model
+in tests and compare it with the implementation. [The CI-only guide](docs/ci-only.md) covers direct source checks,
+exhaustive finite input comparisons, mutation checks, and explicit runtime opt-in. A comparison is a test, not a proof.
+
+If a model is intentionally used at runtime, `fun(...).run()` interprets supported terms without dynamic code generation.
+`fun(...).compiled()` explicitly opts into generated JavaScript. Declared helper source requires that opt-in;
+arithmetic terms such as `n.divBy(2)` and `n.modBy(2)` work with the default interpreter.
 
 [![How gdp-wired works: certificates, the kernel, the frontier (14 min)](https://raw.githubusercontent.com/monotykamary/gdp-wired/main/static/explainer.jpg)](https://gdpwired.dev/#explainer)
 
 How it works, in 14 minutes: what a certificate is, why the kernel is small, and the frontier. [Watch it on gdpwired.dev](https://gdpwired.dev/#explainer), with captions.
 
 ```sh
-npm install gdp-wired   # or bun add gdp-wired; plain JavaScript with types, Node 20+, Bun or a browser
+npm install --save-dev gdp-wired typescript   # or bun add --dev gdp-wired typescript
 ```
 
 New to formal verification? [The guide](https://gdpwired.dev/guide) takes a rule from ordinary TypeScript to a proof in
