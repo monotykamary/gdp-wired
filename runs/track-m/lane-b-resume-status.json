@@ -1,0 +1,12 @@
+{
+  "branch": "claude/track-mldr",
+  "resumed": true,
+  "gateGreen": false,
+  "completedMeasurementsRepeated": false,
+  "batches": [
+    {"batch":"20261110-000815-19wzia","source":"30537f70","tree":"4e5d068cb3d9","task":"1dd551f7-0335-4d41-b98e-832eb04cf2b9","state":"submission-failed","reason":"scheduler /submit did not answer; no execution receipts; absent from fresh scheduler inventory"},
+    {"batch":"20261110-001834-eu43wb","source":"30537f70","tree":"4e5d068cb3d9","task":"111b428c-975c-40f9-88a4-73dfb21dfed4","state":"pending","output":"runs/track-m/lane-b-range-final-audit-resume-v2"},
+    {"batch":"20261110-002114-ovy5ii","source":"b056c3b4","tree":"c5c63c1bf723","task":"2605e783-888f-4081-90fd-52555ff707ef","state":"pending","output":"runs/track-m/lane-b-demand-range-v1"},
+    {"batch":"20261110-001852-88p0sl","source":"201a21a2","tree":"91adfc0ed7f4","task":"60fb8788-f6d2-47ed-ae26-ef183c93d04c","state":"pending","output":"runs/track-m/lane-b-audit-link-check-v1"}
+  ]
+}
