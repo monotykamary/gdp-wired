@@ -27,7 +27,6 @@ import {countPoolKey, countSignature, grammarPool, ids, polaritySelection, readT
 import {fieldLaws} from './field-laws.ts'
 import {quorumLaws} from './quorum-laws.ts'
 import {countCubes, liftedOneKeyCounts} from './count-cubes.ts'
-import {rangeInstances} from './count-ranges.ts'
 import {finiteHoudini} from './finite-houdini.ts'
 import {finiteModelChecker} from './finite-model.ts'
 import {countsForReads, proposeCountFacts} from './count-facts.ts'
