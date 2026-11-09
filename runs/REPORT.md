@@ -59,7 +59,9 @@ the merged-tree tests/typecheck, the 29-list census against `bef4020f` and a per
   phase +55 % / +47 % (172 → 270 s, 130 → 191 s; `runs/track-wall/receipts/census5`), where `f4db596e` had read +16 % / −8 % on the same
   harness — the union list makes every dense write evaluate its value at the other writes' breakpoints, a real cost when the sets differ.
   Replaced by sharing only among writes with the same breakpoints (no write evaluates at another's), measured on mldr and learning_switch
-  against `f4db596e`:** one breakpoint list per step shared by every dense write (the union of their breakpoints; `$dense`
+  against `f4db596e`:** commit `4468efc5` — **census 29 / 29 identical vs `bef4020f`** (`runs/track-wall/receipts/census6`; mldr 55.8 → 25.1 s
+  on a co-tenanted VM), `learning_switch` +26 % in its small phase (229 → 286 s) on co-tenanted VMs where `f4db596e` had read +16 % — the
+  pinned pair against `f4db596e` and a paired profile of `learning_switch` on both trees are running to tell the two apart. one breakpoint list per step shared by every dense write (the union of their breakpoints; `$dense`
   fills the same cells from it), and no second validation in `cells`.
 , violation-driven ranges (`72380dc1`) vs lane A's `c21a6e54`, three pinned large VMs
   (Ryzen 9 9950X ×2, EPYC 4585PX; `runs/track-wall/receipts/rmldr3`, logs gzipped):** verdict `unknown` (time) on all six runs;
