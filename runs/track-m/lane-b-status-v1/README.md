@@ -172,4 +172,19 @@ Validation tree `d2745c25feee`: default typecheck/lint and **31 tests / 310 asse
 
 **Ownership:** the coordinator moved 15.6 to Lane F on `claude/mldr-leaves`. Prototype handoff: commit `b6fa0a50`, `research/track-m/LANE-F-HANDOFF.md`. One row-policy check was already in flight; no row measurement batch was submitted. Lane B removed row-policy hooks from its runners and keeps 15.4, 15.5 and 16.5. No further 15.6 development is planned here. F snapshot `6cb29e80` and its shared A/E prerequisites were imported in `c0a7f780`; fresh integrated validation and balanced same-VM Lane B policy pairs are pending. The corrected prior profile check passed 27 tests / 257 assertions with typecheck/lint, on its own pre-integration source snapshot.
 
+## Integrated same-VM comparison: combined policy rejected
+
+All ten jobs of `lane-b-integrated-pairs-v1` exited normally (source tree `e32037653323`), with each before/after pair on the same exclusive eight-vCPU VM and both execution orders represented. The combined full 15.4 + 15.5 policy loses safety in both orders:
+
+| Order | Base safety units / wall ms | Combined units / wall ms | Worker outcome |
+|---|---:|---:|---|
+| base → combined | 4,488.589 / 3,237.475 | 6,000.500 / 4,203.236 | checked → unknown |
+| combined → base | 4,488.589 / 3,445.907 | 6,000.500 / 4,729.846 | checked → unknown |
+
+p1 remains checked in all four arms at 2,292.235 units. Inv2973-half, Inv1758 and Inv* remain unresolved. Local checker calls are not being promoted into joint-family acceptance; archive verification and independent paired-certificate replay are pending. This result rejects recommending the combined policy as a default.
+
+The falsifiable next hypothesis is that 15.4's broader reconstruction allocation, not class ordering itself, causes the safety loss. `lane-b-safety-ablation-v1` runs base, leaf-only and class-only in opposite orders under the unchanged 6,000-unit/7-second search line. It is pending.
+
+Integrated validation failed on type errors, not tests: an optional callback closure in `row-cases.ts`, the Lane F summary's optional array destructuring, and the new seeded auditor's inferred local type. Lane F had already published repairs; they were imported with snapshot `0b85516e` in `c6336bf8`. Only validation is being retried (`lane-b-integrated-validation-v2`); completed measurements are not rerun for these type-only fixes.
+
 **No accepted complete family, 29/29 result, 28/29 recertification, or GATE GREEN is claimed.**

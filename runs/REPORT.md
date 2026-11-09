@@ -6016,6 +6016,10 @@ The class-ranking follow-up remains unresolved: op 0 now returns unknown normall
 
 The corrected profile validation passed typecheck/lint and **27 tests / 257 assertions** on snapshot `b4955c0f471d`. New integrated checks are running on the merged source, alongside same-VM before/after pairs for all five actual-family targets. Each target runs in both arm orders; every arm restores its six policy-sensitive core files and records their hashes, the family hash, complete cost, wall and final-check result. These are Lane B policy ablations, not a duplicate of Lane F's row-policy comparison and not a final gate. Outputs: `lane-b-integrated-validation-v1` and `lane-b-integrated-pairs-v1`.
 
+The first integrated validation found type errors in the imported optional model callback and Lane F summary, plus the new leaf-audit local declaration. Lane F already fixed them; snapshot `0b85516e` was imported in `c6336bf8`, and only validation is being retried. The completed worker measurements are not discarded or repeated for type-only fixes.
+
+**Combined policy rejected:** in both same-VM orders, safety is worker-checked before the full 15.4+15.5 policy at 4,488.589 units, then unknown at 6,000.500 units. Walls are 3.237 → 4.203 s and 3.446 → 4.730 s. p1 stays checked in all four arms at 2,292.235 units; the other three targets remain unknown. Independent replay of the paired certificates is pending. A minimal base / leaf-only / class-only safety comparison is running in reversed orders to test whether the allocator, rather than class ordering, causes the loss. No production default is changed.
+
 ### First full gate: not green
 
 `runs/t14-gate-v1/` completed all 154 jobs on boat. Both sides proved all
