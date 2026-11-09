@@ -63,8 +63,13 @@ These are not the full paired merge gate.
 The new-selector seven-shard processes also all exited zero in
 `runs/mldr-incl-upper-shards-v1`. Its service log truncates the first shard-7
 summary (164 tests), so the visible aggregate is only 909 pass / 18 skip.
-A complete-stream, concise-receipt rerun of shard 7 is pending; no complete
-new-suite count is claimed from the truncated log.
+The rerun retained the complete 368,228-byte stream, but its first wrapper
+incorrectly rejected singular `1 file.` summaries. The repaired parser
+independently verifies its hash and all five summaries: **227 pass, 0 fail**.
+Combined with shards 1–6, the new-selector suite is **1,073 pass, 18 skip,
+0 fail**. The failed wrapper remains preserved; no tests were regenerated
+to recover it. `mldr-incl-evidence-check-v1` also passes type/lint and
+**38 focused tests**, including three receipt-parser regressions.
 
 ## Conditional safety: the failure is now localized
 
@@ -144,13 +149,16 @@ scalar conjuncts extracted from the original raw goal, with a missing-guard
 negative, now produces a **checked conditional proof in 39.78 counted units**
 using the tighter `CT[i] < CfgT[b]` guard. The original stronger guard also
 checks (39.79 units). Omitting the guard remains SAT (35.64 units), ruling out
-a vacuous contradiction in the context. Saving and independently rechecking
-the conditional certificate is pending. This is **not a safety proof**.
+a vacuous contradiction in the context. Both certificates are now saved and
+accepted by fresh kernel processes. The hardened V2 exporter uses unique
+output files; producer, verifier, frozen-input and certificate hashes all
+match. See `runs/mldr-incl-pointwise-certificates-v2/index.json`. This is
+**not a safety proof** and does not establish the explicit flag premises.
 
 The isolated original-harness A/A+E v1 probe failed all three jobs **in patch
 setup**, before any protocol verdict. Lane A changed an import
 (`attemptShare`), invalidating the patch context. V2 changes only that context,
-passes an exact archive patch check, and is submitted. The pinned Lane A source
+passes an exact archive patch check, and completed. The pinned Lane A source
 is `48533517bf7b6ef1bee47e58d2a9a517babd5488`. These composite probes are not
 a full merge gate. V2 completed all three pairs: **UNKNOWN on both sides in
 every pair**, at approximately 59 seconds per side. A separate instrumented
@@ -192,8 +200,11 @@ Section **16.6** is now the active instruction: use the actual frozen 35-law
 family for conditional safety until Lane A 16.1/16.2 lets the original harness
 reach safety, then replace this measurement with the real attempt.
 
-Remaining before merge: checked conditional improvement on Gp1 and real E-14;
-strict original-harness confirmation; 29x3 paired versus current main, DuoAI,
-broken variants, bar, and final type/lint. All failures remain in the evidence.
-No MLDR proof improvement, integrated sub-60-second result, merge, or push is
-claimed.
+Remaining: turn the conditional lemma into an actual safety-cost improvement
+and obtain Lane D’s exact-source final gate, including its authoritative bar.
+The repaired 29×3 / DuoAI / broken diagnostics, seven shards and final local
+type/lint are complete; none substitutes for that final gate. The next bounded
+experiment removes premises from the saved conditional proof, rechecking every
+removal and retaining a SAT missing-guard control. It is research, not a
+production change. No complete MLDR proof, integrated sub-60-second result,
+merge, or push is claimed.
