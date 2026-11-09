@@ -6,7 +6,13 @@ Lane I resumed from `cca59f0c` on `claude/mldr-integ`; clean worktree verified, 
 - Repair: core-replay reconstruction now spreads the previous obligation before replacing its goal/decls/encoded goal, retaining `all`, certificate and pool. Added a focused range-demand test for a read omitted by the selected certificate. No budget, law, or kernel change.
 - Current source/test candidate: `edd284913024a6566591d7ad1cba8059b8047a14`; all eight v9 validation jobs and all 87 generation pairs were launched with new pinned inputs. Later B/report/audit changes do not alter the tested engine. Results are still pending. Lane D's final gate is mandatory; the earlier `704efc27` request is superseded below.
 
-## Coordinator memory-pressure guidance (active)
+## Admission recovered; one-subagent cap remains
+
+Coordinator reports the shared blob-cache lock freed at 00:35 and normal wide boat submissions are open again. Verified **all four original Lane I batch IDs are now persisted in the scheduler queue**: `20261110-001227-5qxos1` (140 shards), `20261110-001619-awzeif` (validation), `20261110-001623-9q08uz` (generation census), `20261110-001947-ek072a` (receipt audits). Their existing controllers remain owners. Nothing was killed or resubmitted, and no duplicate run was created.
+
+Integrated A `19ad4ab4`: the atom-readiness shortcut and two finite-domain equivalence tests remain confined to the experimental tiny backend; original generation still does not invoke it. New witness-replay diagnostics distinguish newly found from historical drops. Only the report conflicted; Lane I keeps pointers to A's report. V9 remains bound to its older source SHA; new mechanics are required for this source update.
+
+## Coordinator memory-pressure guidance (historical; submission hold lifted, memory cap retained)
 
 The coordinator confirmed that laptop memory pressure (7.5/8 GB swap and heavy paging) is stalling shared blob-cache admission while a client's per-file `utime` crawls. This supersedes the unconfirmed contention hypothesis below; it is not a proof-engine failure. All four existing Lane I controllers remain untouched: no resubmission, no cancellation, no scheduler/cache changes.
 

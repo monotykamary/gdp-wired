@@ -1,0 +1,6 @@
+fix(research): distinguish fresh and historical hybrid drops
+
+Require five new named drops in each original-family repeat, while
+reporting historical survivor removals separately. Record source digests
+for independent replay and the static argument for the pending shortcut.
+No executable validation is claimed during the coordinator's hold.

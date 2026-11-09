@@ -1,0 +1,9 @@
+chore: wip: resume tiny search with pending boat validation
+
+Rerun the six cancelled hybrid probes first with the checked frozen input.
+Prepare an unready-atom shortcut, finite equivalence regressions, and an
+independent full-round-family witness replay diagnostic.
+
+Remote experiments and validation are still pending scheduler admission.
+No test, timing, proof, or final-gate success is claimed. Keep experimental
+tiny screening disabled in production and retain all pending task IDs.
