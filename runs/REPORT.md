@@ -2,9 +2,36 @@
 
 Lane I resumed from `cca59f0c` on `claude/mldr-integ`; clean worktree verified, handoff including PAUSED, COMMON, and Section 14 read. **NOT GATE GREEN.** Baseline stays `b788e1959bba1f2e8aa1f94d4cf7c0eb163a2f9c`.
 
-- First cancelled work rerun: all **140 upper-bound shards** submitted through the scheduler, fresh output `runs/lane-i/upper-bound/resumed/full`, task `cf1d3fc9-6a88-4e12-8403-974717b1ed42`. Every guest unpacks frozen production `15eff72f` and checks the retained source manifest; the current integration is not substituted. No supplied laws; original 34-law family; 30 minutes per operation; no share; independent verification still required. Pending, not a result.
+- First cancelled work rerun **completed all 140 frozen upper-bound shards** at `15eff72f`, task `cf1d3fc9-6a88-4e12-8403-974717b1ed42`. Initial aggregation: **64 fresh-process-verified conditional STEP closures, 42 unknown, 34 censored**; no full helper/family/safety proof. Detailed source/budget/provenance audit and censoring breakdown are below. The newer integration was not substituted.
 - Repair: core-replay reconstruction now spreads the previous obligation before replacing its goal/decls/encoded goal, retaining `all`, certificate and pool. Added a focused range-demand test for a read omitted by the selected certificate. No budget, law, or kernel change.
 - Current integrated production source candidate: `e48a109efc5ee029d658702ac45a7e7a8ff4c9b6`. V11 validation completed with **one failed check** (new runtime-key test used `Function`); its four test shards, original MLDR pairs and replay negative control returned zero process exits. The generation census and frozen upper-bound remain pending. The test-only VM repair is being revalidated. Lane D's `b09da82d` gate is **RED**, not pending or green; the exact-source paired diagnosis below is active.
+
+## Frozen 140-shard upper-bound census returned — conditional evidence only
+
+Controller `cf1d3fc9-6a88-4e12-8403-974717b1ed42` returned all **140 / 140** scheduler rows with exit 0, all on exclusive large boat workers. This was the frozen original production **`15eff72f04f74351b622b02d08e47bfb9dfdb131`**, original 34-law family, no supplied laws, no shared source-subset probes, 1e12 counted allowance and 1,800,000 ms per operation. It is not the current integration. Output: `runs/lane-i/upper-bound/resumed/full/`.
+
+The existing tested summarizer reports **64 closed, 42 unknown, 34 censored, 0 certified SAT, 0 pending**, with no issues. Every closed shard has a successful **fresh-process ordinary kernel verifier receipt** for its conditional STEP proof. Certificates were checked on the workers; the logged certificate hashes do not constitute a new local replay or a whole-helper proof.
+
+A separate provenance audit checks all 140 names/statuses/placements, all frozen `core/` and `kernel/` manifest-success lines, original-family/source/budget/operation metadata, reproducible disposable patch hashes, unmodified kernel patch scope and verifier linkage: **zero issues** in the initial local receipt pass. This new auditor and its time-classification tests are being qualified on boat before the audit is declared validated.
+
+| Target / counted pass | Closed operations per ceiling mode | Remaining per mode |
+|---|---:|---|
+| Inv* (`star`), pass 0 | 0 / 7 | 7 unknown |
+| Inv*, pass 1 | 0 / 7 | 7 censored |
+| Inv2973-half (`half`), pass 0 | 0 / 7 | 7 unknown |
+| Inv2973-half, pass 1 | 0 / 7 | 7 censored |
+| Inv1758 (`rows`), pass 0 | 7 / 7 | none |
+| Inv1758, pass 1 | 5 / 7 | ops 1 and 4 censored |
+| Generated p1, pass 0 | 0 / 7 | 7 unknown |
+| Generated p1, pass 1 | 7 / 7 | none |
+| Safety, pass 0 | 7 / 7 | none |
+| Safety, pass 1 | 6 / 7 | op 4 censored |
+
+**All 70 on/off pairs have the same terminal classification.** Removing local ceilings did not add a closed shard in this run. This is not a timing comparison across unlike CPUs, nor proof that any finite completion bound exists.
+
+The 34 censored cases are **12 cooperative wall returns, 2 outer-watchdog stops, and 20 early SIGKILLs**. The early kills report about **13.5–14.2 GiB peak RSS**, consistent with resource exhaustion near the allocation; no kernel OOM log was collected, so they are not conclusively relabelled OOM. Their last observed work is only a lower bound. The 42 unknowns are unvalidated symbolic SAT hints, not certified counterexamples. No original safety proof, complete helper proof, or whole-family upper bound is claimed.
+
+All 140 raw logs remain untouched; compressed copies, source-bound summaries, verifier hashes, CPU labels and raw/compressed checksums are retained. No large source copy was made.
 
 ## Diagnostic evidence audit / scheduler observation
 

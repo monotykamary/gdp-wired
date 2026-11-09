@@ -1,0 +1,141 @@
+shard	status	counted_units	work_is_lower_bound	wall_ms	peak_rss_kib	excluded	last_stage	cpu
+star-op0-p0-on	unknown	91.96437000000002	false	451.780477	94396	0	finite-model	AMD Ryzen 9 9950X 16-Core Processor
+star-op0-p0-off	unknown	91.96437000000002	false	230.982502	97636	0	finite-model	AMD EPYC 9455 48-Core Processor
+star-op0-p1-on	censored	1589389.3848052	false	1800010.737301	5148236	0	rejected proposal	AMD Ryzen 9 9950X 16-Core Processor
+star-op0-p1-off	censored	807249.8654068001	false	1800009.719145	5730612	0	rejected proposal	AMD Ryzen 9 9950X 16-Core Processor
+star-op1-p0-on	unknown	92.28134000000001	false	192.87231500000001	96216	0	finite-model	AMD EPYC 4585PX 16-Core Processor
+star-op1-p0-off	unknown	92.28134000000001	false	603.360995	96588	0	finite-model	AMD Ryzen 9 9950X 16-Core Processor
+star-op1-p1-on	censored	270556.520292	true	355336.842784	14401428	0	decision:sat	AMD Ryzen 9 9950X 16-Core Processor
+star-op1-p1-off	censored	270556.520292	true	314814.718374	14246820	0	decision:sat	AMD Ryzen 9 9950X 16-Core Processor
+star-op2-p0-on	unknown	92.28134000000001	false	175.353936	97700	0	finite-model	AMD Ryzen 9 9950X 16-Core Processor
+star-op2-p0-off	unknown	92.28134000000001	false	237.74433500000004	98552	0	finite-model	AMD EPYC 4585PX 16-Core Processor
+star-op2-p1-on	censored	4887.921302	true	12431.806281000001	14571320	0	decision:sat	AMD Ryzen 9 9950X 16-Core Processor
+star-op2-p1-off	censored	4887.921302	true	13104.915453	14718728	0	decision:sat	AMD EPYC 4585PX 16-Core Processor
+star-op3-p0-on	unknown	92.28402800000002	false	120.06108800000001	97024	0	finite-model	AMD Ryzen 7 9700X 8-Core Processor
+star-op3-p0-off	unknown	92.28402800000002	false	225.424972	97464	0	finite-model	AMD Ryzen 9 9950X 16-Core Processor
+star-op3-p1-on	censored	1357955.7908968	false	1800041.72721	10824700	0	rejected proposal	AMD EPYC 4585PX 16-Core Processor
+star-op3-p1-off	censored	1374608.0714652	false	1800091.997242	11181380	0	rejected proposal	AMD EPYC 9455 48-Core Processor
+star-op4-p0-on	unknown	113.091756	false	586.1571270000001	99392	0	finite-model	AMD EPYC 4585PX 16-Core Processor
+star-op4-p0-off	unknown	113.091756	false	252.082979	98368	0	finite-model	AMD EPYC 4585PX 16-Core Processor
+star-op4-p1-on	censored	1426833.6727303998	false	1800026.434693	5974364	0	rejected proposal	AMD Ryzen 9 9950X 16-Core Processor
+star-op4-p1-off	censored	1322949.8451267998	false	1800059.400111	5213928	0	rejected proposal	AMD Ryzen 9 9950X 16-Core Processor
+star-op5-p0-on	unknown	100.43813400000002	false	239.438134	99340	0	finite-model	AMD Ryzen 9 9950X 16-Core Processor
+star-op5-p0-off	unknown	100.43813400000002	false	184.48295	101684	0	finite-model	AMD Ryzen 9 9950X 16-Core Processor
+star-op5-p1-on	censored	1516711.3242103998	false	1800551.278314	5225992	0	rejected proposal	AMD EPYC 4585PX 16-Core Processor
+star-op5-p1-off	censored	1377293.4483224	false	1800156.4915429999	4864636	0	rejected proposal	AMD Ryzen 9 9950X 16-Core Processor
+star-op6-p0-on	unknown	92.28402800000002	false	118.255021	98676	0	finite-model	AMD Ryzen 7 9700X 8-Core Processor
+star-op6-p0-off	unknown	92.28402800000002	false	486.11084700000004	95816	0	finite-model	AMD Ryzen 9 9950X 16-Core Processor
+star-op6-p1-on	censored	20341.175622000002	true	21814.807431	14600968	0	decision:sat	AMD Ryzen 9 9950X 16-Core Processor
+star-op6-p1-off	censored	20341.175622000002	true	13643.709976999999	14523124	0	decision:sat	AMD Ryzen 9 9950X 16-Core Processor
+half-op0-p0-on	unknown	135.133524	false	241.3727	105348	0	finite-model	AMD Ryzen 9 9950X 16-Core Processor
+half-op0-p0-off	unknown	135.133524	false	214.33680200000003	101732	0	finite-model	AMD EPYC 9455 48-Core Processor
+half-op0-p1-on	censored	1615.744606	true	3981.573618	14728052	0	query	AMD EPYC 9455 48-Core Processor
+half-op0-p1-off	censored	1517.3749779999998	true	2469.7977029999997	14567448	0	decision:sat	AMD Ryzen 7 9700X 8-Core Processor
+half-op1-p0-on	unknown	161.05722	false	333.73097399999995	109916	0	finite-model	AMD Ryzen 9 9950X 16-Core Processor
+half-op1-p0-off	unknown	161.05722	false	254.47056099999998	107356	0	finite-model	AMD EPYC 4585PX 16-Core Processor
+half-op1-p1-on	censored	1470859.491256	false	1800278.745104	6120448	0	rejected proposal	AMD EPYC 9455 48-Core Processor
+half-op1-p1-off	censored	840543.0970139999	false	1800370.7646030001	5568328	0	rejected proposal	AMD EPYC 4585PX 16-Core Processor
+half-op2-p0-on	unknown	161.05722	false	321.22556099999997	108212	0	finite-model	AMD Ryzen 9 9950X 16-Core Processor
+half-op2-p0-off	unknown	161.05722	false	720.671261	108436	0	finite-model	AMD Ryzen 9 9950X 16-Core Processor
+half-op2-p1-on	censored	1255.96636	true	3101.29198	14884280	0	decision:sat	AMD EPYC 4585PX 16-Core Processor
+half-op2-p1-off	censored	1255.96636	true	10417.215947	14196752	0	query	AMD EPYC 4585PX 16-Core Processor
+half-op3-p0-on	unknown	161.059908	false	470.2947290000001	107812	0	finite-model	AMD EPYC 4585PX 16-Core Processor
+half-op3-p0-off	unknown	161.059908	false	288.546616	109968	0	finite-model	AMD EPYC 4585PX 16-Core Processor
+half-op3-p1-on	censored	1255.9798	true	6289.873035	14270900	0	query	AMD Ryzen 9 9950X 16-Core Processor
+half-op3-p1-off	censored	722.582832	true	1141.220373	14501020	0	decision:sat	AMD Ryzen 7 9700X 8-Core Processor
+half-op4-p0-on	unknown	185.11187600000005	false	583.089963	110536	0	finite-model	AMD Ryzen 9 9950X 16-Core Processor
+half-op4-p0-off	unknown	185.11187600000005	false	792.694764	109484	0	finite-model	AMD Ryzen 9 9950X 16-Core Processor
+half-op4-p1-on	censored	2204.890896	true	3351.2925609999998	14486104	0	decision:sat	AMD EPYC 4585PX 16-Core Processor
+half-op4-p1-off	censored	2204.890896	true	14138.004769	14569044	0	query	AMD Ryzen 9 9950X 16-Core Processor
+half-op5-p0-on	unknown	185.63508200000004	false	539.3566149999999	111632	0	finite-model	AMD Ryzen 9 9950X 16-Core Processor
+half-op5-p0-off	unknown	185.63508200000004	false	283.669533	112404	0	finite-model	AMD Ryzen 7 9700X 8-Core Processor
+half-op5-p1-on	censored	324631.189848	true	517521.65019899997	14591276	0	query	AMD Ryzen 9 9950X 16-Core Processor
+half-op5-p1-off	censored	324631.189848	true	519920.496453	14441820	0	query	AMD Ryzen 9 9950X 16-Core Processor
+half-op6-p0-on	unknown	161.059908	false	159.69447399999999	109044	0	finite-model	AMD Ryzen 7 9700X 8-Core Processor
+half-op6-p0-off	unknown	161.059908	false	166.68758200000002	108660	0	finite-model	AMD Ryzen 7 9700X 8-Core Processor
+half-op6-p1-on	censored	1761.325558	true	2174.762572	14591268	0	decision:sat	AMD Ryzen 7 9700X 8-Core Processor
+half-op6-p1-off	censored	1761.325558	true	2342.9931770000003	14492256	0	decision:sat	AMD Ryzen 9 9950X 16-Core Processor
+rows-op0-p0-on	closed	947.9290364	false	1283.2763149999998	194544	0	decision:refuted	AMD Ryzen 9 9950X 16-Core Processor
+rows-op0-p0-off	closed	947.9290364	false	947.950062	197628	0	decision:refuted	AMD Ryzen 9 9950X 16-Core Processor
+rows-op0-p1-on	closed	266.0851444	false	712.043198	144344	0	decision:refuted	AMD Ryzen 9 9950X 16-Core Processor
+rows-op0-p1-off	closed	266.0851444	false	689.968675	146080	0	decision:refuted	AMD Ryzen 9 9950X 16-Core Processor
+rows-op1-p0-on	closed	3772.4495515999997	false	3558.451053	375388	0	decision:refuted	AMD Ryzen 9 9950X 16-Core Processor
+rows-op1-p0-off	closed	3772.4495515999997	false	5644.443725	345292	0	decision:refuted	AMD Ryzen 9 9950X 16-Core Processor
+rows-op1-p1-on	censored	973847.4803887997	false	1800061.353111	6538584	0	rejected proposal	AMD EPYC 4585PX 16-Core Processor
+rows-op1-p1-off	censored	1380767.3039904002	false	1801363.863305	6565004	0	rejected proposal	AMD Ryzen 9 9950X 16-Core Processor
+rows-op2-p0-on	closed	119.6526028	false	226.92137200000002	123900	0	decision:refuted	AMD Ryzen 9 9950X 16-Core Processor
+rows-op2-p0-off	closed	119.6526028	false	427.671464	116340	0	decision:refuted	AMD Ryzen 9 9950X 16-Core Processor
+rows-op2-p1-on	closed	383.42708880000004	false	1427.385641	158008	0	decision:refuted	AMD Ryzen 9 9950X 16-Core Processor
+rows-op2-p1-off	closed	383.42708880000004	false	1747.450633	156776	0	decision:refuted	AMD Ryzen 9 9950X 16-Core Processor
+rows-op3-p0-on	closed	119.66106039999998	false	314.428247	119940	0	decision:refuted	AMD EPYC 4585PX 16-Core Processor
+rows-op3-p0-off	closed	119.66106039999998	false	619.235544	118880	0	decision:refuted	AMD Ryzen 9 9950X 16-Core Processor
+rows-op3-p1-on	closed	383.44072560000006	false	866.719302	174860	0	decision:refuted	AMD EPYC 4585PX 16-Core Processor
+rows-op3-p1-off	closed	383.44072560000006	false	463.558054	165368	0	decision:refuted	AMD Ryzen 9 9950X 16-Core Processor
+rows-op4-p0-on	closed	2595.1509664	false	10811.214172	474812	0	focused-step-certificate	AMD Ryzen 9 9950X 16-Core Processor
+rows-op4-p0-off	closed	1056.5717616000002	false	10157.378	347716	0	focused-step-certificate	AMD Ryzen 9 9950X 16-Core Processor
+rows-op4-p1-on	censored	184402.490238	true	148081.990237	12070008	0	decision:unknown	AMD Ryzen 9 9950X 16-Core Processor
+rows-op4-p1-off	censored	184402.490238	true	245710.380374	12846172	0	decision:unknown	AMD Ryzen 9 9950X 16-Core Processor
+rows-op5-p0-on	closed	4969.537342800001	false	3964.673384	341800	0	decision:refuted	AMD Ryzen 9 9950X 16-Core Processor
+rows-op5-p0-off	closed	4969.537342800001	false	5241.348918000001	348072	0	decision:refuted	AMD EPYC 4585PX 16-Core Processor
+rows-op5-p1-on	closed	3286.9263352	false	7561.315515	297004	0	decision:refuted	AMD Ryzen 9 9950X 16-Core Processor
+rows-op5-p1-off	closed	3286.9263352	false	5561.964775	304032	0	decision:refuted	AMD EPYC 4585PX 16-Core Processor
+rows-op6-p0-on	closed	5666.786488399999	false	4023.83606	406172	0	decision:refuted	AMD Ryzen 9 9950X 16-Core Processor
+rows-op6-p0-off	closed	5666.786488399999	false	6242.636155	393936	0	decision:refuted	AMD Ryzen 9 9950X 16-Core Processor
+rows-op6-p1-on	closed	25209.969434800005	false	36488.535274	524148	0	decision:refuted	AMD Ryzen 9 9950X 16-Core Processor
+rows-op6-p1-off	closed	25209.969434800005	false	23573.61708	507672	0	decision:refuted	AMD Ryzen 9 9950X 16-Core Processor
+p1-op0-p0-on	unknown	101.57003400000002	false	200.337906	100212	0	finite-model	AMD EPYC 4585PX 16-Core Processor
+p1-op0-p0-off	unknown	101.57003400000002	false	496.13534100000004	98716	0	finite-model	AMD Ryzen 9 9950X 16-Core Processor
+p1-op0-p1-on	closed	1125.7556651999998	false	2435.167817	354500	0	decision:refuted	AMD Ryzen 9 9950X 16-Core Processor
+p1-op0-p1-off	closed	1125.7556651999998	false	3167.119323	365672	0	decision:refuted	AMD EPYC 4585PX 16-Core Processor
+p1-op1-p0-on	unknown	61.065452	false	120.783894	96800	0	finite-model	AMD EPYC 4585PX 16-Core Processor
+p1-op1-p0-off	unknown	61.065452	false	173.080803	96156	0	finite-model	AMD Ryzen 9 9950X 16-Core Processor
+p1-op1-p1-on	closed	1752.6566544	false	2753.697016	281084	0	decision:refuted	AMD EPYC 4585PX 16-Core Processor
+p1-op1-p1-off	closed	1752.6566544	false	2403.509366	277660	0	decision:refuted	AMD Ryzen 9 9950X 16-Core Processor
+p1-op2-p0-on	unknown	102.417916	false	248.52630699999997	102064	0	finite-model	AMD Ryzen 9 9950X 16-Core Processor
+p1-op2-p0-off	unknown	102.417916	false	441.872144	100020	0	finite-model	AMD Ryzen 9 9950X 16-Core Processor
+p1-op2-p1-on	closed	603.3025636	false	3745.264591	295516	0	decision:refuted	AMD EPYC 4585PX 16-Core Processor
+p1-op2-p1-off	closed	603.3025636	false	1436.02424	350292	0	decision:refuted	AMD EPYC 4585PX 16-Core Processor
+p1-op3-p0-on	unknown	102.42060400000001	false	245.715653	102956	0	finite-model	AMD EPYC 4585PX 16-Core Processor
+p1-op3-p0-off	unknown	102.42060400000001	false	448.405294	105904	0	finite-model	AMD Ryzen 9 9950X 16-Core Processor
+p1-op3-p1-on	closed	603.3242644	false	2156.055179	312416	0	decision:refuted	AMD Ryzen 9 9950X 16-Core Processor
+p1-op3-p1-off	closed	603.3242644	false	5925.407534	291236	0	decision:refuted	AMD Ryzen 9 9950X 16-Core Processor
+p1-op4-p0-on	unknown	112.90927400000001	false	313.35807900000003	106120	0	finite-model	AMD EPYC 4585PX 16-Core Processor
+p1-op4-p0-off	unknown	112.90927400000001	false	227.718247	109376	0	finite-model	AMD Ryzen 9 9950X 16-Core Processor
+p1-op4-p1-on	closed	1258.1719028	false	6576.129912	332200	0	decision:refuted	AMD Ryzen 9 9950X 16-Core Processor
+p1-op4-p1-off	closed	1258.1719028	false	1890.4649049999998	330492	0	decision:refuted	AMD EPYC 4585PX 16-Core Processor
+p1-op5-p0-on	unknown	78.831746	false	300.355282	101128	0	finite-model	AMD Ryzen 9 9950X 16-Core Processor
+p1-op5-p0-off	unknown	78.831746	false	212.06767000000002	100052	0	finite-model	AMD Ryzen 9 9950X 16-Core Processor
+p1-op5-p1-on	closed	2183.9707224000003	false	4087.1189589999994	326636	0	decision:refuted	AMD EPYC 4585PX 16-Core Processor
+p1-op5-p1-off	closed	2183.9707224000003	false	6015.082369	315332	0	decision:refuted	AMD Ryzen 9 9950X 16-Core Processor
+p1-op6-p0-on	unknown	99.01262400000002	false	392.22297499999996	100632	0	finite-model	AMD EPYC 9455 48-Core Processor
+p1-op6-p0-off	unknown	99.01262400000002	false	330.669923	99768	0	finite-model	AMD Ryzen 9 9950X 16-Core Processor
+p1-op6-p1-on	closed	1219.5544356	false	2007.105288	302292	0	decision:refuted	AMD Ryzen 9 9950X 16-Core Processor
+p1-op6-p1-off	closed	1219.5544356	false	2570.263181	307196	0	decision:refuted	AMD Ryzen 9 9950X 16-Core Processor
+safety-op0-p0-on	closed	169.42844040000003	false	215.76855600000002	115576	0	decision:refuted	AMD EPYC 9455 48-Core Processor
+safety-op0-p0-off	closed	169.42844040000003	false	271.722492	116872	0	decision:refuted	AMD EPYC 4585PX 16-Core Processor
+safety-op0-p1-on	closed	151.48641400000002	false	396.809237	122548	0	decision:refuted	AMD Ryzen 9 9950X 16-Core Processor
+safety-op0-p1-off	closed	151.48641400000002	false	383.92569199999997	126984	0	decision:refuted	AMD Ryzen 9 9950X 16-Core Processor
+safety-op1-p0-on	closed	169.257774	false	350.363487	116284	0	decision:refuted	AMD Ryzen 9 9950X 16-Core Processor
+safety-op1-p0-off	closed	169.257774	false	446.43388799999997	119740	0	decision:refuted	AMD EPYC 4585PX 16-Core Processor
+safety-op1-p1-on	closed	137.222484	false	266.473967	127392	0	decision:refuted	AMD EPYC 4585PX 16-Core Processor
+safety-op1-p1-off	closed	137.222484	false	327.45806	127628	0	decision:refuted	AMD Ryzen 9 9950X 16-Core Processor
+safety-op2-p0-on	closed	169.2649572	false	582.790056	118096	0	decision:refuted	AMD Ryzen 9 9950X 16-Core Processor
+safety-op2-p0-off	closed	169.2649572	false	221.11260800000002	115464	0	decision:refuted	AMD EPYC 9455 48-Core Processor
+safety-op2-p1-on	closed	137.229864	false	276.379853	120588	0	decision:refuted	AMD Ryzen 9 9950X 16-Core Processor
+safety-op2-p1-off	closed	137.229864	false	334.871483	122240	0	decision:refuted	AMD EPYC 4585PX 16-Core Processor
+safety-op3-p0-on	closed	265.9369424	false	327.796582	126944	0	decision:refuted	AMD EPYC 4585PX 16-Core Processor
+safety-op3-p0-off	closed	265.9369424	false	321.30532100000005	121552	0	decision:refuted	AMD Ryzen 9 9950X 16-Core Processor
+safety-op3-p1-on	closed	392.93825159999994	false	527.012049	155432	0	decision:refuted	AMD Ryzen 9 9950X 16-Core Processor
+safety-op3-p1-off	closed	392.93825159999994	false	704.286294	147404	0	decision:refuted	AMD Ryzen 9 9950X 16-Core Processor
+safety-op4-p0-on	closed	4243.845546400001	false	7752.953507	380136	0	focused-step-certificate	AMD Ryzen 9 9950X 16-Core Processor
+safety-op4-p0-off	closed	2141.5154359999997	false	2422.056051	297760	0	focused-step-certificate	AMD EPYC 4585PX 16-Core Processor
+safety-op4-p1-on	censored	161409.403596	true	92272.32571199999	14430012	0	decision:sat	AMD Ryzen 9 9950X 16-Core Processor
+safety-op4-p1-off	censored	161409.403596	true	114277.41792200001	14458384	0	decision:sat	AMD Ryzen 9 9950X 16-Core Processor
+safety-op5-p0-on	closed	152.0635304	false	351.26779600000003	116996	0	decision:refuted	AMD Ryzen 9 9950X 16-Core Processor
+safety-op5-p0-off	closed	152.0635304	false	465.18913299999997	113668	0	decision:refuted	AMD EPYC 4585PX 16-Core Processor
+safety-op5-p1-on	closed	169.60261120000004	false	264.446592	127244	0	decision:refuted	AMD EPYC 9455 48-Core Processor
+safety-op5-p1-off	closed	169.60261120000004	false	257.72916100000003	126732	0	decision:refuted	AMD EPYC 4585PX 16-Core Processor
+safety-op6-p0-on	closed	124.23574639999998	false	260.272191	103764	0	decision:refuted	AMD EPYC 4585PX 16-Core Processor
+safety-op6-p0-off	closed	124.23574639999998	false	244.12015600000004	105556	0	decision:refuted	AMD Ryzen 9 9950X 16-Core Processor
+safety-op6-p1-on	closed	140.80228400000001	false	257.632301	119432	0	decision:refuted	AMD Ryzen 9 9950X 16-Core Processor
+safety-op6-p1-off	closed	140.80228400000001	false	318.57283	126464	0	decision:refuted	AMD Ryzen 9 9950X 16-Core Processor
