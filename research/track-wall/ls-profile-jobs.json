@@ -1,0 +1,10 @@
+[
+ {
+  "name": "ls-profile-pair",
+  "vm_type": "large",
+  "cpu": 2,
+  "memory": 8192,
+  "timeout": 2400,
+  "cmd": "set -o pipefail; grep -m1 'model name' /proc/cpuinfo; mkdir -p base && tar -xf baselines/base.tar -C base && (cp -R vendor/. base/vendor/ 2>/dev/null || true) && bun install --frozen-lockfile >/dev/null && (cd base && bun install --frozen-lockfile >/dev/null) && for side in mine base; do d=.; [ $side = base ] && d=base; echo \"SIDE $side\"; (cd $d && mkdir -p prof && GDP_INFER_TRACE=2 timeout -s KILL 900 bun --cpu-prof --cpu-prof-md --cpu-prof-dir=prof --cpu-prof-interval=4000 research/track-gen/t13-generation.ts learning_switch 2>&1 >/dev/null | grep -v T13_DATA | grep '\"phases\"\\|join small\\|small instance\\|sample' | cut -c1-300; echo PROFILE; f=$(ls prof/*.md | head -1); grep -m1 'Top 10' \"$f\"; grep '^| *[0-9.]*% |' \"$f\" | head -28); done"
+ }
+]
