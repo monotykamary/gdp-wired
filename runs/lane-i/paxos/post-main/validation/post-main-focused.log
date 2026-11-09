@@ -1,0 +1,143 @@
+PAXOS_FIX_SOURCE {"meta":{"revision":"d3adf3c9589ec014a158b6f42ecfb091c999bb43","tree":"2e149cb218303f255d4c9284b7765b897e6ca2f8","submodules":"0b6ebeeec827b05210f3acfa4149a70dda9a0de5 vendor/gdp-ts (0b6ebee)\n d47141cce2caf5b86b0c2c0c372a5174f424bc15 vendor/handwired (d47141c)","clean":true},"hashes":{"research/protocols/ic3syn/jobs.ts":"3b72741a5b6ff1ce9ee86a4e8ba30a6318ee10554f9bf675c1c217cd92a1ea9c","research/protocols/ic3syn/run.ts":"a9fa1e966acf503db0804419f8af7b82cfec671f8fba528716ec5440ea70dd66","research/protocols/ic3syn/models.ts":"7264a41611c0bab74b8b3549ac86663f4cb4d8ef8cac00528df0c2c7bcfbae93","research/protocols/models.ts":"ae2acd68175231e54e8590c2e35e04996282da22523d2fbac47d40e0adb078e4","research/protocols/run.ts":"f739b1d8c3f94e7718ae1029df4675f27b5d81211250b223678b6c5229946f87"}}
+bun install v1.4.3 (c6da4a4d3)
+
++ @gdp-ts/core@0.1.0
++ @reduxjs/toolkit@2.13.0
++ @types/bun@1.3.1
++ @webgpu/types@0.1.66
++ effect@4.0.7
++ effect3@3.22.4
++ oxlint@1.88.0
++ oxlint-tsgolint@7.0.2004
++ typescript@5.9.3
++ xstate@5.33.2
++ xstate4@4.38.3
+
+27 packages installed [520.00ms]
+bun test v1.4.3 (c6da4a4d3)
+PAXOS_POST_MAIN_PASS focused
+
+--- stderr ---
+
+core/extract-standalone.test.ts:
+(pass) closed constants, erased import, pure helper and uncalled callback declaration [130.79ms]
+(pass) finite string choices preserve early returns and comparison equivalence [46.16ms]
+(pass) finite choice result preserves each case [42.59ms]
+cyclic: {"kind":"machine","name":"decide","cert":true,"usual":true,"cyclic":true,"ms":16,"usualMs":4,"route":"translated","leaves":12,"regrown":0,"splits":6,"carried":2,"uncarried":0,"cached":0}
+cyclic: {"kind":"step law","name":"decide","cert":true,"usual":true,"cyclic":true,"ms":8,"usualMs":2,"route":"translated","leaves":10,"regrown":0,"splits":6,"carried":1,"uncarried":0,"cached":0}
+(pass) nullable choice results distinguish null from undefined in false laws [177.56ms]
+cyclic: {"kind":"machine","name":"decide","cert":true,"usual":true,"cyclic":true,"ms":11,"usualMs":2,"route":"translated","leaves":12,"regrown":0,"splits":6,"carried":2,"uncarried":0,"cached":0}
+cyclic: {"kind":"step law","name":"decide","cert":true,"usual":true,"cyclic":true,"ms":9,"usualMs":5,"route":"translated","leaves":10,"regrown":0,"splits":6,"carried":1,"uncarried":0,"cached":0}
+(pass) flat record input and result replay all values [71.39ms]
+cyclic: {"kind":"machine","name":"decide","cert":true,"usual":true,"cyclic":true,"ms":7,"usualMs":1,"route":"translated","leaves":12,"regrown":0,"splits":6,"carried":2,"uncarried":0,"cached":0}
+cyclic: {"kind":"step law","name":"decide","cert":true,"usual":true,"cyclic":true,"ms":8,"usualMs":1,"route":"translated","leaves":9,"regrown":0,"splits":5,"carried":1,"uncarried":0,"cached":0}
+(pass) destructured record input supports early returns [51.84ms]
+(pass) different choice domains compare by string, never encoded index [29.11ms]
+cyclic: {"kind":"machine","name":"decide","cert":true,"usual":true,"cyclic":true,"ms":4,"usualMs":1,"route":"translated","leaves":12,"regrown":0,"splits":6,"carried":2,"uncarried":0,"cached":0}
+cyclic: {"kind":"step law","name":"decide","cert":true,"usual":true,"cyclic":true,"ms":3,"usualMs":0,"route":"translated","leaves":3,"regrown":0,"splits":1,"carried":1,"uncarried":0,"cached":0}
+cyclic: {"kind":"machine","name":"decide","cert":true,"usual":true,"cyclic":true,"ms":0,"usualMs":1,"route":"translated","leaves":0,"regrown":0,"splits":0,"carried":0,"uncarried":0,"cached":1}
+cyclic: {"kind":"step law","name":"decide","cert":true,"usual":true,"cyclic":true,"ms":4,"usualMs":8,"route":"translated","leaves":3,"regrown":0,"splits":1,"carried":1,"uncarried":0,"cached":0}
+(pass) optional choice law: singleton equality and inequality use strings [125.78ms]
+cyclic: {"kind":"machine","name":"decide","cert":true,"usual":true,"cyclic":true,"ms":6,"usualMs":1,"route":"translated","leaves":12,"regrown":0,"splits":6,"carried":2,"uncarried":0,"cached":0}
+cyclic: {"kind":"step law","name":"decide","cert":true,"usual":true,"cyclic":true,"ms":10,"usualMs":0,"route":"translated","leaves":3,"regrown":0,"splits":1,"carried":1,"uncarried":0,"cached":0}
+cyclic: {"kind":"machine","name":"decide","cert":true,"usual":true,"cyclic":true,"ms":0,"usualMs":1,"route":"translated","leaves":0,"regrown":0,"splits":0,"carried":0,"uncarried":0,"cached":1}
+cyclic: {"kind":"step law","name":"decide","cert":true,"usual":true,"cyclic":true,"ms":3,"usualMs":0,"route":"translated","leaves":3,"regrown":0,"splits":1,"carried":1,"uncarried":0,"cached":0}
+(pass) optional choice law: same-index multi-value equality and inequality use strings [121.95ms]
+cyclic: {"kind":"machine","name":"decide","cert":true,"usual":true,"cyclic":true,"ms":4,"usualMs":1,"route":"translated","leaves":12,"regrown":0,"splits":6,"carried":2,"uncarried":0,"cached":0}
+cyclic: {"kind":"step law","name":"decide","cert":true,"usual":true,"cyclic":true,"ms":6,"usualMs":1,"route":"translated","leaves":13,"regrown":0,"splits":9,"carried":1,"uncarried":0,"cached":0}
+cyclic: {"kind":"machine","name":"decide","cert":true,"usual":true,"cyclic":true,"ms":0,"usualMs":1,"route":"translated","leaves":0,"regrown":0,"splits":0,"carried":0,"uncarried":0,"cached":1}
+cyclic: {"kind":"step law","name":"decide","cert":true,"usual":true,"cyclic":true,"ms":5,"usualMs":1,"route":"translated","leaves":13,"regrown":0,"splits":9,"carried":1,"uncarried":0,"cached":0}
+(pass) optional choice law: a shared value at different indices compares by name [157.38ms]
+cyclic: {"kind":"machine","name":"decide","cert":true,"usual":true,"cyclic":true,"ms":6,"usualMs":1,"route":"translated","leaves":12,"regrown":0,"splits":6,"carried":2,"uncarried":0,"cached":0}
+cyclic: {"kind":"step law","name":"decide","cert":true,"usual":true,"cyclic":true,"ms":5,"usualMs":0,"route":"translated","leaves":3,"regrown":0,"splits":1,"carried":1,"uncarried":0,"cached":0}
+cyclic: {"kind":"machine","name":"decide","cert":true,"usual":true,"cyclic":true,"ms":0,"usualMs":1,"route":"translated","leaves":0,"regrown":0,"splits":0,"carried":0,"uncarried":0,"cached":1}
+cyclic: {"kind":"step law","name":"decide","cert":true,"usual":true,"cyclic":true,"ms":6,"usualMs":1,"route":"translated","leaves":10,"regrown":0,"splits":6,"carried":1,"uncarried":0,"cached":0}
+(pass) optional choice law: nullable locals and nested returns retain domain semantics [114.43ms]
+cyclic: {"kind":"machine","name":"decide","cert":true,"usual":true,"cyclic":true,"ms":0,"usualMs":0,"route":"translated","leaves":0,"regrown":0,"splits":0,"carried":0,"uncarried":0,"cached":1}
+cyclic: {"kind":"step law","name":"decide","cert":true,"usual":true,"cyclic":true,"ms":2,"usualMs":0,"route":"translated","leaves":3,"regrown":0,"splits":1,"carried":1,"uncarried":0,"cached":0}
+(pass) optional choice law: comparisons nested in boolean equality retain semantics [73.21ms]
+cyclic: {"kind":"machine","name":"decide","cert":true,"usual":true,"cyclic":true,"ms":0,"usualMs":0,"route":"translated","leaves":0,"regrown":0,"splits":0,"carried":0,"uncarried":0,"cached":1}
+cyclic: {"kind":"step law","name":"decide","cert":true,"usual":true,"cyclic":true,"ms":3,"usualMs":0,"route":"translated","leaves":8,"regrown":0,"splits":6,"carried":1,"uncarried":0,"cached":0}
+cyclic: {"kind":"machine","name":"decide","cert":true,"usual":true,"cyclic":true,"ms":0,"usualMs":0,"route":"translated","leaves":0,"regrown":0,"splits":0,"carried":0,"uncarried":0,"cached":1}
+cyclic: {"kind":"step law","name":"decide","cert":true,"usual":true,"cyclic":true,"ms":3,"usualMs":0,"route":"translated","leaves":8,"regrown":0,"splits":6,"carried":1,"uncarried":0,"cached":0}
+(pass) optional choice law: literals are checked within their domain in either order [189.03ms]
+(pass) optional choice law: unsupported nested optional input is explicitly refused [18.13ms]
+(pass) optional standalone calendar operands cannot bypass absence checks [26.63ms]
+(pass) finite choice support still refuses unrestricted strings and effects [34.73ms]
+(pass) helper parameters bind by symbol rather than a same-named module constant [28.61ms]
+(pass) multi-return helper retains present false separately from undefined [22.63ms]
+(pass) numeric union works through a supplied erased type module [31.05ms]
+(pass) prover witnesses replay returns, not prior result fields as source state [28.94ms]
+(pass) empty source state never hides a wrong return or missing bit in prover probes [99.20ms]
+cyclic: {"kind":"machine","name":"decide","cert":true,"usual":true,"cyclic":true,"ms":7,"usualMs":1,"route":"translated","leaves":12,"regrown":0,"splits":6,"carried":2,"uncarried":0,"cached":0}
+cyclic: {"kind":"step law","name":"decide","cert":true,"usual":true,"cyclic":true,"ms":12,"usualMs":7,"route":"translated","leaves":16,"regrown":0,"splits":10,"carried":1,"uncarried":0,"cached":0}
+cyclic: {"kind":"machine","name":"decide","cert":true,"usual":true,"cyclic":true,"ms":0,"usualMs":1,"route":"translated","leaves":0,"regrown":0,"splits":0,"carried":0,"uncarried":0,"cached":1}
+cyclic: {"kind":"step law","name":"decide","cert":true,"usual":true,"cyclic":true,"ms":9,"usualMs":2,"route":"translated","leaves":15,"regrown":0,"splits":9,"carried":1,"uncarried":0,"cached":0}
+cyclic: {"kind":"machine","name":"decide","cert":true,"usual":true,"cyclic":true,"ms":0,"usualMs":1,"route":"translated","leaves":0,"regrown":0,"splits":0,"carried":0,"uncarried":0,"cached":1}
+cyclic: {"kind":"step law","name":"decide","cert":true,"usual":true,"cyclic":true,"ms":10,"usualMs":1,"route":"translated","leaves":10,"regrown":0,"splits":6,"carried":1,"uncarried":0,"cached":0}
+cyclic: {"kind":"machine","name":"decide","cert":true,"usual":true,"cyclic":true,"ms":0,"usualMs":1,"route":"translated","leaves":0,"regrown":0,"splits":0,"carried":0,"uncarried":0,"cached":1}
+cyclic: {"kind":"step law","name":"decide","cert":true,"usual":true,"cyclic":true,"ms":7,"usualMs":1,"route":"translated","leaves":9,"regrown":0,"splits":5,"carried":1,"uncarried":0,"cached":0}
+cyclic: {"kind":"machine","name":"decide","cert":true,"usual":true,"cyclic":true,"ms":0,"usualMs":1,"route":"translated","leaves":0,"regrown":0,"splits":0,"carried":0,"uncarried":0,"cached":1}
+cyclic: {"kind":"step law","name":"decide","cert":true,"usual":true,"cyclic":true,"ms":5,"usualMs":0,"route":"translated","leaves":7,"regrown":0,"splits":4,"carried":1,"uncarried":0,"cached":0}
+cyclic: {"kind":"machine","name":"decide","cert":true,"usual":true,"cyclic":true,"ms":0,"usualMs":1,"route":"translated","leaves":0,"regrown":0,"splits":0,"carried":0,"uncarried":0,"cached":1}
+cyclic: {"kind":"step law","name":"decide","cert":true,"usual":true,"cyclic":true,"ms":10,"usualMs":1,"route":"translated","leaves":16,"regrown":0,"splits":10,"carried":1,"uncarried":0,"cached":0}
+cyclic: {"kind":"machine","name":"decide","cert":true,"usual":true,"cyclic":true,"ms":0,"usualMs":1,"route":"translated","leaves":0,"regrown":0,"splits":0,"carried":0,"uncarried":0,"cached":1}
+cyclic: {"kind":"step law","name":"decide","cert":true,"usual":true,"cyclic":true,"ms":12,"usualMs":6,"route":"translated","leaves":17,"regrown":0,"splits":11,"carried":1,"uncarried":0,"cached":0}
+cyclic: {"kind":"machine","name":"decide","cert":true,"usual":true,"cyclic":true,"ms":0,"usualMs":1,"route":"translated","leaves":0,"regrown":0,"splits":0,"carried":0,"uncarried":0,"cached":1}
+cyclic: {"kind":"step law","name":"decide","cert":true,"usual":true,"cyclic":true,"ms":7,"usualMs":1,"route":"translated","leaves":9,"regrown":0,"splits":5,"carried":1,"uncarried":0,"cached":0}
+(pass) standalone laws preserve optional boolean truth, absence and hidden payloads [146.06ms]
+cyclic: {"kind":"machine","name":"decide","cert":true,"usual":true,"cyclic":true,"ms":3,"usualMs":1,"route":"translated","leaves":6,"regrown":0,"splits":3,"carried":1,"uncarried":0,"cached":0}
+cyclic: {"kind":"step law","name":"decide","cert":true,"usual":true,"cyclic":true,"ms":4,"usualMs":1,"route":"translated","leaves":8,"regrown":0,"splits":4,"carried":1,"uncarried":0,"cached":0}
+cyclic: {"kind":"machine","name":"decide","cert":true,"usual":true,"cyclic":true,"ms":0,"usualMs":0,"route":"translated","leaves":0,"regrown":0,"splits":0,"carried":0,"uncarried":0,"cached":1}
+cyclic: {"kind":"step law","name":"decide","cert":true,"usual":true,"cyclic":true,"ms":3,"usualMs":0,"route":"translated","leaves":8,"regrown":0,"splits":4,"carried":1,"uncarried":0,"cached":0}
+cyclic: {"kind":"machine","name":"decide","cert":true,"usual":true,"cyclic":true,"ms":0,"usualMs":0,"route":"translated","leaves":0,"regrown":0,"splits":0,"carried":0,"uncarried":0,"cached":1}
+cyclic: {"kind":"step law","name":"decide","cert":true,"usual":true,"cyclic":true,"ms":5,"usualMs":1,"route":"translated","leaves":12,"regrown":0,"splits":8,"carried":1,"uncarried":0,"cached":0}
+(pass) standalone laws preserve optional numeric comparisons and refuse absent arithmetic [53.32ms]
+(pass) standalone optional predicates check both hidden boolean values and present values [28.46ms]
+(pass) optional floor-division refuses original numerators before comparison rewrites [23.23ms]
+(pass) nonoptional division rewrites retain standalone and default-reader semantics [103.11ms]
+(pass) scalar constants may depend on earlier constants [23.94ms]
+(pass) module evaluation and imported runtime code are refused before execution [161.28ms]
+(pass) reachable helper effects, closures, mutation and recursion are refused statically [175.99ms]
+(pass) invalid modes and contradictory numeric domains are not silently ignored [20.78ms]
+(pass) nonintegral declared numeric domains and literals cannot be widened silently [46.43ms]
+
+core/counts-completion-order.test.ts:
+(pass) count completion stays behind sparse queries and cannot prove a false INIT [14.20ms]
+(pass) count targets retain bounded lazy recovery and fields stay sparse [2.37ms]
+(pass) a concrete-key count target retains an independently checked conditional certificate [4.85ms]
+(pass) an initialized three-element count proof needs no premise completion [3.04ms]
+
+core/count-completion.test.ts:
+(pass) completes whole tuples of assumed laws, deduplicated, without mutating the old map [0.15ms]
+(pass) completion is bounded to four terms, binary laws, 48 new tuples and existing generation fuel [0.17ms]
+(pass) a complete original premise, not a trusted fact, closes the ordinary checked goal [0.17ms]
+
+core/count-recovery-order.test.ts:
+(pass) ordinary checked proposals take priority over deferred count recovery [0.04ms]
+(pass) an unsuccessful ordinary attempt can recover within its remaining allowance [0.02ms]
+(pass) failed recovery preserves the exact ordinary result, including a model outcome [0.01ms]
+(pass) expired attempts never borrow a fresh recovery allowance [0.01ms]
+(pass) deferred recovery uses only the latest warmed proposal context [0.03ms]
+(pass) recovery readiness is checked after ordinary work, without spending a new allowance [0.03ms]
+(pass) a successful counted attempt suppresses recovery deferred by a failed plain attempt [0.02ms]
+(pass) focused recovery remains available when both ordinary passes fail [0.02ms]
+(pass) a certified counterexample cannot be rescued by a proof under the same family [0.01ms]
+(pass) ordinary counted reasoning gets a chance before finite-input recovery [3.56ms]
+(pass) an ordinary failure without a recovery proposal is unchanged [0.02ms]
+
+core/count-focus-proof.test.ts:
+(pass) finite-input focused recovery is the default and keeps an explicit opt-out [0.07ms]
+(pass) focused finite-count recovery keeps the selected step packet instead of rebuilding its full pool [9.79ms]
+
+core/counts-preflight.test.ts:
+(pass) bounded relevance preflight lifts a proof and never promotes a subset model [71.39ms]
+(pass) counted model queries inherit the attempt end, not the outer allowance [2.58ms]
+
+core/count-cert-grow.test.ts:
+(pass) growing a certificate preserves every old proof identity and remaps new terms [0.31ms]
+
+ 54 pass
+ 0 fail
+ 740 expect() calls
+Ran 54 tests across 7 files. [2.64s]

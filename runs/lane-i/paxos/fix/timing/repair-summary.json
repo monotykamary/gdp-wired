@@ -1,0 +1,191 @@
+{
+  "issues": [],
+  "summaries": [
+    {
+      "revision": "1550512d3933434c5a2ad11a17031d1fa36284db",
+      "cpus": [
+        "AMD Ryzen 9 9950X 16-Core Processor"
+      ],
+      "repeats": 10,
+      "base": {
+        "proven": 10,
+        "unknown": 0,
+        "work": [
+          6915544
+        ],
+        "full": [
+          1037946
+        ],
+        "notProven": []
+      },
+      "candidate": {
+        "proven": 0,
+        "unknown": 10,
+        "work": [
+          40018811,
+          41923566,
+          35083463,
+          36230264,
+          58325241,
+          56912252,
+          71425149,
+          65047919,
+          68131800,
+          63786458
+        ],
+        "full": [
+          4872834,
+          5366533,
+          4538716,
+          4745898,
+          8489169,
+          9167950,
+          11106584,
+          10119334,
+          10762647,
+          10040447
+        ],
+        "notProven": [
+          {
+            "replica": 6301,
+            "repeat": 1,
+            "verdict": "unknown",
+            "ms": 59001,
+            "work": 40018811,
+            "full": 4872834
+          },
+          {
+            "replica": 6301,
+            "repeat": 2,
+            "verdict": "unknown",
+            "ms": 59007,
+            "work": 41923566,
+            "full": 5366533
+          },
+          {
+            "replica": 6301,
+            "repeat": 3,
+            "verdict": "unknown",
+            "ms": 59005,
+            "work": 35083463,
+            "full": 4538716
+          },
+          {
+            "replica": 6301,
+            "repeat": 4,
+            "verdict": "unknown",
+            "ms": 59002,
+            "work": 36230264,
+            "full": 4745898
+          },
+          {
+            "replica": 6301,
+            "repeat": 5,
+            "verdict": "unknown",
+            "ms": 59046,
+            "work": 58325241,
+            "full": 8489169
+          },
+          {
+            "replica": 6302,
+            "repeat": 1,
+            "verdict": "unknown",
+            "ms": 59003,
+            "work": 56912252,
+            "full": 9167950
+          },
+          {
+            "replica": 6302,
+            "repeat": 2,
+            "verdict": "unknown",
+            "ms": 59100,
+            "work": 71425149,
+            "full": 11106584
+          },
+          {
+            "replica": 6302,
+            "repeat": 3,
+            "verdict": "unknown",
+            "ms": 59043,
+            "work": 65047919,
+            "full": 10119334
+          },
+          {
+            "replica": 6302,
+            "repeat": 4,
+            "verdict": "unknown",
+            "ms": 59005,
+            "work": 68131800,
+            "full": 10762647
+          },
+          {
+            "replica": 6302,
+            "repeat": 5,
+            "verdict": "unknown",
+            "ms": 59036,
+            "work": 63786458,
+            "full": 10040447
+          }
+        ]
+      },
+      "firstBound": [
+        {
+          "outcome": "unknown",
+          "work": 4894670,
+          "full": 225271.9765,
+          "countCompletion": 46
+        }
+      ]
+    },
+    {
+      "revision": "8de9dadbe10925c2377121ee220faf97bcca4d59",
+      "cpus": [
+        "AMD Ryzen 9 9950X 16-Core Processor"
+      ],
+      "repeats": 10,
+      "base": {
+        "proven": 9,
+        "unknown": 1,
+        "work": [
+          5167842,
+          6915544
+        ],
+        "full": [
+          421192,
+          1037946
+        ],
+        "notProven": [
+          {
+            "replica": 6303,
+            "repeat": 1,
+            "verdict": "unknown",
+            "ms": 59109,
+            "work": 5167842,
+            "full": 421192
+          }
+        ]
+      },
+      "candidate": {
+        "proven": 10,
+        "unknown": 0,
+        "work": [
+          6915544
+        ],
+        "full": [
+          1037946
+        ],
+        "notProven": []
+      },
+      "firstBound": [
+        {
+          "outcome": "kept",
+          "work": 38917,
+          "full": 26245.7672,
+          "countCompletion": 0
+        }
+      ]
+    }
+  ],
+  "scope": "Historical b09 paired diagnosis; not a gate against main8214a543.",
+  "finalGate": false
+}

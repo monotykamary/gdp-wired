@@ -1,9 +1,16 @@
 {
-  "baseline":"8214a543bc44e88d979f9e4457d7370e7e3c122b",
-  "candidate":"d3adf3c9589ec014a158b6f42ecfb091c999bb43",
-  "task":"17e9227a-a575-4e49-a177-d69592a10186",
-  "data":"/private/tmp/lane-i-post-main-data.x5nrKr",
-  "status":"targeted-and-type-lint-validation-active",
-  "scope":"Merged-source prerequisite; no paired final gate submitted.",
-  "finalGate":false
+  "baseline": "8214a543bc44e88d979f9e4457d7370e7e3c122b",
+  "candidate": "d3adf3c9589ec014a158b6f42ecfb091c999bb43",
+  "task": "17e9227a-a575-4e49-a177-d69592a10186",
+  "data": "/private/tmp/lane-i-post-main-data.x5nrKr",
+  "status": "qualified-regate-requested",
+  "scope": "Merged-source prerequisite; no paired final gate submitted.",
+  "finalGate": false,
+  "issues": [],
+  "tests": 54,
+  "assertions": 740,
+  "typecheck": true,
+  "lintErrors": 0,
+  "lintWarnings": 0,
+  "verificationLane": "t6p"
 }

@@ -1,0 +1,22 @@
+PAXOS_FIX_SOURCE {"meta":{"revision":"d3adf3c9589ec014a158b6f42ecfb091c999bb43","tree":"2e149cb218303f255d4c9284b7765b897e6ca2f8","submodules":"0b6ebeeec827b05210f3acfa4149a70dda9a0de5 vendor/gdp-ts (0b6ebee)\n d47141cce2caf5b86b0c2c0c372a5174f424bc15 vendor/handwired (d47141c)","clean":true},"hashes":{"research/protocols/ic3syn/jobs.ts":"3b72741a5b6ff1ce9ee86a4e8ba30a6318ee10554f9bf675c1c217cd92a1ea9c","research/protocols/ic3syn/run.ts":"a9fa1e966acf503db0804419f8af7b82cfec671f8fba528716ec5440ea70dd66","research/protocols/ic3syn/models.ts":"7264a41611c0bab74b8b3549ac86663f4cb4d8ef8cac00528df0c2c7bcfbae93","research/protocols/models.ts":"ae2acd68175231e54e8590c2e35e04996282da22523d2fbac47d40e0adb078e4","research/protocols/run.ts":"f739b1d8c3f94e7718ae1029df4675f27b5d81211250b223678b6c5229946f87"}}
+bun install v1.4.3 (c6da4a4d3)
+
++ @gdp-ts/core@0.1.0
++ @reduxjs/toolkit@2.13.0
++ @types/bun@1.3.1
++ @webgpu/types@0.1.66
++ effect@4.0.7
++ effect3@3.22.4
++ oxlint@1.88.0
++ oxlint-tsgolint@7.0.2004
++ typescript@5.9.3
++ xstate@5.33.2
++ xstate4@4.38.3
+
+27 packages installed [886.00ms]
+Found 0 warnings and 0 errors.
+Finished in 30.3s on 1622 files with 100 rules using 8 threads.
+PAXOS_POST_MAIN_PASS check
+
+--- stderr ---
+$ tsc -p . && oxlint --type-aware --deny-warnings --disable-nested-config

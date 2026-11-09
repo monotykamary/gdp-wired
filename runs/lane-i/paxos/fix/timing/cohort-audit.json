@@ -1,0 +1,663 @@
+{
+  "workUnitScreen": false,
+  "timingScope": "same-model cohort",
+  "issues": [],
+  "skips": 0,
+  "acceptedReceipts": 4,
+  "acceptedSha256": "92d96d8be8801e916b454266eb4fe0ec098b14b109ddc3b83c62c4974d5276b3",
+  "byRevision": [
+    {
+      "revision": "1550512d3933434c5a2ad11a17031d1fa36284db",
+      "attempted": 10,
+      "complete": 10,
+      "bothProven": 0,
+      "qualified": true,
+      "paired": {
+        "msDelta": 37810,
+        "generationDelta": -2548.784234499997,
+        "postGenerationDelta": 39268.0621215
+      },
+      "lost": [
+        {
+          "replica": 6301,
+          "repeat": 1
+        },
+        {
+          "replica": 6301,
+          "repeat": 2
+        },
+        {
+          "replica": 6301,
+          "repeat": 3
+        },
+        {
+          "replica": 6301,
+          "repeat": 4
+        },
+        {
+          "replica": 6301,
+          "repeat": 5
+        },
+        {
+          "replica": 6302,
+          "repeat": 1
+        },
+        {
+          "replica": 6302,
+          "repeat": 2
+        },
+        {
+          "replica": 6302,
+          "repeat": 3
+        },
+        {
+          "replica": 6302,
+          "repeat": 4
+        },
+        {
+          "replica": 6302,
+          "repeat": 5
+        }
+      ],
+      "base": {
+        "ms": 21234.5,
+        "work": 6915544,
+        "full": 1037946
+      },
+      "candidate": {
+        "ms": 59006,
+        "work": 57618746.5,
+        "full": 8828559.5
+      },
+      "generationWallMs": {
+        "base": 15959.721031999998,
+        "candidate": 14807.568334499996
+      },
+      "finitePassMs": {
+        "base": 0,
+        "candidate": 0
+      },
+      "lawDeltas": [
+        {
+          "law": "one value decided",
+          "full": 2300087.1695,
+          "work": 22027909,
+          "wallMs": 8519.39702
+        },
+        {
+          "law": "every x, y, z with x <= 63 ∧ y < 64 ∧ z < 64: never OneA[y] is 0 and 1 <= Vote[64·64·x + y + z]",
+          "full": 286797.0419999976,
+          "work": 2503318,
+          "wallMs": 560.6071704999995
+        },
+        {
+          "law": "every x, y, z with x <= 63 ∧ y < 64 ∧ z < 64: never OneB[64·y + x] is 0 and 1 <= Vote[64·64·x + y + z]",
+          "full": 286640.87390000373,
+          "work": 327084,
+          "wallMs": 1186.5896429999993
+        },
+        {
+          "law": "every x, y, z with x <= 63 ∧ y < 64 ∧ z < 64: never 1 <= Qs[x] and 1 <= Decision[64·y + z]",
+          "full": 279570.4227499999,
+          "work": 3431594,
+          "wallMs": 1705.8012015000022
+        },
+        {
+          "law": "every x with x <= 63: never 1 <= Qs[x] and pmaxr is 0",
+          "full": 272112.21839999594,
+          "work": 1455031,
+          "wallMs": 1219.9332990000003
+        },
+        {
+          "law": "every x, y, z with x < 64 ∧ y < 64 ∧ ¬(x = y) ∧ z < 64: never 1 <= Decision[64·x + z] and 1 <= Proposal[64·y + z]",
+          "full": 267195.2378999982,
+          "work": 380461,
+          "wallMs": 1117.444776000004
+        },
+        {
+          "law": "every x, y, z with x < 64 ∧ y < 64 ∧ ¬(x = y) ∧ z < 64: never 1 <= Decision[64·x + z] and 1 <= Decision[64·y + z]",
+          "full": 262593.6261,
+          "work": 242675,
+          "wallMs": 1402.8078335000027
+        },
+        {
+          "law": "every x, y, z with x < 64 ∧ y < 64 ∧ ¬(x = y) ∧ z < 64: never 1 <= Decision[64·x + z] and y + 1 <= x",
+          "full": 261711.26570000127,
+          "work": 262777,
+          "wallMs": 1871.2991649999967
+        },
+        {
+          "law": "every x, y, z, w with x < 64 ∧ y < 64 ∧ ¬(x = y) ∧ z < 64 ∧ w < 64 ∧ ¬(z = w): never 1 <= Decision[64·x + z] and 1 <= Proposal[64·y + w]",
+          "full": 260274.26919999905,
+          "work": 613232,
+          "wallMs": 1415.4459789999964
+        },
+        {
+          "law": "every x, y, z, w with x < 64 ∧ y < 64 ∧ ¬(x = y) ∧ z < 64 ∧ w < 64 ∧ ¬(z = w): never 1 <= Decision[64·x + z] and 1 <= Decision[64·y + w]",
+          "full": 260190.48460000008,
+          "work": 629885,
+          "wallMs": 1308.0544320000045
+        },
+        {
+          "law": "every x, y with x < 64 ∧ y < 64: never 1 <= Decision[64·x + y] and pr is 1",
+          "full": 254403.06200000038,
+          "work": 2152537.5,
+          "wallMs": 894.9752274999955
+        },
+        {
+          "law": "every x, y with x < 64 ∧ y < 64: never 1 <= Decision[64·x + y] and pv is 1",
+          "full": 252921.13819999993,
+          "work": 936124,
+          "wallMs": 1633.4507935000038
+        },
+        {
+          "law": "every x, y with x < 64 ∧ y < 64: never 1 <= Decision[64·x + y] and 2 <= pv",
+          "full": 251920.95799999963,
+          "work": 1847945,
+          "wallMs": 665.9567730000017
+        },
+        {
+          "law": "every x, y, z with x < 64 ∧ y < 64 ∧ z < 64 ∧ ¬(y = z): never 1 <= Decision[64·x + y] and 1 <= Proposal[64·x + z]",
+          "full": 251814.97419999912,
+          "work": 485410,
+          "wallMs": 1438.261215999999
+        },
+        {
+          "law": "every x, y with x < 64 ∧ y < 64: never 1 <= Proposal[64·x + y] and pr is 2",
+          "full": 251761.78339999914,
+          "work": 1568526,
+          "wallMs": 1283.1990310000037
+        },
+        {
+          "law": "every x, y with x < 64 ∧ y < 64: never 1 <= Proposal[64·x + y] and 3 <= pr",
+          "full": 251755.45390000194,
+          "work": 1659422,
+          "wallMs": 1352.8554414999962
+        },
+        {
+          "law": "every x, y with x < 64 ∧ y < 64: never 1 <= Decision[64·x + y] and 3 <= pr",
+          "full": 251740.76530000195,
+          "work": 893962,
+          "wallMs": 1860.3095330000033
+        },
+        {
+          "law": "every x, y with x < 64 ∧ y < 64: never 1 <= Decision[64·x + y] and pr is 2",
+          "full": 251726.0803999994,
+          "work": 1152720,
+          "wallMs": 1876.1824194999972
+        },
+        {
+          "law": "every x, y with x < 64 ∧ y < 64: never 1 <= Decision[64·x + y] and 2 <= pmaxr",
+          "full": 251701.23950000014,
+          "work": 1879397,
+          "wallMs": 718.4411865000002
+        },
+        {
+          "law": "every x, y, z with x < 64 ∧ y < 64 ∧ z < 64 ∧ ¬(y = z): never 1 <= Decision[64·x + y] and 1 <= Decision[64·x + z]",
+          "full": 251675.73120000027,
+          "work": 335319,
+          "wallMs": 1327.201067500002
+        },
+        {
+          "law": "every x, y with x < 64 ∧ y < 64: never 1 <= Decision[64·x + y] and pmaxr is 1",
+          "full": 251674.85459999926,
+          "work": 962445,
+          "wallMs": 1508.2216069999995
+        },
+        {
+          "law": "every x, y with x < 64 ∧ y < 64: never 1 <= Proposal[64·x + y] and pv is 1",
+          "full": 251630.87640000228,
+          "work": 1597054,
+          "wallMs": 1283.6740520000021
+        },
+        {
+          "law": "every x, y with x < 64 ∧ y < 64: never 1 <= Proposal[64·x + y] and pmaxr is 1",
+          "full": 251626.2931999974,
+          "work": 1309691,
+          "wallMs": 1543.791646499998
+        },
+        {
+          "law": "every x, y with x < 64 ∧ y < 64: never OneA[x] is 0 and 1 <= Proposal[64·x + y]",
+          "full": 248904.33764999988,
+          "work": 301645.5,
+          "wallMs": 992.632702500001
+        },
+        {
+          "law": "every x, y with x < 64 ∧ y < 64: never 1 <= Decision[64·x + y] and 1 <= busy",
+          "full": 248867.15799999982,
+          "work": 2037834,
+          "wallMs": 1954.1413820000016
+        },
+        {
+          "law": "Decision keeps members's bound through members$Decision",
+          "full": 199026.20930000008,
+          "work": 4855753,
+          "wallMs": 1297.1390159999992
+        },
+        {
+          "law": "Proposal at (c, d) bounds can$Vote$members at (a, b): a < c, b ≠ d",
+          "full": 174245.64199999988,
+          "work": 4083051,
+          "wallMs": 579.8900725000003
+        },
+        {
+          "law": "every x, y, z with x <= 63 ∧ y < 64 ∧ z < 64: never 1 <= Vote[64·64·x + y + z] and pr is 2",
+          "full": 172489.9590499997,
+          "work": 1607527.5,
+          "wallMs": 720.0722920000007
+        },
+        {
+          "law": "every x, y with x < 64 ∧ y < 64: never 1 <= Decision[64·x + y] and Proposal[64·x + y] is 0",
+          "full": 171336.5928000008,
+          "work": 253163.5,
+          "wallMs": 755.8100074999966
+        },
+        {
+          "law": "carry:guard:faa607cf227d2883",
+          "full": 77609.83869999973,
+          "work": 124719,
+          "wallMs": 320.9333045000003
+        },
+        {
+          "law": "carry:guard:f8fa169d60df315a",
+          "full": 60979.233300000196,
+          "work": 69034,
+          "wallMs": 204.7976484999981
+        },
+        {
+          "law": "every x, y, z with x <= 63 ∧ y < 64 ∧ z < 64: never 1 <= Vote[64·64·x + y + z] and 3 <= pr",
+          "full": 55461.1585999988,
+          "work": 132674,
+          "wallMs": 290.5347419999962
+        },
+        {
+          "law": "carry:guard:71517ec714847e1e",
+          "full": 50858.06429999997,
+          "work": 47746,
+          "wallMs": 166.7775974999986
+        },
+        {
+          "law": "members$Qs keeps members's bound 0",
+          "full": 41569.843700000085,
+          "work": 31894,
+          "wallMs": 230.02659800000038
+        },
+        {
+          "law": "carry:guard:4817748873bf0d3a",
+          "full": 35465.94760000007,
+          "work": 34987,
+          "wallMs": 128.5742205000006
+        },
+        {
+          "law": "every x, y with x < 64 ∧ y < 64: never OneA[x] is 0 and 1 <= Decision[64·x + y]",
+          "full": 30562.408199999714,
+          "work": 48236,
+          "wallMs": 358.3733429999993
+        },
+        {
+          "law": "carry:point-guard:42b72ece9101070e",
+          "full": 29696.929599999916,
+          "work": 56095,
+          "wallMs": 124.76419999999962
+        },
+        {
+          "law": "every x, y with x < 64 ∧ y < 64: never 1 <= Decision[64·x + y] and 1 <= cnt",
+          "full": 23267.27089999919,
+          "work": 49622,
+          "wallMs": 248.66094999999768
+        },
+        {
+          "law": "every x with x <= 63: never 1 <= Qs[x] and busy is 0",
+          "full": 21333.727100001648,
+          "work": 23162,
+          "wallMs": 50.46307149999848
+        },
+        {
+          "law": "carry:guard:e11bb2856a4188b5",
+          "full": 20028.308400000096,
+          "work": 19254,
+          "wallMs": 55.9957895000025
+        },
+        {
+          "law": "carry:guard:980373f5503cf4c6",
+          "full": 18980.450300000142,
+          "work": 20400,
+          "wallMs": 53.46472299999914
+        },
+        {
+          "law": "carry:guard:69834f3e58d5e918",
+          "full": 18896.087299999897,
+          "work": 20405,
+          "wallMs": 66.68485399999736
+        },
+        {
+          "law": "carry:global-range:345c4e9ce3eda2e1",
+          "full": 17697.6353000002,
+          "work": 19470,
+          "wallMs": 43.02601649999997
+        },
+        {
+          "law": "carry:global-range:4d9ef1fb20062861",
+          "full": 17695.305300000124,
+          "work": 19468,
+          "wallMs": 42.945494500003406
+        },
+        {
+          "law": "Proposal at (c, d) bounds can$Vote$members at (a, b): a < c",
+          "full": 16736.680750000436,
+          "work": -1237424.5,
+          "wallMs": 659.3356269999995
+        },
+        {
+          "law": "carry:point-guard:dbae780daebdcb74",
+          "full": 16043.8647999994,
+          "work": 16084,
+          "wallMs": 63.086121999996976
+        },
+        {
+          "law": "every x, y with x <= 63 ∧ y < 64: never OneA[y] is 0 and 1 <= OneB[64·y + x]",
+          "full": 14552.026900004596,
+          "work": 12871,
+          "wallMs": 42.519124999998894
+        },
+        {
+          "law": "carry:global-frame:ef4514c87a594d2c",
+          "full": 7213.472600000445,
+          "work": 22122,
+          "wallMs": -20.8905235000002
+        },
+        {
+          "law": "every OneA cell is a value of its kind",
+          "full": 2474.687100000447,
+          "work": 1019,
+          "wallMs": 11.384688999999526
+        },
+        {
+          "law": "every Proposal cell is a value of its kind",
+          "full": 1878.4782000002451,
+          "work": 579,
+          "wallMs": 19.581022999999732
+        },
+        {
+          "law": "every Vote cell is a value of its kind",
+          "full": 1734.3729999994393,
+          "work": 525,
+          "wallMs": 16.297860499997114
+        },
+        {
+          "law": "every OneB cell is a value of its kind",
+          "full": 1648.1409999999446,
+          "work": 510,
+          "wallMs": 24.341190499997538
+        },
+        {
+          "law": "every Decision cell is a value of its kind",
+          "full": 1527.5179000000935,
+          "work": 419,
+          "wallMs": 13.493723499997031
+        },
+        {
+          "law": "every Qs cell is a value of its kind",
+          "full": 899.8871999995317,
+          "work": 397,
+          "wallMs": 12.364105499998004
+        },
+        {
+          "law": "carry:guard:8c4667f43952b1a7",
+          "full": 855.6134999999776,
+          "work": 223,
+          "wallMs": 1.4732380000004923
+        },
+        {
+          "law": "carry:global-range:f29c323756a78a95",
+          "full": 837.8114999996033,
+          "work": 398,
+          "wallMs": 5.580942000002324
+        },
+        {
+          "law": "carry:guard:e6d2937e4bcb51dc",
+          "full": 827.1239999999525,
+          "work": 409,
+          "wallMs": -6.961509499997192
+        },
+        {
+          "law": "every Left cell is a value of its kind",
+          "full": 722.77060000028,
+          "work": 343,
+          "wallMs": 13.086317000000236
+        },
+        {
+          "law": "members$Qs keeps members's bound 2",
+          "full": 529.8960000000661,
+          "work": 1404,
+          "wallMs": 4.86917099999846
+        },
+        {
+          "law": "scan-prefix:cnt:rowOk:d93992f463f488aa:entry",
+          "full": 334.3755000003148,
+          "work": -101,
+          "wallMs": 8.663587000000916
+        },
+        {
+          "law": "carry:co-write:6282256ba10ee781",
+          "full": 0,
+          "work": 0,
+          "wallMs": 1.3710359999986395
+        },
+        {
+          "law": "every x, y, z with x < 64 ∧ y < 64 ∧ z < 64 ∧ ¬(y = z): never 1 <= Proposal[64·x + y] and 1 <= Proposal[64·x + z]",
+          "full": -2.3283064365386963e-10,
+          "work": 0,
+          "wallMs": -25.73055849999764
+        },
+        {
+          "law": "scan-prefix:cnt:rowOk:d93992f463f488aa",
+          "full": -4.656612873077393e-10,
+          "work": 0,
+          "wallMs": -12.733782499999506
+        },
+        {
+          "law": "carry:guard:a1aac0f2b5acf946",
+          "full": -4539.4001999998,
+          "work": -1135,
+          "wallMs": -60.5839004999998
+        },
+        {
+          "law": "every x, y, z with x <= 63 ∧ y < 64 ∧ z < 64: never 1 <= Vote[64·64·x + y + z] and Proposal[64·y + z] is 0",
+          "full": -28074.496000000043,
+          "work": -53619,
+          "wallMs": -111.54301799999848
+        }
+      ]
+    },
+    {
+      "revision": "8de9dadbe10925c2377121ee220faf97bcca4d59",
+      "attempted": 10,
+      "complete": 10,
+      "bothProven": 9,
+      "qualified": true,
+      "paired": {
+        "msDelta": -7025.5,
+        "generationDelta": -6878.034333,
+        "postGenerationDelta": 508.4414425000032
+      },
+      "lost": [],
+      "base": {
+        "ms": 45288,
+        "work": 6915544,
+        "full": 1037946
+      },
+      "candidate": {
+        "ms": 38557.5,
+        "work": 6915544,
+        "full": 1037946
+      },
+      "generationWallMs": {
+        "base": 33039.347398,
+        "candidate": 29233.0173815
+      },
+      "finitePassMs": {
+        "base": 0,
+        "candidate": 0
+      },
+      "lawDeltas": [
+        {
+          "law": "every OneA cell is a value of its kind",
+          "full": 0,
+          "work": 0,
+          "wallMs": -16.91322250000121
+        },
+        {
+          "law": "every OneB cell is a value of its kind",
+          "full": 0,
+          "work": 0,
+          "wallMs": -0.9334824999987177
+        },
+        {
+          "law": "every Left cell is a value of its kind",
+          "full": 0,
+          "work": 0,
+          "wallMs": -0.9414839999990363
+        },
+        {
+          "law": "every Proposal cell is a value of its kind",
+          "full": 0,
+          "work": 0,
+          "wallMs": -11.976793500001804
+        },
+        {
+          "law": "every Vote cell is a value of its kind",
+          "full": 0,
+          "work": 0,
+          "wallMs": -3.174302000001262
+        },
+        {
+          "law": "every Decision cell is a value of its kind",
+          "full": 0,
+          "work": 0,
+          "wallMs": -2.837961000002906
+        },
+        {
+          "law": "every Qs cell is a value of its kind",
+          "full": 0,
+          "work": 0,
+          "wallMs": -0.0653904999999213
+        },
+        {
+          "law": "one value decided",
+          "full": 0,
+          "work": 0,
+          "wallMs": -56.041046500007724
+        },
+        {
+          "law": "carry:point-guard:42b72ece9101070e",
+          "full": 0,
+          "work": 0,
+          "wallMs": -17.72157249999873
+        },
+        {
+          "law": "carry:guard:71517ec714847e1e",
+          "full": 0,
+          "work": 0,
+          "wallMs": -48.90745099999913
+        },
+        {
+          "law": "carry:global-range:4d9ef1fb20062861",
+          "full": 0,
+          "work": 0,
+          "wallMs": -8.923824500001501
+        },
+        {
+          "law": "Decision keeps members's bound through members$Decision",
+          "full": 0,
+          "work": 0,
+          "wallMs": -18.699742999997397
+        },
+        {
+          "law": "Proposal at (c, d) bounds can$Vote$members at (a, b): a < c",
+          "full": 0,
+          "work": 0,
+          "wallMs": -125.99427599999945
+        },
+        {
+          "law": "Proposal at (c, d) bounds can$Vote$members at (a, b): a < c, b ≠ d",
+          "full": 0,
+          "work": 0,
+          "wallMs": 140.06849349999902
+        },
+        {
+          "law": "scan-prefix:cnt:rowOk:d93992f463f488aa",
+          "full": 0,
+          "work": 0,
+          "wallMs": 61.26650349999909
+        },
+        {
+          "law": "scan-prefix:cnt:rowOk:d93992f463f488aa:entry",
+          "full": 0,
+          "work": 0,
+          "wallMs": 21.38792950000061
+        },
+        {
+          "law": "carry:guard:a1aac0f2b5acf946",
+          "full": 0,
+          "work": 0,
+          "wallMs": 102.90106749999904
+        },
+        {
+          "law": "carry:guard:8c4667f43952b1a7",
+          "full": 0,
+          "work": 0,
+          "wallMs": 2.8675025000011374
+        },
+        {
+          "law": "carry:co-write:6282256ba10ee781",
+          "full": 0,
+          "work": 0,
+          "wallMs": 18.132252500001414
+        },
+        {
+          "law": "carry:global-range:f29c323756a78a95",
+          "full": 0,
+          "work": 0,
+          "wallMs": -11.614179500000319
+        },
+        {
+          "law": "carry:global-frame:ef4514c87a594d2c",
+          "full": 0,
+          "work": 0,
+          "wallMs": -72.33516250000139
+        },
+        {
+          "law": "members$Qs keeps members's bound 2",
+          "full": 0,
+          "work": 0,
+          "wallMs": 6.617984000000433
+        },
+        {
+          "law": "every x, y with x < 64 ∧ y < 64: never 1 <= Decision[64·x + y] and Proposal[64·x + y] is 0",
+          "full": 0,
+          "work": 0,
+          "wallMs": 22.13026250000439
+        },
+        {
+          "law": "every x, y, z with x < 64 ∧ y < 64 ∧ z < 64 ∧ ¬(y = z): never 1 <= Proposal[64·x + y] and 1 <= Proposal[64·x + z]",
+          "full": 0,
+          "work": 0,
+          "wallMs": 13.051563500001066
+        },
+        {
+          "law": "carry:guard:e6d2937e4bcb51dc",
+          "full": 0,
+          "work": 0,
+          "wallMs": -2.3706640000018524
+        },
+        {
+          "law": "every x, y, z with x <= 63 ∧ y < 64 ∧ z < 64: never 1 <= Vote[64·64·x + y + z] and Proposal[64·y + z] is 0",
+          "full": 0,
+          "work": 0,
+          "wallMs": -1.6837159999940923
+        }
+      ]
+    }
+  ]
+}
