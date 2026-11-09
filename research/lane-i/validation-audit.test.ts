@@ -1,15 +1,15 @@
 import {expect, test} from 'bun:test'
 import {parseMldrPair, parseTestSummary, parseReplayNegative} from './validation-audit.ts'
-const side = (name: string, verdict = 'unknown') => [
-  `LANE_I_BEGIN mldr 1 mldr ${name}`,
+const side = (name: string, verdict = 'unknown', id = 'mldr') => [
+  `LANE_I_BEGIN mldr 1 ${id} ${name}`,
   `LANE_I_EXIT ${name} 0`,
-  JSON.stringify({id: 'mldr', search: {verdict, ms: 59000}}),
+  JSON.stringify({id, search: {verdict, ms: 59000}}),
   'LANE_I_TIMING {"event":"candidates","at":5000}',
   'counts: candidates at 0 ms: helper; one primary per term',
   'LANE_I_TIMING {"event":"first-attempt-return","at":10000,"attemptWallMs":1000}',
   'counts: try helper | ls 2 pass 1 ms 3000 took 120 wall 1000 [] -> kept',
   'LANE_I_TIMING {"event":"result","at":60000,"searchMs":59000}',
-  `LANE_I_END mldr 1 mldr ${name}`,
+  `LANE_I_END mldr 1 ${id} ${name}`,
 ].join('\n')
 test('exit zero without a semantic result is not a successful receipt', () => {
   const log = side('base') + '\n' + side('candidate').split('\n').filter(line => !line.startsWith('{')).join('\n')
@@ -27,6 +27,13 @@ test('duplicate or swapped phases and malformed results fail closed', () => {
   expect(parseMldrPair(side('base') + '\n' + side('candidate') + '\n' + side('candidate'), 1).issues).toContain('candidate: phase cardinality/order')
   expect(parseMldrPair(side('base') + '\n' + side('candidate', 'green'), 1).issues).toContain('candidate: invalid strict result')
   expect(parseMldrPair(side('base') + '\n' + side('candidate').replace('"ms":59000', '"ms":61000'), 1).issues).toContain('candidate: invalid strict result')
+})
+test('a non-MLDR strict pair keeps its protocol identity and rejects the wrong roster', () => {
+  const log = side('base', 'proven', 'consensus_forall') + '\n' + side('candidate', 'proven', 'consensus_forall')
+  const got = parseMldrPair(log, 1, 'consensus_forall')
+  expect(got.issues).toEqual([])
+  expect(got.sides.every(row => row.result?.id === 'consensus_forall')).toBe(true)
+  expect(parseMldrPair(log, 1).issues.length).toBeGreaterThan(0)
 })
 test('a replay control requires the specific metadata rejection, not just an exit marker', () => {
   const log = '(fail) ordinary core replay retains metadata\n0 pass\n1 fail\n"readsRetained": false\n"certificatesRetained": true\n"poolsRetained": true\nCORE_REPLAY_NEGATIVE_CONTROL_OK'

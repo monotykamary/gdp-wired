@@ -4,10 +4,10 @@ import {join} from 'node:path'
 import {createHash} from 'node:crypto'
 type Result = {id: string, search: {verdict: string, ms: number, [key: string]: unknown}}
 type Timing = {event: string, at: number, searchMs?: number, attemptWallMs?: number}
-export function parseMldrPair(log: string, repeat: number) {
+export function parseMldrPair(log: string, repeat: number, id = 'mldr') {
   const issues: string[] = []
   const sides = ['base', 'candidate'].map(side => {
-    const begin = `LANE_I_BEGIN mldr ${repeat} mldr ${side}`, end = `LANE_I_END mldr ${repeat} mldr ${side}`
+    const begin = `LANE_I_BEGIN mldr ${repeat} ${id} ${side}`, end = `LANE_I_END mldr ${repeat} ${id} ${side}`
     const lines = log.split('\n'), starts = lines.flatMap((line, i) => line === begin ? [i] : []), ends = lines.flatMap((line, i) => line === end ? [i] : [])
     if (starts.length !== 1 || ends.length !== 1 || ends[0]! <= starts[0]!) {
       issues.push(`${side}: phase cardinality/order`)
@@ -17,7 +17,7 @@ export function parseMldrPair(log: string, repeat: number) {
     const results: Result[] = [], timing: Timing[] = []
     for (const line of text.split('\n')) {
       try {
-        if (line.startsWith('{')) { const r = JSON.parse(line); if (r.id === 'mldr') results.push(r) }
+        if (line.startsWith('{')) { const r = JSON.parse(line); if (r.id === id) results.push(r) }
         if (line.startsWith('LANE_I_TIMING ')) timing.push(JSON.parse(line.slice(14)))
       } catch { issues.push(`${side}: malformed JSON receipt`) }
     }

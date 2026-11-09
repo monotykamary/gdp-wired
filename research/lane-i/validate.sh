@@ -21,7 +21,7 @@ cp research/lane-i/timing.ts base/research/lane-i/timing.ts
 cp integ-input/identity.json identity.json
 cat identity.json
 grep -m1 'model name' /proc/cpuinfo
-sides='base candidate'; if [[ "$repeat" == 2 ]]; then sides='candidate base'; fi
+sides='base candidate'; if (( repeat % 2 == 0 )); then sides='candidate base'; fi
 for side in $sides; do
   dir=.; if [[ "$side" == base ]]; then dir=base; fi
   echo "LANE_I_BEGIN $mode $repeat $id $side"
