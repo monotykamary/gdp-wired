@@ -1,0 +1,9 @@
+feat(core): add bounded tiny-instance CTI proposals
+
+Add an untrusted structural enumerator and an independently certified
+Houdini wrapper. Keep the existing wall cap, caller protection, full
+precondition and fact checks, and actual source-interpreter replay.
+
+The binary-domain pilot finds five total removals but only three of the
+costly survivors. Production remains disabled; record this falsifier
+rather than claiming the five-costly-helper prediction was satisfied.

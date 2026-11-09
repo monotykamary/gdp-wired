@@ -5,6 +5,7 @@ import {type C, type E, type Law, type Machine, type Request, type State, carrie
 import {checkWall, searchWall, WallExpired} from './wall.ts'
 import {boundaryState, lawFrontiers} from './finite-frontiers.ts'
 import {wallAt, withWall} from '../kernel/prove.ts'
+import {type TinyFiniteStatistics, tinyFiniteCandidates} from './finite-tiny.ts'
 type Env = Record<string, number>
 type Samples = {p: Env, sts: State[]}[]
 type Truth = boolean | undefined
@@ -115,6 +116,56 @@ export function finiteHoudini(source: Machine, m: Machine, caller: Law[], candid
     return survivors
   } finally { options.onFinish?.({timedOut, ms: performance.now() - start, dropped: candidates.length - survivors.length}) }
 }
+// Experimental tiny-instance proposal backend. Every drop crosses the same
+// independent whole-family/source-interpreter boundary as sampled Houdini.
+// It is not wired into production generation until its bounded pilot passes.
+export function finiteTinyHoudini(source: Machine, m: Machine, caller: Law[], candidates: Law[], params: Env[], options: FiniteOptions & {onTiny?: (round: number, stats: TinyFiniteStatistics) => void} = {}): Law[] {
+  const start = performance.now(), end = Math.min(wallAt(), searchWall(Math.max(0, options.wallMs ?? 2_000)))
+  let survivors = candidates.slice(), timedOut = false
+  try {
+    return withWall(end, () => {
+      if (source.history || m.history || Object.keys(source.leasts ?? {}).length || Object.keys(m.leasts ?? {}).length || Object.keys(source.sums ?? {}).length || Object.keys(m.sums ?? {}).length) return survivors
+      finiteDump.onStart?.({machine: m, caller, candidates})
+      const evaluate = finiteEvaluator(m), run = interpret(source), protectedLaws = new Set(caller)
+      const declarations: Law[] = [...(m.pre ? [{name: 'finite parameter precondition', holds: m.pre}] : []), ...m.facts ?? []]
+      for (let round = 0; ; round++) {
+        checkWall('tiny Houdini round')
+        const active = [...caller, ...survivors], family = [...declarations, ...active], removed = new Set<Law>()
+        for (const p of params) {
+          checkWall('tiny Houdini instance')
+          const stats = tinyFiniteCandidates(source, m, active, p, (pre, request) => {
+            checkWall('tiny Houdini certification')
+            // The screen's constraints and reported post-laws are not trusted.
+            if (!family.every(law => evaluate(law, p, pre) === true)) return false
+            let post: State
+            try { post = run.step(p, pre, request) } catch (e) { if (e instanceof WallExpired) throw e; return false }
+            let accepted = false
+            for (const law of survivors) {
+              if (protectedLaws.has(law) || removed.has(law) || evaluate(law, p, post) !== false) continue
+              removed.add(law); accepted = true
+              // Preserve a fully certified drop if the rest of the pass expires.
+              survivors = survivors.filter(other => other !== law)
+              const drop = {round, law, params: p, pre, request, post}
+              options.onDrop?.(drop); finiteDump.onDrop?.(drop)
+            }
+            return accepted
+          })
+          // The proposer reports partial statistics when its wall expires. It
+          // cannot suppress either this local cap or an earlier enclosing wall.
+          checkWall('tiny Houdini completion')
+          options.onTiny?.(round, stats)
+        }
+        if (!removed.size) return survivors
+      }
+    })
+  } catch (e) {
+    if (!(e instanceof WallExpired)) throw e
+    checkWall('tiny Houdini outer completion')
+    timedOut = true
+    return survivors
+  } finally { options.onFinish?.({timedOut, ms: performance.now() - start, dropped: candidates.length - survivors.length}) }
+}
+
 function finiteHoudiniWithin(source: Machine, m: Machine, caller: Law[], candidates: Law[], samples: Samples, options: FiniteOptions): Law[] {
   finiteDump.onStart?.({machine: m, caller, candidates})
   // Derived sum-state consistency is not reconstructed by this finite backend.

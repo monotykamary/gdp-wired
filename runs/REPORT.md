@@ -90,6 +90,33 @@ toy_consensus, toy_consensus_epr, toy_consensus_forall. These are audit-repair
 iteration results, not evidence for the later uncommitted fallback and
 not Lane D's authoritative final gate.
 
+## Experimental binary-domain fallback: prediction not met
+
+The generic tiny-instance proposer and independent `finiteTinyHoudini`
+wrapper are implemented, but **not enabled in production generation**.
+The source uses structural count grids and shared transition screens; no
+protocol/law names are production conditions. Every removal is independently
+checked against preconditions, all facts, the complete current family and
+the source interpreter's actual step. Caller laws are protected.
+
+On the original 40-law family, all three binary-domain runs remove the same
+five laws in 1.356–1.801 s. **Only three are the previously missed costly
+helpers**: unweakened stored guard, disabled/1, and canVote/1. The other two
+were already caught by boundary sampling. Starting after the six certified
+boundary removals, one run reaches a 31-law fixed point in 1.356 s; two runs
+are wall-limited. Disabled/0, /2 and /3 remain in the completed 0/1 scope.
+Thus the five-costly-helper prediction is **not met**. The next bounded
+experiment is a richer value domain; no missing-law or semantic-exhaustion
+conclusion is drawn from this untrusted screen.
+
+The scope is exactly 22 state bits at size 3, structurally inferred rows,
+Boolean carried sets and binder values 0–2. Completed screening is not a
+semantic completeness or proof claim. `research/track-gen/t16-tiny-notes.md`
+and `t16-tiny-results.json` preserve exact scope, failed earlier pilots,
+input/source hashes, independent witnesses, CPU labels and remaining laws.
+The final worker check passes 12 tests / 40 assertions and full type/lint;
+the wrapper suite passes 35 tests / 112 assertions and full type/lint.
+
 # Lane A / T-14 iteration receipts complete; Section 16 in progress
 
 The E-14 + per-attempt-sharing implementation (`1681e8e5`) and the test-only
