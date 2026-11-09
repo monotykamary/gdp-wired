@@ -13,7 +13,8 @@
   "compilerSha256": "59bf1a68ae755e7a57c4c5085c7db0c87f5923c69d08bb199344f24604ee181a",
   "differentialTestSha256": "9809622223dacfac7c3b35e568a7c30019c6bdb7081afdae769a501c9113115f",
   "pilotBatch": "20261110-022939-6om3bw",
-  "pilot": "All original runs caught four named-seven drops in 1900.192-1900.229 ms; one survivor exceeded 2 seconds. Criterion fails. Independent replay pending.",
+  "pilot": "All original runs caught four named-seven drops in 1900.192-1900.229 ms; one survivor exceeded 2 seconds. Criterion fails. Independent full-family/source-interpreter replay confirmed every emitted witness in batch 20261110-023237-awqyms.",
   "replayTask": "67e7c26f-d57f-4ff8-9259-7bf2622faadd",
+  "replayResult": "research/track-gen/t16-target-circuit-results.json",
   "productionEnabled": false
 }

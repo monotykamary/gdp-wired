@@ -22,7 +22,25 @@ on top of state-first: the first pilot caught no drops during target build.
 Shared circuits passed 57 tests; the pilot recovered four named drops,
 but still fails the unchanged five-of-seven bar.
 
-## Current revision: shared partial post-state circuits (checked; four named drops)
+## Current WIP: interval post-target pruning (validation pending)
+
+The shared-circuit implementation below is checked and replayed, but misses
+the performance criterion. The next opt-in refinement encloses unknown post
+values and uses three-valued interval predicates. Overlapping bounds remain
+unknown; an oversize or unsupported interval screen falls back to the existing
+readiness screen. See `research/track-gen/t16-target-interval-notes.md`.
+
+Tests compare all three modes and add arithmetic, a three-cell count-prefix
+case and forced native-cap fallback. Validation is running wide on submission
+in task `f4d7a0ec-4025-4b32-a4b0-0920158442f4`, output
+`runs/t16-target-interval-check/`. **No interval pilot has been submitted.**
+Core SHA-256 `0e1a570230e81f53821eaf606ae0dbcf64c0a0fc8f0ebc14f9d1bc3f27582795`;
+test `d7185cbe0ad68fed206df36ee743eb7c9a7ce794f710abe30e7cb7f4be4e3194`;
+driver `f10cbeb2e11c1270e094cf7afd7afd9f3477c38024b32d6fd7b92863085b415c`.
+The canonical base archive is reused with a small overlay. No >500 MB write,
+whole-tree archive or deletion is planned. No subagents are running.
+
+## Previous revision: shared partial post-state circuits (checked; four named drops)
 
 The profile below found that repeated target substitution exhausted both
 stages before enumeration. The revision preserves state-first traversal
@@ -56,8 +74,11 @@ The six-probe batch `20261110-022939-6om3bw` also completed, six exits 0:
   three candidate transitions, **4,231 request prunes**, zero state prunes,
   and 462–560 ms. Construction no longer consumes the whole round.
 - Five-of-seven still fails. There is no production or final-gate promotion.
-- Full-family/source-interpreter replay is pending in
-  `67e7c26f-d57f-4ff8-9259-7bf2622faadd`, `runs/t16-target-circuit-replay/`.
+- Full-family/source-interpreter replay **confirmed every emitted witness**
+  in batch `20261110-023237-awqyms`, `runs/t16-target-circuit-replay/`.
+  `research/track-gen/t16-target-circuit-results.json` records the result.
+  Original named drops remain 4/7, survivors only two new (three including
+  the historical drop), and the same survivor overrun remains a failure.
 
 Next refinement: conservative intervals for still-unknown post values, so
 count and arithmetic bounds can rule out a target before every output is
@@ -69,7 +90,8 @@ Same canonical archive `6288b666` plus small overlay
 `59bf1a68ae755e7a57c4c5085c7db0c87f5923c69d08bb199344f24604ee181a`;
 test `9809622223dacfac7c3b35e568a7c30019c6bdb7081afdae769a501c9113115f`.
 These files are covered by the new 57-test receipt, not the earlier 55-test
-receipt. Corrected commitlint passed; independent witness replay is pending.
+receipt. Corrected commitlint and independent witness replay passed. The
+checked implementation is committed as `16f0a323`; the pilot bar did not pass.
 Production, all domains, the native-body cap and the five-of-seven / 2 s bar
 are unchanged.
 
