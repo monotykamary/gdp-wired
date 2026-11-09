@@ -49,6 +49,8 @@ whole-law proofs or claims about a particular helper without provenance.
   (column domains, domains, aliases, field count witnesses and closure count witnesses),
   scope-matched demand attribution, and exception-safe exclusive costs.
 
+Future op receipts also retain the branch tree, its exact nonempty path, conditional-cut contexts and column registry. `audit-lane-b-op.ts` replays those proofs and checks exclusive-cost/demand accounting without search; `audit-lane-b-cost.ts` independently checks retained per-law certificates. These additions cannot retroactively make older receipts portable.
+
 The 15.4 policy is applied only to disposable replay sources. Production has not taken
 this policy, 15.5, 15.6 or a kernel change. All current experiments use class submission,
 VM-count overrides are absent, and the two completed preparation batches charged **zero

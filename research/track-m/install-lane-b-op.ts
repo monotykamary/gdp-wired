@@ -17,4 +17,5 @@ change('core/count-cases.ts',s=>{
 const pre="import {lemmaRecorder as __l} from '../../research/track-m/section18-recorder.ts'\n"
 change('core/count-recovery/field-bound-lemmas.ts',s=>pre+replace(replace(s,"(...args)=>wallTree('proposal-control',()=>{","(...args)=>__l.helper('field',args,()=>wallTree('proposal-control',()=>{"), '})\nfunction fieldBoundLemmasImpl','}))\nfunction fieldBoundLemmasImpl'))
 change('core/count-recovery/frame-lemmas.ts',s=>pre+replace(s,"(...args)=>wallTree('proposal-control',()=>frameLemmasImpl(...args))","(...args)=>__l.helper('frame',args,()=>wallTree('proposal-control',()=>frameLemmasImpl(...args)))"))
+change('core/count-recovery/conditional-proof.ts',s=>pre+replace(s,'  marked.set(tree, {goal, lemmas})','  marked.set(tree, {goal, lemmas});__l.noteMark(tree,{goal,lemmas})'))
 console.log(JSON.stringify({observationOnly:true,changes}))

@@ -3,7 +3,7 @@ import {type C} from '../machine.ts'
 import {type Goal,type Path,leafConstraints,linear} from '../../kernel/kernel.ts'
 import {clock} from '../../kernel/prove.ts'
 export type FieldDemand={modelColumns:string[],coreColumns:string[],modelKnown:boolean,coreKnown:boolean,scope?:string}
-export type FieldAttempt={candidate:C,cellColumns:string[],demand?:FieldDemand,units:number,emitted:boolean,source:string,requested:boolean|undefined,start?:number,end?:number,id?:number,parent?:number,inclusiveUnits?:number}
+export type FieldAttempt={candidate:C,cellColumns:string[],demand?:FieldDemand,units:number,emitted:boolean,source:string,requested:boolean|undefined,start?:number,end?:number,id?:number,parent?:number,inclusiveUnits?:number,scope?:string}
 export const fieldAttemptObserver:{on?:(event:FieldAttempt)=>void}={}
 const demands=new WeakMap<Path,FieldDemand>()
 const scopeKey=(path:Path)=>JSON.stringify([...path].map(([key,atom])=>[key,atom.holds]).sort((a,b)=>String(a[0]).localeCompare(String(b[0]))))
@@ -30,5 +30,5 @@ export function recordFieldAttempt(candidate:C,path:Path,demand:FieldDemand|unde
  const cell=candidate.op==='<='||candidate.op==='<'?(candidate.a.op==='if'?candidate.a.then:candidate.a):undefined
  const cellColumns=cell?Object.keys(linear(cell,path)??{}).filter(k=>k!=='1'):[],columns=new Set([...(demand?.coreColumns??[]),...(demand?.modelColumns??[])])
  const known=!!demand&&(demand.modelKnown||demand.coreKnown)&&(demand.scope===undefined||demand.scope===scopeKey(path))
- fieldAttemptObserver.on({candidate,cellColumns,demand,units,emitted,source,...span,requested:known?cellColumns.some(c=>columns.has(c)):undefined})
+ fieldAttemptObserver.on({candidate,cellColumns,demand,units,emitted,source,...span,scope:scopeKey(path),requested:known?cellColumns.some(c=>columns.has(c)):undefined})
 }
