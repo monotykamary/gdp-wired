@@ -1,12 +1,12 @@
 import {expect,test} from 'bun:test'
-import {type C,type Law,type Machine,any,get,n,not,same,tup,x} from '../machine.ts'
+import {type C,type Law,type Machine,any,get,n,not,same,tuple,x} from '../machine.ts'
 import {checkMC,countedObligations,mcGoal} from '../../kernel/kernel.ts'
 import {clock,grow} from '../../kernel/prove.ts'
 import {instantiateRowPremises} from './row-premises.ts'
 
 function fixture(prefix='r_'){
  const name=(s:string)=>prefix+s,a=x(name('a')),b=x(name('b')),c=x(name('column')),source=x(name('source'))
- const epoch=(at:typeof a)=>get(name('epoch'),at),cell=(row:typeof a)=>get(name('cells'),tup(row,c))
+ const epoch=(at:typeof a)=>get(name('epoch'),at),cell=(row:typeof a)=>get(name('cells'),tuple([row,c]))
  const holds:C=any(not(same(epoch(a),epoch(b))),same(cell(a),cell(b)))
  const target:Law={name:name('agreement'),forall:name('a'),keys:[name('b'),name('column')],holds}
  const field:Law={name:name('epoch nonnegative'),forall:name('a'),holds:{op:'<=',a:n(0),b:epoch(a)}}
