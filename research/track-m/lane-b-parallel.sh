@@ -5,7 +5,7 @@ bash research/track-m/prepare-vendors.sh
 bun install --frozen-lockfile >/dev/null
 if [[ "$mode" == check ]]; then
  bun run check
- bun test core/count-recovery/field-demand.test.ts core/count-recovery/guard-cases.test.ts core/count-recovery/field-bound-budget.test.ts core/count-recovery/leaf-allowance.test.ts
+ bun test core/count-completion.test.ts core/count-recovery/field-demand.test.ts core/count-recovery/guard-cases.test.ts core/count-recovery/field-bound-budget.test.ts core/count-recovery/leaf-allowance.test.ts
  exit
 fi
 LAB_DISPOSABLE=1 bun research/track-m/lane-b-variant.ts "$variant"
@@ -19,6 +19,6 @@ if [[ "$mode" == capture ]]; then
  tail -c 12000 "$out/run.log"
  [[ "$status" == 0 || "$status" == 124 || "$status" == 137 ]]
 else
- bun research/track-m/lane-b-family.ts "$out/family.json"
+ if [[ -n "${FAMILY_JSON:-}" ]]; then cp "$FAMILY_JSON" "$out/family.json"; else bun research/track-m/lane-b-family.ts "$out/family.json"; fi
  DUMP_DIR="$out/dump" DUMP_ALL=1 DUMP_MIN=0 DUMP_N=100000 bun --preload ./research/query/dump.ts --preload ./research/track-m/lane-b-trace.ts research/track-m/lane-b-cost.ts "$out/family.json" "$target" "$out/$target" 2700
 fi

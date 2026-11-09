@@ -13,6 +13,6 @@ for(const f of files){const q=JSON.parse(readFileSync(f,'utf8'));if(!q.goal?.hyp
 }
 const selected=[...items.values()].sort((a,b)=>Math.max(...b.sources.map((s:any)=>s.priorWork??0))-Math.max(...a.sources.map((s:any)=>s.priorWork??0))).slice(0,96)
 mkdirSync(join(out,'goals'),{recursive:true});for(const q of selected)writeFileSync(join(out,'goals',q.id+'.json'),JSON.stringify(q)+'\n')
-const jobs=selected.flatMap(q=>['default','core','no-units'].map(mode=>({name:q.id+'-'+mode,cmd:'bun install --frozen-lockfile >/dev/null && timeout -s KILL 12 bun research/track-m/lane-b-replay.ts /work/replays/goals/'+q.id+'.json '+mode,cpu:2,memory:4096,timeout:90})))
+const jobs=selected.flatMap(q=>['default','core','no-units'].map(mode=>({name:q.id+'-'+mode,cmd:'bun install --frozen-lockfile >/dev/null && timeout -s KILL 12 bun research/track-m/lane-b-replay.ts replays/goals/'+q.id+'.json '+mode,cpu:2,memory:4096,timeout:90})))
 writeFileSync(join(out,'jobs.json'),JSON.stringify(jobs,null,1)+'\n');writeFileSync(join(out,'manifest.json'),JSON.stringify({rawFiles:files.length,unique:items.size,selected:selected.map(q=>({id:q.id,name:q.goal.name,hyps:q.goal.hyps.length,sources:q.sources})),skipped,jobs:jobs.length},null,1)+'\n')
 console.log(JSON.stringify({rawFiles:files.length,unique:items.size,selected:selected.length,jobs:jobs.length,skipped:skipped.length}))
