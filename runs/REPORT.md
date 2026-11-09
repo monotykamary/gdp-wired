@@ -5855,3 +5855,11 @@ Implemented a **disposable 15.5 prototype**, not a production adoption: at most 
 `lane-b-derive-v1` compares before/after 15.5 with the disposable 15.4 leaf policy held fixed on all five actual-family targets, plus source and transport tests. It is pending. The prototype deliberately retains **validated model reuse**, not unchecked reuse of a bare SAT label across stronger scopes; the latter could exclude a fact after its context changes. Model-driven row reduction (15.6) is next after this class-pass measurement.
 
 F1–F3 are back in scope. F2 slicing and F3 memoization already exist in `conditional-check-cache.ts`; measure their current counters rather than assuming the old savings still apply. F1's final family check remains mandatory. No kernel change, new trusted fact, production allowance change or gate claim.
+
+## Lane B — full 15.4 result: no new closure, inactive paths dominate
+
+`lane-b-leaf-v1` finished: all eight op measurements unknown; one check-fixture failure retained. Full 15.4 vs the already-active-sliced baseline moves units as follows: Inv2973 op 0 **499.880 → 1,409.303**, op 4 **612.965 → 2,329.604**; Inv* op 3 **1,070.194 → 1,774.017**, op 5 **1,873.990 → 876.490**. All use the old op packets, 5,000 units and 4.8 s, not the new whole-helper line. Detailed walls, CPU provenance and checksum-verified receipts are in `lane-b-status-v1/README.md` and `measurements.json`.
+
+Field work is zero in three after arms because the captured prefixes stop in inactive guard paths before reaching it, not because it was proved cheaply. The fourth arm's closure draws are only 13.816 and 7.470 units. No demand attribution becomes known. This does not support adopting the full policy as a speedup.
+
+Direct class-pass probes of the exact recorded legacy op-0/op-4 leaf scopes are queued in `lane-b-seeded-leaf-v1`, with root-lineage and seed-proof checks. They separate derivability from the guard/case allocation route and are explicitly not actual E-14 pass evidence. The 16.5 actual-family calibration, before/after class comparison, independent audits and clean leaf validation remain pending. No gate is claimed.

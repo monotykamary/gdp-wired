@@ -1,0 +1,6 @@
+[
+ {"name":"op0-before","cmd":"bash research/track-m/section15-seeded-leaf.sh 0 before","cpu":8,"memory":14336,"timeout":90},
+ {"name":"op0-after","cmd":"bash research/track-m/section15-seeded-leaf.sh 0 after","cpu":8,"memory":14336,"timeout":90},
+ {"name":"op4-before","cmd":"bash research/track-m/section15-seeded-leaf.sh 4 before","cpu":8,"memory":14336,"timeout":90},
+ {"name":"op4-after","cmd":"bash research/track-m/section15-seeded-leaf.sh 4 after","cpu":8,"memory":14336,"timeout":90}
+]

@@ -110,4 +110,23 @@ The target is now **≤6,000 units and ≤7 s total helper wall on actual E-14 o
 
 `lane-b-derive-v1` is the disposable 15.5 comparison with 15.4 held fixed: up to 24 class-fact attempts at each leaf, numeric query, existing model-selected batch, natural cases only on fallback; zero-claims last. Frames are selected by path-simplified count bodies, not protocol names. All facts and the final result are still checked. This prototype retains context-validated model reuse rather than sharing bare SAT exclusions across stronger scopes. The new class-order/frame-selector tests and proof-transport tests are pending. 15.6 follows the class-pass evidence; F1–F3 are explicitly back on the measurement list.
 
+## Full 15.4 leaf-policy result (older op packets, not an E-14 pass)
+
+All eight workers returned unknown. The baseline here already includes the initial active slice; this comparison adds the full disposable 15.4 policy. Exact source tree: `899fd3a9bcc8`. All eight archives were fetched and checksum-verified.
+
+| Law/op | Before units | Full 15.4 units | Before wall ms | Full 15.4 wall ms |
+|---|---:|---:|---:|---:|
+| Inv2973 / 0 | 499.880 | 1,409.303 | 4,918.585 | 4,690.981 |
+| Inv2973 / 4 | 612.965 | 2,329.604 | 5,106.173 | 5,190.996 |
+| Inv* / 3 | 1,070.194 | 1,774.017 | 5,170.150 | 4,831.060 |
+| Inv* / 5 | 1,873.990 | 876.490 | 4,879.970 | 4,882.502 |
+
+These are 5,000-unit, 4.8-second clock-limited prefixes on exclusive eight-vCPU VMs. CPU models differ in two comparisons; there are no same-VM pairs. Cooperative wall overshoot is retained. The table does **not** establish a per-helper 6,000-unit/7-second pass.
+
+The full policy did not reach field helper work on Inv2973 ops 0/4 or Inv* op 5. Their emitted guard-budget traces stop in inactive leaves; field units are zero, while frame work remains 227.133 / 313.756 / 151.865 units respectively. Therefore zero field units are not a successful cheap derivation. Inv* op 3 reaches two active attempts and two closure leaves (draws 13.816 and 7.470 units), but still does not close. Every available demand value remains unknown. No measurable demand-saving credit is assigned.
+
+The check worker failed on the attached bundled `packets/runtime.js`; its 39 lint diagnostics are retained byte-for-byte in `lane-b-leaf-v1/check.log.gz` (compressed to preserve the raw linter formatting). The no-packet-data recheck remains pending. No measurement was repeated because of that fixture failure.
+
+To test 15.5 itself rather than inactive-guard budget starvation, `lane-b-seeded-leaf-v1` directly replays the recorded Section 14 op-0/op-4 scopes with and without class-first ordering. It validates packet/root lineage and every imported seed before use. These are **legacy-fixture conditional leaf diagnostics**, not actual-family or whole-op proof claims. The actual-family 16.5 calibration and derive-first comparisons remain separately queued.
+
 **No accepted complete family, 29/29 result, 28/29 recertification, or GATE GREEN is claimed.**
