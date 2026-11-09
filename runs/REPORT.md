@@ -4,6 +4,10 @@ NOT GATE GREEN. Baseline `main` = `b788e195`; branch `claude/mldr-integ`.
 
 Read COMMON.md, MLDR-DESIGN.md Sections 14–16 (including the answered 16.3 audit), and all MLDR-29.md rules, Speed, Gate evidence and Merging. Only Lane D's SHA-bound final receipt can authorize GATE GREEN. No push or merge into main is authorized here.
 
+## Current status
+
+All A/B/E/Fable-wall/F tips through A `c21a6e54`, B `5c2d3b70`, E `3f3a523c`, wall `c775d8c1`, F `36210941` are integrated. Latest production validation snapshot is **`b2c6aa20308b3c18f607210cbf652c9ae56550c7`** (v5); the subsequent B merge is reports only. Both v5 batches are running; all four changed-test jobs have returned exit 0, with check, strict MLDR and census receipts still pending. The completed v4 snapshot had clean check, 585 tests and 87 successful generation pairs (84 non-MLDR pairs identical), but MLDR was unknown 3/3. V4's key cache was subsequently reverted by its lane, and F added independently checked empty-count reconstruction, so v4 results are not asserted for v5. No Lane D final gate or 29/29 proof exists. Historical commitlint failures remain disclosed below; no history was rewritten.
+
 ## Plan and falsifiable hypothesis
 
 Combine every committed lane tip without dropping either side of conflicts. Hypothesis: preserving A's finite-model certification and attempt deadlines, B's completion/leaf budgets, E's lazy inclusions, Fable's generation-wall reductions, and F's demanded row splits produces a type-correct integrated engine without changing the other 28 generation lists. Falsifiers: failed checks/tests, changed unrelated candidate lists, missing helper attempts, uncapped attempts, or same-VM regressions. All substantive runs use `supercomputer`; strict verdicts use `--timing --vm-type large`, one job per repeat. No supplied laws count toward the finish line.
