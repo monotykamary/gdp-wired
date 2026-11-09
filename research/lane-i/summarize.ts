@@ -22,11 +22,21 @@ function batch(dir:string,names:string[]){
 const census=batch('census',expected.map(j=>j.name)).map(job=>{
  const rows=[...job.log.matchAll(/^LANE_I_CENSUS (.+)$/gm)]
  if(rows.length!==1){issues.push(job.name+': receipt cardinality');return {...job,log:undefined,id:'<missing>',repeat:0,identical:false,base:null,candidate:null}}
- const row=JSON.parse(rows[0]![1]!) as {id:string,repeat:number,identical:boolean,base:unknown,candidate:unknown,names?:string[]}
+ const row=JSON.parse(rows[0]![1]!) as {id:string,repeat:number,identical:boolean,base:{count:number,hash:string},candidate:{count:number,hash:string},names?:string[]}
  if(job.name!==`gen-${row.id}-r${row.repeat}`)issues.push(job.name+': identity mismatch')
+ const identity=JSON.parse(read('input/identity.json'))
+ if(!job.log.includes(identity.baseline)||!job.log.includes(identity.candidate))issues.push(job.name+': missing source identity')
+ for(const side of [row.base,row.candidate])if(!Number.isInteger(side.count)||side.count<0||!/^[a-f0-9]{64}$/.test(side.hash))issues.push(job.name+': invalid canonical digest/count')
+ if(row.identical!==(row.base.hash===row.candidate.hash)||(row.identical&&row.base.count!==row.candidate.count))issues.push(job.name+': inconsistent equality receipt')
  if(row.id!=='mldr'&&!row.identical)issues.push(job.name+': unrelated generation list changed')
  return {...job,log:undefined,...row}
 })
+if(process.argv.includes('--census-only')){
+ const report={finalGate:false,identity:JSON.parse(read('input/identity.json')),issues,census,scope:'Worker-generated canonical digest comparisons. No local reconstruction of canonical arrays and no proof or no-loss gate claim.'}
+ writeFileSync(join(root,'census-audit.json'),JSON.stringify(report,null,2)+'\n')
+ console.log(JSON.stringify({issues,pairs:census.length,identical:census.filter(row=>row.identical).length,different:census.filter(row=>!row.identical).map(row=>({name:row.name,base:row.base,candidate:row.candidate}))}))
+ process.exit(issues.length?1:0)
+}
 const validationNames=['check',...Array.from({length:4},(_,i)=>'changed-tests-'+(i+1)),...Array.from({length:3},(_,i)=>'mldr-r'+(i+1))]
 const validation=batch('validation',validationNames)
 const tests=validation.filter(j=>j.name.startsWith('changed-tests')).map(j=>({name:j.name,counts:j.log.match(/\d+ pass\s+\d+ fail[^]*?\d+ expect\(\) calls/),sha256:j.sha256,placement:j.placement}))
