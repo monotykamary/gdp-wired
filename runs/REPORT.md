@@ -1,5 +1,11 @@
-# HANDOFF (lane C / Fable, 2026-11-10 04:00) — `claude/mldr-wall`, code head for lane D's gate: **cd947909** = 4468efc5 (fully guarded) + lane A's 1316eb0f merged
+# HANDOFF (lane C / Fable, 2026-11-10 05:05) — `claude/mldr-wall`, code head for lane D's gate: **8feee82e** (fully guarded; report-only and research-only commits follow it)
 
+- **8feee82e** = cd947909 below + the interpreter's every-key writes without per-key allocation (one environment per write, a tuple
+  write's static parts once per write, `unchanged`'s facts once per term; results identical by construction). Guards: 135 tests
+  (`receipts/tests7`), **census 29 / 29 lists byte-identical vs `bef4020f`** with the whole 29-protocol generation wall −40 %
+  (`receipts/census7`; learning_switch 204 → 131 s, _i4 153 → 71 s), **29 / 29 strict verdicts identical vs `bef4020f`** on pinned large
+  VMs (`receipts/rverd3`), paired learning_switch profile 98.8 vs 405.8 s with the allocation functions gone (`receipts/lsprof2`).
+  mldr's own paths are the compiled ones and unchanged from 4468efc5.
 - **cd947909** merges lane A's `claude/mldr-gen` head `1316eb0f` (since `bef4020f`: `core/finite-tiny.ts` opt-in post-target pruning and
   its tests only — no production path touched, `core/finite-houdini.ts` unchanged) into 4468efc5; **135 tests pass** on it
   (`receipts/tests6`, lane A's `finite-tiny-target.test.ts` included). The census, strict pairs and mldr pair below were taken on 4468efc5,
@@ -109,7 +115,7 @@ the merged-tree tests/typecheck, the 29-list census against `bef4020f` and a per
   153 → 71 s, client_server_db_ae 6.1 → 6.0 s, mldr 28.6 → 15.1 s. The paired pinned profile vs `cd947909` (`receipts/lsprof2`, the noisy 9950X `bx_7uaxjs82`): **98.8 s vs 405.8 s**
   (small phase 92.7 vs 392.1 s; the allocation functions `fromEntries` / `copyDataProperties` / `cloneObject` / `stringify` are gone from
   the candidate's top ten, which is now the interpreter proper: `go`, `evalC`, `every`, `evalE`); the magnitude carries this VM's 2× swing,
-  the shape does not. A 29-verdict strict run vs `bef4020f` is the last guard before it becomes the gate head. one breakpoint list per step shared by every dense write (the union of their breakpoints; `$dense`
+  the shape does not. **29 / 29 strict verdicts identical vs `bef4020f`** (`receipts/rverd3`): it is the gate head. one breakpoint list per step shared by every dense write (the union of their breakpoints; `$dense`
   fills the same cells from it), and no second validation in `cells`.
 , violation-driven ranges (`72380dc1`) vs lane A's `c21a6e54`, three pinned large VMs
   (Ryzen 9 9950X ×2, EPYC 4585PX; `runs/track-wall/receipts/rmldr3`, logs gzipped):** verdict `unknown` (time) on all six runs;
