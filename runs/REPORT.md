@@ -4,7 +4,25 @@ Lane I resumed from `cca59f0c` on `claude/mldr-integ`; clean worktree verified, 
 
 - First cancelled work rerun: all **140 upper-bound shards** submitted through the scheduler, fresh output `runs/lane-i/upper-bound/resumed/full`, task `cf1d3fc9-6a88-4e12-8403-974717b1ed42`. Every guest unpacks frozen production `15eff72f` and checks the retained source manifest; the current integration is not substituted. No supplied laws; original 34-law family; 30 minutes per operation; no share; independent verification still required. Pending, not a result.
 - Repair: core-replay reconstruction now spreads the previous obligation before replacing its goal/decls/encoded goal, retaining `all`, certificate and pool. Added a focused range-demand test for a read omitted by the selected certificate. No budget, law, or kernel change.
-- Current source/test candidate: `b09da82d` (real checked core-replay regression and read/pool/certificate retention diagnostic). Prior `50b3dc68` now has a clean check and **659 tests / 19,840 assertions passing**. Nine fresh final-candidate jobs are submitted; see the Lane D request below. All completed MLDR pairs remain unknown. **Not gate green**; Lane D's final gate remains mandatory.
+- Current source/test candidate: `b09da82d`. Final-candidate check is clean; **660 tests / 19,846 assertions pass**, including the real core-replay regression. The old-shape negative control also passed by detecting dropped reads. All three fresh MLDR pairs remain unknown, with no MLDR proof. **Not gate green**: frozen/census results and Lane D's final gate remain pending.
+
+## Final-candidate validation completed / Lane D evidence
+
+Batch `20261110-005805-lfrigx`, task `7988c131-e6e5-4fb3-8a6e-9143d69bd124`, source `b09da82d`, completed all nine jobs with zero worker failures. `check`: **0 warnings, 0 errors**. Changed-test shards: **216 + 148 + 136 + 160 = 660 passing tests, 19,846 assertions, no failures**, across 120 changed test modules. The new real core-replay regression passed and independently checked each returned certificate.
+
+The negative-control worker restored the old metadata-dropping reconstruction in its disposable checkout. The selected regression then failed specifically with `readCount: 2`, `readsRetained: false`; the control verified that expected failure and returned `CORE_REPLAY_NEGATIVE_CONTROL_OK`, then restored its source. This demonstrates sensitivity to the original lost-read defect, rather than merely exercising a passing branch. The hook also compares pool/certificate identity; this fixture does not claim exhaustive nonempty-pool coverage.
+
+The strict standard auditor first **correctly rejected the nine-job roster** (`validation roster mismatch`): it expects exactly the usual eight jobs, not the extra intentional-failure control. Its failed audit remains intact at `validation-audit.json`. No auditor rule was weakened. `standard/projection.json` records original summary/placement/control-log hashes, the eight retained jobs, and the separately validated ninth job; its log views are hard links, not copies. The standard eight-job projection then audited with **zero issues / exit 0**. That means valid receipts, not an MLDR proof or gate approval.
+
+| Pair / CPU | Baseline pre-attempt wall ms | Candidate pre-attempt wall ms | Candidate search ms | Candidate result |
+|---|---:|---:|---:|---|
+| r1 Ryzen 9 9950X | 24,379.598 | 14,181.221 | 59,115 | unknown / time (rule result) |
+| r2 Ryzen 9 9950X | 19,053.609 | 12,259.359 | 59,001 | unknown / time (rule result) |
+| r3 EPYC 4585PX | 22,446.553 | 13,132.418 | 59,005 | unknown / time (rule result) |
+
+All three baselines were also unknown (`not proven: one primary per term`). Candidate trace-kept count was 16 each; safety was never reached. No MLDR proof, family success, or full-run speedup is claimed.
+
+**Lane D:** the exact source identity is `runs/lane-i/final-candidate/input/identity.json`; full nine-job receipts and compressed logs are in `validation/`, and the source/hash-bound standard audit is in `standard/`. This supersedes the pending-validation portion of the request below, not its review requirement. Frozen upper-bound and generation-census work remains outstanding. No blanket/final gate green is declared.
 
 ## Repair3 clean; final candidate / Lane D gate request
 

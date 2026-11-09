@@ -1,0 +1,47 @@
+{
+  "source": "../validation",
+  "sourceHashes": [
+    [
+      "866836e0d13f81988b7f727127915d19803bb7833791159db30c45ba4bb9a299",
+      "runs/lane-i/final-candidate/validation/summary.tsv"
+    ],
+    [
+      "391b0bb59ea403387c202abdb79fab8a96547e02cf07de4128c97a496665ace5",
+      "runs/lane-i/final-candidate/validation/placement.json"
+    ],
+    [
+      "c717a1b95083cb023125cc56db50df02a4c344f3100ed1618beeb52eb18a89fb",
+      "runs/lane-i/final-candidate/validation/core-replay-negative.log"
+    ]
+  ],
+  "standardNames": [
+    "check",
+    "changed-tests-1",
+    "changed-tests-2",
+    "changed-tests-3",
+    "changed-tests-4",
+    "mldr-r1",
+    "mldr-r2",
+    "mldr-r3"
+  ],
+  "separateNegativeControl": {
+    "status": [
+      "core-replay-negative",
+      "0",
+      "0.82",
+      "boat"
+    ],
+    "placement": {
+      "vm": "bx_bpdj4x2g",
+      "type": "large",
+      "cpu": "AMD Ryzen 9 9950X 16-Core Processor",
+      "vcpus": 4,
+      "vm_vcpus": 8,
+      "exclusive": true,
+      "co_tenants": 0
+    },
+    "expectedMutationFailureObserved": true
+  },
+  "reason": "The original nine-job roster is retained unchanged. The strict standard auditor expects exactly eight validation jobs; the ninth is an independently verified intentional-failure negative control.",
+  "gateGreen": false
+}
