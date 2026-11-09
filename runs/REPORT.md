@@ -7,8 +7,10 @@
   non-attempt wall **10.9 / 9.9 s vs 29.1 / 20.5 s** on EPYC 4585PX / Ryzen 7 9700X (`receipts/orig2`), 29 / 29 verdicts identical to
   `c21a6e54` at a19a0713 (`receipts/rverd2`; the later commits are generation-only and census-identical). Lanes F / B / I can pull it.
 - **7bc4e5fd** (one union breakpoint list per step) is **not promoted**: census identical, mldr faster, but `learning_switch`'s small phase
-  +50 % (every dense write evaluated at the other writes' breakpoints). Its successor shares a list only among writes with identical
-  breakpoints and is under tests, mldr + learning_switch pairs vs f4db596e, and a census; f4db596e stays the head until those hold.
+  +50 % (every dense write evaluated at the other writes' breakpoints). **Its successor `4468efc5`** (a list shared only by writes with
+  identical breakpoints; no second map validation in `cells`) holds 117 tests, census 29 / 29 vs `bef4020f` (`receipts/census6`) and is
+  neutral on mldr vs f4db596e (`receipts/eq1`); its own strict pairs are running, after which it becomes the code head for the gate
+  (report-only commits follow it on the branch tip). Until then f4db596e.
 - **VM note for lane D and the coordinator:** `bx_8nqy7xab` (large, Ryzen 9 9950X) ran both of its strict pairs ≈ 3× slower than every
   other large VM (base 54.1 s and 54.8 s of non-attempt wall against 20–29 s elsewhere; `receipts/orig2` pair 3, `receipts/orig3` pair 2).
   A timing claim should not rest on it; the pairs on it still favour the candidate.
@@ -61,7 +63,11 @@ the merged-tree tests/typecheck, the 29-list census against `bef4020f` and a per
   Replaced by sharing only among writes with the same breakpoints (no write evaluates at another's), measured on mldr and learning_switch
   against `f4db596e`:** commit `4468efc5` — **census 29 / 29 identical vs `bef4020f`** (`runs/track-wall/receipts/census6`; mldr 55.8 → 25.1 s
   on a co-tenanted VM), `learning_switch` +26 % in its small phase (229 → 286 s) on co-tenanted VMs where `f4db596e` had read +16 % — the
-  pinned pair against `f4db596e` and a paired profile of `learning_switch` on both trees are running to tell the two apart. one breakpoint list per step shared by every dense write (the union of their breakpoints; `$dense`
+  pinned pairs against `f4db596e` (`runs/track-wall/receipts/eq1`): **117 tests pass; mldr 12.7 / 11.9 / 11.3 s vs 11.6 / 11.3 / 11.6 s — neutral**
+  (mldr's dense writes have distinct breakpoint sets, so nothing is shared there and the two trees run the same code but for the dropped
+  second map validation); **`learning_switch` is not a stable measurement at all:** on one pinned 9950X its small phase read 302 s vs 312 s,
+  then 502 s vs 247 s — a 2× swing between consecutive runs of the same tree, which also covers the +16 / +26 / +55 % census readings.
+  A paired CPU profile of `learning_switch`'s generation on both trees is running to see whether the trees differ structurally there. one breakpoint list per step shared by every dense write (the union of their breakpoints; `$dense`
   fills the same cells from it), and no second validation in `cells`.
 , violation-driven ranges (`72380dc1`) vs lane A's `c21a6e54`, three pinned large VMs
   (Ryzen 9 9950X ×2, EPYC 4585PX; `runs/track-wall/receipts/rmldr3`, logs gzipped):** verdict `unknown` (time) on all six runs;

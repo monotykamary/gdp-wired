@@ -1,0 +1,20 @@
+PAIR 1 mine
+{"id":"learning_switch","count":16,"wallMs":310219.378893,"phases":{"guards":3.7255559999999974,"small":301675.18025900004,"candidates":8432.868469000037},"states":[750,3420],"counts":[],"cprof":{"sma
+PAIR 1 base
+{"id":"learning_switch","count":16,"wallMs":327803.701327,"phases":{"guards":4.538980000000009,"small":311534.205105,"candidates":16141.15480899997},"states":[750,3420],"counts":[],"cprof":{"small":0.
+PAIR 2 mine
+{"id":"learning_switch","count":16,"wallMs":509177.930653,"phases":{"guards":18.79805399999998,"small":501709.095424,"candidates":7417.582302000024},"states":[750,3420],"counts":[],"cprof":{"small":0.
+PAIR 2 base
+{"id":"learning_switch","count":16,"wallMs":255753.05356,"phases":{"guards":4.241906999999998,"small":247492.131213,"candidates":8172.493512999994},"states":[750,3420],"counts":[],"cprof":{"small":0.5
+PAIR 1 mine
+{"id":"mldr","count":34,"wallMs":12747.708041,"phases":{"guards":12.318464999999996,"small":4204.192779,"candidates":8505.864262000001},"states":[46,1205],"counts":["inS","inQ2","inX","xNotS","sNotX",
+PAIR 1 base
+{"id":"mldr","count":34,"wallMs":11583.7429,"phases":{"guards":8.962646999999997,"small":4189.150886,"candidates":7361.8699560000005},"states":[46,1205],"counts":["inS","inQ2","inX","xNotS","sNotX","x
+PAIR 2 mine
+{"id":"mldr","count":34,"wallMs":11927.415962000001,"phases":{"guards":9.156801999999999,"small":4486.960553999999,"candidates":7412.659213},"states":[46,1205],"counts":["inS","inQ2","inX","xNotS","sN
+PAIR 2 base
+{"id":"mldr","count":34,"wallMs":11280.525123,"phases":{"guards":7.255227999999995,"small":3598.779584,"candidates":7653.288746},"states":[46,1205],"counts":["inS","inQ2","inX","xNotS","sNotX","xAndS"
+PAIR 3 mine
+{"id":"mldr","count":34,"wallMs":11275.059955,"phases":{"guards":7.384830999999998,"small":4072.5800409999997,"candidates":7175.863265999999},"states":[46,1205],"counts":["inS","inQ2","inX","xNotS","s
+PAIR 3 base
+{"id":"mldr","count":34,"wallMs":11623.901522,"phases":{"guards":8.215527999999999,"small":4230.62287,"candidates":7362.846935},"states":[46,1205],"counts":["inS","inQ2","inX","xNotS","sNotX","xAndS",
