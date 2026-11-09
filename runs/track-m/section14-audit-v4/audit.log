@@ -1,0 +1,4 @@
+research/track-m/audit-section14.ts(3,62): error TS2305: Module '"../../kernel/kernel.ts"' has no exported member 'rowsAt'.
+
+--- stderr ---
+$ tsc -p . && oxlint --type-aware --deny-warnings --disable-nested-config

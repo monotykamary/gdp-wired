@@ -5415,3 +5415,51 @@ The first profile lost its output to an archive-directory error. Only that
 profile was repeated after a tested writer fix; the shard batch was not rerun.
 Future work uses bounded captured packets and prepared runtimes; interleaved
 three-repeat wall runs remain gate-only checkpoints.
+
+## Section 14 — T-11.5 with ordinary local clocks and checked root cuts
+
+Research only, frozen engine **5974b916**. Production, kernel and the 5,000-unit
+law allowance remain unchanged. Only the diagnostic total allowance is 50,000;
+the original action/leaf allocation and all source/row/local ceilings remain
+active. No inflight columns dump. Prepared bundles were reused. All measurements
+ran exclusively on **bx_25xas5gt**, eight pinned large vCPUs. The scheduler
+serialized the seeded pair despite a two-VM request.
+
+The no-seed op-4 control is **unknown: 16,672.478177 units / 29.018535 s**,
+one terminal leaf visit, 36 learned cuts. Restoring the local clocks changes
+its stopping point; it is not a same-work comparison with the former
+20,732-unit, nine-leaf, deadline-free closure, and is not an I/O-only speedup.
+
+The 129 checked source attempts cover 79 distinct indices. The design's stated
+categories give **45**, not 51, non-frame candidates: 11 inclusions, 20
+three-term partitions, 8 five-term purported partitions, 5 ranges and 1
+purported self-zero. **31 check independently at the unguarded root**, costing
+**2,326.806831 units**; all 79 trials cost **3,110.262124 units / 25.052458 s**.
+The other 14 non-frame queries and all 34 frame/bridge queries return SAT at
+this standalone source scope. These are not whole-law counterexamples.
+Retrying those 48 against the full 1,341-hypothesis law root at 1,000 units
+each yields no further proof (50,066.458559 units / 139.280292 s; all unknown).
+Neither failed source queries nor whole-root timeouts are imported as cuts.
+
+With all **31** checked root cuts admitted, op 4 remains **unknown:
+16,668.652598 units / 60.979686 s**, two terminal leaf visits, **17** new cuts,
+32 SAT / 16 checked-refuted source attempts. Op 0 remains **unknown:
+7,144.273260 units / 56.512513 s**, three terminal leaf visits, **6** new cuts,
+22 SAT / 5 checked-refuted source attempts. Its matched plain control was
+7,150.415742 units / 20.112066 s and 13 new cuts. These replay intervals exclude
+input loading and the initial seed recheck; the seeded full job times were
+64.07 / 59.66 s. Root proof work is separate and not hidden in those totals.
+
+The seeded first failures are `op=4, started=1, a$#=i, b$<i` (121 violated
+instances) and `op=0, started=0, a$#=0, b$>0` (114). Exact paths, complete models,
+violated sets, per-op ledgers, every root outcome and all qualifications are in
+[the report](track-m/section14-tiering-v1/README.md) and its
+[summary](track-m/section14-tiering-v1/summary.json); compressed receipts and
+independent validation are linked there. The final audit passes: 31 standalone
+counted proofs, 31 rejected empty mutants, 48 validated source SAT points, and
+four exact path/violated-set checks. Type/lint and the 1-test/7-assertion
+root-admission regression pass. Initial lint/data-placement/audit failures
+are retained. No complete-law proof, production improvement or gate pass is
+claimed. The implemented root lift misses the work/closure prediction; the
+proposed 51-template premise was not established, so this is not a clean
+falsification of a correctly specified full three-tier design.

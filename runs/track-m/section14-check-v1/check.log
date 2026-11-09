@@ -1,0 +1,27 @@
+
+  x eslint(no-unused-vars): Type 'Path' is imported but never used.
+   ,-[research/track-m/section14-prove-roots.ts:4:24]
+ 3 | import {join} from 'node:path'
+ 4 | import {type Goal,type Path,termColumn,columnTerm,mcGoal,countHyp,checkCounted,linear,canon} from '../../kernel/kernel.ts'
+   :                        ^^|^
+   :                          `-- 'Path' is imported here
+ 5 | import {clock,counted,fullRate,fullWork,grow,withWall} from '../../kernel/prove.ts'
+   `----
+  help: Consider removing this import.
+
+  x eslint(no-unused-vars): Identifier 'canon' is imported but never used.
+   ,-[research/track-m/section14-prove-roots.ts:4:87]
+ 3 | import {join} from 'node:path'
+ 4 | import {type Goal,type Path,termColumn,columnTerm,mcGoal,countHyp,checkCounted,linear,canon} from '../../kernel/kernel.ts'
+   :                                                                                       ^^|^^
+   :                                                                                         `-- 'canon' is imported here
+ 5 | import {clock,counted,fullRate,fullWork,grow,withWall} from '../../kernel/prove.ts'
+   `----
+  help: Consider removing this import.
+
+Found 0 warnings and 2 errors.
+Finished in 11.7s on 1279 files with 100 rules using 8 threads.
+
+--- stderr ---
+$ tsc -p . && oxlint --type-aware --deny-warnings --disable-nested-config
+error: script "check" exited with code 1

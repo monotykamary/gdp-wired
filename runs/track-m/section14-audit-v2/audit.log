@@ -1,0 +1,379 @@
+
+  x eslint(no-unused-vars): Variable 'proveDebug' is declared but never used. Unused variables should start with a '_'.
+      ,-[runtime/runtime.js:2372:5]
+ 2371 | }
+ 2372 | var proveDebug = !!env.PROVE_DEBUG;
+      :     ^^^^^|^^^^
+      :          `-- 'proveDebug' is declared here
+ 2373 | 
+      `----
+  help: Consider removing this declaration.
+
+  x eslint(no-unused-vars): Variable 'originOf' is declared but never used. Unused variables should start with a '_'.
+      ,-[runtime/runtime.js:7859:5]
+ 7858 | // core/lemma-cuts.ts
+ 7859 | var originOf = new WeakMap;
+      :     ^^^^|^^^
+      :         `-- 'originOf' is declared here
+ 7860 | var proofOrigins = { enabled: false };
+      `----
+  help: Consider removing this declaration.
+
+  x eslint(no-unused-vars): Variable 'rowIds' is declared but never used. Unused variables should start with a '_'.
+      ,-[runtime/runtime.js:7861:5]
+ 7860 | var proofOrigins = { enabled: false };
+ 7861 | var rowIds = new WeakMap;
+      :     ^^^|^^
+      :        `-- 'rowIds' is declared here
+ 7862 | var rowIndexes = new WeakMap;
+      `----
+  help: Consider removing this declaration.
+
+  x eslint(no-unused-vars): Variable 'rowIndexes' is declared but never used. Unused variables should start with a '_'.
+      ,-[runtime/runtime.js:7862:5]
+ 7861 | var rowIds = new WeakMap;
+ 7862 | var rowIndexes = new WeakMap;
+      :     ^^^^^|^^^^
+      :          `-- 'rowIndexes' is declared here
+ 7863 | var rowsOf = new WeakMap;
+      `----
+  help: Consider removing this declaration.
+
+  x eslint(no-unused-vars): Variable 'keepTrees' is declared but never used. Unused variables should start with a '_'.
+      ,-[runtime/runtime.js:8234:5]
+ 8233 | };
+ 8234 | var keepTrees = env.GDP_TREES !== "0";
+      :     ^^^^|^^^^
+      :         `-- 'keepTrees' is declared here
+ 8235 | var queryHook = { depth: 0 };
+      `----
+  help: Consider removing this declaration.
+
+  x eslint(no-unused-vars): Variable 'eprOn' is declared but never used. Unused variables should start with a '_'.
+      ,-[runtime/runtime.js:8262:5]
+ 8261 | var quickCap = Number(env.GDP_QUICK_CAP ?? 16);
+ 8262 | var eprOn = env.GDP_EPR !== "0";
+      :     ^^|^^
+      :       `-- 'eprOn' is declared here
+ 8263 | var eprScope = {};
+      `----
+  help: Consider removing this declaration.
+
+  x eslint(no-unused-vars): Variable 'modelFloor' is declared but never used. Unused variables should start with a '_'.
+      ,-[runtime/runtime.js:9364:5]
+ 9363 | var modelsTrace = !!env.GDP_MODELS_TRACE;
+ 9364 | var modelFloor = Number(env.GDP_MODEL_FLOOR ?? 1000);
+      :     ^^^^^|^^^^
+      :          `-- 'modelFloor' is declared here
+ 9365 | var fixedMemo = new WeakMap;
+      `----
+  help: Consider removing this declaration.
+
+  x eslint(no-unused-vars): Variable 'fixedMemo' is declared but never used. Unused variables should start with a '_'.
+      ,-[runtime/runtime.js:9365:5]
+ 9364 | var modelFloor = Number(env.GDP_MODEL_FLOOR ?? 1000);
+ 9365 | var fixedMemo = new WeakMap;
+      :     ^^^^|^^^^
+      :         `-- 'fixedMemo' is declared here
+ 9366 | function sortTerms(body, vars, fns, at) {
+      `----
+  help: Consider removing this declaration.
+
+  x eslint(no-unused-vars): Variable 'triggerOn' is declared but never used. Unused variables should start with a '_'.
+      ,-[runtime/runtime.js:9423:5]
+ 9422 | };
+ 9423 | var triggerOn = env.GDP_TRIGGER !== "0";
+      :     ^^^^|^^^^
+      :         `-- 'triggerOn' is declared here
+ 9424 | var leafRowsOf = new WeakMap;
+      `----
+  help: Consider removing this declaration.
+
+  x eslint(no-unused-vars): Variable 'memoCap' is declared but never used. Unused variables should start with a '_'.
+      ,-[runtime/runtime.js:9461:5]
+ 9460 | var atPoint = { on: false };
+ 9461 | var memoCap = Number(env.GDP_MEMO_CAP ?? 4);
+      :     ^^^|^^^
+      :        `-- 'memoCap' is declared here
+ 9462 | var memos = new Map;
+      `----
+  help: Consider removing this declaration.
+
+  x eslint(no-unused-vars): Variable 'memos' is declared but never used. Unused variables should start with a '_'.
+      ,-[runtime/runtime.js:9462:5]
+ 9461 | var memoCap = Number(env.GDP_MEMO_CAP ?? 4);
+ 9462 | var memos = new Map;
+      :     ^^|^^
+      :       `-- 'memos' is declared here
+ 9463 | var machineText = new WeakMap;
+      `----
+  help: Consider removing this declaration.
+
+  x eslint(no-unused-vars): Variable 'machineText' is declared but never used. Unused variables should start with a '_'.
+      ,-[runtime/runtime.js:9463:5]
+ 9462 | var memos = new Map;
+ 9463 | var machineText = new WeakMap;
+      :     ^^^^^|^^^^^
+      :          `-- 'machineText' is declared here
+ 9464 | var lawText = new WeakMap;
+      `----
+  help: Consider removing this declaration.
+
+  x eslint(no-unused-vars): Variable 'lawText' is declared but never used. Unused variables should start with a '_'.
+      ,-[runtime/runtime.js:9464:5]
+ 9463 | var machineText = new WeakMap;
+ 9464 | var lawText = new WeakMap;
+      :     ^^^|^^^
+      :        `-- 'lawText' is declared here
+ 9465 | var alpha = env.GDP_MEMO_ALPHA !== "0";
+      `----
+  help: Consider removing this declaration.
+
+  x eslint(no-unused-vars): Variable 'alpha' is declared but never used. Unused variables should start with a '_'.
+      ,-[runtime/runtime.js:9465:5]
+ 9464 | var lawText = new WeakMap;
+ 9465 | var alpha = env.GDP_MEMO_ALPHA !== "0";
+      :     ^^|^^
+      :       `-- 'alpha' is declared here
+ 9466 | var sortedOn = env.GDP_SORTED !== "0";
+      `----
+  help: Consider removing this declaration.
+
+  x eslint(no-unused-vars): Variable 'setFirstOn' is declared but never used. Unused variables should start with a '_'.
+      ,-[runtime/runtime.js:9633:5]
+ 9632 | }
+ 9633 | var setFirstOn = env.GDP_SET_FIRST !== "0";
+      :     ^^^^^|^^^^
+      :          `-- 'setFirstOn' is declared here
+ 9634 | 
+      `----
+  help: Consider removing this declaration.
+
+  x eslint(no-unused-vars): Variable 'lazyMode' is declared but never used. Unused variables should start with a '_'.
+       ,-[runtime/runtime.js:15348:5]
+ 15347 | // core/counts.ts
+ 15348 | var lazyMode = env.GDP_COUNTS_LAZY ?? "wide";
+       :     ^^^^|^^^
+       :         `-- 'lazyMode' is declared here
+ 15349 | var pool2 = Number(env.GDP_COUNTS_POOL ?? 1000);
+       `----
+  help: Consider removing this declaration.
+
+  x eslint(no-unused-vars): Variable 'pool2' is declared but never used. Unused variables should start with a '_'.
+       ,-[runtime/runtime.js:15349:5]
+ 15348 | var lazyMode = env.GDP_COUNTS_LAZY ?? "wide";
+ 15349 | var pool2 = Number(env.GDP_COUNTS_POOL ?? 1000);
+       :     ^^|^^
+       :       `-- 'pool2' is declared here
+ 15350 | var v2 = (name) => ({ op: "var", name });
+       `----
+  help: Consider removing this declaration.
+
+  x eslint(no-unused-vars): Variable 'one2' is declared but never used. Unused variables should start with a '_'.
+       ,-[runtime/runtime.js:15353:5]
+ 15352 | var json = (t) => JSON.stringify(t);
+ 15353 | var one2 = k2(1);
+       :     ^^|^
+       :       `-- 'one2' is declared here
+ 15354 | var zero2 = k2(0);
+       `----
+  help: Consider removing this declaration.
+
+  x eslint(no-unused-vars): Variable 'zero2' is declared but never used. Unused variables should start with a '_'.
+       ,-[runtime/runtime.js:15354:5]
+ 15353 | var one2 = k2(1);
+ 15354 | var zero2 = k2(0);
+       :     ^^|^^
+       :       `-- 'zero2' is declared here
+ 15355 | function reads2(t0, map, out = new Map, more) {
+       `----
+  help: Consider removing this declaration.
+
+  x oxc(bad-comparison-sequence): Bad comparison sequence
+     ,-[runtime/runtime.js:624:14]
+ 623 |         return v(termColumn(e));
+ 624 |       return e.op === "min" === aLeB ? a : b;
+     :              ^^^^^^^|^^^^^^     ^^|^
+     :                     |             `-- That boolean is then compared with this operand
+     :                     `-- This comparison expression produces a boolean
+ 625 |     }
+     `----
+  help: Comparison result should not be used directly as an operand of another comparison. If you need to compare three or more operands, you should connect each comparison operation with logical AND operator (`&&`)
+
+  x oxc(bad-comparison-sequence): Bad comparison sequence
+     ,-[runtime/runtime.js:880:11]
+ 879 |     case "or": {
+ 880 |       if (c.op === "and" === positive)
+     :           ^^^^^^^|^^^^^^     ^^^^|^^^
+     :                  |               `-- That boolean is then compared with this operand
+     :                  `-- This comparison expression produces a boolean
+ 881 |         return c.xs.flatMap((y) => facts(y, path, positive));
+     `----
+  help: Comparison result should not be used directly as an operand of another comparison. If you need to compare three or more operands, you should connect each comparison operation with logical AND operator (`&&`)
+
+  x oxc(bad-comparison-sequence): Bad comparison sequence
+      ,-[runtime/runtime.js:1971:9]
+ 1970 |       throw new Error(`${what}: its post name ${postName(c)} is already a name of ${m.name}`);
+ 1971 |     if (d.lo === undefined !== (d.base === undefined) || d.base !== undefined && !(Number.isSafeInteger(d.base) && d.base > 0))
+      :         ^^^^^^^^^|^^^^^^^^     ^^^^^^^^^^^|^^^^^^^^^^
+      :                  |                        `-- That boolean is then compared with this operand
+      :                  `-- This comparison expression produces a boolean
+ 1972 |       throw new Error(`${what}: lo and base go together, base a positive integer`);
+      `----
+  help: Comparison result should not be used directly as an operand of another comparison. If you need to compare three or more operands, you should connect each comparison operation with logical AND operator (`&&`)
+
+  x oxc(bad-comparison-sequence): Bad comparison sequence
+      ,-[runtime/runtime.js:2633:103]
+ 2632 |         r = both(both(a, b), d);
+ 2633 |         lin = e.op === "sub" ? same2(0, e, a.lin, b.lin, d.t, () => d.t ? sub(a.lin, b.lin) : k(0)) : e.op === "min" === d.t ? a.lin : b.lin;
+      :                                                                                                       ^^^^^^^|^^^^^^     ^|^
+      :                                                                                                              |            `-- That boolean is then compared with this operand
+      :                                                                                                              `-- This comparison expression produces a boolean
+ 2634 |         break;
+      `----
+  help: Comparison result should not be used directly as an operand of another comparison. If you need to compare three or more operands, you should connect each comparison operation with logical AND operator (`&&`)
+
+  x oxc(bad-comparison-sequence): Bad comparison sequence
+      ,-[runtime/runtime.js:2815:13]
+ 2814 |       case "or": {
+ 2815 |         if (c.op === "and" === positive)
+      :             ^^^^^^^|^^^^^^     ^^^^|^^^
+      :                    |               `-- That boolean is then compared with this operand
+      :                    `-- This comparison expression produces a boolean
+ 2816 |           return c.xs.reduce((acc, y) => both(acc, this.factsOf(y, positive, out)), R0);
+      `----
+  help: Comparison result should not be used directly as an operand of another comparison. If you need to compare three or more operands, you should connect each comparison operation with logical AND operator (`&&`)
+
+  x oxc(bad-comparison-sequence): Bad comparison sequence
+      ,-[runtime/runtime.js:3591:13]
+ 3590 |       case "or": {
+ 3591 |         if (c.op === "and" === positive) {
+      :             ^^^^^^^|^^^^^^     ^^^^|^^^
+      :                    |               `-- That boolean is then compared with this operand
+      :                    `-- This comparison expression produces a boolean
+ 3592 |           for (const y of c.xs)
+      `----
+  help: Comparison result should not be used directly as an operand of another comparison. If you need to compare three or more operands, you should connect each comparison operation with logical AND operator (`&&`)
+
+  x eslint(no-unassigned-vars): 'proveDump' is always 'undefined' because it's never assigned.
+      ,-[runtime/runtime.js:8111:5]
+ 8110 | };
+ 8111 | var proveDump;
+      :     ^^^^^^^^^
+ 8112 | var proveTrace = !!env.PROVE_TRACE;
+      `----
+  help: Variable declared without assignment. Either assign a value or remove the declaration.
+
+  x oxc(bad-comparison-sequence): Bad comparison sequence
+       ,-[runtime/runtime.js:10302:38]
+ 10301 |               break;
+ 10302 |             if (demanded.has(b.v) || b.body.op === "get" !== raw)
+       :                                      ^^^^^^^^^|^^^^^^^^^     ^|^
+       :                                               |               `-- That boolean is then compared with this operand
+       :                                               `-- This comparison expression produces a boolean
+ 10303 |               continue;
+       `----
+  help: Comparison result should not be used directly as an operand of another comparison. If you need to compare three or more operands, you should connect each comparison operation with logical AND operator (`&&`)
+
+  x typescript(require-array-sort-compare): Require 'compare' argument.
+     ,-[runtime/runtime.js:737:18]
+ 736 |         return;
+ 737 |       const fs = [...p === "1" ? [] : factorsOf(p), ...q === "1" ? [] : factorsOf(q)].sort(), key = fs.length ? fs.join("*") : "1", c = (out[key] ?? 0) + cp * cq;
+     :                  ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+ 738 |       if (!(Number.isSafeInteger(cp) && Number.isSafeInteger(cq) && Number.isSafeInteger(cp * cq) && Number.isSafeInteger(c)))
+     `----
+
+  x typescript(no-implied-eval): Implied eval. Do not use the Function constructor to create functions.
+      ,-[runtime/runtime.js:2370:10]
+ 2369 | function compileFunction(params, body) {
+ 2370 |   return new Function(...params, body);
+      :          ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+ 2371 | }
+      `----
+
+  x typescript(require-array-sort-compare): Require 'compare' argument.
+      ,-[runtime/runtime.js:2431:18]
+ 2430 |         return;
+ 2431 |       const fs = [...p === "1" ? [] : factorsOf(p), ...q === "1" ? [] : factorsOf(q)].sort();
+      :                  ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+ 2432 |       out.push({ [fs.length ? fs.join("*") : "1"]: cp * cq });
+      `----
+
+  x typescript(require-array-sort-compare): Require 'compare' argument.
+      ,-[runtime/runtime.js:5802:32]
+ 5801 |   fnMaps = new Set(Object.entries(patterns).filter(([, c]) => c.length === 1 && c[0] === 0).map(([f]) => f));
+ 5802 |   fnSignature = JSON.stringify([...fnMaps].sort());
+      :                                ^^^^^^^^^^^^^^^^^^
+ 5803 |   const goal = JSON.stringify(goal0.hyps).includes('"op":"proj"') ? projectedOf(goal0) : goal0;
+      `----
+
+  x typescript(require-array-sort-compare): Require 'compare' argument.
+      ,-[runtime/runtime.js:7297:23]
+ 7296 |       const diagram = { elements: values.length, parts: Object.create(null), scalars: Object.create(null), cells: Object.create(null), fns: Object.create(null) };
+ 7297 |       for (const x of [...parts, ...ordScalars].sort())
+      :                       ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+ 7298 |         if (w[x] !== undefined)
+      `----
+
+  x typescript(require-array-sort-compare): Require 'compare' argument.
+      ,-[runtime/runtime.js:8642:86]
+ 8641 |     for (const xi of ones.slice(0, 3)) {
+ 8642 |       const x = Object.keys(rows[xi].lin).find((key) => key !== "1"), name = (fs) => [...fs].sort().join("*");
+      :                                                                                      ^^^^^^^^^^^^^^
+ 8643 |       const forms = new Map;
+      `----
+
+  x typescript(require-array-sort-compare): Require 'compare' argument.
+      ,-[runtime/runtime.js:8737:24]
+ 8736 |   const out = new Map;
+ 8737 |   const name = (fs) => [...fs].sort().join("*");
+      :                        ^^^^^^^^^^^^^^
+ 8738 |   const halves = (fs) => {
+      `----
+
+  x typescript(require-array-sort-compare): Require 'compare' argument.
+      ,-[runtime/runtime.js:9909:18]
+ 9908 |         continue;
+ 9909 |       const ks = [...atoms].sort();
+      :                  ^^^^^^^^^^^^^^^^^
+ 9910 |       let mask = 0;
+      `----
+
+  x typescript(require-array-sort-compare): Require 'compare' argument.
+       ,-[runtime/runtime.js:10135:33]
+ 10134 |       };
+ 10135 |       const f = body(e), keys = [...atoms].sort();
+       :                                 ^^^^^^^^^^^^^^^^^
+ 10136 |       const view = { count, atoms: keys, members };
+       `----
+
+  x typescript(require-array-sort-compare): Require 'compare' argument.
+       ,-[runtime/runtime.js:10247:27]
+ 10246 |         return;
+ 10247 |       const key = stable3([aId, bId].sort());
+       :                           ^^^^^^^^^^^^^^^^^
+ 10248 |       if (seenPairs.has(key))
+       `----
+
+  x typescript(require-array-sort-compare): Require 'compare' argument.
+       ,-[runtime/runtime.js:11463:29]
+ 11462 |     }
+ 11463 |   const fields = (c) => id2([c.a.map, c.b.map].sort());
+       :                             ^^^^^^^^^^^^^^^^^^^^^^^^^
+ 11464 |   const out = [], scopes = new Set;
+       `----
+
+  x typescript(require-array-sort-compare): Require 'compare' argument.
+       ,-[runtime/runtime.js:14225:34]
+ 14224 |     const atoms = (c) => c.op === "and" ? c.xs.flatMap(atoms) : [JSON.stringify(c)];
+ 14225 |     return pred ? JSON.stringify([...new Set(atoms(pred))].sort()) : undefined;
+       :                                  ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+ 14226 |   };
+       `----
+
+Found 0 warnings and 39 errors.
+Finished in 24.8s on 1282 files with 100 rules using 8 threads.
+
+--- stderr ---
+$ tsc -p . && oxlint --type-aware --deny-warnings --disable-nested-config
+error: script "check" exited with code 1
