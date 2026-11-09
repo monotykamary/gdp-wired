@@ -30,6 +30,12 @@
   "lintRepair": {
     "candidate": "b150220e7ccae428479e670aa55e4541692048a5",
     "task": "59b380bd-166d-4692-afc2-6729509fa827",
+    "status": "failed-exhaustiveness-lint-tests-passed",
+    "productionIdenticalTo": "8d35b7f17506fcd1f8c1d9a05ec2624c924c855d"
+  },
+  "lintFinal": {
+    "candidate": "bf01190119f9409077a36e11a4a5b763fb6c1cad",
+    "task": "18442b80-e0ea-4723-ac52-14f7df76e6e8",
     "status": "pending",
     "productionIdenticalTo": "8d35b7f17506fcd1f8c1d9a05ec2624c924c855d"
   }

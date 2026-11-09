@@ -1,0 +1,19 @@
+gdp-ts.tar: OK
+handwired.tar: OK
+main.tar: OK
+COUNT_RUNTIME_IDENTICAL 2da24a9a74a03b527c1ba111cbcc510ea0bc8627e5dcb7b5dd81a2d15d136efa
+
+  x typescript(switch-exhaustiveness-check): Switch is not exhaustive. Cases not matched: "function" | "object"
+   ,-[research/track-wall/trace-error.ts:4:11]
+ 3 |   if (value instanceof Error) return `${value.name}: ${value.message}`.slice(0, 200)
+ 4 |   switch (typeof value) {
+   :           ^^^^^^^^^^^^
+ 5 |     case 'string': return value.slice(0, 200)
+   `----
+
+Found 0 warnings and 1 error.
+Finished in 49.4s on 1607 files with 100 rules using 8 threads.
+
+--- stderr ---
+$ tsc -p . && oxlint --type-aware --deny-warnings --disable-nested-config
+error: script "check" exited with code 1
