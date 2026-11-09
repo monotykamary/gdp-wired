@@ -220,12 +220,52 @@ The ordinary-first diagnostic exhausts Inv1758's allowance before counted recove
 
 Integrated validation failed on type errors, not tests: an optional callback closure in `row-cases.ts`, the Lane F summary's optional array destructuring, and the new seeded auditor's inferred local type. Lane F had already published repairs; they were imported with snapshot `0b85516e` in `c6336bf8`. Validation v2 then found an unused Lane F binding, fixed by importing `78eedf50` in `5bf5b8da`; v3 found a missing explicit sort comparator in the new Lane B receipt reader. That owned lint error is fixed. Validation v4 passes typecheck/lint and all three test groups: 73 integrated tests / 246 assertions, 52 full-policy tests / 544 assertions, and 27 profile tests / 257 assertions, on snapshot `c01676bb0da4`. The exact helper-only variant also passed typecheck/lint and 52 tests / 544 assertions; the later immutable original-family checkpoint passed typecheck/lint and 5 tests / 24 assertions. Integrated/profile tests now run even if lint fails, so another lint issue cannot conceal their results. Completed measurements are not rerun for source-only validation fixes.
 
-### Pending count-range handoff
+### Count-range handoff (initial status; superseded below)
 
 The coordinator reports Fable's finite checks found the T-14 helper SATs spurious: a row count exceeded its universe. This is bounded evidence, not a full invariant proof. The proposed fix seeds one checked range instance per count read in the initial selection rather than relying on lazy discovery.
 
 At the checked `claude/mldr-wall` head **`c775d8c1`**, that fix has not landed and the worktree is clean. Lane B will consume the landed range change for Inv*, not duplicate Fable's implementation. The comparison baseline is the already audited **original-34** input from `lane-b-original-owned-v1/receipts/original-2/raw/family.json`, with count-first order, **6,000 units / 7,000 ms**, and both same-VM execution orders. Its present Inv* result is unknown at 6,001.712 units in both orders; no bound is raised to accommodate that cooperative overrun. Any new success must pass exact original-model/roster replay.
 
 The coordinator's separate 16.4 generation result is recorded as reported: Ryzen **19.6–21.1 → 12.3–12.9 s**, EPYC **22–27 → 15.5–16.7 s**, with 29 law lists byte-identical. Lane B has not remeasured or imported that work here; it is not helper-proof evidence.
+
+### Inv1758 stopping point and the landed range replay
+
+Fable's `c21f301c` range module/tests and the three active selection call sites from `cc7bb326` are integrated in `803129c4`; Lane B's selector remains intact. No 16.4 generation changes are imported.
+
+**Inv1758, independent of that range change:** the retained count-first original-34 traces stop in STEP model refinement, before leaf recovery. One repeat asks 12 queries, grows 68 → 284 hypotheses, spends 6,681.785 ms in decisions, and reaches the seven-second wall at 4,193.686 units. The other asks 13 queries, grows 68 → 295 hypotheses, spends 5,294.421 ms in decisions, and uses 6,000.308 units / 5,534.172 ms. Neither enters the 15.4/15.5 paths.
+
+`92f3d54d` adds a research-only early `proveFocusedCounts` stage, with the pre-range `counts.ts` restored in every job. Original machine, all 34 laws, count-first order, 6,000 units and 7,000 ms are unchanged. Worker outcomes:
+
+| Inv1758 early-entry policy | Units | Total wall ms | Result |
+|---|---:|---:|---|
+| Complete focused stage | 2,679.971 | 7,018.544 | unknown, wall-limited |
+| One-third unit share, ordinary fallback | 1,477.012 | 7,009.417 | unknown, wall-limited |
+| Complete focused stage + 15.4 helper allowance + 15.5 class ordering | 6,002.553 | 6,040.223 | unknown, unit-limited |
+
+The last arm proposes case trees at ops 0, 2 and 3 but leaves active field/row cases at ops 1, 4, 5 and 6 unresolved. There are no derive-class events: the count-free live claim hits the `wanted.size < 2` precondition in `deriveCountClosure`, before class ordering. These fragments are not independently accepted branch proofs. No tested generic change brings Inv1758 below the line. The remaining case gaps are handed to Lane F without changing its row scheduler.
+
+The one-third **unit** share did not reserve a third of **wall** time. `6d69e094` bounds that research stage by both clocks. The corrected follow-up remains unknown at **6,001.003 units / 4,290.702 ms**: early focus uses **2,000.791 units / 1,637.782 ms**, leaving **4,000.213 units / 2,652.050 ms** for the ordinary counted attempt. This repairs the allocation, not the proof. This is not a production default.
+
+**p1:** a fresh original-34 count-first run again checks at **2,175.512 units / 5,335.648 ms**, including 297.933 ms in the final worker checker, on an exclusive eight-vCPU EPYC 4585PX VM. Independent replay of this certificate and all seven unknown records is complete; all eight match their exact original model and entire roster. No new complete-family credit is claimed.
+
+**Inv* range pair:** both execution orders remain unknown on exclusive eight-vCPU Ryzen 9950X VMs.
+
+| Order | Before units / wall ms | With ranges units / wall ms |
+|---|---:|---:|
+| Before then after | 6,001.712 / 6,723.752 | 3,270.413 / 7,009.419 |
+| After then before | 6,001.712 / 5,478.193 | 6,001.333 / 6,493.665 |
+
+Every recorded after-query contains one range instance per count read: 10 initially and 47 after completion; before-query counts are zero. Thus the fix is active, not merely imported. Both sequences still reach eight queries and seven models. Smaller wall-truncated units are not a speedup or a proof. The integration check found the upstream test imported `modelSequence` from an export absent on this branch. The import and an unused type are corrected; typecheck/lint and **17 tests / 65 assertions** now pass without repeating valid measurements.
+
+The fresh balanced **p1** range pair checks in all four arms on exclusive eight-vCPU EPYC 4585PX VMs:
+
+| Order | Pre-range units / wall ms | With ranges units / wall ms |
+|---|---:|---:|
+| Before then after | 2,175.512 / 2,137.106 | 2,295.746 / 2,849.201 |
+| After then before | 2,175.512 / 2,260.666 | 2,295.746 / 3,231.747 |
+
+Range seeding adds **120.234 units (5.53%)** here but keeps p1 within both limits. Independent exact-family replay of these four certificates and the corrected Inv1758 record is pending; all nine measurement archives are fetched and verified.
+
+Artifacts: `lane-b-range-pair-v1`, `lane-b-early-focus-v1`, `range-input-v1`; `summarize-lane-b-focus.ts` checks all six archive hashes, eight exact model/roster identities, placement and active range coverage. `lane-b-early-focus-v1/summary.json` retains compact per-case traces. The range-transfer wrapper timed out after both archives had been fully fetched, extracted and checksum-verified; the accepted artifacts themselves are complete. No allowance is raised to hide any overrun.
 
 **No accepted complete family, 29/29 result, 28/29 recertification, or GATE GREEN is claimed.**

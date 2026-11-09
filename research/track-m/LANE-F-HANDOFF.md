@@ -17,3 +17,11 @@ To use in another runner, apply `section15-row-variant.ts before|after` after th
 Review before using: the root probe is bounded by the existing leaf callback allowance; a model-free failure takes the existing eager fallback. Internal probes can add queries even when terminal depth is <=2. Compare **all uncached queries**, not just terminal leaves; reject a regression under the design's falsifier. No complete-family, real E-14, or gate claim is supported.
 
 Follow repository/PR rules. Run all nontrivial work through `supercomputer`; read `supercomputer --skill` first. Use one waiter per job, exact PIDs for stopping, preserve raw failures, and never modify the kernel or allowances under this experimental flag. Only Lane D's exact-roster, pair-identity, both-SHA-bound, CPU-labelled final receipt can support GATE GREEN.
+
+## Original-34 Inv1758 early-entry trace (2026-11-09)
+
+Lane B's new direct `proveFocusedCounts` diagnostic bypasses the ordinary model-refinement loop without changing the model, laws, kernel, or your row scheduler. On the exact original-34 family, it reaches field/row cases but is still unknown. See `runs/track-m/lane-b-early-focus-v1/receipts/rows-classes/raw/run/rows/summary.json` and the retained source hashes.
+
+The full 6,000-unit / 7-second call with 15.4 helper allocation plus 15.5 class ordering returns unknown at 6,002.553 units / 6,040.223 ms. It proposes case trees for op 0, 2 and 3; active field/row leaves for op 1, 4, 5 and 6 remain unresolved before their fallback queries/grows. These are proposals, not accepted independent branch proofs. There are **zero derivability-closure or derive-class events**: the 15.5 ordering does not run on this route. `deriveCountClosure` returns before class ordering when the live claim references fewer than two count reads (`core/count-recovery/derivability-closure.ts:42`); this target has a field-only claim. Lane B has not modified your row code.
+
+The baseline early call is wall-limited at 2,679.971 units / 7,018.544 ms, so it is not a same-budget cost win. The one-third-unit early call also consumes its full wall; Lane B has queued a dual unit/wall bounded correction and exact-model replay. The protocol-level Inv1758 proof remains open.
