@@ -1,6 +1,9 @@
 # Lane C (Fable) — branch claude/mldr-wall, from claude/mldr-gen 1681e8e5
 
-**Audit fixes for lane D (2026-11-09):** commit **fe4a0dfe** — (1) `$keys` iterates own properties again (`Object.keys`),
+**Audit fixes for lane D (2026-11-09), second round: commit fc3a75c1** — `$unique` zeroes its stamp buffer and restarts at 1
+before the counter reaches 2^32 − 1 (and on growth), so a stale mark can never equal a live stamp; `core/runtime-keys.test.ts`
+forces the wrap through the helper's own `stamp`/`buf` properties and checks the enumeration and the restart; every check job
+exits with the check's own status (`exit $st`) instead of echoing it. First round, commit fe4a0dfe — (1) `$keys` iterates own properties again (`Object.keys`),
 with `core/runtime-keys.test.ts` planting an inherited enumerable member on the maps dictionary; (2) every job command under
 `research/track-wall/*.json` runs with `set -o pipefail` (check jobs also echo `CHECK_EXIT ${PIPESTATUS[0]}`), and the test
 and check jobs were rerun on boat (54 tests pass; `bun run check` in the shipped tree reports only `vendor/handwired`-dependent
