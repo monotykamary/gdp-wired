@@ -1,3 +1,31 @@
+# Lane C (Fable) — branch claude/mldr-wall, from claude/mldr-gen 1681e8e5
+
+**Audit fixes for lane D (2026-11-09):** commit **fe4a0dfe** — (1) `$keys` iterates own properties again (`Object.keys`),
+with `core/runtime-keys.test.ts` planting an inherited enumerable member on the maps dictionary; (2) every job command under
+`research/track-wall/*.json` runs with `set -o pipefail` (check jobs also echo `CHECK_EXIT ${PIPESTATUS[0]}`), and the test
+and check jobs were rerun on boat (54 tests pass; `bun run check` in the shipped tree reports only `vendor/handwired`-dependent
+errors, compared against the same command on the `1681e8e5` archive in the same environment — see `runs/track-wall/`). The
+earlier commits 811699c3 and 275f02df are superseded by fe4a0dfe. Not a merge candidate: lane D's one-command gate decides.
+
+## Section 16.3 (answered) and 16.4 (in progress)
+
+16.3: the captured Inv2973-half pass-1 `sat` is spurious at every completion within n ≤ 3, T = V = 2 (relative to T-14's
+family, 1,443,999 pre-states, 7,714,894 steps, 0 CTIs for Inv2973-half, Inv\*, Inv1758 and safety); lane A's default-zero
+audit agrees on all 45 witnesses. Full statement: MLDR-DESIGN.md "16.3 — answered".
+
+16.4 (generic, no protocol names, no MLDR constants), all in this branch:
+- `core/machine.ts`: the compiled step's key helpers (`$keys`, `$breaks`, `$spread`) mark a dense key range in a reused
+  stamp buffer and read it back in order (`$unique`), falling back to a Set and a sort for sparse ranges; `fastStep`
+  computes only the counts the step itself reads (closure over count bodies), not every declared count.
+- `core/finite-houdini.ts`: after a drop, a round re-reads only the states a since-dropped law rejected (sampled and
+  random alike; the cascade test holds); the lawful check tries laws in order of past failures; a law reading nothing a
+  step changed is not re-evaluated on the post-state. Same drops (5) on the MLDR generation; round 1 visits 132 states /
+  2,337 steps instead of 2,000 / 56,341.
+- `core/exists.ts`: `small`'s BFS keys states by a hash with cell-by-cell equality instead of a sorted JSON text per step.
+Measurements (boat, `--timing`, large): generation-only harness 14.5–17.4 s on one Ryzen VM against 26–28 s before on
+another; the same-VM paired comparison against 1681e8e5 ×3 is in `runs/track-wall/` when it lands. Profiles:
+`research/track-wall/profile-jobs.json`.
+
 # Track P report
 
 Current assignment: [Track Gen — production invariant-generation cost](#track-gen).
