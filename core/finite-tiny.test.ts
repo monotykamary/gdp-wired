@@ -139,6 +139,19 @@ test('request atoms wait for every conditional-term dependency', () => {
   expect(stats.completed).toBe(true)
   expect(actual.sort()).toEqual(['0,1', '0,2', '1,0', '1,1', '1,2', '2,0', '2,1', '2,2'])
 })
+test('large logical predicates split at the native-body cap without losing proposals', () => {
+  const source = counter(), law: Law = {name: 'many equalities', holds: all(...Array.from({length: 4096}, () => same(x('value'), n(0))))}
+  let proposals = 0
+  const stats = tinyFiniteCandidates(source, source, [law], {}, (pre, request) => {
+    proposals++
+    const evaluate = finiteEvaluator(source)
+    expect(evaluate(law, {}, pre)).toBe(true)
+    expect(evaluate(law, {}, interpret(source).step({}, pre, request))).toBe(false)
+  })
+  expect(stats.unsupported).toEqual([])
+  expect(stats.completed).toBe(true)
+  expect(proposals).toBe(1)
+})
 test('state-only no-op has no proposals in the recorded finite scope', () => {
   const source = counter(); source.step = {}
   const law: Law = {name: 'zero or one', holds: all(atMost(x('value'), n(1)))}

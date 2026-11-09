@@ -12,11 +12,11 @@ supercomputer run --jobs research/track-gen/t16-domain-hybrid-jobs.json \
 ```
 
 Batch `20261110-000752-9cbvob`, snapshot tree `99439867caf3`, task
-`1b2d3e1d-c456-438d-aa13-75af84ec879c`. Results pending; no timing, removal,
-proof, or gate conclusion is drawn from the cancelled batch. Production tiny
-screening stays disabled. Next: collect all six exact exits/placements,
-independently replay their `HYBRID_CTI`s and count only the named seven;
-then keep iterating against the five-of-seven / <=2 s falsifier.
+`1b2d3e1d-c456-438d-aa13-75af84ec879c`. The rerun has completed; measurements
+below refer to its new payloads, never to the cancelled batch. All twelve
+checkpoint/shortcut logs were independently replayed. Production tiny
+screening stays disabled: only three of the named seven were caught.
+The current experiment is bounded native grouping, measured below as it returns.
 
 ## Resumed hybrid probes: independently replayed, criterion fails
 
@@ -44,7 +44,18 @@ The shortcut has no demonstrated removal gain; the different CPU placements
 are not a paired speed comparison. No strict original-harness/full gate is
 scheduled for this unsuccessful screen. No safety proof or GATE GREEN.
 
-### Next bounded experiment (WIP; not covered by the prior green check)
+### Bounded native grouping: checked implementation, probes pending
+
+Batch `20261110-010410-4rvkxj`, snapshot `777d8975d129`, has now passed
+**40 tests / 150 assertions**, full TypeScript and type-aware lint (zero
+warnings/errors), and `T16-GROUP-COMMIT.txt` commitlint. The actual job exit
+is 0, 32.05 s, on exclusive large Ryzen 7 9700X, 8/8 vCPUs. The new
+4,096-clause cap-splitting regression passes. Log:
+`runs/t16-group-check/bounded-group-check.log.gz`.
+
+This validates the implementation, not its removal rate or active wall.
+The six-probe task remains pending, so no performance gain or production
+promotion is claimed.
 
 Individual native predicate calls may be replacing arithmetic work with call
 overhead. `core/finite-tiny.ts` now tries shared-DAG logical groups within the
