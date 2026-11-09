@@ -1,0 +1,32 @@
+{
+  "candidate": "9124348d5d313ab7e89082b0146a72d6a7c8bf66",
+  "originalBatch": "20261110-015717-9fubkz",
+  "tailBatch": "20261110-021006-ih70jv",
+  "officialRosterUnits": 167,
+  "uniqueUnits": 167,
+  "passingWholeShards": 7,
+  "originalFailedShardExit": 124,
+  "completedPrefixUnits": [
+    "core/security.test.ts",
+    "core/extract-orm.test.ts",
+    "core/count-unions.test.ts",
+    "core/count-cubes.test.ts",
+    "core/lemma-cuts.test.ts",
+    "core/count-recovery/row-cases.test.ts",
+    "core/count-recovery/rebase-path.test.ts",
+    "kernel/tuples.test.ts",
+    "kernel/prover-rows.test.ts",
+    "examples/data.ts"
+  ],
+  "prefixEvidence": "Unchanged sequential runner reached the final unit; it aborts on a nonzero prior unit. Missing prefix stderr is not used to invent numeric test totals.",
+  "runnerSha256": "c018ad90b15676704fc48ad671790017fba7a7f7763dc16190ca57f7ad286f05",
+  "tailUnit": "research/security/score.test.ts",
+  "tailTests": 28,
+  "tailAssertions": 1305,
+  "reportedTotalTests": 1077,
+  "reportedTotalAssertions": 394688,
+  "reportedTotalsExcludeMissingPrefix": true,
+  "unitCoverageRecovered": true,
+  "originalBatchGreen": false,
+  "finalGateGreen": false
+}

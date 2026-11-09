@@ -1,5 +1,17 @@
 # RESUMED — user instruction, 2026-11-10
 
+**Tail passed:** 28 tests / 1,305 assertions. Official quick-suite coverage
+is recovered for all 167 unique units using the seven complete shards,
+the completed prefix, and the isolated final bundle. Original aggregate
+timeout is retained; missing prefix test totals are not invented. See
+`runs/mldr-incl-quick-tail-v1/completion.json`; this is not the final gate.
+
+**Recovery:** 9124348d original R1/R3 are both UNKNOWN, 59.187 / 59.060 s.
+R2, focused validation, fresh conditional/replay and commitlint remain
+registered and queued. Observer 09ae80a4-de5a-4138-addd-93d17289872a is the
+only collector for those batches. No duplicate work or cancellations.
+
+
 **Current:** official quick suite is incomplete: seven shards pass (1,049
 reported tests / 393,383 assertions), one times out at its final score
 bundle. Only `research/security/score.test.ts` is rerunning unchanged:

@@ -1,5 +1,33 @@
 # RESUMED — lane E, 2026-11-10
 
+## Official quick-suite coverage recovered; production proof row still queued
+
+The unchanged final bundle `research/security/score.test.ts` passes:
+**28 tests / 1,305 assertions**, source check clean. Tail batch
+**20261110-021006-ih70jv**, EPYC 9455, eight pinned vCPUs, worker exit 0.
+Together with the seven complete shards and the ten-unit completed prefix,
+this recovers all **167 unique units** of the official quick-suite roster on
+9124348d. The original eight-shard batch still contains its timeout; it is
+not relabelled green. The prefix completion is established by the unchanged
+sequential runner advancing to its final unit, not by missing test totals.
+
+The available logs report **1,077 passing tests / 394,688 assertions**,
+excluding the missing numeric summaries for that prefix. Exact roster,
+runner hash, and coverage limitation:
+`runs/mldr-incl-quick-tail-v1/completion.json`. Tail log, CPU placement, and
+original partial receipts are preserved. This is package quick-suite
+coverage, **not** the full 29x3/DuoAI/broken/bar/Lane-D merge gate.
+
+Read-only recovery retrieved the original 9124348d R1/R3 logs without
+rerunning them: both **UNKNOWN**, `why: time (rule result)`, at **59.187 /
+59.060 s**, on EPYC 4585PX / EPYC 9455 respectively. Exact rows and compressed
+logs: `runs/mldr-incl-flags-first-v1/recovery-first-two.json` and siblings.
+R2, focused validation, fresh conditional/replay and commitlint are still
+registered, queued, and not claimed as executed. The same read-only
+collector task **09ae80a4-de5a-4138-addd-93d17289872a** remains active until
+its bounded observation ends. No duplicate submissions or cancellations.
+
+
 ## Broader tests partial; registered validation preserved, not duplicated
 
 Quick-suite batch **20261110-015717-9fubkz** completed with **seven passing
