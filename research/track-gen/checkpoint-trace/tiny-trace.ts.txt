@@ -1,0 +1,9 @@
+import {checkWall as actualCheck} from './wall.ts'
+export {searchWall, WallExpired} from './wall.ts'
+let previous = performance.now(), last = 'start', shown = 0
+export function checkWall(label?: string): void {
+  const now = performance.now(), gap = now - previous
+  if (gap > 40 && shown++ < 30) console.error('WALL_GAP', JSON.stringify({from:last,to:label,gap,at:now}))
+  previous = now; last = label ?? 'unspecified'
+  actualCheck(label)
+}

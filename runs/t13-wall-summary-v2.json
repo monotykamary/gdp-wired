@@ -1,0 +1,543 @@
+{
+  "baseline": "189eefcd",
+  "pairs": [
+    {
+      "repeat": 1,
+      "sides": [
+        {
+          "side": "baseline",
+          "code": 137,
+          "seconds": 60,
+          "tries": [
+            "counts: try CT at most 44 | ls 34 pass 0 ms 1765 took 1780 -> sat",
+            "counts: try CT at most 44 | ls 34 pass 1 ms 1765 took 164 -> sat",
+            "counts: try St at most 1 | ls 34 pass 0 ms 1765 took 87 -> kept",
+            "counts: try CV at most 2 | ls 34 pass 0 ms 1765 took 1784 -> sat",
+            "counts: try CV at most 2 | ls 34 pass 1 ms 1765 took 199 -> sat",
+            "counts: try CfgT at most 44 | ls 34 pass 0 ms 1765 took 1784 -> sat",
+            "counts: try CfgT at most 44 | ls 34 pass 1 ms 1765 took 282 -> sat",
+            "counts: try fields: St[a]=1 -> CT[a]=CT[b] -> CV[b]<=CV[a] | ls 34 pass 0 ms 1765 took 1766 -> sat",
+            "counts: try fields: St[a]=1 -> CT[a]=CT[b] -> CV[b]<=CV[a] | ls 34 pass 1 ms 1765 took 1822 -> unknown",
+            "counts: try fields: St[a]=1 -> CT[a]=CfgT[a] | ls 34 pass 0 ms 1765 took 274 -> kept",
+            "counts: try fields: St[a]=1 -> CT[a]<=CfgT[a] | ls 34 pass 0 ms 1765 took 291 -> kept",
+            "counts: try fields: St[a]=1 -> CT[a]=CT[b] -> CfgT[b]<=CfgT[a] | ls 34 pass 0 ms 1765 took 1765 -> sat",
+            "counts: try fields: St[a]=1 -> CT[a]=CT[b] -> CfgT[b]<=CfgT[a] | ls 34 pass 1 ms 1765 took 2008 -> unknown",
+            "counts: try fields: St[a]=1 -> CfgT[a]<=CT[a] | ls 34 pass 0 ms 1765 took 288 -> kept",
+            "counts: try fields: St[a]=1 -> CfgT[a]=CfgT[b] -> CV[b]<=CV[a] | ls 34 pass 0 ms 1765 took 1767 -> sat",
+            "counts: try fields: St[a]=1 -> CfgT[a]=CfgT[b] -> CV[b]<=CV[a] | ls 34 pass 1 ms 1765 took 1866 -> unknown",
+            "counts: try every x with x < size: never Config[x] is 0 and 1  | ls 34 pass 0 ms 1765 took 1772 -> sat",
+            "counts: try every x with x < size: never Config[x] is 0 and 1  | ls 34 pass 1 ms 1765 took 509 -> sat",
+            "counts: try every x with x < size: never CT[x] is 0 and 1 <= S | ls 34 pass 0 ms 1765 took 98 -> kept",
+            "counts: try every x with x < size: never 1 <= CT[x] and CV[x]  | ls 34 pass 0 ms 1765 took 155 -> kept",
+            "counts: try every x with x < size: never 1 <= CT[x] and starte | ls 34 pass 0 ms 1765 took 41 -> kept",
+            "counts: try every x with x < size: never 1 <= St[x] and CV[x]  | ls 34 pass 0 ms 1765 took 129 -> kept",
+            "counts: try every x with x < size: never 1 <= St[x] and CfgT[x | ls 34 pass 0 ms 1765 took 252 -> kept",
+            "counts: try every x with x < size: never 1 <= St[x] and starte | ls 34 pass 0 ms 1765 took 46 -> kept",
+            "counts: try every x with x < size: never CV[x] is 0 and 1 <= C | ls 34 pass 0 ms 1765 took 210 -> kept",
+            "counts: try every x with x < size: never CV[x] is 0 and 1 <= s | ls 34 pass 0 ms 1765 took 140 -> kept",
+            "counts: try every x with x < size: never 1 <= CfgT[x] and star | ls 34 pass 0 ms 1765 took 43 -> kept",
+            "counts: try every x, y with x < size ∧ y < size ∧ ¬(x = y): ne | ls 34 pass 0 ms 1765 took 175 -> kept",
+            "counts: try every x, y with x < size ∧ y < size ∧ ¬(x = y): ne | ls 34 pass 0 ms 1765 took 223 -> kept",
+            "counts: try every x, y with x < size ∧ y < size ∧ ¬(x = y): ne | ls 34 pass 0 ms 1765 took 181 -> kept",
+            "counts: try inX: no quorum canVote/1 | ls 34 pass 0 ms 1765 took 68 -> sat",
+            "counts: try inX: no quorum canVote/1 | ls 34 pass 1 ms 1765 took 422 -> sat",
+            "counts: try inX: no quorum canVote/3 | ls 34 pass 0 ms 1765 took 68 -> sat",
+            "counts: try inX: no quorum canVote/3 | ls 34 pass 1 ms 1765 took 615 -> sat",
+            "counts: try inX: stored guard reconfigs/inS | ls 34 pass 0 ms 1765 took 81 -> sat",
+            "counts: try inX: stored guard reconfigs/inS | ls 34 pass 1 ms 1765 took 1943 -> unknown",
+            "counts: try inX: stored guard reconfigs/inS or disabled/0 | ls 34 pass 0 ms 1765 took 90 -> sat"
+          ]
+        },
+        {
+          "side": "candidate",
+          "code": 0,
+          "seconds": 59.36,
+          "result": {
+            "verdict": "unknown",
+            "stuck": "unknown",
+            "why": "time (rule result)",
+            "ms": 59223,
+            "work": 25923582,
+            "full": 7814009
+          },
+          "tries": [
+            "counts: try CT at most 44 | ls 34 pass 0 ms 1765 took 1780 -> sat",
+            "counts: try CT at most 44 | ls 34 pass 1 ms 1765 took 164 -> sat",
+            "counts: try St at most 1 | ls 34 pass 0 ms 1765 took 87 -> kept",
+            "counts: try CV at most 2 | ls 34 pass 0 ms 1765 took 1784 -> sat",
+            "counts: try CV at most 2 | ls 34 pass 1 ms 1765 took 199 -> sat",
+            "counts: try CfgT at most 44 | ls 34 pass 0 ms 1765 took 1784 -> sat",
+            "counts: try CfgT at most 44 | ls 34 pass 1 ms 1765 took 282 -> sat",
+            "counts: try fields: St[a]=1 -> CT[a]=CT[b] -> CV[b]<=CV[a] | ls 34 pass 0 ms 1765 took 1766 -> sat",
+            "counts: try fields: St[a]=1 -> CT[a]=CT[b] -> CV[b]<=CV[a] | ls 34 pass 1 ms 1765 took 1822 -> unknown",
+            "counts: try fields: St[a]=1 -> CT[a]=CfgT[a] | ls 34 pass 0 ms 1765 took 274 -> kept",
+            "counts: try fields: St[a]=1 -> CT[a]<=CfgT[a] | ls 34 pass 0 ms 1765 took 291 -> kept",
+            "counts: try fields: St[a]=1 -> CT[a]=CT[b] -> CfgT[b]<=CfgT[a] | ls 34 pass 0 ms 1765 took 1765 -> sat",
+            "counts: try fields: St[a]=1 -> CT[a]=CT[b] -> CfgT[b]<=CfgT[a] | ls 34 pass 1 ms 1765 took 2008 -> unknown",
+            "counts: try fields: St[a]=1 -> CfgT[a]<=CT[a] | ls 34 pass 0 ms 1765 took 288 -> kept",
+            "counts: try fields: St[a]=1 -> CfgT[a]=CfgT[b] -> CV[b]<=CV[a] | ls 34 pass 0 ms 1765 took 1767 -> sat",
+            "counts: try fields: St[a]=1 -> CfgT[a]=CfgT[b] -> CV[b]<=CV[a] | ls 34 pass 1 ms 1765 took 1866 -> unknown",
+            "counts: try every x with x < size: never Config[x] is 0 and 1  | ls 34 pass 0 ms 1765 took 1772 -> sat",
+            "counts: try every x with x < size: never Config[x] is 0 and 1  | ls 34 pass 1 ms 1765 took 509 -> sat",
+            "counts: try every x with x < size: never CT[x] is 0 and 1 <= S | ls 34 pass 0 ms 1765 took 98 -> kept",
+            "counts: try every x with x < size: never 1 <= CT[x] and CV[x]  | ls 34 pass 0 ms 1765 took 155 -> kept",
+            "counts: try every x with x < size: never 1 <= CT[x] and starte | ls 34 pass 0 ms 1765 took 41 -> kept",
+            "counts: try every x with x < size: never 1 <= St[x] and CV[x]  | ls 34 pass 0 ms 1765 took 129 -> kept",
+            "counts: try every x with x < size: never 1 <= St[x] and CfgT[x | ls 34 pass 0 ms 1765 took 252 -> kept",
+            "counts: try every x with x < size: never 1 <= St[x] and starte | ls 34 pass 0 ms 1765 took 46 -> kept",
+            "counts: try every x with x < size: never CV[x] is 0 and 1 <= C | ls 34 pass 0 ms 1765 took 210 -> kept",
+            "counts: try every x with x < size: never CV[x] is 0 and 1 <= s | ls 34 pass 0 ms 1765 took 140 -> kept",
+            "counts: try every x with x < size: never 1 <= CfgT[x] and star | ls 34 pass 0 ms 1765 took 43 -> kept",
+            "counts: try every x, y with x < size ∧ y < size ∧ ¬(x = y): ne | ls 34 pass 0 ms 1765 took 175 -> kept",
+            "counts: try every x, y with x < size ∧ y < size ∧ ¬(x = y): ne | ls 34 pass 0 ms 1765 took 223 -> kept",
+            "counts: try every x, y with x < size ∧ y < size ∧ ¬(x = y): ne | ls 34 pass 0 ms 1765 took 181 -> kept",
+            "counts: try inX: no quorum canVote/1 | ls 34 pass 0 ms 1765 took 68 -> sat",
+            "counts: try inX: no quorum canVote/1 | ls 34 pass 1 ms 1765 took 422 -> sat",
+            "counts: try inX: no quorum canVote/3 | ls 34 pass 0 ms 1765 took 68 -> sat",
+            "counts: try inX: no quorum canVote/3 | ls 34 pass 1 ms 1765 took 615 -> sat",
+            "counts: try inX: stored guard reconfigs/inS | ls 34 pass 0 ms 1765 took 81 -> sat",
+            "counts: try inX: stored guard reconfigs/inS | ls 34 pass 1 ms 1765 took 1943 -> unknown",
+            "counts: try inX: stored guard reconfigs/inS or disabled/0 | ls 34 pass 0 ms 1765 took 90 -> sat",
+            "counts: try inX: stored guard reconfigs/inS or disabled/0 | ls 34 pass 1 ms 1765 took 6065 -> unknown"
+          ]
+        }
+      ],
+      "equalPrefix": 37,
+      "firstDifference": [
+        null,
+        "counts: try inX: stored guard reconfigs/inS or disabled/0 | ls 34 pass 1 ms 1765 took 6065 -> unknown"
+      ]
+    },
+    {
+      "repeat": 2,
+      "sides": [
+        {
+          "side": "baseline",
+          "code": 137,
+          "seconds": 60,
+          "tries": [
+            "counts: try CT at most 44 | ls 34 pass 0 ms 1765 took 1780 -> sat",
+            "counts: try CT at most 44 | ls 34 pass 1 ms 1765 took 164 -> sat",
+            "counts: try St at most 1 | ls 34 pass 0 ms 1765 took 87 -> kept",
+            "counts: try CV at most 2 | ls 34 pass 0 ms 1765 took 1784 -> sat",
+            "counts: try CV at most 2 | ls 34 pass 1 ms 1765 took 199 -> sat",
+            "counts: try CfgT at most 44 | ls 34 pass 0 ms 1765 took 1784 -> sat",
+            "counts: try CfgT at most 44 | ls 34 pass 1 ms 1765 took 282 -> sat",
+            "counts: try fields: St[a]=1 -> CT[a]=CT[b] -> CV[b]<=CV[a] | ls 34 pass 0 ms 1765 took 1766 -> sat",
+            "counts: try fields: St[a]=1 -> CT[a]=CT[b] -> CV[b]<=CV[a] | ls 34 pass 1 ms 1765 took 1822 -> unknown",
+            "counts: try fields: St[a]=1 -> CT[a]=CfgT[a] | ls 34 pass 0 ms 1765 took 274 -> kept",
+            "counts: try fields: St[a]=1 -> CT[a]<=CfgT[a] | ls 34 pass 0 ms 1765 took 291 -> kept",
+            "counts: try fields: St[a]=1 -> CT[a]=CT[b] -> CfgT[b]<=CfgT[a] | ls 34 pass 0 ms 1765 took 1765 -> sat",
+            "counts: try fields: St[a]=1 -> CT[a]=CT[b] -> CfgT[b]<=CfgT[a] | ls 34 pass 1 ms 1765 took 2008 -> unknown",
+            "counts: try fields: St[a]=1 -> CfgT[a]<=CT[a] | ls 34 pass 0 ms 1765 took 288 -> kept",
+            "counts: try fields: St[a]=1 -> CfgT[a]=CfgT[b] -> CV[b]<=CV[a] | ls 34 pass 0 ms 1765 took 1767 -> sat",
+            "counts: try fields: St[a]=1 -> CfgT[a]=CfgT[b] -> CV[b]<=CV[a] | ls 34 pass 1 ms 1765 took 1866 -> unknown",
+            "counts: try every x with x < size: never Config[x] is 0 and 1  | ls 34 pass 0 ms 1765 took 1772 -> sat",
+            "counts: try every x with x < size: never Config[x] is 0 and 1  | ls 34 pass 1 ms 1765 took 509 -> sat",
+            "counts: try every x with x < size: never CT[x] is 0 and 1 <= S | ls 34 pass 0 ms 1765 took 98 -> kept",
+            "counts: try every x with x < size: never 1 <= CT[x] and CV[x]  | ls 34 pass 0 ms 1765 took 155 -> kept",
+            "counts: try every x with x < size: never 1 <= CT[x] and starte | ls 34 pass 0 ms 1765 took 41 -> kept",
+            "counts: try every x with x < size: never 1 <= St[x] and CV[x]  | ls 34 pass 0 ms 1765 took 129 -> kept",
+            "counts: try every x with x < size: never 1 <= St[x] and CfgT[x | ls 34 pass 0 ms 1765 took 252 -> kept",
+            "counts: try every x with x < size: never 1 <= St[x] and starte | ls 34 pass 0 ms 1765 took 46 -> kept",
+            "counts: try every x with x < size: never CV[x] is 0 and 1 <= C | ls 34 pass 0 ms 1765 took 210 -> kept",
+            "counts: try every x with x < size: never CV[x] is 0 and 1 <= s | ls 34 pass 0 ms 1765 took 140 -> kept",
+            "counts: try every x with x < size: never 1 <= CfgT[x] and star | ls 34 pass 0 ms 1765 took 43 -> kept",
+            "counts: try every x, y with x < size ∧ y < size ∧ ¬(x = y): ne | ls 34 pass 0 ms 1765 took 175 -> kept",
+            "counts: try every x, y with x < size ∧ y < size ∧ ¬(x = y): ne | ls 34 pass 0 ms 1765 took 223 -> kept",
+            "counts: try every x, y with x < size ∧ y < size ∧ ¬(x = y): ne | ls 34 pass 0 ms 1765 took 181 -> kept",
+            "counts: try inX: no quorum canVote/1 | ls 34 pass 0 ms 1765 took 68 -> sat",
+            "counts: try inX: no quorum canVote/1 | ls 34 pass 1 ms 1765 took 422 -> sat",
+            "counts: try inX: no quorum canVote/3 | ls 34 pass 0 ms 1765 took 68 -> sat",
+            "counts: try inX: no quorum canVote/3 | ls 34 pass 1 ms 1765 took 615 -> sat",
+            "counts: try inX: stored guard reconfigs/inS | ls 34 pass 0 ms 1765 took 81 -> sat",
+            "counts: try inX: stored guard reconfigs/inS | ls 34 pass 1 ms 1765 took 1943 -> unknown",
+            "counts: try inX: stored guard reconfigs/inS or disabled/0 | ls 34 pass 0 ms 1765 took 90 -> sat",
+            "counts: try inX: stored guard reconfigs/inS or disabled/0 | ls 34 pass 1 ms 1765 took 6107 -> unknown",
+            "counts: try inX: stored guard reconfigs/inS or disabled/1 | ls 34 pass 0 ms 1765 took 90 -> sat"
+          ]
+        },
+        {
+          "side": "candidate",
+          "code": 0,
+          "seconds": 59.19,
+          "result": {
+            "verdict": "unknown",
+            "stuck": "unknown",
+            "why": "time (rule result)",
+            "ms": 59028,
+            "work": 27585825,
+            "full": 9321752
+          },
+          "tries": [
+            "counts: try CT at most 44 | ls 34 pass 0 ms 1765 took 1780 -> sat",
+            "counts: try CT at most 44 | ls 34 pass 1 ms 1765 took 164 -> sat",
+            "counts: try St at most 1 | ls 34 pass 0 ms 1765 took 87 -> kept",
+            "counts: try CV at most 2 | ls 34 pass 0 ms 1765 took 1784 -> sat",
+            "counts: try CV at most 2 | ls 34 pass 1 ms 1765 took 199 -> sat",
+            "counts: try CfgT at most 44 | ls 34 pass 0 ms 1765 took 1784 -> sat",
+            "counts: try CfgT at most 44 | ls 34 pass 1 ms 1765 took 282 -> sat",
+            "counts: try fields: St[a]=1 -> CT[a]=CT[b] -> CV[b]<=CV[a] | ls 34 pass 0 ms 1765 took 1766 -> sat",
+            "counts: try fields: St[a]=1 -> CT[a]=CT[b] -> CV[b]<=CV[a] | ls 34 pass 1 ms 1765 took 1822 -> unknown",
+            "counts: try fields: St[a]=1 -> CT[a]=CfgT[a] | ls 34 pass 0 ms 1765 took 274 -> kept",
+            "counts: try fields: St[a]=1 -> CT[a]<=CfgT[a] | ls 34 pass 0 ms 1765 took 291 -> kept",
+            "counts: try fields: St[a]=1 -> CT[a]=CT[b] -> CfgT[b]<=CfgT[a] | ls 34 pass 0 ms 1765 took 1765 -> sat",
+            "counts: try fields: St[a]=1 -> CT[a]=CT[b] -> CfgT[b]<=CfgT[a] | ls 34 pass 1 ms 1765 took 2008 -> unknown",
+            "counts: try fields: St[a]=1 -> CfgT[a]<=CT[a] | ls 34 pass 0 ms 1765 took 288 -> kept",
+            "counts: try fields: St[a]=1 -> CfgT[a]=CfgT[b] -> CV[b]<=CV[a] | ls 34 pass 0 ms 1765 took 1767 -> sat",
+            "counts: try fields: St[a]=1 -> CfgT[a]=CfgT[b] -> CV[b]<=CV[a] | ls 34 pass 1 ms 1765 took 1866 -> unknown",
+            "counts: try every x with x < size: never Config[x] is 0 and 1  | ls 34 pass 0 ms 1765 took 1772 -> sat",
+            "counts: try every x with x < size: never Config[x] is 0 and 1  | ls 34 pass 1 ms 1765 took 509 -> sat",
+            "counts: try every x with x < size: never CT[x] is 0 and 1 <= S | ls 34 pass 0 ms 1765 took 98 -> kept",
+            "counts: try every x with x < size: never 1 <= CT[x] and CV[x]  | ls 34 pass 0 ms 1765 took 155 -> kept",
+            "counts: try every x with x < size: never 1 <= CT[x] and starte | ls 34 pass 0 ms 1765 took 41 -> kept",
+            "counts: try every x with x < size: never 1 <= St[x] and CV[x]  | ls 34 pass 0 ms 1765 took 129 -> kept",
+            "counts: try every x with x < size: never 1 <= St[x] and CfgT[x | ls 34 pass 0 ms 1765 took 252 -> kept",
+            "counts: try every x with x < size: never 1 <= St[x] and starte | ls 34 pass 0 ms 1765 took 46 -> kept",
+            "counts: try every x with x < size: never CV[x] is 0 and 1 <= C | ls 34 pass 0 ms 1765 took 210 -> kept",
+            "counts: try every x with x < size: never CV[x] is 0 and 1 <= s | ls 34 pass 0 ms 1765 took 140 -> kept",
+            "counts: try every x with x < size: never 1 <= CfgT[x] and star | ls 34 pass 0 ms 1765 took 43 -> kept",
+            "counts: try every x, y with x < size ∧ y < size ∧ ¬(x = y): ne | ls 34 pass 0 ms 1765 took 175 -> kept",
+            "counts: try every x, y with x < size ∧ y < size ∧ ¬(x = y): ne | ls 34 pass 0 ms 1765 took 223 -> kept",
+            "counts: try every x, y with x < size ∧ y < size ∧ ¬(x = y): ne | ls 34 pass 0 ms 1765 took 181 -> kept",
+            "counts: try inX: no quorum canVote/1 | ls 34 pass 0 ms 1765 took 68 -> sat",
+            "counts: try inX: no quorum canVote/1 | ls 34 pass 1 ms 1765 took 422 -> sat",
+            "counts: try inX: no quorum canVote/3 | ls 34 pass 0 ms 1765 took 68 -> sat",
+            "counts: try inX: no quorum canVote/3 | ls 34 pass 1 ms 1765 took 615 -> sat",
+            "counts: try inX: stored guard reconfigs/inS | ls 34 pass 0 ms 1765 took 81 -> sat",
+            "counts: try inX: stored guard reconfigs/inS | ls 34 pass 1 ms 1765 took 1943 -> unknown",
+            "counts: try inX: stored guard reconfigs/inS or disabled/0 | ls 34 pass 0 ms 1765 took 90 -> sat",
+            "counts: try inX: stored guard reconfigs/inS or disabled/0 | ls 34 pass 1 ms 1765 took 6107 -> unknown",
+            "counts: try inX: stored guard reconfigs/inS or disabled/1 | ls 34 pass 0 ms 1765 took 90 -> sat",
+            "counts: try inX: stored guard reconfigs/inS or disabled/1 | ls 34 pass 1 ms 1765 took 5899 -> unknown"
+          ]
+        }
+      ],
+      "equalPrefix": 39,
+      "firstDifference": [
+        null,
+        "counts: try inX: stored guard reconfigs/inS or disabled/1 | ls 34 pass 1 ms 1765 took 5899 -> unknown"
+      ]
+    },
+    {
+      "repeat": 3,
+      "sides": [
+        {
+          "side": "baseline",
+          "code": 137,
+          "seconds": 60,
+          "tries": [
+            "counts: try CT at most 44 | ls 34 pass 0 ms 1765 took 1780 -> sat",
+            "counts: try CT at most 44 | ls 34 pass 1 ms 1765 took 164 -> sat",
+            "counts: try St at most 1 | ls 34 pass 0 ms 1765 took 87 -> kept",
+            "counts: try CV at most 2 | ls 34 pass 0 ms 1765 took 1784 -> sat",
+            "counts: try CV at most 2 | ls 34 pass 1 ms 1765 took 199 -> sat",
+            "counts: try CfgT at most 44 | ls 34 pass 0 ms 1765 took 1784 -> sat",
+            "counts: try CfgT at most 44 | ls 34 pass 1 ms 1765 took 282 -> sat",
+            "counts: try fields: St[a]=1 -> CT[a]=CT[b] -> CV[b]<=CV[a] | ls 34 pass 0 ms 1765 took 1766 -> sat",
+            "counts: try fields: St[a]=1 -> CT[a]=CT[b] -> CV[b]<=CV[a] | ls 34 pass 1 ms 1765 took 1822 -> unknown",
+            "counts: try fields: St[a]=1 -> CT[a]=CfgT[a] | ls 34 pass 0 ms 1765 took 274 -> kept",
+            "counts: try fields: St[a]=1 -> CT[a]<=CfgT[a] | ls 34 pass 0 ms 1765 took 291 -> kept",
+            "counts: try fields: St[a]=1 -> CT[a]=CT[b] -> CfgT[b]<=CfgT[a] | ls 34 pass 0 ms 1765 took 1765 -> sat",
+            "counts: try fields: St[a]=1 -> CT[a]=CT[b] -> CfgT[b]<=CfgT[a] | ls 34 pass 1 ms 1765 took 2008 -> unknown",
+            "counts: try fields: St[a]=1 -> CfgT[a]<=CT[a] | ls 34 pass 0 ms 1765 took 288 -> kept",
+            "counts: try fields: St[a]=1 -> CfgT[a]=CfgT[b] -> CV[b]<=CV[a] | ls 34 pass 0 ms 1765 took 1767 -> sat",
+            "counts: try fields: St[a]=1 -> CfgT[a]=CfgT[b] -> CV[b]<=CV[a] | ls 34 pass 1 ms 1765 took 1866 -> unknown",
+            "counts: try every x with x < size: never Config[x] is 0 and 1  | ls 34 pass 0 ms 1765 took 1772 -> sat",
+            "counts: try every x with x < size: never Config[x] is 0 and 1  | ls 34 pass 1 ms 1765 took 509 -> sat",
+            "counts: try every x with x < size: never CT[x] is 0 and 1 <= S | ls 34 pass 0 ms 1765 took 98 -> kept",
+            "counts: try every x with x < size: never 1 <= CT[x] and CV[x]  | ls 34 pass 0 ms 1765 took 155 -> kept",
+            "counts: try every x with x < size: never 1 <= CT[x] and starte | ls 34 pass 0 ms 1765 took 41 -> kept",
+            "counts: try every x with x < size: never 1 <= St[x] and CV[x]  | ls 34 pass 0 ms 1765 took 129 -> kept",
+            "counts: try every x with x < size: never 1 <= St[x] and CfgT[x | ls 34 pass 0 ms 1765 took 252 -> kept",
+            "counts: try every x with x < size: never 1 <= St[x] and starte | ls 34 pass 0 ms 1765 took 46 -> kept",
+            "counts: try every x with x < size: never CV[x] is 0 and 1 <= C | ls 34 pass 0 ms 1765 took 210 -> kept",
+            "counts: try every x with x < size: never CV[x] is 0 and 1 <= s | ls 34 pass 0 ms 1765 took 140 -> kept",
+            "counts: try every x with x < size: never 1 <= CfgT[x] and star | ls 34 pass 0 ms 1765 took 43 -> kept",
+            "counts: try every x, y with x < size ∧ y < size ∧ ¬(x = y): ne | ls 34 pass 0 ms 1765 took 175 -> kept",
+            "counts: try every x, y with x < size ∧ y < size ∧ ¬(x = y): ne | ls 34 pass 0 ms 1765 took 223 -> kept",
+            "counts: try every x, y with x < size ∧ y < size ∧ ¬(x = y): ne | ls 34 pass 0 ms 1765 took 181 -> kept",
+            "counts: try inX: no quorum canVote/1 | ls 34 pass 0 ms 1765 took 68 -> sat",
+            "counts: try inX: no quorum canVote/1 | ls 34 pass 1 ms 1765 took 422 -> sat",
+            "counts: try inX: no quorum canVote/3 | ls 34 pass 0 ms 1765 took 68 -> sat",
+            "counts: try inX: no quorum canVote/3 | ls 34 pass 1 ms 1765 took 615 -> sat",
+            "counts: try inX: stored guard reconfigs/inS | ls 34 pass 0 ms 1765 took 81 -> sat",
+            "counts: try inX: stored guard reconfigs/inS | ls 34 pass 1 ms 1765 took 1943 -> unknown",
+            "counts: try inX: stored guard reconfigs/inS or disabled/0 | ls 34 pass 0 ms 1765 took 90 -> sat",
+            "counts: try inX: stored guard reconfigs/inS or disabled/0 | ls 34 pass 1 ms 1765 took 6107 -> unknown",
+            "counts: try inX: stored guard reconfigs/inS or disabled/1 | ls 34 pass 0 ms 1765 took 90 -> sat",
+            "counts: try inX: stored guard reconfigs/inS or disabled/1 | ls 34 pass 1 ms 1765 took 6089 -> unknown",
+            "counts: try inX: stored guard reconfigs/inS or disabled/2 | ls 34 pass 0 ms 1765 took 90 -> sat"
+          ]
+        },
+        {
+          "side": "candidate",
+          "code": 0,
+          "seconds": 59.24,
+          "result": {
+            "verdict": "unknown",
+            "stuck": "unknown",
+            "why": "time (rule result)",
+            "ms": 59127,
+            "work": 29742221,
+            "full": 10829173
+          },
+          "tries": [
+            "counts: try CT at most 44 | ls 34 pass 0 ms 1765 took 1780 -> sat",
+            "counts: try CT at most 44 | ls 34 pass 1 ms 1765 took 164 -> sat",
+            "counts: try St at most 1 | ls 34 pass 0 ms 1765 took 87 -> kept",
+            "counts: try CV at most 2 | ls 34 pass 0 ms 1765 took 1784 -> sat",
+            "counts: try CV at most 2 | ls 34 pass 1 ms 1765 took 199 -> sat",
+            "counts: try CfgT at most 44 | ls 34 pass 0 ms 1765 took 1784 -> sat",
+            "counts: try CfgT at most 44 | ls 34 pass 1 ms 1765 took 282 -> sat",
+            "counts: try fields: St[a]=1 -> CT[a]=CT[b] -> CV[b]<=CV[a] | ls 34 pass 0 ms 1765 took 1766 -> sat",
+            "counts: try fields: St[a]=1 -> CT[a]=CT[b] -> CV[b]<=CV[a] | ls 34 pass 1 ms 1765 took 1822 -> unknown",
+            "counts: try fields: St[a]=1 -> CT[a]=CfgT[a] | ls 34 pass 0 ms 1765 took 274 -> kept",
+            "counts: try fields: St[a]=1 -> CT[a]<=CfgT[a] | ls 34 pass 0 ms 1765 took 291 -> kept",
+            "counts: try fields: St[a]=1 -> CT[a]=CT[b] -> CfgT[b]<=CfgT[a] | ls 34 pass 0 ms 1765 took 1765 -> sat",
+            "counts: try fields: St[a]=1 -> CT[a]=CT[b] -> CfgT[b]<=CfgT[a] | ls 34 pass 1 ms 1765 took 2008 -> unknown",
+            "counts: try fields: St[a]=1 -> CfgT[a]<=CT[a] | ls 34 pass 0 ms 1765 took 288 -> kept",
+            "counts: try fields: St[a]=1 -> CfgT[a]=CfgT[b] -> CV[b]<=CV[a] | ls 34 pass 0 ms 1765 took 1767 -> sat",
+            "counts: try fields: St[a]=1 -> CfgT[a]=CfgT[b] -> CV[b]<=CV[a] | ls 34 pass 1 ms 1765 took 1866 -> unknown",
+            "counts: try every x with x < size: never Config[x] is 0 and 1  | ls 34 pass 0 ms 1765 took 1772 -> sat",
+            "counts: try every x with x < size: never Config[x] is 0 and 1  | ls 34 pass 1 ms 1765 took 509 -> sat",
+            "counts: try every x with x < size: never CT[x] is 0 and 1 <= S | ls 34 pass 0 ms 1765 took 98 -> kept",
+            "counts: try every x with x < size: never 1 <= CT[x] and CV[x]  | ls 34 pass 0 ms 1765 took 155 -> kept",
+            "counts: try every x with x < size: never 1 <= CT[x] and starte | ls 34 pass 0 ms 1765 took 41 -> kept",
+            "counts: try every x with x < size: never 1 <= St[x] and CV[x]  | ls 34 pass 0 ms 1765 took 129 -> kept",
+            "counts: try every x with x < size: never 1 <= St[x] and CfgT[x | ls 34 pass 0 ms 1765 took 252 -> kept",
+            "counts: try every x with x < size: never 1 <= St[x] and starte | ls 34 pass 0 ms 1765 took 46 -> kept",
+            "counts: try every x with x < size: never CV[x] is 0 and 1 <= C | ls 34 pass 0 ms 1765 took 210 -> kept",
+            "counts: try every x with x < size: never CV[x] is 0 and 1 <= s | ls 34 pass 0 ms 1765 took 140 -> kept",
+            "counts: try every x with x < size: never 1 <= CfgT[x] and star | ls 34 pass 0 ms 1765 took 43 -> kept",
+            "counts: try every x, y with x < size ∧ y < size ∧ ¬(x = y): ne | ls 34 pass 0 ms 1765 took 175 -> kept",
+            "counts: try every x, y with x < size ∧ y < size ∧ ¬(x = y): ne | ls 34 pass 0 ms 1765 took 223 -> kept",
+            "counts: try every x, y with x < size ∧ y < size ∧ ¬(x = y): ne | ls 34 pass 0 ms 1765 took 181 -> kept",
+            "counts: try inX: no quorum canVote/1 | ls 34 pass 0 ms 1765 took 68 -> sat",
+            "counts: try inX: no quorum canVote/1 | ls 34 pass 1 ms 1765 took 422 -> sat",
+            "counts: try inX: no quorum canVote/3 | ls 34 pass 0 ms 1765 took 68 -> sat",
+            "counts: try inX: no quorum canVote/3 | ls 34 pass 1 ms 1765 took 615 -> sat",
+            "counts: try inX: stored guard reconfigs/inS | ls 34 pass 0 ms 1765 took 81 -> sat",
+            "counts: try inX: stored guard reconfigs/inS | ls 34 pass 1 ms 1765 took 1943 -> unknown",
+            "counts: try inX: stored guard reconfigs/inS or disabled/0 | ls 34 pass 0 ms 1765 took 90 -> sat",
+            "counts: try inX: stored guard reconfigs/inS or disabled/0 | ls 34 pass 1 ms 1765 took 6107 -> unknown",
+            "counts: try inX: stored guard reconfigs/inS or disabled/1 | ls 34 pass 0 ms 1765 took 90 -> sat",
+            "counts: try inX: stored guard reconfigs/inS or disabled/1 | ls 34 pass 1 ms 1765 took 6089 -> unknown",
+            "counts: try inX: stored guard reconfigs/inS or disabled/2 | ls 34 pass 0 ms 1765 took 90 -> sat",
+            "counts: try inX: stored guard reconfigs/inS or disabled/2 | ls 34 pass 1 ms 1765 took 5748 -> unknown"
+          ]
+        }
+      ],
+      "equalPrefix": 41,
+      "firstDifference": [
+        null,
+        "counts: try inX: stored guard reconfigs/inS or disabled/2 | ls 34 pass 1 ms 1765 took 5748 -> unknown"
+      ]
+    }
+  ],
+  "generation": [
+    {
+      "id": "consensus",
+      "count": 3,
+      "hash": "e14ce6d5523e14235e7be911e6585a4e341579f13af79146ee5c0272782c73fd",
+      "baselineMs": 20.928723999999995,
+      "candidateMs": 21.121934
+    },
+    {
+      "id": "tcommit",
+      "count": 4,
+      "hash": "0fcdba2bffed25323343e97a11d2439514ab6a146a5f4039103365d216045e54",
+      "baselineMs": 42.517475000000005,
+      "candidateMs": 50.051601
+    },
+    {
+      "id": "lock_server",
+      "count": 5,
+      "hash": "c1076284bf2ecddf1c752965c0332a92d24a58540f38714b94ad496712ed4de5",
+      "baselineMs": 40.560441,
+      "candidateMs": 60.258138
+    },
+    {
+      "id": "quorum_leader_election",
+      "count": 7,
+      "hash": "6354d3cdc634e6c8862532d3fe5e485059396f4c7fabbd7d4727c62c30242052",
+      "baselineMs": 533.6981470000001,
+      "candidateMs": 483.59894799999995
+    },
+    {
+      "id": "toy_consensus_forall",
+      "count": 9,
+      "hash": "36b95967eb139c572c4928f9fd291fcb711464d021b5ccb3b1b52b0ea91a33e6",
+      "baselineMs": 557.904056,
+      "candidateMs": 578.9346109999999
+    },
+    {
+      "id": "simple",
+      "count": 4,
+      "hash": "a92912ffab6a8797a6e16781cbc5bd187e7e018d032d1be4feab408dc61e47eb",
+      "baselineMs": 10.928241999999955,
+      "candidateMs": 9.706167999999934
+    },
+    {
+      "id": "simple_regular",
+      "count": 4,
+      "hash": "7338346b96cf252234c7a1463bc3b5abfc5aa19e1c34841bf4ccd45ede59db4c",
+      "baselineMs": 12.338353999999981,
+      "candidateMs": 12.573932000000013
+    },
+    {
+      "id": "lockserv_automaton",
+      "count": 17,
+      "hash": "28197b96f28bb0293452708bb2f3f1558343328d37086def3dc214f1d8740a2e",
+      "baselineMs": 41.82479400000011,
+      "candidateMs": 29.656465000000026
+    },
+    {
+      "id": "sharded_kv",
+      "count": 18,
+      "hash": "ed00314a85784d02f0740819b3c1323809c2fa6d31522bb43bdfb832f2bea282",
+      "baselineMs": 2360.212864,
+      "candidateMs": 2321.296531
+    },
+    {
+      "id": "sharded_kv_no_lost_keys",
+      "count": 6,
+      "hash": "418e57ef2433f568f6a1f0a7c60386c4f76c63e7bc2e73bc658d3e722853b911",
+      "baselineMs": 2254.1239000000005,
+      "candidateMs": 2378.682447
+    },
+    {
+      "id": "lockserv",
+      "count": 17,
+      "hash": "625d4a5b0bd1a44c77cb3d4f01f5b0c862d06f8dd00b2739f62af8732915be00",
+      "baselineMs": 21.30025999999998,
+      "candidateMs": 24.990523000000394
+    },
+    {
+      "id": "twophase",
+      "count": 14,
+      "hash": "44bfbce553ff9457ee1e2df76ebef4d046e290ef831acd554bfbed2d74f44fd0",
+      "baselineMs": 567.9597749999994,
+      "candidateMs": 538.226251
+    },
+    {
+      "id": "simple_decentralized_lock",
+      "count": 20,
+      "hash": "07fdd1070c44037616163044bb5fd27bb8a379c93424cdec53f8166f2eacb2e1",
+      "baselineMs": 14.913991000000351,
+      "candidateMs": 14.839305999999851
+    },
+    {
+      "id": "two_phase_commit",
+      "count": 34,
+      "hash": "4a1828f36f3f69afb92df8b6e558119a6e771236afba62b1d7742faa6a656512",
+      "baselineMs": 1007.2643640000006,
+      "candidateMs": 990.0801929999998
+    },
+    {
+      "id": "consensus_wo_decide",
+      "count": 39,
+      "hash": "05af3c755b720768be509b2d936a89d3772804554d6a5e37c84c6188d592dd46",
+      "baselineMs": 4754.586565,
+      "candidateMs": 4645.030015999999
+    },
+    {
+      "id": "consensus_forall",
+      "count": 48,
+      "hash": "5597b7cd11317d41db1e3204398864077a58857746c18b15db1cfb4ebcd1e3da",
+      "baselineMs": 8725.885307,
+      "candidateMs": 8589.711604999999
+    },
+    {
+      "id": "naive_consensus",
+      "count": 13,
+      "hash": "33063fbf32c2fe26d3a2543e077350c6d2d6a6bd9141f194c829ff390249325c",
+      "baselineMs": 983.3020179999985,
+      "candidateMs": 1062.349284
+    },
+    {
+      "id": "client_server_ae",
+      "count": 10,
+      "hash": "6e0507bf0c5ae5f8cbc4fff6136f9d35ace16ff8f49b165c216f5b3f49a67ef0",
+      "baselineMs": 1202.7027310000012,
+      "candidateMs": 1253.0589340000006
+    },
+    {
+      "id": "client_server_db_ae",
+      "count": 15,
+      "hash": "11710f8a89c0fb18454cc1cd37cc6b918b2251bdfe8c652c131d1b21dfbc79a8",
+      "baselineMs": 5211.0720870000005,
+      "candidateMs": 5559.324196000001
+    },
+    {
+      "id": "simple_election",
+      "count": 12,
+      "hash": "30bc4cc549adbbd85c982849ae7b5cf741388b8750e135e1b96ba0e6b2204a4d",
+      "baselineMs": 1179.968068000002,
+      "candidateMs": 1461.6023210000021
+    },
+    {
+      "id": "toy_consensus_epr",
+      "count": 8,
+      "hash": "133630cb1e8c0acf2f7b1b1f30f8c5eb82f1ebd6ef16350af7b27e97f3fea9fc",
+      "baselineMs": 826.4289620000018,
+      "candidateMs": 1017.4523460000019
+    },
+    {
+      "id": "toy_consensus",
+      "count": 5,
+      "hash": "42a22a2106bf7bde3e8f00f847d72d7b426b493fe2c551d8b12760722db12bf2",
+      "baselineMs": 516.0782040000013,
+      "candidateMs": 576.0209370000011
+    },
+    {
+      "id": "firewall",
+      "count": 7,
+      "hash": "62bd947b28577d7ae3b33f79ca6fcd5037c1a61429bfd81950381b432d9c71b7",
+      "baselineMs": 31.747330000001966,
+      "candidateMs": 42.323027999998885
+    },
+    {
+      "id": "majorityset_leader_election",
+      "count": 17,
+      "hash": "bb147d46a7fb370560860dfd5441416683ec8c4c8a845d78cba57f199aba247f",
+      "baselineMs": 1061.4735580000015,
+      "candidateMs": 1057.205579999998
+    },
+    {
+      "id": "consensus_epr",
+      "count": 29,
+      "hash": "ab81a384b7f6afc1f8d207c9f6ea5fec0a1526cc98b4088e00b34cd69186db65",
+      "baselineMs": 8074.352230999997,
+      "candidateMs": 7517.83612
+    },
+    {
+      "id": "paxos_epr",
+      "count": 77,
+      "hash": "01f9c4f68d27630184f0d5268345ada29c31507eac21bfbf45d87e0bc6051e77",
+      "baselineMs": 14310.486115,
+      "candidateMs": 14682.986651000007
+    },
+    {
+      "id": "mldr",
+      "count": 34,
+      "hash": "cb1022f2d79f85eb3a0343a6e6fec92b48bddfebc0e4c99925985233a09b1d3b",
+      "baselineMs": 14865.558339999996,
+      "candidateMs": 15470.973066999999
+    },
+    {
+      "id": "learning_switch",
+      "count": 16,
+      "hash": "30e01737accefb7cdd6842704aaadf370a3420d57fff3aefa81a435eb25c3761",
+      "baselineMs": 195600.822158,
+      "candidateMs": 219988.162136
+    },
+    {
+      "id": "learning_switch_i4",
+      "count": 463,
+      "hash": "1fee9ce40764701e37b1e4a0e854273ac3be8a73db8d48faa029d5fa5ebfc163",
+      "baselineMs": 100852.27797000001,
+      "candidateMs": 101588.087013
+    }
+  ]
+}

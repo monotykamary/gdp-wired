@@ -8,8 +8,9 @@ type Env = Record<string, number>
 type Term = {id: number, code: string, args: Term[], deps: number[], lo: number, hi: number, values?: number[], choice?: {c: Pred, a: Term, b: Term}}
 type Pred = boolean | {op: 'atom', a: Term, b: Term, cmp: '<' | '<=' | '='} | {op: 'and', xs: Pred[]} | {op: 'or', xs: Pred[]} | {op: 'not', x: Pred}
 type Slot = {name: string, key?: number, request?: boolean, values: number[]}
+export type TinyFiniteOptions = {valueDomain?: readonly number[]}
 export type TinyFiniteStatistics = {
-  scope: {params: Env, scalarValues: number[], cells: Record<string, number[]>, inputValues: Record<string, number[]>, inputCells: Record<string, number[]>, binderValues: number[]}
+  scope: {params: Env, scalarValues: number[], cellValues: number[], cells: Record<string, number[]>, inputValues: Record<string, number[]>, inputCells: Record<string, number[]>, binderValues: number[]}
   completed: boolean, exhausted: boolean, timedOut: boolean, unsupported: string[], nodes: number, states: number, steps: number, scenarios: number, candidates: number, ms: number
 }
 const unique = (xs: number[]) => [...new Set(xs)]
@@ -211,7 +212,7 @@ class Compiler {
       seen.add(t.id); t.args.forEach(emit)
       const line = `const t${t.id}=${t.code};`
       chars += line.length
-      if (chars > 1_000_000) throw new Unsupported('large transition screen')
+      if (chars > 65_536) throw new Unsupported('large transition screen')
       lines.push(line)
     }
     values.forEach(emit)
@@ -220,12 +221,26 @@ class Compiler {
     // oxlint-disable-next-line typescript/no-implied-eval
     return new Function('v', `${lines.join('')}return [${values.map(t => this.ref(t)).join(',')}];`) as (v: number[]) => number[]
   }
-  compile(p: Pred, order?: number[]): (v: number[], depth: number) => boolean {
+  compile(p: Pred, order?: number[], polarity = true): (v: number[], depth: number) => boolean {
     checkWall('tiny generate screen')
+    // Keep native compilation and hot execution in bounded clauses rather
+    // than one giant predicate. Partial-assignment polarity is unchanged.
+    if (typeof p === 'boolean') return () => p === polarity
+    if (p.op === 'not') return this.compile(p.x, order, !polarity)
+    if (p.op === 'and' || p.op === 'or') {
+      const tests = p.xs.map(x => this.compile(x, order, polarity)), all = (p.op === 'and') === polarity
+      return (v, depth) => {
+        for (const test of tests) {
+          checkWall('tiny predicate clause')
+          if (test(v, depth) !== all) return !all
+        }
+        return all
+      }
+    }
     const rank = order ? this.slots.map((_, i) => order.indexOf(i)) : undefined, used: Term[] = []
-    const code = this.predicateCode(p, rank, used), seen = new Set<number>(), lines: string[] = []
+    const code = this.predicateCode(p, rank, used, polarity), seen = new Set<number>(), lines: string[] = []
     let chars = code.length
-    if (chars > 1_000_000) throw new Unsupported('large generated screen')
+    if (chars > 65_536) throw new Unsupported('large generated screen')
     const emit = (t: Term): void => {
       checkWall('tiny term code')
       if (seen.has(t.id)) return
@@ -233,7 +248,7 @@ class Compiler {
       const ready = rank ? Math.max(-1, ...t.deps.map(i => rank[i]!)) + 1 : 0
       const line = `const t${t.id}=${rank && ready > 0 ? `d>=${ready}?${t.code}:0` : t.code};`
       chars += line.length
-      if (chars > 1_000_000) throw new Unsupported('large generated screen')
+      if (chars > 65_536) throw new Unsupported('large generated screen')
       lines.push(line)
     }
     used.forEach(emit)
@@ -268,7 +283,7 @@ function gridKeys(m: Machine, size: number): Record<string, number[]> {
   })
   return cells
 }
-/** A deliberately small heuristic scope: bit-valued source scalars/cells,
+/** A deliberately small heuristic scope: binary source scalars/cells by default,
  * count-bound-sized rows and Boolean carried sets. Unsupported syntax is
  * unknown. completed means this recorded finite SCREEN traversal finished;
  * exhausted additionally means it emitted no proposals. Neither establishes
@@ -279,12 +294,14 @@ function gridKeys(m: Machine, size: number): Record<string, number[]> {
  * remains expired, and consumers must immediately check their own checkWall.
  */
 export function tinyFiniteCandidates(source: Machine, m: Machine, family: Law[], params: Env,
-  onCandidate: (pre: State, request: Request, violated: Law[]) => boolean | void): TinyFiniteStatistics {
-  const start = performance.now(), scope: TinyFiniteStatistics['scope'] = {params: {...params}, scalarValues: [0, 1], cells: {}, inputValues: {}, inputCells: {}, binderValues: []}
+  onCandidate: (pre: State, request: Request, violated: Law[]) => boolean | void, options: TinyFiniteOptions = {}): TinyFiniteStatistics {
+  const stateValues = unique([...(options.valueDomain ?? [0, 1])]).sort((a, b) => a - b)
+  const start = performance.now(), scope: TinyFiniteStatistics['scope'] = {params: {...params}, scalarValues: [...stateValues], cellValues: [...stateValues], cells: {}, inputValues: {}, inputCells: {}, binderValues: []}
   const stats: TinyFiniteStatistics = {scope, completed: false, exhausted: false, timedOut: false, unsupported: [], nodes: 0, states: 0, steps: 0, scenarios: 0, candidates: 0, ms: 0}
   const unknown = (e: unknown) => { const reason = e instanceof Error ? e.message : String(e); if (!stats.unsupported.includes(reason)) stats.unsupported.push(reason) }
   try {
     checkWall('tiny start')
+    if (!stateValues.length || stateValues.length > 4 || stateValues.some(n => !Number.isSafeInteger(n) || n < 0)) throw new Unsupported('invalid finite value domain')
     if (source.history || source.leasts || source.sums) throw new Unsupported('history/least/sums')
     if (!source.params.every(p => Number.isSafeInteger(params[p]) && params[p]! >= 0)) throw new Unsupported('missing/non-natural params')
     // The finite dimension comes from a parameter-only count bound. No
@@ -294,8 +311,8 @@ export function tinyFiniteCandidates(source: Machine, m: Machine, family: Law[],
     if (size < 1 || size > 4) throw new Unsupported('count grid bound outside 1..4')
     scope.cells = gridKeys(m, size)
     scope.binderValues = Array.from({length: size}, (_, i) => i)
-    const slots: Slot[] = Object.keys(source.state).map(name => ({name, values: [0, 1]}))
-    for (const name of Object.keys(source.maps ?? {})) for (const key of scope.cells[name] ?? []) { checkWall('tiny state coordinates'); slots.push({name, key, values: [0, 1]}) }
+    const slots: Slot[] = Object.keys(source.state).map(name => ({name, values: stateValues}))
+    for (const name of Object.keys(source.maps ?? {})) for (const key of scope.cells[name] ?? []) { checkWall('tiny state coordinates'); slots.push({name, key, values: stateValues}) }
     const stateSlots = slots.length
     for (const name of source.inputs) {
       checkWall('tiny request domains')
@@ -351,7 +368,7 @@ export function tinyFiniteCandidates(source: Machine, m: Machine, family: Law[],
     })
     const dispatch = [...dispatches].filter(([, ks]) => ks.size > 1).sort((a, b) => b[1].size - a[1].size)[0]?.[0]
     const slices = dispatch ? scope.inputValues[dispatch]!.map(value => ({...params, [dispatch]: value})) : [params]
-    const emitted = new Set<Law>(), highs = slots.map(() => 1)
+    const emitted = new Set<Law>(), highs = slots.map(s => Math.max(...s.values))
     const writeFlags = new Set<string>()
     walk([source.step.state, source.step.maps], o => { checkWall('tiny write flags'); if (o.op === 'flag') writeFlags.add(o.name as string) })
     const slotValue = (c: Compiler, i: number, env: Env, post: boolean): Term => {
@@ -385,19 +402,19 @@ export function tinyFiniteCandidates(source: Machine, m: Machine, family: Law[],
         stats.scenarios++
       } catch(e) { if(e instanceof WallExpired) throw e; unknown(e) }
     }
-    const postSlots = slots.map((s,i)=>i<stateSlots?{...s,values:[0,1,highs[i]!]}:s)
+    const postSlots = slots.map((s,i)=>i<stateSlots?{...s,values:unique([...s.values,highs[i]!])}:s)
     const postCompiler = new Compiler(source,m,params,postSlots,scope.cells,scope.binderValues)
-    const targets: Law[] = [], predicates: Term[] = []
+    const targets: Law[] = [], predicates: Pred[] = []
     for(const [law,ats] of instances){
       checkWall('tiny shared post predicates')
       try {
         const p = conjunction(ats.map(at=>postCompiler.condition(law.holds,at)))
         if(p===true) continue
-        targets.push(law); predicates.push(postCompiler.conditional(p,postCompiler.constant(1),postCompiler.constant(0)))
+        targets.push(law); predicates.push(p)
       } catch(e) { if(e instanceof WallExpired) throw e; unknown(e) }
     }
     if(!operations.length||!targets.length){stats.completed=stats.exhausted=stats.unsupported.length===0;return stats}
-    const postTest = postCompiler.compileValues(predicates), preDeps = pres.map(depsOf)
+    const postTests = predicates.map(p => postCompiler.compile(p)), preDeps = pres.map(depsOf)
     const degrees = slots.map((_,i)=>preDeps.reduce((sum,ds)=>sum+(ds.includes(i)?1/Math.max(1,ds.length):0),0))
     const stateOrder = slots.slice(0,stateSlots).map((_,i)=>i).sort((a,b)=>degrees[b]!-degrees[a]!||a-b)
     const preTest = compiler.compile(pre,stateOrder), v = slots.map(s=>s.values[0]!)
@@ -432,7 +449,7 @@ export function tinyFiniteCandidates(source: Machine, m: Machine, family: Law[],
           if(values.every((value,i)=>value===v[i]))return
           stats.steps++
           const post=v.slice();for(let i=0;i<stateSlots;i++)post[i]=values[i]!
-          const truths=postTest(post),violated=targets.filter((law,i)=>!emitted.has(law)&&truths[i]===0)
+          const violated=targets.filter((law,i)=>!emitted.has(law)&&!postTests[i]!(post,0))
           if(violated.length)propose(op.fixed,violated)
         }
         requests(0)

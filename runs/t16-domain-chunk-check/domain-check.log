@@ -1,0 +1,78 @@
+bun install v1.4.3 (c6da4a4d3)
+
++ @gdp-ts/core@0.1.0
++ @reduxjs/toolkit@2.13.0
++ @types/bun@1.3.1
++ @webgpu/types@0.1.66
++ effect@4.0.7
++ effect3@3.22.4
++ oxlint@1.88.0
++ oxlint-tsgolint@7.0.2004
++ typescript@5.9.3
++ xstate@5.33.2
++ xstate4@4.38.3
+
+27 packages installed [4.00s]
+bun test v1.4.3 (c6da4a4d3)
+
+--- stderr ---
+
+core/count-cubes.test.ts:
+(pass) fresh one-key count cells extend the width-two cube vocabulary [8.42ms]
+(pass) finite cover checks every explicit cell, not just small key numbers [0.79ms]
+(pass) finite cover derives auxiliary half-count bounds and preserves equality cases [1.52ms]
+(pass) Houdini drops only post-violations from the current whole family, never callers [2.67ms]
+(pass) finite Houdini reaches a fixpoint as removed premises admit new predecessors [0.39ms]
+(pass) a completed model is a CTI only after a real step from the whole family [0.78ms]
+(pass) finite model certification recomputes count cells and rejects bad requests [0.79ms]
+(pass) an unsupported predecessor law cannot certify a finite model [0.15ms]
+(pass) lazy derived counts stop inside the loop and do not cache partial sums [21.35ms]
+(pass) finite model stop reaches both precondition counts and transition counts [1.11ms]
+(pass) finite CTIs respect declared facts, including unsupported facts and derived state [0.73ms]
+(pass) finite frontiers expose both one-sided cube boundaries and field limits [0.09ms]
+(pass) finite boundary states update real count bodies without mutating samples [0.55ms]
+(pass) a finite sampling allowance returns survivors but never extends the outer wall [0.59ms]
+(pass) completed finite drops survive cancellation of the rest of the local pass [0.34ms]
+(pass) finite filtering obeys the outer wall rather than extending it [0.24ms]
+
+core/finite-tiny-houdini.test.ts:
+(pass) tiny Houdini certifies drops independently and never drops a caller [3.89ms]
+(pass) tiny Houdini repeats under the surviving family after certified drops [0.61ms]
+(pass) tiny Houdini checks declared facts and parameter preconditions [0.67ms]
+(pass) unsupported declarations cannot authorize tiny Houdini drops [0.60ms]
+(pass) tiny Houdini preserves survivors on its own timeout and propagates an outer wall [0.14ms]
+34 |   expect(timedOut).toBe(true)
+35 |   expect(() => withWall(performance.now() - 1, () => finiteTinyHoudini(counter(), counter(), [], [zero], [{}]))).toThrow(WallExpired)
+36 | })
+37 | test('an explicit round cap retains untested later-round helpers', () => {
+38 |   const source = counter()
+39 |   expect(finiteTinyHoudini(source, source, [], [zero, one], [{}], {rounds: 1})).toEqual([one])
+                                                              ^
+ReferenceError: one is not defined
+      at <anonymous> (/work/gdp-wired/core/finite-tiny-houdini.test.ts:39:58)
+(fail) an explicit round cap retains untested later-round helpers [1.63ms]
+(pass) an explicit richer state domain can expose a new real violation [0.97ms]
+(pass) an unsupported count grid retains every candidate [0.07ms]
+(pass) tiny Houdini does not confuse a true natural bound with a witnessed violation [0.16ms]
+
+core/finite-tiny.test.ts:
+(pass) proposals cross the independent full-family/interpreter trust boundary [0.61ms]
+(pass) whole family constrains pre, not just the proposed target [0.24ms]
+(pass) row strides come from lifted count bodies; identifiers have no meaning [1.43ms]
+(pass) unsupported external function never establishes exhaustion [0.14ms]
+(pass) expired wall returns honest interruption and never extends the parent [0.08ms]
+(pass) a rejected proposal resumes rather than stopping or dropping [0.20ms]
+(pass) dispatch slicing and irrelevant-coordinate quotienting use syntax, not names [0.63ms]
+(pass) native tuple rows are inferred without a row-name convention [1.68ms]
+(pass) the callback, not a screen, must enforce lifted preconditions and facts [0.38ms]
+(pass) one shared transition may propose several independently checked helpers [0.35ms]
+(pass) inactive flags cannot prune an unconditional update elsewhere [0.38ms]
+(pass) state-only no-op has no proposals in the recorded finite scope [0.12ms]
+
+1 tests failed:
+(fail) an explicit round cap retains untested later-round helpers [1.63ms]
+
+ 36 pass
+ 1 fail
+ 115 expect() calls
+Ran 37 tests across 3 files. [176.00ms]

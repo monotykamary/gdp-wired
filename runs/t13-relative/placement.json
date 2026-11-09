@@ -1,0 +1,11 @@
+{
+ "relative": {
+  "vm": "bx_2eg9t59n",
+  "type": "large",
+  "cpu": "AMD EPYC 9455 48-Core Processor",
+  "vcpus": 2,
+  "vm_vcpus": 8,
+  "exclusive": true,
+  "co_tenants": 0
+ }
+}

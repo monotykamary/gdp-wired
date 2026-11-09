@@ -5,7 +5,7 @@ import {type C, type E, type Law, type Machine, type Request, type State, carrie
 import {checkWall, searchWall, WallExpired} from './wall.ts'
 import {boundaryState, lawFrontiers} from './finite-frontiers.ts'
 import {wallAt, withWall} from '../kernel/prove.ts'
-import {type TinyFiniteStatistics, tinyFiniteCandidates} from './finite-tiny.ts'
+import {type TinyFiniteOptions, type TinyFiniteStatistics, tinyFiniteCandidates} from './finite-tiny.ts'
 type Env = Record<string, number>
 type Samples = {p: Env, sts: State[]}[]
 type Truth = boolean | undefined
@@ -136,7 +136,7 @@ function lawReads(m: Machine, law: Law): {scalars: Set<string>, maps: Set<string
 // Experimental tiny-instance proposal backend. Every drop crosses the same
 // independent whole-family/source-interpreter boundary as sampled Houdini.
 // It is not wired into production generation until its bounded pilot passes.
-export function finiteTinyHoudini(source: Machine, m: Machine, caller: Law[], candidates: Law[], params: Env[], options: FiniteOptions & {onTiny?: (round: number, stats: TinyFiniteStatistics) => void} = {}): Law[] {
+export function finiteTinyHoudini(source: Machine, m: Machine, caller: Law[], candidates: Law[], params: Env[], options: FiniteOptions & TinyFiniteOptions & {rounds?: number, onTiny?: (round: number, stats: TinyFiniteStatistics) => void} = {}): Law[] {
   const start = performance.now(), end = Math.min(wallAt(), searchWall(Math.max(0, options.wallMs ?? 2_000)))
   let survivors = candidates.slice(), timedOut = false
   try {
@@ -145,7 +145,8 @@ export function finiteTinyHoudini(source: Machine, m: Machine, caller: Law[], ca
       finiteDump.onStart?.({machine: m, caller, candidates})
       const evaluate = finiteEvaluator(m), run = interpret(source), protectedLaws = new Set(caller)
       const declarations: Law[] = [...(m.pre ? [{name: 'finite parameter precondition', holds: m.pre}] : []), ...m.facts ?? []]
-      for (let round = 0; ; round++) {
+      const rounds = options.rounds === undefined ? Infinity : Math.max(0, Math.floor(options.rounds))
+      for (let round = 0; round < rounds; round++) {
         checkWall('tiny Houdini round')
         const active = [...caller, ...survivors], family = [...declarations, ...active], removed = new Set<Law>()
         for (const p of params) {
@@ -166,7 +167,7 @@ export function finiteTinyHoudini(source: Machine, m: Machine, caller: Law[], ca
               options.onDrop?.(drop); finiteDump.onDrop?.(drop)
             }
             return accepted
-          })
+          }, options)
           // The proposer reports partial statistics when its wall expires. It
           // cannot suppress either this local cap or an earlier enclosing wall.
           checkWall('tiny Houdini completion')
@@ -174,6 +175,7 @@ export function finiteTinyHoudini(source: Machine, m: Machine, caller: Law[], ca
         }
         if (!removed.size) return survivors
       }
+      return survivors
     })
   } catch (e) {
     if (!(e instanceof WallExpired)) throw e

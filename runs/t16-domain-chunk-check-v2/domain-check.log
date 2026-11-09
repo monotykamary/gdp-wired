@@ -1,0 +1,72 @@
+bun install v1.4.3 (c6da4a4d3)
+
++ @gdp-ts/core@0.1.0
++ @reduxjs/toolkit@2.13.0
++ @types/bun@1.3.1
++ @webgpu/types@0.1.66
++ effect@4.0.7
++ effect3@3.22.4
++ oxlint@1.88.0
++ oxlint-tsgolint@7.0.2004
++ typescript@5.9.3
++ xstate@5.33.2
++ xstate4@4.38.3
+
+27 packages installed [645.00ms]
+bun test v1.4.3 (c6da4a4d3)
+Found 0 warnings and 0 errors.
+Finished in 21.6s on 1341 files with 100 rules using 8 threads.
+
+--- stderr ---
+
+core/count-cubes.test.ts:
+(pass) fresh one-key count cells extend the width-two cube vocabulary [2.38ms]
+(pass) finite cover checks every explicit cell, not just small key numbers [0.60ms]
+(pass) finite cover derives auxiliary half-count bounds and preserves equality cases [0.67ms]
+(pass) Houdini drops only post-violations from the current whole family, never callers [2.03ms]
+(pass) finite Houdini reaches a fixpoint as removed premises admit new predecessors [0.38ms]
+(pass) a completed model is a CTI only after a real step from the whole family [0.65ms]
+(pass) finite model certification recomputes count cells and rejects bad requests [0.67ms]
+(pass) an unsupported predecessor law cannot certify a finite model [0.16ms]
+(pass) lazy derived counts stop inside the loop and do not cache partial sums [20.63ms]
+(pass) finite model stop reaches both precondition counts and transition counts [0.64ms]
+(pass) finite CTIs respect declared facts, including unsupported facts and derived state [0.60ms]
+(pass) finite frontiers expose both one-sided cube boundaries and field limits [0.09ms]
+(pass) finite boundary states update real count bodies without mutating samples [0.62ms]
+(pass) a finite sampling allowance returns survivors but never extends the outer wall [0.67ms]
+(pass) completed finite drops survive cancellation of the rest of the local pass [0.19ms]
+(pass) finite filtering obeys the outer wall rather than extending it [0.12ms]
+
+core/finite-tiny.test.ts:
+(pass) proposals cross the independent full-family/interpreter trust boundary [2.02ms]
+(pass) whole family constrains pre, not just the proposed target [0.26ms]
+(pass) row strides come from lifted count bodies; identifiers have no meaning [0.88ms]
+(pass) unsupported external function never establishes exhaustion [0.23ms]
+(pass) expired wall returns honest interruption and never extends the parent [0.06ms]
+(pass) a rejected proposal resumes rather than stopping or dropping [0.18ms]
+(pass) dispatch slicing and irrelevant-coordinate quotienting use syntax, not names [0.68ms]
+(pass) native tuple rows are inferred without a row-name convention [1.07ms]
+(pass) the callback, not a screen, must enforce lifted preconditions and facts [0.24ms]
+(pass) one shared transition may propose several independently checked helpers [0.31ms]
+(pass) inactive flags cannot prune an unconditional update elsewhere [0.30ms]
+(pass) state-only no-op has no proposals in the recorded finite scope [0.07ms]
+
+core/finite-tiny-houdini.test.ts:
+(pass) tiny Houdini certifies drops independently and never drops a caller [0.65ms]
+(pass) tiny Houdini repeats under the surviving family after certified drops [0.42ms]
+(pass) tiny Houdini checks declared facts and parameter preconditions [0.43ms]
+(pass) unsupported declarations cannot authorize tiny Houdini drops [1.28ms]
+(pass) tiny Houdini preserves survivors on its own timeout and propagates an outer wall [0.16ms]
+(pass) an explicit round cap retains untested later-round helpers [0.56ms]
+(pass) an explicit richer state domain can expose a new real violation [0.41ms]
+(pass) an unsupported count grid retains every candidate [0.08ms]
+(pass) tiny Houdini does not confuse a true natural bound with a witnessed violation [0.13ms]
+
+ 37 pass
+ 0 fail
+ 117 expect() calls
+Ran 37 tests across 3 files. [60.00ms]
+$ tsc -p . && oxlint --type-aware --deny-warnings --disable-nested-config
+Resolving dependencies
+Resolved, downloaded and extracted [276]
+Saved lockfile
