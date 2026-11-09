@@ -70,6 +70,32 @@ selection; it does not preserve every instance from the original raw packet.
 Thus a raw UNKNOWN becoming a preferred SAT is possible and is reported, not
 called a proof regression or suppressed.
 
+## Conditional pointwise evidence
+
+`pointwise.ts` isolates a proposed count inclusion on the immutable E-14
+packet. The `*-domain` modes retain scalar conjuncts implied by the original
+raw goal, plus the explicit member-flag premises. `tight-domain` tests the
+weaker `CT[i] < CfgT[b]` assumption instead of the proposal's sufficient
+`CT[i] + 1 < CfgT[b]`. This strengthens the conditional claim; it does not
+alter production matching or assert a fact.
+
+Both guarded domain-aware variants checked in about 40 counted units. The
+missing-guard control stays SAT. Without the original scalar/key-domain
+premises, all initial controls were SAT; those failures remain recorded.
+This is **not a proof of safety**, nor evidence that the guard or member flags
+hold outside the relevant branch.
+
+`export-pointwise.sh` uses a unique empty output file and refuses to verify
+unless the producer wrote a nonempty certificate. `verify-pointwise.ts`
+checks the saved certificate in a fresh process without running the matcher.
+The receipt must also contain a fresh producer artifact whose hash matches
+that second process; a verifier exit alone is not sufficient.
+
+`concise-shard.ts` captures the complete child stream before summarizing it.
+`recover-shard.ts` verifies the retained gzip's raw hash and size and reparses
+both `1 file.` and `N files.` summaries. The initial plural-only parser failure
+is retained; recovering its complete log does not rerun or regenerate tests.
+
 A successful conditional replay warrants strict original-harness confirmation;
 it does not warrant a merge. The full 29x3, DuoAI, broken, bar, type/lint and test
 nonregression gate is still required. See `runs/REPORT.md` for actual receipts,

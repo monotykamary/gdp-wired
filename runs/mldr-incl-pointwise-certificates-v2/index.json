@@ -1,0 +1,26 @@
+[
+  {
+    "scope": "conditional pointwise lemma; NOT safety",
+    "control": "guarded-domain",
+    "inputSha256": "82a92edbc31b56ff7b295b31c9565846cf22b7c1828509aef68998d259bc6b1f",
+    "sha256": "4e003e8464b94962f56447aa4ffe8214209173f6941c3669c9910b9ee7d8e306",
+    "bytes": 1059,
+    "countedMs": 39.7938808,
+    "producerChecked": true,
+    "independentChecked": true,
+    "carried": "S",
+    "targetMap": "inX$canVote$3"
+  },
+  {
+    "scope": "conditional pointwise lemma; NOT safety",
+    "control": "tight-domain",
+    "inputSha256": "82a92edbc31b56ff7b295b31c9565846cf22b7c1828509aef68998d259bc6b1f",
+    "sha256": "3f231dc1a37e89ca567c8fb0363ba1de8f399faaeb258bcd012b494b66c0926e",
+    "bytes": 1046,
+    "countedMs": 39.78182680000001,
+    "producerChecked": true,
+    "independentChecked": true,
+    "carried": "S",
+    "targetMap": "inX$canVote$3"
+  }
+]

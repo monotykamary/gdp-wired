@@ -1,0 +1,6 @@
+[
+ {"name":"voters-bound-guarded-1000","cmd":"set -e; bash research/track-m/prepare-vendors.sh; bun install --frozen-lockfile >/dev/null; timeout -s KILL 30 bun research/mldr-incl/pointwise.ts 'research/mldr-incl/fixtures/e14-safety.br#stage-0.json' S 'inX$canVote$1' guarded 1000","cpu":8,"memory":14336,"vm_type":"large","timeout":90},
+ {"name":"voters-bound-unguarded-1000","cmd":"set -e; bash research/track-m/prepare-vendors.sh; bun install --frozen-lockfile >/dev/null; timeout -s KILL 30 bun research/mldr-incl/pointwise.ts 'research/mldr-incl/fixtures/e14-safety.br#stage-0.json' S 'inX$canVote$1' unguarded 1000","cpu":8,"memory":14336,"vm_type":"large","timeout":90},
+ {"name":"voters-full-guarded-1000","cmd":"set -e; bash research/track-m/prepare-vendors.sh; bun install --frozen-lockfile >/dev/null; timeout -s KILL 30 bun research/mldr-incl/pointwise.ts 'research/mldr-incl/fixtures/e14-safety.br#stage-0.json' S 'inX$canVote$3' guarded 1000","cpu":8,"memory":14336,"vm_type":"large","timeout":90},
+ {"name":"voters-full-unguarded-1000","cmd":"set -e; bash research/track-m/prepare-vendors.sh; bun install --frozen-lockfile >/dev/null; timeout -s KILL 30 bun research/mldr-incl/pointwise.ts 'research/mldr-incl/fixtures/e14-safety.br#stage-0.json' S 'inX$canVote$3' unguarded 1000","cpu":8,"memory":14336,"vm_type":"large","timeout":90}
+]
