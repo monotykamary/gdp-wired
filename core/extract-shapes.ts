@@ -281,7 +281,7 @@ function argOf(ex: Exec, param: ts.ParameterDeclaration, prefix: string, body: t
   // Untyped (JavaScript): its fields as the code reads them, numbers unless compared with string literals.
   if (t.flags & (ts.TypeFlags.Any | ts.TypeFlags.Unknown)) {
     for (const [path, xs] of lits) if (!s.lazySorts.has(`${prefix}${path}`)) s.lazySorts.set(`${prefix}${path}`, {k: 'choice', values: [...xs, OTHER]})
-    const id = `input.${prefix}${pname}`
+    const id = ex.id(`input.${prefix}${pname}`)
     s.notes.add(`${pname} is untyped: its fields are inputs as the code reads them (numbers, or a choice among the literals it is compared with and ${OTHER})`)
     const disc = [...lits.keys()].find(k => !k.includes('_'))
     const arg: Arg = {k: 'lazy', prefix}
@@ -323,7 +323,7 @@ function argOf(ex: Exec, param: ts.ParameterDeclaration, prefix: string, body: t
     vars.set(key, x)
     return Exec.valueOf(x)
   }
-  const id = `input.${prefix}${pname}`, v = make({k: 'rec', fields: [...all]}, [], id)
+  const id = ex.id(`input.${prefix}${pname}`), v = make({k: 'rec', fields: [...all]}, [], id)
   const template = (m: ts.Type | undefined): Arg => {
     const of = (sh: Shape, path: string[], present: (f: string) => boolean): Arg => (sh.k === 'rec'
       ? {k: 'rec', fields: sh.fields.filter(([f]) => path.length || present(f)).map(([f, fs]) => [f, of(fs, [...path, f], present)])}

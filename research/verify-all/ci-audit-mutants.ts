@@ -9,6 +9,7 @@ const result = checkMutations({
   lawSuite: 'audit', timeoutMs: 120_000,
   suites: [{name: 'audit', command: ['bun', 'test', 'core/extract-ci-audit.test.ts']}],
   mutants: [
+    {file: 'core/extract-shapes.ts', name: 'P2-shared-record-identity', from: 'const id = ex.id(`input.${prefix}${pname}`), v = make', to: 'const id = `input.${prefix}${pname}`, v = make', bug: 'named and destructured arguments alias the same heap object'},
     {file, name: 'B1-standalone-only-guard', from: guard, to: guard.replace('if ([', 'if (c.strictOptional && ['), bug: 'optional class result bypasses calendar arithmetic guard'},
   ],
 })

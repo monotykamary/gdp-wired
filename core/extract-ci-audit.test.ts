@@ -1,6 +1,14 @@
 import {expect, test} from 'bun:test'
-import {extract} from './extract.ts'
+import {extract, type Extraction} from './extract.ts'
 import {buildLaw} from './laws.ts'
+import {proveSteps} from './dsl.ts'
+
+const noReplay = {runs: 0, states: 0, probes: false as const}
+const verdict = (x: Extraction, expr: string, method = 'decide') => {
+  const b = buildLaw(x, {name: expr, expr, method})
+  if (b.kind !== 'step') throw new Error('expected step law')
+  return proveSteps(x.rule!, x.invariants ?? [], [b.law], {from: 'any', search: false})
+}
 
 test('CI audit B1: default replay cannot validate optional calendar law translation', () => {
   for (const [source, standalone] of [
@@ -14,6 +22,27 @@ test('CI audit B1: default replay cannot validate optional calendar law translat
     expect(x.evidence!.fromStates).toBeGreaterThan(0)
     for (const expr of ['result - 0 <= 1 business days', '1 business days >= result - 0', '0 - result <= 1 business days']) {
       expect(() => buildLaw(x, {name: expr, expr, method: 'decide'}, {clock: 1, calendar: {weekend: ['sat', 'sun']}})).toThrow('arithmetic on an optional')
+    }
+  }
+})
+
+test('CI audit P2: named and destructured records have independent heap identities', () => {
+  for (const reversed of [false, true]) {
+    const parameters = reversed ? '{enabled}: {enabled: boolean}, arg: {enabled: boolean}' : 'arg: {enabled: boolean}, {enabled}: {enabled: boolean}'
+    const x = extract(`export function decide(${parameters}): boolean { return arg.enabled; }`, {entry: 'decide', mode: 'standalone', check: noReplay})
+    expect({ok: x.ok, refusals: x.refusals}).toEqual({ok: true, refusals: []})
+    expect(verdict(x, 'result == enabled')).toMatchObject({proven: false, stuck: 'sat'})
+    expect(verdict(x, 'result == arg.enabled')).toMatchObject({proven: true, checked: true})
+    const r = x.rule!, machine = r.interpreter(), params = r.encodeParams({})
+    const output = x.model!.results!.decide!
+    if (output.k !== 'maybe') throw new Error('expected optional result encoding')
+    const inputs = x.names!.filter(n => n.role === 'input').map(n => n.rule)
+    expect(inputs).toHaveLength(2)
+    expect(new Set(inputs).size).toBe(2)
+    for (const first of [false, true]) for (const second of [false, true]) {
+      const state = r.decode(machine.step(params, machine.init(params), r.encodeInput({[inputs[0]!]: first, [inputs[1]!]: second})))
+      expect(state[output.missing]).toBe(false)
+      expect(state[output.name]).toBe(reversed ? second : first)
     }
   }
 })
