@@ -367,6 +367,24 @@ export function decide(n: Code, x: boolean | undefined) { return pick(x); }`
   expect(JSON.parse(proc.stdout).rules[0].ok).toBe(true)
 })
 
+test('standalone CLI accounts for every annotated function in a file', async () => {
+  const dir = files({'choices.ts': `
+// gdp: law route controls permission: result.allowed implies route == "north"
+export function permit(route: "north" | "south"): {allowed: boolean} { return {allowed: route === "north"}; }
+// gdp: law release clears the result: release implies result is null
+export function hold(release: boolean): "hold" | null { if (release) return null; return "hold"; }
+`})
+  const result = await check([`${dir}/choices.ts`], {mode: 'standalone', ms: 2000, propose: false})
+  expect(result.exit).toBe(0)
+  expect(result.rules).toHaveLength(2)
+  expect(result.rules.every(r => r.ok)).toBe(true)
+  expect(result.rules.flatMap(r => r.laws.map(l => l.verdict))).toEqual(['proven', 'proven'])
+  // An explicit entry does not silently drop another function's stated laws.
+  const partial = await check([`${dir}/choices.ts`], {entry: 'permit', mode: 'standalone', ms: 2000, propose: false})
+  expect(partial.exit).toBe(2)
+  expect(partial.rules.some(r => r.laws.some(l => l.verdict === 'not read'))).toBe(true)
+})
+
 test('gdp.toml, pyproject.toml\'s [tool.gdp] and package.json\'s "gdp": the options of every rule and of one', async () => {
   const {configFor, toml} = await import('./cli.ts')
   expect(toml('failures = "kept" # all\n[rules.H]\nmethods = ["a", \'b\']\nstores.c.attrs = {"d.e" = "None", n = 3}\n[rules."x.y"]\nstrict = true\n'))

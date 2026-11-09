@@ -99,7 +99,47 @@ export type Least = {some: string, key: string, where: C, by: {e: E, neg?: E, de
 // A function of several arguments is read at their pairing (core/dsl.ts's argsKey, left-nested (a + b)² + b), which the
 // kernel and Lean reason about; `call`, its JavaScript on the `arity` arguments themselves, is what the runtimes call
 // where a read's key is that pairing, so no paired key (which passes 2^53 at modest arguments) is ever computed.
-export type Fn = {js: string, lean?: string, recur?: Recurrence, arity?: number, call?: string}
+export type Fn = {js: string, lean?: string, recur?: Recurrence, arity?: number, call?: string, direct?: DirectFn}
+// Serializable, source-free implementations of library helpers. JavaScript is retained for generated-code mode.
+type DirectImplementation = {kind: 'div', divisor: number} | {kind: 'mod', divisor: number} | {kind: 'const', value: number}
+  | {kind: 'recur', name: string, args: string[], zero: E, next: E, uses: Record<string, Fn>}
+export type DirectFn = DirectImplementation & {source: {js: string, arity: number, call?: string, descriptor: string}}
+const directBody = (d: DirectImplementation): DirectImplementation => {
+  switch (d.kind) {
+    case 'div': case 'mod': return {kind: d.kind, divisor: d.divisor}
+    case 'const': return {kind: d.kind, value: d.value}
+    case 'recur': return {kind: d.kind, name: d.name, args: d.args, zero: d.zero, next: d.next, uses: d.uses}
+  }
+}
+// Only runtime semantics belong in the snapshot, never Lean definitions or recurrence proof receipts.
+const directDescriptor = (d: DirectImplementation): unknown => d.kind !== 'recur' ? directBody(d) : {
+  ...directBody(d), uses: Object.fromEntries(Object.entries(d.uses).map(([name, fn]) => [name, {
+    js: fn.js, arity: fn.arity ?? 1, call: fn.call, direct: fn.direct && directDescriptor(fn.direct),
+  }])),
+}
+// Bind a library implementation to the exact source it replaces. Keep the association in JSON too: a WeakMap alone
+// cannot recognize a serialized machine. Overridden source/arity/call is custom code, never the old implementation.
+// This is a consistency check on trusted library metadata, not provenance or validation of arbitrary input.
+export const bindDirect = (fn: Pick<Fn, 'js' | 'arity' | 'call'>, direct: DirectImplementation): DirectFn =>
+  ({...directBody(direct), source: {js: fn.js, arity: fn.arity ?? 1, ...(fn.call === undefined ? {} : {call: fn.call}), descriptor: JSON.stringify(directDescriptor(direct))}})
+type DirectSource = {js: string | ((...args: number[]) => number), arity?: number, call?: string, direct?: DirectFn}
+export const directOf = (fn: DirectSource): DirectFn | undefined => {
+  const d = fn.direct, s = d?.source
+  if (!d || !s || s.js !== fn.js || s.arity !== (fn.arity ?? 1) || s.call !== fn.call) return undefined
+  try {
+    if (s.descriptor !== JSON.stringify(directDescriptor(d))) return undefined
+    switch (d.kind) {
+      case 'div': case 'mod': return Number.isSafeInteger(d.divisor) && d.divisor >= 1 ? d : undefined
+      case 'const': return Number.isSafeInteger(d.value) && d.value >= 0 ? d : undefined
+      case 'recur': return Array.isArray(d.args) && d.args.length + 1 === s.arity ? d : undefined
+      default: return undefined
+    }
+  } catch { return undefined } // Malformed/cyclic metadata is not a source-free implementation.
+}
+export const sourceFreeFn = (fn: DirectSource): boolean => {
+  const d = directOf(fn)
+  return !!d && (d.kind !== 'recur' || Object.values(d.uses).every(sourceFreeFn))
+}
 // A function defined by a recurrence on its first argument: f(0, args) = zero, f(x + 1, args) = next, which reads x, prev
 // (f(x, args)), the further arguments by name and the functions in `uses` by name (a map read at its key); each lemma
 // reads x, fx and the arguments, each law between two points x, fx, y, fy (for every x <= y) and the arguments, all
@@ -203,8 +243,9 @@ export function arithmetic(ks: Iterable<number>): {fns: Record<string, Fn>, fact
   const fns: Record<string, Fn> = {}, facts: Law[] = []
   for (const k of [...new Set(ks)].sort((a, b) => a - b)) {
     const d = divName(k), r = modName(k), key = `x$${r}`, at = (map: string): E => get(map, x(key))
-    fns[d] = {js: `x => Math.floor(x / ${k})`, lean: `fun x => x / ${k}`}
-    fns[r] = {js: `x => x % ${k}`, lean: `fun x => x % ${k}`}
+    const quotient = {js: `x => Math.floor(x / ${k})`, lean: `fun x => x / ${k}`}, remainder = {js: `x => x % ${k}`, lean: `fun x => x % ${k}`}
+    fns[d] = {...quotient, direct: bindDirect(quotient, {kind: 'div', divisor: k})}
+    fns[r] = {...remainder, direct: bindDirect(remainder, {kind: 'mod', divisor: k})}
     facts.push({name: `${r}: x = ${k}·(x div ${k}) + x mod ${k}`, forall: key, holds: same(x(key), plus(times(k, at(d)), at(r)))},
       {name: `${r}: x mod ${k} < ${k}`, forall: key, holds: less(at(r), n(k))})
   }
@@ -358,17 +399,93 @@ export function evalE(e: E, env: Env, st: State, m: Machine): number {
 }
 // A function's value at a key (the GPU search tabulates functions with it).
 export const fnValue = (fn: Fn, key: number): number => naturalIn(fnOf(fn)(key), `a function at ${key}`)
-// A function's JavaScript, compiled once.
-const compiledFns = new WeakMap<Fn, (key: number) => number>()
+// Call a helper on its arguments, without computing their potentially enormous paired key.
+export const fnCall = (fn: Fn, args: number[]): number => naturalIn(callOf(fn)(...args), 'a function call')
+const directCall = (d: DirectFn): ((...args: number[]) => number) => {
+  if (d.kind === 'div') return x => Math.floor(x / d.divisor)
+  if (d.kind === 'mod') return x => x % d.divisor
+  if (d.kind === 'const') return () => d.value
+  // Match recurJs: check each completed step, memoize by the fixed arguments, restart for a smaller x.
+  // Arithmetic inside an equation is evaluated just as in generated code; no paired key is needed for calls.
+  const memo = new Map<string, [number, number]>()
+  const value = (e: E, env: Env): number => {
+    switch (e.op) {
+      case 'const': return e.value
+      case 'var': return env[e.name]!
+      case 'add': return value(e.a, env) + value(e.b, env)
+      case 'sub': return Math.max(0, value(e.a, env) - value(e.b, env))
+      case 'mul': return e.k * value(e.a, env)
+      case 'prod': return value(e.a, env) * value(e.b, env)
+      case 'min': return Math.min(value(e.a, env), value(e.b, env))
+      case 'max': return Math.max(value(e.a, env), value(e.b, env))
+      case 'if': return condition(e.c, env) ? value(e.then, env) : value(e.else, env)
+      case 'get': {
+        const fn = d.uses[e.map]!, args = pairedArgs(e.key, fn.arity ?? 1)
+        return args ? callOf(fn)(...args.map(a => value(a, env))) : fnOf(fn)(value(e.key, env))
+      }
+      case 'tup': case 'proj': throw new Error('a recurrence takes no tuple key')
+    }
+  }
+  const condition = (c: C, env: Env): boolean => {
+    switch (c.op) {
+      case '<': return value(c.a, env) < value(c.b, env)
+      case '<=': return value(c.a, env) <= value(c.b, env)
+      case '=': return value(c.a, env) === value(c.b, env)
+      case 'and': return c.xs.every(c => condition(c, env))
+      case 'or': return c.xs.some(c => condition(c, env))
+      case 'not': return !condition(c.x, env)
+      case 'flag': case 'all': throw new Error('a recurrence takes no flag or quantifier')
+    }
+  }
+  return (x, ...args) => {
+    const key = args.join(), env: Env = Object.fromEntries(d.args.map((a, i) => [a, args[i]!]))
+    let at = memo.get(key)
+    if (!at || at[0] > x) at = [0, value(d.zero, env)]
+    let prev = at[1]
+    for (let i = at[0]; i < x; i++) {
+      prev = value(d.next, {...env, x: i, prev})
+      if (!Number.isSafeInteger(prev)) throw new RangeError(`${d.name} passes the safe integers`)
+    }
+    if (memo.size > 4096) memo.clear()
+    memo.set(key, [x, prev])
+    return prev
+  }
+}
+// A function's implementation, compiled only when it has no direct representation.
+type CachedFn<F> = {js: string, arity?: number, call?: string, direct?: DirectFn, value: F}
+const currentFn = <F>(fn: Fn, cached: CachedFn<F> | undefined): F | undefined => cached && cached.js === fn.js && cached.arity === fn.arity && cached.call === fn.call && cached.direct === directOf(fn) ? cached.value : undefined
+const cacheFn = <F>(fn: Fn, value: F): CachedFn<F> => ({js: fn.js, arity: fn.arity, call: fn.call, direct: directOf(fn), value})
+const compiledFns = new WeakMap<Fn, CachedFn<(key: number) => number>>()
 const fnOf = (fn: Fn): ((key: number) => number) => {
-  let f = compiledFns.get(fn)
-  if (!f) { f = compileFunction<(key: number) => number>(['k'], `return (${fn.js})(k)`); compiledFns.set(fn, f) }
+  let f = currentFn(fn, compiledFns.get(fn))
+  if (!f) {
+    if (directOf(fn)) {
+      const call = callOf(fn), arity = fn.arity ?? 1
+      f = key => {
+        const args: number[] = []
+        let z = key
+        for (let i = 1; i < arity; i++) {
+          let s = Math.floor(Math.sqrt(z))
+          while (s * s > z) s--
+          while ((s + 1) * (s + 1) <= z) s++
+          const q = z - s * s
+          args.unshift(q); z = s - q
+        }
+        return call(z, ...args)
+      }
+    } else f = compileFunction<(key: number) => number>(['k'], `return (${fn.js})(k)`)
+    compiledFns.set(fn, cacheFn(fn, f))
+  }
   return f
 }
-const compiledCalls = new WeakMap<Fn, (...args: number[]) => number>()
+const compiledCalls = new WeakMap<Fn, CachedFn<(...args: number[]) => number>>()
 const callOf = (fn: Fn): ((...args: number[]) => number) => {
-  let f = compiledCalls.get(fn)
-  if (!f) { f = compileFunction<() => (...args: number[]) => number>([], `return (${fn.call})`)(); compiledCalls.set(fn, f) }
+  let f = currentFn(fn, compiledCalls.get(fn))
+  if (!f) {
+    const direct = directOf(fn)
+    f = direct ? directCall(direct) : compileFunction<() => (...args: number[]) => number>([], `return (${fn.call ?? fn.js})`)()
+    compiledCalls.set(fn, cacheFn(fn, f))
+  }
   return f
 }
 // A key of several arguments: their pairing, left-nested, ((a, b), c)..., each pair (s)² + b with s = a + b.
