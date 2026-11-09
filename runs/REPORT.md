@@ -18,9 +18,37 @@ checkpoint/shortcut logs were independently replayed. Production tiny
 screening stays disabled: only three of the named seven were caught.
 Bounded grouping reached four named drops, not five. Operation-first was
 rejected. Per coordinator direction, post-target pruning is now opt-in
-on top of state-first: 55 tests pass, but the first pilot caught no drops.
+on top of state-first: the first pilot caught no drops during target build.
+A shared partial-post circuit revision is now in differential validation.
 
-## Current work: post-target differential checks pass; pilot caught zero
+## Current revision: shared partial post-state circuits (validation pending)
+
+The profile below found that repeated target substitution exhausted both
+stages before enumeration. The revision preserves state-first traversal
+and replaces that expansion with one source-output expression DAG per
+operation. Each post coordinate has a readiness depth derived from **all**
+of its source dependencies. Until ready, it is unknown; placeholder zeroes
+must never participate in a known predicate. Target negations share this
+post-state vector. Unchanged primitive dependencies may be skipped under
+the full pre-family; unsupported construction falls back to possible.
+The complete-assignment semantics are unchanged, though the partial
+approximation can be more conservative than expanded symbolic choices.
+
+Two added differential fixtures cover swapped coordinates with different
+readiness and a target independent of another output. The existing binary/
+ternary, polarity, input, map/count, callback and declaration fixtures are
+rerun. No pilot is submitted until those and type/lint pass.
+
+Validation task: `c7e69bea-4a01-47b9-b9f8-f4acedbe1f45`, output
+`runs/t16-target-circuit-check/`, two isolated submission-class jobs.
+Same canonical archive `6288b666` plus small overlay
+`runs/t16-target-circuit-overlay/`. Compiler SHA-256
+`59bf1a68ae755e7a57c4c5085c7db0c87f5923c69d08bb199344f24604ee181a`;
+test `9809622223dacfac7c3b35e568a7c30019c6bdb7081afdae769a501c9113115f`.
+These WIP files are not covered by the earlier 55-test receipt. Production,
+all domains, the native-body cap and the five-of-seven / 2 s bar are unchanged.
+
+## Previous post-target expansion: checks passed, pilot caught zero
 
 Coordinator-directed successor to the rejected operation-first trial. The
 state-first traversal is retained. Each target's postcondition is substituted
