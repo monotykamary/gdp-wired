@@ -1,6 +1,6 @@
 ## Lane B — RESUMED (2026-11-10)
 
-**Current lane candidate: early bounded count-law completion.** The scheduling change is now in `core/counts.ts` on this lane only, not merged into main. Two same-VM orders reduce conditional p1 from **2175.512286 to 1258.152222 units** (917.360064 units / 42.2%), preserving all four checked certificates. Both experimental source variants pass typecheck/lint and 9 tests / 50 assertions. Separate full count-test coverage, checker-only replay and three paired untouched original-harness MLDR runs are being prepared; no original-harness or full-gate success is claimed. Failed member/row seeding stays research-only.
+**Current lane candidate: early bounded count-law completion.** The scheduling change is now in `core/counts.ts` on this lane only, not merged into main. Two same-VM orders reduce conditional p1 from **2175.512286 to 1258.152222 units** (917.360064 units / 42.2%), preserving all four checked certificates. Both experimental source variants pass typecheck/lint and 9 tests / 50 assertions. Separate full count-test coverage, checker-only replay and three paired untouched original-harness MLDR runs are submitted from `44e06e5c` as task `dc890ef1-755d-4647-ae02-43464714d68d`, output `lane-b-completion-validation-v1`; no original-harness or full-gate success is claimed. Failed member/row seeding stays research-only.
 
 The user explicitly resumed this lane. **Not GATE GREEN; no push or merge.**
 
