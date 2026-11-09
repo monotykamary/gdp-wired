@@ -42,7 +42,7 @@ const mldr=validation.filter(j=>j.name.startsWith('mldr-')).map(j=>{
  })
  return {name:j.name,placement:j.placement,sha256:j.sha256,sides}
 })
-const report={finalGate:false,identity:JSON.parse(read('input/identity.json')),issues,census,tests,mldr,validation:validation.map(({log,...job})=>job)}
+const report={finalGate:false,identity:JSON.parse(read('input/identity.json')),issues,census,tests,mldr,validation:validation.map(({log:_log,...job})=>job)}
 writeFileSync(join(root,'summary.json'),JSON.stringify(report,null,2)+'\n')
 console.log(JSON.stringify({finalGate:false,issues,censusPairs:census.length,unrelatedIdentical:census.filter(r=>r.id!=='mldr'&&r.identical).length,mldr:mldr.map(j=>({name:j.name,cpu:j.placement?.cpu,sides:j.sides.map(s=>({side:s.side,result:s.result,laws:s.candidates.at(-1)?.laws.length,attempts:s.attempts.length,safetyTried:s.safetyTried,safetyKept:s.safetyKept}))}))},null,2))
 if(issues.length)process.exitCode=1
