@@ -1,0 +1,27 @@
+{
+  "candidate": "8d35b7f17506fcd1f8c1d9a05ec2624c924c855d",
+  "baseline": "4497c4b05c3111959a2b8d808c426a0e3cab3f01",
+  "archives": {
+    "main.tar": "9508c2e454b4b6eefa4093bbf6efba569d09bea4bc89646b6e8df7bc0a3a6dc6",
+    "handwired.tar": "73d44548dbe109a40ac933406324e17d7dee39e7dff1a6f1270ed030c31c1da4",
+    "gdp-ts.tar": "75d367da15decb1fefce2ae72ae50e7f3f737989094a760fde643c5b1f5c1496"
+  },
+  "integratedHeads": {
+    "A": "0bab28e2a2ac83ef1dc67991317d8eeeeb7716b5",
+    "B": "4ce50c00ac693a036f9d3df79aa46f0f8f344161",
+    "E": "e1b8d3b7d55be33fd6434c589bcac903bb58fd02",
+    "F": "c15212624e394fca9e2051ab494d4f50017da059",
+    "Fable": "f6b383f0ceed7cc52cb15d1ea91b2c75e7b8e0f9"
+  },
+  "harness": "a9fa1e966acf503db0804419f8af7b82cfec671f8fba528716ec5440ea70dd66",
+  "counts": {
+    "base": "a010366e341b4fb162b0e22acef951980c0a8db297fe1273395d433fdaa7196e",
+    "candidate": "fdfee67b293d9899545413df765768a8b388d56985e98facb838cacac62be91c"
+  },
+  "fixes": {
+    "A": "1564709f64e44df2f666353b9299e74e944ff71a",
+    "B": "337294ea4ba1095b92d2e3bf8a4aad245ac8fd91"
+  },
+  "runtimeReferenceSha256": "7383b94f08af880afb2bc7d123214c07e0e98c990ab0a973febb5090d57116ae",
+  "runtimeSha256": "2da24a9a74a03b527c1ba111cbcc510ea0bc8627e5dcb7b5dd81a2d15d136efa"
+}

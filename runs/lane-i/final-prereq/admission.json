@@ -1,0 +1,8 @@
+{
+  "candidate":"8d35b7f17506fcd1f8c1d9a05ec2624c924c855d",
+  "baseline":"4497c4b05c3111959a2b8d808c426a0e3cab3f01",
+  "snapshot":"329ef3cbe804",
+  "validation":{"batch":"20261110-035016-m45qys","task":"cf6991fe-c44e-4899-beb7-3b28dc6c0f00","status":"pending"},
+  "strict":{"batch":"20261110-035023-3p9acg","task":"d1deb71c-dc90-419c-b819-e7573a13be81","status":"pending","cohortIds":[13,14,15,16,17,18,19,20,21,22,23,24]},
+  "finalGate":false
+}

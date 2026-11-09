@@ -10,9 +10,11 @@
   "strict": {
     "batch": "20261110-034240-kp8mpv",
     "task": "e88b75c0-1ad7-43aa-bcbd-b26df6ca5461",
-    "status": "pending",
+    "status": "audited-five-pairs-no-loss",
     "cpu": "AMD Ryzen 9 9950X 16-Core Processor",
-    "requiredPairs": 5
+    "requiredPairs": 5,
+    "acceptedPairs": 5,
+    "issues": []
   },
   "typeRecheck": {
     "source": "a197ab4f832cba5f5905e544db0502bb373ea16a",
@@ -23,7 +25,7 @@
   "finalGate": false,
   "typeRecheckV2": {
     "task": "7f92354e-07f5-437b-b964-dbc0f5a815da",
-    "status": "pending",
+    "status": "failed-research-error-formatting-lint",
     "productionSource": "a197ab4f832cba5f5905e544db0502bb373ea16a"
   }
 }
