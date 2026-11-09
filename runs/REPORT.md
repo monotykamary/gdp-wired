@@ -60,11 +60,22 @@ Both failed checks remain recorded:
   `runs/t16-operation-fixture-check/`. No further validation retry is useful
   for this already-rejected performance variant.
 
-The six payloads are being independently replayed in task
-`b3e5cc40-a0a8-4af6-b3ef-48c84f071865`, output `runs/t16-operation-replay/`.
-Replay can validate witnesses but cannot rescue the wall or named-seven
-failure. All source archives are reused; only small patches/receipts/logs
-were added. No subagents; production remains disabled.
+Independent replay is now complete: batch `20261110-014125-077cp4`, job
+`replay-operation-first`, exit 0. It certifies every emitted witness but
+reports `originalThreeMeetNewFive: false` and
+`allSixWallsWithinAllowance: false`. Compact evidence:
+`research/track-gen/t16-operation-results.json`. Witness validity does not
+rescue the zero-of-seven / over-budget result.
+
+All lane-A work started for these pilots has completed; no active clients
+or subagents remain. Source archives were reused; only small patches,
+receipts and compressed logs were added. Production remains disabled.
+Next hypothesis to investigate is post-target-directed pruning rather than
+another traversal-order or time-cap adjustment: use the target's negated
+postcondition, substituted through the source step, to prune a partial
+assignment only when that target cannot fail. This needs explicit unknown
+semantics and exhaustive small-instance differential tests before a pilot;
+the same independent full-family checker and five-of-seven / 2 s bar apply.
 
 For lane I/Fable: retain the checked bounded-group state-first code, not
 the rejected operation-first patch. Best observed original-family result
