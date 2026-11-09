@@ -1,8 +1,7 @@
-// A count whose body is 0 or 1 at every key is at most the number of keys it ranges over. For every such count a goal
-// reads, the instance `count ≤ below` (Count.lean's countHyp with the one term at +1 and the unit at −1: the count is at
-// most its bound, or some key below the bound has a body above 1, which no 0/1 body has) is proposed in the initial
-// selection of a counted attempt, so a model that puts a count above its universe is never a model of the goal. Nothing
-// is assumed: the instance is an ordinary count instance the kernel checks. A body that is not 0/1 gets no range.
+// A 0/1-bodied count is at most its key bound. Propose its ordinary witness-
+// bearing range instance when a model violates the bound, not eagerly for
+// every read. Nothing is assumed: the unchanged kernel checks the instance.
+// Unknown bounds and non-0/1 bodies do not trigger a proposal.
 import type {E} from './machine.ts'
 import type {CountDecl, CountInst, MapRead} from '../kernel/kernel.ts'
 import {countsForReads} from './count-facts.ts'
@@ -22,4 +21,27 @@ export function rangeInstances(decls: CountDecl[], reads: MapRead[], taken: Iter
     out.push({wit, below: count.below, terms: [[1, read[0]]], unit: -1})
   }
   return out
+}
+// Inspect only fully valued arithmetic bounds. Unassigned or unsupported
+// terms are unknown, not evidence that a model violates a range.
+export function rangeViolations(decls: CountDecl[], reads: MapRead[], model: Record<string, number>): MapRead[] {
+  const value = (e: E): number | undefined => {
+    switch (e.op) {
+      case 'const': return e.value
+      case 'var': return model[e.name]
+      case 'add': { const a = value(e.a), b = value(e.b); return a === undefined || b === undefined ? undefined : a + b }
+      case 'mul': { const a = value(e.a); return a === undefined ? undefined : e.k * a }
+      case 'sub': { const a = value(e.a), b = value(e.b); return a === undefined || b === undefined ? undefined : Math.max(0, a - b) }
+      case 'min': case 'max': { const a = value(e.a), b = value(e.b); return a === undefined || b === undefined ? undefined : e.op === 'min' ? Math.min(a, b) : Math.max(a, b) }
+      case 'get': case 'if': case 'prod': case 'proj': case 'tup': return undefined
+    }
+  }
+  return reads.filter(read => {
+    const v = model[read[0]]
+    if (v === undefined) return false
+    const count = countsForReads(decls, [read])?.[0]
+    if (!count || !zeroOne(count.body)) return false
+    const bound = value(count.below)
+    return bound !== undefined && v > bound
+  })
 }
