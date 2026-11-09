@@ -1,0 +1,55 @@
+{
+  "activeCiBatches": [],
+  "ownedShellTasks": [
+    {
+      "id": "f93bdf61-9053-4a77-aaf2-99e2f11f670a",
+      "status": "exited",
+      "exitCode": 0
+    },
+    {
+      "id": "1c318a4f-45e3-411f-9c60-60ac45d85c14",
+      "status": "exited",
+      "exitCode": 0
+    },
+    {
+      "id": "12d39d9c-ce57-4abb-834e-4807805fb8aa",
+      "status": "exited",
+      "exitCode": 0
+    },
+    {
+      "id": "c7b0f8b0-beb4-44fe-8fc7-3e2afa598299",
+      "status": "exited",
+      "exitCode": 0
+    },
+    {
+      "id": "7bce3a6a-42c2-4a85-8937-c81ca8beb5b9",
+      "status": "exited",
+      "exitCode": 0
+    },
+    {
+      "id": "648d6de6-98e8-433c-b6c3-bb22693f5778",
+      "status": "exited",
+      "exitCode": 0
+    },
+    {
+      "id": "54beb4be-1609-43a4-b8e7-daa859f16cf7",
+      "status": "exited",
+      "exitCode": 0
+    },
+    {
+      "id": "002d4834-75a3-4bcb-8cea-47026ebe1448",
+      "status": "exited",
+      "exitCode": 0
+    },
+    {
+      "id": "748fefe9-6053-4a71-942a-c72e7a60df22",
+      "status": "exited",
+      "exitCode": 0
+    },
+    {
+      "id": "b243a115-cd8a-4925-9f1e-d9b3fc77e881",
+      "status": "exited",
+      "exitCode": 0
+    }
+  ]
+}

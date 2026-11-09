@@ -1,0 +1,465 @@
+CLEAN_CHECKOUT_HEAD 0dd82aca2b7c77958f1df67528ac7fed90c1d978
+CLEAN_CHECKOUT_TREE 435e2d0f2c64bc2923745e03458390c68a52c199
+ 0b6ebeeec827b05210f3acfa4149a70dda9a0de5 vendor/gdp-ts (heads/master)
+ d47141cce2caf5b86b0c2c0c372a5174f424bc15 vendor/handwired (heads/master)
+PASS install
+| Mutant | Bug | source-laws |
+| --- | --- | --- |
+| drop-equality-context | present choices compared by local indices | caught |
+| drop-both-recursive-contexts | original recursive context loss | caught |
+| drop-calendar-optional-guard | calendar helper unwraps absent scalar | caught |
+{"mutant":"drop-equality-context","status":"caught","exit":1}
+bun test v1.4.3 (c6da4a4d3)
+
+core/extract-standalone.test.ts:
+171 | for (const [label, source] of [
+172 |   ['singleton', 'export function decide(a: "red"): "green" { return "green"; }'],
+173 |   ['same-index multi-value', 'export function decide(a: "red" | "blue"): "green" | "amber" { if (a === "red") return "green"; return "amber"; }'],
+174 | ] as const) test(`optional choice law: ${label} equality and inequality use strings`, () => {
+175 |   for (const expr of ['result == a', 'a == result']) {
+176 |     expect(choiceLaw(source, expr)).toMatchObject({proven: false, checked: false})
+                                          ^
+error: expect(received).toMatchObject(expected)
+
+  {
+-   "checked": false,
+-   "proven": false,
++   "checked": true,
++   "proven": true,
+  }
+
+- Expected  - 2
++ Received  + 2
+
+      at <anonymous> (/tmp/gdp-ci-fix-optional.SZXJfW/tree/core/extract-standalone.test.ts:176:37)
+(fail) optional choice law: singleton equality and inequality use strings [288.33ms]
+171 | for (const [label, source] of [
+172 |   ['singleton', 'export function decide(a: "red"): "green" { return "green"; }'],
+173 |   ['same-index multi-value', 'export function decide(a: "red" | "blue"): "green" | "amber" { if (a === "red") return "green"; return "amber"; }'],
+174 | ] as const) test(`optional choice law: ${label} equality and inequality use strings`, () => {
+175 |   for (const expr of ['result == a', 'a == result']) {
+176 |     expect(choiceLaw(source, expr)).toMatchObject({proven: false, checked: false})
+                                          ^
+error: expect(received).toMatchObject(expected)
+
+  {
+-   "checked": false,
+-   "proven": false,
++   "checked": true,
++   "proven": true,
+  }
+
+- Expected  - 2
++ Received  + 2
+
+      at <anonymous> (/tmp/gdp-ci-fix-optional.SZXJfW/tree/core/extract-standalone.test.ts:176:37)
+(fail) optional choice law: same-index multi-value equality and inequality use strings [129.35ms]
+193 |   if (input.k !== 'choice' || result.k !== 'choice') throw new Error('expected choice domains')
+194 |   expect(input.values).toContain('blue')
+195 |   expect(result.values).toContain('blue')
+196 |   expect(input.values.indexOf('blue')).not.toBe(result.values.indexOf('blue'))
+197 |   for (const expr of ['(result == a) == (a == "blue")', '(result != a) == (a != "blue")']) {
+198 |     expect(choiceLaw(source, expr)).toMatchObject({proven: true, checked: true})
+                                          ^
+error: expect(received).toMatchObject(expected)
+
+  {
+-   "checked": true,
+-   "proven": true,
++   "checked": false,
++   "goal": "(result == a) == (a == "blue") @step law",
++   "proven": false,
++   "run": {
++     "params": {},
++     "trace": [
++       {
++         "a": 1,
++       },
++     ],
++   },
++   "stuck": "sat",
++   "witness": {
++     "a": 1,
++     "decide_result": 0,
++     "decide_result_missing": 0,
++   },
+  }
+
+- Expected  - 2
++ Received  + 17
+
+      at <anonymous> (/tmp/gdp-ci-fix-optional.SZXJfW/tree/core/extract-standalone.test.ts:198:37)
+(fail) optional choice law: a shared value at different indices compares by name [123.99ms]
+206 |   const source = `export function decide(a: "red", enabled: boolean): "green" | null {
+207 |     const inner = enabled ? "green" : null;
+208 |     if (enabled) { if (a === "red") return inner; }
+209 |     return null;
+210 |   }`
+211 |   expect(choiceLaw(source, 'result != null implies result == a')).toMatchObject({proven: false, checked: false})
+                                                                        ^
+error: expect(received).toMatchObject(expected)
+
+  {
+-   "checked": false,
+-   "proven": false,
++   "checked": true,
++   "proven": true,
+  }
+
+- Expected  - 2
++ Received  + 2
+
+      at <anonymous> (/tmp/gdp-ci-fix-optional.SZXJfW/tree/core/extract-standalone.test.ts:211:67)
+(fail) optional choice law: nullable locals and nested returns retain domain semantics [109.20ms]
+213 |   expect(choiceLaw(source, 'not enabled implies result == null')).toMatchObject({proven: true, checked: true})
+214 | })
+215 | 
+216 | test('optional choice law: comparisons nested in boolean equality retain semantics', () => {
+217 |   const source = 'export function decide(a: "red"): "green" { return "green"; }'
+218 |   expect(choiceLaw(source, '(result == a) == true')).toMatchObject({proven: false, checked: false})
+                                                           ^
+error: expect(received).toMatchObject(expected)
+
+  {
+-   "checked": false,
+-   "proven": false,
++   "checked": true,
++   "proven": true,
+  }
+
+- Expected  - 2
++ Received  + 2
+
+      at <anonymous> (/tmp/gdp-ci-fix-optional.SZXJfW/tree/core/extract-standalone.test.ts:218:54)
+(fail) optional choice law: comparisons nested in boolean equality retain semantics [63.20ms]
+(pass) optional choice law: literals are checked within their domain in either order [340.76ms]
+(pass) optional choice law: unsupported nested optional input is explicitly refused [30.17ms]
+(pass) optional standalone calendar operands cannot bypass absence checks [40.81ms]
+
+ 3 pass
+ 23 filtered out
+ 5 fail
+ 36 expect() calls
+Ran 8 tests across 1 file. [1307.00ms]
+
+{"mutant":"drop-both-recursive-contexts","status":"caught","exit":1}
+bun test v1.4.3 (c6da4a4d3)
+
+core/extract-standalone.test.ts:
+171 | for (const [label, source] of [
+172 |   ['singleton', 'export function decide(a: "red"): "green" { return "green"; }'],
+173 |   ['same-index multi-value', 'export function decide(a: "red" | "blue"): "green" | "amber" { if (a === "red") return "green"; return "amber"; }'],
+174 | ] as const) test(`optional choice law: ${label} equality and inequality use strings`, () => {
+175 |   for (const expr of ['result == a', 'a == result']) {
+176 |     expect(choiceLaw(source, expr)).toMatchObject({proven: false, checked: false})
+                                          ^
+error: expect(received).toMatchObject(expected)
+
+  {
+-   "checked": false,
+-   "proven": false,
++   "checked": true,
++   "proven": true,
+  }
+
+- Expected  - 2
++ Received  + 2
+
+      at <anonymous> (/tmp/gdp-ci-fix-optional.SZXJfW/tree/core/extract-standalone.test.ts:176:37)
+(fail) optional choice law: singleton equality and inequality use strings [197.81ms]
+171 | for (const [label, source] of [
+172 |   ['singleton', 'export function decide(a: "red"): "green" { return "green"; }'],
+173 |   ['same-index multi-value', 'export function decide(a: "red" | "blue"): "green" | "amber" { if (a === "red") return "green"; return "amber"; }'],
+174 | ] as const) test(`optional choice law: ${label} equality and inequality use strings`, () => {
+175 |   for (const expr of ['result == a', 'a == result']) {
+176 |     expect(choiceLaw(source, expr)).toMatchObject({proven: false, checked: false})
+                                          ^
+error: expect(received).toMatchObject(expected)
+
+  {
+-   "checked": false,
+-   "proven": false,
++   "checked": true,
++   "proven": true,
+  }
+
+- Expected  - 2
++ Received  + 2
+
+      at <anonymous> (/tmp/gdp-ci-fix-optional.SZXJfW/tree/core/extract-standalone.test.ts:176:37)
+(fail) optional choice law: same-index multi-value equality and inequality use strings [87.58ms]
+193 |   if (input.k !== 'choice' || result.k !== 'choice') throw new Error('expected choice domains')
+194 |   expect(input.values).toContain('blue')
+195 |   expect(result.values).toContain('blue')
+196 |   expect(input.values.indexOf('blue')).not.toBe(result.values.indexOf('blue'))
+197 |   for (const expr of ['(result == a) == (a == "blue")', '(result != a) == (a != "blue")']) {
+198 |     expect(choiceLaw(source, expr)).toMatchObject({proven: true, checked: true})
+                                          ^
+error: expect(received).toMatchObject(expected)
+
+  {
+-   "checked": true,
+-   "proven": true,
++   "checked": false,
++   "goal": "(result == a) == (a == "blue") @step law",
++   "proven": false,
++   "run": {
++     "params": {},
++     "trace": [
++       {
++         "a": 1,
++       },
++     ],
++   },
++   "stuck": "sat",
++   "witness": {
++     "a": 1,
++     "decide_result": 0,
++     "decide_result_missing": 0,
++   },
+  }
+
+- Expected  - 2
++ Received  + 17
+
+      at <anonymous> (/tmp/gdp-ci-fix-optional.SZXJfW/tree/core/extract-standalone.test.ts:198:37)
+(fail) optional choice law: a shared value at different indices compares by name [115.46ms]
+206 |   const source = `export function decide(a: "red", enabled: boolean): "green" | null {
+207 |     const inner = enabled ? "green" : null;
+208 |     if (enabled) { if (a === "red") return inner; }
+209 |     return null;
+210 |   }`
+211 |   expect(choiceLaw(source, 'result != null implies result == a')).toMatchObject({proven: false, checked: false})
+                                                                        ^
+error: expect(received).toMatchObject(expected)
+
+  {
+-   "checked": false,
+-   "proven": false,
++   "checked": true,
++   "proven": true,
+  }
+
+- Expected  - 2
++ Received  + 2
+
+      at <anonymous> (/tmp/gdp-ci-fix-optional.SZXJfW/tree/core/extract-standalone.test.ts:211:67)
+(fail) optional choice law: nullable locals and nested returns retain domain semantics [113.36ms]
+213 |   expect(choiceLaw(source, 'not enabled implies result == null')).toMatchObject({proven: true, checked: true})
+214 | })
+215 | 
+216 | test('optional choice law: comparisons nested in boolean equality retain semantics', () => {
+217 |   const source = 'export function decide(a: "red"): "green" { return "green"; }'
+218 |   expect(choiceLaw(source, '(result == a) == true')).toMatchObject({proven: false, checked: false})
+                                                           ^
+error: expect(received).toMatchObject(expected)
+
+  {
+-   "checked": false,
+-   "proven": false,
++   "checked": true,
++   "proven": true,
+  }
+
+- Expected  - 2
++ Received  + 2
+
+      at <anonymous> (/tmp/gdp-ci-fix-optional.SZXJfW/tree/core/extract-standalone.test.ts:218:54)
+(fail) optional choice law: comparisons nested in boolean equality retain semantics [68.76ms]
+(pass) optional choice law: literals are checked within their domain in either order [309.58ms]
+(pass) optional choice law: unsupported nested optional input is explicitly refused [41.81ms]
+(pass) optional standalone calendar operands cannot bypass absence checks [34.23ms]
+
+ 3 pass
+ 23 filtered out
+ 5 fail
+ 36 expect() calls
+Ran 8 tests across 1 file. [1129.00ms]
+
+{"mutant":"drop-calendar-optional-guard","status":"caught","exit":1}
+bun test v1.4.3 (c6da4a4d3)
+
+core/extract-standalone.test.ts:
+(pass) optional choice law: singleton equality and inequality use strings [373.07ms]
+(pass) optional choice law: same-index multi-value equality and inequality use strings [261.90ms]
+(pass) optional choice law: a shared value at different indices compares by name [303.72ms]
+(pass) optional choice law: nullable locals and nested returns retain domain semantics [236.87ms]
+(pass) optional choice law: comparisons nested in boolean equality retain semantics [167.57ms]
+(pass) optional choice law: literals are checked within their domain in either order [369.06ms]
+(pass) optional choice law: unsupported nested optional input is explicitly refused [60.21ms]
+241 | 
+242 | test('optional standalone calendar operands cannot bypass absence checks', () => {
+243 |   const x = extract('export function decide(flag: boolean): number | undefined { if (flag) return 0; }', {...options, check: {runs: 0, states: 0, probes: false}})
+244 |   expect(x.ok).toBe(true)
+245 |   for (const expr of ['result - 0 <= 1 business days', '1 business days >= result - 0']) {
+246 |     expect(() => buildLaw(x, {name: expr, expr, method: 'decide'}, {clock: 1, calendar: {weekend: ['sat', 'sun']}})).toThrow('arithmetic on an optional standalone value is not supported')
+                                                                                                                           ^
+error: expect(received).toThrow(expected)
+
+Expected substring: "arithmetic on an optional standalone value is not supported"
+
+Received function did not throw
+Received value: {
+  kind: "step",
+  law: {
+    name: "result - 0 <= 1 business days",
+    forall: "key$46",
+    keys: [ "key$47" ],
+    then: {
+      op: "or",
+      xs: [
+        {
+          op: "not",
+          x: {
+            op: "and",
+            xs: [
+              {
+                op: "and",
+                xs: [
+                  [Object ...], [Object ...]
+                ],
+              }, {
+                op: "and",
+                xs: [
+                  [Object ...], [Object ...]
+                ],
+              }
+            ],
+          },
+        }, {
+          op: "<=",
+          a: {
+            op: "add",
+            a: {
+              op: "add",
+              a: {
+                op: "add",
+                a: {
+                  op: "add",
+                  a: [Object ...],
+                  b: [Object ...],
+                },
+                b: {
+                  op: "if",
+                  c: [Object ...],
+                  then: [Object ...],
+                  else: [Object ...],
+                },
+              },
+              b: {
+                op: "if",
+                c: {
+                  op: "<=",
+                  a: [Object ...],
+                  b: [Object ...],
+                },
+                then: {
+                  op: "const",
+                  value: 1,
+                },
+                else: {
+                  op: "const",
+                  value: 0,
+                },
+              },
+            },
+            b: {
+              op: "add",
+              a: {
+                op: "add",
+                a: {
+                  op: "add",
+                  a: [Object ...],
+                  b: [Object ...],
+                },
+                b: {
+                  op: "if",
+                  c: [Object ...],
+                  then: [Object ...],
+                  else: [Object ...],
+                },
+              },
+              b: {
+                op: "if",
+                c: {
+                  op: "<=",
+                  a: [Object ...],
+                  b: [Object ...],
+                },
+                then: {
+                  op: "const",
+                  value: 0,
+                },
+                else: {
+                  op: "const",
+                  value: 0,
+                },
+              },
+            },
+          },
+          b: {
+            op: "add",
+            a: {
+              op: "const",
+              value: 1,
+            },
+            b: {
+              op: "add",
+              a: {
+                op: "add",
+                a: {
+                  op: "add",
+                  a: [Object ...],
+                  b: [Object ...],
+                },
+                b: {
+                  op: "if",
+                  c: [Object ...],
+                  then: [Object ...],
+                  else: [Object ...],
+                },
+              },
+              b: {
+                op: "add",
+                a: {
+                  op: "add",
+                  a: [Object ...],
+                  b: [Object ...],
+                },
+                b: {
+                  op: "if",
+                  c: [Object ...],
+                  then: [Object ...],
+                  else: [Object ...],
+                },
+              },
+            },
+          },
+        }
+      ],
+    },
+  },
+}
+
+      at <anonymous> (/tmp/gdp-ci-fix-optional.SZXJfW/tree/core/extract-standalone.test.ts:246:118)
+(fail) optional standalone calendar operands cannot bypass absence checks [52.93ms]
+
+ 7 pass
+ 23 filtered out
+ 1 fail
+ 69 expect() calls
+Ran 8 tests across 1 file. [1.99s]
+
+MUTATIONS_PASS restored=true
+
+--- stderr ---
+warning: adding embedded git repository: vendor/gdp-ts
+warning: adding embedded git repository: vendor/handwired
+Submodule 'vendor/gdp-ts' (https://github.com/rauchg/gdp-ts.git) registered for path 'vendor/gdp-ts'
+Submodule 'vendor/handwired' (https://github.com/monotykamary/handwired.git) registered for path 'vendor/handwired'
+Migrating git directory of 'vendor/gdp-ts' from
+'/tmp/gdp-ci-fix-optional.SZXJfW/tree/vendor/gdp-ts/.git' to
+'/tmp/gdp-ci-fix-optional.SZXJfW/tree/.git/modules/vendor/gdp-ts'
+Migrating git directory of 'vendor/handwired' from
+'/tmp/gdp-ci-fix-optional.SZXJfW/tree/vendor/handwired/.git' to
+'/tmp/gdp-ci-fix-optional.SZXJfW/tree/.git/modules/vendor/handwired'

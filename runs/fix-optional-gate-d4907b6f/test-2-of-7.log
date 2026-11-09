@@ -1,0 +1,32 @@
+CLEAN_CHECKOUT_HEAD d4907b6f43609bd22e57ddc331e33e60cb50c7a7
+CLEAN_CHECKOUT_TREE 918a7696771ceb37579c45572be8c4fbd934f4bd
+ 0b6ebeeec827b05210f3acfa4149a70dda9a0de5 vendor/gdp-ts (heads/master)
+ d47141cce2caf5b86b0c2c0c372a5174f424bc15 vendor/handwired (heads/master)
+PASS install
+PASS tests
+ 92 pass
+ 0 fail
+Ran 109 tests across 14 files. [490.29s]
+ 11 pass
+ 0 fail
+Ran 11 tests across 2 files. [8.93s]
+ 6 pass
+ 0 fail
+Ran 6 tests across 1 file. [1.91s]
+  490.4 s  core/compare.test.ts core/keyterms.test.ts core/liveness.test.ts core/rationals.test.ts core/gdp.test.ts core/datatypes.test.ts core/lemmas.test.ts core/cyclic.test.ts core/search.test.ts core/extract-choice-joins.test.ts core/extract-py-orm.test.ts core/effect-queue.test.ts core/small-laws.test.ts core/count-admission.test.ts
+    8.9 s  kernel/steplaw.test.ts kernel/epr-image.test.ts
+    1.9 s  scripts/action.test.ts
+    0.7 s  examples/readme.ts
+    0.1 s  examples/gdp.ts
+
+--- stderr ---
+warning: adding embedded git repository: vendor/gdp-ts
+warning: adding embedded git repository: vendor/handwired
+Submodule 'vendor/gdp-ts' (https://github.com/rauchg/gdp-ts.git) registered for path 'vendor/gdp-ts'
+Submodule 'vendor/handwired' (https://github.com/monotykamary/handwired.git) registered for path 'vendor/handwired'
+Migrating git directory of 'vendor/gdp-ts' from
+'/tmp/gdp-ci-fix-optional.NMUWiZ/tree/vendor/gdp-ts/.git' to
+'/tmp/gdp-ci-fix-optional.NMUWiZ/tree/.git/modules/vendor/gdp-ts'
+Migrating git directory of 'vendor/handwired' from
+'/tmp/gdp-ci-fix-optional.NMUWiZ/tree/vendor/handwired/.git' to
+'/tmp/gdp-ci-fix-optional.NMUWiZ/tree/.git/modules/vendor/handwired'

@@ -1,18 +1,54 @@
-FIX NOW — GATE PENDING (branch `claude/fix-optional-choice`, base `4497c4b05c3111959a2b8d808c426a0e3cab3f01`)
+GATE GREEN 0dd82aca2b7c77958f1df67528ac7fed90c1d978
 
-## Optional-choice source-law correction (2026-11-10)
+# FIX NOW — optional-choice source-law correction
 
-The requested audit confirmed both recursive `compare` calls discarded `strictOptional`. Present standalone optional results could consequently use domain-local encoded-index equality instead of string equality. Both calls now pass the flag. The argument is required (no default), so a future omitted argument also fails typechecking.
+Branch: `claude/fix-optional-choice`, from requested main `4497c4b05c3111959a2b8d808c426a0e3cab3f01`. Production fix: `d4907b6f43609bd22e57ddc331e33e60cb50c7a7`. Final tested code/test commit: **`0dd82aca2b7c77958f1df67528ac7fed90c1d978`**, tree **`435e2d0f2c64bc2923745e03458390c68a52c199`**. The final reporting commit changes only documentation and receipts.
 
-The same audit found one additional helper bypass: `businessCompare` passed optional numeric operands to `num`, which strips their absence before calendar arithmetic. It now refuses optional standalone operands, consistently with ordinary arithmetic. No kernel or protected MLDR file is changed.
+## Source correction and audit
 
-Audit scope: `buildLaw` creates dry/live contexts with the flag and absence metadata; `read`, quantifier closures, `val`'s recursive `go`, `old`'s spread context, division rewrites, all `cond` calls, `path`/`leaf`/`rest`, `storeKey` and its nested expressions preserve that context. `leaf` retains each result's absence kind; `wrap` retains each `Choice`'s domain. `businessCompare` receives the context and recursive expression closure, but required the additional optional-operand check. Map/key-only helpers cannot be reached with maps from the standalone scalar/flat-record input grammar; no expansion of that grammar was made.
+- `core/laws.ts:447,450`: both recursive comparisons now preserve `strictOptional`; present optional choices retain per-domain string equality rather than falling back to encoded-index equality. `compare`'s context argument is required (`:432`), so omission is also a type error.
+- The audit found one more helper bypass: `businessCompare` passed optional numeric values to `num`, stripping their absence before calendar arithmetic. It now refuses optional standalone operands (`core/laws.ts:413`), consistently with ordinary arithmetic.
+- Audited `buildLaw`'s dry/live contexts, `read` and quantifier closures, `val`'s recursive `go`, `old`'s spread context, division rewrites, all `cond` calls, `path`/`leaf`/`rest`, and `storeKey`'s nested expressions. These preserve the flag and domain/absence metadata. `leaf` retains each result's absence kind; `wrap` retains each choice domain. Map/key helpers are not reachable with map inputs through the standalone scalar/flat-record grammar. No further context-dropping call was found.
+- `core/extract-standalone.test.ts:159` onward contains the synthetic regressions, with replay disabled so the law translation must itself refute false claims (`stuck: sat`) or refuse unsupported constructs. The test-only follow-up uses genuinely different choice domains and explicitly asserts different indices for the shared string; merely reordered unions can normalize to an identical TypeScript type.
+- No kernel, protected MLDR file, customer's repository, other worktree, package ownership, version, or publication configuration was changed. Exhaustive comparison and replay remain tests, never proofs of extractor correctness.
 
-A test-only follow-up replaces a reordered-union positive control (which TypeScript can normalize to identical domains) with genuinely different domains and explicitly asserts different indices for their common string. Production code is unchanged from `d4907b6f`.
+## Final verification — all on Boat, submission class
 
-Synthetic regressions run with source replay disabled and prove/refute the actual law translation: singleton and multi-value same-index domains, shared values at different indices, operand reversal, `!=`, nested nullable locals/returns, comparisons nested in Boolean equality/negation, and choice/literal equality. Unsupported nested optional input and out-of-domain literals must refuse with an explicit reason. Calendar optional operands must also refuse. `research/verify-all/optional-choice-mutants.ts` reintroduces the equality-only and both-recursion flag drops, plus the calendar bypass; it requires a passing baseline, test failures for every mutant (not timeouts/errors), and exact source restoration.
+Every effective gate receipt verifies the exact commit/tree above and both pinned submodules: `vendor/handwired` **`d47141cce2caf5b86b0c2c0c372a5174f424bc15`**, `vendor/gdp-ts` **`0b6ebeeec827b05210f3acfa4149a70dda9a0de5`**.
 
-The first focused Boat run passed 34 tests and failed one fixture assertion: the unsupported nested optional input is refused earlier with `null input is outside the subset`, rather than the later generic input-subset wording. Corrected that assertion; no source behavior was changed for it. The regression helper requires false supported laws to be refuted with `stuck: sat`, not merely unproven. The corrected focused run passed on Boat. On clean `d4907b6f43609bd22e57ddc331e33e60cb50c7a7` (tree `918a7696771ceb37579c45572be8c4fbd934f4bd`), the private replay passed **all 20 laws, with no losses** (CLI-A01–A13, MCP-B01–B05/B07/B08); both CLI exits were 0. All 212 finite cases matched, all 24 branch arms were hit, and each decision received 2,400 start-state requests plus 400 drawn-state checks. Private inputs remain in `/tmp/gdp-ci-replay-source/`; full private receipt: `/tmp/gdp-ci-fix-optional/replay-results/plain-laws-replay-on.log`; sanitized summary: `runs/fix-optional-private-replay.json`. Pending: completion and inspection of all exact-commit clean gate receipts. The earlier gate below is historical, not the gate for this fix.
+- **Check/typecheck/lint, build, and commitlint: PASS.** Built exports/runtime: **38 tests passed**. `runs/fix-optional-gate-0dd82aca/check-build-exports.log`.
+- **Full suite: 1,093 test executions passed**, all seven shard memberships covered. Shards 1–4 and 6–7: `runs/fix-optional-gate-0dd82aca/test-*-of-7.log`. Shard 5: all **22 units**, **213 tests**, using the repository's existing per-unit `--measure` mode in `runs/fix-optional-shard5-units-0dd82aca/test-5-of-7.log`. No test, assertion, proof budget or timeout changed. The original bundled timeouts remain recorded below, not relabelled as passes.
+- **Original runtime regressions: 6 passed**, separately from the configured full suite: `runs/fix-optional-gate-0dd82aca/original-runtime-regressions.log`.
+- **IC3Syn generation census: all 29 verdicts unchanged** — 28 proven, `mldr` unknown. Exact final-SHA receipts: `runs/fix-optional-gate-0dd82aca/census-*.log`; compact table: `runs/fix-optional-census.json`. The prior exact-`43acabee` baseline has identical `core/`, `kernel/` and IC3Syn model code to starting main `4497c4b0` (verified by Git diff); it is not silently substituted for a changed baseline.
+- **All three source mutants killed by assertion failures**, with a passing unmutated baseline and exact source restoration: `runs/fix-optional-gate-0dd82aca/flag-drop-mutants.log`. Both flag-dropping mutants trigger five failing regressions; the calendar bypass triggers its dedicated regression.
+- **All 20 private plain-file laws remain proven, replay ON; no lost laws.** CLI-A01–A13 and MCP-B01–B05/B07/B08; both CLI exits 0. All **212** finite cases match and all **24** branch arms are covered; each decision has 2,400 start-state requests and 400 drawn-state checks. Final exact-SHA private receipt: `/tmp/gdp-ci-fix-optional/replay-final/plain-laws-replay-on.log`; inputs remain outside repositories in `/tmp/gdp-ci-replay-source/`. Sanitized tracked evidence: `runs/fix-optional-private-replay.json`.
+
+The aggregate verified receipt is `runs/fix-optional-verification.json`. Final main gate batch: `20261110-050840-sz8psf`; shard-5 per-unit batch: `20261110-052646-iy64sf`; final private replay: `20261110-050836-a15myg`. No bar rerun was requested by FIX NOW's small-gate instruction.
+
+### FIX NOW regression outcomes
+
+| Synthetic case | Outcome pinned by the regression |
+| --- | --- |
+| Singleton `red` input / `green` result; `result == a` and reversed operands | Refuted (`stuck: sat`), never proven |
+| Multi-value disjoint domains sharing encoded indices | Equality refuted (`sat`); inequality proven and checked |
+| A shared string at explicitly different indices | Correct conditional equality/inequality proven; both unconditional claims refuted (`sat`) |
+| Nullable local returned through nested branches | Guarded false equality refuted (`sat`); inequality and absence laws proven |
+| Comparison nested in Boolean equality or negation | False claims refuted (`sat`); correct negation proven |
+| Choice compared with in-domain literals, either operand order | Correct equality proven; false inequality refuted (`sat`) |
+| Choice compared with out-of-domain literal | Refused: `isn't one of green` |
+| Nested optional choice input outside supported grammar | Refused: `null input is outside the subset` |
+| Optional numeric operand in calendar comparison, either operand order | Refused: `arithmetic on an optional standalone value is not supported` |
+
+The strengthened mutation run kills both flag-dropping mutants with **five failing regression tests each**, including the genuinely different-index positive control. The calendar-guard mutant is killed by its dedicated regression. All mutants exit 1 from assertions; none is counted through a timeout, missing command or process error, and original source bytes are restored. The checks are repeatable with `bun research/verify-all/optional-choice-mutants.ts` in a disposable checkout.
+
+## Failures retained and execution notes
+
+1. The first focused run passed 34 tests and failed one fixture's expected refusal wording: the reader rejects nested optional choice inputs earlier with `null input is outside the subset`. Corrected only the assertion. The focused rerun passed all 35 tests plus check and mutation tests (`runs/fix-optional-focus*/`).
+2. The complete first fix gate (`d4907b6f`) passed all 17 jobs, including the normal bundled full suite (`runs/fix-optional-gate-d4907b6f/`). The final test-only refinement passed its focused check and all three mutants (`runs/fix-optional-positive-control/`). Production code is byte-identical between these revisions.
+3. Final normal shard 5 timed out the existing Python list-fold test at 60 seconds (189 pass / 1 timeout). Its exclusive-VM retry passed that test in 40.1 seconds but timed out the two existing `core/carry.test.ts` range/frame tests at their unchanged five-second limit (188 pass / 2 timeouts). Both failed logs are retained: `runs/fix-optional-gate-0dd82aca/test-5-of-7.log` and `runs/fix-optional-shard5-retry-0dd82aca/test-5-of-7.log`.
+4. The existing `bun scripts/test-shards.ts --measure <file> --shard 5/7` path gives every unit its own Bun process and does not change its assertions or timeouts. All 22 units and 213 tests passed this way, on a clean exact-final-SHA checkout. This is the effective shard-5 receipt, not a claim that the earlier bundled attempts passed.
+5. All substantial work used Boat through `supercomputer`. Existing canonical archives were reused by hard link with a small exact-commit patch; no new full-tree archive was made. Private source stayed in external scratch. No ignored/untracked material was cleaned. The report-commit message passed its separate Boat commitlint job (`runs/fix-optional-report-lint/`). No push, tag, release, merge, PR, or other GitHub write was performed.
+6. Cleanup: all ten owned shell controllers are terminal and the scheduler reports no active `gdp-wired-ci` batch. `runs/fix-optional-cleanup.json` records the check. No shared scheduler or other lane's VM was stopped.
 
 ---
 

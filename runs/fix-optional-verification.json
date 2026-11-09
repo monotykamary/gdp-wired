@@ -1,0 +1,206 @@
+{
+  "candidate": "0dd82aca2b7c77958f1df67528ac7fed90c1d978",
+  "tree": "435e2d0f2c64bc2923745e03458390c68a52c199",
+  "base": "4497c4b05c3111959a2b8d808c426a0e3cab3f01",
+  "batch": "20261110-050840-sz8psf",
+  "shard5Batch": "20261110-052646-iy64sf",
+  "class": "submission",
+  "allPassed": true,
+  "jobs": [
+    {
+      "name": "check-build-exports",
+      "exit": 0,
+      "seconds": 69.01,
+      "backend": "boat",
+      "receipt": "runs/fix-optional-gate-0dd82aca/check-build-exports.log"
+    },
+    {
+      "name": "test-1-of-7",
+      "exit": 0,
+      "seconds": 176.64,
+      "backend": "boat",
+      "receipt": "runs/fix-optional-gate-0dd82aca/test-1-of-7.log"
+    },
+    {
+      "name": "test-2-of-7",
+      "exit": 0,
+      "seconds": 423,
+      "backend": "boat",
+      "receipt": "runs/fix-optional-gate-0dd82aca/test-2-of-7.log"
+    },
+    {
+      "name": "test-3-of-7",
+      "exit": 0,
+      "seconds": 330.65,
+      "backend": "boat",
+      "receipt": "runs/fix-optional-gate-0dd82aca/test-3-of-7.log"
+    },
+    {
+      "name": "test-4-of-7",
+      "exit": 0,
+      "seconds": 258.07,
+      "backend": "boat",
+      "receipt": "runs/fix-optional-gate-0dd82aca/test-4-of-7.log"
+    },
+    {
+      "name": "test-5-of-7",
+      "exit": 0,
+      "seconds": 654.44,
+      "backend": "boat",
+      "receipt": "runs/fix-optional-shard5-units-0dd82aca/test-5-of-7.log"
+    },
+    {
+      "name": "test-6-of-7",
+      "exit": 0,
+      "seconds": 287.72,
+      "backend": "boat",
+      "receipt": "runs/fix-optional-gate-0dd82aca/test-6-of-7.log"
+    },
+    {
+      "name": "test-7-of-7",
+      "exit": 0,
+      "seconds": 212.93,
+      "backend": "boat",
+      "receipt": "runs/fix-optional-gate-0dd82aca/test-7-of-7.log"
+    },
+    {
+      "name": "census-0-of-7",
+      "exit": 0,
+      "seconds": 79.57,
+      "backend": "boat",
+      "receipt": "runs/fix-optional-gate-0dd82aca/census-0-of-7.log"
+    },
+    {
+      "name": "census-1-of-7",
+      "exit": 0,
+      "seconds": 96.91,
+      "backend": "boat",
+      "receipt": "runs/fix-optional-gate-0dd82aca/census-1-of-7.log"
+    },
+    {
+      "name": "census-2-of-7",
+      "exit": 0,
+      "seconds": 34.76,
+      "backend": "boat",
+      "receipt": "runs/fix-optional-gate-0dd82aca/census-2-of-7.log"
+    },
+    {
+      "name": "census-3-of-7",
+      "exit": 0,
+      "seconds": 51.74,
+      "backend": "boat",
+      "receipt": "runs/fix-optional-gate-0dd82aca/census-3-of-7.log"
+    },
+    {
+      "name": "census-4-of-7",
+      "exit": 0,
+      "seconds": 71.06,
+      "backend": "boat",
+      "receipt": "runs/fix-optional-gate-0dd82aca/census-4-of-7.log"
+    },
+    {
+      "name": "census-5-of-7",
+      "exit": 0,
+      "seconds": 70.1,
+      "backend": "boat",
+      "receipt": "runs/fix-optional-gate-0dd82aca/census-5-of-7.log"
+    },
+    {
+      "name": "census-6-of-7",
+      "exit": 0,
+      "seconds": 87.11,
+      "backend": "boat",
+      "receipt": "runs/fix-optional-gate-0dd82aca/census-6-of-7.log"
+    },
+    {
+      "name": "flag-drop-mutants",
+      "exit": 0,
+      "seconds": 9.8,
+      "backend": "boat",
+      "receipt": "runs/fix-optional-gate-0dd82aca/flag-drop-mutants.log"
+    },
+    {
+      "name": "original-runtime-regressions",
+      "exit": 0,
+      "seconds": 2.95,
+      "backend": "boat",
+      "receipt": "runs/fix-optional-gate-0dd82aca/original-runtime-regressions.log"
+    }
+  ],
+  "tests": [
+    {
+      "name": "test-1-of-7",
+      "passed": 90,
+      "receipt": "runs/fix-optional-gate-0dd82aca/test-1-of-7.log"
+    },
+    {
+      "name": "test-2-of-7",
+      "passed": 109,
+      "receipt": "runs/fix-optional-gate-0dd82aca/test-2-of-7.log"
+    },
+    {
+      "name": "test-3-of-7",
+      "passed": 186,
+      "receipt": "runs/fix-optional-gate-0dd82aca/test-3-of-7.log"
+    },
+    {
+      "name": "test-4-of-7",
+      "passed": 108,
+      "receipt": "runs/fix-optional-gate-0dd82aca/test-4-of-7.log"
+    },
+    {
+      "name": "test-5-of-7",
+      "passed": 213,
+      "receipt": "runs/fix-optional-shard5-units-0dd82aca/test-5-of-7.log"
+    },
+    {
+      "name": "test-6-of-7",
+      "passed": 182,
+      "receipt": "runs/fix-optional-gate-0dd82aca/test-6-of-7.log"
+    },
+    {
+      "name": "test-7-of-7",
+      "passed": 205,
+      "receipt": "runs/fix-optional-gate-0dd82aca/test-7-of-7.log"
+    }
+  ],
+  "totalTestExecutions": 1093,
+  "originalRuntimePassed": 6,
+  "exportsPassed": 38,
+  "census": {
+    "total": 29,
+    "proven": 28,
+    "unknown": [
+      "mldr"
+    ],
+    "unchanged": true
+  },
+  "mutants": [
+    {
+      "mutant": "drop-equality-context",
+      "status": "caught",
+      "exit": 1
+    },
+    {
+      "mutant": "drop-both-recursive-contexts",
+      "status": "caught",
+      "exit": 1
+    },
+    {
+      "mutant": "drop-calendar-optional-guard",
+      "status": "caught",
+      "exit": 1
+    }
+  ],
+  "shard5Mode": "existing --measure mode: every unit in a fresh process; no timeout changes",
+  "initialFailures": [
+    {
+      "receipt": "runs/fix-optional-gate-0dd82aca/test-5-of-7.log",
+      "reason": "existing Python list-fold test exceeded 60000ms"
+    },
+    {
+      "receipt": "runs/fix-optional-shard5-retry-0dd82aca/test-5-of-7.log",
+      "reason": "two existing range/frame tests exceeded 5000ms"
+    }
+  ]
+}

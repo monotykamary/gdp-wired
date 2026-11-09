@@ -1,0 +1,181 @@
+{
+  "candidate": "0dd82aca2b7c77958f1df67528ac7fed90c1d978",
+  "base": "4497c4b05c3111959a2b8d808c426a0e3cab3f01",
+  "baselineReceiptCommit": "43acabeec4bbbdbf8b4f6096be7e0f050886a639",
+  "rows": [
+    {
+      "id": "consensus",
+      "base": "proven",
+      "candidate": "proven",
+      "unchanged": true
+    },
+    {
+      "id": "lockserv_automaton",
+      "base": "proven",
+      "candidate": "proven",
+      "unchanged": true
+    },
+    {
+      "id": "consensus_wo_decide",
+      "base": "proven",
+      "candidate": "proven",
+      "unchanged": true
+    },
+    {
+      "id": "toy_consensus",
+      "base": "proven",
+      "candidate": "proven",
+      "unchanged": true
+    },
+    {
+      "id": "mldr",
+      "base": "unknown",
+      "candidate": "unknown",
+      "unchanged": true
+    },
+    {
+      "id": "tcommit",
+      "base": "proven",
+      "candidate": "proven",
+      "unchanged": true
+    },
+    {
+      "id": "sharded_kv",
+      "base": "proven",
+      "candidate": "proven",
+      "unchanged": true
+    },
+    {
+      "id": "consensus_forall",
+      "base": "proven",
+      "candidate": "proven",
+      "unchanged": true
+    },
+    {
+      "id": "firewall",
+      "base": "proven",
+      "candidate": "proven",
+      "unchanged": true
+    },
+    {
+      "id": "lock_server",
+      "base": "proven",
+      "candidate": "proven",
+      "unchanged": true
+    },
+    {
+      "id": "sharded_kv_no_lost_keys",
+      "base": "proven",
+      "candidate": "proven",
+      "unchanged": true
+    },
+    {
+      "id": "naive_consensus",
+      "base": "proven",
+      "candidate": "proven",
+      "unchanged": true
+    },
+    {
+      "id": "majorityset_leader_election",
+      "base": "proven",
+      "candidate": "proven",
+      "unchanged": true
+    },
+    {
+      "id": "quorum_leader_election",
+      "base": "proven",
+      "candidate": "proven",
+      "unchanged": true
+    },
+    {
+      "id": "lockserv",
+      "base": "proven",
+      "candidate": "proven",
+      "unchanged": true
+    },
+    {
+      "id": "client_server_ae",
+      "base": "proven",
+      "candidate": "proven",
+      "unchanged": true
+    },
+    {
+      "id": "consensus_epr",
+      "base": "proven",
+      "candidate": "proven",
+      "unchanged": true
+    },
+    {
+      "id": "toy_consensus_forall",
+      "base": "proven",
+      "candidate": "proven",
+      "unchanged": true
+    },
+    {
+      "id": "twophase",
+      "base": "proven",
+      "candidate": "proven",
+      "unchanged": true
+    },
+    {
+      "id": "client_server_db_ae",
+      "base": "proven",
+      "candidate": "proven",
+      "unchanged": true
+    },
+    {
+      "id": "learning_switch",
+      "base": "proven",
+      "candidate": "proven",
+      "unchanged": true
+    },
+    {
+      "id": "simple",
+      "base": "proven",
+      "candidate": "proven",
+      "unchanged": true
+    },
+    {
+      "id": "simple_decentralized_lock",
+      "base": "proven",
+      "candidate": "proven",
+      "unchanged": true
+    },
+    {
+      "id": "simple_election",
+      "base": "proven",
+      "candidate": "proven",
+      "unchanged": true
+    },
+    {
+      "id": "learning_switch_i4",
+      "base": "proven",
+      "candidate": "proven",
+      "unchanged": true
+    },
+    {
+      "id": "simple_regular",
+      "base": "proven",
+      "candidate": "proven",
+      "unchanged": true
+    },
+    {
+      "id": "two_phase_commit",
+      "base": "proven",
+      "candidate": "proven",
+      "unchanged": true
+    },
+    {
+      "id": "toy_consensus_epr",
+      "base": "proven",
+      "candidate": "proven",
+      "unchanged": true
+    },
+    {
+      "id": "paxos_epr",
+      "base": "proven",
+      "candidate": "proven",
+      "unchanged": true
+    }
+  ]
+}

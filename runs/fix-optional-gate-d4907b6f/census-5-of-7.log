@@ -1,0 +1,23 @@
+CLEAN_CHECKOUT_HEAD d4907b6f43609bd22e57ddc331e33e60cb50c7a7
+CLEAN_CHECKOUT_TREE 918a7696771ceb37579c45572be8c4fbd934f4bd
+ 0b6ebeeec827b05210f3acfa4149a70dda9a0de5 vendor/gdp-ts (heads/master)
+ d47141cce2caf5b86b0c2c0c372a5174f424bc15 vendor/handwired (heads/master)
+PASS install
+CENSUS_ROSTER {"i":5,"n":7,"total":29,"ids":["simple","simple_decentralized_lock","simple_election","learning_switch_i4"]}
+{"id":"simple","ic3syn":"tla-simple","search":{"verdict":"proven","found":["X at most 1","Y at most 1","Pc at most 2","every x with x < n: never X[x] is 0 and 1 <= Y[x]","every x with x < n: never X[x] is 0 and Pc[x] is 1","every x with x < n: never X[x] is 0 and 2 <= Pc[x]","every x with x < n: never 1 <= X[x] and Pc[x] is 0","every x with x < n: never 1 <= Y[x] and Pc[x] is 0","every x with x < n: never 1 <= Y[x] and Pc[x] is 1"],"ms":11181,"work":2291902,"full":5183882}}
+{"id":"simple_decentralized_lock","ic3syn":"ex-simple-decentralized-lock","search":{"verdict":"proven","found":["r.law('sum$HasLock + sum$Message <= started', ({started, sum$HasLock, sum$Message}) => sum$HasLock.plus(sum$Message).atMost(started))"],"ms":4841,"work":241158,"full":351675}}
+{"id":"simple_election","ic3syn":"ex-simple-election","search":{"verdict":"proven","found":["every Start cell is a value of its kind","every Promise cell is a value of its kind","every Promised cell is a value of its kind","every Leader cell is a value of its kind","one leader","Leader keeps members's bound through members$Leader","every x, y with x < 64 ∧ y <= 63: never Start[x] is 0 and 1 <= Promise[64·x + y]","every x, y with x < 64 ∧ y <= 63: never Promised[y] is 0 and 1 <= Promise[64·x + y]","every x, y with x < 64 ∧ y < 64 ∧ ¬(x = y): never 1 <= Leader[x] and 1 <= Leader[y]","every x, y, z with x < 64 ∧ y < 64 ∧ ¬(x = y) ∧ z <= 63: never 1 <= Promise[64·x + z] and 1 <= Promise[64·y + z]"],"ms":4061,"work":332692,"full":158981}}
+{"id":"learning_switch_i4","ic3syn":"i4-learning-switch","search":{"verdict":"proven","found":["every x with x < packets: never Dst(x) in range is 0","every x with x < size: never LinkSet[x] is 0 and 1 <= started","every x with x < size: never 1 <= Pend[⟨_, ⟨x, _⟩⟩] and started is 0","every x with x < size: never 1 <= Dom[⟨x, _⟩] and started is 0","every x with x < size: never 1 <= T[⟨x, ⟨_, _⟩⟩] and started is 0","every x, y with x < size ∧ y < size ∧ ¬(x = y): never 1 <= T[⟨x, ⟨_, y⟩⟩] and 1 <= started","every x, y with x < size ∧ y < size ∧ ¬(x = y): never Link(x)=y is 0 and 1 <= Link(y)=x and 1 <= LinkSet[y]","every x, y with x < size ∧ y < size ∧ ¬(x = y): never Link(x)=y is 0 and 1 <= Link(y)=x and 1 <= started","every x with x < size: never 1 <= Dom[⟨_, x⟩] and started is 0","every x with x < size: never 1 <= T[⟨_, ⟨x, _⟩⟩] and started is 0","every x, y with x < size ∧ y < size ∧ ¬(x = y): never 1 <= Link(x)=y and 1 <= LinkSet[x] and LinkSet[y] is 0","every x with x < packets: never 1 <= Pend[⟨x, ⟨_, _⟩⟩] and started is 0","every x with x < size: never 1 <= T[⟨_, ⟨_, x⟩⟩] and started is 0","every x, Src(x) with x < packets: never 1 <= Dom[⟨Src(x), Src(x)⟩]","every x, y with x < size ∧ y < size ∧ ¬(x = y): never 1 <= T[⟨x, ⟨y, _⟩⟩] and Dom[⟨x, y⟩] is 0","every x, y, z, Src(x) with x < packets ∧ y < size ∧ z < size ∧ ¬(y = z) ∧ ¬(Src(x) = y) ∧ ¬(Src(x) = z): never 1 <= Pend[⟨x, ⟨y, z⟩⟩] and Dom[⟨Src(x), y⟩] is 0 and T[⟨Src(x), ⟨y, z⟩⟩] is 0","every x, y, Src(x) with x < packets ∧ y < size ∧ ¬(Src(x) = y): never 1 <= Pend[⟨x, ⟨y, _⟩⟩] and Dom[⟨Src(x), y⟩] is 0 and T[⟨Src(x), ⟨y, y⟩⟩] is 0","every x, y with x < size ∧ y < size ∧ ¬(x = y): never Link(x)=y is 0 and 1 <= Pend[⟨_, ⟨x, y⟩⟩]","every x, y with x < size ∧ y < size ∧ ¬(x = y): never Link(x)=y is 0 and 1 <= Dom[⟨y, x⟩]"],"ms":25683,"work":314016,"full":618517}}
+CENSUS_COMPLETE {"i":5,"n":7,"rows":4,"unchanged":true,"verdicts":[["simple","proven"],["simple_decentralized_lock","proven"],["simple_election","proven"],["learning_switch_i4","proven"]]}
+
+--- stderr ---
+warning: adding embedded git repository: vendor/gdp-ts
+warning: adding embedded git repository: vendor/handwired
+Submodule 'vendor/gdp-ts' (https://github.com/rauchg/gdp-ts.git) registered for path 'vendor/gdp-ts'
+Submodule 'vendor/handwired' (https://github.com/monotykamary/handwired.git) registered for path 'vendor/handwired'
+Migrating git directory of 'vendor/gdp-ts' from
+'/tmp/gdp-ci-fix-optional.sj8kWA/tree/vendor/gdp-ts/.git' to
+'/tmp/gdp-ci-fix-optional.sj8kWA/tree/.git/modules/vendor/gdp-ts'
+Migrating git directory of 'vendor/handwired' from
+'/tmp/gdp-ci-fix-optional.sj8kWA/tree/vendor/handwired/.git' to
+'/tmp/gdp-ci-fix-optional.sj8kWA/tree/.git/modules/vendor/handwired'
