@@ -21,9 +21,34 @@
     "status": "test-mode tuple type error; existing native-cap fixture omitted from first overlay, restored in final validation"
   },
   "pilot": {
-    "status": "running",
-    "task": "1cbe1ec3-b2db-49a2-96eb-2826a1289268",
-    "output": "runs/t16-target-interval-probe/"
+    "status": "rejected",
+    "batch": "20261110-023819-kr1va5",
+    "originalNamedNew": [
+      0,
+      3,
+      3
+    ],
+    "originalWallsMs": [
+      2054.469851,
+      1900.174678,
+      1984.5400980000002
+    ],
+    "survivorNamedNew": [
+      2,
+      2,
+      2
+    ],
+    "allSixWallsWithinAllowance": false,
+    "completedFirstRound": {
+      "nodes": 56413,
+      "states": 782,
+      "requestPrunes": 4231,
+      "statePrunes": 0,
+      "intervalFallbacks": 19
+    },
+    "replayBatch": "20261110-024016-l6ks07",
+    "certifiedWitnesses": 16,
+    "results": "research/track-gen/t16-target-interval-results.json"
   },
   "productionEnabled": false,
   "sourceCommit": "e559b0d3fcb54ae6298009e7365c76cf669c4fc7"

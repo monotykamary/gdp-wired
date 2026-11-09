@@ -22,7 +22,26 @@ on top of state-first: the first pilot caught no drops during target build.
 Shared circuits passed 57 tests; the pilot recovered four named drops,
 but still fails the unchanged five-of-seven bar.
 
-## Current revision: interval post-target pruning (checked; pilot running)
+## Current WIP: bounded seed neighborhoods (validation pending)
+
+The interval pilot below failed. The next generic hypothesis tries one-coordinate
+neighbors of prior counterexamples before ordinary global traversal. The optional
+seed cache is limited to eight matching finite-grid projections and 256 unique
+attempts per invocation, with existing walls and independent certification.
+No domains, row keys, source dispatch or code-size caps change. Intervals stay
+off in the planned pilot. See `research/track-gen/t16-seed-notes.md`.
+
+The complete prior suite plus seven seed fixtures and static checks are running
+wide on submission, task `25950e42-203b-4bc6-a960-a54b1540562a`, output
+`runs/t16-seed-check/`, immutable overlay `runs/t16-seed-overlay/`.
+No seed pilot has been submitted. This WIP is not covered by the 64-test receipt.
+Compiler SHA-256 `75ad5d2b681ce9b5fd167139d94858712da2c7bbd2cdd5df987bfd1fff074b8e`;
+new suite `992a86b0a27247b78834b5b3fee370be9d947888a71aef1b1afb0ed483c41542`;
+driver `e8df5883ffc911b06a2a4555f244a6dd58a342c8ea86e68605d79ab3cbd1eb68`.
+The canonical archive is reused. No >500 MB write or deletion is planned.
+No subagents are running.
+
+## Previous revision: interval post-target pruning (checked; pilot rejected)
 
 The shared-circuit implementation below is checked and replayed, but misses
 the performance criterion. The next opt-in refinement encloses unknown post
@@ -43,12 +62,19 @@ TypeScript, type-aware lint (zero warnings/errors), and commitlint. Receipts:
 `runs/t16-target-interval-check-v2/`; immutable overlay:
 `runs/t16-target-interval-overlay-v2/`. Checked source commit: `e559b0d3`.
 
-Six pilots are now running on submission-class isolated large VMs in task
-`1cbe1ec3-b2db-49a2-96eb-2826a1289268`, output
-`runs/t16-target-interval-probe/`. The compiler, both test files and driver
-were checked for exact hash equality before launch. Only the opt-in interval
-flag changes the pilot behavior; all budgets, domains, full-family checks and
-the five-of-seven / 2 s criterion stay unchanged. No result is claimed yet.
+The six-pilot batch `20261110-023819-kr1va5` completed with all job exits 0,
+but **failed** the criterion. Original named new drops: **0 / 3 / 3**;
+active walls: **2054.470 / 1900.175 / 1984.540 ms**. Survivors found only two
+new named drops each. One original run exceeds 2 seconds; its total job runtime
+was 23.31 seconds, which is not the active search wall. No timing rerun or
+promotion was performed.
+
+The one completed original first round had 56,413 nodes, 782 states, 4,231
+request prunes, zero state prunes, and **19 interval fallbacks**: no additional
+pruning relative to the shared-circuit result. Independent replay batch
+`20261110-024016-l6ks07` confirmed all 16 emitted witnesses, not the criterion.
+Results: `research/track-gen/t16-target-interval-results.json`. Interval mode
+remains opt-in and is rejected for the next performance pilot.
 Core SHA-256 `0e1a570230e81f53821eaf606ae0dbcf64c0a0fc8f0ebc14f9d1bc3f27582795`;
 test `a9e2ece1f3e36eab0544c66a0afd13f236130a4d5d814435fc0224a05992287c`;
 restored regression file `f3bf9bafa63ffe7150512ada101e5c781f5e0696ac6ce5175750bf77f9d8005c`;
