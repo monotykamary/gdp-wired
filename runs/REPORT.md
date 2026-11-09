@@ -8,6 +8,9 @@
   `c21a6e54` at a19a0713 (`receipts/rverd2`; the later commits are generation-only and census-identical). Lanes F / B / I can pull it.
 - **7bc4e5fd** (one shared breakpoint list per step, no duplicate map validation in `cells`) is running its tests, incremental pair,
   census and strict pairs; it becomes the head for the gate only when all four hold, else f4db596e stays.
+- **VM note for lane D and the coordinator:** `bx_8nqy7xab` (large, Ryzen 9 9950X) ran both of its strict pairs ≈ 3× slower than every
+  other large VM (base 54.1 s and 54.8 s of non-attempt wall against 20–29 s elsewhere; `receipts/orig2` pair 3, `receipts/orig3` pair 2).
+  A timing claim should not rest on it; the pairs on it still favour the candidate.
 - No open audit blockers. No push, no merge. Kernel untouched since the Lean-first frame-cut work (branch `claude/mldr-design`).
 - Routed to lane A (MLDR-DESIGN.md "16.3 consequence — measured"): every pass-1 attempt overruns its 3.2 s share by 1–2.7× on both
   trees (`decide` is not cut at the attempt's end), so round 0 needs > 200 s of attempts in a 60 s run whatever the generation wall is.
