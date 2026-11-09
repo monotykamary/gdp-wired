@@ -2,7 +2,7 @@
   "iterationOnly": true,
   "gateGreen": false,
   "scope": "conditional helpers against observed original admission families",
-  "independentAuditPending": true,
+  "independentAuditPending": false,
   "rows": [
     {
       "name": "original-0",
@@ -65,7 +65,14 @@
           "workerChecked": true,
           "withinPassLine": true,
           "units": 2292.235458,
-          "wallMs": 5806.423295
+          "wallMs": 5806.423295,
+          "audit": {
+            "sourceLog": "runs/track-m/lane-b-original-audit-v2/original-0.log",
+            "logSha256": "e54de300f32171199f04798171ceec74cee21f42df6b5ec82a6401c99402e842",
+            "conditional": true,
+            "checked": true,
+            "familyVerified": true
+          }
         },
         {
           "side": "rows",
@@ -75,7 +82,14 @@
           "workerChecked": false,
           "withinPassLine": false,
           "units": 1877.7752144,
-          "wallMs": 7003.2578029999995
+          "wallMs": 7003.2578029999995,
+          "audit": {
+            "sourceLog": "runs/track-m/lane-b-original-audit-v2/original-0.log",
+            "logSha256": "e54de300f32171199f04798171ceec74cee21f42df6b5ec82a6401c99402e842",
+            "conditional": true,
+            "checked": false,
+            "familyVerified": true
+          }
         },
         {
           "side": "star",
@@ -85,7 +99,14 @@
           "workerChecked": false,
           "withinPassLine": false,
           "units": 1654.958204,
-          "wallMs": 7013.719263999999
+          "wallMs": 7013.719263999999,
+          "audit": {
+            "sourceLog": "runs/track-m/lane-b-original-audit-v2/original-0.log",
+            "logSha256": "e54de300f32171199f04798171ceec74cee21f42df6b5ec82a6401c99402e842",
+            "conditional": true,
+            "checked": false,
+            "familyVerified": true
+          }
         }
       ]
     },
@@ -150,7 +171,14 @@
           "workerChecked": true,
           "withinPassLine": true,
           "units": 2292.235458,
-          "wallMs": 3256.8779990000003
+          "wallMs": 3256.8779990000003,
+          "audit": {
+            "sourceLog": "runs/track-m/lane-b-original-audit-v2/original-1.log",
+            "logSha256": "3d4529db99a9684285859f2c45ac0c2d8b7ffc6c3a95d5e96ce5867fc72bf65f",
+            "conditional": true,
+            "checked": true,
+            "familyVerified": true
+          }
         },
         {
           "side": "rows",
@@ -160,7 +188,14 @@
           "workerChecked": false,
           "withinPassLine": false,
           "units": 5180.099786400001,
-          "wallMs": 7003.789096
+          "wallMs": 7003.789096,
+          "audit": {
+            "sourceLog": "runs/track-m/lane-b-original-audit-v2/original-1.log",
+            "logSha256": "3d4529db99a9684285859f2c45ac0c2d8b7ffc6c3a95d5e96ce5867fc72bf65f",
+            "conditional": true,
+            "checked": false,
+            "familyVerified": true
+          }
         },
         {
           "side": "star",
@@ -170,7 +205,14 @@
           "workerChecked": false,
           "withinPassLine": false,
           "units": 4572.129517999999,
-          "wallMs": 7051.476506
+          "wallMs": 7051.476506,
+          "audit": {
+            "sourceLog": "runs/track-m/lane-b-original-audit-v2/original-1.log",
+            "logSha256": "3d4529db99a9684285859f2c45ac0c2d8b7ffc6c3a95d5e96ce5867fc72bf65f",
+            "conditional": true,
+            "checked": false,
+            "familyVerified": true
+          }
         }
       ]
     },
@@ -235,7 +277,14 @@
           "workerChecked": true,
           "withinPassLine": true,
           "units": 2292.235458,
-          "wallMs": 1794.6794329999998
+          "wallMs": 1794.6794329999998,
+          "audit": {
+            "sourceLog": "runs/track-m/lane-b-original-audit-v2/original-2.log",
+            "logSha256": "1346312c321213699562c154412786cc024725f51f6f02917ad748bf0006d0d1",
+            "conditional": true,
+            "checked": true,
+            "familyVerified": true
+          }
         },
         {
           "side": "rows",
@@ -245,7 +294,14 @@
           "workerChecked": false,
           "withinPassLine": false,
           "units": 6000.1785604,
-          "wallMs": 4405.747647
+          "wallMs": 4405.747647,
+          "audit": {
+            "sourceLog": "runs/track-m/lane-b-original-audit-v2/original-2.log",
+            "logSha256": "1346312c321213699562c154412786cc024725f51f6f02917ad748bf0006d0d1",
+            "conditional": true,
+            "checked": false,
+            "familyVerified": true
+          }
         },
         {
           "side": "star",
@@ -255,9 +311,22 @@
           "workerChecked": false,
           "withinPassLine": false,
           "units": 6001.319071999999,
-          "wallMs": 3631.0328879999997
+          "wallMs": 3631.0328879999997,
+          "audit": {
+            "sourceLog": "runs/track-m/lane-b-original-audit-v2/original-2.log",
+            "logSha256": "1346312c321213699562c154412786cc024725f51f6f02917ad748bf0006d0d1",
+            "conditional": true,
+            "checked": false,
+            "familyVerified": true
+          }
         }
       ]
     }
-  ]
+  ],
+  "originalFamilyVerified": true,
+  "independentAudit": {
+    "outcomes": 9,
+    "checked": 3,
+    "unknown": 6
+  }
 }
