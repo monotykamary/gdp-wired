@@ -31,7 +31,7 @@ A separate provenance audit checks all 140 names/statuses/placements, all frozen
 
 The 34 censored cases are **12 cooperative wall returns, 2 outer-watchdog stops, and 20 early SIGKILLs**. The early kills report about **13.5–14.2 GiB peak RSS**, consistent with resource exhaustion near the allocation; no kernel OOM log was collected, so they are not conclusively relabelled OOM. Their last observed work is only a lower bound. The 42 unknowns are unvalidated symbolic SAT hints, not certified counterexamples. No original safety proof, complete helper proof, or whole-family upper bound is claimed.
 
-All 140 raw logs remain untouched; compressed copies, source-bound summaries, verifier hashes, CPU labels and raw/compressed checksums are retained. No large source copy was made.
+All 140 raw logs remain untouched; compressed copies, source-bound summaries, verifier hashes, CPU labels and raw/compressed checksums are retained in commit `8fa5ac41`. No large source copy was made. The finished census's `frozen.tar` KEEP-LOCAL pin is released for coordinator-managed, verified offload; no input was deleted. The pending audit consumes only small hard-linked identity/family/manifest inputs, not that source tar. The main/b09 source-pack pins remain active for the pending regression experiments. Future-roster validation is task `0607c587-4075-4e23-a017-aaf92f308db9` at source `5813044f`; it does not repeat any proof run.
 
 ## Diagnostic evidence audit / scheduler observation
 

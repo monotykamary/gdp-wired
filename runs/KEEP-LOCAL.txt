@@ -1,6 +1,5 @@
-# Lane I: preserve the exact frozen source while the upper-bound batch is live.
-# Other historical run packaging may be offloaded after remote verification.
-runs/lane-i/upper-bound/resumed/input/frozen.tar
+# Lane I: the 140 frozen upper-bound shards finished; their source pin is released.
+# Compressed receipts and frozen source/family hashes are retained; no input was deleted.
 # Active b09 regression diagnosis reuses Lane D's exact Git-object source packs.
 /Users/monotykamary/VCS/working-remote/open-source/gdp-wired-verifyP/runs/final-gate/integration-704efc27/inputs/root.pack
 /Users/monotykamary/VCS/working-remote/open-source/gdp-wired-verifyP/runs/final-gate/integration-704efc27/inputs/module-0.pack
