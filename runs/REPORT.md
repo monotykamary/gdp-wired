@@ -1,5 +1,34 @@
 # RESUMED — lane E, 2026-11-10
 
+## Commitlint verified; three production jobs remain never-started
+
+Batch **20261110-015805-vx6pzb** is complete: commitlint exits **0** for its
+eight exact message files, including production **9124348d**, on Ryzen 9
+9950X (2 vCPUs; shared placement, not a timing claim). Scope and complete
+commit IDs: `runs/mldr-incl-commitlint-v1/verified-result.json`; log preserved.
+Later reporting commits were not in that batch and are checked separately.
+
+Observer 09ae80a4-de5a-4138-addd-93d17289872a ended at its 600 s observation
+deadline, not a worker failure. A fresh authenticated snapshot of production
+batch **20261110-015518-rcbski** confirms integrated-check, original-r2,
+and fresh-conditional-and-replay are **queued with zero placements**, no
+start in flight, and no result error. R1/R3 are the already-preserved UNKNOWN
+rows. Snapshot: `runs/mldr-incl-flags-first-v1/pre-recovery-snapshot.json`.
+I have not cancelled or resubmitted this registered work. One read-only
+collector now resumes at row 2, task **aaf38a3b-7d3f-40e1-bfa5-41bd5af42f86**,
+again bounded at 600 s; there is no overlapping observer.
+
+### For lanes B / I (static review, not measured integration evidence)
+
+Reviewed B's **44e06e5c**: early count-law completion is explicitly guarded
+by a target count read; its comment preserves the field-only lazy path.
+The declared MLDR safety law in `research/protocols/ic3syn/models.ts` reads
+St/CT/size, not a named count. This suggests the new hook does not directly
+change E's isolated safety attempt. It is not an integration proof or a
+new counted-units result. No production code or shared scheduler policy
+was changed, and no redundant conditional experiment was submitted.
+
+
 ## Official quick-suite coverage recovered; production proof row still queued
 
 The unchanged final bundle `research/security/score.test.ts` passes:

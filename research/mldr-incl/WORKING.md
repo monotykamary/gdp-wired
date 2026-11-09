@@ -1,5 +1,15 @@
 # RESUMED — user instruction, 2026-11-10
 
+**Commitlint complete:** eight submitted messages pass, including 9124348d;
+exact scope is in runs/mldr-incl-commitlint-v1/verified-result.json. Later
+report-only commits are outside that receipt.
+
+**Current observer:** aaf38a3b-7d3f-40e1-bfa5-41bd5af42f86, continuing batch
+20261110-015518-rcbski at row 2. Previous observer ended normally at its
+observation deadline. Three remaining jobs are still queued, zero placements;
+no cancellation or duplicate submission. No production proof verdict added.
+
+
 **Tail passed:** 28 tests / 1,305 assertions. Official quick-suite coverage
 is recovered for all 167 unique units using the seven complete shards,
 the completed prefix, and the isolated final bundle. Original aggregate

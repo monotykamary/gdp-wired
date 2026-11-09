@@ -1,0 +1,36 @@
+{
+  "batch": "20261110-015805-vx6pzb",
+  "rows": [
+    {
+      "name": "commitlint",
+      "code": 0,
+      "seconds": 4.4,
+      "vm": "bx_7vs7decr",
+      "run_name": "commitlint",
+      "placement": {
+        "vm": "bx_7vs7decr",
+        "type": "large",
+        "cpu": "AMD Ryzen 9 9950X 16-Core Processor",
+        "vcpus": 2,
+        "vm_vcpus": 8,
+        "exclusive": false,
+        "co_tenants": 3
+      }
+    }
+  ],
+  "logArchiveSha256": "c3de4acb29898498c0bc475781a45dad77eab598e0bee0899545959d4db7a06c",
+  "done": true,
+  "running": 0,
+  "queued": 0,
+  "checkedCommits": [
+    "5c3686f0bc4c4a7ef9c7864870ba35005deb2d22",
+    "83032a6407f4872658ae28f161dab2e9fe52d476",
+    "9124348d5d313ab7e89082b0146a72d6a7c8bf66",
+    "ac7eacfeeb17677fb58d588a4f5dee6b666294c8",
+    "c00b2f3878f7818a42f07ac3c9ff46262e02a1f1",
+    "caef8a2c9ccf10ebf4d58bf2db7c60a1e521bfcf",
+    "e03d6e2ca084c54c4cb8e5e60ca45f87b46da203",
+    "ff672f79c6e95792cca89bd40a8c78a96c0a2ae4"
+  ],
+  "scope": "These eight message files only, not later reporting commits or any proof result"
+}

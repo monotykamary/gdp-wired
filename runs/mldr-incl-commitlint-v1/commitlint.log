@@ -1,0 +1,13 @@
+COMMITLINT commits/5c3686f0bc4c4a7ef9c7864870ba35005deb2d22.txt
+COMMITLINT commits/83032a6407f4872658ae28f161dab2e9fe52d476.txt
+COMMITLINT commits/9124348d5d313ab7e89082b0146a72d6a7c8bf66.txt
+COMMITLINT commits/ac7eacfeeb17677fb58d588a4f5dee6b666294c8.txt
+COMMITLINT commits/c00b2f3878f7818a42f07ac3c9ff46262e02a1f1.txt
+COMMITLINT commits/caef8a2c9ccf10ebf4d58bf2db7c60a1e521bfcf.txt
+COMMITLINT commits/e03d6e2ca084c54c4cb8e5e60ca45f87b46da203.txt
+COMMITLINT commits/ff672f79c6e95792cca89bd40a8c78a96c0a2ae4.txt
+
+--- stderr ---
+Resolving dependencies
+Resolved, downloaded and extracted [276]
+Saved lockfile
