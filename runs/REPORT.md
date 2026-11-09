@@ -16,6 +16,23 @@ Ported only Fable `b89dd77a`'s on-violation range algorithm. Lane B's count-law 
 
 Submitted candidate `b056c3b4` with `research/track-m/jobs-lane-b-demand-range.json`: six balanced same-VM original-34 comparisons (p1, Inv1758, Inv*, both arm orders), plus typecheck/lint and focused tests. Output `runs/track-m/lane-b-demand-range-v1`; batch `20261110-002114-ovy5ii`, tree `c5c63c1bf723`. The audit retry is batch `20261110-001834-eu43wb` in `lane-b-range-final-audit-resume-v2`; linker validation on `201a21a2` is batch `20261110-001852-88p0sl`, tree `91adfc0ed7f4`. All are pending with one owned controller each; no per-job result yet. Controls contain the exact two eager source files from `a4dc71d0`; each arm archives its restored bytes, exact family, full costs and checker-only replay. These are standalone conditional measurements under unchanged 6,000-unit / 7-second limits, not original-harness or merge-gate evidence.
 
+### Scheduler recovery and disk limits
+
+Coordinator reopened submissions after the blob-cache lock freed at 00:35; the one-subagent cap remains (this lane owns none). A fresh filtered inventory confirms **all four existing batch IDs are registered**: both audit submissions have three queued items, the range comparison seven, and linker check one; all showed zero running at that snapshot. Therefore no further retries were submitted. In particular, both audit RPCs registered after reporting failure; the third attempt's registration guard correctly prevented another copy. Existing submissions are left untouched as instructed.
+
+### Disk
+
+No new whole-tree archives or raw proof downloads are planned. Future runs will reuse one `/private/tmp/gdp-archives/<sha>.tar` per SHA and pass it with `--data`; before any write over 500 MB, this report will state its purpose and size. Only needed small summaries/receipts/hashes will be fetched; any necessary raw trace/log will be gzip-compressed. Nothing was deleted.
+
+Potential cleanup **after every associated job/controller is terminal, and only at coordinator discretion**:
+
+| Path | Measured size | Why potentially disposable / current restriction |
+|---|---:|---|
+| `/private/tmp/gdp-wired-lane-b-resume` | 233 MiB | Detached source snapshot `30537f70`; reproducible from Git, but still the source directory for submitted audits. Do not remove while active. |
+| `/private/tmp/gdp-wired-lane-b-demand-v1` | 233 MiB | Detached candidate snapshot `b056c3b4`; reproducible from Git, but its existing controller remains active. Do not remove while active. |
+
+The prepared original-family inputs are small and retained: `lane-b-demand-input` 372 KiB, `lane-b-range-final-audit-input` 2.4 MiB, `lane-b-projection-input` 7.6 MiB. They avoid rerunning measurements and are not proposed for deletion. Filesystem free space was 31 GiB at this inventory.
+
 ### Historical pause instructions (superseded by explicit resume above)
 
 **The following inventory records the 2026-11-09 pause, not a current instruction to wait. No push or merge.**
