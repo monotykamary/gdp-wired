@@ -1,0 +1,426 @@
+{
+  "conditional": true,
+  "standalone": true,
+  "gateGreen": false,
+  "validationExit": 0,
+  "checks": {
+    "base": 0,
+    "candidate": 0
+  },
+  "source": "09d3d172",
+  "control": "47215336",
+  "rows": [
+    {
+      "name": "p1-ab",
+      "cpu": {
+        "vm": "bx_8f8tzqk2",
+        "type": "large",
+        "cpu": "AMD EPYC 4585PX 16-Core Processor",
+        "vcpus": 8,
+        "vm_vcpus": 8,
+        "exclusive": true,
+        "co_tenants": 0
+      },
+      "logSha256": "848f9ff573fcb1a268c5593f07f7f931ee1a1f1594fdffc43fa97fa04981ceac",
+      "archive": {
+        "artifact": "track-m-tar-v1",
+        "dir": "/home/user/track-m-s18-receipts-AhndZE",
+        "format": "tar.gz",
+        "parts": 6,
+        "bytes": 847230,
+        "sha256": "78ac6a1ea80070e0abf3815ac80456be2775509f7f22eb57919b5edac29be650"
+      },
+      "arms": [
+        {
+          "side": "before",
+          "tag": "p1",
+          "law": "count cubes: every x with x < {\"op\":\"var\",\"name\":\"size\"}: never CV[x] is 0 and 1 <= inX$row[x]",
+          "checked": true,
+          "units": 2175.5122859999997,
+          "wallMs": 2450.108064,
+          "withinDiagnosticLine": true,
+          "results": [
+            {
+              "pass": 1,
+              "outcome": "proof",
+              "units": 2175.5122859999997,
+              "wallMs": 2247.5858230000003
+            }
+          ],
+          "memberPremiseEvents": 0,
+          "memberPremiseTuples": 0,
+          "originalFamilyVerified": true
+        },
+        {
+          "side": "after",
+          "tag": "p1",
+          "law": "count cubes: every x with x < {\"op\":\"var\",\"name\":\"size\"}: never CV[x] is 0 and 1 <= inX$row[x]",
+          "checked": true,
+          "units": 2341.8316808,
+          "wallMs": 3790.904694,
+          "withinDiagnosticLine": true,
+          "results": [
+            {
+              "pass": 1,
+              "outcome": "proof",
+              "units": 2341.8316808,
+              "wallMs": 3160.7191789999997
+            }
+          ],
+          "memberPremiseEvents": 1,
+          "memberPremiseTuples": 64,
+          "originalFamilyVerified": true
+        }
+      ],
+      "unitDelta": 166.31939480000028,
+      "wallDeltaMs": 1340.7966299999998
+    },
+    {
+      "name": "p1-ba",
+      "cpu": {
+        "vm": "bx_by6phc8p",
+        "type": "large",
+        "cpu": "AMD Ryzen 9 9950X 16-Core Processor",
+        "vcpus": 8,
+        "vm_vcpus": 8,
+        "exclusive": true,
+        "co_tenants": 0
+      },
+      "logSha256": "e834779ff9a2091f67874431ac3b3e039d9f3e152cbf5b01f13a9b5046737878",
+      "archive": {
+        "artifact": "track-m-tar-v1",
+        "dir": "/home/user/track-m-s18-receipts-sgN1YL",
+        "format": "tar.gz",
+        "parts": 6,
+        "bytes": 854795,
+        "sha256": "dc00ee37b6ef8754172086d6823ce0d8d6fd22eaaebd5a7768417d6f5d1bc81e"
+      },
+      "arms": [
+        {
+          "side": "after",
+          "tag": "p1",
+          "law": "count cubes: every x with x < {\"op\":\"var\",\"name\":\"size\"}: never CV[x] is 0 and 1 <= inX$row[x]",
+          "checked": true,
+          "units": 2341.8316808,
+          "wallMs": 4302.283537,
+          "withinDiagnosticLine": true,
+          "results": [
+            {
+              "pass": 1,
+              "outcome": "proof",
+              "units": 2341.8316808,
+              "wallMs": 3451.2175399999996
+            }
+          ],
+          "memberPremiseEvents": 1,
+          "memberPremiseTuples": 64,
+          "originalFamilyVerified": true
+        },
+        {
+          "side": "before",
+          "tag": "p1",
+          "law": "count cubes: every x with x < {\"op\":\"var\",\"name\":\"size\"}: never CV[x] is 0 and 1 <= inX$row[x]",
+          "checked": true,
+          "units": 2175.5122859999997,
+          "wallMs": 4943.160481,
+          "withinDiagnosticLine": true,
+          "results": [
+            {
+              "pass": 1,
+              "outcome": "proof",
+              "units": 2175.5122859999997,
+              "wallMs": 4665.237092
+            }
+          ],
+          "memberPremiseEvents": 0,
+          "memberPremiseTuples": 0,
+          "originalFamilyVerified": true
+        }
+      ],
+      "unitDelta": 166.31939480000028,
+      "wallDeltaMs": -640.8769439999996
+    },
+    {
+      "name": "rows-ab",
+      "cpu": {
+        "vm": "bx_bucc8x77",
+        "type": "large",
+        "cpu": "AMD EPYC 9455 48-Core Processor",
+        "vcpus": 8,
+        "vm_vcpus": 8,
+        "exclusive": true,
+        "co_tenants": 0
+      },
+      "logSha256": "7e5a5f0f1a54065e44c03a76c66bfc0ac7e4d5a6251fd0ac164b1446534e039c",
+      "archive": {
+        "artifact": "track-m-tar-v1",
+        "dir": "/home/user/track-m-s18-receipts-WY7eo5",
+        "format": "tar.gz",
+        "parts": 8,
+        "bytes": 1181324,
+        "sha256": "89dc9ddb77938466374f7a6c566dc116f5b6c662727dd4136f5e19c72860cf73"
+      },
+      "arms": [
+        {
+          "side": "before",
+          "tag": "rows",
+          "law": "fields: CV[a]=CV[b] and CfgT[a]=CfgT[b] -> Config rows agree",
+          "checked": false,
+          "units": 6000.308358,
+          "wallMs": 4734.797788000001,
+          "withinDiagnosticLine": false,
+          "results": [
+            {
+              "pass": 1,
+              "outcome": "unknown",
+              "units": 6000.308358,
+              "wallMs": 4733.558233000001
+            }
+          ],
+          "memberPremiseEvents": 0,
+          "memberPremiseTuples": 0,
+          "originalFamilyVerified": true
+        },
+        {
+          "side": "after",
+          "tag": "rows",
+          "law": "fields: CV[a]=CV[b] and CfgT[a]=CfgT[b] -> Config rows agree",
+          "checked": false,
+          "units": 6000.308358,
+          "wallMs": 4838.093324,
+          "withinDiagnosticLine": false,
+          "results": [
+            {
+              "pass": 1,
+              "outcome": "unknown",
+              "units": 6000.308358,
+              "wallMs": 4836.9161699999995
+            }
+          ],
+          "memberPremiseEvents": 0,
+          "memberPremiseTuples": 0,
+          "originalFamilyVerified": true
+        }
+      ],
+      "unitDelta": 0,
+      "wallDeltaMs": 103.29553599999963
+    },
+    {
+      "name": "rows-ba",
+      "cpu": {
+        "vm": "bx_6k9k52sn",
+        "type": "large",
+        "cpu": "AMD EPYC 4585PX 16-Core Processor",
+        "vcpus": 8,
+        "vm_vcpus": 8,
+        "exclusive": true,
+        "co_tenants": 0
+      },
+      "logSha256": "36b3680f0c6031f4f37c8418da09d51c1dc4f2e137950507c90eebe44afa5f12",
+      "archive": {
+        "artifact": "track-m-tar-v1",
+        "dir": "/home/user/track-m-s18-receipts-SVklmg",
+        "format": "tar.gz",
+        "parts": 8,
+        "bytes": 1186980,
+        "sha256": "3aaee3553e3d78722429a94a38c4acb63db579ee7f0e0de2827f0917679c54d9"
+      },
+      "arms": [
+        {
+          "side": "after",
+          "tag": "rows",
+          "law": "fields: CV[a]=CV[b] and CfgT[a]=CfgT[b] -> Config rows agree",
+          "checked": false,
+          "units": 6000.308358,
+          "wallMs": 6033.653349,
+          "withinDiagnosticLine": false,
+          "results": [
+            {
+              "pass": 1,
+              "outcome": "unknown",
+              "units": 6000.308358,
+              "wallMs": 6032.347869
+            }
+          ],
+          "memberPremiseEvents": 0,
+          "memberPremiseTuples": 0,
+          "originalFamilyVerified": true
+        },
+        {
+          "side": "before",
+          "tag": "rows",
+          "law": "fields: CV[a]=CV[b] and CfgT[a]=CfgT[b] -> Config rows agree",
+          "checked": false,
+          "units": 6000.308358,
+          "wallMs": 6224.973468,
+          "withinDiagnosticLine": false,
+          "results": [
+            {
+              "pass": 1,
+              "outcome": "unknown",
+              "units": 6000.308358,
+              "wallMs": 6223.66992
+            }
+          ],
+          "memberPremiseEvents": 0,
+          "memberPremiseTuples": 0,
+          "originalFamilyVerified": true
+        }
+      ],
+      "unitDelta": 0,
+      "wallDeltaMs": -191.32011899999998
+    },
+    {
+      "name": "star-ab",
+      "cpu": {
+        "vm": "bx_7vpz29xf",
+        "type": "large",
+        "cpu": "AMD Ryzen 9 9950X 16-Core Processor",
+        "vcpus": 8,
+        "vm_vcpus": 8,
+        "exclusive": true,
+        "co_tenants": 0
+      },
+      "logSha256": "5fb55cac3ccc785c8279943b46c59b67e1536f13d8df9faecec244b0b1346e97",
+      "archive": {
+        "artifact": "track-m-tar-v1",
+        "dir": "/home/user/track-m-s18-receipts-fQFZvG",
+        "format": "tar.gz",
+        "parts": 14,
+        "bytes": 1990425,
+        "sha256": "110e4840ca528e46da394f0a0f9f49d12a1fafa4363b6846dc769f29dff6860e"
+      },
+      "arms": [
+        {
+          "side": "before",
+          "tag": "star",
+          "law": "inX: no quorum canVote/3",
+          "checked": false,
+          "units": 4708.451455999999,
+          "wallMs": 7033.1579010000005,
+          "withinDiagnosticLine": false,
+          "results": [
+            {
+              "pass": 1,
+              "outcome": "unknown",
+              "units": 4708.451455999999,
+              "wallMs": 7029.181701
+            },
+            {
+              "pass": 0,
+              "outcome": "unknown",
+              "units": 0,
+              "wallMs": 0.18996799999968061
+            }
+          ],
+          "memberPremiseEvents": 0,
+          "memberPremiseTuples": 0,
+          "originalFamilyVerified": true
+        },
+        {
+          "side": "after",
+          "tag": "star",
+          "law": "inX: no quorum canVote/3",
+          "checked": false,
+          "units": 4083.229022,
+          "wallMs": 7026.674204,
+          "withinDiagnosticLine": false,
+          "results": [
+            {
+              "pass": 1,
+              "outcome": "unknown",
+              "units": 4083.229022,
+              "wallMs": 7022.5898
+            },
+            {
+              "pass": 0,
+              "outcome": "unknown",
+              "units": 0,
+              "wallMs": 0.2609629999997196
+            }
+          ],
+          "memberPremiseEvents": 1,
+          "memberPremiseTuples": 64,
+          "originalFamilyVerified": true
+        }
+      ],
+      "unitDelta": -625.2224339999989,
+      "wallDeltaMs": -6.483697000000575
+    },
+    {
+      "name": "star-ba",
+      "cpu": {
+        "vm": "bx_b4q8bzub",
+        "type": "large",
+        "cpu": "AMD Ryzen 9 9950X 16-Core Processor",
+        "vcpus": 8,
+        "vm_vcpus": 8,
+        "exclusive": true,
+        "co_tenants": 0
+      },
+      "logSha256": "308ff71efe2a870cce9ff4b33a23dc304eda0e5ca468bbbac7d1f0ff3b5496c7",
+      "archive": {
+        "artifact": "track-m-tar-v1",
+        "dir": "/home/user/track-m-s18-receipts-IhASy7",
+        "format": "tar.gz",
+        "parts": 14,
+        "bytes": 2054525,
+        "sha256": "3058c2fda92b3fc60a0865908d7135db261128aa5e2d0d0d51ac4f3216e72dac"
+      },
+      "arms": [
+        {
+          "side": "after",
+          "tag": "star",
+          "law": "inX: no quorum canVote/3",
+          "checked": false,
+          "units": 4606.94038,
+          "wallMs": 7011.193276,
+          "withinDiagnosticLine": false,
+          "results": [
+            {
+              "pass": 1,
+              "outcome": "unknown",
+              "units": 4606.94038,
+              "wallMs": 7007.824151
+            },
+            {
+              "pass": 0,
+              "outcome": "unknown",
+              "units": 0,
+              "wallMs": 0.16330699999980425
+            }
+          ],
+          "memberPremiseEvents": 1,
+          "memberPremiseTuples": 64,
+          "originalFamilyVerified": true
+        },
+        {
+          "side": "before",
+          "tag": "star",
+          "law": "inX: no quorum canVote/3",
+          "checked": false,
+          "units": 6001.712424,
+          "wallMs": 4691.959495,
+          "withinDiagnosticLine": false,
+          "results": [
+            {
+              "pass": 1,
+              "outcome": "unknown",
+              "units": 6001.712424,
+              "wallMs": 4689.7102350000005
+            }
+          ],
+          "memberPremiseEvents": 0,
+          "memberPremiseTuples": 0,
+          "originalFamilyVerified": true
+        }
+      ],
+      "unitDelta": -1394.7720440000003,
+      "wallDeltaMs": 2319.233781
+    }
+  ],
+  "independentAudit": {
+    "outcomes": 12,
+    "checked": 4
+  }
+}
