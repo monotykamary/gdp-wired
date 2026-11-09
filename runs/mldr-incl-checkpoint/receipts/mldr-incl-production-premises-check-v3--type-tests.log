@@ -1,0 +1,72 @@
+Found 0 warnings and 0 errors.
+Finished in 18.9s on 1422 files with 100 rules using 8 threads.
+bun test v1.4.3 (c6da4a4d3)
+
+--- stderr ---
+$ tsc -p . && oxlint --type-aware --deny-warnings --disable-nested-config
+
+core/count-focused.test.ts:
+(pass) goal demand uses a primitive read for a missing pre-state union [19.22ms]
+(pass) goal demand follows a named flag to a missing pre-state union [3.43ms]
+(pass) demand discovers post-state Boolean identities without expanding the write [1.74ms]
+(pass) field guards receive row instances without adding carried-set witnesses [1.07ms]
+(pass) a copy starting subset retains source substitutions without unrelated tuples [0.63ms]
+(pass) copy source discovery ignores inputs read only by update guards [0.19ms]
+(pass) copy starting subsets preserve algebraic and post-empty proposals [0.08ms]
+(pass) copy-frame proposals compare the same counted definition at different rows within a cap [2.18ms]
+(pass) copy-frame slots are shared across result counts and prioritize input sources [0.94ms]
+(pass) focused comparisons follow carried sets and indicator bodies, not names [1.25ms]
+(pass) algebraic selection reserves union bounds and their row identities within the same cap [1.00ms]
+(pass) packed count coordinates are row keys but scalar comparison witnesses are not [0.34ms]
+(pass) equal Boolean views survive the narrow selector despite duplicated conjuncts [0.40ms]
+(pass) new count keys remain independent of certificate witnesses [0.31ms]
+(pass) counted row bridges preserve half-cardinality witnesses [0.22ms]
+(pass) targeted carried-set comparisons omit unrelated row reads [1.16ms]
+(pass) algebraic focus keeps equivalent pre-count views but not different rows [0.20ms]
+(pass) a carried subset can target its declared input-keyed row view [0.25ms]
+(pass) request frames propose only same-shaped carried-region comparisons [0.22ms]
+(pass) request frames normalize equality and threshold membership indicators [0.19ms]
+(pass) frames retain a structural range bound between two post counts [0.32ms]
+(pass) request partition identities outrank misleading triples within sixteen algebraic slots [1.78ms]
+(pass) post remainder and carried set propose a three-term coverage certificate [0.28ms]
+(pass) post counts can propose a bound from the stored membership they read [0.29ms]
+(pass) post-state frame comparisons are opt-in witness-bearing proposals [0.14ms]
+(pass) field bridges preserve the goal column independently of row-key aliases [0.21ms]
+(pass) count-law bridges seed only unary/binary count laws and preserve input [0.33ms]
+
+core/count-witness-flags.test.ts:
+(pass) selected count witnesses receive relevant universal flags, without recursive count reads [15.24ms]
+
+core/count-recovery/member-premises.test.ts:
+(pass) ordinary admission and source tuples use declarations, not names or width alpha_ [2.99ms]
+(pass) ordinary admission and source tuples use declarations, not names or width other_ [0.85ms]
+(pass) the emitted ordinary witness is proved from actual instantiated premises [37.19ms]
+(pass) member witnesses can instantiate fields, never a count-read coordinate [0.76ms]
+(pass) caps, absent facts and exhausted work do not manufacture premises [0.90ms]
+(pass) existing caller names cannot be captured by a fresh member witness [0.19ms]
+
+core/count-recovery/member-inclusions.test.ts:
+(pass) equality consequents discharge reflexive bodies and retain scalar residue  [0.52ms]
+(pass) equality consequents discharge reflexive bodies and retain scalar residue renamed_ [0.23ms]
+(pass) unknown membership is not treated as implied [0.22ms]
+(pass) member upper bounds propose sufficient scalar guards without equality anchors [0.20ms]
+(pass) an upper bound is not rewritten in a negative comparison [0.13ms]
+(pass) upper-bound suggestions still require the scalar guard and checked witness flags [64.35ms]
+(pass) an inequality is not a substitution [0.38ms]
+(pass) different domains cannot form an inclusion [0.19ms]
+(pass) another carried map does not supply these member facts [0.07ms]
+(pass) a still-member-dependent predicate is not a scalar residue [0.17ms]
+(pass) without an equality rewrite, ordinary membership stays with the old family [0.09ms]
+(pass) a discharged equality may yield an unconditional candidate, never an asserted cut [0.12ms]
+(pass) cyclic input is refused before recursive substitution [0.06ms]
+(pass) ordinary selection receives an existing guarded inclusion within its unchanged cap [0.34ms]
+(pass) selection cannot manufacture a missing instance or borrow unrelated member flags [0.16ms]
+(pass) selection respects an explicitly smaller cap and does not assert its scalar residue [0.16ms]
+(pass) initial selection shares its cap with existing picks and respects exhausted proposal work [0.26ms]
+(pass) the raw lazy pool admits a genuinely missing bound-specialized inclusion with a fresh witness [2.33ms]
+(pass) an ordinary selected witness proves the conditional inclusion but not its unguarded strengthening [43.85ms]
+
+ 53 pass
+ 0 fail
+ 195 expect() calls
+Ran 53 tests across 4 files. [306.00ms]

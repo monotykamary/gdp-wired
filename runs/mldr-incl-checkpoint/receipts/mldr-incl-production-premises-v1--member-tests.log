@@ -1,0 +1,44 @@
+bun test v1.4.3 (c6da4a4d3)
+
+--- stderr ---
+
+core/count-witness-flags.test.ts:
+(pass) selected count witnesses receive relevant universal flags, without recursive count reads [12.97ms]
+
+core/count-completion.test.ts:
+(pass) completes whole tuples of assumed laws, deduplicated, without mutating the old map [0.32ms]
+(pass) completion is bounded to four terms, binary laws, 48 new tuples and existing generation fuel [0.22ms]
+(pass) a complete original premise, not a trusted fact, closes the ordinary checked goal [0.36ms]
+
+core/count-recovery/member-premises.test.ts:
+(pass) ordinary admission and source tuples use declarations, not names or width alpha_ [1.47ms]
+(pass) ordinary admission and source tuples use declarations, not names or width other_ [0.39ms]
+(pass) the emitted ordinary witness is proved from actual instantiated premises [3.94ms]
+(pass) caps, absent facts and exhausted work do not manufacture premises [0.38ms]
+(pass) existing caller names cannot be captured by a fresh member witness [0.10ms]
+
+core/count-recovery/member-inclusions.test.ts:
+(pass) equality consequents discharge reflexive bodies and retain scalar residue  [0.40ms]
+(pass) equality consequents discharge reflexive bodies and retain scalar residue renamed_ [0.19ms]
+(pass) unknown membership is not treated as implied [0.14ms]
+(pass) member upper bounds propose sufficient scalar guards without equality anchors [0.16ms]
+(pass) an upper bound is not rewritten in a negative comparison [0.13ms]
+(pass) upper-bound suggestions still require the scalar guard and checked witness flags [41.66ms]
+(pass) an inequality is not a substitution [0.20ms]
+(pass) different domains cannot form an inclusion [0.08ms]
+(pass) another carried map does not supply these member facts [0.04ms]
+(pass) a still-member-dependent predicate is not a scalar residue [0.10ms]
+(pass) without an equality rewrite, ordinary membership stays with the old family [0.07ms]
+(pass) a discharged equality may yield an unconditional candidate, never an asserted cut [0.05ms]
+(pass) cyclic input is refused before recursive substitution [0.03ms]
+(pass) ordinary selection receives an existing guarded inclusion within its unchanged cap [0.18ms]
+(pass) selection cannot manufacture a missing instance or borrow unrelated member flags [0.10ms]
+(pass) selection respects an explicitly smaller cap and does not assert its scalar residue [0.12ms]
+(pass) initial selection shares its cap with existing picks and respects exhausted proposal work [0.10ms]
+(pass) the raw lazy pool admits a genuinely missing bound-specialized inclusion with a fresh witness [3.00ms]
+(pass) an ordinary selected witness proves the conditional inclusion but not its unguarded strengthening [22.09ms]
+
+ 28 pass
+ 0 fail
+ 94 expect() calls
+Ran 28 tests across 4 files. [128.00ms]

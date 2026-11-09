@@ -1,0 +1,86 @@
+bun test v1.4.3 (c6da4a4d3)
+core/count-recovery/member-premises.test.ts(41,38): error TS2345: Argument of type '{ counts: { [x: string]: { key: string; below: E; body: E; }; }; name: string; params: string[]; inputs: string[]; state: Record<string, E>; maps?: Record<string, number>; inputMaps?: string[]; ... 8 more ...; relations?: Record<string, string[]>; }' is not assignable to parameter of type 'Machine'.
+  Types of property 'counts' are incompatible.
+    Type '{ [x: string]: { key: string; below: E; body: E; }; }' is not assignable to type 'Record<string, Counted>'.
+      'string' index signatures are incompatible.
+        Property 'j' is missing in type '{ key: string; below: E; body: E; }' but required in type 'Counted'.
+research/mldr-incl/early-completion.ts(7,20): error TS2769: No overload matches this call.
+  Overload 1 of 2, '(splitter: { [Symbol.split](string: string, limit?: number | undefined): string[]; }, limit?: number | undefined): string[]', gave the following error.
+    Argument of type 'string | undefined' is not assignable to parameter of type '{ [Symbol.split](string: string, limit?: number | undefined): string[]; }'.
+      Type 'undefined' is not assignable to type '{ [Symbol.split](string: string, limit?: number | undefined): string[]; }'.
+  Overload 2 of 2, '(separator: string | RegExp, limit?: number | undefined): string[]', gave the following error.
+    Argument of type 'string | undefined' is not assignable to parameter of type 'string | RegExp'.
+      Type 'undefined' is not assignable to type 'string | RegExp'.
+research/mldr-incl/early-completion.ts(7,104): error TS2769: No overload matches this call.
+  The last overload gave the following error.
+    Argument of type 'string | undefined' is not assignable to parameter of type 'string | RegExp'.
+      Type 'undefined' is not assignable to type 'string | RegExp'.
+
+--- stderr ---
+
+core/count-focused.test.ts:
+(pass) goal demand uses a primitive read for a missing pre-state union [6.86ms]
+(pass) goal demand follows a named flag to a missing pre-state union [1.65ms]
+(pass) demand discovers post-state Boolean identities without expanding the write [0.72ms]
+(pass) field guards receive row instances without adding carried-set witnesses [0.25ms]
+(pass) a copy starting subset retains source substitutions without unrelated tuples [0.34ms]
+(pass) copy source discovery ignores inputs read only by update guards [0.12ms]
+(pass) copy starting subsets preserve algebraic and post-empty proposals [0.07ms]
+(pass) copy-frame proposals compare the same counted definition at different rows within a cap [1.38ms]
+(pass) copy-frame slots are shared across result counts and prioritize input sources [0.65ms]
+(pass) focused comparisons follow carried sets and indicator bodies, not names [1.02ms]
+(pass) algebraic selection reserves union bounds and their row identities within the same cap [0.81ms]
+(pass) packed count coordinates are row keys but scalar comparison witnesses are not [0.14ms]
+(pass) equal Boolean views survive the narrow selector despite duplicated conjuncts [0.20ms]
+(pass) new count keys remain independent of certificate witnesses [0.23ms]
+(pass) counted row bridges preserve half-cardinality witnesses [0.14ms]
+(pass) targeted carried-set comparisons omit unrelated row reads [0.17ms]
+(pass) algebraic focus keeps equivalent pre-count views but not different rows [0.15ms]
+(pass) a carried subset can target its declared input-keyed row view [0.25ms]
+(pass) request frames propose only same-shaped carried-region comparisons [0.28ms]
+(pass) request frames normalize equality and threshold membership indicators [0.28ms]
+(pass) frames retain a structural range bound between two post counts [0.30ms]
+(pass) request partition identities outrank misleading triples within sixteen algebraic slots [4.59ms]
+(pass) post remainder and carried set propose a three-term coverage certificate [1.04ms]
+(pass) post counts can propose a bound from the stored membership they read [1.19ms]
+(pass) post-state frame comparisons are opt-in witness-bearing proposals [0.37ms]
+(pass) field bridges preserve the goal column independently of row-key aliases [0.42ms]
+(pass) count-law bridges seed only unary/binary count laws and preserve input [1.34ms]
+
+core/count-witness-flags.test.ts:
+(pass) selected count witnesses receive relevant universal flags, without recursive count reads [30.37ms]
+
+core/count-recovery/member-premises.test.ts:
+(pass) ordinary admission and source tuples use declarations, not names or width alpha_ [2.07ms]
+(pass) ordinary admission and source tuples use declarations, not names or width other_ [0.57ms]
+(pass) the emitted ordinary witness is proved from actual instantiated premises [44.35ms]
+(pass) member witnesses can instantiate fields, never a count-read coordinate [0.62ms]
+(pass) caps, absent facts and exhausted work do not manufacture premises [0.68ms]
+(pass) existing caller names cannot be captured by a fresh member witness [0.29ms]
+
+core/count-recovery/member-inclusions.test.ts:
+(pass) equality consequents discharge reflexive bodies and retain scalar residue  [0.75ms]
+(pass) equality consequents discharge reflexive bodies and retain scalar residue renamed_ [0.30ms]
+(pass) unknown membership is not treated as implied [0.41ms]
+(pass) member upper bounds propose sufficient scalar guards without equality anchors [0.44ms]
+(pass) an upper bound is not rewritten in a negative comparison [0.21ms]
+(pass) upper-bound suggestions still require the scalar guard and checked witness flags [105.43ms]
+(pass) an inequality is not a substitution [0.32ms]
+(pass) different domains cannot form an inclusion [0.40ms]
+(pass) another carried map does not supply these member facts [0.17ms]
+(pass) a still-member-dependent predicate is not a scalar residue [0.25ms]
+(pass) without an equality rewrite, ordinary membership stays with the old family [0.11ms]
+(pass) a discharged equality may yield an unconditional candidate, never an asserted cut [0.13ms]
+(pass) cyclic input is refused before recursive substitution [0.06ms]
+(pass) ordinary selection receives an existing guarded inclusion within its unchanged cap [0.32ms]
+(pass) selection cannot manufacture a missing instance or borrow unrelated member flags [0.15ms]
+(pass) selection respects an explicitly smaller cap and does not assert its scalar residue [0.29ms]
+(pass) initial selection shares its cap with existing picks and respects exhausted proposal work [0.28ms]
+(pass) the raw lazy pool admits a genuinely missing bound-specialized inclusion with a fresh witness [2.52ms]
+(pass) an ordinary selected witness proves the conditional inclusion but not its unguarded strengthening [75.38ms]
+
+ 53 pass
+ 0 fail
+ 195 expect() calls
+Ran 53 tests across 4 files. [369.00ms]
+$ tsc -p . && oxlint --type-aware --deny-warnings --disable-nested-config

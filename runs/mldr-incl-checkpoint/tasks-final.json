@@ -1,0 +1,20 @@
+[
+  {
+    "id": "f11ae145-a0d5-4bc9-8372-add45e25265d",
+    "status": "killed",
+    "finishedAt": 1794214711223,
+    "command": "supercomputer run --jobs research/mldr-incl/integrated-production-v1-jobs.json --out runs/mldr-incl-integrated-production-v1 --class submission --vm-type large --timing"
+  },
+  {
+    "id": "909380dd-2e23-47d5-9759-420c2527c0f2",
+    "status": "killed",
+    "finishedAt": 1794214711224,
+    "command": "supercomputer run --jobs research/mldr-incl/targeted-completion-jobs.json --out runs/mldr-incl-targeted-completion-v1 --data runs/mldr-incl-production-premises-input/generation:family-input --class submission --vm-type large --timing"
+  },
+  {
+    "id": "2d21c31c-c946-4177-81ef-9f6a7e45c45f",
+    "status": "killed",
+    "finishedAt": 1794214711225,
+    "command": "supercomputer run --jobs research/mldr-incl/targeted-completion-jobs.json --out runs/mldr-incl-targeted-completion-v2 --data runs/mldr-incl-production-premises-input/generation:family-input --class submission --vm-type large --timing"
+  }
+]
