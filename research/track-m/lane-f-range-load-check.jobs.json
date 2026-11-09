@@ -1,0 +1,1 @@
+[{"name":"range-load","cmd":"bash research/track-m/prepare-vendors.sh && bun install --frozen-lockfile >/dev/null && printf 'Import fix 682c8dc6; descendant source checkpoint 53bf1264\\n' && sha256sum core/count-ranges.test.ts kernel/prove.ts kernel/model-sequence.ts && bun test core/count-ranges.test.ts","cpu":2,"memory":4096,"timeout":180}]
