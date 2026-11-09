@@ -1,11 +1,16 @@
 {
-  "candidate":"dd036dd714728fd4d1431d56bf33d96a18b21f60",
-  "culprit":"1550512d3933434c5a2ad11a17031d1fa36284db",
-  "data":"/private/tmp/lane-i-paxos-fix-data.x4ucBe",
-  "status":"focused-validation-active",
-  "validationTask":"faf8af80-c961-4eba-a68f-2ec7a0ef0e31",
-  "timingSubmitted":false,
-  "suiteSubmitted":false,
-  "consensusSubmitted":false,
-  "finalGate":false
+  "candidate": "dd036dd714728fd4d1431d56bf33d96a18b21f60",
+  "culprit": "1550512d3933434c5a2ad11a17031d1fa36284db",
+  "data": "/private/tmp/lane-i-paxos-fix-data.x4ucBe",
+  "status": "validation-failed-fixture-probe-active",
+  "validationTask": "faf8af80-c961-4eba-a68f-2ec7a0ef0e31",
+  "timingSubmitted": false,
+  "suiteSubmitted": false,
+  "consensusSubmitted": false,
+  "finalGate": false,
+  "validationIssues": [
+    "New exact-zero fixture did not prove; the other 22 focused tests passed.",
+    "TypeScript passed; lint rejected String(build.logs) in bootstrap-check.ts."
+  ],
+  "fixtureProbeTask": "e46707c9-384b-4243-925c-706a4ab1600e"
 }

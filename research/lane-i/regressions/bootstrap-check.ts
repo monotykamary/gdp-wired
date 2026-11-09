@@ -18,7 +18,7 @@ for (const revision of [baseline, ...revisions]) {
   if (!manifest.revisions[revision]) throw new Error('missing frozen revision: ' + revision)
 }
 const build = await Bun.build({entrypoints: [resolve('regression-driver/merge-bisect-cohort.ts')], target: 'bun'})
-if (!build.success) throw new Error('cohort import graph does not build: ' + String(build.logs))
+if (!build.success) throw new Error('cohort import graph does not build: ' + build.logs.map(message => message.message).join('; '))
 const temp = mkdtempSync(join(tmpdir(), 'lane-i-bootstrap-check-'))
 try {
   for (const [index, revision] of [baseline, revisions.at(-1)!].entries()) {
