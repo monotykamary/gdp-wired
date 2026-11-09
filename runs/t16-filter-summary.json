@@ -1,0 +1,177 @@
+{
+  "scope": "same-state, same-source finite-filter iteration only; no merge-gate claim",
+  "cpu": "AMD Ryzen 9 9950X 16-Core Processor",
+  "vm": "bx_9qj8fsd3",
+  "exclusive": true,
+  "setupMs": 13070.989828,
+  "rows": [
+    {
+      "targeted": false,
+      "repeat": 1,
+      "elapsedMs": 1900.5555280000008,
+      "finish": {
+        "timedOut": true,
+        "ms": 1900.3229900000006,
+        "dropped": 0
+      },
+      "dropped": [],
+      "costly": [],
+      "survivors": 38
+    },
+    {
+      "targeted": false,
+      "repeat": 2,
+      "elapsedMs": 1900.0690679999989,
+      "finish": {
+        "timedOut": true,
+        "ms": 1900.0597799999978,
+        "dropped": 0
+      },
+      "dropped": [],
+      "costly": [],
+      "survivors": 38
+    },
+    {
+      "targeted": false,
+      "repeat": 3,
+      "elapsedMs": 1900.1249209999987,
+      "finish": {
+        "timedOut": true,
+        "ms": 1900.1145309999993,
+        "dropped": 0
+      },
+      "dropped": [],
+      "costly": [],
+      "survivors": 38
+    },
+    {
+      "targeted": true,
+      "repeat": 1,
+      "elapsedMs": 1900.121783999999,
+      "finish": {
+        "timedOut": true,
+        "ms": 1900.111033000001,
+        "dropped": 6
+      },
+      "dropped": [
+        {
+          "round": 0,
+          "law": "CT at most 44"
+        },
+        {
+          "round": 0,
+          "law": "CfgT at most 44"
+        },
+        {
+          "round": 0,
+          "law": "every x with x < size: never Config[x] is 0 and 1 <= St[x]"
+        },
+        {
+          "round": 0,
+          "law": "fields: CT[a]=CT[b] and CV[a]=CV[b] -> Config rows agree"
+        },
+        {
+          "round": 0,
+          "law": "fields: St[a]=1 -> CT[a]=CT[b] -> CV[b]<=CV[a]"
+        },
+        {
+          "round": 0,
+          "law": "CV at most 2"
+        }
+      ],
+      "costly": [
+        {
+          "round": 0,
+          "law": "CV at most 2"
+        }
+      ],
+      "survivors": 32
+    },
+    {
+      "targeted": true,
+      "repeat": 2,
+      "elapsedMs": 1901.2731700000004,
+      "finish": {
+        "timedOut": true,
+        "ms": 1901.2604859999992,
+        "dropped": 6
+      },
+      "dropped": [
+        {
+          "round": 0,
+          "law": "CT at most 44"
+        },
+        {
+          "round": 0,
+          "law": "CfgT at most 44"
+        },
+        {
+          "round": 0,
+          "law": "every x with x < size: never Config[x] is 0 and 1 <= St[x]"
+        },
+        {
+          "round": 0,
+          "law": "fields: CT[a]=CT[b] and CV[a]=CV[b] -> Config rows agree"
+        },
+        {
+          "round": 0,
+          "law": "fields: St[a]=1 -> CT[a]=CT[b] -> CV[b]<=CV[a]"
+        },
+        {
+          "round": 0,
+          "law": "CV at most 2"
+        }
+      ],
+      "costly": [
+        {
+          "round": 0,
+          "law": "CV at most 2"
+        }
+      ],
+      "survivors": 32
+    },
+    {
+      "targeted": true,
+      "repeat": 3,
+      "elapsedMs": 1900.0544929999996,
+      "finish": {
+        "timedOut": true,
+        "ms": 1900.0462369999987,
+        "dropped": 6
+      },
+      "dropped": [
+        {
+          "round": 0,
+          "law": "CT at most 44"
+        },
+        {
+          "round": 0,
+          "law": "CfgT at most 44"
+        },
+        {
+          "round": 0,
+          "law": "every x with x < size: never Config[x] is 0 and 1 <= St[x]"
+        },
+        {
+          "round": 0,
+          "law": "fields: CT[a]=CT[b] and CV[a]=CV[b] -> Config rows agree"
+        },
+        {
+          "round": 0,
+          "law": "fields: St[a]=1 -> CT[a]=CT[b] -> CV[b]<=CV[a]"
+        },
+        {
+          "round": 0,
+          "law": "CV at most 2"
+        }
+      ],
+      "costly": [
+        {
+          "round": 0,
+          "law": "CV at most 2"
+        }
+      ],
+      "survivors": 32
+    }
+  ]
+}

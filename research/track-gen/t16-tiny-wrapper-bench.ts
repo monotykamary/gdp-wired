@@ -28,8 +28,9 @@ if(mode==='survivors')withWall(performance.now()+5000,()=>{
 })
 const initial=caller.length+candidates.length,drops:{round:number,ms:number,law:string}[]=[],rounds:unknown[]=[]
 let finish:unknown
+const valueDomain=process.argv[3]==='ternary'?[0,1,2]:[0,1]
 const started=performance.now()
-const survivors=finiteTinyHoudini(source,m,caller,candidates,[params],{wallMs:2000,
+const survivors=finiteTinyHoudini(source,m,caller,candidates,[params],{wallMs:2000,valueDomain,
   onDrop:drop=>{
     const receipt={round:drop.round,ms:performance.now()-started,law:drop.law.name}
     drops.push(receipt)
@@ -38,5 +39,5 @@ const survivors=finiteTinyHoudini(source,m,caller,candidates,[params],{wallMs:20
   onTiny:(round,stats)=>{rounds.push({round,stats});console.log('WRAPPER_ROUND',JSON.stringify({round,stats}))},
   onFinish:row=>{finish=row}
 })
-console.log('TINY_WRAPPER_RESULT',JSON.stringify({mode,initial,historical,drops,rounds,finish,survivors:caller.length+survivors.length,wall:performance.now()-started}))
+console.log('TINY_WRAPPER_RESULT',JSON.stringify({mode,valueDomain,initial,historical,drops,rounds,finish,survivors:caller.length+survivors.length,wall:performance.now()-started}))
 if(drops.length<5)process.exitCode=1

@@ -1,0 +1,3940 @@
+{
+  "dir": "runs/t14-final-v1",
+  "expectedPairs": 6,
+  "expectedTests": 1,
+  "pairs": [
+    {
+      "name": "mldr-pair-2",
+      "receipt": {
+        "code": 0,
+        "seconds": 98.22,
+        "backend": "boat"
+      },
+      "complete": true,
+      "lost": false,
+      "wrong": false,
+      "moved": true,
+      "errors": [],
+      "candidateKilled": false,
+      "sides": [
+        {
+          "side": "baseline",
+          "id": "mldr",
+          "mode": "original",
+          "repeat": 2,
+          "code": 0,
+          "seconds": 37.57,
+          "verdict": "unknown",
+          "result": {
+            "id": "mldr",
+            "ic3syn": "mldr",
+            "search": {
+              "verdict": "unknown",
+              "why": "not proven: one primary per term",
+              "found": [
+                "every C0 cell is a value of its kind",
+                "every Copied cell is a value of its kind",
+                "every Config cell is a value of its kind",
+                "one primary per term",
+                "St at most 1",
+                "every x: never 1 <= Config[x] and picked is 0",
+                "every x with x < size: never 1 <= C0[x] and picked is 0",
+                "every x with x < size: never Copied[x] is 0 and 1 <= CT[x]",
+                "every x with x < size: never Copied[x] is 0 and 1 <= St[x]",
+                "every x with x < size: never Copied[x] is 0 and 1 <= CfgT[x]",
+                "every x with x < size: never Copied[x] is 0 and 1 <= started",
+                "every x with x < size: never 1 <= Copied[x] and picked is 0",
+                "every x with x < size: never CT[x] is 0 and 1 <= St[x]",
+                "every x with x < size: never 1 <= CT[x] and started is 0",
+                "every x with x < size: never 1 <= CT[x] and picked is 0",
+                "every x with x < size: never 1 <= St[x] and CfgT[x] is 0",
+                "every x with x < size: never 1 <= St[x] and started is 0",
+                "every x with x < size: never 1 <= St[x] and picked is 0",
+                "every x with x < size: never 1 <= CfgT[x] and started is 0",
+                "every x with x < size: never 1 <= CfgT[x] and picked is 0",
+                "every x, y with x < size ∧ y < size ∧ ¬(x = y): never Copied[x] is 0 and 1 <= CT[y]",
+                "every x, y with x < size ∧ y < size ∧ ¬(x = y): never Copied[x] is 0 and 1 <= St[y]",
+                "every x, y with x < size ∧ y < size ∧ ¬(x = y): never Copied[x] is 0 and 1 <= CfgT[y]"
+              ],
+              "ms": 37498,
+              "work": 2657026,
+              "full": 921136
+            }
+          },
+          "full": 921136,
+          "work": 2657026,
+          "attempts": [
+            {
+              "law": "CT at most 73",
+              "laws": 27,
+              "pass": 0,
+              "share": 2222,
+              "took": 101,
+              "wallMs": 122,
+              "outcome": "sat"
+            },
+            {
+              "law": "CT at most 73",
+              "laws": 27,
+              "pass": 1,
+              "share": 2222,
+              "took": 181,
+              "wallMs": 177,
+              "outcome": "sat"
+            },
+            {
+              "law": "St at most 1",
+              "laws": 27,
+              "pass": 0,
+              "share": 2222,
+              "took": 71,
+              "wallMs": 55,
+              "outcome": "kept"
+            },
+            {
+              "law": "CV at most 2",
+              "laws": 27,
+              "pass": 0,
+              "share": 2222,
+              "took": 113,
+              "wallMs": 114,
+              "outcome": "sat"
+            },
+            {
+              "law": "CV at most 2",
+              "laws": 27,
+              "pass": 1,
+              "share": 2222,
+              "took": 182,
+              "wallMs": 144,
+              "outcome": "sat"
+            },
+            {
+              "law": "CfgT at most 73",
+              "laws": 27,
+              "pass": 0,
+              "share": 2222,
+              "took": 183,
+              "wallMs": 118,
+              "outcome": "sat"
+            },
+            {
+              "law": "CfgT at most 73",
+              "laws": 27,
+              "pass": 1,
+              "share": 2222,
+              "took": 234,
+              "wallMs": 195,
+              "outcome": "sat"
+            },
+            {
+              "law": "every x: never 1 <= Config[x] and picked is 0",
+              "laws": 27,
+              "pass": 0,
+              "share": 2222,
+              "took": 77,
+              "wallMs": 112,
+              "outcome": "kept"
+            },
+            {
+              "law": "every x with x < size: never C0[x] is 0 and 1 <= S",
+              "laws": 27,
+              "pass": 0,
+              "share": 2222,
+              "took": 144,
+              "wallMs": 106,
+              "outcome": "sat"
+            },
+            {
+              "law": "every x with x < size: never C0[x] is 0 and 1 <= S",
+              "laws": 27,
+              "pass": 1,
+              "share": 2222,
+              "took": 175,
+              "wallMs": 118,
+              "outcome": "sat"
+            },
+            {
+              "law": "every x with x < size: never 1 <= C0[x] and picked",
+              "laws": 27,
+              "pass": 0,
+              "share": 2222,
+              "took": 35,
+              "wallMs": 54,
+              "outcome": "kept"
+            },
+            {
+              "law": "every x with x < size: never Copied[x] is 0 and 1 ",
+              "laws": 27,
+              "pass": 0,
+              "share": 2222,
+              "took": 137,
+              "wallMs": 114,
+              "outcome": "kept"
+            },
+            {
+              "law": "every x with x < size: never Copied[x] is 0 and 1 ",
+              "laws": 27,
+              "pass": 0,
+              "share": 2222,
+              "took": 121,
+              "wallMs": 81,
+              "outcome": "kept"
+            },
+            {
+              "law": "every x with x < size: never Copied[x] is 0 and 1 ",
+              "laws": 27,
+              "pass": 0,
+              "share": 2222,
+              "took": 96,
+              "wallMs": 97,
+              "outcome": "kept"
+            },
+            {
+              "law": "every x with x < size: never Copied[x] is 0 and 1 ",
+              "laws": 27,
+              "pass": 0,
+              "share": 2222,
+              "took": 68,
+              "wallMs": 62,
+              "outcome": "kept"
+            },
+            {
+              "law": "every x with x < size: never 1 <= Copied[x] and pi",
+              "laws": 27,
+              "pass": 0,
+              "share": 2222,
+              "took": 41,
+              "wallMs": 28,
+              "outcome": "kept"
+            },
+            {
+              "law": "every x with x < size: never CT[x] is 0 and 1 <= S",
+              "laws": 27,
+              "pass": 0,
+              "share": 2222,
+              "took": 92,
+              "wallMs": 67,
+              "outcome": "kept"
+            },
+            {
+              "law": "every x with x < size: never 1 <= CT[x] and starte",
+              "laws": 27,
+              "pass": 0,
+              "share": 2222,
+              "took": 27,
+              "wallMs": 39,
+              "outcome": "kept"
+            },
+            {
+              "law": "every x with x < size: never 1 <= CT[x] and picked",
+              "laws": 27,
+              "pass": 0,
+              "share": 2222,
+              "took": 41,
+              "wallMs": 31,
+              "outcome": "kept"
+            },
+            {
+              "law": "every x with x < size: never 1 <= St[x] and CfgT[x",
+              "laws": 27,
+              "pass": 0,
+              "share": 2222,
+              "took": 229,
+              "wallMs": 151,
+              "outcome": "kept"
+            },
+            {
+              "law": "every x with x < size: never 1 <= St[x] and starte",
+              "laws": 27,
+              "pass": 0,
+              "share": 2222,
+              "took": 29,
+              "wallMs": 65,
+              "outcome": "kept"
+            },
+            {
+              "law": "every x with x < size: never 1 <= St[x] and picked",
+              "laws": 27,
+              "pass": 0,
+              "share": 2222,
+              "took": 42,
+              "wallMs": 55,
+              "outcome": "kept"
+            },
+            {
+              "law": "every x with x < size: never 1 <= CfgT[x] and star",
+              "laws": 27,
+              "pass": 0,
+              "share": 2222,
+              "took": 29,
+              "wallMs": 37,
+              "outcome": "kept"
+            },
+            {
+              "law": "every x with x < size: never 1 <= CfgT[x] and pick",
+              "laws": 27,
+              "pass": 0,
+              "share": 2222,
+              "took": 43,
+              "wallMs": 72,
+              "outcome": "kept"
+            },
+            {
+              "law": "every x, y with x < size ∧ y < size ∧ ¬(x = y): ne",
+              "laws": 27,
+              "pass": 0,
+              "share": 2222,
+              "took": 120,
+              "wallMs": 79,
+              "outcome": "kept"
+            },
+            {
+              "law": "every x, y with x < size ∧ y < size ∧ ¬(x = y): ne",
+              "laws": 27,
+              "pass": 0,
+              "share": 2222,
+              "took": 159,
+              "wallMs": 123,
+              "outcome": "kept"
+            },
+            {
+              "law": "every x, y with x < size ∧ y < size ∧ ¬(x = y): ne",
+              "laws": 27,
+              "pass": 0,
+              "share": 2222,
+              "took": 182,
+              "wallMs": 135,
+              "outcome": "kept"
+            },
+            {
+              "law": "every C0 cell is a value of its kind",
+              "laws": 27,
+              "pass": 0,
+              "share": 2222,
+              "took": 5,
+              "wallMs": 8,
+              "outcome": "kept"
+            },
+            {
+              "law": "every Copied cell is a value of its kind",
+              "laws": 27,
+              "pass": 0,
+              "share": 2222,
+              "took": 13,
+              "wallMs": 17,
+              "outcome": "kept"
+            },
+            {
+              "law": "every Config cell is a value of its kind",
+              "laws": 27,
+              "pass": 0,
+              "share": 2222,
+              "took": 7,
+              "wallMs": 11,
+              "outcome": "kept"
+            },
+            {
+              "law": "one primary per term",
+              "laws": 27,
+              "pass": 0,
+              "share": 2222,
+              "took": 323,
+              "wallMs": 187,
+              "outcome": "sat"
+            },
+            {
+              "law": "one primary per term",
+              "laws": 27,
+              "pass": 1,
+              "share": 2222,
+              "took": 383,
+              "wallMs": 257,
+              "outcome": "sat"
+            },
+            {
+              "law": "one primary per term",
+              "laws": 23,
+              "pass": 0,
+              "share": 56315,
+              "took": 0,
+              "wallMs": 4,
+              "outcome": "sat"
+            },
+            {
+              "law": "one primary per term",
+              "laws": 23,
+              "pass": 1,
+              "share": 56315,
+              "took": 0,
+              "wallMs": 2,
+              "outcome": "sat"
+            }
+          ],
+          "cpuModel": "AMD Ryzen 9 9950X 16-Core Processor",
+          "cpuEvidence": "runs/t14-final-v1/placement.json#mldr-pair-2",
+          "vm": "bx_395wpmqp",
+          "vcpus": 8,
+          "exclusive": true,
+          "coTenants": 0
+        },
+        {
+          "side": "candidate",
+          "id": "mldr",
+          "mode": "original",
+          "repeat": 2,
+          "code": 0,
+          "seconds": 59.64,
+          "verdict": "unknown",
+          "result": {
+            "id": "mldr",
+            "ic3syn": "mldr",
+            "search": {
+              "verdict": "unknown",
+              "stuck": "unknown",
+              "why": "time (rule result)",
+              "ms": 59360,
+              "work": 34662689,
+              "full": 7745544
+            }
+          },
+          "full": 7745544,
+          "work": 34662689,
+          "attempts": [
+            {
+              "law": "St at most 1",
+              "laws": 35,
+              "pass": 0,
+              "share": 1714,
+              "took": 88,
+              "wallMs": 120,
+              "outcome": "kept"
+            },
+            {
+              "law": "CV at most 2",
+              "laws": 35,
+              "pass": 0,
+              "share": 1762,
+              "took": 1780,
+              "wallMs": 1475,
+              "outcome": "sat"
+            },
+            {
+              "law": "CV at most 2",
+              "laws": 35,
+              "pass": 1,
+              "share": 1762,
+              "took": 452,
+              "wallMs": 328,
+              "outcome": "sat"
+            },
+            {
+              "law": "fields: St[a]=1 -> CT[a]=CfgT[a]",
+              "laws": 35,
+              "pass": 0,
+              "share": 1748,
+              "took": 301,
+              "wallMs": 217,
+              "outcome": "kept"
+            },
+            {
+              "law": "fields: St[a]=1 -> CT[a]<=CfgT[a]",
+              "laws": 35,
+              "pass": 0,
+              "share": 1793,
+              "took": 318,
+              "wallMs": 175,
+              "outcome": "kept"
+            },
+            {
+              "law": "fields: St[a]=1 -> CT[a]=CT[b] -> CfgT[b]<=CfgT[a]",
+              "laws": 35,
+              "pass": 0,
+              "share": 1841,
+              "took": 1841,
+              "wallMs": 1832,
+              "outcome": "sat"
+            },
+            {
+              "law": "fields: St[a]=1 -> CT[a]=CT[b] -> CfgT[b]<=CfgT[a]",
+              "laws": 35,
+              "pass": 1,
+              "share": 1841,
+              "took": 2859,
+              "wallMs": 3828,
+              "outcome": "unknown"
+            },
+            {
+              "law": "fields: St[a]=1 -> CfgT[a]<=CT[a]",
+              "laws": 35,
+              "pass": 0,
+              "share": 1745,
+              "took": 316,
+              "wallMs": 218,
+              "outcome": "kept"
+            },
+            {
+              "law": "fields: St[a]=1 -> CfgT[a]=CfgT[b] -> CV[b]<=CV[a]",
+              "laws": 35,
+              "pass": 0,
+              "share": 1795,
+              "took": 1219,
+              "wallMs": 1304,
+              "outcome": "kept"
+            },
+            {
+              "law": "every x with x < size: never CT[x] is 0 and 1 <= S",
+              "laws": 35,
+              "pass": 0,
+              "share": 1815,
+              "took": 97,
+              "wallMs": 62,
+              "outcome": "kept"
+            },
+            {
+              "law": "every x with x < size: never 1 <= CT[x] and CV[x] ",
+              "laws": 35,
+              "pass": 0,
+              "share": 1879,
+              "took": 198,
+              "wallMs": 161,
+              "outcome": "kept"
+            },
+            {
+              "law": "every x with x < size: never 1 <= CT[x] and starte",
+              "laws": 35,
+              "pass": 0,
+              "share": 1944,
+              "took": 64,
+              "wallMs": 56,
+              "outcome": "kept"
+            },
+            {
+              "law": "every x with x < size: never 1 <= St[x] and CV[x] ",
+              "laws": 35,
+              "pass": 0,
+              "share": 2019,
+              "took": 148,
+              "wallMs": 82,
+              "outcome": "kept"
+            },
+            {
+              "law": "every x with x < size: never 1 <= St[x] and CfgT[x",
+              "laws": 35,
+              "pass": 0,
+              "share": 2097,
+              "took": 271,
+              "wallMs": 172,
+              "outcome": "kept"
+            },
+            {
+              "law": "every x with x < size: never 1 <= St[x] and starte",
+              "laws": 35,
+              "pass": 0,
+              "share": 2176,
+              "took": 70,
+              "wallMs": 59,
+              "outcome": "kept"
+            },
+            {
+              "law": "every x with x < size: never CV[x] is 0 and 1 <= C",
+              "laws": 35,
+              "pass": 0,
+              "share": 2272,
+              "took": 259,
+              "wallMs": 183,
+              "outcome": "kept"
+            },
+            {
+              "law": "every x with x < size: never CV[x] is 0 and 1 <= s",
+              "laws": 35,
+              "pass": 0,
+              "share": 2368,
+              "took": 180,
+              "wallMs": 112,
+              "outcome": "kept"
+            },
+            {
+              "law": "every x with x < size: never 1 <= CfgT[x] and star",
+              "laws": 35,
+              "pass": 0,
+              "share": 2477,
+              "took": 64,
+              "wallMs": 98,
+              "outcome": "kept"
+            },
+            {
+              "law": "every x, y with x < size ∧ y < size ∧ ¬(x = y): ne",
+              "laws": 35,
+              "pass": 0,
+              "share": 2604,
+              "took": 225,
+              "wallMs": 132,
+              "outcome": "kept"
+            },
+            {
+              "law": "every x, y with x < size ∧ y < size ∧ ¬(x = y): ne",
+              "laws": 35,
+              "pass": 0,
+              "share": 2736,
+              "took": 305,
+              "wallMs": 224,
+              "outcome": "kept"
+            },
+            {
+              "law": "every x, y with x < size ∧ y < size ∧ ¬(x = y): ne",
+              "laws": 35,
+              "pass": 0,
+              "share": 2879,
+              "took": 240,
+              "wallMs": 139,
+              "outcome": "kept"
+            },
+            {
+              "law": "inX: no quorum canVote/1",
+              "laws": 35,
+              "pass": 0,
+              "share": 3044,
+              "took": 98,
+              "wallMs": 108,
+              "outcome": "sat"
+            },
+            {
+              "law": "inX: no quorum canVote/1",
+              "laws": 35,
+              "pass": 1,
+              "share": 3044,
+              "took": 3550,
+              "wallMs": 3388,
+              "outcome": "unknown"
+            },
+            {
+              "law": "inX: no quorum canVote/3",
+              "laws": 35,
+              "pass": 0,
+              "share": 3004,
+              "took": 98,
+              "wallMs": 55,
+              "outcome": "sat"
+            },
+            {
+              "law": "inX: no quorum canVote/3",
+              "laws": 35,
+              "pass": 1,
+              "share": 3004,
+              "took": 3780,
+              "wallMs": 7621,
+              "outcome": "unknown"
+            },
+            {
+              "law": "inX: stored guard reconfigs/inS",
+              "laws": 35,
+              "pass": 0,
+              "share": 2941,
+              "took": 132,
+              "wallMs": 146,
+              "outcome": "sat"
+            },
+            {
+              "law": "inX: stored guard reconfigs/inS",
+              "laws": 35,
+              "pass": 1,
+              "share": 2941,
+              "took": 4158,
+              "wallMs": 6573,
+              "outcome": "unknown"
+            },
+            {
+              "law": "inX: stored guard reconfigs/inS or disabled/0",
+              "laws": 35,
+              "pass": 0,
+              "share": 2838,
+              "took": 141,
+              "wallMs": 86,
+              "outcome": "sat"
+            },
+            {
+              "law": "inX: stored guard reconfigs/inS or disabled/0",
+              "laws": 35,
+              "pass": 1,
+              "share": 2838,
+              "took": 6150,
+              "wallMs": 5614,
+              "outcome": "sat"
+            },
+            {
+              "law": "inX: stored guard reconfigs/inS or disabled/1",
+              "laws": 35,
+              "pass": 0,
+              "share": 2550,
+              "took": 141,
+              "wallMs": 104,
+              "outcome": "sat"
+            },
+            {
+              "law": "inX: stored guard reconfigs/inS or disabled/1",
+              "laws": 35,
+              "pass": 1,
+              "share": 2550,
+              "took": 1439,
+              "wallMs": 2330,
+              "outcome": "unknown"
+            }
+          ],
+          "cpuModel": "AMD Ryzen 9 9950X 16-Core Processor",
+          "cpuEvidence": "runs/t14-final-v1/placement.json#mldr-pair-2",
+          "vm": "bx_395wpmqp",
+          "vcpus": 8,
+          "exclusive": true,
+          "coTenants": 0
+        }
+      ]
+    },
+    {
+      "name": "mldr-pair-3",
+      "receipt": {
+        "code": 0,
+        "seconds": 79.89,
+        "backend": "boat"
+      },
+      "complete": true,
+      "lost": false,
+      "wrong": false,
+      "moved": true,
+      "errors": [],
+      "candidateKilled": false,
+      "sides": [
+        {
+          "side": "candidate",
+          "id": "mldr",
+          "mode": "original",
+          "repeat": 3,
+          "code": 0,
+          "seconds": 59.17,
+          "verdict": "unknown",
+          "result": {
+            "id": "mldr",
+            "ic3syn": "mldr",
+            "search": {
+              "verdict": "unknown",
+              "stuck": "unknown",
+              "why": "time (rule result)",
+              "ms": 59023,
+              "work": 34709710,
+              "full": 7859354
+            }
+          },
+          "full": 7859354,
+          "work": 34709710,
+          "attempts": [
+            {
+              "law": "St at most 1",
+              "laws": 35,
+              "pass": 0,
+              "share": 1714,
+              "took": 88,
+              "wallMs": 117,
+              "outcome": "kept"
+            },
+            {
+              "law": "CV at most 2",
+              "laws": 35,
+              "pass": 0,
+              "share": 1762,
+              "took": 1780,
+              "wallMs": 1379,
+              "outcome": "sat"
+            },
+            {
+              "law": "CV at most 2",
+              "laws": 35,
+              "pass": 1,
+              "share": 1762,
+              "took": 452,
+              "wallMs": 299,
+              "outcome": "sat"
+            },
+            {
+              "law": "fields: St[a]=1 -> CT[a]=CfgT[a]",
+              "laws": 35,
+              "pass": 0,
+              "share": 1748,
+              "took": 301,
+              "wallMs": 198,
+              "outcome": "kept"
+            },
+            {
+              "law": "fields: St[a]=1 -> CT[a]<=CfgT[a]",
+              "laws": 35,
+              "pass": 0,
+              "share": 1793,
+              "took": 318,
+              "wallMs": 184,
+              "outcome": "kept"
+            },
+            {
+              "law": "fields: St[a]=1 -> CT[a]=CT[b] -> CfgT[b]<=CfgT[a]",
+              "laws": 35,
+              "pass": 0,
+              "share": 1841,
+              "took": 1841,
+              "wallMs": 1941,
+              "outcome": "sat"
+            },
+            {
+              "law": "fields: St[a]=1 -> CT[a]=CT[b] -> CfgT[b]<=CfgT[a]",
+              "laws": 35,
+              "pass": 1,
+              "share": 1841,
+              "took": 2859,
+              "wallMs": 3532,
+              "outcome": "unknown"
+            },
+            {
+              "law": "fields: St[a]=1 -> CfgT[a]<=CT[a]",
+              "laws": 35,
+              "pass": 0,
+              "share": 1745,
+              "took": 316,
+              "wallMs": 215,
+              "outcome": "kept"
+            },
+            {
+              "law": "fields: St[a]=1 -> CfgT[a]=CfgT[b] -> CV[b]<=CV[a]",
+              "laws": 35,
+              "pass": 0,
+              "share": 1795,
+              "took": 1219,
+              "wallMs": 1282,
+              "outcome": "kept"
+            },
+            {
+              "law": "every x with x < size: never CT[x] is 0 and 1 <= S",
+              "laws": 35,
+              "pass": 0,
+              "share": 1815,
+              "took": 97,
+              "wallMs": 56,
+              "outcome": "kept"
+            },
+            {
+              "law": "every x with x < size: never 1 <= CT[x] and CV[x] ",
+              "laws": 35,
+              "pass": 0,
+              "share": 1879,
+              "took": 198,
+              "wallMs": 116,
+              "outcome": "kept"
+            },
+            {
+              "law": "every x with x < size: never 1 <= CT[x] and starte",
+              "laws": 35,
+              "pass": 0,
+              "share": 1944,
+              "took": 64,
+              "wallMs": 91,
+              "outcome": "kept"
+            },
+            {
+              "law": "every x with x < size: never 1 <= St[x] and CV[x] ",
+              "laws": 35,
+              "pass": 0,
+              "share": 2019,
+              "took": 148,
+              "wallMs": 86,
+              "outcome": "kept"
+            },
+            {
+              "law": "every x with x < size: never 1 <= St[x] and CfgT[x",
+              "laws": 35,
+              "pass": 0,
+              "share": 2097,
+              "took": 271,
+              "wallMs": 174,
+              "outcome": "kept"
+            },
+            {
+              "law": "every x with x < size: never 1 <= St[x] and starte",
+              "laws": 35,
+              "pass": 0,
+              "share": 2176,
+              "took": 70,
+              "wallMs": 65,
+              "outcome": "kept"
+            },
+            {
+              "law": "every x with x < size: never CV[x] is 0 and 1 <= C",
+              "laws": 35,
+              "pass": 0,
+              "share": 2272,
+              "took": 259,
+              "wallMs": 163,
+              "outcome": "kept"
+            },
+            {
+              "law": "every x with x < size: never CV[x] is 0 and 1 <= s",
+              "laws": 35,
+              "pass": 0,
+              "share": 2368,
+              "took": 180,
+              "wallMs": 114,
+              "outcome": "kept"
+            },
+            {
+              "law": "every x with x < size: never 1 <= CfgT[x] and star",
+              "laws": 35,
+              "pass": 0,
+              "share": 2477,
+              "took": 64,
+              "wallMs": 56,
+              "outcome": "kept"
+            },
+            {
+              "law": "every x, y with x < size ∧ y < size ∧ ¬(x = y): ne",
+              "laws": 35,
+              "pass": 0,
+              "share": 2604,
+              "took": 225,
+              "wallMs": 160,
+              "outcome": "kept"
+            },
+            {
+              "law": "every x, y with x < size ∧ y < size ∧ ¬(x = y): ne",
+              "laws": 35,
+              "pass": 0,
+              "share": 2736,
+              "took": 305,
+              "wallMs": 160,
+              "outcome": "kept"
+            },
+            {
+              "law": "every x, y with x < size ∧ y < size ∧ ¬(x = y): ne",
+              "laws": 35,
+              "pass": 0,
+              "share": 2879,
+              "took": 240,
+              "wallMs": 158,
+              "outcome": "kept"
+            },
+            {
+              "law": "inX: no quorum canVote/1",
+              "laws": 35,
+              "pass": 0,
+              "share": 3044,
+              "took": 98,
+              "wallMs": 54,
+              "outcome": "sat"
+            },
+            {
+              "law": "inX: no quorum canVote/1",
+              "laws": 35,
+              "pass": 1,
+              "share": 3044,
+              "took": 3550,
+              "wallMs": 3258,
+              "outcome": "unknown"
+            },
+            {
+              "law": "inX: no quorum canVote/3",
+              "laws": 35,
+              "pass": 0,
+              "share": 3004,
+              "took": 98,
+              "wallMs": 65,
+              "outcome": "sat"
+            },
+            {
+              "law": "inX: no quorum canVote/3",
+              "laws": 35,
+              "pass": 1,
+              "share": 3004,
+              "took": 3780,
+              "wallMs": 6871,
+              "outcome": "unknown"
+            },
+            {
+              "law": "inX: stored guard reconfigs/inS",
+              "laws": 35,
+              "pass": 0,
+              "share": 2941,
+              "took": 132,
+              "wallMs": 183,
+              "outcome": "sat"
+            },
+            {
+              "law": "inX: stored guard reconfigs/inS",
+              "laws": 35,
+              "pass": 1,
+              "share": 2941,
+              "took": 4158,
+              "wallMs": 5463,
+              "outcome": "unknown"
+            },
+            {
+              "law": "inX: stored guard reconfigs/inS or disabled/0",
+              "laws": 35,
+              "pass": 0,
+              "share": 2838,
+              "took": 141,
+              "wallMs": 78,
+              "outcome": "sat"
+            },
+            {
+              "law": "inX: stored guard reconfigs/inS or disabled/0",
+              "laws": 35,
+              "pass": 1,
+              "share": 2838,
+              "took": 6150,
+              "wallMs": 5426,
+              "outcome": "sat"
+            },
+            {
+              "law": "inX: stored guard reconfigs/inS or disabled/1",
+              "laws": 35,
+              "pass": 0,
+              "share": 2550,
+              "took": 141,
+              "wallMs": 84,
+              "outcome": "sat"
+            },
+            {
+              "law": "inX: stored guard reconfigs/inS or disabled/1",
+              "laws": 35,
+              "pass": 1,
+              "share": 2550,
+              "took": 1894,
+              "wallMs": 2497,
+              "outcome": "unknown"
+            }
+          ],
+          "cpuModel": "AMD Ryzen 9 9950X 16-Core Processor",
+          "cpuEvidence": "runs/t14-final-v1/placement.json#mldr-pair-3",
+          "vm": "bx_84e8hfw5",
+          "vcpus": 8,
+          "exclusive": true,
+          "coTenants": 0
+        },
+        {
+          "side": "baseline",
+          "id": "mldr",
+          "mode": "original",
+          "repeat": 3,
+          "code": 0,
+          "seconds": 19.85,
+          "verdict": "unknown",
+          "result": {
+            "id": "mldr",
+            "ic3syn": "mldr",
+            "search": {
+              "verdict": "unknown",
+              "why": "not proven: one primary per term",
+              "found": [
+                "every C0 cell is a value of its kind",
+                "every Copied cell is a value of its kind",
+                "every Config cell is a value of its kind",
+                "one primary per term",
+                "St at most 1",
+                "every x: never 1 <= Config[x] and picked is 0",
+                "every x with x < size: never 1 <= C0[x] and picked is 0",
+                "every x with x < size: never Copied[x] is 0 and 1 <= CT[x]",
+                "every x with x < size: never Copied[x] is 0 and 1 <= St[x]",
+                "every x with x < size: never Copied[x] is 0 and 1 <= CfgT[x]",
+                "every x with x < size: never Copied[x] is 0 and 1 <= started",
+                "every x with x < size: never 1 <= Copied[x] and picked is 0",
+                "every x with x < size: never CT[x] is 0 and 1 <= St[x]",
+                "every x with x < size: never 1 <= CT[x] and started is 0",
+                "every x with x < size: never 1 <= CT[x] and picked is 0",
+                "every x with x < size: never 1 <= St[x] and CfgT[x] is 0",
+                "every x with x < size: never 1 <= St[x] and started is 0",
+                "every x with x < size: never 1 <= St[x] and picked is 0",
+                "every x with x < size: never 1 <= CfgT[x] and started is 0",
+                "every x with x < size: never 1 <= CfgT[x] and picked is 0",
+                "every x, y with x < size ∧ y < size ∧ ¬(x = y): never Copied[x] is 0 and 1 <= CT[y]",
+                "every x, y with x < size ∧ y < size ∧ ¬(x = y): never Copied[x] is 0 and 1 <= St[y]",
+                "every x, y with x < size ∧ y < size ∧ ¬(x = y): never Copied[x] is 0 and 1 <= CfgT[y]"
+              ],
+              "ms": 19808,
+              "work": 2657026,
+              "full": 921136
+            }
+          },
+          "full": 921136,
+          "work": 2657026,
+          "attempts": [
+            {
+              "law": "CT at most 73",
+              "laws": 27,
+              "pass": 0,
+              "share": 2222,
+              "took": 101,
+              "wallMs": 89,
+              "outcome": "sat"
+            },
+            {
+              "law": "CT at most 73",
+              "laws": 27,
+              "pass": 1,
+              "share": 2222,
+              "took": 181,
+              "wallMs": 106,
+              "outcome": "sat"
+            },
+            {
+              "law": "St at most 1",
+              "laws": 27,
+              "pass": 0,
+              "share": 2222,
+              "took": 71,
+              "wallMs": 47,
+              "outcome": "kept"
+            },
+            {
+              "law": "CV at most 2",
+              "laws": 27,
+              "pass": 0,
+              "share": 2222,
+              "took": 113,
+              "wallMs": 70,
+              "outcome": "sat"
+            },
+            {
+              "law": "CV at most 2",
+              "laws": 27,
+              "pass": 1,
+              "share": 2222,
+              "took": 182,
+              "wallMs": 95,
+              "outcome": "sat"
+            },
+            {
+              "law": "CfgT at most 73",
+              "laws": 27,
+              "pass": 0,
+              "share": 2222,
+              "took": 183,
+              "wallMs": 83,
+              "outcome": "sat"
+            },
+            {
+              "law": "CfgT at most 73",
+              "laws": 27,
+              "pass": 1,
+              "share": 2222,
+              "took": 234,
+              "wallMs": 111,
+              "outcome": "sat"
+            },
+            {
+              "law": "every x: never 1 <= Config[x] and picked is 0",
+              "laws": 27,
+              "pass": 0,
+              "share": 2222,
+              "took": 77,
+              "wallMs": 56,
+              "outcome": "kept"
+            },
+            {
+              "law": "every x with x < size: never C0[x] is 0 and 1 <= S",
+              "laws": 27,
+              "pass": 0,
+              "share": 2222,
+              "took": 144,
+              "wallMs": 84,
+              "outcome": "sat"
+            },
+            {
+              "law": "every x with x < size: never C0[x] is 0 and 1 <= S",
+              "laws": 27,
+              "pass": 1,
+              "share": 2222,
+              "took": 175,
+              "wallMs": 118,
+              "outcome": "sat"
+            },
+            {
+              "law": "every x with x < size: never 1 <= C0[x] and picked",
+              "laws": 27,
+              "pass": 0,
+              "share": 2222,
+              "took": 35,
+              "wallMs": 25,
+              "outcome": "kept"
+            },
+            {
+              "law": "every x with x < size: never Copied[x] is 0 and 1 ",
+              "laws": 27,
+              "pass": 0,
+              "share": 2222,
+              "took": 137,
+              "wallMs": 93,
+              "outcome": "kept"
+            },
+            {
+              "law": "every x with x < size: never Copied[x] is 0 and 1 ",
+              "laws": 27,
+              "pass": 0,
+              "share": 2222,
+              "took": 121,
+              "wallMs": 65,
+              "outcome": "kept"
+            },
+            {
+              "law": "every x with x < size: never Copied[x] is 0 and 1 ",
+              "laws": 27,
+              "pass": 0,
+              "share": 2222,
+              "took": 96,
+              "wallMs": 63,
+              "outcome": "kept"
+            },
+            {
+              "law": "every x with x < size: never Copied[x] is 0 and 1 ",
+              "laws": 27,
+              "pass": 0,
+              "share": 2222,
+              "took": 68,
+              "wallMs": 35,
+              "outcome": "kept"
+            },
+            {
+              "law": "every x with x < size: never 1 <= Copied[x] and pi",
+              "laws": 27,
+              "pass": 0,
+              "share": 2222,
+              "took": 41,
+              "wallMs": 38,
+              "outcome": "kept"
+            },
+            {
+              "law": "every x with x < size: never CT[x] is 0 and 1 <= S",
+              "laws": 27,
+              "pass": 0,
+              "share": 2222,
+              "took": 92,
+              "wallMs": 39,
+              "outcome": "kept"
+            },
+            {
+              "law": "every x with x < size: never 1 <= CT[x] and starte",
+              "laws": 27,
+              "pass": 0,
+              "share": 2222,
+              "took": 27,
+              "wallMs": 36,
+              "outcome": "kept"
+            },
+            {
+              "law": "every x with x < size: never 1 <= CT[x] and picked",
+              "laws": 27,
+              "pass": 0,
+              "share": 2222,
+              "took": 41,
+              "wallMs": 26,
+              "outcome": "kept"
+            },
+            {
+              "law": "every x with x < size: never 1 <= St[x] and CfgT[x",
+              "laws": 27,
+              "pass": 0,
+              "share": 2222,
+              "took": 229,
+              "wallMs": 127,
+              "outcome": "kept"
+            },
+            {
+              "law": "every x with x < size: never 1 <= St[x] and starte",
+              "laws": 27,
+              "pass": 0,
+              "share": 2222,
+              "took": 29,
+              "wallMs": 27,
+              "outcome": "kept"
+            },
+            {
+              "law": "every x with x < size: never 1 <= St[x] and picked",
+              "laws": 27,
+              "pass": 0,
+              "share": 2222,
+              "took": 42,
+              "wallMs": 62,
+              "outcome": "kept"
+            },
+            {
+              "law": "every x with x < size: never 1 <= CfgT[x] and star",
+              "laws": 27,
+              "pass": 0,
+              "share": 2222,
+              "took": 29,
+              "wallMs": 21,
+              "outcome": "kept"
+            },
+            {
+              "law": "every x with x < size: never 1 <= CfgT[x] and pick",
+              "laws": 27,
+              "pass": 0,
+              "share": 2222,
+              "took": 43,
+              "wallMs": 27,
+              "outcome": "kept"
+            },
+            {
+              "law": "every x, y with x < size ∧ y < size ∧ ¬(x = y): ne",
+              "laws": 27,
+              "pass": 0,
+              "share": 2222,
+              "took": 120,
+              "wallMs": 79,
+              "outcome": "kept"
+            },
+            {
+              "law": "every x, y with x < size ∧ y < size ∧ ¬(x = y): ne",
+              "laws": 27,
+              "pass": 0,
+              "share": 2222,
+              "took": 159,
+              "wallMs": 86,
+              "outcome": "kept"
+            },
+            {
+              "law": "every x, y with x < size ∧ y < size ∧ ¬(x = y): ne",
+              "laws": 27,
+              "pass": 0,
+              "share": 2222,
+              "took": 182,
+              "wallMs": 103,
+              "outcome": "kept"
+            },
+            {
+              "law": "every C0 cell is a value of its kind",
+              "laws": 27,
+              "pass": 0,
+              "share": 2222,
+              "took": 5,
+              "wallMs": 8,
+              "outcome": "kept"
+            },
+            {
+              "law": "every Copied cell is a value of its kind",
+              "laws": 27,
+              "pass": 0,
+              "share": 2222,
+              "took": 13,
+              "wallMs": 14,
+              "outcome": "kept"
+            },
+            {
+              "law": "every Config cell is a value of its kind",
+              "laws": 27,
+              "pass": 0,
+              "share": 2222,
+              "took": 7,
+              "wallMs": 9,
+              "outcome": "kept"
+            },
+            {
+              "law": "one primary per term",
+              "laws": 27,
+              "pass": 0,
+              "share": 2222,
+              "took": 323,
+              "wallMs": 136,
+              "outcome": "sat"
+            },
+            {
+              "law": "one primary per term",
+              "laws": 27,
+              "pass": 1,
+              "share": 2222,
+              "took": 383,
+              "wallMs": 218,
+              "outcome": "sat"
+            },
+            {
+              "law": "one primary per term",
+              "laws": 23,
+              "pass": 0,
+              "share": 56315,
+              "took": 0,
+              "wallMs": 2,
+              "outcome": "sat"
+            },
+            {
+              "law": "one primary per term",
+              "laws": 23,
+              "pass": 1,
+              "share": 56315,
+              "took": 0,
+              "wallMs": 1,
+              "outcome": "sat"
+            }
+          ],
+          "cpuModel": "AMD Ryzen 9 9950X 16-Core Processor",
+          "cpuEvidence": "runs/t14-final-v1/placement.json#mldr-pair-3",
+          "vm": "bx_84e8hfw5",
+          "vcpus": 8,
+          "exclusive": true,
+          "coTenants": 0
+        }
+      ]
+    },
+    {
+      "name": "mldr-pair-1",
+      "receipt": {
+        "code": 0,
+        "seconds": 82.79,
+        "backend": "boat"
+      },
+      "complete": true,
+      "lost": false,
+      "wrong": false,
+      "moved": true,
+      "errors": [],
+      "candidateKilled": false,
+      "sides": [
+        {
+          "side": "candidate",
+          "id": "mldr",
+          "mode": "original",
+          "repeat": 1,
+          "code": 0,
+          "seconds": 59.41,
+          "verdict": "unknown",
+          "result": {
+            "id": "mldr",
+            "ic3syn": "mldr",
+            "search": {
+              "verdict": "unknown",
+              "stuck": "unknown",
+              "why": "time (rule result)",
+              "ms": 59002,
+              "work": 31595754,
+              "full": 5998492
+            }
+          },
+          "full": 5998492,
+          "work": 31595754,
+          "attempts": [
+            {
+              "law": "St at most 1",
+              "laws": 35,
+              "pass": 0,
+              "share": 1714,
+              "took": 88,
+              "wallMs": 119,
+              "outcome": "kept"
+            },
+            {
+              "law": "CV at most 2",
+              "laws": 35,
+              "pass": 0,
+              "share": 1762,
+              "took": 1780,
+              "wallMs": 1710,
+              "outcome": "sat"
+            },
+            {
+              "law": "CV at most 2",
+              "laws": 35,
+              "pass": 1,
+              "share": 1762,
+              "took": 452,
+              "wallMs": 331,
+              "outcome": "sat"
+            },
+            {
+              "law": "fields: St[a]=1 -> CT[a]=CfgT[a]",
+              "laws": 35,
+              "pass": 0,
+              "share": 1748,
+              "took": 301,
+              "wallMs": 221,
+              "outcome": "kept"
+            },
+            {
+              "law": "fields: St[a]=1 -> CT[a]<=CfgT[a]",
+              "laws": 35,
+              "pass": 0,
+              "share": 1793,
+              "took": 318,
+              "wallMs": 220,
+              "outcome": "kept"
+            },
+            {
+              "law": "fields: St[a]=1 -> CT[a]=CT[b] -> CfgT[b]<=CfgT[a]",
+              "laws": 35,
+              "pass": 0,
+              "share": 1841,
+              "took": 1841,
+              "wallMs": 2040,
+              "outcome": "sat"
+            },
+            {
+              "law": "fields: St[a]=1 -> CT[a]=CT[b] -> CfgT[b]<=CfgT[a]",
+              "laws": 35,
+              "pass": 1,
+              "share": 1841,
+              "took": 2859,
+              "wallMs": 6377,
+              "outcome": "unknown"
+            },
+            {
+              "law": "fields: St[a]=1 -> CfgT[a]<=CT[a]",
+              "laws": 35,
+              "pass": 0,
+              "share": 1745,
+              "took": 316,
+              "wallMs": 266,
+              "outcome": "kept"
+            },
+            {
+              "law": "fields: St[a]=1 -> CfgT[a]=CfgT[b] -> CV[b]<=CV[a]",
+              "laws": 35,
+              "pass": 0,
+              "share": 1795,
+              "took": 1219,
+              "wallMs": 1958,
+              "outcome": "kept"
+            },
+            {
+              "law": "every x with x < size: never CT[x] is 0 and 1 <= S",
+              "laws": 35,
+              "pass": 0,
+              "share": 1815,
+              "took": 97,
+              "wallMs": 66,
+              "outcome": "kept"
+            },
+            {
+              "law": "every x with x < size: never 1 <= CT[x] and CV[x] ",
+              "laws": 35,
+              "pass": 0,
+              "share": 1879,
+              "took": 198,
+              "wallMs": 212,
+              "outcome": "kept"
+            },
+            {
+              "law": "every x with x < size: never 1 <= CT[x] and starte",
+              "laws": 35,
+              "pass": 0,
+              "share": 1944,
+              "took": 64,
+              "wallMs": 77,
+              "outcome": "kept"
+            },
+            {
+              "law": "every x with x < size: never 1 <= St[x] and CV[x] ",
+              "laws": 35,
+              "pass": 0,
+              "share": 2019,
+              "took": 148,
+              "wallMs": 99,
+              "outcome": "kept"
+            },
+            {
+              "law": "every x with x < size: never 1 <= St[x] and CfgT[x",
+              "laws": 35,
+              "pass": 0,
+              "share": 2097,
+              "took": 271,
+              "wallMs": 183,
+              "outcome": "kept"
+            },
+            {
+              "law": "every x with x < size: never 1 <= St[x] and starte",
+              "laws": 35,
+              "pass": 0,
+              "share": 2176,
+              "took": 70,
+              "wallMs": 57,
+              "outcome": "kept"
+            },
+            {
+              "law": "every x with x < size: never CV[x] is 0 and 1 <= C",
+              "laws": 35,
+              "pass": 0,
+              "share": 2272,
+              "took": 259,
+              "wallMs": 157,
+              "outcome": "kept"
+            },
+            {
+              "law": "every x with x < size: never CV[x] is 0 and 1 <= s",
+              "laws": 35,
+              "pass": 0,
+              "share": 2368,
+              "took": 180,
+              "wallMs": 109,
+              "outcome": "kept"
+            },
+            {
+              "law": "every x with x < size: never 1 <= CfgT[x] and star",
+              "laws": 35,
+              "pass": 0,
+              "share": 2477,
+              "took": 64,
+              "wallMs": 57,
+              "outcome": "kept"
+            },
+            {
+              "law": "every x, y with x < size ∧ y < size ∧ ¬(x = y): ne",
+              "laws": 35,
+              "pass": 0,
+              "share": 2604,
+              "took": 225,
+              "wallMs": 213,
+              "outcome": "kept"
+            },
+            {
+              "law": "every x, y with x < size ∧ y < size ∧ ¬(x = y): ne",
+              "laws": 35,
+              "pass": 0,
+              "share": 2736,
+              "took": 305,
+              "wallMs": 268,
+              "outcome": "kept"
+            },
+            {
+              "law": "every x, y with x < size ∧ y < size ∧ ¬(x = y): ne",
+              "laws": 35,
+              "pass": 0,
+              "share": 2879,
+              "took": 240,
+              "wallMs": 350,
+              "outcome": "kept"
+            },
+            {
+              "law": "inX: no quorum canVote/1",
+              "laws": 35,
+              "pass": 0,
+              "share": 3044,
+              "took": 98,
+              "wallMs": 125,
+              "outcome": "sat"
+            },
+            {
+              "law": "inX: no quorum canVote/1",
+              "laws": 35,
+              "pass": 1,
+              "share": 3044,
+              "took": 3550,
+              "wallMs": 4879,
+              "outcome": "unknown"
+            },
+            {
+              "law": "inX: no quorum canVote/3",
+              "laws": 35,
+              "pass": 0,
+              "share": 3004,
+              "took": 98,
+              "wallMs": 72,
+              "outcome": "sat"
+            },
+            {
+              "law": "inX: no quorum canVote/3",
+              "laws": 35,
+              "pass": 1,
+              "share": 3004,
+              "took": 3780,
+              "wallMs": 6349,
+              "outcome": "unknown"
+            },
+            {
+              "law": "inX: stored guard reconfigs/inS",
+              "laws": 35,
+              "pass": 0,
+              "share": 2941,
+              "took": 132,
+              "wallMs": 85,
+              "outcome": "sat"
+            },
+            {
+              "law": "inX: stored guard reconfigs/inS",
+              "laws": 35,
+              "pass": 1,
+              "share": 2941,
+              "took": 4158,
+              "wallMs": 4547,
+              "outcome": "unknown"
+            },
+            {
+              "law": "inX: stored guard reconfigs/inS or disabled/0",
+              "laws": 35,
+              "pass": 0,
+              "share": 2838,
+              "took": 141,
+              "wallMs": 87,
+              "outcome": "sat"
+            },
+            {
+              "law": "inX: stored guard reconfigs/inS or disabled/0",
+              "laws": 35,
+              "pass": 1,
+              "share": 2838,
+              "took": 742,
+              "wallMs": 864,
+              "outcome": "unknown"
+            }
+          ],
+          "cpuModel": "AMD EPYC 4585PX 16-Core Processor",
+          "cpuEvidence": "runs/t14-final-v1/placement.json#mldr-pair-1",
+          "vm": "bx_5f56ms2a",
+          "vcpus": 8,
+          "exclusive": true,
+          "coTenants": 0
+        },
+        {
+          "side": "baseline",
+          "id": "mldr",
+          "mode": "original",
+          "repeat": 1,
+          "code": 0,
+          "seconds": 22.7,
+          "verdict": "unknown",
+          "result": {
+            "id": "mldr",
+            "ic3syn": "mldr",
+            "search": {
+              "verdict": "unknown",
+              "why": "not proven: one primary per term",
+              "found": [
+                "every C0 cell is a value of its kind",
+                "every Copied cell is a value of its kind",
+                "every Config cell is a value of its kind",
+                "one primary per term",
+                "St at most 1",
+                "every x: never 1 <= Config[x] and picked is 0",
+                "every x with x < size: never 1 <= C0[x] and picked is 0",
+                "every x with x < size: never Copied[x] is 0 and 1 <= CT[x]",
+                "every x with x < size: never Copied[x] is 0 and 1 <= St[x]",
+                "every x with x < size: never Copied[x] is 0 and 1 <= CfgT[x]",
+                "every x with x < size: never Copied[x] is 0 and 1 <= started",
+                "every x with x < size: never 1 <= Copied[x] and picked is 0",
+                "every x with x < size: never CT[x] is 0 and 1 <= St[x]",
+                "every x with x < size: never 1 <= CT[x] and started is 0",
+                "every x with x < size: never 1 <= CT[x] and picked is 0",
+                "every x with x < size: never 1 <= St[x] and CfgT[x] is 0",
+                "every x with x < size: never 1 <= St[x] and started is 0",
+                "every x with x < size: never 1 <= St[x] and picked is 0",
+                "every x with x < size: never 1 <= CfgT[x] and started is 0",
+                "every x with x < size: never 1 <= CfgT[x] and picked is 0",
+                "every x, y with x < size ∧ y < size ∧ ¬(x = y): never Copied[x] is 0 and 1 <= CT[y]",
+                "every x, y with x < size ∧ y < size ∧ ¬(x = y): never Copied[x] is 0 and 1 <= St[y]",
+                "every x, y with x < size ∧ y < size ∧ ¬(x = y): never Copied[x] is 0 and 1 <= CfgT[y]"
+              ],
+              "ms": 22663,
+              "work": 2657026,
+              "full": 921136
+            }
+          },
+          "full": 921136,
+          "work": 2657026,
+          "attempts": [
+            {
+              "law": "CT at most 73",
+              "laws": 27,
+              "pass": 0,
+              "share": 2222,
+              "took": 101,
+              "wallMs": 79,
+              "outcome": "sat"
+            },
+            {
+              "law": "CT at most 73",
+              "laws": 27,
+              "pass": 1,
+              "share": 2222,
+              "took": 181,
+              "wallMs": 91,
+              "outcome": "sat"
+            },
+            {
+              "law": "St at most 1",
+              "laws": 27,
+              "pass": 0,
+              "share": 2222,
+              "took": 71,
+              "wallMs": 40,
+              "outcome": "kept"
+            },
+            {
+              "law": "CV at most 2",
+              "laws": 27,
+              "pass": 0,
+              "share": 2222,
+              "took": 113,
+              "wallMs": 58,
+              "outcome": "sat"
+            },
+            {
+              "law": "CV at most 2",
+              "laws": 27,
+              "pass": 1,
+              "share": 2222,
+              "took": 182,
+              "wallMs": 79,
+              "outcome": "sat"
+            },
+            {
+              "law": "CfgT at most 73",
+              "laws": 27,
+              "pass": 0,
+              "share": 2222,
+              "took": 183,
+              "wallMs": 99,
+              "outcome": "sat"
+            },
+            {
+              "law": "CfgT at most 73",
+              "laws": 27,
+              "pass": 1,
+              "share": 2222,
+              "took": 234,
+              "wallMs": 119,
+              "outcome": "sat"
+            },
+            {
+              "law": "every x: never 1 <= Config[x] and picked is 0",
+              "laws": 27,
+              "pass": 0,
+              "share": 2222,
+              "took": 77,
+              "wallMs": 62,
+              "outcome": "kept"
+            },
+            {
+              "law": "every x with x < size: never C0[x] is 0 and 1 <= S",
+              "laws": 27,
+              "pass": 0,
+              "share": 2222,
+              "took": 144,
+              "wallMs": 90,
+              "outcome": "sat"
+            },
+            {
+              "law": "every x with x < size: never C0[x] is 0 and 1 <= S",
+              "laws": 27,
+              "pass": 1,
+              "share": 2222,
+              "took": 175,
+              "wallMs": 96,
+              "outcome": "sat"
+            },
+            {
+              "law": "every x with x < size: never 1 <= C0[x] and picked",
+              "laws": 27,
+              "pass": 0,
+              "share": 2222,
+              "took": 35,
+              "wallMs": 24,
+              "outcome": "kept"
+            },
+            {
+              "law": "every x with x < size: never Copied[x] is 0 and 1 ",
+              "laws": 27,
+              "pass": 0,
+              "share": 2222,
+              "took": 137,
+              "wallMs": 95,
+              "outcome": "kept"
+            },
+            {
+              "law": "every x with x < size: never Copied[x] is 0 and 1 ",
+              "laws": 27,
+              "pass": 0,
+              "share": 2222,
+              "took": 121,
+              "wallMs": 84,
+              "outcome": "kept"
+            },
+            {
+              "law": "every x with x < size: never Copied[x] is 0 and 1 ",
+              "laws": 27,
+              "pass": 0,
+              "share": 2222,
+              "took": 96,
+              "wallMs": 68,
+              "outcome": "kept"
+            },
+            {
+              "law": "every x with x < size: never Copied[x] is 0 and 1 ",
+              "laws": 27,
+              "pass": 0,
+              "share": 2222,
+              "took": 68,
+              "wallMs": 33,
+              "outcome": "kept"
+            },
+            {
+              "law": "every x with x < size: never 1 <= Copied[x] and pi",
+              "laws": 27,
+              "pass": 0,
+              "share": 2222,
+              "took": 41,
+              "wallMs": 42,
+              "outcome": "kept"
+            },
+            {
+              "law": "every x with x < size: never CT[x] is 0 and 1 <= S",
+              "laws": 27,
+              "pass": 0,
+              "share": 2222,
+              "took": 92,
+              "wallMs": 47,
+              "outcome": "kept"
+            },
+            {
+              "law": "every x with x < size: never 1 <= CT[x] and starte",
+              "laws": 27,
+              "pass": 0,
+              "share": 2222,
+              "took": 27,
+              "wallMs": 39,
+              "outcome": "kept"
+            },
+            {
+              "law": "every x with x < size: never 1 <= CT[x] and picked",
+              "laws": 27,
+              "pass": 0,
+              "share": 2222,
+              "took": 41,
+              "wallMs": 27,
+              "outcome": "kept"
+            },
+            {
+              "law": "every x with x < size: never 1 <= St[x] and CfgT[x",
+              "laws": 27,
+              "pass": 0,
+              "share": 2222,
+              "took": 229,
+              "wallMs": 124,
+              "outcome": "kept"
+            },
+            {
+              "law": "every x with x < size: never 1 <= St[x] and starte",
+              "laws": 27,
+              "pass": 0,
+              "share": 2222,
+              "took": 29,
+              "wallMs": 23,
+              "outcome": "kept"
+            },
+            {
+              "law": "every x with x < size: never 1 <= St[x] and picked",
+              "laws": 27,
+              "pass": 0,
+              "share": 2222,
+              "took": 42,
+              "wallMs": 26,
+              "outcome": "kept"
+            },
+            {
+              "law": "every x with x < size: never 1 <= CfgT[x] and star",
+              "laws": 27,
+              "pass": 0,
+              "share": 2222,
+              "took": 29,
+              "wallMs": 38,
+              "outcome": "kept"
+            },
+            {
+              "law": "every x with x < size: never 1 <= CfgT[x] and pick",
+              "laws": 27,
+              "pass": 0,
+              "share": 2222,
+              "took": 43,
+              "wallMs": 35,
+              "outcome": "kept"
+            },
+            {
+              "law": "every x, y with x < size ∧ y < size ∧ ¬(x = y): ne",
+              "laws": 27,
+              "pass": 0,
+              "share": 2222,
+              "took": 120,
+              "wallMs": 75,
+              "outcome": "kept"
+            },
+            {
+              "law": "every x, y with x < size ∧ y < size ∧ ¬(x = y): ne",
+              "laws": 27,
+              "pass": 0,
+              "share": 2222,
+              "took": 159,
+              "wallMs": 88,
+              "outcome": "kept"
+            },
+            {
+              "law": "every x, y with x < size ∧ y < size ∧ ¬(x = y): ne",
+              "laws": 27,
+              "pass": 0,
+              "share": 2222,
+              "took": 182,
+              "wallMs": 93,
+              "outcome": "kept"
+            },
+            {
+              "law": "every C0 cell is a value of its kind",
+              "laws": 27,
+              "pass": 0,
+              "share": 2222,
+              "took": 5,
+              "wallMs": 6,
+              "outcome": "kept"
+            },
+            {
+              "law": "every Copied cell is a value of its kind",
+              "laws": 27,
+              "pass": 0,
+              "share": 2222,
+              "took": 13,
+              "wallMs": 11,
+              "outcome": "kept"
+            },
+            {
+              "law": "every Config cell is a value of its kind",
+              "laws": 27,
+              "pass": 0,
+              "share": 2222,
+              "took": 7,
+              "wallMs": 7,
+              "outcome": "kept"
+            },
+            {
+              "law": "one primary per term",
+              "laws": 27,
+              "pass": 0,
+              "share": 2222,
+              "took": 323,
+              "wallMs": 177,
+              "outcome": "sat"
+            },
+            {
+              "law": "one primary per term",
+              "laws": 27,
+              "pass": 1,
+              "share": 2222,
+              "took": 383,
+              "wallMs": 226,
+              "outcome": "sat"
+            },
+            {
+              "law": "one primary per term",
+              "laws": 23,
+              "pass": 0,
+              "share": 56315,
+              "took": 0,
+              "wallMs": 2,
+              "outcome": "sat"
+            },
+            {
+              "law": "one primary per term",
+              "laws": 23,
+              "pass": 1,
+              "share": 56315,
+              "took": 0,
+              "wallMs": 2,
+              "outcome": "sat"
+            }
+          ],
+          "cpuModel": "AMD EPYC 4585PX 16-Core Processor",
+          "cpuEvidence": "runs/t14-final-v1/placement.json#mldr-pair-1",
+          "vm": "bx_5f56ms2a",
+          "vcpus": 8,
+          "exclusive": true,
+          "coTenants": 0
+        }
+      ]
+    },
+    {
+      "name": "share-pair-1",
+      "receipt": {
+        "code": 0,
+        "seconds": 120.75,
+        "backend": "boat"
+      },
+      "complete": true,
+      "lost": false,
+      "wrong": false,
+      "moved": true,
+      "errors": [],
+      "candidateKilled": false,
+      "sides": [
+        {
+          "side": "candidate",
+          "id": "mldr",
+          "mode": "original",
+          "repeat": 1,
+          "code": 0,
+          "seconds": 59.9,
+          "verdict": "unknown",
+          "result": {
+            "id": "mldr",
+            "ic3syn": "mldr",
+            "search": {
+              "verdict": "unknown",
+              "stuck": "unknown",
+              "why": "time (rule result)",
+              "ms": 59823,
+              "work": 25695223,
+              "full": 4704974
+            }
+          },
+          "full": 4704974,
+          "work": 25695223,
+          "attempts": [
+            {
+              "law": "St at most 1",
+              "laws": 35,
+              "pass": 0,
+              "share": 1714,
+              "took": 88,
+              "wallMs": 165,
+              "outcome": "kept"
+            },
+            {
+              "law": "CV at most 2",
+              "laws": 35,
+              "pass": 0,
+              "share": 1762,
+              "took": 1780,
+              "wallMs": 2340,
+              "outcome": "sat"
+            },
+            {
+              "law": "CV at most 2",
+              "laws": 35,
+              "pass": 1,
+              "share": 1762,
+              "took": 452,
+              "wallMs": 548,
+              "outcome": "sat"
+            },
+            {
+              "law": "fields: St[a]=1 -> CT[a]=CfgT[a]",
+              "laws": 35,
+              "pass": 0,
+              "share": 1748,
+              "took": 301,
+              "wallMs": 344,
+              "outcome": "kept"
+            },
+            {
+              "law": "fields: St[a]=1 -> CT[a]<=CfgT[a]",
+              "laws": 35,
+              "pass": 0,
+              "share": 1793,
+              "took": 318,
+              "wallMs": 372,
+              "outcome": "kept"
+            },
+            {
+              "law": "fields: St[a]=1 -> CT[a]=CT[b] -> CfgT[b]<=CfgT[a]",
+              "laws": 35,
+              "pass": 0,
+              "share": 1841,
+              "took": 1841,
+              "wallMs": 2929,
+              "outcome": "sat"
+            },
+            {
+              "law": "fields: St[a]=1 -> CT[a]=CT[b] -> CfgT[b]<=CfgT[a]",
+              "laws": 35,
+              "pass": 1,
+              "share": 1841,
+              "took": 2859,
+              "wallMs": 6388,
+              "outcome": "unknown"
+            },
+            {
+              "law": "fields: St[a]=1 -> CfgT[a]<=CT[a]",
+              "laws": 35,
+              "pass": 0,
+              "share": 1745,
+              "took": 316,
+              "wallMs": 196,
+              "outcome": "kept"
+            },
+            {
+              "law": "fields: St[a]=1 -> CfgT[a]=CfgT[b] -> CV[b]<=CV[a]",
+              "laws": 35,
+              "pass": 0,
+              "share": 1795,
+              "took": 1219,
+              "wallMs": 1380,
+              "outcome": "kept"
+            },
+            {
+              "law": "every x with x < size: never CT[x] is 0 and 1 <= S",
+              "laws": 35,
+              "pass": 0,
+              "share": 1815,
+              "took": 97,
+              "wallMs": 67,
+              "outcome": "kept"
+            },
+            {
+              "law": "every x with x < size: never 1 <= CT[x] and CV[x] ",
+              "laws": 35,
+              "pass": 0,
+              "share": 1879,
+              "took": 198,
+              "wallMs": 122,
+              "outcome": "kept"
+            },
+            {
+              "law": "every x with x < size: never 1 <= CT[x] and starte",
+              "laws": 35,
+              "pass": 0,
+              "share": 1944,
+              "took": 64,
+              "wallMs": 80,
+              "outcome": "kept"
+            },
+            {
+              "law": "every x with x < size: never 1 <= St[x] and CV[x] ",
+              "laws": 35,
+              "pass": 0,
+              "share": 2019,
+              "took": 148,
+              "wallMs": 73,
+              "outcome": "kept"
+            },
+            {
+              "law": "every x with x < size: never 1 <= St[x] and CfgT[x",
+              "laws": 35,
+              "pass": 0,
+              "share": 2097,
+              "took": 271,
+              "wallMs": 106,
+              "outcome": "kept"
+            },
+            {
+              "law": "every x with x < size: never 1 <= St[x] and starte",
+              "laws": 35,
+              "pass": 0,
+              "share": 2176,
+              "took": 70,
+              "wallMs": 93,
+              "outcome": "kept"
+            },
+            {
+              "law": "every x with x < size: never CV[x] is 0 and 1 <= C",
+              "laws": 35,
+              "pass": 0,
+              "share": 2272,
+              "took": 259,
+              "wallMs": 128,
+              "outcome": "kept"
+            },
+            {
+              "law": "every x with x < size: never CV[x] is 0 and 1 <= s",
+              "laws": 35,
+              "pass": 0,
+              "share": 2368,
+              "took": 180,
+              "wallMs": 94,
+              "outcome": "kept"
+            },
+            {
+              "law": "every x with x < size: never 1 <= CfgT[x] and star",
+              "laws": 35,
+              "pass": 0,
+              "share": 2477,
+              "took": 64,
+              "wallMs": 94,
+              "outcome": "kept"
+            },
+            {
+              "law": "every x, y with x < size ∧ y < size ∧ ¬(x = y): ne",
+              "laws": 35,
+              "pass": 0,
+              "share": 2604,
+              "took": 225,
+              "wallMs": 123,
+              "outcome": "kept"
+            },
+            {
+              "law": "every x, y with x < size ∧ y < size ∧ ¬(x = y): ne",
+              "laws": 35,
+              "pass": 0,
+              "share": 2736,
+              "took": 305,
+              "wallMs": 263,
+              "outcome": "kept"
+            },
+            {
+              "law": "every x, y with x < size ∧ y < size ∧ ¬(x = y): ne",
+              "laws": 35,
+              "pass": 0,
+              "share": 2879,
+              "took": 240,
+              "wallMs": 129,
+              "outcome": "kept"
+            },
+            {
+              "law": "inX: no quorum canVote/1",
+              "laws": 35,
+              "pass": 0,
+              "share": 3044,
+              "took": 98,
+              "wallMs": 108,
+              "outcome": "sat"
+            },
+            {
+              "law": "inX: no quorum canVote/1",
+              "laws": 35,
+              "pass": 1,
+              "share": 3044,
+              "took": 3550,
+              "wallMs": 3378,
+              "outcome": "unknown"
+            },
+            {
+              "law": "inX: no quorum canVote/3",
+              "laws": 35,
+              "pass": 0,
+              "share": 3004,
+              "took": 98,
+              "wallMs": 55,
+              "outcome": "sat"
+            },
+            {
+              "law": "inX: no quorum canVote/3",
+              "laws": 35,
+              "pass": 1,
+              "share": 3004,
+              "took": 3780,
+              "wallMs": 6247,
+              "outcome": "unknown"
+            }
+          ],
+          "cpuModel": "AMD Ryzen 9 9950X 16-Core Processor",
+          "cpuEvidence": "runs/t14-final-v1/placement.json#share-pair-1",
+          "vm": "bx_8f8tzqk2",
+          "vcpus": 8,
+          "exclusive": true,
+          "coTenants": 0
+        },
+        {
+          "side": "baseline",
+          "id": "mldr",
+          "mode": "original",
+          "repeat": 1,
+          "code": 0,
+          "seconds": 59.57,
+          "verdict": "unknown",
+          "result": {
+            "id": "mldr",
+            "ic3syn": "mldr",
+            "search": {
+              "verdict": "unknown",
+              "stuck": "unknown",
+              "why": "time (rule result)",
+              "ms": 59437,
+              "work": 34805712,
+              "full": 9947636
+            }
+          },
+          "full": 9947636,
+          "work": 34805712,
+          "attempts": [
+            {
+              "law": "St at most 1",
+              "laws": 35,
+              "pass": 0,
+              "share": 1714,
+              "took": 88,
+              "wallMs": 90,
+              "outcome": "kept"
+            },
+            {
+              "law": "CV at most 2",
+              "laws": 35,
+              "pass": 0,
+              "share": 1714,
+              "took": 1727,
+              "wallMs": 1202,
+              "outcome": "sat"
+            },
+            {
+              "law": "CV at most 2",
+              "laws": 35,
+              "pass": 1,
+              "share": 1714,
+              "took": 452,
+              "wallMs": 302,
+              "outcome": "sat"
+            },
+            {
+              "law": "fields: St[a]=1 -> CT[a]=CfgT[a]",
+              "laws": 35,
+              "pass": 0,
+              "share": 1714,
+              "took": 301,
+              "wallMs": 173,
+              "outcome": "kept"
+            },
+            {
+              "law": "fields: St[a]=1 -> CT[a]<=CfgT[a]",
+              "laws": 35,
+              "pass": 0,
+              "share": 1714,
+              "took": 318,
+              "wallMs": 178,
+              "outcome": "kept"
+            },
+            {
+              "law": "fields: St[a]=1 -> CT[a]=CT[b] -> CfgT[b]<=CfgT[a]",
+              "laws": 35,
+              "pass": 0,
+              "share": 1714,
+              "took": 1714,
+              "wallMs": 1710,
+              "outcome": "sat"
+            },
+            {
+              "law": "fields: St[a]=1 -> CT[a]=CT[b] -> CfgT[b]<=CfgT[a]",
+              "laws": 35,
+              "pass": 1,
+              "share": 1714,
+              "took": 2859,
+              "wallMs": 3481,
+              "outcome": "unknown"
+            },
+            {
+              "law": "fields: St[a]=1 -> CfgT[a]<=CT[a]",
+              "laws": 35,
+              "pass": 0,
+              "share": 1714,
+              "took": 316,
+              "wallMs": 148,
+              "outcome": "kept"
+            },
+            {
+              "law": "fields: St[a]=1 -> CfgT[a]=CfgT[b] -> CV[b]<=CV[a]",
+              "laws": 35,
+              "pass": 0,
+              "share": 1714,
+              "took": 1219,
+              "wallMs": 1290,
+              "outcome": "kept"
+            },
+            {
+              "law": "every x with x < size: never CT[x] is 0 and 1 <= S",
+              "laws": 35,
+              "pass": 0,
+              "share": 1714,
+              "took": 97,
+              "wallMs": 46,
+              "outcome": "kept"
+            },
+            {
+              "law": "every x with x < size: never 1 <= CT[x] and CV[x] ",
+              "laws": 35,
+              "pass": 0,
+              "share": 1714,
+              "took": 198,
+              "wallMs": 120,
+              "outcome": "kept"
+            },
+            {
+              "law": "every x with x < size: never 1 <= CT[x] and starte",
+              "laws": 35,
+              "pass": 0,
+              "share": 1714,
+              "took": 64,
+              "wallMs": 46,
+              "outcome": "kept"
+            },
+            {
+              "law": "every x with x < size: never 1 <= St[x] and CV[x] ",
+              "laws": 35,
+              "pass": 0,
+              "share": 1714,
+              "took": 148,
+              "wallMs": 71,
+              "outcome": "kept"
+            },
+            {
+              "law": "every x with x < size: never 1 <= St[x] and CfgT[x",
+              "laws": 35,
+              "pass": 0,
+              "share": 1714,
+              "took": 271,
+              "wallMs": 137,
+              "outcome": "kept"
+            },
+            {
+              "law": "every x with x < size: never 1 <= St[x] and starte",
+              "laws": 35,
+              "pass": 0,
+              "share": 1714,
+              "took": 70,
+              "wallMs": 43,
+              "outcome": "kept"
+            },
+            {
+              "law": "every x with x < size: never CV[x] is 0 and 1 <= C",
+              "laws": 35,
+              "pass": 0,
+              "share": 1714,
+              "took": 259,
+              "wallMs": 144,
+              "outcome": "kept"
+            },
+            {
+              "law": "every x with x < size: never CV[x] is 0 and 1 <= s",
+              "laws": 35,
+              "pass": 0,
+              "share": 1714,
+              "took": 180,
+              "wallMs": 101,
+              "outcome": "kept"
+            },
+            {
+              "law": "every x with x < size: never 1 <= CfgT[x] and star",
+              "laws": 35,
+              "pass": 0,
+              "share": 1714,
+              "took": 64,
+              "wallMs": 54,
+              "outcome": "kept"
+            },
+            {
+              "law": "every x, y with x < size ∧ y < size ∧ ¬(x = y): ne",
+              "laws": 35,
+              "pass": 0,
+              "share": 1714,
+              "took": 225,
+              "wallMs": 192,
+              "outcome": "kept"
+            },
+            {
+              "law": "every x, y with x < size ∧ y < size ∧ ¬(x = y): ne",
+              "laws": 35,
+              "pass": 0,
+              "share": 1714,
+              "took": 305,
+              "wallMs": 196,
+              "outcome": "kept"
+            },
+            {
+              "law": "every x, y with x < size ∧ y < size ∧ ¬(x = y): ne",
+              "laws": 35,
+              "pass": 0,
+              "share": 1714,
+              "took": 240,
+              "wallMs": 123,
+              "outcome": "kept"
+            },
+            {
+              "law": "inX: no quorum canVote/1",
+              "laws": 35,
+              "pass": 0,
+              "share": 1714,
+              "took": 98,
+              "wallMs": 85,
+              "outcome": "sat"
+            },
+            {
+              "law": "inX: no quorum canVote/1",
+              "laws": 35,
+              "pass": 1,
+              "share": 1714,
+              "took": 3550,
+              "wallMs": 2900,
+              "outcome": "unknown"
+            },
+            {
+              "law": "inX: no quorum canVote/3",
+              "laws": 35,
+              "pass": 0,
+              "share": 1714,
+              "took": 98,
+              "wallMs": 68,
+              "outcome": "sat"
+            },
+            {
+              "law": "inX: no quorum canVote/3",
+              "laws": 35,
+              "pass": 1,
+              "share": 1714,
+              "took": 2031,
+              "wallMs": 3628,
+              "outcome": "unknown"
+            },
+            {
+              "law": "inX: stored guard reconfigs/inS",
+              "laws": 35,
+              "pass": 0,
+              "share": 1714,
+              "took": 132,
+              "wallMs": 67,
+              "outcome": "sat"
+            },
+            {
+              "law": "inX: stored guard reconfigs/inS",
+              "laws": 35,
+              "pass": 1,
+              "share": 1714,
+              "took": 4158,
+              "wallMs": 3886,
+              "outcome": "unknown"
+            },
+            {
+              "law": "inX: stored guard reconfigs/inS or disabled/0",
+              "laws": 35,
+              "pass": 0,
+              "share": 1714,
+              "took": 141,
+              "wallMs": 153,
+              "outcome": "sat"
+            },
+            {
+              "law": "inX: stored guard reconfigs/inS or disabled/0",
+              "laws": 35,
+              "pass": 1,
+              "share": 1714,
+              "took": 4578,
+              "wallMs": 4296,
+              "outcome": "sat"
+            },
+            {
+              "law": "inX: stored guard reconfigs/inS or disabled/1",
+              "laws": 35,
+              "pass": 0,
+              "share": 1714,
+              "took": 141,
+              "wallMs": 92,
+              "outcome": "sat"
+            },
+            {
+              "law": "inX: stored guard reconfigs/inS or disabled/1",
+              "laws": 35,
+              "pass": 1,
+              "share": 1714,
+              "took": 4487,
+              "wallMs": 5654,
+              "outcome": "unknown"
+            },
+            {
+              "law": "inX: stored guard reconfigs/inS or disabled/2",
+              "laws": 35,
+              "pass": 0,
+              "share": 1714,
+              "took": 141,
+              "wallMs": 102,
+              "outcome": "sat"
+            },
+            {
+              "law": "inX: stored guard reconfigs/inS or disabled/2",
+              "laws": 35,
+              "pass": 1,
+              "share": 1714,
+              "took": 4566,
+              "wallMs": 4612,
+              "outcome": "sat"
+            },
+            {
+              "law": "inX: stored guard reconfigs/inS or disabled/3",
+              "laws": 35,
+              "pass": 0,
+              "share": 1714,
+              "took": 141,
+              "wallMs": 90,
+              "outcome": "sat"
+            },
+            {
+              "law": "inX: stored guard reconfigs/inS or disabled/3",
+              "laws": 35,
+              "pass": 1,
+              "share": 1714,
+              "took": 4411,
+              "wallMs": 5342,
+              "outcome": "unknown"
+            }
+          ],
+          "cpuModel": "AMD Ryzen 9 9950X 16-Core Processor",
+          "cpuEvidence": "runs/t14-final-v1/placement.json#share-pair-1",
+          "vm": "bx_8f8tzqk2",
+          "vcpus": 8,
+          "exclusive": true,
+          "coTenants": 0
+        }
+      ]
+    },
+    {
+      "name": "share-pair-2",
+      "receipt": {
+        "code": 0,
+        "seconds": 119.61,
+        "backend": "boat"
+      },
+      "complete": true,
+      "lost": false,
+      "wrong": false,
+      "moved": true,
+      "errors": [],
+      "candidateKilled": false,
+      "sides": [
+        {
+          "side": "baseline",
+          "id": "mldr",
+          "mode": "original",
+          "repeat": 2,
+          "code": 0,
+          "seconds": 59.14,
+          "verdict": "unknown",
+          "result": {
+            "id": "mldr",
+            "ic3syn": "mldr",
+            "search": {
+              "verdict": "unknown",
+              "stuck": "unknown",
+              "why": "time (rule result)",
+              "ms": 59018,
+              "work": 28200405,
+              "full": 5450927
+            }
+          },
+          "full": 5450927,
+          "work": 28200405,
+          "attempts": [
+            {
+              "law": "St at most 1",
+              "laws": 35,
+              "pass": 0,
+              "share": 1714,
+              "took": 88,
+              "wallMs": 111,
+              "outcome": "kept"
+            },
+            {
+              "law": "CV at most 2",
+              "laws": 35,
+              "pass": 0,
+              "share": 1714,
+              "took": 1727,
+              "wallMs": 1551,
+              "outcome": "sat"
+            },
+            {
+              "law": "CV at most 2",
+              "laws": 35,
+              "pass": 1,
+              "share": 1714,
+              "took": 452,
+              "wallMs": 486,
+              "outcome": "sat"
+            },
+            {
+              "law": "fields: St[a]=1 -> CT[a]=CfgT[a]",
+              "laws": 35,
+              "pass": 0,
+              "share": 1714,
+              "took": 301,
+              "wallMs": 292,
+              "outcome": "kept"
+            },
+            {
+              "law": "fields: St[a]=1 -> CT[a]<=CfgT[a]",
+              "laws": 35,
+              "pass": 0,
+              "share": 1714,
+              "took": 318,
+              "wallMs": 275,
+              "outcome": "kept"
+            },
+            {
+              "law": "fields: St[a]=1 -> CT[a]=CT[b] -> CfgT[b]<=CfgT[a]",
+              "laws": 35,
+              "pass": 0,
+              "share": 1714,
+              "took": 1714,
+              "wallMs": 2346,
+              "outcome": "sat"
+            },
+            {
+              "law": "fields: St[a]=1 -> CT[a]=CT[b] -> CfgT[b]<=CfgT[a]",
+              "laws": 35,
+              "pass": 1,
+              "share": 1714,
+              "took": 2859,
+              "wallMs": 4748,
+              "outcome": "unknown"
+            },
+            {
+              "law": "fields: St[a]=1 -> CfgT[a]<=CT[a]",
+              "laws": 35,
+              "pass": 0,
+              "share": 1714,
+              "took": 316,
+              "wallMs": 181,
+              "outcome": "kept"
+            },
+            {
+              "law": "fields: St[a]=1 -> CfgT[a]=CfgT[b] -> CV[b]<=CV[a]",
+              "laws": 35,
+              "pass": 0,
+              "share": 1714,
+              "took": 1219,
+              "wallMs": 1796,
+              "outcome": "kept"
+            },
+            {
+              "law": "every x with x < size: never CT[x] is 0 and 1 <= S",
+              "laws": 35,
+              "pass": 0,
+              "share": 1714,
+              "took": 97,
+              "wallMs": 100,
+              "outcome": "kept"
+            },
+            {
+              "law": "every x with x < size: never 1 <= CT[x] and CV[x] ",
+              "laws": 35,
+              "pass": 0,
+              "share": 1714,
+              "took": 198,
+              "wallMs": 206,
+              "outcome": "kept"
+            },
+            {
+              "law": "every x with x < size: never 1 <= CT[x] and starte",
+              "laws": 35,
+              "pass": 0,
+              "share": 1714,
+              "took": 64,
+              "wallMs": 74,
+              "outcome": "kept"
+            },
+            {
+              "law": "every x with x < size: never 1 <= St[x] and CV[x] ",
+              "laws": 35,
+              "pass": 0,
+              "share": 1714,
+              "took": 148,
+              "wallMs": 102,
+              "outcome": "kept"
+            },
+            {
+              "law": "every x with x < size: never 1 <= St[x] and CfgT[x",
+              "laws": 35,
+              "pass": 0,
+              "share": 1714,
+              "took": 271,
+              "wallMs": 184,
+              "outcome": "kept"
+            },
+            {
+              "law": "every x with x < size: never 1 <= St[x] and starte",
+              "laws": 35,
+              "pass": 0,
+              "share": 1714,
+              "took": 70,
+              "wallMs": 66,
+              "outcome": "kept"
+            },
+            {
+              "law": "every x with x < size: never CV[x] is 0 and 1 <= C",
+              "laws": 35,
+              "pass": 0,
+              "share": 1714,
+              "took": 259,
+              "wallMs": 179,
+              "outcome": "kept"
+            },
+            {
+              "law": "every x with x < size: never CV[x] is 0 and 1 <= s",
+              "laws": 35,
+              "pass": 0,
+              "share": 1714,
+              "took": 180,
+              "wallMs": 130,
+              "outcome": "kept"
+            },
+            {
+              "law": "every x with x < size: never 1 <= CfgT[x] and star",
+              "laws": 35,
+              "pass": 0,
+              "share": 1714,
+              "took": 64,
+              "wallMs": 65,
+              "outcome": "kept"
+            },
+            {
+              "law": "every x, y with x < size ∧ y < size ∧ ¬(x = y): ne",
+              "laws": 35,
+              "pass": 0,
+              "share": 1714,
+              "took": 225,
+              "wallMs": 185,
+              "outcome": "kept"
+            },
+            {
+              "law": "every x, y with x < size ∧ y < size ∧ ¬(x = y): ne",
+              "laws": 35,
+              "pass": 0,
+              "share": 1714,
+              "took": 305,
+              "wallMs": 236,
+              "outcome": "kept"
+            },
+            {
+              "law": "every x, y with x < size ∧ y < size ∧ ¬(x = y): ne",
+              "laws": 35,
+              "pass": 0,
+              "share": 1714,
+              "took": 240,
+              "wallMs": 162,
+              "outcome": "kept"
+            },
+            {
+              "law": "inX: no quorum canVote/1",
+              "laws": 35,
+              "pass": 0,
+              "share": 1714,
+              "took": 98,
+              "wallMs": 70,
+              "outcome": "sat"
+            },
+            {
+              "law": "inX: no quorum canVote/1",
+              "laws": 35,
+              "pass": 1,
+              "share": 1714,
+              "took": 3550,
+              "wallMs": 4191,
+              "outcome": "unknown"
+            },
+            {
+              "law": "inX: no quorum canVote/3",
+              "laws": 35,
+              "pass": 0,
+              "share": 1714,
+              "took": 98,
+              "wallMs": 74,
+              "outcome": "sat"
+            },
+            {
+              "law": "inX: no quorum canVote/3",
+              "laws": 35,
+              "pass": 1,
+              "share": 1714,
+              "took": 2031,
+              "wallMs": 4999,
+              "outcome": "unknown"
+            },
+            {
+              "law": "inX: stored guard reconfigs/inS",
+              "laws": 35,
+              "pass": 0,
+              "share": 1714,
+              "took": 132,
+              "wallMs": 106,
+              "outcome": "sat"
+            },
+            {
+              "law": "inX: stored guard reconfigs/inS",
+              "laws": 35,
+              "pass": 1,
+              "share": 1714,
+              "took": 4158,
+              "wallMs": 6359,
+              "outcome": "unknown"
+            },
+            {
+              "law": "inX: stored guard reconfigs/inS or disabled/0",
+              "laws": 35,
+              "pass": 0,
+              "share": 1714,
+              "took": 141,
+              "wallMs": 272,
+              "outcome": "sat"
+            },
+            {
+              "law": "inX: stored guard reconfigs/inS or disabled/0",
+              "laws": 35,
+              "pass": 1,
+              "share": 1714,
+              "took": 480,
+              "wallMs": 592,
+              "outcome": "unknown"
+            }
+          ],
+          "cpuModel": "AMD Ryzen 9 9950X 16-Core Processor",
+          "cpuEvidence": "runs/t14-final-v1/placement.json#share-pair-2",
+          "vm": "bx_2uat3ctg",
+          "vcpus": 8,
+          "exclusive": true,
+          "coTenants": 0
+        },
+        {
+          "side": "candidate",
+          "id": "mldr",
+          "mode": "original",
+          "repeat": 2,
+          "code": 0,
+          "seconds": 59.1,
+          "verdict": "unknown",
+          "result": {
+            "id": "mldr",
+            "ic3syn": "mldr",
+            "search": {
+              "verdict": "unknown",
+              "stuck": "unknown",
+              "why": "time (rule result)",
+              "ms": 59003,
+              "work": 37080718,
+              "full": 9436792
+            }
+          },
+          "full": 9436792,
+          "work": 37080718,
+          "attempts": [
+            {
+              "law": "St at most 1",
+              "laws": 35,
+              "pass": 0,
+              "share": 1714,
+              "took": 88,
+              "wallMs": 86,
+              "outcome": "kept"
+            },
+            {
+              "law": "CV at most 2",
+              "laws": 35,
+              "pass": 0,
+              "share": 1762,
+              "took": 1780,
+              "wallMs": 1258,
+              "outcome": "sat"
+            },
+            {
+              "law": "CV at most 2",
+              "laws": 35,
+              "pass": 1,
+              "share": 1762,
+              "took": 452,
+              "wallMs": 319,
+              "outcome": "sat"
+            },
+            {
+              "law": "fields: St[a]=1 -> CT[a]=CfgT[a]",
+              "laws": 35,
+              "pass": 0,
+              "share": 1748,
+              "took": 301,
+              "wallMs": 189,
+              "outcome": "kept"
+            },
+            {
+              "law": "fields: St[a]=1 -> CT[a]<=CfgT[a]",
+              "laws": 35,
+              "pass": 0,
+              "share": 1793,
+              "took": 318,
+              "wallMs": 160,
+              "outcome": "kept"
+            },
+            {
+              "law": "fields: St[a]=1 -> CT[a]=CT[b] -> CfgT[b]<=CfgT[a]",
+              "laws": 35,
+              "pass": 0,
+              "share": 1841,
+              "took": 1841,
+              "wallMs": 1721,
+              "outcome": "sat"
+            },
+            {
+              "law": "fields: St[a]=1 -> CT[a]=CT[b] -> CfgT[b]<=CfgT[a]",
+              "laws": 35,
+              "pass": 1,
+              "share": 1841,
+              "took": 2859,
+              "wallMs": 3084,
+              "outcome": "unknown"
+            },
+            {
+              "law": "fields: St[a]=1 -> CfgT[a]<=CT[a]",
+              "laws": 35,
+              "pass": 0,
+              "share": 1745,
+              "took": 316,
+              "wallMs": 162,
+              "outcome": "kept"
+            },
+            {
+              "law": "fields: St[a]=1 -> CfgT[a]=CfgT[b] -> CV[b]<=CV[a]",
+              "laws": 35,
+              "pass": 0,
+              "share": 1795,
+              "took": 1219,
+              "wallMs": 1185,
+              "outcome": "kept"
+            },
+            {
+              "law": "every x with x < size: never CT[x] is 0 and 1 <= S",
+              "laws": 35,
+              "pass": 0,
+              "share": 1815,
+              "took": 97,
+              "wallMs": 84,
+              "outcome": "kept"
+            },
+            {
+              "law": "every x with x < size: never 1 <= CT[x] and CV[x] ",
+              "laws": 35,
+              "pass": 0,
+              "share": 1879,
+              "took": 198,
+              "wallMs": 111,
+              "outcome": "kept"
+            },
+            {
+              "law": "every x with x < size: never 1 <= CT[x] and starte",
+              "laws": 35,
+              "pass": 0,
+              "share": 1944,
+              "took": 64,
+              "wallMs": 54,
+              "outcome": "kept"
+            },
+            {
+              "law": "every x with x < size: never 1 <= St[x] and CV[x] ",
+              "laws": 35,
+              "pass": 0,
+              "share": 2019,
+              "took": 148,
+              "wallMs": 127,
+              "outcome": "kept"
+            },
+            {
+              "law": "every x with x < size: never 1 <= St[x] and CfgT[x",
+              "laws": 35,
+              "pass": 0,
+              "share": 2097,
+              "took": 271,
+              "wallMs": 152,
+              "outcome": "kept"
+            },
+            {
+              "law": "every x with x < size: never 1 <= St[x] and starte",
+              "laws": 35,
+              "pass": 0,
+              "share": 2176,
+              "took": 70,
+              "wallMs": 58,
+              "outcome": "kept"
+            },
+            {
+              "law": "every x with x < size: never CV[x] is 0 and 1 <= C",
+              "laws": 35,
+              "pass": 0,
+              "share": 2272,
+              "took": 259,
+              "wallMs": 153,
+              "outcome": "kept"
+            },
+            {
+              "law": "every x with x < size: never CV[x] is 0 and 1 <= s",
+              "laws": 35,
+              "pass": 0,
+              "share": 2368,
+              "took": 180,
+              "wallMs": 95,
+              "outcome": "kept"
+            },
+            {
+              "law": "every x with x < size: never 1 <= CfgT[x] and star",
+              "laws": 35,
+              "pass": 0,
+              "share": 2477,
+              "took": 64,
+              "wallMs": 106,
+              "outcome": "kept"
+            },
+            {
+              "law": "every x, y with x < size ∧ y < size ∧ ¬(x = y): ne",
+              "laws": 35,
+              "pass": 0,
+              "share": 2604,
+              "took": 225,
+              "wallMs": 124,
+              "outcome": "kept"
+            },
+            {
+              "law": "every x, y with x < size ∧ y < size ∧ ¬(x = y): ne",
+              "laws": 35,
+              "pass": 0,
+              "share": 2736,
+              "took": 305,
+              "wallMs": 195,
+              "outcome": "kept"
+            },
+            {
+              "law": "every x, y with x < size ∧ y < size ∧ ¬(x = y): ne",
+              "laws": 35,
+              "pass": 0,
+              "share": 2879,
+              "took": 240,
+              "wallMs": 151,
+              "outcome": "kept"
+            },
+            {
+              "law": "inX: no quorum canVote/1",
+              "laws": 35,
+              "pass": 0,
+              "share": 3044,
+              "took": 98,
+              "wallMs": 57,
+              "outcome": "sat"
+            },
+            {
+              "law": "inX: no quorum canVote/1",
+              "laws": 35,
+              "pass": 1,
+              "share": 3044,
+              "took": 3550,
+              "wallMs": 3167,
+              "outcome": "unknown"
+            },
+            {
+              "law": "inX: no quorum canVote/3",
+              "laws": 35,
+              "pass": 0,
+              "share": 3004,
+              "took": 98,
+              "wallMs": 63,
+              "outcome": "sat"
+            },
+            {
+              "law": "inX: no quorum canVote/3",
+              "laws": 35,
+              "pass": 1,
+              "share": 3004,
+              "took": 3780,
+              "wallMs": 5638,
+              "outcome": "unknown"
+            },
+            {
+              "law": "inX: stored guard reconfigs/inS",
+              "laws": 35,
+              "pass": 0,
+              "share": 2941,
+              "took": 132,
+              "wallMs": 72,
+              "outcome": "sat"
+            },
+            {
+              "law": "inX: stored guard reconfigs/inS",
+              "laws": 35,
+              "pass": 1,
+              "share": 2941,
+              "took": 4158,
+              "wallMs": 4765,
+              "outcome": "unknown"
+            },
+            {
+              "law": "inX: stored guard reconfigs/inS or disabled/0",
+              "laws": 35,
+              "pass": 0,
+              "share": 2838,
+              "took": 141,
+              "wallMs": 101,
+              "outcome": "sat"
+            },
+            {
+              "law": "inX: stored guard reconfigs/inS or disabled/0",
+              "laws": 35,
+              "pass": 1,
+              "share": 2838,
+              "took": 6150,
+              "wallMs": 5504,
+              "outcome": "sat"
+            },
+            {
+              "law": "inX: stored guard reconfigs/inS or disabled/1",
+              "laws": 35,
+              "pass": 0,
+              "share": 2550,
+              "took": 141,
+              "wallMs": 85,
+              "outcome": "sat"
+            },
+            {
+              "law": "inX: stored guard reconfigs/inS or disabled/1",
+              "laws": 35,
+              "pass": 1,
+              "share": 2550,
+              "took": 4879,
+              "wallMs": 6195,
+              "outcome": "unknown"
+            },
+            {
+              "law": "inX: stored guard reconfigs/inS or disabled/2",
+              "laws": 35,
+              "pass": 0,
+              "share": 2325,
+              "took": 141,
+              "wallMs": 98,
+              "outcome": "sat"
+            },
+            {
+              "law": "inX: stored guard reconfigs/inS or disabled/2",
+              "laws": 35,
+              "pass": 1,
+              "share": 2325,
+              "took": 3183,
+              "wallMs": 3345,
+              "outcome": "unknown"
+            }
+          ],
+          "cpuModel": "AMD Ryzen 9 9950X 16-Core Processor",
+          "cpuEvidence": "runs/t14-final-v1/placement.json#share-pair-2",
+          "vm": "bx_2uat3ctg",
+          "vcpus": 8,
+          "exclusive": true,
+          "coTenants": 0
+        }
+      ]
+    },
+    {
+      "name": "share-pair-3",
+      "receipt": {
+        "code": 0,
+        "seconds": 119.46,
+        "backend": "boat"
+      },
+      "complete": true,
+      "lost": false,
+      "wrong": false,
+      "moved": true,
+      "errors": [],
+      "candidateKilled": false,
+      "sides": [
+        {
+          "side": "candidate",
+          "id": "mldr",
+          "mode": "original",
+          "repeat": 3,
+          "code": 0,
+          "seconds": 59.11,
+          "verdict": "unknown",
+          "result": {
+            "id": "mldr",
+            "ic3syn": "mldr",
+            "search": {
+              "verdict": "unknown",
+              "stuck": "unknown",
+              "why": "time (rule result)",
+              "ms": 59001,
+              "work": 25750138,
+              "full": 4705122
+            }
+          },
+          "full": 4705122,
+          "work": 25750138,
+          "attempts": [
+            {
+              "law": "St at most 1",
+              "laws": 35,
+              "pass": 0,
+              "share": 1714,
+              "took": 88,
+              "wallMs": 215,
+              "outcome": "kept"
+            },
+            {
+              "law": "CV at most 2",
+              "laws": 35,
+              "pass": 0,
+              "share": 1762,
+              "took": 1780,
+              "wallMs": 1992,
+              "outcome": "sat"
+            },
+            {
+              "law": "CV at most 2",
+              "laws": 35,
+              "pass": 1,
+              "share": 1762,
+              "took": 452,
+              "wallMs": 471,
+              "outcome": "sat"
+            },
+            {
+              "law": "fields: St[a]=1 -> CT[a]=CfgT[a]",
+              "laws": 35,
+              "pass": 0,
+              "share": 1748,
+              "took": 301,
+              "wallMs": 277,
+              "outcome": "kept"
+            },
+            {
+              "law": "fields: St[a]=1 -> CT[a]<=CfgT[a]",
+              "laws": 35,
+              "pass": 0,
+              "share": 1793,
+              "took": 318,
+              "wallMs": 261,
+              "outcome": "kept"
+            },
+            {
+              "law": "fields: St[a]=1 -> CT[a]=CT[b] -> CfgT[b]<=CfgT[a]",
+              "laws": 35,
+              "pass": 0,
+              "share": 1841,
+              "took": 1841,
+              "wallMs": 2351,
+              "outcome": "sat"
+            },
+            {
+              "law": "fields: St[a]=1 -> CT[a]=CT[b] -> CfgT[b]<=CfgT[a]",
+              "laws": 35,
+              "pass": 1,
+              "share": 1841,
+              "took": 2859,
+              "wallMs": 4230,
+              "outcome": "unknown"
+            },
+            {
+              "law": "fields: St[a]=1 -> CfgT[a]<=CT[a]",
+              "laws": 35,
+              "pass": 0,
+              "share": 1745,
+              "took": 316,
+              "wallMs": 205,
+              "outcome": "kept"
+            },
+            {
+              "law": "fields: St[a]=1 -> CfgT[a]=CfgT[b] -> CV[b]<=CV[a]",
+              "laws": 35,
+              "pass": 0,
+              "share": 1795,
+              "took": 1219,
+              "wallMs": 1674,
+              "outcome": "kept"
+            },
+            {
+              "law": "every x with x < size: never CT[x] is 0 and 1 <= S",
+              "laws": 35,
+              "pass": 0,
+              "share": 1815,
+              "took": 97,
+              "wallMs": 75,
+              "outcome": "kept"
+            },
+            {
+              "law": "every x with x < size: never 1 <= CT[x] and CV[x] ",
+              "laws": 35,
+              "pass": 0,
+              "share": 1879,
+              "took": 198,
+              "wallMs": 155,
+              "outcome": "kept"
+            },
+            {
+              "law": "every x with x < size: never 1 <= CT[x] and starte",
+              "laws": 35,
+              "pass": 0,
+              "share": 1944,
+              "took": 64,
+              "wallMs": 146,
+              "outcome": "kept"
+            },
+            {
+              "law": "every x with x < size: never 1 <= St[x] and CV[x] ",
+              "laws": 35,
+              "pass": 0,
+              "share": 2019,
+              "took": 148,
+              "wallMs": 118,
+              "outcome": "kept"
+            },
+            {
+              "law": "every x with x < size: never 1 <= St[x] and CfgT[x",
+              "laws": 35,
+              "pass": 0,
+              "share": 2097,
+              "took": 271,
+              "wallMs": 270,
+              "outcome": "kept"
+            },
+            {
+              "law": "every x with x < size: never 1 <= St[x] and starte",
+              "laws": 35,
+              "pass": 0,
+              "share": 2176,
+              "took": 70,
+              "wallMs": 96,
+              "outcome": "kept"
+            },
+            {
+              "law": "every x with x < size: never CV[x] is 0 and 1 <= C",
+              "laws": 35,
+              "pass": 0,
+              "share": 2272,
+              "took": 259,
+              "wallMs": 230,
+              "outcome": "kept"
+            },
+            {
+              "law": "every x with x < size: never CV[x] is 0 and 1 <= s",
+              "laws": 35,
+              "pass": 0,
+              "share": 2368,
+              "took": 180,
+              "wallMs": 125,
+              "outcome": "kept"
+            },
+            {
+              "law": "every x with x < size: never 1 <= CfgT[x] and star",
+              "laws": 35,
+              "pass": 0,
+              "share": 2477,
+              "took": 64,
+              "wallMs": 62,
+              "outcome": "kept"
+            },
+            {
+              "law": "every x, y with x < size ∧ y < size ∧ ¬(x = y): ne",
+              "laws": 35,
+              "pass": 0,
+              "share": 2604,
+              "took": 225,
+              "wallMs": 211,
+              "outcome": "kept"
+            },
+            {
+              "law": "every x, y with x < size ∧ y < size ∧ ¬(x = y): ne",
+              "laws": 35,
+              "pass": 0,
+              "share": 2736,
+              "took": 305,
+              "wallMs": 205,
+              "outcome": "kept"
+            },
+            {
+              "law": "every x, y with x < size ∧ y < size ∧ ¬(x = y): ne",
+              "laws": 35,
+              "pass": 0,
+              "share": 2879,
+              "took": 240,
+              "wallMs": 230,
+              "outcome": "kept"
+            },
+            {
+              "law": "inX: no quorum canVote/1",
+              "laws": 35,
+              "pass": 0,
+              "share": 3044,
+              "took": 98,
+              "wallMs": 63,
+              "outcome": "sat"
+            },
+            {
+              "law": "inX: no quorum canVote/1",
+              "laws": 35,
+              "pass": 1,
+              "share": 3044,
+              "took": 3550,
+              "wallMs": 4219,
+              "outcome": "unknown"
+            },
+            {
+              "law": "inX: no quorum canVote/3",
+              "laws": 35,
+              "pass": 0,
+              "share": 3004,
+              "took": 98,
+              "wallMs": 76,
+              "outcome": "sat"
+            },
+            {
+              "law": "inX: no quorum canVote/3",
+              "laws": 35,
+              "pass": 1,
+              "share": 3004,
+              "took": 3780,
+              "wallMs": 8652,
+              "outcome": "unknown"
+            },
+            {
+              "law": "inX: stored guard reconfigs/inS",
+              "laws": 35,
+              "pass": 0,
+              "share": 2941,
+              "took": 0,
+              "wallMs": 4,
+              "outcome": "unknown"
+            },
+            {
+              "law": "inX: stored guard reconfigs/inS",
+              "laws": 35,
+              "pass": 1,
+              "share": 2941,
+              "took": 0,
+              "wallMs": 0,
+              "outcome": "unknown"
+            }
+          ],
+          "cpuModel": "AMD EPYC 4585PX 16-Core Processor",
+          "cpuEvidence": "runs/t14-final-v1/placement.json#share-pair-3",
+          "vm": "bx_2hzfj2ah",
+          "vcpus": 8,
+          "exclusive": true,
+          "coTenants": 0
+        },
+        {
+          "side": "baseline",
+          "id": "mldr",
+          "mode": "original",
+          "repeat": 3,
+          "code": 0,
+          "seconds": 59.15,
+          "verdict": "unknown",
+          "result": {
+            "id": "mldr",
+            "ic3syn": "mldr",
+            "search": {
+              "verdict": "unknown",
+              "stuck": "unknown",
+              "why": "time (rule result)",
+              "ms": 59016,
+              "work": 31666860,
+              "full": 7632470
+            }
+          },
+          "full": 7632470,
+          "work": 31666860,
+          "attempts": [
+            {
+              "law": "St at most 1",
+              "laws": 35,
+              "pass": 0,
+              "share": 1714,
+              "took": 88,
+              "wallMs": 127,
+              "outcome": "kept"
+            },
+            {
+              "law": "CV at most 2",
+              "laws": 35,
+              "pass": 0,
+              "share": 1714,
+              "took": 1727,
+              "wallMs": 1286,
+              "outcome": "sat"
+            },
+            {
+              "law": "CV at most 2",
+              "laws": 35,
+              "pass": 1,
+              "share": 1714,
+              "took": 452,
+              "wallMs": 334,
+              "outcome": "sat"
+            },
+            {
+              "law": "fields: St[a]=1 -> CT[a]=CfgT[a]",
+              "laws": 35,
+              "pass": 0,
+              "share": 1714,
+              "took": 301,
+              "wallMs": 236,
+              "outcome": "kept"
+            },
+            {
+              "law": "fields: St[a]=1 -> CT[a]<=CfgT[a]",
+              "laws": 35,
+              "pass": 0,
+              "share": 1714,
+              "took": 318,
+              "wallMs": 213,
+              "outcome": "kept"
+            },
+            {
+              "law": "fields: St[a]=1 -> CT[a]=CT[b] -> CfgT[b]<=CfgT[a]",
+              "laws": 35,
+              "pass": 0,
+              "share": 1714,
+              "took": 1714,
+              "wallMs": 1913,
+              "outcome": "sat"
+            },
+            {
+              "law": "fields: St[a]=1 -> CT[a]=CT[b] -> CfgT[b]<=CfgT[a]",
+              "laws": 35,
+              "pass": 1,
+              "share": 1714,
+              "took": 2859,
+              "wallMs": 3660,
+              "outcome": "unknown"
+            },
+            {
+              "law": "fields: St[a]=1 -> CfgT[a]<=CT[a]",
+              "laws": 35,
+              "pass": 0,
+              "share": 1714,
+              "took": 316,
+              "wallMs": 190,
+              "outcome": "kept"
+            },
+            {
+              "law": "fields: St[a]=1 -> CfgT[a]=CfgT[b] -> CV[b]<=CV[a]",
+              "laws": 35,
+              "pass": 0,
+              "share": 1714,
+              "took": 1219,
+              "wallMs": 1491,
+              "outcome": "kept"
+            },
+            {
+              "law": "every x with x < size: never CT[x] is 0 and 1 <= S",
+              "laws": 35,
+              "pass": 0,
+              "share": 1714,
+              "took": 97,
+              "wallMs": 60,
+              "outcome": "kept"
+            },
+            {
+              "law": "every x with x < size: never 1 <= CT[x] and CV[x] ",
+              "laws": 35,
+              "pass": 0,
+              "share": 1714,
+              "took": 198,
+              "wallMs": 107,
+              "outcome": "kept"
+            },
+            {
+              "law": "every x with x < size: never 1 <= CT[x] and starte",
+              "laws": 35,
+              "pass": 0,
+              "share": 1714,
+              "took": 64,
+              "wallMs": 83,
+              "outcome": "kept"
+            },
+            {
+              "law": "every x with x < size: never 1 <= St[x] and CV[x] ",
+              "laws": 35,
+              "pass": 0,
+              "share": 1714,
+              "took": 148,
+              "wallMs": 87,
+              "outcome": "kept"
+            },
+            {
+              "law": "every x with x < size: never 1 <= St[x] and CfgT[x",
+              "laws": 35,
+              "pass": 0,
+              "share": 1714,
+              "took": 271,
+              "wallMs": 137,
+              "outcome": "kept"
+            },
+            {
+              "law": "every x with x < size: never 1 <= St[x] and starte",
+              "laws": 35,
+              "pass": 0,
+              "share": 1714,
+              "took": 70,
+              "wallMs": 99,
+              "outcome": "kept"
+            },
+            {
+              "law": "every x with x < size: never CV[x] is 0 and 1 <= C",
+              "laws": 35,
+              "pass": 0,
+              "share": 1714,
+              "took": 259,
+              "wallMs": 132,
+              "outcome": "kept"
+            },
+            {
+              "law": "every x with x < size: never CV[x] is 0 and 1 <= s",
+              "laws": 35,
+              "pass": 0,
+              "share": 1714,
+              "took": 180,
+              "wallMs": 153,
+              "outcome": "kept"
+            },
+            {
+              "law": "every x with x < size: never 1 <= CfgT[x] and star",
+              "laws": 35,
+              "pass": 0,
+              "share": 1714,
+              "took": 64,
+              "wallMs": 73,
+              "outcome": "kept"
+            },
+            {
+              "law": "every x, y with x < size ∧ y < size ∧ ¬(x = y): ne",
+              "laws": 35,
+              "pass": 0,
+              "share": 1714,
+              "took": 225,
+              "wallMs": 219,
+              "outcome": "kept"
+            },
+            {
+              "law": "every x, y with x < size ∧ y < size ∧ ¬(x = y): ne",
+              "laws": 35,
+              "pass": 0,
+              "share": 1714,
+              "took": 305,
+              "wallMs": 211,
+              "outcome": "kept"
+            },
+            {
+              "law": "every x, y with x < size ∧ y < size ∧ ¬(x = y): ne",
+              "laws": 35,
+              "pass": 0,
+              "share": 1714,
+              "took": 240,
+              "wallMs": 181,
+              "outcome": "kept"
+            },
+            {
+              "law": "inX: no quorum canVote/1",
+              "laws": 35,
+              "pass": 0,
+              "share": 1714,
+              "took": 98,
+              "wallMs": 65,
+              "outcome": "sat"
+            },
+            {
+              "law": "inX: no quorum canVote/1",
+              "laws": 35,
+              "pass": 1,
+              "share": 1714,
+              "took": 3550,
+              "wallMs": 3380,
+              "outcome": "unknown"
+            },
+            {
+              "law": "inX: no quorum canVote/3",
+              "laws": 35,
+              "pass": 0,
+              "share": 1714,
+              "took": 98,
+              "wallMs": 59,
+              "outcome": "sat"
+            },
+            {
+              "law": "inX: no quorum canVote/3",
+              "laws": 35,
+              "pass": 1,
+              "share": 1714,
+              "took": 2031,
+              "wallMs": 3718,
+              "outcome": "unknown"
+            },
+            {
+              "law": "inX: stored guard reconfigs/inS",
+              "laws": 35,
+              "pass": 0,
+              "share": 1714,
+              "took": 132,
+              "wallMs": 84,
+              "outcome": "sat"
+            },
+            {
+              "law": "inX: stored guard reconfigs/inS",
+              "laws": 35,
+              "pass": 1,
+              "share": 1714,
+              "took": 4158,
+              "wallMs": 4792,
+              "outcome": "unknown"
+            },
+            {
+              "law": "inX: stored guard reconfigs/inS or disabled/0",
+              "laws": 35,
+              "pass": 0,
+              "share": 1714,
+              "took": 141,
+              "wallMs": 95,
+              "outcome": "sat"
+            },
+            {
+              "law": "inX: stored guard reconfigs/inS or disabled/0",
+              "laws": 35,
+              "pass": 1,
+              "share": 1714,
+              "took": 4578,
+              "wallMs": 4191,
+              "outcome": "sat"
+            },
+            {
+              "law": "inX: stored guard reconfigs/inS or disabled/1",
+              "laws": 35,
+              "pass": 0,
+              "share": 1714,
+              "took": 141,
+              "wallMs": 91,
+              "outcome": "sat"
+            },
+            {
+              "law": "inX: stored guard reconfigs/inS or disabled/1",
+              "laws": 35,
+              "pass": 1,
+              "share": 1714,
+              "took": 4486,
+              "wallMs": 5756,
+              "outcome": "unknown"
+            }
+          ],
+          "cpuModel": "AMD EPYC 4585PX 16-Core Processor",
+          "cpuEvidence": "runs/t14-final-v1/placement.json#share-pair-3",
+          "vm": "bx_2hzfj2ah",
+          "vcpus": 8,
+          "exclusive": true,
+          "coTenants": 0
+        }
+      ]
+    }
+  ],
+  "tests": [
+    {
+      "name": "latest-check",
+      "code": 0,
+      "seconds": 49.04,
+      "backend": "boat",
+      "placement": {
+        "vm": "bx_7m649ges",
+        "type": "large",
+        "cpu": "AMD Ryzen 9 9950X 16-Core Processor",
+        "vcpus": 8,
+        "vm_vcpus": 8,
+        "exclusive": true,
+        "co_tenants": 0
+      }
+    }
+  ],
+  "totals": {
+    "pairs": 6,
+    "incomplete": 0,
+    "missingPairs": 0,
+    "missingTests": 0,
+    "errors": [],
+    "candidateKilled": [],
+    "lost": 0,
+    "wrong": 0,
+    "changed": [
+      "mldr-pair-2",
+      "mldr-pair-3",
+      "mldr-pair-1",
+      "share-pair-1",
+      "share-pair-2",
+      "share-pair-3"
+    ],
+    "failedTests": []
+  }
+}

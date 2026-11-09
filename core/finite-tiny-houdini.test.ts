@@ -34,6 +34,17 @@ test('tiny Houdini preserves survivors on its own timeout and propagates an oute
   expect(timedOut).toBe(true)
   expect(() => withWall(performance.now() - 1, () => finiteTinyHoudini(counter(), counter(), [], [zero], [{}]))).toThrow(WallExpired)
 })
+test('an explicit round cap retains untested later-round helpers', () => {
+  const source = counter(), one: Law = {name: 'at most one', holds: atMost(x('value'), n(1))}
+  expect(finiteTinyHoudini(source, source, [], [zero, one], [{}], {rounds: 1})).toEqual([one])
+  expect(finiteTinyHoudini(source, source, [], [zero, one], [{}], {rounds: 2})).toEqual([])
+})
+test('an explicit richer state domain can expose a new real violation', () => {
+  const source = counter(), bound: Law = {name: 'at most two', holds: atMost(x('value'), n(2))}
+  expect(finiteTinyHoudini(source, source, [], [bound], [{}])).toEqual([bound])
+  expect(finiteTinyHoudini(source, source, [], [bound], [{}], {valueDomain: [0, 1, 2]})).toEqual([])
+  expect(finiteTinyHoudini(source, source, [], [bound], [{}], {valueDomain: [NaN]})).toEqual([bound])
+})
 test('an unsupported count grid retains every candidate', () => {
   const source = {...counter(), counts: undefined}
   expect(finiteTinyHoudini(source, source, [], [zero], [{}])).toEqual([zero])

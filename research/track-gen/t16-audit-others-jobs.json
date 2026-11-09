@@ -1,0 +1,590 @@
+[
+  {
+    "name": "safe-consensus-1",
+    "cmd": "GDP_COUNTS_TRACE=1 GDP_COUNTS_PROF=1 bash research/track-gen/t16-audit-pair.sh original consensus 1",
+    "cpu": 4,
+    "memory": 14336,
+    "timeout": 180
+  },
+  {
+    "name": "safe-consensus-2",
+    "cmd": "GDP_COUNTS_TRACE=1 GDP_COUNTS_PROF=1 bash research/track-gen/t16-audit-pair.sh original consensus 2",
+    "cpu": 4,
+    "memory": 14336,
+    "timeout": 180
+  },
+  {
+    "name": "safe-consensus-3",
+    "cmd": "GDP_COUNTS_TRACE=1 GDP_COUNTS_PROF=1 bash research/track-gen/t16-audit-pair.sh original consensus 3",
+    "cpu": 4,
+    "memory": 14336,
+    "timeout": 180
+  },
+  {
+    "name": "safe-tcommit-1",
+    "cmd": "GDP_COUNTS_TRACE=1 GDP_COUNTS_PROF=1 bash research/track-gen/t16-audit-pair.sh original tcommit 1",
+    "cpu": 4,
+    "memory": 14336,
+    "timeout": 180
+  },
+  {
+    "name": "safe-tcommit-2",
+    "cmd": "GDP_COUNTS_TRACE=1 GDP_COUNTS_PROF=1 bash research/track-gen/t16-audit-pair.sh original tcommit 2",
+    "cpu": 4,
+    "memory": 14336,
+    "timeout": 180
+  },
+  {
+    "name": "safe-tcommit-3",
+    "cmd": "GDP_COUNTS_TRACE=1 GDP_COUNTS_PROF=1 bash research/track-gen/t16-audit-pair.sh original tcommit 3",
+    "cpu": 4,
+    "memory": 14336,
+    "timeout": 180
+  },
+  {
+    "name": "safe-lock_server-1",
+    "cmd": "GDP_COUNTS_TRACE=1 GDP_COUNTS_PROF=1 bash research/track-gen/t16-audit-pair.sh original lock_server 1",
+    "cpu": 4,
+    "memory": 14336,
+    "timeout": 180
+  },
+  {
+    "name": "safe-lock_server-2",
+    "cmd": "GDP_COUNTS_TRACE=1 GDP_COUNTS_PROF=1 bash research/track-gen/t16-audit-pair.sh original lock_server 2",
+    "cpu": 4,
+    "memory": 14336,
+    "timeout": 180
+  },
+  {
+    "name": "safe-lock_server-3",
+    "cmd": "GDP_COUNTS_TRACE=1 GDP_COUNTS_PROF=1 bash research/track-gen/t16-audit-pair.sh original lock_server 3",
+    "cpu": 4,
+    "memory": 14336,
+    "timeout": 180
+  },
+  {
+    "name": "safe-quorum_leader_election-1",
+    "cmd": "GDP_COUNTS_TRACE=1 GDP_COUNTS_PROF=1 bash research/track-gen/t16-audit-pair.sh original quorum_leader_election 1",
+    "cpu": 4,
+    "memory": 14336,
+    "timeout": 180
+  },
+  {
+    "name": "safe-quorum_leader_election-2",
+    "cmd": "GDP_COUNTS_TRACE=1 GDP_COUNTS_PROF=1 bash research/track-gen/t16-audit-pair.sh original quorum_leader_election 2",
+    "cpu": 4,
+    "memory": 14336,
+    "timeout": 180
+  },
+  {
+    "name": "safe-quorum_leader_election-3",
+    "cmd": "GDP_COUNTS_TRACE=1 GDP_COUNTS_PROF=1 bash research/track-gen/t16-audit-pair.sh original quorum_leader_election 3",
+    "cpu": 4,
+    "memory": 14336,
+    "timeout": 180
+  },
+  {
+    "name": "safe-toy_consensus_forall-1",
+    "cmd": "GDP_COUNTS_TRACE=1 GDP_COUNTS_PROF=1 bash research/track-gen/t16-audit-pair.sh original toy_consensus_forall 1",
+    "cpu": 4,
+    "memory": 14336,
+    "timeout": 180
+  },
+  {
+    "name": "safe-toy_consensus_forall-2",
+    "cmd": "GDP_COUNTS_TRACE=1 GDP_COUNTS_PROF=1 bash research/track-gen/t16-audit-pair.sh original toy_consensus_forall 2",
+    "cpu": 4,
+    "memory": 14336,
+    "timeout": 180
+  },
+  {
+    "name": "safe-toy_consensus_forall-3",
+    "cmd": "GDP_COUNTS_TRACE=1 GDP_COUNTS_PROF=1 bash research/track-gen/t16-audit-pair.sh original toy_consensus_forall 3",
+    "cpu": 4,
+    "memory": 14336,
+    "timeout": 180
+  },
+  {
+    "name": "safe-simple-1",
+    "cmd": "GDP_COUNTS_TRACE=1 GDP_COUNTS_PROF=1 bash research/track-gen/t16-audit-pair.sh original simple 1",
+    "cpu": 4,
+    "memory": 14336,
+    "timeout": 180
+  },
+  {
+    "name": "safe-simple-2",
+    "cmd": "GDP_COUNTS_TRACE=1 GDP_COUNTS_PROF=1 bash research/track-gen/t16-audit-pair.sh original simple 2",
+    "cpu": 4,
+    "memory": 14336,
+    "timeout": 180
+  },
+  {
+    "name": "safe-simple-3",
+    "cmd": "GDP_COUNTS_TRACE=1 GDP_COUNTS_PROF=1 bash research/track-gen/t16-audit-pair.sh original simple 3",
+    "cpu": 4,
+    "memory": 14336,
+    "timeout": 180
+  },
+  {
+    "name": "safe-simple_regular-1",
+    "cmd": "GDP_COUNTS_TRACE=1 GDP_COUNTS_PROF=1 bash research/track-gen/t16-audit-pair.sh original simple_regular 1",
+    "cpu": 4,
+    "memory": 14336,
+    "timeout": 180
+  },
+  {
+    "name": "safe-simple_regular-2",
+    "cmd": "GDP_COUNTS_TRACE=1 GDP_COUNTS_PROF=1 bash research/track-gen/t16-audit-pair.sh original simple_regular 2",
+    "cpu": 4,
+    "memory": 14336,
+    "timeout": 180
+  },
+  {
+    "name": "safe-simple_regular-3",
+    "cmd": "GDP_COUNTS_TRACE=1 GDP_COUNTS_PROF=1 bash research/track-gen/t16-audit-pair.sh original simple_regular 3",
+    "cpu": 4,
+    "memory": 14336,
+    "timeout": 180
+  },
+  {
+    "name": "safe-lockserv_automaton-1",
+    "cmd": "GDP_COUNTS_TRACE=1 GDP_COUNTS_PROF=1 bash research/track-gen/t16-audit-pair.sh original lockserv_automaton 1",
+    "cpu": 4,
+    "memory": 14336,
+    "timeout": 180
+  },
+  {
+    "name": "safe-lockserv_automaton-2",
+    "cmd": "GDP_COUNTS_TRACE=1 GDP_COUNTS_PROF=1 bash research/track-gen/t16-audit-pair.sh original lockserv_automaton 2",
+    "cpu": 4,
+    "memory": 14336,
+    "timeout": 180
+  },
+  {
+    "name": "safe-lockserv_automaton-3",
+    "cmd": "GDP_COUNTS_TRACE=1 GDP_COUNTS_PROF=1 bash research/track-gen/t16-audit-pair.sh original lockserv_automaton 3",
+    "cpu": 4,
+    "memory": 14336,
+    "timeout": 180
+  },
+  {
+    "name": "safe-sharded_kv-1",
+    "cmd": "GDP_COUNTS_TRACE=1 GDP_COUNTS_PROF=1 bash research/track-gen/t16-audit-pair.sh original sharded_kv 1",
+    "cpu": 4,
+    "memory": 14336,
+    "timeout": 180
+  },
+  {
+    "name": "safe-sharded_kv-2",
+    "cmd": "GDP_COUNTS_TRACE=1 GDP_COUNTS_PROF=1 bash research/track-gen/t16-audit-pair.sh original sharded_kv 2",
+    "cpu": 4,
+    "memory": 14336,
+    "timeout": 180
+  },
+  {
+    "name": "safe-sharded_kv-3",
+    "cmd": "GDP_COUNTS_TRACE=1 GDP_COUNTS_PROF=1 bash research/track-gen/t16-audit-pair.sh original sharded_kv 3",
+    "cpu": 4,
+    "memory": 14336,
+    "timeout": 180
+  },
+  {
+    "name": "safe-sharded_kv_no_lost_keys-1",
+    "cmd": "GDP_COUNTS_TRACE=1 GDP_COUNTS_PROF=1 bash research/track-gen/t16-audit-pair.sh original sharded_kv_no_lost_keys 1",
+    "cpu": 4,
+    "memory": 14336,
+    "timeout": 180
+  },
+  {
+    "name": "safe-sharded_kv_no_lost_keys-2",
+    "cmd": "GDP_COUNTS_TRACE=1 GDP_COUNTS_PROF=1 bash research/track-gen/t16-audit-pair.sh original sharded_kv_no_lost_keys 2",
+    "cpu": 4,
+    "memory": 14336,
+    "timeout": 180
+  },
+  {
+    "name": "safe-sharded_kv_no_lost_keys-3",
+    "cmd": "GDP_COUNTS_TRACE=1 GDP_COUNTS_PROF=1 bash research/track-gen/t16-audit-pair.sh original sharded_kv_no_lost_keys 3",
+    "cpu": 4,
+    "memory": 14336,
+    "timeout": 180
+  },
+  {
+    "name": "safe-lockserv-1",
+    "cmd": "GDP_COUNTS_TRACE=1 GDP_COUNTS_PROF=1 bash research/track-gen/t16-audit-pair.sh original lockserv 1",
+    "cpu": 4,
+    "memory": 14336,
+    "timeout": 180
+  },
+  {
+    "name": "safe-lockserv-2",
+    "cmd": "GDP_COUNTS_TRACE=1 GDP_COUNTS_PROF=1 bash research/track-gen/t16-audit-pair.sh original lockserv 2",
+    "cpu": 4,
+    "memory": 14336,
+    "timeout": 180
+  },
+  {
+    "name": "safe-lockserv-3",
+    "cmd": "GDP_COUNTS_TRACE=1 GDP_COUNTS_PROF=1 bash research/track-gen/t16-audit-pair.sh original lockserv 3",
+    "cpu": 4,
+    "memory": 14336,
+    "timeout": 180
+  },
+  {
+    "name": "safe-twophase-1",
+    "cmd": "GDP_COUNTS_TRACE=1 GDP_COUNTS_PROF=1 bash research/track-gen/t16-audit-pair.sh original twophase 1",
+    "cpu": 4,
+    "memory": 14336,
+    "timeout": 180
+  },
+  {
+    "name": "safe-twophase-2",
+    "cmd": "GDP_COUNTS_TRACE=1 GDP_COUNTS_PROF=1 bash research/track-gen/t16-audit-pair.sh original twophase 2",
+    "cpu": 4,
+    "memory": 14336,
+    "timeout": 180
+  },
+  {
+    "name": "safe-twophase-3",
+    "cmd": "GDP_COUNTS_TRACE=1 GDP_COUNTS_PROF=1 bash research/track-gen/t16-audit-pair.sh original twophase 3",
+    "cpu": 4,
+    "memory": 14336,
+    "timeout": 180
+  },
+  {
+    "name": "safe-simple_decentralized_lock-1",
+    "cmd": "GDP_COUNTS_TRACE=1 GDP_COUNTS_PROF=1 bash research/track-gen/t16-audit-pair.sh original simple_decentralized_lock 1",
+    "cpu": 4,
+    "memory": 14336,
+    "timeout": 180
+  },
+  {
+    "name": "safe-simple_decentralized_lock-2",
+    "cmd": "GDP_COUNTS_TRACE=1 GDP_COUNTS_PROF=1 bash research/track-gen/t16-audit-pair.sh original simple_decentralized_lock 2",
+    "cpu": 4,
+    "memory": 14336,
+    "timeout": 180
+  },
+  {
+    "name": "safe-simple_decentralized_lock-3",
+    "cmd": "GDP_COUNTS_TRACE=1 GDP_COUNTS_PROF=1 bash research/track-gen/t16-audit-pair.sh original simple_decentralized_lock 3",
+    "cpu": 4,
+    "memory": 14336,
+    "timeout": 180
+  },
+  {
+    "name": "safe-two_phase_commit-1",
+    "cmd": "GDP_COUNTS_TRACE=1 GDP_COUNTS_PROF=1 bash research/track-gen/t16-audit-pair.sh original two_phase_commit 1",
+    "cpu": 4,
+    "memory": 14336,
+    "timeout": 180
+  },
+  {
+    "name": "safe-two_phase_commit-2",
+    "cmd": "GDP_COUNTS_TRACE=1 GDP_COUNTS_PROF=1 bash research/track-gen/t16-audit-pair.sh original two_phase_commit 2",
+    "cpu": 4,
+    "memory": 14336,
+    "timeout": 180
+  },
+  {
+    "name": "safe-two_phase_commit-3",
+    "cmd": "GDP_COUNTS_TRACE=1 GDP_COUNTS_PROF=1 bash research/track-gen/t16-audit-pair.sh original two_phase_commit 3",
+    "cpu": 4,
+    "memory": 14336,
+    "timeout": 180
+  },
+  {
+    "name": "safe-consensus_wo_decide-1",
+    "cmd": "GDP_COUNTS_TRACE=1 GDP_COUNTS_PROF=1 bash research/track-gen/t16-audit-pair.sh original consensus_wo_decide 1",
+    "cpu": 4,
+    "memory": 14336,
+    "timeout": 180
+  },
+  {
+    "name": "safe-consensus_wo_decide-2",
+    "cmd": "GDP_COUNTS_TRACE=1 GDP_COUNTS_PROF=1 bash research/track-gen/t16-audit-pair.sh original consensus_wo_decide 2",
+    "cpu": 4,
+    "memory": 14336,
+    "timeout": 180
+  },
+  {
+    "name": "safe-consensus_wo_decide-3",
+    "cmd": "GDP_COUNTS_TRACE=1 GDP_COUNTS_PROF=1 bash research/track-gen/t16-audit-pair.sh original consensus_wo_decide 3",
+    "cpu": 4,
+    "memory": 14336,
+    "timeout": 180
+  },
+  {
+    "name": "safe-consensus_forall-1",
+    "cmd": "GDP_COUNTS_TRACE=1 GDP_COUNTS_PROF=1 bash research/track-gen/t16-audit-pair.sh original consensus_forall 1",
+    "cpu": 4,
+    "memory": 14336,
+    "timeout": 180
+  },
+  {
+    "name": "safe-consensus_forall-2",
+    "cmd": "GDP_COUNTS_TRACE=1 GDP_COUNTS_PROF=1 bash research/track-gen/t16-audit-pair.sh original consensus_forall 2",
+    "cpu": 4,
+    "memory": 14336,
+    "timeout": 180
+  },
+  {
+    "name": "safe-consensus_forall-3",
+    "cmd": "GDP_COUNTS_TRACE=1 GDP_COUNTS_PROF=1 bash research/track-gen/t16-audit-pair.sh original consensus_forall 3",
+    "cpu": 4,
+    "memory": 14336,
+    "timeout": 180
+  },
+  {
+    "name": "safe-naive_consensus-1",
+    "cmd": "GDP_COUNTS_TRACE=1 GDP_COUNTS_PROF=1 bash research/track-gen/t16-audit-pair.sh original naive_consensus 1",
+    "cpu": 4,
+    "memory": 14336,
+    "timeout": 180
+  },
+  {
+    "name": "safe-naive_consensus-2",
+    "cmd": "GDP_COUNTS_TRACE=1 GDP_COUNTS_PROF=1 bash research/track-gen/t16-audit-pair.sh original naive_consensus 2",
+    "cpu": 4,
+    "memory": 14336,
+    "timeout": 180
+  },
+  {
+    "name": "safe-naive_consensus-3",
+    "cmd": "GDP_COUNTS_TRACE=1 GDP_COUNTS_PROF=1 bash research/track-gen/t16-audit-pair.sh original naive_consensus 3",
+    "cpu": 4,
+    "memory": 14336,
+    "timeout": 180
+  },
+  {
+    "name": "safe-client_server_ae-1",
+    "cmd": "GDP_COUNTS_TRACE=1 GDP_COUNTS_PROF=1 bash research/track-gen/t16-audit-pair.sh original client_server_ae 1",
+    "cpu": 4,
+    "memory": 14336,
+    "timeout": 180
+  },
+  {
+    "name": "safe-client_server_ae-2",
+    "cmd": "GDP_COUNTS_TRACE=1 GDP_COUNTS_PROF=1 bash research/track-gen/t16-audit-pair.sh original client_server_ae 2",
+    "cpu": 4,
+    "memory": 14336,
+    "timeout": 180
+  },
+  {
+    "name": "safe-client_server_ae-3",
+    "cmd": "GDP_COUNTS_TRACE=1 GDP_COUNTS_PROF=1 bash research/track-gen/t16-audit-pair.sh original client_server_ae 3",
+    "cpu": 4,
+    "memory": 14336,
+    "timeout": 180
+  },
+  {
+    "name": "safe-client_server_db_ae-1",
+    "cmd": "GDP_COUNTS_TRACE=1 GDP_COUNTS_PROF=1 bash research/track-gen/t16-audit-pair.sh original client_server_db_ae 1",
+    "cpu": 4,
+    "memory": 14336,
+    "timeout": 180
+  },
+  {
+    "name": "safe-client_server_db_ae-2",
+    "cmd": "GDP_COUNTS_TRACE=1 GDP_COUNTS_PROF=1 bash research/track-gen/t16-audit-pair.sh original client_server_db_ae 2",
+    "cpu": 4,
+    "memory": 14336,
+    "timeout": 180
+  },
+  {
+    "name": "safe-client_server_db_ae-3",
+    "cmd": "GDP_COUNTS_TRACE=1 GDP_COUNTS_PROF=1 bash research/track-gen/t16-audit-pair.sh original client_server_db_ae 3",
+    "cpu": 4,
+    "memory": 14336,
+    "timeout": 180
+  },
+  {
+    "name": "safe-simple_election-1",
+    "cmd": "GDP_COUNTS_TRACE=1 GDP_COUNTS_PROF=1 bash research/track-gen/t16-audit-pair.sh original simple_election 1",
+    "cpu": 4,
+    "memory": 14336,
+    "timeout": 180
+  },
+  {
+    "name": "safe-simple_election-2",
+    "cmd": "GDP_COUNTS_TRACE=1 GDP_COUNTS_PROF=1 bash research/track-gen/t16-audit-pair.sh original simple_election 2",
+    "cpu": 4,
+    "memory": 14336,
+    "timeout": 180
+  },
+  {
+    "name": "safe-simple_election-3",
+    "cmd": "GDP_COUNTS_TRACE=1 GDP_COUNTS_PROF=1 bash research/track-gen/t16-audit-pair.sh original simple_election 3",
+    "cpu": 4,
+    "memory": 14336,
+    "timeout": 180
+  },
+  {
+    "name": "safe-toy_consensus_epr-1",
+    "cmd": "GDP_COUNTS_TRACE=1 GDP_COUNTS_PROF=1 bash research/track-gen/t16-audit-pair.sh original toy_consensus_epr 1",
+    "cpu": 4,
+    "memory": 14336,
+    "timeout": 180
+  },
+  {
+    "name": "safe-toy_consensus_epr-2",
+    "cmd": "GDP_COUNTS_TRACE=1 GDP_COUNTS_PROF=1 bash research/track-gen/t16-audit-pair.sh original toy_consensus_epr 2",
+    "cpu": 4,
+    "memory": 14336,
+    "timeout": 180
+  },
+  {
+    "name": "safe-toy_consensus_epr-3",
+    "cmd": "GDP_COUNTS_TRACE=1 GDP_COUNTS_PROF=1 bash research/track-gen/t16-audit-pair.sh original toy_consensus_epr 3",
+    "cpu": 4,
+    "memory": 14336,
+    "timeout": 180
+  },
+  {
+    "name": "safe-toy_consensus-1",
+    "cmd": "GDP_COUNTS_TRACE=1 GDP_COUNTS_PROF=1 bash research/track-gen/t16-audit-pair.sh original toy_consensus 1",
+    "cpu": 4,
+    "memory": 14336,
+    "timeout": 180
+  },
+  {
+    "name": "safe-toy_consensus-2",
+    "cmd": "GDP_COUNTS_TRACE=1 GDP_COUNTS_PROF=1 bash research/track-gen/t16-audit-pair.sh original toy_consensus 2",
+    "cpu": 4,
+    "memory": 14336,
+    "timeout": 180
+  },
+  {
+    "name": "safe-toy_consensus-3",
+    "cmd": "GDP_COUNTS_TRACE=1 GDP_COUNTS_PROF=1 bash research/track-gen/t16-audit-pair.sh original toy_consensus 3",
+    "cpu": 4,
+    "memory": 14336,
+    "timeout": 180
+  },
+  {
+    "name": "safe-firewall-1",
+    "cmd": "GDP_COUNTS_TRACE=1 GDP_COUNTS_PROF=1 bash research/track-gen/t16-audit-pair.sh original firewall 1",
+    "cpu": 4,
+    "memory": 14336,
+    "timeout": 180
+  },
+  {
+    "name": "safe-firewall-2",
+    "cmd": "GDP_COUNTS_TRACE=1 GDP_COUNTS_PROF=1 bash research/track-gen/t16-audit-pair.sh original firewall 2",
+    "cpu": 4,
+    "memory": 14336,
+    "timeout": 180
+  },
+  {
+    "name": "safe-firewall-3",
+    "cmd": "GDP_COUNTS_TRACE=1 GDP_COUNTS_PROF=1 bash research/track-gen/t16-audit-pair.sh original firewall 3",
+    "cpu": 4,
+    "memory": 14336,
+    "timeout": 180
+  },
+  {
+    "name": "safe-majorityset_leader_election-1",
+    "cmd": "GDP_COUNTS_TRACE=1 GDP_COUNTS_PROF=1 bash research/track-gen/t16-audit-pair.sh original majorityset_leader_election 1",
+    "cpu": 4,
+    "memory": 14336,
+    "timeout": 180
+  },
+  {
+    "name": "safe-majorityset_leader_election-2",
+    "cmd": "GDP_COUNTS_TRACE=1 GDP_COUNTS_PROF=1 bash research/track-gen/t16-audit-pair.sh original majorityset_leader_election 2",
+    "cpu": 4,
+    "memory": 14336,
+    "timeout": 180
+  },
+  {
+    "name": "safe-majorityset_leader_election-3",
+    "cmd": "GDP_COUNTS_TRACE=1 GDP_COUNTS_PROF=1 bash research/track-gen/t16-audit-pair.sh original majorityset_leader_election 3",
+    "cpu": 4,
+    "memory": 14336,
+    "timeout": 180
+  },
+  {
+    "name": "safe-consensus_epr-1",
+    "cmd": "GDP_COUNTS_TRACE=1 GDP_COUNTS_PROF=1 bash research/track-gen/t16-audit-pair.sh original consensus_epr 1",
+    "cpu": 4,
+    "memory": 14336,
+    "timeout": 180
+  },
+  {
+    "name": "safe-consensus_epr-2",
+    "cmd": "GDP_COUNTS_TRACE=1 GDP_COUNTS_PROF=1 bash research/track-gen/t16-audit-pair.sh original consensus_epr 2",
+    "cpu": 4,
+    "memory": 14336,
+    "timeout": 180
+  },
+  {
+    "name": "safe-consensus_epr-3",
+    "cmd": "GDP_COUNTS_TRACE=1 GDP_COUNTS_PROF=1 bash research/track-gen/t16-audit-pair.sh original consensus_epr 3",
+    "cpu": 4,
+    "memory": 14336,
+    "timeout": 180
+  },
+  {
+    "name": "safe-paxos_epr-1",
+    "cmd": "GDP_COUNTS_TRACE=1 GDP_COUNTS_PROF=1 bash research/track-gen/t16-audit-pair.sh original paxos_epr 1",
+    "cpu": 4,
+    "memory": 14336,
+    "timeout": 180
+  },
+  {
+    "name": "safe-paxos_epr-2",
+    "cmd": "GDP_COUNTS_TRACE=1 GDP_COUNTS_PROF=1 bash research/track-gen/t16-audit-pair.sh original paxos_epr 2",
+    "cpu": 4,
+    "memory": 14336,
+    "timeout": 180
+  },
+  {
+    "name": "safe-paxos_epr-3",
+    "cmd": "GDP_COUNTS_TRACE=1 GDP_COUNTS_PROF=1 bash research/track-gen/t16-audit-pair.sh original paxos_epr 3",
+    "cpu": 4,
+    "memory": 14336,
+    "timeout": 180
+  },
+  {
+    "name": "safe-learning_switch-1",
+    "cmd": "GDP_COUNTS_TRACE=1 GDP_COUNTS_PROF=1 bash research/track-gen/t16-audit-pair.sh original learning_switch 1",
+    "cpu": 4,
+    "memory": 14336,
+    "timeout": 180
+  },
+  {
+    "name": "safe-learning_switch-2",
+    "cmd": "GDP_COUNTS_TRACE=1 GDP_COUNTS_PROF=1 bash research/track-gen/t16-audit-pair.sh original learning_switch 2",
+    "cpu": 4,
+    "memory": 14336,
+    "timeout": 180
+  },
+  {
+    "name": "safe-learning_switch-3",
+    "cmd": "GDP_COUNTS_TRACE=1 GDP_COUNTS_PROF=1 bash research/track-gen/t16-audit-pair.sh original learning_switch 3",
+    "cpu": 4,
+    "memory": 14336,
+    "timeout": 180
+  },
+  {
+    "name": "safe-learning_switch_i4-1",
+    "cmd": "GDP_COUNTS_TRACE=1 GDP_COUNTS_PROF=1 bash research/track-gen/t16-audit-pair.sh original learning_switch_i4 1",
+    "cpu": 4,
+    "memory": 14336,
+    "timeout": 180
+  },
+  {
+    "name": "safe-learning_switch_i4-2",
+    "cmd": "GDP_COUNTS_TRACE=1 GDP_COUNTS_PROF=1 bash research/track-gen/t16-audit-pair.sh original learning_switch_i4 2",
+    "cpu": 4,
+    "memory": 14336,
+    "timeout": 180
+  },
+  {
+    "name": "safe-learning_switch_i4-3",
+    "cmd": "GDP_COUNTS_TRACE=1 GDP_COUNTS_PROF=1 bash research/track-gen/t16-audit-pair.sh original learning_switch_i4 3",
+    "cpu": 4,
+    "memory": 14336,
+    "timeout": 180
+  }
+]

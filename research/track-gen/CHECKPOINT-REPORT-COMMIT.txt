@@ -1,0 +1,4 @@
+docs: record paused lane a resume checkpoint
+
+Record the work commit, cancelled task and batch, preserved receipts,
+open audit findings and exact next steps. Resume only on user request.

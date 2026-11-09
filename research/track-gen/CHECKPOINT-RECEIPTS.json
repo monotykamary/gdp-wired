@@ -1,0 +1,1035 @@
+{
+  "note": "Existing compact Lane A receipts committed at checkpoint. Larger raw logs, captures, archives and unrelated tracks remain local under runs; this catalog does not validate or admit their claims.",
+  "selected": [
+    {
+      "path": "runs/t13-original-summary.json",
+      "bytes": 17731
+    },
+    {
+      "path": "runs/t14-generation-summary.json",
+      "bytes": 63086
+    },
+    {
+      "path": "runs/t16-audit-paired-summary.json",
+      "bytes": 7399
+    },
+    {
+      "path": "runs/t13-wall-summary-v2.json",
+      "bytes": 33823
+    },
+    {
+      "path": "runs/t14-capture-summary.json",
+      "bytes": 53944
+    },
+    {
+      "path": "runs/t13-wall-summary.json",
+      "bytes": 30742
+    },
+    {
+      "path": "runs/t16-audit-generation-summary.json",
+      "bytes": 50208
+    },
+    {
+      "path": "runs/t13-generation-summary.json",
+      "bytes": 71923
+    },
+    {
+      "path": "runs/t16-filter-summary.json",
+      "bytes": 3818
+    },
+    {
+      "path": "runs/t14-final-summary.json",
+      "bytes": 115688
+    },
+    {
+      "path": "runs/t13-original-v1/backends.json",
+      "bytes": 770
+    },
+    {
+      "path": "runs/t13-original-v1/placement.json",
+      "bytes": 560
+    },
+    {
+      "path": "runs/t13-original-v1/summary.tsv",
+      "bytes": 84
+    },
+    {
+      "path": "runs/t13-wall-final/backends.json",
+      "bytes": 772
+    },
+    {
+      "path": "runs/t13-wall-final/placement.json",
+      "bytes": 1294
+    },
+    {
+      "path": "runs/t13-wall-final/summary.tsv",
+      "bytes": 201
+    },
+    {
+      "path": "runs/t16-audit-isolated/backends.json",
+      "bytes": 766
+    },
+    {
+      "path": "runs/t16-audit-isolated/placement.json",
+      "bytes": 187
+    },
+    {
+      "path": "runs/t16-audit-isolated/summary.tsv",
+      "bytes": 28
+    },
+    {
+      "path": "runs/t16-audit-fix-v1/backends.json",
+      "bytes": 766
+    },
+    {
+      "path": "runs/t16-audit-fix-v1/placement.json",
+      "bytes": 186
+    },
+    {
+      "path": "runs/t16-audit-fix-v1/summary.tsv",
+      "bytes": 28
+    },
+    {
+      "path": "runs/t16-domain/survivors-ternary-3.log",
+      "bytes": 1889
+    },
+    {
+      "path": "runs/t16-domain/original-ternary-3.log",
+      "bytes": 3085
+    },
+    {
+      "path": "runs/t16-domain/original-ternary-2.log",
+      "bytes": 3105
+    },
+    {
+      "path": "runs/t16-domain/survivors-ternary-2.log",
+      "bytes": 1879
+    },
+    {
+      "path": "runs/t16-domain/original-ternary-1.log",
+      "bytes": 3103
+    },
+    {
+      "path": "runs/t16-domain/survivors-ternary-1.log",
+      "bytes": 1878
+    },
+    {
+      "path": "runs/t16-domain/backends.json",
+      "bytes": 772
+    },
+    {
+      "path": "runs/t16-domain/placement.json",
+      "bytes": 1135
+    },
+    {
+      "path": "runs/t16-domain/summary.tsv",
+      "bytes": 187
+    },
+    {
+      "path": "runs/t14-share-check/backends.json",
+      "bytes": 764
+    },
+    {
+      "path": "runs/t14-share-check/placement.json",
+      "bytes": 184
+    },
+    {
+      "path": "runs/t14-share-check/summary.tsv",
+      "bytes": 24
+    },
+    {
+      "path": "runs/t13-paired-v1/backends.json",
+      "bytes": 770
+    },
+    {
+      "path": "runs/t13-paired-v1/placement.json",
+      "bytes": 564
+    },
+    {
+      "path": "runs/t13-paired-v1/summary.tsv",
+      "bytes": 89
+    },
+    {
+      "path": "runs/t16-tiny-worker-inspect/backends.json",
+      "bytes": 770
+    },
+    {
+      "path": "runs/t16-tiny-worker-inspect/placement.json",
+      "bytes": 180
+    },
+    {
+      "path": "runs/t16-tiny-worker-inspect/summary.tsv",
+      "bytes": 20
+    },
+    {
+      "path": "runs/t14-replay-v1/backends.json",
+      "bytes": 775
+    },
+    {
+      "path": "runs/t14-replay-v1/placement.json",
+      "bytes": 1978
+    },
+    {
+      "path": "runs/t14-replay-v1/summary.tsv",
+      "bytes": 242
+    },
+    {
+      "path": "runs/t13-final-check/backends.json",
+      "bytes": 764
+    },
+    {
+      "path": "runs/t13-final-check/placement.json",
+      "bytes": 193
+    },
+    {
+      "path": "runs/t13-final-check/summary.tsv",
+      "bytes": 34
+    },
+    {
+      "path": "runs/t13-wall-tooling-check/backends.json",
+      "bytes": 766
+    },
+    {
+      "path": "runs/t13-wall-tooling-check/placement.json",
+      "bytes": 193
+    },
+    {
+      "path": "runs/t13-wall-tooling-check/summary.tsv",
+      "bytes": 34
+    },
+    {
+      "path": "runs/t16-tiny-worker-v2/backends.json",
+      "bytes": 772
+    },
+    {
+      "path": "runs/t16-tiny-worker-v2/placement.json",
+      "bytes": 534
+    },
+    {
+      "path": "runs/t16-tiny-worker-v2/summary.tsv",
+      "bytes": 61
+    },
+    {
+      "path": "runs/t16-tiny-worker-v5/backends.json",
+      "bytes": 770
+    },
+    {
+      "path": "runs/t16-tiny-worker-v5/placement.json",
+      "bytes": 188
+    },
+    {
+      "path": "runs/t16-tiny-worker-v5/summary.tsv",
+      "bytes": 30
+    },
+    {
+      "path": "runs/t16-domain-chunk-check-v2/backends.json",
+      "bytes": 764
+    },
+    {
+      "path": "runs/t16-domain-chunk-check-v2/placement.json",
+      "bytes": 185
+    },
+    {
+      "path": "runs/t16-domain-chunk-check-v2/domain-check.log",
+      "bytes": 3885
+    },
+    {
+      "path": "runs/t16-domain-chunk-check-v2/summary.tsv",
+      "bytes": 26
+    },
+    {
+      "path": "runs/t16-audit-paired/backends.json",
+      "bytes": 766
+    },
+    {
+      "path": "runs/t16-audit-paired/placement.json",
+      "bytes": 1090
+    },
+    {
+      "path": "runs/t16-audit-paired/summary.tsv",
+      "bytes": 164
+    },
+    {
+      "path": "runs/t16-audit-quick/backends.json",
+      "bytes": 773
+    },
+    {
+      "path": "runs/t16-audit-quick/placement.json",
+      "bytes": 184
+    },
+    {
+      "path": "runs/t16-audit-quick/summary.tsv",
+      "bytes": 23
+    },
+    {
+      "path": "runs/t16-tiny-worker-check-v5/backends.json",
+      "bytes": 765
+    },
+    {
+      "path": "runs/t16-tiny-worker-check-v5/placement.json",
+      "bytes": 192
+    },
+    {
+      "path": "runs/t16-tiny-worker-check-v5/summary.tsv",
+      "bytes": 33
+    },
+    {
+      "path": "runs/t14-gate-v1/backends.json",
+      "bytes": 772
+    },
+    {
+      "path": "runs/t14-gate-v1/placement.json",
+      "bytes": 26988
+    },
+    {
+      "path": "runs/t14-gate-v1/summary.tsv",
+      "bytes": 5356
+    },
+    {
+      "path": "runs/t16-tiny-worker-v4/backends.json",
+      "bytes": 772
+    },
+    {
+      "path": "runs/t16-tiny-worker-v4/placement.json",
+      "bytes": 190
+    },
+    {
+      "path": "runs/t16-tiny-worker-v4/summary.tsv",
+      "bytes": 29
+    },
+    {
+      "path": "runs/t13-wall-probe/backends.json",
+      "bytes": 773
+    },
+    {
+      "path": "runs/t13-wall-probe/placement.json",
+      "bytes": 362
+    },
+    {
+      "path": "runs/t13-wall-probe/summary.tsv",
+      "bytes": 52
+    },
+    {
+      "path": "runs/t16-tiny-worker-v3/backends.json",
+      "bytes": 772
+    },
+    {
+      "path": "runs/t16-tiny-worker-v3/placement.json",
+      "bytes": 364
+    },
+    {
+      "path": "runs/t16-tiny-worker-v3/summary.tsv",
+      "bytes": 46
+    },
+    {
+      "path": "runs/t13-paired-r2-retry/backends.json",
+      "bytes": 772
+    },
+    {
+      "path": "runs/t13-paired-r2-retry/placement.json",
+      "bytes": 190
+    },
+    {
+      "path": "runs/t13-paired-r2-retry/summary.tsv",
+      "bytes": 32
+    },
+    {
+      "path": "runs/t13-wall-checks-v2/backends.json",
+      "bytes": 766
+    },
+    {
+      "path": "runs/t13-wall-checks-v2/placement.json",
+      "bytes": 179
+    },
+    {
+      "path": "runs/t13-wall-checks-v2/summary.tsv",
+      "bytes": 20
+    },
+    {
+      "path": "runs/t16-filter-v2/backends.json",
+      "bytes": 764
+    },
+    {
+      "path": "runs/t16-filter-v2/placement.json",
+      "bytes": 371
+    },
+    {
+      "path": "runs/t16-filter-v2/summary.tsv",
+      "bytes": 55
+    },
+    {
+      "path": "runs/t16-check-v1/backends.json",
+      "bytes": 766
+    },
+    {
+      "path": "runs/t16-check-v1/placement.json",
+      "bytes": 188
+    },
+    {
+      "path": "runs/t16-check-v1/summary.tsv",
+      "bytes": 29
+    },
+    {
+      "path": "runs/t16-tiny-worker-wrapper-v7/backends.json",
+      "bytes": 770
+    },
+    {
+      "path": "runs/t16-tiny-worker-wrapper-v7/placement.json",
+      "bytes": 1125
+    },
+    {
+      "path": "runs/t16-tiny-worker-wrapper-v7/summary.tsv",
+      "bytes": 183
+    },
+    {
+      "path": "runs/t16-domain-trace/backends.json",
+      "bytes": 772
+    },
+    {
+      "path": "runs/t16-domain-trace/placement.json",
+      "bytes": 191
+    },
+    {
+      "path": "runs/t16-domain-trace/ternary-wall-trace.log",
+      "bytes": 3796
+    },
+    {
+      "path": "runs/t16-domain-trace/summary.tsv",
+      "bytes": 31
+    },
+    {
+      "path": "runs/t14-verify-v6/backends.json",
+      "bytes": 767
+    },
+    {
+      "path": "runs/t14-verify-v6/placement.json",
+      "bytes": 368
+    },
+    {
+      "path": "runs/t14-verify-v6/summary.tsv",
+      "bytes": 55
+    },
+    {
+      "path": "runs/t14-final-commitlint/backends.json",
+      "bytes": 763
+    },
+    {
+      "path": "runs/t14-final-commitlint/placement.json",
+      "bytes": 182
+    },
+    {
+      "path": "runs/t14-final-commitlint/summary.tsv",
+      "bytes": 23
+    },
+    {
+      "path": "runs/t13-naive-v3/backends.json",
+      "bytes": 773
+    },
+    {
+      "path": "runs/t13-naive-v3/placement.json",
+      "bytes": 357
+    },
+    {
+      "path": "runs/t13-naive-v3/summary.tsv",
+      "bytes": 43
+    },
+    {
+      "path": "runs/t16-tiny-houdini-check/backends.json",
+      "bytes": 764
+    },
+    {
+      "path": "runs/t16-tiny-houdini-check/placement.json",
+      "bytes": 191
+    },
+    {
+      "path": "runs/t16-tiny-houdini-check/summary.tsv",
+      "bytes": 31
+    },
+    {
+      "path": "runs/t14-audit-check/backends.json",
+      "bytes": 774
+    },
+    {
+      "path": "runs/t14-audit-check/placement.json",
+      "bytes": 374
+    },
+    {
+      "path": "runs/t14-audit-check/summary.tsv",
+      "bytes": 56
+    },
+    {
+      "path": "runs/t16-tiny-worker-final-check/backends.json",
+      "bytes": 764
+    },
+    {
+      "path": "runs/t16-tiny-worker-final-check/placement.json",
+      "bytes": 190
+    },
+    {
+      "path": "runs/t16-tiny-worker-final-check/tiny-unit-and-check.log",
+      "bytes": 1586
+    },
+    {
+      "path": "runs/t16-tiny-worker-final-check/summary.tsv",
+      "bytes": 33
+    },
+    {
+      "path": "runs/t16-frontier-v1/backends.json",
+      "bytes": 766
+    },
+    {
+      "path": "runs/t16-frontier-v1/placement.json",
+      "bytes": 742
+    },
+    {
+      "path": "runs/t16-frontier-v1/summary.tsv",
+      "bytes": 111
+    },
+    {
+      "path": "runs/t16-audit-generation-slow/backends.json",
+      "bytes": 766
+    },
+    {
+      "path": "runs/t16-audit-generation-slow/placement.json",
+      "bytes": 1199
+    },
+    {
+      "path": "runs/t16-audit-generation-slow/summary.tsv",
+      "bytes": 266
+    },
+    {
+      "path": "runs/t13-initial/backends.json",
+      "bytes": 771
+    },
+    {
+      "path": "runs/t13-initial/placement.json",
+      "bytes": 360
+    },
+    {
+      "path": "runs/t13-initial/summary.tsv",
+      "bytes": 47
+    },
+    {
+      "path": "runs/t13-wall-final-v2/backends.json",
+      "bytes": 772
+    },
+    {
+      "path": "runs/t13-wall-final-v2/placement.json",
+      "bytes": 1119
+    },
+    {
+      "path": "runs/t13-wall-final-v2/summary.tsv",
+      "bytes": 181
+    },
+    {
+      "path": "runs/t14-check-v2/backends.json",
+      "bytes": 773
+    },
+    {
+      "path": "runs/t14-check-v2/placement.json",
+      "bytes": 359
+    },
+    {
+      "path": "runs/t14-check-v2/summary.tsv",
+      "bytes": 48
+    },
+    {
+      "path": "runs/t16-audit-current-check/backends.json",
+      "bytes": 764
+    },
+    {
+      "path": "runs/t16-audit-current-check/placement.json",
+      "bytes": 197
+    },
+    {
+      "path": "runs/t16-audit-current-check/summary.tsv",
+      "bytes": 38
+    },
+    {
+      "path": "runs/t14-recovery-v1/backends.json",
+      "bytes": 766
+    },
+    {
+      "path": "runs/t14-recovery-v1/placement.json",
+      "bytes": 1297
+    },
+    {
+      "path": "runs/t14-recovery-v1/summary.tsv",
+      "bytes": 205
+    },
+    {
+      "path": "runs/t14-capture-v2/backends.json",
+      "bytes": 766
+    },
+    {
+      "path": "runs/t14-capture-v2/placement.json",
+      "bytes": 1445
+    },
+    {
+      "path": "runs/t14-capture-v2/summary.tsv",
+      "bytes": 191
+    },
+    {
+      "path": "runs/t13-paired-v2/backends.json",
+      "bytes": 770
+    },
+    {
+      "path": "runs/t13-paired-v2/placement.json",
+      "bytes": 562
+    },
+    {
+      "path": "runs/t13-paired-v2/summary.tsv",
+      "bytes": 89
+    },
+    {
+      "path": "runs/t16-domain-check/backends.json",
+      "bytes": 765
+    },
+    {
+      "path": "runs/t16-domain-check/placement.json",
+      "bytes": 185
+    },
+    {
+      "path": "runs/t16-domain-check/domain-check.log",
+      "bytes": 3728
+    },
+    {
+      "path": "runs/t16-domain-check/summary.tsv",
+      "bytes": 26
+    },
+    {
+      "path": "runs/t13-original-v2/backends.json",
+      "bytes": 772
+    },
+    {
+      "path": "runs/t13-original-v2/placement.json",
+      "bytes": 558
+    },
+    {
+      "path": "runs/t13-original-v2/summary.tsv",
+      "bytes": 89
+    },
+    {
+      "path": "runs/t13-check-v1/backends.json",
+      "bytes": 771
+    },
+    {
+      "path": "runs/t13-check-v1/placement.json",
+      "bytes": 363
+    },
+    {
+      "path": "runs/t13-check-v1/summary.tsv",
+      "bytes": 47
+    },
+    {
+      "path": "runs/t16-filter-eager/backends.json",
+      "bytes": 768
+    },
+    {
+      "path": "runs/t16-filter-eager/placement.json",
+      "bytes": 367
+    },
+    {
+      "path": "runs/t16-filter-eager/summary.tsv",
+      "bytes": 54
+    },
+    {
+      "path": "runs/t13-paired-v3/backends.json",
+      "bytes": 772
+    },
+    {
+      "path": "runs/t13-paired-v3/placement.json",
+      "bytes": 564
+    },
+    {
+      "path": "runs/t13-paired-v3/summary.tsv",
+      "bytes": 98
+    },
+    {
+      "path": "runs/t13-relative/backends.json",
+      "bytes": 770
+    },
+    {
+      "path": "runs/t13-relative/placement.json",
+      "bytes": 177
+    },
+    {
+      "path": "runs/t13-relative/summary.tsv",
+      "bytes": 22
+    },
+    {
+      "path": "runs/t16-audit-others/backends.json",
+      "bytes": 768
+    },
+    {
+      "path": "runs/t16-audit-others/placement.json",
+      "bytes": 16131
+    },
+    {
+      "path": "runs/t16-audit-others/summary.tsv",
+      "bytes": 2987
+    },
+    {
+      "path": "runs/t13-debug-v2/backends.json",
+      "bytes": 773
+    },
+    {
+      "path": "runs/t13-debug-v2/placement.json",
+      "bytes": 526
+    },
+    {
+      "path": "runs/t13-debug-v2/summary.tsv",
+      "bytes": 55
+    },
+    {
+      "path": "runs/t16-domain-chunk-check/backends.json",
+      "bytes": 764
+    },
+    {
+      "path": "runs/t16-domain-chunk-check/placement.json",
+      "bytes": 185
+    },
+    {
+      "path": "runs/t16-domain-chunk-check/domain-check.log",
+      "bytes": 4298
+    },
+    {
+      "path": "runs/t16-domain-chunk-check/summary.tsv",
+      "bytes": 25
+    },
+    {
+      "path": "runs/t16-tiny-worker-check/backends.json",
+      "bytes": 764
+    },
+    {
+      "path": "runs/t16-tiny-worker-check/placement.json",
+      "bytes": 192
+    },
+    {
+      "path": "runs/t16-tiny-worker-check/summary.tsv",
+      "bytes": 33
+    },
+    {
+      "path": "runs/t13-receipt-check/backends.json",
+      "bytes": 764
+    },
+    {
+      "path": "runs/t13-receipt-check/placement.json",
+      "bytes": 193
+    },
+    {
+      "path": "runs/t13-receipt-check/summary.tsv",
+      "bytes": 34
+    },
+    {
+      "path": "runs/t16-tiny-houdini-check-v2/tiny-houdini-check.log",
+      "bytes": 3730
+    },
+    {
+      "path": "runs/t16-tiny-houdini-check-v2/backends.json",
+      "bytes": 764
+    },
+    {
+      "path": "runs/t16-tiny-houdini-check-v2/placement.json",
+      "bytes": 191
+    },
+    {
+      "path": "runs/t16-tiny-houdini-check-v2/summary.tsv",
+      "bytes": 32
+    },
+    {
+      "path": "runs/t16-tiny-worker-v6/backends.json",
+      "bytes": 770
+    },
+    {
+      "path": "runs/t16-tiny-worker-v6/placement.json",
+      "bytes": 570
+    },
+    {
+      "path": "runs/t16-tiny-worker-v6/summary.tsv",
+      "bytes": 95
+    },
+    {
+      "path": "runs/t16-side-exit-lint/backends.json",
+      "bytes": 771
+    },
+    {
+      "path": "runs/t16-side-exit-lint/placement.json",
+      "bytes": 194
+    },
+    {
+      "path": "runs/t16-side-exit-lint/side-exit-commitlint.log",
+      "bytes": 95
+    },
+    {
+      "path": "runs/t16-side-exit-lint/summary.tsv",
+      "bytes": 33
+    },
+    {
+      "path": "runs/t16-tiny-worker-check-v6/backends.json",
+      "bytes": 764
+    },
+    {
+      "path": "runs/t16-tiny-worker-check-v6/placement.json",
+      "bytes": 192
+    },
+    {
+      "path": "runs/t16-tiny-worker-check-v6/summary.tsv",
+      "bytes": 33
+    },
+    {
+      "path": "runs/t16-others-v1/backends.json",
+      "bytes": 771
+    },
+    {
+      "path": "runs/t16-others-v1/placement.json",
+      "bytes": 16301
+    },
+    {
+      "path": "runs/t16-others-v1/summary.tsv",
+      "bytes": 3018
+    },
+    {
+      "path": "runs/t14-final-v1/backends.json",
+      "bytes": 772
+    },
+    {
+      "path": "runs/t14-final-v1/placement.json",
+      "bytes": 17814
+    },
+    {
+      "path": "runs/t14-final-v1/summary.tsv",
+      "bytes": 3125
+    },
+    {
+      "path": "runs/t16-probe-v1/backends.json",
+      "bytes": 766
+    },
+    {
+      "path": "runs/t16-probe-v1/placement.json",
+      "bytes": 1091
+    },
+    {
+      "path": "runs/t16-probe-v1/summary.tsv",
+      "bytes": 150
+    },
+    {
+      "path": "runs/t16-tiny-worker-pilot/backends.json",
+      "bytes": 774
+    },
+    {
+      "path": "runs/t16-tiny-worker-pilot/placement.json",
+      "bytes": 530
+    },
+    {
+      "path": "runs/t16-tiny-worker-pilot/summary.tsv",
+      "bytes": 61
+    },
+    {
+      "path": "runs/t16-frontier-check-v1/backends.json",
+      "bytes": 764
+    },
+    {
+      "path": "runs/t16-frontier-check-v1/placement.json",
+      "bytes": 183
+    },
+    {
+      "path": "runs/t16-frontier-check-v1/summary.tsv",
+      "bytes": 28
+    },
+    {
+      "path": "runs/t16-confirm/backends.json",
+      "bytes": 766
+    },
+    {
+      "path": "runs/t16-confirm/placement.json",
+      "bytes": 180
+    },
+    {
+      "path": "runs/t16-confirm/summary.tsv",
+      "bytes": 20
+    },
+    {
+      "path": "runs/t13-report-check/backends.json",
+      "bytes": 764
+    },
+    {
+      "path": "runs/t13-report-check/placement.json",
+      "bytes": 191
+    },
+    {
+      "path": "runs/t13-report-check/summary.tsv",
+      "bytes": 34
+    },
+    {
+      "path": "runs/t13-cost/backends.json",
+      "bytes": 770
+    },
+    {
+      "path": "runs/t13-cost/placement.json",
+      "bytes": 180
+    },
+    {
+      "path": "runs/t13-cost/summary.tsv",
+      "bytes": 23
+    },
+    {
+      "path": "runs/t13-wall-diagnose/backends.json",
+      "bytes": 773
+    },
+    {
+      "path": "runs/t13-wall-diagnose/placement.json",
+      "bytes": 364
+    },
+    {
+      "path": "runs/t13-wall-diagnose/summary.tsv",
+      "bytes": 48
+    },
+    {
+      "path": "runs/t13-census/backends.json",
+      "bytes": 771
+    },
+    {
+      "path": "runs/t13-census/placement.json",
+      "bytes": 179
+    },
+    {
+      "path": "runs/t13-census/summary.tsv",
+      "bytes": 20
+    },
+    {
+      "path": "runs/t13-wall-strict-probe/backends.json",
+      "bytes": 773
+    },
+    {
+      "path": "runs/t13-wall-strict-probe/placement.json",
+      "bytes": 366
+    },
+    {
+      "path": "runs/t13-wall-strict-probe/summary.tsv",
+      "bytes": 50
+    },
+    {
+      "path": "runs/t16-audit-generation-v2/backends.json",
+      "bytes": 769
+    },
+    {
+      "path": "runs/t16-audit-generation-v2/placement.json",
+      "bytes": 17209
+    },
+    {
+      "path": "runs/t16-audit-generation-v2/summary.tsv",
+      "bytes": 3562
+    },
+    {
+      "path": "runs/t16-audit-fixed/backends.json",
+      "bytes": 764
+    },
+    {
+      "path": "runs/t16-audit-fixed/placement.json",
+      "bytes": 184
+    },
+    {
+      "path": "runs/t16-audit-fixed/summary.tsv",
+      "bytes": 25
+    },
+    {
+      "path": "runs/t13-gates/backends.json",
+      "bytes": 764
+    },
+    {
+      "path": "runs/t13-gates/placement.json",
+      "bytes": 541
+    },
+    {
+      "path": "runs/t13-gates/summary.tsv",
+      "bytes": 68
+    },
+    {
+      "path": "runs/t13-fast-v4/backends.json",
+      "bytes": 773
+    },
+    {
+      "path": "runs/t13-fast-v4/placement.json",
+      "bytes": 713
+    },
+    {
+      "path": "runs/t13-fast-v4/summary.tsv",
+      "bytes": 86
+    },
+    {
+      "path": "runs/t16-tiny-commitlint/backends.json",
+      "bytes": 771
+    },
+    {
+      "path": "runs/t16-tiny-commitlint/tiny-commitlint.log",
+      "bytes": 95
+    },
+    {
+      "path": "runs/t16-tiny-commitlint/placement.json",
+      "bytes": 189
+    },
+    {
+      "path": "runs/t16-tiny-commitlint/summary.tsv",
+      "bytes": 28
+    },
+    {
+      "path": "runs/t14-audit-v1/backends.json",
+      "bytes": 774
+    },
+    {
+      "path": "runs/t14-audit-v1/placement.json",
+      "bytes": 179
+    },
+    {
+      "path": "runs/t14-audit-v1/summary.tsv",
+      "bytes": 21
+    },
+    {
+      "path": "runs/t14-check-v1/backends.json",
+      "bytes": 772
+    },
+    {
+      "path": "runs/t14-check-v1/placement.json",
+      "bytes": 359
+    },
+    {
+      "path": "runs/t14-check-v1/summary.tsv",
+      "bytes": 49
+    },
+    {
+      "path": "runs/t16-side-exit/backends.json",
+      "bytes": 764
+    },
+    {
+      "path": "runs/t16-side-exit/side-exit-regressions.log",
+      "bytes": 1372
+    },
+    {
+      "path": "runs/t16-side-exit/placement.json",
+      "bytes": 192
+    },
+    {
+      "path": "runs/t16-side-exit/summary.tsv",
+      "bytes": 35
+    },
+    {
+      "path": "runs/checkpoint-cancellation.json",
+      "bytes": 6087
+    }
+  ],
+  "large": [
+    {
+      "path": "runs/t14-gate-summary.json",
+      "bytes": 645168
+    },
+    {
+      "path": "runs/t16-others-summary.json",
+      "bytes": 403167
+    },
+    {
+      "path": "runs/t16-audit-others-summary.json",
+      "bytes": 403717
+    }
+  ]
+}

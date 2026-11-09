@@ -1,0 +1,231 @@
+{
+  "batch": "20261109-153518-o1nkb4",
+  "endpoint": "/close",
+  "before": {
+    "ok": true,
+    "batch": "20261109-153518-o1nkb4",
+    "strict_once": false,
+    "retain_journals": false,
+    "admission_closed": false,
+    "closed": false,
+    "placements": [
+      {
+        "name": "original-hybrid-1",
+        "run_name": "original-hybrid-1",
+        "vm": "bx_8nqy7xab",
+        "image": "sc-f0d8daeee6c3",
+        "type": "large",
+        "identity": "24271ec54d9298e5175c9708d7e1e77866d3a1d6eddbf737",
+        "t": 1794214812.318037
+      },
+      {
+        "name": "survivors-hybrid-2",
+        "run_name": "survivors-hybrid-2",
+        "vm": "bx_8nqy7xab",
+        "image": "sc-f0d8daeee6c3",
+        "type": "large",
+        "identity": "a68a1366417ea2abc75212ebe9db5fc06d41a78565e6050b",
+        "t": 1794214821.8335822
+      },
+      {
+        "name": "original-hybrid-2",
+        "run_name": "original-hybrid-2",
+        "vm": "bx_8f8tzqk2",
+        "image": "sc-f0d8daeee6c3",
+        "type": "large",
+        "identity": "528e34c0ac9e634349e6f87514e0227893a605688a332af5",
+        "t": 1794214813.932152
+      },
+      {
+        "name": "survivors-hybrid-1",
+        "run_name": "survivors-hybrid-1",
+        "vm": "bx_af3p9nak",
+        "image": "sc-f0d8daeee6c3",
+        "type": "large",
+        "identity": "7cda9959d84de06d4aecf0442f487ff7dc902a1f44c462fa",
+        "t": 1794214818.794532
+      },
+      {
+        "name": "survivors-hybrid-3",
+        "run_name": "survivors-hybrid-3",
+        "vm": "bx_74ss87e4",
+        "image": "sc-f0d8daeee6c3",
+        "type": "large",
+        "identity": "c4179f61f156ab33f54d767ea8cde44089fc4851b2fd7c96",
+        "t": 1794214824.033845
+      },
+      {
+        "name": "original-hybrid-3",
+        "run_name": "original-hybrid-3",
+        "vm": "bx_395wpmqp",
+        "image": "sc-f0d8daeee6c3",
+        "type": "large",
+        "identity": "62d5e5b80ec231772294d9fa9c61a349f997ea674611cb53",
+        "t": 1794214815.352181
+      }
+    ],
+    "cancellation_receipts": [],
+    "rows": [
+      {
+        "name": "original-hybrid-1",
+        "code": 0,
+        "seconds": 1.96,
+        "vm": "bx_8nqy7xab",
+        "run_name": "original-hybrid-1",
+        "placement": {
+          "vm": "bx_8nqy7xab",
+          "type": "large",
+          "cpu": "AMD Ryzen 9 9950X 16-Core Processor",
+          "vcpus": 2,
+          "vm_vcpus": 8,
+          "exclusive": true,
+          "co_tenants": 0
+        }
+      },
+      {
+        "name": "survivors-hybrid-2",
+        "code": 0,
+        "seconds": 1.98,
+        "vm": "bx_8nqy7xab",
+        "run_name": "survivors-hybrid-2",
+        "placement": {
+          "vm": "bx_8nqy7xab",
+          "type": "large",
+          "cpu": "AMD Ryzen 9 9950X 16-Core Processor",
+          "vcpus": 2,
+          "vm_vcpus": 8,
+          "exclusive": true,
+          "co_tenants": 0
+        }
+      },
+      {
+        "name": "original-hybrid-2",
+        "code": 0,
+        "seconds": 2.08,
+        "vm": "bx_8f8tzqk2",
+        "run_name": "original-hybrid-2",
+        "placement": {
+          "vm": "bx_8f8tzqk2",
+          "type": "large",
+          "cpu": "AMD EPYC 4585PX 16-Core Processor",
+          "vcpus": 2,
+          "vm_vcpus": 8,
+          "exclusive": true,
+          "co_tenants": 0
+        }
+      },
+      {
+        "name": "survivors-hybrid-1",
+        "code": 0,
+        "seconds": 1.97,
+        "vm": "bx_af3p9nak",
+        "run_name": "survivors-hybrid-1",
+        "placement": {
+          "vm": "bx_af3p9nak",
+          "type": "large",
+          "cpu": "AMD Ryzen 9 9950X 16-Core Processor",
+          "vcpus": 2,
+          "vm_vcpus": 8,
+          "exclusive": true,
+          "co_tenants": 0
+        }
+      },
+      {
+        "name": "survivors-hybrid-3",
+        "code": 0,
+        "seconds": 2.0,
+        "vm": "bx_74ss87e4",
+        "run_name": "survivors-hybrid-3",
+        "placement": {
+          "vm": "bx_74ss87e4",
+          "type": "large",
+          "cpu": "AMD Ryzen 9 9950X 16-Core Processor",
+          "vcpus": 2,
+          "vm_vcpus": 8,
+          "exclusive": true,
+          "co_tenants": 0
+        }
+      },
+      {
+        "name": "original-hybrid-3",
+        "code": 0,
+        "seconds": 1.98,
+        "vm": "bx_395wpmqp",
+        "run_name": "original-hybrid-3",
+        "placement": {
+          "vm": "bx_395wpmqp",
+          "type": "large",
+          "cpu": "AMD Ryzen 9 9950X 16-Core Processor",
+          "vcpus": 2,
+          "vm_vcpus": 8,
+          "exclusive": true,
+          "co_tenants": 0
+        }
+      }
+    ],
+    "items": [
+      {
+        "name": "original-hybrid-1",
+        "state": "done",
+        "placements": 1,
+        "reaped": false,
+        "start_inflight": false,
+        "admission_closed": false,
+        "result_error": null
+      },
+      {
+        "name": "original-hybrid-2",
+        "state": "done",
+        "placements": 1,
+        "reaped": false,
+        "start_inflight": false,
+        "admission_closed": false,
+        "result_error": null
+      },
+      {
+        "name": "original-hybrid-3",
+        "state": "done",
+        "placements": 1,
+        "reaped": false,
+        "start_inflight": false,
+        "admission_closed": false,
+        "result_error": null
+      },
+      {
+        "name": "survivors-hybrid-1",
+        "state": "done",
+        "placements": 1,
+        "reaped": false,
+        "start_inflight": false,
+        "admission_closed": false,
+        "result_error": null
+      },
+      {
+        "name": "survivors-hybrid-2",
+        "state": "done",
+        "placements": 1,
+        "reaped": false,
+        "start_inflight": false,
+        "admission_closed": false,
+        "result_error": null
+      },
+      {
+        "name": "survivors-hybrid-3",
+        "state": "done",
+        "placements": 1,
+        "reaped": false,
+        "start_inflight": false,
+        "admission_closed": false,
+        "result_error": null
+      }
+    ]
+  },
+  "cancellation": {
+    "vms": 5,
+    "starts": 0,
+    "preempted": 0,
+    "class": "submission",
+    "wall_s": 1575.0
+  },
+  "remaining": []
+}
