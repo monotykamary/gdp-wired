@@ -33,17 +33,22 @@ gitlinks and the frozen data copy. Two retries only are now submitted:
 
 - Required `t16-domain-check-jobs.json`, output
   `runs/t16-partial-immutable-check/`, task
-  `a459f935-d7a4-4171-99da-0782e564d87b`.
+  `a459f935-d7a4-4171-99da-0782e564d87b`, batch `20261110-003848-r92jez`,
+  tree `e258b9207ea3`.
 - Six optimized hybrid probes, output
   `runs/t16-partial-immutable-hybrid/`, task
-  `828beead-707f-4141-b7d5-2bc133919cd7`.
+  `828beead-707f-4141-b7d5-2bc133919cd7`, batch `20261110-003852-llmvg6`,
+  tree `8d49b8211662`.
 
 Both use `supercomputer --repo /tmp/gdp-lane-a-frozen.uLpIQc/current`,
 `--timing --vm-type large`, normal scheduler classes (gate / submission),
 no forced VM count. The required check includes the complete current source,
 so it supersedes a separate retry of the failed final-source check; there is
-no duplicate test batch. Results remain pending. Do not edit the clone while
-it uploads or runs. No gate or proof claim.
+no duplicate test batch. The bounded completion observation expired with
+all three clients still active, not with a test/probe failure. Their own
+completion notifications remain enabled; no additional polling or duplicate
+submission is needed. Do not edit the clone while it uploads or runs.
+No gate or proof claim.
 
 ## Disk
 
