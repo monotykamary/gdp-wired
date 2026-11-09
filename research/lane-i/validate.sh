@@ -8,6 +8,7 @@ prepare_vendor() {
     tar -xf "integ-input/$v.tar" -C "$target/vendor/$v"
   done
 }
+(cd integ-input && sha256sum -c SHA256SUMS)
 prepare_vendor .
 bun install --frozen-lockfile >/dev/null
 if [[ "$mode" == setup ]]; then exit 0; fi
@@ -15,6 +16,8 @@ mkdir -p base
 tar -xf integ-input/main.tar -C base
 prepare_vendor base
 (cd base && bun install --frozen-lockfile >/dev/null)
+mkdir -p base/research/lane-i
+cp research/lane-i/timing.ts base/research/lane-i/timing.ts
 cp integ-input/identity.json identity.json
 cat identity.json
 grep -m1 'model name' /proc/cpuinfo
@@ -29,7 +32,7 @@ for side in $sides; do
     cat "$side.err"
   else
     set +e
-    (cd "$dir" && GDP_COUNTS_TRACE=3 GDP_INFER_TRACE=2 timeout -s KILL 60 bun research/protocols/ic3syn/run.ts --ms 60000 --only "$id" --skip broken) > "$side.out" 2> "$side.err"
+    (cd "$dir" && GDP_COUNTS_TRACE=3 GDP_INFER_TRACE=2 timeout -s KILL 60 bun --preload ./research/lane-i/timing.ts research/protocols/ic3syn/run.ts --ms 60000 --only "$id" --skip broken) > "$side.out" 2> "$side.err"
     code=$?
     set -e
     echo "LANE_I_EXIT $side $code"
