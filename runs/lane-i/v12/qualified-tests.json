@@ -1,0 +1,49 @@
+{
+  "finalGate": false,
+  "productionSource": "8769061bea541a33396819be86f7a5bba0a7bf73",
+  "qualificationSource": "3281b7fff8f0d20a2b0b03116a735c6e37565a48",
+  "compoundEvidence": true,
+  "productionDifferences": [],
+  "tests": [
+    {
+      "name": "changed-tests-1",
+      "dir": "runs/lane-i/v12/final-fixture",
+      "source": "3281b7fff8f0d20a2b0b03116a735c6e37565a48",
+      "passed": 234,
+      "failed": 0,
+      "assertions": 8320
+    },
+    {
+      "name": "changed-tests-2",
+      "dir": "runs/lane-i/v12/validation",
+      "source": "8769061bea541a33396819be86f7a5bba0a7bf73",
+      "passed": 165,
+      "failed": 0,
+      "assertions": 1408
+    },
+    {
+      "name": "changed-tests-3",
+      "dir": "runs/lane-i/v12/validation",
+      "source": "8769061bea541a33396819be86f7a5bba0a7bf73",
+      "passed": 142,
+      "failed": 0,
+      "assertions": 5181
+    },
+    {
+      "name": "changed-tests-4",
+      "dir": "runs/lane-i/v12/validation",
+      "source": "8769061bea541a33396819be86f7a5bba0a7bf73",
+      "passed": 164,
+      "failed": 0,
+      "assertions": 7259
+    }
+  ],
+  "passedTestExecutions": 705,
+  "assertions": 22168,
+  "check": {
+    "path": "runs/lane-i/v12/final-fixture/check.log",
+    "warnings": 0,
+    "errors": 0
+  },
+  "scope": "Combined unchanged-production test evidence, not a single all-green original batch, proof of MLDR safety, or a no-loss gate."
+}

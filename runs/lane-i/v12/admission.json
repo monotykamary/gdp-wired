@@ -9,12 +9,12 @@
     "batch": "20261110-022934-e437u3",
     "task": "b49ff1d1-b416-40ca-a6b6-63ecb7368461",
     "jobs": 9,
-    "status": "pending"
+    "status": "completed-original-test-failure-preserved"
   },
   "census": {
     "batch": "20261110-022931-9ald5l",
     "task": "59a82dbf-fe94-47e8-a6f9-86a5fd21b0a0",
     "pairs": 87,
-    "status": "pending"
+    "status": "completed-receipt-audited"
   }
 }
