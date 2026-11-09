@@ -1,0 +1,3525 @@
+{
+  "finalGate": false,
+  "identity": {
+    "candidate": "e48a109efc5ee029d658702ac45a7e7a8ff4c9b6",
+    "baseline": "b788e1959bba1f2e8aa1f94d4cf7c0eb163a2f9c",
+    "archives": {
+      "main.tar": "c593e659eb2d22592f82ab291a63a057679eaf11e8086ed0eed5a972c57745fe",
+      "handwired.tar": "73d44548dbe109a40ac933406324e17d7dee39e7dff1a6f1270ed030c31c1da4",
+      "gdp-ts.tar": "75d367da15decb1fefce2ae72ae50e7f3f737989094a760fde643c5b1f5c1496"
+    },
+    "integratedHeads": {
+      "A": "8dfb319e8d6d859ef9c8c5fdd3bef4383ce1ad2f",
+      "B": "e17ed54f62729de4b976a1ed6a5c4e49356a4a44",
+      "E": "5c3686f0bc4c4a7ef9c7864870ba35005deb2d22",
+      "Fable": "b74b2f00b1e5a99d0f7a585380e865dbc3b50260",
+      "F": "0775159a8595dd67b4ef3ff410f643a733bac4e3"
+    }
+  },
+  "issues": [
+    "validation roster mismatch",
+    "check: exit/backend/CPU placement"
+  ],
+  "jobs": [
+    {
+      "name": "check",
+      "placement": {
+        "vm": "bx_9vr8rkqj",
+        "type": "large",
+        "cpu": "AMD EPYC 4585PX 16-Core Processor",
+        "vcpus": 6,
+        "vm_vcpus": 8,
+        "exclusive": true,
+        "co_tenants": 0
+      },
+      "sha256": "4baf0ab55804bed1e01ef79f9a4a298eb66c1789bc03420e61a0e7bda75fe4b8",
+      "issues": []
+    },
+    {
+      "name": "changed-tests-1",
+      "placement": {
+        "vm": "bx_a74cfp57",
+        "type": "large",
+        "cpu": "AMD Ryzen 9 9950X 16-Core Processor",
+        "vcpus": 6,
+        "vm_vcpus": 8,
+        "exclusive": true,
+        "co_tenants": 0
+      },
+      "sha256": "6e6bd0b26ea1f6369284786b97e1b99085d7027c8963714c2223ba5f32e9dbea",
+      "issues": [],
+      "passed": 221,
+      "assertions": 8269
+    },
+    {
+      "name": "changed-tests-2",
+      "placement": {
+        "vm": "bx_bhrz6uyc",
+        "type": "large",
+        "cpu": "AMD Ryzen 9 9950X 16-Core Processor",
+        "vcpus": 6,
+        "vm_vcpus": 8,
+        "exclusive": true,
+        "co_tenants": 0
+      },
+      "sha256": "d0aee627ba156f2bc79e640166bf863f435c15b3eff045b2d63ef6dea02b21e6",
+      "issues": [],
+      "passed": 165,
+      "assertions": 1408
+    },
+    {
+      "name": "changed-tests-3",
+      "placement": {
+        "vm": "bx_ag96cka8",
+        "type": "large",
+        "cpu": "AMD Ryzen 9 9950X 16-Core Processor",
+        "vcpus": 6,
+        "vm_vcpus": 8,
+        "exclusive": true,
+        "co_tenants": 0
+      },
+      "sha256": "5a07b1dcfba34b02f46f7bdc4ad27c8660bbc45267d0cae93bd3a63750f4da73",
+      "issues": [],
+      "passed": 142,
+      "assertions": 5181
+    },
+    {
+      "name": "changed-tests-4",
+      "placement": {
+        "vm": "bx_acxzr4wr",
+        "type": "large",
+        "cpu": "AMD Ryzen 9 9950X 16-Core Processor",
+        "vcpus": 6,
+        "vm_vcpus": 8,
+        "exclusive": true,
+        "co_tenants": 0
+      },
+      "sha256": "4d072753f78dfd53d9b6f8824d7c082cfce9654e1218f7803f81e80fdcac37da",
+      "issues": [],
+      "passed": 162,
+      "assertions": 7144
+    },
+    {
+      "name": "mldr-r1",
+      "placement": {
+        "vm": "bx_85wyqdj5",
+        "type": "large",
+        "cpu": "AMD Ryzen 7 9700X 8-Core Processor",
+        "vcpus": 4,
+        "vm_vcpus": 8,
+        "exclusive": true,
+        "co_tenants": 0
+      },
+      "sha256": "dad9dceb2c0b262bddda679ced618ad86efa25aca05313c2a1135ee6473e8b2f",
+      "repeat": 1,
+      "issues": [],
+      "sides": [
+        {
+          "side": "base",
+          "result": {
+            "id": "mldr",
+            "ic3syn": "mldr",
+            "search": {
+              "verdict": "unknown",
+              "why": "not proven: one primary per term",
+              "found": [
+                "every C0 cell is a value of its kind",
+                "every Copied cell is a value of its kind",
+                "every Config cell is a value of its kind",
+                "one primary per term",
+                "St at most 1",
+                "every x: never 1 <= Config[x] and picked is 0",
+                "every x with x < size: never 1 <= C0[x] and picked is 0",
+                "every x with x < size: never Copied[x] is 0 and 1 <= CT[x]",
+                "every x with x < size: never Copied[x] is 0 and 1 <= St[x]",
+                "every x with x < size: never Copied[x] is 0 and 1 <= CfgT[x]",
+                "every x with x < size: never Copied[x] is 0 and 1 <= started",
+                "every x with x < size: never 1 <= Copied[x] and picked is 0",
+                "every x with x < size: never CT[x] is 0 and 1 <= St[x]",
+                "every x with x < size: never 1 <= CT[x] and started is 0",
+                "every x with x < size: never 1 <= CT[x] and picked is 0",
+                "every x with x < size: never 1 <= St[x] and CfgT[x] is 0",
+                "every x with x < size: never 1 <= St[x] and started is 0",
+                "every x with x < size: never 1 <= St[x] and picked is 0",
+                "every x with x < size: never 1 <= CfgT[x] and started is 0",
+                "every x with x < size: never 1 <= CfgT[x] and picked is 0",
+                "every x, y with x < size ∧ y < size ∧ ¬(x = y): never Copied[x] is 0 and 1 <= CT[y]",
+                "every x, y with x < size ∧ y < size ∧ ¬(x = y): never Copied[x] is 0 and 1 <= St[y]",
+                "every x, y with x < size ∧ y < size ∧ ¬(x = y): never Copied[x] is 0 and 1 <= CfgT[y]"
+              ],
+              "ms": 18761,
+              "work": 2657026,
+              "full": 921136
+            }
+          },
+          "exit": "0",
+          "preAttemptWallMs": 16760.136324000003,
+          "generationWallMs": 16758.802935,
+          "candidates": [
+            [
+              "every C0 cell is a value of its kind",
+              "every Copied cell is a value of its kind",
+              "every Config cell is a value of its kind",
+              "one primary per term",
+              "CT at most 73",
+              "St at most 1",
+              "CV at most 2",
+              "CfgT at most 73",
+              "every x: never 1 <= Config[x] and picked is 0",
+              "every x with x < size: never C0[x] is 0 and 1 <= St[x]",
+              "every x with x < size: never 1 <= C0[x] and picked is 0",
+              "every x with x < size: never Copied[x] is 0 and 1 <= CT[x]",
+              "every x with x < size: never Copied[x] is 0 and 1 <= St[x]",
+              "every x with x < size: never Copied[x] is 0 and 1 <= CfgT[x]",
+              "every x with x < size: never Copied[x] is 0 and 1 <= started",
+              "every x with x < size: never 1 <= Copied[x] and picked is 0",
+              "every x with x < size: never CT[x] is 0 and 1 <= St[x]",
+              "every x with x < size: never 1 <= CT[x] and started is 0",
+              "every x with x < size: never 1 <= CT[x] and picked is 0",
+              "every x with x < size: never 1 <= St[x] and CfgT[x] is 0",
+              "every x with x < size: never 1 <= St[x] and started is 0",
+              "every x with x < size: never 1 <= St[x] and picked is 0",
+              "every x with x < size: never 1 <= CfgT[x] and started is 0",
+              "every x with x < size: never 1 <= CfgT[x] and picked is 0",
+              "every x, y with x < size ∧ y < size ∧ ¬(x = y): never Copied[x] is 0 and 1 <= CT[y]",
+              "every x, y with x < size ∧ y < size ∧ ¬(x = y): never Copied[x] is 0 and 1 <= St[y]",
+              "every x, y with x < size ∧ y < size ∧ ¬(x = y): never Copied[x] is 0 and 1 <= CfgT[y]"
+            ]
+          ],
+          "attempts": [
+            {
+              "law": "CT at most 73",
+              "family": 27,
+              "pass": 0,
+              "allowance": 2222,
+              "units": 101,
+              "wallMs": 93,
+              "outcome": "sat"
+            },
+            {
+              "law": "CT at most 73",
+              "family": 27,
+              "pass": 1,
+              "allowance": 2222,
+              "units": 181,
+              "wallMs": 107,
+              "outcome": "sat"
+            },
+            {
+              "law": "St at most 1",
+              "family": 27,
+              "pass": 0,
+              "allowance": 2222,
+              "units": 71,
+              "wallMs": 38,
+              "outcome": "kept"
+            },
+            {
+              "law": "CV at most 2",
+              "family": 27,
+              "pass": 0,
+              "allowance": 2222,
+              "units": 113,
+              "wallMs": 59,
+              "outcome": "sat"
+            },
+            {
+              "law": "CV at most 2",
+              "family": 27,
+              "pass": 1,
+              "allowance": 2222,
+              "units": 182,
+              "wallMs": 79,
+              "outcome": "sat"
+            },
+            {
+              "law": "CfgT at most 73",
+              "family": 27,
+              "pass": 0,
+              "allowance": 2222,
+              "units": 183,
+              "wallMs": 70,
+              "outcome": "sat"
+            },
+            {
+              "law": "CfgT at most 73",
+              "family": 27,
+              "pass": 1,
+              "allowance": 2222,
+              "units": 234,
+              "wallMs": 104,
+              "outcome": "sat"
+            },
+            {
+              "law": "every x: never 1 <= Config[x] and picked is 0",
+              "family": 27,
+              "pass": 0,
+              "allowance": 2222,
+              "units": 77,
+              "wallMs": 52,
+              "outcome": "kept"
+            },
+            {
+              "law": "every x with x < size: never C0[x] is 0 and 1 <= S",
+              "family": 27,
+              "pass": 0,
+              "allowance": 2222,
+              "units": 144,
+              "wallMs": 67,
+              "outcome": "sat"
+            },
+            {
+              "law": "every x with x < size: never C0[x] is 0 and 1 <= S",
+              "family": 27,
+              "pass": 1,
+              "allowance": 2222,
+              "units": 175,
+              "wallMs": 90,
+              "outcome": "sat"
+            },
+            {
+              "law": "every x with x < size: never 1 <= C0[x] and picked",
+              "family": 27,
+              "pass": 0,
+              "allowance": 2222,
+              "units": 35,
+              "wallMs": 30,
+              "outcome": "kept"
+            },
+            {
+              "law": "every x with x < size: never Copied[x] is 0 and 1 ",
+              "family": 27,
+              "pass": 0,
+              "allowance": 2222,
+              "units": 137,
+              "wallMs": 74,
+              "outcome": "kept"
+            },
+            {
+              "law": "every x with x < size: never Copied[x] is 0 and 1 ",
+              "family": 27,
+              "pass": 0,
+              "allowance": 2222,
+              "units": 121,
+              "wallMs": 60,
+              "outcome": "kept"
+            },
+            {
+              "law": "every x with x < size: never Copied[x] is 0 and 1 ",
+              "family": 27,
+              "pass": 0,
+              "allowance": 2222,
+              "units": 96,
+              "wallMs": 67,
+              "outcome": "kept"
+            },
+            {
+              "law": "every x with x < size: never Copied[x] is 0 and 1 ",
+              "family": 27,
+              "pass": 0,
+              "allowance": 2222,
+              "units": 68,
+              "wallMs": 56,
+              "outcome": "kept"
+            },
+            {
+              "law": "every x with x < size: never 1 <= Copied[x] and pi",
+              "family": 27,
+              "pass": 0,
+              "allowance": 2222,
+              "units": 41,
+              "wallMs": 23,
+              "outcome": "kept"
+            },
+            {
+              "law": "every x with x < size: never CT[x] is 0 and 1 <= S",
+              "family": 27,
+              "pass": 0,
+              "allowance": 2222,
+              "units": 92,
+              "wallMs": 58,
+              "outcome": "kept"
+            },
+            {
+              "law": "every x with x < size: never 1 <= CT[x] and starte",
+              "family": 27,
+              "pass": 0,
+              "allowance": 2222,
+              "units": 27,
+              "wallMs": 20,
+              "outcome": "kept"
+            },
+            {
+              "law": "every x with x < size: never 1 <= CT[x] and picked",
+              "family": 27,
+              "pass": 0,
+              "allowance": 2222,
+              "units": 41,
+              "wallMs": 38,
+              "outcome": "kept"
+            },
+            {
+              "law": "every x with x < size: never 1 <= St[x] and CfgT[x",
+              "family": 27,
+              "pass": 0,
+              "allowance": 2222,
+              "units": 229,
+              "wallMs": 100,
+              "outcome": "kept"
+            },
+            {
+              "law": "every x with x < size: never 1 <= St[x] and starte",
+              "family": 27,
+              "pass": 0,
+              "allowance": 2222,
+              "units": 29,
+              "wallMs": 21,
+              "outcome": "kept"
+            },
+            {
+              "law": "every x with x < size: never 1 <= St[x] and picked",
+              "family": 27,
+              "pass": 0,
+              "allowance": 2222,
+              "units": 42,
+              "wallMs": 42,
+              "outcome": "kept"
+            },
+            {
+              "law": "every x with x < size: never 1 <= CfgT[x] and star",
+              "family": 27,
+              "pass": 0,
+              "allowance": 2222,
+              "units": 29,
+              "wallMs": 23,
+              "outcome": "kept"
+            },
+            {
+              "law": "every x with x < size: never 1 <= CfgT[x] and pick",
+              "family": 27,
+              "pass": 0,
+              "allowance": 2222,
+              "units": 43,
+              "wallMs": 25,
+              "outcome": "kept"
+            },
+            {
+              "law": "every x, y with x < size ∧ y < size ∧ ¬(x = y): ne",
+              "family": 27,
+              "pass": 0,
+              "allowance": 2222,
+              "units": 120,
+              "wallMs": 67,
+              "outcome": "kept"
+            },
+            {
+              "law": "every x, y with x < size ∧ y < size ∧ ¬(x = y): ne",
+              "family": 27,
+              "pass": 0,
+              "allowance": 2222,
+              "units": 159,
+              "wallMs": 83,
+              "outcome": "kept"
+            },
+            {
+              "law": "every x, y with x < size ∧ y < size ∧ ¬(x = y): ne",
+              "family": 27,
+              "pass": 0,
+              "allowance": 2222,
+              "units": 182,
+              "wallMs": 95,
+              "outcome": "kept"
+            },
+            {
+              "law": "every C0 cell is a value of its kind",
+              "family": 27,
+              "pass": 0,
+              "allowance": 2222,
+              "units": 5,
+              "wallMs": 6,
+              "outcome": "kept"
+            },
+            {
+              "law": "every Copied cell is a value of its kind",
+              "family": 27,
+              "pass": 0,
+              "allowance": 2222,
+              "units": 13,
+              "wallMs": 11,
+              "outcome": "kept"
+            },
+            {
+              "law": "every Config cell is a value of its kind",
+              "family": 27,
+              "pass": 0,
+              "allowance": 2222,
+              "units": 7,
+              "wallMs": 7,
+              "outcome": "kept"
+            },
+            {
+              "law": "one primary per term",
+              "family": 27,
+              "pass": 0,
+              "allowance": 2222,
+              "units": 323,
+              "wallMs": 161,
+              "outcome": "sat"
+            },
+            {
+              "law": "one primary per term",
+              "family": 27,
+              "pass": 1,
+              "allowance": 2222,
+              "units": 383,
+              "wallMs": 169,
+              "outcome": "sat"
+            },
+            {
+              "law": "one primary per term",
+              "family": 23,
+              "pass": 0,
+              "allowance": 56315,
+              "units": 0,
+              "wallMs": 2,
+              "outcome": "sat"
+            },
+            {
+              "law": "one primary per term",
+              "family": 23,
+              "pass": 1,
+              "allowance": 56315,
+              "units": 0,
+              "wallMs": 1,
+              "outcome": "sat"
+            }
+          ],
+          "kept": [
+            {
+              "law": "St at most 1",
+              "family": 27,
+              "pass": 0,
+              "allowance": 2222,
+              "units": 71,
+              "wallMs": 38,
+              "outcome": "kept"
+            },
+            {
+              "law": "every x: never 1 <= Config[x] and picked is 0",
+              "family": 27,
+              "pass": 0,
+              "allowance": 2222,
+              "units": 77,
+              "wallMs": 52,
+              "outcome": "kept"
+            },
+            {
+              "law": "every x with x < size: never 1 <= C0[x] and picked",
+              "family": 27,
+              "pass": 0,
+              "allowance": 2222,
+              "units": 35,
+              "wallMs": 30,
+              "outcome": "kept"
+            },
+            {
+              "law": "every x with x < size: never Copied[x] is 0 and 1 ",
+              "family": 27,
+              "pass": 0,
+              "allowance": 2222,
+              "units": 137,
+              "wallMs": 74,
+              "outcome": "kept"
+            },
+            {
+              "law": "every x with x < size: never Copied[x] is 0 and 1 ",
+              "family": 27,
+              "pass": 0,
+              "allowance": 2222,
+              "units": 121,
+              "wallMs": 60,
+              "outcome": "kept"
+            },
+            {
+              "law": "every x with x < size: never Copied[x] is 0 and 1 ",
+              "family": 27,
+              "pass": 0,
+              "allowance": 2222,
+              "units": 96,
+              "wallMs": 67,
+              "outcome": "kept"
+            },
+            {
+              "law": "every x with x < size: never Copied[x] is 0 and 1 ",
+              "family": 27,
+              "pass": 0,
+              "allowance": 2222,
+              "units": 68,
+              "wallMs": 56,
+              "outcome": "kept"
+            },
+            {
+              "law": "every x with x < size: never 1 <= Copied[x] and pi",
+              "family": 27,
+              "pass": 0,
+              "allowance": 2222,
+              "units": 41,
+              "wallMs": 23,
+              "outcome": "kept"
+            },
+            {
+              "law": "every x with x < size: never CT[x] is 0 and 1 <= S",
+              "family": 27,
+              "pass": 0,
+              "allowance": 2222,
+              "units": 92,
+              "wallMs": 58,
+              "outcome": "kept"
+            },
+            {
+              "law": "every x with x < size: never 1 <= CT[x] and starte",
+              "family": 27,
+              "pass": 0,
+              "allowance": 2222,
+              "units": 27,
+              "wallMs": 20,
+              "outcome": "kept"
+            },
+            {
+              "law": "every x with x < size: never 1 <= CT[x] and picked",
+              "family": 27,
+              "pass": 0,
+              "allowance": 2222,
+              "units": 41,
+              "wallMs": 38,
+              "outcome": "kept"
+            },
+            {
+              "law": "every x with x < size: never 1 <= St[x] and CfgT[x",
+              "family": 27,
+              "pass": 0,
+              "allowance": 2222,
+              "units": 229,
+              "wallMs": 100,
+              "outcome": "kept"
+            },
+            {
+              "law": "every x with x < size: never 1 <= St[x] and starte",
+              "family": 27,
+              "pass": 0,
+              "allowance": 2222,
+              "units": 29,
+              "wallMs": 21,
+              "outcome": "kept"
+            },
+            {
+              "law": "every x with x < size: never 1 <= St[x] and picked",
+              "family": 27,
+              "pass": 0,
+              "allowance": 2222,
+              "units": 42,
+              "wallMs": 42,
+              "outcome": "kept"
+            },
+            {
+              "law": "every x with x < size: never 1 <= CfgT[x] and star",
+              "family": 27,
+              "pass": 0,
+              "allowance": 2222,
+              "units": 29,
+              "wallMs": 23,
+              "outcome": "kept"
+            },
+            {
+              "law": "every x with x < size: never 1 <= CfgT[x] and pick",
+              "family": 27,
+              "pass": 0,
+              "allowance": 2222,
+              "units": 43,
+              "wallMs": 25,
+              "outcome": "kept"
+            },
+            {
+              "law": "every x, y with x < size ∧ y < size ∧ ¬(x = y): ne",
+              "family": 27,
+              "pass": 0,
+              "allowance": 2222,
+              "units": 120,
+              "wallMs": 67,
+              "outcome": "kept"
+            },
+            {
+              "law": "every x, y with x < size ∧ y < size ∧ ¬(x = y): ne",
+              "family": 27,
+              "pass": 0,
+              "allowance": 2222,
+              "units": 159,
+              "wallMs": 83,
+              "outcome": "kept"
+            },
+            {
+              "law": "every x, y with x < size ∧ y < size ∧ ¬(x = y): ne",
+              "family": 27,
+              "pass": 0,
+              "allowance": 2222,
+              "units": 182,
+              "wallMs": 95,
+              "outcome": "kept"
+            },
+            {
+              "law": "every C0 cell is a value of its kind",
+              "family": 27,
+              "pass": 0,
+              "allowance": 2222,
+              "units": 5,
+              "wallMs": 6,
+              "outcome": "kept"
+            },
+            {
+              "law": "every Copied cell is a value of its kind",
+              "family": 27,
+              "pass": 0,
+              "allowance": 2222,
+              "units": 13,
+              "wallMs": 11,
+              "outcome": "kept"
+            },
+            {
+              "law": "every Config cell is a value of its kind",
+              "family": 27,
+              "pass": 0,
+              "allowance": 2222,
+              "units": 7,
+              "wallMs": 7,
+              "outcome": "kept"
+            }
+          ],
+          "safetyTried": true
+        },
+        {
+          "side": "candidate",
+          "result": {
+            "id": "mldr",
+            "ic3syn": "mldr",
+            "search": {
+              "verdict": "unknown",
+              "why": "not proven: one primary per term",
+              "found": [
+                "every Config cell is a value of its kind",
+                "one primary per term",
+                "St at most 1",
+                "fields: St[a]=1 -> CT[a]=CfgT[a]",
+                "fields: St[a]=1 -> CT[a]<=CfgT[a]",
+                "fields: St[a]=1 -> CfgT[a]<=CT[a]",
+                "every x with x < size: never CT[x] is 0 and 1 <= St[x]",
+                "every x with x < size: never 1 <= CT[x] and CV[x] is 0",
+                "every x with x < size: never 1 <= CT[x] and started is 0",
+                "every x with x < size: never 1 <= St[x] and CV[x] is 0",
+                "every x with x < size: never 1 <= St[x] and CfgT[x] is 0",
+                "every x with x < size: never 1 <= St[x] and started is 0",
+                "every x with x < size: never CV[x] is 0 and 1 <= CfgT[x]",
+                "every x with x < size: never CV[x] is 0 and 1 <= started",
+                "every x with x < size: never 1 <= CfgT[x] and started is 0",
+                "every x, y with x < size ∧ y < size ∧ ¬(x = y): never 1 <= CT[x] and CV[y] is 0",
+                "every x, y with x < size ∧ y < size ∧ ¬(x = y): never 1 <= St[x] and CV[y] is 0",
+                "every x, y with x < size ∧ y < size ∧ ¬(x = y): never CV[x] is 0 and 1 <= CfgT[y]",
+                "count cubes: every x with x < {\"op\":\"var\",\"name\":\"size\"}: never CV[x] is 0 and 1 <= inX$row[x]"
+              ],
+              "ms": 58523,
+              "work": 65152507,
+              "full": 15000229
+            }
+          },
+          "exit": "0",
+          "preAttemptWallMs": 8321.972003999997,
+          "generationWallMs": 8320.246040999997,
+          "candidates": [
+            [
+              "every Config cell is a value of its kind",
+              "one primary per term",
+              "St at most 1",
+              "fields: St[a]=1 -> CT[a]=CfgT[a]",
+              "fields: St[a]=1 -> CT[a]<=CfgT[a]",
+              "fields: St[a]=1 -> CT[a]=CT[b] -> CfgT[b]<=CfgT[a]",
+              "fields: St[a]=1 -> CfgT[a]<=CT[a]",
+              "fields: St[a]=1 -> CfgT[a]=CfgT[b] -> CV[b]<=CV[a]",
+              "every x with x < size: never CT[x] is 0 and 1 <= St[x]",
+              "every x with x < size: never 1 <= CT[x] and CV[x] is 0",
+              "every x with x < size: never 1 <= CT[x] and started is 0",
+              "every x with x < size: never 1 <= St[x] and CV[x] is 0",
+              "every x with x < size: never 1 <= St[x] and CfgT[x] is 0",
+              "every x with x < size: never 1 <= St[x] and started is 0",
+              "every x with x < size: never CV[x] is 0 and 1 <= CfgT[x]",
+              "every x with x < size: never CV[x] is 0 and 1 <= started",
+              "every x with x < size: never 1 <= CfgT[x] and started is 0",
+              "every x, y with x < size ∧ y < size ∧ ¬(x = y): never 1 <= CT[x] and CV[y] is 0",
+              "every x, y with x < size ∧ y < size ∧ ¬(x = y): never 1 <= St[x] and CV[y] is 0",
+              "every x, y with x < size ∧ y < size ∧ ¬(x = y): never CV[x] is 0 and 1 <= CfgT[y]",
+              "inX: no quorum canVote/1",
+              "inX: no quorum canVote/3",
+              "inX: stored guard reconfigs/inS",
+              "inX: stored guard reconfigs/inS or disabled/0",
+              "inX: stored guard reconfigs/inS or disabled/1",
+              "inX: stored guard reconfigs/inS or disabled/2",
+              "inX: stored guard reconfigs/inS or disabled/3",
+              "fields: CV[a]=CV[b] and CfgT[a]=CfgT[b] -> Config rows agree",
+              "count cubes: every x with x < {\"op\":\"var\",\"name\":\"size\"}: never 1 <= started and inX$row[x] is 0",
+              "count cubes: every x with x < {\"op\":\"var\",\"name\":\"size\"}: never 1 <= CT[x] and inX$row[x] is 0",
+              "count cubes: every x with x < {\"op\":\"var\",\"name\":\"size\"}: never CV[x] is 0 and 1 <= inX$row[x]",
+              "count cubes: every x with x < {\"op\":\"var\",\"name\":\"size\"}: never 1 <= CV[x] and inX$row[x] is 0",
+              "count cubes: every x with x < {\"op\":\"var\",\"name\":\"size\"}: never 1 <= CfgT[x] and inX$row[x] is 0",
+              "count cubes: every x with x < {\"op\":\"var\",\"name\":\"size\"}: never 1 <= St[x] and inX$row[x] is 0"
+            ]
+          ],
+          "attempts": [
+            {
+              "law": "St at most 1",
+              "family": 34,
+              "pass": 0,
+              "allowance": 1765,
+              "units": 88,
+              "wallMs": 89,
+              "outcome": "kept"
+            },
+            {
+              "law": "fields: St[a]=1 -> CT[a]=CfgT[a]",
+              "family": 34,
+              "pass": 0,
+              "allowance": 1816,
+              "units": 301,
+              "wallMs": 156,
+              "outcome": "kept"
+            },
+            {
+              "law": "fields: St[a]=1 -> CT[a]<=CfgT[a]",
+              "family": 34,
+              "pass": 0,
+              "allowance": 1863,
+              "units": 318,
+              "wallMs": 136,
+              "outcome": "kept"
+            },
+            {
+              "law": "fields: St[a]=1 -> CT[a]=CT[b] -> CfgT[b]<=CfgT[a]",
+              "family": 34,
+              "pass": 0,
+              "allowance": 1913,
+              "units": 1913,
+              "wallMs": 1242,
+              "outcome": "sat"
+            },
+            {
+              "law": "fields: St[a]=1 -> CT[a]=CT[b] -> CfgT[b]<=CfgT[a]",
+              "family": 34,
+              "pass": 1,
+              "allowance": 1913,
+              "units": 1913,
+              "wallMs": 1139,
+              "outcome": "unknown"
+            },
+            {
+              "law": "fields: St[a]=1 -> CfgT[a]<=CT[a]",
+              "family": 34,
+              "pass": 0,
+              "allowance": 1849,
+              "units": 316,
+              "wallMs": 137,
+              "outcome": "kept"
+            },
+            {
+              "law": "fields: St[a]=1 -> CfgT[a]=CfgT[b] -> CV[b]<=CV[a]",
+              "family": 34,
+              "pass": 0,
+              "allowance": 1902,
+              "units": 1903,
+              "wallMs": 1155,
+              "outcome": "sat"
+            },
+            {
+              "law": "fields: St[a]=1 -> CfgT[a]=CfgT[b] -> CV[b]<=CV[a]",
+              "family": 34,
+              "pass": 1,
+              "allowance": 1902,
+              "units": 1902,
+              "wallMs": 951,
+              "outcome": "unknown"
+            },
+            {
+              "law": "every x with x < size: never CT[x] is 0 and 1 <= S",
+              "family": 34,
+              "pass": 0,
+              "allowance": 1834,
+              "units": 97,
+              "wallMs": 40,
+              "outcome": "kept"
+            },
+            {
+              "law": "every x with x < size: never 1 <= CT[x] and CV[x] ",
+              "family": 34,
+              "pass": 0,
+              "allowance": 1898,
+              "units": 198,
+              "wallMs": 107,
+              "outcome": "kept"
+            },
+            {
+              "law": "every x with x < size: never 1 <= CT[x] and starte",
+              "family": 34,
+              "pass": 0,
+              "allowance": 1963,
+              "units": 64,
+              "wallMs": 38,
+              "outcome": "kept"
+            },
+            {
+              "law": "every x with x < size: never 1 <= St[x] and CV[x] ",
+              "family": 34,
+              "pass": 0,
+              "allowance": 2039,
+              "units": 148,
+              "wallMs": 60,
+              "outcome": "kept"
+            },
+            {
+              "law": "every x with x < size: never 1 <= St[x] and CfgT[x",
+              "family": 34,
+              "pass": 0,
+              "allowance": 2118,
+              "units": 271,
+              "wallMs": 124,
+              "outcome": "kept"
+            },
+            {
+              "law": "every x with x < size: never 1 <= St[x] and starte",
+              "family": 34,
+              "pass": 0,
+              "allowance": 2199,
+              "units": 70,
+              "wallMs": 39,
+              "outcome": "kept"
+            },
+            {
+              "law": "every x with x < size: never CV[x] is 0 and 1 <= C",
+              "family": 34,
+              "pass": 0,
+              "allowance": 2295,
+              "units": 259,
+              "wallMs": 131,
+              "outcome": "kept"
+            },
+            {
+              "law": "every x with x < size: never CV[x] is 0 and 1 <= s",
+              "family": 34,
+              "pass": 0,
+              "allowance": 2392,
+              "units": 180,
+              "wallMs": 81,
+              "outcome": "kept"
+            },
+            {
+              "law": "every x with x < size: never 1 <= CfgT[x] and star",
+              "family": 34,
+              "pass": 0,
+              "allowance": 2503,
+              "units": 64,
+              "wallMs": 41,
+              "outcome": "kept"
+            },
+            {
+              "law": "every x, y with x < size ∧ y < size ∧ ¬(x = y): ne",
+              "family": 34,
+              "pass": 0,
+              "allowance": 2631,
+              "units": 225,
+              "wallMs": 128,
+              "outcome": "kept"
+            },
+            {
+              "law": "every x, y with x < size ∧ y < size ∧ ¬(x = y): ne",
+              "family": 34,
+              "pass": 0,
+              "allowance": 2765,
+              "units": 305,
+              "wallMs": 119,
+              "outcome": "kept"
+            },
+            {
+              "law": "every x, y with x < size ∧ y < size ∧ ¬(x = y): ne",
+              "family": 34,
+              "pass": 0,
+              "allowance": 2910,
+              "units": 240,
+              "wallMs": 135,
+              "outcome": "kept"
+            },
+            {
+              "law": "inX: no quorum canVote/1",
+              "family": 34,
+              "pass": 0,
+              "allowance": 3077,
+              "units": 98,
+              "wallMs": 47,
+              "outcome": "sat"
+            },
+            {
+              "law": "inX: no quorum canVote/1",
+              "family": 34,
+              "pass": 1,
+              "allowance": 3077,
+              "units": 3080,
+              "wallMs": 2897,
+              "outcome": "unknown"
+            },
+            {
+              "law": "inX: no quorum canVote/3",
+              "family": 34,
+              "pass": 0,
+              "allowance": 3070,
+              "units": 98,
+              "wallMs": 47,
+              "outcome": "sat"
+            },
+            {
+              "law": "inX: no quorum canVote/3",
+              "family": 34,
+              "pass": 1,
+              "allowance": 3070,
+              "units": 3078,
+              "wallMs": 3361,
+              "outcome": "unknown"
+            },
+            {
+              "law": "inX: stored guard reconfigs/inS",
+              "family": 34,
+              "pass": 0,
+              "allowance": 3062,
+              "units": 132,
+              "wallMs": 61,
+              "outcome": "sat"
+            },
+            {
+              "law": "inX: stored guard reconfigs/inS",
+              "family": 34,
+              "pass": 1,
+              "allowance": 3062,
+              "units": 3063,
+              "wallMs": 3515,
+              "outcome": "unknown"
+            },
+            {
+              "law": "inX: stored guard reconfigs/inS or disabled/0",
+              "family": 34,
+              "pass": 0,
+              "allowance": 3052,
+              "units": 141,
+              "wallMs": 73,
+              "outcome": "sat"
+            },
+            {
+              "law": "inX: stored guard reconfigs/inS or disabled/0",
+              "family": 34,
+              "pass": 1,
+              "allowance": 3052,
+              "units": 3054,
+              "wallMs": 3347,
+              "outcome": "unknown"
+            },
+            {
+              "law": "inX: stored guard reconfigs/inS or disabled/1",
+              "family": 34,
+              "pass": 0,
+              "allowance": 3040,
+              "units": 141,
+              "wallMs": 67,
+              "outcome": "sat"
+            },
+            {
+              "law": "inX: stored guard reconfigs/inS or disabled/1",
+              "family": 34,
+              "pass": 1,
+              "allowance": 3040,
+              "units": 3042,
+              "wallMs": 3351,
+              "outcome": "unknown"
+            },
+            {
+              "law": "inX: stored guard reconfigs/inS or disabled/2",
+              "family": 34,
+              "pass": 0,
+              "allowance": 3027,
+              "units": 141,
+              "wallMs": 61,
+              "outcome": "sat"
+            },
+            {
+              "law": "inX: stored guard reconfigs/inS or disabled/2",
+              "family": 34,
+              "pass": 1,
+              "allowance": 3027,
+              "units": 3029,
+              "wallMs": 2950,
+              "outcome": "unknown"
+            },
+            {
+              "law": "inX: stored guard reconfigs/inS or disabled/3",
+              "family": 34,
+              "pass": 0,
+              "allowance": 3013,
+              "units": 141,
+              "wallMs": 65,
+              "outcome": "sat"
+            },
+            {
+              "law": "inX: stored guard reconfigs/inS or disabled/3",
+              "family": 34,
+              "pass": 1,
+              "allowance": 3013,
+              "units": 3015,
+              "wallMs": 2934,
+              "outcome": "unknown"
+            },
+            {
+              "law": "fields: CV[a]=CV[b] and CfgT[a]=CfgT[b] -> Config ",
+              "family": 34,
+              "pass": 0,
+              "allowance": 2997,
+              "units": 2997,
+              "wallMs": 3037,
+              "outcome": "sat"
+            },
+            {
+              "law": "fields: CV[a]=CV[b] and CfgT[a]=CfgT[b] -> Config ",
+              "family": 34,
+              "pass": 1,
+              "allowance": 2997,
+              "units": 2997,
+              "wallMs": 1280,
+              "outcome": "unknown"
+            },
+            {
+              "law": "count cubes: every x with x < {\"op\":\"var\",\"name\":\"",
+              "family": 34,
+              "pass": 0,
+              "allowance": 2622,
+              "units": 96,
+              "wallMs": 52,
+              "outcome": "sat"
+            },
+            {
+              "law": "count cubes: every x with x < {\"op\":\"var\",\"name\":\"",
+              "family": 34,
+              "pass": 1,
+              "allowance": 2622,
+              "units": 2622,
+              "wallMs": 2024,
+              "outcome": "unknown"
+            },
+            {
+              "law": "count cubes: every x with x < {\"op\":\"var\",\"name\":\"",
+              "family": 34,
+              "pass": 0,
+              "allowance": 2608,
+              "units": 96,
+              "wallMs": 50,
+              "outcome": "sat"
+            },
+            {
+              "law": "count cubes: every x with x < {\"op\":\"var\",\"name\":\"",
+              "family": 34,
+              "pass": 1,
+              "allowance": 2608,
+              "units": 2609,
+              "wallMs": 2164,
+              "outcome": "unknown"
+            },
+            {
+              "law": "count cubes: every x with x < {\"op\":\"var\",\"name\":\"",
+              "family": 34,
+              "pass": 0,
+              "allowance": 2592,
+              "units": 117,
+              "wallMs": 240,
+              "outcome": "sat"
+            },
+            {
+              "law": "count cubes: every x with x < {\"op\":\"var\",\"name\":\"",
+              "family": 34,
+              "pass": 1,
+              "allowance": 2592,
+              "units": 2338,
+              "wallMs": 2071,
+              "outcome": "kept"
+            },
+            {
+              "law": "count cubes: every x with x < {\"op\":\"var\",\"name\":\"",
+              "family": 34,
+              "pass": 0,
+              "allowance": 2620,
+              "units": 113,
+              "wallMs": 242,
+              "outcome": "sat"
+            },
+            {
+              "law": "count cubes: every x with x < {\"op\":\"var\",\"name\":\"",
+              "family": 34,
+              "pass": 1,
+              "allowance": 2620,
+              "units": 2620,
+              "wallMs": 2390,
+              "outcome": "unknown"
+            },
+            {
+              "law": "count cubes: every x with x < {\"op\":\"var\",\"name\":\"",
+              "family": 34,
+              "pass": 0,
+              "allowance": 2591,
+              "units": 108,
+              "wallMs": 75,
+              "outcome": "sat"
+            },
+            {
+              "law": "count cubes: every x with x < {\"op\":\"var\",\"name\":\"",
+              "family": 34,
+              "pass": 1,
+              "allowance": 2591,
+              "units": 2592,
+              "wallMs": 2827,
+              "outcome": "unknown"
+            },
+            {
+              "law": "count cubes: every x with x < {\"op\":\"var\",\"name\":\"",
+              "family": 34,
+              "pass": 0,
+              "allowance": 2555,
+              "units": 362,
+              "wallMs": 206,
+              "outcome": "sat"
+            },
+            {
+              "law": "count cubes: every x with x < {\"op\":\"var\",\"name\":\"",
+              "family": 34,
+              "pass": 1,
+              "allowance": 2555,
+              "units": 2556,
+              "wallMs": 2166,
+              "outcome": "unknown"
+            },
+            {
+              "law": "every Config cell is a value of its kind",
+              "family": 34,
+              "pass": 0,
+              "allowance": 2374,
+              "units": 8,
+              "wallMs": 14,
+              "outcome": "kept"
+            },
+            {
+              "law": "one primary per term",
+              "family": 34,
+              "pass": 0,
+              "allowance": 4741,
+              "units": 3597,
+              "wallMs": 1724,
+              "outcome": "kept"
+            },
+            {
+              "law": "one primary per term",
+              "family": 19,
+              "pass": 0,
+              "allowance": 1144,
+              "units": 1145,
+              "wallMs": 809,
+              "outcome": "sat"
+            }
+          ],
+          "kept": [
+            {
+              "law": "St at most 1",
+              "family": 34,
+              "pass": 0,
+              "allowance": 1765,
+              "units": 88,
+              "wallMs": 89,
+              "outcome": "kept"
+            },
+            {
+              "law": "fields: St[a]=1 -> CT[a]=CfgT[a]",
+              "family": 34,
+              "pass": 0,
+              "allowance": 1816,
+              "units": 301,
+              "wallMs": 156,
+              "outcome": "kept"
+            },
+            {
+              "law": "fields: St[a]=1 -> CT[a]<=CfgT[a]",
+              "family": 34,
+              "pass": 0,
+              "allowance": 1863,
+              "units": 318,
+              "wallMs": 136,
+              "outcome": "kept"
+            },
+            {
+              "law": "fields: St[a]=1 -> CfgT[a]<=CT[a]",
+              "family": 34,
+              "pass": 0,
+              "allowance": 1849,
+              "units": 316,
+              "wallMs": 137,
+              "outcome": "kept"
+            },
+            {
+              "law": "every x with x < size: never CT[x] is 0 and 1 <= S",
+              "family": 34,
+              "pass": 0,
+              "allowance": 1834,
+              "units": 97,
+              "wallMs": 40,
+              "outcome": "kept"
+            },
+            {
+              "law": "every x with x < size: never 1 <= CT[x] and CV[x] ",
+              "family": 34,
+              "pass": 0,
+              "allowance": 1898,
+              "units": 198,
+              "wallMs": 107,
+              "outcome": "kept"
+            },
+            {
+              "law": "every x with x < size: never 1 <= CT[x] and starte",
+              "family": 34,
+              "pass": 0,
+              "allowance": 1963,
+              "units": 64,
+              "wallMs": 38,
+              "outcome": "kept"
+            },
+            {
+              "law": "every x with x < size: never 1 <= St[x] and CV[x] ",
+              "family": 34,
+              "pass": 0,
+              "allowance": 2039,
+              "units": 148,
+              "wallMs": 60,
+              "outcome": "kept"
+            },
+            {
+              "law": "every x with x < size: never 1 <= St[x] and CfgT[x",
+              "family": 34,
+              "pass": 0,
+              "allowance": 2118,
+              "units": 271,
+              "wallMs": 124,
+              "outcome": "kept"
+            },
+            {
+              "law": "every x with x < size: never 1 <= St[x] and starte",
+              "family": 34,
+              "pass": 0,
+              "allowance": 2199,
+              "units": 70,
+              "wallMs": 39,
+              "outcome": "kept"
+            },
+            {
+              "law": "every x with x < size: never CV[x] is 0 and 1 <= C",
+              "family": 34,
+              "pass": 0,
+              "allowance": 2295,
+              "units": 259,
+              "wallMs": 131,
+              "outcome": "kept"
+            },
+            {
+              "law": "every x with x < size: never CV[x] is 0 and 1 <= s",
+              "family": 34,
+              "pass": 0,
+              "allowance": 2392,
+              "units": 180,
+              "wallMs": 81,
+              "outcome": "kept"
+            },
+            {
+              "law": "every x with x < size: never 1 <= CfgT[x] and star",
+              "family": 34,
+              "pass": 0,
+              "allowance": 2503,
+              "units": 64,
+              "wallMs": 41,
+              "outcome": "kept"
+            },
+            {
+              "law": "every x, y with x < size ∧ y < size ∧ ¬(x = y): ne",
+              "family": 34,
+              "pass": 0,
+              "allowance": 2631,
+              "units": 225,
+              "wallMs": 128,
+              "outcome": "kept"
+            },
+            {
+              "law": "every x, y with x < size ∧ y < size ∧ ¬(x = y): ne",
+              "family": 34,
+              "pass": 0,
+              "allowance": 2765,
+              "units": 305,
+              "wallMs": 119,
+              "outcome": "kept"
+            },
+            {
+              "law": "every x, y with x < size ∧ y < size ∧ ¬(x = y): ne",
+              "family": 34,
+              "pass": 0,
+              "allowance": 2910,
+              "units": 240,
+              "wallMs": 135,
+              "outcome": "kept"
+            },
+            {
+              "law": "count cubes: every x with x < {\"op\":\"var\",\"name\":\"",
+              "family": 34,
+              "pass": 1,
+              "allowance": 2592,
+              "units": 2338,
+              "wallMs": 2071,
+              "outcome": "kept"
+            },
+            {
+              "law": "every Config cell is a value of its kind",
+              "family": 34,
+              "pass": 0,
+              "allowance": 2374,
+              "units": 8,
+              "wallMs": 14,
+              "outcome": "kept"
+            },
+            {
+              "law": "one primary per term",
+              "family": 34,
+              "pass": 0,
+              "allowance": 4741,
+              "units": 3597,
+              "wallMs": 1724,
+              "outcome": "kept"
+            }
+          ],
+          "safetyTried": true
+        }
+      ]
+    },
+    {
+      "name": "mldr-r2",
+      "placement": {
+        "vm": "bx_8sf3u958",
+        "type": "large",
+        "cpu": "AMD EPYC 4585PX 16-Core Processor",
+        "vcpus": 4,
+        "vm_vcpus": 8,
+        "exclusive": true,
+        "co_tenants": 0
+      },
+      "sha256": "31f3146809336687c3841d463d55fd7c14001120c4f76fe8170fce654eb40d6a",
+      "repeat": 2,
+      "issues": [],
+      "sides": [
+        {
+          "side": "base",
+          "result": {
+            "id": "mldr",
+            "ic3syn": "mldr",
+            "search": {
+              "verdict": "unknown",
+              "why": "not proven: one primary per term",
+              "found": [
+                "every C0 cell is a value of its kind",
+                "every Copied cell is a value of its kind",
+                "every Config cell is a value of its kind",
+                "one primary per term",
+                "St at most 1",
+                "every x: never 1 <= Config[x] and picked is 0",
+                "every x with x < size: never 1 <= C0[x] and picked is 0",
+                "every x with x < size: never Copied[x] is 0 and 1 <= CT[x]",
+                "every x with x < size: never Copied[x] is 0 and 1 <= St[x]",
+                "every x with x < size: never Copied[x] is 0 and 1 <= CfgT[x]",
+                "every x with x < size: never Copied[x] is 0 and 1 <= started",
+                "every x with x < size: never 1 <= Copied[x] and picked is 0",
+                "every x with x < size: never CT[x] is 0 and 1 <= St[x]",
+                "every x with x < size: never 1 <= CT[x] and started is 0",
+                "every x with x < size: never 1 <= CT[x] and picked is 0",
+                "every x with x < size: never 1 <= St[x] and CfgT[x] is 0",
+                "every x with x < size: never 1 <= St[x] and started is 0",
+                "every x with x < size: never 1 <= St[x] and picked is 0",
+                "every x with x < size: never 1 <= CfgT[x] and started is 0",
+                "every x with x < size: never 1 <= CfgT[x] and picked is 0",
+                "every x, y with x < size ∧ y < size ∧ ¬(x = y): never Copied[x] is 0 and 1 <= CT[y]",
+                "every x, y with x < size ∧ y < size ∧ ¬(x = y): never Copied[x] is 0 and 1 <= St[y]",
+                "every x, y with x < size ∧ y < size ∧ ¬(x = y): never Copied[x] is 0 and 1 <= CfgT[y]"
+              ],
+              "ms": 29084,
+              "work": 2657026,
+              "full": 921136
+            }
+          },
+          "exit": "0",
+          "preAttemptWallMs": 26479.568505000003,
+          "generationWallMs": 26477.896184,
+          "candidates": [
+            [
+              "every C0 cell is a value of its kind",
+              "every Copied cell is a value of its kind",
+              "every Config cell is a value of its kind",
+              "one primary per term",
+              "CT at most 73",
+              "St at most 1",
+              "CV at most 2",
+              "CfgT at most 73",
+              "every x: never 1 <= Config[x] and picked is 0",
+              "every x with x < size: never C0[x] is 0 and 1 <= St[x]",
+              "every x with x < size: never 1 <= C0[x] and picked is 0",
+              "every x with x < size: never Copied[x] is 0 and 1 <= CT[x]",
+              "every x with x < size: never Copied[x] is 0 and 1 <= St[x]",
+              "every x with x < size: never Copied[x] is 0 and 1 <= CfgT[x]",
+              "every x with x < size: never Copied[x] is 0 and 1 <= started",
+              "every x with x < size: never 1 <= Copied[x] and picked is 0",
+              "every x with x < size: never CT[x] is 0 and 1 <= St[x]",
+              "every x with x < size: never 1 <= CT[x] and started is 0",
+              "every x with x < size: never 1 <= CT[x] and picked is 0",
+              "every x with x < size: never 1 <= St[x] and CfgT[x] is 0",
+              "every x with x < size: never 1 <= St[x] and started is 0",
+              "every x with x < size: never 1 <= St[x] and picked is 0",
+              "every x with x < size: never 1 <= CfgT[x] and started is 0",
+              "every x with x < size: never 1 <= CfgT[x] and picked is 0",
+              "every x, y with x < size ∧ y < size ∧ ¬(x = y): never Copied[x] is 0 and 1 <= CT[y]",
+              "every x, y with x < size ∧ y < size ∧ ¬(x = y): never Copied[x] is 0 and 1 <= St[y]",
+              "every x, y with x < size ∧ y < size ∧ ¬(x = y): never Copied[x] is 0 and 1 <= CfgT[y]"
+            ]
+          ],
+          "attempts": [
+            {
+              "law": "CT at most 73",
+              "family": 27,
+              "pass": 0,
+              "allowance": 2222,
+              "units": 101,
+              "wallMs": 118,
+              "outcome": "sat"
+            },
+            {
+              "law": "CT at most 73",
+              "family": 27,
+              "pass": 1,
+              "allowance": 2222,
+              "units": 181,
+              "wallMs": 142,
+              "outcome": "sat"
+            },
+            {
+              "law": "St at most 1",
+              "family": 27,
+              "pass": 0,
+              "allowance": 2222,
+              "units": 71,
+              "wallMs": 49,
+              "outcome": "kept"
+            },
+            {
+              "law": "CV at most 2",
+              "family": 27,
+              "pass": 0,
+              "allowance": 2222,
+              "units": 113,
+              "wallMs": 76,
+              "outcome": "sat"
+            },
+            {
+              "law": "CV at most 2",
+              "family": 27,
+              "pass": 1,
+              "allowance": 2222,
+              "units": 182,
+              "wallMs": 113,
+              "outcome": "sat"
+            },
+            {
+              "law": "CfgT at most 73",
+              "family": 27,
+              "pass": 0,
+              "allowance": 2222,
+              "units": 183,
+              "wallMs": 107,
+              "outcome": "sat"
+            },
+            {
+              "law": "CfgT at most 73",
+              "family": 27,
+              "pass": 1,
+              "allowance": 2222,
+              "units": 234,
+              "wallMs": 130,
+              "outcome": "sat"
+            },
+            {
+              "law": "every x: never 1 <= Config[x] and picked is 0",
+              "family": 27,
+              "pass": 0,
+              "allowance": 2222,
+              "units": 77,
+              "wallMs": 68,
+              "outcome": "kept"
+            },
+            {
+              "law": "every x with x < size: never C0[x] is 0 and 1 <= S",
+              "family": 27,
+              "pass": 0,
+              "allowance": 2222,
+              "units": 144,
+              "wallMs": 115,
+              "outcome": "sat"
+            },
+            {
+              "law": "every x with x < size: never C0[x] is 0 and 1 <= S",
+              "family": 27,
+              "pass": 1,
+              "allowance": 2222,
+              "units": 175,
+              "wallMs": 105,
+              "outcome": "sat"
+            },
+            {
+              "law": "every x with x < size: never 1 <= C0[x] and picked",
+              "family": 27,
+              "pass": 0,
+              "allowance": 2222,
+              "units": 35,
+              "wallMs": 38,
+              "outcome": "kept"
+            },
+            {
+              "law": "every x with x < size: never Copied[x] is 0 and 1 ",
+              "family": 27,
+              "pass": 0,
+              "allowance": 2222,
+              "units": 137,
+              "wallMs": 105,
+              "outcome": "kept"
+            },
+            {
+              "law": "every x with x < size: never Copied[x] is 0 and 1 ",
+              "family": 27,
+              "pass": 0,
+              "allowance": 2222,
+              "units": 121,
+              "wallMs": 75,
+              "outcome": "kept"
+            },
+            {
+              "law": "every x with x < size: never Copied[x] is 0 and 1 ",
+              "family": 27,
+              "pass": 0,
+              "allowance": 2222,
+              "units": 96,
+              "wallMs": 80,
+              "outcome": "kept"
+            },
+            {
+              "law": "every x with x < size: never Copied[x] is 0 and 1 ",
+              "family": 27,
+              "pass": 0,
+              "allowance": 2222,
+              "units": 68,
+              "wallMs": 57,
+              "outcome": "kept"
+            },
+            {
+              "law": "every x with x < size: never 1 <= Copied[x] and pi",
+              "family": 27,
+              "pass": 0,
+              "allowance": 2222,
+              "units": 41,
+              "wallMs": 40,
+              "outcome": "kept"
+            },
+            {
+              "law": "every x with x < size: never CT[x] is 0 and 1 <= S",
+              "family": 27,
+              "pass": 0,
+              "allowance": 2222,
+              "units": 92,
+              "wallMs": 49,
+              "outcome": "kept"
+            },
+            {
+              "law": "every x with x < size: never 1 <= CT[x] and starte",
+              "family": 27,
+              "pass": 0,
+              "allowance": 2222,
+              "units": 27,
+              "wallMs": 34,
+              "outcome": "kept"
+            },
+            {
+              "law": "every x with x < size: never 1 <= CT[x] and picked",
+              "family": 27,
+              "pass": 0,
+              "allowance": 2222,
+              "units": 41,
+              "wallMs": 30,
+              "outcome": "kept"
+            },
+            {
+              "law": "every x with x < size: never 1 <= St[x] and CfgT[x",
+              "family": 27,
+              "pass": 0,
+              "allowance": 2222,
+              "units": 229,
+              "wallMs": 164,
+              "outcome": "kept"
+            },
+            {
+              "law": "every x with x < size: never 1 <= St[x] and starte",
+              "family": 27,
+              "pass": 0,
+              "allowance": 2222,
+              "units": 29,
+              "wallMs": 29,
+              "outcome": "kept"
+            },
+            {
+              "law": "every x with x < size: never 1 <= St[x] and picked",
+              "family": 27,
+              "pass": 0,
+              "allowance": 2222,
+              "units": 42,
+              "wallMs": 30,
+              "outcome": "kept"
+            },
+            {
+              "law": "every x with x < size: never 1 <= CfgT[x] and star",
+              "family": 27,
+              "pass": 0,
+              "allowance": 2222,
+              "units": 29,
+              "wallMs": 43,
+              "outcome": "kept"
+            },
+            {
+              "law": "every x with x < size: never 1 <= CfgT[x] and pick",
+              "family": 27,
+              "pass": 0,
+              "allowance": 2222,
+              "units": 43,
+              "wallMs": 31,
+              "outcome": "kept"
+            },
+            {
+              "law": "every x, y with x < size ∧ y < size ∧ ¬(x = y): ne",
+              "family": 27,
+              "pass": 0,
+              "allowance": 2222,
+              "units": 120,
+              "wallMs": 78,
+              "outcome": "kept"
+            },
+            {
+              "law": "every x, y with x < size ∧ y < size ∧ ¬(x = y): ne",
+              "family": 27,
+              "pass": 0,
+              "allowance": 2222,
+              "units": 159,
+              "wallMs": 80,
+              "outcome": "kept"
+            },
+            {
+              "law": "every x, y with x < size ∧ y < size ∧ ¬(x = y): ne",
+              "family": 27,
+              "pass": 0,
+              "allowance": 2222,
+              "units": 182,
+              "wallMs": 122,
+              "outcome": "kept"
+            },
+            {
+              "law": "every C0 cell is a value of its kind",
+              "family": 27,
+              "pass": 0,
+              "allowance": 2222,
+              "units": 5,
+              "wallMs": 9,
+              "outcome": "kept"
+            },
+            {
+              "law": "every Copied cell is a value of its kind",
+              "family": 27,
+              "pass": 0,
+              "allowance": 2222,
+              "units": 13,
+              "wallMs": 14,
+              "outcome": "kept"
+            },
+            {
+              "law": "every Config cell is a value of its kind",
+              "family": 27,
+              "pass": 0,
+              "allowance": 2222,
+              "units": 7,
+              "wallMs": 31,
+              "outcome": "kept"
+            },
+            {
+              "law": "one primary per term",
+              "family": 27,
+              "pass": 0,
+              "allowance": 2222,
+              "units": 323,
+              "wallMs": 177,
+              "outcome": "sat"
+            },
+            {
+              "law": "one primary per term",
+              "family": 27,
+              "pass": 1,
+              "allowance": 2222,
+              "units": 383,
+              "wallMs": 257,
+              "outcome": "sat"
+            },
+            {
+              "law": "one primary per term",
+              "family": 23,
+              "pass": 0,
+              "allowance": 56315,
+              "units": 0,
+              "wallMs": 2,
+              "outcome": "sat"
+            },
+            {
+              "law": "one primary per term",
+              "family": 23,
+              "pass": 1,
+              "allowance": 56315,
+              "units": 0,
+              "wallMs": 2,
+              "outcome": "sat"
+            }
+          ],
+          "kept": [
+            {
+              "law": "St at most 1",
+              "family": 27,
+              "pass": 0,
+              "allowance": 2222,
+              "units": 71,
+              "wallMs": 49,
+              "outcome": "kept"
+            },
+            {
+              "law": "every x: never 1 <= Config[x] and picked is 0",
+              "family": 27,
+              "pass": 0,
+              "allowance": 2222,
+              "units": 77,
+              "wallMs": 68,
+              "outcome": "kept"
+            },
+            {
+              "law": "every x with x < size: never 1 <= C0[x] and picked",
+              "family": 27,
+              "pass": 0,
+              "allowance": 2222,
+              "units": 35,
+              "wallMs": 38,
+              "outcome": "kept"
+            },
+            {
+              "law": "every x with x < size: never Copied[x] is 0 and 1 ",
+              "family": 27,
+              "pass": 0,
+              "allowance": 2222,
+              "units": 137,
+              "wallMs": 105,
+              "outcome": "kept"
+            },
+            {
+              "law": "every x with x < size: never Copied[x] is 0 and 1 ",
+              "family": 27,
+              "pass": 0,
+              "allowance": 2222,
+              "units": 121,
+              "wallMs": 75,
+              "outcome": "kept"
+            },
+            {
+              "law": "every x with x < size: never Copied[x] is 0 and 1 ",
+              "family": 27,
+              "pass": 0,
+              "allowance": 2222,
+              "units": 96,
+              "wallMs": 80,
+              "outcome": "kept"
+            },
+            {
+              "law": "every x with x < size: never Copied[x] is 0 and 1 ",
+              "family": 27,
+              "pass": 0,
+              "allowance": 2222,
+              "units": 68,
+              "wallMs": 57,
+              "outcome": "kept"
+            },
+            {
+              "law": "every x with x < size: never 1 <= Copied[x] and pi",
+              "family": 27,
+              "pass": 0,
+              "allowance": 2222,
+              "units": 41,
+              "wallMs": 40,
+              "outcome": "kept"
+            },
+            {
+              "law": "every x with x < size: never CT[x] is 0 and 1 <= S",
+              "family": 27,
+              "pass": 0,
+              "allowance": 2222,
+              "units": 92,
+              "wallMs": 49,
+              "outcome": "kept"
+            },
+            {
+              "law": "every x with x < size: never 1 <= CT[x] and starte",
+              "family": 27,
+              "pass": 0,
+              "allowance": 2222,
+              "units": 27,
+              "wallMs": 34,
+              "outcome": "kept"
+            },
+            {
+              "law": "every x with x < size: never 1 <= CT[x] and picked",
+              "family": 27,
+              "pass": 0,
+              "allowance": 2222,
+              "units": 41,
+              "wallMs": 30,
+              "outcome": "kept"
+            },
+            {
+              "law": "every x with x < size: never 1 <= St[x] and CfgT[x",
+              "family": 27,
+              "pass": 0,
+              "allowance": 2222,
+              "units": 229,
+              "wallMs": 164,
+              "outcome": "kept"
+            },
+            {
+              "law": "every x with x < size: never 1 <= St[x] and starte",
+              "family": 27,
+              "pass": 0,
+              "allowance": 2222,
+              "units": 29,
+              "wallMs": 29,
+              "outcome": "kept"
+            },
+            {
+              "law": "every x with x < size: never 1 <= St[x] and picked",
+              "family": 27,
+              "pass": 0,
+              "allowance": 2222,
+              "units": 42,
+              "wallMs": 30,
+              "outcome": "kept"
+            },
+            {
+              "law": "every x with x < size: never 1 <= CfgT[x] and star",
+              "family": 27,
+              "pass": 0,
+              "allowance": 2222,
+              "units": 29,
+              "wallMs": 43,
+              "outcome": "kept"
+            },
+            {
+              "law": "every x with x < size: never 1 <= CfgT[x] and pick",
+              "family": 27,
+              "pass": 0,
+              "allowance": 2222,
+              "units": 43,
+              "wallMs": 31,
+              "outcome": "kept"
+            },
+            {
+              "law": "every x, y with x < size ∧ y < size ∧ ¬(x = y): ne",
+              "family": 27,
+              "pass": 0,
+              "allowance": 2222,
+              "units": 120,
+              "wallMs": 78,
+              "outcome": "kept"
+            },
+            {
+              "law": "every x, y with x < size ∧ y < size ∧ ¬(x = y): ne",
+              "family": 27,
+              "pass": 0,
+              "allowance": 2222,
+              "units": 159,
+              "wallMs": 80,
+              "outcome": "kept"
+            },
+            {
+              "law": "every x, y with x < size ∧ y < size ∧ ¬(x = y): ne",
+              "family": 27,
+              "pass": 0,
+              "allowance": 2222,
+              "units": 182,
+              "wallMs": 122,
+              "outcome": "kept"
+            },
+            {
+              "law": "every C0 cell is a value of its kind",
+              "family": 27,
+              "pass": 0,
+              "allowance": 2222,
+              "units": 5,
+              "wallMs": 9,
+              "outcome": "kept"
+            },
+            {
+              "law": "every Copied cell is a value of its kind",
+              "family": 27,
+              "pass": 0,
+              "allowance": 2222,
+              "units": 13,
+              "wallMs": 14,
+              "outcome": "kept"
+            },
+            {
+              "law": "every Config cell is a value of its kind",
+              "family": 27,
+              "pass": 0,
+              "allowance": 2222,
+              "units": 7,
+              "wallMs": 31,
+              "outcome": "kept"
+            }
+          ],
+          "safetyTried": true
+        },
+        {
+          "side": "candidate",
+          "result": {
+            "id": "mldr",
+            "ic3syn": "mldr",
+            "search": {
+              "verdict": "unknown",
+              "stuck": "unknown",
+              "why": "time (rule result)",
+              "ms": 59779,
+              "work": 28704528,
+              "full": 6259574
+            }
+          },
+          "exit": "0",
+          "preAttemptWallMs": 16831.263163,
+          "generationWallMs": 16828.869253999997,
+          "candidates": [
+            [
+              "every Config cell is a value of its kind",
+              "one primary per term",
+              "St at most 1",
+              "fields: St[a]=1 -> CT[a]=CfgT[a]",
+              "fields: St[a]=1 -> CT[a]<=CfgT[a]",
+              "fields: St[a]=1 -> CT[a]=CT[b] -> CfgT[b]<=CfgT[a]",
+              "fields: St[a]=1 -> CfgT[a]<=CT[a]",
+              "fields: St[a]=1 -> CfgT[a]=CfgT[b] -> CV[b]<=CV[a]",
+              "every x with x < size: never CT[x] is 0 and 1 <= St[x]",
+              "every x with x < size: never 1 <= CT[x] and CV[x] is 0",
+              "every x with x < size: never 1 <= CT[x] and started is 0",
+              "every x with x < size: never 1 <= St[x] and CV[x] is 0",
+              "every x with x < size: never 1 <= St[x] and CfgT[x] is 0",
+              "every x with x < size: never 1 <= St[x] and started is 0",
+              "every x with x < size: never CV[x] is 0 and 1 <= CfgT[x]",
+              "every x with x < size: never CV[x] is 0 and 1 <= started",
+              "every x with x < size: never 1 <= CfgT[x] and started is 0",
+              "every x, y with x < size ∧ y < size ∧ ¬(x = y): never 1 <= CT[x] and CV[y] is 0",
+              "every x, y with x < size ∧ y < size ∧ ¬(x = y): never 1 <= St[x] and CV[y] is 0",
+              "every x, y with x < size ∧ y < size ∧ ¬(x = y): never CV[x] is 0 and 1 <= CfgT[y]",
+              "inX: no quorum canVote/1",
+              "inX: no quorum canVote/3",
+              "inX: stored guard reconfigs/inS",
+              "inX: stored guard reconfigs/inS or disabled/0",
+              "inX: stored guard reconfigs/inS or disabled/1",
+              "inX: stored guard reconfigs/inS or disabled/2",
+              "inX: stored guard reconfigs/inS or disabled/3",
+              "fields: CV[a]=CV[b] and CfgT[a]=CfgT[b] -> Config rows agree",
+              "count cubes: every x with x < {\"op\":\"var\",\"name\":\"size\"}: never 1 <= started and inX$row[x] is 0",
+              "count cubes: every x with x < {\"op\":\"var\",\"name\":\"size\"}: never 1 <= CT[x] and inX$row[x] is 0",
+              "count cubes: every x with x < {\"op\":\"var\",\"name\":\"size\"}: never CV[x] is 0 and 1 <= inX$row[x]",
+              "count cubes: every x with x < {\"op\":\"var\",\"name\":\"size\"}: never 1 <= CV[x] and inX$row[x] is 0",
+              "count cubes: every x with x < {\"op\":\"var\",\"name\":\"size\"}: never 1 <= CfgT[x] and inX$row[x] is 0",
+              "count cubes: every x with x < {\"op\":\"var\",\"name\":\"size\"}: never 1 <= St[x] and inX$row[x] is 0"
+            ]
+          ],
+          "attempts": [
+            {
+              "law": "St at most 1",
+              "family": 34,
+              "pass": 0,
+              "allowance": 1765,
+              "units": 88,
+              "wallMs": 166,
+              "outcome": "kept"
+            },
+            {
+              "law": "fields: St[a]=1 -> CT[a]=CfgT[a]",
+              "family": 34,
+              "pass": 0,
+              "allowance": 1816,
+              "units": 301,
+              "wallMs": 232,
+              "outcome": "kept"
+            },
+            {
+              "law": "fields: St[a]=1 -> CT[a]<=CfgT[a]",
+              "family": 34,
+              "pass": 0,
+              "allowance": 1863,
+              "units": 318,
+              "wallMs": 163,
+              "outcome": "kept"
+            },
+            {
+              "law": "fields: St[a]=1 -> CT[a]=CT[b] -> CfgT[b]<=CfgT[a]",
+              "family": 34,
+              "pass": 0,
+              "allowance": 1913,
+              "units": 1913,
+              "wallMs": 2167,
+              "outcome": "sat"
+            },
+            {
+              "law": "fields: St[a]=1 -> CT[a]=CT[b] -> CfgT[b]<=CfgT[a]",
+              "family": 34,
+              "pass": 1,
+              "allowance": 1913,
+              "units": 1913,
+              "wallMs": 2300,
+              "outcome": "unknown"
+            },
+            {
+              "law": "fields: St[a]=1 -> CfgT[a]<=CT[a]",
+              "family": 34,
+              "pass": 0,
+              "allowance": 1849,
+              "units": 316,
+              "wallMs": 183,
+              "outcome": "kept"
+            },
+            {
+              "law": "fields: St[a]=1 -> CfgT[a]=CfgT[b] -> CV[b]<=CV[a]",
+              "family": 34,
+              "pass": 0,
+              "allowance": 1902,
+              "units": 1903,
+              "wallMs": 2110,
+              "outcome": "sat"
+            },
+            {
+              "law": "fields: St[a]=1 -> CfgT[a]=CfgT[b] -> CV[b]<=CV[a]",
+              "family": 34,
+              "pass": 1,
+              "allowance": 1902,
+              "units": 1902,
+              "wallMs": 2740,
+              "outcome": "unknown"
+            },
+            {
+              "law": "every x with x < size: never CT[x] is 0 and 1 <= S",
+              "family": 34,
+              "pass": 0,
+              "allowance": 1834,
+              "units": 97,
+              "wallMs": 68,
+              "outcome": "kept"
+            },
+            {
+              "law": "every x with x < size: never 1 <= CT[x] and CV[x] ",
+              "family": 34,
+              "pass": 0,
+              "allowance": 1898,
+              "units": 198,
+              "wallMs": 168,
+              "outcome": "kept"
+            },
+            {
+              "law": "every x with x < size: never 1 <= CT[x] and starte",
+              "family": 34,
+              "pass": 0,
+              "allowance": 1963,
+              "units": 64,
+              "wallMs": 55,
+              "outcome": "kept"
+            },
+            {
+              "law": "every x with x < size: never 1 <= St[x] and CV[x] ",
+              "family": 34,
+              "pass": 0,
+              "allowance": 2039,
+              "units": 148,
+              "wallMs": 109,
+              "outcome": "kept"
+            },
+            {
+              "law": "every x with x < size: never 1 <= St[x] and CfgT[x",
+              "family": 34,
+              "pass": 0,
+              "allowance": 2118,
+              "units": 271,
+              "wallMs": 203,
+              "outcome": "kept"
+            },
+            {
+              "law": "every x with x < size: never 1 <= St[x] and starte",
+              "family": 34,
+              "pass": 0,
+              "allowance": 2199,
+              "units": 70,
+              "wallMs": 60,
+              "outcome": "kept"
+            },
+            {
+              "law": "every x with x < size: never CV[x] is 0 and 1 <= C",
+              "family": 34,
+              "pass": 0,
+              "allowance": 2295,
+              "units": 259,
+              "wallMs": 187,
+              "outcome": "kept"
+            },
+            {
+              "law": "every x with x < size: never CV[x] is 0 and 1 <= s",
+              "family": 34,
+              "pass": 0,
+              "allowance": 2392,
+              "units": 180,
+              "wallMs": 99,
+              "outcome": "kept"
+            },
+            {
+              "law": "every x with x < size: never 1 <= CfgT[x] and star",
+              "family": 34,
+              "pass": 0,
+              "allowance": 2503,
+              "units": 64,
+              "wallMs": 59,
+              "outcome": "kept"
+            },
+            {
+              "law": "every x, y with x < size ∧ y < size ∧ ¬(x = y): ne",
+              "family": 34,
+              "pass": 0,
+              "allowance": 2631,
+              "units": 225,
+              "wallMs": 192,
+              "outcome": "kept"
+            },
+            {
+              "law": "every x, y with x < size ∧ y < size ∧ ¬(x = y): ne",
+              "family": 34,
+              "pass": 0,
+              "allowance": 2765,
+              "units": 305,
+              "wallMs": 270,
+              "outcome": "kept"
+            },
+            {
+              "law": "every x, y with x < size ∧ y < size ∧ ¬(x = y): ne",
+              "family": 34,
+              "pass": 0,
+              "allowance": 2910,
+              "units": 240,
+              "wallMs": 142,
+              "outcome": "kept"
+            },
+            {
+              "law": "inX: no quorum canVote/1",
+              "family": 34,
+              "pass": 0,
+              "allowance": 3077,
+              "units": 98,
+              "wallMs": 67,
+              "outcome": "sat"
+            },
+            {
+              "law": "inX: no quorum canVote/1",
+              "family": 34,
+              "pass": 1,
+              "allowance": 3077,
+              "units": 3080,
+              "wallMs": 5558,
+              "outcome": "unknown"
+            },
+            {
+              "law": "inX: no quorum canVote/3",
+              "family": 34,
+              "pass": 0,
+              "allowance": 3070,
+              "units": 98,
+              "wallMs": 81,
+              "outcome": "sat"
+            },
+            {
+              "law": "inX: no quorum canVote/3",
+              "family": 34,
+              "pass": 1,
+              "allowance": 3070,
+              "units": 3078,
+              "wallMs": 7346,
+              "outcome": "unknown"
+            },
+            {
+              "law": "inX: stored guard reconfigs/inS",
+              "family": 34,
+              "pass": 0,
+              "allowance": 3062,
+              "units": 132,
+              "wallMs": 132,
+              "outcome": "sat"
+            },
+            {
+              "law": "inX: stored guard reconfigs/inS",
+              "family": 34,
+              "pass": 1,
+              "allowance": 3062,
+              "units": 3063,
+              "wallMs": 10265,
+              "outcome": "unknown"
+            },
+            {
+              "law": "inX: stored guard reconfigs/inS or disabled/0",
+              "family": 34,
+              "pass": 0,
+              "allowance": 3052,
+              "units": 141,
+              "wallMs": 203,
+              "outcome": "sat"
+            },
+            {
+              "law": "inX: stored guard reconfigs/inS or disabled/0",
+              "family": 34,
+              "pass": 1,
+              "allowance": 3052,
+              "units": 3054,
+              "wallMs": 4643,
+              "outcome": "unknown"
+            },
+            {
+              "law": "inX: stored guard reconfigs/inS or disabled/1",
+              "family": 34,
+              "pass": 0,
+              "allowance": 3040,
+              "units": 141,
+              "wallMs": 104,
+              "outcome": "sat"
+            },
+            {
+              "law": "inX: stored guard reconfigs/inS or disabled/1",
+              "family": 34,
+              "pass": 1,
+              "allowance": 3040,
+              "units": 1376,
+              "wallMs": 2868,
+              "outcome": "unknown"
+            }
+          ],
+          "kept": [
+            {
+              "law": "St at most 1",
+              "family": 34,
+              "pass": 0,
+              "allowance": 1765,
+              "units": 88,
+              "wallMs": 166,
+              "outcome": "kept"
+            },
+            {
+              "law": "fields: St[a]=1 -> CT[a]=CfgT[a]",
+              "family": 34,
+              "pass": 0,
+              "allowance": 1816,
+              "units": 301,
+              "wallMs": 232,
+              "outcome": "kept"
+            },
+            {
+              "law": "fields: St[a]=1 -> CT[a]<=CfgT[a]",
+              "family": 34,
+              "pass": 0,
+              "allowance": 1863,
+              "units": 318,
+              "wallMs": 163,
+              "outcome": "kept"
+            },
+            {
+              "law": "fields: St[a]=1 -> CfgT[a]<=CT[a]",
+              "family": 34,
+              "pass": 0,
+              "allowance": 1849,
+              "units": 316,
+              "wallMs": 183,
+              "outcome": "kept"
+            },
+            {
+              "law": "every x with x < size: never CT[x] is 0 and 1 <= S",
+              "family": 34,
+              "pass": 0,
+              "allowance": 1834,
+              "units": 97,
+              "wallMs": 68,
+              "outcome": "kept"
+            },
+            {
+              "law": "every x with x < size: never 1 <= CT[x] and CV[x] ",
+              "family": 34,
+              "pass": 0,
+              "allowance": 1898,
+              "units": 198,
+              "wallMs": 168,
+              "outcome": "kept"
+            },
+            {
+              "law": "every x with x < size: never 1 <= CT[x] and starte",
+              "family": 34,
+              "pass": 0,
+              "allowance": 1963,
+              "units": 64,
+              "wallMs": 55,
+              "outcome": "kept"
+            },
+            {
+              "law": "every x with x < size: never 1 <= St[x] and CV[x] ",
+              "family": 34,
+              "pass": 0,
+              "allowance": 2039,
+              "units": 148,
+              "wallMs": 109,
+              "outcome": "kept"
+            },
+            {
+              "law": "every x with x < size: never 1 <= St[x] and CfgT[x",
+              "family": 34,
+              "pass": 0,
+              "allowance": 2118,
+              "units": 271,
+              "wallMs": 203,
+              "outcome": "kept"
+            },
+            {
+              "law": "every x with x < size: never 1 <= St[x] and starte",
+              "family": 34,
+              "pass": 0,
+              "allowance": 2199,
+              "units": 70,
+              "wallMs": 60,
+              "outcome": "kept"
+            },
+            {
+              "law": "every x with x < size: never CV[x] is 0 and 1 <= C",
+              "family": 34,
+              "pass": 0,
+              "allowance": 2295,
+              "units": 259,
+              "wallMs": 187,
+              "outcome": "kept"
+            },
+            {
+              "law": "every x with x < size: never CV[x] is 0 and 1 <= s",
+              "family": 34,
+              "pass": 0,
+              "allowance": 2392,
+              "units": 180,
+              "wallMs": 99,
+              "outcome": "kept"
+            },
+            {
+              "law": "every x with x < size: never 1 <= CfgT[x] and star",
+              "family": 34,
+              "pass": 0,
+              "allowance": 2503,
+              "units": 64,
+              "wallMs": 59,
+              "outcome": "kept"
+            },
+            {
+              "law": "every x, y with x < size ∧ y < size ∧ ¬(x = y): ne",
+              "family": 34,
+              "pass": 0,
+              "allowance": 2631,
+              "units": 225,
+              "wallMs": 192,
+              "outcome": "kept"
+            },
+            {
+              "law": "every x, y with x < size ∧ y < size ∧ ¬(x = y): ne",
+              "family": 34,
+              "pass": 0,
+              "allowance": 2765,
+              "units": 305,
+              "wallMs": 270,
+              "outcome": "kept"
+            },
+            {
+              "law": "every x, y with x < size ∧ y < size ∧ ¬(x = y): ne",
+              "family": 34,
+              "pass": 0,
+              "allowance": 2910,
+              "units": 240,
+              "wallMs": 142,
+              "outcome": "kept"
+            }
+          ],
+          "safetyTried": false
+        }
+      ]
+    },
+    {
+      "name": "mldr-r3",
+      "placement": {
+        "vm": "bx_8f8tzqk2",
+        "type": "large",
+        "cpu": "AMD EPYC 4585PX 16-Core Processor",
+        "vcpus": 4,
+        "vm_vcpus": 8,
+        "exclusive": true,
+        "co_tenants": 0
+      },
+      "sha256": "a4b69e5e341686b6de4d986de4468ac2454fad0acb0e52f84bfda7ef2077ca99",
+      "repeat": 3,
+      "issues": [],
+      "sides": [
+        {
+          "side": "base",
+          "result": {
+            "id": "mldr",
+            "ic3syn": "mldr",
+            "search": {
+              "verdict": "unknown",
+              "why": "not proven: one primary per term",
+              "found": [
+                "every C0 cell is a value of its kind",
+                "every Copied cell is a value of its kind",
+                "every Config cell is a value of its kind",
+                "one primary per term",
+                "St at most 1",
+                "every x: never 1 <= Config[x] and picked is 0",
+                "every x with x < size: never 1 <= C0[x] and picked is 0",
+                "every x with x < size: never Copied[x] is 0 and 1 <= CT[x]",
+                "every x with x < size: never Copied[x] is 0 and 1 <= St[x]",
+                "every x with x < size: never Copied[x] is 0 and 1 <= CfgT[x]",
+                "every x with x < size: never Copied[x] is 0 and 1 <= started",
+                "every x with x < size: never 1 <= Copied[x] and picked is 0",
+                "every x with x < size: never CT[x] is 0 and 1 <= St[x]",
+                "every x with x < size: never 1 <= CT[x] and started is 0",
+                "every x with x < size: never 1 <= CT[x] and picked is 0",
+                "every x with x < size: never 1 <= St[x] and CfgT[x] is 0",
+                "every x with x < size: never 1 <= St[x] and started is 0",
+                "every x with x < size: never 1 <= St[x] and picked is 0",
+                "every x with x < size: never 1 <= CfgT[x] and started is 0",
+                "every x with x < size: never 1 <= CfgT[x] and picked is 0",
+                "every x, y with x < size ∧ y < size ∧ ¬(x = y): never Copied[x] is 0 and 1 <= CT[y]",
+                "every x, y with x < size ∧ y < size ∧ ¬(x = y): never Copied[x] is 0 and 1 <= St[y]",
+                "every x, y with x < size ∧ y < size ∧ ¬(x = y): never Copied[x] is 0 and 1 <= CfgT[y]"
+              ],
+              "ms": 37042,
+              "work": 2657026,
+              "full": 921136
+            }
+          },
+          "exit": "0",
+          "preAttemptWallMs": 33322.232287,
+          "generationWallMs": 33319.456502,
+          "candidates": [
+            [
+              "every C0 cell is a value of its kind",
+              "every Copied cell is a value of its kind",
+              "every Config cell is a value of its kind",
+              "one primary per term",
+              "CT at most 73",
+              "St at most 1",
+              "CV at most 2",
+              "CfgT at most 73",
+              "every x: never 1 <= Config[x] and picked is 0",
+              "every x with x < size: never C0[x] is 0 and 1 <= St[x]",
+              "every x with x < size: never 1 <= C0[x] and picked is 0",
+              "every x with x < size: never Copied[x] is 0 and 1 <= CT[x]",
+              "every x with x < size: never Copied[x] is 0 and 1 <= St[x]",
+              "every x with x < size: never Copied[x] is 0 and 1 <= CfgT[x]",
+              "every x with x < size: never Copied[x] is 0 and 1 <= started",
+              "every x with x < size: never 1 <= Copied[x] and picked is 0",
+              "every x with x < size: never CT[x] is 0 and 1 <= St[x]",
+              "every x with x < size: never 1 <= CT[x] and started is 0",
+              "every x with x < size: never 1 <= CT[x] and picked is 0",
+              "every x with x < size: never 1 <= St[x] and CfgT[x] is 0",
+              "every x with x < size: never 1 <= St[x] and started is 0",
+              "every x with x < size: never 1 <= St[x] and picked is 0",
+              "every x with x < size: never 1 <= CfgT[x] and started is 0",
+              "every x with x < size: never 1 <= CfgT[x] and picked is 0",
+              "every x, y with x < size ∧ y < size ∧ ¬(x = y): never Copied[x] is 0 and 1 <= CT[y]",
+              "every x, y with x < size ∧ y < size ∧ ¬(x = y): never Copied[x] is 0 and 1 <= St[y]",
+              "every x, y with x < size ∧ y < size ∧ ¬(x = y): never Copied[x] is 0 and 1 <= CfgT[y]"
+            ]
+          ],
+          "attempts": [
+            {
+              "law": "CT at most 73",
+              "family": 27,
+              "pass": 0,
+              "allowance": 2222,
+              "units": 101,
+              "wallMs": 162,
+              "outcome": "sat"
+            },
+            {
+              "law": "CT at most 73",
+              "family": 27,
+              "pass": 1,
+              "allowance": 2222,
+              "units": 181,
+              "wallMs": 206,
+              "outcome": "sat"
+            },
+            {
+              "law": "St at most 1",
+              "family": 27,
+              "pass": 0,
+              "allowance": 2222,
+              "units": 71,
+              "wallMs": 77,
+              "outcome": "kept"
+            },
+            {
+              "law": "CV at most 2",
+              "family": 27,
+              "pass": 0,
+              "allowance": 2222,
+              "units": 113,
+              "wallMs": 103,
+              "outcome": "sat"
+            },
+            {
+              "law": "CV at most 2",
+              "family": 27,
+              "pass": 1,
+              "allowance": 2222,
+              "units": 182,
+              "wallMs": 212,
+              "outcome": "sat"
+            },
+            {
+              "law": "CfgT at most 73",
+              "family": 27,
+              "pass": 0,
+              "allowance": 2222,
+              "units": 183,
+              "wallMs": 211,
+              "outcome": "sat"
+            },
+            {
+              "law": "CfgT at most 73",
+              "family": 27,
+              "pass": 1,
+              "allowance": 2222,
+              "units": 234,
+              "wallMs": 246,
+              "outcome": "sat"
+            },
+            {
+              "law": "every x: never 1 <= Config[x] and picked is 0",
+              "family": 27,
+              "pass": 0,
+              "allowance": 2222,
+              "units": 77,
+              "wallMs": 112,
+              "outcome": "kept"
+            },
+            {
+              "law": "every x with x < size: never C0[x] is 0 and 1 <= S",
+              "family": 27,
+              "pass": 0,
+              "allowance": 2222,
+              "units": 144,
+              "wallMs": 150,
+              "outcome": "sat"
+            },
+            {
+              "law": "every x with x < size: never C0[x] is 0 and 1 <= S",
+              "family": 27,
+              "pass": 1,
+              "allowance": 2222,
+              "units": 175,
+              "wallMs": 211,
+              "outcome": "sat"
+            },
+            {
+              "law": "every x with x < size: never 1 <= C0[x] and picked",
+              "family": 27,
+              "pass": 0,
+              "allowance": 2222,
+              "units": 35,
+              "wallMs": 40,
+              "outcome": "kept"
+            },
+            {
+              "law": "every x with x < size: never Copied[x] is 0 and 1 ",
+              "family": 27,
+              "pass": 0,
+              "allowance": 2222,
+              "units": 137,
+              "wallMs": 167,
+              "outcome": "kept"
+            },
+            {
+              "law": "every x with x < size: never Copied[x] is 0 and 1 ",
+              "family": 27,
+              "pass": 0,
+              "allowance": 2222,
+              "units": 121,
+              "wallMs": 131,
+              "outcome": "kept"
+            },
+            {
+              "law": "every x with x < size: never Copied[x] is 0 and 1 ",
+              "family": 27,
+              "pass": 0,
+              "allowance": 2222,
+              "units": 96,
+              "wallMs": 114,
+              "outcome": "kept"
+            },
+            {
+              "law": "every x with x < size: never Copied[x] is 0 and 1 ",
+              "family": 27,
+              "pass": 0,
+              "allowance": 2222,
+              "units": 68,
+              "wallMs": 67,
+              "outcome": "kept"
+            },
+            {
+              "law": "every x with x < size: never 1 <= Copied[x] and pi",
+              "family": 27,
+              "pass": 0,
+              "allowance": 2222,
+              "units": 41,
+              "wallMs": 34,
+              "outcome": "kept"
+            },
+            {
+              "law": "every x with x < size: never CT[x] is 0 and 1 <= S",
+              "family": 27,
+              "pass": 0,
+              "allowance": 2222,
+              "units": 92,
+              "wallMs": 84,
+              "outcome": "kept"
+            },
+            {
+              "law": "every x with x < size: never 1 <= CT[x] and starte",
+              "family": 27,
+              "pass": 0,
+              "allowance": 2222,
+              "units": 27,
+              "wallMs": 32,
+              "outcome": "kept"
+            },
+            {
+              "law": "every x with x < size: never 1 <= CT[x] and picked",
+              "family": 27,
+              "pass": 0,
+              "allowance": 2222,
+              "units": 41,
+              "wallMs": 55,
+              "outcome": "kept"
+            },
+            {
+              "law": "every x with x < size: never 1 <= St[x] and CfgT[x",
+              "family": 27,
+              "pass": 0,
+              "allowance": 2222,
+              "units": 229,
+              "wallMs": 155,
+              "outcome": "kept"
+            },
+            {
+              "law": "every x with x < size: never 1 <= St[x] and starte",
+              "family": 27,
+              "pass": 0,
+              "allowance": 2222,
+              "units": 29,
+              "wallMs": 48,
+              "outcome": "kept"
+            },
+            {
+              "law": "every x with x < size: never 1 <= St[x] and picked",
+              "family": 27,
+              "pass": 0,
+              "allowance": 2222,
+              "units": 42,
+              "wallMs": 36,
+              "outcome": "kept"
+            },
+            {
+              "law": "every x with x < size: never 1 <= CfgT[x] and star",
+              "family": 27,
+              "pass": 0,
+              "allowance": 2222,
+              "units": 29,
+              "wallMs": 35,
+              "outcome": "kept"
+            },
+            {
+              "law": "every x with x < size: never 1 <= CfgT[x] and pick",
+              "family": 27,
+              "pass": 0,
+              "allowance": 2222,
+              "units": 43,
+              "wallMs": 57,
+              "outcome": "kept"
+            },
+            {
+              "law": "every x, y with x < size ∧ y < size ∧ ¬(x = y): ne",
+              "family": 27,
+              "pass": 0,
+              "allowance": 2222,
+              "units": 120,
+              "wallMs": 82,
+              "outcome": "kept"
+            },
+            {
+              "law": "every x, y with x < size ∧ y < size ∧ ¬(x = y): ne",
+              "family": 27,
+              "pass": 0,
+              "allowance": 2222,
+              "units": 159,
+              "wallMs": 126,
+              "outcome": "kept"
+            },
+            {
+              "law": "every x, y with x < size ∧ y < size ∧ ¬(x = y): ne",
+              "family": 27,
+              "pass": 0,
+              "allowance": 2222,
+              "units": 182,
+              "wallMs": 121,
+              "outcome": "kept"
+            },
+            {
+              "law": "every C0 cell is a value of its kind",
+              "family": 27,
+              "pass": 0,
+              "allowance": 2222,
+              "units": 5,
+              "wallMs": 11,
+              "outcome": "kept"
+            },
+            {
+              "law": "every Copied cell is a value of its kind",
+              "family": 27,
+              "pass": 0,
+              "allowance": 2222,
+              "units": 13,
+              "wallMs": 20,
+              "outcome": "kept"
+            },
+            {
+              "law": "every Config cell is a value of its kind",
+              "family": 27,
+              "pass": 0,
+              "allowance": 2222,
+              "units": 7,
+              "wallMs": 13,
+              "outcome": "kept"
+            },
+            {
+              "law": "one primary per term",
+              "family": 27,
+              "pass": 0,
+              "allowance": 2222,
+              "units": 323,
+              "wallMs": 278,
+              "outcome": "sat"
+            },
+            {
+              "law": "one primary per term",
+              "family": 27,
+              "pass": 1,
+              "allowance": 2222,
+              "units": 383,
+              "wallMs": 309,
+              "outcome": "sat"
+            },
+            {
+              "law": "one primary per term",
+              "family": 23,
+              "pass": 0,
+              "allowance": 56315,
+              "units": 0,
+              "wallMs": 4,
+              "outcome": "sat"
+            },
+            {
+              "law": "one primary per term",
+              "family": 23,
+              "pass": 1,
+              "allowance": 56315,
+              "units": 0,
+              "wallMs": 3,
+              "outcome": "sat"
+            }
+          ],
+          "kept": [
+            {
+              "law": "St at most 1",
+              "family": 27,
+              "pass": 0,
+              "allowance": 2222,
+              "units": 71,
+              "wallMs": 77,
+              "outcome": "kept"
+            },
+            {
+              "law": "every x: never 1 <= Config[x] and picked is 0",
+              "family": 27,
+              "pass": 0,
+              "allowance": 2222,
+              "units": 77,
+              "wallMs": 112,
+              "outcome": "kept"
+            },
+            {
+              "law": "every x with x < size: never 1 <= C0[x] and picked",
+              "family": 27,
+              "pass": 0,
+              "allowance": 2222,
+              "units": 35,
+              "wallMs": 40,
+              "outcome": "kept"
+            },
+            {
+              "law": "every x with x < size: never Copied[x] is 0 and 1 ",
+              "family": 27,
+              "pass": 0,
+              "allowance": 2222,
+              "units": 137,
+              "wallMs": 167,
+              "outcome": "kept"
+            },
+            {
+              "law": "every x with x < size: never Copied[x] is 0 and 1 ",
+              "family": 27,
+              "pass": 0,
+              "allowance": 2222,
+              "units": 121,
+              "wallMs": 131,
+              "outcome": "kept"
+            },
+            {
+              "law": "every x with x < size: never Copied[x] is 0 and 1 ",
+              "family": 27,
+              "pass": 0,
+              "allowance": 2222,
+              "units": 96,
+              "wallMs": 114,
+              "outcome": "kept"
+            },
+            {
+              "law": "every x with x < size: never Copied[x] is 0 and 1 ",
+              "family": 27,
+              "pass": 0,
+              "allowance": 2222,
+              "units": 68,
+              "wallMs": 67,
+              "outcome": "kept"
+            },
+            {
+              "law": "every x with x < size: never 1 <= Copied[x] and pi",
+              "family": 27,
+              "pass": 0,
+              "allowance": 2222,
+              "units": 41,
+              "wallMs": 34,
+              "outcome": "kept"
+            },
+            {
+              "law": "every x with x < size: never CT[x] is 0 and 1 <= S",
+              "family": 27,
+              "pass": 0,
+              "allowance": 2222,
+              "units": 92,
+              "wallMs": 84,
+              "outcome": "kept"
+            },
+            {
+              "law": "every x with x < size: never 1 <= CT[x] and starte",
+              "family": 27,
+              "pass": 0,
+              "allowance": 2222,
+              "units": 27,
+              "wallMs": 32,
+              "outcome": "kept"
+            },
+            {
+              "law": "every x with x < size: never 1 <= CT[x] and picked",
+              "family": 27,
+              "pass": 0,
+              "allowance": 2222,
+              "units": 41,
+              "wallMs": 55,
+              "outcome": "kept"
+            },
+            {
+              "law": "every x with x < size: never 1 <= St[x] and CfgT[x",
+              "family": 27,
+              "pass": 0,
+              "allowance": 2222,
+              "units": 229,
+              "wallMs": 155,
+              "outcome": "kept"
+            },
+            {
+              "law": "every x with x < size: never 1 <= St[x] and starte",
+              "family": 27,
+              "pass": 0,
+              "allowance": 2222,
+              "units": 29,
+              "wallMs": 48,
+              "outcome": "kept"
+            },
+            {
+              "law": "every x with x < size: never 1 <= St[x] and picked",
+              "family": 27,
+              "pass": 0,
+              "allowance": 2222,
+              "units": 42,
+              "wallMs": 36,
+              "outcome": "kept"
+            },
+            {
+              "law": "every x with x < size: never 1 <= CfgT[x] and star",
+              "family": 27,
+              "pass": 0,
+              "allowance": 2222,
+              "units": 29,
+              "wallMs": 35,
+              "outcome": "kept"
+            },
+            {
+              "law": "every x with x < size: never 1 <= CfgT[x] and pick",
+              "family": 27,
+              "pass": 0,
+              "allowance": 2222,
+              "units": 43,
+              "wallMs": 57,
+              "outcome": "kept"
+            },
+            {
+              "law": "every x, y with x < size ∧ y < size ∧ ¬(x = y): ne",
+              "family": 27,
+              "pass": 0,
+              "allowance": 2222,
+              "units": 120,
+              "wallMs": 82,
+              "outcome": "kept"
+            },
+            {
+              "law": "every x, y with x < size ∧ y < size ∧ ¬(x = y): ne",
+              "family": 27,
+              "pass": 0,
+              "allowance": 2222,
+              "units": 159,
+              "wallMs": 126,
+              "outcome": "kept"
+            },
+            {
+              "law": "every x, y with x < size ∧ y < size ∧ ¬(x = y): ne",
+              "family": 27,
+              "pass": 0,
+              "allowance": 2222,
+              "units": 182,
+              "wallMs": 121,
+              "outcome": "kept"
+            },
+            {
+              "law": "every C0 cell is a value of its kind",
+              "family": 27,
+              "pass": 0,
+              "allowance": 2222,
+              "units": 5,
+              "wallMs": 11,
+              "outcome": "kept"
+            },
+            {
+              "law": "every Copied cell is a value of its kind",
+              "family": 27,
+              "pass": 0,
+              "allowance": 2222,
+              "units": 13,
+              "wallMs": 20,
+              "outcome": "kept"
+            },
+            {
+              "law": "every Config cell is a value of its kind",
+              "family": 27,
+              "pass": 0,
+              "allowance": 2222,
+              "units": 7,
+              "wallMs": 13,
+              "outcome": "kept"
+            }
+          ],
+          "safetyTried": true
+        },
+        {
+          "side": "candidate",
+          "result": {
+            "id": "mldr",
+            "ic3syn": "mldr",
+            "search": {
+              "verdict": "unknown",
+              "stuck": "unknown",
+              "why": "time (rule result)",
+              "ms": 59025,
+              "work": 17752118,
+              "full": 4504682
+            }
+          },
+          "exit": "0",
+          "preAttemptWallMs": 12613.043694000002,
+          "generationWallMs": 12609.928892000002,
+          "candidates": [
+            [
+              "every Config cell is a value of its kind",
+              "one primary per term",
+              "St at most 1",
+              "fields: St[a]=1 -> CT[a]=CfgT[a]",
+              "fields: St[a]=1 -> CT[a]<=CfgT[a]",
+              "fields: St[a]=1 -> CT[a]=CT[b] -> CfgT[b]<=CfgT[a]",
+              "fields: St[a]=1 -> CfgT[a]<=CT[a]",
+              "fields: St[a]=1 -> CfgT[a]=CfgT[b] -> CV[b]<=CV[a]",
+              "every x with x < size: never CT[x] is 0 and 1 <= St[x]",
+              "every x with x < size: never 1 <= CT[x] and CV[x] is 0",
+              "every x with x < size: never 1 <= CT[x] and started is 0",
+              "every x with x < size: never 1 <= St[x] and CV[x] is 0",
+              "every x with x < size: never 1 <= St[x] and CfgT[x] is 0",
+              "every x with x < size: never 1 <= St[x] and started is 0",
+              "every x with x < size: never CV[x] is 0 and 1 <= CfgT[x]",
+              "every x with x < size: never CV[x] is 0 and 1 <= started",
+              "every x with x < size: never 1 <= CfgT[x] and started is 0",
+              "every x, y with x < size ∧ y < size ∧ ¬(x = y): never 1 <= CT[x] and CV[y] is 0",
+              "every x, y with x < size ∧ y < size ∧ ¬(x = y): never 1 <= St[x] and CV[y] is 0",
+              "every x, y with x < size ∧ y < size ∧ ¬(x = y): never CV[x] is 0 and 1 <= CfgT[y]",
+              "inX: no quorum canVote/1",
+              "inX: no quorum canVote/3",
+              "inX: stored guard reconfigs/inS",
+              "inX: stored guard reconfigs/inS or disabled/0",
+              "inX: stored guard reconfigs/inS or disabled/1",
+              "inX: stored guard reconfigs/inS or disabled/2",
+              "inX: stored guard reconfigs/inS or disabled/3",
+              "fields: CV[a]=CV[b] and CfgT[a]=CfgT[b] -> Config rows agree",
+              "count cubes: every x with x < {\"op\":\"var\",\"name\":\"size\"}: never 1 <= started and inX$row[x] is 0",
+              "count cubes: every x with x < {\"op\":\"var\",\"name\":\"size\"}: never 1 <= CT[x] and inX$row[x] is 0",
+              "count cubes: every x with x < {\"op\":\"var\",\"name\":\"size\"}: never CV[x] is 0 and 1 <= inX$row[x]",
+              "count cubes: every x with x < {\"op\":\"var\",\"name\":\"size\"}: never 1 <= CV[x] and inX$row[x] is 0",
+              "count cubes: every x with x < {\"op\":\"var\",\"name\":\"size\"}: never 1 <= CfgT[x] and inX$row[x] is 0",
+              "count cubes: every x with x < {\"op\":\"var\",\"name\":\"size\"}: never 1 <= St[x] and inX$row[x] is 0"
+            ]
+          ],
+          "attempts": [
+            {
+              "law": "St at most 1",
+              "family": 34,
+              "pass": 0,
+              "allowance": 1765,
+              "units": 88,
+              "wallMs": 158,
+              "outcome": "kept"
+            },
+            {
+              "law": "fields: St[a]=1 -> CT[a]=CfgT[a]",
+              "family": 34,
+              "pass": 0,
+              "allowance": 1816,
+              "units": 301,
+              "wallMs": 301,
+              "outcome": "kept"
+            },
+            {
+              "law": "fields: St[a]=1 -> CT[a]<=CfgT[a]",
+              "family": 34,
+              "pass": 0,
+              "allowance": 1863,
+              "units": 318,
+              "wallMs": 278,
+              "outcome": "kept"
+            },
+            {
+              "law": "fields: St[a]=1 -> CT[a]=CT[b] -> CfgT[b]<=CfgT[a]",
+              "family": 34,
+              "pass": 0,
+              "allowance": 1913,
+              "units": 1913,
+              "wallMs": 2778,
+              "outcome": "sat"
+            },
+            {
+              "law": "fields: St[a]=1 -> CT[a]=CT[b] -> CfgT[b]<=CfgT[a]",
+              "family": 34,
+              "pass": 1,
+              "allowance": 1913,
+              "units": 1913,
+              "wallMs": 2342,
+              "outcome": "unknown"
+            },
+            {
+              "law": "fields: St[a]=1 -> CfgT[a]<=CT[a]",
+              "family": 34,
+              "pass": 0,
+              "allowance": 1849,
+              "units": 316,
+              "wallMs": 278,
+              "outcome": "kept"
+            },
+            {
+              "law": "fields: St[a]=1 -> CfgT[a]=CfgT[b] -> CV[b]<=CV[a]",
+              "family": 34,
+              "pass": 0,
+              "allowance": 1902,
+              "units": 1903,
+              "wallMs": 3272,
+              "outcome": "sat"
+            },
+            {
+              "law": "fields: St[a]=1 -> CfgT[a]=CfgT[b] -> CV[b]<=CV[a]",
+              "family": 34,
+              "pass": 1,
+              "allowance": 1902,
+              "units": 1902,
+              "wallMs": 7672,
+              "outcome": "unknown"
+            },
+            {
+              "law": "every x with x < size: never CT[x] is 0 and 1 <= S",
+              "family": 34,
+              "pass": 0,
+              "allowance": 1834,
+              "units": 97,
+              "wallMs": 140,
+              "outcome": "kept"
+            },
+            {
+              "law": "every x with x < size: never 1 <= CT[x] and CV[x] ",
+              "family": 34,
+              "pass": 0,
+              "allowance": 1898,
+              "units": 198,
+              "wallMs": 290,
+              "outcome": "kept"
+            },
+            {
+              "law": "every x with x < size: never 1 <= CT[x] and starte",
+              "family": 34,
+              "pass": 0,
+              "allowance": 1963,
+              "units": 64,
+              "wallMs": 111,
+              "outcome": "kept"
+            },
+            {
+              "law": "every x with x < size: never 1 <= St[x] and CV[x] ",
+              "family": 34,
+              "pass": 0,
+              "allowance": 2039,
+              "units": 148,
+              "wallMs": 178,
+              "outcome": "kept"
+            },
+            {
+              "law": "every x with x < size: never 1 <= St[x] and CfgT[x",
+              "family": 34,
+              "pass": 0,
+              "allowance": 2118,
+              "units": 271,
+              "wallMs": 398,
+              "outcome": "kept"
+            },
+            {
+              "law": "every x with x < size: never 1 <= St[x] and starte",
+              "family": 34,
+              "pass": 0,
+              "allowance": 2199,
+              "units": 70,
+              "wallMs": 119,
+              "outcome": "kept"
+            },
+            {
+              "law": "every x with x < size: never CV[x] is 0 and 1 <= C",
+              "family": 34,
+              "pass": 0,
+              "allowance": 2295,
+              "units": 259,
+              "wallMs": 397,
+              "outcome": "kept"
+            },
+            {
+              "law": "every x with x < size: never CV[x] is 0 and 1 <= s",
+              "family": 34,
+              "pass": 0,
+              "allowance": 2392,
+              "units": 180,
+              "wallMs": 232,
+              "outcome": "kept"
+            },
+            {
+              "law": "every x with x < size: never 1 <= CfgT[x] and star",
+              "family": 34,
+              "pass": 0,
+              "allowance": 2503,
+              "units": 64,
+              "wallMs": 125,
+              "outcome": "kept"
+            },
+            {
+              "law": "every x, y with x < size ∧ y < size ∧ ¬(x = y): ne",
+              "family": 34,
+              "pass": 0,
+              "allowance": 2631,
+              "units": 225,
+              "wallMs": 401,
+              "outcome": "kept"
+            },
+            {
+              "law": "every x, y with x < size ∧ y < size ∧ ¬(x = y): ne",
+              "family": 34,
+              "pass": 0,
+              "allowance": 2765,
+              "units": 305,
+              "wallMs": 870,
+              "outcome": "kept"
+            },
+            {
+              "law": "every x, y with x < size ∧ y < size ∧ ¬(x = y): ne",
+              "family": 34,
+              "pass": 0,
+              "allowance": 2910,
+              "units": 240,
+              "wallMs": 646,
+              "outcome": "kept"
+            },
+            {
+              "law": "inX: no quorum canVote/1",
+              "family": 34,
+              "pass": 0,
+              "allowance": 3077,
+              "units": 98,
+              "wallMs": 369,
+              "outcome": "sat"
+            },
+            {
+              "law": "inX: no quorum canVote/1",
+              "family": 34,
+              "pass": 1,
+              "allowance": 3077,
+              "units": 3080,
+              "wallMs": 9366,
+              "outcome": "unknown"
+            },
+            {
+              "law": "inX: no quorum canVote/3",
+              "family": 34,
+              "pass": 0,
+              "allowance": 3070,
+              "units": 98,
+              "wallMs": 109,
+              "outcome": "sat"
+            },
+            {
+              "law": "inX: no quorum canVote/3",
+              "family": 34,
+              "pass": 1,
+              "allowance": 3070,
+              "units": 3078,
+              "wallMs": 10588,
+              "outcome": "unknown"
+            },
+            {
+              "law": "inX: stored guard reconfigs/inS",
+              "family": 34,
+              "pass": 0,
+              "allowance": 3062,
+              "units": 132,
+              "wallMs": 172,
+              "outcome": "sat"
+            },
+            {
+              "law": "inX: stored guard reconfigs/inS",
+              "family": 34,
+              "pass": 1,
+              "allowance": 3062,
+              "units": 757,
+              "wallMs": 4815,
+              "outcome": "unknown"
+            }
+          ],
+          "kept": [
+            {
+              "law": "St at most 1",
+              "family": 34,
+              "pass": 0,
+              "allowance": 1765,
+              "units": 88,
+              "wallMs": 158,
+              "outcome": "kept"
+            },
+            {
+              "law": "fields: St[a]=1 -> CT[a]=CfgT[a]",
+              "family": 34,
+              "pass": 0,
+              "allowance": 1816,
+              "units": 301,
+              "wallMs": 301,
+              "outcome": "kept"
+            },
+            {
+              "law": "fields: St[a]=1 -> CT[a]<=CfgT[a]",
+              "family": 34,
+              "pass": 0,
+              "allowance": 1863,
+              "units": 318,
+              "wallMs": 278,
+              "outcome": "kept"
+            },
+            {
+              "law": "fields: St[a]=1 -> CfgT[a]<=CT[a]",
+              "family": 34,
+              "pass": 0,
+              "allowance": 1849,
+              "units": 316,
+              "wallMs": 278,
+              "outcome": "kept"
+            },
+            {
+              "law": "every x with x < size: never CT[x] is 0 and 1 <= S",
+              "family": 34,
+              "pass": 0,
+              "allowance": 1834,
+              "units": 97,
+              "wallMs": 140,
+              "outcome": "kept"
+            },
+            {
+              "law": "every x with x < size: never 1 <= CT[x] and CV[x] ",
+              "family": 34,
+              "pass": 0,
+              "allowance": 1898,
+              "units": 198,
+              "wallMs": 290,
+              "outcome": "kept"
+            },
+            {
+              "law": "every x with x < size: never 1 <= CT[x] and starte",
+              "family": 34,
+              "pass": 0,
+              "allowance": 1963,
+              "units": 64,
+              "wallMs": 111,
+              "outcome": "kept"
+            },
+            {
+              "law": "every x with x < size: never 1 <= St[x] and CV[x] ",
+              "family": 34,
+              "pass": 0,
+              "allowance": 2039,
+              "units": 148,
+              "wallMs": 178,
+              "outcome": "kept"
+            },
+            {
+              "law": "every x with x < size: never 1 <= St[x] and CfgT[x",
+              "family": 34,
+              "pass": 0,
+              "allowance": 2118,
+              "units": 271,
+              "wallMs": 398,
+              "outcome": "kept"
+            },
+            {
+              "law": "every x with x < size: never 1 <= St[x] and starte",
+              "family": 34,
+              "pass": 0,
+              "allowance": 2199,
+              "units": 70,
+              "wallMs": 119,
+              "outcome": "kept"
+            },
+            {
+              "law": "every x with x < size: never CV[x] is 0 and 1 <= C",
+              "family": 34,
+              "pass": 0,
+              "allowance": 2295,
+              "units": 259,
+              "wallMs": 397,
+              "outcome": "kept"
+            },
+            {
+              "law": "every x with x < size: never CV[x] is 0 and 1 <= s",
+              "family": 34,
+              "pass": 0,
+              "allowance": 2392,
+              "units": 180,
+              "wallMs": 232,
+              "outcome": "kept"
+            },
+            {
+              "law": "every x with x < size: never 1 <= CfgT[x] and star",
+              "family": 34,
+              "pass": 0,
+              "allowance": 2503,
+              "units": 64,
+              "wallMs": 125,
+              "outcome": "kept"
+            },
+            {
+              "law": "every x, y with x < size ∧ y < size ∧ ¬(x = y): ne",
+              "family": 34,
+              "pass": 0,
+              "allowance": 2631,
+              "units": 225,
+              "wallMs": 401,
+              "outcome": "kept"
+            },
+            {
+              "law": "every x, y with x < size ∧ y < size ∧ ¬(x = y): ne",
+              "family": 34,
+              "pass": 0,
+              "allowance": 2765,
+              "units": 305,
+              "wallMs": 870,
+              "outcome": "kept"
+            },
+            {
+              "law": "every x, y with x < size ∧ y < size ∧ ¬(x = y): ne",
+              "family": 34,
+              "pass": 0,
+              "allowance": 2910,
+              "units": 240,
+              "wallMs": 646,
+              "outcome": "kept"
+            }
+          ],
+          "safetyTried": false
+        }
+      ]
+    }
+  ]
+}
