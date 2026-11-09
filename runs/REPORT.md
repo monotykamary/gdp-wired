@@ -79,7 +79,15 @@ the merged-tree tests/typecheck, the 29-list census against `bef4020f` and a per
   (mldr's dense writes have distinct breakpoint sets, so nothing is shared there and the two trees run the same code but for the dropped
   second map validation); **`learning_switch` is not a stable measurement at all:** on one pinned 9950X its small phase read 302 s vs 312 s,
   then 502 s vs 247 s — a 2× swing between consecutive runs of the same tree, which also covers the +16 / +26 / +55 % census readings.
-  A paired CPU profile of `learning_switch`'s generation on both trees is running to see whether the trees differ structurally there. one breakpoint list per step shared by every dense write (the union of their breakpoints; `$dense`
+  **The paired CPU profile closes it** (`runs/track-wall/receipts/lsprof1`, one pinned 9950X, both trees in one job; its exit 141 is the
+  `grep -m1` SIGPIPE in the log pipeline, both sides complete): mine 221.0 s vs base 216.1 s, the same top functions in the same
+  proportions (`fromEntries` 9.1 % / 9.1 %, `go` 7.5 / 7.7, `copyDataProperties` 6.4 / 7.0, `evalC` 6.1 / 7.4, `cloneObject` 5.5 / 5.3) —
+  `learning_switch`'s small phase runs in the **interpreter** (`evalC`/`evalE`/`go`, machine.ts 350–499: its every-key writes have tuple keys,
+  which `compileJs` refuses, so `fastStep` is undefined there) and touches none of this branch's compiled-step work. So the +16 / +26 / +55 %
+  census readings on it were run-to-run variance (2× swings on one pinned VM), **including the one that rejected 7bc4e5fd**; that rejection
+  stands on the evaluation-count argument alone (each dense write evaluated at the others' breakpoints), and 4468efc5's exact sharing is the
+  right form either way. Side finding for lanes B / I, not mldr: 216 s of `learning_switch` generation is interpreter time on a machine
+  `compileJs` refuses (tuple keys at every key) — a compiled path for those would be the single largest generic generation win in the census. one breakpoint list per step shared by every dense write (the union of their breakpoints; `$dense`
   fills the same cells from it), and no second validation in `cells`.
 , violation-driven ranges (`72380dc1`) vs lane A's `c21a6e54`, three pinned large VMs
   (Ryzen 9 9950X ×2, EPYC 4585PX; `runs/track-wall/receipts/rmldr3`, logs gzipped):** verdict `unknown` (time) on all six runs;
