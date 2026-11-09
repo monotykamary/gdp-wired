@@ -4,6 +4,7 @@ import {gunzipSync} from 'node:zlib'
 import {createHash} from 'node:crypto'
 export const base='b788e1959bba1f2e8aa1f94d4cf7c0eb163a2f9c',cpu='AMD Ryzen 9 9950X 16-Core Processor'
 const hash=(s:string)=>createHash('sha256').update(s).digest('hex')
+export const expectedHarness:Record<string,Record<string,string>>=JSON.parse(readFileSync(new URL('./merge-harness-hashes.json',import.meta.url),'utf8'))
 const lines=(s:string,prefix='')=>s.split('\n').flatMap(line=>{if(prefix&&!line.startsWith(prefix))return[];try{return[JSON.parse(line.slice(prefix.length))]}catch{return[]}})
 export function decodeReceipt(text:string){
  const raw=text.split('\n').filter(line=>line.startsWith('BISECT_SUMMARY_GZIP '))
@@ -15,11 +16,11 @@ export function decodeReceipt(text:string){
  if(hash(trace)!==summary.traceSha256)throw new Error('raw trace digest mismatch')
  return {summary,traces:JSON.parse(trace)}
 }
-export function auditSummary(row:any,traces:any[],revision:string){
+export function auditSummary(row:any,traces:any[],revision:string,minimumRepeats=5){
  const issues:string[]=[],check=(ok:boolean,message:string)=>{if(!ok)issues.push(message)}
- check(row.revision===revision&&row.baseline===base,'revision mismatch');check(row.cpu===cpu,'wrong CPU');check(row.strictMs===60000,'budget mismatch');check(row.repeats>=5&&row.records?.length===row.repeats,'missing repeats')
+ check(row.revision===revision&&row.baseline===base,'revision mismatch');check(row.cpu===cpu,'wrong CPU');check(row.strictMs===60000,'budget mismatch');check(row.repeats>=minimumRepeats&&row.records?.length===row.repeats,'missing repeats')
  check(row.meta?.base?.revision===base&&row.meta?.candidate?.revision===revision&&row.meta?.base?.clean===true&&row.meta?.candidate?.clean===true,'source restore mismatch')
- check(row.hashes?.base&&Object.keys(row.hashes.base).length>0&&JSON.stringify(row.hashes.base)===JSON.stringify(row.hashes?.candidate),'protected harness changed')
+ for(const side of ['base','candidate']){const expected=expectedHarness[side==='base'?base:revision];check(!!expected&&Object.keys(row.hashes?.[side]??{}).length===Object.keys(expected).length&&Object.entries(expected).every(([path,digest])=>row.hashes?.[side]?.[path]===digest),'protected harness differs from pinned source: '+side)}
  const seen=new Set<number>()
  for(const record of row.records??[]){
   check(Number.isInteger(record.repeat)&&record.repeat>=1&&record.repeat<=row.repeats&&!seen.has(record.repeat),'invalid or duplicate repeat');seen.add(record.repeat)
@@ -52,7 +53,7 @@ export function summarize(rows:any[]){
   const metric=(side:string,key:string)=>median(proven.map(r=>r.outcomes[side].results[0].search[key]))
   const perLaw=new Map<string,{full:number[],work:number[],wall:number[]}>()
   for(const record of proven){const sums=new Map<string,{base:any,candidate:any}>();for(const side of ['base','candidate'] as const)for(const a of record.outcomes[side].attempts){const pair=sums.get(a.law)??{base:{full:0,work:0,wall:0},candidate:{full:0,work:0,wall:0}};pair[side].full+=a.full;pair[side].work+=a.work;pair[side].wall+=a.wallMs;sums.set(a.law,pair)}for(const [law,s]of sums){const g=perLaw.get(law)??{full:[],work:[],wall:[]};g.full.push(s.candidate.full-s.base.full);g.work.push(s.candidate.work-s.base.work);g.wall.push(s.candidate.wall-s.base.wall);perLaw.set(law,g)}}
-  return {revision,attempted:records.length,complete:complete.length,bothProven:proven.length,qualified:complete.length>=5,lost:complete.filter(r=>r.outcomes.base.results[0].search.verdict==='proven'&&r.outcomes.candidate.results[0].search.verdict!=='proven').map(r=>({replica:r.replica,repeat:r.repeat})),base:{ms:metric('base','ms'),work:metric('base','work'),full:metric('base','full')},candidate:{ms:metric('candidate','ms'),work:metric('candidate','work'),full:metric('candidate','full')},generationWallMs:{base:median(complete.map(r=>r.outcomes.base.generationWallMs)),candidate:median(complete.map(r=>r.outcomes.candidate.generationWallMs))},finitePassMs:{base:median(complete.map(r=>r.outcomes.base.finitePassMs)),candidate:median(complete.map(r=>r.outcomes.candidate.finitePassMs))},lawDeltas:[...perLaw].map(([law,g])=>({law,full:median(g.full),work:median(g.work),wallMs:median(g.wall)})).sort((a,b)=>(b.full??0)-(a.full??0))}
+  return {revision,attempted:records.length,complete:complete.length,bothProven:proven.length,qualified:complete.length>=5,paired:{msDelta:median(proven.map(r=>r.outcomes.candidate.results[0].search.ms-r.outcomes.base.results[0].search.ms)),generationDelta:median(proven.map(r=>r.outcomes.candidate.generationWallMs-r.outcomes.base.generationWallMs)),postGenerationDelta:median(proven.map(r=>(r.outcomes.candidate.results[0].search.ms-r.outcomes.candidate.generationWallMs)-(r.outcomes.base.results[0].search.ms-r.outcomes.base.generationWallMs)))},lost:complete.filter(r=>r.outcomes.base.results[0].search.verdict==='proven'&&r.outcomes.candidate.results[0].search.verdict!=='proven').map(r=>({replica:r.replica,repeat:r.repeat})),base:{ms:metric('base','ms'),work:metric('base','work'),full:metric('base','full')},candidate:{ms:metric('candidate','ms'),work:metric('candidate','work'),full:metric('candidate','full')},generationWallMs:{base:median(complete.map(r=>r.outcomes.base.generationWallMs)),candidate:median(complete.map(r=>r.outcomes.candidate.generationWallMs))},finitePassMs:{base:median(complete.map(r=>r.outcomes.base.finitePassMs)),candidate:median(complete.map(r=>r.outcomes.candidate.finitePassMs))},lawDeltas:[...perLaw].map(([law,g])=>({law,full:median(g.full),work:median(g.work),wallMs:median(g.wall)})).sort((a,b)=>(b.full??0)-(a.full??0))}
  })
 }
 if(import.meta.main){

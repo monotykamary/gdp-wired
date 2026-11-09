@@ -6,7 +6,8 @@ import {spawnSync} from 'node:child_process'
 import {gzipSync} from 'node:zlib'
 import {createHash} from 'node:crypto'
 const revision=process.argv[2]!,replica=Number(process.argv[3]),repeats=Number(process.argv[4]??5)
-if(!/^[a-f0-9]{40}$/.test(revision)||repeats<5)throw new Error('exact revision and at least five repeats required')
+const cohort=process.argv.includes('--cohort')
+if(!/^[a-f0-9]{40}$/.test(revision)||!Number.isInteger(repeats)||repeats<1||(cohort?repeats!==1:repeats<5))throw new Error('exact revision and five repeats, or one explicit cohort repeat, required')
 const cpu=/^model name\s*:\s*(.+)$/m.exec(readFileSync('/proc/cpuinfo','utf8'))?.[1]?.trim()
 if(cpu!=='AMD Ryzen 9 9950X 16-Core Processor'){console.log('BISECT_CPU_SKIP '+JSON.stringify({revision,replica,cpu}));process.exit(0)}
 const {restore,command,harnessHashes}=await import(resolve('research/verify-all/final-gate-common.ts'))
@@ -42,7 +43,7 @@ try{
   }
   records.push({repeat,order,outcomes});console.log('BISECT_PROGRESS '+JSON.stringify({revision,replica,repeat,cpu}))
  }
- const trace=JSON.stringify(traces),summary=JSON.stringify({revision,baseline,replica,repeats,cpu,bun:command('bun',['--version']).trim(),strictMs:60000,meta,hashes,patches,records,traceSha256:digest(trace)})
+ const trace=JSON.stringify(traces),summary=JSON.stringify({revision,baseline,replica,repeats,cohort,cpu,bun:command('bun',['--version']).trim(),strictMs:60000,meta,hashes,patches,records,traceSha256:digest(trace)})
  console.log('BISECT_TRACES_GZIP '+gzipSync(trace).toString('base64'))
  const encoded=gzipSync(summary).toString('base64');if(encoded.length>350000)throw new Error('summary exceeds safe collector tail')
  console.log('BISECT_SUMMARY_GZIP '+encoded)
