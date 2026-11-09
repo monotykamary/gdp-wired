@@ -66,6 +66,7 @@ export type ExtractOptions = Omit<ReadOptions, 'entry' | 'functions'> & {
   shape?: 'class' | 'functions',
   // Explicit opt-in: one closed, pure scalar function (not a state reducer).
   // Safe integers only; numeric literal unions restrict its request domain.
+  // Record arguments are immutable plain-data snapshots: own data properties, no accessors or Proxies.
   mode?: 'standalone',
   // Numbers given as naturals or integers (by the rule's variable name, or `map.field` for a map's numbers).
   domains?: Record<string, 'nat' | 'int'>,

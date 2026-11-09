@@ -59,3 +59,23 @@ test('CI audit B2: falsy map payloads remain present in both truthiness arms', (
     expect(replayed.evidence!.requests).toBeGreaterThan(0)
   }
 }, 60000)
+
+test('CI audit C1: accepted records report the plain-data contract', () => {
+  for (const source of [
+    'export function decide(facts: {enabled: boolean}): boolean { return facts.enabled === facts.enabled; }',
+    'export function decide({enabled}: {enabled: boolean}): {accepted: boolean} { return {accepted: enabled}; }',
+  ]) {
+    const x = extract(source, {entry: 'decide', mode: 'standalone'})
+    expect({ok: x.ok, refusals: x.refusals}).toEqual({ok: true, refusals: []})
+    const notes = x.notes.join('\n')
+    expect(notes).toContain('immutable plain-data snapshots')
+    expect(notes).toContain('own data properties')
+    expect(notes).toContain('no accessors or Proxies')
+  }
+  // An accessor-backed object is explicitly outside that contract, despite its structural type.
+  let reads = 0
+  const outsideContract = {get enabled() { return ++reads % 2 === 0 }}
+  expect(outsideContract.enabled === outsideContract.enabled).toBe(false)
+  const snapshot = {enabled: true}
+  expect(snapshot.enabled === snapshot.enabled).toBe(true)
+})

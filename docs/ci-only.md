@@ -25,6 +25,17 @@ Use `--entry` to choose the function and `--mode standalone` to select the pure-
 
 Early-return decisions over booleans and string-literal unions, comparisons of comparisons, and string-union or nullable scalar results are useful cases for this path. Unsupported effects and code outside the closed function boundary are refused rather than ignored. Put one function's laws immediately above that function. Multi-step protocol models describe flows and remain separate tests: proving an individual decision does not prove that its callers enforce the right order.
 
+### Record arguments are plain-data snapshots
+
+Standalone record inputs model **immutable plain-data snapshots with stable own data properties**. Accessors
+(getters/setters), Proxies, inherited dynamic properties, and mutation during a call are outside this contract,
+even when their TypeScript structural types match. The extractor reports this restriction in its notes whenever
+it accepts a record argument. It cannot inspect every object a future caller will supply; generated replay inputs
+are plain records, so a successful replay does not establish that arbitrary accessor-backed or proxy-backed
+arguments are equivalent. Establish the plain-data contract at the application's input boundary before relying
+on these source-law results. Copying or spreading an unknown object may itself invoke getters or proxy traps;
+it is not an automatic proof that this contract holds.
+
 ## Fallback: keep the model only in tests
 
 For source outside the reader's subset, write a model beside the tests, prove its laws, and test the production function against that model. Neither the model nor the prover needs to ship.

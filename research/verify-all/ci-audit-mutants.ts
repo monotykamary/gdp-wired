@@ -9,6 +9,7 @@ const result = checkMutations({
   lawSuite: 'audit', timeoutMs: 120_000,
   suites: [{name: 'audit', command: ['bun', 'test', 'core/extract-ci-audit.test.ts']}],
   mutants: [
+    {file: 'core/extract-shapes.ts', name: 'C1-drop-plain-data-contract', from: "      s.notes.add('standalone record inputs are immutable plain-data snapshots: own data properties only, no accessors or Proxies')", to: '      // mutant: claim unconstrained structural record equivalence', bug: 'record equivalence advertised without its plain-data restriction'},
     {file: 'core/extract-read.ts', name: 'B2-class-falsy-is-absent', from: 'if (!absenceTest) return present ? [set(pt, true), pe] : [pt, set(pe, true)]', to: 'if (this.standalone && !absenceTest) return present ? [set(pt, true), pe] : [pt, set(pe, true)]', bug: 'present false or zero in class maps is narrowed to absence'},
     {file: 'core/extract-shapes.ts', name: 'P2-shared-record-identity', from: 'const id = ex.id(`input.${prefix}${pname}`), v = make', to: 'const id = `input.${prefix}${pname}`, v = make', bug: 'named and destructured arguments alias the same heap object'},
     {file, name: 'B1-standalone-only-guard', from: guard, to: guard.replace('if ([', 'if (c.strictOptional && ['), bug: 'optional class result bypasses calendar arithmetic guard'},

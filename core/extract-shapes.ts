@@ -357,6 +357,7 @@ export function readStandalone(code: string, file: string, opts: ReadOptions): M
     if (!t.isUnion() && (t.flags & ts.TypeFlags.Object)) {
       const sh = shapeOf(t, s.checker, param)
       if (sh.k !== 'rec' || !sh.fields.length || sh.fields.some(([key, field]) => ['__proto__', 'prototype', 'constructor'].includes(key) || (field.k !== 'bool' && field.k !== 'choice') || (field.k === 'choice' && (field.values.length > 64 || field.values.some(x => !x))))) refuse(param, 'standalone: record inputs need boolean or finite string choice fields')
+      s.notes.add('standalone record inputs are immutable plain-data snapshots: own data properties only, no accessors or Proxies')
       const a = argOf(ex, param, `${name}_`, fn.body ?? fn)
       if (a.events.length !== 1 || Object.keys(a.events[0]!.select).length) refuse(param, 'standalone: record input has multiple variants')
       for (const [id, object] of a.heap) p.heap.set(id, object)
