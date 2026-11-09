@@ -1,0 +1,1 @@
+[{"name":"original34-0","cmd":"INITIAL_TRANSPORT=1 bash research/track-m/lane-f-triangle-pair.sh family before","cpu":2,"memory":8192,"timeout":90},{"name":"original34-1","cmd":"INITIAL_TRANSPORT=1 bash research/track-m/lane-f-triangle-pair.sh family after","cpu":2,"memory":8192,"timeout":90}]

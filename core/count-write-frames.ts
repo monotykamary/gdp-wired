@@ -140,6 +140,20 @@ export function proposeWriteCountFrames(m: Machine, ds: CountDecl[], cert: Pick<
       const kinds: Shape['kind'][] = s.kind === 'intersection' && s.literals.every(l => l.cell.map === map) ? [s.kind, 'single'] : [s.kind]
       for (const kind of kinds) for (const c of incoming.get(indexKey(map, kind, post.below)) ?? []) {
         if (c.v === read[0]) continue
+        // A changed row need not equal its old value. Keep the old directed
+        // difference as a compensating term: d(new,B) <= d(old,B)+d(new,old).
+        // Both incoming orientations remain candidates, proved under the
+        // actual write/row guards, never asserted by this syntactic match.
+        if (s.kind === 'difference') {
+          const previous = cert.reads.find(r => r[1] === preRead[1] && stable(r[2]) === stable(preRead[2]))
+          if (previous) {
+            const terms: CountInst['terms'] = [[1, read[0]], [-1, previous[0]], [-1, c.v]], key = signature({terms, unit: 0})
+            if (!emitted.has(key)) {
+              if (out.length >= cap) return out
+              emitted.add(key); out.push({wit: fresh(), below: post.below, terms, unit: 0})
+            }
+          }
+        }
         for (const sign of [1, -1]) {
           if (out.length >= cap) return out
           const terms: CountInst['terms'] = [[sign, read[0]], [-sign, c.v]], key = signature({terms, unit: 0})

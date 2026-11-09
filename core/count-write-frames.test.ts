@@ -55,6 +55,32 @@ test('generic renamed writers propose the missing 2/4/4 directional frames', () 
   }
 })
 
+test('directed-difference transports retain the matching old difference within the same cap', () => {
+  const f = fixture()
+  f.cert.reads.push(['oldLeft','minus',packed(x('actor'),x('peer'))], ['oldRight','minus',packed(x('peer'),x('actor'))])
+  const out = proposeWriteCountFrames(f.m,f.ds,f.cert,f.demand)
+  expect(out.map(signature)).toEqual(expect.arrayContaining([
+    vector([[1,'left'],[-1,'oldLeft'],[-1,'inNew']]),
+    vector([[1,'right'],[-1,'oldRight'],[-1,'inOld']]),
+  ]))
+  expect(out.filter(i=>i.terms.length===3)).toHaveLength(4)
+  expect(proposeWriteCountFrames(f.m,f.ds,f.cert,f.demand,3)).toHaveLength(3)
+})
+
+test('the directed triangle is an ordinary kernel-checked count instance', () => {
+  const member=(map:string)=>same(get(map,x('k')),n(1)),below=n(3)
+  const counts=[
+    {v:'after',key:'k',below,body:bit(all(member('New'),not(member('Peer'))))},
+    {v:'before',key:'k',below,body:bit(all(member('Old'),not(member('Peer'))))},
+    {v:'change',key:'k',below,body:bit(all(member('New'),not(member('Old'))))},
+  ]
+  const inst:CountInst={wit:'w',below,unit:0,terms:[[1,'after'],[-1,'before'],[-1,'change']]}
+  const g={name:'directed triangle',counts,hyps:[less({op:'add' as const,a:x('before'),b:x('change')},x('after'))]}
+  const goal=countedGoal(g,[inst])!,proof=grow(goal,new Map(),{nodes:0,until:clock()+2000})
+  expect('tree'in proof).toBe(true)
+  if('tree'in proof)expect(checkCounted(g,{insts:[inst],tree:proof.tree})).toBe(true)
+})
+
 test('copied row sizes and intersections of two overwritten rows get source-size bridges', () => {
   const f = fixture(), below = x('limit')
   f.ds.push({map: 'sourceSize', j: 'unused', key: 'k', below, body: bit(same(get(f.carried, x('k')), n(1)))},
