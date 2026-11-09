@@ -1,0 +1,11 @@
+{
+  "format": 2,
+  "base": {
+    "sha": "b788e1959bba1f2e8aa1f94d4cf7c0eb163a2f9c",
+    "archiveSha256": "c593e659eb2d22592f82ab291a63a057679eaf11e8086ed0eed5a972c57745fe"
+  },
+  "cand": {
+    "sha": "0ee27c7a7690df29d79161d68f53069d06180e32",
+    "archiveSha256": "d05871e65cf6ae6c01f0748807f54ad4a04be47da8fce46128fa68302f00daaf"
+  }
+}

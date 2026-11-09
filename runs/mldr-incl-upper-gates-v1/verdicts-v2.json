@@ -1,0 +1,2441 @@
+{
+  "format": 2,
+  "base": "b788e1959bba1f2e8aa1f94d4cf7c0eb163a2f9c",
+  "cand": "0ee27c7a7690df29d79161d68f53069d06180e32",
+  "complete": true,
+  "scope": [
+    "ic3syn",
+    "duoai",
+    "broken"
+  ],
+  "pass": true,
+  "componentPass": true,
+  "suites": {
+    "ic3syn": {
+      "suite": "ic3syn",
+      "pass": true,
+      "errors": [],
+      "pairs": 87,
+      "baseProven": 83,
+      "candidateProven": 84,
+      "lost": [],
+      "gained": [
+        "consensus_forall-r1"
+      ],
+      "falseProofs": [],
+      "lostRefutations": [],
+      "rows": [
+        {
+          "name": "client_server_ae-r1",
+          "id": "client_server_ae",
+          "repeat": 1,
+          "base": {
+            "result": {
+              "verdict": "proven",
+              "ms": 12292
+            },
+            "exit": 0
+          },
+          "cand": {
+            "result": {
+              "verdict": "proven",
+              "ms": 12523
+            },
+            "exit": 0
+          }
+        },
+        {
+          "name": "client_server_ae-r2",
+          "id": "client_server_ae",
+          "repeat": 2,
+          "base": {
+            "result": {
+              "verdict": "proven",
+              "ms": 10262
+            },
+            "exit": 0
+          },
+          "cand": {
+            "result": {
+              "verdict": "proven",
+              "ms": 10229
+            },
+            "exit": 0
+          }
+        },
+        {
+          "name": "client_server_ae-r3",
+          "id": "client_server_ae",
+          "repeat": 3,
+          "base": {
+            "result": {
+              "verdict": "proven",
+              "ms": 14657
+            },
+            "exit": 0
+          },
+          "cand": {
+            "result": {
+              "verdict": "proven",
+              "ms": 13528
+            },
+            "exit": 0
+          }
+        },
+        {
+          "name": "client_server_db_ae-r1",
+          "id": "client_server_db_ae",
+          "repeat": 1,
+          "base": {
+            "result": {
+              "verdict": "proven",
+              "ms": 15967
+            },
+            "exit": 0
+          },
+          "cand": {
+            "result": {
+              "verdict": "proven",
+              "ms": 15360
+            },
+            "exit": 0
+          }
+        },
+        {
+          "name": "client_server_db_ae-r2",
+          "id": "client_server_db_ae",
+          "repeat": 2,
+          "base": {
+            "result": {
+              "verdict": "proven",
+              "ms": 17334
+            },
+            "exit": 0
+          },
+          "cand": {
+            "result": {
+              "verdict": "proven",
+              "ms": 17120
+            },
+            "exit": 0
+          }
+        },
+        {
+          "name": "client_server_db_ae-r3",
+          "id": "client_server_db_ae",
+          "repeat": 3,
+          "base": {
+            "result": {
+              "verdict": "proven",
+              "ms": 20376
+            },
+            "exit": 0
+          },
+          "cand": {
+            "result": {
+              "verdict": "proven",
+              "ms": 17318
+            },
+            "exit": 0
+          }
+        },
+        {
+          "name": "consensus-r1",
+          "id": "consensus",
+          "repeat": 1,
+          "base": {
+            "result": {
+              "verdict": "proven",
+              "ms": 121
+            },
+            "exit": 0
+          },
+          "cand": {
+            "result": {
+              "verdict": "proven",
+              "ms": 126
+            },
+            "exit": 0
+          }
+        },
+        {
+          "name": "consensus-r2",
+          "id": "consensus",
+          "repeat": 2,
+          "base": {
+            "result": {
+              "verdict": "proven",
+              "ms": 661
+            },
+            "exit": 0
+          },
+          "cand": {
+            "result": {
+              "verdict": "proven",
+              "ms": 811
+            },
+            "exit": 0
+          }
+        },
+        {
+          "name": "consensus-r3",
+          "id": "consensus",
+          "repeat": 3,
+          "base": {
+            "result": {
+              "verdict": "proven",
+              "ms": 111
+            },
+            "exit": 0
+          },
+          "cand": {
+            "result": {
+              "verdict": "proven",
+              "ms": 108
+            },
+            "exit": 0
+          }
+        },
+        {
+          "name": "consensus_epr-r1",
+          "id": "consensus_epr",
+          "repeat": 1,
+          "base": {
+            "result": {
+              "verdict": "proven",
+              "ms": 14628
+            },
+            "exit": 0
+          },
+          "cand": {
+            "result": {
+              "verdict": "proven",
+              "ms": 13721
+            },
+            "exit": 0
+          }
+        },
+        {
+          "name": "consensus_epr-r2",
+          "id": "consensus_epr",
+          "repeat": 2,
+          "base": {
+            "result": {
+              "verdict": "proven",
+              "ms": 12221
+            },
+            "exit": 0
+          },
+          "cand": {
+            "result": {
+              "verdict": "proven",
+              "ms": 12665
+            },
+            "exit": 0
+          }
+        },
+        {
+          "name": "consensus_epr-r3",
+          "id": "consensus_epr",
+          "repeat": 3,
+          "base": {
+            "result": {
+              "verdict": "proven",
+              "ms": 16925
+            },
+            "exit": 0
+          },
+          "cand": {
+            "result": {
+              "verdict": "proven",
+              "ms": 16937
+            },
+            "exit": 0
+          }
+        },
+        {
+          "name": "consensus_forall-r1",
+          "id": "consensus_forall",
+          "repeat": 1,
+          "base": {
+            "exit": 137
+          },
+          "cand": {
+            "result": {
+              "verdict": "proven",
+              "ms": 22250
+            },
+            "exit": 0
+          }
+        },
+        {
+          "name": "consensus_forall-r2",
+          "id": "consensus_forall",
+          "repeat": 2,
+          "base": {
+            "result": {
+              "verdict": "proven",
+              "ms": 57291
+            },
+            "exit": 0
+          },
+          "cand": {
+            "result": {
+              "verdict": "proven",
+              "ms": 23236
+            },
+            "exit": 0
+          }
+        },
+        {
+          "name": "consensus_forall-r3",
+          "id": "consensus_forall",
+          "repeat": 3,
+          "base": {
+            "result": {
+              "verdict": "proven",
+              "ms": 38363
+            },
+            "exit": 0
+          },
+          "cand": {
+            "result": {
+              "verdict": "proven",
+              "ms": 34528
+            },
+            "exit": 0
+          }
+        },
+        {
+          "name": "consensus_wo_decide-r1",
+          "id": "consensus_wo_decide",
+          "repeat": 1,
+          "base": {
+            "result": {
+              "verdict": "proven",
+              "ms": 15214
+            },
+            "exit": 0
+          },
+          "cand": {
+            "result": {
+              "verdict": "proven",
+              "ms": 18687
+            },
+            "exit": 0
+          }
+        },
+        {
+          "name": "consensus_wo_decide-r2",
+          "id": "consensus_wo_decide",
+          "repeat": 2,
+          "base": {
+            "result": {
+              "verdict": "proven",
+              "ms": 9059
+            },
+            "exit": 0
+          },
+          "cand": {
+            "result": {
+              "verdict": "proven",
+              "ms": 9343
+            },
+            "exit": 0
+          }
+        },
+        {
+          "name": "consensus_wo_decide-r3",
+          "id": "consensus_wo_decide",
+          "repeat": 3,
+          "base": {
+            "result": {
+              "verdict": "proven",
+              "ms": 9622
+            },
+            "exit": 0
+          },
+          "cand": {
+            "result": {
+              "verdict": "proven",
+              "ms": 9085
+            },
+            "exit": 0
+          }
+        },
+        {
+          "name": "firewall-r1",
+          "id": "firewall",
+          "repeat": 1,
+          "base": {
+            "result": {
+              "verdict": "proven",
+              "ms": 16757
+            },
+            "exit": 0
+          },
+          "cand": {
+            "result": {
+              "verdict": "proven",
+              "ms": 14026
+            },
+            "exit": 0
+          }
+        },
+        {
+          "name": "firewall-r2",
+          "id": "firewall",
+          "repeat": 2,
+          "base": {
+            "result": {
+              "verdict": "proven",
+              "ms": 32361
+            },
+            "exit": 0
+          },
+          "cand": {
+            "result": {
+              "verdict": "proven",
+              "ms": 25600
+            },
+            "exit": 0
+          }
+        },
+        {
+          "name": "firewall-r3",
+          "id": "firewall",
+          "repeat": 3,
+          "base": {
+            "result": {
+              "verdict": "proven",
+              "ms": 17146
+            },
+            "exit": 0
+          },
+          "cand": {
+            "result": {
+              "verdict": "proven",
+              "ms": 14099
+            },
+            "exit": 0
+          }
+        },
+        {
+          "name": "learning_switch-r1",
+          "id": "learning_switch",
+          "repeat": 1,
+          "base": {
+            "result": {
+              "verdict": "proven",
+              "ms": 13788
+            },
+            "exit": 0
+          },
+          "cand": {
+            "result": {
+              "verdict": "proven",
+              "ms": 13896
+            },
+            "exit": 0
+          }
+        },
+        {
+          "name": "learning_switch-r2",
+          "id": "learning_switch",
+          "repeat": 2,
+          "base": {
+            "result": {
+              "verdict": "proven",
+              "ms": 13091
+            },
+            "exit": 0
+          },
+          "cand": {
+            "result": {
+              "verdict": "proven",
+              "ms": 13832
+            },
+            "exit": 0
+          }
+        },
+        {
+          "name": "learning_switch-r3",
+          "id": "learning_switch",
+          "repeat": 3,
+          "base": {
+            "result": {
+              "verdict": "proven",
+              "ms": 13169
+            },
+            "exit": 0
+          },
+          "cand": {
+            "result": {
+              "verdict": "proven",
+              "ms": 13349
+            },
+            "exit": 0
+          }
+        },
+        {
+          "name": "learning_switch_i4-r1",
+          "id": "learning_switch_i4",
+          "repeat": 1,
+          "base": {
+            "result": {
+              "verdict": "proven",
+              "ms": 17040
+            },
+            "exit": 0
+          },
+          "cand": {
+            "result": {
+              "verdict": "proven",
+              "ms": 18943
+            },
+            "exit": 0
+          }
+        },
+        {
+          "name": "learning_switch_i4-r2",
+          "id": "learning_switch_i4",
+          "repeat": 2,
+          "base": {
+            "result": {
+              "verdict": "proven",
+              "ms": 16329
+            },
+            "exit": 0
+          },
+          "cand": {
+            "result": {
+              "verdict": "proven",
+              "ms": 16821
+            },
+            "exit": 0
+          }
+        },
+        {
+          "name": "learning_switch_i4-r3",
+          "id": "learning_switch_i4",
+          "repeat": 3,
+          "base": {
+            "result": {
+              "verdict": "proven",
+              "ms": 15120
+            },
+            "exit": 0
+          },
+          "cand": {
+            "result": {
+              "verdict": "proven",
+              "ms": 15322
+            },
+            "exit": 0
+          }
+        },
+        {
+          "name": "lock_server-r1",
+          "id": "lock_server",
+          "repeat": 1,
+          "base": {
+            "result": {
+              "verdict": "proven",
+              "ms": 6939
+            },
+            "exit": 0
+          },
+          "cand": {
+            "result": {
+              "verdict": "proven",
+              "ms": 8774
+            },
+            "exit": 0
+          }
+        },
+        {
+          "name": "lock_server-r2",
+          "id": "lock_server",
+          "repeat": 2,
+          "base": {
+            "result": {
+              "verdict": "proven",
+              "ms": 4106
+            },
+            "exit": 0
+          },
+          "cand": {
+            "result": {
+              "verdict": "proven",
+              "ms": 4174
+            },
+            "exit": 0
+          }
+        },
+        {
+          "name": "lock_server-r3",
+          "id": "lock_server",
+          "repeat": 3,
+          "base": {
+            "result": {
+              "verdict": "proven",
+              "ms": 4237
+            },
+            "exit": 0
+          },
+          "cand": {
+            "result": {
+              "verdict": "proven",
+              "ms": 4391
+            },
+            "exit": 0
+          }
+        },
+        {
+          "name": "lockserv-r1",
+          "id": "lockserv",
+          "repeat": 1,
+          "base": {
+            "result": {
+              "verdict": "proven",
+              "ms": 5261
+            },
+            "exit": 0
+          },
+          "cand": {
+            "result": {
+              "verdict": "proven",
+              "ms": 5522
+            },
+            "exit": 0
+          }
+        },
+        {
+          "name": "lockserv-r2",
+          "id": "lockserv",
+          "repeat": 2,
+          "base": {
+            "result": {
+              "verdict": "proven",
+              "ms": 5885
+            },
+            "exit": 0
+          },
+          "cand": {
+            "result": {
+              "verdict": "proven",
+              "ms": 6595
+            },
+            "exit": 0
+          }
+        },
+        {
+          "name": "lockserv-r3",
+          "id": "lockserv",
+          "repeat": 3,
+          "base": {
+            "result": {
+              "verdict": "proven",
+              "ms": 8391
+            },
+            "exit": 0
+          },
+          "cand": {
+            "result": {
+              "verdict": "proven",
+              "ms": 9176
+            },
+            "exit": 0
+          }
+        },
+        {
+          "name": "lockserv_automaton-r1",
+          "id": "lockserv_automaton",
+          "repeat": 1,
+          "base": {
+            "result": {
+              "verdict": "proven",
+              "ms": 4836
+            },
+            "exit": 0
+          },
+          "cand": {
+            "result": {
+              "verdict": "proven",
+              "ms": 5621
+            },
+            "exit": 0
+          }
+        },
+        {
+          "name": "lockserv_automaton-r2",
+          "id": "lockserv_automaton",
+          "repeat": 2,
+          "base": {
+            "result": {
+              "verdict": "proven",
+              "ms": 5507
+            },
+            "exit": 0
+          },
+          "cand": {
+            "result": {
+              "verdict": "proven",
+              "ms": 6094
+            },
+            "exit": 0
+          }
+        },
+        {
+          "name": "lockserv_automaton-r3",
+          "id": "lockserv_automaton",
+          "repeat": 3,
+          "base": {
+            "result": {
+              "verdict": "proven",
+              "ms": 4715
+            },
+            "exit": 0
+          },
+          "cand": {
+            "result": {
+              "verdict": "proven",
+              "ms": 4952
+            },
+            "exit": 0
+          }
+        },
+        {
+          "name": "majorityset_leader_election-r1",
+          "id": "majorityset_leader_election",
+          "repeat": 1,
+          "base": {
+            "result": {
+              "verdict": "proven",
+              "ms": 3835
+            },
+            "exit": 0
+          },
+          "cand": {
+            "result": {
+              "verdict": "proven",
+              "ms": 3031
+            },
+            "exit": 0
+          }
+        },
+        {
+          "name": "majorityset_leader_election-r2",
+          "id": "majorityset_leader_election",
+          "repeat": 2,
+          "base": {
+            "result": {
+              "verdict": "proven",
+              "ms": 3054
+            },
+            "exit": 0
+          },
+          "cand": {
+            "result": {
+              "verdict": "proven",
+              "ms": 2591
+            },
+            "exit": 0
+          }
+        },
+        {
+          "name": "majorityset_leader_election-r3",
+          "id": "majorityset_leader_election",
+          "repeat": 3,
+          "base": {
+            "result": {
+              "verdict": "proven",
+              "ms": 3042
+            },
+            "exit": 0
+          },
+          "cand": {
+            "result": {
+              "verdict": "proven",
+              "ms": 2462
+            },
+            "exit": 0
+          }
+        },
+        {
+          "name": "mldr-r1",
+          "id": "mldr",
+          "repeat": 1,
+          "base": {
+            "result": {
+              "verdict": "unknown",
+              "ms": 44481
+            },
+            "exit": 0
+          },
+          "cand": {
+            "result": {
+              "verdict": "unknown",
+              "ms": 59001
+            },
+            "exit": 0
+          }
+        },
+        {
+          "name": "mldr-r2",
+          "id": "mldr",
+          "repeat": 2,
+          "base": {
+            "result": {
+              "verdict": "unknown",
+              "ms": 23655
+            },
+            "exit": 0
+          },
+          "cand": {
+            "result": {
+              "verdict": "unknown",
+              "ms": 59050
+            },
+            "exit": 0
+          }
+        },
+        {
+          "name": "mldr-r3",
+          "id": "mldr",
+          "repeat": 3,
+          "base": {
+            "result": {
+              "verdict": "unknown",
+              "ms": 38543
+            },
+            "exit": 0
+          },
+          "cand": {
+            "result": {
+              "verdict": "unknown",
+              "ms": 59054
+            },
+            "exit": 0
+          }
+        },
+        {
+          "name": "naive_consensus-r1",
+          "id": "naive_consensus",
+          "repeat": 1,
+          "base": {
+            "result": {
+              "verdict": "proven",
+              "ms": 3819
+            },
+            "exit": 0
+          },
+          "cand": {
+            "result": {
+              "verdict": "proven",
+              "ms": 4541
+            },
+            "exit": 0
+          }
+        },
+        {
+          "name": "naive_consensus-r2",
+          "id": "naive_consensus",
+          "repeat": 2,
+          "base": {
+            "result": {
+              "verdict": "proven",
+              "ms": 8394
+            },
+            "exit": 0
+          },
+          "cand": {
+            "result": {
+              "verdict": "proven",
+              "ms": 16216
+            },
+            "exit": 0
+          }
+        },
+        {
+          "name": "naive_consensus-r3",
+          "id": "naive_consensus",
+          "repeat": 3,
+          "base": {
+            "result": {
+              "verdict": "proven",
+              "ms": 5838
+            },
+            "exit": 0
+          },
+          "cand": {
+            "result": {
+              "verdict": "proven",
+              "ms": 8498
+            },
+            "exit": 0
+          }
+        },
+        {
+          "name": "paxos_epr-r1",
+          "id": "paxos_epr",
+          "repeat": 1,
+          "base": {
+            "result": {
+              "verdict": "proven",
+              "ms": 32116
+            },
+            "exit": 0
+          },
+          "cand": {
+            "result": {
+              "verdict": "proven",
+              "ms": 28821
+            },
+            "exit": 0
+          }
+        },
+        {
+          "name": "paxos_epr-r2",
+          "id": "paxos_epr",
+          "repeat": 2,
+          "base": {
+            "result": {
+              "verdict": "proven",
+              "ms": 19153
+            },
+            "exit": 0
+          },
+          "cand": {
+            "result": {
+              "verdict": "proven",
+              "ms": 22194
+            },
+            "exit": 0
+          }
+        },
+        {
+          "name": "paxos_epr-r3",
+          "id": "paxos_epr",
+          "repeat": 3,
+          "base": {
+            "result": {
+              "verdict": "proven",
+              "ms": 21782
+            },
+            "exit": 0
+          },
+          "cand": {
+            "result": {
+              "verdict": "proven",
+              "ms": 23183
+            },
+            "exit": 0
+          }
+        },
+        {
+          "name": "quorum_leader_election-r1",
+          "id": "quorum_leader_election",
+          "repeat": 1,
+          "base": {
+            "result": {
+              "verdict": "proven",
+              "ms": 2138
+            },
+            "exit": 0
+          },
+          "cand": {
+            "result": {
+              "verdict": "proven",
+              "ms": 871
+            },
+            "exit": 0
+          }
+        },
+        {
+          "name": "quorum_leader_election-r2",
+          "id": "quorum_leader_election",
+          "repeat": 2,
+          "base": {
+            "result": {
+              "verdict": "proven",
+              "ms": 2444
+            },
+            "exit": 0
+          },
+          "cand": {
+            "result": {
+              "verdict": "proven",
+              "ms": 1073
+            },
+            "exit": 0
+          }
+        },
+        {
+          "name": "quorum_leader_election-r3",
+          "id": "quorum_leader_election",
+          "repeat": 3,
+          "base": {
+            "result": {
+              "verdict": "proven",
+              "ms": 3552
+            },
+            "exit": 0
+          },
+          "cand": {
+            "result": {
+              "verdict": "proven",
+              "ms": 1250
+            },
+            "exit": 0
+          }
+        },
+        {
+          "name": "sharded_kv-r1",
+          "id": "sharded_kv",
+          "repeat": 1,
+          "base": {
+            "result": {
+              "verdict": "proven",
+              "ms": 14480
+            },
+            "exit": 0
+          },
+          "cand": {
+            "result": {
+              "verdict": "proven",
+              "ms": 14641
+            },
+            "exit": 0
+          }
+        },
+        {
+          "name": "sharded_kv-r2",
+          "id": "sharded_kv",
+          "repeat": 2,
+          "base": {
+            "result": {
+              "verdict": "proven",
+              "ms": 15962
+            },
+            "exit": 0
+          },
+          "cand": {
+            "result": {
+              "verdict": "proven",
+              "ms": 16561
+            },
+            "exit": 0
+          }
+        },
+        {
+          "name": "sharded_kv-r3",
+          "id": "sharded_kv",
+          "repeat": 3,
+          "base": {
+            "result": {
+              "verdict": "proven",
+              "ms": 15663
+            },
+            "exit": 0
+          },
+          "cand": {
+            "result": {
+              "verdict": "proven",
+              "ms": 16288
+            },
+            "exit": 0
+          }
+        },
+        {
+          "name": "sharded_kv_no_lost_keys-r1",
+          "id": "sharded_kv_no_lost_keys",
+          "repeat": 1,
+          "base": {
+            "result": {
+              "verdict": "proven",
+              "ms": 7428
+            },
+            "exit": 0
+          },
+          "cand": {
+            "result": {
+              "verdict": "proven",
+              "ms": 8503
+            },
+            "exit": 0
+          }
+        },
+        {
+          "name": "sharded_kv_no_lost_keys-r2",
+          "id": "sharded_kv_no_lost_keys",
+          "repeat": 2,
+          "base": {
+            "result": {
+              "verdict": "proven",
+              "ms": 6034
+            },
+            "exit": 0
+          },
+          "cand": {
+            "result": {
+              "verdict": "proven",
+              "ms": 6350
+            },
+            "exit": 0
+          }
+        },
+        {
+          "name": "sharded_kv_no_lost_keys-r3",
+          "id": "sharded_kv_no_lost_keys",
+          "repeat": 3,
+          "base": {
+            "result": {
+              "verdict": "proven",
+              "ms": 12869
+            },
+            "exit": 0
+          },
+          "cand": {
+            "result": {
+              "verdict": "proven",
+              "ms": 11945
+            },
+            "exit": 0
+          }
+        },
+        {
+          "name": "simple-r1",
+          "id": "simple",
+          "repeat": 1,
+          "base": {
+            "result": {
+              "verdict": "proven",
+              "ms": 10546
+            },
+            "exit": 0
+          },
+          "cand": {
+            "result": {
+              "verdict": "proven",
+              "ms": 9813
+            },
+            "exit": 0
+          }
+        },
+        {
+          "name": "simple-r2",
+          "id": "simple",
+          "repeat": 2,
+          "base": {
+            "result": {
+              "verdict": "proven",
+              "ms": 9159
+            },
+            "exit": 0
+          },
+          "cand": {
+            "result": {
+              "verdict": "proven",
+              "ms": 9202
+            },
+            "exit": 0
+          }
+        },
+        {
+          "name": "simple-r3",
+          "id": "simple",
+          "repeat": 3,
+          "base": {
+            "result": {
+              "verdict": "proven",
+              "ms": 9390
+            },
+            "exit": 0
+          },
+          "cand": {
+            "result": {
+              "verdict": "proven",
+              "ms": 9567
+            },
+            "exit": 0
+          }
+        },
+        {
+          "name": "simple_decentralized_lock-r1",
+          "id": "simple_decentralized_lock",
+          "repeat": 1,
+          "base": {
+            "result": {
+              "verdict": "proven",
+              "ms": 2803
+            },
+            "exit": 0
+          },
+          "cand": {
+            "result": {
+              "verdict": "proven",
+              "ms": 2839
+            },
+            "exit": 0
+          }
+        },
+        {
+          "name": "simple_decentralized_lock-r2",
+          "id": "simple_decentralized_lock",
+          "repeat": 2,
+          "base": {
+            "result": {
+              "verdict": "proven",
+              "ms": 5663
+            },
+            "exit": 0
+          },
+          "cand": {
+            "result": {
+              "verdict": "proven",
+              "ms": 5531
+            },
+            "exit": 0
+          }
+        },
+        {
+          "name": "simple_decentralized_lock-r3",
+          "id": "simple_decentralized_lock",
+          "repeat": 3,
+          "base": {
+            "result": {
+              "verdict": "proven",
+              "ms": 3011
+            },
+            "exit": 0
+          },
+          "cand": {
+            "result": {
+              "verdict": "proven",
+              "ms": 3077
+            },
+            "exit": 0
+          }
+        },
+        {
+          "name": "simple_election-r1",
+          "id": "simple_election",
+          "repeat": 1,
+          "base": {
+            "result": {
+              "verdict": "proven",
+              "ms": 2698
+            },
+            "exit": 0
+          },
+          "cand": {
+            "result": {
+              "verdict": "proven",
+              "ms": 5762
+            },
+            "exit": 0
+          }
+        },
+        {
+          "name": "simple_election-r2",
+          "id": "simple_election",
+          "repeat": 2,
+          "base": {
+            "result": {
+              "verdict": "proven",
+              "ms": 3402
+            },
+            "exit": 0
+          },
+          "cand": {
+            "result": {
+              "verdict": "proven",
+              "ms": 5352
+            },
+            "exit": 0
+          }
+        },
+        {
+          "name": "simple_election-r3",
+          "id": "simple_election",
+          "repeat": 3,
+          "base": {
+            "result": {
+              "verdict": "proven",
+              "ms": 3046
+            },
+            "exit": 0
+          },
+          "cand": {
+            "result": {
+              "verdict": "proven",
+              "ms": 4601
+            },
+            "exit": 0
+          }
+        },
+        {
+          "name": "simple_regular-r1",
+          "id": "simple_regular",
+          "repeat": 1,
+          "base": {
+            "result": {
+              "verdict": "proven",
+              "ms": 11803
+            },
+            "exit": 0
+          },
+          "cand": {
+            "result": {
+              "verdict": "proven",
+              "ms": 11622
+            },
+            "exit": 0
+          }
+        },
+        {
+          "name": "simple_regular-r2",
+          "id": "simple_regular",
+          "repeat": 2,
+          "base": {
+            "result": {
+              "verdict": "proven",
+              "ms": 13823
+            },
+            "exit": 0
+          },
+          "cand": {
+            "result": {
+              "verdict": "proven",
+              "ms": 13628
+            },
+            "exit": 0
+          }
+        },
+        {
+          "name": "simple_regular-r3",
+          "id": "simple_regular",
+          "repeat": 3,
+          "base": {
+            "result": {
+              "verdict": "proven",
+              "ms": 11720
+            },
+            "exit": 0
+          },
+          "cand": {
+            "result": {
+              "verdict": "proven",
+              "ms": 11605
+            },
+            "exit": 0
+          }
+        },
+        {
+          "name": "tcommit-r1",
+          "id": "tcommit",
+          "repeat": 1,
+          "base": {
+            "result": {
+              "verdict": "proven",
+              "ms": 298
+            },
+            "exit": 0
+          },
+          "cand": {
+            "result": {
+              "verdict": "proven",
+              "ms": 270
+            },
+            "exit": 0
+          }
+        },
+        {
+          "name": "tcommit-r2",
+          "id": "tcommit",
+          "repeat": 2,
+          "base": {
+            "result": {
+              "verdict": "proven",
+              "ms": 264
+            },
+            "exit": 0
+          },
+          "cand": {
+            "result": {
+              "verdict": "proven",
+              "ms": 253
+            },
+            "exit": 0
+          }
+        },
+        {
+          "name": "tcommit-r3",
+          "id": "tcommit",
+          "repeat": 3,
+          "base": {
+            "result": {
+              "verdict": "proven",
+              "ms": 412
+            },
+            "exit": 0
+          },
+          "cand": {
+            "result": {
+              "verdict": "proven",
+              "ms": 428
+            },
+            "exit": 0
+          }
+        },
+        {
+          "name": "toy_consensus-r1",
+          "id": "toy_consensus",
+          "repeat": 1,
+          "base": {
+            "result": {
+              "verdict": "proven",
+              "ms": 1504
+            },
+            "exit": 0
+          },
+          "cand": {
+            "result": {
+              "verdict": "proven",
+              "ms": 726
+            },
+            "exit": 0
+          }
+        },
+        {
+          "name": "toy_consensus-r2",
+          "id": "toy_consensus",
+          "repeat": 2,
+          "base": {
+            "result": {
+              "verdict": "proven",
+              "ms": 1824
+            },
+            "exit": 0
+          },
+          "cand": {
+            "result": {
+              "verdict": "proven",
+              "ms": 967
+            },
+            "exit": 0
+          }
+        },
+        {
+          "name": "toy_consensus-r3",
+          "id": "toy_consensus",
+          "repeat": 3,
+          "base": {
+            "result": {
+              "verdict": "proven",
+              "ms": 1732
+            },
+            "exit": 0
+          },
+          "cand": {
+            "result": {
+              "verdict": "proven",
+              "ms": 929
+            },
+            "exit": 0
+          }
+        },
+        {
+          "name": "toy_consensus_epr-r1",
+          "id": "toy_consensus_epr",
+          "repeat": 1,
+          "base": {
+            "result": {
+              "verdict": "proven",
+              "ms": 4726
+            },
+            "exit": 0
+          },
+          "cand": {
+            "result": {
+              "verdict": "proven",
+              "ms": 2346
+            },
+            "exit": 0
+          }
+        },
+        {
+          "name": "toy_consensus_epr-r2",
+          "id": "toy_consensus_epr",
+          "repeat": 2,
+          "base": {
+            "result": {
+              "verdict": "proven",
+              "ms": 2289
+            },
+            "exit": 0
+          },
+          "cand": {
+            "result": {
+              "verdict": "proven",
+              "ms": 1487
+            },
+            "exit": 0
+          }
+        },
+        {
+          "name": "toy_consensus_epr-r3",
+          "id": "toy_consensus_epr",
+          "repeat": 3,
+          "base": {
+            "result": {
+              "verdict": "proven",
+              "ms": 2501
+            },
+            "exit": 0
+          },
+          "cand": {
+            "result": {
+              "verdict": "proven",
+              "ms": 1638
+            },
+            "exit": 0
+          }
+        },
+        {
+          "name": "toy_consensus_forall-r1",
+          "id": "toy_consensus_forall",
+          "repeat": 1,
+          "base": {
+            "result": {
+              "verdict": "proven",
+              "ms": 2592
+            },
+            "exit": 0
+          },
+          "cand": {
+            "result": {
+              "verdict": "proven",
+              "ms": 1285
+            },
+            "exit": 0
+          }
+        },
+        {
+          "name": "toy_consensus_forall-r2",
+          "id": "toy_consensus_forall",
+          "repeat": 2,
+          "base": {
+            "result": {
+              "verdict": "proven",
+              "ms": 2179
+            },
+            "exit": 0
+          },
+          "cand": {
+            "result": {
+              "verdict": "proven",
+              "ms": 1115
+            },
+            "exit": 0
+          }
+        },
+        {
+          "name": "toy_consensus_forall-r3",
+          "id": "toy_consensus_forall",
+          "repeat": 3,
+          "base": {
+            "result": {
+              "verdict": "proven",
+              "ms": 2629
+            },
+            "exit": 0
+          },
+          "cand": {
+            "result": {
+              "verdict": "proven",
+              "ms": 1382
+            },
+            "exit": 0
+          }
+        },
+        {
+          "name": "two_phase_commit-r1",
+          "id": "two_phase_commit",
+          "repeat": 1,
+          "base": {
+            "result": {
+              "verdict": "proven",
+              "ms": 8710
+            },
+            "exit": 0
+          },
+          "cand": {
+            "result": {
+              "verdict": "proven",
+              "ms": 8736
+            },
+            "exit": 0
+          }
+        },
+        {
+          "name": "two_phase_commit-r2",
+          "id": "two_phase_commit",
+          "repeat": 2,
+          "base": {
+            "result": {
+              "verdict": "proven",
+              "ms": 6641
+            },
+            "exit": 0
+          },
+          "cand": {
+            "result": {
+              "verdict": "proven",
+              "ms": 6941
+            },
+            "exit": 0
+          }
+        },
+        {
+          "name": "two_phase_commit-r3",
+          "id": "two_phase_commit",
+          "repeat": 3,
+          "base": {
+            "result": {
+              "verdict": "proven",
+              "ms": 7236
+            },
+            "exit": 0
+          },
+          "cand": {
+            "result": {
+              "verdict": "proven",
+              "ms": 7472
+            },
+            "exit": 0
+          }
+        },
+        {
+          "name": "twophase-r1",
+          "id": "twophase",
+          "repeat": 1,
+          "base": {
+            "result": {
+              "verdict": "proven",
+              "ms": 25432
+            },
+            "exit": 0
+          },
+          "cand": {
+            "result": {
+              "verdict": "proven",
+              "ms": 21863
+            },
+            "exit": 0
+          }
+        },
+        {
+          "name": "twophase-r2",
+          "id": "twophase",
+          "repeat": 2,
+          "base": {
+            "result": {
+              "verdict": "proven",
+              "ms": 10052
+            },
+            "exit": 0
+          },
+          "cand": {
+            "result": {
+              "verdict": "proven",
+              "ms": 10479
+            },
+            "exit": 0
+          }
+        },
+        {
+          "name": "twophase-r3",
+          "id": "twophase",
+          "repeat": 3,
+          "base": {
+            "result": {
+              "verdict": "proven",
+              "ms": 13930
+            },
+            "exit": 0
+          },
+          "cand": {
+            "result": {
+              "verdict": "proven",
+              "ms": 12950
+            },
+            "exit": 0
+          }
+        }
+      ]
+    },
+    "duoai": {
+      "suite": "duoai",
+      "pass": true,
+      "errors": [],
+      "pairs": 10,
+      "baseProven": 10,
+      "candidateProven": 10,
+      "lost": [],
+      "gained": [],
+      "falseProofs": [],
+      "lostRefutations": [],
+      "rows": [
+        {
+          "name": "consensus_wo_decide-r1",
+          "id": "consensus_wo_decide",
+          "repeat": 1,
+          "base": {
+            "result": {
+              "verdict": "proven",
+              "ms": 17423
+            },
+            "exit": 0
+          },
+          "cand": {
+            "result": {
+              "verdict": "proven",
+              "ms": 24259
+            },
+            "exit": 0
+          }
+        },
+        {
+          "name": "decentralized_lock-r1",
+          "id": "decentralized_lock",
+          "repeat": 1,
+          "base": {
+            "result": {
+              "verdict": "proven",
+              "ms": 5641
+            },
+            "exit": 0
+          },
+          "cand": {
+            "result": {
+              "verdict": "proven",
+              "ms": 5703
+            },
+            "exit": 0
+          }
+        },
+        {
+          "name": "distributed_lock-r1",
+          "id": "distributed_lock",
+          "repeat": 1,
+          "base": {
+            "result": {
+              "verdict": "proven",
+              "ms": 10162
+            },
+            "exit": 0
+          },
+          "cand": {
+            "result": {
+              "verdict": "proven",
+              "ms": 11586
+            },
+            "exit": 0
+          }
+        },
+        {
+          "name": "lock_server_async-r1",
+          "id": "lock_server_async",
+          "repeat": 1,
+          "base": {
+            "result": {
+              "verdict": "proven",
+              "ms": 9892
+            },
+            "exit": 0
+          },
+          "cand": {
+            "result": {
+              "verdict": "proven",
+              "ms": 8938
+            },
+            "exit": 0
+          }
+        },
+        {
+          "name": "lock_server_sync-r1",
+          "id": "lock_server_sync",
+          "repeat": 1,
+          "base": {
+            "result": {
+              "verdict": "proven",
+              "ms": 6828
+            },
+            "exit": 0
+          },
+          "cand": {
+            "result": {
+              "verdict": "proven",
+              "ms": 7535
+            },
+            "exit": 0
+          }
+        },
+        {
+          "name": "ring_leader_election-r1",
+          "id": "ring_leader_election",
+          "repeat": 1,
+          "base": {
+            "result": {
+              "verdict": "proven",
+              "ms": 21204
+            },
+            "exit": 0
+          },
+          "cand": {
+            "result": {
+              "verdict": "proven",
+              "ms": 26396
+            },
+            "exit": 0
+          }
+        },
+        {
+          "name": "sharded_key_value_store-r1",
+          "id": "sharded_key_value_store",
+          "repeat": 1,
+          "base": {
+            "result": {
+              "verdict": "proven",
+              "ms": 14998
+            },
+            "exit": 0
+          },
+          "cand": {
+            "result": {
+              "verdict": "proven",
+              "ms": 14832
+            },
+            "exit": 0
+          }
+        },
+        {
+          "name": "ticket_lock-r1",
+          "id": "ticket_lock",
+          "repeat": 1,
+          "base": {
+            "result": {
+              "verdict": "proven",
+              "ms": 8734
+            },
+            "exit": 0
+          },
+          "cand": {
+            "result": {
+              "verdict": "proven",
+              "ms": 19002
+            },
+            "exit": 0
+          }
+        },
+        {
+          "name": "toy_consensus_forall-r1",
+          "id": "toy_consensus_forall",
+          "repeat": 1,
+          "base": {
+            "result": {
+              "verdict": "proven",
+              "ms": 3994
+            },
+            "exit": 0
+          },
+          "cand": {
+            "result": {
+              "verdict": "proven",
+              "ms": 4570
+            },
+            "exit": 0
+          }
+        },
+        {
+          "name": "two_phase_commit-r1",
+          "id": "two_phase_commit",
+          "repeat": 1,
+          "base": {
+            "result": {
+              "verdict": "proven",
+              "ms": 12344
+            },
+            "exit": 0
+          },
+          "cand": {
+            "result": {
+              "verdict": "proven",
+              "ms": 15483
+            },
+            "exit": 0
+          }
+        }
+      ]
+    },
+    "broken": {
+      "suite": "broken",
+      "pass": true,
+      "errors": [],
+      "pairs": 29,
+      "baseProven": 0,
+      "candidateProven": 0,
+      "lost": [],
+      "gained": [],
+      "falseProofs": [],
+      "lostRefutations": [],
+      "rows": [
+        {
+          "name": "client_server_ae-r1",
+          "id": "client_server_ae",
+          "repeat": 1,
+          "base": {
+            "result": {
+              "verdict": "unknown",
+              "ms": 12619
+            },
+            "exit": 0
+          },
+          "cand": {
+            "result": {
+              "verdict": "unknown",
+              "ms": 13110
+            },
+            "exit": 0
+          }
+        },
+        {
+          "name": "client_server_db_ae-r1",
+          "id": "client_server_db_ae",
+          "repeat": 1,
+          "base": {
+            "result": {
+              "verdict": "unknown",
+              "ms": 28353
+            },
+            "exit": 0
+          },
+          "cand": {
+            "result": {
+              "verdict": "unknown",
+              "ms": 30455
+            },
+            "exit": 0
+          }
+        },
+        {
+          "name": "consensus-r1",
+          "id": "consensus",
+          "repeat": 1,
+          "base": {
+            "result": {
+              "verdict": "refuted",
+              "ms": 3
+            },
+            "exit": 0
+          },
+          "cand": {
+            "result": {
+              "verdict": "refuted",
+              "ms": 4
+            },
+            "exit": 0
+          }
+        },
+        {
+          "name": "consensus_epr-r1",
+          "id": "consensus_epr",
+          "repeat": 1,
+          "base": {
+            "result": {
+              "verdict": "unknown",
+              "ms": 4188
+            },
+            "exit": 0
+          },
+          "cand": {
+            "result": {
+              "verdict": "unknown",
+              "ms": 3813
+            },
+            "exit": 0
+          }
+        },
+        {
+          "name": "consensus_forall-r1",
+          "id": "consensus_forall",
+          "repeat": 1,
+          "base": {
+            "result": {
+              "verdict": "unknown",
+              "ms": 5968
+            },
+            "exit": 0
+          },
+          "cand": {
+            "result": {
+              "verdict": "unknown",
+              "ms": 5684
+            },
+            "exit": 0
+          }
+        },
+        {
+          "name": "consensus_wo_decide-r1",
+          "id": "consensus_wo_decide",
+          "repeat": 1,
+          "base": {
+            "result": {
+              "verdict": "unknown",
+              "ms": 3869
+            },
+            "exit": 0
+          },
+          "cand": {
+            "result": {
+              "verdict": "unknown",
+              "ms": 4058
+            },
+            "exit": 0
+          }
+        },
+        {
+          "name": "firewall-r1",
+          "id": "firewall",
+          "repeat": 1,
+          "base": {
+            "result": {
+              "verdict": "unknown",
+              "ms": 5330
+            },
+            "exit": 0
+          },
+          "cand": {
+            "result": {
+              "verdict": "unknown",
+              "ms": 5453
+            },
+            "exit": 0
+          }
+        },
+        {
+          "name": "learning_switch-r1",
+          "id": "learning_switch",
+          "repeat": 1,
+          "base": {
+            "result": {
+              "verdict": "unknown",
+              "ms": 16533
+            },
+            "exit": 0
+          },
+          "cand": {
+            "result": {
+              "verdict": "unknown",
+              "ms": 16839
+            },
+            "exit": 0
+          }
+        },
+        {
+          "name": "learning_switch_i4-r1",
+          "id": "learning_switch_i4",
+          "repeat": 1,
+          "base": {
+            "result": {
+              "verdict": "unknown",
+              "ms": 46146
+            },
+            "exit": 0
+          },
+          "cand": {
+            "result": {
+              "verdict": "unknown",
+              "ms": 45555
+            },
+            "exit": 0
+          }
+        },
+        {
+          "name": "lock_server-r1",
+          "id": "lock_server",
+          "repeat": 1,
+          "base": {
+            "result": {
+              "verdict": "refuted",
+              "ms": 8
+            },
+            "exit": 0
+          },
+          "cand": {
+            "result": {
+              "verdict": "refuted",
+              "ms": 6
+            },
+            "exit": 0
+          }
+        },
+        {
+          "name": "lockserv-r1",
+          "id": "lockserv",
+          "repeat": 1,
+          "base": {
+            "result": {
+              "verdict": "refuted",
+              "ms": 144
+            },
+            "exit": 0
+          },
+          "cand": {
+            "result": {
+              "verdict": "refuted",
+              "ms": 134
+            },
+            "exit": 0
+          }
+        },
+        {
+          "name": "lockserv_automaton-r1",
+          "id": "lockserv_automaton",
+          "repeat": 1,
+          "base": {
+            "result": {
+              "verdict": "refuted",
+              "ms": 346
+            },
+            "exit": 0
+          },
+          "cand": {
+            "result": {
+              "verdict": "refuted",
+              "ms": 369
+            },
+            "exit": 0
+          }
+        },
+        {
+          "name": "majorityset_leader_election-r1",
+          "id": "majorityset_leader_election",
+          "repeat": 1,
+          "base": {
+            "result": {
+              "verdict": "unknown",
+              "ms": 703
+            },
+            "exit": 0
+          },
+          "cand": {
+            "result": {
+              "verdict": "unknown",
+              "ms": 785
+            },
+            "exit": 0
+          }
+        },
+        {
+          "name": "mldr-r1",
+          "id": "mldr",
+          "repeat": 1,
+          "base": {
+            "result": {
+              "verdict": "unknown",
+              "ms": 8092
+            },
+            "exit": 0
+          },
+          "cand": {
+            "result": {
+              "verdict": "unknown",
+              "ms": 10868
+            },
+            "exit": 0
+          }
+        },
+        {
+          "name": "naive_consensus-r1",
+          "id": "naive_consensus",
+          "repeat": 1,
+          "base": {
+            "result": {
+              "verdict": "unknown",
+              "ms": 2319
+            },
+            "exit": 0
+          },
+          "cand": {
+            "result": {
+              "verdict": "unknown",
+              "ms": 2552
+            },
+            "exit": 0
+          }
+        },
+        {
+          "name": "paxos_epr-r1",
+          "id": "paxos_epr",
+          "repeat": 1,
+          "base": {
+            "result": {
+              "verdict": "unknown",
+              "ms": 53509
+            },
+            "exit": 0
+          },
+          "cand": {
+            "result": {
+              "verdict": "unknown",
+              "ms": 59013
+            },
+            "exit": 0
+          }
+        },
+        {
+          "name": "quorum_leader_election-r1",
+          "id": "quorum_leader_election",
+          "repeat": 1,
+          "base": {
+            "result": {
+              "verdict": "unknown",
+              "ms": 433
+            },
+            "exit": 0
+          },
+          "cand": {
+            "result": {
+              "verdict": "unknown",
+              "ms": 417
+            },
+            "exit": 0
+          }
+        },
+        {
+          "name": "sharded_kv-r1",
+          "id": "sharded_kv",
+          "repeat": 1,
+          "base": {
+            "result": {
+              "verdict": "refuted",
+              "ms": 2745
+            },
+            "exit": 0
+          },
+          "cand": {
+            "result": {
+              "verdict": "refuted",
+              "ms": 2869
+            },
+            "exit": 0
+          }
+        },
+        {
+          "name": "sharded_kv_no_lost_keys-r1",
+          "id": "sharded_kv_no_lost_keys",
+          "repeat": 1,
+          "base": {
+            "exit": 137
+          },
+          "cand": {
+            "exit": 137
+          }
+        },
+        {
+          "name": "simple-r1",
+          "id": "simple",
+          "repeat": 1,
+          "base": {
+            "result": {
+              "verdict": "refuted",
+              "ms": 5
+            },
+            "exit": 0
+          },
+          "cand": {
+            "result": {
+              "verdict": "refuted",
+              "ms": 7
+            },
+            "exit": 0
+          }
+        },
+        {
+          "name": "simple_decentralized_lock-r1",
+          "id": "simple_decentralized_lock",
+          "repeat": 1,
+          "base": {
+            "result": {
+              "verdict": "refuted",
+              "ms": 79
+            },
+            "exit": 0
+          },
+          "cand": {
+            "result": {
+              "verdict": "refuted",
+              "ms": 81
+            },
+            "exit": 0
+          }
+        },
+        {
+          "name": "simple_election-r1",
+          "id": "simple_election",
+          "repeat": 1,
+          "base": {
+            "result": {
+              "verdict": "unknown",
+              "ms": 1946
+            },
+            "exit": 0
+          },
+          "cand": {
+            "result": {
+              "verdict": "unknown",
+              "ms": 1775
+            },
+            "exit": 0
+          }
+        },
+        {
+          "name": "simple_regular-r1",
+          "id": "simple_regular",
+          "repeat": 1,
+          "base": {
+            "result": {
+              "verdict": "refuted",
+              "ms": 15
+            },
+            "exit": 0
+          },
+          "cand": {
+            "result": {
+              "verdict": "refuted",
+              "ms": 16
+            },
+            "exit": 0
+          }
+        },
+        {
+          "name": "tcommit-r1",
+          "id": "tcommit",
+          "repeat": 1,
+          "base": {
+            "result": {
+              "verdict": "refuted",
+              "ms": 12
+            },
+            "exit": 0
+          },
+          "cand": {
+            "result": {
+              "verdict": "refuted",
+              "ms": 12
+            },
+            "exit": 0
+          }
+        },
+        {
+          "name": "toy_consensus-r1",
+          "id": "toy_consensus",
+          "repeat": 1,
+          "base": {
+            "result": {
+              "verdict": "unknown",
+              "ms": 320
+            },
+            "exit": 0
+          },
+          "cand": {
+            "result": {
+              "verdict": "unknown",
+              "ms": 322
+            },
+            "exit": 0
+          }
+        },
+        {
+          "name": "toy_consensus_epr-r1",
+          "id": "toy_consensus_epr",
+          "repeat": 1,
+          "base": {
+            "result": {
+              "verdict": "unknown",
+              "ms": 1806
+            },
+            "exit": 0
+          },
+          "cand": {
+            "result": {
+              "verdict": "unknown",
+              "ms": 1815
+            },
+            "exit": 0
+          }
+        },
+        {
+          "name": "toy_consensus_forall-r1",
+          "id": "toy_consensus_forall",
+          "repeat": 1,
+          "base": {
+            "result": {
+              "verdict": "unknown",
+              "ms": 713
+            },
+            "exit": 0
+          },
+          "cand": {
+            "result": {
+              "verdict": "unknown",
+              "ms": 765
+            },
+            "exit": 0
+          }
+        },
+        {
+          "name": "two_phase_commit-r1",
+          "id": "two_phase_commit",
+          "repeat": 1,
+          "base": {
+            "result": {
+              "verdict": "refuted",
+              "ms": 23
+            },
+            "exit": 0
+          },
+          "cand": {
+            "result": {
+              "verdict": "refuted",
+              "ms": 22
+            },
+            "exit": 0
+          }
+        },
+        {
+          "name": "twophase-r1",
+          "id": "twophase",
+          "repeat": 1,
+          "base": {
+            "result": {
+              "verdict": "refuted",
+              "ms": 28
+            },
+            "exit": 0
+          },
+          "cand": {
+            "result": {
+              "verdict": "refuted",
+              "ms": 81
+            },
+            "exit": 0
+          }
+        }
+      ]
+    }
+  }
+}

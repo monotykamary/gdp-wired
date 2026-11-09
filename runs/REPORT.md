@@ -47,7 +47,24 @@ unguarded strengthening.
 * `runs/mldr-incl-baseline-v1/`: three unchanged original MLDR trials remained
   UNKNOWN at strict 60 seconds (job times 59.59, 59.61, 59.57 seconds).
 
+The repaired exact-source diagnostic for **`0ee27c7a` vs `b788e195`** has
+completed IC3Syn: **84/87 candidate vs 83/87 base**, no lost proofs, no false
+proofs, and no lost refutations. All 87 protocol/repeat pairs and both archive
+bindings validated. The one gained case is `consensus_forall-r1`; no causal
+speedup is claimed. DuoAI is now also validated: **10/10 on both sides**,
+with no lost proofs or source/identity errors. Broken variants also validate:
+**0/29 proven on both sides**, with no lost refutations. All **126 paired
+cases** pass the repaired diagnostic audit, including both source bindings.
+This is a complete local diagnostic, **not Lane D final-gate acceptance**; only
+that final gate can authorize merge.
+
 These are not the full paired merge gate.
+
+The new-selector seven-shard processes also all exited zero in
+`runs/mldr-incl-upper-shards-v1`. Its service log truncates the first shard-7
+summary (164 tests), so the visible aggregate is only 909 pass / 18 skip.
+A complete-stream, concise-receipt rerun of shard 7 is pending; no complete
+new-suite count is claimed from the truncated log.
 
 ## Conditional safety: the failure is now localized
 
@@ -119,15 +136,29 @@ instance, not merely its presence in the pool:
 Evidence: `mldr-incl-gp1-upper-v1/analysis.json` and
 `mldr-incl-e14-upper-v1/analysis.json`. Thus the voter inclusion is now selected,
 but selection alone did **not** remove the proof-cost or instance gap. The
-standalone conditional pointwise test, seven shards, and exact-source paired
-diagnostics are still pending.
+first six standalone pointwise controls all returned **SAT**, including
+stronger and tighter guards: **no checked pointwise proof**. Their reduced
+contexts omit original scalar/key-domain premises, so this is not a
+falsification of the complete safety implication. A new control adds only
+scalar conjuncts extracted from the original raw goal, with a missing-guard
+negative, now produces a **checked conditional proof in 39.78 counted units**
+using the tighter `CT[i] < CfgT[b]` guard. The original stronger guard also
+checks (39.79 units). Omitting the guard remains SAT (35.64 units), ruling out
+a vacuous contradiction in the context. Saving and independently rechecking
+the conditional certificate is pending. This is **not a safety proof**.
 
 The isolated original-harness A/A+E v1 probe failed all three jobs **in patch
 setup**, before any protocol verdict. Lane A changed an import
 (`attemptShare`), invalidating the patch context. V2 changes only that context,
 passes an exact archive patch check, and is submitted. The pinned Lane A source
 is `48533517bf7b6ef1bee47e58d2a9a517babd5488`. These composite probes are not
-a full merge gate.
+a full merge gate. V2 completed all three pairs: **UNKNOWN on both sides in
+every pair**, at approximately 59 seconds per side. A separate instrumented
+A+E capture has 34 initial-family laws and 144 retained / 405 omitted files;
+all retained ordinary-attempt stages are pass 0, with no prioritized safety
+stage observed. The original-harness improvement is therefore still absent.
+The capture hash is
+`5926107dd7548316d2c531c7822bb440bf44e17cef3d59bf5340042f92655069`.
 
 ## Real E-14 input
 
