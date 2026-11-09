@@ -1,0 +1,9 @@
+[
+  {
+    "name": "paxos-census-report",
+    "cmd": "bun research/verify-all/paxos-census-report.ts evidence",
+    "cpu": 2,
+    "memory": 4096,
+    "timeout": 120
+  }
+]
