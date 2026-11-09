@@ -410,7 +410,7 @@ function businessCompare(e: X & {k: 'bin'}, flip: Record<string, string>, c: Ctx
   if (!c.cal) throw new LawError(`${n.text}: business days need a calendar ([calendar] in gdp.toml: weekend = ["sat", "sun"], holidays = ["2026-12-25", ...], utc_offset = "-05:00")`)
   c.roles.add('bdays')
   const later = go(diff.a), earlier = go(diff.b)
-  if (c.strictOptional && [later, earlier].some(v => v.t === 'opt')) throw new LawError('arithmetic on an optional standalone value is not supported')
+  if ([later, earlier].some(v => v.t === 'opt')) throw new LawError(c.strictOptional ? 'arithmetic on an optional standalone value is not supported' : 'arithmetic on an optional value is not supported in calendar comparisons')
   if (dry) return yes
   const cal = c.cal, at = (x: X, v: V) => {
     const t = num(v), p = c.pins
