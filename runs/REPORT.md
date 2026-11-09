@@ -6,7 +6,7 @@ Read COMMON.md, MLDR-DESIGN.md Sections 14–16 (including the answered 16.3 aud
 
 ## Current status
 
-Current lane tips A `fdabeba4`, B `803129c4`, E `3f3a523c`, wall `cc7bb326`, F `36210941` are integrated. V6 exposes two import failures (missing `CountDecl`, range test importing `modelSequence` from the wrong module); both are fixed. V6 MLDR is still unknown 3/3, with 16 kept helpers and no safety attempt. The fresh v7 run includes the new tiny-proposer tests; tiny proposals remain unwired from production generation. Older v5/v6 censuses continue and will not be restarted or silently promoted. No Lane D final gate or 29/29 proof exists. Historical failures are retained; no history was rewritten.
+V7 completed with clean check, 621 tests / 19,688 assertions, and all 87 generation pairs successful (84 non-MLDR pairs byte-identical); strict MLDR remains unknown 3/3. New E declaration-backed member premises and Fable demand-driven ranges are integrated and require v8 validation. Separately, the coordinator's 140-shard upper-bound research census is submitted on frozen production `15eff72f`, original 34-law family, no supplied laws; results are pending and will not be transferred to newer production. No Lane D final green receipt exists. The baseline is unchanged; no history was rewritten.
 
 ## Plan and falsifiable hypothesis
 
@@ -174,6 +174,12 @@ For the coordinator's new upper-bound request, the unchanged original admission 
 The completed v7 strict runs are unknown at **59.012 / 59.018 / 59.147 s**; pre-attempt walls **11.746 / 15.935 / 14.778 s**. Inv* consumes 3,071 units and Inv2973-half 3,056 in every repeat, unknown. Inv1758 consumes 2,997 in r1 and is wall-cut at 0 in r2/r3. R1 keeps 18 helpers and reaches safety (still not proven); r2/r3 keep 16 and never try safety. No proof-gate claim follows from the clean mechanics and generation census.
 
 Upper-bound implementation check is clean on boat. The 140-shard research batch is active; every shard is source-hash checked before disposable instrumentation. Source remains frozen at `15eff72f` for this census even as integration resumes. Results require independent certificate verification; missing records remain pending, and forced stops report counted work only as a lower bound. Aggregation tests explicitly cover those cases.
+
+## Integration after the upper-bound snapshot
+
+Merged E `36a278e9` (including B `6d69e094`, F `682c8dc6` and declaration-backed member premises), then Fable `5bf4535e` (demand-driven range repair). E adds ordinary member witnesses and only instances of existing declarations, under its 64-tuple / four-per-source limits; count-witness read-key independence remains enforced. Fable now adds a 0/1 count's range only when a model violates it, rather than eagerly burdening every goal. Its lane reported that eager ranges cost a non-MLDR verdict, which a generation-only census does not detect; Lane D's proof roster remains required.
+
+Conflicts: retained `memberSources`, the guarded witness filtering, B's completion retries and E's preferred inclusion fallback; adopted `rangeWanted` with read lists on all certificate branches and range-triggered rebuilding in both model loops. Kept one import per symbol. The relocated finite `lawReads` and newer dropped-set replay logic survive unchanged. Added new member-premise and upper-bound aggregation tests to Lane I's jobs. The new source gets a complete v8 check/test/strict-MLDR/census batch. The already-running upper-bound shards are intentionally still bound to their earlier source manifest.
 
 ## For lane D
 
