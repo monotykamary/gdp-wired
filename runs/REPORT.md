@@ -8,7 +8,7 @@ Gate: **PENDING**. Branch `claude/ci-first-class`; starting revision `b788e1959b
 
 ## Item 1 — exhaustive comparison
 
-**Starting status: partly.** Both `rule.compare` (`core/dsl.ts:2293`) and `fun.compare` (`core/dsl.ts:2494`) already exist; the latter is not missing. Both currently sample and increment `checked` per output field, return no `exhaustive` flag, and have no finite-domain enumeration. Finite kinds already expose their shape in `core/dsl.ts:361-633`. Implementing input-domain coverage, explicitly not exhaustive state-history coverage or a proof.
+**Starting status: partly.** Both `rule.compare` (`core/dsl.ts:2293`) and `fun.compare` (`core/dsl.ts:2494`) already exist; the latter is not missing. Both currently sample and increment `checked` per output field, return no `exhaustive` flag, and have no finite-domain enumeration. Finite kinds already expose their shape in `core/dsl.ts:361-633`. Implemented finite-domain traversal with an up-front 100,000-case guard, sampling fallback, case counts, first-disagreement inputs/trace, reference isolation, and explicit skip accounting. Both function and rule APIs expose `exhaustive`; rule coverage is bounded traversal, not exhaustive state-history coverage or a proof. The comparison regressions passed in the 61-test v4 focused suite.
 
 ## Item 2 — built-in mutation check
 
