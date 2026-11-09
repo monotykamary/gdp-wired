@@ -21,7 +21,7 @@ rejected. Per coordinator direction, post-target pruning is now opt-in
 on top of state-first: the first pilot caught no drops during target build.
 A shared partial-post circuit revision is now in differential validation.
 
-## Current revision: shared partial post-state circuits (validation pending)
+## Current revision: shared partial post-state circuits (code checks pass; pilot running)
 
 The profile below found that repeated target substitution exhausted both
 stages before enumeration. The revision preserves state-first traversal
@@ -35,18 +35,30 @@ The complete-assignment semantics are unchanged, though the partial
 approximation can be more conservative than expanded symbolic choices.
 
 Two added differential fixtures cover swapped coordinates with different
-readiness and a target independent of another output. The existing binary/
-ternary, polarity, input, map/count, callback and declaration fixtures are
-rerun. No pilot is submitted until those and type/lint pass.
+readiness and a target independent of another output. All **57 tests / 814
+assertions** passed, as did full TypeScript and type-aware lint (zero warnings
+and errors). Only the final commit-message check failed: this repository
+does not allow type `perf`. The proposed message now uses `refactor`; the
+compiler and tests are unchanged and are not rerun.
 
-Validation task: `c7e69bea-4a01-47b9-b9f8-f4acedbe1f45`, output
-`runs/t16-target-circuit-check/`, two isolated submission-class jobs.
+Completed validation batch: `20261110-015609-9e1odk`, output
+`runs/t16-target-circuit-check/`. The aggregate type/lint/message job exits
+1 only because of that message-type failure, not because type/lint failed.
+
+Now running, both on submission-class isolated large VMs:
+- Message-only check: `cb000223-ec7e-4d7f-9cf9-186ffb49d29d`,
+  `runs/t16-target-circuit-message-check/`.
+- Six unchanged pilots: `57a29a35-1b15-4561-bdd7-73ec8d17bc38`,
+  `runs/t16-target-circuit-probe/`. Differential and static code checks passed
+  before these pilots were submitted.
 Same canonical archive `6288b666` plus small overlay
 `runs/t16-target-circuit-overlay/`. Compiler SHA-256
 `59bf1a68ae755e7a57c4c5085c7db0c87f5923c69d08bb199344f24604ee181a`;
 test `9809622223dacfac7c3b35e568a7c30019c6bdb7081afdae769a501c9113115f`.
-These WIP files are not covered by the earlier 55-test receipt. Production,
-all domains, the native-body cap and the five-of-seven / 2 s bar are unchanged.
+These files are covered by the new 57-test receipt, not the earlier 55-test
+receipt. The corrected message check and pilot results remain pending.
+Production, all domains, the native-body cap and the five-of-seven / 2 s bar
+are unchanged.
 
 ## Previous post-target expansion: checks passed, pilot caught zero
 
