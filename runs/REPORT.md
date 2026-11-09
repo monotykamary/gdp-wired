@@ -1,5 +1,9 @@
-# HANDOFF (lane C / Fable, 2026-11-10 02:10) — `claude/mldr-wall`, head for lane D's gate: **f4db596e** (fully guarded); 7bc4e5fd under guards
+# HANDOFF (lane C / Fable, 2026-11-10 03:35) — `claude/mldr-wall`, code head for lane D's gate: **4468efc5** (fully guarded; report-only commits follow it)
 
+- **4468efc5** = f4db596e below + a breakpoint list shared only by dense writes with identical breakpoints + no second map validation in the
+  compiled count cells. Guards on it: 117 tests (`receipts/eq1`), **census 29 / 29 lists byte-identical vs `bef4020f`** (`receipts/census6`),
+  strict-harness non-attempt wall **11.7 s vs 18.4 s (EPYC 4585PX), 11.0 s vs 16.9 s (EPYC 9455), 18.6 s vs 26.9 s (a Ryzen 9 9950X)**
+  (`receipts/orig4`), mldr generation neutral vs f4db596e (`receipts/eq1`). Lanes F / B / I can pull it.
 - **f4db596e** = lane A's `bef4020f` merged + 16.3 range instances on violation + 16.4 generation cost cuts (compiled-step key helpers,
   `fastStep` reading only step counts, finite pass revisit-only, hashed `small` BFS, `$breaks` direct marking, **derived counts computed by
   the generated module**). Guards on it: 117 tests (`receipts/tests5`), typecheck clean in core (`receipts/mcheck1`-style, 10 known
@@ -9,8 +13,7 @@
 - **7bc4e5fd** (one union breakpoint list per step) is **not promoted**: census identical, mldr faster, but `learning_switch`'s small phase
   +50 % (every dense write evaluated at the other writes' breakpoints). **Its successor `4468efc5`** (a list shared only by writes with
   identical breakpoints; no second map validation in `cells`) holds 117 tests, census 29 / 29 vs `bef4020f` (`receipts/census6`) and is
-  neutral on mldr vs f4db596e (`receipts/eq1`); its own strict pairs are running, after which it becomes the code head for the gate
-  (report-only commits follow it on the branch tip). Until then f4db596e.
+  neutral on mldr vs f4db596e (`receipts/eq1`); its strict pairs hold (`receipts/orig4`, above): **it is the code head for the gate.**
 - **VM note for lane D and the coordinator:** `bx_8nqy7xab` (large, Ryzen 9 9950X) ran both of its strict pairs ≈ 3× slower than every
   other large VM (base 54.1 s and 54.8 s of non-attempt wall against 20–29 s elsewhere; `receipts/orig2` pair 3, `receipts/orig3` pair 2).
   A timing claim should not rest on it; the pairs on it still favour the candidate.
