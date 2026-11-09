@@ -1,0 +1,25 @@
+[
+ {
+  "name": "tests-eq",
+  "cpu": 4,
+  "memory": 8192,
+  "timeout": 1200,
+  "cmd": "set -o pipefail; bun install --frozen-lockfile >/dev/null && bun test core/count-ranges.test.ts core/count-cubes.test.ts core/counts-preflight.test.ts core/count-admission.test.ts core/count-witness.test.ts core/count-focused.test.ts core/count-cases.test.ts core/runtime-keys.test.ts core/compile.test.ts core/exists.test.ts core/quorum-laws.test.ts research/track-gen/t14-stutter.test.ts core/finite-tiny.test.ts core/finite-tiny-houdini.test.ts 2>&1 | tail -25"
+ },
+ {
+  "name": "gen-paired-eq-mldr",
+  "vm_type": "large",
+  "cpu": 2,
+  "memory": 8192,
+  "timeout": 1500,
+  "cmd": "set -o pipefail; grep -m1 'model name' /proc/cpuinfo; mkdir -p base && tar -xf baselines/base.tar -C base && (cp -R vendor/. base/vendor/ 2>/dev/null || true) && bun install --frozen-lockfile >/dev/null && (cd base && bun install --frozen-lockfile >/dev/null) && for r in 1 2 3; do for side in mine base; do d=.; [ $side = base ] && d=base; echo \"PAIR $r $side\"; (cd $d && GDP_COUNTS_TRACE=1 timeout -s KILL 120 bun research/track-gen/t13-generation.ts mldr 2>&1 >/dev/null | grep -v T13_DATA | grep '\"phases\"\\|finite Houdini' | cut -c1-260); done; done"
+ },
+ {
+  "name": "gen-paired-eq-learning_switch",
+  "vm_type": "large",
+  "cpu": 2,
+  "memory": 8192,
+  "timeout": 3000,
+  "cmd": "set -o pipefail; grep -m1 'model name' /proc/cpuinfo; mkdir -p base && tar -xf baselines/base.tar -C base && (cp -R vendor/. base/vendor/ 2>/dev/null || true) && bun install --frozen-lockfile >/dev/null && (cd base && bun install --frozen-lockfile >/dev/null) && for r in 1 2; do for side in mine base; do d=.; [ $side = base ] && d=base; echo \"PAIR $r $side\"; (cd $d && GDP_COUNTS_TRACE=1 timeout -s KILL 600 bun research/track-gen/t13-generation.ts learning_switch 2>&1 >/dev/null | grep -v T13_DATA | grep '\"phases\"\\|finite Houdini' | cut -c1-260); done; done"
+ }
+]
