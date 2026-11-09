@@ -7,7 +7,7 @@
 // every other key the step reads).
 import {boundOf, crossFree, eachParts, historyMachine, tuple, keyTerm, mapArities, plainKey, scope, sumRuntime, tupleParts} from '../kernel/kernel.ts'
 import {type Constraint, type Lin, type Verdict, add, env, eq, k, le, lt, nat, scale, show, solve, sub, v} from './solver.ts'
-import {checkWall} from './wall.ts'
+import {runtimeWall} from './runtime-wall.ts'
 
 // The one generator of the repo's random draws: x' = (1103515245 x + 12345) mod 2^31, exact (Math.imul). In doubles
 // the product passes 2^53 and rounds, which folds every seed into one of six short cycles (61 to 10,466 steps; 98.8% of
@@ -593,7 +593,7 @@ export function carriedView(m: Machine, st: State, input: Request, rename: (map:
         const e1 = d.base ? {...env0, [d.j]: Math.floor(x / d.base), [d.lo!]: x % d.base} : {...env0, [d.j]: x}, n = evalE(d.below, e1, view, m)
         let sum = 0
         for (let k = 0; k < n; k++) {
-          if ((k & 255) === 0) { checkWall('derived count'); checkpoint?.() }
+          if ((k & 255) === 0) { runtimeWall.check?.('derived count'); checkpoint?.() }
           sum = exact(sum + evalE(d.body, {...e1, [d.key]: k}, view, m))
         }
         return sum
