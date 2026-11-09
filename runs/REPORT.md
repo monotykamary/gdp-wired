@@ -4,7 +4,11 @@ Lane I resumed from `cca59f0c` on `claude/mldr-integ`; clean worktree verified, 
 
 - First cancelled work rerun **completed all 140 frozen upper-bound shards** at `15eff72f`, task `cf1d3fc9-6a88-4e12-8403-974717b1ed42`. Initial aggregation: **64 fresh-process-verified conditional STEP closures, 42 unknown, 34 censored**; no full helper/family/safety proof. Detailed source/budget/provenance audit and censoring breakdown are below. The newer integration was not substituted.
 - Repair: core-replay reconstruction now spreads the previous obligation before replacing its goal/decls/encoded goal, retaining `all`, certificate and pool. Added a focused range-demand test for a read omitted by the selected certificate. No budget, law, or kernel change.
-- Current integrated production source candidate: `e48a109efc5ee029d658702ac45a7e7a8ff4c9b6`. V11 validation completed with **one failed check** (new runtime-key test used `Function`); its four test shards, original MLDR pairs and replay negative control returned zero process exits. The generation census and frozen upper-bound remain pending. The test-only VM repair is being revalidated. Lane D's `b09da82d` gate is **RED**, not pending or green; the exact-source paired diagnosis below is active.
+- Current integrated production source candidate: `e48a109efc5ee029d658702ac45a7e7a8ff4c9b6`. V11 validation completed with **one failed check** (new runtime-key test used `Function`); its four test shards, original MLDR pairs and replay negative control returned zero process exits. The V11 generation census remains pending. The frozen upper-bound and test-only VM repair have returned and are qualified below. Lane D's `b09da82d` gate is **RED**, not pending or green; the exact-source paired diagnosis below is active.
+
+## Latest lane-tip integration — active
+
+The latest committed lane tips are being integrated without substituting them into any already frozen experiment. Lane A `d7d6a9e6` is documentation/evidence only; its exact incoming report is preserved at `runs/lane-i/incoming/20261110/lane-a-d7d6a9e6.md`. Incoming B `72e9da1a`, E `34206459`, F `60704669` and Fable `546be441` are under review. The production deltas are early count-law completion, flags-first member seeding, and equal-breakpoint-only runtime sharing. Combined-source validation is not yet submitted or green.
 
 ## Frozen 140-shard upper-bound census returned — conditional evidence only
 
