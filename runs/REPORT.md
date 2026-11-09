@@ -5869,3 +5869,14 @@ Direct class-pass probes of the exact recorded legacy op-0/op-4 leaf scopes are 
 Read the new `MLDR-29.md` Gate evidence note. **Only Lane D's one-command final gate** (exact roster, pair identity, both SHAs bound, CPU-labelled) can support a merge; `GATE GREEN` must cite its receipt. Every Lane B analyzer and experiment remains iteration evidence only. No local summary substitutes for that gate.
 
 F1–F3 work now includes an observation-only disposable check profiler: per-site calls and inclusive/exclusive wall for the count-case pre-check, transported-certificate check, final family check, sliced leaf checks, independent lemma checks, retargeting and the standalone worker's final checks. Every original checker still executes; no result is cached differently, deferred or skipped by this instrumentation. `lane-b-check-profile-v1` measures the five actual-family targets under the 16.5 standalone line and validates the wrapper/profiler. These results are pending. The profile is not a proof-policy change or a gate.
+
+## Lane B — actual-family results and audit checkpoint
+
+- Independent audits checked the supplied-family p1 certificate, then actual E-14 p1 at **2,459.750 recorded search units / 2.165 s**, and reconciled **16 op ledgers** across the two policy comparisons.
+- The 6,000/7,000 fast-loop calibration produced worker-checked **safety (4,311.113 search units / 4.042 s total)** and **p1 (2,459.750 / 4.724 s)**. The other three targets remain unresolved. Independent replay of these calibration certificates is pending; this is not the original-harness ×3 pass.
+- Accounting caveat: v2 units stop before final checking; its wall does not. Future v3 records search, check and total units separately, and checker-only audits report replay-check work. No historical search-unit number is promoted to a complete helper-unit pass.
+- Full 15.4 + class-order before/after only checked p1 in both arms. Coverage is not inferable from missing `stage` entries: the standalone phase projection drops those helper events. No class-pass savings claim is supported.
+- The original-harness profile stayed unknown at 59.004 s, with no recorded instrumented check calls. Its raw-archive fetch failed; stdout/placement remain, but local checksum verification is not claimed.
+- Validation retries exposed a research profiler's unsafe `finally` throw, now removed so it cannot replace a checker exception. The seed diagnostic's timed retry isolated redundant full-root transport during preparation; the next version keeps the checked slice and exact root lineage. Both corrected validations and direct legacy leaf probes are pending.
+
+Tables, hardware labels and version-specific limitations: `runs/track-m/lane-b-status-v1/README.md` and `measurements.json`. Production/kernel unchanged. Only Lane D's exact, SHA-bound final receipt can support `GATE GREEN`.

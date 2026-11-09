@@ -131,4 +131,26 @@ The check worker failed on the attached bundled `packets/runtime.js`; its 39 lin
 
 To test 15.5 itself rather than inactive-guard budget starvation, `lane-b-seeded-leaf-v1` directly replays the recorded Section 14 op-0/op-4 scopes with and without class-first ordering. It validates packet/root lineage and every imported seed before use. These are **legacy-fixture conditional leaf diagnostics**, not actual-family or whole-op proof claims. The actual-family 16.5 calibration and derive-first comparisons remain separately queued.
 
+## Actual-family calibration and independent audits
+
+The first-wave audit replayed the supplied-family p1 certificate and reconciled eight op ledgers (`lane-b-audit-v1`). The actual-generator audit then replayed **p1 at 2,459.750 recorded units / 2,165.207 ms** and reconciled all eight full-leaf-policy ledgers (`lane-b-audit-v2`). These are conditional per-law results, not acceptance of all 35 laws together.
+
+The unmodified-policy 16.5 fast-loop calibration (`00d1e747bee8`) returned:
+
+| Target | Recorded search units | Total wall ms, including final check | Worker checked |
+|---|---:|---:|---|
+| Inv2973-half | 5,159.553 | 7,007.253 | no |
+| Inv1758 / row agreement | 5,972.174 | 7,000.962 | no |
+| Inv* | 4,505.988 | 7,009.147 | no |
+| Safety | 4,311.113 | 4,042.219 | yes |
+| p1 | 2,459.750 | 4,723.752 | yes |
+
+**Measurement-version caveat:** v2 recorded counted units before the final check, although its total wall includes that check. These historical numbers are therefore explicitly search units, not a fully accounted helper-unit pass. Future v3 records separate search/check units and their total; the independent auditor also reports replay-check work. Neither a fast-loop success nor its boolean `withinDiagnosticLine` is the required original-harness ×3 evidence. The calibration's independent certificate audit is pending.
+
+With full 15.4 enabled in both 15.5 arms (`9f3d96925fd7`), p1 was checked in both at the same 2,459.750 search units; all other targets stayed unresolved. Safety no longer closed in these arms. This is not an improvement and does not isolate an effect of class ordering. **Coverage correction:** `countsDump` projects phase events, not the helper's local `stage` events; absence of `derive-class-attempt` in this projection cannot establish zero class attempts.
+
+The standalone profiler (`1c10c1400c3a`) recorded final `checkMC` time of 228.195 ms for p1 and 840.068 ms for safety, with two calls each. Its conditional-check counters remained zero. The original-harness profile ended unknown at 59,004 ms and recorded no instrumented checker calls; without a validated coverage check this is not a saving estimate. Its archive fetch failed; the job stdout and placement are retained, but that archive is **not checksum-verified locally**.
+
+Validation exposed and corrected three research-only issues: unused `events`, an implicit seed-array type, and a profiler throw in `finally` that could mask a checker exception. Corrected validation is being rerun, not counted as passed. The first direct-seed run hit its 20-second outer watchdog before producing a search record; a phase-logged retry isolated repeated full-root seed expansion as the blocker (seed 204/206). The next retry retains each checked original slice under byte-identical root lineage instead of expanding it, and keeps the helper's 6,000-unit/7-second allowance unchanged. These remain legacy diagnostics, never E-14 pass evidence.
+
 **No accepted complete family, 29/29 result, 28/29 recertification, or GATE GREEN is claimed.**

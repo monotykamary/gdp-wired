@@ -6,5 +6,5 @@ test('check profiler preserves results and separates nested calls',()=>{
 })
 test('check profiler rethrows failures and unwinds before the next call',()=>{
  const failure=new Error('kept');expect(()=>profileCheck('failure',()=>{throw failure})).toThrow(failure)
- expect(profileCheck('next',()=>false)).toBe(false);const p=readCheckProfile();expect(p.failure!.calls).toBe(1);expect(p.next!.calls).toBe(1);expect(p.next!.selfMs).toBeGreaterThanOrEqual(0)
+ expect(profileCheck('next',()=>false)).toBe(false);const p=readCheckProfile();expect(p.failure!.calls).toBe(1);expect(p.next!.calls).toBe(1);expect(p.next!.returnedFalse).toBe(1);expect(p.failure!.threw).toBe(1);expect(p.next!.selfMs).toBeGreaterThanOrEqual(0)
 })
