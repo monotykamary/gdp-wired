@@ -1,6 +1,8 @@
 import {expect,test} from 'bun:test'
 import {type C,type Machine,all,any,get,ite,less,n,not,same,x} from '../machine.ts'
-import {type CountCert,type CountDecl} from '../../kernel/kernel.ts'
+import {type CountCert,type CountDecl,checkMC,mcGoal,substC} from '../../kernel/kernel.ts'
+import {clock,grow} from '../../kernel/prove.ts'
+import {candidateWork,grammarPool} from '../count-support.ts'
 import {memberInclusions,preferMemberInclusions} from './member-inclusions.ts'
 function fixture(prefix=''){
  const s=(v:string)=>prefix+v,k=x(s('k')),actor=x(s('actor')),other=x(s('other')),q=get(s('Parcel'),k),cell=(map:string,at= k)=>get(s(map),at)
@@ -46,4 +48,44 @@ test('selection respects an explicitly smaller cap and does not assert its scala
  expect(out).toEqual({reads:f.reads,insts:[hit]})
  expect(Object.keys(out).sort()).toEqual(['insts','reads'])
  expect(preferMemberInclusions(f.m,f.ds,full,picked,0)).toBe(picked)
+})
+
+test('initial selection shares its cap with existing picks and respects exhausted proposal work',()=>{
+ const f=fixture(),hit={wit:'existing',unit:0,below:n(12),terms:[[1,'input'],[-1,'eligible']] as [number,string][]},picks=Array.from({length:9},()=>['input',[n(0)]]) as NonNullable<CountCert['picks']>,full={reads:f.reads,insts:[hit],picks},picked={reads:f.reads,insts:[],picks}
+ const out=preferMemberInclusions(f.m,f.ds,full,picked)
+ expect(out.insts).toEqual([hit]);expect(out.picks).toBe(picks)
+ expect(out.picks.length+out.insts.length).toBe(10)
+ expect(preferMemberInclusions(f.m,f.ds,full,picked,10,()=>false)).toBe(picked)
+})
+
+test('the raw lazy pool admits a genuinely missing bound-specialized inclusion with a fresh witness',()=>{
+ const f=fixture();f.ds[0]!.below=x(f.ds[0]!.j)
+ const goal={name:'specialized bound',hyps:[same(get('Incoming',n(12)),get('Eligible',n(0)))]},before=JSON.stringify([f.m,f.ds,goal])
+ const plain=grammarPool(goal,f.ds,100,candidateWork(),true),pool=grammarPool(goal,f.ds,100,candidateWork(),true,f.m)
+ const added=pool.added.filter(a=>a.reason==='guarded member inclusion')
+ expect(added).toHaveLength(1)
+ expect(added[0]!.instance.below).toEqual(n(12))
+ expect(Object.keys(added[0]!.instance).sort()).toEqual(['below','terms','unit','wit'])
+ expect(pool.full.insts.slice(0,plain.full.insts.length)).toEqual(plain.full.insts)
+ expect(pool.freshWitnesses).toBe(true)
+ // The legacy unary tuples retain the declaration's uninstantiated bound in
+ // this synthetic fixture. Validate the newly admitted instance independently.
+ expect(mcGoal(goal.hyps,f.ds,{reads:pool.full.reads,insts:added.map(a=>a.instance)})).toBeDefined()
+ expect(JSON.stringify([f.m,f.ds,goal])).toBe(before)
+ const capped=grammarPool(goal,f.ds,1,candidateWork(),true,f.m)
+ expect(capped.full.insts).toHaveLength(1)
+ expect(capped.added.some(a=>a.reason==='guarded member inclusion')).toBe(false)
+})
+
+test('an ordinary selected witness proves the conditional inclusion but not its unguarded strengthening',()=>{
+ const f=fixture(),claim:C={op:'<=',a:get('Incoming',n(0)),b:get('Eligible',n(0))},guard=less(f.cell('Epoch',f.actor),f.cell('Epoch',f.other))
+ const initial={name:'conditional inclusion',hyps:[guard,not(claim)]},pool=grammarPool(initial,f.ds,100,candidateWork(),true,f.m),picked=preferMemberInclusions(f.m,f.ds,pool.full,{...pool.full,insts:[],picks:[]})
+ expect(picked.insts).toHaveLength(1)
+ const wit=x(picked.insts[0]!.wit),member=get('Parcel',wit),booleanMember=any(same(member,n(0)),same(member,n(1))),flags=Object.values(f.m.step.flags!).flatMap(q=>q.op==='all'?[substC(q.c,{vars:{[q.key]:wit},maps:{},flags:{}})]:[])
+ const raw=[guard,booleanMember,...flags,not(claim)],numeric=mcGoal(raw,f.ds,picked)!
+ const out=grow(numeric,new Map(),{nodes:0,until:clock()+1000})
+ expect('tree'in out).toBe(true)
+ if('tree'in out)expect(checkMC(raw,f.ds,{...picked,tree:out.tree})).toBe(true)
+ const unguarded=mcGoal([booleanMember,...flags,not(claim)],f.ds,picked)!
+ expect('tree'in grow(unguarded,new Map(),{nodes:0,until:clock()+1000})).toBe(false)
 })
