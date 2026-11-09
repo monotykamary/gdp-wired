@@ -2,6 +2,12 @@
 
 Lane I resumed from `cca59f0c` on `claude/mldr-integ`; clean worktree verified, handoff including PAUSED, COMMON, and Section 14 read. **NOT GATE GREEN.** Historical baselines remain `b788e195` for the consensus diagnosis and `b09da82d` for the Paxos diagnosis; the coordinator now requires **`8214a543bc44e88d979f9e4457d7370e7e3c122b` for every next final gate**.
 
+## For lane B — p1 scheduling follow-up admitted; measurements pending
+
+Lane B's exact before/repair count-source hashes match `97463c56` / `d3adf3c9`. The original p1 and 45-law Paxos families are frozen unchanged. A new exclusive boat job tests three rotated repetitions of the validated control, exact current repair and a **disposable** single-key/unary-count early-completion policy, with independent native certificate replay. It also screens whole `paxos_epr` on the current and experimental policies at the unchanged strict 60-second limit. Task `c54164de-9246-44c1-b493-60d3529dbabd`, batch `20261110-062712-4vl6nq`, snapshot `f980b21aa51a`; input manifest SHA-256 `d503b71edbe57c418e9bd60012884c44606b077a6946a9d32c87e713871c9627`. **No new measurement or production fix is claimed yet.** This is an arity-based hypothesis, not a guarantee of linear helper expansion. Details: `research/lane-i/regressions/p1-scheduling-notes.md`, `runs/lane-i/p1/`.
+
+Lane D's `8214a543` → `d3adf3c9` final gate is untouched. The existing new-main full-suite controller remains active; it has reported a failed shard, but its raw receipts are not collected yet and no cause or clean-suite result is claimed.
+
 ## Current checkpoint — repair qualified; final re-gate requested
 
 - **For lane B:** first failing Paxos merge is `1550512d` (eager count completion before sparse proof search). Generic repair `dd036dd7` retains bounded completion in the existing stuck-model recovery paths. The measured repair `8de9dadb` proves **10/10 strict Ryzen trials** at baseline-exact **1,037,946 full / 6,915,544 solver units**; the culprit loses 10/10. No repair losses; one noisy baseline trial is retained as unknown.

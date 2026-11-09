@@ -1,0 +1,13 @@
+import {readFileSync} from 'node:fs'
+import {gunzipSync} from 'node:zlib'
+import {createHash} from 'node:crypto'
+import {checkMC,countedObligations} from '../../kernel/kernel.ts'
+const text=readFileSync(process.argv[2]!,'utf8'),p=JSON.parse(text),saved=JSON.parse(gunzipSync(readFileSync(process.argv[3]!)).toString()),hash=createHash('sha256').update(text).digest('hex')
+if(saved.familySha256!==hash)throw Error('frozen Paxos family changed')
+let checked=0
+for(const g of countedObligations(p.m,p.laws,{[p.laws[p.target].name]:saved.proof.instances},p.target)){
+ if(!checkMC(g.goal.hyps,g.decls,saved.proof.certs[g.goal.name]!))throw Error('Paxos proof rejected')
+ checked++
+}
+if(checked!==2)throw Error('expected INIT and STEP')
+console.log(JSON.stringify({familySha256:hash,checkedGoals:checked}))

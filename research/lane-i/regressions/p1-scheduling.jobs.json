@@ -1,0 +1,10 @@
+[
+  {
+    "name": "p1-scheduling-probe-7001",
+    "cmd": "set -euo pipefail; cp -a frozen-paxos/. .; bun regression-driver/p1-scheduling-probe.ts",
+    "cpu": 8,
+    "memory": 14336,
+    "timeout": 420,
+    "vm_type": "large"
+  }
+]
