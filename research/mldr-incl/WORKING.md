@@ -1,5 +1,18 @@
 # RESUMED — user instruction, 2026-11-10
 
+**Actual execution now available:** frozen-v3 finished; all six jobs exited
+2 on TS2345 in `research/track-m/lane-f-frame-falsifier.ts:25`. No original
+or conditional proof command ran. Repair `f0eb7671` is an explicit type
+union only. Active focused check: task
+`b1dad863-97ea-448e-a0b0-6f8396391c87`, output
+`runs/mldr-incl-resume-typefix-check-v1/`. It reuses the same frozen tree
+with a tiny before/after-hash-checked overlay; no new tree archive. The
+remaining five jobs are queued under task
+`fee9b63c-74e6-4e11-be56-51c066e54cf8`, output
+`runs/mldr-incl-resume-typefix-proof-v1/`; each independently requires its
+source check to pass before any proof command. See runs/REPORT.md.
+
+
 **Submissions reopened.** All three old exact batch IDs now report `no such
 batch`; their output directories are empty. New six-job guarded validation
 is running from completed immutable-by-use source export

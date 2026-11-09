@@ -1,5 +1,37 @@
 # RESUMED — lane E, 2026-11-10
 
+## First executed rerun: source check blocked; no proof query executed
+
+Batch `20261110-004001-gs8s50` completed all six jobs. Each exited **2** at
+`bun run check`, with the same `TS2345` at
+`research/track-m/lane-f-frame-falsifier.ts:25`: `flatMap` inferred only the
+`{index, condition}` branch and rejected `{index, error}`. The guard did its
+job: **none of the original or conditional proof commands ran**. The
+controller's exit 0 means collection completed, not that any job passed.
+Receipts: `runs/mldr-incl-resume-frozen-v3/{summary.tsv,placement.json}`;
+necessary error log retained compressed as `integrated-check.log.gz`.
+
+Repair **`f0eb7671`** gives that research-only `flatMap` its explicit result
+union; runtime behavior, all production code and all budgets are unchanged.
+For lane F / I: this is a type-only repair to the imported falsifier, not a
+frame-soundness change or a new certificate claim.
+
+Submitted a focused rerun, task `b1dad863-97ea-448e-a0b0-6f8396391c87`, output
+`runs/mldr-incl-resume-typefix-check-v1/`. It **reuses** the existing frozen
+84a7a672 tree plus a 4.7 KB one-file overlay; no new whole-tree archive was
+created. The overlay checks the old file SHA-256
+`26316496c8359ab38d2ca9a1b43854fc3aa9566f5277489416ff439ac258a288` before
+replacement and the new SHA-256
+`80958a58c97c7c1316ec2654b79eaa72732949593080ba6998b9f61d4426d017`
+afterwards. New proof experiments remain behind a passing source check.
+To avoid serial scheduler delays, the five remaining original/replay jobs
+are also queued with **their own** hash-checked overlay and `bun run check`
+guard: task `fee9b63c-74e6-4e11-be56-51c066e54cf8`, output
+`runs/mldr-incl-resume-typefix-proof-v1/`. They cannot execute a proof if
+that source check fails. This reuses the same tree and tiny payload; no
+whole-tree archive or duplicate integrated-check job was added.
+
+
 ## Submissions reopened — frozen-source retry
 
 After the coordinator reopened submissions, authenticated `/snapshot` calls
