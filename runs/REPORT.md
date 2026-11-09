@@ -1,6 +1,14 @@
-## RESUME — PAUSED BY USER (2026-11-09)
+## Lane B — RESUMED (2026-11-10)
 
-**Do not start work until the user explicitly resumes. No push or merge.**
+The user explicitly resumed this lane. **Not GATE GREEN; no push or merge.**
+
+First action: reran exactly the three cancelled final-audit jobs from immutable checkpoint `30537f703a8dcfd87103fb8f4fc259e9f2eaa16c`, with the preserved inputs and no repeated measurements. Output: `runs/track-m/lane-b-range-final-audit-resume-v1`; boat batch `20261110-000815-19wzia`, source tree `4e5d068cb3d9`, `--class submission --timing --vm-type large`. Controller task: `1dd551f7-0335-4d41-b98e-832eb04cf2b9` (PID 45683). Audit, source check and 13-record projection are pending; no acceptance inferred from submission. Existing ignored archives and prepared inputs are intact.
+
+Working hypothesis: the retained four p1 certificates replay against the exact original 34-law model/roster, and the corrected Inv1758 outcome reconciles as unknown. A failed replay, source check or record identity invalidates completion of this audit. While these run, Lane B is reviewing the field-only recovery and the newer on-violation range proposal; neither is credited as a performance improvement without matched receipts.
+
+### Historical pause instructions (superseded by explicit resume above)
+
+**The following inventory records the 2026-11-09 pause, not a current instruction to wait. No push or merge.**
 
 - Branch: **`claude/track-mldr`** in `/Users/monotykamary/VCS/working-remote/open-source/gdp-wired-trackM`.
 - Last work/WIP SHA: **`e4e4745cbe1c4ff136325290ccf65dc0330806cf`**. This RESUME section is committed immediately after it; use `git rev-parse HEAD` for the resume-document commit.
