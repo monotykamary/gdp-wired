@@ -27,6 +27,17 @@ test('mutate: baseline, caught/missed table, repeatable edits, exact byte restor
   expect(readFileSync(join(dir, 'policy.ts'))).toEqual(before)
 }))
 
+test('mutate: replacement metasequences are literal source, not String.replace templates', fixture((config, dir) => {
+  const replacement = '$& $$ $` $\''
+  config.mutants[0]!.to = replacement
+  const expected = source.replace('= true', () => replacement)
+  config.suites[1]!.command = [process.execPath, '-e', `const fs=require('fs'); const text=fs.readFileSync('policy.ts','utf8'); if(text===${JSON.stringify(source)}) process.exit(0); if(text!==${JSON.stringify(expected)}) throw Error('wrong replacement bytes'); process.exit(1)`]
+  const result = checkMutations(config)
+  expect(result.passed).toBe(true)
+  expect(result.rows[0]!.suites.laws!.output).toBe('')
+  expect(readFileSync(join(dir, 'policy.ts'), 'utf8')).toBe(source)
+}))
+
 test('mutate: a surviving law mutant fails and CLI returns one', fixture(async (config, dir) => {
   config.suites[1]!.command = [process.execPath, '-e', 'process.exit(0)']
   expect(checkMutations(config).passed).toBe(false)
@@ -60,6 +71,17 @@ test('mutate: timeout/spawn errors are not law kills and restore the file', fixt
   expect(readFileSync(join(dir, 'policy.ts'), 'utf8')).toBe(source)
   config.suites[1]!.command = ['gdp-this-command-does-not-exist']
   expect(() => checkMutations(config)).toThrow('fails unmutated')
+  expect(readFileSync(join(dir, 'policy.ts'), 'utf8')).toBe(source)
+}))
+
+test('mutate: timed-out suite descendants stop before source restoration', fixture(async (config, dir) => {
+  config.timeoutMs = 150
+  const child = "setTimeout(()=>require('fs').writeFileSync('policy.ts','late descendant write'),400)"
+  config.suites[1]!.command = [process.execPath, '-e', `const fs=require('fs'); if(fs.readFileSync('policy.ts','utf8').includes('= true'))process.exit(0); require('child_process').spawn(process.execPath,['-e',${JSON.stringify(child)}],{stdio:'ignore'}); while(true){}`]
+  const result = checkMutations(config)
+  expect(result.passed).toBe(false)
+  expect(result.rows[0]!.suites.laws!.status).toBe('error')
+  await new Promise(resolve => setTimeout(resolve, 650))
   expect(readFileSync(join(dir, 'policy.ts'), 'utf8')).toBe(source)
 }))
 

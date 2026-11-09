@@ -17,13 +17,14 @@ for (const c of [50, 40, 70, 20]) st = shipped.step(params, st, budget.encodeInp
 budget.decode(st)                                 // {s: 110}
 ```
 
-- `rule.interpreter()`: the persistent reference evaluator (states are copied; searches branch from it).
+- `rule.interpreter()`: the persistent reference evaluator (states are copied; searches branch from it). Declared helper
+  source needs explicit `rule.interpreter({compileHelpers: true})` or `rule.compiled()`.
 - `encodeParams` / `encodeInput` turn runtime values (strings, decimals, choices, sets) into the naturals the machine
   reads; `decode` reads a state back. Both runtimes refuse inputs that aren't naturals below 2^53.
 - `fun(...).run(values, params)` interprets a pure function's terms without generating JavaScript.
 - `fun(...).compiled()` explicitly creates a cached callable with the same arguments and result. Declared helper
   source (`.fns(...)`, including serialized callbacks) requires this opt-in; arithmetic term methods do not.
-- Comparison/proof tooling and arbitrary rule helpers may still compile code; do not claim that every API is CSP-safe.
+- Comparison/proof tooling and low-level machine helpers may still compile code; do not claim that every API is CSP-safe.
 
 ## Hold existing code to the rule
 

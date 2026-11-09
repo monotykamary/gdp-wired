@@ -452,7 +452,10 @@ export class Exec {
     return {has: {op: 'cell', map: m.name, key, field: 'has'}, vals: new Map(m.fields.map(f => [f.name, Exec.cellOf(m, key, f)]))}
   }
   asChoice(v: V, values: string[], at: ts.Node): L {
-    if (v.t === 'choice') return v.e
+    if (v.t === 'choice') {
+      if (v.values.length !== values.length || v.values.some((value, i) => value !== values[i])) return refuse(at, 'a join or assignment between different ordered choice domains')
+      return v.e
+    }
     if (v.t === 'str' && v.e.op === 'slit') {
       if (!values.includes(v.e.value)) return refuse(at, `'${v.e.value}' is not one of ${values.map(x => `'${x}'`).join(', ')}`)
       return I.llit(v.e.value, values)
@@ -548,11 +551,13 @@ export class Exec {
   // where it is there.
   private narrow(e: ts.Expression, pt: Path, pe: Path): [Path, Path] {
     const strip = (x: ts.Expression): ts.Expression => (ts.isParenthesizedExpression(x) ? strip(x.expression) : x)
-    let x = strip(e), present = true, absenceTest = false
+    let x = strip(e), present = true, absenceTest = false, comparedNull = false, loose = false
     if (ts.isPrefixUnaryExpression(x) && x.operator === ts.SyntaxKind.ExclamationToken) { x = strip(x.operand); present = false }
     else if (ts.isBinaryExpression(x) && (x.right.kind === ts.SyntaxKind.UndefinedKeyword || (ts.isIdentifier(x.right) && x.right.text === 'undefined') || x.right.kind === ts.SyntaxKind.NullKeyword)) {
       const op = x.operatorToken.kind
       absenceTest = true
+      comparedNull = x.right.kind === ts.SyntaxKind.NullKeyword
+      loose = op === ts.SyntaxKind.EqualsEqualsToken || op === ts.SyntaxKind.ExclamationEqualsToken
       if (op === ts.SyntaxKind.EqualsEqualsEqualsToken || op === ts.SyntaxKind.EqualsEqualsToken) present = false
       else if (op !== ts.SyntaxKind.ExclamationEqualsEqualsToken && op !== ts.SyntaxKind.ExclamationEqualsToken) return [pt, pe]
       x = strip(x.left)
@@ -560,7 +565,10 @@ export class Exec {
     if (!ts.isIdentifier(x)) return [pt, pe]
     const v = pt.locals.get(x.text)
     if (v?.t !== 'opt') return [pt, pe]
-    const set = (p: Path, there: boolean): Path => ({...p, locals: new Map(p.locals).set(x.text, there ? v.v : {t: 'undef'})})
+    // A strict comparison to the other absence kind is constant, not a presence test.
+    if (absenceTest && !loose && !!v.null !== comparedNull) return [pt, pe]
+    const absent: V = {t: 'undef', ...(v.null ? {null: true} : {})}
+    const set = (p: Path, there: boolean): Path => ({...p, locals: new Map(p.locals).set(x.text, there ? v.v : absent)})
     // A falsy optional scalar can be present (false or 0), not just absent.
     // Preserve the opt value on that arm; only an explicit absence comparison narrows both arms.
     if (this.standalone && !absenceTest) return present ? [set(pt, true), pe] : [pt, set(pe, true)]
@@ -872,7 +880,6 @@ export class Exec {
     if (x.t === 'opaque' && y.t === 'opaque') return x
     if (x.t === 'num' && y.t === 'num') return {t: 'num', e: I.nite(c, x.e, y.e)}
     if (x.t === 'bool' && y.t === 'bool') return {t: 'bool', e: I.bite(c, x.e, y.e)}
-    if (x.t === 'choice' && y.t === 'choice') return {t: 'choice', e: I.lite(c, x.e, y.e), values: x.values}
     if ((x.t === 'choice' || x.t === 'str') && (y.t === 'choice' || y.t === 'str')) {
       if (x.t === 'str' && y.t === 'str') return {t: 'str', e: I.kite(c, x.e, y.e)}
       const values = x.t === 'choice' ? x.values : (y as {values: string[]}).values

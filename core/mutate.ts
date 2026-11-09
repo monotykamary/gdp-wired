@@ -14,9 +14,9 @@ type FS = {
   writeFileSync(path: string, data: string | Uint8Array): void,
   lstatSync(path: string): {isFile(): boolean, isSymbolicLink(): boolean},
 }
-type Process = {cwd(): string, getBuiltinModule(name: string): unknown}
-type SpawnResult = {status: number | null, signal?: string | null, error?: Error, stdout?: string, stderr?: string}
-type Spawn = (command: string, args: string[], options: {cwd: string, encoding: 'utf8', timeout: number, maxBuffer: number, killSignal: string, windowsHide: boolean}) => SpawnResult
+type Process = {cwd(): string, platform: string, kill(pid: number, signal: string): void, getBuiltinModule(name: string): unknown}
+type SpawnResult = {pid?: number, status: number | null, signal?: string | null, error?: Error, stdout?: string, stderr?: string}
+type Spawn = (command: string, args: string[], options: {cwd: string, encoding: 'utf8', timeout: number, maxBuffer: number, killSignal: string, windowsHide: boolean, detached: boolean}) => SpawnResult
 const cell = (text: string) => text.replace(/\|/g, '\\|').replace(/[\r\n]+/g, ' ')
 const sameBytes = (a: Uint8Array, b: Uint8Array) => a.length === b.length && a.every((v, i) => b[i] === v)
 
@@ -33,6 +33,7 @@ export function checkMutations(config: MutationConfig): MutationResult {
   if (!Number.isSafeInteger(timeout) || timeout <= 0 || timeout > 2_147_483_647) throw new Error('timeoutMs must be a positive safe integer at most 2147483647')
   const proc = (globalThis as unknown as {process?: Process}).process
   if (!proc?.getBuiltinModule) throw new Error('mutation checks need Node.js 20.16+ or Bun')
+  if (proc.platform === 'win32') throw new Error('mutation checks require POSIX process-group supervision')
   const fs = proc.getBuiltinModule('node:fs') as FS
   const path = proc.getBuiltinModule('node:path') as {resolve(...parts: string[]): string}
   const {spawnSync} = proc.getBuiltinModule('node:child_process') as {spawnSync: Spawn}
@@ -54,9 +55,31 @@ export function checkMutations(config: MutationConfig): MutationResult {
     if (original.text.indexOf(edit.from, first + 1) >= 0) throw new Error(`mutant ${index + 1}: from text is ambiguous in ${edit.file}`)
     return {edit, file, original, mutant: edit.name ?? String(index + 1)}
   })
+  // Each suite owns a fresh POSIX process group. After the leader exits (including timeout), enumerate that
+  // exact group's remaining PIDs, kill each exact PID, and await quiescence before touching source bytes.
+  // A deliberately detached session or external writer is outside this trusted-command boundary.
+  const supervise = (group: number | undefined): string | undefined => {
+    if (!group || group <= 0) return undefined
+    const until = Date.now() + 3000, pause = new Int32Array(new SharedArrayBuffer(4))
+    do {
+      const scan = spawnSync('ps', ['-eo', 'pid=,pgid=,stat='], {cwd, encoding: 'utf8', timeout: 2000, maxBuffer: 1024 * 1024, killSignal: 'SIGKILL', windowsHide: true, detached: false})
+      if (scan.error || scan.status !== 0) return `cannot verify suite descendants: ${scan.error?.message ?? `ps exited ${scan.status}`}`
+      const live = (scan.stdout ?? '').split('\n').map(line => line.trim().split(/\s+/)).filter(parts => Number(parts[1]) === group && !parts[2]?.startsWith('Z')).map(parts => Number(parts[0]))
+      if (!live.length) return undefined
+      for (const pid of live) {
+        try { proc.kill(pid, 'SIGKILL') } catch (error) {
+          if ((error as {code?: string}).code !== 'ESRCH') return `cannot stop suite descendant ${pid}: ${String(error)}`
+        }
+      }
+      Atomics.wait(pause, 0, 0, 10)
+    } while (Date.now() < until)
+    return 'suite descendants did not stop before the cleanup deadline'
+  }
+
   const run = (suite: MutationSuite): SuiteReceipt => {
-    const p = spawnSync(suite.command[0]!, suite.command.slice(1), {cwd, encoding: 'utf8', timeout, maxBuffer: 1024 * 1024, killSignal: 'SIGKILL', windowsHide: true})
-    const error = p.error?.message ?? (p.signal ? `terminated by ${p.signal}` : p.status === null ? 'no exit status' : undefined)
+    const p = spawnSync(suite.command[0]!, suite.command.slice(1), {cwd, encoding: 'utf8', timeout, maxBuffer: 1024 * 1024, killSignal: 'SIGKILL', windowsHide: true, detached: true})
+    const cleanup = supervise(p.pid)
+    const error = cleanup ?? p.error?.message ?? (p.signal ? `terminated by ${p.signal}` : p.status === null ? 'no exit status' : undefined)
     return {status: error ? 'error' : p.status === 0 ? 'missed' : 'caught', exit: p.status, output: `${p.stdout ?? ''}${p.stderr ?? ''}`.slice(-65536), ...(error ? {error} : {})}
   }
   for (const suite of config.suites) {
@@ -66,7 +89,7 @@ export function checkMutations(config: MutationConfig): MutationResult {
   const rows: MutationRow[] = []
   for (const {edit, file, original, mutant} of edits) {
     if (!sameBytes(fs.readFileSync(file), original.bytes)) throw new Error(`mutant ${mutant}: source changed since preflight; refusing to overwrite it`)
-    const text = original.text.replace(edit.from, edit.to)
+    const text = original.text.replace(edit.from, () => edit.to)
     try {
       fs.writeFileSync(file, text)
       const suites = Object.fromEntries(config.suites.map(suite => [suite.name, run(suite)]))

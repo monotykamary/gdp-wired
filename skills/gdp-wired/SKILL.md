@@ -13,7 +13,8 @@ For unsupported source, keep a tests-only model and compare against the real imp
 Finite input-domain comparison is a test, not a kernel proof or exhaustive state-history exploration.
 For deliberate runtime use, `fun.run()` interprets terms; `fun.compiled()` returns an explicitly compiled callable.
 Declared `.fns(...)` source requires the compiled opt-in; use term `.divBy()`/`.modBy()` for interpreted arithmetic.
-Do not claim that the prover, comparison tooling or arbitrary rule helpers are CSP-safe.
+`rule.interpreter()` also refuses helper source unless `{compileHelpers: true}` is explicitly passed.
+Do not claim that the prover, comparison tooling or low-level machine helpers are CSP-safe.
 See the repository's `docs/ci-only.md` and [shipping](references/shipping.md).
 
 A rule is a state machine: params, a request's inputs, state, and one step.

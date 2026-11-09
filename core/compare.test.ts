@@ -45,7 +45,7 @@ test('skipped assumptions and rejected parameter tuples are not exhaustive claim
   const denied = fun('none').inputs({a: bool}).assume(({a}) => a.and(a.not())).returns(({a}) => ({out: a}))
   expect(denied.compare(({a}) => ({out: a}))).toEqual({checked: 0, exhaustive: false, skipped: 2})
   const p = fun('pre').params({p: bool}).pre(({p}) => p).inputs({a: bool}).returns(({a}) => ({out: a}))
-  expect(p.compare(({a}) => ({out: a}), {params: {p: false}})).toEqual({checked: 0, exhaustive: false, skippedParams: 1})
+  expect(p.compare(({a}) => ({out: a}), {params: {p: false}})).toEqual({checked: 0, exhaustive: false, skippedParams: 1, parameterScope: {kind: 'fixed', values: {p: false}}})
 })
 
 test('rule finite traversal covers every parameter/input pair, with explicit bounded depth', () => {
@@ -70,8 +70,15 @@ test('reference mutations cannot corrupt canonical finite inputs or fixed parame
   const f = fun('isolation').params({p: record({ok: bool})}).inputs({x: record({ok: bool})}).returns(({x, p}) => ({out: x.ok.and(p.ok)}))
   const params = {p: {ok: true}}
   const result = f.compare((v, p) => { const out = v.x.ok && p.p.ok; (v.x as {ok: boolean}).ok = false; (p.p as {ok: boolean}).ok = false; return {out} }, {params})
-  expect(result).toEqual({checked: 2, exhaustive: true})
+  expect(result).toEqual({checked: 2, exhaustive: true, parameterScope: {kind: 'fixed', values: params}})
   expect(params).toEqual({p: {ok: true}})
+})
+
+test('finite-input function comparisons expose fixed parameter scope and refuse unbounded exhaustive claims', () => {
+  const unbounded = fun('fixed parameter').params({limit: nat}).inputs({ready: bool}).returns(({limit}) => ({out: limit}))
+  expect(unbounded.compare((_v, p) => ({out: p.limit}), {params: {limit: 5}})).toEqual({checked: 2, exhaustive: false, parameterScope: {kind: 'fixed', values: {limit: 5}}})
+  const bounded = fun('finite parameter').params({limit: upTo(2)}).inputs({ready: bool}).returns(({limit}) => ({out: limit}))
+  expect(bounded.compare((_v, p) => ({out: p.limit}), {params: {limit: 1}})).toEqual({checked: 2, exhaustive: true, parameterScope: {kind: 'fixed', values: {limit: 1}}})
 })
 
 test('comparison validates work limits and propagates reference errors', () => {

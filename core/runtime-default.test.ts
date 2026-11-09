@@ -1,6 +1,6 @@
 import {expect, test} from 'bun:test'
 import {spawnSync} from 'node:child_process'
-import {bool, decimal, fn, fun, int, maybe, modBy, nat, oneOf, record} from './dsl.ts'
+import {bool, decimal, fn, fun, int, maybe, modBy, nat, oneOf, record, rule} from './dsl.ts'
 
 test('function runtimes preserve output kinds, parameters and repeated calls', () => {
   const decision = fun('structured runtime').params({threshold: nat})
@@ -35,17 +35,25 @@ test('declared helper source needs explicit compilation, including callbacks and
   }
 })
 
+test('rule interpreter helper compilation needs an explicit opt-in', () => {
+  const r = rule('helper').fns({inc: fn(1, 'x => x + 1')}).state({n: 0}).step(({n, inc}) => ({n: inc(n)}))
+  expect(() => r.interpreter()).toThrow('does not compile declared helper source')
+  const run = r.interpreter({compileHelpers: true})
+  expect(run.step({}, run.init({}), {}).scalars.n).toBe(1)
+})
+
 test('fresh import and default arithmetic runtime work with Function blocked before construction', () => {
   const url = new URL('./dsl.ts', import.meta.url).href
   const source = `
 let attempts = 0;
 globalThis.Function = new Proxy(globalThis.Function, {construct() { attempts++; throw Error('dynamic code blocked'); }, apply() { attempts++; throw Error('dynamic code blocked'); }});
-const {bool, fn, fun, nat, oneOf, when} = await import(${JSON.stringify(url)});
+const {bool, fn, fun, nat, oneOf, rule, when} = await import(${JSON.stringify(url)});
 const f = fun('csp').inputs({n:nat, enabled:bool, mode:oneOf('left','right')}).returns(({n,enabled,mode}) => ({q:n.divBy(2),r:n.modBy(2),rounded:n.ceilTo(2),enabled,mode,selected:when(enabled,n,0)}));
 const got = f.run({n:5,enabled:true,mode:'right'});
 const helper = fun('blocked helper').inputs({n:nat}).fns({inc:fn(1,'x => x + 1')}).returns(({n,inc})=>({out:inc(n)}));
 let refused=false;try{helper.run({n:1})}catch(e){refused=String(e).includes('does not compile declared helper source')}
-if(attempts || !refused || JSON.stringify(got)!==JSON.stringify({q:2,r:1,rounded:6,enabled:true,mode:'right',selected:5})) throw Error(JSON.stringify({attempts,refused,got}));
+let ruleRefused=false;try{rule('csp helper').fns({inc:fn(1,'x => x + 1')}).state({n:0}).step(({n})=>({n})).interpreter()}catch(e){ruleRefused=String(e).includes('does not compile declared helper source')}
+if(attempts || !refused || !ruleRefused || JSON.stringify(got)!==JSON.stringify({q:2,r:1,rounded:6,enabled:true,mode:'right',selected:5})) throw Error(JSON.stringify({attempts,refused,got}));
 console.log('CSP default passed');
 `
   const result = spawnSync(process.execPath, ['--eval', source], {encoding: 'utf8', timeout: 15000})

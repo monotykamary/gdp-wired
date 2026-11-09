@@ -14,7 +14,8 @@ noted), each with the command that reproduces it.
   candidates through an explicit source printer; named per-law suites attribute their kills.
 - **Runtime migration:** `fun.run()` now interprets terms. `fun.compiled()` explicitly returns a cached generated
   callable; declared helper source requires this opt-in. Native arithmetic terms remain available without dynamic
-  compilation. See [the CI-only guide](docs/ci-only.md) for limits, measurements and migration details.
+  compilation. `rule.interpreter()` likewise requires `{compileHelpers: true}` for declared helper source.
+  See [the CI-only guide](docs/ci-only.md) for limits, measurements and migration details.
 
 ## 0.47.0
 

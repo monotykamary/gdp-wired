@@ -2450,7 +2450,10 @@ export class Rule<P extends Obj = {}, I extends Obj = {}, S extends Obj = {}, M 
   }
   // The prune order's variable, if the history is pruned (a runtime must send it nondecreasing).
   get orderedBy(): string | undefined { return this.spec.prune ? new Map(this.spec.inputs).get(this.spec.prune.order)!.vars(this.spec.prune.order)[0] : undefined }
-  interpreter() { return interpret(this.machine) }
+  interpreter(options: {compileHelpers?: boolean} = {}) {
+    if (this.spec.fns?.length && !options.compileHelpers) throw new Error(`${this.name}: interpreter() does not compile declared helper source; use compiled() or explicitly pass {compileHelpers: true}`)
+    return interpret(this.machine)
+  }
   compiled(): {init: (params: object) => State & {head?: number}, fork: (st: State) => State, step: (params: object, st: State, input: object) => State & {head?: number}} {
     return loadJs(this.machine)
   }
@@ -2531,9 +2534,14 @@ export class Fun<P extends Obj = {}, I extends Obj = {}, O extends Obj = {}> {
   compare(reference: (values: Value<I>, params: Value<P>) => Partial<Value<O>>, opts: Draws<Value<I>> & {params?: Value<P>} = {}): CompareAgreement {
     const rand = opts.rand ?? seeded(5), bound = compareCount(opts.bound ?? 1000, 'bound'), trials = compareCount(opts.trials ?? 2000, 'trials')
     const cap = compareCount(opts.maxCases ?? 100_000, 'maxCases', 1), params = compareCopy((opts.params ?? {}) as Value<P>), kinds = this.r['spec'].inputs
-    const domain = opts.draw ? undefined : finiteFields(kinds, cap), r = this.rule, m = r.machine, run = r.interpreter(), ps = r.encodeParams(params as never), execute = this.compiled()
+    const parameterKinds = this.r['spec'].params, finiteParams = !!finiteFields(parameterKinds, cap)
+    const domain = opts.draw ? undefined : finiteFields(kinds, cap), r = this.rule, m = r.machine, run = r.interpreter({compileHelpers: true}), ps = r.encodeParams(params as never), execute = this.compiled()
     let checked = 0, skipped = 0
-    if (m.pre && !evalC(m.pre, ps, {scalars: {}, maps: {}}, m)) return compareResult(0, false, 0, 1)
+    const finish = (exhaustive: boolean, skippedParams = 0, failure?: string): CompareAgreement => ({
+      ...compareResult(checked, exhaustive && finiteParams, skipped, skippedParams, failure),
+      ...(parameterKinds.length ? {parameterScope: {kind: 'fixed' as const, values: compareCopy(params) as Record<string, unknown>}} : {}),
+    })
+    if (m.pre && !evalC(m.pre, ps, {scalars: {}, maps: {}}, m)) return finish(false, 1)
     const initial = run.init(ps), supplied = opts.edges ?? []
     const edges = domain ? supplied.filter((edge, i) => !supplied.slice(0, i).some(old => sameRaw(old, edge))) : supplied
     function* draws(): Generator<Value<I>> {
@@ -2547,10 +2555,10 @@ export class Fun<P extends Obj = {}, I extends Obj = {}, O extends Obj = {}> {
       const ours = execute(values, params) as Record<string, unknown>, theirs = compareFields(reference(compareCopy(values), compareCopy(params)))
       checked++
       for (const [field, want] of Object.entries(theirs)) {
-        if (!sameRaw(ours[field], want)) return compareResult(checked, false, skipped, 0, `${this.name}, params ${JSON.stringify(params)}, at ${JSON.stringify(values)}: ${field} is ${shown(ours[field])} here, ${shown(want)} in the code it describes`)
+        if (!sameRaw(ours[field], want)) return finish(false, 0, `${this.name}, params ${JSON.stringify(params)}, at ${JSON.stringify(values)}: ${field} is ${shown(ours[field])} here, ${shown(want)} in the code it describes`)
       }
     }
-    return compareResult(checked, !!domain, skipped)
+    return finish(!!domain)
   }
   // The one-step rule it compiles to: the result's fields are its state (named out.<field>, apart from the arguments).
   get rule(): Rule<P, I> {
@@ -2592,7 +2600,7 @@ export const funOf = (d: Decision): Fun<Obj, Obj, Obj> | undefined => lawsOfFuns
 // One disagreement between a rule and the code it describes, or none: what compare returns.
 export type Agreement = {checked: number, failure?: string}
 // Exhaustive means all finite input combinations in this traversal, never all state histories or a proof.
-export type CompareAgreement = Agreement & {exhaustive: boolean, skipped?: number, skippedParams?: number}
+export type CompareAgreement = Agreement & {exhaustive: boolean, skipped?: number, skippedParams?: number, parameterScope?: {kind: 'fixed', values: Record<string, unknown>}}
 type Draws<T> = {trials?: number, bound?: number, rand?: Rand, edges?: T[], draw?: (rand: Rand) => T, maxCases?: number}
 type FiniteDomain = {size: number, values: () => Iterable<Raw>}
 const compareCount = (value: number, name: string, minimum = 0): number => {

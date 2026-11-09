@@ -159,7 +159,21 @@ Review of the runtime commit diff caught that the new CSP test file had replaced
 
 ## Coordinator follow-up: automatic candidates and independent review
 
-At the coordinator's request, the item-2 stretch goal is now implemented and under focused validation: `deriveDecisionMutants(machine, {file, render, choices?, maxCandidates?})` derives guard negations, dropped conjuncts, widened encoded choices and flipped comparisons. A trusted explicit printer maps the original and mutated scalar terms to the source artifact under test; it does not pretend to reverse arbitrary handwritten source. The normal mutation API performs preflight/baseline/restoration and runs individually named law suites for kill attribution. Original laws, assumptions, preconditions and initial state remain unchanged. Boat batch `20261110-014547-jg31oj` passed 33 mutation/export tests, including cap/determinism/refusal cases and the synthetic per-law end-to-end checks; check, lint, build and 28 built-export/runtime tests also passed. Every generated candidate was killed by the aggregate law suite and at least one individually named law. The detailed Markdown table will be captured in the follow-up review-fix validation.
+At the coordinator's request, the item-2 stretch goal is now implemented and under focused validation: `deriveDecisionMutants(machine, {file, render, choices?, maxCandidates?})` derives guard negations, dropped conjuncts, widened encoded choices and flipped comparisons. A trusted explicit printer maps the original and mutated scalar terms to the source artifact under test; it does not pretend to reverse arbitrary handwritten source. The normal mutation API performs preflight/baseline/restoration and runs individually named law suites for kill attribution. Original laws, assumptions, preconditions and initial state remain unchanged. Boat batch `20261110-014547-jg31oj` passed 33 mutation/export tests, including cap/determinism/refusal cases and the synthetic per-law end-to-end checks; check, lint, build and 28 built-export/runtime tests also passed. Every generated candidate was killed by the aggregate law suite and at least one individually named law. The follow-up captured all 11 generated candidates and their individual law kills (from `runs/probe-v9/review-repros-and-regressions.log`):
+
+| Mutant | Bug | all-laws | ready | reviewed | zone | load | admit-valid |
+| --- | --- | --- | --- | --- | --- | --- | --- |
+| negate-guard-001 | negate-guard at step.state.out.ok.c | caught | caught | caught | caught | caught | caught |
+| drop-conjunct-002 | drop-conjunct at step.state.out.ok.c | caught | caught | missed | missed | missed | missed |
+| drop-conjunct-003 | drop-conjunct at step.state.out.ok.c | caught | missed | caught | missed | missed | missed |
+| drop-conjunct-004 | drop-conjunct at step.state.out.ok.c | caught | missed | missed | caught | missed | missed |
+| drop-conjunct-005 | drop-conjunct at step.state.out.ok.c | caught | missed | missed | missed | caught | missed |
+| flip-comparison-006 | flip-comparison at step.state.out.ok.c.xs.0 | caught | caught | missed | missed | missed | caught |
+| flip-comparison-007 | flip-comparison at step.state.out.ok.c.xs.1 | caught | missed | caught | missed | missed | caught |
+| flip-comparison-008 | flip-comparison at step.state.out.ok.c.xs.2 | caught | missed | missed | caught | missed | caught |
+| widen-choice-009 | widen-choice at step.state.out.ok.c.xs.2 | caught | missed | missed | caught | missed | missed |
+| widen-choice-010 | widen-choice at step.state.out.ok.c.xs.2 | caught | missed | missed | caught | missed | missed |
+| flip-comparison-011 | flip-comparison at step.state.out.ok.c.xs.3 | caught | missed | missed | missed | caught | missed |
 
 New automatic-candidate API (five-line example):
 
@@ -171,7 +185,19 @@ const edits = deriveDecisionMutants(f.rule.machine, {file: 'decision.ts', render
 console.log(edits) // use these as checkMutations({mutants: edits, ...})
 ```
 
-The one independent read-only review is running with exact model `openai/gpt-6.1-terra` (agent `60bbeb8fce8246efb2c7a9e11af5a3ff`), pinned to `b788e195..a7aaa1b2`. It covers extractor source soundness, finite comparison claims, mutation safety and default dynamic-code paths. Findings will be recorded and fixed before final gates.
+The one independent read-only review is running with exact model `openai/gpt-6.1-terra` (agent `60bbeb8fce8246efb2c7a9e11af5a3ff`), pinned to `b788e195..a7aaa1b2`. It covers extractor source soundness, finite comparison claims, mutation safety and default dynamic-code paths. The completed review found strict absence narrowing, literal replacement-template handling, timed-out suite descendants, and `Rule.interpreter()` helper compilation issues, plus a cross-domain choice-join hypothesis and a fixed-parameter coverage concern. Fixes are under Boat validation: preserve null tags and distinguish strict/loose comparisons; reject incompatible ordered choice joins; use literal replacements; supervise each POSIX suite group and stop exact remaining PIDs before restoring; refuse helper compilation by default with explicit `{compileHelpers: true}` available; require finite parameter kinds for an exhaustive function-comparison flag and expose fixed tuples in `parameterScope`. A regression run intentionally reverts the extractor fixes first to reproduce the original failures, then tests the repaired code. No kernel change.
+
+The v9 negative run reproduced the old false proof (`result == false` was incorrectly proven) and accepted incompatible choice join, with replay disabled. After the fixes, the false proof is rejected and the choice join is refused. The v9 repaired run passed 70 tests but two newly written fixtures assumed unsupported nullable inputs/mutable statements; those fixtures were corrected to supported nullable locals and a conditional join. Descendant cleanup, literal edits, CSP, and all 11 automatic mutant cases passed. Check/lint/build and built exports passed; the fresh v10 combined run passed **84 tests, 0 failed**, plus check/lint/build and **29 built-export/runtime tests** (batch `20261110-015219-6f45js`). The negative old-code run still reproduced both source-soundness defects. The complete independent review is incorporated; no review agent remains active.
+
+Explicit rule-helper interpretation (five-line example):
+
+```ts
+import {fn, rule} from 'gdp-wired'
+const r = rule('increment').fns({inc: fn(1, 'x => x + 1')}).state({n: 0}).step(({n, inc}) => ({n: inc(n)}))
+const runtime = r.interpreter({compileHelpers: true}) // explicit dynamic-code permission
+const initial = runtime.init({})
+console.log(runtime.step({}, initial, {}).scalars.n)
+```
 
 The clean committed pre-integration test run (`a7aaa1b2`, batch `20261110-014415-u5ulmj`) is still active. Its separate original runtime-guards/history suite passed. The seven full quick-suite shards are not yet claimed. This is submission-class validation, not the final post-integration gate.
 
