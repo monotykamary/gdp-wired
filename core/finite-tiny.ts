@@ -9,10 +9,11 @@ type NumericOp = Extract<E['op'], 'add' | 'sub' | 'prod' | 'min' | 'max' | 'tup'
 type Term = {id: number, code: string, args: Term[], deps: number[], lo: number, hi: number, arithmetic?: NumericOp, values?: number[], choice?: {c: Pred, a: Term, b: Term}}
 type Pred = boolean | {op: 'atom', a: Term, b: Term, cmp: '<' | '<=' | '='} | {op: 'and', xs: Pred[]} | {op: 'or', xs: Pred[]} | {op: 'not', x: Pred}
 type Slot = {name: string, key?: number, request?: boolean, values: number[]}
-export type TinyFiniteOptions = {valueDomain?: readonly number[], postTargetPruning?: boolean, postTargetIntervals?: boolean}
+export type TinyFiniteSeed = {params: Env, pre: State, request: Request}
+export type TinyFiniteOptions = {valueDomain?: readonly number[], postTargetPruning?: boolean, postTargetIntervals?: boolean, seedTransitions?: readonly TinyFiniteSeed[]}
 export type TinyFiniteStatistics = {
-  scope: {params: Env, scalarValues: number[], cellValues: number[], cells: Record<string, number[]>, inputValues: Record<string, number[]>, inputCells: Record<string, number[]>, binderValues: number[], postTargetPruning: boolean, postTargetIntervals: boolean}
-  completed: boolean, exhausted: boolean, timedOut: boolean, unsupported: string[], nodes: number, states: number, steps: number, scenarios: number, candidates: number, postStatePrunes: number, postRequestPrunes: number, postIntervalFallbacks: number, ms: number
+  scope: {params: Env, scalarValues: number[], cellValues: number[], cells: Record<string, number[]>, inputValues: Record<string, number[]>, inputCells: Record<string, number[]>, binderValues: number[], postTargetPruning: boolean, postTargetIntervals: boolean, seedNeighborhood: boolean}
+  completed: boolean, exhausted: boolean, timedOut: boolean, unsupported: string[], nodes: number, states: number, steps: number, scenarios: number, candidates: number, postStatePrunes: number, postRequestPrunes: number, postIntervalFallbacks: number, seedModels: number, seedCandidates: number, ms: number
 }
 const unique = (xs: number[]) => [...new Set(xs)]
 const conjunction = (xs: Pred[]): Pred => {
@@ -383,8 +384,8 @@ function gridKeys(m: Machine, size: number): Record<string, number[]> {
 export function tinyFiniteCandidates(source: Machine, m: Machine, family: Law[], params: Env,
   onCandidate: (pre: State, request: Request, violated: Law[]) => boolean | void, options: TinyFiniteOptions = {}): TinyFiniteStatistics {
   const stateValues = unique([...(options.valueDomain ?? [0, 1])]).sort((a, b) => a - b)
-  const start = performance.now(), scope: TinyFiniteStatistics['scope'] = {params: {...params}, scalarValues: [...stateValues], cellValues: [...stateValues], cells: {}, inputValues: {}, inputCells: {}, binderValues: [], postTargetPruning: options.postTargetPruning === true, postTargetIntervals: options.postTargetIntervals === true}
-  const stats: TinyFiniteStatistics = {scope, completed: false, exhausted: false, timedOut: false, unsupported: [], nodes: 0, states: 0, steps: 0, scenarios: 0, candidates: 0, postStatePrunes: 0, postRequestPrunes: 0, postIntervalFallbacks: 0, ms: 0}
+  const start = performance.now(), scope: TinyFiniteStatistics['scope'] = {params: {...params}, scalarValues: [...stateValues], cellValues: [...stateValues], cells: {}, inputValues: {}, inputCells: {}, binderValues: [], postTargetPruning: options.postTargetPruning === true, postTargetIntervals: options.postTargetIntervals === true, seedNeighborhood: options.seedTransitions !== undefined}
+  const stats: TinyFiniteStatistics = {scope, completed: false, exhausted: false, timedOut: false, unsupported: [], nodes: 0, states: 0, steps: 0, scenarios: 0, candidates: 0, postStatePrunes: 0, postRequestPrunes: 0, postIntervalFallbacks: 0, seedModels: 0, seedCandidates: 0, ms: 0}
   const unknown = (e: unknown) => { const reason = e instanceof Error ? e.message : String(e); if (!stats.unsupported.includes(reason)) stats.unsupported.push(reason) }
   try {
     checkWall('tiny start')
@@ -604,6 +605,60 @@ export function tinyFiniteCandidates(source: Machine, m: Machine, family: Law[],
       // Ones first reaches enabled guards early; both values remain enumerated.
       for(const value of [...slots[i]!.values].reverse()){checkWall('tiny state values');v[i]=value;states(d+1)}
     }
+    // A seed is only an untrusted coordinate suggestion, never a drop. Project
+    // the last eight into this exact finite grid, try radius-one neighbors,
+    // then retain the ordinary full traversal. Every proposal uses the same
+    // independent callback. Snapshot before callbacks can add later seeds.
+    const neighbors = (): void => {
+      const bases: number[][] = [], seen = new Set<string>()
+      for (const seed of options.seedTransitions?.slice(-8) ?? []) {
+        checkWall('tiny seed projection')
+        if (!Object.keys(params).every(key => seed.params[key] === params[key])) continue
+        const values: number[] = []
+        for (const slot of slots) {
+          const entry = slot.request ? seed.request[slot.name] : seed.pre.scalars[slot.name]
+          const value = slot.key === undefined ? entry : slot.request
+            ? entry instanceof Map ? entry.get(slot.key) ?? 0 : undefined
+            : seed.pre.maps[slot.name]?.get(slot.key) ?? seed.pre.defaults?.[slot.name] ?? source.maps?.[slot.name]
+          if (typeof value !== 'number' || !slot.values.includes(value)) break
+          values.push(value)
+        }
+        if (values.length === slots.length) bases.push(values)
+      }
+      const attempt = (values: number[]): boolean => {
+        checkWall('tiny seed attempt')
+        if (stats.seedModels >= 256) return false
+        const key = values.join(',')
+        if (seen.has(key)) return true
+        seen.add(key); stats.seedModels++; stats.nodes++
+        for (let i = 0; i < values.length; i++) v[i] = values[i]!
+        if (!preTest(v, stateOrder.length)) return true
+        for (const op of operations) {
+          checkWall('tiny seed operation')
+          if (slots.some((s, i) => s.request && s.key === undefined && Object.hasOwn(op.fixed, s.name) && v[i] !== op.fixed[s.name])) continue
+          if (!op.gate(v, op.order.length)) continue
+          const outputs = op.step(v)
+          if (outputs.every((value, i) => value === v[i])) continue
+          stats.steps++
+          const post = v.slice(); for (let i = 0; i < stateSlots; i++) post[i] = outputs[i]!
+          const violated = targets.filter((law, i) => !emitted.has(law) && !postTests[i]!(post, 0))
+          if (violated.length) { stats.seedCandidates++; propose(op.fixed, violated) }
+        }
+        return true
+      }
+      for (const base of bases) if (!attempt(base)) return
+      // Request axes first; round-robin across seeds avoids one long seed
+      // neighborhood consuming the entire fixed attempt allowance.
+      const axes = [...slots.keys()].sort((a, b) => Number(!!slots[b]!.request) - Number(!!slots[a]!.request) || a - b)
+      for (const i of axes) for (const base of bases) for (const value of slots[i]!.values) {
+        checkWall('tiny seed neighbor')
+        if (value === base[i]) continue
+        const values = base.slice(); values[i] = value
+        if (!attempt(values)) return
+      }
+    }
+    if (options.seedTransitions) neighbors()
+    for (let i = 0; i < slots.length; i++) v[i] = slots[i]!.values[0]!
     states(0)
     // completed records traversal even when proposals were emitted; exhausted
     // additionally records a proposal-free screen, never semantic validity.

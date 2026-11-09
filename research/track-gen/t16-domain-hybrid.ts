@@ -5,6 +5,7 @@ import {type Law,type Machine,type State,type Request,interpret} from '../../cor
 import {finiteEvaluator,finiteTinyHoudini} from '../../core/finite-houdini.ts'
 import {withWall} from '../../kernel/prove.ts'
 import {checkWall} from '../../core/wall.ts'
+import {type TinyFiniteSeed} from '../../core/finite-tiny.ts'
 const mode=process.argv[2]??'original', capture=JSON.parse(readFileSync('tiny-data/0.json','utf8')), data=capture.beforeFinite
 const source=mldr().machine,m=data.machine as Machine,caller=data.caller as Law[],params={size:3},run=interpret(source),evaluate=finiteEvaluator(m)
 let candidates=data.candidates as Law[]
@@ -30,13 +31,18 @@ const initial=caller.length+candidates.length,drops:{stage:number,round:number,m
 const removed=new Set<Law>(),started=performance.now()
 let timedOut=false
 const postTargetPruning=process.env.T16_POST_TARGET==='1',postTargetIntervals=process.env.T16_POST_INTERVALS==='1'
+const counterexampleNeighbors=process.env.T16_SEED_NEIGHBORS==='1',seedTransitions:TinyFiniteSeed[]=[]
 try {
   withWall(started+1900,()=>{
     const stages=[{valueDomain:[0,1],rounds:2,wallMs:1000},{valueDomain:[0,1,2],rounds:1,wallMs:2000}]
     for(const [stage,options] of stages.entries()) {
       checkWall('hybrid stage')
-      candidates=finiteTinyHoudini(source,m,caller,candidates,[params],{...options,postTargetPruning,postTargetIntervals,
+      candidates=finiteTinyHoudini(source,m,caller,candidates,[params],{...options,postTargetPruning,postTargetIntervals,...(counterexampleNeighbors?{seedTransitions}:{}),
         onDrop:drop=>{
+          if(counterexampleNeighbors&&seedTransitions.at(-1)?.pre!==drop.pre){
+            if(seedTransitions.length>=8)seedTransitions.shift()
+            seedTransitions.push({params:drop.params,pre:drop.pre,request:drop.request})
+          }
           removed.add(drop.law)
           const row={stage,round:drop.round,ms:performance.now()-started,law:drop.law.name}
           drops.push(row)
@@ -51,4 +57,4 @@ try {
   if(!(error instanceof Error)||error.name!=='WallExpired')throw error
   checkWall('hybrid outer completion');timedOut=true
 }
-console.log('HYBRID_RESULT',JSON.stringify({mode,postTargetPruning,postTargetIntervals,initial,drops,rounds,finishes,timedOut,wall:performance.now()-started,removed:removed.size,survivors:initial-removed.size}))
+console.log('HYBRID_RESULT',JSON.stringify({mode,postTargetPruning,postTargetIntervals,counterexampleNeighbors,initial,drops,rounds,finishes,timedOut,wall:performance.now()-started,removed:removed.size,survivors:initial-removed.size}))
