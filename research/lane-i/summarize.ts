@@ -21,7 +21,7 @@ function batch(dir:string,names:string[]){
 }
 const census=batch('census',expected.map(j=>j.name)).map(job=>{
  const rows=[...job.log.matchAll(/^LANE_I_CENSUS (.+)$/gm)]
- if(rows.length!==1)throw Error(job.name+': receipt cardinality')
+ if(rows.length!==1){issues.push(job.name+': receipt cardinality');return {...job,log:undefined,id:'<missing>',repeat:0,identical:false,base:null,candidate:null}}
  const row=JSON.parse(rows[0]![1]!) as {id:string,repeat:number,identical:boolean,base:unknown,candidate:unknown,names?:string[]}
  if(job.name!==`gen-${row.id}-r${row.repeat}`)issues.push(job.name+': identity mismatch')
  if(row.id!=='mldr'&&!row.identical)issues.push(job.name+': unrelated generation list changed')
