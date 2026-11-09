@@ -1,0 +1,10 @@
+{
+  "revision":"8214a543bc44e88d979f9e4457d7370e7e3c122b",
+  "file":"research/protocols/ic3syn/models.ts",
+  "incorrectExpectedSha256":"7264a41611c0bab74b8b3549ac86663f4cb4d8ef8cac00528df0c2c7bcfbae93",
+  "gitVerifiedSha256":"5d61b846a8331a9b7978b4809d53b88e5918135ded0fc6d527f2a6dc8fb3a601",
+  "verification":"git show 8214a543bc44e88d979f9e4457d7370e7e3c122b:research/protocols/ic3syn/models.ts | shasum -a 256",
+  "cause":"Expected baseline hash was incorrectly copied from the historical integration source; main retains the pre-extraction MLDR model layout.",
+  "rawReceiptsChanged":false,
+  "initialAudit":"pair-audit.initial.json"
+}

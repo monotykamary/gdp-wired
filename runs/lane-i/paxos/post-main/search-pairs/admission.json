@@ -1,8 +1,23 @@
 {
   "task": "90371148-31aa-474c-8a87-3fad952373c5",
-  "status": "active",
+  "status": "audited-complete",
   "baseline": "8214a543bc44e88d979f9e4457d7370e7e3c122b",
   "candidate": "d3adf3c9589ec014a158b6f42ecfb091c999bb43",
   "testTimeoutUnchanged": true,
-  "finalGate": false
+  "finalGate": false,
+  "issues": [],
+  "pairs": 3,
+  "passedProcesses": 6,
+  "passedTests": 60,
+  "assertions": 270,
+  "testTimeoutMs": 5000,
+  "targetDurationMs": [
+    2164.92,
+    2424.03,
+    3746.79,
+    3306.54,
+    3193.98,
+    2835.19
+  ],
+  "reproduced": false
 }

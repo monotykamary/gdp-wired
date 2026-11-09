@@ -1,0 +1,71 @@
+{
+  "issues": [
+    "1/base: source",
+    "2/base: source",
+    "3/base: source"
+  ],
+  "baseline": "8214a543bc44e88d979f9e4457d7370e7e3c122b",
+  "candidate": "d3adf3c9589ec014a158b6f42ecfb091c999bb43",
+  "cpu": "AMD Ryzen 9 9950X 16-Core Processor",
+  "pairs": 3,
+  "processes": [
+    {
+      "repeat": 1,
+      "side": "base",
+      "passed": 10,
+      "failed": 0,
+      "assertions": 45,
+      "wallMs": 6197.533917000001,
+      "target": "(pass) an invariant nobody wrote is found and proven, and said as a law [2164.92ms]"
+    },
+    {
+      "repeat": 1,
+      "side": "candidate",
+      "passed": 10,
+      "failed": 0,
+      "assertions": 45,
+      "wallMs": 7665.935849000001,
+      "target": "(pass) an invariant nobody wrote is found and proven, and said as a law [2424.03ms]"
+    },
+    {
+      "repeat": 2,
+      "side": "base",
+      "passed": 10,
+      "failed": 0,
+      "assertions": 45,
+      "wallMs": 9160.008903999995,
+      "target": "(pass) an invariant nobody wrote is found and proven, and said as a law [3746.79ms]"
+    },
+    {
+      "repeat": 2,
+      "side": "candidate",
+      "passed": 10,
+      "failed": 0,
+      "assertions": 45,
+      "wallMs": 8601.050579000002,
+      "target": "(pass) an invariant nobody wrote is found and proven, and said as a law [3306.54ms]"
+    },
+    {
+      "repeat": 3,
+      "side": "base",
+      "passed": 10,
+      "failed": 0,
+      "assertions": 45,
+      "wallMs": 8538.604924,
+      "target": "(pass) an invariant nobody wrote is found and proven, and said as a law [3193.98ms]"
+    },
+    {
+      "repeat": 3,
+      "side": "candidate",
+      "passed": 10,
+      "failed": 0,
+      "assertions": 45,
+      "wallMs": 7532.417347999988,
+      "target": "(pass) an invariant nobody wrote is found and proven, and said as a law [2835.19ms]"
+    }
+  ],
+  "unchangedTestTimeoutMs": 5000,
+  "reproduced": true,
+  "scope": "Isolated paired test only; full-suite confirmation still separate.",
+  "finalGate": false
+}
