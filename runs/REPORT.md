@@ -220,6 +220,513 @@ Profiles: `research/track-wall/profile-jobs.json`. `bun run check` in the shippe
 
 # Lane A (merged bef4020f) — RESUME — PAUSED AT USER REQUEST
 
+---
+
+# Lane A (merged 1316eb0f) — RESUMED — 2026-11-10
+
+User explicitly resumed lane A. Checkpoint `bef4020f` is clean; the frozen
+`runs/t16-frontier-capture/0.json` digest remains
+`96ba906a86c7f54db1371cea2c55c0bbcc79fd9e8ebe368b770f6495a9ee4496`.
+All six cancelled probes were resubmitted **first**, unchanged, via:
+
+```sh
+supercomputer run --jobs research/track-gen/t16-domain-hybrid-jobs.json \
+  --out runs/t16-domain-hybrid-resume --class submission --timing \
+  --vm-type large --data runs/t16-frontier-capture:tiny-data
+```
+
+Batch `20261110-000752-9cbvob`, snapshot tree `99439867caf3`, task
+`1b2d3e1d-c456-438d-aa13-75af84ec879c`. The rerun has completed; measurements
+below refer to its new payloads, never to the cancelled batch. All twelve
+checkpoint/shortcut logs were independently replayed. Production tiny
+screening stays disabled: only three of the named seven were caught.
+Bounded grouping reached four named drops, not five. Operation-first was
+rejected. Per coordinator direction, post-target pruning is now opt-in
+on top of state-first: the first pilot caught no drops during target build.
+A shared partial-post circuit revision is now in differential validation.
+
+## Current revision: shared partial post-state circuits (code checks pass; pilot running)
+
+The profile below found that repeated target substitution exhausted both
+stages before enumeration. The revision preserves state-first traversal
+and replaces that expansion with one source-output expression DAG per
+operation. Each post coordinate has a readiness depth derived from **all**
+of its source dependencies. Until ready, it is unknown; placeholder zeroes
+must never participate in a known predicate. Target negations share this
+post-state vector. Unchanged primitive dependencies may be skipped under
+the full pre-family; unsupported construction falls back to possible.
+The complete-assignment semantics are unchanged, though the partial
+approximation can be more conservative than expanded symbolic choices.
+
+Two added differential fixtures cover swapped coordinates with different
+readiness and a target independent of another output. All **57 tests / 814
+assertions** passed, as did full TypeScript and type-aware lint (zero warnings
+and errors). Only the final commit-message check failed: this repository
+does not allow type `perf`. The proposed message now uses `refactor`; the
+compiler and tests are unchanged and are not rerun.
+
+Completed validation batch: `20261110-015609-9e1odk`, output
+`runs/t16-target-circuit-check/`. The aggregate type/lint/message job exits
+1 only because of that message-type failure, not because type/lint failed.
+
+Now running, both on submission-class isolated large VMs:
+- Message-only check: `cb000223-ec7e-4d7f-9cf9-186ffb49d29d`,
+  `runs/t16-target-circuit-message-check/`.
+- Six unchanged pilots: `57a29a35-1b15-4561-bdd7-73ec8d17bc38`,
+  `runs/t16-target-circuit-probe/`. Differential and static code checks passed
+  before these pilots were submitted.
+Same canonical archive `6288b666` plus small overlay
+`runs/t16-target-circuit-overlay/`. Compiler SHA-256
+`59bf1a68ae755e7a57c4c5085c7db0c87f5923c69d08bb199344f24604ee181a`;
+test `9809622223dacfac7c3b35e568a7c30019c6bdb7081afdae769a501c9113115f`.
+These files are covered by the new 57-test receipt, not the earlier 55-test
+receipt. The corrected message check and pilot results remain pending.
+Production, all domains, the native-body cap and the five-of-seven / 2 s bar
+are unchanged.
+
+## Previous post-target expansion: checks passed, pilot caught zero
+
+Coordinator-directed successor to the rejected operation-first trial. The
+state-first traversal is retained. Each target's postcondition is substituted
+through the source operation and compiled in negative polarity. An unassigned
+atomic dependency means **unknown**, which the failure screen must retain;
+`false` means that target cannot fail under this partial assignment. A state
+is pruned only when every operation rules out all still-unaccepted targets.
+Request branches use the same screen after the state prefix. Unsupported
+post compilation falls back to always-possible and records unknown, never
+an assumed proof. Unchanged supported pre/post predicates may be skipped by
+structural identity because the complete pre-family requires them.
+
+- Core, caller protection, lifted declarations and independent interpreter
+  admission remain separate. No production enablement, kernel change,
+  protocol-name logic, domain enlargement or allowance increase.
+- `postTargetPruning` is opt-in. `T16_POST_TARGET=1` enables only the research
+  driver; its receipts and finite scope record the mode.
+- New `core/finite-tiny-target.test.ts` exhaustively compares all finite
+  pre/post transitions and violated-law sets with concrete interpretation,
+  in binary and ternary scopes: eight Boolean/conditional forms, late input
+  dependencies, whole-family/multi-target cases, point writes with recomputed
+  counts, accepted/rejected callbacks, declarations, unknowns and deadlines.
+  Only observationally equivalent request duplicates are collapsed; no
+  state transition or target is omitted from the expected set.
+- Missing any concrete violation falsifies the differential phase. Only after
+  this phase and type/lint pass will the six unchanged 1900-ms pilots run;
+  the admission bar remains five of seven in all originals and <= 2 s active
+  wall. All checks and pilots use **submission class**, as requested.
+
+Validation batch `20261110-014802-tdfixg` passed both jobs: **55 tests /
+732 assertions**, full TypeScript, type-aware lint (zero warnings/errors),
+and the intended commit-message check. Both jobs ran on exclusive large
+Ryzen 9 9950X VMs (2/8 vCPUs for tests, 8/8 for type/lint). Receipts:
+`research/track-gen/t16-target-validation.json`; gzip logs under
+`runs/t16-target-check/`. Implementation committed as `8dfb319e`.
+
+The six-probe pilot `20261110-015017-i4ke09` completed, all exits 0,
+mode `T16_POST_TARGET=1`. **Zero new drops in every run**, so it fails the
+five-of-seven bar. Active walls were 1900.179 / 1943.100 / 1901.265 ms for
+the original family and 1900.167 / 1900.104 / 1900.173 ms for survivors;
+all are below 2 s. Process durations (up to 9.9 s, including unpack/install)
+are not algorithm wall. Every round hits its wall before an `onTiny` receipt,
+so absence of round statistics does not establish where the time went.
+
+Independent replay and the separate profile completed in submission batch
+`20261110-015407-21wuam`. Replay confirms all six rosters, zero new drops,
+and all active walls below 2 s (`research/track-gen/t16-target-results.json`).
+The diagnostic-only original run stops in **target-build in both stages**,
+with **zero nodes, states, steps and candidates**. It also records
+`large generated screen`. This directly identifies construction, not failed
+enumeration, as the budget consumer in that profiled run; it is not a new
+acceptance timing. Details: `research/track-gen/t16-target-profile.json`.
+
+Next: share one bounded partial post-state circuit per operation, then test
+negated targets over its ready output coordinates. Unready outputs must
+still mean unknown; complete assignments must agree with the interpreter.
+This avoids expanding the whole source step into each target, without
+raising the native-code cap, domain, or wall. Differential tests first,
+then the same six submission-class pilots. Production stays disabled. Reused canonical archive `6288b666`
+plus the small
+`runs/t16-target-overlay/`. Compiler SHA-256
+`ed2a8ceeb8aad234015afa5a1122bd8e3c71f96318c55d404338c8963e440c02`,
+differential test `482003a3b3e83d404a54a7b71b142af9e353e3a6678c55bdd25889ecf043230d`,
+driver `4bb676f1a87a1eccc59706f8dbdd51699c354b8430a6b0982841e54e911849a2`.
+These files are covered by the new 55-test receipt, not by the earlier
+40-test receipt. No pilot outcome, safety proof or final gate is claimed.
+
+## Operation-first pilot rejected; checked state-first implementation restored
+
+All six probes in `20261110-013906-gsvh4j` exited 0 and confirmed
+`operationFirst: true`, but **zero of the named seven** were removed.
+Original runs removed only CT/CV row agreement and the row-0 cube (neither
+is named-seven credit); survivor runs removed nothing new.
+
+| Family | Active walls (ms) |
+| --- | --- |
+| Original 40 | 2515.848 / 2622.421 / 1908.557 |
+| Historical survivors 34 | 2043.451 / 1925.269 / 1900.317 |
+
+Three of the six exceed the strict 2-second allowance. This falsifies the
+pilot on both removal count and wall, regardless of unit-test outcome.
+The result is consistent with the recorded operation-starvation concern,
+not proof of that cause. No performance gain, exhaustion or gate claim.
+
+The variant is **not landed**. `core/finite-tiny.ts`, its tests, and the
+hybrid driver were restored byte-for-byte to the checked state-first
+implementation (`27ff24fc`); compiler hash
+`2802f3dd4e4d53cc3382457db302f2ee7c1abcef5b394529ccf367f070d2a2a2`,
+test hash `f3bf9bafa63ffe7150512ada101e5c781f5e0696ac6ce5175750bf77f9d8005c`.
+The exact rejected change is retained only as
+`research/track-gen/t16-operation-first-rejected.patch` (SHA-256
+`8f89254ae2fb89c9dbb65e662f9a0e9c3c8cc6233fe4d338be447ef51358f4e5`).
+`T16-OPERATION-COMMIT.txt` is its unused proposed message, not a landed change.
+
+Both failed checks remain recorded:
+- `20261110-013903-jm3fgc`: 41 pass / 1 fail, scope error from inherited
+  count binder `a` colliding with state `a`. No type/lint run.
+- `20261110-013951-npalu8`: after changing the fixture binder to `row`,
+  41 pass / 1 fail. Its exact-request assertion expected five raw requests,
+  but the **unchanged state-first path** returns three representatives:
+  payloads 1 and 2 are intentionally quotiented to 0 in a branch where
+  payload is irrelevant. This is an invalid fixture expectation, not an
+  established operation-first bug. The second mode is not reached by that
+  assertion; no type/lint run and no correctness-validation success claimed.
+- Logs have gzip copies under `runs/t16-operation-check/` and
+  `runs/t16-operation-fixture-check/`. No further validation retry is useful
+  for this already-rejected performance variant.
+
+Independent replay is now complete: batch `20261110-014125-077cp4`, job
+`replay-operation-first`, exit 0. It certifies every emitted witness but
+reports `originalThreeMeetNewFive: false` and
+`allSixWallsWithinAllowance: false`. Compact evidence:
+`research/track-gen/t16-operation-results.json`. Witness validity does not
+rescue the zero-of-seven / over-budget result.
+
+All lane-A work started for these pilots has completed; no active clients
+or subagents remain. Source archives were reused; only small patches,
+receipts and compressed logs were added. Production remains disabled.
+Next hypothesis to investigate is post-target-directed pruning rather than
+another traversal-order or time-cap adjustment: use the target's negated
+postcondition, substituted through the source step, to prune a partial
+assignment only when that target cannot fail. This needs explicit unknown
+semantics and exhaustive small-instance differential tests before a pilot;
+the same independent full-family checker and five-of-seven / 2 s bar apply.
+
+For lane I/Fable: retain the checked bounded-group state-first code, not
+the rejected operation-first patch. Best observed original-family result
+remains four of seven under 2 s. The missing fifth requires a different
+proposal strategy, not a larger time cap or a new counting rule.
+
+## Resumed hybrid probes: independently replayed, criterion fails
+
+Both six-probe batches are complete, every job exited 0, and independent
+replay batch `20261110-010325-urerjg` passes for **all twelve logs**. The
+replayer checks the complete beginning-of-round family, all declarations,
+the source interpreter's enabled step and the target post-law. Compact
+records: `research/track-gen/t16-hybrid-resume-results.json`; compressed
+input logs total 64 KB under `runs/t16-replay-input/`.
+
+| Source | Original-40 active walls (ms) | Total drops | New named-seven drops |
+| --- | --- | --- | --- |
+| Checkpoint `bef4020f`, batch `20261110-000752-9cbvob` | 1900.324 / 1900.814 / 1900.212 | 5 / 4 / 5 | **3 / 3 / 3** |
+| Unready-atom shortcut, `19ad4ab4`, batch `20261110-003852-llmvg6` | 1900.401 / 1900.409 / 1900.419 | 5 / 4 / 4 | **3 / 3 / 3** |
+
+The three named drops are the unweakened stored guard, disabled/1 and the CV
+bound. The row-0 cube and CT/CV row agreement are **not** named-seven credit.
+Every survivor-34 run drops only the first two (two new named drops, three
+including its independently replayed historical CV removal). All twelve
+active walls are below 2 s; every search is wall-limited, not a completed
+semantic search. Process durations and scheduler wait are not algorithm wall.
+
+**Falsifier: fewer than five of the named seven. Production stays disabled.**
+The shortcut has no demonstrated removal gain; the different CPU placements
+are not a paired speed comparison. No strict original-harness/full gate is
+scheduled for this unsuccessful screen. No safety proof or GATE GREEN.
+
+### Bounded native grouping: independently replayed, four of seven — not sufficient
+
+Batch `20261110-010410-4rvkxj`, snapshot `777d8975d129`, has now passed
+**40 tests / 150 assertions**, full TypeScript and type-aware lint (zero
+warnings/errors), and `T16-GROUP-COMMIT.txt` commitlint. The actual job exit
+is 0, 32.05 s, on exclusive large Ryzen 7 9700X, 8/8 vCPUs. The new
+4,096-clause cap-splitting regression passes. Log:
+`runs/t16-group-check/bounded-group-check.log.gz`.
+
+This validates the implementation, not its removal rate or active wall.
+The first six probes all exited 1 before producing `HYBRID_RESULT`: the
+job changed into its extracted source but had mounted `tiny-data/0.json`
+only at the outer sandbox root. This is an input-path setup failure, not a
+compiler/removal/wall result. All six error logs were inspected and gzip
+copies retained. The completed failing batch is `20261110-010407-6qnghm`.
+
+The corrected batch `20261110-012637-jlj653` exited 0 for all six jobs.
+Independent replay `20261110-013708-5enz4s` also passed for all six logs.
+Original-family active walls: **1966.647 / 1901.227 / 1900.141 ms**. Each
+original run removes six laws total, but only **four of the named seven**:
+CV bound, unweakened stored guard, disabled/1 and no-quorum canVote/1.
+All survivor-34 runs newly remove the last three; the historical CV drop
+makes four including history. Their active walls are 1900.323 / 1902.648 /
+1900.260 ms. Compact evidence: `research/track-gen/t16-group-results.json`.
+
+**The five-of-seven bar still fails.** No production promotion, final gate,
+semantic-exhaustion or safety-proof claim. No compiler code, budget, domain,
+or archive changed for this retry; the passing suite was not repeated.
+
+Individual native predicate calls may be replacing arithmetic work with call
+overhead. `core/finite-tiny.ts` now tries shared-DAG logical groups within the
+**same 64-KiB native-body cap**, splitting oversized groups recursively and
+checking cancellation between them. Atomic early guards remain. No search
+domain, wall, proof fuel, law or production switch changes. A 4,096-clause
+regression exercises cap-driven splitting, alongside the exhaustive small
+polarity/request tests. This now has a repeatable removal improvement over
+the earlier variants (four rather than three named drops), but not a pass.
+Different CPU placements preclude a paired speedup claim.
+
+- Tests/type/lint: completed; checked implementation committed as `27ff24fc`.
+- First six probes: failed before the experiment; batch
+  `20261110-010407-6qnghm`, output `runs/t16-group-probe/`.
+- Corrected six-probe retry: task `3a9c3826-7966-4737-83cc-593822d37f22`,
+  output `runs/t16-group-probe-retry/`.
+- Both reuse canonical archive `6288b666` with the small immutable overlay
+  `runs/t16-group-overlay/`; no new tree archive or clone. Compiler SHA-256
+  `2802f3dd4e4d53cc3382457db302f2ee7c1abcef5b394529ccf367f070d2a2a2`.
+
+For lane I/Fable: do not enable or promote the tiny backend from these
+receipts. All submitted probes and their replay have completed. Disabled/0,
+/2 and /3 remain. The bounded-group change is checked but does not meet the
+five-of-seven bar.
+
+Next generic hypothesis: state-first enumeration waits until a full state
+before testing any operation's enablement. An opt-in operation/request-first
+search can close dispatch and request coordinates, then apply the same
+partial-assignment pre-family AND enablement screen during state assignment.
+It must preserve the complete proposal set on small finite fixtures, retain
+the independent checker, and meet the unchanged wall/five-of-seven bar.
+No name matching, new assumptions, domain expansion or timing-cap tuning.
+
+## Prior unready-atom validation — green unit/type/lint only
+
+The unready-atom shortcut and repaired regression fixtures pass **39 tests /
+145 assertions**, TypeScript, type-aware lint (zero warnings/errors), and both
+archived commit-message checks. Per-job exit is **0** in batch
+`20261110-005234-oyxenp` (`archive-domain-check-overlay`, 52.44 s), exclusive
+large EPYC 4585PX, 8/8 vCPUs. This is **iteration validation only**, not a
+final gate, performance result, or proof.
+
+The measured source is archive `6288b666` (hash recorded below) plus exactly
+the test overlay SHA
+`5f4e224572a29bbd932a2fb9a170e3265aa801b760e74ea1e7234ae2ab3ff63c`.
+Only that fixture differs from the archived core files; the algorithm and
+independent checker are unchanged. Compact source/hardware/failure evidence:
+`research/track-gen/t16-partial-validation.json`. Compressed raw receipt:
+`runs/t16-partial-overlay-check/archive-domain-check-overlay.log.gz`.
+Earlier failed logs are also retained and gzip copies made; originals were
+not deleted.
+
+Both six-probe batches remain registered, so neither is rerun. The latest
+scheduler read showed six queued / zero running for each; its class census
+had 657 gate and 399 submission items queued, with 55 gate VMs and two
+submission VMs. No scheduler policy or priority was changed to bypass that
+queue. The five-of-seven / <=2 s criterion remains **unmeasured** for the
+shortcut. Production remains disabled. After actual probe completion, replay
+the CTIs with the full beginning-of-round family and source interpreter;
+only then decide the next experiment.
+
+## First executed validation — historical fixture failure
+
+Batch `20261110-003848-r92jez`, tree `e258b9207ea3`, completed its one job
+with **exit 1** (the outer client exited 0). `domain-check` ran on exclusive
+large Ryzen 9 9950X, 8/8 vCPUs, in 0.88 s: **38 pass, 1 fail, 127 assertions**.
+The new predecessor-equivalence fixture inherited count binder `a` and also
+introduced state scalar `a`; the interpreter correctly rejected the name
+collision before the test could run. Typecheck/lint were not reached.
+
+The fixture now uses count binder `row`, with no production-code change, and
+its conditional case tests a nontrivial equality rather than a tautological
+bound. The original failure is retained in
+`runs/t16-partial-immutable-check/domain-check.log`. Next validation will
+use one canonical archive per SHA, reused by hard-linked data mounts, not
+another whole-tree clone. Payload estimate is about 142 MiB including both
+vendors, below the 500-MB disclosure threshold. This is not a proof or gate.
+
+## Archive validation: tests pass, fixture lint correction pending
+
+Batch `20261110-005009-p6jio6` verified all three archive digests and ran on
+exclusive large EPYC 4585PX, 8/8 vCPUs. Its job exited **1** after 69.46 s
+(the launcher exited 0): **39 tests pass, 145 assertions**, and TypeScript
+passes, but type-aware lint reports four errors at the one new request-pair
+formatting line. `Request` values include maps and `undefined`; the test
+must explicitly narrow both coordinates to numbers. Commitlint was not
+reached. This is not a green validation or a proof.
+
+The correction adds an explicit numeric type guard in the fixture only.
+To avoid another whole-tree archive, pending validation reuses the exact
+`6288b666` source archive and overlays only `core/finite-tiny.test.ts`, whose
+SHA-256 is `5f4e224572a29bbd932a2fb9a170e3265aa801b760e74ea1e7234ae2ab3ff63c`.
+The job verifies that hash before replacing the archived test file, and
+then repeats tests, full type/lint and both commit-message checks.
+
+Task: `3948f73d-2ef4-4d60-b940-94edeae2b5fb`; manifest:
+`runs/t16-partial-overlay-check-jobs.json`; output:
+`runs/t16-partial-overlay-check/`; immutable small input:
+`runs/t16-fixture-overlay/core/finite-tiny.test.ts`. No proof-engine file
+changed and no new tree archive was written for this iteration.
+
+## Fixture-repair validation and offload retention
+
+Repair commit: `6288b666e7b23cb4a10e0e9e92cde919ea135854`. One canonical
+archive was created at `/private/tmp/gdp-archives/<that-sha>.tar` (121,344,000
+bytes). SHA-256:
+`26824362de21cb4ea3c87e78f09aa37dc49077b88ab8a6bb1421dd3eeb311979`.
+Existing exact vendor archives are reused, not rebuilt. The data mount at
+`/private/tmp/gdp-archives/mount/<that-sha>/` contains **hard links**, not
+additional archive copies. No write over 500 MB occurred.
+
+Validation task `617d5ea0-36b4-49a7-bc1b-3d25d275a3f4`, output
+`runs/t16-partial-archive-check/`, extracts that source on boat, verifies
+all three archive hashes, runs the required three test files, full type/lint,
+and commitlint for both the shortcut and fixture repair. It uses the existing
+immutable `current` clone only as a stable launcher envelope. No new clone
+was made. The optimized probes are not duplicated: the fixture-only change
+does not change their measured algorithm.
+
+In response to the offload notice, `runs/KEEP-LOCAL.txt` now names the frozen
+input. `/private/tmp/gdp-archives/KEEP-LOCAL.txt` preserves its existing
+entries and adds the active source/vendor archives and their mount hard-link
+paths. No source file in the active clone is over 20 MB. Previously listed
+unused clones remain cleanup candidates; no file was deleted. Results are
+still pending for this repair.
+
+## Execution reopened — immutable retries
+
+The coordinator lifted the submission hold after the blob lock freed, while
+retaining the at-most-one-subagent cap (this lane has none). Before any retry,
+`supercomputer scheduler status` and all four output directories were checked:
+`20261110-000752-9cbvob` is still registered with six left / zero running;
+the three failed later batches are absent, and their output directories are
+empty. The original batch was **not** resubmitted or killed.
+
+A new, unchanged local clone at `/tmp/gdp-lane-a-frozen.uLpIQc/current`
+is pinned to `19ad4ab4e378644d325d44b9e47c29d5c9d64129`, with exact vendor
+gitlinks and the frozen data copy. Two retries only are now submitted:
+
+- Required `t16-domain-check-jobs.json`, output
+  `runs/t16-partial-immutable-check/`, task
+  `a459f935-d7a4-4171-99da-0782e564d87b`, batch `20261110-003848-r92jez`,
+  tree `e258b9207ea3`.
+- Six optimized hybrid probes, output
+  `runs/t16-partial-immutable-hybrid/`, task
+  `828beead-707f-4141-b7d5-2bc133919cd7`, batch `20261110-003852-llmvg6`,
+  tree `8d49b8211662`.
+
+Both use `supercomputer --repo /tmp/gdp-lane-a-frozen.uLpIQc/current`,
+`--timing --vm-type large`, normal scheduler classes (gate / submission),
+no forced VM count. The required check includes the complete current source,
+so it supersedes a separate retry of the failed final-source check; there is
+no duplicate test batch. The bounded completion observation expired with
+all three clients still active, not with a test/probe failure. Their own
+completion notifications remain enabled; no additional polling or duplicate
+submission is needed. Do not edit the clone while it uploads or runs.
+No gate or proof claim.
+
+## Disk
+
+Coordinator disk rules are in force. No files are being deleted. No further
+whole-tree clone/archive per run will be made. Future archive-based work must
+reuse `/private/tmp/gdp-archives/<sha>.tar`, creating it only if missing, and
+pass it with `--data`; no tree tar goes in output/input directories. Retrieve
+compact summaries/receipts/hashes; request raw logs only for a specific
+question and gzip them. No write over 500 MB is planned; such a write would
+be reported here first.
+
+Measured lane-owned scratch (created before the disk notice):
+
+| Path | Size | Suggested disposition and why |
+| --- | ---: | --- |
+| `/tmp/gdp-lane-a-frozen.uLpIQc/checkpoint` | 160 MB | Coordinator may delete: never submitted; exact source `bef4020f` remains in Git. The registered original batch uses the original worktree, not this clone. |
+| `/tmp/gdp-lane-a-frozen.uLpIQc/wip` | 160 MB | Coordinator may delete: never submitted; superseded by the current clone and source `32772de6` remains in Git. |
+| `/tmp/gdp-lane-a-frozen.uLpIQc/current` | 160 MB | **Keep until the two immutable submissions terminate**; deferred upload reads this source. Then a cleanup candidate because `19ad4ab4` remains in Git. |
+| `/tmp/gdp-lane-a-frozen.uLpIQc/data` | 68 KB | Keep while the optimized probe submission can read it; frozen input is separately preserved in this worktree. |
+
+Only the first two paths (about 320 MB total) are immediate cleanup
+candidates. Nothing was deleted, and no current upload source was changed.
+
+## Historical execution hold — coordinator memory notice
+
+The coordinator reported laptop memory pressure and a blocked shared
+`blob-cache.lock`, and directed all lanes **not to resubmit or kill submitted
+boat runs until further notice**, with at most one subagent. This lane has no
+subagents. No new jobs were submitted after that notice; the original
+cancelled-probe rerun remains owned by its existing client.
+
+Three later clients have terminated with a **pre-execution snapshot error**,
+`ValueError: blob bytes do not match their key` from `push_tree` /
+`store_blobs` / `blobcache.put`:
+
+- `a434a908-dd22-4bb7-b955-130b396ec578` / `20261110-001417-gd15iy`:
+  required domain check, exit 1 after 1,144 s, no result files.
+- `1c1edd9f-b30c-458a-93e3-7d4d17d66a28` / `20261110-001508-ez9go1`:
+  optimized six-probe experiment, exit 1 after 1,151 s.
+- `7c638a8f-675f-42da-80ca-337c34e13594` / `20261110-001813-riu69e`:
+  final-source validation, exit 1 after 965 s.
+
+These are **not test failures or timing measurements**. The first domain
+check's output directory is empty. Delayed uploads read source files after
+tree hashing, so the intervening edits are a plausible cause of the hash
+mismatch; memory pressure explains the delay, not a proven hash diagnosis.
+
+Before the coordinator's hold arrived, immutable local clones were prepared
+at `/tmp/gdp-lane-a-frozen.uLpIQc/{checkpoint,wip}` (no retries launched):
+checkpoint `bef4020f07c42058534515b99a15214fb4ae649a`, WIP
+`32772de69e7f5ef9c3b360fbed97b61a32964950`, with both vendor gitlinks checked
+out exactly. `/tmp/gdp-lane-a-frozen.uLpIQc/data/0.json` matches the frozen
+input SHA above. Leave these clones unchanged. After the hold is lifted,
+use them to avoid edit/upload races; do not rerun any completed work or
+replace the still-active original client blindly.
+
+The earlier bounded waits have expired; the original shell client's own
+completion event remains enabled. No shared process, scheduler, VM, lease,
+cache, or policy was changed. No tests or gate have passed for this WIP.
+
+## Follow-up implementation and original submissions (not validated)
+
+`core/finite-tiny.ts` now returns unknown before evaluating an atomic
+predicate's closed expression DAG when any dependency is unassigned. The
+prior code evaluated guarded intermediate terms even though the atom had to
+return unknown. No search domain, law, proof fuel, native-body cap, wall,
+or production switch changes. Two finite equivalence regressions cover
+ternary predecessor states, both predicate polarities, and conditional
+request dependencies in `core/finite-tiny.test.ts`.
+
+- Required domain validation: `20261110-001417-gd15iy`, tree `5f8486bd01ee`,
+  task `a434a908-dd22-4bb7-b955-130b396ec578`, output
+  `runs/t16-partial-check/`.
+- New six-probe experiment: `20261110-001508-ez9go1`, tree `d0ae610ee71f`,
+  task `1c1edd9f-b30c-458a-93e3-7d4d17d66a28`, output
+  `runs/t16-partial-hybrid/`.
+- Final-source type/lint/regression validation, including the new independent
+  replay script: task `7c638a8f-675f-42da-80ca-337c34e13594`, output
+  `runs/t16-partial-final-check/`, batch `20261110-001813-riu69e`, tree
+  `cef78180da95`. Its immutable snapshot still contains the disallowed `perf`
+  commit-message type; the working file now uses allowed `refactor`. If this
+  job reaches commitlint after passing tests/type/lint, its expected header
+  failure is not a code-test failure. Revalidate the corrected message before
+  promoting this WIP.
+- Replay-only diagnostic: `research/track-gen/t16-hybrid-replay.ts` validates
+  every logged CTI against the complete beginning-of-round family,
+  declarations and actual source interpreter, separately from the proposer.
+  It records the exact seven-law criterion, not total drops. It is **not**
+  authoritative census/admission tooling; lane D retains final admission.
+
+At the last read-only scheduler inspection the restart still showed six
+queued, zero running. No result payload was available. Shared scheduler
+health reported `churn`, `starts`, and `status` breaches; no shared process,
+VM, lease, or policy was changed. The running clients remain responsible for
+normal scheduling/fallback. There is one bounded completion waiter for the
+required restart; no alternate local execution or duplicate restart.
+
+---
+
+# HISTORICAL RESUME — PAUSED AT USER REQUEST
+
 **Start nothing until the user explicitly resumes. No push or merge.**
 
 ## Branch and checkpoint

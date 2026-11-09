@@ -1,0 +1,6 @@
+feat(core): add opt-in partial post-target pruning
+
+Substitute negated targets through each source operation and retain
+unknown partial atoms. Skip only branches where no remaining target can
+fail. Keep full-family interpreter admission and the default unchanged.
+Production remains disabled pending the unchanged bounded pilot.

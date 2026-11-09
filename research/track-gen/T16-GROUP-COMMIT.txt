@@ -1,0 +1,5 @@
+refactor(core): batch bounded finite predicate clauses
+
+Share expression DAGs within the existing native-code-size cap and split
+larger logical groups recursively. Preserve partial-assignment polarity,
+independent CTI checking and the unchanged wall. Production stays disabled.

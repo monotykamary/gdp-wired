@@ -1,0 +1,155 @@
+diff --git a/core/finite-tiny.test.ts b/core/finite-tiny.test.ts
+index 51174343..2b83f77d 100644
+--- a/core/finite-tiny.test.ts
++++ b/core/finite-tiny.test.ts
+@@ -139,6 +139,43 @@ test('request atoms wait for every conditional-term dependency', () => {
+   expect(stats.completed).toBe(true)
+   expect(actual.sort()).toEqual(['0,1', '0,2', '1,0', '1,1', '1,2', '2,0', '2,1', '2,2'])
+ })
++test('operation-first search preserves the exhaustive concrete proposal set', () => {
++  const source: Machine = {...counter(), inputs: ['pick', 'payload'], state: {a: n(0), b: n(0)},
++    counts: {unused: {j: 'row', key: 'k', below: n(1), body: n(0)}},
++    assume: all(less(x('pick'), n(2)), atMost(x('payload'), n(2))),
++    step: {flags: {inc: all(same(x('pick'), n(0)), same(x('b'), n(1))), set: all(same(x('pick'), n(1)), same(x('a'), n(0)))},
++      state: {a: ite({op: 'flag', name: 'inc'}, plus(x('a'), n(1)), x('a')), b: ite({op: 'flag', name: 'set'}, x('payload'), x('b'))}}}
++  const law: Law = {name: 'binary pair', holds: all(atMost(x('a'), n(1)), atMost(x('b'), n(1)))}
++  const evaluate = finiteEvaluator(source), run = interpret(source), expected: string[] = []
++  const key = (pre: {scalars: Record<string, number>}, request: Record<string, unknown>) => JSON.stringify([pre.scalars.a, pre.scalars.b, request.pick, request.payload])
++  for (const a of [0, 1]) for (const b of [0, 1]) for (const pick of [0, 1]) for (const payload of [0, 1, 2]) {
++    const pre = {scalars: {a, b}, maps: {}}, request = {pick, payload}
++    if (evaluate(law, {}, run.step({}, pre, request)) === false) expected.push(key(pre, request))
++  }
++  expect(expected.length).toBe(5)
++  for (const operationFirst of [false, true]) {
++    const actual: string[] = []
++    const stats = tinyFiniteCandidates(source, source, [law], {}, (pre, request, violated) => {
++      expect(evaluate(law, {}, pre)).toBe(true)
++      expect(evaluate(law, {}, run.step({}, pre, request))).toBe(false)
++      expect(violated).toEqual([law]); actual.push(key(pre, request)); return false
++    }, {operationFirst})
++    expect(actual.sort()).toEqual(expected.slice().sort())
++    expect(stats.completed).toBe(true)
++    expect(stats.unsupported).toEqual([])
++    expect(stats.scope.operationFirst).toBe(operationFirst)
++  }
++})
++test('operation-first search emits accepted targets only once', () => {
++  const source = counter(), a: Law = {name: 'zero', holds: same(x('value'), n(0))}, b: Law = {name: 'bounded', holds: atMost(x('value'), n(0))}
++  let proposals = 0
++  const stats = tinyFiniteCandidates(source, source, [a, b], {}, (pre, request, violated) => {
++    proposals++; expect(violated).toEqual([a, b])
++    const evaluate = finiteEvaluator(source), post = interpret(source).step({}, pre, request)
++    expect([a, b].every(law => evaluate(law, {}, pre) === true && evaluate(law, {}, post) === false)).toBe(true)
++  }, {operationFirst: true})
++  expect(proposals).toBe(1); expect(stats.completed).toBe(true)
++})
+ test('large logical predicates split at the native-body cap without losing proposals', () => {
+   const source = counter(), law: Law = {name: 'many equalities', holds: all(...Array.from({length: 4096}, () => same(x('value'), n(0))))}
+   let proposals = 0
+diff --git a/core/finite-tiny.ts b/core/finite-tiny.ts
+index 6877741b..5d8a20ac 100644
+--- a/core/finite-tiny.ts
++++ b/core/finite-tiny.ts
+@@ -8,9 +8,9 @@ type Env = Record<string, number>
+ type Term = {id: number, code: string, args: Term[], deps: number[], lo: number, hi: number, values?: number[], choice?: {c: Pred, a: Term, b: Term}}
+ type Pred = boolean | {op: 'atom', a: Term, b: Term, cmp: '<' | '<=' | '='} | {op: 'and', xs: Pred[]} | {op: 'or', xs: Pred[]} | {op: 'not', x: Pred}
+ type Slot = {name: string, key?: number, request?: boolean, values: number[]}
+-export type TinyFiniteOptions = {valueDomain?: readonly number[]}
++export type TinyFiniteOptions = {valueDomain?: readonly number[], operationFirst?: boolean}
+ export type TinyFiniteStatistics = {
+-  scope: {params: Env, scalarValues: number[], cellValues: number[], cells: Record<string, number[]>, inputValues: Record<string, number[]>, inputCells: Record<string, number[]>, binderValues: number[]}
++  scope: {params: Env, scalarValues: number[], cellValues: number[], cells: Record<string, number[]>, inputValues: Record<string, number[]>, inputCells: Record<string, number[]>, binderValues: number[], operationFirst: boolean}
+   completed: boolean, exhausted: boolean, timedOut: boolean, unsupported: string[], nodes: number, states: number, steps: number, scenarios: number, candidates: number, ms: number
+ }
+ const unique = (xs: number[]) => [...new Set(xs)]
+@@ -316,7 +316,7 @@ function gridKeys(m: Machine, size: number): Record<string, number[]> {
+ export function tinyFiniteCandidates(source: Machine, m: Machine, family: Law[], params: Env,
+   onCandidate: (pre: State, request: Request, violated: Law[]) => boolean | void, options: TinyFiniteOptions = {}): TinyFiniteStatistics {
+   const stateValues = unique([...(options.valueDomain ?? [0, 1])]).sort((a, b) => a - b)
+-  const start = performance.now(), scope: TinyFiniteStatistics['scope'] = {params: {...params}, scalarValues: [...stateValues], cellValues: [...stateValues], cells: {}, inputValues: {}, inputCells: {}, binderValues: []}
++  const start = performance.now(), scope: TinyFiniteStatistics['scope'] = {params: {...params}, scalarValues: [...stateValues], cellValues: [...stateValues], cells: {}, inputValues: {}, inputCells: {}, binderValues: [], operationFirst: options.operationFirst === true}
+   const stats: TinyFiniteStatistics = {scope, completed: false, exhausted: false, timedOut: false, unsupported: [], nodes: 0, states: 0, steps: 0, scenarios: 0, candidates: 0, ms: 0}
+   const unknown = (e: unknown) => { const reason = e instanceof Error ? e.message : String(e); if (!stats.unsupported.includes(reason)) stats.unsupported.push(reason) }
+   try {
+@@ -404,7 +404,7 @@ export function tinyFiniteCandidates(source: Machine, m: Machine, family: Law[],
+       inactiveIdentity = slots.slice(0,stateSlots).every((_,i)=>slotValue(off,i,params,true).id===off.slot(i).id)
+     } catch(e) { if(e instanceof WallExpired) throw e; if(!(e instanceof Unsupported)) throw e }
+     const flatPreds = (p: Pred): Pred[] => typeof p !== 'boolean' && p.op === 'and' ? p.xs.flatMap(flatPreds) : [p]
+-    const operations: {fixed: Env, order: number[], gate: (v:number[],d:number)=>boolean, step:(v:number[])=>number[]}[] = []
++    const operations: {fixed: Env, enabled: Pred, order: number[], gate: (v:number[],d:number)=>boolean, step:(v:number[])=>number[]}[] = []
+     for(const fixed of slices){
+       checkWall('tiny operation compile')
+       try {
+@@ -417,7 +417,7 @@ export function tinyFiniteCandidates(source: Machine, m: Machine, family: Law[],
+         const clauses = flatPreds(enabled).map(depsOf)
+         const degrees = slots.map((_,i)=>clauses.reduce((sum,ds)=>sum+(ds.includes(i)?1/Math.max(1,ds.length):0),0))
+         const order = slots.map((_,i)=>i).filter(i=>i>=stateSlots&&relevant.has(i)).sort((a,b)=>degrees[b]!-degrees[a]!||a-b)
+-        operations.push({fixed,order,gate:compiler.compile(enabled,order),step:compiler.compileValues(outputs)})
++        operations.push({fixed,enabled,order,gate:compiler.compile(enabled,order),step:compiler.compileValues(outputs)})
+         outputs.forEach((t,i)=>{checkWall('tiny post ranges'); highs[i]=Math.max(highs[i]!,t.hi)})
+         stats.scenarios++
+       } catch(e) { if(e instanceof WallExpired) throw e; unknown(e) }
+@@ -483,7 +483,37 @@ export function tinyFiniteCandidates(source: Machine, m: Machine, family: Law[],
+       // Ones first reaches enabled guards early; both values remain enumerated.
+       for(const value of [...slots[i]!.values].reverse()){checkWall('tiny state values');v[i]=value;states(d+1)}
+     }
+-    states(0)
++    if (options.operationFirst) {
++      // Close the operation's relevant request coordinates before state search.
++      // The shared pre screen keeps its state ranks; enablement uses the full
++      // request+state order so unassigned state atoms cannot prune a branch.
++      for (const op of operations) {
++        checkWall('tiny operation-first slice')
++        const order = [...op.order, ...stateOrder], requestDepth = op.order.length
++        const gate = compiler.compile(op.enabled, order)
++        const domains = order.map(i => slots[i]!.request ? slots[i]!.values : [...slots[i]!.values].reverse())
++        for (let i = 0; i < slots.length; i++) v[i] = slots[i]!.values[0]!
++        for (const name of source.inputs) if (Object.hasOwn(op.fixed, name)) v[slots.findIndex(s => s.request && s.key === undefined && s.name === name)] = op.fixed[name]!
++        const assign = (d: number): void => {
++          stats.nodes++; checkWall('tiny operation-first assignment')
++          if (!gate(v, d) || (d >= requestDepth && !preTest(v, d - requestDepth))) return
++          if (d < order.length) {
++            const i = order[d]!
++            for (const value of domains[d]!) { checkWall('tiny operation-first values'); v[i] = value; assign(d + 1) }
++            return
++          }
++          // In this mode a completed state is counted per request scenario.
++          stats.states++
++          const values = op.step(v)
++          if (values.every((value, i) => value === v[i])) return
++          stats.steps++
++          const post = v.slice(); for (let i = 0; i < stateSlots; i++) post[i] = values[i]!
++          const violated = targets.filter((law, i) => !emitted.has(law) && !postTests[i]!(post, 0))
++          if (violated.length) propose(op.fixed, violated)
++        }
++        assign(0)
++      }
++    } else states(0)
+     // completed records traversal even when proposals were emitted; exhausted
+     // additionally records a proposal-free screen, never semantic validity.
+     stats.completed = stats.unsupported.length === 0
+diff --git a/research/track-gen/t16-domain-hybrid.ts b/research/track-gen/t16-domain-hybrid.ts
+index b584c8a2..c763af2e 100644
+--- a/research/track-gen/t16-domain-hybrid.ts
++++ b/research/track-gen/t16-domain-hybrid.ts
+@@ -29,12 +29,13 @@ if(mode==='survivors')withWall(performance.now()+5000,()=>{
+ const initial=caller.length+candidates.length,drops:{stage:number,round:number,ms:number,law:string}[]=[],rounds:unknown[]=[],finishes:unknown[]=[]
+ const removed=new Set<Law>(),started=performance.now()
+ let timedOut=false
++const operationFirst=process.env.T16_OPERATION_FIRST==='1'
+ try {
+   withWall(started+1900,()=>{
+     const stages=[{valueDomain:[0,1],rounds:2,wallMs:1000},{valueDomain:[0,1,2],rounds:1,wallMs:2000}]
+     for(const [stage,options] of stages.entries()) {
+       checkWall('hybrid stage')
+-      candidates=finiteTinyHoudini(source,m,caller,candidates,[params],{...options,
++      candidates=finiteTinyHoudini(source,m,caller,candidates,[params],{...options,operationFirst,
+         onDrop:drop=>{
+           removed.add(drop.law)
+           const row={stage,round:drop.round,ms:performance.now()-started,law:drop.law.name}
+@@ -50,4 +51,4 @@ try {
+   if(!(error instanceof Error)||error.name!=='WallExpired')throw error
+   checkWall('hybrid outer completion');timedOut=true
+ }
+-console.log('HYBRID_RESULT',JSON.stringify({mode,initial,drops,rounds,finishes,timedOut,wall:performance.now()-started,removed:removed.size,survivors:initial-removed.size}))
++console.log('HYBRID_RESULT',JSON.stringify({mode,operationFirst,initial,drops,rounds,finishes,timedOut,wall:performance.now()-started,removed:removed.size,survivors:initial-removed.size}))
