@@ -131,7 +131,9 @@ test('request atoms wait for every conditional-term dependency', () => {
   const law: Law = {name: 'zero', holds: same(x('value'), n(0))}, actual: string[] = []
   const stats = tinyFiniteCandidates(source, source, [law], {}, (pre, request) => {
     expect(finiteEvaluator(source)(law, {}, interpret(source).step({}, pre, request))).toBe(false)
-    actual.push(`${request.left},${request.right}`)
+    const {left, right} = request
+    if (typeof left !== 'number' || typeof right !== 'number') throw Error('expected numeric request coordinates')
+    actual.push(`${left},${right}`)
     return false
   })
   expect(stats.completed).toBe(true)

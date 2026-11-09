@@ -18,7 +18,35 @@ screening stays disabled. Next: collect all six exact exits/placements,
 independently replay their `HYBRID_CTI`s and count only the named seven;
 then keep iterating against the five-of-seven / <=2 s falsifier.
 
-## First executed validation — fixture failure, not green
+## Current validation — green unit/type/lint, probes still pending
+
+The unready-atom shortcut and repaired regression fixtures pass **39 tests /
+145 assertions**, TypeScript, type-aware lint (zero warnings/errors), and both
+archived commit-message checks. Per-job exit is **0** in batch
+`20261110-005234-oyxenp` (`archive-domain-check-overlay`, 52.44 s), exclusive
+large EPYC 4585PX, 8/8 vCPUs. This is **iteration validation only**, not a
+final gate, performance result, or proof.
+
+The measured source is archive `6288b666` (hash recorded below) plus exactly
+the test overlay SHA
+`5f4e224572a29bbd932a2fb9a170e3265aa801b760e74ea1e7234ae2ab3ff63c`.
+Only that fixture differs from the archived core files; the algorithm and
+independent checker are unchanged. Compact source/hardware/failure evidence:
+`research/track-gen/t16-partial-validation.json`. Compressed raw receipt:
+`runs/t16-partial-overlay-check/archive-domain-check-overlay.log.gz`.
+Earlier failed logs are also retained and gzip copies made; originals were
+not deleted.
+
+Both six-probe batches remain registered, so neither is rerun. The latest
+scheduler read showed six queued / zero running for each; its class census
+had 657 gate and 399 submission items queued, with 55 gate VMs and two
+submission VMs. No scheduler policy or priority was changed to bypass that
+queue. The five-of-seven / <=2 s criterion remains **unmeasured** for the
+shortcut. Production remains disabled. After actual probe completion, replay
+the CTIs with the full beginning-of-round family and source interpreter;
+only then decide the next experiment.
+
+## First executed validation — historical fixture failure
 
 Batch `20261110-003848-r92jez`, tree `e258b9207ea3`, completed its one job
 with **exit 1** (the outer client exited 0). `domain-check` ran on exclusive
@@ -34,6 +62,29 @@ bound. The original failure is retained in
 use one canonical archive per SHA, reused by hard-linked data mounts, not
 another whole-tree clone. Payload estimate is about 142 MiB including both
 vendors, below the 500-MB disclosure threshold. This is not a proof or gate.
+
+## Archive validation: tests pass, fixture lint correction pending
+
+Batch `20261110-005009-p6jio6` verified all three archive digests and ran on
+exclusive large EPYC 4585PX, 8/8 vCPUs. Its job exited **1** after 69.46 s
+(the launcher exited 0): **39 tests pass, 145 assertions**, and TypeScript
+passes, but type-aware lint reports four errors at the one new request-pair
+formatting line. `Request` values include maps and `undefined`; the test
+must explicitly narrow both coordinates to numbers. Commitlint was not
+reached. This is not a green validation or a proof.
+
+The correction adds an explicit numeric type guard in the fixture only.
+To avoid another whole-tree archive, pending validation reuses the exact
+`6288b666` source archive and overlays only `core/finite-tiny.test.ts`, whose
+SHA-256 is `5f4e224572a29bbd932a2fb9a170e3265aa801b760e74ea1e7234ae2ab3ff63c`.
+The job verifies that hash before replacing the archived test file, and
+then repeats tests, full type/lint and both commit-message checks.
+
+Task: `3948f73d-2ef4-4d60-b940-94edeae2b5fb`; manifest:
+`runs/t16-partial-overlay-check-jobs.json`; output:
+`runs/t16-partial-overlay-check/`; immutable small input:
+`runs/t16-fixture-overlay/core/finite-tiny.test.ts`. No proof-engine file
+changed and no new tree archive was written for this iteration.
 
 ## Fixture-repair validation and offload retention
 
