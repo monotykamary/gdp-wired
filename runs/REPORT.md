@@ -6,6 +6,19 @@ Lane I resumed from `cca59f0c` on `claude/mldr-integ`; clean worktree verified, 
 - Repair: core-replay reconstruction now spreads the previous obligation before replacing its goal/decls/encoded goal, retaining `all`, certificate and pool. Added a focused range-demand test for a read omitted by the selected certificate. No budget, law, or kernel change.
 - Current source/test candidate: `b09da82d`. Final-candidate check is clean; **660 tests / 19,846 assertions pass**, including the real core-replay regression. The old-shape negative control also passed by detecting dropped reads. All three fresh MLDR pairs remain unknown, with no MLDR proof. **Not gate green**: frozen/census results and Lane D's final gate remain pending.
 
+## V9 generation census completed: 28 unchanged protocols, MLDR 27 → 34
+
+Batch `20261110-001623-9q08uz`, source **`edd284913024a6566591d7ad1cba8059b8047a14`**, completed all **87** generation pairs (29 protocols × 3 repeats), with zero worker failures. Audited every job for exact roster, a single comparison record, both side boundaries, source identity, exclusive CPU-labelled placement, valid canonical hashes/counts, and stable hashes across the three repeats: **zero issues**.
+
+- **84/87 pairs are canonically identical** between baseline and candidate: all three repeats of each of the 28 non-MLDR protocols.
+- MLDR alone changes, consistently **27 → 34** generated laws. Baseline canonical SHA-256: `182e714c9c0384d3113f03bbbafba40ec5f19f7c19b2d00377c1d4ef4b567329`; candidate: `dd495ab653ff4376b1c7b8c462c7dfafbcf9b3f5fc27949b8d61543ad5c69563`.
+- **No candidate count decreases.** Count growth by itself is not proof of set inclusion or proof success; the changed MLDR family is not labelled identical.
+- MLDR measured generation wall (baseline → candidate ms): r1 **26,365.565 → 15,211.453**, r2 **43,215.176 → 18,587.650**, r3 **32,818.075 → 14,585.282**. CPU strata and all per-protocol paired timings are in `census-summary.json`; no full-run proof-speedup claim follows.
+
+Evidence: `runs/lane-i/v9/census-summary.json`, original 87-row status/placement, and 87 integrity-checked compressed logs. `census-receipts.sha256` binds both the raw and compressed forms (174 hashes). Guest comparisons require zero proof queries; full raw canonical payloads are not in the returned logs, so their hash comparison remains guest-produced evidence, not a new local reconstruction.
+
+**Scope caveat:** this is the completed **v9** census, not automatic admission for current `b09da82d`. Production `core/finite-tiny.ts` changed after v9; the already-submitted v10 census remains pending, as does the frozen upper-bound run and Lane D's independent gate. No census was duplicated or cancelled.
+
 ## Final-candidate validation completed / Lane D evidence
 
 Batch `20261110-005805-lfrigx`, task `7988c131-e6e5-4fb3-8a6e-9143d69bd124`, source `b09da82d`, completed all nine jobs with zero worker failures. `check`: **0 warnings, 0 errors**. Changed-test shards: **216 + 148 + 136 + 160 = 660 passing tests, 19,846 assertions, no failures**, across 120 changed test modules. The new real core-replay regression passed and independently checked each returned certificate.
