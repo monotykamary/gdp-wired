@@ -1,5 +1,63 @@
 # RESUMED — lane E, 2026-11-10
 
+## Confirmed eager-range regression; demand-driven integration under validation
+
+Completed `20261110-013619-7w0tar`, six rows, all exit 0. The exact fresh
+34-law family equals the prior machine **and** law array (canonical object
+key order; array order preserved). Family SHA-256:
+`ad1f3875ea61c34145adfaec3e015311bb096c5f5d69deb98b9e7ad9c0fc0d2f`.
+The new diagnostic source check and all 3 provenance tests / 8 assertions pass.
+
+On the same VM in each order:
+
+| order | eager initial ranges | only initial ranges disabled |
+|---|---|---|
+| control, off | UNKNOWN, 6000.223364 units | checked, 3817.24253 units |
+| off, control | UNKNOWN, 6000.223364 units | checked, 3817.24253 units |
+
+These are **conditional** safety results: generated helpers are assumed,
+not established by these calls. Both START and STEP are reconstructed and
+accepted by the unchanged kernel. Both off runs have the same complete
+4-file proof archive hash
+`d508fcac4940e3a73c7c775afa9a52da875887a744746a5aab3e72c61a3c46e0`.
+The STEP tree actually uses `member$4` and `member$5`: the `inS[0]` count
+included in `inX$canVote$1[64*i + key$4#]` and `[64*i + key$5]`, plus
+`w$274`, the `inX$row[i] <= inX[0]` inclusion. Eighteen of 73 raw source
+premises are used, indices
+`0,1,2,3,4,5,7,8,9,22,23,29,30,44,56,60,61,72`.
+
+Do **not** infer a wall pass from this: the off runs take 13.825 and 23.411 s
+on separately labelled EPYC 4585PX / Ryzen 9950X VMs. Within each row the
+arms share a VM; no cross-CPU timing improvement is claimed. The restored
+3817 units also remain above the original approximately 2700-unit share.
+
+Targeted completion is not promoted: eager 2700/6000 probes stay UNKNOWN
+(2706.343646 / 6037.742162 units); disabling ranges gives a checked
+3974.8476248-unit certificate, worse counted work than 3817.24253.
+Its smaller 26-instance final certificate is not evidence of faster search.
+Exact rows, CPU labels, compact JSON, and lossless compressed logs:
+`runs/mldr-incl-range-regression-v1/`.
+
+### For lane B / I
+
+**ac7eacfe** ports B/Fable's validated demand-driven range selector (B's
+47215336 source) while preserving E's member admissions and both
+independence-filtered MBQI paths. No protocol branch, kernel edit, hand law,
+budget increase, or unconditional dropping of range facts. Demand persists
+per goal and is triggered only by a known 0/1 count above a valued bound.
+
+This combination is **not yet validated**. Five source-check-guarded jobs
+are registered as `20261110-014532-stsqg4`, task
+`6d94b6ed-c01f-4ca9-8617-876fed697db3`, output
+`runs/mldr-incl-demand-range-v1/`: type/lint and focused tests, original
+MLDR x3 unchanged at 60000, and fresh generated conditional/replay.
+The frozen 84a7a672 base is reused with 8e7e8630's two preflight fixes and a
+108 KiB, before/after-hash-checked overlay. Script and exact commands are
+in `research/mldr-incl/{apply-demand-overlay.sh,demand-range-validation-jobs.json}`.
+No new whole-tree archive, no deletions, no subagents. There is no 29/29 or
+GATE GREEN claim; lane D's full gate is still required before merge.
+
+
 ## Executed results — 8e7e8630 source, not GATE GREEN
 
 `20261110-012704-cgh7wh` is complete. Exact source is the frozen 84a7a672

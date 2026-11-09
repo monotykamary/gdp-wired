@@ -1,5 +1,21 @@
 # RESUMED — user instruction, 2026-11-10
 
+**Confirmed paired result:** exact same 34-law machine/family; eager
+ranges UNKNOWN at 6000.223364 in both orders, only initial ranges disabled
+checks START and STEP at 3817.24253 in both orders. Actual tree uses two
+member inclusions and one row inclusion. Conditional only; measured wall
+13.825/23.411 s, not a wall pass, and still above the 2700-unit share.
+Targeted completion off checks at 3974.8476248, no counted-work gain.
+Receipts: `runs/mldr-incl-range-regression-v1/`.
+
+**Production candidate ac7eacfe:** B/Fable demand-driven ranges integrated
+without losing E member/freshness handling. Pending guarded validation,
+batch `20261110-014532-stsqg4`, task
+`6d94b6ed-c01f-4ca9-8617-876fed697db3`, output
+`runs/mldr-incl-demand-range-v1/` (five parallel jobs, reused frozen base,
+108 KiB overlay, no new archive). No full-gate or merge claim.
+
+
 **8e7e8630 executed:** type/lint and 82 tests / 280 assertions pass.
 Original MLDR x3 remains UNKNOWN at 59.029/59.092/59.002 s. Fresh generated
 34-law conditional safety is UNKNOWN at both 2700 and 6000 units; no new
