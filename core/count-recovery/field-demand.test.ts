@@ -14,6 +14,10 @@ test('field demand distinguishes core, model, absence and missing observation',(
  expect(events.map(e=>e.requested)).toEqual([true,false,undefined]);expect(events.map(e=>e.units)).toEqual([11,11,7])
  }finally{fieldAttemptObserver.on=undefined}
 })
+test('a parent observation cannot claim demand absence at a stronger child scope',()=>{
+ const events:FieldAttempt[]=[],path:Path=new Map();fieldAttemptObserver.on=e=>events.push(e)
+ try{observeFieldLeaf({name:'parent',hyps:[]},path,{witness:{}});const demand=fieldDemandAt(path),child=new Map(path).set('branch',{lin:{branch:1},holds:true});recordFieldAttempt(less(x('cell'),n(2)),child,demand,1,false,'test');expect(events[0]!.requested).toBeUndefined()}finally{fieldAttemptObserver.on=undefined}
+})
 test('nested attempt costs are exclusive and both are recorded on unwind',()=>{
  const events:FieldAttempt[]=[],path:Path=new Map(),candidate=less(x('a'),n(2));fieldAttemptObserver.on=e=>events.push(e)
  try{const parent=beginFieldAttempt(candidate,path,undefined,'parent'),child=beginFieldAttempt(candidate,path,undefined,'child');endFieldAttempt(child,false);endFieldAttempt(parent,false)

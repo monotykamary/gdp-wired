@@ -200,7 +200,8 @@ export function deriveCountClosure(m:Machine,ds:CountDecl[],g:Goal,cert:Packet,r
   if(had?.version===version)return had.outcome
   const inst=cert.insts[index]!,h=g.hyps[raw.length+index];if(h?.op!=='or'||h.xs[0]?.op!=='<=')return 'unknown'
   const good:Bound={op:'<=',a:h.xs[0].a,b:h.xs[0].b},available=active(saved,scope),path=scope,before=clock()
-  const part:Goal={name:g.name,hyps:[...source(path,inst.wit),...available.map(s=>s.good),h,{op:'not',x:good}]}
+  const meter=beginFieldAttempt(good,scope,options.fieldDemand,'closure-count');let emitted=false
+  try{const part:Goal={name:g.name,hyps:[...source(path,inst.wit),...available.map(s=>s.good),h,{op:'not',x:good}]}
   const reused=models.some(m=>validPoint({...part,hyps:part.hyps.map(c=>substC(c,{vars:{[inst.wit]:x(m.witness)},maps:{},flags:{}}))},path,m.model)!==undefined)
   if(reused){attempted.set(key,{version,outcome:'sat'});trace.push({stage:'closure-source',scope:scopes.indexOf(scope),index,outcome:'reused-model',ms:clock()-before});return 'sat'}
   const queryLimit=Math.min(end,clock()+(inst.terms.length===5?150:50)),q=modelSequence(path)(part,queryLimit)
@@ -212,10 +213,11 @@ export function deriveCountClosure(m:Machine,ds:CountDecl[],g:Goal,cert:Packet,r
    const limit=Math.min(end,Math.max(queryLimit,clock()+100)),small={...part,hyps:q.core.map(i=>part.hyps[i]!)},oldPoint=atPoint.on;atPoint.on=false
    try{let local=booleanCore(small,path,new Set([inst.wit]),limit,trace,{deferCheck:true,extended:true,scalarGuards:true,model:true});if(!local&&clock()<limit){const folded=foldPath(small,path),out=grow(folded.goal,path,{nodes:0,until:Math.min(limit,clock()+25),units:false});local='tree'in out?withDeadline(limit,()=>widen(folded.goal,small,out.tree,folded.opaque,path,path)):undefined}if(local){tree=local;proofSource=small}}finally{atPoint.on=oldPoint}
   }
-  const accepted=!!tree&&accept(good,proofSource,tree,path,scope,index),outcome=accepted?'checked':validModel?'sat':'unknown'
+  const accepted=!!tree&&accept(good,proofSource,tree,path,scope,index),outcome=accepted?'checked':validModel?'sat':'unknown';emitted=accepted
   attempted.set(key,{version,outcome})
   trace.push({stage:'closure-source',scope:scopes.indexOf(scope),index,core:'tree'in q?undefined:q.core?.length,tree:!!tree,outcome,ms:clock()-before})
   return outcome
+  }finally{endFieldAttempt(meter,emitted)}
  }
  // Phase C only: use active proved facts, then decide one numeric goal per
  // leaf. Natural-subtraction splitting is confined to this arithmetic phase.

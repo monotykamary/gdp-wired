@@ -1,0 +1,34 @@
+Found 0 warnings and 0 errors.
+Finished in 24.2s on 1332 files with 100 rules using 2 threads.
+bun test v1.4.3 (c6da4a4d3)
+
+--- stderr ---
+$ tsc -p . && oxlint --type-aware --deny-warnings --disable-nested-config
+
+core/count-recovery/guard-cases.test.ts:
+(pass) default Boolean activation covers both branches (impossible=true) [9.62ms]
+(pass) default Boolean activation covers both branches (impossible=false) [9.97ms]
+(pass) activation proofs retain their original non-empty path scope [0.60ms]
+(pass) activation proposals pass the complete source check (deferred=false) [0.89ms]
+(pass) activation proposals pass the complete source check (deferred=true) [0.34ms]
+
+core/count-recovery/field-bound-budget.test.ts:
+(pass) an expired source budget returns before inspecting machine rows [0.27ms]
+(pass) an expired wall stops source construction even when counted work remains [1.04ms]
+
+core/count-recovery/field-demand.test.ts:
+(pass) active leaf draws conserve the original allowance and never extend it [0.05ms]
+(pass) field demand distinguishes core, model, absence and missing observation [0.51ms]
+(pass) nested attempt costs are exclusive and both are recorded on unwind [0.10ms]
+(pass) disabled observer does not inspect a goal or alter the candidate [0.02ms]
+
+core/count-recovery/leaf-allowance.test.ts:
+(pass) leaf draws take an even remaining share with a one-third ceiling [0.08ms]
+(pass) one third is a ceiling, not a floor or a last-leaf windfall [0.01ms]
+(pass) successive draws conserve spent plus unspent allowance [0.04ms]
+(pass) split children spend one parent draw and cannot obtain another [0.01ms]
+
+ 15 pass
+ 0 fail
+ 263 expect() calls
+Ran 15 tests across 4 files. [60.00ms]

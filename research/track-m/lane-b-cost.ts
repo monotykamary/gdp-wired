@@ -8,7 +8,7 @@ import {checkMC,columnTerm,countedObligations} from '../../kernel/kernel.ts'
 const [input,tag,out,budgetArg='2700']=process.argv.slice(2),p=JSON.parse(readFileSync(input!,'utf8')),index=p.targets[tag!],law=p.laws[index],budget=Number(budgetArg)
 if(!law||!out||!(budget>0&&budget<=5000))throw Error('FAMILY TARGET OUTPUT [budget <=5000]')
 mkdirSync(out,{recursive:true});const events:any[]=[],captures:any[]=[]
-countsDump.on=e=>{const v=e as any;events.push({phase:v.phase,pass:v.pass,goal:v.goal,law:v.law,hyps:v.hyps?.length,error:v.error});if(v.rawGoal||v.base)captures.push(v)}
+countsDump.on=e=>{const v=e as any;events.push({phase:v.phase,pass:v.pass,goal:v.goal,law:v.law,hyps:v.hyps?.length,error:v.error,added:v.added});if(v.rawGoal||v.base)captures.push(v)}
 const before=fullWork(),start=performance.now(),results:any[]=[];let proof:any
 counted(fullRate,()=>withWall(start+4800,()=>{const until=clock()+budget,attempt=countedAttempts(p.m,p.caller.map((i:number)=>p.laws[i]),new Set(p.support.map((i:number)=>p.laws[i])),until);attempt.houdini=true
  for(const pass of [0,1] as const){if(clock()>=until)break;const t=performance.now(),u=fullWork(),result=withDeadline(until,()=>attempt.traced(law,p.laws,pass,Math.max(0,until-clock())));results.push({pass,outcome:'proof'in result?'proof':result.stuck,units:(fullWork()-u)/fullRate,wallMs:performance.now()-t});if('proof'in result){proof=result.proof;break}}

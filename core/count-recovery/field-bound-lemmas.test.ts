@@ -3,6 +3,7 @@ import {type C,type Machine,all,any,atMost,get,ite,less,minus,n,not,plus,same,ti
 import {canon,check,checkMC,linear,mcGoal,type CountCert,type Path} from '../../kernel/kernel.ts'
 import {clock} from '../../kernel/prove.ts'
 import {countBindingsAt,emptyCountCandidate,fieldBoundLemmas,fieldBounds} from './field-bound-lemmas.ts'
+import {fieldAttemptObserver,type FieldAttempt} from './field-demand.ts'
 
 test('packed column domains are split once before row reconstruction and checked',()=>{
  const machine:Machine={name:'guarded columns',params:['size'],inputs:['actor'],state:{},maps:{Tag:0,Cells:0},step:{maps:{Tag:{each:'slot',value:ite(same(x('slot'),x('actor')),n(1),get('Tag',x('slot')))}}}}
@@ -42,7 +43,10 @@ test('strict successor member bounds suggest checked field ceilings without prot
  const good=atMost(ite(all(same(x('?eligible'),n(1)),less(x('target'),n(4))),get('Epoch',x('target')),n(0)),get('Clock',x('source')))
  expect(fieldBounds(m,ds,cert)).toEqual([good])
  expect(fieldBoundLemmas(m,ds,{name:'empty',hyps:[]},cert,clock()+1000,[])).toBeUndefined()
- const goal={name:'ceiling',hyps:[same(x('?eligible'),n(1)),less(x('target'),n(4)),good,less(get('Clock',x('source')),get('Epoch',x('target')))]},events:any[]=[],tree=fieldBoundLemmas(m,ds,goal,cert,clock()+1000,events)
+ const goal={name:'ceiling',hyps:[same(x('?eligible'),n(1)),less(x('target'),n(4)),good,less(get('Clock',x('source')),get('Epoch',x('target')))]},events:any[]=[],attempts:FieldAttempt[]=[]
+ let tree:ReturnType<typeof fieldBoundLemmas>;fieldAttemptObserver.on=e=>attempts.push(e)
+ try{tree=fieldBoundLemmas(m,ds,goal,cert,clock()+1000,events)}finally{fieldAttemptObserver.on=undefined}
+ expect(attempts.some(a=>a.source==='field-domain'&&a.emitted&&a.cellColumns.length>0)).toBe(true)
  expect(events.some(e=>e.stage==='field-domain'&&e.checked&&e.direct)).toBe(true)
  expect(tree).toBeDefined();if(tree)expect(check(goal,tree)).toBe(true)
 })

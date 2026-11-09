@@ -5,7 +5,7 @@ bash research/track-m/prepare-vendors.sh
 bun install --frozen-lockfile >/dev/null
 if [[ "$mode" == check ]]; then
  bun run check
- bun test core/count-completion.test.ts core/count-recovery/field-demand.test.ts core/count-recovery/guard-cases.test.ts core/count-recovery/field-bound-budget.test.ts core/count-recovery/leaf-allowance.test.ts
+ bun test core/count-completion.test.ts core/count-recovery/field-bound-lemmas.test.ts core/count-recovery/field-demand.test.ts core/count-recovery/guard-cases.test.ts core/count-recovery/field-bound-budget.test.ts core/count-recovery/leaf-allowance.test.ts
  exit
 fi
 LAB_DISPOSABLE=1 bun research/track-m/lane-b-variant.ts "$variant"
