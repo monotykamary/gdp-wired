@@ -33,6 +33,8 @@ Potential cleanup **after every associated job/controller is terminal, and only 
 
 The prepared original-family inputs are small and retained: `lane-b-demand-input` 372 KiB, `lane-b-range-final-audit-input` 2.4 MiB, `lane-b-projection-input` 7.6 MiB. They avoid rerunning measurements and are not proposed for deletion. Filesystem free space was 31 GiB at this inventory.
 
+**Verified offload permitted (coordinator's `gdp-wired-offload-20261110` policy):** no ≥20 MB local exemptions are needed, so no bulky paths are added to `runs/KEEP-LOCAL.txt`. A metadata-only scan found 24 eligible legacy files in `runs/track-m` and none in the two current detached worktrees. These are old diagnostic/seed/leaf JSONs and three historical whole-tree tar copies (`main-6a3874d3-input/main.tar`, `paxos-bisect-input/main.tar`, `source-ceiling-gate-input/parent.tar`). They may be freed by the coordinator only after snapshot verification, retaining the prescribed `.offloaded.json` sidecars and pull instructions. This lane deletes nothing. Current queued jobs use the small prepared inputs listed above, not those bulky files; existing manifest hashes and small receipts remain local. If a future experiment requires an offloaded raw packet, restore only that packet using its sidecar rather than regenerating evidence.
+
 ### Historical pause instructions (superseded by explicit resume above)
 
 **The following inventory records the 2026-11-09 pause, not a current instruction to wait. No push or merge.**
