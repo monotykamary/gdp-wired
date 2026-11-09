@@ -1,0 +1,16 @@
+{
+  "issues": [
+    "mb-cohort-201: failed scheduler result",
+    "mb-cohort-201: Error: missing/duplicate cohort result",
+    "mb-cohort-202: failed scheduler result",
+    "mb-cohort-202: Error: missing/duplicate cohort result",
+    "mb-cohort-204: failed scheduler result",
+    "mb-cohort-204: Error: missing/duplicate cohort result",
+    "mb-cohort-206: failed scheduler result",
+    "mb-cohort-206: Error: missing/duplicate cohort result"
+  ],
+  "skips": 32,
+  "acceptedReceipts": 0,
+  "acceptedSha256": "b49153039ab3d17e6eb1256bc1076131c306b30f3b77e951232beb47748fa564",
+  "byRevision": []
+}

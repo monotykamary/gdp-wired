@@ -1,0 +1,8 @@
+{
+  "candidate": "5829b23d7e7d64136625154c9b161402a89aff19",
+  "baseline": "4497c4b05c3111959a2b8d808c426a0e3cab3f01",
+  "snapshot": "93f69f174116",
+  "mldr": {"batch":"20261110-033552-8cp8b1","task":"ec4eb3bf-439a-46c3-bce8-ec765d181b26","pairs":3,"status":"pending"},
+  "census": {"batch":"20261110-033548-0tv266","task":"80f7ab06-7b96-49d5-b898-5d2c21b6a218","pairs":87,"status":"pending"},
+  "finalGate": false
+}
