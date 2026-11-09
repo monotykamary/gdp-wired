@@ -102,8 +102,10 @@ the merged-tree tests/typecheck, the 29-list census against `bef4020f` and a per
   `unchanged`'s part-reading facts per term — exact by construction (the interpreter's results are unchanged; only allocation goes).
   **135 tests pass on it** (`receipts/tests7`, the interpreter-vs-compiled comparisons included); **census vs `bef4020f`: 29 / 29 lists byte-identical**
   (`receipts/census7`), total generation wall 475.6 → 283.9 s (−40 % on mixed warm VMs): learning_switch 204 → 131 s, learning_switch_i4
-  153 → 71 s, client_server_db_ae 6.1 → 6.0 s, mldr 28.6 → 15.1 s. The paired pinned profile vs `cd947909` is running; it becomes the gate
-  head when that confirms the shape. one breakpoint list per step shared by every dense write (the union of their breakpoints; `$dense`
+  153 → 71 s, client_server_db_ae 6.1 → 6.0 s, mldr 28.6 → 15.1 s. The paired pinned profile vs `cd947909` (`receipts/lsprof2`, the noisy 9950X `bx_7uaxjs82`): **98.8 s vs 405.8 s**
+  (small phase 92.7 vs 392.1 s; the allocation functions `fromEntries` / `copyDataProperties` / `cloneObject` / `stringify` are gone from
+  the candidate's top ten, which is now the interpreter proper: `go`, `evalC`, `every`, `evalE`); the magnitude carries this VM's 2× swing,
+  the shape does not. A 29-verdict strict run vs `bef4020f` is the last guard before it becomes the gate head. one breakpoint list per step shared by every dense write (the union of their breakpoints; `$dense`
   fills the same cells from it), and no second validation in `cells`.
 , violation-driven ranges (`72380dc1`) vs lane A's `c21a6e54`, three pinned large VMs
   (Ryzen 9 9950X ×2, EPYC 4585PX; `runs/track-wall/receipts/rmldr3`, logs gzipped):** verdict `unknown` (time) on all six runs;
