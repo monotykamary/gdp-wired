@@ -48,6 +48,14 @@ Diagnostics:
 Next: pull landed A/B/F, rerun checks and the real original harness x3.
 Only Lane D's authoritative gate can establish suite acceptance.
 
+## Upstream merge after the conditional checkpoint
+
+Imported Lane B `6d69e094`, including Fable initial range instances. Both
+conflicting count-selection hunks preserve the E member proposals **and** B
+range instances outside the lazy selector cap. The report conflict retains
+this lane history; upstream results are readable at
+`git show 6d69e094:runs/REPORT.md` and are not relabeled as E validation.
+
 ## Production-premise continuation
 
 Pulled Lane B `568fc570` into this branch, including its existing Lane A

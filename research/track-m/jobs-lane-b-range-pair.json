@@ -1,0 +1,5 @@
+[
+ {"name":"star-ab","cmd":"bash research/track-m/lane-b-range-pair.sh star before","cpu":8,"memory":14336,"timeout":120},
+ {"name":"star-ba","cmd":"bash research/track-m/lane-b-range-pair.sh star after","cpu":8,"memory":14336,"timeout":120},
+ {"name":"check","cmd":"bash research/track-m/prepare-vendors.sh && bun install --frozen-lockfile >/dev/null && bun run check && bun test core/count-ranges.test.ts core/counts-preflight.test.ts core/count-recovery/row-cases.test.ts","cpu":8,"memory":14336,"timeout":360}
+]

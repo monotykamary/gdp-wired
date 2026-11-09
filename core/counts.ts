@@ -16,7 +16,7 @@
 //      support survives. Avoid proving the same helpers in several preliminary cone contexts; checkCountedLaws
 //      checks the final set. The ∃ search still uses `cone`: relative induction from already-kept candidates.
 import {type C, type E, type Law, type Machine} from './machine.ts'
-import {type CountCert, type CountInst, type Goal, type Instances, type MapRead, assumed, checkCountedLaws, checkMC, countedObligations, mcGoal, scope, substC, substE} from '../kernel/kernel.ts'
+import {type CountCert, type CountDecl, type CountInst, type Goal, type Instances, type MapRead, assumed, checkCountedLaws, checkMC, countedObligations, mcGoal, scope, substC, substE} from '../kernel/kernel.ts'
 import {brokenOf, clock, counted, fullRate, grow, modelInstances, wallAt, widen, withDeadline, withWall} from '../kernel/prove.ts'
 import {REFUTED, cdclStats} from '../kernel/cdcl.ts'
 import {modelSequence} from '../kernel/model-sequence.ts'
@@ -27,6 +27,7 @@ import {countPoolKey, countSignature, grammarPool, ids, polaritySelection, readT
 import {fieldLaws} from './field-laws.ts'
 import {quorumLaws} from './quorum-laws.ts'
 import {countCubes, liftedOneKeyCounts} from './count-cubes.ts'
+import {rangeInstances} from './count-ranges.ts'
 import {finiteHoudini} from './finite-houdini.ts'
 import {finiteModelChecker} from './finite-model.ts'
 import {countsForReads, proposeCountFacts} from './count-facts.ts'
@@ -742,6 +743,16 @@ export function countedAttempts(m: Machine, caller: Law[], support: Set<Law>, un
     const selections = new Map<string, Selection>()
     const poolCache = new Map<string, {key: string, value: ReturnType<typeof grammarPool>}>()
     const memberSources = new Map<string,MemberHint[]>()
+    // Fable's 16.3 range seeding, outside the lazy selector's cap.
+    const withRanges = <T extends Pick<CountCert, 'reads' | 'insts' | 'picks'> & {wits?: string[]}>(decls: CountDecl[], c: T, all: MapRead[]): T => {
+      if (!pass) return c
+      const taken = new Set<string>([...all.map(r => r[0]), ...c.insts.map(i => i.wit), ...m.params, ...m.inputs, ...Object.keys(m.state)])
+      const ranges = rangeInstances(decls, all, taken, c.insts)
+      if (!ranges.length) return c
+      const have = new Set(c.reads.map(r => r[0])), wanted = new Set(ranges.map(i => i.terms[0]![1]))
+      const reads = [...c.reads, ...all.filter(r => !have.has(r[0]) && wanted.has(r[0]))]
+      return {...c, reads, insts: [...c.insts, ...ranges], ...(c.wits ? {wits: [...c.wits, ...ranges.map(i => i.wit)]} : {})}
+    }
     const rawBuild = () => obligations(at).map(({goal, decls}) => {
       if (pass && supported && lazyMode === 'wide') {
         if (generation.state.deadline || performance.now() >= wallAt()) throw new UnsupportedCountProposal('reservation deadline')
@@ -766,7 +777,7 @@ export function countedAttempts(m: Machine, caller: Law[], support: Set<Law>, un
         const full = reservePool(goal, decls, pool0, selection.previous, selection.decls, selection.chosen, selection.reserve, pool, reservation).full
         const keys = ids(full), lazyRoom = selection.chosen.size < selection.cap
         const view = chosenView(full, selection.chosen, selection.cap)
-        const c = selectedCertificate(goal, decls, view, selection.stable, lazyRoom)
+        const c = withRanges(decls, selectedCertificate(goal, decls, view, selection.stable, lazyRoom), full.reads)
         const gg = mcGoal(goal.hyps, decls, c), fg = lazyRoom ? mcGoal(goal.hyps, decls, full) : undefined
         selection.previous = full; selection.decls = decls
         memberSources.set(goal.name,memberHints(m,decls,c,generation.tick))
@@ -777,7 +788,7 @@ export function countedAttempts(m: Machine, caller: Law[], support: Set<Law>, un
         const proposed=admitMemberWitnesses(m,decls,full,members(),wide?pool:10,generation.tick)
         full=proposed.cert;memberSources.set(goal.name,proposed.hints)
       }
-      if (!pass || lazyMode === '0' || (lazyMode === 'wide' && !wide)) return {goal, decls, c: full, gg: ptime('encode', () => mcGoal(goal.hyps, decls, full)), pool: undefined as Pool | undefined}
+      if (!pass || lazyMode === '0' || (lazyMode === 'wide' && !wide)) { const c0 = withRanges(decls, full, full.reads); return {goal, decls, c: c0, gg: ptime('encode', () => mcGoal(goal.hyps, decls, c0)), pool: undefined as Pool | undefined} }
       const rd = new Map(full.reads.map(r => [r[0], json([r[1], r[2]])]))
       const keys = [...full.picks.map(q => `p${json([rd.get(q[0]), q[1]])}`), ...full.insts.map(i => `i${json([i.terms.map(([z, x]) => [z, rd.get(x)]), i.unit, i.below])}`)]
       if (lazyMode === 'wide') {
@@ -785,7 +796,7 @@ export function countedAttempts(m: Machine, caller: Law[], support: Set<Law>, un
         const initial = memberSources.get(goal.name)?.length ? prefix : preferMemberInclusions(m, decls, full, prefix, 10, generation.tick)
         for (const inst of initial.insts) chosen.add(keys[full.picks.length + full.insts.indexOf(inst)]!)
       }
-      const c = {...full, picks: full.picks.filter((_, j) => chosen.has(keys[j]!)), insts: full.insts.filter((_, j) => chosen.has(keys[j + full.picks.length]!))}
+      const c = withRanges(decls, {...full, picks: full.picks.filter((_, j) => chosen.has(keys[j]!)), insts: full.insts.filter((_, j) => chosen.has(keys[j + full.picks.length]!))}, full.reads)
       const fg = ptime('encode', () => mcGoal(goal.hyps, decls, full))
       return {goal, decls, c, gg: ptime('encode', () => mcGoal(goal.hyps, decls, c)), pool: fg && keys.length ? {fg, keys, wits: [...full.picks.map(() => undefined), ...full.insts.map(i => i.wit)]} : undefined}
     })
