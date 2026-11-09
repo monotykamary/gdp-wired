@@ -1,5 +1,17 @@
 # RESUMED — user instruction, 2026-11-10
 
+**Latest completed source ac7eacfe:** type/lint and 87 tests / 295 assertions
+pass. Fresh generated conditional safety checks at 3817.24253 units with
+both member inclusions, 8.762 s wall; still UNKNOWN at 2700. Original MLDR
+x3 remains UNKNOWN (59.001/59.358/59.001 s). Same 34-law machine and ordered
+family, no hand law. Receipts `runs/mldr-incl-demand-range-v1/`; no full gate.
+
+**Next running:** research 5c3686f0, seven ranking alternatives on the exact
+prior family with initial ranges off, unchanged flags/caps/budgets. Batch
+20261110-014758-a6x9cy, task 8b23c143-90b0-4846-8b18-d72b4bfc14b3,
+output `runs/mldr-incl-member-rank-v1/`. No production ranking change.
+
+
 **Confirmed paired result:** exact same 34-law machine/family; eager
 ranges UNKNOWN at 6000.223364 in both orders, only initial ranges disabled
 checks START and STEP at 3817.24253 in both orders. Actual tree uses two

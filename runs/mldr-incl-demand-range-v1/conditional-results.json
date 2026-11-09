@@ -1,0 +1,1032 @@
+[
+  {
+    "artifact": "mldr-incl-capture",
+    "generationOnly": true,
+    "revision": "ac7eacfeeb17677fb58d588a4f5dee6b666294c8",
+    "lawCount": 34,
+    "names": [
+      "every Config cell is a value of its kind",
+      "one primary per term",
+      "St at most 1",
+      "fields: St[a]=1 -> CT[a]=CfgT[a]",
+      "fields: St[a]=1 -> CT[a]<=CfgT[a]",
+      "fields: St[a]=1 -> CT[a]=CT[b] -> CfgT[b]<=CfgT[a]",
+      "fields: St[a]=1 -> CfgT[a]<=CT[a]",
+      "fields: St[a]=1 -> CfgT[a]=CfgT[b] -> CV[b]<=CV[a]",
+      "every x with x < size: never CT[x] is 0 and 1 <= St[x]",
+      "every x with x < size: never 1 <= CT[x] and CV[x] is 0",
+      "every x with x < size: never 1 <= CT[x] and started is 0",
+      "every x with x < size: never 1 <= St[x] and CV[x] is 0",
+      "every x with x < size: never 1 <= St[x] and CfgT[x] is 0",
+      "every x with x < size: never 1 <= St[x] and started is 0",
+      "every x with x < size: never CV[x] is 0 and 1 <= CfgT[x]",
+      "every x with x < size: never CV[x] is 0 and 1 <= started",
+      "every x with x < size: never 1 <= CfgT[x] and started is 0",
+      "every x, y with x < size ∧ y < size ∧ ¬(x = y): never 1 <= CT[x] and CV[y] is 0",
+      "every x, y with x < size ∧ y < size ∧ ¬(x = y): never 1 <= St[x] and CV[y] is 0",
+      "every x, y with x < size ∧ y < size ∧ ¬(x = y): never CV[x] is 0 and 1 <= CfgT[y]",
+      "inX: no quorum canVote/1",
+      "inX: no quorum canVote/3",
+      "inX: stored guard reconfigs/inS",
+      "inX: stored guard reconfigs/inS or disabled/0",
+      "inX: stored guard reconfigs/inS or disabled/1",
+      "inX: stored guard reconfigs/inS or disabled/2",
+      "inX: stored guard reconfigs/inS or disabled/3",
+      "fields: CV[a]=CV[b] and CfgT[a]=CfgT[b] -> Config rows agree",
+      "count cubes: every x with x < {\"op\":\"var\",\"name\":\"size\"}: never 1 <= started and inX$row[x] is 0",
+      "count cubes: every x with x < {\"op\":\"var\",\"name\":\"size\"}: never 1 <= CT[x] and inX$row[x] is 0",
+      "count cubes: every x with x < {\"op\":\"var\",\"name\":\"size\"}: never CV[x] is 0 and 1 <= inX$row[x]",
+      "count cubes: every x with x < {\"op\":\"var\",\"name\":\"size\"}: never 1 <= CV[x] and inX$row[x] is 0",
+      "count cubes: every x with x < {\"op\":\"var\",\"name\":\"size\"}: never 1 <= CfgT[x] and inX$row[x] is 0",
+      "count cubes: every x with x < {\"op\":\"var\",\"name\":\"size\"}: never 1 <= St[x] and inX$row[x] is 0"
+    ],
+    "queries": 0,
+    "wallMs": 34061.881729,
+    "files": 1,
+    "omitted": 0,
+    "sha256": "25a8d7138f8dd93f76e9026695a771ad02cccceca45b5c0c1abde9cfd7289c2b"
+  },
+  {
+    "conditional": true,
+    "variant": "resume-integrated",
+    "family": "captured generated family (no hand law)",
+    "repeat": "1",
+    "ms": 2700,
+    "support": "no",
+    "supportCount": 0,
+    "law": "one primary per term",
+    "laws": 34,
+    "proven": false,
+    "checked": false,
+    "checks": [],
+    "stuck": "unknown",
+    "profile": {
+      "encode": 74.31951800000024,
+      "decide": 4184.2130609999995,
+      "mbqi": 109.99096100000133,
+      "lazy": 157.42389699999967,
+      "#rounds": 10,
+      "#hyps": 2015,
+      "#count-completion": 36,
+      "#lazy": 123,
+      "grow": 1.7353509999993548
+    },
+    "wallMs": 4668.811309,
+    "countedMs": 2701.245368
+  },
+  {
+    "memberPremises": true,
+    "phase": "member-premises",
+    "law": "one primary per term",
+    "goal": "one primary per term @step",
+    "pass": 1,
+    "added": [
+      {
+        "law": "?canVote",
+        "tuple": [
+          {
+            "op": "var",
+            "name": "member$0"
+          }
+        ],
+        "kind": "flag"
+      },
+      {
+        "law": "?all$1",
+        "tuple": [
+          {
+            "op": "var",
+            "name": "member$0"
+          }
+        ],
+        "kind": "flag"
+      },
+      {
+        "law": "?all$2",
+        "tuple": [
+          {
+            "op": "var",
+            "name": "member$0"
+          }
+        ],
+        "kind": "flag"
+      },
+      {
+        "law": "fields: St[a]=1 -> CT[a]=CfgT[a]",
+        "tuple": [
+          {
+            "op": "var",
+            "name": "i"
+          }
+        ],
+        "kind": "law"
+      },
+      {
+        "law": "fields: St[a]=1 -> CT[a]=CfgT[a]",
+        "tuple": [
+          {
+            "op": "const",
+            "value": 0
+          }
+        ],
+        "kind": "law"
+      },
+      {
+        "law": "fields: St[a]=1 -> CT[a]<=CfgT[a]",
+        "tuple": [
+          {
+            "op": "var",
+            "name": "i"
+          }
+        ],
+        "kind": "law"
+      },
+      {
+        "law": "fields: St[a]=1 -> CT[a]<=CfgT[a]",
+        "tuple": [
+          {
+            "op": "var",
+            "name": "key$4#"
+          }
+        ],
+        "kind": "law"
+      },
+      {
+        "law": "fields: St[a]=1 -> CT[a]<=CfgT[a]",
+        "tuple": [
+          {
+            "op": "const",
+            "value": 0
+          }
+        ],
+        "kind": "law"
+      },
+      {
+        "law": "fields: St[a]=1 -> CT[a]=CT[b] -> CfgT[b]<=CfgT[a]",
+        "tuple": [
+          {
+            "op": "var",
+            "name": "i"
+          },
+          {
+            "op": "var",
+            "name": "i"
+          }
+        ],
+        "kind": "law"
+      },
+      {
+        "law": "fields: St[a]=1 -> CT[a]=CT[b] -> CfgT[b]<=CfgT[a]",
+        "tuple": [
+          {
+            "op": "var",
+            "name": "i"
+          },
+          {
+            "op": "var",
+            "name": "key$4#"
+          }
+        ],
+        "kind": "law"
+      },
+      {
+        "law": "fields: St[a]=1 -> CT[a]=CT[b] -> CfgT[b]<=CfgT[a]",
+        "tuple": [
+          {
+            "op": "var",
+            "name": "key$4#"
+          },
+          {
+            "op": "var",
+            "name": "i"
+          }
+        ],
+        "kind": "law"
+      },
+      {
+        "law": "fields: St[a]=1 -> CT[a]=CT[b] -> CfgT[b]<=CfgT[a]",
+        "tuple": [
+          {
+            "op": "var",
+            "name": "i"
+          },
+          {
+            "op": "const",
+            "value": 0
+          }
+        ],
+        "kind": "law"
+      },
+      {
+        "law": "fields: St[a]=1 -> CfgT[a]<=CT[a]",
+        "tuple": [
+          {
+            "op": "var",
+            "name": "i"
+          }
+        ],
+        "kind": "law"
+      },
+      {
+        "law": "fields: St[a]=1 -> CfgT[a]<=CT[a]",
+        "tuple": [
+          {
+            "op": "const",
+            "value": 0
+          }
+        ],
+        "kind": "law"
+      },
+      {
+        "law": "one primary per term",
+        "tuple": [
+          {
+            "op": "var",
+            "name": "i"
+          },
+          {
+            "op": "var",
+            "name": "i"
+          }
+        ],
+        "kind": "law"
+      },
+      {
+        "law": "one primary per term",
+        "tuple": [
+          {
+            "op": "var",
+            "name": "i"
+          },
+          {
+            "op": "var",
+            "name": "key$4#"
+          }
+        ],
+        "kind": "law"
+      },
+      {
+        "law": "one primary per term",
+        "tuple": [
+          {
+            "op": "var",
+            "name": "key$4#"
+          },
+          {
+            "op": "var",
+            "name": "i"
+          }
+        ],
+        "kind": "law"
+      },
+      {
+        "law": "one primary per term",
+        "tuple": [
+          {
+            "op": "var",
+            "name": "i"
+          },
+          {
+            "op": "const",
+            "value": 0
+          }
+        ],
+        "kind": "law"
+      },
+      {
+        "law": "fields: St[a]=1 -> CfgT[a]=CfgT[b] -> CV[b]<=CV[a]",
+        "tuple": [
+          {
+            "op": "var",
+            "name": "i"
+          },
+          {
+            "op": "var",
+            "name": "i"
+          }
+        ],
+        "kind": "law"
+      },
+      {
+        "law": "fields: St[a]=1 -> CfgT[a]=CfgT[b] -> CV[b]<=CV[a]",
+        "tuple": [
+          {
+            "op": "var",
+            "name": "i"
+          },
+          {
+            "op": "var",
+            "name": "key$4#"
+          }
+        ],
+        "kind": "law"
+      },
+      {
+        "law": "fields: St[a]=1 -> CfgT[a]=CfgT[b] -> CV[b]<=CV[a]",
+        "tuple": [
+          {
+            "op": "var",
+            "name": "key$4#"
+          },
+          {
+            "op": "var",
+            "name": "i"
+          }
+        ],
+        "kind": "law"
+      },
+      {
+        "law": "fields: St[a]=1 -> CfgT[a]=CfgT[b] -> CV[b]<=CV[a]",
+        "tuple": [
+          {
+            "op": "var",
+            "name": "i"
+          },
+          {
+            "op": "const",
+            "value": 0
+          }
+        ],
+        "kind": "law"
+      },
+      {
+        "law": "every x with x < size: never CT[x] is 0 and 1 <= St[x]",
+        "tuple": [
+          {
+            "op": "var",
+            "name": "i"
+          }
+        ],
+        "kind": "law"
+      },
+      {
+        "law": "every x with x < size: never CT[x] is 0 and 1 <= St[x]",
+        "tuple": [
+          {
+            "op": "var",
+            "name": "key$4#"
+          }
+        ],
+        "kind": "law"
+      },
+      {
+        "law": "every x with x < size: never CT[x] is 0 and 1 <= St[x]",
+        "tuple": [
+          {
+            "op": "const",
+            "value": 0
+          }
+        ],
+        "kind": "law"
+      },
+      {
+        "law": "every x with x < size: never 1 <= CT[x] and CV[x] is 0",
+        "tuple": [
+          {
+            "op": "var",
+            "name": "i"
+          }
+        ],
+        "kind": "law"
+      },
+      {
+        "law": "every x with x < size: never 1 <= CT[x] and CV[x] is 0",
+        "tuple": [
+          {
+            "op": "var",
+            "name": "key$4#"
+          }
+        ],
+        "kind": "law"
+      },
+      {
+        "law": "every x with x < size: never 1 <= CT[x] and CV[x] is 0",
+        "tuple": [
+          {
+            "op": "const",
+            "value": 0
+          }
+        ],
+        "kind": "law"
+      },
+      {
+        "law": "every x with x < size: never 1 <= CT[x] and started is 0",
+        "tuple": [
+          {
+            "op": "var",
+            "name": "i"
+          }
+        ],
+        "kind": "law"
+      },
+      {
+        "law": "every x with x < size: never 1 <= CT[x] and started is 0",
+        "tuple": [
+          {
+            "op": "var",
+            "name": "key$4#"
+          }
+        ],
+        "kind": "law"
+      },
+      {
+        "law": "every x with x < size: never 1 <= CT[x] and started is 0",
+        "tuple": [
+          {
+            "op": "const",
+            "value": 0
+          }
+        ],
+        "kind": "law"
+      },
+      {
+        "law": "every x with x < size: never 1 <= St[x] and CfgT[x] is 0",
+        "tuple": [
+          {
+            "op": "var",
+            "name": "i"
+          }
+        ],
+        "kind": "law"
+      },
+      {
+        "law": "every x with x < size: never 1 <= St[x] and CfgT[x] is 0",
+        "tuple": [
+          {
+            "op": "var",
+            "name": "key$4#"
+          }
+        ],
+        "kind": "law"
+      },
+      {
+        "law": "every x with x < size: never 1 <= St[x] and CfgT[x] is 0",
+        "tuple": [
+          {
+            "op": "const",
+            "value": 0
+          }
+        ],
+        "kind": "law"
+      },
+      {
+        "law": "every x with x < size: never CV[x] is 0 and 1 <= CfgT[x]",
+        "tuple": [
+          {
+            "op": "var",
+            "name": "i"
+          }
+        ],
+        "kind": "law"
+      },
+      {
+        "law": "every x with x < size: never CV[x] is 0 and 1 <= CfgT[x]",
+        "tuple": [
+          {
+            "op": "var",
+            "name": "key$4#"
+          }
+        ],
+        "kind": "law"
+      },
+      {
+        "law": "every x with x < size: never CV[x] is 0 and 1 <= CfgT[x]",
+        "tuple": [
+          {
+            "op": "const",
+            "value": 0
+          }
+        ],
+        "kind": "law"
+      },
+      {
+        "law": "every x with x < size: never 1 <= CfgT[x] and started is 0",
+        "tuple": [
+          {
+            "op": "var",
+            "name": "i"
+          }
+        ],
+        "kind": "law"
+      },
+      {
+        "law": "every x with x < size: never 1 <= CfgT[x] and started is 0",
+        "tuple": [
+          {
+            "op": "var",
+            "name": "key$4#"
+          }
+        ],
+        "kind": "law"
+      },
+      {
+        "law": "every x with x < size: never 1 <= CfgT[x] and started is 0",
+        "tuple": [
+          {
+            "op": "const",
+            "value": 0
+          }
+        ],
+        "kind": "law"
+      },
+      {
+        "law": "every x, y with x < size ∧ y < size ∧ ¬(x = y): never 1 <= CT[x] and CV[y] is 0",
+        "tuple": [
+          {
+            "op": "var",
+            "name": "i"
+          },
+          {
+            "op": "var",
+            "name": "i"
+          }
+        ],
+        "kind": "law"
+      },
+      {
+        "law": "every x, y with x < size ∧ y < size ∧ ¬(x = y): never 1 <= CT[x] and CV[y] is 0",
+        "tuple": [
+          {
+            "op": "var",
+            "name": "i"
+          },
+          {
+            "op": "var",
+            "name": "key$4#"
+          }
+        ],
+        "kind": "law"
+      },
+      {
+        "law": "every x, y with x < size ∧ y < size ∧ ¬(x = y): never 1 <= CT[x] and CV[y] is 0",
+        "tuple": [
+          {
+            "op": "var",
+            "name": "key$4#"
+          },
+          {
+            "op": "var",
+            "name": "i"
+          }
+        ],
+        "kind": "law"
+      },
+      {
+        "law": "every x, y with x < size ∧ y < size ∧ ¬(x = y): never 1 <= CT[x] and CV[y] is 0",
+        "tuple": [
+          {
+            "op": "var",
+            "name": "i"
+          },
+          {
+            "op": "const",
+            "value": 0
+          }
+        ],
+        "kind": "law"
+      },
+      {
+        "law": "every x, y with x < size ∧ y < size ∧ ¬(x = y): never CV[x] is 0 and 1 <= CfgT[y]",
+        "tuple": [
+          {
+            "op": "var",
+            "name": "i"
+          },
+          {
+            "op": "var",
+            "name": "i"
+          }
+        ],
+        "kind": "law"
+      },
+      {
+        "law": "every x, y with x < size ∧ y < size ∧ ¬(x = y): never CV[x] is 0 and 1 <= CfgT[y]",
+        "tuple": [
+          {
+            "op": "var",
+            "name": "i"
+          },
+          {
+            "op": "var",
+            "name": "key$4#"
+          }
+        ],
+        "kind": "law"
+      },
+      {
+        "law": "every x, y with x < size ∧ y < size ∧ ¬(x = y): never CV[x] is 0 and 1 <= CfgT[y]",
+        "tuple": [
+          {
+            "op": "var",
+            "name": "key$4#"
+          },
+          {
+            "op": "var",
+            "name": "i"
+          }
+        ],
+        "kind": "law"
+      },
+      {
+        "law": "every x, y with x < size ∧ y < size ∧ ¬(x = y): never CV[x] is 0 and 1 <= CfgT[y]",
+        "tuple": [
+          {
+            "op": "var",
+            "name": "i"
+          },
+          {
+            "op": "const",
+            "value": 0
+          }
+        ],
+        "kind": "law"
+      },
+      {
+        "law": "?canVote",
+        "tuple": [
+          {
+            "op": "var",
+            "name": "member$1"
+          }
+        ],
+        "kind": "flag"
+      },
+      {
+        "law": "?all$1",
+        "tuple": [
+          {
+            "op": "var",
+            "name": "member$1"
+          }
+        ],
+        "kind": "flag"
+      },
+      {
+        "law": "?all$2",
+        "tuple": [
+          {
+            "op": "var",
+            "name": "member$1"
+          }
+        ],
+        "kind": "flag"
+      },
+      {
+        "law": "fields: St[a]=1 -> CfgT[a]<=CT[a]",
+        "tuple": [
+          {
+            "op": "var",
+            "name": "key$5"
+          }
+        ],
+        "kind": "law"
+      },
+      {
+        "law": "every x with x < size: never CT[x] is 0 and 1 <= St[x]",
+        "tuple": [
+          {
+            "op": "var",
+            "name": "key$5"
+          }
+        ],
+        "kind": "law"
+      },
+      {
+        "law": "every x with x < size: never 1 <= CfgT[x] and started is 0",
+        "tuple": [
+          {
+            "op": "var",
+            "name": "key$5"
+          }
+        ],
+        "kind": "law"
+      },
+      {
+        "law": "?committedQuorum",
+        "tuple": [
+          {
+            "op": "var",
+            "name": "member$2"
+          }
+        ],
+        "kind": "flag"
+      },
+      {
+        "law": "?all$1",
+        "tuple": [
+          {
+            "op": "var",
+            "name": "member$2"
+          }
+        ],
+        "kind": "flag"
+      },
+      {
+        "law": "?all$3",
+        "tuple": [
+          {
+            "op": "var",
+            "name": "member$2"
+          }
+        ],
+        "kind": "flag"
+      },
+      {
+        "law": "?committedQuorum",
+        "tuple": [
+          {
+            "op": "var",
+            "name": "member$3"
+          }
+        ],
+        "kind": "flag"
+      },
+      {
+        "law": "?all$1",
+        "tuple": [
+          {
+            "op": "var",
+            "name": "member$3"
+          }
+        ],
+        "kind": "flag"
+      },
+      {
+        "law": "?all$3",
+        "tuple": [
+          {
+            "op": "var",
+            "name": "member$3"
+          }
+        ],
+        "kind": "flag"
+      },
+      {
+        "law": "?canVote",
+        "tuple": [
+          {
+            "op": "var",
+            "name": "member$4"
+          }
+        ],
+        "kind": "flag"
+      },
+      {
+        "law": "?all$2",
+        "tuple": [
+          {
+            "op": "var",
+            "name": "member$4"
+          }
+        ],
+        "kind": "flag"
+      },
+      {
+        "law": "?canVote",
+        "tuple": [
+          {
+            "op": "var",
+            "name": "member$5"
+          }
+        ],
+        "kind": "flag"
+      },
+      {
+        "law": "?all$2",
+        "tuple": [
+          {
+            "op": "var",
+            "name": "member$5"
+          }
+        ],
+        "kind": "flag"
+      }
+    ]
+  },
+  {
+    "conditional": true,
+    "variant": "resume-integrated",
+    "family": "captured generated family (no hand law)",
+    "repeat": "1",
+    "ms": 6000,
+    "support": "no",
+    "supportCount": 0,
+    "law": "one primary per term",
+    "laws": 34,
+    "proven": true,
+    "checked": true,
+    "checks": [
+      {
+        "goal": "one primary per term @start",
+        "checked": true,
+        "treeChecked": true,
+        "reads": 0,
+        "insts": 0
+      },
+      {
+        "goal": "one primary per term @step",
+        "checked": true,
+        "treeChecked": true,
+        "reads": 45,
+        "insts": 106
+      }
+    ],
+    "profile": {
+      "encode": 117.70315400000163,
+      "decide": 5273.524900999998,
+      "mbqi": 109.51890800000001,
+      "lazy": 193.81795800000054,
+      "#rounds": 10,
+      "#hyps": 2015,
+      "#count-completion": 36,
+      "#lazy": 123,
+      "grow": 2.671977999999399,
+      "part": 374.3785680000001
+    },
+    "wallMs": 8761.619688,
+    "countedMs": 3817.24253,
+    "activeSourceTupleCounts": {
+      "?noneCopied": 4,
+      "?allCopied": 4,
+      "?canVote": 8,
+      "?committedQuorum": 7,
+      "?all$1": 10,
+      "?all$2": 9,
+      "?all$3": 6,
+      "one primary per term": 2,
+      "fields: St[a]=1 -> CT[a]<=CfgT[a]": 2,
+      "every x with x < size: never 1 <= CT[x] and started is 0": 1,
+      "every x with x < size: never 1 <= St[x] and started is 0": 1,
+      "inX: no quorum canVote/1": 4,
+      "St at most 1": 1
+    }
+  },
+  {
+    "diagnostic": true,
+    "conditional": true,
+    "goal": "one primary per term @start",
+    "checked": true,
+    "laws": 34,
+    "rawPremises": 2,
+    "usedPremises": [
+      1
+    ],
+    "instances": []
+  },
+  {
+    "diagnostic": true,
+    "conditional": true,
+    "goal": "one primary per term @step",
+    "checked": true,
+    "laws": 34,
+    "rawPremises": 73,
+    "usedPremises": [
+      0,
+      1,
+      2,
+      3,
+      4,
+      5,
+      7,
+      8,
+      9,
+      22,
+      23,
+      29,
+      30,
+      44,
+      56,
+      60,
+      61,
+      72
+    ],
+    "instances": [
+      {
+        "wit": "member$4",
+        "unit": 0,
+        "below": {
+          "op": "var",
+          "name": "size"
+        },
+        "terms": [
+          [
+            1,
+            [
+              "inS",
+              {
+                "op": "const",
+                "value": 0
+              }
+            ]
+          ],
+          [
+            -1,
+            [
+              "inX$canVote$1",
+              {
+                "op": "add",
+                "a": {
+                  "op": "mul",
+                  "k": 64,
+                  "a": {
+                    "op": "var",
+                    "name": "i"
+                  }
+                },
+                "b": {
+                  "op": "var",
+                  "name": "key$4#"
+                }
+              }
+            ]
+          ]
+        ]
+      },
+      {
+        "wit": "member$5",
+        "unit": 0,
+        "below": {
+          "op": "var",
+          "name": "size"
+        },
+        "terms": [
+          [
+            1,
+            [
+              "inS",
+              {
+                "op": "const",
+                "value": 0
+              }
+            ]
+          ],
+          [
+            -1,
+            [
+              "inX$canVote$1",
+              {
+                "op": "add",
+                "a": {
+                  "op": "mul",
+                  "k": 64,
+                  "a": {
+                    "op": "var",
+                    "name": "i"
+                  }
+                },
+                "b": {
+                  "op": "var",
+                  "name": "key$5"
+                }
+              }
+            ]
+          ]
+        ]
+      },
+      {
+        "wit": "w$274",
+        "below": {
+          "op": "var",
+          "name": "size"
+        },
+        "terms": [
+          [
+            1,
+            [
+              "inX$row",
+              {
+                "op": "var",
+                "name": "i"
+              }
+            ]
+          ],
+          [
+            -1,
+            [
+              "inX",
+              {
+                "op": "const",
+                "value": 0
+              }
+            ]
+          ]
+        ],
+        "unit": 0
+      }
+    ]
+  },
+  {
+    "artifact": "mldr-incl-production-capture",
+    "diagnostic": true,
+    "conditional": true,
+    "files": 4,
+    "filenames": [
+      "family-source.json",
+      "production-proof.json",
+      "final-proof-0.json",
+      "final-proof-1.json"
+    ],
+    "omitted": 0,
+    "sha256": "31b639ff1186c76b2da1c3ae81cd4e81bba6902cabe9522998e7bb7c5d67e01d"
+  }
+]

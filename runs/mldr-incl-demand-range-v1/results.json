@@ -1,0 +1,139 @@
+{
+  "source": "ac7eacfeeb17677fb58d588a4f5dee6b666294c8",
+  "batch": "20261110-014532-stsqg4",
+  "tree": "74d17e6259eb",
+  "tests": {
+    "pass": 87,
+    "fail": 0,
+    "assertions": 295
+  },
+  "generation": [
+    {
+      "queries": 0,
+      "lawCount": 34,
+      "wallMs": 34061.881729
+    }
+  ],
+  "original": [
+    {
+      "repeat": 1,
+      "id": "mldr",
+      "ic3syn": "mldr",
+      "search": {
+        "verdict": "unknown",
+        "stuck": "unknown",
+        "why": "time (rule result)",
+        "ms": 59001,
+        "work": 34873127,
+        "full": 8627269
+      }
+    },
+    {
+      "repeat": 2,
+      "id": "mldr",
+      "ic3syn": "mldr",
+      "search": {
+        "verdict": "unknown",
+        "stuck": "unknown",
+        "why": "time (rule result)",
+        "ms": 59358,
+        "work": 27308091,
+        "full": 5583048
+      }
+    },
+    {
+      "repeat": 3,
+      "id": "mldr",
+      "ic3syn": "mldr",
+      "search": {
+        "verdict": "unknown",
+        "stuck": "unknown",
+        "why": "time (rule result)",
+        "ms": 59001,
+        "work": 29141871,
+        "full": 6316024
+      }
+    }
+  ],
+  "conditional": [
+    {
+      "conditional": true,
+      "variant": "resume-integrated",
+      "family": "captured generated family (no hand law)",
+      "repeat": "1",
+      "ms": 2700,
+      "support": "no",
+      "supportCount": 0,
+      "law": "one primary per term",
+      "laws": 34,
+      "proven": false,
+      "checked": false,
+      "checks": [],
+      "stuck": "unknown",
+      "profile": {
+        "encode": 74.31951800000024,
+        "decide": 4184.2130609999995,
+        "mbqi": 109.99096100000133,
+        "lazy": 157.42389699999967,
+        "#rounds": 10,
+        "#hyps": 2015,
+        "#count-completion": 36,
+        "#lazy": 123,
+        "grow": 1.7353509999993548
+      },
+      "wallMs": 4668.811309,
+      "countedMs": 2701.245368
+    },
+    {
+      "conditional": true,
+      "variant": "resume-integrated",
+      "family": "captured generated family (no hand law)",
+      "repeat": "1",
+      "ms": 6000,
+      "support": "no",
+      "supportCount": 0,
+      "law": "one primary per term",
+      "laws": 34,
+      "proven": true,
+      "checked": true,
+      "checks": [
+        {
+          "goal": "one primary per term @start",
+          "checked": true,
+          "treeChecked": true,
+          "reads": 0,
+          "insts": 0
+        },
+        {
+          "goal": "one primary per term @step",
+          "checked": true,
+          "treeChecked": true,
+          "reads": 45,
+          "insts": 106
+        }
+      ],
+      "profile": {
+        "encode": 117.70315400000163,
+        "decide": 5273.524900999998,
+        "mbqi": 109.51890800000001,
+        "lazy": 193.81795800000054,
+        "#rounds": 10,
+        "#hyps": 2015,
+        "#count-completion": 36,
+        "#lazy": 123,
+        "grow": 2.671977999999399,
+        "part": 374.3785680000001
+      },
+      "wallMs": 8761.619688,
+      "countedMs": 3817.24253
+    }
+  ],
+  "familyComparison": {
+    "sameMachine": true,
+    "sameLaws": true,
+    "laws": 34,
+    "familySha256": "dd265301ee67c2c79fc68746225707fb7cffc399d66091ddaa4eaf923c8c9bf0"
+  },
+  "productionArchiveSha256": "31b639ff1186c76b2da1c3ae81cd4e81bba6902cabe9522998e7bb7c5d67e01d",
+  "gateGreen": false
+}

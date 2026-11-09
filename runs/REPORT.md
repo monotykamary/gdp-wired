@@ -1,5 +1,46 @@
 # RESUMED — lane E, 2026-11-10
 
+## ac7eacfe validated: conditional safety restored; originals remain UNKNOWN
+
+Completed **20261110-014532-stsqg4**, all five rows exit 0. The production
+repair **ac7eacfe** passes type/lint and **87 tests / 295 assertions**
+(80 core, 4 lossless-capture, 3 provenance tests). The subsequent research
+ranking installer is a separate, still-running test and is not included.
+
+Fresh generation makes 34 laws with zero proof queries. Its machine and
+ordered law array equal the prior exact family. At 6000, conditional safety
+checks at **3817.24253 units**, the same restored cost as both range-off
+controls. START and STEP both pass fresh kernel replay; the used witnesses
+and 18 raw-premise indices are identical. Complete archive SHA-256:
+`31b639ff1186c76b2da1c3ae81cd4e81bba6902cabe9522998e7bb7c5d67e01d`.
+At 2700 it remains UNKNOWN at **2701.245368 units**. The 6000 probe's wall
+is **8.762 s** on a Ryzen 9950X; this is not a 7 s wall pass.
+
+All three unchanged original `run.ts --only mldr --ms 60000 --skip broken`
+commands remain **UNKNOWN**, `why: time (rule result)`, at harness times
+**59.001 / 59.358 / 59.001 s**. R1/R2 use Ryzen 9950X; R3 uses EPYC 4585PX,
+all alone on large VMs with eight pinned vCPUs. No cross-CPU speedup claim.
+Receipts, hashes, exact rows, CPU labels and compressed logs:
+`runs/mldr-incl-demand-range-v1/`. This repairs a measured conditional
+regression; it is **not 29/29, not an unconditional MLDR proof, and not GATE
+GREEN**. Full nonregression and lane D's final gate remain outstanding.
+
+### Current next experiment — no production change
+
+Research **5c3686f0** tests the falsifiable hypothesis that lower-ranked
+early field-law tuples consume the missing safety share. Seven parallel
+jobs compare unchanged control with top 0/1/2/3/4/6 source laws, preserving
+all flag premises, admission limits, 2700/6000 allowances, and the kernel.
+This isolates ranking on the prior exact family with initial ranges off;
+any winner still needs a production-candidate measurement and full gates.
+
+Registered **20261110-014758-a6x9cy**, task
+`8b23c143-90b0-4846-8b18-d72b4bfc14b3`, output
+`runs/mldr-incl-member-rank-v1/`. Each modified disposable checkout must
+pass type/lint and installer/provenance tests before its proof queries.
+One waiter, no subagents, no new whole-tree archive, no files deleted.
+
+
 ## Confirmed eager-range regression; demand-driven integration under validation
 
 Completed `20261110-014116-r49824`, six rows, all exit 0. The exact fresh
@@ -46,8 +87,8 @@ independence-filtered MBQI paths. No protocol branch, kernel edit, hand law,
 budget increase, or unconditional dropping of range facts. Demand persists
 per goal and is triggered only by a known 0/1 count above a valued bound.
 
-This combination is **not yet validated**. Five source-check-guarded jobs
-are registered as `20261110-014532-stsqg4`, task
+Submission record (completed above): five source-check-guarded jobs
+were registered as `20261110-014532-stsqg4`, task
 `6d94b6ed-c01f-4ca9-8617-876fed697db3`, output
 `runs/mldr-incl-demand-range-v1/`: type/lint and focused tests, original
 MLDR x3 unchanged at 60000, and fresh generated conditional/replay.
