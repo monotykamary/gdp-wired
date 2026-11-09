@@ -9,6 +9,14 @@ the merged-tree tests/typecheck, the 29-list census against `bef4020f` and a per
 - **Census guard on the merged tree (`a6ae4be9`) vs lane A's head `bef4020f`, 29 protocols (`runs/track-wall/receipts/census3`):
   29 / 29 canonical law lists byte-identical;** generation walls summed 756.7 s → 517.3 s (−32 %, mixed warm VMs, not a timing
   claim); mldr 14.6 → 11.0 s (small 6.8 → 3.8 s, candidates 7.8 → 7.2 s).
+- **Two census-safe generation cost cuts from the merged-tree profile** (Ryzen 7 9700X / 9950X pinned, `runs/track-wall/receipts/prof3`-style
+  phases: `$breaks` 20.7 % self of the generation run; per-step count view ≈ 13 %): (a) `1e491744` — `$breaks` marks the stamp buffer
+  directly (no neighbour array, one pass; sparse inputs still through `$unique`'s Set path; agreement test against a Set reference on 300
+  dense/sparse inputs); (b) `58274ee1` — a step's derived counts are computed by the generated module (`$cells`, the twin of
+  `CountCells`) instead of the interpreter's `evalE` per cell and per key (agreement test against the interpreter on three counts,
+  one on a two-parameter key, one reading another count). Paired generation of (a) alone vs `bef4020f` on one pinned 9950X (a slow one
+  this time): 18.3 / 26.2 / 21.2 s vs 32.3 / 35.1 / 36.4 s (`runs/track-wall/receipts/breaks1`) — the branch as a whole, not (a)'s own
+  share; the incremental pair (both cuts vs `b25ab7c4`, the head before them) is the measurement and is running.
 - **Step 1 done — traced strict mldr pairs, violation-driven ranges (`72380dc1`) vs lane A's `c21a6e54`, three pinned large VMs
   (Ryzen 9 9950X ×2, EPYC 4585PX; `runs/track-wall/receipts/rmldr3`, logs gzipped):** verdict `unknown` (time) on all six runs;
   the four traced helpers (`no quorum canVote/1`, `canVote/3`, `stored guard reconfigs/inS`, `… or disabled/0`) read pass 0 `sat`
