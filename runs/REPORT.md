@@ -4,6 +4,27 @@ NOT GATE GREEN. Branch `claude/mldr-leaves` starts at `d4479299`; baseline main 
 
 Overlap disclosure: a minimal model-observation hook in `core/count-recovery/derivability-closure.ts` is necessary to feed row selection; Lane B otherwise retains that file and §§15.4/15.5. No kernel edits, hand laws, production budget changes, or edits to other worktrees. Measurements will distinguish frozen legacy op packets, checksum-verified actual E-14 family, and strict original harness. Only Lane D's exact SHA-bound final receipt can support GATE GREEN.
 
+# Lane A / T-14 gate complete; Section 16 in progress
+
+The E-14 + per-attempt-sharing implementation (`1681e8e5`) and the test-only
+packed-domain clock repair pass the complete merge gate against `b788e195`:
+84/84 retained IC3Syn safety proofs, 30/30 DuoAI proofs, no broken variant
+proved, all seven test shards and type/lint/commitlint green. The recovered
+quick bar has wrong 0 and solid losses 0 (three non-solid CHC losses remain).
+The 28 other generation lists are identical x3; MLDR has 35 laws and is still
+**unknown**, not 29/29. `T14-GATE.md` records all work deltas and CPU models
+for every strict pair. Original logs and failed probes remain in this worktree.
+
+Counted-work changes occurred in: `consensus_epr`, `consensus_forall`,
+`consensus_wo_decide`, `distributed_lock`, `learning_switch_i4` (broken),
+`majorityset_leader_election`, `mldr`, `naive_consensus`, `paxos_epr`,
+`quorum_leader_election`, `ring_leader_election`, `simple`, `simple_election`,
+`simple_regular`, `toy_consensus`, `toy_consensus_epr`, `toy_consensus_forall`.
+No safety verdict or returned helper law was lost.
+
+Section 16.1/16.2 are now assigned and being implemented. Their new production
+code is NOT covered by the T-14 green result and will be re-gated separately.
+
 # Track P report
 
 Current assignment: [Track Gen — production invariant-generation cost](#track-gen).
@@ -5900,3 +5921,64 @@ Default validation passed typecheck/lint plus 31 tests (310 assertions) and 5 mo
 The legacy class-first diagnostic has a real negative: op 4 records 52 class attempts but remains unknown at 1,246.483 units / 7.132 s; op 0 expires during repeated frame-body classification. A branch-local canonicalization cache and explicit timeout reporting are being checked. The imported seed array is now copied before search so derived additions cannot masquerade as imported-seed counts.
 
 **15.6 belongs to Lane F now.** Existing, unvalidated root-first prototype isolated in **`b6fa0a50`**, with task ID and limits in `research/track-m/LANE-F-HANDOFF.md`. Lane B removed row-policy hooks and continues 15.4/15.5/16.5. Future direct-leaf receipts now retain exact MC inputs and conditional mark metadata, with a checker-only `audit-seeded-leaf.ts`; this capture addition and branch-local frame canonicalization still await fresh validation. All detailed receipts and caveats remain in `lane-b-status-v1`; only Lane D's final gate can support GATE GREEN.
+
+### First full gate: not green
+
+`runs/t14-gate-v1/` completed all 154 jobs on boat. Both sides proved all
+**28 already-solved IC3Syn protocols in all three repeats (84/84 each)**
+and all **10 DuoAI protocols in all three repeats (30/30 each)**. MLDR was
+unknown on both sides, all three times. No broken variant was proved:
+11 were refuted, 17 returned unknown, and `sharded_kv_no_lost_keys` hit the
+strict wrapper on both sides. The killed broken check is not a safety proof.
+
+Six test shards and type/lint/commitlint passed. Shard 2 failed the existing
+`packed column domains are split once before row reconstruction and checked`
+assertion in `core/count-recovery/field-bound-lemmas.test.ts`: its tree was
+defined and checked, but the expected route-trace event was absent. Paired
+isolated reproductions on unchanged main and this branch are submitted;
+this is not yet classified as a regression or a pre-existing test defect.
+
+The coordinator reported a scheduler recovery stall from about 12:28–12:40.
+No completed assertion failure is being relabelled as infrastructure. The
+restart blanked 72 CPU labels in the placement receipt: 68 can be recovered
+from a nonblank receipt for the same immutable VM ID, and one more from the
+earlier v6 check. Three cases without an existing CPU label are being rerun.
+Future paired logs print the guest CPU model themselves. The final-source
+29×3 census/capture batch was held, not discarded, and remains in progress.
+The full report will list every protocol whose counted totals moved; the
+raw first-gate pairs and aggregation are retained. Cross-receipt recovery
+now supplies CPU labels for every original pair, without inferring a model
+from a VM class. No GATE GREEN claim is made while the test and bar are pending.
+
+### T-14 generation and first strict confirmations
+
+`runs/t14-final-v1/` completed all 94 jobs after recovery. The generation-only
+census has **87 pairs, zero prover queries, and all other 28 canonical lists
+byte-identical in all three repeats**. MLDR changed from 34 to 35 laws in each
+repeat, with the same candidate hash
+`35b0da100cc1a3b922deb1f2ceab24068ff3d1d46f968b4cafbdd15d99f1e2bc`.
+Candidate generation took 25.51, 25.31 and 25.39 s.
+
+The three original-harness candidate processes returned unknown cleanly in
+59.41, 59.64 and 59.17 s; main returned unknown in 22.70, 37.57 and 19.85 s.
+Repeats 1/2/3 used AMD EPYC 4585PX / AMD Ryzen 9 9950X / AMD Ryzen 9 9950X,
+respectively, each pair isolated on one pinned large VM.
+
+Section 15.1 lifted Inv*'s share from 1,714 to 3,004 and Inv2973-half's
+to 2,838 in the isolated control. All 15 distinct early kept-law labels
+were retained in all three share pairs, and no returned helper was lost
+on any of the other 28 protocols. The top-level verdict did not improve.
+Inv* returned pass-0 sat and pass-1 unknown. Inv2973-half still returned
+pass-0 sat, and pass-1 sat in repeats 2/3 (repeat 1 hit the wall). Inv1758
+and the count cubes were not reached before the wall; no claim that all
+three helpers got the predicted allowance is made.
+
+The first capture transported repeat 1, but duplicates of whole families
+inside each witness overflowed repeats 2/3. The bounded transport now keeps
+all scalar witnesses separately from replay roots and is being rerun.
+The initial standalone test comparison was invalid on main, which does
+not contain the branch's field-recovery test; the candidate passed it 3/3.
+The route assertion has a 50 ms internal wall window and is being retested
+under the deterministic counted clock, without changing production code.
+The bar's failed-window runs were retained as infrastructure failures;
+the old controller was stopped and a fresh paired quick bar completed: wrong 0, solid losses 0. Three non-solid CHC losses (1/4 candidate solves versus 3/4 or 4/4 baseline solves) are retained in its report, not hidden.

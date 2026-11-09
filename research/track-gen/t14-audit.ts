@@ -5,6 +5,7 @@ import {readFileSync} from 'node:fs'
 import {type Law, type Machine, type Request, type State, interpret} from '../../core/machine.ts'
 import {finiteEvaluator} from '../../core/finite-houdini.ts'
 import {keyValue} from '../../kernel/prove.ts'
+import {symbolicStutter} from './t14-stutter.ts'
 const input = JSON.parse(readFileSync(process.argv[2]!, 'utf8'))
 const prior = input.beforeFinite
 if (!prior?.machine) throw Error('missing pre-Houdini family')
@@ -32,7 +33,9 @@ const rows = input.witnesses.map((r: any) => {
   let postViolation: boolean | undefined, enabled = false, error: string | undefined
   const law = generated.find(l => l.name === r.law)
   try { const post = run.step(params, st, request); enabled = true; if (law) postViolation = test(law, params, post) === false } catch (e) { error = String(e) }
+  const stutter = symbolicStutter(machine, w)
   const genuine = pre.every(p => p.truth === true) && enabled && postViolation === true
-  return {law: r.law, pass: r.pass, params, scalar: st.scalars, cells, missingScalars, unreadable, classification: genuine ? 'concrete relative CTI against generated Gp1' : 'default-zero completion does not establish a relative CTI', preFailures: pre.filter(p => p.truth !== true), enabled, postViolation, error}
+  if (genuine && stutter.unchanged) throw Error(`inconsistent stutter audit for ${r.law}`)
+  return {law: r.law, pass: r.pass, params, scalar: st.scalars, cells, missingScalars, unreadable, phase: r.phase, stutter, classification: genuine ? 'concrete relative CTI against generated Gp1' : stutter.unchanged ? 'symbolic identity transition: no completion can be a relative CTI' : 'default-zero completion does not establish a relative CTI', preFailures: pre.filter(p => p.truth !== true), enabled, postViolation, error}
 })
 console.log(JSON.stringify({scope: 'concrete default-zero completion; not an exhaustive completion search or an unbounded proof', gp1Laws: gp1.length, witnesses: rows}, null, 2))
