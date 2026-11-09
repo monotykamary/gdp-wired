@@ -32,6 +32,7 @@ import {supportBudget} from './support-budget.ts'
 export {supportBudget} from './support-budget.ts'
 import {proposeCountUnions} from './count-unions.ts'
 import {focusedCountRecoveryEnabled,proveFocusedCounts} from './count-focus-proof.ts'
+import {preferMemberInclusions} from './count-recovery/member-inclusions.ts'
 import {smallOf, trueSmall} from './exists.ts'
 import {WallExpired, checkWall, searchWall} from './wall.ts'
 import {env} from './solver.ts'
@@ -715,9 +716,10 @@ export function countedAttempts(m: Machine, caller: Law[], support: Set<Law>, un
         const pool0 = cached?.key === key ? cached.value : grammarPool(goal, decls, pool, generation, structured)
         if (cached?.key !== key) poolCache.set(goal.name, {key, value: pool0})
         if (!selection) {
-          const pick = readTuples(goal.hyps.at(-1), generation.tick).some(([mp]) => mp.endsWith('#') && decls.some(d => d.map === mp))
+          const ordinary = readTuples(goal.hyps.at(-1), generation.tick).some(([mp]) => mp.endsWith('#') && decls.some(d => d.map === mp))
             ? polaritySelection(goal, decls, pool0, generation, sourceMaps).pick
             : smallSelection(goal, decls, pool0.full, readTuples(law.holds, generation.tick).map(([, key]) => key), none, generation)
+          const pick = preferMemberInclusions(m, decls, pool0.full, ordinary)
           selection = {chosen: new Set(ids(pick)), cap: Math.min(10, pick.insts.length + 2), previous: pick, decls, reserve: reservationState(goal, [m, ls, goal], pool), stable: stableState([m, ls, goal])}
           selections.set(goal.name, selection)
         }
@@ -733,7 +735,10 @@ export function countedAttempts(m: Machine, caller: Law[], support: Set<Law>, un
       if (!pass || lazyMode === '0' || (lazyMode === 'wide' && !wide)) return {goal, decls, c: full, gg: ptime('encode', () => mcGoal(goal.hyps, decls, full)), pool: undefined as Pool | undefined}
       const rd = new Map(full.reads.map(r => [r[0], json([r[1], r[2]])]))
       const keys = [...full.picks.map(q => `p${json([rd.get(q[0]), q[1]])}`), ...full.insts.map(i => `i${json([i.terms.map(([z, x]) => [z, rd.get(x)]), i.unit, i.below])}`)]
-      if (lazyMode === 'wide') for (const q of keys.slice(full.picks.length, full.picks.length + 10)) chosen.add(q)
+      if (lazyMode === 'wide') {
+        const initial = preferMemberInclusions(m, decls, full, {...full, insts: full.insts.slice(0, 10)})
+        for (const inst of initial.insts) chosen.add(keys[full.picks.length + full.insts.indexOf(inst)]!)
+      }
       const c = {...full, picks: full.picks.filter((_, j) => chosen.has(keys[j]!)), insts: full.insts.filter((_, j) => chosen.has(keys[j + full.picks.length]!))}
       const fg = ptime('encode', () => mcGoal(goal.hyps, decls, full))
       return {goal, decls, c, gg: ptime('encode', () => mcGoal(goal.hyps, decls, c)), pool: fg && keys.length ? {fg, keys, wits: [...full.picks.map(() => undefined), ...full.insts.map(i => i.wit)]} : undefined}
