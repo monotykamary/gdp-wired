@@ -5,7 +5,7 @@ import {type C, type E, type Law, type Machine, type Request, type State, carrie
 import {checkWall, searchWall, WallExpired} from './wall.ts'
 import {boundaryState, lawFrontiers} from './finite-frontiers.ts'
 import {wallAt, withWall} from '../kernel/prove.ts'
-import {type TinyFiniteOptions, type TinyFiniteStatistics, tinyFiniteCandidates} from './finite-tiny.ts'
+import {type TinyFiniteOptions, type TinyFiniteStatistics, type TinySeedStatistics, tinyFiniteCandidates, tinySeedCandidates} from './finite-tiny.ts'
 type Env = Record<string, number>
 type Samples = {p: Env, sts: State[]}[]
 type Truth = boolean | undefined
@@ -119,7 +119,7 @@ export function finiteHoudini(source: Machine, m: Machine, caller: Law[], candid
 // Experimental tiny-instance proposal backend. Every drop crosses the same
 // independent whole-family/source-interpreter boundary as sampled Houdini.
 // It is not wired into production generation until its bounded pilot passes.
-export function finiteTinyHoudini(source: Machine, m: Machine, caller: Law[], candidates: Law[], params: Env[], options: FiniteOptions & TinyFiniteOptions & {rounds?: number, onTiny?: (round: number, stats: TinyFiniteStatistics) => void} = {}): Law[] {
+export function finiteTinyHoudini(source: Machine, m: Machine, caller: Law[], candidates: Law[], params: Env[], options: FiniteOptions & TinyFiniteOptions & {rounds?: number, onTiny?: (round: number, stats: TinyFiniteStatistics) => void, onSeed?: (round: number, stats: TinySeedStatistics) => void} = {}): Law[] {
   const start = performance.now(), end = Math.min(wallAt(), searchWall(Math.max(0, options.wallMs ?? 2_000)))
   let survivors = candidates.slice(), timedOut = false
   try {
@@ -134,7 +134,7 @@ export function finiteTinyHoudini(source: Machine, m: Machine, caller: Law[], ca
         const active = [...caller, ...survivors], family = [...declarations, ...active], removed = new Set<Law>()
         for (const p of params) {
           checkWall('tiny Houdini instance')
-          const stats = tinyFiniteCandidates(source, m, active, p, (pre, request) => {
+          const certify = (pre: State, request: Request): boolean => {
             checkWall('tiny Houdini certification')
             // The screen's constraints and reported post-laws are not trusted.
             if (!family.every(law => evaluate(law, p, pre) === true)) return false
@@ -150,7 +150,20 @@ export function finiteTinyHoudini(source: Machine, m: Machine, caller: Law[], ca
               options.onDrop?.(drop); finiteDump.onDrop?.(drop)
             }
             return accepted
-          }, options)
+          }
+          const early = options.seedBeforeCompile === true && (options.seedTransitions?.length ?? 0) > 0
+          if (early) {
+            const sourceEvaluate = finiteEvaluator(source), sourceChecks: Law[] = [
+              ...(source.pre ? [{name: 'finite source precondition', holds: source.pre}] : []), ...source.facts ?? [],
+            ]
+            const seedStats = tinySeedCandidates(source, m, p, (pre, request) =>
+              sourceChecks.every(law => sourceEvaluate(law, p, pre) === true) && certify(pre, request), options)
+            options.onSeed?.(round, seedStats)
+            checkWall('tiny early seed completion')
+          }
+          // Exactly one seed allowance: front-loading replaces, never adds to,
+          // the post-compilation neighborhood phase. Keep this round's family.
+          const stats = tinyFiniteCandidates(source, m, active, p, certify, early ? {...options, seedTransitions: undefined} : options)
           // The proposer reports partial statistics when its wall expires. It
           // cannot suppress either this local cap or an earlier enclosing wall.
           checkWall('tiny Houdini completion')

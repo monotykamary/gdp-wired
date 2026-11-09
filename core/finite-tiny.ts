@@ -10,7 +10,7 @@ type Term = {id: number, code: string, args: Term[], deps: number[], lo: number,
 type Pred = boolean | {op: 'atom', a: Term, b: Term, cmp: '<' | '<=' | '='} | {op: 'and', xs: Pred[]} | {op: 'or', xs: Pred[]} | {op: 'not', x: Pred}
 type Slot = {name: string, key?: number, request?: boolean, values: number[]}
 export type TinyFiniteSeed = {params: Env, pre: State, request: Request}
-export type TinyFiniteOptions = {valueDomain?: readonly number[], postTargetPruning?: boolean, postTargetIntervals?: boolean, seedTransitions?: readonly TinyFiniteSeed[], seedUniformMaps?: boolean}
+export type TinyFiniteOptions = {valueDomain?: readonly number[], postTargetPruning?: boolean, postTargetIntervals?: boolean, seedTransitions?: readonly TinyFiniteSeed[], seedUniformMaps?: boolean, seedBeforeCompile?: boolean}
 export type TinyFiniteStatistics = {
   scope: {params: Env, scalarValues: number[], cellValues: number[], cells: Record<string, number[]>, inputValues: Record<string, number[]>, inputCells: Record<string, number[]>, binderValues: number[], postTargetPruning: boolean, postTargetIntervals: boolean, seedNeighborhood: boolean, seedUniformMaps: boolean}
   completed: boolean, exhausted: boolean, timedOut: boolean, unsupported: string[], nodes: number, states: number, steps: number, scenarios: number, candidates: number, postStatePrunes: number, postRequestPrunes: number, postIntervalFallbacks: number, seedModels: number, seedCandidates: number, seedCoupledModels: number, seedCoupledCandidates: number, ms: number
@@ -371,6 +371,142 @@ function gridKeys(m: Machine, size: number): Record<string, number[]> {
   })
   return cells
 }
+function tinyScope(params: Env, stateValues: number[], options: TinyFiniteOptions): TinyFiniteStatistics['scope'] {
+  return {params: {...params}, scalarValues: [...stateValues], cellValues: [...stateValues], cells: {}, inputValues: {}, inputCells: {}, binderValues: [], postTargetPruning: options.postTargetPruning === true, postTargetIntervals: options.postTargetIntervals === true, seedNeighborhood: options.seedTransitions !== undefined, seedUniformMaps: options.seedTransitions !== undefined && options.seedUniformMaps === true}
+}
+function tinyLayout(source: Machine, m: Machine, params: Env, stateValues: number[], scope: TinyFiniteStatistics['scope']): {slots: Slot[], stateSlots: number} {
+  checkWall('tiny start')
+  if (!stateValues.length || stateValues.length > 4 || stateValues.some(n => !Number.isSafeInteger(n) || n < 0)) throw new Unsupported('invalid finite value domain')
+  if (source.history || source.leasts || source.sums) throw new Unsupported('history/least/sums')
+  if (!source.params.every(p => Number.isSafeInteger(params[p]) && params[p]! >= 0)) throw new Unsupported('missing/non-natural params')
+  // The finite dimension comes from a parameter-only count bound. No
+  // parameter name is significant. Ambiguous bounds use the largest one.
+  const bounds = Object.values(m.counts ?? {}).flatMap(d => d.below.op === 'var' && Object.hasOwn(params, d.below.name) ? [params[d.below.name]!] : d.below.op === 'const' ? [d.below.value] : [])
+  const size = Math.max(0, ...bounds)
+  if (size < 1 || size > 4) throw new Unsupported('count grid bound outside 1..4')
+  scope.cells = gridKeys(m, size)
+  scope.binderValues = Array.from({length: size}, (_, i) => i)
+  const slots: Slot[] = Object.keys(source.state).map(name => ({name, values: stateValues}))
+  for (const name of Object.keys(source.maps ?? {})) for (const key of scope.cells[name] ?? []) { checkWall('tiny state coordinates'); slots.push({name, key, values: stateValues}) }
+  const stateSlots = slots.length
+  for (const name of source.inputs) {
+    checkWall('tiny request domains')
+    // Explicit conjunctive natural bounds are domain hints; other inputs use
+    // 0..size. No domain or quotient is a trusted pruning justification.
+    let hi = 16, bounded = false
+    for (const c of conjuncts(source.assume ?? {op: 'and', xs: []})) {
+      checkWall('tiny numeric bounds')
+      if ((c.op === '<' || c.op === '<=') && c.a.op === 'var' && c.a.name === name) {
+        const b = c.b.op === 'const' ? c.b.value : c.b.op === 'var' ? params[c.b.name] : undefined
+        if (b !== undefined) { hi = Math.min(hi, b - Number(c.op === '<')); bounded = true }
+      }
+    }
+    if (!bounded) hi = size
+    if (!Number.isSafeInteger(hi) || hi < 0 || hi > 16) throw new Unsupported('request domain')
+    const values = Array.from({length: hi + 1}, (_, i) => i)
+    scope.inputValues[name] = values; slots.push({name, request: true, values})
+  }
+  for (const name of source.inputMaps ?? []) {
+    checkWall('tiny carried coordinates')
+    scope.inputCells[name] = Array.from({length: size}, (_, i) => i)
+    for (const key of scope.inputCells[name]!) slots.push({name, key, request: true, values: [0, 1]})
+  }
+  if (slots.length > 64) throw new Unsupported('more than 64 tiny coordinates')
+  return {slots, stateSlots}
+}
+function materializeTiny(source: Machine, slots: Slot[], values: readonly number[], fixed: Env = {}): {pre: State, request: Request} {
+  const preState: State = {scalars:{},maps:Object.fromEntries(Object.keys(source.maps??{}).map(name=>[name,new Map<number,number>()]))}
+  const request: Request = Object.fromEntries((source.inputMaps??[]).map(name=>[name,new Map<number,number>()]))
+  for(let i=0;i<slots.length;i++){
+    checkWall('tiny candidate materialization')
+    const s=slots[i]!, value=s.request&&s.key===undefined&&Object.hasOwn(fixed,s.name)?fixed[s.name]!:values[i]!
+    if(s.request){if(s.key===undefined)request[s.name]=value;else(request[s.name] as Map<number,number>).set(s.key,value)}
+    else if(s.key===undefined)preState.scalars[s.name]=value
+    else preState.maps[s.name]!.set(s.key,value)
+  }
+  return {pre: preState, request}
+}
+function walkTinySeedVectors(source: Machine, params: Env, slots: Slot[], options: TinyFiniteOptions, visit: (values: readonly number[], coupled: boolean) => void): void {
+  const bases: number[][] = [], seen = new Set<string>()
+  let attempts = 0
+  for (const seed of options.seedTransitions?.slice(-8) ?? []) {
+    checkWall('tiny seed projection')
+    if (!Object.keys(params).every(key => seed.params[key] === params[key])) continue
+    const values: number[] = []
+    for (const slot of slots) {
+      const entry = slot.request ? seed.request[slot.name] : seed.pre.scalars[slot.name]
+      const value = slot.key === undefined ? entry : slot.request
+        ? entry instanceof Map ? entry.get(slot.key) ?? 0 : undefined
+        : seed.pre.maps[slot.name]?.get(slot.key) ?? seed.pre.defaults?.[slot.name] ?? source.maps?.[slot.name]
+      if (typeof value !== 'number' || !slot.values.includes(value)) break
+      values.push(value)
+    }
+    if (values.length === slots.length) bases.push(values)
+  }
+  const attempt = (values: number[], coupled = false): boolean => {
+    checkWall('tiny seed attempt')
+    if (attempts >= 256) return false
+    const key = values.join(',')
+    if (seen.has(key)) return true
+    seen.add(key); attempts++
+    visit(values, coupled)
+    return true
+  }
+  for (const base of bases) if (!attempt(base)) return
+  if (options.seedUniformMaps) {
+    const grouped = new Map<string, number[]>()
+    for (const [i, slot] of slots.entries()) {
+      checkWall('tiny seed map grouping')
+      if (slot.key === undefined) continue
+      const key = `${Number(!!slot.request)}:${slot.name}`, group = grouped.get(key) ?? []
+      group.push(i); grouped.set(key, group)
+    }
+    const groups = [...grouped.values()].filter(group => group.length > 1)
+      .sort((a, b) => Number(!!slots[b[0]!]!.request) - Number(!!slots[a[0]!]!.request))
+    for (const group of groups) for (const base of bases) for (const value of slots[group[0]!]!.values) {
+      checkWall('tiny seed uniform map')
+      if (!group.every(i => slots[i]!.values.includes(value)) || group.every(i => base[i] === value)) continue
+      const values = base.slice(); for (const i of group) values[i] = value
+      if (!attempt(values, true)) return
+    }
+  }
+  // Request axes first; round-robin across seeds avoids one long seed
+  // neighborhood consuming the entire fixed attempt allowance.
+  const axes = [...slots.keys()].sort((a, b) => Number(!!slots[b]!.request) - Number(!!slots[a]!.request) || a - b)
+  for (const i of axes) for (const base of bases) for (const value of slots[i]!.values) {
+    checkWall('tiny seed neighbor')
+    if (value === base[i]) continue
+    const values = base.slice(); values[i] = value
+    if (!attempt(values)) return
+  }
+}
+export type TinySeedStatistics = {
+  phase: 'seed-only', scope: TinyFiniteStatistics['scope'], completed: boolean, timedOut: boolean,
+  unsupported: string[], models: number, accepted: number, coupledModels: number, coupledAccepted: number, ms: number
+}
+// Cheap finite-grid proposals only: no predicates or native transition code are
+// compiled. The supplied checker must establish every removal independently.
+export function tinySeedCandidates(source: Machine, m: Machine, params: Env,
+  onCandidate: (pre: State, request: Request) => boolean, options: TinyFiniteOptions = {}): TinySeedStatistics {
+  const values = unique([...(options.valueDomain ?? [0, 1])]).sort((a, b) => a - b), start = performance.now()
+  const stats: TinySeedStatistics = {phase: 'seed-only', scope: tinyScope(params, values, options), completed: false, timedOut: false,
+    unsupported: [], models: 0, accepted: 0, coupledModels: 0, coupledAccepted: 0, ms: 0}
+  try {
+    const {slots} = tinyLayout(source, m, params, values, stats.scope)
+    walkTinySeedVectors(source, params, slots, options, (vector, coupled) => {
+      stats.models++; if (coupled) stats.coupledModels++
+      const {pre, request} = materializeTiny(source, slots, vector)
+      if (onCandidate(pre, request)) { stats.accepted++; if (coupled) stats.coupledAccepted++ }
+    })
+    stats.completed = true
+  } catch (e) {
+    if (e instanceof WallExpired) stats.timedOut = true
+    else if (e instanceof Unsupported) stats.unsupported.push(e.message)
+    else throw e
+  } finally { stats.ms = performance.now() - start }
+  return stats
+}
+
 /** A deliberately small heuristic scope: binary source scalars/cells by default,
  * count-bound-sized rows and Boolean carried sets. Unsupported syntax is
  * unknown. completed means this recorded finite SCREEN traversal finished;
@@ -384,47 +520,11 @@ function gridKeys(m: Machine, size: number): Record<string, number[]> {
 export function tinyFiniteCandidates(source: Machine, m: Machine, family: Law[], params: Env,
   onCandidate: (pre: State, request: Request, violated: Law[]) => boolean | void, options: TinyFiniteOptions = {}): TinyFiniteStatistics {
   const stateValues = unique([...(options.valueDomain ?? [0, 1])]).sort((a, b) => a - b)
-  const start = performance.now(), scope: TinyFiniteStatistics['scope'] = {params: {...params}, scalarValues: [...stateValues], cellValues: [...stateValues], cells: {}, inputValues: {}, inputCells: {}, binderValues: [], postTargetPruning: options.postTargetPruning === true, postTargetIntervals: options.postTargetIntervals === true, seedNeighborhood: options.seedTransitions !== undefined, seedUniformMaps: options.seedTransitions !== undefined && options.seedUniformMaps === true}
+  const start = performance.now(), scope = tinyScope(params, stateValues, options)
   const stats: TinyFiniteStatistics = {scope, completed: false, exhausted: false, timedOut: false, unsupported: [], nodes: 0, states: 0, steps: 0, scenarios: 0, candidates: 0, postStatePrunes: 0, postRequestPrunes: 0, postIntervalFallbacks: 0, seedModels: 0, seedCandidates: 0, seedCoupledModels: 0, seedCoupledCandidates: 0, ms: 0}
   const unknown = (e: unknown) => { const reason = e instanceof Error ? e.message : String(e); if (!stats.unsupported.includes(reason)) stats.unsupported.push(reason) }
   try {
-    checkWall('tiny start')
-    if (!stateValues.length || stateValues.length > 4 || stateValues.some(n => !Number.isSafeInteger(n) || n < 0)) throw new Unsupported('invalid finite value domain')
-    if (source.history || source.leasts || source.sums) throw new Unsupported('history/least/sums')
-    if (!source.params.every(p => Number.isSafeInteger(params[p]) && params[p]! >= 0)) throw new Unsupported('missing/non-natural params')
-    // The finite dimension comes from a parameter-only count bound. No
-    // parameter name is significant. Ambiguous bounds use the largest one.
-    const bounds = Object.values(m.counts ?? {}).flatMap(d => d.below.op === 'var' && Object.hasOwn(params, d.below.name) ? [params[d.below.name]!] : d.below.op === 'const' ? [d.below.value] : [])
-    const size = Math.max(0, ...bounds)
-    if (size < 1 || size > 4) throw new Unsupported('count grid bound outside 1..4')
-    scope.cells = gridKeys(m, size)
-    scope.binderValues = Array.from({length: size}, (_, i) => i)
-    const slots: Slot[] = Object.keys(source.state).map(name => ({name, values: stateValues}))
-    for (const name of Object.keys(source.maps ?? {})) for (const key of scope.cells[name] ?? []) { checkWall('tiny state coordinates'); slots.push({name, key, values: stateValues}) }
-    const stateSlots = slots.length
-    for (const name of source.inputs) {
-      checkWall('tiny request domains')
-      // Explicit conjunctive natural bounds are domain hints; other inputs use
-      // 0..size. No domain or quotient is a trusted pruning justification.
-      let hi = 16, bounded = false
-      for (const c of conjuncts(source.assume ?? {op: 'and', xs: []})) {
-        checkWall('tiny numeric bounds')
-        if ((c.op === '<' || c.op === '<=') && c.a.op === 'var' && c.a.name === name) {
-          const b = c.b.op === 'const' ? c.b.value : c.b.op === 'var' ? params[c.b.name] : undefined
-          if (b !== undefined) { hi = Math.min(hi, b - Number(c.op === '<')); bounded = true }
-        }
-      }
-      if (!bounded) hi = size
-      if (!Number.isSafeInteger(hi) || hi < 0 || hi > 16) throw new Unsupported('request domain')
-      const values = Array.from({length: hi + 1}, (_, i) => i)
-      scope.inputValues[name] = values; slots.push({name, request: true, values})
-    }
-    for (const name of source.inputMaps ?? []) {
-      checkWall('tiny carried coordinates')
-      scope.inputCells[name] = Array.from({length: size}, (_, i) => i)
-      for (const key of scope.inputCells[name]!) slots.push({name, key, request: true, values: [0, 1]})
-    }
-    if (slots.length > 64) throw new Unsupported('more than 64 tiny coordinates')
+    const {slots, stateSlots} = tinyLayout(source, m, params, stateValues, scope)
     const compiler = new Compiler(source, m, params, slots, scope.cells, scope.binderValues)
     const pres: Pred[] = []
     if (source.pre) pres.push(compiler.condition(source.pre, params))
@@ -559,15 +659,7 @@ export function tinyFiniteCandidates(source: Machine, m: Machine, family: Law[],
       }
     }
     const propose = (fixed:Env, violated:Law[]):void=>{
-      const preState: State = {scalars:{},maps:Object.fromEntries(Object.keys(source.maps??{}).map(name=>[name,new Map<number,number>()]))}
-      const request: Request = Object.fromEntries((source.inputMaps??[]).map(name=>[name,new Map<number,number>()]))
-      for(let i=0;i<slots.length;i++){
-        checkWall('tiny candidate materialization')
-        const s=slots[i]!, value=s.request&&s.key===undefined&&Object.hasOwn(fixed,s.name)?fixed[s.name]!:v[i]!
-        if(s.request){if(s.key===undefined)request[s.name]=value;else(request[s.name] as Map<number,number>).set(s.key,value)}
-        else if(s.key===undefined)preState.scalars[s.name]=value
-        else preState.maps[s.name]!.set(s.key,value)
-      }
+      const {pre: preState, request} = materializeTiny(source, slots, v, fixed)
       const accepted=onCandidate(preState,request,violated);stats.candidates++
       if(accepted!==false)for(const law of violated){checkWall('tiny proposed targets');emitted.add(law)}
     }
@@ -609,76 +701,25 @@ export function tinyFiniteCandidates(source: Machine, m: Machine, family: Law[],
     // the last eight into this exact finite grid, try radius-one neighbors,
     // then retain the ordinary full traversal. Every proposal uses the same
     // independent callback. Snapshot before callbacks can add later seeds.
-    const neighbors = (): void => {
-      const bases: number[][] = [], seen = new Set<string>()
-      for (const seed of options.seedTransitions?.slice(-8) ?? []) {
-        checkWall('tiny seed projection')
-        if (!Object.keys(params).every(key => seed.params[key] === params[key])) continue
-        const values: number[] = []
-        for (const slot of slots) {
-          const entry = slot.request ? seed.request[slot.name] : seed.pre.scalars[slot.name]
-          const value = slot.key === undefined ? entry : slot.request
-            ? entry instanceof Map ? entry.get(slot.key) ?? 0 : undefined
-            : seed.pre.maps[slot.name]?.get(slot.key) ?? seed.pre.defaults?.[slot.name] ?? source.maps?.[slot.name]
-          if (typeof value !== 'number' || !slot.values.includes(value)) break
-          values.push(value)
-        }
-        if (values.length === slots.length) bases.push(values)
-      }
-      const attempt = (values: number[], coupled = false): boolean => {
-        checkWall('tiny seed attempt')
-        if (stats.seedModels >= 256) return false
-        const key = values.join(',')
-        if (seen.has(key)) return true
-        seen.add(key); stats.seedModels++; stats.nodes++
-        if (coupled) stats.seedCoupledModels++
-        for (let i = 0; i < values.length; i++) v[i] = values[i]!
-        if (!preTest(v, stateOrder.length)) return true
-        for (const op of operations) {
-          checkWall('tiny seed operation')
-          if (slots.some((s, i) => s.request && s.key === undefined && Object.hasOwn(op.fixed, s.name) && v[i] !== op.fixed[s.name])) continue
-          if (!op.gate(v, op.order.length)) continue
-          const outputs = op.step(v)
-          if (outputs.every((value, i) => value === v[i])) continue
-          stats.steps++
-          const post = v.slice(); for (let i = 0; i < stateSlots; i++) post[i] = outputs[i]!
-          const violated = targets.filter((law, i) => !emitted.has(law) && !postTests[i]!(post, 0))
-          if (violated.length) {
-            stats.seedCandidates++; if (coupled) stats.seedCoupledCandidates++
-            propose(op.fixed, violated)
-          }
-        }
-        return true
-      }
-      for (const base of bases) if (!attempt(base)) return
-      if (options.seedUniformMaps) {
-        const grouped = new Map<string, number[]>()
-        for (const [i, slot] of slots.entries()) {
-          checkWall('tiny seed map grouping')
-          if (slot.key === undefined) continue
-          const key = `${Number(!!slot.request)}:${slot.name}`, group = grouped.get(key) ?? []
-          group.push(i); grouped.set(key, group)
-        }
-        const groups = [...grouped.values()].filter(group => group.length > 1)
-          .sort((a, b) => Number(!!slots[b[0]!]!.request) - Number(!!slots[a[0]!]!.request))
-        for (const group of groups) for (const base of bases) for (const value of slots[group[0]!]!.values) {
-          checkWall('tiny seed uniform map')
-          if (!group.every(i => slots[i]!.values.includes(value)) || group.every(i => base[i] === value)) continue
-          const values = base.slice(); for (const i of group) values[i] = value
-          if (!attempt(values, true)) return
+    if (options.seedTransitions) walkTinySeedVectors(source, params, slots, options, (values, coupled) => {
+      stats.seedModels++; stats.nodes++; if (coupled) stats.seedCoupledModels++
+      for (let i = 0; i < values.length; i++) v[i] = values[i]!
+      if (!preTest(v, stateOrder.length)) return
+      for (const op of operations) {
+        checkWall('tiny seed operation')
+        if (slots.some((s, i) => s.request && s.key === undefined && Object.hasOwn(op.fixed, s.name) && v[i] !== op.fixed[s.name])) continue
+        if (!op.gate(v, op.order.length)) continue
+        const outputs = op.step(v)
+        if (outputs.every((value, i) => value === v[i])) continue
+        stats.steps++
+        const post = v.slice(); for (let i = 0; i < stateSlots; i++) post[i] = outputs[i]!
+        const violated = targets.filter((law, i) => !emitted.has(law) && !postTests[i]!(post, 0))
+        if (violated.length) {
+          stats.seedCandidates++; if (coupled) stats.seedCoupledCandidates++
+          propose(op.fixed, violated)
         }
       }
-      // Request axes first; round-robin across seeds avoids one long seed
-      // neighborhood consuming the entire fixed attempt allowance.
-      const axes = [...slots.keys()].sort((a, b) => Number(!!slots[b]!.request) - Number(!!slots[a]!.request) || a - b)
-      for (const i of axes) for (const base of bases) for (const value of slots[i]!.values) {
-        checkWall('tiny seed neighbor')
-        if (value === base[i]) continue
-        const values = base.slice(); values[i] = value
-        if (!attempt(values)) return
-      }
-    }
-    if (options.seedTransitions) neighbors()
+    })
     for (let i = 0; i < slots.length; i++) v[i] = slots[i]!.values[0]!
     states(0)
     // completed records traversal even when proposals were emitted; exhausted

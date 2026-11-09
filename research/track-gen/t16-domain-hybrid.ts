@@ -31,13 +31,13 @@ const initial=caller.length+candidates.length,drops:{stage:number,round:number,m
 const removed=new Set<Law>(),started=performance.now()
 let timedOut=false
 const postTargetPruning=process.env.T16_POST_TARGET==='1',postTargetIntervals=process.env.T16_POST_INTERVALS==='1'
-const counterexampleNeighbors=process.env.T16_SEED_NEIGHBORS==='1',seedUniformMaps=process.env.T16_SEED_UNIFORM==='1',seedTransitions:TinyFiniteSeed[]=[]
+const counterexampleNeighbors=process.env.T16_SEED_NEIGHBORS==='1',seedUniformMaps=process.env.T16_SEED_UNIFORM==='1',seedBeforeCompile=process.env.T16_SEED_EARLY==='1',seedTransitions:TinyFiniteSeed[]=[]
 try {
   withWall(started+1900,()=>{
     const stages=[{valueDomain:[0,1],rounds:2,wallMs:1000},{valueDomain:[0,1,2],rounds:1,wallMs:2000}]
     for(const [stage,options] of stages.entries()) {
       checkWall('hybrid stage')
-      candidates=finiteTinyHoudini(source,m,caller,candidates,[params],{...options,postTargetPruning,postTargetIntervals,seedUniformMaps,...(counterexampleNeighbors?{seedTransitions}:{}),
+      candidates=finiteTinyHoudini(source,m,caller,candidates,[params],{...options,postTargetPruning,postTargetIntervals,seedUniformMaps,seedBeforeCompile,...(counterexampleNeighbors?{seedTransitions}:{}),
         onDrop:drop=>{
           if(counterexampleNeighbors&&seedTransitions.at(-1)?.pre!==drop.pre){
             if(seedTransitions.length>=8)seedTransitions.shift()
@@ -48,7 +48,8 @@ try {
           drops.push(row)
           console.log('HYBRID_CTI',JSON.stringify({...row,pre:{scalars:drop.pre.scalars,maps:Object.fromEntries(Object.entries(drop.pre.maps).map(([k,v])=>[k,[...v]]))},request:Object.fromEntries(Object.entries(drop.request).map(([k,v])=>[k,v instanceof Map?[...v]:v]))}))
         },
-        onTiny:(round,stats)=>rounds.push({stage,round,stats}),
+        onSeed:(round,stats)=>rounds.push({stage,round,phase:'seed-only',stats}),
+        onTiny:(round,stats)=>rounds.push({stage,round,phase:'native',stats}),
         onFinish:finish=>finishes.push({stage,...finish})
       })
     }
@@ -57,4 +58,4 @@ try {
   if(!(error instanceof Error)||error.name!=='WallExpired')throw error
   checkWall('hybrid outer completion');timedOut=true
 }
-console.log('HYBRID_RESULT',JSON.stringify({mode,postTargetPruning,postTargetIntervals,counterexampleNeighbors,seedUniformMaps,initial,drops,rounds,finishes,timedOut,wall:performance.now()-started,removed:removed.size,survivors:initial-removed.size}))
+console.log('HYBRID_RESULT',JSON.stringify({mode,postTargetPruning,postTargetIntervals,counterexampleNeighbors,seedUniformMaps,seedBeforeCompile,initial,drops,rounds,finishes,timedOut,wall:performance.now()-started,removed:removed.size,survivors:initial-removed.size}))
