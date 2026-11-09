@@ -26,9 +26,10 @@ for (const {name} of jobs) {
       if (summary?.[1] !== '0' || !marker) throw Error('missing successful receipt or complete pair payload')
       if (!text.includes(`ITERATION_REVISIONS candidate=${candidateSHA} baseline=${baselineSHA}\n`)) throw Error('revision mismatch')
       const pair = JSON.parse(gunzipSync(Buffer.from(marker[1]!, 'base64')).toString()) as Pair
-      if (pair.baseline.queries || pair.candidate.queries) throw Error('generation ran proof queries')
+      if (pair.baseline.queries !== 0 || pair.candidate.queries !== 0) throw Error('generation query count is nonzero or missing')
       if (pair.baseline.records.length !== 1 || pair.candidate.records.length !== 1) throw Error('not one paired protocol')
       const b = pair.baseline.records[0]!, c = pair.candidate.records[0]!
+      if ([b, c].some(r => !Array.isArray(r.canonical) || !r.canonical.every(s => typeof s === 'string') || !Number.isSafeInteger(r.count) || !Number.isFinite(r.wallMs) || r.wallMs < 0)) throw Error('malformed generation record')
       if (b.id !== id || c.id !== id || b.count !== b.canonical.length || c.count !== c.canonical.length) throw Error('record identity/count mismatch')
       const cpu = text.match(/^T14_CPU_MODEL (.+)$/m)?.[1]
       if (!cpu) throw Error('missing CPU label')

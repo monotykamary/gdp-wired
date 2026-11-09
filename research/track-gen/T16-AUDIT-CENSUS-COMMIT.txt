@@ -1,0 +1,7 @@
+docs(research): close the audit generation census
+
+Record all 87 SHA-bound generation comparisons. The other 28 canonical
+lists remain identical across all three repeats; MLDR emits 34 laws.
+Keep slow-sampler retries and all failed attempts in the evidence.
+
+This receipt covers the audit repair, not the experimental tiny backend.

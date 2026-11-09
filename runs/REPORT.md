@@ -40,14 +40,17 @@ three jobs and timed out at 330 s per job. Its replacement is one job per
 protocol/repeat (87 paired jobs). The first submission failed locally on a
 snapshot blob/hash mismatch before execution; a stable temporary driver
 fixture now avoids concurrent source-edit races (`t16-audit-generation-v2/`).
-The stable-fixture census has 81/87 complete comparisons: all 26 completed
-non-MLDR ports are byte-identical in all three repeats, with zero generation
-queries. MLDR emits the same 34-law canonical list in all repeats. The six
-learning_switch / learning_switch_i4 comparisons exceeded the initial
-generation-job timeout; only those six are continuing with enough job wall
-for the unchanged full BFS (the proof budget and strict wrapper are untouched).
-`runs/t16-audit-generation-partial.json` records exact pair/source identities.
-No full generation nonregression claim is made until those receipts finish.
+The stable-fixture census is now **87/87 complete**: **all other 28 canonical
+candidate lists are byte-identical in all three paired repeats**, with exactly
+zero generation queries. MLDR emits the same 34-law canonical list in all
+repeats (baseline 27), with candidate generation walls 24.77 / 18.75 / 18.42 s.
+The six learning_switch / learning_switch_i4 comparisons initially exceeded
+the generation-job timeout. They completed with the unchanged full BFS in
+276.5–453.8 s per pair; only job wall was enlarged, not proof budgets or the
+strict 60 s wrapper. Source SHAs, canonical hashes, CPU labels and all retry
+failures are recorded in `runs/t16-audit-generation-summary.json`.
+This completes the generation guardrail for the **audit repair**, not for
+subsequent uncommitted tiny-fallback work.
 
 Failures remain recorded: initial repair jobs failed on the import cycle
 (`t16-audit-fix-v1/`, `t16-audit-quick/`); the first corrected working-tree
