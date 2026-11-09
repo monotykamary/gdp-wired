@@ -1,0 +1,972 @@
+[
+  {
+    "op": 0,
+    "diagnostic": "pass-zero-termination",
+    "conditional": true,
+    "generatorOnly": true,
+    "familySha256": "54c58da465575dd41903b3c7712d70d0caa29400dd23d9c083a8ad366b236553",
+    "familySource": "original proveRule/run.ts generation callback before admission",
+    "familySize": 34,
+    "suppliedLaws": [],
+    "law": "inX: stored guard reconfigs/inS or disabled/0",
+    "pass": 0,
+    "budget": 6000,
+    "wall": 7000,
+    "checked": false,
+    "result": {
+      "stuck": "sat"
+    },
+    "searchUnits": 135.133524,
+    "searchWallMs": 196.035912,
+    "completions": [
+      {
+        "pass": 0,
+        "law": "inX: stored guard reconfigs/inS or disabled/0",
+        "completion": {
+          "genuine": false,
+          "reason": "predecessor violates the family",
+          "failedLaw": "count cubes: every x with x < {\"op\":\"var\",\"name\":\"size\"}: never 1 <= started and inX$row[x] is 0"
+        }
+      }
+    ],
+    "symbolic": {
+      "stuck": "sat",
+      "keys": 66,
+      "instances": {
+        "?noneCopied": 6,
+        "?allCopied": 8,
+        "?canVote": 6,
+        "?committedQuorum": 6,
+        "?all$1": 8,
+        "?all$2": 6,
+        "?all$3": 6,
+        "every x with x < size: never 1 <= CT[x] and started is 0": 1,
+        "every x, y with x < size ∧ y < size ∧ ¬(x = y): never 1 <= CT[x] and CV[y] is 0": 4,
+        "count cubes: every x with x < {\"op\":\"var\",\"name\":\"size\"}: never 1 <= CT[x] and inX$row[x] is 0": 1,
+        "count cubes: every x with x < {\"op\":\"var\",\"name\":\"size\"}: never 1 <= CV[x] and inX$row[x] is 0": 4,
+        "every x with x < size: never 1 <= CT[x] and CV[x] is 0": 1,
+        "every x with x < size: never CV[x] is 0 and 1 <= started": 2,
+        "count cubes: every x with x < {\"op\":\"var\",\"name\":\"size\"}: never 1 <= started and inX$row[x] is 0": 4,
+        "count cubes: every x with x < {\"op\":\"var\",\"name\":\"size\"}: never CV[x] is 0 and 1 <= inX$row[x]": 1
+      }
+    },
+    "phases": {
+      "query": 4,
+      "decision:sat": 4,
+      "model": 4,
+      "unknown": 1,
+      "finite-model": 1,
+      "uncertified-model": 1
+    },
+    "tail": [
+      {
+        "phase": "query",
+        "pass": 0,
+        "law": "inX: stored guard reconfigs/inS or disabled/0"
+      },
+      {
+        "phase": "decision:sat",
+        "pass": 0,
+        "law": "inX: stored guard reconfigs/inS or disabled/0"
+      },
+      {
+        "phase": "model",
+        "pass": 0,
+        "law": "inX: stored guard reconfigs/inS or disabled/0"
+      },
+      {
+        "phase": "query",
+        "pass": 0,
+        "law": "inX: stored guard reconfigs/inS or disabled/0"
+      },
+      {
+        "phase": "decision:sat",
+        "pass": 0,
+        "law": "inX: stored guard reconfigs/inS or disabled/0"
+      },
+      {
+        "phase": "model",
+        "pass": 0,
+        "law": "inX: stored guard reconfigs/inS or disabled/0"
+      },
+      {
+        "phase": "query",
+        "pass": 0,
+        "law": "inX: stored guard reconfigs/inS or disabled/0"
+      },
+      {
+        "phase": "decision:sat",
+        "pass": 0,
+        "law": "inX: stored guard reconfigs/inS or disabled/0"
+      },
+      {
+        "phase": "model",
+        "pass": 0,
+        "law": "inX: stored guard reconfigs/inS or disabled/0"
+      },
+      {
+        "pass": 0,
+        "stuck": "sat",
+        "law": "inX: stored guard reconfigs/inS or disabled/0"
+      },
+      {
+        "phase": "finite-model",
+        "pass": 0,
+        "law": "inX: stored guard reconfigs/inS or disabled/0"
+      },
+      {
+        "phase": "uncertified-model",
+        "pass": 0,
+        "stuck": "sat",
+        "law": "inX: stored guard reconfigs/inS or disabled/0"
+      }
+    ],
+    "artifact": {
+      "file": "symbolic-model.json.gz",
+      "bytes": 2339,
+      "sha256": "fb1090690cd07f9c5b21e13af6e8170d06d3297d05f26f29606c4894587b9fe2"
+    }
+  },
+  {
+    "op": 0,
+    "artifact": "track-m-tar-v1",
+    "dir": "/home/user/track-m-s18-receipts-z08zq2",
+    "format": "tar.gz",
+    "parts": 1,
+    "bytes": 3650,
+    "sha256": "6e2872d7b3d451dcfbd3ec094928c13497de88b4653cfcae1275950deeaf210c"
+  },
+  {
+    "op": 1,
+    "diagnostic": "pass-zero-termination",
+    "conditional": true,
+    "generatorOnly": true,
+    "familySha256": "54c58da465575dd41903b3c7712d70d0caa29400dd23d9c083a8ad366b236553",
+    "familySource": "original proveRule/run.ts generation callback before admission",
+    "familySize": 34,
+    "suppliedLaws": [],
+    "law": "inX: stored guard reconfigs/inS or disabled/0",
+    "pass": 0,
+    "budget": 6000,
+    "wall": 7000,
+    "checked": false,
+    "result": {
+      "stuck": "sat"
+    },
+    "searchUnits": 161.05722,
+    "searchWallMs": 310.78716299999996,
+    "completions": [
+      {
+        "pass": 0,
+        "law": "inX: stored guard reconfigs/inS or disabled/0",
+        "completion": {
+          "genuine": false,
+          "reason": "predecessor violates the family",
+          "failedLaw": "count cubes: every x with x < {\"op\":\"var\",\"name\":\"size\"}: never 1 <= CV[x] and inX$row[x] is 0"
+        }
+      }
+    ],
+    "symbolic": {
+      "stuck": "sat",
+      "keys": 67,
+      "instances": {
+        "?noneCopied": 6,
+        "?allCopied": 6,
+        "?canVote": 6,
+        "?committedQuorum": 6,
+        "?all$1": 8,
+        "?all$2": 6,
+        "?all$3": 6,
+        "every x with x < size: never 1 <= CT[x] and started is 0": 2,
+        "every x, y with x < size ∧ y < size ∧ ¬(x = y): never 1 <= CT[x] and CV[y] is 0": 6,
+        "count cubes: every x with x < {\"op\":\"var\",\"name\":\"size\"}: never 1 <= CT[x] and inX$row[x] is 0": 2,
+        "count cubes: every x with x < {\"op\":\"var\",\"name\":\"size\"}: never 1 <= CV[x] and inX$row[x] is 0": 4,
+        "every x with x < size: never 1 <= CT[x] and CV[x] is 0": 2,
+        "every x with x < size: never CV[x] is 0 and 1 <= started": 2,
+        "count cubes: every x with x < {\"op\":\"var\",\"name\":\"size\"}: never 1 <= started and inX$row[x] is 0": 4,
+        "count cubes: every x with x < {\"op\":\"var\",\"name\":\"size\"}: never CV[x] is 0 and 1 <= inX$row[x]": 2
+      }
+    },
+    "phases": {
+      "query": 5,
+      "decision:sat": 5,
+      "model": 5,
+      "unknown": 1,
+      "finite-model": 1,
+      "uncertified-model": 1
+    },
+    "tail": [
+      {
+        "phase": "query",
+        "pass": 0,
+        "law": "inX: stored guard reconfigs/inS or disabled/0"
+      },
+      {
+        "phase": "decision:sat",
+        "pass": 0,
+        "law": "inX: stored guard reconfigs/inS or disabled/0"
+      },
+      {
+        "phase": "model",
+        "pass": 0,
+        "law": "inX: stored guard reconfigs/inS or disabled/0"
+      },
+      {
+        "phase": "query",
+        "pass": 0,
+        "law": "inX: stored guard reconfigs/inS or disabled/0"
+      },
+      {
+        "phase": "decision:sat",
+        "pass": 0,
+        "law": "inX: stored guard reconfigs/inS or disabled/0"
+      },
+      {
+        "phase": "model",
+        "pass": 0,
+        "law": "inX: stored guard reconfigs/inS or disabled/0"
+      },
+      {
+        "phase": "query",
+        "pass": 0,
+        "law": "inX: stored guard reconfigs/inS or disabled/0"
+      },
+      {
+        "phase": "decision:sat",
+        "pass": 0,
+        "law": "inX: stored guard reconfigs/inS or disabled/0"
+      },
+      {
+        "phase": "model",
+        "pass": 0,
+        "law": "inX: stored guard reconfigs/inS or disabled/0"
+      },
+      {
+        "pass": 0,
+        "stuck": "sat",
+        "law": "inX: stored guard reconfigs/inS or disabled/0"
+      },
+      {
+        "phase": "finite-model",
+        "pass": 0,
+        "law": "inX: stored guard reconfigs/inS or disabled/0"
+      },
+      {
+        "phase": "uncertified-model",
+        "pass": 0,
+        "stuck": "sat",
+        "law": "inX: stored guard reconfigs/inS or disabled/0"
+      }
+    ],
+    "artifact": {
+      "file": "symbolic-model.json.gz",
+      "bytes": 2354,
+      "sha256": "7ed479bb1969cfb289a802ccab145a230aaf3200366711f77626a5849c44fcbd"
+    }
+  },
+  {
+    "op": 1,
+    "artifact": "track-m-tar-v1",
+    "dir": "/home/user/track-m-s18-receipts-oeKY9M",
+    "format": "tar.gz",
+    "parts": 1,
+    "bytes": 3671,
+    "sha256": "c1ff5bd6b773f948580593a7ac0d3b4da43addc164febecf0b98dfa155097351"
+  },
+  {
+    "op": 2,
+    "diagnostic": "pass-zero-termination",
+    "conditional": true,
+    "generatorOnly": true,
+    "familySha256": "54c58da465575dd41903b3c7712d70d0caa29400dd23d9c083a8ad366b236553",
+    "familySource": "original proveRule/run.ts generation callback before admission",
+    "familySize": 34,
+    "suppliedLaws": [],
+    "law": "inX: stored guard reconfigs/inS or disabled/0",
+    "pass": 0,
+    "budget": 6000,
+    "wall": 7000,
+    "checked": false,
+    "result": {
+      "stuck": "sat"
+    },
+    "searchUnits": 161.05722,
+    "searchWallMs": 293.96146400000003,
+    "completions": [
+      {
+        "pass": 0,
+        "law": "inX: stored guard reconfigs/inS or disabled/0",
+        "completion": {
+          "genuine": false,
+          "reason": "predecessor violates the family",
+          "failedLaw": "count cubes: every x with x < {\"op\":\"var\",\"name\":\"size\"}: never 1 <= CV[x] and inX$row[x] is 0"
+        }
+      }
+    ],
+    "symbolic": {
+      "stuck": "sat",
+      "keys": 67,
+      "instances": {
+        "?noneCopied": 6,
+        "?allCopied": 6,
+        "?canVote": 6,
+        "?committedQuorum": 6,
+        "?all$1": 8,
+        "?all$2": 6,
+        "?all$3": 6,
+        "every x with x < size: never 1 <= CT[x] and started is 0": 2,
+        "every x, y with x < size ∧ y < size ∧ ¬(x = y): never 1 <= CT[x] and CV[y] is 0": 6,
+        "count cubes: every x with x < {\"op\":\"var\",\"name\":\"size\"}: never 1 <= CT[x] and inX$row[x] is 0": 2,
+        "count cubes: every x with x < {\"op\":\"var\",\"name\":\"size\"}: never 1 <= CV[x] and inX$row[x] is 0": 4,
+        "every x with x < size: never 1 <= CT[x] and CV[x] is 0": 2,
+        "every x with x < size: never CV[x] is 0 and 1 <= started": 2,
+        "count cubes: every x with x < {\"op\":\"var\",\"name\":\"size\"}: never 1 <= started and inX$row[x] is 0": 4,
+        "count cubes: every x with x < {\"op\":\"var\",\"name\":\"size\"}: never CV[x] is 0 and 1 <= inX$row[x]": 2
+      }
+    },
+    "phases": {
+      "query": 5,
+      "decision:sat": 5,
+      "model": 5,
+      "unknown": 1,
+      "finite-model": 1,
+      "uncertified-model": 1
+    },
+    "tail": [
+      {
+        "phase": "query",
+        "pass": 0,
+        "law": "inX: stored guard reconfigs/inS or disabled/0"
+      },
+      {
+        "phase": "decision:sat",
+        "pass": 0,
+        "law": "inX: stored guard reconfigs/inS or disabled/0"
+      },
+      {
+        "phase": "model",
+        "pass": 0,
+        "law": "inX: stored guard reconfigs/inS or disabled/0"
+      },
+      {
+        "phase": "query",
+        "pass": 0,
+        "law": "inX: stored guard reconfigs/inS or disabled/0"
+      },
+      {
+        "phase": "decision:sat",
+        "pass": 0,
+        "law": "inX: stored guard reconfigs/inS or disabled/0"
+      },
+      {
+        "phase": "model",
+        "pass": 0,
+        "law": "inX: stored guard reconfigs/inS or disabled/0"
+      },
+      {
+        "phase": "query",
+        "pass": 0,
+        "law": "inX: stored guard reconfigs/inS or disabled/0"
+      },
+      {
+        "phase": "decision:sat",
+        "pass": 0,
+        "law": "inX: stored guard reconfigs/inS or disabled/0"
+      },
+      {
+        "phase": "model",
+        "pass": 0,
+        "law": "inX: stored guard reconfigs/inS or disabled/0"
+      },
+      {
+        "pass": 0,
+        "stuck": "sat",
+        "law": "inX: stored guard reconfigs/inS or disabled/0"
+      },
+      {
+        "phase": "finite-model",
+        "pass": 0,
+        "law": "inX: stored guard reconfigs/inS or disabled/0"
+      },
+      {
+        "phase": "uncertified-model",
+        "pass": 0,
+        "stuck": "sat",
+        "law": "inX: stored guard reconfigs/inS or disabled/0"
+      }
+    ],
+    "artifact": {
+      "file": "symbolic-model.json.gz",
+      "bytes": 2354,
+      "sha256": "6bc2d2a1dd0460fc89cb1b9e7c04ff19c7af92be181af699326367b86ca00d89"
+    }
+  },
+  {
+    "op": 2,
+    "artifact": "track-m-tar-v1",
+    "dir": "/home/user/track-m-s18-receipts-7XkNoz",
+    "format": "tar.gz",
+    "parts": 1,
+    "bytes": 3658,
+    "sha256": "96c32f0862ad77dd093848a732624ad1a4e9d5cecef27a051d4d8b055ca28edf"
+  },
+  {
+    "op": 3,
+    "diagnostic": "pass-zero-termination",
+    "conditional": true,
+    "generatorOnly": true,
+    "familySha256": "54c58da465575dd41903b3c7712d70d0caa29400dd23d9c083a8ad366b236553",
+    "familySource": "original proveRule/run.ts generation callback before admission",
+    "familySize": 34,
+    "suppliedLaws": [],
+    "law": "inX: stored guard reconfigs/inS or disabled/0",
+    "pass": 0,
+    "budget": 6000,
+    "wall": 7000,
+    "checked": false,
+    "result": {
+      "stuck": "sat"
+    },
+    "searchUnits": 161.059908,
+    "searchWallMs": 406.296328,
+    "completions": [
+      {
+        "pass": 0,
+        "law": "inX: stored guard reconfigs/inS or disabled/0",
+        "completion": {
+          "genuine": false,
+          "reason": "predecessor violates the family",
+          "failedLaw": "count cubes: every x with x < {\"op\":\"var\",\"name\":\"size\"}: never 1 <= CV[x] and inX$row[x] is 0"
+        }
+      }
+    ],
+    "symbolic": {
+      "stuck": "sat",
+      "keys": 67,
+      "instances": {
+        "?noneCopied": 6,
+        "?allCopied": 6,
+        "?canVote": 6,
+        "?committedQuorum": 6,
+        "?all$1": 8,
+        "?all$2": 6,
+        "?all$3": 6,
+        "every x with x < size: never 1 <= CT[x] and started is 0": 2,
+        "every x, y with x < size ∧ y < size ∧ ¬(x = y): never 1 <= CT[x] and CV[y] is 0": 6,
+        "count cubes: every x with x < {\"op\":\"var\",\"name\":\"size\"}: never 1 <= CT[x] and inX$row[x] is 0": 2,
+        "count cubes: every x with x < {\"op\":\"var\",\"name\":\"size\"}: never 1 <= CV[x] and inX$row[x] is 0": 4,
+        "every x with x < size: never 1 <= CT[x] and CV[x] is 0": 2,
+        "every x with x < size: never CV[x] is 0 and 1 <= started": 2,
+        "count cubes: every x with x < {\"op\":\"var\",\"name\":\"size\"}: never 1 <= started and inX$row[x] is 0": 4,
+        "count cubes: every x with x < {\"op\":\"var\",\"name\":\"size\"}: never CV[x] is 0 and 1 <= inX$row[x]": 2
+      }
+    },
+    "phases": {
+      "query": 5,
+      "decision:sat": 5,
+      "model": 5,
+      "unknown": 1,
+      "finite-model": 1,
+      "uncertified-model": 1
+    },
+    "tail": [
+      {
+        "phase": "query",
+        "pass": 0,
+        "law": "inX: stored guard reconfigs/inS or disabled/0"
+      },
+      {
+        "phase": "decision:sat",
+        "pass": 0,
+        "law": "inX: stored guard reconfigs/inS or disabled/0"
+      },
+      {
+        "phase": "model",
+        "pass": 0,
+        "law": "inX: stored guard reconfigs/inS or disabled/0"
+      },
+      {
+        "phase": "query",
+        "pass": 0,
+        "law": "inX: stored guard reconfigs/inS or disabled/0"
+      },
+      {
+        "phase": "decision:sat",
+        "pass": 0,
+        "law": "inX: stored guard reconfigs/inS or disabled/0"
+      },
+      {
+        "phase": "model",
+        "pass": 0,
+        "law": "inX: stored guard reconfigs/inS or disabled/0"
+      },
+      {
+        "phase": "query",
+        "pass": 0,
+        "law": "inX: stored guard reconfigs/inS or disabled/0"
+      },
+      {
+        "phase": "decision:sat",
+        "pass": 0,
+        "law": "inX: stored guard reconfigs/inS or disabled/0"
+      },
+      {
+        "phase": "model",
+        "pass": 0,
+        "law": "inX: stored guard reconfigs/inS or disabled/0"
+      },
+      {
+        "pass": 0,
+        "stuck": "sat",
+        "law": "inX: stored guard reconfigs/inS or disabled/0"
+      },
+      {
+        "phase": "finite-model",
+        "pass": 0,
+        "law": "inX: stored guard reconfigs/inS or disabled/0"
+      },
+      {
+        "phase": "uncertified-model",
+        "pass": 0,
+        "stuck": "sat",
+        "law": "inX: stored guard reconfigs/inS or disabled/0"
+      }
+    ],
+    "artifact": {
+      "file": "symbolic-model.json.gz",
+      "bytes": 2355,
+      "sha256": "539d7a3984f31c6405a9f1f4f612665bce7f1f5b11ea5d85a00766bd49730bf1"
+    }
+  },
+  {
+    "op": 3,
+    "artifact": "track-m-tar-v1",
+    "dir": "/home/user/track-m-s18-receipts-wPCWlj",
+    "format": "tar.gz",
+    "parts": 1,
+    "bytes": 3657,
+    "sha256": "3fb59b98312e45a13bfe8e552fcc4f2bb85ea6f6ecfda61ab2cc46bb70290c01"
+  },
+  {
+    "op": 4,
+    "diagnostic": "pass-zero-termination",
+    "conditional": true,
+    "generatorOnly": true,
+    "familySha256": "54c58da465575dd41903b3c7712d70d0caa29400dd23d9c083a8ad366b236553",
+    "familySource": "original proveRule/run.ts generation callback before admission",
+    "familySize": 34,
+    "suppliedLaws": [],
+    "law": "inX: stored guard reconfigs/inS or disabled/0",
+    "pass": 0,
+    "budget": 6000,
+    "wall": 7000,
+    "checked": false,
+    "result": {
+      "stuck": "sat"
+    },
+    "searchUnits": 185.11187600000005,
+    "searchWallMs": 296.405016,
+    "completions": [
+      {
+        "pass": 0,
+        "law": "inX: stored guard reconfigs/inS or disabled/0",
+        "completion": {
+          "genuine": false,
+          "reason": "predecessor violates the family",
+          "failedLaw": "count cubes: every x with x < {\"op\":\"var\",\"name\":\"size\"}: never 1 <= CV[x] and inX$row[x] is 0"
+        }
+      }
+    ],
+    "symbolic": {
+      "stuck": "sat",
+      "keys": 77,
+      "instances": {
+        "?noneCopied": 6,
+        "?allCopied": 6,
+        "?canVote": 6,
+        "?committedQuorum": 6,
+        "?all$1": 8,
+        "?all$2": 7,
+        "?all$3": 6,
+        "every x with x < size: never 1 <= CT[x] and started is 0": 2,
+        "every x, y with x < size ∧ y < size ∧ ¬(x = y): never 1 <= CT[x] and CV[y] is 0": 8,
+        "count cubes: every x with x < {\"op\":\"var\",\"name\":\"size\"}: never 1 <= CT[x] and inX$row[x] is 0": 1,
+        "count cubes: every x with x < {\"op\":\"var\",\"name\":\"size\"}: never 1 <= CV[x] and inX$row[x] is 0": 4,
+        "every x with x < size: never 1 <= CT[x] and CV[x] is 0": 1,
+        "every x with x < size: never CV[x] is 0 and 1 <= started": 2,
+        "fields: CV[a]=CV[b] and CfgT[a]=CfgT[b] -> Config rows agree": 18,
+        "count cubes: every x with x < {\"op\":\"var\",\"name\":\"size\"}: never 1 <= started and inX$row[x] is 0": 3,
+        "count cubes: every x with x < {\"op\":\"var\",\"name\":\"size\"}: never CV[x] is 0 and 1 <= inX$row[x]": 1,
+        "every x with x < size: never 1 <= CfgT[x] and started is 0": 3,
+        "every x, y with x < size ∧ y < size ∧ ¬(x = y): never CV[x] is 0 and 1 <= CfgT[y]": 6,
+        "inX: no quorum canVote/1": 16,
+        "count cubes: every x with x < {\"op\":\"var\",\"name\":\"size\"}: never 1 <= CfgT[x] and inX$row[x] is 0": 1
+      }
+    },
+    "phases": {
+      "query": 7,
+      "decision:sat": 7,
+      "model": 7,
+      "unknown": 1,
+      "finite-model": 1,
+      "uncertified-model": 1
+    },
+    "tail": [
+      {
+        "phase": "query",
+        "pass": 0,
+        "law": "inX: stored guard reconfigs/inS or disabled/0"
+      },
+      {
+        "phase": "decision:sat",
+        "pass": 0,
+        "law": "inX: stored guard reconfigs/inS or disabled/0"
+      },
+      {
+        "phase": "model",
+        "pass": 0,
+        "law": "inX: stored guard reconfigs/inS or disabled/0"
+      },
+      {
+        "phase": "query",
+        "pass": 0,
+        "law": "inX: stored guard reconfigs/inS or disabled/0"
+      },
+      {
+        "phase": "decision:sat",
+        "pass": 0,
+        "law": "inX: stored guard reconfigs/inS or disabled/0"
+      },
+      {
+        "phase": "model",
+        "pass": 0,
+        "law": "inX: stored guard reconfigs/inS or disabled/0"
+      },
+      {
+        "phase": "query",
+        "pass": 0,
+        "law": "inX: stored guard reconfigs/inS or disabled/0"
+      },
+      {
+        "phase": "decision:sat",
+        "pass": 0,
+        "law": "inX: stored guard reconfigs/inS or disabled/0"
+      },
+      {
+        "phase": "model",
+        "pass": 0,
+        "law": "inX: stored guard reconfigs/inS or disabled/0"
+      },
+      {
+        "pass": 0,
+        "stuck": "sat",
+        "law": "inX: stored guard reconfigs/inS or disabled/0"
+      },
+      {
+        "phase": "finite-model",
+        "pass": 0,
+        "law": "inX: stored guard reconfigs/inS or disabled/0"
+      },
+      {
+        "phase": "uncertified-model",
+        "pass": 0,
+        "stuck": "sat",
+        "law": "inX: stored guard reconfigs/inS or disabled/0"
+      }
+    ],
+    "artifact": {
+      "file": "symbolic-model.json.gz",
+      "bytes": 2900,
+      "sha256": "54777f94469aa086feb7217a02a4738f0691a3b9fda10733a987dbc6b52beeba"
+    }
+  },
+  {
+    "op": 4,
+    "artifact": "track-m-tar-v1",
+    "dir": "/home/user/track-m-s18-receipts-8woPhH",
+    "format": "tar.gz",
+    "parts": 1,
+    "bytes": 4307,
+    "sha256": "5806d1088c8472fc3f43110e0c945fbc4cd7b4bb43118994b00e9e7974333646"
+  },
+  {
+    "op": 5,
+    "diagnostic": "pass-zero-termination",
+    "conditional": true,
+    "generatorOnly": true,
+    "familySha256": "54c58da465575dd41903b3c7712d70d0caa29400dd23d9c083a8ad366b236553",
+    "familySource": "original proveRule/run.ts generation callback before admission",
+    "familySize": 34,
+    "suppliedLaws": [],
+    "law": "inX: stored guard reconfigs/inS or disabled/0",
+    "pass": 0,
+    "budget": 6000,
+    "wall": 7000,
+    "checked": false,
+    "result": {
+      "stuck": "sat"
+    },
+    "searchUnits": 185.63508200000004,
+    "searchWallMs": 422.577927,
+    "completions": [
+      {
+        "pass": 0,
+        "law": "inX: stored guard reconfigs/inS or disabled/0",
+        "completion": {
+          "genuine": false,
+          "reason": "predecessor violates the family",
+          "failedLaw": "count cubes: every x with x < {\"op\":\"var\",\"name\":\"size\"}: never 1 <= CV[x] and inX$row[x] is 0"
+        }
+      }
+    ],
+    "symbolic": {
+      "stuck": "sat",
+      "keys": 88,
+      "instances": {
+        "?noneCopied": 6,
+        "?allCopied": 6,
+        "?canVote": 6,
+        "?committedQuorum": 6,
+        "?all$1": 8,
+        "?all$2": 6,
+        "?all$3": 7,
+        "every x with x < size: never 1 <= CT[x] and started is 0": 2,
+        "every x, y with x < size ∧ y < size ∧ ¬(x = y): never 1 <= CT[x] and CV[y] is 0": 8,
+        "count cubes: every x with x < {\"op\":\"var\",\"name\":\"size\"}: never 1 <= CT[x] and inX$row[x] is 0": 1,
+        "count cubes: every x with x < {\"op\":\"var\",\"name\":\"size\"}: never 1 <= CV[x] and inX$row[x] is 0": 4,
+        "every x with x < size: never 1 <= CT[x] and CV[x] is 0": 1,
+        "every x with x < size: never CV[x] is 0 and 1 <= started": 2,
+        "fields: CV[a]=CV[b] and CfgT[a]=CfgT[b] -> Config rows agree": 18,
+        "count cubes: every x with x < {\"op\":\"var\",\"name\":\"size\"}: never 1 <= started and inX$row[x] is 0": 3,
+        "count cubes: every x with x < {\"op\":\"var\",\"name\":\"size\"}: never CV[x] is 0 and 1 <= inX$row[x]": 1,
+        "every x with x < size: never 1 <= CfgT[x] and started is 0": 3,
+        "every x, y with x < size ∧ y < size ∧ ¬(x = y): never CV[x] is 0 and 1 <= CfgT[y]": 6,
+        "inX: no quorum canVote/1": 16,
+        "inX: no quorum canVote/3": 12,
+        "count cubes: every x with x < {\"op\":\"var\",\"name\":\"size\"}: never 1 <= CfgT[x] and inX$row[x] is 0": 1
+      }
+    },
+    "phases": {
+      "query": 7,
+      "decision:sat": 7,
+      "model": 7,
+      "unknown": 1,
+      "finite-model": 1,
+      "uncertified-model": 1
+    },
+    "tail": [
+      {
+        "phase": "query",
+        "pass": 0,
+        "law": "inX: stored guard reconfigs/inS or disabled/0"
+      },
+      {
+        "phase": "decision:sat",
+        "pass": 0,
+        "law": "inX: stored guard reconfigs/inS or disabled/0"
+      },
+      {
+        "phase": "model",
+        "pass": 0,
+        "law": "inX: stored guard reconfigs/inS or disabled/0"
+      },
+      {
+        "phase": "query",
+        "pass": 0,
+        "law": "inX: stored guard reconfigs/inS or disabled/0"
+      },
+      {
+        "phase": "decision:sat",
+        "pass": 0,
+        "law": "inX: stored guard reconfigs/inS or disabled/0"
+      },
+      {
+        "phase": "model",
+        "pass": 0,
+        "law": "inX: stored guard reconfigs/inS or disabled/0"
+      },
+      {
+        "phase": "query",
+        "pass": 0,
+        "law": "inX: stored guard reconfigs/inS or disabled/0"
+      },
+      {
+        "phase": "decision:sat",
+        "pass": 0,
+        "law": "inX: stored guard reconfigs/inS or disabled/0"
+      },
+      {
+        "phase": "model",
+        "pass": 0,
+        "law": "inX: stored guard reconfigs/inS or disabled/0"
+      },
+      {
+        "pass": 0,
+        "stuck": "sat",
+        "law": "inX: stored guard reconfigs/inS or disabled/0"
+      },
+      {
+        "phase": "finite-model",
+        "pass": 0,
+        "law": "inX: stored guard reconfigs/inS or disabled/0"
+      },
+      {
+        "phase": "uncertified-model",
+        "pass": 0,
+        "stuck": "sat",
+        "law": "inX: stored guard reconfigs/inS or disabled/0"
+      }
+    ],
+    "artifact": {
+      "file": "symbolic-model.json.gz",
+      "bytes": 2992,
+      "sha256": "edde2a70a999737bb75537298b590876b2113ad459978941548d72483b75ff9d"
+    }
+  },
+  {
+    "op": 5,
+    "artifact": "track-m-tar-v1",
+    "dir": "/home/user/track-m-s18-receipts-FC788n",
+    "format": "tar.gz",
+    "parts": 1,
+    "bytes": 4410,
+    "sha256": "d0704edee2b23bee24a196c389760823b231e6ab8a3c821b04b3e777ddd526c8"
+  },
+  {
+    "op": 6,
+    "diagnostic": "pass-zero-termination",
+    "conditional": true,
+    "generatorOnly": true,
+    "familySha256": "54c58da465575dd41903b3c7712d70d0caa29400dd23d9c083a8ad366b236553",
+    "familySource": "original proveRule/run.ts generation callback before admission",
+    "familySize": 34,
+    "suppliedLaws": [],
+    "law": "inX: stored guard reconfigs/inS or disabled/0",
+    "pass": 0,
+    "budget": 6000,
+    "wall": 7000,
+    "checked": false,
+    "result": {
+      "stuck": "sat"
+    },
+    "searchUnits": 161.059908,
+    "searchWallMs": 254.11658599999998,
+    "completions": [
+      {
+        "pass": 0,
+        "law": "inX: stored guard reconfigs/inS or disabled/0",
+        "completion": {
+          "genuine": false,
+          "reason": "predecessor violates the family",
+          "failedLaw": "count cubes: every x with x < {\"op\":\"var\",\"name\":\"size\"}: never 1 <= CV[x] and inX$row[x] is 0"
+        }
+      }
+    ],
+    "symbolic": {
+      "stuck": "sat",
+      "keys": 67,
+      "instances": {
+        "?noneCopied": 6,
+        "?allCopied": 6,
+        "?canVote": 6,
+        "?committedQuorum": 6,
+        "?all$1": 8,
+        "?all$2": 6,
+        "?all$3": 6,
+        "every x with x < size: never 1 <= CT[x] and started is 0": 2,
+        "every x, y with x < size ∧ y < size ∧ ¬(x = y): never 1 <= CT[x] and CV[y] is 0": 6,
+        "count cubes: every x with x < {\"op\":\"var\",\"name\":\"size\"}: never 1 <= CT[x] and inX$row[x] is 0": 2,
+        "count cubes: every x with x < {\"op\":\"var\",\"name\":\"size\"}: never 1 <= CV[x] and inX$row[x] is 0": 4,
+        "every x with x < size: never 1 <= CT[x] and CV[x] is 0": 2,
+        "every x with x < size: never CV[x] is 0 and 1 <= started": 2,
+        "count cubes: every x with x < {\"op\":\"var\",\"name\":\"size\"}: never 1 <= started and inX$row[x] is 0": 4,
+        "count cubes: every x with x < {\"op\":\"var\",\"name\":\"size\"}: never CV[x] is 0 and 1 <= inX$row[x]": 2
+      }
+    },
+    "phases": {
+      "query": 5,
+      "decision:sat": 5,
+      "model": 5,
+      "unknown": 1,
+      "finite-model": 1,
+      "uncertified-model": 1
+    },
+    "tail": [
+      {
+        "phase": "query",
+        "pass": 0,
+        "law": "inX: stored guard reconfigs/inS or disabled/0"
+      },
+      {
+        "phase": "decision:sat",
+        "pass": 0,
+        "law": "inX: stored guard reconfigs/inS or disabled/0"
+      },
+      {
+        "phase": "model",
+        "pass": 0,
+        "law": "inX: stored guard reconfigs/inS or disabled/0"
+      },
+      {
+        "phase": "query",
+        "pass": 0,
+        "law": "inX: stored guard reconfigs/inS or disabled/0"
+      },
+      {
+        "phase": "decision:sat",
+        "pass": 0,
+        "law": "inX: stored guard reconfigs/inS or disabled/0"
+      },
+      {
+        "phase": "model",
+        "pass": 0,
+        "law": "inX: stored guard reconfigs/inS or disabled/0"
+      },
+      {
+        "phase": "query",
+        "pass": 0,
+        "law": "inX: stored guard reconfigs/inS or disabled/0"
+      },
+      {
+        "phase": "decision:sat",
+        "pass": 0,
+        "law": "inX: stored guard reconfigs/inS or disabled/0"
+      },
+      {
+        "phase": "model",
+        "pass": 0,
+        "law": "inX: stored guard reconfigs/inS or disabled/0"
+      },
+      {
+        "pass": 0,
+        "stuck": "sat",
+        "law": "inX: stored guard reconfigs/inS or disabled/0"
+      },
+      {
+        "phase": "finite-model",
+        "pass": 0,
+        "law": "inX: stored guard reconfigs/inS or disabled/0"
+      },
+      {
+        "phase": "uncertified-model",
+        "pass": 0,
+        "stuck": "sat",
+        "law": "inX: stored guard reconfigs/inS or disabled/0"
+      }
+    ],
+    "artifact": {
+      "file": "symbolic-model.json.gz",
+      "bytes": 2354,
+      "sha256": "d63e247338f0c437066f74dc1c065dcc856c8ea9c0466e58f802523b40a03431"
+    }
+  },
+  {
+    "op": 6,
+    "artifact": "track-m-tar-v1",
+    "dir": "/home/user/track-m-s18-receipts-jjOwo7",
+    "format": "tar.gz",
+    "parts": 1,
+    "bytes": 3661,
+    "sha256": "8b71e32a2f1bc847253bb2a0e299a799995f61726dad939ca85111ee5e362959"
+  }
+]

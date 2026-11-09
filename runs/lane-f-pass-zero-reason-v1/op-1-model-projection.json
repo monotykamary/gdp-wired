@@ -1,0 +1,380 @@
+{
+  "verified": true,
+  "sha256": "c1ff5bd6b773f948580593a7ac0d3b4da43addc164febecf0b98dfa155097351",
+  "captureHash": "7ed479bb1969cfb289a802ccab145a230aaf3200366711f77626a5849c44fcbd",
+  "witness": {
+    "size": 4,
+    "op": 1,
+    "i": 1,
+    "j": 0,
+    "?all$1": 1,
+    "?noneCopied": 0,
+    "?allCopied": 0,
+    "?canVote": 0,
+    "?committedQuorum": 0,
+    "?all$2": 0,
+    "?all$3": 0,
+    "a$quorum#": 0,
+    "b$quorum": 0,
+    "u$quorum": 0,
+    "inX$rows$xNotS#[a$quorum#:64,b$quorum:1]": 1,
+    "inX$rows$xAndS#[a$quorum#:64,b$quorum:1]": 0,
+    "w$quorum": 0,
+    "inX$rows$xNotS#[a$quorum#:1,b$quorum:64]": 1,
+    "inX$canVote$2#[a$quorum#:1]": 1,
+    "Q2[a$quorum#:1]": 0,
+    "Q2[b$quorum:1]": 0,
+    "S[a$quorum#:1]": 0,
+    "CV[w?noneCopied:1]": 1,
+    "inX$row#[a$quorum#:1]": 1,
+    "inX$row#[b$quorum:1]": 1,
+    "inX$canVote$2#[b$quorum:1]": 1,
+    "S[j:1]": 0,
+    "Q2[j:1]": 0,
+    "S[i:1]": 0,
+    "Q2[i:1]": 0,
+    "S[w$quorum:1]": 0,
+    "Q2[w$quorum:1]": 0,
+    "S[u$quorum:1]": 0,
+    "Q2[u$quorum:1]": 0,
+    "S[b$quorum:1]": 0,
+    "w?all$2": 2,
+    "inX$row[i:1]": 0,
+    "inX$row[w?canVote:1]": 1,
+    "w?canVote": 2,
+    "inX$row[j:1]": 1,
+    "inX$row[w?committedQuorum:1]": 1,
+    "S[w?canVote:1]": 1,
+    "Q2[w?canVote:1]": 0,
+    "S[w?committedQuorum:1]": 0,
+    "Q2[w?committedQuorum:1]": 1,
+    "started": 0,
+    "CV[j:1]": 1,
+    "CV[w?allCopied:1]": 0,
+    "w?allCopied": 1,
+    "CT[w?allCopied:1]": 0,
+    "inX$row[w?allCopied:1]": 0,
+    "CT[i:1]": 0,
+    "CT[w?committedQuorum:1]": 0,
+    "CT[j:1]": 0,
+    "w?noneCopied": 0,
+    "CT[w?canVote:1]": 0,
+    "CfgT[w?canVote:1]": 0,
+    "CfgT[i:1]": 0,
+    "CV[i:1]": 0,
+    "CV[w?canVote:1]": 1,
+    "CV[w?committedQuorum:1]": 1,
+    "w?committedQuorum": 3,
+    "Q2[w?all$3:1]": 1,
+    "w?all$3": 3,
+    "S[w?all$2:1]": 1,
+    "Config[i:64,w?all$2:1]": 0,
+    "Config[i:64,w?all$3:1]": 0
+  },
+  "instances": {
+    "?noneCopied": [
+      {
+        "op": "var",
+        "name": "a$quorum#"
+      },
+      {
+        "op": "var",
+        "name": "b$quorum"
+      },
+      {
+        "op": "var",
+        "name": "u$quorum"
+      },
+      {
+        "op": "var",
+        "name": "w$quorum"
+      },
+      {
+        "op": "var",
+        "name": "i"
+      },
+      {
+        "op": "var",
+        "name": "j"
+      }
+    ],
+    "?allCopied": [
+      {
+        "op": "var",
+        "name": "a$quorum#"
+      },
+      {
+        "op": "var",
+        "name": "b$quorum"
+      },
+      {
+        "op": "var",
+        "name": "u$quorum"
+      },
+      {
+        "op": "var",
+        "name": "w$quorum"
+      },
+      {
+        "op": "var",
+        "name": "i"
+      },
+      {
+        "op": "var",
+        "name": "j"
+      }
+    ],
+    "?canVote": [
+      {
+        "op": "var",
+        "name": "a$quorum#"
+      },
+      {
+        "op": "var",
+        "name": "b$quorum"
+      },
+      {
+        "op": "var",
+        "name": "u$quorum"
+      },
+      {
+        "op": "var",
+        "name": "w$quorum"
+      },
+      {
+        "op": "var",
+        "name": "i"
+      },
+      {
+        "op": "var",
+        "name": "j"
+      }
+    ],
+    "?committedQuorum": [
+      {
+        "op": "var",
+        "name": "a$quorum#"
+      },
+      {
+        "op": "var",
+        "name": "b$quorum"
+      },
+      {
+        "op": "var",
+        "name": "u$quorum"
+      },
+      {
+        "op": "var",
+        "name": "w$quorum"
+      },
+      {
+        "op": "var",
+        "name": "i"
+      },
+      {
+        "op": "var",
+        "name": "j"
+      }
+    ],
+    "?all$1": [
+      {
+        "op": "var",
+        "name": "a$quorum#"
+      },
+      {
+        "op": "var",
+        "name": "b$quorum"
+      },
+      {
+        "op": "var",
+        "name": "u$quorum"
+      },
+      {
+        "op": "var",
+        "name": "w$quorum"
+      },
+      {
+        "op": "var",
+        "name": "i"
+      },
+      {
+        "op": "var",
+        "name": "j"
+      },
+      {
+        "op": "var",
+        "name": "w?canVote"
+      },
+      {
+        "op": "var",
+        "name": "w?committedQuorum"
+      }
+    ],
+    "?all$2": [
+      {
+        "op": "var",
+        "name": "a$quorum#"
+      },
+      {
+        "op": "var",
+        "name": "b$quorum"
+      },
+      {
+        "op": "var",
+        "name": "u$quorum"
+      },
+      {
+        "op": "var",
+        "name": "w$quorum"
+      },
+      {
+        "op": "var",
+        "name": "i"
+      },
+      {
+        "op": "var",
+        "name": "j"
+      }
+    ],
+    "?all$3": [
+      {
+        "op": "var",
+        "name": "a$quorum#"
+      },
+      {
+        "op": "var",
+        "name": "b$quorum"
+      },
+      {
+        "op": "var",
+        "name": "u$quorum"
+      },
+      {
+        "op": "var",
+        "name": "w$quorum"
+      },
+      {
+        "op": "var",
+        "name": "i"
+      },
+      {
+        "op": "var",
+        "name": "j"
+      }
+    ],
+    "every x with x < size: never 1 <= CT[x] and started is 0": [
+      {
+        "op": "var",
+        "name": "j"
+      },
+      {
+        "op": "var",
+        "name": "w?allCopied"
+      }
+    ],
+    "every x, y with x < size ∧ y < size ∧ ¬(x = y): never 1 <= CT[x] and CV[y] is 0": [
+      {
+        "op": "var",
+        "name": "j"
+      },
+      {
+        "op": "var",
+        "name": "w?allCopied"
+      },
+      {
+        "op": "var",
+        "name": "i"
+      },
+      {
+        "op": "var",
+        "name": "j"
+      },
+      {
+        "op": "var",
+        "name": "i"
+      },
+      {
+        "op": "var",
+        "name": "w?allCopied"
+      }
+    ],
+    "count cubes: every x with x < {\"op\":\"var\",\"name\":\"size\"}: never 1 <= CT[x] and inX$row[x] is 0": [
+      {
+        "op": "var",
+        "name": "j"
+      },
+      {
+        "op": "var",
+        "name": "i"
+      }
+    ],
+    "count cubes: every x with x < {\"op\":\"var\",\"name\":\"size\"}: never 1 <= CV[x] and inX$row[x] is 0": [
+      {
+        "op": "var",
+        "name": "j"
+      },
+      {
+        "op": "var",
+        "name": "w?canVote"
+      },
+      {
+        "op": "var",
+        "name": "w?committedQuorum"
+      },
+      {
+        "op": "var",
+        "name": "i"
+      }
+    ],
+    "every x with x < size: never 1 <= CT[x] and CV[x] is 0": [
+      {
+        "op": "var",
+        "name": "j"
+      },
+      {
+        "op": "var",
+        "name": "w?allCopied"
+      }
+    ],
+    "every x with x < size: never CV[x] is 0 and 1 <= started": [
+      {
+        "op": "var",
+        "name": "j"
+      },
+      {
+        "op": "var",
+        "name": "w?allCopied"
+      }
+    ],
+    "count cubes: every x with x < {\"op\":\"var\",\"name\":\"size\"}: never 1 <= started and inX$row[x] is 0": [
+      {
+        "op": "var",
+        "name": "w?canVote"
+      },
+      {
+        "op": "var",
+        "name": "w?committedQuorum"
+      },
+      {
+        "op": "var",
+        "name": "i"
+      },
+      {
+        "op": "var",
+        "name": "w?allCopied"
+      }
+    ],
+    "count cubes: every x with x < {\"op\":\"var\",\"name\":\"size\"}: never CV[x] is 0 and 1 <= inX$row[x]": [
+      {
+        "op": "var",
+        "name": "j"
+      },
+      {
+        "op": "var",
+        "name": "w?allCopied"
+      }
+    ]
+  },
+  "columns": [],
+  "goalHyps": 82
+}

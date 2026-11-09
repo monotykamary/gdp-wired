@@ -1,0 +1,74 @@
+{
+ "op-0": {
+  "vm": "bx_6k9k52sn",
+  "type": "large",
+  "cpu": "AMD EPYC 4585PX 16-Core Processor",
+  "vcpus": 4,
+  "vm_vcpus": 8,
+  "exclusive": true,
+  "co_tenants": 0
+ },
+ "op-1": {
+  "vm": "bx_af3p9nak",
+  "type": "large",
+  "cpu": "AMD EPYC 4585PX 16-Core Processor",
+  "vcpus": 4,
+  "vm_vcpus": 8,
+  "exclusive": true,
+  "co_tenants": 0
+ },
+ "op-2": {
+  "vm": "bx_6aqepfyv",
+  "type": "large",
+  "cpu": "AMD EPYC 9455 48-Core Processor",
+  "vcpus": 4,
+  "vm_vcpus": 8,
+  "exclusive": true,
+  "co_tenants": 0
+ },
+ "op-3": {
+  "vm": "bx_76nnjrpb",
+  "type": "large",
+  "cpu": "AMD Ryzen 9 9950X 16-Core Processor",
+  "vcpus": 4,
+  "vm_vcpus": 8,
+  "exclusive": true,
+  "co_tenants": 0
+ },
+ "op-4": {
+  "vm": "bx_6k9k52sn",
+  "type": "large",
+  "cpu": "AMD EPYC 4585PX 16-Core Processor",
+  "vcpus": 4,
+  "vm_vcpus": 8,
+  "exclusive": true,
+  "co_tenants": 0
+ },
+ "op-5": {
+  "vm": "bx_af3p9nak",
+  "type": "large",
+  "cpu": "AMD EPYC 4585PX 16-Core Processor",
+  "vcpus": 4,
+  "vm_vcpus": 8,
+  "exclusive": true,
+  "co_tenants": 0
+ },
+ "op-6": {
+  "vm": "bx_6aqepfyv",
+  "type": "large",
+  "cpu": "AMD EPYC 9455 48-Core Processor",
+  "vcpus": 4,
+  "vm_vcpus": 8,
+  "exclusive": true,
+  "co_tenants": 0
+ },
+ "validation": {
+  "vm": "bx_76nnjrpb",
+  "type": "large",
+  "cpu": "AMD Ryzen 9 9950X 16-Core Processor",
+  "vcpus": 4,
+  "vm_vcpus": 8,
+  "exclusive": true,
+  "co_tenants": 0
+ }
+}
