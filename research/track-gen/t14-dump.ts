@@ -14,8 +14,8 @@ if (process.env.T14_CAPTURE === '1') {
     old?.(value)
     const v = value as any, law = String(v.law ?? ''), outcome = String(v.stuck ?? v.phase ?? '')
     if (v.phase === 'candidates') family = value
-    if (v.phase === 'finite-model') modelChecks.push({law, pass: v.pass, genuine: v.completion.genuine, reason: v.completion.reason})
-    if (outcome === 'sat' && v.witness) {
+    if (v.phase === 'finite-model') modelChecks.push({law, pass: v.pass, genuine: v.completion.genuine, reason: v.completion.reason, failedLaw: v.completion.failedLaw})
+    if ((outcome === 'sat' || v.phase === 'uncertified-model') && v.witness) {
       const compact = {law, pass: v.pass, phase: v.phase ?? 'candidate-model', witness: v.witness}
       const key = JSON.stringify(compact)
       if (!witnessKeys.has(key)) { witnessKeys.add(key); witnesses.push(compact) }

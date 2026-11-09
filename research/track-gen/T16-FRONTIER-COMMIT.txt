@@ -1,0 +1,14 @@
+feat(core): target finite law boundaries within a wall cap
+
+Propose finite states at guard, cube and field boundaries using only the
+candidate syntax. Mutate derived counts through their real map bodies,
+never by assigning a synthesized count cell. Every drop still requires
+the entire predecessor family and a real enabled post-state violation.
+
+Bound the whole sampler to two seconds including generic completion
+headroom. Preserve certified partial drops and enclosing cancellation.
+Distinguish a false predecessor law from unsupported finite evaluation.
+
+The first probes catch CV's spurious sampled bound, not the other six
+costly survivors. Retain that falsifier and continue with the prescribed
+tiny-state fallback; this is not a final merge-gate claim.

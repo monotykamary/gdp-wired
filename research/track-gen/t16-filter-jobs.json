@@ -1,0 +1,16 @@
+[
+ {
+  "name": "filter-paired",
+  "cmd": "bun research/track-gen/t16-filter.ts capture/0.json",
+  "timeout": 180,
+  "cpu": 4,
+  "memory": 14336
+ },
+ {
+  "name": "frontier-check",
+  "cmd": "bun install --frozen-lockfile && bun test core/count-cubes.test.ts core/counts-preflight.test.ts && bun run check",
+  "timeout": 600,
+  "cpu": 4,
+  "memory": 14336
+ }
+]

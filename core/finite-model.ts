@@ -5,12 +5,12 @@ import {type Law, type Machine, type Request, type State, interpret} from './mac
 import {finiteEvaluator} from './finite-houdini.ts'
 import {keyValue} from '../kernel/prove.ts'
 import {checkWall, WallExpired} from './wall.ts'
-export type FiniteModel = {genuine: true, params: Record<string, number>, pre: State, request: Request, post: State} | {genuine: false, reason: string}
+export type FiniteModel = {genuine: true, params: Record<string, number>, pre: State, request: Request, post: State} | {genuine: false, reason: string, failedLaw?: string}
 export function finiteModelChecker(m: Machine) {
   const run = interpret(m)
   return (family: Law[], law: Law, model: Record<string, number>, stop: () => boolean = () => false): FiniteModel => {
     checkWall('finite model completion')
-    const unknown = (reason: string): FiniteModel => ({genuine: false, reason})
+    const unknown = (reason: string, failedLaw?: string): FiniteModel => ({genuine: false, reason, ...(failedLaw ? {failedLaw} : {})})
     if (stop()) return unknown('attempt exhausted')
     if (m.history || m.leasts) return unknown('unsupported state environment')
     const params = Object.fromEntries(m.params.map(k => [k, model[k] ?? 0]))
@@ -32,7 +32,10 @@ export function finiteModelChecker(m: Machine) {
     const evaluate = finiteEvaluator(m, stop)
     try {
       if (m.pre && evaluate({name: 'finite parameter precondition', holds: m.pre}, params, pre) !== true) return unknown('parameter precondition')
-      for (const member of new Set([...family, law])) if (evaluate(member, params, pre) !== true) return unknown('predecessor does not satisfy the whole family')
+      for (const member of new Set([...family, law])) {
+        const truth = evaluate(member, params, pre)
+        if (truth !== true) return unknown(truth === false ? 'predecessor violates the family' : 'unsupported predecessor evaluation', member.name)
+      }
       if (stop()) return unknown('attempt exhausted')
       const post = run.step(params, pre, request)
       if (evaluate(law, params, post) !== false) return unknown('no established post-state violation')
