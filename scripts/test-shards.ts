@@ -34,7 +34,7 @@ const units: Unit[] = [
   ...tests('research/audit', 'inventory.test.ts'),
   ...tests('examples', 'examples.test.ts'),
   ...tests('gates', 'bar.test.ts'),
-  ...tests('.', 'scripts/action.test.ts scripts/lean-gate/gate.test.ts research/lane-i/test-load-propagation.test.ts'),
+  ...tests('.', 'scripts/action.test.ts scripts/lean-gate/gate.test.ts research/lane-i/test-load-propagation.test.ts research/lane-i/validation-audit.test.ts research/lane-i/upper-bound/summarize.test.ts'),
   ...runs(`examples/readme.ts examples/guide.ts examples/composition.ts examples/sets.ts examples/quantifiers.ts
     examples/functions.ts examples/datatypes.ts examples/lemmas.ts examples/discover.ts examples/invoices.ts
     examples/folds.ts examples/trees.ts examples/pairs.ts examples/groups.ts examples/charts.ts examples/xstate.ts
