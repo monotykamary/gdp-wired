@@ -15,6 +15,9 @@ mkdir -p "$scratch/candidate"
 tar -xf "$root/frozen/candidate.tar" -C "$scratch/candidate"
 mkdir -p "$scratch/candidate/vendor"
 cp -R "$root/vendor/." "$scratch/candidate/vendor/"
+# Execution-only repair: the archived driver predates side-exit propagation.
+# Keep the measured engine immutable, but use the fixed paired launcher.
+cp "$root/research/track-gen/t14-paired.sh" "$scratch/candidate/research/track-gen/t14-paired.sh"
 ln -s "$root/frozen" "$scratch/candidate/baselines"
 cd "$scratch/candidate"
 bash research/track-gen/t14-paired.sh "$mode" "$id" "$repeat" main

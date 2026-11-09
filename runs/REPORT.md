@@ -1,7 +1,26 @@
-# Lane A — audit repairs locally validated; Lane D re-audit pending
+# Lane A — runtime audit resolved; paired-exit repair locally validated
 
-**Fix SHAs: `74dd9cc5` plus `52b2382f`.** Lane D: please re-audit both
-findings against the complete repair. No resolution or GATE GREEN is claimed.
+Lane D independently resolves the runtime findings at `5e4f4956` / `52b2382f`.
+Its `final-audit-G26.md` identifies research-evidence defects. Per the
+coordinator's direction, this follow-up is limited to **propagating either
+side's failure** and focused tests; no new authoritative gate tooling is
+being built. The direct launcher preserves both side records and exits
+nonzero if either fails. The immutable-archive wrapper copies this repaired
+execution driver before delegating, without modifying the measured engine.
+
+Focused boat validation: **11 tests / 33 assertions pass**, covering both
+modes, both side orders, either side failing after output, successful pairs,
+and a killed side. TypeScript, type-aware lint and commitlint also pass.
+Receipts: `runs/t16-side-exit/` and `runs/t16-side-exit-lint/`.
+
+The numerical comparisons below remain reported observations, **not
+independently admitted complete-census or final-gate evidence**. Admission
+claims go through Lane D's final gate. No GATE GREEN is claimed.
+
+
+**Runtime fix SHAs: `74dd9cc5` plus `52b2382f`.** Lane D has independently
+resolved the cancellation, facts and import-cycle findings. The separate
+G26 paired-exit repair passes its focused checks; no GATE GREEN is claimed.
 
 - **Cancellation:** the derived-count loop checks the active wall every 256
   iterations and propagates the optional per-attempt stop through the finite
@@ -40,7 +59,7 @@ three jobs and timed out at 330 s per job. Its replacement is one job per
 protocol/repeat (87 paired jobs). The first submission failed locally on a
 snapshot blob/hash mismatch before execution; a stable temporary driver
 fixture now avoids concurrent source-edit races (`t16-audit-generation-v2/`).
-The stable-fixture census is now **87/87 complete**: **all other 28 canonical
+The local formatter reports **87/87 census records**: **all other 28 canonical
 candidate lists are byte-identical in all three paired repeats**, with exactly
 zero generation queries. MLDR emits the same 34-law canonical list in all
 repeats (baseline 27), with candidate generation walls 24.77 / 18.75 / 18.42 s.
@@ -57,17 +76,18 @@ Failures remain recorded: initial repair jobs failed on the import cycle
 run passed the focused tests but failed lint on two then-uncommitted worker
 files (`t16-audit-fixed/`). The worker has addressed them, but that fallback
 experiment is separate from the immutable audit receipt. No shared scheduler
-or VM was restarted. The local audit repair is validated; **Lane D still
-must re-audit it, and the full branch has no final-gate receipt.**
+or VM was restarted. The local runtime repair is validated and independently cleared by Lane D;
+**the full branch still has no admitted final-gate receipt.**
 
-The older immutable `c9d7f823` versus `b788e195` experiment also completed:
-**84/84 other-protocol pairs retain their proof, no candidate kills, no wrong
-verdicts** (`t16-others-summary.json`). Counted work moves in 39 pairs across
+The repaired immutable `52b2382f` versus `b788e195` proof comparison is
+complete: **84/84 baseline and 84/84 candidate runs are proven**, with no
+candidate kills, no lost proofs and no wrong verdicts
+(`t16-audit-others-summary.json`). Counted work moves in 39 pairs across
 13 protocols: consensus_epr, consensus_forall, consensus_wo_decide,
 majorityset_leader_election, naive_consensus, paxos_epr,
 quorum_leader_election, simple, simple_election, simple_regular,
-toy_consensus, toy_consensus_epr, toy_consensus_forall. These are first-half
-iteration results, not evidence for the later audit/fallback changes and
+toy_consensus, toy_consensus_epr, toy_consensus_forall. These are audit-repair
+iteration results, not evidence for the later uncommitted fallback and
 not Lane D's authoritative final gate.
 
 # Lane A / T-14 iteration receipts complete; Section 16 in progress
