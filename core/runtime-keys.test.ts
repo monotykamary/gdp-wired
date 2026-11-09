@@ -74,7 +74,7 @@ test('$unique cannot observe a stamp wrap: at 2^32 − 1 the buffer is zeroed an
 
 test('$breaks marks the stamp buffer directly and agrees with the Set path on dense and sparse inputs', () => {
   const src = compileJs(m), cut = (name: string) => { const start = src.indexOf(`function ${name}(`); return src.slice(start, src.indexOf('\n', start)) }
-  const breaks = new Function(`${cut('$unique')}; ${cut('$breaks')}; return $breaks;`)() as (maps: Record<string, Map<number, number>>, reads: [string, number, boolean][], cmps: [number, number, boolean][]) => number[]
+  const breaks = runInNewContext(`${cut('$unique')}; ${cut('$breaks')}; $breaks;`) as (maps: Record<string, Map<number, number>>, reads: [string, number, boolean][], cmps: [number, number, boolean][]) => number[]
   // (the reference: every breakpoint's neighbours −1 .. +2, unique, sorted, then one past the last)
   const reference = (maps: Record<string, Map<number, number>>, reads: [string, number, boolean][], cmps: [number, number, boolean][]) => {
     const p = [0]

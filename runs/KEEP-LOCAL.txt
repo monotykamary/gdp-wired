@@ -1,5 +1,10 @@
 # Lane I: preserve the exact frozen source while the upper-bound batch is live.
 # Other historical run packaging may be offloaded after remote verification.
 runs/lane-i/upper-bound/resumed/input/frozen.tar
+# Active b09 regression diagnosis reuses Lane D's exact Git-object source packs.
+/Users/monotykamary/VCS/working-remote/open-source/gdp-wired-verifyP/runs/final-gate/integration-704efc27/inputs/root.pack
+/Users/monotykamary/VCS/working-remote/open-source/gdp-wired-verifyP/runs/final-gate/integration-704efc27/inputs/module-0.pack
+/Users/monotykamary/VCS/working-remote/open-source/gdp-wired-verifyP/runs/final-gate/integration-704efc27/inputs/module-1.pack
+/private/tmp/gdp-gate-b09da82d/gate-inputs/delta.pack
 # Preserve Lane F's explicit context pin in its own worktree, not a nonexistent local copy.
 /Users/monotykamary/VCS/working-remote/open-source/gdp-wired-trackL/runs/lane-f-source-input/context.json

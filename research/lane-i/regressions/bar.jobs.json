@@ -1,0 +1,98 @@
+[
+  {
+    "name": "chc-dillig05_c_000_yml",
+    "cmd": "bun regression-driver/bar-pairs.ts 0",
+    "cpu": 4,
+    "memory": 14336,
+    "timeout": 900,
+    "vm_type": "large"
+  },
+  {
+    "name": "chc-seesaw_c_000_yml",
+    "cmd": "bun regression-driver/bar-pairs.ts 1",
+    "cpu": 4,
+    "memory": 14336,
+    "timeout": 900,
+    "vm_type": "large"
+  },
+  {
+    "name": "chc-DRAGON_4_000_001_yml",
+    "cmd": "bun regression-driver/bar-pairs.ts 2",
+    "cpu": 4,
+    "memory": 14336,
+    "timeout": 900,
+    "vm_type": "large"
+  },
+  {
+    "name": "chc-DRAGON_4_e2_2799_000_001_yml",
+    "cmd": "bun regression-driver/bar-pairs.ts 3",
+    "cpu": 4,
+    "memory": 14336,
+    "timeout": 900,
+    "vm_type": "large"
+  },
+  {
+    "name": "its-scc-hqr_c_i_hqr_pl_t2_nor_t2_rlgfixed_t2_fixed_ari",
+    "cmd": "bun regression-driver/bar-pairs.ts 4",
+    "cpu": 4,
+    "memory": 14336,
+    "timeout": 900,
+    "vm_type": "large"
+  },
+  {
+    "name": "its-scc-slayer-n3-filtered_t2_ari",
+    "cmd": "bun regression-driver/bar-pairs.ts 5",
+    "cpu": 4,
+    "memory": 14336,
+    "timeout": 900,
+    "vm_type": "large"
+  },
+  {
+    "name": "its-scc-bio_t2_ari",
+    "cmd": "bun regression-driver/bar-pairs.ts 6",
+    "cpu": 4,
+    "memory": 14336,
+    "timeout": 900,
+    "vm_type": "large"
+  },
+  {
+    "name": "its-scc-cover_t2_ari",
+    "cmd": "bun regression-driver/bar-pairs.ts 7",
+    "cpu": 4,
+    "memory": 14336,
+    "timeout": 900,
+    "vm_type": "large"
+  },
+  {
+    "name": "its-bio_t2_ari",
+    "cmd": "bun regression-driver/bar-pairs.ts 8",
+    "cpu": 4,
+    "memory": 14336,
+    "timeout": 900,
+    "vm_type": "large"
+  },
+  {
+    "name": "its-cover_t2_ari",
+    "cmd": "bun regression-driver/bar-pairs.ts 9",
+    "cpu": 4,
+    "memory": 14336,
+    "timeout": 900,
+    "vm_type": "large"
+  },
+  {
+    "name": "tip-list_weird_concat_map_bind_smt2",
+    "cmd": "bun regression-driver/bar-pairs.ts 10",
+    "cpu": 4,
+    "memory": 14336,
+    "timeout": 900,
+    "vm_type": "large"
+  },
+  {
+    "name": "tip-tree_Flatten3_smt2",
+    "cmd": "bun regression-driver/bar-pairs.ts 11",
+    "cpu": 4,
+    "memory": 14336,
+    "timeout": 900,
+    "vm_type": "large"
+  }
+]
