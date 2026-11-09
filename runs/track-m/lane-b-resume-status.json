@@ -1,6 +1,8 @@
 {
   "branch":"claude/track-mldr",
   "resumed":true,
+  "priority":"generic count-law completion cost fix; consensus_forall >=5 strict repeats per side on Ryzen 9 9950X plus census",
+  "pausedUnsubmitted":"runtime frame-pool observation",
   "ownedHelpers":["p1","Inv*"],
   "reassignedHelpers":{"Inv1758":"lane E","Inv2973-half":"lane F"},
   "gateGreen":false,
