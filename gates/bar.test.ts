@@ -100,9 +100,9 @@ test('quick-bar CLI waits before demand, read-only CLI bypasses slots, and exits
   const home = temp(), dir = join(home, '.local/share/gdp-wired/bar-slots'), bin = join(home, 'bin'), calls = join(home, 'drivers')
   mkdirSync(bin)
   writeFileSync(join(bin, 'git'), `#!/bin/sh\nprintf '%s\\n' '${home}/repo/.git'\n`, {mode: 0o755})
-  writeFileSync(join(bin, 'python3'), `#!/bin/sh\necho called >> '${calls}'\n`, {mode: 0o755})
+  writeFileSync(join(bin, 'python3'), `#!/bin/sh\nprintf '%s\\n' "$SUPERCOMPUTER_CLASS" >> '${calls}'\n`, {mode: 0o755})
   writeFileSync(join(bin, 'sh'), '#!/bin/sh\nexit 0\n', {mode: 0o755}) // never run real pool cleanup in this test
-  const env = {...process.env, HOME: home, PATH: `${bin}:${process.env.PATH}`, GDPW_BAR_DIR: join(home, 'bar')}
+  const env = {...process.env, HOME: home, PATH: `${bin}:${process.env.PATH}`, GDPW_BAR_DIR: join(home, 'bar'), SUPERCOMPUTER_CLASS: 'submission'}
   const a = tryBarSlot(dir)!, b = tryBarSlot(dir)!, children: Child[] = []
   try {
     const read = start([process.execPath, bar, 'failed', join(home, 'absent')], home, env); children.push(read)
@@ -117,6 +117,7 @@ test('quick-bar CLI waits before demand, read-only CLI bypasses slots, and exits
     const invalid = start([process.execPath, bar, '--quick', '--only', 'not-a-group'], home, env); children.push(invalid)
     expect(await result(invalid)).toMatchObject({code: 1})
     expect(existsSync(calls)).toBe(true)
+    expect(readFileSync(calls, 'utf8').trim().split('\n').every(c => c === 'submission')).toBe(true)
     const freed = tryBarSlot(dir)!
     expect(freed.slot).toBe(0); freed.release()
   } finally { await Promise.all(children.map(stop)); a.release(); b.release(); rmSync(home, {recursive: true, force: true}) }

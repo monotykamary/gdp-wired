@@ -296,7 +296,7 @@ The initial final-test wrapper used the shard label `1/7` inside a log filename,
 
 ## Scheduling change — quick submission gate
 
-At the coordinator's explicit priority change, the full gate-class bar was stopped by exact PID **33220**. Its partial receipts remain in `runs/bar/runs/final-ed5af69b`; they are not a completed green gate. The merge standard is now **`--quick --together --cand <final head> --base b788e195 --runs 3`** with **`SUPERCOMPUTER_CLASS=submission`**, plus check, tests, and the census. The census will also run as submission work to share capacity with the primary MLDR lanes.
+At the coordinator's explicit priority change, the full gate-class bar was stopped by exact PID **33220**. Its partial receipts remain in `runs/bar/runs/final-ed5af69b`; they are not a completed green gate. The merge standard is now **`--quick --together --cand <final head> --base b788e195 --runs 3`** with **`SUPERCOMPUTER_CLASS=submission`**, plus check, tests, and the census. The census will also run as submission work to share capacity with the primary MLDR lanes. Inspection found that `gates/bar.ts` previously overwrote the explicit scheduler class (globally and in g332); the launcher now honors `SUPERCOMPUTER_CLASS`, with a submission-class CLI regression in the final checks.
 
 ## Remaining validation
 
