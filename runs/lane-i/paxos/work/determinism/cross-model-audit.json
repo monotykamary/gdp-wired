@@ -1,0 +1,385 @@
+{
+  "issues": [],
+  "complete": true,
+  "source": {
+    "baseline": "b09da82d9ada6e0cdc31f943292cfea727f5752e",
+    "candidate": "bf01190119f9409077a36e11a4a5b763fb6c1cad"
+  },
+  "models": [
+    {
+      "cpu": "AMD EPYC 9455 48-Core Processor",
+      "samples": [
+        {
+          "replica": 2004,
+          "repeat": 1,
+          "base": {
+            "verdict": "proven",
+            "found": [
+              "every OneA cell is a value of its kind",
+              "every OneB cell is a value of its kind",
+              "every Left cell is a value of its kind",
+              "every Proposal cell is a value of its kind",
+              "every Vote cell is a value of its kind",
+              "every Decision cell is a value of its kind",
+              "every Qs cell is a value of its kind",
+              "one value decided",
+              "members$Qs keeps members's bound 2",
+              "Decision keeps members's bound through members$Decision",
+              "Proposal at (c, d) bounds can$Vote$members at (a, b): a < c, b ≠ d",
+              "scan-prefix:cnt:rowOk:d93992f463f488aa:entry",
+              "scan-prefix:cnt:rowOk:d93992f463f488aa",
+              "every x, y with x < 64 ∧ y < 64: never 1 <= Decision[64·x + y] and Proposal[64·x + y] is 0",
+              "every x, y, z with x < 64 ∧ y < 64 ∧ z < 64 ∧ ¬(y = z): never 1 <= Proposal[64·x + y] and 1 <= Proposal[64·x + z]",
+              "every x, y, z with x <= 63 ∧ y < 64 ∧ z < 64: never 1 <= Vote[64·64·x + y + z] and Proposal[64·y + z] is 0",
+              "carry:guard:71517ec714847e1e",
+              "carry:guard:8c4667f43952b1a7",
+              "carry:guard:a1aac0f2b5acf946",
+              "carry:guard:e6d2937e4bcb51dc",
+              "carry:co-write:6282256ba10ee781",
+              "carry:global-range:f29c323756a78a95",
+              "carry:global-range:4d9ef1fb20062861",
+              "carry:global-frame:ef4514c87a594d2c",
+              "carry:point-guard:42b72ece9101070e"
+            ],
+            "ms": 20893,
+            "work": 6915544,
+            "full": 1037946
+          },
+          "candidate": {
+            "verdict": "unknown",
+            "stuck": "unknown",
+            "why": "time (rule result)",
+            "ms": 59004,
+            "work": 120626795,
+            "full": 11365077
+          }
+        },
+        {
+          "replica": 2004,
+          "repeat": 2,
+          "base": {
+            "verdict": "proven",
+            "found": [
+              "every OneA cell is a value of its kind",
+              "every OneB cell is a value of its kind",
+              "every Left cell is a value of its kind",
+              "every Proposal cell is a value of its kind",
+              "every Vote cell is a value of its kind",
+              "every Decision cell is a value of its kind",
+              "every Qs cell is a value of its kind",
+              "one value decided",
+              "members$Qs keeps members's bound 2",
+              "Decision keeps members's bound through members$Decision",
+              "Proposal at (c, d) bounds can$Vote$members at (a, b): a < c, b ≠ d",
+              "scan-prefix:cnt:rowOk:d93992f463f488aa:entry",
+              "scan-prefix:cnt:rowOk:d93992f463f488aa",
+              "every x, y with x < 64 ∧ y < 64: never 1 <= Decision[64·x + y] and Proposal[64·x + y] is 0",
+              "every x, y, z with x < 64 ∧ y < 64 ∧ z < 64 ∧ ¬(y = z): never 1 <= Proposal[64·x + y] and 1 <= Proposal[64·x + z]",
+              "every x, y, z with x <= 63 ∧ y < 64 ∧ z < 64: never 1 <= Vote[64·64·x + y + z] and Proposal[64·y + z] is 0",
+              "carry:guard:71517ec714847e1e",
+              "carry:guard:8c4667f43952b1a7",
+              "carry:guard:a1aac0f2b5acf946",
+              "carry:guard:e6d2937e4bcb51dc",
+              "carry:co-write:6282256ba10ee781",
+              "carry:global-range:f29c323756a78a95",
+              "carry:global-range:4d9ef1fb20062861",
+              "carry:global-frame:ef4514c87a594d2c",
+              "carry:point-guard:42b72ece9101070e"
+            ],
+            "ms": 21771,
+            "work": 6915544,
+            "full": 1037946
+          },
+          "candidate": {
+            "verdict": "unknown",
+            "stuck": "unknown",
+            "why": "time (rule result)",
+            "ms": 59004,
+            "work": 130811115,
+            "full": 12268637
+          }
+        },
+        {
+          "replica": 2004,
+          "repeat": 3,
+          "base": {
+            "verdict": "proven",
+            "found": [
+              "every OneA cell is a value of its kind",
+              "every OneB cell is a value of its kind",
+              "every Left cell is a value of its kind",
+              "every Proposal cell is a value of its kind",
+              "every Vote cell is a value of its kind",
+              "every Decision cell is a value of its kind",
+              "every Qs cell is a value of its kind",
+              "one value decided",
+              "members$Qs keeps members's bound 2",
+              "Decision keeps members's bound through members$Decision",
+              "Proposal at (c, d) bounds can$Vote$members at (a, b): a < c, b ≠ d",
+              "scan-prefix:cnt:rowOk:d93992f463f488aa:entry",
+              "scan-prefix:cnt:rowOk:d93992f463f488aa",
+              "every x, y with x < 64 ∧ y < 64: never 1 <= Decision[64·x + y] and Proposal[64·x + y] is 0",
+              "every x, y, z with x < 64 ∧ y < 64 ∧ z < 64 ∧ ¬(y = z): never 1 <= Proposal[64·x + y] and 1 <= Proposal[64·x + z]",
+              "every x, y, z with x <= 63 ∧ y < 64 ∧ z < 64: never 1 <= Vote[64·64·x + y + z] and Proposal[64·y + z] is 0",
+              "carry:guard:71517ec714847e1e",
+              "carry:guard:8c4667f43952b1a7",
+              "carry:guard:a1aac0f2b5acf946",
+              "carry:guard:e6d2937e4bcb51dc",
+              "carry:co-write:6282256ba10ee781",
+              "carry:global-range:f29c323756a78a95",
+              "carry:global-range:4d9ef1fb20062861",
+              "carry:global-frame:ef4514c87a594d2c",
+              "carry:point-guard:42b72ece9101070e"
+            ],
+            "ms": 22376,
+            "work": 6915544,
+            "full": 1037946
+          },
+          "candidate": {
+            "verdict": "unknown",
+            "stuck": "unknown",
+            "why": "time (rule result)",
+            "ms": 59003,
+            "work": 121496514,
+            "full": 11464485
+          }
+        }
+      ]
+    },
+    {
+      "cpu": "AMD Ryzen 9 9950X 16-Core Processor",
+      "samples": [
+        {
+          "replica": 4301,
+          "repeat": 1,
+          "base": {
+            "verdict": "proven",
+            "found": [
+              "every OneA cell is a value of its kind",
+              "every OneB cell is a value of its kind",
+              "every Left cell is a value of its kind",
+              "every Proposal cell is a value of its kind",
+              "every Vote cell is a value of its kind",
+              "every Decision cell is a value of its kind",
+              "every Qs cell is a value of its kind",
+              "one value decided",
+              "members$Qs keeps members's bound 2",
+              "Decision keeps members's bound through members$Decision",
+              "Proposal at (c, d) bounds can$Vote$members at (a, b): a < c, b ≠ d",
+              "scan-prefix:cnt:rowOk:d93992f463f488aa:entry",
+              "scan-prefix:cnt:rowOk:d93992f463f488aa",
+              "every x, y with x < 64 ∧ y < 64: never 1 <= Decision[64·x + y] and Proposal[64·x + y] is 0",
+              "every x, y, z with x < 64 ∧ y < 64 ∧ z < 64 ∧ ¬(y = z): never 1 <= Proposal[64·x + y] and 1 <= Proposal[64·x + z]",
+              "every x, y, z with x <= 63 ∧ y < 64 ∧ z < 64: never 1 <= Vote[64·64·x + y + z] and Proposal[64·y + z] is 0",
+              "carry:guard:71517ec714847e1e",
+              "carry:guard:8c4667f43952b1a7",
+              "carry:guard:a1aac0f2b5acf946",
+              "carry:guard:e6d2937e4bcb51dc",
+              "carry:co-write:6282256ba10ee781",
+              "carry:global-range:f29c323756a78a95",
+              "carry:global-range:4d9ef1fb20062861",
+              "carry:global-frame:ef4514c87a594d2c",
+              "carry:point-guard:42b72ece9101070e"
+            ],
+            "ms": 25957,
+            "work": 6915544,
+            "full": 1037946
+          },
+          "candidate": {
+            "verdict": "unknown",
+            "stuck": "unknown",
+            "why": "time (rule result)",
+            "ms": 59004,
+            "work": 118439516,
+            "full": 11155380
+          }
+        },
+        {
+          "replica": 4301,
+          "repeat": 2,
+          "base": {
+            "verdict": "proven",
+            "found": [
+              "every OneA cell is a value of its kind",
+              "every OneB cell is a value of its kind",
+              "every Left cell is a value of its kind",
+              "every Proposal cell is a value of its kind",
+              "every Vote cell is a value of its kind",
+              "every Decision cell is a value of its kind",
+              "every Qs cell is a value of its kind",
+              "one value decided",
+              "members$Qs keeps members's bound 2",
+              "Decision keeps members's bound through members$Decision",
+              "Proposal at (c, d) bounds can$Vote$members at (a, b): a < c, b ≠ d",
+              "scan-prefix:cnt:rowOk:d93992f463f488aa:entry",
+              "scan-prefix:cnt:rowOk:d93992f463f488aa",
+              "every x, y with x < 64 ∧ y < 64: never 1 <= Decision[64·x + y] and Proposal[64·x + y] is 0",
+              "every x, y, z with x < 64 ∧ y < 64 ∧ z < 64 ∧ ¬(y = z): never 1 <= Proposal[64·x + y] and 1 <= Proposal[64·x + z]",
+              "every x, y, z with x <= 63 ∧ y < 64 ∧ z < 64: never 1 <= Vote[64·64·x + y + z] and Proposal[64·y + z] is 0",
+              "carry:guard:71517ec714847e1e",
+              "carry:guard:8c4667f43952b1a7",
+              "carry:guard:a1aac0f2b5acf946",
+              "carry:guard:e6d2937e4bcb51dc",
+              "carry:co-write:6282256ba10ee781",
+              "carry:global-range:f29c323756a78a95",
+              "carry:global-range:4d9ef1fb20062861",
+              "carry:global-frame:ef4514c87a594d2c",
+              "carry:point-guard:42b72ece9101070e"
+            ],
+            "ms": 21906,
+            "work": 6915544,
+            "full": 1037946
+          },
+          "candidate": {
+            "verdict": "unknown",
+            "stuck": "unknown",
+            "why": "time (rule result)",
+            "ms": 59004,
+            "work": 114310501,
+            "full": 10840396
+          }
+        },
+        {
+          "replica": 4301,
+          "repeat": 3,
+          "base": {
+            "verdict": "proven",
+            "found": [
+              "every OneA cell is a value of its kind",
+              "every OneB cell is a value of its kind",
+              "every Left cell is a value of its kind",
+              "every Proposal cell is a value of its kind",
+              "every Vote cell is a value of its kind",
+              "every Decision cell is a value of its kind",
+              "every Qs cell is a value of its kind",
+              "one value decided",
+              "members$Qs keeps members's bound 2",
+              "Decision keeps members's bound through members$Decision",
+              "Proposal at (c, d) bounds can$Vote$members at (a, b): a < c, b ≠ d",
+              "scan-prefix:cnt:rowOk:d93992f463f488aa:entry",
+              "scan-prefix:cnt:rowOk:d93992f463f488aa",
+              "every x, y with x < 64 ∧ y < 64: never 1 <= Decision[64·x + y] and Proposal[64·x + y] is 0",
+              "every x, y, z with x < 64 ∧ y < 64 ∧ z < 64 ∧ ¬(y = z): never 1 <= Proposal[64·x + y] and 1 <= Proposal[64·x + z]",
+              "every x, y, z with x <= 63 ∧ y < 64 ∧ z < 64: never 1 <= Vote[64·64·x + y + z] and Proposal[64·y + z] is 0",
+              "carry:guard:71517ec714847e1e",
+              "carry:guard:8c4667f43952b1a7",
+              "carry:guard:a1aac0f2b5acf946",
+              "carry:guard:e6d2937e4bcb51dc",
+              "carry:co-write:6282256ba10ee781",
+              "carry:global-range:f29c323756a78a95",
+              "carry:global-range:4d9ef1fb20062861",
+              "carry:global-frame:ef4514c87a594d2c",
+              "carry:point-guard:42b72ece9101070e"
+            ],
+            "ms": 21168,
+            "work": 6915544,
+            "full": 1037946
+          },
+          "candidate": {
+            "verdict": "unknown",
+            "stuck": "unknown",
+            "why": "time (rule result)",
+            "ms": 59004,
+            "work": 108459977,
+            "full": 10451151
+          }
+        }
+      ]
+    }
+  ],
+  "exactFinalCounters": {
+    "baseIdentical": true,
+    "candidateIdentical": false,
+    "base": [
+      {
+        "verdict": "proven",
+        "work": 6915544,
+        "full": 1037946
+      },
+      {
+        "verdict": "proven",
+        "work": 6915544,
+        "full": 1037946
+      },
+      {
+        "verdict": "proven",
+        "work": 6915544,
+        "full": 1037946
+      },
+      {
+        "verdict": "proven",
+        "work": 6915544,
+        "full": 1037946
+      },
+      {
+        "verdict": "proven",
+        "work": 6915544,
+        "full": 1037946
+      },
+      {
+        "verdict": "proven",
+        "work": 6915544,
+        "full": 1037946
+      }
+    ],
+    "candidate": [
+      {
+        "verdict": "unknown",
+        "work": 120626795,
+        "full": 11365077
+      },
+      {
+        "verdict": "unknown",
+        "work": 130811115,
+        "full": 12268637
+      },
+      {
+        "verdict": "unknown",
+        "work": 121496514,
+        "full": 11464485
+      },
+      {
+        "verdict": "unknown",
+        "work": 118439516,
+        "full": 11155380
+      },
+      {
+        "verdict": "unknown",
+        "work": 114310501,
+        "full": 10840396
+      },
+      {
+        "verdict": "unknown",
+        "work": 108459977,
+        "full": 10451151
+      }
+    ]
+  },
+  "determinismEstablished": false,
+  "completedAttemptPrefix": {
+    "roundingDigits": 6,
+    "baseLength": 27,
+    "candidateLength": 115,
+    "firstDivergence": {
+      "index": 11,
+      "base": {
+        "law": "Decision keeps members's bound through members$Decision",
+        "pass": 1,
+        "family": 45,
+        "outcome": "kept",
+        "work": 38917,
+        "full": 26245.7672
+      },
+      "candidate": {
+        "law": "Decision keeps members's bound through members$Decision",
+        "pass": 1,
+        "family": 45,
+        "outcome": "unknown",
+        "work": 4720424,
+        "full": 224058.0405
+      }
+    }
+  },
+  "scope": "Censored final counts are not deterministic proof costs. Prefix comparison omits wall time and rounds fractional full units only; raw final counts are exact.",
+  "finalGate": false
+}

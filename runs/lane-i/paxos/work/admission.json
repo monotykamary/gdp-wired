@@ -1,6 +1,6 @@
 {
   "preflightTask": "7ed3b969-762e-44d0-a689-0f4b476531a1",
-  "status": "cross-model-confirmation-active",
+  "status": "boundary-screen-active",
   "data": "/private/tmp/lane-i-paxos-work-data.aa86KI",
   "cpuMode": "any; exact CPU retained for each job",
   "points": 21,
@@ -8,10 +8,15 @@
   "determinismJobs": "research/lane-i/regressions/paxos-determinism.jobs.json",
   "workJobs": "research/lane-i/regressions/paxos-work.jobs.json",
   "determinismSubmitted": true,
-  "workSubmitted": false,
+  "workSubmitted": true,
   "finalGate": false,
   "preflightStatus": "passed",
   "preflightBatch": "20261110-052052-lobfa5",
   "preflightSnapshot": "155ceb6c6ec3",
-  "determinismTask": "e4a4bdd4-367e-4632-9ac2-1ebfc28cf907"
+  "determinismTask": "e4a4bdd4-367e-4632-9ac2-1ebfc28cf907",
+  "determinismComplete": true,
+  "exactFinalDeterminism": false,
+  "stableCompletedPrefix": true,
+  "workTask": "239509c1-c5e0-430c-b23a-e30101026896",
+  "crossModelAudit": "determinism/cross-model-audit.json"
 }
