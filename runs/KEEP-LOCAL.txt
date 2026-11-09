@@ -1,9 +1,6 @@
 # Lane I: the 140 frozen upper-bound shards finished; their source pin is released.
 # Compressed receipts and frozen source/family hashes are retained; no input was deleted.
-# Active b09 regression diagnosis reuses Lane D's exact Git-object source packs.
-/Users/monotykamary/VCS/working-remote/open-source/gdp-wired-verifyP/runs/final-gate/integration-704efc27/inputs/root.pack
-/Users/monotykamary/VCS/working-remote/open-source/gdp-wired-verifyP/runs/final-gate/integration-704efc27/inputs/module-0.pack
-/Users/monotykamary/VCS/working-remote/open-source/gdp-wired-verifyP/runs/final-gate/integration-704efc27/inputs/module-1.pack
-/private/tmp/gdp-gate-b09da82d/gate-inputs/delta.pack
+# The b09 strict/bar and diagnostic controllers all returned. Lane I releases
+# its active-job pins on Lane D’s source packs; no source/input was deleted.
 # Preserve Lane F's explicit context pin in its own worktree, not a nonexistent local copy.
 /Users/monotykamary/VCS/working-remote/open-source/gdp-wired-trackL/runs/lane-f-source-input/context.json

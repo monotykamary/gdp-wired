@@ -1,0 +1,2596 @@
+{
+  "baseline": "b788e1959bba1f2e8aa1f94d4cf7c0eb163a2f9c",
+  "candidate": "b09da82d9ada6e0cdc31f943292cfea727f5752e",
+  "batch": "20261110-015931-92u7qg",
+  "pairs": 36,
+  "completePairs": 15,
+  "completeDifferences": [],
+  "partialAnswers": [
+    {
+      "index": 1,
+      "repeat": 1,
+      "side": "base",
+      "answer": "sat",
+      "exit": null,
+      "signal": "SIGKILL",
+      "wallMs": 22927.794722
+    },
+    {
+      "index": 1,
+      "repeat": 1,
+      "side": "candidate",
+      "answer": "sat",
+      "exit": null,
+      "signal": "SIGKILL",
+      "wallMs": 19579.026928
+    },
+    {
+      "index": 1,
+      "repeat": 2,
+      "side": "base",
+      "answer": "sat",
+      "exit": null,
+      "signal": "SIGKILL",
+      "wallMs": 20788.44101899999
+    },
+    {
+      "index": 1,
+      "repeat": 2,
+      "side": "candidate",
+      "answer": "sat",
+      "exit": null,
+      "signal": "SIGKILL",
+      "wallMs": 28093.016617
+    },
+    {
+      "index": 1,
+      "repeat": 3,
+      "side": "base",
+      "answer": "sat",
+      "exit": null,
+      "signal": "SIGKILL",
+      "wallMs": 18487.240907
+    },
+    {
+      "index": 1,
+      "repeat": 3,
+      "side": "candidate",
+      "answer": "sat",
+      "exit": null,
+      "signal": "SIGKILL",
+      "wallMs": 22738.500929
+    },
+    {
+      "index": 2,
+      "repeat": 1,
+      "side": "base",
+      "answer": "sat",
+      "exit": null,
+      "signal": "SIGKILL",
+      "wallMs": 50509.064031999995
+    },
+    {
+      "index": 2,
+      "repeat": 1,
+      "side": "candidate",
+      "answer": "sat",
+      "exit": null,
+      "signal": "SIGKILL",
+      "wallMs": 45999.654996
+    },
+    {
+      "index": 2,
+      "repeat": 2,
+      "side": "base",
+      "answer": "sat",
+      "exit": null,
+      "signal": "SIGKILL",
+      "wallMs": 41832.49507399999
+    },
+    {
+      "index": 2,
+      "repeat": 3,
+      "side": "base",
+      "answer": "sat",
+      "exit": null,
+      "signal": "SIGKILL",
+      "wallMs": 52898.147880000004
+    },
+    {
+      "index": 3,
+      "repeat": 1,
+      "side": "base",
+      "answer": "sat",
+      "exit": null,
+      "signal": "SIGKILL",
+      "wallMs": 54628.51657400001
+    },
+    {
+      "index": 3,
+      "repeat": 1,
+      "side": "candidate",
+      "answer": "sat",
+      "exit": null,
+      "signal": "SIGKILL",
+      "wallMs": 44857.521643
+    },
+    {
+      "index": 3,
+      "repeat": 2,
+      "side": "base",
+      "answer": "sat",
+      "exit": null,
+      "signal": "SIGKILL",
+      "wallMs": 37411.48367799999
+    },
+    {
+      "index": 3,
+      "repeat": 2,
+      "side": "candidate",
+      "answer": "sat",
+      "exit": null,
+      "signal": "SIGKILL",
+      "wallMs": 58532.868428999995
+    },
+    {
+      "index": 3,
+      "repeat": 3,
+      "side": "base",
+      "answer": "sat",
+      "exit": null,
+      "signal": "SIGKILL",
+      "wallMs": 44716.95159099999
+    },
+    {
+      "index": 3,
+      "repeat": 3,
+      "side": "candidate",
+      "answer": "sat",
+      "exit": null,
+      "signal": "SIGKILL",
+      "wallMs": 56189.482831
+    }
+  ],
+  "processErrors": {},
+  "sources": {
+    "chc-dillig05_c_000_yml": "41b3bf7a2b6b330cddaf717dbc6e3ffff6b887bad0c209e9d648417e685c270d",
+    "chc-seesaw_c_000_yml": "2bc913f2952018a952f18dca67252101b4205f3e8587f1431c1ba7565ef2a3cd",
+    "chc-DRAGON_4_000_001_yml": "4a6c707db687cf933cd255fdbf64318e780ee638dfdfd9939b93474a401e9244",
+    "chc-DRAGON_4_e2_2799_000_001_yml": "234afe0753c3775b677c8534aaa6b9be09bb5482da706a97eb03a3ef4a65e280",
+    "its-scc-hqr_c_i_hqr_pl_t2_nor_t2_rlgfixed_t2_fixed_ari": "667e62a5eab2885b05bc25adc8a73185dfad54dc43851a6dd8d16e3fb803b6c0",
+    "its-scc-slayer-n3-filtered_t2_ari": "98c0a327e5cbf551fff3e98942d8ad948edbc53042d1674c740d70a1906fc360",
+    "its-scc-bio_t2_ari": "99af316e48b451446585d19ae4b060ff225d8d65c67d154037d1c68582475828",
+    "its-scc-cover_t2_ari": "da5e36bb883ea5cf3ecc0f458fe17e5f6c7b6ac70c68c86f9557e66d5a1c0c42",
+    "its-bio_t2_ari": "bb0cbafb22c1431be4df56ddd09a5ef900f34457d0ac0916020e8870a7bbe8fe",
+    "its-cover_t2_ari": "b65cc9187bbd5e26ade5326c0a7bb91b1f57003cc8d25027d258bff48eddfce0",
+    "tip-list_weird_concat_map_bind_smt2": "105ce3da0245ddb014719e41de526a14f8ee16f1b939b1ac64f72a06f4e42947",
+    "tip-tree_Flatten3_smt2": "359bb728f655c306d676e813bb143360973d14dbbdc75faa8de1f001fe422988"
+  },
+  "rows": [
+    {
+      "index": 0,
+      "view": "chc",
+      "task": "vmt-chc-benchmarks/ctigar/dillig05.c_000.yml",
+      "repeat": 1,
+      "order": [
+        "candidate",
+        "base"
+      ],
+      "cpu": "AMD EPYC 4585PX 16-Core Processor",
+      "bun": "1.4.3",
+      "strictSeconds": 60,
+      "solve": [
+        "compare/chc/solve.ts",
+        "/tmp/lane-i-bar-BZqS2Y/input/vmt-chc-benchmarks/ctigar/dillig05.c_000.smt2",
+        "--runs-ms",
+        "5000",
+        "--houdini-ms",
+        "58000"
+      ],
+      "inputs": {
+        "https://raw.githubusercontent.com/chc-comp/chc-comp26-benchmarks/b4fa7a708e5863bbcdb5de50d692ead3a67cbedc/vmt-chc-benchmarks/ctigar/dillig05.c_000.yml": "8e5364428646dca9b2bef14042dbac8ede06fb75d4aacae07423cc1c491ce293",
+        "https://raw.githubusercontent.com/chc-comp/chc-comp26-benchmarks/b4fa7a708e5863bbcdb5de50d692ead3a67cbedc/vmt-chc-benchmarks/ctigar/dillig05.c_000.smt2": "45233fd0b0d4ec368f8ab7bd90215a73340cc985889fcfb0c5bd646e78202085"
+      },
+      "meta": {
+        "base": {
+          "revision": "b788e1959bba1f2e8aa1f94d4cf7c0eb163a2f9c",
+          "tree": "c46b265c960ff6b905bde5134844a175b40c12c9",
+          "submodules": "0b6ebeeec827b05210f3acfa4149a70dda9a0de5 vendor/gdp-ts (0b6ebee)\n d47141cce2caf5b86b0c2c0c372a5174f424bc15 vendor/handwired (d47141c)",
+          "clean": true
+        },
+        "candidate": {
+          "revision": "b09da82d9ada6e0cdc31f943292cfea727f5752e",
+          "tree": "19803daf80024fa074a1678c8a4feb6f57ee3c7f",
+          "submodules": "0b6ebeeec827b05210f3acfa4149a70dda9a0de5 vendor/gdp-ts (0b6ebee)\n d47141cce2caf5b86b0c2c0c372a5174f424bc15 vendor/handwired (d47141c)",
+          "clean": true
+        }
+      },
+      "hashes": {
+        "base": {
+          "research/protocols/ic3syn/jobs.ts": "3b72741a5b6ff1ce9ee86a4e8ba30a6318ee10554f9bf675c1c217cd92a1ea9c",
+          "research/protocols/ic3syn/run.ts": "a9fa1e966acf503db0804419f8af7b82cfec671f8fba528716ec5440ea70dd66",
+          "research/protocols/ic3syn/models.ts": "5d61b846a8331a9b7978b4809d53b88e5918135ded0fc6d527f2a6dc8fb3a601",
+          "research/protocols/models.ts": "ae2acd68175231e54e8590c2e35e04996282da22523d2fbac47d40e0adb078e4",
+          "research/protocols/run.ts": "f739b1d8c3f94e7718ae1029df4675f27b5d81211250b223678b6c5229946f87"
+        },
+        "candidate": {
+          "research/protocols/ic3syn/jobs.ts": "3b72741a5b6ff1ce9ee86a4e8ba30a6318ee10554f9bf675c1c217cd92a1ea9c",
+          "research/protocols/ic3syn/run.ts": "a9fa1e966acf503db0804419f8af7b82cfec671f8fba528716ec5440ea70dd66",
+          "research/protocols/ic3syn/models.ts": "7264a41611c0bab74b8b3549ac86663f4cb4d8ef8cac00528df0c2c7bcfbae93",
+          "research/protocols/models.ts": "ae2acd68175231e54e8590c2e35e04996282da22523d2fbac47d40e0adb078e4",
+          "research/protocols/run.ts": "f739b1d8c3f94e7718ae1029df4675f27b5d81211250b223678b6c5229946f87"
+        }
+      },
+      "outcomes": {
+        "candidate": {
+          "answer": "sat",
+          "exit": 0,
+          "signal": null,
+          "wallMs": 47042.922621
+        },
+        "base": {
+          "answer": "sat",
+          "exit": 0,
+          "signal": null,
+          "wallMs": 43204.621936
+        }
+      }
+    },
+    {
+      "index": 0,
+      "view": "chc",
+      "task": "vmt-chc-benchmarks/ctigar/dillig05.c_000.yml",
+      "repeat": 2,
+      "order": [
+        "base",
+        "candidate"
+      ],
+      "cpu": "AMD EPYC 4585PX 16-Core Processor",
+      "bun": "1.4.3",
+      "strictSeconds": 60,
+      "solve": [
+        "compare/chc/solve.ts",
+        "/tmp/lane-i-bar-BZqS2Y/input/vmt-chc-benchmarks/ctigar/dillig05.c_000.smt2",
+        "--runs-ms",
+        "5000",
+        "--houdini-ms",
+        "58000"
+      ],
+      "inputs": {
+        "https://raw.githubusercontent.com/chc-comp/chc-comp26-benchmarks/b4fa7a708e5863bbcdb5de50d692ead3a67cbedc/vmt-chc-benchmarks/ctigar/dillig05.c_000.yml": "8e5364428646dca9b2bef14042dbac8ede06fb75d4aacae07423cc1c491ce293",
+        "https://raw.githubusercontent.com/chc-comp/chc-comp26-benchmarks/b4fa7a708e5863bbcdb5de50d692ead3a67cbedc/vmt-chc-benchmarks/ctigar/dillig05.c_000.smt2": "45233fd0b0d4ec368f8ab7bd90215a73340cc985889fcfb0c5bd646e78202085"
+      },
+      "meta": {
+        "base": {
+          "revision": "b788e1959bba1f2e8aa1f94d4cf7c0eb163a2f9c",
+          "tree": "c46b265c960ff6b905bde5134844a175b40c12c9",
+          "submodules": "0b6ebeeec827b05210f3acfa4149a70dda9a0de5 vendor/gdp-ts (0b6ebee)\n d47141cce2caf5b86b0c2c0c372a5174f424bc15 vendor/handwired (d47141c)",
+          "clean": true
+        },
+        "candidate": {
+          "revision": "b09da82d9ada6e0cdc31f943292cfea727f5752e",
+          "tree": "19803daf80024fa074a1678c8a4feb6f57ee3c7f",
+          "submodules": "0b6ebeeec827b05210f3acfa4149a70dda9a0de5 vendor/gdp-ts (0b6ebee)\n d47141cce2caf5b86b0c2c0c372a5174f424bc15 vendor/handwired (d47141c)",
+          "clean": true
+        }
+      },
+      "hashes": {
+        "base": {
+          "research/protocols/ic3syn/jobs.ts": "3b72741a5b6ff1ce9ee86a4e8ba30a6318ee10554f9bf675c1c217cd92a1ea9c",
+          "research/protocols/ic3syn/run.ts": "a9fa1e966acf503db0804419f8af7b82cfec671f8fba528716ec5440ea70dd66",
+          "research/protocols/ic3syn/models.ts": "5d61b846a8331a9b7978b4809d53b88e5918135ded0fc6d527f2a6dc8fb3a601",
+          "research/protocols/models.ts": "ae2acd68175231e54e8590c2e35e04996282da22523d2fbac47d40e0adb078e4",
+          "research/protocols/run.ts": "f739b1d8c3f94e7718ae1029df4675f27b5d81211250b223678b6c5229946f87"
+        },
+        "candidate": {
+          "research/protocols/ic3syn/jobs.ts": "3b72741a5b6ff1ce9ee86a4e8ba30a6318ee10554f9bf675c1c217cd92a1ea9c",
+          "research/protocols/ic3syn/run.ts": "a9fa1e966acf503db0804419f8af7b82cfec671f8fba528716ec5440ea70dd66",
+          "research/protocols/ic3syn/models.ts": "7264a41611c0bab74b8b3549ac86663f4cb4d8ef8cac00528df0c2c7bcfbae93",
+          "research/protocols/models.ts": "ae2acd68175231e54e8590c2e35e04996282da22523d2fbac47d40e0adb078e4",
+          "research/protocols/run.ts": "f739b1d8c3f94e7718ae1029df4675f27b5d81211250b223678b6c5229946f87"
+        }
+      },
+      "outcomes": {
+        "base": {
+          "answer": "sat",
+          "exit": 0,
+          "signal": null,
+          "wallMs": 44617.784419999996
+        },
+        "candidate": {
+          "answer": "sat",
+          "exit": 0,
+          "signal": null,
+          "wallMs": 47661.554031999985
+        }
+      }
+    },
+    {
+      "index": 0,
+      "view": "chc",
+      "task": "vmt-chc-benchmarks/ctigar/dillig05.c_000.yml",
+      "repeat": 3,
+      "order": [
+        "candidate",
+        "base"
+      ],
+      "cpu": "AMD EPYC 4585PX 16-Core Processor",
+      "bun": "1.4.3",
+      "strictSeconds": 60,
+      "solve": [
+        "compare/chc/solve.ts",
+        "/tmp/lane-i-bar-BZqS2Y/input/vmt-chc-benchmarks/ctigar/dillig05.c_000.smt2",
+        "--runs-ms",
+        "5000",
+        "--houdini-ms",
+        "58000"
+      ],
+      "inputs": {
+        "https://raw.githubusercontent.com/chc-comp/chc-comp26-benchmarks/b4fa7a708e5863bbcdb5de50d692ead3a67cbedc/vmt-chc-benchmarks/ctigar/dillig05.c_000.yml": "8e5364428646dca9b2bef14042dbac8ede06fb75d4aacae07423cc1c491ce293",
+        "https://raw.githubusercontent.com/chc-comp/chc-comp26-benchmarks/b4fa7a708e5863bbcdb5de50d692ead3a67cbedc/vmt-chc-benchmarks/ctigar/dillig05.c_000.smt2": "45233fd0b0d4ec368f8ab7bd90215a73340cc985889fcfb0c5bd646e78202085"
+      },
+      "meta": {
+        "base": {
+          "revision": "b788e1959bba1f2e8aa1f94d4cf7c0eb163a2f9c",
+          "tree": "c46b265c960ff6b905bde5134844a175b40c12c9",
+          "submodules": "0b6ebeeec827b05210f3acfa4149a70dda9a0de5 vendor/gdp-ts (0b6ebee)\n d47141cce2caf5b86b0c2c0c372a5174f424bc15 vendor/handwired (d47141c)",
+          "clean": true
+        },
+        "candidate": {
+          "revision": "b09da82d9ada6e0cdc31f943292cfea727f5752e",
+          "tree": "19803daf80024fa074a1678c8a4feb6f57ee3c7f",
+          "submodules": "0b6ebeeec827b05210f3acfa4149a70dda9a0de5 vendor/gdp-ts (0b6ebee)\n d47141cce2caf5b86b0c2c0c372a5174f424bc15 vendor/handwired (d47141c)",
+          "clean": true
+        }
+      },
+      "hashes": {
+        "base": {
+          "research/protocols/ic3syn/jobs.ts": "3b72741a5b6ff1ce9ee86a4e8ba30a6318ee10554f9bf675c1c217cd92a1ea9c",
+          "research/protocols/ic3syn/run.ts": "a9fa1e966acf503db0804419f8af7b82cfec671f8fba528716ec5440ea70dd66",
+          "research/protocols/ic3syn/models.ts": "5d61b846a8331a9b7978b4809d53b88e5918135ded0fc6d527f2a6dc8fb3a601",
+          "research/protocols/models.ts": "ae2acd68175231e54e8590c2e35e04996282da22523d2fbac47d40e0adb078e4",
+          "research/protocols/run.ts": "f739b1d8c3f94e7718ae1029df4675f27b5d81211250b223678b6c5229946f87"
+        },
+        "candidate": {
+          "research/protocols/ic3syn/jobs.ts": "3b72741a5b6ff1ce9ee86a4e8ba30a6318ee10554f9bf675c1c217cd92a1ea9c",
+          "research/protocols/ic3syn/run.ts": "a9fa1e966acf503db0804419f8af7b82cfec671f8fba528716ec5440ea70dd66",
+          "research/protocols/ic3syn/models.ts": "7264a41611c0bab74b8b3549ac86663f4cb4d8ef8cac00528df0c2c7bcfbae93",
+          "research/protocols/models.ts": "ae2acd68175231e54e8590c2e35e04996282da22523d2fbac47d40e0adb078e4",
+          "research/protocols/run.ts": "f739b1d8c3f94e7718ae1029df4675f27b5d81211250b223678b6c5229946f87"
+        }
+      },
+      "outcomes": {
+        "candidate": {
+          "answer": "sat",
+          "exit": 0,
+          "signal": null,
+          "wallMs": 51087.53786099999
+        },
+        "base": {
+          "answer": "sat",
+          "exit": 0,
+          "signal": null,
+          "wallMs": 50748.33514499999
+        }
+      }
+    },
+    {
+      "index": 1,
+      "view": "chc",
+      "task": "vmt-chc-benchmarks/ctigar/seesaw.c_000.yml",
+      "repeat": 1,
+      "order": [
+        "base",
+        "candidate"
+      ],
+      "cpu": "AMD Ryzen 7 9700X 8-Core Processor",
+      "bun": "1.4.3",
+      "strictSeconds": 60,
+      "solve": [
+        "compare/chc/solve.ts",
+        "/tmp/lane-i-bar-nZyhPa/input/vmt-chc-benchmarks/ctigar/seesaw.c_000.smt2",
+        "--runs-ms",
+        "5000",
+        "--houdini-ms",
+        "58000"
+      ],
+      "inputs": {
+        "https://raw.githubusercontent.com/chc-comp/chc-comp26-benchmarks/b4fa7a708e5863bbcdb5de50d692ead3a67cbedc/vmt-chc-benchmarks/ctigar/seesaw.c_000.yml": "0713a3fd9721b16e464a9f0031e3a2c32f82c096e1ce1ff0047392ed15e392a8",
+        "https://raw.githubusercontent.com/chc-comp/chc-comp26-benchmarks/b4fa7a708e5863bbcdb5de50d692ead3a67cbedc/vmt-chc-benchmarks/ctigar/seesaw.c_000.smt2": "7ba72fd7f53ea736fb0c9028adb5f8807a20ca04fe27f2c5107bf835f9750118"
+      },
+      "meta": {
+        "base": {
+          "revision": "b788e1959bba1f2e8aa1f94d4cf7c0eb163a2f9c",
+          "tree": "c46b265c960ff6b905bde5134844a175b40c12c9",
+          "submodules": "0b6ebeeec827b05210f3acfa4149a70dda9a0de5 vendor/gdp-ts (0b6ebee)\n d47141cce2caf5b86b0c2c0c372a5174f424bc15 vendor/handwired (d47141c)",
+          "clean": true
+        },
+        "candidate": {
+          "revision": "b09da82d9ada6e0cdc31f943292cfea727f5752e",
+          "tree": "19803daf80024fa074a1678c8a4feb6f57ee3c7f",
+          "submodules": "0b6ebeeec827b05210f3acfa4149a70dda9a0de5 vendor/gdp-ts (0b6ebee)\n d47141cce2caf5b86b0c2c0c372a5174f424bc15 vendor/handwired (d47141c)",
+          "clean": true
+        }
+      },
+      "hashes": {
+        "base": {
+          "research/protocols/ic3syn/jobs.ts": "3b72741a5b6ff1ce9ee86a4e8ba30a6318ee10554f9bf675c1c217cd92a1ea9c",
+          "research/protocols/ic3syn/run.ts": "a9fa1e966acf503db0804419f8af7b82cfec671f8fba528716ec5440ea70dd66",
+          "research/protocols/ic3syn/models.ts": "5d61b846a8331a9b7978b4809d53b88e5918135ded0fc6d527f2a6dc8fb3a601",
+          "research/protocols/models.ts": "ae2acd68175231e54e8590c2e35e04996282da22523d2fbac47d40e0adb078e4",
+          "research/protocols/run.ts": "f739b1d8c3f94e7718ae1029df4675f27b5d81211250b223678b6c5229946f87"
+        },
+        "candidate": {
+          "research/protocols/ic3syn/jobs.ts": "3b72741a5b6ff1ce9ee86a4e8ba30a6318ee10554f9bf675c1c217cd92a1ea9c",
+          "research/protocols/ic3syn/run.ts": "a9fa1e966acf503db0804419f8af7b82cfec671f8fba528716ec5440ea70dd66",
+          "research/protocols/ic3syn/models.ts": "7264a41611c0bab74b8b3549ac86663f4cb4d8ef8cac00528df0c2c7bcfbae93",
+          "research/protocols/models.ts": "ae2acd68175231e54e8590c2e35e04996282da22523d2fbac47d40e0adb078e4",
+          "research/protocols/run.ts": "f739b1d8c3f94e7718ae1029df4675f27b5d81211250b223678b6c5229946f87"
+        }
+      },
+      "outcomes": {
+        "base": {
+          "answer": "sat",
+          "exit": null,
+          "signal": "SIGKILL",
+          "wallMs": 22927.794722
+        },
+        "candidate": {
+          "answer": "sat",
+          "exit": null,
+          "signal": "SIGKILL",
+          "wallMs": 19579.026928
+        }
+      }
+    },
+    {
+      "index": 1,
+      "view": "chc",
+      "task": "vmt-chc-benchmarks/ctigar/seesaw.c_000.yml",
+      "repeat": 2,
+      "order": [
+        "candidate",
+        "base"
+      ],
+      "cpu": "AMD Ryzen 7 9700X 8-Core Processor",
+      "bun": "1.4.3",
+      "strictSeconds": 60,
+      "solve": [
+        "compare/chc/solve.ts",
+        "/tmp/lane-i-bar-nZyhPa/input/vmt-chc-benchmarks/ctigar/seesaw.c_000.smt2",
+        "--runs-ms",
+        "5000",
+        "--houdini-ms",
+        "58000"
+      ],
+      "inputs": {
+        "https://raw.githubusercontent.com/chc-comp/chc-comp26-benchmarks/b4fa7a708e5863bbcdb5de50d692ead3a67cbedc/vmt-chc-benchmarks/ctigar/seesaw.c_000.yml": "0713a3fd9721b16e464a9f0031e3a2c32f82c096e1ce1ff0047392ed15e392a8",
+        "https://raw.githubusercontent.com/chc-comp/chc-comp26-benchmarks/b4fa7a708e5863bbcdb5de50d692ead3a67cbedc/vmt-chc-benchmarks/ctigar/seesaw.c_000.smt2": "7ba72fd7f53ea736fb0c9028adb5f8807a20ca04fe27f2c5107bf835f9750118"
+      },
+      "meta": {
+        "base": {
+          "revision": "b788e1959bba1f2e8aa1f94d4cf7c0eb163a2f9c",
+          "tree": "c46b265c960ff6b905bde5134844a175b40c12c9",
+          "submodules": "0b6ebeeec827b05210f3acfa4149a70dda9a0de5 vendor/gdp-ts (0b6ebee)\n d47141cce2caf5b86b0c2c0c372a5174f424bc15 vendor/handwired (d47141c)",
+          "clean": true
+        },
+        "candidate": {
+          "revision": "b09da82d9ada6e0cdc31f943292cfea727f5752e",
+          "tree": "19803daf80024fa074a1678c8a4feb6f57ee3c7f",
+          "submodules": "0b6ebeeec827b05210f3acfa4149a70dda9a0de5 vendor/gdp-ts (0b6ebee)\n d47141cce2caf5b86b0c2c0c372a5174f424bc15 vendor/handwired (d47141c)",
+          "clean": true
+        }
+      },
+      "hashes": {
+        "base": {
+          "research/protocols/ic3syn/jobs.ts": "3b72741a5b6ff1ce9ee86a4e8ba30a6318ee10554f9bf675c1c217cd92a1ea9c",
+          "research/protocols/ic3syn/run.ts": "a9fa1e966acf503db0804419f8af7b82cfec671f8fba528716ec5440ea70dd66",
+          "research/protocols/ic3syn/models.ts": "5d61b846a8331a9b7978b4809d53b88e5918135ded0fc6d527f2a6dc8fb3a601",
+          "research/protocols/models.ts": "ae2acd68175231e54e8590c2e35e04996282da22523d2fbac47d40e0adb078e4",
+          "research/protocols/run.ts": "f739b1d8c3f94e7718ae1029df4675f27b5d81211250b223678b6c5229946f87"
+        },
+        "candidate": {
+          "research/protocols/ic3syn/jobs.ts": "3b72741a5b6ff1ce9ee86a4e8ba30a6318ee10554f9bf675c1c217cd92a1ea9c",
+          "research/protocols/ic3syn/run.ts": "a9fa1e966acf503db0804419f8af7b82cfec671f8fba528716ec5440ea70dd66",
+          "research/protocols/ic3syn/models.ts": "7264a41611c0bab74b8b3549ac86663f4cb4d8ef8cac00528df0c2c7bcfbae93",
+          "research/protocols/models.ts": "ae2acd68175231e54e8590c2e35e04996282da22523d2fbac47d40e0adb078e4",
+          "research/protocols/run.ts": "f739b1d8c3f94e7718ae1029df4675f27b5d81211250b223678b6c5229946f87"
+        }
+      },
+      "outcomes": {
+        "candidate": {
+          "answer": "sat",
+          "exit": null,
+          "signal": "SIGKILL",
+          "wallMs": 28093.016617
+        },
+        "base": {
+          "answer": "sat",
+          "exit": null,
+          "signal": "SIGKILL",
+          "wallMs": 20788.44101899999
+        }
+      }
+    },
+    {
+      "index": 1,
+      "view": "chc",
+      "task": "vmt-chc-benchmarks/ctigar/seesaw.c_000.yml",
+      "repeat": 3,
+      "order": [
+        "base",
+        "candidate"
+      ],
+      "cpu": "AMD Ryzen 7 9700X 8-Core Processor",
+      "bun": "1.4.3",
+      "strictSeconds": 60,
+      "solve": [
+        "compare/chc/solve.ts",
+        "/tmp/lane-i-bar-nZyhPa/input/vmt-chc-benchmarks/ctigar/seesaw.c_000.smt2",
+        "--runs-ms",
+        "5000",
+        "--houdini-ms",
+        "58000"
+      ],
+      "inputs": {
+        "https://raw.githubusercontent.com/chc-comp/chc-comp26-benchmarks/b4fa7a708e5863bbcdb5de50d692ead3a67cbedc/vmt-chc-benchmarks/ctigar/seesaw.c_000.yml": "0713a3fd9721b16e464a9f0031e3a2c32f82c096e1ce1ff0047392ed15e392a8",
+        "https://raw.githubusercontent.com/chc-comp/chc-comp26-benchmarks/b4fa7a708e5863bbcdb5de50d692ead3a67cbedc/vmt-chc-benchmarks/ctigar/seesaw.c_000.smt2": "7ba72fd7f53ea736fb0c9028adb5f8807a20ca04fe27f2c5107bf835f9750118"
+      },
+      "meta": {
+        "base": {
+          "revision": "b788e1959bba1f2e8aa1f94d4cf7c0eb163a2f9c",
+          "tree": "c46b265c960ff6b905bde5134844a175b40c12c9",
+          "submodules": "0b6ebeeec827b05210f3acfa4149a70dda9a0de5 vendor/gdp-ts (0b6ebee)\n d47141cce2caf5b86b0c2c0c372a5174f424bc15 vendor/handwired (d47141c)",
+          "clean": true
+        },
+        "candidate": {
+          "revision": "b09da82d9ada6e0cdc31f943292cfea727f5752e",
+          "tree": "19803daf80024fa074a1678c8a4feb6f57ee3c7f",
+          "submodules": "0b6ebeeec827b05210f3acfa4149a70dda9a0de5 vendor/gdp-ts (0b6ebee)\n d47141cce2caf5b86b0c2c0c372a5174f424bc15 vendor/handwired (d47141c)",
+          "clean": true
+        }
+      },
+      "hashes": {
+        "base": {
+          "research/protocols/ic3syn/jobs.ts": "3b72741a5b6ff1ce9ee86a4e8ba30a6318ee10554f9bf675c1c217cd92a1ea9c",
+          "research/protocols/ic3syn/run.ts": "a9fa1e966acf503db0804419f8af7b82cfec671f8fba528716ec5440ea70dd66",
+          "research/protocols/ic3syn/models.ts": "5d61b846a8331a9b7978b4809d53b88e5918135ded0fc6d527f2a6dc8fb3a601",
+          "research/protocols/models.ts": "ae2acd68175231e54e8590c2e35e04996282da22523d2fbac47d40e0adb078e4",
+          "research/protocols/run.ts": "f739b1d8c3f94e7718ae1029df4675f27b5d81211250b223678b6c5229946f87"
+        },
+        "candidate": {
+          "research/protocols/ic3syn/jobs.ts": "3b72741a5b6ff1ce9ee86a4e8ba30a6318ee10554f9bf675c1c217cd92a1ea9c",
+          "research/protocols/ic3syn/run.ts": "a9fa1e966acf503db0804419f8af7b82cfec671f8fba528716ec5440ea70dd66",
+          "research/protocols/ic3syn/models.ts": "7264a41611c0bab74b8b3549ac86663f4cb4d8ef8cac00528df0c2c7bcfbae93",
+          "research/protocols/models.ts": "ae2acd68175231e54e8590c2e35e04996282da22523d2fbac47d40e0adb078e4",
+          "research/protocols/run.ts": "f739b1d8c3f94e7718ae1029df4675f27b5d81211250b223678b6c5229946f87"
+        }
+      },
+      "outcomes": {
+        "base": {
+          "answer": "sat",
+          "exit": null,
+          "signal": "SIGKILL",
+          "wallMs": 18487.240907
+        },
+        "candidate": {
+          "answer": "sat",
+          "exit": null,
+          "signal": "SIGKILL",
+          "wallMs": 22738.500929
+        }
+      }
+    },
+    {
+      "index": 2,
+      "view": "chc",
+      "task": "vmt-chc-benchmarks/lustre/DRAGON_4_000_001.yml",
+      "repeat": 1,
+      "order": [
+        "candidate",
+        "base"
+      ],
+      "cpu": "AMD EPYC 4585PX 16-Core Processor",
+      "bun": "1.4.3",
+      "strictSeconds": 60,
+      "solve": [
+        "compare/chc/solve.ts",
+        "/tmp/lane-i-bar-U6gaDr/input/vmt-chc-benchmarks/lustre/DRAGON_4_000.smt2",
+        "--runs-ms",
+        "5000",
+        "--houdini-ms",
+        "58000"
+      ],
+      "inputs": {
+        "https://raw.githubusercontent.com/chc-comp/chc-comp26-benchmarks/b4fa7a708e5863bbcdb5de50d692ead3a67cbedc/vmt-chc-benchmarks/lustre/DRAGON_4_000_001.yml": "a9426b526cca0a923749d414f7b28585896f53a087deb1e798a8d1f7f6a57f24",
+        "https://raw.githubusercontent.com/chc-comp/chc-comp26-benchmarks/b4fa7a708e5863bbcdb5de50d692ead3a67cbedc/vmt-chc-benchmarks/lustre/DRAGON_4_000.smt2": "a810c466f31f7932a086d59471019b9f79ad41147411ad4c9546b17a5e40915a"
+      },
+      "meta": {
+        "base": {
+          "revision": "b788e1959bba1f2e8aa1f94d4cf7c0eb163a2f9c",
+          "tree": "c46b265c960ff6b905bde5134844a175b40c12c9",
+          "submodules": "0b6ebeeec827b05210f3acfa4149a70dda9a0de5 vendor/gdp-ts (0b6ebee)\n d47141cce2caf5b86b0c2c0c372a5174f424bc15 vendor/handwired (d47141c)",
+          "clean": true
+        },
+        "candidate": {
+          "revision": "b09da82d9ada6e0cdc31f943292cfea727f5752e",
+          "tree": "19803daf80024fa074a1678c8a4feb6f57ee3c7f",
+          "submodules": "0b6ebeeec827b05210f3acfa4149a70dda9a0de5 vendor/gdp-ts (0b6ebee)\n d47141cce2caf5b86b0c2c0c372a5174f424bc15 vendor/handwired (d47141c)",
+          "clean": true
+        }
+      },
+      "hashes": {
+        "base": {
+          "research/protocols/ic3syn/jobs.ts": "3b72741a5b6ff1ce9ee86a4e8ba30a6318ee10554f9bf675c1c217cd92a1ea9c",
+          "research/protocols/ic3syn/run.ts": "a9fa1e966acf503db0804419f8af7b82cfec671f8fba528716ec5440ea70dd66",
+          "research/protocols/ic3syn/models.ts": "5d61b846a8331a9b7978b4809d53b88e5918135ded0fc6d527f2a6dc8fb3a601",
+          "research/protocols/models.ts": "ae2acd68175231e54e8590c2e35e04996282da22523d2fbac47d40e0adb078e4",
+          "research/protocols/run.ts": "f739b1d8c3f94e7718ae1029df4675f27b5d81211250b223678b6c5229946f87"
+        },
+        "candidate": {
+          "research/protocols/ic3syn/jobs.ts": "3b72741a5b6ff1ce9ee86a4e8ba30a6318ee10554f9bf675c1c217cd92a1ea9c",
+          "research/protocols/ic3syn/run.ts": "a9fa1e966acf503db0804419f8af7b82cfec671f8fba528716ec5440ea70dd66",
+          "research/protocols/ic3syn/models.ts": "7264a41611c0bab74b8b3549ac86663f4cb4d8ef8cac00528df0c2c7bcfbae93",
+          "research/protocols/models.ts": "ae2acd68175231e54e8590c2e35e04996282da22523d2fbac47d40e0adb078e4",
+          "research/protocols/run.ts": "f739b1d8c3f94e7718ae1029df4675f27b5d81211250b223678b6c5229946f87"
+        }
+      },
+      "outcomes": {
+        "candidate": {
+          "answer": "sat",
+          "exit": null,
+          "signal": "SIGKILL",
+          "wallMs": 45999.654996
+        },
+        "base": {
+          "answer": "sat",
+          "exit": null,
+          "signal": "SIGKILL",
+          "wallMs": 50509.064031999995
+        }
+      }
+    },
+    {
+      "index": 2,
+      "view": "chc",
+      "task": "vmt-chc-benchmarks/lustre/DRAGON_4_000_001.yml",
+      "repeat": 2,
+      "order": [
+        "base",
+        "candidate"
+      ],
+      "cpu": "AMD EPYC 4585PX 16-Core Processor",
+      "bun": "1.4.3",
+      "strictSeconds": 60,
+      "solve": [
+        "compare/chc/solve.ts",
+        "/tmp/lane-i-bar-U6gaDr/input/vmt-chc-benchmarks/lustre/DRAGON_4_000.smt2",
+        "--runs-ms",
+        "5000",
+        "--houdini-ms",
+        "58000"
+      ],
+      "inputs": {
+        "https://raw.githubusercontent.com/chc-comp/chc-comp26-benchmarks/b4fa7a708e5863bbcdb5de50d692ead3a67cbedc/vmt-chc-benchmarks/lustre/DRAGON_4_000_001.yml": "a9426b526cca0a923749d414f7b28585896f53a087deb1e798a8d1f7f6a57f24",
+        "https://raw.githubusercontent.com/chc-comp/chc-comp26-benchmarks/b4fa7a708e5863bbcdb5de50d692ead3a67cbedc/vmt-chc-benchmarks/lustre/DRAGON_4_000.smt2": "a810c466f31f7932a086d59471019b9f79ad41147411ad4c9546b17a5e40915a"
+      },
+      "meta": {
+        "base": {
+          "revision": "b788e1959bba1f2e8aa1f94d4cf7c0eb163a2f9c",
+          "tree": "c46b265c960ff6b905bde5134844a175b40c12c9",
+          "submodules": "0b6ebeeec827b05210f3acfa4149a70dda9a0de5 vendor/gdp-ts (0b6ebee)\n d47141cce2caf5b86b0c2c0c372a5174f424bc15 vendor/handwired (d47141c)",
+          "clean": true
+        },
+        "candidate": {
+          "revision": "b09da82d9ada6e0cdc31f943292cfea727f5752e",
+          "tree": "19803daf80024fa074a1678c8a4feb6f57ee3c7f",
+          "submodules": "0b6ebeeec827b05210f3acfa4149a70dda9a0de5 vendor/gdp-ts (0b6ebee)\n d47141cce2caf5b86b0c2c0c372a5174f424bc15 vendor/handwired (d47141c)",
+          "clean": true
+        }
+      },
+      "hashes": {
+        "base": {
+          "research/protocols/ic3syn/jobs.ts": "3b72741a5b6ff1ce9ee86a4e8ba30a6318ee10554f9bf675c1c217cd92a1ea9c",
+          "research/protocols/ic3syn/run.ts": "a9fa1e966acf503db0804419f8af7b82cfec671f8fba528716ec5440ea70dd66",
+          "research/protocols/ic3syn/models.ts": "5d61b846a8331a9b7978b4809d53b88e5918135ded0fc6d527f2a6dc8fb3a601",
+          "research/protocols/models.ts": "ae2acd68175231e54e8590c2e35e04996282da22523d2fbac47d40e0adb078e4",
+          "research/protocols/run.ts": "f739b1d8c3f94e7718ae1029df4675f27b5d81211250b223678b6c5229946f87"
+        },
+        "candidate": {
+          "research/protocols/ic3syn/jobs.ts": "3b72741a5b6ff1ce9ee86a4e8ba30a6318ee10554f9bf675c1c217cd92a1ea9c",
+          "research/protocols/ic3syn/run.ts": "a9fa1e966acf503db0804419f8af7b82cfec671f8fba528716ec5440ea70dd66",
+          "research/protocols/ic3syn/models.ts": "7264a41611c0bab74b8b3549ac86663f4cb4d8ef8cac00528df0c2c7bcfbae93",
+          "research/protocols/models.ts": "ae2acd68175231e54e8590c2e35e04996282da22523d2fbac47d40e0adb078e4",
+          "research/protocols/run.ts": "f739b1d8c3f94e7718ae1029df4675f27b5d81211250b223678b6c5229946f87"
+        }
+      },
+      "outcomes": {
+        "base": {
+          "answer": "sat",
+          "exit": null,
+          "signal": "SIGKILL",
+          "wallMs": 41832.49507399999
+        },
+        "candidate": {
+          "answer": "unknown",
+          "exit": 0,
+          "signal": null,
+          "wallMs": 58628.805301000015
+        }
+      }
+    },
+    {
+      "index": 2,
+      "view": "chc",
+      "task": "vmt-chc-benchmarks/lustre/DRAGON_4_000_001.yml",
+      "repeat": 3,
+      "order": [
+        "candidate",
+        "base"
+      ],
+      "cpu": "AMD EPYC 4585PX 16-Core Processor",
+      "bun": "1.4.3",
+      "strictSeconds": 60,
+      "solve": [
+        "compare/chc/solve.ts",
+        "/tmp/lane-i-bar-U6gaDr/input/vmt-chc-benchmarks/lustre/DRAGON_4_000.smt2",
+        "--runs-ms",
+        "5000",
+        "--houdini-ms",
+        "58000"
+      ],
+      "inputs": {
+        "https://raw.githubusercontent.com/chc-comp/chc-comp26-benchmarks/b4fa7a708e5863bbcdb5de50d692ead3a67cbedc/vmt-chc-benchmarks/lustre/DRAGON_4_000_001.yml": "a9426b526cca0a923749d414f7b28585896f53a087deb1e798a8d1f7f6a57f24",
+        "https://raw.githubusercontent.com/chc-comp/chc-comp26-benchmarks/b4fa7a708e5863bbcdb5de50d692ead3a67cbedc/vmt-chc-benchmarks/lustre/DRAGON_4_000.smt2": "a810c466f31f7932a086d59471019b9f79ad41147411ad4c9546b17a5e40915a"
+      },
+      "meta": {
+        "base": {
+          "revision": "b788e1959bba1f2e8aa1f94d4cf7c0eb163a2f9c",
+          "tree": "c46b265c960ff6b905bde5134844a175b40c12c9",
+          "submodules": "0b6ebeeec827b05210f3acfa4149a70dda9a0de5 vendor/gdp-ts (0b6ebee)\n d47141cce2caf5b86b0c2c0c372a5174f424bc15 vendor/handwired (d47141c)",
+          "clean": true
+        },
+        "candidate": {
+          "revision": "b09da82d9ada6e0cdc31f943292cfea727f5752e",
+          "tree": "19803daf80024fa074a1678c8a4feb6f57ee3c7f",
+          "submodules": "0b6ebeeec827b05210f3acfa4149a70dda9a0de5 vendor/gdp-ts (0b6ebee)\n d47141cce2caf5b86b0c2c0c372a5174f424bc15 vendor/handwired (d47141c)",
+          "clean": true
+        }
+      },
+      "hashes": {
+        "base": {
+          "research/protocols/ic3syn/jobs.ts": "3b72741a5b6ff1ce9ee86a4e8ba30a6318ee10554f9bf675c1c217cd92a1ea9c",
+          "research/protocols/ic3syn/run.ts": "a9fa1e966acf503db0804419f8af7b82cfec671f8fba528716ec5440ea70dd66",
+          "research/protocols/ic3syn/models.ts": "5d61b846a8331a9b7978b4809d53b88e5918135ded0fc6d527f2a6dc8fb3a601",
+          "research/protocols/models.ts": "ae2acd68175231e54e8590c2e35e04996282da22523d2fbac47d40e0adb078e4",
+          "research/protocols/run.ts": "f739b1d8c3f94e7718ae1029df4675f27b5d81211250b223678b6c5229946f87"
+        },
+        "candidate": {
+          "research/protocols/ic3syn/jobs.ts": "3b72741a5b6ff1ce9ee86a4e8ba30a6318ee10554f9bf675c1c217cd92a1ea9c",
+          "research/protocols/ic3syn/run.ts": "a9fa1e966acf503db0804419f8af7b82cfec671f8fba528716ec5440ea70dd66",
+          "research/protocols/ic3syn/models.ts": "7264a41611c0bab74b8b3549ac86663f4cb4d8ef8cac00528df0c2c7bcfbae93",
+          "research/protocols/models.ts": "ae2acd68175231e54e8590c2e35e04996282da22523d2fbac47d40e0adb078e4",
+          "research/protocols/run.ts": "f739b1d8c3f94e7718ae1029df4675f27b5d81211250b223678b6c5229946f87"
+        }
+      },
+      "outcomes": {
+        "candidate": {
+          "answer": "unknown",
+          "exit": 0,
+          "signal": null,
+          "wallMs": 58581.99056399998
+        },
+        "base": {
+          "answer": "sat",
+          "exit": null,
+          "signal": "SIGKILL",
+          "wallMs": 52898.147880000004
+        }
+      }
+    },
+    {
+      "index": 3,
+      "view": "chc",
+      "task": "vmt-chc-benchmarks/lustre/DRAGON_4_e2_2799_000_001.yml",
+      "repeat": 1,
+      "order": [
+        "base",
+        "candidate"
+      ],
+      "cpu": "AMD Ryzen 7 9700X 8-Core Processor",
+      "bun": "1.4.3",
+      "strictSeconds": 60,
+      "solve": [
+        "compare/chc/solve.ts",
+        "/tmp/lane-i-bar-fvxwJp/input/vmt-chc-benchmarks/lustre/DRAGON_4_e2_2799_000.smt2",
+        "--runs-ms",
+        "5000",
+        "--houdini-ms",
+        "58000"
+      ],
+      "inputs": {
+        "https://raw.githubusercontent.com/chc-comp/chc-comp26-benchmarks/b4fa7a708e5863bbcdb5de50d692ead3a67cbedc/vmt-chc-benchmarks/lustre/DRAGON_4_e2_2799_000_001.yml": "0feacde6921f164fdec3447fa79e3b25b836815a970c69d817e687aee9bcf399",
+        "https://raw.githubusercontent.com/chc-comp/chc-comp26-benchmarks/b4fa7a708e5863bbcdb5de50d692ead3a67cbedc/vmt-chc-benchmarks/lustre/DRAGON_4_e2_2799_000.smt2": "6c48232279f61fff2c0000c1352a99d8db65448142415ef057a147c1d056b5cd"
+      },
+      "meta": {
+        "base": {
+          "revision": "b788e1959bba1f2e8aa1f94d4cf7c0eb163a2f9c",
+          "tree": "c46b265c960ff6b905bde5134844a175b40c12c9",
+          "submodules": "0b6ebeeec827b05210f3acfa4149a70dda9a0de5 vendor/gdp-ts (0b6ebee)\n d47141cce2caf5b86b0c2c0c372a5174f424bc15 vendor/handwired (d47141c)",
+          "clean": true
+        },
+        "candidate": {
+          "revision": "b09da82d9ada6e0cdc31f943292cfea727f5752e",
+          "tree": "19803daf80024fa074a1678c8a4feb6f57ee3c7f",
+          "submodules": "0b6ebeeec827b05210f3acfa4149a70dda9a0de5 vendor/gdp-ts (0b6ebee)\n d47141cce2caf5b86b0c2c0c372a5174f424bc15 vendor/handwired (d47141c)",
+          "clean": true
+        }
+      },
+      "hashes": {
+        "base": {
+          "research/protocols/ic3syn/jobs.ts": "3b72741a5b6ff1ce9ee86a4e8ba30a6318ee10554f9bf675c1c217cd92a1ea9c",
+          "research/protocols/ic3syn/run.ts": "a9fa1e966acf503db0804419f8af7b82cfec671f8fba528716ec5440ea70dd66",
+          "research/protocols/ic3syn/models.ts": "5d61b846a8331a9b7978b4809d53b88e5918135ded0fc6d527f2a6dc8fb3a601",
+          "research/protocols/models.ts": "ae2acd68175231e54e8590c2e35e04996282da22523d2fbac47d40e0adb078e4",
+          "research/protocols/run.ts": "f739b1d8c3f94e7718ae1029df4675f27b5d81211250b223678b6c5229946f87"
+        },
+        "candidate": {
+          "research/protocols/ic3syn/jobs.ts": "3b72741a5b6ff1ce9ee86a4e8ba30a6318ee10554f9bf675c1c217cd92a1ea9c",
+          "research/protocols/ic3syn/run.ts": "a9fa1e966acf503db0804419f8af7b82cfec671f8fba528716ec5440ea70dd66",
+          "research/protocols/ic3syn/models.ts": "7264a41611c0bab74b8b3549ac86663f4cb4d8ef8cac00528df0c2c7bcfbae93",
+          "research/protocols/models.ts": "ae2acd68175231e54e8590c2e35e04996282da22523d2fbac47d40e0adb078e4",
+          "research/protocols/run.ts": "f739b1d8c3f94e7718ae1029df4675f27b5d81211250b223678b6c5229946f87"
+        }
+      },
+      "outcomes": {
+        "base": {
+          "answer": "sat",
+          "exit": null,
+          "signal": "SIGKILL",
+          "wallMs": 54628.51657400001
+        },
+        "candidate": {
+          "answer": "sat",
+          "exit": null,
+          "signal": "SIGKILL",
+          "wallMs": 44857.521643
+        }
+      }
+    },
+    {
+      "index": 3,
+      "view": "chc",
+      "task": "vmt-chc-benchmarks/lustre/DRAGON_4_e2_2799_000_001.yml",
+      "repeat": 2,
+      "order": [
+        "candidate",
+        "base"
+      ],
+      "cpu": "AMD Ryzen 7 9700X 8-Core Processor",
+      "bun": "1.4.3",
+      "strictSeconds": 60,
+      "solve": [
+        "compare/chc/solve.ts",
+        "/tmp/lane-i-bar-fvxwJp/input/vmt-chc-benchmarks/lustre/DRAGON_4_e2_2799_000.smt2",
+        "--runs-ms",
+        "5000",
+        "--houdini-ms",
+        "58000"
+      ],
+      "inputs": {
+        "https://raw.githubusercontent.com/chc-comp/chc-comp26-benchmarks/b4fa7a708e5863bbcdb5de50d692ead3a67cbedc/vmt-chc-benchmarks/lustre/DRAGON_4_e2_2799_000_001.yml": "0feacde6921f164fdec3447fa79e3b25b836815a970c69d817e687aee9bcf399",
+        "https://raw.githubusercontent.com/chc-comp/chc-comp26-benchmarks/b4fa7a708e5863bbcdb5de50d692ead3a67cbedc/vmt-chc-benchmarks/lustre/DRAGON_4_e2_2799_000.smt2": "6c48232279f61fff2c0000c1352a99d8db65448142415ef057a147c1d056b5cd"
+      },
+      "meta": {
+        "base": {
+          "revision": "b788e1959bba1f2e8aa1f94d4cf7c0eb163a2f9c",
+          "tree": "c46b265c960ff6b905bde5134844a175b40c12c9",
+          "submodules": "0b6ebeeec827b05210f3acfa4149a70dda9a0de5 vendor/gdp-ts (0b6ebee)\n d47141cce2caf5b86b0c2c0c372a5174f424bc15 vendor/handwired (d47141c)",
+          "clean": true
+        },
+        "candidate": {
+          "revision": "b09da82d9ada6e0cdc31f943292cfea727f5752e",
+          "tree": "19803daf80024fa074a1678c8a4feb6f57ee3c7f",
+          "submodules": "0b6ebeeec827b05210f3acfa4149a70dda9a0de5 vendor/gdp-ts (0b6ebee)\n d47141cce2caf5b86b0c2c0c372a5174f424bc15 vendor/handwired (d47141c)",
+          "clean": true
+        }
+      },
+      "hashes": {
+        "base": {
+          "research/protocols/ic3syn/jobs.ts": "3b72741a5b6ff1ce9ee86a4e8ba30a6318ee10554f9bf675c1c217cd92a1ea9c",
+          "research/protocols/ic3syn/run.ts": "a9fa1e966acf503db0804419f8af7b82cfec671f8fba528716ec5440ea70dd66",
+          "research/protocols/ic3syn/models.ts": "5d61b846a8331a9b7978b4809d53b88e5918135ded0fc6d527f2a6dc8fb3a601",
+          "research/protocols/models.ts": "ae2acd68175231e54e8590c2e35e04996282da22523d2fbac47d40e0adb078e4",
+          "research/protocols/run.ts": "f739b1d8c3f94e7718ae1029df4675f27b5d81211250b223678b6c5229946f87"
+        },
+        "candidate": {
+          "research/protocols/ic3syn/jobs.ts": "3b72741a5b6ff1ce9ee86a4e8ba30a6318ee10554f9bf675c1c217cd92a1ea9c",
+          "research/protocols/ic3syn/run.ts": "a9fa1e966acf503db0804419f8af7b82cfec671f8fba528716ec5440ea70dd66",
+          "research/protocols/ic3syn/models.ts": "7264a41611c0bab74b8b3549ac86663f4cb4d8ef8cac00528df0c2c7bcfbae93",
+          "research/protocols/models.ts": "ae2acd68175231e54e8590c2e35e04996282da22523d2fbac47d40e0adb078e4",
+          "research/protocols/run.ts": "f739b1d8c3f94e7718ae1029df4675f27b5d81211250b223678b6c5229946f87"
+        }
+      },
+      "outcomes": {
+        "candidate": {
+          "answer": "sat",
+          "exit": null,
+          "signal": "SIGKILL",
+          "wallMs": 58532.868428999995
+        },
+        "base": {
+          "answer": "sat",
+          "exit": null,
+          "signal": "SIGKILL",
+          "wallMs": 37411.48367799999
+        }
+      }
+    },
+    {
+      "index": 3,
+      "view": "chc",
+      "task": "vmt-chc-benchmarks/lustre/DRAGON_4_e2_2799_000_001.yml",
+      "repeat": 3,
+      "order": [
+        "base",
+        "candidate"
+      ],
+      "cpu": "AMD Ryzen 7 9700X 8-Core Processor",
+      "bun": "1.4.3",
+      "strictSeconds": 60,
+      "solve": [
+        "compare/chc/solve.ts",
+        "/tmp/lane-i-bar-fvxwJp/input/vmt-chc-benchmarks/lustre/DRAGON_4_e2_2799_000.smt2",
+        "--runs-ms",
+        "5000",
+        "--houdini-ms",
+        "58000"
+      ],
+      "inputs": {
+        "https://raw.githubusercontent.com/chc-comp/chc-comp26-benchmarks/b4fa7a708e5863bbcdb5de50d692ead3a67cbedc/vmt-chc-benchmarks/lustre/DRAGON_4_e2_2799_000_001.yml": "0feacde6921f164fdec3447fa79e3b25b836815a970c69d817e687aee9bcf399",
+        "https://raw.githubusercontent.com/chc-comp/chc-comp26-benchmarks/b4fa7a708e5863bbcdb5de50d692ead3a67cbedc/vmt-chc-benchmarks/lustre/DRAGON_4_e2_2799_000.smt2": "6c48232279f61fff2c0000c1352a99d8db65448142415ef057a147c1d056b5cd"
+      },
+      "meta": {
+        "base": {
+          "revision": "b788e1959bba1f2e8aa1f94d4cf7c0eb163a2f9c",
+          "tree": "c46b265c960ff6b905bde5134844a175b40c12c9",
+          "submodules": "0b6ebeeec827b05210f3acfa4149a70dda9a0de5 vendor/gdp-ts (0b6ebee)\n d47141cce2caf5b86b0c2c0c372a5174f424bc15 vendor/handwired (d47141c)",
+          "clean": true
+        },
+        "candidate": {
+          "revision": "b09da82d9ada6e0cdc31f943292cfea727f5752e",
+          "tree": "19803daf80024fa074a1678c8a4feb6f57ee3c7f",
+          "submodules": "0b6ebeeec827b05210f3acfa4149a70dda9a0de5 vendor/gdp-ts (0b6ebee)\n d47141cce2caf5b86b0c2c0c372a5174f424bc15 vendor/handwired (d47141c)",
+          "clean": true
+        }
+      },
+      "hashes": {
+        "base": {
+          "research/protocols/ic3syn/jobs.ts": "3b72741a5b6ff1ce9ee86a4e8ba30a6318ee10554f9bf675c1c217cd92a1ea9c",
+          "research/protocols/ic3syn/run.ts": "a9fa1e966acf503db0804419f8af7b82cfec671f8fba528716ec5440ea70dd66",
+          "research/protocols/ic3syn/models.ts": "5d61b846a8331a9b7978b4809d53b88e5918135ded0fc6d527f2a6dc8fb3a601",
+          "research/protocols/models.ts": "ae2acd68175231e54e8590c2e35e04996282da22523d2fbac47d40e0adb078e4",
+          "research/protocols/run.ts": "f739b1d8c3f94e7718ae1029df4675f27b5d81211250b223678b6c5229946f87"
+        },
+        "candidate": {
+          "research/protocols/ic3syn/jobs.ts": "3b72741a5b6ff1ce9ee86a4e8ba30a6318ee10554f9bf675c1c217cd92a1ea9c",
+          "research/protocols/ic3syn/run.ts": "a9fa1e966acf503db0804419f8af7b82cfec671f8fba528716ec5440ea70dd66",
+          "research/protocols/ic3syn/models.ts": "7264a41611c0bab74b8b3549ac86663f4cb4d8ef8cac00528df0c2c7bcfbae93",
+          "research/protocols/models.ts": "ae2acd68175231e54e8590c2e35e04996282da22523d2fbac47d40e0adb078e4",
+          "research/protocols/run.ts": "f739b1d8c3f94e7718ae1029df4675f27b5d81211250b223678b6c5229946f87"
+        }
+      },
+      "outcomes": {
+        "base": {
+          "answer": "sat",
+          "exit": null,
+          "signal": "SIGKILL",
+          "wallMs": 44716.95159099999
+        },
+        "candidate": {
+          "answer": "sat",
+          "exit": null,
+          "signal": "SIGKILL",
+          "wallMs": 56189.482831
+        }
+      }
+    },
+    {
+      "index": 4,
+      "view": "its-scc",
+      "task": "Integer_Transition_Systems/From_T2/hqr.c.i.hqr.pl.t2.nor.t2.rlgfixed.t2_fixed.ari",
+      "repeat": 1,
+      "order": [
+        "candidate",
+        "base"
+      ],
+      "cpu": "AMD EPYC 4585PX 16-Core Processor",
+      "bun": "1.4.3",
+      "strictSeconds": 60,
+      "solve": [
+        "compare/term/solve.ts",
+        "/tmp/lane-i-bar-cTxSC7/input/Integer_Transition_Systems/From_T2/hqr.c.i.hqr.pl.t2.nor.t2.rlgfixed.t2_fixed.ari",
+        "--limit",
+        "60",
+        "--scc"
+      ],
+      "inputs": {
+        "https://raw.githubusercontent.com/TermCOMP/TPDB-ARI/183f29db5ec7702215c6aabe12732bf3e836fced/Integer_Transition_Systems/From_T2/hqr.c.i.hqr.pl.t2.nor.t2.rlgfixed.t2_fixed.ari": "328a660226910b1978e2f617c3331a1296c3b6a530d9ee554b530587d0266635"
+      },
+      "meta": {
+        "base": {
+          "revision": "b788e1959bba1f2e8aa1f94d4cf7c0eb163a2f9c",
+          "tree": "c46b265c960ff6b905bde5134844a175b40c12c9",
+          "submodules": "0b6ebeeec827b05210f3acfa4149a70dda9a0de5 vendor/gdp-ts (0b6ebee)\n d47141cce2caf5b86b0c2c0c372a5174f424bc15 vendor/handwired (d47141c)",
+          "clean": true
+        },
+        "candidate": {
+          "revision": "b09da82d9ada6e0cdc31f943292cfea727f5752e",
+          "tree": "19803daf80024fa074a1678c8a4feb6f57ee3c7f",
+          "submodules": "0b6ebeeec827b05210f3acfa4149a70dda9a0de5 vendor/gdp-ts (0b6ebee)\n d47141cce2caf5b86b0c2c0c372a5174f424bc15 vendor/handwired (d47141c)",
+          "clean": true
+        }
+      },
+      "hashes": {
+        "base": {
+          "research/protocols/ic3syn/jobs.ts": "3b72741a5b6ff1ce9ee86a4e8ba30a6318ee10554f9bf675c1c217cd92a1ea9c",
+          "research/protocols/ic3syn/run.ts": "a9fa1e966acf503db0804419f8af7b82cfec671f8fba528716ec5440ea70dd66",
+          "research/protocols/ic3syn/models.ts": "5d61b846a8331a9b7978b4809d53b88e5918135ded0fc6d527f2a6dc8fb3a601",
+          "research/protocols/models.ts": "ae2acd68175231e54e8590c2e35e04996282da22523d2fbac47d40e0adb078e4",
+          "research/protocols/run.ts": "f739b1d8c3f94e7718ae1029df4675f27b5d81211250b223678b6c5229946f87"
+        },
+        "candidate": {
+          "research/protocols/ic3syn/jobs.ts": "3b72741a5b6ff1ce9ee86a4e8ba30a6318ee10554f9bf675c1c217cd92a1ea9c",
+          "research/protocols/ic3syn/run.ts": "a9fa1e966acf503db0804419f8af7b82cfec671f8fba528716ec5440ea70dd66",
+          "research/protocols/ic3syn/models.ts": "7264a41611c0bab74b8b3549ac86663f4cb4d8ef8cac00528df0c2c7bcfbae93",
+          "research/protocols/models.ts": "ae2acd68175231e54e8590c2e35e04996282da22523d2fbac47d40e0adb078e4",
+          "research/protocols/run.ts": "f739b1d8c3f94e7718ae1029df4675f27b5d81211250b223678b6c5229946f87"
+        }
+      },
+      "outcomes": {
+        "candidate": {
+          "answer": "nonterminating",
+          "exit": 0,
+          "signal": null,
+          "wallMs": 26093.657569000003
+        },
+        "base": {
+          "answer": "nonterminating",
+          "exit": 0,
+          "signal": null,
+          "wallMs": 26439.545728000005
+        }
+      }
+    },
+    {
+      "index": 4,
+      "view": "its-scc",
+      "task": "Integer_Transition_Systems/From_T2/hqr.c.i.hqr.pl.t2.nor.t2.rlgfixed.t2_fixed.ari",
+      "repeat": 2,
+      "order": [
+        "base",
+        "candidate"
+      ],
+      "cpu": "AMD EPYC 4585PX 16-Core Processor",
+      "bun": "1.4.3",
+      "strictSeconds": 60,
+      "solve": [
+        "compare/term/solve.ts",
+        "/tmp/lane-i-bar-cTxSC7/input/Integer_Transition_Systems/From_T2/hqr.c.i.hqr.pl.t2.nor.t2.rlgfixed.t2_fixed.ari",
+        "--limit",
+        "60",
+        "--scc"
+      ],
+      "inputs": {
+        "https://raw.githubusercontent.com/TermCOMP/TPDB-ARI/183f29db5ec7702215c6aabe12732bf3e836fced/Integer_Transition_Systems/From_T2/hqr.c.i.hqr.pl.t2.nor.t2.rlgfixed.t2_fixed.ari": "328a660226910b1978e2f617c3331a1296c3b6a530d9ee554b530587d0266635"
+      },
+      "meta": {
+        "base": {
+          "revision": "b788e1959bba1f2e8aa1f94d4cf7c0eb163a2f9c",
+          "tree": "c46b265c960ff6b905bde5134844a175b40c12c9",
+          "submodules": "0b6ebeeec827b05210f3acfa4149a70dda9a0de5 vendor/gdp-ts (0b6ebee)\n d47141cce2caf5b86b0c2c0c372a5174f424bc15 vendor/handwired (d47141c)",
+          "clean": true
+        },
+        "candidate": {
+          "revision": "b09da82d9ada6e0cdc31f943292cfea727f5752e",
+          "tree": "19803daf80024fa074a1678c8a4feb6f57ee3c7f",
+          "submodules": "0b6ebeeec827b05210f3acfa4149a70dda9a0de5 vendor/gdp-ts (0b6ebee)\n d47141cce2caf5b86b0c2c0c372a5174f424bc15 vendor/handwired (d47141c)",
+          "clean": true
+        }
+      },
+      "hashes": {
+        "base": {
+          "research/protocols/ic3syn/jobs.ts": "3b72741a5b6ff1ce9ee86a4e8ba30a6318ee10554f9bf675c1c217cd92a1ea9c",
+          "research/protocols/ic3syn/run.ts": "a9fa1e966acf503db0804419f8af7b82cfec671f8fba528716ec5440ea70dd66",
+          "research/protocols/ic3syn/models.ts": "5d61b846a8331a9b7978b4809d53b88e5918135ded0fc6d527f2a6dc8fb3a601",
+          "research/protocols/models.ts": "ae2acd68175231e54e8590c2e35e04996282da22523d2fbac47d40e0adb078e4",
+          "research/protocols/run.ts": "f739b1d8c3f94e7718ae1029df4675f27b5d81211250b223678b6c5229946f87"
+        },
+        "candidate": {
+          "research/protocols/ic3syn/jobs.ts": "3b72741a5b6ff1ce9ee86a4e8ba30a6318ee10554f9bf675c1c217cd92a1ea9c",
+          "research/protocols/ic3syn/run.ts": "a9fa1e966acf503db0804419f8af7b82cfec671f8fba528716ec5440ea70dd66",
+          "research/protocols/ic3syn/models.ts": "7264a41611c0bab74b8b3549ac86663f4cb4d8ef8cac00528df0c2c7bcfbae93",
+          "research/protocols/models.ts": "ae2acd68175231e54e8590c2e35e04996282da22523d2fbac47d40e0adb078e4",
+          "research/protocols/run.ts": "f739b1d8c3f94e7718ae1029df4675f27b5d81211250b223678b6c5229946f87"
+        }
+      },
+      "outcomes": {
+        "base": {
+          "answer": "nonterminating",
+          "exit": 0,
+          "signal": null,
+          "wallMs": 25686.558493000004
+        },
+        "candidate": {
+          "answer": "nonterminating",
+          "exit": 0,
+          "signal": null,
+          "wallMs": 25647.004879
+        }
+      }
+    },
+    {
+      "index": 4,
+      "view": "its-scc",
+      "task": "Integer_Transition_Systems/From_T2/hqr.c.i.hqr.pl.t2.nor.t2.rlgfixed.t2_fixed.ari",
+      "repeat": 3,
+      "order": [
+        "candidate",
+        "base"
+      ],
+      "cpu": "AMD EPYC 4585PX 16-Core Processor",
+      "bun": "1.4.3",
+      "strictSeconds": 60,
+      "solve": [
+        "compare/term/solve.ts",
+        "/tmp/lane-i-bar-cTxSC7/input/Integer_Transition_Systems/From_T2/hqr.c.i.hqr.pl.t2.nor.t2.rlgfixed.t2_fixed.ari",
+        "--limit",
+        "60",
+        "--scc"
+      ],
+      "inputs": {
+        "https://raw.githubusercontent.com/TermCOMP/TPDB-ARI/183f29db5ec7702215c6aabe12732bf3e836fced/Integer_Transition_Systems/From_T2/hqr.c.i.hqr.pl.t2.nor.t2.rlgfixed.t2_fixed.ari": "328a660226910b1978e2f617c3331a1296c3b6a530d9ee554b530587d0266635"
+      },
+      "meta": {
+        "base": {
+          "revision": "b788e1959bba1f2e8aa1f94d4cf7c0eb163a2f9c",
+          "tree": "c46b265c960ff6b905bde5134844a175b40c12c9",
+          "submodules": "0b6ebeeec827b05210f3acfa4149a70dda9a0de5 vendor/gdp-ts (0b6ebee)\n d47141cce2caf5b86b0c2c0c372a5174f424bc15 vendor/handwired (d47141c)",
+          "clean": true
+        },
+        "candidate": {
+          "revision": "b09da82d9ada6e0cdc31f943292cfea727f5752e",
+          "tree": "19803daf80024fa074a1678c8a4feb6f57ee3c7f",
+          "submodules": "0b6ebeeec827b05210f3acfa4149a70dda9a0de5 vendor/gdp-ts (0b6ebee)\n d47141cce2caf5b86b0c2c0c372a5174f424bc15 vendor/handwired (d47141c)",
+          "clean": true
+        }
+      },
+      "hashes": {
+        "base": {
+          "research/protocols/ic3syn/jobs.ts": "3b72741a5b6ff1ce9ee86a4e8ba30a6318ee10554f9bf675c1c217cd92a1ea9c",
+          "research/protocols/ic3syn/run.ts": "a9fa1e966acf503db0804419f8af7b82cfec671f8fba528716ec5440ea70dd66",
+          "research/protocols/ic3syn/models.ts": "5d61b846a8331a9b7978b4809d53b88e5918135ded0fc6d527f2a6dc8fb3a601",
+          "research/protocols/models.ts": "ae2acd68175231e54e8590c2e35e04996282da22523d2fbac47d40e0adb078e4",
+          "research/protocols/run.ts": "f739b1d8c3f94e7718ae1029df4675f27b5d81211250b223678b6c5229946f87"
+        },
+        "candidate": {
+          "research/protocols/ic3syn/jobs.ts": "3b72741a5b6ff1ce9ee86a4e8ba30a6318ee10554f9bf675c1c217cd92a1ea9c",
+          "research/protocols/ic3syn/run.ts": "a9fa1e966acf503db0804419f8af7b82cfec671f8fba528716ec5440ea70dd66",
+          "research/protocols/ic3syn/models.ts": "7264a41611c0bab74b8b3549ac86663f4cb4d8ef8cac00528df0c2c7bcfbae93",
+          "research/protocols/models.ts": "ae2acd68175231e54e8590c2e35e04996282da22523d2fbac47d40e0adb078e4",
+          "research/protocols/run.ts": "f739b1d8c3f94e7718ae1029df4675f27b5d81211250b223678b6c5229946f87"
+        }
+      },
+      "outcomes": {
+        "candidate": {
+          "answer": "nonterminating",
+          "exit": 0,
+          "signal": null,
+          "wallMs": 25981.283465
+        },
+        "base": {
+          "answer": "nonterminating",
+          "exit": 0,
+          "signal": null,
+          "wallMs": 26152.216362000006
+        }
+      }
+    },
+    {
+      "index": 5,
+      "view": "its-scc",
+      "task": "Integer_Transition_Systems/From_T2/slayer-n3-filtered.t2.ari",
+      "repeat": 1,
+      "order": [
+        "base",
+        "candidate"
+      ],
+      "cpu": "AMD EPYC 4585PX 16-Core Processor",
+      "bun": "1.4.3",
+      "strictSeconds": 60,
+      "solve": [
+        "compare/term/solve.ts",
+        "/tmp/lane-i-bar-OPXdit/input/Integer_Transition_Systems/From_T2/slayer-n3-filtered.t2.ari",
+        "--limit",
+        "60",
+        "--scc"
+      ],
+      "inputs": {
+        "https://raw.githubusercontent.com/TermCOMP/TPDB-ARI/183f29db5ec7702215c6aabe12732bf3e836fced/Integer_Transition_Systems/From_T2/slayer-n3-filtered.t2.ari": "ab1d8a431a722751f416e4f3b8ad71d59b0dd2f7e829b1f0f1498ec4465d8b81"
+      },
+      "meta": {
+        "base": {
+          "revision": "b788e1959bba1f2e8aa1f94d4cf7c0eb163a2f9c",
+          "tree": "c46b265c960ff6b905bde5134844a175b40c12c9",
+          "submodules": "0b6ebeeec827b05210f3acfa4149a70dda9a0de5 vendor/gdp-ts (0b6ebee)\n d47141cce2caf5b86b0c2c0c372a5174f424bc15 vendor/handwired (d47141c)",
+          "clean": true
+        },
+        "candidate": {
+          "revision": "b09da82d9ada6e0cdc31f943292cfea727f5752e",
+          "tree": "19803daf80024fa074a1678c8a4feb6f57ee3c7f",
+          "submodules": "0b6ebeeec827b05210f3acfa4149a70dda9a0de5 vendor/gdp-ts (0b6ebee)\n d47141cce2caf5b86b0c2c0c372a5174f424bc15 vendor/handwired (d47141c)",
+          "clean": true
+        }
+      },
+      "hashes": {
+        "base": {
+          "research/protocols/ic3syn/jobs.ts": "3b72741a5b6ff1ce9ee86a4e8ba30a6318ee10554f9bf675c1c217cd92a1ea9c",
+          "research/protocols/ic3syn/run.ts": "a9fa1e966acf503db0804419f8af7b82cfec671f8fba528716ec5440ea70dd66",
+          "research/protocols/ic3syn/models.ts": "5d61b846a8331a9b7978b4809d53b88e5918135ded0fc6d527f2a6dc8fb3a601",
+          "research/protocols/models.ts": "ae2acd68175231e54e8590c2e35e04996282da22523d2fbac47d40e0adb078e4",
+          "research/protocols/run.ts": "f739b1d8c3f94e7718ae1029df4675f27b5d81211250b223678b6c5229946f87"
+        },
+        "candidate": {
+          "research/protocols/ic3syn/jobs.ts": "3b72741a5b6ff1ce9ee86a4e8ba30a6318ee10554f9bf675c1c217cd92a1ea9c",
+          "research/protocols/ic3syn/run.ts": "a9fa1e966acf503db0804419f8af7b82cfec671f8fba528716ec5440ea70dd66",
+          "research/protocols/ic3syn/models.ts": "7264a41611c0bab74b8b3549ac86663f4cb4d8ef8cac00528df0c2c7bcfbae93",
+          "research/protocols/models.ts": "ae2acd68175231e54e8590c2e35e04996282da22523d2fbac47d40e0adb078e4",
+          "research/protocols/run.ts": "f739b1d8c3f94e7718ae1029df4675f27b5d81211250b223678b6c5229946f87"
+        }
+      },
+      "outcomes": {
+        "base": {
+          "answer": "terminates",
+          "exit": 0,
+          "signal": null,
+          "wallMs": 9358.656059
+        },
+        "candidate": {
+          "answer": "terminates",
+          "exit": 0,
+          "signal": null,
+          "wallMs": 8726.666831999999
+        }
+      }
+    },
+    {
+      "index": 5,
+      "view": "its-scc",
+      "task": "Integer_Transition_Systems/From_T2/slayer-n3-filtered.t2.ari",
+      "repeat": 2,
+      "order": [
+        "candidate",
+        "base"
+      ],
+      "cpu": "AMD EPYC 4585PX 16-Core Processor",
+      "bun": "1.4.3",
+      "strictSeconds": 60,
+      "solve": [
+        "compare/term/solve.ts",
+        "/tmp/lane-i-bar-OPXdit/input/Integer_Transition_Systems/From_T2/slayer-n3-filtered.t2.ari",
+        "--limit",
+        "60",
+        "--scc"
+      ],
+      "inputs": {
+        "https://raw.githubusercontent.com/TermCOMP/TPDB-ARI/183f29db5ec7702215c6aabe12732bf3e836fced/Integer_Transition_Systems/From_T2/slayer-n3-filtered.t2.ari": "ab1d8a431a722751f416e4f3b8ad71d59b0dd2f7e829b1f0f1498ec4465d8b81"
+      },
+      "meta": {
+        "base": {
+          "revision": "b788e1959bba1f2e8aa1f94d4cf7c0eb163a2f9c",
+          "tree": "c46b265c960ff6b905bde5134844a175b40c12c9",
+          "submodules": "0b6ebeeec827b05210f3acfa4149a70dda9a0de5 vendor/gdp-ts (0b6ebee)\n d47141cce2caf5b86b0c2c0c372a5174f424bc15 vendor/handwired (d47141c)",
+          "clean": true
+        },
+        "candidate": {
+          "revision": "b09da82d9ada6e0cdc31f943292cfea727f5752e",
+          "tree": "19803daf80024fa074a1678c8a4feb6f57ee3c7f",
+          "submodules": "0b6ebeeec827b05210f3acfa4149a70dda9a0de5 vendor/gdp-ts (0b6ebee)\n d47141cce2caf5b86b0c2c0c372a5174f424bc15 vendor/handwired (d47141c)",
+          "clean": true
+        }
+      },
+      "hashes": {
+        "base": {
+          "research/protocols/ic3syn/jobs.ts": "3b72741a5b6ff1ce9ee86a4e8ba30a6318ee10554f9bf675c1c217cd92a1ea9c",
+          "research/protocols/ic3syn/run.ts": "a9fa1e966acf503db0804419f8af7b82cfec671f8fba528716ec5440ea70dd66",
+          "research/protocols/ic3syn/models.ts": "5d61b846a8331a9b7978b4809d53b88e5918135ded0fc6d527f2a6dc8fb3a601",
+          "research/protocols/models.ts": "ae2acd68175231e54e8590c2e35e04996282da22523d2fbac47d40e0adb078e4",
+          "research/protocols/run.ts": "f739b1d8c3f94e7718ae1029df4675f27b5d81211250b223678b6c5229946f87"
+        },
+        "candidate": {
+          "research/protocols/ic3syn/jobs.ts": "3b72741a5b6ff1ce9ee86a4e8ba30a6318ee10554f9bf675c1c217cd92a1ea9c",
+          "research/protocols/ic3syn/run.ts": "a9fa1e966acf503db0804419f8af7b82cfec671f8fba528716ec5440ea70dd66",
+          "research/protocols/ic3syn/models.ts": "7264a41611c0bab74b8b3549ac86663f4cb4d8ef8cac00528df0c2c7bcfbae93",
+          "research/protocols/models.ts": "ae2acd68175231e54e8590c2e35e04996282da22523d2fbac47d40e0adb078e4",
+          "research/protocols/run.ts": "f739b1d8c3f94e7718ae1029df4675f27b5d81211250b223678b6c5229946f87"
+        }
+      },
+      "outcomes": {
+        "candidate": {
+          "answer": "terminates",
+          "exit": 0,
+          "signal": null,
+          "wallMs": 8419.399266
+        },
+        "base": {
+          "answer": "terminates",
+          "exit": 0,
+          "signal": null,
+          "wallMs": 8536.418087999999
+        }
+      }
+    },
+    {
+      "index": 5,
+      "view": "its-scc",
+      "task": "Integer_Transition_Systems/From_T2/slayer-n3-filtered.t2.ari",
+      "repeat": 3,
+      "order": [
+        "base",
+        "candidate"
+      ],
+      "cpu": "AMD EPYC 4585PX 16-Core Processor",
+      "bun": "1.4.3",
+      "strictSeconds": 60,
+      "solve": [
+        "compare/term/solve.ts",
+        "/tmp/lane-i-bar-OPXdit/input/Integer_Transition_Systems/From_T2/slayer-n3-filtered.t2.ari",
+        "--limit",
+        "60",
+        "--scc"
+      ],
+      "inputs": {
+        "https://raw.githubusercontent.com/TermCOMP/TPDB-ARI/183f29db5ec7702215c6aabe12732bf3e836fced/Integer_Transition_Systems/From_T2/slayer-n3-filtered.t2.ari": "ab1d8a431a722751f416e4f3b8ad71d59b0dd2f7e829b1f0f1498ec4465d8b81"
+      },
+      "meta": {
+        "base": {
+          "revision": "b788e1959bba1f2e8aa1f94d4cf7c0eb163a2f9c",
+          "tree": "c46b265c960ff6b905bde5134844a175b40c12c9",
+          "submodules": "0b6ebeeec827b05210f3acfa4149a70dda9a0de5 vendor/gdp-ts (0b6ebee)\n d47141cce2caf5b86b0c2c0c372a5174f424bc15 vendor/handwired (d47141c)",
+          "clean": true
+        },
+        "candidate": {
+          "revision": "b09da82d9ada6e0cdc31f943292cfea727f5752e",
+          "tree": "19803daf80024fa074a1678c8a4feb6f57ee3c7f",
+          "submodules": "0b6ebeeec827b05210f3acfa4149a70dda9a0de5 vendor/gdp-ts (0b6ebee)\n d47141cce2caf5b86b0c2c0c372a5174f424bc15 vendor/handwired (d47141c)",
+          "clean": true
+        }
+      },
+      "hashes": {
+        "base": {
+          "research/protocols/ic3syn/jobs.ts": "3b72741a5b6ff1ce9ee86a4e8ba30a6318ee10554f9bf675c1c217cd92a1ea9c",
+          "research/protocols/ic3syn/run.ts": "a9fa1e966acf503db0804419f8af7b82cfec671f8fba528716ec5440ea70dd66",
+          "research/protocols/ic3syn/models.ts": "5d61b846a8331a9b7978b4809d53b88e5918135ded0fc6d527f2a6dc8fb3a601",
+          "research/protocols/models.ts": "ae2acd68175231e54e8590c2e35e04996282da22523d2fbac47d40e0adb078e4",
+          "research/protocols/run.ts": "f739b1d8c3f94e7718ae1029df4675f27b5d81211250b223678b6c5229946f87"
+        },
+        "candidate": {
+          "research/protocols/ic3syn/jobs.ts": "3b72741a5b6ff1ce9ee86a4e8ba30a6318ee10554f9bf675c1c217cd92a1ea9c",
+          "research/protocols/ic3syn/run.ts": "a9fa1e966acf503db0804419f8af7b82cfec671f8fba528716ec5440ea70dd66",
+          "research/protocols/ic3syn/models.ts": "7264a41611c0bab74b8b3549ac86663f4cb4d8ef8cac00528df0c2c7bcfbae93",
+          "research/protocols/models.ts": "ae2acd68175231e54e8590c2e35e04996282da22523d2fbac47d40e0adb078e4",
+          "research/protocols/run.ts": "f739b1d8c3f94e7718ae1029df4675f27b5d81211250b223678b6c5229946f87"
+        }
+      },
+      "outcomes": {
+        "base": {
+          "answer": "terminates",
+          "exit": 0,
+          "signal": null,
+          "wallMs": 9103.456766999996
+        },
+        "candidate": {
+          "answer": "terminates",
+          "exit": 0,
+          "signal": null,
+          "wallMs": 8408.879336999998
+        }
+      }
+    },
+    {
+      "index": 6,
+      "view": "its-scc",
+      "task": "Integer_Transition_Systems/From_T2/bio.t2.ari",
+      "repeat": 1,
+      "order": [
+        "candidate",
+        "base"
+      ],
+      "cpu": "AMD Ryzen 9 9950X 16-Core Processor",
+      "bun": "1.4.3",
+      "strictSeconds": 60,
+      "solve": [
+        "compare/term/solve.ts",
+        "/tmp/lane-i-bar-gd9cmA/input/Integer_Transition_Systems/From_T2/bio.t2.ari",
+        "--limit",
+        "60",
+        "--scc"
+      ],
+      "inputs": {
+        "https://raw.githubusercontent.com/TermCOMP/TPDB-ARI/183f29db5ec7702215c6aabe12732bf3e836fced/Integer_Transition_Systems/From_T2/bio.t2.ari": "4aed541ef72baf9458f7e98022da3d1df1bce6d1212fa8e834d5c09bc18cb22c"
+      },
+      "meta": {
+        "base": {
+          "revision": "b788e1959bba1f2e8aa1f94d4cf7c0eb163a2f9c",
+          "tree": "c46b265c960ff6b905bde5134844a175b40c12c9",
+          "submodules": "0b6ebeeec827b05210f3acfa4149a70dda9a0de5 vendor/gdp-ts (0b6ebee)\n d47141cce2caf5b86b0c2c0c372a5174f424bc15 vendor/handwired (d47141c)",
+          "clean": true
+        },
+        "candidate": {
+          "revision": "b09da82d9ada6e0cdc31f943292cfea727f5752e",
+          "tree": "19803daf80024fa074a1678c8a4feb6f57ee3c7f",
+          "submodules": "0b6ebeeec827b05210f3acfa4149a70dda9a0de5 vendor/gdp-ts (0b6ebee)\n d47141cce2caf5b86b0c2c0c372a5174f424bc15 vendor/handwired (d47141c)",
+          "clean": true
+        }
+      },
+      "hashes": {
+        "base": {
+          "research/protocols/ic3syn/jobs.ts": "3b72741a5b6ff1ce9ee86a4e8ba30a6318ee10554f9bf675c1c217cd92a1ea9c",
+          "research/protocols/ic3syn/run.ts": "a9fa1e966acf503db0804419f8af7b82cfec671f8fba528716ec5440ea70dd66",
+          "research/protocols/ic3syn/models.ts": "5d61b846a8331a9b7978b4809d53b88e5918135ded0fc6d527f2a6dc8fb3a601",
+          "research/protocols/models.ts": "ae2acd68175231e54e8590c2e35e04996282da22523d2fbac47d40e0adb078e4",
+          "research/protocols/run.ts": "f739b1d8c3f94e7718ae1029df4675f27b5d81211250b223678b6c5229946f87"
+        },
+        "candidate": {
+          "research/protocols/ic3syn/jobs.ts": "3b72741a5b6ff1ce9ee86a4e8ba30a6318ee10554f9bf675c1c217cd92a1ea9c",
+          "research/protocols/ic3syn/run.ts": "a9fa1e966acf503db0804419f8af7b82cfec671f8fba528716ec5440ea70dd66",
+          "research/protocols/ic3syn/models.ts": "7264a41611c0bab74b8b3549ac86663f4cb4d8ef8cac00528df0c2c7bcfbae93",
+          "research/protocols/models.ts": "ae2acd68175231e54e8590c2e35e04996282da22523d2fbac47d40e0adb078e4",
+          "research/protocols/run.ts": "f739b1d8c3f94e7718ae1029df4675f27b5d81211250b223678b6c5229946f87"
+        }
+      },
+      "outcomes": {
+        "candidate": {
+          "answer": "timeout",
+          "exit": 124,
+          "signal": null,
+          "wallMs": 60701.81208399999
+        },
+        "base": {
+          "answer": "error",
+          "exit": null,
+          "signal": "SIGKILL",
+          "wallMs": 44548.721567
+        }
+      }
+    },
+    {
+      "index": 6,
+      "view": "its-scc",
+      "task": "Integer_Transition_Systems/From_T2/bio.t2.ari",
+      "repeat": 2,
+      "order": [
+        "base",
+        "candidate"
+      ],
+      "cpu": "AMD Ryzen 9 9950X 16-Core Processor",
+      "bun": "1.4.3",
+      "strictSeconds": 60,
+      "solve": [
+        "compare/term/solve.ts",
+        "/tmp/lane-i-bar-gd9cmA/input/Integer_Transition_Systems/From_T2/bio.t2.ari",
+        "--limit",
+        "60",
+        "--scc"
+      ],
+      "inputs": {
+        "https://raw.githubusercontent.com/TermCOMP/TPDB-ARI/183f29db5ec7702215c6aabe12732bf3e836fced/Integer_Transition_Systems/From_T2/bio.t2.ari": "4aed541ef72baf9458f7e98022da3d1df1bce6d1212fa8e834d5c09bc18cb22c"
+      },
+      "meta": {
+        "base": {
+          "revision": "b788e1959bba1f2e8aa1f94d4cf7c0eb163a2f9c",
+          "tree": "c46b265c960ff6b905bde5134844a175b40c12c9",
+          "submodules": "0b6ebeeec827b05210f3acfa4149a70dda9a0de5 vendor/gdp-ts (0b6ebee)\n d47141cce2caf5b86b0c2c0c372a5174f424bc15 vendor/handwired (d47141c)",
+          "clean": true
+        },
+        "candidate": {
+          "revision": "b09da82d9ada6e0cdc31f943292cfea727f5752e",
+          "tree": "19803daf80024fa074a1678c8a4feb6f57ee3c7f",
+          "submodules": "0b6ebeeec827b05210f3acfa4149a70dda9a0de5 vendor/gdp-ts (0b6ebee)\n d47141cce2caf5b86b0c2c0c372a5174f424bc15 vendor/handwired (d47141c)",
+          "clean": true
+        }
+      },
+      "hashes": {
+        "base": {
+          "research/protocols/ic3syn/jobs.ts": "3b72741a5b6ff1ce9ee86a4e8ba30a6318ee10554f9bf675c1c217cd92a1ea9c",
+          "research/protocols/ic3syn/run.ts": "a9fa1e966acf503db0804419f8af7b82cfec671f8fba528716ec5440ea70dd66",
+          "research/protocols/ic3syn/models.ts": "5d61b846a8331a9b7978b4809d53b88e5918135ded0fc6d527f2a6dc8fb3a601",
+          "research/protocols/models.ts": "ae2acd68175231e54e8590c2e35e04996282da22523d2fbac47d40e0adb078e4",
+          "research/protocols/run.ts": "f739b1d8c3f94e7718ae1029df4675f27b5d81211250b223678b6c5229946f87"
+        },
+        "candidate": {
+          "research/protocols/ic3syn/jobs.ts": "3b72741a5b6ff1ce9ee86a4e8ba30a6318ee10554f9bf675c1c217cd92a1ea9c",
+          "research/protocols/ic3syn/run.ts": "a9fa1e966acf503db0804419f8af7b82cfec671f8fba528716ec5440ea70dd66",
+          "research/protocols/ic3syn/models.ts": "7264a41611c0bab74b8b3549ac86663f4cb4d8ef8cac00528df0c2c7bcfbae93",
+          "research/protocols/models.ts": "ae2acd68175231e54e8590c2e35e04996282da22523d2fbac47d40e0adb078e4",
+          "research/protocols/run.ts": "f739b1d8c3f94e7718ae1029df4675f27b5d81211250b223678b6c5229946f87"
+        }
+      },
+      "outcomes": {
+        "base": {
+          "answer": "error",
+          "exit": null,
+          "signal": "SIGKILL",
+          "wallMs": 40666.69223500001
+        },
+        "candidate": {
+          "answer": "error",
+          "exit": null,
+          "signal": "SIGKILL",
+          "wallMs": 43955.52119100001
+        }
+      }
+    },
+    {
+      "index": 6,
+      "view": "its-scc",
+      "task": "Integer_Transition_Systems/From_T2/bio.t2.ari",
+      "repeat": 3,
+      "order": [
+        "candidate",
+        "base"
+      ],
+      "cpu": "AMD Ryzen 9 9950X 16-Core Processor",
+      "bun": "1.4.3",
+      "strictSeconds": 60,
+      "solve": [
+        "compare/term/solve.ts",
+        "/tmp/lane-i-bar-gd9cmA/input/Integer_Transition_Systems/From_T2/bio.t2.ari",
+        "--limit",
+        "60",
+        "--scc"
+      ],
+      "inputs": {
+        "https://raw.githubusercontent.com/TermCOMP/TPDB-ARI/183f29db5ec7702215c6aabe12732bf3e836fced/Integer_Transition_Systems/From_T2/bio.t2.ari": "4aed541ef72baf9458f7e98022da3d1df1bce6d1212fa8e834d5c09bc18cb22c"
+      },
+      "meta": {
+        "base": {
+          "revision": "b788e1959bba1f2e8aa1f94d4cf7c0eb163a2f9c",
+          "tree": "c46b265c960ff6b905bde5134844a175b40c12c9",
+          "submodules": "0b6ebeeec827b05210f3acfa4149a70dda9a0de5 vendor/gdp-ts (0b6ebee)\n d47141cce2caf5b86b0c2c0c372a5174f424bc15 vendor/handwired (d47141c)",
+          "clean": true
+        },
+        "candidate": {
+          "revision": "b09da82d9ada6e0cdc31f943292cfea727f5752e",
+          "tree": "19803daf80024fa074a1678c8a4feb6f57ee3c7f",
+          "submodules": "0b6ebeeec827b05210f3acfa4149a70dda9a0de5 vendor/gdp-ts (0b6ebee)\n d47141cce2caf5b86b0c2c0c372a5174f424bc15 vendor/handwired (d47141c)",
+          "clean": true
+        }
+      },
+      "hashes": {
+        "base": {
+          "research/protocols/ic3syn/jobs.ts": "3b72741a5b6ff1ce9ee86a4e8ba30a6318ee10554f9bf675c1c217cd92a1ea9c",
+          "research/protocols/ic3syn/run.ts": "a9fa1e966acf503db0804419f8af7b82cfec671f8fba528716ec5440ea70dd66",
+          "research/protocols/ic3syn/models.ts": "5d61b846a8331a9b7978b4809d53b88e5918135ded0fc6d527f2a6dc8fb3a601",
+          "research/protocols/models.ts": "ae2acd68175231e54e8590c2e35e04996282da22523d2fbac47d40e0adb078e4",
+          "research/protocols/run.ts": "f739b1d8c3f94e7718ae1029df4675f27b5d81211250b223678b6c5229946f87"
+        },
+        "candidate": {
+          "research/protocols/ic3syn/jobs.ts": "3b72741a5b6ff1ce9ee86a4e8ba30a6318ee10554f9bf675c1c217cd92a1ea9c",
+          "research/protocols/ic3syn/run.ts": "a9fa1e966acf503db0804419f8af7b82cfec671f8fba528716ec5440ea70dd66",
+          "research/protocols/ic3syn/models.ts": "7264a41611c0bab74b8b3549ac86663f4cb4d8ef8cac00528df0c2c7bcfbae93",
+          "research/protocols/models.ts": "ae2acd68175231e54e8590c2e35e04996282da22523d2fbac47d40e0adb078e4",
+          "research/protocols/run.ts": "f739b1d8c3f94e7718ae1029df4675f27b5d81211250b223678b6c5229946f87"
+        }
+      },
+      "outcomes": {
+        "candidate": {
+          "answer": "error",
+          "exit": null,
+          "signal": "SIGKILL",
+          "wallMs": 42533.14612400002
+        },
+        "base": {
+          "answer": "error",
+          "exit": null,
+          "signal": "SIGKILL",
+          "wallMs": 34343.393912
+        }
+      }
+    },
+    {
+      "index": 7,
+      "view": "its-scc",
+      "task": "Integer_Transition_Systems/From_T2/cover.t2.ari",
+      "repeat": 1,
+      "order": [
+        "base",
+        "candidate"
+      ],
+      "cpu": "AMD EPYC 4585PX 16-Core Processor",
+      "bun": "1.4.3",
+      "strictSeconds": 60,
+      "solve": [
+        "compare/term/solve.ts",
+        "/tmp/lane-i-bar-CKTFed/input/Integer_Transition_Systems/From_T2/cover.t2.ari",
+        "--limit",
+        "60",
+        "--scc"
+      ],
+      "inputs": {
+        "https://raw.githubusercontent.com/TermCOMP/TPDB-ARI/183f29db5ec7702215c6aabe12732bf3e836fced/Integer_Transition_Systems/From_T2/cover.t2.ari": "496c7336a69bee0116dfb05b61a640f2500dd726cd842b3a45b69ae0e787affc"
+      },
+      "meta": {
+        "base": {
+          "revision": "b788e1959bba1f2e8aa1f94d4cf7c0eb163a2f9c",
+          "tree": "c46b265c960ff6b905bde5134844a175b40c12c9",
+          "submodules": "0b6ebeeec827b05210f3acfa4149a70dda9a0de5 vendor/gdp-ts (0b6ebee)\n d47141cce2caf5b86b0c2c0c372a5174f424bc15 vendor/handwired (d47141c)",
+          "clean": true
+        },
+        "candidate": {
+          "revision": "b09da82d9ada6e0cdc31f943292cfea727f5752e",
+          "tree": "19803daf80024fa074a1678c8a4feb6f57ee3c7f",
+          "submodules": "0b6ebeeec827b05210f3acfa4149a70dda9a0de5 vendor/gdp-ts (0b6ebee)\n d47141cce2caf5b86b0c2c0c372a5174f424bc15 vendor/handwired (d47141c)",
+          "clean": true
+        }
+      },
+      "hashes": {
+        "base": {
+          "research/protocols/ic3syn/jobs.ts": "3b72741a5b6ff1ce9ee86a4e8ba30a6318ee10554f9bf675c1c217cd92a1ea9c",
+          "research/protocols/ic3syn/run.ts": "a9fa1e966acf503db0804419f8af7b82cfec671f8fba528716ec5440ea70dd66",
+          "research/protocols/ic3syn/models.ts": "5d61b846a8331a9b7978b4809d53b88e5918135ded0fc6d527f2a6dc8fb3a601",
+          "research/protocols/models.ts": "ae2acd68175231e54e8590c2e35e04996282da22523d2fbac47d40e0adb078e4",
+          "research/protocols/run.ts": "f739b1d8c3f94e7718ae1029df4675f27b5d81211250b223678b6c5229946f87"
+        },
+        "candidate": {
+          "research/protocols/ic3syn/jobs.ts": "3b72741a5b6ff1ce9ee86a4e8ba30a6318ee10554f9bf675c1c217cd92a1ea9c",
+          "research/protocols/ic3syn/run.ts": "a9fa1e966acf503db0804419f8af7b82cfec671f8fba528716ec5440ea70dd66",
+          "research/protocols/ic3syn/models.ts": "7264a41611c0bab74b8b3549ac86663f4cb4d8ef8cac00528df0c2c7bcfbae93",
+          "research/protocols/models.ts": "ae2acd68175231e54e8590c2e35e04996282da22523d2fbac47d40e0adb078e4",
+          "research/protocols/run.ts": "f739b1d8c3f94e7718ae1029df4675f27b5d81211250b223678b6c5229946f87"
+        }
+      },
+      "outcomes": {
+        "base": {
+          "answer": "unknown",
+          "exit": 0,
+          "signal": null,
+          "wallMs": 58201.422517
+        },
+        "candidate": {
+          "answer": "unknown",
+          "exit": 0,
+          "signal": null,
+          "wallMs": 58326.500572000004
+        }
+      }
+    },
+    {
+      "index": 7,
+      "view": "its-scc",
+      "task": "Integer_Transition_Systems/From_T2/cover.t2.ari",
+      "repeat": 2,
+      "order": [
+        "candidate",
+        "base"
+      ],
+      "cpu": "AMD EPYC 4585PX 16-Core Processor",
+      "bun": "1.4.3",
+      "strictSeconds": 60,
+      "solve": [
+        "compare/term/solve.ts",
+        "/tmp/lane-i-bar-CKTFed/input/Integer_Transition_Systems/From_T2/cover.t2.ari",
+        "--limit",
+        "60",
+        "--scc"
+      ],
+      "inputs": {
+        "https://raw.githubusercontent.com/TermCOMP/TPDB-ARI/183f29db5ec7702215c6aabe12732bf3e836fced/Integer_Transition_Systems/From_T2/cover.t2.ari": "496c7336a69bee0116dfb05b61a640f2500dd726cd842b3a45b69ae0e787affc"
+      },
+      "meta": {
+        "base": {
+          "revision": "b788e1959bba1f2e8aa1f94d4cf7c0eb163a2f9c",
+          "tree": "c46b265c960ff6b905bde5134844a175b40c12c9",
+          "submodules": "0b6ebeeec827b05210f3acfa4149a70dda9a0de5 vendor/gdp-ts (0b6ebee)\n d47141cce2caf5b86b0c2c0c372a5174f424bc15 vendor/handwired (d47141c)",
+          "clean": true
+        },
+        "candidate": {
+          "revision": "b09da82d9ada6e0cdc31f943292cfea727f5752e",
+          "tree": "19803daf80024fa074a1678c8a4feb6f57ee3c7f",
+          "submodules": "0b6ebeeec827b05210f3acfa4149a70dda9a0de5 vendor/gdp-ts (0b6ebee)\n d47141cce2caf5b86b0c2c0c372a5174f424bc15 vendor/handwired (d47141c)",
+          "clean": true
+        }
+      },
+      "hashes": {
+        "base": {
+          "research/protocols/ic3syn/jobs.ts": "3b72741a5b6ff1ce9ee86a4e8ba30a6318ee10554f9bf675c1c217cd92a1ea9c",
+          "research/protocols/ic3syn/run.ts": "a9fa1e966acf503db0804419f8af7b82cfec671f8fba528716ec5440ea70dd66",
+          "research/protocols/ic3syn/models.ts": "5d61b846a8331a9b7978b4809d53b88e5918135ded0fc6d527f2a6dc8fb3a601",
+          "research/protocols/models.ts": "ae2acd68175231e54e8590c2e35e04996282da22523d2fbac47d40e0adb078e4",
+          "research/protocols/run.ts": "f739b1d8c3f94e7718ae1029df4675f27b5d81211250b223678b6c5229946f87"
+        },
+        "candidate": {
+          "research/protocols/ic3syn/jobs.ts": "3b72741a5b6ff1ce9ee86a4e8ba30a6318ee10554f9bf675c1c217cd92a1ea9c",
+          "research/protocols/ic3syn/run.ts": "a9fa1e966acf503db0804419f8af7b82cfec671f8fba528716ec5440ea70dd66",
+          "research/protocols/ic3syn/models.ts": "7264a41611c0bab74b8b3549ac86663f4cb4d8ef8cac00528df0c2c7bcfbae93",
+          "research/protocols/models.ts": "ae2acd68175231e54e8590c2e35e04996282da22523d2fbac47d40e0adb078e4",
+          "research/protocols/run.ts": "f739b1d8c3f94e7718ae1029df4675f27b5d81211250b223678b6c5229946f87"
+        }
+      },
+      "outcomes": {
+        "candidate": {
+          "answer": "unknown",
+          "exit": 0,
+          "signal": null,
+          "wallMs": 58523.020116
+        },
+        "base": {
+          "answer": "unknown",
+          "exit": 0,
+          "signal": null,
+          "wallMs": 59131.180681
+        }
+      }
+    },
+    {
+      "index": 7,
+      "view": "its-scc",
+      "task": "Integer_Transition_Systems/From_T2/cover.t2.ari",
+      "repeat": 3,
+      "order": [
+        "base",
+        "candidate"
+      ],
+      "cpu": "AMD EPYC 4585PX 16-Core Processor",
+      "bun": "1.4.3",
+      "strictSeconds": 60,
+      "solve": [
+        "compare/term/solve.ts",
+        "/tmp/lane-i-bar-CKTFed/input/Integer_Transition_Systems/From_T2/cover.t2.ari",
+        "--limit",
+        "60",
+        "--scc"
+      ],
+      "inputs": {
+        "https://raw.githubusercontent.com/TermCOMP/TPDB-ARI/183f29db5ec7702215c6aabe12732bf3e836fced/Integer_Transition_Systems/From_T2/cover.t2.ari": "496c7336a69bee0116dfb05b61a640f2500dd726cd842b3a45b69ae0e787affc"
+      },
+      "meta": {
+        "base": {
+          "revision": "b788e1959bba1f2e8aa1f94d4cf7c0eb163a2f9c",
+          "tree": "c46b265c960ff6b905bde5134844a175b40c12c9",
+          "submodules": "0b6ebeeec827b05210f3acfa4149a70dda9a0de5 vendor/gdp-ts (0b6ebee)\n d47141cce2caf5b86b0c2c0c372a5174f424bc15 vendor/handwired (d47141c)",
+          "clean": true
+        },
+        "candidate": {
+          "revision": "b09da82d9ada6e0cdc31f943292cfea727f5752e",
+          "tree": "19803daf80024fa074a1678c8a4feb6f57ee3c7f",
+          "submodules": "0b6ebeeec827b05210f3acfa4149a70dda9a0de5 vendor/gdp-ts (0b6ebee)\n d47141cce2caf5b86b0c2c0c372a5174f424bc15 vendor/handwired (d47141c)",
+          "clean": true
+        }
+      },
+      "hashes": {
+        "base": {
+          "research/protocols/ic3syn/jobs.ts": "3b72741a5b6ff1ce9ee86a4e8ba30a6318ee10554f9bf675c1c217cd92a1ea9c",
+          "research/protocols/ic3syn/run.ts": "a9fa1e966acf503db0804419f8af7b82cfec671f8fba528716ec5440ea70dd66",
+          "research/protocols/ic3syn/models.ts": "5d61b846a8331a9b7978b4809d53b88e5918135ded0fc6d527f2a6dc8fb3a601",
+          "research/protocols/models.ts": "ae2acd68175231e54e8590c2e35e04996282da22523d2fbac47d40e0adb078e4",
+          "research/protocols/run.ts": "f739b1d8c3f94e7718ae1029df4675f27b5d81211250b223678b6c5229946f87"
+        },
+        "candidate": {
+          "research/protocols/ic3syn/jobs.ts": "3b72741a5b6ff1ce9ee86a4e8ba30a6318ee10554f9bf675c1c217cd92a1ea9c",
+          "research/protocols/ic3syn/run.ts": "a9fa1e966acf503db0804419f8af7b82cfec671f8fba528716ec5440ea70dd66",
+          "research/protocols/ic3syn/models.ts": "7264a41611c0bab74b8b3549ac86663f4cb4d8ef8cac00528df0c2c7bcfbae93",
+          "research/protocols/models.ts": "ae2acd68175231e54e8590c2e35e04996282da22523d2fbac47d40e0adb078e4",
+          "research/protocols/run.ts": "f739b1d8c3f94e7718ae1029df4675f27b5d81211250b223678b6c5229946f87"
+        }
+      },
+      "outcomes": {
+        "base": {
+          "answer": "unknown",
+          "exit": 0,
+          "signal": null,
+          "wallMs": 58135.08378700001
+        },
+        "candidate": {
+          "answer": "unknown",
+          "exit": 0,
+          "signal": null,
+          "wallMs": 58169.73719399999
+        }
+      }
+    },
+    {
+      "index": 8,
+      "view": "its",
+      "task": "Integer_Transition_Systems/From_T2/bio.t2.ari",
+      "repeat": 1,
+      "order": [
+        "candidate",
+        "base"
+      ],
+      "cpu": "AMD Ryzen 9 9950X 16-Core Processor",
+      "bun": "1.4.3",
+      "strictSeconds": 60,
+      "solve": [
+        "compare/term/solve.ts",
+        "/tmp/lane-i-bar-NTTWD2/input/Integer_Transition_Systems/From_T2/bio.t2.ari",
+        "--limit",
+        "60"
+      ],
+      "inputs": {
+        "https://raw.githubusercontent.com/TermCOMP/TPDB-ARI/183f29db5ec7702215c6aabe12732bf3e836fced/Integer_Transition_Systems/From_T2/bio.t2.ari": "4aed541ef72baf9458f7e98022da3d1df1bce6d1212fa8e834d5c09bc18cb22c"
+      },
+      "meta": {
+        "base": {
+          "revision": "b788e1959bba1f2e8aa1f94d4cf7c0eb163a2f9c",
+          "tree": "c46b265c960ff6b905bde5134844a175b40c12c9",
+          "submodules": "0b6ebeeec827b05210f3acfa4149a70dda9a0de5 vendor/gdp-ts (0b6ebee)\n d47141cce2caf5b86b0c2c0c372a5174f424bc15 vendor/handwired (d47141c)",
+          "clean": true
+        },
+        "candidate": {
+          "revision": "b09da82d9ada6e0cdc31f943292cfea727f5752e",
+          "tree": "19803daf80024fa074a1678c8a4feb6f57ee3c7f",
+          "submodules": "0b6ebeeec827b05210f3acfa4149a70dda9a0de5 vendor/gdp-ts (0b6ebee)\n d47141cce2caf5b86b0c2c0c372a5174f424bc15 vendor/handwired (d47141c)",
+          "clean": true
+        }
+      },
+      "hashes": {
+        "base": {
+          "research/protocols/ic3syn/jobs.ts": "3b72741a5b6ff1ce9ee86a4e8ba30a6318ee10554f9bf675c1c217cd92a1ea9c",
+          "research/protocols/ic3syn/run.ts": "a9fa1e966acf503db0804419f8af7b82cfec671f8fba528716ec5440ea70dd66",
+          "research/protocols/ic3syn/models.ts": "5d61b846a8331a9b7978b4809d53b88e5918135ded0fc6d527f2a6dc8fb3a601",
+          "research/protocols/models.ts": "ae2acd68175231e54e8590c2e35e04996282da22523d2fbac47d40e0adb078e4",
+          "research/protocols/run.ts": "f739b1d8c3f94e7718ae1029df4675f27b5d81211250b223678b6c5229946f87"
+        },
+        "candidate": {
+          "research/protocols/ic3syn/jobs.ts": "3b72741a5b6ff1ce9ee86a4e8ba30a6318ee10554f9bf675c1c217cd92a1ea9c",
+          "research/protocols/ic3syn/run.ts": "a9fa1e966acf503db0804419f8af7b82cfec671f8fba528716ec5440ea70dd66",
+          "research/protocols/ic3syn/models.ts": "7264a41611c0bab74b8b3549ac86663f4cb4d8ef8cac00528df0c2c7bcfbae93",
+          "research/protocols/models.ts": "ae2acd68175231e54e8590c2e35e04996282da22523d2fbac47d40e0adb078e4",
+          "research/protocols/run.ts": "f739b1d8c3f94e7718ae1029df4675f27b5d81211250b223678b6c5229946f87"
+        }
+      },
+      "outcomes": {
+        "candidate": {
+          "answer": "error",
+          "exit": null,
+          "signal": "SIGKILL",
+          "wallMs": 40078.640715
+        },
+        "base": {
+          "answer": "error",
+          "exit": null,
+          "signal": "SIGKILL",
+          "wallMs": 32069.933836999997
+        }
+      }
+    },
+    {
+      "index": 8,
+      "view": "its",
+      "task": "Integer_Transition_Systems/From_T2/bio.t2.ari",
+      "repeat": 2,
+      "order": [
+        "base",
+        "candidate"
+      ],
+      "cpu": "AMD Ryzen 9 9950X 16-Core Processor",
+      "bun": "1.4.3",
+      "strictSeconds": 60,
+      "solve": [
+        "compare/term/solve.ts",
+        "/tmp/lane-i-bar-NTTWD2/input/Integer_Transition_Systems/From_T2/bio.t2.ari",
+        "--limit",
+        "60"
+      ],
+      "inputs": {
+        "https://raw.githubusercontent.com/TermCOMP/TPDB-ARI/183f29db5ec7702215c6aabe12732bf3e836fced/Integer_Transition_Systems/From_T2/bio.t2.ari": "4aed541ef72baf9458f7e98022da3d1df1bce6d1212fa8e834d5c09bc18cb22c"
+      },
+      "meta": {
+        "base": {
+          "revision": "b788e1959bba1f2e8aa1f94d4cf7c0eb163a2f9c",
+          "tree": "c46b265c960ff6b905bde5134844a175b40c12c9",
+          "submodules": "0b6ebeeec827b05210f3acfa4149a70dda9a0de5 vendor/gdp-ts (0b6ebee)\n d47141cce2caf5b86b0c2c0c372a5174f424bc15 vendor/handwired (d47141c)",
+          "clean": true
+        },
+        "candidate": {
+          "revision": "b09da82d9ada6e0cdc31f943292cfea727f5752e",
+          "tree": "19803daf80024fa074a1678c8a4feb6f57ee3c7f",
+          "submodules": "0b6ebeeec827b05210f3acfa4149a70dda9a0de5 vendor/gdp-ts (0b6ebee)\n d47141cce2caf5b86b0c2c0c372a5174f424bc15 vendor/handwired (d47141c)",
+          "clean": true
+        }
+      },
+      "hashes": {
+        "base": {
+          "research/protocols/ic3syn/jobs.ts": "3b72741a5b6ff1ce9ee86a4e8ba30a6318ee10554f9bf675c1c217cd92a1ea9c",
+          "research/protocols/ic3syn/run.ts": "a9fa1e966acf503db0804419f8af7b82cfec671f8fba528716ec5440ea70dd66",
+          "research/protocols/ic3syn/models.ts": "5d61b846a8331a9b7978b4809d53b88e5918135ded0fc6d527f2a6dc8fb3a601",
+          "research/protocols/models.ts": "ae2acd68175231e54e8590c2e35e04996282da22523d2fbac47d40e0adb078e4",
+          "research/protocols/run.ts": "f739b1d8c3f94e7718ae1029df4675f27b5d81211250b223678b6c5229946f87"
+        },
+        "candidate": {
+          "research/protocols/ic3syn/jobs.ts": "3b72741a5b6ff1ce9ee86a4e8ba30a6318ee10554f9bf675c1c217cd92a1ea9c",
+          "research/protocols/ic3syn/run.ts": "a9fa1e966acf503db0804419f8af7b82cfec671f8fba528716ec5440ea70dd66",
+          "research/protocols/ic3syn/models.ts": "7264a41611c0bab74b8b3549ac86663f4cb4d8ef8cac00528df0c2c7bcfbae93",
+          "research/protocols/models.ts": "ae2acd68175231e54e8590c2e35e04996282da22523d2fbac47d40e0adb078e4",
+          "research/protocols/run.ts": "f739b1d8c3f94e7718ae1029df4675f27b5d81211250b223678b6c5229946f87"
+        }
+      },
+      "outcomes": {
+        "base": {
+          "answer": "error",
+          "exit": null,
+          "signal": "SIGKILL",
+          "wallMs": 29773.999662000002
+        },
+        "candidate": {
+          "answer": "error",
+          "exit": null,
+          "signal": "SIGKILL",
+          "wallMs": 33912.280782999995
+        }
+      }
+    },
+    {
+      "index": 8,
+      "view": "its",
+      "task": "Integer_Transition_Systems/From_T2/bio.t2.ari",
+      "repeat": 3,
+      "order": [
+        "candidate",
+        "base"
+      ],
+      "cpu": "AMD Ryzen 9 9950X 16-Core Processor",
+      "bun": "1.4.3",
+      "strictSeconds": 60,
+      "solve": [
+        "compare/term/solve.ts",
+        "/tmp/lane-i-bar-NTTWD2/input/Integer_Transition_Systems/From_T2/bio.t2.ari",
+        "--limit",
+        "60"
+      ],
+      "inputs": {
+        "https://raw.githubusercontent.com/TermCOMP/TPDB-ARI/183f29db5ec7702215c6aabe12732bf3e836fced/Integer_Transition_Systems/From_T2/bio.t2.ari": "4aed541ef72baf9458f7e98022da3d1df1bce6d1212fa8e834d5c09bc18cb22c"
+      },
+      "meta": {
+        "base": {
+          "revision": "b788e1959bba1f2e8aa1f94d4cf7c0eb163a2f9c",
+          "tree": "c46b265c960ff6b905bde5134844a175b40c12c9",
+          "submodules": "0b6ebeeec827b05210f3acfa4149a70dda9a0de5 vendor/gdp-ts (0b6ebee)\n d47141cce2caf5b86b0c2c0c372a5174f424bc15 vendor/handwired (d47141c)",
+          "clean": true
+        },
+        "candidate": {
+          "revision": "b09da82d9ada6e0cdc31f943292cfea727f5752e",
+          "tree": "19803daf80024fa074a1678c8a4feb6f57ee3c7f",
+          "submodules": "0b6ebeeec827b05210f3acfa4149a70dda9a0de5 vendor/gdp-ts (0b6ebee)\n d47141cce2caf5b86b0c2c0c372a5174f424bc15 vendor/handwired (d47141c)",
+          "clean": true
+        }
+      },
+      "hashes": {
+        "base": {
+          "research/protocols/ic3syn/jobs.ts": "3b72741a5b6ff1ce9ee86a4e8ba30a6318ee10554f9bf675c1c217cd92a1ea9c",
+          "research/protocols/ic3syn/run.ts": "a9fa1e966acf503db0804419f8af7b82cfec671f8fba528716ec5440ea70dd66",
+          "research/protocols/ic3syn/models.ts": "5d61b846a8331a9b7978b4809d53b88e5918135ded0fc6d527f2a6dc8fb3a601",
+          "research/protocols/models.ts": "ae2acd68175231e54e8590c2e35e04996282da22523d2fbac47d40e0adb078e4",
+          "research/protocols/run.ts": "f739b1d8c3f94e7718ae1029df4675f27b5d81211250b223678b6c5229946f87"
+        },
+        "candidate": {
+          "research/protocols/ic3syn/jobs.ts": "3b72741a5b6ff1ce9ee86a4e8ba30a6318ee10554f9bf675c1c217cd92a1ea9c",
+          "research/protocols/ic3syn/run.ts": "a9fa1e966acf503db0804419f8af7b82cfec671f8fba528716ec5440ea70dd66",
+          "research/protocols/ic3syn/models.ts": "7264a41611c0bab74b8b3549ac86663f4cb4d8ef8cac00528df0c2c7bcfbae93",
+          "research/protocols/models.ts": "ae2acd68175231e54e8590c2e35e04996282da22523d2fbac47d40e0adb078e4",
+          "research/protocols/run.ts": "f739b1d8c3f94e7718ae1029df4675f27b5d81211250b223678b6c5229946f87"
+        }
+      },
+      "outcomes": {
+        "candidate": {
+          "answer": "error",
+          "exit": null,
+          "signal": "SIGKILL",
+          "wallMs": 36494.783769
+        },
+        "base": {
+          "answer": "error",
+          "exit": null,
+          "signal": "SIGKILL",
+          "wallMs": 30346.913822000002
+        }
+      }
+    },
+    {
+      "index": 9,
+      "view": "its",
+      "task": "Integer_Transition_Systems/From_T2/cover.t2.ari",
+      "repeat": 1,
+      "order": [
+        "base",
+        "candidate"
+      ],
+      "cpu": "AMD EPYC 9455 48-Core Processor",
+      "bun": "1.4.3",
+      "strictSeconds": 60,
+      "solve": [
+        "compare/term/solve.ts",
+        "/tmp/lane-i-bar-iYljX6/input/Integer_Transition_Systems/From_T2/cover.t2.ari",
+        "--limit",
+        "60"
+      ],
+      "inputs": {
+        "https://raw.githubusercontent.com/TermCOMP/TPDB-ARI/183f29db5ec7702215c6aabe12732bf3e836fced/Integer_Transition_Systems/From_T2/cover.t2.ari": "496c7336a69bee0116dfb05b61a640f2500dd726cd842b3a45b69ae0e787affc"
+      },
+      "meta": {
+        "base": {
+          "revision": "b788e1959bba1f2e8aa1f94d4cf7c0eb163a2f9c",
+          "tree": "c46b265c960ff6b905bde5134844a175b40c12c9",
+          "submodules": "0b6ebeeec827b05210f3acfa4149a70dda9a0de5 vendor/gdp-ts (0b6ebee)\n d47141cce2caf5b86b0c2c0c372a5174f424bc15 vendor/handwired (d47141c)",
+          "clean": true
+        },
+        "candidate": {
+          "revision": "b09da82d9ada6e0cdc31f943292cfea727f5752e",
+          "tree": "19803daf80024fa074a1678c8a4feb6f57ee3c7f",
+          "submodules": "0b6ebeeec827b05210f3acfa4149a70dda9a0de5 vendor/gdp-ts (0b6ebee)\n d47141cce2caf5b86b0c2c0c372a5174f424bc15 vendor/handwired (d47141c)",
+          "clean": true
+        }
+      },
+      "hashes": {
+        "base": {
+          "research/protocols/ic3syn/jobs.ts": "3b72741a5b6ff1ce9ee86a4e8ba30a6318ee10554f9bf675c1c217cd92a1ea9c",
+          "research/protocols/ic3syn/run.ts": "a9fa1e966acf503db0804419f8af7b82cfec671f8fba528716ec5440ea70dd66",
+          "research/protocols/ic3syn/models.ts": "5d61b846a8331a9b7978b4809d53b88e5918135ded0fc6d527f2a6dc8fb3a601",
+          "research/protocols/models.ts": "ae2acd68175231e54e8590c2e35e04996282da22523d2fbac47d40e0adb078e4",
+          "research/protocols/run.ts": "f739b1d8c3f94e7718ae1029df4675f27b5d81211250b223678b6c5229946f87"
+        },
+        "candidate": {
+          "research/protocols/ic3syn/jobs.ts": "3b72741a5b6ff1ce9ee86a4e8ba30a6318ee10554f9bf675c1c217cd92a1ea9c",
+          "research/protocols/ic3syn/run.ts": "a9fa1e966acf503db0804419f8af7b82cfec671f8fba528716ec5440ea70dd66",
+          "research/protocols/ic3syn/models.ts": "7264a41611c0bab74b8b3549ac86663f4cb4d8ef8cac00528df0c2c7bcfbae93",
+          "research/protocols/models.ts": "ae2acd68175231e54e8590c2e35e04996282da22523d2fbac47d40e0adb078e4",
+          "research/protocols/run.ts": "f739b1d8c3f94e7718ae1029df4675f27b5d81211250b223678b6c5229946f87"
+        }
+      },
+      "outcomes": {
+        "base": {
+          "answer": "error",
+          "exit": null,
+          "signal": "SIGKILL",
+          "wallMs": 49635.922465
+        },
+        "candidate": {
+          "answer": "error",
+          "exit": null,
+          "signal": "SIGKILL",
+          "wallMs": 41430.368889
+        }
+      }
+    },
+    {
+      "index": 9,
+      "view": "its",
+      "task": "Integer_Transition_Systems/From_T2/cover.t2.ari",
+      "repeat": 2,
+      "order": [
+        "candidate",
+        "base"
+      ],
+      "cpu": "AMD EPYC 9455 48-Core Processor",
+      "bun": "1.4.3",
+      "strictSeconds": 60,
+      "solve": [
+        "compare/term/solve.ts",
+        "/tmp/lane-i-bar-iYljX6/input/Integer_Transition_Systems/From_T2/cover.t2.ari",
+        "--limit",
+        "60"
+      ],
+      "inputs": {
+        "https://raw.githubusercontent.com/TermCOMP/TPDB-ARI/183f29db5ec7702215c6aabe12732bf3e836fced/Integer_Transition_Systems/From_T2/cover.t2.ari": "496c7336a69bee0116dfb05b61a640f2500dd726cd842b3a45b69ae0e787affc"
+      },
+      "meta": {
+        "base": {
+          "revision": "b788e1959bba1f2e8aa1f94d4cf7c0eb163a2f9c",
+          "tree": "c46b265c960ff6b905bde5134844a175b40c12c9",
+          "submodules": "0b6ebeeec827b05210f3acfa4149a70dda9a0de5 vendor/gdp-ts (0b6ebee)\n d47141cce2caf5b86b0c2c0c372a5174f424bc15 vendor/handwired (d47141c)",
+          "clean": true
+        },
+        "candidate": {
+          "revision": "b09da82d9ada6e0cdc31f943292cfea727f5752e",
+          "tree": "19803daf80024fa074a1678c8a4feb6f57ee3c7f",
+          "submodules": "0b6ebeeec827b05210f3acfa4149a70dda9a0de5 vendor/gdp-ts (0b6ebee)\n d47141cce2caf5b86b0c2c0c372a5174f424bc15 vendor/handwired (d47141c)",
+          "clean": true
+        }
+      },
+      "hashes": {
+        "base": {
+          "research/protocols/ic3syn/jobs.ts": "3b72741a5b6ff1ce9ee86a4e8ba30a6318ee10554f9bf675c1c217cd92a1ea9c",
+          "research/protocols/ic3syn/run.ts": "a9fa1e966acf503db0804419f8af7b82cfec671f8fba528716ec5440ea70dd66",
+          "research/protocols/ic3syn/models.ts": "5d61b846a8331a9b7978b4809d53b88e5918135ded0fc6d527f2a6dc8fb3a601",
+          "research/protocols/models.ts": "ae2acd68175231e54e8590c2e35e04996282da22523d2fbac47d40e0adb078e4",
+          "research/protocols/run.ts": "f739b1d8c3f94e7718ae1029df4675f27b5d81211250b223678b6c5229946f87"
+        },
+        "candidate": {
+          "research/protocols/ic3syn/jobs.ts": "3b72741a5b6ff1ce9ee86a4e8ba30a6318ee10554f9bf675c1c217cd92a1ea9c",
+          "research/protocols/ic3syn/run.ts": "a9fa1e966acf503db0804419f8af7b82cfec671f8fba528716ec5440ea70dd66",
+          "research/protocols/ic3syn/models.ts": "7264a41611c0bab74b8b3549ac86663f4cb4d8ef8cac00528df0c2c7bcfbae93",
+          "research/protocols/models.ts": "ae2acd68175231e54e8590c2e35e04996282da22523d2fbac47d40e0adb078e4",
+          "research/protocols/run.ts": "f739b1d8c3f94e7718ae1029df4675f27b5d81211250b223678b6c5229946f87"
+        }
+      },
+      "outcomes": {
+        "candidate": {
+          "answer": "error",
+          "exit": null,
+          "signal": "SIGKILL",
+          "wallMs": 41312.461064999996
+        },
+        "base": {
+          "answer": "error",
+          "exit": null,
+          "signal": "SIGKILL",
+          "wallMs": 39085.20640699999
+        }
+      }
+    },
+    {
+      "index": 9,
+      "view": "its",
+      "task": "Integer_Transition_Systems/From_T2/cover.t2.ari",
+      "repeat": 3,
+      "order": [
+        "base",
+        "candidate"
+      ],
+      "cpu": "AMD EPYC 9455 48-Core Processor",
+      "bun": "1.4.3",
+      "strictSeconds": 60,
+      "solve": [
+        "compare/term/solve.ts",
+        "/tmp/lane-i-bar-iYljX6/input/Integer_Transition_Systems/From_T2/cover.t2.ari",
+        "--limit",
+        "60"
+      ],
+      "inputs": {
+        "https://raw.githubusercontent.com/TermCOMP/TPDB-ARI/183f29db5ec7702215c6aabe12732bf3e836fced/Integer_Transition_Systems/From_T2/cover.t2.ari": "496c7336a69bee0116dfb05b61a640f2500dd726cd842b3a45b69ae0e787affc"
+      },
+      "meta": {
+        "base": {
+          "revision": "b788e1959bba1f2e8aa1f94d4cf7c0eb163a2f9c",
+          "tree": "c46b265c960ff6b905bde5134844a175b40c12c9",
+          "submodules": "0b6ebeeec827b05210f3acfa4149a70dda9a0de5 vendor/gdp-ts (0b6ebee)\n d47141cce2caf5b86b0c2c0c372a5174f424bc15 vendor/handwired (d47141c)",
+          "clean": true
+        },
+        "candidate": {
+          "revision": "b09da82d9ada6e0cdc31f943292cfea727f5752e",
+          "tree": "19803daf80024fa074a1678c8a4feb6f57ee3c7f",
+          "submodules": "0b6ebeeec827b05210f3acfa4149a70dda9a0de5 vendor/gdp-ts (0b6ebee)\n d47141cce2caf5b86b0c2c0c372a5174f424bc15 vendor/handwired (d47141c)",
+          "clean": true
+        }
+      },
+      "hashes": {
+        "base": {
+          "research/protocols/ic3syn/jobs.ts": "3b72741a5b6ff1ce9ee86a4e8ba30a6318ee10554f9bf675c1c217cd92a1ea9c",
+          "research/protocols/ic3syn/run.ts": "a9fa1e966acf503db0804419f8af7b82cfec671f8fba528716ec5440ea70dd66",
+          "research/protocols/ic3syn/models.ts": "5d61b846a8331a9b7978b4809d53b88e5918135ded0fc6d527f2a6dc8fb3a601",
+          "research/protocols/models.ts": "ae2acd68175231e54e8590c2e35e04996282da22523d2fbac47d40e0adb078e4",
+          "research/protocols/run.ts": "f739b1d8c3f94e7718ae1029df4675f27b5d81211250b223678b6c5229946f87"
+        },
+        "candidate": {
+          "research/protocols/ic3syn/jobs.ts": "3b72741a5b6ff1ce9ee86a4e8ba30a6318ee10554f9bf675c1c217cd92a1ea9c",
+          "research/protocols/ic3syn/run.ts": "a9fa1e966acf503db0804419f8af7b82cfec671f8fba528716ec5440ea70dd66",
+          "research/protocols/ic3syn/models.ts": "7264a41611c0bab74b8b3549ac86663f4cb4d8ef8cac00528df0c2c7bcfbae93",
+          "research/protocols/models.ts": "ae2acd68175231e54e8590c2e35e04996282da22523d2fbac47d40e0adb078e4",
+          "research/protocols/run.ts": "f739b1d8c3f94e7718ae1029df4675f27b5d81211250b223678b6c5229946f87"
+        }
+      },
+      "outcomes": {
+        "base": {
+          "answer": "error",
+          "exit": null,
+          "signal": "SIGKILL",
+          "wallMs": 48991.759792
+        },
+        "candidate": {
+          "answer": "error",
+          "exit": null,
+          "signal": "SIGKILL",
+          "wallMs": 37581.13830600001
+        }
+      }
+    },
+    {
+      "index": 10,
+      "view": "tip",
+      "task": "tip2015/list_weird_concat_map_bind.smt2",
+      "repeat": 1,
+      "order": [
+        "candidate",
+        "base"
+      ],
+      "cpu": "AMD Ryzen 9 9950X 16-Core Processor",
+      "bun": "1.4.4",
+      "strictSeconds": 60,
+      "solve": [
+        "compare/tip/solve.ts",
+        "/tmp/lane-i-bar-sWPfgR/input/tip2015/list_weird_concat_map_bind.smt2",
+        "--ms",
+        "57000"
+      ],
+      "inputs": {
+        "https://raw.githubusercontent.com/tip-org/benchmarks/bace5b2f0e45d526ec82ce5de6b25fe024984161/benchmarks/tip2015/list_weird_concat_map_bind.smt2": "632197cfd187f8f6c47018b23b4abd9d2626be49d4f46ef04e49e79348db00b1"
+      },
+      "meta": {
+        "base": {
+          "revision": "b788e1959bba1f2e8aa1f94d4cf7c0eb163a2f9c",
+          "tree": "c46b265c960ff6b905bde5134844a175b40c12c9",
+          "submodules": "0b6ebeeec827b05210f3acfa4149a70dda9a0de5 vendor/gdp-ts (0b6ebee)\n d47141cce2caf5b86b0c2c0c372a5174f424bc15 vendor/handwired (d47141c)",
+          "clean": true
+        },
+        "candidate": {
+          "revision": "b09da82d9ada6e0cdc31f943292cfea727f5752e",
+          "tree": "19803daf80024fa074a1678c8a4feb6f57ee3c7f",
+          "submodules": "0b6ebeeec827b05210f3acfa4149a70dda9a0de5 vendor/gdp-ts (0b6ebee)\n d47141cce2caf5b86b0c2c0c372a5174f424bc15 vendor/handwired (d47141c)",
+          "clean": true
+        }
+      },
+      "hashes": {
+        "base": {
+          "research/protocols/ic3syn/jobs.ts": "3b72741a5b6ff1ce9ee86a4e8ba30a6318ee10554f9bf675c1c217cd92a1ea9c",
+          "research/protocols/ic3syn/run.ts": "a9fa1e966acf503db0804419f8af7b82cfec671f8fba528716ec5440ea70dd66",
+          "research/protocols/ic3syn/models.ts": "5d61b846a8331a9b7978b4809d53b88e5918135ded0fc6d527f2a6dc8fb3a601",
+          "research/protocols/models.ts": "ae2acd68175231e54e8590c2e35e04996282da22523d2fbac47d40e0adb078e4",
+          "research/protocols/run.ts": "f739b1d8c3f94e7718ae1029df4675f27b5d81211250b223678b6c5229946f87"
+        },
+        "candidate": {
+          "research/protocols/ic3syn/jobs.ts": "3b72741a5b6ff1ce9ee86a4e8ba30a6318ee10554f9bf675c1c217cd92a1ea9c",
+          "research/protocols/ic3syn/run.ts": "a9fa1e966acf503db0804419f8af7b82cfec671f8fba528716ec5440ea70dd66",
+          "research/protocols/ic3syn/models.ts": "7264a41611c0bab74b8b3549ac86663f4cb4d8ef8cac00528df0c2c7bcfbae93",
+          "research/protocols/models.ts": "ae2acd68175231e54e8590c2e35e04996282da22523d2fbac47d40e0adb078e4",
+          "research/protocols/run.ts": "f739b1d8c3f94e7718ae1029df4675f27b5d81211250b223678b6c5229946f87"
+        }
+      },
+      "outcomes": {
+        "candidate": {
+          "answer": "timeout",
+          "exit": 124,
+          "signal": null,
+          "wallMs": 60319.44559
+        },
+        "base": {
+          "answer": "timeout",
+          "exit": 124,
+          "signal": null,
+          "wallMs": 60354.722578
+        }
+      }
+    },
+    {
+      "index": 10,
+      "view": "tip",
+      "task": "tip2015/list_weird_concat_map_bind.smt2",
+      "repeat": 2,
+      "order": [
+        "base",
+        "candidate"
+      ],
+      "cpu": "AMD Ryzen 9 9950X 16-Core Processor",
+      "bun": "1.4.4",
+      "strictSeconds": 60,
+      "solve": [
+        "compare/tip/solve.ts",
+        "/tmp/lane-i-bar-sWPfgR/input/tip2015/list_weird_concat_map_bind.smt2",
+        "--ms",
+        "57000"
+      ],
+      "inputs": {
+        "https://raw.githubusercontent.com/tip-org/benchmarks/bace5b2f0e45d526ec82ce5de6b25fe024984161/benchmarks/tip2015/list_weird_concat_map_bind.smt2": "632197cfd187f8f6c47018b23b4abd9d2626be49d4f46ef04e49e79348db00b1"
+      },
+      "meta": {
+        "base": {
+          "revision": "b788e1959bba1f2e8aa1f94d4cf7c0eb163a2f9c",
+          "tree": "c46b265c960ff6b905bde5134844a175b40c12c9",
+          "submodules": "0b6ebeeec827b05210f3acfa4149a70dda9a0de5 vendor/gdp-ts (0b6ebee)\n d47141cce2caf5b86b0c2c0c372a5174f424bc15 vendor/handwired (d47141c)",
+          "clean": true
+        },
+        "candidate": {
+          "revision": "b09da82d9ada6e0cdc31f943292cfea727f5752e",
+          "tree": "19803daf80024fa074a1678c8a4feb6f57ee3c7f",
+          "submodules": "0b6ebeeec827b05210f3acfa4149a70dda9a0de5 vendor/gdp-ts (0b6ebee)\n d47141cce2caf5b86b0c2c0c372a5174f424bc15 vendor/handwired (d47141c)",
+          "clean": true
+        }
+      },
+      "hashes": {
+        "base": {
+          "research/protocols/ic3syn/jobs.ts": "3b72741a5b6ff1ce9ee86a4e8ba30a6318ee10554f9bf675c1c217cd92a1ea9c",
+          "research/protocols/ic3syn/run.ts": "a9fa1e966acf503db0804419f8af7b82cfec671f8fba528716ec5440ea70dd66",
+          "research/protocols/ic3syn/models.ts": "5d61b846a8331a9b7978b4809d53b88e5918135ded0fc6d527f2a6dc8fb3a601",
+          "research/protocols/models.ts": "ae2acd68175231e54e8590c2e35e04996282da22523d2fbac47d40e0adb078e4",
+          "research/protocols/run.ts": "f739b1d8c3f94e7718ae1029df4675f27b5d81211250b223678b6c5229946f87"
+        },
+        "candidate": {
+          "research/protocols/ic3syn/jobs.ts": "3b72741a5b6ff1ce9ee86a4e8ba30a6318ee10554f9bf675c1c217cd92a1ea9c",
+          "research/protocols/ic3syn/run.ts": "a9fa1e966acf503db0804419f8af7b82cfec671f8fba528716ec5440ea70dd66",
+          "research/protocols/ic3syn/models.ts": "7264a41611c0bab74b8b3549ac86663f4cb4d8ef8cac00528df0c2c7bcfbae93",
+          "research/protocols/models.ts": "ae2acd68175231e54e8590c2e35e04996282da22523d2fbac47d40e0adb078e4",
+          "research/protocols/run.ts": "f739b1d8c3f94e7718ae1029df4675f27b5d81211250b223678b6c5229946f87"
+        }
+      },
+      "outcomes": {
+        "base": {
+          "answer": "timeout",
+          "exit": 124,
+          "signal": null,
+          "wallMs": 60261.961446
+        },
+        "candidate": {
+          "answer": "timeout",
+          "exit": 124,
+          "signal": null,
+          "wallMs": 60464.25900399999
+        }
+      }
+    },
+    {
+      "index": 10,
+      "view": "tip",
+      "task": "tip2015/list_weird_concat_map_bind.smt2",
+      "repeat": 3,
+      "order": [
+        "candidate",
+        "base"
+      ],
+      "cpu": "AMD Ryzen 9 9950X 16-Core Processor",
+      "bun": "1.4.4",
+      "strictSeconds": 60,
+      "solve": [
+        "compare/tip/solve.ts",
+        "/tmp/lane-i-bar-sWPfgR/input/tip2015/list_weird_concat_map_bind.smt2",
+        "--ms",
+        "57000"
+      ],
+      "inputs": {
+        "https://raw.githubusercontent.com/tip-org/benchmarks/bace5b2f0e45d526ec82ce5de6b25fe024984161/benchmarks/tip2015/list_weird_concat_map_bind.smt2": "632197cfd187f8f6c47018b23b4abd9d2626be49d4f46ef04e49e79348db00b1"
+      },
+      "meta": {
+        "base": {
+          "revision": "b788e1959bba1f2e8aa1f94d4cf7c0eb163a2f9c",
+          "tree": "c46b265c960ff6b905bde5134844a175b40c12c9",
+          "submodules": "0b6ebeeec827b05210f3acfa4149a70dda9a0de5 vendor/gdp-ts (0b6ebee)\n d47141cce2caf5b86b0c2c0c372a5174f424bc15 vendor/handwired (d47141c)",
+          "clean": true
+        },
+        "candidate": {
+          "revision": "b09da82d9ada6e0cdc31f943292cfea727f5752e",
+          "tree": "19803daf80024fa074a1678c8a4feb6f57ee3c7f",
+          "submodules": "0b6ebeeec827b05210f3acfa4149a70dda9a0de5 vendor/gdp-ts (0b6ebee)\n d47141cce2caf5b86b0c2c0c372a5174f424bc15 vendor/handwired (d47141c)",
+          "clean": true
+        }
+      },
+      "hashes": {
+        "base": {
+          "research/protocols/ic3syn/jobs.ts": "3b72741a5b6ff1ce9ee86a4e8ba30a6318ee10554f9bf675c1c217cd92a1ea9c",
+          "research/protocols/ic3syn/run.ts": "a9fa1e966acf503db0804419f8af7b82cfec671f8fba528716ec5440ea70dd66",
+          "research/protocols/ic3syn/models.ts": "5d61b846a8331a9b7978b4809d53b88e5918135ded0fc6d527f2a6dc8fb3a601",
+          "research/protocols/models.ts": "ae2acd68175231e54e8590c2e35e04996282da22523d2fbac47d40e0adb078e4",
+          "research/protocols/run.ts": "f739b1d8c3f94e7718ae1029df4675f27b5d81211250b223678b6c5229946f87"
+        },
+        "candidate": {
+          "research/protocols/ic3syn/jobs.ts": "3b72741a5b6ff1ce9ee86a4e8ba30a6318ee10554f9bf675c1c217cd92a1ea9c",
+          "research/protocols/ic3syn/run.ts": "a9fa1e966acf503db0804419f8af7b82cfec671f8fba528716ec5440ea70dd66",
+          "research/protocols/ic3syn/models.ts": "7264a41611c0bab74b8b3549ac86663f4cb4d8ef8cac00528df0c2c7bcfbae93",
+          "research/protocols/models.ts": "ae2acd68175231e54e8590c2e35e04996282da22523d2fbac47d40e0adb078e4",
+          "research/protocols/run.ts": "f739b1d8c3f94e7718ae1029df4675f27b5d81211250b223678b6c5229946f87"
+        }
+      },
+      "outcomes": {
+        "candidate": {
+          "answer": "timeout",
+          "exit": 124,
+          "signal": null,
+          "wallMs": 60575.79981299996
+        },
+        "base": {
+          "answer": "timeout",
+          "exit": 124,
+          "signal": null,
+          "wallMs": 60285.34957999998
+        }
+      }
+    },
+    {
+      "index": 11,
+      "view": "tip",
+      "task": "tip2015/tree_Flatten3.smt2",
+      "repeat": 1,
+      "order": [
+        "base",
+        "candidate"
+      ],
+      "cpu": "AMD Ryzen 9 9950X 16-Core Processor",
+      "bun": "1.4.4",
+      "strictSeconds": 60,
+      "solve": [
+        "compare/tip/solve.ts",
+        "/tmp/lane-i-bar-oSGuSP/input/tip2015/tree_Flatten3.smt2",
+        "--ms",
+        "57000"
+      ],
+      "inputs": {
+        "https://raw.githubusercontent.com/tip-org/benchmarks/bace5b2f0e45d526ec82ce5de6b25fe024984161/benchmarks/tip2015/tree_Flatten3.smt2": "5fd496ef72154fa99d83f0bdfa6d0b6d7f41a102c6aff050018713be58ec3989"
+      },
+      "meta": {
+        "base": {
+          "revision": "b788e1959bba1f2e8aa1f94d4cf7c0eb163a2f9c",
+          "tree": "c46b265c960ff6b905bde5134844a175b40c12c9",
+          "submodules": "0b6ebeeec827b05210f3acfa4149a70dda9a0de5 vendor/gdp-ts (0b6ebee)\n d47141cce2caf5b86b0c2c0c372a5174f424bc15 vendor/handwired (d47141c)",
+          "clean": true
+        },
+        "candidate": {
+          "revision": "b09da82d9ada6e0cdc31f943292cfea727f5752e",
+          "tree": "19803daf80024fa074a1678c8a4feb6f57ee3c7f",
+          "submodules": "0b6ebeeec827b05210f3acfa4149a70dda9a0de5 vendor/gdp-ts (0b6ebee)\n d47141cce2caf5b86b0c2c0c372a5174f424bc15 vendor/handwired (d47141c)",
+          "clean": true
+        }
+      },
+      "hashes": {
+        "base": {
+          "research/protocols/ic3syn/jobs.ts": "3b72741a5b6ff1ce9ee86a4e8ba30a6318ee10554f9bf675c1c217cd92a1ea9c",
+          "research/protocols/ic3syn/run.ts": "a9fa1e966acf503db0804419f8af7b82cfec671f8fba528716ec5440ea70dd66",
+          "research/protocols/ic3syn/models.ts": "5d61b846a8331a9b7978b4809d53b88e5918135ded0fc6d527f2a6dc8fb3a601",
+          "research/protocols/models.ts": "ae2acd68175231e54e8590c2e35e04996282da22523d2fbac47d40e0adb078e4",
+          "research/protocols/run.ts": "f739b1d8c3f94e7718ae1029df4675f27b5d81211250b223678b6c5229946f87"
+        },
+        "candidate": {
+          "research/protocols/ic3syn/jobs.ts": "3b72741a5b6ff1ce9ee86a4e8ba30a6318ee10554f9bf675c1c217cd92a1ea9c",
+          "research/protocols/ic3syn/run.ts": "a9fa1e966acf503db0804419f8af7b82cfec671f8fba528716ec5440ea70dd66",
+          "research/protocols/ic3syn/models.ts": "7264a41611c0bab74b8b3549ac86663f4cb4d8ef8cac00528df0c2c7bcfbae93",
+          "research/protocols/models.ts": "ae2acd68175231e54e8590c2e35e04996282da22523d2fbac47d40e0adb078e4",
+          "research/protocols/run.ts": "f739b1d8c3f94e7718ae1029df4675f27b5d81211250b223678b6c5229946f87"
+        }
+      },
+      "outcomes": {
+        "base": {
+          "answer": "error",
+          "exit": 0,
+          "signal": null,
+          "wallMs": 39902.16622
+        },
+        "candidate": {
+          "answer": "error",
+          "exit": 0,
+          "signal": null,
+          "wallMs": 22004.548762000006
+        }
+      }
+    },
+    {
+      "index": 11,
+      "view": "tip",
+      "task": "tip2015/tree_Flatten3.smt2",
+      "repeat": 2,
+      "order": [
+        "candidate",
+        "base"
+      ],
+      "cpu": "AMD Ryzen 9 9950X 16-Core Processor",
+      "bun": "1.4.4",
+      "strictSeconds": 60,
+      "solve": [
+        "compare/tip/solve.ts",
+        "/tmp/lane-i-bar-oSGuSP/input/tip2015/tree_Flatten3.smt2",
+        "--ms",
+        "57000"
+      ],
+      "inputs": {
+        "https://raw.githubusercontent.com/tip-org/benchmarks/bace5b2f0e45d526ec82ce5de6b25fe024984161/benchmarks/tip2015/tree_Flatten3.smt2": "5fd496ef72154fa99d83f0bdfa6d0b6d7f41a102c6aff050018713be58ec3989"
+      },
+      "meta": {
+        "base": {
+          "revision": "b788e1959bba1f2e8aa1f94d4cf7c0eb163a2f9c",
+          "tree": "c46b265c960ff6b905bde5134844a175b40c12c9",
+          "submodules": "0b6ebeeec827b05210f3acfa4149a70dda9a0de5 vendor/gdp-ts (0b6ebee)\n d47141cce2caf5b86b0c2c0c372a5174f424bc15 vendor/handwired (d47141c)",
+          "clean": true
+        },
+        "candidate": {
+          "revision": "b09da82d9ada6e0cdc31f943292cfea727f5752e",
+          "tree": "19803daf80024fa074a1678c8a4feb6f57ee3c7f",
+          "submodules": "0b6ebeeec827b05210f3acfa4149a70dda9a0de5 vendor/gdp-ts (0b6ebee)\n d47141cce2caf5b86b0c2c0c372a5174f424bc15 vendor/handwired (d47141c)",
+          "clean": true
+        }
+      },
+      "hashes": {
+        "base": {
+          "research/protocols/ic3syn/jobs.ts": "3b72741a5b6ff1ce9ee86a4e8ba30a6318ee10554f9bf675c1c217cd92a1ea9c",
+          "research/protocols/ic3syn/run.ts": "a9fa1e966acf503db0804419f8af7b82cfec671f8fba528716ec5440ea70dd66",
+          "research/protocols/ic3syn/models.ts": "5d61b846a8331a9b7978b4809d53b88e5918135ded0fc6d527f2a6dc8fb3a601",
+          "research/protocols/models.ts": "ae2acd68175231e54e8590c2e35e04996282da22523d2fbac47d40e0adb078e4",
+          "research/protocols/run.ts": "f739b1d8c3f94e7718ae1029df4675f27b5d81211250b223678b6c5229946f87"
+        },
+        "candidate": {
+          "research/protocols/ic3syn/jobs.ts": "3b72741a5b6ff1ce9ee86a4e8ba30a6318ee10554f9bf675c1c217cd92a1ea9c",
+          "research/protocols/ic3syn/run.ts": "a9fa1e966acf503db0804419f8af7b82cfec671f8fba528716ec5440ea70dd66",
+          "research/protocols/ic3syn/models.ts": "7264a41611c0bab74b8b3549ac86663f4cb4d8ef8cac00528df0c2c7bcfbae93",
+          "research/protocols/models.ts": "ae2acd68175231e54e8590c2e35e04996282da22523d2fbac47d40e0adb078e4",
+          "research/protocols/run.ts": "f739b1d8c3f94e7718ae1029df4675f27b5d81211250b223678b6c5229946f87"
+        }
+      },
+      "outcomes": {
+        "candidate": {
+          "answer": "error",
+          "exit": 0,
+          "signal": null,
+          "wallMs": 11788.606587000002
+        },
+        "base": {
+          "answer": "error",
+          "exit": 0,
+          "signal": null,
+          "wallMs": 10487.719475999998
+        }
+      }
+    },
+    {
+      "index": 11,
+      "view": "tip",
+      "task": "tip2015/tree_Flatten3.smt2",
+      "repeat": 3,
+      "order": [
+        "base",
+        "candidate"
+      ],
+      "cpu": "AMD Ryzen 9 9950X 16-Core Processor",
+      "bun": "1.4.4",
+      "strictSeconds": 60,
+      "solve": [
+        "compare/tip/solve.ts",
+        "/tmp/lane-i-bar-oSGuSP/input/tip2015/tree_Flatten3.smt2",
+        "--ms",
+        "57000"
+      ],
+      "inputs": {
+        "https://raw.githubusercontent.com/tip-org/benchmarks/bace5b2f0e45d526ec82ce5de6b25fe024984161/benchmarks/tip2015/tree_Flatten3.smt2": "5fd496ef72154fa99d83f0bdfa6d0b6d7f41a102c6aff050018713be58ec3989"
+      },
+      "meta": {
+        "base": {
+          "revision": "b788e1959bba1f2e8aa1f94d4cf7c0eb163a2f9c",
+          "tree": "c46b265c960ff6b905bde5134844a175b40c12c9",
+          "submodules": "0b6ebeeec827b05210f3acfa4149a70dda9a0de5 vendor/gdp-ts (0b6ebee)\n d47141cce2caf5b86b0c2c0c372a5174f424bc15 vendor/handwired (d47141c)",
+          "clean": true
+        },
+        "candidate": {
+          "revision": "b09da82d9ada6e0cdc31f943292cfea727f5752e",
+          "tree": "19803daf80024fa074a1678c8a4feb6f57ee3c7f",
+          "submodules": "0b6ebeeec827b05210f3acfa4149a70dda9a0de5 vendor/gdp-ts (0b6ebee)\n d47141cce2caf5b86b0c2c0c372a5174f424bc15 vendor/handwired (d47141c)",
+          "clean": true
+        }
+      },
+      "hashes": {
+        "base": {
+          "research/protocols/ic3syn/jobs.ts": "3b72741a5b6ff1ce9ee86a4e8ba30a6318ee10554f9bf675c1c217cd92a1ea9c",
+          "research/protocols/ic3syn/run.ts": "a9fa1e966acf503db0804419f8af7b82cfec671f8fba528716ec5440ea70dd66",
+          "research/protocols/ic3syn/models.ts": "5d61b846a8331a9b7978b4809d53b88e5918135ded0fc6d527f2a6dc8fb3a601",
+          "research/protocols/models.ts": "ae2acd68175231e54e8590c2e35e04996282da22523d2fbac47d40e0adb078e4",
+          "research/protocols/run.ts": "f739b1d8c3f94e7718ae1029df4675f27b5d81211250b223678b6c5229946f87"
+        },
+        "candidate": {
+          "research/protocols/ic3syn/jobs.ts": "3b72741a5b6ff1ce9ee86a4e8ba30a6318ee10554f9bf675c1c217cd92a1ea9c",
+          "research/protocols/ic3syn/run.ts": "a9fa1e966acf503db0804419f8af7b82cfec671f8fba528716ec5440ea70dd66",
+          "research/protocols/ic3syn/models.ts": "7264a41611c0bab74b8b3549ac86663f4cb4d8ef8cac00528df0c2c7bcfbae93",
+          "research/protocols/models.ts": "ae2acd68175231e54e8590c2e35e04996282da22523d2fbac47d40e0adb078e4",
+          "research/protocols/run.ts": "f739b1d8c3f94e7718ae1029df4675f27b5d81211250b223678b6c5229946f87"
+        }
+      },
+      "outcomes": {
+        "base": {
+          "answer": "error",
+          "exit": 0,
+          "signal": null,
+          "wallMs": 8929.02163100001
+        },
+        "candidate": {
+          "answer": "error",
+          "exit": 0,
+          "signal": null,
+          "wallMs": 8739.622175000011
+        }
+      }
+    }
+  ],
+  "scope": "Diagnostic only. A parsed answer from an incomplete child is not a successful benchmark run or a final no-loss gate."
+}

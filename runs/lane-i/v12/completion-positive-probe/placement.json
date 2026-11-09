@@ -1,0 +1,11 @@
+{
+ "completion-positive-probe": {
+  "vm": "bx_9vr8rkqj",
+  "type": "large",
+  "cpu": "AMD EPYC 4585PX 16-Core Processor",
+  "vcpus": 6,
+  "vm_vcpus": 8,
+  "exclusive": true,
+  "co_tenants": 0
+ }
+}

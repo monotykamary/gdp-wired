@@ -1,0 +1,25 @@
+{
+  "pairs": 15,
+  "complete": 14,
+  "bothProven": 13,
+  "base": {
+    "proven": 14,
+    "incomplete": 1
+  },
+  "candidate": {
+    "proven": 13,
+    "unknown": 2
+  },
+  "lostVerdicts": [
+    {
+      "group": 2,
+      "repeat": 2
+    }
+  ],
+  "bothProvenWorkRatio": 1.2508496061128738,
+  "bothProvenFullRatio": 1.8375986973025145,
+  "bothProvenMedianPairedTimeRatio": 0.9919923126201153,
+  "completeMedianPairedGenerationRatio": 0.708634716205994,
+  "candidateGenerationFaster": 14,
+  "scope": "Frozen b09, not V12. Retains censored baseline trial and semantic candidate losses; no final-gate acceptance."
+}
