@@ -1,0 +1,1304 @@
+{
+  "researchOnly": true,
+  "reuseSplit": [
+    {"law":"Inv2973: quorums overlap, or a config disabled","withinOp":0,"acrossOp":0,"remainingAfterPerOpReuse":1322.1930108000001,"remainingAfterPerLawReuse":1322.1930108000001},
+    {"law":"Inv*: no quorum of a config can still be gathered for a config term held","withinOp":4.556771200000185,"acrossOp":3.3148411999998757,"remainingAfterPerOpReuse":1903.4699676,"remainingAfterPerLawReuse":1900.1551264000002}
+  ],
+  "inputSha256": "a49b9b46756a7273730630fcd172fc1422cfd035d7f700a12c93f3c213f04101",
+  "rows": [
+    {
+      "auditExtraColumns": [],
+      "helperTotals": {
+        "field": 0,
+        "frame": 0
+      },
+      "law": "Inv2973: quorums overlap, or a config disabled",
+      "op": 0,
+      "mode": "control",
+      "closed": false,
+      "searchUnits": 659.5170672,
+      "searchWallMs": 6666.258124,
+      "auditUnits": 0,
+      "auditWallMs": 0.40802399999938643,
+      "helperUnits": 0,
+      "outsideHelpers": 659.5170672,
+      "split": {
+        "helperOther": 0,
+        "setup": 0,
+        "failed": 0,
+        "source": 0,
+        "check": 0,
+        "transport": 0
+      },
+      "checks": 0,
+      "rootSignature": null,
+      "attempts": 0,
+      "emitted": 0,
+      "checked": 0,
+      "sourceChecked": 0,
+      "rootChecked": 0,
+      "reusable": 0,
+      "opIndependentRoot": 0
+    },
+    {
+      "auditExtraColumns": [],
+      "helperTotals": {
+        "field": 0,
+        "frame": 778.5333832
+      },
+      "law": "Inv2973: quorums overlap, or a config disabled",
+      "op": 0,
+      "mode": "observe",
+      "closed": false,
+      "searchUnits": 778.6198488,
+      "searchWallMs": 6322.672992,
+      "auditUnits": 0,
+      "auditWallMs": 6137.349774,
+      "helperUnits": 778.5333832,
+      "outsideHelpers": 0.08646559999999681,
+      "split": {
+        "helperOther": 564.7212119999999,
+        "setup": 0,
+        "failed": 120.59775200000004,
+        "source": 93.21441919999995,
+        "check": 0,
+        "transport": 0
+      },
+      "checks": 7,
+      "rootSignature": "2ece81d8eecefd7d21c888fff8ae819eb5a85fc5b9d9302a1688726369196592",
+      "attempts": 9,
+      "emitted": 3,
+      "checked": 3,
+      "sourceChecked": 4,
+      "rootChecked": 0,
+      "reusable": 0,
+      "opIndependentRoot": 0
+    },
+    {
+      "auditExtraColumns": [],
+      "helperTotals": {
+        "field": 0,
+        "frame": 0
+      },
+      "law": "Inv2973: quorums overlap, or a config disabled",
+      "op": 4,
+      "mode": "control",
+      "closed": false,
+      "searchUnits": 545.9977379999999,
+      "searchWallMs": 5034.059335,
+      "auditUnits": 0,
+      "auditWallMs": 0.48570699999982025,
+      "helperUnits": 0,
+      "outsideHelpers": 545.9977379999999,
+      "split": {
+        "helperOther": 0,
+        "setup": 0,
+        "failed": 0,
+        "source": 0,
+        "check": 0,
+        "transport": 0
+      },
+      "checks": 0,
+      "rootSignature": null,
+      "attempts": 0,
+      "emitted": 0,
+      "checked": 0,
+      "sourceChecked": 0,
+      "rootChecked": 0,
+      "reusable": 0,
+      "opIndependentRoot": 0
+    },
+    {
+      "auditExtraColumns": [],
+      "helperTotals": {
+        "field": 0,
+        "frame": 543.2816564
+      },
+      "law": "Inv2973: quorums overlap, or a config disabled",
+      "op": 4,
+      "mode": "observe",
+      "closed": false,
+      "searchUnits": 543.573162,
+      "searchWallMs": 4934.923184,
+      "auditUnits": 0,
+      "auditWallMs": 5161.635883000001,
+      "helperUnits": 543.2816564,
+      "outsideHelpers": 0.29150560000005044,
+      "split": {
+        "helperOther": 70.44734079999984,
+        "setup": 3.552713678800501e-15,
+        "failed": 271.37456999999995,
+        "source": 201.4597456000002,
+        "check": 0,
+        "transport": 0
+      },
+      "checks": 18,
+      "rootSignature": "2ece81d8eecefd7d21c888fff8ae819eb5a85fc5b9d9302a1688726369196592",
+      "attempts": 23,
+      "emitted": 9,
+      "checked": 9,
+      "sourceChecked": 9,
+      "rootChecked": 0,
+      "reusable": 0,
+      "opIndependentRoot": 0
+    },
+    {
+      "auditExtraColumns": [],
+      "helperTotals": {
+        "field": 0,
+        "frame": 0
+      },
+      "law": "Inv*: no quorum of a config can still be gathered for a config term held",
+      "op": 3,
+      "mode": "control",
+      "closed": false,
+      "searchUnits": 922.143846,
+      "searchWallMs": 4926.8354,
+      "auditUnits": 0,
+      "auditWallMs": 0.7449710000000778,
+      "helperUnits": 0,
+      "outsideHelpers": 922.143846,
+      "split": {
+        "helperOther": 0,
+        "setup": 0,
+        "failed": 0,
+        "source": 0,
+        "check": 0,
+        "transport": 0
+      },
+      "checks": 0,
+      "rootSignature": null,
+      "attempts": 0,
+      "emitted": 0,
+      "checked": 0,
+      "sourceChecked": 0,
+      "rootChecked": 0,
+      "reusable": 0,
+      "opIndependentRoot": 0
+    },
+    {
+      "auditExtraColumns": [],
+      "helperTotals": {
+        "field": 750.8374228,
+        "frame": 118.39988960000001
+      },
+      "law": "Inv*: no quorum of a config can still be gathered for a config term held",
+      "op": 3,
+      "mode": "observe",
+      "closed": false,
+      "searchUnits": 869.2737908,
+      "searchWallMs": 4951.387153,
+      "auditUnits": 0,
+      "auditWallMs": 3125.8629499999997,
+      "helperUnits": 869.2373124000001,
+      "outsideHelpers": 0.036478399999964495,
+      "split": {
+        "helperOther": 12.164304000000016,
+        "setup": 28.478141999999863,
+        "failed": 771.7971475999998,
+        "source": 56.7977188000003,
+        "check": 0,
+        "transport": 0
+      },
+      "checks": 88,
+      "rootSignature": "4217eaeac0a35b43121e4356f8626d18ca92353cb9fe426a3b57949b941b9268",
+      "attempts": 72,
+      "emitted": 30,
+      "checked": 30,
+      "sourceChecked": 30,
+      "rootChecked": 26,
+      "reusable": 24,
+      "opIndependentRoot": 28
+    },
+    {
+      "auditExtraColumns": [],
+      "helperTotals": {
+        "field": 0,
+        "frame": 0
+      },
+      "law": "Inv*: no quorum of a config can still be gathered for a config term held",
+      "op": 5,
+      "mode": "control",
+      "closed": false,
+      "searchUnits": 1081.7884491999998,
+      "searchWallMs": 4963.107421999999,
+      "auditUnits": 0,
+      "auditWallMs": 0.7173910000001342,
+      "helperUnits": 0,
+      "outsideHelpers": 1081.7884491999998,
+      "split": {
+        "helperOther": 0,
+        "setup": 0,
+        "failed": 0,
+        "source": 0,
+        "check": 0,
+        "transport": 0
+      },
+      "checks": 0,
+      "rootSignature": null,
+      "attempts": 0,
+      "emitted": 0,
+      "checked": 0,
+      "sourceChecked": 0,
+      "rootChecked": 0,
+      "reusable": 0,
+      "opIndependentRoot": 0
+    },
+    {
+      "auditExtraColumns": [],
+      "helperTotals": {
+        "field": 832.7112900000001,
+        "frame": 205.80013959999997
+      },
+      "law": "Inv*: no quorum of a config can still be gathered for a config term held",
+      "op": 5,
+      "mode": "observe",
+      "closed": false,
+      "searchUnits": 1038.752948,
+      "searchWallMs": 4855.439499,
+      "auditUnits": 0,
+      "auditWallMs": 1904.3351389999998,
+      "helperUnits": 1038.5114296000002,
+      "outsideHelpers": 0.24151839999990443,
+      "split": {
+        "helperOther": 288.2119844000001,
+        "setup": 0.44280000000003383,
+        "failed": 565.2976896000002,
+        "source": 184.5589555999998,
+        "check": 0,
+        "transport": 0
+      },
+      "checks": 74,
+      "rootSignature": "4217eaeac0a35b43121e4356f8626d18ca92353cb9fe426a3b57949b941b9268",
+      "attempts": 54,
+      "emitted": 29,
+      "checked": 23,
+      "sourceChecked": 29,
+      "rootChecked": 15,
+      "reusable": 8,
+      "opIndependentRoot": 13
+    }
+  ],
+  "strictPreStateCounterfactual": [
+    {
+      "law": "Inv2973: quorums overlap, or a config disabled",
+      "ops": [
+        0,
+        4
+      ],
+      "baseline": 1322.1930108000001,
+      "eligibleFacts": 0,
+      "eligibleInstances": 0,
+      "duplicateInstances": 0,
+      "savedSuccessfulSourceUnits": 0,
+      "firstRootTransportUnits": 0,
+      "remaining": 1322.1930108000001,
+      "cacheAllMatchingQuerySavings": 0,
+      "cacheAllMatchingQueryRemaining": 1322.1930108000001,
+      "wholeLaw": false,
+      "fixedTraceOnly": true
+    },
+    {
+      "law": "Inv*: no quorum of a config can still be gathered for a config term held",
+      "ops": [
+        3,
+        5
+      ],
+      "baseline": 1908.0267388000002,
+      "eligibleFacts": 8,
+      "eligibleInstances": 32,
+      "duplicateInstances": 24,
+      "savedSuccessfulSourceUnits": 7.585654400000067,
+      "firstRootTransportUnits": 0,
+      "remaining": 1900.4410844000001,
+      "cacheAllMatchingQuerySavings": 83.25976439999977,
+      "cacheAllMatchingQueryRemaining": 1824.7669744000004,
+      "wholeLaw": false,
+      "fixedTraceOnly": true
+    }
+  ],
+  "rootCounterfactual": [
+    {
+      "law": "Inv2973: quorums overlap, or a config disabled",
+      "ops": [
+        0,
+        4
+      ],
+      "baseline": 1322.1930108000001,
+      "eligibleFacts": 0,
+      "eligibleInstances": 0,
+      "duplicateInstances": 0,
+      "savedSuccessfulSourceUnits": 0,
+      "firstRootTransportUnits": 0,
+      "remaining": 1322.1930108000001,
+      "cacheAllMatchingQuerySavings": 0,
+      "cacheAllMatchingQueryRemaining": 1322.1930108000001,
+      "wholeLaw": false,
+      "fixedTraceOnly": true
+    },
+    {
+      "law": "Inv*: no quorum of a config can still be gathered for a config term held",
+      "ops": [
+        3,
+        5
+      ],
+      "baseline": 1908.0267388000002,
+      "eligibleFacts": 12,
+      "eligibleInstances": 41,
+      "duplicateInstances": 29,
+      "savedSuccessfulSourceUnits": 7.8716124000000605,
+      "firstRootTransportUnits": 0,
+      "remaining": 1900.1551264000002,
+      "cacheAllMatchingQuerySavings": 83.54572239999976,
+      "cacheAllMatchingQueryRemaining": 1824.4810164000005,
+      "wholeLaw": false,
+      "fixedTraceOnly": true
+    }
+  ],
+  "overlap": [
+    {
+      "key": "[[\"{\\\"key\\\":{\\\"name\\\":\\\"a$#\\\",\\\"op\\\":\\\"var\\\"},\\\"map\\\":\\\"cfgSize\\\",\\\"op\\\":\\\"get\\\"}\",-1],[\"{\\\"key\\\":{\\\"name\\\":\\\"a$#\\\",\\\"op\\\":\\\"var\\\"},\\\"map\\\":\\\"cfgSize#\\\",\\\"op\\\":\\\"get\\\"}\",1]]",
+      "statementText": "cfgSize#[a$#] <= cfgSize[a$#]",
+      "instances": [
+        {
+          "law": "Inv2973: quorums overlap, or a config disabled",
+          "op": 0,
+          "id": 2
+        },
+        {
+          "law": "Inv2973: quorums overlap, or a config disabled",
+          "op": 4,
+          "id": 2
+        }
+      ],
+      "laws": [
+        "Inv2973: quorums overlap, or a config disabled"
+      ],
+      "ops": [
+        "Inv2973: quorums overlap, or a config disabled:0",
+        "Inv2973: quorums overlap, or a config disabled:4"
+      ]
+    },
+    {
+      "key": "[[\"{\\\"key\\\":{\\\"name\\\":\\\"b$\\\",\\\"op\\\":\\\"var\\\"},\\\"map\\\":\\\"cfgSize\\\",\\\"op\\\":\\\"get\\\"}\",-1],[\"{\\\"key\\\":{\\\"name\\\":\\\"b$\\\",\\\"op\\\":\\\"var\\\"},\\\"map\\\":\\\"cfgSize#\\\",\\\"op\\\":\\\"get\\\"}\",1]]",
+      "statementText": "cfgSize#[b$] <= cfgSize[b$]",
+      "instances": [
+        {
+          "law": "Inv2973: quorums overlap, or a config disabled",
+          "op": 0,
+          "id": 7
+        },
+        {
+          "law": "Inv2973: quorums overlap, or a config disabled",
+          "op": 4,
+          "id": 7
+        }
+      ],
+      "laws": [
+        "Inv2973: quorums overlap, or a config disabled"
+      ],
+      "ops": [
+        "Inv2973: quorums overlap, or a config disabled:0",
+        "Inv2973: quorums overlap, or a config disabled:4"
+      ]
+    },
+    {
+      "key": "[[\"{\\\"key\\\":{\\\"name\\\":\\\"a$#\\\",\\\"op\\\":\\\"var\\\"},\\\"map\\\":\\\"old\\\",\\\"op\\\":\\\"get\\\"}\",-1],[\"{\\\"key\\\":{\\\"name\\\":\\\"a$#\\\",\\\"op\\\":\\\"var\\\"},\\\"map\\\":\\\"old#\\\",\\\"op\\\":\\\"get\\\"}\",1]]",
+      "statementText": "old#[a$#] <= old[a$#]",
+      "instances": [
+        {
+          "law": "Inv2973: quorums overlap, or a config disabled",
+          "op": 0,
+          "id": 12
+        },
+        {
+          "law": "Inv2973: quorums overlap, or a config disabled",
+          "op": 4,
+          "id": 12
+        }
+      ],
+      "laws": [
+        "Inv2973: quorums overlap, or a config disabled"
+      ],
+      "ops": [
+        "Inv2973: quorums overlap, or a config disabled:0",
+        "Inv2973: quorums overlap, or a config disabled:4"
+      ]
+    },
+    {
+      "key": "[[\"{\\\"key\\\":{\\\"name\\\":\\\"b$\\\",\\\"op\\\":\\\"var\\\"},\\\"map\\\":\\\"old\\\",\\\"op\\\":\\\"get\\\"}\",-1],[\"{\\\"key\\\":{\\\"name\\\":\\\"b$\\\",\\\"op\\\":\\\"var\\\"},\\\"map\\\":\\\"old#\\\",\\\"op\\\":\\\"get\\\"}\",1]]",
+      "statementText": "old#[b$] <= old[b$]",
+      "instances": [
+        {
+          "law": "Inv2973: quorums overlap, or a config disabled",
+          "op": 4,
+          "id": 17
+        }
+      ],
+      "laws": [
+        "Inv2973: quorums overlap, or a config disabled"
+      ],
+      "ops": [
+        "Inv2973: quorums overlap, or a config disabled:4"
+      ]
+    },
+    {
+      "key": "[[\"{\\\"key\\\":{\\\"a\\\":{\\\"a\\\":{\\\"name\\\":\\\"a$#\\\",\\\"op\\\":\\\"var\\\"},\\\"k\\\":64,\\\"op\\\":\\\"mul\\\"},\\\"b\\\":{\\\"name\\\":\\\"b$\\\",\\\"op\\\":\\\"var\\\"},\\\"op\\\":\\\"add\\\"},\\\"map\\\":\\\"xn\\\",\\\"op\\\":\\\"get\\\"}\",-1],[\"{\\\"key\\\":{\\\"a\\\":{\\\"a\\\":{\\\"name\\\":\\\"a$#\\\",\\\"op\\\":\\\"var\\\"},\\\"k\\\":64,\\\"op\\\":\\\"mul\\\"},\\\"b\\\":{\\\"name\\\":\\\"b$\\\",\\\"op\\\":\\\"var\\\"},\\\"op\\\":\\\"add\\\"},\\\"map\\\":\\\"xn#\\\",\\\"op\\\":\\\"get\\\"}\",1]]",
+      "statementText": "xn#[(64*a$#+b$)] <= xn[(64*a$#+b$)]",
+      "instances": [
+        {
+          "law": "Inv2973: quorums overlap, or a config disabled",
+          "op": 4,
+          "id": 22
+        }
+      ],
+      "laws": [
+        "Inv2973: quorums overlap, or a config disabled"
+      ],
+      "ops": [
+        "Inv2973: quorums overlap, or a config disabled:4"
+      ]
+    },
+    {
+      "key": "[[\"{\\\"key\\\":{\\\"a\\\":{\\\"a\\\":{\\\"name\\\":\\\"a$#\\\",\\\"op\\\":\\\"var\\\"},\\\"k\\\":64,\\\"op\\\":\\\"mul\\\"},\\\"b\\\":{\\\"name\\\":\\\"b$\\\",\\\"op\\\":\\\"var\\\"},\\\"op\\\":\\\"add\\\"},\\\"map\\\":\\\"xm\\\",\\\"op\\\":\\\"get\\\"}\",-1],[\"{\\\"key\\\":{\\\"a\\\":{\\\"a\\\":{\\\"name\\\":\\\"a$#\\\",\\\"op\\\":\\\"var\\\"},\\\"k\\\":64,\\\"op\\\":\\\"mul\\\"},\\\"b\\\":{\\\"name\\\":\\\"b$\\\",\\\"op\\\":\\\"var\\\"},\\\"op\\\":\\\"add\\\"},\\\"map\\\":\\\"xm#\\\",\\\"op\\\":\\\"get\\\"}\",1]]",
+      "statementText": "xm#[(64*a$#+b$)] <= xm[(64*a$#+b$)]",
+      "instances": [
+        {
+          "law": "Inv2973: quorums overlap, or a config disabled",
+          "op": 4,
+          "id": 27
+        }
+      ],
+      "laws": [
+        "Inv2973: quorums overlap, or a config disabled"
+      ],
+      "ops": [
+        "Inv2973: quorums overlap, or a config disabled:4"
+      ]
+    },
+    {
+      "key": "[[\"{\\\"key\\\":{\\\"a\\\":{\\\"a\\\":{\\\"name\\\":\\\"b$\\\",\\\"op\\\":\\\"var\\\"},\\\"k\\\":64,\\\"op\\\":\\\"mul\\\"},\\\"b\\\":{\\\"name\\\":\\\"a$#\\\",\\\"op\\\":\\\"var\\\"},\\\"op\\\":\\\"add\\\"},\\\"map\\\":\\\"xm\\\",\\\"op\\\":\\\"get\\\"}\",-1],[\"{\\\"key\\\":{\\\"a\\\":{\\\"a\\\":{\\\"name\\\":\\\"b$\\\",\\\"op\\\":\\\"var\\\"},\\\"k\\\":64,\\\"op\\\":\\\"mul\\\"},\\\"b\\\":{\\\"name\\\":\\\"a$#\\\",\\\"op\\\":\\\"var\\\"},\\\"op\\\":\\\"add\\\"},\\\"map\\\":\\\"xm#\\\",\\\"op\\\":\\\"get\\\"}\",1]]",
+      "statementText": "xm#[(64*b$+a$#)] <= xm[(64*b$+a$#)]",
+      "instances": [
+        {
+          "law": "Inv2973: quorums overlap, or a config disabled",
+          "op": 4,
+          "id": 32
+        }
+      ],
+      "laws": [
+        "Inv2973: quorums overlap, or a config disabled"
+      ],
+      "ops": [
+        "Inv2973: quorums overlap, or a config disabled:4"
+      ]
+    },
+    {
+      "key": "[[\"{\\\"key\\\":{\\\"name\\\":\\\"a$#\\\",\\\"op\\\":\\\"var\\\"},\\\"map\\\":\\\"cfgSize\\\",\\\"op\\\":\\\"get\\\"}\",1],[\"{\\\"key\\\":{\\\"name\\\":\\\"a$#\\\",\\\"op\\\":\\\"var\\\"},\\\"map\\\":\\\"cfgSize#\\\",\\\"op\\\":\\\"get\\\"}\",-1]]",
+      "statementText": "cfgSize[a$#] <= cfgSize#[a$#]",
+      "instances": [
+        {
+          "law": "Inv2973: quorums overlap, or a config disabled",
+          "op": 4,
+          "id": 37
+        },
+        {
+          "law": "Inv*: no quorum of a config can still be gathered for a config term held",
+          "op": 3,
+          "id": 7
+        },
+        {
+          "law": "Inv*: no quorum of a config can still be gathered for a config term held",
+          "op": 5,
+          "id": 13
+        }
+      ],
+      "laws": [
+        "Inv2973: quorums overlap, or a config disabled",
+        "Inv*: no quorum of a config can still be gathered for a config term held"
+      ],
+      "ops": [
+        "Inv2973: quorums overlap, or a config disabled:4",
+        "Inv*: no quorum of a config can still be gathered for a config term held:3",
+        "Inv*: no quorum of a config can still be gathered for a config term held:5"
+      ]
+    },
+    {
+      "key": "[[\"{\\\"key\\\":{\\\"name\\\":\\\"b$\\\",\\\"op\\\":\\\"var\\\"},\\\"map\\\":\\\"cfgSize\\\",\\\"op\\\":\\\"get\\\"}\",1],[\"{\\\"key\\\":{\\\"name\\\":\\\"b$\\\",\\\"op\\\":\\\"var\\\"},\\\"map\\\":\\\"cfgSize#\\\",\\\"op\\\":\\\"get\\\"}\",-1]]",
+      "statementText": "cfgSize[b$] <= cfgSize#[b$]",
+      "instances": [
+        {
+          "law": "Inv2973: quorums overlap, or a config disabled",
+          "op": 4,
+          "id": 42
+        }
+      ],
+      "laws": [
+        "Inv2973: quorums overlap, or a config disabled"
+      ],
+      "ops": [
+        "Inv2973: quorums overlap, or a config disabled:4"
+      ]
+    },
+    {
+      "key": "[[\"{\\\"key\\\":{\\\"a\\\":{\\\"a\\\":{\\\"name\\\":\\\"a$#\\\",\\\"op\\\":\\\"var\\\"},\\\"k\\\":64,\\\"op\\\":\\\"mul\\\"},\\\"b\\\":{\\\"name\\\":\\\"j$\\\",\\\"op\\\":\\\"var\\\"},\\\"op\\\":\\\"add\\\"},\\\"map\\\":\\\"bq\\\",\\\"op\\\":\\\"get\\\"}\",-1],[\"{\\\"key\\\":{\\\"a\\\":{\\\"a\\\":{\\\"name\\\":\\\"a$#\\\",\\\"op\\\":\\\"var\\\"},\\\"k\\\":64,\\\"op\\\":\\\"mul\\\"},\\\"b\\\":{\\\"name\\\":\\\"j$\\\",\\\"op\\\":\\\"var\\\"},\\\"op\\\":\\\"add\\\"},\\\"map\\\":\\\"bq#\\\",\\\"op\\\":\\\"get\\\"}\",1]]",
+      "statementText": "bq#[(64*a$#+j$)] <= bq[(64*a$#+j$)]",
+      "instances": [
+        {
+          "law": "Inv*: no quorum of a config can still be gathered for a config term held",
+          "op": 3,
+          "id": 2
+        },
+        {
+          "law": "Inv*: no quorum of a config can still be gathered for a config term held",
+          "op": 5,
+          "id": 8
+        }
+      ],
+      "laws": [
+        "Inv*: no quorum of a config can still be gathered for a config term held"
+      ],
+      "ops": [
+        "Inv*: no quorum of a config can still be gathered for a config term held:3",
+        "Inv*: no quorum of a config can still be gathered for a config term held:5"
+      ]
+    },
+    {
+      "key": "[[\"\",-1],[\"{\\\"name\\\":\\\"?canVote\\\",\\\"op\\\":\\\"var\\\"}\",1]]",
+      "statementText": "?canVote <= 1",
+      "instances": [
+        {
+          "law": "Inv*: no quorum of a config can still be gathered for a config term held",
+          "op": 3,
+          "id": 18
+        },
+        {
+          "law": "Inv*: no quorum of a config can still be gathered for a config term held",
+          "op": 5,
+          "id": 24
+        }
+      ],
+      "laws": [
+        "Inv*: no quorum of a config can still be gathered for a config term held"
+      ],
+      "ops": [
+        "Inv*: no quorum of a config can still be gathered for a config term held:3",
+        "Inv*: no quorum of a config can still be gathered for a config term held:5"
+      ]
+    },
+    {
+      "key": "[[\"\",1],[\"{\\\"name\\\":\\\"i\\\",\\\"op\\\":\\\"var\\\"}\",1],[\"{\\\"name\\\":\\\"size\\\",\\\"op\\\":\\\"var\\\"}\",-1]]",
+      "statementText": "1 + i <= size",
+      "instances": [
+        {
+          "law": "Inv*: no quorum of a config can still be gathered for a config term held",
+          "op": 3,
+          "id": 25
+        },
+        {
+          "law": "Inv*: no quorum of a config can still be gathered for a config term held",
+          "op": 5,
+          "id": 31
+        },
+        {
+          "law": "Inv*: no quorum of a config can still be gathered for a config term held",
+          "op": 5,
+          "id": 94
+        }
+      ],
+      "laws": [
+        "Inv*: no quorum of a config can still be gathered for a config term held"
+      ],
+      "ops": [
+        "Inv*: no quorum of a config can still be gathered for a config term held:3",
+        "Inv*: no quorum of a config can still be gathered for a config term held:5"
+      ]
+    },
+    {
+      "key": "[[\"{\\\"key\\\":{\\\"name\\\":\\\"i\\\",\\\"op\\\":\\\"var\\\"},\\\"map\\\":\\\"cfgSize\\\",\\\"op\\\":\\\"get\\\"}\",1],[\"{\\\"key\\\":{\\\"op\\\":\\\"const\\\",\\\"value\\\":0},\\\"map\\\":\\\"xAndS\\\",\\\"op\\\":\\\"get\\\"}\",-1],[\"{\\\"key\\\":{\\\"op\\\":\\\"const\\\",\\\"value\\\":0},\\\"map\\\":\\\"xNotS\\\",\\\"op\\\":\\\"get\\\"}\",-1]]",
+      "statementText": "cfgSize[i] <= xAndS[0] + xNotS[0]",
+      "instances": [
+        {
+          "law": "Inv*: no quorum of a config can still be gathered for a config term held",
+          "op": 3,
+          "id": 36
+        },
+        {
+          "law": "Inv*: no quorum of a config can still be gathered for a config term held",
+          "op": 3,
+          "id": 116
+        },
+        {
+          "law": "Inv*: no quorum of a config can still be gathered for a config term held",
+          "op": 3,
+          "id": 200
+        },
+        {
+          "law": "Inv*: no quorum of a config can still be gathered for a config term held",
+          "op": 5,
+          "id": 123
+        }
+      ],
+      "laws": [
+        "Inv*: no quorum of a config can still be gathered for a config term held"
+      ],
+      "ops": [
+        "Inv*: no quorum of a config can still be gathered for a config term held:3",
+        "Inv*: no quorum of a config can still be gathered for a config term held:5"
+      ]
+    },
+    {
+      "key": "[[\"{\\\"key\\\":{\\\"name\\\":\\\"i\\\",\\\"op\\\":\\\"var\\\"},\\\"map\\\":\\\"cfgSize\\\",\\\"op\\\":\\\"get\\\"}\",-1],[\"{\\\"key\\\":{\\\"op\\\":\\\"const\\\",\\\"value\\\":0},\\\"map\\\":\\\"xAndS\\\",\\\"op\\\":\\\"get\\\"}\",1],[\"{\\\"key\\\":{\\\"op\\\":\\\"const\\\",\\\"value\\\":0},\\\"map\\\":\\\"xNotS\\\",\\\"op\\\":\\\"get\\\"}\",1]]",
+      "statementText": "xAndS[0] + xNotS[0] <= cfgSize[i]",
+      "instances": [
+        {
+          "law": "Inv*: no quorum of a config can still be gathered for a config term held",
+          "op": 3,
+          "id": 41
+        },
+        {
+          "law": "Inv*: no quorum of a config can still be gathered for a config term held",
+          "op": 3,
+          "id": 121
+        },
+        {
+          "law": "Inv*: no quorum of a config can still be gathered for a config term held",
+          "op": 3,
+          "id": 205
+        },
+        {
+          "law": "Inv*: no quorum of a config can still be gathered for a config term held",
+          "op": 5,
+          "id": 127
+        }
+      ],
+      "laws": [
+        "Inv*: no quorum of a config can still be gathered for a config term held"
+      ],
+      "ops": [
+        "Inv*: no quorum of a config can still be gathered for a config term held:3",
+        "Inv*: no quorum of a config can still be gathered for a config term held:5"
+      ]
+    },
+    {
+      "key": "[[\"{\\\"key\\\":{\\\"op\\\":\\\"const\\\",\\\"value\\\":0},\\\"map\\\":\\\"inX\\\",\\\"op\\\":\\\"get\\\"}\",1],[\"{\\\"key\\\":{\\\"op\\\":\\\"const\\\",\\\"value\\\":0},\\\"map\\\":\\\"xAndS\\\",\\\"op\\\":\\\"get\\\"}\",-1],[\"{\\\"key\\\":{\\\"op\\\":\\\"const\\\",\\\"value\\\":0},\\\"map\\\":\\\"xNotS\\\",\\\"op\\\":\\\"get\\\"}\",-1]]",
+      "statementText": "inX[0] <= xAndS[0] + xNotS[0]",
+      "instances": [
+        {
+          "law": "Inv*: no quorum of a config can still be gathered for a config term held",
+          "op": 3,
+          "id": 46
+        },
+        {
+          "law": "Inv*: no quorum of a config can still be gathered for a config term held",
+          "op": 3,
+          "id": 126
+        },
+        {
+          "law": "Inv*: no quorum of a config can still be gathered for a config term held",
+          "op": 3,
+          "id": 210
+        },
+        {
+          "law": "Inv*: no quorum of a config can still be gathered for a config term held",
+          "op": 5,
+          "id": 131
+        }
+      ],
+      "laws": [
+        "Inv*: no quorum of a config can still be gathered for a config term held"
+      ],
+      "ops": [
+        "Inv*: no quorum of a config can still be gathered for a config term held:3",
+        "Inv*: no quorum of a config can still be gathered for a config term held:5"
+      ]
+    },
+    {
+      "key": "[[\"{\\\"key\\\":{\\\"op\\\":\\\"const\\\",\\\"value\\\":0},\\\"map\\\":\\\"inX\\\",\\\"op\\\":\\\"get\\\"}\",-1],[\"{\\\"key\\\":{\\\"op\\\":\\\"const\\\",\\\"value\\\":0},\\\"map\\\":\\\"xAndS\\\",\\\"op\\\":\\\"get\\\"}\",1],[\"{\\\"key\\\":{\\\"op\\\":\\\"const\\\",\\\"value\\\":0},\\\"map\\\":\\\"xNotS\\\",\\\"op\\\":\\\"get\\\"}\",1]]",
+      "statementText": "xAndS[0] + xNotS[0] <= inX[0]",
+      "instances": [
+        {
+          "law": "Inv*: no quorum of a config can still be gathered for a config term held",
+          "op": 3,
+          "id": 51
+        },
+        {
+          "law": "Inv*: no quorum of a config can still be gathered for a config term held",
+          "op": 3,
+          "id": 131
+        },
+        {
+          "law": "Inv*: no quorum of a config can still be gathered for a config term held",
+          "op": 3,
+          "id": 215
+        },
+        {
+          "law": "Inv*: no quorum of a config can still be gathered for a config term held",
+          "op": 5,
+          "id": 135
+        }
+      ],
+      "laws": [
+        "Inv*: no quorum of a config can still be gathered for a config term held"
+      ],
+      "ops": [
+        "Inv*: no quorum of a config can still be gathered for a config term held:3",
+        "Inv*: no quorum of a config can still be gathered for a config term held:5"
+      ]
+    },
+    {
+      "key": "[[\"{\\\"key\\\":{\\\"op\\\":\\\"const\\\",\\\"value\\\":0},\\\"map\\\":\\\"inS\\\",\\\"op\\\":\\\"get\\\"}\",1],[\"{\\\"key\\\":{\\\"op\\\":\\\"const\\\",\\\"value\\\":0},\\\"map\\\":\\\"sNotX\\\",\\\"op\\\":\\\"get\\\"}\",-1],[\"{\\\"key\\\":{\\\"op\\\":\\\"const\\\",\\\"value\\\":0},\\\"map\\\":\\\"xAndS\\\",\\\"op\\\":\\\"get\\\"}\",-1]]",
+      "statementText": "inS[0] <= sNotX[0] + xAndS[0]",
+      "instances": [
+        {
+          "law": "Inv*: no quorum of a config can still be gathered for a config term held",
+          "op": 3,
+          "id": 56
+        },
+        {
+          "law": "Inv*: no quorum of a config can still be gathered for a config term held",
+          "op": 3,
+          "id": 136
+        },
+        {
+          "law": "Inv*: no quorum of a config can still be gathered for a config term held",
+          "op": 3,
+          "id": 220
+        },
+        {
+          "law": "Inv*: no quorum of a config can still be gathered for a config term held",
+          "op": 5,
+          "id": 139
+        }
+      ],
+      "laws": [
+        "Inv*: no quorum of a config can still be gathered for a config term held"
+      ],
+      "ops": [
+        "Inv*: no quorum of a config can still be gathered for a config term held:3",
+        "Inv*: no quorum of a config can still be gathered for a config term held:5"
+      ]
+    },
+    {
+      "key": "[[\"{\\\"key\\\":{\\\"op\\\":\\\"const\\\",\\\"value\\\":0},\\\"map\\\":\\\"inS\\\",\\\"op\\\":\\\"get\\\"}\",-1],[\"{\\\"key\\\":{\\\"op\\\":\\\"const\\\",\\\"value\\\":0},\\\"map\\\":\\\"sNotX\\\",\\\"op\\\":\\\"get\\\"}\",1],[\"{\\\"key\\\":{\\\"op\\\":\\\"const\\\",\\\"value\\\":0},\\\"map\\\":\\\"xAndS\\\",\\\"op\\\":\\\"get\\\"}\",1]]",
+      "statementText": "sNotX[0] + xAndS[0] <= inS[0]",
+      "instances": [
+        {
+          "law": "Inv*: no quorum of a config can still be gathered for a config term held",
+          "op": 3,
+          "id": 61
+        },
+        {
+          "law": "Inv*: no quorum of a config can still be gathered for a config term held",
+          "op": 3,
+          "id": 141
+        },
+        {
+          "law": "Inv*: no quorum of a config can still be gathered for a config term held",
+          "op": 3,
+          "id": 225
+        },
+        {
+          "law": "Inv*: no quorum of a config can still be gathered for a config term held",
+          "op": 5,
+          "id": 143
+        }
+      ],
+      "laws": [
+        "Inv*: no quorum of a config can still be gathered for a config term held"
+      ],
+      "ops": [
+        "Inv*: no quorum of a config can still be gathered for a config term held:3",
+        "Inv*: no quorum of a config can still be gathered for a config term held:5"
+      ]
+    },
+    {
+      "key": "[[\"{\\\"key\\\":{\\\"name\\\":\\\"i\\\",\\\"op\\\":\\\"var\\\"},\\\"map\\\":\\\"cfgSize\\\",\\\"op\\\":\\\"get\\\"}\",-1],[\"{\\\"key\\\":{\\\"op\\\":\\\"const\\\",\\\"value\\\":0},\\\"map\\\":\\\"inX\\\",\\\"op\\\":\\\"get\\\"}\",1]]",
+      "statementText": "inX[0] <= cfgSize[i]",
+      "instances": [
+        {
+          "law": "Inv*: no quorum of a config can still be gathered for a config term held",
+          "op": 3,
+          "id": 72
+        },
+        {
+          "law": "Inv*: no quorum of a config can still be gathered for a config term held",
+          "op": 3,
+          "id": 152
+        },
+        {
+          "law": "Inv*: no quorum of a config can still be gathered for a config term held",
+          "op": 3,
+          "id": 236
+        },
+        {
+          "law": "Inv*: no quorum of a config can still be gathered for a config term held",
+          "op": 5,
+          "id": 111
+        }
+      ],
+      "laws": [
+        "Inv*: no quorum of a config can still be gathered for a config term held"
+      ],
+      "ops": [
+        "Inv*: no quorum of a config can still be gathered for a config term held:3",
+        "Inv*: no quorum of a config can still be gathered for a config term held:5"
+      ]
+    },
+    {
+      "key": "[[\"{\\\"key\\\":{\\\"name\\\":\\\"i\\\",\\\"op\\\":\\\"var\\\"},\\\"map\\\":\\\"cfgSize\\\",\\\"op\\\":\\\"get\\\"}\",1],[\"{\\\"key\\\":{\\\"op\\\":\\\"const\\\",\\\"value\\\":0},\\\"map\\\":\\\"inX\\\",\\\"op\\\":\\\"get\\\"}\",-1]]",
+      "statementText": "cfgSize[i] <= inX[0]",
+      "instances": [
+        {
+          "law": "Inv*: no quorum of a config can still be gathered for a config term held",
+          "op": 3,
+          "id": 79
+        },
+        {
+          "law": "Inv*: no quorum of a config can still be gathered for a config term held",
+          "op": 3,
+          "id": 159
+        },
+        {
+          "law": "Inv*: no quorum of a config can still be gathered for a config term held",
+          "op": 3,
+          "id": 243
+        },
+        {
+          "law": "Inv*: no quorum of a config can still be gathered for a config term held",
+          "op": 5,
+          "id": 117
+        }
+      ],
+      "laws": [
+        "Inv*: no quorum of a config can still be gathered for a config term held"
+      ],
+      "ops": [
+        "Inv*: no quorum of a config can still be gathered for a config term held:3",
+        "Inv*: no quorum of a config can still be gathered for a config term held:5"
+      ]
+    },
+    {
+      "key": "[[\"\",-1],[\"{\\\"name\\\":\\\"?committedQuorum\\\",\\\"op\\\":\\\"var\\\"}\",1]]",
+      "statementText": "?committedQuorum <= 1",
+      "instances": [
+        {
+          "law": "Inv*: no quorum of a config can still be gathered for a config term held",
+          "op": 3,
+          "id": 102
+        }
+      ],
+      "laws": [
+        "Inv*: no quorum of a config can still be gathered for a config term held"
+      ],
+      "ops": [
+        "Inv*: no quorum of a config can still be gathered for a config term held:3"
+      ]
+    },
+    {
+      "key": "[[\"\",1],[\"{\\\"name\\\":\\\"j$\\\",\\\"op\\\":\\\"var\\\"}\",1],[\"{\\\"name\\\":\\\"size\\\",\\\"op\\\":\\\"var\\\"}\",-1]]",
+      "statementText": "1 + j$ <= size",
+      "instances": [
+        {
+          "law": "Inv*: no quorum of a config can still be gathered for a config term held",
+          "op": 3,
+          "id": 187
+        },
+        {
+          "law": "Inv*: no quorum of a config can still be gathered for a config term held",
+          "op": 5,
+          "id": 38
+        },
+        {
+          "law": "Inv*: no quorum of a config can still be gathered for a config term held",
+          "op": 5,
+          "id": 98
+        }
+      ],
+      "laws": [
+        "Inv*: no quorum of a config can still be gathered for a config term held"
+      ],
+      "ops": [
+        "Inv*: no quorum of a config can still be gathered for a config term held:3",
+        "Inv*: no quorum of a config can still be gathered for a config term held:5"
+      ]
+    },
+    {
+      "key": "[[\"{\\\"c\\\":{\\\"op\\\":\\\"and\\\",\\\"xs\\\":[{\\\"a\\\":{\\\"name\\\":\\\"?canVote\\\",\\\"op\\\":\\\"var\\\"},\\\"b\\\":{\\\"op\\\":\\\"const\\\",\\\"value\\\":1},\\\"op\\\":\\\"=\\\"},{\\\"a\\\":{\\\"name\\\":\\\"j$\\\",\\\"op\\\":\\\"var\\\"},\\\"b\\\":{\\\"name\\\":\\\"size\\\",\\\"op\\\":\\\"var\\\"},\\\"op\\\":\\\"<\\\"}]},\\\"else\\\":{\\\"op\\\":\\\"const\\\",\\\"value\\\":0},\\\"op\\\":\\\"if\\\",\\\"then\\\":{\\\"key\\\":{\\\"name\\\":\\\"j$\\\",\\\"op\\\":\\\"var\\\"},\\\"map\\\":\\\"CfgT\\\",\\\"op\\\":\\\"get\\\"}}\",1],[\"{\\\"key\\\":{\\\"name\\\":\\\"i\\\",\\\"op\\\":\\\"var\\\"},\\\"map\\\":\\\"CT\\\",\\\"op\\\":\\\"get\\\"}\",-1]]",
+      "statementText": "{\"c\":{\"op\":\"and\",\"xs\":[{\"a\":{\"name\":\"?canVote\",\"op\":\"var\"},\"b\":{\"op\":\"const\",\"value\":1},\"op\":\"=\"},{\"a\":{\"name\":\"j$\",\"op\":\"var\"},\"b\":{\"name\":\"size\",\"op\":\"var\"},\"op\":\"<\"}]},\"else\":{\"op\":\"const\",\"value\":0},\"op\":\"if\",\"then\":{\"key\":{\"name\":\"j$\",\"op\":\"var\"},\"map\":\"CfgT\",\"op\":\"get\"}} <= CT[i]",
+      "instances": [
+        {
+          "law": "Inv*: no quorum of a config can still be gathered for a config term held",
+          "op": 5,
+          "id": 46
+        }
+      ],
+      "laws": [
+        "Inv*: no quorum of a config can still be gathered for a config term held"
+      ],
+      "ops": [
+        "Inv*: no quorum of a config can still be gathered for a config term held:5"
+      ]
+    },
+    {
+      "key": "[[\"{\\\"c\\\":{\\\"op\\\":\\\"and\\\",\\\"xs\\\":[{\\\"a\\\":{\\\"name\\\":\\\"?committedQuorum\\\",\\\"op\\\":\\\"var\\\"},\\\"b\\\":{\\\"op\\\":\\\"const\\\",\\\"value\\\":1},\\\"op\\\":\\\"=\\\"},{\\\"a\\\":{\\\"name\\\":\\\"j$\\\",\\\"op\\\":\\\"var\\\"},\\\"b\\\":{\\\"name\\\":\\\"size\\\",\\\"op\\\":\\\"var\\\"},\\\"op\\\":\\\"<\\\"}]},\\\"else\\\":{\\\"op\\\":\\\"const\\\",\\\"value\\\":0},\\\"op\\\":\\\"if\\\",\\\"then\\\":{\\\"key\\\":{\\\"name\\\":\\\"j$\\\",\\\"op\\\":\\\"var\\\"},\\\"map\\\":\\\"CfgT\\\",\\\"op\\\":\\\"get\\\"}}\",1],[\"{\\\"key\\\":{\\\"name\\\":\\\"i\\\",\\\"op\\\":\\\"var\\\"},\\\"map\\\":\\\"CT\\\",\\\"op\\\":\\\"get\\\"}\",-1]]",
+      "statementText": "{\"c\":{\"op\":\"and\",\"xs\":[{\"a\":{\"name\":\"?committedQuorum\",\"op\":\"var\"},\"b\":{\"op\":\"const\",\"value\":1},\"op\":\"=\"},{\"a\":{\"name\":\"j$\",\"op\":\"var\"},\"b\":{\"name\":\"size\",\"op\":\"var\"},\"op\":\"<\"}]},\"else\":{\"op\":\"const\",\"value\":0},\"op\":\"if\",\"then\":{\"key\":{\"name\":\"j$\",\"op\":\"var\"},\"map\":\"CfgT\",\"op\":\"get\"}} <= CT[i]",
+      "instances": [
+        {
+          "law": "Inv*: no quorum of a config can still be gathered for a config term held",
+          "op": 5,
+          "id": 102
+        }
+      ],
+      "laws": [
+        "Inv*: no quorum of a config can still be gathered for a config term held"
+      ],
+      "ops": [
+        "Inv*: no quorum of a config can still be gathered for a config term held:5"
+      ]
+    },
+    {
+      "key": "[[\"{\\\"key\\\":{\\\"op\\\":\\\"const\\\",\\\"value\\\":0},\\\"map\\\":\\\"inQ2\\\",\\\"op\\\":\\\"get\\\"}\",1],[\"{\\\"key\\\":{\\\"op\\\":\\\"const\\\",\\\"value\\\":0},\\\"map\\\":\\\"inX\\\",\\\"op\\\":\\\"get\\\"}\",-1]]",
+      "statementText": "inQ2[0] <= inX[0]",
+      "instances": [
+        {
+          "law": "Inv*: no quorum of a config can still be gathered for a config term held",
+          "op": 5,
+          "id": 155
+        }
+      ],
+      "laws": [
+        "Inv*: no quorum of a config can still be gathered for a config term held"
+      ],
+      "ops": [
+        "Inv*: no quorum of a config can still be gathered for a config term held:5"
+      ]
+    },
+    {
+      "key": "[[\"{\\\"key\\\":{\\\"name\\\":\\\"i\\\",\\\"op\\\":\\\"var\\\"},\\\"map\\\":\\\"cfgSize\\\",\\\"op\\\":\\\"get\\\"}\",-1],[\"{\\\"key\\\":{\\\"op\\\":\\\"const\\\",\\\"value\\\":0},\\\"map\\\":\\\"inQ2\\\",\\\"op\\\":\\\"get\\\"}\",1]]",
+      "statementText": "inQ2[0] <= cfgSize[i]",
+      "instances": [
+        {
+          "law": "Inv*: no quorum of a config can still be gathered for a config term held",
+          "op": 5,
+          "id": 163
+        }
+      ],
+      "laws": [
+        "Inv*: no quorum of a config can still be gathered for a config term held"
+      ],
+      "ops": [
+        "Inv*: no quorum of a config can still be gathered for a config term held:5"
+      ]
+    },
+    {
+      "key": "[[\"{\\\"key\\\":{\\\"name\\\":\\\"a$#\\\",\\\"op\\\":\\\"var\\\"},\\\"map\\\":\\\"cfgSize\\\",\\\"op\\\":\\\"get\\\"}\",1],[\"{\\\"key\\\":{\\\"name\\\":\\\"i\\\",\\\"op\\\":\\\"var\\\"},\\\"map\\\":\\\"cfgSize\\\",\\\"op\\\":\\\"get\\\"}\",-1]]",
+      "statementText": "cfgSize[a$#] <= cfgSize[i]",
+      "instances": [
+        {
+          "law": "Inv*: no quorum of a config can still be gathered for a config term held",
+          "op": 5,
+          "id": 170
+        }
+      ],
+      "laws": [
+        "Inv*: no quorum of a config can still be gathered for a config term held"
+      ],
+      "ops": [
+        "Inv*: no quorum of a config can still be gathered for a config term held:5"
+      ]
+    },
+    {
+      "key": "[[\"{\\\"key\\\":{\\\"name\\\":\\\"a$#\\\",\\\"op\\\":\\\"var\\\"},\\\"map\\\":\\\"cfgSize\\\",\\\"op\\\":\\\"get\\\"}\",-1],[\"{\\\"key\\\":{\\\"name\\\":\\\"i\\\",\\\"op\\\":\\\"var\\\"},\\\"map\\\":\\\"cfgSize\\\",\\\"op\\\":\\\"get\\\"}\",1]]",
+      "statementText": "cfgSize[i] <= cfgSize[a$#]",
+      "instances": [
+        {
+          "law": "Inv*: no quorum of a config can still be gathered for a config term held",
+          "op": 5,
+          "id": 175
+        }
+      ],
+      "laws": [
+        "Inv*: no quorum of a config can still be gathered for a config term held"
+      ],
+      "ops": [
+        "Inv*: no quorum of a config can still be gathered for a config term held:5"
+      ]
+    },
+    {
+      "key": "[[\"{\\\"key\\\":{\\\"name\\\":\\\"i\\\",\\\"op\\\":\\\"var\\\"},\\\"map\\\":\\\"cfgSize\\\",\\\"op\\\":\\\"get\\\"}\",-1],[\"{\\\"key\\\":{\\\"name\\\":\\\"j$\\\",\\\"op\\\":\\\"var\\\"},\\\"map\\\":\\\"cfgSize\\\",\\\"op\\\":\\\"get\\\"}\",1]]",
+      "statementText": "cfgSize[j$] <= cfgSize[i]",
+      "instances": [
+        {
+          "law": "Inv*: no quorum of a config can still be gathered for a config term held",
+          "op": 5,
+          "id": 180
+        }
+      ],
+      "laws": [
+        "Inv*: no quorum of a config can still be gathered for a config term held"
+      ],
+      "ops": [
+        "Inv*: no quorum of a config can still be gathered for a config term held:5"
+      ]
+    },
+    {
+      "key": "[[\"{\\\"key\\\":{\\\"name\\\":\\\"i\\\",\\\"op\\\":\\\"var\\\"},\\\"map\\\":\\\"cfgSize\\\",\\\"op\\\":\\\"get\\\"}\",1],[\"{\\\"key\\\":{\\\"name\\\":\\\"j$\\\",\\\"op\\\":\\\"var\\\"},\\\"map\\\":\\\"cfgSize\\\",\\\"op\\\":\\\"get\\\"}\",-1]]",
+      "statementText": "cfgSize[i] <= cfgSize[j$]",
+      "instances": [
+        {
+          "law": "Inv*: no quorum of a config can still be gathered for a config term held",
+          "op": 5,
+          "id": 185
+        }
+      ],
+      "laws": [
+        "Inv*: no quorum of a config can still be gathered for a config term held"
+      ],
+      "ops": [
+        "Inv*: no quorum of a config can still be gathered for a config term held:5"
+      ]
+    }
+  ],
+  "rootFacts": [
+    {
+      "key": "[[\"\",-1],[\"{\\\"name\\\":\\\"?canVote\\\",\\\"op\\\":\\\"var\\\"}\",1]]",
+      "statement": "?canVote <= 1",
+      "instances": 2,
+      "ops": [
+        3,
+        5
+      ],
+      "literal": {
+        "op": false,
+        "guard": true,
+        "postState": false
+      },
+      "sourceUnits": 0.0982947999999908,
+      "rootDependence": {
+        "op": false,
+        "guard": true,
+        "postState": false
+      }
+    },
+    {
+      "key": "[[\"\",1],[\"{\\\"name\\\":\\\"i\\\",\\\"op\\\":\\\"var\\\"}\",1],[\"{\\\"name\\\":\\\"size\\\",\\\"op\\\":\\\"var\\\"}\",-1]]",
+      "statement": "1 + i <= size",
+      "instances": 3,
+      "ops": [
+        3,
+        5
+      ],
+      "literal": {
+        "op": false,
+        "guard": false,
+        "postState": false
+      },
+      "sourceUnits": 0.15199319999989314,
+      "rootDependence": {
+        "op": true,
+        "guard": true,
+        "postState": false
+      }
+    },
+    {
+      "key": "[[\"{\\\"key\\\":{\\\"name\\\":\\\"i\\\",\\\"op\\\":\\\"var\\\"},\\\"map\\\":\\\"cfgSize\\\",\\\"op\\\":\\\"get\\\"}\",1],[\"{\\\"key\\\":{\\\"op\\\":\\\"const\\\",\\\"value\\\":0},\\\"map\\\":\\\"xAndS\\\",\\\"op\\\":\\\"get\\\"}\",-1],[\"{\\\"key\\\":{\\\"op\\\":\\\"const\\\",\\\"value\\\":0},\\\"map\\\":\\\"xNotS\\\",\\\"op\\\":\\\"get\\\"}\",-1]]",
+      "statement": "cfgSize[i] <= xAndS[0] + xNotS[0]",
+      "instances": 4,
+      "ops": [
+        3,
+        5
+      ],
+      "literal": {
+        "op": false,
+        "guard": false,
+        "postState": false
+      },
+      "sourceUnits": 0.18799320000030662,
+      "rootDependence": {
+        "op": false,
+        "guard": false,
+        "postState": false
+      }
+    },
+    {
+      "key": "[[\"{\\\"key\\\":{\\\"name\\\":\\\"i\\\",\\\"op\\\":\\\"var\\\"},\\\"map\\\":\\\"cfgSize\\\",\\\"op\\\":\\\"get\\\"}\",-1],[\"{\\\"key\\\":{\\\"op\\\":\\\"const\\\",\\\"value\\\":0},\\\"map\\\":\\\"xAndS\\\",\\\"op\\\":\\\"get\\\"}\",1],[\"{\\\"key\\\":{\\\"op\\\":\\\"const\\\",\\\"value\\\":0},\\\"map\\\":\\\"xNotS\\\",\\\"op\\\":\\\"get\\\"}\",1]]",
+      "statement": "xAndS[0] + xNotS[0] <= cfgSize[i]",
+      "instances": 4,
+      "ops": [
+        3,
+        5
+      ],
+      "literal": {
+        "op": false,
+        "guard": false,
+        "postState": false
+      },
+      "sourceUnits": 0.1743155999998578,
+      "rootDependence": {
+        "op": false,
+        "guard": false,
+        "postState": false
+      }
+    },
+    {
+      "key": "[[\"{\\\"key\\\":{\\\"op\\\":\\\"const\\\",\\\"value\\\":0},\\\"map\\\":\\\"inX\\\",\\\"op\\\":\\\"get\\\"}\",1],[\"{\\\"key\\\":{\\\"op\\\":\\\"const\\\",\\\"value\\\":0},\\\"map\\\":\\\"xAndS\\\",\\\"op\\\":\\\"get\\\"}\",-1],[\"{\\\"key\\\":{\\\"op\\\":\\\"const\\\",\\\"value\\\":0},\\\"map\\\":\\\"xNotS\\\",\\\"op\\\":\\\"get\\\"}\",-1]]",
+      "statement": "inX[0] <= xAndS[0] + xNotS[0]",
+      "instances": 4,
+      "ops": [
+        3,
+        5
+      ],
+      "literal": {
+        "op": false,
+        "guard": false,
+        "postState": false
+      },
+      "sourceUnits": 0.18799320000013608,
+      "rootDependence": {
+        "op": false,
+        "guard": false,
+        "postState": false
+      }
+    },
+    {
+      "key": "[[\"{\\\"key\\\":{\\\"op\\\":\\\"const\\\",\\\"value\\\":0},\\\"map\\\":\\\"inX\\\",\\\"op\\\":\\\"get\\\"}\",-1],[\"{\\\"key\\\":{\\\"op\\\":\\\"const\\\",\\\"value\\\":0},\\\"map\\\":\\\"xAndS\\\",\\\"op\\\":\\\"get\\\"}\",1],[\"{\\\"key\\\":{\\\"op\\\":\\\"const\\\",\\\"value\\\":0},\\\"map\\\":\\\"xNotS\\\",\\\"op\\\":\\\"get\\\"}\",1]]",
+      "statement": "xAndS[0] + xNotS[0] <= inX[0]",
+      "instances": 4,
+      "ops": [
+        3,
+        5
+      ],
+      "literal": {
+        "op": false,
+        "guard": false,
+        "postState": false
+      },
+      "sourceUnits": 0.17431560000005675,
+      "rootDependence": {
+        "op": false,
+        "guard": false,
+        "postState": false
+      }
+    },
+    {
+      "key": "[[\"{\\\"key\\\":{\\\"op\\\":\\\"const\\\",\\\"value\\\":0},\\\"map\\\":\\\"inS\\\",\\\"op\\\":\\\"get\\\"}\",1],[\"{\\\"key\\\":{\\\"op\\\":\\\"const\\\",\\\"value\\\":0},\\\"map\\\":\\\"sNotX\\\",\\\"op\\\":\\\"get\\\"}\",-1],[\"{\\\"key\\\":{\\\"op\\\":\\\"const\\\",\\\"value\\\":0},\\\"map\\\":\\\"xAndS\\\",\\\"op\\\":\\\"get\\\"}\",-1]]",
+      "statement": "inS[0] <= sNotX[0] + xAndS[0]",
+      "instances": 4,
+      "ops": [
+        3,
+        5
+      ],
+      "literal": {
+        "op": false,
+        "guard": false,
+        "postState": false
+      },
+      "sourceUnits": 0.12354120000011903,
+      "rootDependence": {
+        "op": false,
+        "guard": false,
+        "postState": false
+      }
+    },
+    {
+      "key": "[[\"{\\\"key\\\":{\\\"op\\\":\\\"const\\\",\\\"value\\\":0},\\\"map\\\":\\\"inS\\\",\\\"op\\\":\\\"get\\\"}\",-1],[\"{\\\"key\\\":{\\\"op\\\":\\\"const\\\",\\\"value\\\":0},\\\"map\\\":\\\"sNotX\\\",\\\"op\\\":\\\"get\\\"}\",1],[\"{\\\"key\\\":{\\\"op\\\":\\\"const\\\",\\\"value\\\":0},\\\"map\\\":\\\"xAndS\\\",\\\"op\\\":\\\"get\\\"}\",1]]",
+      "statement": "sNotX[0] + xAndS[0] <= inS[0]",
+      "instances": 4,
+      "ops": [
+        3,
+        5
+      ],
+      "literal": {
+        "op": false,
+        "guard": false,
+        "postState": false
+      },
+      "sourceUnits": 0.11030639999987102,
+      "rootDependence": {
+        "op": false,
+        "guard": false,
+        "postState": false
+      }
+    },
+    {
+      "key": "[[\"{\\\"key\\\":{\\\"name\\\":\\\"i\\\",\\\"op\\\":\\\"var\\\"},\\\"map\\\":\\\"cfgSize\\\",\\\"op\\\":\\\"get\\\"}\",-1],[\"{\\\"key\\\":{\\\"op\\\":\\\"const\\\",\\\"value\\\":0},\\\"map\\\":\\\"inX\\\",\\\"op\\\":\\\"get\\\"}\",1]]",
+      "statement": "inX[0] <= cfgSize[i]",
+      "instances": 4,
+      "ops": [
+        3,
+        5
+      ],
+      "literal": {
+        "op": false,
+        "guard": false,
+        "postState": false
+      },
+      "sourceUnits": 4.292503999999894,
+      "rootDependence": {
+        "op": false,
+        "guard": false,
+        "postState": false
+      }
+    },
+    {
+      "key": "[[\"{\\\"key\\\":{\\\"name\\\":\\\"i\\\",\\\"op\\\":\\\"var\\\"},\\\"map\\\":\\\"cfgSize\\\",\\\"op\\\":\\\"get\\\"}\",1],[\"{\\\"key\\\":{\\\"op\\\":\\\"const\\\",\\\"value\\\":0},\\\"map\\\":\\\"inX\\\",\\\"op\\\":\\\"get\\\"}\",-1]]",
+      "statement": "cfgSize[i] <= inX[0]",
+      "instances": 4,
+      "ops": [
+        3,
+        5
+      ],
+      "literal": {
+        "op": false,
+        "guard": false,
+        "postState": false
+      },
+      "sourceUnits": 4.292503999999951,
+      "rootDependence": {
+        "op": false,
+        "guard": false,
+        "postState": false
+      }
+    },
+    {
+      "key": "[[\"\",-1],[\"{\\\"name\\\":\\\"?committedQuorum\\\",\\\"op\\\":\\\"var\\\"}\",1]]",
+      "statement": "?committedQuorum <= 1",
+      "instances": 1,
+      "ops": [
+        3
+      ],
+      "literal": {
+        "op": false,
+        "guard": true,
+        "postState": false
+      },
+      "sourceUnits": 0.04474399999998013,
+      "rootDependence": {
+        "op": false,
+        "guard": true,
+        "postState": false
+      }
+    },
+    {
+      "key": "[[\"\",1],[\"{\\\"name\\\":\\\"j$\\\",\\\"op\\\":\\\"var\\\"}\",1],[\"{\\\"name\\\":\\\"size\\\",\\\"op\\\":\\\"var\\\"}\",-1]]",
+      "statement": "1 + j$ <= size",
+      "instances": 3,
+      "ops": [
+        3,
+        5
+      ],
+      "literal": {
+        "op": false,
+        "guard": false,
+        "postState": false
+      },
+      "sourceUnits": 0.16011120000010237,
+      "rootDependence": {
+        "op": false,
+        "guard": false,
+        "postState": true
+      }
+    }
+  ]
+}

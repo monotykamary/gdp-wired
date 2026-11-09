@@ -5531,3 +5531,17 @@ the coverage and limitations. Twenty-eight archives had matching manifests;
 eleven are marked unverified. No parse failures or available-manifest
 mismatches. No solver reruns or policy/production/kernel changes. Type/lint and
 **3 tests / 6 assertions** pass.
+
+## Track M Section 18 — lemma recapture, scope and actual reusable cost
+
+Research-only implementation `d42c7034`; production, kernel, generator and 5,000-unit allowance unchanged. Four explicit-family op shards and their controls ran sequentially on one exclusive eight-vCPU VM with production clocks/draws. All returned unknown; the cooperative 4.8-second law clock stopped them before they exhausted counted allowance.
+
+Independent replay covers 158 attempts / 71 emitted lemmas, of which 65 check in their transported target contexts. Six deferred Inv* op-5 emissions have valid source proofs but fail target checking; they are not counted as successes. Normalized statements, source/target premises, op/guard/post-state footprints, separate counted cost buckets and root certificates are retained.
+
+There are 16 checked statements shared across op/law rows, but just one across the two laws (a post-state frame with no root certificate). Inv2973 has no root-certified reusable instance in the captured prefixes. Inv* has 12 root-certified facts / 41 instances, including eight guard-free pre-state facts. Integer-equivalent spellings are coalesced without rewriting proof goals.
+
+Once-per-law successful-proof deduplication leaves **1,322.193** units for Inv2973 ops 0/4 and **1,900.155** for Inv* ops 3/5. Inv* saves **7.872**, of which **4.557** is within-op repetition and only **3.315** is additional cross-op sharing. An optimistic matching-query calculation also removes failed calls for already root-proved keys and leaves **1,824.481** for Inv*. These are fixed-prefix bookkeeping estimates, not whole-law totals or executed-cache speedups. Inv2973's field helper was not reached before the clock.
+
+Type/lint and **5 tests / 16 assertions** pass. The original capture's post-search archive OOM was recovered from the same outputs with streaming compression; no measured rerun replaced it. Final checksums and independent certificate replay pass. No complete-law proof or gate pass is claimed; the existing 28/29 result was not re-certified here.
+
+[Full report](track-m/lemma-recapture-v1/README.md) · [compact overview](track-m/lemma-recapture-v1/overview.json) · [per-lemma inventory](track-m/lemma-recapture-v1/lemmas.csv).

@@ -1,0 +1,9 @@
+research/track-m/section18-recorder.ts(18,48): error TS2554: Expected 0 arguments, but got 1.
+research/track-m/section18-recorder.ts(46,408): error TS2345: Argument of type '{ hyps: (C | undefined)[]; name: string; }' is not assignable to parameter of type 'Goal'.
+  Types of property 'hyps' are incompatible.
+    Type '(C | undefined)[]' is not assignable to type 'C[]'.
+      Type 'C | undefined' is not assignable to type 'C'.
+        Type 'undefined' is not assignable to type 'C'.
+
+--- stderr ---
+$ tsc -p . && oxlint --type-aware --deny-warnings --disable-nested-config

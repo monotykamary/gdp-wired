@@ -1,0 +1,63 @@
+{
+  "jobsFinished": true,
+  "archivesVerified": true,
+  "noVmStopOrResume": true,
+  "results": [
+    {
+      "vm": "bx_25xas5gt",
+      "paths": [
+        "/home/user/track-m-section18-mhWej9",
+        "/home/user/track-m-s10-receipts-rMSSv0"
+      ],
+      "ok": true,
+      "receipt": "{\"cwd\":\".\",\"exitCode\":0,\"finishedAt\":\"2026-11-09T02:43:17.444Z\",\"launcherFailed\":false,\"noticedMs\":1,\"oomKilled\":false,\"signal\":null,\"startMs\":1,\"startedAt\":\"2026-11-09T02:43:17.339Z\",\"stderr\":\"\",\"stderrTruncated\":false,\"stdout\":\"cleaned\\n\",\"stdoutTruncated\":false,\"success\":true,\"timedOut\":false}\n"
+    },
+    {
+      "vm": "bx_2eg9t59n",
+      "paths": [
+        "/home/user/track-m-section18-audit-ivlRW7",
+        "/home/user/track-m-s10-receipts-EU8T5c"
+      ],
+      "ok": false,
+      "receipt": "{\"code\":\"machine_not_running\",\"error\":\"Sandbox bx_2eg9t59n is stopped. Run `boat resume bx_2eg9t59n`, then retry.\",\"event\":\"error\",\"status\":409}\n"
+    },
+    {
+      "vm": "bx_3qn8b65a",
+      "paths": [
+        "/home/user/track-m-section18-audit-SAVRC1",
+        "/home/user/track-m-s10-receipts-EHOXqA"
+      ],
+      "ok": false,
+      "receipt": "{\"code\":\"machine_not_running\",\"error\":\"Sandbox bx_3qn8b65a is stopped. Run `boat resume bx_3qn8b65a`, then retry.\",\"event\":\"error\",\"status\":409}\n"
+    },
+    {
+      "vm": "bx_2hzfj2ah",
+      "paths": [
+        "/home/user/track-m-section18-audit-iK3Zav",
+        "/home/user/track-m-s10-receipts-aLV5ON"
+      ],
+      "ok": true,
+      "receipt": "{\"cwd\":\".\",\"exitCode\":0,\"finishedAt\":\"2026-11-09T02:43:17.425Z\",\"launcherFailed\":false,\"noticedMs\":1,\"oomKilled\":false,\"signal\":null,\"startMs\":1,\"startedAt\":\"2026-11-09T02:43:17.313Z\",\"stderr\":\"\",\"stderrTruncated\":false,\"stdout\":\"cleaned\\n\",\"stdoutTruncated\":false,\"success\":true,\"timedOut\":false}\n"
+    },
+    {
+      "vm": "bx_2kmf8w3s",
+      "paths": [
+        "/home/user/track-m-section18-audit-kdGknT",
+        "/home/user/track-m-section18-audit-qtrCsY",
+        "/home/user/track-m-s10-receipts-JOLIh0",
+        "/home/user/track-m-s10-receipts-kO5xdS"
+      ],
+      "ok": true,
+      "receipt": "{\"cwd\":\".\",\"exitCode\":0,\"finishedAt\":\"2026-11-09T02:43:17.533Z\",\"launcherFailed\":false,\"noticedMs\":2,\"oomKilled\":false,\"signal\":null,\"startMs\":2,\"startedAt\":\"2026-11-09T02:43:17.399Z\",\"stderr\":\"\",\"stderrTruncated\":false,\"stdout\":\"cleaned\\n\",\"stdoutTruncated\":false,\"success\":true,\"timedOut\":false}\n"
+    },
+    {
+      "vm": "bx_395wpmqp",
+      "paths": [
+        "/home/user/track-m-section18-CswM26",
+        "/home/user/track-m-s18-receipts-KjTx8w"
+      ],
+      "ok": false,
+      "receipt": "Scheduler-stopped before cleanup; not resumed. Verified local raw archive retained; no running process."
+    }
+  ]
+}
