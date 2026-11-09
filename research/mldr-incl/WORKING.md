@@ -1,5 +1,18 @@
 # RESUMED — user instruction, 2026-11-10
 
+**Submissions reopened.** All three old exact batch IDs now report `no such
+batch`; their output directories are empty. New six-job guarded validation
+is running from completed immutable-by-use source export
+`/tmp/gdp-wired-incl-resume-84a7a672`, source
+`84a7a6728d578e3918b969574a36a295fc2ad5a2`. The bare export first failed
+before admission (missing Git index); standalone Git metadata repaired that
+without changing source bytes. **Registered:** `20261110-004001-gs8s50`,
+active controller `1ce194cd-f78d-4226-9f50-41ba03b3fb16`, output
+`runs/mldr-incl-resume-frozen-v3/`; six jobs queued, no results yet. Do not
+duplicate it. No subagents. Disk policy is recorded in runs/REPORT.md:
+reuse this source, no new per-run archives, delete nothing without approval.
+
+
 **Coordinator resource hold:** no new parallel local work, submissions or
 retries until lifted. This lane has no subagents. Existing boat batches
 are not to be killed or resubmitted. Both formerly active controllers
