@@ -48,4 +48,6 @@ window, rejects mismatched parameter/out-of-domain seeds, checks caller/fact
 barriers, reuses a certified seed across rounds, exercises carried input cells,
 and preserves wall expiration. Run the full previous 64 tests as well as these
 seven fixtures plus full TypeScript, type-aware lint and commitlint on boat.
-These are pending; no proof, performance or final-gate success is claimed.
+All passed in batch `20261110-024235-jcofa9`: 71 tests / 1,959 assertions,
+zero lint warnings/errors. The checked source is `94a443cc`. Six fixed-budget
+pilots are running; no proof, performance or final-gate success is claimed.

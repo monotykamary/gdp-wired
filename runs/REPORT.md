@@ -22,7 +22,7 @@ on top of state-first: the first pilot caught no drops during target build.
 Shared circuits passed 57 tests; the pilot recovered four named drops,
 but still fails the unchanged five-of-seven bar.
 
-## Current WIP: bounded seed neighborhoods (validation pending)
+## Current revision: bounded seed neighborhoods (checked; pilot running)
 
 The interval pilot below failed. The next generic hypothesis tries one-coordinate
 neighbors of prior counterexamples before ordinary global traversal. The optional
@@ -31,10 +31,17 @@ attempts per invocation, with existing walls and independent certification.
 No domains, row keys, source dispatch or code-size caps change. Intervals stay
 off in the planned pilot. See `research/track-gen/t16-seed-notes.md`.
 
-The complete prior suite plus seven seed fixtures and static checks are running
-wide on submission, task `25950e42-203b-4bc6-a960-a54b1540562a`, output
-`runs/t16-seed-check/`, immutable overlay `runs/t16-seed-overlay/`.
-No seed pilot has been submitted. This WIP is not covered by the 64-test receipt.
+The complete suite passed in submission batch `20261110-024235-jcofa9`:
+**71 tests / 1,959 assertions**, TypeScript, type-aware lint (zero warnings/errors),
+and commitlint. Receipts: `runs/t16-seed-check/`. Checked source: `94a443cc`;
+immutable overlay: `runs/t16-seed-overlay/`.
+
+All six fixed-budget pilots are now running on isolated submission-class large
+VMs in task `5cb96fde-716d-4b52-a209-9ea4ae95ae2d`, output
+`runs/t16-seed-probe/`. Source hashes were verified against the passed overlay
+before commit/submission. Shared post-target pruning is on, intervals are off,
+and the independent checker, finite domains and five-of-seven / 2 s bar are
+unchanged. No pilot outcome is claimed yet.
 Compiler SHA-256 `75ad5d2b681ce9b5fd167139d94858712da2c7bbd2cdd5df987bfd1fff074b8e`;
 new suite `992a86b0a27247b78834b5b3fee370be9d947888a71aef1b1afb0ed483c41542`;
 driver `e8df5883ffc911b06a2a4555f244a6dd58a342c8ea86e68605d79ab3cbd1eb68`.

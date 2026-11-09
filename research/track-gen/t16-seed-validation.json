@@ -15,6 +15,14 @@
     "core/finite-tiny-seed.test.ts": "992a86b0a27247b78834b5b3fee370be9d947888a71aef1b1afb0ed483c41542",
     "research/track-gen/t16-domain-hybrid.ts": "e8df5883ffc911b06a2a4555f244a6dd58a342c8ea86e68605d79ab3cbd1eb68"
   },
-  "pilot": "pending",
-  "productionEnabled": false
+  "pilot": {
+    "status": "running",
+    "task": "5cb96fde-716d-4b52-a209-9ea4ae95ae2d",
+    "output": "runs/t16-seed-probe/",
+    "postTargetPruning": true,
+    "postTargetIntervals": false,
+    "counterexampleNeighbors": true
+  },
+  "productionEnabled": false,
+  "sourceCommit": "94a443cc0dc6956e8899a1767dc7d822e2296097"
 }

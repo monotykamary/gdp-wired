@@ -46,5 +46,7 @@ transition dispatch, domain or wall is enlarged and no source names are used.
 
 The corrected hash-bound `runs/t16-target-interval-overlay-v2/` passed all
 64 tests / 1,748 assertions, TypeScript, type-aware lint and commitlint in
-submission batch `20261110-023555-2ihu75`. The source is `e559b0d3`. Six
-unchanged-budget pilots are now running. This is not a performance pass.
+submission batch `20261110-023555-2ihu75`. The source is `e559b0d3`. Its
+pilot subsequently failed: 0/3/3 original named drops and one wall overrun.
+Independent replay confirmed all 16 witnesses. Interval mode is rejected
+for the next performance pilot; it remains opt-in, not a production change.
