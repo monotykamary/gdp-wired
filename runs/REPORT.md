@@ -1,3 +1,41 @@
+# RESUME — PAUSED; do not restart until the user explicitly resumes
+
+**Branch:** `claude/mldr-integ`. **Last source/test SHA:** `a3930f448d4a7e447cb4d9470a4ec34a5d09e5b3`. **WIP/evidence checkpoint SHA:** `b5ed324525e8e88ad7386fa746f1ed41dad95536` (this RESUME is the subsequent documentation-only commit; obtain its final SHA with `git rev-parse HEAD`). Baseline remains `b788e1959bba1f2e8aa1f94d4cf7c0eb163a2f9c`. No push. The pending merge of Fable `f8206bfc` was **aborted**, not completed. No merge is in progress.
+
+## Proven/measured so far
+
+- **NOT GATE GREEN.** No full MLDR proof and no Lane D final receipt. V7 is the last fully audited integration cycle: clean type/lint check; **621 tests / 19,688 assertions**; all **87 generation pairs** successful, with **84 non-MLDR pairs byte-identical**. Three strict MLDR runs are **unknown**, at **59.012 / 59.018 / 59.147 s**. These are generation comparisons, not a replacement for the full proof-verdict roster.
+- V8's four changed-test shards completed with exit 0 before cancellation. The actual `core/count-ranges.test.ts` loaded and all four tests passed. All three new test-load propagation tests passed: a real missing-export error cannot be masked by a passing file, and the quick-suite driver propagates failure and stops. Their receipts are committed under `runs/lane-i/v8/validation/`.
+- V8's check **failed**: `core/counts.ts(931,11) TS2322`, a rebuilt replay object lacks required `all: MapRead[]`. Three paired strict-MLDR commands produced logs and exit 0, but their verdicts have **not yet been semantically aggregated/audited**; process success is not proof.
+- Upper-bound implementation/smoke receipts exist, but the requested **140-shard full census has no usable collected results**. Do not infer a closure or a counted-work bound from a cancelled job without a receipt.
+
+## Cancelled / stopped owned work
+
+All three active tasks were stopped by exact task ID and joined as `killed`. Final task inventory: **zero active owned tasks**. Shared scheduler/other clients were not stopped.
+
+| Task ID | Batch; output directory | Purpose; partial usability / rerun |
+|---|---|---|
+| `c87cb42c-4236-4aec-af04-02ebf100a772` | `20261109-153811-6qofjx`; `runs/lane-i/upper-bound/full` | 140 original-34 upper-bound shards, frozen production `15eff72f`. Output directory empty. No usable partial result; rerun all 140 after explicit resume and source binding. |
+| `381ed372-6c96-4727-9a1b-2a4ac8336fcf` | `20261109-155412-uekwu6`; `runs/lane-i/v8/validation` | Eight validation jobs. All individual logs/summary collected: four test passes, one check failure, three unaudited MLDR command results. Usable only as those individual receipts; rerun full validation after repairing the source. |
+| `6a287b13-8a11-4483-87ac-88d5e5279fd8` | `20261109-155416-jnnc4s`; `runs/lane-i/v8/census` | 87 generation comparisons. Output directory empty; no usable partial results; rerun all 87. |
+| `2092fac9-ec85-42a5-8f13-ffc3567c8625` | no boat batch | Lane-tip watcher already exited 0 before checkpoint. No active watcher remains. |
+
+Cancellation metadata: `runs/lane-i/checkpoint/cancelled-tasks.json`. Small collected receipts are committed; large outputs, archives and tar snapshots stay out of git and remain local. Their paths/sizes are in `runs/lane-i/checkpoint/local-artifacts.txt`; preserve the workspace's `runs/lane-i/` (about 549 MiB before checkpoint). More detail: `runs/lane-i/checkpoint/README.md`.
+
+## Open audit blockers and exact next steps — only after explicit resume
+
+1. Read this RESUME and checkpoint README; verify branch/HEAD and a clean worktree. Re-read `supercomputer --skill`. Do not resurrect cancelled tasks or overwrite old output directories.
+2. Repair `core/counts.ts` around line 931: preserve the required complete-read list (`all`) when the model-replay branch rebuilds certificate objects. Preserve the E member-witness independence checks, B completion retries, F compensated-frame cap, and Fable demand-driven range rebuilding. Add/check a focused regression; commit normally, never amend or reset history.
+3. Reconcile Fable `f8206bfc` / canonical import fix `a19a0713` after resume permission. The integrated import is already correct (`../kernel/model-sequence.ts`, since `704efc27`); do not reintroduce the old import from `kernel/prove.ts`. The quick roster must continue explicitly including range/member tests. Fable's own 29/29 matching verdict report is not proof about the newer combined tree.
+4. Create **new** `runs/lane-i/v9/input/` with the retained v8 baseline/vendor tarballs and checksums; repin `identity.json` to the newly committed candidate SHA, unchanged baseline and exact lane heads. Then run:
+   - `supercomputer run --jobs research/lane-i/validate.jobs.json --out runs/lane-i/v9/validation --class gate --timing --vm-type large --data runs/lane-i/v9/input:integ-input`
+   - `supercomputer run --jobs research/lane-i/census.jobs.json --out runs/lane-i/v9/census --class submission --timing --vm-type large --data runs/lane-i/v9/input:integ-input`
+   Keep one owner/waiter per batch. Collect and audit every result, including test-load errors, MLDR verdicts and actual pre-attempt wall; do not accept only process exit status.
+5. Resume the upper-bound request through `research/lane-i/upper-bound/README.md`. The retained jobs/input manifest is bound to frozen source `15eff72f`, **not** the current source. Reproduce that source in a disposable tree with retained tooling, or explicitly recapture/rebind the repaired source and label a new experiment. Never relabel old inputs. Submit all 140 helper/op/pass/ceiling-on/off shards in parallel with a fresh output directory. Require the original 34-law family, no supplied laws, independent verification, and conservative unknown/censored reporting.
+6. Restart lane monitoring only when resumed. Refresh force-added `runs/REPORT.md` as lanes move. Request Lane D's exact-roster, both-SHA-bound, CPU-labelled final gate on the final candidate; no green claim or merge to main without it.
+
+---
+
 # Lane I — continuous MLDR integration
 
 NOT GATE GREEN. Baseline `main` = `b788e195`; branch `claude/mldr-integ`.
