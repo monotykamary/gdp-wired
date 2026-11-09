@@ -6,6 +6,12 @@ Lane I resumed from `cca59f0c` on `claude/mldr-integ`; clean worktree verified, 
 - Repair: core-replay reconstruction now spreads the previous obligation before replacing its goal/decls/encoded goal, retaining `all`, certificate and pool. Added a focused range-demand test for a read omitted by the selected certificate. No budget, law, or kernel change.
 - Current source/test candidate: `edd284913024a6566591d7ad1cba8059b8047a14`; all eight v9 validation jobs and all 87 generation pairs were launched with new pinned inputs. Later B/report/audit changes do not alter the tested engine. Results are still pending. Lane D's final gate is mandatory; the earlier `704efc27` request is superseded below.
 
+## Coordinator memory-pressure guidance (active)
+
+The coordinator confirmed that laptop memory pressure (7.5/8 GB swap and heavy paging) is stalling shared blob-cache admission while a client's per-file `utime` crawls. This supersedes the unconfirmed contention hypothesis below; it is not a proof-engine failure. All four existing Lane I controllers remain untouched: no resubmission, no cancellation, no scheduler/cache changes.
+
+Until the coordinator lifts this instruction: at most one subagent, close idle/finished subagents, and no new parallel local work. Lane I has started no subagents and has none to close. Continue only lightweight sequential file review/edits and observation of the already-submitted jobs. Their receipts remain pending.
+
 ## Resumed integration ledger
 
 All current committed heads integrated: A `bef4020f`, B `30537f70`, E `b3f8377e`, F `27ca886f`, Fable `a6ae4be9`. Lane-local evidence stays at each branch's `runs/REPORT.md`.
