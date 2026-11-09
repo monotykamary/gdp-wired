@@ -1,6 +1,7 @@
 // The compiled step's key helpers ($keys, $breaks, $spread via $sorted) against the interpreter's keysAt/breakKeys:
 // every-key writes whose values read other maps at offset keys and compare keys with inputs, from random states.
 import {expect, test} from 'bun:test'
+import {runInNewContext} from 'node:vm'
 import {type Machine, type State, compileJs, fastStep, get, interpret, ite, lcg, less, n, plus, same, x} from './machine.ts'
 
 const m: Machine = {name: 'dense writes', params: ['size'], inputs: ['i', 'j'], state: {t: n(0)}, maps: {A: 0, B: 0, C: 1},
@@ -52,7 +53,7 @@ test('an inherited enumerable member of the maps dictionary is not a map of the 
 
 test('$unique cannot observe a stamp wrap: at 2^32 − 1 the buffer is zeroed and the stamps restart', () => {
   const src = compileJs(m), start = src.indexOf('function $unique('), end = src.indexOf('\n', start)
-  const unique = new Function(`${src.slice(start, end)}; return $unique;`)() as ((vals: number[], top: number) => number[]) & {buf?: Uint32Array, stamp?: number}
+  const unique = runInNewContext(`${src.slice(start, end)}; $unique`) as ((vals: number[], top: number) => number[]) & {buf?: Uint32Array, stamp?: number}
   expect(unique([3, 1, 3, 0], 5)).toEqual([0, 1, 3])
   // Stale marks from an earlier cycle, and the counter one step from the wrap.
   unique.buf = new Uint32Array(8).fill(1)
