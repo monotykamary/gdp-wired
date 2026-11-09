@@ -1,0 +1,12 @@
+54c58da465575dd41903b3c7712d70d0caa29400dd23d9c083a8ad366b236553  family.json
+cf6bd4da93a7ac605cddd1e35e9e161480d4a5077586641424ba184c77821a82  core/counts.ts
+e4552f8e6942e1cd772779ddf0d33905db52c87877b027defb091b67d2c25cd1  core/count-recovery/derivability-closure.ts
+TRIANGLE_PAIR_BEGIN closure before
+0065c5ecb9a629e6b796182f7259cef45296315db172ac768a2e0e3357b24bca  core/count-write-frames.ts
+{"conditional":true,"directClosure":true,"wholeHelper":false,"law":"inX: stored guard reconfigs/inS or disabled/0","op":0,"packetSha256":"f85affd2f84babfeaef29618e14e68d14bf2c24b9e20369d2c8332a170ff3b9e","searchUnits":662.3074619999999,"searchWallMs":7095.141134,"units":662.3074619999999,"wallMs":7113.448536,"checked":false,"reads":60,"instances":290,"pairs":[[{"op":"var","name":"a$quorum#"},{"op":"var","name":"i"}],[{"op":"var","name":"b$quorum"},{"op":"var","name":"i"}]],"writes":true,"rowQueries":4,"rowSplits":2,"rowMirrors":0}
+TRIANGLE_PAIR_END closure before
+TRIANGLE_PAIR_BEGIN closure after
+2ee73919ed43c1b8d563a9461d27bb6ae696149019fa66e044b490ff33f6ebbe  core/count-write-frames.ts
+{"conditional":true,"directClosure":true,"wholeHelper":false,"law":"inX: stored guard reconfigs/inS or disabled/0","op":0,"packetSha256":"f85affd2f84babfeaef29618e14e68d14bf2c24b9e20369d2c8332a170ff3b9e","searchUnits":1555.8111519999998,"searchWallMs":6082.431511999999,"units":1555.8111519999998,"wallMs":6096.568041,"checked":false,"reads":60,"instances":294,"pairs":[[{"op":"var","name":"a$quorum#"},{"op":"var","name":"i"}],[{"op":"var","name":"b$quorum"},{"op":"var","name":"i"}]],"writes":true,"rowQueries":4,"rowSplits":2,"rowMirrors":0}
+TRIANGLE_PAIR_END closure after
+{"artifact":"track-m-tar-v1","dir":"/home/user/track-m-s18-receipts-9wvSGg","format":"tar.gz","parts":2,"bytes":205217,"sha256":"5c87d3436b7084636977552b09f548148e08ff13e18b84f5b73367aa1cfb937a"}

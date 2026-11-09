@@ -1,0 +1,3 @@
+{"researchOnly":true,"policy":"conditional-scalar-selectors"}
+{"mode":"tiny-zero-selectors-boolean","index":176,"inst":{"wit":"frame$30","below":{"op":"var","name":"size"},"terms":[[1,"r$0"]],"unit":0},"hyps":2,"checked":false,"admissible":false,"searchUnits":4.523495199999999,"searchWallMs":98.08049500000004,"units":4.523495199999999,"wallMs":98.08886900000005}
+{"artifact":"track-m-tar-v1","dir":"/home/user/track-m-s18-receipts-yh5PAg","format":"tar.gz","parts":1,"bytes":2100,"sha256":"88c306ec1cfffa977f7a9706a2791779748995d4238c0c1b0b7fcb06ca17ce52"}

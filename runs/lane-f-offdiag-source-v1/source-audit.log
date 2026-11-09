@@ -1,0 +1,1 @@
+{"mode":"source-grow","sourceBudget":1000,"index":0,"inst":{"wit":"writeFrame$0","below":{"op":"var","name":"size"},"terms":[[1,"r$0"],[-1,"r$10"]],"unit":0},"hyps":81,"checked":false,"admissible":false,"searchUnits":1002.4167391999999,"searchWallMs":599.299646,"units":1002.4167391999999,"wallMs":599.311628}

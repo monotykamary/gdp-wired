@@ -1,0 +1,12 @@
+{"researchOnly":true,"policy":"conditional-scalar-selectors"}
+                                                                                                                                   ^
+error: Expected ";" but found "add"
+    at /work/gdp-wired/core/count-recovery/boolean-core.ts:50:127
+
+69 |  })
+       ^
+error: Unexpected )
+    at /work/gdp-wired/core/count-recovery/boolean-core.ts:69:3
+
+Bun v1.4.3 (Linux x64)
+{"artifact":"track-m-tar-v1","dir":"/home/user/track-m-s18-receipts-ES9uae","format":"tar.gz","parts":1,"bytes":426,"sha256":"7ad0565d61fa7f73f7f28fe55c9048a31eb3b1ea9e70d483cea7be41bd43e891"}

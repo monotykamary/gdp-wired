@@ -1,0 +1,2 @@
+{"mode":"tiny-boolean","index":0,"inst":{"wit":"writeFrame$0","below":{"op":"var","name":"size"},"terms":[[1,"r$0"],[-1,"r$10"]],"unit":0},"hyps":2,"checked":false,"admissible":false,"searchUnits":151.08009,"searchWallMs":374.486095,"units":151.08009,"wallMs":374.50273600000014}
+{"artifact":"track-m-tar-v1","dir":"/home/user/track-m-s18-receipts-VEnSn0","format":"tar.gz","parts":1,"bytes":2289,"sha256":"7ac76e6250bd42db540d3a2bd738d10e87c68f87b4373253a6eaf926a3baf4d1"}

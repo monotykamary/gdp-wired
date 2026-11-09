@@ -1,0 +1,2 @@
+{"mode":"source-zero-boolean","index":176,"inst":{"wit":"frame$30","below":{"op":"var","name":"size"},"terms":[[1,"r$0"]],"unit":0},"hyps":81,"checked":false,"admissible":false,"searchUnits":155.97516480000002,"searchWallMs":265.980408,"units":155.97516480000002,"wallMs":265.99359300000003}
+{"artifact":"track-m-tar-v1","dir":"/home/user/track-m-s18-receipts-XP6IKR","format":"tar.gz","parts":1,"bytes":3619,"sha256":"86fab96f85cdceb2d3134b82403f96fd280be48c025ae9c7d039f2be46cebc27"}

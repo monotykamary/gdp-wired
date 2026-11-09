@@ -1,0 +1,2 @@
+{"mode":"tiny-grow","index":0,"inst":{"wit":"writeFrame$0","below":{"op":"var","name":"size"},"terms":[[1,"r$0"],[-1,"r$10"]],"unit":0},"hyps":2,"checked":false,"admissible":false,"searchUnits":150.94339639999995,"searchWallMs":219.43874000000005,"units":150.94339639999995,"wallMs":219.45124399999997}
+{"artifact":"track-m-tar-v1","dir":"/home/user/track-m-s18-receipts-QdSDBa","format":"tar.gz","parts":1,"bytes":1914,"sha256":"850cce599f570cb5ef826613a66a61f880453dd54a78760b47d25261bc693a68"}

@@ -1,0 +1,17 @@
+archives/overlap.tar.gz: OK
+archives/star.tar.gz: OK
+replays/family.json: OK
+controls.tar.gz: OK
+{"frozen":true,"tag":"star","source":"/home/user/lane-f-pair-G2jLk5/capture/star/capture.json.gz","sourceHash":"d679ec642e711c0b1b61d730f894961e06aed93c80244aa548d7cffd59766b01","packetHash":"1c25119b2695c7284d2712d95c03823d677a9898a1ae20dc057592e07cd20ab6","law":"inX: no quorum canVote/3","pass":1,"reads":47,"instances":10}
+LANE_F_BEGIN closure star 3 before
+2f199822e39a59283385b16a0dc07a05334282411191c2dd95623ef7b3adc28d  core/count-cases.ts
+80bbbd88df002874f82dd96b8421d2cd9dca42b06659712880ff961f8a7721df  core/count-recovery/row-cases.ts
+e1a5260d63e5c9a84d8d488cb8adcfe69f57751b4ccfba565d820aa8a6227835  core/count-recovery/derivability-closure.ts
+{"artifact":"track-m-tar-v1","dir":"/home/user/track-m-s18-receipts-Zvrh2v","format":"tar.gz","parts":10,"bytes":1445377,"sha256":"ec4c7bf327b00c46c27b6bfd592669ecd4d263d4c3a9e830010c4d4ab6968a80"}
+
+--- stderr ---
+tar: Ignoring unknown extended header keyword 'LIBARCHIVE.xattr.com.apple.provenance'
+tar: Ignoring unknown extended header keyword 'LIBARCHIVE.xattr.com.apple.provenance'
+tar: Ignoring unknown extended header keyword 'LIBARCHIVE.xattr.com.apple.provenance'
+tar: Ignoring unknown extended header keyword 'LIBARCHIVE.xattr.com.apple.provenance'
+tar: Ignoring unknown extended header keyword 'LIBARCHIVE.xattr.com.apple.provenance'

@@ -1,0 +1,13 @@
+{"artifact":"track-m-tar-v1","dir":"/home/user/track-m-s18-receipts-jzJTt6","format":"tar.gz","parts":1,"bytes":104,"sha256":"782b6cb9aed03f78f853294a4781fb46ae91d22dea73b775d19f4a5c78aea656"}
+
+--- stderr ---
+1 | // Research-only candidate policy, installed in disposable Linux snapshots.
+2 | import {readFileSync,writeFileSync} from 'node:fs'
+3 | if(process.platform!=='linux'||process.env.LAB_DISPOSABLE!=='1')throw Error('disposable Linux required')
+4 | const file='core/count-recovery/boolean-core.ts',s=readFileSync(file,'utf8'),anchor=' walk(g.hyps,root,(o:any)=>{'
+5 | if(s.split(anchor).length!==2)throw Error('nonunique selector anchor')
+                                        ^
+error: nonunique selector anchor
+      at /work/gdp-wired/research/track-m/lane-f-selector-variant.ts:5:37
+
+Bun v1.4.3 (Linux x64)

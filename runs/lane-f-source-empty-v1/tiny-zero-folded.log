@@ -1,0 +1,2 @@
+{"mode":"tiny-zero-folded","index":176,"inst":{"wit":"frame$30","below":{"op":"var","name":"size"},"terms":[[1,"r$0"]],"unit":0},"hyps":2,"checked":false,"admissible":false,"searchUnits":13.754278000000001,"searchWallMs":49.03049800000008,"units":13.754278000000001,"wallMs":49.04448400000001}
+{"artifact":"track-m-tar-v1","dir":"/home/user/track-m-s18-receipts-EbOORR","format":"tar.gz","parts":1,"bytes":1834,"sha256":"d8347f8ca1b51a4bdd2efa3117ebf1fe1fd227448063f2ce162bbf8ffe36f3a3"}

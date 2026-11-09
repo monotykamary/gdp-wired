@@ -1,0 +1,17 @@
+Import fix 682c8dc6; descendant source checkpoint 53bf1264
+736cb7965aa45853605e7daf6e4a6cc837facebbf71696c65ecd5b3b6e8a9493  core/count-ranges.test.ts
+b7e2b08edeba02e3714964741463b7e7748634d5800502ca8f3b9fe6e6f2d2b3  kernel/prove.ts
+2dcd146665dbbb111cab9f5351e922cfd2d36f62386e1e1ed47efc2b9f697102  kernel/model-sequence.ts
+bun test v1.4.3 (c6da4a4d3)
+
+--- stderr ---
+
+core/count-ranges.test.ts:
+(pass) zeroOne recognizes 0/1 bodies and nothing else [0.06ms]
+(pass) one range instance per 0/1-bodied read, fresh witnesses, present ranges and non-0/1 bodies skipped [0.86ms]
+(pass) a row count above its universe is refuted once its range instance is in the goal [14.26ms]
+
+ 3 pass
+ 0 fail
+ 14 expect() calls
+Ran 3 tests across 1 file. [37.00ms]

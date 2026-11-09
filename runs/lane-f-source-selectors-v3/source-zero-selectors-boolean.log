@@ -1,0 +1,3 @@
+{"researchOnly":true,"policy":"conditional-scalar-selectors"}
+{"mode":"source-zero-selectors-boolean","index":176,"inst":{"wit":"frame$30","below":{"op":"var","name":"size"},"terms":[[1,"r$0"]],"unit":0},"hyps":81,"checked":false,"admissible":false,"searchUnits":154.1286636,"searchWallMs":192.78667800000005,"units":154.1286636,"wallMs":192.798992}
+{"artifact":"track-m-tar-v1","dir":"/home/user/track-m-s18-receipts-LQJqXR","format":"tar.gz","parts":1,"bytes":3573,"sha256":"80559bdb8b0ad06afb8bb3f0375cfc43a5265f5b99c2e2bda070a19fc96581cf"}

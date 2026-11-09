@@ -1,0 +1,200 @@
+bun install v1.4.3 (c6da4a4d3)
+
++ @gdp-ts/core@0.1.0
++ @reduxjs/toolkit@2.13.0
++ @types/bun@1.3.1
++ @webgpu/types@0.1.66
++ effect@4.0.7
++ effect3@3.22.4
++ oxlint@1.88.0
++ oxlint-tsgolint@7.0.2004
++ typescript@5.9.3
++ xstate@5.33.2
++ xstate4@4.38.3
+
+27 packages installed [478.00ms]
+bun test v1.4.3 (c6da4a4d3)
+control/core/count-cases.ts(5,55): error TS2307: Cannot find module './machine.ts' or its corresponding type declarations.
+control/core/count-cases.ts(6,138): error TS2307: Cannot find module '../kernel/kernel.ts' or its corresponding type declarations.
+control/core/count-cases.ts(7,93): error TS2307: Cannot find module '../kernel/prove.ts' or its corresponding type declarations.
+control/core/count-cases.ts(8,19): error TS2307: Cannot find module './solver.ts' or its corresponding type declarations.
+control/core/count-cases.ts(9,37): error TS2307: Cannot find module './count-witness-flags.ts' or its corresponding type declarations.
+control/core/count-cases.ts(10,29): error TS2307: Cannot find module '../kernel/model-sequence.ts' or its corresponding type declarations.
+control/core/count-cases.ts(11,23): error TS2307: Cannot find module '../kernel/cdcl.ts' or its corresponding type declarations.
+control/core/count-cases.ts(12,33): error TS2307: Cannot find module './count-select.ts' or its corresponding type declarations.
+control/core/count-cases.ts(13,27): error TS2307: Cannot find module './count-recovery/action-guard.ts' or its corresponding type declarations.
+control/core/count-cases.ts(14,26): error TS2307: Cannot find module './count-recovery/guard-cases.ts' or its corresponding type declarations.
+control/core/count-cases.ts(15,31): error TS2307: Cannot find module './count-cert-grow.ts' or its corresponding type declarations.
+control/core/count-cases.ts(16,41): error TS2307: Cannot find module './count-focused.ts' or its corresponding type declarations.
+control/core/count-cases.ts(17,25): error TS2307: Cannot find module './count-recovery/field-case.ts' or its corresponding type declarations.
+control/core/count-cases.ts(18,31): error TS2307: Cannot find module './count-recovery/source-memo.ts' or its corresponding type declarations.
+control/core/count-cases.ts(19,91): error TS2307: Cannot find module './count-recovery/conditional-proof.ts' or its corresponding type declarations.
+control/core/count-cases.ts(21,33): error TS2307: Cannot find module './count-recovery/ops.ts' or its corresponding type declarations.
+control/core/count-cases.ts(35,83): error TS2307: Cannot find module './count-select.ts' or its corresponding type declarations.
+control/core/count-cases.ts(44,17): error TS18046: 'terms' is of type 'unknown'.
+control/core/count-cases.ts(45,16): error TS18046: 'terms' is of type 'unknown'.
+control/core/count-cases.ts(47,17): error TS18046: 'kept' is of type 'unknown'.
+control/core/count-cases.ts(57,39): error TS7006: Parameter '_' implicitly has an 'any' type.
+control/core/count-cases.ts(57,41): error TS7006: Parameter 'index' implicitly has an 'any' type.
+control/core/count-cases.ts(59,59): error TS7006: Parameter 'c' implicitly has an 'any' type.
+control/core/count-cases.ts(61,67): error TS7006: Parameter '_' implicitly has an 'any' type.
+control/core/count-cases.ts(61,69): error TS7006: Parameter 'i' implicitly has an 'any' type.
+control/core/count-cases.ts(62,44): error TS7006: Parameter '_' implicitly has an 'any' type.
+control/core/count-cases.ts(62,46): error TS7006: Parameter 'i' implicitly has an 'any' type.
+control/core/count-cases.ts(62,70): error TS7006: Parameter 'c' implicitly has an 'any' type.
+control/core/count-cases.ts(62,119): error TS2345: Argument of type 'Set<unknown>' is not assignable to parameter of type 'ReadonlySet<string>'.
+  Types of property 'forEach' are incompatible.
+    Type '(callbackfn: (value: unknown, value2: unknown, set: Set<unknown>) => void, thisArg?: any) => void' is not assignable to type '(callbackfn: (value: string, value2: string, set: ReadonlySet<string>) => void, thisArg?: any) => void'.
+      Types of parameters 'callbackfn' and 'callbackfn' are incompatible.
+        Types of parameters 'value' and 'value' are incompatible.
+          Type 'unknown' is not assignable to type 'string'.
+control/core/count-cases.ts(68,32): error TS7006: Parameter 'c' implicitly has an 'any' type.
+control/core/count-cases.ts(106,40): error TS7006: Parameter 'r' implicitly has an 'any' type.
+control/core/count-cases.ts(121,83): error TS7006: Parameter '_' implicitly has an 'any' type.
+control/core/count-cases.ts(121,85): error TS7006: Parameter 'i' implicitly has an 'any' type.
+control/core/count-cases.ts(136,97): error TS7006: Parameter '_' implicitly has an 'any' type.
+control/core/count-cases.ts(136,99): error TS7006: Parameter 'j' implicitly has an 'any' type.
+control/core/count-cases.ts(139,98): error TS7006: Parameter 'e' implicitly has an 'any' type.
+control/core/count-cases.ts(151,84): error TS7006: Parameter '_' implicitly has an 'any' type.
+control/core/count-cases.ts(151,86): error TS7006: Parameter 'j' implicitly has an 'any' type.
+control/core/count-cases.ts(159,54): error TS7006: Parameter 'j' implicitly has an 'any' type.
+control/core/count-cases.ts(165,90): error TS7006: Parameter 'i' implicitly has an 'any' type.
+control/core/count-cases.ts(175,103): error TS18046: 'terms' is of type 'unknown'.
+control/core/count-cases.ts(187,87): error TS7006: Parameter '_' implicitly has an 'any' type.
+control/core/count-cases.ts(187,89): error TS7006: Parameter 'j' implicitly has an 'any' type.
+control/core/count-cases.ts(189,90): error TS7006: Parameter '_' implicitly has an 'any' type.
+control/core/count-cases.ts(189,92): error TS7006: Parameter 'j' implicitly has an 'any' type.
+control/core/count-cases.ts(192,95): error TS7006: Parameter '_' implicitly has an 'any' type.
+control/core/count-cases.ts(192,97): error TS7006: Parameter 'i' implicitly has an 'any' type.
+control/core/count-cases.ts(192,119): error TS7006: Parameter 'c' implicitly has an 'any' type.
+control/core/count-cases.ts(193,50): error TS7006: Parameter '_' implicitly has an 'any' type.
+control/core/count-cases.ts(193,52): error TS7006: Parameter 'i' implicitly has an 'any' type.
+control/core/count-cases.ts(194,40): error TS2345: Argument of type 'Set<unknown>' is not assignable to parameter of type 'ReadonlySet<string>'.
+  Types of property 'forEach' are incompatible.
+    Type '(callbackfn: (value: unknown, value2: unknown, set: Set<unknown>) => void, thisArg?: any) => void' is not assignable to type '(callbackfn: (value: string, value2: string, set: ReadonlySet<string>) => void, thisArg?: any) => void'.
+      Types of parameters 'callbackfn' and 'callbackfn' are incompatible.
+        Types of parameters 'value' and 'value' are incompatible.
+          Type 'unknown' is not assignable to type 'string'.
+control/core/count-recovery/derivability-closure.ts(4,44): error TS2307: Cannot find module '../machine.ts' or its corresponding type declarations.
+control/core/count-recovery/derivability-closure.ts(5,148): error TS2307: Cannot find module '../../kernel/kernel.ts' or its corresponding type declarations.
+control/core/count-recovery/derivability-closure.ts(6,76): error TS2307: Cannot find module '../../kernel/prove.ts' or its corresponding type declarations.
+control/core/count-recovery/derivability-closure.ts(7,23): error TS2307: Cannot find module '../../kernel/cdcl.ts' or its corresponding type declarations.
+control/core/count-recovery/derivability-closure.ts(8,25): error TS2307: Cannot find module '../solver.ts' or its corresponding type declarations.
+control/core/count-recovery/derivability-closure.ts(9,64): error TS2307: Cannot find module './ops.ts' or its corresponding type declarations.
+control/core/count-recovery/derivability-closure.ts(10,43): error TS2307: Cannot find module './field-bound-lemmas.ts' or its corresponding type declarations.
+control/core/count-recovery/derivability-closure.ts(11,35): error TS2307: Cannot find module './pre-state-source.ts' or its corresponding type declarations.
+control/core/count-recovery/derivability-closure.ts(12,27): error TS2307: Cannot find module './boolean-core.ts' or its corresponding type declarations.
+control/core/count-recovery/derivability-closure.ts(13,24): error TS2307: Cannot find module './fold-path.ts' or its corresponding type declarations.
+control/core/count-recovery/derivability-closure.ts(14,33): error TS2307: Cannot find module './live-dependencies.ts' or its corresponding type declarations.
+control/core/count-recovery/derivability-closure.ts(15,32): error TS2307: Cannot find module './lift-count-proxies.ts' or its corresponding type declarations.
+control/core/count-recovery/derivability-closure.ts(16,33): error TS2307: Cannot find module './natural-cases.ts' or its corresponding type declarations.
+control/core/count-recovery/derivability-closure.ts(18,57): error TS2307: Cannot find module './conditional-cuts.ts' or its corresponding type declarations.
+control/core/count-recovery/derivability-closure.ts(19,58): error TS2307: Cannot find module './conditional-proof.ts' or its corresponding type declarations.
+control/core/count-recovery/derivability-closure.ts(20,33): error TS2307: Cannot find module './scalar-guards.ts' or its corresponding type declarations.
+control/core/count-recovery/derivability-closure.ts(21,39): error TS2307: Cannot find module '../count-write-frames.ts' or its corresponding type declarations.
+control/core/count-recovery/derivability-closure.ts(22,30): error TS2307: Cannot find module '../count-facts.ts' or its corresponding type declarations.
+control/core/count-recovery/derivability-closure.ts(23,32): error TS2307: Cannot find module './member-inclusions.ts' or its corresponding type declarations.
+control/core/count-recovery/derivability-closure.ts(24,29): error TS2307: Cannot find module './leaf-allowance.ts' or its corresponding type declarations.
+control/core/count-recovery/derivability-closure.ts(25,66): error TS2307: Cannot find module './field-demand.ts' or its corresponding type declarations.
+control/core/count-recovery/derivability-closure.ts(39,36): error TS7006: Parameter 'r' implicitly has an 'any' type.
+control/core/count-recovery/derivability-closure.ts(42,37): error TS7006: Parameter 'q' implicitly has an 'any' type.
+control/core/count-recovery/derivability-closure.ts(44,74): error TS7006: Parameter 'r' implicitly has an 'any' type.
+control/core/count-recovery/derivability-closure.ts(44,112): error TS7006: Parameter 'r' implicitly has an 'any' type.
+control/core/count-recovery/derivability-closure.ts(44,150): error TS7006: Parameter 'q' implicitly has an 'any' type.
+control/core/count-recovery/derivability-closure.ts(56,31): error TS7006: Parameter 'c' implicitly has an 'any' type.
+control/core/count-recovery/derivability-closure.ts(126,44): error TS7006: Parameter 'r' implicitly has an 'any' type.
+control/core/count-recovery/derivability-closure.ts(126,71): error TS7006: Parameter 'r' implicitly has an 'any' type.
+control/core/count-recovery/derivability-closure.ts(127,69): error TS7031: Binding element 'id' implicitly has an 'any' type.
+control/core/count-recovery/derivability-closure.ts(128,41): error TS7031: Binding element 'id' implicitly has an 'any' type.
+control/core/count-recovery/derivability-closure.ts(128,44): error TS7031: Binding element 'map' implicitly has an 'any' type.
+control/core/count-recovery/derivability-closure.ts(129,120): error TS7031: Binding element 'id' implicitly has an 'any' type.
+control/core/count-recovery/derivability-closure.ts(131,78): error TS7006: Parameter 'p' implicitly has an 'any' type.
+control/core/count-recovery/derivability-closure.ts(145,26): error TS7031: Binding element 'z' implicitly has an 'any' type.
+control/core/count-recovery/derivability-closure.ts(145,60): error TS7031: Binding element 'z' implicitly has an 'any' type.
+control/core/count-recovery/derivability-closure.ts(151,33): error TS7006: Parameter 'q' implicitly has an 'any' type.
+control/core/count-recovery/derivability-closure.ts(151,35): error TS7006: Parameter 'index' implicitly has an 'any' type.
+control/core/count-recovery/derivability-closure.ts(151,79): error TS7006: Parameter 'a' implicitly has an 'any' type.
+control/core/count-recovery/derivability-closure.ts(151,81): error TS7006: Parameter 'b' implicitly has an 'any' type.
+control/core/count-recovery/derivability-closure.ts(153,36): error TS7006: Parameter 'index' implicitly has an 'any' type.
+control/core/count-recovery/derivability-closure.ts(155,74): error TS7006: Parameter 'r' implicitly has an 'any' type.
+control/core/count-recovery/derivability-closure.ts(161,160): error TS2339: Property 'has' does not exist on type '{}'.
+control/core/count-recovery/derivability-closure.ts(166,221): error TS7006: Parameter 'c' implicitly has an 'any' type.
+control/core/count-recovery/derivability-closure.ts(194,89): error TS18046: 'z' is of type 'unknown'.
+control/core/count-recovery/derivability-closure.ts(205,70): error TS7006: Parameter 'c' implicitly has an 'any' type.
+control/core/count-recovery/derivability-closure.ts(213,94): error TS7006: Parameter 'i' implicitly has an 'any' type.
+control/core/count-recovery/derivability-closure.ts(225,100): error TS7006: Parameter 'r' implicitly has an 'any' type.
+control/core/count-recovery/derivability-closure.ts(227,27): error TS7006: Parameter 'c' implicitly has an 'any' type.
+control/core/count-recovery/derivability-closure.ts(233,71): error TS7006: Parameter 'c' implicitly has an 'any' type.
+control/core/count-recovery/derivability-closure.ts(233,100): error TS7006: Parameter 'c' implicitly has an 'any' type.
+control/core/count-recovery/derivability-closure.ts(245,96): error TS7006: Parameter 'i' implicitly has an 'any' type.
+control/core/count-recovery/derivability-closure.ts(247,130): error TS7006: Parameter 'e' implicitly has an 'any' type.
+control/core/count-recovery/derivability-closure.ts(248,187): error TS7006: Parameter 'e' implicitly has an 'any' type.
+control/core/count-recovery/derivability-closure.ts(255,32): error TS7006: Parameter 'index' implicitly has an 'any' type.
+control/core/count-recovery/derivability-closure.ts(255,208): error TS7006: Parameter 'i' implicitly has an 'any' type.
+control/core/count-recovery/derivability-closure.ts(265,44): error TS7006: Parameter 'i' implicitly has an 'any' type.
+control/core/count-recovery/derivability-closure.ts(265,76): error TS7006: Parameter 'i' implicitly has an 'any' type.
+control/core/count-recovery/derivability-closure.ts(265,120): error TS7006: Parameter 'i' implicitly has an 'any' type.
+control/core/count-recovery/derivability-closure.ts(300,23): error TS7006: Parameter 'atom' implicitly has an 'any' type.
+control/core/count-recovery/row-cases.ts(3,60): error TS2307: Cannot find module '../machine.ts' or its corresponding type declarations.
+control/core/count-recovery/row-cases.ts(4,93): error TS2307: Cannot find module '../../kernel/kernel.ts' or its corresponding type declarations.
+control/core/count-recovery/row-cases.ts(5,41): error TS2307: Cannot find module '../../kernel/prove.ts' or its corresponding type declarations.
+control/core/count-recovery/row-cases.ts(6,25): error TS2307: Cannot find module '../solver.ts' or its corresponding type declarations.
+control/core/count-recovery/row-cases.ts(7,24): error TS2307: Cannot find module './live-dependencies.ts' or its corresponding type declarations.
+control/core/count-recovery/row-cases.ts(8,30): error TS2307: Cannot find module './ops.ts' or its corresponding type declarations.
+control/core/count-recovery/row-cases.ts(9,92): error TS2307: Cannot find module './conditional-proof.ts' or its corresponding type declarations.
+control/core/count-recovery/row-cases.ts(10,27): error TS2307: Cannot find module './rename-proof.ts' or its corresponding type declarations.
+control/core/count-recovery/row-cases.ts(15,68): error TS18046: 'c' is of type 'unknown'.
+control/core/count-recovery/row-cases.ts(17,17): error TS18046: 'write' is of type 'unknown'.
+control/core/count-recovery/row-cases.ts(18,25): error TS2339: Property 'value' does not exist on type 'Record<"each", unknown>'.
+control/core/count-recovery/row-cases.ts(36,68): error TS18046: 'c' is of type 'unknown'.
+control/core/count-recovery/row-cases.ts(38,17): error TS18046: 'write' is of type 'unknown'.
+control/core/count-recovery/row-cases.ts(39,27): error TS2339: Property 'value' does not exist on type 'Record<"each", unknown>'.
+control/core/count-recovery/row-cases.ts(57,53): error TS7006: Parameter 'r' implicitly has an 'any' type.
+core/count-recovery/row-cases.ts(171,16): error TS2722: Cannot invoke an object which is possibly 'undefined'.
+core/count-recovery/row-cases.ts(171,16): error TS18048: 'options.model' is possibly 'undefined'.
+
+--- stderr ---
+
+core/count-cases.test.ts:
+(pass) finite count recovery returns an original-kernel-checked tree and restores search scope [14.99ms]
+(pass) finite cases use checked activation and witness derivations without an opt-in [10.90ms]
+(pass) ranked bounds use the arithmetic core rather than every preceding proposal [1.21ms]
+(pass) default case recovery excludes a false bound and retains the successful slim certificate [8.63ms]
+(pass) selected cases retain newly seeded universal-flag witnesses in the final source [16.87ms]
+(pass) an arithmetic core of an unprovable bound cannot certify a false law [9.14ms]
+(pass) slimming witness instances removes complete tuples without mutating the caller [0.13ms]
+(pass) compact recovery keeps its saturated branches and local model scope checked [11.12ms]
+(pass) explicit pre-transport deferral still requires the final kernel check [4.35ms]
+(pass) finite count recovery does not turn a satisfiable goal into a proof [4.37ms]
+
+core/count-recovery/derivability-closure.test.ts:
+(pass) closure checks a derived union [25.63ms]
+(pass) closure does not assume a false union [3.81ms]
+(pass) internal closure keeps independent cuts in the final checked certificate [14.87ms]
+(pass) separately useful inclusions accumulate when a partial violated set remains SAT [10.91ms]
+(pass) an empty numeric core closes a contradictory path with a kernel-checked proof [1.64ms]
+(pass) expired closure leaves no proof and never extends its deadline [0.10ms]
+
+core/count-recovery/row-demand.test.ts:
+(pass) model-directed row search proves the unsplit root once [0.41ms]
+(pass) a model selects its equal row before other unresolved rows and skips unknown cells [0.15ms]
+(pass) both orderings of a demanded disequality are covered and checked [0.39ms]
+(pass) no model means no speculative row enumeration; invalid leaves are never accepted [0.14ms]
+(pass) write-free detection follows count bodies, bounds, scalar writes, and inactive map branches [0.16ms]
+
+core/count-recovery/row-cases.test.ts:
+(pass) active writes select the destination row rather than the copied source [0.25ms]
+(pass) Boolean-valued row writes ignore dead arms and membership lookup keys [0.13ms]
+(pass) active constant-index writes split against that index, not an unrelated input [0.13ms]
+(pass) field-only conclusions discover row cases without a post-count read [0.15ms]
+(pass) row cases cover both directions of disequality and reuse only checked trees [0.56ms]
+(pass) row copies can split the secondary key in the primary-equal branch too [0.67ms]
+(pass) mirrored row cases emit full subtrees without rerunning their callback [2.14ms]
+(pass) row cases never accept an unchecked leaf [0.07ms]
+(pass) deferred row proposals still require the composing kernel check [0.18ms]
+
+ 30 pass
+ 0 fail
+ 96 expect() calls
+Ran 30 tests across 4 files. [169.00ms]
+$ tsc -p . && oxlint --type-aware --deny-warnings --disable-nested-config

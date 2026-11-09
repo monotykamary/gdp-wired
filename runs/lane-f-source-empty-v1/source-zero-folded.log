@@ -1,0 +1,2 @@
+{"mode":"source-zero-folded","index":176,"inst":{"wit":"frame$30","below":{"op":"var","name":"size"},"terms":[[1,"r$0"]],"unit":0},"hyps":81,"checked":false,"admissible":false,"searchUnits":99.71867599999997,"searchWallMs":105.72471800000005,"units":99.71867599999997,"wallMs":105.75005599999997}
+{"artifact":"track-m-tar-v1","dir":"/home/user/track-m-s18-receipts-kIRTrO","format":"tar.gz","parts":1,"bytes":3080,"sha256":"9ea5715bbe2ee4230f668685e0b1ef9c4cb738ebfdcf7a050be95a61db3790d5"}
