@@ -6,7 +6,7 @@ Read COMMON.md, MLDR-DESIGN.md Sections 14–16 (including the answered 16.3 aud
 
 ## Current status
 
-All A/B/E/Fable-wall/F tips through A `c21a6e54`, B `5c2d3b70`, E `3f3a523c`, wall `c775d8c1`, F `36210941` are integrated. Latest production validation snapshot is **`b2c6aa20308b3c18f607210cbf652c9ae56550c7`** (v5); the subsequent B merge is reports only. Both v5 batches are running; all four changed-test jobs have returned exit 0, with check, strict MLDR and census receipts still pending. The completed v4 snapshot had clean check, 585 tests and 87 successful generation pairs (84 non-MLDR pairs identical), but MLDR was unknown 3/3. V4's key cache was subsequently reverted by its lane, and F added independently checked empty-count reconstruction, so v4 results are not asserted for v5. No Lane D final gate or 29/29 proof exists. Historical commitlint failures remain disclosed below; no history was rewritten.
+All A/B/E/Fable-wall/F tips through A `c21a6e54`, B `5c2d3b70`, E `3f3a523c`, wall `c21f301c`, F `36210941` are integrated. V5 (`b2c6aa20308b3c18f607210cbf652c9ae56550c7`) passes full check and **599 tests / 19,620 assertions**; MLDR remains unknown 3/3 and the census is still running. Newly pushed count-range instances and the latest finite-state revisit change require a fresh v6 run; these are not covered by v5. See the dated ledgers below. No Lane D final gate or 29/29 proof exists. Historical commitlint failures remain disclosed; no history was rewritten.
 
 ## Plan and falsifiable hypothesis
 
@@ -140,6 +140,12 @@ V4 is complete: **87/87 generation pairs pass, 84/84 non-MLDR pairs are byte-ide
 While those jobs ran, all lanes pushed again. Integrated A `c21a6e54` (paired side exit propagation + regression test), B `539bde1b` (original-family audits), E `3f3a523c` (withdrawn exact-suite interpretation), F `36210941` (independent empty-count reconstruction), and wall `c775d8c1` (explicitly reverted per-step key cache). Only report conflicts occurred. The wall revert is preserved; integer stamp overflow and the test VM repair remain. F's syntactic emptiness hint drops premises and selects reconstruction; it does **not** admit a fact, bypass the checker, or raise the enclosing budget. Fresh explicit tests for both new files are added to Lane I validation.
 
 These are new production changes, so completed v4 results are historical rather than final evidence for them. A complete v5 repeat is required and is being submitted next.
+
+## V5 validation and latest range integration
+
+V5 full check is clean (zero warnings/errors), and 599 tests / 19,620 assertions pass. Original MLDR verdicts: unknown at 59.006 / 59.010 / 59.049 s; candidate count 34; pre-attempt walls 13.897 / 12.809 / 11.256 s. CPUs are EPYC 4585PX / Ryzen 9950X / EPYC 4585PX. Inv* pass 1 takes 3,071 units, unknown all three; Inv2973-half 3,055 units, unknown all three. Inv1758 is not reached in r1, wall-cut at 0 units in r2, unknown at 2,997 in r3. Sixteen helpers are kept at deterministic units `[88,301,318,316,97,198,64,148,271,70,259,180,64,225,305,240]`; r3 additionally keeps one count-cube helper at 2,170 units. Its trace name is truncated, so no exact helper identity is inferred. Safety is never tried. The v5 census continues independently.
+
+Wall `c21f301c` arrived during validation. Its range constructor is wired into counted passes through parent `d24a4196`; inspecting only the tip's two new files would have missed this. Resolved `core/counts.ts` by keeping B's completion retry and E's preferred member-inclusion selection, adding ordinary kernel-checked range instances at all three certificate construction sites, and retaining the existing shared `attemptEnd`. Resolved `core/finite-houdini.ts` by using the updated dropped-set revisit filter, preserving preconditions, certified drops, changed-read/no-op filtering and outer cancellation; removed only the duplicate relocated `lawReads`. F's independent-empty-source reconstruction stays intact. Removed the new range test's unused `Machine` import and added it to the validation jobs. No checker or Lean source changed. V6 is a new full validation/census snapshot, not a promotion of prior receipts.
 
 ## For lane D
 
