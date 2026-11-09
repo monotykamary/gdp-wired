@@ -410,6 +410,7 @@ function businessCompare(e: X & {k: 'bin'}, flip: Record<string, string>, c: Ctx
   if (!c.cal) throw new LawError(`${n.text}: business days need a calendar ([calendar] in gdp.toml: weekend = ["sat", "sun"], holidays = ["2026-12-25", ...], utc_offset = "-05:00")`)
   c.roles.add('bdays')
   const later = go(diff.a), earlier = go(diff.b)
+  if (c.strictOptional && [later, earlier].some(v => v.t === 'opt')) throw new LawError('arithmetic on an optional standalone value is not supported')
   if (dry) return yes
   const cal = c.cal, at = (x: X, v: V) => {
     const t = num(v), p = c.pins
@@ -427,7 +428,8 @@ function businessCompare(e: X & {k: 'bin'}, flip: Record<string, string>, c: Ctx
 // (a path's last name: a choice's value written as one, Outcome.SLOW_ERROR)
 const lastName = (x: X & {k: 'path'}): string | undefined => (x.segs.length ? (x.segs.at(-1) as {f?: string}).f : x.head)
 const constOf = (x: X): number | undefined => (x.k === 'num' ? x.v : x.k === 'un' && x.op === '-' && x.x.k === 'num' ? -x.x.v : undefined)
-function compare(op: string, a: V, b: V, e: X & {k: 'bin'}, strictOptional = false): Cond {
+// Require the caller to choose source semantics, including on recursive unwrapping.
+function compare(op: string, a: V, b: V, e: X & {k: 'bin'}, strictOptional: Ctx['strictOptional']): Cond {
   if (b.t === 'null' || a.t === 'null') {
     const literal = a.t === 'null' ? a : b as V & {t: 'null'}
     const o = a.t === 'null' ? b : a, none = o.t === 'opt' ? o.none : o.t === 'cell' ? not(o.rec.has as Cond) : undefined
@@ -442,10 +444,10 @@ function compare(op: string, a: V, b: V, e: X & {k: 'bin'}, strictOptional = fal
     const present = all(a.t === 'opt' ? not(a.none) : yes, b.t === 'opt' ? not(b.none) : yes)
     if (op === '==' || op === '!=') {
       const absent = a.t === 'opt' && b.t === 'opt' && (!a.absence || !b.absence || a.absence === b.absence) ? all(a.none, b.none) : no
-      const equal = any(absent, av && bv ? all(present, compare('==', av, bv, e)) : no)
+      const equal = any(absent, av && bv ? all(present, compare('==', av, bv, e, strictOptional)) : no)
       return op === '==' ? equal : not(equal)
     }
-    return av && bv ? all(present, compare(op, av, bv, e)) : no
+    return av && bv ? all(present, compare(op, av, bv, e, strictOptional)) : no
   }
   const un = (v: V): V => (v.t === 'opt' && v.v ? v.v : v)
   a = un(a); b = un(b)
