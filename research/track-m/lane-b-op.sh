@@ -5,6 +5,7 @@ bash research/track-m/prepare-vendors.sh
 bun install --frozen-lockfile >/dev/null
 LAB_DISPOSABLE=1 bun research/track-m/lane-b-variant.ts "$variant"
 if [[ -n "${LEAF_VARIANT:-}" ]]; then LAB_DISPOSABLE=1 bun research/track-m/section15-leaf-variant.ts "$LEAF_VARIANT"; fi
+if [[ -n "${DERIVE_VARIANT:-}" ]]; then LAB_DISPOSABLE=1 bun research/track-m/section15-derive-variant.ts "$DERIVE_VARIANT"; fi
 LAB_DISPOSABLE=1 bun research/track-m/install-lane-b-op.ts
 out=$(mktemp -d "$HOME/track-m-lane-b-op-$law-$op-$variant-XXXXXX")
 trap 'bash research/track-m/pack-section18-archive.sh "$out"' EXIT

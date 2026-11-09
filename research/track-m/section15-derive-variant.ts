@@ -6,7 +6,7 @@ const mode=process.argv[2];if(!['before','after'].includes(mode!))throw Error('b
 if(mode==='after'){
  const path='core/count-recovery/derivability-closure.ts',before=readFileSync(path,'utf8');let s=before
  const replace=(a:string,b:string)=>{if(s.split(a).length!==2)throw Error('derive anchor changed: '+a);s=s.replace(a,b)}
- s="import {deriveClassOrder,sameCountBody} from '../../research/track-m/section15-derive-order.ts'\nimport {observeFieldLeaf} from './field-demand.ts'\n"+s
+ s="import {deriveClassOrder,frameClassifier} from '../../research/track-m/section15-derive-order.ts'\nimport {observeFieldLeaf} from './field-demand.ts'\n"+s
  replace('q.unit!==0&&arity===1?-2:','q.unit!==0&&arity===1?8:')
  replace(' const attempt=(index:number,scope:Path,end:number)', ' let deriveClassPhase=false\n const attempt=(index:number,scope:Path,end:number)')
  replace('  const reused=models.some(', "  if(deriveClassPhase)trace.push({stage:'derive-class-source',index,scope:[...path],hyps:part.hyps})\n  const reused=models.some(")
@@ -26,7 +26,8 @@ if(mode==='after'){
  replace(oldTry,`  try{
    const classVersion=saved.length,bodies=new Map<string,ReturnType<typeof countsForReads>>()
    const body=(id:string)=>{let c=bodies.get(id);if(!bodies.has(id)){const read=cert.reads.find(r=>r[0]===id);c=read?countsForReads(ds,[read]):undefined;bodies.set(id,c)}return c?.[0]}
-   const classes=deriveClassOrder(pool.map(index=>{const q=cert.insts[index]!,v=vector(q),reverse={...q,terms:q.terms.map(([z,id])=>[-z,id] as [number,string])};return {index,zero:q.unit!==0&&q.terms.length===1,frame:frame(index)&&sameCountBody(body(q.terms[0]![1]),body(q.terms[1]![1]),scope),monotone:bridges.has(v),member:memberHints.has(v),alias:inclusion(q)&&inclusion(reverse),partition:!conditional(index)&&q.terms.length===3}}))
+   const sameFrame=frameClassifier(scope)
+   const classes=deriveClassOrder(pool.map(index=>{const q=cert.insts[index]!,v=vector(q),reverse={...q,terms:q.terms.map(([z,id])=>[-z,id] as [number,string])};return {index,zero:q.unit!==0&&q.terms.length===1,frame:frame(index)&&sameFrame(body(q.terms[0]![1]),body(q.terms[1]![1])),monotone:bridges.has(v),member:memberHints.has(v),alias:inclusion(q)&&inclusion(reverse),partition:!conditional(index)&&q.terms.length===3}}))
    deriveClassPhase=true
    try{for(const index of classes){
     if(!building())break

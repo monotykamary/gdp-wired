@@ -1,5 +1,5 @@
 import {expect,test} from 'bun:test'
-import {deriveClassOrder,sameCountBody,type DeriveClass} from './section15-derive-order.ts'
+import {deriveClassOrder,sameCountBody,frameClassifier,type DeriveClass} from './section15-derive-order.ts'
 import {type Count,type Path,canon} from '../../kernel/kernel.ts'
 const item=(index:number,part:Partial<DeriveClass>={}):DeriveClass=>({index,frame:false,monotone:false,member:false,alias:false,partition:false,zero:false,...part})
 test('derive classes precede partitions, omit zero claims, and preserve class order',()=>{
@@ -15,4 +15,6 @@ test('frame classification resolves only path-decided value branches',()=>{
  const p:Path=new Map([[canon({op:1}),{lin:{op:1},holds:false}]])
  expect(sameCountBody(a,b,p)).toBe(true);expect(sameCountBody(a,b,new Map())).toBe(false)
  expect(sameCountBody(a,{...a,below:{op:'const',value:4}},p)).toBe(false)
+ const classify=frameClassifier(p);expect(classify(a,b)).toBe(true)
+ p.clear();expect(classify(a,b)).toBe(true);expect(frameClassifier(p)(a,b)).toBe(false)
 })

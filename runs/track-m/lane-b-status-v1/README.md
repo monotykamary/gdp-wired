@@ -145,12 +145,31 @@ The unmodified-policy 16.5 fast-loop calibration (`00d1e747bee8`) returned:
 | Safety | 4,311.113 | 4,042.219 | yes |
 | p1 | 2,459.750 | 4,723.752 | yes |
 
-**Measurement-version caveat:** v2 recorded counted units before the final check, although its total wall includes that check. These historical numbers are therefore explicitly search units, not a fully accounted helper-unit pass. Future v3 records separate search/check units and their total; the independent auditor also reports replay-check work. Neither a fast-loop success nor its boolean `withinDiagnosticLine` is the required original-harness ×3 evidence. The calibration's independent certificate audit is pending.
+**Measurement-version caveat:** v2 recorded counted units before the final check, although its total wall includes that check. These historical numbers are therefore explicitly search units, not a fully accounted helper-unit pass. Future v3 records separate search/check units and their total; the independent auditor also reports replay-check work. Neither a fast-loop success nor its boolean `withinDiagnosticLine` is the required original-harness ×3 evidence. The calibration's independent certificate audit now confirms both p1 and safety (`lane-b-calibration-audit-v1/certificates.log`); the other three remain unresolved. Both obligations were checked for each positive certificate. This upgrades certificate validity, not the search-only unit accounting or whole-family acceptance.
 
 With full 15.4 enabled in both 15.5 arms (`9f3d96925fd7`), p1 was checked in both at the same 2,459.750 search units; all other targets stayed unresolved. Safety no longer closed in these arms. This is not an improvement and does not isolate an effect of class ordering. **Coverage correction:** `countsDump` projects phase events, not the helper's local `stage` events; absence of `derive-class-attempt` in this projection cannot establish zero class attempts.
 
 The standalone profiler (`1c10c1400c3a`) recorded final `checkMC` time of 228.195 ms for p1 and 840.068 ms for safety, with two calls each. Its conditional-check counters remained zero. The original-harness profile ended unknown at 59,004 ms and recorded no instrumented checker calls; without a validated coverage check this is not a saving estimate. Its archive fetch failed; the job stdout and placement are retained, but that archive is **not checksum-verified locally**.
 
 Validation exposed and corrected three research-only issues: unused `events`, an implicit seed-array type, and a profiler throw in `finally` that could mask a checker exception. Corrected validation is being rerun, not counted as passed. The first direct-seed run hit its 20-second outer watchdog before producing a search record; a phase-logged retry isolated repeated full-root seed expansion as the blocker (seed 204/206). The next retry retains each checked original slice under byte-identical root lineage instead of expanding it, and keeps the helper's 6,000-unit/7-second allowance unchanged. These remain legacy diagnostics, never E-14 pass evidence.
+
+## Complete-cost repeat, validation, and ownership update
+
+`lane-b-final-cost-v1` (tree `060ae1061036`, EPYC 4585PX, eight pinned vCPUs per exclusive VM) now records the whole helper wall and reads the work meter after final checking:
+
+| Target | Search units | Additional counted check units | Total wall ms | Final-check wall ms | Worker checked |
+|---|---:|---:|---:|---:|---|
+| p1 | 2,459.750 | 0 | 4,251.850 | 447.123 | yes |
+| Safety | 4,311.113 | 0 | 3,402.988 | 728.053 | yes |
+
+The zero is **a property of the current work meter**, not free checking: its wall cost is explicit. Archives are locally checksum-verified; checker-only replay of these exact new receipts is pending. Both meet the standalone numerical line. Neither supplies original-harness ×3 evidence or accepts the other generated helpers.
+
+The legacy direct-leaf run (`lane-b-seeded-leaf-v3`) produced no proof: op 0 baseline unknown at 992.332 units / 7,212.619 ms; op 4 baseline unknown at 996.961 / 7,001.256 ms; op 4 class-first unknown at 1,246.483 / 7,131.750 ms, with **52 recorded class attempts** across its scopes. Op 0 class-first raised `WallExpired` during frame classification before emitting a final search record. The supplied 31-seed array was reused by the search in this version: its later `seedCount` includes derived additions and is not an imported-seed count. Future runs copy it first. Setup took another 4–6.6 seconds outside the recorded helper clock. No real-family inference is made from these legacy fixtures.
+
+Follow-up class work caches each canonical count body once within a **snapshotted branch ranking pass**, never across changed branch assumptions; the attempt cap and proof checks remain. Its two changed diagnostics are queued, with `WallExpired` retained as an explicit unresolved outcome.
+
+Validation tree `d2745c25feee`: default typecheck/lint and **31 tests / 310 assertions**, then **5 tests / 19 assertions**, passed. The full leaf+class variant passed typecheck/lint and **52 tests / 541 assertions**. These counts are per configuration, not disjoint tests. The profile validation passed typecheck/lint but timed out after an incorrectly ordered Bun command launched the package test script rather than the intended filtered tests. Only that invocation is being retried with `bun test --preload ...`.
+
+**Ownership:** the coordinator moved 15.6 to Lane F on `claude/mldr-leaves`. Prototype handoff: commit `b6fa0a50`, `research/track-m/LANE-F-HANDOFF.md`. One row-policy check was already in flight; no row measurement batch was submitted. Lane B removed row-policy hooks from its runners and keeps 15.4, 15.5 and 16.5. No further 15.6 development is planned here; F's commits will be pulled as they land.
 
 **No accepted complete family, 29/29 result, 28/29 recertification, or GATE GREEN is claimed.**

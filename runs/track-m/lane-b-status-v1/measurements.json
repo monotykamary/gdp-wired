@@ -9,7 +9,8 @@
     "realFamily": "623591ddda81",
     "section16": "00d1e747bee8",
     "derive": "9f3d96925fd7",
-    "checkProfile": "1c10c1400c3a"
+    "checkProfile": "1c10c1400c3a",
+    "finalCost": "060ae1061036"
   },
   "share": [
     {
@@ -2694,6 +2695,134 @@
       }
     }
   ],
+  "finalCost": [
+    {
+      "name": "p1",
+      "conditional": true,
+      "standalone": true,
+      "measurementVersion": 3,
+      "diagnostic": "section16.5",
+      "generatorOnly": true,
+      "familySource": "actual generator output; no supplied laws",
+      "suppliedLaws": [],
+      "tag": "p1",
+      "law": "count cubes: every x with x < {\"op\":\"var\",\"name\":\"size\"}: never CV[x] is 0 and 1 <= inX$row[x]",
+      "familySize": 35,
+      "budget": 6000,
+      "wallAllowance": 7000,
+      "units": 2459.7500499999996,
+      "searchUnits": 2459.7500499999996,
+      "checkUnits": 0,
+      "searchWallMs": 3804.726331,
+      "checkWallMs": 447.1229500000004,
+      "wallMs": 4251.849712,
+      "checked": true,
+      "withinDiagnosticLine": true,
+      "cache": {
+        "leafChecks": 0,
+        "leafHits": 0,
+        "leafFallbacks": 0,
+        "fullHyps": 0,
+        "sliceHyps": 0,
+        "independentChecks": 0,
+        "independentHits": 0,
+        "retargetChecks": 0,
+        "retargetHits": 0
+      },
+      "checkProfile": {},
+      "results": [
+        {
+          "pass": 0,
+          "outcome": "sat",
+          "units": 116.723172,
+          "wallMs": 378.11442400000004
+        },
+        {
+          "pass": 1,
+          "outcome": "proof",
+          "units": 2343.026878,
+          "wallMs": 3423.534892
+        }
+      ],
+      "last": {
+        "phase": "decision:refuted",
+        "pass": 1,
+        "goal": "count cubes: every x with x < {\"op\":\"var\",\"name\":\"size\"}: never CV[x] is 0 and 1 <= inX$row[x] @step",
+        "law": "count cubes: every x with x < {\"op\":\"var\",\"name\":\"size\"}: never CV[x] is 0 and 1 <= inX$row[x]",
+        "hyps": 173
+      },
+      "completionTuples": 30,
+      "placement": {
+        "vm": "bx_7y8uwqen",
+        "type": "large",
+        "cpu": "AMD EPYC 4585PX 16-Core Processor",
+        "vcpus": 8,
+        "vm_vcpus": 8,
+        "exclusive": true,
+        "co_tenants": 0
+      }
+    },
+    {
+      "name": "safety",
+      "conditional": true,
+      "standalone": true,
+      "measurementVersion": 3,
+      "diagnostic": "section16.5",
+      "generatorOnly": true,
+      "familySource": "actual generator output; no supplied laws",
+      "suppliedLaws": [],
+      "tag": "safety",
+      "law": "one primary per term",
+      "familySize": 35,
+      "budget": 6000,
+      "wallAllowance": 7000,
+      "units": 4311.1134436,
+      "searchUnits": 4311.1134436,
+      "checkUnits": 0,
+      "searchWallMs": 2674.9344739999997,
+      "checkWallMs": 728.0533689999997,
+      "wallMs": 3402.9877619999997,
+      "checked": true,
+      "withinDiagnosticLine": true,
+      "cache": {
+        "leafChecks": 0,
+        "leafHits": 0,
+        "leafFallbacks": 0,
+        "fullHyps": 0,
+        "sliceHyps": 0,
+        "independentChecks": 0,
+        "independentHits": 0,
+        "retargetChecks": 0,
+        "retargetHits": 0
+      },
+      "checkProfile": {},
+      "results": [
+        {
+          "pass": 0,
+          "outcome": "proof",
+          "units": 4311.1134436,
+          "wallMs": 2672.384131
+        }
+      ],
+      "last": {
+        "phase": "model",
+        "pass": 0,
+        "goal": "one primary per term @step",
+        "law": "one primary per term",
+        "hyps": 150
+      },
+      "completionTuples": 0,
+      "placement": {
+        "vm": "bx_bucc8x77",
+        "type": "large",
+        "cpu": "AMD EPYC 4585PX 16-Core Processor",
+        "vcpus": 8,
+        "vm_vcpus": 8,
+        "exclusive": true,
+        "co_tenants": 0
+      }
+    }
+  ],
   "audit": {
     "cost": [
       {
@@ -3375,7 +3504,123 @@
         "notAPolicyReplay": true
       }
     ],
-    "section16Pending": true
+    "finalCostPending": true,
+    "section16": [
+      {
+        "conditional": true,
+        "tag": "overlap",
+        "law": "inX: stored guard reconfigs/inS or disabled/0",
+        "checked": false,
+        "units": 5159.553112,
+        "wallMs": 7007.252927,
+        "unitsAboveRequested": 0,
+        "results": [
+          {
+            "pass": 0,
+            "outcome": "sat",
+            "units": 141.58539000000002,
+            "wallMs": 278.960279
+          },
+          {
+            "pass": 1,
+            "outcome": "unknown",
+            "units": 5017.967722,
+            "wallMs": 6724.889335
+          }
+        ],
+        "completionTuples": 48
+      },
+      {
+        "conditional": true,
+        "tag": "p1",
+        "law": "count cubes: every x with x < {\"op\":\"var\",\"name\":\"size\"}: never CV[x] is 0 and 1 <= inX$row[x]",
+        "checked": true,
+        "units": 2459.7500499999996,
+        "wallMs": 4723.751666,
+        "unitsAboveRequested": 0,
+        "results": [
+          {
+            "pass": 0,
+            "outcome": "sat",
+            "units": 116.723172,
+            "wallMs": 406.964828
+          },
+          {
+            "pass": 1,
+            "outcome": "proof",
+            "units": 2343.026878,
+            "wallMs": 3484.177748
+          }
+        ],
+        "completionTuples": 30
+      },
+      {
+        "conditional": true,
+        "tag": "rows",
+        "law": "fields: CV[a]=CV[b] and CfgT[a]=CfgT[b] -> Config rows agree",
+        "checked": false,
+        "units": 5972.174190400001,
+        "wallMs": 7000.9617100000005,
+        "unitsAboveRequested": 0,
+        "results": [
+          {
+            "pass": 0,
+            "outcome": "sat",
+            "units": 5751.002704399999,
+            "wallMs": 6702.165962
+          },
+          {
+            "pass": 1,
+            "outcome": "unknown",
+            "units": 221.17148600000144,
+            "wallMs": 296.59251499999937
+          }
+        ],
+        "completionTuples": 0
+      },
+      {
+        "conditional": true,
+        "tag": "safety",
+        "law": "one primary per term",
+        "checked": true,
+        "units": 4311.1134436,
+        "wallMs": 4042.2194210000002,
+        "unitsAboveRequested": 0,
+        "results": [
+          {
+            "pass": 0,
+            "outcome": "proof",
+            "units": 4311.1134436,
+            "wallMs": 3331.0125519999997
+          }
+        ],
+        "completionTuples": 0
+      },
+      {
+        "conditional": true,
+        "tag": "star",
+        "law": "inX: no quorum canVote/3",
+        "checked": false,
+        "units": 4505.987501999999,
+        "wallMs": 7009.147043,
+        "unitsAboveRequested": 0,
+        "results": [
+          {
+            "pass": 0,
+            "outcome": "sat",
+            "units": 97.810094,
+            "wallMs": 240.32869699999998
+          },
+          {
+            "pass": 1,
+            "outcome": "unknown",
+            "units": 4408.177408,
+            "wallMs": 6765.295198000001
+          }
+        ],
+        "completionTuples": 48
+      }
+    ]
   },
   "generation": {
     "phase": "family",
