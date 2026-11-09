@@ -1,0 +1,5 @@
+[
+ {"name":"receipt-parser-and-check","cmd":"set -e; bash research/track-m/prepare-vendors.sh; bun install --frozen-lockfile >/dev/null; bun run check; bun test research/mldr-incl/shard-receipt.test.ts research/mldr-incl/gate-evidence.test.ts research/mldr-incl/fixtures.test.ts core/count-recovery/member-inclusions.test.ts; bun research/mldr-incl/recover-shard.ts evidence-input/shard7.log","cpu":8,"memory":14336,"timeout":300},
+ {"name":"pointwise-guarded-certificate","cmd":"set -e; bash research/track-m/prepare-vendors.sh; bun install --frozen-lockfile >/dev/null; bash research/mldr-incl/export-pointwise.sh guarded-domain","cpu":8,"memory":14336,"timeout":90},
+ {"name":"pointwise-tight-certificate","cmd":"set -e; bash research/track-m/prepare-vendors.sh; bun install --frozen-lockfile >/dev/null; bash research/mldr-incl/export-pointwise.sh tight-domain","cpu":8,"memory":14336,"timeout":90}
+]

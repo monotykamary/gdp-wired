@@ -1,0 +1,4 @@
+[
+ {"name":"pointwise-guarded-certificate","cmd":"set -e; bash research/track-m/prepare-vendors.sh; bun install --frozen-lockfile >/dev/null; bash research/mldr-incl/export-pointwise.sh guarded-domain","cpu":8,"memory":14336,"timeout":90},
+ {"name":"pointwise-tight-certificate","cmd":"set -e; bash research/track-m/prepare-vendors.sh; bun install --frozen-lockfile >/dev/null; bash research/mldr-incl/export-pointwise.sh tight-domain","cpu":8,"memory":14336,"timeout":90}
+]
