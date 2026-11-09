@@ -3504,7 +3504,56 @@
         "notAPolicyReplay": true
       }
     ],
-    "finalCostPending": true,
+    "finalCost": [
+      {
+        "conditional": true,
+        "tag": "p1",
+        "law": "count cubes: every x with x < {\"op\":\"var\",\"name\":\"size\"}: never CV[x] is 0 and 1 <= inX$row[x]",
+        "checked": true,
+        "units": 2459.7500499999996,
+        "searchUnits": 2459.7500499999996,
+        "replayCheckUnits": 0,
+        "unitsWithReplayCheck": 2459.7500499999996,
+        "wallMs": 4251.849712,
+        "unitsAboveRequested": 0,
+        "results": [
+          {
+            "pass": 0,
+            "outcome": "sat",
+            "units": 116.723172,
+            "wallMs": 378.11442400000004
+          },
+          {
+            "pass": 1,
+            "outcome": "proof",
+            "units": 2343.026878,
+            "wallMs": 3423.534892
+          }
+        ],
+        "completionTuples": 30
+      },
+      {
+        "conditional": true,
+        "tag": "safety",
+        "law": "one primary per term",
+        "checked": true,
+        "units": 4311.1134436,
+        "searchUnits": 4311.1134436,
+        "replayCheckUnits": 0,
+        "unitsWithReplayCheck": 4311.1134436,
+        "wallMs": 3402.9877619999997,
+        "unitsAboveRequested": 0,
+        "results": [
+          {
+            "pass": 0,
+            "outcome": "proof",
+            "units": 4311.1134436,
+            "wallMs": 2672.384131
+          }
+        ],
+        "completionTuples": 0
+      }
+    ],
     "section16": [
       {
         "conditional": true,

@@ -162,7 +162,7 @@ Validation exposed and corrected three research-only issues: unused `events`, an
 | p1 | 2,459.750 | 0 | 4,251.850 | 447.123 | yes |
 | Safety | 4,311.113 | 0 | 3,402.988 | 728.053 | yes |
 
-The zero is **a property of the current work meter**, not free checking: its wall cost is explicit. Archives are locally checksum-verified; checker-only replay of these exact new receipts is pending. Both meet the standalone numerical line. Neither supplies original-harness ×3 evidence or accepts the other generated helpers.
+The zero is **a property of the current work meter**, not free checking: its wall cost is explicit. Archives are locally checksum-verified; checker-only replay of these exact new receipts passed for both targets (`lane-b-final-cost-audit-v1/certificates.log`, audit tree `677692b7a171`, exclusive Ryzen 9 9950X VM with four pinned vCPUs). Replay also records zero added counted units; final-check wall remains nonzero as shown. Both meet the standalone numerical line. Neither supplies original-harness ×3 evidence or accepts the other generated helpers.
 
 The legacy direct-leaf run (`lane-b-seeded-leaf-v3`) produced no proof: op 0 baseline unknown at 992.332 units / 7,212.619 ms; op 4 baseline unknown at 996.961 / 7,001.256 ms; op 4 class-first unknown at 1,246.483 / 7,131.750 ms, with **52 recorded class attempts** across its scopes. Op 0 class-first raised `WallExpired` during frame classification before emitting a final search record. The supplied 31-seed array was reused by the search in this version: its later `seedCount` includes derived additions and is not an imported-seed count. Future runs copy it first. Setup took another 4–6.6 seconds outside the recorded helper clock. No real-family inference is made from these legacy fixtures.
 
