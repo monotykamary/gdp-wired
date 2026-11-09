@@ -18,7 +18,7 @@ function fixture(run:(dir:string,good:string,bad:string)=>void){
 test('the quick roster explicitly includes the range and member-premise test modules',()=>{
  const r=spawnSync(process.execPath,[runner,'--list'],{cwd:root,encoding:'utf8',timeout:15000})
  expect(r.status).toBe(0)
- for(const path of ['core/count-ranges.test.ts','core/count-write-frames.test.ts','core/count-recovery/member-premises.test.ts','research/lane-i/test-load-propagation.test.ts','research/lane-i/validation-audit.test.ts','research/lane-i/upper-bound/summarize.test.ts','research/mldr-incl/pack-production.test.ts','research/track-m/link-lane-b-focus-audits.test.ts','core/count-recovery/row-premises.test.ts','core/finite-tiny-target.test.ts','research/mldr-incl/range-regression-input.test.ts','research/mldr-incl/install-member-source-rank.test.ts'])expect(r.stdout).toContain(path)
+ for(const path of ['core/count-ranges.test.ts','core/count-write-frames.test.ts','core/count-recovery/member-premises.test.ts','research/lane-i/test-load-propagation.test.ts','research/lane-i/validation-audit.test.ts','research/lane-i/upper-bound/summarize.test.ts','research/lane-i/upper-bound/audit.test.ts','research/lane-i/regressions/receipt-audit.test.ts','research/mldr-incl/pack-production.test.ts','research/track-m/link-lane-b-focus-audits.test.ts','core/count-recovery/row-premises.test.ts','core/finite-tiny-target.test.ts','research/mldr-incl/range-regression-input.test.ts','research/mldr-incl/install-member-source-rank.test.ts'])expect(r.stdout).toContain(path)
 })
 test('one passing file cannot mask an unexported import in a second test file',()=>fixture((_dir,good,bad)=>{
  const r=spawnSync(process.execPath,['test',good,bad],{encoding:'utf8',timeout:15000})

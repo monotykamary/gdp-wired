@@ -1,0 +1,9 @@
+[
+  {
+    "name": "audit-test-roster",
+    "cmd": "set -euo pipefail; bash research/lane-i/validate.sh setup; bun test research/lane-i/test-load-propagation.test.ts",
+    "cpu": 2,
+    "memory": 8192,
+    "timeout": 180
+  }
+]
