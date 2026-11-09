@@ -19,8 +19,13 @@ new tree archive): task `da84933a-c5b8-4201-984f-ae4940c2b139`, output
 `runs/mldr-incl-resume-preflight-fixed-v1/`, source label
 `8e7e863060d3b27582f605ce51411035997ea5dd`. Both old/new hashes are checked
 before any source check. All proof commands remain behind `bun run check`.
-The older five-job typefix batch is left to finish unchanged; its first
-collected row is the same lint failure, not a proof verdict.
+The older five-job typefix batch has now completed unchanged: all five
+exited 1 from `script "check"`, confirming no original or conditional proof
+command ran. Its summary and CPU labels are retained in
+`runs/mldr-incl-resume-typefix-proof-v1/`; the identical lint diagnostic is
+already preserved with the focused check. No retry of that superseded
+source was started. The corrected batch is registered as
+`20261110-012704-cgh7wh`, tree `bff29a99a14c`, and remains in progress.
 
 
 ## First executed rerun: source check blocked; no proof query executed
