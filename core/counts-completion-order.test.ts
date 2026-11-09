@@ -5,7 +5,7 @@ import {clock,counted,fullRate,withDeadline,withWall} from '../kernel/prove.ts'
 import {checkMC,countedObligations} from '../kernel/kernel.ts'
 
 test('count targets complete existing premises once before the first model query; fields stay lazy',()=>{
- const m:Machine={name:'completion order',params:[],inputs:[],state:{},maps:{Cells:0},counts:{Total:{j:'row',key:'member',below:n(2),body:get('Cells',x('member'))}},step:{}}
+ const m:Machine={name:'completion order',params:[],inputs:[],state:{},maps:{Cells:0},counts:{Total:{j:'countRow',key:'member',below:n(2),body:get('Cells',x('member'))}},step:{}}
  const countLaw:Law={name:'bounded total',forall:'row',holds:{op:'<=',a:get('Total',x('row')),b:n(1)}}
  const fieldLaw:Law={name:'bounded field',forall:'row',holds:{op:'<=',a:get('Cells',x('row')),b:n(1)}}
  const prior=countsDump.on
