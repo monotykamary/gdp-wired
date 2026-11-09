@@ -1,5 +1,12 @@
 # Lane B running checkpoint (not a merge gate)
 
+## Resumed 2026-11-10
+
+The three cancelled audit jobs completed on source `30537f70`: all five remaining outcomes replayed, checkpoint typecheck/lint passed, and the nine-archive projection completed. The summary-only artifact is SHA-256 verified and all 13 records reconcile with the two audit sets (**five checked conditional p1 certificates, eight unknowns**). Evidence: `../lane-b-range-final-audit-resume-v1/{recovery.json,summary.tsv,receipt/summary.json}`. The WIP projection marker is retired; these are not whole-family proofs.
+
+On-demand ranges (`b056c3b4`, isolated Fable port) retain p1 in both same-VM orders and remove **120.234 counted units**: 2,295.746 → 2,175.512, all within 7 s. Inv1758 and Inv* remain unknown. All 12 arm outcomes have exact original-34 checker-only replay; `../lane-b-demand-range-v1/summary.json` records each CPU label and cost. TypeScript passed for that candidate, but exhaustive-switch lint failed; explicit unsupported cases repair the same behavior. The new audit linker separately needed an explicit optional-input guard (`d91a53e4`). Combined source/tests remain pending; no final gate is claimed.
+
+
 **Authoritative merge evidence:** only Lane D's one-command final gate with the exact roster, pair identity, both SHAs bound and CPU labels. Any future `GATE GREEN` statement must cite that receipt. These lane-local experiments, checks and analyzers are iteration evidence only.
 
 Code checkpoints: `33df6258` (active slice and initial observer), `60b8c37a`

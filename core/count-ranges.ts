@@ -33,7 +33,7 @@ export function rangeViolations(decls: CountDecl[], reads: MapRead[], model: Rec
       case 'mul': { const a = value(e.a); return a === undefined ? undefined : e.k * a }
       case 'sub': { const a = value(e.a), b = value(e.b); return a === undefined || b === undefined ? undefined : Math.max(0, a - b) }
       case 'min': case 'max': { const a = value(e.a), b = value(e.b); return a === undefined || b === undefined ? undefined : e.op === 'min' ? Math.min(a, b) : Math.max(a, b) }
-      default: return undefined
+      case 'get': case 'if': case 'prod': case 'proj': case 'tup': return undefined
     }
   }
   return reads.filter(read => {

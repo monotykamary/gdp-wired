@@ -2,7 +2,8 @@
 // proof here or treat conditional acceptance as a complete-family gate.
 import {strict as assert} from 'node:assert'
 import {createHash} from 'node:crypto'
-import {readFileSync, writeFileSync} from 'node:fs'
+import {existsSync, readFileSync, writeFileSync} from 'node:fs'
+import {gunzipSync} from 'node:zlib'
 import {basename, join} from 'node:path'
 
 type FocusRecord = {name: string, side: string, tag: string, checked: boolean, units: number, wallMs: number, results: unknown, [key: string]: unknown}
@@ -52,7 +53,9 @@ if (import.meta.main) {
     const statuses = readFileSync(join(dir, 'summary.tsv'), 'utf8').trim().split('\n').map(line => line.split('\t'))
     const audit = statuses.find(([name]) => name === 'audit')
     assert(audit, `missing audit status: ${dir}`)
-    return {path: join(dir, 'audit.log'), text: readFileSync(join(dir, 'audit.log'), 'utf8'), exitCode: Number(audit[1])}
+    const path = join(dir, existsSync(join(dir, 'audit.log')) ? 'audit.log' : 'audit.log.gz')
+    const bytes = readFileSync(path)
+    return {path, text: (path.endsWith('.gz') ? gunzipSync(bytes) : bytes).toString('utf8'), exitCode: Number(audit[1])}
   })
   const result = linkFocusAudits(summary, sources)
   writeFileSync(file, JSON.stringify(result, null, 2) + '\n')
