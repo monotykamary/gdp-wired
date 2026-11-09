@@ -1,11 +1,15 @@
 {
-  "task":"386c1fa8-eb2b-46bc-afdf-c8b366a48b8f",
-  "status":"preflight-started",
-  "runner":"/private/tmp/lane-i-history-runner.Df4NKx",
-  "data":"/private/tmp/lane-i-history-data.33ppZf",
-  "jobs":"research/lane-i/regressions/bootstrap-check.jobs.json",
-  "proposedReplacement":"research/lane-i/regressions/merge-cohort-wave6.jobs.json",
-  "replacementSubmitted":false,
-  "measuredPairs":0,
-  "finalGate":false
+  "task": "386c1fa8-eb2b-46bc-afdf-c8b366a48b8f",
+  "status": "qualified",
+  "runner": "/private/tmp/lane-i-history-runner.Df4NKx",
+  "data": "/private/tmp/lane-i-history-data.33ppZf",
+  "jobs": "research/lane-i/regressions/bootstrap-check.jobs.json",
+  "proposedReplacement": "research/lane-i/regressions/merge-cohort-wave6.jobs.json",
+  "replacementSubmitted": true,
+  "measuredPairs": 0,
+  "finalGate": false,
+  "batch": "20261110-043701-j7vdc7",
+  "snapshot": "f59d2d7a4055",
+  "preflightAudit": "validation/bootstrap-audit.json",
+  "replacementTask": "2dcdf22e-7899-4361-af50-29467f18da6c"
 }

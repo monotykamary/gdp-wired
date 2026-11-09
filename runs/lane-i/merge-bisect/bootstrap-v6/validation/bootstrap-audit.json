@@ -1,0 +1,54 @@
+{
+  "batch": "20261110-043701-j7vdc7",
+  "snapshot": "f59d2d7a4055",
+  "issues": [],
+  "pass": {
+    "hashedFiles": 70,
+    "revisions": 11,
+    "restored": 2,
+    "measuredPairs": 0
+  },
+  "restores": [
+    {
+      "meta": {
+        "revision": "b788e1959bba1f2e8aa1f94d4cf7c0eb163a2f9c",
+        "tree": "c46b265c960ff6b905bde5134844a175b40c12c9",
+        "submodules": "0b6ebeeec827b05210f3acfa4149a70dda9a0de5 vendor/gdp-ts (0b6ebee)\n d47141cce2caf5b86b0c2c0c372a5174f424bc15 vendor/handwired (d47141c)",
+        "clean": true
+      },
+      "hashes": {
+        "research/protocols/ic3syn/jobs.ts": "3b72741a5b6ff1ce9ee86a4e8ba30a6318ee10554f9bf675c1c217cd92a1ea9c",
+        "research/protocols/ic3syn/run.ts": "a9fa1e966acf503db0804419f8af7b82cfec671f8fba528716ec5440ea70dd66",
+        "research/protocols/ic3syn/models.ts": "5d61b846a8331a9b7978b4809d53b88e5918135ded0fc6d527f2a6dc8fb3a601",
+        "research/protocols/models.ts": "ae2acd68175231e54e8590c2e35e04996282da22523d2fbac47d40e0adb078e4",
+        "research/protocols/run.ts": "f739b1d8c3f94e7718ae1029df4675f27b5d81211250b223678b6c5229946f87"
+      }
+    },
+    {
+      "meta": {
+        "revision": "8769061bea541a33396819be86f7a5bba0a7bf73",
+        "tree": "8442462096b1f9180794f9f1fce5331b9f96294f",
+        "submodules": "0b6ebeeec827b05210f3acfa4149a70dda9a0de5 vendor/gdp-ts (0b6ebee)\n d47141cce2caf5b86b0c2c0c372a5174f424bc15 vendor/handwired (d47141c)",
+        "clean": true
+      },
+      "hashes": {
+        "research/protocols/ic3syn/jobs.ts": "3b72741a5b6ff1ce9ee86a4e8ba30a6318ee10554f9bf675c1c217cd92a1ea9c",
+        "research/protocols/ic3syn/run.ts": "a9fa1e966acf503db0804419f8af7b82cfec671f8fba528716ec5440ea70dd66",
+        "research/protocols/ic3syn/models.ts": "7264a41611c0bab74b8b3549ac86663f4cb4d8ef8cac00528df0c2c7bcfbae93",
+        "research/protocols/models.ts": "ae2acd68175231e54e8590c2e35e04996282da22523d2fbac47d40e0adb078e4",
+        "research/protocols/run.ts": "f739b1d8c3f94e7718ae1029df4675f27b5d81211250b223678b6c5229946f87"
+      }
+    }
+  ],
+  "placement": {
+    "vm": "bx_7ah56czc",
+    "type": "large",
+    "cpu": "AMD EPYC 9455 48-Core Processor",
+    "vcpus": 8,
+    "vm_vcpus": 8,
+    "exclusive": true,
+    "co_tenants": 0
+  },
+  "measuredPairs": 0,
+  "finalGate": false
+}
