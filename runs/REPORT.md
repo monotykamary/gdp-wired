@@ -8,7 +8,7 @@ Lane I resumed from `cca59f0c` on `claude/mldr-integ`; clean worktree verified, 
 
 ## V10 generation census completed; newer production tips require integration
 
-Batch `20261110-004029-8b1rye` (controller `1d5b236b-821e-47f1-8dba-db994bd90c31`; exact scheduler ID remains available in its controller receipt), candidate **`b37c4e2ce8172d0e3e1546b6c099ceff33b2d7ae`**, completed all 87 pairs. The same roster/source/phase/CPU/hash/repeat audit reports **zero issues**, **84 canonical-identical pairs across 28 non-MLDR protocols**, MLDR consistently **27 → 34**, and no count decreases. **Every baseline and candidate canonical hash matches V9**, including MLDR, despite the intervening finite-generator change. This is repeatable generation evidence, not an MLDR proof or a final gate.
+Batch `20261110-004022-hzxjo7` (controller `1d5b236b-821e-47f1-8dba-db994bd90c31`; exact scheduler ID remains available in its controller receipt), candidate **`b37c4e2ce8172d0e3e1546b6c099ceff33b2d7ae`**, completed all 87 pairs. The same roster/source/phase/CPU/hash/repeat audit reports **zero issues**, **84 canonical-identical pairs across 28 non-MLDR protocols**, MLDR consistently **27 → 34**, and no count decreases. **Every baseline and candidate canonical hash matches V9**, including MLDR, despite the intervening finite-generator change. This is repeatable generation evidence, not an MLDR proof or a final gate.
 
 MLDR paired generation wall ms: r1 EPYC 4585PX **51,560.946 → 13,137.081**; r2 Ryzen 9950X **38,678.107 → 13,736.742**; r3 Ryzen 9950X **48,685.612 → 17,318.256**. Full CPU-labelled metrics, 87 compressed logs, and 174 raw/compressed hashes are retained under `runs/lane-i/v10`.
 
