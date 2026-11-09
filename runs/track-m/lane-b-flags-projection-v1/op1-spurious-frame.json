@@ -1,0 +1,200 @@
+{
+  "evidenceOnly": true,
+  "checkedProof": false,
+  "source": "7e4f8912 plus disposable flags-first integration",
+  "sourceArchiveSha256": "fb2731957f6642bb4ba441e74eecf79379872ee23c8503c3e0dd1adb4dc7441f",
+  "projectionSha256": "31ea64094f19b098131ed10cad410061915ca9c81e5b0f6812e9f8f0fe0c66f1",
+  "law": "inX: no quorum canVote/3",
+  "operation": "copy",
+  "operationCode": 1,
+  "size": 3,
+  "i": 0,
+  "j": 0,
+  "a": 0,
+  "b": 0,
+  "pre": {
+    "read": [
+      "r$8",
+      "inX$row",
+      {
+        "op": "var",
+        "name": "a$quorum#"
+      }
+    ],
+    "modelValue": 0
+  },
+  "post": {
+    "read": [
+      "r$1",
+      "inX$row#",
+      {
+        "op": "var",
+        "name": "a$quorum#"
+      }
+    ],
+    "modelValue": 1
+  },
+  "selectedRowFrameVectors": {
+    "postMinusPre": false,
+    "preMinusPost": false
+  },
+  "selectedInstances": [
+    {
+      "terms": [
+        [
+          1,
+          "r$3"
+        ],
+        [
+          -1,
+          "r$36"
+        ]
+      ],
+      "unit": 0
+    },
+    {
+      "terms": [
+        [
+          1,
+          "r$3"
+        ],
+        [
+          -1,
+          "r$37"
+        ]
+      ],
+      "unit": 0
+    },
+    {
+      "terms": [
+        [
+          1,
+          "r$3"
+        ],
+        [
+          -1,
+          "r$39"
+        ]
+      ],
+      "unit": 0
+    },
+    {
+      "terms": [
+        [
+          1,
+          "r$4"
+        ],
+        [
+          -1,
+          "r$36"
+        ]
+      ],
+      "unit": 0
+    },
+    {
+      "terms": [
+        [
+          1,
+          "r$4"
+        ],
+        [
+          -1,
+          "r$37"
+        ]
+      ],
+      "unit": 0
+    },
+    {
+      "terms": [
+        [
+          1,
+          "r$4"
+        ],
+        [
+          -1,
+          "r$39"
+        ]
+      ],
+      "unit": 0
+    },
+    {
+      "terms": [
+        [
+          1,
+          "r$3"
+        ],
+        [
+          -1,
+          "r$38"
+        ]
+      ],
+      "unit": 0
+    },
+    {
+      "terms": [
+        [
+          1,
+          "r$4"
+        ],
+        [
+          -1,
+          "r$38"
+        ]
+      ],
+      "unit": 0
+    },
+    {
+      "terms": [
+        [
+          1,
+          "r$3"
+        ],
+        [
+          -1,
+          "r$18"
+        ]
+      ],
+      "unit": 0
+    },
+    {
+      "terms": [
+        [
+          1,
+          "r$3"
+        ],
+        [
+          -1,
+          "r$20"
+        ]
+      ],
+      "unit": 0
+    },
+    {
+      "terms": [
+        [
+          1,
+          "r$0"
+        ],
+        [
+          -1,
+          "r$1"
+        ]
+      ],
+      "unit": 0
+    },
+    {
+      "terms": [
+        [
+          1,
+          "r$1"
+        ],
+        [
+          -1,
+          "r$0"
+        ]
+      ],
+      "unit": 0
+    }
+  ],
+  "finding": "At i=0, the Config copy maps row 0 to itself; whether its guard fires or not, Config is unchanged. The retained symbolic model assigns different pre/post row-0 counts. This is a spurious count frame, not a finite counterexample."
+}
