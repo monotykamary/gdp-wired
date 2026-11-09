@@ -12,10 +12,11 @@ noted), each with the command that reproduces it.
 - **Mutation checking:** `gdp-wired/mutate` and `gdp-wired mutate suite.ts` run bounded source-edit checks in isolated
   copies, retaining witnesses for killed and surviving variants. `deriveDecisionMutants` derives bounded scalar-term
   candidates through an explicit source printer; named per-law suites attribute their kills.
-- **Runtime migration:** `fun.run()` now interprets terms. `fun.compiled()` explicitly returns a cached generated
-  callable; declared helper source requires this opt-in. Native arithmetic terms remain available without dynamic
-  compilation. `rule.interpreter()` likewise requires `{compileHelpers: true}` for declared helper source.
-  See [the CI-only guide](docs/ci-only.md) for limits, measurements and migration details.
+- **Breaking — JavaScript helper runtimes:** `fun.run()` now interprets terms. User-supplied JavaScript helpers
+  (`fn` strings or callbacks, including transitive dependencies) require `fun.compiled()` or explicit
+  `rule.interpreter({compileHelpers: true})`; the refusal names the required opt-in. Library-built `divBy`,
+  `modBy`, recurrence equations and their source-free dependencies remain directly interpretable without
+  dynamic compilation or opt-in. See [the CI-only guide](docs/ci-only.md) for limits and migration details.
 
 ## 0.47.0
 

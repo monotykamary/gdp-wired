@@ -12,8 +12,9 @@ no duplicate model is needed for their per-input laws. A stateful protocol model
 For unsupported source, keep a tests-only model and compare against the real implementation.
 Finite input-domain comparison is a test, not a kernel proof or exhaustive state-history exploration.
 For deliberate runtime use, `fun.run()` interprets terms; `fun.compiled()` returns an explicitly compiled callable.
-Declared `.fns(...)` source requires the compiled opt-in; use term `.divBy()`/`.modBy()` for interpreted arithmetic.
-`rule.interpreter()` also refuses helper source unless `{compileHelpers: true}` is explicitly passed.
+User-supplied `.fns(...)` JavaScript (strings or callbacks, including transitive dependencies) requires the compiled opt-in.
+Library `divBy`/`modBy`, source-free `recur` equations and native arithmetic terms interpret without opt-in.
+`rule.interpreter()` refuses user JavaScript source unless `{compileHelpers: true}` is explicitly passed.
 Do not claim that the prover, comparison tooling or low-level machine helpers are CSP-safe.
 See the repository's `docs/ci-only.md` and [shipping](references/shipping.md).
 

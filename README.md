@@ -15,8 +15,8 @@ in tests and compare it with the implementation. [The CI-only guide](docs/ci-onl
 exhaustive finite input comparisons, mutation checks, and explicit runtime opt-in. A comparison is a test, not a proof.
 
 If a model is intentionally used at runtime, `fun(...).run()` interprets supported terms without dynamic code generation.
-`fun(...).compiled()` explicitly opts into generated JavaScript. Declared helper source requires that opt-in;
-arithmetic terms such as `n.divBy(2)` and `n.modBy(2)` work with the default interpreter.
+`fun(...).compiled()` explicitly opts into generated JavaScript. User-supplied JavaScript helper source requires that opt-in;
+arithmetic terms, library `divBy`/`modBy` helpers, and source-free `recur` equations work with the default interpreter.
 
 [![How gdp-wired works: certificates, the kernel, the frontier (14 min)](https://raw.githubusercontent.com/monotykamary/gdp-wired/main/static/explainer.jpg)](https://gdpwired.dev/#explainer)
 

@@ -17,7 +17,7 @@
 // both runtimes do.
 import {type Tried, candidates, cone, searchCounted} from './counts.ts'
 import {env as knobs} from './solver.ts'
-import {type C, type E, type Fn, argsKey, type Law, type Least, type Recurrence, type Machine, type MapUpdate, type Rand, type Request, type State, type Sum, machineTerms, part, tuple, carriedView, compileFunction, divName, divisor, divisorsIn, evalC, evalE, interpret, isArithmetic, loadJs, modName, numbersOf, pairedArgs, seeded, withArithmetic} from './machine.ts'
+import {type C, type E, type Fn, argsKey, bindDirect, directOf, type Law, type Least, type Recurrence, type Machine, type MapUpdate, type Rand, type Request, type State, type Sum, machineTerms, part, tuple, carriedView, compileFunction, divName, divisor, divisorsIn, evalC, evalE, fnCall, interpret, isArithmetic, loadJs, modName, numbersOf, pairedArgs, seeded, sourceFreeFn, withArithmetic} from './machine.ts'
 import {allowed, keysOf, requestEnv, watch, watchWork} from './watch.ts'
 import {ghostOf, proveSome, skolemOf, someHolds, substVars, substVarsE, witnessSupport} from './exists.ts'
 import {type Fold, type Ghosted, type Goal, type Liveness, type Loop, type Recur, type StepLaw, type Tree, check, mapArities, checkRecur, foldObligations, ghostedMachine, loopObligations, someOfGhostsOk, substC, sumMachine} from '../kernel/kernel.ts'
@@ -1063,7 +1063,7 @@ export class CarriedList<V, Fd extends string = never> {
     const item = (i: Term) => this.kind.build(this.name, p => new Term({op: 'get', map: fname(p), key: i.e}))
     // Every item is a value of the kind (its own laws, as a fact of the first part's function).
     const kindFact: Record<string, Cond | Forall> = this.kind.invariant(this.kind.value(this.name)).length ? {'every item is a value of its kind': forall(k => all(...this.kind.invariant(item(k))))} : {}
-    const fns = Object.fromEntries(parts.map((p, j) => [fname(p), fn(1, 'x => 0', j === 0 ? {facts: () => kindFact} : {})]))
+    const fns = Object.fromEntries(parts.map((p, j) => [fname(p), {...fn(1, 'x => 0', j === 0 ? {facts: () => kindFact} : {}), direct: bindDirect({js: 'x => 0'}, {kind: 'const', value: 0})}]))
     const folds = Object.entries(this.folds) as [string, ListFold<V>][]
     const r: LooseRule = (rule(`${this.name}'s folds, by induction`) as LooseRule).params(Object.fromEntries(this.paramKinds)).fns(fns).inputs({})
       .state({i: 0, ...Object.fromEntries(folds.map(([f, d]) => [`acc$${f}`, typeof d.from === 'number' ? d.from : (p: never) => (d.from as (p: never) => TermLike)(p)]))})
@@ -1329,7 +1329,9 @@ const substKey = (c: C, from: string, to: string): C => JSON.parse(JSON.stringif
 // square root and b at most s).
 // `uses`: the functions it reads (a recurrence's), each a function of the rule too, named <name>.<use>; its facts read
 // them through `uses` (the second argument of `facts`).
-export type FnDef = {arity: number, js: string | ((...args: number[]) => number), lean?: string, facts?: (f: (...args: TermLike[]) => Term, uses?: Record<string, (...args: TermLike[]) => Term>) => Record<string, Cond | Forall>, recur?: Recurrence, uses?: Record<string, FnDef>}
+export type FnDef = {arity: number, js: string | ((...args: number[]) => number), lean?: string, facts?: (f: (...args: TermLike[]) => Term, uses?: Record<string, (...args: TermLike[]) => Term>) => Record<string, Cond | Forall>, recur?: Recurrence, uses?: Record<string, FnDef>, direct?: Fn['direct']}
+// The definitions actually flattened into a rule may have changed since recur captured its inlined helpers.
+const sourceFreeDef = (d: FnDef): boolean => sourceFreeFn(d) && Object.values(d.uses ?? {}).every(sourceFreeDef)
 export const fn = (arity: number, js: FnDef['js'], opts: {lean?: string, facts?: FnDef['facts']} = {}): FnDef => {
   if (!Number.isInteger(arity) || arity < 1) throw new Error('a function takes one argument or more')
   return {arity, js, ...opts}
@@ -1338,20 +1340,20 @@ export const fn = (arity: number, js: FnDef['js'], opts: {lean?: string, facts?:
 // proves of `x / c`.
 export const divBy = (c: number): FnDef => {
   if (!Number.isSafeInteger(c) || c < 1) throw new RangeError('divBy takes a whole number at least 1')
-  return fn(1, `x => Math.floor(x / ${c})`, {lean: `fun x => x / ${c}`, facts: f => ({
+  return {...fn(1, `x => Math.floor(x / ${c})`, {lean: `fun x => x / ${c}`, facts: f => ({
     [`${c}·q(x) <= x`]: forall(x => f(x).times(c).atMost(x)),
     [`x < ${c}·q(x) + ${c}`]: forall(x => x.lt(f(x).times(c).plus(c))),
-  })})
+  })}), direct: bindDirect({js: `x => Math.floor(x / ${c})`}, {kind: 'div', divisor: c})}
 }
 export const modBy = (c: number): FnDef => {
   if (!Number.isSafeInteger(c) || c < 1) throw new RangeError('modBy takes a whole number at least 1')
   // x mod c is below c, and x less it is a multiple of c: x ∸ r = c·q for the q that divBy(c) gives; as facts about r
   // alone, r <= x, r < c, and r(x + c) = r(x).
-  return fn(1, `x => x % ${c}`, {lean: `fun x => x % ${c}`, facts: f => ({
+  return {...fn(1, `x => x % ${c}`, {lean: `fun x => x % ${c}`, facts: f => ({
     [`r(x) < ${c}`]: forall(x => f(x).lt(c)),
     [`r(x) <= x`]: forall(x => f(x).atMost(x)),
     [`r(x + ${c}) = r(x)`]: forall(x => f(x.plus(c)).eq(f(x))),
-  })})
+  })}), direct: bindDirect({js: `x => x % ${c}`}, {kind: 'mod', divisor: c})}
 }
 
 // A function defined by a recurrence on its first argument, and lemmas about it proven by induction: f(0, a..) = zero
@@ -1379,6 +1381,9 @@ export type RecurDef<A extends string, U extends Record<string, FnDef>> = {
   next: (x: Term, prev: Term, env: RecurEnv<A, U>) => TermLike
 }
 const reservedInRecur = ['x', 'fx', 'y', 'fy', 'prev', 'x0', 'fx0']
+// No dynamic parser is needed for library-generated source. Reject reserved bindings and the globals used by
+// recurJs (including by inlined helpers), which an argument would otherwise shadow only in compiled mode.
+const unsafeJsName = new Set(('await break case catch class const continue debugger default delete do else enum export extends false finally for function if implements import in instanceof interface let new null package private protected public return static super switch this throw true try typeof var void while with yield eval arguments Math Number RangeError').split(' '))
 // The machines a recurrence is proven by, built over plain environments.
 // eslint-disable-next-line @typescript-eslint/no-explicit-any
 type LooseRule = any
@@ -1389,6 +1394,7 @@ export const recur = <const A extends string = never, U extends Record<string, F
   if (!plain.test(name)) throw new Error(`recur: ${name} is not a plain name (it names the Lean definition)`)
   const args: string[] = [...(def.args ?? [])], uses = Object.entries(def.fns ?? {}) as [string, FnDef][]
   for (const n of [...args, ...uses.map(([u]) => u)]) if (!plain.test(n) || reservedInRecur.includes(n) || n === name) throw new Error(`recur ${name}: ${n} can't name an argument or a function here (${reservedInRecur.join(', ')} and ${name} are taken)`)
+  for (const n of args) if (unsafeJsName.has(n)) throw new Error(`recur ${name}: ${n} can't name an argument (it shadows JavaScript syntax or a runtime global)`)
   distinctNames(`recur ${name}`, [...args, ...uses.map(([u]) => u)])
   // A rule reads the function at its arguments paired, which the kernel multiplies out: with five further arguments that
   // is a polynomial of degree 32, past what it can hold.
@@ -1461,7 +1467,8 @@ export const recur = <const A extends string = never, U extends Record<string, F
       ...(withBetween ? Object.fromEntries(Object.entries(between).map(([n, l]) => [n, keysOf(2 + args.length)((k, j, ...as) => k.atMost(j).implies(l(k, f(k, ...as), j, f(j, ...as), env(as))))])) : {}),
     } as Record<string, Cond | Forall>
   }
-  const base = {arity: 1 + args.length, js, lean: `Recur.${name}`, recur: recurrence, ...(uses.length ? {uses: def.fns as Record<string, FnDef>} : {})}
+  const direct = bindDirect({js, arity: 1 + args.length}, {kind: 'recur', name, args: [...args], zero, next, uses: Object.fromEntries(uses.map(([u, d]) => [u, runtimeFn(u, d, false)]))})
+  const base = {arity: 1 + args.length, js, direct, lean: `Recur.${name}`, recur: recurrence, ...(uses.length ? {uses: def.fns as Record<string, FnDef>} : {})}
   // The laws between two points: y counting up from x and fy from fx, a value at x that meets the lemmas (as f(x)
   // does: they are given of it, as facts of the params), each law a law of that machine beside the lemmas at y. What
   // holds there for every such fx holds for f(x), and fy is f(y) by the recurrence; the machine reads no f at all.
@@ -1524,7 +1531,7 @@ const recurJs = (name: string, args: string[], zero: E, next: E, uses: [string, 
       case 'flag': case 'all': throw new Error('a recurrence takes no flag or quantifier')
     }
   }
-  const inlined = uses.map(([u, d], i) => `const $f${i} = (${fnSource(u, d)}); ${d.arity > 1 ? `const $g${i} = (${jsOf(d)}); ` : ''}`).join('')
+  const inlined = uses.map(([u, d], i) => `const $f${i} = (${fnSource(u, d, false)}); ${d.arity > 1 ? `const $g${i} = (${jsOf(d)}); ` : ''}`).join('')
   // The last value computed at each tuple of further arguments is kept, so reading f at x after f at a smaller x takes
   // only the steps between (a rule that reads f at a count that grows costs one step a request).
   return `(() => { ${inlined}const $memo = new Map(); return (x, ${args.map(a => `${a}, `).join('')}) => { const $k = ${args.length ? `[${args.join(', ')}].join()` : "''"}; let $at = $memo.get($k); if (!$at || $at[0] > x) $at = [0, ${js(zero)}]; let x0 = $at[0], prev = $at[1]; for (; x0 < x; x0++) { prev = ((x, prev) => ${js(next)})(x0, prev); if (!Number.isSafeInteger(prev)) throw new RangeError(${JSON.stringify(`${name} passes the safe integers`)}); } if ($memo.size > 4096) $memo.clear(); $memo.set($k, [x, prev]); return prev; }; })()`
@@ -1536,23 +1543,43 @@ const flatFns = (defs: [string, FnDef][]): [string, FnDef, Record<string, FnTerm
 })
 // A function's JavaScript as one function of its key: its arguments unpaired (left-nested, as argsKey pairs them).
 const jsOf = (d: FnDef): string => (typeof d.js === 'string' ? d.js : String(d.js))
-const fnSource = (name: string, d: FnDef): string => {
+const fnSource = (name: string, d: FnDef, validate = true): string => {
   const src = jsOf(d)
-  let f: (...args: number[]) => number
-  try { f = compileFunction<() => (...args: number[]) => number>([], `return (${src})`)(); f(...Array.from({length: d.arity}, () => 0)) } catch (e) { throw new Error(`function ${name}: its js must be a function of its arguments that reads nothing else (${(e as Error).message})`) }
+  if (validate && !sourceFreeDef(d)) {
+    try {
+      const f = compileFunction<() => (...args: number[]) => number>([], `return (${src})`)()
+      f(...Array.from({length: d.arity}, () => 0))
+      fnValues.set(d, {js: d.js, arity: d.arity, direct: directOf(d), value: f})
+    } catch (e) { throw new Error(`function ${name}: its js must be a function of its arguments that reads nothing else (${(e as Error).message})`) }
+  }
   if (d.arity === 1) return src
   return `(() => { const $fn = (${src}); return k => { const u = z => { let s = Math.floor(Math.sqrt(z)); while (s * s > z) s--; while ((s + 1) * (s + 1) <= z) s++; return [s - (z - s * s), z - s * s]; }; const a = []; let z = k; for (let i = 1; i < ${d.arity}; i++) { const [p, q] = u(z); a.unshift(q); z = p; } a.unshift(z); return $fn(...a); }; })()`
+}
+// Materialize runtime metadata without evaluating generated source during helper construction.
+const runtimeFn = (name: string, d: FnDef, validate = true): Fn => {
+  const out: Fn = {js: fnSource(name, d, validate),
+    ...(d.arity > 1 ? {arity: d.arity, call: jsOf(d)} : {}), ...(d.lean ? {lean: d.lean} : {}),
+    ...(d.recur ? {recur: d.recur} : {})}
+  const direct = directOf(d)
+  if (direct) out.direct = bindDirect(out, direct)
+  return out
 }
 const fnTerm = (name: string, d: FnDef) => (...args: TermLike[]): Term => {
   if (args.length !== d.arity) throw new Error(`function ${name} takes ${d.arity} argument${d.arity === 1 ? '' : 's'}`)
   const vals = known(args.map(valOf))
-  return new Term({op: 'get', map: name, key: argsKey(args.map(termOf))}, vals && fnValueOf(d)(...vals))
+  return new Term({op: 'get', map: name, key: argsKey(args.map(termOf))}, vals && fnValueOf(d)?.(...vals))
 }
 // A function's JavaScript on its arguments themselves (not through the pairing the kernel reads them by).
-const fnValues = new WeakMap<FnDef, (...args: number[]) => number>()
+const fnValues = new WeakMap<FnDef, {js: FnDef['js'], arity: number, direct?: Fn['direct'], value: (...args: number[]) => number}>()
 const fnValueOf = (d: FnDef) => {
-  let f = fnValues.get(d)
-  if (!f) { f = typeof d.js === 'function' ? d.js : compileFunction<() => (...args: number[]) => number>([], `return (${d.js})`)(); fnValues.set(d, f) }
+  const cached = fnValues.get(d)
+  let f = cached?.js === d.js && cached.arity === d.arity && cached.direct === directOf(d) && (!cached.direct || sourceFreeDef(d)) ? cached.value : undefined
+  if (!f) {
+    if (sourceFreeDef(d)) { const fn = runtimeFn('constant', d, false); f = (...args) => fnCall(fn, args) }
+    // User source (including callbacks) may be folded only after materialization validated it, never invoked just
+    // to build a term before the runtime's explicit compilation guard.
+    if (f) fnValues.set(d, {js: d.js, arity: d.arity, direct: directOf(d), value: f})
+  }
   return f
 }
 
@@ -2128,7 +2155,7 @@ export class Rule<P extends Obj = {}, I extends Obj = {}, S extends Obj = {}, M 
     // Functions, and their facts: each function's own (named after it), then the rule's.
     // The functions a function reads come first, each named <function>.<use>.
     const flat = flatFns(s.fns ?? [])
-    const fns: Record<string, Fn> = Object.fromEntries(flat.map(([n, d]) => [n, {js: fnSource(n, d), ...(d.arity > 1 ? {arity: d.arity, call: jsOf(d)} : {}), ...(d.lean ? {lean: d.lean} : {}), ...(d.recur ? {recur: d.recur} : {})}]))
+    const fns: Record<string, Fn> = Object.fromEntries(flat.map(([n, d]) => [n, runtimeFn(n, d)]))
     const facts: Law[] = [
       ...flat.flatMap(([n, d, uses]) => Object.entries(d.facts?.(fnTerm(n, d), uses) ?? {}).map(([name, f]) => this.lawOf(`${n}: ${name}`, f))),
       ...(s.facts ?? []).flatMap(f => Object.entries(f(pEnv as never)).map(([name, out]) => this.lawOf(name, out))),
@@ -2451,7 +2478,7 @@ export class Rule<P extends Obj = {}, I extends Obj = {}, S extends Obj = {}, M 
   // The prune order's variable, if the history is pruned (a runtime must send it nondecreasing).
   get orderedBy(): string | undefined { return this.spec.prune ? new Map(this.spec.inputs).get(this.spec.prune.order)!.vars(this.spec.prune.order)[0] : undefined }
   interpreter(options: {compileHelpers?: boolean} = {}) {
-    if (this.spec.fns?.length && !options.compileHelpers) throw new Error(`${this.name}: interpreter() does not compile declared helper source; use compiled() or explicitly pass {compileHelpers: true}`)
+    if (this.spec.fns?.some(([, d]) => !sourceFreeDef(d)) && !options.compileHelpers) throw new Error(`${this.name}: interpreter() does not compile declared helper source; use compiled() or explicitly pass {compileHelpers: true}`)
     return interpret(this.machine)
   }
   compiled(): {init: (params: object) => State & {head?: number}, fork: (st: State) => State, step: (params: object, st: State, input: object) => State & {head?: number}} {
@@ -2575,7 +2602,7 @@ export class Fun<P extends Obj = {}, I extends Obj = {}, O extends Obj = {}> {
     // Custom helpers are source code, including callbacks serialized by fnSource. Refuse before materializing a
     // machine rather than implicitly invoking Function in a runtime which the caller chose to interpret.
     const helpers = this.r['spec'].fns
-    if (mode === 'interpreted' && helpers?.length) throw new Error(`${this.name}: run() does not compile declared helper source (${helpers.map(([name]) => name).join(', ')}); use compiled() explicitly, or term.divBy()/modBy() for arithmetic`)
+    if (mode === 'interpreted' && helpers?.some(([, d]) => !sourceFreeDef(d))) throw new Error(`${this.name}: run() does not compile declared helper source (${helpers.map(([name]) => name).join(', ')}); use compiled() explicitly`)
     this.runtimeRule ??= {rule: this.rule, fields: Object.keys(this.result(this.r['env']({flags: false, state: false, queries: false})))}
     const {rule, fields} = this.runtimeRule, gen = mode === 'compiled' ? rule.compiled() : rule.interpreter()
     const execute: FunRunner<P, I, O> = (values, params = {}) => {

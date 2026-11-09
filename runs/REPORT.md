@@ -201,6 +201,103 @@ console.log(runtime.step({}, initial, {}).scalars.n)
 
 The clean committed pre-integration test run (`a7aaa1b2`, batch `20261110-014415-u5ulmj`) is still active. Its separate original runtime-guards/history suite passed. The seven full quick-suite shards are not yet claimed. This is submission-class validation, not the final post-integration gate.
 
-## Pending
+## Soundness
 
-Items 0–3 are committed (`662cf1ef`, `7ad7eb2b`, `054da953`, `45b9569b`), with test-coverage correction `aede59c2`. Item 4 docs/posture are complete and landing next. Remaining: rebase onto the coordinator's updated main, then run the full clean-checkout gate with both pinned submodules, Boat bar against that main, and 29-protocol generation census. These final gates are not yet claimed. An exhaustive comparison is a test, never a proof. Kernel trust is unchanged.
+### Exact false-proof construct
+
+The independent review found this **synthetic** counterexample:
+
+```ts
+export function decide(flag: boolean | undefined): boolean {
+  if (flag !== null) return flag === undefined;
+  return false;
+}
+```
+
+At input **`flag = undefined`**, JavaScript returns **true**. Before the fix, the symbolic reader treated the strict test against `null` as a presence test for an optional value whose absence was actually `undefined`, replaced `flag` with its present Boolean payload, and modeled the result as false. Consequently `result == false` could be reported **proven and kernel-checked for the wrong extracted model**. The v9/v10 negative regressions reproduced that false proof with `{check: {runs: 0, states: 0, probes: false}}`. Those options leave no concrete replay observations or branch-probe witness checks to catch the extraction error. This is not a kernel proof-checking failure.
+
+The fix distinguishes strict and loose absence tests, preserves the null tag, and leaves the optional value intact when a strict test names the wrong absence kind. Additional conditional-join tests reject different ordered choice encodings rather than silently mixing them. The fixed regression rejects the false law, without relying on source replay.
+
+### Clean-source origin results so far
+
+The exact standalone absence and choice-join programs are refused by clean `b788e195` as unsupported syntax. Pre-fix `a7aaa1b2` accepts both and disagrees with their concrete results when replay is disabled; normal replay catches both and refuses extraction. Fixed `ed5af69b` produces the correct absence result with replay either on or off, and refuses the incompatible choice join. The baseline has no mutation runner, so both mutation defects are branch-introduced. Its existing `Rule.interpreter()` does try to compile helper source; the safer default is therefore a change to pre-existing behavior. Its existing `Fun.compare()` returns a sample count but no exhaustive claim; the false fixed-parameter exhaustive flag is branch-introduced.
+
+Three completed source receipts were retained in `runs/origin/`. The remaining quick checks initially waited in the experiment queue; only the unstarted jobs were closed and moved to the documented interactive quick-check class. They completed successfully, establishing the released legacy-map case below. No running gate was stopped or duplicated.
+
+### Confirmed released-version reachability
+
+The actual **0.47.0 registry tarball** (SHA-256 **`ca81b4f6c641a9cc4b2c5eb3932e5ea36840c02c00bbd8ff493aedcdfb40dd6c`**) and clean `b788e195` reproduce the same false proof through the older optional-map reader:
+
+```ts
+export class Decision {
+  flags = new Map<string, boolean>();
+  decide(key: string): boolean {
+    const flag = this.flags.get(key);
+    if (flag !== null) return flag === undefined;
+    return false;
+  }
+}
+```
+
+With the initially empty map, JavaScript returns **true** for any key. With `{check: {runs: 0, states: 0, probes: false}}`, both the released tarball and baseline accept extraction and report **`result == false` proven and checked**. Their default replay catches the discrepancy on the **first request** and refuses extraction. Fixed `ed5af69b` rejects the false law even with replay disabled and passes default checking (2,400 requests and 400 drawn-state checks). This establishes a **pre-existing released extractor soundness issue**, not merely a new standalone-reader regression. Disclosure remains held for the user; no external action was taken.
+
+| Fix | Clean b788e195 / actual 0.47.0 | Origin |
+|---|---|---|
+| Strict absence narrowing | Legacy map repro produces a checked false proof with replay off; default replay refuses | Pre-existing and released; newly exposed by standalone extension too |
+| Incompatible choice joins | Exact standalone repro refused as unsupported on both; accepted incorrectly by pre-fix a7 | Branch-introduced accepted-program defect for this repro |
+| Literal `$&` mutation replacement | Mutation runner absent on both | Branch-introduced |
+| Descendant cleanup before restoration | Mutation runner absent on both | Branch-introduced |
+| Implicit compilation in `Rule.interpreter()` | Both attempt dynamic compilation of user JS source | Pre-existing behavior; explicit-source opt-in is a breaking API change |
+| Exhaustive flag despite fixed parameters | Both return sampled `checked` count with no exhaustive claim | Branch-introduced claim on an existing API |
+
+Receipts: `runs/origin/` and `runs/origin-quick/`. The unsupported old standalone join repro is not evidence that every other legacy join form is correct.
+
+### Release-origin audit receipts (complete for ed5af69b)
+
+All **64 published stable tarballs** were integrity-checked and tested on Boat. The first affected release is **0.26.0**, published **2026-10-24T06:56:21.399Z**, SHA-256 `da4bccbe9817fd1dc626ed1e4f95323ee0a0717d1d634ea0de0510a1aaa7f9ca`. Every stable release **0.26.0 through 0.47.0** reproduces the false proof (26 versions). Of earlier versions, 36 lack the frontend and 0.24.0/0.25.0 explicitly refuse the null expression. There were **zero unclassified results**, so this first-version finding does not depend on monotonicity. Prereleases were excluded. The exact `buildLaw` and bundled CLI arrived in 0.32.0; earlier affected versions used an equivalent direct step law, cross-checked with the convenience API on later versions.
+
+Actual 0.32.0 and 0.47.0 bundled CLIs confirmed the user-facing switch: put `[check]` with `runs = 0`, `states = 0`, `probes = false` in `gdp.toml`. Default checking exits 2 on the mismatch; the zero-budget configuration exits 0 and reports the false law proven. These are configuration settings, not a separately established flag. Full private receipts: `/tmp/gdp-ci-release-range-confirm/{receipt.md,results/release-confirm.log}`. A short held advisory is at `/Users/monotykamary/VCS/working-remote/open-source/gdp-wired/private/handoff/advisory-extractor-null-20261110.md`, verified ignored by the main repository. Its proposed patch-release changelog remains private. No publication or external contact was made.
+
+### Replay defaults
+
+For the TypeScript `extract` path used here, concrete source/model checking is on by default (`core/extract.ts` calls the checker with `opts.check` merged into its defaults). Current defaults are **200 runs × 12 requests**, **400 drawn-state steps**, plus branch/witness probes unless disabled (`core/extract-check.ts`). The CLI passes source-reader options/configuration through and normally uses these defaults. This checking is sampled/probe-based evidence, not a formal correctness proof of the extractor. API users can suppress those observations with `{check: {runs: 0, states: 0, probes: false}}`; configuration forwarded by the CLI can likewise change the budgets. There is no universal guarantee that every `extract*` API uses this exact contract: XState checks its actor, and other language frontends use their own replay harnesses and budgets. In particular, Solidity re-entrancy checking retains a minimum of four attempts even when its requested run count is zero (`core/extract-sol.ts:742`); do not treat the TypeScript zero-budget recipe as a universal replay-off flag. Counterexample replay for a broken law is also a separate operation from the initial source-conformance check.
+
+### Private plain-file proof replay — PASS
+
+On clean `ed5af69b`, **all 20 per-input laws passed** with normal replay enabled (13 + 7, both CLI exits 0). Four actual plain decisions matched their extracted models on **all 212 finite input tuples** (4 + 128 + 32 + 48). Each decision received 2,400 start-state requests and 400 drawn-state checks; the branch-bearing decisions also received 6 and 4 witness probes. **All 24 instrumented branch arms were hit** (0 + 12 + 3 + 9). The sanitized receipt is outside the repository at `/tmp/gdp-ci-replay-final-results/plain-laws-replay-on.log`; no private source or customer names were copied into this report.
+
+
+## Final-suite fixture follow-up
+
+The corrected final wrapper actually ran the tests. Shard 2 found one missed API migration in `core/lemmas.test.ts:37`: the existing recurrence comparison deliberately uses declared helpers, so it must now request `interpreter({compileHelpers: true})`. Commit **`f62eeb59940381d9786d0dfea75178414447a5ad`** changes that test line only; all production, gate, example, and corpus files are byte-identical to `ed5af69b`. The failed shard and check/build/exports/commitlint are being rerun from a clean `f62eeb59` checkout. Already-passing shards and the ongoing `ed5af69b` bar/census are retained with their exact revision labels, not silently relabelled. The bar's `onecpu` workload uses `data.test.ts`/`infer.test.ts`; however, the full suite does include the lemmas workload. The coordinator correctly requires built-in recurrences to remain directly interpretable: the test-only workaround will be superseded by a source-free built-in helper implementation, and affected final gates must be rerun on that production change.
+
+## Helper interpretation and the breaking API boundary
+
+Data-built helpers now carry a serializable direct implementation: library `divBy`/`modBy`, automatically generated arithmetic, list-fold proof constants, and `recur` equations (including multiple arguments and nested source-free dependencies). These are interpreted **without `Function`, including during construction and materialization**, and need no opt-in. Their generated JavaScript remains available for explicitly compiled execution.
+
+Only user-supplied JavaScript requires compilation permission: `fn` strings, callbacks serialized as source, and recurrence dependencies that transitively contain either. `rule.interpreter()` refuses these with **`use compiled() or explicitly pass {compileHelpers: true}`**; `fun.run()` names **`use compiled() explicitly`**. Compilation permission is not implied by having called the compiled path previously. User callbacks are not executed for constant folding before that permission. This is a breaking change for source-helper callers and is labelled **Breaking** in `CHANGELOG.md`.
+
+Migration inventory:
+
+| Test/example | Final requirement |
+|---|---|
+| `core/runtime-default.test.ts` — explicit custom-source and transitive-source tests | Uses `{compileHelpers: true}` or `compiled()` deliberately; tests the refusal text as well |
+| `core/lemmas.test.ts` — recurrence comparison | No opt-in; the temporary f62 workaround is removed |
+| `core/functions.test.ts` — library `modBy` decision | No opt-in; checks default and compiled parity |
+| `examples/jev-fabric/laws.ts` — library `modBy` cap witness | No opt-in; restored to `.run()` |
+
+No pre-existing example requires a new source-helper opt-in after this correction. Existing explicit compiled-engine tests/examples remain explicit by choice, not because data-built helpers require compilation. Focused Boat validation before final freezing passed **47 tests / 3,941 expectations**, check (typecheck + lint), and build. CSP coverage blocks `Function` before import, construction, materialization and execution, and covers serialized machines, multiargument/nested recurrences, proved recurrences, list helpers and direct/transitive custom-source rejection. Independent review found no ordinary-input arithmetic, memoization or argument-pairing mismatch. It did identify stale public helper metadata after a JavaScript/arity override, plus generated-code identifier shadowing; a focused consistency follow-up addresses source/arity/descriptor changes, warm caches, actual transitive dependencies, and invalid generated-code parameter names. Direct metadata remains a trusted representation, not provenance for manually forged objects. The final focused follow-up passed **55 tests / 4,082 assertions**, check and build (`/tmp/gdp-builtins-run-v7/`). A final compatibility regression preserves `Map` as a safe recurrence argument; the clean final gate includes it. Final quick-gate validation remains pending.
+
+## Earlier full-gate attempt (superseded)
+
+The coordinator reported that the unrelated integration gate is red and explicitly requested final validation now against `b788e1959bba1f2e8aa1f94d4cf7c0eb163a2f9c`, using candidate `ed5af69b`. Planned work: clean Boat check/build/full quick suite, both 29-protocol generation censuses, and the full Boat bar. A known `core/effect-queue.test.ts:55` failure is being checked on both revisions and will not be silently counted as green. The full bar may produce more than 500 MB of raw logs; summaries and hashes are the retained evidence, bulky raw logs may be compressed/offloaded, and no duplicate tree archives will be made. No final gate is claimed yet.
+
+The initial final-test wrapper used the shard label `1/7` inside a log filename, so all seven test jobs failed before running tests (missing log subdirectory). This is an owned harness error, not a code failure. The wrapper was corrected and only those seven jobs resubmitted; successful check/build/exports/commitlint and census work are retained. The completed census compared all 29 IDs: **28 proven and `mldr` unknown on both sides; every verdict unchanged** (`runs/census-final.json`). The standalone baseline effect-queue test passed in this run; any later failure will still be checked against its baseline evidence. The earlier clean a7 pre-integration run finished all seven shards plus the original runtime fuzz suite successfully (8 jobs, 0 failed), but is not substituted for the final candidate gate.
+
+## Scheduling change — quick submission gate
+
+At the coordinator's explicit priority change, the full gate-class bar was stopped by exact PID **33220**. Its partial receipts remain in `runs/bar/runs/final-ed5af69b`; they are not a completed green gate. The merge standard is now **`--quick --together --cand <final head> --base b788e195 --runs 3`** with **`SUPERCOMPUTER_CLASS=submission`**, plus check, tests, and the census. The census will also run as submission work to share capacity with the primary MLDR lanes.
+
+## Remaining validation
+
+The source-free built-in helper follow-up is under independent review. Freeze and commit that candidate, then run the affected clean-checkout tests/build, the **quick, together, submission-class Boat bar** against unchanged `b788e195`, and the final submission-class census. Do not substitute the earlier `ed5af69b`/`f62eeb59` receipts for a production change. The coordinator explicitly said main will not move soon; no rebase wait is required. An exhaustive comparison is a test, never a proof. No kernel proof logic or protected MLDR file was changed.

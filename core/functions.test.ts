@@ -91,9 +91,11 @@ test('decisions assume the functions\' facts where they read them; fun: a functi
   expect(proveDecision(lossless(cap({bug: 'narrows before capping'}))).proven).toBe(false)
   // The facts are hypotheses of the decision's goal (as its Lean export states them), at the arguments it reads.
   expect(lossless(cap()).goal.hyps.length).toBeGreaterThan(lossless(cap({fact: false})).goal.hyps.length)
-  // What runs is what was proven: the compiled rule, the broken one broken past 2^32.
-  expect(cap().compiled()({left: R + 5, local: 10})).toEqual({out: 10})
-  expect(cap({bug: 'narrows before capping'}).compiled()({left: R + 5, local: 10})).toEqual({out: 5})
+  // The library-built mod helper needs no opt-in; both runtimes retain the same behavior past 2^32.
+  for (const [f, out] of [[cap(), 10], [cap({bug: 'narrows before capping'}), 5]] as const) {
+    expect(f.run({left: R + 5, local: 10})).toEqual({out})
+    expect(f.compiled()({left: R + 5, local: 10})).toEqual({out})
+  }
   // Conditions in the result come back as booleans; a field may share an argument's name.
   const reserve = fun('reserve').params({cost: nat}).inputs({left: nat}).returns(({left, cost}) => ({granted: left.atLeast(cost), left: left.minus(cost)}))
   expect(reserve.run({left: 3}, {cost: 2})).toEqual({granted: true, left: 1})
