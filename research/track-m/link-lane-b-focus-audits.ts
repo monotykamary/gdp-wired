@@ -19,7 +19,7 @@ export function linkFocusAudits(summary: Projection, sources: AuditSource[]) {
       let record: Record<string, unknown>
       try { record = JSON.parse(line) } catch { continue }
       if (record.conditional !== true) continue
-      assert(input?.endsWith('.json.gz'), 'audit record has no input')
+      if (input === undefined || !input.endsWith('.json.gz')) throw Error('audit record has no input')
       assert(!records.has(input), `duplicate audit: ${input}`)
       assert.equal(record.familyVerified, true, input)
       assert.equal(record.originalHarness, true, input)
