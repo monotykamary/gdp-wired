@@ -1,0 +1,41 @@
+[Bounded shell log: starts with retained pre-spill tail; 8 MiB total cap, then further output is omitted. Not a full-output archive.]
+controller: gdp-wired main at b11e1f651618
+[boat] batch 20261110-130405-j4gaj0: gdp-wired, image sc-f0d8daeee6c3, tree 5852132e48dd (4106 files), cache olean 001de680457b (0 here)
+[boat] 1 jobs to the scheduler (gate) + 1 large (times from a guess)
+Traceback (most recent call last):
+  File "/home/user/.local/bin/supercomputer", line 10, in <module>
+    sys.exit(main())
+             ^^^^^^
+  File "/home/user/.local/share/uv/tools/supercomputer/lib/python3.12/site-packages/supercomputer/__main__.py", line 268, in main
+    _run(a)
+  File "/home/user/.local/share/uv/tools/supercomputer/lib/python3.12/site-packages/supercomputer/__main__.py", line 58, in _run
+    fanout.run_jobs(app, spec, a.out, pre, cmd, mjobs, backend=a.backend, vms=a.vms, idle=None if a.idle < 0 else a.idle, teardown=a.teardown,
+  File "/home/user/.local/share/uv/tools/supercomputer/lib/python3.12/site-packages/supercomputer/fanout.py", line 190, in run_jobs
+    got, bsum = boat.boat_jobs(mine, out, pre, cmd, vms=vms, idle=idle, teardown=teardown, durations=durations, vm_type=vm_type, max_vms=max_vms,
+                ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "/home/user/.local/share/uv/tools/supercomputer/lib/python3.12/site-packages/supercomputer/boat.py", line 2928, in boat_jobs
+    sess.run(items, done, on_lost=(lambda it, why: on_lost(it["name"], why)) if on_lost else None, max_wait=max_wait)
+  File "/home/user/.local/share/uv/tools/supercomputer/lib/python3.12/site-packages/supercomputer/boat.py", line 2485, in run
+    r = self.client.req("/poll", {"batch": bid, "since": since, "wait": 15}, timeout=60)
+        ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "/home/user/.local/share/uv/tools/supercomputer/lib/python3.12/site-packages/supercomputer/scheduler.py", line 3967, in req
+    data = self._local(path, data_in, timeout)
+           ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "/home/user/.local/share/uv/tools/supercomputer/lib/python3.12/site-packages/supercomputer/scheduler.py", line 3985, in _local
+    r = conn.getresponse()
+        ^^^^^^^^^^^^^^^^^^
+  File "/usr/lib/python3.12/http/client.py", line 1457, in getresponse
+    response.begin()
+  File "/usr/lib/python3.12/http/client.py", line 336, in begin
+    version, status, reason = self._read_status()
+                              ^^^^^^^^^^^^^^^^^^^
+  File "/usr/lib/python3.12/http/client.py", line 297, in _read_status
+    line = str(self.fp.readline(_MAXLINE + 1), "iso-8859-1")
+               ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "/usr/lib/python3.12/socket.py", line 707, in readinto
+    return self._sock.recv_into(b)
+           ^^^^^^^^^^^^^^^^^^^^^^^
+KeyboardInterrupt
+
+
+[Process exited with code 130]

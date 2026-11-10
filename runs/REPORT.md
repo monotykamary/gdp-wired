@@ -1,12 +1,12 @@
-## RESUME — ACTIVE FOR 0.48.0 — 2026-11-10
+## RESUME — 0.48.0 BLOCKED BY SHARED CONTROLLER PERMISSIONS — 2026-11-10
 
 User resumed this lane. MLDR frontier work remains paused. **Not GATE GREEN. Do not push, tag or publish.**
 
 - Frozen integrated code/test SHA: `c8411149d2c6c3c060a0665a79f10523b1281cbc`; mandatory baseline `b11e1f651618b3d3fcaf6cec66b4a8b0203cdcd3`. P2 repair is already integrated; remaining tip commits are evidence/docs only.
-- Lane D's retained `runs/REPORT.md` records completed targeted review of exact `ec4ba037`: 26 original probes, 110 passing tests, five mutants caught. Broader static closeout and exact integrated audit remain pending; this is not blanket approval.
+- **Lane D accepted the scoped P2 repair** at exact `ec4ba037`: `../gdp-wired-verifyP/research/verify-all/ci-audit-ec4ba037/rereview-0480.md`. Its retained independent run had 26 probes, 110 passing tests and five mutants caught. Rechecked SHA-256 identity for `core/extract-read.ts`, `core/extract-shapes.ts` and `core/extract-ci-lazy-key.test.ts` in the integrated c841 candidate. No further P2 merge is needed. Integrated native-law behavior and final gate still require separate evidence.
 - Stock scheduler is `/home/user/.local/bin/supercomputer`, with `SUPERCOMPUTER_CONTROLLER=1` required to select shared controller `bx_gz4zdtbh`. Its read-only status answered successfully. Never start a local scheduler or override client estimates.
 - Recreated missing baseline archive directly with `git archive b11e1f65` at `/tmp/gdp-ci-resume-inputs/base-archive/base.tar` (36 MiB); reuse it. Vendor archives remain `/tmp/gdp-ci-fix-optional/archives`. Changed only the temporary control hook's source path from Mac to sandbox; no scheduler code changes.
-- Fresh 39-job supplement submitted to `runs/c841-supplement-resume-20261110/` using unchanged c841 jobs, current-meta, private mount and per-case budgets. Active task/batch receipts will be recorded below once assigned.
+- Fresh 39-job supplement, immutable canonical plan, and privacy scan were submitted, then cancelled before any worker placement because of the shared controller permission error below. No tests ran. All three owned tasks ended at exit 130; no owned queue item or waiter remains.
 - Canonical runner `/tmp/gdp-gate-runner-e07ee501` is clean at `e07ee501`; inspection shows its bar still makes local worktrees/installs. Locate a compliant offloaded invocation before launch; never revive the rejected monolithic controller or estimate override.
 
 ### Infrastructure blocker — 13:05 UTC
@@ -19,13 +19,27 @@ All three new batches reached shared controller `bx_gz4zdtbh`, but **zero worker
 | Immutable canonical plan | `20261110-130405-j4gaj0` | `eee7c535-f914-4db2-8c83-bf054469567b` | 230696 |
 | Release privacy scan | `20261110-130434-0448th` | `5e97a1ff-7132-47c4-a060-e82c5d1a14e1` | 233724 |
 
-`runs/RELEASE-PREFLIGHT.md` lists what publish.yml runs and what remains gated. No release version edit has been made. These task statuses are live submission records, not passing evidence; see the later shutdown receipt if cancelled.
+`runs/RELEASE-PREFLIGHT.md` lists what publish.yml runs and what remains gated. No release version edit has been made. These are retained submission identities, not passing evidence. All three tasks were cancelled before placement; see the shutdown receipt below.
 
 ### For Lane D / coordinator
 
 **Shared scheduler action scope needs owner repair:** its existing API key refuses `sandbox.create` (403). No local scheduler or alternative key was created. This blocks all queued work, not just CI.
 
-Exact final candidate is `c8411149d2c6c3c060a0665a79f10523b1281cbc`. P2 is included. Please bind the integrated audit and final gate to this SHA and baseline above. Your `claude/gate-offload` branch currently lacks `research/verify-all/final-gate.ts`; the retained e07 runner has it but performs local bar preparation. CI is restarting independent supplement work now, not waiting for review.
+Exact final candidate is `c8411149d2c6c3c060a0665a79f10523b1281cbc`. P2 is included. Please bind the integrated audit and final gate to this SHA and baseline above. Your `claude/gate-offload` branch currently lacks `research/verify-all/final-gate.ts`; the retained e07 runner has it but performs local bar preparation. CI attempted independent supplement work without waiting for review, then closed the unplaced batches on the documented permission blocker. Scoped acceptance is Lane D commit `711d2231`.
+
+### Verified shutdown — 13:06 UTC
+
+Exact owned PIDs 230391, 230696 and 233724 received SIGINT. Each stock client closed its batch and exited 130. All three PIDs are absent; task inventory has no running tasks. Shared controller status fell from five batches to the two pre-existing non-CI batches, with **zero queued gate items and zero placements**. Other clients' submission/filler work was untouched. Evidence: `runs/c841-resume-blocked/{attempts.json,*-controller.log,controller-status-after-close.txt}`. No Modal fallback, scheduler patch, key rotation, publication or external write occurred.
+
+### Resume after legitimate shared-controller permission repair
+
+1. Keep exact c841 candidate and b11 baseline. Reuse `/tmp/gdp-ci-resume-inputs/base-archive/base.tar` and `/tmp/gdp-final-c8411149-inputs`; vendor archives are `/tmp/gdp-ci-fix-optional/archives`. Do not rebuild or delete archives unnecessarily.
+2. Launch the unchanged 39-job supplement with the same source/vendor/private mounts into a **new** output directory; cancelled `c841-supplement-resume-20261110` is not reusable evidence. Submission commands and identities are retained in `runs/c841-resume-blocked/attempts.json`.
+3. Restart the immutable canonical plan, then its exact checks/pairs and a compliant native-leaf paired bar. Lane D's accepted P2 review is complete; its integrated audit/final gate is not. The historical native-driver monkeypatch remains forbidden. The standalone plan job submitted here was **not** the full one-command final gate.
+4. Run the prepared privacy scan (source retained as `release-privacy-scan.ts.txt`) against both diff boundaries, then do client-name and final-package review. The preparation is not a scan result. Record a full clean review only after it actually runs.
+5. Validate the supplement collector on Boat and verify all receipts. Only Lane D's unmodified final-gate receipt can authorize GATE GREEN. Keep versions at 0.47.0 until then; the release checklist is in `runs/RELEASE-PREFLIGHT.md`.
+
+For Lane D: `20261110-130434-0448th` was the **privacy preflight**, not a native bar job. All three CI-owned batches above are closed; do not treat them as running or duplicate their receipts. There is no gate pass.
 
 ### Previous checkpoint (historical; superseded by explicit resume)
 

@@ -1,0 +1,3 @@
+[
+  {"name":"plan","cmd":"bun research/verify-all/final-gate-worker.ts plan plan","cpu":2,"memory":4096,"timeout":300,"vm_type":"large"}
+]

@@ -1,0 +1,1 @@
+[{"name":"release-boundary-privacy","cmd":"bun release-privacy-scan.ts privacy-inputs","cpu":2,"memory":4096,"timeout":300,"vm_type":"large"}]

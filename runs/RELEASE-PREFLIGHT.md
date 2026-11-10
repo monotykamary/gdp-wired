@@ -23,7 +23,7 @@ Required gate baseline: `b11e1f651618b3d3fcaf6cec66b4a8b0203cdcd3`.
 - Workflow timeouts: release discovery 5 minutes, reusable checks 15/20 minutes, publishing 20 minutes. Neither this workflow nor this checklist replaces the independent release gate.
 - Publishing advisories (staged-version 409, OTP/2FA notice, empty `/-/stage`) mean pending; do not bump, retag or retry to bypass them.
 
-## Active evidence
+## Retained blocked attempts (cancelled before worker placement)
 
 - 39-job exact-candidate supplement: `runs/c841-supplement-resume-20261110/`, batch `20261110-130346-vvxxgb`.
 - Immutable canonical plan worker: `runs/c841-canonical-resume-20261110/plan/`; full checks depend on its validated roster.

@@ -1,0 +1,16 @@
+{
+  "candidate": "c8411149d2c6c3c060a0665a79f10523b1281cbc",
+  "baseline": "b11e1f651618b3d3fcaf6cec66b4a8b0203cdcd3",
+  "controller": "bx_gz4zdtbh",
+  "failure": {"code":"api_key_action_forbidden","action":"sandbox.create","status":403},
+  "status": "cancelled-before-any-worker-placement",
+  "gateGreen": false,
+  "testsRun": 0,
+  "ownedRunningTasks": [],
+  "ownedQueuedBatches": [],
+  "attempts": [
+    {"purpose":"39-job supplement","batch":"20261110-130346-vvxxgb","task":"bd665538-55fd-402c-8588-b64a98645ec4","pid":230391,"exit":130,"out":"runs/c841-supplement-resume-20261110","command":"PATH=/home/user/.local/bin:$PATH SUPERCOMPUTER_CONTROLLER=1 supercomputer --repo /tmp/gdp-boat-control run --jobs /tmp/gdp-c841-supplement.jobs.json --out NEW_ABSOLUTE_OUTPUT --class gate --backend boat --timing --vm-type large --data /tmp/gdp-ci-resume-inputs/base-archive:base-archive --data /tmp/gdp-ci-fix-optional/archives:source-archives --data /tmp/gdp-c841-supplement-meta:current-meta --data /tmp/gdp-ci-fix-optional/control:final-control --data /tmp/gdp-ci-item0-private:ci-private"},
+    {"purpose":"immutable canonical plan only, not the full gate","batch":"20261110-130405-j4gaj0","task":"eee7c535-f914-4db2-8c83-bf054469567b","pid":230696,"exit":130,"out":"runs/c841-canonical-resume-20261110/plan","command":"PATH=/home/user/.local/bin:$PATH SUPERCOMPUTER_CONTROLLER=1 supercomputer --repo /tmp/gdp-gate-runner-e07ee501 run --jobs /tmp/gdp-ci-resume-inputs/plan.jobs.json --out NEW_ABSOLUTE_OUTPUT --class gate --backend boat --timing --vm-type large --data /tmp/gdp-final-c8411149-inputs:gate-inputs"},
+    {"purpose":"privacy preflight only, not the native bar","batch":"20261110-130434-0448th","task":"5e97a1ff-7132-47c4-a060-e82c5d1a14e1","pid":233724,"exit":130,"out":"runs/c841-privacy-resume-20261110","command":"PATH=/home/user/.local/bin:$PATH SUPERCOMPUTER_CONTROLLER=1 supercomputer --repo /tmp/gdp-boat-control run --jobs /tmp/gdp-ci-resume-inputs/privacy.jobs.json --out NEW_ABSOLUTE_OUTPUT --class gate --backend boat --data /tmp/gdp-ci-resume-inputs/privacy:privacy-inputs"}
+  ]
+}

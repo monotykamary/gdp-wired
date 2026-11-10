@@ -1,0 +1,34 @@
+// Read-only release boundary scan. Never prints matching text or private fixtures.
+import {readFileSync} from 'node:fs'
+import {join} from 'node:path'
+const root=process.argv[2]??'privacy-inputs'
+const rules: [string, RegExp][]=[
+ ['absolute-user-path', /\/(?:Users|home)\/[A-Za-z0-9_.-]+\//],
+ ['private-path', /(?:^|[\s`'"(])(?:\.\.\/)?private\//i],
+ ['temporary-internal-artifact', /\/(?:private\/)?tmp\/(?:gdp-|claude-|lane-)/],
+ ['private-fixture-label', /\b(?:CLI-A|MCP-B)\d+\b/],
+ ['held-disclosure-marker', /INTERNAL\s*\/\s*HELD|DO NOT PUBLISH|disclosure (?:is )?held/i],
+ ['private-key', /-----BEGIN (?:RSA |EC |OPENSSH |DSA )?PRIVATE KEY-----/],
+ ['credential-shaped-token', /\b(?:gh[pousr]_[A-Za-z0-9]{25,}|github_pat_[A-Za-z0-9_]{30,}|AKIA[A-Z0-9]{16}|sk-(?:proj-)?[A-Za-z0-9_-]{32,})\b/],
+ ['url-query-credential', /[?&](?:_?token|api_key|access_token)=[A-Za-z0-9_-]{20,}/i],
+]
+const controls=[['/Users/example/project/a','absolute-user-path'],['private/handoff/a.md','private-path'],['ghp_'+ 'a'.repeat(30),'credential-shaped-token'],['https://example.test?_token='+ 'b'.repeat(40),'url-query-credential']]
+for(const [text,name] of controls)if(!rules.find(([n])=>n===name)![1].test(text!))throw Error('missing positive control '+name)
+if(rules.some(([,r])=>r.test('public API guide and release notes')))throw Error('negative control')
+const scans=[]
+for(const file of ['origin-main-to-main.diff','main-to-candidate.diff']){
+ const text=readFileSync(join(root,file),'utf8');let path='',line=0,added=0;const findings=[]
+ for(const raw of text.split('\n')){
+  if(raw.startsWith('+++ b/')){path=raw.slice(6);continue}
+  if(raw.startsWith('@@')){const m=raw.match(/\+(\d+)/);if(m)line=Number(m[1]);continue}
+  if(!raw.startsWith('+')||raw.startsWith('+++'))continue
+  added++;const content=raw.slice(1)
+  for(const [rule,re] of rules)if(re.test(content))findings.push({path,line,rule})
+  line++
+ }
+ const byRule:Record<string,number>={};for(const f of findings)byRule[f.rule]=(byRule[f.rule]??0)+1
+ scans.push({file,added,findings,byRule})
+}
+const paths=readFileSync(join(root,'candidate-paths.txt'),'utf8').trim().split('\n')
+const privatePaths=paths.filter(p=>/(^|\/)(?:private|\.env(?:\.|$)|id_rsa|credentials)(\/|$)/i.test(p))
+console.log('RELEASE_PRIVACY_SCAN '+JSON.stringify({schema:'release-privacy/v1',revisions:readFileSync(join(root,'revisions.txt'),'utf8').trim().split('\n'),controls:'passed',scans,privatePaths,completeClientNameReview:false,clean:scans.every(s=>s.findings.length===0)&&privatePaths.length===0}))
