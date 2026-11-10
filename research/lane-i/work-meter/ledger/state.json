@@ -1,12 +1,12 @@
 {
-  "status": "three Bun raw pairs audited; ordinary work path unavailable; cross-CPU diagnostics and fenced Node follow-up running",
+  "status": "Three-protocol cross-CPU raw audit passed; ordinary-clock prototype validated but not admitted; stable Node stack identifies unmetered request-product construction",
   "privateIndex": "/private/tmp/lane-i-ledger.index",
   "task": "4575fac2-7dbb-4fcf-859f-63aba9e3e9c5",
   "waiterPid": 90266,
   "batch": "20261110-123336-6maehh",
   "resultDirectory": "runs/lane-i/complete-structural",
   "includesGeneratedConstructors": false,
-  "next": "Finish missing CPU comparisons without duplicate same-CPU runs; inspect ordinary-path clock migration and genuine EPR coverage. Never fit weights from the refusal control or claim all-29 qualification.",
+  "next": "Cover request-product materialization with discarded observations and exact controls; continue ordinary-path/EPR coverage and acceptance checks before new source admission. Do not calibrate from the refusal control or claim full F3/F4.",
   "productionChanged": false,
   "weightsCalibrated": false,
   "f3Implemented": false,
@@ -41,29 +41,10 @@
   },
   "activeTasks": [
     {
-      "task": "b6b14f83-fb85-450f-be52-ad8a67f24bb0",
-      "pid": 549052,
-      "results": "runs/lane-i/resume-raw-census-frozen"
-    },
-    {
-      "task": "9f21d71f-c9ba-43cf-aa3e-93f7f9893792",
-      "pid": 591392,
-      "results": "runs/lane-i/resume-canonical-fenced-node"
-    },
-    {
-      "task": "ea5dd6b7-1fea-4fee-be2b-a43f55359a8a",
-      "pid": 596075,
-      "results": "runs/lane-i/resume-cross-cpu-attempt-1"
-    },
-    {
-      "task": "bf4591ee-47a9-45c5-b085-52c51341fe70",
-      "pid": 600590,
-      "results": "runs/lane-i/resume-cross-cpu-attempt-2"
-    },
-    {
-      "task": "987571bb-b84e-4a7a-b7ef-210440217663",
-      "pid": 602087,
-      "results": "runs/lane-i/resume-plain-clock-prototype"
+      "task": "72a5faa9-de42-4835-97fa-e0f426bf82ed",
+      "pid": 635580,
+      "results": "runs/lane-i/resume-request-accounting-v4",
+      "purpose": "selected-source retry after test-only TypeScript transpilation fix; successful mutation suites are not repeated"
     }
   ],
   "rerunFirst": [],
@@ -95,12 +76,13 @@
     "receiptAudit": "20261110-202451-eom7lj"
   },
   "toolingValidation": {
-    "batch": "20261110-212458-uabmnq",
+    "batch": "20261110-213747-66qkkg",
     "typeLint": true,
-    "files": 1693,
+    "files": 1695,
     "warnings": 0,
     "errors": 0,
-    "commitlint": true
+    "commitlint": true,
+    "scope": "tooling only; the same batch artifact job failed from wrong recovery-input routing"
   },
   "verifiedSourceChain": [
     {
@@ -142,7 +124,8 @@
   },
   "canonicalExport": {
     "results": "runs/lane-i/resume-canonical-controls/export-canonical-source.log",
-    "status": "exported, not yet independently hash-compared to tested receipt"
+    "status": "independently hash-verified and frozen as 41d39043",
+    "auditBatch": "20261110-204538-t42ntt"
   },
   "canonicalValidation": {
     "batch": "20261110-203555-pkp0td",
@@ -173,17 +156,19 @@
     "corruptionsRejected": 10,
     "sameCpuAliasesNotOverclaimed": true,
     "realResultsAudited": true,
-    "auditedRealPairs": 3,
+    "auditedRealPairs": 6,
     "completePilot": false,
-    "partialAuditBatch": "20261110-211756-rm4lfj"
+    "partialAuditBatch": "20261110-211756-rm4lfj",
+    "crossCpuProtocols": 3
   },
   "rawCensusProgress": {
-    "observedAt": "2026-11-10T21:15:15.572Z",
     "batch": "20261110-205505-uq8edg",
-    "largeJobsReportedExitZero": 3,
-    "defaultJobsLeft": 3,
-    "defaultJobsRunning": 0,
-    "note": "Scheduler-only progress. Complete logs and actual CPU labels are not yet collected."
+    "largeJobsCompletedAndAudited": 3,
+    "defaultJobsCancelledUnstarted": 3,
+    "runningAtCleanup": 0,
+    "closed": true,
+    "waiterStopped": true,
+    "cleanupReceipt": "runs/lane-i/resume-raw-census-frozen/cleanup.json"
   },
   "rawCensusCoverage": {
     "ordinarySolver": false,
@@ -199,7 +184,7 @@
     "maximum": 3
   },
   "ordinaryMigration": {
-    "stage": "isolated positive-test-weight prototype running",
+    "stage": "22-test prototype and exact-parent patch roundtrip passed; not admitted",
     "productionChanged": false,
     "defaultRefusalStillEnabled": true,
     "weightsCalibrated": false,
@@ -215,8 +200,214 @@
       "no Math.random reseeding",
       "ordinary checked proof with test weights",
       "zero whole-entry budget cannot complete",
-      "original consensus executes solver",
+      "original consensus reaches preflight under work scope",
       "EPR charged once in complete mode, legacy debit retained"
+    ],
+    "prototypeBatch": "20261110-212430-q24kdg",
+    "artifactAuditBatch": "20261110-212826-0yywzw",
+    "patchSha256": "0b81986736b8b20ae97661f4f0ecc377b61d8534a8c935a87aa6b4da9758dfc3",
+    "tests": 22,
+    "parentSourceFiles": 109,
+    "originalConsensus": {
+      "preflightEvals": 47294,
+      "solverFm": 0,
+      "result": {
+        "proven": false,
+        "checked": false,
+        "stuck": "unknown",
+        "why": "work budget (completion)"
+      }
+    },
+    "admitted": false,
+    "artifactRecheckBatch": "20261110-213829-djrxck",
+    "artifactRecheckPassed": true
+  },
+  "f3CanonicalFollowup": {
+    "batch": "20261110-211555-pdxwgb",
+    "sameRawAndVerdict": true,
+    "sourceUnchanged": true,
+    "exclusivePhaseReconciliation": true,
+    "stableWindows": 3,
+    "changedWindows": 11,
+    "stableApplicationWindows": 1,
+    "stableGcWindows": 2,
+    "stackMapBatch": "20261110-213128-eh7sxk",
+    "remainingGap": "core/infer.ts instance Cartesian request-product materialization before combosMax truncation",
+    "bunQualified": false
+  },
+  "crossCpuAudit": {
+    "batch": "20261110-212826-0yywzw",
+    "passed": true,
+    "source": "41d39043a75e279dc9600e6a33c8107014b67025",
+    "protocols": [
+      {
+        "id": "consensus",
+        "cpus": [
+          "AMD Ryzen 9 9950X 16-Core Processor",
+          "AMD EPYC 4585PX 16-Core Processor"
+        ],
+        "crossCpu": true,
+        "fingerprint": "a701c435daec151f59a3c248f90cb561761d7bda529261c154861fc44de38c69",
+        "result": {
+          "proven": false,
+          "checked": false,
+          "stuck": "unknown",
+          "why": "work mode: plain-path migration pending"
+        }
+      },
+      {
+        "id": "consensus_epr",
+        "cpus": [
+          "AMD Ryzen 9 9950X 16-Core Processor",
+          "AMD EPYC 4585PX 16-Core Processor"
+        ],
+        "crossCpu": true,
+        "fingerprint": "ee76d0dc52816231db31ebda36207cbe0da71d4ac6235cdfe39f4cdac8f2042a",
+        "result": {
+          "proven": true,
+          "checked": true
+        }
+      },
+      {
+        "id": "mldr",
+        "cpus": [
+          "AMD EPYC 4585PX 16-Core Processor",
+          "AMD Ryzen 9 9950X 16-Core Processor"
+        ],
+        "crossCpu": true,
+        "fingerprint": "3a8230cf600bf37b0a01f64d0d68c2f747296ff92b0258b26b477bdceaba36f4",
+        "result": {
+          "proven": false,
+          "checked": false,
+          "stuck": "unknown",
+          "why": "work budget (completion)"
+        }
+      }
+    ],
+    "crossCpuProtocols": [
+      "consensus",
+      "consensus_epr",
+      "mldr"
+    ],
+    "scope": "three-protocol raw pilot, not full F4 or calibrated W",
+    "cpuEvidence": {
+      "first": [
+        {
+          "id": "consensus",
+          "backendCpuReported": true
+        },
+        {
+          "id": "consensus_epr",
+          "backendCpuReported": true
+        },
+        {
+          "id": "mldr",
+          "backendCpuReported": true
+        }
+      ],
+      "cross": [
+        {
+          "id": "consensus",
+          "backendCpuReported": false,
+          "processGateAndBothWorkersAgree": true
+        },
+        {
+          "id": "consensus_epr",
+          "backendCpuReported": false,
+          "processGateAndBothWorkersAgree": true
+        },
+        {
+          "id": "mldr",
+          "backendCpuReported": false,
+          "processGateAndBothWorkersAgree": true
+        }
+      ]
+    },
+    "pathCoverage": [
+      {
+        "id": "consensus",
+        "solverCountersNonzero": false,
+        "eprCounterNonzero": false
+      },
+      {
+        "id": "consensus_epr",
+        "solverCountersNonzero": true,
+        "eprCounterNonzero": false
+      },
+      {
+        "id": "mldr",
+        "solverCountersNonzero": true,
+        "eprCounterNonzero": false
+      }
+    ],
+    "qualificationBlocked": [
+      "ordinary work path refuses execution",
+      "EPR path not observed by its counter",
+      "Bun F3 unavailable",
+      "weights and W uncalibrated"
     ]
+  },
+  "toolingAttempt": {
+    "batch": "20261110-213410-0tn1qx",
+    "typecheck": true,
+    "lint": false,
+    "cause": "plain/verify.ts untyped source.changed default sort needs explicit comparator",
+    "fixedInWorkingTree": true,
+    "placementFixturesPassed": true,
+    "placementCorruptionsRejected": 9,
+    "rawCorruptionsRejected": 10,
+    "crossCpuAuditPassed": true,
+    "commitlintPassed": true
+  },
+  "requestAccounting": {
+    "admitted": false,
+    "productionChanged": false,
+    "stage": "test-only parser repair under selected-source recheck; three mutation suites passed",
+    "firstAttempts": [
+      {
+        "task": "db7074b9-df90-48fd-9b02-973ac5890d1d",
+        "solverRan": false,
+        "failure": "minimal census validation-input omitted prepare.ts"
+      },
+      {
+        "task": "1df34f44-af06-4342-b53f-c8210be6a6de",
+        "solverRan": false,
+        "failure": "baseline.pack hard link crossed filesystems"
+      }
+    ],
+    "input": "/tmp/lane-i-request-accounting-v4",
+    "results": "runs/lane-i/resume-request-accounting-v4",
+    "firstSelectedFailure": {
+      "batch": "20261110-213747-rlztdu",
+      "inheritedTestsPassed": 158,
+      "newFixtureFailure": "TypeScript non-null assertion passed to JavaScript Function without transpilation",
+      "clippedSourcePrefix": true,
+      "notAdmitted": true
+    },
+    "mutationValidation": {
+      "batch": "20261110-213747-rlztdu",
+      "auditBatch": "20261110-214151-wkgi21",
+      "modes": [
+        "zero",
+        "double",
+        "random"
+      ],
+      "testsPerMode": 267,
+      "passed": true,
+      "productionInferBlob": "4468bef7a663aa4d18bf9e78c929fae84677de35",
+      "scope": "production code unchanged by fixture repair; all hashes must be rechecked against the retry"
+    }
+  },
+  "artifactRecheckRoutingFailure": {
+    "batch": "20261110-213747-66qkkg",
+    "job": "plain-clock-artifact-roundtrip",
+    "exit": 1,
+    "reason": "recovery-input pointed at commit messages, not restoration tools",
+    "replacementTask": "65df6519-182d-4095-88b7-30775f891029"
+  },
+  "artifactRecheck": {
+    "batch": "20261110-213829-djrxck",
+    "passed": true,
+    "samePatchSha256": "0b81986736b8b20ae97661f4f0ecc377b61d8534a8c935a87aa6b4da9758dfc3"
   }
 }

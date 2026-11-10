@@ -39,4 +39,19 @@ Independent source-transport, receipt and phase-reconciliation audits passed
 in `20261110-204538-t42ntt`. The exact source is frozen as `41d39043` on
 `claude/lane-i-complete-canonical`; see `VERIFIED-SOURCE.md`.
 
+## Fenced follow-up on the frozen canonical source
+
+`20261110-211555-pdxwgb` again preserves the off/on raw vector, verdict and
+source blobs, but its strict capture audit finds three stable windows and
+11 changed windows. Two stable samples are GC; one is application work in
+`instance` / `dataFilter`. The same-source bundle reconstruction
+`20261110-213128-eh7sxk` matches the line and named-function anchors to
+`core/infer.ts`'s Cartesian request-product materialization, before its
+`combosMax` truncation. No additional solver run was used for that mapping.
+
+The request records and copied properties are currently unobserved work.
+Next: add discarded observations with exact materialization controls; retain
+order, shape and truncation semantics; rerun source/erasure/mutation checks
+before freezing another source. GC samples are retained, not exempted.
+
 No claim of complete coverage, Bun F3, F4 census, calibrated weights, or W.

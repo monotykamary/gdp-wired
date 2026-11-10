@@ -1,5 +1,6 @@
 import {strict as assert} from 'node:assert'
 import {auditLog, auditPairs, patch, sha, source} from './audit.ts'
+import {auditPlacementLog} from './audit-cross.ts'
 const raw = Object.fromEntries(['fm','fcells','plainRows','values','copies','edges','scan','pivotRows','unitRows','unfoldRows','goalNodes','translateRows','tableCells','checkSteps','astNodes','evals','cubeTests','ticks','cdclNodes','epr'].map(key => [key, 1]))
 const make = (id: string, cpu: string, mutate: (row: any) => any = row => row) => {
   const tuple = {id, work: 15000000, result: {proven: false, checked: false, stuck: 'unknown'}, raw}
@@ -26,4 +27,18 @@ assert.throws(() => auditPairs(pairs.slice(1)))
 assert.throws(() => auditPairs(pairs.map((row, index) => index ? row : {...row, fingerprint: 'wrong'})))
 const sameCpu = ids.flatMap(id => [1,2].map(() => auditLog(make(id, 'same-cpu'), id)))
 assert.equal(auditPairs(sameCpu).crossCpuProtocols.length, 0)
-console.log('RAW_CENSUS_AUDITOR_FIXTURES ' + JSON.stringify({passed: true, corruptionsRejected: 10, cpuAliasNotOverclaimed: true, syntheticOnly: true}))
+const gate = (updates: object = {}) => 'RAW_CENSUS_CPU_GATE ' + JSON.stringify({id: 'mldr', selected: true, cpu: 'cpu-b', firstCpu: 'cpu-a', ...updates}) + '\n'
+const crossLog = make('mldr', 'cpu-b'), gated = gate() + crossLog
+assert.equal(auditPlacementLog(gated, 'mldr', 'cross', '').backendCpuReported, false)
+assert.equal(auditPlacementLog(gated, 'mldr', 'cross', 'cpu-b').backendCpuReported, true)
+assert.equal(auditPlacementLog(gated, 'mldr', 'cross', '').firstCpu, 'cpu-a')
+assert.throws(() => auditPlacementLog(good, 'mldr', 'large', ''))
+assert.throws(() => auditPlacementLog(good, 'mldr', 'large', 'other'))
+assert.throws(() => auditPlacementLog(crossLog, 'mldr', 'cross', ''))
+assert.throws(() => auditPlacementLog(gate({selected: false}) + crossLog, 'mldr', 'cross', ''))
+assert.throws(() => auditPlacementLog(gate({cpu: 'wrong'}) + crossLog, 'mldr', 'cross', ''))
+assert.throws(() => auditPlacementLog(gate({firstCpu: 'cpu-b'}) + crossLog, 'mldr', 'cross', ''))
+assert.throws(() => auditPlacementLog(gate({id: 'consensus'}) + crossLog, 'mldr', 'cross', ''))
+assert.throws(() => auditPlacementLog(gate() + gated, 'mldr', 'cross', ''))
+assert.throws(() => auditPlacementLog(gated, 'mldr', 'cross', undefined))
+console.log('RAW_CENSUS_AUDITOR_FIXTURES ' + JSON.stringify({passed: true, corruptionsRejected: 10, placementCorruptionsRejected: 9, cpuAliasNotOverclaimed: true, missingBackendCpuRequiresGateAndBothWorkers: true, syntheticOnly: true}))

@@ -23,7 +23,21 @@ only exports a non-admitted patch after success. The first failure is retained.
 The working production tree and frozen census input are untouched.
 
 Harness type/lint and commitlint pass (`20261110-212458-uabmnq`, 1,693
-files, zero warnings/errors). Current status: experiment running; no
-prototype source admitted. Additional
-path coverage, state-machine laws, full erasure/acceptance checks and CPU
-comparisons are still required before a new source can replace `41d39043`.
+files, zero warnings/errors). The prototype passed **22 tests** and type/lint
+in `20261110-212430-q24kdg`. Independent roundtrip audit
+`20261110-212826-0yywzw` applies its five-file patch to the exact parent tree
+`1938f7d70a7ed5fb0369a0e76e2e0c2b5a113131` and checks all 109 source blobs.
+Patch SHA-256: `0b81986736b8b20ae97661f4f0ecc377b61d8534a8c935a87aa6b4da9758dfc3`.
+
+The unchanged original `consensus` reaches **47,294 preflight evaluations**,
+then returns `unknown` / `work budget (completion)` with `fm = 0`. This is
+preflight coverage, not complete ordinary-solver or EPR coverage. No prototype
+source is admitted. Additional path coverage, state-machine laws, full
+erasure/acceptance checks and CPU comparisons are still required before a new
+source can replace `41d39043`.
+
+The auditor's untyped default array sort failed lint in
+`20261110-213410-0tn1qx`; an explicit string comparator passes the full
+1,695-file tooling recheck. Its independently repeated artifact roundtrip
+also passes (`20261110-213829-djrxck`). The intervening wrong-data-alias
+failure is retained and is not counted as a successful audit.

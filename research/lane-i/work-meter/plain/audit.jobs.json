@@ -1,0 +1,1 @@
+[{"name":"raw-census-cross-cpu-audit","cmd":"bun f4-input/audit-cross.ts","cpu":1,"memory":2048,"timeout":120,"vm_type":"large"},{"name":"plain-clock-artifact-roundtrip","cmd":"bun recovery-input/materialize.ts && bun recovery-input/compose.ts canonical && bun plain-input/verify.ts","cpu":2,"memory":6144,"timeout":300,"vm_type":"large"}]

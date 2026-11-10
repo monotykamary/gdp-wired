@@ -24,8 +24,9 @@ Checker erasure and zero/double/random acceptance suites passed. No calibrated
 weights or W are supplied. Do not let this audit block ledger/coverage work.
 The active integration branch remains research-only changes beyond the pause.
 
-The first three Bun raw pairs now pass an independent receipt audit, but
-`consensus` refuses with `work mode: plain-path migration pending` (51 AST
+All three Bun raw pairs now agree on both Ryzen 9 9950X and EPYC 4585PX,
+with independent audit `20261110-212826-0yywzw`. However, `consensus` refuses
+with `work mode: plain-path migration pending` (51 AST
 constructions, no solver work), and `consensus_epr` has zero EPR-counter units.
 Do not treat either name as proof of path coverage or fit an ordinary-path
 weight from the refusal. `mldr` exercises the counted path and stops at the
@@ -79,21 +80,61 @@ full worktree. Recipe: `research/lane-i/work-meter/f4/freeze.sh`.
 
 Census tooling passes type/lint with zero warnings/errors across 1,687 files
 and all prepared commit messages pass (`20261110-205639-plp2u8`). The initial
-subprocess typing failure is retained. Pilot results and actual cross-CPU
-coverage remain pending.
+subprocess typing failure is retained. The initial tooling result alone did
+not establish real CPU coverage; the subsequent audit is recorded below.
 
 Recovered large-VM pairs pass source/transport/raw/phase/verdict audit
 `20261110-211756-rm4lfj`. The pool contains Ryzen 9 9950X and EPYC 4585PX CPUs.
-The remaining diagnostic comparisons now use an explicit different-CPU gate
-before any solver run; a same-CPU allocation exits 75 without execution.
+The diagnostic comparisons used an explicit different-CPU gate before any
+solver run; a same-CPU allocation exited 75 without execution. All three IDs
+now match across those CPUs (`20261110-212826-0yywzw`). Empty backend CPU labels
+on the second placements are disclosed; their gate and both child records
+agree. The three redundant, unstarted default jobs were cancelled after
+retaining receipts; the original batch and its exact waiter are closed.
 The ordinary refusal and unobserved EPR path keep all-29 qualification closed.
+
+### Isolated ordinary-clock prototype — not admitted
+
+The five-file prototype passed 22 tests and type/lint in
+`20261110-212430-q24kdg`; its exact-parent, 109-blob patch roundtrip passed in
+`20261110-212826-0yywzw`. It retains default refusal and requires explicit
+positive test weights. Original `consensus` reaches 47,294 preflight
+evaluations, then returns `unknown` / `work budget (completion)` with `fm = 0`.
+This is not complete ordinary-solver or EPR coverage. No production vector,
+W, source admission or integration promotion is implied.
 
 ### F3 progress, not completion
 
 The heartbeat-fenced original-MLDR Node follow-up is now bound to canonical
 patch `f59720c766a6`, with source blobs checked before and after observation.
 Its tooling check passes (`20261110-211606-615p6t`, 1,689 files, zero warnings
-or errors); runtime results remain pending. This is not Bun F3 qualification.
+or errors). The off/on run and strict audit passed in
+`20261110-211555-pdxwgb`, preserving the raw vector, verdict and source blobs.
+It found 11 changed-during-capture windows and three stable windows: one
+application stack and two GC stacks. Rebuilding the same canonical bundle in
+`20261110-213128-eh7sxk` maps the application frames to Cartesian request
+construction in `core/infer.ts`, before `combosMax` truncation. That work is
+not yet metered. This is not Bun F3 or complete-coverage qualification.
+
+An isolated `requests` composition now adds only a discarded allocation
+observation there. Six controls evaluate the actual production expression
+and adjacent truncation, including overwrite semantics, map identity and RNG
+order. All three zero/double/random acceptance controls pass 267 tests each,
+with receipt audit `20261110-214151-wkgi21`. The selected run passed its 158
+inherited tests but the new fixture failed to parse a TypeScript `!` inside
+`new Function`. The fixture now transpiles the original snippet with Bun;
+only the selected-source job is being retried. Production bytes are unchanged
+by this fixture fix, and no source has been admitted. The two pre-dispatch input failures
+(minimal census tools, then a cross-filesystem hard link) ran no solver and
+are retained. The checkpoint tooling run `20261110-213410-0tn1qx` passed both
+audits and commitlint, but lint rejected an untyped default sort in the plain
+artifact auditor. The explicit string comparator passes type/lint and
+commitlint in `20261110-213747-66qkkg` (1,695 files, zero warnings/errors).
+That batch's artifact-only job failed because its recovery-input alias
+pointed at commit messages; the correctly routed independent roundtrip passed
+in `20261110-213829-djrxck`. First failures are retained, including a clipped
+source-receipt prefix when export chunks were mixed with validation output.
+The retry keeps source export separate from checks.
 
 Original MLDR Node pilot `20261110-202238-v6auwd` retained **identical raw vectors
 and verdicts** with observation off/on. Both were `unknown`, reason

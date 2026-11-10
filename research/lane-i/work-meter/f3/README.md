@@ -40,8 +40,19 @@ including the initial timeout; do not mistake a live socket for a live stack.
 `canonical-pilot.jobs.json` now tests the heartbeat-fenced worker on the frozen
 canonical source (`f59720c766a6`), with explicit pre-run source binding and
 post-run source-blob checks. Its strict audit distinguishes changed windows
-from stable quiet windows. This new original-MLDR Node pair is pending; it does
-not repeat or replace the old pre-canonical pair.
+from stable quiet windows. Batch `20261110-211555-pdxwgb` passed with the same
+raw vector and verdict off/on, unchanged source blobs and reconciled exclusive
+phases. Of 14 captures, 11 changed during capture and **three stayed stable**:
+one application stack through `instance` / `dataFilter`, and two GC stacks.
+Changed canonicalization windows are not stable violations.
+
+`map-stack.ts` rebuilt the exact canonical source with the same Bun 1.4.3
+bundler (`20261110-213128-eh7sxk`), without another solver run. The generated
+line and named-function anchors match: both anonymous frames are the Cartesian
+request-product `combos.flatMap(c => d.map(v2 => ({...c, [i]: v2})))` in
+`core/infer.ts`, before the `combosMax` truncation. This is a remaining raw
+accounting gap, not a reason to discard the stable capture or exempt GC.
+No production source was changed by the reconstruction.
 
 No Bun F3, host qualification, calibrated weighted-unit sampler or complete
 census is established by these results. Both pilot processes used the exact

@@ -49,6 +49,26 @@ placements, never successful CPU pairs, with at most three placement attempts
 per ID in this pilot. `audit-cross.ts` requires all three
 actual CPU differences and preserves the path-coverage limitations.
 
+## Completed cross-CPU diagnostic
+
+Independent audit `20261110-212826-0yywzw` passed all three original IDs on
+**both Ryzen 9 9950X and EPYC 4585PX**. Every pair has equal raw counters and
+verdicts across CPUs. `consensus` still refuses, `consensus_epr` is checked but
+has a zero EPR counter, and `mldr` still stops at the legacy work allowance.
+This is a six-pair diagnostic, not all-29 or intended-path qualification.
+
+The cross-placement backend records have empty CPU labels. The auditor
+reports this explicitly; it instead requires the gate and both independently
+hashed child records to agree on the nonempty CPU. First-placement labels
+remain mandatory. Placement fixtures also reject missing/mismatched gates,
+same-CPU gates and missing first-placement labels.
+
+The original batch `20261110-205505-uq8edg` had three completed large jobs and
+three unstarted default jobs. After preserving its receipts and completing the
+CPU-gated comparisons, its exact waiter was stopped and the owned batch was
+closed. All three redundant queued jobs were cancelled; no running job was
+cancelled and no completed solver pair was rerun for cleanup.
+
 ## Receipt validation
 
 `audit.ts` verifies the exact source/patch, lossless child stdout hashes, fixed
@@ -60,8 +80,10 @@ rejects ten corruptions, including self-consistent transport hashes enclosing
 bad semantic fields, and checks that same-CPU aliases do not qualify.
 
 Batch `20261110-210220-pcmupw` passed these fixtures, all prepared commit
-messages and type/lint across 1,692 files with zero warnings/errors. This checks
-the auditor, not the still-pending complete real pilot receipts.
+messages and type/lint across 1,692 files with zero warnings/errors. This checked
+the initial auditor, not the subsequent cross-CPU receipts. The latter have
+the independent real-data audit above; additional placement edge cases are
+covered by `audit-fixtures.ts`.
 
 ## Immutable dispatch
 
