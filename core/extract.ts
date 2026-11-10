@@ -38,6 +38,7 @@
 // across a set, one object (an array, a Map, a Date) in two places, aliasing that depends on the path, mixins of other
 // modules, other modules' code.
 import * as dsl from './dsl.ts'
+import {attachSource} from './source-check.ts'
 import {compileFunction, walk} from './machine.ts'
 import type {Rule} from './dsl.ts'
 import type {Law} from './machine.ts'
@@ -206,6 +207,7 @@ export function fromModel(model: Model, file: string, domains: Record<string, 'n
   if (evidence.source) return {ok: false, source, model, sorts, evidence, refusals: [{where: file, what: evidence.source}], notes}
   if (evidence.harness) return {ok: false, source, model, sorts, evidence, refusals: [{where: file, what: `${HARNESS_FAILED}${evidence.harness}`}], notes}
   if (evidence.mismatch) return {ok: false, source, model, sorts, evidence, refusals: [{where: file, what: `the rule and the code differ: ${evidence.mismatch}`}], notes}
+  attachSource(rule, evidence, invariants)
   return {ok: true, rule, ...(invariants.length ? {invariants} : {}), source, model, sorts, evidence, refusals: [], notes}
 }
 // The check's own failure (twice): no verdict on the code, neither a difference nor a pass.

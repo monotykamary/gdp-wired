@@ -26,6 +26,8 @@ import {type Arg, type Layout, type MapDecl, type Model, type Var, normalize, re
 import * as I from './extract-ir.ts'
 import type {B, N} from './extract-ir.ts'
 import type {Sorts} from './extract-print.ts'
+import {type NativeJournal, nativeSnapshot, rememberNative} from './source-check.ts'
+import {type NativeInputs, nativeCaptureEdits, nativeInputs} from './native-domain.ts'
 
 type Raw = number | boolean | string
 export type Arm = {label: string, where: string, pos: number}
@@ -89,10 +91,11 @@ export function instrument(code: string, file: string, tail = '', extra: [number
   const js = ts.transpileModule(out, {compilerOptions: {module: ts.ModuleKind.CommonJS, target: ts.ScriptTarget.ES2022, esModuleInterop: true, jsx: ts.JsxEmit.React}, fileName: file.replace(/\.js$/, '.ts').replace(/\.jsx$/, '.tsx')}).outputText
   return {js, arms}
 }
-export type Sandbox = {ctx: Context, counts: number[], call: (f: string, self: unknown, args: unknown[]) => {ok: true, value: unknown} | {ok: false, error: string}, setNow: (n: number) => void, get: (name: string) => unknown}
-export function sandbox(code: string, file: string, expose: string[], modules: Record<string, unknown> = {}, init?: string, files: Record<string, string> = {}, extra: [number, string][] = []): Sandbox & {arms: Arm[]} {
+export type Sandbox = {ctx: Context, counts: number[], call: (f: string, self: unknown, args: unknown[]) => {ok: true, value: unknown} | {ok: false, error: string}, setNow: (n: number) => void, get: (name: string) => unknown, bindings: (method: string) => Record<string, unknown> | undefined}
+export function sandbox(code: string, file: string, expose: string[], modules: Record<string, unknown> = {}, init?: string, files: Record<string, string> = {}, extra: [number, string][] = [], nativeMethods: string[] = []): Sandbox & {arms: Arm[]} {
   const vm = vmOf()
-  const {js, arms} = instrument(code, file, init ? `\n;(globalThis as any).__gdpInit = () => (${init});\n` : '', extra)
+  const {js, arms} = instrument(code, file, init ? `\n;(globalThis as any).__gdpInit = () => (${init});\n` : '', [...extra, ...nativeCaptureEdits(code, file, nativeMethods)])
+  const captured = new Map<string, Record<string, unknown>>(), captureErrors = new Map<string, string>()
   const counts = arms.map(() => 0)
   let now = 0
   const stub = (name: string) => new Proxy({}, {
@@ -102,6 +105,10 @@ export function sandbox(code: string, file: string, expose: string[], modules: R
   const module = {exports: {} as Record<string, unknown>}
   const ctx = vm.createContext({
     __cov: (i: number) => { counts[i]!++ }, __now: () => now, module, exports: module.exports,
+    __gdp_native_capture: (name: string, value: Record<string, unknown>) => {
+      if (captured.has(name) || captureErrors.has(name)) return
+      try { captured.set(name, nativeSnapshot(value) as Record<string, unknown>) } catch (e) { captureErrors.set(name, String(e)) }
+    },
     // A relative import among the files given: loaded in this VM (not counted: the branches are the entry's). A module
     // the step doesn't name (React, for the component beside a reducer): a stub that throws when read, so a step that
     // reads it fails the check rather than running without it.
@@ -116,7 +123,9 @@ export function sandbox(code: string, file: string, expose: string[], modules: R
     if (loaded.has(at)) return loaded.get(at)
     const m = {exports: {} as Record<string, unknown>}
     loaded.set(at, m.exports)
-    const js = ts.transpileModule(abs[at]!, {compilerOptions: {module: ts.ModuleKind.CommonJS, target: ts.ScriptTarget.ES2022, esModuleInterop: true, jsx: ts.JsxEmit.React}, fileName: at.replace(/\.js$/, '.ts').replace(/\.jsx$/, '.tsx')}).outputText
+    let input = abs[at]!
+    for (const [pos, text] of nativeCaptureEdits(input, at, nativeMethods).sort((a, b) => b[0] - a[0])) input = input.slice(0, pos) + text + input.slice(pos)
+    const js = ts.transpileModule(input, {compilerOptions: {module: ts.ModuleKind.CommonJS, target: ts.ScriptTarget.ES2022, esModuleInterop: true, jsx: ts.JsxEmit.React}, fileName: at.replace(/\.js$/, '.ts').replace(/\.jsx$/, '.tsx')}).outputText
     // A file that doesn't load here (it reads import.meta, a browser's globals): a stub that throws when read, so a step
     // that reads it fails the check rather than running without it.
     try {
@@ -131,6 +140,8 @@ export function sandbox(code: string, file: string, expose: string[], modules: R
   vm.runInContext(`${js}\n;globalThis.__gdp = {${expose.map(n => { if (n === 'default') return 'default: module.exports.default'; const [h, ...rest] = n.split('.'); return `${JSON.stringify(n)}: (typeof ${h} !== 'undefined' ? ${h} : module.exports.${h})${rest.map(x => `.${x}`).join('')}` }).join(', ')}};`, ctx, {timeout: 2000, filename: file})
   const script = new vm.Script('globalThis.__r = (() => { try { return {ok: true, value: __gdp[__f].apply(__self, __args)} } catch (e) { return {ok: false, error: String(e && e.message || e)} } })()')
   const call = (f: string, self: unknown, args: unknown[]) => {
+    // Reading/restoring a factory's closure is harness work, not a new request.
+    if (f !== '$get' && f !== '$at') { captured.clear(); captureErrors.clear() }
     Object.assign(ctx, {__f: f, __self: self, __args: args})
     try { script.runInContext(ctx, {timeout: 1000}) } catch (e) {
       if ((e as {code?: string}).code === 'ERR_SCRIPT_EXECUTION_TIMEOUT') throw new HarnessFailure(`a request ran past the check's 1000 ms (${(e as Error).message})`)
@@ -138,7 +149,8 @@ export function sandbox(code: string, file: string, expose: string[], modules: R
     }
     return ctx.__r as {ok: true, value: unknown} | {ok: false, error: string}
   }
-  return {ctx, counts, arms, call, setNow: n => { now = n }, get: name => vm.runInContext(`__gdp[${JSON.stringify(name)}]`, ctx)}
+  return {ctx, counts, arms, call, setNow: n => { now = n }, get: name => vm.runInContext(`__gdp[${JSON.stringify(name)}]`, ctx),
+    bindings: method => { if (captureErrors.has(method)) throw new Error(captureErrors.get(method)!); return captured.get(method) }}
 }
 
 // --- snapshots: a state as its leaves and its maps' present keys ----------------------------------------------------
@@ -318,7 +330,7 @@ export function draw(sort: Var['sort'], sorts: Sorts, name: string, rand: Rand, 
 }
 
 // --- the check ------------------------------------------------------------------------------------------------------
-export type CheckOptions = {runs?: number, depth?: number, states?: number, seed?: number, bound?: number, probes?: boolean | 'writes', probeMs?: number, modules?: Record<string, unknown>, files?: Record<string, string>}
+export type CheckOptions = {runs?: number, depth?: number, states?: number, seed?: number, bound?: number, probes?: boolean | 'writes', probeMs?: number, modules?: Record<string, unknown>, files?: Record<string, string>, lawCrossCheck?: boolean}
 type Ev = Model['events'][number]
 // The code's side of the check: how its object is made, set to a state, read and stepped. The TypeScript code runs in
 // a VM (below); the Go code in a harness built with its package (core/extract-go-check.ts). Everything else, the
@@ -334,6 +346,10 @@ export type CodeSide = {
   // The request's arguments, the time it is made at, the code's own initial state (a problem where it differs).
   args: (inputs: Record<string, Raw>, e: Ev) => unknown[], setNow: (n: number) => void, init?: (snap: Snap, params: Record<string, Raw>) => string | undefined,
   coverage: () => Coverage,
+  // The native object, independently of symbolic scalar/heap encodings.
+  nativeState?: (self: unknown, snap: Snap, params: Record<string, Raw>) => unknown,
+  nativeBindings?: (event: Ev) => Record<string, unknown> | undefined,
+  nativeInputs?: NativeInputs,
   // Go's: an input drawn within its type, a state drawn within the fields' types, a witness's state as Go holds it,
   // and the refusals where Go goes on past the rule's numbers (a uint64 below 0), counted as the rule's edge.
   input?: (v: Var, x: Raw, rand: Rand) => Raw, drawSnap?: (rand: Rand) => Snap, normalize?: (s: Snap) => Snap, edge?: (s: Snap, raw: Record<string, Raw>) => boolean,
@@ -350,7 +366,7 @@ function checkOnce(code: string, file: string, m: Model, r: Rule, sorts: Sorts, 
   // (a module that doesn't load, one TypeScript reads but JavaScript refuses, a return outside a function or a class
   // declared twice: no request runs, and the check says why)
   let box: ReturnType<typeof sandbox>
-  try { box = sandbox(code, file, fns, mods, m.initSource, opts.files, m.factory ? [[m.factory.at, m.factory.text], ...(m.factory.extra ?? [])] : []) } catch (e) {
+  try { box = sandbox(code, file, fns, mods, m.initSource, opts.files, m.factory ? [[m.factory.at, m.factory.text], ...(m.factory.extra ?? [])] : [], m.events.map(e => e.call)) } catch (e) {
     return {runs: 0, requests: 0, fromStates: 0, probes: {conditions: 0, witnesses: 0, steps: 0}, refusedBoth: 0, outside: 0, edge: 0, compiledAgreed: 0, coverage: {arms: 0, hit: 0, missed: []}, ms: 0,
       mismatch: `the code doesn't load: ${String((e as Error)?.message ?? e).split('\n')[0]}`}
   }
@@ -371,6 +387,9 @@ function checkOnce(code: string, file: string, m: Model, r: Rule, sorts: Sorts, 
   const ctorValue = (n: string, params: Record<string, Raw>) => (n === '$fn' ? fnArg() : n.startsWith('$map:') ? vmOf().runInContext(n === '$map:Map' ? 'new Map()' : '({})', box.ctx) : params[n])
   const ctorValues = (params: Record<string, Raw>) => (m.ctorArgs ?? []).filter(n => !m.params.find(v => v.name === n)?.note?.startsWith('Date.now()')).map(n => ctorValue(n, params))
   const side: CodeSide = {
+    nativeState: (self, snap, params) => standalone ? {} : isClass ? stateOf(self) : valueOf(snap, m.layout, m, evalAt(params), box.ctx),
+    nativeBindings: e => box.bindings(e.call),
+    ...(standalone ? {nativeInputs: nativeInputs(code, file, m.entry, opts.files)} : {}),
     make: params => {
       const now0 = m.params.find(v => v.note?.startsWith('Date.now()'))
       if (now0) box.setNow(params[now0.name] as number)
@@ -419,11 +438,29 @@ export function drive(m: Model, r: Rule, sorts: Sorts, code: CodeSide, opts: Che
   const interp = r.interpreter(), gen = r.compiled(), machine = r.machine
   const ev: Evidence = {runs: 0, requests: 0, fromStates: 0, probes: {conditions: 0, witnesses: 0, steps: 0}, refusedBoth: 0, outside: 0, edge: 0, compiledAgreed: 0, coverage: {arms: 0, hit: 0, missed: []}, ms: 0}
   const consts = constantsOf(m), strs = stringsOf(m)
+  const disabled = opts.lawCrossCheck === false || (opts.runs === 0 && opts.states === 0 && opts.probes === false)
+  const finite = code.nativeInputs?.domains
+  const exhaustive = finite !== undefined
+  const journal: NativeJournal = {enabled: !disabled, complete: false, scope: exhaustive ? 'exhaustive' : 'sampled', observations: [],
+    ...(disabled ? {reason: 'source replay or native-law cross-check was disabled'} : {})}
+  if (code.nativeInputs?.reason) journal.reason = code.nativeInputs.reason
+  rememberNative(ev, journal)
+  const nativeContext = vmOf().createContext({})
+  const nativeState = (side: {snap: Snap, self?: object}, params: Record<string, Raw>) => nativeSnapshot(code.nativeState ? code.nativeState(side.self, side.snap, params) : valueOf(side.snap, m.layout, m, t => evalTerm(t, params), nativeContext))
+  const capture = (read: () => unknown): unknown => {
+    if (!journal.enabled || journal.reason) return undefined
+    try { return read() } catch (e) { journal.reason = `native observation unavailable: ${e instanceof Error ? e.message : String(e)}`; return undefined }
+  }
+  const recordInitial = (side: {snap: Snap, self?: object}, params: Record<string, Raw>) => {
+    const state = capture(() => nativeState(side, params))
+    if (journal.enabled && !journal.reason) journal.observations.push({where: 'initial native state', before: state, after: state, params: {...params}, inputs: {}, bindings: {}, args: [], result: undefined, failed: false})
+  }
   const paramKinds = m.params.map(v => [v, kindOfVar(v, sorts)] as const), inputKinds = m.inputs.map(v => [v, kindOfVar(v, sorts)] as const)
   const fail = (what: string): Evidence => { ev.mismatch = what; return finish() }
   const finish = (): Evidence => {
     ev.coverage = code.coverage()
     ev.ms = Math.round(performance.now() - t0)
+    journal.complete = journal.enabled && !journal.reason && journal.observations.length > 0
     return ev
   }
   // One request, both sides, from a state given as a snapshot (and, for a class, the object).
@@ -460,6 +497,7 @@ export function drive(m: Model, r: Rule, sorts: Sorts, code: CodeSide, opts: Che
     // behavior the source is alleged to reject. Never execute an out-of-domain probe.
     if (m.standalone && Object.entries(m.standaloneDomains ?? {}).some(([name, values]) => !values.includes(inputs[name] as number))) { ev.outside++; next.stop = true; return undefined }
     const args = code.args(inputs, e), raw = ruleInputs(inputs, e)
+    const before = capture(() => nativeState(side, params)), nativeArgs = capture(() => nativeSnapshot(args)) as unknown[] | undefined
     if (m.folds) carry(m, raw, inputs, side.snap, params, r.decode(st) as unknown as Record<string, Record<string, Record<string, Raw>>>)
     const nowVar = m.inputs.find(v => v.note?.startsWith('Date.now()'))
     if (nowVar) code.setNow(inputs[nowVar.name] as number)
@@ -544,7 +582,22 @@ export function drive(m: Model, r: Rule, sorts: Sorts, code: CodeSide, opts: Che
         if (!gone && d[rk.name] !== res.out) return bad(`the rule's ${rk.name} is ${JSON.stringify(d[rk.name])}`)
       }
     }
-    next.side = {snap: res.snap, ...(res.self ? {self: res.self} : {})}
+    const afterSide = {snap: res.snap, ...(res.self ? {self: res.self} : {})}
+    const after = capture(() => nativeState(afterSide, params)), result = capture(() => nativeSnapshot(res.out))
+    if (journal.enabled && !journal.reason) {
+      const bindings = capture(() => code.nativeBindings?.(e)) as Record<string, unknown> | undefined
+      if (code.nativeBindings && !bindings) journal.reason ??= `native parameter capture unavailable for ${e.call}`
+      const fallback: Record<string, unknown> = Object.create(null)
+      e.names?.forEach((n, i) => {
+        const value = nativeArgs?.[i]
+        if (n === '__gdp_destructured' && value && typeof value === 'object') Object.assign(fallback, value)
+        else fallback[n] = value
+      })
+      const rk = m.results?.[e.call]
+      journal.observations.push({where, method: e.call, before, after, params: {...params}, inputs: {...inputs}, bindings: bindings ?? fallback,
+        args: nativeArgs ?? [], result, failed: false, legacyResult: !standalone && rk?.k === 'rec' && rk.fields.some(([field]) => field === 'value')})
+    }
+    next.side = afterSide
     next.st = (rule as {st: State}).st
     return undefined
   }
@@ -570,7 +623,7 @@ export function drive(m: Model, r: Rule, sorts: Sorts, code: CodeSide, opts: Che
       // claim is for starts within them, and the check draws on)
       let st: State
       try { st = interp.init(ps!) } catch (x) { if (/2\^53/.test((x as Error).message)) { ev.startsOutside = (ev.startsOutside ?? 0) + 1; return {} } throw x }
-      try { const snap = code.snapOf(made.value, params); const diff = sameSnap(snap, ruleSnap(r, m, st, sorts)); if (diff) return {problem: `new ${m.entry}(${JSON.stringify(params)}): ${diff}`}; return {side: {snap, self: made.value as object}, st, ps: ps!} }
+      try { const snap = code.snapOf(made.value, params); const diff = sameSnap(snap, ruleSnap(r, m, st, sorts)); if (diff) return {problem: `new ${m.entry}(${JSON.stringify(params)}): ${diff}`}; const side = {snap, self: made.value as object}; recordInitial(side, params); return {side, st, ps: ps!} }
       catch (x) { if (x instanceof HarnessFailure) throw x; return {problem: `new ${m.entry}: ${(x as Error).message}`} }
     }
     let st: State
@@ -578,6 +631,7 @@ export function drive(m: Model, r: Rule, sorts: Sorts, code: CodeSide, opts: Che
     const snap = ruleSnap(r, m, st, sorts)
     const problem = code.init?.(snap, params)
     if (problem) return {problem}
+    recordInitial({snap}, params)
     return {side: {snap}, st, ps: ps ?? {}}
   }
   const runs = opts.runs ?? 200, depth = opts.depth ?? 12
@@ -663,6 +717,33 @@ export function drive(m: Model, r: Rule, sorts: Sorts, code: CodeSide, opts: Che
       const diff = fromState(params, code.normalize ? code.normalize(snap) : snap, inputs, e, `the prover's witness for ${showCond(c)}`)
       ev.probes.steps++
       if (diff) return fail(diff)
+    }
+  }
+  // Finite standalone inputs are not replaced by random sampling, even when a
+  // particular request was already replayed above. The same native step supplies
+  // both rule conformance and the independent source-law observation.
+  if (exhaustive && journal.enabled && !journal.reason) {
+    const params: Record<string, Raw> = {}, first = start(params)
+    if (first.problem) return fail(`exhaustive native start: ${first.problem}`)
+    if (!first.side || !first.st || !first.ps) journal.reason = 'finite native entry could not start'
+    else {
+      let ordinal = 0
+      const event = m.events[0]!
+      const visit = (at: number, args: unknown[]) => {
+        if (journal.reason) return
+        if (at === finite!.length) {
+          const returned = code.call(undefined, event, args)
+          if (!returned.ok) { journal.reason = `native finite input ${++ordinal} throws: ${returned.error}`; return }
+          const bindings = capture(() => code.nativeBindings?.(event)) as Record<string, unknown> | undefined
+          if (!bindings) { journal.reason ??= 'independent native parameter capture unavailable'; return }
+          const result = capture(() => nativeSnapshot(returned.value)), savedArgs = capture(() => nativeSnapshot(args)) as unknown[]
+          if (!journal.reason) journal.observations.push({where: `exhaustive native input ${++ordinal}`, method: event.call,
+            before: {}, after: {}, params: {}, inputs: {}, bindings, args: savedArgs, result, failed: false})
+          return
+        }
+        for (const value of finite![at]!) visit(at + 1, [...args, value])
+      }
+      visit(0, [])
     }
   }
   return finish()

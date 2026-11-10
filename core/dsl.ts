@@ -16,6 +16,7 @@
 // A step returns its updates as one object: every right-hand side reads the state before the step, as the kernel and
 // both runtimes do.
 import {type Tried, candidates, cone, searchCounted} from './counts.ts'
+import {type TranslationFields, inheritSource, translationVerdict} from './source-check.ts'
 import {env as knobs} from './solver.ts'
 import {type C, type E, type Fn, argsKey, bindDirect, directOf, type Law, type Least, type Recurrence, type Machine, type MapUpdate, type Rand, type Request, type State, type Sum, machineTerms, part, tuple, carriedView, compileFunction, divName, divisor, divisorsIn, evalC, evalE, fnCall, interpret, isArithmetic, loadJs, modName, numbersOf, pairedArgs, seeded, sourceFreeFn, withArithmetic} from './machine.ts'
 import {allowed, keysOf, requestEnv, watch, watchWork} from './watch.ts'
@@ -1668,7 +1669,7 @@ type Spec = {
 // values the builders hand out, grown by each call.
 export class Rule<P extends Obj = {}, I extends Obj = {}, S extends Obj = {}, M extends Obj = {}, F extends Obj = {}, R extends Obj = {}, Su extends Obj = {}, Q extends Obj = {}> {
   constructor(private readonly spec: Spec) {}
-  private with(more: Partial<Spec>): never { return new Rule({...this.spec, ...more}) as never }
+  private with(more: Partial<Spec>): never { const next = new Rule({...this.spec, ...more}); inheritSource(this, next); return next as never }
   get name() { return this.spec.name }
   // For core/discover.ts: the functions and carried lists the rule reads, and the same rule with functions made again
   // and lemmas added to its lists' folds (each proven here, as carriesList proves its own).
@@ -2745,7 +2746,7 @@ export const loop = (name: string): LoopRule => new LoopRule({name, params: [], 
 // that steps the rule from states it didn't reach so (a host's, a stored one it didn't check) has no proof for those.
 // Absent, every step law holds from every state where the laws (and the rule's kinds) hold, reachable or not, and the
 // laws together are kept by every step from such a state. `{from: 'any'}` proves only so.
-export type Verdict = {proven: boolean, checked: boolean, stuck?: string, goal?: string, witness?: Record<string, number>, why?: string, trees?: Record<string, Tree>, run?: {params: Record<string, number>, trace: Record<string, unknown>[]}, found?: Found, witnesses?: Record<string, string>, k?: number, assumes?: Assumes, rank?: E | E[]}
+export type Verdict = TranslationFields & {proven: boolean, checked: boolean, stuck?: string, goal?: string, witness?: Record<string, number>, why?: string, trees?: Record<string, Tree>, run?: {params: Record<string, number>, trace: Record<string, unknown>[]}, found?: Found, witnesses?: Record<string, string>, k?: number, assumes?: Assumes, rank?: E | E[]}
 export type Assumes = {states: 'reachable', laws: string[]}
 // `facts`: lemmas about the rule's functions (those known by their facts) proven from those facts by a cyclic proof
 // (core/cycles.ts), the laws proven with them; `rank`: a loop's rank, found from its runs (`proveLoop` with none).
@@ -2898,6 +2899,9 @@ const refutedVerdict = (out: NonNullable<ReturnType<typeof refuteByRuns>>): Verd
 // another instance of the same rule (a factory called twice).
 const noting = <R extends Rule<Obj, Obj, Obj, Obj, Obj, Obj, Obj, Obj>>(r: R, ...xs: object[]): R => { const ks = divisorsIn(xs as never); if (ks.size) r.dividesBy(...ks); return r }
 export function proveRule(r: Rule<Obj, Obj, Obj, Obj, Obj, Obj, Obj, Obj>, laws: Law[], opts: ProveOptions = {}): Verdict {
+  return translationVerdict(r, laws, proveRuleIn(r, laws, opts))
+}
+function proveRuleIn(r: Rule<Obj, Obj, Obj, Obj, Obj, Obj, Obj, Obj>, laws: Law[], opts: ProveOptions): Verdict {
   r = r.withSumsOf(laws)
   noting(r, laws)
   const refuted = refuteByRuns(r, laws)
@@ -2929,8 +2933,9 @@ export function proveSteps(r: Rule<Obj, Obj, Obj, Obj, Obj, Obj, Obj, Obj>, laws
   const ms = typeof opts.search === 'object' ? opts.search.ms : undefined
   // From any state, the caller's budget includes preflight runs and all initial
   // goals, not a fresh budget per goal. Keep reachable-state search unchanged.
-  return opts.from !== 'any' || ms === undefined ? proveStepsIn(r, laws, stepLaws, opts)
+  const verdict = opts.from !== 'any' || ms === undefined ? proveStepsIn(r, laws, stepLaws, opts)
     : withWall(performance.now() + ms, () => proveStepsIn(r, laws, stepLaws, opts))
+  return translationVerdict(r, [...laws, ...stepLaws], verdict)
 }
 function proveStepsIn(r: Rule<Obj, Obj, Obj, Obj, Obj, Obj, Obj, Obj>, laws: Law[], stepLaws: StepLaw[], opts: ProveOptions): Verdict {
   r = r.withSumsOf(laws, stepLaws)

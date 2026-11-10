@@ -29,6 +29,8 @@
 //   mode == "closed", outcome == SLOW_ERROR, mode == :closed        a choice by its value
 import {type Cond, Choice, Int, Str, Term, all, any, forall, no, not, yes} from './dsl.ts'
 import type {Extraction, Name} from './extract.ts'
+import {attachNativeLaw} from './source-check.ts'
+import {nativeLaw} from './native-law.ts'
 import {type AnyRule, type TwoRunLaw, agreement, isolation, noninterference} from './relational.ts'
 import {type BusinessDays, type Calendar, CalendarError, businessDays} from './calendar.ts'
 export {businessDays, type Calendar} from './calendar.ts'
@@ -64,7 +66,7 @@ export function lawsIn(text: string, where = ''): LawText[] {
 
 // --- the expression's syntax ---------------------------------------------------------------------------------------------
 type Seg = {f: string} | {i: X} | {call: true, args?: string}
-type X = {k: 'num', v: number} | {k: 'str', v: string, holes?: X[], parts?: string[]} | {k: 'bool', v: boolean} | {k: 'null', absence?: 'null' | 'undefined'}
+export type X = {k: 'num', v: number} | {k: 'str', v: string, holes?: X[], parts?: string[]} | {k: 'bool', v: boolean} | {k: 'null', absence?: 'null' | 'undefined'}
   | {k: 'path', head: string, segs: Seg[]} | {k: 'un', op: '-' | 'not', x: X}
   | {k: 'bin', op: string, a: X, b: X} | {k: 'old', x: X} | {k: 'fn', f: string, xs: X[]} | {k: 'forall', v: string, over: X, body: X}
   | {k: 'dur', v: number, text: string} | {k: 'bdur', v: number, text: string}
@@ -229,9 +231,10 @@ export function buildLaw(x: Extraction, l: LawText, opts: LawOpts = {}): Built {
   }
   // (a law of one step reads no function, so business days there pin each time's week to a key, ∀w. guard → law)
   const body = (b: Record<string, unknown>, a: Record<string, unknown>) => (step && probe.roles.has('bdays') ? pinned(b, a, (bb, aa, p) => body0(bb, aa, p)) : bitBody(b, a))
-  if (!step) return {kind: 'law', law: r.law(l.name, (env: never) => (x.quiet ? ((env as Record<string, Int>)[x.quiet]!.eq(0) as Cond).implies(body0(env, env)) : body0(env, env)))}
+  const bind = (built: Built): Built => { attachNativeLaw(x.rule!, built.law, l.name, built.kind === 'step' ? gate ?? method : undefined, nativeLaw(e, opts, parse, {...Object.fromEntries(names.filter(n => n.role === 'const' && n.value !== undefined).map(n => [n.code, n.value!])), ...x.consts}, new Set(names.map(n => n.code.split('.')[0]!)))); return built }
+  if (!step) return bind({kind: 'law', law: r.law(l.name, (env: never) => (x.quiet ? ((env as Record<string, Int>)[x.quiet]!.eq(0) as Cond).implies(body0(env, env)) : body0(env, env)))})
   const mname = names.find(n => n.role === 'method')?.rule
-  return {kind: 'step', ...(gate ? {method: gate} : {}), law: r.stepLaw(l.name, (b: never, a: never) => body(b, a) as never, gate ? (b: never) => ((b as Record<string, unknown>)[mname!] as Choice<string>).is(gate) : undefined)}
+  return bind({kind: 'step', ...(gate ? {method: gate} : {}), law: r.stepLaw(l.name, (b: never, a: never) => body(b, a) as never, gate ? (b: never) => ((b as Record<string, unknown>)[mname!] as Choice<string>).is(gate) : undefined)})
 }
 // A law of one step over business days: read once to find its times, then held at every week of each (a key, two for
 // a time that may be below 0), under the guards that only each time's own week meets.
