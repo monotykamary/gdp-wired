@@ -1,0 +1,14 @@
+{
+  "status": "draft preparation in flight; not validated or promoted",
+  "baseSnapshot": "30f9c3ba",
+  "privateIndex": "/private/tmp/lane-i-complete.index",
+  "task": "fbe45f88-28d0-430b-9915-6429d3d8c15c",
+  "waiterPid": 17193,
+  "batch": "20261110-121916-gkoq76",
+  "resultDirectory": "runs/lane-i/complete-ast-preparation",
+  "next": "collect existing preparation; freeze emitted source patch; run new tests, type/lint and expanded erasure audit; commit source; continue phase ledger and 29-protocol census",
+  "launch": "supercomputer --repo /private/tmp/lane-i-paxos-runner.djtUt9 run --jobs /Users/monotykamary/VCS/working-remote/open-source/gdp-wired-integ/research/lane-i/work-meter/complete/prepare.jobs.json --out /Users/monotykamary/VCS/working-remote/open-source/gdp-wired-integ/runs/lane-i/complete-ast-preparation --backend boat --class interactive --data /Users/monotykamary/VCS/working-remote/open-source/gdp-wired-integ/research/lane-i/generator:generator-input --data /Users/monotykamary/VCS/working-remote/open-source/gdp-wired-integ/research/lane-i/work-meter/complete:complete-input --data /private/tmp/lane-i-gated-follow-up.wehlxC:frozen",
+  "unvalidated": ["new raw observations", "constructor typing and coverage", "checker erasure", "tests", "phase ledger", "weights/W", "quiet intake", "29-protocol census"],
+  "productionChanged": false,
+  "subagents": 0
+}

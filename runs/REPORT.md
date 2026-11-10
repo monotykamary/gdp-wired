@@ -1,5 +1,41 @@
 # RESUME — ACTIVE (user explicitly resumed)
 
+## Reload checkpoint — 2026-11-10, boat batch active
+
+- **In flight:** boat batch `20261110-121916-gkoq76`, job
+  `complete-ast-preparation`; Fabric task
+  `fbe45f88-28d0-430b-9915-6429d3d8c15c`, local waiter PID `17193`.
+  Results: `runs/lane-i/complete-ast-preparation/`.
+  Waiter log: `/var/folders/hc/3k4lvfw90yv7kghsnynghcvm0000gn/T/pi-fabric-shell-81Ilva/output.log`.
+  One existing waiter only; reattach/inspect it, **do not resubmit** on reload.
+- **Next:** collect that preparation result. It emits `AST_CONSTRUCTOR_AUDIT`
+  and a `SOURCE_PATCH_BEGIN` / `SOURCE_PATCH_END` source artifact. The worker
+  must prove every generated wrapper erases to the original source. Then
+  freeze the resulting patch/blobs and run targeted tests, roster, type/lint,
+  and the expanded checker erasure audit on boat. Only after those results
+  commit the source candidate, then continue the unified phase ledger and
+  all-29 repeat/cross-CPU census. Do not wait for Lane D between items.
+- **Unvalidated:** `research/lane-i/work-meter/complete/` is a draft, not an
+  accepted complete-work implementation. It combines Lane A snapshot
+  `30f9c3ba` with the I2 observations and I1 kernel-only patch in private index
+  `/private/tmp/lane-i-complete.index`; production files are unchanged.
+  The sole I2/A2 merge conflict kept **both** `traceNow` and `coreMeter` imports.
+  Added direct recurrence visits, finite-prefix attempted ticks, actual infer
+  row checks / attempts, instance-binding visits, one shared raw object,
+  and worker-generated AST-construction observations. Tests are not yet run.
+  Constructor generic typing, coverage, checker erasure and all new tests
+  remain unvalidated. Lane A's original full-suite failure below is preserved.
+- **Not done:** phase ledger, full accounting/coverage audit, calibrated
+  weights/W, quiet generator intake, or 29-protocol determinism census.
+  Current `fullWork`, production budgets and original model are untouched.
+- **Resume artifacts:** `research/lane-i/work-meter/complete/state.json` and
+  `STATUS.md`; frozen pre-constructor source patch and 47 protected blobs in
+  `candidate.patch` / `identity.json`. Temporary edited source files are
+  `/tmp/lane-i-complete-{machine,finite,infer,prove,core-meter,kernel-meter,tests,shards}.ts`.
+  Reuse the source cache and launch command in `state.json`; all receipt
+  processing and verification remain on boat, zero subagents so far.
+
+
 ## Current directive — finish accounting and ledger without waiting on D1
 
 Coordinator is auditing `c9eb0f9c` in parallel. Continue all remaining I2
