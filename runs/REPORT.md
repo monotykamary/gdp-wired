@@ -1,5 +1,28 @@
 # RESUME — ACTIVE (user explicitly resumed)
 
+## Active follow-up — a8bbe098 remains frozen
+
+Boat batch `20261110-080834-7ilqre` is submitted under task
+`8012abb4-b186-406c-816f-2cb2c9fa8448`: five new p1 pairs against Lane B's
+validated `97463c56`, three whole-Paxos repetitions per source, and five
+fresh-process pairs of the exact effect-pool CLI test on one exclusive VM.
+Measurements, source verification and an independent receipt audit are
+**pending**. No production source, gate candidate or timeout was changed.
+
+**Helper quarantine:** Lane B now identifies frozen family `5dbdbf...` as
+P*, not the original IC3Syn encoding. Earlier conditional helper results
+remain valid only for their recorded machines; they do not count toward
+original-model Inv* or 29/29. The requested historical p1 cost comparison
+uses that exact legacy family explicitly. At inspection, Lane B's canonical
+models blob matches `8214a543`; Lane F and E still have the earlier routing
+blob. None of their new helpers is enabled or merged. Original-model
+recapture, original-goal INIT/STEP, unchanged allowance, census and paired
+gates are required by `research/lane-i/follow-up/helper-integration.json`.
+Details: `research/lane-i/follow-up/README.md`. No subagents are running;
+local work stays limited to file/git operations and one boat controller.
+
+### Historical checkpoints below (not superseded by pending follow-ups)
+
 Lane I resumed from `cca59f0c` on `claude/mldr-integ`; clean worktree verified, handoff including PAUSED, COMMON, and Section 14 read. **NOT GATE GREEN.** Historical baselines remain `b788e195` for the consensus diagnosis and `b09da82d` for the Paxos diagnosis; the coordinator now requires **`8214a543bc44e88d979f9e4457d7370e7e3c122b` for every next final gate**.
 
 ## Retained first preflight — 1fc444ca

@@ -1,0 +1,19 @@
+{
+  "status": "submitted; measurements and independent audit pending",
+  "batch": "20261110-080834-7ilqre",
+  "task": "8012abb4-b186-406c-816f-2cb2c9fa8448",
+  "candidate": "a8bbe0984f270070eba9bc166a89909d0c67597e",
+  "candidateTree": "5ba71a79d061ac81cf374f25559af746edadaa60",
+  "gateBaseline": "8214a543bc44e88d979f9e4457d7370e7e3c122b",
+  "costControl": "97463c564351448373ca49f6af980b31b1a0f0c5",
+  "data": "/private/tmp/lane-i-gated-follow-up.wehlxC",
+  "inputManifestSha256": "6260eb18271a96cf67461fe7e0aa9ec5c2ff155d8201b1a8c49569fb02506fd8",
+  "jobs": [
+    "a8-p1-control-five",
+    "a8-effect-five-same-cpu"
+  ],
+  "p1FamilyBoundary": "Legacy P* family 5dbdbf...: valid only for the requested Lane B historical cost comparison, not original-model Inv* / 29-model credit",
+  "productionChanges": false,
+  "helperEnablement": false,
+  "gateClaim": false
+}

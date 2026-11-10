@@ -1,0 +1,18 @@
+[
+  {
+    "name": "a8-p1-control-five",
+    "cmd": "set -euo pipefail; cp -a follow-up-input/. .; bun driver/gated-follow-up.ts p1",
+    "cpu": 4,
+    "memory": 14336,
+    "timeout": 1200,
+    "vm_type": "large"
+  },
+  {
+    "name": "a8-effect-five-same-cpu",
+    "cmd": "set -euo pipefail; cp -a follow-up-input/. .; bun driver/gated-follow-up.ts effect",
+    "cpu": 4,
+    "memory": 14336,
+    "timeout": 3600,
+    "vm_type": "large"
+  }
+]

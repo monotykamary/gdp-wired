@@ -1,0 +1,26 @@
+{
+  "stage": "/private/tmp/lane-i-gated-follow-up.wehlxC",
+  "revisions": {
+    "base": "8214a543bc44e88d979f9e4457d7370e7e3c122b",
+    "control": "97463c564351448373ca49f6af980b31b1a0f0c5",
+    "candidate": "a8bbe0984f270070eba9bc166a89909d0c67597e"
+  },
+  "gatedTree": "5ba71a79d061ac81cf374f25559af746edadaa60",
+  "manifestSha256": "6260eb18271a96cf67461fe7e0aa9ec5c2ff155d8201b1a8c49569fb02506fd8",
+  "files": {
+    "gate-shared-inputs/module-0.pack": "2238b90b993bc3161308f94a3c6d87a064efc07ed8f9ab9253d50a692b35376e",
+    "gate-shared-inputs/root.pack": "62a17a6041e11fffbfeec32a24ebc1fa90bb671230f01e11e4c22c866890f5bb",
+    "gate-shared-inputs/module-1.pack": "61b55613c5421f02770e1c63bdf51b95193dcae580bf941206896b60005dc114",
+    "driver/resource-run.ts": "84862f30dd4e87fd7fcd3c5b26a0e5c2b3fce8ad15591464b58b3f8918f6b856",
+    "driver/p1-tools/check-cost-profile.ts": "898370152a2539c8baa5e8c2f2f4bc268f56ceb136072f776b03b099d7a9b880",
+    "driver/p1-tools/lane-b-cost.ts": "a72f020252a90451f65cc9d846d179df2dc9a43c7375f8be2a83f9f16e35617f",
+    "driver/p1-tools/audit-lane-b-cost.ts": "cccce76009ff103cc0be7160dff6703b8eff95a95b55bc7c6a0f4ef73e1ccf03",
+    "driver/gated-follow-up.ts": "6796d15ee6d879693b2a82c8cc1cd03290b7b12c44fad689b0108bd4416a332c",
+    "config.json": "54c7b1c5890739e411d755de2463c4b5cd8a60bde38c6ebed5503396d9cabdab",
+    "family.json": "5dbdbf766e9949b051d0764920f1bcc3707690cd6852fca6d0bcf18674fbdac4",
+    "gate-inputs/control.pack": "d9e588092d6acbf152a8e4e11ee1a0cf7e406a838328b604cf9633206cf9e536",
+    "gate-inputs/next.pack": "aec7185b31302d6c2d972b7fd2d72112d3bbe99bebafe81e929245641a41d233",
+    "gate-inputs/manifest.json": "a087dda1b966283fce1dce304404bdde249044149f8a00ce796749865d64e6ba",
+    "research/verify-all/final-gate-common.ts": "9f06a3cb023f191ea839f49f44be8770cc376d0e0f8fea7d4eefb8153fac5de6"
+  }
+}

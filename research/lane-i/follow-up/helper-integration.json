@@ -1,0 +1,12 @@
+{
+  "enabled": false,
+  "gateCandidate": "a8bbe0984f270070eba9bc166a89909d0c67597e",
+  "requiredOriginalModelsBlob": "0541fa9436e307a6fb716aa5064637b30b893b79",
+  "quarantinedLegacyFamilySha256": "5dbdbf766e9949b051d0764920f1bcc3707690cd6852fca6d0bcf18674fbdac4",
+  "commonReleaseChecks": ["original-model-and-family-identity", "original-goal-init-and-all-operation-step", "shared-original-attempt-allowance", "fresh-native-custody-and-mutation-refusal", "required-real-Lean-checks", "complete-test-roster-and-source-check", "original-29-normal-and-broken-census", "same-CPU-off-on-pairs-and-p1-Paxos-controls", "independent-Lane-D-gate"],
+  "helpers": [
+    {"lane":"B","name":"Inv* adapter","enabled":false,"workingTreeDirtyAtInspection":true,"inspectedHead":"538244d4d5e3ef06adb228f29201f746108611e9","report":"../gdp-wired-trackM/research/track-m/production-adapter-plan.md","boundary":"../gdp-wired-trackM/research/track-m/model-encoding-boundary.md","status":"blocked: re-capture original family, complete original-goal composition and original-allowance acceptance","historicalEvidence":"Seven P* per-op INIT/STEP pairs and generic component extraction; not original-model credit","defaultSwitch":"GDP_COUNT_FRAMES is explicit opt-in in lane B; new generic components are not connected to the default solver","wholeBranchMergeAllowed":false},
+    {"lane":"F","name":"Inv2973-half compositions","enabled":false,"workingTreeDirtyAtInspection":true,"inspectedHead":"7c3091ad2b9a373c52cf2671dfe8c1a91ad46023","report":"../gdp-wired-trackL/research/track-m/HALF-GUARD-COMPOSITION.md","status":"blocked: original-model recapture, ops 1/5/6, full original-goal composition and allowance","historicalEvidence":"Legacy-family STEP 0/2/3/4 and new INIT 0/4; op 0 184.68 units / 10.671s, op 4 713 units / 3.331s; not 500-unit successes","wholeBranchMergeAllowed":false},
+    {"lane":"E","name":"Inv1758 proof","enabled":false,"workingTreeDirtyAtInspection":true,"inspectedHead":"5823c863569785886991fb8c35af4ac483f7ac8a","report":"../gdp-wired-trackP/research/mldr-rows/WALL-TIMING.md","status":"blocked: original-model recapture and original 4800ms wall acceptance","historicalEvidence":"Conditional proof 622.6651168 units; one complete slicing pair 11.60s to 8.89s, still above original 4.8s; other pairs censored","wholeBranchMergeAllowed":false}
+  ]
+}
