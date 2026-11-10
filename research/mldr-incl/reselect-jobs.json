@@ -1,0 +1,30 @@
+[
+  {
+    "name": "complete-early-reselect-reserve-quarter",
+    "cmd": "set -e; bash research/track-m/prepare-vendors.sh; bun install --frozen-lockfile >/dev/null; git apply research/mldr-incl/companion-completion.diff; bun research/mldr-incl/refinement-variant.ts complete-early-reselect-reserve-quarter; MLDR_INCL_FAMILY=generated MLDR_INCL_VARIANT=complete-early-reselect-reserve-quarter DUMP_DIR=/tmp/e14-safety DUMP_MIN=0 DUMP_N=10000 DUMP_ALL=1 timeout -s KILL 45 bun --preload ./research/query/dump.ts --preload ./research/track-p/capture.ts research/mldr-incl/conditional-safety.ts research/mldr-incl/fixtures/e14-generated.br#family-first.json 2700 yes 1; bun research/mldr-incl/pack-capture.ts /tmp/e14-safety",
+    "cpu": 8,
+    "memory": 14336,
+    "timeout": 90
+  },
+  {
+    "name": "complete-early-reselect-reserve-half",
+    "cmd": "set -e; bash research/track-m/prepare-vendors.sh; bun install --frozen-lockfile >/dev/null; git apply research/mldr-incl/companion-completion.diff; bun research/mldr-incl/refinement-variant.ts complete-early-reselect-reserve-half; MLDR_INCL_FAMILY=generated MLDR_INCL_VARIANT=complete-early-reselect-reserve-half DUMP_DIR=/tmp/e14-safety DUMP_MIN=0 DUMP_N=10000 DUMP_ALL=1 timeout -s KILL 45 bun --preload ./research/query/dump.ts --preload ./research/track-p/capture.ts research/mldr-incl/conditional-safety.ts research/mldr-incl/fixtures/e14-generated.br#family-first.json 2700 yes 1; bun research/mldr-incl/pack-capture.ts /tmp/e14-safety",
+    "cpu": 8,
+    "memory": 14336,
+    "timeout": 90
+  },
+  {
+    "name": "complete-reselect-reserve-half",
+    "cmd": "set -e; bash research/track-m/prepare-vendors.sh; bun install --frozen-lockfile >/dev/null; git apply research/mldr-incl/companion-completion.diff; bun research/mldr-incl/refinement-variant.ts complete-reselect-reserve-half; MLDR_INCL_FAMILY=generated MLDR_INCL_VARIANT=complete-reselect-reserve-half DUMP_DIR=/tmp/e14-safety DUMP_MIN=0 DUMP_N=10000 DUMP_ALL=1 timeout -s KILL 45 bun --preload ./research/query/dump.ts --preload ./research/track-p/capture.ts research/mldr-incl/conditional-safety.ts research/mldr-incl/fixtures/e14-generated.br#family-first.json 2700 yes 1; bun research/mldr-incl/pack-capture.ts /tmp/e14-safety",
+    "cpu": 8,
+    "memory": 14336,
+    "timeout": 90
+  },
+  {
+    "name": "reselect-reserve-half",
+    "cmd": "set -e; bash research/track-m/prepare-vendors.sh; bun install --frozen-lockfile >/dev/null; bun research/mldr-incl/refinement-variant.ts reselect-reserve-half; MLDR_INCL_FAMILY=generated MLDR_INCL_VARIANT=reselect-reserve-half DUMP_DIR=/tmp/e14-safety DUMP_MIN=0 DUMP_N=10000 DUMP_ALL=1 timeout -s KILL 45 bun --preload ./research/query/dump.ts --preload ./research/track-p/capture.ts research/mldr-incl/conditional-safety.ts research/mldr-incl/fixtures/e14-generated.br#family-first.json 2700 yes 1; bun research/mldr-incl/pack-capture.ts /tmp/e14-safety",
+    "cpu": 8,
+    "memory": 14336,
+    "timeout": 90
+  }
+]

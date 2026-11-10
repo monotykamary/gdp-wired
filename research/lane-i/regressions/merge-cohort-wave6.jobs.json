@@ -1,0 +1,578 @@
+[
+  {
+    "cpu": 4,
+    "memory": 14336,
+    "timeout": 1800,
+    "vm_type": "large",
+    "name": "mb-cohort-501",
+    "cmd": "set -euo pipefail; cp -a frozen-bisect/. .; bun regression-driver/merge-bisect-cohort.ts 501 regression-driver/cohort-points-wave2.json"
+  },
+  {
+    "cpu": 4,
+    "memory": 14336,
+    "timeout": 1800,
+    "vm_type": "large",
+    "name": "mb-cohort-502",
+    "cmd": "set -euo pipefail; cp -a frozen-bisect/. .; bun regression-driver/merge-bisect-cohort.ts 502 regression-driver/cohort-points-wave2.json"
+  },
+  {
+    "cpu": 4,
+    "memory": 14336,
+    "timeout": 1800,
+    "vm_type": "large",
+    "name": "mb-cohort-503",
+    "cmd": "set -euo pipefail; cp -a frozen-bisect/. .; bun regression-driver/merge-bisect-cohort.ts 503 regression-driver/cohort-points-wave2.json"
+  },
+  {
+    "cpu": 4,
+    "memory": 14336,
+    "timeout": 1800,
+    "vm_type": "large",
+    "name": "mb-cohort-504",
+    "cmd": "set -euo pipefail; cp -a frozen-bisect/. .; bun regression-driver/merge-bisect-cohort.ts 504 regression-driver/cohort-points-wave2.json"
+  },
+  {
+    "cpu": 4,
+    "memory": 14336,
+    "timeout": 1800,
+    "vm_type": "large",
+    "name": "mb-cohort-505",
+    "cmd": "set -euo pipefail; cp -a frozen-bisect/. .; bun regression-driver/merge-bisect-cohort.ts 505 regression-driver/cohort-points-wave2.json"
+  },
+  {
+    "cpu": 4,
+    "memory": 14336,
+    "timeout": 1800,
+    "vm_type": "large",
+    "name": "mb-cohort-506",
+    "cmd": "set -euo pipefail; cp -a frozen-bisect/. .; bun regression-driver/merge-bisect-cohort.ts 506 regression-driver/cohort-points-wave2.json"
+  },
+  {
+    "cpu": 4,
+    "memory": 14336,
+    "timeout": 1800,
+    "vm_type": "large",
+    "name": "mb-cohort-507",
+    "cmd": "set -euo pipefail; cp -a frozen-bisect/. .; bun regression-driver/merge-bisect-cohort.ts 507 regression-driver/cohort-points-wave2.json"
+  },
+  {
+    "cpu": 4,
+    "memory": 14336,
+    "timeout": 1800,
+    "vm_type": "large",
+    "name": "mb-cohort-508",
+    "cmd": "set -euo pipefail; cp -a frozen-bisect/. .; bun regression-driver/merge-bisect-cohort.ts 508 regression-driver/cohort-points-wave2.json"
+  },
+  {
+    "cpu": 4,
+    "memory": 14336,
+    "timeout": 1800,
+    "vm_type": "large",
+    "name": "mb-cohort-509",
+    "cmd": "set -euo pipefail; cp -a frozen-bisect/. .; bun regression-driver/merge-bisect-cohort.ts 509 regression-driver/cohort-points-wave2.json"
+  },
+  {
+    "cpu": 4,
+    "memory": 14336,
+    "timeout": 1800,
+    "vm_type": "large",
+    "name": "mb-cohort-510",
+    "cmd": "set -euo pipefail; cp -a frozen-bisect/. .; bun regression-driver/merge-bisect-cohort.ts 510 regression-driver/cohort-points-wave2.json"
+  },
+  {
+    "cpu": 4,
+    "memory": 14336,
+    "timeout": 1800,
+    "vm_type": "large",
+    "name": "mb-cohort-511",
+    "cmd": "set -euo pipefail; cp -a frozen-bisect/. .; bun regression-driver/merge-bisect-cohort.ts 511 regression-driver/cohort-points-wave2.json"
+  },
+  {
+    "cpu": 4,
+    "memory": 14336,
+    "timeout": 1800,
+    "vm_type": "large",
+    "name": "mb-cohort-512",
+    "cmd": "set -euo pipefail; cp -a frozen-bisect/. .; bun regression-driver/merge-bisect-cohort.ts 512 regression-driver/cohort-points-wave2.json"
+  },
+  {
+    "cpu": 4,
+    "memory": 14336,
+    "timeout": 1800,
+    "vm_type": "large",
+    "name": "mb-cohort-513",
+    "cmd": "set -euo pipefail; cp -a frozen-bisect/. .; bun regression-driver/merge-bisect-cohort.ts 513 regression-driver/cohort-points-wave2.json"
+  },
+  {
+    "cpu": 4,
+    "memory": 14336,
+    "timeout": 1800,
+    "vm_type": "large",
+    "name": "mb-cohort-514",
+    "cmd": "set -euo pipefail; cp -a frozen-bisect/. .; bun regression-driver/merge-bisect-cohort.ts 514 regression-driver/cohort-points-wave2.json"
+  },
+  {
+    "cpu": 4,
+    "memory": 14336,
+    "timeout": 1800,
+    "vm_type": "large",
+    "name": "mb-cohort-515",
+    "cmd": "set -euo pipefail; cp -a frozen-bisect/. .; bun regression-driver/merge-bisect-cohort.ts 515 regression-driver/cohort-points-wave2.json"
+  },
+  {
+    "cpu": 4,
+    "memory": 14336,
+    "timeout": 1800,
+    "vm_type": "large",
+    "name": "mb-cohort-516",
+    "cmd": "set -euo pipefail; cp -a frozen-bisect/. .; bun regression-driver/merge-bisect-cohort.ts 516 regression-driver/cohort-points-wave2.json"
+  },
+  {
+    "cpu": 4,
+    "memory": 14336,
+    "timeout": 1800,
+    "vm_type": "large",
+    "name": "mb-cohort-517",
+    "cmd": "set -euo pipefail; cp -a frozen-bisect/. .; bun regression-driver/merge-bisect-cohort.ts 517 regression-driver/cohort-points-wave2.json"
+  },
+  {
+    "cpu": 4,
+    "memory": 14336,
+    "timeout": 1800,
+    "vm_type": "large",
+    "name": "mb-cohort-518",
+    "cmd": "set -euo pipefail; cp -a frozen-bisect/. .; bun regression-driver/merge-bisect-cohort.ts 518 regression-driver/cohort-points-wave2.json"
+  },
+  {
+    "cpu": 4,
+    "memory": 14336,
+    "timeout": 1800,
+    "vm_type": "large",
+    "name": "mb-cohort-519",
+    "cmd": "set -euo pipefail; cp -a frozen-bisect/. .; bun regression-driver/merge-bisect-cohort.ts 519 regression-driver/cohort-points-wave2.json"
+  },
+  {
+    "cpu": 4,
+    "memory": 14336,
+    "timeout": 1800,
+    "vm_type": "large",
+    "name": "mb-cohort-520",
+    "cmd": "set -euo pipefail; cp -a frozen-bisect/. .; bun regression-driver/merge-bisect-cohort.ts 520 regression-driver/cohort-points-wave2.json"
+  },
+  {
+    "cpu": 4,
+    "memory": 14336,
+    "timeout": 1800,
+    "vm_type": "large",
+    "name": "mb-cohort-521",
+    "cmd": "set -euo pipefail; cp -a frozen-bisect/. .; bun regression-driver/merge-bisect-cohort.ts 521 regression-driver/cohort-points-wave2.json"
+  },
+  {
+    "cpu": 4,
+    "memory": 14336,
+    "timeout": 1800,
+    "vm_type": "large",
+    "name": "mb-cohort-522",
+    "cmd": "set -euo pipefail; cp -a frozen-bisect/. .; bun regression-driver/merge-bisect-cohort.ts 522 regression-driver/cohort-points-wave2.json"
+  },
+  {
+    "cpu": 4,
+    "memory": 14336,
+    "timeout": 1800,
+    "vm_type": "large",
+    "name": "mb-cohort-523",
+    "cmd": "set -euo pipefail; cp -a frozen-bisect/. .; bun regression-driver/merge-bisect-cohort.ts 523 regression-driver/cohort-points-wave2.json"
+  },
+  {
+    "cpu": 4,
+    "memory": 14336,
+    "timeout": 1800,
+    "vm_type": "large",
+    "name": "mb-cohort-524",
+    "cmd": "set -euo pipefail; cp -a frozen-bisect/. .; bun regression-driver/merge-bisect-cohort.ts 524 regression-driver/cohort-points-wave2.json"
+  },
+  {
+    "cpu": 4,
+    "memory": 14336,
+    "timeout": 1800,
+    "vm_type": "large",
+    "name": "mb-cohort-525",
+    "cmd": "set -euo pipefail; cp -a frozen-bisect/. .; bun regression-driver/merge-bisect-cohort.ts 525 regression-driver/cohort-points-wave2.json"
+  },
+  {
+    "cpu": 4,
+    "memory": 14336,
+    "timeout": 1800,
+    "vm_type": "large",
+    "name": "mb-cohort-526",
+    "cmd": "set -euo pipefail; cp -a frozen-bisect/. .; bun regression-driver/merge-bisect-cohort.ts 526 regression-driver/cohort-points-wave2.json"
+  },
+  {
+    "cpu": 4,
+    "memory": 14336,
+    "timeout": 1800,
+    "vm_type": "large",
+    "name": "mb-cohort-527",
+    "cmd": "set -euo pipefail; cp -a frozen-bisect/. .; bun regression-driver/merge-bisect-cohort.ts 527 regression-driver/cohort-points-wave2.json"
+  },
+  {
+    "cpu": 4,
+    "memory": 14336,
+    "timeout": 1800,
+    "vm_type": "large",
+    "name": "mb-cohort-528",
+    "cmd": "set -euo pipefail; cp -a frozen-bisect/. .; bun regression-driver/merge-bisect-cohort.ts 528 regression-driver/cohort-points-wave2.json"
+  },
+  {
+    "cpu": 4,
+    "memory": 14336,
+    "timeout": 1800,
+    "vm_type": "large",
+    "name": "mb-cohort-529",
+    "cmd": "set -euo pipefail; cp -a frozen-bisect/. .; bun regression-driver/merge-bisect-cohort.ts 529 regression-driver/cohort-points-wave2.json"
+  },
+  {
+    "cpu": 4,
+    "memory": 14336,
+    "timeout": 1800,
+    "vm_type": "large",
+    "name": "mb-cohort-530",
+    "cmd": "set -euo pipefail; cp -a frozen-bisect/. .; bun regression-driver/merge-bisect-cohort.ts 530 regression-driver/cohort-points-wave2.json"
+  },
+  {
+    "cpu": 4,
+    "memory": 14336,
+    "timeout": 1800,
+    "vm_type": "large",
+    "name": "mb-cohort-531",
+    "cmd": "set -euo pipefail; cp -a frozen-bisect/. .; bun regression-driver/merge-bisect-cohort.ts 531 regression-driver/cohort-points-wave2.json"
+  },
+  {
+    "cpu": 4,
+    "memory": 14336,
+    "timeout": 1800,
+    "vm_type": "large",
+    "name": "mb-cohort-532",
+    "cmd": "set -euo pipefail; cp -a frozen-bisect/. .; bun regression-driver/merge-bisect-cohort.ts 532 regression-driver/cohort-points-wave2.json"
+  },
+  {
+    "cpu": 4,
+    "memory": 14336,
+    "timeout": 1800,
+    "vm_type": "large",
+    "name": "mb-cohort-533",
+    "cmd": "set -euo pipefail; cp -a frozen-bisect/. .; bun regression-driver/merge-bisect-cohort.ts 533 regression-driver/cohort-points-wave2.json"
+  },
+  {
+    "cpu": 4,
+    "memory": 14336,
+    "timeout": 1800,
+    "vm_type": "large",
+    "name": "mb-cohort-534",
+    "cmd": "set -euo pipefail; cp -a frozen-bisect/. .; bun regression-driver/merge-bisect-cohort.ts 534 regression-driver/cohort-points-wave2.json"
+  },
+  {
+    "cpu": 4,
+    "memory": 14336,
+    "timeout": 1800,
+    "vm_type": "large",
+    "name": "mb-cohort-535",
+    "cmd": "set -euo pipefail; cp -a frozen-bisect/. .; bun regression-driver/merge-bisect-cohort.ts 535 regression-driver/cohort-points-wave2.json"
+  },
+  {
+    "cpu": 4,
+    "memory": 14336,
+    "timeout": 1800,
+    "vm_type": "large",
+    "name": "mb-cohort-536",
+    "cmd": "set -euo pipefail; cp -a frozen-bisect/. .; bun regression-driver/merge-bisect-cohort.ts 536 regression-driver/cohort-points-wave2.json"
+  },
+  {
+    "cpu": 4,
+    "memory": 14336,
+    "timeout": 1800,
+    "vm_type": "large",
+    "name": "mb-cohort-537",
+    "cmd": "set -euo pipefail; cp -a frozen-bisect/. .; bun regression-driver/merge-bisect-cohort.ts 537 regression-driver/cohort-points-wave2.json"
+  },
+  {
+    "cpu": 4,
+    "memory": 14336,
+    "timeout": 1800,
+    "vm_type": "large",
+    "name": "mb-cohort-538",
+    "cmd": "set -euo pipefail; cp -a frozen-bisect/. .; bun regression-driver/merge-bisect-cohort.ts 538 regression-driver/cohort-points-wave2.json"
+  },
+  {
+    "cpu": 4,
+    "memory": 14336,
+    "timeout": 1800,
+    "vm_type": "large",
+    "name": "mb-cohort-539",
+    "cmd": "set -euo pipefail; cp -a frozen-bisect/. .; bun regression-driver/merge-bisect-cohort.ts 539 regression-driver/cohort-points-wave2.json"
+  },
+  {
+    "cpu": 4,
+    "memory": 14336,
+    "timeout": 1800,
+    "vm_type": "large",
+    "name": "mb-cohort-540",
+    "cmd": "set -euo pipefail; cp -a frozen-bisect/. .; bun regression-driver/merge-bisect-cohort.ts 540 regression-driver/cohort-points-wave2.json"
+  },
+  {
+    "cpu": 4,
+    "memory": 14336,
+    "timeout": 1800,
+    "vm_type": "large",
+    "name": "mb-cohort-541",
+    "cmd": "set -euo pipefail; cp -a frozen-bisect/. .; bun regression-driver/merge-bisect-cohort.ts 541 regression-driver/cohort-points-wave2.json"
+  },
+  {
+    "cpu": 4,
+    "memory": 14336,
+    "timeout": 1800,
+    "vm_type": "large",
+    "name": "mb-cohort-542",
+    "cmd": "set -euo pipefail; cp -a frozen-bisect/. .; bun regression-driver/merge-bisect-cohort.ts 542 regression-driver/cohort-points-wave2.json"
+  },
+  {
+    "cpu": 4,
+    "memory": 14336,
+    "timeout": 1800,
+    "vm_type": "large",
+    "name": "mb-cohort-543",
+    "cmd": "set -euo pipefail; cp -a frozen-bisect/. .; bun regression-driver/merge-bisect-cohort.ts 543 regression-driver/cohort-points-wave2.json"
+  },
+  {
+    "cpu": 4,
+    "memory": 14336,
+    "timeout": 1800,
+    "vm_type": "large",
+    "name": "mb-cohort-544",
+    "cmd": "set -euo pipefail; cp -a frozen-bisect/. .; bun regression-driver/merge-bisect-cohort.ts 544 regression-driver/cohort-points-wave2.json"
+  },
+  {
+    "cpu": 4,
+    "memory": 14336,
+    "timeout": 1800,
+    "vm_type": "large",
+    "name": "mb-cohort-545",
+    "cmd": "set -euo pipefail; cp -a frozen-bisect/. .; bun regression-driver/merge-bisect-cohort.ts 545 regression-driver/cohort-points-wave2.json"
+  },
+  {
+    "cpu": 4,
+    "memory": 14336,
+    "timeout": 1800,
+    "vm_type": "large",
+    "name": "mb-cohort-546",
+    "cmd": "set -euo pipefail; cp -a frozen-bisect/. .; bun regression-driver/merge-bisect-cohort.ts 546 regression-driver/cohort-points-wave2.json"
+  },
+  {
+    "cpu": 4,
+    "memory": 14336,
+    "timeout": 1800,
+    "vm_type": "large",
+    "name": "mb-cohort-547",
+    "cmd": "set -euo pipefail; cp -a frozen-bisect/. .; bun regression-driver/merge-bisect-cohort.ts 547 regression-driver/cohort-points-wave2.json"
+  },
+  {
+    "cpu": 4,
+    "memory": 14336,
+    "timeout": 1800,
+    "vm_type": "large",
+    "name": "mb-cohort-548",
+    "cmd": "set -euo pipefail; cp -a frozen-bisect/. .; bun regression-driver/merge-bisect-cohort.ts 548 regression-driver/cohort-points-wave2.json"
+  },
+  {
+    "cpu": 4,
+    "memory": 14336,
+    "timeout": 1800,
+    "vm_type": "large",
+    "name": "mb-cohort-549",
+    "cmd": "set -euo pipefail; cp -a frozen-bisect/. .; bun regression-driver/merge-bisect-cohort.ts 549 regression-driver/cohort-points-wave2.json"
+  },
+  {
+    "cpu": 4,
+    "memory": 14336,
+    "timeout": 1800,
+    "vm_type": "large",
+    "name": "mb-cohort-550",
+    "cmd": "set -euo pipefail; cp -a frozen-bisect/. .; bun regression-driver/merge-bisect-cohort.ts 550 regression-driver/cohort-points-wave2.json"
+  },
+  {
+    "cpu": 4,
+    "memory": 14336,
+    "timeout": 1800,
+    "vm_type": "large",
+    "name": "mb-cohort-551",
+    "cmd": "set -euo pipefail; cp -a frozen-bisect/. .; bun regression-driver/merge-bisect-cohort.ts 551 regression-driver/cohort-points-wave2.json"
+  },
+  {
+    "cpu": 4,
+    "memory": 14336,
+    "timeout": 1800,
+    "vm_type": "large",
+    "name": "mb-cohort-552",
+    "cmd": "set -euo pipefail; cp -a frozen-bisect/. .; bun regression-driver/merge-bisect-cohort.ts 552 regression-driver/cohort-points-wave2.json"
+  },
+  {
+    "cpu": 4,
+    "memory": 14336,
+    "timeout": 1800,
+    "vm_type": "large",
+    "name": "mb-cohort-553",
+    "cmd": "set -euo pipefail; cp -a frozen-bisect/. .; bun regression-driver/merge-bisect-cohort.ts 553 regression-driver/cohort-points-wave2.json"
+  },
+  {
+    "cpu": 4,
+    "memory": 14336,
+    "timeout": 1800,
+    "vm_type": "large",
+    "name": "mb-cohort-554",
+    "cmd": "set -euo pipefail; cp -a frozen-bisect/. .; bun regression-driver/merge-bisect-cohort.ts 554 regression-driver/cohort-points-wave2.json"
+  },
+  {
+    "cpu": 4,
+    "memory": 14336,
+    "timeout": 1800,
+    "vm_type": "large",
+    "name": "mb-cohort-555",
+    "cmd": "set -euo pipefail; cp -a frozen-bisect/. .; bun regression-driver/merge-bisect-cohort.ts 555 regression-driver/cohort-points-wave2.json"
+  },
+  {
+    "cpu": 4,
+    "memory": 14336,
+    "timeout": 1800,
+    "vm_type": "large",
+    "name": "mb-cohort-556",
+    "cmd": "set -euo pipefail; cp -a frozen-bisect/. .; bun regression-driver/merge-bisect-cohort.ts 556 regression-driver/cohort-points-wave2.json"
+  },
+  {
+    "cpu": 4,
+    "memory": 14336,
+    "timeout": 1800,
+    "vm_type": "large",
+    "name": "mb-cohort-557",
+    "cmd": "set -euo pipefail; cp -a frozen-bisect/. .; bun regression-driver/merge-bisect-cohort.ts 557 regression-driver/cohort-points-wave2.json"
+  },
+  {
+    "cpu": 4,
+    "memory": 14336,
+    "timeout": 1800,
+    "vm_type": "large",
+    "name": "mb-cohort-558",
+    "cmd": "set -euo pipefail; cp -a frozen-bisect/. .; bun regression-driver/merge-bisect-cohort.ts 558 regression-driver/cohort-points-wave2.json"
+  },
+  {
+    "cpu": 4,
+    "memory": 14336,
+    "timeout": 1800,
+    "vm_type": "large",
+    "name": "mb-cohort-559",
+    "cmd": "set -euo pipefail; cp -a frozen-bisect/. .; bun regression-driver/merge-bisect-cohort.ts 559 regression-driver/cohort-points-wave2.json"
+  },
+  {
+    "cpu": 4,
+    "memory": 14336,
+    "timeout": 1800,
+    "vm_type": "large",
+    "name": "mb-cohort-560",
+    "cmd": "set -euo pipefail; cp -a frozen-bisect/. .; bun regression-driver/merge-bisect-cohort.ts 560 regression-driver/cohort-points-wave2.json"
+  },
+  {
+    "cpu": 4,
+    "memory": 14336,
+    "timeout": 1800,
+    "vm_type": "large",
+    "name": "mb-cohort-561",
+    "cmd": "set -euo pipefail; cp -a frozen-bisect/. .; bun regression-driver/merge-bisect-cohort.ts 561 regression-driver/cohort-points-wave2.json"
+  },
+  {
+    "cpu": 4,
+    "memory": 14336,
+    "timeout": 1800,
+    "vm_type": "large",
+    "name": "mb-cohort-562",
+    "cmd": "set -euo pipefail; cp -a frozen-bisect/. .; bun regression-driver/merge-bisect-cohort.ts 562 regression-driver/cohort-points-wave2.json"
+  },
+  {
+    "cpu": 4,
+    "memory": 14336,
+    "timeout": 1800,
+    "vm_type": "large",
+    "name": "mb-cohort-563",
+    "cmd": "set -euo pipefail; cp -a frozen-bisect/. .; bun regression-driver/merge-bisect-cohort.ts 563 regression-driver/cohort-points-wave2.json"
+  },
+  {
+    "cpu": 4,
+    "memory": 14336,
+    "timeout": 1800,
+    "vm_type": "large",
+    "name": "mb-cohort-564",
+    "cmd": "set -euo pipefail; cp -a frozen-bisect/. .; bun regression-driver/merge-bisect-cohort.ts 564 regression-driver/cohort-points-wave2.json"
+  },
+  {
+    "cpu": 4,
+    "memory": 14336,
+    "timeout": 1800,
+    "vm_type": "large",
+    "name": "mb-cohort-565",
+    "cmd": "set -euo pipefail; cp -a frozen-bisect/. .; bun regression-driver/merge-bisect-cohort.ts 565 regression-driver/cohort-points-wave2.json"
+  },
+  {
+    "cpu": 4,
+    "memory": 14336,
+    "timeout": 1800,
+    "vm_type": "large",
+    "name": "mb-cohort-566",
+    "cmd": "set -euo pipefail; cp -a frozen-bisect/. .; bun regression-driver/merge-bisect-cohort.ts 566 regression-driver/cohort-points-wave2.json"
+  },
+  {
+    "cpu": 4,
+    "memory": 14336,
+    "timeout": 1800,
+    "vm_type": "large",
+    "name": "mb-cohort-567",
+    "cmd": "set -euo pipefail; cp -a frozen-bisect/. .; bun regression-driver/merge-bisect-cohort.ts 567 regression-driver/cohort-points-wave2.json"
+  },
+  {
+    "cpu": 4,
+    "memory": 14336,
+    "timeout": 1800,
+    "vm_type": "large",
+    "name": "mb-cohort-568",
+    "cmd": "set -euo pipefail; cp -a frozen-bisect/. .; bun regression-driver/merge-bisect-cohort.ts 568 regression-driver/cohort-points-wave2.json"
+  },
+  {
+    "cpu": 4,
+    "memory": 14336,
+    "timeout": 1800,
+    "vm_type": "large",
+    "name": "mb-cohort-569",
+    "cmd": "set -euo pipefail; cp -a frozen-bisect/. .; bun regression-driver/merge-bisect-cohort.ts 569 regression-driver/cohort-points-wave2.json"
+  },
+  {
+    "cpu": 4,
+    "memory": 14336,
+    "timeout": 1800,
+    "vm_type": "large",
+    "name": "mb-cohort-570",
+    "cmd": "set -euo pipefail; cp -a frozen-bisect/. .; bun regression-driver/merge-bisect-cohort.ts 570 regression-driver/cohort-points-wave2.json"
+  },
+  {
+    "cpu": 4,
+    "memory": 14336,
+    "timeout": 1800,
+    "vm_type": "large",
+    "name": "mb-cohort-571",
+    "cmd": "set -euo pipefail; cp -a frozen-bisect/. .; bun regression-driver/merge-bisect-cohort.ts 571 regression-driver/cohort-points-wave2.json"
+  },
+  {
+    "cpu": 4,
+    "memory": 14336,
+    "timeout": 1800,
+    "vm_type": "large",
+    "name": "mb-cohort-572",
+    "cmd": "set -euo pipefail; cp -a frozen-bisect/. .; bun regression-driver/merge-bisect-cohort.ts 572 regression-driver/cohort-points-wave2.json"
+  }
+]

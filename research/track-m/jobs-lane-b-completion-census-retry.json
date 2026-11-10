@@ -1,0 +1,1 @@
+[{"name":"gen-learning_switch","cmd":"bash research/track-m/completion-scope-run.sh 26 census learning_switch","cpu":8,"memory":14336,"timeout":780},{"name":"gen-learning_switch_i4","cmd":"bash research/track-m/completion-scope-run.sh 27 census learning_switch_i4","cpu":8,"memory":14336,"timeout":780}]

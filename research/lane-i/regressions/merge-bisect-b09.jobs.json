@@ -1,0 +1,26 @@
+[
+  {
+    "name": "mb-b09da82d-r4",
+    "cmd": "bun regression-driver/merge-bisect.ts b09da82d9ada6e0cdc31f943292cfea727f5752e 4 5",
+    "cpu": 4,
+    "memory": 14336,
+    "timeout": 900,
+    "vm_type": "large"
+  },
+  {
+    "name": "mb-b09da82d-r5",
+    "cmd": "bun regression-driver/merge-bisect.ts b09da82d9ada6e0cdc31f943292cfea727f5752e 5 5",
+    "cpu": 4,
+    "memory": 14336,
+    "timeout": 900,
+    "vm_type": "large"
+  },
+  {
+    "name": "mb-b09da82d-r6",
+    "cmd": "bun regression-driver/merge-bisect.ts b09da82d9ada6e0cdc31f943292cfea727f5752e 6 5",
+    "cpu": 4,
+    "memory": 14336,
+    "timeout": 900,
+    "vm_type": "large"
+  }
+]

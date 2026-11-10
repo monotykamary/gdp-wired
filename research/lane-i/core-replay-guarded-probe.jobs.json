@@ -1,0 +1,1 @@
+[{"name":"guarded-core-replay","cmd":"set -euo pipefail; bash research/lane-i/validate.sh setup; bun research/lane-i/core-replay-guarded-probe.ts","cpu":2,"memory":8192,"timeout":180}]

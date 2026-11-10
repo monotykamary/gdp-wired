@@ -1,0 +1,3 @@
+[
+ {"name":"paxos-main-three-repeats","cmd":"set -euo pipefail; for repeat in 1 2 3; do first=base; if [ \"$repeat\" = 2 ]; then first=cand; fi; echo REPEAT=$repeat; bash research/track-m/compare-main.sh paxos_epr \"$first\"; done","cpu":8,"memory":14336,"timeout":900}
+]

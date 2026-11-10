@@ -1,0 +1,26 @@
+[
+  {
+    "name": "mldr-r1",
+    "cmd": "set -uo pipefail\nlog=$(mktemp /tmp/lane-i-rebased-mldr-r1.XXXXXX.log)\nbash research/lane-i/validate.sh mldr 1 mldr >\"$log\" 2>&1\nstatus=$?\nprintf 'LANE_I_CAPTURE_GZIP '\ngzip -n -c \"$log\" | base64 -w0\nprintf '\\nLANE_I_CAPTURE_META '\nprintf '{\"exit\":%s,\"path\":\"%s\",\"sha256\":\"%s\"}\\n' \"$status\" \"$log\" \"$(sha256sum \"$log\" | cut -d' ' -f1)\"\nexit \"$status\"",
+    "cpu": 4,
+    "memory": 14336,
+    "timeout": 900,
+    "vm_type": "large"
+  },
+  {
+    "name": "mldr-r2",
+    "cmd": "set -uo pipefail\nlog=$(mktemp /tmp/lane-i-rebased-mldr-r2.XXXXXX.log)\nbash research/lane-i/validate.sh mldr 2 mldr >\"$log\" 2>&1\nstatus=$?\nprintf 'LANE_I_CAPTURE_GZIP '\ngzip -n -c \"$log\" | base64 -w0\nprintf '\\nLANE_I_CAPTURE_META '\nprintf '{\"exit\":%s,\"path\":\"%s\",\"sha256\":\"%s\"}\\n' \"$status\" \"$log\" \"$(sha256sum \"$log\" | cut -d' ' -f1)\"\nexit \"$status\"",
+    "cpu": 4,
+    "memory": 14336,
+    "timeout": 900,
+    "vm_type": "large"
+  },
+  {
+    "name": "mldr-r3",
+    "cmd": "set -uo pipefail\nlog=$(mktemp /tmp/lane-i-rebased-mldr-r3.XXXXXX.log)\nbash research/lane-i/validate.sh mldr 3 mldr >\"$log\" 2>&1\nstatus=$?\nprintf 'LANE_I_CAPTURE_GZIP '\ngzip -n -c \"$log\" | base64 -w0\nprintf '\\nLANE_I_CAPTURE_META '\nprintf '{\"exit\":%s,\"path\":\"%s\",\"sha256\":\"%s\"}\\n' \"$status\" \"$log\" \"$(sha256sum \"$log\" | cut -d' ' -f1)\"\nexit \"$status\"",
+    "cpu": 4,
+    "memory": 14336,
+    "timeout": 900,
+    "vm_type": "large"
+  }
+]

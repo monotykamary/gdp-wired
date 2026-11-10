@@ -1,0 +1,9 @@
+[
+  {
+    "name": "closure-source-profile",
+    "cmd": "set -e; bun install --frozen-lockfile >/dev/null; bun x oxlint --type-aware --deny-warnings --disable-nested-config research/track-m/derivability-closure.ts research/track-m/closure-falsification.ts; LAB_CLOSURE_PROFILE=1 LAB_CLOSURE_ONLY='Inv*' bun research/track-m/closure-falsification.ts replay-input/input.json trace-input/checked-core.json",
+    "cpu": 8,
+    "memory": 14336,
+    "timeout": 75
+  }
+]

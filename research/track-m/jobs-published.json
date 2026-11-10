@@ -1,0 +1,1 @@
+[{"name":"given","cmd":"set -e; bun install --frozen-lockfile >/dev/null && GDP_COUNTS_GIVEN=1 GDP_COUNTS_TRACE=3 GDP_COUNTS_DUMP_N=20 GDP_COUNTS_DUMP_MIN=0 bun research/track-m/prove-published.ts; tar -cJf /tmp/track-m-goals.txz -C /tmp/track-m-goals .; echo GOALS_ARCHIVE; base64 -w0 /tmp/track-m-goals.txz; echo","timeout":180}]

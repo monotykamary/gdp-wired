@@ -1,0 +1,79 @@
+[
+  {
+    "name": "context-0-grow-150",
+    "cmd": "LAB_SOURCE_UNITS=150 LAB_QUERY_UNITS=50 LAB_CORE_UNITS=100 LAB_POINT=off bash research/track-m/lane-f-source-probe.sh triangle-0-projected-core-context-grow",
+    "cpu": 2,
+    "memory": 8192,
+    "timeout": 90
+  },
+  {
+    "name": "context-0-folded-150",
+    "cmd": "LAB_SOURCE_UNITS=150 LAB_QUERY_UNITS=50 LAB_CORE_UNITS=100 LAB_POINT=off bash research/track-m/lane-f-source-probe.sh triangle-0-projected-core-context-folded",
+    "cpu": 2,
+    "memory": 8192,
+    "timeout": 90
+  },
+  {
+    "name": "context-0-boolean-150",
+    "cmd": "LAB_SOURCE_UNITS=150 LAB_QUERY_UNITS=50 LAB_CORE_UNITS=100 LAB_POINT=off bash research/track-m/lane-f-source-probe.sh triangle-0-projected-core-context-boolean",
+    "cpu": 2,
+    "memory": 8192,
+    "timeout": 90
+  },
+  {
+    "name": "minimal-0-grow-diagnostic",
+    "cmd": "LAB_SOURCE_UNITS=1000 LAB_QUERY_UNITS=50 LAB_CORE_UNITS=1000 LAB_POINT=off bash research/track-m/lane-f-source-probe.sh triangle-0-projected-core-grow",
+    "cpu": 2,
+    "memory": 8192,
+    "timeout": 90
+  },
+  {
+    "name": "context-0-grow-diagnostic",
+    "cmd": "LAB_SOURCE_UNITS=1000 LAB_QUERY_UNITS=50 LAB_CORE_UNITS=1000 LAB_POINT=off bash research/track-m/lane-f-source-probe.sh triangle-0-projected-core-context-grow",
+    "cpu": 2,
+    "memory": 8192,
+    "timeout": 90
+  },
+  {
+    "name": "context-3-grow-150",
+    "cmd": "LAB_SOURCE_UNITS=150 LAB_QUERY_UNITS=50 LAB_CORE_UNITS=100 LAB_POINT=off bash research/track-m/lane-f-source-probe.sh triangle-3-projected-core-context-grow",
+    "cpu": 2,
+    "memory": 8192,
+    "timeout": 90
+  },
+  {
+    "name": "context-3-folded-150",
+    "cmd": "LAB_SOURCE_UNITS=150 LAB_QUERY_UNITS=50 LAB_CORE_UNITS=100 LAB_POINT=off bash research/track-m/lane-f-source-probe.sh triangle-3-projected-core-context-folded",
+    "cpu": 2,
+    "memory": 8192,
+    "timeout": 90
+  },
+  {
+    "name": "context-3-boolean-150",
+    "cmd": "LAB_SOURCE_UNITS=150 LAB_QUERY_UNITS=50 LAB_CORE_UNITS=100 LAB_POINT=off bash research/track-m/lane-f-source-probe.sh triangle-3-projected-core-context-boolean",
+    "cpu": 2,
+    "memory": 8192,
+    "timeout": 90
+  },
+  {
+    "name": "minimal-3-grow-diagnostic",
+    "cmd": "LAB_SOURCE_UNITS=1000 LAB_QUERY_UNITS=50 LAB_CORE_UNITS=1000 LAB_POINT=off bash research/track-m/lane-f-source-probe.sh triangle-3-projected-core-grow",
+    "cpu": 2,
+    "memory": 8192,
+    "timeout": 90
+  },
+  {
+    "name": "context-3-grow-diagnostic",
+    "cmd": "LAB_SOURCE_UNITS=1000 LAB_QUERY_UNITS=50 LAB_CORE_UNITS=1000 LAB_POINT=off bash research/track-m/lane-f-source-probe.sh triangle-3-projected-core-context-grow",
+    "cpu": 2,
+    "memory": 8192,
+    "timeout": 90
+  },
+  {
+    "name": "validation",
+    "cmd": "set -euo pipefail; bash research/track-m/prepare-vendors.sh; bun install --frozen-lockfile >/dev/null; cp source-projection-base.txt core/count-recovery/derivability-closure.ts; LAB_DISPOSABLE=1 bun research/track-m/lane-f-scalar-source-variant.ts; LAB_DISPOSABLE=1 bun research/track-m/lane-f-core-first-variant.ts; bun test core/count-recovery/live-dependencies.test.ts core/count-write-frames.test.ts core/count-focused.test.ts core/count-ranges.test.ts core/count-recovery/empty-count-source.test.ts core/count-recovery/derivability-closure.test.ts core/count-recovery/row-demand.test.ts core/count-recovery/row-cases.test.ts core/count-recovery/conditional-cuts.test.ts; bun run check; for file in audit-fix-commit.txt transport-commit.txt audit-report-commit.txt context-source-commit.txt; do printf 'COMMITLINT %s\\n' \"$file\"; bunx commitlint --default-config < \"$file\"; done",
+    "cpu": 4,
+    "memory": 8192,
+    "timeout": 480
+  }
+]

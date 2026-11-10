@@ -1,0 +1,56 @@
+{
+  "trust": "Finite differential and static validation; not a performance or final-gate pass.",
+  "batch": "20261110-024235-jcofa9",
+  "base": "6288b666e7b23cb4a10e0e9e92cde919ea135854",
+  "overlay": "runs/t16-seed-overlay/",
+  "tests": 71,
+  "assertions": 1959,
+  "typecheck": "pass",
+  "typeAwareLint": "zero warnings/errors",
+  "commitlint": "pass",
+  "hashes": {
+    "core/finite-tiny.ts": "75ad5d2b681ce9b5fd167139d94858712da2c7bbd2cdd5df987bfd1fff074b8e",
+    "core/finite-tiny.test.ts": "f3bf9bafa63ffe7150512ada101e5c781f5e0696ac6ce5175750bf77f9d8005c",
+    "core/finite-tiny-target.test.ts": "a9e2ece1f3e36eab0544c66a0afd13f236130a4d5d814435fc0224a05992287c",
+    "core/finite-tiny-seed.test.ts": "992a86b0a27247b78834b5b3fee370be9d947888a71aef1b1afb0ed483c41542",
+    "research/track-gen/t16-domain-hybrid.ts": "e8df5883ffc911b06a2a4555f244a6dd58a342c8ea86e68605d79ab3cbd1eb68"
+  },
+  "pilot": {
+    "status": "rejected; independently replayed",
+    "batch": "20261110-024443-g6s11w",
+    "originalNamedNew": [
+      3,
+      2,
+      3
+    ],
+    "originalWallsMs": [
+      1900.206935,
+      2362.200119,
+      1900.156606
+    ],
+    "survivorNamedNew": [
+      2,
+      2,
+      2
+    ],
+    "replayTask": "5f26d2a8-9c04-4934-b356-cfa13e315f39",
+    "diagnosticTask": "3ab68a0d-ac04-424c-a831-2b15271c4750",
+    "diagnostic": {
+      "status": "complete",
+      "batch": "20261110-024729-wzf17f",
+      "result": "research/track-gen/t16-seed-profile.json",
+      "qualifyingTiming": false,
+      "seedModelsByPass": [
+        0,
+        0,
+        0
+      ],
+      "finding": "Second binary and ternary passes expired in setup, before seed/global enumeration; ternary compiled seven operations."
+    },
+    "replayBatch": "20261110-024725-59idfa",
+    "certifiedWitnesses": 22,
+    "results": "research/track-gen/t16-seed-results.json"
+  },
+  "productionEnabled": false,
+  "sourceCommit": "94a443cc0dc6956e8899a1767dc7d822e2296097"
+}

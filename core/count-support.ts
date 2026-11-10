@@ -6,6 +6,7 @@ import {linOfE, canon} from './solver.ts'
 import {substC, substE, mcGoal, type CountDecl, type CountInst, type CountCert, type Goal, type MapRead, type Instances, countedObligations} from '../kernel/kernel.ts'
 import {certFor} from './counts.ts'
 import {wallAt} from '../kernel/prove.ts'
+import {memberInclusions} from './count-recovery/member-inclusions.ts'
 export class UnsupportedCountProposal extends Error {}
 const json = (v: unknown) => JSON.stringify(v)
 const sourceNames = (v: unknown, check?: () => void): Set<string> => {
@@ -119,9 +120,9 @@ export function candidateWork() {
   patternIndices.set(tick,{laws:new WeakMap()})
   return {state,tick,mark}
 }
-export function grammarPool(goal:Goal,decls:CountDecl[],cap=1000,budget=candidateWork()){
+export function grammarPool(goal:Goal,decls:CountDecl[],cap=1000,budget=candidateWork(),structured=true,m?:Machine){
  const more=budget.tick;budget.mark('pool:begin')
- const base=certFor(goal,decls,true,cap,more),byMap=new Map(decls.map(d=>[d.map,d])),byRead=new Map(base.reads.map(r=>[r[0],r])),insts=[...base.insts],wits=[...base.wits]
+ const base=certFor(goal,decls,true,cap,more,structured),byMap=new Map(decls.map(d=>[d.map,d])),byRead=new Map(base.reads.map(r=>[r[0],r])),insts=[...base.insts],wits=[...base.wits]
  const added:{instance:CountInst,reason:string,links?:unknown}[]=[],proposed:unknown[]=[]
  let omittedProvenance=0
  const semantic=(i:CountInst)=>json([i.terms.map(([k,r])=>[k,byRead.get(r)?.slice(1)]),i.unit,keyId(i.below)]),had=new Set(insts.map(semantic)),taken=names([goal,decls,insts]);let serial=insts.length
@@ -134,6 +135,13 @@ export function grammarPool(goal:Goal,decls:CountDecl[],cap=1000,budget=candidat
   const instance={...i,wit};insts.push(instance);wits.push(wit);had.add(id);added.push({instance,reason,...(detail===undefined?{}:{links:detail})})
  }
  budget.mark('pool:base')
+ // A conditional member inclusion is an ordinary count witness disjunction,
+ // not a guarded arithmetic premise. The main lazy loop must see it before
+ // returning a model. Reuse this pool's cap, semantic dedup and fresh names.
+ if(structured&&m?.inputMaps?.length&&insts.length<cap&&more()){
+  for(const p of memberInclusions(m,decls,base.reads,more))add({wit:'',terms:[[1,p.positive],[-1,p.negative]],unit:0,below:p.below},'guarded member inclusion',()=>({carried:p.carried,guards:p.guards}))
+  budget.mark('pool:member-inclusions')
+ }
  // No post-cap enumeration is needed: selected entries absent from this bounded
  // prefix can still be reinserted by reservePool from their exact prior definitions.
  // Narrow triples require an actual POST read; without one that pass cannot

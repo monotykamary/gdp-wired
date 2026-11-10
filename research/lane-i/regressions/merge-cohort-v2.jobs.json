@@ -1,0 +1,290 @@
+[
+  {
+    "cpu": 4,
+    "memory": 14336,
+    "timeout": 1800,
+    "vm_type": "large",
+    "name": "mb-cohort-301",
+    "cmd": "bun regression-driver/merge-bisect-cohort.ts 301 regression-driver/cohort-points-wave2.json"
+  },
+  {
+    "cpu": 4,
+    "memory": 14336,
+    "timeout": 1800,
+    "vm_type": "large",
+    "name": "mb-cohort-302",
+    "cmd": "bun regression-driver/merge-bisect-cohort.ts 302 regression-driver/cohort-points-wave2.json"
+  },
+  {
+    "cpu": 4,
+    "memory": 14336,
+    "timeout": 1800,
+    "vm_type": "large",
+    "name": "mb-cohort-303",
+    "cmd": "bun regression-driver/merge-bisect-cohort.ts 303 regression-driver/cohort-points-wave2.json"
+  },
+  {
+    "cpu": 4,
+    "memory": 14336,
+    "timeout": 1800,
+    "vm_type": "large",
+    "name": "mb-cohort-304",
+    "cmd": "bun regression-driver/merge-bisect-cohort.ts 304 regression-driver/cohort-points-wave2.json"
+  },
+  {
+    "cpu": 4,
+    "memory": 14336,
+    "timeout": 1800,
+    "vm_type": "large",
+    "name": "mb-cohort-305",
+    "cmd": "bun regression-driver/merge-bisect-cohort.ts 305 regression-driver/cohort-points-wave2.json"
+  },
+  {
+    "cpu": 4,
+    "memory": 14336,
+    "timeout": 1800,
+    "vm_type": "large",
+    "name": "mb-cohort-306",
+    "cmd": "bun regression-driver/merge-bisect-cohort.ts 306 regression-driver/cohort-points-wave2.json"
+  },
+  {
+    "cpu": 4,
+    "memory": 14336,
+    "timeout": 1800,
+    "vm_type": "large",
+    "name": "mb-cohort-307",
+    "cmd": "bun regression-driver/merge-bisect-cohort.ts 307 regression-driver/cohort-points-wave2.json"
+  },
+  {
+    "cpu": 4,
+    "memory": 14336,
+    "timeout": 1800,
+    "vm_type": "large",
+    "name": "mb-cohort-308",
+    "cmd": "bun regression-driver/merge-bisect-cohort.ts 308 regression-driver/cohort-points-wave2.json"
+  },
+  {
+    "cpu": 4,
+    "memory": 14336,
+    "timeout": 1800,
+    "vm_type": "large",
+    "name": "mb-cohort-309",
+    "cmd": "bun regression-driver/merge-bisect-cohort.ts 309 regression-driver/cohort-points-wave2.json"
+  },
+  {
+    "cpu": 4,
+    "memory": 14336,
+    "timeout": 1800,
+    "vm_type": "large",
+    "name": "mb-cohort-310",
+    "cmd": "bun regression-driver/merge-bisect-cohort.ts 310 regression-driver/cohort-points-wave2.json"
+  },
+  {
+    "cpu": 4,
+    "memory": 14336,
+    "timeout": 1800,
+    "vm_type": "large",
+    "name": "mb-cohort-311",
+    "cmd": "bun regression-driver/merge-bisect-cohort.ts 311 regression-driver/cohort-points-wave2.json"
+  },
+  {
+    "cpu": 4,
+    "memory": 14336,
+    "timeout": 1800,
+    "vm_type": "large",
+    "name": "mb-cohort-312",
+    "cmd": "bun regression-driver/merge-bisect-cohort.ts 312 regression-driver/cohort-points-wave2.json"
+  },
+  {
+    "cpu": 4,
+    "memory": 14336,
+    "timeout": 1800,
+    "vm_type": "large",
+    "name": "mb-cohort-313",
+    "cmd": "bun regression-driver/merge-bisect-cohort.ts 313 regression-driver/cohort-points-wave2.json"
+  },
+  {
+    "cpu": 4,
+    "memory": 14336,
+    "timeout": 1800,
+    "vm_type": "large",
+    "name": "mb-cohort-314",
+    "cmd": "bun regression-driver/merge-bisect-cohort.ts 314 regression-driver/cohort-points-wave2.json"
+  },
+  {
+    "cpu": 4,
+    "memory": 14336,
+    "timeout": 1800,
+    "vm_type": "large",
+    "name": "mb-cohort-315",
+    "cmd": "bun regression-driver/merge-bisect-cohort.ts 315 regression-driver/cohort-points-wave2.json"
+  },
+  {
+    "cpu": 4,
+    "memory": 14336,
+    "timeout": 1800,
+    "vm_type": "large",
+    "name": "mb-cohort-316",
+    "cmd": "bun regression-driver/merge-bisect-cohort.ts 316 regression-driver/cohort-points-wave2.json"
+  },
+  {
+    "cpu": 4,
+    "memory": 14336,
+    "timeout": 1800,
+    "vm_type": "large",
+    "name": "mb-cohort-317",
+    "cmd": "bun regression-driver/merge-bisect-cohort.ts 317 regression-driver/cohort-points-wave2.json"
+  },
+  {
+    "cpu": 4,
+    "memory": 14336,
+    "timeout": 1800,
+    "vm_type": "large",
+    "name": "mb-cohort-318",
+    "cmd": "bun regression-driver/merge-bisect-cohort.ts 318 regression-driver/cohort-points-wave2.json"
+  },
+  {
+    "cpu": 4,
+    "memory": 14336,
+    "timeout": 1800,
+    "vm_type": "large",
+    "name": "mb-cohort-319",
+    "cmd": "bun regression-driver/merge-bisect-cohort.ts 319 regression-driver/cohort-points-wave2.json"
+  },
+  {
+    "cpu": 4,
+    "memory": 14336,
+    "timeout": 1800,
+    "vm_type": "large",
+    "name": "mb-cohort-320",
+    "cmd": "bun regression-driver/merge-bisect-cohort.ts 320 regression-driver/cohort-points-wave2.json"
+  },
+  {
+    "cpu": 4,
+    "memory": 14336,
+    "timeout": 1800,
+    "vm_type": "large",
+    "name": "mb-cohort-321",
+    "cmd": "bun regression-driver/merge-bisect-cohort.ts 321 regression-driver/cohort-points-wave2.json"
+  },
+  {
+    "cpu": 4,
+    "memory": 14336,
+    "timeout": 1800,
+    "vm_type": "large",
+    "name": "mb-cohort-322",
+    "cmd": "bun regression-driver/merge-bisect-cohort.ts 322 regression-driver/cohort-points-wave2.json"
+  },
+  {
+    "cpu": 4,
+    "memory": 14336,
+    "timeout": 1800,
+    "vm_type": "large",
+    "name": "mb-cohort-323",
+    "cmd": "bun regression-driver/merge-bisect-cohort.ts 323 regression-driver/cohort-points-wave2.json"
+  },
+  {
+    "cpu": 4,
+    "memory": 14336,
+    "timeout": 1800,
+    "vm_type": "large",
+    "name": "mb-cohort-324",
+    "cmd": "bun regression-driver/merge-bisect-cohort.ts 324 regression-driver/cohort-points-wave2.json"
+  },
+  {
+    "cpu": 4,
+    "memory": 14336,
+    "timeout": 1800,
+    "vm_type": "large",
+    "name": "mb-cohort-325",
+    "cmd": "bun regression-driver/merge-bisect-cohort.ts 325 regression-driver/cohort-points-wave2.json"
+  },
+  {
+    "cpu": 4,
+    "memory": 14336,
+    "timeout": 1800,
+    "vm_type": "large",
+    "name": "mb-cohort-326",
+    "cmd": "bun regression-driver/merge-bisect-cohort.ts 326 regression-driver/cohort-points-wave2.json"
+  },
+  {
+    "cpu": 4,
+    "memory": 14336,
+    "timeout": 1800,
+    "vm_type": "large",
+    "name": "mb-cohort-327",
+    "cmd": "bun regression-driver/merge-bisect-cohort.ts 327 regression-driver/cohort-points-wave2.json"
+  },
+  {
+    "cpu": 4,
+    "memory": 14336,
+    "timeout": 1800,
+    "vm_type": "large",
+    "name": "mb-cohort-328",
+    "cmd": "bun regression-driver/merge-bisect-cohort.ts 328 regression-driver/cohort-points-wave2.json"
+  },
+  {
+    "cpu": 4,
+    "memory": 14336,
+    "timeout": 1800,
+    "vm_type": "large",
+    "name": "mb-cohort-329",
+    "cmd": "bun regression-driver/merge-bisect-cohort.ts 329 regression-driver/cohort-points-wave2.json"
+  },
+  {
+    "cpu": 4,
+    "memory": 14336,
+    "timeout": 1800,
+    "vm_type": "large",
+    "name": "mb-cohort-330",
+    "cmd": "bun regression-driver/merge-bisect-cohort.ts 330 regression-driver/cohort-points-wave2.json"
+  },
+  {
+    "cpu": 4,
+    "memory": 14336,
+    "timeout": 1800,
+    "vm_type": "large",
+    "name": "mb-cohort-331",
+    "cmd": "bun regression-driver/merge-bisect-cohort.ts 331 regression-driver/cohort-points-wave2.json"
+  },
+  {
+    "cpu": 4,
+    "memory": 14336,
+    "timeout": 1800,
+    "vm_type": "large",
+    "name": "mb-cohort-332",
+    "cmd": "bun regression-driver/merge-bisect-cohort.ts 332 regression-driver/cohort-points-wave2.json"
+  },
+  {
+    "cpu": 4,
+    "memory": 14336,
+    "timeout": 1800,
+    "vm_type": "large",
+    "name": "mb-cohort-333",
+    "cmd": "bun regression-driver/merge-bisect-cohort.ts 333 regression-driver/cohort-points-wave2.json"
+  },
+  {
+    "cpu": 4,
+    "memory": 14336,
+    "timeout": 1800,
+    "vm_type": "large",
+    "name": "mb-cohort-334",
+    "cmd": "bun regression-driver/merge-bisect-cohort.ts 334 regression-driver/cohort-points-wave2.json"
+  },
+  {
+    "cpu": 4,
+    "memory": 14336,
+    "timeout": 1800,
+    "vm_type": "large",
+    "name": "mb-cohort-335",
+    "cmd": "bun regression-driver/merge-bisect-cohort.ts 335 regression-driver/cohort-points-wave2.json"
+  },
+  {
+    "cpu": 4,
+    "memory": 14336,
+    "timeout": 1800,
+    "vm_type": "large",
+    "name": "mb-cohort-336",
+    "cmd": "bun regression-driver/merge-bisect-cohort.ts 336 regression-driver/cohort-points-wave2.json"
+  }
+]

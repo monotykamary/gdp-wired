@@ -1,0 +1,10 @@
+[
+  {
+    "name": "search-pairs-6601",
+    "cmd": "set -euo pipefail; cp -a frozen-paxos/. .; bun regression-driver/search-pairs.ts",
+    "cpu": 4,
+    "memory": 14336,
+    "timeout": 600,
+    "vm_type": "large"
+  }
+]

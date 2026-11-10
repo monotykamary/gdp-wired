@@ -1,0 +1,21 @@
+import {readFileSync} from 'node:fs'
+import {gzipSync} from 'node:zlib'
+import {createHash} from 'node:crypto'
+import {type Law,type Machine,walkOnce} from '../../core/machine.ts'
+import {countedAttempts,countsDump} from '../../core/counts.ts'
+import {work} from '../../core/solver.ts'
+import {checkMC,countedObligations} from '../../kernel/kernel.ts'
+import {clock,counted,fullRate,fullWork,withDeadline,withWall} from '../../kernel/prove.ts'
+type Packet={schema:number,source:string,m:Machine,laws:Law[],target:number,caller:number[],support:number[],pass:0|1,ms:number,houdini:boolean}
+const text=readFileSync(process.argv[2]!,'utf8'),p=JSON.parse(text) as Packet,side=process.argv[3]??'current',law=p.laws[p.target]!
+if(p.schema!==1||p.laws.length!==45||!law.name.startsWith('Decision keeps members'))throw Error('wrong frozen Paxos family')
+const events:unknown[]=[],completed:{law:string,tuple:unknown[]}[]=[],targetMaps=new Set<string>()
+walkOnce(law.holds,(v:any)=>{if(v.op==='get'&&p.m.counts?.[v.map])targetMaps.add(v.map)})
+countsDump.on=e=>{const r=e as Record<string,any>;if(r.phase==='count-completion'){completed.push(...r.added);events.push({phase:r.phase,added:r.added})}else if(r.phase)events.push({phase:r.phase,hyps:r.hyps?.length,insts:r.certificateRequest?.insts?.length,reads:r.certificateRequest?.reads?.length,seedCount:r.seedCount})}
+const start=performance.now();let result:any,error:string|undefined,solver=0,full=0
+try{counted(fullRate,()=>withWall(start+20000,()=>{const w0=work.n,f0=fullWork(),until=clock()+p.ms;try{const attempt=countedAttempts(p.m,p.caller.map(i=>p.laws[i]!),new Set(p.support.map(i=>p.laws[i]!)),until);attempt.houdini=p.houdini;result=withDeadline(until,()=>attempt.traced(law,p.laws,p.pass,p.ms))}finally{solver=work.n-w0;full=fullWork()-f0}}),true)}catch(e){error=String(e)}finally{countsDump.on=undefined}
+const searchWallMs=performance.now()-start,checks:'checked'[]=[]
+if(result&&'proof'in result)for(const g of countedObligations(p.m,p.laws,{[law.name]:result.proof.instances},p.target)){if(!checkMC(g.goal.hyps,g.decls,result.proof.certs[g.goal.name]!))throw Error('frozen certificate rejected');checks.push('checked')}
+const trace={side,familySha256:createHash('sha256').update(text).digest('hex'),law:law.name,family:p.laws.length,pass:p.pass,allowance:p.ms,cpu:process.platform==='linux'?/^model name\s*:\s*(.+)$/m.exec(readFileSync('/proc/cpuinfo','utf8'))?.[1]:undefined,outcome:result?('proof'in result?'proof':result.stuck):'error',checks,solver,full,units:full/fullRate,searchWallMs,completed,targetMaps:[...targetMaps],events,error}
+console.log('PAXOS_ATTEMPT '+JSON.stringify(trace))
+if(result&&'proof'in result)console.log('PAXOS_PROOF_GZIP_BASE64 '+gzipSync(JSON.stringify({side,familySha256:trace.familySha256,proof:result.proof})).toString('base64'))

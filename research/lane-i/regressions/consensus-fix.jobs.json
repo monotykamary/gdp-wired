@@ -1,0 +1,26 @@
+[
+  {
+    "name": "consensus-fix-6401",
+    "cmd": "set -euo pipefail; cp -a frozen-paxos/. .; cp -a paxos-input gate-inputs; printf '%s\\n' '{\"baseline\":\"bf01190119f9409077a36e11a4a5b763fb6c1cad\",\"candidate\":\"8de9dadbe10925c2377121ee220faf97bcca4d59\"}' > gate-inputs/gate.json; bun regression-driver/strict-pairs.ts 6401 3",
+    "cpu": 4,
+    "memory": 14336,
+    "timeout": 500,
+    "vm_type": "large"
+  },
+  {
+    "name": "consensus-fix-6402",
+    "cmd": "set -euo pipefail; cp -a frozen-paxos/. .; cp -a paxos-input gate-inputs; printf '%s\\n' '{\"baseline\":\"bf01190119f9409077a36e11a4a5b763fb6c1cad\",\"candidate\":\"8de9dadbe10925c2377121ee220faf97bcca4d59\"}' > gate-inputs/gate.json; bun regression-driver/strict-pairs.ts 6402 3",
+    "cpu": 4,
+    "memory": 14336,
+    "timeout": 500,
+    "vm_type": "large"
+  },
+  {
+    "name": "consensus-fix-6403",
+    "cmd": "set -euo pipefail; cp -a frozen-paxos/. .; cp -a paxos-input gate-inputs; printf '%s\\n' '{\"baseline\":\"bf01190119f9409077a36e11a4a5b763fb6c1cad\",\"candidate\":\"8de9dadbe10925c2377121ee220faf97bcca4d59\"}' > gate-inputs/gate.json; bun regression-driver/strict-pairs.ts 6403 3",
+    "cpu": 4,
+    "memory": 14336,
+    "timeout": 500,
+    "vm_type": "large"
+  }
+]

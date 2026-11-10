@@ -1,0 +1,6 @@
+feat(core): add bounded counterexample seed neighborhoods
+
+Project at most eight prior transitions into the same finite domains and
+try at most 256 radius-one models before the unchanged global traversal.
+Keep the independent whole-family source-step certification boundary and
+all walls intact. Add exhaustive and adversarial seed regression tests.

@@ -1,0 +1,66 @@
+[
+  {
+    "cpu": 4,
+    "memory": 14336,
+    "timeout": 1800,
+    "vm_type": "large",
+    "name": "combined-check",
+    "cmd": "set -euo pipefail; bash research/lane-i/validate.sh setup; bun run check"
+  },
+  {
+    "cpu": 4,
+    "memory": 14336,
+    "timeout": 1800,
+    "vm_type": "large",
+    "name": "combined-tests-1",
+    "cmd": "set -euo pipefail; bash research/lane-i/validate.sh setup; bun scripts/test-shards.ts --shard 1/7"
+  },
+  {
+    "cpu": 4,
+    "memory": 14336,
+    "timeout": 1800,
+    "vm_type": "large",
+    "name": "combined-tests-2",
+    "cmd": "set -euo pipefail; bash research/lane-i/validate.sh setup; bun scripts/test-shards.ts --shard 2/7"
+  },
+  {
+    "cpu": 4,
+    "memory": 14336,
+    "timeout": 1800,
+    "vm_type": "large",
+    "name": "combined-tests-3",
+    "cmd": "set -euo pipefail; bash research/lane-i/validate.sh setup; bun scripts/test-shards.ts --shard 3/7"
+  },
+  {
+    "cpu": 4,
+    "memory": 14336,
+    "timeout": 1800,
+    "vm_type": "large",
+    "name": "combined-tests-4",
+    "cmd": "set -euo pipefail; bash research/lane-i/validate.sh setup; bun scripts/test-shards.ts --shard 4/7"
+  },
+  {
+    "cpu": 4,
+    "memory": 14336,
+    "timeout": 1800,
+    "vm_type": "large",
+    "name": "combined-tests-5",
+    "cmd": "set -euo pipefail; bash research/lane-i/validate.sh setup; bun scripts/test-shards.ts --shard 5/7"
+  },
+  {
+    "cpu": 4,
+    "memory": 14336,
+    "timeout": 1800,
+    "vm_type": "large",
+    "name": "combined-tests-6",
+    "cmd": "set -euo pipefail; bash research/lane-i/validate.sh setup; bun scripts/test-shards.ts --shard 6/7"
+  },
+  {
+    "cpu": 4,
+    "memory": 14336,
+    "timeout": 1800,
+    "vm_type": "large",
+    "name": "combined-tests-7",
+    "cmd": "set -euo pipefail; bash research/lane-i/validate.sh setup; bun scripts/test-shards.ts --shard 7/7"
+  }
+]

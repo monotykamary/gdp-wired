@@ -1,0 +1,234 @@
+[
+ {
+  "name": "verdict-consensus",
+  "vm_type": "large",
+  "cpu": 2,
+  "memory": 8192,
+  "timeout": 1500,
+  "cmd": "set -o pipefail; mkdir -p base && tar -xf baselines/base.tar -C base && (cp -R vendor/. base/vendor/ 2>/dev/null || true) && bun install --frozen-lockfile >/dev/null && (cd base && bun install --frozen-lockfile >/dev/null) && echo PAIR base; (cd base && /usr/bin/time -f 'PROCESS_SECONDS base %e EXIT %x' timeout -s KILL 60 bun research/protocols/ic3syn/run.ts --ms 60000 --only consensus --skip broken > out.json 2> err.log; echo VERDICT $(cut -c1-600 out.json); grep PROCESS_SECONDS err.log; ) ; echo PAIR mine; (cd . && /usr/bin/time -f 'PROCESS_SECONDS mine %e EXIT %x' timeout -s KILL 60 bun research/protocols/ic3syn/run.ts --ms 60000 --only consensus --skip broken > out.json 2> err.log; echo VERDICT $(cut -c1-600 out.json); grep PROCESS_SECONDS err.log; )"
+ },
+ {
+  "name": "verdict-tcommit",
+  "vm_type": "large",
+  "cpu": 2,
+  "memory": 8192,
+  "timeout": 1500,
+  "cmd": "set -o pipefail; mkdir -p base && tar -xf baselines/base.tar -C base && (cp -R vendor/. base/vendor/ 2>/dev/null || true) && bun install --frozen-lockfile >/dev/null && (cd base && bun install --frozen-lockfile >/dev/null) && echo PAIR mine; (cd . && /usr/bin/time -f 'PROCESS_SECONDS mine %e EXIT %x' timeout -s KILL 60 bun research/protocols/ic3syn/run.ts --ms 60000 --only tcommit --skip broken > out.json 2> err.log; echo VERDICT $(cut -c1-600 out.json); grep PROCESS_SECONDS err.log; ) ; echo PAIR base; (cd base && /usr/bin/time -f 'PROCESS_SECONDS base %e EXIT %x' timeout -s KILL 60 bun research/protocols/ic3syn/run.ts --ms 60000 --only tcommit --skip broken > out.json 2> err.log; echo VERDICT $(cut -c1-600 out.json); grep PROCESS_SECONDS err.log; )"
+ },
+ {
+  "name": "verdict-lock_server",
+  "vm_type": "large",
+  "cpu": 2,
+  "memory": 8192,
+  "timeout": 1500,
+  "cmd": "set -o pipefail; mkdir -p base && tar -xf baselines/base.tar -C base && (cp -R vendor/. base/vendor/ 2>/dev/null || true) && bun install --frozen-lockfile >/dev/null && (cd base && bun install --frozen-lockfile >/dev/null) && echo PAIR base; (cd base && /usr/bin/time -f 'PROCESS_SECONDS base %e EXIT %x' timeout -s KILL 60 bun research/protocols/ic3syn/run.ts --ms 60000 --only lock_server --skip broken > out.json 2> err.log; echo VERDICT $(cut -c1-600 out.json); grep PROCESS_SECONDS err.log; ) ; echo PAIR mine; (cd . && /usr/bin/time -f 'PROCESS_SECONDS mine %e EXIT %x' timeout -s KILL 60 bun research/protocols/ic3syn/run.ts --ms 60000 --only lock_server --skip broken > out.json 2> err.log; echo VERDICT $(cut -c1-600 out.json); grep PROCESS_SECONDS err.log; )"
+ },
+ {
+  "name": "verdict-quorum_leader_election",
+  "vm_type": "large",
+  "cpu": 2,
+  "memory": 8192,
+  "timeout": 1500,
+  "cmd": "set -o pipefail; mkdir -p base && tar -xf baselines/base.tar -C base && (cp -R vendor/. base/vendor/ 2>/dev/null || true) && bun install --frozen-lockfile >/dev/null && (cd base && bun install --frozen-lockfile >/dev/null) && echo PAIR mine; (cd . && /usr/bin/time -f 'PROCESS_SECONDS mine %e EXIT %x' timeout -s KILL 60 bun research/protocols/ic3syn/run.ts --ms 60000 --only quorum_leader_election --skip broken > out.json 2> err.log; echo VERDICT $(cut -c1-600 out.json); grep PROCESS_SECONDS err.log; ) ; echo PAIR base; (cd base && /usr/bin/time -f 'PROCESS_SECONDS base %e EXIT %x' timeout -s KILL 60 bun research/protocols/ic3syn/run.ts --ms 60000 --only quorum_leader_election --skip broken > out.json 2> err.log; echo VERDICT $(cut -c1-600 out.json); grep PROCESS_SECONDS err.log; )"
+ },
+ {
+  "name": "verdict-toy_consensus_forall",
+  "vm_type": "large",
+  "cpu": 2,
+  "memory": 8192,
+  "timeout": 1500,
+  "cmd": "set -o pipefail; mkdir -p base && tar -xf baselines/base.tar -C base && (cp -R vendor/. base/vendor/ 2>/dev/null || true) && bun install --frozen-lockfile >/dev/null && (cd base && bun install --frozen-lockfile >/dev/null) && echo PAIR base; (cd base && /usr/bin/time -f 'PROCESS_SECONDS base %e EXIT %x' timeout -s KILL 60 bun research/protocols/ic3syn/run.ts --ms 60000 --only toy_consensus_forall --skip broken > out.json 2> err.log; echo VERDICT $(cut -c1-600 out.json); grep PROCESS_SECONDS err.log; ) ; echo PAIR mine; (cd . && /usr/bin/time -f 'PROCESS_SECONDS mine %e EXIT %x' timeout -s KILL 60 bun research/protocols/ic3syn/run.ts --ms 60000 --only toy_consensus_forall --skip broken > out.json 2> err.log; echo VERDICT $(cut -c1-600 out.json); grep PROCESS_SECONDS err.log; )"
+ },
+ {
+  "name": "verdict-simple",
+  "vm_type": "large",
+  "cpu": 2,
+  "memory": 8192,
+  "timeout": 1500,
+  "cmd": "set -o pipefail; mkdir -p base && tar -xf baselines/base.tar -C base && (cp -R vendor/. base/vendor/ 2>/dev/null || true) && bun install --frozen-lockfile >/dev/null && (cd base && bun install --frozen-lockfile >/dev/null) && echo PAIR mine; (cd . && /usr/bin/time -f 'PROCESS_SECONDS mine %e EXIT %x' timeout -s KILL 60 bun research/protocols/ic3syn/run.ts --ms 60000 --only simple --skip broken > out.json 2> err.log; echo VERDICT $(cut -c1-600 out.json); grep PROCESS_SECONDS err.log; ) ; echo PAIR base; (cd base && /usr/bin/time -f 'PROCESS_SECONDS base %e EXIT %x' timeout -s KILL 60 bun research/protocols/ic3syn/run.ts --ms 60000 --only simple --skip broken > out.json 2> err.log; echo VERDICT $(cut -c1-600 out.json); grep PROCESS_SECONDS err.log; )"
+ },
+ {
+  "name": "verdict-simple_regular",
+  "vm_type": "large",
+  "cpu": 2,
+  "memory": 8192,
+  "timeout": 1500,
+  "cmd": "set -o pipefail; mkdir -p base && tar -xf baselines/base.tar -C base && (cp -R vendor/. base/vendor/ 2>/dev/null || true) && bun install --frozen-lockfile >/dev/null && (cd base && bun install --frozen-lockfile >/dev/null) && echo PAIR base; (cd base && /usr/bin/time -f 'PROCESS_SECONDS base %e EXIT %x' timeout -s KILL 60 bun research/protocols/ic3syn/run.ts --ms 60000 --only simple_regular --skip broken > out.json 2> err.log; echo VERDICT $(cut -c1-600 out.json); grep PROCESS_SECONDS err.log; ) ; echo PAIR mine; (cd . && /usr/bin/time -f 'PROCESS_SECONDS mine %e EXIT %x' timeout -s KILL 60 bun research/protocols/ic3syn/run.ts --ms 60000 --only simple_regular --skip broken > out.json 2> err.log; echo VERDICT $(cut -c1-600 out.json); grep PROCESS_SECONDS err.log; )"
+ },
+ {
+  "name": "verdict-lockserv_automaton",
+  "vm_type": "large",
+  "cpu": 2,
+  "memory": 8192,
+  "timeout": 1500,
+  "cmd": "set -o pipefail; mkdir -p base && tar -xf baselines/base.tar -C base && (cp -R vendor/. base/vendor/ 2>/dev/null || true) && bun install --frozen-lockfile >/dev/null && (cd base && bun install --frozen-lockfile >/dev/null) && echo PAIR mine; (cd . && /usr/bin/time -f 'PROCESS_SECONDS mine %e EXIT %x' timeout -s KILL 60 bun research/protocols/ic3syn/run.ts --ms 60000 --only lockserv_automaton --skip broken > out.json 2> err.log; echo VERDICT $(cut -c1-600 out.json); grep PROCESS_SECONDS err.log; ) ; echo PAIR base; (cd base && /usr/bin/time -f 'PROCESS_SECONDS base %e EXIT %x' timeout -s KILL 60 bun research/protocols/ic3syn/run.ts --ms 60000 --only lockserv_automaton --skip broken > out.json 2> err.log; echo VERDICT $(cut -c1-600 out.json); grep PROCESS_SECONDS err.log; )"
+ },
+ {
+  "name": "verdict-sharded_kv",
+  "vm_type": "large",
+  "cpu": 2,
+  "memory": 8192,
+  "timeout": 1500,
+  "cmd": "set -o pipefail; mkdir -p base && tar -xf baselines/base.tar -C base && (cp -R vendor/. base/vendor/ 2>/dev/null || true) && bun install --frozen-lockfile >/dev/null && (cd base && bun install --frozen-lockfile >/dev/null) && echo PAIR base; (cd base && /usr/bin/time -f 'PROCESS_SECONDS base %e EXIT %x' timeout -s KILL 60 bun research/protocols/ic3syn/run.ts --ms 60000 --only sharded_kv --skip broken > out.json 2> err.log; echo VERDICT $(cut -c1-600 out.json); grep PROCESS_SECONDS err.log; ) ; echo PAIR mine; (cd . && /usr/bin/time -f 'PROCESS_SECONDS mine %e EXIT %x' timeout -s KILL 60 bun research/protocols/ic3syn/run.ts --ms 60000 --only sharded_kv --skip broken > out.json 2> err.log; echo VERDICT $(cut -c1-600 out.json); grep PROCESS_SECONDS err.log; )"
+ },
+ {
+  "name": "verdict-sharded_kv_no_lost_keys",
+  "vm_type": "large",
+  "cpu": 2,
+  "memory": 8192,
+  "timeout": 1500,
+  "cmd": "set -o pipefail; mkdir -p base && tar -xf baselines/base.tar -C base && (cp -R vendor/. base/vendor/ 2>/dev/null || true) && bun install --frozen-lockfile >/dev/null && (cd base && bun install --frozen-lockfile >/dev/null) && echo PAIR mine; (cd . && /usr/bin/time -f 'PROCESS_SECONDS mine %e EXIT %x' timeout -s KILL 60 bun research/protocols/ic3syn/run.ts --ms 60000 --only sharded_kv_no_lost_keys --skip broken > out.json 2> err.log; echo VERDICT $(cut -c1-600 out.json); grep PROCESS_SECONDS err.log; ) ; echo PAIR base; (cd base && /usr/bin/time -f 'PROCESS_SECONDS base %e EXIT %x' timeout -s KILL 60 bun research/protocols/ic3syn/run.ts --ms 60000 --only sharded_kv_no_lost_keys --skip broken > out.json 2> err.log; echo VERDICT $(cut -c1-600 out.json); grep PROCESS_SECONDS err.log; )"
+ },
+ {
+  "name": "verdict-lockserv",
+  "vm_type": "large",
+  "cpu": 2,
+  "memory": 8192,
+  "timeout": 1500,
+  "cmd": "set -o pipefail; mkdir -p base && tar -xf baselines/base.tar -C base && (cp -R vendor/. base/vendor/ 2>/dev/null || true) && bun install --frozen-lockfile >/dev/null && (cd base && bun install --frozen-lockfile >/dev/null) && echo PAIR base; (cd base && /usr/bin/time -f 'PROCESS_SECONDS base %e EXIT %x' timeout -s KILL 60 bun research/protocols/ic3syn/run.ts --ms 60000 --only lockserv --skip broken > out.json 2> err.log; echo VERDICT $(cut -c1-600 out.json); grep PROCESS_SECONDS err.log; ) ; echo PAIR mine; (cd . && /usr/bin/time -f 'PROCESS_SECONDS mine %e EXIT %x' timeout -s KILL 60 bun research/protocols/ic3syn/run.ts --ms 60000 --only lockserv --skip broken > out.json 2> err.log; echo VERDICT $(cut -c1-600 out.json); grep PROCESS_SECONDS err.log; )"
+ },
+ {
+  "name": "verdict-twophase",
+  "vm_type": "large",
+  "cpu": 2,
+  "memory": 8192,
+  "timeout": 1500,
+  "cmd": "set -o pipefail; mkdir -p base && tar -xf baselines/base.tar -C base && (cp -R vendor/. base/vendor/ 2>/dev/null || true) && bun install --frozen-lockfile >/dev/null && (cd base && bun install --frozen-lockfile >/dev/null) && echo PAIR mine; (cd . && /usr/bin/time -f 'PROCESS_SECONDS mine %e EXIT %x' timeout -s KILL 60 bun research/protocols/ic3syn/run.ts --ms 60000 --only twophase --skip broken > out.json 2> err.log; echo VERDICT $(cut -c1-600 out.json); grep PROCESS_SECONDS err.log; ) ; echo PAIR base; (cd base && /usr/bin/time -f 'PROCESS_SECONDS base %e EXIT %x' timeout -s KILL 60 bun research/protocols/ic3syn/run.ts --ms 60000 --only twophase --skip broken > out.json 2> err.log; echo VERDICT $(cut -c1-600 out.json); grep PROCESS_SECONDS err.log; )"
+ },
+ {
+  "name": "verdict-simple_decentralized_lock",
+  "vm_type": "large",
+  "cpu": 2,
+  "memory": 8192,
+  "timeout": 1500,
+  "cmd": "set -o pipefail; mkdir -p base && tar -xf baselines/base.tar -C base && (cp -R vendor/. base/vendor/ 2>/dev/null || true) && bun install --frozen-lockfile >/dev/null && (cd base && bun install --frozen-lockfile >/dev/null) && echo PAIR base; (cd base && /usr/bin/time -f 'PROCESS_SECONDS base %e EXIT %x' timeout -s KILL 60 bun research/protocols/ic3syn/run.ts --ms 60000 --only simple_decentralized_lock --skip broken > out.json 2> err.log; echo VERDICT $(cut -c1-600 out.json); grep PROCESS_SECONDS err.log; ) ; echo PAIR mine; (cd . && /usr/bin/time -f 'PROCESS_SECONDS mine %e EXIT %x' timeout -s KILL 60 bun research/protocols/ic3syn/run.ts --ms 60000 --only simple_decentralized_lock --skip broken > out.json 2> err.log; echo VERDICT $(cut -c1-600 out.json); grep PROCESS_SECONDS err.log; )"
+ },
+ {
+  "name": "verdict-two_phase_commit",
+  "vm_type": "large",
+  "cpu": 2,
+  "memory": 8192,
+  "timeout": 1500,
+  "cmd": "set -o pipefail; mkdir -p base && tar -xf baselines/base.tar -C base && (cp -R vendor/. base/vendor/ 2>/dev/null || true) && bun install --frozen-lockfile >/dev/null && (cd base && bun install --frozen-lockfile >/dev/null) && echo PAIR mine; (cd . && /usr/bin/time -f 'PROCESS_SECONDS mine %e EXIT %x' timeout -s KILL 60 bun research/protocols/ic3syn/run.ts --ms 60000 --only two_phase_commit --skip broken > out.json 2> err.log; echo VERDICT $(cut -c1-600 out.json); grep PROCESS_SECONDS err.log; ) ; echo PAIR base; (cd base && /usr/bin/time -f 'PROCESS_SECONDS base %e EXIT %x' timeout -s KILL 60 bun research/protocols/ic3syn/run.ts --ms 60000 --only two_phase_commit --skip broken > out.json 2> err.log; echo VERDICT $(cut -c1-600 out.json); grep PROCESS_SECONDS err.log; )"
+ },
+ {
+  "name": "verdict-consensus_wo_decide",
+  "vm_type": "large",
+  "cpu": 2,
+  "memory": 8192,
+  "timeout": 1500,
+  "cmd": "set -o pipefail; mkdir -p base && tar -xf baselines/base.tar -C base && (cp -R vendor/. base/vendor/ 2>/dev/null || true) && bun install --frozen-lockfile >/dev/null && (cd base && bun install --frozen-lockfile >/dev/null) && echo PAIR base; (cd base && /usr/bin/time -f 'PROCESS_SECONDS base %e EXIT %x' timeout -s KILL 60 bun research/protocols/ic3syn/run.ts --ms 60000 --only consensus_wo_decide --skip broken > out.json 2> err.log; echo VERDICT $(cut -c1-600 out.json); grep PROCESS_SECONDS err.log; ) ; echo PAIR mine; (cd . && /usr/bin/time -f 'PROCESS_SECONDS mine %e EXIT %x' timeout -s KILL 60 bun research/protocols/ic3syn/run.ts --ms 60000 --only consensus_wo_decide --skip broken > out.json 2> err.log; echo VERDICT $(cut -c1-600 out.json); grep PROCESS_SECONDS err.log; )"
+ },
+ {
+  "name": "verdict-consensus_forall",
+  "vm_type": "large",
+  "cpu": 2,
+  "memory": 8192,
+  "timeout": 1500,
+  "cmd": "set -o pipefail; mkdir -p base && tar -xf baselines/base.tar -C base && (cp -R vendor/. base/vendor/ 2>/dev/null || true) && bun install --frozen-lockfile >/dev/null && (cd base && bun install --frozen-lockfile >/dev/null) && echo PAIR mine; (cd . && /usr/bin/time -f 'PROCESS_SECONDS mine %e EXIT %x' timeout -s KILL 60 bun research/protocols/ic3syn/run.ts --ms 60000 --only consensus_forall --skip broken > out.json 2> err.log; echo VERDICT $(cut -c1-600 out.json); grep PROCESS_SECONDS err.log; ) ; echo PAIR base; (cd base && /usr/bin/time -f 'PROCESS_SECONDS base %e EXIT %x' timeout -s KILL 60 bun research/protocols/ic3syn/run.ts --ms 60000 --only consensus_forall --skip broken > out.json 2> err.log; echo VERDICT $(cut -c1-600 out.json); grep PROCESS_SECONDS err.log; )"
+ },
+ {
+  "name": "verdict-naive_consensus",
+  "vm_type": "large",
+  "cpu": 2,
+  "memory": 8192,
+  "timeout": 1500,
+  "cmd": "set -o pipefail; mkdir -p base && tar -xf baselines/base.tar -C base && (cp -R vendor/. base/vendor/ 2>/dev/null || true) && bun install --frozen-lockfile >/dev/null && (cd base && bun install --frozen-lockfile >/dev/null) && echo PAIR base; (cd base && /usr/bin/time -f 'PROCESS_SECONDS base %e EXIT %x' timeout -s KILL 60 bun research/protocols/ic3syn/run.ts --ms 60000 --only naive_consensus --skip broken > out.json 2> err.log; echo VERDICT $(cut -c1-600 out.json); grep PROCESS_SECONDS err.log; ) ; echo PAIR mine; (cd . && /usr/bin/time -f 'PROCESS_SECONDS mine %e EXIT %x' timeout -s KILL 60 bun research/protocols/ic3syn/run.ts --ms 60000 --only naive_consensus --skip broken > out.json 2> err.log; echo VERDICT $(cut -c1-600 out.json); grep PROCESS_SECONDS err.log; )"
+ },
+ {
+  "name": "verdict-client_server_ae",
+  "vm_type": "large",
+  "cpu": 2,
+  "memory": 8192,
+  "timeout": 1500,
+  "cmd": "set -o pipefail; mkdir -p base && tar -xf baselines/base.tar -C base && (cp -R vendor/. base/vendor/ 2>/dev/null || true) && bun install --frozen-lockfile >/dev/null && (cd base && bun install --frozen-lockfile >/dev/null) && echo PAIR mine; (cd . && /usr/bin/time -f 'PROCESS_SECONDS mine %e EXIT %x' timeout -s KILL 60 bun research/protocols/ic3syn/run.ts --ms 60000 --only client_server_ae --skip broken > out.json 2> err.log; echo VERDICT $(cut -c1-600 out.json); grep PROCESS_SECONDS err.log; ) ; echo PAIR base; (cd base && /usr/bin/time -f 'PROCESS_SECONDS base %e EXIT %x' timeout -s KILL 60 bun research/protocols/ic3syn/run.ts --ms 60000 --only client_server_ae --skip broken > out.json 2> err.log; echo VERDICT $(cut -c1-600 out.json); grep PROCESS_SECONDS err.log; )"
+ },
+ {
+  "name": "verdict-client_server_db_ae",
+  "vm_type": "large",
+  "cpu": 2,
+  "memory": 8192,
+  "timeout": 1500,
+  "cmd": "set -o pipefail; mkdir -p base && tar -xf baselines/base.tar -C base && (cp -R vendor/. base/vendor/ 2>/dev/null || true) && bun install --frozen-lockfile >/dev/null && (cd base && bun install --frozen-lockfile >/dev/null) && echo PAIR base; (cd base && /usr/bin/time -f 'PROCESS_SECONDS base %e EXIT %x' timeout -s KILL 60 bun research/protocols/ic3syn/run.ts --ms 60000 --only client_server_db_ae --skip broken > out.json 2> err.log; echo VERDICT $(cut -c1-600 out.json); grep PROCESS_SECONDS err.log; ) ; echo PAIR mine; (cd . && /usr/bin/time -f 'PROCESS_SECONDS mine %e EXIT %x' timeout -s KILL 60 bun research/protocols/ic3syn/run.ts --ms 60000 --only client_server_db_ae --skip broken > out.json 2> err.log; echo VERDICT $(cut -c1-600 out.json); grep PROCESS_SECONDS err.log; )"
+ },
+ {
+  "name": "verdict-simple_election",
+  "vm_type": "large",
+  "cpu": 2,
+  "memory": 8192,
+  "timeout": 1500,
+  "cmd": "set -o pipefail; mkdir -p base && tar -xf baselines/base.tar -C base && (cp -R vendor/. base/vendor/ 2>/dev/null || true) && bun install --frozen-lockfile >/dev/null && (cd base && bun install --frozen-lockfile >/dev/null) && echo PAIR mine; (cd . && /usr/bin/time -f 'PROCESS_SECONDS mine %e EXIT %x' timeout -s KILL 60 bun research/protocols/ic3syn/run.ts --ms 60000 --only simple_election --skip broken > out.json 2> err.log; echo VERDICT $(cut -c1-600 out.json); grep PROCESS_SECONDS err.log; ) ; echo PAIR base; (cd base && /usr/bin/time -f 'PROCESS_SECONDS base %e EXIT %x' timeout -s KILL 60 bun research/protocols/ic3syn/run.ts --ms 60000 --only simple_election --skip broken > out.json 2> err.log; echo VERDICT $(cut -c1-600 out.json); grep PROCESS_SECONDS err.log; )"
+ },
+ {
+  "name": "verdict-toy_consensus_epr",
+  "vm_type": "large",
+  "cpu": 2,
+  "memory": 8192,
+  "timeout": 1500,
+  "cmd": "set -o pipefail; mkdir -p base && tar -xf baselines/base.tar -C base && (cp -R vendor/. base/vendor/ 2>/dev/null || true) && bun install --frozen-lockfile >/dev/null && (cd base && bun install --frozen-lockfile >/dev/null) && echo PAIR base; (cd base && /usr/bin/time -f 'PROCESS_SECONDS base %e EXIT %x' timeout -s KILL 60 bun research/protocols/ic3syn/run.ts --ms 60000 --only toy_consensus_epr --skip broken > out.json 2> err.log; echo VERDICT $(cut -c1-600 out.json); grep PROCESS_SECONDS err.log; ) ; echo PAIR mine; (cd . && /usr/bin/time -f 'PROCESS_SECONDS mine %e EXIT %x' timeout -s KILL 60 bun research/protocols/ic3syn/run.ts --ms 60000 --only toy_consensus_epr --skip broken > out.json 2> err.log; echo VERDICT $(cut -c1-600 out.json); grep PROCESS_SECONDS err.log; )"
+ },
+ {
+  "name": "verdict-toy_consensus",
+  "vm_type": "large",
+  "cpu": 2,
+  "memory": 8192,
+  "timeout": 1500,
+  "cmd": "set -o pipefail; mkdir -p base && tar -xf baselines/base.tar -C base && (cp -R vendor/. base/vendor/ 2>/dev/null || true) && bun install --frozen-lockfile >/dev/null && (cd base && bun install --frozen-lockfile >/dev/null) && echo PAIR mine; (cd . && /usr/bin/time -f 'PROCESS_SECONDS mine %e EXIT %x' timeout -s KILL 60 bun research/protocols/ic3syn/run.ts --ms 60000 --only toy_consensus --skip broken > out.json 2> err.log; echo VERDICT $(cut -c1-600 out.json); grep PROCESS_SECONDS err.log; ) ; echo PAIR base; (cd base && /usr/bin/time -f 'PROCESS_SECONDS base %e EXIT %x' timeout -s KILL 60 bun research/protocols/ic3syn/run.ts --ms 60000 --only toy_consensus --skip broken > out.json 2> err.log; echo VERDICT $(cut -c1-600 out.json); grep PROCESS_SECONDS err.log; )"
+ },
+ {
+  "name": "verdict-firewall",
+  "vm_type": "large",
+  "cpu": 2,
+  "memory": 8192,
+  "timeout": 1500,
+  "cmd": "set -o pipefail; mkdir -p base && tar -xf baselines/base.tar -C base && (cp -R vendor/. base/vendor/ 2>/dev/null || true) && bun install --frozen-lockfile >/dev/null && (cd base && bun install --frozen-lockfile >/dev/null) && echo PAIR base; (cd base && /usr/bin/time -f 'PROCESS_SECONDS base %e EXIT %x' timeout -s KILL 60 bun research/protocols/ic3syn/run.ts --ms 60000 --only firewall --skip broken > out.json 2> err.log; echo VERDICT $(cut -c1-600 out.json); grep PROCESS_SECONDS err.log; ) ; echo PAIR mine; (cd . && /usr/bin/time -f 'PROCESS_SECONDS mine %e EXIT %x' timeout -s KILL 60 bun research/protocols/ic3syn/run.ts --ms 60000 --only firewall --skip broken > out.json 2> err.log; echo VERDICT $(cut -c1-600 out.json); grep PROCESS_SECONDS err.log; )"
+ },
+ {
+  "name": "verdict-majorityset_leader_election",
+  "vm_type": "large",
+  "cpu": 2,
+  "memory": 8192,
+  "timeout": 1500,
+  "cmd": "set -o pipefail; mkdir -p base && tar -xf baselines/base.tar -C base && (cp -R vendor/. base/vendor/ 2>/dev/null || true) && bun install --frozen-lockfile >/dev/null && (cd base && bun install --frozen-lockfile >/dev/null) && echo PAIR mine; (cd . && /usr/bin/time -f 'PROCESS_SECONDS mine %e EXIT %x' timeout -s KILL 60 bun research/protocols/ic3syn/run.ts --ms 60000 --only majorityset_leader_election --skip broken > out.json 2> err.log; echo VERDICT $(cut -c1-600 out.json); grep PROCESS_SECONDS err.log; ) ; echo PAIR base; (cd base && /usr/bin/time -f 'PROCESS_SECONDS base %e EXIT %x' timeout -s KILL 60 bun research/protocols/ic3syn/run.ts --ms 60000 --only majorityset_leader_election --skip broken > out.json 2> err.log; echo VERDICT $(cut -c1-600 out.json); grep PROCESS_SECONDS err.log; )"
+ },
+ {
+  "name": "verdict-consensus_epr",
+  "vm_type": "large",
+  "cpu": 2,
+  "memory": 8192,
+  "timeout": 1500,
+  "cmd": "set -o pipefail; mkdir -p base && tar -xf baselines/base.tar -C base && (cp -R vendor/. base/vendor/ 2>/dev/null || true) && bun install --frozen-lockfile >/dev/null && (cd base && bun install --frozen-lockfile >/dev/null) && echo PAIR base; (cd base && /usr/bin/time -f 'PROCESS_SECONDS base %e EXIT %x' timeout -s KILL 60 bun research/protocols/ic3syn/run.ts --ms 60000 --only consensus_epr --skip broken > out.json 2> err.log; echo VERDICT $(cut -c1-600 out.json); grep PROCESS_SECONDS err.log; ) ; echo PAIR mine; (cd . && /usr/bin/time -f 'PROCESS_SECONDS mine %e EXIT %x' timeout -s KILL 60 bun research/protocols/ic3syn/run.ts --ms 60000 --only consensus_epr --skip broken > out.json 2> err.log; echo VERDICT $(cut -c1-600 out.json); grep PROCESS_SECONDS err.log; )"
+ },
+ {
+  "name": "verdict-learning_switch",
+  "vm_type": "large",
+  "cpu": 2,
+  "memory": 8192,
+  "timeout": 1500,
+  "cmd": "set -o pipefail; mkdir -p base && tar -xf baselines/base.tar -C base && (cp -R vendor/. base/vendor/ 2>/dev/null || true) && bun install --frozen-lockfile >/dev/null && (cd base && bun install --frozen-lockfile >/dev/null) && echo PAIR mine; (cd . && /usr/bin/time -f 'PROCESS_SECONDS mine %e EXIT %x' timeout -s KILL 60 bun research/protocols/ic3syn/run.ts --ms 60000 --only learning_switch --skip broken > out.json 2> err.log; echo VERDICT $(cut -c1-600 out.json); grep PROCESS_SECONDS err.log; ) ; echo PAIR base; (cd base && /usr/bin/time -f 'PROCESS_SECONDS base %e EXIT %x' timeout -s KILL 60 bun research/protocols/ic3syn/run.ts --ms 60000 --only learning_switch --skip broken > out.json 2> err.log; echo VERDICT $(cut -c1-600 out.json); grep PROCESS_SECONDS err.log; )"
+ },
+ {
+  "name": "verdict-learning_switch_i4",
+  "vm_type": "large",
+  "cpu": 2,
+  "memory": 8192,
+  "timeout": 1500,
+  "cmd": "set -o pipefail; mkdir -p base && tar -xf baselines/base.tar -C base && (cp -R vendor/. base/vendor/ 2>/dev/null || true) && bun install --frozen-lockfile >/dev/null && (cd base && bun install --frozen-lockfile >/dev/null) && echo PAIR base; (cd base && /usr/bin/time -f 'PROCESS_SECONDS base %e EXIT %x' timeout -s KILL 60 bun research/protocols/ic3syn/run.ts --ms 60000 --only learning_switch_i4 --skip broken > out.json 2> err.log; echo VERDICT $(cut -c1-600 out.json); grep PROCESS_SECONDS err.log; ) ; echo PAIR mine; (cd . && /usr/bin/time -f 'PROCESS_SECONDS mine %e EXIT %x' timeout -s KILL 60 bun research/protocols/ic3syn/run.ts --ms 60000 --only learning_switch_i4 --skip broken > out.json 2> err.log; echo VERDICT $(cut -c1-600 out.json); grep PROCESS_SECONDS err.log; )"
+ },
+ {
+  "name": "verdict-paxos_epr",
+  "vm_type": "large",
+  "cpu": 2,
+  "memory": 8192,
+  "timeout": 1500,
+  "cmd": "set -o pipefail; mkdir -p base && tar -xf baselines/base.tar -C base && (cp -R vendor/. base/vendor/ 2>/dev/null || true) && bun install --frozen-lockfile >/dev/null && (cd base && bun install --frozen-lockfile >/dev/null) && echo PAIR mine; (cd . && /usr/bin/time -f 'PROCESS_SECONDS mine %e EXIT %x' timeout -s KILL 60 bun research/protocols/ic3syn/run.ts --ms 60000 --only paxos_epr --skip broken > out.json 2> err.log; echo VERDICT $(cut -c1-600 out.json); grep PROCESS_SECONDS err.log; ) ; echo PAIR base; (cd base && /usr/bin/time -f 'PROCESS_SECONDS base %e EXIT %x' timeout -s KILL 60 bun research/protocols/ic3syn/run.ts --ms 60000 --only paxos_epr --skip broken > out.json 2> err.log; echo VERDICT $(cut -c1-600 out.json); grep PROCESS_SECONDS err.log; )"
+ },
+ {
+  "name": "verdict-mldr",
+  "vm_type": "large",
+  "cpu": 2,
+  "memory": 8192,
+  "timeout": 1500,
+  "cmd": "set -o pipefail; mkdir -p base && tar -xf baselines/base.tar -C base && (cp -R vendor/. base/vendor/ 2>/dev/null || true) && bun install --frozen-lockfile >/dev/null && (cd base && bun install --frozen-lockfile >/dev/null) && echo PAIR base; (cd base && /usr/bin/time -f 'PROCESS_SECONDS base %e EXIT %x' timeout -s KILL 60 bun research/protocols/ic3syn/run.ts --ms 60000 --only mldr --skip broken > out.json 2> err.log; echo VERDICT $(cut -c1-600 out.json); grep PROCESS_SECONDS err.log; ) ; echo PAIR mine; (cd . && /usr/bin/time -f 'PROCESS_SECONDS mine %e EXIT %x' timeout -s KILL 60 bun research/protocols/ic3syn/run.ts --ms 60000 --only mldr --skip broken > out.json 2> err.log; echo VERDICT $(cut -c1-600 out.json); grep PROCESS_SECONDS err.log; )"
+ }
+]

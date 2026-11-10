@@ -1,0 +1,65 @@
+[
+  {
+    "name": "check",
+    "cmd": "set -euo pipefail; cp final-meta/identity.json integ-input/identity.json; set -euo pipefail; bash research/lane-i/validate.sh setup; bun run check",
+    "cpu": 4,
+    "memory": 12288,
+    "timeout": 600
+  },
+  {
+    "name": "changed-tests-1",
+    "cmd": "set -euo pipefail; cp final-meta/identity.json integ-input/identity.json; set -euo pipefail; bash research/lane-i/validate.sh setup; bun test research/lane-i/test-load-propagation.test.ts research/lane-i/validation-audit.test.ts research/lane-i/upper-bound/summarize.test.ts core/count-recovery/member-premises.test.ts core/finite-tiny-houdini.test.ts core/count-ranges.test.ts core/count-recovery/empty-count-source.test.ts core/count-admission.test.ts core/count-completion.test.ts core/count-focused.test.ts core/count-recovery/carried-case.test.ts core/count-recovery/derivability-closure.test.ts core/count-recovery/field-only.test.ts core/count-recovery/key-closure.test.ts core/count-recovery/member-inclusions.test.ts core/count-recovery/rename-proof.test.ts core/count-recovery/source-memo.test.ts core/count-witness.test.ts core/cube-rows.test.ts core/sample-step.test.ts kernel/model-sequence.test.ts kernel/prover-rows.test.ts research/mldr-incl/shard-receipt.test.ts research/mldr-incl/pack-production.test.ts research/track-m/boolean-core.test.ts research/track-m/check-cost-profile.test.ts research/track-m/field-frames.test.ts research/track-m/key-closure.test.ts research/track-m/natural-cases.test.ts research/track-m/phase-census-meter.test.ts research/track-m/section10-diagnostic.test.ts research/track-m/section15-derive-order.test.ts research/track-m/section15.test.ts research/track-m/section19.test.ts research/track-m/section9-ta-audit.test.ts research/track-m/without-deadlines.test.ts",
+    "cpu": 4,
+    "memory": 12288,
+    "timeout": 600
+  },
+  {
+    "name": "changed-tests-2",
+    "cmd": "set -euo pipefail; cp final-meta/identity.json integ-input/identity.json; set -euo pipefail; bash research/lane-i/validate.sh setup; bun test core/finite-tiny.test.ts core/count-cases.test.ts core/count-cubes.test.ts core/count-recovery-order.test.ts core/count-recovery/conditional-check-cache.test.ts core/count-recovery/field-bound-budget.test.ts core/count-recovery/fold-path.test.ts core/count-recovery/leaf-allowance.test.ts core/count-recovery/natural-cases.test.ts core/count-recovery/row-cases.test.ts core/count-recovery/source-witness-instances.test.ts core/count-write-frames.test.ts core/field-laws.test.ts core/small-counts.test.ts kernel/model-values.test.ts kernel/tree-reuse.test.ts research/protocols/ic3syn/mldr.test.ts research/track-m/bounded-research.test.ts research/track-m/link-lane-b-focus-audits.test.ts research/track-m/cost-meter.test.ts research/track-m/fold-path.test.ts research/track-m/lift-count-proxies.test.ts research/track-m/normalize-section13.test.ts research/track-m/rebase-path.test.ts research/track-m/section10-gate-audit.test.ts research/track-m/section15-leaf-count.test.ts research/track-m/section16.test.ts research/track-m/section7-followup-meter.test.ts research/track-m/thin-source.test.ts",
+    "cpu": 4,
+    "memory": 12288,
+    "timeout": 600
+  },
+  {
+    "name": "changed-tests-3",
+    "cmd": "set -euo pipefail; cp final-meta/identity.json integ-input/identity.json; set -euo pipefail; bash research/lane-i/validate.sh setup; bun test core/count-cert-grow.test.ts core/count-demand.test.ts core/count-recovery/action-guard.test.ts core/count-recovery/conditional-cuts.test.ts core/count-recovery/field-bound-lemmas.test.ts core/count-recovery/frame-lemmas.test.ts core/count-recovery/lift-count-proxies.test.ts core/count-recovery/pre-state-source.test.ts core/count-recovery/row-demand.test.ts core/count-unions.test.ts core/counts-preflight.test.ts core/quorum-laws.test.ts core/support-order.test.ts kernel/prove-paths.test.ts research/mldr-incl/fixtures.test.ts research/track-gen/t14-stutter.test.ts research/track-gen/t14-paired.test.ts research/track-m/carried-case.test.ts research/track-m/cost-wins-audit.test.ts research/track-m/frame-lemmas.test.ts research/track-m/live-dependencies.test.ts research/track-m/overlap-encoding.test.ts research/track-m/row-cases.test.ts research/track-m/section10-ta-audit.test.ts research/track-m/section15-row-probe.test.ts research/track-m/section17.test.ts research/track-m/section8-f23.test.ts research/track-m/tree-diagnosis.test.ts",
+    "cpu": 4,
+    "memory": 12288,
+    "timeout": 600
+  },
+  {
+    "name": "changed-tests-4",
+    "cmd": "set -euo pipefail; cp final-meta/identity.json integ-input/identity.json; set -euo pipefail; bash research/lane-i/validate.sh setup; bun test core/count-cert-transport.test.ts core/count-focus-proof.test.ts core/count-recovery/boolean-core.test.ts core/count-recovery/conditional-proof.test.ts core/count-recovery/field-demand.test.ts core/count-recovery/guard-cases.test.ts core/count-recovery/live-dependencies.test.ts core/count-recovery/rebase-path.test.ts core/count-recovery/scalar-guards.test.ts core/count-witness-flags.test.ts core/counts-structured.test.ts core/runtime-keys.test.ts core/wall.test.ts kernel/prover-row-cache.test.ts research/mldr-incl/gate-evidence.test.ts research/track-m/action-guard.test.ts research/track-m/census-integrity-audit.test.ts research/track-m/field-bound-lemmas.test.ts research/track-m/guard-cases.test.ts research/track-m/model-count-picks.test.ts research/track-m/pack-section10-archive.test.ts research/track-m/score-main-pairs.test.ts research/track-m/section14-root-admission.test.ts research/track-m/section15-share.test.ts research/track-m/section18.test.ts research/track-m/section8-incremental-rows.test.ts research/track-m/wall-profile.test.ts",
+    "cpu": 4,
+    "memory": 12288,
+    "timeout": 600
+  },
+  {
+    "name": "mldr-r1",
+    "cmd": "set -euo pipefail; cp final-meta/identity.json integ-input/identity.json; bash research/lane-i/validate.sh mldr 1",
+    "cpu": 2,
+    "memory": 8192,
+    "timeout": 240
+  },
+  {
+    "name": "mldr-r2",
+    "cmd": "set -euo pipefail; cp final-meta/identity.json integ-input/identity.json; bash research/lane-i/validate.sh mldr 2",
+    "cpu": 2,
+    "memory": 8192,
+    "timeout": 240
+  },
+  {
+    "name": "mldr-r3",
+    "cmd": "set -euo pipefail; cp final-meta/identity.json integ-input/identity.json; bash research/lane-i/validate.sh mldr 3",
+    "cpu": 2,
+    "memory": 8192,
+    "timeout": 240
+  },
+  {
+    "name": "core-replay-negative",
+    "cmd": "set -euo pipefail; bash research/lane-i/validate.sh setup; bun research/lane-i/core-replay-metadata-negative.ts",
+    "cpu": 2,
+    "memory": 8192,
+    "timeout": 180
+  }
+]

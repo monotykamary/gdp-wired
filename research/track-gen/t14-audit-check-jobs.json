@@ -1,0 +1,16 @@
+[
+ {
+  "name": "stutter-check",
+  "cmd": "bun install --frozen-lockfile && bun test research/track-gen/t14-stutter.test.ts && bun run check",
+  "timeout": 600,
+  "cpu": 4,
+  "memory": 14336
+ },
+ {
+  "name": "audit-r1-symbolic",
+  "cmd": "bun install --frozen-lockfile && bun research/track-gen/t14-audit.ts captures/r1/0.json",
+  "timeout": 180,
+  "cpu": 4,
+  "memory": 14336
+ }
+]

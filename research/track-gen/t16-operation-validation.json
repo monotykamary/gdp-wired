@@ -1,0 +1,45 @@
+{
+  "status": "Rejected experimental patch only; restored checked state-first source.",
+  "measurementBatch": "20261110-013906-gsvh4j",
+  "proposerSha256": "779cd5b0953697a33f1a3b6e016bd34958e55e0606a9b8bea9636fc4ad165da4",
+  "driverSha256": "e59a1a84281ff57a31d71062483a14b6edc7d56068ed2bbc0c902fbf25739fe1",
+  "originalNamedSevenNew": [
+    0,
+    0,
+    0
+  ],
+  "originalActiveWallMs": [
+    2515.847803,
+    2622.420578,
+    1908.556657
+  ],
+  "survivorActiveWallMs": [
+    2043.4510729999997,
+    1925.269068,
+    1900.316927
+  ],
+  "checks": [
+    {
+      "batch": "20261110-013903-jm3fgc",
+      "passed": 41,
+      "failed": 1,
+      "reason": "fixture binder/state collision",
+      "typecheckReached": false
+    },
+    {
+      "batch": "20261110-013951-npalu8",
+      "passed": 41,
+      "failed": 1,
+      "reason": "raw-request equality ignores existing irrelevant-input quotient; fails in state-first baseline",
+      "typecheckReached": false
+    }
+  ],
+  "rejectedPatchSha256": "8f89254ae2fb89c9dbb65e662f9a0e9c3c8cc6233fe4d338be447ef51358f4e5",
+  "restoredCompilerSha256": "2802f3dd4e4d53cc3382457db302f2ee7c1abcef5b394529ccf367f070d2a2a2",
+  "restoredTestSha256": "f3bf9bafa63ffe7150512ada101e5c781f5e0696ac6ce5175750bf77f9d8005c",
+  "replayTask": "b3e5cc40-a0a8-4af6-b3ef-48c84f071865",
+  "replayStatus": "complete: full-family/source-interpreter replay passed; timing/removal criteria remain failed",
+  "productionEnabled": false,
+  "replayBatch": "20261110-014125-077cp4",
+  "results": "research/track-gen/t16-operation-results.json"
+}

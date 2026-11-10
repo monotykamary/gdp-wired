@@ -1,0 +1,130 @@
+[
+  {
+    "name": "paxos-cohort-2001",
+    "cmd": "set -euo pipefail; cp -a frozen-paxos/. .; bun regression-driver/paxos-cohort.ts 2001 regression-driver/paxos-probe-points.json 5",
+    "cpu": 4,
+    "memory": 14336,
+    "timeout": 900,
+    "vm_type": "large"
+  },
+  {
+    "name": "paxos-cohort-2002",
+    "cmd": "set -euo pipefail; cp -a frozen-paxos/. .; bun regression-driver/paxos-cohort.ts 2002 regression-driver/paxos-probe-points.json 5",
+    "cpu": 4,
+    "memory": 14336,
+    "timeout": 900,
+    "vm_type": "large"
+  },
+  {
+    "name": "paxos-cohort-2003",
+    "cmd": "set -euo pipefail; cp -a frozen-paxos/. .; bun regression-driver/paxos-cohort.ts 2003 regression-driver/paxos-probe-points.json 5",
+    "cpu": 4,
+    "memory": 14336,
+    "timeout": 900,
+    "vm_type": "large"
+  },
+  {
+    "name": "paxos-cohort-2004",
+    "cmd": "set -euo pipefail; cp -a frozen-paxos/. .; bun regression-driver/paxos-cohort.ts 2004 regression-driver/paxos-probe-points.json 5",
+    "cpu": 4,
+    "memory": 14336,
+    "timeout": 900,
+    "vm_type": "large"
+  },
+  {
+    "name": "paxos-cohort-2005",
+    "cmd": "set -euo pipefail; cp -a frozen-paxos/. .; bun regression-driver/paxos-cohort.ts 2005 regression-driver/paxos-probe-points.json 5",
+    "cpu": 4,
+    "memory": 14336,
+    "timeout": 900,
+    "vm_type": "large"
+  },
+  {
+    "name": "paxos-cohort-2006",
+    "cmd": "set -euo pipefail; cp -a frozen-paxos/. .; bun regression-driver/paxos-cohort.ts 2006 regression-driver/paxos-probe-points.json 5",
+    "cpu": 4,
+    "memory": 14336,
+    "timeout": 900,
+    "vm_type": "large"
+  },
+  {
+    "name": "paxos-cohort-2007",
+    "cmd": "set -euo pipefail; cp -a frozen-paxos/. .; bun regression-driver/paxos-cohort.ts 2007 regression-driver/paxos-probe-points.json 5",
+    "cpu": 4,
+    "memory": 14336,
+    "timeout": 900,
+    "vm_type": "large"
+  },
+  {
+    "name": "paxos-cohort-2008",
+    "cmd": "set -euo pipefail; cp -a frozen-paxos/. .; bun regression-driver/paxos-cohort.ts 2008 regression-driver/paxos-probe-points.json 5",
+    "cpu": 4,
+    "memory": 14336,
+    "timeout": 900,
+    "vm_type": "large"
+  },
+  {
+    "name": "paxos-cohort-2009",
+    "cmd": "set -euo pipefail; cp -a frozen-paxos/. .; bun regression-driver/paxos-cohort.ts 2009 regression-driver/paxos-probe-points.json 5",
+    "cpu": 4,
+    "memory": 14336,
+    "timeout": 900,
+    "vm_type": "large"
+  },
+  {
+    "name": "paxos-cohort-2010",
+    "cmd": "set -euo pipefail; cp -a frozen-paxos/. .; bun regression-driver/paxos-cohort.ts 2010 regression-driver/paxos-probe-points.json 5",
+    "cpu": 4,
+    "memory": 14336,
+    "timeout": 900,
+    "vm_type": "large"
+  },
+  {
+    "name": "paxos-cohort-2011",
+    "cmd": "set -euo pipefail; cp -a frozen-paxos/. .; bun regression-driver/paxos-cohort.ts 2011 regression-driver/paxos-probe-points.json 5",
+    "cpu": 4,
+    "memory": 14336,
+    "timeout": 900,
+    "vm_type": "large"
+  },
+  {
+    "name": "paxos-cohort-2012",
+    "cmd": "set -euo pipefail; cp -a frozen-paxos/. .; bun regression-driver/paxos-cohort.ts 2012 regression-driver/paxos-probe-points.json 5",
+    "cpu": 4,
+    "memory": 14336,
+    "timeout": 900,
+    "vm_type": "large"
+  },
+  {
+    "name": "paxos-cohort-2013",
+    "cmd": "set -euo pipefail; cp -a frozen-paxos/. .; bun regression-driver/paxos-cohort.ts 2013 regression-driver/paxos-probe-points.json 5",
+    "cpu": 4,
+    "memory": 14336,
+    "timeout": 900,
+    "vm_type": "large"
+  },
+  {
+    "name": "paxos-cohort-2014",
+    "cmd": "set -euo pipefail; cp -a frozen-paxos/. .; bun regression-driver/paxos-cohort.ts 2014 regression-driver/paxos-probe-points.json 5",
+    "cpu": 4,
+    "memory": 14336,
+    "timeout": 900,
+    "vm_type": "large"
+  },
+  {
+    "name": "paxos-cohort-2015",
+    "cmd": "set -euo pipefail; cp -a frozen-paxos/. .; bun regression-driver/paxos-cohort.ts 2015 regression-driver/paxos-probe-points.json 5",
+    "cpu": 4,
+    "memory": 14336,
+    "timeout": 900,
+    "vm_type": "large"
+  },
+  {
+    "name": "paxos-cohort-2016",
+    "cmd": "set -euo pipefail; cp -a frozen-paxos/. .; bun regression-driver/paxos-cohort.ts 2016 regression-driver/paxos-probe-points.json 5",
+    "cpu": 4,
+    "memory": 14336,
+    "timeout": 900,
+    "vm_type": "large"
+  }
+]

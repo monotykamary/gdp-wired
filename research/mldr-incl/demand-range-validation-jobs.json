@@ -1,0 +1,37 @@
+[
+  {
+    "name": "integrated-check",
+    "cmd": "set -e; bash lane-e-preflight/apply.sh; bash lane-e-demand/apply.sh; set -e; bash research/track-m/prepare-vendors.sh; bun install --frozen-lockfile >/dev/null; bun run check; bun test core/count-recovery/member-premises.test.ts core/count-recovery/member-inclusions.test.ts core/count-witness-flags.test.ts core/count-focused.test.ts core/count-recovery/empty-count-source.test.ts core/count-ranges.test.ts core/finite-tiny.test.ts core/finite-tiny-houdini.test.ts; bun test research/mldr-incl/pack-production.test.ts; bun test research/mldr-incl/range-regression-input.test.ts",
+    "cpu": 8,
+    "memory": 14336,
+    "timeout": 240
+  },
+  {
+    "name": "original-r1",
+    "cmd": "set -e; bash lane-e-preflight/apply.sh; bash lane-e-demand/apply.sh; set -e; bash research/track-m/prepare-vendors.sh; bun install --frozen-lockfile >/dev/null; bun run check; timeout -s KILL 75 bun research/protocols/ic3syn/run.ts --only mldr --ms 60000 --skip broken",
+    "cpu": 8,
+    "memory": 14336,
+    "timeout": 240
+  },
+  {
+    "name": "original-r2",
+    "cmd": "set -e; bash lane-e-preflight/apply.sh; bash lane-e-demand/apply.sh; set -e; bash research/track-m/prepare-vendors.sh; bun install --frozen-lockfile >/dev/null; bun run check; timeout -s KILL 75 bun research/protocols/ic3syn/run.ts --only mldr --ms 60000 --skip broken",
+    "cpu": 8,
+    "memory": 14336,
+    "timeout": 240
+  },
+  {
+    "name": "original-r3",
+    "cmd": "set -e; bash lane-e-preflight/apply.sh; bash lane-e-demand/apply.sh; set -e; bash research/track-m/prepare-vendors.sh; bun install --frozen-lockfile >/dev/null; bun run check; timeout -s KILL 75 bun research/protocols/ic3syn/run.ts --only mldr --ms 60000 --skip broken",
+    "cpu": 8,
+    "memory": 14336,
+    "timeout": 240
+  },
+  {
+    "name": "fresh-conditional-and-replay",
+    "cmd": "set -e; bash lane-e-preflight/apply.sh; bash lane-e-demand/apply.sh; bash research/mldr-incl/resume-conditional.sh",
+    "cpu": 8,
+    "memory": 14336,
+    "timeout": 300
+  }
+]

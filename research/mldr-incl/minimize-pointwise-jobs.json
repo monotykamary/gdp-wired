@@ -1,0 +1,4 @@
+[
+ {"name":"pointwise-guarded-certificate","cmd":"set -e; bash research/track-m/prepare-vendors.sh; bun install --frozen-lockfile >/dev/null; out=$(mktemp /tmp/incl-min.XXXXXX); trap 'rm -f \"$out\"' EXIT; timeout -s KILL 30 bun research/mldr-incl/minimize-pointwise.ts certificate-input/guarded-domain.br \"$out\" 16 2700; test -s \"$out\"; bun research/mldr-incl/verify-pointwise.ts \"$out\"","cpu":8,"memory":14336,"timeout":90},
+ {"name":"pointwise-tight-certificate","cmd":"set -e; bash research/track-m/prepare-vendors.sh; bun install --frozen-lockfile >/dev/null; out=$(mktemp /tmp/incl-min.XXXXXX); trap 'rm -f \"$out\"' EXIT; timeout -s KILL 30 bun research/mldr-incl/minimize-pointwise.ts certificate-input/tight-domain.br \"$out\" 16 2700; test -s \"$out\"; bun research/mldr-incl/verify-pointwise.ts \"$out\"","cpu":8,"memory":14336,"timeout":90}
+]

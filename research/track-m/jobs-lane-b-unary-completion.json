@@ -1,0 +1,8 @@
+[
+ {"name":"check-base","cmd":"bash research/track-m/prepare-vendors.sh && bun install --frozen-lockfile >/dev/null && LAB_DISPOSABLE=1 bun research/track-m/member-premises-variant.ts flags && bun run check && bun test core/count*.test.ts core/count-recovery/*.test.ts research/track-m/early-completion-scope.test.ts && bunx commitlint --default-config < replays/commit-message.txt","cpu":8,"memory":14336,"timeout":300},
+ {"name":"check-candidate","cmd":"bash research/track-m/prepare-vendors.sh && bun install --frozen-lockfile >/dev/null && LAB_DISPOSABLE=1 bun research/track-m/member-premises-variant.ts flags && LAB_DISPOSABLE=1 bun research/track-m/unary-completion-variant.ts && bun run check && LANE_B_EXPECT_DEFER_MULTI=1 bun test core/count*.test.ts core/count-recovery/*.test.ts research/track-m/early-completion-scope.test.ts","cpu":8,"memory":14336,"timeout":300},
+ {"name":"p1-ab","cmd":"LANE_B_VARIANT=unary-completion bash research/track-m/lane-b-members-pair.sh p1 before","cpu":8,"memory":14336,"timeout":180},
+ {"name":"p1-ba","cmd":"LANE_B_VARIANT=unary-completion bash research/track-m/lane-b-members-pair.sh p1 after","cpu":8,"memory":14336,"timeout":180},
+ {"name":"star-ab","cmd":"LANE_B_VARIANT=unary-completion bash research/track-m/lane-b-members-pair.sh star before","cpu":8,"memory":14336,"timeout":180},
+ {"name":"star-ba","cmd":"LANE_B_VARIANT=unary-completion bash research/track-m/lane-b-members-pair.sh star after","cpu":8,"memory":14336,"timeout":180}
+]

@@ -1,0 +1,10 @@
+[
+  {
+    "name":"historical-bootstrap-check",
+    "cmd":"set -euo pipefail; cp -a frozen-bisect/. .; bun regression-driver/bootstrap-check.ts",
+    "cpu":4,
+    "memory":14336,
+    "timeout":300,
+    "vm_type":"large"
+  }
+]

@@ -1,0 +1,24 @@
+[
+  {
+    "name": "paxos-cohort-4301",
+    "cmd": "set -euo pipefail; cp -a frozen-paxos/. .; bun regression-driver/paxos-cohort.ts 4301 regression-driver/paxos-probe-points.json 3",
+    "env": {
+      "PAXOS_TARGET_CPU": "any"
+    },
+    "cpu": 4,
+    "memory": 14336,
+    "timeout": 600,
+    "vm_type": "large"
+  },
+  {
+    "name": "paxos-cohort-4302",
+    "cmd": "set -euo pipefail; cp -a frozen-paxos/. .; bun regression-driver/paxos-cohort.ts 4302 regression-driver/paxos-probe-points.json 3",
+    "env": {
+      "PAXOS_TARGET_CPU": "any"
+    },
+    "cpu": 4,
+    "memory": 14336,
+    "timeout": 600,
+    "vm_type": "large"
+  }
+]

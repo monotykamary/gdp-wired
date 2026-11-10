@@ -1,0 +1,17 @@
+[
+  {
+    "name": "p1-mixed-draft-7004",
+    "cmd": "bash frozen-paxos/regression-driver/p1-draft-qualify.sh",
+    "cpu": 8,
+    "memory": 14336,
+    "timeout": 360,
+    "vm_type": "large"
+  },
+  {
+    "name": "p1-commitlint-7004",
+    "cpu": 2,
+    "memory": 4096,
+    "timeout": 180,
+    "cmd": "cp -a frozen-paxos/. .; set -euo pipefail; temp=$(mktemp -d); trap 'rm -rf \"$temp\"' EXIT; printf '{\"private\":true}\\n' > \"$temp/package.json\"; (cd \"$temp\" && bun add --dev @commitlint/cli @commitlint/config-conventional >/dev/null); printf \"module.exports={extends:['@commitlint/config-conventional']};\\n\" > \"$temp/commitlint.config.cjs\"; failed=0; for file in integ-commits/*.txt; do echo \"COMMITLINT $file\"; \"$temp/node_modules/.bin/commitlint\" --cwd \"$temp\" < \"$file\" || failed=1; done; exit \"$failed\""
+  }
+]

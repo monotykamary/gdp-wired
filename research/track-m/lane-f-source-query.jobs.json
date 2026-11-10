@@ -1,0 +1,51 @@
+[
+  {
+    "name": "source-sequence",
+    "cmd": "bash research/track-m/lane-f-source-query.sh source-sequence",
+    "cpu": 2,
+    "memory": 8192,
+    "timeout": 60
+  },
+  {
+    "name": "tiny-sequence",
+    "cmd": "bash research/track-m/lane-f-source-query.sh tiny-sequence",
+    "cpu": 2,
+    "memory": 8192,
+    "timeout": 60
+  },
+  {
+    "name": "source-folded",
+    "cmd": "bash research/track-m/lane-f-source-query.sh source-folded",
+    "cpu": 2,
+    "memory": 8192,
+    "timeout": 60
+  },
+  {
+    "name": "tiny-folded",
+    "cmd": "bash research/track-m/lane-f-source-query.sh tiny-folded",
+    "cpu": 2,
+    "memory": 8192,
+    "timeout": 60
+  },
+  {
+    "name": "source-boolean",
+    "cmd": "bash research/track-m/lane-f-source-query.sh source-boolean",
+    "cpu": 2,
+    "memory": 8192,
+    "timeout": 60
+  },
+  {
+    "name": "tiny-boolean",
+    "cmd": "bash research/track-m/lane-f-source-query.sh tiny-boolean",
+    "cpu": 2,
+    "memory": 8192,
+    "timeout": 60
+  },
+  {
+    "name": "tiny-fast",
+    "cmd": "bash research/track-m/lane-f-source-query.sh tiny-fast",
+    "cpu": 2,
+    "memory": 8192,
+    "timeout": 60
+  }
+]

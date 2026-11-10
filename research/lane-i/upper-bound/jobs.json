@@ -1,0 +1,982 @@
+[
+  {
+    "name": "star-op0-p0-on",
+    "cmd": "bash research/lane-i/upper-bound/shard.sh star 0 0 on",
+    "cpu": 2,
+    "memory": 14336,
+    "timeout": 1950
+  },
+  {
+    "name": "star-op0-p0-off",
+    "cmd": "bash research/lane-i/upper-bound/shard.sh star 0 0 off",
+    "cpu": 2,
+    "memory": 14336,
+    "timeout": 1950
+  },
+  {
+    "name": "star-op0-p1-on",
+    "cmd": "bash research/lane-i/upper-bound/shard.sh star 0 1 on",
+    "cpu": 2,
+    "memory": 14336,
+    "timeout": 1950
+  },
+  {
+    "name": "star-op0-p1-off",
+    "cmd": "bash research/lane-i/upper-bound/shard.sh star 0 1 off",
+    "cpu": 2,
+    "memory": 14336,
+    "timeout": 1950
+  },
+  {
+    "name": "star-op1-p0-on",
+    "cmd": "bash research/lane-i/upper-bound/shard.sh star 1 0 on",
+    "cpu": 2,
+    "memory": 14336,
+    "timeout": 1950
+  },
+  {
+    "name": "star-op1-p0-off",
+    "cmd": "bash research/lane-i/upper-bound/shard.sh star 1 0 off",
+    "cpu": 2,
+    "memory": 14336,
+    "timeout": 1950
+  },
+  {
+    "name": "star-op1-p1-on",
+    "cmd": "bash research/lane-i/upper-bound/shard.sh star 1 1 on",
+    "cpu": 2,
+    "memory": 14336,
+    "timeout": 1950
+  },
+  {
+    "name": "star-op1-p1-off",
+    "cmd": "bash research/lane-i/upper-bound/shard.sh star 1 1 off",
+    "cpu": 2,
+    "memory": 14336,
+    "timeout": 1950
+  },
+  {
+    "name": "star-op2-p0-on",
+    "cmd": "bash research/lane-i/upper-bound/shard.sh star 2 0 on",
+    "cpu": 2,
+    "memory": 14336,
+    "timeout": 1950
+  },
+  {
+    "name": "star-op2-p0-off",
+    "cmd": "bash research/lane-i/upper-bound/shard.sh star 2 0 off",
+    "cpu": 2,
+    "memory": 14336,
+    "timeout": 1950
+  },
+  {
+    "name": "star-op2-p1-on",
+    "cmd": "bash research/lane-i/upper-bound/shard.sh star 2 1 on",
+    "cpu": 2,
+    "memory": 14336,
+    "timeout": 1950
+  },
+  {
+    "name": "star-op2-p1-off",
+    "cmd": "bash research/lane-i/upper-bound/shard.sh star 2 1 off",
+    "cpu": 2,
+    "memory": 14336,
+    "timeout": 1950
+  },
+  {
+    "name": "star-op3-p0-on",
+    "cmd": "bash research/lane-i/upper-bound/shard.sh star 3 0 on",
+    "cpu": 2,
+    "memory": 14336,
+    "timeout": 1950
+  },
+  {
+    "name": "star-op3-p0-off",
+    "cmd": "bash research/lane-i/upper-bound/shard.sh star 3 0 off",
+    "cpu": 2,
+    "memory": 14336,
+    "timeout": 1950
+  },
+  {
+    "name": "star-op3-p1-on",
+    "cmd": "bash research/lane-i/upper-bound/shard.sh star 3 1 on",
+    "cpu": 2,
+    "memory": 14336,
+    "timeout": 1950
+  },
+  {
+    "name": "star-op3-p1-off",
+    "cmd": "bash research/lane-i/upper-bound/shard.sh star 3 1 off",
+    "cpu": 2,
+    "memory": 14336,
+    "timeout": 1950
+  },
+  {
+    "name": "star-op4-p0-on",
+    "cmd": "bash research/lane-i/upper-bound/shard.sh star 4 0 on",
+    "cpu": 2,
+    "memory": 14336,
+    "timeout": 1950
+  },
+  {
+    "name": "star-op4-p0-off",
+    "cmd": "bash research/lane-i/upper-bound/shard.sh star 4 0 off",
+    "cpu": 2,
+    "memory": 14336,
+    "timeout": 1950
+  },
+  {
+    "name": "star-op4-p1-on",
+    "cmd": "bash research/lane-i/upper-bound/shard.sh star 4 1 on",
+    "cpu": 2,
+    "memory": 14336,
+    "timeout": 1950
+  },
+  {
+    "name": "star-op4-p1-off",
+    "cmd": "bash research/lane-i/upper-bound/shard.sh star 4 1 off",
+    "cpu": 2,
+    "memory": 14336,
+    "timeout": 1950
+  },
+  {
+    "name": "star-op5-p0-on",
+    "cmd": "bash research/lane-i/upper-bound/shard.sh star 5 0 on",
+    "cpu": 2,
+    "memory": 14336,
+    "timeout": 1950
+  },
+  {
+    "name": "star-op5-p0-off",
+    "cmd": "bash research/lane-i/upper-bound/shard.sh star 5 0 off",
+    "cpu": 2,
+    "memory": 14336,
+    "timeout": 1950
+  },
+  {
+    "name": "star-op5-p1-on",
+    "cmd": "bash research/lane-i/upper-bound/shard.sh star 5 1 on",
+    "cpu": 2,
+    "memory": 14336,
+    "timeout": 1950
+  },
+  {
+    "name": "star-op5-p1-off",
+    "cmd": "bash research/lane-i/upper-bound/shard.sh star 5 1 off",
+    "cpu": 2,
+    "memory": 14336,
+    "timeout": 1950
+  },
+  {
+    "name": "star-op6-p0-on",
+    "cmd": "bash research/lane-i/upper-bound/shard.sh star 6 0 on",
+    "cpu": 2,
+    "memory": 14336,
+    "timeout": 1950
+  },
+  {
+    "name": "star-op6-p0-off",
+    "cmd": "bash research/lane-i/upper-bound/shard.sh star 6 0 off",
+    "cpu": 2,
+    "memory": 14336,
+    "timeout": 1950
+  },
+  {
+    "name": "star-op6-p1-on",
+    "cmd": "bash research/lane-i/upper-bound/shard.sh star 6 1 on",
+    "cpu": 2,
+    "memory": 14336,
+    "timeout": 1950
+  },
+  {
+    "name": "star-op6-p1-off",
+    "cmd": "bash research/lane-i/upper-bound/shard.sh star 6 1 off",
+    "cpu": 2,
+    "memory": 14336,
+    "timeout": 1950
+  },
+  {
+    "name": "half-op0-p0-on",
+    "cmd": "bash research/lane-i/upper-bound/shard.sh half 0 0 on",
+    "cpu": 2,
+    "memory": 14336,
+    "timeout": 1950
+  },
+  {
+    "name": "half-op0-p0-off",
+    "cmd": "bash research/lane-i/upper-bound/shard.sh half 0 0 off",
+    "cpu": 2,
+    "memory": 14336,
+    "timeout": 1950
+  },
+  {
+    "name": "half-op0-p1-on",
+    "cmd": "bash research/lane-i/upper-bound/shard.sh half 0 1 on",
+    "cpu": 2,
+    "memory": 14336,
+    "timeout": 1950
+  },
+  {
+    "name": "half-op0-p1-off",
+    "cmd": "bash research/lane-i/upper-bound/shard.sh half 0 1 off",
+    "cpu": 2,
+    "memory": 14336,
+    "timeout": 1950
+  },
+  {
+    "name": "half-op1-p0-on",
+    "cmd": "bash research/lane-i/upper-bound/shard.sh half 1 0 on",
+    "cpu": 2,
+    "memory": 14336,
+    "timeout": 1950
+  },
+  {
+    "name": "half-op1-p0-off",
+    "cmd": "bash research/lane-i/upper-bound/shard.sh half 1 0 off",
+    "cpu": 2,
+    "memory": 14336,
+    "timeout": 1950
+  },
+  {
+    "name": "half-op1-p1-on",
+    "cmd": "bash research/lane-i/upper-bound/shard.sh half 1 1 on",
+    "cpu": 2,
+    "memory": 14336,
+    "timeout": 1950
+  },
+  {
+    "name": "half-op1-p1-off",
+    "cmd": "bash research/lane-i/upper-bound/shard.sh half 1 1 off",
+    "cpu": 2,
+    "memory": 14336,
+    "timeout": 1950
+  },
+  {
+    "name": "half-op2-p0-on",
+    "cmd": "bash research/lane-i/upper-bound/shard.sh half 2 0 on",
+    "cpu": 2,
+    "memory": 14336,
+    "timeout": 1950
+  },
+  {
+    "name": "half-op2-p0-off",
+    "cmd": "bash research/lane-i/upper-bound/shard.sh half 2 0 off",
+    "cpu": 2,
+    "memory": 14336,
+    "timeout": 1950
+  },
+  {
+    "name": "half-op2-p1-on",
+    "cmd": "bash research/lane-i/upper-bound/shard.sh half 2 1 on",
+    "cpu": 2,
+    "memory": 14336,
+    "timeout": 1950
+  },
+  {
+    "name": "half-op2-p1-off",
+    "cmd": "bash research/lane-i/upper-bound/shard.sh half 2 1 off",
+    "cpu": 2,
+    "memory": 14336,
+    "timeout": 1950
+  },
+  {
+    "name": "half-op3-p0-on",
+    "cmd": "bash research/lane-i/upper-bound/shard.sh half 3 0 on",
+    "cpu": 2,
+    "memory": 14336,
+    "timeout": 1950
+  },
+  {
+    "name": "half-op3-p0-off",
+    "cmd": "bash research/lane-i/upper-bound/shard.sh half 3 0 off",
+    "cpu": 2,
+    "memory": 14336,
+    "timeout": 1950
+  },
+  {
+    "name": "half-op3-p1-on",
+    "cmd": "bash research/lane-i/upper-bound/shard.sh half 3 1 on",
+    "cpu": 2,
+    "memory": 14336,
+    "timeout": 1950
+  },
+  {
+    "name": "half-op3-p1-off",
+    "cmd": "bash research/lane-i/upper-bound/shard.sh half 3 1 off",
+    "cpu": 2,
+    "memory": 14336,
+    "timeout": 1950
+  },
+  {
+    "name": "half-op4-p0-on",
+    "cmd": "bash research/lane-i/upper-bound/shard.sh half 4 0 on",
+    "cpu": 2,
+    "memory": 14336,
+    "timeout": 1950
+  },
+  {
+    "name": "half-op4-p0-off",
+    "cmd": "bash research/lane-i/upper-bound/shard.sh half 4 0 off",
+    "cpu": 2,
+    "memory": 14336,
+    "timeout": 1950
+  },
+  {
+    "name": "half-op4-p1-on",
+    "cmd": "bash research/lane-i/upper-bound/shard.sh half 4 1 on",
+    "cpu": 2,
+    "memory": 14336,
+    "timeout": 1950
+  },
+  {
+    "name": "half-op4-p1-off",
+    "cmd": "bash research/lane-i/upper-bound/shard.sh half 4 1 off",
+    "cpu": 2,
+    "memory": 14336,
+    "timeout": 1950
+  },
+  {
+    "name": "half-op5-p0-on",
+    "cmd": "bash research/lane-i/upper-bound/shard.sh half 5 0 on",
+    "cpu": 2,
+    "memory": 14336,
+    "timeout": 1950
+  },
+  {
+    "name": "half-op5-p0-off",
+    "cmd": "bash research/lane-i/upper-bound/shard.sh half 5 0 off",
+    "cpu": 2,
+    "memory": 14336,
+    "timeout": 1950
+  },
+  {
+    "name": "half-op5-p1-on",
+    "cmd": "bash research/lane-i/upper-bound/shard.sh half 5 1 on",
+    "cpu": 2,
+    "memory": 14336,
+    "timeout": 1950
+  },
+  {
+    "name": "half-op5-p1-off",
+    "cmd": "bash research/lane-i/upper-bound/shard.sh half 5 1 off",
+    "cpu": 2,
+    "memory": 14336,
+    "timeout": 1950
+  },
+  {
+    "name": "half-op6-p0-on",
+    "cmd": "bash research/lane-i/upper-bound/shard.sh half 6 0 on",
+    "cpu": 2,
+    "memory": 14336,
+    "timeout": 1950
+  },
+  {
+    "name": "half-op6-p0-off",
+    "cmd": "bash research/lane-i/upper-bound/shard.sh half 6 0 off",
+    "cpu": 2,
+    "memory": 14336,
+    "timeout": 1950
+  },
+  {
+    "name": "half-op6-p1-on",
+    "cmd": "bash research/lane-i/upper-bound/shard.sh half 6 1 on",
+    "cpu": 2,
+    "memory": 14336,
+    "timeout": 1950
+  },
+  {
+    "name": "half-op6-p1-off",
+    "cmd": "bash research/lane-i/upper-bound/shard.sh half 6 1 off",
+    "cpu": 2,
+    "memory": 14336,
+    "timeout": 1950
+  },
+  {
+    "name": "rows-op0-p0-on",
+    "cmd": "bash research/lane-i/upper-bound/shard.sh rows 0 0 on",
+    "cpu": 2,
+    "memory": 14336,
+    "timeout": 1950
+  },
+  {
+    "name": "rows-op0-p0-off",
+    "cmd": "bash research/lane-i/upper-bound/shard.sh rows 0 0 off",
+    "cpu": 2,
+    "memory": 14336,
+    "timeout": 1950
+  },
+  {
+    "name": "rows-op0-p1-on",
+    "cmd": "bash research/lane-i/upper-bound/shard.sh rows 0 1 on",
+    "cpu": 2,
+    "memory": 14336,
+    "timeout": 1950
+  },
+  {
+    "name": "rows-op0-p1-off",
+    "cmd": "bash research/lane-i/upper-bound/shard.sh rows 0 1 off",
+    "cpu": 2,
+    "memory": 14336,
+    "timeout": 1950
+  },
+  {
+    "name": "rows-op1-p0-on",
+    "cmd": "bash research/lane-i/upper-bound/shard.sh rows 1 0 on",
+    "cpu": 2,
+    "memory": 14336,
+    "timeout": 1950
+  },
+  {
+    "name": "rows-op1-p0-off",
+    "cmd": "bash research/lane-i/upper-bound/shard.sh rows 1 0 off",
+    "cpu": 2,
+    "memory": 14336,
+    "timeout": 1950
+  },
+  {
+    "name": "rows-op1-p1-on",
+    "cmd": "bash research/lane-i/upper-bound/shard.sh rows 1 1 on",
+    "cpu": 2,
+    "memory": 14336,
+    "timeout": 1950
+  },
+  {
+    "name": "rows-op1-p1-off",
+    "cmd": "bash research/lane-i/upper-bound/shard.sh rows 1 1 off",
+    "cpu": 2,
+    "memory": 14336,
+    "timeout": 1950
+  },
+  {
+    "name": "rows-op2-p0-on",
+    "cmd": "bash research/lane-i/upper-bound/shard.sh rows 2 0 on",
+    "cpu": 2,
+    "memory": 14336,
+    "timeout": 1950
+  },
+  {
+    "name": "rows-op2-p0-off",
+    "cmd": "bash research/lane-i/upper-bound/shard.sh rows 2 0 off",
+    "cpu": 2,
+    "memory": 14336,
+    "timeout": 1950
+  },
+  {
+    "name": "rows-op2-p1-on",
+    "cmd": "bash research/lane-i/upper-bound/shard.sh rows 2 1 on",
+    "cpu": 2,
+    "memory": 14336,
+    "timeout": 1950
+  },
+  {
+    "name": "rows-op2-p1-off",
+    "cmd": "bash research/lane-i/upper-bound/shard.sh rows 2 1 off",
+    "cpu": 2,
+    "memory": 14336,
+    "timeout": 1950
+  },
+  {
+    "name": "rows-op3-p0-on",
+    "cmd": "bash research/lane-i/upper-bound/shard.sh rows 3 0 on",
+    "cpu": 2,
+    "memory": 14336,
+    "timeout": 1950
+  },
+  {
+    "name": "rows-op3-p0-off",
+    "cmd": "bash research/lane-i/upper-bound/shard.sh rows 3 0 off",
+    "cpu": 2,
+    "memory": 14336,
+    "timeout": 1950
+  },
+  {
+    "name": "rows-op3-p1-on",
+    "cmd": "bash research/lane-i/upper-bound/shard.sh rows 3 1 on",
+    "cpu": 2,
+    "memory": 14336,
+    "timeout": 1950
+  },
+  {
+    "name": "rows-op3-p1-off",
+    "cmd": "bash research/lane-i/upper-bound/shard.sh rows 3 1 off",
+    "cpu": 2,
+    "memory": 14336,
+    "timeout": 1950
+  },
+  {
+    "name": "rows-op4-p0-on",
+    "cmd": "bash research/lane-i/upper-bound/shard.sh rows 4 0 on",
+    "cpu": 2,
+    "memory": 14336,
+    "timeout": 1950
+  },
+  {
+    "name": "rows-op4-p0-off",
+    "cmd": "bash research/lane-i/upper-bound/shard.sh rows 4 0 off",
+    "cpu": 2,
+    "memory": 14336,
+    "timeout": 1950
+  },
+  {
+    "name": "rows-op4-p1-on",
+    "cmd": "bash research/lane-i/upper-bound/shard.sh rows 4 1 on",
+    "cpu": 2,
+    "memory": 14336,
+    "timeout": 1950
+  },
+  {
+    "name": "rows-op4-p1-off",
+    "cmd": "bash research/lane-i/upper-bound/shard.sh rows 4 1 off",
+    "cpu": 2,
+    "memory": 14336,
+    "timeout": 1950
+  },
+  {
+    "name": "rows-op5-p0-on",
+    "cmd": "bash research/lane-i/upper-bound/shard.sh rows 5 0 on",
+    "cpu": 2,
+    "memory": 14336,
+    "timeout": 1950
+  },
+  {
+    "name": "rows-op5-p0-off",
+    "cmd": "bash research/lane-i/upper-bound/shard.sh rows 5 0 off",
+    "cpu": 2,
+    "memory": 14336,
+    "timeout": 1950
+  },
+  {
+    "name": "rows-op5-p1-on",
+    "cmd": "bash research/lane-i/upper-bound/shard.sh rows 5 1 on",
+    "cpu": 2,
+    "memory": 14336,
+    "timeout": 1950
+  },
+  {
+    "name": "rows-op5-p1-off",
+    "cmd": "bash research/lane-i/upper-bound/shard.sh rows 5 1 off",
+    "cpu": 2,
+    "memory": 14336,
+    "timeout": 1950
+  },
+  {
+    "name": "rows-op6-p0-on",
+    "cmd": "bash research/lane-i/upper-bound/shard.sh rows 6 0 on",
+    "cpu": 2,
+    "memory": 14336,
+    "timeout": 1950
+  },
+  {
+    "name": "rows-op6-p0-off",
+    "cmd": "bash research/lane-i/upper-bound/shard.sh rows 6 0 off",
+    "cpu": 2,
+    "memory": 14336,
+    "timeout": 1950
+  },
+  {
+    "name": "rows-op6-p1-on",
+    "cmd": "bash research/lane-i/upper-bound/shard.sh rows 6 1 on",
+    "cpu": 2,
+    "memory": 14336,
+    "timeout": 1950
+  },
+  {
+    "name": "rows-op6-p1-off",
+    "cmd": "bash research/lane-i/upper-bound/shard.sh rows 6 1 off",
+    "cpu": 2,
+    "memory": 14336,
+    "timeout": 1950
+  },
+  {
+    "name": "p1-op0-p0-on",
+    "cmd": "bash research/lane-i/upper-bound/shard.sh p1 0 0 on",
+    "cpu": 2,
+    "memory": 14336,
+    "timeout": 1950
+  },
+  {
+    "name": "p1-op0-p0-off",
+    "cmd": "bash research/lane-i/upper-bound/shard.sh p1 0 0 off",
+    "cpu": 2,
+    "memory": 14336,
+    "timeout": 1950
+  },
+  {
+    "name": "p1-op0-p1-on",
+    "cmd": "bash research/lane-i/upper-bound/shard.sh p1 0 1 on",
+    "cpu": 2,
+    "memory": 14336,
+    "timeout": 1950
+  },
+  {
+    "name": "p1-op0-p1-off",
+    "cmd": "bash research/lane-i/upper-bound/shard.sh p1 0 1 off",
+    "cpu": 2,
+    "memory": 14336,
+    "timeout": 1950
+  },
+  {
+    "name": "p1-op1-p0-on",
+    "cmd": "bash research/lane-i/upper-bound/shard.sh p1 1 0 on",
+    "cpu": 2,
+    "memory": 14336,
+    "timeout": 1950
+  },
+  {
+    "name": "p1-op1-p0-off",
+    "cmd": "bash research/lane-i/upper-bound/shard.sh p1 1 0 off",
+    "cpu": 2,
+    "memory": 14336,
+    "timeout": 1950
+  },
+  {
+    "name": "p1-op1-p1-on",
+    "cmd": "bash research/lane-i/upper-bound/shard.sh p1 1 1 on",
+    "cpu": 2,
+    "memory": 14336,
+    "timeout": 1950
+  },
+  {
+    "name": "p1-op1-p1-off",
+    "cmd": "bash research/lane-i/upper-bound/shard.sh p1 1 1 off",
+    "cpu": 2,
+    "memory": 14336,
+    "timeout": 1950
+  },
+  {
+    "name": "p1-op2-p0-on",
+    "cmd": "bash research/lane-i/upper-bound/shard.sh p1 2 0 on",
+    "cpu": 2,
+    "memory": 14336,
+    "timeout": 1950
+  },
+  {
+    "name": "p1-op2-p0-off",
+    "cmd": "bash research/lane-i/upper-bound/shard.sh p1 2 0 off",
+    "cpu": 2,
+    "memory": 14336,
+    "timeout": 1950
+  },
+  {
+    "name": "p1-op2-p1-on",
+    "cmd": "bash research/lane-i/upper-bound/shard.sh p1 2 1 on",
+    "cpu": 2,
+    "memory": 14336,
+    "timeout": 1950
+  },
+  {
+    "name": "p1-op2-p1-off",
+    "cmd": "bash research/lane-i/upper-bound/shard.sh p1 2 1 off",
+    "cpu": 2,
+    "memory": 14336,
+    "timeout": 1950
+  },
+  {
+    "name": "p1-op3-p0-on",
+    "cmd": "bash research/lane-i/upper-bound/shard.sh p1 3 0 on",
+    "cpu": 2,
+    "memory": 14336,
+    "timeout": 1950
+  },
+  {
+    "name": "p1-op3-p0-off",
+    "cmd": "bash research/lane-i/upper-bound/shard.sh p1 3 0 off",
+    "cpu": 2,
+    "memory": 14336,
+    "timeout": 1950
+  },
+  {
+    "name": "p1-op3-p1-on",
+    "cmd": "bash research/lane-i/upper-bound/shard.sh p1 3 1 on",
+    "cpu": 2,
+    "memory": 14336,
+    "timeout": 1950
+  },
+  {
+    "name": "p1-op3-p1-off",
+    "cmd": "bash research/lane-i/upper-bound/shard.sh p1 3 1 off",
+    "cpu": 2,
+    "memory": 14336,
+    "timeout": 1950
+  },
+  {
+    "name": "p1-op4-p0-on",
+    "cmd": "bash research/lane-i/upper-bound/shard.sh p1 4 0 on",
+    "cpu": 2,
+    "memory": 14336,
+    "timeout": 1950
+  },
+  {
+    "name": "p1-op4-p0-off",
+    "cmd": "bash research/lane-i/upper-bound/shard.sh p1 4 0 off",
+    "cpu": 2,
+    "memory": 14336,
+    "timeout": 1950
+  },
+  {
+    "name": "p1-op4-p1-on",
+    "cmd": "bash research/lane-i/upper-bound/shard.sh p1 4 1 on",
+    "cpu": 2,
+    "memory": 14336,
+    "timeout": 1950
+  },
+  {
+    "name": "p1-op4-p1-off",
+    "cmd": "bash research/lane-i/upper-bound/shard.sh p1 4 1 off",
+    "cpu": 2,
+    "memory": 14336,
+    "timeout": 1950
+  },
+  {
+    "name": "p1-op5-p0-on",
+    "cmd": "bash research/lane-i/upper-bound/shard.sh p1 5 0 on",
+    "cpu": 2,
+    "memory": 14336,
+    "timeout": 1950
+  },
+  {
+    "name": "p1-op5-p0-off",
+    "cmd": "bash research/lane-i/upper-bound/shard.sh p1 5 0 off",
+    "cpu": 2,
+    "memory": 14336,
+    "timeout": 1950
+  },
+  {
+    "name": "p1-op5-p1-on",
+    "cmd": "bash research/lane-i/upper-bound/shard.sh p1 5 1 on",
+    "cpu": 2,
+    "memory": 14336,
+    "timeout": 1950
+  },
+  {
+    "name": "p1-op5-p1-off",
+    "cmd": "bash research/lane-i/upper-bound/shard.sh p1 5 1 off",
+    "cpu": 2,
+    "memory": 14336,
+    "timeout": 1950
+  },
+  {
+    "name": "p1-op6-p0-on",
+    "cmd": "bash research/lane-i/upper-bound/shard.sh p1 6 0 on",
+    "cpu": 2,
+    "memory": 14336,
+    "timeout": 1950
+  },
+  {
+    "name": "p1-op6-p0-off",
+    "cmd": "bash research/lane-i/upper-bound/shard.sh p1 6 0 off",
+    "cpu": 2,
+    "memory": 14336,
+    "timeout": 1950
+  },
+  {
+    "name": "p1-op6-p1-on",
+    "cmd": "bash research/lane-i/upper-bound/shard.sh p1 6 1 on",
+    "cpu": 2,
+    "memory": 14336,
+    "timeout": 1950
+  },
+  {
+    "name": "p1-op6-p1-off",
+    "cmd": "bash research/lane-i/upper-bound/shard.sh p1 6 1 off",
+    "cpu": 2,
+    "memory": 14336,
+    "timeout": 1950
+  },
+  {
+    "name": "safety-op0-p0-on",
+    "cmd": "bash research/lane-i/upper-bound/shard.sh safety 0 0 on",
+    "cpu": 2,
+    "memory": 14336,
+    "timeout": 1950
+  },
+  {
+    "name": "safety-op0-p0-off",
+    "cmd": "bash research/lane-i/upper-bound/shard.sh safety 0 0 off",
+    "cpu": 2,
+    "memory": 14336,
+    "timeout": 1950
+  },
+  {
+    "name": "safety-op0-p1-on",
+    "cmd": "bash research/lane-i/upper-bound/shard.sh safety 0 1 on",
+    "cpu": 2,
+    "memory": 14336,
+    "timeout": 1950
+  },
+  {
+    "name": "safety-op0-p1-off",
+    "cmd": "bash research/lane-i/upper-bound/shard.sh safety 0 1 off",
+    "cpu": 2,
+    "memory": 14336,
+    "timeout": 1950
+  },
+  {
+    "name": "safety-op1-p0-on",
+    "cmd": "bash research/lane-i/upper-bound/shard.sh safety 1 0 on",
+    "cpu": 2,
+    "memory": 14336,
+    "timeout": 1950
+  },
+  {
+    "name": "safety-op1-p0-off",
+    "cmd": "bash research/lane-i/upper-bound/shard.sh safety 1 0 off",
+    "cpu": 2,
+    "memory": 14336,
+    "timeout": 1950
+  },
+  {
+    "name": "safety-op1-p1-on",
+    "cmd": "bash research/lane-i/upper-bound/shard.sh safety 1 1 on",
+    "cpu": 2,
+    "memory": 14336,
+    "timeout": 1950
+  },
+  {
+    "name": "safety-op1-p1-off",
+    "cmd": "bash research/lane-i/upper-bound/shard.sh safety 1 1 off",
+    "cpu": 2,
+    "memory": 14336,
+    "timeout": 1950
+  },
+  {
+    "name": "safety-op2-p0-on",
+    "cmd": "bash research/lane-i/upper-bound/shard.sh safety 2 0 on",
+    "cpu": 2,
+    "memory": 14336,
+    "timeout": 1950
+  },
+  {
+    "name": "safety-op2-p0-off",
+    "cmd": "bash research/lane-i/upper-bound/shard.sh safety 2 0 off",
+    "cpu": 2,
+    "memory": 14336,
+    "timeout": 1950
+  },
+  {
+    "name": "safety-op2-p1-on",
+    "cmd": "bash research/lane-i/upper-bound/shard.sh safety 2 1 on",
+    "cpu": 2,
+    "memory": 14336,
+    "timeout": 1950
+  },
+  {
+    "name": "safety-op2-p1-off",
+    "cmd": "bash research/lane-i/upper-bound/shard.sh safety 2 1 off",
+    "cpu": 2,
+    "memory": 14336,
+    "timeout": 1950
+  },
+  {
+    "name": "safety-op3-p0-on",
+    "cmd": "bash research/lane-i/upper-bound/shard.sh safety 3 0 on",
+    "cpu": 2,
+    "memory": 14336,
+    "timeout": 1950
+  },
+  {
+    "name": "safety-op3-p0-off",
+    "cmd": "bash research/lane-i/upper-bound/shard.sh safety 3 0 off",
+    "cpu": 2,
+    "memory": 14336,
+    "timeout": 1950
+  },
+  {
+    "name": "safety-op3-p1-on",
+    "cmd": "bash research/lane-i/upper-bound/shard.sh safety 3 1 on",
+    "cpu": 2,
+    "memory": 14336,
+    "timeout": 1950
+  },
+  {
+    "name": "safety-op3-p1-off",
+    "cmd": "bash research/lane-i/upper-bound/shard.sh safety 3 1 off",
+    "cpu": 2,
+    "memory": 14336,
+    "timeout": 1950
+  },
+  {
+    "name": "safety-op4-p0-on",
+    "cmd": "bash research/lane-i/upper-bound/shard.sh safety 4 0 on",
+    "cpu": 2,
+    "memory": 14336,
+    "timeout": 1950
+  },
+  {
+    "name": "safety-op4-p0-off",
+    "cmd": "bash research/lane-i/upper-bound/shard.sh safety 4 0 off",
+    "cpu": 2,
+    "memory": 14336,
+    "timeout": 1950
+  },
+  {
+    "name": "safety-op4-p1-on",
+    "cmd": "bash research/lane-i/upper-bound/shard.sh safety 4 1 on",
+    "cpu": 2,
+    "memory": 14336,
+    "timeout": 1950
+  },
+  {
+    "name": "safety-op4-p1-off",
+    "cmd": "bash research/lane-i/upper-bound/shard.sh safety 4 1 off",
+    "cpu": 2,
+    "memory": 14336,
+    "timeout": 1950
+  },
+  {
+    "name": "safety-op5-p0-on",
+    "cmd": "bash research/lane-i/upper-bound/shard.sh safety 5 0 on",
+    "cpu": 2,
+    "memory": 14336,
+    "timeout": 1950
+  },
+  {
+    "name": "safety-op5-p0-off",
+    "cmd": "bash research/lane-i/upper-bound/shard.sh safety 5 0 off",
+    "cpu": 2,
+    "memory": 14336,
+    "timeout": 1950
+  },
+  {
+    "name": "safety-op5-p1-on",
+    "cmd": "bash research/lane-i/upper-bound/shard.sh safety 5 1 on",
+    "cpu": 2,
+    "memory": 14336,
+    "timeout": 1950
+  },
+  {
+    "name": "safety-op5-p1-off",
+    "cmd": "bash research/lane-i/upper-bound/shard.sh safety 5 1 off",
+    "cpu": 2,
+    "memory": 14336,
+    "timeout": 1950
+  },
+  {
+    "name": "safety-op6-p0-on",
+    "cmd": "bash research/lane-i/upper-bound/shard.sh safety 6 0 on",
+    "cpu": 2,
+    "memory": 14336,
+    "timeout": 1950
+  },
+  {
+    "name": "safety-op6-p0-off",
+    "cmd": "bash research/lane-i/upper-bound/shard.sh safety 6 0 off",
+    "cpu": 2,
+    "memory": 14336,
+    "timeout": 1950
+  },
+  {
+    "name": "safety-op6-p1-on",
+    "cmd": "bash research/lane-i/upper-bound/shard.sh safety 6 1 on",
+    "cpu": 2,
+    "memory": 14336,
+    "timeout": 1950
+  },
+  {
+    "name": "safety-op6-p1-off",
+    "cmd": "bash research/lane-i/upper-bound/shard.sh safety 6 1 off",
+    "cpu": 2,
+    "memory": 14336,
+    "timeout": 1950
+  }
+]

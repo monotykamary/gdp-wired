@@ -1,0 +1,75 @@
+diff --git a/core/count-completion.ts b/core/count-completion.ts
+new file mode 100644
+index 00000000..88d78b73
+--- /dev/null
++++ b/core/count-completion.ts
+@@ -0,0 +1,23 @@
++// One bounded completion of assumed count-reading laws at the goal's own terms.
++// Every tuple retains the entire original premise; the ordinary kernel checks it.
++import {type E,type Law} from './machine.ts'
++import {type Instances} from '../kernel/kernel.ts'
++export function completeCountLawInstances(laws:Law[],at:Instances,terms:E[],readsCount:(law:Law)=>boolean,more:()=>boolean=()=>true):{at:Instances,added:{law:string,tuple:E[]}[]}{
++ const keys=[...new Map(terms.map(t=>[JSON.stringify(t),t])).values()].slice(0,4),added:{law:string,tuple:E[]}[]=[]
++ let next=at
++ for(const law of laws){
++  if(!law.forall||!readsCount(law))continue
++  const arity=1+(law.keys?.length??0),old=at[law.name]??[]
++  if(arity>2||old.length%arity)continue
++  const seen=new Set(Array.from({length:old.length/arity},(_,i)=>JSON.stringify(old.slice(i*arity,(i+1)*arity)))),fresh:E[]=[]
++  const tuples=arity===1?keys.map(t=>[t]):keys.flatMap(a=>keys.map(b=>[a,b]))
++  for(const tuple of tuples){
++   if(added.length>=48||!more())return{at:next,added}
++   const id=JSON.stringify(tuple);if(seen.has(id))continue
++   seen.add(id);fresh.push(...tuple);added.push({law:law.name,tuple})
++   if(next===at)next={...at}
++   next[law.name]=[...old,...fresh]
++  }
++ }
++ return{at:next,added}
++}
+diff --git a/core/counts.ts b/core/counts.ts
+index 4f67e821..f96d06db 100644
+--- a/core/counts.ts
++++ b/core/counts.ts
+@@ -27,6 +27,7 @@ import {countPoolKey, countSignature, grammarPool, ids, polaritySelection, readT
+ import {fieldLaws} from './field-laws.ts'
+ import {quorumLaws} from './quorum-laws.ts'
+ import {countsForReads, proposeCountFacts} from './count-facts.ts'
++import {completeCountLawInstances} from './count-completion.ts'
+ import {supportBudget} from './support-budget.ts'
+ export {supportBudget} from './support-budget.ts'
+ import {proposeCountUnions} from './count-unions.ts'
+@@ -781,6 +782,17 @@ export function countedAttempts(m: Machine, caller: Law[], support: Set<Law>, un
+     const observe = (b: ReturnType<typeof build>[number], phase: string, witness?: Record<string, number>) => {
+       if (countsDump.on) countsDump.on({law: law.name, goal: b.goal.name, pass, phase, generation: {...generation.state}, machine: m, laws: ls, rawGoal: b.goal, decls: b.decls, instances: at, certificateRequest: b.c, hyps: b.gg?.hyps, witness, seedCount})
+     }
++    let countCompleted = false
++    const completeCounts = (): boolean => {
++      if (!pass || countCompleted) return false
++      countCompleted = true
++      const completion = completeCountLawInstances(modelLaws, at, ts, l => reads(l.holds, isCount).size > 0, generation.tick)
++      if (!completion.added.length) return false
++      at = completion.at
++      tally('#count-completion', completion.added.length)
++      countsDump.on?.({law: law.name, pass, phase: 'count-completion', added: completion.added})
++      return true
++    }
+     let decideStep = decisions.get(id)
+     if (!decideStep) {
+       if (decisions.size >= 64) decisions.delete(decisions.keys().next().value!)
+@@ -841,6 +853,7 @@ export function countedAttempts(m: Machine, caller: Law[], support: Set<Law>, un
+         tally('#rounds'); tally('#hyps', step.gg.hyps.length)
+         if (lz && !asked) { built = build(); continue }
+         if (!asked) {
++          if (completeCounts()) { built = build(); continue }
+           if (countsDump.on && pass && dumped < Number(env.GDP_COUNTS_DUMP_N ?? 3)) { dumped++; countsDump.on({law: law.name, goal: step.goal.name, ls: ls.map(l => l.name), stuck: 'sat', witness: q.witness, reads: step.c.reads, insts: step.c.insts, hyps: step.gg.hyps, base: step.goal, decls: step.decls, cert: step.c, at, laws: ls, wide, pass}) }
+           if (pass && !wide && houdini && 'loose' in step.c && (step.c.loose || isCaller) && more()) { wide = true; widened.add(law.name); built = build(); continue }
+           return refuted(step.gg, q.witness)
+@@ -871,6 +884,7 @@ export function countedAttempts(m: Machine, caller: Law[], support: Set<Law>, un
+         if (gg && o && !('tree' in o) && o.stuck === 'sat' && o.witness && gg === built.at(-1)!.gg && more()) {
+           const asked = ptime('mbqi', () => modelInstances(m, modelLaws, at, gg, o.witness!)), lz = breaks(built.at(-1), o.witness) || (!asked && breaks(built.at(-1), o.witness, true))
+           if (asked || lz) { if (asked) at = asked; built = build(); again = true; break }
++          if (completeCounts()) { built = build(); again = true; break }
+         }
+         if (gg && o && !('tree' in o) && o.stuck === 'sat' && o.witness && gg === built.at(-1)!.gg && pass && !wide && houdini && 'loose' in c && (c.loose || isCaller) && more()) { wide = true; widened.add(law.name); built = build(); again = true; break }
+         if (gg && o && !('tree' in o) && o.stuck === 'sat' && o.witness && gg === built.at(-1)!.gg) return refuted(gg, o.witness)

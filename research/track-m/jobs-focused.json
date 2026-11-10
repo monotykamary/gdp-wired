@@ -1,0 +1,4 @@
+[
+ {"name":"tests","cmd":"bun install --frozen-lockfile >/dev/null && bun test core/field-laws.test.ts research/protocols/ic3syn/mldr.test.ts && bun research/track-m/port-audit.ts","timeout":120},
+ {"name":"check","cmd":"bun install --frozen-lockfile >/dev/null && bun run check","timeout":240}
+]

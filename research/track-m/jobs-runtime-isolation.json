@@ -1,0 +1,23 @@
+[
+  {
+    "name": "proxy",
+    "cmd": "set -e; bun install --frozen-lockfile >/dev/null; timeout 12s bun research/track-m/proxy-runtime.ts",
+    "cpu": 2,
+    "memory": 4000,
+    "timeout": 60
+  },
+  {
+    "name": "boolean",
+    "cmd": "set -e; bun install --frozen-lockfile >/dev/null; timeout 12s bun test research/track-m/boolean-core.test.ts",
+    "cpu": 2,
+    "memory": 4000,
+    "timeout": 60
+  },
+  {
+    "name": "field",
+    "cmd": "set -e; bun install --frozen-lockfile >/dev/null; timeout 12s bun test --test-name-pattern 'strict successor' research/track-m/field-bound-lemmas.test.ts",
+    "cpu": 2,
+    "memory": 4000,
+    "timeout": 60
+  }
+]

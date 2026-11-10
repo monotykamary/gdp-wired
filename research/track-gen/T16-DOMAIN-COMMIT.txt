@@ -1,0 +1,9 @@
+feat(core): add bounded finite-domain search controls
+
+Keep the binary default and independently replayed drop boundary. Allow
+an explicit recorded state-value domain and a finite round cap for
+bounded research schedules without changing proof or wall budgets.
+
+Split generated predicates into checked clauses and cap native function
+size after richer-domain probes exposed long unchecked native intervals.
+Keep this experimental backend disabled in production generation.

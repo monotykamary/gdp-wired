@@ -1,0 +1,4 @@
+[
+ {"name":"safety-base-helpers-reconstruction-full","cmd":"bash research/track-m/lane-b-integrated-pair.sh safety before partition","cpu":8,"memory":14336,"timeout":180},
+ {"name":"safety-full-reconstruction-helpers-base","cmd":"bash research/track-m/lane-b-integrated-pair.sh safety after partition","cpu":8,"memory":14336,"timeout":180}
+]

@@ -1,0 +1,1 @@
+docs(research): record MLDR generation gates and proof-cost limits

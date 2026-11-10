@@ -1,0 +1,1 @@
+[{"name":"share-tests","cmd":"bun install --frozen-lockfile && bun test core/support-order.test.ts core/count-cubes.test.ts","timeout":180,"cpu":4}]

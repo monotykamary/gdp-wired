@@ -1,0 +1,1456 @@
+{
+  "inputHash": "96ba906a86c7f54db1371cea2c55c0bbcc79fd9e8ebe368b770f6495a9ee4496",
+  "rows": [
+    {
+      "job": "original-hybrid-1",
+      "exit": 0,
+      "hardware": {
+        "vm": "bx_5wr3bs76",
+        "type": "large",
+        "cpu": "AMD EPYC 4585PX 16-Core Processor",
+        "vcpus": 2,
+        "vm_vcpus": 8,
+        "exclusive": true,
+        "co_tenants": 0
+      },
+      "mode": "original",
+      "postTargetPruning": true,
+      "postTargetIntervals": false,
+      "counterexampleNeighbors": true,
+      "seedUniformMaps": true,
+      "initial": 40,
+      "drops": [
+        {
+          "stage": 0,
+          "round": 0,
+          "ms": 161.602079,
+          "law": "fields: CT[a]=CT[b] and CV[a]=CV[b] -> Config rows agree"
+        },
+        {
+          "stage": 0,
+          "round": 0,
+          "ms": 170.479203,
+          "law": "inX: stored guard reconfigs/inS"
+        },
+        {
+          "stage": 0,
+          "round": 0,
+          "ms": 177.588589,
+          "law": "inX: stored guard reconfigs/inS or disabled/1"
+        },
+        {
+          "stage": 0,
+          "round": 0,
+          "ms": 317.221661,
+          "law": "every x with x < size: never Config[x] is 0 and 1 <= St[x]"
+        },
+        {
+          "stage": 0,
+          "round": 1,
+          "ms": 819.88518,
+          "law": "inX: no quorum canVote/1"
+        },
+        {
+          "stage": 1,
+          "round": 0,
+          "ms": 1238.7914289999999,
+          "law": "CV at most 2"
+        }
+      ],
+      "rounds": [
+        {
+          "stage": 0,
+          "round": 0,
+          "stats": {
+            "scope": {
+              "params": {
+                "size": 3
+              },
+              "scalarValues": [
+                0,
+                1
+              ],
+              "cellValues": [
+                0,
+                1
+              ],
+              "cells": {
+                "Config": [
+                  0,
+                  1,
+                  2,
+                  64,
+                  65,
+                  66,
+                  128,
+                  129,
+                  130
+                ],
+                "CT": [
+                  0,
+                  1,
+                  2
+                ],
+                "St": [
+                  0,
+                  1,
+                  2
+                ],
+                "CV": [
+                  0,
+                  1,
+                  2
+                ],
+                "CfgT": [
+                  0,
+                  1,
+                  2
+                ]
+              },
+              "inputValues": {
+                "op": [
+                  0,
+                  1,
+                  2,
+                  3,
+                  4,
+                  5,
+                  6
+                ],
+                "i": [
+                  0,
+                  1,
+                  2
+                ],
+                "j": [
+                  0,
+                  1,
+                  2
+                ],
+                "hx": [
+                  0,
+                  1,
+                  2,
+                  3
+                ],
+                "hy": [
+                  0,
+                  1,
+                  2,
+                  3
+                ]
+              },
+              "inputCells": {
+                "S": [
+                  0,
+                  1,
+                  2
+                ],
+                "Q2": [
+                  0,
+                  1,
+                  2
+                ]
+              },
+              "binderValues": [
+                0,
+                1,
+                2
+              ],
+              "postTargetPruning": true,
+              "postTargetIntervals": false,
+              "seedNeighborhood": true,
+              "seedUniformMaps": true
+            },
+            "completed": true,
+            "exhausted": false,
+            "timedOut": false,
+            "unsupported": [],
+            "nodes": 56413,
+            "states": 782,
+            "steps": 3,
+            "scenarios": 7,
+            "candidates": 3,
+            "postStatePrunes": 0,
+            "postRequestPrunes": 4231,
+            "postIntervalFallbacks": 0,
+            "seedModels": 0,
+            "seedCandidates": 0,
+            "seedCoupledModels": 0,
+            "seedCoupledCandidates": 0,
+            "ms": 437.26300399999997
+          }
+        }
+      ],
+      "finishes": [
+        {
+          "stage": 0,
+          "timedOut": true,
+          "ms": 950.264596,
+          "dropped": 5
+        },
+        {
+          "stage": 1,
+          "timedOut": false,
+          "ms": 949.7648770000001,
+          "dropped": 1
+        }
+      ],
+      "timedOut": true,
+      "wall": 1900.301311,
+      "removed": 6,
+      "survivors": 34,
+      "certified": [
+        "fields: CT[a]=CT[b] and CV[a]=CV[b] -> Config rows agree",
+        "inX: stored guard reconfigs/inS",
+        "inX: stored guard reconfigs/inS or disabled/1",
+        "every x with x < size: never Config[x] is 0 and 1 <= St[x]",
+        "inX: no quorum canVote/1",
+        "CV at most 2"
+      ],
+      "historical": [],
+      "namedSevenNew": [
+        "CV at most 2",
+        "inX: no quorum canVote/1",
+        "inX: stored guard reconfigs/inS",
+        "inX: stored guard reconfigs/inS or disabled/1"
+      ],
+      "namedSevenIncludingHistorical": [
+        "CV at most 2",
+        "inX: no quorum canVote/1",
+        "inX: stored guard reconfigs/inS",
+        "inX: stored guard reconfigs/inS or disabled/1"
+      ],
+      "remaining": [
+        "CT at most 44",
+        "St at most 1",
+        "CfgT at most 44",
+        "fields: St[a]=1 -> CT[a]=CT[b] -> CV[b]<=CV[a]",
+        "fields: St[a]=1 -> CT[a]=CfgT[a]",
+        "fields: St[a]=1 -> CT[a]<=CfgT[a]",
+        "fields: St[a]=1 -> CT[a]=CT[b] -> CfgT[b]<=CfgT[a]",
+        "fields: St[a]=1 -> CfgT[a]<=CT[a]",
+        "fields: St[a]=1 -> CfgT[a]=CfgT[b] -> CV[b]<=CV[a]",
+        "every x with x < size: never CT[x] is 0 and 1 <= St[x]",
+        "every x with x < size: never 1 <= CT[x] and CV[x] is 0",
+        "every x with x < size: never 1 <= CT[x] and started is 0",
+        "every x with x < size: never 1 <= St[x] and CV[x] is 0",
+        "every x with x < size: never 1 <= St[x] and CfgT[x] is 0",
+        "every x with x < size: never 1 <= St[x] and started is 0",
+        "every x with x < size: never CV[x] is 0 and 1 <= CfgT[x]",
+        "every x with x < size: never CV[x] is 0 and 1 <= started",
+        "every x with x < size: never 1 <= CfgT[x] and started is 0",
+        "every x, y with x < size ∧ y < size ∧ ¬(x = y): never 1 <= CT[x] and CV[y] is 0",
+        "every x, y with x < size ∧ y < size ∧ ¬(x = y): never 1 <= St[x] and CV[y] is 0",
+        "every x, y with x < size ∧ y < size ∧ ¬(x = y): never CV[x] is 0 and 1 <= CfgT[y]",
+        "inX: no quorum canVote/3",
+        "inX: stored guard reconfigs/inS or disabled/0",
+        "inX: stored guard reconfigs/inS or disabled/2",
+        "inX: stored guard reconfigs/inS or disabled/3",
+        "fields: CV[a]=CV[b] and CfgT[a]=CfgT[b] -> Config rows agree",
+        "count cubes: every x with x < {\"op\":\"var\",\"name\":\"size\"}: never 1 <= started and inX$row[x] is 0",
+        "count cubes: every x with x < {\"op\":\"var\",\"name\":\"size\"}: never 1 <= CT[x] and inX$row[x] is 0",
+        "count cubes: every x with x < {\"op\":\"var\",\"name\":\"size\"}: never CV[x] is 0 and 1 <= inX$row[x]",
+        "count cubes: every x with x < {\"op\":\"var\",\"name\":\"size\"}: never 1 <= CV[x] and inX$row[x] is 0",
+        "count cubes: every x with x < {\"op\":\"var\",\"name\":\"size\"}: never 1 <= CfgT[x] and inX$row[x] is 0",
+        "count cubes: every x with x < {\"op\":\"var\",\"name\":\"size\"}: never 1 <= St[x] and inX$row[x] is 0"
+      ],
+      "meetsNewFiveAndWall": false
+    },
+    {
+      "job": "original-hybrid-2",
+      "exit": 0,
+      "hardware": {
+        "vm": "bx_5jvcbp5r",
+        "type": "large",
+        "cpu": "AMD Ryzen 7 9700X 8-Core Processor",
+        "vcpus": 2,
+        "vm_vcpus": 8,
+        "exclusive": true,
+        "co_tenants": 0
+      },
+      "mode": "original",
+      "postTargetPruning": true,
+      "postTargetIntervals": false,
+      "counterexampleNeighbors": true,
+      "seedUniformMaps": true,
+      "initial": 40,
+      "drops": [
+        {
+          "stage": 0,
+          "round": 0,
+          "ms": 189.848253,
+          "law": "fields: CT[a]=CT[b] and CV[a]=CV[b] -> Config rows agree"
+        },
+        {
+          "stage": 0,
+          "round": 0,
+          "ms": 208.263094,
+          "law": "inX: stored guard reconfigs/inS"
+        },
+        {
+          "stage": 0,
+          "round": 0,
+          "ms": 208.56228,
+          "law": "inX: stored guard reconfigs/inS or disabled/1"
+        },
+        {
+          "stage": 0,
+          "round": 0,
+          "ms": 301.597073,
+          "law": "every x with x < size: never Config[x] is 0 and 1 <= St[x]"
+        },
+        {
+          "stage": 0,
+          "round": 1,
+          "ms": 814.981208,
+          "law": "inX: no quorum canVote/1"
+        },
+        {
+          "stage": 1,
+          "round": 0,
+          "ms": 1162.155454,
+          "law": "CV at most 2"
+        }
+      ],
+      "rounds": [
+        {
+          "stage": 0,
+          "round": 0,
+          "stats": {
+            "scope": {
+              "params": {
+                "size": 3
+              },
+              "scalarValues": [
+                0,
+                1
+              ],
+              "cellValues": [
+                0,
+                1
+              ],
+              "cells": {
+                "Config": [
+                  0,
+                  1,
+                  2,
+                  64,
+                  65,
+                  66,
+                  128,
+                  129,
+                  130
+                ],
+                "CT": [
+                  0,
+                  1,
+                  2
+                ],
+                "St": [
+                  0,
+                  1,
+                  2
+                ],
+                "CV": [
+                  0,
+                  1,
+                  2
+                ],
+                "CfgT": [
+                  0,
+                  1,
+                  2
+                ]
+              },
+              "inputValues": {
+                "op": [
+                  0,
+                  1,
+                  2,
+                  3,
+                  4,
+                  5,
+                  6
+                ],
+                "i": [
+                  0,
+                  1,
+                  2
+                ],
+                "j": [
+                  0,
+                  1,
+                  2
+                ],
+                "hx": [
+                  0,
+                  1,
+                  2,
+                  3
+                ],
+                "hy": [
+                  0,
+                  1,
+                  2,
+                  3
+                ]
+              },
+              "inputCells": {
+                "S": [
+                  0,
+                  1,
+                  2
+                ],
+                "Q2": [
+                  0,
+                  1,
+                  2
+                ]
+              },
+              "binderValues": [
+                0,
+                1,
+                2
+              ],
+              "postTargetPruning": true,
+              "postTargetIntervals": false,
+              "seedNeighborhood": true,
+              "seedUniformMaps": true
+            },
+            "completed": true,
+            "exhausted": false,
+            "timedOut": false,
+            "unsupported": [],
+            "nodes": 56413,
+            "states": 782,
+            "steps": 3,
+            "scenarios": 7,
+            "candidates": 3,
+            "postStatePrunes": 0,
+            "postRequestPrunes": 4231,
+            "postIntervalFallbacks": 0,
+            "seedModels": 0,
+            "seedCandidates": 0,
+            "seedCoupledModels": 0,
+            "seedCoupledCandidates": 0,
+            "ms": 414.181918
+          }
+        }
+      ],
+      "finishes": [
+        {
+          "stage": 0,
+          "timedOut": true,
+          "ms": 950.563953,
+          "dropped": 5
+        },
+        {
+          "stage": 1,
+          "timedOut": false,
+          "ms": 949.384228,
+          "dropped": 1
+        }
+      ],
+      "timedOut": true,
+      "wall": 1900.132334,
+      "removed": 6,
+      "survivors": 34,
+      "certified": [
+        "fields: CT[a]=CT[b] and CV[a]=CV[b] -> Config rows agree",
+        "inX: stored guard reconfigs/inS",
+        "inX: stored guard reconfigs/inS or disabled/1",
+        "every x with x < size: never Config[x] is 0 and 1 <= St[x]",
+        "inX: no quorum canVote/1",
+        "CV at most 2"
+      ],
+      "historical": [],
+      "namedSevenNew": [
+        "CV at most 2",
+        "inX: no quorum canVote/1",
+        "inX: stored guard reconfigs/inS",
+        "inX: stored guard reconfigs/inS or disabled/1"
+      ],
+      "namedSevenIncludingHistorical": [
+        "CV at most 2",
+        "inX: no quorum canVote/1",
+        "inX: stored guard reconfigs/inS",
+        "inX: stored guard reconfigs/inS or disabled/1"
+      ],
+      "remaining": [
+        "CT at most 44",
+        "St at most 1",
+        "CfgT at most 44",
+        "fields: St[a]=1 -> CT[a]=CT[b] -> CV[b]<=CV[a]",
+        "fields: St[a]=1 -> CT[a]=CfgT[a]",
+        "fields: St[a]=1 -> CT[a]<=CfgT[a]",
+        "fields: St[a]=1 -> CT[a]=CT[b] -> CfgT[b]<=CfgT[a]",
+        "fields: St[a]=1 -> CfgT[a]<=CT[a]",
+        "fields: St[a]=1 -> CfgT[a]=CfgT[b] -> CV[b]<=CV[a]",
+        "every x with x < size: never CT[x] is 0 and 1 <= St[x]",
+        "every x with x < size: never 1 <= CT[x] and CV[x] is 0",
+        "every x with x < size: never 1 <= CT[x] and started is 0",
+        "every x with x < size: never 1 <= St[x] and CV[x] is 0",
+        "every x with x < size: never 1 <= St[x] and CfgT[x] is 0",
+        "every x with x < size: never 1 <= St[x] and started is 0",
+        "every x with x < size: never CV[x] is 0 and 1 <= CfgT[x]",
+        "every x with x < size: never CV[x] is 0 and 1 <= started",
+        "every x with x < size: never 1 <= CfgT[x] and started is 0",
+        "every x, y with x < size ∧ y < size ∧ ¬(x = y): never 1 <= CT[x] and CV[y] is 0",
+        "every x, y with x < size ∧ y < size ∧ ¬(x = y): never 1 <= St[x] and CV[y] is 0",
+        "every x, y with x < size ∧ y < size ∧ ¬(x = y): never CV[x] is 0 and 1 <= CfgT[y]",
+        "inX: no quorum canVote/3",
+        "inX: stored guard reconfigs/inS or disabled/0",
+        "inX: stored guard reconfigs/inS or disabled/2",
+        "inX: stored guard reconfigs/inS or disabled/3",
+        "fields: CV[a]=CV[b] and CfgT[a]=CfgT[b] -> Config rows agree",
+        "count cubes: every x with x < {\"op\":\"var\",\"name\":\"size\"}: never 1 <= started and inX$row[x] is 0",
+        "count cubes: every x with x < {\"op\":\"var\",\"name\":\"size\"}: never 1 <= CT[x] and inX$row[x] is 0",
+        "count cubes: every x with x < {\"op\":\"var\",\"name\":\"size\"}: never CV[x] is 0 and 1 <= inX$row[x]",
+        "count cubes: every x with x < {\"op\":\"var\",\"name\":\"size\"}: never 1 <= CV[x] and inX$row[x] is 0",
+        "count cubes: every x with x < {\"op\":\"var\",\"name\":\"size\"}: never 1 <= CfgT[x] and inX$row[x] is 0",
+        "count cubes: every x with x < {\"op\":\"var\",\"name\":\"size\"}: never 1 <= St[x] and inX$row[x] is 0"
+      ],
+      "meetsNewFiveAndWall": false
+    },
+    {
+      "job": "original-hybrid-3",
+      "exit": 0,
+      "hardware": {
+        "vm": "bx_7qz5faa3",
+        "type": "large",
+        "cpu": "AMD EPYC 4585PX 16-Core Processor",
+        "vcpus": 2,
+        "vm_vcpus": 8,
+        "exclusive": true,
+        "co_tenants": 0
+      },
+      "mode": "original",
+      "postTargetPruning": true,
+      "postTargetIntervals": false,
+      "counterexampleNeighbors": true,
+      "seedUniformMaps": true,
+      "initial": 40,
+      "drops": [
+        {
+          "stage": 0,
+          "round": 0,
+          "ms": 341.7513,
+          "law": "fields: CT[a]=CT[b] and CV[a]=CV[b] -> Config rows agree"
+        },
+        {
+          "stage": 0,
+          "round": 0,
+          "ms": 366.482656,
+          "law": "inX: stored guard reconfigs/inS"
+        },
+        {
+          "stage": 0,
+          "round": 0,
+          "ms": 367.121021,
+          "law": "inX: stored guard reconfigs/inS or disabled/1"
+        },
+        {
+          "stage": 0,
+          "round": 0,
+          "ms": 546.021228,
+          "law": "every x with x < size: never Config[x] is 0 and 1 <= St[x]"
+        }
+      ],
+      "rounds": [
+        {
+          "stage": 0,
+          "round": 0,
+          "stats": {
+            "scope": {
+              "params": {
+                "size": 3
+              },
+              "scalarValues": [
+                0,
+                1
+              ],
+              "cellValues": [
+                0,
+                1
+              ],
+              "cells": {
+                "Config": [
+                  0,
+                  1,
+                  2,
+                  64,
+                  65,
+                  66,
+                  128,
+                  129,
+                  130
+                ],
+                "CT": [
+                  0,
+                  1,
+                  2
+                ],
+                "St": [
+                  0,
+                  1,
+                  2
+                ],
+                "CV": [
+                  0,
+                  1,
+                  2
+                ],
+                "CfgT": [
+                  0,
+                  1,
+                  2
+                ]
+              },
+              "inputValues": {
+                "op": [
+                  0,
+                  1,
+                  2,
+                  3,
+                  4,
+                  5,
+                  6
+                ],
+                "i": [
+                  0,
+                  1,
+                  2
+                ],
+                "j": [
+                  0,
+                  1,
+                  2
+                ],
+                "hx": [
+                  0,
+                  1,
+                  2,
+                  3
+                ],
+                "hy": [
+                  0,
+                  1,
+                  2,
+                  3
+                ]
+              },
+              "inputCells": {
+                "S": [
+                  0,
+                  1,
+                  2
+                ],
+                "Q2": [
+                  0,
+                  1,
+                  2
+                ]
+              },
+              "binderValues": [
+                0,
+                1,
+                2
+              ],
+              "postTargetPruning": true,
+              "postTargetIntervals": false,
+              "seedNeighborhood": true,
+              "seedUniformMaps": true
+            },
+            "completed": true,
+            "exhausted": false,
+            "timedOut": false,
+            "unsupported": [],
+            "nodes": 56413,
+            "states": 782,
+            "steps": 3,
+            "scenarios": 7,
+            "candidates": 3,
+            "postStatePrunes": 0,
+            "postRequestPrunes": 4231,
+            "postIntervalFallbacks": 0,
+            "seedModels": 0,
+            "seedCandidates": 0,
+            "seedCoupledModels": 0,
+            "seedCoupledCandidates": 0,
+            "ms": 814.047235
+          }
+        }
+      ],
+      "finishes": [
+        {
+          "stage": 0,
+          "timedOut": true,
+          "ms": 1048.188135,
+          "dropped": 4
+        },
+        {
+          "stage": 1,
+          "timedOut": false,
+          "ms": 855.223397,
+          "dropped": 0
+        }
+      ],
+      "timedOut": true,
+      "wall": 1903.808103,
+      "removed": 4,
+      "survivors": 36,
+      "certified": [
+        "fields: CT[a]=CT[b] and CV[a]=CV[b] -> Config rows agree",
+        "inX: stored guard reconfigs/inS",
+        "inX: stored guard reconfigs/inS or disabled/1",
+        "every x with x < size: never Config[x] is 0 and 1 <= St[x]"
+      ],
+      "historical": [],
+      "namedSevenNew": [
+        "inX: stored guard reconfigs/inS",
+        "inX: stored guard reconfigs/inS or disabled/1"
+      ],
+      "namedSevenIncludingHistorical": [
+        "inX: stored guard reconfigs/inS",
+        "inX: stored guard reconfigs/inS or disabled/1"
+      ],
+      "remaining": [
+        "CT at most 44",
+        "St at most 1",
+        "CV at most 2",
+        "CfgT at most 44",
+        "fields: St[a]=1 -> CT[a]=CT[b] -> CV[b]<=CV[a]",
+        "fields: St[a]=1 -> CT[a]=CfgT[a]",
+        "fields: St[a]=1 -> CT[a]<=CfgT[a]",
+        "fields: St[a]=1 -> CT[a]=CT[b] -> CfgT[b]<=CfgT[a]",
+        "fields: St[a]=1 -> CfgT[a]<=CT[a]",
+        "fields: St[a]=1 -> CfgT[a]=CfgT[b] -> CV[b]<=CV[a]",
+        "every x with x < size: never CT[x] is 0 and 1 <= St[x]",
+        "every x with x < size: never 1 <= CT[x] and CV[x] is 0",
+        "every x with x < size: never 1 <= CT[x] and started is 0",
+        "every x with x < size: never 1 <= St[x] and CV[x] is 0",
+        "every x with x < size: never 1 <= St[x] and CfgT[x] is 0",
+        "every x with x < size: never 1 <= St[x] and started is 0",
+        "every x with x < size: never CV[x] is 0 and 1 <= CfgT[x]",
+        "every x with x < size: never CV[x] is 0 and 1 <= started",
+        "every x with x < size: never 1 <= CfgT[x] and started is 0",
+        "every x, y with x < size ∧ y < size ∧ ¬(x = y): never 1 <= CT[x] and CV[y] is 0",
+        "every x, y with x < size ∧ y < size ∧ ¬(x = y): never 1 <= St[x] and CV[y] is 0",
+        "every x, y with x < size ∧ y < size ∧ ¬(x = y): never CV[x] is 0 and 1 <= CfgT[y]",
+        "inX: no quorum canVote/1",
+        "inX: no quorum canVote/3",
+        "inX: stored guard reconfigs/inS or disabled/0",
+        "inX: stored guard reconfigs/inS or disabled/2",
+        "inX: stored guard reconfigs/inS or disabled/3",
+        "fields: CV[a]=CV[b] and CfgT[a]=CfgT[b] -> Config rows agree",
+        "count cubes: every x with x < {\"op\":\"var\",\"name\":\"size\"}: never 1 <= started and inX$row[x] is 0",
+        "count cubes: every x with x < {\"op\":\"var\",\"name\":\"size\"}: never 1 <= CT[x] and inX$row[x] is 0",
+        "count cubes: every x with x < {\"op\":\"var\",\"name\":\"size\"}: never CV[x] is 0 and 1 <= inX$row[x]",
+        "count cubes: every x with x < {\"op\":\"var\",\"name\":\"size\"}: never 1 <= CV[x] and inX$row[x] is 0",
+        "count cubes: every x with x < {\"op\":\"var\",\"name\":\"size\"}: never 1 <= CfgT[x] and inX$row[x] is 0",
+        "count cubes: every x with x < {\"op\":\"var\",\"name\":\"size\"}: never 1 <= St[x] and inX$row[x] is 0"
+      ],
+      "meetsNewFiveAndWall": false
+    },
+    {
+      "job": "survivors-hybrid-1",
+      "exit": 0,
+      "hardware": {
+        "vm": "bx_2eg9t59n",
+        "type": "large",
+        "cpu": "AMD EPYC 9455 48-Core Processor",
+        "vcpus": 2,
+        "vm_vcpus": 8,
+        "exclusive": true,
+        "co_tenants": 0
+      },
+      "mode": "survivors",
+      "postTargetPruning": true,
+      "postTargetIntervals": false,
+      "counterexampleNeighbors": true,
+      "seedUniformMaps": true,
+      "initial": 34,
+      "drops": [
+        {
+          "stage": 0,
+          "round": 0,
+          "ms": 208.93641,
+          "law": "inX: stored guard reconfigs/inS"
+        },
+        {
+          "stage": 0,
+          "round": 0,
+          "ms": 209.373007,
+          "law": "inX: stored guard reconfigs/inS or disabled/1"
+        }
+      ],
+      "rounds": [
+        {
+          "stage": 0,
+          "round": 0,
+          "stats": {
+            "scope": {
+              "params": {
+                "size": 3
+              },
+              "scalarValues": [
+                0,
+                1
+              ],
+              "cellValues": [
+                0,
+                1
+              ],
+              "cells": {
+                "Config": [
+                  0,
+                  1,
+                  2,
+                  64,
+                  65,
+                  66,
+                  128,
+                  129,
+                  130
+                ],
+                "CT": [
+                  0,
+                  1,
+                  2
+                ],
+                "St": [
+                  0,
+                  1,
+                  2
+                ],
+                "CV": [
+                  0,
+                  1,
+                  2
+                ],
+                "CfgT": [
+                  0,
+                  1,
+                  2
+                ]
+              },
+              "inputValues": {
+                "op": [
+                  0,
+                  1,
+                  2,
+                  3,
+                  4,
+                  5,
+                  6
+                ],
+                "i": [
+                  0,
+                  1,
+                  2
+                ],
+                "j": [
+                  0,
+                  1,
+                  2
+                ],
+                "hx": [
+                  0,
+                  1,
+                  2,
+                  3
+                ],
+                "hy": [
+                  0,
+                  1,
+                  2,
+                  3
+                ]
+              },
+              "inputCells": {
+                "S": [
+                  0,
+                  1,
+                  2
+                ],
+                "Q2": [
+                  0,
+                  1,
+                  2
+                ]
+              },
+              "binderValues": [
+                0,
+                1,
+                2
+              ],
+              "postTargetPruning": true,
+              "postTargetIntervals": false,
+              "seedNeighborhood": true,
+              "seedUniformMaps": true
+            },
+            "completed": true,
+            "exhausted": false,
+            "timedOut": false,
+            "unsupported": [],
+            "nodes": 133280,
+            "states": 1850,
+            "steps": 1,
+            "scenarios": 7,
+            "candidates": 1,
+            "postStatePrunes": 0,
+            "postRequestPrunes": 9568,
+            "postIntervalFallbacks": 0,
+            "seedModels": 0,
+            "seedCandidates": 0,
+            "seedCoupledModels": 0,
+            "seedCoupledCandidates": 0,
+            "ms": 724.5251920000001
+          }
+        }
+      ],
+      "finishes": [
+        {
+          "stage": 0,
+          "timedOut": true,
+          "ms": 950.1704179999999,
+          "dropped": 2
+        },
+        {
+          "stage": 1,
+          "timedOut": false,
+          "ms": 949.746319,
+          "dropped": 0
+        }
+      ],
+      "timedOut": true,
+      "wall": 1900.145808,
+      "removed": 2,
+      "survivors": 32,
+      "certified": [
+        "inX: stored guard reconfigs/inS",
+        "inX: stored guard reconfigs/inS or disabled/1"
+      ],
+      "historical": [
+        "CT at most 44",
+        "CfgT at most 44",
+        "every x with x < size: never Config[x] is 0 and 1 <= St[x]",
+        "fields: CT[a]=CT[b] and CV[a]=CV[b] -> Config rows agree",
+        "fields: St[a]=1 -> CT[a]=CT[b] -> CV[b]<=CV[a]",
+        "CV at most 2"
+      ],
+      "namedSevenNew": [
+        "inX: stored guard reconfigs/inS",
+        "inX: stored guard reconfigs/inS or disabled/1"
+      ],
+      "namedSevenIncludingHistorical": [
+        "CV at most 2",
+        "inX: stored guard reconfigs/inS",
+        "inX: stored guard reconfigs/inS or disabled/1"
+      ],
+      "remaining": [
+        "St at most 1",
+        "fields: St[a]=1 -> CT[a]=CfgT[a]",
+        "fields: St[a]=1 -> CT[a]<=CfgT[a]",
+        "fields: St[a]=1 -> CT[a]=CT[b] -> CfgT[b]<=CfgT[a]",
+        "fields: St[a]=1 -> CfgT[a]<=CT[a]",
+        "fields: St[a]=1 -> CfgT[a]=CfgT[b] -> CV[b]<=CV[a]",
+        "every x with x < size: never CT[x] is 0 and 1 <= St[x]",
+        "every x with x < size: never 1 <= CT[x] and CV[x] is 0",
+        "every x with x < size: never 1 <= CT[x] and started is 0",
+        "every x with x < size: never 1 <= St[x] and CV[x] is 0",
+        "every x with x < size: never 1 <= St[x] and CfgT[x] is 0",
+        "every x with x < size: never 1 <= St[x] and started is 0",
+        "every x with x < size: never CV[x] is 0 and 1 <= CfgT[x]",
+        "every x with x < size: never CV[x] is 0 and 1 <= started",
+        "every x with x < size: never 1 <= CfgT[x] and started is 0",
+        "every x, y with x < size ∧ y < size ∧ ¬(x = y): never 1 <= CT[x] and CV[y] is 0",
+        "every x, y with x < size ∧ y < size ∧ ¬(x = y): never 1 <= St[x] and CV[y] is 0",
+        "every x, y with x < size ∧ y < size ∧ ¬(x = y): never CV[x] is 0 and 1 <= CfgT[y]",
+        "inX: no quorum canVote/1",
+        "inX: no quorum canVote/3",
+        "inX: stored guard reconfigs/inS or disabled/0",
+        "inX: stored guard reconfigs/inS or disabled/2",
+        "inX: stored guard reconfigs/inS or disabled/3",
+        "fields: CV[a]=CV[b] and CfgT[a]=CfgT[b] -> Config rows agree",
+        "count cubes: every x with x < {\"op\":\"var\",\"name\":\"size\"}: never 1 <= started and inX$row[x] is 0",
+        "count cubes: every x with x < {\"op\":\"var\",\"name\":\"size\"}: never 1 <= CT[x] and inX$row[x] is 0",
+        "count cubes: every x with x < {\"op\":\"var\",\"name\":\"size\"}: never CV[x] is 0 and 1 <= inX$row[x]",
+        "count cubes: every x with x < {\"op\":\"var\",\"name\":\"size\"}: never 1 <= CV[x] and inX$row[x] is 0",
+        "count cubes: every x with x < {\"op\":\"var\",\"name\":\"size\"}: never 1 <= CfgT[x] and inX$row[x] is 0",
+        "count cubes: every x with x < {\"op\":\"var\",\"name\":\"size\"}: never 1 <= St[x] and inX$row[x] is 0"
+      ],
+      "meetsNewFiveAndWall": false
+    },
+    {
+      "job": "survivors-hybrid-2",
+      "exit": 0,
+      "hardware": {
+        "vm": "bx_7y8uwqen",
+        "type": "large",
+        "cpu": "AMD EPYC 9455 48-Core Processor",
+        "vcpus": 2,
+        "vm_vcpus": 8,
+        "exclusive": true,
+        "co_tenants": 0
+      },
+      "mode": "survivors",
+      "postTargetPruning": true,
+      "postTargetIntervals": false,
+      "counterexampleNeighbors": true,
+      "seedUniformMaps": true,
+      "initial": 34,
+      "drops": [
+        {
+          "stage": 0,
+          "round": 0,
+          "ms": 184.46531800000002,
+          "law": "inX: stored guard reconfigs/inS"
+        },
+        {
+          "stage": 0,
+          "round": 0,
+          "ms": 185.248267,
+          "law": "inX: stored guard reconfigs/inS or disabled/1"
+        }
+      ],
+      "rounds": [
+        {
+          "stage": 0,
+          "round": 0,
+          "stats": {
+            "scope": {
+              "params": {
+                "size": 3
+              },
+              "scalarValues": [
+                0,
+                1
+              ],
+              "cellValues": [
+                0,
+                1
+              ],
+              "cells": {
+                "Config": [
+                  0,
+                  1,
+                  2,
+                  64,
+                  65,
+                  66,
+                  128,
+                  129,
+                  130
+                ],
+                "CT": [
+                  0,
+                  1,
+                  2
+                ],
+                "St": [
+                  0,
+                  1,
+                  2
+                ],
+                "CV": [
+                  0,
+                  1,
+                  2
+                ],
+                "CfgT": [
+                  0,
+                  1,
+                  2
+                ]
+              },
+              "inputValues": {
+                "op": [
+                  0,
+                  1,
+                  2,
+                  3,
+                  4,
+                  5,
+                  6
+                ],
+                "i": [
+                  0,
+                  1,
+                  2
+                ],
+                "j": [
+                  0,
+                  1,
+                  2
+                ],
+                "hx": [
+                  0,
+                  1,
+                  2,
+                  3
+                ],
+                "hy": [
+                  0,
+                  1,
+                  2,
+                  3
+                ]
+              },
+              "inputCells": {
+                "S": [
+                  0,
+                  1,
+                  2
+                ],
+                "Q2": [
+                  0,
+                  1,
+                  2
+                ]
+              },
+              "binderValues": [
+                0,
+                1,
+                2
+              ],
+              "postTargetPruning": true,
+              "postTargetIntervals": false,
+              "seedNeighborhood": true,
+              "seedUniformMaps": true
+            },
+            "completed": true,
+            "exhausted": false,
+            "timedOut": false,
+            "unsupported": [],
+            "nodes": 133280,
+            "states": 1850,
+            "steps": 1,
+            "scenarios": 7,
+            "candidates": 1,
+            "postStatePrunes": 0,
+            "postRequestPrunes": 9568,
+            "postIntervalFallbacks": 0,
+            "seedModels": 0,
+            "seedCandidates": 0,
+            "seedCoupledModels": 0,
+            "seedCoupledCandidates": 0,
+            "ms": 860.0466
+          }
+        }
+      ],
+      "finishes": [
+        {
+          "stage": 0,
+          "timedOut": true,
+          "ms": 957.41494,
+          "dropped": 2
+        },
+        {
+          "stage": 1,
+          "timedOut": false,
+          "ms": 942.4799219999999,
+          "dropped": 0
+        }
+      ],
+      "timedOut": true,
+      "wall": 1900.174419,
+      "removed": 2,
+      "survivors": 32,
+      "certified": [
+        "inX: stored guard reconfigs/inS",
+        "inX: stored guard reconfigs/inS or disabled/1"
+      ],
+      "historical": [
+        "CT at most 44",
+        "CfgT at most 44",
+        "every x with x < size: never Config[x] is 0 and 1 <= St[x]",
+        "fields: CT[a]=CT[b] and CV[a]=CV[b] -> Config rows agree",
+        "fields: St[a]=1 -> CT[a]=CT[b] -> CV[b]<=CV[a]",
+        "CV at most 2"
+      ],
+      "namedSevenNew": [
+        "inX: stored guard reconfigs/inS",
+        "inX: stored guard reconfigs/inS or disabled/1"
+      ],
+      "namedSevenIncludingHistorical": [
+        "CV at most 2",
+        "inX: stored guard reconfigs/inS",
+        "inX: stored guard reconfigs/inS or disabled/1"
+      ],
+      "remaining": [
+        "St at most 1",
+        "fields: St[a]=1 -> CT[a]=CfgT[a]",
+        "fields: St[a]=1 -> CT[a]<=CfgT[a]",
+        "fields: St[a]=1 -> CT[a]=CT[b] -> CfgT[b]<=CfgT[a]",
+        "fields: St[a]=1 -> CfgT[a]<=CT[a]",
+        "fields: St[a]=1 -> CfgT[a]=CfgT[b] -> CV[b]<=CV[a]",
+        "every x with x < size: never CT[x] is 0 and 1 <= St[x]",
+        "every x with x < size: never 1 <= CT[x] and CV[x] is 0",
+        "every x with x < size: never 1 <= CT[x] and started is 0",
+        "every x with x < size: never 1 <= St[x] and CV[x] is 0",
+        "every x with x < size: never 1 <= St[x] and CfgT[x] is 0",
+        "every x with x < size: never 1 <= St[x] and started is 0",
+        "every x with x < size: never CV[x] is 0 and 1 <= CfgT[x]",
+        "every x with x < size: never CV[x] is 0 and 1 <= started",
+        "every x with x < size: never 1 <= CfgT[x] and started is 0",
+        "every x, y with x < size ∧ y < size ∧ ¬(x = y): never 1 <= CT[x] and CV[y] is 0",
+        "every x, y with x < size ∧ y < size ∧ ¬(x = y): never 1 <= St[x] and CV[y] is 0",
+        "every x, y with x < size ∧ y < size ∧ ¬(x = y): never CV[x] is 0 and 1 <= CfgT[y]",
+        "inX: no quorum canVote/1",
+        "inX: no quorum canVote/3",
+        "inX: stored guard reconfigs/inS or disabled/0",
+        "inX: stored guard reconfigs/inS or disabled/2",
+        "inX: stored guard reconfigs/inS or disabled/3",
+        "fields: CV[a]=CV[b] and CfgT[a]=CfgT[b] -> Config rows agree",
+        "count cubes: every x with x < {\"op\":\"var\",\"name\":\"size\"}: never 1 <= started and inX$row[x] is 0",
+        "count cubes: every x with x < {\"op\":\"var\",\"name\":\"size\"}: never 1 <= CT[x] and inX$row[x] is 0",
+        "count cubes: every x with x < {\"op\":\"var\",\"name\":\"size\"}: never CV[x] is 0 and 1 <= inX$row[x]",
+        "count cubes: every x with x < {\"op\":\"var\",\"name\":\"size\"}: never 1 <= CV[x] and inX$row[x] is 0",
+        "count cubes: every x with x < {\"op\":\"var\",\"name\":\"size\"}: never 1 <= CfgT[x] and inX$row[x] is 0",
+        "count cubes: every x with x < {\"op\":\"var\",\"name\":\"size\"}: never 1 <= St[x] and inX$row[x] is 0"
+      ],
+      "meetsNewFiveAndWall": false
+    },
+    {
+      "job": "survivors-hybrid-3",
+      "exit": 0,
+      "hardware": {
+        "vm": "bx_2kmf8w3s",
+        "type": "large",
+        "cpu": "AMD EPYC 4585PX 16-Core Processor",
+        "vcpus": 2,
+        "vm_vcpus": 8,
+        "exclusive": true,
+        "co_tenants": 0
+      },
+      "mode": "survivors",
+      "postTargetPruning": true,
+      "postTargetIntervals": false,
+      "counterexampleNeighbors": true,
+      "seedUniformMaps": true,
+      "initial": 34,
+      "drops": [
+        {
+          "stage": 0,
+          "round": 0,
+          "ms": 211.165869,
+          "law": "inX: stored guard reconfigs/inS"
+        },
+        {
+          "stage": 0,
+          "round": 0,
+          "ms": 211.77995999999996,
+          "law": "inX: stored guard reconfigs/inS or disabled/1"
+        }
+      ],
+      "rounds": [
+        {
+          "stage": 0,
+          "round": 0,
+          "stats": {
+            "scope": {
+              "params": {
+                "size": 3
+              },
+              "scalarValues": [
+                0,
+                1
+              ],
+              "cellValues": [
+                0,
+                1
+              ],
+              "cells": {
+                "Config": [
+                  0,
+                  1,
+                  2,
+                  64,
+                  65,
+                  66,
+                  128,
+                  129,
+                  130
+                ],
+                "CT": [
+                  0,
+                  1,
+                  2
+                ],
+                "St": [
+                  0,
+                  1,
+                  2
+                ],
+                "CV": [
+                  0,
+                  1,
+                  2
+                ],
+                "CfgT": [
+                  0,
+                  1,
+                  2
+                ]
+              },
+              "inputValues": {
+                "op": [
+                  0,
+                  1,
+                  2,
+                  3,
+                  4,
+                  5,
+                  6
+                ],
+                "i": [
+                  0,
+                  1,
+                  2
+                ],
+                "j": [
+                  0,
+                  1,
+                  2
+                ],
+                "hx": [
+                  0,
+                  1,
+                  2,
+                  3
+                ],
+                "hy": [
+                  0,
+                  1,
+                  2,
+                  3
+                ]
+              },
+              "inputCells": {
+                "S": [
+                  0,
+                  1,
+                  2
+                ],
+                "Q2": [
+                  0,
+                  1,
+                  2
+                ]
+              },
+              "binderValues": [
+                0,
+                1,
+                2
+              ],
+              "postTargetPruning": true,
+              "postTargetIntervals": false,
+              "seedNeighborhood": true,
+              "seedUniformMaps": true
+            },
+            "completed": true,
+            "exhausted": false,
+            "timedOut": false,
+            "unsupported": [],
+            "nodes": 133280,
+            "states": 1850,
+            "steps": 1,
+            "scenarios": 7,
+            "candidates": 1,
+            "postStatePrunes": 0,
+            "postRequestPrunes": 9568,
+            "postIntervalFallbacks": 0,
+            "seedModels": 0,
+            "seedCandidates": 0,
+            "seedCoupledModels": 0,
+            "seedCoupledCandidates": 0,
+            "ms": 839.5062760000001
+          }
+        }
+      ],
+      "finishes": [
+        {
+          "stage": 0,
+          "timedOut": true,
+          "ms": 950.270409,
+          "dropped": 2
+        },
+        {
+          "stage": 1,
+          "timedOut": false,
+          "ms": 962.1328599999999,
+          "dropped": 0
+        }
+      ],
+      "timedOut": true,
+      "wall": 1912.7131419999998,
+      "removed": 2,
+      "survivors": 32,
+      "certified": [
+        "inX: stored guard reconfigs/inS",
+        "inX: stored guard reconfigs/inS or disabled/1"
+      ],
+      "historical": [
+        "CT at most 44",
+        "CfgT at most 44",
+        "every x with x < size: never Config[x] is 0 and 1 <= St[x]",
+        "fields: CT[a]=CT[b] and CV[a]=CV[b] -> Config rows agree",
+        "fields: St[a]=1 -> CT[a]=CT[b] -> CV[b]<=CV[a]",
+        "CV at most 2"
+      ],
+      "namedSevenNew": [
+        "inX: stored guard reconfigs/inS",
+        "inX: stored guard reconfigs/inS or disabled/1"
+      ],
+      "namedSevenIncludingHistorical": [
+        "CV at most 2",
+        "inX: stored guard reconfigs/inS",
+        "inX: stored guard reconfigs/inS or disabled/1"
+      ],
+      "remaining": [
+        "St at most 1",
+        "fields: St[a]=1 -> CT[a]=CfgT[a]",
+        "fields: St[a]=1 -> CT[a]<=CfgT[a]",
+        "fields: St[a]=1 -> CT[a]=CT[b] -> CfgT[b]<=CfgT[a]",
+        "fields: St[a]=1 -> CfgT[a]<=CT[a]",
+        "fields: St[a]=1 -> CfgT[a]=CfgT[b] -> CV[b]<=CV[a]",
+        "every x with x < size: never CT[x] is 0 and 1 <= St[x]",
+        "every x with x < size: never 1 <= CT[x] and CV[x] is 0",
+        "every x with x < size: never 1 <= CT[x] and started is 0",
+        "every x with x < size: never 1 <= St[x] and CV[x] is 0",
+        "every x with x < size: never 1 <= St[x] and CfgT[x] is 0",
+        "every x with x < size: never 1 <= St[x] and started is 0",
+        "every x with x < size: never CV[x] is 0 and 1 <= CfgT[x]",
+        "every x with x < size: never CV[x] is 0 and 1 <= started",
+        "every x with x < size: never 1 <= CfgT[x] and started is 0",
+        "every x, y with x < size ∧ y < size ∧ ¬(x = y): never 1 <= CT[x] and CV[y] is 0",
+        "every x, y with x < size ∧ y < size ∧ ¬(x = y): never 1 <= St[x] and CV[y] is 0",
+        "every x, y with x < size ∧ y < size ∧ ¬(x = y): never CV[x] is 0 and 1 <= CfgT[y]",
+        "inX: no quorum canVote/1",
+        "inX: no quorum canVote/3",
+        "inX: stored guard reconfigs/inS or disabled/0",
+        "inX: stored guard reconfigs/inS or disabled/2",
+        "inX: stored guard reconfigs/inS or disabled/3",
+        "fields: CV[a]=CV[b] and CfgT[a]=CfgT[b] -> Config rows agree",
+        "count cubes: every x with x < {\"op\":\"var\",\"name\":\"size\"}: never 1 <= started and inX$row[x] is 0",
+        "count cubes: every x with x < {\"op\":\"var\",\"name\":\"size\"}: never 1 <= CT[x] and inX$row[x] is 0",
+        "count cubes: every x with x < {\"op\":\"var\",\"name\":\"size\"}: never CV[x] is 0 and 1 <= inX$row[x]",
+        "count cubes: every x with x < {\"op\":\"var\",\"name\":\"size\"}: never 1 <= CV[x] and inX$row[x] is 0",
+        "count cubes: every x with x < {\"op\":\"var\",\"name\":\"size\"}: never 1 <= CfgT[x] and inX$row[x] is 0",
+        "count cubes: every x with x < {\"op\":\"var\",\"name\":\"size\"}: never 1 <= St[x] and inX$row[x] is 0"
+      ],
+      "meetsNewFiveAndWall": false
+    }
+  ],
+  "originalThreeMeetNewFive": false,
+  "allSixExitsZero": true,
+  "allSixWallsWithinAllowance": true,
+  "replaySourceSha256": {
+    "research/protocols/ic3syn/mldr.ts": "7f0216955fc485bf02180f7e45b8347daa01d551cc31f7fd03dd62da3fe00a52",
+    "core/machine.ts": "d10955a2625947ee0e0306dcde8f70e59d220551cab08f7a962416cf1573a93c",
+    "core/finite-houdini.ts": "7e7387e4b4fe5132a7cc584d44a4541889bd78a93779e585ef88f09436ffe6b0"
+  },
+  "trust": "Independent interpreter/full-round-family replay only; no proof, completeness, or final-gate claim."
+}

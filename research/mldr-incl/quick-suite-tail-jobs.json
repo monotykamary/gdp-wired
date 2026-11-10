@@ -1,0 +1,9 @@
+[
+  {
+    "name": "quick-suite-tail-score",
+    "cmd": "set -e; bash lane-e-preflight/apply.sh; bash lane-e-demand/apply.sh; bash lane-e-flags/apply.sh; bash research/track-m/prepare-vendors.sh; bun install --frozen-lockfile >/dev/null; bun run check; bun test research/security/score.test.ts",
+    "cpu": 8,
+    "memory": 14336,
+    "timeout": 600
+  }
+]

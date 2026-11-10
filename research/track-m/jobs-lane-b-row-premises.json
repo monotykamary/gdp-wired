@@ -1,0 +1,11 @@
+[
+ {"name":"prior-summary","cmd":"bun research/track-m/summarize-lane-b-demand.ts prior 09d3d172 47215336 && bash research/track-m/pack-section18-archive.sh prior","cpu":2,"memory":4096,"timeout":60},
+ {"name":"check-base","cmd":"bash research/track-m/prepare-vendors.sh && bun install --frozen-lockfile >/dev/null && bun run check && bun test core/count-recovery/row-premises.test.ts core/count-focused.test.ts core/count-ranges.test.ts core/count-completion.test.ts && bunx commitlint --default-config < replays/commit-message.txt","cpu":8,"memory":14336,"timeout":300},
+ {"name":"check-candidate","cmd":"bash research/track-m/prepare-vendors.sh && bun install --frozen-lockfile >/dev/null && LAB_DISPOSABLE=1 bun research/track-m/row-premises-variant.ts && bun run check && bun test core/count-recovery/row-premises.test.ts core/count-focused.test.ts core/count-ranges.test.ts core/count-completion.test.ts","cpu":8,"memory":14336,"timeout":300},
+ {"name":"p1-ab","cmd":"LANE_B_VARIANT=row-premises bash research/track-m/lane-b-members-pair.sh p1 before","cpu":8,"memory":14336,"timeout":180},
+ {"name":"p1-ba","cmd":"LANE_B_VARIANT=row-premises bash research/track-m/lane-b-members-pair.sh p1 after","cpu":8,"memory":14336,"timeout":180},
+ {"name":"rows-ab","cmd":"LANE_B_VARIANT=row-premises bash research/track-m/lane-b-members-pair.sh rows before","cpu":8,"memory":14336,"timeout":180},
+ {"name":"rows-ba","cmd":"LANE_B_VARIANT=row-premises bash research/track-m/lane-b-members-pair.sh rows after","cpu":8,"memory":14336,"timeout":180},
+ {"name":"star-ab","cmd":"LANE_B_VARIANT=row-premises bash research/track-m/lane-b-members-pair.sh star before","cpu":8,"memory":14336,"timeout":180},
+ {"name":"star-ba","cmd":"LANE_B_VARIANT=row-premises bash research/track-m/lane-b-members-pair.sh star after","cpu":8,"memory":14336,"timeout":180}
+]

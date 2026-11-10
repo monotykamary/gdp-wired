@@ -1,0 +1,3 @@
+[
+ {"name":"capture-original-34","cpu":2,"memory":8192,"timeout":150,"cmd":"set -euo pipefail; bash research/lane-i/validate.sh setup; cp core/counts.ts /tmp/upper-counts-before.ts; sha256sum core/counts.ts kernel/kernel.ts kernel/prove.ts research/protocols/ic3syn/run.ts; LAB_DISPOSABLE=1 bun research/track-m/install-lane-b-original-family.ts; set +e; UPPER_SOURCE_SHA=15eff72f04f74351b622b02d08e47bfb9dfdb131 timeout -s KILL 90 bun --preload ./research/lane-i/upper-bound/capture.ts research/protocols/ic3syn/run.ts --ms 60000 --only mldr --skip broken; status=$?; set -e; cp /tmp/upper-counts-before.ts core/counts.ts; test -s upper-capture/family.json; echo CAPTURE_EXIT=$status; sha256sum core/counts.ts; grep -m1 'model name' /proc/cpuinfo"}
+]

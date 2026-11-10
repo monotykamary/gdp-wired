@@ -1,0 +1,50 @@
+[
+  {
+    "name": "next-v2-check",
+    "cmd": "set -euo pipefail; cp -a frozen-next/. .; bun regression-driver/next-gate-worker.ts check",
+    "cpu": 4,
+    "memory": 14336,
+    "timeout": 480,
+    "vm_type": "large"
+  },
+  {
+    "name": "next-v2-targeted",
+    "cmd": "set -euo pipefail; cp -a frozen-next/. .; bun regression-driver/next-gate-worker.ts tests",
+    "cpu": 4,
+    "memory": 14336,
+    "timeout": 720,
+    "vm_type": "large"
+  },
+  {
+    "name": "effect-isolated-pair-1",
+    "cmd": "set -euo pipefail; cp -a frozen-next/. .; bun regression-driver/next-gate-worker.ts effect 1 isolated",
+    "cpu": 4,
+    "memory": 14336,
+    "timeout": 2100,
+    "vm_type": "large"
+  },
+  {
+    "name": "effect-isolated-pair-2",
+    "cmd": "set -euo pipefail; cp -a frozen-next/. .; bun regression-driver/next-gate-worker.ts effect 2 isolated",
+    "cpu": 4,
+    "memory": 14336,
+    "timeout": 2100,
+    "vm_type": "large"
+  },
+  {
+    "name": "effect-isolated-pair-3",
+    "cmd": "set -euo pipefail; cp -a frozen-next/. .; bun regression-driver/next-gate-worker.ts effect 3 isolated",
+    "cpu": 4,
+    "memory": 14336,
+    "timeout": 2100,
+    "vm_type": "large"
+  },
+  {
+    "name": "effect-full-pair-1",
+    "cmd": "set -euo pipefail; cp -a frozen-next/. .; bun regression-driver/next-gate-worker.ts effect 1 full",
+    "cpu": 4,
+    "memory": 14336,
+    "timeout": 2400,
+    "vm_type": "large"
+  }
+]

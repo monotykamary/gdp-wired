@@ -1,0 +1,4 @@
+[
+ {"name":"type-tests","cmd":"set -e; bash research/track-m/prepare-vendors.sh; bun install --frozen-lockfile >/dev/null; bun run check; bun test core/count-recovery/member-premises.test.ts core/count-recovery/member-inclusions.test.ts core/count-witness-flags.test.ts core/count-focused.test.ts","cpu":8,"memory":14336,"timeout":180},
+ {"name":"early-6000","cmd":"set -e; bash research/track-m/prepare-vendors.sh; bun install --frozen-lockfile >/dev/null; bun research/mldr-incl/early-completion.ts; MLDR_INCL_VARIANT=early-completion-v3 MLDR_INCL_FAMILY=generated timeout -s KILL 45 bun --preload ./research/mldr-incl/premise-trace.ts research/mldr-incl/conditional-safety.ts family-input/family-first.json 6000 no","cpu":8,"memory":14336,"timeout":90}
+]

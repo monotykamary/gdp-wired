@@ -1,0 +1,2169 @@
+{
+  "input": {
+    "path": "runs/t16-frontier-capture/0.json",
+    "sha256": "96ba906a86c7f54db1371cea2c55c0bbcc79fd9e8ebe368b770f6495a9ee4496",
+    "callerNames": [
+      "every Config cell is a value of its kind",
+      "one primary per term"
+    ],
+    "candidateNames": [
+      "CT at most 44",
+      "St at most 1",
+      "CV at most 2",
+      "CfgT at most 44",
+      "fields: St[a]=1 -> CT[a]=CT[b] -> CV[b]<=CV[a]",
+      "fields: St[a]=1 -> CT[a]=CfgT[a]",
+      "fields: St[a]=1 -> CT[a]<=CfgT[a]",
+      "fields: St[a]=1 -> CT[a]=CT[b] -> CfgT[b]<=CfgT[a]",
+      "fields: St[a]=1 -> CfgT[a]<=CT[a]",
+      "fields: St[a]=1 -> CfgT[a]=CfgT[b] -> CV[b]<=CV[a]",
+      "every x with x < size: never Config[x] is 0 and 1 <= St[x]",
+      "every x with x < size: never CT[x] is 0 and 1 <= St[x]",
+      "every x with x < size: never 1 <= CT[x] and CV[x] is 0",
+      "every x with x < size: never 1 <= CT[x] and started is 0",
+      "every x with x < size: never 1 <= St[x] and CV[x] is 0",
+      "every x with x < size: never 1 <= St[x] and CfgT[x] is 0",
+      "every x with x < size: never 1 <= St[x] and started is 0",
+      "every x with x < size: never CV[x] is 0 and 1 <= CfgT[x]",
+      "every x with x < size: never CV[x] is 0 and 1 <= started",
+      "every x with x < size: never 1 <= CfgT[x] and started is 0",
+      "every x, y with x < size ∧ y < size ∧ ¬(x = y): never 1 <= CT[x] and CV[y] is 0",
+      "every x, y with x < size ∧ y < size ∧ ¬(x = y): never 1 <= St[x] and CV[y] is 0",
+      "every x, y with x < size ∧ y < size ∧ ¬(x = y): never CV[x] is 0 and 1 <= CfgT[y]",
+      "inX: no quorum canVote/1",
+      "inX: no quorum canVote/3",
+      "inX: stored guard reconfigs/inS",
+      "inX: stored guard reconfigs/inS or disabled/0",
+      "inX: stored guard reconfigs/inS or disabled/1",
+      "inX: stored guard reconfigs/inS or disabled/2",
+      "inX: stored guard reconfigs/inS or disabled/3",
+      "fields: CT[a]=CT[b] and CV[a]=CV[b] -> Config rows agree",
+      "fields: CV[a]=CV[b] and CfgT[a]=CfgT[b] -> Config rows agree",
+      "count cubes: every x with x < {\"op\":\"var\",\"name\":\"size\"}: never 1 <= started and inX$row[x] is 0",
+      "count cubes: every x with x < {\"op\":\"var\",\"name\":\"size\"}: never 1 <= CT[x] and inX$row[x] is 0",
+      "count cubes: every x with x < {\"op\":\"var\",\"name\":\"size\"}: never CV[x] is 0 and 1 <= inX$row[x]",
+      "count cubes: every x with x < {\"op\":\"var\",\"name\":\"size\"}: never 1 <= CV[x] and inX$row[x] is 0",
+      "count cubes: every x with x < {\"op\":\"var\",\"name\":\"size\"}: never 1 <= CfgT[x] and inX$row[x] is 0",
+      "count cubes: every x with x < {\"op\":\"var\",\"name\":\"size\"}: never 1 <= St[x] and inX$row[x] is 0"
+    ]
+  },
+  "batch": "20261109-144230-03co60",
+  "measuredTree": "f1a9b896a1a8",
+  "trust": "Untrusted finite screens; drops independently certified by Main finiteTinyHoudini pre/facts/full-family/source interpreter/post-law checks. Not proofs or semantic exhaustion.",
+  "validation": {
+    "batch": "20261109-145638-3wrrd7",
+    "log": "runs/t16-tiny-worker-final-check/tiny-unit-and-check.log",
+    "tests": 12,
+    "assertions": 40,
+    "typecheckAndLint": "pass"
+  },
+  "ownedSha256": {
+    "core/finite-tiny.ts": "6bfb2dc422ff9da4590f1c40395d6b2fe6ac4da39a8c82030ad397c5c8be8b3f",
+    "core/finite-tiny.test.ts": "5c5e8b10513baff3f886aa910118c36815c675bb2a314ab06777687048ca8595",
+    "research/track-gen/t16-tiny-wrapper-bench.ts": "4e17cb49b8db20f6b83a039bf4edf809db7658c1113854ce6699b719ef5c3b92"
+  },
+  "runs": [
+    {
+      "job": "tiny-original40-1",
+      "exitCode": 0,
+      "hardware": {
+        "vm": "bx_2hzfj2ah",
+        "type": "large",
+        "cpu": "AMD EPYC 4585PX 16-Core Processor",
+        "vcpus": 2,
+        "vm_vcpus": 8,
+        "exclusive": true,
+        "co_tenants": 0
+      },
+      "mode": "original",
+      "initial": 40,
+      "historical": [],
+      "drops": [
+        {
+          "round": 0,
+          "ms": 118.523944,
+          "law": "fields: CT[a]=CT[b] and CV[a]=CV[b] -> Config rows agree"
+        },
+        {
+          "round": 0,
+          "ms": 122.156373,
+          "law": "inX: stored guard reconfigs/inS"
+        },
+        {
+          "round": 0,
+          "ms": 122.356438,
+          "law": "inX: stored guard reconfigs/inS or disabled/1"
+        },
+        {
+          "round": 0,
+          "ms": 181.858454,
+          "law": "every x with x < size: never Config[x] is 0 and 1 <= St[x]"
+        },
+        {
+          "round": 1,
+          "ms": 508.55323400000003,
+          "law": "inX: no quorum canVote/1"
+        }
+      ],
+      "rounds": [
+        {
+          "round": 0,
+          "stats": {
+            "scope": {
+              "params": {
+                "size": 3
+              },
+              "scalarValues": [
+                0,
+                1
+              ],
+              "cells": {
+                "Config": [
+                  0,
+                  1,
+                  2,
+                  64,
+                  65,
+                  66,
+                  128,
+                  129,
+                  130
+                ],
+                "CT": [
+                  0,
+                  1,
+                  2
+                ],
+                "St": [
+                  0,
+                  1,
+                  2
+                ],
+                "CV": [
+                  0,
+                  1,
+                  2
+                ],
+                "CfgT": [
+                  0,
+                  1,
+                  2
+                ]
+              },
+              "inputValues": {
+                "op": [
+                  0,
+                  1,
+                  2,
+                  3,
+                  4,
+                  5,
+                  6
+                ],
+                "i": [
+                  0,
+                  1,
+                  2
+                ],
+                "j": [
+                  0,
+                  1,
+                  2
+                ],
+                "hx": [
+                  0,
+                  1,
+                  2,
+                  3
+                ],
+                "hy": [
+                  0,
+                  1,
+                  2,
+                  3
+                ]
+              },
+              "inputCells": {
+                "S": [
+                  0,
+                  1,
+                  2
+                ],
+                "Q2": [
+                  0,
+                  1,
+                  2
+                ]
+              },
+              "binderValues": [
+                0,
+                1,
+                2
+              ]
+            },
+            "completed": true,
+            "exhausted": false,
+            "timedOut": false,
+            "unsupported": [],
+            "nodes": 56413,
+            "states": 782,
+            "steps": 4234,
+            "scenarios": 7,
+            "candidates": 3,
+            "ms": 252.45333399999998
+          }
+        },
+        {
+          "round": 1,
+          "stats": {
+            "scope": {
+              "params": {
+                "size": 3
+              },
+              "scalarValues": [
+                0,
+                1
+              ],
+              "cells": {
+                "Config": [
+                  0,
+                  1,
+                  2,
+                  64,
+                  65,
+                  66,
+                  128,
+                  129,
+                  130
+                ],
+                "CT": [
+                  0,
+                  1,
+                  2
+                ],
+                "St": [
+                  0,
+                  1,
+                  2
+                ],
+                "CV": [
+                  0,
+                  1,
+                  2
+                ],
+                "CfgT": [
+                  0,
+                  1,
+                  2
+                ]
+              },
+              "inputValues": {
+                "op": [
+                  0,
+                  1,
+                  2,
+                  3,
+                  4,
+                  5,
+                  6
+                ],
+                "i": [
+                  0,
+                  1,
+                  2
+                ],
+                "j": [
+                  0,
+                  1,
+                  2
+                ],
+                "hx": [
+                  0,
+                  1,
+                  2,
+                  3
+                ],
+                "hy": [
+                  0,
+                  1,
+                  2,
+                  3
+                ]
+              },
+              "inputCells": {
+                "S": [
+                  0,
+                  1,
+                  2
+                ],
+                "Q2": [
+                  0,
+                  1,
+                  2
+                ]
+              },
+              "binderValues": [
+                0,
+                1,
+                2
+              ]
+            },
+            "completed": true,
+            "exhausted": false,
+            "timedOut": false,
+            "unsupported": [],
+            "nodes": 161800,
+            "states": 2240,
+            "steps": 11531,
+            "scenarios": 7,
+            "candidates": 1,
+            "ms": 673.2421830000001
+          }
+        },
+        {
+          "round": 2,
+          "stats": {
+            "scope": {
+              "params": {
+                "size": 3
+              },
+              "scalarValues": [
+                0,
+                1
+              ],
+              "cells": {
+                "Config": [
+                  0,
+                  1,
+                  2,
+                  64,
+                  65,
+                  66,
+                  128,
+                  129,
+                  130
+                ],
+                "CT": [
+                  0,
+                  1,
+                  2
+                ],
+                "St": [
+                  0,
+                  1,
+                  2
+                ],
+                "CV": [
+                  0,
+                  1,
+                  2
+                ],
+                "CfgT": [
+                  0,
+                  1,
+                  2
+                ]
+              },
+              "inputValues": {
+                "op": [
+                  0,
+                  1,
+                  2,
+                  3,
+                  4,
+                  5,
+                  6
+                ],
+                "i": [
+                  0,
+                  1,
+                  2
+                ],
+                "j": [
+                  0,
+                  1,
+                  2
+                ],
+                "hx": [
+                  0,
+                  1,
+                  2,
+                  3
+                ],
+                "hy": [
+                  0,
+                  1,
+                  2,
+                  3
+                ]
+              },
+              "inputCells": {
+                "S": [
+                  0,
+                  1,
+                  2
+                ],
+                "Q2": [
+                  0,
+                  1,
+                  2
+                ]
+              },
+              "binderValues": [
+                0,
+                1,
+                2
+              ]
+            },
+            "completed": true,
+            "exhausted": true,
+            "timedOut": false,
+            "unsupported": [],
+            "nodes": 175778,
+            "states": 2522,
+            "steps": 12923,
+            "scenarios": 7,
+            "candidates": 0,
+            "ms": 786.265235
+          }
+        }
+      ],
+      "finish": {
+        "timedOut": false,
+        "ms": 1713.340999,
+        "dropped": 5
+      },
+      "survivors": 35,
+      "wall": 1713.434324,
+      "remainingCandidates": [
+        "CT at most 44",
+        "St at most 1",
+        "CV at most 2",
+        "CfgT at most 44",
+        "fields: St[a]=1 -> CT[a]=CT[b] -> CV[b]<=CV[a]",
+        "fields: St[a]=1 -> CT[a]=CfgT[a]",
+        "fields: St[a]=1 -> CT[a]<=CfgT[a]",
+        "fields: St[a]=1 -> CT[a]=CT[b] -> CfgT[b]<=CfgT[a]",
+        "fields: St[a]=1 -> CfgT[a]<=CT[a]",
+        "fields: St[a]=1 -> CfgT[a]=CfgT[b] -> CV[b]<=CV[a]",
+        "every x with x < size: never CT[x] is 0 and 1 <= St[x]",
+        "every x with x < size: never 1 <= CT[x] and CV[x] is 0",
+        "every x with x < size: never 1 <= CT[x] and started is 0",
+        "every x with x < size: never 1 <= St[x] and CV[x] is 0",
+        "every x with x < size: never 1 <= St[x] and CfgT[x] is 0",
+        "every x with x < size: never 1 <= St[x] and started is 0",
+        "every x with x < size: never CV[x] is 0 and 1 <= CfgT[x]",
+        "every x with x < size: never CV[x] is 0 and 1 <= started",
+        "every x with x < size: never 1 <= CfgT[x] and started is 0",
+        "every x, y with x < size ∧ y < size ∧ ¬(x = y): never 1 <= CT[x] and CV[y] is 0",
+        "every x, y with x < size ∧ y < size ∧ ¬(x = y): never 1 <= St[x] and CV[y] is 0",
+        "every x, y with x < size ∧ y < size ∧ ¬(x = y): never CV[x] is 0 and 1 <= CfgT[y]",
+        "inX: no quorum canVote/3",
+        "inX: stored guard reconfigs/inS or disabled/0",
+        "inX: stored guard reconfigs/inS or disabled/2",
+        "inX: stored guard reconfigs/inS or disabled/3",
+        "fields: CV[a]=CV[b] and CfgT[a]=CfgT[b] -> Config rows agree",
+        "count cubes: every x with x < {\"op\":\"var\",\"name\":\"size\"}: never 1 <= started and inX$row[x] is 0",
+        "count cubes: every x with x < {\"op\":\"var\",\"name\":\"size\"}: never 1 <= CT[x] and inX$row[x] is 0",
+        "count cubes: every x with x < {\"op\":\"var\",\"name\":\"size\"}: never CV[x] is 0 and 1 <= inX$row[x]",
+        "count cubes: every x with x < {\"op\":\"var\",\"name\":\"size\"}: never 1 <= CV[x] and inX$row[x] is 0",
+        "count cubes: every x with x < {\"op\":\"var\",\"name\":\"size\"}: never 1 <= CfgT[x] and inX$row[x] is 0",
+        "count cubes: every x with x < {\"op\":\"var\",\"name\":\"size\"}: never 1 <= St[x] and inX$row[x] is 0"
+      ]
+    },
+    {
+      "job": "tiny-original40-2",
+      "exitCode": 0,
+      "hardware": {
+        "vm": "bx_8y6xda5y",
+        "type": "large",
+        "cpu": "AMD EPYC 4585PX 16-Core Processor",
+        "vcpus": 2,
+        "vm_vcpus": 8,
+        "exclusive": true,
+        "co_tenants": 0
+      },
+      "mode": "original",
+      "initial": 40,
+      "historical": [],
+      "drops": [
+        {
+          "round": 0,
+          "ms": 111.481164,
+          "law": "fields: CT[a]=CT[b] and CV[a]=CV[b] -> Config rows agree"
+        },
+        {
+          "round": 0,
+          "ms": 116.338079,
+          "law": "inX: stored guard reconfigs/inS"
+        },
+        {
+          "round": 0,
+          "ms": 116.64404200000001,
+          "law": "inX: stored guard reconfigs/inS or disabled/1"
+        },
+        {
+          "round": 0,
+          "ms": 152.231806,
+          "law": "every x with x < size: never Config[x] is 0 and 1 <= St[x]"
+        },
+        {
+          "round": 1,
+          "ms": 511.82745900000003,
+          "law": "inX: no quorum canVote/1"
+        }
+      ],
+      "rounds": [
+        {
+          "round": 0,
+          "stats": {
+            "scope": {
+              "params": {
+                "size": 3
+              },
+              "scalarValues": [
+                0,
+                1
+              ],
+              "cells": {
+                "Config": [
+                  0,
+                  1,
+                  2,
+                  64,
+                  65,
+                  66,
+                  128,
+                  129,
+                  130
+                ],
+                "CT": [
+                  0,
+                  1,
+                  2
+                ],
+                "St": [
+                  0,
+                  1,
+                  2
+                ],
+                "CV": [
+                  0,
+                  1,
+                  2
+                ],
+                "CfgT": [
+                  0,
+                  1,
+                  2
+                ]
+              },
+              "inputValues": {
+                "op": [
+                  0,
+                  1,
+                  2,
+                  3,
+                  4,
+                  5,
+                  6
+                ],
+                "i": [
+                  0,
+                  1,
+                  2
+                ],
+                "j": [
+                  0,
+                  1,
+                  2
+                ],
+                "hx": [
+                  0,
+                  1,
+                  2,
+                  3
+                ],
+                "hy": [
+                  0,
+                  1,
+                  2,
+                  3
+                ]
+              },
+              "inputCells": {
+                "S": [
+                  0,
+                  1,
+                  2
+                ],
+                "Q2": [
+                  0,
+                  1,
+                  2
+                ]
+              },
+              "binderValues": [
+                0,
+                1,
+                2
+              ]
+            },
+            "completed": true,
+            "exhausted": false,
+            "timedOut": false,
+            "unsupported": [],
+            "nodes": 56413,
+            "states": 782,
+            "steps": 4234,
+            "scenarios": 7,
+            "candidates": 3,
+            "ms": 215.478252
+          }
+        },
+        {
+          "round": 1,
+          "stats": {
+            "scope": {
+              "params": {
+                "size": 3
+              },
+              "scalarValues": [
+                0,
+                1
+              ],
+              "cells": {
+                "Config": [
+                  0,
+                  1,
+                  2,
+                  64,
+                  65,
+                  66,
+                  128,
+                  129,
+                  130
+                ],
+                "CT": [
+                  0,
+                  1,
+                  2
+                ],
+                "St": [
+                  0,
+                  1,
+                  2
+                ],
+                "CV": [
+                  0,
+                  1,
+                  2
+                ],
+                "CfgT": [
+                  0,
+                  1,
+                  2
+                ]
+              },
+              "inputValues": {
+                "op": [
+                  0,
+                  1,
+                  2,
+                  3,
+                  4,
+                  5,
+                  6
+                ],
+                "i": [
+                  0,
+                  1,
+                  2
+                ],
+                "j": [
+                  0,
+                  1,
+                  2
+                ],
+                "hx": [
+                  0,
+                  1,
+                  2,
+                  3
+                ],
+                "hy": [
+                  0,
+                  1,
+                  2,
+                  3
+                ]
+              },
+              "inputCells": {
+                "S": [
+                  0,
+                  1,
+                  2
+                ],
+                "Q2": [
+                  0,
+                  1,
+                  2
+                ]
+              },
+              "binderValues": [
+                0,
+                1,
+                2
+              ]
+            },
+            "completed": true,
+            "exhausted": false,
+            "timedOut": false,
+            "unsupported": [],
+            "nodes": 161800,
+            "states": 2240,
+            "steps": 11531,
+            "scenarios": 7,
+            "candidates": 1,
+            "ms": 599.975459
+          }
+        },
+        {
+          "round": 2,
+          "stats": {
+            "scope": {
+              "params": {
+                "size": 3
+              },
+              "scalarValues": [
+                0,
+                1
+              ],
+              "cells": {
+                "Config": [
+                  0,
+                  1,
+                  2,
+                  64,
+                  65,
+                  66,
+                  128,
+                  129,
+                  130
+                ],
+                "CT": [
+                  0,
+                  1,
+                  2
+                ],
+                "St": [
+                  0,
+                  1,
+                  2
+                ],
+                "CV": [
+                  0,
+                  1,
+                  2
+                ],
+                "CfgT": [
+                  0,
+                  1,
+                  2
+                ]
+              },
+              "inputValues": {
+                "op": [
+                  0,
+                  1,
+                  2,
+                  3,
+                  4,
+                  5,
+                  6
+                ],
+                "i": [
+                  0,
+                  1,
+                  2
+                ],
+                "j": [
+                  0,
+                  1,
+                  2
+                ],
+                "hx": [
+                  0,
+                  1,
+                  2,
+                  3
+                ],
+                "hy": [
+                  0,
+                  1,
+                  2,
+                  3
+                ]
+              },
+              "inputCells": {
+                "S": [
+                  0,
+                  1,
+                  2
+                ],
+                "Q2": [
+                  0,
+                  1,
+                  2
+                ]
+              },
+              "binderValues": [
+                0,
+                1,
+                2
+              ]
+            },
+            "completed": true,
+            "exhausted": true,
+            "timedOut": false,
+            "unsupported": [],
+            "nodes": 175778,
+            "states": 2522,
+            "steps": 12923,
+            "scenarios": 7,
+            "candidates": 0,
+            "ms": 538.853621
+          }
+        }
+      ],
+      "finish": {
+        "timedOut": false,
+        "ms": 1355.643876,
+        "dropped": 5
+      },
+      "survivors": 35,
+      "wall": 1355.734426,
+      "remainingCandidates": [
+        "CT at most 44",
+        "St at most 1",
+        "CV at most 2",
+        "CfgT at most 44",
+        "fields: St[a]=1 -> CT[a]=CT[b] -> CV[b]<=CV[a]",
+        "fields: St[a]=1 -> CT[a]=CfgT[a]",
+        "fields: St[a]=1 -> CT[a]<=CfgT[a]",
+        "fields: St[a]=1 -> CT[a]=CT[b] -> CfgT[b]<=CfgT[a]",
+        "fields: St[a]=1 -> CfgT[a]<=CT[a]",
+        "fields: St[a]=1 -> CfgT[a]=CfgT[b] -> CV[b]<=CV[a]",
+        "every x with x < size: never CT[x] is 0 and 1 <= St[x]",
+        "every x with x < size: never 1 <= CT[x] and CV[x] is 0",
+        "every x with x < size: never 1 <= CT[x] and started is 0",
+        "every x with x < size: never 1 <= St[x] and CV[x] is 0",
+        "every x with x < size: never 1 <= St[x] and CfgT[x] is 0",
+        "every x with x < size: never 1 <= St[x] and started is 0",
+        "every x with x < size: never CV[x] is 0 and 1 <= CfgT[x]",
+        "every x with x < size: never CV[x] is 0 and 1 <= started",
+        "every x with x < size: never 1 <= CfgT[x] and started is 0",
+        "every x, y with x < size ∧ y < size ∧ ¬(x = y): never 1 <= CT[x] and CV[y] is 0",
+        "every x, y with x < size ∧ y < size ∧ ¬(x = y): never 1 <= St[x] and CV[y] is 0",
+        "every x, y with x < size ∧ y < size ∧ ¬(x = y): never CV[x] is 0 and 1 <= CfgT[y]",
+        "inX: no quorum canVote/3",
+        "inX: stored guard reconfigs/inS or disabled/0",
+        "inX: stored guard reconfigs/inS or disabled/2",
+        "inX: stored guard reconfigs/inS or disabled/3",
+        "fields: CV[a]=CV[b] and CfgT[a]=CfgT[b] -> Config rows agree",
+        "count cubes: every x with x < {\"op\":\"var\",\"name\":\"size\"}: never 1 <= started and inX$row[x] is 0",
+        "count cubes: every x with x < {\"op\":\"var\",\"name\":\"size\"}: never 1 <= CT[x] and inX$row[x] is 0",
+        "count cubes: every x with x < {\"op\":\"var\",\"name\":\"size\"}: never CV[x] is 0 and 1 <= inX$row[x]",
+        "count cubes: every x with x < {\"op\":\"var\",\"name\":\"size\"}: never 1 <= CV[x] and inX$row[x] is 0",
+        "count cubes: every x with x < {\"op\":\"var\",\"name\":\"size\"}: never 1 <= CfgT[x] and inX$row[x] is 0",
+        "count cubes: every x with x < {\"op\":\"var\",\"name\":\"size\"}: never 1 <= St[x] and inX$row[x] is 0"
+      ]
+    },
+    {
+      "job": "tiny-original40-3",
+      "exitCode": 0,
+      "hardware": {
+        "vm": "bx_3qn8b65a",
+        "type": "large",
+        "cpu": "AMD EPYC 4585PX 16-Core Processor",
+        "vcpus": 2,
+        "vm_vcpus": 8,
+        "exclusive": true,
+        "co_tenants": 0
+      },
+      "mode": "original",
+      "initial": 40,
+      "historical": [],
+      "drops": [
+        {
+          "round": 0,
+          "ms": 132.794865,
+          "law": "fields: CT[a]=CT[b] and CV[a]=CV[b] -> Config rows agree"
+        },
+        {
+          "round": 0,
+          "ms": 136.9521,
+          "law": "inX: stored guard reconfigs/inS"
+        },
+        {
+          "round": 0,
+          "ms": 137.245342,
+          "law": "inX: stored guard reconfigs/inS or disabled/1"
+        },
+        {
+          "round": 0,
+          "ms": 174.83920799999999,
+          "law": "every x with x < size: never Config[x] is 0 and 1 <= St[x]"
+        },
+        {
+          "round": 1,
+          "ms": 607.75986,
+          "law": "inX: no quorum canVote/1"
+        }
+      ],
+      "rounds": [
+        {
+          "round": 0,
+          "stats": {
+            "scope": {
+              "params": {
+                "size": 3
+              },
+              "scalarValues": [
+                0,
+                1
+              ],
+              "cells": {
+                "Config": [
+                  0,
+                  1,
+                  2,
+                  64,
+                  65,
+                  66,
+                  128,
+                  129,
+                  130
+                ],
+                "CT": [
+                  0,
+                  1,
+                  2
+                ],
+                "St": [
+                  0,
+                  1,
+                  2
+                ],
+                "CV": [
+                  0,
+                  1,
+                  2
+                ],
+                "CfgT": [
+                  0,
+                  1,
+                  2
+                ]
+              },
+              "inputValues": {
+                "op": [
+                  0,
+                  1,
+                  2,
+                  3,
+                  4,
+                  5,
+                  6
+                ],
+                "i": [
+                  0,
+                  1,
+                  2
+                ],
+                "j": [
+                  0,
+                  1,
+                  2
+                ],
+                "hx": [
+                  0,
+                  1,
+                  2,
+                  3
+                ],
+                "hy": [
+                  0,
+                  1,
+                  2,
+                  3
+                ]
+              },
+              "inputCells": {
+                "S": [
+                  0,
+                  1,
+                  2
+                ],
+                "Q2": [
+                  0,
+                  1,
+                  2
+                ]
+              },
+              "binderValues": [
+                0,
+                1,
+                2
+              ]
+            },
+            "completed": true,
+            "exhausted": false,
+            "timedOut": false,
+            "unsupported": [],
+            "nodes": 56413,
+            "states": 782,
+            "steps": 4234,
+            "scenarios": 7,
+            "candidates": 3,
+            "ms": 275.137093
+          }
+        },
+        {
+          "round": 1,
+          "stats": {
+            "scope": {
+              "params": {
+                "size": 3
+              },
+              "scalarValues": [
+                0,
+                1
+              ],
+              "cells": {
+                "Config": [
+                  0,
+                  1,
+                  2,
+                  64,
+                  65,
+                  66,
+                  128,
+                  129,
+                  130
+                ],
+                "CT": [
+                  0,
+                  1,
+                  2
+                ],
+                "St": [
+                  0,
+                  1,
+                  2
+                ],
+                "CV": [
+                  0,
+                  1,
+                  2
+                ],
+                "CfgT": [
+                  0,
+                  1,
+                  2
+                ]
+              },
+              "inputValues": {
+                "op": [
+                  0,
+                  1,
+                  2,
+                  3,
+                  4,
+                  5,
+                  6
+                ],
+                "i": [
+                  0,
+                  1,
+                  2
+                ],
+                "j": [
+                  0,
+                  1,
+                  2
+                ],
+                "hx": [
+                  0,
+                  1,
+                  2,
+                  3
+                ],
+                "hy": [
+                  0,
+                  1,
+                  2,
+                  3
+                ]
+              },
+              "inputCells": {
+                "S": [
+                  0,
+                  1,
+                  2
+                ],
+                "Q2": [
+                  0,
+                  1,
+                  2
+                ]
+              },
+              "binderValues": [
+                0,
+                1,
+                2
+              ]
+            },
+            "completed": true,
+            "exhausted": false,
+            "timedOut": false,
+            "unsupported": [],
+            "nodes": 161800,
+            "states": 2240,
+            "steps": 11531,
+            "scenarios": 7,
+            "candidates": 1,
+            "ms": 695.89823
+          }
+        },
+        {
+          "round": 2,
+          "stats": {
+            "scope": {
+              "params": {
+                "size": 3
+              },
+              "scalarValues": [
+                0,
+                1
+              ],
+              "cells": {
+                "Config": [
+                  0,
+                  1,
+                  2,
+                  64,
+                  65,
+                  66,
+                  128,
+                  129,
+                  130
+                ],
+                "CT": [
+                  0,
+                  1,
+                  2
+                ],
+                "St": [
+                  0,
+                  1,
+                  2
+                ],
+                "CV": [
+                  0,
+                  1,
+                  2
+                ],
+                "CfgT": [
+                  0,
+                  1,
+                  2
+                ]
+              },
+              "inputValues": {
+                "op": [
+                  0,
+                  1,
+                  2,
+                  3,
+                  4,
+                  5,
+                  6
+                ],
+                "i": [
+                  0,
+                  1,
+                  2
+                ],
+                "j": [
+                  0,
+                  1,
+                  2
+                ],
+                "hx": [
+                  0,
+                  1,
+                  2,
+                  3
+                ],
+                "hy": [
+                  0,
+                  1,
+                  2,
+                  3
+                ]
+              },
+              "inputCells": {
+                "S": [
+                  0,
+                  1,
+                  2
+                ],
+                "Q2": [
+                  0,
+                  1,
+                  2
+                ]
+              },
+              "binderValues": [
+                0,
+                1,
+                2
+              ]
+            },
+            "completed": true,
+            "exhausted": true,
+            "timedOut": false,
+            "unsupported": [],
+            "nodes": 175778,
+            "states": 2522,
+            "steps": 12923,
+            "scenarios": 7,
+            "candidates": 0,
+            "ms": 828.966344
+          }
+        }
+      ],
+      "finish": {
+        "timedOut": false,
+        "ms": 1801.4323669999999,
+        "dropped": 5
+      },
+      "survivors": 35,
+      "wall": 1801.525432,
+      "remainingCandidates": [
+        "CT at most 44",
+        "St at most 1",
+        "CV at most 2",
+        "CfgT at most 44",
+        "fields: St[a]=1 -> CT[a]=CT[b] -> CV[b]<=CV[a]",
+        "fields: St[a]=1 -> CT[a]=CfgT[a]",
+        "fields: St[a]=1 -> CT[a]<=CfgT[a]",
+        "fields: St[a]=1 -> CT[a]=CT[b] -> CfgT[b]<=CfgT[a]",
+        "fields: St[a]=1 -> CfgT[a]<=CT[a]",
+        "fields: St[a]=1 -> CfgT[a]=CfgT[b] -> CV[b]<=CV[a]",
+        "every x with x < size: never CT[x] is 0 and 1 <= St[x]",
+        "every x with x < size: never 1 <= CT[x] and CV[x] is 0",
+        "every x with x < size: never 1 <= CT[x] and started is 0",
+        "every x with x < size: never 1 <= St[x] and CV[x] is 0",
+        "every x with x < size: never 1 <= St[x] and CfgT[x] is 0",
+        "every x with x < size: never 1 <= St[x] and started is 0",
+        "every x with x < size: never CV[x] is 0 and 1 <= CfgT[x]",
+        "every x with x < size: never CV[x] is 0 and 1 <= started",
+        "every x with x < size: never 1 <= CfgT[x] and started is 0",
+        "every x, y with x < size ∧ y < size ∧ ¬(x = y): never 1 <= CT[x] and CV[y] is 0",
+        "every x, y with x < size ∧ y < size ∧ ¬(x = y): never 1 <= St[x] and CV[y] is 0",
+        "every x, y with x < size ∧ y < size ∧ ¬(x = y): never CV[x] is 0 and 1 <= CfgT[y]",
+        "inX: no quorum canVote/3",
+        "inX: stored guard reconfigs/inS or disabled/0",
+        "inX: stored guard reconfigs/inS or disabled/2",
+        "inX: stored guard reconfigs/inS or disabled/3",
+        "fields: CV[a]=CV[b] and CfgT[a]=CfgT[b] -> Config rows agree",
+        "count cubes: every x with x < {\"op\":\"var\",\"name\":\"size\"}: never 1 <= started and inX$row[x] is 0",
+        "count cubes: every x with x < {\"op\":\"var\",\"name\":\"size\"}: never 1 <= CT[x] and inX$row[x] is 0",
+        "count cubes: every x with x < {\"op\":\"var\",\"name\":\"size\"}: never CV[x] is 0 and 1 <= inX$row[x]",
+        "count cubes: every x with x < {\"op\":\"var\",\"name\":\"size\"}: never 1 <= CV[x] and inX$row[x] is 0",
+        "count cubes: every x with x < {\"op\":\"var\",\"name\":\"size\"}: never 1 <= CfgT[x] and inX$row[x] is 0",
+        "count cubes: every x with x < {\"op\":\"var\",\"name\":\"size\"}: never 1 <= St[x] and inX$row[x] is 0"
+      ]
+    },
+    {
+      "job": "tiny-survivors34-1",
+      "exitCode": 1,
+      "hardware": {
+        "vm": "bx_69nkhdf7",
+        "type": "large",
+        "cpu": "AMD Ryzen 9 9950X 16-Core Processor",
+        "vcpus": 2,
+        "vm_vcpus": 8,
+        "exclusive": true,
+        "co_tenants": 0
+      },
+      "mode": "survivors",
+      "initial": 34,
+      "historical": [
+        "CT at most 44",
+        "CfgT at most 44",
+        "every x with x < size: never Config[x] is 0 and 1 <= St[x]",
+        "fields: CT[a]=CT[b] and CV[a]=CV[b] -> Config rows agree",
+        "fields: St[a]=1 -> CT[a]=CT[b] -> CV[b]<=CV[a]",
+        "CV at most 2"
+      ],
+      "drops": [
+        {
+          "round": 0,
+          "ms": 118.32173499999999,
+          "law": "inX: stored guard reconfigs/inS"
+        },
+        {
+          "round": 0,
+          "ms": 118.57754599999998,
+          "law": "inX: stored guard reconfigs/inS or disabled/1"
+        },
+        {
+          "round": 1,
+          "ms": 652.340041,
+          "law": "inX: no quorum canVote/1"
+        }
+      ],
+      "rounds": [
+        {
+          "round": 0,
+          "stats": {
+            "scope": {
+              "params": {
+                "size": 3
+              },
+              "scalarValues": [
+                0,
+                1
+              ],
+              "cells": {
+                "Config": [
+                  0,
+                  1,
+                  2,
+                  64,
+                  65,
+                  66,
+                  128,
+                  129,
+                  130
+                ],
+                "CT": [
+                  0,
+                  1,
+                  2
+                ],
+                "St": [
+                  0,
+                  1,
+                  2
+                ],
+                "CV": [
+                  0,
+                  1,
+                  2
+                ],
+                "CfgT": [
+                  0,
+                  1,
+                  2
+                ]
+              },
+              "inputValues": {
+                "op": [
+                  0,
+                  1,
+                  2,
+                  3,
+                  4,
+                  5,
+                  6
+                ],
+                "i": [
+                  0,
+                  1,
+                  2
+                ],
+                "j": [
+                  0,
+                  1,
+                  2
+                ],
+                "hx": [
+                  0,
+                  1,
+                  2,
+                  3
+                ],
+                "hy": [
+                  0,
+                  1,
+                  2,
+                  3
+                ]
+              },
+              "inputCells": {
+                "S": [
+                  0,
+                  1,
+                  2
+                ],
+                "Q2": [
+                  0,
+                  1,
+                  2
+                ]
+              },
+              "binderValues": [
+                0,
+                1,
+                2
+              ]
+            },
+            "completed": true,
+            "exhausted": false,
+            "timedOut": false,
+            "unsupported": [],
+            "nodes": 133280,
+            "states": 1850,
+            "steps": 9569,
+            "scenarios": 7,
+            "candidates": 1,
+            "ms": 314.95868199999995
+          }
+        },
+        {
+          "round": 1,
+          "stats": {
+            "scope": {
+              "params": {
+                "size": 3
+              },
+              "scalarValues": [
+                0,
+                1
+              ],
+              "cells": {
+                "Config": [
+                  0,
+                  1,
+                  2,
+                  64,
+                  65,
+                  66,
+                  128,
+                  129,
+                  130
+                ],
+                "CT": [
+                  0,
+                  1,
+                  2
+                ],
+                "St": [
+                  0,
+                  1,
+                  2
+                ],
+                "CV": [
+                  0,
+                  1,
+                  2
+                ],
+                "CfgT": [
+                  0,
+                  1,
+                  2
+                ]
+              },
+              "inputValues": {
+                "op": [
+                  0,
+                  1,
+                  2,
+                  3,
+                  4,
+                  5,
+                  6
+                ],
+                "i": [
+                  0,
+                  1,
+                  2
+                ],
+                "j": [
+                  0,
+                  1,
+                  2
+                ],
+                "hx": [
+                  0,
+                  1,
+                  2,
+                  3
+                ],
+                "hy": [
+                  0,
+                  1,
+                  2,
+                  3
+                ]
+              },
+              "inputCells": {
+                "S": [
+                  0,
+                  1,
+                  2
+                ],
+                "Q2": [
+                  0,
+                  1,
+                  2
+                ]
+              },
+              "binderValues": [
+                0,
+                1,
+                2
+              ]
+            },
+            "completed": true,
+            "exhausted": false,
+            "timedOut": false,
+            "unsupported": [],
+            "nodes": 161800,
+            "states": 2240,
+            "steps": 11531,
+            "scenarios": 7,
+            "candidates": 1,
+            "ms": 665.503024
+          }
+        },
+        {
+          "round": 2,
+          "stats": {
+            "scope": {
+              "params": {
+                "size": 3
+              },
+              "scalarValues": [
+                0,
+                1
+              ],
+              "cells": {
+                "Config": [
+                  0,
+                  1,
+                  2,
+                  64,
+                  65,
+                  66,
+                  128,
+                  129,
+                  130
+                ],
+                "CT": [
+                  0,
+                  1,
+                  2
+                ],
+                "St": [
+                  0,
+                  1,
+                  2
+                ],
+                "CV": [
+                  0,
+                  1,
+                  2
+                ],
+                "CfgT": [
+                  0,
+                  1,
+                  2
+                ]
+              },
+              "inputValues": {
+                "op": [
+                  0,
+                  1,
+                  2,
+                  3,
+                  4,
+                  5,
+                  6
+                ],
+                "i": [
+                  0,
+                  1,
+                  2
+                ],
+                "j": [
+                  0,
+                  1,
+                  2
+                ],
+                "hx": [
+                  0,
+                  1,
+                  2,
+                  3
+                ],
+                "hy": [
+                  0,
+                  1,
+                  2,
+                  3
+                ]
+              },
+              "inputCells": {
+                "S": [
+                  0,
+                  1,
+                  2
+                ],
+                "Q2": [
+                  0,
+                  1,
+                  2
+                ]
+              },
+              "binderValues": [
+                0,
+                1,
+                2
+              ]
+            },
+            "completed": true,
+            "exhausted": true,
+            "timedOut": false,
+            "unsupported": [],
+            "nodes": 172526,
+            "states": 2522,
+            "steps": 12923,
+            "scenarios": 7,
+            "candidates": 0,
+            "ms": 372.131028
+          }
+        }
+      ],
+      "finish": {
+        "timedOut": false,
+        "ms": 1355.724258,
+        "dropped": 3
+      },
+      "survivors": 31,
+      "wall": 1355.853481,
+      "remainingCandidates": [
+        "St at most 1",
+        "fields: St[a]=1 -> CT[a]=CfgT[a]",
+        "fields: St[a]=1 -> CT[a]<=CfgT[a]",
+        "fields: St[a]=1 -> CT[a]=CT[b] -> CfgT[b]<=CfgT[a]",
+        "fields: St[a]=1 -> CfgT[a]<=CT[a]",
+        "fields: St[a]=1 -> CfgT[a]=CfgT[b] -> CV[b]<=CV[a]",
+        "every x with x < size: never CT[x] is 0 and 1 <= St[x]",
+        "every x with x < size: never 1 <= CT[x] and CV[x] is 0",
+        "every x with x < size: never 1 <= CT[x] and started is 0",
+        "every x with x < size: never 1 <= St[x] and CV[x] is 0",
+        "every x with x < size: never 1 <= St[x] and CfgT[x] is 0",
+        "every x with x < size: never 1 <= St[x] and started is 0",
+        "every x with x < size: never CV[x] is 0 and 1 <= CfgT[x]",
+        "every x with x < size: never CV[x] is 0 and 1 <= started",
+        "every x with x < size: never 1 <= CfgT[x] and started is 0",
+        "every x, y with x < size ∧ y < size ∧ ¬(x = y): never 1 <= CT[x] and CV[y] is 0",
+        "every x, y with x < size ∧ y < size ∧ ¬(x = y): never 1 <= St[x] and CV[y] is 0",
+        "every x, y with x < size ∧ y < size ∧ ¬(x = y): never CV[x] is 0 and 1 <= CfgT[y]",
+        "inX: no quorum canVote/3",
+        "inX: stored guard reconfigs/inS or disabled/0",
+        "inX: stored guard reconfigs/inS or disabled/2",
+        "inX: stored guard reconfigs/inS or disabled/3",
+        "fields: CV[a]=CV[b] and CfgT[a]=CfgT[b] -> Config rows agree",
+        "count cubes: every x with x < {\"op\":\"var\",\"name\":\"size\"}: never 1 <= started and inX$row[x] is 0",
+        "count cubes: every x with x < {\"op\":\"var\",\"name\":\"size\"}: never 1 <= CT[x] and inX$row[x] is 0",
+        "count cubes: every x with x < {\"op\":\"var\",\"name\":\"size\"}: never CV[x] is 0 and 1 <= inX$row[x]",
+        "count cubes: every x with x < {\"op\":\"var\",\"name\":\"size\"}: never 1 <= CV[x] and inX$row[x] is 0",
+        "count cubes: every x with x < {\"op\":\"var\",\"name\":\"size\"}: never 1 <= CfgT[x] and inX$row[x] is 0",
+        "count cubes: every x with x < {\"op\":\"var\",\"name\":\"size\"}: never 1 <= St[x] and inX$row[x] is 0"
+      ]
+    },
+    {
+      "job": "tiny-survivors34-2",
+      "exitCode": 1,
+      "hardware": {
+        "vm": "bx_25xas5gt",
+        "type": "large",
+        "cpu": "AMD Ryzen 9 9950X 16-Core Processor",
+        "vcpus": 2,
+        "vm_vcpus": 8,
+        "exclusive": true,
+        "co_tenants": 0
+      },
+      "mode": "survivors",
+      "initial": 34,
+      "historical": [
+        "CT at most 44",
+        "CfgT at most 44",
+        "every x with x < size: never Config[x] is 0 and 1 <= St[x]",
+        "fields: CT[a]=CT[b] and CV[a]=CV[b] -> Config rows agree",
+        "fields: St[a]=1 -> CT[a]=CT[b] -> CV[b]<=CV[a]",
+        "CV at most 2"
+      ],
+      "drops": [
+        {
+          "round": 0,
+          "ms": 211.61243800000003,
+          "law": "inX: stored guard reconfigs/inS"
+        },
+        {
+          "round": 0,
+          "ms": 212.23196099999998,
+          "law": "inX: stored guard reconfigs/inS or disabled/1"
+        },
+        {
+          "round": 1,
+          "ms": 1209.8755540000002,
+          "law": "inX: no quorum canVote/1"
+        }
+      ],
+      "rounds": [
+        {
+          "round": 0,
+          "stats": {
+            "scope": {
+              "params": {
+                "size": 3
+              },
+              "scalarValues": [
+                0,
+                1
+              ],
+              "cells": {
+                "Config": [
+                  0,
+                  1,
+                  2,
+                  64,
+                  65,
+                  66,
+                  128,
+                  129,
+                  130
+                ],
+                "CT": [
+                  0,
+                  1,
+                  2
+                ],
+                "St": [
+                  0,
+                  1,
+                  2
+                ],
+                "CV": [
+                  0,
+                  1,
+                  2
+                ],
+                "CfgT": [
+                  0,
+                  1,
+                  2
+                ]
+              },
+              "inputValues": {
+                "op": [
+                  0,
+                  1,
+                  2,
+                  3,
+                  4,
+                  5,
+                  6
+                ],
+                "i": [
+                  0,
+                  1,
+                  2
+                ],
+                "j": [
+                  0,
+                  1,
+                  2
+                ],
+                "hx": [
+                  0,
+                  1,
+                  2,
+                  3
+                ],
+                "hy": [
+                  0,
+                  1,
+                  2,
+                  3
+                ]
+              },
+              "inputCells": {
+                "S": [
+                  0,
+                  1,
+                  2
+                ],
+                "Q2": [
+                  0,
+                  1,
+                  2
+                ]
+              },
+              "binderValues": [
+                0,
+                1,
+                2
+              ]
+            },
+            "completed": true,
+            "exhausted": false,
+            "timedOut": false,
+            "unsupported": [],
+            "nodes": 133280,
+            "states": 1850,
+            "steps": 9569,
+            "scenarios": 7,
+            "candidates": 1,
+            "ms": 626.229151
+          }
+        },
+        {
+          "round": 1,
+          "stats": {
+            "scope": {
+              "params": {
+                "size": 3
+              },
+              "scalarValues": [
+                0,
+                1
+              ],
+              "cells": {
+                "Config": [
+                  0,
+                  1,
+                  2,
+                  64,
+                  65,
+                  66,
+                  128,
+                  129,
+                  130
+                ],
+                "CT": [
+                  0,
+                  1,
+                  2
+                ],
+                "St": [
+                  0,
+                  1,
+                  2
+                ],
+                "CV": [
+                  0,
+                  1,
+                  2
+                ],
+                "CfgT": [
+                  0,
+                  1,
+                  2
+                ]
+              },
+              "inputValues": {
+                "op": [
+                  0,
+                  1,
+                  2,
+                  3,
+                  4,
+                  5,
+                  6
+                ],
+                "i": [
+                  0,
+                  1,
+                  2
+                ],
+                "j": [
+                  0,
+                  1,
+                  2
+                ],
+                "hx": [
+                  0,
+                  1,
+                  2,
+                  3
+                ],
+                "hy": [
+                  0,
+                  1,
+                  2,
+                  3
+                ]
+              },
+              "inputCells": {
+                "S": [
+                  0,
+                  1,
+                  2
+                ],
+                "Q2": [
+                  0,
+                  1,
+                  2
+                ]
+              },
+              "binderValues": [
+                0,
+                1,
+                2
+              ]
+            },
+            "completed": true,
+            "exhausted": false,
+            "timedOut": false,
+            "unsupported": [],
+            "nodes": 161800,
+            "states": 2240,
+            "steps": 11531,
+            "scenarios": 7,
+            "candidates": 1,
+            "ms": 1014.480868
+          }
+        }
+      ],
+      "finish": {
+        "timedOut": true,
+        "ms": 1949.879418,
+        "dropped": 3
+      },
+      "survivors": 31,
+      "wall": 1950.051513,
+      "remainingCandidates": [
+        "St at most 1",
+        "fields: St[a]=1 -> CT[a]=CfgT[a]",
+        "fields: St[a]=1 -> CT[a]<=CfgT[a]",
+        "fields: St[a]=1 -> CT[a]=CT[b] -> CfgT[b]<=CfgT[a]",
+        "fields: St[a]=1 -> CfgT[a]<=CT[a]",
+        "fields: St[a]=1 -> CfgT[a]=CfgT[b] -> CV[b]<=CV[a]",
+        "every x with x < size: never CT[x] is 0 and 1 <= St[x]",
+        "every x with x < size: never 1 <= CT[x] and CV[x] is 0",
+        "every x with x < size: never 1 <= CT[x] and started is 0",
+        "every x with x < size: never 1 <= St[x] and CV[x] is 0",
+        "every x with x < size: never 1 <= St[x] and CfgT[x] is 0",
+        "every x with x < size: never 1 <= St[x] and started is 0",
+        "every x with x < size: never CV[x] is 0 and 1 <= CfgT[x]",
+        "every x with x < size: never CV[x] is 0 and 1 <= started",
+        "every x with x < size: never 1 <= CfgT[x] and started is 0",
+        "every x, y with x < size ∧ y < size ∧ ¬(x = y): never 1 <= CT[x] and CV[y] is 0",
+        "every x, y with x < size ∧ y < size ∧ ¬(x = y): never 1 <= St[x] and CV[y] is 0",
+        "every x, y with x < size ∧ y < size ∧ ¬(x = y): never CV[x] is 0 and 1 <= CfgT[y]",
+        "inX: no quorum canVote/3",
+        "inX: stored guard reconfigs/inS or disabled/0",
+        "inX: stored guard reconfigs/inS or disabled/2",
+        "inX: stored guard reconfigs/inS or disabled/3",
+        "fields: CV[a]=CV[b] and CfgT[a]=CfgT[b] -> Config rows agree",
+        "count cubes: every x with x < {\"op\":\"var\",\"name\":\"size\"}: never 1 <= started and inX$row[x] is 0",
+        "count cubes: every x with x < {\"op\":\"var\",\"name\":\"size\"}: never 1 <= CT[x] and inX$row[x] is 0",
+        "count cubes: every x with x < {\"op\":\"var\",\"name\":\"size\"}: never CV[x] is 0 and 1 <= inX$row[x]",
+        "count cubes: every x with x < {\"op\":\"var\",\"name\":\"size\"}: never 1 <= CV[x] and inX$row[x] is 0",
+        "count cubes: every x with x < {\"op\":\"var\",\"name\":\"size\"}: never 1 <= CfgT[x] and inX$row[x] is 0",
+        "count cubes: every x with x < {\"op\":\"var\",\"name\":\"size\"}: never 1 <= St[x] and inX$row[x] is 0"
+      ]
+    },
+    {
+      "job": "tiny-survivors34-3",
+      "exitCode": 1,
+      "hardware": {
+        "vm": "bx_4cma575j",
+        "type": "large",
+        "cpu": "AMD EPYC 4585PX 16-Core Processor",
+        "vcpus": 2,
+        "vm_vcpus": 8,
+        "exclusive": true,
+        "co_tenants": 0
+      },
+      "mode": "survivors",
+      "initial": 34,
+      "historical": [
+        "CT at most 44",
+        "CfgT at most 44",
+        "every x with x < size: never Config[x] is 0 and 1 <= St[x]",
+        "fields: CT[a]=CT[b] and CV[a]=CV[b] -> Config rows agree",
+        "fields: St[a]=1 -> CT[a]=CT[b] -> CV[b]<=CV[a]",
+        "CV at most 2"
+      ],
+      "drops": [
+        {
+          "round": 0,
+          "ms": 395.33095099999997,
+          "law": "inX: stored guard reconfigs/inS"
+        },
+        {
+          "round": 0,
+          "ms": 396.07095899999996,
+          "law": "inX: stored guard reconfigs/inS or disabled/1"
+        }
+      ],
+      "rounds": [
+        {
+          "round": 0,
+          "stats": {
+            "scope": {
+              "params": {
+                "size": 3
+              },
+              "scalarValues": [
+                0,
+                1
+              ],
+              "cells": {
+                "Config": [
+                  0,
+                  1,
+                  2,
+                  64,
+                  65,
+                  66,
+                  128,
+                  129,
+                  130
+                ],
+                "CT": [
+                  0,
+                  1,
+                  2
+                ],
+                "St": [
+                  0,
+                  1,
+                  2
+                ],
+                "CV": [
+                  0,
+                  1,
+                  2
+                ],
+                "CfgT": [
+                  0,
+                  1,
+                  2
+                ]
+              },
+              "inputValues": {
+                "op": [
+                  0,
+                  1,
+                  2,
+                  3,
+                  4,
+                  5,
+                  6
+                ],
+                "i": [
+                  0,
+                  1,
+                  2
+                ],
+                "j": [
+                  0,
+                  1,
+                  2
+                ],
+                "hx": [
+                  0,
+                  1,
+                  2,
+                  3
+                ],
+                "hy": [
+                  0,
+                  1,
+                  2,
+                  3
+                ]
+              },
+              "inputCells": {
+                "S": [
+                  0,
+                  1,
+                  2
+                ],
+                "Q2": [
+                  0,
+                  1,
+                  2
+                ]
+              },
+              "binderValues": [
+                0,
+                1,
+                2
+              ]
+            },
+            "completed": true,
+            "exhausted": false,
+            "timedOut": false,
+            "unsupported": [],
+            "nodes": 133280,
+            "states": 1850,
+            "steps": 9569,
+            "scenarios": 7,
+            "candidates": 1,
+            "ms": 767.25738
+          }
+        }
+      ],
+      "finish": {
+        "timedOut": true,
+        "ms": 2000.065506,
+        "dropped": 2
+      },
+      "survivors": 32,
+      "wall": 2000.339729,
+      "remainingCandidates": [
+        "St at most 1",
+        "fields: St[a]=1 -> CT[a]=CfgT[a]",
+        "fields: St[a]=1 -> CT[a]<=CfgT[a]",
+        "fields: St[a]=1 -> CT[a]=CT[b] -> CfgT[b]<=CfgT[a]",
+        "fields: St[a]=1 -> CfgT[a]<=CT[a]",
+        "fields: St[a]=1 -> CfgT[a]=CfgT[b] -> CV[b]<=CV[a]",
+        "every x with x < size: never CT[x] is 0 and 1 <= St[x]",
+        "every x with x < size: never 1 <= CT[x] and CV[x] is 0",
+        "every x with x < size: never 1 <= CT[x] and started is 0",
+        "every x with x < size: never 1 <= St[x] and CV[x] is 0",
+        "every x with x < size: never 1 <= St[x] and CfgT[x] is 0",
+        "every x with x < size: never 1 <= St[x] and started is 0",
+        "every x with x < size: never CV[x] is 0 and 1 <= CfgT[x]",
+        "every x with x < size: never CV[x] is 0 and 1 <= started",
+        "every x with x < size: never 1 <= CfgT[x] and started is 0",
+        "every x, y with x < size ∧ y < size ∧ ¬(x = y): never 1 <= CT[x] and CV[y] is 0",
+        "every x, y with x < size ∧ y < size ∧ ¬(x = y): never 1 <= St[x] and CV[y] is 0",
+        "every x, y with x < size ∧ y < size ∧ ¬(x = y): never CV[x] is 0 and 1 <= CfgT[y]",
+        "inX: no quorum canVote/1",
+        "inX: no quorum canVote/3",
+        "inX: stored guard reconfigs/inS or disabled/0",
+        "inX: stored guard reconfigs/inS or disabled/2",
+        "inX: stored guard reconfigs/inS or disabled/3",
+        "fields: CV[a]=CV[b] and CfgT[a]=CfgT[b] -> Config rows agree",
+        "count cubes: every x with x < {\"op\":\"var\",\"name\":\"size\"}: never 1 <= started and inX$row[x] is 0",
+        "count cubes: every x with x < {\"op\":\"var\",\"name\":\"size\"}: never 1 <= CT[x] and inX$row[x] is 0",
+        "count cubes: every x with x < {\"op\":\"var\",\"name\":\"size\"}: never CV[x] is 0 and 1 <= inX$row[x]",
+        "count cubes: every x with x < {\"op\":\"var\",\"name\":\"size\"}: never 1 <= CV[x] and inX$row[x] is 0",
+        "count cubes: every x with x < {\"op\":\"var\",\"name\":\"size\"}: never 1 <= CfgT[x] and inX$row[x] is 0",
+        "count cubes: every x with x < {\"op\":\"var\",\"name\":\"size\"}: never 1 <= St[x] and inX$row[x] is 0"
+      ]
+    }
+  ]
+}

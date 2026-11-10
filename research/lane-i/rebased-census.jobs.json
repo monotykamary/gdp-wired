@@ -1,0 +1,629 @@
+[
+  {
+    "name": "gen-consensus-r1",
+    "cmd": "bash research/lane-i/validate.sh census 1 consensus",
+    "cpu": 2,
+    "memory": 8192,
+    "timeout": 240
+  },
+  {
+    "name": "gen-consensus-r2",
+    "cmd": "bash research/lane-i/validate.sh census 2 consensus",
+    "cpu": 2,
+    "memory": 8192,
+    "timeout": 240
+  },
+  {
+    "name": "gen-consensus-r3",
+    "cmd": "bash research/lane-i/validate.sh census 3 consensus",
+    "cpu": 2,
+    "memory": 8192,
+    "timeout": 240
+  },
+  {
+    "name": "gen-tcommit-r1",
+    "cmd": "bash research/lane-i/validate.sh census 1 tcommit",
+    "cpu": 2,
+    "memory": 8192,
+    "timeout": 240
+  },
+  {
+    "name": "gen-tcommit-r2",
+    "cmd": "bash research/lane-i/validate.sh census 2 tcommit",
+    "cpu": 2,
+    "memory": 8192,
+    "timeout": 240
+  },
+  {
+    "name": "gen-tcommit-r3",
+    "cmd": "bash research/lane-i/validate.sh census 3 tcommit",
+    "cpu": 2,
+    "memory": 8192,
+    "timeout": 240
+  },
+  {
+    "name": "gen-lock_server-r1",
+    "cmd": "bash research/lane-i/validate.sh census 1 lock_server",
+    "cpu": 2,
+    "memory": 8192,
+    "timeout": 240
+  },
+  {
+    "name": "gen-lock_server-r2",
+    "cmd": "bash research/lane-i/validate.sh census 2 lock_server",
+    "cpu": 2,
+    "memory": 8192,
+    "timeout": 240
+  },
+  {
+    "name": "gen-lock_server-r3",
+    "cmd": "bash research/lane-i/validate.sh census 3 lock_server",
+    "cpu": 2,
+    "memory": 8192,
+    "timeout": 240
+  },
+  {
+    "name": "gen-quorum_leader_election-r1",
+    "cmd": "bash research/lane-i/validate.sh census 1 quorum_leader_election",
+    "cpu": 2,
+    "memory": 8192,
+    "timeout": 240
+  },
+  {
+    "name": "gen-quorum_leader_election-r2",
+    "cmd": "bash research/lane-i/validate.sh census 2 quorum_leader_election",
+    "cpu": 2,
+    "memory": 8192,
+    "timeout": 240
+  },
+  {
+    "name": "gen-quorum_leader_election-r3",
+    "cmd": "bash research/lane-i/validate.sh census 3 quorum_leader_election",
+    "cpu": 2,
+    "memory": 8192,
+    "timeout": 240
+  },
+  {
+    "name": "gen-toy_consensus_forall-r1",
+    "cmd": "bash research/lane-i/validate.sh census 1 toy_consensus_forall",
+    "cpu": 2,
+    "memory": 8192,
+    "timeout": 240
+  },
+  {
+    "name": "gen-toy_consensus_forall-r2",
+    "cmd": "bash research/lane-i/validate.sh census 2 toy_consensus_forall",
+    "cpu": 2,
+    "memory": 8192,
+    "timeout": 240
+  },
+  {
+    "name": "gen-toy_consensus_forall-r3",
+    "cmd": "bash research/lane-i/validate.sh census 3 toy_consensus_forall",
+    "cpu": 2,
+    "memory": 8192,
+    "timeout": 240
+  },
+  {
+    "name": "gen-simple-r1",
+    "cmd": "bash research/lane-i/validate.sh census 1 simple",
+    "cpu": 2,
+    "memory": 8192,
+    "timeout": 240
+  },
+  {
+    "name": "gen-simple-r2",
+    "cmd": "bash research/lane-i/validate.sh census 2 simple",
+    "cpu": 2,
+    "memory": 8192,
+    "timeout": 240
+  },
+  {
+    "name": "gen-simple-r3",
+    "cmd": "bash research/lane-i/validate.sh census 3 simple",
+    "cpu": 2,
+    "memory": 8192,
+    "timeout": 240
+  },
+  {
+    "name": "gen-simple_regular-r1",
+    "cmd": "bash research/lane-i/validate.sh census 1 simple_regular",
+    "cpu": 2,
+    "memory": 8192,
+    "timeout": 240
+  },
+  {
+    "name": "gen-simple_regular-r2",
+    "cmd": "bash research/lane-i/validate.sh census 2 simple_regular",
+    "cpu": 2,
+    "memory": 8192,
+    "timeout": 240
+  },
+  {
+    "name": "gen-simple_regular-r3",
+    "cmd": "bash research/lane-i/validate.sh census 3 simple_regular",
+    "cpu": 2,
+    "memory": 8192,
+    "timeout": 240
+  },
+  {
+    "name": "gen-lockserv_automaton-r1",
+    "cmd": "bash research/lane-i/validate.sh census 1 lockserv_automaton",
+    "cpu": 2,
+    "memory": 8192,
+    "timeout": 240
+  },
+  {
+    "name": "gen-lockserv_automaton-r2",
+    "cmd": "bash research/lane-i/validate.sh census 2 lockserv_automaton",
+    "cpu": 2,
+    "memory": 8192,
+    "timeout": 240
+  },
+  {
+    "name": "gen-lockserv_automaton-r3",
+    "cmd": "bash research/lane-i/validate.sh census 3 lockserv_automaton",
+    "cpu": 2,
+    "memory": 8192,
+    "timeout": 240
+  },
+  {
+    "name": "gen-sharded_kv-r1",
+    "cmd": "bash research/lane-i/validate.sh census 1 sharded_kv",
+    "cpu": 2,
+    "memory": 8192,
+    "timeout": 240
+  },
+  {
+    "name": "gen-sharded_kv-r2",
+    "cmd": "bash research/lane-i/validate.sh census 2 sharded_kv",
+    "cpu": 2,
+    "memory": 8192,
+    "timeout": 240
+  },
+  {
+    "name": "gen-sharded_kv-r3",
+    "cmd": "bash research/lane-i/validate.sh census 3 sharded_kv",
+    "cpu": 2,
+    "memory": 8192,
+    "timeout": 240
+  },
+  {
+    "name": "gen-sharded_kv_no_lost_keys-r1",
+    "cmd": "bash research/lane-i/validate.sh census 1 sharded_kv_no_lost_keys",
+    "cpu": 2,
+    "memory": 8192,
+    "timeout": 240
+  },
+  {
+    "name": "gen-sharded_kv_no_lost_keys-r2",
+    "cmd": "bash research/lane-i/validate.sh census 2 sharded_kv_no_lost_keys",
+    "cpu": 2,
+    "memory": 8192,
+    "timeout": 240
+  },
+  {
+    "name": "gen-sharded_kv_no_lost_keys-r3",
+    "cmd": "bash research/lane-i/validate.sh census 3 sharded_kv_no_lost_keys",
+    "cpu": 2,
+    "memory": 8192,
+    "timeout": 240
+  },
+  {
+    "name": "gen-lockserv-r1",
+    "cmd": "bash research/lane-i/validate.sh census 1 lockserv",
+    "cpu": 2,
+    "memory": 8192,
+    "timeout": 240
+  },
+  {
+    "name": "gen-lockserv-r2",
+    "cmd": "bash research/lane-i/validate.sh census 2 lockserv",
+    "cpu": 2,
+    "memory": 8192,
+    "timeout": 240
+  },
+  {
+    "name": "gen-lockserv-r3",
+    "cmd": "bash research/lane-i/validate.sh census 3 lockserv",
+    "cpu": 2,
+    "memory": 8192,
+    "timeout": 240
+  },
+  {
+    "name": "gen-twophase-r1",
+    "cmd": "bash research/lane-i/validate.sh census 1 twophase",
+    "cpu": 2,
+    "memory": 8192,
+    "timeout": 240
+  },
+  {
+    "name": "gen-twophase-r2",
+    "cmd": "bash research/lane-i/validate.sh census 2 twophase",
+    "cpu": 2,
+    "memory": 8192,
+    "timeout": 240
+  },
+  {
+    "name": "gen-twophase-r3",
+    "cmd": "bash research/lane-i/validate.sh census 3 twophase",
+    "cpu": 2,
+    "memory": 8192,
+    "timeout": 240
+  },
+  {
+    "name": "gen-simple_decentralized_lock-r1",
+    "cmd": "bash research/lane-i/validate.sh census 1 simple_decentralized_lock",
+    "cpu": 2,
+    "memory": 8192,
+    "timeout": 240
+  },
+  {
+    "name": "gen-simple_decentralized_lock-r2",
+    "cmd": "bash research/lane-i/validate.sh census 2 simple_decentralized_lock",
+    "cpu": 2,
+    "memory": 8192,
+    "timeout": 240
+  },
+  {
+    "name": "gen-simple_decentralized_lock-r3",
+    "cmd": "bash research/lane-i/validate.sh census 3 simple_decentralized_lock",
+    "cpu": 2,
+    "memory": 8192,
+    "timeout": 240
+  },
+  {
+    "name": "gen-two_phase_commit-r1",
+    "cmd": "bash research/lane-i/validate.sh census 1 two_phase_commit",
+    "cpu": 2,
+    "memory": 8192,
+    "timeout": 240
+  },
+  {
+    "name": "gen-two_phase_commit-r2",
+    "cmd": "bash research/lane-i/validate.sh census 2 two_phase_commit",
+    "cpu": 2,
+    "memory": 8192,
+    "timeout": 240
+  },
+  {
+    "name": "gen-two_phase_commit-r3",
+    "cmd": "bash research/lane-i/validate.sh census 3 two_phase_commit",
+    "cpu": 2,
+    "memory": 8192,
+    "timeout": 240
+  },
+  {
+    "name": "gen-consensus_wo_decide-r1",
+    "cmd": "bash research/lane-i/validate.sh census 1 consensus_wo_decide",
+    "cpu": 2,
+    "memory": 8192,
+    "timeout": 240
+  },
+  {
+    "name": "gen-consensus_wo_decide-r2",
+    "cmd": "bash research/lane-i/validate.sh census 2 consensus_wo_decide",
+    "cpu": 2,
+    "memory": 8192,
+    "timeout": 240
+  },
+  {
+    "name": "gen-consensus_wo_decide-r3",
+    "cmd": "bash research/lane-i/validate.sh census 3 consensus_wo_decide",
+    "cpu": 2,
+    "memory": 8192,
+    "timeout": 240
+  },
+  {
+    "name": "gen-consensus_forall-r1",
+    "cmd": "bash research/lane-i/validate.sh census 1 consensus_forall",
+    "cpu": 2,
+    "memory": 8192,
+    "timeout": 240
+  },
+  {
+    "name": "gen-consensus_forall-r2",
+    "cmd": "bash research/lane-i/validate.sh census 2 consensus_forall",
+    "cpu": 2,
+    "memory": 8192,
+    "timeout": 240
+  },
+  {
+    "name": "gen-consensus_forall-r3",
+    "cmd": "bash research/lane-i/validate.sh census 3 consensus_forall",
+    "cpu": 2,
+    "memory": 8192,
+    "timeout": 240
+  },
+  {
+    "name": "gen-naive_consensus-r1",
+    "cmd": "bash research/lane-i/validate.sh census 1 naive_consensus",
+    "cpu": 2,
+    "memory": 8192,
+    "timeout": 240
+  },
+  {
+    "name": "gen-naive_consensus-r2",
+    "cmd": "bash research/lane-i/validate.sh census 2 naive_consensus",
+    "cpu": 2,
+    "memory": 8192,
+    "timeout": 240
+  },
+  {
+    "name": "gen-naive_consensus-r3",
+    "cmd": "bash research/lane-i/validate.sh census 3 naive_consensus",
+    "cpu": 2,
+    "memory": 8192,
+    "timeout": 240
+  },
+  {
+    "name": "gen-client_server_ae-r1",
+    "cmd": "bash research/lane-i/validate.sh census 1 client_server_ae",
+    "cpu": 2,
+    "memory": 8192,
+    "timeout": 240
+  },
+  {
+    "name": "gen-client_server_ae-r2",
+    "cmd": "bash research/lane-i/validate.sh census 2 client_server_ae",
+    "cpu": 2,
+    "memory": 8192,
+    "timeout": 240
+  },
+  {
+    "name": "gen-client_server_ae-r3",
+    "cmd": "bash research/lane-i/validate.sh census 3 client_server_ae",
+    "cpu": 2,
+    "memory": 8192,
+    "timeout": 240
+  },
+  {
+    "name": "gen-client_server_db_ae-r1",
+    "cmd": "bash research/lane-i/validate.sh census 1 client_server_db_ae",
+    "cpu": 2,
+    "memory": 8192,
+    "timeout": 240
+  },
+  {
+    "name": "gen-client_server_db_ae-r2",
+    "cmd": "bash research/lane-i/validate.sh census 2 client_server_db_ae",
+    "cpu": 2,
+    "memory": 8192,
+    "timeout": 240
+  },
+  {
+    "name": "gen-client_server_db_ae-r3",
+    "cmd": "bash research/lane-i/validate.sh census 3 client_server_db_ae",
+    "cpu": 2,
+    "memory": 8192,
+    "timeout": 240
+  },
+  {
+    "name": "gen-simple_election-r1",
+    "cmd": "bash research/lane-i/validate.sh census 1 simple_election",
+    "cpu": 2,
+    "memory": 8192,
+    "timeout": 240
+  },
+  {
+    "name": "gen-simple_election-r2",
+    "cmd": "bash research/lane-i/validate.sh census 2 simple_election",
+    "cpu": 2,
+    "memory": 8192,
+    "timeout": 240
+  },
+  {
+    "name": "gen-simple_election-r3",
+    "cmd": "bash research/lane-i/validate.sh census 3 simple_election",
+    "cpu": 2,
+    "memory": 8192,
+    "timeout": 240
+  },
+  {
+    "name": "gen-toy_consensus_epr-r1",
+    "cmd": "bash research/lane-i/validate.sh census 1 toy_consensus_epr",
+    "cpu": 2,
+    "memory": 8192,
+    "timeout": 240
+  },
+  {
+    "name": "gen-toy_consensus_epr-r2",
+    "cmd": "bash research/lane-i/validate.sh census 2 toy_consensus_epr",
+    "cpu": 2,
+    "memory": 8192,
+    "timeout": 240
+  },
+  {
+    "name": "gen-toy_consensus_epr-r3",
+    "cmd": "bash research/lane-i/validate.sh census 3 toy_consensus_epr",
+    "cpu": 2,
+    "memory": 8192,
+    "timeout": 240
+  },
+  {
+    "name": "gen-toy_consensus-r1",
+    "cmd": "bash research/lane-i/validate.sh census 1 toy_consensus",
+    "cpu": 2,
+    "memory": 8192,
+    "timeout": 240
+  },
+  {
+    "name": "gen-toy_consensus-r2",
+    "cmd": "bash research/lane-i/validate.sh census 2 toy_consensus",
+    "cpu": 2,
+    "memory": 8192,
+    "timeout": 240
+  },
+  {
+    "name": "gen-toy_consensus-r3",
+    "cmd": "bash research/lane-i/validate.sh census 3 toy_consensus",
+    "cpu": 2,
+    "memory": 8192,
+    "timeout": 240
+  },
+  {
+    "name": "gen-firewall-r1",
+    "cmd": "bash research/lane-i/validate.sh census 1 firewall",
+    "cpu": 2,
+    "memory": 8192,
+    "timeout": 240
+  },
+  {
+    "name": "gen-firewall-r2",
+    "cmd": "bash research/lane-i/validate.sh census 2 firewall",
+    "cpu": 2,
+    "memory": 8192,
+    "timeout": 240
+  },
+  {
+    "name": "gen-firewall-r3",
+    "cmd": "bash research/lane-i/validate.sh census 3 firewall",
+    "cpu": 2,
+    "memory": 8192,
+    "timeout": 240
+  },
+  {
+    "name": "gen-majorityset_leader_election-r1",
+    "cmd": "bash research/lane-i/validate.sh census 1 majorityset_leader_election",
+    "cpu": 2,
+    "memory": 8192,
+    "timeout": 240
+  },
+  {
+    "name": "gen-majorityset_leader_election-r2",
+    "cmd": "bash research/lane-i/validate.sh census 2 majorityset_leader_election",
+    "cpu": 2,
+    "memory": 8192,
+    "timeout": 240
+  },
+  {
+    "name": "gen-majorityset_leader_election-r3",
+    "cmd": "bash research/lane-i/validate.sh census 3 majorityset_leader_election",
+    "cpu": 2,
+    "memory": 8192,
+    "timeout": 240
+  },
+  {
+    "name": "gen-consensus_epr-r1",
+    "cmd": "bash research/lane-i/validate.sh census 1 consensus_epr",
+    "cpu": 2,
+    "memory": 8192,
+    "timeout": 240
+  },
+  {
+    "name": "gen-consensus_epr-r2",
+    "cmd": "bash research/lane-i/validate.sh census 2 consensus_epr",
+    "cpu": 2,
+    "memory": 8192,
+    "timeout": 240
+  },
+  {
+    "name": "gen-consensus_epr-r3",
+    "cmd": "bash research/lane-i/validate.sh census 3 consensus_epr",
+    "cpu": 2,
+    "memory": 8192,
+    "timeout": 240
+  },
+  {
+    "name": "gen-learning_switch-r1",
+    "cmd": "bash research/lane-i/validate.sh census 1 learning_switch",
+    "cpu": 2,
+    "memory": 8192,
+    "timeout": 2100,
+    "env": {
+      "LANE_I_CENSUS_SECONDS": "900"
+    }
+  },
+  {
+    "name": "gen-learning_switch-r2",
+    "cmd": "bash research/lane-i/validate.sh census 2 learning_switch",
+    "cpu": 2,
+    "memory": 8192,
+    "timeout": 2100,
+    "env": {
+      "LANE_I_CENSUS_SECONDS": "900"
+    }
+  },
+  {
+    "name": "gen-learning_switch-r3",
+    "cmd": "bash research/lane-i/validate.sh census 3 learning_switch",
+    "cpu": 2,
+    "memory": 8192,
+    "timeout": 2100,
+    "env": {
+      "LANE_I_CENSUS_SECONDS": "900"
+    }
+  },
+  {
+    "name": "gen-learning_switch_i4-r1",
+    "cmd": "bash research/lane-i/validate.sh census 1 learning_switch_i4",
+    "cpu": 2,
+    "memory": 8192,
+    "timeout": 2100,
+    "env": {
+      "LANE_I_CENSUS_SECONDS": "900"
+    }
+  },
+  {
+    "name": "gen-learning_switch_i4-r2",
+    "cmd": "bash research/lane-i/validate.sh census 2 learning_switch_i4",
+    "cpu": 2,
+    "memory": 8192,
+    "timeout": 2100,
+    "env": {
+      "LANE_I_CENSUS_SECONDS": "900"
+    }
+  },
+  {
+    "name": "gen-learning_switch_i4-r3",
+    "cmd": "bash research/lane-i/validate.sh census 3 learning_switch_i4",
+    "cpu": 2,
+    "memory": 8192,
+    "timeout": 2100,
+    "env": {
+      "LANE_I_CENSUS_SECONDS": "900"
+    }
+  },
+  {
+    "name": "gen-paxos_epr-r1",
+    "cmd": "bash research/lane-i/validate.sh census 1 paxos_epr",
+    "cpu": 2,
+    "memory": 8192,
+    "timeout": 240
+  },
+  {
+    "name": "gen-paxos_epr-r2",
+    "cmd": "bash research/lane-i/validate.sh census 2 paxos_epr",
+    "cpu": 2,
+    "memory": 8192,
+    "timeout": 240
+  },
+  {
+    "name": "gen-paxos_epr-r3",
+    "cmd": "bash research/lane-i/validate.sh census 3 paxos_epr",
+    "cpu": 2,
+    "memory": 8192,
+    "timeout": 240
+  },
+  {
+    "name": "gen-mldr-r1",
+    "cmd": "bash research/lane-i/validate.sh census 1 mldr",
+    "cpu": 2,
+    "memory": 8192,
+    "timeout": 240
+  },
+  {
+    "name": "gen-mldr-r2",
+    "cmd": "bash research/lane-i/validate.sh census 2 mldr",
+    "cpu": 2,
+    "memory": 8192,
+    "timeout": 240
+  },
+  {
+    "name": "gen-mldr-r3",
+    "cmd": "bash research/lane-i/validate.sh census 3 mldr",
+    "cpu": 2,
+    "memory": 8192,
+    "timeout": 240
+  }
+]

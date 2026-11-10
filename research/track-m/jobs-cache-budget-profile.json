@@ -1,0 +1,4 @@
+[
+ {"name":"paxos-diagnostic","cmd":"set -e; bun install --frozen-lockfile >/dev/null; for rows in 0 1; do echo DIAGNOSTIC_ROWS=$rows; GDP_SOURCE_CONTEXTS=0 GDP_COUNT_LEMMA_CUTS=0 GDP_ROWS_SHARED=$rows taskset -c 0-3 timeout -s KILL 90 bun --preload ./research/track-m/log-row-stats.ts research/protocols/ic3syn/run.ts --ms 60000 --only paxos_epr --skip broken; done","cpu":4,"memory":12000,"timeout":220},
+ {"name":"reverse-family","cmd":"set -e; bun install --frozen-lockfile >/dev/null; for mode in 1 0; do GDP_SOURCE_CONTEXTS=$mode GDP_SOURCE_INDEX=1 GDP_COUNTS_SHARED_TREES=0 GDP_COUNT_LEMMA_CUTS=0 taskset -c 0-3 bun research/track-m/profile-family.ts replay-input/input.json; done","cpu":4,"memory":12000,"timeout":260}
+]

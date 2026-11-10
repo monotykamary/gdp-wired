@@ -1,0 +1,1 @@
+[{"name":"completion-positive-probe","cmd":"set -euo pipefail; bash research/lane-i/validate.sh setup; timeout 45 bun research/lane-i/completion-order-probe.ts","cpu":4,"memory":12288,"timeout":120}]

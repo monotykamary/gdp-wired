@@ -1,0 +1,37 @@
+[
+  {
+    "name": "tiny-zero-sequence",
+    "cmd": "bash research/track-m/lane-f-source-query.sh tiny-zero-sequence",
+    "cpu": 2,
+    "memory": 8192,
+    "timeout": 60
+  },
+  {
+    "name": "tiny-zero-folded",
+    "cmd": "bash research/track-m/lane-f-source-query.sh tiny-zero-folded",
+    "cpu": 2,
+    "memory": 8192,
+    "timeout": 60
+  },
+  {
+    "name": "tiny-zero-boolean",
+    "cmd": "bash research/track-m/lane-f-source-query.sh tiny-zero-boolean",
+    "cpu": 2,
+    "memory": 8192,
+    "timeout": 60
+  },
+  {
+    "name": "source-zero-folded",
+    "cmd": "bash research/track-m/lane-f-source-query.sh source-zero-folded",
+    "cpu": 2,
+    "memory": 8192,
+    "timeout": 60
+  },
+  {
+    "name": "source-zero-boolean",
+    "cmd": "bash research/track-m/lane-f-source-query.sh source-zero-boolean",
+    "cpu": 2,
+    "memory": 8192,
+    "timeout": 60
+  }
+]

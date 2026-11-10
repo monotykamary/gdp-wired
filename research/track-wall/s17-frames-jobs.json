@@ -1,0 +1,9 @@
+[
+ {
+  "name": "s17-frames",
+  "cpu": 2,
+  "memory": 8192,
+  "timeout": 600,
+  "cmd": "set -o pipefail; bun install --frozen-lockfile >/dev/null && mkdir -p s17 && cp s17data/family.json s17/family.json && bun research/track-wall/s17-frames.ts s17/family.json 2>&1 | cut -c1-1200"
+ }
+]

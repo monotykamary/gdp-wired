@@ -1,0 +1,16 @@
+[
+  {
+    "name": "tests",
+    "cmd": "set -e; bun install --frozen-lockfile >/dev/null; bun test research/track-m/action-guard.test.ts research/track-m/field-bound-lemmas.test.ts research/track-m/row-cases.test.ts research/track-m/frame-lemmas.test.ts research/track-m/guard-cases.test.ts research/track-m/boolean-core.test.ts research/track-m/fold-path.test.ts",
+    "cpu": 1,
+    "memory": 4000,
+    "timeout": 90
+  },
+  {
+    "name": "replay",
+    "cmd": "set -e; bun install --frozen-lockfile >/dev/null; bun research/track-m/boolean-replay.ts replay-input/boolean-fixture.json",
+    "cpu": 1,
+    "memory": 4000,
+    "timeout": 90
+  }
+]

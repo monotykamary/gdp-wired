@@ -1,0 +1,98 @@
+[
+  {
+    "cpu": 4,
+    "memory": 14336,
+    "timeout": 900,
+    "vm_type": "large",
+    "name": "consensus-cohort-13",
+    "cmd": "bun research/lane-i/regressions/consensus-recheck.ts run 13"
+  },
+  {
+    "cpu": 4,
+    "memory": 14336,
+    "timeout": 900,
+    "vm_type": "large",
+    "name": "consensus-cohort-14",
+    "cmd": "bun research/lane-i/regressions/consensus-recheck.ts run 14"
+  },
+  {
+    "cpu": 4,
+    "memory": 14336,
+    "timeout": 900,
+    "vm_type": "large",
+    "name": "consensus-cohort-15",
+    "cmd": "bun research/lane-i/regressions/consensus-recheck.ts run 15"
+  },
+  {
+    "cpu": 4,
+    "memory": 14336,
+    "timeout": 900,
+    "vm_type": "large",
+    "name": "consensus-cohort-16",
+    "cmd": "bun research/lane-i/regressions/consensus-recheck.ts run 16"
+  },
+  {
+    "cpu": 4,
+    "memory": 14336,
+    "timeout": 900,
+    "vm_type": "large",
+    "name": "consensus-cohort-17",
+    "cmd": "bun research/lane-i/regressions/consensus-recheck.ts run 17"
+  },
+  {
+    "cpu": 4,
+    "memory": 14336,
+    "timeout": 900,
+    "vm_type": "large",
+    "name": "consensus-cohort-18",
+    "cmd": "bun research/lane-i/regressions/consensus-recheck.ts run 18"
+  },
+  {
+    "cpu": 4,
+    "memory": 14336,
+    "timeout": 900,
+    "vm_type": "large",
+    "name": "consensus-cohort-19",
+    "cmd": "bun research/lane-i/regressions/consensus-recheck.ts run 19"
+  },
+  {
+    "cpu": 4,
+    "memory": 14336,
+    "timeout": 900,
+    "vm_type": "large",
+    "name": "consensus-cohort-20",
+    "cmd": "bun research/lane-i/regressions/consensus-recheck.ts run 20"
+  },
+  {
+    "cpu": 4,
+    "memory": 14336,
+    "timeout": 900,
+    "vm_type": "large",
+    "name": "consensus-cohort-21",
+    "cmd": "bun research/lane-i/regressions/consensus-recheck.ts run 21"
+  },
+  {
+    "cpu": 4,
+    "memory": 14336,
+    "timeout": 900,
+    "vm_type": "large",
+    "name": "consensus-cohort-22",
+    "cmd": "bun research/lane-i/regressions/consensus-recheck.ts run 22"
+  },
+  {
+    "cpu": 4,
+    "memory": 14336,
+    "timeout": 900,
+    "vm_type": "large",
+    "name": "consensus-cohort-23",
+    "cmd": "bun research/lane-i/regressions/consensus-recheck.ts run 23"
+  },
+  {
+    "cpu": 4,
+    "memory": 14336,
+    "timeout": 900,
+    "vm_type": "large",
+    "name": "consensus-cohort-24",
+    "cmd": "bun research/lane-i/regressions/consensus-recheck.ts run 24"
+  }
+]

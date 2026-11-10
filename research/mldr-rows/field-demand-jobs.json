@@ -1,0 +1,23 @@
+[
+  {
+    "name": "field-demand-before",
+    "cmd": "bash row-field-demand/field-demand-pair.sh before",
+    "cpu": 8,
+    "memory": 14336,
+    "timeout": 240
+  },
+  {
+    "name": "field-demand-after",
+    "cmd": "bash row-field-demand/field-demand-pair.sh after",
+    "cpu": 8,
+    "memory": 14336,
+    "timeout": 240
+  },
+  {
+    "name": "field-demand-check",
+    "cmd": "bash row-field-demand/field-demand-pair.sh check",
+    "cpu": 8,
+    "memory": 14336,
+    "timeout": 240
+  }
+]

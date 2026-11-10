@@ -1,0 +1,1 @@
+[{"name":"no-units","cmd":"bun install --frozen-lockfile >/dev/null && LAB_NO_UNITS=1 bun research/track-m/core-order-replay.ts core-input/cores.log", "cpu":1,"memory":4000,"timeout":90}]

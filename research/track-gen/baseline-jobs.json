@@ -1,0 +1,1 @@
+[{"name":"generation","cmd":"set -e; bun install --frozen-lockfile >/dev/null; TRACK_GEN_DISPOSABLE=1 bun research/track-gen/install-profile.ts; GDP_INFER_TRACE=2 bun research/track-gen/profile.ts","cpu":8,"memory":12000,"timeout":180}]

@@ -1,0 +1,16 @@
+[
+  {
+    "name": "ta-source-models",
+    "cmd": "LAB_SECTION8_ONLY='Inv*' bash research/track-m/run-section8-ta.sh",
+    "cpu": 8,
+    "memory": 14336,
+    "timeout": 240
+  },
+  {
+    "name": "static-check",
+    "cmd": "set -e; bash research/track-m/prepare-vendors.sh; bun install --frozen-lockfile >/dev/null; echo TSC; timeout -s KILL 180 bun x tsc -p .; echo LINT; timeout -s KILL 180 bun x oxlint --type-aware --deny-warnings --disable-nested-config; bun test research/track-m/phase-census-meter.test.ts research/track-m/section7-followup-meter.test.ts",
+    "cpu": 8,
+    "memory": 14336,
+    "timeout": 420
+  }
+]

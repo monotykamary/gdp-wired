@@ -1,0 +1,9 @@
+chore: wip: checkpoint finite-domain experiments
+
+WIP: preserve optional value domains, round limits, bounded native
+predicate clauses, regression tests and the unpromoted hybrid pilot.
+The named costly-helper target and replacement gate are not met.
+
+Preserve collected compact receipts and the temporary-copy diagnostic
+inputs. Stop and close the owned timing batch for the user checkpoint.
+No new experiments, proof runs or validation jobs were started.

@@ -1,0 +1,17 @@
+[
+ {
+  "name": "tests-wall",
+  "cpu": 4,
+  "memory": 8192,
+  "timeout": 1200,
+  "cmd": "set -o pipefail; bun install --frozen-lockfile >/dev/null && bun test core/runtime-keys.test.ts core/count-cubes.test.ts core/compile.test.ts core/exists-support.test.ts core/small-laws.test.ts core/sample-cache.test.ts core/cube-rows.test.ts core/quorum-laws.test.ts core/counts-preflight.test.ts core/exists.test.ts core/count-write-frames.test.ts research/track-gen/t14-stutter.test.ts 2>&1 | tail -12"
+ },
+ {
+  "name": "orig-pair-1",
+  "vm_type": "large",
+  "cpu": 2,
+  "memory": 8192,
+  "timeout": 1200,
+  "cmd": "set -o pipefail; mkdir -p base && tar -xf baselines/base.tar -C base && (cp -R vendor/. base/vendor/ 2>/dev/null || true) && bun install --frozen-lockfile >/dev/null && (cd base && bun install --frozen-lockfile >/dev/null) && grep -m1 'model name' /proc/cpuinfo; echo PAIR 1 mine; (cd . && GDP_COUNTS_TRACE=1 GDP_COUNTS_PROF=1 /usr/bin/time -f 'PROCESS_SECONDS mine %e EXIT %x' timeout -s KILL 60 bun research/protocols/ic3syn/run.ts --ms 60000 --only mldr --skip broken > out.json 2> err.log; echo VERDICT $(cut -c1-400 out.json); grep -c 'counts: try' err.log; grep 'counts: prof\\|counts: round\\|counts: candidates at\\|PROCESS_SECONDS\\|finite Houdini' err.log | cut -c1-330; grep 'counts: try' err.log | head -1 | cut -c1-200; grep 'counts: try' err.log | tail -2 | cut -c1-200) ; echo PAIR 1 base; (cd base && GDP_COUNTS_TRACE=1 GDP_COUNTS_PROF=1 /usr/bin/time -f 'PROCESS_SECONDS base %e EXIT %x' timeout -s KILL 60 bun research/protocols/ic3syn/run.ts --ms 60000 --only mldr --skip broken > out.json 2> err.log; echo VERDICT $(cut -c1-400 out.json); grep -c 'counts: try' err.log; grep 'counts: prof\\|counts: round\\|counts: candidates at\\|PROCESS_SECONDS\\|finite Houdini' err.log | cut -c1-330; grep 'counts: try' err.log | head -1 | cut -c1-200; grep 'counts: try' err.log | tail -2 | cut -c1-200)"
+ }
+]

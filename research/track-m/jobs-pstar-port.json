@@ -1,0 +1,6 @@
+[
+ {"name":"check","cmd":"bun install --frozen-lockfile >/dev/null && bun run check && bun test research/protocols/ic3syn/mldr.test.ts", "cpu":4,"memory":14000,"timeout":300},
+ {"name":"bfs","cmd":"bun install --frozen-lockfile >/dev/null && bun research/protocols/ic3syn/check.ts --only mldr --edges", "cpu":4,"memory":14000,"timeout":300},
+ {"name":"broken","cmd":"bun install --frozen-lockfile >/dev/null && bun research/protocols/ic3syn/check.ts --only mldr --broken", "cpu":4,"memory":14000,"timeout":180},
+ {"name":"capture","cmd":"set -u; bun install --frozen-lockfile >/dev/null; timeout 100s env GDP_COUNTS_TRACE=1 DUMP_DIR=/tmp/pstar-dump DUMP_MIN=0 DUMP_N=100000 bun --preload ./research/query/dump.ts research/protocols/ic3syn/run.ts --ms 60000 --only mldr --skip broken; code=$?; echo CAPTURE_EXIT=$code; test -f /tmp/pstar-dump/queries.jsonl && wc -l /tmp/pstar-dump/queries.jsonl; exit 0", "cpu":4,"memory":14000,"timeout":140}
+]

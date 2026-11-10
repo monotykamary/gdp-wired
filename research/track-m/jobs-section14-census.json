@@ -1,0 +1,1 @@
+[{"name":"census","cmd":"out=$(mktemp -d \"$HOME/track-m-section14-census-XXXXXX\"); bun research/track-m/section14-census.ts reference/receipts.br runtime/overlap.packet.json \"$out\" && bun research/track-m/pack-section10-archive.ts \"$out\"/*","cpu":8,"memory":12288,"timeout":120}]

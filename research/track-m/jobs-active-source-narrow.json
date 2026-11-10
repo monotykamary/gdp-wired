@@ -1,0 +1,58 @@
+[
+  {
+    "name": "overlap-0",
+    "cmd": "set -e; bun install --frozen-lockfile >/dev/null; bun research/track-m/active-source-probe.ts replay-input/input.json 'Inv2973' 0 first",
+    "cpu": 8,
+    "memory": 14336,
+    "timeout": 150
+  },
+  {
+    "name": "overlap-1",
+    "cmd": "set -e; bun install --frozen-lockfile >/dev/null; bun research/track-m/active-source-probe.ts replay-input/input.json 'Inv2973' 1 first",
+    "cpu": 8,
+    "memory": 14336,
+    "timeout": 150
+  },
+  {
+    "name": "overlap-5",
+    "cmd": "set -e; bun install --frozen-lockfile >/dev/null; bun research/track-m/active-source-probe.ts replay-input/input.json 'Inv2973' 5 first",
+    "cpu": 8,
+    "memory": 14336,
+    "timeout": 150
+  },
+  {
+    "name": "overlap-6",
+    "cmd": "set -e; bun install --frozen-lockfile >/dev/null; bun research/track-m/active-source-probe.ts replay-input/input.json 'Inv2973' 6 first",
+    "cpu": 8,
+    "memory": 14336,
+    "timeout": 150
+  },
+  {
+    "name": "backing-0",
+    "cmd": "set -e; bun install --frozen-lockfile >/dev/null; bun research/track-m/active-source-probe.ts replay-input/input.json 'Inv*' 0 first",
+    "cpu": 8,
+    "memory": 14336,
+    "timeout": 150
+  },
+  {
+    "name": "backing-1",
+    "cmd": "set -e; bun install --frozen-lockfile >/dev/null; bun research/track-m/active-source-probe.ts replay-input/input.json 'Inv*' 1 first",
+    "cpu": 8,
+    "memory": 14336,
+    "timeout": 150
+  },
+  {
+    "name": "backing-5",
+    "cmd": "set -e; bun install --frozen-lockfile >/dev/null; bun research/track-m/active-source-probe.ts replay-input/input.json 'Inv*' 5 first",
+    "cpu": 8,
+    "memory": 14336,
+    "timeout": 150
+  },
+  {
+    "name": "backing-6",
+    "cmd": "set -e; bun install --frozen-lockfile >/dev/null; bun research/track-m/active-source-probe.ts replay-input/input.json 'Inv*' 6 first",
+    "cpu": 8,
+    "memory": 14336,
+    "timeout": 150
+  }
+]

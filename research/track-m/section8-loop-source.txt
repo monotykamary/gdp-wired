@@ -1,0 +1,27 @@
+ let rounds=0,fixedPoint=false
+ for(const index of pool)scopesFor(index) // prepare the same scalar/row scopes, not source proofs
+ const excludedAt=new Map<string,Set<number>>(),triedAt=new Map<string,Set<number>>()
+ const attempt=(index:number,scope:Path,end:number):boolean=>{
+  if(!building())return false
+  const inst=cert.insts[index]!,h=g.hyps[raw.length+index];if(h?.op!=='or'||h.xs[0]?.op!=='<=')return false
+  const good:Bound={op:'<=',a:h.xs[0].a,b:h.xs[0].b},available=active(saved,scope),path=scope,before=clock()
+  const part:Goal={name:g.name,hyps:[...source(path,inst.wit),...available.map(s=>s.good),h,{op:'not',x:good}]}
+  const reused=models.some(savedModel=>{
+   if(![...path.values()].every(a=>{if(Object.keys(a.lin).some(k=>k!=='1'&&!Object.hasOwn(savedModel.model,k)))return false;const value=Object.entries(a.lin).reduce((sum,[k,v])=>sum+v*(k==='1'?1:savedModel.model[k]!),0);return a.holds?value<=0:value>0}))return false
+   const renamed={...part,hyps:part.hyps.map(c=>substC(c,{vars:{[inst.wit]:x(savedModel.witness)},maps:{},flags:{}}))},live=new Set<string>()
+   walkLive(renamed.hyps,path,(o:any)=>{if(o.op==='var')live.add(o.name)})
+   return [...live].every(name=>Object.hasOwn(savedModel.model,name))&&brokenOf(renamed)(savedModel.model).length===0
+  })
+  if(reused){trace.push({stage:'closure-source',scope:scopes.indexOf(scope),index,outcome:'reused-model',ms:clock()-before});return false}
+  const queryLimit=Math.min(end,clock()+(inst.terms.length===5?150:50)),q=modelSequence(path)(part,queryLimit)
+  let tree:Tree|undefined='tree'in q?q.tree:undefined,proofSource=part
+  if(!tree&&!('tree'in q)&&q.stuck==='sat'&&q.witness){
+   if(brokenOf(part)(q.witness).length===0){models.push({witness:inst.wit,model:q.witness});if(models.length>32)models.shift()}
+  }else if(!tree&&!('tree'in q)&&q.why===REFUTED&&q.core?.length&&q.core.length<=8&&building()){
+   const limit=Math.min(end,Math.max(queryLimit,clock()+100)),small={...part,hyps:q.core.map(i=>part.hyps[i]!)},oldPoint=atPoint.on;atPoint.on=false
+   try{let local=booleanCore(small,path,new Set([inst.wit]),limit,trace,{deferCheck:true,extended:true,scalarGuards:true,model:true});if(!local&&clock()<limit){const folded=foldPath(small,path),out=grow(folded.goal,path,{nodes:0,until:Math.min(limit,clock()+25),units:false});local='tree'in out?withDeadline(limit,()=>widen(folded.goal,small,out.tree,folded.opaque,path,path)):undefined}if(local){tree=local;proofSource=small}}finally{atPoint.on=oldPoint}
+  }
+  const accepted=!!tree&&accept(good,proofSource,tree,path,scope,index)
+  trace.push({stage:'closure-source',scope:scopes.indexOf(scope),index,core:q.core?.length,tree:!!tree,outcome:accepted?'checked':'tree'in q?'untransported':q.stuck,ms:clock()-before})
+  return accepted
+ }

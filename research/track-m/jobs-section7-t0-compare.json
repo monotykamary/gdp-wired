@@ -1,0 +1,3 @@
+[
+ {"name":"compare-slices","cmd":"set -e; bun install --frozen-lockfile >/dev/null; TRACK_M_DISPOSABLE_PROFILE=1 bun research/track-m/install-section7-observer.ts; LAB_SECTION7_T0=1 LAB_ROW_MODE=equal LAB_SOURCE_MS=1500 LAB_SOURCE_TRACE=1 LAB_CONDITIONAL_PROOF=1 bun research/track-m/active-source-probe.ts replay-input/input.json 'Inv*' 5 all; LAB_SECTION7_T0=1 LAB_DEMAND_PROPOSALS=1 LAB_SOURCE_MS=5000 LAB_SOURCE_TRACE=1 LAB_CONDITIONAL_PROOF=1 bun research/track-m/active-source-probe.ts replay-input/input.json 'Inv*' 5 all","cpu":8,"memory":14336,"timeout":180}
+]

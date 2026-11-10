@@ -1,0 +1,5 @@
+[
+ {"name":"source", "cmd":"curl -fsSL --retry 3 https://raw.githubusercontent.com/will62794/endive/8b6f2abd1988eeb308f965813635e9871f253e2d/benchmarks/MongoLoglessDynamicRaft_IndProofs.tla", "timeout":90},
+ {"name":"port", "cmd":"bun install --frozen-lockfile >/dev/null && bun research/protocols/ic3syn/check.ts --only mldr --edges --ms 180000 && bun research/protocols/ic3syn/check.ts --only mldr --broken --ms 60000", "timeout":300},
+ {"name":"baseline", "cmd":"bun install --frozen-lockfile >/dev/null && GDP_COUNTS_TRACE=3 GDP_COUNTS_PROF=1 bun research/protocols/ic3syn/run.ts --ms 60000 --only mldr --skip broken", "timeout":150}
+]

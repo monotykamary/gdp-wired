@@ -1,0 +1,26 @@
+[
+ {
+  "name": "mldr-pair-1",
+  "cmd": "T14_CAPTURE=1 GDP_COUNTS_TRACE=123 GDP_COUNTS_PROF=1 bash research/track-gen/t14-paired.sh original mldr 1 main",
+  "timeout": 240,
+  "cpu": 4,
+  "memory": 14336,
+  "vm_type": "large"
+ },
+ {
+  "name": "mldr-pair-2",
+  "cmd": "T14_CAPTURE=1 GDP_COUNTS_TRACE=123 GDP_COUNTS_PROF=1 bash research/track-gen/t14-paired.sh original mldr 2 main",
+  "timeout": 240,
+  "cpu": 4,
+  "memory": 14336,
+  "vm_type": "large"
+ },
+ {
+  "name": "mldr-pair-3",
+  "cmd": "T14_CAPTURE=1 GDP_COUNTS_TRACE=123 GDP_COUNTS_PROF=1 bash research/track-gen/t14-paired.sh original mldr 3 main",
+  "timeout": 240,
+  "cpu": 4,
+  "memory": 14336,
+  "vm_type": "large"
+ }
+]

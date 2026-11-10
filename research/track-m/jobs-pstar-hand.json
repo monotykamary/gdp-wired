@@ -1,0 +1,3 @@
+[
+ {"name":"given","cmd":"set -e; bun install --frozen-lockfile >/dev/null; GDP_COUNTS_GIVEN=1 GDP_COUNTS_TRACE=123 GDP_COUNTS_DUMP_N=100 GDP_COUNTS_DUMP_MIN=0 DUMP_DIR=/tmp/pstar-goals bun research/protocols/ic3syn/mldr2-probe.ts pstar star 900000; tar -cJf /tmp/pstar-goals.txz -C /tmp/pstar-goals .; echo GOALS_ARCHIVE; base64 -w0 /tmp/pstar-goals.txz; echo", "cpu":4,"memory":14000,"timeout":1900}
+]

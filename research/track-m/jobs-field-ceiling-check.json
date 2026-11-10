@@ -1,0 +1,16 @@
+[
+  {
+    "name": "check",
+    "cmd": "set -e; bash research/track-m/prepare-vendors.sh; bun install --frozen-lockfile >/dev/null; bun run check",
+    "cpu": 2,
+    "memory": 7000,
+    "timeout": 240
+  },
+  {
+    "name": "production-derivation-tests",
+    "cmd": "set -e; bun install --frozen-lockfile >/dev/null; bun test core/count-recovery core/count-cases.test.ts core/count-focus-proof.test.ts core/count-focused.test.ts core/count-witness-flags.test.ts",
+    "cpu": 2,
+    "memory": 4000,
+    "timeout": 180
+  }
+]
