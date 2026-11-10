@@ -27,7 +27,7 @@ Required gate baseline: `b11e1f651618b3d3fcaf6cec66b4a8b0203cdcd3`.
 
 `runs/PRIVACY-REVIEW-0480.md` records the completed scan: 65 baseline-boundary flags and 1,648 candidate-boundary flags, mostly internal paths in research/report artifacts. The scanner reports `clean: false`; client-name review and the final release-tip/tarball scan remain open. Do not rewrite history, silently alter byte-exact receipts, or publish the held evidence.
 
-The coordinator has put all new Boat submissions on hold while resolving a second scheduler taking over worker agents. No new validation job will be submitted until the coordinator gives the go. Existing pre-hold work is not automatically accepted as valid evidence.
+The coordinator has put all new Boat submissions on hold while resolving a second scheduler taking over worker agents. No new validation job will be submitted until the coordinator gives the go. Existing pre-hold work is not automatically accepted as valid evidence. The 39-job supplement completed with 39 native exit-zero rows and no fallback, but its semantic collector and four negative controls have not run; see `runs/c841-supplement-resume4-20261110/STATUS.md`. This is not canonical gate or performance-bar admission.
 
 ## Retained blocked attempts (cancelled before worker placement)
 

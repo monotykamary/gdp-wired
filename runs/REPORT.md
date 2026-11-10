@@ -6,7 +6,7 @@ At the coordinator's instruction, local release prep now sets both package versi
 
 Privacy is **not clean**: 65 flags in origin/main..main and 1,648 in main..c841, mostly research/report paths. No matching secret material was printed. Client-name review and public history disposition remain open. The normal summary collector lost stdout; exact retained worker stdout was separately recovered without overwriting the empty log.
 
-The pre-hold 39-job supplement (`20261110-131934-rcevew`) and package-smoke batch (`20261110-132141-23nq9m`) still have nonterminal local task receipts; no pass/fail is claimed for either. No new submission has been made since the hold.
+The pre-hold 39-job supplement (`20261110-131934-rcevew`) has now completed: **39 native exit-zero Boat rows, no fallback**, and all 39 local log files are present/nonempty. This is execution evidence only: the semantic collector and its four negative controls have not run, so no supplemental verification, canonical gate or performance-bar pass is claimed. The bounded record and metadata hashes are in `runs/c841-supplement-resume4-20261110/STATUS.md`. The package-smoke batch (`20261110-132141-23nq9m`) remains nonterminal at this inspection. No new submission has been made since the hold.
 
 ### Pre-hold submissions and historical repair status
 

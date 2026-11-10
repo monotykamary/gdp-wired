@@ -4,11 +4,12 @@
   "controller":"bx_gz4zdtbh",
   "controlTree":"/tmp/gdp-ci-0480-control",
   "gateGreen":false,
+  "submissionHold":true,
   "canonicalGateOwner":"ic3-lean",
   "canonicalHandoff":"hc send ic3-lean, 2026-11-10 13:20 UTC; exact candidate/base and no duplicate full gate",
-  "supplement":{"batch":"20261110-131934-rcevew","task":"db17dfdd-b8f0-4fda-9835-e711e3e723d9","pid":252710,"out":"runs/c841-supplement-resume4-20261110","status":"running"},
-  "privacy":{"batch":"20261110-131934-17oc5m","task":"7ce18154-c04f-4557-b32d-480637b6cdac","out":"runs/c841-privacy-resume4-20261110","exit":0,"vm":"bx_4zdy5q97","cleanResult":"pending semantic summary"},
-  "privacySummary":{"batch":"20261110-132112-1mdy8l","task":"a6175b60-337e-4e1d-8143-35e966a00c30","pid":254195,"out":"runs/c841-privacy-summary-resume4-20261110","status":"running"},
-  "packageSmoke":{"task":"c1ceb05f-b56b-4a16-86e9-4b2df86e4ce7","pid":254542,"out":"runs/c841-package-smoke-resume4-20261110","status":"running"},
+  "supplement":{"batch":"20261110-131934-rcevew","task":"db17dfdd-b8f0-4fda-9835-e711e3e723d9","pid":252710,"out":"runs/c841-supplement-resume4-20261110","status":"exited","exit":0,"nativeJobs":39,"nativeFailed":0,"semanticVerification":"pending; submission hold","acceptedAsGate":false},
+  "privacy":{"batch":"20261110-131934-17oc5m","task":"7ce18154-c04f-4557-b32d-480637b6cdac","out":"runs/c841-privacy-resume4-20261110","exit":0,"vm":"bx_4zdy5q97","cleanResult":false,"clientNameReviewComplete":false},
+  "privacySummary":{"batch":"20261110-132112-1mdy8l","task":"a6175b60-337e-4e1d-8143-35e966a00c30","pid":254195,"out":"runs/c841-privacy-summary-resume4-20261110","status":"exited","exit":0,"stdout":"empty collector log; retained worker stdout recovered separately"},
+  "packageSmoke":{"batch":"20261110-132141-23nq9m","task":"c1ceb05f-b56b-4a16-86e9-4b2df86e4ce7","pid":254542,"out":"runs/c841-package-smoke-resume4-20261110","status":"running"},
   "cancelledProvisionalController":{"batch":"20261110-132007-xfmfgt","task":"462c03f7-8d9a-4520-8a35-531aaca28d94","exit":130,"reason":"Avoid duplicate gate and use Lane D maintenance-safe wrapper"}
 }
