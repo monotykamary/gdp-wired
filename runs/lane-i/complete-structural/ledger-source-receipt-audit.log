@@ -1,0 +1,5 @@
+LEDGER_RECEIPT_SUMMARY {"label":"targeted","exit":0,"signal":null,"passed":"39","failed":"0","checkedHash":true}
+LEDGER_RECEIPT_SUMMARY {"label":"roster","exit":0,"signal":null,"checkedHash":true}
+LEDGER_RECEIPT_SUMMARY {"label":"decoder","exit":0,"signal":null,"checkedHash":true}
+LEDGER_RECEIPT_SUMMARY {"label":"type-lint","exit":0,"signal":null,"checkedHash":true}
+LEDGER_SOURCE_AND_RECEIPT_AUDIT {"passed":true,"candidate":"isolated ledger draft over pre-constructor raw observations","originalModel":"0541fa9436e307a6fb716aa5064637b30b893b79","sourceUnchanged":true}

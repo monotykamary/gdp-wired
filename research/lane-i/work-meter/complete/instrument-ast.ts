@@ -1,5 +1,7 @@
 import {strict as assert} from 'node:assert'
-import {readFileSync, readdirSync, writeFileSync} from 'node:fs'
+import {readdirSync, writeFileSync} from 'node:fs'
+import {createHash} from 'node:crypto'
+import {gzipSync} from 'node:zlib'
 import {dirname, relative, resolve} from 'node:path'
 import {execFileSync} from 'node:child_process'
 import ts from 'typescript'
@@ -89,6 +91,8 @@ assert(rows.some(r => r.path === 'core/machine.ts'))
 console.log('AST_CONSTRUCTOR_AUDIT ' + JSON.stringify({passed: true, semantics: 'identity wrapper after child evaluation; only newly allocated nodes charged', sites: rows.reduce((n, r) => n + r.sites, 0), files: rows}))
 // This is a generated source artifact, not a benchmark receipt. No local compilation is needed to apply it.
 execFileSync('git', ['add', '--', 'core', 'kernel', 'scripts/test-shards.ts'])
-console.log('SOURCE_PATCH_BEGIN')
-process.stdout.write(execFileSync('git', ['diff', '--cached', '--binary', 'HEAD', '--', 'core', 'kernel', 'scripts/test-shards.ts'], {encoding: 'utf8', maxBuffer: 16 * 1024 * 1024}))
-console.log('SOURCE_PATCH_END')
+const patch = execFileSync('git', ['diff', '--cached', '--binary', 'HEAD', '--', 'core', 'kernel', 'scripts/test-shards.ts'], {encoding: 'utf8', maxBuffer: 16 * 1024 * 1024})
+const packed = gzipSync(patch).toString('base64'), chunks = packed.match(/.{1,12000}/g) ?? []
+console.log('AST_SOURCE_META ' + JSON.stringify({rawBytes: Buffer.byteLength(patch), sha256: createHash('sha256').update(patch).digest('hex'), encoding: 'gzip-base64', chunks: chunks.length}))
+for (const [index, data] of chunks.entries()) console.log(`AST_SOURCE_CHUNK ${index} ${data}`)
+console.log('AST_SOURCE_END ' + chunks.length)

@@ -1,12 +1,12 @@
 {
-  "status": "structural, token-preserving constructor erasure preparation in flight; no accepted patch yet",
+  "status": "PAUSED by user; no active or queued owned work",
   "baseSnapshot": "30f9c3ba",
   "privateIndex": "/private/tmp/lane-i-complete.index",
   "task": "4575fac2-7dbb-4fcf-859f-63aba9e3e9c5",
   "waiterPid": 90266,
   "batch": "20261110-123336-6maehh",
   "resultDirectory": "runs/lane-i/complete-structural",
-  "next": "collect bounded AST mismatch or successful source artifact; then freeze and launch validation/checks.jobs.json",
+  "next": "On explicit resume, materialize and verify the collected compressed source artifact, freeze its blobs and run validation/checks.jobs.json. Do not regenerate the completed artifact.",
   "launch": "supercomputer --repo /private/tmp/lane-i-paxos-runner.djtUt9 run --jobs /Users/monotykamary/VCS/working-remote/open-source/gdp-wired-integ/research/lane-i/work-meter/complete/prepare.jobs.json --out /Users/monotykamary/VCS/working-remote/open-source/gdp-wired-integ/runs/lane-i/complete-ast-preparation --backend boat --class interactive --data /Users/monotykamary/VCS/working-remote/open-source/gdp-wired-integ/research/lane-i/generator:generator-input --data /Users/monotykamary/VCS/working-remote/open-source/gdp-wired-integ/research/lane-i/work-meter/complete:complete-input --data /private/tmp/lane-i-gated-follow-up.wehlxC:frozen",
   "unvalidated": [
     "new raw observations",
@@ -89,5 +89,18 @@
         "cause": "constructor child failed; driver discarded its error receipt; not yet diagnosed"
       }
     }
-  }
+  },
+  "lastCollected": {
+    "batch": "20261110-123659-26mbwo",
+    "task": "97b9bf2d-e8d6-4401-a7e6-3d57de8c6861",
+    "job": "complete-ast-artifact",
+    "jobExit": 0,
+    "resultDirectory": "runs/lane-i/complete-artifact",
+    "sites": 1626,
+    "rawBytes": 982162,
+    "declaredSha256": "52571387a7f165ec76af1e34ea9fe06192abd43d555cd6aa78b2cef93c1734ba",
+    "chunks": 29
+  },
+  "activeTasks": [],
+  "rerunFirst": []
 }

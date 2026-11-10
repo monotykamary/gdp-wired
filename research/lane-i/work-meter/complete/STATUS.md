@@ -1,21 +1,23 @@
-# Complete accounting — changed candidate validation in flight
+# PAUSED — collected constructor artifact, no running work
 
-No production integration or complete-coverage claim.
+User paused all work. Do not launch anything until explicitly resumed.
 
-Active batch: 20261110-123003-1cvbpa (complete-ast-progress), task
-cd893c39-f0e2-4935-9ca3-5c9b57c0c9b7. See state.json and REPORT's top section.
+The last batch, 20261110-123659-26mbwo, finished within the collection window:
+complete-ast-artifact exit 0. The source-construction erasure audit reports
+1,626 sites. The retained artifact has 29 gzip/base64 chunks, declares
+982,162 uncompressed bytes and SHA-256
+52571387a7f165ec76af1e34ea9fe06192abd43d555cd6aa78b2cef93c1734ba.
+Receipt: runs/lane-i/complete-artifact/complete-ast-artifact.log.
 
-Preserved failures: first child error was lost; the diagnostic identified a
-stale import insertion coordinate for files with late imports. The next pass
-failed at kernel erasure, whose huge assertion diff was truncated. The latest
-program emits bounded first-difference diagnostics. No generated patch has
-been accepted yet.
+This is NOT a full source validation: the compressed artifact has not been
+materialized or independently hash-verified, and its exact-count tests,
+checker-mutation suite, roster/type checks and coverage audit have not run.
+No production changes, weights/W, F3, census or quiet intake are promoted.
 
-A separate ledger gate passed 39 selected tests, roster and decoder, but
-failed type/lint because a counter expression starting with '(' was parsed
-as a call on a preceding Request. Explicit separate statements fix that
-syntax. The changed candidate is being revalidated, not assumed correct.
+Rerun first: none cancelled. Reuse this collected artifact rather than
+regenerating it. First resume action: materialize/hash-check the artifact on
+boat, freeze the resulting source, then run validation/checks.jobs.json.
 
-The original model, production code and budget constants are unchanged.
-Coverage of optimized bitmap work and cloned/reified ASTs remains an audit
-item. No weights/W, F3, census or quiet generator-intake success is claimed.
+Earlier preparation failures and the raw-transport truncation remain
+preserved in their run directories and state history. All owned background
+tasks have exited; no owned work remains queued or running.

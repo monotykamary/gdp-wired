@@ -1,22 +1,16 @@
-# Unified meter and phase-ledger continuation — UNVALIDATED SOURCE DRAFT
+# PAUSED — isolated pre-constructor ledger gate passed
 
-These .source files are candidate source, not active modules and not validated.
-They are being prepared in parallel with complete-ast-preparation.
+Do not launch work until explicitly resumed. The ledger is still isolated,
+not integrated into production and not combined with generated constructors.
 
-The historical twelve coefficients keep their exact order and values. An
-explicit complete vector has eight additional operation coefficients. There
-is deliberately no implicit provisional default: D2 must supply a frozen
-vector for qualification. The all-ones vector exists only in unit tests.
+20261110-123003-1cvbpa: 39 selected tests, roster, decoder and type/lint pass.
+20261110-123336-6maehh: independent source/receipt audit and commitlint pass.
+Original model blob remains 0541fa9436e307a6fb716aa5064637b30b893b79.
 
-The synchronous ledger records raw and scalar start/end deltas, parent IDs,
-inclusive and exclusive counts/time, successful or exceptional exit, and
-whether its units use the historical model or an explicit complete model.
-Root totals are not a sum of overlapping children. Output failures cannot
-change the work's return value or replace its exception.
+Historical coefficients are unchanged; extra weights are explicit test-only
+inputs, not calibration. The table/instance/check boundaries.patch has not
+been validated. Full counting coverage, F3 and the 29-protocol census remain
+pending. No new production source or proof-budget policy has landed.
 
-Next: after the I2 source checkpoint, install these into core/ in a new
-isolated index, delegate kernel/prove.ts fullWork without changing the
-historical fast path, and wire existing ptime plus untrusted call boundaries
-for checks, table building and instance construction. Validate trace-on/off
-exact equality before any census. No synchronous timer is claimed as F3;
-a blocking-loop-capable observer with useful stacks remains separate.
+No ledger task remains running. Rerun first: none cancelled. Resume from the
+collected constructor artifact and combine only after its validation.

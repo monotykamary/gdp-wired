@@ -1,5 +1,5 @@
 {
-  "status": "39 selected tests, roster, decoder and type/lint passed; independent audit and commitlint jobs returned zero; source promotion pending",
+  "status": "PAUSED by user; pre-constructor ledger gate and independent audit passed; no active work",
   "privateIndex": "/private/tmp/lane-i-ledger.index",
   "task": "4575fac2-7dbb-4fcf-859f-63aba9e3e9c5",
   "waiterPid": 90266,
@@ -38,5 +38,16 @@
       "f3Implemented": false,
       "subagents": 0
     }
+  },
+  "activeTasks": [],
+  "rerunFirst": [],
+  "verified": {
+    "gateBatch": "20261110-123003-1cvbpa",
+    "auditBatch": "20261110-123336-6maehh",
+    "selectedTests": 39,
+    "roster": true,
+    "decoder": true,
+    "typeLint": true,
+    "sourceReceiptAudit": true
   }
 }
