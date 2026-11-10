@@ -367,6 +367,30 @@ export function decide(n: Code, x: boolean | undefined) { return pick(x); }`
   expect(JSON.parse(proc.stdout).rules[0].ok).toBe(true)
 })
 
+test('disabled source replay is explicitly unchecked through the CLI API and TOML', async () => {
+  const dir = files({'decision.ts': '// gdp: law identity: result == enabled\nexport function decide(enabled: boolean): boolean { return enabled; }'})
+  const target = `${dir}/decision.ts`, common = {entry: 'decide', mode: 'standalone' as const, ms: 2000, propose: false}
+  const api = await check([target], {...common, check: {runs: 0, states: 0, probes: false}})
+  expect(api.exit).toBe(2)
+  expect(api.rules[0]!.laws[0]).toMatchObject({verdict: 'unknown', translation: 'unchecked'})
+  expect(api.rules[0]!.laws[0]!.why).toContain('unchecked')
+  const disabledLaw = await check([target], {...common, check: {lawCrossCheck: false}})
+  expect(disabledLaw.exit).toBe(2)
+  expect(disabledLaw.rules[0]!.laws[0]).toMatchObject({verdict: 'unknown', translation: 'unchecked'})
+  writeFileSync(`${dir}/gdp.toml`, '[check]\nruns = 0\nstates = 0\nprobes = false\n')
+  const proc = spawnSync('bun', [new URL('./cli.ts', import.meta.url).pathname, 'check', target, '--entry', 'decide', '--mode', 'standalone', '--no-propose', '--json'], {encoding: 'utf8'})
+  expect(proc.status).toBe(2)
+  expect(JSON.parse(proc.stdout).rules[0].laws[0]).toMatchObject({verdict: 'unknown', translation: 'unchecked'})
+})
+
+test('standalone CLI reports exhaustive native source-law coverage by default', async () => {
+  const dir = files({'decision.ts': '// gdp: law identity: result == enabled\nexport function decide(enabled: boolean): boolean { return enabled; }'})
+  const result = await check([`${dir}/decision.ts`], {entry: 'decide', mode: 'standalone', ms: 2000, propose: false})
+  expect(result.exit).toBe(0)
+  expect(result.rules[0]!.laws[0]).toMatchObject({verdict: 'proven', translation: 'exhaustive'})
+  expect(result.rules[0]!.laws[0]!.translationChecks).toBeGreaterThanOrEqual(2)
+})
+
 test('standalone CLI accounts for every annotated function in a file', async () => {
   const dir = files({'choices.ts': `
 // gdp: law route controls permission: result.allowed implies route == "north"

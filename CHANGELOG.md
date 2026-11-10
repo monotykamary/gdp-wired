@@ -5,6 +5,15 @@ noted), each with the command that reproduces it.
 
 ## Unreleased
 
+- **Breaking — source-law validation:** a source proof now requires an independent native evaluation of the
+  original law in addition to the kernel proof of the extracted model. Finite standalone input domains are
+  exhausted; unbounded domains retain replay's seeded sampling and are labeled `translation: 'sampled'`.
+  Native counterexamples refuse the proof with a **translation error** and a witness.
+- **Breaking — no silent unchecked source proofs:** disabling replay or `check.lawCrossCheck` returns
+  `translation: 'unchecked'`, `proven: false`, `checked: false`; the CLI exits **2**. Unsupported native
+  interpretations and source-derived models whose provenance is unavailable fail closed as well.
+  Source-free DSL/model proofs are unchanged. See [the CI-only guide](docs/ci-only.md).
+
 - **CI-first use:** keep gdp-wired in dev dependencies and ship plain application code. Supported finite TypeScript
   decision laws can be checked directly from source; protocol flows remain separate models.
 - **Finite comparison:** `fun.compare` and `rule.compare` report input-domain coverage, with deterministic failing

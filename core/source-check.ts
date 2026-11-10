@@ -17,18 +17,22 @@ export type TranslationFields = {translation?: Translation, translationChecks?: 
 const sourceMarker = Symbol.for('gdp-wired.source-proof.v1')
 const marked = (value: object): boolean => Object.prototype.hasOwnProperty.call(value, sourceMarker)
 const mark = (value: object): void => { if (!marked(value)) Object.defineProperty(value, sourceMarker, {value: true}) }
-export function inheritSource(from: object, to: object): void { if (marked(from)) mark(to) }
+export function inheritSource(from: object, to: object, transparent = false): void {
+  if (marked(from)) mark(to)
+  const source = sources.get(from)
+  if (transparent && source) sources.set(to, source)
+}
 const evidence = new WeakMap<object, NativeJournal>()
-const sources = new WeakMap<object, {journal?: NativeJournal, generated: Set<object>}>()
+const sources = new WeakMap<object, {root: object, journal?: NativeJournal, generated: Set<object>}>()
 const nativeLaws = new WeakMap<object, {rule: object, method?: string, name: string, evaluate: (observation: NativeObservation) => boolean}>()
 export function rememberNative(e: object, journal: NativeJournal): void { evidence.set(e, journal) }
 export function attachSource(rule: object, e: object, generated: object[]): void {
   mark(rule)
-  sources.set(rule, {journal: evidence.get(e), generated: new Set(generated)})
+  sources.set(rule, {root: rule, journal: evidence.get(e), generated: new Set(generated)})
 }
 export function attachNativeLaw(rule: object, law: object, name: string, method: string | undefined, evaluate: (observation: NativeObservation) => boolean): void {
   mark(law)
-  nativeLaws.set(law, {rule, name, method, evaluate})
+  nativeLaws.set(law, {rule: sources.get(rule)?.root ?? rule, name, method, evaluate})
 }
 type TranslatedVerdict<V> = Omit<V, 'proven' | 'checked'> & {proven: boolean, checked: boolean} & TranslationFields
 export function translationVerdict<V extends {proven: boolean, checked: boolean, why?: string, stuck?: string}>(rule: object, laws: object[], verdict: V): TranslatedVerdict<V> {
@@ -37,7 +41,7 @@ export function translationVerdict<V extends {proven: boolean, checked: boolean,
   const journal = source?.journal
   const unchecked = (why: string): TranslatedVerdict<V> => ({...verdict, proven: false, checked: false, kernelProven: verdict.proven && verdict.checked, translation: 'unchecked', why: `source translation unchecked: ${why}`})
   if (!journal?.enabled || !journal.complete) return unchecked(journal?.reason ?? 'native source replay is unavailable or disabled')
-  if (bound.some(b => b.rule !== rule)) return unchecked('the source law belongs to a different rule')
+  if (bound.some(b => b.rule !== source?.root)) return unchecked('the source law belongs to a different rule')
   if (laws.some(l => !nativeLaws.has(l) && !source!.generated.has(l))) return unchecked('a source proof contains a law with no native interpretation')
   if (!verdict.proven || !verdict.checked) return {...verdict, translation: journal.scope}
   let checks = 0

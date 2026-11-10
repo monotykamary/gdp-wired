@@ -27,6 +27,7 @@ import type {C, E, Law} from './machine.ts'
 import {proveLaws, proveStepLaws} from '../kernel/prove.ts'
 import {type Certificate, type Document, type Json, fromInterchange, toInterchange} from '../interchange/format.ts'
 import {checkCertificate} from '../interchange/check.ts'
+import {inheritSource} from './source-check.ts'
 
 // eslint-disable-next-line @typescript-eslint/no-explicit-any
 export type AnyRule = Rule<any, any, any, any, any, any, any, any>
@@ -141,7 +142,9 @@ export function twoRuns(a: AnyRule, b: AnyRule = a, opts: TwoRunsOptions = {}): 
       return out as never
     },
   }
-  return new Rule(spec) as AnyRule
+  const out = new Rule(spec) as AnyRule
+  inheritSource(a, out); inheritSource(b, out)
+  return out
 }
 // A run's write kept only where it takes the request (else the value before it).
 function guarded(sd: Side, key: string, w: unknown, go: Cond): unknown {

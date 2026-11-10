@@ -25,6 +25,32 @@ Use `--entry` to choose the function and `--mode standalone` to select the pure-
 
 Early-return decisions over booleans and string-literal unions, comparisons of comparisons, and string-union or nullable scalar results are useful cases for this path. Unsupported effects and code outside the closed function boundary are refused rather than ignored. Put one function's laws immediately above that function. Multi-step protocol models describe flows and remain separate tests: proving an individual decision does not prove that its callers enforce the right order.
 
+### Source-law validation is mandatory for a source proof
+
+A kernel proof establishes the translated model's law. Before a source law is reported as proven, its original
+expression is also evaluated over the native results, states and actual parameter bindings collected by replay.
+This independent check uses JavaScript values and semantics, including `undefined`, `NaN`, truthiness and strings;
+it does not compare the extractor's encoded choice indices or hidden optional payloads.
+
+The API verdict and CLI JSON report `translation: 'exhaustive'` for standalone decisions whose entire declared
+finite input domain was visited, or `'sampled'` for unbounded domains using the replay seeds and samples. The
+finite domain is read independently from the original TypeScript types. Domains exceeding 65,536 combinations
+are **unchecked**, not silently sampled and called exhaustive. Exhaustive here covers the declared plain-data
+input contract, not arbitrary accessors, Proxies or surrounding application behavior. Sampling is evidence of
+agreement, not a universal proof that the translation is correct.
+
+A native counterexample refuses the proof with **`translation: 'error'`**, the words **“translation error”**, and a
+`translationWitness`. CLI JSON preserves absent and non-finite values explicitly (for example `{"$undefined":true}`
+and `{"$number":"NaN"}`). Report this as a translation bug; do not work around it by disabling replay.
+
+**Breaking:** disabling replay (`[check] runs = 0`, `states = 0`, `probes = false` in `gdp.toml`, or the equivalent
+API `check` option), or setting `check.lawCrossCheck: false`, returns **`translation: 'unchecked'`**, with
+`proven: false` and `checked: false`. The CLI returns **exit 2**, never a successful unchecked source check.
+Unavailable native interpretations, lost source metadata, and source-derived model transformations that no
+longer have an original native interpretation are also unchecked. In particular, temporal and composed-source
+claims cannot become certified source proofs merely because their derived mathematical model proves.
+Ordinary source-free DSL/model proofs retain their existing semantics.
+
 ### Record arguments are plain-data snapshots
 
 Standalone record inputs model **immutable plain-data snapshots with stable own data properties**. Accessors

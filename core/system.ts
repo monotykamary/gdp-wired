@@ -21,6 +21,7 @@ import {type StepLaw, type Subst, substC, substE} from '../kernel/kernel.ts'
 import {Cond, type Kind, type Rule, Term, nat, oneOf, rule} from './dsl.ts'
 import {interpret, type Request} from './machine.ts'
 import {allowed, watch} from './watch.ts'
+import {inheritSource} from './source-check.ts'
 
 // An environment model: what it assumes, and the stack's behaviour it was checked against (research/distributed/
 // DESIGN.md, section 2: the documentation quoted; research/distributed/envcheck.py: each claim run on the stack).
@@ -497,6 +498,7 @@ export function inEnv(r: Rule | Machine, env: Env, o: EnvOpts = {}): InEnv {
     parts[`expiry${stores.length > 1 ? i : ''}`] = e
   })
   const sys = system(`${machineOf(r).name} (${envText(env) || 'atomic'})`, parts, {act})
+  inheritSource(r, sys)
   const ms = [...modelsOf(sys), ...(env.retries ? [RETRIES] : [])]
   models.set(sys, ms)
   const locals = Object.keys(m.state).filter(s => own.includes(s)), on = same(x(act), n(0))

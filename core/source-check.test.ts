@@ -2,7 +2,9 @@ import {expect, test} from 'bun:test'
 import {extract} from './extract.ts'
 import {buildLaw, parse} from './laws.ts'
 import {nativeLaw} from './native-law.ts'
-import {all, proveRule, proveSteps, rule} from './dsl.ts'
+import {all, proveDecision, proveRule, proveSteps, rule} from './dsl.ts'
+import {twoRuns} from './relational.ts'
+import {inEnv} from './system.ts'
 import {type NativeObservation, nativeSame, nativeSnapshot} from './source-check.ts'
 import {nativeInputs} from './native-domain.ts'
 import {type CheckOptions, sandbox} from './extract-check.ts'
@@ -105,9 +107,25 @@ test('native snapshots preserve identity between before/after while preserving c
 
 test('source-derived rule copies cannot silently become unchecked DSL proofs', () => {
   const {x} = built('result == (a and b)')
-  const copied = x.rule!.withDivisors(2)
+  const copied = x.rule!.keep(() => all())
   const v = proveRule(copied, [copied.law('tautology', () => all())], {search: false})
   expect(v).toMatchObject({proven: false, checked: false, translation: 'unchecked'})
+})
+
+test('mathematical divisor declarations preserve the original native interpretation', () => {
+  const {x, b} = built('result == (a and b)')
+  expect(proveSteps(x.rule!.withDivisors(2), x.invariants ?? [], [b.law], {from: 'any', search: false}))
+    .toMatchObject({proven: true, checked: true, translation: 'exhaustive'})
+})
+
+test('source-derived decisions and composed rules cannot bypass native validation', () => {
+  const r = rule('source').state({n: 0}).step(({n}) => ({n}))
+  Object.defineProperty(r, Symbol.for('gdp-wired.source-proof.v1'), {value: true})
+  expect(proveDecision(r.decide('identity', () => all(), () => all()))).toMatchObject({proven: false, translation: 'unchecked'})
+  for (const derived of [twoRuns(r), inEnv(r, {}).rule]) {
+    expect(proveRule(derived, [derived.law('identity', () => all())], {search: false}))
+      .toMatchObject({proven: false, checked: false, translation: 'unchecked'})
+  }
 })
 
 test('a source marker without local metadata fails closed across module copies', () => {

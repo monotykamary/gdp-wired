@@ -1669,7 +1669,7 @@ type Spec = {
 // values the builders hand out, grown by each call.
 export class Rule<P extends Obj = {}, I extends Obj = {}, S extends Obj = {}, M extends Obj = {}, F extends Obj = {}, R extends Obj = {}, Su extends Obj = {}, Q extends Obj = {}> {
   constructor(private readonly spec: Spec) {}
-  private with(more: Partial<Spec>): never { const next = new Rule({...this.spec, ...more}); inheritSource(this, next); return next as never }
+  private with(more: Partial<Spec>): never { const next = new Rule({...this.spec, ...more}); inheritSource(this, next, Object.keys(more).every(k => k === 'arith' || k === 'sumsRead')); return next as never }
   get name() { return this.spec.name }
   // For core/discover.ts: the functions and carried lists the rule reads, and the same rule with functions made again
   // and lemmas added to its lists' folds (each proven here, as carriesList proves its own).
@@ -3186,6 +3186,9 @@ export type KeyedLiveness = Liveness & {forall?: string}
 // The rule a keyed liveness is proven on: the rule with its key as one more param (a natural), any other rule as it is.
 export const keyed = <R extends Rule<Obj, Obj, Obj, Obj, Obj, Obj, Obj, Obj>>(r: R, l: KeyedLiveness): R => (l.forall ? r.params({[l.forall]: nat}) as unknown as R : r)
 export function proveLeadsTo(r: Rule<Obj, Obj, Obj, Obj, Obj, Obj, Obj, Obj>, laws: Law[], l: KeyedLiveness, opts: {ms?: number} = {}): Verdict {
+  return translationVerdict(r, [...laws, l], proveLeadsToIn(r, laws, l, opts))
+}
+function proveLeadsToIn(r: Rule<Obj, Obj, Obj, Obj, Obj, Obj, Obj, Obj>, laws: Law[], l: KeyedLiveness, opts: {ms?: number}): Verdict {
   r = keyed(r, l).withSumsOf(laws, l)
   noting(r, laws, l)
   if (laws.some(law => law.some?.length)) throw new Error(`${r.machine.name}: a law with "there exists" goes to proveRule or proveSteps; a liveness takes plain laws (the ones its proof printed, Verdict.witnesses)`)
@@ -3231,7 +3234,7 @@ export function refuteLeadsTo(r: Rule<Obj, Obj, Obj, Obj, Obj, Obj, Obj, Obj>, l
 // prover reads (the counted one inside a counted search): past it the verdict is unknown.
 export const proveDecision = (d: Decision, opts: {ms?: number} = {}): Verdict => {
   const go = () => (d.steps ? proveSteps(d.steps.rule as never, [], [d.steps.law], {search: false}) : goalsVerdict([d.goal]))
-  return opts.ms === undefined ? go() : withDeadline(clock() + opts.ms, go)
+  return translationVerdict(d.rule, [d.goal], opts.ms === undefined ? go() : withDeadline(clock() + opts.ms, go))
 }
 // A decision's callbacks against its condition, on random params and requests: `given` and `then` each run with every
 // value known, against what the interpreter evaluates of the decision built from them.
