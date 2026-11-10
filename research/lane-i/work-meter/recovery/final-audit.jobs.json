@@ -1,0 +1,3 @@
+[
+{"name":"complete-source-final-audit","cmd":"bun recovery-input/summarize.ts original-results && bun recovery-input/summarize.ts recheck-results","cpu":2,"memory":4096,"timeout":120,"vm_type":"large"}
+]

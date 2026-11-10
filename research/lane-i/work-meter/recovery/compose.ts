@@ -3,6 +3,7 @@ import {readFileSync, writeFileSync, mkdtempSync, rmSync, existsSync} from 'node
 import {join, resolve} from 'node:path'
 import {spawnSync} from 'node:child_process'
 import {createHash} from 'node:crypto'
+import {gzipSync} from 'node:zlib'
 import {restore, command} from './final-gate-common.ts'
 
 // Research staging only. Never choose a side of a conflict automatically.
@@ -69,4 +70,10 @@ try {
   writeFileSync('validation-input/candidate.patch', result.stdout)
   writeFileSync('validation-input/identity.json', JSON.stringify(config, null, 2) + '\n')
   console.log('COMPOSITION_VERIFIED ' + JSON.stringify({mode, patchSha256: hash, bytes: Buffer.byteLength(result.stdout), records, expectedCandidateBlobs: expected}))
+  if (process.env.EMIT_COMPOSITION_SOURCE === '1') {
+    const chunks = gzipSync(result.stdout).toString('base64').match(/.{1,12000}/g) ?? []
+    console.log('COMPOSE_SOURCE_META ' + JSON.stringify({sha256: hash, rawBytes: Buffer.byteLength(result.stdout), chunks: chunks.length}))
+    for (const [index, data] of chunks.entries()) console.log(`COMPOSE_SOURCE_CHUNK ${index} ${data}`)
+    console.log('COMPOSE_SOURCE_END ' + chunks.length)
+  }
 } finally { rmSync(temp, {recursive: true, force: true}) }

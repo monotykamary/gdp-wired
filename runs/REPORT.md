@@ -1,5 +1,46 @@
 # RESUME — ACTIVE 2026-11-10 evening
 
+## Verified raw source available; integration and full accounting still pending
+
+Frozen source: **`9a36137ece0525d077ecf4509b686b2e6bdf3058`**,
+`claude/lane-i-complete-raw`, tree `2a21332d3fb0717cf0d4f0f3ba502ffd4d1f9a22`.
+The source includes the retained isolated A2 entry and raw counters; it is
+**not merged, not GATE GREEN, and not a completed W implementation**.
+`research/lane-i/work-meter/complete/VERIFIED-SOURCE.md` binds its evidence.
+
+Corrected tooling passed erasure/roster/decoder/type-lint in
+`20261110-201440-608dz0`; 132 targeted and 3×267 mutation tests had passed
+on the same production source. All first failures are retained below.
+
+### For lane D
+
+The immutable raw-source commit is ready for parallel instrumentation audit.
+Checker erasure and zero/double/random acceptance suites passed. No calibrated
+weights or W are supplied. Do not let this audit block ledger/coverage work.
+The active integration branch remains research-only changes beyond the pause.
+
+### Ledger and boundary progress
+
+The raw+ledger composition passes **151 selected tests**, checker erasure,
+roster, decoder and type/lint (`20261110-201507-9tl8lf`), with independent
+source/receipt audit `20261110-202057-8r5tcl`. Its source export is being
+hash-checked against that exact tested composition before a source commit.
+
+The first boundary and bitmap compositions passed 151 and 155 selected tests,
+respectively, but both failed typecheck at `kernel/prove.ts:1908`: the optional
+`o.witness` narrowing was lost in the new synchronous phase callback. The
+preceding branch rejects a missing witness; the repair is a type-only `!`
+inside that callback. Both full rechecks are running; first failures remain
+in `runs/lane-i/resume-composition-validation/`.
+
+### F3 progress, not completion
+
+`20261110-201744-s9kwtn`: Node v20.20.2's worker inspector captured 25 samples
+including the named synchronous main-thread loop **before it returned**.
+Bun 1.4.3 fails the stronger same-thread check. No ordinary-timer or wrong-thread
+result is being promoted to F3; exact solver attachment is still to implement.
+
+
 Lane I resumed from `dbfe4c56`; no cancelled run was repeated. **Not GATE GREEN.**
 
 - Already-collected constructor artifact verified on boat in

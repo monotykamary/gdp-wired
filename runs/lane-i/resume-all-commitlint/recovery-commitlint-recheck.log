@@ -1,0 +1,9 @@
+196acc88d6b50af320fc7675251260a6a9d20d7dc14e0fdbc597935576732e9b  recovery-input/COMMIT-2.txt
+b1661d78555438a43ae4e7c55f469b6c87f71dd7c104df2bab6335bbfa8397c5  recovery-input/COMMIT-3.txt
+293c7e899f4d7c174582bddc817167d45d4b92bd5277b38abccdf555e39d5bc8  recovery-input/COMMIT.txt
+c84673a18f563898de113607364e5930c7291990b6b560961d948fd9dc0265de  recovery-input/RAW-COMMIT.txt
+
+--- stderr ---
+Resolving dependencies
+Resolved, downloaded and extracted [443]
+Saved lockfile

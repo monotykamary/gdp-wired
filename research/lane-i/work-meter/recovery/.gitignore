@@ -1,1 +1,3 @@
 *.pack
+materialized/
+*.index

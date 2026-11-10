@@ -1,0 +1,4 @@
+[
+{"name":"f3-node-blocking-capability","cmd":"node --version && node f3-input/blocking-probe.mjs","cpu":2,"memory":2048,"timeout":30,"vm_type":"large"},
+{"name":"f3-bun-blocking-capability","cmd":"bun --version && bun f3-input/blocking-probe.mjs","cpu":2,"memory":2048,"timeout":30,"vm_type":"large"}
+]

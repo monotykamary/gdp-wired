@@ -1,0 +1,28 @@
+import {protocols} from '../../protocols/ic3syn/models.ts'
+import {proveRule} from '../../../core/dsl.ts'
+import {coreMeter} from '../../../core/meter.ts'
+import {costs} from '../../../core/solver.ts'
+import {eprMeter} from '../../../kernel/epr.ts'
+import {rawWork} from '../../../core/work-meter.ts'
+import {withWorkLedger, type WorkPhase} from '../../../core/work-ledger.ts'
+
+export const counters = [coreMeter, costs, eprMeter]
+export {rawWork}
+export function run(id: string, work: number) {
+  const protocol = protocols.find(p => p.id === id)
+  if (!protocol) throw Error('unknown original protocol ' + id)
+  const phases: Record<string, {calls: number, wallMs: number, raw: Record<string, number>}> = {}
+  const emit = (event: WorkPhase) => {
+    const row = phases[event.name] ??= {calls: 0, wallMs: 0, raw: {}}
+    row.calls++; row.wallMs += event.exclusiveWallMs
+    for (const [key, value] of Object.entries(event.exclusiveRaw)) row.raw[key] = (row.raw[key] ?? 0) + value
+  }
+  const before = rawWork()
+  const result = withWorkLedger('original-protocol', emit, () => {
+    const rule = protocol.make()
+    const verdict = proveRule(rule, protocol.laws(rule), {search: {work}})
+    return {proven: verdict.proven, checked: verdict.checked, stuck: verdict.stuck, goal: verdict.goal, why: verdict.why}
+  })
+  const after = rawWork(), raw = Object.fromEntries(Object.keys(after).map(key => [key, after[key as keyof typeof after] - before[key as keyof typeof before]]))
+  return {id, work, result, raw, phases}
+}

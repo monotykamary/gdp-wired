@@ -1,0 +1,23 @@
+1.4.3
+F3_CAPABILITY {"runtime":"node","kind":"silent-loop-profile","whileBlocked":true,"samples":0,"stack":[]}
+F3_CAPABILITY {"runtime":"node","version":"v26.3.0","supported":true,"detectedBeforeRelease":false,"iterations":38449903}
+
+--- stderr ---
+23 |     const n = mainThreadSilentLoop()
+24 |     const detectedBeforeRelease = Atomics.load(shared, 2) === 1
+25 |     Atomics.store(shared, 0, 2)
+26 |     await new Promise((resolve, reject) => { worker.once('exit', resolve); worker.once('error', reject) })
+27 |     emit({runtime: process.release?.name, version: process.version, supported: true, detectedBeforeRelease, iterations: n})
+28 |     assert(detectedBeforeRelease, 'profile and stack must be observed before the blocking loop releases')
+         ^
+AssertionError: profile and stack must be observed before the blocking loop releases
+ generatedMessage: false,
+     actual: false,
+   expected: true,
+   operator: "==",
+       diff: "simple",
+       code: "ERR_ASSERTION"
+
+      at /work/gdp-wired/f3-input/blocking-probe.mjs:28:5
+
+Bun v1.4.3 (Linux x64)

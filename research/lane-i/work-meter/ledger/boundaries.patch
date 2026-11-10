@@ -104,7 +104,7 @@ index 095cfbe3..a6bd9023 100644
        // (strict, decideLaw's: a model is returned only where confirmed, no assumed law broken at it over its own domain;
        // one that breaks only instances of another sort, or that the rounds or the wall cut off, is no answer)
 -      const capped = !(round < rounds || (round < 4 * rounds && end !== Infinity && clock() < end)), raw = capped ? undefined : modelInstances(m, laws, inst, g, o.witness, undefined, true)
-+      const capped = !(round < rounds || (round < 4 * rounds && end !== Infinity && clock() < end)), raw = capped ? undefined : workPhase('instance-construction', () => modelInstances(m, laws, inst, g, o.witness, undefined, true))
++      const capped = !(round < rounds || (round < 4 * rounds && end !== Infinity && clock() < end)), raw = capped ? undefined : workPhase('instance-construction', () => modelInstances(m, laws, inst, g, o.witness!, undefined, true))
        if (!capped && !raw) return last
        more = raw && bySort(m, laws, raw)
        const count = (x: Instances) => Object.values(x).reduce((s2, ks) => s2 + ks.length, 0)

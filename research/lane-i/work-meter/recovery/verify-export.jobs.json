@@ -1,0 +1,1 @@
+[{"name":"verify-ledger-export","cmd":"bun recovery-input/verify-export.ts","cpu":1,"memory":2048,"timeout":120,"vm_type":"large"}]
