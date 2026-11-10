@@ -10,6 +10,8 @@ import {BudgetExpired, withBudget} from '../kernel/prove.ts'
 const fixture = Object.fromEntries(extraWorkKeys.map(key => [key, 1])) as ExtraWorkWeights
 
 test('all new operations feed the same explicit scalar; legacy mode keeps its exact summation', () => {
+  expect(Object.isFrozen(legacyWeights)).toBe(true)
+  expect(legacyWeights.every(Object.isFrozen)).toBe(true)
   const raw = rawWork(), before = fullWork()
   let historical = 0
   for (const [key, weight] of legacyWeights) historical += weight * raw[key]

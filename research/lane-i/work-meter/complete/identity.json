@@ -31,7 +31,7 @@
     "core/finite-tiny-yield.test.ts": "70124c05cbf27fdeb9e0e94f2d316667d2069e5d",
     "core/finite-tiny.ts": "e3d6804e32237e9e57a0236c16a3a80a20a13d99",
     "core/finite-work.test.ts": "35bee33d58f281f733e5e1b4920db414000faad6",
-    "core/infer.ts": "70e50722b23f25bffa8a0c6dd9f9655e885f6bb7",
+    "core/infer.ts": "22ad338126ea7507ed3db1b168c2b7a41186f76e",
     "core/interp.ts": "c64c72b3a9b938a4fb876fd64c3c62bd6e0e0f76",
     "core/lemma-cuts.ts": "5d379058ffc2cdb33a5ac79bb535ac4d0df0f5e5",
     "core/machine.ts": "5ef150e4161c6084240d7cee37bb05cfa110d864",

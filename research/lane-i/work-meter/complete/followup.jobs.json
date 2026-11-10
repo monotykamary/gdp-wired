@@ -1,0 +1,4 @@
+[
+  {"name":"complete-ast-fixed","cmd":"bun complete-input/prepare.ts && COMPLETE_PREPARE=1 bun complete-prepared-input/preflight.ts checks","cpu":4,"memory":14336,"timeout":900,"vm_type":"large"},
+  {"name":"ledger-failure-diagnostic","cmd":"bun validation-input/receipt-summary.ts","cpu":1,"memory":2048,"timeout":120,"vm_type":"large"}
+]

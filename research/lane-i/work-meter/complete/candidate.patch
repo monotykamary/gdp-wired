@@ -2453,7 +2453,7 @@ index 00000000..35bee33d
 +  }
 +})
 diff --git a/core/infer.ts b/core/infer.ts
-index a725e688..70e50722 100644
+index a725e688..22ad3381 100644
 --- a/core/infer.ts
 +++ b/core/infer.ts
 @@ -31,6 +31,7 @@
@@ -2541,7 +2541,7 @@ index a725e688..70e50722 100644
      let took = 0
      for (let d = 0, tries = 0; d < 40 && tries < 200; tries++) {
 -      used.tries++
-+      (coreMeter.ticks += 1, used.tries++)
++      coreMeter.ticks += 1; used.tries++
        const input = randomInput(params, rare ? 2 : bound)
        let next: State
        try { if (relStep) { const n2 = relStep(params, st, input); if (!n2) continue; next = n2 } else { const sampled = stepSample(params, st, input); if (!sampled) continue; next = sampled } } catch { break }
@@ -2603,7 +2603,7 @@ index a725e688..70e50722 100644
              const q0 = queue[qi.at++]!
              for (const input of combos) {
 -              used.etries++
-+              (coreMeter.ticks += 1, used.etries++)
++              coreMeter.ticks += 1; used.etries++
                const next = stepOf(params, q0.st, input)
                if (!next) continue
                const q1 = {params, st: next}, k1 = keyOf3(q1)
@@ -2612,7 +2612,7 @@ index a725e688..70e50722 100644
              while (!halt && q2i.at < q2.length && others.length < most && vnow() < end3) {
                const q0 = q2[q2i.at++]!
 -              for (const input of combos) { used.etries++; const next = stepIn(tb, p2, q0.st, input); if (!next) continue; const q1 = {params: p2, st: next}, k1 = keyOf3(q1); if (!seen2.has(k1)) { seen2.add(k1); others.push(q1); q2.push(q1); if (visit && !visit(q1)) { halt = true; break } } }
-+              for (const input of combos) { (coreMeter.ticks += 1, used.etries++); const next = stepIn(tb, p2, q0.st, input); if (!next) continue; const q1 = {params: p2, st: next}, k1 = keyOf3(q1); if (!seen2.has(k1)) { seen2.add(k1); others.push(q1); q2.push(q1); if (visit && !visit(q1)) { halt = true; break } } }
++              for (const input of combos) { coreMeter.ticks += 1; used.etries++; const next = stepIn(tb, p2, q0.st, input); if (!next) continue; const q1 = {params: p2, st: next}, k1 = keyOf3(q1); if (!seen2.has(k1)) { seen2.add(k1); others.push(q1); q2.push(q1); if (visit && !visit(q1)) { halt = true; break } } }
              }
            }
          }
@@ -2621,7 +2621,7 @@ index a725e688..70e50722 100644
              for (let k = 0; k < 16 && !next; k++) {
                const input = req.combos[rnd(req.combos.length)]!
 -              used.etries++
-+              (coreMeter.ticks += 1, used.etries++)
++              coreMeter.ticks += 1; used.etries++
                const s2 = stepOf(from.params, at, input)
                if (s2 && keyOf3({params: from.params, st: s2}) !== keyOf3({params: from.params, st: at})) next = s2
              }

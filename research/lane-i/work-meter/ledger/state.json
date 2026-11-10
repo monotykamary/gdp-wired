@@ -1,14 +1,28 @@
 {
-  "status": "independent ledger draft validation in flight; not promoted",
+  "status": "changed candidate validation in flight; no production promotion",
   "privateIndex": "/private/tmp/lane-i-ledger.index",
-  "task": "4adc5581-bd51-42c8-8967-299b958277f6",
-  "waiterPid": 35959,
-  "batch": "20261110-122359-96kye5",
-  "resultDirectory": "runs/lane-i/work-ledger-checks",
+  "task": "cd893c39-f0e2-4935-9ca3-5c9b57c0c9b7",
+  "waiterPid": 58588,
+  "batch": "20261110-123003-1cvbpa",
+  "resultDirectory": "runs/lane-i/complete-progress",
   "includesGeneratedConstructors": false,
-  "next": "collect ledger validation and constructor preparation separately; merge only their source deltas after inspection; attach remaining untrusted phase boundaries; rerun combined verification; then prepare census",
+  "next": "collect changed-candidate tests/type-lint; only then add boundaries.patch and revalidate",
   "productionChanged": false,
   "weightsCalibrated": false,
   "f3Implemented": false,
-  "subagents": 0
+  "subagents": 0,
+  "previousRun": {
+    "status": "independent ledger draft validation in flight; not promoted",
+    "privateIndex": "/private/tmp/lane-i-ledger.index",
+    "task": "4adc5581-bd51-42c8-8967-299b958277f6",
+    "waiterPid": 35959,
+    "batch": "20261110-122359-96kye5",
+    "resultDirectory": "runs/lane-i/work-ledger-checks",
+    "includesGeneratedConstructors": false,
+    "next": "collect ledger validation and constructor preparation separately; merge only their source deltas after inspection; attach remaining untrusted phase boundaries; rerun combined verification; then prepare census",
+    "productionChanged": false,
+    "weightsCalibrated": false,
+    "f3Implemented": false,
+    "subagents": 0
+  }
 }

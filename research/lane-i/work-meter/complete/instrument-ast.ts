@@ -54,15 +54,21 @@ for (const path of paths) {
   visit(file)
   if (!sites) continue
   assert(!file.text.includes('observeAst'), 'unexpected existing binding: ' + path)
-  let next = file.text
-  for (const p of positions.sort((a, b) => b.at - a.at)) next = next.slice(0, p.at) + p.text + next.slice(p.at)
   const lastImport = file.statements.filter(ts.isImportDeclaration).at(-1)
   const at = lastImport?.end ?? 0
   let module = relative(dirname(path), path.startsWith('kernel/') ? 'kernel/meter.ts' : 'core/meter.ts').replaceAll('\\', '/')
   if (!module.startsWith('.')) module = './' + module
-  // Imports precede every runtime object literal, so the original insertion offset is unchanged.
-  next = next.slice(0, at) + `\nimport {observeAst} from '${module}'\n` + next.slice(at)
-  assert.equal(canonical(next, path, true), canonical(file.text, path, false), 'constructor erasure mismatch: ' + path)
+  // Imports can occur after executable declarations. Apply every insertion in
+  // the same original coordinate space, including the new import.
+  positions.push({at, text: `\nimport {observeAst} from '${module}'\n`})
+  let next = file.text
+  for (const p of positions.sort((a, b) => b.at - a.at)) next = next.slice(0, p.at) + p.text + next.slice(p.at)
+  const erased = canonical(next, path, true), original = canonical(file.text, path, false)
+  if (erased !== original) {
+    const a = erased.split('\n'), b = original.split('\n'), first = a.findIndex((line, i) => line !== b[i])
+    console.error('AST_ERASURE_MISMATCH ' + JSON.stringify({path, line: first + 1, actual: a.slice(Math.max(0, first - 2), first + 3), expected: b.slice(Math.max(0, first - 2), first + 3)}))
+    throw new Error('constructor erasure mismatch: ' + path)
+  }
   writeFileSync(path, next)
   const blob = (text: string) => execFileSync('git', ['hash-object', '--stdin'], {input: text, encoding: 'utf8'}).trim()
   rows.push({path, sites, before: blob(file.text), after: blob(next)})

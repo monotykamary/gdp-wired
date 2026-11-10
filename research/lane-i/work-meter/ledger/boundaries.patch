@@ -1,0 +1,183 @@
+diff --git a/core/counts.ts b/core/counts.ts
+index 9f64f073..8a1d582c 100644
+--- a/core/counts.ts
++++ b/core/counts.ts
+@@ -727,7 +727,7 @@ export function countedAttempts(m: Machine, caller: Law[], support: Set<Law>, un
+     // pass needs counts. Keep the no-count fallback and the existing wide-pool
+     // recovery, using only the current attempt's remaining allowance.
+     if (focusEnabled && m.inputMaps?.length && !reads(law.holds, isCount).size && (!pass || plainFailures.get(law)?.has(ls))) {
+-      defer(() => ptime('focused', () => proveFocusedCounts(m, ls, law, {}, Math.min(attemptEnd, clock() + Math.min(ms, 5000)), (g, ds) => certFor(g, ds, true, pool, undefined, structured))))
++      defer(() => ptime('focused', () => proveFocusedCounts(m, ls, law, {}, Math.min(attemptEnd, clock() + Math.min(ms, 5000)), (g, ds) => workPhase('instance-construction', () => certFor(g, ds, true, pool, undefined, structured)))))
+     }
+     // (the model broken: the attempt starts at the instances it asks for, its last attempt's and the tuples the new laws
+     // break it at, where the rounds of models would lead it again)
+@@ -822,7 +822,7 @@ export function countedAttempts(m: Machine, caller: Law[], support: Set<Law>, un
+         memberSources.set(goal.name,memberHints(m,decls,c,generation.tick))
+         return {goal, decls, c, gg, all: full.reads, pool: fg ? {fg, keys, wits: [...full.picks.map(() => undefined), ...full.insts.map(i => i.wit)], chosen: selection.chosen, cap: selection.cap} as Pool : undefined}
+       }
+-      let full = pass ? certFor(goal, decls, wide, wide && lazyMode !== '0' ? pool : undefined, undefined, structured) : none
++      let full = pass ? workPhase('instance-construction', () => certFor(goal, decls, wide, wide && lazyMode !== '0' ? pool : undefined, undefined, structured)) : none
+       if(pass&&m.inputMaps?.length&&lazyMode!=='0'){
+         const proposed=admitMemberWitnesses(m,decls,full,members(),wide?pool:10,generation.tick)
+         full=proposed.cert;memberSources.set(goal.name,proposed.hints)
+@@ -998,10 +998,10 @@ export function countedAttempts(m: Machine, caller: Law[], support: Set<Law>, un
+       // witness-bearing certificates with the warmed law instances; the final
+       // checkCountedLaws gate is unchanged; the same bounded finite-input default applies.
+       if (pass && wide && focusEnabled && clock() < attemptEnd) {
+-        defer(() => ptime('focused', () => proveFocusedCounts(m, ls, law, at, Math.min(attemptEnd, clock() + Math.min(ms, 5000)), (g, ds) => certFor(g, ds, true, pool, undefined, structured))))
++        defer(() => ptime('focused', () => proveFocusedCounts(m, ls, law, at, Math.min(attemptEnd, clock() + Math.min(ms, 5000)), (g, ds) => workPhase('instance-construction', () => certFor(g, ds, true, pool, undefined, structured)))))
+       }
+       // (whether a goal reads a count: if none does, pass 1's goals are pass 0's)
+-      if (!pass) counted = built.some(b => certFor(b.goal, b.decls).reads.length)
++      if (!pass) counted = built.some(b => workPhase('instance-construction', () => certFor(b.goal, b.decls)).reads.length)
+       const certs: Record<string, CountCert> = {}
+       let again = false
+       for (const {goal, decls, c, gg} of built) {
+diff --git a/kernel/prove.ts b/kernel/prove.ts
+index 095cfbe3..a6bd9023 100644
+--- a/kernel/prove.ts
++++ b/kernel/prove.ts
+@@ -11,6 +11,7 @@
+ import {traceNow} from '../core/trace-clock.ts'
+ import {coreMeter} from '../core/meter.ts'
+ import {fullWork} from '../core/work-meter.ts'
++import {workPhase} from '../core/work-ledger.ts'
+ import {type C, type E, type Law, type Machine, cpair, evalC, evalE, walkOnce} from '../core/machine.ts'
+ import {type Lin, type Step, add, costs, env, k, refuteFast, scale, solve, sub, v, work} from '../core/solver.ts'
+ import {checkRefutation} from '../core/check.ts'
+@@ -515,7 +516,7 @@ function growRoot(goal: Goal, path: Path, budget: {nodes: number, until?: number
+   // search's tree, unfolded, repeats (research/step: four times the Lean text of examples/steps.ts). Nor for products.
+   // (past the wall, not even the root's rows: a large goal's take a second)
+   if (pastWall()) return {stuck: 'unknown', path, why: outOfBudget(goal, 'time', path.size)}
+-  const root = path.size === 0 && budget.nodes === 0 ? leafConstraints(goal, path) : undefined
++  const root = path.size === 0 && budget.nodes === 0 ? workPhase('table-build', () => leafConstraints(goal, path)) : undefined
+   const cdcl = !!root && cdclShare > 0 && !cellProducts.on && Number(/@(\d+) steps/.exec(goal.name)?.[1] ?? 1) <= 1 && !root.some(r => Object.keys(r.lin).some(isMonomial))
+   // At the root: plainly first; where the cases multiply past a budget, through cuts. The plain budget halves with each
+   // two open choices (what a plain search's cases grow by), so a long run's steps reach the cuts early.
+@@ -806,7 +807,7 @@ export function rowsAt(goal: Goal, path: Path): ReturnType<typeof leafConstraint
+   let id = ''
+   for (const [key, a] of path) id += `${a.holds ? '+' : '-'}${key}|`
+   let rows = byPath.get(id)
+-  if (!rows) { if (byPath.size >= 4096) byPath.clear(); byPath.set(id, (rows = env.GDP_ROWS_SHARED === '0' ? leafConstraintsReusing(goal, path) : proverRows(goal, path))) }
++  if (!rows) { if (byPath.size >= 4096) byPath.clear(); byPath.set(id, (rows = workPhase('table-build', () => env.GDP_ROWS_SHARED === '0' ? leafConstraintsReusing(goal, path) : proverRows(goal, path)))) }
+   return rows
+ }
+ function lift(goal: Goal, tree: Tree, from: Path, to: Path): Tree | undefined {
+@@ -919,7 +920,7 @@ function unitsOf(goal: Goal): Lin[] {
+   if (out) return out
+   // Forced by the root's rows without a solver: a row the atom is (or is the negation of), or the bounds the rows give
+   // single variables (x <= c, x >= c) deciding it whichever way its variables go.
+-  const root: Path = new Map(), rows = leafConstraints(goal, root), seen = new Set<string>(), given = new Set<string>()
++  const root: Path = new Map(), rows = workPhase('table-build', () => leafConstraints(goal, root)), seen = new Set<string>(), given = new Set<string>()
+   costs.unitRows += rows.length
+   const lo = new Map<string, number>(), hi = new Map<string, number>()
+   for (const r of rows) {
+@@ -985,7 +986,7 @@ function outOfBudget(goal: Goal, limit: 'nodes' | 'time', depth: number): string
+ // combination. For a term column t = if c then A else B the candidates are t ≤ A, t ≤ B, t ≥ A and t ≥ B, innermost
+ // choices first; a cut is only a split, so the kernel checks it like any other.
+ function withCuts(goal: Goal, path: Path, budget: {nodes: number, until?: number}): Outcome | undefined {
+-  const rows = leafConstraints(goal, path)
++  const rows = workPhase('table-build', () => leafConstraints(goal, path))
+   const columns = [...new Set(rows.flatMap(r => Object.keys(r.lin)).filter(n => n.startsWith('⟦')))]
+     .map(n => ({n, e: columnTerm(n)!})).filter(x => x.e.op === 'if' && !decided(x.e, path))
+     .sort((a, b) => Number(a.n.slice(1, -1)) - Number(b.n.slice(1, -1))) // a term's parts get their ids before it: innermost first
+@@ -1023,7 +1024,7 @@ function topAtoms(c: C, path: Path): Lin[] {
+ function growFocused(goal: Goal, path: Path, focus: Lin[], budget: {nodes: number, until?: number}, near: Lin[] = focus): Outcome {
+   if (++budget.nodes > 64 || late(budget.until ?? Infinity)) return {stuck: 'unknown', path}
+   // (each node reads its whole leaf, counted as growPlain counts a node's rows)
+-  const leaf = leafConstraints(goal, path)
++  const leaf = workPhase('table-build', () => leafConstraints(goal, path))
+   work.n += 1 + leaf.length; costs.plainRows += leaf.length
+   const verdict = solveNear(leaf, [...near, ...[...path.values()].slice(-1).map(a => a.lin)])
+   if (verdict.kind === 'refuted') return {tree: {leaf: verdict.steps}, nodes: budget.nodes}
+@@ -1315,7 +1316,7 @@ function modelsLoop<T>(m: Machine, laws: Law[], inst: Instances, goalOf: (i: Ins
+     if (round && !settled(result)) { if (modelsTrace) console.error(`[models] round ${round} unsettled in ${Math.round(costNow() - c0)} cost`); return first! }
+     if (pastWall()) return first ?? {result, inst: at}
+     first ??= {result, inst: at}
+-    const mw = modelOf(result), more = mw && round < modelRounds && cap > 0 ? modelInstances(m, laws, at, mw.goal, mw.w) : undefined
++    const mw = modelOf(result), more = mw && round < modelRounds && cap > 0 ? workPhase('instance-construction', () => modelInstances(m, laws, at, mw.goal, mw.w)) : undefined
+     if (modelsTrace) console.error(`[models] round ${round} ${mw ? `model at ${mw.goal.name} (${mw.goal.hyps.length} hyps)` : settled(result) ? 'settled' : 'unsettled'} ${Math.round(costNow() - c0)} cost, cap ${Math.round(cap)}; ${more ? `+${Object.entries(more).map(([n, ks]) => `${n.slice(0, 24)}:${ks.length - (at[n]?.length ?? 0)}`).filter(x => !x.endsWith(':0')).join(' ')}` : 'no more'}`)
+     if (!more) return {result, inst: at}
+     at = more
+@@ -1902,7 +1903,7 @@ function settle(m: Machine, laws: Law[], i: number, rounds: number, usual: boole
+       last = {goal: g.name, stuck: 'sat', witness: o.witness, ...(o.diagram ? {diagram: o.diagram} : {}), why: 'a model'}
+       // (strict, decideLaw's: a model is returned only where confirmed, no assumed law broken at it over its own domain;
+       // one that breaks only instances of another sort, or that the rounds or the wall cut off, is no answer)
+-      const capped = !(round < rounds || (round < 4 * rounds && end !== Infinity && clock() < end)), raw = capped ? undefined : modelInstances(m, laws, inst, g, o.witness, undefined, true)
++      const capped = !(round < rounds || (round < 4 * rounds && end !== Infinity && clock() < end)), raw = capped ? undefined : workPhase('instance-construction', () => modelInstances(m, laws, inst, g, o.witness, undefined, true))
+       if (!capped && !raw) return last
+       more = raw && bySort(m, laws, raw)
+       const count = (x: Instances) => Object.values(x).reduce((s2, ks) => s2 + ks.length, 0)
+@@ -1961,7 +1962,7 @@ export function proveSetFast(m: Machine, laws: Law[]): Report & {proof?: {instan
+       }
+     }
+     const proof = {instances, trees}
+-    return {proven: true, nodes, leaves, checked: checkLaws(m, laws, proof), proof}
++    return {proven: true, nodes, leaves, checked: workPhase('kernel-check', () => checkLaws(m, laws, proof)), proof}
+   }))
+ }
+ export function proveLaw(m: Machine, laws: Law[], i: number): {proven: true} | {proven: false, goal: string, stuck: string, witness?: Record<string, number>, diagram?: Diagram} {
+@@ -2206,12 +2207,12 @@ function proveLawsAsGiven(m: Machine, laws: Law[], defer?: (finish: () => void)
+   const translated = out.proof ? ((st: TStats) => translatedProof(() => JSON.stringify(['machine', mc, laws, inst]), () => timedKind('instance', 0, () => machineNodes(mc, laws, inst, out.proof!, st)), st)) : undefined
+   // The certificate (or, where none is made, the check), now or where the caller defers it.
+   const finish = () => {
+-    if (defer && !cert && cyclicOn() && out.proven && out.proof) out.checked = checkLaws(m, laws, out.proof)
++    if (defer && !cert && cyclicOn() && out.proven && out.proof) out.checked = workPhase('kernel-check', () => checkLaws(m, laws, out.proof!))
+     if (cyclicOn()) {
+       const usual = out.proven && out.checked
+       // (a history: its plain machine's cyclic proof, and its record goals as the leaf goals they are; a machine with flags
+       // that hold at every key the usual route doesn't prove: not searched, as before 0.19.0, a search there costs seconds)
+-      const records = !hist || hist.goals.every(g => { const tr = out.proof?.trees[g.name] ?? (() => { const o = grow(g); return 'tree' in o ? o.tree : undefined })(); return tr !== undefined && check(g, tr) })
++      const records = !hist || hist.goals.every(g => { const tr = out.proof?.trees[g.name] ?? (() => { const o = grow(g); return 'tree' in o ? o.tree : undefined })(); return tr !== undefined && workPhase('kernel-check', () => check(g, tr)) })
+       const recordFails = (): CyclicVerdict => ({proven: false, checked: false, node: m.name, goal: 'a record goal', stuck: 'not proven'})
+       if (!why && (usual || !hasQuantified(mc))) crossCyclic('machine', m.name, usual, records ? searched : recordFails, usualMs, records ? translated : undefined)
+       else cycLog({kind: 'machine', name: m.name, usual, uncovered: true, why: why ?? 'a flag at every key the usual route does not prove'})
+@@ -2220,11 +2221,11 @@ function proveLawsAsGiven(m: Machine, laws: Law[], defer?: (finish: () => void)
+       const c = certCyclic('machine', m.name, translated, searched, usualMs)
+       if (c.checked) {
+         // (a history's record goals checked as they are: leaf goals)
+-        out.checked = !hist || hist.goals.every(g => out.proof!.trees[g.name] !== undefined && check(g, out.proof!.trees[g.name]!))
++        out.checked = !hist || hist.goals.every(g => out.proof!.trees[g.name] !== undefined && workPhase('kernel-check', () => check(g, out.proof!.trees[g.name]!)))
+         Object.assign(out.proof, {cyclic: c.proof})
+       } else {
+         // (deferred: the step laws' certificate translates these trees too, and where it isn't made checkStepLaws checks them)
+-        if (!defer) out.checked = checkLaws(m, laws, out.proof!)
++        if (!defer) out.checked = workPhase('kernel-check', () => checkLaws(m, laws, out.proof!))
+         uncovered('machine', m.name, c.why)
+       }
+     } else if (certOn() && why && out.proven) cycLog({kind: 'machine', name: m.name, cert: true, uncovered: true, why})
+@@ -2275,7 +2276,7 @@ function thinned(m: Machine, laws: Law[], instances: Record<string, Instances>):
+     leaves += countLeaves(out.tree)
+   }
+   const proof = {instances, trees}
+-  return {proven: true, nodes, leaves, checked: !usualCheck.on || checkLaws(m, laws, proof), proof}
++  return {proven: true, nodes, leaves, checked: !usualCheck.on || workPhase('kernel-check', () => checkLaws(m, laws, proof)), proof}
+ }
+ // A goal left unproven, the search's report so far.
+ const stuckAt = (goal: Goal, out: Extract<Outcome, {stuck: unknown}>, nodes: number, leaves: number): Report => ({proven: false, nodes, leaves, failed: {goal: goal.name, stuck: out.stuck, ...(out.witness ? {witness: out.witness} : {}), ...(out.why ? {why: out.why} : {})}, checked: false})
+@@ -2291,7 +2292,7 @@ function proveWith(m: Machine, laws: Law[], instances: Record<string, Instances>
+     leaves += countLeaves(out.tree)
+   }
+   const proof = {instances, trees}
+-  return {proven: true, nodes, leaves, checked: !usualCheck.on || checkLaws(m, laws, proof), proof}
++  return {proven: true, nodes, leaves, checked: !usualCheck.on || workPhase('kernel-check', () => checkLaws(m, laws, proof)), proof}
+ }
+ // Step laws (kernel.ts's stepLawObligations): the laws proven first (they are assumed), then one goal per step law, the
+ // every-key laws assumed at every key the step, the laws and the step laws read.
+@@ -2444,7 +2445,7 @@ export function proveProgress(m: Machine, laws: Law[], p: {name: string, when: C
+     nodes += out.nodes
+     leaves += countLeaves(out.tree)
+   }
+-  const checked = progressObligations(m, ls, instances, p).every(g => check(g, trees[g.name]!))
++  const checked = progressObligations(m, ls, instances, p).every(g => workPhase('kernel-check', () => check(g, trees[g.name]!)))
+   // (a request allowed whose claim is that alone, over a machine without a history or carried maps: the laws' nodes,
+   // then the allowed goal translated, core/cyclic.ts's allowTranslated, its last node BridgeRules.lean's cycAOk: from
+   // every reachable state, every request meeting the region and its terms is allowed; where GDP_CERT_SEARCH=1 and that
+@@ -2625,6 +2626,6 @@ export function factsFor(m: Machine, goal: Goal): C[] {
+ export function proveBuilt(m: Machine, laws: Law[], build: (inst: Instances) => Goal): {proven: boolean, instances?: Instances, goal?: Goal, tree?: Tree} {
+   const instances = instancesFor(m, laws, inst => [build(inst)])
+   const goal = build(instances), out = grow(goal)
+-  if (!('tree' in out) || !check(goal, out.tree)) return {proven: false}
++  if (!('tree' in out) || !workPhase('kernel-check', () => check(goal, out.tree))) return {proven: false}
+   return {proven: true, instances, goal, tree: out.tree}
+ }
