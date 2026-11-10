@@ -29,4 +29,5 @@ branch is created. No constructor generator was rerun.
 The original model blob remains `0541fa9436e307a6fb716aa5064637b30b893b79`.
 The integration working tree is unchanged in `core/` and `kernel/`.
 This is not a new cross-CPU census, complete coverage, Bun F3, calibrated
-weights, W, or GATE GREEN. The first request-source Node follow-up is next.
+weights, W, or GATE GREEN. The first source-pinned request-source Node
+follow-up is running; its result is not yet qualified.

@@ -53,3 +53,11 @@ The source and compact three-file delta pass independent audit
 `claude/lane-i-complete-requests`; see `VERIFIED-SOURCE.md`. The integration
 production tree is untouched. New-source F3, full F4, production weights and
 W remain unqualified; the old `41d39043` CPU census is not a new-source census.
+
+`pilot.jobs.json` runs the next original-MLDR Node off/on diagnostic, with
+`pilot-source.ts` checking the exact verified patch before execution and the
+same source plus raw/verdict equality after capture. The existing strict
+heartbeat-window audit remains enabled. It is running in
+`runs/lane-i/resume-request-f3`; no outcome or Bun F3 claim is made yet.
+Pilot-guard tooling and commitlint pass in `20261110-215020-wempu0`
+(1,692 files, zero warnings/errors). This is not the pilot's runtime result.

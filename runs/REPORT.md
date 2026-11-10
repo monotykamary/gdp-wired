@@ -145,6 +145,13 @@ in `20261110-213829-djrxck`. First failures are retained, including a clipped
 source-receipt prefix when export chunks were mixed with validation output.
 The retry keeps source export separate from checks.
 
+The next original-MLDR Node off/on diagnostic is running on exact source
+`94b65671`, with the patch pinned before execution and checked again after
+capture. It retains the strict heartbeat-window audit and the same legacy
+allowance. Output: `runs/lane-i/resume-request-f3`. Its tooling and commitlint
+pass in `20261110-215020-wempu0` (1,692 files, zero warnings/errors); the runtime
+result is still pending. No new F3 result yet.
+
 Original MLDR Node pilot `20261110-202238-v6auwd` retained **identical raw vectors
 and verdicts** with observation off/on. Both were `unknown`, reason
 `work budget (completion)`, at the same legacy `15,000,000` work allowance.

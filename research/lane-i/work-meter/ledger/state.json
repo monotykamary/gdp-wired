@@ -39,7 +39,14 @@
       "subagents": 0
     }
   },
-  "activeTasks": [],
+  "activeTasks": [
+    {
+      "task": "982f12ea-4aeb-4c25-a460-2b267447f6b5",
+      "pid": 644738,
+      "results": "runs/lane-i/resume-request-f3",
+      "purpose": "source-pinned original-MLDR Node off/on follow-up for 94b65671"
+    }
+  ],
   "rerunFirst": [],
   "verified": {
     "gateBatch": "20261110-123003-1cvbpa",
@@ -425,7 +432,21 @@
     "mutationProductionBlobsEqual": true,
     "onlyMutationSourceDifference": "core/request-materialization.test.ts",
     "fullPatchSha256": "2c98e5dc8d92da3b1f6833c1e1a331de24b559349c30cc44f52ec5c2a6c53ac2",
-    "deltaSha256": "5c0b609e3b703d01e05f240d2a8dc82147b7950f520cad264dd408966403519a"
+    "deltaSha256": "5c0b609e3b703d01e05f240d2a8dc82147b7950f520cad264dd408966403519a",
+    "f3Followup": {
+      "sourcePinned": true,
+      "expectedPatchSha256": "2c98e5dc8d92da3b1f6833c1e1a331de24b559349c30cc44f52ec5c2a6c53ac2",
+      "results": "runs/lane-i/resume-request-f3",
+      "status": "running; not qualified"
+    },
+    "pilotTooling": {
+      "batch": "20261110-215020-wempu0",
+      "files": 1692,
+      "typeLint": true,
+      "commitlint": true,
+      "warnings": 0,
+      "errors": 0
+    }
   },
   "artifactRecheckRoutingFailure": {
     "batch": "20261110-213747-66qkkg",
