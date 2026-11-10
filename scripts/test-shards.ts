@@ -10,6 +10,7 @@
 import {spawnSync} from 'node:child_process'
 import {readFileSync, writeFileSync} from 'node:fs'
 import {join} from 'node:path'
+import {assertTestRoster, coreKernelTests, longSuiteTests} from './test-roster.ts'
 
 type Unit = {name: string, dir: string, args: string[], test: boolean}
 const root = join(import.meta.dir, '..')
@@ -24,17 +25,18 @@ const units: Unit[] = [
     keyterms.test.ts lists.test.ts liveness.test.ts sizes.test.ts values.test.ts rationals.test.ts builders.test.ts
     gdp.test.ts datatypes.test.ts lemmas.test.ts discover.test.ts infer.test.ts cyclic.test.ts cycles.test.ts
     nonterm.test.ts data.test.ts data-synth.test.ts hypothesis.test.ts seqs.test.ts abstract.test.ts search.test.ts invoices.test.ts
-    folds.test.ts trees.test.ts pairs.test.ts chart.test.ts xstate.test.ts extract.test.ts extract-standalone.test.ts extract-absence.test.ts extract-choice-joins.test.ts extract-standalone-prototype.test.ts extract-standalone-regression.test.ts extract-py.test.ts extract-py-mro.test.ts extract-py-hasattr.test.ts extract-orm.test.ts extract-py-orm.test.ts sol-concrete.test.ts effect.test.ts
+    folds.test.ts trees.test.ts pairs.test.ts chart.test.ts xstate.test.ts extract.test.ts extract-standalone.test.ts extract-absence.test.ts extract-choice-joins.test.ts extract-standalone-prototype.test.ts extract-standalone-regression.test.ts extract-py.test.ts extract-py-mro.test.ts extract-py-hasattr.test.ts extract-orm.test.ts extract-py-orm.test.ts extract-sol.test.ts sol-concrete.test.ts effect.test.ts
     effect-schedule.test.ts effect-stm.test.ts effect-queue.test.ts effect-schema.test.ts calendar.test.ts count-facts.test.ts count-ranges.test.ts count-write-frames.test.ts counts-completion-order.test.ts count-completion.test.ts count-witness.test.ts count-unions.test.ts count-witness-flags.test.ts count-focused.test.ts count-cases.test.ts count-focus-proof.test.ts count-recovery-order.test.ts count-cert-grow.test.ts field-laws.test.ts count-cubes.test.ts finite-tiny.test.ts finite-tiny-houdini.test.ts bitsets.test.ts sample-cache.test.ts small-laws.test.ts cube-width.test.ts exists-support.test.ts carry.test.ts scan-prefix.test.ts
+    runtime-keys.test.ts sample-step.test.ts small-counts.test.ts cube-rows.test.ts quorum-laws.test.ts wall.test.ts count-demand.test.ts count-cert-transport.test.ts
     lemma-cuts.test.ts count-support.test.ts count-admission.test.ts counts-preflight.test.ts counts-structured.test.ts relevance.test.ts support-order.test.ts`),
-  ...tests('core/count-recovery', 'member-premises.test.ts action-guard.test.ts row-cases.test.ts natural-cases.test.ts carried-case.test.ts live-dependencies.test.ts field-bound-lemmas.test.ts boolean-core.test.ts key-closure.test.ts lift-count-proxies.test.ts rebase-path.test.ts fold-path.test.ts frame-lemmas.test.ts guard-cases.test.ts field-only.test.ts source-memo.test.ts field-demand.test.ts'),
+  ...tests('core/count-recovery', 'conditional-check-cache.test.ts conditional-cuts.test.ts conditional-proof.test.ts derivability-closure.test.ts empty-count-source.test.ts field-bound-budget.test.ts leaf-allowance.test.ts member-inclusions.test.ts pre-state-source.test.ts rename-proof.test.ts row-demand.test.ts scalar-guards.test.ts source-witness-instances.test.ts member-premises.test.ts action-guard.test.ts row-cases.test.ts natural-cases.test.ts carried-case.test.ts live-dependencies.test.ts field-bound-lemmas.test.ts boolean-core.test.ts key-closure.test.ts lift-count-proxies.test.ts rebase-path.test.ts fold-path.test.ts frame-lemmas.test.ts guard-cases.test.ts field-only.test.ts source-memo.test.ts field-demand.test.ts'),
   ...tests('kernel', 'lemma-cut.test.ts tamper.test.ts refusals.test.ts steplaw.test.ts sets.test.ts cdcl.test.ts tuples.test.ts epr-clock.test.ts epr-image.test.ts triggers.test.ts share.test.ts model-sequence.test.ts model-values.test.ts prove-paths.test.ts prover-rows.test.ts prover-row-cache.test.ts tree-reuse.test.ts'),
   ...tests('research/query', 'goal-pack.test.ts'),
   ...tests('research/protocols/ic3syn', 'mldr.test.ts'),
   ...tests('research/audit', 'inventory.test.ts'),
   ...tests('examples', 'examples.test.ts'),
   ...tests('gates', 'bar.test.ts'),
-  ...tests('.', 'scripts/action.test.ts scripts/lean-gate/gate.test.ts research/lane-i/test-load-propagation.test.ts research/lane-i/validation-audit.test.ts research/lane-i/upper-bound/summarize.test.ts research/lane-i/upper-bound/audit.test.ts research/lane-i/regressions/receipt-audit.test.ts research/lane-i/regressions/p1-scheduling-audit.test.ts research/mldr-incl/pack-production.test.ts research/track-m/link-lane-b-focus-audits.test.ts research/track-m/audit-completion-scope.test.ts research/track-wall/trace-error.test.ts core/count-recovery/row-premises.test.ts core/finite-tiny-target.test.ts core/finite-tiny-early.test.ts core/finite-tiny-seed.test.ts research/lane-i/regressions/merge-bisect-audit.test.ts research/lane-i/regressions/consensus-recheck.test.ts research/lane-i/regressions/resource-run.test.ts research/lane-i/regressions/bar-portfolio.test.ts research/mldr-incl/range-regression-input.test.ts research/mldr-incl/install-member-source-rank.test.ts'),
+  ...tests('.', 'scripts/action.test.ts scripts/test-roster.test.ts scripts/lean-gate/gate.test.ts research/lane-i/test-load-propagation.test.ts research/lane-i/validation-audit.test.ts research/lane-i/upper-bound/summarize.test.ts research/lane-i/upper-bound/audit.test.ts research/lane-i/regressions/receipt-audit.test.ts research/lane-i/regressions/p1-scheduling-audit.test.ts research/mldr-incl/pack-production.test.ts research/track-m/link-lane-b-focus-audits.test.ts research/track-m/audit-completion-scope.test.ts research/track-wall/trace-error.test.ts core/count-recovery/row-premises.test.ts core/finite-tiny-target.test.ts core/finite-tiny-early.test.ts core/finite-tiny-seed.test.ts research/lane-i/regressions/merge-bisect-audit.test.ts research/lane-i/regressions/consensus-recheck.test.ts research/lane-i/regressions/resource-run.test.ts research/lane-i/regressions/bar-portfolio.test.ts research/mldr-incl/range-regression-input.test.ts research/mldr-incl/install-member-source-rank.test.ts'),
   ...runs(`examples/readme.ts examples/guide.ts examples/composition.ts examples/sets.ts examples/quantifiers.ts
     examples/functions.ts examples/datatypes.ts examples/lemmas.ts examples/discover.ts examples/invoices.ts
     examples/folds.ts examples/trees.ts examples/pairs.ts examples/groups.ts examples/charts.ts examples/xstate.ts
@@ -46,6 +48,9 @@ const units: Unit[] = [
     examples/jev-fabric/run.ts`),
   ...tests('gates', 'bar-lib.test.ts'),
 ]
+
+assertTestRoster(coreKernelTests(root), units.filter(u => u.test).map(u => u.name),
+  longSuiteTests(JSON.parse(readFileSync(join(root, 'supercomputer/suite.json'), 'utf8'))))
 
 const timingsFile = join(import.meta.dir, 'test-shards.json')
 const seconds: Record<string, number> = (JSON.parse(readFileSync(timingsFile, 'utf8')) as {seconds: Record<string, number>}).seconds
