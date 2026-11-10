@@ -1,0 +1,45 @@
+import {strict as assert} from 'node:assert'
+import {readFileSync, copyFileSync, mkdirSync, mkdtempSync, rmSync} from 'node:fs'
+import {join, resolve} from 'node:path'
+import {spawnSync} from 'node:child_process'
+import {createHash} from 'node:crypto'
+const {restore, command} = await import(resolve('recovery-input/final-gate-common.ts'))
+const config = JSON.parse(readFileSync('validation-input/identity.json', 'utf8'))
+const expectedPatch = '8df0cf2ac466465a45683a639124d5f774e1b85b72d7f36c1b42b682c4e46fbd'
+assert.equal(config.composition.patchSha256, expectedPatch)
+const baselineText = readFileSync('baseline-result/f3-numeric-mldr-pilot.log', 'utf8')
+const rows = (tag: string) => baselineText.split('\n').filter(line => line.startsWith(tag + ' ')).map(line => JSON.parse(line.slice(tag.length + 1)))
+const comparisons = rows('F3_PILOT_COMPARISON'), prior = rows('F3_SOLVER_RESULT')
+assert.equal(comparisons.length, 1); assert.equal(prior.length, 2)
+assert.equal(comparisons[0].patchSha256, expectedPatch)
+assert.equal(comparisons[0].sourceUnchanged, true); assert.equal(comparisons[0].sameRawAndVerdict, true)
+const off = prior.find(row => row.monitor === false)
+assert(off); assert.equal(prior.filter(row => row.monitor === false).length, 1)
+const temp = mkdtempSync('/tmp/lane-i-timed-pilot-'), root = join(temp, 'source')
+try {
+  restore(resolve('recovery-input'), root, config.integrationBase)
+  command('git', ['apply', resolve('validation-input/candidate.patch')], root)
+  for (const [path, blob] of Object.entries(config.expectedCandidateBlobs)) assert.equal(command('git', ['hash-object', path], root), blob)
+  command('bun', ['install','--frozen-lockfile'], root, 180000)
+  const tooling = join(root, 'research/lane-i/f3'), output = join(root, 'f3-output')
+  mkdirSync(tooling, {recursive: true}); mkdirSync(output)
+  copyFileSync('f3-input/facade.source', join(tooling, 'facade.ts'))
+  for (const file of ['solver-observer.mjs','observer-worker.mjs','profile-window.mjs']) copyFileSync(join('f3-input', file), join(output, file))
+  command('bun', ['build','./research/lane-i/f3/facade.ts','--target=node','--format=esm','--outfile=./f3-output/facade.mjs','--sourcemap=inline'], root, 180000)
+  console.log('F3_TIMED_BASELINE ' + JSON.stringify({source: '32a59b2a', patchSha256: expectedPatch, baselineSha256: createHash('sha256').update(baselineText).digest('hex'), reusedOffRun: true, scope: 'recorded off baseline; not a same-run overhead comparison'}))
+  console.log('F3_SOLVER_RESULT ' + JSON.stringify(off))
+  const child = spawnSync('node', ['f3-output/solver-observer.mjs','on'], {cwd: root, encoding: 'utf8', timeout: 600000, maxBuffer: 16 * 1024 * 1024})
+  console.log('F3_PILOT_PROCESS ' + JSON.stringify({mode: 'on', exit: child.status, signal: child.signal, error: String(child.error ?? ''), stdoutSha256: createHash('sha256').update(child.stdout ?? '').digest('hex')}))
+  console.log(child.stdout); if (child.stderr) console.error(child.stderr.slice(-12000))
+  assert.equal(child.status, 0, 'external guard is infrastructure failure, never unknown')
+  assert.equal(child.signal, null)
+  const lines = child.stdout.split('\n').filter(line => line.startsWith('F3_SOLVER_RESULT '))
+  assert.equal(lines.length, 1)
+  const on = JSON.parse(lines[0]!.slice('F3_SOLVER_RESULT '.length))
+  assert.equal(on.monitor, true); assert.equal(on.runtime, off.runtime); assert.equal(on.id, off.id)
+  assert.deepEqual(on.raw, off.raw); assert.deepEqual(on.result, off.result)
+  assert.deepEqual(Object.keys(on.phases).sort(), Object.keys(off.phases).sort())
+  for (const key of Object.keys(off.phases)) assert.deepEqual(on.phases[key].raw, off.phases[key].raw)
+  for (const [path, blob] of Object.entries(config.expectedCandidateBlobs)) assert.equal(command('git', ['hash-object', path], root), blob)
+  console.log('F3_PILOT_COMPARISON ' + JSON.stringify({sameRawAndVerdict: true, sameExclusivePhaseRaw: true, source: config.candidate, patchSha256: expectedPatch, sourceUnchanged: true, reusedOffBaseline: true, timedSamples: true, scope: 'on-only timestamped diagnostic versus recorded same-source off baseline; no overhead, calibrated W or full F3 claim'}))
+} finally { rmSync(temp, {recursive: true, force: true}) }

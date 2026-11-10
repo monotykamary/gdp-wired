@@ -45,12 +45,6 @@
       "pid": 686001,
       "results": "runs/lane-i/resume-timed-f3",
       "purpose": "timestamped original-model observer on exact 32a59b2a versus recorded same-source off baseline"
-    },
-    {
-      "task": "3a97a895-8993-4d5c-acd9-6691561913d5",
-      "pid": 686006,
-      "results": "runs/lane-i/resume-timed-pilot-tooling",
-      "purpose": "type/lint and commitlint including the on-only timed-pilot driver"
     }
   ],
   "rerunFirst": [],
@@ -647,6 +641,14 @@
     "detectedBeforeRelease": true,
     "capabilitySampleCount": 40,
     "toolingBatch": "20261110-222458-r9py84",
-    "toolingFiles": 1703
+    "toolingFiles": 1703,
+    "pilotTooling": {
+      "batch": "20261110-222705-ud08x7",
+      "files": 1704,
+      "typeLint": true,
+      "commitlint": true,
+      "warnings": 0,
+      "errors": 0
+    }
   }
 }

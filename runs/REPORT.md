@@ -203,7 +203,9 @@ real before-release blocking-loop probe (`20261110-222458-ek322b`), plus
 1,703-file type/lint and commitlint (`20261110-222458-r9py84`). A quiet interval
 with no recent samples stays explicitly unattributed. The original-model timed
 run is pending, using the recorded same-source off baseline; it is not an
-overhead comparison or a complete F3 claim.
+overhead comparison or a complete F3 claim. Its source-pinned on-only driver
+passes type/lint and commitlint in `20261110-222705-ud08x7` (1,704 files,
+zero warnings/errors); the runtime result remains pending.
 
 Original MLDR Node pilot `20261110-202238-v6auwd` retained **identical raw vectors
 and verdicts** with observation off/on. Both were `unknown`, reason

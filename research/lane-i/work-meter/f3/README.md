@@ -78,3 +78,11 @@ commitlint pass in `20261110-222458-r9py84` (1,703 files, no warnings/errors).
 An original-model timed-selection run is now pending, reusing the recorded
 same-source off baseline rather than making an overhead comparison. New pilot
 inputs must include `profile-window.mjs` beside the observer.
+
+`timed-pilot.ts` binds source `32a59b2a`, checks the archived off-run's patch
+identity, and executes only the new timed observer. It requires identical
+runtime, raw vector, verdict and exclusive-phase vectors. The job also requires
+`--strict-window --require-timed-window`. This avoids a redundant off rerun but
+is not a paired overhead measurement. Its tooling passes
+`20261110-222705-ud08x7` (1,704 files, zero warnings/errors); the original-model
+runtime result remains pending.
