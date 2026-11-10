@@ -1,6 +1,13 @@
 import {expect, test} from 'bun:test'
 import {extract} from './extract.ts'
-import {lazyKey, sameLazyRoot} from './extract-read.ts'
+import {type Sort, lazyKey, sameLazyRoot} from './extract-read.ts'
+
+function expectChoice(sort: Sort, literal: string) {
+  // An asymmetric toMatchObject matcher can replace the inspected nested array in Bun.
+  expect(sort.k).toBe('choice')
+  if (sort.k !== 'choice') throw new Error('expected choice')
+  expect(new Set(sort.values)).toEqual(new Set([literal, '@@other']))
+}
 
 // Lane D's paired controls: all six were accepted before the prefix-only repair.
 for (const field of ['safe_value', 'arg1_value']) for (const [label, expr] of [
@@ -16,11 +23,11 @@ for (const field of ['safe_value', 'arg1_value']) for (const [label, expr] of [
   expect(new Set(inputs.map(v => v.name)).size).toBe(2)
   if (label === 'numeric-choice') {
     expect(inputs[0]!.sort.k).toBe('num')
-    expect(inputs[1]!.sort).toMatchObject({k: 'choice', values: expect.arrayContaining(['red'])})
+    expectChoice(inputs[1]!.sort, 'red')
   }
   if (label === 'choice-choice') {
-    expect(inputs[0]!.sort).toMatchObject({k: 'choice', values: expect.arrayContaining(['blue'])})
-    expect(inputs[1]!.sort).toMatchObject({k: 'choice', values: expect.arrayContaining(['red'])})
+    expectChoice(inputs[0]!.sort, 'blue')
+    expectChoice(inputs[1]!.sort, 'red')
   }
   if (label !== 'numbers') {
     // A required field has the named literal and an other-string case, not an absent case.
@@ -52,7 +59,7 @@ test('P2 structured lazy keys retain retyping independently of a colliding choic
   const inputs = x.model!.inputs.filter(v => v.name !== x.model!.event)
   expect(inputs).toHaveLength(2)
   expect(inputs.find(v => x.model!.lazy!.get(v.name)?.field === 'arg1_value')!.sort.k).toBe('str')
-  expect(inputs.find(v => x.model!.lazy!.get(v.name)?.field === 'value')!.sort).toMatchObject({k: 'choice', values: expect.arrayContaining(['red'])})
+  expectChoice(inputs.find(v => x.model!.lazy!.get(v.name)?.field === 'value')!.sort, 'red')
   expect(x.evidence!.requests).toBeGreaterThan(0)
 })
 
