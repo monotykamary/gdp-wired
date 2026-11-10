@@ -1,0 +1,5 @@
+[
+{"name":"repaired-composition-receipts","cmd":"bun recovery-input/summarize.ts validation-results","cpu":1,"memory":2048,"timeout":120,"vm_type":"large"},
+{"name":"export-boundaries-source","cmd":"bun recovery-input/materialize.ts && EMIT_COMPOSITION_SOURCE=1 bun recovery-input/compose.ts boundaries","cpu":1,"memory":4096,"timeout":240,"vm_type":"large"},
+{"name":"export-bitmap-source","cmd":"bun recovery-input/materialize.ts && EMIT_COMPOSITION_SOURCE=1 bun recovery-input/compose.ts bitmap","cpu":1,"memory":4096,"timeout":240,"vm_type":"large"}
+]

@@ -10,7 +10,12 @@ const keepalive = setInterval(() => {}, 1000)
 try {
   session.connectToMainThread()
   await post('Profiler.enable'); await post('Profiler.setSamplingInterval', {interval: 10000}); await post('Profiler.start')
-  const stop = async () => { if (stopping || busy) return; stopping = true; clearInterval(timer); clearInterval(keepalive); await post('Profiler.stop'); session.disconnect(); parentPort.close() }
+  const stop = async () => {
+    if (stopping || busy) return
+    stopping = true; clearInterval(timer)
+    try { await post('Profiler.stop') }
+    finally { clearInterval(keepalive); session.disconnect(); parentPort.close() }
+  }
   parentPort.on('message', message => { if (message === 'stop') void stop() })
   const timer = setInterval(async () => {
     if (busy || stopping) return

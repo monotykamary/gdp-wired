@@ -1,12 +1,12 @@
 {
-  "status": "raw+ledger composition verified and committed; boundary/bitmap type-only repair rechecks running",
+  "status": "ledger source committed; repaired boundary and bitmap compositions passed tests and type/lint; export-hash and full-composition mutation checks running",
   "privateIndex": "/private/tmp/lane-i-ledger.index",
   "task": "4575fac2-7dbb-4fcf-859f-63aba9e3e9c5",
   "waiterPid": 90266,
   "batch": "20261110-123336-6maehh",
   "resultDirectory": "runs/lane-i/complete-structural",
   "includesGeneratedConstructors": false,
-  "next": "Audit repaired boundary/bitmap rechecks; freeze passing source. Continue raw-progress Node pilot without claiming Bun F3 or calibrated W.",
+  "next": "Freeze boundary/bitmap commits after successful export hashes; inspect mutation controls and Node raw-progress pilot. No calibrated W or final F3 claim.",
   "productionChanged": false,
   "weightsCalibrated": false,
   "f3Implemented": false,
@@ -41,9 +41,14 @@
   },
   "activeTasks": [
     {
-      "task": "f4c63e95-948b-45be-83a6-7aef2593120f",
-      "pid": 437110,
-      "results": "runs/lane-i/resume-composition-recheck"
+      "task": "48ae54cf-23a0-48ef-98a9-42b2e926891c",
+      "pid": 457484,
+      "results": "runs/lane-i/resume-final-composition-checks"
+    },
+    {
+      "task": "e64b11d8-6e61-4258-82f9-f31ad9b2e924",
+      "pid": 456951,
+      "results": "runs/lane-i/resume-checkpoint-recheck"
     },
     {
       "task": "21103686-e173-4c97-9618-e99fb01976c9",
@@ -68,5 +73,15 @@
     "tree": "8b74e9043c5712be7a80c3eb943943d16fcd85f1",
     "tests": 151,
     "sourceExportVerifiedBatch": "20261110-202257-o544wu"
+  },
+  "repairedValidation": {
+    "batch": "20261110-202131-3i78uh",
+    "boundariesTests": 151,
+    "bitmapTests": 155,
+    "erasure": true,
+    "roster": true,
+    "decoder": true,
+    "typeLint": true,
+    "receiptAudit": "20261110-202451-eom7lj"
   }
 }

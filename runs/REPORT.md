@@ -23,7 +23,7 @@ The active integration branch remains research-only changes beyond the pause.
 
 The raw+ledger composition passes **151 selected tests**, checker erasure,
 roster, decoder and type/lint (`20261110-201507-9tl8lf`), with independent
-source/receipt audit `20261110-202057-8r5tcl`. Its source export is being
+source/receipt audit `20261110-202057-8r5tcl`. Its source export was
 hash-checked against that exact tested composition in `20261110-202257-o544wu`
 and frozen as **`feeaccf26f945b8ec9ff19990ffe32e72023ec2c`** on
 `claude/lane-i-complete-ledger` (parent `9a36137e`). Its six-file delta adds
@@ -34,8 +34,18 @@ The first boundary and bitmap compositions passed 151 and 155 selected tests,
 respectively, but both failed typecheck at `kernel/prove.ts:1908`: the optional
 `o.witness` narrowing was lost in the new synchronous phase callback. The
 preceding branch rejects a missing witness; the repair is a type-only `!`
-inside that callback. Both full rechecks are running; first failures remain
-in `runs/lane-i/resume-composition-validation/`.
+inside that callback. Both full rechecks passed (`20261110-202131-3i78uh`),
+including 151 boundary and 155 bitmap tests, erasure, roster, decoder and
+type/lint. First failures remain in `runs/lane-i/resume-composition-validation/`.
+The independent repaired-receipt audit and both source re-exports passed in
+`20261110-202451-eom7lj`; transport hash audits and the three full-composition
+mutation controls are running in `20261110-202611-ljsgom`.
+
+The full active-worktree check exposed two old staged-only imports of
+`kernel/meter.ts` in the research preloaders (that module intentionally is not
+on the active branch). `1ca971d7` resolves these from the restored candidate
+at runtime. The failed check is preserved in `runs/lane-i/resume-checkpoint-check/`;
+its type/lint recheck is running in `20261110-202555-ytwo2v`.
 
 ### F3 progress, not completion
 

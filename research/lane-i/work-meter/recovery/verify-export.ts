@@ -3,10 +3,11 @@ import {readFileSync} from 'node:fs'
 import {createHash} from 'node:crypto'
 import {gunzipSync} from 'node:zlib'
 const read = (file: string) => readFileSync(file, 'utf8').split('\n')
-const lines = read('export-input/export-complete-ledger-source.log')
+const [exportName = 'export-complete-ledger-source.log', testedName = 'complete-ledger-checks.log'] = process.argv.slice(2)
+const lines = read('export-input/' + exportName)
 const tagged = (rows: string[], tag: string) => { const matches = rows.filter(row => row.startsWith(tag + ' ')); assert.equal(matches.length, 1); return JSON.parse(matches[0]!.slice(tag.length + 1)) }
 const meta = tagged(lines, 'COMPOSE_SOURCE_META'), exported = tagged(lines, 'COMPOSITION_VERIFIED')
-const tested = tagged(read('tested-input/complete-ledger-checks.log'), 'COMPOSITION_VERIFIED')
+const tested = tagged(read('tested-input/' + testedName), 'COMPOSITION_VERIFIED')
 assert.deepEqual(exported, tested, 'export equals tested source')
 const chunks = lines.filter(row => row.startsWith('COMPOSE_SOURCE_CHUNK ')).map((row, i) => {
   const match = /^COMPOSE_SOURCE_CHUNK (\d+) ([A-Za-z0-9+/=]+)$/.exec(row)

@@ -1,0 +1,7 @@
+[
+{"name":"verify-boundaries-export","cmd":"bun recovery-input/verify-export.ts export-boundaries-source.log complete-boundaries-recheck.log","cpu":1,"memory":2048,"timeout":120,"vm_type":"large"},
+{"name":"verify-bitmap-export","cmd":"bun recovery-input/verify-export.ts export-bitmap-source.log complete-bitmap-recheck.log","cpu":1,"memory":2048,"timeout":120,"vm_type":"large"},
+{"name":"complete-bitmap-zero","cmd":"bun validation-input/prepare.ts && bun validation-prepared-input/preflight.ts checks","cpu":4,"memory":14336,"timeout":1200,"vm_type":"large","env":{"METER_COMPOSITION":"bitmap","METER_MUTATION":"zero"}},
+{"name":"complete-bitmap-double","cmd":"bun validation-input/prepare.ts && bun validation-prepared-input/preflight.ts checks","cpu":4,"memory":14336,"timeout":1200,"vm_type":"large","env":{"METER_COMPOSITION":"bitmap","METER_MUTATION":"double"}},
+{"name":"complete-bitmap-random","cmd":"bun validation-input/prepare.ts && bun validation-prepared-input/preflight.ts checks","cpu":4,"memory":14336,"timeout":1200,"vm_type":"large","env":{"METER_COMPOSITION":"bitmap","METER_MUTATION":"random"}}
+]
