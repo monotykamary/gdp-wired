@@ -1,0 +1,1 @@
+feat(research): prototype ordinary work with explicit weights

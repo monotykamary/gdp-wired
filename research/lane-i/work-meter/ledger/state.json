@@ -59,6 +59,11 @@
       "task": "bf4591ee-47a9-45c5-b085-52c51341fe70",
       "pid": 600590,
       "results": "runs/lane-i/resume-cross-cpu-attempt-2"
+    },
+    {
+      "task": "987571bb-b84e-4a7a-b7ef-210440217663",
+      "pid": 602087,
+      "results": "runs/lane-i/resume-plain-clock-prototype"
     }
   ],
   "rerunFirst": [],
@@ -90,9 +95,9 @@
     "receiptAudit": "20261110-202451-eom7lj"
   },
   "toolingValidation": {
-    "batch": "20261110-212039-zm7wiy",
+    "batch": "20261110-212458-uabmnq",
     "typeLint": true,
-    "files": 1692,
+    "files": 1693,
     "warnings": 0,
     "errors": 0,
     "commitlint": true
@@ -194,13 +199,24 @@
     "maximum": 3
   },
   "ordinaryMigration": {
-    "stage": "source inspection only",
-    "refusalStillEnabled": true,
-    "remainingWallReaders": [
+    "stage": "isolated positive-test-weight prototype running",
+    "productionChanged": false,
+    "defaultRefusalStillEnabled": true,
+    "weightsCalibrated": false,
+    "files": [
       "core/dsl.ts",
       "core/bmc.ts",
       "core/kind.ts",
-      "core/tpa.ts"
+      "core/tpa.ts",
+      "kernel/prove.ts"
+    ],
+    "checks": [
+      "no performance.now under explicit work",
+      "no Math.random reseeding",
+      "ordinary checked proof with test weights",
+      "zero whole-entry budget cannot complete",
+      "original consensus executes solver",
+      "EPR charged once in complete mode, legacy debit retained"
     ]
   }
 }

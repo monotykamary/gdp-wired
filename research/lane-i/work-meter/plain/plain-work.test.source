@@ -1,0 +1,56 @@
+import {expect, spyOn, test} from 'bun:test'
+import {proveRule, rule} from './dsl.ts'
+import {protocols} from '../research/protocols/ic3syn/models.ts'
+import {rawWork, withCompleteWorkWeights, type ExtraWorkWeights} from './work-meter.ts'
+import {BudgetExpired, clock, counted, fullRate, fullWork, withBudget, withDeadline, withinDeadline} from '../kernel/prove.ts'
+import {eprMeter} from '../kernel/epr.ts'
+const weights: ExtraWorkWeights = {tableCells: 1, checkSteps: 1, astNodes: 1, evals: 1, cubeTests: 1, ticks: 1, cdclNodes: 1, epr: 1}
+function forbidden<T>(f: () => T): T {
+  const now = spyOn(performance, 'now').mockImplementation(() => { throw Error('ordinary path read wall time') })
+  const random = spyOn(Math, 'random').mockImplementation(() => { throw Error('ordinary path read random seed') })
+  try { return f() } finally { random.mockRestore(); now.mockRestore() }
+}
+function attempt(factory: () => {r: any, laws: any[]}, work: number) {
+  try { return withBudget(work, () => { const {r, laws} = factory(); return proveRule(r, laws, {search: {work}}) }) }
+  catch (error) { if (!(error instanceof BudgetExpired)) throw error; return {proven: false, checked: false, stuck: 'unknown', why: error.message} }
+}
+const identity = () => { const r = rule('plain clock identity').state({x: 0}).step(({x}) => ({x})); return {r, laws: [r.law('zero', ({x}) => x.eq(0))]} }
+test('ordinary work stays refused without a complete positive vector', () => {
+  const {r, laws} = identity()
+  expect(proveRule(r, laws, {search: {work: 10000}}).why).toBe('work mode: plain-path migration pending')
+  expect(withCompleteWorkWeights({...weights, epr: 0}, () => proveRule(r, laws, {search: {work: 10000}})).why).toBe('work mode: plain-path requires positive complete weights')
+})
+test('explicit positive test weights permit a checked ordinary proof without wall time', () => {
+  const result = forbidden(() => withCompleteWorkWeights(weights, () => attempt(identity, 100000)))
+  expect(result).toMatchObject({proven: true, checked: true})
+})
+test('the same ordinary proof cannot complete past a zero whole-entry budget', () => {
+  const result = forbidden(() => withCompleteWorkWeights(weights, () => attempt(identity, 0)))
+  expect(result).toMatchObject({proven: false, checked: false, stuck: 'unknown'})
+  expect(result.why).toContain('work budget')
+})
+test('original consensus executes metered solver work without a wall clock', () => {
+  const protocol = protocols.find(p => p.id === 'consensus')!
+  const before = rawWork()
+  const result = forbidden(() => withCompleteWorkWeights(weights, () => attempt(() => { const r = protocol.make(); return {r, laws: protocol.laws(r)} }, 50000)))
+  const after = rawWork()
+  expect(result.why).not.toBe('work mode: plain-path migration pending')
+  expect(after.evals + after.tableCells + after.fm).toBeGreaterThan(before.evals + before.tableCells + before.fm)
+  console.log('PLAIN_ORIGINAL_CONTROL ' + JSON.stringify({result, raw: Object.fromEntries(Object.keys(after).map(key => [key, after[key as keyof typeof after] - before[key as keyof typeof before]])), testWeightsOnly: true}))
+}, 30000)
+test('complete EPR work is not debited twice from a deadline', () => {
+  const prior = eprMeter.n
+  try { withCompleteWorkWeights(weights, () => withBudget(1000, () => {
+    const end = withinDeadline(Infinity), before = fullWork()
+    eprMeter.n += 25
+    expect(fullWork() - before).toBeCloseTo(25, 8)
+    expect(withinDeadline(Infinity)).toBe(end)
+  })) } finally { eprMeter.n = prior }
+})
+test('legacy counted EPR deadline debit is preserved', () => {
+  const prior = eprMeter.n
+  try { counted(fullRate, () => withDeadline(clock() + 1000, () => {
+    const end = withinDeadline(Infinity); eprMeter.n += 25
+    expect(end - withinDeadline(Infinity)).toBeCloseTo(25 / fullRate, 8)
+  }), true) } finally { eprMeter.n = prior }
+})
