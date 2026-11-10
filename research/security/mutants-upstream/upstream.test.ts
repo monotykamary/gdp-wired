@@ -57,11 +57,14 @@ test('all saved upstream witnesses reproduce independently on both original and 
   expect(() => verify(forged)).toThrow('mutation edit changed')
 }, 60_000)
 
-test('the fresh pinned corpus proves clean policies and detects all nine mutants', async () => {
+test('the fresh pinned Python corpus cannot count unchecked native-law results as strict recall', async () => {
   for (const c of cases) {
     const row = await measure(c)
     expect(row.baseline.fullyRead).toBe(true)
-    expect(row.baseline.claims.every(l => l.verdict === 'proven')).toBe(true)
-    expect(row.mutants.every(m => m.detected && m.side.fullyRead)).toBe(true)
+    expect(row.baseline.exit).toBe(2)
+    expect(row.baseline.claims.length).toBeGreaterThan(0)
+    expect(row.baseline.claims.every(l => l.verdict === 'unknown' && l.translation === 'unchecked' && l.kernelProven)).toBe(true)
+    expect(row.mutants.every(m => !m.detected && m.side.fullyRead)).toBe(true)
+    expect(row.mutants.every(m => m.side.exit === 2 && m.side.claims.every(l => l.verdict === 'unknown' && l.translation === 'unchecked'))).toBe(true)
   }
 }, 180_000)

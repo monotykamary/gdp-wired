@@ -6,10 +6,8 @@ import {nat, oneOf, rule, when} from './dsl.ts'
 import {agreement, isolation, noninterference, proveTwoRuns, twoRuns} from './relational.ts'
 import {citesIn, duration, parse} from './laws.ts'
 import {check} from './cli.ts'
-import {type Document, fromInterchange} from '../interchange/format.ts'
-import {checkCertificate} from '../interchange/check.ts'
 import {spawnSync} from 'node:child_process'
-import {mkdtempSync, readFileSync, writeFileSync} from 'node:fs'
+import {mkdtempSync, writeFileSync} from 'node:fs'
 import {tmpdir} from 'node:os'
 
 // A claim desk: a claim is submitted with an amount and a diagnosis (kept in notes), then decided by the amount.
@@ -143,24 +141,27 @@ class RecordsDesk:
             r.fulfilled = True
 `
 const hasPython = (() => { try { return spawnSync('python3', ['--version']).status === 0 } catch { return false } })()
-test.skipIf(!hasPython)('the CLI: laws about two runs, a deadline in days, its citation and certificate, in Python', async () => {
+test.skipIf(!hasPython)('the CLI: Python two-run and deadline model proofs retain citations, not source certificates', async () => {
   const dir = mkdtempSync(`${tmpdir()}/gdp-regulated-`)
   writeFileSync(`${dir}/desk.py`, DESK)
   const r = await check([`${dir}/desk.py`], {ms: 5000, propose: false, cert: `${dir}/certs`})
   const laws = Object.fromEntries(r.rules[0]!.laws.map(l => [l.name, l]))
   if (!r.rules[0]!.ok) console.log(JSON.stringify(r.rules[0]!.refusals))
   expect(r.rules[0]!.ok).toBe(true)
-  for (const n of ['the diagnosis stays private', 'one patient\'s requests never change another\'s', 'fulfilled only within 30 days']) expect(laws[n]?.verdict).toBe('proven')
+  for (const n of ['the diagnosis stays private', 'one patient\'s requests never change another\'s', 'fulfilled only within 30 days']) {
+    expect(laws[n]).toMatchObject({kernelProven: true, verdict: 'unknown', translation: 'unchecked'})
+    expect(laws[n]!.cert).toBeUndefined()
+    expect(laws[n]!.run).toBeUndefined()
+  }
+  expect(r.exit).toBe(2)
   expect(laws['fulfilled only within 30 days']!.cites).toEqual(['45 CFR 164.524(b)(2): act on a request for access no later than 30 calendar days after its receipt'])
-  // the certificate: the kernel's to check, its meta the citation (never read by a checker)
-  const doc = JSON.parse(readFileSync(laws['fulfilled only within 30 days']!.cert!, 'utf8')) as Document
-  expect((doc.meta as {cites: string[]}).cites[0]).toContain('164.524')
-  expect(checkCertificate(fromInterchange(doc)).every(c => c.accepted)).toBe(true)
-  expect(laws['one patient\'s requests never change another\'s']!.cert).toBeDefined()
+  // A model proof and citation do not authorize a source certificate without a native-law journal.
   // a law over the diagnosis that it does reach: broken by two runs
   writeFileSync(`${dir}/desk.py`, DESK.replace('Req(int(time.time()), False, False)', 'Req(int(time.time()) + diagnosis, False, False)'))
   const r2 = await check([`${dir}/desk.py`], {ms: 5000, propose: false})
   const leak = r2.rules[0]!.laws.find(l => l.name === 'the diagnosis stays private')!
-  expect(leak.verdict).toBe('broken')
-  expect(leak.run!.some(s => s.includes('|'))).toBe(true)
+  expect(r2.exit).toBe(2)
+  expect(leak).toMatchObject({kernelProven: false, verdict: 'unknown', translation: 'unchecked'})
+  expect(leak.run).toBeUndefined()
+  expect(leak.cert).toBeUndefined()
 }, 300_000)

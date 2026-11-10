@@ -1,6 +1,6 @@
-// The CLI on a small file in each language (core/cli.ts): the rule read with nothing configured, one law stated in the
-// code's own form proven, one broken with the run that breaks it, and the exit code 1. Each skipped where its toolchain
-// isn't installed (the suite's cli-<lang> jobs install them).
+// The CLI on a small file in each language: preserve mathematical verdicts, but only native-validated source laws
+// may be proven or broken. Foreign/model-only frontends are unknown/unchecked, exit 2, without a source certificate.
+// Each is skipped where its toolchain isn't installed (the suite's cli-<lang> jobs install them).
 import {expect, setDefaultTimeout, test} from 'bun:test'
 
 // (each test runs the CLI end to end: a loaded VM takes past bun's 5 s, so every test gets the 180 s the long ones have)
@@ -12,6 +12,19 @@ import {dirname} from 'node:path'
 import {pathToFileURL} from 'node:url'
 import {check, colors, scoped} from './cli.ts'
 import {lawsIn, parse} from './laws.ts'
+
+// Old native rule replay is independent evidence, not a native source-law journal.
+type SourceLaw = Awaited<ReturnType<typeof check>>['rules'][number]['laws'][number]
+const unchecked = (law: SourceLaw, kernelProven?: boolean) => {
+  expect(law).toMatchObject({verdict: 'unknown', translation: 'unchecked', ...(kernelProven === undefined ? {} : {kernelProven})})
+  expect(law.run).toBeUndefined()
+  expect(law.replayed).toBeUndefined()
+  expect(law.cert).toBeUndefined()
+}
+const modelLaws = (laws: SourceLaw[]) => {
+  expect(laws.length).toBeGreaterThan(0)
+  for (const law of laws) unchecked(law, true)
+}
 
 const has = (cmd: string, ...a: string[]) => { try { execFileSync(cmd, a, {stdio: 'ignore'}); return true } catch { return false } }
 const javac = process.env.JAVA_HOME ? `${process.env.JAVA_HOME}/bin/javac` : 'javac'
@@ -249,19 +262,26 @@ export const counter = setup({
 }
 
 for (const [lang, c] of Object.entries(CASES)) {
-  (TOOLS[lang]!() ? test : test.skip)(`${lang}: a law stated in the code proven, one broken with its run, exit 1`, async () => {
+  (TOOLS[lang]!() ? test : test.skip)(lang === 'ts' ? `${lang}: a law stated in the code proven, one broken with its run, exit 1` : `${lang}: model verdicts retained, source laws unchecked, exit 2`, async () => {
     const target = `${files(c.files, c.modules)}/${c.target ?? Object.keys(c.files)[0]}`
     const {rules, exit} = await check([target], {ms: 5000, propose: false, check: {runs: 30, depth: 6, states: 60}})
     const r = rules.find(x => x.ok) ?? rules[0]!
     if (!r.ok) throw new Error(`refused: ${JSON.stringify(r.refusals)}`)
     const by = (n: string) => r.laws.find(l => l.name === n) ?? (() => { throw new Error(`no law ${n}: ${JSON.stringify(r.laws)}`) })()
-    expect(by(lang === 'python' ? 'a counted hit adds its cost' : 'a hit counts at most one').verdict).toBe('proven')
+    const positive = by(lang === 'python' ? 'a counted hit adds its cost' : 'a hit counts at most one')
     const broken = by('every hit counts')
-    expect(broken.verdict).toBe('broken')
-    expect(broken.run!.length).toBeGreaterThan(0)
-    expect(broken.run!.at(-1)!).toMatch(/hit/i)
-    if (lang === 'xstate') expect(by('it stays open').verdict).toBe('proven')
-    expect(exit).toBe(1)
+    if (lang === 'ts') {
+      expect(positive.verdict).toBe('proven')
+      expect(broken.verdict).toBe('broken')
+      expect(broken.run!.length).toBeGreaterThan(0)
+      expect(broken.run!.at(-1)!).toMatch(/hit/i)
+      expect(exit).toBe(1)
+    } else {
+      unchecked(positive, true)
+      unchecked(broken, false)
+      if (lang === 'xstate') unchecked(by('it stays open'), true)
+      expect(exit).toBe(2)
+    }
     // (every law stated in the code is reported, each once at least: none dropped by any language's reader)
     const stated = Object.entries(c.files).flatMap(([f, text]) => lawsIn(text, f.split('/').pop()!).map(l => l.where))
     const told = new Set(rules.flatMap(x => x.laws.map(l => l.where)))
@@ -436,7 +456,7 @@ class SessionLimit:
 `, 'gdp.toml': '[rules.SessionLimit]\nfailures = "kept"\n'})
   if (!TOOLS.python!()) return
   const {rules} = await check([`${dir}/s.py`], {ms: 3000, propose: false})
-  expect(rules[0]!.laws.map(l => l.verdict)).toEqual(['proven'])
+  modelLaws(rules[0]!.laws)
 })
 
 // The environment (core/system.ts's inEnv): a `gdp: env` comment over the class, or env in gdp.toml, runs every call at
@@ -461,12 +481,11 @@ ${env}class SessionLimit:
   const tagged = files({'s.py': code('# gdp: env read committed, keys expire\n'), 'gdp.toml': '[rules.SessionLimit]\nfailures = "kept"\n'})
   const a = (await check([`${tagged}/s.py`], {ms: 5000, propose: false})).rules[0]!
   expect(a.env!.map(e => e.split(':')[0])).toEqual(['read committed', 'keys expire'])
-  expect(a.laws[0]!.verdict).toBe('broken')
-  expect(a.laws[0]!.run!.filter(l => /begins hit/.test(l)).length).toBe(2)
-  expect(a.laws[0]!.run!.at(-1)).toMatch(/commits/)
+  unchecked(a.laws[0]!, false)
   const toml = files({'s.py': code(''), 'gdp.toml': '[rules.SessionLimit]\nfailures = "kept"\nenv = "serializable"\n'})
   const b = (await check([`${toml}/s.py`], {ms: 5000, propose: false})).rules[0]!
-  expect([b.env!.length, b.laws[0]!.verdict]).toEqual([1, 'proven'])
+  expect(b.env!.length).toBe(1)
+  unchecked(b.laws[0]!, true)
   const bad = (await check([`${toml}/s.py`], {ms: 5000, propose: false, env: 'eventual'})).rules[0]!
   expect(bad.laws[0]!.verdict).toBe('not read')
 })
@@ -498,10 +517,9 @@ class Lock:
         return cache.delete(self.key)
 `, 'pkg/gdp.toml': '[rules.Lock]\nfailures = "kept"\nstores.cache = {}\ntypes = {key = "str"}\n', 'pyproject.toml': '[project]\nname = "x"\n'})
   const a = (await check([`${lock}/pkg/lock.py`], {ms: 8000, propose: false})).rules[0]!
-  expect(a.laws[0]!.verdict).toBe('broken')
-  expect(a.laws[0]!.run!.join('\n')).toMatch(/call 1: acquire\(\)\n.*expires.*\ncall 2: acquire\(\)\ncall 1: release\(\)\ncall 3: acquire\(\)/)
+  unchecked(a.laws[0]!, false)
   const b = (await check([`${lock}/pkg/lock.py`], {ms: 8000, propose: false, env: 'acquire then release'})).rules[0]!
-  expect(b.laws[0]!.verdict).toBe('proven')
+  unchecked(b.laws[0]!, true)
   const pay = files({'pay.py': `class Payments:
     def __init__(self, cache, gateway):
         self.cache = cache
@@ -514,9 +532,11 @@ class Lock:
         self.gateway.charge(order, amount)  # gdp: effect
         self.cache.set(f"paid:{order}", 1)
 `, 'gdp.toml': '[rules.Payments]\nfailures = "kept"\nstores = {cache = {}, gateway = {}}\n'})
-  const got: string[] = []
-  for (const env of ['atomic', 'read committed', 'keys expire']) got.push((await check([`${pay}/pay.py`], {ms: 8000, propose: false, env})).rules[0]!.laws[0]!.verdict)
-  expect(got).toEqual(['proven', 'broken', 'broken'])
+  for (const env of ['atomic', 'read committed', 'keys expire']) {
+    const result = await check([`${pay}/pay.py`], {ms: 8000, propose: false, env})
+    expect(result.exit).toBe(2)
+    unchecked(result.rules[0]!.laws[0]!, env === 'atomic')
+  }
 })
 
 // The adversarial round's Java shapes (research/langs/adversarial: j01, j03, j04, a dependency handed `this`): the CLI
@@ -552,19 +572,20 @@ public class Counter {
     expect(r.checked).toContain('requests from the start')
     expect(r.laws.length).toBe(1)
   }
-  expect(result.rules.find(r => r.ctor === '()')!.laws[0]!.verdict).toBe('proven')
-  expect(result.rules.find(r => r.ctor === '(boolean)')!.laws[0]!.verdict).toBe('broken')
-  expect(result.exit).toBe(1)
+  unchecked(result.rules.find(r => r.ctor === '()')!.laws[0]!, true)
+  unchecked(result.rules.find(r => r.ctor === '(boolean)')!.laws[0]!, false)
+  expect(result.exit).toBe(2)
   const printed = spawnSync(process.execPath, [new URL('./cli.ts', import.meta.url).pathname, 'check', `${dir}/Counter.java`, '--json', '--no-propose', '--ms', '3000'], {encoding: 'utf8'})
-  expect(printed.status).toBe(1)
+  expect(printed.status).toBe(2)
   const json = JSON.parse(printed.stdout) as {rules: {ctor?: string}[]}
   expect(new Set(json.rules.map(r => r.ctor))).toEqual(new Set(['()', '(boolean)']))
   writeFileSync(`${dir}/gdp.toml`, '[rules.Counter]\nctor = "()"\n')
   const selected = await check([`${dir}/Counter.java`], {ms: 3000, propose: false})
   expect(selected.rules.length).toBe(1)
-  expect(selected.rules[0]!.laws[0]!.verdict).toBe('proven')
+  modelLaws(selected.rules[0]!.laws)
+  expect(selected.exit).toBe(2)
 })
-;(TOOLS.java!() ? test : test.skip)('constructor variants keep separate certificates', async () => {
+;(TOOLS.java!() ? test : test.skip)('constructor variants retain their scopes without source certificates', async () => {
   const dir = files({'Counter.java': `// gdp: law n stays zero: n == 0
 public class Counter {
   private int n;
@@ -574,10 +595,9 @@ public class Counter {
 }`})
   const result = await check([`${dir}/Counter.java`], {ms: 3000, propose: false, cert: `${dir}/certs`})
   expect(result.rules.length).toBe(2)
-  const certs = result.rules.map(r => r.laws[0]!.cert)
-  expect(certs.every(Boolean)).toBe(true)
-  expect(new Set(certs).size).toBe(2)
-  for (const cert of certs) expect(readAdv(cert!, 'utf8').length).toBeGreaterThan(0)
+  expect(new Set(result.rules.map(r => r.ctor))).toEqual(new Set(['()', '(boolean)']))
+  expect(result.exit).toBe(2)
+  for (const r of result.rules) modelLaws(r.laws)
 })
 ;(TOOLS.java!() ? test : test.skip)('a supported Java constructor never hides an unread constructor', async () => {
   const dir = files({'Counter.java': `// gdp: law n nonnegative: n >= 0
@@ -607,9 +627,9 @@ struct Meter {
   expect(result.rules.length).toBe(2)
   expect(new Set(result.rules.map(r => r.ctor))).toEqual(new Set(['()', '(negative: Bool)']))
   for (const r of result.rules) { expect(r.ok).toBe(true); expect(r.checked).toContain('requests from the start') }
-  expect(result.rules.find(r => r.ctor === '()')!.laws[0]!.verdict).toBe('proven')
-  expect(result.rules.find(r => r.ctor === '(negative: Bool)')!.laws[0]!.verdict).toBe('broken')
-  expect(result.exit).toBe(1)
+  unchecked(result.rules.find(r => r.ctor === '()')!.laws[0]!, true)
+  unchecked(result.rules.find(r => r.ctor === '(negative: Bool)')!.laws[0]!, false)
+  expect(result.exit).toBe(2)
 })
 
 ;(TOOLS.swift!() ? test : test.skip)('a supported Swift initializer never hides a failable alternative or its law', async () => {
@@ -718,15 +738,15 @@ class Counter:
 `})
   const {rules, exit} = await check([`${dir}/fate.py`], {ms: 5000, propose: false})
   expect(rules.map(r => [r.entry, r.laws.map(l => [l.name, l.verdict])])).toEqual([
-    ['Fate', [['modal only after tries strikes', 'proven'], ['one strike per VM', 'proven']]], ['Counter', [['at most cap', 'proven']]]])
-  expect(exit).toBe(0)
+    ['Fate', [['modal only after tries strikes', 'unknown'], ['one strike per VM', 'unknown']]], ['Counter', [['at most cap', 'unknown']]]])
+  for (const r of rules) modelLaws(r.laws)
+  expect(exit).toBe(2)
   // (the strike charged whatever VM: the law about distinct VMs broken, with its run)
   writeFileSync(`${dir}/fate.py`, readAdv(`${dir}/fate.py`, 'utf8').replace('        if vm in self.avoid:\n            return\n', ''))
   const b = await check([`${dir}/fate.py`], {ms: 5000, propose: false})
   const law = b.rules[0]!.laws.find(l => l.name === 'one strike per VM')!
-  expect(law.verdict).toBe('broken')
-  expect(law.run!.join('\n')).toMatch(/failed\(vm=/)
-  expect(b.exit).toBe(1)
+  unchecked(law, false)
+  expect(b.exit).toBe(2)
 }, 180_000)
 
 // A law about an argument the code ignores (the bug is that it does): the argument kept in the rule, the law broken.
@@ -741,9 +761,8 @@ class Waits:
         self.fails += 1
 `})
   const {rules, exit} = await check([`${dir}/waits.py`], {ms: 5000, propose: false})
-  expect(rules[0]!.laws.map(l => l.verdict)).toEqual(['broken'])
-  expect(rules[0]!.laws[0]!.run!.join('\n')).toMatch(/waited\(start_failed=false\)/)
-  expect(exit).toBe(1)
+  unchecked(rules[0]!.laws[0]!, false)
+  expect(exit).toBe(2)
 }, 180_000)
 
 // from = "any": a law proven only with an invariant the search finds holds from the start, not from every state the laws
@@ -766,13 +785,16 @@ ${helper ? '    # gdp: law a within 3: a <= 3\n' : ''}
   const a = await check([`${dir}/mirror.py`], {ms: 5000, propose: false})
   // (true from the start, not inductive alone: unknown, the law it needs said)
   expect(a.rules[0]!.laws.map(l => l.verdict)).toEqual(['unknown'])
-  expect(a.exit).toBe(0)
-  expect(a.rules[0]!.laws[0]!.why).toMatch(/not inductive from every state the laws allow/)
+  expect(a.exit).toBe(2)
+  unchecked(a.rules[0]!.laws[0]!, true)
   const reach = await check([`${dir}/mirror.py`], {ms: 5000, propose: false, from: 'reachable'})
-  expect(reach.rules[0]!.laws.map(l => l.verdict)).toEqual(['proven'])
+  modelLaws(reach.rules[0]!.laws)
+  expect(reach.exit).toBe(2)
   writeFileSync(`${dir}/mirror.py`, mirrorCode(true))
   const b = await check([`${dir}/mirror.py`], {ms: 5000, propose: false})
-  expect(b.rules[0]!.laws.map(l => [l.verdict, l.from])).toEqual([['proven', 'any'], ['proven', 'any']])
+  modelLaws(b.rules[0]!.laws)
+  expect(b.exit).toBe(2)
+  expect(b.rules[0]!.laws.every(l => l.from === undefined)).toBe(true)
 }, 180_000)
 
 // Candidate verdicts cannot mask stated-law precedence, even when target order is reversed.
@@ -785,10 +807,10 @@ ${helper ? '    # gdp: law a within 3: a <= 3\n' : ''}
   const dir = files({'mirror.py': mirrorCode(false), 'not-read.ts': unread, 'gdp.toml': 'from = "any"\n'})
   const unknown = `${dir}/mirror.py`, notRead = `${dir}/not-read.ts`
   for (const row of [
-    {targets: [unknown, candidate], verdicts: ['unknown'], exit: 0},
+    {targets: [unknown, candidate], verdicts: ['unknown'], exit: 2},
     {targets: [notRead, unknown, candidate], verdicts: ['not read', 'unknown'], exit: 2},
-    {targets: [notRead, unknown, broken, candidate], verdicts: ['broken', 'not read', 'unknown'], exit: 1},
-    {targets: [candidate, broken, unknown, notRead], verdicts: ['broken', 'not read', 'unknown'], exit: 1},
+    {targets: [notRead, unknown, broken, candidate], verdicts: ['broken', 'not read', 'unknown'], exit: 2},
+    {targets: [candidate, broken, unknown, notRead], verdicts: ['broken', 'not read', 'unknown'], exit: 2},
   ] satisfies {targets: string[], verdicts: ('broken' | 'not read' | 'unknown')[], exit: 0 | 1 | 2}[]) {
     const result = await check(row.targets, {ms: 5000, propose: false, security: true})
     expect(result.rules.every(r => r.ok)).toBe(true)
@@ -837,7 +859,8 @@ class Resettable(Retry):
 `})
   const {rules} = await check([`${dir}/retry.py`], {ms: 5000, propose: false})
   const v = Object.fromEntries(rules.flatMap(r => r.laws.map(l => [`${r.entry}: ${l.name}`, l.verdict])))
-  expect(v['Retry: a waiting job ends']).toBe('proven')
+  expect(v['Retry: a waiting job ends']).toBe('unknown')
+  unchecked(rules.find(r => r.entry === 'Retry')!.laws[0]!, true)
   expect(v['Resettable: a job of a resettable kind ends']).toBe('unknown')
 }, 180_000)
 
@@ -886,8 +909,9 @@ class Spin:
 `})
   const {rules, exit} = await check([`${dir}/m.py`], {ms: 5000, propose: false})
   const v = Object.fromEntries(rules.flatMap(r => r.laws.map(l => [l.name, [r.entry, l.verdict]])))
-  expect(v['nothing but health answers without the token']).toEqual(['Gate', 'proven'])
-  expect(v['a made tree was asked for']).toEqual(['Store', 'proven'])
+  expect(v['nothing but health answers without the token']).toEqual(['Gate', 'unknown'])
+  expect(v['a made tree was asked for']).toEqual(['Store', 'unknown'])
+  for (const r of rules.filter(r => ['Gate', 'Store'].includes(r.entry!))) modelLaws(r.laws)
   expect(v['spins stop']![1]).toBe('not read')
   const stated = lawsIn(readAdv(`${dir}/m.py`, 'utf8'), 'm.py').map(l => l.where), told = new Set(rules.flatMap(r => r.laws.map(l => l.where)))
   expect(stated.filter(w => !told.has(w))).toEqual([])
@@ -959,7 +983,7 @@ class Tries:
 `})
   const {rules} = await check([`${dir}/t.py`], {ms: 5000, propose: false})
   expect(rules[0]!.ok).toBe(true)
-  expect(rules[0]!.laws.map(l => l.verdict)).toEqual(['proven'])
+  modelLaws(rules[0]!.laws)
 }, 180_000)
 
 // What the code names, a law names the same: a field named failed (the keyword yields to it), a module's constant, a
@@ -1001,8 +1025,9 @@ class Pending:
 `, 'gdp.toml': 'from = "any"\n'})
   const {rules} = await check([`${dir}/n.py`], {ms: 5000, propose: false})
   const v = Object.fromEntries(rules.flatMap(r => r.laws.map(l => [l.name, [r.entry, l.verdict]])))
-  expect(v['every start boat made no VM for is given back']).toEqual(['Creation', 'proven'])
-  expect(v['at most LIMIT asks']).toEqual(['Creation', 'proven'])
+  expect(v['every start boat made no VM for is given back']).toEqual(['Creation', 'unknown'])
+  expect(v['at most LIMIT asks']).toEqual(['Creation', 'unknown'])
+  modelLaws(rules.find(r => r.entry === 'Creation')!.laws)
   // (a sum of a map of integers: its positive parts less its negative parts; from any state it needs the laws about them)
   expect(v['the need is the pending sum']![1]).not.toBe('not read')
 }, 180_000)
@@ -1132,18 +1157,22 @@ def hit(x: int) -> int:
 `, 'gdp.toml': 'from = "any"\n[rules.budgets]\n'})
   const {rules} = await check([`${dir}/s.py`], {ms: 8000, propose: false})
   const v = Object.fromEntries(rules.flatMap(r => r.laws.map(l => [l.name, [r.entry, l.verdict]])))
-  expect(v['a demand keeps a VM no longer than the idle time']).toEqual(['release_ttl', 'proven'])
-  expect(v['a share of a count never exceeds the count']).toEqual(['ceiling', 'proven'])
-  expect(v['a warm lease never takes a VM about to stop']).toEqual(['Entry', 'proven'])
-  expect(v["a batch's budget is within the starts left"]).toEqual(['budget', 'proven'])
-  expect(v['a step grows by a quarter of the pool at most']).toEqual(['Grow', 'proven'])
-  expect(v['finished at most once']).toEqual(['Item', 'proven'])
+  expect(v['a demand keeps a VM no longer than the idle time']).toEqual(['release_ttl', 'unknown'])
+  expect(v['a share of a count never exceeds the count']).toEqual(['ceiling', 'unknown'])
+  expect(v['a warm lease never takes a VM about to stop']).toEqual(['Entry', 'unknown'])
+  expect(v["a batch's budget is within the starts left"]).toEqual(['budget', 'unknown'])
+  expect(v['a step grows by a quarter of the pool at most']).toEqual(['Grow', 'unknown'])
+  expect(v['finished at most once']).toEqual(['Item', 'unknown'])
+  for (const name of ['release_ttl', 'ceiling', 'Entry', 'budget', 'Grow']) modelLaws(rules.find(r => r.entry === name)!.laws)
+  unchecked(rules.find(r => r.entry === 'Item')!.laws.find(l => l.name === 'finished at most once')!, true)
   expect(v['taken at most once more than lost']).toEqual(['Item', 'unknown'])
-  expect(v['at most one hold a call']).toEqual(['Holder', 'proven'])
+  expect(v['at most one hold a call']).toEqual(['Holder', 'unknown'])
+  modelLaws(rules.find(r => r.entry === 'Holder')!.laws)
   expect(rules.some(r => r.entry === 'budgets')).toBe(false)
   // (a sum of integers after a step: from the start, the search finds the sums' laws; from any state it needs them)
   const reach = await check([`${dir}/s.py`], {ms: 8000, propose: false, from: 'reachable', entry: 'Pending'})
-  expect(reach.rules[0]!.laws.map(l => l.verdict)).toEqual(['proven'])
+  modelLaws(reach.rules[0]!.laws)
+  expect(reach.exit).toBe(2)
 }, 300_000)
 
 // Every refusal that suggests a fix names one that works: the fix it prints applied as it says (its gdp.toml form, at
@@ -1302,7 +1331,7 @@ for (const lang of Object.keys(TARGET)) {
       const d = files({...PRICED(lang), ...fix})
       const {rules} = await check([at(d)], o)
       if (!rules[0]!.ok) throw new Error(`${how}: still refused: ${JSON.stringify(rules[0]!.refusals)}`)
-      expect([how, rules[0]!.laws.map(l => l.verdict)]).toEqual([how, ['proven']])
+      modelLaws(rules[0]!.laws)
     }
   }, 600_000)
 }
@@ -1330,7 +1359,7 @@ ${body}
   expect(r1[0]!.ok).toBe(false)
   expect(r1[0]!.refusals.map(r => `${r.where}: ${r.what}`).join('; ')).toMatch(/Limiter\.kt:10:\d+: repeat\(cost\) \{ used \+= 1 \}: a loop \(repeat\)/)
   const {rules: r2} = await check([`${kt('        used += cost')}/Limiter.kt`], o)
-  expect(r2[0]!.laws.map(l => l.verdict)).toEqual(['proven'])
+  modelLaws(r2[0]!.laws)
 }, 600_000)
 
 // Code across files as it ships: a TypeScript class whose base is in a file it imports (read beside it), and a Python
@@ -1345,5 +1374,6 @@ test('a TypeScript base class in a relative import, and Python\'s super(C, self)
   const py = files({'counter.py': `class Base:\n    def __init__(self, cap: int) -> None:\n        self.cap = cap\n        self.n = 0\n\n\n# gdp: law it never passes its cap: cap < 0 or n <= cap\nclass Counter(Base):\n    def __init__(self, cap: int) -> None:\n        super(Counter, self).__init__(cap)\n\n    def hit(self) -> None:\n        if self.n < self.cap:\n            self.n += 1\n`})
   const p = await check([`${py}/counter.py`], {ms: 5000, propose: false, entry: 'Counter'})
   expect(p.rules[0]!.ok).toBe(true)
-  expect(p.rules[0]!.laws[0]!.verdict).toBe('proven')
+  modelLaws(p.rules[0]!.laws)
+  expect(p.exit).toBe(2)
 }, 120_000)
