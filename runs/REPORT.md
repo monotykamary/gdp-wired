@@ -72,6 +72,11 @@ coverage remain pending.
 
 ### F3 progress, not completion
 
+The heartbeat-fenced original-MLDR Node follow-up is now bound to canonical
+patch `f59720c766a6`, with source blobs checked before and after observation.
+Its tooling check passes (`20261110-211606-615p6t`, 1,689 files, zero warnings
+or errors); runtime results remain pending. This is not Bun F3 qualification.
+
 Original MLDR Node pilot `20261110-202238-v6auwd` retained **identical raw vectors
 and verdicts** with observation off/on. Both were `unknown`, reason
 `work budget (completion)`, at the same legacy `15,000,000` work allowance.

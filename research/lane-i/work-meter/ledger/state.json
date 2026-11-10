@@ -6,7 +6,7 @@
   "batch": "20261110-123336-6maehh",
   "resultDirectory": "runs/lane-i/complete-structural",
   "includesGeneratedConstructors": false,
-  "next": "Collect immutable six-pair Bun pilot; verify actual CPU classes and cross-VM fingerprints. First mutable-tree dispatch ran no jobs; keep its failure. Do not choose W.",
+  "next": "Collect queued default-class raw pairs and the canonical heartbeat-fenced Node diagnostic. Run the validated raw auditor only on complete pilot receipts. Do not choose W or conflate Node with Bun qualification.",
   "productionChanged": false,
   "weightsCalibrated": false,
   "f3Implemented": false,
@@ -44,6 +44,11 @@
       "task": "b6b14f83-fb85-450f-be52-ad8a67f24bb0",
       "pid": 549052,
       "results": "runs/lane-i/resume-raw-census-frozen"
+    },
+    {
+      "task": "9f21d71f-c9ba-43cf-aa3e-93f7f9893792",
+      "pid": 591392,
+      "results": "runs/lane-i/resume-canonical-fenced-node"
     }
   ],
   "rerunFirst": [],
@@ -75,9 +80,9 @@
     "receiptAudit": "20261110-202451-eom7lj"
   },
   "toolingValidation": {
-    "batch": "20261110-210220-pcmupw",
+    "batch": "20261110-211606-615p6t",
     "typeLint": true,
-    "files": 1692,
+    "files": 1689,
     "warnings": 0,
     "errors": 0,
     "commitlint": true

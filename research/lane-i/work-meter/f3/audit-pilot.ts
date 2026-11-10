@@ -6,6 +6,10 @@ const lines = readFileSync(file, 'utf8').split('\n')
 const records = (tag: string): any[] => lines.filter(line => line.startsWith(tag + ' ')).map(line => JSON.parse(line.slice(tag.length + 1)))
 const results = records('F3_SOLVER_RESULT'), comparison = records('F3_PILOT_COMPARISON')
 assert.equal(results.length, 2); assert.equal(comparison.length, 1)
+if (process.argv.includes('--canonical')) {
+  assert.equal(comparison[0].patchSha256, 'f59720c766a68a2647cb150c6f3e0793363aa36804eb6bc3185430488f0eebe0')
+  assert.equal(comparison[0].sourceUnchanged, true)
+}
 assert.equal(results[0].monitor, false); assert.equal(results[1].monitor, true)
 assert.deepEqual(results[0].result, results[1].result); assert.deepEqual(results[0].raw, results[1].raw)
 assert.equal(comparison[0].sameRawAndVerdict, true)

@@ -5,6 +5,10 @@ import {spawnSync} from 'node:child_process'
 import {createHash} from 'node:crypto'
 const {restore, command} = await import(resolve('recovery-input/final-gate-common.ts'))
 const config = JSON.parse(readFileSync('validation-input/identity.json', 'utf8'))
+if (process.argv.includes('--canonical')) {
+  assert.equal(config.composition.mode, 'canonical')
+  assert.equal(config.composition.patchSha256, 'f59720c766a68a2647cb150c6f3e0793363aa36804eb6bc3185430488f0eebe0')
+}
 const temp = mkdtempSync('/tmp/lane-i-f3-'), root = join(temp, 'source')
 try {
   restore(resolve('recovery-input'), root, config.integrationBase)
@@ -27,6 +31,7 @@ try {
     results[mode] = JSON.parse(lines[0]!.slice('F3_SOLVER_RESULT '.length))
   }
   const same = JSON.stringify(results.off!.raw) === JSON.stringify(results.on!.raw) && JSON.stringify(results.off!.result) === JSON.stringify(results.on!.result)
-  console.log('F3_PILOT_COMPARISON ' + JSON.stringify({sameRawAndVerdict: same, source: config.candidate, scope: 'Node raw-progress pilot only; no Bun F3, no calibrated W, no full census'}))
+  for (const [path, blob] of Object.entries(config.expectedCandidateBlobs)) assert.equal(command('git', ['hash-object', path], root), blob, 'source unchanged after observation')
+  console.log('F3_PILOT_COMPARISON ' + JSON.stringify({sameRawAndVerdict: same, source: config.candidate, patchSha256: config.composition.patchSha256, sourceUnchanged: true, scope: 'Node raw-progress pilot only; no Bun F3, no calibrated W, no full census'}))
   assert(same, 'observer must not change raw counts or verdict')
 } finally { rmSync(temp, {recursive: true, force: true}) }

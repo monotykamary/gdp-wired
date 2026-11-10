@@ -1,0 +1,1 @@
+[{"name":"f3-canonical-fenced-mldr-pilot","cmd":"set -o pipefail; bun recovery-input/materialize.ts && bun recovery-input/compose.ts canonical && bun f3-input/pilot.ts --canonical 2>&1 | tee canonical-pilot.log && bun f3-input/audit-pilot.ts canonical-pilot.log --strict-window --canonical","cpu":4,"memory":14336,"timeout":1500,"vm_type":"large"}]

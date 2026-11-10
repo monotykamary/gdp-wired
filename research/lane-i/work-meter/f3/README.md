@@ -37,6 +37,12 @@ and `Inspector.initialized` completed normally, but neither delivered a
 capability results, not solver attachments or F3 results. Retain all logs,
 including the initial timeout; do not mistake a live socket for a live stack.
 
+`canonical-pilot.jobs.json` now tests the heartbeat-fenced worker on the frozen
+canonical source (`f59720c766a6`), with explicit pre-run source binding and
+post-run source-blob checks. Its strict audit distinguishes changed windows
+from stable quiet windows. This new original-MLDR Node pair is pending; it does
+not repeat or replace the old pre-canonical pair.
+
 No Bun F3, host qualification, calibrated weighted-unit sampler or complete
 census is established by these results. Both pilot processes used the exact
 unchanged original MLDR model and the same legacy 15,000,000 work allowance.

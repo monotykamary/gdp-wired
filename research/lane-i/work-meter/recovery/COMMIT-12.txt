@@ -1,0 +1,1 @@
+feat(research): bind fenced observer pilot to canonical source
