@@ -4,9 +4,11 @@
 // subset refuses. Needs solc 0.8 and anvil (research/sol/sol-setup.sh); skipped without them.
 import {expect, test} from 'bun:test'
 import {execFileSync} from 'node:child_process'
-import {mkdtempSync, writeFileSync} from 'node:fs'
+import {mkdtempSync, readFileSync, writeFileSync} from 'node:fs'
 import {tmpdir} from 'node:os'
-import {checkTarget} from './cli.ts'
+import {checkTarget, runOf} from './cli.ts'
+import {proveRule} from './dsl.ts'
+import {buildLaw, lawsIn} from './laws.ts'
 import {extractSolidity} from './extract-sol.ts'
 
 const has = (c: string) => { try { execFileSync(c, ['--version'], {stdio: 'ignore'}); return true } catch { return false } }
@@ -16,7 +18,31 @@ const file = (name: string, body: string) => { const f = `${dir}/${name}.sol`; w
 const verdicts = async (f: string, entry?: string) => {
   const [r] = await checkTarget({lang: 'solidity', at: f, files: [f]}, {ms: 60_000, propose: false, ...(entry ? {entry} : {})})
   expect(r!.refusals).toEqual([])
+  for (const law of r!.laws) {
+    expect(law).toMatchObject({verdict: 'unknown', translation: 'unchecked'})
+    expect(law.run).toBeUndefined()
+    expect(law.replayed).toBeUndefined()
+    expect(law.cert).toBeUndefined()
+  }
   return Object.fromEntries(r!.laws.map(l => [l.name, l]))
+}
+
+// A model counterexample and its bytecode replay remain useful independent
+// evidence. They must not be manufactured into a native-law source verdict.
+const modelAndReplay = (f: string, name: string, broken: boolean) => {
+  const x = extractSolidity(f)
+  expect(x.ok).toBe(true)
+  const law = lawsIn(readFileSync(f, 'utf8')).find(l => l.name === name)!
+  const built = buildLaw(x, law)
+  if (built.kind !== 'law') throw Error('expected a state invariant')
+  const model = proveRule(x.rule!, [...x.invariants ?? [], built.law], {search: {ms: 60_000}})
+  expect(model).toMatchObject({proven: false, checked: false, translation: 'unchecked'})
+  if (!broken) return {run: model.run ? runOf(x, model.run) : undefined, replayed: undefined}
+  expect(model.kernelProven).toBe(false)
+  expect(model.run).toBeDefined()
+  const replay = x.replay!(model.run!, built.law)
+  expect(replay.ok).toBe(true)
+  return {run: runOf(x, model.run!), replayed: replay.what}
 }
 
 const VAULT = (fixed: boolean) => `
@@ -48,20 +74,22 @@ contract Ledger {
         balances[to] += amount;
     }
 }`))
-  expect(v['the balances sum to the supply']!.verdict).toBe('proven')
-  expect(v['transfer never mints']!.verdict).toBe('proven')
+  expect(v['the balances sum to the supply']!.kernelProven).toBe(true)
+  expect(v['transfer never mints']!.kernelProven).toBe(true)
 }, 600_000)
 
 t('the DAO\'s shape: broken by a re-entrant run, replayed on the code; cleared first, proven', async () => {
-  const bad = (await verdicts(file('VaultBad', VAULT(false))))['the vault holds what it owes']!
-  expect(bad.verdict).toBe('broken')
-  expect(bad.replayed).toMatch(/replayed on the code.*calls made from inside another/)
-  expect(bad.run!.some(s => s.includes('withdraw$resume'))).toBe(true)
-  expect((await verdicts(file('VaultGood', VAULT(true))))['the vault holds what it owes']!.verdict).toBe('proven')
+  const badFile = file('VaultBad', VAULT(false))
+  const bad = (await verdicts(badFile))['the vault holds what it owes']!
+  expect(bad.kernelProven).toBe(false)
+  const concrete = modelAndReplay(badFile, 'the vault holds what it owes', true)
+  expect(concrete.replayed).toMatch(/replayed on the code.*calls made from inside another/)
+  expect(concrete.run!.some(s => s.includes('withdraw$resume'))).toBe(true)
+  expect((await verdicts(file('VaultGood', VAULT(true))))['the vault holds what it owes']!.kernelProven).toBe(true)
 }, 900_000)
 
 t('a lock held across the call: re-entering withdraw reverts, the law proven', async () => {
-  const v = await verdicts(file('Guarded', `
+  const guarded = file('Guarded', `
 /// gdp: law the vault holds what it owes: balance >= sum(balances)
 contract Guarded {
     mapping(address => uint256) public balances;
@@ -74,8 +102,9 @@ contract Guarded {
         require(ok);
         balances[msg.sender] = 0;
     }
-}`))
-  expect(v['the vault holds what it owes']!.verdict).not.toBe('broken')
+}`)
+  await verdicts(guarded)
+  expect(modelAndReplay(guarded, 'the vault holds what it owes', false).run).toBeUndefined()
 }, 900_000)
 
 t('a wrap past 2^256: unchecked, a counter below its start is reached; checked, never', async () => {
@@ -86,8 +115,10 @@ contract Counter {
     function down() external { ${unchecked ? 'unchecked { count -= 1; }' : 'count -= 1;'} }
     function up() external { require(count < 100); count += 1; }
 }`
-  expect((await verdicts(file('Wraps', src(true))))['never below the start']!.verdict).toBe('broken')
-  expect((await verdicts(file('Reverts', src(false))))['never below the start']!.verdict).toBe('proven')
+  const wrapped = file('Wraps', src(true))
+  expect((await verdicts(wrapped))['never below the start']!.kernelProven).toBe(false)
+  expect(modelAndReplay(wrapped, 'never below the start', true).replayed).toContain('replayed on the code')
+  expect((await verdicts(file('Reverts', src(false))))['never below the start']!.kernelProven).toBe(true)
 }, 900_000)
 
 t('refused, each where it is with why', () => {

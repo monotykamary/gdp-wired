@@ -14,6 +14,8 @@ const cases: {name: string, file: string, old: string, replacement: string, test
   {name: 'unreachable-states-used-for-laws', file: 'core/extract-check.ts', old: 'return step(params, ps, side, st, inputs, e, {}, where, false)', replacement: 'return step(params, ps, side, st, inputs, e, {}, where, true)'},
   {name: 'factory-capture-tie-order', file: 'core/extract-check.ts', old: '[...nativeCaptureEdits(code, file, nativeMethods), ...extra]', replacement: '[...extra, ...nativeCaptureEdits(code, file, nativeMethods)]'},
   {name: 'unchecked-source-certificate', file: 'core/relational.ts', old: 'const validation = translationVerdict(r, [...laws, ...stepLaws], {proven: true, checked: true})', replacement: 'const validation = {proven: true, checked: true}'},
+  {name: 'inference-model-counterexample-lost', file: 'core/infer.ts', old: 'const refuted = !opts.first && !opts.cubes && rule ? refuteModelByRuns(rule, laws, stepLaws) : undefined', replacement: 'const refuted = undefined', tests: ['core/infer.test.ts', '--test-name-pattern', 'a false law is answered']},
+
 
 
 

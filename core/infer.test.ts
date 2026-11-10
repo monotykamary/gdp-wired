@@ -57,10 +57,14 @@ test('a machine with no rule: the in-flight bound needs s + 50·p <= b + 150 or 
 })
 
 test('a false law is answered with the run that breaks it; a law proven alone needs nothing found', () => {
-  const bad = pool('release unchecked'), v = inferLaws(bad, [poolLaw(bad)])
-  expect(v.proven).toBe(false)
-  expect(v.run).toBeDefined()
-  expect(v.found).toEqual([])
+  for (const marked of [false, true]) {
+    const bad = pool('release unchecked')
+    if (marked) Object.defineProperty(bad, Symbol.for('gdp-wired.source-proof.v1'), {value: true})
+    const v = inferLaws(bad, [poolLaw(bad)])
+    expect(v.proven).toBe(false)
+    expect(v.run).toBeDefined()
+    expect(v.found).toEqual([])
+  }
   const r = pool(), alone = r.law('in use <= size', ({inUse, size}) => inUse.atMost(size)), w = inferLaws(r, [alone])
   expect(w).toMatchObject({proven: true, checked: true, found: []})
 })

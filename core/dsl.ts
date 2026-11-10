@@ -2825,6 +2825,10 @@ function guidesOf(m: Machine): ((env: Record<string, number>, st: State, rand: R
     return [(env, st, rand, bound) => { try { return [x.name, evalE(t, env, st, m) + (up ? (c.op === '<' ? 1 : 0) + rand(bound + 1) : 0)] } catch { return undefined } }]
   })
 }
+// Model-only negative evidence for inference: never a source-law verdict.
+export function refuteModelByRuns(r: Parameters<typeof refuteByRuns>[0], laws: Law[], stepLaws: StepLaw[] = []): ReturnType<typeof refuteByRuns> {
+  return refuteByRuns(r, laws, stepLaws)
+}
 function refuteByRuns(r: Rule<Obj, Obj, Obj, Obj, Obj, Obj, Obj, Obj>, laws: Law[], stepLaws: StepLaw[] = [], budget: RunBudget = refuteBudget): {goal: string, witness: Record<string, number>, run?: {params: Record<string, number>, trace: Record<string, unknown>[]}} | undefined {
   const m = r.machine
   const run = interpret(m), rand = seeded(budget.seed ?? 13), bound = budget.bound, shown = shownRequest, guides = budget.mixed ? guidesOf(m) : []
