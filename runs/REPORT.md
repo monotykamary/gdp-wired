@@ -39,20 +39,47 @@ including 151 boundary and 155 bitmap tests, erasure, roster, decoder and
 type/lint. First failures remain in `runs/lane-i/resume-composition-validation/`.
 The independent repaired-receipt audit and both source re-exports passed in
 `20261110-202451-eom7lj`; transport hash audits and the three full-composition
-mutation controls are running in `20261110-202611-ljsgom`.
+mutation controls passed in `20261110-202611-ljsgom`. Verified source commits:
+`4550377f` (`claude/lane-i-complete-boundaries`) and `84ffacf2`
+(`claude/lane-i-complete-bitmap`), in order after `feeaccf2`.
+They remain separate source branches, not a final-gate-qualified integration.
 
 The full active-worktree check exposed two old staged-only imports of
 `kernel/meter.ts` in the research preloaders (that module intentionally is not
 on the active branch). `1ca971d7` resolves these from the restored candidate
 at runtime. The failed check is preserved in `runs/lane-i/resume-checkpoint-check/`;
-its type/lint recheck is running in `20261110-202555-ytwo2v`.
+that recheck passed typecheck but exposed one old unbound `ts.sys.readFile`
+callback in the AST generator. `5b0453f5` binds the callback; the full final
+check **passes with zero warnings/errors across 1,682 files** in
+`20261110-202902-ciyd4v`. All nine existing source/research commit messages
+also pass commitlint. The intermediate lint failure remains in
+`runs/lane-i/resume-checkpoint-recheck/`.
 
 ### F3 progress, not completion
+
+Original MLDR Node pilot `20261110-202238-v6auwd` retained **identical raw vectors
+and verdicts** with observation off/on. Both were `unknown`, reason
+`work budget (completion)`, at the same legacy `15,000,000` work allowance.
+The run reported ~300ms quiet windows with sampled stacks through
+`canon`/`canonFlip` -> `decide` -> `sameKey` -> `leafRows`. These are coverage
+candidates, not a final F3 finding: the first observer did not recheck the
+heartbeat after the profiler's asynchronous acknowledgement.
+
+A discarded-increment-only canonicalization follow-up now counts lookup and
+key serialization/inspection work. Its checks and a stricter heartbeat-before/after
+Node pilot are running; see `research/lane-i/work-meter/coverage/STATUS.md`.
+Independent audit `20261110-203450-h8vitu` confirms exact raw-vector/verdict
+equality and nonnegative exclusive-phase reconciliation for every counter.
+The first canonical staging attempt failed its roster anchor before running
+tests; the anchor was corrected against the frozen source and a recheck is
+running. No failed receipt was overwritten.
+
 
 `20261110-201744-s9kwtn`: Node v20.20.2's worker inspector captured 25 samples
 including the named synchronous main-thread loop **before it returned**.
 Bun 1.4.3 fails the stronger same-thread check. No ordinary-timer or wrong-thread
-result is being promoted to F3; exact solver attachment is still to implement.
+result is being promoted to F3. The Node solver attachment is exercised above;
+the Bun same-thread capability remains blocked.
 
 
 Lane I resumed from `dbfe4c56`; no cancelled run was repeated. **Not GATE GREEN.**

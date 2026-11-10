@@ -15,9 +15,19 @@ Receipts:
   received while blocked. Bun failed: zero samples, no main-thread stack.
   Both original failures are retained, not replaced by the successful case.
 
-This is capability evidence only. It does not attach to the solver, sample
-actual work counters, establish F3 for Bun, or qualify a host. The next step
-is a research-only Node bundle of the exact solver source with raw progress
-observed from shared memory, followed by raw-count/return-value equivalence
-against the same source without observation. A calibrated weighted-unit
-sampler and an original-model ledger run remain required before claiming F3.
+This probe is capability evidence only. The subsequent original-model Node
+pilot (`20261110-202238-v6auwd`) did attach to the solver and observe actual
+raw counters. Off/on processes returned the same raw vector and the same
+`unknown` (`work budget (completion)`) verdict. Its exclusive phase totals
+reconcile with every raw counter; independent audit: `20261110-203450-h8vitu`.
+
+It reported 12 candidate quiet windows with live `canon`/`canonFlip` stacks.
+The first sampler did not recheck the heartbeat after the profiler replied,
+so these are candidate coverage gaps, not definitive F3 violations. The next
+sampler distinguishes stable heartbeat windows from changed windows. The
+canonicalization follow-up counts existing lookup, serialization and key
+inspection work without changing the checker after observation erasure.
+
+No Bun F3, host qualification, calibrated weighted-unit sampler or complete
+census is established by these results. Both pilot processes used the exact
+unchanged original MLDR model and the same legacy 15,000,000 work allowance.

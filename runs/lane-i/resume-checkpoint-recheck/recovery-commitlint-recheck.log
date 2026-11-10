@@ -1,0 +1,12 @@
+196acc88d6b50af320fc7675251260a6a9d20d7dc14e0fdbc597935576732e9b  recovery-input/COMMIT-2.txt
+e16b64e8b6a1ddfc19bdf725161e3cf06c483f24f31eba07631308ffec6b49c3  recovery-input/COMMIT-3.txt
+0106e7c591c89fd16ce69f8ed2530f48db4f134380e6dbd775d2e3c34230edd1  recovery-input/COMMIT-4.txt
+51457ff5a813964e9641f003ecacb7ba2b007e81e6d6a7a9102918e345e9ff7a  recovery-input/COMMIT-5.txt
+293c7e899f4d7c174582bddc817167d45d4b92bd5277b38abccdf555e39d5bc8  recovery-input/COMMIT.txt
+f06165cd8b9ab1d7ffb32ebf82704fd4d4cdc687b1324623fe47b04e159085cb  recovery-input/LEDGER-COMMIT.txt
+c84673a18f563898de113607364e5930c7291990b6b560961d948fd9dc0265de  recovery-input/RAW-COMMIT.txt
+
+--- stderr ---
+Resolving dependencies
+Resolved, downloaded and extracted [443]
+Saved lockfile

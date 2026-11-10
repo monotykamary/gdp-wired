@@ -1,0 +1,5 @@
+verify-boundaries-export	0	0.04	boat
+verify-bitmap-export	0	0.05	boat
+complete-bitmap-zero	0	109.09	boat
+complete-bitmap-double	0	81.31	boat
+complete-bitmap-random	0	150.36	boat

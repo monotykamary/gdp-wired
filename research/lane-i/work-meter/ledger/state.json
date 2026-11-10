@@ -1,12 +1,12 @@
 {
-  "status": "ledger source committed; repaired boundary and bitmap compositions passed tests and type/lint; export-hash and full-composition mutation checks running",
+  "status": "raw/ledger/boundaries/bitmap source chain verified; canonicalization coverage follow-up running after Node raw-progress pilot",
   "privateIndex": "/private/tmp/lane-i-ledger.index",
   "task": "4575fac2-7dbb-4fcf-859f-63aba9e3e9c5",
   "waiterPid": 90266,
   "batch": "20261110-123336-6maehh",
   "resultDirectory": "runs/lane-i/complete-structural",
   "includesGeneratedConstructors": false,
-  "next": "Freeze boundary/bitmap commits after successful export hashes; inspect mutation controls and Node raw-progress pilot. No calibrated W or final F3 claim.",
+  "next": "Audit original Node pilot, inspect canonicalization tests and stricter heartbeat pilot. Do not infer calibrated W or final F3 from raw progress.",
   "productionChanged": false,
   "weightsCalibrated": false,
   "f3Implemented": false,
@@ -41,19 +41,14 @@
   },
   "activeTasks": [
     {
-      "task": "48ae54cf-23a0-48ef-98a9-42b2e926891c",
-      "pid": 457484,
-      "results": "runs/lane-i/resume-final-composition-checks"
+      "task": "caffe75f-bec9-484c-bb3a-9843b3c5a305",
+      "pid": 484330,
+      "results": "runs/lane-i/resume-canonical-recheck"
     },
     {
-      "task": "e64b11d8-6e61-4258-82f9-f31ad9b2e924",
-      "pid": 456951,
-      "results": "runs/lane-i/resume-checkpoint-recheck"
-    },
-    {
-      "task": "21103686-e173-4c97-9618-e99fb01976c9",
-      "pid": 439474,
-      "results": "runs/lane-i/resume-f3-mldr-pilot"
+      "task": "609de325-4979-4a4b-9268-b85969e36f93",
+      "pid": 484509,
+      "results": "runs/lane-i/resume-source-chain-recheck"
     }
   ],
   "rerunFirst": [],
@@ -83,5 +78,47 @@
     "decoder": true,
     "typeLint": true,
     "receiptAudit": "20261110-202451-eom7lj"
+  },
+  "toolingValidation": {
+    "batch": "20261110-202902-ciyd4v",
+    "typeLint": true,
+    "files": 1682,
+    "warnings": 0,
+    "errors": 0,
+    "commitlint": true
+  },
+  "verifiedSourceChain": [
+    {
+      "stage": "raw",
+      "sha": "9a36137ece0525d077ecf4509b686b2e6bdf3058"
+    },
+    {
+      "stage": "ledger",
+      "sha": "feeaccf26f945b8ec9ff19990ffe32e72023ec2c"
+    },
+    {
+      "stage": "boundaries",
+      "sha": "4550377f85e6ec6fcf86acc9a5bf2adcdbdf3ec1"
+    },
+    {
+      "stage": "bitmap",
+      "sha": "84ffacf2be0364ab2ee0758405d779c027338c56"
+    }
+  ],
+  "mutationValidation": {
+    "batch": "20261110-202611-ljsgom",
+    "modes": [
+      "zero",
+      "double",
+      "random"
+    ],
+    "passed": true
+  },
+  "pilotAudit": {
+    "batch": "20261110-203450-h8vitu",
+    "sameRawAndVerdict": true,
+    "exclusivePhaseReconciliation": true,
+    "reportedWindows": 12,
+    "finalF3": false
   }
 }

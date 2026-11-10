@@ -1,0 +1,1 @@
+feat(meter): count bitmap operations by traversed words

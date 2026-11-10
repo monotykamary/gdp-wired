@@ -1,0 +1,163 @@
+bun install v1.4.3 (c6da4a4d3)
+
++ @gdp-ts/core@0.1.0
++ @reduxjs/toolkit@2.13.0
++ @types/bun@1.3.1
++ @webgpu/types@0.1.66
++ effect@4.0.7
++ effect3@3.22.4
++ oxlint@1.88.0
++ oxlint-tsgolint@7.0.2004
++ typescript@5.9.3
++ xstate@5.33.2
++ xstate4@4.38.3
+
+27 packages installed [970.00ms]
+recovery-input/materialized/bitmap-kernel.ts(20,31): error TS2307: Cannot find module '../core/check.ts' or its corresponding type declarations.
+recovery-input/materialized/bitmap-kernel.ts(21,27): error TS2307: Cannot find module './meter.ts' or its corresponding type declarations.
+recovery-input/materialized/bitmap-kernel.ts(22,59): error TS2307: Cannot find module '../core/machine.ts' or its corresponding type declarations.
+recovery-input/materialized/bitmap-kernel.ts(23,75): error TS2307: Cannot find module '../core/solver.ts' or its corresponding type declarations.
+recovery-input/materialized/bitmap-kernel.ts(24,26): error TS2307: Cannot find module './meter.ts' or its corresponding type declarations.
+recovery-input/materialized/bitmap-kernel.ts(98,19): error TS2345: Argument of type 'boolean | undefined' is not assignable to parameter of type 'boolean'.
+  Type 'undefined' is not assignable to type 'boolean'.
+recovery-input/materialized/bitmap-kernel.ts(99,3): error TS2322: Type 'boolean | undefined' is not assignable to type 'boolean'.
+  Type 'undefined' is not assignable to type 'boolean'.
+recovery-input/materialized/bitmap-kernel.ts(228,157): error TS18046: 'cp' is of type 'unknown'.
+recovery-input/materialized/bitmap-kernel.ts(228,162): error TS18046: 'cq' is of type 'unknown'.
+recovery-input/materialized/bitmap-kernel.ts(229,88): error TS18046: 'cp' is of type 'unknown'.
+recovery-input/materialized/bitmap-kernel.ts(229,93): error TS18046: 'cq' is of type 'unknown'.
+recovery-input/materialized/bitmap-kernel.ts(299,27): error TS7006: Parameter 'y' implicitly has an 'any' type.
+recovery-input/materialized/bitmap-kernel.ts(300,58): error TS7006: Parameter 't' implicitly has an 'any' type.
+recovery-input/materialized/bitmap-kernel.ts(310,33): error TS2345: Argument of type 'C' is not assignable to parameter of type 'never'.
+recovery-input/materialized/bitmap-kernel.ts(338,62): error TS7006: Parameter 'y' implicitly has an 'any' type.
+recovery-input/materialized/bitmap-kernel.ts(339,32): error TS7006: Parameter 'y' implicitly has an 'any' type.
+recovery-input/materialized/bitmap-kernel.ts(356,33): error TS2345: Argument of type 'C' is not assignable to parameter of type 'never'.
+recovery-input/materialized/bitmap-kernel.ts(588,33): error TS2345: Argument of type 'E' is not assignable to parameter of type 'never'.
+recovery-input/materialized/bitmap-kernel.ts(610,33): error TS2345: Argument of type 'E' is not assignable to parameter of type 'never'.
+recovery-input/materialized/bitmap-kernel.ts(617,82): error TS7006: Parameter 'y' implicitly has an 'any' type.
+recovery-input/materialized/bitmap-kernel.ts(684,69): error TS18046: 'c' is of type 'unknown'.
+recovery-input/materialized/bitmap-kernel.ts(687,125): error TS2571: Object is of type 'unknown'.
+recovery-input/materialized/bitmap-kernel.ts(703,218): error TS7006: Parameter 'y' implicitly has an 'any' type.
+recovery-input/materialized/bitmap-kernel.ts(714,98): error TS18046: 'w' is of type 'unknown'.
+recovery-input/materialized/bitmap-kernel.ts(714,133): error TS2339: Property 'value' does not exist on type 'Record<"each", unknown>'.
+recovery-input/materialized/bitmap-kernel.ts(714,163): error TS18046: 'w' is of type 'unknown'.
+recovery-input/materialized/bitmap-kernel.ts(714,192): error TS18046: 'w' is of type 'unknown'.
+recovery-input/materialized/bitmap-kernel.ts(732,52): error TS7006: Parameter 'map' implicitly has an 'any' type.
+recovery-input/materialized/bitmap-kernel.ts(767,26): error TS2345: Argument of type 'any' is not assignable to parameter of type 'never'.
+recovery-input/materialized/bitmap-kernel.ts(830,19): error TS18046: 'w' is of type 'unknown'.
+recovery-input/materialized/bitmap-kernel.ts(831,27): error TS2345: Argument of type 'Record<"each", unknown>' is not assignable to parameter of type '{ each: string; value: E; }'.
+  Property 'value' is missing in type 'Record<"each", unknown>' but required in type '{ each: string; value: E; }'.
+recovery-input/materialized/bitmap-kernel.ts(832,23): error TS2345: Argument of type 'unknown' is not assignable to parameter of type 'string'.
+recovery-input/materialized/bitmap-kernel.ts(833,29): error TS2345: Argument of type 'unknown' is not assignable to parameter of type 'string'.
+recovery-input/materialized/bitmap-kernel.ts(835,28): error TS2339: Property 'value' does not exist on type 'Record<"each", unknown>'.
+recovery-input/materialized/bitmap-kernel.ts(837,24): error TS18046: 'w' is of type 'unknown'.
+recovery-input/materialized/bitmap-kernel.ts(837,41): error TS2345: Argument of type 'unknown' is not assignable to parameter of type 'string'.
+recovery-input/materialized/bitmap-kernel.ts(837,51): error TS2339: Property 'value' does not exist on type 'Record<"each", unknown>'.
+recovery-input/materialized/bitmap-kernel.ts(837,80): error TS2339: Property 'value' does not exist on type 'Record<"each", unknown>'.
+recovery-input/materialized/bitmap-kernel.ts(837,105): error TS2339: Property 'value' does not exist on type 'Record<"each", unknown>'.
+recovery-input/materialized/bitmap-kernel.ts(838,31): error TS18046: 'w' is of type 'unknown'.
+recovery-input/materialized/bitmap-kernel.ts(838,58): error TS18046: 'w' is of type 'unknown'.
+recovery-input/materialized/bitmap-kernel.ts(838,83): error TS18046: 'w' is of type 'unknown'.
+recovery-input/materialized/bitmap-kernel.ts(838,90): error TS18046: 'w' is of type 'unknown'.
+recovery-input/materialized/bitmap-kernel.ts(875,77): error TS18046: 'w' is of type 'unknown'.
+recovery-input/materialized/bitmap-kernel.ts(875,91): error TS18046: 'w' is of type 'unknown'.
+recovery-input/materialized/bitmap-kernel.ts(901,33): error TS2345: Argument of type 'E' is not assignable to parameter of type 'never'.
+recovery-input/materialized/bitmap-kernel.ts(944,28): error TS2345: Argument of type 'any' is not assignable to parameter of type 'never'.
+recovery-input/materialized/bitmap-kernel.ts(975,35): error TS2345: Argument of type 'any' is not assignable to parameter of type 'never'.
+recovery-input/materialized/bitmap-kernel.ts(999,101): error TS7006: Parameter 'i' implicitly has an 'any' type.
+recovery-input/materialized/bitmap-kernel.ts(1000,31): error TS7006: Parameter 'f' implicitly has an 'any' type.
+recovery-input/materialized/bitmap-kernel.ts(1005,67): error TS7006: Parameter 'f' implicitly has an 'any' type.
+recovery-input/materialized/bitmap-kernel.ts(1008,34): error TS7006: Parameter 'r' implicitly has an 'any' type.
+recovery-input/materialized/bitmap-kernel.ts(1012,67): error TS7006: Parameter 'f' implicitly has an 'any' type.
+recovery-input/materialized/bitmap-kernel.ts(1016,45): error TS7006: Parameter 'r' implicitly has an 'any' type.
+recovery-input/materialized/bitmap-kernel.ts(1016,148): error TS7006: Parameter 'acc' implicitly has an 'any' type.
+recovery-input/materialized/bitmap-kernel.ts(1016,153): error TS7006: Parameter 'r' implicitly has an 'any' type.
+recovery-input/materialized/bitmap-kernel.ts(1024,42): error TS7006: Parameter 'r' implicitly has an 'any' type.
+recovery-input/materialized/bitmap-kernel.ts(1024,45): error TS7006: Parameter 'i' implicitly has an 'any' type.
+recovery-input/materialized/bitmap-kernel.ts(1060,33): error TS2345: Argument of type 'E' is not assignable to parameter of type 'never'.
+recovery-input/materialized/bitmap-kernel.ts(1064,50): error TS7006: Parameter 'y' implicitly has an 'any' type.
+recovery-input/materialized/bitmap-kernel.ts(1077,54): error TS18046: 'sum' is of type 'unknown'.
+recovery-input/materialized/bitmap-kernel.ts(1080,21): error TS2638: Type '{}' may represent a primitive value, which is not permitted as the right operand of the 'in' operator.
+recovery-input/materialized/bitmap-kernel.ts(1080,39): error TS2339: Property 'value' does not exist on type 'Record<"each", unknown>'.
+recovery-input/materialized/bitmap-kernel.ts(1080,46): error TS2345: Argument of type 'unknown' is not assignable to parameter of type 'string'.
+recovery-input/materialized/bitmap-kernel.ts(1081,37): error TS2339: Property 'key' does not exist on type '{}'.
+recovery-input/materialized/bitmap-kernel.ts(1081,45): error TS2339: Property 'key' does not exist on type '{}'.
+recovery-input/materialized/bitmap-kernel.ts(1105,115): error TS18046: 'c' is of type 'unknown'.
+recovery-input/materialized/bitmap-kernel.ts(1106,65): error TS18046: 'w' is of type 'unknown'.
+recovery-input/materialized/bitmap-kernel.ts(1109,12): error TS2339: Property 'term' does not exist on type 'unknown'.
+recovery-input/materialized/bitmap-kernel.ts(1109,18): error TS2339: Property 'key' does not exist on type 'unknown'.
+recovery-input/materialized/bitmap-kernel.ts(1123,91): error TS2638: Type '{}' may represent a primitive value, which is not permitted as the right operand of the 'in' operator.
+recovery-input/materialized/bitmap-kernel.ts(1123,150): error TS2339: Property 'key' does not exist on type '{}'.
+recovery-input/materialized/bitmap-kernel.ts(1129,21): error TS2638: Type '{}' may represent a primitive value, which is not permitted as the right operand of the 'in' operator.
+recovery-input/materialized/bitmap-kernel.ts(1129,40): error TS2339: Property 'value' does not exist on type 'Record<"each", unknown>'.
+recovery-input/materialized/bitmap-kernel.ts(1129,55): error TS2464: A computed property name must be of type 'string', 'number', 'symbol', or 'any'.
+recovery-input/materialized/bitmap-kernel.ts(1130,72): error TS2339: Property 'key' does not exist on type '{}'.
+recovery-input/materialized/bitmap-kernel.ts(1130,87): error TS2339: Property 'value' does not exist on type '{}'.
+recovery-input/materialized/bitmap-kernel.ts(1143,23): error TS18046: 'w' is of type 'unknown'.
+recovery-input/materialized/bitmap-kernel.ts(1146,75): error TS2339: Property 'value' does not exist on type 'Record<"each", unknown>'.
+recovery-input/materialized/bitmap-kernel.ts(1146,97): error TS2464: A computed property name must be of type 'string', 'number', 'symbol', or 'any'.
+recovery-input/materialized/bitmap-kernel.ts(1177,140): error TS18046: 'w' is of type 'unknown'.
+recovery-input/materialized/bitmap-kernel.ts(1177,147): error TS2339: Property 'value' does not exist on type 'Record<"each", unknown>'.
+recovery-input/materialized/bitmap-kernel.ts(1177,157): error TS18046: 'w' is of type 'unknown'.
+recovery-input/materialized/bitmap-kernel.ts(1177,164): error TS18046: 'w' is of type 'unknown'.
+recovery-input/materialized/bitmap-kernel.ts(1178,161): error TS18046: 'c' is of type 'unknown'.
+recovery-input/materialized/bitmap-kernel.ts(1179,37): error TS7006: Parameter 'l' implicitly has an 'any' type.
+recovery-input/materialized/bitmap-kernel.ts(1270,33): error TS2345: Argument of type 'E' is not assignable to parameter of type 'never'.
+recovery-input/materialized/bitmap-kernel.ts(1278,35): error TS7006: Parameter 'x' implicitly has an 'any' type.
+recovery-input/materialized/bitmap-kernel.ts(1279,33): error TS7006: Parameter 'x' implicitly has an 'any' type.
+recovery-input/materialized/bitmap-kernel.ts(1282,33): error TS2345: Argument of type 'C' is not assignable to parameter of type 'never'.
+recovery-input/materialized/bitmap-kernel.ts(1336,110): error TS7053: Element implicitly has an 'any' type because expression of type 'any' can't be used to index type 'Math'.
+recovery-input/materialized/bitmap-kernel.ts(1342,33): error TS2345: Argument of type 'E' is not assignable to parameter of type 'never'.
+recovery-input/materialized/bitmap-kernel.ts(1355,28): error TS7006: Parameter 'y' implicitly has an 'any' type.
+recovery-input/materialized/bitmap-kernel.ts(1360,33): error TS2345: Argument of type 'C' is not assignable to parameter of type 'never'.
+recovery-input/materialized/bitmap-kernel.ts(1385,35): error TS2345: Argument of type 'E' is not assignable to parameter of type 'never'.
+recovery-input/materialized/bitmap-kernel.ts(1440,23): error TS7006: Parameter 'i' implicitly has an 'any' type.
+recovery-input/materialized/bitmap-kernel.ts(1490,87): error TS7006: Parameter 'i' implicitly has an 'any' type.
+recovery-input/materialized/bitmap-kernel.ts(1707,88): error TS2345: Argument of type 'unknown' is not assignable to parameter of type 'string | number | bigint | boolean'.
+recovery-input/materialized/bitmap-kernel.ts(1945,105): error TS18046: 'c' is of type 'unknown'.
+recovery-input/materialized/bitmap-kernel.ts(1945,115): error TS18046: 'c' is of type 'unknown'.
+recovery-input/materialized/bitmap-kernel.ts(1945,129): error TS18046: 'c' is of type 'unknown'.
+recovery-input/materialized/bitmap-kernel.ts(1945,144): error TS18046: 'c' is of type 'unknown'.
+recovery-input/materialized/bitmap-kernel.ts(1945,156): error TS18046: 'c' is of type 'unknown'.
+recovery-input/materialized/bitmap-kernel.ts(1945,170): error TS18046: 'c' is of type 'unknown'.
+recovery-input/materialized/bitmap-kernel.ts(1945,182): error TS18046: 'c' is of type 'unknown'.
+recovery-input/materialized/bitmap-kernel.ts(1952,25): error TS7006: Parameter 'i' implicitly has an 'any' type.
+recovery-input/materialized/bitmap-kernel.ts(1964,164): error TS18046: 'w' is of type 'unknown'.
+recovery-input/materialized/bitmap-kernel.ts(1970,10): error TS18046: 'd' is of type 'unknown'.
+recovery-input/materialized/bitmap-kernel.ts(1970,35): error TS18046: 'd' is of type 'unknown'.
+recovery-input/materialized/bitmap-kernel.ts(1970,61): error TS18046: 'd' is of type 'unknown'.
+recovery-input/materialized/bitmap-kernel.ts(1970,108): error TS18046: 'd' is of type 'unknown'.
+recovery-input/materialized/bitmap-kernel.ts(1970,119): error TS18046: 'd' is of type 'unknown'.
+recovery-input/materialized/bitmap-kernel.ts(1971,16): error TS18046: 'd' is of type 'unknown'.
+recovery-input/materialized/bitmap-kernel.ts(1971,38): error TS18046: 'd' is of type 'unknown'.
+recovery-input/materialized/bitmap-kernel.ts(1971,46): error TS18046: 'd' is of type 'unknown'.
+recovery-input/materialized/bitmap-kernel.ts(1971,51): error TS18046: 'd' is of type 'unknown'.
+recovery-input/materialized/bitmap-kernel.ts(1972,29): error TS18046: 'd' is of type 'unknown'.
+recovery-input/materialized/bitmap-kernel.ts(1973,25): error TS18046: 'd' is of type 'unknown'.
+recovery-input/materialized/bitmap-kernel.ts(1974,29): error TS18046: 'd' is of type 'unknown'.
+recovery-input/materialized/bitmap-kernel.ts(1975,24): error TS18046: 'd' is of type 'unknown'.
+recovery-input/materialized/bitmap-kernel.ts(1975,53): error TS18046: 'd' is of type 'unknown'.
+recovery-input/materialized/bitmap-kernel.ts(1976,33): error TS18046: 'd' is of type 'unknown'.
+recovery-input/materialized/bitmap-kernel.ts(1977,32): error TS18046: 'd' is of type 'unknown'.
+recovery-input/materialized/bitmap-kernel.ts(1977,59): error TS18046: 'd' is of type 'unknown'.
+recovery-input/materialized/bitmap-kernel.ts(1978,18): error TS18046: 'd' is of type 'unknown'.
+recovery-input/materialized/bitmap-kernel.ts(1978,39): error TS18046: 'd' is of type 'unknown'.
+recovery-input/materialized/bitmap-kernel.ts(2077,140): error TS18046: 'w' is of type 'unknown'.
+recovery-input/materialized/bitmap-kernel.ts(2077,147): error TS2339: Property 'value' does not exist on type 'Record<"each", unknown>'.
+recovery-input/materialized/bitmap-kernel.ts(2077,157): error TS18046: 'w' is of type 'unknown'.
+recovery-input/materialized/bitmap-kernel.ts(2077,164): error TS18046: 'w' is of type 'unknown'.
+recovery-input/materialized/bitmap-kernel.ts(2078,161): error TS18046: 'c' is of type 'unknown'.
+recovery-input/materialized/bitmap-kernel.ts(2079,37): error TS7006: Parameter 'l' implicitly has an 'any' type.
+recovery-input/materialized/bitmap-kernel.ts(2100,170): error TS18046: 'w' is of type 'unknown'.
+recovery-input/materialized/bitmap-kernel.ts(2138,74): error TS2571: Object is of type 'unknown'.
+recovery-input/materialized/bitmap-kernel.ts(2140,64): error TS18046: 'w' is of type 'unknown'.
+recovery-input/materialized/bitmap-kernel.ts(2143,35): error TS18046: 'w' is of type 'unknown'.
+recovery-input/materialized/bitmap-kernel.ts(2143,42): error TS2339: Property 'value' does not exist on type 'Record<"each", unknown>'.
+recovery-input/materialized/bitmap-kernel.ts(2143,52): error TS18046: 'w' is of type 'unknown'.
+recovery-input/materialized/bitmap-kernel.ts(2143,59): error TS18046: 'w' is of type 'unknown'.
+recovery-input/materialized/bitmap-kernel.ts(2143,94): error TS7006: Parameter 'l' implicitly has an 'any' type.
+recovery-input/materialized/bitmap-kernel.ts(2164,127): error TS7006: Parameter 'x' implicitly has an 'any' type.
+recovery-input/materialized/bitmap-kernel.ts(2169,17): error TS7006: Parameter 'x' implicitly has an 'any' type.
+
+--- stderr ---
+$ tsc -p . && oxlint --type-aware --deny-warnings --disable-nested-config
