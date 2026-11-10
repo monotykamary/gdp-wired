@@ -23,7 +23,11 @@ for (const field of ['safe_value', 'arg1_value']) for (const [label, expr] of [
     expect(inputs[1]!.sort).toMatchObject({k: 'choice', values: expect.arrayContaining(['red'])})
   }
   if (label !== 'numbers') {
-    expect(x.model!.events).toHaveLength(3)
+    // A required field has the named literal and an other-string case, not an absent case.
+    expect(x.model!.events).toHaveLength(2)
+    const discriminant = inputs[1]!.sort
+    if (discriminant.k !== 'choice') throw new Error('expected second argument choice')
+    expect(new Set(x.model!.events.map(event => event.select[inputs[1]!.name]))).toEqual(new Set(discriminant.values))
     for (const event of x.model!.events) {
       expect(Object.keys(event.select)).toEqual([inputs[1]!.name])
       const sort = inputs[1]!.sort
@@ -43,7 +47,7 @@ test('P2 structured lazy keys separate identity from readable names', () => {
 })
 
 test('P2 structured lazy keys retain retyping independently of a colliding choice', () => {
-  const x = extract(`export function decide(state: string = '', a, b): string { return b.value === 'red' ? a.arg1_value : state }`, {entry: 'decide'})
+  const x = extract(`export function decide(state: string = '', a, b): string { if (b.value === 'red') return a.arg1_value; return state }`, {entry: 'decide'})
   expect({ok: x.ok, refusals: x.refusals}).toEqual({ok: true, refusals: []})
   const inputs = x.model!.inputs.filter(v => v.name !== x.model!.event)
   expect(inputs).toHaveLength(2)
