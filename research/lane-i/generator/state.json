@@ -1,0 +1,16 @@
+{
+  "productionMergeCommit":"4d8289ce3a3b7e114c8174a92759f2438abc2baa",
+  "gateBaseline":"b11e1f651618b3d3fcaf6cec66b4a8b0203cdcd3",
+  "candidate":"279c45b3bb2e8655c98931958962ff51314cd4bd",
+  "candidateRef":"claude/lane-i-generator-b11e1f65",
+  "sourceEquivalentTo":"ee6a78c3e23ea816b87ea392f18126021bf3822a",
+  "targetedTestsRosterAndProductionTypeLint":"passed in 20261110-100830-si838c on equivalent executable sources",
+  "structuralDiagnostic":{"batch":"20261110-101300-tocfye","passed":true,"quietQualified":false,"lawCount":49,"q2Index":39,"guardedInv1758Index":41},
+  "quietQualification":{"firstCalibration":"no eligible floor; rejected","alternateTask":"0d4fb142-6148-4c38-88f6-f6681e475aa5","alternateOutput":"runs/lane-i/generator-quiet-alternates","calibrationBatch":"20261110-101809-ny7ox9","qualifiedFloor":{"model":"AMD Ryzen 7 9700X 8-Core Processor","cpuMs":150,"memoryMs":442,"acceptedProbes":4},"generationTask":"5171ecf6-33b1-4345-bec7-73aeaf45637a","generationOutput":"runs/lane-i/generator-qualified-original"},
+  "tooling":{"failedTask":"64e4fa0c-e463-418d-9da0-082add37a3a8","diagnosticTask":"9e8e02c6-a31f-4856-9cd7-5d615fa2548c","diagnosticOutput":"runs/lane-i/generator-check-diagnostics","recheckTask":"c0682812-9f4d-43f1-9e70-24b23ac86eab","recheckBatch":"20261110-101555-9qos8n","status":"roster, tooling type/lint and commitlint pass after two unused-binding corrections; prior failure retained"},
+  "costConstraints":{"legacyP1Units":1152.3382236,"legacyPaxosSolver":6915544,"legacyPaxosFull":1037946},
+  "next":["Three qualified original mldr generations with required ASTs and stable names/bodies","Own 29-protocol and paired cost/proof checks against b11e1f65 before integration","After intake, follow Fable Section 18 for complete instrumentation and demonstrate exact verdict/unit equality on at least three CPU models"],
+  "upstream":{"laneAWallRemoval":"184bc7ac is separately under 87-pair census; do not silently mix into current candidate","section18":"not yet present at last inspection"},
+  "execution":{"subagents":0,"receiptProcessing":"boat only","newLocalWholeTrees":0,"baselineDeltaPackBytes":26429},
+  "integrationStatus":"pending; no new generator or helper is active"
+}

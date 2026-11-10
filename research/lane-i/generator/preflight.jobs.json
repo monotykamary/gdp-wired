@@ -1,0 +1,42 @@
+[
+  {
+    "name": "generator-source-checks",
+    "cmd": "bun generator-input/preflight.ts checks",
+    "cpu": 4,
+    "memory": 14336,
+    "timeout": 1200,
+    "vm_type": "large"
+  },
+  {
+    "name": "generator-quiet-original-1",
+    "cmd": "bun generator-input/preflight.ts generation",
+    "cpu": 4,
+    "memory": 14336,
+    "timeout": 600,
+    "vm_type": "large"
+  },
+  {
+    "name": "generator-quiet-original-2",
+    "cmd": "bun generator-input/preflight.ts generation",
+    "cpu": 4,
+    "memory": 14336,
+    "timeout": 600,
+    "vm_type": "large"
+  },
+  {
+    "name": "generator-quiet-original-3",
+    "cmd": "bun generator-input/preflight.ts generation",
+    "cpu": 4,
+    "memory": 14336,
+    "timeout": 600,
+    "vm_type": "large"
+  },
+  {
+    "name": "generator-quiet-original-4",
+    "cmd": "bun generator-input/preflight.ts generation",
+    "cpu": 4,
+    "memory": 14336,
+    "timeout": 600,
+    "vm_type": "large"
+  }
+]

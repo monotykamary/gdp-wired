@@ -1,0 +1,34 @@
+[
+  {
+    "name": "quiet-alternate-7",
+    "cmd": "bun generator-input/quiet-host.ts scout",
+    "cpu": 4,
+    "memory": 6144,
+    "timeout": 120,
+    "vm_type": "default"
+  },
+  {
+    "name": "quiet-alternate-8",
+    "cmd": "bun generator-input/quiet-host.ts scout",
+    "cpu": 4,
+    "memory": 6144,
+    "timeout": 120,
+    "vm_type": "default"
+  },
+  {
+    "name": "quiet-alternate-9",
+    "cmd": "bun generator-input/quiet-host.ts scout",
+    "cpu": 4,
+    "memory": 6144,
+    "timeout": 120,
+    "vm_type": "default"
+  },
+  {
+    "name": "quiet-alternate-10",
+    "cmd": "bun generator-input/quiet-host.ts scout",
+    "cpu": 4,
+    "memory": 6144,
+    "timeout": 120,
+    "vm_type": "default"
+  }
+]

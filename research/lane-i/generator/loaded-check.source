@@ -1,0 +1,27 @@
+import {readFileSync, writeFileSync} from 'node:fs'
+import {gunzipSync} from 'node:zlib'
+import {createHash} from 'node:crypto'
+import {type Law, all, any, get, less, n, not, plus, same, times, x} from '../../core/machine.ts'
+import {canonical} from './t13-generation.ts'
+import {N} from '../protocols/ic3syn/common.ts'
+const a = x('a'), b = x('b'), c = x('c'), cell = (row: typeof a) => get('Config', plus(times(N, row), c))
+const load = (guarded: boolean): Law => ({name:'expected load', forall:'a', keys:['c'], holds:any(not(all(less(a,x('size')),less(c,x('size')),same(get('Copied',a),n(1)),...(guarded?[same(x('started'),n(0))]:[]))),same(cell(a),get('C0',c)))})
+const agreement = (marked: boolean): Law => ({name:'expected agreement', forall:'a', keys:['b','c'], holds:any(not(all(less(a,x('size')),less(b,x('size')),less(c,x('size')),same(get('CV',a),get('CV',b)),same(get('CfgT',a),get('CfgT',b)),...(marked?[same(get('Copied',a),n(1)),same(get('Copied',b),n(1))]:[]))),same(cell(a),cell(b)))})
+export function checkLoadedRecord(path: string) {
+ const text=readFileSync(path,'utf8'),lines=text.split('\n').filter(l=>l.startsWith('T13_DATA_GZIP_BASE64 '))
+ if(lines.length!==1)throw Error('missing complete generation payload')
+ const data=JSON.parse(gunzipSync(Buffer.from(lines[0]!.slice(21),'base64')).toString())
+ if(data.queries!==0||data.records?.length!==1||data.records[0].id!=='mldr')throw Error('generation scope mismatch')
+ const record=data.records[0],q2=record.canonical.indexOf(canonical(load(true))),k3=record.canonical.indexOf(canonical(agreement(true)))
+ if(q2<0||k3<0){console.error('FIELD_NAMES '+JSON.stringify(record.names.filter((name:string)=>name.startsWith('fields:'))));throw Error(`missing required original-model law: Q2=${q2}, K3=${k3}`)}
+ if(record.canonical.includes(canonical(load(false)))||record.canonical.includes(canonical(agreement(false))))throw Error('sample-false stronger form admitted')
+ return {count:record.count,canonicalHash:createHash('sha256').update(JSON.stringify(record.canonical)).digest('hex'),namesHash:createHash('sha256').update(JSON.stringify(record.names)).digest('hex'),q2:{index:q2,name:record.names[q2]},k3:{index:k3,name:record.names[k3]},wallMs:record.wallMs}
+}
+if(import.meta.main){
+ const dir=process.argv[2]??'runs/t18-loaded-check',source=process.argv[3]??'3f27171187d8e50ddea0026fb53e8cb459b28d4a'
+ const rows=[1,2,3].map(repeat=>({repeat,...checkLoadedRecord(`${dir}/loaded-original-${repeat}.log`)}))
+ if(new Set(rows.map(r=>r.canonicalHash)).size!==1||new Set(rows.map(r=>r.namesHash)).size!==1)throw Error('loaded generation is nondeterministic')
+ const result={source,originalModelBlob:'0541fa9436e307a6fb716aa5064637b30b893b79',rows,requiredBodiesPresent:true,strictProof:false}
+ writeFileSync('research/track-gen/t18-loaded-results.json',JSON.stringify(result,null,2)+'\n')
+ console.log(JSON.stringify(result,null,2))
+}

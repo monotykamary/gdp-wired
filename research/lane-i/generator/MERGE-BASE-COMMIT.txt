@@ -1,0 +1,4 @@
+chore(integration): adopt b11e1f65 gate baseline
+
+Merge the gated a8 integration and main's documentation cleanup.
+Keep the generator candidate isolated until its qualification completes.

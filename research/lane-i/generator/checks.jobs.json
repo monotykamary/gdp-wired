@@ -1,0 +1,10 @@
+[
+  {
+    "name": "generator-source-checks",
+    "cmd": "bun generator-input/preflight.ts checks",
+    "cpu": 4,
+    "memory": 14336,
+    "timeout": 1200,
+    "vm_type": "large"
+  }
+]

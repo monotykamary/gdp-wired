@@ -1,0 +1,10 @@
+[
+  {
+    "name": "generator-tooling-check",
+    "cmd": "bun generator-input/preflight.ts checks --tools-only",
+    "cpu": 4,
+    "memory": 14336,
+    "timeout": 900,
+    "vm_type": "large"
+  }
+]

@@ -1,0 +1,9 @@
+[
+  {
+    "name": "generator-and-base-commitlint",
+    "cmd": "set -euo pipefail; temp=$(mktemp -d); trap 'rm -rf \"$temp\"' EXIT; printf '{\"private\":true}\\n' > \"$temp/package.json\"; (cd \"$temp\" && bun add --dev @commitlint/cli@19.8.1 @commitlint/config-conventional@19.8.1 >/dev/null); printf \"module.exports={extends:['@commitlint/config-conventional']};\\n\" > \"$temp/commitlint.config.cjs\"; for file in generator-input/*COMMIT.txt; do \"$temp/node_modules/.bin/commitlint\" --cwd \"$temp\" < \"$file\"; printf 'GENERATOR_COMMITLINT %s\\n' \"$file\"; sha256sum \"$file\"; done",
+    "cpu": 2,
+    "memory": 4096,
+    "timeout": 300
+  }
+]

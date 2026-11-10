@@ -1,0 +1,4 @@
+chore(research): stage generator qualification on new baseline
+
+Record the isolated generator candidate and strict host-admission tooling.
+Preserve the failed calibration and defer work-budget claims until ready.

@@ -1,0 +1,19 @@
+// Exact fixed workload from Fable's committed hostvar.sh; fresh Bun per probe.
+import{readFileSync}from'node:fs'
+import{spawnSync}from'node:child_process'
+import{createHash}from'node:crypto'
+import{strict as assert}from'node:assert'
+export const microSource='let t=performance.now(),s=0;for(let i=0;i<4e8;i++)s=(s+i*7)|0;const cpu=performance.now()-t;const a=new Float64Array(1<<25),b=new Float64Array(1<<25);t=performance.now();for(let k=0;k<12;k++){b.set(a);a.set(b)}console.log(Math.round(cpu),Math.round(performance.now()-t))'
+export const microSha256=createHash('sha256').update(microSource).digest('hex')
+export type Ticks={steal:number,total:number}
+export type Probe={cpuMs:number,memoryMs:number,ticks:number,stealTicks:number,stealRatio:number,ok:boolean,error?:string}
+export type Floor={cpuMs:number,memoryMs:number}
+export const parseTicks=(s:string):Ticks=>{const line=s.split('\n').find(l=>l.startsWith('cpu '));if(!line)throw Error('missing aggregate CPU ticks');const fields=line.trim().split(/\s+/).slice(1,9).map(Number);if(fields.length!==8||fields.some(n=>!Number.isFinite(n)||n<0))throw Error('invalid CPU ticks');return{steal:fields[7]!,total:fields.reduce((a,b)=>a+b,0)}}
+export const ticks=()=>parseTicks(readFileSync('/proc/stat','utf8'))
+export const cpuModel=()=>readFileSync('/proc/cpuinfo','utf8').match(/^model name\s*:\s*(.+)$/m)?.[1]?.trim()??'unknown'
+export const affinity=()=>readFileSync('/proc/self/status','utf8').match(/^Cpus_allowed_list:\s*(.+)$/m)?.[1]??'unknown'
+export const ratio=(before:Ticks,after:Ticks)=>{const dt=after.total-before.total,ds=after.steal-before.steal;return{ticks:dt,stealTicks:ds,stealRatio:dt>0&&ds>=0?ds/dt:Infinity}}
+export function probe():Probe{const before=ticks(),p=spawnSync('bun',['-e',microSource],{encoding:'utf8',timeout:20000,maxBuffer:1024*1024}),delta=ratio(before,ticks()),values=(p.stdout??'').trim().split(/\s+/).map(Number),ok=p.status===0&&values.length===2&&values.every(n=>Number.isFinite(n)&&n>0);return{cpuMs:values[0]??NaN,memoryMs:values[1]??NaN,...delta,ok,error:ok?undefined:(p.stderr??String(p.error)).slice(0,1000)}}
+export const admittedProbe=(p:Probe,f:Floor)=>p.ok&&p.ticks>0&&p.stealRatio<=0.001&&p.cpuMs<=Math.min(165,1.1*f.cpuMs)&&p.memoryMs<=Math.min(650,1.1*f.memoryMs)
+export async function bracket<T>(floor:Floor,run:()=>Promise<T>){const model=cpuModel(),pre=probe();if(!admittedProbe(pre,floor))return{accepted:false,model,pre,reason:'pre-probe',microSha256};const before=ticks();let result:T|undefined,error:string|undefined;try{result=await run()}catch(e){error=String(e)}const across=ratio(before,ticks()),post=probe(),accepted=!error&&model===cpuModel()&&across.ticks>0&&across.stealRatio<=0.001&&admittedProbe(post,floor);return{accepted,model,pre,post,across,result,error,microSha256,reason:accepted?'qualified':'post-probe, steal, CPU identity, or execution failure'}}
+if(import.meta.main){if(process.argv[2]==='self-test'){assert.deepEqual(parseTicks('cpu 1 2 3 4 5 6 7 8 99 99\n'),{steal:8,total:36});const f={cpuMs:100,memoryMs:400},p:Probe={cpuMs:110,memoryMs:440,ticks:1000,stealTicks:1,stealRatio:0.001,ok:true};assert(admittedProbe(p,f));assert(!admittedProbe({...p,cpuMs:111},f));assert(!admittedProbe({...p,memoryMs:441},f));assert(!admittedProbe({...p,stealRatio:0.00101},f));assert(!admittedProbe({...p,ticks:0},f));assert(!admittedProbe({...p,ok:false},f));assert.equal(ratio({total:5,steal:2},{total:5,steal:2}).stealRatio,Infinity);console.log('QUIET_SELF_TEST '+JSON.stringify({passed:8,microSha256}))}else if(process.argv[2]==='scout'){const probes=Array.from({length:3},()=>probe());console.log('QUIET_SCOUT '+JSON.stringify({model:cpuModel(),affinity:affinity(),bun:Bun.version,microSha256,probes,publishedCaps:{cpuMs:165,memoryMs:650,stealRatio:0.001},scope:'calibration only; not a proof or generation outcome'}))}else throw Error('scout or self-test required')}

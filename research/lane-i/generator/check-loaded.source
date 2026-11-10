@@ -1,0 +1,4 @@
+import {checkLoadedRecord} from './t18-loaded-summary.ts'
+const path=process.argv[2],source=process.argv[3]
+if(!path||!source)throw Error('generation receipt and source required')
+console.log('LOADED_REQUIRED '+JSON.stringify({source,...checkLoadedRecord(path)}))

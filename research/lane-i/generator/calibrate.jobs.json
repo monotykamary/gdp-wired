@@ -1,0 +1,9 @@
+[
+  {
+    "name": "quiet-floor-calibration",
+    "cmd": "bun generator-input/calibrate.ts scout-data",
+    "cpu": 2,
+    "memory": 4096,
+    "timeout": 120
+  }
+]

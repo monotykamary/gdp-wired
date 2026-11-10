@@ -1,0 +1,5 @@
+feat(counts): stage deterministic loaded-row generation
+
+Stage Lane A's finite prefix and loaded-row proposals for qualification.
+Preserve the existing finite failure tracking and p1 scheduling policy.
+Register the new tests; integration remains gated by original-model checks.

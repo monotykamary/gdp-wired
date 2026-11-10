@@ -1,0 +1,58 @@
+[
+  {
+    "name": "quiet-scout-1",
+    "cmd": "bun generator-input/quiet-host.ts scout",
+    "cpu": 4,
+    "memory": 14336,
+    "timeout": 120,
+    "vm_type": "large"
+  },
+  {
+    "name": "quiet-scout-2",
+    "cmd": "bun generator-input/quiet-host.ts scout",
+    "cpu": 4,
+    "memory": 14336,
+    "timeout": 120,
+    "vm_type": "large"
+  },
+  {
+    "name": "quiet-scout-3",
+    "cmd": "bun generator-input/quiet-host.ts scout",
+    "cpu": 4,
+    "memory": 14336,
+    "timeout": 120,
+    "vm_type": "large"
+  },
+  {
+    "name": "quiet-scout-4",
+    "cmd": "bun generator-input/quiet-host.ts scout",
+    "cpu": 4,
+    "memory": 14336,
+    "timeout": 120,
+    "vm_type": "large"
+  },
+  {
+    "name": "quiet-scout-5",
+    "cmd": "bun generator-input/quiet-host.ts scout",
+    "cpu": 4,
+    "memory": 14336,
+    "timeout": 120,
+    "vm_type": "large"
+  },
+  {
+    "name": "quiet-scout-6",
+    "cmd": "bun generator-input/quiet-host.ts scout",
+    "cpu": 4,
+    "memory": 14336,
+    "timeout": 120,
+    "vm_type": "large"
+  },
+  {
+    "name": "quiet-admission-unit",
+    "cmd": "bun generator-input/quiet-host.ts self-test",
+    "cpu": 4,
+    "memory": 14336,
+    "timeout": 120,
+    "vm_type": "large"
+  }
+]

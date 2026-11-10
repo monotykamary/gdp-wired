@@ -1,0 +1,10 @@
+[
+  {
+    "name": "generator-structure-only",
+    "cmd": "bun generator-input/preflight.ts structure",
+    "cpu": 4,
+    "memory": 14336,
+    "timeout": 300,
+    "vm_type": "large"
+  }
+]

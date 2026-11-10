@@ -1,0 +1,26 @@
+[
+  {
+    "name": "generator-qualified-original-1",
+    "cmd": "bun generator-input/preflight.ts generation",
+    "cpu": 4,
+    "memory": 6144,
+    "timeout": 600,
+    "vm_type": "default"
+  },
+  {
+    "name": "generator-qualified-original-2",
+    "cmd": "bun generator-input/preflight.ts generation",
+    "cpu": 4,
+    "memory": 6144,
+    "timeout": 600,
+    "vm_type": "default"
+  },
+  {
+    "name": "generator-qualified-original-3",
+    "cmd": "bun generator-input/preflight.ts generation",
+    "cpu": 4,
+    "memory": 6144,
+    "timeout": 600,
+    "vm_type": "default"
+  }
+]
