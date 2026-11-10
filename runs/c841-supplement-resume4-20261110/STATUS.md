@@ -16,7 +16,7 @@ This is a bounded receipt inventory, **not GATE GREEN** and not permission to su
 
 The prepared `current-verify.sh` must run the positive `e0-verify.ts` collector and all four `verify-negative-controls.ts` checks on Boat after the hold. Expected checks include exact per-job source identity; archive integrity and cardinality; all 1,664 fuzz cases and outcomes; 26 mutant kills and restoration; 20 private laws and 212 native rows; and rejection of missing, duplicate, non-Boat or failed job rows. These counts are **required verifier expectations**, not claims established by this note.
 
-The independent Lane D canonical gate/bar, final release-tip package checks, and privacy approval remain outstanding. Package-smoke task `c1ceb05f-b56b-4a16-86e9-4b2df86e4ce7` remains nonterminal at this inspection. No verifier job, retry, new waiter, scheduler change, credential change, push, tag or publish was started while collecting this receipt.
+The independent Lane D canonical gate/bar, final release-tip package checks, and privacy approval remain outstanding. Package-smoke task `c1ceb05f-b56b-4a16-86e9-4b2df86e4ce7` subsequently failed (native job exit 1 despite client exit 0); see `runs/c841-package-smoke-resume4-20261110/STATUS.md` for the separate failure and unvalidated smoke repair. No verifier job, retry, new waiter, scheduler change, credential change, push, tag or publish was started while collecting this receipt.
 
 ## Local native-metadata integrity
 

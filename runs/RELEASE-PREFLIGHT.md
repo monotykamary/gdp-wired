@@ -29,6 +29,8 @@ Required gate baseline: `b11e1f651618b3d3fcaf6cec66b4a8b0203cdcd3`.
 
 The coordinator has put all new Boat submissions on hold while resolving a second scheduler taking over worker agents. No new validation job will be submitted until the coordinator gives the go. Existing pre-hold work is not automatically accepted as valid evidence. The 39-job supplement completed with 39 native exit-zero rows and no fallback, but its semantic collector and four negative controls have not run; see `runs/c841-supplement-resume4-20261110/STATUS.md`. This is not canonical gate or performance-bar admission.
 
+The original c841 package smoke **failed** (native job exit 1, client exit 0) at an obsolete Python-success assertion. Smoke-only repair `5f989777` preserves TypeScript positive/negative and certificate checks and requires unchecked Python results to exit 2 with no certificate. Only static syntax checks have passed; the repaired release-tip smoke still must run on Node 20 and 24 after the hold. See `runs/c841-package-smoke-resume4-20261110/STATUS.md`.
+
 ## Retained blocked attempts (cancelled before worker placement)
 
 - 39-job exact-candidate supplement: `runs/c841-supplement-resume-20261110/`, batch `20261110-130346-vvxxgb`.
