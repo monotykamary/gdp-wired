@@ -1,8 +1,9 @@
 #!/bin/sh
 # The published package as a user gets it: the tarball (bun pm pack, as CI packs it) installed with npm into an empty
 # project, the README's budget example run under plain Node, and a TypeScript consumer type-checked against the
-# declarations; then gdp-wired-cli (packages/cli) installed alone beside it, its `npx gdp-wired-cli check` on a Python
-# file, and the certificate it writes checked by `npx gdp-wired-check`. Usage: sh scripts/smoke.sh [tarball cli-tarball]  (packs both when none is given)
+# declarations; then gdp-wired-cli (packages/cli) installed alone beside it, checking supported TypeScript laws and
+# refusing unchecked Python source laws. A TypeScript certificate is checked by `npx gdp-wired-check`.
+# Usage: sh scripts/smoke.sh [tarball cli-tarball]  (packs both when none is given)
 set -eu
 root=$(cd "$(dirname "$0")/.." && pwd)
 work=$(mktemp -d)
@@ -114,7 +115,9 @@ npx --no-install gdp-wired check wallet.ts --no-propose > cli.log || { cat cli.l
 grep -q 'proven   a debit never overdraws' cli.log || { cat cli.log; exit 1; }
 sed 's|^  credit(x|  // gdp: law a credit adds one more: balance == old(balance) + x + 1\
   credit(x|' wallet.ts > wallet2.ts
-if npx --no-install gdp-wired check wallet2.ts --no-propose > cli.log; then cat cli.log; echo 'gdp-wired check: a broken law exits 0'; exit 1; fi
+code=0
+npx --no-install gdp-wired check wallet2.ts --no-propose > cli.log || code=$?
+[ "$code" -eq 1 ] || { cat cli.log; echo "gdp-wired check: a broken law exits $code, expected 1"; exit 1; }
 grep -q 'broken   a credit adds one more' cli.log || { cat cli.log; exit 1; }
 echo "gdp-wired check: a proven law exits 0, a broken one 1"
 cat > consumer.ts <<'TS'
@@ -151,11 +154,19 @@ TS
 printf '{"compilerOptions":{"strict":true,"noEmit":true,"module":"nodenext","moduleResolution":"nodenext","target":"es2022","lib":["es2022"],"types":[],"skipLibCheck":false},"files":["consumer.ts"]}\n' > tsconfig.json
 npx tsc -p tsconfig.json
 echo "typescript consumer: declarations resolve and type-check"
-# gdp-wired-cli, installed with nothing else (its typescript comes with it): a law in a Python file proven (exit 0), a
-# broken one (exit 1).
+# gdp-wired-cli, installed with nothing else (its typescript comes with it): a supported TypeScript law proven
+# (exit 0), a broken one (exit 1), and foreign source laws refused as unchecked (exit 2, no certificate).
 mkdir "$work/cli" && cd "$work/cli"
 printf '{"name":"smoke-cli","private":true,"type":"module"}\n' > package.json
 npm install --no-audit --no-fund --silent "$tarball" "$clitarball"
+cp "$work/wallet.ts" "$work/wallet2.ts" .
+npx --no-install gdp-wired-cli check wallet.ts --no-propose > cli.log || { cat cli.log; echo 'gdp-wired-cli check: a supported proven law exits non-zero'; exit 1; }
+grep -q 'proven   a debit never overdraws' cli.log || { cat cli.log; exit 1; }
+code=0
+npx --no-install gdp-wired-cli check wallet2.ts --no-propose > cli.log || code=$?
+[ "$code" -eq 1 ] || { cat cli.log; echo "gdp-wired-cli check: a broken law exits $code, expected 1"; exit 1; }
+grep -q 'broken   a credit adds one more' cli.log || { cat cli.log; exit 1; }
+echo "gdp-wired-cli check: a supported proven law exits 0, a broken one 1"
 cat > meter.py <<'PY'
 class Meter:
     def __init__(self, cap: int):
@@ -169,15 +180,33 @@ class Meter:
         self.used += n
         return True
 PY
-npx --no-install gdp-wired-cli check meter.py --no-propose > cli.log || { cat cli.log; echo 'gdp-wired-cli check: a proven law exits non-zero'; exit 1; }
-grep -q 'proven   never past the cap' cli.log || { cat cli.log; exit 1; }
 sed 's|^    # gdp: law never past the cap.*|    # gdp: law a take always counts: used == old(used) + n|' meter.py > meter2.py
-if npx --no-install gdp-wired-cli check meter2.py --no-propose > cli.log; then cat cli.log; echo 'gdp-wired-cli check: a broken law exits 0'; exit 1; fi
-grep -q 'broken   a take always counts' cli.log || { cat cli.log; exit 1; }
-echo "gdp-wired-cli check: a proven law exits 0, a broken one 1"
+for file in meter.py meter2.py; do
+  code=0
+  npx --no-install gdp-wired-cli check "$file" --no-propose --json --cert unchecked-certs > cli.json || code=$?
+  [ "$code" -eq 2 ] || { cat cli.json; echo "gdp-wired-cli check: unchecked $file exits $code, expected 2"; exit 1; }
+  node --input-type=module - "$file" cli.json <<'JS'
+import {existsSync, readFileSync, readdirSync} from 'node:fs'
+const [file, path] = process.argv.slice(2)
+const result = JSON.parse(readFileSync(path, 'utf8'))
+const expected = file === 'meter.py'
+  ? {name: 'never past the cap', kernelProven: true}
+  : {name: 'a take always counts', kernelProven: false}
+const law = result.rules?.[0]?.laws?.[0]
+if (result.exit !== 2 || result.rules?.length !== 1 || !result.rules[0].ok || result.rules[0].laws?.length !== 1 ||
+    law?.name !== expected.name || law.verdict !== 'unknown' || law.translation !== 'unchecked' ||
+    law.kernelProven !== expected.kernelProven || law.cert !== undefined || law.run !== undefined || law.replayed !== undefined) {
+  throw new Error(`gdp-wired-cli check: incorrect unchecked source result for ${file}: ${JSON.stringify(result)}`)
+}
+if (existsSync('unchecked-certs') && readdirSync('unchecked-certs').length) {
+  throw new Error('gdp-wired-cli check: unchecked source emitted a certificate')
+}
+JS
+done
+echo "gdp-wired-cli check: unchecked Python laws exit 2, preserve model verdicts, and emit no source certificate"
 # gdp-wired-check, the standalone checker (gdp-wired's second bin): the proven law's certificate (--cert) accepted
 # under plain node, and refused once a derivation's multiplier is raised.
-npx --no-install gdp-wired-cli check meter.py --no-propose --cert certs > cli.log || { cat cli.log; exit 1; }
+npx --no-install gdp-wired-cli check wallet.ts --no-propose --cert certs > cli.log || { cat cli.log; exit 1; }
 cert=$(ls certs/*.json | head -1)
 npx --no-install gdp-wired-check "$cert" > check.log || { cat check.log; echo 'gdp-wired-check: the CLI'"'"'s certificate refused'; exit 1; }
 grep -q ': accepted (' check.log || { cat check.log; exit 1; }
