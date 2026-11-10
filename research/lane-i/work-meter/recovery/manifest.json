@@ -1,0 +1,11 @@
+{
+  "roots": ["b11e1f651618b3d3fcaf6cec66b4a8b0203cdcd3", "a8bbe0984f270070eba9bc166a89909d0c67597e"],
+  "revisions": {
+    "b11e1f651618b3d3fcaf6cec66b4a8b0203cdcd3": {"tree":"bc7948a84cd1c5871372f4c8ff123aba9cfbac20","submodules":[{"path":"vendor/gdp-ts","hash":"0b6ebeeec827b05210f3acfa4149a70dda9a0de5"},{"path":"vendor/handwired","hash":"d47141cce2caf5b86b0c2c0c372a5174f424bc15"}]},
+    "a8bbe0984f270070eba9bc166a89909d0c67597e": {"tree":"5ba71a79d061ac81cf374f25559af746edadaa60","submodules":[{"path":"vendor/gdp-ts","hash":"0b6ebeeec827b05210f3acfa4149a70dda9a0de5"},{"path":"vendor/handwired","hash":"d47141cce2caf5b86b0c2c0c372a5174f424bc15"}]}
+  },
+  "modules": {
+    "vendor/gdp-ts":{"file":"module-0.pack","hashes":["0b6ebeeec827b05210f3acfa4149a70dda9a0de5"]},
+    "vendor/handwired":{"file":"module-1.pack","hashes":["d47141cce2caf5b86b0c2c0c372a5174f424bc15"]}
+  }
+}

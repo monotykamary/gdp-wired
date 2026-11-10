@@ -1,4 +1,30 @@
-# RESUME — PAUSED BY USER
+# RESUME — ACTIVE 2026-11-10 evening
+
+Lane I resumed from `dbfe4c56`; no cancelled run was repeated. **Not GATE GREEN.**
+
+- Already-collected constructor artifact verified on boat in
+  `20261110-201003-umjycw`, `resume-artifact-verify`, exit 0:
+  29 chunks / 982,162 bytes / SHA-256
+  `52571387a7f165ec76af1e34ea9fe06192abd43d555cd6aa78b2cef93c1734ba`,
+  1,626 sites in 78 files. Every candidate blob matches the retained identity;
+  original models remain `0541fa9436e307a6fb716aa5064637b30b893b79`.
+- Original `/private/tmp` runner/frozen packs are absent both here and on the
+  reachable Reflex home. Recovered exact Git roots and both submodules once
+  into `~/.cache/gdp-archives/b11e1f65-a8bbe098` (hard-linked as ignored data in
+  `research/lane-i/work-meter/recovery/`); no constructor regeneration, no new
+  worktree, no source-tree copy. Total pack sizes: 133 MiB + 7.2 MiB + 235 KiB.
+- First constructor validation is **running**, not passed. Task
+  `c2b0e7fa-4b9a-4c25-9ff9-2fe876123cbf`, waiter PID `399849`, results
+  `runs/lane-i/resume-complete-validation/`. Four parallel gate jobs:
+  exact-count/erasure/inference/roster/type checks and zero/double/random
+  acceptance-mutation checks. No local scheduler is running;
+  `SUPERCOMPUTER_CONTROLLER=1` is explicit on every launch.
+- Continue independently with coverage review and ledger composition. No
+  calibrated extra weights or W, complete-source pass, F3 or 29-protocol
+  determinism claim yet. Zero subagents, no pushes.
+
+## Historical pause record (retained)
+
 
 ## Pause checkpoint — 2026-11-10
 

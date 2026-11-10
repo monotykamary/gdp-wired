@@ -1,12 +1,12 @@
 {
-  "status": "PAUSED by user; no active or queued owned work",
+  "status": "RESUMED: artifact verified on boat; first combined validation running",
   "baseSnapshot": "30f9c3ba",
   "privateIndex": "/private/tmp/lane-i-complete.index",
   "task": "4575fac2-7dbb-4fcf-859f-63aba9e3e9c5",
   "waiterPid": 90266,
   "batch": "20261110-123336-6maehh",
   "resultDirectory": "runs/lane-i/complete-structural",
-  "next": "On explicit resume, materialize and verify the collected compressed source artifact, freeze its blobs and run validation/checks.jobs.json. Do not regenerate the completed artifact.",
+  "next": "Collect four original validation jobs; preserve any first failures; repair only established causes, then combine ledger and boundaries.",
   "launch": "supercomputer --repo /private/tmp/lane-i-paxos-runner.djtUt9 run --jobs /Users/monotykamary/VCS/working-remote/open-source/gdp-wired-integ/research/lane-i/work-meter/complete/prepare.jobs.json --out /Users/monotykamary/VCS/working-remote/open-source/gdp-wired-integ/runs/lane-i/complete-ast-preparation --backend boat --class interactive --data /Users/monotykamary/VCS/working-remote/open-source/gdp-wired-integ/research/lane-i/generator:generator-input --data /Users/monotykamary/VCS/working-remote/open-source/gdp-wired-integ/research/lane-i/work-meter/complete:complete-input --data /private/tmp/lane-i-gated-follow-up.wehlxC:frozen",
   "unvalidated": [
     "new raw observations",
@@ -101,6 +101,22 @@
     "declaredSha256": "52571387a7f165ec76af1e34ea9fe06192abd43d555cd6aa78b2cef93c1734ba",
     "chunks": 29
   },
-  "activeTasks": [],
-  "rerunFirst": []
+  "activeTasks": [
+    {
+      "task": "c2b0e7fa-4b9a-4c25-9ff9-2fe876123cbf",
+      "pid": 399849,
+      "results": "runs/lane-i/resume-complete-validation"
+    }
+  ],
+  "rerunFirst": [],
+  "artifactVerification": {
+    "batch": "20261110-201003-umjycw",
+    "job": "resume-artifact-verify",
+    "exit": 0,
+    "sha256": "52571387a7f165ec76af1e34ea9fe06192abd43d555cd6aa78b2cef93c1734ba",
+    "bytes": 982162,
+    "sites": 1626,
+    "files": 78,
+    "sourceBlobsVerified": true
+  }
 }

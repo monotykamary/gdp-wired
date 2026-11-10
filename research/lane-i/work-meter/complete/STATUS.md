@@ -1,23 +1,16 @@
-# PAUSED — collected constructor artifact, no running work
+# RESUMED — source artifact verified; complete validation pending
 
-User paused all work. Do not launch anything until explicitly resumed.
+Boat batch `20261110-201003-umjycw`, `resume-artifact-verify`, exit 0:
+29 gzip/base64 chunks decoded to exactly 982,162 bytes, SHA-256
+`52571387a7f165ec76af1e34ea9fe06192abd43d555cd6aa78b2cef93c1734ba`.
+All before/after and candidate blobs verified; 1,626 sites / 78 files.
+Original model blob is `0541fa9436e307a6fb716aa5064637b30b893b79`.
+No constructor regeneration was performed.
 
-The last batch, 20261110-123659-26mbwo, finished within the collection window:
-complete-ast-artifact exit 0. The source-construction erasure audit reports
-1,626 sites. The retained artifact has 29 gzip/base64 chunks, declares
-982,162 uncompressed bytes and SHA-256
-52571387a7f165ec76af1e34ea9fe06192abd43d555cd6aa78b2cef93c1734ba.
-Receipt: runs/lane-i/complete-artifact/complete-ast-artifact.log.
+First combined validation is now running in
+`runs/lane-i/resume-complete-validation`, task
+`c2b0e7fa-4b9a-4c25-9ff9-2fe876123cbf`. Preserve first failures.
 
-This is NOT a full source validation: the compressed artifact has not been
-materialized or independently hash-verified, and its exact-count tests,
-checker-mutation suite, roster/type checks and coverage audit have not run.
-No production changes, weights/W, F3, census or quiet intake are promoted.
-
-Rerun first: none cancelled. Reuse this collected artifact rather than
-regenerating it. First resume action: materialize/hash-check the artifact on
-boat, freeze the resulting source, then run validation/checks.jobs.json.
-
-Earlier preparation failures and the raw-transport truncation remain
-preserved in their run directories and state history. All owned background
-tasks have exited; no owned work remains queued or running.
+Still not claimed: full source/test pass, complete counting coverage, ledger
+composition, F3, calibrated weights/W, quiet intake, or all-29 determinism.
+Previous failed preparation receipts remain in their original directories.

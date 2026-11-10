@@ -1,0 +1,1 @@
+[{"name":"resume-artifact-verify","cmd":"bun recovery-input/materialize.ts --verify-only","cpu":4,"memory":14336,"timeout":240,"vm_type":"large"}]
