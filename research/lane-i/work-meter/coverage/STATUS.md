@@ -10,6 +10,7 @@ Verified source chain (separate branches; not merged into the integration gate):
 | Bitmap word observations | `84ffacf2` | `4550377f` | 155 selected tests plus the same checks |
 | Canonical key observations | `41d39043` | `84ffacf2` | 158 selected tests, erasure, type/lint, three 267-test mutation suites |
 | Request allocation observations | `94b65671` | `41d39043` | 164 selected tests, erasure, type/lint, audited reuse of three 267-test mutation suites on identical production blobs |
+| Nonfinite budget rejection | `32a59b2a` | `94b65671` | 169 selected tests, erasure, type/lint, three 267-test mutation suites on identical complete source; three old-source negative controls |
 
 Boundary/bitmap source transport hashes were verified against the exact tested
 source in `20261110-202611-ljsgom`. Zero/double/random mutation controls of the
@@ -53,7 +54,13 @@ source blobs, but its strict capture audit finds three stable windows and
 Those request allocations now have discarded observations in the separately
 verified source `94b65671`. Exact controls retain order, overwrite behavior,
 map identity, truncation and RNG calls. The source/receipt audit and exact
-parent-tree export pass; see `../requests/VERIFIED-SOURCE.md`. New-source
-observation is still pending. GC samples are retained, not exempted.
+parent-tree export pass; see `../requests/VERIFIED-SOURCE.md`. The request-source
+Node follow-up preserves raw/verdict identity and retains two stable captures:
+GC and `kernel/kernel.ts:canon`. These identify sampled functions, not exact
+instructions. GC samples are retained, not exempted.
+
+The separately verified `32a59b2a` adds fail-closed nonfinite budget handling;
+see `../numeric/VERIFIED-SOURCE.md`. This is not a new-source F3/F4 result or an
+unbounded floating-point proof.
 
 No claim of complete coverage, Bun F3, F4 census, calibrated weights, or W.

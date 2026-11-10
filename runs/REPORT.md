@@ -154,15 +154,19 @@ mapping `20261110-215918-9x05eq` places `canon2` in `kernel/kernel.ts:canon`,
 via `kernel/reader.ts:form` / `addCopy`; it does not identify an exact instruction
 or native operation. Its tooling passed `20261110-215020-wempu0`.
 
-A separate exact-source numeric probe (`20261110-215401-xhkj8q`) reproduced
-finite-weight/finite-allowance overflow admitting a callback under an infinite
-score or cap. The normal finite cutoff control worked. An isolated fail-closed
-candidate and five regressions are now validating in
-`runs/lane-i/resume-numeric-budget-validation`; no production change, weight
-calibration or unbounded IEEE-754 proof is claimed. See
-`research/lane-i/work-meter/numeric/README.md`. Tooling and commitlint passed
-`20261110-215908-bw8843` (1,695 files, zero warnings/errors), separately from the
-still-running source-validation matrix.
+A separate numeric probe reproduced finite-weight/finite-allowance overflow
+on `94b65671`. The fail-closed fix is now verified and frozen as `32a59b2a`
+on `claude/lane-i-finite-budgets`, changing only the work clock, five regression
+tests and their shard registration. `20261110-215908-wplx8m` passes **169 tests**,
+checker erasure, roster, decoder and type/lint, plus **267 tests per mutation
+mode** on identical complete source. The same five regressions produce three
+required failures and two passes on unchanged `94b65671` in
+`20261110-220315-mmyn0j`. Independent source/receipt auditing and exact-parent
+three-file export pass in `20261110-220408-fj9hms`; audit-tool type/lint and
+commitlint pass in `20261110-220331-o8j51x` (1,698 files, zero warnings/errors).
+See `research/lane-i/work-meter/numeric/VERIFIED-SOURCE.md`. The integration
+production tree is unchanged; fresh F3/F4, wider floating-point proof, weights
+and W remain unqualified.
 
 Original MLDR Node pilot `20261110-202238-v6auwd` retained **identical raw vectors
 and verdicts** with observation off/on. Both were `unknown`, reason

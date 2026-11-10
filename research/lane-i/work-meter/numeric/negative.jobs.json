@@ -1,0 +1,1 @@
+[{"name":"numeric-budget-negative-control","cmd":"bun recovery-input/materialize.ts && bun recovery-input/compose.ts requests && bun numeric-input/negative.ts","cpu":2,"memory":6144,"timeout":600,"vm_type":"large"}]
