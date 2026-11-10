@@ -1,0 +1,1 @@
+[{"name":"profile-window-tests","cmd":"node --test f3-input/profile-window.test.mjs","cpu":1,"memory":2048,"timeout":120,"vm_type":"large"},{"name":"profile-window-capability","cmd":"node f3-input/blocking-probe.mjs","cpu":2,"memory":4096,"timeout":120,"vm_type":"large"}]

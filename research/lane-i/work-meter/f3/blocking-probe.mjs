@@ -1,6 +1,7 @@
 import {Worker, isMainThread, workerData, parentPort} from 'node:worker_threads'
 import {writeSync} from 'node:fs'
 import {strict as assert} from 'node:assert'
+import {selectProfileWindow} from './profile-window.mjs'
 
 const emit = value => writeSync(1, 'F3_CAPABILITY ' + JSON.stringify(value) + '\n')
 if (isMainThread) {
@@ -49,17 +50,9 @@ if (isMainThread) {
       clearInterval(timer)
       try {
         const {profile} = await post('Profiler.stop')
-        const nodes = new Map(profile.nodes.map(node => [node.id, node]))
-        const parents = new Map(profile.nodes.flatMap(node => (node.children ?? []).map(id => [id, node.id])))
-        const recent = (profile.samples ?? []).slice(-25), counts = new Map()
-        for (const id of recent) counts.set(id, (counts.get(id) ?? 0) + 1)
-        const leaf = [...counts].sort((a, b) => b[1] - a[1])[0]?.[0]
-        const stack = []
-        for (let id = leaf; id !== undefined; id = parents.get(id)) {
-          const node = nodes.get(id); if (node) stack.push(node.callFrame)
-        }
+        const {stack, timing} = selectProfileWindow(profile, now - started)
         const whileBlocked = Atomics.load(shared, 0) === 1
-        emit({runtime: process.release?.name, kind: 'silent-loop-profile', whileBlocked, samples: recent.length, stack})
+        emit({runtime: process.release?.name, kind: 'silent-loop-profile', whileBlocked, samples: timing.samplesInWindow, stack, profileWindow: timing})
         if (whileBlocked && stack.some(frame => frame.functionName === 'mainThreadSilentLoop')) Atomics.store(shared, 2, 1)
         clearInterval(keepalive); session.disconnect(); parentPort.close()
       } catch (error) { emit({kind: 'profile-error', error: String(error)}); process.exitCode = 1; clearInterval(keepalive); session.disconnect(); parentPort.close() }

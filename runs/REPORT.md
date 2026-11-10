@@ -198,6 +198,13 @@ raw/verdict/phase comparison is equal, but two stable canonicalization captures
 remain; their profiler samples are not yet filtered by timestamps. No new
 all-29 census, final W, Bun F3 or GATE GREEN claim is made.
 
+Timestamp-bounded stack selection now passes eight adversarial fixtures and a
+real before-release blocking-loop probe (`20261110-222458-ek322b`), plus
+1,703-file type/lint and commitlint (`20261110-222458-r9py84`). A quiet interval
+with no recent samples stays explicitly unattributed. The original-model timed
+run is pending, using the recorded same-source off baseline; it is not an
+overhead comparison or a complete F3 claim.
+
 Original MLDR Node pilot `20261110-202238-v6auwd` retained **identical raw vectors
 and verdicts** with observation off/on. Both were `unknown`, reason
 `work budget (completion)`, at the same legacy `15,000,000` work allowance.

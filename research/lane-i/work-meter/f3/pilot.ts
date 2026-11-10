@@ -18,7 +18,7 @@ try {
   const tooling = join(root, 'research/lane-i/f3'), output = join(root, 'f3-output')
   mkdirSync(tooling, {recursive: true}); mkdirSync(output)
   copyFileSync('f3-input/facade.source', join(tooling, 'facade.ts'))
-  for (const file of ['solver-observer.mjs', 'observer-worker.mjs']) copyFileSync(join('f3-input', file), join(output, file))
+  for (const file of ['solver-observer.mjs', 'observer-worker.mjs', 'profile-window.mjs']) copyFileSync(join('f3-input', file), join(output, file))
   command('bun', ['build', './research/lane-i/f3/facade.ts', '--target=node', '--format=esm', '--outfile=./f3-output/facade.mjs', '--sourcemap=inline'], root, 180000)
   const results: Record<string, {id: string, result: object, raw: object}> = {}
   for (const mode of ['off', 'on']) {

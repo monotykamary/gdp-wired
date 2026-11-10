@@ -57,3 +57,24 @@ No production source was changed by the reconstruction.
 No Bun F3, host qualification, calibrated weighted-unit sampler or complete
 census is established by these results. Both pilot processes used the exact
 unchanged original MLDR model and the same legacy 15,000,000 work allowance.
+
+## Timestamp-bounded attribution
+
+The old sampler chose the last 25 CPU samples by count. A sampling pause can
+put those samples outside the actual quiet interval. `profile-window.mjs`
+now reconstructs sample timestamps from `startTime` and cumulative
+`timeDeltas`, selecting only the interval ending at `profile.endTime` with the
+observed silence duration. Invalid timestamps fail closed. A real quiet window
+with no recent samples remains in the output with an empty, unattributed
+stack; it is not discarded or excused.
+
+The observer records sample age, largest gap, selected interval and sample
+count. `audit-pilot.ts --require-timed-window` requires this metadata and
+checks interval bounds. Function-level sampling still does not identify an
+exact native instruction. All eight adversarial fixtures and the real blocking-
+loop capability check pass in `20261110-222458-ek322b`; the stack is captured
+before the loop releases with 40 valid in-window samples. Type/lint and
+commitlint pass in `20261110-222458-r9py84` (1,703 files, no warnings/errors).
+An original-model timed-selection run is now pending, reusing the recorded
+same-source off baseline rather than making an overhead comparison. New pilot
+inputs must include `profile-window.mjs` beside the observer.

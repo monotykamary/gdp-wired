@@ -39,7 +39,20 @@
       "subagents": 0
     }
   },
-  "activeTasks": [],
+  "activeTasks": [
+    {
+      "task": "bd31d2b5-3a17-45f7-ac67-15ab5dfd69e1",
+      "pid": 686001,
+      "results": "runs/lane-i/resume-timed-f3",
+      "purpose": "timestamped original-model observer on exact 32a59b2a versus recorded same-source off baseline"
+    },
+    {
+      "task": "3a97a895-8993-4d5c-acd9-6691561913d5",
+      "pid": 686006,
+      "results": "runs/lane-i/resume-timed-pilot-tooling",
+      "purpose": "type/lint and commitlint including the on-only timed-pilot driver"
+    }
+  ],
   "rerunFirst": [],
   "verified": {
     "gateBatch": "20261110-123003-1cvbpa",
@@ -622,5 +635,18 @@
       "errors": 0
     }
   },
-  "remainingF3Attribution": "Observer currently ranks the last 25 CPU samples by count without per-sample timestamp filtering; stable heartbeat windows are real, but attribution to a particular native operation is unqualified. Next: filter timeDeltas to the actual quiet interval and retain no-recent-sample windows as unattributed."
+  "remainingF3Attribution": "Observer currently ranks the last 25 CPU samples by count without per-sample timestamp filtering; stable heartbeat windows are real, but attribution to a particular native operation is unqualified. Next: filter timeDeltas to the actual quiet interval and retain no-recent-sample windows as unattributed.",
+  "f3TimedAttribution": {
+    "status": "eight unit tests, real blocking capability and type/lint passed; original-model timed run pending",
+    "selection": "profile.startTime plus cumulative timeDeltas; only samples inside the quiet interval",
+    "missingSamples": "retain the raw quiet window with an empty, unattributed stack",
+    "originalModelRerun": "running against a recorded same-source off baseline; no overhead claim",
+    "scope": "diagnostic attribution only; no production change or F3 completion claim",
+    "testBatch": "20261110-222458-ek322b",
+    "tests": 8,
+    "detectedBeforeRelease": true,
+    "capabilitySampleCount": 40,
+    "toolingBatch": "20261110-222458-r9py84",
+    "toolingFiles": 1703
+  }
 }

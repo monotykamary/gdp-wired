@@ -1,6 +1,7 @@
 import {parentPort, workerData} from 'node:worker_threads'
 import {Session} from 'node:inspector'
 import {writeSync} from 'node:fs'
+import {selectProfileWindow} from './profile-window.mjs'
 const shared = new Int32Array(workerData), session = new Session()
 const traceNow = () => performance.now()
 const emit = (value, tag = 'F3_RAW_SILENCE') => writeSync(1, tag + ' ' + JSON.stringify(value) + '\n')
@@ -25,16 +26,11 @@ try {
     if (now - since <= 250 || reports >= 16) return
     busy = true
     try {
-      const {profile} = await post('Profiler.stop'), nodes = new Map(profile.nodes.map(node => [node.id, node]))
-      const parents = new Map(profile.nodes.flatMap(node => (node.children ?? []).map(id => [id, node.id])))
-      const frequencies = new Map()
-      for (const id of (profile.samples ?? []).slice(-25)) frequencies.set(id, (frequencies.get(id) ?? 0) + 1)
-      let id = [...frequencies].sort((a, b) => b[1] - a[1])[0]?.[0]
-      const stack = []
-      while (id !== undefined) { const node = nodes.get(id); if (node) stack.push(node.callFrame); id = parents.get(id) }
+      const {profile} = await post('Profiler.stop')
+      const {stack, timing} = selectProfileWindow(profile, now - since)
       const heartbeatAfter = Atomics.load(shared, 1), whileRunning = Atomics.load(shared, 0) === 1
       const stable = heartbeatAfter === next && whileRunning
-      emit({rawSilentMs: now - since, whileRunning, heartbeatBefore: next, heartbeatAfter, stable, reports: ++reports, stack, scope: 'raw-progress diagnostic; not weighted F3'}, stable ? 'F3_RAW_SILENCE' : 'F3_RAW_WINDOW_CHANGED')
+      emit({rawSilentMs: now - since, whileRunning, heartbeatBefore: next, heartbeatAfter, stable, reports: ++reports, stack, profileWindow: timing, scope: 'raw-progress diagnostic; not weighted F3'}, stable ? 'F3_RAW_SILENCE' : 'F3_RAW_WINDOW_CHANGED')
       await post('Profiler.start'); since = traceNow()
     } catch (error) { emit({error: String(error)}); process.exitCode = 1 }
     finally { busy = false; if (Atomics.load(shared, 0) === 2) void stop() }
