@@ -1,5 +1,5 @@
 // Exact-source preflight. Each invocation owns its restored trees and bounded children.
-import {readFileSync,writeFileSync,mkdirSync,mkdtempSync,copyFileSync,rmSync} from 'node:fs'
+import {readFileSync,mkdirSync,mkdtempSync,copyFileSync,rmSync,existsSync} from 'node:fs'
 import {join,resolve} from 'node:path'
 import {createHash} from 'node:crypto'
 import {gzipSync,gunzipSync} from 'node:zlib'
@@ -23,14 +23,26 @@ async function root(side:'base'|'candidate'){
  command('bun',['install','--frozen-lockfile'],dir)
  return dir
 }
-async function run(dir:string,args:string[],seconds:number,label:string){
+async function run(dir:string,args:string[],seconds:number,label:string,required=true){
  const r=await runResourceMeasured('bun',args,dir,label,seconds)
  console.log('NEXT_STEP '+JSON.stringify({label,args,seconds,exit:r.status,signal:r.signal,error:r.error?.message,wallMs:r.wallMs,resources:r.resources,stdoutSha256:sha(r.stdout),stderrSha256:sha(r.stderr),traceGzipBase64:gzipSync(r.stdout+'\n---stderr---\n'+r.stderr).toString('base64'),stderrTail:r.stderr.slice(-5000)}))
- if(r.status!==0)throw Error(label+' exit '+r.status+' '+r.signal)
+ if(required&&r.status!==0)throw Error(label+' exit '+r.status+' '+r.signal)
  return r
 }
 try{
- if(mode==='binder'){
+ if(mode==='effect'){
+  const repeat=Number(process.argv[3]),kind=process.argv[4]
+  if(!Number.isInteger(repeat)||repeat<1||repeat>3||!['isolated','full'].includes(kind??''))throw Error('invalid effect pair')
+  const dirs={base:await root('base'),candidate:await root('candidate')},outcomes:Record<string,unknown>={},order=repeat%2?['candidate','base']as const:['base','candidate']as const
+  let failed=false
+  for(const side of order){
+   const args=['test','./core/effect-queue.test.ts',...(kind==='isolated'?['--test-name-pattern','the CLI on the pool']:[])]
+   const r=await run(dirs[side],args,1200,`effect-${kind}-${repeat}-${side}`,false)
+   outcomes[side]={exit:r.status,wallMs:r.wallMs};if(r.status!==0)failed=true
+  }
+  console.log('NEXT_EFFECT '+JSON.stringify({repeat,kind,order,outcomes}))
+  if(failed)throw Error('effect pair contains a failed native test')
+ }else if(mode==='binder'){
   for(const side of ['base','candidate']as const){const dir=await root(side);copyFileSync('regression-driver/symbolic-binder-probe.ts',join(dir,'symbolic-binder-probe.ts'))
    const r=await run(dir,['symbolic-binder-probe.ts'],60,'binder-'+side)
    const rows=r.stdout.split('\n').filter(l=>l.startsWith('SYMBOLIC_BINDER_CASE ')).map(l=>JSON.parse(l.slice(21)))
@@ -39,7 +51,10 @@ try{
  }else{
   const dir=await root('candidate')
   if(mode==='check')await run(dir,['run','check'],300,'type-lint')
-  else if(mode==='tests')await run(dir,['test',...config.newTests],600,'new-tests')
+  else if(mode==='tests'){
+   for(const file of config.newTests)if(!existsSync(join(dir,file)))throw Error('missing targeted test '+file)
+   await run(dir,['test',...config.newTests],600,'new-tests')
+  }
   else if(mode==='shard'){
    const n=Number(process.argv[3]);if(!Number.isInteger(n)||n<1||n>7)throw Error('invalid shard')
    await run(dir,['scripts/test-shards.ts','--shard',n+'/7'],1200,'shard-'+n)
@@ -73,6 +88,6 @@ try{
  }
  console.log('NEXT_PASS '+JSON.stringify({mode,baseline:config.baseline,candidate:config.candidate}))
 }finally{
- for(const dir of roots)console.log('NEXT_CLEAN '+JSON.stringify({dir,tracked:command('git',['status','--porcelain','--untracked-files=no'],dir)}))
+ for(const dir of roots){const tracked=command('git',['status','--porcelain','--untracked-files=no'],dir);console.log('NEXT_CLEAN '+JSON.stringify({dir,tracked}));if(tracked)throw Error('tracked source changed during qualification')}
  rmSync(temp,{recursive:true,force:true})
 }
