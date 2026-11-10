@@ -16,11 +16,12 @@ replace("resolve('frozen/gate-inputs')", "resolve('recovery-input')")
 const mutated = process.env.METER_MUTATION && process.env.METER_MUTATION !== 'plain'
 const files = mutated ? ['./kernel', './core/solver.test.ts', './core/rationals.test.ts'] : ['./core/meter-complete.test.ts', './core/meter.test.ts', './core/compile.test.ts', './core/sample-step.test.ts', './core/runtime-keys.test.ts', './core/small-counts.test.ts', './core/values.test.ts', './core/functions.test.ts', './kernel/model-values.test.ts', './core/count-cubes.test.ts', './core/count-support.test.ts', './core/finite-tiny-houdini.test.ts', './core/finite-work.test.ts', './core/infer.test.ts', './kernel/steplaw.test.ts']
 if (!mutated && process.env.METER_COMPOSITION) files.push('./core/work-ledger.test.ts', './core/work-clock.test.ts', './core/work-entry.test.ts', './core/count-work.test.ts', './kernel/work-budget.test.ts')
-if (!mutated && ['bitmap', 'canonical'].includes(process.env.METER_COMPOSITION ?? '')) files.push('./core/bitsets.test.ts', './core/bitsets-meter.test.ts')
-if (!mutated && process.env.METER_COMPOSITION === 'canonical') files.push('./kernel/canonical-meter.test.ts')
+if (!mutated && ['bitmap', 'canonical', 'requests'].includes(process.env.METER_COMPOSITION ?? '')) files.push('./core/bitsets.test.ts', './core/bitsets-meter.test.ts')
+if (!mutated && ['canonical', 'requests'].includes(process.env.METER_COMPOSITION ?? '')) files.push('./kernel/canonical-meter.test.ts')
+if (!mutated && process.env.METER_COMPOSITION === 'requests') files.push('./core/request-materialization.test.ts')
 const args = mutated ? ['test', '--preload', './research/lane-i/generator/meter-mutate.ts', ...files] : ['test', ...files]
 let argsText = JSON.stringify(args)
-if (mutated && process.env.METER_COMPOSITION === 'canonical') {
+if (mutated && ['canonical', 'requests'].includes(process.env.METER_COMPOSITION ?? '')) {
   // Keep every acceptance test. Only the new exact-counter fixture is separate:
   // it is required by the plain check, and intentionally false under mutation.
   text = "import {readdirSync as meterListTests} from 'node:fs'\n" + text

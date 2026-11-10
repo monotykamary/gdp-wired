@@ -2,7 +2,9 @@
 
 ## Verified raw source available; integration and full accounting still pending
 
-Latest meter diagnostic source: **`41d39043`**, canonical patch `f59720c766a6`.
+Latest verified raw-meter source: **`94b65671`**, request-allocation observations
+on parent `41d39043`. The CPU diagnostic below remains on **`41d39043`**,
+canonical patch `f59720c766a6`; it does not qualify the changed source.
 The original raw source below is retained as the first step of that chain.
 Ordinary work-mode execution and actual EPR-path coverage are still missing;
 no all-29 or calibrated-W qualification is claimed.
@@ -113,8 +115,8 @@ or errors). The off/on run and strict audit passed in
 It found 11 changed-during-capture windows and three stable windows: one
 application stack and two GC stacks. Rebuilding the same canonical bundle in
 `20261110-213128-eh7sxk` maps the application frames to Cartesian request
-construction in `core/infer.ts`, before `combosMax` truncation. That work is
-not yet metered. This is not Bun F3 or complete-coverage qualification.
+construction in `core/infer.ts`, before `combosMax` truncation. That work was
+unmetered in `41d39043`. This is not Bun F3 or complete-coverage qualification.
 
 An isolated `requests` composition now adds only a discarded allocation
 observation there. Six controls evaluate the actual production expression
@@ -122,9 +124,16 @@ and adjacent truncation, including overwrite semantics, map identity and RNG
 order. All three zero/double/random acceptance controls pass 267 tests each,
 with receipt audit `20261110-214151-wkgi21`. The selected run passed its 158
 inherited tests but the new fixture failed to parse a TypeScript `!` inside
-`new Function`. The fixture now transpiles the original snippet with Bun;
-only the selected-source job is being retried. Production bytes are unchanged
-by this fixture fix, and no source has been admitted. The two pre-dispatch input failures
+`new Function`. The transpiler repair passed all 164 selected tests, erasure,
+roster and decoder, but lint rejected the `Function` constructor. The final
+fixture loads an isolated compiled ESM module instead, retaining the lint rule.
+The final selected-source retry passes all 164 tests, erasure, roster, decoder
+and type/lint (`20261110-214513-kscywo`). Independent audit and exact-parent
+export pass in `20261110-214802-hwwfgg`; source is frozen separately as
+**`94b65671`** (`claude/lane-i-complete-requests`, parent `41d39043`). Only the
+unused exact fixture differs from the audited mutation sources; every other
+blob matches. No integration or production promotion is implied. The two
+pre-dispatch input failures
 (minimal census tools, then a cross-filesystem hard link) ran no solver and
 are retained. The checkpoint tooling run `20261110-213410-0tn1qx` passed both
 audits and commitlint, but lint rejected an untyped default sort in the plain

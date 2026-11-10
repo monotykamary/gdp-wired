@@ -9,6 +9,7 @@ Verified source chain (separate branches; not merged into the integration gate):
 | Boundary scopes | `4550377f` | `feeaccf2` | 151 selected tests plus the same checks |
 | Bitmap word observations | `84ffacf2` | `4550377f` | 155 selected tests plus the same checks |
 | Canonical key observations | `41d39043` | `84ffacf2` | 158 selected tests, erasure, type/lint, three 267-test mutation suites |
+| Request allocation observations | `94b65671` | `41d39043` | 164 selected tests, erasure, type/lint, audited reuse of three 267-test mutation suites on identical production blobs |
 
 Boundary/bitmap source transport hashes were verified against the exact tested
 source in `20261110-202611-ljsgom`. Zero/double/random mutation controls of the
@@ -49,9 +50,10 @@ source blobs, but its strict capture audit finds three stable windows and
 `core/infer.ts`'s Cartesian request-product materialization, before its
 `combosMax` truncation. No additional solver run was used for that mapping.
 
-The request records and copied properties are currently unobserved work.
-Next: add discarded observations with exact materialization controls; retain
-order, shape and truncation semantics; rerun source/erasure/mutation checks
-before freezing another source. GC samples are retained, not exempted.
+Those request allocations now have discarded observations in the separately
+verified source `94b65671`. Exact controls retain order, overwrite behavior,
+map identity, truncation and RNG calls. The source/receipt audit and exact
+parent-tree export pass; see `../requests/VERIFIED-SOURCE.md`. New-source
+observation is still pending. GC samples are retained, not exempted.
 
 No claim of complete coverage, Bun F3, F4 census, calibrated weights, or W.

@@ -1,0 +1,1 @@
+feat(research): observe request-product materialization

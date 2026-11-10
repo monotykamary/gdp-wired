@@ -1,12 +1,12 @@
 {
-  "status": "Three-protocol cross-CPU raw audit passed; ordinary-clock prototype validated but not admitted; stable Node stack identifies unmetered request-product construction",
+  "status": "Request-allocation raw source verified and frozen separately; new-source F3 and path coverage remain unqualified",
   "privateIndex": "/private/tmp/lane-i-ledger.index",
   "task": "4575fac2-7dbb-4fcf-859f-63aba9e3e9c5",
   "waiterPid": 90266,
   "batch": "20261110-123336-6maehh",
   "resultDirectory": "runs/lane-i/complete-structural",
   "includesGeneratedConstructors": false,
-  "next": "Cover request-product materialization with discarded observations and exact controls; continue ordinary-path/EPR coverage and acceptance checks before new source admission. Do not calibrate from the refusal control or claim full F3/F4.",
+  "next": "Run source-pinned original-MLDR Node observation off/on; continue ordinary/EPR coverage without fitting weights from refusal controls.",
   "productionChanged": false,
   "weightsCalibrated": false,
   "f3Implemented": false,
@@ -39,14 +39,7 @@
       "subagents": 0
     }
   },
-  "activeTasks": [
-    {
-      "task": "72a5faa9-de42-4835-97fa-e0f426bf82ed",
-      "pid": 635580,
-      "results": "runs/lane-i/resume-request-accounting-v4",
-      "purpose": "selected-source retry after test-only TypeScript transpilation fix; successful mutation suites are not repeated"
-    }
-  ],
+  "activeTasks": [],
   "rerunFirst": [],
   "verified": {
     "gateBatch": "20261110-123003-1cvbpa",
@@ -104,6 +97,10 @@
     {
       "stage": "canonical",
       "sha": "41d39043a75e279dc9600e6a33c8107014b67025"
+    },
+    {
+      "stage": "request-materialization",
+      "sha": "94b65671b0f81ccfd5e7be71686fc81f35387c94"
     }
   ],
   "mutationValidation": {
@@ -362,7 +359,7 @@
   "requestAccounting": {
     "admitted": false,
     "productionChanged": false,
-    "stage": "test-only parser repair under selected-source recheck; three mutation suites passed",
+    "stage": "verified raw request-accounting source frozen separately; new-source F3 pending",
     "firstAttempts": [
       {
         "task": "db7074b9-df90-48fd-9b02-973ac5890d1d",
@@ -375,8 +372,8 @@
         "failure": "baseline.pack hard link crossed filesystems"
       }
     ],
-    "input": "/tmp/lane-i-request-accounting-v4",
-    "results": "runs/lane-i/resume-request-accounting-v4",
+    "input": "/tmp/lane-i-request-accounting-v5",
+    "results": "runs/lane-i/resume-request-accounting-v5",
     "firstSelectedFailure": {
       "batch": "20261110-213747-rlztdu",
       "inheritedTestsPassed": 158,
@@ -396,7 +393,39 @@
       "passed": true,
       "productionInferBlob": "4468bef7a663aa4d18bf9e78c929fae84677de35",
       "scope": "production code unchanged by fixture repair; all hashes must be rechecked against the retry"
-    }
+    },
+    "intermediateValidation": {
+      "batch": "20261110-214235-w4lkow",
+      "tests": 164,
+      "erasure": true,
+      "roster": true,
+      "decoder": true,
+      "typeLint": false,
+      "failure": "no-implied-eval rejects Function constructor"
+    },
+    "toolingValidation": {
+      "batch": "20261110-214405-kthfuv",
+      "files": 1691,
+      "warnings": 0,
+      "errors": 0,
+      "typeLint": true
+    },
+    "sourceRevision": "94b65671b0f81ccfd5e7be71686fc81f35387c94",
+    "sourceTree": "1fe9fc742ebe0c4fa25fcf60916f37c54e7ccc37",
+    "sourceBranch": "claude/lane-i-complete-requests",
+    "parent": "41d39043a75e279dc9600e6a33c8107014b67025",
+    "checksBatch": "20261110-214513-kscywo",
+    "auditBatch": "20261110-214802-hwwfgg",
+    "selectedTests": 164,
+    "typeLint": true,
+    "roster": true,
+    "decoder": true,
+    "erasure": true,
+    "traceHashesVerified": true,
+    "mutationProductionBlobsEqual": true,
+    "onlyMutationSourceDifference": "core/request-materialization.test.ts",
+    "fullPatchSha256": "2c98e5dc8d92da3b1f6833c1e1a331de24b559349c30cc44f52ec5c2a6c53ac2",
+    "deltaSha256": "5c0b609e3b703d01e05f240d2a8dc82147b7950f520cad264dd408966403519a"
   },
   "artifactRecheckRoutingFailure": {
     "batch": "20261110-213747-66qkkg",
