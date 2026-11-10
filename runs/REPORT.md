@@ -2,6 +2,11 @@
 
 ## Verified raw source available; integration and full accounting still pending
 
+Latest meter diagnostic source: **`41d39043`**, canonical patch `f59720c766a6`.
+The original raw source below is retained as the first step of that chain.
+Ordinary work-mode execution and actual EPR-path coverage are still missing;
+no all-29 or calibrated-W qualification is claimed.
+
 Frozen source: **`9a36137ece0525d077ecf4509b686b2e6bdf3058`**,
 `claude/lane-i-complete-raw`, tree `2a21332d3fb0717cf0d4f0f3ba502ffd4d1f9a22`.
 The source includes the retained isolated A2 entry and raw counters; it is
@@ -18,6 +23,13 @@ The immutable raw-source commit is ready for parallel instrumentation audit.
 Checker erasure and zero/double/random acceptance suites passed. No calibrated
 weights or W are supplied. Do not let this audit block ledger/coverage work.
 The active integration branch remains research-only changes beyond the pause.
+
+The first three Bun raw pairs now pass an independent receipt audit, but
+`consensus` refuses with `work mode: plain-path migration pending` (51 AST
+constructions, no solver work), and `consensus_epr` has zero EPR-counter units.
+Do not treat either name as proof of path coverage or fit an ordinary-path
+weight from the refusal. `mldr` exercises the counted path and stops at the
+legacy work allowance. Details: `research/lane-i/work-meter/f4/README.md`.
 
 ### Ledger and boundary progress
 
@@ -69,6 +81,12 @@ Census tooling passes type/lint with zero warnings/errors across 1,687 files
 and all prepared commit messages pass (`20261110-205639-plp2u8`). The initial
 subprocess typing failure is retained. Pilot results and actual cross-CPU
 coverage remain pending.
+
+Recovered large-VM pairs pass source/transport/raw/phase/verdict audit
+`20261110-211756-rm4lfj`. The pool contains Ryzen 9 9950X and EPYC 4585PX CPUs.
+The remaining diagnostic comparisons now use an explicit different-CPU gate
+before any solver run; a same-CPU allocation exits 75 without execution.
+The ordinary refusal and unobserved EPR path keep all-29 qualification closed.
 
 ### F3 progress, not completion
 

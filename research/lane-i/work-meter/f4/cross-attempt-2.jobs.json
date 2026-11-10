@@ -1,0 +1,10 @@
+[
+  {
+    "name": "raw-consensus-cross",
+    "cmd": "bun cross-input/cpu-gate.ts consensus && bun recovery-input/materialize.ts && bun recovery-input/compose.ts canonical && bun f4-input/pilot.ts consensus",
+    "cpu": 4,
+    "memory": 14336,
+    "timeout": 3700,
+    "vm_type": "large"
+  }
+]

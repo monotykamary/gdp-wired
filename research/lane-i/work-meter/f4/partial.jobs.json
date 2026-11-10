@@ -1,0 +1,1 @@
+[{"name":"raw-census-partial-audit","cmd":"bun f4-input/audit-partial.ts","cpu":1,"memory":2048,"timeout":120,"vm_type":"large"}]

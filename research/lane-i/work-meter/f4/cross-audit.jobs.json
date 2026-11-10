@@ -1,0 +1,1 @@
+[{"name":"raw-census-cross-cpu-audit","cmd":"bun f4-input/audit-cross.ts","cpu":1,"memory":2048,"timeout":120,"vm_type":"large"}]

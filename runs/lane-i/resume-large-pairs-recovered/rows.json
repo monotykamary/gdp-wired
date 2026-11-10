@@ -1,0 +1,55 @@
+{
+  "rows": [
+    {
+      "name": "raw-consensus-large",
+      "code": 0,
+      "seconds": 31.2,
+      "vm": "bx_9tv9dxbz",
+      "run_name": "raw-consensus-large",
+      "placement": {
+        "vm": "bx_9tv9dxbz",
+        "type": "large",
+        "cpu": "AMD Ryzen 9 9950X 16-Core Processor",
+        "vcpus": 8,
+        "vm_vcpus": 8,
+        "exclusive": false,
+        "co_tenants": 0
+      }
+    },
+    {
+      "name": "raw-consensus_epr-large",
+      "code": 0,
+      "seconds": 147.44,
+      "vm": "bx_cnhsrs2z",
+      "run_name": "raw-consensus_epr-large",
+      "placement": {
+        "vm": "bx_cnhsrs2z",
+        "type": "large",
+        "cpu": "AMD Ryzen 9 9950X 16-Core Processor",
+        "vcpus": 8,
+        "vm_vcpus": 8,
+        "exclusive": false,
+        "co_tenants": 0
+      }
+    },
+    {
+      "name": "raw-mldr-large",
+      "code": 0,
+      "seconds": 345.22,
+      "vm": "bx_3nwpje9e",
+      "run_name": "raw-mldr-large",
+      "placement": {
+        "vm": "bx_3nwpje9e",
+        "type": "large",
+        "cpu": "AMD EPYC 4585PX 16-Core Processor",
+        "vcpus": 8,
+        "vm_vcpus": 8,
+        "exclusive": false,
+        "co_tenants": 0
+      }
+    }
+  ],
+  "done": false,
+  "running": 0,
+  "queued": 3
+}

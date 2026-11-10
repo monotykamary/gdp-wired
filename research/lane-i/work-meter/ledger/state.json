@@ -1,12 +1,12 @@
 {
-  "status": "five-stage raw accounting source chain verified; research tooling passes; next is raw determinism pilot",
+  "status": "three Bun raw pairs audited; ordinary work path unavailable; cross-CPU diagnostics and fenced Node follow-up running",
   "privateIndex": "/private/tmp/lane-i-ledger.index",
   "task": "4575fac2-7dbb-4fcf-859f-63aba9e3e9c5",
   "waiterPid": 90266,
   "batch": "20261110-123336-6maehh",
   "resultDirectory": "runs/lane-i/complete-structural",
   "includesGeneratedConstructors": false,
-  "next": "Collect queued default-class raw pairs and the canonical heartbeat-fenced Node diagnostic. Run the validated raw auditor only on complete pilot receipts. Do not choose W or conflate Node with Bun qualification.",
+  "next": "Finish missing CPU comparisons without duplicate same-CPU runs; inspect ordinary-path clock migration and genuine EPR coverage. Never fit weights from the refusal control or claim all-29 qualification.",
   "productionChanged": false,
   "weightsCalibrated": false,
   "f3Implemented": false,
@@ -49,6 +49,16 @@
       "task": "9f21d71f-c9ba-43cf-aa3e-93f7f9893792",
       "pid": 591392,
       "results": "runs/lane-i/resume-canonical-fenced-node"
+    },
+    {
+      "task": "ea5dd6b7-1fea-4fee-be2b-a43f55359a8a",
+      "pid": 596075,
+      "results": "runs/lane-i/resume-cross-cpu-attempt-1"
+    },
+    {
+      "task": "bf4591ee-47a9-45c5-b085-52c51341fe70",
+      "pid": 600590,
+      "results": "runs/lane-i/resume-cross-cpu-attempt-2"
     }
   ],
   "rerunFirst": [],
@@ -80,9 +90,9 @@
     "receiptAudit": "20261110-202451-eom7lj"
   },
   "toolingValidation": {
-    "batch": "20261110-211606-615p6t",
+    "batch": "20261110-212039-zm7wiy",
     "typeLint": true,
-    "files": 1689,
+    "files": 1692,
     "warnings": 0,
     "errors": 0,
     "commitlint": true
@@ -157,7 +167,10 @@
     "fixturesPassed": true,
     "corruptionsRejected": 10,
     "sameCpuAliasesNotOverclaimed": true,
-    "realResultsAudited": false
+    "realResultsAudited": true,
+    "auditedRealPairs": 3,
+    "completePilot": false,
+    "partialAuditBatch": "20261110-211756-rm4lfj"
   },
   "rawCensusProgress": {
     "observedAt": "2026-11-10T21:15:15.572Z",
@@ -166,5 +179,28 @@
     "defaultJobsLeft": 3,
     "defaultJobsRunning": 0,
     "note": "Scheduler-only progress. Complete logs and actual CPU labels are not yet collected."
+  },
+  "rawCensusCoverage": {
+    "ordinarySolver": false,
+    "ordinaryReason": "work mode: plain-path migration pending",
+    "nominalEprCounter": 0,
+    "countedMldr": true,
+    "all29Qualified": false
+  },
+  "cpuPlacementAttempts": {
+    "consensus": 2,
+    "consensus_epr": 1,
+    "mldr": 1,
+    "maximum": 3
+  },
+  "ordinaryMigration": {
+    "stage": "source inspection only",
+    "refusalStillEnabled": true,
+    "remainingWallReaders": [
+      "core/dsl.ts",
+      "core/bmc.ts",
+      "core/kind.ts",
+      "core/tpa.ts"
+    ]
   }
 }

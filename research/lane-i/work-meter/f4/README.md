@@ -7,8 +7,9 @@ processes** over the unchanged original model. No Node bundle, profiler,
 hand-written helper, production seed override or calibrated weight vector is
 injected. All exclusive phase raw deltas must reconcile and remain nonnegative.
 
-`pilot.jobs.json`: ordinary (`consensus`), EPR (`consensus_epr`) and counted
-(`mldr`) paths, each on `default` and `large` VMs. Actual CPU model, architecture,
+`pilot.jobs.json` selects `consensus`, `consensus_epr` and `mldr`, each on
+`default` and `large` VMs. These names alone do not establish path coverage.
+Actual CPU model, architecture,
 Bun version and affinity are recorded. VM type is not a CPU-model label. The
 pair fingerprint covers the original protocol ID, fixed legacy work allowance,
 verdict and every raw counter; wall times do not enter it.
@@ -21,8 +22,32 @@ no new vector is fitted here. The external 30-minute per-process guard is an
 infrastructure failure if hit, never an `unknown` proof result.
 
 Audit all six pairs, compare their actual CPU labels and cross-VM fingerprints,
-and expand only after the method passes. Preserve every first failure. This
+and expand only after the method and intended path coverage pass. Preserve
+every first failure. This
 pilot does not resolve the outstanding Bun F3 capability limitation.
+
+## Audited partial results and revised placement plan
+
+`20261110-211756-rm4lfj` independently validated the three completed large-VM
+pairs, including lossless stdout hashes, source identity and phase sums:
+
+| ID | CPU | Result / coverage |
+| --- | --- | --- |
+| `consensus` | Ryzen 9 9950X | `unknown`: `work mode: plain-path migration pending`; only 51 AST constructions, no solver work |
+| `consensus_epr` | Ryzen 9 9950X | proven and checked; `epr` counter is zero, so this is not evidence of EPR execution |
+| `mldr` | EPYC 4585PX | `unknown`: `work budget (completion)`; counted-path work observed |
+
+These are valid raw pairs, **not representative coverage of all three intended
+paths**. In particular, the refusal control must not qualify the ordinary path
+or be fitted as ordinary solver performance. All-29 qualification stays closed.
+
+The large pool already has two actual CPU models. `cross.jobs.json` therefore
+uses `cpu-gate.ts` before restoration or execution: only a CPU different from
+that ID's audited first CPU may proceed. Exit 75 is a placement miss with no
+solver execution, not an unknown verdict. Keep miss logs and rerun only missing
+placements, never successful CPU pairs, with at most three placement attempts
+per ID in this pilot. `audit-cross.ts` requires all three
+actual CPU differences and preserves the path-coverage limitations.
 
 ## Receipt validation
 
