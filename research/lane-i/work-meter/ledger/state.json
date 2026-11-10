@@ -39,7 +39,14 @@
       "subagents": 0
     }
   },
-  "activeTasks": [],
+  "activeTasks": [
+    {
+      "task": "85eaf808-1e3f-4c25-8263-cb3587ccb379",
+      "pid": 664274,
+      "results": "runs/lane-i/resume-numeric-f3",
+      "purpose": "source-pinned original-model Node off/on follow-up and cross-source raw/verdict/phase comparison"
+    }
+  ],
   "rerunFirst": [],
   "verified": {
     "gateBatch": "20261110-123003-1cvbpa",
@@ -526,6 +533,24 @@
     "auditTooling": {
       "batch": "20261110-220331-o8j51x",
       "files": 1698,
+      "typeLint": true,
+      "commitlint": true,
+      "warnings": 0,
+      "errors": 0
+    },
+    "integrationAuditCheckpoint": "47467985",
+    "f3Followup": {
+      "status": "running",
+      "source": "32a59b2a4cb38e60ee14cd54a2533bfee76bce89",
+      "patchSha256": "8df0cf2ac466465a45683a639124d5f774e1b85b72d7f36c1b42b682c4e46fbd",
+      "parentComparison": "94b65671",
+      "sameRawVerdictAndPhaseRequired": true,
+      "results": "runs/lane-i/resume-numeric-f3",
+      "scope": "bounded Node normal-finite path only; not complete F3, F4 or floating-point proof"
+    },
+    "f3Tooling": {
+      "batch": "20261110-220701-v35lw0",
+      "files": 1700,
       "typeLint": true,
       "commitlint": true,
       "warnings": 0,

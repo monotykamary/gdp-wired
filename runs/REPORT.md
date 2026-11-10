@@ -167,6 +167,11 @@ commitlint pass in `20261110-220331-o8j51x` (1,698 files, zero warnings/errors).
 See `research/lane-i/work-meter/numeric/VERIFIED-SOURCE.md`. The integration
 production tree is unchanged; fresh F3/F4, wider floating-point proof, weights
 and W remain unqualified.
+The source-pinned Node follow-up is running in `runs/lane-i/resume-numeric-f3`,
+requiring off/on equality and unchanged raw/verdict/exclusive-phase vectors
+relative to the completed `94b65671` parent pilot. Its tooling passes
+`20261110-220701-v35lw0` (1,700 files, zero warnings/errors); the runtime
+comparison remains pending.
 
 Original MLDR Node pilot `20261110-202238-v6auwd` retained **identical raw vectors
 and verdicts** with observation off/on. Both were `unknown`, reason

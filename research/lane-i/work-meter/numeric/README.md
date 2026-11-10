@@ -41,6 +41,14 @@ checks the candidate. `negative.jobs.json` retains the broken-source control.
 `audit.jobs.json` verifies hashes, complete source equality, fixture identity
 and the exact three-file export before a source branch is frozen.
 
+The next source-pinned Node pilot is running in `runs/lane-i/resume-numeric-f3`.
+It requires off/on raw and verdict equality, then compares raw vectors and
+exclusive phase vectors with the completed parent-source pilot. This is a
+normal-finite-path noninterference check, not complete F3/F4 qualification.
+Its source-pin and comparison tooling pass type/lint and commitlint in
+`20261110-220701-v35lw0` (1,700 files, zero warnings/errors); the runtime
+comparison is still pending.
+
 No existing acceptance test is removed. The numeric fixture belongs to the
 ordinary selected suite and shard roster, not the counter-mutation acceptance
 suite. No checker acceptance code, weights or integration production code is
