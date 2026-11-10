@@ -1,4 +1,20 @@
-## RESUME — POST-REKEY RETRY STILL BLOCKED — 2026-11-10
+## RESUME — THIRD REPAIR CONFIRMED; FULL RELEASE VALIDATION RESUBMITTED — 2026-11-10
+
+Coordinator reports key `a1176c12` now has create/delete/resume and verified VM creation directly. At 13:18 UTC stock remote status showed a ready worker and actual placements, with no current 403. **Not GATE GREEN.** Pinned candidate remains `c8411149d2c6c3c060a0665a79f10523b1281cbc`, including accepted P2; required baseline remains `b11e1f651618b3d3fcaf6cec66b4a8b0203cdcd3`.
+
+### For Lane D / coordinator
+
+Exact final candidate with the P2 repair: **`c8411149d2c6c3c060a0665a79f10523b1281cbc`**. No production change since its scoped P2 acceptance. Two `resume3` submissions failed locally before reaching the scheduler because copied temporary controls had reverted to Mac paths; both failures are retained. New isolated controls are `/tmp/gdp-ci-0480-control`, outside the recopied directory. Only the temporary runner `.git` pointer was repaired; its tree remains exact `e07ee501`.
+
+- Fresh 39-job supplement: `runs/c841-supplement-resume4-20261110/`, task `db17dfdd-b8f0-4fda-9835-e711e3e723d9`, PID 252710.
+- Fresh privacy scan: `runs/c841-privacy-resume4-20261110/`, batch `20261110-131934-17oc5m`, completed exit 0 on `bx_4zdy5q97` (EPYC 4585PX). This is scan execution only, **not** a clean result. Independent summary is running in `runs/c841-privacy-summary-resume4-20261110/`, batch `20261110-132112-1mdy8l`, task `a6175b60-337e-4e1d-8143-35e966a00c30`, PID 254195.
+- One canonical full gate/bar is owned by Lane D using its independently smoke-tested, maintenance-safe launcher. CI's provisional offloaded controller `20261110-132007-xfmfgt` was cancelled at exit 130 (no accepted result) as soon as Lane D's current vetted wrapper and missing-metadata fix were found; do not duplicate the full gate. Sent exact candidate/base and ownership to `ic3-lean` through hc at 13:20 UTC. Native leaf jobs, original rosters/budgets/scoring, unchanged e07 runner and no scheduler monkeypatches remain mandatory. The copied credential file used only by the cancelled provisional wrapper has been removed.
+- Exact-candidate package consumer smoke (unchanged `scripts/smoke.sh`) is also running in `runs/c841-package-smoke-resume4-20261110/`, task `c1ceb05f-b56b-4a16-86e9-4b2df86e4ce7`, PID 254542. This validates the actual build/pack/Node/TypeScript consumer path in publish.yml without publishing or changing versions.
+- Benchmark receipts/archives stay on the Boat worker. The remote artifact archive may be large; no archive over 500 MiB will be copied to this coordination sandbox. Summaries and hash manifests will be collected first.
+
+### Previous post-rekey attempt (historical)
+
+## POST-REKEY RETRY STILL BLOCKED — 2026-11-10
 
 **For coordinator:** the 13:08 UTC credential repair did not unblock VM creation. A fresh 13:11 UTC status showed `api_key_action_forbidden`, `sandbox.create`, HTTP 403 with new alert timestamps 13:10:37–13:10:58. All 41 replacement gate items remained queued with zero VMs/placements. The three CI clients were closed at 13:11 UTC (each exit 130); exact PIDs are absent. No tests ran, no credentials or scheduler code were changed, and no GATE GREEN is claimed. Before retrying again, confirm worker creation under the scheduler's actual service credentials. Original and second-attempt failures are both preserved.
 

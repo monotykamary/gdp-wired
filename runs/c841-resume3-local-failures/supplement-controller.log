@@ -1,0 +1,23 @@
+[Bounded shell log: starts with retained pre-spill tail; 8 MiB total cap, then further output is omitted. Not a full-output archive.]
+Traceback (most recent call last):
+  File "/home/user/.local/bin/supercomputer", line 10, in <module>
+    sys.exit(main())
+             ^^^^^^
+  File "/home/user/.local/share/uv/tools/supercomputer/lib/python3.12/site-packages/supercomputer/__main__.py", line 265, in main
+    config.use(a.repo or None)
+  File "/home/user/.local/share/uv/tools/supercomputer/lib/python3.12/site-packages/supercomputer/config.py", line 180, in use
+    _current = Project(r, cfg, p)
+               ^^^^^^^^^^^^^^^^^^
+  File "/home/user/.local/share/uv/tools/supercomputer/lib/python3.12/site-packages/supercomputer/config.py", line 121, in __init__
+    spec.loader.exec_module(self.hooks)
+  File "<frozen importlib._bootstrap_external>", line 995, in exec_module
+  File "<frozen importlib._bootstrap>", line 488, in _call_with_frames_removed
+  File "/tmp/gdp-boat-control/hooks.py", line 9, in <module>
+    spec.loader.exec_module(original)
+  File "<frozen importlib._bootstrap_external>", line 991, in exec_module
+  File "<frozen importlib._bootstrap_external>", line 1128, in get_code
+  File "<frozen importlib._bootstrap_external>", line 1186, in get_data
+FileNotFoundError: [Errno 2] No such file or directory: '/Users/monotykamary/VCS/working-remote/open-source/gdp-wired-ci/supercomputer/hooks.py'
+
+
+[Process exited with code 1]
