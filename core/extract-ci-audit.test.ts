@@ -4,6 +4,7 @@ import {buildLaw} from './laws.ts'
 import {proveSteps} from './dsl.ts'
 
 const noReplay = {runs: 0, states: 0, probes: false as const}
+const modelOnly = {kernelProven: true, proven: false, checked: false, translation: 'unchecked'}
 const verdict = (x: Extraction, expr: string, method = 'decide') => {
   const b = buildLaw(x, {name: expr, expr, method})
   if (b.kind !== 'step') throw new Error('expected step law')
@@ -32,7 +33,7 @@ test('CI audit P2: named and destructured records have independent heap identiti
     const x = extract(`export function decide(${parameters}): boolean { return arg.enabled; }`, {entry: 'decide', mode: 'standalone', check: noReplay})
     expect({ok: x.ok, refusals: x.refusals}).toEqual({ok: true, refusals: []})
     expect(verdict(x, 'result == enabled')).toMatchObject({proven: false, stuck: 'sat'})
-    expect(verdict(x, 'result == arg.enabled')).toMatchObject({proven: true, checked: true})
+    expect(verdict(x, 'result == arg.enabled')).toMatchObject(modelOnly)
     const r = x.rule!, machine = r.interpreter(), params = r.encodeParams({})
     const output = x.model!.results!.decide!
     if (output.k !== 'maybe') throw new Error('expected optional result encoding')
@@ -83,7 +84,7 @@ test('CI audit C1: accepted records report the plain-data contract', () => {
 test('CI audit N1: reserved output field names are readable without becoming failure status', () => {
   const x = extract('export function decide(): {value: number, failed: boolean} { return {value: 7, failed: true}; }', {entry: 'decide', mode: 'standalone'})
   expect({ok: x.ok, refusals: x.refusals}).toEqual({ok: true, refusals: []})
-  expect(verdict(x, 'result.value == 7 and result.failed == true')).toMatchObject({proven: true, checked: true})
+  expect(verdict(x, 'result.value == 7 and result.failed == true')).toMatchObject({proven: true, checked: true, translation: 'exhaustive'})
   expect(verdict(x, 'result.value != 7')).toMatchObject({proven: false, stuck: 'sat'})
   expect(verdict(x, 'result.failed == false')).toMatchObject({proven: false, stuck: 'sat'})
   expect(x.names!.some(n => n.role === 'failed')).toBe(false)
@@ -94,8 +95,8 @@ test('CI audit N1: class result fields are qualified and scoped by method', () =
   const x = extract('export class Decision { first() { return {value: 7, failed: false}; } second() { return {value: 9, failed: true}; } }', {entry: 'Decision', check: noReplay})
   expect({ok: x.ok, refusals: x.refusals}).toEqual({ok: true, refusals: []})
   for (const [method, value, failed] of [['first', 7, false], ['second', 9, true]] as const) {
-    expect(verdict(x, `result.value == ${value} and result.failed == ${failed}`, method)).toMatchObject({proven: true, checked: true})
+    expect(verdict(x, `result.value == ${value} and result.failed == ${failed}`, method)).toMatchObject(modelOnly)
     expect(verdict(x, `result.failed == ${!failed}`, method)).toMatchObject({proven: false, stuck: 'sat'})
-    expect(verdict(x, `result == ${value}`, method)).toMatchObject({proven: true, checked: true})
+    expect(verdict(x, `result == ${value}`, method)).toMatchObject(modelOnly)
   }
 })

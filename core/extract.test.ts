@@ -10,6 +10,8 @@ import {tmpdir} from 'node:os'
 import {pathToFileURL} from 'node:url'
 
 const budget = {runs: 60, depth: 10, states: 150}
+// Raw DSL assertions over extracted models are mathematical checks, not native source-law claims.
+const modelOnly = {kernelProven: true, proven: false, checked: false, translation: 'unchecked'}
 const ok = (x: Extraction) => {
   if (!x.ok) throw new Error(`refused: ${JSON.stringify(x.refusals)}\n${x.source ?? ''}`)
   expect(x.evidence!.mismatch).toBeUndefined()
@@ -65,7 +67,7 @@ test('a reducer over a discriminated union: switch, spreads, Math.max, a throw a
   expect(x.evidence!.requests).toBeGreaterThan(0)
   expect(x.evidence!.coverage.hit).toBe(x.evidence!.coverage.arms - 1) // the switch's no-case arm: the union's types rule it out
   const r = x.rule!
-  expect(proveRule(r, [r.law('the step stays at least 1', ({step}: any) => step.atLeast(1))]).proven).toBe(true)
+  expect(proveRule(r, [r.law('the step stays at least 1', ({step}: any) => step.atLeast(1))])).toMatchObject(modelOnly)
 })
 
 test('a class with a keyed map: get or create, refill by elapsed seconds, a result kept', () => {
@@ -95,7 +97,7 @@ test('a class with a keyed map: get or create, refill by elapsed seconds, a resu
   expect(x.evidence!.coverage).toMatchObject({hit: 10, arms: 10})
   // Its representation: a key the map doesn't hold holds the defaults, inductive.
   expect(x.invariants!.map(l => l.name)).toEqual(["buckets: a key it doesn't hold holds the defaults"])
-  expect(proveRule(x.rule!, x.invariants!)).toMatchObject({proven: true, checked: true})
+  expect(proveRule(x.rule!, x.invariants!)).toMatchObject({proven: true, checked: true, translation: 'sampled', translationChecks: 0})
 })
 
 test('a wallet: debit refused past the balance, a getter, a counter of calls', () => {
@@ -115,7 +117,7 @@ test('a wallet: debit refused past the balance, a getter, a counter of calls', (
     }`, 'Wallet'))
   const r = x.rule!
   expect(x.source).toContain('balance: 0')
-  expect(proveRule(r, [r.law('the balance never goes below 0', ({balance}: any) => balance.atLeast(0))]).proven).toBe(true)
+  expect(proveRule(r, [r.law('the balance never goes below 0', ({balance}: any) => balance.atLeast(0))])).toMatchObject(modelOnly)
 })
 
 test('plain JavaScript: a Redux reducer with an untyped action and a default for unknown actions', () => {
@@ -577,7 +579,7 @@ test('a field holding a function (an injected clock): each call an input, one a 
   expect(x.notes.join(' ')).toMatch(/this.clock\(\): the answer of the function the field holds/)
   expect(x.source!.match(/clock: int/g)?.length).toBe(1)
   const r = x.rule! as any
-  expect(proveRule(r, [r.law('within the limit', ({hits, limit}: any) => limit.atLeast(hits).or(hits.eq(0)))]).proven).toBe(true)
+  expect(proveRule(r, [r.law('within the limit', ({hits, limit}: any) => limit.atLeast(hits).or(hits.eq(0)))])).toMatchObject(modelOnly)
   // a default written there, replaced by the one given
   ok(ts('export class Ids { last = 0; private gen: () => number = () => 7\n constructor(g: () => number) { this.gen = g }\n next(): void { this.last = this.gen() } }', 'Ids'))
   // whether an optional one was given: the check always gives one, so the claim would be narrower than the code
@@ -611,7 +613,7 @@ test('a mixin of the files read: its class between the entry and the class it is
     }`, 'Meter'))
   expect(x.notes.join(' ')).toMatch(/Meter extends/)
   const r = x.rule! as any
-  expect(proveRule(r, [r.law('within the cap', ({count, cap}: any) => cap.atLeast(count).or(count.eq(0)))]).proven).toBe(true)
+  expect(proveRule(r, [r.law('within the cap', ({count, cap}: any) => cap.atLeast(count).or(count.eq(0)))])).toMatchObject(modelOnly)
   // one mixin twice in the chain; a mixin that does more than make a class; one that extends other than its parameter
   refused(ts('class B { n = 0 }\nconst M = <T extends new (...a: any[]) => {}>(X: T) => class extends X { m = 0 }\nexport class C extends M(M(B)) { go(): void { this.n++ } }', 'C'), /a mixin applied twice/)
   refused(ts('class B { n = 0 }\nlet made = 0\nfunction M<T extends new (...a: any[]) => {}>(X: T) { made++; return class extends X { m = 0 } }\nexport class C extends M(B) { go(): void { this.n++ } }', 'C'), /more than a class/)
@@ -698,7 +700,7 @@ test('a factory\'s object: the variables its functions close over are its state,
   expect(x.notes.join(' ')).toContain('its state is what they close over (limit, n, seen)')
   // a law over the extracted rule: the count never passes the limit
   const r = x.rule!, v = proveRule(r, [...(x.invariants ?? []), r.law('n stays within the limit', ({n, limit}: any) => n.atMost(limit))])
-  expect(v).toMatchObject({proven: true, checked: true})
+  expect(v).toMatchObject(modelOnly)
 })
 
 test('a factory\'s object: state outside the factory, this, a value beside the functions and async are refused', () => {
@@ -725,7 +727,7 @@ test('arrays as lists: push, pop, length, an item read and set within the array;
   expect(x.source).toContain('.items({xs: nat})')
   expect(x.source).toMatch(/\.\.\.xs\.apply\(xs\.push\(/)
   const r = x.rule!, v = proveRule(r, [...(x.invariants ?? []), r.law('at most three items', ({xs}: any) => xs.len.atMost(3))])
-  expect(v).toMatchObject({proven: true, checked: true})
+  expect(v).toMatchObject(modelOnly)
   const y = ok(ts(`
     type S = {xs: number[], n: number}
     export function r(s: S, a: {type: 'add', v: number} | {type: 'count'}): S {

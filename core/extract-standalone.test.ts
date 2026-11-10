@@ -156,15 +156,17 @@ test('different choice domains compare by string, never encoded index', () => {
 })
 
 
-// These tests deliberately disable source replay: the law translation itself must
-// reject false source claims even when the extracted decision is otherwise correct.
+// These tests deliberately disable replay to inspect the law translation itself.
+// True model laws must remain kernel-proven but explicitly unchecked as source claims.
+const modelOnly = {kernelProven: true, proven: false, checked: false, translation: 'unchecked'}
 const choiceLaw = (source: string, expr: string) => {
   const x = extract(source, {...options, check: {runs: 0, states: 0, probes: false}})
   expect({ok: x.ok, refusals: x.refusals}).toMatchObject({ok: true})
   const built = buildLaw(x, {name: expr, expr, method: 'decide'})
   if (built.kind !== 'step') throw new Error('expected step law')
   const verdict = proveSteps(x.rule!, x.invariants ?? [], [built.law], {from: 'any', search: false})
-  if (!verdict.proven) expect(verdict).toMatchObject({checked: false, stuck: 'sat'})
+  if (verdict.kernelProven) expect(verdict).toMatchObject(modelOnly)
+  else expect(verdict).toMatchObject({checked: false, stuck: 'sat'})
   return verdict
 }
 
@@ -176,7 +178,7 @@ for (const [label, source] of [
     expect(choiceLaw(source, expr)).toMatchObject({proven: false, checked: false})
   }
   for (const expr of ['result != a', 'a != result']) {
-    expect(choiceLaw(source, expr)).toMatchObject({proven: true, checked: true})
+    expect(choiceLaw(source, expr)).toMatchObject(modelOnly)
   }
 })
 
@@ -195,7 +197,7 @@ test('optional choice law: a shared value at different indices compares by name'
   expect(result.values).toContain('blue')
   expect(input.values.indexOf('blue')).not.toBe(result.values.indexOf('blue'))
   for (const expr of ['(result == a) == (a == "blue")', '(result != a) == (a != "blue")']) {
-    expect(choiceLaw(source, expr)).toMatchObject({proven: true, checked: true})
+    expect(choiceLaw(source, expr)).toMatchObject(modelOnly)
   }
   for (const expr of ['result == a', 'result != a']) {
     expect(choiceLaw(source, expr)).toMatchObject({proven: false, checked: false})
@@ -209,21 +211,21 @@ test('optional choice law: nullable locals and nested returns retain domain sema
     return null;
   }`
   expect(choiceLaw(source, 'result != null implies result == a')).toMatchObject({proven: false, checked: false})
-  expect(choiceLaw(source, 'result != a')).toMatchObject({proven: true, checked: true})
-  expect(choiceLaw(source, 'not enabled implies result == null')).toMatchObject({proven: true, checked: true})
+  expect(choiceLaw(source, 'result != a')).toMatchObject(modelOnly)
+  expect(choiceLaw(source, 'not enabled implies result == null')).toMatchObject(modelOnly)
 })
 
 test('optional choice law: comparisons nested in boolean equality retain semantics', () => {
   const source = 'export function decide(a: "red"): "green" { return "green"; }'
   expect(choiceLaw(source, '(result == a) == true')).toMatchObject({proven: false, checked: false})
   expect(choiceLaw(source, 'not (result != a)')).toMatchObject({proven: false, checked: false})
-  expect(choiceLaw(source, '(result == a) == false')).toMatchObject({proven: true, checked: true})
+  expect(choiceLaw(source, '(result == a) == false')).toMatchObject(modelOnly)
 })
 
 test('optional choice law: literals are checked within their domain in either order', () => {
   const source = 'export function decide(a: "red"): "green" { return "green"; }'
   for (const expr of ['result == "green"', '"green" == result']) {
-    expect(choiceLaw(source, expr)).toMatchObject({proven: true, checked: true})
+    expect(choiceLaw(source, expr)).toMatchObject(modelOnly)
   }
   for (const expr of ['result != "green"', '"green" != result']) {
     expect(choiceLaw(source, expr)).toMatchObject({proven: false, checked: false})
