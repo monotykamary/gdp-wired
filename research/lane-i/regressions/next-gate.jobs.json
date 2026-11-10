@@ -1,0 +1,113 @@
+[
+  {
+    "name": "next-check",
+    "cmd": "set -euo pipefail; cp -a frozen-next/. .; bun regression-driver/next-gate-worker.ts check",
+    "cpu": 4,
+    "memory": 14336,
+    "timeout": 480,
+    "vm_type": "large"
+  },
+  {
+    "name": "next-new-tests",
+    "cmd": "set -euo pipefail; cp -a frozen-next/. .; bun regression-driver/next-gate-worker.ts tests",
+    "cpu": 4,
+    "memory": 14336,
+    "timeout": 720,
+    "vm_type": "large"
+  },
+  {
+    "name": "next-symbolic-pair",
+    "cmd": "set -euo pipefail; cp -a frozen-next/. .; bun regression-driver/next-gate-worker.ts binder",
+    "cpu": 4,
+    "memory": 14336,
+    "timeout": 240,
+    "vm_type": "large"
+  },
+  {
+    "name": "next-evidence-audits",
+    "cmd": "set -euo pipefail; cp -a frozen-next/. .; bun regression-driver/next-gate-worker.ts evidence",
+    "cpu": 4,
+    "memory": 14336,
+    "timeout": 480,
+    "vm_type": "large"
+  },
+  {
+    "name": "next-p1-paxos",
+    "cmd": "set -euo pipefail; cp -a frozen-next/. .; bun regression-driver/next-gate-worker.ts p1",
+    "cpu": 4,
+    "memory": 14336,
+    "timeout": 600,
+    "vm_type": "large"
+  },
+  {
+    "name": "next-shard-1",
+    "cmd": "set -euo pipefail; cp -a frozen-next/. .; bun regression-driver/next-gate-worker.ts shard 1",
+    "cpu": 4,
+    "memory": 14336,
+    "timeout": 1320,
+    "vm_type": "large"
+  },
+  {
+    "name": "next-shard-2",
+    "cmd": "set -euo pipefail; cp -a frozen-next/. .; bun regression-driver/next-gate-worker.ts shard 2",
+    "cpu": 4,
+    "memory": 14336,
+    "timeout": 1320,
+    "vm_type": "large"
+  },
+  {
+    "name": "next-shard-3",
+    "cmd": "set -euo pipefail; cp -a frozen-next/. .; bun regression-driver/next-gate-worker.ts shard 3",
+    "cpu": 4,
+    "memory": 14336,
+    "timeout": 1320,
+    "vm_type": "large"
+  },
+  {
+    "name": "next-shard-4",
+    "cmd": "set -euo pipefail; cp -a frozen-next/. .; bun regression-driver/next-gate-worker.ts shard 4",
+    "cpu": 4,
+    "memory": 14336,
+    "timeout": 1320,
+    "vm_type": "large"
+  },
+  {
+    "name": "next-shard-5",
+    "cmd": "set -euo pipefail; cp -a frozen-next/. .; bun regression-driver/next-gate-worker.ts shard 5",
+    "cpu": 4,
+    "memory": 14336,
+    "timeout": 1320,
+    "vm_type": "large"
+  },
+  {
+    "name": "next-shard-6",
+    "cmd": "set -euo pipefail; cp -a frozen-next/. .; bun regression-driver/next-gate-worker.ts shard 6",
+    "cpu": 4,
+    "memory": 14336,
+    "timeout": 1320,
+    "vm_type": "large"
+  },
+  {
+    "name": "next-shard-7",
+    "cmd": "set -euo pipefail; cp -a frozen-next/. .; bun regression-driver/next-gate-worker.ts shard 7",
+    "cpu": 4,
+    "memory": 14336,
+    "timeout": 1320,
+    "vm_type": "large"
+  },
+  {
+    "name": "next-tip-relaxedprefix",
+    "cmd": "set -euo pipefail; cp -a frozen-next/. .; bun regression-driver/next-gate-worker.ts verify; bun regression-driver/bar-resource-pairs.ts 0 regression-driver/next-bar-roster.json",
+    "cpu": 4,
+    "memory": 14336,
+    "timeout": 600,
+    "vm_type": "large"
+  },
+  {
+    "name": "next-commitlint",
+    "cpu": 2,
+    "memory": 4096,
+    "timeout": 180,
+    "cmd": "cp -a frozen-next/. .; set -euo pipefail; temp=$(mktemp -d); trap 'rm -rf \"$temp\"' EXIT; printf '{\"private\":true}\\n' > \"$temp/package.json\"; (cd \"$temp\" && bun add --dev @commitlint/cli @commitlint/config-conventional >/dev/null); printf \"module.exports={extends:['@commitlint/config-conventional']};\\n\" > \"$temp/commitlint.config.cjs\"; failed=0; for file in integ-commits/*.txt; do echo \"COMMITLINT $file\"; \"$temp/node_modules/.bin/commitlint\" --cwd \"$temp\" < \"$file\" || failed=1; done; exit \"$failed\""
+  }
+]
