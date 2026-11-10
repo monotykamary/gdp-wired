@@ -1,4 +1,35 @@
-## RESUME — NEW SUBMISSIONS ON HOLD; LOCAL 0.48.0 PREP — 2026-11-10
+## RESUME — CHECKPOINT FOR LARGER SANDBOX; STOPPED — 2026-11-10
+
+**Start nothing until the coordinator/user explicitly resumes after migration.** The earlier Boat submission hold remains: no new jobs, retries, credential changes or breaker/scheduler changes. No GATE GREEN, push, tag or publish.
+
+### Exact state and what landed
+
+- Branch: `claude/law-crosscheck`. Pre-checkpoint tip: `42858e2b526098c053bb99f033bbfa2b097698fd`; the migration checkpoint is the subsequent docs-only HEAD.
+- Frozen proof/test candidate with accepted P2: `c8411149d2c6c3c060a0665a79f10523b1281cbc`; required baseline: `b11e1f651618b3d3fcaf6cec66b4a8b0203cdcd3`. These are not interchangeable with the newer release-prep tip.
+- `5137f71e1fee11e92af4445419d139263c7969b8`: prepared 0.48.0 in both packages and the CLI dependency pin, with generic changelog wording. Lockfile unchanged. Not published.
+- `5f98977750a23f60048364c28993f1b65ad0b29f`: **smoke-script-only repair**. Retains TypeScript success/broken checks and accepted/tampered certificates; requires unchecked Python laws to exit 2, retain their model verdicts and emit no source certificate. Shell and both JavaScript heredoc syntax checks passed; **runtime not validated**. No core proof semantics changed.
+- `a41a7de5` records the completed native supplement; `6e02c35c` and `42858e2b` record open privacy review and the original failed package smoke. Detailed current evidence: `runs/c841-resume4-tasks.json`, `runs/RELEASE-PREFLIGHT.md`, and the two batch `STATUS.md` files below.
+
+### Unvalidated / blocked
+
+- Supplement `20261110-131934-rcevew`: all 39 native rows exit 0 on Boat, with nonempty logs and no fallback. **Semantic collector and all four negative controls are still unrun**; do not call this a verified supplement or canonical/performance pass. See `runs/c841-supplement-resume4-20261110/STATUS.md`.
+- Original package smoke `20261110-132141-23nq9m`: **native job exit 1, outer client exit 0**. It failed at the obsolete Python-success expectation after earlier Node/root-CLI/type-consumer stages. Preserve the original failure; the prepared repair has not been rerun. See `runs/c841-package-smoke-resume4-20261110/STATUS.md`.
+- Lane D (`ic3-lean`) owns the **single canonical full gate/bar**. CI cancelled its provisional duplicate; never restart it. No accepted final gate/bar receipt is recorded here. Competing-scheduler provenance requires coordinator disposition.
+- Privacy is **not clean**: 65 baseline-boundary flags, 1,648 candidate-boundary flags; client-name and public-history review still open. The summary collector lost stdout, which was recovered separately; both originals are preserved. See `runs/PRIVACY-REVIEW-0480.md`.
+
+### Next item / what to rerun only after explicit go
+
+1. Confirm migration completed and coordinator lifted the hold / resolved scheduler ownership. First executable CI item: build and pack the **actual current release-prep tip**, including smoke repair and 0.48.0 manifests, then run `scripts/smoke.sh` against those tarballs on **Node 20 and Node 24**. Rebuild immutable source metadata for the new tip; the old `current-meta` / package job still targets c841 and would rerun the obsolete smoke.
+2. Run the prepared `current-verify.sh` on Boat against the retained c841 supplement receipts: positive `e0-verify.ts`, then four `verify-negative-controls.ts` rejection cases. Required expectations include 1,664 fuzz cases, 26 mutants, 20 private laws and 212 native rows; none is yet semantically certified by this lane.
+3. Obtain Lane D's exact-candidate canonical gate/bar receipt without duplicating its run. Complete privacy/history disposition and scan the **final release tip and tarballs**; local package success alone is not admission. Follow `runs/RELEASE-PREFLIGHT.md`; publishing remains coordinator/user-only.
+
+### Migration inputs and shutdown
+
+Preserve private/local ignored raw evidence before moving: `runs/c841-supplement-resume4-20261110/`, `runs/c841-package-smoke-resume4-20261110/`, `runs/c841-privacy-resume4-20261110/`, and `runs/c841-privacy-summary-resume4-20261110/`. Only bounded status/hash reports are committed. Also preserve or deliberately reconstruct `/tmp/gdp-ci-0480-control`, `/tmp/gdp-ci-resume-inputs`, `/tmp/gdp-c841-supplement-meta`, `/tmp/gdp-ci-fix-optional/archives`, and `/tmp/gdp-ci-item0-private`; do not assume `/tmp` or ignored files accompany a Git checkout. Never upload private fixtures as public artifacts.
+
+All tracked CI pre-hold tasks are terminal. Exact owned shell PIDs **252710, 252713, 254195, 254542 and 253024** were checked and are absent; the task inventory has no active shell. No live owned process remains to kill, and no replacement/waiter was started. Generated `.pi/fabric` cache/mesh metadata is locally excluded, not committed or deleted.
+
+## PRE-CHECKPOINT STATUS — NEW SUBMISSIONS ON HOLD; LOCAL 0.48.0 PREP — 2026-11-10
 
 Coordinator diagnosed a second scheduler on the Mac taking over worker agents. **Hold all new Boat submissions; do not resubmit, change credentials, or touch the breaker.** Wait for the coordinator's explicit go before any new job. Keep the existing pre-hold work/evidence distinct from valid completed gates. No GATE GREEN; no push, tag or publish.
 
