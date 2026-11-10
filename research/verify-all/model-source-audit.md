@@ -10,7 +10,7 @@ This is **not** a proof that the models equal every interpretation of their sour
 
 ## Evidence, commands, and provenance
 
-Read the user handoffs `VERIFY-ALL.md`, `COMMON.md`, and `AFTER-MLDR.md` in `/Users/monotykamary/VCS/working-remote/open-source/gdp-wired/private/handoff/claude-tracks-20261107/`, and `supercomputer --skill` before work. The branch and baseline were checked with `git status --short; git branch --show-current; git rev-parse HEAD`.
+Read the maintainer handoff notes and `supercomputer --skill` before work. The branch and baseline were checked with `git status --short; git branch --show-current; git rev-parse HEAD`.
 
 ```
 supercomputer run --jobs research/verify-all/model-source-jobs-20261109.json \

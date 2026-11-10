@@ -29,7 +29,7 @@ Paxos TLC source is a second hand transcription (`models.ts:725-762,1020-1028`),
 
 ## Invariant-aware representations
 
-Read-only handoff `private/handoff/claude-tracks-20261107/AFTER-MLDR.md:39-41` identifies MLDR's arithmetic QuorumsOverlap and “the P* port” as chosen knowing the invariant. MLDR implementation is identifiable (`models.ts:764-797,813-814`): dx=|X\\Y|, dy=|Y\\X|, m=|X∩Y| and half sizes yield `max(0,floor(|X|/2)+1-dx)+max(0,floor(|Y|/2)+1-dy)>m`. Source job independently exhausts nonempty subset pairs on universes 1..6: **5,214 pairs, zero mismatches** against the all-majority-pairs definition. This is finite arithmetic corroboration, not an all-size proof or removal of hindsight bias.
+A maintainer note identifies MLDR's arithmetic QuorumsOverlap and “the P* port” as chosen knowing the invariant. MLDR implementation is identifiable (`models.ts:764-797,813-814`): dx=|X\\Y|, dy=|Y\\X|, m=|X∩Y| and half sizes yield `max(0,floor(|X|/2)+1-dx)+max(0,floor(|Y|/2)+1-dy)>m`. Source job independently exhausts nonempty subset pairs on universes 1..6: **5,214 pairs, zero mismatches** against the all-majority-pairs definition. This is finite arithmetic corroboration, not an all-size proof or removal of hindsight bias.
 
 **P* remains unresolved.** Audit supplies no ID mapping; the Main coordinator also had no mapping. Do not guess it means Paxos. Finite TLC agreement cannot establish that any representation was chosen blindly.
 
