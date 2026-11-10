@@ -1,0 +1,4 @@
+chore(research): prepare paired generator census
+
+Reuse exact cached baseline sources and keep quiet admission unchanged.
+Validate zero-query generation payloads and preserve all rejected pairs.

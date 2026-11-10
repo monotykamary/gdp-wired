@@ -1,0 +1,218 @@
+[
+  {
+    "name": "generator-census-consensus",
+    "cmd": "bun generator-input/preflight.ts census consensus",
+    "cpu": 4,
+    "memory": 6144,
+    "timeout": 900,
+    "vm_type": "default"
+  },
+  {
+    "name": "generator-census-tcommit",
+    "cmd": "bun generator-input/preflight.ts census tcommit",
+    "cpu": 4,
+    "memory": 6144,
+    "timeout": 900,
+    "vm_type": "default"
+  },
+  {
+    "name": "generator-census-lock_server",
+    "cmd": "bun generator-input/preflight.ts census lock_server",
+    "cpu": 4,
+    "memory": 6144,
+    "timeout": 900,
+    "vm_type": "default"
+  },
+  {
+    "name": "generator-census-quorum_leader_election",
+    "cmd": "bun generator-input/preflight.ts census quorum_leader_election",
+    "cpu": 4,
+    "memory": 6144,
+    "timeout": 900,
+    "vm_type": "default"
+  },
+  {
+    "name": "generator-census-toy_consensus_forall",
+    "cmd": "bun generator-input/preflight.ts census toy_consensus_forall",
+    "cpu": 4,
+    "memory": 6144,
+    "timeout": 900,
+    "vm_type": "default"
+  },
+  {
+    "name": "generator-census-simple",
+    "cmd": "bun generator-input/preflight.ts census simple",
+    "cpu": 4,
+    "memory": 6144,
+    "timeout": 900,
+    "vm_type": "default"
+  },
+  {
+    "name": "generator-census-simple_regular",
+    "cmd": "bun generator-input/preflight.ts census simple_regular",
+    "cpu": 4,
+    "memory": 6144,
+    "timeout": 900,
+    "vm_type": "default"
+  },
+  {
+    "name": "generator-census-lockserv_automaton",
+    "cmd": "bun generator-input/preflight.ts census lockserv_automaton",
+    "cpu": 4,
+    "memory": 6144,
+    "timeout": 900,
+    "vm_type": "default"
+  },
+  {
+    "name": "generator-census-sharded_kv",
+    "cmd": "bun generator-input/preflight.ts census sharded_kv",
+    "cpu": 4,
+    "memory": 6144,
+    "timeout": 900,
+    "vm_type": "default"
+  },
+  {
+    "name": "generator-census-sharded_kv_no_lost_keys",
+    "cmd": "bun generator-input/preflight.ts census sharded_kv_no_lost_keys",
+    "cpu": 4,
+    "memory": 6144,
+    "timeout": 900,
+    "vm_type": "default"
+  },
+  {
+    "name": "generator-census-lockserv",
+    "cmd": "bun generator-input/preflight.ts census lockserv",
+    "cpu": 4,
+    "memory": 6144,
+    "timeout": 900,
+    "vm_type": "default"
+  },
+  {
+    "name": "generator-census-twophase",
+    "cmd": "bun generator-input/preflight.ts census twophase",
+    "cpu": 4,
+    "memory": 6144,
+    "timeout": 900,
+    "vm_type": "default"
+  },
+  {
+    "name": "generator-census-simple_decentralized_lock",
+    "cmd": "bun generator-input/preflight.ts census simple_decentralized_lock",
+    "cpu": 4,
+    "memory": 6144,
+    "timeout": 900,
+    "vm_type": "default"
+  },
+  {
+    "name": "generator-census-two_phase_commit",
+    "cmd": "bun generator-input/preflight.ts census two_phase_commit",
+    "cpu": 4,
+    "memory": 6144,
+    "timeout": 900,
+    "vm_type": "default"
+  },
+  {
+    "name": "generator-census-consensus_wo_decide",
+    "cmd": "bun generator-input/preflight.ts census consensus_wo_decide",
+    "cpu": 4,
+    "memory": 6144,
+    "timeout": 900,
+    "vm_type": "default"
+  },
+  {
+    "name": "generator-census-consensus_forall",
+    "cmd": "bun generator-input/preflight.ts census consensus_forall",
+    "cpu": 4,
+    "memory": 6144,
+    "timeout": 900,
+    "vm_type": "default"
+  },
+  {
+    "name": "generator-census-naive_consensus",
+    "cmd": "bun generator-input/preflight.ts census naive_consensus",
+    "cpu": 4,
+    "memory": 6144,
+    "timeout": 900,
+    "vm_type": "default"
+  },
+  {
+    "name": "generator-census-client_server_ae",
+    "cmd": "bun generator-input/preflight.ts census client_server_ae",
+    "cpu": 4,
+    "memory": 6144,
+    "timeout": 900,
+    "vm_type": "default"
+  },
+  {
+    "name": "generator-census-client_server_db_ae",
+    "cmd": "bun generator-input/preflight.ts census client_server_db_ae",
+    "cpu": 4,
+    "memory": 6144,
+    "timeout": 900,
+    "vm_type": "default"
+  },
+  {
+    "name": "generator-census-simple_election",
+    "cmd": "bun generator-input/preflight.ts census simple_election",
+    "cpu": 4,
+    "memory": 6144,
+    "timeout": 900,
+    "vm_type": "default"
+  },
+  {
+    "name": "generator-census-toy_consensus_epr",
+    "cmd": "bun generator-input/preflight.ts census toy_consensus_epr",
+    "cpu": 4,
+    "memory": 6144,
+    "timeout": 900,
+    "vm_type": "default"
+  },
+  {
+    "name": "generator-census-toy_consensus",
+    "cmd": "bun generator-input/preflight.ts census toy_consensus",
+    "cpu": 4,
+    "memory": 6144,
+    "timeout": 900,
+    "vm_type": "default"
+  },
+  {
+    "name": "generator-census-firewall",
+    "cmd": "bun generator-input/preflight.ts census firewall",
+    "cpu": 4,
+    "memory": 6144,
+    "timeout": 900,
+    "vm_type": "default"
+  },
+  {
+    "name": "generator-census-majorityset_leader_election",
+    "cmd": "bun generator-input/preflight.ts census majorityset_leader_election",
+    "cpu": 4,
+    "memory": 6144,
+    "timeout": 900,
+    "vm_type": "default"
+  },
+  {
+    "name": "generator-census-consensus_epr",
+    "cmd": "bun generator-input/preflight.ts census consensus_epr",
+    "cpu": 4,
+    "memory": 6144,
+    "timeout": 900,
+    "vm_type": "default"
+  },
+  {
+    "name": "generator-census-paxos_epr",
+    "cmd": "bun generator-input/preflight.ts census paxos_epr",
+    "cpu": 4,
+    "memory": 6144,
+    "timeout": 900,
+    "vm_type": "default"
+  },
+  {
+    "name": "generator-census-mldr",
+    "cmd": "bun generator-input/preflight.ts census mldr",
+    "cpu": 4,
+    "memory": 6144,
+    "timeout": 900,
+    "vm_type": "default"
+  }
+]

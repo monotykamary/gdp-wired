@@ -25,5 +25,5 @@
  "costConstraints":{"p1Units":1152.3382236,"paxosSolver":6915544,"paxosFull":1037946},
  "status":"qualification only; active integration branch and a8 production remain unchanged",
  "revisedFinishLine":"after Lane D adjudication and generator intake: one complete counter, no internal wall caps, fixed W calibrated once, repeat/three-CPU verdict and count identity, one quiet wall confirmation",
- "section18":"not present when inspected; do not invent the counter definition"
+ "section18":"read in full: MLDR-DESIGN.md Section 18, beginning at line 3913; I1-I3 may proceed in parallel with A1-A2; no weights or W selected here"
 }

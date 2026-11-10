@@ -1,0 +1,18 @@
+[
+  {
+    "name": "generator-census-learning_switch",
+    "cmd": "bun generator-input/preflight.ts census learning_switch",
+    "cpu": 4,
+    "memory": 14336,
+    "timeout": 6000,
+    "vm_type": "large"
+  },
+  {
+    "name": "generator-census-learning_switch_i4",
+    "cmd": "bun generator-input/preflight.ts census learning_switch_i4",
+    "cpu": 4,
+    "memory": 14336,
+    "timeout": 6000,
+    "vm_type": "large"
+  }
+]

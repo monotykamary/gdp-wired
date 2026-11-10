@@ -1,0 +1,10 @@
+[
+  {
+    "name": "generator-census-consensus-pilot",
+    "cmd": "bun generator-input/preflight.ts checks --tools-only && bun generator-input/preflight.ts census consensus",
+    "cpu": 4,
+    "memory": 6144,
+    "timeout": 1200,
+    "vm_type": "default"
+  }
+]

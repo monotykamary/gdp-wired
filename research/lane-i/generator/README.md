@@ -48,6 +48,17 @@ now attempt three original-model generations each; every attempt still
 requires both probes and run-wide steal <= 0.1%, with each probe loop
 within 10% of this floor. This is not three-CPU determinism qualification.
 
+The three first workers (`20261110-101941-ss4cjo`) were all rejected
+**before generation** on `bx_3x8cqc5e`. Independent boat audit
+`20261110-102443-dd6pmj` confirms 1.4–3.1% steal and 9.3–12.2 s memory
+probes: zero qualified cohorts and no generator calls in that batch.
+The floor is not weakened. The paired census is prepared but not complete.
+Its initial pilot stopped in type/lint with exit 134 before any census run;
+the exact current tooling subsequently passes on the established large
+profile (`20261110-102733-q5nysf`). The abort receipt remains retained.
+Section 18 has now landed and been read in full; isolated I1–I3 work may
+proceed alongside Lane A, with no weights or W selected by this lane.
+
 Source preflight `20261110-100830-si838c` passed targeted tests, roster
 and type/lint on the executable-equivalent staged source. A separate
 new-baseline tooling check (`20261110-101555-9qos8n`) passes after
