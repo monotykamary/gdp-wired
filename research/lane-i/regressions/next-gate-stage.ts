@@ -32,7 +32,7 @@ const newTests=['core/runtime-keys.test.ts','core/sample-step.test.ts','core/sma
 for(const file of newTests)if(!existsSync(file))throw Error('missing targeted test '+file)
 save('gate-inputs/gate.json',{baseline,candidate,originalHarness,sources:{base:source(baseline,paths),candidate:source(candidate,[...paths,'scripts/test-roster.ts','scripts/test-roster.test.ts','kernel/model-values.test.ts','research/lane-i/regressions/resource-run.ts','research/lane-i/regressions/next-gate-worker.ts'])},newTests})
 mkdirSync(join(stage,'regression-driver/p1-tools'),{recursive:true})
-for(const file of ['next-gate-worker.ts','resource-run.ts','bar-resource-pairs.ts','next-gate.jobs.json'])copyFileSync('research/lane-i/regressions/'+file,join(stage,'regression-driver',file))
+for(const file of ['next-gate-worker.ts','resource-run.ts','bar-resource-pairs.ts','next-gate.jobs.json','effect-cli-trace.ts','effect-trace-worker.ts'])copyFileSync('research/lane-i/regressions/'+file,join(stage,'regression-driver',file))
 copyFileSync(resolve(runner,'research/verify-all/symbolic-binder-probe.ts'),join(stage,'regression-driver/symbolic-binder-probe.ts'))
 for(const file of ['lane-b-cost','audit-lane-b-cost','check-cost-profile'])copyFileSync('research/lane-i/regressions/p1-tools/'+file+'.source',join(stage,'regression-driver/p1-tools',file+'.ts'))
 save('regression-driver/next-bar-roster.json',[{view:'tip',task:'tip2015/relaxedprefix_correct.smt2'}])

@@ -86,8 +86,8 @@ try{
    }
   }else throw Error('unknown mode')
  }
+ for(const dir of roots){const tracked=command('git',['status','--porcelain','--untracked-files=no'],dir);console.log('NEXT_CLEAN '+JSON.stringify({dir,tracked}));if(tracked)throw Error('tracked source changed during qualification')}
  console.log('NEXT_PASS '+JSON.stringify({mode,baseline:config.baseline,candidate:config.candidate}))
 }finally{
- for(const dir of roots){const tracked=command('git',['status','--porcelain','--untracked-files=no'],dir);console.log('NEXT_CLEAN '+JSON.stringify({dir,tracked}));if(tracked)throw Error('tracked source changed during qualification')}
  rmSync(temp,{recursive:true,force:true})
 }
