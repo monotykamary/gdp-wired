@@ -75,9 +75,9 @@
     "receiptAudit": "20261110-202451-eom7lj"
   },
   "toolingValidation": {
-    "batch": "20261110-205639-plp2u8",
+    "batch": "20261110-210220-pcmupw",
     "typeLint": true,
-    "files": 1687,
+    "files": 1692,
     "warnings": 0,
     "errors": 0,
     "commitlint": true
@@ -147,5 +147,19 @@
     "tree": "1955e0ede4c4",
     "files": 25,
     "recipe": "research/lane-i/work-meter/f4/freeze.sh"
+  },
+  "rawCensusAuditor": {
+    "fixturesPassed": true,
+    "corruptionsRejected": 10,
+    "sameCpuAliasesNotOverclaimed": true,
+    "realResultsAudited": false
+  },
+  "rawCensusProgress": {
+    "observedAt": "2026-11-10T21:15:15.572Z",
+    "batch": "20261110-205505-uq8edg",
+    "largeJobsReportedExitZero": 3,
+    "defaultJobsLeft": 3,
+    "defaultJobsRunning": 0,
+    "note": "Scheduler-only progress. Complete logs and actual CPU labels are not yet collected."
   }
 }

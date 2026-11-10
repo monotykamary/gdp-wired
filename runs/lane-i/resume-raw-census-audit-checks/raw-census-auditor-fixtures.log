@@ -1,0 +1,4 @@
+RAW_CENSUS_AUDITOR_FIXTURES {"passed":true,"corruptionsRejected":10,"cpuAliasNotOverclaimed":true,"syntheticOnly":true}
+
+--- stderr ---
+RAW_CENSUS_DIFFERENCE {"id":"consensus","cpus":["cpu-a","cpu-b"],"results":[{"proven":false,"checked":false,"stuck":"unknown"},{"proven":false,"checked":false,"stuck":"unknown"}],"raw":[{"fm":1,"fcells":1,"plainRows":1,"values":1,"copies":1,"edges":1,"scan":1,"pivotRows":1,"unitRows":1,"unfoldRows":1,"goalNodes":1,"translateRows":1,"tableCells":1,"checkSteps":1,"astNodes":1,"evals":1,"cubeTests":1,"ticks":1,"cdclNodes":1,"epr":1},{"fm":1,"fcells":1,"plainRows":1,"values":1,"copies":1,"edges":1,"scan":1,"pivotRows":1,"unitRows":1,"unfoldRows":1,"goalNodes":1,"translateRows":1,"tableCells":1,"checkSteps":1,"astNodes":1,"evals":1,"cubeTests":1,"ticks":1,"cdclNodes":1,"epr":1}]}

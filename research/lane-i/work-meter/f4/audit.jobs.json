@@ -1,0 +1,1 @@
+[{"name":"raw-census-pilot-audit","cmd":"bun f4-input/audit.ts census-results","cpu":1,"memory":2048,"timeout":120,"vm_type":"large"}]

@@ -24,6 +24,20 @@ Audit all six pairs, compare their actual CPU labels and cross-VM fingerprints,
 and expand only after the method passes. Preserve every first failure. This
 pilot does not resolve the outstanding Bun F3 capability limitation.
 
+## Receipt validation
+
+`audit.ts` verifies the exact source/patch, lossless child stdout hashes, fixed
+legacy allowance and production seed policy, all 20 nonnegative integer raw
+counters, exclusive-phase reconciliation, paired verdicts and fingerprints,
+and cross-placement agreement. It reports CPU-model diversity separately from
+agreement and never equates a VM type with a CPU model. `audit-fixtures.ts`
+rejects ten corruptions, including self-consistent transport hashes enclosing
+bad semantic fields, and checks that same-CPU aliases do not qualify.
+
+Batch `20261110-210220-pcmupw` passed these fixtures, all prepared commit
+messages and type/lint across 1,692 files with zero warnings/errors. This checks
+the auditor, not the still-pending complete real pilot receipts.
+
 ## Immutable dispatch
 
 The first dispatch failed during upload because `ledger/state.json` changed;
