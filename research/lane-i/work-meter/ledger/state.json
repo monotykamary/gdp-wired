@@ -39,14 +39,7 @@
       "subagents": 0
     }
   },
-  "activeTasks": [
-    {
-      "task": "85eaf808-1e3f-4c25-8263-cb3587ccb379",
-      "pid": 664274,
-      "results": "runs/lane-i/resume-numeric-f3",
-      "purpose": "source-pinned original-model Node off/on follow-up and cross-source raw/verdict/phase comparison"
-    }
-  ],
+  "activeTasks": [],
   "rerunFirst": [],
   "verified": {
     "gateBatch": "20261110-123003-1cvbpa",
@@ -540,13 +533,22 @@
     },
     "integrationAuditCheckpoint": "47467985",
     "f3Followup": {
-      "status": "running",
+      "status": "bounded Node comparison passed; full F3 remains open",
       "source": "32a59b2a4cb38e60ee14cd54a2533bfee76bce89",
       "patchSha256": "8df0cf2ac466465a45683a639124d5f774e1b85b72d7f36c1b42b682c4e46fbd",
       "parentComparison": "94b65671",
       "sameRawVerdictAndPhaseRequired": true,
       "results": "runs/lane-i/resume-numeric-f3",
-      "scope": "bounded Node normal-finite path only; not complete F3, F4 or floating-point proof"
+      "scope": "bounded Node normal-finite path only; not complete F3, F4 or floating-point proof",
+      "batch": "20261110-220701-qqbo9c",
+      "sameRawAndVerdict": true,
+      "sameExclusivePhaseRaw": true,
+      "stableWindows": 2,
+      "changedWindows": 7,
+      "topFunctions": [
+        "canonFlip",
+        "canon2"
+      ]
     },
     "f3Tooling": {
       "batch": "20261110-220701-v35lw0",
@@ -583,7 +585,42 @@
       "typeLint": true,
       "commitlint": true,
       "warnings": 0,
+      "errors": 0,
+      "batch": "20261110-221144-763ddj"
+    },
+    "integrationCheckpoint": "f7bdde62",
+    "deepCoverage": {
+      "status": "solver entry observed at first fixture allowance",
+      "originalProtocol": "consensus",
+      "prototypePatch": "35344c91aa210e57de591bfd0250226aef04a713378cb7c5be865fa3a426a2e9",
+      "fixtureAllowances": [
+        500000,
+        5000000,
+        15000000
+      ],
+      "productionWeightsOrWChosen": false,
+      "wallAndUnseededRandomReadsForbidden": true,
+      "stopAfterSolverWork": true,
+      "batch": "20261110-221416-q6185o",
+      "attemptedAllowances": [
+        500000
+      ],
+      "fm": 212,
+      "fcells": 14,
+      "cdclNodes": 38,
+      "epr": 0,
+      "verdict": "unknown: work budget (completion)",
+      "sourceFilesUnchanged": 111,
+      "admitted": false
+    },
+    "deepTooling": {
+      "batch": "20261110-221416-p759n4",
+      "files": 1701,
+      "typeLint": true,
+      "commitlint": true,
+      "warnings": 0,
       "errors": 0
     }
-  }
+  },
+  "remainingF3Attribution": "Observer currently ranks the last 25 CPU samples by count without per-sample timestamp filtering; stable heartbeat windows are real, but attribution to a particular native operation is unqualified. Next: filter timeDeltas to the actual quiet interval and retain no-recent-sample windows as unattributed."
 }

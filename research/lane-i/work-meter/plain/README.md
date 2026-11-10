@@ -60,3 +60,15 @@ The original-parent mode remains available and unchanged in scope.
 No prototype is promoted, no weights are calibrated, and passing these
 controls would still not turn preflight-only observations into actual
 ordinary-solver or EPR coverage for F4.
+
+`deep/jobs.json` reached actual solver work on the unchanged original consensus
+model at its first fixture allowance, 500,000, in `20261110-221416-q6185o`:
+**212 FM operations, 14 FM cells, 38 CDCL nodes**, with EPR still zero. The
+result is `unknown: work budget (completion)`. No larger allowance was attempted.
+Global wall-clock and unseeded-random reads were forbidden during the scoped
+attempt. All 111 source blobs of the exact audited prototype were unchanged.
+This establishes solver entry, not complete ordinary/EPR coverage or calibrated
+weights/W. The allowance is not a measured consumed-work total. Process timeout
+or crash is infrastructure failure, never an unknown proof result.
+Deep-probe tooling and commitlint pass `20261110-221416-p759n4`
+(1,701 files, zero warnings/errors).

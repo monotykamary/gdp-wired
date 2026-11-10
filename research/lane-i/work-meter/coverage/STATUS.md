@@ -60,7 +60,8 @@ GC and `kernel/kernel.ts:canon`. These identify sampled functions, not exact
 instructions. GC samples are retained, not exempted.
 
 The separately verified `32a59b2a` adds fail-closed nonfinite budget handling;
-see `../numeric/VERIFIED-SOURCE.md`. This is not a new-source F3/F4 result or an
-unbounded floating-point proof.
+see `../numeric/VERIFIED-SOURCE.md`. Its bounded Node pilot preserves raw,
+verdict and phase equality with `94b65671`, but retains two stable canonical
+samples. It is not complete F3/F4 or an unbounded floating-point proof.
 
 No claim of complete coverage, Bun F3, F4 census, calibrated weights, or W.

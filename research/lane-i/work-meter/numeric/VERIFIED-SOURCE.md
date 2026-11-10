@@ -27,6 +27,9 @@ tree `1fe9fc742ebe0c4fa25fcf60916f37c54e7ccc37`.
   negative-fixture identity and exact-parent three-file export pass.
 - `20261110-220331-o8j51x`: audit-tool type/lint and commitlint pass,
   1,698 files, zero warnings/errors.
+- `20261110-220701-qqbo9c`: bounded original-model Node pilot preserves
+  off/on and parent-source raw/verdict/exclusive-phase equality. Two stable
+  canonicalization samples remain; this is not complete F3 qualification.
 
 Original model blob: `0541fa9436e307a6fb716aa5064637b30b893b79`.
 The integration production tree is unchanged. This closes the reproduced

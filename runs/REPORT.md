@@ -167,17 +167,36 @@ commitlint pass in `20261110-220331-o8j51x` (1,698 files, zero warnings/errors).
 See `research/lane-i/work-meter/numeric/VERIFIED-SOURCE.md`. The integration
 production tree is unchanged; fresh F3/F4, wider floating-point proof, weights
 and W remain unqualified.
-The source-pinned Node follow-up is running in `runs/lane-i/resume-numeric-f3`,
-requiring off/on equality and unchanged raw/verdict/exclusive-phase vectors
-relative to the completed `94b65671` parent pilot. Its tooling passes
-`20261110-220701-v35lw0` (1,700 files, zero warnings/errors); the runtime
-comparison remains pending.
+Source-pinned Node follow-up `20261110-220701-qqbo9c` passes off/on equality
+and raw/verdict/exclusive-phase equality with parent `94b65671`. Its strict
+audit retains two stable captures (`canonFlip`, `canon2`) and seven moving
+captures, so full F3 remains open. Tooling passes `20261110-220701-v35lw0`.
 In parallel, the experimental five-file ordinary-clock prototype on exact
 `32a59b2a` passed all 27 clock/budget controls and type/lint in
 `20261110-220932-u5aqln`; exact five-file, 111-blob roundtrip auditing passes
 `20261110-221145-sl6hyo`, and the stricter auditor passes type/lint. Its original
 consensus case still has 47,294 preflight evaluations and `fm = 0`. No prototype
-promotion or ordinary-solver coverage is implied; F4 expansion remains closed.
+promotion or complete ordinary/EPR coverage is implied; F4 expansion remains
+closed. A deeper original-consensus probe, `20261110-221416-q6185o`, does reach
+solver entry at the first fixture allowance (500,000): 212 FM operations,
+14 FM cells and 38 CDCL nodes, but zero EPR. It ends `unknown: work budget
+(completion)`, keeps all 111 source blobs unchanged, and forbids wall-clock
+and unseeded-random reads. No larger fixture allowance was attempted.
+
+**For lane A (whole-entry work mode):** the unpromoted ordinary-clock prototype
+is rebased onto `32a59b2a`; its five-file delta is `35344c91aa21`, with 27
+clock/budget controls and exact-parent roundtrip checked. The original consensus
+model reaches FM/CDCL at a 500,000 fixture allowance. This is not a production
+budget change. Preserve the finite-cap/score rejection in the `32a59b2a` source
+chain when integrating whole-entry clock changes.
+
+**For lane D (meter admission):** `32a59b2a` is a separate verified source
+branch, parent `94b65671`, not the integration production tree. It has 169
+selected tests, three 267-test mutation runs on identical complete source, and
+three genuine old-source negative controls. The latest Node original-model
+raw/verdict/phase comparison is equal, but two stable canonicalization captures
+remain; their profiler samples are not yet filtered by timestamps. No new
+all-29 census, final W, Bun F3 or GATE GREEN claim is made.
 
 Original MLDR Node pilot `20261110-202238-v6auwd` retained **identical raw vectors
 and verdicts** with observation off/on. Both were `unknown`, reason

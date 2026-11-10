@@ -1,0 +1,32 @@
+import {strict as assert} from 'node:assert'
+import {proveRule} from '../../core/dsl.ts'
+import {protocols} from '../protocols/ic3syn/models.ts'
+import {rawWork, extraWorkKeys, withCompleteWorkWeights, type ExtraWorkWeights} from '../../core/work-meter.ts'
+import {withBudget, BudgetExpired} from '../../kernel/prove.ts'
+const id = process.argv[2], work = Number(process.argv[3])
+assert.equal(id, 'consensus'); assert([500000, 5000000, 15000000].includes(work))
+const protocol = protocols.find(p => p.id === id)!
+assert(protocol)
+const weights = Object.fromEntries(extraWorkKeys.map(key => [key, 1])) as ExtraWorkWeights
+const before = rawWork(), nowDescriptor = Object.getOwnPropertyDescriptor(performance, 'now'), randomDescriptor = Object.getOwnPropertyDescriptor(Math, 'random')!
+let result: any
+try {
+  Object.defineProperty(performance, 'now', {configurable: true, value: () => { throw Error('ordinary path read wall time') }})
+  Object.defineProperty(Math, 'random', {configurable: true, value: () => { throw Error('ordinary path read unseeded random') }})
+  result = withCompleteWorkWeights(weights, () => withBudget(work, () => {
+    const r = protocol.make()
+    return proveRule(r, protocol.laws(r), {search: {work}})
+  }))
+} catch (error) {
+  if (!(error instanceof BudgetExpired)) throw error
+  result = {proven: false, checked: false, stuck: 'unknown', why: error.message}
+} finally {
+  if (nowDescriptor) Object.defineProperty(performance, 'now', nowDescriptor)
+  else Reflect.deleteProperty(performance, 'now')
+  Object.defineProperty(Math, 'random', randomDescriptor)
+}
+assert.notEqual(result.why, 'work mode: plain-path migration pending')
+const after = rawWork(), raw = Object.fromEntries(Object.keys(after).map(key => [key, after[key as keyof typeof after] - before[key as keyof typeof before]]))
+assert(Object.values(raw).every(value => Number.isSafeInteger(value) && value >= 0))
+const solverWorkObserved = ['fm', 'fcells', 'scan', 'pivotRows', 'unitRows', 'cdclNodes', 'epr'].some(key => (raw[key] ?? 0) > 0)
+console.log('PLAIN_DEEP_CASE ' + JSON.stringify({id, allowance: work, originalModel: true, positiveFixtureWeightsOnly: true, forbiddenWallAndUnseededRandomReads: true, result: {proven: result.proven === true, checked: result.checked === true, stuck: result.stuck ?? null, why: result.why ?? null}, raw, solverWorkObserved, scope: 'bounded original-model coverage probe; not calibrated W or full ordinary/EPR qualification'}))
