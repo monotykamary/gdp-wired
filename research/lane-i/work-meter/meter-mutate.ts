@@ -1,6 +1,8 @@
 import {strict as assert} from 'node:assert'
 import {afterAll} from 'bun:test'
-import {kernelMeter} from '../../../kernel/meter.ts'
+import {resolve} from 'node:path'
+// This research preloader runs only inside a restored instrumented candidate.
+const {kernelMeter} = await import(resolve('kernel/meter.ts'))
 
 const mode = process.env.METER_MUTATION ?? 'plain'
 assert(['plain', 'zero', 'double', 'random'].includes(mode))
