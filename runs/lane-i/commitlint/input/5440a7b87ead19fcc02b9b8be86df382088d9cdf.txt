@@ -1,2 +1,0 @@
-test(research): add SHA-bound integration checks and generation census
-

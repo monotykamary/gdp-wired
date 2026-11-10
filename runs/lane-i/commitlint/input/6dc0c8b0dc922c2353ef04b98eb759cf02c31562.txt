@@ -1,2 +1,0 @@
-test(research): validate integration commit messages on boat
-
