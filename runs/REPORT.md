@@ -1,6 +1,22 @@
 # RESUME — ACTIVE (user explicitly resumed)
 
-## Reload checkpoint — 2026-11-10, boat batch active
+## Reload checkpoint — 2026-11-10, two boat batches active
+
+- **Also in flight:** ledger unit/type validation batch
+  `20261110-122359-96kye5`, job `work-ledger-checks`, task
+  `4adc5581-bd51-42c8-8967-299b958277f6`, waiter PID `35959`.
+  Results: `runs/lane-i/work-ledger-checks/`; waiter log
+  `/var/folders/hc/3k4lvfw90yv7kghsnynghcvm0000gn/T/pi-fabric-shell-UoXfmm/output.log`.
+  This independent draft is in private index `/private/tmp/lane-i-ledger.index`
+  and `research/lane-i/work-meter/ledger/`. It has the raw pre-constructor
+  candidate plus the scalar adapter and ptime ledger, **not** the generated
+  constructor patch. Tests cover scalar/raw correspondence, nested inclusive
+  versus exclusive deltas, trace/output-failure noninterference and final-check
+  budget exhaustion. No tests have passed yet. Explicit unit-test weights are
+  not calibration; the default historical coefficients are unchanged.
+  Do not resubmit either pending batch. Collect both, reconcile their source
+  deltas, then attach the remaining untrusted table/instance/check boundaries.
+
 
 - **In flight:** boat batch `20261110-121916-gkoq76`, job
   `complete-ast-preparation`; Fabric task

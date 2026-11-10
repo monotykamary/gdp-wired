@@ -1,0 +1,14 @@
+{
+  "status": "independent ledger draft validation in flight; not promoted",
+  "privateIndex": "/private/tmp/lane-i-ledger.index",
+  "task": "4adc5581-bd51-42c8-8967-299b958277f6",
+  "waiterPid": 35959,
+  "batch": "20261110-122359-96kye5",
+  "resultDirectory": "runs/lane-i/work-ledger-checks",
+  "includesGeneratedConstructors": false,
+  "next": "collect ledger validation and constructor preparation separately; merge only their source deltas after inspection; attach remaining untrusted phase boundaries; rerun combined verification; then prepare census",
+  "productionChanged": false,
+  "weightsCalibrated": false,
+  "f3Implemented": false,
+  "subagents": 0
+}

@@ -1,0 +1,74 @@
+import {expect, test} from 'bun:test'
+import {coreMeter} from './meter.ts'
+import {costs} from './solver.ts'
+import {eprMeter} from '../kernel/epr.ts'
+import {completeWorkWeights, extraWorkKeys, fullWork, legacyWeights, rawWork, weightedWork, withCompleteWorkWeights, type ExtraWorkWeights} from './work-meter.ts'
+import {withWorkLedger, workPhase, type WorkPhase} from './work-ledger.ts'
+import {BudgetExpired, withBudget} from '../kernel/prove.ts'
+
+// Unit-test coefficients only: this vector is neither a fit nor a proposed W.
+const fixture = Object.fromEntries(extraWorkKeys.map(key => [key, 1])) as ExtraWorkWeights
+
+test('all new operations feed the same explicit scalar; legacy mode keeps its exact summation', () => {
+  const raw = rawWork(), before = fullWork()
+  let historical = 0
+  for (const [key, weight] of legacyWeights) historical += weight * raw[key]
+  expect(before).toBe(historical)
+  withCompleteWorkWeights(fixture, () => {
+    const begin = fullWork()
+    for (const key of ['tableCells', 'checkSteps', 'astNodes', 'evals', 'cubeTests', 'ticks'] as const) coreMeter[key]++
+    costs.cdclNodes++; eprMeter.n++
+    expect(fullWork() - begin).toBeCloseTo(8, 10)
+    expect(fullWork()).toBe(weightedWork(rawWork()))
+  })
+  expect(completeWorkWeights()).toBeUndefined()
+})
+
+test('nested raw phase deltas reconcile without charging child work twice', () => {
+  const events: WorkPhase[] = [], start = coreMeter.evals
+  withCompleteWorkWeights(fixture, () => withWorkLedger('root', event => events.push(event), () => {
+    coreMeter.evals += 2
+    workPhase('child', () => { coreMeter.evals += 3 })
+    coreMeter.evals += 5
+  }))
+  expect(coreMeter.evals - start).toBe(10)
+  expect(events.map(e => [e.id, e.parentId, e.name, e.raw.evals, e.exclusiveRaw.evals])).toEqual([[2, 1, 'child', 3, 3], [1, null, 'root', 10, 7]])
+  expect(events[1]!.units).toBeCloseTo(10, 10)
+  expect(events[1]!.exclusiveUnits).toBeCloseTo(7, 10)
+  expect(events.every(e => e.unitModel === 'explicit-complete')).toBe(true)
+})
+
+test('trace off and on leave returns and raw counts identical; observer errors do not leak', () => {
+  const run = () => { coreMeter.ticks += 7; return 'answer' }
+  const off = coreMeter.ticks
+  expect(workPhase('off', run)).toBe('answer')
+  expect(coreMeter.ticks - off).toBe(7)
+  const on = coreMeter.ticks
+  expect(withWorkLedger('on', () => { throw new Error('broken output') }, run)).toBe('answer')
+  expect(coreMeter.ticks - on).toBe(7)
+})
+
+test('thrown work is recorded and rethrown identically; scopes restore on failure', () => {
+  const error = new Error('refused'), events: WorkPhase[] = []
+  let seen: unknown
+  try { withCompleteWorkWeights(fixture, () => withWorkLedger('failing', e => events.push(e), () => { coreMeter.checkSteps++; throw error })) } catch (e) { seen = e }
+  expect(seen).toBe(error)
+  expect(events[0]!.completed).toBe(false)
+  expect(events[0]!.raw.checkSteps).toBe(1)
+  expect(completeWorkWeights()).toBeUndefined()
+  expect(workPhase('after', () => 42)).toBe(42)
+})
+
+test('final checking uses the same complete allowance, with no free completion margin', () => {
+  withCompleteWorkWeights(fixture, () => {
+    expect(() => withBudget(0, () => { coreMeter.checkSteps++; return true })).toThrow(BudgetExpired)
+    expect(withBudget(1, () => { coreMeter.checkSteps++; return true })).toBe(true)
+  })
+})
+
+test('an incomplete or invalid calibration vector is refused before work starts', () => {
+  for (const value of [NaN, Infinity, -1]) expect(() => withCompleteWorkWeights({...fixture, evals: value}, () => 0)).toThrow(RangeError)
+  const {epr, ...missing} = fixture
+  expect(epr).toBe(1)
+  expect(() => withCompleteWorkWeights(missing as ExtraWorkWeights, () => 0)).toThrow(RangeError)
+})

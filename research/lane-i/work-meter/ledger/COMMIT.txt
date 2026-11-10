@@ -1,0 +1,5 @@
+feat(core): add an explicit complete-work model and phase ledger
+
+Keep all twelve legacy coefficients unchanged. Require explicit additional
+weights, observe nested raw/unit deltas, and charge final checks in the
+same allowance without letting diagnostic output change proof results.

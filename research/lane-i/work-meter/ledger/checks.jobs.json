@@ -1,0 +1,3 @@
+[
+  {"name":"work-ledger-checks","cmd":"bun ledger-input/prepare.ts && bun ledger-prepared-input/preflight.ts checks","cpu":4,"memory":14336,"timeout":1200,"vm_type":"large"}
+]
