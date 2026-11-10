@@ -23,7 +23,25 @@ test('an arithmetic witness stays constant when its value equals a row key', () 
   const law:Law={name:'half',forall:'row',keys:['half'],holds:any(not(all(atMost(twice,a),less(a,plus(twice,n(2))))),same(get('Good',x('row')),n(1)))}
   const goal={name:'half aliases row',hyps:[same(get('A',x('root')),n(14)),same(get('Good',x('root')),n(0))]}
   const found=modelInstances(machine,[law],{},goal,{root:7,'A[root:1]':14,'Good[root:1]':0})
-  expect(found?.[law.name]).toEqual([x('root'),n(7)])
+  const terms=found?.[law.name]??[],tuples=Array.from({length:terms.length/2},(_,i)=>terms.slice(2*i,2*i+2))
+  expect(tuples).toContainEqual([x('root'),x('root')])
+  expect(tuples).toContainEqual([x('root'),n(7)])
+})
+
+test('arithmetic boundaries preserve the symbolic-binder refinement', () => {
+  const machine:Machine={name:'arithmetic binder',params:[],inputs:[],state:{v:n(0),limit:n(0)},maps:{P:0},step:{}}
+  const law:Law={name:'bound at v',forall:'h',holds:any(not(same(x('h'),x('v'))),atMost(x('h'),x('limit')))}
+  const goal={name:'bound demand',hyps:[same(get('P',x('v')),n(1)),not(atMost(x('v'),x('limit')))]}
+  const found=modelInstances(machine,[law],{},goal,{v:7,limit:3,'P[v:1]':1})
+  expect(found?.[law.name]).toContainEqual(x('v'))
+  expect(found?.[law.name]).toContainEqual(n(7))
+  if(!found)throw Error('symbolic refinement was lost')
+  const refined={...goal,hyps:[...goal.hyps,...assumed([law],found)]}
+  const proof=grow(refined,new Map(),{nodes:0,until:clock()+1000})
+  expect('tree'in proof).toBe(true)
+  if('tree'in proof)expect(check(refined,proof.tree)).toBe(true)
+  const constant={...goal,hyps:[...goal.hyps,...assumed([law],{[law.name]:[n(7)]})]}
+  expect('tree'in grow(constant,new Map(),{nodes:0,until:clock()+1000})).toBe(false)
 })
 
 // Non-key naturals are not drawn from the map-key domain. A model with one row

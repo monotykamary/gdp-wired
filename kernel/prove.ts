@@ -1225,17 +1225,21 @@ export function modelInstances(m: Machine, laws: Law[], inst: Instances, goal: G
         have.add(id2); out[id] = [...(out[id] ?? []), ...terms]; added++
         return
       }
-      const domain = new Map(sorts[i]!)
+      const domain: [number, E][] = [...sorts[i]!], seen = new Set(domain.map(([, e]) => JSON.stringify(e)))
+      const add = (value: number, term: E) => {
+        const key = JSON.stringify(term)
+        if (!seen.has(key)) { seen.add(key); domain.push([value, term]) }
+      }
       if (!keyNames.has(names[i]!)) {
         const free = new Set(names.slice(i))
         const extra = modelValueTerms(body, names[i]!, free, e => {
           try { return evalE(e, read(at), st, mm) } catch { return undefined }
         })
-        // A row key with the right current value is not a stable half-cardinality
-        // witness: its value can change in the next model. Preserve arithmetic
-        // candidates as constants even when their value aliases a key's value.
-        if (extra.length) for (const [v2] of domain) domain.set(v2, {op: 'const', value: v2})
-        for (const e of extra) { const v2 = valueOf(e); if (v2 !== undefined) domain.set(v2, e) }
+        // Keep symbolic instances: their current value is not their identity.
+        // Stable arithmetic witnesses must coexist with equal-valued row terms,
+        // not replace them. Existing tuple/evaluation budgets still bound both.
+        if (extra.length) for (const [v2] of sorts[i]!) add(v2, {op: 'const', value: v2})
+        for (const e of extra) { const v2 = valueOf(e); if (v2 !== undefined) add(v2, e) }
       }
       for (const [v2, e] of domain) go(i + 1, {...at, [names[i]!]: v2}, [...terms, e])
     }
