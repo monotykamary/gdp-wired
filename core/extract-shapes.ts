@@ -7,7 +7,7 @@ import ts from 'typescript'
 import {standaloneClosure} from './extract-standalone.ts'
 import * as I from './extract-ir.ts'
 import type {B} from './extract-ir.ts'
-import {type Arg, type Event, Exec, type Heap, type Layout, type ListObj, type ListOp, type ListWrite, type MapDecl, type MapObj, type Model, type Path, type Rec, Retype, type Setup, type Shape, type Sort, type Term, type V, type Var, memberName, mergeOps, normalize, program, refuse, shapeOf, unparen} from './extract-read.ts'
+import {type Arg, type Event, Exec, type Heap, type Layout, type LazyRoot, type ListObj, type ListOp, type ListWrite, type MapDecl, type MapObj, type Model, type Path, type Rec, Retype, type Setup, type Shape, type Sort, type Term, type V, type Var, lazyKey, memberName, mergeOps, normalize, program, refuse, shapeOf, unparen} from './extract-read.ts'
 
 export type ReadOptions = {
   entry: string,
@@ -96,7 +96,7 @@ function materialize(ex: Exec, v: V, layout: Layout, p: Path, at: ts.Node, out: 
         // An untyped input written here: of this field's sort, and the step read again.
         const e = v.t === 'num' || v.t === 'bool' ? v.e : v.t === 'str' ? v.e : undefined
         const name = e && (e.op === 'var' || e.op === 'svar') ? e.name : undefined, lz = name ? ex.s.lazy.get(name) : undefined
-        if (lz && !ex.s.lazySorts.has(`${lz.prefix}${lz.field}`)) throw new Retype(`${lz.prefix}${lz.field}`, sort)
+        if (lz && !ex.s.lazySorts.has(lazyKey(lz, lz.field))) throw new Retype(lazyKey(lz, lz.field), sort)
         refuse(at, `${layout.name} is set to a ${v.t}`)
       }
       out.leaves.set(layout.name, sort.k === 'choice' ? {t: 'choice', e: ex.asChoice(v, sort.values, at), values: sort.values} : v)
@@ -280,16 +280,22 @@ function argOf(ex: Exec, param: ts.ParameterDeclaration, prefix: string, body: t
   const lits = ts.isIdentifier(param.name) ? literalsOf(body, param.name.text, s) : new Map<string, string[]>()
   // Untyped (JavaScript): its fields as the code reads them, numbers unless compared with string literals.
   if (t.flags & (ts.TypeFlags.Any | ts.TypeFlags.Unknown)) {
-    // Keep the first argument's public spelling; later lazy roots need a distinct
-    // namespace for sort lookup, scalar interning, materialization and replay.
+    // The scope and ordinal are semantic identity; the prefix is only a readable name.
+    const root: LazyRoot = [prefix, ordinal]
     if (ordinal) prefix = `${prefix}arg${ordinal}_`
-    for (const [path, xs] of lits) if (!s.lazySorts.has(`${prefix}${path}`)) s.lazySorts.set(`${prefix}${path}`, {k: 'choice', values: [...xs, OTHER]})
+    const lazy = {prefix, root}
+    for (const [path, xs] of lits) {
+      const key = lazyKey(lazy, path)
+      if (!s.lazySorts.has(key)) s.lazySorts.set(key, {k: 'choice', values: [...xs, OTHER]})
+    }
     const id = ex.id(`input.${prefix}${pname}`)
     s.notes.add(`${pname} is untyped: its fields are inputs as the code reads them (numbers, or a choice among the literals it is compared with and ${OTHER})`)
     const disc = [...lits.keys()].find(k => !k.includes('_'))
-    const arg: Arg = {k: 'lazy', prefix}
-    const events = disc ? [...lits.get(disc)!, OTHER].map(value => ({select: {[`$lazy:${prefix}${disc}`]: value}, arg})) : [{select: {}, arg}]
-    return {v: {t: 'ref', id}, events, heap: [[id, {k: 'rec', fields: new Map(), origin: 'input', lazy: {prefix}}]]}
+    const arg: Arg = {k: 'lazy', ...lazy}
+    const key = disc && lazyKey(lazy, disc)
+    if (key) (s.lazySelections ??= new Set()).add(key)
+    const events = key ? [...lits.get(disc!)!, OTHER].map(value => ({select: {[key]: value}, arg})) : [{select: {}, arg}]
+    return {v: {t: 'ref', id}, events, heap: [[id, {k: 'rec', fields: new Map(), origin: 'input', lazy}]]}
   }
   const members = t.isUnion() && t.types.every(m => m.flags & ts.TypeFlags.Object) ? t.types : [t]
   if (members.length === 1 && !(t.flags & ts.TypeFlags.Object)) {
@@ -541,12 +547,6 @@ function readFunctionsOnce(code: string, file: string, opts: ReadOptions): Model
     throws.push(refusalOf(ex))
     for (const c of combos) events.push({select: c.select, call: names[i]!, args: c.args, names: f.parameters.map(x => x.name.getText())})
   })
-  // An untyped record's discriminant, chosen by name now that the variable is made.
-  for (const e of events) for (const [k, value] of Object.entries(e.select)) if (k.startsWith('$lazy:')) {
-    delete e.select[k]
-    const v = [...s.lazy].find(([, l]) => `$lazy:${l.prefix}${l.field}` === k)
-    if (v) e.select[v[0]] = value
-  }
   const final = joinAll(ex0, outs, first)
   // A default export by its function's own name.
   const own = ts.isFunctionDeclaration(first) ? first.name?.text : ts.isVariableDeclaration(first.parent) && ts.isIdentifier(first.parent.name) ? first.parent.name.text : undefined
@@ -555,6 +555,15 @@ function readFunctionsOnce(code: string, file: string, opts: ReadOptions): Model
 }
 
 function finish(s: Setup, m: {name: string, shape: Model['shape'], file: string, entry: string, layout: Layout, init: Record<string, Term>, final: StateVal, refuse: B, pre: B, events: Event[], outputs: string[], event?: string, ctorArgs?: string[], initSource?: string}): Model {
+  // Resolve synthetic discriminants through the same structured identity as sort inference.
+  const lazyVars = new Map([...s.lazy].map(([name, field]) => [lazyKey(field, field.field), name]))
+  for (const event of m.events) for (const key of s.lazySelections ?? []) {
+    const value = event.select[key]
+    if (value === undefined) continue
+    delete event.select[key]
+    const name = lazyVars.get(key)
+    if (name) event.select[name] = value
+  }
   const vars = [...s.vars.values()]
   const writes: Record<string, Term> = {}
   for (const [n, v] of m.final.leaves) if (!sameTerm(v, Exec.valueOf(s.vars.get(n)!))) writes[n] = termOf(v)

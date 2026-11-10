@@ -22,7 +22,7 @@ const vmOf = (): VM => { const m = proc?.getBuiltinModule?.('node:vm'); if (!m) 
 import {Int, Term, bool, int, intern, interned, nat, no, oneOf, str, type Kind, type Rule, type StepLaw, proveSteps} from './dsl.ts'
 import {type Rand, type Request, type State, seeded, walk} from './machine.ts'
 import {allowed} from './watch.ts'
-import {type Arg, type Layout, type MapDecl, type Model, type Var, normalize, resolveIn, scriptKind} from './extract-read.ts'
+import {type Arg, type Layout, type MapDecl, type Model, type Var, normalize, resolveIn, sameLazyRoot, scriptKind} from './extract-read.ts'
 import * as I from './extract-ir.ts'
 import type {B, N} from './extract-ir.ts'
 import type {Sorts} from './extract-print.ts'
@@ -415,7 +415,7 @@ function checkOnce(code: string, file: string, m: Model, r: Rule, sorts: Sorts, 
       answers = inputs
       const dateIn = (n: string) => { const x = m.inputs.find(v => v.name === n); return x?.sort.k === 'num' && x.sort.date ? vmOf().runInContext(`new Date(${Number(inputs[n])})`, box.ctx) : inputs[n] }
       const build = (a: Arg): unknown => (a.k === 'input' ? dateIn(a.name) : a.k === 'maybe-bool' ? (inputs[a.missing] ? undefined : inputs[a.name]) : a.k === 'lit' ? a.value : a.k === 'rec' ? Object.fromEntries(a.fields.map(([f, x]) => [f, build(x)])) : a.k === 'lazy'
-        ? Object.fromEntries([...m.inputs].filter(v => m.lazy?.get(v.name)?.prefix === a.prefix).map(v => [m.lazy!.get(v.name)!.field, inputs[v.name]]))
+        ? Object.fromEntries([...m.inputs].filter(v => sameLazyRoot(m.lazy?.get(v.name), a)).map(v => [m.lazy!.get(v.name)!.field, inputs[v.name]]))
         : undefined)
       return e.args.map(build)
     },
@@ -486,7 +486,7 @@ export function drive(m: Model, r: Rule, sorts: Sorts, code: CodeSide, opts: Che
   }
   const ruleInputs = (inputs: Record<string, Raw>, e: Ev): Record<string, Raw> => {
     const used = new Set<string>()
-    const walk = (a: Arg) => { if (a.k === 'input') used.add(a.name); else if (a.k === 'maybe-bool') { used.add(a.name); used.add(a.missing) } else if (a.k === 'rec') a.fields.forEach(([, x]) => walk(x)); else if (a.k === 'lazy') for (const v of m.inputs) if (m.lazy?.get(v.name)?.prefix === a.prefix) used.add(v.name) }
+    const walk = (a: Arg) => { if (a.k === 'input') used.add(a.name); else if (a.k === 'maybe-bool') { used.add(a.name); used.add(a.missing) } else if (a.k === 'rec') a.fields.forEach(([, x]) => walk(x)); else if (a.k === 'lazy') for (const v of m.inputs) if (sameLazyRoot(m.lazy?.get(v.name), a)) used.add(v.name) }
     e.args.forEach(walk)
     for (const v of m.inputs) if (v.note?.startsWith('Date.now()') || m.answers?.[v.name]) used.add(v.name)
     // An input the event doesn't bring: its kind's first value (the rule reads it only under another event).
