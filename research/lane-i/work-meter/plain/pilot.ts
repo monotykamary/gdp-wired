@@ -6,7 +6,8 @@ import {createHash} from 'node:crypto'
 import {gzipSync} from 'node:zlib'
 const {restore, command} = await import(resolve('recovery-input/final-gate-common.ts'))
 const config = JSON.parse(readFileSync('validation-input/identity.json', 'utf8'))
-assert.equal(config.composition.patchSha256, 'f59720c766a68a2647cb150c6f3e0793363aa36804eb6bc3185430488f0eebe0')
+const numericParent = process.env.PLAIN_PARENT === 'numeric'
+assert.equal(config.composition.patchSha256, numericParent ? '8df0cf2ac466465a45683a639124d5f774e1b85b72d7f36c1b42b682c4e46fbd' : 'f59720c766a68a2647cb150c6f3e0793363aa36804eb6bc3185430488f0eebe0')
 const temp = mkdtempSync('/tmp/lane-i-plain-clock-'), root = join(temp, 'source')
 const changed: string[] = []
 function update(path: string, mutate: (text: string) => string) {
@@ -28,6 +29,7 @@ try {
   for (const [path, blob] of Object.entries(config.expectedCandidateBlobs)) assert.equal(command('git', ['hash-object', path], root), blob)
   command('git', ['add', '-A'], root)
   const parentTree = command('git', ['write-tree'], root)
+  if (numericParent) assert.equal(parentTree, '27b8a07cbd5500c7c7f7549df7d6f15fa41092ab')
   update('core/dsl.ts', text => {
     text = one(text, "import {traceNow, searchNow, WallExpired, checkWall, searchWall, withBudget, checkBudget, BudgetExpired} from './wall.ts'", "import {traceNow, searchNow, WallExpired, checkWall, searchWall, withBudget, checkBudget, BudgetExpired} from './wall.ts'\nimport {completeWorkWeights, extraWorkKeys} from './work-meter.ts'")
     text = one(text, "      if (work !== undefined && !Object.keys(r.machine.counts ?? {}).length) return {proven: false, checked: false, stuck: 'unknown', why: 'work mode: plain-path migration pending'}", "      if (work !== undefined && !Object.keys(r.machine.counts ?? {}).length) {\n        const weights = completeWorkWeights()\n        if (!weights) return {proven: false, checked: false, stuck: 'unknown', why: 'work mode: plain-path migration pending'}\n        if (extraWorkKeys.some(key => weights[key] <= 0)) return {proven: false, checked: false, stuck: 'unknown', why: 'work mode: plain-path requires positive complete weights'}\n      }")
@@ -47,7 +49,7 @@ try {
   console.log('PLAIN_CLOCK_SOURCE ' + JSON.stringify({parentPatch: config.composition.patchSha256, parentTree, patchSha256, changed, expectedCandidateBlobs: expected, scope: 'experimental complete-positive test weights only; no production weights or W'}))
   copyFileSync('plain-input/plain-work.test.source', join(root, 'core/plain-work.test.ts'))
   run(['install', '--frozen-lockfile'], 'dependencies')
-  run(['test', './core/plain-work.test.ts', './core/wall.test.ts', './kernel/work-budget.test.ts', './core/work-clock.test.ts', './core/work-entry.test.ts'], 'ordinary-clock-controls')
+  run(['test', './core/plain-work.test.ts', './core/wall.test.ts', './kernel/work-budget.test.ts', './core/work-clock.test.ts', './core/work-entry.test.ts', ...(numericParent ? ['./core/work-finiteness.test.ts'] : [])], 'ordinary-clock-controls')
   run(['run', 'check'], 'type-lint')
   for (const [path, blob] of Object.entries(expected)) assert.equal(command('git', ['hash-object', path], root), blob, 'source unchanged after prototype tests')
   console.log('PLAIN_CLOCK_PATCH ' + JSON.stringify({encoding: 'gzip-base64', patchSha256, bytes: Buffer.byteLength(delta), data: gzipSync(delta).toString('base64'), admitted: false}))

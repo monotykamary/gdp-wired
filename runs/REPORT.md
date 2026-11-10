@@ -172,6 +172,12 @@ requiring off/on equality and unchanged raw/verdict/exclusive-phase vectors
 relative to the completed `94b65671` parent pilot. Its tooling passes
 `20261110-220701-v35lw0` (1,700 files, zero warnings/errors); the runtime
 comparison remains pending.
+In parallel, the experimental five-file ordinary-clock prototype on exact
+`32a59b2a` passed all 27 clock/budget controls and type/lint in
+`20261110-220932-u5aqln`; exact five-file, 111-blob roundtrip auditing passes
+`20261110-221145-sl6hyo`, and the stricter auditor passes type/lint. Its original
+consensus case still has 47,294 preflight evaluations and `fm = 0`. No prototype
+promotion or ordinary-solver coverage is implied; F4 expansion remains closed.
 
 Original MLDR Node pilot `20261110-202238-v6auwd` retained **identical raw vectors
 and verdicts** with observation off/on. Both were `unknown`, reason

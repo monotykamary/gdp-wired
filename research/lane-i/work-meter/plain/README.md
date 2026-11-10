@@ -41,3 +41,22 @@ The auditor's untyped default array sort failed lint in
 1,695-file tooling recheck. Its independently repeated artifact roundtrip
 also passes (`20261110-213829-djrxck`). The intervening wrong-data-alias
 failure is retained and is not counted as a successful audit.
+
+## Rebase onto the finite-budget source
+
+`current.jobs.json` selects `PLAIN_PARENT=numeric`: the same five-file
+prototype must now start from exact `32a59b2a` / tree
+`27b8a07cbd5500c7c7f7549df7d6f15fa41092ab`, preserving its nonfinite-budget
+guards and adding the five numeric regressions to the 22 previous controls.
+The run `20261110-220932-u5aqln` passed all 27 controls and type/lint.
+The original consensus case remains preflight-only (47,294 evaluations,
+`fm = 0`). Independent roundtrip audit `20261110-221145-sl6hyo` verifies
+all 111 source blobs and only the five intended changed files. The rebased
+patch SHA-256 is
+`35344c91aa210e57de591bfd0250226aef04a713378cb7c5be865fa3a426a2e9`.
+The stricter dual-parent auditor also passes type/lint and commitlint
+(1,700 files, zero warnings/errors).
+The original-parent mode remains available and unchanged in scope.
+No prototype is promoted, no weights are calibrated, and passing these
+controls would still not turn preflight-only observations into actual
+ordinary-solver or EPR coverage for F4.

@@ -556,5 +556,34 @@
       "warnings": 0,
       "errors": 0
     }
+  },
+  "plainPrototypeRebase": {
+    "parent": "32a59b2a",
+    "parentTree": "27b8a07cbd5500c7c7f7549df7d6f15fa41092ab",
+    "status": "27 controls, type/lint and exact five-file roundtrip passed; still experimental",
+    "productionPromoted": false,
+    "explicitPositiveTestWeightsOnly": true,
+    "expectedControlTests": 27,
+    "scope": "prototype compatibility only; actual ordinary/EPR solver coverage and state-machine laws remain required",
+    "batch": "20261110-220932-u5aqln",
+    "tests": 27,
+    "preflightEvals": 47294,
+    "solverFm": 0,
+    "admitted": false,
+    "initialTooling": "20261110-220932-xt78sx",
+    "artifactAudit": {
+      "batch": "20261110-221145-sl6hyo",
+      "sourceFiles": 111,
+      "deltaSha256": "35344c91aa210e57de591bfd0250226aef04a713378cb7c5be865fa3a426a2e9",
+      "tests": 27,
+      "admitted": false
+    },
+    "finalTooling": {
+      "files": 1700,
+      "typeLint": true,
+      "commitlint": true,
+      "warnings": 0,
+      "errors": 0
+    }
   }
 }

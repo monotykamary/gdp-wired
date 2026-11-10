@@ -1,0 +1,1 @@
+[{"name":"plain-numeric-parent-prototype","cmd":"bun recovery-input/materialize.ts && bun recovery-input/compose.ts numeric && bun plain-input/pilot.ts","cpu":4,"memory":14336,"timeout":1200,"vm_type":"large","env":{"PLAIN_PARENT":"numeric"}}]
