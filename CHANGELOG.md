@@ -3,20 +3,11 @@
 What changed since the first public release, 0.6.0 (2026-10-18). Times are measured on Modal (2 vCPU per job unless
 noted), each with the command that reproduces it.
 
-## Unreleased
+## 0.48.0 (release pending)
 
-- **Breaking — source-law validation:** a source proof now requires an independent native evaluation of the
-  original law in addition to the kernel proof of the extracted model. Finite standalone input domains are
-  exhausted; unbounded domains retain replay's seeded sampling and are labeled `translation: 'sampled'`.
-  Native counterexamples refuse the proof with a **translation error** and a witness.
-- **Breaking — no silent unchecked source proofs:** disabling replay or `check.lawCrossCheck` returns
-  `translation: 'unchecked'`, `proven: false`, `checked: false`; the CLI exits **2**. Unsupported native
-  interpretations and source-derived models whose provenance is unavailable fail closed as well.
-  Source-free DSL/model proofs are unchanged. Foreign frontends and specialized source transformations
-  without a native-law journal (including Effect schedules and lifted fibers) also return unchecked; existing
-  rule replay alone is insufficient. `kernelProven` records model evidence, not a source proof; unchecked
-  source models cannot export a successful source-law certificate.
-  See [the CI-only guide](docs/ci-only.md).
+- **Breaking — source validation:** source translation is cross-checked against native execution by default;
+  unchecked laws exit **2**. Source-free DSL/model proofs are unchanged.
+  See [the CI-only guide](docs/ci-only.md) for the supported scope and migration guidance.
 
 - **CI-first use:** keep gdp-wired in dev dependencies and ship plain application code. Supported finite TypeScript
   decision laws can be checked directly from source; protocol flows remain separate models.
