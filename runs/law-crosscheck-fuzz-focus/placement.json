@@ -1,0 +1,11 @@
+{
+ "translation-fuzz-smoke-and-check": {
+  "vm": "bx_3z89j5rt",
+  "type": "default",
+  "cpu": "AMD Ryzen 7 9700X 8-Core Processor",
+  "vcpus": 2,
+  "vm_vcpus": 4,
+  "exclusive": false,
+  "co_tenants": 0
+ }
+}

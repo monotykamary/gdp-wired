@@ -1,0 +1,250 @@
+{
+  "scope": "Default protection refuses these kernel-proven but independently native-false laws. They are not successful source proofs. Release ranges not yet assessed by this campaign.",
+  "findings": [
+    {
+      "id": "31:8",
+      "family": "map-boolean",
+      "source": "export class Decision { values = new Map<string, boolean>(); put(key: string, value: boolean) { this.values.set(key, value); } decide(key: string): boolean | undefined { const value = this.values.get(key); return value; } }",
+      "law": {
+        "text": "((result == undefined) implies (result == null))",
+        "nontrivial": true,
+        "status": "BLOCKED_FINDING",
+        "proof": {
+          "proven": false,
+          "checked": false,
+          "kernelProven": true,
+          "translation": "error"
+        },
+        "native": {
+          "ok": false,
+          "checked": 18,
+          "violations": 6,
+          "witness": {
+            "args": [
+              "a"
+            ],
+            "entries": [],
+            "env": {
+              "key": "a"
+            },
+            "result": {
+              "$undefined": true
+            }
+          }
+        },
+        "why": "translation error: ((result == undefined) implies (result == null)) is false in the native code (run 1, request 1)"
+      },
+      "replay": "default"
+    },
+    {
+      "id": "31:8",
+      "family": "map-boolean",
+      "source": "export class Decision { values = new Map<string, boolean>(); put(key: string, value: boolean) { this.values.set(key, value); } decide(key: string): boolean | undefined { const value = this.values.get(key); return value; } }",
+      "law": {
+        "text": "((result == undefined) implies (result == false))",
+        "nontrivial": true,
+        "status": "BLOCKED_FINDING",
+        "proof": {
+          "proven": false,
+          "checked": false,
+          "kernelProven": true,
+          "translation": "error"
+        },
+        "native": {
+          "ok": false,
+          "checked": 18,
+          "violations": 6,
+          "witness": {
+            "args": [
+              "a"
+            ],
+            "entries": [],
+            "env": {
+              "key": "a"
+            },
+            "result": {
+              "$undefined": true
+            }
+          }
+        },
+        "why": "translation error: ((result == undefined) implies (result == false)) is false in the native code (run 1, request 1)"
+      },
+      "replay": "default"
+    },
+    {
+      "id": "31:9",
+      "family": "map-number",
+      "source": "export class Decision { values = new Map<string, number>(); put(key: string, value: number) { this.values.set(key, value); } decide(key: string): number | undefined { const value = this.values.get(key); return value; } }",
+      "law": {
+        "text": "((result == undefined) implies (result == null))",
+        "nontrivial": true,
+        "status": "BLOCKED_FINDING",
+        "proof": {
+          "proven": false,
+          "checked": false,
+          "kernelProven": true,
+          "translation": "error"
+        },
+        "native": {
+          "ok": false,
+          "checked": 32,
+          "violations": 8,
+          "witness": {
+            "args": [
+              "a"
+            ],
+            "entries": [],
+            "env": {
+              "key": "a"
+            },
+            "result": {
+              "$undefined": true
+            }
+          }
+        },
+        "why": "translation error: ((result == undefined) implies (result == null)) is false in the native code (run 1, request 1)"
+      },
+      "replay": "default"
+    },
+    {
+      "id": "31:9",
+      "family": "map-number",
+      "source": "export class Decision { values = new Map<string, number>(); put(key: string, value: number) { this.values.set(key, value); } decide(key: string): number | undefined { const value = this.values.get(key); return value; } }",
+      "law": {
+        "text": "((result == undefined) implies (result == 0))",
+        "nontrivial": true,
+        "status": "BLOCKED_FINDING",
+        "proof": {
+          "proven": false,
+          "checked": false,
+          "kernelProven": true,
+          "translation": "error"
+        },
+        "native": {
+          "ok": false,
+          "checked": 32,
+          "violations": 8,
+          "witness": {
+            "args": [
+              "a"
+            ],
+            "entries": [],
+            "env": {
+              "key": "a"
+            },
+            "result": {
+              "$undefined": true
+            }
+          }
+        },
+        "why": "translation error: ((result == undefined) implies (result == 0)) is false in the native code (run 1, request 1)"
+      },
+      "replay": "default"
+    },
+    {
+      "id": "31:9",
+      "family": "map-number",
+      "source": "export class Decision { values = new Map<string, number>(); put(key: string, value: number) { this.values.set(key, value); } decide(key: string): number | undefined { const value = this.values.get(key); return value; } }",
+      "law": {
+        "text": "((result == undefined) implies ((result + 1) == 1))",
+        "nontrivial": true,
+        "status": "BLOCKED_FINDING",
+        "proof": {
+          "proven": false,
+          "checked": false,
+          "kernelProven": true,
+          "translation": "error"
+        },
+        "native": {
+          "ok": false,
+          "checked": 32,
+          "violations": 8,
+          "witness": {
+            "args": [
+              "a"
+            ],
+            "entries": [],
+            "env": {
+              "key": "a"
+            },
+            "result": {
+              "$undefined": true
+            }
+          }
+        },
+        "why": "translation error: ((result == undefined) implies ((result + 1) == 1)) is false in the native code (run 1, request 1)"
+      },
+      "replay": "default"
+    },
+    {
+      "id": "31:9",
+      "family": "map-number",
+      "source": "export class Decision { values = new Map<string, number>(); put(key: string, value: number) { this.values.set(key, value); } decide(key: string): number | undefined { const value = this.values.get(key); return value; } }",
+      "law": {
+        "text": "((result == undefined) implies (result >= 0))",
+        "nontrivial": true,
+        "status": "BLOCKED_FINDING",
+        "proof": {
+          "proven": false,
+          "checked": false,
+          "kernelProven": true,
+          "translation": "error"
+        },
+        "native": {
+          "ok": false,
+          "checked": 32,
+          "violations": 8,
+          "witness": {
+            "args": [
+              "a"
+            ],
+            "entries": [],
+            "env": {
+              "key": "a"
+            },
+            "result": {
+              "$undefined": true
+            }
+          }
+        },
+        "why": "translation error: ((result == undefined) implies (result >= 0)) is false in the native code (run 1, request 1)"
+      },
+      "replay": "default"
+    },
+    {
+      "id": "31:11",
+      "family": "class-choice",
+      "source": "export class Decision { decide(a: \"red\", b: \"blue\" | \"amber\"): \"red\" | \"blue\" | \"amber\" { return \"amber\"; } }",
+      "law": {
+        "text": "(result != b)",
+        "nontrivial": true,
+        "status": "BLOCKED_FINDING",
+        "proof": {
+          "proven": false,
+          "checked": false,
+          "kernelProven": true,
+          "translation": "error"
+        },
+        "native": {
+          "ok": false,
+          "checked": 2,
+          "violations": 1,
+          "witness": {
+            "args": [
+              "red",
+              "amber"
+            ],
+            "entries": [],
+            "env": {
+              "a": "red",
+              "b": "amber"
+            },
+            "result": "amber"
+          }
+        },
+        "why": "translation error: (result != b) is false in the native code (run 1, request 4)"
+      },
+      "replay": "default"
+    }
+  ]
+}

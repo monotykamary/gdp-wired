@@ -1272,7 +1272,8 @@ class Ten(Follow):
 # --------------------------------------------------------------------------------------- the soundness work
 FUZZ = {"kernel": ("kernel", "FUZZ_SEED={s} bun test kernel.test.ts 2>&1"),
         "cdcl": ("kernel", "FUZZ_SEED={s} FUZZ_SCALE=4 GDP_CDCL_VERIFY=1 bun test cdcl.test.ts 2>&1"),
-        "tamper": ("kernel", "FUZZ_SEED={s} bun test tamper.test.ts 2>&1")}
+        "tamper": ("kernel", "FUZZ_SEED={s} bun test tamper.test.ts 2>&1"),
+        "translation": (".", "bun research/translation-fuzz/run.ts --api . --seed {s} --count 26 --case-ms 15000 --replay --expect-clean --out /tmp/translation-fuzz-{s} 2>&1")}
 # A failed fuzz run is one of three (fuzz.jsonl's "class"): soundness, a check of a test failed (an alert); coverage,
 # only counts a test expects at its seed fell short, each failing as "COVERAGE: ..." (kernel/*.test.ts: a harness bug,
 # not the kernel's); infra, no test failed (killed, timed out, its VM lost, bun crashed, or a log that isn't the run's:
@@ -1487,7 +1488,11 @@ class Soundness:
     @staticmethod
     def fuzz_fingerprint(tree: pathlib.Path) -> str:
         # Include the fuzz harness and all kernel sources, not only the three mutant targets.
-        files = sorted((tree / 'kernel').glob('*.ts')) + [tree / 'core/check.ts', tree / 'core/solver.ts']
+        files = list((tree / 'kernel').glob('*.ts')) + [tree / 'core/check.ts', tree / 'core/solver.ts', tree / 'core/dsl.ts', tree / 'core/laws.ts']
+        for pattern in ('extract*.ts', 'source*.ts', 'native*.ts'):
+            files.extend((tree / 'core').glob(pattern))
+        files.extend((tree / 'research/translation-fuzz').glob('*.ts'))
+        files = sorted({path for path in files if path.is_file()})
         h = hashlib.sha256()
         for path in files:
             h.update(str(path.relative_to(tree)).encode() + b'\0' + path.read_bytes() + b'\0')

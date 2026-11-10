@@ -29,6 +29,8 @@ const units: Unit[] = [
     lemma-cuts.test.ts count-support.test.ts count-admission.test.ts counts-preflight.test.ts relevance.test.ts support-order.test.ts`),
   ...tests('kernel', 'lemma-cut.test.ts tamper.test.ts refusals.test.ts steplaw.test.ts sets.test.ts cdcl.test.ts tuples.test.ts epr-clock.test.ts epr-image.test.ts triggers.test.ts share.test.ts model-sequence.test.ts'),
   ...tests('research/query', 'goal-pack.test.ts'),
+  ...tests('research/translation-fuzz', 'model.test.ts'),
+  ...runs('research/translation-fuzz/smoke.ts'),
   ...tests('research/audit', 'inventory.test.ts'),
   ...tests('examples', 'examples.test.ts'),
   ...tests('gates', 'bar.test.ts'),
