@@ -1,0 +1,342 @@
+{
+  "candidate": "9877b8762d516506cda2b222282447235ae6fd5b",
+  "baseline": "b11e1f651618b3d3fcaf6cec66b4a8b0203cdcd3",
+  "jobs": 26,
+  "suiteTestExecutions": 1719,
+  "census": [
+    [
+      "consensus",
+      "proven"
+    ],
+    [
+      "lockserv_automaton",
+      "proven"
+    ],
+    [
+      "consensus_wo_decide",
+      "proven"
+    ],
+    [
+      "toy_consensus",
+      "proven"
+    ],
+    [
+      "mldr",
+      "unknown"
+    ],
+    [
+      "tcommit",
+      "proven"
+    ],
+    [
+      "sharded_kv",
+      "proven"
+    ],
+    [
+      "consensus_forall",
+      "proven"
+    ],
+    [
+      "firewall",
+      "proven"
+    ],
+    [
+      "lock_server",
+      "proven"
+    ],
+    [
+      "sharded_kv_no_lost_keys",
+      "proven"
+    ],
+    [
+      "naive_consensus",
+      "proven"
+    ],
+    [
+      "majorityset_leader_election",
+      "proven"
+    ],
+    [
+      "quorum_leader_election",
+      "proven"
+    ],
+    [
+      "lockserv",
+      "proven"
+    ],
+    [
+      "client_server_ae",
+      "proven"
+    ],
+    [
+      "consensus_epr",
+      "proven"
+    ],
+    [
+      "toy_consensus_forall",
+      "proven"
+    ],
+    [
+      "twophase",
+      "proven"
+    ],
+    [
+      "client_server_db_ae",
+      "proven"
+    ],
+    [
+      "learning_switch",
+      "proven"
+    ],
+    [
+      "simple",
+      "proven"
+    ],
+    [
+      "simple_decentralized_lock",
+      "proven"
+    ],
+    [
+      "simple_election",
+      "proven"
+    ],
+    [
+      "learning_switch_i4",
+      "proven"
+    ],
+    [
+      "simple_regular",
+      "proven"
+    ],
+    [
+      "two_phase_commit",
+      "proven"
+    ],
+    [
+      "toy_consensus_epr",
+      "proven"
+    ],
+    [
+      "paxos_epr",
+      "proven"
+    ]
+  ],
+  "privateLaws": 20,
+  "privateNativeRows": 212,
+  "mutantsCaught": 24,
+  "initialSetupFailures": [
+    {
+      "name": "census-0-of-7",
+      "exit": "1"
+    },
+    {
+      "name": "census-1-of-7",
+      "exit": "1"
+    },
+    {
+      "name": "census-2-of-7",
+      "exit": "1"
+    },
+    {
+      "name": "census-3-of-7",
+      "exit": "1"
+    },
+    {
+      "name": "census-4-of-7",
+      "exit": "1"
+    },
+    {
+      "name": "census-5-of-7",
+      "exit": "1"
+    },
+    {
+      "name": "census-6-of-7",
+      "exit": "1"
+    },
+    {
+      "name": "private-laws-replay-on",
+      "exit": "1"
+    }
+  ],
+  "losslessFuzzReruns": 8,
+  "receiptsUsed": [
+    {
+      "name": "check-build-exports",
+      "path": "/work/gdp-wired/final-receipts/check-build-exports.log"
+    },
+    {
+      "name": "original-runtime-regressions",
+      "path": "/work/gdp-wired/final-receipts/original-runtime-regressions.log"
+    },
+    {
+      "name": "audit-and-optional-mutants",
+      "path": "/work/gdp-wired/final-receipts/audit-and-optional-mutants.log"
+    },
+    {
+      "name": "fuzz-0-0-of-2",
+      "path": "/tmp/gdp-final-verify.8VCziY/decoded-fuzz/fuzz-0-0-of-2.log"
+    },
+    {
+      "name": "fuzz-0-1-of-2",
+      "path": "/tmp/gdp-final-verify.8VCziY/decoded-fuzz/fuzz-0-1-of-2.log"
+    },
+    {
+      "name": "fuzz-1-0-of-2",
+      "path": "/tmp/gdp-final-verify.8VCziY/decoded-fuzz/fuzz-1-0-of-2.log"
+    },
+    {
+      "name": "fuzz-1-1-of-2",
+      "path": "/tmp/gdp-final-verify.8VCziY/decoded-fuzz/fuzz-1-1-of-2.log"
+    },
+    {
+      "name": "fuzz-31-0-of-2",
+      "path": "/tmp/gdp-final-verify.8VCziY/decoded-fuzz/fuzz-31-0-of-2.log"
+    },
+    {
+      "name": "fuzz-31-1-of-2",
+      "path": "/tmp/gdp-final-verify.8VCziY/decoded-fuzz/fuzz-31-1-of-2.log"
+    },
+    {
+      "name": "fuzz-4294967295-0-of-2",
+      "path": "/tmp/gdp-final-verify.8VCziY/decoded-fuzz/fuzz-4294967295-0-of-2.log"
+    },
+    {
+      "name": "fuzz-4294967295-1-of-2",
+      "path": "/tmp/gdp-final-verify.8VCziY/decoded-fuzz/fuzz-4294967295-1-of-2.log"
+    },
+    {
+      "name": "test-1-of-7",
+      "path": "/work/gdp-wired/final-receipts/test-1-of-7.log"
+    },
+    {
+      "name": "test-2-of-7",
+      "path": "/work/gdp-wired/final-receipts/test-2-of-7.log"
+    },
+    {
+      "name": "test-3-of-7",
+      "path": "/work/gdp-wired/final-receipts/test-3-of-7.log"
+    },
+    {
+      "name": "test-4-of-7",
+      "path": "/work/gdp-wired/final-receipts/test-4-of-7.log"
+    },
+    {
+      "name": "test-5-of-7",
+      "path": "/work/gdp-wired/final-receipts/test-5-of-7.log"
+    },
+    {
+      "name": "test-6-of-7",
+      "path": "/work/gdp-wired/final-receipts/test-6-of-7.log"
+    },
+    {
+      "name": "test-7-of-7",
+      "path": "/work/gdp-wired/final-receipts/test-7-of-7.log"
+    },
+    {
+      "name": "census-0-of-7",
+      "path": "/work/gdp-wired/retry-receipts/census-0-of-7.log"
+    },
+    {
+      "name": "census-1-of-7",
+      "path": "/work/gdp-wired/retry-receipts/census-1-of-7.log"
+    },
+    {
+      "name": "census-2-of-7",
+      "path": "/work/gdp-wired/retry-receipts/census-2-of-7.log"
+    },
+    {
+      "name": "census-3-of-7",
+      "path": "/work/gdp-wired/retry-receipts/census-3-of-7.log"
+    },
+    {
+      "name": "census-4-of-7",
+      "path": "/work/gdp-wired/retry-receipts/census-4-of-7.log"
+    },
+    {
+      "name": "census-5-of-7",
+      "path": "/work/gdp-wired/retry-receipts/census-5-of-7.log"
+    },
+    {
+      "name": "census-6-of-7",
+      "path": "/work/gdp-wired/retry-receipts/census-6-of-7.log"
+    },
+    {
+      "name": "private-laws-replay-on",
+      "path": "/work/gdp-wired/retry-receipts/private-laws-replay-on.log"
+    }
+  ],
+  "differential": {
+    "generatorHash": "3754120f4b549526a2481c1287bfa4a16deabea40f784502d2c80090aeadb59e",
+    "cases": 1664,
+    "extracted": 1411,
+    "laws": 14644,
+    "proven": 3307,
+    "kernelProven": 3632,
+    "rows": 29403,
+    "findings": 0,
+    "blocked": 325,
+    "falseRejections": 0,
+    "unsafeVerdicts": 0,
+    "errors": 0,
+    "families": {
+      "boolean": 128,
+      "choice": 128,
+      "nullable": 128,
+      "record": 128,
+      "map-boolean": 128,
+      "calendar": 128,
+      "class-optional": 128,
+      "number": 128,
+      "optional": 128,
+      "narrowing": 128,
+      "record-alias": 128,
+      "map-number": 128,
+      "class-choice": 128
+    },
+    "acceptedTags": {
+      "boolean": 377,
+      "boolean-composition": 128,
+      "choice": 131,
+      "domain-equality": 131,
+      "optional": 542,
+      "nullable": 128,
+      "early-return": 456,
+      "record": 256,
+      "record-result": 128,
+      "reserved-fields": 128,
+      "class": 324,
+      "Map.get": 256,
+      "truthiness": 298,
+      "strict-null": 384,
+      "calendar": 128,
+      "number": 519,
+      "finite-calendar": 56,
+      "arithmetic": 128,
+      "undefined": 128,
+      "destructured": 128,
+      "heap-alias": 128
+    },
+    "nontrivialProvenTags": {
+      "boolean": 415,
+      "boolean-composition": 294,
+      "choice": 400,
+      "domain-equality": 400,
+      "optional": 482,
+      "nullable": 128,
+      "early-return": 482,
+      "record": 319,
+      "record-result": 191,
+      "reserved-fields": 191,
+      "calendar": 56,
+      "number": 536,
+      "finite-calendar": 56,
+      "arithmetic": 345,
+      "undefined": 128,
+      "strict-null": 226,
+      "truthiness": 226,
+      "destructured": 128,
+      "heap-alias": 128,
+      "class": 197
+    }
+  }
+}

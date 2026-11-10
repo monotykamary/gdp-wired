@@ -1,0 +1,114 @@
+{
+  "candidate": "9877b8762d516506cda2b222282447235ae6fd5b",
+  "baseline": "b11e1f651618b3d3fcaf6cec66b4a8b0203cdcd3",
+  "attempts": [
+    {
+      "path": "runs/release-b11-gate-ba31d101",
+      "status": "superseded",
+      "passedJobs": 25,
+      "totalJobs": 26,
+      "failedUnits": [
+        "infer.test.ts",
+        "extract-sol.test.ts"
+      ],
+      "resolution": "Counterexample trace regression repaired and explicit model/native Solidity checks preserved in 9877b876."
+    },
+    {
+      "path": "runs/release-last-mile-focus",
+      "status": "mixed",
+      "passed": [
+        "inference-and-thirteen-mutants",
+        "solidity-native-model-controls"
+      ],
+      "failed": [
+        "last-mile-check-build-exports"
+      ],
+      "resolution": "Test helper returned inconsistent trace types. Fixed without changing assertions; check/build/exports passed in release-last-mile-check-v2."
+    },
+    {
+      "path": "runs/release-last-mile-check-v2",
+      "status": "passed"
+    },
+    {
+      "task": "f8967f12-b990-47f7-b88a-5cbcbba9b1b8",
+      "status": "cancelled",
+      "exit": 130,
+      "reason": "Superseded pre-b11 baseline transport; exact controller PID 92375 signalled."
+    },
+    {
+      "task": "de2bb35f-f28f-4c47-b726-75a6d9c97fa0",
+      "status": "cancelled",
+      "exit": 130,
+      "reason": "Superseded ba31d101 candidate; exact controller PID 71564 signalled."
+    },
+    {
+      "task": "57421fad-e3f8-4daf-a4d6-02f969da9b95",
+      "status": "cancelled",
+      "exit": 130,
+      "reason": "Uncached full-baseline mode replaced by paired canonical quick mode before any returned group result; exact controller PID 26517 signalled."
+    },
+    {
+      "path": "runs/bar-b11-transport-smoke",
+      "status": "passed",
+      "scope": "Two-task CHC transport pilot; not a full bar."
+    },
+    {
+      "path": "runs/release-final-gate-9877b876",
+      "status": "complete-with-eight-documented-setup-failures",
+      "task": "dc0f81c8-a6f6-42e6-8c44-bd7521199e4f",
+      "note": "Eight data-dependent jobs had nonexistent mounts. All original receipts retained; other jobs are not repeated."
+    },
+    {
+      "path": "runs/release-final-data-retry-9877b876",
+      "status": "passed",
+      "jobs": 8,
+      "task": "e11ee80d-2331-4440-942e-2a5e755e17d9",
+      "scope": "Seven census shards and the 20-law private replay, correct input mounts; unchanged code, jobs, budgets and assertions."
+    },
+    {
+      "path": "runs/release-final-paired-bar-9877b876",
+      "status": "cancelled",
+      "task": "2c6bee04-d41f-4aaa-9a8b-427adbfd89c4",
+      "scope": "--quick --together; all nine canonical jobs, ten groups and normal three-per-side difference reruns.",
+      "exit": 130,
+      "reason": "Serial execution cannot finish the canonical hundreds-task dev sets within their original limits. Replaced by native scheduler fan-out after its CHC pilot passed."
+    },
+    {
+      "path": "runs/release-final-fuzz-lossless-9877b876",
+      "status": "passed",
+      "scope": "All eight unchanged fuzz shards repeated only because the original per-case stdout was truncated."
+    },
+    {
+      "path": "runs/release-final-gate-verified-9877b876",
+      "status": "refused-incomplete-evidence",
+      "reason": "Missing source identity and early cases in truncated original fuzz logs."
+    },
+    {
+      "path": "runs/release-final-gate-verified-v2-9877b876",
+      "status": "passed",
+      "scope": "All 26 selected gate jobs verified, including complete hash-checked fuzz archives and the eight documented data-mount replacements."
+    },
+    {
+      "path": "runs/release-native-bar-smoke",
+      "status": "failed-inner-launches",
+      "reason": "Scoped relay refused an unexpected client label. Outer CLI exit zero did not pass the wrapper/verifier."
+    },
+    {
+      "path": "runs/release-native-bar-smoke-v2",
+      "status": "failed-before-launch",
+      "reason": "Control-file edit during snapshot was refused by blob integrity checking."
+    },
+    {
+      "path": "runs/release-native-bar-smoke-v3",
+      "status": "passed",
+      "scope": "Native scheduler fan-out; both exact revisions solved both CHC pilot tasks, no differences."
+    },
+    {
+      "path": "runs/release-native-rest-smoke",
+      "status": "pending",
+      "task": "50f513b7-062d-4089-98ca-b253a3b3690d"
+    }
+  ],
+  "gateGreen": false,
+  "gateVerified": true
+}

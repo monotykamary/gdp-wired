@@ -1,0 +1,54 @@
+CLEAN_CHECKOUT_HEAD 9877b8762d516506cda2b222282447235ae6fd5b
+CLEAN_CHECKOUT_TREE 1b3cd1317bef62b214d24cbe90b6f610171ccc0b
+ 0b6ebeeec827b05210f3acfa4149a70dda9a0de5 vendor/gdp-ts (heads/master)
+ d47141cce2caf5b86b0c2c0c372a5174f424bc15 vendor/handwired (heads/master)
+bun install v1.4.3 (c6da4a4d3)
+
++ @gdp-ts/core@0.1.0
++ @reduxjs/toolkit@2.13.0
++ @types/bun@1.3.1
++ @webgpu/types@0.1.66
++ effect@4.0.7
++ effect3@3.22.4
++ oxlint@1.88.0
++ oxlint-tsgolint@7.0.2004
++ typescript@5.9.3
++ xstate@5.33.2
++ xstate4@4.38.3
+
+27 packages installed [344.00ms]
+
+--- stderr ---
+/work/gdp-wired/final-meta/candidate.patch:8934: trailing whitespace.
+215 | 
+/work/gdp-wired/final-meta/candidate.patch:9080: trailing whitespace.
+215 | 
+/work/gdp-wired/final-meta/candidate.patch:9146: trailing whitespace.
+241 | 
+/work/gdp-wired/final-meta/candidate.patch:10210: trailing whitespace.
+215 | 
+/work/gdp-wired/final-meta/candidate.patch:10212: trailing whitespace.
+215 | 
+warning: squelched 39 whitespace errors
+warning: 44 lines add whitespace errors.
+warning: adding embedded git repository: vendor/gdp-ts
+warning: adding embedded git repository: vendor/handwired
+Submodule 'vendor/gdp-ts' (https://github.com/rauchg/gdp-ts.git) registered for path 'vendor/gdp-ts'
+Submodule 'vendor/handwired' (https://github.com/monotykamary/handwired.git) registered for path 'vendor/handwired'
+Migrating git directory of 'vendor/gdp-ts' from
+'/tmp/gdp-final-verify.kX0cFg/tree/vendor/gdp-ts/.git' to
+'/tmp/gdp-final-verify.kX0cFg/tree/.git/modules/vendor/gdp-ts'
+Migrating git directory of 'vendor/handwired' from
+'/tmp/gdp-final-verify.kX0cFg/tree/vendor/handwired/.git' to
+'/tmp/gdp-final-verify.kX0cFg/tree/.git/modules/vendor/handwired'
+ 9 | const initialFailures=failed.map(([name,exit])=>({name,exit}))
+10 | if(failed.length!==8||retry.length!==8||retry.some(r=>r[1]!=='0')||failed.some(r=>!r[0]!.startsWith('census-')&&r[0]!=='private-laws-replay-on'))throw Error('unexpected failed jobs or incomplete data-mount retry')
+11 | if(new Set(retry.map(r=>r[0])).size!==8||failed.some(r=>!retry.some(rr=>rr[0]===r[0])))throw Error('retry roster changed')
+12 | for(const [name] of failed){const text=readFileSync(join(receipts,name+'.log'),'utf8');if(!/ENOENT|[Cc]annot find module|Could not resolve/.test(text))throw Error('original failure was not a missing-data error: '+name)}
+13 | const logs=summary.map(([name,exit])=>{const dir=exit==='0'?receipts:retryReceipts!;const path=join(dir,name+'.log');return{name:name!,path,text:readFileSync(path,'utf8')}})
+14 | for(const log of logs){const heads=log.text.split('\n').filter(l=>l.startsWith('CLEAN_CHECKOUT_HEAD ')).map(l=>l.slice(20));if(heads.length!==1||heads[0]!==expected)throw Error('source identity mismatch: '+log.name)}
+                                                                                                                                                                                ^
+error: source identity mismatch: fuzz-0-0-of-2
+      at /work/gdp-wired/gate-b11-verify.ts:14:172
+
+Bun v1.4.3 (Linux x64)

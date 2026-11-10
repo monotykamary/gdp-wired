@@ -1,0 +1,118 @@
+CLEAN_CHECKOUT_HEAD 9877b8762d516506cda2b222282447235ae6fd5b
+CLEAN_CHECKOUT_TREE 1b3cd1317bef62b214d24cbe90b6f610171ccc0b
+ 0b6ebeeec827b05210f3acfa4149a70dda9a0de5 vendor/gdp-ts (heads/master)
+ d47141cce2caf5b86b0c2c0c372a5174f424bc15 vendor/handwired (heads/master)
+PASS install
+PASS tests
+ 24 pass
+ 0 fail
+Ran 24 tests across 1 file. [16.17s]
+ 2 pass
+ 0 fail
+Ran 2 tests across 1 file. [37.43s]
+ 2 pass
+ 0 fail
+Ran 2 tests across 1 file. [256.00ms]
+ 3 pass
+ 0 fail
+Ran 3 tests across 1 file. [292.00ms]
+ 8 pass
+ 0 fail
+Ran 8 tests across 1 file. [8.36s]
+ 10 pass
+ 0 fail
+Ran 10 tests across 1 file. [42.37s]
+ 7 pass
+ 0 fail
+Ran 7 tests across 1 file. [6.87s]
+ 6 pass
+ 0 fail
+Ran 6 tests across 1 file. [819.00ms]
+ 1 pass
+ 0 fail
+Ran 1 test across 1 file. [3.00ms]
+ 14 pass
+ 0 fail
+Ran 14 tests across 1 file. [1.97s]
+ 10 pass
+ 0 fail
+Ran 10 tests across 1 file. [57.74s]
+ 4 pass
+ 0 fail
+Ran 4 tests across 1 file. [90.82s]
+ 4 pass
+ 0 fail
+Ran 4 tests across 1 file. [121.00ms]
+ 7 pass
+ 0 fail
+Ran 7 tests across 1 file. [141.00ms]
+ 1 pass
+ 0 fail
+Ran 1 test across 1 file. [368.00ms]
+ 4 pass
+ 0 fail
+Ran 4 tests across 1 file. [1149.00ms]
+ 5 pass
+ 0 fail
+Ran 5 tests across 1 file. [103.00ms]
+ 20 pass
+ 0 fail
+Ran 20 tests across 1 file. [20.00ms]
+ 4 pass
+ 0 fail
+Ran 4 tests across 1 file. [24.00ms]
+ 2 pass
+ 0 fail
+Ran 2 tests across 1 file. [45.00ms]
+ 4 pass
+ 0 fail
+Ran 4 tests across 1 file. [21.00ms]
+ 23 pass
+ 0 fail
+Ran 23 tests across 1 file. [17.00ms]
+ 5 pass
+ 0 fail
+Ran 5 tests across 1 file. [2.59s]
+ 4 pass
+ 0 fail
+Ran 4 tests across 1 file. [2.16s]
+ 5 pass
+ 0 fail
+Ran 5 tests across 1 file. [29.00ms]
+TRANSLATION_SMOKE {"api":"/tmp/gdp-final-b11.3zgIKv/tree","seed":31,"start":0,"count":13,"shard":0,"shards":1,"generatorHash":"3754120f4b549526a2481c1287bfa4a16deabea40f784502d2c80090aeadb59e","replay":"default","generatorFamilies":["boolean","number","choice","optional","nullable","narrowing","record","record-alias","map-boolean","map-number","calendar","class-choice","class-optional"],"generated":13,"extracted":11,"proven":28,"kernelProven":35,"nativeCheckedRows":362,"findings":0,"blockedFindings":7,"modelFindings":0,"falseRejections":0,"unsafeVerdicts":0,"unknown":0,"refused":13,"notProven":68,"errors":0,"timeouts":0,"families":{"boolean":1,"number":1,"choice":1,"optional":1,"nullable":1,"narrowing":1,"record":1,"record-alias":1,"map-boolean":1,"map-number":1,"calendar":1,"class-choice":1,"class-optional":1},"tags":{"boolean":5,"boolean-composition":1,"number":3,"arithmetic":1,"choice":2,"domain-equality":2,"optional":6,"undefined":2,"early-return":4,"nullable":1,"strict-null":3,"truthiness":1,"record":2,"record-result":1,"reserved-fields":1,"destructured":1,"heap-alias":1,"class":4,"Map.get":2,"calendar":1,"finite-calendar":1},"acceptedTags":{"boolean":4,"boolean-composition":1,"number":3,"arithmetic":1,"optional":5,"undefined":1,"early-return":3,"nullable":1,"strict-null":3,"truthiness":1,"record":2,"record-result":1,"reserved-fields":1,"destructured":1,"heap-alias":1,"class":3,"Map.get":2,"calendar":1,"finite-calendar":1,"choice":1,"domain-equality":1},"provenTags":{"boolean":8,"boolean-composition":3,"number":8,"arithmetic":5,"optional":9,"undefined":2,"early-return":7,"nullable":2,"strict-null":5,"truthiness":3,"record":5,"record-result":3,"reserved-fields":3,"destructured":2,"heap-alias":2,"class":6,"Map.get":2,"calendar":2,"finite-calendar":2,"choice":4,"domain-equality":4},"nontrivialProvenTags":{"boolean":4,"boolean-composition":2,"number":5,"arithmetic":4,"optional":4,"undefined":1,"early-return":4,"nullable":1,"strict-null":2,"truthiness":2,"record":3,"record-result":2,"reserved-fields":2,"destructured":1,"heap-alias":1,"calendar":1,"finite-calendar":1,"choice":3,"domain-equality":3,"class":3}}
+ 6 pass
+ 0 fail
+Ran 6 tests across 1 file. [49.00ms]
+ 4 pass
+ 0 fail
+Ran 4 tests across 1 file. [23.00ms]
+ 4 pass
+ 0 fail
+Ran 4 tests across 1 file. [19.00ms]
+ 13 pass
+ 0 fail
+Ran 13 tests across 1 file. [41.30s]
+
+--- stderr ---
+/work/gdp-wired/final-meta/candidate.patch:8934: trailing whitespace.
+215 | 
+/work/gdp-wired/final-meta/candidate.patch:9080: trailing whitespace.
+215 | 
+/work/gdp-wired/final-meta/candidate.patch:9146: trailing whitespace.
+241 | 
+/work/gdp-wired/final-meta/candidate.patch:10210: trailing whitespace.
+215 | 
+/work/gdp-wired/final-meta/candidate.patch:10212: trailing whitespace.
+215 | 
+warning: squelched 39 whitespace errors
+warning: 44 lines add whitespace errors.
+warning: adding embedded git repository: vendor/gdp-ts
+warning: adding embedded git repository: vendor/handwired
+Submodule 'vendor/gdp-ts' (https://github.com/rauchg/gdp-ts.git) registered for path 'vendor/gdp-ts'
+Submodule 'vendor/handwired' (https://github.com/monotykamary/handwired.git) registered for path 'vendor/handwired'
+Migrating git directory of 'vendor/gdp-ts' from
+'/tmp/gdp-final-b11.3zgIKv/tree/vendor/gdp-ts/.git' to
+'/tmp/gdp-final-b11.3zgIKv/tree/.git/modules/vendor/gdp-ts'
+Migrating git directory of 'vendor/handwired' from
+'/tmp/gdp-final-b11.3zgIKv/tree/vendor/handwired/.git' to
+'/tmp/gdp-final-b11.3zgIKv/tree/.git/modules/vendor/handwired'

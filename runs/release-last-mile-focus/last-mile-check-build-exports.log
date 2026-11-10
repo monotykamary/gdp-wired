@@ -1,0 +1,48 @@
+CLEAN_CHECKOUT_HEAD ba31d1014c2bf762f3b14e497f3c90896cf4cf03
+CLEAN_CHECKOUT_TREE e8f9a2ee5a65f274a2a02cf1342d03ea5ae2c238
+ 0b6ebeeec827b05210f3acfa4149a70dda9a0de5 vendor/gdp-ts (heads/master)
+ d47141cce2caf5b86b0c2c0c372a5174f424bc15 vendor/handwired (heads/master)
+5395d4983f8294753a80b244e9ff7a5f535144aeb1a91bc64550633e6d51c804  /work/gdp-wired/last-mile/patch
+bun install v1.4.3 (c6da4a4d3)
+
++ @gdp-ts/core@0.1.0
++ @reduxjs/toolkit@2.13.0
++ @types/bun@1.3.1
++ @webgpu/types@0.1.66
++ effect@4.0.7
++ effect3@3.22.4
++ oxlint@1.88.0
++ oxlint-tsgolint@7.0.2004
++ typescript@5.9.3
++ xstate@5.33.2
++ xstate4@4.38.3
+
+27 packages installed [658.00ms]
+core/extract-sol.test.ts(87,24): error TS2339: Property 'some' does not exist on type 'string[] | { params: Record<string, number>; trace: Record<string, unknown>[]; }'.
+  Property 'some' does not exist on type '{ params: Record<string, number>; trace: Record<string, unknown>[]; }'.
+core/extract-sol.test.ts(87,29): error TS7006: Parameter 's' implicitly has an 'any' type.
+
+--- stderr ---
+/work/gdp-wired/final-meta/candidate.patch:8781: trailing whitespace.
+215 | 
+/work/gdp-wired/final-meta/candidate.patch:8927: trailing whitespace.
+215 | 
+/work/gdp-wired/final-meta/candidate.patch:8993: trailing whitespace.
+241 | 
+/work/gdp-wired/final-meta/candidate.patch:10057: trailing whitespace.
+215 | 
+/work/gdp-wired/final-meta/candidate.patch:10059: trailing whitespace.
+215 | 
+warning: squelched 39 whitespace errors
+warning: 44 lines add whitespace errors.
+warning: adding embedded git repository: vendor/gdp-ts
+warning: adding embedded git repository: vendor/handwired
+Submodule 'vendor/gdp-ts' (https://github.com/rauchg/gdp-ts.git) registered for path 'vendor/gdp-ts'
+Submodule 'vendor/handwired' (https://github.com/monotykamary/handwired.git) registered for path 'vendor/handwired'
+Migrating git directory of 'vendor/gdp-ts' from
+'/tmp/gdp-last-mile.QM07um/tree/vendor/gdp-ts/.git' to
+'/tmp/gdp-last-mile.QM07um/tree/.git/modules/vendor/gdp-ts'
+Migrating git directory of 'vendor/handwired' from
+'/tmp/gdp-last-mile.QM07um/tree/vendor/handwired/.git' to
+'/tmp/gdp-last-mile.QM07um/tree/.git/modules/vendor/handwired'
+$ tsc -p . && oxlint --type-aware --deny-warnings --disable-nested-config

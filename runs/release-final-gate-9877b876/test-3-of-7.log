@@ -1,0 +1,123 @@
+CLEAN_CHECKOUT_HEAD 9877b8762d516506cda2b222282447235ae6fd5b
+CLEAN_CHECKOUT_TREE 1b3cd1317bef62b214d24cbe90b6f610171ccc0b
+ 0b6ebeeec827b05210f3acfa4149a70dda9a0de5 vendor/gdp-ts (heads/master)
+ d47141cce2caf5b86b0c2c0c372a5174f424bc15 vendor/handwired (heads/master)
+PASS install
+PASS tests
+ 15 pass
+ 0 fail
+Ran 15 tests across 1 file. [3.09s]
+ 7 pass
+ 0 fail
+Ran 7 tests across 1 file. [1.62s]
+ 8 pass
+ 0 fail
+Ran 8 tests across 1 file. [2.10s]
+ 9 pass
+ 0 fail
+Ran 9 tests across 1 file. [10.33s]
+ 5 pass
+ 0 fail
+Ran 5 tests across 1 file. [1086.00ms]
+ 6 pass
+ 0 fail
+Ran 6 tests across 1 file. [7.23s]
+ 5 pass
+ 0 fail
+Ran 5 tests across 1 file. [1277.00ms]
+ 9 pass
+ 0 fail
+Ran 9 tests across 1 file. [1146.00ms]
+ 5 pass
+ 0 fail
+Ran 5 tests across 1 file. [793.00ms]
+ 8 pass
+ 0 fail
+Ran 8 tests across 1 file. [123.33s]
+ 11 pass
+ 0 fail
+Ran 11 tests across 1 file. [44.15s]
+ 5 pass
+ 0 fail
+Ran 5 tests across 1 file. [83.00ms]
+ 2 pass
+ 0 fail
+Ran 2 tests across 1 file. [56.00ms]
+ 2 pass
+ 0 fail
+Ran 2 tests across 1 file. [7.00ms]
+ 6 pass
+ 0 fail
+Ran 6 tests across 1 file. [69.00ms]
+ 3 pass
+ 0 fail
+Ran 3 tests across 1 file. [19.00ms]
+ 7 pass
+ 0 fail
+Ran 7 tests across 1 file. [49.00ms]
+ 4 pass
+ 0 fail
+Ran 4 tests across 1 file. [3.00ms]
+ 7 pass
+ 0 fail
+Ran 7 tests across 1 file. [45.00ms]
+ 25 pass
+ 0 fail
+Ran 25 tests across 1 file. [223.00ms]
+ 8 pass
+ 0 fail
+Ran 8 tests across 1 file. [106.00ms]
+ 8 pass
+ 0 fail
+Ran 8 tests across 1 file. [1.76s]
+ 47 pass
+ 0 fail
+Ran 47 tests across 1 file. [106.00ms]
+ 3 pass
+ 0 fail
+Ran 3 tests across 1 file. [15.00ms]
+ 2 pass
+ 0 fail
+Ran 2 tests across 1 file. [16.00ms]
+ 6 pass
+ 0 fail
+Ran 6 tests across 1 file. [1.72s]
+ 2 pass
+ 0 fail
+Ran 2 tests across 1 file. [7.00ms]
+ 6 pass
+ 0 fail
+Ran 6 tests across 1 file. [187.00ms]
+ 7 pass
+ 0 fail
+Ran 7 tests across 1 file. [24.00ms]
+ 3 pass
+ 0 fail
+Ran 3 tests across 1 file. [9.00ms]
+ 7 pass
+ 0 fail
+Ran 7 tests across 1 file. [12.90s]
+
+--- stderr ---
+/work/gdp-wired/final-meta/candidate.patch:8934: trailing whitespace.
+215 | 
+/work/gdp-wired/final-meta/candidate.patch:9080: trailing whitespace.
+215 | 
+/work/gdp-wired/final-meta/candidate.patch:9146: trailing whitespace.
+241 | 
+/work/gdp-wired/final-meta/candidate.patch:10210: trailing whitespace.
+215 | 
+/work/gdp-wired/final-meta/candidate.patch:10212: trailing whitespace.
+215 | 
+warning: squelched 39 whitespace errors
+warning: 44 lines add whitespace errors.
+warning: adding embedded git repository: vendor/gdp-ts
+warning: adding embedded git repository: vendor/handwired
+Submodule 'vendor/gdp-ts' (https://github.com/rauchg/gdp-ts.git) registered for path 'vendor/gdp-ts'
+Submodule 'vendor/handwired' (https://github.com/monotykamary/handwired.git) registered for path 'vendor/handwired'
+Migrating git directory of 'vendor/gdp-ts' from
+'/tmp/gdp-final-b11.PjwuOs/tree/vendor/gdp-ts/.git' to
+'/tmp/gdp-final-b11.PjwuOs/tree/.git/modules/vendor/gdp-ts'
+Migrating git directory of 'vendor/handwired' from
+'/tmp/gdp-final-b11.PjwuOs/tree/vendor/handwired/.git' to
+'/tmp/gdp-final-b11.PjwuOs/tree/.git/modules/vendor/handwired'

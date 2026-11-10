@@ -1,0 +1,35 @@
+CLEAN_CHECKOUT_HEAD 9877b8762d516506cda2b222282447235ae6fd5b
+CLEAN_CHECKOUT_TREE 1b3cd1317bef62b214d24cbe90b6f610171ccc0b
+ 0b6ebeeec827b05210f3acfa4149a70dda9a0de5 vendor/gdp-ts (heads/master)
+ d47141cce2caf5b86b0c2c0c372a5174f424bc15 vendor/handwired (heads/master)
+PASS install
+CENSUS_ROSTER {"index":2,"count":7,"total":29,"ids":["lock_server","sharded_kv_no_lost_keys","naive_consensus","majorityset_leader_election"],"baseline":"b11e1f651618b3d3fcaf6cec66b4a8b0203cdcd3"}
+{"id":"lock_server","ic3syn":"i4-lock-server","search":{"verdict":"proven","found":["every x, y with x < 64 ∧ y < 64: Semaphore[y] + Link[64·x + y] <= 1"],"ms":5418,"work":56883,"full":39220}}
+{"id":"sharded_kv_no_lost_keys","ic3syn":"pyv-sharded-kv-no-lost-keys","search":{"verdict":"proven","found":["Owner$n below 64","TransferMsg$n21 below 64","TransferMsg$v1 below 64","(¬(started = 0 ∧ Owned[key$10] = 1) ∨ some$1 < 64 ∧ Owner[64·key$10 + some$1] =  (5)","Table empty where started = 0 (19)","TransferMsg empty where started = 0 (21)"],"ms":11729,"work":362642,"full":207610}}
+{"id":"naive_consensus","ic3syn":"ex-naive-consensus","search":{"verdict":"proven","found":["every Vote cell is a value of its kind","every Voted cell is a value of its kind","every Decide cell is a value of its kind","every Decision cell is a value of its kind","one value decided","Decide keeps members's bound through members$Decide","every x with x < 64: never Decide[x] is 0 and 1 <= Decision[x]","every x, y with x < 64 ∧ y < 64 ∧ ¬(x = y): never 1 <= Decide[x] and 1 <= Decide[y]","every x, y with x < 64 ∧ y < 64 ∧ ¬(x = y): never 1 <= Decide[x] and 1 <= Decision[y]","every x, y with x < 64 ∧ y < 64 ∧ ¬(x = y): never 1 <= Decision[x] and 1 <= Decision[y]","every x, y with x <= 63 ∧ y < 64: never Voted[x] is 0 and 1 <= Vote[64·y + x]","every x, y, z with x <= 63 ∧ y < 64 ∧ z < 64 ∧ ¬(y = z): never 1 <= Vote[64·y + x] and 1 <= Vote[64·z + x]"],"ms":2811,"work":670960,"full":220996}}
+{"id":"majorityset_leader_election","ic3syn":"ex-majorityset-leader-election","search":{"verdict":"proven","found":["every Vote cell is a value of its kind","every Voters cell is a value of its kind","every Leader cell is a value of its kind","one leader","Leader keeps voters's bound","Vote: one second key a first","every x with x < size: never Vote[64·x + x] is 0 and 1 <= Voters[64·x + x]","every x, y with x < size ∧ y < size ∧ ¬(x = y): never 1 <= Leader[x] and 1 <= Leader[y]","every x, y with x < size ∧ y < size ∧ ¬(x = y): never 1 <= Vote[64·x + x] and 1 <= Vote[64·x + y]","every x, y with x < size ∧ y < size ∧ ¬(x = y): never 1 <= Vote[64·x + x] and 1 <= Voters[64·y + x]","every x, y with x < size ∧ y < size ∧ ¬(x = y): never Vote[64·x + y] is 0 and 1 <= Voters[64·y + x]","every x, y with x < size ∧ y < size ∧ ¬(x = y): never 1 <= Vote[64·x + y] and 1 <= Voters[64·x + x]","every x, y with x < size ∧ y < size ∧ ¬(x = y): never 1 <= Voters[64·x + x] and 1 <= Voters[64·y + x]","every x, y, z with x < size ∧ y < size ∧ ¬(x = y) ∧ z < size ∧ ¬(x = z) ∧ ¬(y = z): never 1 <= Vote[64·x + y] and 1 <= Vote[64·x + z]","every x, y, z with x < size ∧ y < size ∧ ¬(x = y) ∧ z < size ∧ ¬(x = z) ∧ ¬(y = z): never 1 <= Vote[64·x + y] and 1 <= Voters[64·z + x]","every x, y, z with x < size ∧ y < size ∧ ¬(x = y) ∧ z < size ∧ ¬(x = z) ∧ ¬(y = z): never 1 <= Voters[64·x + y] and 1 <= Voters[64·z + y]"],"ms":4646,"work":1951109,"full":583488}}
+CENSUS_COMPLETE {"index":2,"count":7,"rows":4,"unchanged":true,"baseline":"b11e1f651618b3d3fcaf6cec66b4a8b0203cdcd3","verdicts":[["lock_server","proven"],["sharded_kv_no_lost_keys","proven"],["naive_consensus","proven"],["majorityset_leader_election","proven"]]}
+
+--- stderr ---
+/work/gdp-wired/final-meta/candidate.patch:8934: trailing whitespace.
+215 | 
+/work/gdp-wired/final-meta/candidate.patch:9080: trailing whitespace.
+215 | 
+/work/gdp-wired/final-meta/candidate.patch:9146: trailing whitespace.
+241 | 
+/work/gdp-wired/final-meta/candidate.patch:10210: trailing whitespace.
+215 | 
+/work/gdp-wired/final-meta/candidate.patch:10212: trailing whitespace.
+215 | 
+warning: squelched 39 whitespace errors
+warning: 44 lines add whitespace errors.
+warning: adding embedded git repository: vendor/gdp-ts
+warning: adding embedded git repository: vendor/handwired
+Submodule 'vendor/gdp-ts' (https://github.com/rauchg/gdp-ts.git) registered for path 'vendor/gdp-ts'
+Submodule 'vendor/handwired' (https://github.com/monotykamary/handwired.git) registered for path 'vendor/handwired'
+Migrating git directory of 'vendor/gdp-ts' from
+'/tmp/gdp-final-b11.TXEZ8E/tree/vendor/gdp-ts/.git' to
+'/tmp/gdp-final-b11.TXEZ8E/tree/.git/modules/vendor/gdp-ts'
+Migrating git directory of 'vendor/handwired' from
+'/tmp/gdp-final-b11.TXEZ8E/tree/vendor/handwired/.git' to
+'/tmp/gdp-final-b11.TXEZ8E/tree/.git/modules/vendor/handwired'

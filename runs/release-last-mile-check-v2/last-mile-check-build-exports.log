@@ -1,0 +1,97 @@
+CLEAN_CHECKOUT_HEAD ba31d1014c2bf762f3b14e497f3c90896cf4cf03
+CLEAN_CHECKOUT_TREE e8f9a2ee5a65f274a2a02cf1342d03ea5ae2c238
+ 0b6ebeeec827b05210f3acfa4149a70dda9a0de5 vendor/gdp-ts (heads/master)
+ d47141cce2caf5b86b0c2c0c372a5174f424bc15 vendor/handwired (heads/master)
+df84a32cbb0ae294cbffb90eb5166ae35d3c60eefec570b2f6a4d715cdfbe7bd  /work/gdp-wired/last-mile/patch
+bun install v1.4.3 (c6da4a4d3)
+
++ @gdp-ts/core@0.1.0
++ @reduxjs/toolkit@2.13.0
++ @types/bun@1.3.1
++ @webgpu/types@0.1.66
++ effect@4.0.7
++ effect3@3.22.4
++ oxlint@1.88.0
++ oxlint-tsgolint@7.0.2004
++ typescript@5.9.3
++ xstate@5.33.2
++ xstate4@4.38.3
+
+27 packages installed [603.00ms]
+Found 0 warnings and 0 errors.
+Finished in 16.7s on 1665 files with 100 rules using 6 threads.
+dist: 349 entries
+bun test v1.4.3 (c6da4a4d3)
+
+--- stderr ---
+/work/gdp-wired/final-meta/candidate.patch:8781: trailing whitespace.
+215 | 
+/work/gdp-wired/final-meta/candidate.patch:8927: trailing whitespace.
+215 | 
+/work/gdp-wired/final-meta/candidate.patch:8993: trailing whitespace.
+241 | 
+/work/gdp-wired/final-meta/candidate.patch:10057: trailing whitespace.
+215 | 
+/work/gdp-wired/final-meta/candidate.patch:10059: trailing whitespace.
+215 | 
+warning: squelched 39 whitespace errors
+warning: 44 lines add whitespace errors.
+warning: adding embedded git repository: vendor/gdp-ts
+warning: adding embedded git repository: vendor/handwired
+Submodule 'vendor/gdp-ts' (https://github.com/rauchg/gdp-ts.git) registered for path 'vendor/gdp-ts'
+Submodule 'vendor/handwired' (https://github.com/monotykamary/handwired.git) registered for path 'vendor/handwired'
+Migrating git directory of 'vendor/gdp-ts' from
+'/tmp/gdp-last-mile.panPRF/tree/vendor/gdp-ts/.git' to
+'/tmp/gdp-last-mile.panPRF/tree/.git/modules/vendor/gdp-ts'
+Migrating git directory of 'vendor/handwired' from
+'/tmp/gdp-last-mile.panPRF/tree/vendor/handwired/.git' to
+'/tmp/gdp-last-mile.panPRF/tree/.git/modules/vendor/handwired'
+$ tsc -p . && oxlint --type-aware --deny-warnings --disable-nested-config
+$ bun scripts/build.ts
+
+core/runtime-default.test.ts:
+(pass) function runtimes preserve output kinds, parameters and repeated calls [5.57ms]
+(pass) both function runtimes enforce assumptions and exact arithmetic [0.72ms]
+(pass) user helper source needs explicit compilation, including callbacks [1.02ms]
+(pass) rule interpreter helper compilation needs an explicit opt-in [0.24ms]
+(pass) recurrences with transitive custom helpers retain explicit compilation [4.57ms]
+(pass) overridden library JS is custom source, including after a native value was cached [5.24ms]
+(pass) overridden library arity is custom even when its JS is unchanged [0.93ms]
+(pass) low-level source, arity, call and descriptor overrides cannot use cached native code [0.43ms]
+(pass) cyclic native metadata fails closed without evaluating source [16.89ms]
+(pass) mutated recurrence metadata is custom while its unchanged source still computes the original result [2.26ms]
+(pass) default guards inspect current recurrence dependencies, not only captured native helpers [2.36ms]
+(pass) unchanged copied builders and JSON machines retain native implementations [2.01ms]
+(pass) recurrence arguments reject JavaScript keywords and shadowed runtime globals without compiling [4.44ms]
+(pass) fresh import, builtins and recurrences work with Function blocked before construction [128.58ms]
+
+core/exports.test.ts:
+(pass) ./extract: exported, typed, built and its extract there, with proveRule [134.49ms]
+(pass) ./extract: exported, typed, built and its extractXState there, with proveRule [0.09ms]
+(pass) ./effect: exported, typed, built and its extractEffect there, with proveRule [3.82ms]
+(pass) ./extract-py: exported, typed, built and its extractPython there, with proveRule [0.98ms]
+(pass) ./extract-rb: exported, typed, built and its extractRuby there, with proveRule [0.60ms]
+(pass) ./extract-ex: exported, typed, built and its extractElixir there, with proveRule [0.64ms]
+(pass) ./extract-rs: exported, typed, built and its extractRust there, with proveRule [0.91ms]
+(pass) ./extract-c: exported, typed, built and its extractC there, with proveRule [2.84ms]
+(pass) ./extract-cpp: exported, typed, built and its extractCpp there, with proveRule [0.03ms]
+(pass) ./extract-java: exported, typed, built and its extractJava there, with proveRule [1.11ms]
+(pass) ./extract-kotlin: exported, typed, built and its extractKotlin there, with proveRule [0.27ms]
+(pass) ./extract-go: exported, typed, built and its extractGo there, with proveRule [0.42ms]
+(pass) ./extract-swift: exported, typed, built and its extractSwift there, with proveRule [1.65ms]
+(pass) ./extract-sol: exported, typed, built and its extractSolidity there, with proveRule [1.97ms]
+(pass) standalone mode ships through the existing extract public subpath [190.65ms]
+(pass) CI package posture: no library runtime dependencies or install hooks; provenance stays enabled [0.14ms]
+(pass) mutation runner: separate public subpath with no runtime dependencies [0.83ms]
+(pass) Effect Schema: public typed frontend stays on the existing optional Effect subpath [0.18ms]
+(pass) security templates: public subpath, declarations and both builders [0.46ms]
+(pass) gdp-wired-cli: gdp-wired's CLI with TypeScript beside it, at gdp-wired's own version (they release together) [4.47ms]
+(pass) the CLI is the package's bin, built from a file the build compiles [0.07ms]
+(pass) the standalone checker is the package's second bin, and its reader and checker `gdp-wired/interchange` [0.15ms]
+(pass) the packed tarball holds every export, the bin and every runtime asset the code references [1164.77ms]
+(pass) a missing asset is a clear error; a harness that exits before it answers is reported, not waited on [25.04ms]
+
+ 38 pass
+ 0 fail
+ 370 expect() calls
+Ran 38 tests across 2 files. [1.76s]

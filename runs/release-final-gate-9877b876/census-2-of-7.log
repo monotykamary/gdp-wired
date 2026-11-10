@@ -1,0 +1,43 @@
+CLEAN_CHECKOUT_HEAD 9877b8762d516506cda2b222282447235ae6fd5b
+CLEAN_CHECKOUT_TREE 1b3cd1317bef62b214d24cbe90b6f610171ccc0b
+ 0b6ebeeec827b05210f3acfa4149a70dda9a0de5 vendor/gdp-ts (heads/master)
+ d47141cce2caf5b86b0c2c0c372a5174f424bc15 vendor/handwired (heads/master)
+PASS install
+
+--- stderr ---
+/work/gdp-wired/final-meta/candidate.patch:8934: trailing whitespace.
+215 | 
+/work/gdp-wired/final-meta/candidate.patch:9080: trailing whitespace.
+215 | 
+/work/gdp-wired/final-meta/candidate.patch:9146: trailing whitespace.
+241 | 
+/work/gdp-wired/final-meta/candidate.patch:10210: trailing whitespace.
+215 | 
+/work/gdp-wired/final-meta/candidate.patch:10212: trailing whitespace.
+215 | 
+warning: squelched 39 whitespace errors
+warning: 44 lines add whitespace errors.
+warning: adding embedded git repository: vendor/gdp-ts
+warning: adding embedded git repository: vendor/handwired
+Submodule 'vendor/gdp-ts' (https://github.com/rauchg/gdp-ts.git) registered for path 'vendor/gdp-ts'
+Submodule 'vendor/handwired' (https://github.com/monotykamary/handwired.git) registered for path 'vendor/handwired'
+Migrating git directory of 'vendor/gdp-ts' from
+'/tmp/gdp-final-b11.pJKwqa/tree/vendor/gdp-ts/.git' to
+'/tmp/gdp-final-b11.pJKwqa/tree/.git/modules/vendor/gdp-ts'
+Migrating git directory of 'vendor/handwired' from
+'/tmp/gdp-final-b11.pJKwqa/tree/vendor/handwired/.git' to
+'/tmp/gdp-final-b11.pJKwqa/tree/.git/modules/vendor/handwired'
+1 | import {readFileSync} from 'node:fs'
+2 | import {join} from 'node:path'
+3 | const index=Number(process.argv[2]), count=Number(process.argv[3]);
+4 | const baselineText=readFileSync(join(process.argv[4]!, 'verify-new-census-baseline.log'),'utf8');
+                       ^
+ENOENT: no such file or directory, open '/work/gdp-wired/baseline-verified/verify-new-census-baseline.log'
+    path: "/work/gdp-wired/baseline-verified/verify-new-census-baseline.log",
+ syscall: "open",
+   errno: -2,
+    code: "ENOENT"
+
+      at /work/gdp-wired/census-b11.ts:4:20
+
+Bun v1.4.3 (Linux x64)

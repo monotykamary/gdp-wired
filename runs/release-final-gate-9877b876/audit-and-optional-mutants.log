@@ -1,0 +1,998 @@
+CLEAN_CHECKOUT_HEAD 9877b8762d516506cda2b222282447235ae6fd5b
+CLEAN_CHECKOUT_TREE 1b3cd1317bef62b214d24cbe90b6f610171ccc0b
+ 0b6ebeeec827b05210f3acfa4149a70dda9a0de5 vendor/gdp-ts (heads/master)
+ d47141cce2caf5b86b0c2c0c372a5174f424bc15 vendor/handwired (heads/master)
+PASS install
+| Mutant | Bug | source-laws |
+| --- | --- | --- |
+| drop-equality-context | present choices compared by local indices | caught |
+| drop-both-recursive-contexts | original recursive context loss | caught |
+| drop-calendar-optional-guard | calendar helper unwraps absent scalar | caught |
+{"mutant":"drop-equality-context","status":"caught","exit":1}
+bun test v1.4.3 (c6da4a4d3)
+
+core/extract-standalone.test.ts:
+176 | ] as const) test(`optional choice law: ${label} equality and inequality use strings`, () => {
+177 |   for (const expr of ['result == a', 'a == result']) {
+178 |     expect(choiceLaw(source, expr)).toMatchObject({proven: false, checked: false})
+179 |   }
+180 |   for (const expr of ['result != a', 'a != result']) {
+181 |     expect(choiceLaw(source, expr)).toMatchObject(modelOnly)
+                                          ^
+error: expect(received).toMatchObject(expected)
+
+  {
+    "checked": false,
+-   "kernelProven": true,
++   "goal": "result != a @step law",
++   "kernelProven": false,
+    "proven": false,
++   "run": {
++     "params": {},
++     "trace": [
++       {
++         "a": 0,
++       },
++     ],
++   },
++   "stuck": "sat",
+    "translation": "unchecked",
++   "why": "source translation unchecked: source replay or native-law cross-check was disabled",
++   "witness": {
++     "a": 0,
++     "decide_result": 0,
++     "decide_result_missing": 0,
++   },
+  }
+
+- Expected  - 1
++ Received  + 17
+
+      at <anonymous> (/tmp/gdp-final-b11.ZAJpV1/tree/core/extract-standalone.test.ts:181:37)
+(fail) optional choice law: singleton equality and inequality use strings [345.38ms]
+176 | ] as const) test(`optional choice law: ${label} equality and inequality use strings`, () => {
+177 |   for (const expr of ['result == a', 'a == result']) {
+178 |     expect(choiceLaw(source, expr)).toMatchObject({proven: false, checked: false})
+179 |   }
+180 |   for (const expr of ['result != a', 'a != result']) {
+181 |     expect(choiceLaw(source, expr)).toMatchObject(modelOnly)
+                                          ^
+error: expect(received).toMatchObject(expected)
+
+  {
+    "checked": false,
+-   "kernelProven": true,
++   "goal": "result != a @step law",
++   "kernelProven": false,
+    "proven": false,
++   "run": {
++     "params": {},
++     "trace": [
++       {
++         "a": 1,
++       },
++     ],
++   },
++   "stuck": "sat",
+    "translation": "unchecked",
++   "why": "source translation unchecked: source replay or native-law cross-check was disabled",
++   "witness": {
++     "a": 1,
++     "decide_result": 0,
++     "decide_result_missing": 0,
++   },
+  }
+
+- Expected  - 1
++ Received  + 17
+
+      at <anonymous> (/tmp/gdp-final-b11.ZAJpV1/tree/core/extract-standalone.test.ts:181:37)
+(fail) optional choice law: same-index multi-value equality and inequality use strings [238.21ms]
+195 |   if (input.k !== 'choice' || result.k !== 'choice') throw new Error('expected choice domains')
+196 |   expect(input.values).toContain('blue')
+197 |   expect(result.values).toContain('blue')
+198 |   expect(input.values.indexOf('blue')).not.toBe(result.values.indexOf('blue'))
+199 |   for (const expr of ['(result == a) == (a == "blue")', '(result != a) == (a != "blue")']) {
+200 |     expect(choiceLaw(source, expr)).toMatchObject(modelOnly)
+                                          ^
+error: expect(received).toMatchObject(expected)
+
+  {
+    "checked": false,
+-   "kernelProven": true,
++   "goal": "(result == a) == (a == "blue") @step law",
++   "kernelProven": false,
+    "proven": false,
++   "run": {
++     "params": {},
++     "trace": [
++       {
++         "a": 1,
++       },
++     ],
++   },
++   "stuck": "sat",
+    "translation": "unchecked",
++   "why": "source translation unchecked: source replay or native-law cross-check was disabled",
++   "witness": {
++     "a": 1,
++     "decide_result": 0,
++     "decide_result_missing": 0,
++   },
+  }
+
+- Expected  - 1
++ Received  + 17
+
+      at <anonymous> (/tmp/gdp-final-b11.ZAJpV1/tree/core/extract-standalone.test.ts:200:37)
+(fail) optional choice law: a shared value at different indices compares by name [140.64ms]
+209 |     const inner = enabled ? "green" : null;
+210 |     if (enabled) { if (a === "red") return inner; }
+211 |     return null;
+212 |   }`
+213 |   expect(choiceLaw(source, 'result != null implies result == a')).toMatchObject({proven: false, checked: false})
+214 |   expect(choiceLaw(source, 'result != a')).toMatchObject(modelOnly)
+                                                 ^
+error: expect(received).toMatchObject(expected)
+
+  {
+    "checked": false,
+-   "kernelProven": true,
++   "goal": "result != a @step law",
++   "kernelProven": false,
+    "proven": false,
++   "run": {
++     "params": {},
++     "trace": [
++       {
++         "a": 0,
++         "enabled": 0,
++       },
++       {
++         "a": 0,
++         "enabled": 1,
++       },
++     ],
++   },
++   "stuck": "sat",
+    "translation": "unchecked",
++   "why": "source translation unchecked: source replay or native-law cross-check was disabled",
++   "witness": {
++     "a": 0,
++     "decide_result": 0,
++     "decide_result_missing": 1,
++     "enabled": 1,
++   },
+  }
+
+- Expected  - 1
++ Received  + 23
+
+      at <anonymous> (/tmp/gdp-final-b11.ZAJpV1/tree/core/extract-standalone.test.ts:214:44)
+(fail) optional choice law: nullable locals and nested returns retain domain semantics [176.62ms]
+217 | 
+218 | test('optional choice law: comparisons nested in boolean equality retain semantics', () => {
+219 |   const source = 'export function decide(a: "red"): "green" { return "green"; }'
+220 |   expect(choiceLaw(source, '(result == a) == true')).toMatchObject({proven: false, checked: false})
+221 |   expect(choiceLaw(source, 'not (result != a)')).toMatchObject({proven: false, checked: false})
+222 |   expect(choiceLaw(source, '(result == a) == false')).toMatchObject(modelOnly)
+                                                            ^
+error: expect(received).toMatchObject(expected)
+
+  {
+    "checked": false,
+-   "kernelProven": true,
++   "goal": "(result == a) == false @step law",
++   "kernelProven": false,
+    "proven": false,
++   "run": {
++     "params": {},
++     "trace": [
++       {
++         "a": 0,
++       },
++     ],
++   },
++   "stuck": "sat",
+    "translation": "unchecked",
++   "why": "source translation unchecked: source replay or native-law cross-check was disabled",
++   "witness": {
++     "a": 0,
++     "decide_result": 0,
++     "decide_result_missing": 0,
++   },
+  }
+
+- Expected  - 1
++ Received  + 17
+
+      at <anonymous> (/tmp/gdp-final-b11.ZAJpV1/tree/core/extract-standalone.test.ts:222:55)
+(fail) optional choice law: comparisons nested in boolean equality retain semantics [208.46ms]
+(pass) optional choice law: literals are checked within their domain in either order [493.51ms]
+(pass) optional choice law: unsupported nested optional input is explicitly refused [25.96ms]
+(pass) optional standalone calendar operands cannot bypass absence checks [73.65ms]
+
+ 3 pass
+ 23 filtered out
+ 5 fail
+ 63 expect() calls
+Ran 8 tests across 1 file. [1.85s]
+
+{"mutant":"drop-both-recursive-contexts","status":"caught","exit":1}
+bun test v1.4.3 (c6da4a4d3)
+
+core/extract-standalone.test.ts:
+176 | ] as const) test(`optional choice law: ${label} equality and inequality use strings`, () => {
+177 |   for (const expr of ['result == a', 'a == result']) {
+178 |     expect(choiceLaw(source, expr)).toMatchObject({proven: false, checked: false})
+179 |   }
+180 |   for (const expr of ['result != a', 'a != result']) {
+181 |     expect(choiceLaw(source, expr)).toMatchObject(modelOnly)
+                                          ^
+error: expect(received).toMatchObject(expected)
+
+  {
+    "checked": false,
+-   "kernelProven": true,
++   "goal": "result != a @step law",
++   "kernelProven": false,
+    "proven": false,
++   "run": {
++     "params": {},
++     "trace": [
++       {
++         "a": 0,
++       },
++     ],
++   },
++   "stuck": "sat",
+    "translation": "unchecked",
++   "why": "source translation unchecked: source replay or native-law cross-check was disabled",
++   "witness": {
++     "a": 0,
++     "decide_result": 0,
++     "decide_result_missing": 0,
++   },
+  }
+
+- Expected  - 1
++ Received  + 17
+
+      at <anonymous> (/tmp/gdp-final-b11.ZAJpV1/tree/core/extract-standalone.test.ts:181:37)
+(fail) optional choice law: singleton equality and inequality use strings [417.25ms]
+176 | ] as const) test(`optional choice law: ${label} equality and inequality use strings`, () => {
+177 |   for (const expr of ['result == a', 'a == result']) {
+178 |     expect(choiceLaw(source, expr)).toMatchObject({proven: false, checked: false})
+179 |   }
+180 |   for (const expr of ['result != a', 'a != result']) {
+181 |     expect(choiceLaw(source, expr)).toMatchObject(modelOnly)
+                                          ^
+error: expect(received).toMatchObject(expected)
+
+  {
+    "checked": false,
+-   "kernelProven": true,
++   "goal": "result != a @step law",
++   "kernelProven": false,
+    "proven": false,
++   "run": {
++     "params": {},
++     "trace": [
++       {
++         "a": 1,
++       },
++     ],
++   },
++   "stuck": "sat",
+    "translation": "unchecked",
++   "why": "source translation unchecked: source replay or native-law cross-check was disabled",
++   "witness": {
++     "a": 1,
++     "decide_result": 0,
++     "decide_result_missing": 0,
++   },
+  }
+
+- Expected  - 1
++ Received  + 17
+
+      at <anonymous> (/tmp/gdp-final-b11.ZAJpV1/tree/core/extract-standalone.test.ts:181:37)
+(fail) optional choice law: same-index multi-value equality and inequality use strings [282.12ms]
+195 |   if (input.k !== 'choice' || result.k !== 'choice') throw new Error('expected choice domains')
+196 |   expect(input.values).toContain('blue')
+197 |   expect(result.values).toContain('blue')
+198 |   expect(input.values.indexOf('blue')).not.toBe(result.values.indexOf('blue'))
+199 |   for (const expr of ['(result == a) == (a == "blue")', '(result != a) == (a != "blue")']) {
+200 |     expect(choiceLaw(source, expr)).toMatchObject(modelOnly)
+                                          ^
+error: expect(received).toMatchObject(expected)
+
+  {
+    "checked": false,
+-   "kernelProven": true,
++   "goal": "(result == a) == (a == "blue") @step law",
++   "kernelProven": false,
+    "proven": false,
++   "run": {
++     "params": {},
++     "trace": [
++       {
++         "a": 1,
++       },
++     ],
++   },
++   "stuck": "sat",
+    "translation": "unchecked",
++   "why": "source translation unchecked: source replay or native-law cross-check was disabled",
++   "witness": {
++     "a": 1,
++     "decide_result": 0,
++     "decide_result_missing": 0,
++   },
+  }
+
+- Expected  - 1
++ Received  + 17
+
+      at <anonymous> (/tmp/gdp-final-b11.ZAJpV1/tree/core/extract-standalone.test.ts:200:37)
+(fail) optional choice law: a shared value at different indices compares by name [145.02ms]
+209 |     const inner = enabled ? "green" : null;
+210 |     if (enabled) { if (a === "red") return inner; }
+211 |     return null;
+212 |   }`
+213 |   expect(choiceLaw(source, 'result != null implies result == a')).toMatchObject({proven: false, checked: false})
+214 |   expect(choiceLaw(source, 'result != a')).toMatchObject(modelOnly)
+                                                 ^
+error: expect(received).toMatchObject(expected)
+
+  {
+    "checked": false,
+-   "kernelProven": true,
++   "goal": "result != a @step law",
++   "kernelProven": false,
+    "proven": false,
++   "run": {
++     "params": {},
++     "trace": [
++       {
++         "a": 0,
++         "enabled": 0,
++       },
++       {
++         "a": 0,
++         "enabled": 1,
++       },
++     ],
++   },
++   "stuck": "sat",
+    "translation": "unchecked",
++   "why": "source translation unchecked: source replay or native-law cross-check was disabled",
++   "witness": {
++     "a": 0,
++     "decide_result": 0,
++     "decide_result_missing": 1,
++     "enabled": 1,
++   },
+  }
+
+- Expected  - 1
++ Received  + 23
+
+      at <anonymous> (/tmp/gdp-final-b11.ZAJpV1/tree/core/extract-standalone.test.ts:214:44)
+(fail) optional choice law: nullable locals and nested returns retain domain semantics [182.96ms]
+217 | 
+218 | test('optional choice law: comparisons nested in boolean equality retain semantics', () => {
+219 |   const source = 'export function decide(a: "red"): "green" { return "green"; }'
+220 |   expect(choiceLaw(source, '(result == a) == true')).toMatchObject({proven: false, checked: false})
+221 |   expect(choiceLaw(source, 'not (result != a)')).toMatchObject({proven: false, checked: false})
+222 |   expect(choiceLaw(source, '(result == a) == false')).toMatchObject(modelOnly)
+                                                            ^
+error: expect(received).toMatchObject(expected)
+
+  {
+    "checked": false,
+-   "kernelProven": true,
++   "goal": "(result == a) == false @step law",
++   "kernelProven": false,
+    "proven": false,
++   "run": {
++     "params": {},
++     "trace": [
++       {
++         "a": 0,
++       },
++     ],
++   },
++   "stuck": "sat",
+    "translation": "unchecked",
++   "why": "source translation unchecked: source replay or native-law cross-check was disabled",
++   "witness": {
++     "a": 0,
++     "decide_result": 0,
++     "decide_result_missing": 0,
++   },
+  }
+
+- Expected  - 1
++ Received  + 17
+
+      at <anonymous> (/tmp/gdp-final-b11.ZAJpV1/tree/core/extract-standalone.test.ts:222:55)
+(fail) optional choice law: comparisons nested in boolean equality retain semantics [217.24ms]
+(pass) optional choice law: literals are checked within their domain in either order [450.54ms]
+(pass) optional choice law: unsupported nested optional input is explicitly refused [30.86ms]
+(pass) optional standalone calendar operands cannot bypass absence checks [74.37ms]
+
+ 3 pass
+ 23 filtered out
+ 5 fail
+ 63 expect() calls
+Ran 8 tests across 1 file. [1.97s]
+
+{"mutant":"drop-calendar-optional-guard","status":"caught","exit":1}
+bun test v1.4.3 (c6da4a4d3)
+
+core/extract-standalone.test.ts:
+(pass) optional choice law: singleton equality and inequality use strings [561.46ms]
+(pass) optional choice law: same-index multi-value equality and inequality use strings [330.64ms]
+(pass) optional choice law: a shared value at different indices compares by name [492.25ms]
+(pass) optional choice law: nullable locals and nested returns retain domain semantics [406.36ms]
+(pass) optional choice law: comparisons nested in boolean equality retain semantics [324.48ms]
+(pass) optional choice law: literals are checked within their domain in either order [644.86ms]
+(pass) optional choice law: unsupported nested optional input is explicitly refused [39.58ms]
+243 | 
+244 | test('optional standalone calendar operands cannot bypass absence checks', () => {
+245 |   const x = extract('export function decide(flag: boolean): number | undefined { if (flag) return 0; }', {...options, check: {runs: 0, states: 0, probes: false}})
+246 |   expect(x.ok).toBe(true)
+247 |   for (const expr of ['result - 0 <= 1 business days', '1 business days >= result - 0']) {
+248 |     expect(() => buildLaw(x, {name: expr, expr, method: 'decide'}, {clock: 1, calendar: {weekend: ['sat', 'sun']}})).toThrow('arithmetic on an optional standalone value is not supported')
+                                                                                                                           ^
+error: expect(received).toThrow(expected)
+
+Expected substring: "arithmetic on an optional standalone value is not supported"
+
+Received function did not throw
+Received value: {
+  kind: "step",
+  law: {
+    name: "result - 0 <= 1 business days",
+    forall: "key$46",
+    keys: [ "key$47" ],
+    then: {
+      op: "or",
+      xs: [
+        {
+          op: "not",
+          x: {
+            op: "and",
+            xs: [
+              {
+                op: "and",
+                xs: [
+                  [Object ...], [Object ...]
+                ],
+              }, {
+                op: "and",
+                xs: [
+                  [Object ...], [Object ...]
+                ],
+              }
+            ],
+          },
+        }, {
+          op: "<=",
+          a: {
+            op: "add",
+            a: {
+              op: "add",
+              a: {
+                op: "add",
+                a: {
+                  op: "add",
+                  a: [Object ...],
+                  b: [Object ...],
+                },
+                b: {
+                  op: "if",
+                  c: [Object ...],
+                  then: [Object ...],
+                  else: [Object ...],
+                },
+              },
+              b: {
+                op: "if",
+                c: {
+                  op: "<=",
+                  a: [Object ...],
+                  b: [Object ...],
+                },
+                then: {
+                  op: "const",
+                  value: 1,
+                },
+                else: {
+                  op: "const",
+                  value: 0,
+                },
+              },
+            },
+            b: {
+              op: "add",
+              a: {
+                op: "add",
+                a: {
+                  op: "add",
+                  a: [Object ...],
+                  b: [Object ...],
+                },
+                b: {
+                  op: "if",
+                  c: [Object ...],
+                  then: [Object ...],
+                  else: [Object ...],
+                },
+              },
+              b: {
+                op: "if",
+                c: {
+                  op: "<=",
+                  a: [Object ...],
+                  b: [Object ...],
+                },
+                then: {
+                  op: "const",
+                  value: 0,
+                },
+                else: {
+                  op: "const",
+                  value: 0,
+                },
+              },
+            },
+          },
+          b: {
+            op: "add",
+            a: {
+              op: "const",
+              value: 1,
+            },
+            b: {
+              op: "add",
+              a: {
+                op: "add",
+                a: {
+                  op: "add",
+                  a: [Object ...],
+                  b: [Object ...],
+                },
+                b: {
+                  op: "if",
+                  c: [Object ...],
+                  then: [Object ...],
+                  else: [Object ...],
+                },
+              },
+              b: {
+                op: "add",
+                a: {
+                  op: "add",
+                  a: [Object ...],
+                  b: [Object ...],
+                },
+                b: {
+                  op: "if",
+                  c: [Object ...],
+                  then: [Object ...],
+                  else: [Object ...],
+                },
+              },
+            },
+          },
+        }
+      ],
+    },
+    [Symbol(gdp-wired.source-proof.v1)]: true,
+  },
+}
+
+      at <anonymous> (/tmp/gdp-final-b11.ZAJpV1/tree/core/extract-standalone.test.ts:248:118)
+(fail) optional standalone calendar operands cannot bypass absence checks [117.80ms]
+
+ 7 pass
+ 23 filtered out
+ 1 fail
+ 80 expect() calls
+Ran 8 tests across 1 file. [3.09s]
+
+MUTATIONS_PASS restored=true
+| Mutant | Bug | audit |
+| --- | --- | --- |
+| N1-drop-qualified-result-fields | returned record fields cannot be read with their source names | caught |
+| C1-drop-plain-data-contract | record equivalence advertised without its plain-data restriction | caught |
+| B2-class-falsy-is-absent | present false or zero in class maps is narrowed to absence | caught |
+| P2-shared-record-identity | named and destructured arguments alias the same heap object | caught |
+| B1-standalone-only-guard | optional class result bypasses calendar arithmetic guard | caught |
+{"mutant":"N1-drop-qualified-result-fields","status":"caught","exit":1}
+bun test v1.4.3 (c6da4a4d3)
+
+core/extract-ci-audit.test.ts:
+(pass) CI audit B1: default replay cannot validate optional calendar law translation [854.75ms]
+(pass) CI audit P2: named and destructured records have independent heap identities [343.43ms]
+(pass) CI audit B2: falsy map payloads remain present in both truthiness arms [1545.82ms]
+(pass) CI audit C1: accepted records report the plain-data contract [280.56ms]
+363 |         const out: X = op === '<=' ? le(ka, x) : op === '<' ? le(ka1, x) : op === '>=' ? lt(x, ka1) : op === '>' ? lt(x, ka) : op === '==' ? eq : {k: 'un', op: 'not', x: eq}
+364 |         return go(out)
+365 |       }
+366 |       if (e.op === 'in') { const m = go(e.b); if (m.t !== 'map') throw new LawError('x in m: m a map'); const k = go(e.a); return dry ? {t: 'cond', v: yes} : {t: 'cond', v: cellOf(m, key(k), c).rec.has as Cond} }
+367 |       // (a name the rule doesn't have, compared with a choice: the choice's value, Outcome.SLOW_ERROR)
+368 |       const lit = (x: X): V => { try { return go(x) } catch (err) { if (x.k !== 'path' || !(err instanceof LawError) || !['==', '!='].includes(e.op)) throw err; return {t: 'lit', v: lastName(x) ?? '', err} } }
+                                                                                                                                                                  ^
+error: the method returns nothing the rule keeps
+      at lit (/tmp/gdp-final-b11.ZAJpV1/tree/core/laws.ts:368:157)
+      at val (/tmp/gdp-final-b11.ZAJpV1/tree/core/laws.ts:369:17)
+      at read (/tmp/gdp-final-b11.ZAJpV1/tree/core/laws.ts:287:15)
+      at bitBody (/tmp/gdp-final-b11.ZAJpV1/tree/core/laws.ts:227:19)
+      at stepLaw (/tmp/gdp-final-b11.ZAJpV1/tree/core/dsl.ts:1921:17)
+      at buildLaw (/tmp/gdp-final-b11.ZAJpV1/tree/core/laws.ts:239:70)
+      at verdict (/tmp/gdp-final-b11.ZAJpV1/tree/core/extract-ci-audit.test.ts:9:13)
+      at <anonymous> (/tmp/gdp-final-b11.ZAJpV1/tree/core/extract-ci-audit.test.ts:87:10)
+(fail) CI audit N1: reserved output field names are readable without becoming failure status [118.17ms]
+363 |         const out: X = op === '<=' ? le(ka, x) : op === '<' ? le(ka1, x) : op === '>=' ? lt(x, ka1) : op === '>' ? lt(x, ka) : op === '==' ? eq : {k: 'un', op: 'not', x: eq}
+364 |         return go(out)
+365 |       }
+366 |       if (e.op === 'in') { const m = go(e.b); if (m.t !== 'map') throw new LawError('x in m: m a map'); const k = go(e.a); return dry ? {t: 'cond', v: yes} : {t: 'cond', v: cellOf(m, key(k), c).rec.has as Cond} }
+367 |       // (a name the rule doesn't have, compared with a choice: the choice's value, Outcome.SLOW_ERROR)
+368 |       const lit = (x: X): V => { try { return go(x) } catch (err) { if (x.k !== 'path' || !(err instanceof LawError) || !['==', '!='].includes(e.op)) throw err; return {t: 'lit', v: lastName(x) ?? '', err} } }
+                                                                                                                                                                  ^
+error: result.value: can't read .value of a num
+      at lit (/tmp/gdp-final-b11.ZAJpV1/tree/core/laws.ts:368:157)
+      at val (/tmp/gdp-final-b11.ZAJpV1/tree/core/laws.ts:369:17)
+      at read (/tmp/gdp-final-b11.ZAJpV1/tree/core/laws.ts:287:15)
+      at bitBody (/tmp/gdp-final-b11.ZAJpV1/tree/core/laws.ts:227:19)
+      at stepLaw (/tmp/gdp-final-b11.ZAJpV1/tree/core/dsl.ts:1921:17)
+      at buildLaw (/tmp/gdp-final-b11.ZAJpV1/tree/core/laws.ts:239:70)
+      at verdict (/tmp/gdp-final-b11.ZAJpV1/tree/core/extract-ci-audit.test.ts:9:13)
+      at <anonymous> (/tmp/gdp-final-b11.ZAJpV1/tree/core/extract-ci-audit.test.ts:98:12)
+(fail) CI audit N1: class result fields are qualified and scoped by method [81.88ms]
+
+ 4 pass
+ 2 fail
+ 72 expect() calls
+Ran 6 tests across 1 file. [3.41s]
+
+{"mutant":"C1-drop-plain-data-contract","status":"caught","exit":1}
+bun test v1.4.3 (c6da4a4d3)
+
+core/extract-ci-audit.test.ts:
+(pass) CI audit B1: default replay cannot validate optional calendar law translation [723.83ms]
+(pass) CI audit P2: named and destructured records have independent heap identities [400.01ms]
+(pass) CI audit B2: falsy map payloads remain present in both truthiness arms [1610.91ms]
+67 |     'export function decide({enabled}: {enabled: boolean}): {accepted: boolean} { return {accepted: enabled}; }',
+68 |   ]) {
+69 |     const x = extract(source, {entry: 'decide', mode: 'standalone'})
+70 |     expect({ok: x.ok, refusals: x.refusals}).toEqual({ok: true, refusals: []})
+71 |     const notes = x.notes.join('\n')
+72 |     expect(notes).toContain('immutable plain-data snapshots')
+                       ^
+error: expect(received).toContain(expected)
+
+Expected to contain: "immutable plain-data snapshots"
+Received: "standalone scalar function: separate arguments and optional result; numbers are safe integers, not arbitrary JavaScript numbers\nclosed reachable bindings: decide"
+
+      at <anonymous> (/tmp/gdp-final-b11.ZAJpV1/tree/core/extract-ci-audit.test.ts:72:19)
+(fail) CI audit C1: accepted records report the plain-data contract [153.06ms]
+(pass) CI audit N1: reserved output field names are readable without becoming failure status [141.56ms]
+(pass) CI audit N1: class result fields are qualified and scoped by method [162.76ms]
+
+ 5 pass
+ 1 fail
+ 75 expect() calls
+Ran 6 tests across 1 file. [3.37s]
+
+{"mutant":"B2-class-falsy-is-absent","status":"caught","exit":1}
+bun test v1.4.3 (c6da4a4d3)
+
+core/extract-ci-audit.test.ts:
+(pass) CI audit B1: default replay cannot validate optional calendar law translation [714.08ms]
+(pass) CI audit P2: named and destructured records have independent heap identities [313.64ms]
+52 |   for (const kind of ['boolean', 'number']) for (const negated of [false, true]) {
+53 |     const branch = negated ? 'if (!v) return v === undefined; return true;' : 'if (v) return true; return v === undefined;'
+54 |     const source = `export class Decision { values = new Map<string, ${kind}>(); put(key: string, value: ${kind}) { this.values.set(key, value); } test(key: string): boolean { const v = this.values.get(key); ${branch} } }`
+55 |     const x = extract(source, {entry: 'Decision', check: noReplay})
+56 |     expect({ok: x.ok, refusals: x.refusals}).toEqual({ok: true, refusals: []})
+57 |     expect(verdict(x, 'result == true', 'test')).toMatchObject({proven: false, stuck: 'sat'})
+                                                      ^
+error: expect(received).toMatchObject(expected)
+
+  {
++   "checked": false,
++   "kernelProven": true,
+    "proven": false,
+-   "stuck": "sat",
++   "translation": "unchecked",
++   "why": "source translation unchecked: source replay or native-law cross-check was disabled",
+  }
+
+- Expected  - 1
++ Received  + 4
+
+      at <anonymous> (/tmp/gdp-final-b11.ZAJpV1/tree/core/extract-ci-audit.test.ts:57:50)
+(fail) CI audit B2: falsy map payloads remain present in both truthiness arms [542.24ms]
+(pass) CI audit C1: accepted records report the plain-data contract [382.18ms]
+(pass) CI audit N1: reserved output field names are readable without becoming failure status [208.21ms]
+(pass) CI audit N1: class result fields are qualified and scoped by method [223.08ms]
+
+ 5 pass
+ 1 fail
+ 69 expect() calls
+Ran 6 tests across 1 file. [2.56s]
+
+{"mutant":"P2-shared-record-identity","status":"caught","exit":1}
+bun test v1.4.3 (c6da4a4d3)
+
+core/extract-ci-audit.test.ts:
+(pass) CI audit B1: default replay cannot validate optional calendar law translation [794.88ms]
+30 | test('CI audit P2: named and destructured records have independent heap identities', () => {
+31 |   for (const reversed of [false, true]) {
+32 |     const parameters = reversed ? '{enabled}: {enabled: boolean}, arg: {enabled: boolean}' : 'arg: {enabled: boolean}, {enabled}: {enabled: boolean}'
+33 |     const x = extract(`export function decide(${parameters}): boolean { return arg.enabled; }`, {entry: 'decide', mode: 'standalone', check: noReplay})
+34 |     expect({ok: x.ok, refusals: x.refusals}).toEqual({ok: true, refusals: []})
+35 |     expect(verdict(x, 'result == enabled')).toMatchObject({proven: false, stuck: 'sat'})
+                                                 ^
+error: expect(received).toMatchObject(expected)
+
+  {
++   "checked": false,
++   "kernelProven": true,
+    "proven": false,
+-   "stuck": "sat",
++   "translation": "unchecked",
++   "why": "source translation unchecked: source replay or native-law cross-check was disabled",
+  }
+
+- Expected  - 1
++ Received  + 4
+
+      at <anonymous> (/tmp/gdp-final-b11.ZAJpV1/tree/core/extract-ci-audit.test.ts:35:45)
+(fail) CI audit P2: named and destructured records have independent heap identities [200.72ms]
+(pass) CI audit B2: falsy map payloads remain present in both truthiness arms [1575.23ms]
+(pass) CI audit C1: accepted records report the plain-data contract [292.17ms]
+(pass) CI audit N1: reserved output field names are readable without becoming failure status [168.36ms]
+(pass) CI audit N1: class result fields are qualified and scoped by method [157.69ms]
+
+ 5 pass
+ 1 fail
+ 59 expect() calls
+Ran 6 tests across 1 file. [3.38s]
+
+{"mutant":"B1-standalone-only-guard","status":"caught","exit":1}
+bun test v1.4.3 (c6da4a4d3)
+
+core/extract-ci-audit.test.ts:
+20 |     const x = extract(source, standalone ? {entry: 'decide', mode: 'standalone'} : {entry: 'Decision'})
+21 |     expect({ok: x.ok, refusals: x.refusals}).toEqual({ok: true, refusals: []})
+22 |     expect(x.evidence!.requests).toBeGreaterThan(0)
+23 |     expect(x.evidence!.fromStates).toBeGreaterThan(0)
+24 |     for (const expr of ['result - 0 <= 1 business days', '1 business days >= result - 0', '0 - result <= 1 business days']) {
+25 |       expect(() => buildLaw(x, {name: expr, expr, method: 'decide'}, {clock: 1, calendar: {weekend: ['sat', 'sun']}})).toThrow('arithmetic on an optional')
+                                                                                                                            ^
+error: expect(received).toThrow(expected)
+
+Expected substring: "arithmetic on an optional"
+
+Received function did not throw
+Received value: {
+  kind: "step",
+  method: "decide",
+  law: {
+    name: "result - 0 <= 1 business days",
+    forall: "key$4",
+    keys: [ "key$5" ],
+    then: {
+      op: "or",
+      xs: [
+        {
+          op: "not",
+          x: {
+            op: "and",
+            xs: [
+              {
+                op: "and",
+                xs: [
+                  [Object ...], [Object ...]
+                ],
+              }, {
+                op: "and",
+                xs: [
+                  [Object ...], [Object ...]
+                ],
+              }
+            ],
+          },
+        }, {
+          op: "<=",
+          a: {
+            op: "add",
+            a: {
+              op: "add",
+              a: {
+                op: "add",
+                a: {
+                  op: "add",
+                  a: [Object ...],
+                  b: [Object ...],
+                },
+                b: {
+                  op: "if",
+                  c: [Object ...],
+                  then: [Object ...],
+                  else: [Object ...],
+                },
+              },
+              b: {
+                op: "if",
+                c: {
+                  op: "<=",
+                  a: [Object ...],
+                  b: [Object ...],
+                },
+                then: {
+                  op: "const",
+                  value: 1,
+                },
+                else: {
+                  op: "const",
+                  value: 0,
+                },
+              },
+            },
+            b: {
+              op: "add",
+              a: {
+                op: "add",
+                a: {
+                  op: "add",
+                  a: [Object ...],
+                  b: [Object ...],
+                },
+                b: {
+                  op: "if",
+                  c: [Object ...],
+                  then: [Object ...],
+                  else: [Object ...],
+                },
+              },
+              b: {
+                op: "if",
+                c: {
+                  op: "<=",
+                  a: [Object ...],
+                  b: [Object ...],
+                },
+                then: {
+                  op: "const",
+                  value: 0,
+                },
+                else: {
+                  op: "const",
+                  value: 0,
+                },
+              },
+            },
+          },
+          b: {
+            op: "add",
+            a: {
+              op: "const",
+              value: 1,
+            },
+            b: {
+              op: "add",
+              a: {
+                op: "add",
+                a: {
+                  op: "add",
+                  a: [Object ...],
+                  b: [Object ...],
+                },
+                b: {
+                  op: "if",
+                  c: [Object ...],
+                  then: [Object ...],
+                  else: [Object ...],
+                },
+              },
+              b: {
+                op: "add",
+                a: {
+                  op: "add",
+                  a: [Object ...],
+                  b: [Object ...],
+                },
+                b: {
+                  op: "if",
+                  c: [Object ...],
+                  then: [Object ...],
+                  else: [Object ...],
+                },
+              },
+            },
+          },
+        }
+      ],
+    },
+    when: {
+      op: "=",
+      a: {
+        op: "var",
+        name: "method",
+      },
+      b: {
+        op: "const",
+        value: 0,
+      },
+    },
+    [Symbol(gdp-wired.source-proof.v1)]: true,
+  },
+}
+
+      at <anonymous> (/tmp/gdp-final-b11.ZAJpV1/tree/core/extract-ci-audit.test.ts:25:120)
+(fail) CI audit B1: default replay cannot validate optional calendar law translation [713.53ms]
+(pass) CI audit P2: named and destructured records have independent heap identities [304.28ms]
+(pass) CI audit B2: falsy map payloads remain present in both truthiness arms [1927.42ms]
+(pass) CI audit C1: accepted records report the plain-data contract [404.42ms]
+(pass) CI audit N1: reserved output field names are readable without becoming failure status [193.35ms]
+(pass) CI audit N1: class result fields are qualified and scoped by method [241.68ms]
+
+ 5 pass
+ 1 fail
+ 81 expect() calls
+Ran 6 tests across 1 file. [3.93s]
+
+CI_AUDIT_MUTATIONS_PASS restored=true
+{"name":"native-law-evaluation-off","caught":true,"exit":1,"failures":["(fail) source law: a faulty law lowering is refused with a native witness [191.42ms]","(fail) source law: a hidden numeric payload cannot replace an absent native result [179.36ms]"]}
+{"name":"unchecked-can-prove","caught":true,"exit":1,"failures":["(fail) source law: disabled source replay cannot yield a source proof [94.31ms]","(fail) source law: explicit law-cross-check disablement cannot yield a source proof [163.84ms]","(fail) source-derived rule copies cannot silently become unchecked DSL proofs [83.47ms]","(fail) a direct Rule specification copy retains its source-proof requirement [70.91ms]","(fail) unchecked source models cannot acquire an interchange certificate [81.25ms]","(fail) source-derived decisions and composed rules cannot bypass native validation [2.14ms]","(fail) a source marker without local metadata fails closed across module copies [13.09ms]","(fail) inferred support proves the model without bypassing source finalization [446.26ms]","(fail) native laws use reachable traces, while drawn states still check conformance [1470.27ms]"]}
+{"name":"finite-enumeration-off","caught":true,"exit":1,"failures":["(fail) source law: native finite-domain cross-check is mandatory after a kernel proof [362.13ms]","(fail) source law: a faulty law lowering is refused with a native witness [149.30ms]"]}
+{"name":"undefined-erased-to-zero","caught":true,"exit":1,"failures":["(fail) source law: a hidden numeric payload cannot replace an absent native result [129.09ms]"]}
+{"name":"source-copy-marker-lost","caught":true,"exit":1,"failures":["(fail) source-derived rule copies cannot silently become unchecked DSL proofs [117.07ms]","(fail) a direct Rule specification copy retains its source-proof requirement [99.85ms]","(fail) source-derived decisions and composed rules cannot bypass native validation [13.20ms]"]}
+{"name":"inference-uses-source-finalizer","caught":true,"exit":1,"failures":["(fail) inferred support proves the model without bypassing source finalization [1268.84ms]","(fail) native laws use reachable traces, while drawn states still check conformance [5527.69ms]"]}
+{"name":"schedule-source-marker-lost","caught":true,"exit":1,"failures":["(fail) a source-derived schedule cannot become a plain DSL proof when replay is off [785.56ms]"]}
+{"name":"fiber-source-marker-lost","caught":true,"exit":1,"failures":["(fail) broken: save in two transactions is every fiber's two steps; a lost update refuted by two fibers, and seen on the runtime [3847.17ms]"]}
+{"name":"spec-copy-source-marker-lost","caught":true,"exit":1,"failures":["(fail) a direct Rule specification copy retains its source-proof requirement [114.92ms]"]}
+{"name":"unreachable-states-used-for-laws","caught":true,"exit":1,"failures":["(fail) native laws use reachable traces, while drawn states still check conformance [932.84ms]"]}
+{"name":"factory-capture-tie-order","caught":true,"exit":1,"failures":["(fail) native capture closes a final arrow before injected factory fields at the same offset [10.05ms]"]}
+{"name":"unchecked-source-certificate","caught":true,"exit":1,"failures":["(fail) unchecked source models cannot acquire an interchange certificate [145.06ms]"]}
+{"name":"inference-model-counterexample-lost","caught":true,"exit":1,"failures":["(fail) a false law is answered with the run that breaks it; a law proven alone needs nothing found [363.18ms]"]}
+CROSSCHECK_MUTANTS {"passed":true,"mutants":[{"name":"native-law-evaluation-off","caught":true,"exit":1,"failures":["(fail) source law: a faulty law lowering is refused with a native witness [191.42ms]","(fail) source law: a hidden numeric payload cannot replace an absent native result [179.36ms]"]},{"name":"unchecked-can-prove","caught":true,"exit":1,"failures":["(fail) source law: disabled source replay cannot yield a source proof [94.31ms]","(fail) source law: explicit law-cross-check disablement cannot yield a source proof [163.84ms]","(fail) source-derived rule copies cannot silently become unchecked DSL proofs [83.47ms]","(fail) a direct Rule specification copy retains its source-proof requirement [70.91ms]","(fail) unchecked source models cannot acquire an interchange certificate [81.25ms]","(fail) source-derived decisions and composed rules cannot bypass native validation [2.14ms]","(fail) a source marker without local metadata fails closed across module copies [13.09ms]","(fail) inferred support proves the model without bypassing source finalization [446.26ms]","(fail) native laws use reachable traces, while drawn states still check conformance [1470.27ms]"]},{"name":"finite-enumeration-off","caught":true,"exit":1,"failures":["(fail) source law: native finite-domain cross-check is mandatory after a kernel proof [362.13ms]","(fail) source law: a faulty law lowering is refused with a native witness [149.30ms]"]},{"name":"undefined-erased-to-zero","caught":true,"exit":1,"failures":["(fail) source law: a hidden numeric payload cannot replace an absent native result [129.09ms]"]},{"name":"source-copy-marker-lost","caught":true,"exit":1,"failures":["(fail) source-derived rule copies cannot silently become unchecked DSL proofs [117.07ms]","(fail) a direct Rule specification copy retains its source-proof requirement [99.85ms]","(fail) source-derived decisions and composed rules cannot bypass native validation [13.20ms]"]},{"name":"inference-uses-source-finalizer","caught":true,"exit":1,"failures":["(fail) inferred support proves the model without bypassing source finalization [1268.84ms]","(fail) native laws use reachable traces, while drawn states still check conformance [5527.69ms]"]},{"name":"schedule-source-marker-lost","caught":true,"exit":1,"failures":["(fail) a source-derived schedule cannot become a plain DSL proof when replay is off [785.56ms]"]},{"name":"fiber-source-marker-lost","caught":true,"exit":1,"failures":["(fail) broken: save in two transactions is every fiber's two steps; a lost update refuted by two fibers, and seen on the runtime [3847.17ms]"]},{"name":"spec-copy-source-marker-lost","caught":true,"exit":1,"failures":["(fail) a direct Rule specification copy retains its source-proof requirement [114.92ms]"]},{"name":"unreachable-states-used-for-laws","caught":true,"exit":1,"failures":["(fail) native laws use reachable traces, while drawn states still check conformance [932.84ms]"]},{"name":"factory-capture-tie-order","caught":true,"exit":1,"failures":["(fail) native capture closes a final arrow before injected factory fields at the same offset [10.05ms]"]},{"name":"unchecked-source-certificate","caught":true,"exit":1,"failures":["(fail) unchecked source models cannot acquire an interchange certificate [145.06ms]"]},{"name":"inference-model-counterexample-lost","caught":true,"exit":1,"failures":["(fail) a false law is answered with the run that breaks it; a law proven alone needs nothing found [363.18ms]"]}]}
+| Mutant | Bug | siblings |
+| --- | --- | --- |
+| N1-silent-method-rebinding | explicit method is overwritten by a field owner | caught |
+| B1-nested-optional-erased | nested arithmetic loses optional provenance | caught |
+| P2-lazy-argument-prefix-shared | lazy fields alias across arguments | caught |
+{"name":"N1-silent-method-rebinding","status":"caught","exit":1,"output":"bun test v1.4.3 (c6da4a4d3)\n\ncore/extract-ci-composite-optional.test.ts:\n(pass) B1 direct: calendar operands retain optional provenance [2.15ms]\n(pass) B1 nested: calendar operands retain optional provenance [0.23ms]\n(pass) B1 negated: calendar operands retain optional provenance [0.07ms]\n(pass) B1 minimum: calendar operands retain optional provenance [0.07ms]\n(pass) B1 absolute: calendar operands retain optional provenance [0.09ms]\n(pass) B1 maximum: calendar operands retain optional provenance [0.06ms]\n(pass) B1 product: calendar operands retain optional provenance [0.04ms]\n(pass) B1 division: calendar operands retain optional provenance [0.05ms]\n(pass) nonoptional class and standalone calendar laws remain proven [987.69ms]\n\ncore/extract-ci-lazy-identity.test.ts:\n(pass) P2 typed records have independent scalar identities [244.17ms]\n(pass) P2 lazy records have independent scalar identities [269.88ms]\n(pass) repeated reads of one lazy argument still share a single scalar [160.65ms]\n\ncore/extract-ci-method-scope.test.ts:\n 8 | for (const field of ['value', 'failed']) test(`qualified ${field} cannot rebind a law to another method`, () => {\n 9 |   const expr = `result.${field} == ${field === 'value' ? '7' : 'true'}`\n10 |   const own = buildLaw(x, {name: 'matching method', expr, method: 'first'})\n11 |   expect(own.kind).toBe('step')\n12 |   if (own.kind === 'step') expect(own.method).toBe('first')\n13 |   expect(() => buildLaw(x, {name: 'method boundary', expr, method: 'second'})).toThrow('bound to second')\n                                                                                    ^\nerror: expect(received).toThrow(expected)\n\nExpected substring: \"bound to second\"\n\nReceived function did not throw\nReceived value: {\n  kind: \"step\",\n  method: \"first\",\n  law: {\n    name: \"method boundary\",\n    then: {\n      op: \"=\",\n      a: {\n        op: \"var\",\n        name: \"first_result_value'\",\n      },\n      b: {\n        op: \"const\",\n        value: 7,\n      },\n    },\n    when: {\n      op: \"=\",\n      a: {\n        op: \"var\",\n        name: \"method\",\n      },\n      b: {\n        op: \"const\",\n        value: 0,\n      },\n    },\n    [Symbol(gdp-wired.source-proof.v1)]: true,\n  },\n}\n\n      at <anonymous> (/tmp/gdp-final-b11.ZAJpV1/tree/core/extract-ci-method-scope.test.ts:13:80)\n(fail) qualified value cannot rebind a law to another method [1.56ms]\n 8 | for (const field of ['value', 'failed']) test(`qualified ${field} cannot rebind a law to another method`, () => {\n 9 |   const expr = `result.${field} == ${field === 'value' ? '7' : 'true'}`\n10 |   const own = buildLaw(x, {name: 'matching method', expr, method: 'first'})\n11 |   expect(own.kind).toBe('step')\n12 |   if (own.kind === 'step') expect(own.method).toBe('first')\n13 |   expect(() => buildLaw(x, {name: 'method boundary', expr, method: 'second'})).toThrow('bound to second')\n                                                                                    ^\nerror: expect(received).toThrow(expected)\n\nExpected substring: \"bound to second\"\n\nReceived function did not throw\nReceived value: {\n  kind: \"step\",\n  method: \"first\",\n  law: {\n    name: \"method boundary\",\n    then: {\n      op: \"and\",\n      xs: [\n        {\n          op: \"or\",\n          xs: [\n            {\n              op: \"not\",\n              x: {\n                op: \"=\",\n                a: {\n                  op: \"var\",\n                  name: \"first_result_failed'\",\n                },\n                b: {\n                  op: \"const\",\n                  value: 1,\n                },\n              },\n            }, {\n              op: \"<=\",\n              a: {\n                op: \"const\",\n                value: 0,\n              },\n              b: {\n                op: \"const\",\n                value: 0,\n              },\n            }\n          ],\n        }, {\n          op: \"or\",\n          xs: [\n            {\n              op: \"not\",\n              x: {\n                op: \"<=\",\n                a: {\n                  op: \"const\",\n                  value: 0,\n                },\n                b: {\n                  op: \"const\",\n                  value: 0,\n                },\n              },\n            }, {\n              op: \"=\",\n              a: {\n                op: \"var\",\n                name: \"first_result_failed'\",\n              },\n              b: {\n                op: \"const\",\n                value: 1,\n              },\n            }\n          ],\n        }\n      ],\n    },\n    when: {\n      op: \"=\",\n      a: {\n        op: \"var\",\n        name: \"method\",\n      },\n      b: {\n        op: \"const\",\n        value: 0,\n      },\n    },\n    [Symbol(gdp-wired.source-proof.v1)]: true,\n  },\n}\n\n      at <anonymous> (/tmp/gdp-final-b11.ZAJpV1/tree/core/extract-ci-method-scope.test.ts:13:80)\n(fail) qualified failed cannot rebind a law to another method [0.51ms]\n16 |   if (inferred.kind === 'step') expect(inferred.method).toBe('first')\n17 | })\n18 | test('explicit method also governs scalar results and arguments', () => {\n19 |   const y = extract('export class C { first(a:number){return a} second(){return {other:9}} }', {entry: 'C', check: {runs: 0, states: 0, probes: false}})\n20 |   expect(y.ok).toBe(true)\n21 |   for (const expr of ['result == 7', 'a == 7', 'first.a == 7']) expect(() => buildLaw(y, {name: expr, expr, method: 'second'})).toThrow('bound to second')\n                                                                                                                                     ^\nerror: expect(received).toThrow(expected)\n\nExpected substring: \"bound to second\"\n\nReceived function did not throw\nReceived value: {\n  kind: \"step\",\n  method: \"first\",\n  law: {\n    name: \"result == 7\",\n    then: {\n      op: \"=\",\n      a: {\n        op: \"var\",\n        name: \"first_result'\",\n      },\n      b: {\n        op: \"add\",\n        a: {\n          op: \"const\",\n          value: 7,\n        },\n        b: {\n          op: \"var\",\n          name: \"first_result$neg'\",\n        },\n      },\n    },\n    when: {\n      op: \"=\",\n      a: {\n        op: \"var\",\n        name: \"method\",\n      },\n      b: {\n        op: \"const\",\n        value: 0,\n      },\n    },\n    [Symbol(gdp-wired.source-proof.v1)]: true,\n  },\n}\n\n      at <anonymous> (/tmp/gdp-final-b11.ZAJpV1/tree/core/extract-ci-method-scope.test.ts:21:129)\n(fail) explicit method also governs scalar results and arguments [73.31ms]\n\n 12 pass\n 3 fail\n 44 expect() calls\nRan 15 tests across 3 files. [2.35s]\n"}
+{"name":"B1-nested-optional-erased","status":"caught","exit":1,"output":"bun test v1.4.3 (c6da4a4d3)\n\ncore/extract-ci-composite-optional.test.ts:\n(pass) B1 direct: calendar operands retain optional provenance [2.95ms]\n 5 | \n 6 | const x = extract('export class C { m=new Map<string,number>(); decide(k:string):number|undefined{return this.m.get(k)} }', {entry: 'C'})\n 7 | expect({ok: x.ok, refusals: x.refusals}).toEqual({ok: true, refusals: []})\n 8 | const opts = {clock: 1, calendar: {weekend: ['sat', 'sun']}}\n 9 | for (const [id, expr] of Object.entries({direct: 'result - 0 <= 1 business days', nested: '(result + 0) - 0 <= 1 business days', negated: '(-result) - 0 <= 1 business days', minimum: 'min(result, 0) - 0 <= 1 business days', absolute: 'abs(result) - 0 <= 1 business days', maximum: '0 - max(0, result) <= 1 business days', product: '(2 * result) - 0 <= 1 business days', division: '(result // 2) - 0 <= 1 business days'})) test(`B1 ${id}: calendar operands retain optional provenance`, () => {\n10 |   expect(() => buildLaw(x, {name: id, expr, method: 'decide'}, opts)).toThrow('optional')\n                                                                           ^\nerror: expect(received).toThrow(expected)\n\nExpected substring: \"optional\"\n\nReceived function did not throw\nReceived value: {\n  kind: \"step\",\n  method: \"decide\",\n  law: {\n    name: \"nested\",\n    forall: \"key$4\",\n    keys: [ \"key$5\" ],\n    then: {\n      op: \"or\",\n      xs: [\n        {\n          op: \"not\",\n          x: {\n            op: \"and\",\n            xs: [\n              {\n                op: \"and\",\n                xs: [\n                  [Object ...], [Object ...]\n                ],\n              }, {\n                op: \"and\",\n                xs: [\n                  [Object ...], [Object ...]\n                ],\n              }\n            ],\n          },\n        }, {\n          op: \"<=\",\n          a: {\n            op: \"add\",\n            a: {\n              op: \"add\",\n              a: {\n                op: \"add\",\n                a: {\n                  op: \"add\",\n                  a: [Object ...],\n                  b: [Object ...],\n                },\n                b: {\n                  op: \"if\",\n                  c: [Object ...],\n                  then: [Object ...],\n                  else: [Object ...],\n                },\n              },\n              b: {\n                op: \"if\",\n                c: {\n                  op: \"<=\",\n                  a: [Object ...],\n                  b: [Object ...],\n                },\n                then: {\n                  op: \"const\",\n                  value: 1,\n                },\n                else: {\n                  op: \"const\",\n                  value: 0,\n                },\n              },\n            },\n            b: {\n              op: \"add\",\n              a: {\n                op: \"add\",\n                a: {\n                  op: \"add\",\n                  a: [Object ...],\n                  b: [Object ...],\n                },\n                b: {\n                  op: \"if\",\n                  c: [Object ...],\n                  then: [Object ...],\n                  else: [Object ...],\n                },\n              },\n              b: {\n                op: \"if\",\n                c: {\n                  op: \"<=\",\n                  a: [Object ...],\n                  b: [Object ...],\n                },\n                then: {\n                  op: \"const\",\n                  value: 0,\n                },\n                else: {\n                  op: \"const\",\n                  value: 0,\n                },\n              },\n            },\n          },\n          b: {\n            op: \"add\",\n            a: {\n              op: \"const\",\n              value: 1,\n            },\n            b: {\n              op: \"add\",\n              a: {\n                op: \"add\",\n                a: {\n                  op: \"add\",\n                  a: [Object ...],\n                  b: [Object ...],\n                },\n                b: {\n                  op: \"if\",\n                  c: [Object ...],\n                  then: [Object ...],\n                  else: [Object ...],\n                },\n              },\n              b: {\n                op: \"add\",\n                a: {\n                  op: \"add\",\n                  a: [Object ...],\n                  b: [Object ...],\n                },\n                b: {\n                  op: \"if\",\n                  c: [Object ...],\n                  then: [Object ...],\n                  else: [Object ...],\n                },\n              },\n            },\n          },\n        }\n      ],\n    },\n    when: {\n      op: \"=\",\n      a: {\n        op: \"var\",\n        name: \"method\",\n      },\n      b: {\n        op: \"const\",\n        value: 0,\n      },\n    },\n    [Symbol(gdp-wired.source-proof.v1)]: true,\n  },\n}\n\n      at <anonymous> (/tmp/gdp-final-b11.ZAJpV1/tree/core/extract-ci-composite-optional.test.ts:10:71)\n(fail) B1 nested: calendar operands retain optional provenance [2.81ms]\n 5 | \n 6 | const x = extract('export class C { m=new Map<string,number>(); decide(k:string):number|undefined{return this.m.get(k)} }', {entry: 'C'})\n 7 | expect({ok: x.ok, refusals: x.refusals}).toEqual({ok: true, refusals: []})\n 8 | const opts = {clock: 1, calendar: {weekend: ['sat', 'sun']}}\n 9 | for (const [id, expr] of Object.entries({direct: 'result - 0 <= 1 business days', nested: '(result + 0) - 0 <= 1 business days', negated: '(-result) - 0 <= 1 business days', minimum: 'min(result, 0) - 0 <= 1 business days', absolute: 'abs(result) - 0 <= 1 business days', maximum: '0 - max(0, result) <= 1 business days', product: '(2 * result) - 0 <= 1 business days', division: '(result // 2) - 0 <= 1 business days'})) test(`B1 ${id}: calendar operands retain optional provenance`, () => {\n10 |   expect(() => buildLaw(x, {name: id, expr, method: 'decide'}, opts)).toThrow('optional')\n                                                                           ^\nerror: expect(received).toThrow(expected)\n\nExpected substring: \"optional\"\n\nReceived function did not throw\nReceived value: {\n  kind: \"step\",\n  method: \"decide\",\n  law: {\n    name: \"negated\",\n    forall: \"key$7\",\n    keys: [ \"key$8\", \"key$9\" ],\n    then: {\n      op: \"or\",\n      xs: [\n        {\n          op: \"not\",\n          x: {\n            op: \"and\",\n            xs: [\n              {\n                op: \"and\",\n                xs: [\n                  [Object ...], [Object ...]\n                ],\n              }, {\n                op: \"and\",\n                xs: [\n                  [Object ...], [Object ...]\n                ],\n              }\n            ],\n          },\n        }, {\n          op: \"<=\",\n          a: {\n            op: \"add\",\n            a: {\n              op: \"add\",\n              a: {\n                op: \"add\",\n                a: {\n                  op: \"add\",\n                  a: [Object ...],\n                  b: [Object ...],\n                },\n                b: {\n                  op: \"if\",\n                  c: [Object ...],\n                  then: [Object ...],\n                  else: [Object ...],\n                },\n              },\n              b: {\n                op: \"if\",\n                c: {\n                  op: \"<=\",\n                  a: [Object ...],\n                  b: [Object ...],\n                },\n                then: {\n                  op: \"const\",\n                  value: 1,\n                },\n                else: {\n                  op: \"const\",\n                  value: 0,\n                },\n              },\n            },\n            b: {\n              op: \"add\",\n              a: {\n                op: \"add\",\n                a: {\n                  op: \"add\",\n                  a: [Object ...],\n                  b: [Object ...],\n                },\n                b: {\n                  op: \"if\",\n                  c: [Object ...],\n                  then: [Object ...],\n                  else: [Object ...],\n                },\n              },\n              b: {\n                op: \"if\",\n                c: {\n                  op: \"<=\",\n                  a: [Object ...],\n                  b: [Object ...],\n                },\n                then: {\n                  op: \"const\",\n                  value: 0,\n                },\n                else: {\n                  op: \"const\",\n                  value: 0,\n                },\n              },\n            },\n          },\n          b: {\n            op: \"add\",\n            a: {\n              op: \"const\",\n              value: 1,\n            },\n            b: {\n              op: \"add\",\n              a: {\n                op: \"add\",\n                a: {\n                  op: \"add\",\n                  a: [Object ...],\n                  b: [Object ...],\n                },\n                b: {\n                  op: \"if\",\n                  c: [Object ...],\n                  then: [Object ...],\n                  else: [Object ...],\n                },\n              },\n              b: {\n                op: \"add\",\n                a: {\n                  op: \"add\",\n                  a: [Object ...],\n                  b: [Object ...],\n                },\n                b: {\n                  op: \"if\",\n                  c: [Object ...],\n                  then: [Object ...],\n                  else: [Object ...],\n                },\n              },\n            },\n          },\n        }\n      ],\n    },\n    when: {\n      op: \"=\",\n      a: {\n        op: \"var\",\n        name: \"method\",\n      },\n      b: {\n        op: \"const\",\n        value: 0,\n      },\n    },\n    [Symbol(gdp-wired.source-proof.v1)]: true,\n  },\n}\n\n      at <anonymous> (/tmp/gdp-final-b11.ZAJpV1/tree/core/extract-ci-composite-optional.test.ts:10:71)\n(fail) B1 negated: calendar operands retain optional provenance [0.89ms]\n 5 | \n 6 | const x = extract('export class C { m=new Map<string,number>(); decide(k:string):number|undefined{return this.m.get(k)} }', {entry: 'C'})\n 7 | expect({ok: x.ok, refusals: x.refusals}).toEqual({ok: true, refusals: []})\n 8 | const opts = {clock: 1, calendar: {weekend: ['sat', 'sun']}}\n 9 | for (const [id, expr] of Object.entries({direct: 'result - 0 <= 1 business days', nested: '(result + 0) - 0 <= 1 business days', negated: '(-result) - 0 <= 1 business days', minimum: 'min(result, 0) - 0 <= 1 business days', absolute: 'abs(result) - 0 <= 1 business days', maximum: '0 - max(0, result) <= 1 business days', product: '(2 * result) - 0 <= 1 business days', division: '(result // 2) - 0 <= 1 business days'})) test(`B1 ${id}: calendar operands retain optional provenance`, () => {\n10 |   expect(() => buildLaw(x, {name: id, expr, method: 'decide'}, opts)).toThrow('optional')\n                                                                           ^\nerror: expect(received).toThrow(expected)\n\nExpected substring: \"optional\"\n\nReceived function did not throw\nReceived value: {\n  kind: \"step\",\n  method: \"decide\",\n  law: {\n    name: \"minimum\",\n    forall: \"key$11\",\n    keys: [ \"key$12\", \"key$13\" ],\n    then: {\n      op: \"or\",\n      xs: [\n        {\n          op: \"not\",\n          x: {\n            op: \"and\",\n            xs: [\n              {\n                op: \"and\",\n                xs: [\n                  [Object ...], [Object ...]\n                ],\n              }, {\n                op: \"and\",\n                xs: [\n                  [Object ...], [Object ...]\n                ],\n              }\n            ],\n          },\n        }, {\n          op: \"<=\",\n          a: {\n            op: \"add\",\n            a: {\n              op: \"add\",\n              a: {\n                op: \"add\",\n                a: {\n                  op: \"add\",\n                  a: [Object ...],\n                  b: [Object ...],\n                },\n                b: {\n                  op: \"if\",\n                  c: [Object ...],\n                  then: [Object ...],\n                  else: [Object ...],\n                },\n              },\n              b: {\n                op: \"if\",\n                c: {\n                  op: \"<=\",\n                  a: [Object ...],\n                  b: [Object ...],\n                },\n                then: {\n                  op: \"const\",\n                  value: 1,\n                },\n                else: {\n                  op: \"const\",\n                  value: 0,\n                },\n              },\n            },\n            b: {\n              op: \"add\",\n              a: {\n                op: \"add\",\n                a: {\n                  op: \"add\",\n                  a: [Object ...],\n                  b: [Object ...],\n                },\n                b: {\n                  op: \"if\",\n                  c: [Object ...],\n                  then: [Object ...],\n                  else: [Object ...],\n                },\n              },\n              b: {\n                op: \"if\",\n                c: {\n                  op: \"<=\",\n                  a: [Object ...],\n                  b: [Object ...],\n                },\n                then: {\n                  op: \"const\",\n                  value: 0,\n                },\n                else: {\n                  op: \"const\",\n                  value: 0,\n                },\n              },\n            },\n          },\n          b: {\n            op: \"add\",\n            a: {\n              op: \"const\",\n              value: 1,\n            },\n            b: {\n              op: \"add\",\n              a: {\n                op: \"add\",\n                a: {\n                  op: \"add\",\n                  a: [Object ...],\n                  b: [Object ...],\n                },\n                b: {\n                  op: \"if\",\n                  c: [Object ...],\n                  then: [Object ...],\n                  else: [Object ...],\n                },\n              },\n              b: {\n                op: \"add\",\n                a: {\n                  op: \"add\",\n                  a: [Object ...],\n                  b: [Object ...],\n                },\n                b: {\n                  op: \"if\",\n                  c: [Object ...],\n                  then: [Object ...],\n                  else: [Object ...],\n                },\n              },\n            },\n          },\n        }\n      ],\n    },\n    when: {\n      op: \"=\",\n      a: {\n        op: \"var\",\n        name: \"method\",\n      },\n      b: {\n        op: \"const\",\n        value: 0,\n      },\n    },\n    [Symbol(gdp-wired.source-proof.v1)]: true,\n  },\n}\n\n      at <anonymous> (/tmp/gdp-final-b11.ZAJpV1/tree/core/extract-ci-composite-optional.test.ts:10:71)\n(fail) B1 minimum: calendar operands retain optional provenance [0.69ms]\n 5 | \n 6 | const x = extract('export class C { m=new Map<string,number>(); decide(k:string):number|undefined{return this.m.get(k)} }', {entry: 'C'})\n 7 | expect({ok: x.ok, refusals: x.refusals}).toEqual({ok: true, refusals: []})\n 8 | const opts = {clock: 1, calendar: {weekend: ['sat', 'sun']}}\n 9 | for (const [id, expr] of Object.entries({direct: 'result - 0 <= 1 business days', nested: '(result + 0) - 0 <= 1 business days', negated: '(-result) - 0 <= 1 business days', minimum: 'min(result, 0) - 0 <= 1 business days', absolute: 'abs(result) - 0 <= 1 business days', maximum: '0 - max(0, result) <= 1 business days', product: '(2 * result) - 0 <= 1 business days', division: '(result // 2) - 0 <= 1 business days'})) test(`B1 ${id}: calendar operands retain optional provenance`, () => {\n10 |   expect(() => buildLaw(x, {name: id, expr, method: 'decide'}, opts)).toThrow('optional')\n                                                                           ^\nerror: expect(received).toThrow(expected)\n\nExpected substring: \"optional\"\n\nReceived function did not throw\nReceived value: {\n  kind: \"step\",\n  method: \"decide\",\n  law: {\n    name: \"absolute\",\n    forall: \"key$15\",\n    keys: [ \"key$16\" ],\n    then: {\n      op: \"or\",\n      xs: [\n        {\n          op: \"not\",\n          x: {\n            op: \"and\",\n            xs: [\n              {\n                op: \"and\",\n                xs: [\n                  [Object ...], [Object ...]\n                ],\n              }, {\n                op: \"and\",\n                xs: [\n                  [Object ...], [Object ...]\n                ],\n              }\n            ],\n          },\n        }, {\n          op: \"<=\",\n          a: {\n            op: \"add\",\n            a: {\n              op: \"add\",\n              a: {\n                op: \"add\",\n                a: {\n                  op: \"add\",\n                  a: [Object ...],\n                  b: [Object ...],\n                },\n                b: {\n                  op: \"if\",\n                  c: [Object ...],\n                  then: [Object ...],\n                  else: [Object ...],\n                },\n              },\n              b: {\n                op: \"if\",\n                c: {\n                  op: \"<=\",\n                  a: [Object ...],\n                  b: [Object ...],\n                },\n                then: {\n                  op: \"const\",\n                  value: 1,\n                },\n                else: {\n                  op: \"const\",\n                  value: 0,\n                },\n              },\n            },\n            b: {\n              op: \"add\",\n              a: {\n                op: \"add\",\n                a: {\n                  op: \"add\",\n                  a: [Object ...],\n                  b: [Object ...],\n                },\n                b: {\n                  op: \"if\",\n                  c: [Object ...],\n                  then: [Object ...],\n                  else: [Object ...],\n                },\n              },\n              b: {\n                op: \"if\",\n                c: {\n                  op: \"<=\",\n                  a: [Object ...],\n                  b: [Object ...],\n                },\n                then: {\n                  op: \"const\",\n                  value: 0,\n                },\n                else: {\n                  op: \"const\",\n                  value: 0,\n                },\n              },\n            },\n          },\n          b: {\n            op: \"add\",\n            a: {\n              op: \"const\",\n              value: 1,\n            },\n            b: {\n              op: \"add\",\n              a: {\n                op: \"add\",\n                a: {\n                  op: \"add\",\n                  a: [Object ...],\n                  b: [Object ...],\n                },\n                b: {\n                  op: \"if\",\n                  c: [Object ...],\n                  then: [Object ...],\n                  else: [Object ...],\n                },\n              },\n              b: {\n                op: \"add\",\n                a: {\n                  op: \"add\",\n                  a: [Object ...],\n                  b: [Object ...],\n                },\n                b: {\n                  op: \"if\",\n                  c: [Object ...],\n                  then: [Object ...],\n                  else: [Object ...],\n                },\n              },\n            },\n          },\n        }\n      ],\n    },\n    when: {\n      op: \"=\",\n      a: {\n        op: \"var\",\n        name: \"method\",\n      },\n      b: {\n        op: \"const\",\n        value: 0,\n      },\n    },\n    [Symbol(gdp-wired.source-proof.v1)]: true,\n  },\n}\n\n      at <anonymous> (/tmp/gdp-final-b11.ZAJpV1/tree/core/extract-ci-composite-optional.test.ts:10:71)\n(fail) B1 absolute: calendar operands retain optional provenance [0.53ms]\n 5 | \n 6 | const x = extract('export class C { m=new Map<string,number>(); decide(k:string):number|undefined{return this.m.get(k)} }', {entry: 'C'})\n 7 | expect({ok: x.ok, refusals: x.refusals}).toEqual({ok: true, refusals: []})\n 8 | const opts = {clock: 1, calendar: {weekend: ['sat', 'sun']}}\n 9 | for (const [id, expr] of Object.entries({direct: 'result - 0 <= 1 business days', nested: '(result + 0) - 0 <= 1 business days', negated: '(-result) - 0 <= 1 business days', minimum: 'min(result, 0) - 0 <= 1 business days', absolute: 'abs(result) - 0 <= 1 business days', maximum: '0 - max(0, result) <= 1 business days', product: '(2 * result) - 0 <= 1 business days', division: '(result // 2) - 0 <= 1 business days'})) test(`B1 ${id}: calendar operands retain optional provenance`, () => {\n10 |   expect(() => buildLaw(x, {name: id, expr, method: 'decide'}, opts)).toThrow('optional')\n                                                                           ^\nerror: expect(received).toThrow(expected)\n\nExpected substring: \"optional\"\n\nReceived function did not throw\nReceived value: {\n  kind: \"step\",\n  method: \"decide\",\n  law: {\n    name: \"maximum\",\n    forall: \"key$18\",\n    keys: [ \"key$19\", \"key$20\" ],\n    then: {\n      op: \"or\",\n      xs: [\n        {\n          op: \"not\",\n          x: {\n            op: \"and\",\n            xs: [\n              {\n                op: \"and\",\n                xs: [\n                  [Object ...], [Object ...]\n                ],\n              }, {\n                op: \"and\",\n                xs: [\n                  [Object ...], [Object ...]\n                ],\n              }\n            ],\n          },\n        }, {\n          op: \"<=\",\n          a: {\n            op: \"add\",\n            a: {\n              op: \"add\",\n              a: {\n                op: \"add\",\n                a: {\n                  op: \"add\",\n                  a: [Object ...],\n                  b: [Object ...],\n                },\n                b: {\n                  op: \"if\",\n                  c: [Object ...],\n                  then: [Object ...],\n                  else: [Object ...],\n                },\n              },\n              b: {\n                op: \"if\",\n                c: {\n                  op: \"<=\",\n                  a: [Object ...],\n                  b: [Object ...],\n                },\n                then: {\n                  op: \"const\",\n                  value: 1,\n                },\n                else: {\n                  op: \"const\",\n                  value: 0,\n                },\n              },\n            },\n            b: {\n              op: \"add\",\n              a: {\n                op: \"add\",\n                a: {\n                  op: \"add\",\n                  a: [Object ...],\n                  b: [Object ...],\n                },\n                b: {\n                  op: \"if\",\n                  c: [Object ...],\n                  then: [Object ...],\n                  else: [Object ...],\n                },\n              },\n              b: {\n                op: \"if\",\n                c: {\n                  op: \"<=\",\n                  a: [Object ...],\n                  b: [Object ...],\n                },\n                then: {\n                  op: \"const\",\n                  value: 0,\n                },\n                else: {\n                  op: \"const\",\n                  value: 0,\n                },\n              },\n            },\n          },\n          b: {\n            op: \"add\",\n            a: {\n              op: \"const\",\n              value: 1,\n            },\n            b: {\n              op: \"add\",\n              a: {\n                op: \"add\",\n                a: {\n                  op: \"add\",\n                  a: [Object ...],\n                  b: [Object ...],\n                },\n                b: {\n                  op: \"if\",\n                  c: [Object ...],\n                  then: [Object ...],\n                  else: [Object ...],\n                },\n              },\n              b: {\n                op: \"add\",\n                a: {\n                  op: \"add\",\n                  a: [Object ...],\n                  b: [Object ...],\n                },\n                b: {\n                  op: \"if\",\n                  c: [Object ...],\n                  then: [Object ...],\n                  else: [Object ...],\n                },\n              },\n            },\n          },\n        }\n      ],\n    },\n    when: {\n      op: \"=\",\n      a: {\n        op: \"var\",\n        name: \"method\",\n      },\n      b: {\n        op: \"const\",\n        value: 0,\n      },\n    },\n    [Symbol(gdp-wired.source-proof.v1)]: true,\n  },\n}\n\n      at <anonymous> (/tmp/gdp-final-b11.ZAJpV1/tree/core/extract-ci-composite-optional.test.ts:10:71)\n(fail) B1 maximum: calendar operands retain optional provenance [0.45ms]\n 5 | \n 6 | const x = extract('export class C { m=new Map<string,number>(); decide(k:string):number|undefined{return this.m.get(k)} }', {entry: 'C'})\n 7 | expect({ok: x.ok, refusals: x.refusals}).toEqual({ok: true, refusals: []})\n 8 | const opts = {clock: 1, calendar: {weekend: ['sat', 'sun']}}\n 9 | for (const [id, expr] of Object.entries({direct: 'result - 0 <= 1 business days', nested: '(result + 0) - 0 <= 1 business days', negated: '(-result) - 0 <= 1 business days', minimum: 'min(result, 0) - 0 <= 1 business days', absolute: 'abs(result) - 0 <= 1 business days', maximum: '0 - max(0, result) <= 1 business days', product: '(2 * result) - 0 <= 1 business days', division: '(result // 2) - 0 <= 1 business days'})) test(`B1 ${id}: calendar operands retain optional provenance`, () => {\n10 |   expect(() => buildLaw(x, {name: id, expr, method: 'decide'}, opts)).toThrow('optional')\n                                                                           ^\nerror: expect(received).toThrow(expected)\n\nExpected substring: \"optional\"\n\nReceived function did not throw\nReceived value: {\n  kind: \"step\",\n  method: \"decide\",\n  law: {\n    name: \"product\",\n    forall: \"key$22\",\n    keys: [ \"key$23\", \"key$24\" ],\n    then: {\n      op: \"or\",\n      xs: [\n        {\n          op: \"not\",\n          x: {\n            op: \"and\",\n            xs: [\n              {\n                op: \"and\",\n                xs: [\n                  [Object ...], [Object ...]\n                ],\n              }, {\n                op: \"and\",\n                xs: [\n                  [Object ...], [Object ...]\n                ],\n              }\n            ],\n          },\n        }, {\n          op: \"<=\",\n          a: {\n            op: \"add\",\n            a: {\n              op: \"add\",\n              a: {\n                op: \"add\",\n                a: {\n                  op: \"add\",\n                  a: [Object ...],\n                  b: [Object ...],\n                },\n                b: {\n                  op: \"if\",\n                  c: [Object ...],\n                  then: [Object ...],\n                  else: [Object ...],\n                },\n              },\n              b: {\n                op: \"if\",\n                c: {\n                  op: \"<=\",\n                  a: [Object ...],\n                  b: [Object ...],\n                },\n                then: {\n                  op: \"const\",\n                  value: 1,\n                },\n                else: {\n                  op: \"const\",\n                  value: 0,\n                },\n              },\n            },\n            b: {\n              op: \"add\",\n              a: {\n                op: \"add\",\n                a: {\n                  op: \"add\",\n                  a: [Object ...],\n                  b: [Object ...],\n                },\n                b: {\n                  op: \"if\",\n                  c: [Object ...],\n                  then: [Object ...],\n                  else: [Object ...],\n                },\n              },\n              b: {\n                op: \"if\",\n                c: {\n                  op: \"<=\",\n                  a: [Object ...],\n                  b: [Object ...],\n                },\n                then: {\n                  op: \"const\",\n                  value: 0,\n                },\n                else: {\n                  op: \"const\",\n                  value: 0,\n                },\n              },\n            },\n          },\n          b: {\n            op: \"add\",\n            a: {\n              op: \"const\",\n              value: 1,\n            },\n            b: {\n              op: \"add\",\n              a: {\n                op: \"add\",\n                a: {\n                  op: \"add\",\n                  a: [Object ...],\n                  b: [Object ...],\n                },\n                b: {\n                  op: \"if\",\n                  c: [Object ...],\n                  then: [Object ...],\n                  else: [Object ...],\n                },\n              },\n              b: {\n                op: \"add\",\n                a: {\n                  op: \"add\",\n                  a: [Object ...],\n                  b: [Object ...],\n                },\n                b: {\n                  op: \"if\",\n                  c: [Object ...],\n                  then: [Object ...],\n                  else: [Object ...],\n                },\n              },\n            },\n          },\n        }\n      ],\n    },\n    when: {\n      op: \"=\",\n      a: {\n        op: \"var\",\n        name: \"method\",\n      },\n      b: {\n        op: \"const\",\n        value: 0,\n      },\n    },\n    [Symbol(gdp-wired.source-proof.v1)]: true,\n  },\n}\n\n      at <anonymous> (/tmp/gdp-final-b11.ZAJpV1/tree/core/extract-ci-composite-optional.test.ts:10:71)\n(fail) B1 product: calendar operands retain optional provenance [0.49ms]\n 5 | \n 6 | const x = extract('export class C { m=new Map<string,number>(); decide(k:string):number|undefined{return this.m.get(k)} }', {entry: 'C'})\n 7 | expect({ok: x.ok, refusals: x.refusals}).toEqual({ok: true, refusals: []})\n 8 | const opts = {clock: 1, calendar: {weekend: ['sat', 'sun']}}\n 9 | for (const [id, expr] of Object.entries({direct: 'result - 0 <= 1 business days', nested: '(result + 0) - 0 <= 1 business days', negated: '(-result) - 0 <= 1 business days', minimum: 'min(result, 0) - 0 <= 1 business days', absolute: 'abs(result) - 0 <= 1 business days', maximum: '0 - max(0, result) <= 1 business days', product: '(2 * result) - 0 <= 1 business days', division: '(result // 2) - 0 <= 1 business days'})) test(`B1 ${id}: calendar operands retain optional provenance`, () => {\n10 |   expect(() => buildLaw(x, {name: id, expr, method: 'decide'}, opts)).toThrow('optional')\n                                                                           ^\nerror: expect(received).toThrow(expected)\n\nExpected substring: \"optional\"\n\nReceived function did not throw\nReceived value: {\n  kind: \"step\",\n  method: \"decide\",\n  law: {\n    name: \"division\",\n    forall: \"key$26\",\n    keys: [ \"key$27\" ],\n    then: {\n      op: \"or\",\n      xs: [\n        {\n          op: \"not\",\n          x: {\n            op: \"and\",\n            xs: [\n              {\n                op: \"and\",\n                xs: [\n                  [Object ...], [Object ...]\n                ],\n              }, {\n                op: \"and\",\n                xs: [\n                  [Object ...], [Object ...]\n                ],\n              }\n            ],\n          },\n        }, {\n          op: \"<=\",\n          a: {\n            op: \"add\",\n            a: {\n              op: \"add\",\n              a: {\n                op: \"add\",\n                a: {\n                  op: \"add\",\n                  a: [Object ...],\n                  b: [Object ...],\n                },\n                b: {\n                  op: \"if\",\n                  c: [Object ...],\n                  then: [Object ...],\n                  else: [Object ...],\n                },\n              },\n              b: {\n                op: \"if\",\n                c: {\n                  op: \"<=\",\n                  a: [Object ...],\n                  b: [Object ...],\n                },\n                then: {\n                  op: \"const\",\n                  value: 1,\n                },\n                else: {\n                  op: \"const\",\n                  value: 0,\n                },\n              },\n            },\n            b: {\n              op: \"add\",\n              a: {\n                op: \"add\",\n                a: {\n                  op: \"add\",\n                  a: [Object ...],\n                  b: [Object ...],\n                },\n                b: {\n                  op: \"if\",\n                  c: [Object ...],\n                  then: [Object ...],\n                  else: [Object ...],\n                },\n              },\n              b: {\n                op: \"if\",\n                c: {\n                  op: \"<=\",\n                  a: [Object ...],\n                  b: [Object ...],\n                },\n                then: {\n                  op: \"const\",\n                  value: 0,\n                },\n                else: {\n                  op: \"const\",\n                  value: 0,\n                },\n              },\n            },\n          },\n          b: {\n            op: \"add\",\n            a: {\n              op: \"const\",\n              value: 1,\n            },\n            b: {\n              op: \"add\",\n              a: {\n                op: \"add\",\n                a: {\n                  op: \"add\",\n                  a: [Object ...],\n                  b: [Object ...],\n                },\n                b: {\n                  op: \"if\",\n                  c: [Object ...],\n                  then: [Object ...],\n                  else: [Object ...],\n                },\n              },\n              b: {\n                op: \"add\",\n                a: {\n                  op: \"add\",\n                  a: [Object ...],\n                  b: [Object ...],\n                },\n                b: {\n                  op: \"if\",\n                  c: [Object ...],\n                  then: [Object ...],\n                  else: [Object ...],\n                },\n              },\n            },\n          },\n        }\n      ],\n    },\n    when: {\n      op: \"=\",\n      a: {\n        op: \"var\",\n        name: \"method\",\n      },\n      b: {\n        op: \"const\",\n        value: 0,\n      },\n    },\n    [Symbol(gdp-wired.source-proof.v1)]: true,\n  },\n}\n\n      at <anonymous> (/tmp/gdp-final-b11.ZAJpV1/tree/core/extract-ci-composite-optional.test.ts:10:71)\n(fail) B1 division: calendar operands retain optional provenance [0.45ms]\n(pass) nonoptional class and standalone calendar laws remain proven [1087.44ms]\n\ncore/extract-ci-lazy-identity.test.ts:\n(pass) P2 typed records have independent scalar identities [291.77ms]\n(pass) P2 lazy records have independent scalar identities [307.66ms]\n(pass) repeated reads of one lazy argument still share a single scalar [181.79ms]\n\ncore/extract-ci-method-scope.test.ts:\n(pass) qualified value cannot rebind a law to another method [1.86ms]\n(pass) qualified failed cannot rebind a law to another method [0.32ms]\n(pass) explicit method also governs scalar results and arguments [96.07ms]\n\n 8 pass\n 7 fail\n 52 expect() calls\nRan 15 tests across 3 files. [2.63s]\n"}
+{"name":"P2-lazy-argument-prefix-shared","status":"caught","exit":1,"output":"bun test v1.4.3 (c6da4a4d3)\n\ncore/extract-ci-composite-optional.test.ts:\n(pass) B1 direct: calendar operands retain optional provenance [1.87ms]\n(pass) B1 nested: calendar operands retain optional provenance [0.12ms]\n(pass) B1 negated: calendar operands retain optional provenance [0.05ms]\n(pass) B1 minimum: calendar operands retain optional provenance [0.07ms]\n(pass) B1 absolute: calendar operands retain optional provenance [0.03ms]\n(pass) B1 maximum: calendar operands retain optional provenance [0.03ms]\n(pass) B1 product: calendar operands retain optional provenance [0.02ms]\n(pass) B1 division: calendar operands retain optional provenance [0.04ms]\n(pass) nonoptional class and standalone calendar laws remain proven [1027.96ms]\n\ncore/extract-ci-lazy-identity.test.ts:\n(pass) P2 typed records have independent scalar identities [256.26ms]\n 5 |   const args = typed ? 'a:{value:number},b:{value:number}' : 'a,b'\n 6 |   const source = `export class C {decide(${args}):boolean{return a.value===a.value && a.value===b.value}}`\n 7 |   const x = extract(source, {entry: 'C', check: {runs: 0, states: 0, probes: false}})\n 8 |   expect({ok: x.ok, refusals: x.refusals}).toEqual({ok: true, refusals: []})\n 9 |   const m = x.model!, inputs = m.inputs.filter(v => v.name !== m.event)\n10 |   expect(inputs).toHaveLength(2)\n                      ^\nerror: expect(received).toHaveLength(expected)\n\nExpected length: 2\nReceived length: 1\n\n      at <anonymous> (/tmp/gdp-final-b11.ZAJpV1/tree/core/extract-ci-lazy-identity.test.ts:10:18)\n(fail) P2 lazy records have independent scalar identities [76.17ms]\n(pass) repeated reads of one lazy argument still share a single scalar [141.94ms]\n\ncore/extract-ci-method-scope.test.ts:\n(pass) qualified value cannot rebind a law to another method [0.98ms]\n(pass) qualified failed cannot rebind a law to another method [0.27ms]\n(pass) explicit method also governs scalar results and arguments [79.50ms]\n\n 14 pass\n 1 fail\n 45 expect() calls\nRan 15 tests across 3 files. [2.18s]\n"}
+CI_SIBLING_MUTANTS_PASS restored=true
+
+--- stderr ---
+/work/gdp-wired/final-meta/candidate.patch:8934: trailing whitespace.
+215 | 
+/work/gdp-wired/final-meta/candidate.patch:9080: trailing whitespace.
+215 | 
+/work/gdp-wired/final-meta/candidate.patch:9146: trailing whitespace.
+241 | 
+/work/gdp-wired/final-meta/candidate.patch:10210: trailing whitespace.
+215 | 
+/work/gdp-wired/final-meta/candidate.patch:10212: trailing whitespace.
+215 | 
+warning: squelched 39 whitespace errors
+warning: 44 lines add whitespace errors.
+warning: adding embedded git repository: vendor/gdp-ts
+warning: adding embedded git repository: vendor/handwired
+Submodule 'vendor/gdp-ts' (https://github.com/rauchg/gdp-ts.git) registered for path 'vendor/gdp-ts'
+Submodule 'vendor/handwired' (https://github.com/monotykamary/handwired.git) registered for path 'vendor/handwired'
+Migrating git directory of 'vendor/gdp-ts' from
+'/tmp/gdp-final-b11.ZAJpV1/tree/vendor/gdp-ts/.git' to
+'/tmp/gdp-final-b11.ZAJpV1/tree/.git/modules/vendor/gdp-ts'
+Migrating git directory of 'vendor/handwired' from
+'/tmp/gdp-final-b11.ZAJpV1/tree/vendor/handwired/.git' to
+'/tmp/gdp-final-b11.ZAJpV1/tree/.git/modules/vendor/handwired'
