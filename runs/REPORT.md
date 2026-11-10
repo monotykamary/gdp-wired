@@ -1,3 +1,34 @@
+## RESUME — ACTIVE FOR 0.48.0 — 2026-11-10
+
+User resumed this lane. MLDR frontier work remains paused. **Not GATE GREEN. Do not push, tag or publish.**
+
+- Frozen integrated code/test SHA: `c8411149d2c6c3c060a0665a79f10523b1281cbc`; mandatory baseline `b11e1f651618b3d3fcaf6cec66b4a8b0203cdcd3`. P2 repair is already integrated; remaining tip commits are evidence/docs only.
+- Lane D's retained `runs/REPORT.md` records completed targeted review of exact `ec4ba037`: 26 original probes, 110 passing tests, five mutants caught. Broader static closeout and exact integrated audit remain pending; this is not blanket approval.
+- Stock scheduler is `/home/user/.local/bin/supercomputer`, with `SUPERCOMPUTER_CONTROLLER=1` required to select shared controller `bx_gz4zdtbh`. Its read-only status answered successfully. Never start a local scheduler or override client estimates.
+- Recreated missing baseline archive directly with `git archive b11e1f65` at `/tmp/gdp-ci-resume-inputs/base-archive/base.tar` (36 MiB); reuse it. Vendor archives remain `/tmp/gdp-ci-fix-optional/archives`. Changed only the temporary control hook's source path from Mac to sandbox; no scheduler code changes.
+- Fresh 39-job supplement submitted to `runs/c841-supplement-resume-20261110/` using unchanged c841 jobs, current-meta, private mount and per-case budgets. Active task/batch receipts will be recorded below once assigned.
+- Canonical runner `/tmp/gdp-gate-runner-e07ee501` is clean at `e07ee501`; inspection shows its bar still makes local worktrees/installs. Locate a compliant offloaded invocation before launch; never revive the rejected monolithic controller or estimate override.
+
+### Infrastructure blocker — 13:05 UTC
+
+All three new batches reached shared controller `bx_gz4zdtbh`, but **zero worker VMs were admitted**. `supercomputer controller status` reports repeated `403 api_key_action_forbidden`: the controller's API key cannot perform `sandbox.create`. It shows 41 queued gate items (39 supplement + canonical plan + privacy), no ready/coming VMs and no placements. This is not a code/test failure. Do not use local fallback or change scheduler estimates. Stock `controller rekey` only rotates the same key and restarts shared services; it does not repair action scope, so it has not been invoked.
+
+| Work | Batch | Owned task | Owned PID |
+|---|---|---|---:|
+| 39-job supplement | `20261110-130346-vvxxgb` | `bd665538-55fd-402c-8588-b64a98645ec4` | 230391 |
+| Immutable canonical plan | `20261110-130405-j4gaj0` | `eee7c535-f914-4db2-8c83-bf054469567b` | 230696 |
+| Release privacy scan | `20261110-130434-0448th` | `5e97a1ff-7132-47c4-a060-e82c5d1a14e1` | 233724 |
+
+`runs/RELEASE-PREFLIGHT.md` lists what publish.yml runs and what remains gated. No release version edit has been made. These task statuses are live submission records, not passing evidence; see the later shutdown receipt if cancelled.
+
+### For Lane D / coordinator
+
+**Shared scheduler action scope needs owner repair:** its existing API key refuses `sandbox.create` (403). No local scheduler or alternative key was created. This blocks all queued work, not just CI.
+
+Exact final candidate is `c8411149d2c6c3c060a0665a79f10523b1281cbc`. P2 is included. Please bind the integrated audit and final gate to this SHA and baseline above. Your `claude/gate-offload` branch currently lacks `research/verify-all/final-gate.ts`; the retained e07 runner has it but performs local bar preparation. CI is restarting independent supplement work now, not waiting for review.
+
+### Previous checkpoint (historical; superseded by explicit resume)
+
 ## RESUME — CHECKPOINTED / PAUSED AT USER REQUEST
 
 **Start nothing until the user resumes. Not GATE GREEN. No owned background shell or Boat job remains queued/running.** Completed receipts are collected; cancelled attempts are retained.
