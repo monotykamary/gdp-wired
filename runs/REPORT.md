@@ -1,6 +1,6 @@
 LAW CROSS-CHECK — RELEASE GATE PENDING
 
-Branch `claude/law-crosscheck`, from `5bbf4bf7`. The native-law core has passed 13 focused regressions, typecheck/lint and commitlint on Boat (`runs/law-crosscheck-focus-v4`). The CLI/diagnostic follow-up passed 18 focused test executions plus check/commitlint (`runs/law-crosscheck-step2-focus`). Historical controls, the restored fuzzer, and the full release gate remain pending. This is not GATE GREEN. See `runs/LAW-CROSSCHECK.md`.
+Branch `claude/law-crosscheck`, from `5bbf4bf7`. The native-law core has passed 13 focused regressions, typecheck/lint and commitlint on Boat (`runs/law-crosscheck-focus-v4`). The CLI/diagnostic follow-up passed 18 focused test executions plus check/commitlint (`runs/law-crosscheck-step2-focus`). All five historical controls are now refused by the new protection without their specific fixes, including B1 and P1 by native-law evaluation after agreeing rule replay. All five cross-check mutants were caught; 21 focused regressions and check/commitlint passed (`runs/law-crosscheck-controls.json`). The restored fuzzer and full release gate remain pending. This is not GATE GREEN. See `runs/LAW-CROSSCHECK.md`.
 
 ---
 

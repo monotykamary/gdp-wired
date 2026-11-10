@@ -1,0 +1,168 @@
+CLEAN_CHECKOUT_HEAD 5bbf4bf7f50a2f6f3df0f3f7de9471bf285bbf41
+CLEAN_CHECKOUT_TREE 57226993aa1955fe76811b189a886c863c568c23
+ 0b6ebeeec827b05210f3acfa4149a70dda9a0de5 vendor/gdp-ts (heads/master)
+ d47141cce2caf5b86b0c2c0c372a5174f424bc15 vendor/handwired (heads/master)
+bun install v1.4.3 (c6da4a4d3)
+
++ @gdp-ts/core@0.1.0
++ @reduxjs/toolkit@2.13.0
++ @types/bun@1.3.1
++ @webgpu/types@0.1.66
++ effect@4.0.7
++ effect3@3.22.4
++ oxlint@1.88.0
++ oxlint-tsgolint@7.0.2004
++ typescript@5.9.3
++ xstate@5.33.2
++ xstate4@4.38.3
+
+27 packages installed [565.00ms]
+bun test v1.4.3 (c6da4a4d3)
+CLEAN_CHECKOUT_HEAD 8214a543bc44e88d979f9e4457d7370e7e3c122b
+CLEAN_CHECKOUT_TREE 678eca7af688e876e4f0906ac04abe0d6c000f40
+ 0b6ebeeec827b05210f3acfa4149a70dda9a0de5 vendor/gdp-ts (heads/master)
+ d47141cce2caf5b86b0c2c0c372a5174f424bc15 vendor/handwired (heads/master)
+CLEAN_CHECKOUT_HEAD dd5ee12444ebf70803fab21f1377c62b7027b1eb
+CLEAN_CHECKOUT_TREE b54c345cecd3243f6f19a08bf6d97ba656cecfb8
+ 0b6ebeeec827b05210f3acfa4149a70dda9a0de5 vendor/gdp-ts (heads/master)
+ d47141cce2caf5b86b0c2c0c372a5174f424bc15 vendor/handwired (heads/master)
+CLEAN_CHECKOUT_HEAD 4497c4b05c3111959a2b8d808c426a0e3cab3f01
+CLEAN_CHECKOUT_TREE 0042812e45e459a0fbd1522cc1a120a031b221b3
+ 0b6ebeeec827b05210f3acfa4149a70dda9a0de5 vendor/gdp-ts (heads/master)
+ d47141cce2caf5b86b0c2c0c372a5174f424bc15 vendor/handwired (heads/master)
+CLEAN_CHECKOUT_HEAD 69401de08c866b2a24ce00953ceb7785f981203a
+CLEAN_CHECKOUT_TREE 99f99d5e14c2b7f504e1bf0e8f2e631f77e1477a
+ 0b6ebeeec827b05210f3acfa4149a70dda9a0de5 vendor/gdp-ts (heads/master)
+ d47141cce2caf5b86b0c2c0c372a5174f424bc15 vendor/handwired (heads/master)
+ca81b4f6c641a9cc4b2c5eb3932e5ea36840c02c00bbd8ff493aedcdfb40dd6c  /work/gdp-wired/published-artifacts/gdp-wired-0.47.0.tgz
+HISTORICAL_CONTROLS {"passed":true,"controls":[{"id":"B1","revision":"8214a543","untouchedReader":true,"replayInstrumentationOnly":true,"rawKernel":{"proven":true,"checked":true},"nativeWitness":{"args":["a"],"result":{"$undefined":true}},"defaultRefused":true,"route":"native law","why":"translation error: B1 is false in the native code (run 1, request 1)","disabled":[{"translation":"unchecked","proven":false,"checked":false},{"translation":"unchecked","proven":false,"checked":false}]},{"id":"B2","revision":"dd5ee124","untouchedReader":true,"replayInstrumentationOnly":true,"rawKernel":{"proven":true,"checked":true},"nativeWitness":{"args":["a"],"result":false},"defaultRefused":true,"route":"rule replay","why":"run 1, request 7: decide(\"\") from {\"values\":{\"b\":{\"value\":false},\"\":{\"value\":false}}}: decide returns false, the rule's decide_result is true","disabled":[{"translation":"unchecked","proven":false,"checked":false},{"translation":"unchecked","proven":false,"checked":false}]},{"id":"P1","revision":"4497c4b0","untouchedReader":true,"replayInstrumentationOnly":true,"rawKernel":{"proven":true,"checked":true},"nativeWitness":{"args":["red"],"result":"green"},"defaultRefused":true,"route":"native law","why":"translation error: P1 is false in the native code (run 1, request 1)","disabled":[{"translation":"unchecked","proven":false,"checked":false},{"translation":"unchecked","proven":false,"checked":false}]},{"id":"P2","revision":"69401de0","untouchedReader":true,"replayInstrumentationOnly":true,"rawKernel":{"proven":true,"checked":true},"nativeWitness":{"args":[{"enabled":false},{"enabled":true}],"result":false},"defaultRefused":true,"route":"rule replay","why":"run 1, request 2: decide({\"enabled\":true},{\"enabled\":false}) from {}: decide returns true, the rule's decide_result is false","disabled":[{"translation":"unchecked","proven":false,"checked":false},{"translation":"unchecked","proven":false,"checked":false}]},{"id":"Map.get-0.47.0","revision":"0.47.0","untouchedReader":true,"replayInstrumentationOnly":true,"rawKernel":{"proven":true,"checked":true},"nativeWitness":{"args":["a"],"result":true},"defaultRefused":true,"route":"rule replay","why":"run 1, request 1: decide(\"b\") from {\"flags\":{}}: decide returns true, the rule's decide_result is false","disabled":[{"translation":"unchecked","proven":false,"checked":false},{"translation":"unchecked","proven":false,"checked":false}]}]}
+{"name":"native-law-evaluation-off","caught":true,"exit":1,"failures":["(fail) source law: a faulty law lowering is refused with a native witness [112.93ms]","(fail) source law: a hidden numeric payload cannot replace an absent native result [118.56ms]"]}
+{"name":"unchecked-can-prove","caught":true,"exit":1,"failures":["(fail) source law: disabled source replay cannot yield a source proof [107.60ms]","(fail) source law: explicit law-cross-check disablement cannot yield a source proof [143.84ms]","(fail) source-derived rule copies cannot silently become unchecked DSL proofs [99.77ms]","(fail) source-derived decisions and composed rules cannot bypass native validation [0.98ms]","(fail) a source marker without local metadata fails closed across module copies [14.64ms]"]}
+{"name":"finite-enumeration-off","caught":true,"exit":1,"failures":["(fail) source law: native finite-domain cross-check is mandatory after a kernel proof [418.02ms]","(fail) source law: a faulty law lowering is refused with a native witness [119.12ms]"]}
+{"name":"undefined-erased-to-zero","caught":true,"exit":1,"failures":["(fail) source law: a hidden numeric payload cannot replace an absent native result [154.31ms]"]}
+{"name":"source-copy-marker-lost","caught":true,"exit":1,"failures":["(fail) source-derived rule copies cannot silently become unchecked DSL proofs [104.52ms]","(fail) source-derived decisions and composed rules cannot bypass native validation [15.64ms]"]}
+CROSSCHECK_MUTANTS {"passed":true,"mutants":[{"name":"native-law-evaluation-off","caught":true,"exit":1,"failures":["(fail) source law: a faulty law lowering is refused with a native witness [112.93ms]","(fail) source law: a hidden numeric payload cannot replace an absent native result [118.56ms]"]},{"name":"unchecked-can-prove","caught":true,"exit":1,"failures":["(fail) source law: disabled source replay cannot yield a source proof [107.60ms]","(fail) source law: explicit law-cross-check disablement cannot yield a source proof [143.84ms]","(fail) source-derived rule copies cannot silently become unchecked DSL proofs [99.77ms]","(fail) source-derived decisions and composed rules cannot bypass native validation [0.98ms]","(fail) a source marker without local metadata fails closed across module copies [14.64ms]"]},{"name":"finite-enumeration-off","caught":true,"exit":1,"failures":["(fail) source law: native finite-domain cross-check is mandatory after a kernel proof [418.02ms]","(fail) source law: a faulty law lowering is refused with a native witness [119.12ms]"]},{"name":"undefined-erased-to-zero","caught":true,"exit":1,"failures":["(fail) source law: a hidden numeric payload cannot replace an absent native result [154.31ms]"]},{"name":"source-copy-marker-lost","caught":true,"exit":1,"failures":["(fail) source-derived rule copies cannot silently become unchecked DSL proofs [104.52ms]","(fail) source-derived decisions and composed rules cannot bypass native validation [15.64ms]"]}]}
+Found 0 warnings and 0 errors.
+Finished in 65.8s on 1018 files with 100 rules using 2 threads.
+
+--- stderr ---
+/work/gdp-wired/source-meta/candidate.patch:4843: trailing whitespace.
+215 | 
+/work/gdp-wired/source-meta/candidate.patch:4989: trailing whitespace.
+215 | 
+/work/gdp-wired/source-meta/candidate.patch:5055: trailing whitespace.
+241 | 
+warning: 3 lines add whitespace errors.
+warning: adding embedded git repository: vendor/gdp-ts
+warning: adding embedded git repository: vendor/handwired
+Submodule 'vendor/gdp-ts' (https://github.com/rauchg/gdp-ts.git) registered for path 'vendor/gdp-ts'
+Submodule 'vendor/handwired' (https://github.com/monotykamary/handwired.git) registered for path 'vendor/handwired'
+Migrating git directory of 'vendor/gdp-ts' from
+'/tmp/gdp-law-controls.BSjUbo/current/vendor/gdp-ts/.git' to
+'/tmp/gdp-law-controls.BSjUbo/current/.git/modules/vendor/gdp-ts'
+Migrating git directory of 'vendor/handwired' from
+'/tmp/gdp-law-controls.BSjUbo/current/vendor/handwired/.git' to
+'/tmp/gdp-law-controls.BSjUbo/current/.git/modules/vendor/handwired'
+
+core/source-check.test.ts:
+cyclic: {"kind":"machine","name":"decide","cert":true,"usual":true,"cyclic":true,"ms":58,"usualMs":15,"route":"translated","leaves":12,"regrown":0,"splits":6,"carried":2,"uncarried":0,"cached":0}
+cyclic: {"kind":"step law","name":"decide","cert":true,"usual":true,"cyclic":true,"ms":65,"usualMs":7,"route":"translated","leaves":23,"regrown":0,"splits":17,"carried":1,"uncarried":0,"cached":0}
+(pass) source law: native finite-domain cross-check is mandatory after a kernel proof [555.63ms]
+cyclic: {"kind":"machine","name":"decide","cert":true,"usual":true,"cyclic":true,"ms":0,"usualMs":2,"route":"translated","leaves":0,"regrown":0,"splits":0,"carried":0,"uncarried":0,"cached":1}
+cyclic: {"kind":"step law","name":"decide","cert":true,"usual":true,"cyclic":true,"ms":7,"usualMs":0,"route":"translated","leaves":3,"regrown":0,"splits":1,"carried":1,"uncarried":0,"cached":0}
+(pass) source law: a faulty law lowering is refused with a native witness [115.19ms]
+cyclic: {"kind":"machine","name":"decide","cert":true,"usual":true,"cyclic":true,"ms":8,"usualMs":1,"route":"translated","leaves":6,"regrown":0,"splits":3,"carried":1,"uncarried":0,"cached":0}
+cyclic: {"kind":"step law","name":"decide","cert":true,"usual":true,"cyclic":true,"ms":7,"usualMs":1,"route":"translated","leaves":3,"regrown":0,"splits":1,"carried":1,"uncarried":0,"cached":0}
+(pass) source law: a hidden numeric payload cannot replace an absent native result [151.85ms]
+cyclic: {"kind":"machine","name":"decide","cert":true,"usual":true,"cyclic":true,"ms":0,"usualMs":1,"route":"translated","leaves":0,"regrown":0,"splits":0,"carried":0,"uncarried":0,"cached":1}
+cyclic: {"kind":"step law","name":"decide","cert":true,"usual":true,"cyclic":true,"ms":0,"usualMs":6,"route":"translated","leaves":0,"regrown":0,"splits":0,"carried":0,"uncarried":0,"cached":1}
+(pass) source law: disabled source replay cannot yield a source proof [122.88ms]
+cyclic: {"kind":"machine","name":"decide","cert":true,"usual":true,"cyclic":true,"ms":0,"usualMs":4,"route":"translated","leaves":0,"regrown":0,"splits":0,"carried":0,"uncarried":0,"cached":1}
+cyclic: {"kind":"step law","name":"decide","cert":true,"usual":true,"cyclic":true,"ms":26,"usualMs":13,"route":"translated","leaves":23,"regrown":0,"splits":17,"carried":1,"uncarried":0,"cached":0}
+(pass) source law: explicit law-cross-check disablement cannot yield a source proof [147.24ms]
+(pass) native law semantics: undefined, NaN, choices and truthiness are not hidden payloads [1.11ms]
+(pass) native inputs: original TypeScript types determine finite domains [119.45ms]
+(pass) native bindings: defaults and destructuring are captured after JS binds them [5.38ms]
+(pass) native bindings survive a factory closure snapshot helper [3.27ms]
+(pass) native snapshots preserve identity between before/after while preserving changed fields [0.45ms]
+cyclic: {"kind":"machine","name":"decide","cert":true,"usual":true,"cyclic":true,"ms":11,"usualMs":2,"route":"translated","leaves":16,"regrown":0,"splits":7,"carried":3,"uncarried":0,"cached":0}
+(pass) source-derived rule copies cannot silently become unchecked DSL proofs [106.58ms]
+cyclic: {"kind":"machine","name":"decide","cert":true,"usual":true,"cyclic":true,"ms":17,"usualMs":3,"route":"translated","leaves":12,"regrown":0,"splits":6,"carried":2,"uncarried":0,"cached":0}
+cyclic: {"kind":"step law","name":"decide","cert":true,"usual":true,"cyclic":true,"ms":32,"usualMs":6,"route":"translated","leaves":23,"regrown":0,"splits":17,"carried":1,"uncarried":0,"cached":0}
+(pass) mathematical divisor declarations preserve the original native interpretation [197.92ms]
+cyclic: {"kind":"machine","name":"source, two runs","cert":true,"usual":true,"cyclic":true,"ms":12,"usualMs":1,"route":"translated","leaves":4,"regrown":0,"splits":1,"carried":1,"uncarried":0,"cached":0}
+cyclic: {"kind":"machine","name":"source (atomic)","cert":true,"usual":true,"cyclic":true,"ms":18,"usualMs":1,"route":"translated","leaves":4,"regrown":0,"splits":1,"carried":1,"uncarried":0,"cached":0}
+(pass) source-derived decisions and composed rules cannot bypass native validation [48.40ms]
+cyclic: {"kind":"machine","name":"foreign source","cert":true,"usual":true,"cyclic":true,"ms":5,"usualMs":0,"route":"translated","leaves":5,"regrown":0,"splits":2,"carried":1,"uncarried":0,"cached":0}
+(pass) a source marker without local metadata fails closed across module copies [7.22ms]
+cyclic: {"kind":"machine","name":"plain","cert":true,"usual":true,"cyclic":true,"ms":2,"usualMs":1,"route":"translated","leaves":5,"regrown":0,"splits":2,"carried":1,"uncarried":0,"cached":0}
+(pass) ordinary DSL proofs do not acquire a source-translation requirement [4.32ms]
+
+core/source-diagnostic.test.ts:
+(pass) native diagnostics retain absence, NaN, maps and cycles without invoking accessors [4.16ms]
+
+core/source-crosscheck-controls.test.ts:
+(pass) source cross-check historical regression: B1 is refused by default [322.20ms]
+(pass) source cross-check historical regression: B2 is refused by default [360.61ms]
+(pass) source cross-check historical regression: P1 is refused by default [150.51ms]
+(pass) source cross-check historical regression: P2 is refused by default [177.03ms]
+(pass) source cross-check historical regression: Map.get-0.47.0 is refused by default [228.66ms]
+
+ 21 pass
+ 0 fail
+ 58 expect() calls
+Ran 21 tests across 3 files. [3.06s]
+warning: adding embedded git repository: vendor/gdp-ts
+warning: adding embedded git repository: vendor/handwired
+Submodule 'vendor/gdp-ts' (https://github.com/rauchg/gdp-ts.git) registered for path 'vendor/gdp-ts'
+Submodule 'vendor/handwired' (https://github.com/monotykamary/handwired.git) registered for path 'vendor/handwired'
+Migrating git directory of 'vendor/gdp-ts' from
+'/tmp/gdp-law-controls.BSjUbo/8214a543/vendor/gdp-ts/.git' to
+'/tmp/gdp-law-controls.BSjUbo/8214a543/.git/modules/vendor/gdp-ts'
+Migrating git directory of 'vendor/handwired' from
+'/tmp/gdp-law-controls.BSjUbo/8214a543/vendor/handwired/.git' to
+'/tmp/gdp-law-controls.BSjUbo/8214a543/.git/modules/vendor/handwired'
+warning: adding embedded git repository: vendor/gdp-ts
+warning: adding embedded git repository: vendor/handwired
+Submodule 'vendor/gdp-ts' (https://github.com/rauchg/gdp-ts.git) registered for path 'vendor/gdp-ts'
+Submodule 'vendor/handwired' (https://github.com/monotykamary/handwired.git) registered for path 'vendor/handwired'
+Migrating git directory of 'vendor/gdp-ts' from
+'/tmp/gdp-law-controls.BSjUbo/dd5ee124/vendor/gdp-ts/.git' to
+'/tmp/gdp-law-controls.BSjUbo/dd5ee124/.git/modules/vendor/gdp-ts'
+Migrating git directory of 'vendor/handwired' from
+'/tmp/gdp-law-controls.BSjUbo/dd5ee124/vendor/handwired/.git' to
+'/tmp/gdp-law-controls.BSjUbo/dd5ee124/.git/modules/vendor/handwired'
+warning: adding embedded git repository: vendor/gdp-ts
+warning: adding embedded git repository: vendor/handwired
+Submodule 'vendor/gdp-ts' (https://github.com/rauchg/gdp-ts.git) registered for path 'vendor/gdp-ts'
+Submodule 'vendor/handwired' (https://github.com/monotykamary/handwired.git) registered for path 'vendor/handwired'
+Migrating git directory of 'vendor/gdp-ts' from
+'/tmp/gdp-law-controls.BSjUbo/4497c4b0/vendor/gdp-ts/.git' to
+'/tmp/gdp-law-controls.BSjUbo/4497c4b0/.git/modules/vendor/gdp-ts'
+Migrating git directory of 'vendor/handwired' from
+'/tmp/gdp-law-controls.BSjUbo/4497c4b0/vendor/handwired/.git' to
+'/tmp/gdp-law-controls.BSjUbo/4497c4b0/.git/modules/vendor/handwired'
+warning: adding embedded git repository: vendor/gdp-ts
+warning: adding embedded git repository: vendor/handwired
+Submodule 'vendor/gdp-ts' (https://github.com/rauchg/gdp-ts.git) registered for path 'vendor/gdp-ts'
+Submodule 'vendor/handwired' (https://github.com/monotykamary/handwired.git) registered for path 'vendor/handwired'
+Migrating git directory of 'vendor/gdp-ts' from
+'/tmp/gdp-law-controls.BSjUbo/69401de0/vendor/gdp-ts/.git' to
+'/tmp/gdp-law-controls.BSjUbo/69401de0/.git/modules/vendor/gdp-ts'
+Migrating git directory of 'vendor/handwired' from
+'/tmp/gdp-law-controls.BSjUbo/69401de0/vendor/handwired/.git' to
+'/tmp/gdp-law-controls.BSjUbo/69401de0/.git/modules/vendor/handwired'
+cyclic: {"kind":"machine","name":"Decision","cert":true,"usual":true,"cyclic":true,"ms":89,"usualMs":10,"route":"translated","leaves":44,"regrown":0,"splits":31,"carried":3,"uncarried":0,"cached":0}
+cyclic: {"kind":"step law","name":"Decision","cert":true,"usual":true,"cyclic":true,"ms":307,"usualMs":44,"route":"translated","leaves":76,"regrown":0,"splits":60,"carried":1,"uncarried":0,"cached":0}
+cyclic: {"kind":"machine","name":"Decision","cert":true,"usual":true,"cyclic":true,"ms":248,"usualMs":29,"route":"translated","leaves":161,"regrown":0,"splits":96,"carried":3,"uncarried":0,"cached":0}
+cyclic: {"kind":"step law","name":"Decision","cert":true,"usual":true,"cyclic":true,"ms":94,"usualMs":2,"route":"translated","leaves":25,"regrown":0,"splits":22,"carried":1,"uncarried":0,"cached":0}
+cyclic: {"kind":"machine","name":"decide","cert":true,"usual":true,"cyclic":true,"ms":30,"usualMs":2,"route":"translated","leaves":12,"regrown":0,"splits":6,"carried":2,"uncarried":0,"cached":0}
+cyclic: {"kind":"step law","name":"decide","cert":true,"usual":true,"cyclic":true,"ms":9,"usualMs":1,"route":"translated","leaves":9,"regrown":0,"splits":6,"carried":1,"uncarried":0,"cached":0}
+cyclic: {"kind":"machine","name":"decide","cert":true,"usual":true,"cyclic":true,"ms":36,"usualMs":5,"route":"translated","leaves":12,"regrown":0,"splits":6,"carried":2,"uncarried":0,"cached":0}
+cyclic: {"kind":"step law","name":"decide","cert":true,"usual":true,"cyclic":true,"ms":40,"usualMs":2,"route":"translated","leaves":17,"regrown":0,"splits":13,"carried":1,"uncarried":0,"cached":0}
+cyclic: {"kind":"machine","name":"Decision","cert":true,"usual":true,"cyclic":true,"ms":86,"usualMs":8,"route":"translated","leaves":59,"regrown":0,"splits":44,"carried":3,"uncarried":0,"cached":0}
+cyclic: {"kind":"step law","name":"Decision","cert":true,"usual":true,"cyclic":true,"ms":25,"usualMs":1,"route":"translated","leaves":5,"regrown":0,"splits":3,"carried":1,"uncarried":0,"cached":0}
+$ tsc -p . && oxlint --type-aware --deny-warnings --disable-nested-config
+Resolving dependencies
+Resolved, downloaded and extracted [276]
+Saved lockfile

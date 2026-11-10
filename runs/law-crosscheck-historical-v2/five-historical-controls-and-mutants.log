@@ -1,0 +1,156 @@
+CLEAN_CHECKOUT_HEAD 5bbf4bf7f50a2f6f3df0f3f7de9471bf285bbf41
+CLEAN_CHECKOUT_TREE 57226993aa1955fe76811b189a886c863c568c23
+ 0b6ebeeec827b05210f3acfa4149a70dda9a0de5 vendor/gdp-ts (heads/master)
+ d47141cce2caf5b86b0c2c0c372a5174f424bc15 vendor/handwired (heads/master)
+bun install v1.4.3 (c6da4a4d3)
+
++ @gdp-ts/core@0.1.0
++ @reduxjs/toolkit@2.13.0
++ @types/bun@1.3.1
++ @webgpu/types@0.1.66
++ effect@4.0.7
++ effect3@3.22.4
++ oxlint@1.88.0
++ oxlint-tsgolint@7.0.2004
++ typescript@5.9.3
++ xstate@5.33.2
++ xstate4@4.38.3
+
+27 packages installed [758.00ms]
+bun test v1.4.3 (c6da4a4d3)
+CLEAN_CHECKOUT_HEAD 8214a543bc44e88d979f9e4457d7370e7e3c122b
+CLEAN_CHECKOUT_TREE 678eca7af688e876e4f0906ac04abe0d6c000f40
+ 0b6ebeeec827b05210f3acfa4149a70dda9a0de5 vendor/gdp-ts (heads/master)
+ d47141cce2caf5b86b0c2c0c372a5174f424bc15 vendor/handwired (heads/master)
+CLEAN_CHECKOUT_HEAD dd5ee12444ebf70803fab21f1377c62b7027b1eb
+CLEAN_CHECKOUT_TREE b54c345cecd3243f6f19a08bf6d97ba656cecfb8
+ 0b6ebeeec827b05210f3acfa4149a70dda9a0de5 vendor/gdp-ts (heads/master)
+ d47141cce2caf5b86b0c2c0c372a5174f424bc15 vendor/handwired (heads/master)
+CLEAN_CHECKOUT_HEAD 4497c4b05c3111959a2b8d808c426a0e3cab3f01
+CLEAN_CHECKOUT_TREE 0042812e45e459a0fbd1522cc1a120a031b221b3
+ 0b6ebeeec827b05210f3acfa4149a70dda9a0de5 vendor/gdp-ts (heads/master)
+ d47141cce2caf5b86b0c2c0c372a5174f424bc15 vendor/handwired (heads/master)
+CLEAN_CHECKOUT_HEAD 69401de08c866b2a24ce00953ceb7785f981203a
+CLEAN_CHECKOUT_TREE 99f99d5e14c2b7f504e1bf0e8f2e631f77e1477a
+ 0b6ebeeec827b05210f3acfa4149a70dda9a0de5 vendor/gdp-ts (heads/master)
+ d47141cce2caf5b86b0c2c0c372a5174f424bc15 vendor/handwired (heads/master)
+ca81b4f6c641a9cc4b2c5eb3932e5ea36840c02c00bbd8ff493aedcdfb40dd6c  /work/gdp-wired/published-artifacts/gdp-wired-0.47.0.tgz
+
+--- stderr ---
+/work/gdp-wired/source-meta/candidate.patch:4843: trailing whitespace.
+215 | 
+/work/gdp-wired/source-meta/candidate.patch:4989: trailing whitespace.
+215 | 
+/work/gdp-wired/source-meta/candidate.patch:5055: trailing whitespace.
+241 | 
+warning: 3 lines add whitespace errors.
+warning: adding embedded git repository: vendor/gdp-ts
+warning: adding embedded git repository: vendor/handwired
+Submodule 'vendor/gdp-ts' (https://github.com/rauchg/gdp-ts.git) registered for path 'vendor/gdp-ts'
+Submodule 'vendor/handwired' (https://github.com/monotykamary/handwired.git) registered for path 'vendor/handwired'
+Migrating git directory of 'vendor/gdp-ts' from
+'/tmp/gdp-law-controls.6FfvIn/current/vendor/gdp-ts/.git' to
+'/tmp/gdp-law-controls.6FfvIn/current/.git/modules/vendor/gdp-ts'
+Migrating git directory of 'vendor/handwired' from
+'/tmp/gdp-law-controls.6FfvIn/current/vendor/handwired/.git' to
+'/tmp/gdp-law-controls.6FfvIn/current/.git/modules/vendor/handwired'
+
+core/source-check.test.ts:
+cyclic: {"kind":"machine","name":"decide","cert":true,"usual":true,"cyclic":true,"ms":51,"usualMs":14,"route":"translated","leaves":12,"regrown":0,"splits":6,"carried":2,"uncarried":0,"cached":0}
+cyclic: {"kind":"step law","name":"decide","cert":true,"usual":true,"cyclic":true,"ms":105,"usualMs":11,"route":"translated","leaves":23,"regrown":0,"splits":17,"carried":1,"uncarried":0,"cached":0}
+(pass) source law: native finite-domain cross-check is mandatory after a kernel proof [574.62ms]
+cyclic: {"kind":"machine","name":"decide","cert":true,"usual":true,"cyclic":true,"ms":0,"usualMs":2,"route":"translated","leaves":0,"regrown":0,"splits":0,"carried":0,"uncarried":0,"cached":1}
+cyclic: {"kind":"step law","name":"decide","cert":true,"usual":true,"cyclic":true,"ms":25,"usualMs":1,"route":"translated","leaves":3,"regrown":0,"splits":1,"carried":1,"uncarried":0,"cached":0}
+(pass) source law: a faulty law lowering is refused with a native witness [231.20ms]
+cyclic: {"kind":"machine","name":"decide","cert":true,"usual":true,"cyclic":true,"ms":22,"usualMs":2,"route":"translated","leaves":6,"regrown":0,"splits":3,"carried":1,"uncarried":0,"cached":0}
+cyclic: {"kind":"step law","name":"decide","cert":true,"usual":true,"cyclic":true,"ms":13,"usualMs":1,"route":"translated","leaves":3,"regrown":0,"splits":1,"carried":1,"uncarried":0,"cached":0}
+(pass) source law: a hidden numeric payload cannot replace an absent native result [217.89ms]
+cyclic: {"kind":"machine","name":"decide","cert":true,"usual":true,"cyclic":true,"ms":0,"usualMs":3,"route":"translated","leaves":0,"regrown":0,"splits":0,"carried":0,"uncarried":0,"cached":1}
+cyclic: {"kind":"step law","name":"decide","cert":true,"usual":true,"cyclic":true,"ms":0,"usualMs":6,"route":"translated","leaves":0,"regrown":0,"splits":0,"carried":0,"uncarried":0,"cached":1}
+(pass) source law: disabled source replay cannot yield a source proof [207.77ms]
+cyclic: {"kind":"machine","name":"decide","cert":true,"usual":true,"cyclic":true,"ms":0,"usualMs":10,"route":"translated","leaves":0,"regrown":0,"splits":0,"carried":0,"uncarried":0,"cached":1}
+cyclic: {"kind":"step law","name":"decide","cert":true,"usual":true,"cyclic":true,"ms":125,"usualMs":18,"route":"translated","leaves":23,"regrown":0,"splits":17,"carried":1,"uncarried":0,"cached":0}
+(pass) source law: explicit law-cross-check disablement cannot yield a source proof [362.47ms]
+(pass) native law semantics: undefined, NaN, choices and truthiness are not hidden payloads [5.86ms]
+(pass) native inputs: original TypeScript types determine finite domains [319.11ms]
+(pass) native bindings: defaults and destructuring are captured after JS binds them [13.45ms]
+(pass) native bindings survive a factory closure snapshot helper [6.34ms]
+(pass) native snapshots preserve identity between before/after while preserving changed fields [1.10ms]
+cyclic: {"kind":"machine","name":"decide","cert":true,"usual":true,"cyclic":true,"ms":40,"usualMs":14,"route":"translated","leaves":16,"regrown":0,"splits":7,"carried":3,"uncarried":0,"cached":0}
+(pass) source-derived rule copies cannot silently become unchecked DSL proofs [341.45ms]
+cyclic: {"kind":"machine","name":"decide","cert":true,"usual":true,"cyclic":true,"ms":16,"usualMs":2,"route":"translated","leaves":12,"regrown":0,"splits":6,"carried":2,"uncarried":0,"cached":0}
+cyclic: {"kind":"step law","name":"decide","cert":true,"usual":true,"cyclic":true,"ms":69,"usualMs":7,"route":"translated","leaves":23,"regrown":0,"splits":17,"carried":1,"uncarried":0,"cached":0}
+(pass) mathematical divisor declarations preserve the original native interpretation [261.00ms]
+cyclic: {"kind":"machine","name":"source, two runs","cert":true,"usual":true,"cyclic":true,"ms":14,"usualMs":1,"route":"translated","leaves":4,"regrown":0,"splits":1,"carried":1,"uncarried":0,"cached":0}
+cyclic: {"kind":"machine","name":"source (atomic)","cert":true,"usual":true,"cyclic":true,"ms":17,"usualMs":2,"route":"translated","leaves":4,"regrown":0,"splits":1,"carried":1,"uncarried":0,"cached":0}
+(pass) source-derived decisions and composed rules cannot bypass native validation [50.77ms]
+cyclic: {"kind":"machine","name":"foreign source","cert":true,"usual":true,"cyclic":true,"ms":22,"usualMs":1,"route":"translated","leaves":5,"regrown":0,"splits":2,"carried":1,"uncarried":0,"cached":0}
+(pass) a source marker without local metadata fails closed across module copies [27.17ms]
+cyclic: {"kind":"machine","name":"plain","cert":true,"usual":true,"cyclic":true,"ms":4,"usualMs":1,"route":"translated","leaves":5,"regrown":0,"splits":2,"carried":1,"uncarried":0,"cached":0}
+(pass) ordinary DSL proofs do not acquire a source-translation requirement [7.86ms]
+
+core/source-diagnostic.test.ts:
+(pass) native diagnostics retain absence, NaN, maps and cycles without invoking accessors [8.21ms]
+
+core/source-crosscheck-controls.test.ts:
+(pass) source cross-check historical regression: B1 is refused by default [72.91ms]
+(pass) source cross-check historical regression: B2 is refused by default [664.00ms]
+(pass) source cross-check historical regression: P1 is refused by default [352.87ms]
+(pass) source cross-check historical regression: P2 is refused by default [331.81ms]
+(pass) source cross-check historical regression: Map.get-0.47.0 is refused by default [310.05ms]
+
+ 21 pass
+ 0 fail
+ 58 expect() calls
+Ran 21 tests across 3 files. [4.80s]
+warning: adding embedded git repository: vendor/gdp-ts
+warning: adding embedded git repository: vendor/handwired
+Submodule 'vendor/gdp-ts' (https://github.com/rauchg/gdp-ts.git) registered for path 'vendor/gdp-ts'
+Submodule 'vendor/handwired' (https://github.com/monotykamary/handwired.git) registered for path 'vendor/handwired'
+Migrating git directory of 'vendor/gdp-ts' from
+'/tmp/gdp-law-controls.6FfvIn/8214a543/vendor/gdp-ts/.git' to
+'/tmp/gdp-law-controls.6FfvIn/8214a543/.git/modules/vendor/gdp-ts'
+Migrating git directory of 'vendor/handwired' from
+'/tmp/gdp-law-controls.6FfvIn/8214a543/vendor/handwired/.git' to
+'/tmp/gdp-law-controls.6FfvIn/8214a543/.git/modules/vendor/handwired'
+warning: adding embedded git repository: vendor/gdp-ts
+warning: adding embedded git repository: vendor/handwired
+Submodule 'vendor/gdp-ts' (https://github.com/rauchg/gdp-ts.git) registered for path 'vendor/gdp-ts'
+Submodule 'vendor/handwired' (https://github.com/monotykamary/handwired.git) registered for path 'vendor/handwired'
+Migrating git directory of 'vendor/gdp-ts' from
+'/tmp/gdp-law-controls.6FfvIn/dd5ee124/vendor/gdp-ts/.git' to
+'/tmp/gdp-law-controls.6FfvIn/dd5ee124/.git/modules/vendor/gdp-ts'
+Migrating git directory of 'vendor/handwired' from
+'/tmp/gdp-law-controls.6FfvIn/dd5ee124/vendor/handwired/.git' to
+'/tmp/gdp-law-controls.6FfvIn/dd5ee124/.git/modules/vendor/handwired'
+warning: adding embedded git repository: vendor/gdp-ts
+warning: adding embedded git repository: vendor/handwired
+Submodule 'vendor/gdp-ts' (https://github.com/rauchg/gdp-ts.git) registered for path 'vendor/gdp-ts'
+Submodule 'vendor/handwired' (https://github.com/monotykamary/handwired.git) registered for path 'vendor/handwired'
+Migrating git directory of 'vendor/gdp-ts' from
+'/tmp/gdp-law-controls.6FfvIn/4497c4b0/vendor/gdp-ts/.git' to
+'/tmp/gdp-law-controls.6FfvIn/4497c4b0/.git/modules/vendor/gdp-ts'
+Migrating git directory of 'vendor/handwired' from
+'/tmp/gdp-law-controls.6FfvIn/4497c4b0/vendor/handwired/.git' to
+'/tmp/gdp-law-controls.6FfvIn/4497c4b0/.git/modules/vendor/handwired'
+warning: adding embedded git repository: vendor/gdp-ts
+warning: adding embedded git repository: vendor/handwired
+Submodule 'vendor/gdp-ts' (https://github.com/rauchg/gdp-ts.git) registered for path 'vendor/gdp-ts'
+Submodule 'vendor/handwired' (https://github.com/monotykamary/handwired.git) registered for path 'vendor/handwired'
+Migrating git directory of 'vendor/gdp-ts' from
+'/tmp/gdp-law-controls.6FfvIn/69401de0/vendor/gdp-ts/.git' to
+'/tmp/gdp-law-controls.6FfvIn/69401de0/.git/modules/vendor/gdp-ts'
+Migrating git directory of 'vendor/handwired' from
+'/tmp/gdp-law-controls.6FfvIn/69401de0/vendor/handwired/.git' to
+'/tmp/gdp-law-controls.6FfvIn/69401de0/.git/modules/vendor/handwired'
+20 |   const load = (name: string) => import(pathToFileURL(join(core, `${name}.${extension}`)).href)
+21 |   const oldExtract = await load('extract') as typeof import('../../core/extract.ts')
+22 |   const oldLaws = await load('laws') as typeof import('../../core/laws.ts')
+23 |   const oldDsl = await load('dsl') as typeof import('../../core/dsl.ts')
+24 |   const x = oldExtract.extract(c.source, {file: `${c.id}.ts`, entry: c.entry, ...(c.standalone ? {mode: 'standalone' as const} : {}), check: {runs: 0, states: 0, probes: false}})
+25 |   if (!x.ok) throw new Error(`${c.id}: historical source unexpectedly refused: ${JSON.stringify(x.refusals)}`)
+                            ^
+error: B1: historical source unexpectedly refused: [{"where":"B1.ts:1:25","what":"decide returns null where its type says undefined"}]
+      at /tmp/gdp-law-controls.6FfvIn/current/research/verify-all/source-crosscheck-historical.ts:25:24
+
+Bun v1.4.3 (Linux x64)
