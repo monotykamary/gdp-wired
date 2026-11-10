@@ -1,0 +1,866 @@
+[
+  {
+    "name": "stage-0-raw-250",
+    "cmd": "set -e; bash research/track-m/prepare-vendors.sh; bun install --frozen-lockfile >/dev/null; timeout -s KILL 30 bun research/mldr-incl/replay.ts research/mldr-incl/fixtures/safety-gp1.br#stage-0.json raw 250",
+    "cpu": 8,
+    "memory": 14336,
+    "vm_type": "large",
+    "timeout": 90
+  },
+  {
+    "name": "stage-0-raw-1000",
+    "cmd": "set -e; bash research/track-m/prepare-vendors.sh; bun install --frozen-lockfile >/dev/null; timeout -s KILL 30 bun research/mldr-incl/replay.ts research/mldr-incl/fixtures/safety-gp1.br#stage-0.json raw 1000",
+    "cpu": 8,
+    "memory": 14336,
+    "vm_type": "large",
+    "timeout": 90
+  },
+  {
+    "name": "stage-0-raw-2700",
+    "cmd": "set -e; bash research/track-m/prepare-vendors.sh; bun install --frozen-lockfile >/dev/null; timeout -s KILL 30 bun research/mldr-incl/replay.ts research/mldr-incl/fixtures/safety-gp1.br#stage-0.json raw 2700",
+    "cpu": 8,
+    "memory": 14336,
+    "vm_type": "large",
+    "timeout": 90
+  },
+  {
+    "name": "stage-0-preferred-250",
+    "cmd": "set -e; bash research/track-m/prepare-vendors.sh; bun install --frozen-lockfile >/dev/null; timeout -s KILL 30 bun research/mldr-incl/replay.ts research/mldr-incl/fixtures/safety-gp1.br#stage-0.json preferred 250",
+    "cpu": 8,
+    "memory": 14336,
+    "vm_type": "large",
+    "timeout": 90
+  },
+  {
+    "name": "stage-0-preferred-1000",
+    "cmd": "set -e; bash research/track-m/prepare-vendors.sh; bun install --frozen-lockfile >/dev/null; timeout -s KILL 30 bun research/mldr-incl/replay.ts research/mldr-incl/fixtures/safety-gp1.br#stage-0.json preferred 1000",
+    "cpu": 8,
+    "memory": 14336,
+    "vm_type": "large",
+    "timeout": 90
+  },
+  {
+    "name": "stage-0-preferred-2700",
+    "cmd": "set -e; bash research/track-m/prepare-vendors.sh; bun install --frozen-lockfile >/dev/null; timeout -s KILL 30 bun research/mldr-incl/replay.ts research/mldr-incl/fixtures/safety-gp1.br#stage-0.json preferred 2700",
+    "cpu": 8,
+    "memory": 14336,
+    "vm_type": "large",
+    "timeout": 90
+  },
+  {
+    "name": "stage-0-keyed-250",
+    "cmd": "set -e; bash research/track-m/prepare-vendors.sh; bun install --frozen-lockfile >/dev/null; timeout -s KILL 30 bun research/mldr-incl/replay.ts research/mldr-incl/fixtures/safety-gp1.br#stage-0.json keyed 250",
+    "cpu": 8,
+    "memory": 14336,
+    "vm_type": "large",
+    "timeout": 90
+  },
+  {
+    "name": "stage-0-keyed-1000",
+    "cmd": "set -e; bash research/track-m/prepare-vendors.sh; bun install --frozen-lockfile >/dev/null; timeout -s KILL 30 bun research/mldr-incl/replay.ts research/mldr-incl/fixtures/safety-gp1.br#stage-0.json keyed 1000",
+    "cpu": 8,
+    "memory": 14336,
+    "vm_type": "large",
+    "timeout": 90
+  },
+  {
+    "name": "stage-0-keyed-2700",
+    "cmd": "set -e; bash research/track-m/prepare-vendors.sh; bun install --frozen-lockfile >/dev/null; timeout -s KILL 30 bun research/mldr-incl/replay.ts research/mldr-incl/fixtures/safety-gp1.br#stage-0.json keyed 2700",
+    "cpu": 8,
+    "memory": 14336,
+    "vm_type": "large",
+    "timeout": 90
+  },
+  {
+    "name": "stage-0-seeded-250",
+    "cmd": "set -e; bash research/track-m/prepare-vendors.sh; bun install --frozen-lockfile >/dev/null; timeout -s KILL 30 bun research/mldr-incl/replay.ts research/mldr-incl/fixtures/safety-gp1.br#stage-0.json seeded 250",
+    "cpu": 8,
+    "memory": 14336,
+    "vm_type": "large",
+    "timeout": 90
+  },
+  {
+    "name": "stage-0-seeded-1000",
+    "cmd": "set -e; bash research/track-m/prepare-vendors.sh; bun install --frozen-lockfile >/dev/null; timeout -s KILL 30 bun research/mldr-incl/replay.ts research/mldr-incl/fixtures/safety-gp1.br#stage-0.json seeded 1000",
+    "cpu": 8,
+    "memory": 14336,
+    "vm_type": "large",
+    "timeout": 90
+  },
+  {
+    "name": "stage-0-seeded-2700",
+    "cmd": "set -e; bash research/track-m/prepare-vendors.sh; bun install --frozen-lockfile >/dev/null; timeout -s KILL 30 bun research/mldr-incl/replay.ts research/mldr-incl/fixtures/safety-gp1.br#stage-0.json seeded 2700",
+    "cpu": 8,
+    "memory": 14336,
+    "vm_type": "large",
+    "timeout": 90
+  },
+  {
+    "name": "stage-3-raw-250",
+    "cmd": "set -e; bash research/track-m/prepare-vendors.sh; bun install --frozen-lockfile >/dev/null; timeout -s KILL 30 bun research/mldr-incl/replay.ts research/mldr-incl/fixtures/safety-gp1.br#stage-3.json raw 250",
+    "cpu": 8,
+    "memory": 14336,
+    "vm_type": "large",
+    "timeout": 90
+  },
+  {
+    "name": "stage-3-raw-1000",
+    "cmd": "set -e; bash research/track-m/prepare-vendors.sh; bun install --frozen-lockfile >/dev/null; timeout -s KILL 30 bun research/mldr-incl/replay.ts research/mldr-incl/fixtures/safety-gp1.br#stage-3.json raw 1000",
+    "cpu": 8,
+    "memory": 14336,
+    "vm_type": "large",
+    "timeout": 90
+  },
+  {
+    "name": "stage-3-raw-2700",
+    "cmd": "set -e; bash research/track-m/prepare-vendors.sh; bun install --frozen-lockfile >/dev/null; timeout -s KILL 30 bun research/mldr-incl/replay.ts research/mldr-incl/fixtures/safety-gp1.br#stage-3.json raw 2700",
+    "cpu": 8,
+    "memory": 14336,
+    "vm_type": "large",
+    "timeout": 90
+  },
+  {
+    "name": "stage-3-preferred-250",
+    "cmd": "set -e; bash research/track-m/prepare-vendors.sh; bun install --frozen-lockfile >/dev/null; timeout -s KILL 30 bun research/mldr-incl/replay.ts research/mldr-incl/fixtures/safety-gp1.br#stage-3.json preferred 250",
+    "cpu": 8,
+    "memory": 14336,
+    "vm_type": "large",
+    "timeout": 90
+  },
+  {
+    "name": "stage-3-preferred-1000",
+    "cmd": "set -e; bash research/track-m/prepare-vendors.sh; bun install --frozen-lockfile >/dev/null; timeout -s KILL 30 bun research/mldr-incl/replay.ts research/mldr-incl/fixtures/safety-gp1.br#stage-3.json preferred 1000",
+    "cpu": 8,
+    "memory": 14336,
+    "vm_type": "large",
+    "timeout": 90
+  },
+  {
+    "name": "stage-3-preferred-2700",
+    "cmd": "set -e; bash research/track-m/prepare-vendors.sh; bun install --frozen-lockfile >/dev/null; timeout -s KILL 30 bun research/mldr-incl/replay.ts research/mldr-incl/fixtures/safety-gp1.br#stage-3.json preferred 2700",
+    "cpu": 8,
+    "memory": 14336,
+    "vm_type": "large",
+    "timeout": 90
+  },
+  {
+    "name": "stage-3-keyed-250",
+    "cmd": "set -e; bash research/track-m/prepare-vendors.sh; bun install --frozen-lockfile >/dev/null; timeout -s KILL 30 bun research/mldr-incl/replay.ts research/mldr-incl/fixtures/safety-gp1.br#stage-3.json keyed 250",
+    "cpu": 8,
+    "memory": 14336,
+    "vm_type": "large",
+    "timeout": 90
+  },
+  {
+    "name": "stage-3-keyed-1000",
+    "cmd": "set -e; bash research/track-m/prepare-vendors.sh; bun install --frozen-lockfile >/dev/null; timeout -s KILL 30 bun research/mldr-incl/replay.ts research/mldr-incl/fixtures/safety-gp1.br#stage-3.json keyed 1000",
+    "cpu": 8,
+    "memory": 14336,
+    "vm_type": "large",
+    "timeout": 90
+  },
+  {
+    "name": "stage-3-keyed-2700",
+    "cmd": "set -e; bash research/track-m/prepare-vendors.sh; bun install --frozen-lockfile >/dev/null; timeout -s KILL 30 bun research/mldr-incl/replay.ts research/mldr-incl/fixtures/safety-gp1.br#stage-3.json keyed 2700",
+    "cpu": 8,
+    "memory": 14336,
+    "vm_type": "large",
+    "timeout": 90
+  },
+  {
+    "name": "stage-3-seeded-250",
+    "cmd": "set -e; bash research/track-m/prepare-vendors.sh; bun install --frozen-lockfile >/dev/null; timeout -s KILL 30 bun research/mldr-incl/replay.ts research/mldr-incl/fixtures/safety-gp1.br#stage-3.json seeded 250",
+    "cpu": 8,
+    "memory": 14336,
+    "vm_type": "large",
+    "timeout": 90
+  },
+  {
+    "name": "stage-3-seeded-1000",
+    "cmd": "set -e; bash research/track-m/prepare-vendors.sh; bun install --frozen-lockfile >/dev/null; timeout -s KILL 30 bun research/mldr-incl/replay.ts research/mldr-incl/fixtures/safety-gp1.br#stage-3.json seeded 1000",
+    "cpu": 8,
+    "memory": 14336,
+    "vm_type": "large",
+    "timeout": 90
+  },
+  {
+    "name": "stage-3-seeded-2700",
+    "cmd": "set -e; bash research/track-m/prepare-vendors.sh; bun install --frozen-lockfile >/dev/null; timeout -s KILL 30 bun research/mldr-incl/replay.ts research/mldr-incl/fixtures/safety-gp1.br#stage-3.json seeded 2700",
+    "cpu": 8,
+    "memory": 14336,
+    "vm_type": "large",
+    "timeout": 90
+  },
+  {
+    "name": "stage-6-raw-250",
+    "cmd": "set -e; bash research/track-m/prepare-vendors.sh; bun install --frozen-lockfile >/dev/null; timeout -s KILL 30 bun research/mldr-incl/replay.ts research/mldr-incl/fixtures/safety-gp1.br#stage-6.json raw 250",
+    "cpu": 8,
+    "memory": 14336,
+    "vm_type": "large",
+    "timeout": 90
+  },
+  {
+    "name": "stage-6-raw-1000",
+    "cmd": "set -e; bash research/track-m/prepare-vendors.sh; bun install --frozen-lockfile >/dev/null; timeout -s KILL 30 bun research/mldr-incl/replay.ts research/mldr-incl/fixtures/safety-gp1.br#stage-6.json raw 1000",
+    "cpu": 8,
+    "memory": 14336,
+    "vm_type": "large",
+    "timeout": 90
+  },
+  {
+    "name": "stage-6-raw-2700",
+    "cmd": "set -e; bash research/track-m/prepare-vendors.sh; bun install --frozen-lockfile >/dev/null; timeout -s KILL 30 bun research/mldr-incl/replay.ts research/mldr-incl/fixtures/safety-gp1.br#stage-6.json raw 2700",
+    "cpu": 8,
+    "memory": 14336,
+    "vm_type": "large",
+    "timeout": 90
+  },
+  {
+    "name": "stage-6-preferred-250",
+    "cmd": "set -e; bash research/track-m/prepare-vendors.sh; bun install --frozen-lockfile >/dev/null; timeout -s KILL 30 bun research/mldr-incl/replay.ts research/mldr-incl/fixtures/safety-gp1.br#stage-6.json preferred 250",
+    "cpu": 8,
+    "memory": 14336,
+    "vm_type": "large",
+    "timeout": 90
+  },
+  {
+    "name": "stage-6-preferred-1000",
+    "cmd": "set -e; bash research/track-m/prepare-vendors.sh; bun install --frozen-lockfile >/dev/null; timeout -s KILL 30 bun research/mldr-incl/replay.ts research/mldr-incl/fixtures/safety-gp1.br#stage-6.json preferred 1000",
+    "cpu": 8,
+    "memory": 14336,
+    "vm_type": "large",
+    "timeout": 90
+  },
+  {
+    "name": "stage-6-preferred-2700",
+    "cmd": "set -e; bash research/track-m/prepare-vendors.sh; bun install --frozen-lockfile >/dev/null; timeout -s KILL 30 bun research/mldr-incl/replay.ts research/mldr-incl/fixtures/safety-gp1.br#stage-6.json preferred 2700",
+    "cpu": 8,
+    "memory": 14336,
+    "vm_type": "large",
+    "timeout": 90
+  },
+  {
+    "name": "stage-6-keyed-250",
+    "cmd": "set -e; bash research/track-m/prepare-vendors.sh; bun install --frozen-lockfile >/dev/null; timeout -s KILL 30 bun research/mldr-incl/replay.ts research/mldr-incl/fixtures/safety-gp1.br#stage-6.json keyed 250",
+    "cpu": 8,
+    "memory": 14336,
+    "vm_type": "large",
+    "timeout": 90
+  },
+  {
+    "name": "stage-6-keyed-1000",
+    "cmd": "set -e; bash research/track-m/prepare-vendors.sh; bun install --frozen-lockfile >/dev/null; timeout -s KILL 30 bun research/mldr-incl/replay.ts research/mldr-incl/fixtures/safety-gp1.br#stage-6.json keyed 1000",
+    "cpu": 8,
+    "memory": 14336,
+    "vm_type": "large",
+    "timeout": 90
+  },
+  {
+    "name": "stage-6-keyed-2700",
+    "cmd": "set -e; bash research/track-m/prepare-vendors.sh; bun install --frozen-lockfile >/dev/null; timeout -s KILL 30 bun research/mldr-incl/replay.ts research/mldr-incl/fixtures/safety-gp1.br#stage-6.json keyed 2700",
+    "cpu": 8,
+    "memory": 14336,
+    "vm_type": "large",
+    "timeout": 90
+  },
+  {
+    "name": "stage-6-seeded-250",
+    "cmd": "set -e; bash research/track-m/prepare-vendors.sh; bun install --frozen-lockfile >/dev/null; timeout -s KILL 30 bun research/mldr-incl/replay.ts research/mldr-incl/fixtures/safety-gp1.br#stage-6.json seeded 250",
+    "cpu": 8,
+    "memory": 14336,
+    "vm_type": "large",
+    "timeout": 90
+  },
+  {
+    "name": "stage-6-seeded-1000",
+    "cmd": "set -e; bash research/track-m/prepare-vendors.sh; bun install --frozen-lockfile >/dev/null; timeout -s KILL 30 bun research/mldr-incl/replay.ts research/mldr-incl/fixtures/safety-gp1.br#stage-6.json seeded 1000",
+    "cpu": 8,
+    "memory": 14336,
+    "vm_type": "large",
+    "timeout": 90
+  },
+  {
+    "name": "stage-6-seeded-2700",
+    "cmd": "set -e; bash research/track-m/prepare-vendors.sh; bun install --frozen-lockfile >/dev/null; timeout -s KILL 30 bun research/mldr-incl/replay.ts research/mldr-incl/fixtures/safety-gp1.br#stage-6.json seeded 2700",
+    "cpu": 8,
+    "memory": 14336,
+    "vm_type": "large",
+    "timeout": 90
+  },
+  {
+    "name": "stage-9-raw-250",
+    "cmd": "set -e; bash research/track-m/prepare-vendors.sh; bun install --frozen-lockfile >/dev/null; timeout -s KILL 30 bun research/mldr-incl/replay.ts research/mldr-incl/fixtures/safety-gp1.br#stage-9.json raw 250",
+    "cpu": 8,
+    "memory": 14336,
+    "vm_type": "large",
+    "timeout": 90
+  },
+  {
+    "name": "stage-9-raw-1000",
+    "cmd": "set -e; bash research/track-m/prepare-vendors.sh; bun install --frozen-lockfile >/dev/null; timeout -s KILL 30 bun research/mldr-incl/replay.ts research/mldr-incl/fixtures/safety-gp1.br#stage-9.json raw 1000",
+    "cpu": 8,
+    "memory": 14336,
+    "vm_type": "large",
+    "timeout": 90
+  },
+  {
+    "name": "stage-9-raw-2700",
+    "cmd": "set -e; bash research/track-m/prepare-vendors.sh; bun install --frozen-lockfile >/dev/null; timeout -s KILL 30 bun research/mldr-incl/replay.ts research/mldr-incl/fixtures/safety-gp1.br#stage-9.json raw 2700",
+    "cpu": 8,
+    "memory": 14336,
+    "vm_type": "large",
+    "timeout": 90
+  },
+  {
+    "name": "stage-9-preferred-250",
+    "cmd": "set -e; bash research/track-m/prepare-vendors.sh; bun install --frozen-lockfile >/dev/null; timeout -s KILL 30 bun research/mldr-incl/replay.ts research/mldr-incl/fixtures/safety-gp1.br#stage-9.json preferred 250",
+    "cpu": 8,
+    "memory": 14336,
+    "vm_type": "large",
+    "timeout": 90
+  },
+  {
+    "name": "stage-9-preferred-1000",
+    "cmd": "set -e; bash research/track-m/prepare-vendors.sh; bun install --frozen-lockfile >/dev/null; timeout -s KILL 30 bun research/mldr-incl/replay.ts research/mldr-incl/fixtures/safety-gp1.br#stage-9.json preferred 1000",
+    "cpu": 8,
+    "memory": 14336,
+    "vm_type": "large",
+    "timeout": 90
+  },
+  {
+    "name": "stage-9-preferred-2700",
+    "cmd": "set -e; bash research/track-m/prepare-vendors.sh; bun install --frozen-lockfile >/dev/null; timeout -s KILL 30 bun research/mldr-incl/replay.ts research/mldr-incl/fixtures/safety-gp1.br#stage-9.json preferred 2700",
+    "cpu": 8,
+    "memory": 14336,
+    "vm_type": "large",
+    "timeout": 90
+  },
+  {
+    "name": "stage-9-keyed-250",
+    "cmd": "set -e; bash research/track-m/prepare-vendors.sh; bun install --frozen-lockfile >/dev/null; timeout -s KILL 30 bun research/mldr-incl/replay.ts research/mldr-incl/fixtures/safety-gp1.br#stage-9.json keyed 250",
+    "cpu": 8,
+    "memory": 14336,
+    "vm_type": "large",
+    "timeout": 90
+  },
+  {
+    "name": "stage-9-keyed-1000",
+    "cmd": "set -e; bash research/track-m/prepare-vendors.sh; bun install --frozen-lockfile >/dev/null; timeout -s KILL 30 bun research/mldr-incl/replay.ts research/mldr-incl/fixtures/safety-gp1.br#stage-9.json keyed 1000",
+    "cpu": 8,
+    "memory": 14336,
+    "vm_type": "large",
+    "timeout": 90
+  },
+  {
+    "name": "stage-9-keyed-2700",
+    "cmd": "set -e; bash research/track-m/prepare-vendors.sh; bun install --frozen-lockfile >/dev/null; timeout -s KILL 30 bun research/mldr-incl/replay.ts research/mldr-incl/fixtures/safety-gp1.br#stage-9.json keyed 2700",
+    "cpu": 8,
+    "memory": 14336,
+    "vm_type": "large",
+    "timeout": 90
+  },
+  {
+    "name": "stage-9-seeded-250",
+    "cmd": "set -e; bash research/track-m/prepare-vendors.sh; bun install --frozen-lockfile >/dev/null; timeout -s KILL 30 bun research/mldr-incl/replay.ts research/mldr-incl/fixtures/safety-gp1.br#stage-9.json seeded 250",
+    "cpu": 8,
+    "memory": 14336,
+    "vm_type": "large",
+    "timeout": 90
+  },
+  {
+    "name": "stage-9-seeded-1000",
+    "cmd": "set -e; bash research/track-m/prepare-vendors.sh; bun install --frozen-lockfile >/dev/null; timeout -s KILL 30 bun research/mldr-incl/replay.ts research/mldr-incl/fixtures/safety-gp1.br#stage-9.json seeded 1000",
+    "cpu": 8,
+    "memory": 14336,
+    "vm_type": "large",
+    "timeout": 90
+  },
+  {
+    "name": "stage-9-seeded-2700",
+    "cmd": "set -e; bash research/track-m/prepare-vendors.sh; bun install --frozen-lockfile >/dev/null; timeout -s KILL 30 bun research/mldr-incl/replay.ts research/mldr-incl/fixtures/safety-gp1.br#stage-9.json seeded 2700",
+    "cpu": 8,
+    "memory": 14336,
+    "vm_type": "large",
+    "timeout": 90
+  },
+  {
+    "name": "stage-12-raw-250",
+    "cmd": "set -e; bash research/track-m/prepare-vendors.sh; bun install --frozen-lockfile >/dev/null; timeout -s KILL 30 bun research/mldr-incl/replay.ts research/mldr-incl/fixtures/safety-gp1.br#stage-12.json raw 250",
+    "cpu": 8,
+    "memory": 14336,
+    "vm_type": "large",
+    "timeout": 90
+  },
+  {
+    "name": "stage-12-raw-1000",
+    "cmd": "set -e; bash research/track-m/prepare-vendors.sh; bun install --frozen-lockfile >/dev/null; timeout -s KILL 30 bun research/mldr-incl/replay.ts research/mldr-incl/fixtures/safety-gp1.br#stage-12.json raw 1000",
+    "cpu": 8,
+    "memory": 14336,
+    "vm_type": "large",
+    "timeout": 90
+  },
+  {
+    "name": "stage-12-raw-2700",
+    "cmd": "set -e; bash research/track-m/prepare-vendors.sh; bun install --frozen-lockfile >/dev/null; timeout -s KILL 30 bun research/mldr-incl/replay.ts research/mldr-incl/fixtures/safety-gp1.br#stage-12.json raw 2700",
+    "cpu": 8,
+    "memory": 14336,
+    "vm_type": "large",
+    "timeout": 90
+  },
+  {
+    "name": "stage-12-preferred-250",
+    "cmd": "set -e; bash research/track-m/prepare-vendors.sh; bun install --frozen-lockfile >/dev/null; timeout -s KILL 30 bun research/mldr-incl/replay.ts research/mldr-incl/fixtures/safety-gp1.br#stage-12.json preferred 250",
+    "cpu": 8,
+    "memory": 14336,
+    "vm_type": "large",
+    "timeout": 90
+  },
+  {
+    "name": "stage-12-preferred-1000",
+    "cmd": "set -e; bash research/track-m/prepare-vendors.sh; bun install --frozen-lockfile >/dev/null; timeout -s KILL 30 bun research/mldr-incl/replay.ts research/mldr-incl/fixtures/safety-gp1.br#stage-12.json preferred 1000",
+    "cpu": 8,
+    "memory": 14336,
+    "vm_type": "large",
+    "timeout": 90
+  },
+  {
+    "name": "stage-12-preferred-2700",
+    "cmd": "set -e; bash research/track-m/prepare-vendors.sh; bun install --frozen-lockfile >/dev/null; timeout -s KILL 30 bun research/mldr-incl/replay.ts research/mldr-incl/fixtures/safety-gp1.br#stage-12.json preferred 2700",
+    "cpu": 8,
+    "memory": 14336,
+    "vm_type": "large",
+    "timeout": 90
+  },
+  {
+    "name": "stage-12-keyed-250",
+    "cmd": "set -e; bash research/track-m/prepare-vendors.sh; bun install --frozen-lockfile >/dev/null; timeout -s KILL 30 bun research/mldr-incl/replay.ts research/mldr-incl/fixtures/safety-gp1.br#stage-12.json keyed 250",
+    "cpu": 8,
+    "memory": 14336,
+    "vm_type": "large",
+    "timeout": 90
+  },
+  {
+    "name": "stage-12-keyed-1000",
+    "cmd": "set -e; bash research/track-m/prepare-vendors.sh; bun install --frozen-lockfile >/dev/null; timeout -s KILL 30 bun research/mldr-incl/replay.ts research/mldr-incl/fixtures/safety-gp1.br#stage-12.json keyed 1000",
+    "cpu": 8,
+    "memory": 14336,
+    "vm_type": "large",
+    "timeout": 90
+  },
+  {
+    "name": "stage-12-keyed-2700",
+    "cmd": "set -e; bash research/track-m/prepare-vendors.sh; bun install --frozen-lockfile >/dev/null; timeout -s KILL 30 bun research/mldr-incl/replay.ts research/mldr-incl/fixtures/safety-gp1.br#stage-12.json keyed 2700",
+    "cpu": 8,
+    "memory": 14336,
+    "vm_type": "large",
+    "timeout": 90
+  },
+  {
+    "name": "stage-12-seeded-250",
+    "cmd": "set -e; bash research/track-m/prepare-vendors.sh; bun install --frozen-lockfile >/dev/null; timeout -s KILL 30 bun research/mldr-incl/replay.ts research/mldr-incl/fixtures/safety-gp1.br#stage-12.json seeded 250",
+    "cpu": 8,
+    "memory": 14336,
+    "vm_type": "large",
+    "timeout": 90
+  },
+  {
+    "name": "stage-12-seeded-1000",
+    "cmd": "set -e; bash research/track-m/prepare-vendors.sh; bun install --frozen-lockfile >/dev/null; timeout -s KILL 30 bun research/mldr-incl/replay.ts research/mldr-incl/fixtures/safety-gp1.br#stage-12.json seeded 1000",
+    "cpu": 8,
+    "memory": 14336,
+    "vm_type": "large",
+    "timeout": 90
+  },
+  {
+    "name": "stage-12-seeded-2700",
+    "cmd": "set -e; bash research/track-m/prepare-vendors.sh; bun install --frozen-lockfile >/dev/null; timeout -s KILL 30 bun research/mldr-incl/replay.ts research/mldr-incl/fixtures/safety-gp1.br#stage-12.json seeded 2700",
+    "cpu": 8,
+    "memory": 14336,
+    "vm_type": "large",
+    "timeout": 90
+  },
+  {
+    "name": "stage-15-raw-250",
+    "cmd": "set -e; bash research/track-m/prepare-vendors.sh; bun install --frozen-lockfile >/dev/null; timeout -s KILL 30 bun research/mldr-incl/replay.ts research/mldr-incl/fixtures/safety-gp1.br#stage-15.json raw 250",
+    "cpu": 8,
+    "memory": 14336,
+    "vm_type": "large",
+    "timeout": 90
+  },
+  {
+    "name": "stage-15-raw-1000",
+    "cmd": "set -e; bash research/track-m/prepare-vendors.sh; bun install --frozen-lockfile >/dev/null; timeout -s KILL 30 bun research/mldr-incl/replay.ts research/mldr-incl/fixtures/safety-gp1.br#stage-15.json raw 1000",
+    "cpu": 8,
+    "memory": 14336,
+    "vm_type": "large",
+    "timeout": 90
+  },
+  {
+    "name": "stage-15-raw-2700",
+    "cmd": "set -e; bash research/track-m/prepare-vendors.sh; bun install --frozen-lockfile >/dev/null; timeout -s KILL 30 bun research/mldr-incl/replay.ts research/mldr-incl/fixtures/safety-gp1.br#stage-15.json raw 2700",
+    "cpu": 8,
+    "memory": 14336,
+    "vm_type": "large",
+    "timeout": 90
+  },
+  {
+    "name": "stage-15-preferred-250",
+    "cmd": "set -e; bash research/track-m/prepare-vendors.sh; bun install --frozen-lockfile >/dev/null; timeout -s KILL 30 bun research/mldr-incl/replay.ts research/mldr-incl/fixtures/safety-gp1.br#stage-15.json preferred 250",
+    "cpu": 8,
+    "memory": 14336,
+    "vm_type": "large",
+    "timeout": 90
+  },
+  {
+    "name": "stage-15-preferred-1000",
+    "cmd": "set -e; bash research/track-m/prepare-vendors.sh; bun install --frozen-lockfile >/dev/null; timeout -s KILL 30 bun research/mldr-incl/replay.ts research/mldr-incl/fixtures/safety-gp1.br#stage-15.json preferred 1000",
+    "cpu": 8,
+    "memory": 14336,
+    "vm_type": "large",
+    "timeout": 90
+  },
+  {
+    "name": "stage-15-preferred-2700",
+    "cmd": "set -e; bash research/track-m/prepare-vendors.sh; bun install --frozen-lockfile >/dev/null; timeout -s KILL 30 bun research/mldr-incl/replay.ts research/mldr-incl/fixtures/safety-gp1.br#stage-15.json preferred 2700",
+    "cpu": 8,
+    "memory": 14336,
+    "vm_type": "large",
+    "timeout": 90
+  },
+  {
+    "name": "stage-15-keyed-250",
+    "cmd": "set -e; bash research/track-m/prepare-vendors.sh; bun install --frozen-lockfile >/dev/null; timeout -s KILL 30 bun research/mldr-incl/replay.ts research/mldr-incl/fixtures/safety-gp1.br#stage-15.json keyed 250",
+    "cpu": 8,
+    "memory": 14336,
+    "vm_type": "large",
+    "timeout": 90
+  },
+  {
+    "name": "stage-15-keyed-1000",
+    "cmd": "set -e; bash research/track-m/prepare-vendors.sh; bun install --frozen-lockfile >/dev/null; timeout -s KILL 30 bun research/mldr-incl/replay.ts research/mldr-incl/fixtures/safety-gp1.br#stage-15.json keyed 1000",
+    "cpu": 8,
+    "memory": 14336,
+    "vm_type": "large",
+    "timeout": 90
+  },
+  {
+    "name": "stage-15-keyed-2700",
+    "cmd": "set -e; bash research/track-m/prepare-vendors.sh; bun install --frozen-lockfile >/dev/null; timeout -s KILL 30 bun research/mldr-incl/replay.ts research/mldr-incl/fixtures/safety-gp1.br#stage-15.json keyed 2700",
+    "cpu": 8,
+    "memory": 14336,
+    "vm_type": "large",
+    "timeout": 90
+  },
+  {
+    "name": "stage-15-seeded-250",
+    "cmd": "set -e; bash research/track-m/prepare-vendors.sh; bun install --frozen-lockfile >/dev/null; timeout -s KILL 30 bun research/mldr-incl/replay.ts research/mldr-incl/fixtures/safety-gp1.br#stage-15.json seeded 250",
+    "cpu": 8,
+    "memory": 14336,
+    "vm_type": "large",
+    "timeout": 90
+  },
+  {
+    "name": "stage-15-seeded-1000",
+    "cmd": "set -e; bash research/track-m/prepare-vendors.sh; bun install --frozen-lockfile >/dev/null; timeout -s KILL 30 bun research/mldr-incl/replay.ts research/mldr-incl/fixtures/safety-gp1.br#stage-15.json seeded 1000",
+    "cpu": 8,
+    "memory": 14336,
+    "vm_type": "large",
+    "timeout": 90
+  },
+  {
+    "name": "stage-15-seeded-2700",
+    "cmd": "set -e; bash research/track-m/prepare-vendors.sh; bun install --frozen-lockfile >/dev/null; timeout -s KILL 30 bun research/mldr-incl/replay.ts research/mldr-incl/fixtures/safety-gp1.br#stage-15.json seeded 2700",
+    "cpu": 8,
+    "memory": 14336,
+    "vm_type": "large",
+    "timeout": 90
+  },
+  {
+    "name": "stage-18-raw-250",
+    "cmd": "set -e; bash research/track-m/prepare-vendors.sh; bun install --frozen-lockfile >/dev/null; timeout -s KILL 30 bun research/mldr-incl/replay.ts research/mldr-incl/fixtures/safety-gp1.br#stage-18.json raw 250",
+    "cpu": 8,
+    "memory": 14336,
+    "vm_type": "large",
+    "timeout": 90
+  },
+  {
+    "name": "stage-18-raw-1000",
+    "cmd": "set -e; bash research/track-m/prepare-vendors.sh; bun install --frozen-lockfile >/dev/null; timeout -s KILL 30 bun research/mldr-incl/replay.ts research/mldr-incl/fixtures/safety-gp1.br#stage-18.json raw 1000",
+    "cpu": 8,
+    "memory": 14336,
+    "vm_type": "large",
+    "timeout": 90
+  },
+  {
+    "name": "stage-18-raw-2700",
+    "cmd": "set -e; bash research/track-m/prepare-vendors.sh; bun install --frozen-lockfile >/dev/null; timeout -s KILL 30 bun research/mldr-incl/replay.ts research/mldr-incl/fixtures/safety-gp1.br#stage-18.json raw 2700",
+    "cpu": 8,
+    "memory": 14336,
+    "vm_type": "large",
+    "timeout": 90
+  },
+  {
+    "name": "stage-18-preferred-250",
+    "cmd": "set -e; bash research/track-m/prepare-vendors.sh; bun install --frozen-lockfile >/dev/null; timeout -s KILL 30 bun research/mldr-incl/replay.ts research/mldr-incl/fixtures/safety-gp1.br#stage-18.json preferred 250",
+    "cpu": 8,
+    "memory": 14336,
+    "vm_type": "large",
+    "timeout": 90
+  },
+  {
+    "name": "stage-18-preferred-1000",
+    "cmd": "set -e; bash research/track-m/prepare-vendors.sh; bun install --frozen-lockfile >/dev/null; timeout -s KILL 30 bun research/mldr-incl/replay.ts research/mldr-incl/fixtures/safety-gp1.br#stage-18.json preferred 1000",
+    "cpu": 8,
+    "memory": 14336,
+    "vm_type": "large",
+    "timeout": 90
+  },
+  {
+    "name": "stage-18-preferred-2700",
+    "cmd": "set -e; bash research/track-m/prepare-vendors.sh; bun install --frozen-lockfile >/dev/null; timeout -s KILL 30 bun research/mldr-incl/replay.ts research/mldr-incl/fixtures/safety-gp1.br#stage-18.json preferred 2700",
+    "cpu": 8,
+    "memory": 14336,
+    "vm_type": "large",
+    "timeout": 90
+  },
+  {
+    "name": "stage-18-keyed-250",
+    "cmd": "set -e; bash research/track-m/prepare-vendors.sh; bun install --frozen-lockfile >/dev/null; timeout -s KILL 30 bun research/mldr-incl/replay.ts research/mldr-incl/fixtures/safety-gp1.br#stage-18.json keyed 250",
+    "cpu": 8,
+    "memory": 14336,
+    "vm_type": "large",
+    "timeout": 90
+  },
+  {
+    "name": "stage-18-keyed-1000",
+    "cmd": "set -e; bash research/track-m/prepare-vendors.sh; bun install --frozen-lockfile >/dev/null; timeout -s KILL 30 bun research/mldr-incl/replay.ts research/mldr-incl/fixtures/safety-gp1.br#stage-18.json keyed 1000",
+    "cpu": 8,
+    "memory": 14336,
+    "vm_type": "large",
+    "timeout": 90
+  },
+  {
+    "name": "stage-18-keyed-2700",
+    "cmd": "set -e; bash research/track-m/prepare-vendors.sh; bun install --frozen-lockfile >/dev/null; timeout -s KILL 30 bun research/mldr-incl/replay.ts research/mldr-incl/fixtures/safety-gp1.br#stage-18.json keyed 2700",
+    "cpu": 8,
+    "memory": 14336,
+    "vm_type": "large",
+    "timeout": 90
+  },
+  {
+    "name": "stage-18-seeded-250",
+    "cmd": "set -e; bash research/track-m/prepare-vendors.sh; bun install --frozen-lockfile >/dev/null; timeout -s KILL 30 bun research/mldr-incl/replay.ts research/mldr-incl/fixtures/safety-gp1.br#stage-18.json seeded 250",
+    "cpu": 8,
+    "memory": 14336,
+    "vm_type": "large",
+    "timeout": 90
+  },
+  {
+    "name": "stage-18-seeded-1000",
+    "cmd": "set -e; bash research/track-m/prepare-vendors.sh; bun install --frozen-lockfile >/dev/null; timeout -s KILL 30 bun research/mldr-incl/replay.ts research/mldr-incl/fixtures/safety-gp1.br#stage-18.json seeded 1000",
+    "cpu": 8,
+    "memory": 14336,
+    "vm_type": "large",
+    "timeout": 90
+  },
+  {
+    "name": "stage-18-seeded-2700",
+    "cmd": "set -e; bash research/track-m/prepare-vendors.sh; bun install --frozen-lockfile >/dev/null; timeout -s KILL 30 bun research/mldr-incl/replay.ts research/mldr-incl/fixtures/safety-gp1.br#stage-18.json seeded 2700",
+    "cpu": 8,
+    "memory": 14336,
+    "vm_type": "large",
+    "timeout": 90
+  },
+  {
+    "name": "stage-21-raw-250",
+    "cmd": "set -e; bash research/track-m/prepare-vendors.sh; bun install --frozen-lockfile >/dev/null; timeout -s KILL 30 bun research/mldr-incl/replay.ts research/mldr-incl/fixtures/safety-gp1.br#stage-21.json raw 250",
+    "cpu": 8,
+    "memory": 14336,
+    "vm_type": "large",
+    "timeout": 90
+  },
+  {
+    "name": "stage-21-raw-1000",
+    "cmd": "set -e; bash research/track-m/prepare-vendors.sh; bun install --frozen-lockfile >/dev/null; timeout -s KILL 30 bun research/mldr-incl/replay.ts research/mldr-incl/fixtures/safety-gp1.br#stage-21.json raw 1000",
+    "cpu": 8,
+    "memory": 14336,
+    "vm_type": "large",
+    "timeout": 90
+  },
+  {
+    "name": "stage-21-raw-2700",
+    "cmd": "set -e; bash research/track-m/prepare-vendors.sh; bun install --frozen-lockfile >/dev/null; timeout -s KILL 30 bun research/mldr-incl/replay.ts research/mldr-incl/fixtures/safety-gp1.br#stage-21.json raw 2700",
+    "cpu": 8,
+    "memory": 14336,
+    "vm_type": "large",
+    "timeout": 90
+  },
+  {
+    "name": "stage-21-preferred-250",
+    "cmd": "set -e; bash research/track-m/prepare-vendors.sh; bun install --frozen-lockfile >/dev/null; timeout -s KILL 30 bun research/mldr-incl/replay.ts research/mldr-incl/fixtures/safety-gp1.br#stage-21.json preferred 250",
+    "cpu": 8,
+    "memory": 14336,
+    "vm_type": "large",
+    "timeout": 90
+  },
+  {
+    "name": "stage-21-preferred-1000",
+    "cmd": "set -e; bash research/track-m/prepare-vendors.sh; bun install --frozen-lockfile >/dev/null; timeout -s KILL 30 bun research/mldr-incl/replay.ts research/mldr-incl/fixtures/safety-gp1.br#stage-21.json preferred 1000",
+    "cpu": 8,
+    "memory": 14336,
+    "vm_type": "large",
+    "timeout": 90
+  },
+  {
+    "name": "stage-21-preferred-2700",
+    "cmd": "set -e; bash research/track-m/prepare-vendors.sh; bun install --frozen-lockfile >/dev/null; timeout -s KILL 30 bun research/mldr-incl/replay.ts research/mldr-incl/fixtures/safety-gp1.br#stage-21.json preferred 2700",
+    "cpu": 8,
+    "memory": 14336,
+    "vm_type": "large",
+    "timeout": 90
+  },
+  {
+    "name": "stage-21-keyed-250",
+    "cmd": "set -e; bash research/track-m/prepare-vendors.sh; bun install --frozen-lockfile >/dev/null; timeout -s KILL 30 bun research/mldr-incl/replay.ts research/mldr-incl/fixtures/safety-gp1.br#stage-21.json keyed 250",
+    "cpu": 8,
+    "memory": 14336,
+    "vm_type": "large",
+    "timeout": 90
+  },
+  {
+    "name": "stage-21-keyed-1000",
+    "cmd": "set -e; bash research/track-m/prepare-vendors.sh; bun install --frozen-lockfile >/dev/null; timeout -s KILL 30 bun research/mldr-incl/replay.ts research/mldr-incl/fixtures/safety-gp1.br#stage-21.json keyed 1000",
+    "cpu": 8,
+    "memory": 14336,
+    "vm_type": "large",
+    "timeout": 90
+  },
+  {
+    "name": "stage-21-keyed-2700",
+    "cmd": "set -e; bash research/track-m/prepare-vendors.sh; bun install --frozen-lockfile >/dev/null; timeout -s KILL 30 bun research/mldr-incl/replay.ts research/mldr-incl/fixtures/safety-gp1.br#stage-21.json keyed 2700",
+    "cpu": 8,
+    "memory": 14336,
+    "vm_type": "large",
+    "timeout": 90
+  },
+  {
+    "name": "stage-21-seeded-250",
+    "cmd": "set -e; bash research/track-m/prepare-vendors.sh; bun install --frozen-lockfile >/dev/null; timeout -s KILL 30 bun research/mldr-incl/replay.ts research/mldr-incl/fixtures/safety-gp1.br#stage-21.json seeded 250",
+    "cpu": 8,
+    "memory": 14336,
+    "vm_type": "large",
+    "timeout": 90
+  },
+  {
+    "name": "stage-21-seeded-1000",
+    "cmd": "set -e; bash research/track-m/prepare-vendors.sh; bun install --frozen-lockfile >/dev/null; timeout -s KILL 30 bun research/mldr-incl/replay.ts research/mldr-incl/fixtures/safety-gp1.br#stage-21.json seeded 1000",
+    "cpu": 8,
+    "memory": 14336,
+    "vm_type": "large",
+    "timeout": 90
+  },
+  {
+    "name": "stage-21-seeded-2700",
+    "cmd": "set -e; bash research/track-m/prepare-vendors.sh; bun install --frozen-lockfile >/dev/null; timeout -s KILL 30 bun research/mldr-incl/replay.ts research/mldr-incl/fixtures/safety-gp1.br#stage-21.json seeded 2700",
+    "cpu": 8,
+    "memory": 14336,
+    "vm_type": "large",
+    "timeout": 90
+  },
+  {
+    "name": "stage-24-raw-250",
+    "cmd": "set -e; bash research/track-m/prepare-vendors.sh; bun install --frozen-lockfile >/dev/null; timeout -s KILL 30 bun research/mldr-incl/replay.ts research/mldr-incl/fixtures/safety-gp1.br#stage-24.json raw 250",
+    "cpu": 8,
+    "memory": 14336,
+    "vm_type": "large",
+    "timeout": 90
+  },
+  {
+    "name": "stage-24-raw-1000",
+    "cmd": "set -e; bash research/track-m/prepare-vendors.sh; bun install --frozen-lockfile >/dev/null; timeout -s KILL 30 bun research/mldr-incl/replay.ts research/mldr-incl/fixtures/safety-gp1.br#stage-24.json raw 1000",
+    "cpu": 8,
+    "memory": 14336,
+    "vm_type": "large",
+    "timeout": 90
+  },
+  {
+    "name": "stage-24-raw-2700",
+    "cmd": "set -e; bash research/track-m/prepare-vendors.sh; bun install --frozen-lockfile >/dev/null; timeout -s KILL 30 bun research/mldr-incl/replay.ts research/mldr-incl/fixtures/safety-gp1.br#stage-24.json raw 2700",
+    "cpu": 8,
+    "memory": 14336,
+    "vm_type": "large",
+    "timeout": 90
+  },
+  {
+    "name": "stage-24-preferred-250",
+    "cmd": "set -e; bash research/track-m/prepare-vendors.sh; bun install --frozen-lockfile >/dev/null; timeout -s KILL 30 bun research/mldr-incl/replay.ts research/mldr-incl/fixtures/safety-gp1.br#stage-24.json preferred 250",
+    "cpu": 8,
+    "memory": 14336,
+    "vm_type": "large",
+    "timeout": 90
+  },
+  {
+    "name": "stage-24-preferred-1000",
+    "cmd": "set -e; bash research/track-m/prepare-vendors.sh; bun install --frozen-lockfile >/dev/null; timeout -s KILL 30 bun research/mldr-incl/replay.ts research/mldr-incl/fixtures/safety-gp1.br#stage-24.json preferred 1000",
+    "cpu": 8,
+    "memory": 14336,
+    "vm_type": "large",
+    "timeout": 90
+  },
+  {
+    "name": "stage-24-preferred-2700",
+    "cmd": "set -e; bash research/track-m/prepare-vendors.sh; bun install --frozen-lockfile >/dev/null; timeout -s KILL 30 bun research/mldr-incl/replay.ts research/mldr-incl/fixtures/safety-gp1.br#stage-24.json preferred 2700",
+    "cpu": 8,
+    "memory": 14336,
+    "vm_type": "large",
+    "timeout": 90
+  },
+  {
+    "name": "stage-24-keyed-250",
+    "cmd": "set -e; bash research/track-m/prepare-vendors.sh; bun install --frozen-lockfile >/dev/null; timeout -s KILL 30 bun research/mldr-incl/replay.ts research/mldr-incl/fixtures/safety-gp1.br#stage-24.json keyed 250",
+    "cpu": 8,
+    "memory": 14336,
+    "vm_type": "large",
+    "timeout": 90
+  },
+  {
+    "name": "stage-24-keyed-1000",
+    "cmd": "set -e; bash research/track-m/prepare-vendors.sh; bun install --frozen-lockfile >/dev/null; timeout -s KILL 30 bun research/mldr-incl/replay.ts research/mldr-incl/fixtures/safety-gp1.br#stage-24.json keyed 1000",
+    "cpu": 8,
+    "memory": 14336,
+    "vm_type": "large",
+    "timeout": 90
+  },
+  {
+    "name": "stage-24-keyed-2700",
+    "cmd": "set -e; bash research/track-m/prepare-vendors.sh; bun install --frozen-lockfile >/dev/null; timeout -s KILL 30 bun research/mldr-incl/replay.ts research/mldr-incl/fixtures/safety-gp1.br#stage-24.json keyed 2700",
+    "cpu": 8,
+    "memory": 14336,
+    "vm_type": "large",
+    "timeout": 90
+  },
+  {
+    "name": "stage-24-seeded-250",
+    "cmd": "set -e; bash research/track-m/prepare-vendors.sh; bun install --frozen-lockfile >/dev/null; timeout -s KILL 30 bun research/mldr-incl/replay.ts research/mldr-incl/fixtures/safety-gp1.br#stage-24.json seeded 250",
+    "cpu": 8,
+    "memory": 14336,
+    "vm_type": "large",
+    "timeout": 90
+  },
+  {
+    "name": "stage-24-seeded-1000",
+    "cmd": "set -e; bash research/track-m/prepare-vendors.sh; bun install --frozen-lockfile >/dev/null; timeout -s KILL 30 bun research/mldr-incl/replay.ts research/mldr-incl/fixtures/safety-gp1.br#stage-24.json seeded 1000",
+    "cpu": 8,
+    "memory": 14336,
+    "vm_type": "large",
+    "timeout": 90
+  },
+  {
+    "name": "stage-24-seeded-2700",
+    "cmd": "set -e; bash research/track-m/prepare-vendors.sh; bun install --frozen-lockfile >/dev/null; timeout -s KILL 30 bun research/mldr-incl/replay.ts research/mldr-incl/fixtures/safety-gp1.br#stage-24.json seeded 2700",
+    "cpu": 8,
+    "memory": 14336,
+    "vm_type": "large",
+    "timeout": 90
+  }
+]

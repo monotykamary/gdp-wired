@@ -1,0 +1,22 @@
+{
+  "trust": "Finite differential and static validation; not a performance or final-gate result.",
+  "batch": "20261110-031855-qrrixs",
+  "base": "6288b666e7b23cb4a10e0e9e92cde919ea135854",
+  "overlay": "runs/t16-early-overlay/",
+  "tests": 80,
+  "assertions": 2287,
+  "typecheck": "pass",
+  "typeAwareLint": "zero warnings/errors",
+  "commitlint": "pass",
+  "hashes": {
+    "core/finite-tiny.ts": "be1bd8f0d285eabe77716160e31fbe316d9fa031f8f07d6ab88c221387699578",
+    "core/finite-houdini.ts": "a38433e20e843f347bdc28deaba3951778e21544fd7c36bd24c16b4eaf27c28b",
+    "core/finite-tiny.test.ts": "f3bf9bafa63ffe7150512ada101e5c781f5e0696ac6ce5175750bf77f9d8005c",
+    "core/finite-tiny-target.test.ts": "a9e2ece1f3e36eab0544c66a0afd13f236130a4d5d814435fc0224a05992287c",
+    "core/finite-tiny-seed.test.ts": "02966de2a49dd47fe4564676d89c212916cfd6d191e5d3fc968e08fa37bfaa59",
+    "core/finite-tiny-early.test.ts": "d5568b5d66778efd4297121e2681db5a9cb2fc65bcf2c47e593480d1090d125c",
+    "research/track-gen/t16-domain-hybrid.ts": "36930ec341f78b429e07f233390e91f1b2143437c9ad36f24ea9ef8cfbcd60a6"
+  },
+  "pilot": "pending",
+  "productionEnabled": false
+}

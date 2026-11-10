@@ -1,0 +1,51 @@
+[
+  {
+    "name": "member-rank-control",
+    "cmd": "bash rank-tools/member-source-rank.sh control",
+    "cpu": 8,
+    "memory": 14336,
+    "timeout": 300
+  },
+  {
+    "name": "member-rank-0",
+    "cmd": "bash rank-tools/member-source-rank.sh 0",
+    "cpu": 8,
+    "memory": 14336,
+    "timeout": 300
+  },
+  {
+    "name": "member-rank-1",
+    "cmd": "bash rank-tools/member-source-rank.sh 1",
+    "cpu": 8,
+    "memory": 14336,
+    "timeout": 300
+  },
+  {
+    "name": "member-rank-2",
+    "cmd": "bash rank-tools/member-source-rank.sh 2",
+    "cpu": 8,
+    "memory": 14336,
+    "timeout": 300
+  },
+  {
+    "name": "member-rank-3",
+    "cmd": "bash rank-tools/member-source-rank.sh 3",
+    "cpu": 8,
+    "memory": 14336,
+    "timeout": 300
+  },
+  {
+    "name": "member-rank-4",
+    "cmd": "bash rank-tools/member-source-rank.sh 4",
+    "cpu": 8,
+    "memory": 14336,
+    "timeout": 300
+  },
+  {
+    "name": "member-rank-6",
+    "cmd": "bash rank-tools/member-source-rank.sh 6",
+    "cpu": 8,
+    "memory": 14336,
+    "timeout": 300
+  }
+]

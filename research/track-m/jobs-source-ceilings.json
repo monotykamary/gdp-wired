@@ -1,0 +1,9 @@
+[
+  {
+    "name": "ceiling-replay",
+    "cmd": "set -e; bun install --frozen-lockfile >/dev/null; for ceiling in 0 1 2 3; do LAB_CEILING_INDEX=$ceiling bun research/track-m/active-source-probe.ts replay-input/input.json 'Inv*' 5 Q2; done",
+    "cpu": 8,
+    "memory": 14336,
+    "timeout": 180
+  }
+]

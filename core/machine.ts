@@ -7,6 +7,7 @@
 // every other key the step reads).
 import {boundOf, crossFree, eachParts, historyMachine, tuple, keyTerm, mapArities, plainKey, scope, sumRuntime, tupleParts} from '../kernel/kernel.ts'
 import {type Constraint, type Lin, type Verdict, add, env, eq, k, le, lt, nat, scale, show, solve, sub, v} from './solver.ts'
+import {runtimeWall} from './runtime-wall.ts'
 
 // The one generator of the repo's random draws: x' = (1103515245 x + 12345) mod 2^31, exact (Math.imul). In doubles
 // the product passes 2^53 and rounds, which folds every seed into one of six short cycles (61 to 10,466 steps; 98.8% of
@@ -567,14 +568,15 @@ export function compileC(c: C, m: Machine): (env: Env, st: State) => boolean {
 // same value, which need not be the default), and past it the value is the new default.
 function writeEvery(w: {each: string, value: E}, env: Env, st: State, m: Machine, parts = 1, map?: string): {cells: Map<number, number>, default: number} {
   if (parts > 1) {
-    const t = eachParts(w, parts), same = map !== undefined && unchanged(t, map, env, st, m)
+    const t = tupleOf(w, parts), same = map !== undefined && unchanged(t, map, env, st, m)
     return same ? {cells: new Map(st.maps[map]!), default: st.defaults && Object.hasOwn(st.defaults, map) ? st.defaults[map]! : m.maps![map]!} : writeEveryTuple(t, env, st, m)
   }
   if (!plainKey(w.value, w.each)) {
     const ks = breakKeys(breaksOf(w.value, w.each), env, st, m), top = ks.at(-1)!
     // (each breakpoint on its own, and each stretch between two at one key of it: no read moves and no comparison turns
     // inside one, so it holds one value; most stretches hold the default, and a stretch that doesn't is filled)
-    const at = (key: number) => evalE(w.value, {...env, [w.each]: key}, st, m)
+    // (one environment for every key, the key written into it: evalE reads its environment and never keeps it)
+    const env1: Env = {...env}, at = (key: number) => { env1[w.each] = key; return evalE(w.value, env1, st, m) }
     const fallback = at(top), cells = new Map<number, number>()
     for (let i = 0; i + 1 < ks.length; i++) {
       const key = ks[i]!, v = at(key)
@@ -583,10 +585,25 @@ function writeEvery(w: {each: string, value: E}, env: Env, st: State, m: Machine
     }
     return {cells, default: fallback}
   }
-  const keys = keysAt(st, mapsIn(w.value)), past = keys.at(-1)!
-  const fallback = evalE(w.value, {...env, [w.each]: past}, st, m), cells = new Map<number, number>()
-  for (const key of keys.slice(0, -1)) { const v = evalE(w.value, {...env, [w.each]: key}, st, m); if (v !== fallback) cells.set(key, v) }
+  const keys = keysAt(st, mapsIn(w.value)), past = keys.at(-1)!, env1: Env = {...env, [w.each]: past}
+  const fallback = evalE(w.value, env1, st, m), cells = new Map<number, number>()
+  for (const key of keys.slice(0, -1)) { env1[w.each] = key; const v = evalE(w.value, env1, st, m); if (v !== fallback) cells.set(key, v) }
   return {cells, default: fallback}
+}
+// A write at every tuple, read once per write: its parts (kernel.ts's eachParts), the value with the comparisons between
+// parts freed (crossFree), each part's breakpoints and whether any comparison crossed parts. None of it reads the state.
+type TupleWrite = {names: string[], value: E, bs: Breaks[], crossed: boolean, reads: WeakMap<object, boolean>}
+const tupleWrites = new WeakMap<object, Map<number, TupleWrite>>()
+function tupleOf(w: {each: string, value: E}, parts: number): TupleWrite {
+  let byParts = tupleWrites.get(w)
+  if (!byParts) tupleWrites.set(w, (byParts = new Map()))
+  let t = byParts.get(parts)
+  if (!t) {
+    const e = eachParts(w, parts), body: C = {op: '=', a: e.value, b: {op: 'const', value: 0}}, free = crossFree(body, e.names)
+    t = {...e, bs: e.names.map(name => breaksOf(free, name)), crossed: JSON.stringify(free) !== JSON.stringify(body), reads: new WeakMap()}
+    byParts.set(parts, t)
+  }
+  return t
 }
 
 // A write at every tuple of a map of n parts, read at its parts (kernel.ts's eachParts): each part's breakpoints together
@@ -594,14 +611,13 @@ function writeEvery(w: {each: string, value: E}, env: Env, st: State, m: Machine
 // one key of it. Past the last breakpoint in any part the value must be the new default (a value other than it along an
 // unbounded stretch is cells without end), and a stretch filled in two parts or more at once must read no comparison
 // between the parts (the value along it then depends on more than the stretch).
-function writeEveryTuple(t: {names: string[], value: E}, env: Env, st: State, m: Machine): {cells: Map<number, number>, default: number} {
-  const n = t.names.length, body: C = {op: '=', a: t.value, b: {op: 'const', value: 0}}, free = crossFree(body, t.names)
-  const bs = t.names.map(name => breaksOf(free, name))
-  const crossed = JSON.stringify(free) !== JSON.stringify(body)
+function writeEveryTuple(t: TupleWrite, env: Env, st: State, m: Machine): {cells: Map<number, number>, default: number} {
+  const n = t.names.length, {bs, crossed} = t
   // (parts compared with no other part: each on its own breakpoints; else all of them together, n keys after each)
   const merged = crossed ? spread(breakKeys({reads: bs.flatMap(b => b.reads), cmps: bs.flatMap(b => b.cmps)}, env, st, m), n) : undefined
   const kss = bs.map(b => merged ?? breakKeys(b, env, st, m))
-  const at = (xs: number[]) => evalE(t.value, {...env, ...Object.fromEntries(t.names.map((name, i) => [name, xs[i]!]))}, st, m)
+  // (one environment for every tuple, the parts written into it: evalE reads its environment and never keeps it)
+  const env1: Env = {...env}, at = (xs: number[]) => { for (let i = 0; i < n; i++) env1[t.names[i]!] = xs[i]!; return evalE(t.value, env1, st, m) }
   const fallback = at(kss.map(ks => ks.at(-1)!)), cells = new Map<number, number>()
   // (each key of a part's keys, and after each the stretch up to the next, at its first key: [key, end) with end the
   // next; the last key stands for every key past it)
@@ -634,8 +650,9 @@ const tupleKey = (xs: number[]): number => xs.slice(0, -1).reduceRight((b, a) =>
 // Whether a write at every tuple leaves the map as it is at this step: its value, with every condition that reads no part
 // decided at the request (the flags, the inputs, the state), is the map's own cell at the tuple of the parts, as read
 // (M[k]) or as a member (if(1 <= M[k], 1, 0) where every cell is 0 or 1 already). Then no tuple need be visited.
-function unchanged(t: {names: string[], value: E}, map: string, env: Env, st: State, m: Machine): boolean {
-  const names = new Set(t.names), reads = (u: E | C) => JSON.stringify(u).match(/"name":"([^"]+)"/g)?.some(x => names.has(x.slice(8, -1))) ?? false
+function unchanged(t: TupleWrite, map: string, env: Env, st: State, m: Machine): boolean {
+  // (whether a condition reads a part is a fact of the term within its write, read once per term)
+  const names = new Set(t.names), reads = (u: E | C) => { let r = t.reads.get(u); if (r === undefined) t.reads.set(u, (r = JSON.stringify(u).match(/"name":"([^"]+)"/g)?.some(x => names.has(x.slice(8, -1))) ?? false)); return r }
   const cond = (c: C): boolean | C => {
     if (!reads(c)) { try { return evalC(c, env, st, m) } catch { return c } }
     if (c.op === 'and' || c.op === 'or') {
@@ -690,7 +707,7 @@ class CountCells extends Map<number, number> {
   constructor(private readonly at: (x: number) => number) { super() }
   override get(x: number): number { let v = super.get(x); if (v === undefined) { v = this.at(x); super.set(x, v) } return v }
 }
-export function carriedView(m: Machine, st: State, input: Request, rename: (map: string) => string = map => map, params?: Env): State {
+export function carriedView(m: Machine, st: State, input: Request, rename: (map: string) => string = map => map, params?: Env, checkpoint?: () => void): State {
   const counts = Object.entries(m.counts ?? {})
   if (!m.inputMaps?.length && !counts.length) return st
   const maps = {...st.maps}, defaults = {...st.defaults}
@@ -708,7 +725,10 @@ export function carriedView(m: Machine, st: State, input: Request, rename: (map:
       maps[rename(c)] = new CountCells(x => {
         const e1 = d.base ? {...env0, [d.j]: Math.floor(x / d.base), [d.lo!]: x % d.base} : {...env0, [d.j]: x}, n = evalE(d.below, e1, view, m)
         let sum = 0
-        for (let k = 0; k < n; k++) sum = exact(sum + evalE(d.body, {...e1, [d.key]: k}, view, m))
+        for (let k = 0; k < n; k++) {
+          if ((k & 255) === 0) { runtimeWall.check?.('derived count'); checkpoint?.() }
+          sum = exact(sum + evalE(d.body, {...e1, [d.key]: k}, view, m))
+        }
         return sum
       })
       defaults[rename(c)] = 0
@@ -723,7 +743,7 @@ export const numbersOf = (input: Request): Record<string, number> => Object.from
 // it (a caller that may send one checks first, as gdp-wired/gdp's gate does).
 const refused = (m: Machine) => `${m.name}: the request fails the rule's assumption, so no proof covers the step it would take`
 // The interpreter: persistent (a step leaves the state it was given as it was), so searches can branch from any state.
-export function interpret(m: Machine) {
+export function interpret(m: Machine, checkpoint?: () => void) {
   const {h, plain, carried} = runnable(m), arity = mapArities(plain)
   const args = (params: Env, input?: Request): Env => {
     const env: Env = {}
@@ -731,7 +751,7 @@ export function interpret(m: Machine) {
     if (input) for (const i of carried) env[i] = naturalIn(input[i], `input ${i}`)
     return env
   }
-  const viewed = (st: State, input: Request, params?: Env): State => carriedView(m, st, input, undefined, params)
+  const viewed = (st: State, input: Request, params?: Env): State => carriedView(m, st, input, undefined, params, checkpoint)
   // The records a request's queries read: with pruning, those not yet spent at its order.
   const live = (env: Env, st: State): Env[] => {
     const records = st.history!
@@ -801,14 +821,24 @@ const RUNTIME: [string, string][] = [
   ['$p', `function $p(a, b) { const s = a + b, v = (s % 2 === 0 ? (s / 2) * (s + 1) : s * ((s + 1) / 2)) + b; if (!Number.isSafeInteger(v)) throw new RangeError('a tuple key passed 2^53 - 1, past which the proofs over the naturals no longer describe the run'); return v; }`],
   ['$u', `function $u(z) { const tri = t => (t % 2 === 0 ? (t / 2) * (t + 1) : t * ((t + 1) / 2)); let s = Math.floor((Math.sqrt(8 * z + 1) - 1) / 2); while (s > 0 && tri(s) > z) s--; while (tri(s + 1) <= z) s++; const b = z - tri(s); return [s - b, b]; }`],
   ['$m', `function $m(v, what) { if (!(v instanceof Map)) throw new RangeError(what + ' must be a Map of naturals'); for (const [key, x] of v) { $n(key, 'a key of ' + what); $n(x, 'a cell of ' + what); } return v; }`],
-  ['$keys', `function $keys(maps, names) { const keys = new Set(); let past = 0; for (const c of Object.values(maps)) for (const key of c.keys()) past = Math.max(past, key + 1); for (const n of names) for (const key of maps[n].keys()) keys.add(key); return [...keys, past]; }`],
-  ['$breaks', `function $breaks(maps, reads, cmps) { const p = new Set([0]); for (const [n, d, minus] of reads) { for (const s of maps[n].keys()) { if (minus) p.add(s + d); else if (s >= d) p.add(s - d); } if (minus) p.add(d); } for (const [v, d, minus] of cmps) { if (minus) { p.add(v + d); p.add(d); } else if (v >= d) p.add(v - d); } const keys = new Set(); for (const q of p) for (let i = -1; i <= 2; i++) if (q + i >= 0) keys.add(q + i); const sorted = [...keys].sort((a, b) => a - b); sorted.push(sorted[sorted.length - 1] + 1); return sorted; }`],
+  // ($unique: the naturals of `vals` (each at most `top`) sorted and made unique. A dense range is marked in a reused
+  // stamp buffer and read back in key order, no sort and no Set per step; a sparse one falls back to a Set and a sort.
+  // The stamp never reaches 2^32 − 1: at that count the buffer is zeroed and the stamps restart at 1, so a stale mark
+  // can never equal a live stamp; a grown buffer starts at 0 likewise.)
+  ['$unique', `function $unique(vals, top) { if (top > 4 * vals.length + 64 || top > 1048576) return [...new Set(vals)].sort((a, b) => a - b); let buf = $unique.buf; if (!buf || buf.length <= top) { buf = new Uint32Array(Math.max(top + 1, buf ? 2 * buf.length : 256)); $unique.buf = buf; $unique.stamp = 0; } let s = $unique.stamp + 1; if (s >= 0xFFFFFFFF) { buf.fill(0); s = 1; } $unique.stamp = s; for (let i = 0; i < vals.length; i++) buf[vals[i]] = s; const out = []; for (let i = 0; i <= top; i++) if (buf[i] === s) out.push(i); return out; }`],
+  ['$keys', `function $keys(maps, names) { const keys = []; let past = 0; for (const n of Object.keys(maps)) for (const key of maps[n].keys()) if (key + 1 > past) past = key + 1; for (const n of names) for (const key of maps[n].keys()) keys.push(key); const out = $unique(keys, past); out.push(past); return out; }`],
+  // ($breaks: every breakpoint q of the reads and comparisons and its neighbours q − 1 .. q + 2, sorted and unique, then one
+  // past the last. A dense set is marked straight into $unique's stamp buffer (no array of the neighbours and no second
+  // pass); a sparse one goes through $unique's Set path. Both give the same list.)
+  ['$breaks', `function $breaks(maps, reads, cmps) { const p = [0]; let top = 0; for (const [n, d, minus] of reads) { for (const s of maps[n].keys()) { const q = minus ? s + d : s - d; if (q >= 0) { p.push(q); if (q > top) top = q; } } if (minus) { p.push(d); if (d > top) top = d; } } for (const [v, d, minus] of cmps) { if (minus) { p.push(v + d); p.push(d); if (v + d > top) top = v + d; } else if (v >= d) { p.push(v - d); if (v - d > top) top = v - d; } } const t2 = top + 2; if (t2 > 16 * p.length + 64 || t2 > 1048576) { const vals = []; for (let j = 0; j < p.length; j++) { const q = p[j]; for (let i = -1; i <= 2; i++) if (q + i >= 0) vals.push(q + i); } const out = $unique(vals, t2); out.push(out[out.length - 1] + 1); return out; } let buf = $unique.buf; if (!buf || buf.length <= t2) { buf = new Uint32Array(Math.max(t2 + 1, buf ? 2 * buf.length : 256)); $unique.buf = buf; $unique.stamp = 0; } let s = $unique.stamp + 1; if (s >= 0xFFFFFFFF) { buf.fill(0); s = 1; } $unique.stamp = s; for (let j = 0; j < p.length; j++) { const q = p[j]; for (let i = q > 0 ? q - 1 : 0; i <= q + 2; i++) buf[i] = s; } const out = []; for (let i = 0; i <= t2; i++) if (buf[i] === s) out.push(i); out.push(out[out.length - 1] + 1); return out; }`],
   // A condition at every two keys that holds wherever x(k) differs from y(k1): only the pairs whose values match are read.
   ['$join', `function $join(ks, x, y, f) { const by = new Map(); for (const k1 of ks) { const v = y(k1), l = by.get(v); if (l) l.push(k1); else by.set(v, [k1]); } return ks.every(k => { const l = by.get(x(k)); return l === undefined || l.every(k1 => f(k, k1)); }); }`],
-  ['$spread', `function $spread(keys, n) { const out = new Set(); for (const k of keys) for (let i = 0; i < n; i++) out.add(k + i); return [...out].sort((a, b) => a - b); }`],
+  ['$spread', `function $spread(keys, n) { const vals = []; let top = 0; for (const k of keys) for (let i = 0; i < n; i++) { vals.push(k + i); if (k + i > top) top = k + i; } return $unique(vals, top); }`],
   // (the interpreter's writeEvery: each breakpoint, and each stretch between two at one key of it, filled only where it
   // holds other than the value past the last)
   ['$dense', `function $dense(keys, f) { const top = keys[keys.length - 1], d = f(top), cells = new Map(); for (let i = 0; i + 1 < keys.length; i++) { const key = keys[i], v = f(key); if (v !== d) cells.set(key, v); if (keys[i + 1] > key + 1) { const u = f(key + 1); if (u !== d) { if (keys[i + 1] - key > 1000000) throw new RangeError('a write at every key fills a stretch of more than a million keys (' + (key + 1) + ' to ' + (keys[i + 1] - 1) + ')'); for (let k2 = key + 1; k2 < keys[i + 1]; k2++) cells.set(k2, u); } } } return {cells, d}; }`],
+  // (a request's count map in the generated code: each cell its sum, computed when first read, as carriedView's CountCells)
+  ['$cells', `class $cells extends Map { constructor(at) { super(); this.at = at; } get(x) { let v = super.get(x); if (v === undefined) { v = this.at(x); super.set(x, v); } return v; } }`],
   ['$every', `function $every(keys, f) { const past = keys[keys.length - 1], d = f(past), cells = new Map(); for (let i = 0; i < keys.length - 1; i++) { const v = f(keys[i]); if (v !== d) cells.set(keys[i], v); } return {cells, d}; }`],
 ]
 function runtimeFor(code: string): string {
@@ -839,7 +869,7 @@ export function compileJs(m: Machine): string { return compileJsMode(m, false) }
 
 // fastStep keeps the input state persistent. Its fork can wait until every
 // precondition and right-hand side has been evaluated, just before the writes.
-function compileJsMode(m: Machine, persistent: boolean): string {
+function compileJsMode(m: Machine, persistent: boolean, cells?: CompiledCells): string {
   const {h, plain, queries, carried} = runnable(m)
   // (a condition or a write at every key over a tuple key: the interpreter decides those, part by part)
   const atEvery = [...Object.values(plain.step.flags ?? {}).filter(c => c.op === 'all'), ...Object.values(plain.step.maps ?? {}).filter(w => 'each' in w)]
@@ -915,7 +945,15 @@ function compileJsMode(m: Machine, persistent: boolean): string {
     const parts = names.map(n => breaksOf(body, n))
     return `$spread(${breaksJs({reads: parts.flatMap(b => b.reads), cmps: parts.flatMap(b => b.cmps)})}, ${names.length})`
   }
-  const every = (w: {each: string, value: E}) => { const keys = keysJs(w.value, w.each), dense = !plainKey(w.value, w.each), outer = bound; bound = {[w.each]: 'k'}; const body = ex(w.value); bound = outer; return `${dense ? '$dense' : '$every'}(${keys}, k => ${body})` }
+  const every = (w: {each: string, value: E}, shared?: string) => { const dense = !plainKey(w.value, w.each), keys = shared ?? keysJs(w.value, w.each), outer = bound; bound = {[w.each]: 'k'}; const body = ex(w.value); bound = outer; return `${dense ? '$dense' : '$every'}(${keys}, k => ${body})` }
+  // Writes at every key with the same breakpoints (the same reads and comparisons) share one list per step, computed once
+  // instead of once per write; a write with breakpoints of its own keeps its own list, since $dense evaluates a write's
+  // value at every key of the list it is given, and a list holding another write's breakpoints would cost it those.
+  const denseWrites = Object.entries(plain.step.maps ?? {}).filter((e): e is [string, {each: string, value: E}] => 'each' in e[1] && !plainKey(e[1].value, e[1].each))
+  const breaksText = new Map(denseWrites.map(([name, w]) => [name, JSON.stringify(breaksOf(w.value, w.each))]))
+  const sharedBreaks = new Map<string, string>()
+  for (const [text, count] of [...breaksText.values()].reduce((acc, text) => acc.set(text, (acc.get(text) ?? 0) + 1), new Map<string, number>())) if (count > 1) sharedBreaks.set(text, `bk${sharedBreaks.size}`)
+  const sharedOf = (name: string) => sharedBreaks.get(breaksText.get(name) ?? '')
   const writes = Object.entries(plain.step.maps ?? {})
   const env = (input: boolean) => `{${[...m.params.map(p => `${id(p)}: $n(params[${id(p)}], ${id(`param ${p}`)})`), ...(input ? carried.map(i => `${id(i)}: $n(input[${id(i)}], ${id(`input ${i}`)})`) : [])].join(', ')}}`
   // Reads go through `maps` (with the maps the request carries); writes go to the state's own.
@@ -947,7 +985,8 @@ function compileJsMode(m: Machine, persistent: boolean): string {
     // The rule's own assumption, as `allowed` (core/watch.ts) reads it (a history's machine assumes more: its relations).
     ...(m.assume ? [`if (!${cx(m.assume)}) throw new RangeError(${id(refused(m))});`] : []),
     `const scalars = {...s, ${Object.entries(plain.step.state ?? {}).map(([name, e]) => `${id(name)}: ${ex(e)}`).join(', ')}};`,
-    ...writes.map(([, w], i) => ('each' in w ? `const write${i} = ${every(w)};` : `const key${i} = ${ex(w.key)}, value${i} = ${ex(w.value)};`)))
+    ...[...sharedBreaks].map(([text, bk]) => `const ${bk} = ${breaksJs(JSON.parse(text) as Breaks)};`),
+    ...writes.map(([name, w], i) => ('each' in w ? `const write${i} = ${every(w, sharedOf(name))};` : `const key${i} = ${ex(w.key)}, value${i} = ${ex(w.value)};`)))
   if (h) lines.push(`const keep = ${cx(h.keep)};`)
   if (persistent) lines.push('state = fork(state);')
   lines.push(...writes.map(([name, w], i) => ('each' in w ? `state.maps[${id(name)}] = write${i}.cells; dft[${id(name)}] = write${i}.d;` : `state.maps[${id(name)}].set(key${i}, value${i});`)))
@@ -957,7 +996,25 @@ function compileJsMode(m: Machine, persistent: boolean): string {
     `return {scalars, maps: state.maps, history: records, head${h.prune ? ', last: order' : ''}};`)
   else lines.push('return Object.keys(dft).length ? {scalars, maps: state.maps, defaults: dft} : {scalars, maps: state.maps};')
   const fnDefs = fns.map((name, i) => `const fn${i} = (${m.fns![name]!.js});\n${m.fns![name]!.call ? `const fnc${i} = (${m.fns![name]!.call});\n` : ''}`).join('')
-  const code = `export function init(params) {
+  // The request's counts (carriedView's CountCells, compiled): the view's maps (the state's, the maps the request carries as
+  // given — the step validates them before any write, so a bad one still ends in its RangeError —,
+  // then each count as a $cells whose cell at x is the sum of its body over the keys below its bound, read through the same
+  // view, so a count's body may read another count), as the step reads them through `input`.
+  const cellsCode = cells ? `export function cells(params, state, input, tick) {
+  const env = ${env(true)}, s = state.scalars, dft = {...state.defaults}, maps = {...state.maps${cells.inputMaps.map(mp => `, ${id(mp)}: input[${id(mp)}]`).join('')}};
+  ${Object.entries(cells.decls).map(([c, d]) => {
+    const outer = bound
+    bound = {...bound, [d.j]: 'cj', ...(d.base ? {[d.lo!]: 'clo'} : {})}
+    const below = ex(d.below)
+    bound = {...bound, [d.key]: 'ck'}
+    const body = ex(d.body)
+    bound = outer
+    return `maps[${id(c)}] = new $cells(x => { const cj = ${d.base ? `Math.floor(x / ${d.base}), clo = x % ${d.base}` : 'x'}; const n = ${below}; let sum = 0; for (let ck = 0; ck < n; ck++) { if ((ck & 255) === 0) tick(); sum = $x(sum + ${body}); } return sum; });`
+  }).join('\n  ')}
+  return maps;
+}
+` : ''
+  const code = `${cellsCode}export function init(params) {
   const env = ${env(false)}, s = {};
   return {scalars: {${Object.entries(plain.state).map(([name, e]) => `${id(name)}: ${ex(e)}`).join(', ')}}, maps: {${Object.keys(plain.maps ?? {}).map(name => `${id(name)}: new Map()`).join(', ')}}${h ? ', history: [], head: 0' : ''}};
 }
@@ -980,19 +1037,32 @@ export function compileFunction<F>(params: string[], body: string): F {
   return new Function(...params, body) as F
 }
 // compileJs's module, loaded: init, fork and step.
-export type Compiled = {init: (params: object) => State & {head?: number}, fork: (st: State) => State, step: (params: object, st: State, input: object) => State & {head?: number}}
+export type Compiled = {init: (params: object) => State & {head?: number}, fork: (st: State) => State, step: (params: object, st: State, input: object) => State & {head?: number}, cells?: (params: object, st: State, input: object, tick: () => void) => Record<string, Map<number, number>>}
+// The counts the generated `cells` computes (their declarations) and the maps the request carries besides them.
+type CompiledCells = {decls: NonNullable<Machine['counts']>, inputMaps: string[]}
 export const loadJs = (m: Machine): Compiled => loadJsMode(m, false)
-const loadJsMode = (m: Machine, persistent: boolean): Compiled => compileFunction<() => Compiled>([], `${compileJsMode(m, persistent).replace(/^export function/gm, 'function')}\nreturn {init, fork, step}`)()
+const loadJsMode = (m: Machine, persistent: boolean, cells?: CompiledCells): Compiled => compileFunction<() => Compiled>([], `${compileJsMode(m, persistent, cells).replace(/^export function/gm, 'function')}\nreturn {init, fork, step${cells ? ', cells' : ''}}`)()
 // The interpreter's step (persistent: a copy of the state each) through loadJs's, several times faster, a request's counts
 // given to it as maps the request carries (carriedView's, each cell its sum when read); none with a history, or where the
 // generator refuses the machine.
 export function fastStep(m: Machine): ((params: Env, st: State, input: Request) => State) | undefined {
-  const cs = Object.keys(m.counts ?? {})
+  // (the counts the step itself reads, in its guards, flags, writes or assumption: a count only a law reads is never
+  // computed for a step; a count's body may read another count, so the closure is taken)
+  const all = m.counts ?? {}, read = new Set<string>()
+  walk([m.step, m.assume ?? null, m.pre ?? null], o => { if (o.op === 'get' && (o.map as string) in all) read.add(o.map as string) })
+  for (let grew = true; grew;) { grew = false; for (const c of [...read]) walk([all[c]!.below, all[c]!.body], o => { if (o.op === 'get' && (o.map as string) in all && !read.has(o.map as string)) { read.add(o.map as string); grew = true } }) }
+  const cs = Object.keys(all).filter(c => read.has(c))
   let js: Compiled
-  try { if (m.history) return undefined; js = loadJsMode({...m, counts: undefined, inputMaps: [...m.inputMaps ?? [], ...cs]}, true) } catch { return undefined }
+  const decls = Object.fromEntries(cs.map(c => [c, all[c]!]))
+  // (the counts compiled with the step, unless the machine has least keys, whose names the step alone computes)
+  const compiledCells = cs.length && !Object.keys(m.leasts ?? {}).length
+  try { if (m.history) return undefined; js = loadJsMode({...m, counts: undefined, inputMaps: [...m.inputMaps ?? [], ...cs]}, true, compiledCells ? {decls, inputMaps: m.inputMaps ?? []} : undefined) } catch { return undefined }
+  const only = cs.length ? {...m, counts: decls} : m, tick = () => runtimeWall.check?.('derived count')
   return (params, st, input) => {
-    const view = cs.length ? carriedView(m, st, input, undefined, params).maps : {}
-    return js.step(params, st, cs.length ? {...input, ...Object.fromEntries(cs.map(c => [c, view[c]!]))} : input)
+    if (!cs.length) return js.step(params, st, input)
+    const view = compiledCells ? js.cells!(params, st, input, tick) : carriedView(only, st, input, undefined, params).maps, carried: Request = {...input}
+    for (const c of cs) carried[c] = view[c]!
+    return js.step(params, st, carried)
   }
 }
 

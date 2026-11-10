@@ -1,0 +1,5 @@
+[
+ {"name":"main4497-check","cmd":"set -euo pipefail; bash research/lane-i/validate.sh setup; bun scripts/test-shards.ts --list --shard 1/7 >/tmp/main4497-roster.txt; bun run check","cpu":4,"memory":12288,"timeout":600,"vm_type":"large"},
+ {"name":"main4497-runtime","cmd":"set -euo pipefail; bash research/lane-i/validate.sh setup; bun test core/compare.test.ts core/functions.test.ts core/mutate-terms.test.ts core/mutate.test.ts core/runtime-default.test.ts core/runtime-keys.test.ts core/runtime.test.ts core/dsl.test.ts core/conformance.test.ts core/exports.test.ts","cpu":4,"memory":12288,"timeout":900,"vm_type":"large"},
+ {"name":"main4497-extraction","cmd":"set -euo pipefail; bash research/lane-i/validate.sh setup; bun test core/cli.test.ts core/extract-absence.test.ts core/extract-choice-joins.test.ts core/extract-standalone-prototype.test.ts core/extract-standalone.test.ts gates/bar.test.ts","cpu":4,"memory":12288,"timeout":900,"vm_type":"large"}
+]

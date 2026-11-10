@@ -1,0 +1,40 @@
+{
+  "trust": "Implementation validation only; not a performance pass, exhaustion proof, or final gate.",
+  "batch": "20261110-010410-4rvkxj",
+  "snapshot": "777d8975d129",
+  "sourceArchiveCommit": "6288b666e7b23cb4a10e0e9e92cde919ea135854",
+  "sourceComposition": "Canonical archive plus the individually hash-checked files in runs/t16-group-overlay.",
+  "job": "bounded-group-check",
+  "exitCode": 0,
+  "processSeconds": 32.05,
+  "cpu": "AMD Ryzen 7 9700X 8-Core Processor",
+  "exclusive": true,
+  "vcpus": 8,
+  "vmVcpus": 8,
+  "tests": 40,
+  "assertions": 150,
+  "typecheck": "pass",
+  "typeAwareLintWarnings": 0,
+  "typeAwareLintErrors": 0,
+  "commitMessageCheck": "research/track-gen/T16-GROUP-COMMIT.txt",
+  "sha256": {
+    "core/finite-tiny.ts": "2802f3dd4e4d53cc3382457db302f2ee7c1abcef5b394529ccf367f070d2a2a2",
+    "core/finite-tiny.test.ts": "f3bf9bafa63ffe7150512ada101e5c781f5e0696ac6ce5175750bf77f9d8005c",
+    "research/track-gen/t16-hybrid-replay.ts": "7df0f1856079622f859b0bbbde3db21870cabe91755506f3ca57827943730adf",
+    "runs/t16-group-check/bounded-group-check.log.gz": "55b47596b95aed55f9711ec9b6465199bc9d203d85d26f23c5873ae566ebbc5d"
+  },
+  "performance": "Corrected probes and independent replay complete: four named-seven drops per original run, all active walls <= 2s. Five-of-seven falsifier fails; production disabled.",
+  "productionEnabled": false,
+  "implementationCommit": "27ff24fc",
+  "failedProbeBatch": "20261110-010407-6qnghm",
+  "failedProbeJobs": [
+    "original-hybrid-1",
+    "original-hybrid-2",
+    "original-hybrid-3",
+    "survivors-hybrid-1",
+    "survivors-hybrid-2",
+    "survivors-hybrid-3"
+  ],
+  "retryTask": "3a9c3826-7966-4737-83cc-593822d37f22",
+  "results": "research/track-gen/t16-group-results.json"
+}

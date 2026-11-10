@@ -1,0 +1,205 @@
+[
+  {
+    "name": "gen-consensus",
+    "cmd": "bash research/track-m/completion-scope-run.sh 1 census consensus",
+    "cpu": 2,
+    "memory": 8192,
+    "timeout": 780
+  },
+  {
+    "name": "gen-tcommit",
+    "cmd": "bash research/track-m/completion-scope-run.sh 2 census tcommit",
+    "cpu": 2,
+    "memory": 8192,
+    "timeout": 780
+  },
+  {
+    "name": "gen-lock_server",
+    "cmd": "bash research/track-m/completion-scope-run.sh 3 census lock_server",
+    "cpu": 2,
+    "memory": 8192,
+    "timeout": 780
+  },
+  {
+    "name": "gen-quorum_leader_election",
+    "cmd": "bash research/track-m/completion-scope-run.sh 4 census quorum_leader_election",
+    "cpu": 2,
+    "memory": 8192,
+    "timeout": 780
+  },
+  {
+    "name": "gen-toy_consensus_forall",
+    "cmd": "bash research/track-m/completion-scope-run.sh 5 census toy_consensus_forall",
+    "cpu": 2,
+    "memory": 8192,
+    "timeout": 780
+  },
+  {
+    "name": "gen-simple",
+    "cmd": "bash research/track-m/completion-scope-run.sh 6 census simple",
+    "cpu": 2,
+    "memory": 8192,
+    "timeout": 780
+  },
+  {
+    "name": "gen-simple_regular",
+    "cmd": "bash research/track-m/completion-scope-run.sh 7 census simple_regular",
+    "cpu": 2,
+    "memory": 8192,
+    "timeout": 780
+  },
+  {
+    "name": "gen-lockserv_automaton",
+    "cmd": "bash research/track-m/completion-scope-run.sh 8 census lockserv_automaton",
+    "cpu": 2,
+    "memory": 8192,
+    "timeout": 780
+  },
+  {
+    "name": "gen-sharded_kv",
+    "cmd": "bash research/track-m/completion-scope-run.sh 9 census sharded_kv",
+    "cpu": 2,
+    "memory": 8192,
+    "timeout": 780
+  },
+  {
+    "name": "gen-sharded_kv_no_lost_keys",
+    "cmd": "bash research/track-m/completion-scope-run.sh 10 census sharded_kv_no_lost_keys",
+    "cpu": 2,
+    "memory": 8192,
+    "timeout": 780
+  },
+  {
+    "name": "gen-lockserv",
+    "cmd": "bash research/track-m/completion-scope-run.sh 11 census lockserv",
+    "cpu": 2,
+    "memory": 8192,
+    "timeout": 780
+  },
+  {
+    "name": "gen-twophase",
+    "cmd": "bash research/track-m/completion-scope-run.sh 12 census twophase",
+    "cpu": 2,
+    "memory": 8192,
+    "timeout": 780
+  },
+  {
+    "name": "gen-simple_decentralized_lock",
+    "cmd": "bash research/track-m/completion-scope-run.sh 13 census simple_decentralized_lock",
+    "cpu": 2,
+    "memory": 8192,
+    "timeout": 780
+  },
+  {
+    "name": "gen-two_phase_commit",
+    "cmd": "bash research/track-m/completion-scope-run.sh 14 census two_phase_commit",
+    "cpu": 2,
+    "memory": 8192,
+    "timeout": 780
+  },
+  {
+    "name": "gen-consensus_wo_decide",
+    "cmd": "bash research/track-m/completion-scope-run.sh 15 census consensus_wo_decide",
+    "cpu": 2,
+    "memory": 8192,
+    "timeout": 780
+  },
+  {
+    "name": "gen-consensus_forall",
+    "cmd": "bash research/track-m/completion-scope-run.sh 16 census consensus_forall",
+    "cpu": 2,
+    "memory": 8192,
+    "timeout": 780
+  },
+  {
+    "name": "gen-naive_consensus",
+    "cmd": "bash research/track-m/completion-scope-run.sh 17 census naive_consensus",
+    "cpu": 2,
+    "memory": 8192,
+    "timeout": 780
+  },
+  {
+    "name": "gen-client_server_ae",
+    "cmd": "bash research/track-m/completion-scope-run.sh 18 census client_server_ae",
+    "cpu": 2,
+    "memory": 8192,
+    "timeout": 780
+  },
+  {
+    "name": "gen-client_server_db_ae",
+    "cmd": "bash research/track-m/completion-scope-run.sh 19 census client_server_db_ae",
+    "cpu": 2,
+    "memory": 8192,
+    "timeout": 780
+  },
+  {
+    "name": "gen-simple_election",
+    "cmd": "bash research/track-m/completion-scope-run.sh 20 census simple_election",
+    "cpu": 2,
+    "memory": 8192,
+    "timeout": 780
+  },
+  {
+    "name": "gen-toy_consensus_epr",
+    "cmd": "bash research/track-m/completion-scope-run.sh 21 census toy_consensus_epr",
+    "cpu": 2,
+    "memory": 8192,
+    "timeout": 780
+  },
+  {
+    "name": "gen-toy_consensus",
+    "cmd": "bash research/track-m/completion-scope-run.sh 22 census toy_consensus",
+    "cpu": 2,
+    "memory": 8192,
+    "timeout": 780
+  },
+  {
+    "name": "gen-firewall",
+    "cmd": "bash research/track-m/completion-scope-run.sh 23 census firewall",
+    "cpu": 2,
+    "memory": 8192,
+    "timeout": 780
+  },
+  {
+    "name": "gen-majorityset_leader_election",
+    "cmd": "bash research/track-m/completion-scope-run.sh 24 census majorityset_leader_election",
+    "cpu": 2,
+    "memory": 8192,
+    "timeout": 780
+  },
+  {
+    "name": "gen-consensus_epr",
+    "cmd": "bash research/track-m/completion-scope-run.sh 25 census consensus_epr",
+    "cpu": 2,
+    "memory": 8192,
+    "timeout": 780
+  },
+  {
+    "name": "gen-learning_switch",
+    "cmd": "bash research/track-m/completion-scope-run.sh 26 census learning_switch",
+    "cpu": 2,
+    "memory": 8192,
+    "timeout": 780
+  },
+  {
+    "name": "gen-learning_switch_i4",
+    "cmd": "bash research/track-m/completion-scope-run.sh 27 census learning_switch_i4",
+    "cpu": 2,
+    "memory": 8192,
+    "timeout": 780
+  },
+  {
+    "name": "gen-paxos_epr",
+    "cmd": "bash research/track-m/completion-scope-run.sh 28 census paxos_epr",
+    "cpu": 2,
+    "memory": 8192,
+    "timeout": 780
+  },
+  {
+    "name": "gen-mldr",
+    "cmd": "bash research/track-m/completion-scope-run.sh 29 census mldr",
+    "cpu": 2,
+    "memory": 8192,
+    "timeout": 780
+  }
+]

@@ -1,0 +1,10 @@
+{
+  "kind": "conditional safety capture on the actual E-14 generated family; not an original-harness proof",
+  "sha256": "b9c7abfae8b30ed2c9de6a665aeebc2956599b8ec28fa3d5a97707719e8f3134",
+  "retainedFiles": 31,
+  "omittedFiles": 22,
+  "laws": 35,
+  "handSuppliedP1": false,
+  "source": "runs/mldr-incl-recovered/20261109-125428-1l3tmb/files ordinary/out",
+  "selection": "Three complete retained early/middle/late STEP packets; omitted files are not reconstructed"
+}

@@ -1,0 +1,65 @@
+[
+ {
+  "name": "overlap-0-before",
+  "cmd": "LEAF_VARIANT=before bash research/track-m/lane-b-op.sh overlap 0 after",
+  "cpu": 8,
+  "memory": 14336,
+  "timeout": 100
+ },
+ {
+  "name": "overlap-0-after",
+  "cmd": "LEAF_VARIANT=after bash research/track-m/lane-b-op.sh overlap 0 after",
+  "cpu": 8,
+  "memory": 14336,
+  "timeout": 100
+ },
+ {
+  "name": "overlap-4-before",
+  "cmd": "LEAF_VARIANT=before bash research/track-m/lane-b-op.sh overlap 4 after",
+  "cpu": 8,
+  "memory": 14336,
+  "timeout": 100
+ },
+ {
+  "name": "overlap-4-after",
+  "cmd": "LEAF_VARIANT=after bash research/track-m/lane-b-op.sh overlap 4 after",
+  "cpu": 8,
+  "memory": 14336,
+  "timeout": 100
+ },
+ {
+  "name": "star-3-before",
+  "cmd": "LEAF_VARIANT=before bash research/track-m/lane-b-op.sh star 3 after",
+  "cpu": 8,
+  "memory": 14336,
+  "timeout": 100
+ },
+ {
+  "name": "star-3-after",
+  "cmd": "LEAF_VARIANT=after bash research/track-m/lane-b-op.sh star 3 after",
+  "cpu": 8,
+  "memory": 14336,
+  "timeout": 100
+ },
+ {
+  "name": "star-5-before",
+  "cmd": "LEAF_VARIANT=before bash research/track-m/lane-b-op.sh star 5 after",
+  "cpu": 8,
+  "memory": 14336,
+  "timeout": 100
+ },
+ {
+  "name": "star-5-after",
+  "cmd": "LEAF_VARIANT=after bash research/track-m/lane-b-op.sh star 5 after",
+  "cpu": 8,
+  "memory": 14336,
+  "timeout": 100
+ },
+ {
+  "name": "check",
+  "cmd": "bash research/track-m/section15-leaf-check.sh",
+  "cpu": 2,
+  "memory": 4096,
+  "timeout": 300
+ }
+]

@@ -1,0 +1,9 @@
+[
+ {
+  "name": "audit-fix-tests",
+  "cmd": "bun install --frozen-lockfile && bun test core/count-cubes.test.ts core/counts-preflight.test.ts core/small-counts.test.ts && bun run check",
+  "cpu": 4,
+  "memory": 14336,
+  "timeout": 600
+ }
+]

@@ -1,0 +1,9 @@
+[
+  {
+    "name": "check-current",
+    "cmd": "set -euo pipefail; bash research/lane-i/validate.sh setup; bun run check",
+    "cpu": 4,
+    "memory": 12288,
+    "timeout": 600
+  }
+]

@@ -1,0 +1,9 @@
+[
+ {
+  "name": "check-merged",
+  "cpu": 4,
+  "memory": 12288,
+  "timeout": 1800,
+  "cmd": "set -o pipefail; bun install --frozen-lockfile >/dev/null && bun run check 2>&1 | grep -v 'vendor/handwired' | grep -v 'research/\\(enum\\|gpu\\|next\\|search\\|synth\\|table\\)/' | tail -20; st=${PIPESTATUS[0]}; echo CHECK_EXIT $st; exit $st"
+ }
+]

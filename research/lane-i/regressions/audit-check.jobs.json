@@ -1,0 +1,9 @@
+[
+  {
+    "name": "receipt-audit-check",
+    "cmd": "set -euo pipefail; bash research/lane-i/validate.sh setup; bun test research/lane-i/regressions/receipt-audit.test.ts; bun run check",
+    "cpu": 4,
+    "memory": 12288,
+    "timeout": 600
+  }
+]

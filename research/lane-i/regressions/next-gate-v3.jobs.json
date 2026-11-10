@@ -1,0 +1,34 @@
+[
+  {
+    "name": "next-v3-check",
+    "cmd": "set -euo pipefail; cp -a frozen-next/. .; bun regression-driver/next-gate-worker.ts check",
+    "cpu": 4,
+    "memory": 14336,
+    "timeout": 480,
+    "vm_type": "large"
+  },
+  {
+    "name": "effect-trace-1",
+    "cmd": "set -euo pipefail; cp -a frozen-next/. .; bun regression-driver/effect-trace-worker.ts 1",
+    "cpu": 4,
+    "memory": 14336,
+    "timeout": 1800,
+    "vm_type": "large"
+  },
+  {
+    "name": "effect-trace-2",
+    "cmd": "set -euo pipefail; cp -a frozen-next/. .; bun regression-driver/effect-trace-worker.ts 2",
+    "cpu": 4,
+    "memory": 14336,
+    "timeout": 1800,
+    "vm_type": "large"
+  },
+  {
+    "name": "effect-trace-3",
+    "cmd": "set -euo pipefail; cp -a frozen-next/. .; bun regression-driver/effect-trace-worker.ts 3",
+    "cpu": 4,
+    "memory": 14336,
+    "timeout": 1800,
+    "vm_type": "large"
+  }
+]

@@ -1,0 +1,50 @@
+[
+  {
+    "view": "chc",
+    "task": "vmt-chc-benchmarks/ctigar/dillig05.c_000.yml"
+  },
+  {
+    "view": "chc",
+    "task": "vmt-chc-benchmarks/ctigar/seesaw.c_000.yml"
+  },
+  {
+    "view": "chc",
+    "task": "vmt-chc-benchmarks/lustre/DRAGON_4_000_001.yml"
+  },
+  {
+    "view": "chc",
+    "task": "vmt-chc-benchmarks/lustre/DRAGON_4_e2_2799_000_001.yml"
+  },
+  {
+    "view": "its-scc",
+    "task": "Integer_Transition_Systems/From_T2/hqr.c.i.hqr.pl.t2.nor.t2.rlgfixed.t2_fixed.ari"
+  },
+  {
+    "view": "its-scc",
+    "task": "Integer_Transition_Systems/From_T2/slayer-n3-filtered.t2.ari"
+  },
+  {
+    "view": "its-scc",
+    "task": "Integer_Transition_Systems/From_T2/bio.t2.ari"
+  },
+  {
+    "view": "its-scc",
+    "task": "Integer_Transition_Systems/From_T2/cover.t2.ari"
+  },
+  {
+    "view": "its",
+    "task": "Integer_Transition_Systems/From_T2/bio.t2.ari"
+  },
+  {
+    "view": "its",
+    "task": "Integer_Transition_Systems/From_T2/cover.t2.ari"
+  },
+  {
+    "view": "tip",
+    "task": "tip2015/list_weird_concat_map_bind.smt2"
+  },
+  {
+    "view": "tip",
+    "task": "tip2015/tree_Flatten3.smt2"
+  }
+]

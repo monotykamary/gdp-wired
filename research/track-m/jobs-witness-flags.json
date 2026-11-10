@@ -1,0 +1,4 @@
+[
+ {"name":"safety","cmd":"bun install --frozen-lockfile >/dev/null && for mode in raw own flags flags-own; do bun research/track-m/refine-captured.ts replay-input/1.json replay-input/input.json $mode; done", "cpu":4,"memory":14000,"timeout":90},
+ {"name":"overlap","cmd":"bun install --frozen-lockfile >/dev/null && for mode in raw own flags flags-own; do bun research/track-m/refine-captured.ts replay-input/8.json replay-input/input.json $mode; done", "cpu":4,"memory":14000,"timeout":90}
+]

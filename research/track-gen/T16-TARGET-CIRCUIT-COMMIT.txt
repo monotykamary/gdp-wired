@@ -1,0 +1,6 @@
+refactor(core): share partial post-state circuits across targets
+
+Avoid expanding every source transition into every target. Track each
+post coordinate's source-assignment readiness and share one bounded
+output DAG per operation. Keep unknown atoms, independent certification,
+and all finite domains and wall limits unchanged.

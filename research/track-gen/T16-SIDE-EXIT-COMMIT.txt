@@ -1,0 +1,8 @@
+fix(research): propagate paired side failures
+
+Retain both side outcomes but return nonzero when either original or
+generation process fails, even after producing output. Use the repaired
+execution driver in immutable-archive iteration jobs.
+
+Test both modes, both orders and sides, successful controls and killed
+status. Authoritative admission remains Lane D's final gate.

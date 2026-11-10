@@ -1,0 +1,1 @@
+[{"name":"census","cmd":"bun install --frozen-lockfile && bun research/track-gen/t13-census.ts && bun run check","timeout":300}]

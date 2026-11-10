@@ -1,0 +1,18 @@
+[
+  {
+    "name": "first-b-focus-off",
+    "cmd": "bun regression-driver/first-b-ablation.ts 3 focus-off",
+    "cpu": 4,
+    "memory": 14336,
+    "timeout": 900,
+    "vm_type": "large"
+  },
+  {
+    "name": "first-b-completion-and-focus-off",
+    "cmd": "bun regression-driver/first-b-ablation.ts 3 completion-and-focus-off",
+    "cpu": 4,
+    "memory": 14336,
+    "timeout": 900,
+    "vm_type": "large"
+  }
+]

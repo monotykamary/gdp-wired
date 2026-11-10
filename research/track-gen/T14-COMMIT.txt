@@ -1,0 +1,12 @@
+feat(core): filter lifted-row candidates with finite relative CTIs
+
+Extend stored-row count cubes and run a conservative finite Houdini pass
+before counted induction. Keep callers and undecided evaluations, preserve
+the existing structural trigger, and leave every survivor to the checker.
+
+Redistribute the round's remaining allowance before each untried law while
+keeping ordering, support budgets, counted fuel and wall limits unchanged.
+
+Add coverage for initialization cubes, finite binder completeness, caller
+protection, cascaded drops, budget redistribution and wall cancellation.
+Include research-only SAT capture and paired reproduction tooling.

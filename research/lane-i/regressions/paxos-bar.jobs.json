@@ -1,0 +1,42 @@
+[
+  {
+    "name": "paxos-bar-0",
+    "cmd": "set -euo pipefail; cp -a frozen-bar/. .; bun regression-driver/bar-resource-pairs.ts 0 regression-driver/paxos-bar-roster.json",
+    "cpu": 4,
+    "memory": 14336,
+    "timeout": 600,
+    "vm_type": "large"
+  },
+  {
+    "name": "paxos-bar-1",
+    "cmd": "set -euo pipefail; cp -a frozen-bar/. .; bun regression-driver/bar-resource-pairs.ts 1 regression-driver/paxos-bar-roster.json",
+    "cpu": 4,
+    "memory": 14336,
+    "timeout": 600,
+    "vm_type": "large"
+  },
+  {
+    "name": "paxos-bar-2",
+    "cmd": "set -euo pipefail; cp -a frozen-bar/. .; bun regression-driver/bar-resource-pairs.ts 2 regression-driver/paxos-bar-roster.json",
+    "cpu": 4,
+    "memory": 14336,
+    "timeout": 600,
+    "vm_type": "large"
+  },
+  {
+    "name": "paxos-bar-3",
+    "cmd": "set -euo pipefail; cp -a frozen-bar/. .; bun regression-driver/bar-resource-pairs.ts 3 regression-driver/paxos-bar-roster.json",
+    "cpu": 4,
+    "memory": 14336,
+    "timeout": 600,
+    "vm_type": "large"
+  },
+  {
+    "name": "paxos-bar-4",
+    "cmd": "set -euo pipefail; cp -a frozen-bar/. .; bun regression-driver/bar-resource-pairs.ts 4 regression-driver/paxos-bar-roster.json",
+    "cpu": 4,
+    "memory": 14336,
+    "timeout": 600,
+    "vm_type": "large"
+  }
+]

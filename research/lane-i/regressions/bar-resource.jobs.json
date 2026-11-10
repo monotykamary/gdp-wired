@@ -1,0 +1,58 @@
+[
+  {
+    "name": "chc-seesaw_c_000_yml",
+    "cmd": "bun regression-driver/bar-resource-pairs.ts 1",
+    "cpu": 4,
+    "memory": 14336,
+    "timeout": 900,
+    "vm_type": "large"
+  },
+  {
+    "name": "chc-DRAGON_4_000_001_yml",
+    "cmd": "bun regression-driver/bar-resource-pairs.ts 2",
+    "cpu": 4,
+    "memory": 14336,
+    "timeout": 900,
+    "vm_type": "large"
+  },
+  {
+    "name": "chc-DRAGON_4_e2_2799_000_001_yml",
+    "cmd": "bun regression-driver/bar-resource-pairs.ts 3",
+    "cpu": 4,
+    "memory": 14336,
+    "timeout": 900,
+    "vm_type": "large"
+  },
+  {
+    "name": "its-scc-bio_t2_ari",
+    "cmd": "bun regression-driver/bar-resource-pairs.ts 6",
+    "cpu": 4,
+    "memory": 14336,
+    "timeout": 900,
+    "vm_type": "large"
+  },
+  {
+    "name": "its-bio_t2_ari",
+    "cmd": "bun regression-driver/bar-resource-pairs.ts 8",
+    "cpu": 4,
+    "memory": 14336,
+    "timeout": 900,
+    "vm_type": "large"
+  },
+  {
+    "name": "its-cover_t2_ari",
+    "cmd": "bun regression-driver/bar-resource-pairs.ts 9",
+    "cpu": 4,
+    "memory": 14336,
+    "timeout": 900,
+    "vm_type": "large"
+  },
+  {
+    "name": "tip-list_weird_concat_map_bind_smt2",
+    "cmd": "bun regression-driver/bar-resource-pairs.ts 10",
+    "cpu": 4,
+    "memory": 14336,
+    "timeout": 900,
+    "vm_type": "large"
+  }
+]

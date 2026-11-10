@@ -1,0 +1,6 @@
+refactor(core): skip unready tiny predicate expressions
+
+Return unknown before evaluating an atomic predicate's expression DAG
+until all dependencies are assigned. Preserve both polarities, checked
+clause boundaries, bounded native bodies and independent CTI replay.
+The experimental tiny backend remains disabled in production.

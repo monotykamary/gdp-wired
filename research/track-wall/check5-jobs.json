@@ -1,0 +1,17 @@
+[
+ {
+  "name": "check-base",
+  "cpu": 4,
+  "memory": 12288,
+  "timeout": 1800,
+  "cmd": "set -o pipefail; mkdir -p base && tar -xf baselines/base.tar -C base && (cp -R vendor/. base/vendor/ 2>/dev/null || true) && cd base && bun install --frozen-lockfile >/dev/null && bun run check 2>&1 | grep -v 'vendor/handwired' | tail -30; st=${PIPESTATUS[0]}; echo CHECK_EXIT $st; exit $st"
+ },
+ {
+  "name": "gen-paired",
+  "vm_type": "large",
+  "cpu": 2,
+  "memory": 8192,
+  "timeout": 1500,
+  "cmd": "set -o pipefail; grep -m1 'model name' /proc/cpuinfo; mkdir -p base && tar -xf baselines/base.tar -C base && (cp -R vendor/. base/vendor/ 2>/dev/null || true) && bun install --frozen-lockfile >/dev/null && (cd base && bun install --frozen-lockfile >/dev/null) && for r in 1 2 3; do for side in mine base; do d=.; [ $side = base ] && d=base; echo \"PAIR $r $side\"; (cd $d && GDP_COUNTS_TRACE=1 timeout -s KILL 120 bun research/track-gen/t13-generation.ts mldr 2>&1 >/dev/null | grep -v T13_DATA | grep '\"phases\"\\|finite Houdini' | cut -c1-260); done; done"
+ }
+]

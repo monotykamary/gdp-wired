@@ -1,0 +1,37 @@
+[
+ {
+  "name": "overlap",
+  "cmd": "bash research/track-m/lane-b-baseline.sh overlap",
+  "cpu": 8,
+  "memory": 14336,
+  "timeout": 240
+ },
+ {
+  "name": "rows",
+  "cmd": "bash research/track-m/lane-b-baseline.sh rows",
+  "cpu": 8,
+  "memory": 14336,
+  "timeout": 240
+ },
+ {
+  "name": "star",
+  "cmd": "bash research/track-m/lane-b-baseline.sh star",
+  "cpu": 8,
+  "memory": 14336,
+  "timeout": 240
+ },
+ {
+  "name": "safety",
+  "cmd": "bash research/track-m/lane-b-baseline.sh safety",
+  "cpu": 8,
+  "memory": 14336,
+  "timeout": 240
+ },
+ {
+  "name": "p1",
+  "cmd": "bash research/track-m/lane-b-baseline.sh p1",
+  "cpu": 8,
+  "memory": 14336,
+  "timeout": 240
+ }
+]

@@ -1,0 +1,37 @@
+[
+  {
+    "name": "closure-AB",
+    "cmd": "bash research/track-m/lane-f-source-cdcl-pair.sh closure before",
+    "cpu": 2,
+    "memory": 8192,
+    "timeout": 90
+  },
+  {
+    "name": "closure-BA",
+    "cmd": "bash research/track-m/lane-f-source-cdcl-pair.sh closure after",
+    "cpu": 2,
+    "memory": 8192,
+    "timeout": 90
+  },
+  {
+    "name": "original-AB",
+    "cmd": "bash research/track-m/lane-f-source-cdcl-pair.sh original before",
+    "cpu": 2,
+    "memory": 8192,
+    "timeout": 90
+  },
+  {
+    "name": "original-BA",
+    "cmd": "bash research/track-m/lane-f-source-cdcl-pair.sh original after",
+    "cpu": 2,
+    "memory": 8192,
+    "timeout": 90
+  },
+  {
+    "name": "validation",
+    "cmd": "set -euo pipefail; bash research/track-m/prepare-vendors.sh; bun install --frozen-lockfile >/dev/null; cp source-projection-base.txt core/count-recovery/derivability-closure.ts; LAB_DISPOSABLE=1 bun research/track-m/lane-f-scalar-source-variant.ts; LAB_DISPOSABLE=1 bun research/track-m/lane-f-source-cdcl-variant.ts; bun test core/count-recovery/live-dependencies.test.ts core/count-write-frames.test.ts core/count-focused.test.ts core/count-ranges.test.ts core/count-recovery/empty-count-source.test.ts core/count-recovery/derivability-closure.test.ts core/count-recovery/row-demand.test.ts core/count-recovery/row-cases.test.ts core/count-recovery/conditional-cuts.test.ts; bun run check; for file in audit-fix-commit.txt transport-commit.txt audit-report-commit.txt source-cdcl-pair-commit.txt; do printf 'COMMITLINT %s\\n' \"$file\"; bunx commitlint --default-config < \"$file\"; done",
+    "cpu": 4,
+    "memory": 8192,
+    "timeout": 480
+  }
+]

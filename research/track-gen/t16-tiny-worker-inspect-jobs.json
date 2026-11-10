@@ -1,0 +1,1 @@
+[{"name":"inspect","cmd":"bun research/track-gen/t16-tiny-inspect.ts","timeout":60,"cpu":2,"memory":4096}]

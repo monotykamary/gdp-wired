@@ -1,0 +1,1 @@
+[{"name":"check-and-commitlint","cmd":"bun install --frozen-lockfile && bun run check && bunx --yes @commitlint/cli --config research/egraph/historical/commitlint.config.cjs < research/track-gen/DOCS-COMMIT.txt","timeout":600}]

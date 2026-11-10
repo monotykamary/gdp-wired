@@ -1,0 +1,6 @@
+feat(core): add opt-in interval post-target pruning
+
+Enclose unknown post values and propagate conservative natural bounds
+through shared arithmetic and three-valued predicates. Keep overlapping
+bounds unknown and fall back to readiness screens at the native code cap.
+Extend finite differential coverage before unchanged-budget pilots.

@@ -1,0 +1,55 @@
+{
+  "trust": "Finite differential and static validation only; no performance or final-gate claim.",
+  "batch": "20261110-023555-2ihu75",
+  "sourceBase": "6288b666e7b23cb4a10e0e9e92cde919ea135854",
+  "overlay": "runs/t16-target-interval-overlay-v2",
+  "tests": 64,
+  "assertions": 1748,
+  "typecheck": "pass",
+  "typeAwareLint": "zero warnings and errors",
+  "commitlint": "pass",
+  "hashes": {
+    "core/finite-tiny.ts": "0e1a570230e81f53821eaf606ae0dbcf64c0a0fc8f0ebc14f9d1bc3f27582795",
+    "core/finite-tiny-target.test.ts": "a9e2ece1f3e36eab0544c66a0afd13f236130a4d5d814435fc0224a05992287c",
+    "core/finite-tiny.test.ts": "f3bf9bafa63ffe7150512ada101e5c781f5e0696ac6ce5175750bf77f9d8005c",
+    "research/track-gen/t16-domain-hybrid.ts": "f10cbeb2e11c1270e094cf7afd7afd9f3477c38024b32d6fd7b92863085b415c"
+  },
+  "priorAttempt": {
+    "batch": "20261110-023426-7otqkj",
+    "tests": 63,
+    "assertions": 1743,
+    "status": "test-mode tuple type error; existing native-cap fixture omitted from first overlay, restored in final validation"
+  },
+  "pilot": {
+    "status": "rejected",
+    "batch": "20261110-023819-kr1va5",
+    "originalNamedNew": [
+      0,
+      3,
+      3
+    ],
+    "originalWallsMs": [
+      2054.469851,
+      1900.174678,
+      1984.5400980000002
+    ],
+    "survivorNamedNew": [
+      2,
+      2,
+      2
+    ],
+    "allSixWallsWithinAllowance": false,
+    "completedFirstRound": {
+      "nodes": 56413,
+      "states": 782,
+      "requestPrunes": 4231,
+      "statePrunes": 0,
+      "intervalFallbacks": 19
+    },
+    "replayBatch": "20261110-024016-l6ks07",
+    "certifiedWitnesses": 16,
+    "results": "research/track-gen/t16-target-interval-results.json"
+  },
+  "productionEnabled": false,
+  "sourceCommit": "e559b0d3fcb54ae6298009e7365c76cf669c4fc7"
+}

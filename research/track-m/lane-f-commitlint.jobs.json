@@ -1,0 +1,1 @@
+[{"name":"commitlint","cmd":"set -euo pipefail; bun install --frozen-lockfile >/dev/null; for file in audit-fix-commit.txt transport-commit.txt audit-report-commit.txt; do printf 'COMMITLINT %s\\n' \"$file\"; bunx commitlint --default-config < \"$file\"; done","cpu":2,"memory":4096,"timeout":180}]

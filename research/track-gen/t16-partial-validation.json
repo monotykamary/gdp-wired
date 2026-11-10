@@ -1,0 +1,31 @@
+{
+  "kind": "iteration-only validation, not final gate",
+  "batch": "20261110-005234-oyxenp",
+  "snapshotTree": "347811763729",
+  "job": "archive-domain-check-overlay",
+  "exitCode": 0,
+  "jobSeconds": 52.44,
+  "source": {
+    "baseCommit": "6288b666e7b23cb4a10e0e9e92cde919ea135854",
+    "baseArchiveSha256": "26824362de21cb4ea3c87e78f09aa37dc49077b88ab8a6bb1421dd3eeb311979",
+    "testOverlaySha256": "5f4e224572a29bbd932a2fb9a170e3265aa801b760e74ea1e7234ae2ab3ff63c",
+    "files": {
+      "core/finite-tiny.ts": "88caa4beeee9f64f6914124c753872f1b81dd119539847168afab8c3bb86f4e1",
+      "core/finite-tiny.test.ts": "5f4e224572a29bbd932a2fb9a170e3265aa801b760e74ea1e7234ae2ab3ff63c",
+      "core/finite-houdini.ts": "7e7387e4b4fe5132a7cc584d44a4541889bd78a93779e585ef88f09436ffe6b0"
+    },
+    "vendors": {
+      "handwired": {"commit": "d47141cce2caf5b86b0c2c0c372a5174f424bc15", "archiveSha256": "73d44548dbe109a40ac933406324e17d7dee39e7dff1a6f1270ed030c31c1da4"},
+      "gdp-ts": {"commit": "0b6ebeeec827b05210f3acfa4149a70dda9a0de5", "archiveSha256": "75d367da15decb1fefce2ae72ae50e7f3f737989094a760fde643c5b1f5c1496"}
+    }
+  },
+  "hardware": {"vm": "bx_8f8tzqk2", "type": "large", "cpu": "AMD EPYC 4585PX 16-Core Processor", "vcpus": 8, "vm_vcpus": 8, "exclusive": true, "co_tenants": 0},
+  "validation": {"tests": 39, "failed": 0, "assertions": 145, "typescript": "pass", "typeAwareLint": "pass, zero warnings/errors", "commitlint": ["T16-PARTIAL-COMMIT.txt", "T16-FIXTURE-COMMIT.txt"]},
+  "log": {"path": "runs/t16-partial-overlay-check/archive-domain-check-overlay.log.gz", "sha256": "210ce61ffe12cf95f352a78d70d57b2a91343b7d4ee2ac302b306d5bd7f12fe1"},
+  "priorFailures": [
+    {"batch": "20261110-003848-r92jez", "testsPassed": 38, "testsFailed": 1, "cause": "test count binder a collided with state a"},
+    {"batch": "20261110-005009-p6jio6", "testsPassed": 39, "assertions": 145, "typescript": "pass", "lintErrors": 4, "cause": "numeric request fields not narrowed before stringification"}
+  ],
+  "productionTinyScreening": "disabled",
+  "hybridMeasurements": "pending; no five-of-seven or timing conclusion"
+}

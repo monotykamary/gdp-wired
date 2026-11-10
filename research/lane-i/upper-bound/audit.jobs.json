@@ -1,0 +1,9 @@
+[
+  {
+    "name": "frozen-census-audit",
+    "cmd": "set -euo pipefail; bash research/lane-i/validate.sh setup; bun test research/lane-i/upper-bound/summarize.test.ts research/lane-i/upper-bound/audit.test.ts; bun research/lane-i/upper-bound/audit.ts upper-receipts upper-audit-input; sha256sum upper-receipts/provenance-audit.json; bun run check",
+    "cpu": 4,
+    "memory": 12288,
+    "timeout": 600
+  }
+]

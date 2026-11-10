@@ -1,0 +1,10 @@
+[
+ {"id":"d1","variant":"tf1-profile","env":{"BUN_JSC_logGC":"1"}},
+ {"id":"c1","variant":"tf1-profile","env":{"BUN_JSC_logGC":"1","BUN_JSC_useConcurrentGC":"false"}},
+ {"id":"c2","variant":"tf1-profile","env":{"BUN_JSC_logGC":"1","BUN_JSC_useConcurrentGC":"false"}},
+ {"id":"d2","variant":"tf1-profile","env":{"BUN_JSC_logGC":"1"}},
+ {"id":"d3","variant":"census-extras","env":{"BUN_JSC_logGC":"1"}},
+ {"id":"c3","variant":"census-extras","env":{"BUN_JSC_logGC":"1","BUN_JSC_useConcurrentGC":"false"}},
+ {"id":"c4","variant":"census-extras","env":{"BUN_JSC_logGC":"1","BUN_JSC_useConcurrentGC":"false"}},
+ {"id":"d4","variant":"census-extras","env":{"BUN_JSC_logGC":"1"}}
+]

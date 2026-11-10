@@ -1,0 +1,16 @@
+[
+  {
+    "name": "check",
+    "cmd": "set -euo pipefail; bash research/lane-i/validate.sh setup; bun run check",
+    "cpu": 4,
+    "memory": 12288,
+    "timeout": 600
+  },
+  {
+    "name": "runtime-keys",
+    "cmd": "set -euo pipefail; bash research/lane-i/validate.sh setup; bun test core/runtime-keys.test.ts",
+    "cpu": 2,
+    "memory": 8192,
+    "timeout": 180
+  }
+]

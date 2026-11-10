@@ -1,0 +1,9 @@
+[
+  {
+    "name": "vm-health",
+    "cmd": "bun research/track-m/section8-vm-health.ts",
+    "cpu": 8,
+    "memory": 14336,
+    "timeout": 30
+  }
+]

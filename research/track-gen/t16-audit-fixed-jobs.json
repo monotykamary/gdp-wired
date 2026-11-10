@@ -1,0 +1,9 @@
+[
+ {
+  "name": "audit-fixed",
+  "cmd": "bun install --frozen-lockfile && bun test core/count-cubes.test.ts core/counts-preflight.test.ts core/small-counts.test.ts && bun research/track-gen/t16-audit-probe.ts && bun run check && bunx --yes @commitlint/cli --config research/egraph/historical/commitlint.config.cjs < research/track-gen/T16-AUDIT-COMMIT.txt && bunx --yes @commitlint/cli --config research/egraph/historical/commitlint.config.cjs < research/track-gen/T16-AUDIT-CYCLE-COMMIT.txt",
+  "cpu": 4,
+  "memory": 14336,
+  "timeout": 600
+ }
+]

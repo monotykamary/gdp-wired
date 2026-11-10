@@ -1,0 +1,44 @@
+[
+  {
+    "name": "original-hybrid-1",
+    "cmd": "bun research/track-gen/t16-domain-hybrid.ts original",
+    "cpu": 2,
+    "memory": 4096,
+    "timeout": 60
+  },
+  {
+    "name": "original-hybrid-2",
+    "cmd": "bun research/track-gen/t16-domain-hybrid.ts original",
+    "cpu": 2,
+    "memory": 4096,
+    "timeout": 60
+  },
+  {
+    "name": "original-hybrid-3",
+    "cmd": "bun research/track-gen/t16-domain-hybrid.ts original",
+    "cpu": 2,
+    "memory": 4096,
+    "timeout": 60
+  },
+  {
+    "name": "survivors-hybrid-1",
+    "cmd": "bun research/track-gen/t16-domain-hybrid.ts survivors",
+    "cpu": 2,
+    "memory": 4096,
+    "timeout": 60
+  },
+  {
+    "name": "survivors-hybrid-2",
+    "cmd": "bun research/track-gen/t16-domain-hybrid.ts survivors",
+    "cpu": 2,
+    "memory": 4096,
+    "timeout": 60
+  },
+  {
+    "name": "survivors-hybrid-3",
+    "cmd": "bun research/track-gen/t16-domain-hybrid.ts survivors",
+    "cpu": 2,
+    "memory": 4096,
+    "timeout": 60
+  }
+]

@@ -1,0 +1,30 @@
+[
+  {
+    "name": "tiny-selectors-boolean",
+    "cmd": "bash research/track-m/lane-f-source-query.sh tiny-selectors-boolean",
+    "cpu": 2,
+    "memory": 8192,
+    "timeout": 60
+  },
+  {
+    "name": "source-selectors-boolean",
+    "cmd": "bash research/track-m/lane-f-source-query.sh source-selectors-boolean",
+    "cpu": 2,
+    "memory": 8192,
+    "timeout": 60
+  },
+  {
+    "name": "tiny-zero-selectors-boolean",
+    "cmd": "bash research/track-m/lane-f-source-query.sh tiny-zero-selectors-boolean",
+    "cpu": 2,
+    "memory": 8192,
+    "timeout": 60
+  },
+  {
+    "name": "source-zero-selectors-boolean",
+    "cmd": "bash research/track-m/lane-f-source-query.sh source-zero-selectors-boolean",
+    "cpu": 2,
+    "memory": 8192,
+    "timeout": 60
+  }
+]

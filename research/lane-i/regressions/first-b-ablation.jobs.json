@@ -1,0 +1,34 @@
+[
+  {
+    "name": "first-b-completion-off-1",
+    "cmd": "bun regression-driver/first-b-ablation.ts 1 completion-off",
+    "cpu": 4,
+    "memory": 14336,
+    "timeout": 900,
+    "vm_type": "large"
+  },
+  {
+    "name": "first-b-completion-off-2",
+    "cmd": "bun regression-driver/first-b-ablation.ts 2 completion-off",
+    "cpu": 4,
+    "memory": 14336,
+    "timeout": 900,
+    "vm_type": "large"
+  },
+  {
+    "name": "first-b-inclusions-off-1",
+    "cmd": "bun regression-driver/first-b-ablation.ts 1 inclusions-off",
+    "cpu": 4,
+    "memory": 14336,
+    "timeout": 900,
+    "vm_type": "large"
+  },
+  {
+    "name": "first-b-inclusions-off-2",
+    "cmd": "bun regression-driver/first-b-ablation.ts 2 inclusions-off",
+    "cpu": 4,
+    "memory": 14336,
+    "timeout": 900,
+    "vm_type": "large"
+  }
+]

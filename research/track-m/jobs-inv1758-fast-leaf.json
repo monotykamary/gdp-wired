@@ -1,0 +1,6 @@
+[
+ {"name":"inv1758-pair","cmd":"set -e; bun install --frozen-lockfile >/dev/null; cp core/count-recovery/field-case.ts /tmp/candidate-field-case.ts; for side in base cand; do if [ \"$side\" = base ]; then cp baseline-input/field-case.txt core/count-recovery/field-case.ts; else cp /tmp/candidate-field-case.ts core/count-recovery/field-case.ts; fi; echo SIDE=$side; GDP_COUNTS_GIVEN=1 bun research/track-m/verify-focused.ts replay-input/input.json Inv1758; done","cpu":8,"memory":14336,"timeout":180},
+ {"name":"proof-tests","cmd":"set -e; bun install --frozen-lockfile >/dev/null; bun test core/count-recovery core/count-cases.test.ts core/count-focus-proof.test.ts core/count-focused.test.ts core/count-witness-flags.test.ts","cpu":8,"memory":14336,"timeout":180},
+ {"name":"family-profile","cmd":"set -e; bun install --frozen-lockfile >/dev/null; TRACK_M_DISPOSABLE_PROFILE=1 bun research/track-m/install-cost-meter.ts /tmp/fast-originals >/tmp/fast-manifest; TRACK_M_COST_PROFILE=1 TRACK_M_FAMILY_TRACE=1 bun research/track-m/profile-family.ts replay-input/input.json","cpu":8,"memory":14336,"timeout":240},
+ {"name":"check","cmd":"set -e; bash research/track-m/prepare-vendors.sh; bun install --frozen-lockfile >/dev/null; bun run check","cpu":8,"memory":14336,"timeout":240}
+]

@@ -1,0 +1,9 @@
+[
+  {
+    "name": "track-p-tests",
+    "cmd": "set -e; bun install --frozen-lockfile >/dev/null; bun test core/carry.test.ts core/scan-prefix.test.ts core/count-support.test.ts core/count-admission.test.ts core/counts-preflight.test.ts core/relevance.test.ts core/support-order.test.ts",
+    "cpu": 4,
+    "memory": 8000,
+    "timeout": 180
+  }
+]

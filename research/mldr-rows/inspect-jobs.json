@@ -1,0 +1,9 @@
+[
+  {
+    "name": "inspect-baseline",
+    "cmd": "set -e; work=$(mktemp -d); for name in rows-2700-count-first rows-2700-ordinary-first rows-6000-count-first rows-6000-ordinary-first; do mkdir \"$work/$name\"; tar -xzf \"row-archives/$name/receipts.tar.gz\" -C \"$work/$name\"; bun row-analysis/inspect-capture.ts \"$work/$name/result/capture.json.gz\" \"$name\"; done",
+    "cpu": 2,
+    "memory": 4096,
+    "timeout": 120
+  }
+]

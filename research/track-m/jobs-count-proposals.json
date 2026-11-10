@@ -1,0 +1,4 @@
+[
+ {"name":"check","cmd":"bun install --frozen-lockfile >/dev/null && bun run check", "cpu":1,"memory":4000,"timeout":300},
+ {"name":"tests","cmd":"bun install --frozen-lockfile >/dev/null && bun test kernel/model-values.test.ts kernel/model-sequence.test.ts core/count-unions.test.ts core/count-witness.test.ts core/count-witness-flags.test.ts core/count-focused.test.ts core/count-facts.test.ts core/field-laws.test.ts research/protocols/ic3syn/mldr.test.ts", "cpu":1,"memory":4000,"timeout":180}
+]

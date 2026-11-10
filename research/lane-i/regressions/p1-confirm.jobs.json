@@ -1,0 +1,3 @@
+[
+ {"name":"p1-fixed-confirm-7006","cmd":"set -euo pipefail; cp -a frozen-paxos/. .; bun regression-driver/p1-confirm.ts","cpu":8,"memory":14336,"timeout":840,"vm_type":"large"}
+]

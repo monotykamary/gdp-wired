@@ -18,6 +18,8 @@ import {proveSome, someLaws} from '../core/exists.ts'
 import {REFUTED, growCdcl} from './cdcl.ts'
 import {type Diagram, type Patterns, decide, eprMeter, pastEprCap, patternsOf, withEprCap} from './epr.ts'
 import {projected, tupleParts} from './kernel.ts'
+import {modelValueTerms} from './model-values.ts'
+import {proverRows} from './prover-rows.ts'
 import {type Goal, type Instances, type Liveness, type Loop, type Path, type Seen, type StepLaw, type Tree, assumed, atomOf, boundOf, canon, canonFlip, cellParts, columnTerm, decided, factorsOf, isCell, isMonomial, stepZone, check, checkLaws, checkStepLaws, historyMachine, plainOf, substC, substE, leafConstraints, leafConstraintsReusing, reusing, linear, livenessHelpful, livenessParts, strongly, loopMachine, obligations, plainKey, progressObligations, stepLawObligations, trueC, truth, unreachable, witnessesOf, withProducts} from './kernel.ts'
 
 // The atoms the path leaves open, in evaluation order: deciding any of them makes progress.
@@ -286,14 +288,15 @@ export function grow(goal: Goal, path: Path = new Map(), budget?: {nodes: number
   }
   // (a root goal grown before within `withTrees`: its tree again; a tree is the kernel's to check wherever it goes)
   const key = treeCache.on && !path.size && !budget.nodes ? treeKey(goal) : undefined, had = key === undefined ? undefined : treeCache.trees.get(key)
-  if (had) return {tree: had, nodes: 0}
+  if (had) { treeReuseStats.hits++; return {tree: had, nodes: 0} }
   if (key !== undefined) { const out = growKept(goal, path, budget); if ('tree' in out) treeCache.keep(key, out.tree); return out }
   return growKept(goal, path, budget)
 }
 // Trees of root goals kept by their hypotheses (and the search's modes) while `withTrees` runs: core/infer.ts proves each
 // law of a set alone (proveLaw) and then the set as a whole (proveRule), the same goals twice. At most 2,000 trees, and
 // goals of at most 4 MB written out.
-const treeCache = {on: 0, trees: new Map<string, Tree>(), keep(key: string, tree: Tree) { if (this.trees.size >= 2000) this.trees.clear(); this.trees.set(key, tree) }}
+export const treeReuseStats = {hits: 0, kept: 0}
+const treeCache = {on: 0, trees: new Map<string, Tree>(), keep(key: string, tree: Tree) { treeReuseStats.kept++; if (this.trees.size >= 2000) this.trees.clear(); this.trees.set(key, tree) }}
 const treeKey = (goal: Goal): string | undefined => { const text = JSON.stringify(goal.hyps); return text.length > 4_000_000 ? undefined : `${cellProducts.on ? 1 : 0}${unitsNow ? 1 : 0}${text}` }
 // GDP_TREES=0: no tree kept (each goal grown every time it is asked).
 const keepTrees = env.GDP_TREES !== '0'
@@ -769,7 +772,7 @@ export function rowsAt(goal: Goal, path: Path): ReturnType<typeof leafConstraint
   let id = ''
   for (const [key, a] of path) id += `${a.holds ? '+' : '-'}${key}|`
   let rows = byPath.get(id)
-  if (!rows) { if (byPath.size >= 4096) byPath.clear(); byPath.set(id, (rows = leafConstraintsReusing(goal, path))) }
+  if (!rows) { if (byPath.size >= 4096) byPath.clear(); byPath.set(id, (rows = env.GDP_ROWS_SHARED === '0' ? leafConstraintsReusing(goal, path) : proverRows(goal, path))) }
   return rows
 }
 function lift(goal: Goal, tree: Tree, from: Path, to: Path): Tree | undefined {
@@ -1193,8 +1196,16 @@ export function modelInstances(m: Machine, laws: Law[], inst: Instances, goal: G
     if (pastWall()) return
     const until = evals + Math.max(256, Math.floor((20_000 - evals) / Math.max(1, left--)))
     const have = new Set<string>(), had = out[id] ?? [], n = names.length, sorts = sortsOf(body, names, atoms)
+    const keyNames = new Set<string>()
+    eachRead(e => {
+      if (fns.includes(e.map)) return
+      const text = JSON.stringify(e.key)
+      for (const name of names) if (text.includes(`"name":${JSON.stringify(name)}`)) keyNames.add(name)
+    }).inC(body)
+    // Arithmetic-only naturals range over comparison boundaries, not map keys.
+    // The model chooses constants; assumed/check still validate ordinary law instances.
     // (a law at one key assumed at a term of every value its sort takes already: nothing to add)
-    if (n === 1) { const covered = new Set(had.map(valueOf)); if ([...sorts[0]!.keys()].every(v2 => covered.has(v2))) return }
+    if (n === 1 && keyNames.has(names[0]!)) { const covered = new Set(had.map(valueOf)); if ([...sorts[0]!.keys()].every(v2 => covered.has(v2))) return }
     for (let t = 0; t + n <= had.length; t += n) have.add(JSON.stringify(had.slice(t, t + n)))
     // (the body's disjuncts, each checked as soon as the keys it reads are bound: one that holds there holds the body at
     // every tuple below, so transitivity's T(t, x, y) false cuts its z; a law about four keys over ten values each, 10,000
@@ -1214,7 +1225,23 @@ export function modelInstances(m: Machine, laws: Law[], inst: Instances, goal: G
         have.add(id2); out[id] = [...(out[id] ?? []), ...terms]; added++
         return
       }
-      for (const [v2, e] of sorts[i]!) go(i + 1, {...at, [names[i]!]: v2}, [...terms, e])
+      const domain: [number, E][] = [...sorts[i]!], seen = new Set(domain.map(([, e]) => JSON.stringify(e)))
+      const add = (value: number, term: E) => {
+        const key = JSON.stringify(term)
+        if (!seen.has(key)) { seen.add(key); domain.push([value, term]) }
+      }
+      if (!keyNames.has(names[i]!)) {
+        const free = new Set(names.slice(i))
+        const extra = modelValueTerms(body, names[i]!, free, e => {
+          try { return evalE(e, read(at), st, mm) } catch { return undefined }
+        })
+        // Keep symbolic instances: their current value is not their identity.
+        // Stable arithmetic witnesses must coexist with equal-valued row terms,
+        // not replace them. Existing tuple/evaluation budgets still bound both.
+        if (extra.length) for (const [v2] of sorts[i]!) add(v2, {op: 'const', value: v2})
+        for (const e of extra) { const v2 = valueOf(e); if (v2 !== undefined) add(v2, e) }
+      }
+      for (const [v2, e] of domain) go(i + 1, {...at, [names[i]!]: v2}, [...terms, e])
     }
     go(0, {}, [])
     if (modelsTrace) console.error(`[models]   ${atoms ? 'atoms' : 'all'} ${id.slice(0, 30)}: sorts ${sorts.map(x => x.size).join('x')}, evals ${evals} of ${until}, added ${added}`)
@@ -1483,7 +1510,7 @@ const arity = (m: Machine | undefined, laws: Law[], n: string): number => {
 // built so far read a function at, and, where the seed doesn't cover them (no seed, positions that shift, a law about
 // several keys), the every-key laws and flags at every key they read a map at (a law about several keys at tuples
 // relating `focus`, the goals' own keys).
-function instancesFor(m: Machine, laws: Law[], build: (inst: Instances) => Goal[], opts: {seed?: E[], focus?: string[], start?: Instances, reads?: boolean} = {}): Instances {
+export function instancesFor(m: Machine, laws: Law[], build: (inst: Instances) => Goal[], opts: {seed?: E[], focus?: string[], start?: Instances, reads?: boolean} = {}): Instances {
   const seed = opts.seed && [...new Map(opts.seed.map(e => [JSON.stringify(e), e])).values()]
   let inst: Instances = opts.start ?? (seed ? {...Object.fromEntries(laws.filter(l => l.forall).map(l => [l.name, l.keys?.length ? [] : seed!])), ...flagInstances(m, seed, opts.focus)} : {})
   const reads = opts.reads ?? (!opts.seed || shifts(m) || laws.some(l => l.keys?.length) || pairFlags(m))

@@ -1,0 +1,4 @@
+[
+ {"name":"voters-bound-tight-1000","cmd":"set -e; bash research/track-m/prepare-vendors.sh; bun install --frozen-lockfile >/dev/null; timeout -s KILL 30 bun research/mldr-incl/pointwise.ts 'research/mldr-incl/fixtures/e14-safety.br#stage-0.json' S 'inX$canVote$1' tight 1000","cpu":8,"memory":14336,"vm_type":"large","timeout":90},
+ {"name":"voters-full-tight-1000","cmd":"set -e; bash research/track-m/prepare-vendors.sh; bun install --frozen-lockfile >/dev/null; timeout -s KILL 30 bun research/mldr-incl/pointwise.ts 'research/mldr-incl/fixtures/e14-safety.br#stage-0.json' S 'inX$canVote$3' tight 1000","cpu":8,"memory":14336,"vm_type":"large","timeout":90}
+]

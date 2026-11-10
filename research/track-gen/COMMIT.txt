@@ -1,0 +1,1 @@
+feat(core): lift stored-row quorum guards into invariant candidates

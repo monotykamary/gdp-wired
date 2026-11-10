@@ -1,0 +1,1 @@
+[{"name":"checks","cmd":"bun install --frozen-lockfile && bun run check && bun test core/wall.test.ts core/search.test.ts core/small-counts.test.ts core/quorum-laws.test.ts core/field-laws.test.ts core/exists.test.ts && bunx --yes @commitlint/cli --config research/egraph/historical/commitlint.config.cjs < research/track-gen/WALL-COMMIT.txt","timeout":300}]

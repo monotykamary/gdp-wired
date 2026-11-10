@@ -1,0 +1,9 @@
+[
+ {"name":"check","cmd":"bash research/track-m/prepare-vendors.sh && bun install --frozen-lockfile >/dev/null && bun run check && bun test core/count-ranges.test.ts core/counts-preflight.test.ts core/count-completion.test.ts core/count-recovery/row-cases.test.ts research/track-m/section15-derive-order.test.ts","cpu":8,"memory":14336,"timeout":300},
+ {"name":"p1-ab","cmd":"bash research/track-m/lane-b-demand-pair.sh p1 before","cpu":8,"memory":14336,"timeout":180},
+ {"name":"p1-ba","cmd":"bash research/track-m/lane-b-demand-pair.sh p1 after","cpu":8,"memory":14336,"timeout":180},
+ {"name":"rows-ab","cmd":"bash research/track-m/lane-b-demand-pair.sh rows before","cpu":8,"memory":14336,"timeout":180},
+ {"name":"rows-ba","cmd":"bash research/track-m/lane-b-demand-pair.sh rows after","cpu":8,"memory":14336,"timeout":180},
+ {"name":"star-ab","cmd":"bash research/track-m/lane-b-demand-pair.sh star before","cpu":8,"memory":14336,"timeout":180},
+ {"name":"star-ba","cmd":"bash research/track-m/lane-b-demand-pair.sh star after","cpu":8,"memory":14336,"timeout":180}
+]

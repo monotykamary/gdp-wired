@@ -1,0 +1,1 @@
+[{"name":"audit","cmd":"bun research/track-m/audit-section13.ts shards","cpu":8,"memory":8192,"timeout":120}]

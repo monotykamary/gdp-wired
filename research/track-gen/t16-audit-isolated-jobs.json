@@ -1,0 +1,9 @@
+[
+  {
+    "name": "audit-isolated",
+    "cmd": "bash research/track-gen/t16-audit-isolated.sh",
+    "cpu": 4,
+    "memory": 14336,
+    "timeout": 600
+  }
+]

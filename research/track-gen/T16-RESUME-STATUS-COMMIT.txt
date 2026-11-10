@@ -1,0 +1,5 @@
+docs: record snapshot failures and coordinator execution hold
+
+Separate pre-execution blob mismatches from test and timing evidence.
+Record prepared immutable source clones without launching retries after
+the coordinator's instruction to leave submitted boat work unchanged.

@@ -10,6 +10,7 @@
 import {type C, type E, type Law, type Machine, type Request, type State, carriedView, evalC, evalE, type interpret, numbersOf, walk} from './machine.ts'
 import type {StepLaw} from '../kernel/kernel.ts'
 import {someHolds} from './exists.ts'
+import {checkWall} from './wall.ts'
 
 export type Watched = Law | StepLaw
 export const isStepLaw = (w: Watched): w is StepLaw => 'then' in w
@@ -104,7 +105,9 @@ export function watch(m: Machine, run: Runtime, w: Watched, params: Env, bound: 
   walk(isStepLaw(w) ? w.then : w.holds, o => { if (o.op === 'get') for (const x of names) if (JSON.stringify(o.key).includes(`"name":${JSON.stringify(x)}`)) mapRead.add(x) })
   const turn = names.some(x => !mapRead.has(x)) ? turns(isStepLaw(w) ? w.then : w.holds, names) : undefined
   const atKeys = (keys: number[][], env: Env, f: (env: Env) => boolean, st?: State, mm?: Machine): boolean => {
+    let visited = 0
     const go = (i: number): boolean => {
+      if ((visited++ & 255) === 0) checkWall('preflight law bindings')
       if (i === names.length) { watchWork.n++; return f(env) }
       const more = turn && st && mm && !mapRead.has(names[i]!) ? turn(i, env, st, mm).filter(k => !keys[i]!.includes(k)) : []
       for (const key of more.length ? [...keys[i]!, ...more] : keys[i]!) { env[names[i]!] = key; if (!go(i + 1)) return false }

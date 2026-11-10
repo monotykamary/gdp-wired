@@ -1,0 +1,3 @@
+import {test,expect} from 'bun:test'
+import {validPeakRss} from './rss-audit.ts'
+test('sampled peak RSS must match both samples and terminal marker',()=>{const resource={peakRssKiB:40,samples:[{rssKiB:30},{rssKiB:40}]};expect(validPeakRss(resource,{peakRssKiB:40})).toBe(true);expect(validPeakRss({...resource,peakRssKiB:41},{peakRssKiB:41})).toBe(false);expect(validPeakRss(resource,{peakRssKiB:39})).toBe(false);expect(validPeakRss(resource,undefined)).toBe(false);expect(validPeakRss({peakRssKiB:0,samples:[]},{peakRssKiB:0})).toBe(false);expect(validPeakRss({peakRssKiB:0,samples:[{rssKiB:-1}]},{peakRssKiB:0})).toBe(false)})

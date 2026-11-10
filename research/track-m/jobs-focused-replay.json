@@ -1,0 +1,7 @@
+[
+ {"name":"safety","cmd":"bun install --frozen-lockfile >/dev/null && bun research/track-m/focused-replay.ts replay-input/1.json replay-input/input.json", "cpu":4,"memory":14000,"timeout":90},
+ {"name":"newest","cmd":"bun install --frozen-lockfile >/dev/null && bun research/track-m/focused-replay.ts replay-input/3.json replay-input/input.json", "cpu":4,"memory":14000,"timeout":90},
+ {"name":"rows","cmd":"bun install --frozen-lockfile >/dev/null && bun research/track-m/focused-replay.ts replay-input/5.json replay-input/input.json", "cpu":4,"memory":14000,"timeout":90},
+ {"name":"overlap","cmd":"bun install --frozen-lockfile >/dev/null && bun research/track-m/focused-replay.ts replay-input/8.json replay-input/input.json", "cpu":4,"memory":14000,"timeout":90},
+ {"name":"exhausted","cmd":"bun install --frozen-lockfile >/dev/null && bun research/track-m/focused-replay.ts replay-input/10.json replay-input/input.json", "cpu":4,"memory":14000,"timeout":90}
+]

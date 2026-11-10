@@ -1,0 +1,10 @@
+[
+  {
+    "name": "paxos-bootstrap",
+    "cmd": "set -euo pipefail; cp -a frozen-paxos/. .; bun test regression-driver/paxos-audit.test.ts regression-driver/resource-run.test.ts && bun regression-driver/paxos-bootstrap.ts",
+    "cpu": 4,
+    "memory": 14336,
+    "timeout": 600,
+    "vm_type": "large"
+  }
+]

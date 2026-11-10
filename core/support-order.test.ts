@@ -1,6 +1,6 @@
 import {test, expect} from 'bun:test'
 import {type Law, type Machine, n, x, get} from './machine.ts'
-import {supportOrder, supportBudget, activeSupport, countSupportContext, searchCounted} from './counts.ts'
+import {attemptShare, supportOrder, supportBudget, activeSupport, countSupportContext, searchCounted} from './counts.ts'
 import {fullRate, fullWork, withWork, withDeadline, withWall, counted, clock} from '../kernel/prove.ts'
 const law=(name:string):Law=>({name,holds:{op:'=',a:n(0),b:n(0)}})
 test('support ordering preserves no-support model traversal and original helper order',()=>{
@@ -12,6 +12,35 @@ test('support ordering preserves no-support model traversal and original helper 
  expect(supportOrder(set,[caller],new Set([support]),true)).toEqual([support,caller,noise])
  expect(set).toEqual([caller,noise,support])
 })
+test('per-attempt shares redistribute cheap proofs without reviving tried or carried laws',()=>{
+ const pending=new Set(['cheap-a','cheap-b','costly','caller'])
+ expect(attemptShare(100,pending)).toBe(25)
+ pending.delete('cheap-a')
+ expect(attemptShare(96,pending)).toBe(32)
+ pending.delete('cheap-b')
+ expect(attemptShare(90,pending)).toBe(45)
+ pending.delete('costly')
+ expect(attemptShare(45,pending)).toBe(45)
+ pending.delete('caller')
+ expect(attemptShare(0,pending)).toBe(0)
+ expect(attemptShare(-1,pending)).toBe(0)
+ // Pre-existing kept/carried proofs are absent from the round's pending set.
+ expect(attemptShare(90,new Set(['untried']))).toBe(90)
+})
+test('equal per-attempt spending conserves the total remaining allowance',()=>{
+ for(let count=1;count<=40;count++){
+  const pending=new Set(Array.from({length:count},(_,i)=>String(i)))
+  let remaining=60000,spent=0
+  for(const name of [...pending]){
+   const allotted=attemptShare(remaining,pending)
+   expect(allotted).toBeGreaterThanOrEqual(0);expect(allotted).toBeLessThanOrEqual(remaining)
+   const used=allotted/2
+   remaining-=used;spent+=used;pending.delete(name)
+   expect(Math.abs(remaining+spent-60000)).toBeLessThan(1e-8)
+  }
+ }
+})
+
 test('structural and priority slices never create a budget',()=>{
  for(const remaining of [-1,0,1,845,4999,5000,5001,60000])expect(supportBudget(remaining,845,false,true)).toBe(Math.max(0,Math.min(5000,remaining)))
  expect(supportBudget(90,5,true)).toBe(30);expect(supportBudget(90,5,false)).toBe(5)

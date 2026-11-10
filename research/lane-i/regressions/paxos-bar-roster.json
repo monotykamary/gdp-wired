@@ -1,0 +1,7 @@
+[
+  {"view":"chc","task":"vmt-chc-benchmarks/ctigar/hsortprime.c_000.yml"},
+  {"view":"chc","task":"vmt-chc-benchmarks/ctigar/up3.c_000_001.yml"},
+  {"view":"its-scc","task":"Integer_Transition_Systems/From_T2/bio.t2.ari"},
+  {"view":"its","task":"Integer_Transition_Systems/From_T2/bio.t2.ari"},
+  {"view":"its","task":"Integer_Transition_Systems/From_T2/cover.t2.ari"}
+]

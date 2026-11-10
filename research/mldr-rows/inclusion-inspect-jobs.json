@@ -1,0 +1,9 @@
+[
+  {
+    "name": "inclusion-demand",
+    "cmd": "set -e; bash lane-e-preflight/apply.sh; bash lane-e-demand/apply.sh; bash lane-e-flags/apply.sh; bash research/track-m/prepare-vendors.sh; bun install --frozen-lockfile >/dev/null; cp row-analysis/inspect-inclusions.ts research/mldr-incl/inspect-inclusions.ts; work=$(mktemp -d); for name in early-6000-before row-first-2700-after; do mkdir \"$work/$name\"; tar -xzf \"row-archives/$name/receipts.tar.gz\" -C \"$work/$name\"; for side in before after; do bun research/mldr-incl/inspect-inclusions.ts \"$work/$name/$side/capture.json.gz\" \"$name-$side\"; done; done",
+    "cpu": 2,
+    "memory": 4096,
+    "timeout": 180
+  }
+]

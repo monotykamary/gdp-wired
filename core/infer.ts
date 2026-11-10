@@ -34,6 +34,7 @@
 import {quietly} from './cyclic.ts'
 import {bitIntersection, bitIntersects} from './bitsets.ts'
 import {samplePredicates, sampleStateText} from './sample-cache.ts'
+import {sampleStep} from './sample-step.ts'
 import {type C, type E, type Fn, type Law, type Machine, type Rand, type Request, type State, all, any, atMost, carriedView, compileC, compileE, cpair, fastStep, divisorsIn, evalC, evalE, get, interpret, machineTerms, fnValue, modName, n, not, partsOf as tupleOf, plus, same, seeded, times, walk, withArithmetic, x} from './machine.ts'
 import {type StepLaw, type Verdict, bool, proveRule, proveSteps, verdictOf} from './dsl.ts'
 import {allowed, keysOf, linKey, watch} from './watch.ts'
@@ -729,7 +730,7 @@ function inferLawsSearch(target: AnyRule | Machine, laws: Law[], stepLaws: StepL
   if ((first.proven && first.checked) || first.run) return {...first, found: [], stats: stats(0, 0, 0)}
 
   // --- runs ------------------------------------------------------------------------------------------------------------
-  const run = interpret(m), rand = seeded(17), kinds = rule ? rule.kindsOfState() : []
+  const run = interpret(m), stepSample = sampleStep(m, run), rand = seeded(17), kinds = rule ? rule.kindsOfState() : []
   const given = rule ? [...rule.kindLaws().filter(k => !laws.some(l => l.name === k.name)), ...laws] : laws
   const randomParams = (bound: number, r: Rand = rand): Env => (rule ? rule.randomParams(r, bound) : Object.fromEntries(m.params.map(p => [p, r(bound + 1)])))
   const randomInput = (params: Env, bound: number, r: Rand = rand): Request => (rule ? rule.randomInput(r, bound, params)
@@ -750,6 +751,16 @@ function inferLawsSearch(target: AnyRule | Machine, laws: Law[], stepLaws: StepL
     samples[i] = s; keys[i] = k; held.add(k)
   }
   for (const st of opts.seen ?? []) if (!m.params.length) keep({params: {}, st})
+  // Initial scalar bounds come from exploration, not the later small-instance
+  // cube filter. A supplied finite row set cannot replace that exploration for
+  // counters or stored numeric inputs. Boolean control has no missing numeric
+  // levels; keep the original walk for every other scalar transition.
+  const boolControl = (e: E, key: string): boolean => e.op === 'const' ? e.value === 0 || e.value === 1
+    : e.op === 'var' ? e.name === key : e.op === 'if' && boolControl(e.then, key) && boolControl(e.else, key)
+  const finiteControl = Object.entries(m.state).every(([key, initial]) => initial.op === 'const'
+    && (initial.value === 0 || initial.value === 1) && boolControl(m.step.state?.[key] ?? x(key), key))
+  const supplied = !!opts.cubes && !!opts.rows?.length && finiteControl
+  if (supplied) for (const row of opts.rows!) keep(row)
   trace('start')
   // Counted: `runs` requests tried at least, and on until as many states as the samples hold were offered (a trial offers
   // its start at least), the trials at most `runs` or that many. Timed: `runsMs` of wall time.
@@ -757,7 +768,7 @@ function inferLawsSearch(target: AnyRule | Machine, laws: Law[], stepLaws: StepL
   // runs the least, the engine's small instance its samples)
   const relStep = domainStep(m)
   const runsTimed = timed || opts.runsMs !== undefined, runsUntil = Math.min(wallUntil, performance.now() + (opts.runsMs ?? 500)), least = opts.runs ?? (relStep ? 2000 : Math.min(inferRuns, Math.max(2000, 4 * ms)))
-  const moreRuns = (trial: number) => (runsTimed ? performance.now() < runsUntil : trial < (relStep ? 400 : Math.max(cap, least)) && (used.tries < least || offered < cap) && !stop())
+  const moreRuns = (trial: number) => !supplied && (runsTimed ? performance.now() < runsUntil : trial < (relStep ? 400 : Math.max(cap, least)) && (used.tries < least || offered < cap) && !stop())
   let trials = 0
   // (an assumption with "there exists", a value the request brings, may admit no request at a small bound, a multiple
   // of 5 but 0, say: a trial whose steps moved nothing doubles the bound at once)
@@ -788,7 +799,7 @@ function inferLawsSearch(target: AnyRule | Machine, laws: Law[], stepLaws: StepL
       used.tries++
       const input = randomInput(params, rare ? 2 : bound)
       let next: State
-      try { if (relStep) { const n2 = relStep(params, st, input); if (!n2) continue; next = n2 } else { if (!allowed(m, run, params, st, input)) continue; next = run.step(params, st, input) } } catch { break }
+      try { if (relStep) { const n2 = relStep(params, st, input); if (!n2) continue; next = n2 } else { const sampled = stepSample(params, st, input); if (!sampled) continue; next = sampled } } catch { break }
       d++
       if (JSON.stringify(next.scalars) !== JSON.stringify(st.scalars) || mapsText(next) !== mapsText(st)) { keep({params, st: next}); took++ }
       st = next

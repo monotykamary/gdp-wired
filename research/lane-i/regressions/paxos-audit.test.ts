@@ -1,0 +1,24 @@
+import {test,expect} from 'bun:test'
+import {gzipSync} from 'node:zlib'
+import {createHash} from 'node:crypto'
+import {base,cpu,expectedHarness,auditSummary,decodeReceipt,summarize} from './paxos-audit.ts'
+import {packCohort,cohortReceipt,unpackCohort} from './cohort-envelope.ts'
+const hash=(s:string)=>createHash('sha256').update(s).digest('hex')
+test('decoded cohort transport retains raw audit and rejects forged work',()=>{
+ const {row,traces}=fixture(),stdout='BISECT_TRACES_GZIP '+gzipSync(JSON.stringify(traces)).toString('base64')+'\nBISECT_SUMMARY_GZIP '+gzipSync(JSON.stringify(row)).toString('base64')
+ const group=unpackCohort(packCohort({id:101,cpu,revisions:[base],results:[{revision:base,exit:0,stdout,stderr:''}]})),decoded=cohortReceipt(group,group.results[0])
+ expect(group.results[0].stdout).toBeUndefined();expect(decoded).toEqual({summary:row,traces});expect(auditSummary(decoded.summary,decoded.traces,base)).toEqual([])
+ decoded.summary.records[0].outcomes.base.attempts[0].full++;expect(auditSummary(decoded.summary,decoded.traces,base)).toContain('1/base: law trace mismatch')
+ expect(()=>cohortReceipt({...group,format:'other'},group.results[0])).toThrow('invalid cohort receipt format')
+ expect(cohortReceipt({}, {stdout})).toEqual({summary:row,traces})
+})
+function fixture(){
+ const traces:any[]=[],records:any[]=[]
+ for(let repeat=1;repeat<=5;repeat++){const outcomes:any={};for(const side of ['base','candidate']){const results=[{id:'paxos_epr',search:{verdict:'proven',ms:10,work:20,full:30}}],profile:any[]=[{event:'result',at:100,searchMs:10},{event:'candidates',at:92,profile:{}}],attempts=[{law:'a full law name',at:93,full:30,work:20,wallMs:10,units:10}],stdout=JSON.stringify(results[0]),stderr=profile.map(p=>'LANE_I_PROFILE '+JSON.stringify(p)).join('\n')+'\nBISECT_LAW '+JSON.stringify(attempts[0]);traces.push({repeat,side,stdout,stderr});outcomes[side]={exit:0,results,profile,attempts,stdoutSha256:hash(stdout),stderrSha256:hash(stderr),generationWallMs:2,finitePassMs:0,preProverWallMs:3}}records.push({repeat,order:(1+repeat)%2?['candidate','base']:['base','candidate'],outcomes})}
+ const row={revision:base,baseline:base,cpu:cpu==='any'?'AMD EPYC 9455 48-Core Processor':cpu,strictMs:60000,repeats:5,replica:1,records,meta:{base:{revision:base,clean:true},candidate:{revision:base,clean:true}},hashes:{base:{...expectedHarness[base]},candidate:{...expectedHarness[base]}},traceSha256:hash(JSON.stringify(traces))};return {row,traces}
+}
+test('bisection summary needs full raw traces and five valid repeats',()=>{const {row,traces}=fixture(),text='BISECT_TRACES_GZIP '+gzipSync(JSON.stringify(traces)).toString('base64')+'\nBISECT_SUMMARY_GZIP '+gzipSync(JSON.stringify(row)).toString('base64');const decoded=decodeReceipt(text);expect(auditSummary(decoded.summary,decoded.traces,base)).toEqual([]);expect(summarize([row])[0]).toMatchObject({complete:5,qualified:true});expect(()=>decodeReceipt(text.split('\n')[1]!)).toThrow('complete raw trace missing')})
+test('one cohort trial cannot satisfy an ordinary five-repeat receipt',()=>{const {row,traces}=fixture();row.repeats=1;row.records=row.records.slice(0,1);expect(auditSummary(row,traces.slice(0,2),base)).toContain('missing repeats');expect(auditSummary(row,traces.slice(0,2),base,1)).toEqual([])})
+test('wrong source, CPU and fabricated law work are rejected',()=>{const {row,traces}=fixture();row.cpu='';row.records[0].outcomes.base.attempts[0].full++;expect(auditSummary(row,traces,base)).toContain('wrong CPU');expect(auditSummary(row,traces,base)).toContain('1/base: law trace mismatch');expect(auditSummary(row,traces,'f'.repeat(40))).toContain('revision mismatch')})
+
+test('unknown candidate work remains visible instead of selecting only proven pairs',()=>{const {row}=fixture();for(const record of row.records){record.outcomes.candidate.results[0].search.verdict='unknown';record.outcomes.candidate.results[0].search.full=90;record.outcomes.candidate.attempts[0].full=90}const result=summarize([row])[0]!;expect(result.lost).toHaveLength(5);expect(result.candidate.full).toBe(90);expect(result.lawDeltas[0]?.full).toBe(60)})

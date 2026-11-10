@@ -1,0 +1,30 @@
+[
+  {
+    "name": "check",
+    "cmd": "set -euo pipefail; bash research/lane-i/validate.sh setup; bun run check",
+    "cpu": 4,
+    "memory": 12288,
+    "timeout": 600
+  },
+  {
+    "name": "mldr-r1",
+    "cmd": "bash research/lane-i/validate.sh mldr 1",
+    "cpu": 2,
+    "memory": 8192,
+    "timeout": 240
+  },
+  {
+    "name": "mldr-r2",
+    "cmd": "bash research/lane-i/validate.sh mldr 2",
+    "cpu": 2,
+    "memory": 8192,
+    "timeout": 240
+  },
+  {
+    "name": "mldr-r3",
+    "cmd": "bash research/lane-i/validate.sh mldr 3",
+    "cpu": 2,
+    "memory": 8192,
+    "timeout": 240
+  }
+]

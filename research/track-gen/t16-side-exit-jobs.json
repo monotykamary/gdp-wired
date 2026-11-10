@@ -1,0 +1,9 @@
+[
+  {
+    "name": "side-exit-regressions",
+    "cmd": "bun install --frozen-lockfile && bun test research/track-gen/t14-paired.test.ts && bun run check",
+    "cpu": 4,
+    "memory": 14336,
+    "timeout": 600
+  }
+]

@@ -17,6 +17,7 @@
 import {type C, type E, type Law, type Machine, type Request, type SomeProof, type SomeWitness, type State, carriedView, compileC, evalC, evalE, fastStep, interpret, n as k, walk, x as v} from './machine.ts'
 import {type Report, clock, proveLaw, proveLaws, withDeadline, withinDeadline} from '../kernel/prove.ts'
 import {env} from './solver.ts'
+import {WallExpired, checkWall} from './wall.ts'
 import {type Ghosted, ghostedMachine, ghostedOk, substC} from '../kernel/kernel.ts'
 
 type Env = Record<string, number>
@@ -138,6 +139,7 @@ const pathTo = new WeakMap<State, [State, Request]>()
 export function small(m: Machine, p: Env, b: number, cap = 3000, work = 300_000, walks = 0): State[] {
   // (past a thousand steps, through the generated JavaScript, fastStep: the interpreter's states, as compile.test.ts holds
   // them; a small machine's few steps cost less than its compiling)
+  checkWall('sample setup')
   const run = interpret(m), start = run.init(p)
   let steps = 0, fast = run.step
   const step = (p2: Env, st: State, r: Request): State => { if (++steps === 1000) fast = fastStep(m) ?? run.step; return fast(p2, st, r) }
@@ -147,30 +149,54 @@ export function small(m: Machine, p: Env, b: number, cap = 3000, work = 300_000,
   let reqs: Request[] = [{}]
   for (const i of m.inputs) reqs = reqs.flatMap(r => Array.from({length: below(i)}, (_, x) => ({...r, [i]: x})))
   for (const c of m.inputMaps ?? []) reqs = reqs.flatMap(r => subsets.map(s => ({...r, [c]: s})))
-  const idOf = (s: State) => key([s.scalars, Object.entries(s.maps).map(([n, cs]) => [n, [...cs].filter(([, x]) => x).sort((a, c) => a[0] - c[0])])])
-  const seen = new Map<string, State>([[idOf(start), start]]), queue = [start]
-  const reached = (next: State, from: State, r: Request): State => { const id = idOf(next), had = seen.get(id); if (had) return had; seen.set(id, next); pathTo.set(next, [from, r]); return next }
-  while (queue.length && seen.size < cap && work > 0) {
+  // (a state once: by a hash of its scalars and nonzero cells, then a cell-by-cell comparison within the hash's bucket;
+  // the same classes as a sorted text of the state, without a sort or a text per step)
+  const scalarNames = Object.keys(start.scalars), mapNames = Object.keys(start.maps)
+  const hashOf = (s: State): number => {
+    let h = 0x811C9DC5 | 0
+    for (const n of scalarNames) h = Math.imul(h ^ (s.scalars[n]! | 0), 0x01000193)
+    for (const n of mapNames) {
+      let acc = 0
+      for (const [k2, x2] of s.maps[n] ?? []) if (x2) acc = (acc + Math.imul((k2 * 0x85EBCA6B) ^ Math.imul(x2, 0xC2B2AE35), 0x27D4EB2F)) | 0
+      h = Math.imul(h ^ acc, 0x01000193)
+    }
+    return h
+  }
+  const sameCells = (a: Map<number, number> | undefined, b: Map<number, number> | undefined): boolean => {
+    for (const [k2, x2] of a ?? []) if (x2 !== (b?.get(k2) ?? 0)) return false
+    for (const [k2, x2] of b ?? []) if (x2 !== (a?.get(k2) ?? 0)) return false
+    return true
+  }
+  const equal = (a: State, b: State): boolean => scalarNames.every(n => a.scalars[n] === b.scalars[n]) && mapNames.every(n => sameCells(a.maps[n], b.maps[n]))
+  const seen = new Map<number, State[]>([[hashOf(start), [start]]]), all: State[] = [start], queue = [start]
+  const reached = (next: State, from: State, r: Request): State => {
+    const h = hashOf(next), bucket = seen.get(h)
+    if (bucket) { for (const had of bucket) if (equal(had, next)) return had; bucket.push(next) } else seen.set(h, [next])
+    all.push(next); pathTo.set(next, [from, r]); return next
+  }
+  while (queue.length && all.length < cap && work > 0) {
     const st = queue.shift()!
     for (const r of reqs) {
+      checkWall('sample BFS')
       if (--work < 0) break
       let next: State
       try { next = step(p, st, r) } catch { continue }
-      const n0 = seen.size
-      if (reached(next, st, r) && seen.size > n0) queue.push(next)
+      const n0 = all.length
+      if (reached(next, st, r) && all.length > n0) queue.push(next)
     }
   }
-  if (!queue.length) return [...seen.values()]
+  if (!queue.length) return all
   const cell = (s: State, n: string, x: number) => s.maps[n]?.get(x) ?? s.defaults?.[n] ?? 0
   const kindOf = (a: State, c: State) => [...Object.keys(c.scalars).filter(n => a.scalars[n] !== c.scalars[n]),
     ...Object.keys(c.maps).filter(n => a.defaults?.[n] !== c.defaults?.[n] || [...a.maps[n]?.keys() ?? [], ...c.maps[n]!.keys()].some(x => cell(a, n, x) !== cell(c, n, x)))].join()
   let seed = 7
   const rnd = (n: number) => { seed = (seed * 48271) % 2147483647; return seed % n }
-  for (let t = 0; walks > 0 && seen.size < 2 * cap; t++) {
-    let st = t % 2 ? start : [...seen.values()][rnd(seen.size)]!
+  for (let t = 0; walks > 0 && all.length < 2 * cap; t++) {
+    let st = t % 2 ? start : all[rnd(all.length)]!
     for (let d = 0; d < 40 && walks > 0; d++) {
       const by = new Map<string, [State, Request][]>()
       for (let i = 0; i < 48; i++, walks--) {
+        checkWall('sample walks')
         const r = reqs[rnd(reqs.length)]!
         let next: State
         try { next = step(p, st, r) } catch { continue }
@@ -182,7 +208,7 @@ export function small(m: Machine, p: Env, b: number, cap = 3000, work = 300_000,
       st = reached(next, st, r)
     }
   }
-  return [...seen.values()]
+  return all
 }
 // A ghost for a law about no key with one value ∃x. P over maps (PCorrect's "some process not done, or its y is 1"): x a
 // state variable that starts at 0 or a param (or one less) and after each step keeps its value while P still holds there
@@ -207,9 +233,21 @@ export function ghostOf(m: Machine, law: Law): SomeWitness | undefined {
 // the walks past it in a third as many; an instance whose params the machine refuses has no states. With no params,
 // 2 and 3 denote the same instance, so sample it only once. Read once a machine.
 const smalls = new WeakMap<Machine, {p: Env, sts: State[]}[]>()
-export function smallOf(m: Machine): {p: Env, sts: State[]}[] {
+// Adding fresh, unreferenced count definitions cannot change any transition.
+// Reuse the engine's original samples instead of enumerating that same graph
+// with every speculative count attached to every request. The structural check
+// rejects changed transitions, replaced counts, and shadowed map reads.
+export function smallOf(m: Machine, source?: Machine): {p: Env, sts: State[]}[] {
+  checkWall('sample cache')
   let out = smalls.get(m)
-  if (!out) smalls.set(m, (out = (m.params.length ? [2, 3] : [2]).map(x => { const p = Object.fromEntries(m.params.map(q => [q, x])); try { return {p, sts: small(m, p, 3, 3000, 300_000, 100_000)} } catch { return {p, sts: []} } })))
+  if (!out && source && source !== m) {
+    const fields = new Set([...Object.keys(m), ...Object.keys(source)])
+    const added = new Set(Object.keys(m.counts ?? {}).filter(k => !(k in (source.counts ?? {}))))
+    let safe = [...fields].every(k => k === 'counts' || m[k as keyof Machine] === source[k as keyof Machine]) && Object.entries(source.counts ?? {}).every(([k, d]) => m.counts?.[k] === d) && [...added].every(k => !(k in (source.maps ?? {})) && !(k in (source.fns ?? {})) && !source.inputMaps?.includes(k))
+    walk(source, o => { if (o.op === 'get' && added.has(o.map as string)) safe = false })
+    if (safe) smalls.set(m, (out = smallOf(source)))
+  }
+  if (!out) smalls.set(m, (out = (m.params.length ? [2, 3] : [2]).map(x => { const p = Object.fromEntries(m.params.map(q => [q, x])); try { return {p, sts: small(m, p, 3, 3000, 300_000, 100_000)} } catch (e) { if (e instanceof WallExpired) throw e; return {p, sts: []} } })))
   return out
 }
 // Laws true at every small state, at every key below one past their values. With `ghosted`, the machine with ghosts
@@ -235,13 +273,15 @@ export function trueSmall(m: Machine, laws: Law[], ghosted?: Machine): boolean {
 }
 // A law at a state, its counts the state's, at every key below b.
 // (a state's view once: a law is read at every state, and every law at each)
-const views = new WeakMap<State, State>()
+const views = new WeakMap<Machine, WeakMap<State, State>>()
 const sampleTests = new WeakMap<Machine, WeakMap<C, ReturnType<typeof compileC>>>()
 export function holdsAt(m: Machine, law: Law, p: Env, st: State, b: number): boolean {
-  let view = views.get(st)
+  let machineViews = views.get(m)
+  if (!machineViews) views.set(m, (machineViews = new WeakMap()))
+  let view = machineViews.get(st)
   if (!view) {
     const empty: Request = Object.fromEntries((m.inputMaps ?? []).map(c => [c, new Map()]))
-    views.set(st, (view = carriedView(m, st, empty, undefined, p)))
+    machineViews.set(st, (view = carriedView(m, st, empty, undefined, p)))
   }
   let tests = sampleTests.get(m)
   if (!tests) sampleTests.set(m, (tests = new WeakMap()))
@@ -253,7 +293,11 @@ export function holdsAt(m: Machine, law: Law, p: Env, st: State, b: number): boo
   // shadow binders, as in the interpreter path; restore duplicate binder names.
   for (const name of keys) if (!fixed.has(name)) Object.defineProperty(env, name, {value: env[name], writable: true, enumerable: true, configurable: true})
   const values = keys.length ? Array.from({length: b}, (_, x) => x) : []
+  // Poll at entry and every 256 visited tuple prefixes, rather than paying for
+  // a wall-clock read at every binding. Each new state/law starts with a poll.
+  let visited = 0
   const go = (depth: number): boolean => {
+    if ((visited++ & 255) === 0) checkWall('sample law bindings')
     if (depth === keys.length) return test!(env, view!)
     const name = keys[depth]!, was = env[name]
     try {

@@ -1,0 +1,16 @@
+[
+  {
+    "name": "equal-row-1500",
+    "cmd": "set -e; bun install --frozen-lockfile >/dev/null; LAB_SOURCE_TRACE=1 LAB_ROW_MODE=equal LAB_SOURCE_MS=1500 bun research/track-m/active-source-probe.ts replay-input/input.json 'Inv*' 5 all",
+    "cpu": 8,
+    "memory": 14336,
+    "timeout": 120
+  },
+  {
+    "name": "equal-row-6000",
+    "cmd": "set -e; bun install --frozen-lockfile >/dev/null; LAB_SOURCE_TRACE=1 LAB_ROW_MODE=equal LAB_SOURCE_MS=6000 bun research/track-m/active-source-probe.ts replay-input/input.json 'Inv*' 5 all",
+    "cpu": 8,
+    "memory": 14336,
+    "timeout": 120
+  }
+]

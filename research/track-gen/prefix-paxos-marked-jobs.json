@@ -1,0 +1,1 @@
+[{"name":"paxos","cmd":"set -e; echo COMMAND_START; bun install --frozen-lockfile >/dev/null; echo PROOF_START; GDP_COUNTS_TRACE=1 timeout -s KILL 60 bun research/protocols/ic3syn/run.ts --only paxos_epr --skip broken --ms 60000; echo PROOF_END","cpu":8,"memory":14336,"timeout":240}]

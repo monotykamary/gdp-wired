@@ -1,0 +1,9 @@
+[
+  {
+    "name": "interleaved",
+    "cmd": "bash research/track-m/run-cost-wins.sh",
+    "cpu": 8,
+    "memory": 14336,
+    "timeout": 1200
+  }
+]

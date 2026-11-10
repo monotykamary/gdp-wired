@@ -1,0 +1,5 @@
+perf(counts): try ordinary counted reasoning before focused recovery
+
+Defer plain-pass finite recovery until ordinary counted reasoning has had
+an opportunity under the same family. Retain no-count and wide-pool
+fallbacks within their existing deadlines; never recover a certified CTI.

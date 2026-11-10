@@ -1,0 +1,7 @@
+[
+ {"name":"safety","cmd":"bun install --frozen-lockfile >/dev/null && LAB_MS=5000 bun research/query/wide-lab.ts replay-input/1.json", "cpu":4,"memory":14000,"timeout":60},
+ {"name":"newest","cmd":"bun install --frozen-lockfile >/dev/null && LAB_MS=5000 bun research/query/wide-lab.ts replay-input/3.json", "cpu":4,"memory":14000,"timeout":60},
+ {"name":"rows","cmd":"bun install --frozen-lockfile >/dev/null && LAB_MS=5000 bun research/query/wide-lab.ts replay-input/5.json", "cpu":4,"memory":14000,"timeout":60},
+ {"name":"overlap","cmd":"bun install --frozen-lockfile >/dev/null && LAB_MS=5000 bun research/query/wide-lab.ts replay-input/8.json", "cpu":4,"memory":14000,"timeout":60},
+ {"name":"exhausted","cmd":"bun install --frozen-lockfile >/dev/null && LAB_MS=5000 bun research/query/wide-lab.ts replay-input/10.json", "cpu":4,"memory":14000,"timeout":60}
+]

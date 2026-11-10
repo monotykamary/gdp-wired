@@ -1,0 +1,30 @@
+[
+ {
+  "name": "frontier-check",
+  "cmd": "bun install --frozen-lockfile && bun test core/count-cubes.test.ts core/counts-preflight.test.ts && bun run check",
+  "timeout": 600,
+  "cpu": 4,
+  "memory": 14336
+ },
+ {
+  "name": "frontier-gen-1",
+  "cmd": "T14_CAPTURE=1 GDP_COUNTS_TRACE=123 bun --preload ./research/track-gen/t14-dump.ts research/track-gen/t13-generation.ts mldr",
+  "timeout": 120,
+  "cpu": 4,
+  "memory": 14336
+ },
+ {
+  "name": "frontier-gen-2",
+  "cmd": "T14_CAPTURE=1 GDP_COUNTS_TRACE=123 bun --preload ./research/track-gen/t14-dump.ts research/track-gen/t13-generation.ts mldr",
+  "timeout": 120,
+  "cpu": 4,
+  "memory": 14336
+ },
+ {
+  "name": "frontier-gen-3",
+  "cmd": "T14_CAPTURE=1 GDP_COUNTS_TRACE=123 bun --preload ./research/track-gen/t14-dump.ts research/track-gen/t13-generation.ts mldr",
+  "timeout": 120,
+  "cpu": 4,
+  "memory": 14336
+ }
+]

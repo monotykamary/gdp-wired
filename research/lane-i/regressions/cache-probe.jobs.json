@@ -1,0 +1,34 @@
+[
+  {
+    "name": "row-cache-probe-1",
+    "cmd": "bun regression-driver/cache-probe.ts 1",
+    "cpu": 4,
+    "memory": 14336,
+    "timeout": 900,
+    "vm_type": "large"
+  },
+  {
+    "name": "row-cache-probe-2",
+    "cmd": "bun regression-driver/cache-probe.ts 2",
+    "cpu": 4,
+    "memory": 14336,
+    "timeout": 900,
+    "vm_type": "large"
+  },
+  {
+    "name": "row-cache-probe-3",
+    "cmd": "bun regression-driver/cache-probe.ts 3",
+    "cpu": 4,
+    "memory": 14336,
+    "timeout": 900,
+    "vm_type": "large"
+  },
+  {
+    "name": "row-cache-probe-4",
+    "cmd": "bun regression-driver/cache-probe.ts 4",
+    "cpu": 4,
+    "memory": 14336,
+    "timeout": 900,
+    "vm_type": "large"
+  }
+]

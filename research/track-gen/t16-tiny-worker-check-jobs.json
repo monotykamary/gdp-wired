@@ -1,0 +1,1 @@
+[{"name":"tiny-unit-and-check","cmd":"bun install --frozen-lockfile && bun test core/finite-tiny.test.ts && bun run check","timeout":600,"cpu":4,"memory":14336}]

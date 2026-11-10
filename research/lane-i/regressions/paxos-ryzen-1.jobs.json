@@ -1,0 +1,794 @@
+[
+  {
+    "name": "paxos-cohort-3201",
+    "cmd": "set -euo pipefail; cp -a frozen-paxos/. .; bun regression-driver/paxos-cohort.ts 3201 regression-driver/paxos-ryzen-points-1.json 1",
+    "env": {
+      "PAXOS_TARGET_CPU": "AMD Ryzen 9 9950X 16-Core Processor"
+    },
+    "cpu": 4,
+    "memory": 14336,
+    "timeout": 1800,
+    "vm_type": "large"
+  },
+  {
+    "name": "paxos-cohort-3202",
+    "cmd": "set -euo pipefail; cp -a frozen-paxos/. .; bun regression-driver/paxos-cohort.ts 3202 regression-driver/paxos-ryzen-points-1.json 1",
+    "env": {
+      "PAXOS_TARGET_CPU": "AMD Ryzen 9 9950X 16-Core Processor"
+    },
+    "cpu": 4,
+    "memory": 14336,
+    "timeout": 1800,
+    "vm_type": "large"
+  },
+  {
+    "name": "paxos-cohort-3203",
+    "cmd": "set -euo pipefail; cp -a frozen-paxos/. .; bun regression-driver/paxos-cohort.ts 3203 regression-driver/paxos-ryzen-points-1.json 1",
+    "env": {
+      "PAXOS_TARGET_CPU": "AMD Ryzen 9 9950X 16-Core Processor"
+    },
+    "cpu": 4,
+    "memory": 14336,
+    "timeout": 1800,
+    "vm_type": "large"
+  },
+  {
+    "name": "paxos-cohort-3204",
+    "cmd": "set -euo pipefail; cp -a frozen-paxos/. .; bun regression-driver/paxos-cohort.ts 3204 regression-driver/paxos-ryzen-points-1.json 1",
+    "env": {
+      "PAXOS_TARGET_CPU": "AMD Ryzen 9 9950X 16-Core Processor"
+    },
+    "cpu": 4,
+    "memory": 14336,
+    "timeout": 1800,
+    "vm_type": "large"
+  },
+  {
+    "name": "paxos-cohort-3205",
+    "cmd": "set -euo pipefail; cp -a frozen-paxos/. .; bun regression-driver/paxos-cohort.ts 3205 regression-driver/paxos-ryzen-points-1.json 1",
+    "env": {
+      "PAXOS_TARGET_CPU": "AMD Ryzen 9 9950X 16-Core Processor"
+    },
+    "cpu": 4,
+    "memory": 14336,
+    "timeout": 1800,
+    "vm_type": "large"
+  },
+  {
+    "name": "paxos-cohort-3206",
+    "cmd": "set -euo pipefail; cp -a frozen-paxos/. .; bun regression-driver/paxos-cohort.ts 3206 regression-driver/paxos-ryzen-points-1.json 1",
+    "env": {
+      "PAXOS_TARGET_CPU": "AMD Ryzen 9 9950X 16-Core Processor"
+    },
+    "cpu": 4,
+    "memory": 14336,
+    "timeout": 1800,
+    "vm_type": "large"
+  },
+  {
+    "name": "paxos-cohort-3207",
+    "cmd": "set -euo pipefail; cp -a frozen-paxos/. .; bun regression-driver/paxos-cohort.ts 3207 regression-driver/paxos-ryzen-points-1.json 1",
+    "env": {
+      "PAXOS_TARGET_CPU": "AMD Ryzen 9 9950X 16-Core Processor"
+    },
+    "cpu": 4,
+    "memory": 14336,
+    "timeout": 1800,
+    "vm_type": "large"
+  },
+  {
+    "name": "paxos-cohort-3208",
+    "cmd": "set -euo pipefail; cp -a frozen-paxos/. .; bun regression-driver/paxos-cohort.ts 3208 regression-driver/paxos-ryzen-points-1.json 1",
+    "env": {
+      "PAXOS_TARGET_CPU": "AMD Ryzen 9 9950X 16-Core Processor"
+    },
+    "cpu": 4,
+    "memory": 14336,
+    "timeout": 1800,
+    "vm_type": "large"
+  },
+  {
+    "name": "paxos-cohort-3209",
+    "cmd": "set -euo pipefail; cp -a frozen-paxos/. .; bun regression-driver/paxos-cohort.ts 3209 regression-driver/paxos-ryzen-points-1.json 1",
+    "env": {
+      "PAXOS_TARGET_CPU": "AMD Ryzen 9 9950X 16-Core Processor"
+    },
+    "cpu": 4,
+    "memory": 14336,
+    "timeout": 1800,
+    "vm_type": "large"
+  },
+  {
+    "name": "paxos-cohort-3210",
+    "cmd": "set -euo pipefail; cp -a frozen-paxos/. .; bun regression-driver/paxos-cohort.ts 3210 regression-driver/paxos-ryzen-points-1.json 1",
+    "env": {
+      "PAXOS_TARGET_CPU": "AMD Ryzen 9 9950X 16-Core Processor"
+    },
+    "cpu": 4,
+    "memory": 14336,
+    "timeout": 1800,
+    "vm_type": "large"
+  },
+  {
+    "name": "paxos-cohort-3211",
+    "cmd": "set -euo pipefail; cp -a frozen-paxos/. .; bun regression-driver/paxos-cohort.ts 3211 regression-driver/paxos-ryzen-points-1.json 1",
+    "env": {
+      "PAXOS_TARGET_CPU": "AMD Ryzen 9 9950X 16-Core Processor"
+    },
+    "cpu": 4,
+    "memory": 14336,
+    "timeout": 1800,
+    "vm_type": "large"
+  },
+  {
+    "name": "paxos-cohort-3212",
+    "cmd": "set -euo pipefail; cp -a frozen-paxos/. .; bun regression-driver/paxos-cohort.ts 3212 regression-driver/paxos-ryzen-points-1.json 1",
+    "env": {
+      "PAXOS_TARGET_CPU": "AMD Ryzen 9 9950X 16-Core Processor"
+    },
+    "cpu": 4,
+    "memory": 14336,
+    "timeout": 1800,
+    "vm_type": "large"
+  },
+  {
+    "name": "paxos-cohort-3213",
+    "cmd": "set -euo pipefail; cp -a frozen-paxos/. .; bun regression-driver/paxos-cohort.ts 3213 regression-driver/paxos-ryzen-points-1.json 1",
+    "env": {
+      "PAXOS_TARGET_CPU": "AMD Ryzen 9 9950X 16-Core Processor"
+    },
+    "cpu": 4,
+    "memory": 14336,
+    "timeout": 1800,
+    "vm_type": "large"
+  },
+  {
+    "name": "paxos-cohort-3214",
+    "cmd": "set -euo pipefail; cp -a frozen-paxos/. .; bun regression-driver/paxos-cohort.ts 3214 regression-driver/paxos-ryzen-points-1.json 1",
+    "env": {
+      "PAXOS_TARGET_CPU": "AMD Ryzen 9 9950X 16-Core Processor"
+    },
+    "cpu": 4,
+    "memory": 14336,
+    "timeout": 1800,
+    "vm_type": "large"
+  },
+  {
+    "name": "paxos-cohort-3215",
+    "cmd": "set -euo pipefail; cp -a frozen-paxos/. .; bun regression-driver/paxos-cohort.ts 3215 regression-driver/paxos-ryzen-points-1.json 1",
+    "env": {
+      "PAXOS_TARGET_CPU": "AMD Ryzen 9 9950X 16-Core Processor"
+    },
+    "cpu": 4,
+    "memory": 14336,
+    "timeout": 1800,
+    "vm_type": "large"
+  },
+  {
+    "name": "paxos-cohort-3216",
+    "cmd": "set -euo pipefail; cp -a frozen-paxos/. .; bun regression-driver/paxos-cohort.ts 3216 regression-driver/paxos-ryzen-points-1.json 1",
+    "env": {
+      "PAXOS_TARGET_CPU": "AMD Ryzen 9 9950X 16-Core Processor"
+    },
+    "cpu": 4,
+    "memory": 14336,
+    "timeout": 1800,
+    "vm_type": "large"
+  },
+  {
+    "name": "paxos-cohort-3217",
+    "cmd": "set -euo pipefail; cp -a frozen-paxos/. .; bun regression-driver/paxos-cohort.ts 3217 regression-driver/paxos-ryzen-points-1.json 1",
+    "env": {
+      "PAXOS_TARGET_CPU": "AMD Ryzen 9 9950X 16-Core Processor"
+    },
+    "cpu": 4,
+    "memory": 14336,
+    "timeout": 1800,
+    "vm_type": "large"
+  },
+  {
+    "name": "paxos-cohort-3218",
+    "cmd": "set -euo pipefail; cp -a frozen-paxos/. .; bun regression-driver/paxos-cohort.ts 3218 regression-driver/paxos-ryzen-points-1.json 1",
+    "env": {
+      "PAXOS_TARGET_CPU": "AMD Ryzen 9 9950X 16-Core Processor"
+    },
+    "cpu": 4,
+    "memory": 14336,
+    "timeout": 1800,
+    "vm_type": "large"
+  },
+  {
+    "name": "paxos-cohort-3219",
+    "cmd": "set -euo pipefail; cp -a frozen-paxos/. .; bun regression-driver/paxos-cohort.ts 3219 regression-driver/paxos-ryzen-points-1.json 1",
+    "env": {
+      "PAXOS_TARGET_CPU": "AMD Ryzen 9 9950X 16-Core Processor"
+    },
+    "cpu": 4,
+    "memory": 14336,
+    "timeout": 1800,
+    "vm_type": "large"
+  },
+  {
+    "name": "paxos-cohort-3220",
+    "cmd": "set -euo pipefail; cp -a frozen-paxos/. .; bun regression-driver/paxos-cohort.ts 3220 regression-driver/paxos-ryzen-points-1.json 1",
+    "env": {
+      "PAXOS_TARGET_CPU": "AMD Ryzen 9 9950X 16-Core Processor"
+    },
+    "cpu": 4,
+    "memory": 14336,
+    "timeout": 1800,
+    "vm_type": "large"
+  },
+  {
+    "name": "paxos-cohort-3221",
+    "cmd": "set -euo pipefail; cp -a frozen-paxos/. .; bun regression-driver/paxos-cohort.ts 3221 regression-driver/paxos-ryzen-points-1.json 1",
+    "env": {
+      "PAXOS_TARGET_CPU": "AMD Ryzen 9 9950X 16-Core Processor"
+    },
+    "cpu": 4,
+    "memory": 14336,
+    "timeout": 1800,
+    "vm_type": "large"
+  },
+  {
+    "name": "paxos-cohort-3222",
+    "cmd": "set -euo pipefail; cp -a frozen-paxos/. .; bun regression-driver/paxos-cohort.ts 3222 regression-driver/paxos-ryzen-points-1.json 1",
+    "env": {
+      "PAXOS_TARGET_CPU": "AMD Ryzen 9 9950X 16-Core Processor"
+    },
+    "cpu": 4,
+    "memory": 14336,
+    "timeout": 1800,
+    "vm_type": "large"
+  },
+  {
+    "name": "paxos-cohort-3223",
+    "cmd": "set -euo pipefail; cp -a frozen-paxos/. .; bun regression-driver/paxos-cohort.ts 3223 regression-driver/paxos-ryzen-points-1.json 1",
+    "env": {
+      "PAXOS_TARGET_CPU": "AMD Ryzen 9 9950X 16-Core Processor"
+    },
+    "cpu": 4,
+    "memory": 14336,
+    "timeout": 1800,
+    "vm_type": "large"
+  },
+  {
+    "name": "paxos-cohort-3224",
+    "cmd": "set -euo pipefail; cp -a frozen-paxos/. .; bun regression-driver/paxos-cohort.ts 3224 regression-driver/paxos-ryzen-points-1.json 1",
+    "env": {
+      "PAXOS_TARGET_CPU": "AMD Ryzen 9 9950X 16-Core Processor"
+    },
+    "cpu": 4,
+    "memory": 14336,
+    "timeout": 1800,
+    "vm_type": "large"
+  },
+  {
+    "name": "paxos-cohort-3225",
+    "cmd": "set -euo pipefail; cp -a frozen-paxos/. .; bun regression-driver/paxos-cohort.ts 3225 regression-driver/paxos-ryzen-points-1.json 1",
+    "env": {
+      "PAXOS_TARGET_CPU": "AMD Ryzen 9 9950X 16-Core Processor"
+    },
+    "cpu": 4,
+    "memory": 14336,
+    "timeout": 1800,
+    "vm_type": "large"
+  },
+  {
+    "name": "paxos-cohort-3226",
+    "cmd": "set -euo pipefail; cp -a frozen-paxos/. .; bun regression-driver/paxos-cohort.ts 3226 regression-driver/paxos-ryzen-points-1.json 1",
+    "env": {
+      "PAXOS_TARGET_CPU": "AMD Ryzen 9 9950X 16-Core Processor"
+    },
+    "cpu": 4,
+    "memory": 14336,
+    "timeout": 1800,
+    "vm_type": "large"
+  },
+  {
+    "name": "paxos-cohort-3227",
+    "cmd": "set -euo pipefail; cp -a frozen-paxos/. .; bun regression-driver/paxos-cohort.ts 3227 regression-driver/paxos-ryzen-points-1.json 1",
+    "env": {
+      "PAXOS_TARGET_CPU": "AMD Ryzen 9 9950X 16-Core Processor"
+    },
+    "cpu": 4,
+    "memory": 14336,
+    "timeout": 1800,
+    "vm_type": "large"
+  },
+  {
+    "name": "paxos-cohort-3228",
+    "cmd": "set -euo pipefail; cp -a frozen-paxos/. .; bun regression-driver/paxos-cohort.ts 3228 regression-driver/paxos-ryzen-points-1.json 1",
+    "env": {
+      "PAXOS_TARGET_CPU": "AMD Ryzen 9 9950X 16-Core Processor"
+    },
+    "cpu": 4,
+    "memory": 14336,
+    "timeout": 1800,
+    "vm_type": "large"
+  },
+  {
+    "name": "paxos-cohort-3229",
+    "cmd": "set -euo pipefail; cp -a frozen-paxos/. .; bun regression-driver/paxos-cohort.ts 3229 regression-driver/paxos-ryzen-points-1.json 1",
+    "env": {
+      "PAXOS_TARGET_CPU": "AMD Ryzen 9 9950X 16-Core Processor"
+    },
+    "cpu": 4,
+    "memory": 14336,
+    "timeout": 1800,
+    "vm_type": "large"
+  },
+  {
+    "name": "paxos-cohort-3230",
+    "cmd": "set -euo pipefail; cp -a frozen-paxos/. .; bun regression-driver/paxos-cohort.ts 3230 regression-driver/paxos-ryzen-points-1.json 1",
+    "env": {
+      "PAXOS_TARGET_CPU": "AMD Ryzen 9 9950X 16-Core Processor"
+    },
+    "cpu": 4,
+    "memory": 14336,
+    "timeout": 1800,
+    "vm_type": "large"
+  },
+  {
+    "name": "paxos-cohort-3231",
+    "cmd": "set -euo pipefail; cp -a frozen-paxos/. .; bun regression-driver/paxos-cohort.ts 3231 regression-driver/paxos-ryzen-points-1.json 1",
+    "env": {
+      "PAXOS_TARGET_CPU": "AMD Ryzen 9 9950X 16-Core Processor"
+    },
+    "cpu": 4,
+    "memory": 14336,
+    "timeout": 1800,
+    "vm_type": "large"
+  },
+  {
+    "name": "paxos-cohort-3232",
+    "cmd": "set -euo pipefail; cp -a frozen-paxos/. .; bun regression-driver/paxos-cohort.ts 3232 regression-driver/paxos-ryzen-points-1.json 1",
+    "env": {
+      "PAXOS_TARGET_CPU": "AMD Ryzen 9 9950X 16-Core Processor"
+    },
+    "cpu": 4,
+    "memory": 14336,
+    "timeout": 1800,
+    "vm_type": "large"
+  },
+  {
+    "name": "paxos-cohort-3233",
+    "cmd": "set -euo pipefail; cp -a frozen-paxos/. .; bun regression-driver/paxos-cohort.ts 3233 regression-driver/paxos-ryzen-points-1.json 1",
+    "env": {
+      "PAXOS_TARGET_CPU": "AMD Ryzen 9 9950X 16-Core Processor"
+    },
+    "cpu": 4,
+    "memory": 14336,
+    "timeout": 1800,
+    "vm_type": "large"
+  },
+  {
+    "name": "paxos-cohort-3234",
+    "cmd": "set -euo pipefail; cp -a frozen-paxos/. .; bun regression-driver/paxos-cohort.ts 3234 regression-driver/paxos-ryzen-points-1.json 1",
+    "env": {
+      "PAXOS_TARGET_CPU": "AMD Ryzen 9 9950X 16-Core Processor"
+    },
+    "cpu": 4,
+    "memory": 14336,
+    "timeout": 1800,
+    "vm_type": "large"
+  },
+  {
+    "name": "paxos-cohort-3235",
+    "cmd": "set -euo pipefail; cp -a frozen-paxos/. .; bun regression-driver/paxos-cohort.ts 3235 regression-driver/paxos-ryzen-points-1.json 1",
+    "env": {
+      "PAXOS_TARGET_CPU": "AMD Ryzen 9 9950X 16-Core Processor"
+    },
+    "cpu": 4,
+    "memory": 14336,
+    "timeout": 1800,
+    "vm_type": "large"
+  },
+  {
+    "name": "paxos-cohort-3236",
+    "cmd": "set -euo pipefail; cp -a frozen-paxos/. .; bun regression-driver/paxos-cohort.ts 3236 regression-driver/paxos-ryzen-points-1.json 1",
+    "env": {
+      "PAXOS_TARGET_CPU": "AMD Ryzen 9 9950X 16-Core Processor"
+    },
+    "cpu": 4,
+    "memory": 14336,
+    "timeout": 1800,
+    "vm_type": "large"
+  },
+  {
+    "name": "paxos-cohort-3237",
+    "cmd": "set -euo pipefail; cp -a frozen-paxos/. .; bun regression-driver/paxos-cohort.ts 3237 regression-driver/paxos-ryzen-points-1.json 1",
+    "env": {
+      "PAXOS_TARGET_CPU": "AMD Ryzen 9 9950X 16-Core Processor"
+    },
+    "cpu": 4,
+    "memory": 14336,
+    "timeout": 1800,
+    "vm_type": "large"
+  },
+  {
+    "name": "paxos-cohort-3238",
+    "cmd": "set -euo pipefail; cp -a frozen-paxos/. .; bun regression-driver/paxos-cohort.ts 3238 regression-driver/paxos-ryzen-points-1.json 1",
+    "env": {
+      "PAXOS_TARGET_CPU": "AMD Ryzen 9 9950X 16-Core Processor"
+    },
+    "cpu": 4,
+    "memory": 14336,
+    "timeout": 1800,
+    "vm_type": "large"
+  },
+  {
+    "name": "paxos-cohort-3239",
+    "cmd": "set -euo pipefail; cp -a frozen-paxos/. .; bun regression-driver/paxos-cohort.ts 3239 regression-driver/paxos-ryzen-points-1.json 1",
+    "env": {
+      "PAXOS_TARGET_CPU": "AMD Ryzen 9 9950X 16-Core Processor"
+    },
+    "cpu": 4,
+    "memory": 14336,
+    "timeout": 1800,
+    "vm_type": "large"
+  },
+  {
+    "name": "paxos-cohort-3240",
+    "cmd": "set -euo pipefail; cp -a frozen-paxos/. .; bun regression-driver/paxos-cohort.ts 3240 regression-driver/paxos-ryzen-points-1.json 1",
+    "env": {
+      "PAXOS_TARGET_CPU": "AMD Ryzen 9 9950X 16-Core Processor"
+    },
+    "cpu": 4,
+    "memory": 14336,
+    "timeout": 1800,
+    "vm_type": "large"
+  },
+  {
+    "name": "paxos-cohort-3241",
+    "cmd": "set -euo pipefail; cp -a frozen-paxos/. .; bun regression-driver/paxos-cohort.ts 3241 regression-driver/paxos-ryzen-points-1.json 1",
+    "env": {
+      "PAXOS_TARGET_CPU": "AMD Ryzen 9 9950X 16-Core Processor"
+    },
+    "cpu": 4,
+    "memory": 14336,
+    "timeout": 1800,
+    "vm_type": "large"
+  },
+  {
+    "name": "paxos-cohort-3242",
+    "cmd": "set -euo pipefail; cp -a frozen-paxos/. .; bun regression-driver/paxos-cohort.ts 3242 regression-driver/paxos-ryzen-points-1.json 1",
+    "env": {
+      "PAXOS_TARGET_CPU": "AMD Ryzen 9 9950X 16-Core Processor"
+    },
+    "cpu": 4,
+    "memory": 14336,
+    "timeout": 1800,
+    "vm_type": "large"
+  },
+  {
+    "name": "paxos-cohort-3243",
+    "cmd": "set -euo pipefail; cp -a frozen-paxos/. .; bun regression-driver/paxos-cohort.ts 3243 regression-driver/paxos-ryzen-points-1.json 1",
+    "env": {
+      "PAXOS_TARGET_CPU": "AMD Ryzen 9 9950X 16-Core Processor"
+    },
+    "cpu": 4,
+    "memory": 14336,
+    "timeout": 1800,
+    "vm_type": "large"
+  },
+  {
+    "name": "paxos-cohort-3244",
+    "cmd": "set -euo pipefail; cp -a frozen-paxos/. .; bun regression-driver/paxos-cohort.ts 3244 regression-driver/paxos-ryzen-points-1.json 1",
+    "env": {
+      "PAXOS_TARGET_CPU": "AMD Ryzen 9 9950X 16-Core Processor"
+    },
+    "cpu": 4,
+    "memory": 14336,
+    "timeout": 1800,
+    "vm_type": "large"
+  },
+  {
+    "name": "paxos-cohort-3245",
+    "cmd": "set -euo pipefail; cp -a frozen-paxos/. .; bun regression-driver/paxos-cohort.ts 3245 regression-driver/paxos-ryzen-points-1.json 1",
+    "env": {
+      "PAXOS_TARGET_CPU": "AMD Ryzen 9 9950X 16-Core Processor"
+    },
+    "cpu": 4,
+    "memory": 14336,
+    "timeout": 1800,
+    "vm_type": "large"
+  },
+  {
+    "name": "paxos-cohort-3246",
+    "cmd": "set -euo pipefail; cp -a frozen-paxos/. .; bun regression-driver/paxos-cohort.ts 3246 regression-driver/paxos-ryzen-points-1.json 1",
+    "env": {
+      "PAXOS_TARGET_CPU": "AMD Ryzen 9 9950X 16-Core Processor"
+    },
+    "cpu": 4,
+    "memory": 14336,
+    "timeout": 1800,
+    "vm_type": "large"
+  },
+  {
+    "name": "paxos-cohort-3247",
+    "cmd": "set -euo pipefail; cp -a frozen-paxos/. .; bun regression-driver/paxos-cohort.ts 3247 regression-driver/paxos-ryzen-points-1.json 1",
+    "env": {
+      "PAXOS_TARGET_CPU": "AMD Ryzen 9 9950X 16-Core Processor"
+    },
+    "cpu": 4,
+    "memory": 14336,
+    "timeout": 1800,
+    "vm_type": "large"
+  },
+  {
+    "name": "paxos-cohort-3248",
+    "cmd": "set -euo pipefail; cp -a frozen-paxos/. .; bun regression-driver/paxos-cohort.ts 3248 regression-driver/paxos-ryzen-points-1.json 1",
+    "env": {
+      "PAXOS_TARGET_CPU": "AMD Ryzen 9 9950X 16-Core Processor"
+    },
+    "cpu": 4,
+    "memory": 14336,
+    "timeout": 1800,
+    "vm_type": "large"
+  },
+  {
+    "name": "paxos-cohort-3249",
+    "cmd": "set -euo pipefail; cp -a frozen-paxos/. .; bun regression-driver/paxos-cohort.ts 3249 regression-driver/paxos-ryzen-points-1.json 1",
+    "env": {
+      "PAXOS_TARGET_CPU": "AMD Ryzen 9 9950X 16-Core Processor"
+    },
+    "cpu": 4,
+    "memory": 14336,
+    "timeout": 1800,
+    "vm_type": "large"
+  },
+  {
+    "name": "paxos-cohort-3250",
+    "cmd": "set -euo pipefail; cp -a frozen-paxos/. .; bun regression-driver/paxos-cohort.ts 3250 regression-driver/paxos-ryzen-points-1.json 1",
+    "env": {
+      "PAXOS_TARGET_CPU": "AMD Ryzen 9 9950X 16-Core Processor"
+    },
+    "cpu": 4,
+    "memory": 14336,
+    "timeout": 1800,
+    "vm_type": "large"
+  },
+  {
+    "name": "paxos-cohort-3251",
+    "cmd": "set -euo pipefail; cp -a frozen-paxos/. .; bun regression-driver/paxos-cohort.ts 3251 regression-driver/paxos-ryzen-points-1.json 1",
+    "env": {
+      "PAXOS_TARGET_CPU": "AMD Ryzen 9 9950X 16-Core Processor"
+    },
+    "cpu": 4,
+    "memory": 14336,
+    "timeout": 1800,
+    "vm_type": "large"
+  },
+  {
+    "name": "paxos-cohort-3252",
+    "cmd": "set -euo pipefail; cp -a frozen-paxos/. .; bun regression-driver/paxos-cohort.ts 3252 regression-driver/paxos-ryzen-points-1.json 1",
+    "env": {
+      "PAXOS_TARGET_CPU": "AMD Ryzen 9 9950X 16-Core Processor"
+    },
+    "cpu": 4,
+    "memory": 14336,
+    "timeout": 1800,
+    "vm_type": "large"
+  },
+  {
+    "name": "paxos-cohort-3253",
+    "cmd": "set -euo pipefail; cp -a frozen-paxos/. .; bun regression-driver/paxos-cohort.ts 3253 regression-driver/paxos-ryzen-points-1.json 1",
+    "env": {
+      "PAXOS_TARGET_CPU": "AMD Ryzen 9 9950X 16-Core Processor"
+    },
+    "cpu": 4,
+    "memory": 14336,
+    "timeout": 1800,
+    "vm_type": "large"
+  },
+  {
+    "name": "paxos-cohort-3254",
+    "cmd": "set -euo pipefail; cp -a frozen-paxos/. .; bun regression-driver/paxos-cohort.ts 3254 regression-driver/paxos-ryzen-points-1.json 1",
+    "env": {
+      "PAXOS_TARGET_CPU": "AMD Ryzen 9 9950X 16-Core Processor"
+    },
+    "cpu": 4,
+    "memory": 14336,
+    "timeout": 1800,
+    "vm_type": "large"
+  },
+  {
+    "name": "paxos-cohort-3255",
+    "cmd": "set -euo pipefail; cp -a frozen-paxos/. .; bun regression-driver/paxos-cohort.ts 3255 regression-driver/paxos-ryzen-points-1.json 1",
+    "env": {
+      "PAXOS_TARGET_CPU": "AMD Ryzen 9 9950X 16-Core Processor"
+    },
+    "cpu": 4,
+    "memory": 14336,
+    "timeout": 1800,
+    "vm_type": "large"
+  },
+  {
+    "name": "paxos-cohort-3256",
+    "cmd": "set -euo pipefail; cp -a frozen-paxos/. .; bun regression-driver/paxos-cohort.ts 3256 regression-driver/paxos-ryzen-points-1.json 1",
+    "env": {
+      "PAXOS_TARGET_CPU": "AMD Ryzen 9 9950X 16-Core Processor"
+    },
+    "cpu": 4,
+    "memory": 14336,
+    "timeout": 1800,
+    "vm_type": "large"
+  },
+  {
+    "name": "paxos-cohort-3257",
+    "cmd": "set -euo pipefail; cp -a frozen-paxos/. .; bun regression-driver/paxos-cohort.ts 3257 regression-driver/paxos-ryzen-points-1.json 1",
+    "env": {
+      "PAXOS_TARGET_CPU": "AMD Ryzen 9 9950X 16-Core Processor"
+    },
+    "cpu": 4,
+    "memory": 14336,
+    "timeout": 1800,
+    "vm_type": "large"
+  },
+  {
+    "name": "paxos-cohort-3258",
+    "cmd": "set -euo pipefail; cp -a frozen-paxos/. .; bun regression-driver/paxos-cohort.ts 3258 regression-driver/paxos-ryzen-points-1.json 1",
+    "env": {
+      "PAXOS_TARGET_CPU": "AMD Ryzen 9 9950X 16-Core Processor"
+    },
+    "cpu": 4,
+    "memory": 14336,
+    "timeout": 1800,
+    "vm_type": "large"
+  },
+  {
+    "name": "paxos-cohort-3259",
+    "cmd": "set -euo pipefail; cp -a frozen-paxos/. .; bun regression-driver/paxos-cohort.ts 3259 regression-driver/paxos-ryzen-points-1.json 1",
+    "env": {
+      "PAXOS_TARGET_CPU": "AMD Ryzen 9 9950X 16-Core Processor"
+    },
+    "cpu": 4,
+    "memory": 14336,
+    "timeout": 1800,
+    "vm_type": "large"
+  },
+  {
+    "name": "paxos-cohort-3260",
+    "cmd": "set -euo pipefail; cp -a frozen-paxos/. .; bun regression-driver/paxos-cohort.ts 3260 regression-driver/paxos-ryzen-points-1.json 1",
+    "env": {
+      "PAXOS_TARGET_CPU": "AMD Ryzen 9 9950X 16-Core Processor"
+    },
+    "cpu": 4,
+    "memory": 14336,
+    "timeout": 1800,
+    "vm_type": "large"
+  },
+  {
+    "name": "paxos-cohort-3261",
+    "cmd": "set -euo pipefail; cp -a frozen-paxos/. .; bun regression-driver/paxos-cohort.ts 3261 regression-driver/paxos-ryzen-points-1.json 1",
+    "env": {
+      "PAXOS_TARGET_CPU": "AMD Ryzen 9 9950X 16-Core Processor"
+    },
+    "cpu": 4,
+    "memory": 14336,
+    "timeout": 1800,
+    "vm_type": "large"
+  },
+  {
+    "name": "paxos-cohort-3262",
+    "cmd": "set -euo pipefail; cp -a frozen-paxos/. .; bun regression-driver/paxos-cohort.ts 3262 regression-driver/paxos-ryzen-points-1.json 1",
+    "env": {
+      "PAXOS_TARGET_CPU": "AMD Ryzen 9 9950X 16-Core Processor"
+    },
+    "cpu": 4,
+    "memory": 14336,
+    "timeout": 1800,
+    "vm_type": "large"
+  },
+  {
+    "name": "paxos-cohort-3263",
+    "cmd": "set -euo pipefail; cp -a frozen-paxos/. .; bun regression-driver/paxos-cohort.ts 3263 regression-driver/paxos-ryzen-points-1.json 1",
+    "env": {
+      "PAXOS_TARGET_CPU": "AMD Ryzen 9 9950X 16-Core Processor"
+    },
+    "cpu": 4,
+    "memory": 14336,
+    "timeout": 1800,
+    "vm_type": "large"
+  },
+  {
+    "name": "paxos-cohort-3264",
+    "cmd": "set -euo pipefail; cp -a frozen-paxos/. .; bun regression-driver/paxos-cohort.ts 3264 regression-driver/paxos-ryzen-points-1.json 1",
+    "env": {
+      "PAXOS_TARGET_CPU": "AMD Ryzen 9 9950X 16-Core Processor"
+    },
+    "cpu": 4,
+    "memory": 14336,
+    "timeout": 1800,
+    "vm_type": "large"
+  },
+  {
+    "name": "paxos-cohort-3265",
+    "cmd": "set -euo pipefail; cp -a frozen-paxos/. .; bun regression-driver/paxos-cohort.ts 3265 regression-driver/paxos-ryzen-points-1.json 1",
+    "env": {
+      "PAXOS_TARGET_CPU": "AMD Ryzen 9 9950X 16-Core Processor"
+    },
+    "cpu": 4,
+    "memory": 14336,
+    "timeout": 1800,
+    "vm_type": "large"
+  },
+  {
+    "name": "paxos-cohort-3266",
+    "cmd": "set -euo pipefail; cp -a frozen-paxos/. .; bun regression-driver/paxos-cohort.ts 3266 regression-driver/paxos-ryzen-points-1.json 1",
+    "env": {
+      "PAXOS_TARGET_CPU": "AMD Ryzen 9 9950X 16-Core Processor"
+    },
+    "cpu": 4,
+    "memory": 14336,
+    "timeout": 1800,
+    "vm_type": "large"
+  },
+  {
+    "name": "paxos-cohort-3267",
+    "cmd": "set -euo pipefail; cp -a frozen-paxos/. .; bun regression-driver/paxos-cohort.ts 3267 regression-driver/paxos-ryzen-points-1.json 1",
+    "env": {
+      "PAXOS_TARGET_CPU": "AMD Ryzen 9 9950X 16-Core Processor"
+    },
+    "cpu": 4,
+    "memory": 14336,
+    "timeout": 1800,
+    "vm_type": "large"
+  },
+  {
+    "name": "paxos-cohort-3268",
+    "cmd": "set -euo pipefail; cp -a frozen-paxos/. .; bun regression-driver/paxos-cohort.ts 3268 regression-driver/paxos-ryzen-points-1.json 1",
+    "env": {
+      "PAXOS_TARGET_CPU": "AMD Ryzen 9 9950X 16-Core Processor"
+    },
+    "cpu": 4,
+    "memory": 14336,
+    "timeout": 1800,
+    "vm_type": "large"
+  },
+  {
+    "name": "paxos-cohort-3269",
+    "cmd": "set -euo pipefail; cp -a frozen-paxos/. .; bun regression-driver/paxos-cohort.ts 3269 regression-driver/paxos-ryzen-points-1.json 1",
+    "env": {
+      "PAXOS_TARGET_CPU": "AMD Ryzen 9 9950X 16-Core Processor"
+    },
+    "cpu": 4,
+    "memory": 14336,
+    "timeout": 1800,
+    "vm_type": "large"
+  },
+  {
+    "name": "paxos-cohort-3270",
+    "cmd": "set -euo pipefail; cp -a frozen-paxos/. .; bun regression-driver/paxos-cohort.ts 3270 regression-driver/paxos-ryzen-points-1.json 1",
+    "env": {
+      "PAXOS_TARGET_CPU": "AMD Ryzen 9 9950X 16-Core Processor"
+    },
+    "cpu": 4,
+    "memory": 14336,
+    "timeout": 1800,
+    "vm_type": "large"
+  },
+  {
+    "name": "paxos-cohort-3271",
+    "cmd": "set -euo pipefail; cp -a frozen-paxos/. .; bun regression-driver/paxos-cohort.ts 3271 regression-driver/paxos-ryzen-points-1.json 1",
+    "env": {
+      "PAXOS_TARGET_CPU": "AMD Ryzen 9 9950X 16-Core Processor"
+    },
+    "cpu": 4,
+    "memory": 14336,
+    "timeout": 1800,
+    "vm_type": "large"
+  },
+  {
+    "name": "paxos-cohort-3272",
+    "cmd": "set -euo pipefail; cp -a frozen-paxos/. .; bun regression-driver/paxos-cohort.ts 3272 regression-driver/paxos-ryzen-points-1.json 1",
+    "env": {
+      "PAXOS_TARGET_CPU": "AMD Ryzen 9 9950X 16-Core Processor"
+    },
+    "cpu": 4,
+    "memory": 14336,
+    "timeout": 1800,
+    "vm_type": "large"
+  }
+]

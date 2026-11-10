@@ -1,0 +1,6 @@
+[
+ {"name":"paxos-weighted","cmd":"GDP_SOURCE_CONTEXTS=0 bash research/track-m/compare-rows.sh paxos_epr base","cpu":4,"memory":12000,"timeout":300},
+ {"name":"family-retention","cmd":"set -e; bun install --frozen-lockfile >/dev/null; for old in 1 0; do GDP_ROWS_UNWEIGHTED=$old GDP_SOURCE_CONTEXTS=1 GDP_SOURCE_INDEX=1 GDP_COUNTS_SHARED_TREES=0 GDP_COUNT_LEMMA_CUTS=0 taskset -c 0-3 bun --preload ./research/track-m/log-row-stats.ts research/track-m/profile-family.ts replay-input/input.json; done","cpu":4,"memory":12000,"timeout":240},
+ {"name":"tests","cmd":"set -e; bun install --frozen-lockfile >/dev/null; bun test kernel/prover-row-cache.test.ts kernel/prover-rows.test.ts kernel/tree-reuse.test.ts core/count-recovery core/count-cases.test.ts","cpu":4,"memory":12000,"timeout":240},
+ {"name":"check","cmd":"set -e; bash research/track-m/prepare-vendors.sh; bun install --frozen-lockfile >/dev/null; bun run check","cpu":4,"memory":12000,"timeout":240}
+]

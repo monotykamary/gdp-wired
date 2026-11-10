@@ -1,0 +1,3 @@
+[
+ {"name":"minimal","cmd":"bun install --frozen-lockfile >/dev/null && for mode in raw flags closure; do bun research/track-m/minimal-safety.ts replay-input/1.json replay-input/input.json $mode; done", "cpu":4,"memory":14000,"timeout":90}
+]

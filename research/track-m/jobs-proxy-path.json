@@ -1,0 +1,9 @@
+[
+  {
+    "name": "proxy",
+    "cmd": "set -e; bun install --frozen-lockfile >/dev/null; bun research/track-m/proxy-path-debug.ts",
+    "cpu": 1,
+    "memory": 4000,
+    "timeout": 90
+  }
+]

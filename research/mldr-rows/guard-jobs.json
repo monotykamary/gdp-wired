@@ -1,0 +1,65 @@
+[
+  {
+    "name": "guard-plain-before",
+    "cmd": "bash row-guard/guard-pair.sh plain before",
+    "cpu": 8,
+    "memory": 14336,
+    "timeout": 240
+  },
+  {
+    "name": "guard-plain-after",
+    "cmd": "bash row-guard/guard-pair.sh plain after",
+    "cpu": 8,
+    "memory": 14336,
+    "timeout": 240
+  },
+  {
+    "name": "guard-plain-check",
+    "cmd": "bash row-guard/guard-pair.sh plain check",
+    "cpu": 8,
+    "memory": 14336,
+    "timeout": 240
+  },
+  {
+    "name": "guard-early-before",
+    "cmd": "bash row-guard/guard-pair.sh early before",
+    "cpu": 8,
+    "memory": 14336,
+    "timeout": 240
+  },
+  {
+    "name": "guard-early-after",
+    "cmd": "bash row-guard/guard-pair.sh early after",
+    "cpu": 8,
+    "memory": 14336,
+    "timeout": 240
+  },
+  {
+    "name": "guard-early-check",
+    "cmd": "bash row-guard/guard-pair.sh early check",
+    "cpu": 8,
+    "memory": 14336,
+    "timeout": 240
+  },
+  {
+    "name": "guard-row-first-before",
+    "cmd": "bash row-guard/guard-pair.sh row-first before",
+    "cpu": 8,
+    "memory": 14336,
+    "timeout": 240
+  },
+  {
+    "name": "guard-row-first-after",
+    "cmd": "bash row-guard/guard-pair.sh row-first after",
+    "cpu": 8,
+    "memory": 14336,
+    "timeout": 240
+  },
+  {
+    "name": "guard-row-first-check",
+    "cmd": "bash row-guard/guard-pair.sh row-first check",
+    "cpu": 8,
+    "memory": 14336,
+    "timeout": 240
+  }
+]

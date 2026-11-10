@@ -1,0 +1,4 @@
+[
+ {"name":"source-check","cmd":"set -e; bun install --frozen-lockfile >/dev/null; bun x oxlint --type-aware --deny-warnings --disable-nested-config core/count-recovery/derivability-closure.ts core/count-recovery/field-bound-lemmas.ts; bun test core/count-recovery core/count-cases.test.ts core/count-focus-proof.test.ts","cpu":8,"memory":14336,"timeout":240},
+ {"name":"equal-row-closure","cmd":"set -e; bun install --frozen-lockfile >/dev/null; LAB_ROW_MODE=equal LAB_SOURCE_MS=1500 LAB_SOURCE_TRACE=1 bun research/track-m/active-source-probe.ts replay-input/input.json 'Inv*' 5 all","cpu":8,"memory":14336,"timeout":90}
+]
