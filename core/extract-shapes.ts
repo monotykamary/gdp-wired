@@ -275,11 +275,14 @@ const OTHER = '@@other'
 // An argument as the request's inputs: a scalar is one input; a record (an action) is its fields, a union of records
 // their fields together, with the field every member gives as a literal (`type`) a choice among them.
 type ArgOf = {v: V, events: {select: Record<string, string>, arg: Arg}[], heap: [string, Rec][]}
-function argOf(ex: Exec, param: ts.ParameterDeclaration, prefix: string, body: ts.Node): ArgOf {
+function argOf(ex: Exec, param: ts.ParameterDeclaration, prefix: string, body: ts.Node, ordinal = 0): ArgOf {
   const s = ex.s, t = s.checker.getTypeAtLocation(param), pname = ts.isIdentifier(param.name) ? param.name.text : 'arg'
   const lits = ts.isIdentifier(param.name) ? literalsOf(body, param.name.text, s) : new Map<string, string[]>()
   // Untyped (JavaScript): its fields as the code reads them, numbers unless compared with string literals.
   if (t.flags & (ts.TypeFlags.Any | ts.TypeFlags.Unknown)) {
+    // Keep the first argument's public spelling; later lazy roots need a distinct
+    // namespace for sort lookup, scalar interning, materialization and replay.
+    if (ordinal) prefix = `${prefix}arg${ordinal}_`
     for (const [path, xs] of lits) if (!s.lazySorts.has(`${prefix}${path}`)) s.lazySorts.set(`${prefix}${path}`, {k: 'choice', values: [...xs, OTHER]})
     const id = ex.id(`input.${prefix}${pname}`)
     s.notes.add(`${pname} is untyped: its fields are inputs as the code reads them (numbers, or a choice among the literals it is compared with and ${OTHER})`)
@@ -519,9 +522,9 @@ function readFunctionsOnce(code: string, file: string, opts: ReadOptions): Model
     let p: Path = {pc: sel.op === 'const' ? [] : [sel], locals: new Map(), heap: h, wrote: [], nows: 0}
     p = ex.bind(f.parameters[0]!.name, stateV, p)
     const combos: {select: Record<string, string>, args: Arg[]}[] = [{select: ev ? {[ev.name]: names[i]!} : {}, args: [{k: 'state'}]}]
-    for (const param of f.parameters.slice(1)) {
+    for (const [ordinal, param] of f.parameters.slice(1).entries()) {
       if (param.dotDotDotToken) refuse(param, 'a rest parameter')
-      const a = argOf(ex, param, multi ? `${names[i]}_` : '', f.body ?? f)
+      const a = argOf(ex, param, multi ? `${names[i]}_` : '', f.body ?? f, ordinal)
       for (const [id, o] of a.heap) p.heap.set(id, o)
       p = ex.bind(param.name, a.v, p)
       const next = combos.flatMap(c => a.events.map(e => ({select: {...c.select, ...e.select}, args: [...c.args, e.arg]})))
@@ -885,9 +888,9 @@ function attempt(code: string, file: string, opts: ReadOptions, written: Set<str
     const name = memberName(m.name), ex = new Exec(s), sel = I.is(evL, name)
     let p: Path = {pc: [sel], locals: new Map(), heap: new Map(stateHeap), wrote: [], nows: 0}
     const args: Arg[] = []
-    for (const param of m.parameters) {
+    for (const [ordinal, param] of m.parameters.entries()) {
       if (param.dotDotDotToken || !ts.isIdentifier(param.name)) refuse(param, 'a rest or destructured argument')
-      const a = argOf(ex, param, `${name}_`, m.body ?? m)
+      const a = argOf(ex, param, `${name}_`, m.body ?? m, ordinal)
       if (a.events.length !== 1) refuse(param, 'an argument that is a union of records')
       for (const [id, o] of a.heap) p.heap.set(id, o)
       p = ex.bind(param.name, a.v, p)
@@ -1101,9 +1104,9 @@ function factoryAttempt(code: string, file: string, opts: ReadOptions, written: 
     const ex = new Exec(s), sel = I.is(evL, f.name)
     let p: Path = {pc: [sel], locals: new Map(), heap: new Map(stateHeap), wrote: [], nows: 0}
     const args: Arg[] = []
-    for (const param of f.decl.parameters) {
+    for (const [ordinal, param] of f.decl.parameters.entries()) {
       if (param.dotDotDotToken || !ts.isIdentifier(param.name)) refuse(param, 'a rest or destructured argument')
-      const a = argOf(ex, param, `${f.name}_`, f.decl.body ?? f.decl)
+      const a = argOf(ex, param, `${f.name}_`, f.decl.body ?? f.decl, ordinal)
       if (a.events.length !== 1) refuse(param, 'an argument that is a union of records')
       for (const [id, o] of a.heap) p.heap.set(id, o)
       p = ex.bind(param.name, a.v, p)

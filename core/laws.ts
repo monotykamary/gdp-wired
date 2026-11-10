@@ -215,7 +215,9 @@ export function buildLaw(x: Extraction, l: LawText, opts: LawOpts = {}): Built {
   read(e, probe, names, true)
   // (a law on a method, the line above it, is a law of its step: the state after it, old(x) before)
   const step = !!l.method || ['input', 'answer', 'result', 'failed', 'clock', 'method', 'old'].some(k => probe.roles.has(k))
-  const method = probe.methods.size === 1 ? [...probe.methods][0] : l.method
+  // An explicit binding is authoritative even when a name has only one owner.
+  if (l.method && [...probe.methods].some(method => method !== l.method)) throw new LawError(`the law is bound to ${l.method}, but reads a value belonging to ${[...probe.methods].join(', ')}`)
+  const method = l.method ?? (probe.methods.size === 1 ? [...probe.methods][0] : undefined)
   if (probe.methods.size > 1) throw new LawError(`it reads the arguments of ${[...probe.methods].join(' and ')}: a law of one step is about one method`)
   const gate = step && method && names.some(n => n.role === 'method') ? method : undefined
   const body0 = (b: Record<string, unknown>, a: Record<string, unknown>, pins?: Ctx['pins'], bits?: Bits) => read(e, {strictOptional, absence, consts: x.consts, b, a, step, method, keys: new Map(), roles: new Set(), methods: new Set(), clock: opts.clock, cal, pins, ...(bits ? {bits} : {})}, names, false) as Cond
@@ -347,7 +349,8 @@ function val(e: X, c: Ctx, names: Name[], dry: boolean): V {
       // over the integers (a <= x // k is k·a <= x; a < x // k is k·(a + 1) <= x), so it needs no function, which a law
       // of one step can't read)
       const flip: Record<string, string> = {'<': '>', '<=': '>=', '>': '<', '>=': '<=', '==': '==', '!=': '!='}
-      if (flip[e.op] && (e.a.k === 'bdur' || e.b.k === 'bdur')) return {t: 'cond', v: businessCompare(e, flip, c, go, dry)}
+      // Calendar operands retain strict optional checks throughout nested arithmetic.
+      if (flip[e.op] && (e.a.k === 'bdur' || e.b.k === 'bdur')) return {t: 'cond', v: businessCompare(e, flip, c, operand => val(operand, {...c, strictOptional: true}, names, dry), dry)}
       const divk = (x: X) => (x.k === 'bin' && x.op === '//' && (constOf(x.b) ?? 0) >= 1 ? x as X & {k: 'bin'} : undefined)
       if (flip[e.op] && (divk(e.b) || divk(e.a))) {
         // Inspect the original numerator before rewriting division into comparisons.
