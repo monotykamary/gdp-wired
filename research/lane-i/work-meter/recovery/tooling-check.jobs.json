@@ -1,0 +1,1 @@
+[{"name":"recovery-commitlint","cmd":"bun install --frozen-lockfile && bunx commitlint < recovery-input/COMMIT.txt","cpu":2,"memory":4096,"timeout":240,"vm_type":"large"}]

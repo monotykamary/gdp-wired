@@ -1,5 +1,5 @@
 {
-  "status": "RESUMED: artifact verified on boat; first combined validation running",
+  "status": "Raw artifact: 132 tests and 3x267 mutation tests pass; original tooling TS2307 retained; type-only recheck running",
   "baseSnapshot": "30f9c3ba",
   "privateIndex": "/private/tmp/lane-i-complete.index",
   "task": "4575fac2-7dbb-4fcf-859f-63aba9e3e9c5",
@@ -103,9 +103,19 @@
   },
   "activeTasks": [
     {
-      "task": "c2b0e7fa-4b9a-4c25-9ff9-2fe876123cbf",
-      "pid": 399849,
-      "results": "runs/lane-i/resume-complete-validation"
+      "task": "7a4e3ae4-9930-4718-96d1-13529b087b02",
+      "pid": 426983,
+      "results": "runs/lane-i/resume-complete-type-recheck"
+    },
+    {
+      "task": "f8c02604-563e-4901-8b37-7ccb7e70fb86",
+      "pid": 418417,
+      "results": "runs/lane-i/resume-compose"
+    },
+    {
+      "task": "23d241b4-e68b-4762-aec9-19ac8b2b8ea2",
+      "pid": 427349,
+      "results": "runs/lane-i/resume-composition-validation"
     }
   ],
   "rerunFirst": [],
@@ -118,5 +128,16 @@
     "sites": 1626,
     "files": 78,
     "sourceBlobsVerified": true
+  },
+  "originalValidation": {
+    "batch": "20261110-201047-bdfcqp",
+    "rawTests": 132,
+    "mutationTests": {
+      "zero": 267,
+      "double": 267,
+      "random": 267
+    },
+    "error": "staged prepare.ts:4 TS2307 relative recovery-input module",
+    "audit": "20261110-201404-7rf4tk"
   }
 }

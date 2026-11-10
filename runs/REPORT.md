@@ -19,6 +19,21 @@ Lane I resumed from `dbfe4c56`; no cancelled run was repeated. **Not GATE GREEN.
   exact-count/erasure/inference/roster/type checks and zero/double/random
   acceptance-mutation checks. No local scheduler is running;
   `SUPERCOMPUTER_CONTROLLER=1` is explicit on every launch.
+- First validation `20261110-201047-bdfcqp` is retained: raw exact-count /
+  inference tests **132 pass**, erasure/roster/decoder pass; zero/double/random
+  acceptance suites **267 pass each**. The plain job fails only
+  `research/lane-i/generator/prepare.ts:4` (TS2307, relative recovery import in
+  staged tooling). Fixed with a cwd-resolved dynamic import; source artifact
+  unchanged. Type-only recheck task `7a4e3ae4-9930-4718-96d1-13529b087b02`.
+  Compressed receipt hashes independently checked in `20261110-201404-7rf4tk`.
+- Commitlint first failed because the runner had no configured rules
+  (`20261110-201247-2e0vl7`). The pinned existing conventional configuration
+  passes in `20261110-201357-iphs06`; neither first failure is discarded.
+- Ledger/boundary/bitmap source composition is running independently at
+  `runs/lane-i/resume-compose/`, task `f8c02604-563e-4901-8b37-7ccb7e70fb86`.
+  Native bitmap scans are a confirmed uncounted operation in the retained
+  artifact; draft exact visited-word ticks/tests are in
+  `research/lane-i/work-meter/coverage/` and not promoted.
 - Continue independently with coverage review and ledger composition. No
   calibrated extra weights or W, complete-source pass, F3 or 29-protocol
   determinism claim yet. Zero subagents, no pushes.

@@ -1,0 +1,23 @@
+import {expect, test} from 'bun:test'
+import {bitIntersection, bitIntersects} from './bitsets.ts'
+import {coreMeter} from './meter.ts'
+const measured = <T>(f: () => T) => { const before = coreMeter.ticks; return {value: f(), ticks: coreMeter.ticks - before} }
+
+test('bitmap materialization charges one tick per output word and no hidden tail', () => {
+  const a = new Uint32Array([0x80000000, 1, 0]), b = new Uint32Array([0x80000000, 0, 2])
+  const result = measured(() => bitIntersection(a, b))
+  expect([...result.value]).toEqual([0x80000000, 0, 0])
+  expect(result.ticks).toBe(3)
+  expect([...a]).toEqual([0x80000000, 1, 0])
+  expect([...b]).toEqual([0x80000000, 0, 2])
+  expect(measured(() => bitIntersection(new Uint32Array(0), new Uint32Array(0))).ticks).toBe(0)
+})
+
+test('bitmap existence observes only visited words and honors both short circuits', () => {
+  const bits = (...values: number[]) => new Uint32Array(values)
+  expect(measured(() => bitIntersects([]))).toEqual({value: false, ticks: 0})
+  expect(measured(() => bitIntersects([bits()]))).toEqual({value: false, ticks: 0})
+  expect(measured(() => bitIntersects([bits(1, 1), bits(1, 1), bits(1, 1)]))).toEqual({value: true, ticks: 3})
+  expect(measured(() => bitIntersects([bits(0, 1), bits(1, 0), bits(1, 1)]))).toEqual({value: false, ticks: 3})
+  expect(measured(() => bitIntersects([bits(0, 1), bits(1, 1), bits(1, 1)]))).toEqual({value: true, ticks: 4})
+})

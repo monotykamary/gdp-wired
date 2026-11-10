@@ -1,0 +1,5 @@
+[
+{"name":"compose-ledger-source","cmd":"bun recovery-input/materialize.ts && bun recovery-input/compose.ts ledger","cpu":4,"memory":14336,"timeout":240,"vm_type":"large"},
+{"name":"compose-boundaries-source","cmd":"bun recovery-input/materialize.ts && bun recovery-input/compose.ts boundaries","cpu":4,"memory":14336,"timeout":240,"vm_type":"large"},
+{"name":"compose-bitmap-source","cmd":"bun recovery-input/materialize.ts && bun recovery-input/compose.ts bitmap","cpu":4,"memory":14336,"timeout":240,"vm_type":"large"}
+]

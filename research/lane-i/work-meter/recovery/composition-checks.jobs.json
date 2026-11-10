@@ -1,0 +1,5 @@
+[
+{"name":"complete-ledger-checks","cmd":"bun validation-input/prepare.ts && bun validation-prepared-input/preflight.ts checks","cpu":4,"memory":14336,"timeout":1200,"vm_type":"large","env":{"METER_COMPOSITION":"ledger","METER_MUTATION":"plain"}},
+{"name":"complete-boundaries-checks","cmd":"bun validation-input/prepare.ts && bun validation-prepared-input/preflight.ts checks","cpu":4,"memory":14336,"timeout":1200,"vm_type":"large","env":{"METER_COMPOSITION":"boundaries","METER_MUTATION":"plain"}},
+{"name":"complete-bitmap-checks","cmd":"bun validation-input/prepare.ts && bun validation-prepared-input/preflight.ts checks","cpu":4,"memory":14336,"timeout":1200,"vm_type":"large","env":{"METER_COMPOSITION":"bitmap","METER_MUTATION":"plain"}}
+]
