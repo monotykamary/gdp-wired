@@ -67,12 +67,17 @@ heartbeat after the profiler's asynchronous acknowledgement.
 
 A discarded-increment-only canonicalization follow-up now counts lookup and
 key serialization/inspection work. Its checks and a stricter heartbeat-before/after
-Node pilot are running; see `research/lane-i/work-meter/coverage/STATUS.md`.
+Node pilot passed; see `research/lane-i/work-meter/coverage/STATUS.md`.
 Independent audit `20261110-203450-h8vitu` confirms exact raw-vector/verdict
 equality and nonnegative exclusive-phase reconciliation for every counter.
-The first canonical staging attempt failed its roster anchor before running
-tests; the anchor was corrected against the frozen source and a recheck is
-running. No failed receipt was overwritten.
+The canonicalization follow-up now passes 158 selected tests, erasure,
+roster, decoder and type/lint; each zero/double/random control passes 267
+acceptance tests. Its strict Node pilot preserves the exact raw vector and
+verdict and reports zero stable windows, nine changed-during-capture windows.
+Independent audits passed in `20261110-204538-t42ntt`; source is frozen as
+**`41d39043`** on `claude/lane-i-complete-canonical`, parent `84ffacf2`.
+No failed staging/control receipt was overwritten. This is not full F3/F4 or
+a calibrated-W result.
 
 
 `20261110-201744-s9kwtn`: Node v20.20.2's worker inspector captured 25 samples

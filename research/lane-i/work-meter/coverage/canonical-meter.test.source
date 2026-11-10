@@ -1,0 +1,28 @@
+import {test, expect} from 'bun:test'
+import {canon, canonFlip, cellParts} from './kernel.ts'
+import {kernelMeter} from './meter.ts'
+
+test('canonical form counts its lookup and serialized key code units', () => {
+  const lin = {z: 2, abc: -3}, before = kernelMeter.tableCells
+  expect(canon(lin)).toBe('abc:-3,z:2')
+  expect(kernelMeter.tableCells - before).toBe(1 + 4 + 2)
+  const cached = kernelMeter.tableCells
+  expect(canon(lin)).toBe('abc:-3,z:2')
+  expect(kernelMeter.tableCells - cached).toBe(1)
+})
+test('flipped canonical form counts every inspected key, including the constant', () => {
+  const lin = {z: 2, abc: -3}, before = kernelMeter.tableCells
+  expect(canonFlip(lin)).toBe('1:1,abc:3,z:-2')
+  expect(kernelMeter.tableCells - before).toBe(1 + 4 + 2 + 2)
+  const cached = kernelMeter.tableCells
+  expect(canonFlip(lin)).toBe('1:1,abc:3,z:-2')
+  expect(kernelMeter.tableCells - cached).toBe(1)
+})
+test('cell parsing counts characters; cached lookup is one observation', () => {
+  const cell = 'meter-probe[long-key:2,other:-1]', before = kernelMeter.tableCells
+  expect(cellParts(cell)).toEqual({map: 'meter-probe', key: {'long-key': 2, other: -1}})
+  expect(kernelMeter.tableCells - before).toBeGreaterThan(cell.length)
+  const cached = kernelMeter.tableCells
+  expect(cellParts(cell)).toEqual({map: 'meter-probe', key: {'long-key': 2, other: -1}})
+  expect(kernelMeter.tableCells - cached).toBe(1)
+})

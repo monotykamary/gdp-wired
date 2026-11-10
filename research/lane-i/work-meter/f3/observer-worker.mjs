@@ -3,7 +3,7 @@ import {Session} from 'node:inspector'
 import {writeSync} from 'node:fs'
 const shared = new Int32Array(workerData), session = new Session()
 const traceNow = () => performance.now()
-const emit = value => writeSync(1, 'F3_RAW_SILENCE ' + JSON.stringify(value) + '\n')
+const emit = (value, tag = 'F3_RAW_SILENCE') => writeSync(1, tag + ' ' + JSON.stringify(value) + '\n')
 const post = (method, params = {}) => new Promise((resolve, reject) => session.post(method, params, (error, result) => error ? reject(error) : resolve(result)))
 let last = Atomics.load(shared, 1), since = traceNow(), reports = 0, busy = false, stopping = false
 const keepalive = setInterval(() => {}, 1000)
@@ -32,7 +32,9 @@ try {
       let id = [...frequencies].sort((a, b) => b[1] - a[1])[0]?.[0]
       const stack = []
       while (id !== undefined) { const node = nodes.get(id); if (node) stack.push(node.callFrame); id = parents.get(id) }
-      emit({rawSilentMs: now - since, whileRunning: Atomics.load(shared, 0) === 1, reports: ++reports, stack, scope: 'raw-progress diagnostic; not weighted F3'})
+      const heartbeatAfter = Atomics.load(shared, 1), whileRunning = Atomics.load(shared, 0) === 1
+      const stable = heartbeatAfter === next && whileRunning
+      emit({rawSilentMs: now - since, whileRunning, heartbeatBefore: next, heartbeatAfter, stable, reports: ++reports, stack, scope: 'raw-progress diagnostic; not weighted F3'}, stable ? 'F3_RAW_SILENCE' : 'F3_RAW_WINDOW_CHANGED')
       await post('Profiler.start'); since = traceNow()
     } catch (error) { emit({error: String(error)}); process.exitCode = 1 }
     finally { busy = false; if (Atomics.load(shared, 0) === 2) void stop() }

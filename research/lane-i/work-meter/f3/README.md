@@ -28,6 +28,15 @@ sampler distinguishes stable heartbeat windows from changed windows. The
 canonicalization follow-up counts existing lookup, serialization and key
 inspection work without changing the checker after observation erasure.
 
+A separate bounded probe (`bun-inspector.jobs.json`) tests Bun's external
+inspector against an owned synthetic main-thread loop. It binds only loopback,
+requires the named loop frame before return, and resumes/closes its child.
+The bounded retry and the variant with `Inspector.enable`, `Runtime.enable`
+and `Inspector.initialized` completed normally, but neither delivered a
+`Debugger.paused` frame before the named loop returned. Both are negative
+capability results, not solver attachments or F3 results. Retain all logs,
+including the initial timeout; do not mistake a live socket for a live stack.
+
 No Bun F3, host qualification, calibrated weighted-unit sampler or complete
 census is established by these results. Both pilot processes used the exact
 unchanged original MLDR model and the same legacy 15,000,000 work allowance.

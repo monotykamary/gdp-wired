@@ -1,12 +1,12 @@
 {
-  "status": "raw/ledger/boundaries/bitmap source chain verified; canonicalization coverage follow-up running after Node raw-progress pilot",
+  "status": "five-stage raw accounting source chain verified; research tooling passes; next is raw determinism pilot",
   "privateIndex": "/private/tmp/lane-i-ledger.index",
   "task": "4575fac2-7dbb-4fcf-859f-63aba9e3e9c5",
   "waiterPid": 90266,
   "batch": "20261110-123336-6maehh",
   "resultDirectory": "runs/lane-i/complete-structural",
   "includesGeneratedConstructors": false,
-  "next": "Audit original Node pilot, inspect canonicalization tests and stricter heartbeat pilot. Do not infer calibrated W or final F3 from raw progress.",
+  "next": "Commit current research checkpoint after clean tooling recheck; proceed to Bun fresh-process raw determinism pilot on frozen canonical source. No W or final F3 claim.",
   "productionChanged": false,
   "weightsCalibrated": false,
   "f3Implemented": false,
@@ -39,18 +39,7 @@
       "subagents": 0
     }
   },
-  "activeTasks": [
-    {
-      "task": "caffe75f-bec9-484c-bb3a-9843b3c5a305",
-      "pid": 484330,
-      "results": "runs/lane-i/resume-canonical-recheck"
-    },
-    {
-      "task": "609de325-4979-4a4b-9268-b85969e36f93",
-      "pid": 484509,
-      "results": "runs/lane-i/resume-source-chain-recheck"
-    }
-  ],
+  "activeTasks": [],
   "rerunFirst": [],
   "verified": {
     "gateBatch": "20261110-123003-1cvbpa",
@@ -80,12 +69,12 @@
     "receiptAudit": "20261110-202451-eom7lj"
   },
   "toolingValidation": {
-    "batch": "20261110-202902-ciyd4v",
+    "batch": "20261110-204637-14ydr9",
     "typeLint": true,
-    "files": 1682,
+    "files": 1686,
     "warnings": 0,
     "errors": 0,
-    "commitlint": true
+    "commitlintBatch": "20261110-204538-t42ntt"
   },
   "verifiedSourceChain": [
     {
@@ -103,6 +92,10 @@
     {
       "stage": "bitmap",
       "sha": "84ffacf2be0364ab2ee0758405d779c027338c56"
+    },
+    {
+      "stage": "canonical",
+      "sha": "41d39043a75e279dc9600e6a33c8107014b67025"
     }
   ],
   "mutationValidation": {
@@ -120,5 +113,25 @@
     "exclusivePhaseReconciliation": true,
     "reportedWindows": 12,
     "finalF3": false
+  },
+  "canonicalExport": {
+    "results": "runs/lane-i/resume-canonical-controls/export-canonical-source.log",
+    "status": "exported, not yet independently hash-compared to tested receipt"
+  },
+  "canonicalValidation": {
+    "batch": "20261110-203555-pkp0td",
+    "sourceChecks": true,
+    "nodeRawAndVerdictEquivalent": true,
+    "stableWindows": 0,
+    "changedWindows": 9,
+    "mutationBatch": "20261110-204037-4iirg6",
+    "mutationsPassed": true,
+    "sourceFrozen": true,
+    "sourceAudit": "20261110-204538-t42ntt"
+  },
+  "bunExternalProbe": {
+    "workerInspector": false,
+    "externalPauseBeforeReturn": false,
+    "initializedExternalPauseBeforeReturn": false
   }
 }

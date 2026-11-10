@@ -1,0 +1,26 @@
+[
+  {
+    "name": "resumed-lane-tooling-check",
+    "cmd": "bun install --frozen-lockfile && bun run check",
+    "cpu": 4,
+    "memory": 14336,
+    "timeout": 1200,
+    "vm_type": "large"
+  },
+  {
+    "name": "recovery-commitlint-recheck",
+    "cmd": "set -euo pipefail; temp=$(mktemp -d); trap 'rm -rf \"$temp\"' EXIT; printf '{\"private\":true}\\n' > \"$temp/package.json\"; (cd \"$temp\" && bun add --dev @commitlint/cli@19.8.1 @commitlint/config-conventional@19.8.1 >/dev/null); printf \"module.exports={extends:['@commitlint/config-conventional']};\\n\" > \"$temp/commitlint.config.cjs\"; for file in recovery-input/*COMMIT*.txt; do \"$temp/node_modules/.bin/commitlint\" --cwd \"$temp\" < \"$file\"; sha256sum \"$file\"; done",
+    "cpu": 2,
+    "memory": 4096,
+    "timeout": 240,
+    "vm_type": "large"
+  },
+  {
+    "name": "canonical-controls-audit",
+    "cmd": "bun recovery-input/summarize.ts control-input canonical- --require-pass",
+    "cpu": 1,
+    "memory": 2048,
+    "timeout": 120,
+    "vm_type": "large"
+  }
+]

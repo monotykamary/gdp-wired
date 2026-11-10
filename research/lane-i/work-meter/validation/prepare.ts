@@ -16,8 +16,17 @@ replace("resolve('frozen/gate-inputs')", "resolve('recovery-input')")
 const mutated = process.env.METER_MUTATION && process.env.METER_MUTATION !== 'plain'
 const files = mutated ? ['./kernel', './core/solver.test.ts', './core/rationals.test.ts'] : ['./core/meter-complete.test.ts', './core/meter.test.ts', './core/compile.test.ts', './core/sample-step.test.ts', './core/runtime-keys.test.ts', './core/small-counts.test.ts', './core/values.test.ts', './core/functions.test.ts', './kernel/model-values.test.ts', './core/count-cubes.test.ts', './core/count-support.test.ts', './core/finite-tiny-houdini.test.ts', './core/finite-work.test.ts', './core/infer.test.ts', './kernel/steplaw.test.ts']
 if (!mutated && process.env.METER_COMPOSITION) files.push('./core/work-ledger.test.ts', './core/work-clock.test.ts', './core/work-entry.test.ts', './core/count-work.test.ts', './kernel/work-budget.test.ts')
-if (!mutated && process.env.METER_COMPOSITION === 'bitmap') files.push('./core/bitsets.test.ts', './core/bitsets-meter.test.ts')
+if (!mutated && ['bitmap', 'canonical'].includes(process.env.METER_COMPOSITION ?? '')) files.push('./core/bitsets.test.ts', './core/bitsets-meter.test.ts')
+if (!mutated && process.env.METER_COMPOSITION === 'canonical') files.push('./kernel/canonical-meter.test.ts')
 const args = mutated ? ['test', '--preload', './research/lane-i/generator/meter-mutate.ts', ...files] : ['test', ...files]
-replace("['targeted',['test','./core/field-laws.test.ts','./core/field-loaded.test.ts','./core/finite-work.test.ts','./core/finite-tiny.test.ts','./core/finite-tiny-houdini.test.ts','./core/support-order.test.ts','./core/counts-completion-order.test.ts','./kernel/model-values.test.ts']]", `['meter-audit',['research/lane-i/generator/meter-audit.ts']],['targeted',${JSON.stringify(args)}]`)
+let argsText = JSON.stringify(args)
+if (mutated && process.env.METER_COMPOSITION === 'canonical') {
+  // Keep every acceptance test. Only the new exact-counter fixture is separate:
+  // it is required by the plain check, and intentionally false under mutation.
+  text = "import {readdirSync as meterListTests} from 'node:fs'\n" + text
+  text = "const mutationKernelTests = (root: string) => { const names = meterListTests(join(root, 'kernel')).filter(name => name.endsWith('.test.ts')); if (!names.includes('canonical-meter.test.ts')) throw Error('missing exact-counter fixture'); return names.filter(name => name !== 'canonical-meter.test.ts').map(name => './kernel/' + name) }\n" + text
+  argsText = "['test','--preload','./research/lane-i/generator/meter-mutate.ts',...mutationKernelTests(dest),'./core/solver.test.ts','./core/rationals.test.ts']"
+}
+replace("['targeted',['test','./core/field-laws.test.ts','./core/field-loaded.test.ts','./core/finite-work.test.ts','./core/finite-tiny.test.ts','./core/finite-tiny-houdini.test.ts','./core/support-order.test.ts','./core/counts-completion-order.test.ts','./kernel/model-values.test.ts']]", `['meter-audit',['research/lane-i/generator/meter-audit.ts']],['targeted',${argsText}]`)
 if (mutated) replace("if(label==='targeted'&&process.argv.includes('--tools-only'))continue;", "if(label==='type-lint')continue;")
 writeFileSync(join(out, 'preflight.ts'), text)

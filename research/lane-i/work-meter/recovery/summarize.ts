@@ -6,7 +6,9 @@ import {gunzipSync} from 'node:zlib'
 import {stripVTControlCharacters} from 'node:util'
 const sha = (s: string) => createHash('sha256').update(s).digest('hex')
 const input = process.argv[2] ?? 'validation-results'
-const summary = readFileSync(join(input, 'summary.tsv'), 'utf8').trim().split('\n').map(line => line.split('\t'))
+const prefix = process.argv[3]
+const summary = readFileSync(join(input, 'summary.tsv'), 'utf8').trim().split('\n').map(line => line.split('\t')).filter(([name]) => prefix === undefined || name?.startsWith(prefix))
+assert(summary.length > 0, 'no selected validation receipts')
 const outputs = []
 for (const [name, exit] of summary) {
   assert(name)
@@ -44,4 +46,6 @@ for (const [name, exit] of summary) {
   console.log('VALIDATION_RESULT ' + JSON.stringify(row))
 }
 assert.equal(new Set(outputs.map(row => row.name)).size, outputs.length)
-console.log('VALIDATION_SUMMARY ' + JSON.stringify({passed: outputs.every(row => row.passed), jobs: outputs}))
+const passed = outputs.every(row => row.passed)
+console.log('VALIDATION_SUMMARY ' + JSON.stringify({selectedPrefix: prefix ?? null, passed, jobs: outputs}))
+if (process.argv.includes('--require-pass')) assert(passed, 'selected validation receipts failed')

@@ -1,0 +1,6 @@
+[
+{"name":"canonical-zero","cmd":"bun validation-input/prepare.ts && bun validation-prepared-input/preflight.ts checks","cpu":4,"memory":14336,"timeout":1500,"vm_type":"large","env":{"METER_COMPOSITION":"canonical","METER_MUTATION":"zero"}},
+{"name":"canonical-double","cmd":"bun validation-input/prepare.ts && bun validation-prepared-input/preflight.ts checks","cpu":4,"memory":14336,"timeout":1500,"vm_type":"large","env":{"METER_COMPOSITION":"canonical","METER_MUTATION":"double"}},
+{"name":"canonical-random","cmd":"bun validation-input/prepare.ts && bun validation-prepared-input/preflight.ts checks","cpu":4,"memory":14336,"timeout":1500,"vm_type":"large","env":{"METER_COMPOSITION":"canonical","METER_MUTATION":"random"}},
+{"name":"bun-external-inspector-recheck","cmd":"bun f3-input/bun-inspector-probe.mjs","cpu":1,"memory":2048,"timeout":60,"vm_type":"large"}
+]

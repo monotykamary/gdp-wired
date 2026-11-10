@@ -8,6 +8,7 @@ Verified source chain (separate branches; not merged into the integration gate):
 | Phase ledger | `feeaccf2` | `9a36137e` | 151 selected tests, erasure, roster, decoder, type/lint |
 | Boundary scopes | `4550377f` | `feeaccf2` | 151 selected tests plus the same checks |
 | Bitmap word observations | `84ffacf2` | `4550377f` | 155 selected tests plus the same checks |
+| Canonical key observations | `41d39043` | `84ffacf2` | 158 selected tests, erasure, type/lint, three 267-test mutation suites |
 
 Boundary/bitmap source transport hashes were verified against the exact tested
 source in `20261110-202611-ljsgom`. Zero/double/random mutation controls of the
@@ -16,7 +17,7 @@ full bitmap composition passed there too. Source trees respectively:
 `26677094653194059ef55e17db54ca7e7c17cf2d`.
 All retain original model blob `0541fa9436e307a6fb716aa5064637b30b893b79`.
 
-## Follow-up: canonicalization, not yet validated
+## Canonicalization — verified source, limited diagnostic claim
 
 Original-model Node pilot `20261110-202238-v6auwd` retained identical raw counts
 and verdict with its observer off/on. It reported ~300ms quiet windows with
@@ -29,8 +30,13 @@ existing lookup, string-key serialization/inspection and key parsing paths.
 It does not change sort order, cache rules, formulas, acceptance branches,
 weights or W. The required structural checker-erasure audit remains enabled.
 New exact-observation tests exercise cold and cached canonicalization.
-A stricter sampler records heartbeat-before/after and classifies changed
-windows separately. Both the new composition checks and original-model
-Node pilot are running via `canonical.jobs.json`.
+The source checks and original-model Node pilot passed in
+`20261110-203555-pkp0td`; zero/double/random controls passed in
+`20261110-204037-4iirg6`. The stricter Node sampler preserved exact raw counts
+and verdict, and classified nine windows as changed during capture, with
+zero stable violations. This is not a weighted F3 or overhead qualification.
+Independent source-transport, receipt and phase-reconciliation audits passed
+in `20261110-204538-t42ntt`. The exact source is frozen as `41d39043` on
+`claude/lane-i-complete-canonical`; see `VERIFIED-SOURCE.md`.
 
 No claim of complete coverage, Bun F3, F4 census, calibrated weights, or W.
