@@ -2,67 +2,65 @@
 
 ## Reload checkpoint — 2026-11-10, one boat batch active
 
-**Active:** `20261110-123003-1cvbpa`, jobs `complete-ast-progress` and
-`work-ledger-progress`; task `cd893c39-f0e2-4935-9ca3-5c9b57c0c9b7`, waiter
-PID `58588`. Results: `runs/lane-i/complete-progress/`. Waiter log:
-`/var/folders/hc/3k4lvfw90yv7kghsnynghcvm0000gn/T/pi-fabric-shell-QiP5au/output.log`.
-One existing waiter; **do not resubmit this batch on reload**.
+**Active:** `20261110-123336-6maehh`, jobs `complete-ast-structural`,
+`ledger-source-receipt-audit`, `accounting-commitlint`; task
+`4575fac2-7dbb-4fcf-859f-63aba9e3e9c5`, waiter PID `90266`. Results:
+`runs/lane-i/complete-structural/`. Waiter log:
+`/var/folders/hc/3k4lvfw90yv7kghsnynghcvm0000gn/T/pi-fabric-shell-I2NkTe/output.log`.
+The audit and commitlint jobs have returned zero; collect their full receipts
+with the batch. One waiter; **do not resubmit this batch on reload**.
 
-**Next, without waiting for Lane D:** collect both results. Fix only an
-identified failure. On successful constructor preparation, freeze its emitted
-`SOURCE_PATCH_BEGIN` / `SOURCE_PATCH_END` artifact and protected blobs, then
-launch `research/lane-i/work-meter/validation/checks.jobs.json` (not launched
-yet). The four jobs cover expanded checker erasure, six-field mutations,
-exact-count tests, inference, roster and type/lint. Finish/commit the raw
-accounting piece, combine the independently tested ledger, apply and validate
-`ledger/boundaries.patch`, then run the original-model 29-protocol repeated
-cross-CPU census, one job per VM, all at once. No calibrated weights or W
-have been selected here. F3's blocking-loop-capable sampler is not implemented.
+**Latest verified gate:** `20261110-123003-1cvbpa` / `work-ledger-progress`
+passes **39 selected tests**, roster, decoder and type/lint, with all protected
+source blobs unchanged. The ledger source remains isolated in
+`/private/tmp/lane-i-ledger.index`; its metadata and patch are under
+`research/lane-i/work-meter/ledger/`. It is not a complete-accounting or
+protocol-gate pass: generated constructors and broader coverage are pending.
 
-**What changed / what remains unvalidated:**
-- Production sources, old `fullWork`, private caps, W and original model are
-  untouched in the active worktree. All candidate source is isolated in
-  `/private/tmp/lane-i-complete.index` and `/private/tmp/lane-i-ledger.index`.
-  Inputs and exact blobs are under `research/lane-i/work-meter/{complete,ledger}/`.
-- The drafts combine Lane A snapshot `30f9c3ba`, cumulative I2 `c9eb0f9c`
-  and the I1 kernel-only patch. The sole conflict retains both `traceNow`
-  and `coreMeter`. This is **not** Lane A intake or a resolution of its
-  original full-suite failure; see **For lane A** below.
-- Raw observations add direct recurrence visits, finite-prefix attempted
-  ticks, actual infer row checks/attempts, instance-binding visits and one
-  shared raw object. AST construction is worker-generated and still unvalidated.
-  Broader bitmap/native-loop and clone/reification coverage still needs audit.
-- Ledger draft preserves all twelve historical coefficients, takes an
-  explicit eight-coefficient extension (no implicit provisional default),
-  and records inclusive/exclusive raw and scalar phase deltas. Test-only
-  all-ones weights are **not calibration**. Existing ptime phases are wired;
-  the additional two-file table/instance/check boundary patch is unvalidated
-  and is not part of the active validation input.
+**Next, without waiting for Lane D:** collect the structural preparation.
+The previous kernel mismatch is only TypeScript-printer line wrapping, so the
+current audit compares parsed syntax structure and exact literal text, not
+layout. If it passes, freeze the emitted `SOURCE_PATCH_BEGIN` /
+`SOURCE_PATCH_END` source artifact and blobs, then launch
+`research/lane-i/work-meter/validation/checks.jobs.json` (not launched).
+Those four jobs cover expanded checker erasure, six-field mutations,
+exact-count tests, inference, roster and type/lint. Commit the verified raw
+piece; combine the ledger; apply/revalidate `ledger/boundaries.patch`; then
+run the original-model 29-protocol repeat/cross-CPU census, one job per VM,
+all at once. No calibrated weights or W have been selected here.
 
-**Completed attempts, preserved (do not repeat unchanged work):**
-1. Constructor batch `20261110-121916-gkoq76` failed; all 47 source blobs
-   matched, but the driver lost the child error. No source artifact admitted.
-2. Diagnostic `20261110-122546-ln00nn` found a real editor bug: a late import
-   in `core/count-focused.ts` was inserted with a stale coordinate. Fixed by
-   applying imports and node wrappers in the same original-coordinate pass.
-3. `20261110-122736-4fqtc0`: constructor still failed later in kernel erasure;
-   the full-file assertion hid its prefix in the captured tail. Current
-   retry prints only the first differing lines. The ledger receipt audit
-   in this batch passed and decoded **39 selected tests / 0 failures**, plus
-   roster and decoder passes from `20261110-122359-96kye5`.
-4. That ledger gate nevertheless failed type/lint: `core/infer.ts:2366`
-   parsed a leading-parenthesis counter statement as a call on the preceding
-   `Request`. Fixed with explicit separate additive statements. The active
-   batch revalidates this changed source; no overall ledger pass is claimed.
+**Scope and remaining work:** production sources, old fullWork, private
+caps, W and the original model remain untouched in the active worktree.
+Drafts combine Lane A `30f9c3ba`, I2 `c9eb0f9c` and the I1 kernel-only patch.
+The only merge conflict retains both traceNow and coreMeter. This is not
+Lane A intake or resolution of its original full-suite failure below.
+The scalar adapter preserves all twelve historical weights and requires an
+explicit eight-coefficient extension; test-only ones are not calibration.
+The two-file untrusted table/instance/check boundary patch is unvalidated
+and not in the passing ledger input. Bitmap/native-loop and cloned AST
+coverage still need audit. F3's blocking-loop sampler is not implemented.
 
-**Recovery:** per-piece `state.json` files retain earlier task/batch IDs.
-Temporary edited sources are `/tmp/lane-i-complete-*.ts`,
+**Preserved failures:**
+1. `20261110-121916-gkoq76`: source matched, constructor child failed and its
+   error was lost by the driver; no artifact accepted.
+2. `20261110-122546-ln00nn`: found a late-import insertion-coordinate bug
+   in core/count-focused.ts. Fixed by one original-coordinate edit pass.
+3. `20261110-122736-4fqtc0`: constructor assertion was too large to retain
+   its prefix. Its separate ledger audit verified 39 passes, but type/lint
+   failed on core/infer.ts:2366, where a leading '(' counter statement was
+   parsed as a Request call. Fixed by separate additive statements.
+4. `20261110-123003-1cvbpa`: constructor preparation still refused a
+   printer-only array line wrap at kernel/kernel.ts; ledger gate passed.
+   The structural comparison fix is being checked now, not assumed valid.
+
+**Recovery:** per-piece state.json files preserve earlier task/batch IDs.
+Raw index `/private/tmp/lane-i-complete.index`; ledger index as above;
+additional boundary index `/private/tmp/lane-i-ledger-boundaries.index`.
+Temporary sources: `/tmp/lane-i-complete-*.ts`,
 `/tmp/lane-i-ledger-{prove,counts,shards}.ts`, and
-`/tmp/lane-i-ledger-boundaries-{prove,counts}.ts`. A separate private boundary
-index is `/private/tmp/lane-i-ledger-boundaries.index`; its unvalidated delta
-is `research/lane-i/work-meter/ledger/boundaries.patch`. Reuse the existing
-frozen source pack and runner. All execution and receipt processing stay on
-boat; no subagents and no new local whole-tree copies have been used.
+`/tmp/lane-i-ledger-boundaries-{prove,counts}.ts`. Reuse existing source packs
+and runner. All execution and receipt processing are on boat; no subagents
+or new local whole-tree copies have been used.
 
 ## Current directive — finish accounting and ledger without waiting on D1
 

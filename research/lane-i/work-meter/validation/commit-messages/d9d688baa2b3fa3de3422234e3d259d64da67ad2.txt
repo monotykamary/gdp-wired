@@ -1,0 +1,6 @@
+fix(research): preserve accounting failures and repair source editing
+
+Keep import edits in the original coordinate system, use bounded erasure
+diagnostics, and avoid ASI-sensitive inference counter statements. Retain
+39 passing ledger tests without hiding its failed type/lint gate; checkpoint
+the changed source validation and the separate unvalidated phase boundaries.

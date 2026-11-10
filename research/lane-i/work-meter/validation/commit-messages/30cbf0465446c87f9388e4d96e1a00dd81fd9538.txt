@@ -1,0 +1,4 @@
+docs(research): preserve failed preparation and diagnostic task
+
+Record the job-level failure independently of the client exit status,
+retain its source checks, and capture child diagnostics before another fix.

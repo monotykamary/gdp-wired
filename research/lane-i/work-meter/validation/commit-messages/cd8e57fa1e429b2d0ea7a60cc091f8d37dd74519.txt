@@ -1,0 +1,4 @@
+docs(research): checkpoint complete-accounting preparation
+
+Preserve the in-flight boat task, isolated A2/I1/I2 source assembly,
+remaining validation and reload-safe next steps without promoting a draft.

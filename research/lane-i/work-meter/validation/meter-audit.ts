@@ -51,7 +51,18 @@ function erased(file: ts.SourceFile) {
     }
     return ts.visitNode(root, visit) as ts.SourceFile
   }])
-  try { return ts.createPrinter({removeComments: true, newLine: ts.NewLineKind.LineFeed}).printFile(result.transformed[0]!) }
+  try {
+    const printed = ts.createPrinter({removeComments: true, newLine: ts.NewLineKind.LineFeed}).printFile(result.transformed[0]!)
+    const parsed = source(printed, file.fileName), parts: string[] = []
+    const visit = (node: ts.Node) => {
+      const children = node.getChildren(parsed), kind = ts.SyntaxKind[node.kind]
+      parts.push(kind + (children.length || node.kind === ts.SyntaxKind.SyntaxList ? '' : ':' + JSON.stringify(node.getText(parsed))))
+      for (const child of children) visit(child)
+      if (children.length) parts.push('/' + kind)
+    }
+    visit(parsed)
+    return parts.join('\n')
+  }
   finally { result.dispose() }
 }
 for (const path of ['kernel/kernel.ts', 'core/check.ts']) {

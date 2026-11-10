@@ -1,0 +1,4 @@
+docs(research): checkpoint parallel work-ledger validation
+
+Keep both boat task identities and the independent unvalidated ledger
+candidate ready for reload without promoting weights or production changes.

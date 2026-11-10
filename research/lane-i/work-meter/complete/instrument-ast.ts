@@ -39,7 +39,18 @@ function canonical(text: string, path: string, erase: boolean) {
     }
     return ts.visitNode(node, visit) as ts.SourceFile
   }])
-  try { return ts.createPrinter({removeComments: true}).printFile(changed.transformed[0]!) } finally { changed.dispose() }
+  try {
+    const printed = ts.createPrinter({removeComments: true}).printFile(changed.transformed[0]!)
+    const parsed = ts.createSourceFile(path, printed, ts.ScriptTarget.Latest, true, ts.ScriptKind.TS), parts: string[] = []
+    const visit = (node: ts.Node) => {
+      const children = node.getChildren(parsed), kind = ts.SyntaxKind[node.kind]
+      parts.push(kind + (children.length || node.kind === ts.SyntaxKind.SyntaxList ? '' : ':' + JSON.stringify(node.getText(parsed))))
+      for (const child of children) visit(child)
+      if (children.length) parts.push('/' + kind)
+    }
+    visit(parsed)
+    return parts.join('\n')
+  } finally { changed.dispose() }
 }
 const rows: {path: string, sites: number, before: string, after: string}[] = []
 for (const path of paths) {
