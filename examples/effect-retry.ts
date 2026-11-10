@@ -17,6 +17,7 @@ import * as effect from 'effect'
 type Any = any
 import {type Law} from '../core/machine.ts'
 import {type StepLaw, proveRule, proveSteps} from '../core/dsl.ts'
+import {modelProven} from './model-proof.ts'
 import {type Extraction} from '../core/extract.ts'
 import {extractEffect, jitterRun} from '../core/effect.ts'
 import type {ScheduleRule} from '../core/effect-schedule.ts'
@@ -62,26 +63,26 @@ if (import.meta.main) {
     const x = readPolicy(v), r = x.rule as Any
     results.push([`backoff (Effect ${v}): read and checked against Effect's schedule (${x.evidence?.requests} decisions)`, x.ok, true])
     const {laws, stepLaws} = policyLaws(r)
-    for (const l of laws.slice(0, 3)) { const p = proveRule(r, [l]); results.push([`backoff (Effect ${v}): ${l.name}`, p.proven && p.checked, true]) }
+    for (const l of laws.slice(0, 3)) { const p = proveRule(r, [l]); results.push([`backoff (Effect ${v}): ${l.name}`, modelProven(p), true]) }
     const s = proveSteps(r, [laws[0]!, laws[3]!], stepLaws)
-    results.push([`backoff (Effect ${v}): the delays never decrease`, s.proven && s.checked, true])
+    results.push([`backoff (Effect ${v}): the delays never decrease`, modelProven(s), true])
     // Broken: no cap. The run that breaks it, and Effect's own schedule taking it.
     const b = readPolicy(v, 'no cap'), br = b.rule as Any, bv = proveRule(br, [policyLaws(br).laws[0]!])
-    results.push([`backoff without its cap (Effect ${v}): the delay never exceeds the cap`, bv.proven, false])
+    results.push([`backoff without its cap (Effect ${v}): the delay never exceeds the cap`, modelProven(bv), false])
     if (bv.run) runs.push(`no cap (Effect ${v}): ${b.replay!(bv.run).what}`)
   }
   {
     // (not proven; the run that breaks it takes each jitter at the top of its range, where a random draw rarely lands)
     const j = readPolicy(3, 'jitter after the cap'), jr = j.rule as Any, cap = policyLaws(jr).laws[0]!, jv = proveRule(jr, [cap])
     const jrun = jv.run ?? jitterRun((j as {schedule?: ScheduleRule}).schedule!, cap)
-    results.push([`backoff jittered after its cap (Effect 3): the delay never exceeds the cap`, jv.proven || !jrun, false])
+    results.push([`backoff jittered after its cap (Effect 3): the delay never exceeds the cap`, modelProven(jv) || !jrun, false])
     if (jrun) runs.push(`jitter after the cap (Effect 3): ${j.replay!(jrun).what}`)
   }
   const lease = readLease(), lr = lease.rule as Any, ls = (lease as {schedules?: {use: string, source: string}[]}).schedules ?? []
   results.push([`lease (Effect 4): read with acquire's retry in its step (${ls.map(q => `${q.use} ${q.source.replace(/\s+/g, ' ')}`).join('; ')})`, lease.ok && ls.length > 0, true])
   const lv = proveSteps(lr, lease.invariants ?? [], [lr.stepLaw('an acquire never takes the lease from its holder', (b: Any, a: Any) => b.holder.eq(0).or(a.holder.eq(b.holder)), (b: Any) => b.method.is('acquire'))])
-  results.push(['lease (Effect 4): an acquire never takes the lease from its holder', lv.proven && lv.checked, true])
-  for (const [name, got, want] of results) console.log(`${got === want ? 'ok  ' : 'FAIL'} ${name}: ${got ? 'proven' : 'refused'}`)
+  results.push(['lease (Effect 4): an acquire never takes the lease from its holder', modelProven(lv), true])
+  for (const [name, got, want] of results) console.log(`${got === want ? 'ok  ' : 'FAIL'} ${name}: ${got ? 'passed (model/runtime check; not a source proof)' : 'refused'}`)
   for (const r of runs) console.log(`     ${r}`)
   if (results.some(([, got, want]) => got !== want)) process.exit(1)
 }

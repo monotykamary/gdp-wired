@@ -36,7 +36,7 @@ import {bitIntersection, bitIntersects} from './bitsets.ts'
 import {samplePredicates, sampleStateText} from './sample-cache.ts'
 import {sampleStep} from './sample-step.ts'
 import {type C, type E, type Fn, type Law, type Machine, type Rand, type Request, type State, all, any, atMost, carriedView, compileC, compileE, cpair, fastStep, divisorsIn, evalC, evalE, get, interpret, machineTerms, fnValue, modName, n, not, partsOf as tupleOf, plus, same, seeded, times, walk, withArithmetic, x} from './machine.ts'
-import {type StepLaw, type Verdict, bool, proveRule, proveSteps, verdictOf} from './dsl.ts'
+import {type StepLaw, type Verdict, type proveRule, bool, verdictOf} from './dsl.ts'
 import {allowed, keysOf, linKey, watch} from './watch.ts'
 import {clock, counted, fullWork, decideLaw, decideNote, machineKey, memoHits, withStrict, fullRate, grow, keyValue, lawInstances, proveLaw, proveLaws, proveSetFast, proveStepLaws, stepLawInstances, usedHyps, withDeadline, withModels, withTrees, withWall, withWork} from '../kernel/prove.ts'
 import {type Goal, type Instances, assumed, eachParts, obligations, plainOf, stepLawObligations, substC, tuple, tupleParts} from '../kernel/kernel.ts'
@@ -721,8 +721,14 @@ function inferLawsSearch(target: AnyRule | Machine, laws: Law[], stepLaws: StepL
   const prove = (ls: Law[], fast = false): Verdict => {
     proofs++
     const {r: searchRule, m: mm} = forLaws(ls)
-    if (searchRule) return stepLaws.length ? proveSteps(searchRule, ls, stepLaws, {search: false}) : proveRule(searchRule, ls, {search: false, fast})
-    const out = stepLaws.length ? proveStepLaws(mm, ls, stepLaws) : (fast ? proveSetFast : proveLaws)(mm, ls)
+    // Inference proves candidates about the mathematical model. Calling the public
+    // source finalizer here rejects its invented (unbound) support laws before the
+    // outer source proof can validate the user's laws. Keep kind/sum normalization,
+    // and let the outer proveRule/proveSteps call enforce source validation once.
+    const normalized = searchRule?.withSumsOf(ls, stepLaws)
+    const model = normalized?.machine ?? mm
+    const given = normalized ? [...normalized.kindLaws().filter(k => !ls.some(l => l.name === k.name)), ...ls] : ls
+    const out = stepLaws.length ? proveStepLaws(model, given, stepLaws) : (fast ? proveSetFast : proveLaws)(model, given)
     return verdictOf(out)
   }
   const stats = (samples: number, candidates: number, alive: number) => ({samples, candidates, alive, proofs, ms: Math.round(performance.now() - t0), stopped: stop()})

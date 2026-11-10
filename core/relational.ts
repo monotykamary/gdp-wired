@@ -27,7 +27,7 @@ import type {C, E, Law} from './machine.ts'
 import {proveLaws, proveStepLaws} from '../kernel/prove.ts'
 import {type Certificate, type Document, type Json, fromInterchange, toInterchange} from '../interchange/format.ts'
 import {checkCertificate} from '../interchange/check.ts'
-import {inheritSource} from './source-check.ts'
+import {inheritSource, translationVerdict} from './source-check.ts'
 
 // eslint-disable-next-line @typescript-eslint/no-explicit-any
 export type AnyRule = Rule<any, any, any, any, any, any, any, any>
@@ -221,6 +221,7 @@ export function isolation(r: AnyRule, o: {owner: string | ((env: Env, tenant: Te
   const mine = (env: Env): Cond => (typeof o.owner === 'string' ? keyOf(env[o.owner]).eq(env[tenant] as Term) : o.owner(env, env[tenant] as Term))
   if ([...s.params, ...s.inputs].some(([n]) => n === tenant)) throw new Error(`isolation: ${tenant} is a name of ${s.name} already (name the tenant's param: tenant)`)
   const base = new Rule({...s, params: [...s.params, [tenant, nat as Kind<unknown>]]}) as AnyRule
+  inheritSource(r, base)
   const all2 = [...s.params, ...s.inputs].map(([n]) => n)
   const p = twoRuns(base, base, {name: `${s.name}: isolation of ${typeof o.owner === 'string' ? o.owner : 'the owner'}`, shared: [...all2, tenant], stays: env => not(mine(env)), refusals: o.refusals})
   const maps = new Set(vw.maps), name = o.name ?? `what ${typeof o.owner === 'string' ? o.owner : 'a tenant'} B sees is the same whatever the others do`
@@ -282,7 +283,7 @@ export function proveTwoRuns(l: TwoRunLaw, opts: ProveOptions & {invariants?: [L
   let helpers = [...l.helpers]
   for (let round = 0; helpers.length && round <= l.helpers.length; round++) {
     const v = proveSteps(l.rule, [...lifted, ...helpers, ...l.laws], l.stepLaws, {search: false})
-    if (v.proven && v.checked) return {...v, found: {...v.found, laws: [...v.found?.laws ?? [], ...helpers.map(h => ({law: h, text: h.name}))]}, given: lifted}
+    if ((v.proven && v.checked) || v.kernelProven === true) return {...v, found: {...v.found, laws: [...v.found?.laws ?? [], ...helpers.map(h => ({law: h, text: h.name}))]}, given: lifted}
     const drop = helpers.find(h => v.goal?.startsWith(h.name))
     if (!drop) break
     helpers = helpers.filter(h => h !== drop)
@@ -313,6 +314,8 @@ export function certify(r: AnyRule, laws: Law[], stepLaws: StepLaw[] = [], meta:
       if (!p.proven || !p.checked || !p.proof) return undefined
       c = {kind: 'laws', machine: p.machine ?? m, laws: p.laws ?? given, proof: {instances: p.proof.instances, trees: p.proof.trees}}
     }
+    const validation = translationVerdict(r, [...laws, ...stepLaws], {proven: true, checked: true})
+    if (!validation.proven || !validation.checked) return undefined
     const doc = toInterchange(c, meta)
     return checkCertificate(fromInterchange(JSON.parse(JSON.stringify(doc)))).every(x => x.accepted) ? doc : undefined
   } finally { if (was === undefined) delete env.GDP_CERT; else env.GDP_CERT = was }

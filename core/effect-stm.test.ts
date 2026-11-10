@@ -7,7 +7,7 @@
 import {expect, test} from 'bun:test'
 import * as effect from 'effect'
 import {join} from 'node:path'
-import {proveRule} from './dsl.ts'
+import {all, proveRule} from './dsl.ts'
 import {extractEffect, fiberRun} from './effect.ts'
 import {check} from './cli.ts'
 import {inProject} from '../examples/effect-retry.ts'
@@ -15,6 +15,7 @@ import {bank3, bank4, bankLaws, raceSaves, readBank} from '../examples/effect-st
 
 // eslint-disable-next-line @typescript-eslint/no-explicit-any
 type Any = any
+const modelOnly = {kernelProven: true, proven: false, checked: false, translation: 'unchecked'}
 const svc3 = (body: string) => `import {Data, Effect, STM, TRef} from 'effect'
 export class No extends Data.TaggedError('No')<{}> {}
 export const make = Effect.gen(function* () {
@@ -78,7 +79,7 @@ test('a transaction that waits (STM.check, STM.retry, Effect.txRetry) is a guard
     expect(x.evidence.refusedBoth).toBeGreaterThan(100)
     expect(x.notes.join('\n')).toMatch(/a transaction that waits .* is not taken until a TRef it read changes/)
     const r = x.rule
-    expect(proveRule(r, [r.law('never below zero', ({a}: Any) => a.atLeast(0))])).toMatchObject({proven: true, checked: true})
+    expect(proveRule(r, [r.law('never below zero', ({a}: Any) => a.atLeast(0))])).toMatchObject(modelOnly)
   }
 }, 300_000)
 
@@ -86,7 +87,7 @@ test('the bank (examples/effect-bank.ts, and in STM for 3.x): each method one tr
   for (const v of [4, 3] as const) {
     const {x} = readBank(v), r = x.rule as Any
     expect([v, x.ok, x.refusals]).toEqual([v, true, []])
-    for (const l of bankLaws(r)) expect([v, l.name, proveRule(r, [...x.invariants ?? [], l])]).toMatchObject([v, l.name, {proven: true, checked: true}])
+    for (const l of bankLaws(r)) expect([v, l.name, proveRule(r, [...x.invariants ?? [], l])]).toMatchObject([v, l.name, modelOnly])
   }
 }, 300_000)
 
@@ -95,6 +96,7 @@ test('broken: save in two transactions is every fiber\'s two steps; a lost updat
     const {x, file} = readBank(v, 'two transactions'), r = x.rule as Any
     expect([v, x.ok, x.refusals]).toEqual([v, true, []])
     expect(r.machine.name).toBe('make, every fiber')
+    expect(proveRule(r, [r.law('trivial', () => all())])).toMatchObject(modelOnly)
     expect(x.notes[0]).toMatch(/save is 2 steps .* the service's Refs \(checking, savings\) shared/)
     const verdict = proveRule(r, [...x.invariants ?? [], bankLaws(r)[0]!])
     expect(verdict.proven).toBe(false)
@@ -121,7 +123,7 @@ export const make = Effect.gen(function* () {
 })`
   const one = extractEffect(code, {file: 'svc.ts', entry: 'make', effect}), r1 = one.rule as Any
   expect([one.ok, r1.machine.name]).toEqual([true, 'make'])
-  expect(proveRule(r1, [r1.law('n counts every add', ({n, total}: Any) => n.eq(total))])).toMatchObject({proven: true, checked: true})
+  expect(proveRule(r1, [r1.law('n counts every add', ({n, total}: Any) => n.eq(total))])).toMatchObject(modelOnly)
   const many = extractEffect(code, {file: 'svc.ts', entry: 'make', effect, fibers: true}), r = many.rule as Any
   expect([many.ok, r.machine.name]).toEqual([true, 'make, every fiber'])
   const v = proveRule(r, [r.law('n counts every add', ({n, total}: Any) => n.eq(total))])
@@ -199,26 +201,25 @@ test('what the transaction reader doesn\'t take is refused where it is, with the
 
 test('the CLI on a file using Schedule and STM (4.x, examples/effect-bank.ts; 3.x in a project of its own): laws as comments', async () => {
   const {rules, exit} = await check([join(import.meta.dir, '../examples/effect-bank.ts')], {ms: 8000, propose: false})
-  expect(exit).toBe(0)
+  expect(exit).toBe(2)
   expect(rules.map(r => [r.entry, r.laws.map(l => `${l.name}: ${l.verdict}`)])).toEqual([
-    ['backoff', ['the delay never exceeds the cap: proven', 'never more than 5 retries: proven', 'it stops after the deadline: proven']],
-    ['make', ['the money is conserved: proven', 'checking is never overdrawn: proven']],
+    ['backoff', ['the delay never exceeds the cap: unknown', 'never more than 5 retries: unknown', 'it stops after the deadline: unknown']],
+    ['make', ['the money is conserved: unknown', 'checking is never overdrawn: unknown']],
   ])
   // 3.x: the same bank in STM with its backoff, and the bank broken (save in two transactions): broken, with its run.
   const laws = '// gdp: law the money is conserved: checking + savings == 100\n'
   const ok3 = inProject(3, 'bank.ts', `${bank3().replace('export const make', `// gdp: law the delay never exceeds the cap: delay <= 2000\nexport const backoff = Schedule.exponential('100 millis').pipe(Schedule.union(Schedule.spaced('2 seconds')), Schedule.intersect(Schedule.recurs(5)))\n${laws}export const make`).replace("import {Data, Effect, STM, TRef} from 'effect'", "import {Data, Effect, STM, Schedule, TRef} from 'effect'")}`)
   const r3 = await check([ok3], {ms: 8000, propose: false})
-  expect(r3.exit).toBe(0)
-  expect(r3.rules.flatMap(r => r.laws.map(l => `${r.entry}: ${l.name}: ${l.verdict}`))).toEqual(['backoff: the delay never exceeds the cap: proven', 'make: the money is conserved: proven'])
+  expect(r3.exit).toBe(2)
+  expect(r3.rules.flatMap(r => r.laws.map(l => `${r.entry}: ${l.name}: ${l.verdict}`))).toEqual(['backoff: the delay never exceeds the cap: unknown', 'make: the money is conserved: unknown'])
+  for (const r of [...rules, ...r3.rules]) for (const l of r.laws) expect(l).toMatchObject({kernelProven: true, translation: 'unchecked', verdict: 'unknown'})
   for (const [v, code] of [[4, bank4('two transactions')], [3, bank3('two transactions')]] as const) {
     // (the 4.x bank file states the law above its make already)
     const file = inProject(v, 'broken.ts', v === 4 ? code : code.replace('export const make', `${laws}export const make`))
     const b = await check([file], {ms: 8000, propose: false}), law = b.rules.find(r => r.entry === 'make')!.laws.find(l => l.name === 'the money is conserved')!
-    expect([v, b.exit, law.verdict]).toEqual([v, 1, 'broken'])
-    expect(law.run!.length).toBeGreaterThanOrEqual(4)
-    expect(law.run!.every(line => /^fiber \d+:/.test(line))).toBe(true)
-    expect(new Set(law.run!.map(line => /^fiber (\d+):/.exec(line)![1])).size).toBeGreaterThanOrEqual(2)
-    expect(law.run!.some(line => line.includes('its step 1 of 2'))).toBe(true)
-    expect(law.run!.some(line => line.includes('its step 2 of 2'))).toBe(true)
+    expect([v, b.exit, law.verdict]).toEqual([v, 2, 'unknown'])
+    expect(law).toMatchObject({kernelProven: false, translation: 'unchecked'})
+    expect(law.run).toBeUndefined()
+    // The independent model trace and native two-fiber race remain checked above.
   }
 }, 300_000)

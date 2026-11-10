@@ -2,8 +2,8 @@ import {expect, test} from 'bun:test'
 import {extract} from './extract.ts'
 import {buildLaw, parse} from './laws.ts'
 import {nativeLaw} from './native-law.ts'
-import {all, proveDecision, proveRule, proveSteps, rule} from './dsl.ts'
-import {twoRuns} from './relational.ts'
+import {all, nat, proveDecision, proveRule, proveSteps, Rule, rule, when} from './dsl.ts'
+import {certify, isolation, twoRuns} from './relational.ts'
 import {inEnv} from './system.ts'
 import {type NativeObservation, nativeSame, nativeSnapshot} from './source-check.ts'
 import {nativeInputs} from './native-domain.ts'
@@ -92,6 +92,17 @@ test('native bindings survive a factory closure snapshot helper', () => {
   expect(box.bindings('decide')).toEqual({flag: true})
 })
 
+test('native capture closes a final arrow before injected factory fields at the same offset', () => {
+  const code = 'export function create() { const n = 7; return {get: () => n} }'
+  const box = sandbox(code, 'factory.ts', ['create'], {}, undefined, {}, [[code.indexOf('} }'), ', snapshot: () => n']], ['get'])
+  const made = box.call('create', undefined, [])
+  if (!made.ok) throw Error(made.error)
+  const value = made.value as {get(): number, snapshot(): number}
+  expect(value.get()).toBe(7)
+  expect(value.snapshot()).toBe(7)
+  expect(box.bindings('get')).toEqual({})
+})
+
 test('native snapshots preserve identity between before/after while preserving changed fields', () => {
   const item = {value: 1}, before = nativeSnapshot({items: [item]}) as {items: {value: number}[]}
   item.value = 2
@@ -112,6 +123,23 @@ test('source-derived rule copies cannot silently become unchecked DSL proofs', (
   expect(v).toMatchObject({proven: false, checked: false, translation: 'unchecked'})
 })
 
+test('a direct Rule specification copy retains its source-proof requirement', () => {
+  const {x} = built('result == (a and b)')
+  const spec = (x.rule! as unknown as {spec: ConstructorParameters<typeof Rule>[0]}).spec
+  const copied = new Rule({...spec})
+  expect(proveRule(copied, [copied.law('tautology', () => all())], {search: false}))
+    .toMatchObject({proven: false, checked: false, kernelProven: true, translation: 'unchecked'})
+})
+
+test('unchecked source models cannot acquire an interchange certificate', () => {
+  const {x, b} = built('result == (a and b)')
+  const r = x.rule!
+  expect(certify(r, [r.law('tautology', () => all())])).toBeUndefined()
+  expect(certify(r, x.invariants ?? [], [b.law])).toBeDefined()
+  const plain = rule('plain certificate').state({n: 0}).step(({n}) => ({n}))
+  expect(certify(plain, [plain.law('nonnegative', ({n}) => n.atLeast(0))])).toBeDefined()
+})
+
 test('mathematical divisor declarations preserve the original native interpretation', () => {
   const {x, b} = built('result == (a and b)')
   expect(proveSteps(x.rule!.withDivisors(2), x.invariants ?? [], [b.law], {from: 'any', search: false}))
@@ -119,10 +147,10 @@ test('mathematical divisor declarations preserve the original native interpretat
 })
 
 test('source-derived decisions and composed rules cannot bypass native validation', () => {
-  const r = rule('source').state({n: 0}).step(({n}) => ({n}))
+  const r = rule('source').inputs({tenant: nat}).state({n: 0}).step(({n}) => ({n}))
   Object.defineProperty(r, Symbol.for('gdp-wired.source-proof.v1'), {value: true})
   expect(proveDecision(r.decide('identity', () => all(), () => all()))).toMatchObject({proven: false, translation: 'unchecked'})
-  for (const derived of [twoRuns(r), inEnv(r, {}).rule]) {
+  for (const derived of [twoRuns(r), inEnv(r, {}).rule, isolation(r, {owner: 'tenant', tenant: 'observer', sees: []}).rule]) {
     expect(proveRule(derived, [derived.law('identity', () => all())], {search: false}))
       .toMatchObject({proven: false, checked: false, translation: 'unchecked'})
   }
@@ -134,6 +162,34 @@ test('a source marker without local metadata fails closed across module copies',
   expect(proveRule(r, [r.law('nonnegative', ({value}) => value.atLeast(0))], {search: false}))
     .toMatchObject({proven: false, checked: false, translation: 'unchecked'})
 })
+
+test('inferred support proves the model without bypassing source finalization', () => {
+  const make = () => rule('toggle').state({n: 0}).step(({n}) => ({n: when(n.eq(0), 1, 0)}))
+  const plain = make(), source = make()
+  Object.defineProperty(source, Symbol.for('gdp-wired.source-proof.v1'), {value: true})
+  const check = (r: typeof plain) => proveSteps(r, [], [r.stepLaw('before is bounded', b => b.n.atMost(1))], {search: {ms: 5000}})
+  expect(check(plain)).toMatchObject({proven: true, checked: true})
+  expect(check(source)).toMatchObject({kernelProven: true, proven: false, checked: false, translation: 'unchecked'})
+}, 30_000)
+
+test('native laws use reachable traces, while drawn states still check conformance', () => {
+  const code = `export class Quota {
+    used = 0
+    constructor(readonly limit: number) { if (limit < 0) throw new Error('negative limit') }
+    admit(): boolean { if (this.used >= this.limit) return false; this.used++; return true }
+  }`
+  const check = (runs: number) => {
+    const x = extract(code, {entry: 'Quota', check: {runs, depth: 4, states: 32, probes: false}})
+    expect(x.ok).toBe(true)
+    expect(x.evidence?.fromStates).toBe(32)
+    const b = buildLaw(x, {name: 'within quota', expr: 'used <= limit', method: 'admit'})
+    if (b.kind !== 'step') throw Error('expected a step law')
+    return proveSteps(x.rule!, x.invariants ?? [], [b.law], {search: {ms: 5000}})
+  }
+  expect(check(32)).toMatchObject({proven: true, checked: true, translation: 'sampled'})
+  // Arbitrary-state probes alone are not evidence of reachable source behavior.
+  expect(check(0)).toMatchObject({proven: false, checked: false, kernelProven: true, translation: 'unchecked'})
+}, 30_000)
 
 test('ordinary DSL proofs do not acquire a source-translation requirement', () => {
   const r = rule('plain').state({value: 0}).step(({value}) => ({value}))

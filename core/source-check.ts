@@ -16,9 +16,16 @@ export type TranslationFields = {translation?: Translation, translationChecks?: 
 // the private observations must downgrade a source proof, not turn it into a DSL proof.
 const sourceMarker = Symbol.for('gdp-wired.source-proof.v1')
 const marked = (value: object): boolean => Object.prototype.hasOwnProperty.call(value, sourceMarker)
-const mark = (value: object): void => { if (!marked(value)) Object.defineProperty(value, sourceMarker, {value: true}) }
+const mark = (value: object, enumerable = false): void => { if (!marked(value)) Object.defineProperty(value, sourceMarker, {value: true, enumerable}) }
+const markRule = (value: object): void => {
+  mark(value)
+  // A Rule's immutable specification is spread by constructor-based transforms.
+  // Carry only the fail-closed marker, never a native journal, across such copies.
+  const spec: unknown = Object.getOwnPropertyDescriptor(value, 'spec')?.value
+  if (spec && typeof spec === 'object') mark(spec, true)
+}
 export function inheritSource(from: object, to: object, transparent = false): void {
-  if (marked(from)) mark(to)
+  if (marked(from)) markRule(to)
   const source = sources.get(from)
   if (transparent && source) sources.set(to, source)
 }
@@ -27,7 +34,7 @@ const sources = new WeakMap<object, {root: object, journal?: NativeJournal, gene
 const nativeLaws = new WeakMap<object, {rule: object, method?: string, name: string, evaluate: (observation: NativeObservation) => boolean}>()
 export function rememberNative(e: object, journal: NativeJournal): void { evidence.set(e, journal) }
 export function attachSource(rule: object, e: object, generated: object[]): void {
-  mark(rule)
+  markRule(rule)
   sources.set(rule, {root: rule, journal: evidence.get(e), generated: new Set(generated)})
 }
 export function attachNativeLaw(rule: object, law: object, name: string, method: string | undefined, evaluate: (observation: NativeObservation) => boolean): void {

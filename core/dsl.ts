@@ -1669,7 +1669,7 @@ type Spec = {
 // P params, I inputs, S state, M maps, F flags, R a history's record, Su its sums, Q its queries: each a record of the
 // values the builders hand out, grown by each call.
 export class Rule<P extends Obj = {}, I extends Obj = {}, S extends Obj = {}, M extends Obj = {}, F extends Obj = {}, R extends Obj = {}, Su extends Obj = {}, Q extends Obj = {}> {
-  constructor(private readonly spec: Spec) {}
+  constructor(private readonly spec: Spec) { inheritSource(spec, this) }
   private with(more: Partial<Spec>): never { const next = new Rule({...this.spec, ...more}); inheritSource(this, next, Object.keys(more).every(k => k === 'arith' || k === 'sumsRead')); return next as never }
   get name() { return this.spec.name }
   // For core/discover.ts: the functions and carried lists the rule reads, and the same rule with functions made again

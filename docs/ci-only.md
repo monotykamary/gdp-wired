@@ -49,6 +49,19 @@ API `check` option), or setting `check.lawCrossCheck: false`, returns **`transla
 Unavailable native interpretations, lost source metadata, and source-derived model transformations that no
 longer have an original native interpretation are also unchecked. In particular, temporal and composed-source
 claims cannot become certified source proofs merely because their derived mathematical model proves.
+
+For stateful code, native laws are sampled on constructor states and traces reached from them. Arbitrary
+drawn states and solver-generated probe states still exercise source-to-model conformance, but do not
+establish reachability and cannot refute a reachable-state invariant merely by violating it at the start.
+Probe-only runs without reachable native-law observations are unchecked.
+
+Native-law support is narrower than extraction or runtime-conformance support. Foreign-language frontends,
+Effect schedules, and fiber-lifted services currently lack a compatible native-law journal and therefore
+return unchecked source results. Other Effect/ORM paths are unchecked when their actual parameter bindings
+or law interpretation are unavailable. A successful existing rule replay does not upgrade these results.
+`kernelProven: true` retains a checked mathematical model proof for diagnosis; it is not a successful source
+proof, a source certificate, or grounds for counting an unknown result as a finding. Programmatic callback
+laws over extracted models likewise remain unchecked unless independently bound to the original source law.
 Ordinary source-free DSL/model proofs retain their existing semantics.
 
 ### Record arguments are plain-data snapshots

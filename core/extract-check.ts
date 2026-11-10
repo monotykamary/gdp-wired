@@ -94,7 +94,9 @@ export function instrument(code: string, file: string, tail = '', extra: [number
 export type Sandbox = {ctx: Context, counts: number[], call: (f: string, self: unknown, args: unknown[]) => {ok: true, value: unknown} | {ok: false, error: string}, setNow: (n: number) => void, get: (name: string) => unknown, bindings: (method: string) => Record<string, unknown> | undefined}
 export function sandbox(code: string, file: string, expose: string[], modules: Record<string, unknown> = {}, init?: string, files: Record<string, string> = {}, extra: [number, string][] = [], nativeMethods: string[] = []): Sandbox & {arms: Arm[]} {
   const vm = vmOf()
-  const {js, arms} = instrument(code, file, init ? `\n;(globalThis as any).__gdpInit = () => (${init});\n` : '', [...extra, ...nativeCaptureEdits(code, file, nativeMethods)])
+  // A final arrow can end exactly where a factory appends fields. Its capture
+  // must close first; instrument preserves the order of equal-position edits.
+  const {js, arms} = instrument(code, file, init ? `\n;(globalThis as any).__gdpInit = () => (${init});\n` : '', [...nativeCaptureEdits(code, file, nativeMethods), ...extra])
   const captured = new Map<string, Record<string, unknown>>(), captureErrors = new Map<string, string>()
   const counts = arms.map(() => 0)
   let now = 0
@@ -492,12 +494,13 @@ export function drive(m: Model, r: Rule, sorts: Sorts, code: CodeSide, opts: Che
   }
   // Steps the code and the rule from one state; undefined when they agree (the next state on both sides is returned
   // through `next`), else the difference.
-  const step = (params: Record<string, Raw>, ps: Record<string, number>, side: Side, st: State, inputs: Record<string, Raw>, e: Ev, next: {side?: Side, st?: State, stop?: boolean}, where: string): string | undefined => {
+  const step = (params: Record<string, Raw>, ps: Record<string, number>, side: Side, st: State, inputs: Record<string, Raw>, e: Ev, next: {side?: Side, st?: State, stop?: boolean}, where: string, reachable: boolean): string | undefined => {
     // A source type's finite numeric domain is part of the standalone claim, not
     // behavior the source is alleged to reject. Never execute an out-of-domain probe.
     if (m.standalone && Object.entries(m.standaloneDomains ?? {}).some(([name, values]) => !values.includes(inputs[name] as number))) { ev.outside++; next.stop = true; return undefined }
     const args = code.args(inputs, e), raw = ruleInputs(inputs, e)
-    const before = capture(() => nativeState(side, params)), nativeArgs = capture(() => nativeSnapshot(args)) as unknown[] | undefined
+    const before = reachable ? capture(() => nativeState(side, params)) : undefined
+    const nativeArgs = reachable ? capture(() => nativeSnapshot(args)) as unknown[] | undefined : undefined
     if (m.folds) carry(m, raw, inputs, side.snap, params, r.decode(st) as unknown as Record<string, Record<string, Record<string, Raw>>>)
     const nowVar = m.inputs.find(v => v.note?.startsWith('Date.now()'))
     if (nowVar) code.setNow(inputs[nowVar.name] as number)
@@ -583,8 +586,8 @@ export function drive(m: Model, r: Rule, sorts: Sorts, code: CodeSide, opts: Che
       }
     }
     const afterSide = {snap: res.snap, ...(res.self ? {self: res.self} : {})}
-    const after = capture(() => nativeState(afterSide, params)), result = capture(() => nativeSnapshot(res.out))
-    if (journal.enabled && !journal.reason) {
+    if (reachable && journal.enabled && !journal.reason) {
+      const after = capture(() => nativeState(afterSide, params)), result = capture(() => nativeSnapshot(res.out))
       const bindings = capture(() => code.nativeBindings?.(e)) as Record<string, unknown> | undefined
       if (code.nativeBindings && !bindings) journal.reason ??= `native parameter capture unavailable for ${e.call}`
       const fallback: Record<string, unknown> = Object.create(null)
@@ -643,7 +646,7 @@ export function drive(m: Model, r: Rule, sorts: Sorts, code: CodeSide, opts: Che
     let side = s0.side, st = s0.st!
     for (let d = 0; d < depth; d++) {
       const {e, inputs} = drawRequest(side.snap, params), next: {side?: Side, st?: State, stop?: boolean} = {}
-      const diff = step(params, s0.ps!, side, st, inputs, e, next, `run ${run + 1}, request ${d + 1}`)
+      const diff = step(params, s0.ps!, side, st, inputs, e, next, `run ${run + 1}, request ${d + 1}`, true)
       ev.requests++
       if (diff) return fail(diff)
       // Past the safe integers the two sides part by design: the run ends there.
@@ -684,7 +687,8 @@ export function drive(m: Model, r: Rule, sorts: Sorts, code: CodeSide, opts: Che
     const self = isClass ? code.at(snap, params) as object | undefined : undefined
     if (isClass && self === undefined) return undefined
     const side: Side = {snap, ...(isClass ? {self: self!} : {})}
-    return step(params, ps, side, st, inputs, e, {}, where)
+    // Drawn/prover states test translation conformance, not reachable source laws.
+    return step(params, ps, side, st, inputs, e, {}, where, false)
   }
   for (let i = 0; i < (opts.states ?? 400); i++) {
     const params = drawParams(), snap = drawSnap(params), {e, inputs} = drawRequest(snap, params)

@@ -12,7 +12,11 @@ noted), each with the command that reproduces it.
 - **Breaking — no silent unchecked source proofs:** disabling replay or `check.lawCrossCheck` returns
   `translation: 'unchecked'`, `proven: false`, `checked: false`; the CLI exits **2**. Unsupported native
   interpretations and source-derived models whose provenance is unavailable fail closed as well.
-  Source-free DSL/model proofs are unchanged. See [the CI-only guide](docs/ci-only.md).
+  Source-free DSL/model proofs are unchanged. Foreign frontends and specialized source transformations
+  without a native-law journal (including Effect schedules and lifted fibers) also return unchecked; existing
+  rule replay alone is insufficient. `kernelProven` records model evidence, not a source proof; unchecked
+  source models cannot export a successful source-law certificate.
+  See [the CI-only guide](docs/ci-only.md).
 
 - **CI-first use:** keep gdp-wired in dev dependencies and ship plain application code. Supported finite TypeScript
   decision laws can be checked directly from source; protocol flows remain separate models.
