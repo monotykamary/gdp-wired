@@ -55,7 +55,10 @@ probes: zero qualified cohorts and no generator calls in that batch.
 The floor is not weakened. The paired census is prepared but not complete.
 Its initial pilot stopped in type/lint with exit 134 before any census run;
 the exact current tooling subsequently passes on the established large
-profile (`20261110-102733-q5nysf`). The abort receipt remains retained.
+profile (`20261110-102733-q5nysf`). The decoded abort is an explicit V8
+JavaScript heap-limit failure near 2 GiB, not evidence of a kernel OOM kill
+(`oomDelta=0`, `kernelPidOom=false`); it says nothing about the historical
+unattributed SIGKILL. The abort receipt remains retained.
 Section 18 has now landed and been read in full; isolated I1–I3 work may
 proceed alongside Lane A, with no weights or W selected by this lane.
 

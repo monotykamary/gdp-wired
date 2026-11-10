@@ -1,0 +1,4 @@
+fix(kernel): count checker cells and rational rows
+
+Observe coefficient validation visits and rational table materialization.
+Keep counter results discarded and leave active work budgets unchanged.

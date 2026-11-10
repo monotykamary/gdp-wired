@@ -1,0 +1,4 @@
+feat(kernel): observe table and certificate work
+
+Add raw counters without reading them in trusted checker decisions.
+Keep the draft isolated pending acceptance-preservation audit and coverage.

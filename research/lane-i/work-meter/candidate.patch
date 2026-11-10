@@ -1,0 +1,1790 @@
+diff --git a/core/check.ts b/core/check.ts
+index 12531ca3..985b9350 100644
+--- a/core/check.ts
++++ b/core/check.ts
+@@ -13,6 +13,7 @@
+ // A witness satisfies its constraints when every one of them evaluates to at most 0 at it, every value, product and
+ // partial sum a safe integer (else it is not taken: a rounded sum may read a positive row as 0).
+ import type {Constraint, Lin, Step} from './solver.ts'
++import {kernelMeter} from '../kernel/meter.ts'
+ 
+ const vars = (lin: Lin) => Object.keys(lin).filter(key => key !== '1')
+ const exact = (lin: Lin) => Object.values(lin).every(c => Number.isSafeInteger(c))
+@@ -20,6 +21,7 @@ const exact = (lin: Lin) => Object.values(lin).every(c => Number.isSafeInteger(c
+ export function checkRefutation(constraints: Constraint[], steps: Step[], integral = true): boolean {
+   const rows: Lin[] = [], strict: boolean[] = []
+   for (const [i, s] of steps.entries()) {
++    kernelMeter.checkSteps += 1
+     if (s.kind === 'input') {
+       if (!(Number.isInteger(s.index) && s.index >= 0 && s.index < constraints.length)) return false
+       const c = constraints[s.index]!
+@@ -31,7 +33,7 @@ export function checkRefutation(constraints: Constraint[], steps: Step[], integr
+       // (on no prototype: a row's variable named __proto__ is summed like any other, never dropped)
+       const out: Lin = Object.create(null)
+       // Each product safe too: a rounded one is past 2^53, but the other row's could bring the sum back under it.
+-      for (const [lin, m] of [[rows[s.a]!, s.ma], [rows[s.b]!, s.mb]] as const) for (const [key, c] of Object.entries(lin)) { if (!Number.isSafeInteger(m * c)) return false; out[key] = (out[key] ?? 0) + m * c }
++      for (const [lin, m] of [[rows[s.a]!, s.ma], [rows[s.b]!, s.mb]] as const) for (const [key, c] of Object.entries(lin)) { kernelMeter.tableCells += 1; if (!Number.isSafeInteger(m * c)) return false; out[key] = (out[key] ?? 0) + m * c }
+       if (!exact(out)) return false
+       rows.push(out); strict.push(strict[s.a]! || strict[s.b]!)
+     } else {
+@@ -48,8 +50,10 @@ export function checkRefutation(constraints: Constraint[], steps: Step[], integr
+ 
+ export function checkWitness(constraints: Constraint[], witness: Record<string, number>): boolean {
+   return constraints.every(c => {
++    kernelMeter.checkSteps += 1
+     let sum = 0
+     for (const [key, a] of Object.entries(c.lin)) {
++      kernelMeter.tableCells += 1
+       const value = key === '1' ? 1 : Object.hasOwn(witness, key) ? witness[key] : undefined, term = a * value!
+       if (!(Number.isSafeInteger(a) && Number.isSafeInteger(value) && Number.isSafeInteger(term) && Number.isSafeInteger(sum + term))) return false
+       sum += term
+diff --git a/core/counts.ts b/core/counts.ts
+index f71e07be..3ac8c705 100644
+--- a/core/counts.ts
++++ b/core/counts.ts
+@@ -24,7 +24,7 @@ import {inferLaws} from './infer.ts'
+ import {carryCandidates, scanPrefixes} from './carry.ts'
+ import {relevantGoals, relevantLaws} from './relevance.ts'
+ import {countPoolKey, countSignature, grammarPool, ids, polaritySelection, readTuples, refinementSignature, reservationReadClosure, reservationState, reservePool, prepareSupport, smallSelection, sparseReadInstances, sourceContext, coarseContext, selectedCertificate, chosenView, candidateWork, stableState, UnsupportedCountProposal} from './count-support.ts'
+-import {fieldLaws} from './field-laws.ts'
++import {fieldLaws, selectFieldLaws} from './field-laws.ts'
+ import {quorumLaws} from './quorum-laws.ts'
+ import {countCubes, liftedOneKeyCounts} from './count-cubes.ts'
+ import {finiteHoudini} from './finite-houdini.ts'
+@@ -370,7 +370,8 @@ export function candidates(src: Parameters<typeof inferLaws>[0], m: Machine, cal
+   let out = ptime('filter', () => [...kinds, ...ordinary, ...rowLaws, ...fields, ...prefixes, ...cubes].filter(admit))
+   const carried = carryCandidates(m, [...caller, ...kinds, ...guarded, ...rowLaws, ...cubes])
+   out.push(...ptime('filter', () => carried.filter(admit)))
+-  out.push(...ptime('quorumFilter', () => [...lifted, ...newFields].filter(admit)))
++  // (a guarded field law is a weakening: admitted only when the stronger form it weakens was not)
++  out.push(...ptime('quorumFilter', () => selectFieldLaws([...lifted, ...newFields], admit)))
+   if (lifted.length) {
+     // Counts used only by rejected liftings must not spawn another family.
+     const liftedCounts = new Set([...reads([...caller, ...out], mp => !!m.counts?.[mp]).values()].map(([mp]) => mp))
+@@ -378,6 +379,9 @@ export function candidates(src: Parameters<typeof inferLaws>[0], m: Machine, cal
+     if (liftedOneKeyCounts(source, m).some(name => liftedCounts.has(name))) {
+       out.push(...ptime('countCubes', () => countCubes(source, m, states, liftedCounts).filter(admit)))
+       out = ptime('finiteHoudini', () => finiteHoudini(source, m, caller, out, states, {
++        // Deterministic generation prefix: proposals, predecessor checks and
++        // request trials share one allowance, not a machine-speed wall stop.
++        workLimit: 2_000,
+         onFinish: row => { if (env.GDP_COUNTS_TRACE) console.error(`counts: finite result ${JSON.stringify(row)}`) },
+         onDrop: d => { if (env.GDP_COUNTS_TRACE) console.error(`counts: finite drop ${d.round} ${d.law.name}`) },
+         onRound: row => { if (env.GDP_COUNTS_TRACE) console.error(`counts: finite Houdini ${JSON.stringify(row)}`) },
+@@ -457,10 +461,20 @@ export function countSupportContext(m:Machine,caller:Law[],set:Law[],support:Set
+   if(!activeSupport(set,support)||set.some(l=>support.has(l)&&(reads(l.holds,map=>!!m.counts?.[map]).size||!l.forall&&some(l.holds,node=>node.op==='var'&&typeof node.name==='string'&&Object.hasOwn(m.state,node.name)&&!l.some?.includes(node.name)))))return {laws:set,support}
+   return {laws:set.filter(l=>caller.includes(l)||!support.has(l)),support:new Set()}
+ }
+-export function supportOrder(set: Law[], caller: Law[], support: Set<Law>, forModels = false): Law[] {
++export function supportOrder(set: Law[], caller: Law[], support: Set<Law>, forModels = false, m?: Machine): Law[] {
+   if (forModels && !activeSupport(set, support)) return set
+-  if (!activeSupport(set, support)) return [...set.filter(l => !caller.includes(l)), ...set.filter(l => caller.includes(l))]
+-  return [...set.filter(l => support.has(l) && !caller.includes(l)), ...set.filter(l => caller.includes(l)), ...set.filter(l => !support.has(l) && !caller.includes(l))]
++  const ordered = !activeSupport(set, support)
++    ? [...set.filter(l => !caller.includes(l)), ...set.filter(l => caller.includes(l))]
++    : [...set.filter(l => support.has(l) && !caller.includes(l)), ...set.filter(l => caller.includes(l)), ...set.filter(l => !support.has(l) && !caller.includes(l))]
++  // Admission order only: keep model hypotheses, family membership, support
++  // status and every per-attempt allowance unchanged.
++  if (forModels || !m) return ordered
++  const countReaders = new Set(ordered.filter(l => reads(l.holds, mp => !!m.counts?.[mp]).size > 0))
++  if (!countReaders.size) return ordered
++  return [...ordered.filter(l => countReaders.has(l)),
++    ...ordered.filter(l => !countReaders.has(l) && support.has(l) && !caller.includes(l)),
++    ...ordered.filter(l => !countReaders.has(l) && caller.includes(l)),
++    ...ordered.filter(l => !countReaders.has(l) && !support.has(l) && !caller.includes(l))]
+ }
+ export type Counted = {proven: boolean, laws: Law[], m: Machine, proof?: {instances: Record<string, Instances>, certs: Record<string, CountCert>}, why?: string}
+ // On the counted clock (kernel/prove.ts's `counted`, the cost model's work at fullRate a millisecond), as the engine's
+@@ -564,8 +578,9 @@ function admitCountedFamily0(m:Machine,caller:Law[],initial:Law[],support:Set<La
+       const {instances, certs} = keptProof()
+       const failed = new Set<string>(), proofs = new Map<string, Proof>()
+       const pending = new Set(set.filter(l => !kept.has(l.name) && !carried.has(l.name)).map(l => l.name))
+-      // Structural supports first; no-support scheduling is unchanged.
+-      for (const law of supportOrder(set, caller, support)) {
++      // Count readers first, then explicit supports and callers; unrelated
++      // scalar helpers cannot consume the whole wall before count admission.
++      for (const law of supportOrder(set, caller, support, false, m)) {
+         checkWall('Houdini round')
+         if (clock() > until) return {proven: false, laws: set, m, why: 'time'}
+         if (kept.has(law.name)) continue
+@@ -618,7 +633,7 @@ function admitCountedFamily0(m:Machine,caller:Law[],initial:Law[],support:Set<La
+       if(!activeSupport(set,support))return join()
+       const required=new Set(caller.map(l=>l.name)),available=new Set(set.map(l=>l.name))
+       for(const name of required){const saved=known.get(name);if(saved)for(const dep of saved.deps)if(available.has(dep))required.add(dep)}
+-      const law=supportOrder(set,caller,support).find(l=>required.has(l.name)&&!known.has(l.name))
++      const law=supportOrder(set,caller,support,false,m).find(l=>required.has(l.name)&&!known.has(l.name))
+       if(!law){
+         const kept=set.filter(l=>required.has(l.name)),instances:Record<string,Instances>={},certs:Record<string,CountCert>={}
+         for(const l of kept){
+diff --git a/core/field-laws.test.ts b/core/field-laws.test.ts
+index 845e5263..89f8341e 100644
+--- a/core/field-laws.test.ts
++++ b/core/field-laws.test.ts
+@@ -1,5 +1,5 @@
+ import {expect, test} from 'bun:test'
+-import {fieldLaws} from './field-laws.ts'
++import {fieldLaws, weakensField} from './field-laws.ts'
+ import {type Machine, all, get, less, n, same, times, plus, tuple, x} from './machine.ts'
+ import {trueSmall} from './exists.ts'
+ import {proveLaws} from '../kernel/prove.ts'
+@@ -79,3 +79,27 @@ test('generated binders do not capture state, request or flag variables', () =>
+   expect(law.forall).not.toBe('a$field')
+   expect(() => scope(m, fieldLaws(m))).not.toThrow()
+ })
++
++test('a row loaded from a plain-key map under a marker proposes the load law and the marker-guarded row agreement', () => {
++  const base = machine(), row = (r: ReturnType<typeof x>, k: ReturnType<typeof x>) => plus(times(8, r), k), z = x('z$w')
++  const inRow = all({op: '<=', a: times(8, x('i')), b: z}, less(z, plus(times(8, x('i')), n(8))))
++  const m: Machine = {...base, inputs: [...base.inputs, 'k'], state: {open: n(1)}, maps: {...base.maps, Contents: 0, Source: 0, Loaded: 0}, step: {...base.step,
++    flags: {...base.step.flags, read: same(get('Contents', row(x('i'), x('k'))), n(1)), loads: all(same(x('value'), n(7)), same(x('open'), n(1)))},
++    maps: {...base.step.maps,
++      Contents: {each: 'z$w', value: {op: 'if', c: {op: 'and', xs: [{op: 'and', xs: [{op: 'flag', name: 'loads'}, inRow]}, same(get('Source', {op: 'sub', a: z, b: times(8, x('i'))}), n(1))]}, then: n(1), else: get('Contents', z)}},
++      Loaded: {key: x('i'), value: {op: 'if', c: {op: 'flag', name: 'loads'}, then: n(1), else: get('Loaded', x('i'))}}}}}
++  const laws = fieldLaws(m), names = laws.map(l => l.name)
++  const whole = laws.find(l => l.name === 'fields: Loaded[a]=1 -> Contents row is Source')!, phased = laws.find(l => l.name === 'fields: Loaded[a]=1 and open=1 -> Contents row is Source')!
++  expect(whole).toBeDefined()
++  expect(phased).toBeDefined()
++  expect(weakensField.get(phased)).toBe(whole)
++  const guarded = laws.filter(l => l.name.includes('and Loaded[a]=Loaded[b]=1 -> Contents rows agree'))
++  expect(guarded.length).toBeGreaterThan(0)
++  for (const l of guarded) expect(weakensField.get(l)?.name).toBe(l.name.replace(' and Loaded[a]=Loaded[b]=1', ''))
++  expect(() => scope(m, laws)).not.toThrow()
++  expect(new Set(names).size).toBe(names.length)
++  // Without the marker write nothing of the family is proposed; the earlier candidates keep their order.
++  const plain: Machine = {...m, step: {...m.step, maps: {...m.step.maps, Loaded: {key: x('i'), value: n(0)}}}}
++  expect(fieldLaws(plain).some(l => l.name.includes('row is Source') || l.name.includes('Loaded[a]=Loaded[b]'))).toBe(false)
++  expect(laws.slice(0, fieldLaws(plain).length).map(l => l.name)).toEqual(fieldLaws(plain).map(l => l.name))
++})
+diff --git a/core/field-laws.ts b/core/field-laws.ts
+index 91c4c2c1..c3a6e945 100644
+--- a/core/field-laws.ts
++++ b/core/field-laws.ts
+@@ -4,6 +4,22 @@
+ // ordinary counted induction/checker must prove every surviving candidate.
+ import {type C, type E, type Law, type Machine, all, any, atMost, get, less, n, not, same, times, plus, tuple, walk, x} from './machine.ts'
+ 
++// A guarded form and the stronger candidate it weakens; the guarded one is admitted only when the stronger is not.
++export const weakensField = new WeakMap<Law, Law>()
++const loadFieldFamily = new WeakMap<Law, Law>()
++// Prefer the unguarded load, otherwise the first admitted singleton guard.
++// Older field families retain their order and admission behavior.
++export function selectFieldLaws(laws: Law[], admit: (law: Law) => boolean): Law[] {
++  const kept = new Set<Law>(), selectedLoads = new Set<Law>()
++  return laws.filter(law => {
++    const stronger = weakensField.get(law), load = loadFieldFamily.get(law)
++    if ((stronger && kept.has(stronger)) || (load && selectedLoads.has(load)) || !admit(law)) return false
++    kept.add(law)
++    if (load) selectedLoads.add(load)
++    return true
++  })
++}
++
+ export function fieldLaws(m: Machine, composed = true): Law[] {
+   const fields = new Set<string>(), roles = new Map<string, {map: string, value: number}>(), bounds = new Map<string, E>()
+   const maps = m.maps ?? {}, source = [m.assume, m.step.flags]
+@@ -70,10 +86,107 @@ export function fieldLaws(m: Machine, composed = true): Law[] {
+       const old = rows.get(o.map as string)
+       rows.set(o.map as string, old === undefined || old === key.a.k ? key.a.k : 0)
+     })
++    const agrees: {map: string, f: string, g: string, law: Law}[] = []
+     for (const [map, base] of rows) if (base) for (let i = 0; i < fs.length; i++) for (let j = i + 1; j < fs.length; j++) {
+       const f = fs[i]!, g = fs[j]!, cell = (row: E) => get(map, plus(times(base, row), c))
+       const guard = all(da, db, less(c, bound), same(get(f, a), get(f, b)), same(get(g, a), get(g, b)))
+-      out.push({name: `fields: ${f}[a]=${f}[b] and ${g}[a]=${g}[b] -> ${map} rows agree`, forall: ka, keys: [kb, kc], holds: any(not(guard), same(cell(a), cell(b)))})
++      const law: Law = {name: `fields: ${f}[a]=${f}[b] and ${g}[a]=${g}[b] -> ${map} rows agree`, forall: ka, keys: [kb, kc], holds: any(not(guard), same(cell(a), cell(b)))}
++      out.push(law); agrees.push({map, f, g, law})
++    }
++    // Loaded rows: an every-key write that, in a flag's branch and inside the row of an input, reads ANOTHER plain-key
++    // map at the column fills that row from the map. A cell the same branch sets at the input marks the rows so
++    // filled. Proposed: a marked row is the source, outright and under each scalar literal of the flag (the phase in
++    // which the load happens); and each versioned-rows law above restricted to marked rows. The guarded forms are
++    // weakenings (`weakensField`): the caller admits one only when its stronger form failed the samples.
++    type Node = {op?: string, [k: string]: unknown}
++    const node = (t: unknown): t is Node => !!t && typeof t === 'object' && !Array.isArray(t)
++    const atoms = (t: Node | undefined): Node[] => !t ? [] : t.op === 'and' ? (t.xs as Node[]).flatMap(atoms) : [t]
++    const sameTerm = (a: unknown, b: unknown) => JSON.stringify(a) === JSON.stringify(b)
++    const restrictCondition = (condition: C, flag: string, value: boolean): C | boolean => {
++      if (condition.op === 'flag') return condition.name === flag ? value : condition
++      if (condition.op === 'not') {
++        const inner = restrictCondition(condition.x, flag, value)
++        return typeof inner === 'boolean' ? !inner : not(inner)
++      }
++      if (condition.op === 'and' || condition.op === 'or') {
++        const parts = condition.xs.map(c => restrictCondition(c, flag, value)), conjunction = condition.op === 'and'
++        if (parts.includes(!conjunction)) return !conjunction
++        const rest = parts.filter((c): c is C => typeof c !== 'boolean')
++        return !rest.length ? conjunction : rest.length === 1 ? rest[0]! : conjunction ? all(...rest) : any(...rest)
++      }
++      if ((condition.op === '=' || condition.op === '<' || condition.op === '<=') && condition.a.op === 'const' && condition.b.op === 'const') {
++        return condition.op === '=' ? condition.a.value === condition.b.value : condition.op === '<' ? condition.a.value < condition.b.value : condition.a.value <= condition.b.value
++      }
++      return condition
++    }
++    const restrictValue = (value: E, flag: string, active: boolean): E => {
++      if (value.op !== 'if') return value
++      const condition = restrictCondition(value.c, flag, active)
++      if (typeof condition === 'boolean') return restrictValue(condition ? value.then : value.else, flag, active)
++      return {...value, c: condition, then: restrictValue(value.then, flag, active), else: restrictValue(value.else, flag, active)}
++    }
++    const markerValue = (value: E, map: string, key: E, flag: string): number | undefined => {
++      const active = restrictValue(value, flag, true), inactive = restrictValue(value, flag, false)
++      if (active.op !== 'const' || !Number.isSafeInteger(active.value) || active.value < 1) return undefined
++      const old = get(map, key), v = active.value
++      if (sameTerm(inactive, old) || inactive.op === 'const' && inactive.value !== v) return v
++      // Boolean maps compile a preserved cell as if old=1 then 1 else 0.
++      // This cannot manufacture a marker outside the load branch.
++      if (inactive.op === 'if' && inactive.c.op === '=' && inactive.then.op === 'const' && inactive.then.value === v
++        && inactive.else.op === 'const' && inactive.else.value !== v
++        && (sameTerm(inactive.c, same(old, n(v))) || sameTerm(inactive.c, same(n(v), old)))) return v
++      return undefined
++    }
++    const emitted = new Map<string, Law>()
++    const add = (law: Law): Law => {
++      const key = JSON.stringify(law.holds), old = emitted.get(key)
++      if (old) return old
++      emitted.set(key, law); out.push(law); return law
++    }
++    for (const [map, base] of rows) {
++      const w = m.step.maps?.[map]
++      if (!base || !w || !('each' in w)) continue
++      const loads = new Map<string, {src: string, input: string, flag: string}>()
++      const visit = (t: unknown, positive: Node[]): void => {
++        if (Array.isArray(t)) { for (const u of t) visit(u, positive); return }
++        if (!node(t) || t.op === 'not') return
++        if (t.op === 'if') {
++          const branch = [...positive, ...atoms(t.c as Node)]
++          visit(t.c, branch); visit(t.then, branch); visit(t.else, positive)
++          return
++        }
++        const here = t.op === 'and' ? [...positive, ...atoms(t)] : positive
++        const key = t.key as Node | undefined, row = key?.b as Node | undefined, input = (row?.a as Node | undefined)?.name as string | undefined, src = t.map as string
++        if (t.op === 'get' && src !== map && src in maps && !rows.has(src) && key?.op === 'sub' && (key.a as Node).op === 'var' && (key.a as Node).name === w.each
++          && row?.op === 'mul' && row.k === base && (row.a as Node).op === 'var' && input !== undefined && m.inputs.includes(input)
++          && here.some(q => sameTerm(q, atMost(times(base, x(input)), x(w.each))))
++          && here.some(q => sameTerm(q, less(x(w.each), plus(times(base, x(input)), n(base))))))
++          for (const q of here) if (q.op === 'flag') { const flag = q.name as string; loads.set(`${src}:${input}:${flag}`, {src, input, flag}) }
++        for (const u of Object.values(t)) visit(u, here)
++      }
++      visit(w.value, [])
++      const cell = (r: E) => get(map, plus(times(base, r), c))
++      for (const {src, input, flag} of loads.values()) for (const [mk, mw] of Object.entries(m.step.maps ?? {})) {
++        if ('each' in mw || mw.key.op !== 'var' || mw.key.name !== input || !(mk in maps) || rows.has(mk) || mk === src) continue
++        const v = markerValue(mw.value, mk, mw.key, flag)
++        if (v === undefined) continue
++        const marked = (r: E) => same(get(mk, r), n(v)), def = m.step.flags?.[flag] as Node | undefined
++        const literals = atoms(def).filter(q => q.op === '=' && (q.a as Node).op === 'var' && ((q.a as Node).name as string) in m.state && (q.b as Node).op === 'const') as unknown as C[]
++        const load = (guards: C[], label: string): Law => ({name: `fields: ${mk}[a]=${v}${label} -> ${map} row is ${src}`, forall: ka, keys: [kc],
++          holds: any(not(all(da, less(c, bound), marked(a), ...guards)), same(cell(a), get(src, c)))})
++        const whole = add(load([], ''))
++        loadFieldFamily.set(whole, whole)
++        for (const lit of literals) {
++          const q = lit as unknown as {a: {name: string}, b: {value: number}}, weaker = load([lit], ` and ${q.a.name}=${q.b.value}`)
++          const choice = add(weaker)
++          weakensField.set(choice, whole); loadFieldFamily.set(choice, whole)
++        }
++        for (const {f, g, law} of agrees.filter(r => r.map === map)) {
++          const guard = all(da, db, less(c, bound), same(get(f, a), get(f, b)), same(get(g, a), get(g, b)), marked(a), marked(b))
++          const weaker: Law = {name: `fields: ${f}[a]=${f}[b] and ${g}[a]=${g}[b] and ${mk}[a]=${mk}[b]=${v} -> ${map} rows agree`, forall: ka, keys: [kb, kc], holds: any(not(guard), same(cell(a), cell(b)))}
++          weakensField.set(add(weaker), law)
++        }
++      }
+     }
+   }
+   return out
+diff --git a/core/field-loaded.test.ts b/core/field-loaded.test.ts
+new file mode 100644
+index 00000000..d3201db4
+--- /dev/null
++++ b/core/field-loaded.test.ts
+@@ -0,0 +1,107 @@
++import {expect, test} from 'bun:test'
++import {type C, type E, type Machine, all, any, atMost, get, interpret, less, n, not, same, times, plus, x} from './machine.ts'
++import {fieldLaws, selectFieldLaws, weakensField} from './field-laws.ts'
++import {scope} from '../kernel/kernel.ts'
++
++function fixture(prefix = '', stride = 8): Machine {
++  const i = prefix + 'i', j = prefix + 'j', size = prefix + 'size', z = prefix + 'cell'
++  const rows = prefix + 'Rows', source = prefix + 'Source', marker = prefix + 'Marker', f = prefix + 'Version', g = prefix + 'Term'
++  const phase = prefix + 'phase', ready = prefix + 'ready', flag = prefix + 'load'
++  const lo = times(stride, x(i)), window = all(atMost(lo, x(z)), less(x(z), plus(lo, n(stride))))
++  const column: E = {op: 'sub', a: x(z), b: lo}
++  return {name: prefix + 'loaded rows', params: [size], inputs: [i, j], state: {[phase]: n(0), [ready]: n(1)},
++    maps: {[rows]: 0, [source]: 0, [marker]: 0, [f]: 0, [g]: 0}, assume: less(x(i), x(size)),
++    step: {flags: {[flag]: all(same(x(phase), n(0)), same(x(ready), n(1))),
++      fields: same(get(f, x(i)), get(g, x(i))), read: same(get(rows, plus(times(stride, x(i)), x(j))), n(1))},
++      maps: {[rows]: {each: z, value: {op: 'if', c: all({op: 'flag', name: flag}, window), then: get(source, column), else: get(rows, x(z))}},
++        [marker]: {key: x(i), value: {op: 'if', c: {op: 'flag', name: flag}, then: n(1), else: get(marker, x(i))}}}}}
++}
++const loadLaws = (m: Machine) => fieldLaws(m).filter(law => law.name.includes(' row is '))
++const rowWrite = (m: Machine) => {
++  const write = m.step.maps!.Rows!
++  if (!('each' in write) || write.value.op !== 'if') throw Error('fixture row shape')
++  return write.value
++}
++const markerWrite = (m: Machine) => {
++  const write = m.step.maps!.Marker!
++  if ('each' in write || write.value.op !== 'if') throw Error('fixture marker shape')
++  return write.value
++}
++
++test('loaded row families are structural under renaming and multiple strides', () => {
++  for (const prefix of ['', 'other_']) for (const stride of [4, 8]) {
++    const m = fixture(prefix, stride), laws = fieldLaws(m), loads = loadLaws(m)
++    expect(loads).toHaveLength(3)
++    expect(laws.filter(law => law.name.includes('and ' + prefix + 'Marker[a]=' + prefix + 'Marker[b]=1'))).toHaveLength(1)
++    expect(new Set(laws.map(law => JSON.stringify(law.holds))).size).toBe(laws.length)
++    expect(() => scope(m, laws)).not.toThrow()
++    expect(fieldLaws(m)).toEqual(laws)
++  }
++})
++
++test('a minimal admitted singleton suppresses later load guards, not prior families', () => {
++  const m = fixture(), laws = fieldLaws(m), loads = laws.filter(law => law.name.includes(' row is ')), whole = loads[0]!, first = loads[1]!, second = loads[2]!
++  expect(weakensField.get(first)).toBe(whole)
++  expect(weakensField.get(second)).toBe(whole)
++  expect(selectFieldLaws(laws, law => loads.includes(law))).toEqual([whole])
++  const visited: string[] = []
++  expect(selectFieldLaws(laws, law => { visited.push(law.name); return law === first || law === second })).toEqual([first])
++  expect(visited).not.toContain(second.name)
++  expect(selectFieldLaws(laws, law => law === second)).toEqual([second])
++  const prior = laws.filter(law => !law.name.includes(' row is ') && !law.name.includes('and Marker[a]=Marker[b]'))
++  expect(selectFieldLaws(prior, () => true)).toEqual(prior)
++})
++
++test('compiled Boolean marker muxes retain the direct load shape', () => {
++  const direct = fixture(), compiled = fixture(), flag: C = {op: 'flag', name: 'load'}
++  const marker = markerWrite(compiled)
++  marker.c = any(all(flag, atMost(n(0), n(0))), all(not(flag), same(get('Marker', x('i')), n(1))))
++  marker.then = n(1); marker.else = n(0)
++  expect(loadLaws(compiled)).toEqual(loadLaws(direct))
++  const a = interpret(direct), b = interpret(compiled)
++  for (const phase of [0, 1]) for (const ready of [0, 1]) for (const old of [0, 1]) {
++    const state = {scalars: {phase, ready}, maps: {Rows: new Map(), Source: new Map(), Marker: new Map([[0, old]]), Version: new Map(), Term: new Map()}}
++    expect(a.step({size: 1}, state, {i: 0, j: 0}).maps.Marker?.get(0) ?? 0).toBe(b.step({size: 1}, state, {i: 0, j: 0}).maps.Marker?.get(0) ?? 0)
++  }
++})
++
++test('negated or merely disjunctive marker flags do not establish a load marker', () => {
++  for (const condition of [not({op: 'flag', name: 'load'}), any({op: 'flag', name: 'load'}, same(x('ready'), n(0)))]) {
++    const m = fixture(); markerWrite(m).c = condition
++    expect(loadLaws(m)).toEqual([])
++  }
++})
++
++test('the load read must share a positive flag and both exact row-window bounds', () => {
++  const flag: C = {op: 'flag', name: 'load'}, lo = times(8, x('i')), z = x('cell')
++  const invalid: C[] = [flag, all(flag, atMost(lo, z)), all(flag, less(z, plus(lo, n(8)))),
++    all(flag, atMost(lo, z), less(z, plus(lo, n(4)))),
++    all(not(flag), atMost(lo, z), less(z, plus(lo, n(8))))]
++  for (const condition of invalid) {
++    const m = fixture(); rowWrite(m).c = condition
++    expect(loadLaws(m)).toEqual([])
++  }
++  const m = fixture(), value = rowWrite(m), previous = value.then
++  value.then = value.else; value.else = previous
++  expect(loadLaws(m)).toEqual([])
++})
++
++test('mismatched marker keys and source strides are not guessed', () => {
++  const keyed = fixture(), marker = keyed.step.maps!.Marker!
++  if ('each' in marker) throw Error('fixture marker shape')
++  marker.key = x('j')
++  expect(loadLaws(keyed)).toEqual([])
++  const shifted = fixture()
++  rowWrite(shifted).then = get('Source', {op: 'sub', a: x('cell'), b: times(4, x('i'))})
++  expect(loadLaws(shifted)).toEqual([])
++})
++
++test('nested conjunctions expose singleton guards without capturing binder names', () => {
++  const m = fixture()
++  m.state['a$field'] = n(0); m.inputs.push('b$field')
++  m.step.flags!.load = {op: 'and', xs: [{op: 'and', xs: [same(x('phase'), n(0))]}, same(x('ready'), n(1))]}
++  const laws = loadLaws(m)
++  expect(laws).toHaveLength(3)
++  expect(laws[0]!.forall).not.toBe('a$field')
++  expect(() => scope(m, laws)).not.toThrow()
++})
+diff --git a/core/finite-houdini.ts b/core/finite-houdini.ts
+index 21dbf4a7..30a9c61d 100644
+--- a/core/finite-houdini.ts
++++ b/core/finite-houdini.ts
+@@ -98,23 +98,41 @@ export function finiteEvaluator(m: Machine, stop: () => boolean = () => false):
+ }
+ export type FiniteDrop = {round: number, law: Law, params: Env, pre: State, request: Request, post: State}
+ export const finiteDump: {onStart?: (value: {machine: Machine, caller: Law[], candidates: Law[]}) => void, onDrop?: (drop: FiniteDrop) => void} = {}
+-export type FiniteOptions = {randomStates?: number, requests?: number, seed?: number, targeted?: boolean, wallMs?: number, onFinish?: (row: {timedOut: boolean, ms: number, dropped: number}) => void, onDrop?: (drop: FiniteDrop) => void, onRound?: (row: {round: number, alive: number, dropped: number, randomStates: number, steps: number}) => void}
++class FiniteWorkExpired extends Error {}
++export type FiniteOptions = {randomStates?: number, requests?: number, seed?: number, targeted?: boolean, wallMs?: number, workLimit?: number, onFinish?: (row: {timedOut: boolean, ms: number, dropped: number, work?: {used: number, limit: number, exhausted: boolean}}) => void, onDrop?: (drop: FiniteDrop) => void, onRound?: (row: {round: number, alive: number, dropped: number, randomStates: number, steps: number}) => void}
+ export function finiteHoudini(source: Machine, m: Machine, caller: Law[], candidates: Law[], samples: Samples, options: FiniteOptions = {}): Law[] {
+-  const start = performance.now(), end = Math.min(wallAt(), searchWall(Math.max(0, options.wallMs ?? 2_000)))
++  const limit = options.workLimit
++  if (limit !== undefined && (!Number.isSafeInteger(limit) || limit < 0)) throw new Error('finite work limit must be a nonnegative safe integer')
++  const work = limit === undefined ? undefined : {used: 0, limit, exhausted: false}
++  // A work-bounded pass has no private wall stop. Its enclosing wall still
++  // cancels generation, rather than admitting a timing-dependent prefix.
++  const start = performance.now(), end = work ? wallAt() : Math.min(wallAt(), searchWall(Math.max(0, options.wallMs ?? 2_000)))
++  const tick = () => {
++    checkWall('finite sampling work')
++    if (!work) return
++    if (work.used >= work.limit) { work.exhausted = true; throw new FiniteWorkExpired() }
++    work.used++
++  }
+   let survivors = candidates.slice(), timedOut = false
+   try {
+-    return withWall(end, () => finiteHoudiniWithin(source, m, caller, candidates, samples, {...options, onDrop: drop => {
+-      survivors = survivors.filter(law => law !== drop.law)
+-      options.onDrop?.(drop)
+-    }}))
++    return withWall(end, () => {
++      checkWall('finite sampling start')
++      if (work?.limit === 0) { work.exhausted = true; return survivors }
++      return finiteHoudiniWithin(source, m, caller, candidates, samples, {...options, onDrop: drop => {
++        survivors = survivors.filter(law => law !== drop.law)
++        options.onDrop?.(drop)
++      }}, tick)
++    })
+   } catch (error) {
++    if (error instanceof FiniteWorkExpired) return survivors
+     if (!(error instanceof WallExpired)) throw error
++    if (work) { timedOut = true; throw error }
+     // An enclosing deadline must still cancel the caller. Only expiration of
+     // this local sampling allowance returns the already-certified survivors.
+     checkWall('finite sampling completion')
+     timedOut = true
+     return survivors
+-  } finally { options.onFinish?.({timedOut, ms: performance.now() - start, dropped: candidates.length - survivors.length}) }
++  } finally { options.onFinish?.({timedOut, ms: performance.now() - start, dropped: candidates.length - survivors.length, ...(work ? {work} : {})}) }
+ }
+ // What a law reads: its scalars and maps, a count map read as the scalars and maps of its body and bound. A law
+ // reading nothing a step changed keeps its truth across that step (the pre-state satisfied it), so it is not evaluated
+@@ -198,7 +216,7 @@ export function finiteTinyHoudini(source: Machine, m: Machine, caller: Law[], ca
+   } finally { options.onFinish?.({timedOut, ms: performance.now() - start, dropped: candidates.length - survivors.length}) }
+ }
+ 
+-function finiteHoudiniWithin(source: Machine, m: Machine, caller: Law[], candidates: Law[], samples: Samples, options: FiniteOptions): Law[] {
++function finiteHoudiniWithin(source: Machine, m: Machine, caller: Law[], candidates: Law[], samples: Samples, options: FiniteOptions, tick: () => void): Law[] {
+   finiteDump.onStart?.({machine: m, caller, candidates})
+   // Derived sum-state consistency is not reconstructed by this finite backend.
+   if (Object.keys(m.sums ?? {}).length) return candidates
+@@ -237,10 +255,12 @@ function finiteHoudiniWithin(source: Machine, m: Machine, caller: Law[], candida
+     let accepted = 0, steps = 0
+     const rejecting = (p: Env, st: State): Law | undefined => { for (const law of family) if (evaluate(law, p, st) !== true) { failures.set(law, (failures.get(law) ?? 0) + 1); return law } return undefined }
+     const visit = (p: Env, pre: State): boolean => {
++      tick()
+       const by = rejecting(p, pre)
+       if (by) { rejected.push({p, st: pre, by}); return false }
+       const bound = Math.max(3, ...Object.values(p))
+       for (let trial = 0; trial < (options.requests ?? 25); trial++) {
++        tick()
+         checkWall('finite transitions')
+         const request: Request = Object.fromEntries(numericInputs.map(({name, bound: b}) => [name, rng(b)]))
+         for (const mp of source.inputMaps ?? []) request[mp] = new Map(Array.from({length: bound}, (_, i) => [i, 1] as [number, number]).filter(() => rng(2)))
+@@ -276,6 +296,7 @@ function finiteHoudiniWithin(source: Machine, m: Machine, caller: Law[], candida
+     // one-sided boundary, a guard enabled, or a bounded field at its limit.
+     const frontiers = options.targeted === false ? [] : alive.flatMap(law => lawFrontiers(law).map(conditions => ({law, conditions})))
+     for (let i = 0; frontiers.length && i < Math.min(requested, frontiers.length * 8); i++) {
++      tick()
+       checkWall('finite frontiers')
+       const {p, st: old} = base[rng(base.length)]!, {law, conditions} = frontiers[i % frontiers.length]!
+       const bound = Math.max(1, ...Object.values(p)), keys = Object.fromEntries([law.forall, ...law.keys ?? []].filter((k): k is string => !!k).map(k => [k, rng(bound)]))
+@@ -284,6 +305,7 @@ function finiteHoudiniWithin(source: Machine, m: Machine, caller: Law[], candida
+     }
+     for (const {p, st} of base) visit(p, st)
+     for (let tries = 0; accepted < requested && tries < Math.max(requested * 8, requested); tries++) {
++      tick()
+       checkWall('finite neighbors')
+       const {p, st: old} = base[rng(base.length)]!, st: State = {...old, scalars: {...old.scalars}, maps: {...old.maps}}
+       const bound = Math.max(3, ...Object.values(p))
+diff --git a/core/finite-work.test.ts b/core/finite-work.test.ts
+new file mode 100644
+index 00000000..35bee33d
+--- /dev/null
++++ b/core/finite-work.test.ts
+@@ -0,0 +1,62 @@
++import {expect, test} from 'bun:test'
++import {type Law, type Machine, type State, n, plus, same, x} from './machine.ts'
++import {finiteHoudini, type FiniteOptions} from './finite-houdini.ts'
++import {WallExpired} from './wall.ts'
++import {withWall} from '../kernel/prove.ts'
++
++const machine: Machine = {name: 'work-bounded counter', params: [], inputs: [], state: {value: n(0)}, step: {state: {value: plus(x('value'), n(1))}}}
++const zero: Law = {name: 'zero', holds: same(x('value'), n(0))}
++const state = (value: number): State => ({scalars: {value}, maps: {}})
++const samples = [{p: {}, sts: [state(0)]}]
++
++test('work prefixes are deterministic and spend no more than their shared limit', () => {
++  for (let limit = 0; limit <= 40; limit++) {
++    const results: unknown[] = []
++    for (let repeat = 0; repeat < 3; repeat++) {
++      let finish: Parameters<NonNullable<FiniteOptions['onFinish']>>[0] | undefined
++      const drops: string[] = []
++      const survivors = finiteHoudini(machine, machine, [], [zero], samples, {workLimit: limit, wallMs: 0,
++        targeted: false, randomStates: 0, requests: 1, onDrop: drop => drops.push(drop.law.name), onFinish: row => { finish = row }})
++      expect(finish!.work!.used).toBeLessThanOrEqual(limit)
++      expect(finish!.work!.used).toBeGreaterThanOrEqual(0)
++      expect(finish!.timedOut).toBe(false)
++      expect(survivors).toEqual(limit < 2 ? [zero] : [])
++      results.push({survivors, drops, work: finish!.work})
++    }
++    expect(results[1]).toEqual(results[0])
++    expect(results[2]).toEqual(results[0])
++  }
++})
++
++test('frontiers and rejected neighbors consume the same invocation-wide allowance', () => {
++  const impossible: Law = {name: 'impossible', holds: same(n(0), n(1))}
++  for (const targeted of [false, true]) {
++    let work: {used: number, limit: number, exhausted: boolean} | undefined
++    const result = finiteHoudini(machine, machine, [impossible], [zero], samples, {workLimit: 17, targeted, randomStates: 1000,
++      onFinish: row => { work = row.work }})
++    expect(result).toEqual([zero])
++    expect(work).toEqual({used: 17, limit: 17, exhausted: true})
++  }
++})
++
++test('work exhaustion preserves only fully certified drops and protects callers', () => {
++  const unknown: Law = {name: 'unknown', forall: 'k', holds: same({op: 'mul', k: 2, a: x('k')}, x('k'))}
++  const options = {workLimit: 20, targeted: false, randomStates: 0, requests: 1}
++  expect(finiteHoudini(machine, machine, [zero], [zero], samples, options)).toEqual([zero])
++  expect(finiteHoudini(machine, machine, [], [zero, unknown], samples, options)).toEqual([zero, unknown])
++  expect(finiteHoudini(machine, machine, [], [zero], [{p: {}, sts: [state(1)]}], options)).toEqual([zero])
++})
++
++test('work mode never converts enclosing wall cancellation into a partial family', () => {
++  expect(() => withWall(-Infinity, () => finiteHoudini(machine, machine, [], [zero], samples, {workLimit: 0}))).toThrow(WallExpired)
++  let dropped = false
++  expect(() => finiteHoudini(machine, machine, [], [zero], samples, {workLimit: 20, targeted: false, randomStates: 0, requests: 1,
++    onDrop: () => { dropped = true; throw new WallExpired('enclosing cancellation after a certified drop') }})).toThrow(WallExpired)
++  expect(dropped).toBe(true)
++})
++
++test('invalid work limits are refused instead of silently becoming unbounded', () => {
++  for (const workLimit of [-1, NaN, Infinity, 0.5, Number.MAX_SAFE_INTEGER + 1]) {
++    expect(() => finiteHoudini(machine, machine, [], [zero], samples, {workLimit})).toThrow('nonnegative safe integer')
++  }
++})
+diff --git a/core/support-order.test.ts b/core/support-order.test.ts
+index df0e572f..1221124a 100644
+--- a/core/support-order.test.ts
++++ b/core/support-order.test.ts
+@@ -12,6 +12,28 @@ test('support ordering preserves no-support model traversal and original helper
+  expect(supportOrder(set,[caller],new Set([support]),true)).toEqual([support,caller,noise])
+  expect(set).toEqual([caller,noise,support])
+ })
++test('count admission precedes unrelated scalar helpers without changing model order',()=>{
++ const caller=law('caller'),noise=law('noise'),support=law('support')
++ const m:Machine={name:'renamed count priority',params:[],inputs:[],state:{flag:n(0)},maps:{cells:0},counts:{amount:{j:'row',key:'key',below:n(3),body:get('cells',x('key'))}},step:{}}
++ const reader:Law={name:'reader',forall:'k',holds:{op:'<=',a:get('amount',x('k')),b:n(2)}}
++ const other:Law={name:'other reader',holds:{op:'=',a:get('amount',n(0)),b:n(0)}}
++ const set=[caller,noise,support,reader,other],explicit=new Set([support])
++ expect(supportOrder(set,[caller],explicit,false,m)).toEqual([reader,other,support,caller,noise])
++ expect(supportOrder(set,[caller],new Set(),false,m)).toEqual([reader,other,caller,noise,support])
++ expect(supportOrder(set,[caller],explicit,true,m)).toEqual(supportOrder(set,[caller],explicit,true))
++ expect(supportOrder(set,[caller],new Set(),true,m)).toBe(set)
++ expect(supportOrder(set,[caller],explicit,false,{...m,counts:{}})).toEqual(supportOrder(set,[caller],explicit))
++ expect(explicit).toEqual(new Set([support]))
++ expect(set).toEqual([caller,noise,support,reader,other])
++})
++test('a caller that reads a count keeps its identity and appears exactly once',()=>{
++ const m:Machine={name:'count caller',params:[],inputs:[],state:{},counts:{total:{j:'row',key:'key',below:n(1),body:n(1)}},step:{}}
++ const caller:Law={name:'caller',holds:{op:'=',a:get('total',n(0)),b:n(1)}},noise=law('noise'),set=[noise,caller]
++ const ordered=supportOrder(set,[caller],new Set(),false,m)
++ expect(ordered).toEqual([caller,noise]);expect(ordered[0]).toBe(caller)
++ expect(ordered).toHaveLength(set.length)
++})
++
+ test('per-attempt shares redistribute cheap proofs without reviving tried or carried laws',()=>{
+  const pending=new Set(['cheap-a','cheap-b','costly','caller'])
+  expect(attemptShare(100,pending)).toBe(25)
+diff --git a/kernel/kernel.ts b/kernel/kernel.ts
+index e557bc6c..8ba308e0 100644
+--- a/kernel/kernel.ts
++++ b/kernel/kernel.ts
+@@ -18,6 +18,7 @@
+ // meet it), so it holds at the start and at every step; `assume`, about each request, holds only at a step, since no
+ // request has come at the start.
+ import {checkRefutation} from '../core/check.ts'
++import {kernelMeter} from './meter.ts'
+ import type {C, Counted, E, Law, Machine, MapUpdate} from '../core/machine.ts'
+ import {type Constraint, type Lin, type Step, add, k, scale, sub, v} from '../core/solver.ts'
+ 
+@@ -114,6 +115,7 @@ export function linear(e: E, path: Path): Lin | undefined {
+ // here, so no rounding inside a term goes unseen (core/check.ts refuses such rows too).
+ function linearOf(e: E, path: Path): Lin | undefined {
+   const out = linearOp(e, path)
++  kernelMeter.tableCells += out ? Object.keys(out).length : 0
+   return out && safe(out) ? out : undefined
+ }
+ const safe = (lin: Lin) => Object.values(lin).every(c => Number.isSafeInteger(c))
+@@ -206,6 +208,7 @@ export function termRows(name: string, path: Path): Lin[] {
+     if (a && b && constant(a) && constant(b)) out.push(sub(col, add(a, b)))
+   }
+   if (decided(e, path)) { const r = linear(e, path); if (r) out.push(sub(col, r), sub(r, col)) }
++  for (const row of out) kernelMeter.tableCells += Object.keys(row).length
+   return out
+ }
+ 
+@@ -219,6 +222,7 @@ export function termRows(name: string, path: Path): Lin[] {
+ function times(a: Lin, b: Lin): Lin | undefined {
+   const out: Lin = Object.create(null)
+   for (const [p, cp] of Object.entries(a)) for (const [q, cq] of Object.entries(b)) {
++    kernelMeter.tableCells += 1
+     if (p.includes('⟦') || q.includes('⟦')) return undefined
+     const fs = [...(p === '1' ? [] : factorsOf(p)), ...(q === '1' ? [] : factorsOf(q))].sort(), key = fs.length ? fs.join('*') : '1', c = (out[key] ?? 0) + cp * cq
+     if (!(Number.isSafeInteger(cp) && Number.isSafeInteger(cq) && Number.isSafeInteger(cp * cq) && Number.isSafeInteger(c))) return undefined
+@@ -429,6 +433,7 @@ function leafRows(goal: Goal, path: Path, factsOf: (h: C) => Lin[]): Constraint[
+   // Two reads of one map whose keys the path proves equal are equal.
+   const cells = [...names].filter(isCell).map(name => ({name, ...cellParts(name)}))
+   for (const [i, p] of cells.entries()) for (const q of cells.slice(i + 1)) {
++    kernelMeter.tableCells += 1
+     if (p.map !== q.map) continue
+     if (!sameKey(p, q, path)) continue
+     rows.push({lin: sub(v(p.name), v(q.name)), label: '', src: {pair: [p.name, q.name]}}, {lin: sub(v(q.name), v(p.name)), label: '', src: {pair: [p.name, q.name]}})
+@@ -445,6 +450,7 @@ function leafRows(goal: Goal, path: Path, factsOf: (h: C) => Lin[]): Constraint[
+     }
+   }
+   for (const name of names) rows.push({lin: {[name]: -1}, label: '', src: {nat: name}})
++  for (const row of rows) kernelMeter.tableCells += Object.keys(row.lin).length
+   return rows
+ }
+ // A cell's map and key: M[k] a key, M[⟨k1|k2|…⟩] a tuple's parts (each a canonical text). Split at the outer level only:
+@@ -497,10 +503,12 @@ export function withProducts(rows: Constraint[], pairs: [number, number][], squa
+     const p = out[i], q = out[j], pq = p && q ? times(p.lin, q.lin) : undefined
+     out.push(pq ? {lin: scale(pq, -1), label: ''} : {lin: {}, label: ''})
+   }
++  for (const row of out.slice(rows.length)) kernelMeter.tableCells += Object.keys(row.lin).length
+   return out
+ }
+ 
+ export function check(goal: Goal, tree: Tree, path: Path = new Map()): boolean {
++  kernelMeter.checkSteps += 1
+   if ('leaf' in tree) return checkRefutation(withProducts(leafConstraints(goal, path), tree.products ?? [], tree.squares), tree.leaf)
+   const id = canon(tree.split)
+   if (path.has(id) || Object.keys(tree.split).every(key => key === '1')) return false
+@@ -546,12 +554,14 @@ export function checkGoalLemmas(goal: Goal, tree: Tree, lemmas: LemmaCut[] = [])
+       && Array.from(l.when).every(lemmaLin) && lemmaLin(l.cut) && !!l.tree && typeof l.tree === 'object'
+       && (l.slice === undefined || Array.isArray(l.slice) && Array.from(l.slice).every(i => Number.isSafeInteger(i) && i >= 0 && i < goal.hyps.length)))) return false
+     for (const l of lemmas) {
++      kernelMeter.checkSteps += 1
+       const hyps = l.slice === undefined ? goal.hyps : l.slice.map(i => goal.hyps[i]!)
+       const path = prependAtoms([{lin: l.cut, holds: false}, ...l.when.map(lin => ({lin, holds: true}))], new Map())
+       if (!check({...goal, hyps}, l.tree, path)) return false
+     }
+     const visit = (t: Tree, path: Path): boolean => {
+       if ('leaf' in t) return check(goal, t, lemmaPath(lemmas, path))
++      kernelMeter.checkSteps += 1
+       const id = canon(t.split)
+       if (path.has(id) || Object.keys(t.split).every(key => key === '1')) return false
+       return visit(t.yes, new Map(path).set(id, {lin: t.split, holds: true}))
+@@ -1772,6 +1782,7 @@ export function qLeafRows(goal: QGoal, path: Path): Constraint[] {
+ }
+ // A split on a row the path decides already (or a constant one) is refused, as Lean's checkT refuses it.
+ export function checkQTree(goal: QGoal, tree: Tree, path: Path = new Map()): boolean {
++  kernelMeter.checkSteps += 1
+   if ('leaf' in tree) return !tree.products?.length && !tree.squares?.length && checkRefutation(qLeafRows(goal, path), tree.leaf, false)
+   const row = linRow(tree.split), lin = row && qLin(row)
+   if (!row || !lin || qdec(path, row) !== undefined) return false
+@@ -1904,6 +1915,7 @@ export function countedOk(hyps: C[], cs: Count[], is: CountInst[]): boolean {
+ // (Lean's are Int).
+ const typed = (is: CountInst[]): boolean => is.every(i => typeof i.wit === 'string' && Number.isSafeInteger(i.unit) && i.terms.every(([z]) => Number.isSafeInteger(z)))
+ export function checkCounted(g: CountedGoal, cert: {insts: CountInst[], tree: Tree, lemmas?: LemmaCut[]}): boolean {
++  kernelMeter.checkSteps += 1
+   if (!(countedOk(g.hyps, g.counts, cert.insts) && typed(cert.insts))) return false
+   const goal = countedGoal(g, cert.insts)
+   return goal !== undefined && checkGoalLemmas(goal, cert.tree, cert.lemmas)
+@@ -2037,6 +2049,7 @@ const witFreshW = (cs: Count[], is: CountInst[], w: string): boolean =>
+   cs.every(c => c.v !== w && !readsVar(c.below, w) && !readsVar(c.body, w)) && is.every(j => !readsVar(j.below, w))
+ const countedOkW = (cs: Count[], is: CountInst[]): boolean => { const ws = is.map(i => i.wit); return new Set(ws).size === ws.length && is.every(i => witFreshW(cs, is, i.wit)) }
+ function checkCountedW(hyps: C[], cs: Count[], cert: {insts: CountInst[], tree: Tree, lemmas?: LemmaCut[]}): boolean {
++  kernelMeter.checkSteps += 1
+   if (!(countedOkW(cs, cert.insts) && typed(cert.insts))) return false
+   const hs = countHyps(cs, cert.insts)
+   return hs !== undefined && checkGoalLemmas({name: 'counted', hyps: [...hyps, ...hs]}, cert.tree, cert.lemmas)
+@@ -2045,6 +2058,7 @@ function checkCountedW(hyps: C[], cs: Count[], cert: {insts: CountInst[], tree:
+ // its key term, and checkCountedW accepts the counted goal they make (the goal's hypotheses, each read variable equal to
+ // its cell; Lean's names the hypotheses it uses, each the goal's).
+ export function checkMC(hyps: C[], ds: CountDecl[], k: CountCert): boolean {
++  kernelMeter.checkSteps += 1
+   if (!(ds.every(d => d.j !== d.key && loOf(d) !== d.key) && picksTyped(k.picks) && readsTyped(k.reads) && Array.isArray(k.insts) && k.insts.every(i => !!i && safeTerm(i.below)) && readsOk(hyps, ds, k.reads))) return false
+   if (!k.reads.every(r => k.insts.every(i => i.wit !== r[0] && !readsVar(r[2], i.wit)))) return false
+   const cs = toCounts(ds, k.reads)
+diff --git a/kernel/meter.ts b/kernel/meter.ts
+new file mode 100644
+index 00000000..ec36fa56
+--- /dev/null
++++ b/kernel/meter.ts
+@@ -0,0 +1,7 @@
++// Raw observations only: trusted checkers increment, but never branch on these.
++// No budget, reset, weight, timer, callback or acceptance decision belongs here.
++// Counter scope and calibrated aggregation belong to the untrusted prover.
++export const kernelMeter = {
++  tableCells: 0,
++  checkSteps: 0,
++}
+diff --git a/research/lane-i/follow-up/README.md b/research/lane-i/follow-up/README.md
+new file mode 100644
+index 00000000..6339218f
+--- /dev/null
++++ b/research/lane-i/follow-up/README.md
+@@ -0,0 +1,95 @@
++# Follow-up while `a8bbe098` is gated
++
++No production file or gated revision is changed. The gate remains Lane D's
++`a8bbe098` versus `8214a543`. This directory holds separate measurements and
++an integration queue, not a replacement gate.
++
++## For lane B — fresh cost comparison
++
++**Hypothesis:** `a8bbe098` already contains the generic mixed-clause policy
++qualified in `f7c5b4ba` (count-source SHA-256
++`7a4c830848afa2d05393bdd00c546393092cf1f94d5ce9cdee8a2aad9189abd4`).
++Its p1 cost should therefore match the validated control `97463c56` at
++1152.3382236 units, rather than the fallback-first 2046.9378360. Five fresh,
++alternating-order pairs test this; each certificate is independently replayed
++in another native process. Three separate whole-Paxos repetitions per source
++retain raw output; the current-source target is exactly 6,915,544 solver /
++1,037,946 full work. A confirmed regression requires a new generic policy,
++not a protocol-name special case, and must not alter the currently gated source.
++
++**Important encoding boundary:** Lane B now identifies frozen family
++`5dbdbf766e9949b051d0764920f1bcc3707690cd6852fca6d0bcf18674fbdac4`
++as the historical P* encoding. It is used here only because it is the exact
++validated p1 cost control requested by the coordinator. Its `originalHarness`
++metadata does **not** establish original IC3Syn model identity. None of these
++conditional p1 results counts toward original-model Inv* or 29/29.
++Whole-Paxos uses the restored sources' ordinary canonical runner, separately.
++
++The first low-arity prototype failed the whole-Paxos work target. The retained
++repair restricts eager bounded completion to the checked mixed-clause shape
++(including an ordinary-map read); aggregate-only clauses remain sparse-first.
++Its prior five-pair result does not replace the new a8-specific measurements.
++
++## Named candidate-only loss — five new pairs
++
++`core/effect-queue.test.ts:122`, **the CLI on the pool (4.x,
++examples/effect-pool.ts; 3.x in a project of its own): laws as comments; the
++cancel broken with its run**. In the earlier isolated cohort, one candidate
++run returned unknown for the first-call laws while its paired baseline passed.
++This is preserved in `research/lane-i/regressions/next-candidate-results.md`.
++
++The new experiment restores exact `8214a543` and `a8bbe098`, verifies equal
++test hashes, and runs the unchanged case in ten fresh Bun processes on **one
++exclusive VM / one recorded CPU model**, alternating which source runs first.
++The original 900,000-ms test cap and proof budgets are unchanged. Outer process
++receipts include wall time, resources and compressed raw stdout/stderr. A later
++pass will not erase the earlier failure or prove that it was noise.
++
++## Helper queue — no enablement
++
++See `helper-integration.json`. Do not merge entire lane branches: they include
++unrelated changes and may replace this lane's scheduling/symbolic-domain fixes.
++
++1. **Original-model identity first.** At initial inspection, B's canonical models blob
++   matches `8214a543` / `a8bbe098` (`0541fa9436e307a6fb716aa5064637b30b893b79`);
++   F and E still have the earlier routing blob
++   `0d5521e2e4dcbf6ac2ea7116ecee23497a0ec66b`. Existing saved P* families are
++   quarantined, even after the source entry point is restored. Re-capture the
++   original family; record source, machine and family hashes. No equivalence
++   of P* to original C0/Copied is assumed.
++2. **No conditional-to-unconditional shortcut.** One production STEP must
++   cover every operation under its original guards. Reindex and compose the
++   proof on that original goal, prove uncovered cases impossible, and prove
++   INIT for the same conservative extension. Never import saved per-op proofs
++   as axioms or reset the budget independently for each case.
++3. **Keep the attempt's original shared units and wall allowance.** Include
++   construction, transport and final checking. Diagnostic proofs outside a
++   limit are evidence, not an admitted helper. E's low counted cost does not
++   cure its measured wall-time miss.
++4. **Fresh proof custody first.** Native INIT/STEP replay, expected mutation
++   refusal (not crashes), and real Lean checks where the helper adds kernel
++   proof forms. No wholesale kernel tip import. The rejected `fcf2d01c` is not
++   an ancestor of the gated candidate; authorization of exact `8501ab8f`
++   does not authorize later guarded-rule revisions.
++5. **Then default-off integration tests.** Register every new core/kernel
++   test, run roster completeness, source/type/lint checks and full canonical
++   shards. Run original 29-model normal/broken census and same-CPU alternating
++   off/on comparisons, preserving all losses, p1 cost and whole-Paxos work.
++6. **Only then request a new Lane D gate against `8214a543`.** No off-by-default
++   helper becomes the default before that acceptance; `a8bbe098` stays frozen.
++
++## Execution and custody
++
++`jobs.json` runs only on boat. Staging is file/git-only; it reuses immutable
++packs by hard link and adds the 142-KB control pack. Batch
++`20261110-080834-7ilqre` completed both measurement workers. The first
++audit correctly rejected the collector's 400,000-byte p1 tail. The original
++816,127-byte stdout and empty stderr were recovered through the Boat API,
++with matching remote/local SHA-256; the recovery VM was stopped. The
++complete-evidence audit passed. The original failure remains preserved.
++The CPU-qualified regression audit also passed; its native measurements
++and adjudication boundary are in `lane-d-adjudication.md`. Final research-
++tooling validation and commitlint passed. Keep one lightweight local waiter per batch.
++All receipt aggregation, parsing, audits and checks now run as boat jobs;
++reuse existing immutable source archives/packs, without local tree copies.
++No subagents are in use.
+diff --git a/research/lane-i/follow-up/audit.jobs.json b/research/lane-i/follow-up/audit.jobs.json
+new file mode 100644
+index 00000000..2c3e416c
+--- /dev/null
++++ b/research/lane-i/follow-up/audit.jobs.json
+@@ -0,0 +1,10 @@
++[
++  {
++    "name": "follow-up-independent",
++    "cmd": "set -euo pipefail; cp -a audit-data/follow-up-input/. .; bun audit-data/source/audit.ts audit-data/evidence .; bun audit-data/validate-tools.ts audit-data .",
++    "cpu": 4,
++    "memory": 14336,
++    "timeout": 900,
++    "vm_type": "large"
++  }
++]
+diff --git a/research/lane-i/follow-up/audit.ts b/research/lane-i/follow-up/audit.ts
+new file mode 100644
+index 00000000..7212e0ed
+--- /dev/null
++++ b/research/lane-i/follow-up/audit.ts
+@@ -0,0 +1,37 @@
++// Independent receipt reconstruction, classification tests and fresh native replays.
++import{strict as assert}from'node:assert'
++import{readFileSync,writeFileSync,mkdirSync,mkdtempSync,copyFileSync,rmSync}from'node:fs'
++import{resolve,join}from'node:path'
++import{createHash}from'node:crypto'
++import{gunzipSync}from'node:zlib'
++import{stripVTControlCharacters}from'node:util'
++const sha=(v:string|Uint8Array)=>createHash('sha256').update(v).digest('hex')
++function checkedTail(full:Uint8Array,tail:Uint8Array){assert(full.length>=tail.length);assert(Buffer.from(full.subarray(full.length-tail.length)).equals(Buffer.from(tail)))}
++function events(text:string,name:string):any[]{return text.split('\n').filter(l=>l.startsWith(name+' ')).map(l=>JSON.parse(l.slice(name.length+1)))}
++function raw(row:any){const text=gunzipSync(Buffer.from(row.traceGzipBase64,'base64'),{maxOutputLength:64*1024*1024}).toString(),marker='\n---stderr---\n',at=text.lastIndexOf(marker);assert(at>=0);const stdout=text.slice(0,at),stderr=text.slice(at+marker.length);assert.equal(sha(stdout),row.stdoutSha256);assert.equal(sha(stderr),row.stderrSha256);return{stdout,stderr}}
++function testVerdict(text:string,exit:number|null,signal:string|null){const plain=stripVTControlCharacters(text),count=(s:string)=>[...plain.matchAll(new RegExp('^\\s*(\\d+) '+s+'\\s*$','gm'))].at(-1)?.[1],pass=Number(count('pass')??NaN),fail=Number(count('fail')??NaN);return{pass,fail,complete:!signal&&pass+fail===1&&(exit===0&&pass===1||exit===1&&fail===1),passed:!signal&&exit===0&&pass===1&&fail===0}}
++function selfTest(){assert.deepEqual(events('X {}\nY {}\nX {"n":1}','X'),[{}, {n:1}]);assert.equal(testVerdict(' 1 pass\n 0 fail',0,null).passed,true);assert.equal(testVerdict(' 0 pass\n 1 fail',1,null).complete,true);assert.equal(testVerdict(' 0 pass\n 0 fail',0,null).complete,false);assert.equal(testVerdict(' 1 pass\n 0 fail',124,null).complete,false);assert.equal(testVerdict(' 1 pass\n 0 fail',0,'SIGKILL').complete,false);assert.equal(testVerdict(' 1 pass\n 0 fail\n 0 pass\n 1 fail',1,null).passed,false);checkedTail(Buffer.from('complete tail'),Buffer.from('tail'));assert.throws(()=>checkedTail(Buffer.from('complete tail'),Buffer.from('other')));assert.equal(testVerdict(String.fromCharCode(27)+'[32m 1 pass'+String.fromCharCode(27)+'[0m\n 0 fail',0,null).passed,true);console.log('FOLLOW_AUDIT_TESTS '+JSON.stringify({passed:10}))}
++selfTest();if(process.argv[2]==='--self-test')process.exit(0)
++const input=resolve(process.argv[2]??'audit-input'),frozen=resolve(process.argv[3]??'follow-up-input'),cfg=JSON.parse(readFileSync(join(frozen,'config.json'),'utf8')),inventory=JSON.parse(readFileSync(join(input,'SHA256.json'),'utf8'))
++for(const[p,h]of Object.entries(inventory))assert.equal(sha(readFileSync(join(input,p))),h,p)
++assert.equal(sha(readFileSync(join(frozen,'checksums.json'))),'6260eb18271a96cf67461fe7e0aa9ec5c2ff155d8201b1a8c49569fb02506fd8')
++const frozenHashes=JSON.parse(readFileSync(join(frozen,'checksums.json'),'utf8'));for(const[p,h]of Object.entries(frozenHashes))assert.equal(sha(readFileSync(join(frozen,p))),h,p)
++const originalTail=readFileSync(join(input,'a8-p1-control-five.log')),recovered=readFileSync(join(input,'a8-p1-control-five.full.log'));checkedTail(recovered,originalTail);assert(recovered.length>originalTail.length);assert.equal(readFileSync(join(input,'a8-p1-control-five.full.err')).length,0)
++const recovery=JSON.parse(readFileSync(join(input,'recovery-remote-hashes.json'),'utf8'));assert(recovery.success&&recovery.exitCode===0&&!recovery.stdoutTruncated&&!recovery.timedOut);const remoteHashes=recovery.stdout.trim().split('\n').map((l:string)=>l.split(/\s+/)[0]);assert.deepEqual(remoteHashes,[sha(recovered),sha(readFileSync(join(input,'a8-p1-control-five.full.err')))])
++const read=(name:string)=>readFileSync(join(input,name),'utf8'),p1=recovered.toString(),effect=read('a8-effect-five-same-cpu.log'),p1Sources=events(p1,'FOLLOW_SOURCE'),effectSources=events(effect,'FOLLOW_SOURCE'),p1Rows=events(p1,'FOLLOW_P1'),paxos=events(p1,'FOLLOW_PAXOS'),p1Steps=events(p1,'FOLLOW_STEP'),effectSteps=events(effect,'FOLLOW_STEP'),pairs=events(effect,'FOLLOW_EFFECT_PAIR')
++assert.equal(p1Sources.length,2);assert.equal(effectSources.length,2);assert.equal(p1Rows.length,10);assert.equal(paxos.length,6);assert.equal(p1Steps.length,26);assert.equal(effectSteps.length,10);assert.equal(pairs.length,5)
++const placement=JSON.parse(read('placement.json')),terminal=read('summary.tsv').trim().split('\n').map(l=>l.split('\t'));assert.equal(terminal.length,2)
++for(const[name,sources]of [['a8-p1-control-five',p1Sources],['a8-effect-five-same-cpu',effectSources]]as const){const placed=placement[name];assert.equal(placed.type,'large');assert.equal(placed.exclusive,true);assert.equal(placed.co_tenants,0);assert.equal(placed.cpu,sources[0].cpu);const rows=terminal.filter(r=>r[0]===name);assert.equal(rows.length,1);assert(['0','1'].includes(rows[0]![1]!));assert.equal(rows[0]![3],'boat')}
++for(const [sources,sides]of [[p1Sources,['control','candidate']],[effectSources,['base','candidate']]]as const){assert.deepEqual(sources.map(s=>s.side),sides);assert.equal(typeof sources[0].cpu,'string');assert(sources[0].cpu.length);assert.equal(sources[0].cpu,sources[1].cpu);assert.equal(sources[0].bun,sources[1].bun);assert.equal(sources[0].affinity,sources[1].affinity);for(const s of sources){assert.equal(s.revision,cfg.revisions[s.side]);assert.deepEqual(s.source,cfg.sources[s.side]);assert.equal(s.manifest,sha(readFileSync(join(frozen,'checksums.json'))))}}
++for(const text of [p1,effect]){const clean=events(text,'FOLLOW_CLEAN');assert.equal(clean.length,2);assert(clean.every(x=>x.dirty===''))}
++const familyBytes=readFileSync(join(frozen,'family.json')),family=JSON.parse(familyBytes.toString());assert.equal(sha(familyBytes),'5dbdbf766e9949b051d0764920f1bcc3707690cd6852fca6d0bcf18674fbdac4')
++const p1Results:any[]=[]
++for(let repeat=1;repeat<=5;repeat++)for(const side of ['control','candidate']){const rows=p1Rows.filter(r=>r.repeat===repeat&&r.side===side);assert.equal(rows.length,1);const row=rows[0],search=p1Steps.filter(r=>r.label===`p1-${repeat}-${side}`),replay=p1Steps.filter(r=>r.label===`replay-${repeat}-${side}`);assert.equal(search.length,1);assert.equal(replay.length,1);assert.equal(search[0].exit,0);assert.equal(replay[0].exit,0);assert(!search[0].signal&&!replay[0].signal);assert.deepEqual(JSON.parse(raw(search[0]).stdout),row.summary);assert.deepEqual(JSON.parse(raw(replay[0]).stdout),row.replay);assert.equal(row.revision,cfg.revisions[side]);assert(row.summary.checked&&row.summary.withinDiagnosticLine&&row.replay.checked&&row.replay.familyVerified);assert(Number.isFinite(row.summary.units)&&row.summary.units>0);assert.equal(row.summary.units,row.replay.units);assert.equal(row.summary.diagnostic,'section16.5');assert.equal(row.summary.budget,6000);assert.equal(row.summary.wallAllowance,7000);assert.deepEqual(row.summary.passOrder,[1,0]);assert.equal(row.summary.earlyFocusMode,'off');const capture=JSON.parse(gunzipSync(Buffer.from(row.proofGzipBase64,'base64'),{maxOutputLength:64*1024*1024}).toString());assert.deepEqual(capture.record,row.summary);assert.deepEqual(capture.m,family.m);assert.deepEqual(capture.laws,family.laws);assert(capture.proof);p1Results.push({repeat,side,units:row.summary.units,capture})}
++for(let repeat=1;repeat<=3;repeat++)for(const side of ['control','candidate']){const rows=paxos.filter(r=>r.repeat===repeat&&r.side===side),steps=p1Steps.filter(r=>r.label===`paxos-${repeat}-${side}`);assert.equal(rows.length,1);assert.equal(steps.length,1);const r=rows[0],s=steps[0],observed=raw(s).stdout.split('\n').flatMap(l=>{try{return[JSON.parse(l)]}catch{return[]}}).filter(x=>x.id==='paxos_epr');assert.equal(r.exit,s.exit);assert.deepEqual(r.rows,observed)}
++const effectOut:any[]=[]
++for(let repeat=1;repeat<=5;repeat++){const rows=pairs.filter(r=>r.repeat===repeat);assert.equal(rows.length,1);const pair=rows[0],order=repeat%2?['candidate','base']:['base','candidate'];assert.deepEqual(pair.order,order);assert.equal(pair.cpu,effectSources[0].cpu);assert.equal(pair.bun,effectSources[0].bun);const verdicts:Record<string,any>={};for(const side of order){const found=effectSteps.filter(r=>r.label===`effect-${repeat}-${side}`);assert.equal(found.length,1);const step=found[0],stream=raw(step);assert.deepEqual(step.args,['test','./core/effect-queue.test.ts','--test-name-pattern','the CLI on the pool']);assert.equal(step.kind,'effect');assert.equal(step.side,side);assert.equal(pair.outcomes[side].exit,step.exit);assert.equal(pair.outcomes[side].signal,step.signal);assert.equal(pair.outcomes[side].wallMs,step.wallMs);verdicts[side]={...testVerdict(stream.stdout+'\n'+stream.stderr,step.exit,step.signal),exit:step.exit,wallMs:step.wallMs};assert(verdicts[side].complete,'missing complete native test verdict '+repeat+' '+side)}effectOut.push({repeat,order,...verdicts})}
++const temp=mkdtempSync('/tmp/a8-follow-up-audit-'),{restore,command}=await import(resolve('research/verify-all/final-gate-common.ts'));let nativeChecks=0
++try{for(const side of ['control','candidate']){const root=join(temp,side);restore(join(frozen,'gate-inputs'),root,cfg.revisions[side]);assert.equal(sha(readFileSync(join(root,'kernel/kernel.ts'))),cfg.sources[side]['kernel/kernel.ts']);command('bun',['install','--frozen-lockfile'],root);mkdirSync(join(root,'research/lane-i-fastloop'),{recursive:true});copyFileSync(join(frozen,'driver/p1-tools/audit-lane-b-cost.ts'),join(root,'research/lane-i-fastloop/audit-lane-b-cost.ts'));for(const row of p1Results.filter(r=>r.side===side)){const file=join(temp,`capture-${side}-${row.repeat}.json.gz`);const original=p1Rows.find(r=>r.side===side&&r.repeat===row.repeat);writeFileSync(file,Buffer.from(original.proofGzipBase64,'base64'));const checked=JSON.parse(command('bun',['research/lane-i-fastloop/audit-lane-b-cost.ts',file,join(frozen,'family.json')],root));assert(checked.checked&&checked.familyVerified);assert.equal(checked.units,row.units);nativeChecks++}}}finally{rmSync(temp,{recursive:true,force:true})}
++const old=p1Results.filter(r=>r.side==='control').map(r=>r.units),current=p1Results.filter(r=>r.side==='candidate').map(r=>r.units),currentPaxos=paxos.filter(r=>r.side==='candidate'),workNeutral=currentPaxos.every(r=>r.exit===0&&r.rows.length===1&&r.rows[0].search?.verdict==='proven'&&r.rows[0].search.work===6915544&&r.rows[0].search.full===1037946),ratio=current.reduce((a,b)=>a+b,0)/old.reduce((a,b)=>a+b,0)
++const report={nativeChecks,terminal,placement,p1:{controlUnits:old,candidateUnits:current,ratio,legacyPStarFamily:true,originalModelCredit:false},paxos:{candidateWorkNeutral:workNeutral,observations:paxos.map(r=>({repeat:r.repeat,side:r.side,exit:r.exit,rows:r.rows.map((x:any)=>({id:x.id,verdict:x.search?.verdict,work:x.search?.work,full:x.search?.full}))}))},effect:{pairs:effectOut,basePass:effectOut.filter(r=>r.base.passed).length,candidatePass:effectOut.filter(r=>r.candidate.passed).length,candidateOnlyLosses:effectOut.filter(r=>r.base.passed&&!r.candidate.passed).map(r=>r.repeat),cpu:effectSources[0].cpu,bun:effectSources[0].bun},scope:'follow-up, not a final gate; previous failures retained'}
++console.log('FOLLOW_INDEPENDENT_AUDIT '+JSON.stringify(report));assert.equal(nativeChecks,10)
+diff --git a/research/lane-i/follow-up/diagnostics.jobs.json b/research/lane-i/follow-up/diagnostics.jobs.json
+new file mode 100644
+index 00000000..29e113d5
+--- /dev/null
++++ b/research/lane-i/follow-up/diagnostics.jobs.json
+@@ -0,0 +1 @@
++[{"name":"follow-up-diagnostics","cpu":1,"memory":2048,"timeout":60,"cmd":"bun -e 'import{readFileSync}from\"node:fs\";const log=readFileSync(\"source-check/follow-up-source-check.log\",\"utf8\");for(const line of log.split(\"\\n\")){if(line.startsWith(\"FOLLOW_TOOLS_CHECK \")){const r=JSON.parse(line.slice(\"FOLLOW_TOOLS_CHECK \".length));console.log(\"SOURCE_CHECK_DIAG \"+JSON.stringify({exit:r.exit,signal:r.signal,wallMs:r.wallMs,classification:r.resources?.classification,oomDelta:r.resources?.oomDelta,stdout:r.stdout,stderr:r.stderr}));}else if(!line.startsWith(\"FOLLOW_SOURCE_INPUT \")&&!line.startsWith(\"BAR_RESOURCE_\"))console.log(line)}console.log(\"COMMITLINT_DIAG\\n\"+readFileSync(\"epyc/follow-up-commitlint.log\",\"utf8\"));'"}]
+diff --git a/research/lane-i/follow-up/epyc-recovery.jobs.json b/research/lane-i/follow-up/epyc-recovery.jobs.json
+new file mode 100644
+index 00000000..e2504361
+--- /dev/null
++++ b/research/lane-i/follow-up/epyc-recovery.jobs.json
+@@ -0,0 +1,32 @@
++[
++  {
++    "name": "two-phase-epyc-default",
++    "cmd": "set -euo pipefail; cp -a gate-reruns-input/. .; bun regression-worker.ts two-phase-epyc two-phase-epyc-default",
++    "env": {
++      "GDP_INFER_TRACE": "2"
++    },
++    "cpu": 4,
++    "memory": 6144,
++    "timeout": 1200,
++    "vm_type": "default"
++  },
++  {
++    "name": "two-phase-epyc-xlarge",
++    "cmd": "set -euo pipefail; cp -a gate-reruns-input/. .; bun regression-worker.ts two-phase-epyc two-phase-epyc-xlarge",
++    "env": {
++      "GDP_INFER_TRACE": "2"
++    },
++    "cpu": 4,
++    "memory": 14336,
++    "timeout": 1200,
++    "vm_type": "xlarge"
++  },
++  {
++    "name": "follow-up-commitlint",
++    "cmd": "set -euo pipefail; temp=$(mktemp -d); trap 'rm -rf \"$temp\"' EXIT; printf '{\"private\":true}\\n' > \"$temp/package.json\"; (cd \"$temp\" && bun add --dev @commitlint/cli@19.8.1 @commitlint/config-conventional@19.8.1 > /dev/null); printf \"module.exports={extends:['@commitlint/config-conventional']};\\n\" > \"$temp/commitlint.config.cjs\"; for name in checkpoint-message.txt result-message.txt; do file=\"$PWD/gate-reruns-input/$name\"; \"$temp/node_modules/.bin/commitlint\" --cwd \"$temp\" --edit \"$file\"; printf 'FOLLOW_COMMITLINT %s\\n' \"$name\"; sha256sum \"$file\"; done",
++    "cpu": 2,
++    "memory": 4096,
++    "timeout": 300,
++    "vm_type": "large"
++  }
++]
+diff --git a/research/lane-i/follow-up/final-verification.jobs.json b/research/lane-i/follow-up/final-verification.jobs.json
+new file mode 100644
+index 00000000..83137a71
+--- /dev/null
++++ b/research/lane-i/follow-up/final-verification.jobs.json
+@@ -0,0 +1,10 @@
++[
++  {
++    "name": "final-follow-up-verification",
++    "cpu": 4,
++    "memory": 14336,
++    "timeout": 900,
++    "vm_type": "large",
++    "cmd": "set -euo pipefail; cp -a audit-data/follow-up-input/. .; mkdir -p current-audit/source; cp followup-source/*.ts current-audit/source/; cp audit-data/resource-run.ts current-audit/; cp followup-source/validate-tools.ts current-audit/; bun -e 'import{readdirSync,readFileSync,writeFileSync}from\"node:fs\";import{createHash}from\"node:crypto\";const h=Object.fromEntries(readdirSync(\"current-audit/source\").map(n=>[n,createHash(\"sha256\").update(readFileSync(\"current-audit/source/\"+n)).digest(\"hex\")]));writeFileSync(\"current-audit/source-manifest.json\",JSON.stringify(h));console.log(\"FOLLOW_SOURCE_INPUT \"+JSON.stringify(h))'; bun current-audit/validate-tools.ts current-audit .; bun followup-source/regression-audit.ts . > current-audit/receipt.log; bun -e 'import{readFileSync}from\"node:fs\";const tag=\"REGRESSION_RECEIPT_AUDIT \",line=readFileSync(\"current-audit/receipt.log\",\"utf8\").split(\"\\n\").find(l=>l.startsWith(tag));if(!line)throw Error(\"missing audited result\");const r=JSON.parse(line.slice(tag.length)),range=a=>a.length?[Math.min(...a),Math.max(...a)]:null,side=(c,s)=>({passed:c[s+\"Pass\"],processMs:range(c.pairs.map(p=>p[s].wallMs)),rootMs:range(c.pairs.map(p=>p[s].rootMs).filter(n=>typeof n===\"number\")),nativeTestPasses:c.pairs.map(p=>p[s].pass??0).reduce((a,b)=>a+b,0),maxNativeCaseMs:Math.max(0,...c.pairs.flatMap(p=>(p[s].cases??[]).flatMap(l=>[...l.matchAll(/\\[([\\d.]+)ms\\]/g)].map(m=>Number(m[1])))))}),primary=r.cohorts.filter(c=>[r.primaryEpyc,r.primaryOther].includes(c.name));const summary={auditSourceSha256:r.auditSourceSha256,requiredCpuCoverage:r.requiredCpuCoverage,primaryEpyc:r.primaryEpyc,primaryOther:r.primaryOther,majorityRegressions:r.majorityRegressions,skipped:r.skips,cohorts:r.cohorts.map(c=>({name:c.name,cpu:c.cpu,mode:c.mode,base:side(c,\"base\"),candidate:side(c,\"candidate\"),candidateOnlyLosses:c.candidateOnlyLosses})),primaryPhaseExample:primary.map(c=>({name:c.name,base:c.pairs[0].base.phases.map(p=>({phase:p.phase,ms:p.ms})),candidate:c.pairs[0].candidate.phases.map(p=>({phase:p.phase,ms:p.ms}))})),inputHashes:r.inputHashes};console.log(\"REGRESSION_FINAL_SUMMARY \"+JSON.stringify(summary,null,2));if(!r.requiredCpuCoverage||r.majorityRegressions.length)process.exitCode=1;'"
++  }
++]
+diff --git a/research/lane-i/follow-up/finish.jobs.json b/research/lane-i/follow-up/finish.jobs.json
+new file mode 100644
+index 00000000..7278b552
+--- /dev/null
++++ b/research/lane-i/follow-up/finish.jobs.json
+@@ -0,0 +1,16 @@
++[
++  {
++    "name": "follow-up-commitlint-stdin",
++    "cpu": 2,
++    "memory": 4096,
++    "timeout": 300,
++    "cmd": "set -euo pipefail; temp=$(mktemp -d); trap 'rm -rf \"$temp\"' EXIT; printf '{\"private\":true}\\n' > \"$temp/package.json\"; (cd \"$temp\" && bun add --dev @commitlint/cli@19.8.1 @commitlint/config-conventional@19.8.1 > /dev/null); printf \"module.exports={extends:['@commitlint/config-conventional']};\\n\" > \"$temp/commitlint.config.cjs\"; for name in checkpoint-message.txt result-message.txt; do file=\"$PWD/gate-reruns-input/$name\"; \"$temp/node_modules/.bin/commitlint\" --cwd \"$temp\" < \"$file\"; printf 'FOLLOW_COMMITLINT %s\\n' \"$name\"; sha256sum \"$file\"; done"
++  },
++  {
++    "name": "regression-summary",
++    "cpu": 1,
++    "memory": 2048,
++    "timeout": 60,
++    "cmd": "bun -e 'import{readFileSync}from\"node:fs\";const tag=\"REGRESSION_RECEIPT_AUDIT \",line=readFileSync(\"audited/regression-receipt-audit.log\",\"utf8\").split(\"\\n\").find(l=>l.startsWith(tag));if(!line)throw Error(\"missing audited result\");const r=JSON.parse(line.slice(tag.length)),range=a=>a.length?[Math.min(...a),Math.max(...a)]:null,side=(c,s)=>({passed:c[s+\"Pass\"],processMs:range(c.pairs.map(p=>p[s].wallMs)),rootMs:range(c.pairs.map(p=>p[s].rootMs).filter(n=>typeof n===\"number\")),nativeTestPasses:c.pairs.map(p=>p[s].pass??0).reduce((a,b)=>a+b,0),maxNativeCaseMs:Math.max(0,...c.pairs.flatMap(p=>(p[s].cases??[]).flatMap(l=>[...l.matchAll(/\\[([\\d.]+)ms\\]/g)].map(m=>Number(m[1])))))}),primary=r.cohorts.filter(c=>[r.primaryEpyc,r.primaryOther].includes(c.name));const summary={auditSourceSha256:r.auditSourceSha256,requiredCpuCoverage:r.requiredCpuCoverage,primaryEpyc:r.primaryEpyc,primaryOther:r.primaryOther,majorityRegressions:r.majorityRegressions,skipped:r.skips,cohorts:r.cohorts.map(c=>({name:c.name,cpu:c.cpu,mode:c.mode,base:side(c,\"base\"),candidate:side(c,\"candidate\"),candidateOnlyLosses:c.candidateOnlyLosses})),primaryPhaseExample:primary.map(c=>({name:c.name,base:c.pairs[0].base.phases.map(p=>({phase:p.phase,ms:p.ms})),candidate:c.pairs[0].candidate.phases.map(p=>({phase:p.phase,ms:p.ms}))})),inputHashes:r.inputHashes};console.log(\"REGRESSION_FINAL_SUMMARY \"+JSON.stringify(summary,null,2));if(!r.requiredCpuCoverage||r.majorityRegressions.length)process.exitCode=1;'"
++  }
++]
+diff --git a/research/lane-i/follow-up/gated-follow-up.ts b/research/lane-i/follow-up/gated-follow-up.ts
+new file mode 100644
+index 00000000..92bb5862
+--- /dev/null
++++ b/research/lane-i/follow-up/gated-follow-up.ts
+@@ -0,0 +1,51 @@
++// Read-only follow-up on the gated source; no production overlays or flag changes.
++import{readFileSync,mkdtempSync,mkdirSync,copyFileSync,rmSync}from'node:fs'
++import{join,resolve}from'node:path'
++import{createHash}from'node:crypto'
++import{gzipSync,gunzipSync}from'node:zlib'
++import{runResourceMeasured}from'./resource-run.ts'
++const sha=(v:string|Uint8Array)=>createHash('sha256').update(v).digest('hex'),config=JSON.parse(readFileSync('config.json','utf8')),hashes:Record<string,string>=JSON.parse(readFileSync('checksums.json','utf8'))
++for(const[p,h]of Object.entries(hashes))if(sha(readFileSync(p))!==h)throw Error('input hash mismatch '+p)
++const kind=process.argv[2];if(kind!=='p1'&&kind!=='effect')throw Error('p1 or effect required')
++const{restore,command}=await import(resolve('research/verify-all/final-gate-common.ts'))
++const cpu=()=>readFileSync('/proc/cpuinfo','utf8').match(/^model name\s*:\s*(.+)$/m)?.[1]?.trim(),model=cpu(),bun=command('bun',['--version']),affinity=readFileSync('/proc/self/status','utf8').match(/^Cpus_allowed_list:\s*(.+)$/m)?.[1],temp=mkdtempSync('/tmp/a8-follow-up-'),records:any[]=[],dirs:Record<string,string>={}
++const sides=kind==='p1'?['control','candidate']:['base','candidate']
++async function run(side:string,args:string[],seconds:number,label:string){if(cpu()!==model)throw Error('CPU model changed');const r=await runResourceMeasured('bun',args,dirs[side]!,label,seconds);const raw={exit:r.status,signal:r.signal,wallMs:r.wallMs,resources:r.resources,stdoutSha256:sha(r.stdout),stderrSha256:sha(r.stderr),traceGzipBase64:gzipSync(r.stdout+'\n---stderr---\n'+r.stderr).toString('base64')};console.log('FOLLOW_STEP '+JSON.stringify({kind,side,args,label,...raw}));return{...r,raw}}
++try{
++ for(const side of sides){const dir=join(temp,side),revision=config.revisions[side],meta=restore(resolve('gate-inputs'),dir,revision);dirs[side]=dir
++  const source=Object.fromEntries(Object.keys(config.sources[side]).map(p=>[p,sha(readFileSync(join(dir,p)))]));if(JSON.stringify(source)!==JSON.stringify(config.sources[side]))throw Error('source mismatch '+side)
++  if(kind==='effect'&&sha(readFileSync(join(dir,'core/effect-queue.test.ts')))!==config.effectTestSha256)throw Error('effect test changed')
++  console.log('FOLLOW_SOURCE '+JSON.stringify({kind,side,revision,meta,source,cpu:model,bun,affinity,manifest:sha(readFileSync('checksums.json'))}))
++  command('bun',['install','--frozen-lockfile'],dir)
++  if(kind==='p1'){mkdirSync(join(dir,'research/lane-i-fastloop'),{recursive:true});for(const file of ['lane-b-cost.ts','audit-lane-b-cost.ts','check-cost-profile.ts'])copyFileSync('driver/p1-tools/'+file,join(dir,'research/lane-i-fastloop',file))}
++ }
++ if(kind==='p1'){
++  process.env.LANE_B_PASS_ORDER='count-first';process.env.LANE_B_EARLY_FOCUS='off'
++  const family=resolve('family.json');if(sha(readFileSync(family))!==config.familySha256)throw Error('family changed')
++  for(let repeat=1;repeat<=5;repeat++)for(const side of repeat%2?['candidate','control']:['control','candidate']){
++   const out=join(temp,`p1-${repeat}-${side}`);mkdirSync(out)
++   const found=await run(side,['research/lane-i-fastloop/lane-b-cost.ts',family,'p1',out,'6000','7000'],25,`p1-${repeat}-${side}`)
++   if(found.status!==0)throw Error('p1 launch failed')
++   const summary=JSON.parse(readFileSync(join(out,'summary.json'),'utf8')),capture=JSON.parse(gunzipSync(readFileSync(join(out,'capture.json.gz'))).toString());delete capture.captures
++   const audit=await run(side,['research/lane-i-fastloop/audit-lane-b-cost.ts',join(out,'capture.json.gz'),family],30,`replay-${repeat}-${side}`),replay=audit.status===0?JSON.parse(audit.stdout):null
++   const row={repeat,side,revision:config.revisions[side],summary,replay,proofGzipBase64:gzipSync(JSON.stringify(capture)).toString('base64')};records.push(row);console.log('FOLLOW_P1 '+JSON.stringify(row))
++  }
++  const whole:any[]=[]
++  for(let repeat=1;repeat<=3;repeat++)for(const side of repeat%2?['candidate','control']:['control','candidate']){
++   delete process.env.GDP_COUNTS_TRACE;delete process.env.GDP_INFER_TRACE
++   const r=await run(side,['research/protocols/ic3syn/run.ts','--ms','60000','--only','paxos_epr','--skip','broken'],60,`paxos-${repeat}-${side}`),rows=r.stdout.split('\n').flatMap(l=>{try{return[JSON.parse(l)]}catch{return[]}}).filter(x=>x.id==='paxos_epr')
++   const row={repeat,side,exit:r.status,rows};whole.push(row);console.log('FOLLOW_PAXOS '+JSON.stringify(row))
++  }
++  const checked=records.length===10&&records.every(r=>r.summary.checked&&r.summary.withinDiagnosticLine&&r.replay?.checked&&r.replay?.familyVerified),old=records.filter(r=>r.side==='control').map(r=>r.summary.units),current=records.filter(r=>r.side==='candidate').map(r=>r.summary.units),neutral=whole.filter(r=>r.side==='candidate').every(r=>r.exit===0&&r.rows.length===1&&r.rows[0].search?.verdict==='proven'&&r.rows[0].search.work===6915544&&r.rows[0].search.full===1037946)
++  console.log('FOLLOW_P1_SUMMARY '+JSON.stringify({revisions:config.revisions,cpu:model,bun,pairs:5,checked,controlUnits:old,candidateUnits:current,ratio:current.reduce((a,b)=>a+b,0)/old.reduce((a,b)=>a+b,0),candidatePaxosNeutral:neutral,scope:'conditional frozen-family p1 and separate whole-Paxos work; not a final gate'}));if(!checked||!neutral)process.exitCode=1
++ }else{
++  const args=['test','./core/effect-queue.test.ts','--test-name-pattern','the CLI on the pool']
++  for(let repeat=1;repeat<=5;repeat++){const order=repeat%2?['candidate','base']:['base','candidate'],outcomes:Record<string,unknown>={}
++   for(const side of order){const r=await run(side,args,1200,`effect-${repeat}-${side}`);outcomes[side]={exit:r.status,signal:r.signal,wallMs:r.wallMs}}
++   const row={repeat,order,outcomes,cpu:model,bun};records.push(row);console.log('FOLLOW_EFFECT_PAIR '+JSON.stringify(row))
++  }
++  const basePass=records.filter(r=>r.outcomes.base.exit===0).length,candidatePass=records.filter(r=>r.outcomes.candidate.exit===0).length,losses=records.filter(r=>r.outcomes.base.exit===0&&r.outcomes.candidate.exit!==0).map(r=>r.repeat)
++  console.log('FOLLOW_EFFECT_SUMMARY '+JSON.stringify({cpu:model,bun,affinity,revisions:config.revisions,pairs:records.length,basePass,candidatePass,candidateOnlyLosses:losses,test:'core/effect-queue.test.ts: the CLI on the pool',scope:'five same-VM fresh-process pairs; no test or proof-budget changes'}))
++ }
++ for(const side of sides){const dirty=command('git',['status','--porcelain','--untracked-files=no'],dirs[side]);console.log('FOLLOW_CLEAN '+JSON.stringify({side,dirty}));if(dirty)throw Error('gated source changed')}
++}finally{rmSync(temp,{recursive:true,force:true})}
+diff --git a/research/lane-i/follow-up/helper-integration.json b/research/lane-i/follow-up/helper-integration.json
+new file mode 100644
+index 00000000..d35e4ede
+--- /dev/null
++++ b/research/lane-i/follow-up/helper-integration.json
+@@ -0,0 +1,42 @@
++{
++  "enabled": false,
++  "gateCandidate": "a8bbe0984f270070eba9bc166a89909d0c67597e",
++  "requiredOriginalModelsBlob": "0541fa9436e307a6fb716aa5064637b30b893b79",
++  "quarantinedLegacyFamilySha256": "5dbdbf766e9949b051d0764920f1bcc3707690cd6852fca6d0bcf18674fbdac4",
++  "commonReleaseChecks": ["original-model-and-family-identity", "original-goal-init-and-all-operation-step", "shared-original-attempt-allowance", "fresh-native-custody-and-mutation-refusal", "required-real-Lean-checks", "complete-test-roster-and-source-check", "original-29-normal-and-broken-census", "same-CPU-off-on-pairs-and-p1-Paxos-controls", "independent-Lane-D-gate"],
++  "helpers": [
++    {
++      "lane": "B", "name": "Inv* adapter", "enabled": false,
++      "inspectedHead": "741cfbe7a4004121026dcea6c22fcb0225e24101", "workingTreeDirtyAtInspection": true,
++      "report": "../gdp-wired-trackM/research/track-m/production-adapter-plan.md",
++      "boundary": "../gdp-wired-trackM/research/track-m/model-encoding-boundary.md",
++      "originalFamilySha256": "f5b807240c56e799fe2442b89272852a396af627c4eba9cbf5f2a4a543ef3373",
++      "originalFamily": "43 generated laws, zero supplied; target at index 30; historical p1 absent",
++      "reportedOriginalComponents": "Conditional INIT/STEP for all seven ops; native/Lean custody complete for 0/1/2/3/5, replay for 4/6 and shared-budget composition pending in the dirty worktree",
++      "status": "blocked: complete original-goal shared-allowance composition, remaining custody, census and paired acceptance",
++      "historicalEvidence": "Seven legacy P* per-op proofs remain quarantined; no equivalence assumed",
++      "defaultSwitch": "GDP_COUNT_FRAMES is explicit opt-in; new generic components remain outside the default solver",
++      "wholeBranchMergeAllowed": false
++    },
++    {
++      "lane": "F", "name": "Inv2973-half compositions", "enabled": false,
++      "inspectedHead": "9792597bfc45cfff302d33df530ce562164029a5", "workingTreeDirtyAtInspection": true,
++      "report": "../gdp-wired-trackL/research/track-m/HALF-GUARD-COMPOSITION.md",
++      "wallReport": "../gdp-wired-trackL/research/track-m/HALF-WALL-PROFILE.md",
++      "reportedFrozenProgress": "op0 now fits its frozen 500-unit/2000-ms harness in three trials (184.6818556 units; 844-1048 ms); fresh native replay and six mutation refusals pass",
++      "status": "blocked: original IC3Syn model recapture, ops 1/5/6, exact-packet Lean custody, full original-goal composition and census/pairs",
++      "historicalEvidence": "Legacy STEP 0/2/3/4 retained; improved frozen-harness timing is not original-model credit",
++      "canonicalModelsBlobAtInspection": "0d5521e2e4dcbf6ac2ea7116ecee23497a0ec66b",
++      "wholeBranchMergeAllowed": false
++    },
++    {
++      "lane": "E", "name": "Inv1758 proof", "enabled": false,
++      "inspectedHead": "5ebf00fffb05a02537c76478e311e7c761666b67", "workingTreeDirtyAtInspection": true,
++      "report": "../gdp-wired-trackP/research/mldr-rows/WALL-TIMING.md",
++      "status": "blocked: original-model recapture and original 4800-ms wall acceptance; all three genuine normal attempts remain unknown",
++      "historicalEvidence": "622.6651168-unit conditional proof; one complete slicing pair 11.60s to 8.89s. Later prover-only and memo experiments do not establish normal-budget acceptance",
++      "canonicalModelsBlobAtInspection": "0d5521e2e4dcbf6ac2ea7116ecee23497a0ec66b",
++      "wholeBranchMergeAllowed": false
++    }
++  ]
++}
+diff --git a/research/lane-i/follow-up/jobs.json b/research/lane-i/follow-up/jobs.json
+new file mode 100644
+index 00000000..53d8f633
+--- /dev/null
++++ b/research/lane-i/follow-up/jobs.json
+@@ -0,0 +1,18 @@
++[
++  {
++    "name": "a8-p1-control-five",
++    "cmd": "set -euo pipefail; cp -a follow-up-input/. .; bun driver/gated-follow-up.ts p1",
++    "cpu": 4,
++    "memory": 14336,
++    "timeout": 1200,
++    "vm_type": "large"
++  },
++  {
++    "name": "a8-effect-five-same-cpu",
++    "cmd": "set -euo pipefail; cp -a follow-up-input/. .; bun driver/gated-follow-up.ts effect",
++    "cpu": 4,
++    "memory": 14336,
++    "timeout": 3600,
++    "vm_type": "large"
++  }
++]
+diff --git a/research/lane-i/follow-up/lane-a-intake.json b/research/lane-i/follow-up/lane-a-intake.json
+new file mode 100644
+index 00000000..cda54ca8
+--- /dev/null
++++ b/research/lane-i/follow-up/lane-a-intake.json
+@@ -0,0 +1,18 @@
++{
++  "lane": "A",
++  "status": "waiting for a specifically gated generator commit",
++  "integrationPriority": "integrate each qualified generator subchange promptly; do not claim both omissions filled until both families occur in original-model generation",
++  "lastInspectedHead": "b1ee0778dbd7333c0b3f66c5e469299e189edea2",
++  "producerStatus": {"finitePrefix":"ef509fab: deterministic 2000-work-unit admission, original-model 87-pair census pending", "loadedRows":"3f271711 and successor b1ee0778: normalized boolean marker writes; original-model validation/census pending; separate later source", "guardedRows":"required G-guard; no gated source identified yet"},
++  "requiredCanonicalModelsBlob": "0541fa9436e307a6fb716aa5064637b30b893b79",
++  "forbiddenCanonicalRoutingBlob": "0d5521e2e4dcbf6ac2ea7116ecee23497a0ec66b",
++  "design": "MLDR-DESIGN.md Section 17.7.4",
++  "expectedGenericFamilies": [
++    {"name":"G-load","purpose":"Q2: started=0 and Copied[a] implies row a = C0","discovery":"plain-key source map loaded into a bounded row, constant write marker and smallest sample-valid source guard; no protocol names"},
++    {"name":"G-guard","purpose":"guarded Inv1758: copied-marker rows, or a valid scalar phase guard","discovery":"sample-false versioned-row equality strengthened by both row markers; scalar guard fallback only when no load marker exists"}
++  ],
++  "requiredEvidence": ["exact gated commit and source manifest", "original MLDR model and new generated family hashes", "Q2 and guarded Inv1758 discovered without supplied laws", "unconditional false variants refused", "ordinary proof replay and unchanged attempt limits", "29 original-protocol generation-list comparison with every changed list explained", "complete test registration and source checks", "paired census/gate acceptance or explicit coordinator adjudication"],
++  "mergePolicy": "curated generator/test commits, not a whole branch merge; preserve mixed-clause scheduling, symbolic-domain terms, roster completeness and original model routing",
++  "pStarProofs": "research-only; never production acceptance or equivalence evidence",
++  "currentGate": "a8bbe098 is RED; prepare a separate next candidate only"
++}
+diff --git a/research/lane-i/follow-up/lane-d-adjudication.md b/research/lane-i/follow-up/lane-d-adjudication.md
+new file mode 100644
+index 00000000..cf91d4a1
+--- /dev/null
++++ b/research/lane-i/follow-up/lane-d-adjudication.md
+@@ -0,0 +1,89 @@
++# Lane D: adjudicate the a8bbe098 RED entries
++
++Baseline: `8214a543bc44e88d979f9e4457d7370e7e3c122b`.
++Candidate: `a8bbe0984f270070eba9bc166a89909d0c67597e`.
++Neither production source nor the original IC3Syn model changed.
++
++## Result under the agreed majority rule
++
++There are **zero candidate-only losses** in every complete five-pair cohort.
++None reaches the rule's threshold of three. Please adjudicate the three
++original RED entries as not reproduced/noise for this gate decision.
++This is not a causal explanation of the historical failures, a deletion
++of those receipts, or a claim that the full Lane D gate is green.
++No speculative generic solver patch is justified by these reruns.
++
++| Target / primary CPU | Base | a8 | Candidate-only losses | Native timing evidence |
++|---|---:|---:|---:|---|
++| `two_phase_commit`, EPYC 4585PX | 5/5 proven | 5/5 proven | 0/5 | Root 9.289–11.347 s / 9.831–14.139 s |
++| `two_phase_commit`, Ryzen 9 9950X | 5/5 proven | 5/5 proven | 0/5 | Root 8.524–11.690 s / 8.804–12.281 s |
++| Accounts inference, `core/infer.test.ts:47`, Ryzen 9 9950X | 5/5 pass | 5/5 pass | 0/5 | Slowest native case 2.039 s / 1.954 s |
++| Full `core/sums.test.ts`, Ryzen 9 9950X | 35/35 cases pass | 35/35 cases pass | 0/5 file runs | Slowest native case 1.554 s / 1.446 s |
++
++The protocol uses its original `--ms 60000`. Inference keeps its 15-second
++proof allowance; sums keeps Bun's 5-second test limit. No test, theorem,
++proof allowance or timeout was widened. Odd repeats run candidate first,
++even repeats baseline first; both sides use fresh processes on the same VM.
++
++## CPU and trace custody
++
++- Primary EPYC: `two-phase-epyc-xlarge`, actual **AMD EPYC 4585PX 16-Core
++  Processor**, eight of sixteen vCPUs pinned, exclusive/no co-tenants.
++- Primary other CPU: `two-phase-traced-1`, actual **AMD Ryzen 9 9950X
++  16-Core Processor**, eight of eight vCPUs pinned, exclusive/no co-tenants.
++- Primaries are per batch: the original untraced batch keeps
++  `two-phase-other-1`; the table uses the first eligible phase-traced
++  worker, `two-phase-traced-1`, for its native timing data. The decision
++  audits every cohort, not just either primary.
++- All seven protocol cohorts are retained: **35 pairs / 70 proven runs**,
++  including the extra 9950X and 9700X cohorts. Every cohort has 0/5 losses.
++- Four initial EPYC probes and one default-size probe landed on Ryzen.
++  These five skips are retained and are **not** counted as protocol runs.
++- `GDP_INFER_TRACE=2` supplies native inference phase deltas. For example,
++  EPYC pair 1's kernel phase is 4,391 ms base / 4,581 ms candidate; the end
++  phase is 1,484 / 1,621 ms. These are individual phase deltas, not a new
++  additive end-to-end budget. All phases for all traced runs remain in
++  the compressed native stdout/stderr records.
++
++The independent audit checks source/revision hashes, both source receipts,
++five complete alternating pairs, all ten native outputs, raw trace hashes,
++unchanged command arguments, native case counts, clean source endings,
++fixed CPU identity, exclusive placement, and the majority calculation.
++Required EPYC and other-CPU coverage both pass.
++
++## Receipts
++
++- `runs/lane-i/a8-regression-reruns/`: original eight-worker batch,
++  including all four CPU skips and both complete test cohorts.
++- `runs/lane-i/a8-regression-phase-reruns/`: four phase-traced cohorts.
++- `runs/lane-i/a8-epyc-recovery/`: actual EPYC cohort, default-size skip,
++  and the retained first commitlint installation failure.
++- `runs/lane-i/regression-receipt-audit/`: successful independent audit
++  (`20261110-095013-rr4jr8`).
++- `runs/lane-i/follow-up-finish/`: boat-rendered summary and passing
++  file-fed commitlint (`20261110-095211-rt8xfl`).
++- `runs/lane-i/follow-up-final-verification/`: final current-tooling
++  source check and receipt revalidation — passed in
++  `20261110-095250-95qs99` with no warnings/errors and no OOM delta.
++
++The type/lint retry fixed only the new research auditor's explicit-sort
++comparator, not production code. The current seven-file tooling overlay
++passes the 1,646-file check; its native audit again confirms CPU coverage
++and zero majority regressions. Earlier missing-CLI/Git-root and lint
++failures are preserved; none is relabelled as a successful worker.
++
++## Other outstanding work stays separate
++
++- The existing mixed-clause policy already gives **1152.3382236** p1 units
++  on both sources in all five fresh control pairs. All ten p1 certificates
++  independently replayed. The candidate's three canonical Paxos runs keep
++  **6,915,544 solver / 1,037,946 full work**. See `results.md` for the old
++  cost control's unknown whole-Paxos runs and the P* diagnostic boundary.
++- The earlier effect-pool loss also did not recur in five same-EPYC pairs.
++  Its original failure remains recorded; this is not proof of its cause.
++- Lane A's original-model finite-prefix census and later loaded-row
++  generator remain under qualification. B/F/E helpers remain off and
++  unmerged. No P* result is credited to original-model 29/29.
++
++All newly requested receipt processing and checking runs on boat, using
++existing inputs; there are zero subagents and no new local whole-tree copy.
+diff --git a/research/lane-i/follow-up/phase-preload.source b/research/lane-i/follow-up/phase-preload.source
+new file mode 100644
+index 00000000..a910ab88
+--- /dev/null
++++ b/research/lane-i/follow-up/phase-preload.source
+@@ -0,0 +1,3 @@
++// Observe existing counters only; no flag, budget, model or solver modification.
++import{cprof}from'./core/counts.ts'
++process.once('beforeExit',()=>console.log('REGRESSION_PHASE '+JSON.stringify({nativeCountPhases:cprof,note:'Native cumulative timers; nested phases are not additive.'})))
+diff --git a/research/lane-i/follow-up/regression-audit.jobs.json b/research/lane-i/follow-up/regression-audit.jobs.json
+new file mode 100644
+index 00000000..a2b86657
+--- /dev/null
++++ b/research/lane-i/follow-up/regression-audit.jobs.json
+@@ -0,0 +1,10 @@
++[
++  {
++    "name": "regression-receipt-audit",
++    "cmd": "set -euo pipefail; bun -e 'console.log(require(\"node:fs\").readFileSync(\"epyc/follow-up-commitlint.log\",\"utf8\").slice(-6000))'; bun followup-source/regression-audit.ts .",
++    "cpu": 2,
++    "memory": 4096,
++    "timeout": 120,
++    "vm_type": "large"
++  }
++]
+diff --git a/research/lane-i/follow-up/regression-audit.ts b/research/lane-i/follow-up/regression-audit.ts
+new file mode 100644
+index 00000000..29f18e3f
+--- /dev/null
++++ b/research/lane-i/follow-up/regression-audit.ts
+@@ -0,0 +1,40 @@
++// Read-only receipt audit; no prover/test reruns and no timeout changes.
++import{strict as assert}from'node:assert'
++import{readFileSync,readdirSync}from'node:fs'
++import{join}from'node:path'
++import{createHash}from'node:crypto'
++import{gunzipSync}from'node:zlib'
++import{stripVTControlCharacters}from'node:util'
++const inputRoot=process.argv[2];if(!inputRoot)throw Error('evidence root required');const root=inputRoot
++const inputHashes:Record<string,string>={}
++const sha=(x:string|Uint8Array)=>createHash('sha256').update(x).digest('hex'),read=(p:string)=>{const bytes=readFileSync(join(root,p));inputHashes[p]=sha(bytes);return bytes.toString()},events=(s:string,tag:string):any[]=>s.split('\n').filter(l=>l.startsWith(tag+' ')).map(l=>JSON.parse(l.slice(tag.length+1)))
++const cohorts:any[]=[],skips:any[]=[],failures:any[]=[]
++for(const group of ['initial','phased','epyc']){
++ const dir=join(root,group);let files:string[];try{files=readdirSync(dir)}catch{continue}
++ const placement=JSON.parse(read(group+'/placement.json')),manifest=JSON.parse(read(group+'/input-manifest.json')),terminal=read(group+'/summary.tsv').trim().split('\n').map(l=>l.split('\t'))
++ for(const file of files.filter(f=>f.endsWith('.log'))){const name=file.slice(0,-4);if(name==='follow-up-commitlint')continue
++  const text=read(group+'/'+file),adm=events(text,'REGRESSION_ADMISSION');assert.equal(adm.length,1,name);const a=adm[0],p=placement[name];assert.equal(a.name,name);assert.equal(p.cpu,a.cpu);assert(p.exclusive&&p.co_tenants===0);const done=terminal.filter(r=>r[0]===name);assert.equal(done.length,1);assert.equal(done[0]![1],'0')
++  const sources=events(text,'REGRESSION_SOURCE'),runs=events(text,'REGRESSION_RUN'),pairs=events(text,'REGRESSION_PAIR'),summary=events(text,'REGRESSION_SUMMARY'),clean=events(text,'REGRESSION_CLEAN')
++  if(!a.eligible){assert.equal(events(text,'REGRESSION_CPU_SKIP').length,1);assert.equal(sources.length+runs.length+pairs.length+summary.length,0);skips.push({group,name,cpu:a.cpu});continue}
++  assert.equal(sources.length,2);assert.deepEqual(sources.map(s=>String(s.side)).sort((a,b)=>a.localeCompare(b)),['base','candidate']);assert.equal(runs.length,10);assert.equal(pairs.length,5);assert.equal(summary.length,1);assert.equal(clean.length,2);assert(clean.every(x=>x.dirty===''))
++  for(const s of sources){assert.equal(s.cpu,a.cpu);assert.equal(s.revision,s.side==='base'?manifest.base:manifest.candidate);assert.deepEqual(s.sources,manifest.sources[s.side]);assert(s.meta.clean)}
++  const normalized:any[]=[]
++  for(let repeat=1;repeat<=5;repeat++){
++   const matching=pairs.filter(x=>x.repeat===repeat);assert.equal(matching.length,1);const pair=matching[0],order=repeat%2?['candidate','base']:['base','candidate'];assert.deepEqual(pair.order,order);const out:Record<string,any>={}
++   for(const side of order){const found=runs.filter(x=>x.repeat===repeat&&x.side===side);assert.equal(found.length,1);const r=found[0];assert.equal(r.cpu,a.cpu);assert.equal(r.revision,side==='base'?manifest.base:manifest.candidate)
++    const data=gunzipSync(Buffer.from(r.traceGzipBase64,'base64'),{maxOutputLength:16*1024*1024}).toString(),marker='\n---stderr---\n',cut=data.lastIndexOf(marker);assert(cut>=0);const stdout=data.slice(0,cut),stderr=data.slice(cut+marker.length);assert.equal(sha(stdout),r.stdoutSha256);assert.equal(sha(stderr),r.stderrSha256)
++    const resource=JSON.parse(gunzipSync(Buffer.from(r.resourcesGzipBase64,'base64')).toString()),plain=stripVTControlCharacters(stdout+'\n'+stderr);let passed=false,detail:any
++    if(a.mode.startsWith('two-phase')){assert.deepEqual(r.args,['--preload','./regression-phase-preload.ts','research/protocols/ic3syn/run.ts','--ms','60000','--only','two_phase_commit','--skip','broken']);const native=stdout.split('\n').flatMap(l=>{try{return[JSON.parse(l)]}catch{return[]}}).filter(x=>x.id==='two_phase_commit');assert.equal(native.length,1);assert.deepEqual(r.protocol,native[0]);passed=r.exit===0&&native[0].search?.verdict==='proven';const phases=stderr.split('\n').flatMap(l=>{if(!l.startsWith('[infer] '))return[];const i=l.indexOf('{');if(i<0)return[];return[{phase:l.slice(8,i).trim(),...JSON.parse(l.slice(i))}]});if(group==='phased'||group==='epyc')assert(phases.length>0,'missing requested phase timings');detail={verdict:native[0].search?.verdict,rootMs:native[0].search?.ms,work:native[0].search?.work,full:native[0].search?.full,phases}}
++    else{assert.deepEqual(r.args,a.mode==='infer'?['test','./core/infer.test.ts','--test-name-pattern','an invariant over four values']:['test','./core/sums.test.ts']);const count=(word:string)=>Number([...plain.matchAll(new RegExp('^\\s*(\\d+) '+word+'\\s*$','gm'))].at(-1)?.[1]??NaN),pass=count('pass'),fail=count('fail'),expected=a.mode==='infer'?1:7;assert.equal(pass+fail,expected,'incomplete native test selection');assert.equal(r.exit,fail===0?0:1);passed=r.exit===0;const cases=plain.split('\n').filter(l=>l.includes('(pass)')||l.includes('(fail)'));detail={pass,fail,cases}}
++    assert.equal(r.passed,passed);assert.equal(pair.outcomes[side].passed,passed);assert.equal(pair.outcomes[side].exit,r.exit);assert.equal(pair.outcomes[side].wallMs,r.wallMs);out[side]={passed,exit:r.exit,wallMs:r.wallMs,peakRssKiB:resource.peakRssKiB,oomDelta:resource.oomDelta,...detail}
++   }
++   const loss=out.base.passed&&!out.candidate.passed;assert.equal(pair.candidateOnlyLoss,loss);normalized.push({repeat,order,...out,candidateOnlyLoss:loss})
++  }
++  const basePass=normalized.filter(r=>r.base.passed).length,candidatePass=normalized.filter(r=>r.candidate.passed).length,losses=normalized.filter(r=>r.candidateOnlyLoss).map(r=>r.repeat);assert.equal(summary[0].basePass,basePass);assert.equal(summary[0].candidatePass,candidatePass);assert.deepEqual(summary[0].candidateOnlyLosses,losses)
++  const result={group,name,mode:a.mode,cpu:a.cpu,vm:p.vm,basePass,candidatePass,candidateOnlyLosses:losses,majorityLoss:losses.length>=3,pairs:normalized};cohorts.push(result);if(result.majorityLoss)failures.push({group,name,losses})
++ }
++}
++const epyc=cohorts.filter(x=>x.cpu==='AMD EPYC 4585PX 16-Core Processor'&&x.mode.startsWith('two-phase')).sort((a,b)=>a.name.localeCompare(b.name)),other=cohorts.filter(x=>x.group==='phased'&&x.cpu!=='AMD EPYC 4585PX 16-Core Processor').sort((a,b)=>a.name.localeCompare(b.name)),infer=cohorts.filter(x=>x.mode==='infer'),sums=cohorts.filter(x=>x.mode==='sums')
++assert.equal(infer.length,1);assert.equal(sums.length,1)
++const result={auditSourceSha256:sha(readFileSync(import.meta.path)),inputHashes,primaryEpyc:epyc[0]?.name??null,primaryOther:other[0]?.name??null,requiredCpuCoverage:epyc.length>0&&other.length>0,majorityRegressions:failures,cohorts,skips,scope:'original a8/base sources; no production change or final gate claim'}
++console.log('REGRESSION_RECEIPT_AUDIT '+JSON.stringify(result));if(!result.requiredCpuCoverage)process.exitCode=2
+diff --git a/research/lane-i/follow-up/regression-phase.jobs.json b/research/lane-i/follow-up/regression-phase.jobs.json
+new file mode 100644
+index 00000000..76478da0
+--- /dev/null
++++ b/research/lane-i/follow-up/regression-phase.jobs.json
+@@ -0,0 +1,46 @@
++[
++  {
++    "name": "two-phase-traced-1",
++    "cmd": "set -euo pipefail; cp -a gate-reruns-input/. .; bun regression-worker.ts two-phase-any two-phase-traced-1",
++    "env": {
++      "GDP_INFER_TRACE": "2"
++    },
++    "cpu": 4,
++    "memory": 14336,
++    "timeout": 1200,
++    "vm_type": "large"
++  },
++  {
++    "name": "two-phase-traced-2",
++    "cmd": "set -euo pipefail; cp -a gate-reruns-input/. .; bun regression-worker.ts two-phase-any two-phase-traced-2",
++    "env": {
++      "GDP_INFER_TRACE": "2"
++    },
++    "cpu": 4,
++    "memory": 14336,
++    "timeout": 1200,
++    "vm_type": "large"
++  },
++  {
++    "name": "two-phase-traced-3",
++    "cmd": "set -euo pipefail; cp -a gate-reruns-input/. .; bun regression-worker.ts two-phase-any two-phase-traced-3",
++    "env": {
++      "GDP_INFER_TRACE": "2"
++    },
++    "cpu": 4,
++    "memory": 14336,
++    "timeout": 1200,
++    "vm_type": "large"
++  },
++  {
++    "name": "two-phase-traced-4",
++    "cmd": "set -euo pipefail; cp -a gate-reruns-input/. .; bun regression-worker.ts two-phase-any two-phase-traced-4",
++    "env": {
++      "GDP_INFER_TRACE": "2"
++    },
++    "cpu": 4,
++    "memory": 14336,
++    "timeout": 1200,
++    "vm_type": "large"
++  }
++]
+diff --git a/research/lane-i/follow-up/regression-worker.ts b/research/lane-i/follow-up/regression-worker.ts
+new file mode 100644
+index 00000000..ecefe471
+--- /dev/null
++++ b/research/lane-i/follow-up/regression-worker.ts
+@@ -0,0 +1,34 @@
++import{readFileSync,copyFileSync,mkdtempSync,rmSync}from'node:fs'
++import{join,resolve}from'node:path'
++import{createHash}from'node:crypto'
++import{gzipSync}from'node:zlib'
++import{runResourceMeasured}from'./resource-run.ts'
++const sha=(v:string|Uint8Array)=>createHash('sha256').update(v).digest('hex'),mode=process.argv[2],name=process.argv[3],cpu=readFileSync('/proc/cpuinfo','utf8').match(/^model name\s*:\s*(.+)$/m)?.[1]?.trim(),epyc='AMD EPYC 4585PX 16-Core Processor',allowed=['two-phase-epyc','two-phase-other','two-phase-any','infer','sums']
++if(!mode||!name||!allowed.includes(mode)||!cpu)throw Error('mode, name and CPU required')
++const eligible=mode==='two-phase-epyc'?cpu===epyc:mode==='two-phase-other'?cpu!==epyc:true
++console.log('REGRESSION_ADMISSION '+JSON.stringify({name,mode,cpu,eligible,bun:Bun.version,affinity:readFileSync('/proc/self/status','utf8').match(/^Cpus_allowed_list:\s*(.+)$/m)?.[1]}))
++if(!eligible){console.log('REGRESSION_CPU_SKIP '+JSON.stringify({name,mode,cpu,reason:'not requested CPU cohort; no test or proof attempted'}));process.exit(0)}
++const hashes=JSON.parse(readFileSync('checksums.json','utf8')),extra=JSON.parse(readFileSync('regression.json','utf8')),cfg=JSON.parse(readFileSync('config.json','utf8'))
++for(const[p,h]of Object.entries({...hashes,...extra.hashes}))if(sha(readFileSync(p))!==h)throw Error('input hash mismatch '+p)
++const{restore,command}=await import(resolve('research/verify-all/final-gate-common.ts')),temp=mkdtempSync('/tmp/a8-regression-'),dirs:Record<string,string>={},pairs:any[]=[]
++const output=console.log;console.log=(...args:unknown[])=>{if(typeof args[0]==='string'&&args[0].startsWith('BAR_RESOURCE_'))return;output(...args)}
++try{
++ for(const side of ['base','candidate']){const dir=join(temp,side),meta=restore(resolve('gate-inputs'),dir,cfg.revisions[side]);dirs[side]=dir
++  const sources=Object.fromEntries(Object.keys(extra.sources[side]).map(p=>[p,sha(readFileSync(join(dir,p)))]));if(JSON.stringify(sources)!==JSON.stringify(extra.sources[side]))throw Error('source mismatch '+side)
++  console.log('REGRESSION_SOURCE '+JSON.stringify({name,mode,side,revision:cfg.revisions[side],meta,sources,cpu,bun:Bun.version}))
++  command('bun',['install','--frozen-lockfile'],dir)
++  if(mode.startsWith('two-phase'))copyFileSync('phase-preload.ts',join(dir,'regression-phase-preload.ts'))
++ }
++ for(let repeat=1;repeat<=5;repeat++){
++  const order=repeat%2?['candidate','base']:['base','candidate'],outcomes:Record<string,any>={}
++  for(const side of order){const currentCpu=readFileSync('/proc/cpuinfo','utf8').match(/^model name\s*:\s*(.+)$/m)?.[1]?.trim();if(currentCpu!==cpu)throw Error('CPU changed')
++   const args=mode.startsWith('two-phase')?['--preload','./regression-phase-preload.ts','research/protocols/ic3syn/run.ts','--ms','60000','--only','two_phase_commit','--skip','broken']:mode==='infer'?['test','./core/infer.test.ts','--test-name-pattern','an invariant over four values']:['test','./core/sums.test.ts']
++   const r=await runResourceMeasured('bun',args,dirs[side]!,`${name}-${repeat}-${side}`,mode.startsWith('two-phase')?90:120),lines=r.stdout.split('\n'),json=lines.flatMap(l=>{try{return[JSON.parse(l)]}catch{return[]}}),protocol=json.find(x=>x.id==='two_phase_commit'),phaseLine=lines.find(l=>l.startsWith('REGRESSION_PHASE ')),phases=phaseLine?JSON.parse(phaseLine.slice('REGRESSION_PHASE '.length)):null,passed=r.status===0&&(mode.startsWith('two-phase')?protocol?.search?.verdict==='proven':true)
++   const record={name,mode,repeat,side,revision:cfg.revisions[side],cpu,args,exit:r.status,signal:r.signal,wallMs:r.wallMs,passed,protocol,phases,stdoutSha256:sha(r.stdout),stderrSha256:sha(r.stderr),traceGzipBase64:gzipSync(r.stdout+'\n---stderr---\n'+r.stderr).toString('base64'),resourcesGzipBase64:gzipSync(JSON.stringify(r.resources)).toString('base64')}
++   console.log('REGRESSION_RUN '+JSON.stringify(record));outcomes[side]={exit:r.status,passed,wallMs:r.wallMs,root:protocol?.search,phases}
++  }
++  const pair={name,mode,repeat,order,cpu,outcomes,candidateOnlyLoss:outcomes.base.passed&&!outcomes.candidate.passed};pairs.push(pair);console.log('REGRESSION_PAIR '+JSON.stringify(pair))
++ }
++ for(const side of ['base','candidate']){const dirty=command('git',['status','--porcelain','--untracked-files=no'],dirs[side]);if(dirty)throw Error('source changed '+side);console.log('REGRESSION_CLEAN '+JSON.stringify({side,dirty}))}
++ const losses=pairs.filter(p=>p.candidateOnlyLoss).map(p=>p.repeat);console.log('REGRESSION_SUMMARY '+JSON.stringify({name,mode,cpu,pairs:5,basePass:pairs.filter(p=>p.outcomes.base.passed).length,candidatePass:pairs.filter(p=>p.outcomes.candidate.passed).length,candidateOnlyLosses:losses,majorityLoss:losses.length>=3,selection:'For multiple eligible cohorts, designate lowest job-name as primary before looking at outcomes; retain every other cohort.'}))
++}finally{console.log=output;rmSync(temp,{recursive:true,force:true})}
+diff --git a/research/lane-i/follow-up/regression.jobs.json b/research/lane-i/follow-up/regression.jobs.json
+new file mode 100644
+index 00000000..b1afc534
+--- /dev/null
++++ b/research/lane-i/follow-up/regression.jobs.json
+@@ -0,0 +1,66 @@
++[
++  {
++    "name": "two-phase-epyc-1",
++    "cmd": "set -euo pipefail; cp -a gate-reruns-input/. .; bun regression-worker.ts two-phase-epyc two-phase-epyc-1",
++    "cpu": 4,
++    "memory": 14336,
++    "timeout": 1200,
++    "vm_type": "large"
++  },
++  {
++    "name": "two-phase-epyc-2",
++    "cmd": "set -euo pipefail; cp -a gate-reruns-input/. .; bun regression-worker.ts two-phase-epyc two-phase-epyc-2",
++    "cpu": 4,
++    "memory": 14336,
++    "timeout": 1200,
++    "vm_type": "large"
++  },
++  {
++    "name": "two-phase-epyc-3",
++    "cmd": "set -euo pipefail; cp -a gate-reruns-input/. .; bun regression-worker.ts two-phase-epyc two-phase-epyc-3",
++    "cpu": 4,
++    "memory": 14336,
++    "timeout": 1200,
++    "vm_type": "large"
++  },
++  {
++    "name": "two-phase-epyc-4",
++    "cmd": "set -euo pipefail; cp -a gate-reruns-input/. .; bun regression-worker.ts two-phase-epyc two-phase-epyc-4",
++    "cpu": 4,
++    "memory": 14336,
++    "timeout": 1200,
++    "vm_type": "large"
++  },
++  {
++    "name": "two-phase-other-1",
++    "cmd": "set -euo pipefail; cp -a gate-reruns-input/. .; bun regression-worker.ts two-phase-other two-phase-other-1",
++    "cpu": 4,
++    "memory": 14336,
++    "timeout": 1200,
++    "vm_type": "large"
++  },
++  {
++    "name": "two-phase-other-2",
++    "cmd": "set -euo pipefail; cp -a gate-reruns-input/. .; bun regression-worker.ts two-phase-other two-phase-other-2",
++    "cpu": 4,
++    "memory": 14336,
++    "timeout": 1200,
++    "vm_type": "large"
++  },
++  {
++    "name": "infer-five-pairs",
++    "cmd": "set -euo pipefail; cp -a gate-reruns-input/. .; bun regression-worker.ts infer infer-five-pairs",
++    "cpu": 4,
++    "memory": 14336,
++    "timeout": 1200,
++    "vm_type": "large"
++  },
++  {
++    "name": "sums-five-pairs",
++    "cmd": "set -euo pipefail; cp -a gate-reruns-input/. .; bun regression-worker.ts sums sums-five-pairs",
++    "cpu": 4,
++    "memory": 14336,
++    "timeout": 1200,
++    "vm_type": "large"
++  }
++]
+diff --git a/research/lane-i/follow-up/resource-run.ts b/research/lane-i/follow-up/resource-run.ts
+new file mode 100644
+index 00000000..8eacf55f
+--- /dev/null
++++ b/research/lane-i/follow-up/resource-run.ts
+@@ -0,0 +1,2 @@
++// Source-tree path for the flat staged driver's unchanged resource runner.
++export{runResourceMeasured}from'../regressions/resource-run.ts'
+diff --git a/research/lane-i/follow-up/results.md b/research/lane-i/follow-up/results.md
+new file mode 100644
+index 00000000..20caabda
+--- /dev/null
++++ b/research/lane-i/follow-up/results.md
+@@ -0,0 +1,92 @@
++# a8bbe098 follow-up measurements
++
++Status: independent receipt checks, all ten native p1 replays and the
++CPU-qualified regression audit completed. Commitlint and the final
++1,646-file tooling source check passed; production is unchanged.
++The gated commit and all production paths remain unchanged.
++
++## For lane B
++
++Five alternating-order pairs compare exact `a8bbe098` with validated control
++`97463c56`, on one exclusive Ryzen 7 9700X, Bun 1.4.3. Both sources report
++**1152.3382236 p1 units in every repeat** (ratio 1.0), with checker-only replay.
++The +77.63% fallback-first regression does not reproduce on a8. Its existing
++mixed-clause repair has count-source SHA-256
++`7a4c830848afa2d05393bdd00c546393092cf1f94d5ce9cdee8a2aad9189abd4`.
++No additional scheduling patch or new candidate is justified by these results.
++
++The candidate's three whole-Paxos repetitions prove. The historical 97463c56
++cost control is unknown in all three whole-Paxos runs and is not the work
++baseline. Against the retained whole-Paxos work baseline, the candidate retains
++**6,915,544 solver / 1,037,946 full work**. These are canonical runner results,
++separate from the conditional p1 diagnostic.
++
++**Scope:** the cost probe deliberately uses Lane B's exact historical P*
++family `5dbdbf...`. It is not an original-model Inv* or 29/29 result. Lane B's
++new original 43-law family `f5b807...` does not contain the historical p1 target.
++
++## Named candidate-only loss
++
++The unchanged `core/effect-queue.test.ts` case **the CLI on the pool** passed
++**5/5 on baseline 8214a543 and 5/5 on a8bbe098**, alternating which source runs
++first. All ten fresh processes ran on one exclusive EPYC 4585PX (eight pinned
++vCPUs), Bun 1.4.3. The 900,000-ms test timeout and 30-second CLI proof allowance
++were unchanged. There are zero candidate-only losses in this cohort.
++
++The earlier candidate-only unknown remains recorded. Five new passing pairs
++mean **not reproduced here**, not proven noise, not a repaired cause, and not
++a full-suite or independent Lane D gate pass.
++
++## Evidence and failed audit
++
++Measurement batch `20261110-080834-7ilqre` completed both workers with exit 0.
++Placement, original collected logs and summary remain in
++`runs/lane-i/gated-follow-up/`.
++
++The first audit (`20261110-092000-c78bnb`) correctly refused the p1 packet:
++its original collected log was exactly the collector's 400,000-byte tail,
++which omitted source receipts and the first pairs. No evidence requirement
++was relaxed. The complete original stdout (**816,127 bytes**) and empty stderr were
++recovered through the Boat API from the p1 worker's retained snapshot.
++Remote/local stdout SHA-256 matches:
++`777245aa64a873fe8800229a597cfce9c2c5d37d545a231b36293de4886f29cb`.
++The audit must also verify that the recovered file ends with the exact
++previously collected tail. SSH recovery timed out; API recovery succeeded,
++and the resumed VM was stopped. No measurement was rerun.
++
++The complete-log audit in `20261110-092542-j9am19` verifies all ten native
++p1 replays, complete effect-test outcomes, source hashes and the recovered
++tail. Its later source check passed TypeScript but rejected one new-tool
++control-regex lint error. The ANSI parser was corrected.
++
++`20261110-093728-40hczh` then passed ten parser self-checks and type/lint on
++its 1,645-file snapshot (zero warnings/errors; zero OOM delta), but its
++commitlint step could not find a CLI because this repository does not
++install that development tool. An isolated installation subsequently hit
++commitlint’s Git-root requirement for `--edit`; reading the same files via
++stdin passed in `20261110-095211-rt8xfl`. The new regression auditor also
++needed an explicit string-sort comparator; its final source check and
++fresh receipt audit passed in `20261110-095250-95qs99`, with zero OOM delta. No proof measurement was rerun for these tooling corrections,
++and every failed receipt remains.
++Recovered audit result: `runs/lane-i/gated-follow-up-audit-v2/result.json`.
++
++## Current Lane D RED entries
++
++The complete CPU-qualified audit found zero candidate-only losses in all
++nine cohorts. Protocol: 35 paired repetitions / 70 proven runs across the
++EPYC 4585PX, Ryzen 9 9950X and Ryzen 7 9700X. Inference: 5/5 per side.
++Sums: five full-file runs / 35 native cases per side. All original budgets
++are unchanged; five non-EPYC eligibility skips are excluded from counts.
++
++Under the coordinator's threshold (three candidate-only losses in five
++pairs), none is a reproduced regression. Request Lane D adjudication;
++do not promote the full gate or claim a discovered flake cause.
++Full timings, source/CPU custody and receipts: `lane-d-adjudication.md`.
++## Integration queue
++
++`helper-integration.json` records the refreshed readiness boundary. B now has
++an original-family capture and original conditional components, but shared-
++allowance composition and remaining custody/census/pairs are still pending.
++F improves frozen-harness op0 to its original local allowance, but still has
++legacy canonical routing and open ops 1/5/6. E's genuine normal attempts
++remain unknown. All stay unmerged/off by default; no wholesale lane merge.
+diff --git a/research/lane-i/follow-up/source-check.jobs.json b/research/lane-i/follow-up/source-check.jobs.json
+new file mode 100644
+index 00000000..a2d97a04
+--- /dev/null
++++ b/research/lane-i/follow-up/source-check.jobs.json
+@@ -0,0 +1,10 @@
++[
++  {
++    "name": "follow-up-source-check",
++    "cmd": "set -euo pipefail; cp -a audit-data/follow-up-input/. .; mkdir -p current-audit/source; cp followup-source/*.ts current-audit/source/; cp audit-data/resource-run.ts current-audit/; cp followup-source/validate-tools.ts current-audit/; bun -e 'import{readdirSync,readFileSync,writeFileSync}from\"node:fs\";import{createHash}from\"node:crypto\";const h=Object.fromEntries(readdirSync(\"current-audit/source\").map(n=>[n,createHash(\"sha256\").update(readFileSync(\"current-audit/source/\"+n)).digest(\"hex\")]));writeFileSync(\"current-audit/source-manifest.json\",JSON.stringify(h));console.log(\"FOLLOW_SOURCE_INPUT \"+JSON.stringify(h))'; bun current-audit/validate-tools.ts current-audit .",
++    "cpu": 4,
++    "memory": 14336,
++    "timeout": 900,
++    "vm_type": "large"
++  }
++]
+diff --git a/research/lane-i/follow-up/stage.ts b/research/lane-i/follow-up/stage.ts
+new file mode 100644
+index 00000000..f74d07ce
+--- /dev/null
++++ b/research/lane-i/follow-up/stage.ts
+@@ -0,0 +1,25 @@
++// File/git-only staging. The gated commit and its production files are never edited.
++import{readFileSync,writeFileSync,mkdirSync,readdirSync,copyFileSync,linkSync}from'node:fs'
++import{join,relative,resolve}from'node:path'
++import{execFileSync,spawnSync}from'node:child_process'
++import{createHash}from'node:crypto'
++const[destArg,priorArg]=process.argv.slice(2);if(!destArg||!priorArg)throw Error('stage.ts destination prior-stage')
++const dest=destArg,prior=priorArg,sha=(x:string|Uint8Array)=>createHash('sha256').update(x).digest('hex'),git=(...args:string[])=>execFileSync('git',args,{encoding:'utf8',maxBuffer:64*1024*1024}).trim(),candidate='a8bbe0984f270070eba9bc166a89909d0c67597e',control='97463c564351448373ca49f6af980b31b1a0f0c5',base='8214a543bc44e88d979f9e4457d7370e7e3c122b'
++mkdirSync(join(dest,'gate-inputs'),{recursive:true});mkdirSync(join(dest,'gate-shared-inputs'));mkdirSync(join(dest,'driver/p1-tools'),{recursive:true})
++for(const name of ['root.pack','module-0.pack','module-1.pack'])linkSync(join(prior,'gate-shared-inputs',name),join(dest,'gate-shared-inputs',name))
++linkSync(join(prior,'gate-inputs/next.pack'),join(dest,'gate-inputs/next.pack'))
++const manifest=JSON.parse(readFileSync(join(prior,'gate-inputs/manifest.json'),'utf8'));if(!manifest.revisions[candidate]||!manifest.revisions[base])throw Error('prior stage lacks frozen candidate/base')
++const objects=control+'\n'+git('rev-list','--objects','--no-object-names',control+'^{tree}',...manifest.roots.map((r:string)=>'^'+r+'^{tree}'))+'\n',pack=spawnSync('git',['pack-objects','--stdout','--compression=1'],{input:objects,maxBuffer:256*1024*1024});if(pack.status!==0)throw Error(pack.stderr?.toString());writeFileSync(join(dest,'gate-inputs/control.pack'),pack.stdout)
++manifest.roots.push(control);manifest.rootPacks.push('control.pack');manifest.revisions[control]={tree:git('rev-parse',control+'^{tree}'),submodules:git('ls-tree','-r',control).split('\n').flatMap(line=>{const m=/^160000 commit ([0-9a-f]+)\t(.+)$/.exec(line);return m?[{path:m[2]!,hash:m[1]!}]:[]})}
++for(const sub of manifest.revisions[control].submodules)if(!manifest.modules[sub.path]?.hashes.includes(sub.hash))throw Error('unsupported submodule')
++const save=(p:string,v:unknown)=>writeFileSync(join(dest,p),JSON.stringify(v,null,2)+'\n');save('gate-inputs/manifest.json',manifest)
++const paths=['core/counts.ts','kernel/prove.ts','kernel/kernel.ts','core/solver.ts','core/laws.ts','core/effect-queue.test.ts','examples/effect-pool.ts','core/effect.ts','core/effect-prims.ts'],revisions={base,control,candidate},sources=Object.fromEntries(Object.entries(revisions).map(([side,rev])=>[side,Object.fromEntries(paths.map(p=>[p,sha(execFileSync('git',['show',rev+':'+p]))]))]))
++const family='/private/tmp/lane-i-p1-final-data.LXblGC/final-input/family.json';copyFileSync(family,join(dest,'family.json'));const familySha256=sha(readFileSync(family));if(familySha256!=='5dbdbf766e9949b051d0764920f1bcc3707690cd6852fca6d0bcf18674fbdac4')throw Error('wrong original p1 family')
++const oldHashes=JSON.parse(readFileSync('/private/tmp/lane-i-p1-final-data.LXblGC/checksums.json','utf8'))
++for(const f of ['lane-b-cost','audit-lane-b-cost','check-cost-profile']){const source='research/lane-i/regressions/p1-tools/'+f+'.source',out='driver/p1-tools/'+f+'.ts';if(sha(readFileSync(source))!==oldHashes['regression-driver/p1-tools/'+f+'.ts'])throw Error('original helper changed '+f);copyFileSync(source,join(dest,out))}
++copyFileSync('research/lane-i/follow-up/gated-follow-up.ts',join(dest,'driver/gated-follow-up.ts'));copyFileSync('research/lane-i/regressions/resource-run.ts',join(dest,'driver/resource-run.ts'))
++if(sources.base!['core/effect-queue.test.ts']!==sources.candidate!['core/effect-queue.test.ts'])throw Error('effect test differs')
++save('config.json',{revisions,sources,familySha256,effectTestSha256:sources.base!['core/effect-queue.test.ts'],gatedTree:git('rev-parse',candidate+'^{tree}'),expectedCandidateCounts:'7a4c830848afa2d05393bdd00c546393092cf1f94d5ce9cdee8a2aad9189abd4',notes:'core/laws differs in optional-source parsing; p1 input is the unchanged serialized native family'})
++const hashes:Record<string,string>={};function walk(dir:string){for(const e of readdirSync(dir,{withFileTypes:true})){const p=join(dir,e.name);if(e.isDirectory())walk(p);else hashes[relative(dest,p)]=sha(readFileSync(p))}}walk(dest)
++hashes['research/verify-all/final-gate-common.ts']=sha(readFileSync('/private/tmp/lane-i-paxos-runner.djtUt9/research/verify-all/final-gate-common.ts'));save('checksums.json',hashes)
++const out=resolve('runs/lane-i/gated-follow-up');mkdirSync(out,{recursive:true});writeFileSync(join(out,'input-manifest.json'),JSON.stringify({stage:dest,revisions,gatedTree:git('rev-parse',candidate+'^{tree}'),manifestSha256:sha(readFileSync(join(dest,'checksums.json'))),files:hashes},null,2)+'\n');console.log(JSON.stringify({stage:dest,revisions,controlPackBytes:pack.stdout.length,files:Object.keys(hashes).length}))
+diff --git a/research/lane-i/follow-up/tools.jobs.json b/research/lane-i/follow-up/tools.jobs.json
+new file mode 100644
+index 00000000..e5df1b36
+--- /dev/null
++++ b/research/lane-i/follow-up/tools.jobs.json
+@@ -0,0 +1,10 @@
++[
++  {
++    "name": "follow-up-tools-only",
++    "cmd": "set -euo pipefail; cp -a audit-data/follow-up-input/. .; bun audit-data/source/audit.ts --self-test; bun audit-data/validate-tools.ts audit-data .",
++    "cpu": 4,
++    "memory": 14336,
++    "timeout": 900,
++    "vm_type": "large"
++  }
++]
+diff --git a/research/lane-i/follow-up/validate-tools.ts b/research/lane-i/follow-up/validate-tools.ts
+new file mode 100644
+index 00000000..ee67e749
+--- /dev/null
++++ b/research/lane-i/follow-up/validate-tools.ts
+@@ -0,0 +1,20 @@
++// The audit tooling is checked on an isolated a8 source tree; this is not a new gate.
++import{readFileSync,mkdtempSync,mkdirSync,readdirSync,copyFileSync,rmSync}from'node:fs'
++import{resolve,join}from'node:path'
++import{createHash}from'node:crypto'
++import{runResourceMeasured}from'./resource-run.ts'
++const input=resolve(process.argv[2]??'audit-data'),frozen=resolve(process.argv[3]??'.'),{restore,command}=await import(resolve('research/verify-all/final-gate-common.ts')),root=mkdtempSync('/tmp/follow-up-tools-'),sha=(v:Uint8Array)=>createHash('sha256').update(v).digest('hex'),cfg=JSON.parse(readFileSync(join(frozen,'config.json'),'utf8'))
++try{
++ const sourceManifest=JSON.parse(readFileSync(join(input,'source-manifest.json'),'utf8'));for(const[p,h]of Object.entries(sourceManifest))if(sha(readFileSync(join(input,'source',p)))!==h)throw Error('audit source hash mismatch '+p)
++ if(sha(readFileSync(join(input,'resource-run.ts')))!==sha(readFileSync(join(frozen,'driver/resource-run.ts'))))throw Error('resource runner differs from measured worker')
++ restore(join(frozen,'gate-inputs'),root,cfg.revisions.candidate)
++ const target=join(root,'research/lane-i/follow-up');mkdirSync(target,{recursive:true})
++ for(const name of readdirSync(join(input,'source')).filter(n=>n.endsWith('.ts')))copyFileSync(join(input,'source',name),join(target,name))
++ for(const[p,h]of Object.entries(cfg.sources.candidate))if(sha(readFileSync(join(root,p)))!==h)throw Error('candidate source changed '+p)
++ command('bun',['install','--frozen-lockfile'],root)
++ const checked=await runResourceMeasured('bun',['run','check'],root,'follow-up-tools-check',600)
++ console.log('FOLLOW_TOOLS_CHECK '+JSON.stringify({exit:checked.status,signal:checked.signal,wallMs:checked.wallMs,resources:checked.resources,stdout:checked.stdout,stderr:checked.stderr}))
++ if(checked.status!==0)throw Error('follow-up source check failed')
++ if(command('git',['status','--porcelain','--untracked-files=no'],root))throw Error('tracked candidate source changed')
++ console.log('FOLLOW_TOOLS_CLEAN '+JSON.stringify({candidate:cfg.revisions.candidate,sourceOverlay:'research/lane-i/follow-up only; original production sources unchanged'}))
++}finally{rmSync(root,{recursive:true,force:true})}
+diff --git a/research/lane-i/regressions/lane-d-regate-request.md b/research/lane-i/regressions/lane-d-regate-request.md
+new file mode 100644
+index 00000000..7cec3754
+--- /dev/null
++++ b/research/lane-i/regressions/lane-d-regate-request.md
+@@ -0,0 +1,70 @@
++# For Lane D — independent re-gate requested
++
++Please re-gate the exact candidate **`a8bbe0984f270070eba9bc166a89909d0c67597e`**
++against **`8214a543bc44e88d979f9e4457d7370e7e3c122b`**. This is a request for
++independent qualification, **not a green-gate claim**. Later branch commits
++record evidence only; the checked source candidate is the hash above.
++
++## Requested repairs
++
++1. `bed9ecb3` repairs the symbolic-binder completeness loss introduced by
++   `1be4ffc1`: original symbolic terms coexist with distinct arithmetic
++   constants. Proposal budgets are unchanged. Lane D's original helper
++   probe passes on both sides; matching committed positive and negative
++   controls are in `kernel/model-values.test.ts`.
++2. `985890c1` adds all 21 omitted new tests, the inherited
++   `core/extract-sol.test.ts` gap, and recursive filesystem completeness
++   checks against explicit quick/long rosters. Corrected targeted selection
++   executes all 25 intended files: **163 tests / 11,974 assertions, zero
++   failures**, on `547badb3`; later changes are qualification tooling only.
++3. Exact `a8bbe098` type/lint passes: **zero warnings and errors**, all 1,639
++   files checked. Process-tree peak RSS is 3,166,500 KiB with zero OOM delta.
++   The historical oxlint SIGKILL has not reproduced or been labelled OOM.
++   Three same-worker alternating TIP `relaxedprefix_correct` pairs ran on
++   `1fc444ca`: base unknown three times; candidate unknown twice and one
++   outer timeout (exit 124). No earlier error reproduced; that timeout
++   remains an incomplete result.
++4. `94be6cdb` chooses **revert**, not asserted equivalence: canonical
++   `research/protocols/ic3syn/models.ts` is byte-identical to `8214a543`.
++   All five protected canonical harness files match the original baseline.
++   The Track M / Lane B P* routing from `0e2790f3` is removed from the
++   canonical roster. The standalone alternate port is research-only.
++   No original-model 29/29 success is claimed.
++
++## Preserved constraints and adverse evidence
++
++- Three repaired-candidate p1 attempts independently replay at
++  **1152.3382236 units**. Three whole-Paxos runs prove at exactly
++  **6,915,544 solver / 1,037,946 full work**. The earlier five-pair
++  confirmation remains archived. No proof/test budget was increased.
++- Six full quick shards pass, but shard 2 fails the unchanged effect-pool
++  CLI case with unknowns for its three first-call laws and stops before
++  later shard units. This is NOT a full-suite pass.
++- Further unchanged effect tests: baseline 3/3 isolated passes; candidate
++  2/3. Both pass the full six-test file. Preserve the candidate-only loss.
++- Fifteen first-call traces compare baseline, `d3adf3c9`, repaired candidate,
++  a disposable binder rollback, and disabled row sharing. Repaired candidate
++  and baseline pass all three traced calls; historical `d3adf3c9` returns
++  unknowns once after losing prerequisite lemmas. These traces do not
++  isolate the failure to the symbolic repair or shared rows, and do not
++  erase failed native tests. No experimental control is a gate candidate.
++
++## Evidence
++
++- `runs/lane-i/next-candidate/`: original 14-job packet, including failed
++  workers and the incomplete 12-of-25 targeted selection.
++- `runs/lane-i/next-candidate-audit/`: independent trace/hash/source audit,
++  zero integrity issues; acceptance remains false.
++- `runs/lane-i/next-candidate-v2/`: corrected 25-file pass, paired effect
++  outcomes and the retained helper lint failure.
++- `runs/lane-i/next-candidate-v3/`: exact-source clean check and all traces.
++- `research/lane-i/regressions/next-candidate-results.md`: chronology.
++
++Final independent verification passed in `20261110-075757-rwfa48`: all 25
++actual test files, clean check, four effect pairs and 15 source traces were
++validated with three refusal fixtures. All commit-message checks passed.
++This verifies the packet, not a green gate. Results:
++`runs/lane-i/next-final-validation/`.
++
++Please keep original caps, negative controls, source identities, the full
++roster and all adverse outcomes in the independent re-gate.
+diff --git a/research/lane-i/regressions/next-candidate-results.md b/research/lane-i/regressions/next-candidate-results.md
+index 9f1c3082..36ef5d21 100644
+--- a/research/lane-i/regressions/next-candidate-results.md
++++ b/research/lane-i/regressions/next-candidate-results.md
+@@ -38,5 +38,50 @@ qualification is pending under `61bd3c87-e7a6-43da-8592-04d4186511f7`.
+ The original packet has not been overwritten. The first archive-audit
+ launcher failed before admission because its jobs path was relative to the
+ wrong directory (`5e6a4244-b560-4f64-b7ff-b95af4e9d436`). The identical
+-independent archive/hash/count audit is now pending under
+-`c4e99d55-ad36-4939-b25e-98feaa77f55e`, using an absolute jobs path.
++independent archive/hash/count audit completed under
++`c4e99d55-ad36-4939-b25e-98feaa77f55e`, batch `20261110-072741-9261hm`,
++using an absolute jobs path. It found zero archive-integrity issues, passed
++three refusal fixtures, and retained every acceptance blocker. Raw observed
++shard totals are 1,564 passes, 17 skips, one failure and 606,052 assertions;
++these are not a completed/full-passing-suite claim. The failed shard stopped
++before its later units. The corrected six-job qualification subsequently completed as follows.
++
++## Corrected selection and effect pairs (547badb3)
++
++Batch `20261110-072557-nomeq6` ran six exclusive boat jobs. All **25**
++targeted files executed: **163 pass, zero fail, 11,974 assertions**.
++TypeScript passed, then type-aware lint rejected `no-unsafe-finally` in the
++qualification worker. Peak RSS was 3,186,816 KiB with zero OOM delta and
++no PID OOM event; the historical lint SIGKILL has not reproduced here.
++
++The unchanged isolated effect test passes on the baseline in all three
++pairs and on the candidate in two. Candidate repeat 3 again returns
++unknown for the three first-call laws while baseline passes. Both sides
++pass all six tests / 171 assertions in the full-file pair. This is mixed
++reproduction evidence, not grounds to dismiss the candidate-only loss.
++No test expectation, 30-second proof budget, or native test timeout changed.
++
++`a8bbe098` moves the clean-source refusal out of `finally` without removing
++cleanup. New task `42ba776a-d33f-4210-a31d-fe52fb42476d` runs type/lint and
++three source-attribution traces: original baseline, `d3adf3c9`, current
++candidate, candidate with only the symbolic fix rolled back, and candidate
++with row sharing disabled. The last two are explicitly experimental
++controls, not gate candidates. Traces preserve the original 30-second
++CLI proof budgets and capture prerequisite-lemma outcomes and root-query
++work. Results are now complete: all four jobs in batch
++`20261110-074714-ax4rw1` exit 0. Exact `a8bbe098` passes type/lint with
++zero warnings/errors across 1,639 files; peak process-tree RSS is
++3,166,500 KiB and no OOM is observed. All 15 first-call traces complete.
++The repaired candidate and original baseline pass their three traces;
++historical `d3adf3c9` returns unknowns once after its prerequisites are
++unproven. The binder rollback and disabled row sharing pass their traces.
++This does not isolate the native test loss to either new mechanism and
++never replaces or erases the earlier failed tests. No speculative runtime
++change is made from inconclusive attribution.
++
++Lane D's independent re-gate is requested for exact `a8bbe098` against
++`8214a543`, retaining known effect failures and the TIP timeout. See
++`research/lane-i/regressions/lane-d-regate-request.md`. Gate remains RED
++pending independent qualification. Final packet and commit-message
++validation passed in `20261110-075757-rwfa48`, with three refusal fixtures
++and all known failures retained (`runs/lane-i/next-final-validation/`).
+diff --git a/scripts/test-shards.ts b/scripts/test-shards.ts
+index 4a4105bb..02b88ce0 100644
+--- a/scripts/test-shards.ts
++++ b/scripts/test-shards.ts
+@@ -26,7 +26,7 @@ const units: Unit[] = [
+     gdp.test.ts datatypes.test.ts lemmas.test.ts discover.test.ts infer.test.ts cyclic.test.ts cycles.test.ts
+     nonterm.test.ts data.test.ts data-synth.test.ts hypothesis.test.ts seqs.test.ts abstract.test.ts search.test.ts invoices.test.ts
+     folds.test.ts trees.test.ts pairs.test.ts chart.test.ts xstate.test.ts extract.test.ts extract-standalone.test.ts extract-absence.test.ts extract-choice-joins.test.ts extract-standalone-prototype.test.ts extract-standalone-regression.test.ts extract-py.test.ts extract-py-mro.test.ts extract-py-hasattr.test.ts extract-orm.test.ts extract-py-orm.test.ts extract-sol.test.ts sol-concrete.test.ts effect.test.ts
+-    effect-schedule.test.ts effect-stm.test.ts effect-queue.test.ts effect-schema.test.ts calendar.test.ts count-facts.test.ts count-ranges.test.ts count-write-frames.test.ts counts-completion-order.test.ts count-completion.test.ts count-witness.test.ts count-unions.test.ts count-witness-flags.test.ts count-focused.test.ts count-cases.test.ts count-focus-proof.test.ts count-recovery-order.test.ts count-cert-grow.test.ts field-laws.test.ts count-cubes.test.ts finite-tiny.test.ts finite-tiny-houdini.test.ts bitsets.test.ts sample-cache.test.ts small-laws.test.ts cube-width.test.ts exists-support.test.ts carry.test.ts scan-prefix.test.ts
++    effect-schedule.test.ts effect-stm.test.ts effect-queue.test.ts effect-schema.test.ts calendar.test.ts count-facts.test.ts count-ranges.test.ts count-write-frames.test.ts counts-completion-order.test.ts count-completion.test.ts count-witness.test.ts count-unions.test.ts count-witness-flags.test.ts count-focused.test.ts count-cases.test.ts count-focus-proof.test.ts count-recovery-order.test.ts count-cert-grow.test.ts field-laws.test.ts field-loaded.test.ts count-cubes.test.ts finite-work.test.ts finite-tiny.test.ts finite-tiny-houdini.test.ts bitsets.test.ts sample-cache.test.ts small-laws.test.ts cube-width.test.ts exists-support.test.ts carry.test.ts scan-prefix.test.ts
+     runtime-keys.test.ts sample-step.test.ts small-counts.test.ts cube-rows.test.ts quorum-laws.test.ts wall.test.ts count-demand.test.ts count-cert-transport.test.ts
+     lemma-cuts.test.ts count-support.test.ts count-admission.test.ts counts-preflight.test.ts counts-structured.test.ts relevance.test.ts support-order.test.ts`),
+   ...tests('core/count-recovery', 'conditional-check-cache.test.ts conditional-cuts.test.ts conditional-proof.test.ts derivability-closure.test.ts empty-count-source.test.ts field-bound-budget.test.ts leaf-allowance.test.ts member-inclusions.test.ts pre-state-source.test.ts rename-proof.test.ts row-demand.test.ts scalar-guards.test.ts source-witness-instances.test.ts member-premises.test.ts action-guard.test.ts row-cases.test.ts natural-cases.test.ts carried-case.test.ts live-dependencies.test.ts field-bound-lemmas.test.ts boolean-core.test.ts key-closure.test.ts lift-count-proxies.test.ts rebase-path.test.ts fold-path.test.ts frame-lemmas.test.ts guard-cases.test.ts field-only.test.ts source-memo.test.ts field-demand.test.ts'),

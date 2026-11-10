@@ -1,0 +1,165 @@
+diff --git a/core/check.ts b/core/check.ts
+index 12531ca3..985b9350 100644
+--- a/core/check.ts
++++ b/core/check.ts
+@@ -13,6 +13,7 @@
+ // A witness satisfies its constraints when every one of them evaluates to at most 0 at it, every value, product and
+ // partial sum a safe integer (else it is not taken: a rounded sum may read a positive row as 0).
+ import type {Constraint, Lin, Step} from './solver.ts'
++import {kernelMeter} from '../kernel/meter.ts'
+ 
+ const vars = (lin: Lin) => Object.keys(lin).filter(key => key !== '1')
+ const exact = (lin: Lin) => Object.values(lin).every(c => Number.isSafeInteger(c))
+@@ -20,6 +21,7 @@ const exact = (lin: Lin) => Object.values(lin).every(c => Number.isSafeInteger(c
+ export function checkRefutation(constraints: Constraint[], steps: Step[], integral = true): boolean {
+   const rows: Lin[] = [], strict: boolean[] = []
+   for (const [i, s] of steps.entries()) {
++    kernelMeter.checkSteps += 1
+     if (s.kind === 'input') {
+       if (!(Number.isInteger(s.index) && s.index >= 0 && s.index < constraints.length)) return false
+       const c = constraints[s.index]!
+@@ -31,7 +33,7 @@ export function checkRefutation(constraints: Constraint[], steps: Step[], integr
+       // (on no prototype: a row's variable named __proto__ is summed like any other, never dropped)
+       const out: Lin = Object.create(null)
+       // Each product safe too: a rounded one is past 2^53, but the other row's could bring the sum back under it.
+-      for (const [lin, m] of [[rows[s.a]!, s.ma], [rows[s.b]!, s.mb]] as const) for (const [key, c] of Object.entries(lin)) { if (!Number.isSafeInteger(m * c)) return false; out[key] = (out[key] ?? 0) + m * c }
++      for (const [lin, m] of [[rows[s.a]!, s.ma], [rows[s.b]!, s.mb]] as const) for (const [key, c] of Object.entries(lin)) { kernelMeter.tableCells += 1; if (!Number.isSafeInteger(m * c)) return false; out[key] = (out[key] ?? 0) + m * c }
+       if (!exact(out)) return false
+       rows.push(out); strict.push(strict[s.a]! || strict[s.b]!)
+     } else {
+@@ -48,8 +50,10 @@ export function checkRefutation(constraints: Constraint[], steps: Step[], integr
+ 
+ export function checkWitness(constraints: Constraint[], witness: Record<string, number>): boolean {
+   return constraints.every(c => {
++    kernelMeter.checkSteps += 1
+     let sum = 0
+     for (const [key, a] of Object.entries(c.lin)) {
++      kernelMeter.tableCells += 1
+       const value = key === '1' ? 1 : Object.hasOwn(witness, key) ? witness[key] : undefined, term = a * value!
+       if (!(Number.isSafeInteger(a) && Number.isSafeInteger(value) && Number.isSafeInteger(term) && Number.isSafeInteger(sum + term))) return false
+       sum += term
+diff --git a/kernel/kernel.ts b/kernel/kernel.ts
+index e557bc6c..8ba308e0 100644
+--- a/kernel/kernel.ts
++++ b/kernel/kernel.ts
+@@ -18,6 +18,7 @@
+ // meet it), so it holds at the start and at every step; `assume`, about each request, holds only at a step, since no
+ // request has come at the start.
+ import {checkRefutation} from '../core/check.ts'
++import {kernelMeter} from './meter.ts'
+ import type {C, Counted, E, Law, Machine, MapUpdate} from '../core/machine.ts'
+ import {type Constraint, type Lin, type Step, add, k, scale, sub, v} from '../core/solver.ts'
+ 
+@@ -114,6 +115,7 @@ export function linear(e: E, path: Path): Lin | undefined {
+ // here, so no rounding inside a term goes unseen (core/check.ts refuses such rows too).
+ function linearOf(e: E, path: Path): Lin | undefined {
+   const out = linearOp(e, path)
++  kernelMeter.tableCells += out ? Object.keys(out).length : 0
+   return out && safe(out) ? out : undefined
+ }
+ const safe = (lin: Lin) => Object.values(lin).every(c => Number.isSafeInteger(c))
+@@ -206,6 +208,7 @@ export function termRows(name: string, path: Path): Lin[] {
+     if (a && b && constant(a) && constant(b)) out.push(sub(col, add(a, b)))
+   }
+   if (decided(e, path)) { const r = linear(e, path); if (r) out.push(sub(col, r), sub(r, col)) }
++  for (const row of out) kernelMeter.tableCells += Object.keys(row).length
+   return out
+ }
+ 
+@@ -219,6 +222,7 @@ export function termRows(name: string, path: Path): Lin[] {
+ function times(a: Lin, b: Lin): Lin | undefined {
+   const out: Lin = Object.create(null)
+   for (const [p, cp] of Object.entries(a)) for (const [q, cq] of Object.entries(b)) {
++    kernelMeter.tableCells += 1
+     if (p.includes('⟦') || q.includes('⟦')) return undefined
+     const fs = [...(p === '1' ? [] : factorsOf(p)), ...(q === '1' ? [] : factorsOf(q))].sort(), key = fs.length ? fs.join('*') : '1', c = (out[key] ?? 0) + cp * cq
+     if (!(Number.isSafeInteger(cp) && Number.isSafeInteger(cq) && Number.isSafeInteger(cp * cq) && Number.isSafeInteger(c))) return undefined
+@@ -429,6 +433,7 @@ function leafRows(goal: Goal, path: Path, factsOf: (h: C) => Lin[]): Constraint[
+   // Two reads of one map whose keys the path proves equal are equal.
+   const cells = [...names].filter(isCell).map(name => ({name, ...cellParts(name)}))
+   for (const [i, p] of cells.entries()) for (const q of cells.slice(i + 1)) {
++    kernelMeter.tableCells += 1
+     if (p.map !== q.map) continue
+     if (!sameKey(p, q, path)) continue
+     rows.push({lin: sub(v(p.name), v(q.name)), label: '', src: {pair: [p.name, q.name]}}, {lin: sub(v(q.name), v(p.name)), label: '', src: {pair: [p.name, q.name]}})
+@@ -445,6 +450,7 @@ function leafRows(goal: Goal, path: Path, factsOf: (h: C) => Lin[]): Constraint[
+     }
+   }
+   for (const name of names) rows.push({lin: {[name]: -1}, label: '', src: {nat: name}})
++  for (const row of rows) kernelMeter.tableCells += Object.keys(row.lin).length
+   return rows
+ }
+ // A cell's map and key: M[k] a key, M[⟨k1|k2|…⟩] a tuple's parts (each a canonical text). Split at the outer level only:
+@@ -497,10 +503,12 @@ export function withProducts(rows: Constraint[], pairs: [number, number][], squa
+     const p = out[i], q = out[j], pq = p && q ? times(p.lin, q.lin) : undefined
+     out.push(pq ? {lin: scale(pq, -1), label: ''} : {lin: {}, label: ''})
+   }
++  for (const row of out.slice(rows.length)) kernelMeter.tableCells += Object.keys(row.lin).length
+   return out
+ }
+ 
+ export function check(goal: Goal, tree: Tree, path: Path = new Map()): boolean {
++  kernelMeter.checkSteps += 1
+   if ('leaf' in tree) return checkRefutation(withProducts(leafConstraints(goal, path), tree.products ?? [], tree.squares), tree.leaf)
+   const id = canon(tree.split)
+   if (path.has(id) || Object.keys(tree.split).every(key => key === '1')) return false
+@@ -546,12 +554,14 @@ export function checkGoalLemmas(goal: Goal, tree: Tree, lemmas: LemmaCut[] = [])
+       && Array.from(l.when).every(lemmaLin) && lemmaLin(l.cut) && !!l.tree && typeof l.tree === 'object'
+       && (l.slice === undefined || Array.isArray(l.slice) && Array.from(l.slice).every(i => Number.isSafeInteger(i) && i >= 0 && i < goal.hyps.length)))) return false
+     for (const l of lemmas) {
++      kernelMeter.checkSteps += 1
+       const hyps = l.slice === undefined ? goal.hyps : l.slice.map(i => goal.hyps[i]!)
+       const path = prependAtoms([{lin: l.cut, holds: false}, ...l.when.map(lin => ({lin, holds: true}))], new Map())
+       if (!check({...goal, hyps}, l.tree, path)) return false
+     }
+     const visit = (t: Tree, path: Path): boolean => {
+       if ('leaf' in t) return check(goal, t, lemmaPath(lemmas, path))
++      kernelMeter.checkSteps += 1
+       const id = canon(t.split)
+       if (path.has(id) || Object.keys(t.split).every(key => key === '1')) return false
+       return visit(t.yes, new Map(path).set(id, {lin: t.split, holds: true}))
+@@ -1772,6 +1782,7 @@ export function qLeafRows(goal: QGoal, path: Path): Constraint[] {
+ }
+ // A split on a row the path decides already (or a constant one) is refused, as Lean's checkT refuses it.
+ export function checkQTree(goal: QGoal, tree: Tree, path: Path = new Map()): boolean {
++  kernelMeter.checkSteps += 1
+   if ('leaf' in tree) return !tree.products?.length && !tree.squares?.length && checkRefutation(qLeafRows(goal, path), tree.leaf, false)
+   const row = linRow(tree.split), lin = row && qLin(row)
+   if (!row || !lin || qdec(path, row) !== undefined) return false
+@@ -1904,6 +1915,7 @@ export function countedOk(hyps: C[], cs: Count[], is: CountInst[]): boolean {
+ // (Lean's are Int).
+ const typed = (is: CountInst[]): boolean => is.every(i => typeof i.wit === 'string' && Number.isSafeInteger(i.unit) && i.terms.every(([z]) => Number.isSafeInteger(z)))
+ export function checkCounted(g: CountedGoal, cert: {insts: CountInst[], tree: Tree, lemmas?: LemmaCut[]}): boolean {
++  kernelMeter.checkSteps += 1
+   if (!(countedOk(g.hyps, g.counts, cert.insts) && typed(cert.insts))) return false
+   const goal = countedGoal(g, cert.insts)
+   return goal !== undefined && checkGoalLemmas(goal, cert.tree, cert.lemmas)
+@@ -2037,6 +2049,7 @@ const witFreshW = (cs: Count[], is: CountInst[], w: string): boolean =>
+   cs.every(c => c.v !== w && !readsVar(c.below, w) && !readsVar(c.body, w)) && is.every(j => !readsVar(j.below, w))
+ const countedOkW = (cs: Count[], is: CountInst[]): boolean => { const ws = is.map(i => i.wit); return new Set(ws).size === ws.length && is.every(i => witFreshW(cs, is, i.wit)) }
+ function checkCountedW(hyps: C[], cs: Count[], cert: {insts: CountInst[], tree: Tree, lemmas?: LemmaCut[]}): boolean {
++  kernelMeter.checkSteps += 1
+   if (!(countedOkW(cs, cert.insts) && typed(cert.insts))) return false
+   const hs = countHyps(cs, cert.insts)
+   return hs !== undefined && checkGoalLemmas({name: 'counted', hyps: [...hyps, ...hs]}, cert.tree, cert.lemmas)
+@@ -2045,6 +2058,7 @@ function checkCountedW(hyps: C[], cs: Count[], cert: {insts: CountInst[], tree:
+ // its key term, and checkCountedW accepts the counted goal they make (the goal's hypotheses, each read variable equal to
+ // its cell; Lean's names the hypotheses it uses, each the goal's).
+ export function checkMC(hyps: C[], ds: CountDecl[], k: CountCert): boolean {
++  kernelMeter.checkSteps += 1
+   if (!(ds.every(d => d.j !== d.key && loOf(d) !== d.key) && picksTyped(k.picks) && readsTyped(k.reads) && Array.isArray(k.insts) && k.insts.every(i => !!i && safeTerm(i.below)) && readsOk(hyps, ds, k.reads))) return false
+   if (!k.reads.every(r => k.insts.every(i => i.wit !== r[0] && !readsVar(r[2], i.wit)))) return false
+   const cs = toCounts(ds, k.reads)
+diff --git a/kernel/meter.ts b/kernel/meter.ts
+new file mode 100644
+index 00000000..ec36fa56
+--- /dev/null
++++ b/kernel/meter.ts
+@@ -0,0 +1,7 @@
++// Raw observations only: trusted checkers increment, but never branch on these.
++// No budget, reset, weight, timer, callback or acceptance decision belongs here.
++// Counter scope and calibrated aggregation belong to the untrusted prover.
++export const kernelMeter = {
++  tableCells: 0,
++  checkSteps: 0,
++}

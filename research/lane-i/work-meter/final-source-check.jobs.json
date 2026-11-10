@@ -1,0 +1,14 @@
+[
+  {
+    "name": "kernel-meter-final-source-check",
+    "cmd": "bun meter-input/prepare.ts && bun meter-prepared-input/preflight.ts checks --tools-only",
+    "cpu": 4,
+    "memory": 14336,
+    "timeout": 900,
+    "vm_type": "large",
+    "env": {
+      "METER_MUTATION": "plain",
+      "METER_CODE_VERSION": "2"
+    }
+  }
+]

@@ -1,0 +1,10 @@
+{
+  "parent": "279c45b3bb2e8655c98931958962ff51314cd4bd",
+  "commit": "ef5ee98aa597b2adf14ec35f612052714698cc3e",
+  "ref": "claude/lane-i-kernel-meter-v1",
+  "tree": "0fc0c2563724d4e14300da977073c9eae27693a6",
+  "kernelBlob": "8ba308e02b3757aa22c65ddffa1bb1d89d59c8ad",
+  "checkBlob": "985b935018e2475a8fe6beb3d29a9b768df22e79",
+  "meterBlob": "ec36fa56d0998d7e03a49aebc19f95cc31e9477f",
+  "status": "isolated draft tree; no acceptance, completeness, calibrated weights or budget claims"
+}

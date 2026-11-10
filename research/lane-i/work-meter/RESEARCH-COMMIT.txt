@@ -1,0 +1,4 @@
+chore(research): checkpoint raw meter audit
+
+Preserve the isolated increments-only draft and its acceptance checks.
+Keep coverage gaps and pending Lane D qualification explicit.

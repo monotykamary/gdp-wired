@@ -1,0 +1,23 @@
+[
+  {
+    "name": "kernel-meter-receipt-audit",
+    "cmd": "bun meter-input/audit-receipts.ts meter-results 2",
+    "cpu": 1,
+    "memory": 2048,
+    "timeout": 120
+  },
+  {
+    "name": "kernel-meter-audit-commitlint",
+    "cmd": "set -euo pipefail; temp=$(mktemp -d); trap 'rm -rf \"$temp\"' EXIT; printf '{\"private\":true}\\n' > \"$temp/package.json\"; (cd \"$temp\" && bun add --dev @commitlint/cli@19.8.1 @commitlint/config-conventional@19.8.1 >/dev/null); printf \"module.exports={extends:['@commitlint/config-conventional']};\\n\" > \"$temp/commitlint.config.cjs\"; for file in meter-input/*COMMIT.txt; do \"$temp/node_modules/.bin/commitlint\" --cwd \"$temp\" < \"$file\"; printf 'GENERATOR_COMMITLINT %s\\n' \"$file\"; sha256sum \"$file\"; done",
+    "cpu": 2,
+    "memory": 4096,
+    "timeout": 300
+  },
+  {
+    "name": "kernel-meter-missing-receipts-negative",
+    "cmd": "set -euo pipefail; if bun meter-input/audit-receipts.ts old-meter-results 1 > /tmp/meter-missing-receipts.log 2>&1; then printf 'unexpected acceptance of missing receipts\\n'; exit 1; fi; grep -q 'missing preload receipt' /tmp/meter-missing-receipts.log; printf 'KERNEL_METER_MISSING_RECEIPTS_NEGATIVE passed\\n'",
+    "cpu": 1,
+    "memory": 2048,
+    "timeout": 120
+  }
+]

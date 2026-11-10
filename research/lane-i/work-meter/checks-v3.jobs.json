@@ -1,0 +1,57 @@
+[
+  {
+    "name": "kernel-meter-plain",
+    "cmd": "bun meter-input/prepare.ts && bun meter-prepared-input/preflight.ts checks",
+    "cpu": 4,
+    "memory": 14336,
+    "timeout": 1200,
+    "vm_type": "large",
+    "env": {
+      "METER_MUTATION": "plain",
+      "METER_CODE_VERSION": "2"
+    }
+  },
+  {
+    "name": "kernel-meter-zero",
+    "cmd": "bun meter-input/prepare.ts && bun meter-prepared-input/preflight.ts checks",
+    "cpu": 4,
+    "memory": 14336,
+    "timeout": 1200,
+    "vm_type": "large",
+    "env": {
+      "METER_MUTATION": "zero",
+      "METER_CODE_VERSION": "2"
+    }
+  },
+  {
+    "name": "kernel-meter-double",
+    "cmd": "bun meter-input/prepare.ts && bun meter-prepared-input/preflight.ts checks",
+    "cpu": 4,
+    "memory": 14336,
+    "timeout": 1200,
+    "vm_type": "large",
+    "env": {
+      "METER_MUTATION": "double",
+      "METER_CODE_VERSION": "2"
+    }
+  },
+  {
+    "name": "kernel-meter-random",
+    "cmd": "bun meter-input/prepare.ts && bun meter-prepared-input/preflight.ts checks",
+    "cpu": 4,
+    "memory": 14336,
+    "timeout": 1200,
+    "vm_type": "large",
+    "env": {
+      "METER_MUTATION": "random",
+      "METER_CODE_VERSION": "2"
+    }
+  },
+  {
+    "name": "kernel-meter-commitlint",
+    "cmd": "set -euo pipefail; temp=$(mktemp -d); trap 'rm -rf \"$temp\"' EXIT; printf '{\"private\":true}\\n' > \"$temp/package.json\"; (cd \"$temp\" && bun add --dev @commitlint/cli@19.8.1 @commitlint/config-conventional@19.8.1 >/dev/null); printf \"module.exports={extends:['@commitlint/config-conventional']};\\n\" > \"$temp/commitlint.config.cjs\"; for file in meter-input/*COMMIT.txt; do \"$temp/node_modules/.bin/commitlint\" --cwd \"$temp\" < \"$file\"; printf 'GENERATOR_COMMITLINT %s\\n' \"$file\"; sha256sum \"$file\"; done",
+    "cpu": 2,
+    "memory": 4096,
+    "timeout": 300
+  }
+]

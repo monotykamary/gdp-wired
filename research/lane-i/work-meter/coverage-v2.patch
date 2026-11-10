@@ -1,0 +1,40 @@
+diff --git a/core/check.ts b/core/check.ts
+index 985b9350..48b03884 100644
+--- a/core/check.ts
++++ b/core/check.ts
+@@ -15,8 +15,8 @@
+ import type {Constraint, Lin, Step} from './solver.ts'
+ import {kernelMeter} from '../kernel/meter.ts'
+ 
+-const vars = (lin: Lin) => Object.keys(lin).filter(key => key !== '1')
+-const exact = (lin: Lin) => Object.values(lin).every(c => Number.isSafeInteger(c))
++const vars = (lin: Lin) => Object.keys(lin).filter(key => (kernelMeter.tableCells += 1, key !== '1'))
++const exact = (lin: Lin) => Object.values(lin).every(c => (kernelMeter.tableCells += 1, Number.isSafeInteger(c)))
+ 
+ export function checkRefutation(constraints: Constraint[], steps: Step[], integral = true): boolean {
+   const rows: Lin[] = [], strict: boolean[] = []
+diff --git a/kernel/kernel.ts b/kernel/kernel.ts
+index 8ba308e0..779d61cd 100644
+--- a/kernel/kernel.ts
++++ b/kernel/kernel.ts
+@@ -115,10 +115,9 @@ export function linear(e: E, path: Path): Lin | undefined {
+ // here, so no rounding inside a term goes unseen (core/check.ts refuses such rows too).
+ function linearOf(e: E, path: Path): Lin | undefined {
+   const out = linearOp(e, path)
+-  kernelMeter.tableCells += out ? Object.keys(out).length : 0
+   return out && safe(out) ? out : undefined
+ }
+-const safe = (lin: Lin) => Object.values(lin).every(c => Number.isSafeInteger(c))
++const safe = (lin: Lin) => Object.values(lin).every(c => (kernelMeter.tableCells += 1, Number.isSafeInteger(c)))
+ function linearOp(e: E, path: Path): Lin | undefined {
+   switch (e.op) {
+     case 'var': return e.name === '1' || /[*[\],:⟦⟨⟩|]/.test(e.name) ? undefined : v(e.name) // those characters build cells, monomials, term columns and tuple keys
+@@ -1778,7 +1777,7 @@ export function qfacts(c: QC, path: Path, pos = true): [QRow, boolean][] {
+ export function qLeafRows(goal: QGoal, path: Path): Constraint[] {
+   const rows: [QRow, boolean][] = [...[...path.values()].map(a => (a.holds ? [linRow(a.lin)!, false] : [rscale(-1n, linRow(a.lin)!), true]) as [QRow, boolean]),
+     ...goal.hyps.flatMap(h => qfacts(h, path))]
+-  return rows.flatMap(([r, strict]) => { const lin = qLin(r); return lin ? [{lin, label: '', strict}] : [] })
++  return rows.flatMap(([r, strict]) => { const lin = qLin(r); kernelMeter.tableCells += lin ? Object.keys(lin).length : 0; return lin ? [{lin, label: '', strict}] : [] })
+ }
+ // A split on a row the path decides already (or a constant one) is refused, as Lean's checkT refuses it.
+ export function checkQTree(goal: QGoal, tree: Tree, path: Path = new Map()): boolean {

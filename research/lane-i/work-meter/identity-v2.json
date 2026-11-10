@@ -1,0 +1,35 @@
+{
+  "candidate": "tree:4e27c04f1e720ca763105e0a6ae64c1ddcdaa297",
+  "candidateRef": "uncommitted isolated I1 tree",
+  "previousEquivalentCandidate": "ee6a78c3e23ea816b87ea392f18126021bf3822a",
+  "integrationBase": "b11e1f651618b3d3fcaf6cec66b4a8b0203cdcd3",
+  "gateBaseline": "b11e1f651618b3d3fcaf6cec66b4a8b0203cdcd3",
+  "baselineTree": "bc7948a84cd1c5871372f4c8ff123aba9cfbac20",
+  "cachedArchiveBase": "a8bbe0984f270070eba9bc166a89909d0c67597e",
+  "producer": "e1614061",
+  "originalModelBlob": "0541fa9436e307a6fb716aa5064637b30b893b79",
+  "expectedCandidateBlobs": {
+    "core/counts.ts": "3ac8c705657be02222e35ca121bcb7e4b9a97eb2",
+    "core/field-laws.test.ts": "89f8341e56829855c4a704fa0139997e36612d42",
+    "core/field-laws.ts": "c3a6e94528b9551dc3c3ac4032cfbe2507bce955",
+    "core/field-loaded.test.ts": "d3201db494d92377d20af0b6e2e23705422adfac",
+    "core/finite-houdini.ts": "30a9c61d5c3799d11500edf13fc60a3849dc961a",
+    "core/finite-work.test.ts": "35bee33d58f281f733e5e1b4920db414000faad6",
+    "core/support-order.test.ts": "1221124a0c0cdb7ac0432a8c084089a68d7b569b",
+    "kernel/kernel.ts": "779d61cdbb0f2875e62aa765ab340df7c6fbbbf6",
+    "kernel/prove.ts": "7d8728b9a9bc7270661d34550d32b36bd001d793",
+    "research/protocols/ic3syn/models.ts": "0541fa9436e307a6fb716aa5064637b30b893b79",
+    "research/protocols/ic3syn/run.ts": "59ac078c9340a0425fccef4a3cf79b9f9321d88e",
+    "scripts/test-shards.ts": "02b88ce0a4dcf194e4b229f0825016a9b48fe313",
+    "core/check.ts": "48b038841d34f0b8db867fba9f128ddf2d7e1dec",
+    "kernel/meter.ts": "ec36fa56d0998d7e03a49aebc19f95cc31e9477f"
+  },
+  "costConstraints": {
+    "p1Units": 1152.3382236,
+    "paxosSolver": 6915544,
+    "paxosFull": 1037946
+  },
+  "status": "raw meter draft only; fullWork unchanged; no calibrated weights or W",
+  "revisedFinishLine": "after Lane D adjudication and generator intake: one complete counter, no internal wall caps, fixed W calibrated once, repeat/three-CPU verdict and count identity, one quiet wall confirmation",
+  "section18": "read in full: MLDR-DESIGN.md Section 18, beginning at line 3913; I1-I3 may proceed in parallel with A1-A2; no weights or W selected here"
+}

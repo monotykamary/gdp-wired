@@ -1,0 +1,9 @@
+[
+  {
+    "name": "kernel-meter-diagnostics",
+    "cmd": "bun meter-input/diagnostics.ts",
+    "cpu": 1,
+    "memory": 2048,
+    "timeout": 60
+  }
+]

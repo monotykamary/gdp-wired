@@ -1,0 +1,9 @@
+{
+  "parent": "ef5ee98aa597b2adf14ec35f612052714698cc3e",
+  "commit": "9f89363c669127568bef7f131050c522cf233be0",
+  "ref": "claude/lane-i-kernel-meter-v2",
+  "tree": "4e27c04f1e720ca763105e0a6ae64c1ddcdaa297",
+  "kernelBlob": "779d61cdbb0f2875e62aa765ab340df7c6fbbbf6",
+  "checkBlob": "48b038841d34f0b8db867fba9f128ddf2d7e1dec",
+  "status": "independently verified raw-meter test matrix; isolated, not active; pending Lane D review"
+}
