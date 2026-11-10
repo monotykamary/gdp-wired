@@ -1,0 +1,9 @@
+COMMITLINT integ-commits/498f19d5.txt
+COMMITLINT integ-commits/86487c21.txt
+COMMITLINT integ-commits/final-evidence.txt
+COMMITLINT integ-commits/proposed-fix.txt
+
+--- stderr ---
+Resolving dependencies
+Resolved, downloaded and extracted [276]
+Saved lockfile

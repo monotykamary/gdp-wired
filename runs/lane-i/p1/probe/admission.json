@@ -2,7 +2,7 @@
   "task": "c54164de-9246-44c1-b493-60d3529dbabd",
   "batch": "20261110-062712-4vl6nq",
   "snapshot": "f980b21aa51a",
-  "status": "admitted; measurements pending",
+  "status": "completed; regression reproduced; unary-only policy rejected",
   "job": "p1-scheduling-probe-7001",
   "inputManifestSha256": "d503b71edbe57c418e9bd60012884c44606b077a6946a9d32c87e713871c9627",
   "control": "97463c564351448373ca49f6af980b31b1a0f0c5",

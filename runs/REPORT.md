@@ -2,6 +2,22 @@
 
 Lane I resumed from `cca59f0c` on `claude/mldr-integ`; clean worktree verified, handoff including PAUSED, COMMON, and Section 14 read. **NOT GATE GREEN.** Historical baselines remain `b788e195` for the consensus diagnosis and `b09da82d` for the Paxos diagnosis; the coordinator now requires **`8214a543bc44e88d979f9e4457d7370e7e3c122b` for every next final gate**.
 
+## For lane B — five exact-commit pairs confirm both cost requirements
+
+Repair **`f7c5b4ba`** now passes five alternating exact-source pairs against `d3adf3c9` on one exclusive EPYC 9455. Every p1 attempt is independently native-replayed: **2046.9378360 → 1152.3382236 units**, equal to Lane B's original validated control. All **ten** whole-Paxos runs prove at exactly **6,915,544 solver / 1,037,946 full work**, with zero increase. Source, family, archive, cardinality, native-proof and cost audit: **zero issues**. No source patch or budget change was used for this confirmation. Raw proof packet and audit: `runs/lane-i/p1/confirmation/`.
+
+The independent final evidence job (`610d77df-a291-411a-92f6-5f882f7806b2`, batch `20261110-065954-17ddio`) failed at type checking: four TS2532 indexed-access diagnostics in `timeout-pairs-audit.ts`; later checks were not reached. Its separate commitlint job passed. The indexed accesses are now corrected for the next qualification, without changing audit semantics; no replacement pass is claimed. The original full-suite timeouts remain retained; **this is not a clean full suite or a final-gate pass**, and Lane D's already-frozen gate is untouched.
+
+## New-main timeout diagnostics — six pairs pass in isolation
+
+The corrected paired reruns pass on both exact `8214a543` and `d3adf3c9` sources: **six pairs / 12 processes**, **66 test executions / 348 assertions**, zero source/trace/command/deadline audit issues. The unchanged search target takes **2.406–3.211 seconds**, under its 5-second limit. The unchanged Python-fold target takes **31.109–36.150 seconds**, under its 60-second limit. Each case has three alternating pairs on a single exclusive CPU model (search: EPYC 4585PX; fold: Ryzen 9 9950X). Test hashes match independently read git objects on both revisions. These failures **did not reproduce in isolation**; their full-suite timeout failures remain preserved and unattributed. This is not a clean full suite or final-gate pass. Evidence: `runs/lane-i/paxos/post-main/timeout-pairs-v2/audit.json`.
+
+## For lane B — repair committed as `f7c5b4ba`; five-pair confirmation active
+
+The targeted-qualified mixed-clause schedule is committed at **`f7c5b4bad58578d95684ca279e882f48fabd8525`**. Exact-commit confirmation is now task **`3e5a6fbc-4dd0-4900-8efb-800f7170d555`**, five alternating pairs of `d3adf3c9` / `f7c5b4ba` on one exclusive worker, with native p1 replay and strict 60-second whole-Paxos runs. It requires p1 cost 2046.9378360 → 1152.3382236 and identical 6,915,544 solver / 1,037,946 full whole-Paxos work. No repeat result is claimed before collection. Lane D's already-frozen gate is not replaced.
+
+The first timeout-rerun submission failed before any tests: a replacement-string `$` expansion corrupted the generated filter. Both jobs contribute **zero test coverage**. The corrected script uses a literal replacement callback and fresh job identities, task **`2358e804-76ae-4b31-b063-9736970f7ac2`**; original test code and 5-second / 60-second deadlines remain unchanged. Both original full-suite failures are retained.
+
 ## For lane B — mixed-clause repair passes targeted qualification
 
 The corrected policy takes early bounded completion only for a **single quantified key**, **unary count maps**, a **mixed ordinary-map/count clause**, and a **separate relevant count premise**. Aggregate-only, concrete, isolated and multi-key targets remain sparse-first. No proof rule, completion cap or deadline changed. Exact-source qualification restores `d3adf3c9` and passes **25 tests / 108 assertions**, clean TypeScript/lint, roster validation and commitlint. Native p1 replay is checked at **1152.3382236 units**; whole `paxos_epr` proves at exactly **6,915,544 solver / 1,037,946 full work**, equal to `d3adf3c9`. The qualified `core/counts.ts` SHA-256 is `7a4c830848afa2d05393bdd00c546393092cf1f94d5ce9cdee8a2aad9189abd4`.

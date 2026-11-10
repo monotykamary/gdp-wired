@@ -1,0 +1,12 @@
+{
+ "task":"3e5a6fbc-4dd0-4900-8efb-800f7170d555",
+ "status":"completed; five exact-commit pairs pass with zero audit issues",
+ "batch":"20261110-064458-bkmdhd",
+ "snapshot":"0c45849631f5",
+ "baseline":"d3adf3c9589ec014a158b6f42ecfb091c999bb43",
+ "candidate":"f7c5b4bad58578d95684ca279e882f48fabd8525",
+ "repeats":5,
+ "inputManifestSha256":"f8ead96ab04250eb028b026935e1848a979944c5a520dc2b9118b6a0ba3b68fb",
+ "scope":"exact-commit paired cost diagnostic, not a final gate",
+ "finalGate":false
+}

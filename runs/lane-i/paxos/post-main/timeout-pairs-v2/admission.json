@@ -1,0 +1,9 @@
+{
+ "task":"2358e804-76ae-4b31-b063-9736970f7ac2",
+ "status":"completed; six isolated pairs pass with zero audit issues; original suite failures remain",
+ "baseline":"8214a543bc44e88d979f9e4457d7370e7e3c122b",
+ "candidate":"d3adf3c9589ec014a158b6f42ecfb091c999bb43",
+ "supersedesFailedBootstrapTask":"c6728778-f9a9-4c3b-8041-9ceb0419a1dc",
+ "inputManifestSha256":"a4ca67969125467eae25afe558691832cbc74a0f6f0e2fca6b5b1d2e7412ca92",
+ "finalGate":false
+}

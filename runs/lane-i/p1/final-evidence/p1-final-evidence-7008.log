@@ -1,0 +1,8 @@
+P1_EVIDENCE_SOURCE {"revision":"f7c5b4bad58578d95684ca279e882f48fabd8525","tree":"b70cf93ed6eb42573f5502ae38a821692c5b2b92","submodules":"0b6ebeeec827b05210f3acfa4149a70dda9a0de5 vendor/gdp-ts (0b6ebee)\n d47141cce2caf5b86b0c2c0c372a5174f424bc15 vendor/handwired (d47141c)","clean":true}
+research/lane-i/regressions/timeout-pairs-audit.ts(23,108): error TS2532: Object is possibly 'undefined'.
+research/lane-i/regressions/timeout-pairs-audit.ts(23,142): error TS2532: Object is possibly 'undefined'.
+research/lane-i/regressions/timeout-pairs-audit.ts(29,5): error TS2532: Object is possibly 'undefined'.
+research/lane-i/regressions/timeout-pairs-audit.ts(29,32): error TS2532: Object is possibly 'undefined'.
+
+--- stderr ---
+$ tsc -p . && oxlint --type-aware --deny-warnings --disable-nested-config

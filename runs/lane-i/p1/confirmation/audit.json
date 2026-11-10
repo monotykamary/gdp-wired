@@ -1,0 +1,82 @@
+{
+  "issues": [],
+  "baseline": "d3adf3c9589ec014a158b6f42ecfb091c999bb43",
+  "candidate": "f7c5b4bad58578d95684ca279e882f48fabd8525",
+  "cpu": "AMD EPYC 9455 48-Core Processor",
+  "pairs": 5,
+  "rows": [
+    {
+      "repeat": 1,
+      "side": "current",
+      "p1Units": 2046.9378359999998,
+      "solver": 6915544,
+      "full": 1037946
+    },
+    {
+      "repeat": 1,
+      "side": "fixed",
+      "p1Units": 1152.3382235999998,
+      "solver": 6915544,
+      "full": 1037946
+    },
+    {
+      "repeat": 2,
+      "side": "fixed",
+      "p1Units": 1152.3382235999998,
+      "solver": 6915544,
+      "full": 1037946
+    },
+    {
+      "repeat": 2,
+      "side": "current",
+      "p1Units": 2046.9378359999998,
+      "solver": 6915544,
+      "full": 1037946
+    },
+    {
+      "repeat": 3,
+      "side": "current",
+      "p1Units": 2046.9378359999998,
+      "solver": 6915544,
+      "full": 1037946
+    },
+    {
+      "repeat": 3,
+      "side": "fixed",
+      "p1Units": 1152.3382235999998,
+      "solver": 6915544,
+      "full": 1037946
+    },
+    {
+      "repeat": 4,
+      "side": "fixed",
+      "p1Units": 1152.3382235999998,
+      "solver": 6915544,
+      "full": 1037946
+    },
+    {
+      "repeat": 4,
+      "side": "current",
+      "p1Units": 2046.9378359999998,
+      "solver": 6915544,
+      "full": 1037946
+    },
+    {
+      "repeat": 5,
+      "side": "current",
+      "p1Units": 2046.9378359999998,
+      "solver": 6915544,
+      "full": 1037946
+    },
+    {
+      "repeat": 5,
+      "side": "fixed",
+      "p1Units": 1152.3382235999998,
+      "solver": 6915544,
+      "full": 1037946
+    }
+  ],
+  "qualified": true,
+  "scope": "Exact-commit cost confirmation, not a final gate",
+  "finalGate": false
+}

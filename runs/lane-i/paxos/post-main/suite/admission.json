@@ -1,6 +1,6 @@
 {
   "task": "969e8315-cd78-46a9-8397-e911c8cddf48",
-  "status": "active",
+  "status": "completed-failed: two unchanged test timeouts; see suite-audit.json",
   "baseline": "8214a543bc44e88d979f9e4457d7370e7e3c122b",
   "candidate": "d3adf3c9589ec014a158b6f42ecfb091c999bb43",
   "testTimeoutUnchanged": true,

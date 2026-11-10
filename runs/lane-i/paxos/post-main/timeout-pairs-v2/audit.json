@@ -1,0 +1,120 @@
+{
+  "baseline": "8214a543bc44e88d979f9e4457d7370e7e3c122b",
+  "candidate": "d3adf3c9589ec014a158b6f42ecfb091c999bb43",
+  "issues": [],
+  "pairs": 6,
+  "processes": [
+    {
+      "case": "search",
+      "repeat": 1,
+      "side": "base",
+      "passed": 10,
+      "failed": 0,
+      "assertions": 45,
+      "durationMs": 3012.18
+    },
+    {
+      "case": "search",
+      "repeat": 1,
+      "side": "candidate",
+      "passed": 10,
+      "failed": 0,
+      "assertions": 45,
+      "durationMs": 2889.99
+    },
+    {
+      "case": "search",
+      "repeat": 2,
+      "side": "base",
+      "passed": 10,
+      "failed": 0,
+      "assertions": 45,
+      "durationMs": 3205.42
+    },
+    {
+      "case": "search",
+      "repeat": 2,
+      "side": "candidate",
+      "passed": 10,
+      "failed": 0,
+      "assertions": 45,
+      "durationMs": 3211.05
+    },
+    {
+      "case": "search",
+      "repeat": 3,
+      "side": "base",
+      "passed": 10,
+      "failed": 0,
+      "assertions": 45,
+      "durationMs": 2406.1
+    },
+    {
+      "case": "search",
+      "repeat": 3,
+      "side": "candidate",
+      "passed": 10,
+      "failed": 0,
+      "assertions": 45,
+      "durationMs": 2810.35
+    },
+    {
+      "case": "fold",
+      "repeat": 1,
+      "side": "base",
+      "passed": 1,
+      "failed": 0,
+      "assertions": 13,
+      "durationMs": 36149.82
+    },
+    {
+      "case": "fold",
+      "repeat": 1,
+      "side": "candidate",
+      "passed": 1,
+      "failed": 0,
+      "assertions": 13,
+      "durationMs": 35306.02
+    },
+    {
+      "case": "fold",
+      "repeat": 2,
+      "side": "base",
+      "passed": 1,
+      "failed": 0,
+      "assertions": 13,
+      "durationMs": 32657.07
+    },
+    {
+      "case": "fold",
+      "repeat": 2,
+      "side": "candidate",
+      "passed": 1,
+      "failed": 0,
+      "assertions": 13,
+      "durationMs": 33287.18
+    },
+    {
+      "case": "fold",
+      "repeat": 3,
+      "side": "base",
+      "passed": 1,
+      "failed": 0,
+      "assertions": 13,
+      "durationMs": 31908.85
+    },
+    {
+      "case": "fold",
+      "repeat": 3,
+      "side": "candidate",
+      "passed": 1,
+      "failed": 0,
+      "assertions": 13,
+      "durationMs": 31109.11
+    }
+  ],
+  "qualified": true,
+  "reproduced": false,
+  "scope": "Isolated unchanged tests only; original full-suite failures remain.",
+  "finalGate": false
+}

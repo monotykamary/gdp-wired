@@ -1,0 +1,10 @@
+{
+ "task":"610d77df-a291-411a-92f6-5f882f7806b2",
+ "status":"failed: four TS2532 diagnostics in timeout-pairs-audit.ts; later checks not reached",
+ "batch":"20261110-065954-17ddio",
+ "workerExit":2,
+ "commitlintExit":0,
+ "candidate":"f7c5b4bad58578d95684ca279e882f48fabd8525",
+ "inputManifestSha256":"2d45b736ce2ee04023380e6a3b813f82968ba13b8caa85ab09bfb6bf80f0b1c4",
+ "finalGate":false
+}

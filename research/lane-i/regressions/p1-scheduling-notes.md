@@ -105,6 +105,12 @@ at exactly **6,915,544 solver / 1,037,946 full work**, matching the repaired
 baseline. Qualified count-source SHA-256:
 `7a4c830848afa2d05393bdd00c546393092cf1f94d5ce9cdee8a2aad9189abd4`.
 
-A five-pair exact-commit confirmation follows. This is not a full-suite or
+Five exact-commit pairs now pass with zero audit issues: every repaired p1
+uses 1152.3382236 units, and all ten whole-Paxos runs use exactly 6,915,544
+solver / 1,037,946 full work. The worker is one exclusive EPYC 9455.
+The final independent evidence/type/lint check failed with four TS2532
+indexed-access diagnostics in the timeout evidence auditor; later checks
+were not reached. The four accesses are corrected for requalification.
+Its separate commitlint job passed. This is not a full-suite or
 final-gate pass; the original failed prototypes and failed draft remain
 retained. Lane D's existing gate is unchanged.
