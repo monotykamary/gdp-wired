@@ -68,4 +68,20 @@ candidate, candidate with only the symbolic fix rolled back, and candidate
 with row sharing disabled. The last two are explicitly experimental
 controls, not gate candidates. Traces preserve the original 30-second
 CLI proof budgets and capture prerequisite-lemma outcomes and root-query
-work. Results and Lane D's re-gate request remain pending.
+work. Results are now complete: all four jobs in batch
+`20261110-074714-ax4rw1` exit 0. Exact `a8bbe098` passes type/lint with
+zero warnings/errors across 1,639 files; peak process-tree RSS is
+3,166,500 KiB and no OOM is observed. All 15 first-call traces complete.
+The repaired candidate and original baseline pass their three traces;
+historical `d3adf3c9` returns unknowns once after its prerequisites are
+unproven. The binder rollback and disabled row sharing pass their traces.
+This does not isolate the native test loss to either new mechanism and
+never replaces or erases the earlier failed tests. No speculative runtime
+change is made from inconclusive attribution.
+
+Lane D's independent re-gate is requested for exact `a8bbe098` against
+`8214a543`, retaining known effect failures and the TIP timeout. See
+`research/lane-i/regressions/lane-d-regate-request.md`. Gate remains RED
+pending independent qualification. Final packet and commit-message
+validation passed in `20261110-075757-rwfa48`, with three refusal fixtures
+and all known failures retained (`runs/lane-i/next-final-validation/`).

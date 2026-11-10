@@ -1,6 +1,8 @@
 {
   "task": "42ba776a-d33f-4210-a31d-fe52fb42476d",
-  "status": "admitted: helper lint fix plus controlled source-attribution traces; results pending",
+  "status": "completed: type/lint passed; all 15 trace invocations completed; historical parent reproduced unknowns once",
+  "batch": "20261110-074714-ax4rw1",
+  "check": "zero warnings and errors; no OOM observed",
   "baseline": "8214a543bc44e88d979f9e4457d7370e7e3c122b",
   "candidate": "a8bbe0984f270070eba9bc166a89909d0c67597e",
   "inputManifestSha256": "bd449dc2357d7178aa78ab41b62c376cf577b1f14d3c177c1b13de9cbd942f26",
