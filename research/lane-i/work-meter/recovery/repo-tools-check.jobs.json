@@ -1,0 +1,1 @@
+[{"name":"resumed-lane-tooling-check","cmd":"bun install --frozen-lockfile && bun run check","cpu":4,"memory":14336,"timeout":1200,"vm_type":"large"}]

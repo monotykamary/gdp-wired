@@ -3,7 +3,7 @@ import {readFileSync, copyFileSync, mkdirSync, mkdtempSync, rmSync} from 'node:f
 import {join, resolve} from 'node:path'
 import {spawnSync} from 'node:child_process'
 import {createHash} from 'node:crypto'
-import {restore, command} from '../recovery-input/final-gate-common.ts'
+const {restore, command} = await import(resolve('recovery-input/final-gate-common.ts'))
 const config = JSON.parse(readFileSync('validation-input/identity.json', 'utf8'))
 const temp = mkdtempSync('/tmp/lane-i-f3-'), root = join(temp, 'source')
 try {

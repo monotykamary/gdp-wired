@@ -24,7 +24,11 @@ The active integration branch remains research-only changes beyond the pause.
 The raw+ledger composition passes **151 selected tests**, checker erasure,
 roster, decoder and type/lint (`20261110-201507-9tl8lf`), with independent
 source/receipt audit `20261110-202057-8r5tcl`. Its source export is being
-hash-checked against that exact tested composition before a source commit.
+hash-checked against that exact tested composition in `20261110-202257-o544wu`
+and frozen as **`feeaccf26f945b8ec9ff19990ffe32e72023ec2c`** on
+`claude/lane-i-complete-ledger` (parent `9a36137e`). Its six-file delta adds
+the reconciled raw ledger and explicit, non-default extra-weight API; no
+calibrated vector or W is selected.
 
 The first boundary and bitmap compositions passed 151 and 155 selected tests,
 respectively, but both failed typecheck at `kernel/prove.ts:1908`: the optional
