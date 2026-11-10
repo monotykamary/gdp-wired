@@ -1,4 +1,16 @@
-## RESUME — THIRD REPAIR CONFIRMED; FULL RELEASE VALIDATION RESUBMITTED — 2026-11-10
+## RESUME — NEW SUBMISSIONS ON HOLD; LOCAL 0.48.0 PREP — 2026-11-10
+
+Coordinator diagnosed a second scheduler on the Mac taking over worker agents. **Hold all new Boat submissions; do not resubmit, change credentials, or touch the breaker.** Wait for the coordinator's explicit go before any new job. Keep the existing pre-hold work/evidence distinct from valid completed gates. No GATE GREEN; no push, tag or publish.
+
+At the coordinator's instruction, local release prep now sets both package versions and the CLI library pin to **0.48.0**, keeps the changelog soundness wording generic, and records the privacy findings in `runs/PRIVACY-REVIEW-0480.md`. Frozen proof/test candidate is still `c8411149d2c6c3c060a0665a79f10523b1281cbc`; final release-tip/package validation remains required after the hold. The publish workflow checklist is `runs/RELEASE-PREFLIGHT.md`. Release-preparation commit: `5137f71e` (`chore(release): prepare 0.48.0`). Lightweight local checks confirmed all three version fields and generic changelog wording; `git diff --check` passed and `bun.lock` is unchanged. No build, full test or publication pass is claimed.
+
+Privacy is **not clean**: 65 flags in origin/main..main and 1,648 in main..c841, mostly research/report paths. No matching secret material was printed. Client-name review and public history disposition remain open. The normal summary collector lost stdout; exact retained worker stdout was separately recovered without overwriting the empty log.
+
+The pre-hold 39-job supplement (`20261110-131934-rcevew`) and package-smoke batch (`20261110-132141-23nq9m`) still have nonterminal local task receipts; no pass/fail is claimed for either. No new submission has been made since the hold.
+
+### Pre-hold submissions and historical repair status
+
+## THIRD REPAIR CONFIRMED; FULL RELEASE VALIDATION RESUBMITTED — 2026-11-10
 
 Coordinator reports key `a1176c12` now has create/delete/resume and verified VM creation directly. At 13:18 UTC stock remote status showed a ready worker and actual placements, with no current 403. **Not GATE GREEN.** Pinned candidate remains `c8411149d2c6c3c060a0665a79f10523b1281cbc`, including accepted P2; required baseline remains `b11e1f651618b3d3fcaf6cec66b4a8b0203cdcd3`.
 
