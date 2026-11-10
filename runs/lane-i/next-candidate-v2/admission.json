@@ -1,6 +1,9 @@
 {
   "task": "61bd3c87-e7a6-43da-8592-04d4186511f7",
-  "status": "admitted: corrected type/lint and 25-file selection; three isolated and one full-file effect pair",
+  "status": "completed: all 25 targeted files passed; lint helper failure and one candidate-only isolated effect loss",
+  "batch": "20261110-072557-nomeq6",
+  "targeted": {"pass": 163, "fail": 0, "assertions": 11974, "files": 25},
+  "check": "TypeScript passed; lint rejected no-unsafe-finally; no OOM observed",
   "baseline": "8214a543bc44e88d979f9e4457d7370e7e3c122b",
   "candidate": "547badb3a4a58b204272f6a203b1dd38db196908",
   "inputManifestSha256": "83940513c3e175f706ea8cebe371f2a3a2555237439791d918df448f7153c02d",

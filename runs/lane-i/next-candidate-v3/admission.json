@@ -1,0 +1,10 @@
+{
+  "task": "42ba776a-d33f-4210-a31d-fe52fb42476d",
+  "status": "admitted: helper lint fix plus controlled source-attribution traces; results pending",
+  "baseline": "8214a543bc44e88d979f9e4457d7370e7e3c122b",
+  "candidate": "a8bbe0984f270070eba9bc166a89909d0c67597e",
+  "inputManifestSha256": "bd449dc2357d7178aa78ab41b62c376cf577b1f14d3c177c1b13de9cbd942f26",
+  "jobs": "research/lane-i/regressions/next-gate-v3.jobs.json",
+  "requestedJobs": 4,
+  "finalGate": false
+}

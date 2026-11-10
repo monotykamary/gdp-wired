@@ -1,0 +1,8 @@
+{
+  "task": "c4e99d55-ad36-4939-b25e-98feaa77f55e",
+  "batch": "20261110-072741-9261hm",
+  "status": "completed: archive integrity true, zero integrity issues, three refusal fixtures passed; preflight acceptance false",
+  "priorLaunchFailure": "5e6a4244-b560-4f64-b7ff-b95af4e9d436",
+  "candidate": "1fc444caa66a97b16fffb5e27c766cc988d60580",
+  "finalGate": false
+}
