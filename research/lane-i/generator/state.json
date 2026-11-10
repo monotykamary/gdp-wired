@@ -82,15 +82,16 @@
   "next": [
     "Three qualified original mldr generations with required ASTs and stable names/bodies",
     "Own 29-protocol and paired cost/proof checks against b11e1f65 before integration",
-    "I1 raw-meter 9f89363c ready for Lane D; I2 evaluation-only 17968f8f independently verified, both isolated and not wired into fullWork"
+    "I1 9f89363c awaits D1; cumulative I2 c9eb0f9c independently verified, not integrated or wired into fullWork"
   ],
   "upstream": {
     "laneAWallRemoval": "184bc7ac upstream paired census passed; not silently mixed into the frozen candidate",
     "section18": "read in full; parallel I1-I3 inventory started in research/lane-i/work-meter/PLAN.md",
     "A2": {
       "candidate": "8901715e39a384583b22a5ea2856d93f795807fd",
-      "status": "upstream F2 and generation comparisons passed; full suite pending; not integrated",
-      "gap": "three sampling-only cases charge zero units"
+      "status": "full-suite shard 5 failed two CLI proof expectations; isolated controls passed but do not close it; full-context comparison pending",
+      "gap": "three sampling-only cases charge zero units",
+      "researchHead": "17354b8a6386e66731a7bb42de7f365dcd272761"
     }
   },
   "execution": {

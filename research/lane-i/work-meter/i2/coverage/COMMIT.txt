@@ -1,0 +1,4 @@
+feat(core): count finite bindings and private work ticks
+
+Observe finite binding visits, cube-row tests, candidate tick calls and
+watch tuples without changing caps or the existing work model.

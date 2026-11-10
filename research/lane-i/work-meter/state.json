@@ -64,5 +64,13 @@
     "stateFile": "research/lane-i/work-meter/i2/state.json",
     "validationBatch": "20261110-110749-tb8ue2",
     "auditBatch": "20261110-111125-zilynh"
+  },
+  "i2Coverage": {
+    "candidate": "c9eb0f9c733d122d4b09c7fd7c2ab23e73f0eaf6",
+    "ref": "claude/lane-i-i2-coverage",
+    "stateFile": "research/lane-i/work-meter/i2/coverage/state.json",
+    "status": "116 selected tests including 10 raw-count tests, roster, type/lint, independent audit and commitlint passed; isolated; I2 incomplete",
+    "validationBatch": "20261110-111531-gwboff",
+    "auditBatch": "20261110-111840-tmgb2o"
   }
 }

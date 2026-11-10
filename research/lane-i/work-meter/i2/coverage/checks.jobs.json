@@ -1,0 +1,10 @@
+[
+  {
+    "name": "i2-coverage-checks",
+    "cmd": "bun i2-input/prepare.ts && bun i2-prepared-input/preflight.ts checks",
+    "cpu": 4,
+    "memory": 14336,
+    "timeout": 1200,
+    "vm_type": "large"
+  }
+]

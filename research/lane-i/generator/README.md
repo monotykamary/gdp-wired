@@ -31,7 +31,9 @@ structural evidence, not a generation/proof acceptance. No further placement
 loop is running. The generator census and integration remain pending.
 
 Lane A's newer A2 handoff (`8901715e`) is separate: its upstream F2 and
-legacy-generation comparisons pass, but its full suite is still pending.
+legacy-generation comparisons pass, but its full suite failed two CLI
+expectations in shard 5. Isolated controls pass; the original full-context
+failure is not closed.
 The I2 evaluation draft starts from b11 independently; it does not import
 A2's broader stack or turn the zero-unit sampling observation into a success.
 

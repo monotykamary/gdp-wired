@@ -1,0 +1,22 @@
+{
+  "tree": "tree:043adf0c5c942640beb8ec8f8f150357d599df5d",
+  "parent": "17968f8f053de58862115b84c0e5c41eac273940",
+  "privateIndex": "/private/tmp/lane-i-i2-coverage.index",
+  "task": "adde2519-91a4-4e00-8bec-2a530832aa22",
+  "resultDirectory": "runs/lane-i/i2-coverage-checks-v2",
+  "status": "116 selected tests, including 10 raw-count tests, roster, decoder and type/lint passed; independently audited and commitlint passed; isolated, not integrated",
+  "preservedSetupFailure": {
+    "task": "e84aa7ed-8492-427b-abe2-1c7fda9077a1",
+    "batch": "20261110-111450-oqswz9",
+    "cause": "wrong original-text selector anchor; no tests ran",
+    "sourceImplementationChanged": false
+  },
+  "candidate": "c9eb0f9c733d122d4b09c7fd7c2ab23e73f0eaf6",
+  "ref": "claude/lane-i-i2-coverage",
+  "validationBatch": "20261110-111531-gwboff",
+  "audit": {
+    "task": "d170315d-9b2b-4e6a-900f-25627d3a549a",
+    "batch": "20261110-111840-tmgb2o",
+    "resultDirectory": "runs/lane-i/i2-coverage-audit"
+  }
+}
