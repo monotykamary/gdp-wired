@@ -1,0 +1,71 @@
+{
+  "baseline": "8214a543bc44e88d979f9e4457d7370e7e3c122b",
+  "candidate": "1fc444caa66a97b16fffb5e27c766cc988d60580",
+  "originalHarness": {
+    "research/protocols/ic3syn/jobs.ts": "3b72741a5b6ff1ce9ee86a4e8ba30a6318ee10554f9bf675c1c217cd92a1ea9c",
+    "research/protocols/ic3syn/run.ts": "a9fa1e966acf503db0804419f8af7b82cfec671f8fba528716ec5440ea70dd66",
+    "research/protocols/ic3syn/models.ts": "5d61b846a8331a9b7978b4809d53b88e5918135ded0fc6d527f2a6dc8fb3a601",
+    "research/protocols/models.ts": "ae2acd68175231e54e8590c2e35e04996282da22523d2fbac47d40e0adb078e4",
+    "research/protocols/run.ts": "f739b1d8c3f94e7718ae1029df4675f27b5d81211250b223678b6c5229946f87"
+  },
+  "sources": {
+    "base": {
+      "research/protocols/ic3syn/jobs.ts": "3b72741a5b6ff1ce9ee86a4e8ba30a6318ee10554f9bf675c1c217cd92a1ea9c",
+      "research/protocols/ic3syn/run.ts": "a9fa1e966acf503db0804419f8af7b82cfec671f8fba528716ec5440ea70dd66",
+      "research/protocols/ic3syn/models.ts": "5d61b846a8331a9b7978b4809d53b88e5918135ded0fc6d527f2a6dc8fb3a601",
+      "research/protocols/models.ts": "ae2acd68175231e54e8590c2e35e04996282da22523d2fbac47d40e0adb078e4",
+      "research/protocols/run.ts": "f739b1d8c3f94e7718ae1029df4675f27b5d81211250b223678b6c5229946f87",
+      "kernel/prove.ts": "c52fdeece6b9471aa1b0b957cac6aec72267543b568d764ea5438543d90205fb",
+      "kernel/kernel.ts": "7ec8b310d23fab7eb3ba452b659e7051ceefe97aea01ffa6f16d990a7bea7f33",
+      "core/counts.ts": "a010366e341b4fb162b0e22acef951980c0a8db297fe1273395d433fdaa7196e",
+      "core/solver.ts": "d3fa9d9ec582b5899542ff32214ce20d9ffc8c8838d8b216063a86b8530e32fb",
+      "core/laws.ts": "fc376fc21036f99ef50e1d3367a1fab3ed593d2703b3194e240b6a3cab1bb370",
+      "scripts/test-shards.ts": "5ed5d6514a90a45fb81c0483e7a6f6d20858053f970e90ad820a9d82ad6eb3f3"
+    },
+    "candidate": {
+      "research/protocols/ic3syn/jobs.ts": "3b72741a5b6ff1ce9ee86a4e8ba30a6318ee10554f9bf675c1c217cd92a1ea9c",
+      "research/protocols/ic3syn/run.ts": "a9fa1e966acf503db0804419f8af7b82cfec671f8fba528716ec5440ea70dd66",
+      "research/protocols/ic3syn/models.ts": "5d61b846a8331a9b7978b4809d53b88e5918135ded0fc6d527f2a6dc8fb3a601",
+      "research/protocols/models.ts": "ae2acd68175231e54e8590c2e35e04996282da22523d2fbac47d40e0adb078e4",
+      "research/protocols/run.ts": "f739b1d8c3f94e7718ae1029df4675f27b5d81211250b223678b6c5229946f87",
+      "kernel/prove.ts": "d4006a262a1c68e7ef74f4233ba3f39ea447516696a3f6de4ae62f2e44f29af7",
+      "kernel/kernel.ts": "7ec8b310d23fab7eb3ba452b659e7051ceefe97aea01ffa6f16d990a7bea7f33",
+      "core/counts.ts": "7a4c830848afa2d05393bdd00c546393092cf1f94d5ce9cdee8a2aad9189abd4",
+      "core/solver.ts": "d3fa9d9ec582b5899542ff32214ce20d9ffc8c8838d8b216063a86b8530e32fb",
+      "core/laws.ts": "fc376fc21036f99ef50e1d3367a1fab3ed593d2703b3194e240b6a3cab1bb370",
+      "scripts/test-shards.ts": "a9d3429c7e0c3391e765f5189c652f13b7fa3b431b3b0b2d87e109887c4e5e6a",
+      "scripts/test-roster.ts": "bedbf8970f8a96d2cb4e99a0720446dcd31293e57aa069423dfdda8060ee2154",
+      "scripts/test-roster.test.ts": "195824fc04bb3b88b4b83d49a47d8a2012db6a848c1d9c80bdd802dbad2aaee5",
+      "kernel/model-values.test.ts": "f00a7c672dc275ba859a906dc8e8fcd4efebfac0103a6678f890260797a0440d",
+      "research/lane-i/regressions/resource-run.ts": "84862f30dd4e87fd7fcd3c5b26a0e5c2b3fce8ad15591464b58b3f8918f6b856",
+      "research/lane-i/regressions/next-gate-worker.ts": "ab6d1fc2fa5281f3a7ac455290671d28d4429ba2a155efdea259761f953aaf32"
+    }
+  },
+  "newTests": [
+    "./core/runtime-keys.test.ts",
+    "./core/sample-step.test.ts",
+    "./core/small-counts.test.ts",
+    "./core/cube-rows.test.ts",
+    "./core/quorum-laws.test.ts",
+    "./core/wall.test.ts",
+    "./core/count-demand.test.ts",
+    "./core/count-cert-transport.test.ts",
+    "./core/recovery/conditional-check-cache.test.ts",
+    "./core/recovery/conditional-cuts.test.ts",
+    "./core/recovery/conditional-proof.test.ts",
+    "./core/recovery/derivability-closure.test.ts",
+    "./core/recovery/empty-count-source.test.ts",
+    "./core/recovery/field-bound-budget.test.ts",
+    "./core/recovery/leaf-allowance.test.ts",
+    "./core/recovery/member-inclusions.test.ts",
+    "./core/recovery/pre-state-source.test.ts",
+    "./core/recovery/rename-proof.test.ts",
+    "./core/recovery/row-demand.test.ts",
+    "./core/recovery/scalar-guards.test.ts",
+    "./core/recovery/source-witness-instances.test.ts",
+    "./core/extract-sol.test.ts",
+    "./kernel/model-values.test.ts",
+    "./scripts/test-roster.test.ts",
+    "./research/lane-i/regressions/resource-run.test.ts"
+  ]
+}

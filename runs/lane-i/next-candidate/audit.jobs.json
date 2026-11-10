@@ -1,0 +1,9 @@
+[
+  {
+    "name": "next-packet-audit",
+    "cmd": "bun receipt-audit/audit-tool.ts receipt-audit",
+    "cpu": 2,
+    "memory": 4096,
+    "timeout": 120
+  }
+]

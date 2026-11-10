@@ -1,0 +1,10 @@
+{
+  "task": "61bd3c87-e7a6-43da-8592-04d4186511f7",
+  "status": "admitted: corrected type/lint and 25-file selection; three isolated and one full-file effect pair",
+  "baseline": "8214a543bc44e88d979f9e4457d7370e7e3c122b",
+  "candidate": "547badb3a4a58b204272f6a203b1dd38db196908",
+  "inputManifestSha256": "83940513c3e175f706ea8cebe371f2a3a2555237439791d918df448f7153c02d",
+  "jobs": "research/lane-i/regressions/next-gate-v2.jobs.json",
+  "requestedJobs": 6,
+  "finalGate": false
+}

@@ -1,0 +1,15 @@
+{
+  "task": "c3a54b95-73ff-4431-89d7-d8205fd9734f",
+  "status": "completed: 12 worker successes, 2 failures; targeted selection incomplete",
+  "batch": "20261110-070951-nblx62",
+  "typeCheck": "TS2345 in next-gate-stage.ts; lint not reached; no OOM observed",
+  "suite": "six shards passed; shard 2 failed the unchanged effect-pool CLI test",
+  "targeted": "60 tests in 12 files passed, but 13 requested paths were nonexistent and skipped",
+  "baseline": "8214a543bc44e88d979f9e4457d7370e7e3c122b",
+  "candidate": "1fc444caa66a97b16fffb5e27c766cc988d60580",
+  "inputManifestSha256": "25c40180115050dea030dbdb4b2bd085420820d7d0c0c7373cf420cebb637057",
+  "jobs": "research/lane-i/regressions/next-gate.jobs.json",
+  "requestedJobs": 14,
+  "timing": true,
+  "finalGate": false
+}

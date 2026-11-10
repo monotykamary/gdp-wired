@@ -2,6 +2,16 @@
 
 Lane I resumed from `cca59f0c` on `claude/mldr-integ`; clean worktree verified, handoff including PAUSED, COMMON, and Section 14 read. **NOT GATE GREEN.** Historical baselines remain `b788e195` for the consensus diagnosis and `b09da82d` for the Paxos diagnosis; the coordinator now requires **`8214a543bc44e88d979f9e4457d7370e7e3c122b` for every next final gate**.
 
+## Next candidate — preflight failures retained; corrected qualification running
+
+Frozen candidate **`1fc444ca`**, baseline **`8214a543`**. The generic symbolic-binder repair is `bed9ecb3`: original symbolic terms survive alongside distinct arithmetic constants; existing proposal limits are unchanged. It fixes the replacement introduced by `1be4ffc1` and carries Lane D's symbolic/constant controls in `kernel/model-values.test.ts`.
+
+Roster repair `985890c1` adds all 21 new omissions and inherited `core/extract-sol.test.ts`, plus a recursively enforced core/kernel filesystem check against the explicit quick and long suites. Canonical model repair `94be6cdb` chooses the revert option: `research/protocols/ic3syn/models.ts` is byte-identical to `8214a543`, undoing the canonical routing to Lane B / Track M's `0e2790f3` version-stamped P* setup. No finite-state equivalence or 29/29 proof is asserted.
+
+Fourteen boat jobs are admitted under **`c3a54b95-73ff-4431-89d7-d8205fd9734f`**: exact-source type/lint with child-PID RSS/cgroup/kernel-OOM telemetry; all added tests; seven complete quick shards; unchanged Lane D symbolic controls; independent p1/timeout evidence re-audits; three fresh combined-candidate p1/Paxos confirmations; three alternating same-worker TIP `tip2015/relaxedprefix_correct.smt2` pairs; and commitlint. Original benchmark caps remain unchanged. Frozen manifest and receipts: `runs/lane-i/next-candidate/`.
+
+**The first preflight is not accepted. Gate remains RED.** Twelve workers completed successfully; the staging helper has one TS2345 error (lint not reached), and shard 2 fails the unchanged effect-pool CLI case. The targeted run covered only 12 of 25 requested files because 13 paths were wrong; no all-added-tests claim is made. Repair `547badb3` corrects those paths, refuses nonexistent test inputs, fixes the type error, and adds unchanged same-worker effect comparisons against `8214a543`. Corrected qualification is running under `61bd3c87-e7a6-43da-8592-04d4186511f7`; an independent archive audit runs under `c4e99d55-ad36-4939-b25e-98feaa77f55e` after the original launcher failed before admission on a relative jobs path. Detailed retained outcomes: `research/lane-i/regressions/next-candidate-results.md`. Lane D's re-gate request remains pending.
+
 ## For lane B — five exact-commit pairs confirm both cost requirements
 
 Repair **`f7c5b4ba`** now passes five alternating exact-source pairs against `d3adf3c9` on one exclusive EPYC 9455. Every p1 attempt is independently native-replayed: **2046.9378360 → 1152.3382236 units**, equal to Lane B's original validated control. All **ten** whole-Paxos runs prove at exactly **6,915,544 solver / 1,037,946 full work**, with zero increase. Source, family, archive, cardinality, native-proof and cost audit: **zero issues**. No source patch or budget change was used for this confirmation. Raw proof packet and audit: `runs/lane-i/p1/confirmation/`.
