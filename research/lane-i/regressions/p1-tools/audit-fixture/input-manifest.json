@@ -13,7 +13,7 @@
     "gateBaseline": "8214a543bc44e88d979f9e4457d7370e7e3c122b",
     "purpose": "Exact frozen-family reproduction plus disposable unary-only scheduling experiment; not a final gate."
   },
-  "stage": "/private/tmp/lane-i-p1-scheduling-data.TYz4MR",
+  "stage": ".",
   "manifestSha256": "d503b71edbe57c418e9bd60012884c44606b077a6946a9d32c87e713871c9627",
   "files": {
     "gate-shared-inputs/module-0.pack": "2238b90b993bc3161308f94a3c6d87a064efc07ed8f9ab9253d50a692b35376e",
