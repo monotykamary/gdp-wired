@@ -1,0 +1,3 @@
+[
+  {"name":"complete-ast-diagnostic","cmd":"bun complete-input/prepare.ts && COMPLETE_PREPARE=1 bun complete-prepared-input/preflight.ts checks","cpu":4,"memory":14336,"timeout":900,"vm_type":"large"}
+]

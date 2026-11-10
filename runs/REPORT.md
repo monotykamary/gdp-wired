@@ -18,13 +18,21 @@
   deltas, then attach the remaining untrusted table/instance/check boundaries.
 
 
-- **In flight:** boat batch `20261110-121916-gkoq76`, job
-  `complete-ast-preparation`; Fabric task
-  `fbe45f88-28d0-430b-9915-6429d3d8c15c`, local waiter PID `17193`.
-  Results: `runs/lane-i/complete-ast-preparation/`.
-  Waiter log: `/var/folders/hc/3k4lvfw90yv7kghsnynghcvm0000gn/T/pi-fabric-shell-81Ilva/output.log`.
-  One existing waiter only; reattach/inspect it, **do not resubmit** on reload.
-- **Next:** collect that preparation result. It emits `AST_CONSTRUCTOR_AUDIT`
+- **Preparation failed, preserved:** `20261110-121916-gkoq76`, task
+  `fbe45f88-28d0-430b-9915-6429d3d8c15c`, job exit **1** (the client itself
+  exited 0). Source restoration and all 47 protected blobs passed, but the
+  constructor child exited 1. The driver discarded its captured child error;
+  no cause or successful source artifact is claimed. Original receipt:
+  `runs/lane-i/complete-ast-preparation/complete-ast-preparation.log`.
+- **Diagnostic in flight:** batch `20261110-122546-ln00nn`, job
+  `complete-ast-diagnostic`, task `beef01f4-b4a7-4abf-b1e5-499bea073500`,
+  waiter PID `42471`. Result directory `runs/lane-i/complete-ast-diagnostics/`;
+  waiter log `/var/folders/hc/3k4lvfw90yv7kghsnynghcvm0000gn/T/pi-fabric-shell-z5n5lw/output.log`.
+  Only diagnostic capture changed; constructor/source logic did not. The
+  child receipt and decoded error are now emitted on boat. One waiter per
+  task; **do not resubmit** either active batch on reload.
+- **Next:** collect the diagnostic result and fix only the established cause.
+  A successful preparation It emits `AST_CONSTRUCTOR_AUDIT`
   and a `SOURCE_PATCH_BEGIN` / `SOURCE_PATCH_END` source artifact. The worker
   must prove every generated wrapper erases to the original source. Then
   freeze the resulting patch/blobs and run targeted tests, roster, type/lint,
