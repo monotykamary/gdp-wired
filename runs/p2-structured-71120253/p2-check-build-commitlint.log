@@ -1,0 +1,51 @@
+CLEAN_CHECKOUT_HEAD 711202536607aa0e0244096746952fea91ae5114
+CLEAN_CHECKOUT_TREE e864f54664becf9345d48e1814d58bd27e4adc2d
+ 0b6ebeeec827b05210f3acfa4149a70dda9a0de5 vendor/gdp-ts (heads/master)
+ d47141cce2caf5b86b0c2c0c372a5174f424bc15 vendor/handwired (heads/master)
+bun install v1.4.3 (c6da4a4d3)
+
++ @gdp-ts/core@0.1.0
++ @reduxjs/toolkit@2.13.0
++ @types/bun@1.3.1
++ @webgpu/types@0.1.66
++ effect@4.0.7
++ effect3@3.22.4
++ oxlint@1.88.0
++ oxlint-tsgolint@7.0.2004
++ typescript@5.9.3
++ xstate@5.33.2
++ xstate4@4.38.3
+
+27 packages installed [363.00ms]
+Found 0 warnings and 0 errors.
+Finished in 24.1s on 1646 files with 100 rules using 4 threads.
+dist: 341 entries
+
+--- stderr ---
+/work/gdp-wired/p2-meta/candidate.patch:5402: trailing whitespace.
+215 | 
+/work/gdp-wired/p2-meta/candidate.patch:5548: trailing whitespace.
+215 | 
+/work/gdp-wired/p2-meta/candidate.patch:5614: trailing whitespace.
+241 | 
+/work/gdp-wired/p2-meta/candidate.patch:6170: trailing whitespace.
+215 | 
+/work/gdp-wired/p2-meta/candidate.patch:6304: trailing whitespace.
+215 | 
+warning: squelched 58 whitespace errors
+warning: 63 lines add whitespace errors.
+warning: adding embedded git repository: vendor/gdp-ts
+warning: adding embedded git repository: vendor/handwired
+Submodule 'vendor/gdp-ts' (https://github.com/rauchg/gdp-ts.git) registered for path 'vendor/gdp-ts'
+Submodule 'vendor/handwired' (https://github.com/monotykamary/handwired.git) registered for path 'vendor/handwired'
+Migrating git directory of 'vendor/gdp-ts' from
+'/tmp/tmp.FmSXTdfud1/tree/vendor/gdp-ts/.git' to
+'/tmp/tmp.FmSXTdfud1/tree/.git/modules/vendor/gdp-ts'
+Migrating git directory of 'vendor/handwired' from
+'/tmp/tmp.FmSXTdfud1/tree/vendor/handwired/.git' to
+'/tmp/tmp.FmSXTdfud1/tree/.git/modules/vendor/handwired'
+$ tsc -p . && oxlint --type-aware --deny-warnings --disable-nested-config
+$ bun scripts/build.ts
+Resolving dependencies
+Resolved, downloaded and extracted [276]
+Saved lockfile

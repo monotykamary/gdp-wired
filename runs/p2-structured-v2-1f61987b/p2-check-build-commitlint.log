@@ -1,0 +1,278 @@
+CLEAN_CHECKOUT_HEAD 1f61987bc1826fd80b5ffafc8096990f3adba6d6
+CLEAN_CHECKOUT_TREE f8cf6263b893864ed1a2a2cf17f361c4c67114a9
+ 0b6ebeeec827b05210f3acfa4149a70dda9a0de5 vendor/gdp-ts (heads/master)
+ d47141cce2caf5b86b0c2c0c372a5174f424bc15 vendor/handwired (heads/master)
+bun install v1.4.3 (c6da4a4d3)
+
++ @gdp-ts/core@0.1.0
++ @reduxjs/toolkit@2.13.0
++ @types/bun@1.3.1
++ @webgpu/types@0.1.66
++ effect@4.0.7
++ effect3@3.22.4
++ oxlint@1.88.0
++ oxlint-tsgolint@7.0.2004
++ typescript@5.9.3
++ xstate@5.33.2
++ xstate4@4.38.3
+
+27 packages installed [5.83s]
+Found 0 warnings and 0 errors.
+Finished in 27.2s on 1646 files with 100 rules using 4 threads.
+dist: 341 entries
+scripts/gen-lean-library.ts --check  0 s
+core/exports.test.ts  18.2 s
+core/guarded.test.ts  68.5 s
+core/cli.test.ts  126.8 s
+core/security.test.ts  (not measured)
+core/solver.test.ts  0.5 s
+core/rand.test.ts  8.2 s
+core/dsl.test.ts  3.6 s
+core/sums.test.ts  2.9 s
+core/arith.test.ts  1.7 s
+core/compare.test.ts  (not measured)
+core/mutate.test.ts  (not measured)
+core/mutate-terms.test.ts  (not measured)
+core/runtime-default.test.ts  (not measured)
+core/conformance.test.ts  21.3 s
+core/compose.test.ts  3.6 s
+core/relational.test.ts  61.9 s
+core/quantifiers.test.ts  41.4 s
+core/functions.test.ts  0.3 s
+core/keyterms.test.ts  0.7 s
+core/lists.test.ts  3.7 s
+core/liveness.test.ts  3.5 s
+core/sizes.test.ts  0.4 s
+core/values.test.ts  2 s
+core/rationals.test.ts  1.8 s
+core/builders.test.ts  1.3 s
+core/gdp.test.ts  0.2 s
+core/datatypes.test.ts  4.2 s
+core/lemmas.test.ts  2.8 s
+core/discover.test.ts  6.8 s
+core/infer.test.ts  17 s
+core/cyclic.test.ts  0.9 s
+core/cycles.test.ts  59.4 s
+core/nonterm.test.ts  64.3 s
+core/data.test.ts  165.9 s
+core/data-synth.test.ts  (not measured)
+core/hypothesis.test.ts  6.1 s
+core/seqs.test.ts  1.7 s
+core/abstract.test.ts  3.8 s
+core/search.test.ts  8.1 s
+core/invoices.test.ts  0.8 s
+core/folds.test.ts  1.1 s
+core/trees.test.ts  1.1 s
+core/pairs.test.ts  7.8 s
+core/chart.test.ts  1.5 s
+core/xstate.test.ts  3.5 s
+core/extract.test.ts  38.4 s
+core/extract-standalone.test.ts  (not measured)
+core/extract-ci-audit.test.ts  (not measured)
+core/extract-ci-method-scope.test.ts  (not measured)
+core/extract-ci-composite-optional.test.ts  (not measured)
+core/extract-ci-lazy-identity.test.ts  (not measured)
+core/extract-ci-lazy-key.test.ts  (not measured)
+core/extract-absence.test.ts  (not measured)
+core/extract-choice-joins.test.ts  (not measured)
+core/extract-standalone-prototype.test.ts  (not measured)
+core/extract-standalone-regression.test.ts  (not measured)
+core/extract-py.test.ts  (not measured)
+core/extract-py-mro.test.ts  (not measured)
+core/extract-py-hasattr.test.ts  (not measured)
+core/extract-orm.test.ts  (not measured)
+core/extract-py-orm.test.ts  (not measured)
+core/extract-sol.test.ts  (not measured)
+core/sol-concrete.test.ts  (not measured)
+core/effect.test.ts  59.6 s
+core/effect-schedule.test.ts  117.9 s
+core/effect-stm.test.ts  64.4 s
+core/effect-queue.test.ts  264.1 s
+core/effect-schema.test.ts  (not measured)
+core/calendar.test.ts  (not measured)
+core/count-facts.test.ts  (not measured)
+core/count-ranges.test.ts  (not measured)
+core/count-write-frames.test.ts  (not measured)
+core/counts-completion-order.test.ts  (not measured)
+core/count-completion.test.ts  (not measured)
+core/count-witness.test.ts  (not measured)
+core/count-unions.test.ts  (not measured)
+core/count-witness-flags.test.ts  (not measured)
+core/count-focused.test.ts  (not measured)
+core/count-cases.test.ts  (not measured)
+core/count-focus-proof.test.ts  (not measured)
+core/count-recovery-order.test.ts  (not measured)
+core/count-cert-grow.test.ts  (not measured)
+core/field-laws.test.ts  (not measured)
+core/count-cubes.test.ts  (not measured)
+core/finite-tiny.test.ts  (not measured)
+core/finite-tiny-houdini.test.ts  (not measured)
+core/bitsets.test.ts  (not measured)
+core/sample-cache.test.ts  (not measured)
+core/small-laws.test.ts  (not measured)
+core/cube-width.test.ts  (not measured)
+core/exists-support.test.ts  (not measured)
+core/carry.test.ts  (not measured)
+core/scan-prefix.test.ts  (not measured)
+core/runtime-keys.test.ts  (not measured)
+core/sample-step.test.ts  (not measured)
+core/small-counts.test.ts  (not measured)
+core/cube-rows.test.ts  (not measured)
+core/quorum-laws.test.ts  (not measured)
+core/wall.test.ts  (not measured)
+core/count-demand.test.ts  (not measured)
+core/count-cert-transport.test.ts  (not measured)
+core/lemma-cuts.test.ts  (not measured)
+core/count-support.test.ts  (not measured)
+core/count-admission.test.ts  (not measured)
+core/counts-preflight.test.ts  (not measured)
+core/counts-structured.test.ts  (not measured)
+core/relevance.test.ts  (not measured)
+core/support-order.test.ts  (not measured)
+core/count-recovery/conditional-check-cache.test.ts  (not measured)
+core/count-recovery/conditional-cuts.test.ts  (not measured)
+core/count-recovery/conditional-proof.test.ts  (not measured)
+core/count-recovery/derivability-closure.test.ts  (not measured)
+core/count-recovery/empty-count-source.test.ts  (not measured)
+core/count-recovery/field-bound-budget.test.ts  (not measured)
+core/count-recovery/leaf-allowance.test.ts  (not measured)
+core/count-recovery/member-inclusions.test.ts  (not measured)
+core/count-recovery/pre-state-source.test.ts  (not measured)
+core/count-recovery/rename-proof.test.ts  (not measured)
+core/count-recovery/row-demand.test.ts  (not measured)
+core/count-recovery/scalar-guards.test.ts  (not measured)
+core/count-recovery/source-witness-instances.test.ts  (not measured)
+core/count-recovery/member-premises.test.ts  (not measured)
+core/count-recovery/action-guard.test.ts  (not measured)
+core/count-recovery/row-cases.test.ts  (not measured)
+core/count-recovery/natural-cases.test.ts  (not measured)
+core/count-recovery/carried-case.test.ts  (not measured)
+core/count-recovery/live-dependencies.test.ts  (not measured)
+core/count-recovery/field-bound-lemmas.test.ts  (not measured)
+core/count-recovery/boolean-core.test.ts  (not measured)
+core/count-recovery/key-closure.test.ts  (not measured)
+core/count-recovery/lift-count-proxies.test.ts  (not measured)
+core/count-recovery/rebase-path.test.ts  (not measured)
+core/count-recovery/fold-path.test.ts  (not measured)
+core/count-recovery/frame-lemmas.test.ts  (not measured)
+core/count-recovery/guard-cases.test.ts  (not measured)
+core/count-recovery/field-only.test.ts  (not measured)
+core/count-recovery/source-memo.test.ts  (not measured)
+core/count-recovery/field-demand.test.ts  (not measured)
+kernel/lemma-cut.test.ts  (not measured)
+kernel/tamper.test.ts  5 s
+kernel/refusals.test.ts  0.1 s
+kernel/steplaw.test.ts  10.6 s
+kernel/sets.test.ts  2.5 s
+kernel/cdcl.test.ts  3.8 s
+kernel/tuples.test.ts  (not measured)
+kernel/epr-clock.test.ts  (not measured)
+kernel/epr-image.test.ts  (not measured)
+kernel/triggers.test.ts  (not measured)
+kernel/share.test.ts  (not measured)
+kernel/model-sequence.test.ts  (not measured)
+kernel/model-values.test.ts  (not measured)
+kernel/prove-paths.test.ts  (not measured)
+kernel/prover-rows.test.ts  (not measured)
+kernel/prover-row-cache.test.ts  (not measured)
+kernel/tree-reuse.test.ts  (not measured)
+research/query/goal-pack.test.ts  (not measured)
+research/protocols/ic3syn/mldr.test.ts  (not measured)
+research/audit/inventory.test.ts  (not measured)
+examples/examples.test.ts  71.1 s
+gates/bar.test.ts  (not measured)
+scripts/action.test.ts  (not measured)
+scripts/test-roster.test.ts  (not measured)
+scripts/lean-gate/gate.test.ts  0 s
+research/lane-i/test-load-propagation.test.ts  (not measured)
+research/lane-i/validation-audit.test.ts  (not measured)
+research/lane-i/upper-bound/summarize.test.ts  (not measured)
+research/lane-i/upper-bound/audit.test.ts  (not measured)
+research/lane-i/regressions/receipt-audit.test.ts  (not measured)
+research/lane-i/regressions/p1-scheduling-audit.test.ts  (not measured)
+research/mldr-incl/pack-production.test.ts  (not measured)
+research/track-m/link-lane-b-focus-audits.test.ts  (not measured)
+research/track-m/audit-completion-scope.test.ts  (not measured)
+research/track-wall/trace-error.test.ts  (not measured)
+core/count-recovery/row-premises.test.ts  (not measured)
+core/finite-tiny-target.test.ts  (not measured)
+core/finite-tiny-early.test.ts  (not measured)
+core/finite-tiny-seed.test.ts  (not measured)
+research/lane-i/regressions/merge-bisect-audit.test.ts  (not measured)
+research/lane-i/regressions/consensus-recheck.test.ts  (not measured)
+research/lane-i/regressions/resource-run.test.ts  (not measured)
+research/lane-i/regressions/bar-portfolio.test.ts  (not measured)
+research/mldr-incl/range-regression-input.test.ts  (not measured)
+research/mldr-incl/install-member-source-rank.test.ts  (not measured)
+examples/readme.ts  1.1 s
+examples/guide.ts  0.6 s
+examples/composition.ts  0.5 s
+examples/sets.ts  1.9 s
+examples/quantifiers.ts  21.1 s
+examples/functions.ts  0.1 s
+examples/datatypes.ts  0.6 s
+examples/lemmas.ts  2.7 s
+examples/discover.ts  14.5 s
+examples/invoices.ts  3.3 s
+examples/folds.ts  0.6 s
+examples/trees.ts  1 s
+examples/pairs.ts  0.2 s
+examples/groups.ts  10.5 s
+examples/charts.ts  1.1 s
+examples/xstate.ts  0.8 s
+examples/effect.ts  5 s
+examples/effect-retry.ts  24.9 s
+examples/effect-stm.ts  18.3 s
+examples/effect-queue.ts  168.7 s
+examples/infer.ts  9.9 s
+examples/arith.ts  1.1 s
+examples/cyclic.ts  0.4 s
+examples/cycles.ts  16 s
+examples/data.ts  299.5 s
+examples/abstract.ts  12.6 s
+compare/tip/translate.test.ts  4.3 s
+research/security/score.test.ts  (not measured)
+research/security/fixed-reader.test.ts  (not measured)
+research/security/mutants/mutants.test.ts  (not measured)
+research/security/mutants-upstream/upstream.test.ts  (not measured)
+examples/scopes.ts  12.3 s
+examples/lists.ts  4 s
+examples/sizes.ts  0.2 s
+examples/liveness.ts  3.3 s
+examples/sums.ts  2.5 s
+examples/nonterm.ts  2.9 s
+examples/rationals.ts  0.8 s
+examples/budget.ts  0.1 s
+examples/gdp.ts  0.2 s
+examples/steps.ts  2 s
+examples/jev-fabric/run.ts  72 s
+gates/bar-lib.test.ts  (not measured)
+
+--- stderr ---
+/work/gdp-wired/p2-meta/candidate.patch:5406: trailing whitespace.
+215 | 
+/work/gdp-wired/p2-meta/candidate.patch:5552: trailing whitespace.
+215 | 
+/work/gdp-wired/p2-meta/candidate.patch:5618: trailing whitespace.
+241 | 
+/work/gdp-wired/p2-meta/candidate.patch:6174: trailing whitespace.
+215 | 
+/work/gdp-wired/p2-meta/candidate.patch:6308: trailing whitespace.
+215 | 
+warning: squelched 58 whitespace errors
+warning: 63 lines add whitespace errors.
+warning: adding embedded git repository: vendor/gdp-ts
+warning: adding embedded git repository: vendor/handwired
+Submodule 'vendor/gdp-ts' (https://github.com/rauchg/gdp-ts.git) registered for path 'vendor/gdp-ts'
+Submodule 'vendor/handwired' (https://github.com/monotykamary/handwired.git) registered for path 'vendor/handwired'
+Migrating git directory of 'vendor/gdp-ts' from
+'/tmp/tmp.iG5BGjM7eV/tree/vendor/gdp-ts/.git' to
+'/tmp/tmp.iG5BGjM7eV/tree/.git/modules/vendor/gdp-ts'
+Migrating git directory of 'vendor/handwired' from
+'/tmp/tmp.iG5BGjM7eV/tree/vendor/handwired/.git' to
+'/tmp/tmp.iG5BGjM7eV/tree/.git/modules/vendor/handwired'
+$ tsc -p . && oxlint --type-aware --deny-warnings --disable-nested-config
+$ bun scripts/build.ts
+Resolving dependencies
+Resolved, downloaded and extracted [276]
+Saved lockfile

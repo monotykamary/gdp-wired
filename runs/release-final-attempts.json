@@ -105,8 +105,57 @@
     },
     {
       "path": "runs/release-native-rest-smoke",
-      "status": "pending",
-      "task": "50f513b7-062d-4089-98ca-b253a3b3690d"
+      "status": "passed",
+      "task": "50f513b7-062d-4089-98ca-b253a3b3690d",
+      "scope": "Real native results on the remaining benchmark transports; timed test jobs passed. Lean had no selected recurrent certificate in this smoke subset and is required separately in the full quick bar."
+    },
+    {
+      "path": "runs/release-native-full-bar-9877b876",
+      "status": "cancelled-before-launch",
+      "task": "ccfbb7c7-0fb5-4274-a045-90f796bc9384",
+      "scope": "Canonical --quick --together, all ten groups and eleven views, native scheduler fan-out with the original six-pass orchestration concurrency.",
+      "exit": 130,
+      "reason": "Preparation remained unacknowledged: no .placed receipt, no agent log, and no native controller process. Exact client PID 24562 was stopped before retrying the controller."
+    },
+    {
+      "path": "runs/release-doc-commitlint-19f60483",
+      "status": "failed-before-launch",
+      "reason": "Malformed JSON job file; no work launched."
+    },
+    {
+      "path": "runs/release-doc-commitlint-v2-19f60483",
+      "status": "passed",
+      "scope": "Commitlint for documentation-only 19f60483."
+    },
+    {
+      "path": "runs/release-native-full-bar-v2-9877b876",
+      "status": "cancelled-while-queued",
+      "task": "e85b02c9-6804-4f12-9b8e-e4f2481eaeeb",
+      "scope": "Only outer controller vm_type changed from large to xlarge. Same commands, source revisions, benchmark worker specifications, datasets and solver budgets.",
+      "exit": 130,
+      "reason": "Xlarge-only controller did not obtain a placement. Retried using the already-cached pilot tree to avoid new helper uploads."
+    },
+    {
+      "path": "runs/release-native-full-bar-cached-9877b876",
+      "status": "cancelled-while-queued",
+      "task": "21ba33f8-00db-4750-a5f0-80e5f9966153",
+      "scope": "Same native quick bar and six-pass concurrency; controller source restored to cached pilot contents, canonical concurrency set in a disposable remote copy. Same scheduler client; no benchmark workers, source revisions or budgets changed.",
+      "batch": "20261110-115353-lx82d3",
+      "controllerTree": "f7aede21fa15",
+      "tunnelTask": "2b1cf2b7-1974-4962-8d48-454f051acb1d",
+      "exit": 130,
+      "reason": "Cached tree selected correctly, but the 60-second default planning estimate left the long controller queued. No benchmark command launched."
+    },
+    {
+      "path": "runs/release-native-full-bar-planned-9877b876",
+      "task": "bb5f9b19-d411-4c29-b0f6-3a24df03b2db",
+      "status": "cancelled-user-directed",
+      "planningEstimateSeconds": 1800,
+      "scope": "Client-local planning estimate only; unchanged cached tree, submission class, source revisions, datasets, six-pass concurrency and proof budgets.",
+      "batch": "20261110-115908-46eho6",
+      "tunnelTask": "4be6b6aa-5fdd-4a64-95fe-40a15ff1b36b",
+      "reason": "Coordinator rejected the unauthorized client-local scheduling estimate override. Owned controllers and tunnel were stopped; the override script is disabled. Do not rerun this attempt.",
+      "unauthorizedOverride": true
     }
   ],
   "gateGreen": false,

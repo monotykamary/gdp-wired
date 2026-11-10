@@ -1,0 +1,54 @@
+CLEAN_CHECKOUT_HEAD 1f61987bc1826fd80b5ffafc8096990f3adba6d6
+CLEAN_CHECKOUT_TREE f8cf6263b893864ed1a2a2cf17f361c4c67114a9
+ 0b6ebeeec827b05210f3acfa4149a70dda9a0de5 vendor/gdp-ts (heads/master)
+ d47141cce2caf5b86b0c2c0c372a5174f424bc15 vendor/handwired (heads/master)
+bun install v1.4.3 (c6da4a4d3)
+
++ @gdp-ts/core@0.1.0
++ @reduxjs/toolkit@2.13.0
++ @types/bun@1.3.1
++ @webgpu/types@0.1.66
++ effect@4.0.7
++ effect3@3.22.4
++ oxlint@1.88.0
++ oxlint-tsgolint@7.0.2004
++ typescript@5.9.3
++ xstate@5.33.2
++ xstate4@4.38.3
+
+27 packages installed [968.00ms]
+bun test v1.4.3 (c6da4a4d3)
+DOMAIN_PROBE {"stage":"before","ok":true,"sort":{"k":"choice","values":["red","@@other"]},"isArray":true,"iterator":"function","keys":["0","1"],"set":{"ok":true,"values":["red","@@other"]},"events":[{"select":{"arg1_value_2":"red"},"call":"decide","args":[{"k":"state"},{"k":"lazy","prefix":"","root":["",0]},{"k":"lazy","prefix":"arg1_","root":["",1]}],"names":["state","a","b"]},{"select":{"arg1_value_2":"@@other"},"call":"decide","args":[{"k":"state"},{"k":"lazy","prefix":"","root":["",0]},{"k":"lazy","prefix":"arg1_","root":["",1]}],"names":["state","a","b"]}]}
+DOMAIN_PROBE {"stage":"after","ok":true,"sort":{"k":"choice","values":{}},"isArray":false,"iterator":"undefined","keys":[],"set":{"ok":false,"error":"TypeError: Type error"},"events":[{"select":{"arg1_value_2":"red"},"call":"decide","args":[{"k":"state"},{"k":"lazy","prefix":"","root":["",0]},{"k":"lazy","prefix":"arg1_","root":["",1]}],"names":["state","a","b"]},{"select":{"arg1_value_2":"@@other"},"call":"decide","args":[{"k":"state"},{"k":"lazy","prefix":"","root":["",0]},{"k":"lazy","prefix":"arg1_","root":["",1]}],"names":["state","a","b"]}]}
+
+--- stderr ---
+/work/gdp-wired/p2-meta/candidate.patch:5406: trailing whitespace.
+215 | 
+/work/gdp-wired/p2-meta/candidate.patch:5552: trailing whitespace.
+215 | 
+/work/gdp-wired/p2-meta/candidate.patch:5618: trailing whitespace.
+241 | 
+/work/gdp-wired/p2-meta/candidate.patch:6174: trailing whitespace.
+215 | 
+/work/gdp-wired/p2-meta/candidate.patch:6308: trailing whitespace.
+215 | 
+warning: squelched 58 whitespace errors
+warning: 63 lines add whitespace errors.
+warning: adding embedded git repository: vendor/gdp-ts
+warning: adding embedded git repository: vendor/handwired
+Submodule 'vendor/gdp-ts' (https://github.com/rauchg/gdp-ts.git) registered for path 'vendor/gdp-ts'
+Submodule 'vendor/handwired' (https://github.com/monotykamary/handwired.git) registered for path 'vendor/handwired'
+Migrating git directory of 'vendor/gdp-ts' from
+'/tmp/tmp.rQDn8ljSEe/tree/vendor/gdp-ts/.git' to
+'/tmp/tmp.rQDn8ljSEe/tree/.git/modules/vendor/gdp-ts'
+Migrating git directory of 'vendor/handwired' from
+'/tmp/tmp.rQDn8ljSEe/tree/vendor/handwired/.git' to
+'/tmp/tmp.rQDn8ljSEe/tree/.git/modules/vendor/handwired'
+
+../../../work/gdp-wired/p2-domain-probe.test.ts:
+(pass) diagnose choice domain before and after asymmetric matcher [244.64ms]
+
+ 1 pass
+ 0 fail
+ 1 expect() calls
+Ran 1 test across 1 file. [468.00ms]

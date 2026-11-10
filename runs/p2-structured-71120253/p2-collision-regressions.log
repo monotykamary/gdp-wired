@@ -1,0 +1,195 @@
+CLEAN_CHECKOUT_HEAD 711202536607aa0e0244096746952fea91ae5114
+CLEAN_CHECKOUT_TREE e864f54664becf9345d48e1814d58bd27e4adc2d
+ 0b6ebeeec827b05210f3acfa4149a70dda9a0de5 vendor/gdp-ts (heads/master)
+ d47141cce2caf5b86b0c2c0c372a5174f424bc15 vendor/handwired (heads/master)
+bun install v1.4.3 (c6da4a4d3)
+
++ @gdp-ts/core@0.1.0
++ @reduxjs/toolkit@2.13.0
++ @types/bun@1.3.1
++ @webgpu/types@0.1.66
++ effect@4.0.7
++ effect3@3.22.4
++ oxlint@1.88.0
++ oxlint-tsgolint@7.0.2004
++ typescript@5.9.3
++ xstate@5.33.2
++ xstate4@4.38.3
+
+27 packages installed [1157.00ms]
+bun test v1.4.3 (c6da4a4d3)
+
+--- stderr ---
+/work/gdp-wired/p2-meta/candidate.patch:5402: trailing whitespace.
+215 | 
+/work/gdp-wired/p2-meta/candidate.patch:5548: trailing whitespace.
+215 | 
+/work/gdp-wired/p2-meta/candidate.patch:5614: trailing whitespace.
+241 | 
+/work/gdp-wired/p2-meta/candidate.patch:6170: trailing whitespace.
+215 | 
+/work/gdp-wired/p2-meta/candidate.patch:6304: trailing whitespace.
+215 | 
+warning: squelched 58 whitespace errors
+warning: 63 lines add whitespace errors.
+warning: adding embedded git repository: vendor/gdp-ts
+warning: adding embedded git repository: vendor/handwired
+Submodule 'vendor/gdp-ts' (https://github.com/rauchg/gdp-ts.git) registered for path 'vendor/gdp-ts'
+Submodule 'vendor/handwired' (https://github.com/monotykamary/handwired.git) registered for path 'vendor/handwired'
+Migrating git directory of 'vendor/gdp-ts' from
+'/tmp/tmp.XFP2wgz7qJ/tree/vendor/gdp-ts/.git' to
+'/tmp/tmp.XFP2wgz7qJ/tree/.git/modules/vendor/gdp-ts'
+Migrating git directory of 'vendor/handwired' from
+'/tmp/tmp.XFP2wgz7qJ/tree/vendor/handwired/.git' to
+'/tmp/tmp.XFP2wgz7qJ/tree/.git/modules/vendor/handwired'
+
+core/extract-ci-lazy-key.test.ts:
+(pass) P2 structured lazy keys: safe_value/numbers [377.95ms]
+21 |   if (label === 'choice-choice') {
+22 |     expect(inputs[0]!.sort).toMatchObject({k: 'choice', values: expect.arrayContaining(['blue'])})
+23 |     expect(inputs[1]!.sort).toMatchObject({k: 'choice', values: expect.arrayContaining(['red'])})
+24 |   }
+25 |   if (label !== 'numbers') {
+26 |     expect(x.model!.events).toHaveLength(3)
+                                 ^
+error: expect(received).toHaveLength(expected)
+
+Expected length: 3
+Received length: 2
+
+      at <anonymous> (/tmp/tmp.XFP2wgz7qJ/tree/core/extract-ci-lazy-key.test.ts:26:29)
+(fail) P2 structured lazy keys: safe_value/numeric-choice [210.73ms]
+21 |   if (label === 'choice-choice') {
+22 |     expect(inputs[0]!.sort).toMatchObject({k: 'choice', values: expect.arrayContaining(['blue'])})
+23 |     expect(inputs[1]!.sort).toMatchObject({k: 'choice', values: expect.arrayContaining(['red'])})
+24 |   }
+25 |   if (label !== 'numbers') {
+26 |     expect(x.model!.events).toHaveLength(3)
+                                 ^
+error: expect(received).toHaveLength(expected)
+
+Expected length: 3
+Received length: 2
+
+      at <anonymous> (/tmp/tmp.XFP2wgz7qJ/tree/core/extract-ci-lazy-key.test.ts:26:29)
+(fail) P2 structured lazy keys: safe_value/choice-choice [201.37ms]
+(pass) P2 structured lazy keys: arg1_value/numbers [140.52ms]
+21 |   if (label === 'choice-choice') {
+22 |     expect(inputs[0]!.sort).toMatchObject({k: 'choice', values: expect.arrayContaining(['blue'])})
+23 |     expect(inputs[1]!.sort).toMatchObject({k: 'choice', values: expect.arrayContaining(['red'])})
+24 |   }
+25 |   if (label !== 'numbers') {
+26 |     expect(x.model!.events).toHaveLength(3)
+                                 ^
+error: expect(received).toHaveLength(expected)
+
+Expected length: 3
+Received length: 2
+
+      at <anonymous> (/tmp/tmp.XFP2wgz7qJ/tree/core/extract-ci-lazy-key.test.ts:26:29)
+(fail) P2 structured lazy keys: arg1_value/numeric-choice [183.90ms]
+21 |   if (label === 'choice-choice') {
+22 |     expect(inputs[0]!.sort).toMatchObject({k: 'choice', values: expect.arrayContaining(['blue'])})
+23 |     expect(inputs[1]!.sort).toMatchObject({k: 'choice', values: expect.arrayContaining(['red'])})
+24 |   }
+25 |   if (label !== 'numbers') {
+26 |     expect(x.model!.events).toHaveLength(3)
+                                 ^
+error: expect(received).toHaveLength(expected)
+
+Expected length: 3
+Received length: 2
+
+      at <anonymous> (/tmp/tmp.XFP2wgz7qJ/tree/core/extract-ci-lazy-key.test.ts:26:29)
+(fail) P2 structured lazy keys: arg1_value/choice-choice [151.62ms]
+(pass) P2 structured lazy keys separate identity from readable names [0.45ms]
+42 |   expect(lazyKey({prefix: 'a', root: ['a', 1]}, 'b_c')).not.toBe(lazyKey({prefix: 'a_b', root: ['a_b', 1]}, 'c'))
+43 | })
+44 | 
+45 | test('P2 structured lazy keys retain retyping independently of a colliding choice', () => {
+46 |   const x = extract(`export function decide(state: string = '', a, b): string { return b.value === 'red' ? a.arg1_value : state }`, {entry: 'decide'})
+47 |   expect({ok: x.ok, refusals: x.refusals}).toEqual({ok: true, refusals: []})
+                                                ^
+error: expect(received).toEqual(expected)
+
+  {
+-   "ok": true,
+-   "refusals": [],
++   "ok": false,
++   "refusals": [
++     {
++       "what": "a value that is a num on one path and a str on another",
++       "where": "input.ts:1:67",
++     },
++   ],
+  }
+
+- Expected  - 2
++ Received  + 7
+
+      at <anonymous> (/tmp/tmp.XFP2wgz7qJ/tree/core/extract-ci-lazy-key.test.ts:47:44)
+(fail) P2 structured lazy keys retain retyping independently of a colliding choice [59.80ms]
+(pass) P2 structured lazy keys still intern repeated reads of the same field [164.43ms]
+
+core/extract-ci-composite-optional.test.ts:
+(pass) B1 direct: calendar operands retain optional provenance [4.24ms]
+(pass) B1 nested: calendar operands retain optional provenance [0.20ms]
+(pass) B1 negated: calendar operands retain optional provenance [0.06ms]
+(pass) B1 minimum: calendar operands retain optional provenance [0.06ms]
+(pass) B1 absolute: calendar operands retain optional provenance [0.04ms]
+(pass) B1 maximum: calendar operands retain optional provenance [0.05ms]
+(pass) B1 product: calendar operands retain optional provenance [0.10ms]
+(pass) B1 division: calendar operands retain optional provenance [0.05ms]
+cyclic: {"kind":"machine","name":"C","cert":true,"usual":true,"cyclic":true,"ms":2,"usualMs":0,"route":"translated","leaves":0,"regrown":0,"splits":0,"carried":0,"uncarried":0,"cached":0}
+cyclic: {"kind":"step law","name":"C","cert":true,"usual":true,"cyclic":true,"ms":68,"usualMs":34,"route":"translated","leaves":41,"regrown":0,"splits":18,"carried":1,"uncarried":0,"cached":0}
+cyclic: {"kind":"machine","name":"C","cert":true,"usual":true,"cyclic":true,"ms":0,"usualMs":0,"route":"translated","leaves":0,"regrown":0,"splits":0,"carried":0,"uncarried":0,"cached":1}
+cyclic: {"kind":"step law","name":"C","cert":true,"usual":true,"cyclic":true,"ms":60,"usualMs":13,"route":"translated","leaves":41,"regrown":0,"splits":18,"carried":1,"uncarried":0,"cached":0}
+cyclic: {"kind":"machine","name":"decide","cert":true,"usual":true,"cyclic":true,"ms":12,"usualMs":2,"route":"translated","leaves":12,"regrown":0,"splits":6,"carried":2,"uncarried":0,"cached":0}
+cyclic: {"kind":"step law","name":"decide","cert":true,"usual":true,"cyclic":true,"ms":16,"usualMs":1,"route":"translated","leaves":4,"regrown":0,"splits":1,"carried":1,"uncarried":0,"cached":0}
+cyclic: {"kind":"machine","name":"decide","cert":true,"usual":true,"cyclic":true,"ms":0,"usualMs":1,"route":"translated","leaves":0,"regrown":0,"splits":0,"carried":0,"uncarried":0,"cached":1}
+cyclic: {"kind":"step law","name":"decide","cert":true,"usual":true,"cyclic":true,"ms":31,"usualMs":23,"route":"translated","leaves":18,"regrown":0,"splits":7,"carried":1,"uncarried":0,"cached":0}
+(pass) nonoptional class and standalone calendar laws remain proven [959.57ms]
+
+core/extract-ci-lazy-identity.test.ts:
+(pass) P2 typed records have independent scalar identities [295.38ms]
+(pass) P2 lazy records have independent scalar identities [242.03ms]
+(pass) repeated reads of one lazy argument still share a single scalar [184.95ms]
+
+core/extract-ci-method-scope.test.ts:
+(pass) qualified value cannot rebind a law to another method [1.03ms]
+(pass) qualified failed cannot rebind a law to another method [0.27ms]
+(pass) explicit method also governs scalar results and arguments [72.37ms]
+
+core/extract-ci-audit.test.ts:
+(pass) CI audit B1: default replay cannot validate optional calendar law translation [433.24ms]
+cyclic: {"kind":"machine","name":"decide","cert":true,"usual":true,"cyclic":true,"ms":10,"usualMs":2,"route":"translated","leaves":12,"regrown":0,"splits":6,"carried":2,"uncarried":0,"cached":0}
+cyclic: {"kind":"step law","name":"decide","cert":true,"usual":true,"cyclic":true,"ms":19,"usualMs":2,"route":"translated","leaves":17,"regrown":0,"splits":13,"carried":1,"uncarried":0,"cached":0}
+cyclic: {"kind":"machine","name":"decide","cert":true,"usual":true,"cyclic":true,"ms":9,"usualMs":1,"route":"translated","leaves":12,"regrown":0,"splits":6,"carried":2,"uncarried":0,"cached":0}
+cyclic: {"kind":"step law","name":"decide","cert":true,"usual":true,"cyclic":true,"ms":15,"usualMs":1,"route":"translated","leaves":17,"regrown":0,"splits":13,"carried":1,"uncarried":0,"cached":0}
+(pass) CI audit P2: named and destructured records have independent heap identities [165.86ms]
+(pass) CI audit B2: falsy map payloads remain present in both truthiness arms [1238.42ms]
+(pass) CI audit C1: accepted records report the plain-data contract [151.17ms]
+cyclic: {"kind":"machine","name":"decide","cert":true,"usual":true,"cyclic":true,"ms":4,"usualMs":1,"route":"translated","leaves":6,"regrown":0,"splits":3,"carried":1,"uncarried":0,"cached":0}
+cyclic: {"kind":"step law","name":"decide","cert":true,"usual":true,"cyclic":true,"ms":4,"usualMs":0,"route":"translated","leaves":8,"regrown":0,"splits":6,"carried":1,"uncarried":0,"cached":0}
+(pass) CI audit N1: reserved output field names are readable without becoming failure status [107.45ms]
+cyclic: {"kind":"machine","name":"Decision","cert":true,"usual":true,"cyclic":true,"ms":14,"usualMs":1,"route":"translated","leaves":12,"regrown":0,"splits":6,"carried":2,"uncarried":0,"cached":0}
+cyclic: {"kind":"step law","name":"Decision","cert":true,"usual":true,"cyclic":true,"ms":14,"usualMs":2,"route":"translated","leaves":9,"regrown":0,"splits":5,"carried":1,"uncarried":0,"cached":0}
+cyclic: {"kind":"machine","name":"Decision","cert":true,"usual":true,"cyclic":true,"ms":0,"usualMs":1,"route":"translated","leaves":0,"regrown":0,"splits":0,"carried":0,"uncarried":0,"cached":1}
+cyclic: {"kind":"step law","name":"Decision","cert":true,"usual":true,"cyclic":true,"ms":9,"usualMs":1,"route":"translated","leaves":8,"regrown":0,"splits":4,"carried":1,"uncarried":0,"cached":0}
+cyclic: {"kind":"machine","name":"Decision","cert":true,"usual":true,"cyclic":true,"ms":0,"usualMs":1,"route":"translated","leaves":0,"regrown":0,"splits":0,"carried":0,"uncarried":0,"cached":1}
+cyclic: {"kind":"step law","name":"Decision","cert":true,"usual":true,"cyclic":true,"ms":22,"usualMs":1,"route":"translated","leaves":11,"regrown":0,"splits":8,"carried":1,"uncarried":0,"cached":0}
+cyclic: {"kind":"machine","name":"Decision","cert":true,"usual":true,"cyclic":true,"ms":0,"usualMs":1,"route":"translated","leaves":0,"regrown":0,"splits":0,"carried":0,"uncarried":0,"cached":1}
+cyclic: {"kind":"step law","name":"Decision","cert":true,"usual":true,"cyclic":true,"ms":30,"usualMs":1,"route":"translated","leaves":7,"regrown":0,"splits":4,"carried":1,"uncarried":0,"cached":0}
+(pass) CI audit N1: class result fields are qualified and scoped by method [193.69ms]
+
+5 tests failed:
+(fail) P2 structured lazy keys: safe_value/numeric-choice [210.73ms]
+(fail) P2 structured lazy keys: safe_value/choice-choice [201.37ms]
+(fail) P2 structured lazy keys: arg1_value/numeric-choice [183.90ms]
+(fail) P2 structured lazy keys: arg1_value/choice-choice [151.62ms]
+(fail) P2 structured lazy keys retain retyping independently of a colliding choice [59.80ms]
+
+ 25 pass
+ 5 fail
+ 181 expect() calls
+Ran 30 tests across 5 files. [6.23s]

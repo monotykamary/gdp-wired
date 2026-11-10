@@ -1,0 +1,56 @@
+{
+  "status": "paused-at-user-request",
+  "branch": "claude/law-crosscheck",
+  "codeRevision": "c8411149d2c6c3c060a0665a79f10523b1281cbc",
+  "isolatedBranch": "claude/fix-ci-audit",
+  "isolatedRevision": "ec4ba037a52ab36d1ddb9a359569bf64d2f88002",
+  "baseline": "b11e1f651618b3d3fcaf6cec66b4a8b0203cdcd3",
+  "gateGreen": false,
+  "activeOwnedTasks": [],
+  "activeOwnedBatches": [],
+  "completedFocus": {
+    "batch": "20261110-123349-zrwngk",
+    "task": "c03eb9c4-8360-46ef-88b8-ffd8de17ef70",
+    "allJobsPassed": true,
+    "focusedTests": 30,
+    "siblingMutantsCaught": 5,
+    "checkBuildCommitlintRosterPassed": true,
+    "receipts": "runs/p2-structured-v3-ec4ba037"
+  },
+  "completedDiagnostic": {
+    "batch": "20261110-123219-r16j6n",
+    "receipts": "runs/p2-domain-probe-1f61987b",
+    "finding": "Bun asymmetric matcher mutates inspected choice-domain array"
+  },
+  "retainedFailedFocusBatches": [
+    "20261110-121533-gx3e3z",
+    "20261110-122750-aiwdi6"
+  ],
+  "rerunFirst": [
+    {
+      "work": "fresh canonical gate and native paired bar",
+      "supersedesBatch": "20261110-122517-5pa2hh",
+      "sourcePacks": "/tmp/gdp-final-c8411149-inputs",
+      "runner": "/tmp/gdp-gate-runner-e07ee501"
+    },
+    {
+      "work": "fresh exact-candidate 39-job supplement",
+      "supersedesBatch": "20261110-122149-3zdeie",
+      "jobs": "/tmp/gdp-c841-supplement.jobs.json",
+      "metadata": "/tmp/gdp-c841-supplement-meta"
+    }
+  ],
+  "pending": [
+    "Lane D isolated re-review",
+    "integrated full gate",
+    "integrated private replay and fuzz",
+    "independent exact-source audit",
+    "supplement verifier validation"
+  ],
+  "shutdownChecks": {
+    "taskInventoryEmpty": true,
+    "knownOwnedPidsAbsent": true,
+    "knownOwnedQueueEntriesAbsent": true,
+    "legacyOverrideDisabled": true
+  }
+}
