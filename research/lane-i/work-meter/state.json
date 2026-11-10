@@ -1,17 +1,68 @@
 {
-  "draftCommit":"9f89363c669127568bef7f131050c522cf233be0",
-  "draftRef":"claude/lane-i-kernel-meter-v2",
-  "tree":"4e27c04f1e720ca763105e0a6ae64c1ddcdaa297",
-  "parent":"ef5ee98aa597b2adf14ec35f612052714698cc3e",
-  "generatorAncestor":"279c45b3bb2e8655c98931958962ff51314cd4bd",
-  "researchParentCheckpoint":"a793a83ff9cac01dce5eb964732fdd9a4336decb",
-  "productionBaseline":"b11e1f651618b3d3fcaf6cec66b4a8b0203cdcd3",
-  "scope":"raw-meter observation; fullWork and budgets unchanged; not integrated",
-  "checks":{"task":"23b1daa8-37f8-4845-921b-2ad4e9b97239","batch":"20261110-103917-o1bcsv","profiles":["plain","zero","double","random"],"eachPass":262,"eachAssertions":2314327,"caseHash":"ba5b6e512633ced7ab92a9668e48d4095847ef58acfec75c210d1257d12c7d5d","resultDirectory":"runs/lane-i/kernel-meter-checks-v3"},
-  "independentAudit":{"task":"b5038f31-eb77-4480-84e0-fbfd6b703aef","batch":"20261110-104334-8uqy2w","resultDirectory":"runs/lane-i/kernel-meter-audit-v3","status":"passed; source and stream hashes, observed mutations, equal test vector, missing-receipt negative"},
-  "finalSourceCheck":{"task":"bc1179f8-0bc1-4efc-a902-8b8a9e21cc9e","resultDirectory":"runs/lane-i/kernel-meter-final-source-check","batch":"20261110-104411-6i7p2c","status":"passed; exact final source and tooling, no target-test repetition"},
-  "preservedFailures":[{"batch":"20261110-103004-kiock2","audit":"20261110-103257-i1cc7y","reason":"missing mutation receipts despite zero worker exits"},{"batch":"20261110-103354-jyb8xc","reason":"auditor no-control-regex lint error; target tests and observed hooks passed"}],
-  "remaining":["Lane D independent 28-certificate acceptance/refusal audit before use","Review operation coverage and potential double-charging","I2 raw core counts and unified fullWork only after the raw-meter audit","I3 ledger and F3 silent-work instrumentation","D2-owned weights and W; then full deterministic census"],
-  "execution":{"subagents":0,"receiptProcessing":"boat only","newLocalWholeTreeCopies":0},
-  "generatorIntake":"still pending; first three workers were rejected before generation; thresholds unchanged"
+  "draftCommit": "9f89363c669127568bef7f131050c522cf233be0",
+  "draftRef": "claude/lane-i-kernel-meter-v2",
+  "tree": "4e27c04f1e720ca763105e0a6ae64c1ddcdaa297",
+  "parent": "ef5ee98aa597b2adf14ec35f612052714698cc3e",
+  "generatorAncestor": "279c45b3bb2e8655c98931958962ff51314cd4bd",
+  "researchParentCheckpoint": "a793a83ff9cac01dce5eb964732fdd9a4336decb",
+  "productionBaseline": "b11e1f651618b3d3fcaf6cec66b4a8b0203cdcd3",
+  "scope": "raw-meter observation; fullWork and budgets unchanged; not integrated",
+  "checks": {
+    "task": "23b1daa8-37f8-4845-921b-2ad4e9b97239",
+    "batch": "20261110-103917-o1bcsv",
+    "profiles": [
+      "plain",
+      "zero",
+      "double",
+      "random"
+    ],
+    "eachPass": 262,
+    "eachAssertions": 2314327,
+    "caseHash": "ba5b6e512633ced7ab92a9668e48d4095847ef58acfec75c210d1257d12c7d5d",
+    "resultDirectory": "runs/lane-i/kernel-meter-checks-v3"
+  },
+  "independentAudit": {
+    "task": "b5038f31-eb77-4480-84e0-fbfd6b703aef",
+    "batch": "20261110-104334-8uqy2w",
+    "resultDirectory": "runs/lane-i/kernel-meter-audit-v3",
+    "status": "passed; source and stream hashes, observed mutations, equal test vector, missing-receipt negative"
+  },
+  "finalSourceCheck": {
+    "task": "bc1179f8-0bc1-4efc-a902-8b8a9e21cc9e",
+    "resultDirectory": "runs/lane-i/kernel-meter-final-source-check",
+    "batch": "20261110-104411-6i7p2c",
+    "status": "passed; exact final source and tooling, no target-test repetition"
+  },
+  "preservedFailures": [
+    {
+      "batch": "20261110-103004-kiock2",
+      "audit": "20261110-103257-i1cc7y",
+      "reason": "missing mutation receipts despite zero worker exits"
+    },
+    {
+      "batch": "20261110-103354-jyb8xc",
+      "reason": "auditor no-control-regex lint error; target tests and observed hooks passed"
+    }
+  ],
+  "remaining": [
+    "Lane D independent 28-certificate acceptance/refusal audit before use",
+    "Review operation coverage and potential double-charging",
+    "Finish I2 raw counts; trusted-kernel observations require D1 before budgeting and weights require D2",
+    "I3 ledger and F3 silent-work instrumentation",
+    "D2-owned weights and W; then full deterministic census"
+  ],
+  "execution": {
+    "subagents": 0,
+    "receiptProcessing": "boat only",
+    "newLocalWholeTreeCopies": 0
+  },
+  "generatorIntake": "still pending; six workers rejected before generation, one xlarge worker generated 49 candidates but failed post/across probes; no qualified cohort",
+  "i2Evaluation": {
+    "candidate": "17968f8f053de58862115b84c0e5c41eac273940",
+    "ref": "claude/lane-i-i2-evaluation",
+    "state": "first evaluation slice verified and isolated; full I2 incomplete",
+    "stateFile": "research/lane-i/work-meter/i2/state.json",
+    "validationBatch": "20261110-110749-tb8ue2",
+    "auditBatch": "20261110-111125-zilynh"
+  }
 }

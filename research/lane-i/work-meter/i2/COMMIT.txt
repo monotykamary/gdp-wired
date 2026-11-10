@@ -1,0 +1,4 @@
+feat(core): count concrete expression evaluations
+
+Add raw observation of interpreted and compiled evaluations without
+changing fullWork, clock policy, or fitted weights.

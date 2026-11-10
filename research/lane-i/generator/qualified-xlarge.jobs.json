@@ -1,0 +1,13 @@
+[
+  {
+    "name": "generator-qualified-xlarge-1",
+    "cmd": "bun generator-input/preflight.ts generation",
+    "cpu": 8,
+    "memory": 28672,
+    "timeout": 600,
+    "vm_type": "xlarge",
+    "env": {
+      "QUIET_FLOOR_LOG": "quiet-floor-extension.log"
+    }
+  }
+]

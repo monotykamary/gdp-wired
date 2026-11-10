@@ -1,0 +1,16 @@
+[
+  {
+    "name": "i2-evaluation-audit",
+    "cmd": "bun -e 'import{readFileSync}from\"node:fs\";import{gunzipSync}from\"node:zlib\";import{stripVTControlCharacters}from\"node:util\";import{createHash}from\"node:crypto\";import{strict as a}from\"node:assert\";const cfg=JSON.parse(readFileSync(\"i2-input/identity.json\",\"utf8\")),text=stripVTControlCharacters(readFileSync(\"check-data/i2-evaluation-checks.log\",\"utf8\")),rows=tag=>text.split(\"\\n\").filter(s=>s.startsWith(tag+\" \")).map(s=>JSON.parse(s.slice(tag.length+1))),source=rows(\"GENERATOR_SOURCE\"),end=rows(\"GENERATOR_UNCHANGED\"),checks=rows(\"GENERATOR_CHECK\");a.equal(source.length,1);a.equal(end.length,1);a.equal(source[0].candidate,cfg.candidate);a.deepEqual(source[0].blobs,cfg.expectedCandidateBlobs);a.equal(end[0].candidate,cfg.candidate);a.equal(end[0].production,true);a.deepEqual(checks.map(r=>r.label),[\"targeted\",\"roster\",\"decoder\",\"type-lint\"]);let target;for(const r of checks){a.equal(r.exit,0,r.label);a.equal(r.signal,null,r.label);const raw=gunzipSync(Buffer.from(r.traceGzipBase64,\"base64\")).toString(),at=raw.indexOf(\"\\n---stderr---\\n\");a(at>=0);a.equal(createHash(\"sha256\").update(raw.slice(0,at)).digest(\"hex\"),r.stdoutSha256);if(r.label===\"targeted\")target=stripVTControlCharacters(raw)}a(target);const passed=Number(target.match(/(\\d+) pass/)?.[1]),failed=Number(target.match(/(\\d+) fail/)?.[1]);a(passed>=6);a.equal(failed,0);const meterSection=target.slice(target.indexOf(\"core/meter.test.ts:\"),target.indexOf(\"core/compile.test.ts:\"));a.equal((meterSection.match(/^\\(pass\\)/gm)||[]).length,6);console.log(\"I2_EVALUATION_AUDIT \"+JSON.stringify({candidate:cfg.candidate,cpu:source[0].cpu,passed,failed,rawCountTests:6,labels:checks.map(r=>r.label),sourceUnchanged:true,scope:\"evaluation-only slice; fullWork and budgets unchanged; not complete I2, F1, F2 or a calibrated W\"}))'",
+    "cpu": 1,
+    "memory": 2048,
+    "timeout": 120
+  },
+  {
+    "name": "i2-evaluation-commitlint",
+    "cmd": "set -euo pipefail; temp=$(mktemp -d); trap 'rm -rf \"$temp\"' EXIT; printf '{\"private\":true}\\n' > \"$temp/package.json\"; (cd \"$temp\" && bun add --dev @commitlint/cli@19.8.1 @commitlint/config-conventional@19.8.1 >/dev/null); printf \"module.exports={extends:['@commitlint/config-conventional']};\\n\" > \"$temp/commitlint.config.cjs\"; for file in i2-input/*COMMIT.txt; do \"$temp/node_modules/.bin/commitlint\" --cwd \"$temp\" < \"$file\"; printf 'GENERATOR_COMMITLINT %s\\n' \"$file\"; sha256sum \"$file\"; done",
+    "cpu": 2,
+    "memory": 4096,
+    "timeout": 300
+  }
+]

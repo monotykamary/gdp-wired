@@ -1,0 +1,9 @@
+[
+  {
+    "name": "i2-evaluation-diagnostics",
+    "cmd": "bun -e 'import{readFileSync}from\"node:fs\";import{gunzipSync}from\"node:zlib\";import{stripVTControlCharacters as clean}from\"node:util\";const text=clean(readFileSync(\"check-data/i2-evaluation-checks.log\",\"utf8\")),rows=text.split(\"\\n\").filter(s=>s.startsWith(\"GENERATOR_CHECK \")).map(s=>JSON.parse(s.slice(16)));for(const r of rows){console.log(JSON.stringify({label:r.label,exit:r.exit,signal:r.signal}));if(r.exit!==0){const raw=clean(gunzipSync(Buffer.from(r.traceGzipBase64,\"base64\")).toString());console.log(raw.slice(0,8000));if(raw.length>8000)console.log(raw.slice(-6000))}}if(!rows.length)console.log(text.slice(-14000))'",
+    "cpu": 1,
+    "memory": 2048,
+    "timeout": 120
+  }
+]

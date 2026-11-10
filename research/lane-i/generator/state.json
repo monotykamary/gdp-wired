@@ -1,19 +1,111 @@
 {
-  "productionMergeCommit":"4d8289ce3a3b7e114c8174a92759f2438abc2baa",
-  "gateBaseline":"b11e1f651618b3d3fcaf6cec66b4a8b0203cdcd3",
-  "candidate":"279c45b3bb2e8655c98931958962ff51314cd4bd",
-  "candidateRef":"claude/lane-i-generator-b11e1f65",
-  "sourceEquivalentTo":"ee6a78c3e23ea816b87ea392f18126021bf3822a",
-  "targetedTestsRosterAndProductionTypeLint":"passed in 20261110-100830-si838c on equivalent executable sources",
-  "structuralDiagnostic":{"batch":"20261110-101300-tocfye","passed":true,"quietQualified":false,"lawCount":49,"q2Index":39,"guardedInv1758Index":41},
-  "quietQualification":{"firstCalibration":"no eligible floor; rejected","alternateTask":"0d4fb142-6148-4c38-88f6-f6681e475aa5","alternateOutput":"runs/lane-i/generator-quiet-alternates","calibrationBatch":"20261110-101809-ny7ox9","qualifiedFloor":{"model":"AMD Ryzen 7 9700X 8-Core Processor","cpuMs":150,"memoryMs":442,"acceptedProbes":4},"generationTask":"5171ecf6-33b1-4345-bec7-73aeaf45637a","generationOutput":"runs/lane-i/generator-qualified-original"},
-  "tooling":{"failedTask":"64e4fa0c-e463-418d-9da0-082add37a3a8","diagnosticTask":"9e8e02c6-a31f-4856-9cd7-5d615fa2548c","diagnosticOutput":"runs/lane-i/generator-check-diagnostics","recheckTask":"c0682812-9f4d-43f1-9e70-24b23ac86eab","recheckBatch":"20261110-101555-9qos8n","status":"roster, tooling type/lint and commitlint pass after two unused-binding corrections; prior failure retained"},
-  "costConstraints":{"legacyP1Units":1152.3382236,"legacyPaxosSolver":6915544,"legacyPaxosFull":1037946},
-  "next":["Three qualified original mldr generations with required ASTs and stable names/bodies","Own 29-protocol and paired cost/proof checks against b11e1f65 before integration","Parallel isolated I1 raw-meter draft is being tested; follow Section 18 for full coverage, Lane D audit, calibrated aggregation and exact verdict/unit equality on at least three CPU models"],
-  "upstream":{"laneAWallRemoval":"184bc7ac is separately under 87-pair census; do not silently mix into current candidate","section18":"read in full; parallel I1-I3 inventory started in research/lane-i/work-meter/PLAN.md"},
-  "execution":{"subagents":0,"receiptProcessing":"boat only","newLocalWholeTrees":0,"baselineDeltaPackBytes":26429},
-  "census":{"pilotTask":"84769f04-c330-4192-bf33-c7d78e08e1a8","toolingTask":"6d64bd9e-0b5e-4777-a96c-a6eaed107655","toolingStatus":"exact current source, decoder, roster and type/lint pass on large profile in 20261110-102733-q5nysf","status":"prepared, not a completed census"},
-  "qualificationAuditTask":"232bcad6-81ab-4510-88a9-5ee2cb116740",
-  "qualificationLatest":"independent audit 20261110-102443-dd6pmj: all three rejected before generation on bx_3x8cqc5e; steal 1.4-3.1%, memory probes 9.3-12.2 seconds; zero qualified cohorts and zero executed generation runs in this batch",
-  "integrationStatus":"pending; no new generator or helper is active"
+  "productionMergeCommit": "4d8289ce3a3b7e114c8174a92759f2438abc2baa",
+  "gateBaseline": "b11e1f651618b3d3fcaf6cec66b4a8b0203cdcd3",
+  "candidate": "279c45b3bb2e8655c98931958962ff51314cd4bd",
+  "candidateRef": "claude/lane-i-generator-b11e1f65",
+  "sourceEquivalentTo": "ee6a78c3e23ea816b87ea392f18126021bf3822a",
+  "targetedTestsRosterAndProductionTypeLint": "passed in 20261110-100830-si838c on equivalent executable sources",
+  "structuralDiagnostic": {
+    "batch": "20261110-101300-tocfye",
+    "passed": true,
+    "quietQualified": false,
+    "lawCount": 49,
+    "q2Index": 39,
+    "guardedInv1758Index": 41
+  },
+  "quietQualification": {
+    "firstCalibration": "no eligible floor; rejected",
+    "alternateTask": "0d4fb142-6148-4c38-88f6-f6681e475aa5",
+    "alternateOutput": "runs/lane-i/generator-quiet-alternates",
+    "calibrationBatch": "20261110-101809-ny7ox9",
+    "qualifiedFloor": {
+      "model": "AMD Ryzen 7 9700X 8-Core Processor",
+      "cpuMs": 150,
+      "memoryMs": 442,
+      "acceptedProbes": 4
+    },
+    "generationTask": "5171ecf6-33b1-4345-bec7-73aeaf45637a",
+    "generationOutput": "runs/lane-i/generator-qualified-original",
+    "alternateStatus": "complete: 20261110-100855-tjqqmr",
+    "extension": {
+      "batch": "20261110-110003-ehp9ic",
+      "addedModel": "AMD Ryzen 9 9950X 16-Core Processor",
+      "cpuMs": 154,
+      "memoryMs": 523,
+      "probes": 3,
+      "oldModelFloor": "unchanged"
+    },
+    "largeGeneration": {
+      "task": "ca44c49f-fab7-41df-9fe9-2ddb6a806bf0",
+      "batch": "20261110-110132-gznoa8",
+      "output": "runs/lane-i/generator-qualified-large",
+      "status": "all three rejected by pre-probes; no generation executed"
+    },
+    "largeAudit": {
+      "task": "822851b9-f9fc-4070-8f76-a7ddaec88e6b",
+      "batch": "20261110-110310-zz8jdn",
+      "output": "runs/lane-i/generator-qualified-large-audit",
+      "completeCohorts": 0,
+      "attempts": 3
+    },
+    "xlargeGeneration": {
+      "task": "69d75b34-c853-4731-9b79-25d16f1a38aa",
+      "output": "runs/lane-i/generator-qualified-xlarge",
+      "status": "pre-probe passed; one 49-candidate generation completed; post-probe and across-run steal rejected it",
+      "batch": "20261110-110727-4x03fu"
+    },
+    "xlargeAudit": {
+      "task": "c72226aa-2f8c-4769-8a37-c202aeca69fc",
+      "batch": "20261110-111202-ddwbs5",
+      "output": "runs/lane-i/generator-qualified-xlarge-audit",
+      "qualifiedCohorts": 0,
+      "generatedCandidates": 49,
+      "postCpuMs": 206,
+      "postMemoryMs": 1316,
+      "postStealRatio": 0.03755274261603375,
+      "acrossStealRatio": 0.01781822353076129
+    }
+  },
+  "tooling": {
+    "failedTask": "64e4fa0c-e463-418d-9da0-082add37a3a8",
+    "diagnosticTask": "9e8e02c6-a31f-4856-9cd7-5d615fa2548c",
+    "diagnosticOutput": "runs/lane-i/generator-check-diagnostics",
+    "recheckTask": "c0682812-9f4d-43f1-9e70-24b23ac86eab",
+    "recheckBatch": "20261110-101555-9qos8n",
+    "status": "roster, tooling type/lint and commitlint pass after two unused-binding corrections; prior failure retained"
+  },
+  "costConstraints": {
+    "legacyP1Units": 1152.3382236,
+    "legacyPaxosSolver": 6915544,
+    "legacyPaxosFull": 1037946
+  },
+  "next": [
+    "Three qualified original mldr generations with required ASTs and stable names/bodies",
+    "Own 29-protocol and paired cost/proof checks against b11e1f65 before integration",
+    "I1 raw-meter 9f89363c ready for Lane D; I2 evaluation-only 17968f8f independently verified, both isolated and not wired into fullWork"
+  ],
+  "upstream": {
+    "laneAWallRemoval": "184bc7ac upstream paired census passed; not silently mixed into the frozen candidate",
+    "section18": "read in full; parallel I1-I3 inventory started in research/lane-i/work-meter/PLAN.md",
+    "A2": {
+      "candidate": "8901715e39a384583b22a5ea2856d93f795807fd",
+      "status": "upstream F2 and generation comparisons passed; full suite pending; not integrated",
+      "gap": "three sampling-only cases charge zero units"
+    }
+  },
+  "execution": {
+    "subagents": 0,
+    "receiptProcessing": "boat only",
+    "newLocalWholeTrees": 0,
+    "baselineDeltaPackBytes": 26429
+  },
+  "census": {
+    "pilotTask": "84769f04-c330-4192-bf33-c7d78e08e1a8",
+    "toolingTask": "6d64bd9e-0b5e-4777-a96c-a6eaed107655",
+    "toolingStatus": "exact current source, decoder, roster and type/lint pass on large profile in 20261110-102733-q5nysf",
+    "status": "prepared, not a completed census"
+  },
+  "qualificationAuditTask": "232bcad6-81ab-4510-88a9-5ee2cb116740",
+  "qualificationLatest": "Seven workers total: six rejected before generation; one generated 49 candidates on xlarge but failed post/across admission. Zero qualified cohorts. No threshold relaxed.",
+  "integrationStatus": "pending; no new generator or helper is active"
 }

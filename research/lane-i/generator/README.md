@@ -9,6 +9,32 @@ deletions are honored; the conflicting local report and admission file
 were untracked rather than physically erased. A 26,429-byte delta pack
 adds b11’s missing objects to the existing source cache; no tree is copied.
 
+## Latest qualification outcome
+
+The completed alternate scouts (`20261110-100855-tjqqmr`) add a qualified
+Ryzen 9950X floor of 154 ms CPU / 523 ms memory (three probes). The frozen
+9700X floor remains exactly 150 / 442; no earlier rejection is reclassified.
+The extension is recorded in `20261110-110003-ehp9ic`.
+
+All three exclusive large-host attempts in `20261110-110132-gznoa8` failed
+the **pre-probe**. Independent audit `20261110-110310-zz8jdn` confirms zero
+qualified cohorts and zero executed generation runs. Memory probes were
+675–8,525 ms; CPU or steal checks also rejected two workers. Source and
+thresholds are unchanged.
+
+One xlarge replacement (`20261110-110727-4x03fu`) passed its pre-probe and
+produced 49 candidates, including the required rows at indices 39 and 41.
+It **failed post/across admission**: post CPU 206 ms, memory 1,316 ms, steal
+3.76%; across-run steal 1.78%. Independent audit
+`20261110-111202-ddwbs5` records zero qualified cohorts. This is unqualified
+structural evidence, not a generation/proof acceptance. No further placement
+loop is running. The generator census and integration remain pending.
+
+Lane A's newer A2 handoff (`8901715e`) is separate: its upstream F2 and
+legacy-generation comparisons pass, but its full suite is still pending.
+The I2 evaluation draft starts from b11 independently; it does not import
+A2's broader stack or turn the zero-unit sampling observation into a success.
+
 ## Staged generator delta
 
 Lane A sources: `ef509fab` (deterministic finite work prefix), `7d76eb71`

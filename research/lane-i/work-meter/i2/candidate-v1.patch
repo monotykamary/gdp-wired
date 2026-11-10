@@ -1,0 +1,162 @@
+diff --git a/core/machine.ts b/core/machine.ts
+index c29ff94a..ee869743 100644
+--- a/core/machine.ts
++++ b/core/machine.ts
+@@ -8,6 +8,7 @@
+ import {boundOf, crossFree, eachParts, historyMachine, tuple, keyTerm, mapArities, plainKey, scope, sumRuntime, tupleParts} from '../kernel/kernel.ts'
+ import {type Constraint, type Lin, type Verdict, add, env, eq, k, le, lt, nat, scale, show, solve, sub, v} from './solver.ts'
+ import {runtimeWall} from './runtime-wall.ts'
++import {coreMeter} from './meter.ts'
+ 
+ // The one generator of the repo's random draws: x' = (1103515245 x + 12345) mod 2^31, exact (Math.imul). In doubles
+ // the product passes 2^53 and rounds, which folds every seed into one of six short cycles (61 to 10,466 steps; 98.8% of
+@@ -378,6 +379,7 @@ const exact = (v: number): number => {
+ // (a value is a number: a name like constructor or toString, read through an object's prototype, is no value of it)
+ const num = (x: unknown): number | undefined => (typeof x === 'number' ? x : undefined)
+ export function evalE(e: E, env: Env, st: State, m: Machine): number {
++  coreMeter.evals += 1
+   switch (e.op) {
+     case 'var': { const v = num(env[e.name]) ?? num(st.scalars[e.name]); if (v === undefined) throw new Error(`no value for ${e.name}`); return v }
+     case 'const': return e.value
+@@ -509,6 +511,7 @@ export function pairedArgs(key: E, n: number): E[] | undefined {
+ }
+ const alike = (a: E, b: E): boolean => a === b || JSON.stringify(a) === JSON.stringify(b)
+ export function evalC(c: C, env: Env, st: State, m: Machine): boolean {
++  coreMeter.evals += 1
+   switch (c.op) {
+     case '<': return evalE(c.a, env, st, m) < evalE(c.b, env, st, m)
+     case '<=': return evalE(c.a, env, st, m) <= evalE(c.b, env, st, m)
+@@ -528,6 +531,11 @@ export function evalC(c: C, env: Env, st: State, m: Machine): boolean {
+ // (a read reads the machine's functions as they are when it runs, which a table swap changes; a quantified condition and
+ // a function of several arguments go through evalC and evalE). For a term read at many rows (the engine's views).
+ export function compileE(e: E, m: Machine): (env: Env, st: State) => number {
++  const run = compileENode(e, m)
++  // A get either charges its own node or delegates it to evalE, never both.
++  return e.op === 'get' ? run : (env, st) => { coreMeter.evals += 1; return run(env, st) }
++}
++function compileENode(e: E, m: Machine): (env: Env, st: State) => number {
+   switch (e.op) {
+     case 'var': { const name = e.name; return (env, st) => { const v = num(env[name]) ?? num(st.scalars[name]); if (v === undefined) throw new Error(`no value for ${name}`); return v } }
+     case 'const': { const v = e.value; return () => v }
+@@ -545,6 +553,7 @@ export function compileE(e: E, m: Machine): (env: Env, st: State) => number {
+       return (env, st) => {
+         const fn = m.fns?.[map]
+         if (fn?.call && pairedArgs(e.key, fn.arity!)) return evalE(e, env, st, m)
++        coreMeter.evals += 1
+         const k = key(env, st)
+         return fn ? naturalIn(fnOf(fn)(k), `${map}(${k})`) : st.maps[map]!.get(k) ?? st.defaults?.[map] ?? m.maps![map]!
+       }
+@@ -552,6 +561,11 @@ export function compileE(e: E, m: Machine): (env: Env, st: State) => number {
+   }
+ }
+ export function compileC(c: C, m: Machine): (env: Env, st: State) => boolean {
++  const run = compileCNode(c, m)
++  // Quantified conditions delegate the whole evaluation to the interpreter.
++  return c.op === 'all' ? run : (env, st) => { coreMeter.evals += 1; return run(env, st) }
++}
++function compileCNode(c: C, m: Machine): (env: Env, st: State) => boolean {
+   switch (c.op) {
+     case '<': { const a = compileE(c.a, m), b = compileE(c.b, m); return (env, st) => a(env, st) < b(env, st) }
+     case '<=': { const a = compileE(c.a, m), b = compileE(c.b, m); return (env, st) => a(env, st) <= b(env, st) }
+@@ -1057,8 +1071,12 @@ export function fastStep(m: Machine): ((params: Env, st: State, input: Request)
+   // (the counts compiled with the step, unless the machine has least keys, whose names the step alone computes)
+   const compiledCells = cs.length && !Object.keys(m.leasts ?? {}).length
+   try { if (m.history) return undefined; js = loadJsMode({...m, counts: undefined, inputMaps: [...m.inputMaps ?? [], ...cs]}, true, compiledCells ? {decls, inputMaps: m.inputMaps ?? []} : undefined) } catch { return undefined }
+-  const only = cs.length ? {...m, counts: decls} : m, tick = () => runtimeWall.check?.('derived count')
++  let stepEvals = 0
++  walk([m.step, m.assume ?? null, m.leasts ?? null], o => { if (typeof o.op === 'string') stepEvals++ })
++  const only = cs.length ? {...m, counts: decls} : m, tick = () => { coreMeter.ticks += 1; runtimeWall.check?.('derived count') }
+   return (params, st, input) => {
++    // Section 18's static expression-node charge per compiled step invocation.
++    coreMeter.evals += stepEvals
+     if (!cs.length) return js.step(params, st, input)
+     const view = compiledCells ? js.cells!(params, st, input, tick) : carriedView(only, st, input, undefined, params).maps, carried: Request = {...input}
+     for (const c of cs) carried[c] = view[c]!
+diff --git a/core/meter.test.ts b/core/meter.test.ts
+new file mode 100644
+index 00000000..575bf868
+--- /dev/null
++++ b/core/meter.test.ts
+@@ -0,0 +1,60 @@
++import {beforeEach, expect, test} from 'bun:test'
++import {type C, type E, type Machine, type State, compileC, compileE, compileJs, evalC, evalE, fastStep, interpret} from './machine.ts'
++import {coreMeter} from './meter.ts'
++
++const m: Machine = {name: 'evaluation meter', params: [], inputs: [], state: {}, step: {}}
++const st: State = {scalars: {}, maps: {A: new Map([[0, 7]])}}
++const n = (value: number): E => ({op: 'const', value})
++const measure = <T>(run: () => T) => { const start = coreMeter.evals; return {value: run(), nodes: coreMeter.evals - start} }
++beforeEach(() => { Object.assign(coreMeter, {astNodes: 0, evals: 0, cubeTests: 0, ticks: 0}) })
++
++test('interpreter and closures charge visited expression nodes, not compilation or untaken branches', () => {
++  const e: E = {op: 'if', c: {op: '<=', a: n(1), b: n(2)}, then: {op: 'add', a: n(3), b: n(4)}, else: {op: 'var', name: 'missing'}}
++  const run = compileE(e, m)
++  expect(coreMeter.evals).toBe(0)
++  expect(measure(() => evalE(e, {}, st, m))).toEqual({value: 7, nodes: 7})
++  expect(measure(() => run({}, st))).toEqual({value: 7, nodes: 7})
++})
++
++test('short-circuiting conditions charge only the visited children', () => {
++  const c: C = {op: 'and', xs: [{op: '=', a: n(1), b: n(2)}, {op: '=', a: {op: 'var', name: 'missing'}, b: n(0)}]}
++  expect(measure(() => evalC(c, {}, st, m))).toEqual({value: false, nodes: 4})
++  const run = compileC(c, m)
++  expect(measure(() => run({}, st))).toEqual({value: false, nodes: 4})
++})
++
++test('failed evaluation is charged before it throws', () => {
++  const e: E = {op: 'var', name: 'missing'}, run = compileE(e, m)
++  expect(() => evalE(e, {}, st, m)).toThrow('no value for missing')
++  expect(coreMeter.evals).toBe(1)
++  expect(() => run({}, st)).toThrow('no value for missing')
++  expect(coreMeter.evals).toBe(2)
++})
++
++test('compiled map reads and quantified fallback are not charged twice', () => {
++  const e: E = {op: 'get', map: 'A', key: n(0)}
++  expect(measure(() => evalE(e, {}, st, m))).toEqual({value: 7, nodes: 2})
++  const get = compileE(e, m)
++  expect(measure(() => get({}, st))).toEqual({value: 7, nodes: 2})
++  const c: C = {op: 'all', key: 'i', c: {op: '=', a: {op: 'var', name: 'i'}, b: {op: 'var', name: 'i'}}}, run = compileC(c, m)
++  const interpreted = measure(() => evalC(c, {}, st, m))
++  expect(interpreted.nodes).toBeGreaterThan(1)
++  expect(measure(() => run({}, st))).toEqual(interpreted)
++})
++
++test('a compiled step uses its fixed static expression count without changing public generated source', () => {
++  const machine: Machine = {name: 'compiled meter', params: [], inputs: [], state: {z: n(0)}, step: {state: {z: {op: 'add', a: {op: 'var', name: 'z'}, b: n(1)}}}}
++  const run = interpret(machine), start = run.init({}), fast = fastStep(machine)!
++  expect(compileJs(machine)).not.toContain('coreMeter')
++  const result = measure(() => fast({}, start, {}))
++  expect(result.nodes).toBe(3)
++  expect(result.value.scalars.z).toBe(1)
++  expect(start.scalars.z).toBe(0)
++})
++
++test('a refused compiled step still receives its static charge', () => {
++  const machine: Machine = {name: 'refused compiled meter', params: [], inputs: ['take'], state: {}, assume: {op: '<', a: {op: 'var', name: 'take'}, b: n(1)}, step: {state: {z: n(2)}}}
++  const run = fastStep(machine)!, before = coreMeter.evals
++  expect(() => run({}, {scalars: {}, maps: {}}, {take: 2})).toThrow("fails the rule's assumption")
++  expect(coreMeter.evals - before).toBe(4)
++})
+diff --git a/core/meter.ts b/core/meter.ts
+new file mode 100644
+index 00000000..e5a34547
+--- /dev/null
++++ b/core/meter.ts
+@@ -0,0 +1,3 @@
++// Raw deterministic observations only. No fitted weights or budget policy live here.
++// The evaluation slice is populated first; the remaining I2 insertion sites follow.
++export const coreMeter = {astNodes: 0, evals: 0, cubeTests: 0, ticks: 0}
+diff --git a/scripts/test-shards.ts b/scripts/test-shards.ts
+index 4a4105bb..b9a1f838 100644
+--- a/scripts/test-shards.ts
++++ b/scripts/test-shards.ts
+@@ -26,7 +26,7 @@ const units: Unit[] = [
+     gdp.test.ts datatypes.test.ts lemmas.test.ts discover.test.ts infer.test.ts cyclic.test.ts cycles.test.ts
+     nonterm.test.ts data.test.ts data-synth.test.ts hypothesis.test.ts seqs.test.ts abstract.test.ts search.test.ts invoices.test.ts
+     folds.test.ts trees.test.ts pairs.test.ts chart.test.ts xstate.test.ts extract.test.ts extract-standalone.test.ts extract-absence.test.ts extract-choice-joins.test.ts extract-standalone-prototype.test.ts extract-standalone-regression.test.ts extract-py.test.ts extract-py-mro.test.ts extract-py-hasattr.test.ts extract-orm.test.ts extract-py-orm.test.ts extract-sol.test.ts sol-concrete.test.ts effect.test.ts
+-    effect-schedule.test.ts effect-stm.test.ts effect-queue.test.ts effect-schema.test.ts calendar.test.ts count-facts.test.ts count-ranges.test.ts count-write-frames.test.ts counts-completion-order.test.ts count-completion.test.ts count-witness.test.ts count-unions.test.ts count-witness-flags.test.ts count-focused.test.ts count-cases.test.ts count-focus-proof.test.ts count-recovery-order.test.ts count-cert-grow.test.ts field-laws.test.ts count-cubes.test.ts finite-tiny.test.ts finite-tiny-houdini.test.ts bitsets.test.ts sample-cache.test.ts small-laws.test.ts cube-width.test.ts exists-support.test.ts carry.test.ts scan-prefix.test.ts
++    effect-schedule.test.ts effect-stm.test.ts effect-queue.test.ts effect-schema.test.ts calendar.test.ts count-facts.test.ts count-ranges.test.ts count-write-frames.test.ts counts-completion-order.test.ts meter.test.ts count-completion.test.ts count-witness.test.ts count-unions.test.ts count-witness-flags.test.ts count-focused.test.ts count-cases.test.ts count-focus-proof.test.ts count-recovery-order.test.ts count-cert-grow.test.ts field-laws.test.ts count-cubes.test.ts finite-tiny.test.ts finite-tiny-houdini.test.ts bitsets.test.ts sample-cache.test.ts small-laws.test.ts cube-width.test.ts exists-support.test.ts carry.test.ts scan-prefix.test.ts
+     runtime-keys.test.ts sample-step.test.ts small-counts.test.ts cube-rows.test.ts quorum-laws.test.ts wall.test.ts count-demand.test.ts count-cert-transport.test.ts
+     lemma-cuts.test.ts count-support.test.ts count-admission.test.ts counts-preflight.test.ts counts-structured.test.ts relevance.test.ts support-order.test.ts`),
+   ...tests('core/count-recovery', 'conditional-check-cache.test.ts conditional-cuts.test.ts conditional-proof.test.ts derivability-closure.test.ts empty-count-source.test.ts field-bound-budget.test.ts leaf-allowance.test.ts member-inclusions.test.ts pre-state-source.test.ts rename-proof.test.ts row-demand.test.ts scalar-guards.test.ts source-witness-instances.test.ts member-premises.test.ts action-guard.test.ts row-cases.test.ts natural-cases.test.ts carried-case.test.ts live-dependencies.test.ts field-bound-lemmas.test.ts boolean-core.test.ts key-closure.test.ts lift-count-proxies.test.ts rebase-path.test.ts fold-path.test.ts frame-lemmas.test.ts guard-cases.test.ts field-only.test.ts source-memo.test.ts field-demand.test.ts'),

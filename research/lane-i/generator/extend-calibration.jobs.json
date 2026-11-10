@@ -1,0 +1,9 @@
+[
+  {
+    "name": "quiet-floor-extension",
+    "cmd": "bun -e 'import{readFileSync}from\"node:fs\";import{spawnSync}from\"node:child_process\";import{createHash}from\"node:crypto\";import{strict as assert}from\"node:assert\";const prefix=\"QUIET_FLOORS \",parse=text=>{const at=text.indexOf(prefix);assert(at>=0);return JSON.parse(text.slice(at+prefix.length))},oldText=readFileSync(\"frozen-floors/quiet-floor-calibration-v2.log\",\"utf8\"),old=parse(oldText),run=spawnSync(\"bun\",[\"generator-input/calibrate.ts\",\"scout-data\",\"default-data\",\"alternate-data\"],{encoding:\"utf8\"});assert(run.status===0||run.status===2,run.stderr);const fresh=parse(run.stdout);assert.equal(fresh.microSha256,old.microSha256);assert.equal(fresh.maximumStealRatio,old.maximumStealRatio);assert.equal(fresh.multiplier,old.multiplier);assert.deepEqual(fresh.publishedCaps,old.publishedCaps);const added=Object.fromEntries(Object.entries(fresh.floors).filter(([model])=>!(model in old.floors)));const floors={...old.floors,...added};for(const model of Object.keys(old.floors))assert.deepEqual(floors[model],old.floors[model]);console.log(prefix+JSON.stringify({...fresh,floors,addedModels:Object.keys(added),frozenModels:Object.keys(old.floors),frozenReceiptSha256:createHash(\"sha256\").update(oldText).digest(\"hex\"),selection:\"Existing per-model floors preserved byte-for-value; only previously uncalibrated models added from admitted scouts. No prior rejection or threshold is changed.\"},null,2))'",
+    "cpu": 1,
+    "memory": 2048,
+    "timeout": 120
+  }
+]

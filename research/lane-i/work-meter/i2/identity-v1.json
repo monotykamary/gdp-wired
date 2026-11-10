@@ -1,0 +1,18 @@
+{
+  "candidate": "tree:0c6ea06c4d9229d74f0a7566e6a2c045f2cb1bde",
+  "integrationBase": "b11e1f651618b3d3fcaf6cec66b4a8b0203cdcd3",
+  "baselineTree": "bc7948a84cd1c5871372f4c8ff123aba9cfbac20",
+  "cachedArchiveBase": "a8bbe0984f270070eba9bc166a89909d0c67597e",
+  "originalModelBlob": "0541fa9436e307a6fb716aa5064637b30b893b79",
+  "expectedCandidateBlobs": {
+    "core/counts.ts": "f71e07be3e253821d0257339a01d2bec3f4d2c0d",
+    "core/machine.ts": "ee8697431da6c1e8f51ec75049d63efc8f2fd6a9",
+    "core/meter.test.ts": "575bf8685398c715f460e1af05f7fd46fae447e0",
+    "core/meter.ts": "e5a3454720f7c9c94b18a0de195c431443de1ba6",
+    "kernel/kernel.ts": "e557bc6c546664b80c7e4efd26441bd59390978d",
+    "kernel/prove.ts": "7d8728b9a9bc7270661d34550d32b36bd001d793",
+    "research/protocols/ic3syn/models.ts": "0541fa9436e307a6fb716aa5064637b30b893b79",
+    "scripts/test-shards.ts": "b9a1f838ec7345d26796ebcdf2a8e6e3ed605c92"
+  },
+  "scope": "uncommitted I2 evaluation-only draft; no fullWork or weights changes"
+}

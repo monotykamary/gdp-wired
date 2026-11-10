@@ -1,0 +1,31 @@
+{
+  "tree": "643027db476e00ba3b9b95c79ad49a6f034012de",
+  "base": "b11e1f651618b3d3fcaf6cec66b4a8b0203cdcd3",
+  "task": "84e9eb27-549f-48d8-abaf-155916ba2d8b",
+  "resultDirectory": "runs/lane-i/i2-evaluation-checks-v2",
+  "status": "35 tests, roster, decoder and type/lint passed; independently audited and commitlint passed; isolated, not integrated",
+  "privateIndex": "/private/tmp/lane-i-i2-b11.index",
+  "temporarySources": [
+    "/tmp/lane-i-i2-machine.ts",
+    "/tmp/lane-i-i2-meter.ts",
+    "/tmp/lane-i-i2-meter.test.ts",
+    "/tmp/lane-i-i2-test-shards.ts"
+  ],
+  "previous": {
+    "tree": "0c6ea06c4d9229d74f0a7566e6a2c045f2cb1bde",
+    "task": "60c4448b-98b5-4ac7-84b4-b029fba797d3",
+    "batch": "20261110-110552-sehbz2",
+    "status": "33 tests passed; two new fixtures invalid; implementation unchanged by repair",
+    "diagnosticTask": "38aab60e-348a-487d-b8fe-dedf52b392c8"
+  },
+  "candidate": "17968f8f053de58862115b84c0e5c41eac273940",
+  "ref": "claude/lane-i-i2-evaluation",
+  "validationBatch": "20261110-110749-tb8ue2",
+  "audit": {
+    "task": "a1a3d991-d82a-4024-a15b-57251107e929",
+    "batch": "20261110-111125-zilynh",
+    "resultDirectory": "runs/lane-i/i2-evaluation-audit",
+    "passed": 35,
+    "rawCountTests": 6
+  }
+}

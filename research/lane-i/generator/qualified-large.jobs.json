@@ -1,0 +1,35 @@
+[
+  {
+    "name": "generator-qualified-large-1",
+    "cmd": "bun generator-input/preflight.ts generation",
+    "cpu": 4,
+    "memory": 14336,
+    "timeout": 600,
+    "vm_type": "large",
+    "env": {
+      "QUIET_FLOOR_LOG": "quiet-floor-extension.log"
+    }
+  },
+  {
+    "name": "generator-qualified-large-2",
+    "cmd": "bun generator-input/preflight.ts generation",
+    "cpu": 4,
+    "memory": 14336,
+    "timeout": 600,
+    "vm_type": "large",
+    "env": {
+      "QUIET_FLOOR_LOG": "quiet-floor-extension.log"
+    }
+  },
+  {
+    "name": "generator-qualified-large-3",
+    "cmd": "bun generator-input/preflight.ts generation",
+    "cpu": 4,
+    "memory": 14336,
+    "timeout": 600,
+    "vm_type": "large",
+    "env": {
+      "QUIET_FLOOR_LOG": "quiet-floor-extension.log"
+    }
+  }
+]
