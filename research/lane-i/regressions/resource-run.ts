@@ -1,4 +1,4 @@
-// Observation only: original 60s timeout, measured host/cgroup counters and child PIDs.
+// Observation only: original 60s benchmark default, measured host/cgroup counters and child PIDs.
 import {readFileSync,openSync,closeSync,unlinkSync} from 'node:fs'
 import {join} from 'node:path'
 import {spawn,spawnSync} from 'node:child_process'
@@ -15,9 +15,14 @@ function descendants(pid:number):number[]{
  for(let i=0;i<out.length&&out.length<128;i++)for(const word of read(`/proc/${out[i]}/task/${out[i]}/children`).trim().split(/\s+/)){const child=Number(word);if(child>0&&!out.includes(child))out.push(child)}
  return out
 }
-export async function runResourceMeasured(bun:string,args:string[],cwd:string,label:string){
+export function resourceLimits(seconds=60){
+ if(!Number.isSafeInteger(seconds)||seconds<1||seconds>3600)throw Error('invalid resource observation deadline')
+ return{seconds:String(seconds),watchdogMs:(seconds+30)*1000}
+}
+export async function runResourceMeasured(bun:string,args:string[],cwd:string,label:string,seconds=60){
+ const limits=resourceLimits(seconds)
  const outPath=join(cwd,`.resource-${label}.out`),errPath=join(cwd,`.resource-${label}.err`),outFd=openSync(outPath,'w'),errFd=openSync(errPath,'w'),before=snapshot(),start=performance.now()
- const child=spawn('timeout',['-k','5','60',bun,...args],{cwd,stdio:['ignore',outFd,errFd],env:{...process.env,CI:'1',GIT_TERMINAL_PROMPT:'0'}})
+ const child=spawn('timeout',['-k','5',limits.seconds,bun,...args],{cwd,stdio:['ignore',outFd,errFd],env:{...process.env,CI:'1',GIT_TERMINAL_PROMPT:'0'}})
  const seen=new Set<number>(),starts=new Map<number,string>(),peaks:Record<string,number>={},samples:{elapsedMs:number,rssKiB:number,pids:number[],availableKiB:number}[]=[]
  let peakRssKiB=0,minAvailableKiB=Infinity,watchdog=false,error:Error|undefined
  const sample=()=>{
@@ -30,7 +35,7 @@ export async function runResourceMeasured(bun:string,args:string[],cwd:string,la
  const interval=setInterval(sample,250),timer=setTimeout(()=>{
   watchdog=true
   for(const pid of child.pid?descendants(child.pid).reverse():[]){const stat=read(`/proc/${pid}/stat`),born=stat.slice(stat.lastIndexOf(')')+2).split(' ')[19]??'';if(starts.get(pid)===born)try{process.kill(pid,'SIGKILL')}catch{/* exited */}}
- },90000)
+ },limits.watchdogMs)
  const exit=await new Promise<{code:number|null,signal:NodeJS.Signals|null}>(resolve=>{child.once('error',e=>{error=e;resolve({code:null,signal:null})});child.once('close',(code,signal)=>resolve({code,signal}))})
  clearInterval(interval);clearTimeout(timer);closeSync(outFd);closeSync(errFd)
  const wallMs=performance.now()-start,after=snapshot(),stdout=read(outPath),stderr=read(errPath)
@@ -40,7 +45,7 @@ export async function runResourceMeasured(bun:string,args:string[],cwd:string,la
  const indexes=new Set(matches.flatMap(i=>Array.from({length:7},(_,n)=>i-3+n).filter(j=>j>=0&&j<lines.length))),kernel=[...indexes].sort((a,b)=>a-b).map(i=>lines[i]).join('\n').slice(-16000)
  const oomDelta=(after.vmstat.oom_kill??0)-(before.vmstat.oom_kill??0),kernelPidOom=matches.length>0&&/oom|Out of memory|Killed process/.test(kernel)
  const classification=exit.code===0?'completed':exit.code===124?'strict-timeout':watchdog?'outer-watchdog':kernelPidOom?'confirmed-kernel-oom':(exit.signal==='SIGKILL'||exit.code===137)&&oomDelta>0?'oom-correlated-pid-unconfirmed':exit.signal==='SIGKILL'||exit.code===137?'unattributed-sigkill':error?'launcher-error':'nonzero'
- const resources={telemetryVersion:2,label,before,after,pid:child.pid,seenPids:[...seen],peakRssKiB,minAvailableKiB,pidPeaksKiB:peaks,samples,oomDelta,kernelPidOom,kernel,journalExit:journal.status,journalError:journal.stderr?.slice(-1000),watchdog,classification,capture:'files, not bounded spawn buffers'}
+ const resources={telemetryVersion:2,label,strictSeconds:seconds,before,after,pid:child.pid,seenPids:[...seen],peakRssKiB,minAvailableKiB,pidPeaksKiB:peaks,samples,oomDelta,kernelPidOom,kernel,journalExit:journal.status,journalError:journal.stderr?.slice(-1000),watchdog,classification,capture:'files, not bounded spawn buffers'}
  console.log('BAR_RESOURCE_END '+JSON.stringify({label,status:exit.code,signal:exit.signal,classification,wallMs,oomDelta,peakRssKiB,minAvailableKiB,pids:[...seen]}))
  unlinkSync(outPath);unlinkSync(errPath)
  return {status:exit.code,signal:exit.signal,error,wallMs,stdout,stderr,resources}
