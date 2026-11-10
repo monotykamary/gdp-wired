@@ -9,7 +9,7 @@ import ts from 'typescript'
 const root = process.cwd()
 const list = (dir: string): string[] => readdirSync(dir, {withFileTypes: true}).flatMap(e => e.isDirectory() ? list(dir + '/' + e.name) : e.name.endsWith('.ts') && !e.name.endsWith('.test.ts') && !e.name.endsWith('.d.ts') ? [dir + '/' + e.name] : [])
 const paths = [...list('core'), 'kernel/kernel.ts', 'kernel/prove.ts', 'kernel/model-values.ts']
-const cfg = ts.readConfigFile('tsconfig.json', ts.sys.readFile)
+const cfg = ts.readConfigFile('tsconfig.json', path => ts.sys.readFile(path))
 assert(!cfg.error)
 const opts = ts.parseJsonConfigFileContent(cfg.config, ts.sys, root).options
 const program = ts.createProgram(paths, opts), checker = program.getTypeChecker()
