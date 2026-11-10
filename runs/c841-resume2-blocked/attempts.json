@@ -1,0 +1,19 @@
+{
+  "candidate":"c8411149d2c6c3c060a0665a79f10523b1281cbc",
+  "baseline":"b11e1f651618b3d3fcaf6cec66b4a8b0203cdcd3",
+  "controller":"bx_gz4zdtbh",
+  "afterCoordinatorRepairAt":"2026-11-10T13:08:00Z",
+  "observationAt":"2026-11-10T13:11:00Z",
+  "freshAlertInterval":["2026-11-10T13:10:37Z","2026-11-10T13:10:58Z"],
+  "failure":{"code":"api_key_action_forbidden","action":"sandbox.create","status":403},
+  "status":"cancelled-before-any-worker-placement",
+  "testsRun":0,
+  "gateGreen":false,
+  "ownedRunningTasks":[],
+  "ownedQueuedBatches":[],
+  "attempts":[
+    {"purpose":"39-job supplement","batch":"20261110-130954-hg9sta","task":"c12dd9b7-3d3b-48a2-9557-39ad198d043d","pid":239249,"exit":130,"out":"runs/c841-supplement-resume2-20261110"},
+    {"purpose":"canonical plan only","batch":"20261110-130954-nwjeip","task":"162cd823-f370-46dd-843c-033a6661c922","pid":239252,"exit":130,"out":"runs/c841-canonical-resume2-20261110/plan"},
+    {"purpose":"privacy preflight","batch":"20261110-130954-dpktbe","task":"39e2984d-5250-4744-abf8-6d38434eff47","pid":239255,"exit":130,"out":"runs/c841-privacy-resume2-20261110"}
+  ]
+}

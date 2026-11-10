@@ -1,0 +1,20 @@
+controller bx_gz4zdtbh:
+active
+activating
+ 13:11:32 up 58 min,  4 users,  load average: 0.15, 0.09, 0.02
+scheduler: 0 batches, 0 VMs, starts by class {'interactive': 0, 'gate': 0, 'submission': 1, 'sweep': 0, 'filler': 0}, 0 preempted
+pool: {'vms': 0, 'ready': 0, 'coming': 0, 'target': {}, 'max': None, 'floor': {}}
+day: {'day': '2026-11-10', 'vmh': 0.27, 'vmh_filler_hold': 0.0, 'starts': 1, 'items_placed': 0, 'starts_per_100_items': None, 'items_placed_warm': 0, 'max_binds': 0, 'hold_ends': 0, 'peak_vms': 1, 'breaker_trips': 0, 'not_ready': 1}
+breaker: {'open_until': 0.0, 'backoff': 300.0, 'half': False, 't_trip': 0.0, 'reason': '', 'trips': 0, 'open': False, 'open_for_s': 0}
+shed: False, load {'load1': 0.17, 'cpus': 8, 'mem_free': 0.94, 'rss_mb': 66, 'threads': 5, 'threads_by': {'MainThread': 1, 'serve_forever': 1, '_heartbeat': 1, '_sampler': 1, 'process_request_thread': 1}, 'cpu_s': {'http /state': 4.04, 'http /blobs/have': 0.07, 'http /submit': 0.03, 'pass light': 0.02, 'pass': 0.02, 'http /poll': 0.01, 'http /tree/put': 0.01, 'http /queue/ls': 0.0, 'http /status': 0.0, 'http /close': 0.0}, 'cpu_n': {'pass': 37, 'pass light': 226, 'http /poll': 19, 'http /close': 5, 'http /status': 5, 'http /queue/ls': 5, 'http /state': 3, 'http /blobs/have': 3, 'http /tree/put': 3, 'http /submit': 3}, 'cpu_total_s': 4.77, 'up_s': 180.1}
+  interactive  {'queued': 0, 'vms': 0, 'wait_p50': None, 'wait_p95': None, 'starts_free': 0, 'starts_paid': 0, 'preempted': 0, 'placed': 0, 'boat_fails': 0, 'to_modal': 0}
+  gate         {'queued': 0, 'vms': 0, 'wait_p50': None, 'wait_p95': None, 'starts_free': 0, 'starts_paid': 0, 'preempted': 0, 'placed': 0, 'boat_fails': 0, 'to_modal': 0}
+  submission   {'queued': 0, 'vms': 0, 'wait_p50': None, 'wait_p95': None, 'starts_free': 1, 'starts_paid': 0, 'preempted': 0, 'placed': 0, 'boat_fails': 0, 'to_modal': 0}
+  sweep        {'queued': 0, 'vms': 0, 'wait_p50': None, 'wait_p95': None, 'starts_free': 0, 'starts_paid': 0, 'preempted': 0, 'placed': 0, 'boat_fails': 0, 'to_modal': 0}
+  filler       {'queued': 0, 'vms': 0, 'wait_p50': None, 'wait_p95': None, 'starts_free': 0, 'starts_paid': 0, 'preempted': 0, 'placed': 0, 'boat_fails': 0, 'to_modal': 0}
+  ALERT 2026-11-10T13:10:58Z: boat new --from sc-f0d8daeee6c3 made no VM ({"code":"api_key_action_forbidden","error":"This API key cannot perform sandbox.create.","event":"error","status":403})
+  ALERT 2026-11-10T13:11:03Z: boat new --from sc-f0d8daeee6c3 made no VM ({"code":"api_key_action_forbidden","error":"This API key cannot perform sandbox.create.","event":"error","status":403})
+  ALERT 2026-11-10T13:11:09Z: boat new --from sc-f0d8daeee6c3 made no VM ({"code":"api_key_action_forbidden","error":"This API key cannot perform sandbox.create.","event":"error","status":403})
+  ALERT 2026-11-10T13:11:13Z: boat new --from sc-f0d8daeee6c3 made no VM ({"code":"api_key_action_forbidden","error":"This API key cannot perform sandbox.create.","event":"error","status":403})
+  ALERT 2026-11-10T13:11:19Z: boat new --from sc-f0d8daeee6c3 made no VM ({"code":"api_key_action_forbidden","error":"This API key cannot perform sandbox.create.","event":"error","status":403})
+treadmill: 2 batches, elastic {'floor': 2, 'target': 2, 'max': 1000000000, 'held': 0, 'backlog_h': 0.61}

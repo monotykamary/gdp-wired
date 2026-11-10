@@ -1,4 +1,8 @@
-## RESUME — ACTIVE AFTER COORDINATOR CREDENTIAL REPAIR — 2026-11-10
+## RESUME — POST-REKEY RETRY STILL BLOCKED — 2026-11-10
+
+**For coordinator:** the 13:08 UTC credential repair did not unblock VM creation. A fresh 13:11 UTC status showed `api_key_action_forbidden`, `sandbox.create`, HTTP 403 with new alert timestamps 13:10:37–13:10:58. All 41 replacement gate items remained queued with zero VMs/placements. The three CI clients were closed at 13:11 UTC (each exit 130); exact PIDs are absent. No tests ran, no credentials or scheduler code were changed, and no GATE GREEN is claimed. Before retrying again, confirm worker creation under the scheduler's actual service credentials. Original and second-attempt failures are both preserved.
+
+### Replacement attempt and retained inputs
 
 Coordinator repaired the shared controller's missing dedicated API key at 13:08 UTC and restarted it. At 13:09 UTC the stock remote status showed zero batches/VMs; the cancelled CI batches did not survive and were not adopted. Fresh `resume2` output directories now hold replacements for the supplement, canonical plan and privacy scan. No old cancellation has been relabelled; the historical blocked attempt is retained below. **Still not GATE GREEN.**
 
@@ -7,7 +11,7 @@ Coordinator repaired the shared controller's missing dedicated API key at 13:08 
 - Supplement: `runs/c841-supplement-resume2-20261110/` (39 unchanged jobs, exact c841 source and existing data mounts).
 - Canonical plan: `runs/c841-canonical-resume2-20261110/plan/` (immutable e07 runner and retained exact-source packs).
 - Privacy preflight: `runs/c841-privacy-resume2-20261110/` (prepared input diffs; no matching private contents printed).
-- Replacement batch/task identities: supplement `20261110-130954-hg9sta` / `c12dd9b7-3d3b-48a2-9557-39ad198d043d` (PID 239249); plan `20261110-130954-nwjeip` / `162cd823-f370-46dd-843c-033a6661c922` (PID 239252); privacy `20261110-130954-dpktbe` / `39e2984d-5250-4744-abf8-6d38434eff47` (PID 239255). Each has one owned waiter. No placement result is claimed yet.
+- Cancelled replacement batch/task identities: supplement `20261110-130954-hg9sta` / `c12dd9b7-3d3b-48a2-9557-39ad198d043d` (PID 239249); plan `20261110-130954-nwjeip` / `162cd823-f370-46dd-843c-033a6661c922` (PID 239252); privacy `20261110-130954-dpktbe` / `39e2984d-5250-4744-abf8-6d38434eff47` (PID 239255). All three clients exited 130 after exact-PID SIGINT; no job obtained a worker. The live post-rekey errors and clean shutdown are retained in `runs/c841-resume2-blocked/`.
 - Supplemental collector wrapper and four fail-closed negative controls are prepared under `/tmp/gdp-boat-control/current-verify.sh` and `verify-negative-controls.ts`; run only after the positive 39-job receipts arrive. The collector remains unvalidated until its Boat job passes.
 
 ### Previous blocked attempt (preserved)
