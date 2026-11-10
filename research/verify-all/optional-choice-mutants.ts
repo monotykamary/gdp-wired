@@ -10,7 +10,7 @@ const start = source.indexOf('      const equal = any(absent,')
 const end = source.indexOf('\n  const un =', start)
 if (start < 0 || end < start) throw Error('optional comparison block not found')
 const block = source.slice(start, end)
-const calendar = "  if (c.strictOptional && [later, earlier].some(v => v.t === 'opt')) throw new LawError('arithmetic on an optional standalone value is not supported')"
+const calendar = "  if ([later, earlier].some(v => v.t === 'opt')) throw new LawError(c.strictOptional ? 'arithmetic on an optional standalone value is not supported' : 'arithmetic on an optional value is not supported in calendar comparisons')"
 const result = checkMutations({
   lawSuite: 'source-laws', timeoutMs: 120_000,
   suites: [{name: 'source-laws', command: ['bun', 'test', 'core/extract-standalone.test.ts', '--test-name-pattern', 'optional choice law|optional standalone calendar']}],

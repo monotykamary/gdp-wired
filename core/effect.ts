@@ -26,6 +26,7 @@ import {type ExtractOptions, type Extraction, fromModel, namesOf} from './extrac
 import {check, sandbox} from './extract-check.ts'
 import {Parts, type ScheduleRule, readSchedule, replaySchedule, scheduleConforms, scheduleRule} from './effect-schedule.ts'
 import {asRule, lift} from './system.ts'
+import {attachSource, inheritSource} from './source-check.ts'
 import {type Prim, rewritePrims} from './effect-prims.ts'
 export {proveRule, proveSteps} from './dsl.ts'
 export {jitterRun, replaySchedule, scheduleConforms, stepper} from './effect-schedule.ts'
@@ -549,7 +550,9 @@ export function withLemmas(x: Extraction, opts: {ms?: number} = {}): {x: Extract
   for (const l of lemmas) {
     let v: dsl.Verdict | undefined
     try { v = dsl.proveRule(x.rule, [...inv, l], {search: {ms: opts.ms ?? 30_000}}) } catch { v = undefined }
-    if (v?.proven && v.checked) { inv.push(l, ...(v.found?.laws ?? []).map(f => f.law)); proven.push(l.name) } else unproven.push(l.name)
+    // These are mathematical supports, not source claims. The caller's marked
+    // rule still requires native finalization; a native translation error is not admitted.
+    if (v && ((v.proven && v.checked) || (v.kernelProven === true && v.translation === 'unchecked'))) { inv.push(l, ...(v.found?.laws ?? []).map(f => f.law)); proven.push(l.name) } else unproven.push(l.name)
   }
   return {x: {...x, invariants: inv}, proven, unproven}
 }
@@ -700,6 +703,8 @@ function fibered(code: string, file: string, entry: string, E: Mod, opts: Effect
   const one2 = one.rule as never as {kindsOfState: () => [string, dsl.Kind<unknown>][], kindsOfCells: () => [string, dsl.Kind<unknown>][]}
   const ints = [...one2.kindsOfState().filter(([n]) => shared.includes(n) && shared.includes(`${n}$neg`)), ...one2.kindsOfCells().filter(([n, k]) => k.vars(n).every(p => !local(p)))]
   const rule = asRule({...lifted, name: `${m0.name}, every fiber`}, Object.fromEntries([...parts.params, ...parts.inputs].filter(whole).concat(ints)))
+  // Lifting is not transparent native replay: retain provenance, not the old journal.
+  inheritSource(one.rule, rule)
   const names = (one.names ?? []).filter(n => !(n.role === 'state' && local(n.rule)) && n.role !== 'result' && !made.has(n.code))
   const inv = (one.invariants ?? []).filter(l => ![...JSON.stringify(l.holds).matchAll(/"name":"([^"]*)"/g)].some(m => local(m[1]!)))
   const steps = split.map((mt, mi) => ({name: mt.name, steps: mt.units.length, base: (mi + 1) * 100}))
@@ -764,6 +769,8 @@ function fromScheduleEntry(code: string, file: string, e: SchedEntry, E: Mod, op
   const runs = (opts.check as {runs?: number} | undefined)?.runs ?? 60, c = scheduleConforms(sr, make, E, {runs, depth: 14})
   const evidence = {runs, requests: c.checked, fromStates: 0, probes: {conditions: 0, witnesses: 0, steps: 0}, refusedBoth: 0, outside: 0, edge: 0, compiledAgreed: c.checked, coverage: {arms: 0, hit: 0, missed: []}, ms: Date.now() - t0, ...(c.failure ? {mismatch: c.failure} : {})}
   const source = `// ${e.name}: ${e.expr.getText().replace(/\s+/g, ' ')}\n${sr.rule.machine.name}: state ${Object.keys(sr.rule.machine.state).join(', ')}; inputs ${sr.rule.machine.inputs.join(', ')}${sr.rule.machine.params.length ? `; params ${sr.rule.machine.params.join(', ')}` : ''}`
+  // Schedule conformance checks transitions, not native source-law semantics.
+  attachSource(sr.rule, evidence, [])
   if (c.failure) return {ok: false, rule: sr.rule, source, refusals: [{where: file, what: `the rule and Effect's own schedule part: ${c.failure}`}], notes, names: sr.names, evidence}
   return {ok: true, rule: sr.rule, source, refusals: [], notes, names: sr.names, evidence, schedule: sr, replay: run => replaySchedule(sr, make(run.params), E, run)} as Extraction
 }

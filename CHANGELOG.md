@@ -3,7 +3,11 @@
 What changed since the first public release, 0.6.0 (2026-10-18). Times are measured on Modal (2 vCPU per job unless
 noted), each with the command that reproduces it.
 
-## Unreleased
+## 0.48.0 (release pending)
+
+- **Breaking — source validation:** source translation is cross-checked against native execution by default;
+  unchecked laws exit **2**. Source-free DSL/model proofs are unchanged.
+  See [the CI-only guide](docs/ci-only.md) for the supported scope and migration guidance.
 
 - **CI-first use:** keep gdp-wired in dev dependencies and ship plain application code. Supported finite TypeScript
   decision laws can be checked directly from source; protocol flows remain separate models.

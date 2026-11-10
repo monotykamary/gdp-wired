@@ -15,6 +15,8 @@ import {SPECS, pool3, pool4, poolLaws, primRule, provePool, racePool, readPool, 
 
 // eslint-disable-next-line @typescript-eslint/no-explicit-any
 type Any = any
+// These callback laws prove the extracted model, not native source-law semantics.
+const modelOnly = {kernelProven: true, proven: false, checked: false, translation: 'unchecked'}
 const svc = (v: 3 | 4, body: string, decls = '') => `import {Data, Effect, Option, Queue, Ref${v === 4 ? ', Semaphore' : ''}} from 'effect'
 export class No extends Data.TaggedError('No')<{}> {}
 ${decls}export const make = Effect.gen(function* () {
@@ -26,8 +28,8 @@ test('each primitive\'s rule (4.x and 3.x): read, checked, its laws proven for e
     const x = primRule(spec, v) as Any, {laws, stepLaws, refuted} = primitiveLaws(x, spec)
     expect([v, specName(spec), x.ok, x.refusals]).toEqual([v, specName(spec), true, []])
     expect(x.evidence.requests).toBeGreaterThan(100)
-    expect([v, specName(spec), proveRule(x.rule, laws)]).toMatchObject([v, specName(spec), {proven: true, checked: true}])
-    for (const sl of stepLaws) expect([v, sl.name, proveSteps(x.rule, laws, [sl])]).toMatchObject([v, sl.name, {proven: true, checked: true}])
+    expect([v, specName(spec), proveRule(x.rule, laws)]).toMatchObject([v, specName(spec), modelOnly])
+    for (const sl of stepLaws) expect([v, sl.name, proveSteps(x.rule, laws, [sl])]).toMatchObject([v, sl.name, modelOnly])
     // (Effect's own semaphore gives back what it is given, unchecked: its use law is a service's to keep)
     for (const l of refuted) expect(proveRule(x.rule, [...laws, l]).run?.trace.length).toBe(1)
   }
@@ -53,7 +55,7 @@ test('the pool (examples/effect-pool.ts, and on 3.x): every fiber\'s steps, its 
     expect(x.primitives.map((p: Any) => p.invariants.map((l: Any) => l.name))).toEqual([['jobs holds at most 4 items'], ['workers never has more permits taken than its 2', 'workers\'s permits taken are those its fibers hold']])
     const p = provePool(x)
     expect(p.lemmas).toContain('workers: what its fibers hold is never below nothing')
-    for (const [name, verdict] of p.verdicts) expect([v, name, verdict.proven, verdict.checked]).toEqual([v, name, true, true])
+    for (const [name, verdict] of p.verdicts) expect([v, name, verdict]).toMatchObject([v, name, modelOnly])
     const b = readPool(v, 'release without acquire') as {x: Any, file: string}, use = poolLaws(b.x).at(-1)!
     const bv = proveRule(b.x.rule, [...b.x.invariants, use])
     expect([v, bv.proven]).toEqual([v, false])
@@ -119,16 +121,19 @@ test('what the model doesn\'t hold is refused where it is, with why', () => {
   }
 }, 300_000)
 
-test('the CLI on the pool (4.x, examples/effect-pool.ts; 3.x in a project of its own): laws as comments; the cancel broken with its run', async () => {
-  const want = ['every job waiting costs 1 to 10: proven', 'the work done never goes negative: proven', 'no permit is given back that wasn\'t taken: proven']
+test('the CLI refuses unchecked pool source laws on both Effect versions and the broken variant', async () => {
+  const want = ['every job waiting costs 1 to 10: unknown', 'the work done never goes negative: unknown', 'no permit is given back that wasn\'t taken: unknown']
   const {rules, exit} = await check([join(import.meta.dir, '../examples/effect-pool.ts')], {ms: 30_000, propose: false})
-  expect([exit, rules.map(r => r.laws.map(l => `${l.name}: ${l.verdict}`))]).toEqual([0, [want]])
+  expect([exit, rules.map(r => r.laws.map(l => `${l.name}: ${l.verdict}`))]).toEqual([2, [want]])
   const r3 = await check([inProject(3, 'pool.ts', pool3())], {ms: 30_000, propose: false})
-  expect([r3.exit, r3.rules.map(r => r.laws.map(l => `${l.name}: ${l.verdict}`))]).toEqual([0, [want]])
+  expect([r3.exit, r3.rules.map(r => r.laws.map(l => `${l.name}: ${l.verdict}`))]).toEqual([2, [want]])
+  for (const r of [...rules, ...r3.rules]) for (const l of r.laws) expect(l).toMatchObject({kernelProven: true, translation: 'unchecked', verdict: 'unknown'})
   for (const [v, code] of [[4, pool4('release without acquire')], [3, pool3('release without acquire')]] as const) {
     const b = await check([inProject(v, 'broken.ts', code)], {ms: 30_000, propose: false})
     const use = b.rules[0]!.laws.find(l => l.name === 'no permit is given back that wasn\'t taken')!
-    expect([v, b.exit, use.verdict]).toEqual([v, 1, 'broken'])
-    expect(use.run!.join('; ')).toMatch(/cancel/)
+    expect([v, b.exit, use.verdict]).toEqual([v, 2, 'unknown'])
+    expect(use.translation).toBe('unchecked')
+    expect(use.kernelProven).toBe(false)
+    expect(use.run).toBeUndefined()
   }
 }, 900_000)

@@ -14,6 +14,8 @@ import type {Extraction, Name} from './extract.ts'
 import {fiberRun} from './fiber-run.ts'
 import {type SecurityCandidate, securityTemplates} from './security.ts'
 import {type Verdict, proveLeadsTo, proveRule, proveSteps} from './dsl.ts'
+import type {TranslationFields} from './source-check.ts'
+import {sourceDiagnostic} from './source-diagnostic.ts'
 import type {Law} from './machine.ts'
 import {type Built, type Calendar, type Cite, LawError, type LawOpts, type LawText, buildLaw, buildLeadsTo, buildTwoRuns, citesIn, isLeadsTo, isTwoRuns, lawsIn, namesWithClock} from './laws.ts'
 import {type TwoRunLaw, certify, proveTwoRuns} from './relational.ts'
@@ -221,7 +223,12 @@ const merge = (a: Record<string, unknown>, b: Record<string, unknown>): Record<s
 }
 
 // --- one target: its rules, their laws -------------------------------------------------------------------------------------
-type LawOut = {name: string, expr: string, where?: string, kind?: 'law' | 'step' | 'two runs' | 'leads to', from?: 'any', verdict: 'proven' | 'broken' | 'unknown' | 'not read', run?: string[], replayed?: string, why?: string, assumes?: string[], found?: string[], cites?: string[], cert?: string, ms: number}
+type LawOut = Omit<TranslationFields, 'translationWitness'> & {translationWitness?: unknown, name: string, expr: string, where?: string, kind?: 'law' | 'step' | 'two runs' | 'leads to', from?: 'any', verdict: 'proven' | 'broken' | 'unknown' | 'not read', run?: string[], replayed?: string, why?: string, assumes?: string[], found?: string[], cites?: string[], cert?: string, ms: number}
+const translationOf = (v: Verdict): Pick<LawOut, 'translation' | 'translationChecks' | 'translationWitness' | 'kernelProven'> => ({
+  ...(v.translation ? {translation: v.translation} : {}), ...(v.translationChecks !== undefined ? {translationChecks: v.translationChecks} : {}),
+  ...(v.kernelProven !== undefined ? {kernelProven: v.kernelProven} : {}),
+  ...(v.translationWitness ? {translationWitness: sourceDiagnostic(v.translationWitness)} : {}),
+})
 export type RuleOut = {file: string, lang: string, entry?: string, ctor?: string, ok: boolean, refusals: {where: string, what: string}[], notes: string[], names: Name[], checked?: string, env?: string[],
   laws: LawOut[], proposed: LawOut[], brokenProposed?: number, source?: string,
   security?: (LawOut & Pick<SecurityCandidate, 'securityKind' | 'review'>)[]}
@@ -529,7 +536,7 @@ function prove(x0: Extraction, l: LawText, ms: number, proven: unknown[], ctx?: 
     try { lt = buildLeadsTo(x, l, {clock: ctx?.clock}) } catch (e) { if (e instanceof LawError) return {...base, verdict: 'not read', why: (e as Error).message, ms: 0}; throw e }
     let v: Verdict
     try { v = proveLeadsTo(x.rule! as never, [...inv, ...proven] as never, lt as never, {ms}) } catch (e) { return {...base, kind: 'leads to', verdict: 'unknown', why: (e as Error).message, ms: Date.now() - t0} }
-    return {...base, kind: 'leads to', verdict: v.proven && v.checked ? 'proven' : 'unknown', ...(v.proven && v.checked ? {} : {why: [v.goal, v.stuck, v.why].filter(Boolean).join('; ') || 'not proven'}), ms: Date.now() - t0}
+    return {...base, ...translationOf(v), kind: 'leads to', verdict: v.proven && v.checked ? 'proven' : 'unknown', ...(v.proven && v.checked ? {} : {why: [v.goal, v.stuck, v.why].filter(Boolean).join('; ') || 'not proven'}), ms: Date.now() - t0}
   }
   let b: Built | undefined, two: TwoRunLaw | undefined
   // (a law that can't be built is not read, with why: never the whole check aborted)
@@ -541,8 +548,8 @@ function prove(x0: Extraction, l: LawText, ms: number, proven: unknown[], ctx?: 
   if (ctx?.from && ctx.inductive && b?.kind === 'law' && !ctx.inductive.has(l.name)) {
     let r: Verdict
     try { r = proveRule(x.rule!, [...inv, b.law], {search: {ms}}) } catch (e) { return {...base, kind: 'law', verdict: 'unknown', why: (e as Error).message, ms: Date.now() - t0} }
-    if (r.run) return {...base, kind: 'law', verdict: 'broken', run: runOf(x, r.run), ms: Date.now() - t0}
-    return {...base, kind: 'law', verdict: 'unknown', why: r.proven && r.checked ? `true in every state a run from the start reaches, not inductive from every state the laws allow (from = "any"): state the law it needs beside it${r.found?.laws?.length ? `: ${r.found.laws.map(f => f.text).join('; ')}` : ''}` : r.why ?? r.stuck ?? 'not proven', ...(r.found?.laws?.length ? {found: r.found.laws.map(f => f.text)} : {}), ms: Date.now() - t0}
+    if (r.run && r.translation !== 'unchecked') return {...base, ...translationOf(r), kind: 'law', verdict: 'broken', run: runOf(x, r.run), ms: Date.now() - t0}
+    return {...base, ...translationOf(r), kind: 'law', verdict: 'unknown', why: r.proven && r.checked ? `true in every state a run from the start reaches, not inductive from every state the laws allow (from = "any"): state the law it needs beside it${r.found?.laws?.length ? `: ${r.found.laws.map(f => f.text).join('; ')}` : ''}` : r.why ?? r.stuck ?? 'not proven', ...(r.found?.laws?.length ? {found: r.found.laws.map(f => f.text)} : {}), ms: Date.now() - t0}
   }
   // (from any state: a law about states proven with the others stated beside it, as one inductive set)
   const beside = (): Law[] => (ctx?.together ?? []).filter(m => m.name !== l.name).flatMap(m => { try { const y = buildLaw(x, m, ctx ?? {}); return y.kind === 'law' ? [y.law] : [] } catch { return [] } })
@@ -556,6 +563,8 @@ function prove(x0: Extraction, l: LawText, ms: number, proven: unknown[], ctx?: 
   }
   const brokenAt = !!(ctx?.from && !v.proven && !v.run && v.stuck === 'sat' && v.witness)
   let verdict: LawOut['verdict'] = v.proven && v.checked && !(ctx?.from && v.assumes) ? 'proven' : v.run || brokenAt ? 'broken' : 'unknown', replayed: string | undefined
+  if (v.translation === 'unchecked') verdict = 'unknown'
+  if (v.translation === 'error') verdict = 'not read'
   if (ctx?.from && v.proven && v.assumes) v.why = `proven only in states a run from the start reaches (from = "any" asks for every state the laws allow): it needs ${v.assumes.laws.join('; ') || 'k-induction'}`
   // (a run the front end replays on the code: broken only where the code runs it so)
   if (verdict === 'broken' && x.replay && v.run && !two) { const r = x.replay(v.run, b!.law); if (r.ok) replayed = r.what; else { verdict = 'unknown'; v.why = `a run breaks it in the rule, not on the code: ${r.what}` } }
@@ -571,7 +580,7 @@ function prove(x0: Extraction, l: LawText, ms: number, proven: unknown[], ctx?: 
       : b!.kind === 'law' ? certify(x.rule!, [...inv, ...more, b!.law], [], meta) : certify(x.rule!, [...inv, ...proven as Law[], ...more], [b!.law], meta)
     if (doc) { fs.mkdirSync(ctx.cert, {recursive: true}); cert = path.join(ctx.cert, `${[ctx.entry ?? path.basename(ctx.file), l.name].join('.').replace(/[^\w.-]+/g, '-')}.json`); fs.writeFileSync(cert, JSON.stringify(doc)) }
   }
-  return {...base, kind, verdict, ...(ctx?.from && verdict === 'proven' ? {from: 'any' as const} : {}), ...(replayed ? {replayed} : {}), ...(v.run && verdict === 'broken' ? {run: two ? pairRunOf(x, v.run, two) : runOf(x, v.run)} : {}), ...(verdict === 'unknown' || (verdict === 'broken' && !v.run) ? {why: [v.why ?? v.stuck ?? 'not proven', ...(at.length ? [`a state the laws allow where a step breaks it, no run from the start found reaching it: ${at.join(', ')}`] : [])].join('; ')} : {}),
+  return {...base, ...translationOf(v), kind, verdict, ...(ctx?.from && verdict === 'proven' ? {from: 'any' as const} : {}), ...(replayed ? {replayed} : {}), ...(v.run && verdict === 'broken' ? {run: two ? pairRunOf(x, v.run, two) : runOf(x, v.run)} : {}), ...(verdict === 'unknown' || verdict === 'not read' || (verdict === 'broken' && !v.run) ? {why: [v.why ?? v.stuck ?? 'not proven', ...(at.length ? [`a state the laws allow where a step breaks it, no run from the start found reaching it: ${at.join(', ')}`] : [])].join('; ')} : {}),
     ...(v.run && !two ? {assumes: assumedOf(x, v.run)} : {}), ...(found?.length ? {found} : {}), ...(cert ? {cert} : {}), ms: Date.now() - t0}
 }
 // A law of a rule in its environment (core/system.ts's inEnv): built on the rule as the code's names read it, then
@@ -591,10 +600,10 @@ function proveInEnv(x: Extraction, l: LawText, ms: number, proven: Law[], ctx: C
   } catch (e) { return {...base, kind: b.kind, verdict: 'unknown', why: (e as Error).message, ms: Date.now() - t0} }
   // (not proven and no run: calls contending with one request, a run the search's own draws seldom make)
   if (!(v.proven && v.checked) && !v.run) { const run = contend(sys, law!, {ms: Math.min(ms, 10_000)}); if (run) v = {...v, run: run as never} }
-  const verdict: LawOut['verdict'] = v.proven && v.checked ? 'proven' : v.run ? 'broken' : 'unknown'
+  const verdict: LawOut['verdict'] = v.translation === 'unchecked' ? 'unknown' : v.translation === 'error' ? 'not read' : v.proven && v.checked ? 'proven' : v.run ? 'broken' : 'unknown'
   if (verdict === 'proven' && b.kind === 'law') proven.push(law as Law)
   const found = v.found?.laws?.map(f => f.text)
-  return {...base, kind: b.kind, verdict, ...(v.run && verdict === 'broken' ? {run: sysRunOf(x, sys, shrinkRun(sys.rule, law!, v.run))} : {}), ...(verdict === 'unknown' ? {why: v.why ?? v.stuck ?? 'not proven'} : {}), ...(found?.length ? {found} : {}), ms: Date.now() - t0}
+  return {...base, ...translationOf(v), kind: b.kind, verdict, ...(v.run && verdict === 'broken' ? {run: sysRunOf(x, sys, shrinkRun(sys.rule, law!, v.run))} : {}), ...(verdict === 'unknown' || verdict === 'not read' ? {why: v.why ?? v.stuck ?? 'not proven'} : {}), ...(found?.length ? {found} : {}), ms: Date.now() - t0}
 }
 // A run of the system as each call's steps: a call begins with its request, reads, commits; a store's key expires.
 function sysRunOf(x: Extraction, sys: InEnv, run: NonNullable<Verdict['run']>): string[] {
@@ -769,6 +778,7 @@ function printRule(r: RuleOut, o: Opts) {
     for (const a of l.assumes ?? []) out(`             ${a}`)
     if (l.found) out(`             proven with what the search found: ${l.found.join('; ')}`)
     if (l.why && l.verdict !== 'proven') out(`             ${l.why}`)
+    if (l.translationWitness) out(`             translation witness: ${JSON.stringify(l.translationWitness)}`)
     if (proposed) out(`             ${l.where}`)
   }
   if (r.laws.length) { out('  laws stated in the code:'); for (const l of r.laws) law(l, false) }
@@ -809,7 +819,7 @@ export async function check(targets: string[], given: Partial<Opts> = {}, each?:
   const o: Opts = {ms: 10_000, propose: true, ...given}, all: RuleOut[] = []
   for (const p of targets) for (const t of targetsOf(p)) { const rs = await checkTarget(t, o); all.push(...rs); if (each) rs.forEach(each) }
   const stated = all.flatMap(r => r.laws)
-  return {rules: all, exit: stated.some(l => l.verdict === 'broken') ? 1 : stated.some(l => l.verdict === 'not read') || o.security && all.some(r => !r.ok) ? 2 : 0}
+  return {rules: all, exit: stated.some(l => l.translation === 'unchecked' || l.translation === 'error') ? 2 : stated.some(l => l.verdict === 'broken') ? 1 : stated.some(l => l.verdict === 'not read') || o.security && all.some(r => !r.ok) ? 2 : 0}
 }
 // --- draft: laws from a clause, for a person to review ----------------------------------------------------------------
 // gdp-wired draft <file> --clause <text> | --clause-file <f> --cite <ref> [--llm <command> | --answer <file>] [--by <who>]:

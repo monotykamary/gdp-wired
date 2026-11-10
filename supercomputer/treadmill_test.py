@@ -117,7 +117,7 @@ class RequiredFuzz(unittest.TestCase):
         self.addCleanup(lambda: (setattr(tm, 'append', real[0]), setattr(tm, 'log', real[1])))
         return s
 
-    def test_exactly_three_despite_caps_and_backlogs(self):
+    def test_all_required_kinds_despite_caps_and_backlogs(self):
         s = self.soundness()
         s.tm.state['fuzz_again'] = [['kernel', 5]]
         b = s.batch(1, required=True)
@@ -143,7 +143,7 @@ class RequiredFuzz(unittest.TestCase):
         self.assertEqual(t.floor(0), 0)
         self.assertEqual(len(t.batches), 2)
         self.assertEqual(t.vms, 8)  # no higher idle floor, no speculative VM growth
-        self.assertEqual(len(t.batches[1].items), 3)
+        self.assertEqual(len(t.batches[1].items), len(tm.FUZZ))
 
     def test_only_completed_non_infrastructure_runs_satisfy_the_share(self):
         s = self.soundness()
@@ -158,7 +158,7 @@ class RequiredFuzz(unittest.TestCase):
                 logs[it['name']] = {'out': 'bun test\n 12 pass\n'}
         b.after(logs)
         self.assertEqual(s.required_kinds(), ['cdcl'])
-        self.assertEqual(len([r for f, r in self.rows if f == 'fuzz.jsonl']), 2)
+        self.assertEqual(len([r for f, r in self.rows if f == 'fuzz.jsonl']), len(tm.FUZZ) - 1)
         retry = s.batch(1, required=True)
         self.assertEqual(len(retry.items), 1)
         it = retry.items[0]

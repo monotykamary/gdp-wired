@@ -2,7 +2,9 @@ import {expect, test} from 'bun:test'
 import {execFileSync} from 'node:child_process'
 import {mkdtempSync, readFileSync, writeFileSync} from 'node:fs'
 import {tmpdir} from 'node:os'
-import {check, checkTarget} from './cli.ts'
+import {check} from './cli.ts'
+import {proveRule} from './dsl.ts'
+import {buildLaw, lawsIn} from './laws.ts'
 import {extractSolidity, readSolidity} from './extract-sol.ts'
 
 const has = (cmd: string) => { try { execFileSync(cmd, ['--version'], {stdio: 'ignore'}); return true } catch { return false } }
@@ -175,12 +177,27 @@ t('harnessing can be disabled explicitly', () => {
 t('a vulnerable inherited body is refuted and replayed; the fixed original is not refuted', async () => {
   const verdict = async (fixed: boolean) => {
     const {file, root} = fixture(`/// gdp: law spending stays within its cap: spent <= 10\nabstract contract Target { uint256 public spent; function spend(uint256 n) external { if (${fixed ? 'n <= 10 - spent' : 'spent < 10'}) spent += n; } }`)
-    const [r] = await checkTarget({lang: 'solidity', at: file, files: [file]}, {root, entry: 'Target', propose: false, ms: 60_000, check: checks})
-    expect(r!.refusals).toEqual([])
-    return r!.laws.find(l => l.name === 'spending stays within its cap')!
+    const result = await check([file], {root, entry: 'Target', propose: false, ms: 60_000, check: checks})
+    expect(result.exit).toBe(2)
+    expect(result.rules[0]!.refusals).toEqual([])
+    const law = result.rules[0]!.laws.find(l => l.name === 'spending stays within its cap')!
+    expect(law).toMatchObject({verdict: 'unknown', translation: 'unchecked', kernelProven: fixed})
+    expect(law.run).toBeUndefined()
+    expect(law.replayed).toBeUndefined()
+    expect(law.cert).toBeUndefined()
+    // Independently replay the model's candidate against unchanged bytecode. This is not a source-law proof.
+    const x = extractSolidity(file, {root, entry: 'Target', check: checks})
+    const built = buildLaw(x, lawsIn(readFileSync(file, 'utf8'))[0]!)
+    if (built.kind !== 'law') throw Error('the class-level cap is a state invariant')
+    const model = proveRule(x.rule!, [...x.invariants ?? [], built.law], {search: {ms: 60_000}})
+    expect(model).toMatchObject({kernelProven: fixed, proven: false, checked: false, translation: 'unchecked'})
+    if (!fixed) {
+      expect(model.run).toBeDefined()
+      expect(x.replay!(model.run!, built.law)).toMatchObject({ok: true, what: expect.stringContaining('replayed on the code')})
+    } else expect(model.run).toBeUndefined()
+    return law
   }
   const bad = await verdict(false)
-  expect(bad.verdict).toBe('broken')
-  expect(bad.replayed).toContain('replayed on the code')
-  expect((await verdict(true)).verdict).toBe('proven')
+  expect(bad.verdict).toBe('unknown')
+  expect((await verdict(true)).verdict).toBe('unknown')
 }, 300_000)

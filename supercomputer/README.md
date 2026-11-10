@@ -17,6 +17,8 @@ PATH on boat, the GPU pods' setup).
 | `boat.py`, `fanout.py`, `agent.py`, `runpod.py`, `store.py` | Doors to the tool's modules of the same names: `import boat` here is the tool's boat, configured for this repo, and `python3 supercomputer/boat.py status` is `supercomputer status` |
 | `reap.sh` | Stops this tree's orphaned Modal apps (a worktree's runners register in its own `.live`), then `supercomputer reap`: dead clients' Modal apps, boat leases and pods, VMs left up past their time |
 
+The soundness registry also runs the bounded source-law translation fuzzer: 26 cases per seed, default replay enabled, 15 s per case, with unsafe source proofs reported as soundness alerts. Its fingerprint includes the source reader/law/native-check code and generator, so changes schedule fresh coverage. The isolated registry/fingerprint test is `python3 research/translation-fuzz/treadmill_test.py`; it does not contact the scheduler.
+
 Sweeps follow the newest local `main` at round boundaries. If `main` changes, no new round is launched
 on the old commit; rounds already running drain and their results/gains are saved first. The next poll
 then adopts the newest `main`, skipping intermediate commits. Existing per-commit cache rows, round

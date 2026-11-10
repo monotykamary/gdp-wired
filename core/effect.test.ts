@@ -1,5 +1,5 @@
 // Effect services (core/effect.ts): read from their source on Effect 4.x and 3.x (the forms a service is written in),
-// checked by running them on Effect's runtime; the example's quota proven; a rule written by hand run beside a service
+// checked by running them on Effect's runtime; the example's model kernel-proven; a rule written by hand run beside a service
 // (Effect's own Semaphore on both versions, and the quota) and a wrong one caught by a run; Schemas as kinds; and what the
 // reader doesn't take refused with the reason.
 import {expect, test} from 'bun:test'
@@ -13,6 +13,8 @@ import {Int, int, nat, oneOf, proveRule, proveSteps, rule, when} from './dsl.ts'
 import {conforms, extractEffect, fromSchema} from './effect.ts'
 import {quotaConforms, quotaLaws, readQuota} from '../examples/effect.ts'
 
+// Programmatic laws lack a native source-law binding; only their model proofs are checked here.
+const modelOnly = {kernelProven: true, proven: false, checked: false, translation: 'unchecked'}
 const SVC = 'effect-svc.ts'
 const read = (code: string, entry = 'make') => extractEffect(code, {file: SVC, entry, effect})
 // Code for Effect 3.x, read where `effect` is 3.x (its types) and run on it.
@@ -45,7 +47,7 @@ test('a service (4.x): Refs, Effect.fn methods, a yielded error, a result; read,
   expect(x.source).toContain('an Effect service')
   const r = x.rule!
   // eslint-disable-next-line @typescript-eslint/no-explicit-any
-  expect(proveRule(r, [r.law('tokens stay within the capacity', ({tokens, capacity}: any) => tokens.atMost(capacity))]).proven).toBe(true)
+  expect(proveRule(r, [r.law('tokens stay within the capacity', ({tokens, capacity}: any) => tokens.atMost(capacity))])).toMatchObject(modelOnly)
 }, 120_000)
 
 test('the forms a make effect is written in (4.x): Layer.effect, a Context.Service, Effect.fn, a lock, Ref.modify', () => {
@@ -100,7 +102,7 @@ export class Wallet extends Effect.Service<Wallet>()('Wallet', {
   expect(x.evidence).toMatchObject({coverage: {missed: []}})
   const r = x.rule!
   // eslint-disable-next-line @typescript-eslint/no-explicit-any
-  expect(proveRule(r, [r.law('the balance never goes below 0', ({balance}: any) => balance.atLeast(0))]).proven).toBe(true)
+  expect(proveRule(r, [r.law('the balance never goes below 0', ({balance}: any) => balance.atLeast(0))])).toMatchObject(modelOnly)
   // The clock on 3.x: a cooldown, Ref.make outside a class, Effect.fn.
   const y = read3(`
 import {Clock, Data, Effect, Ref} from 'effect'
@@ -166,8 +168,8 @@ test('a map of records in a Ref, copied and set, with the clock: the example\'s 
   expect([x.ok, x.refusals]).toEqual([true, []])
   expect(x.evidence).toMatchObject({coverage: {missed: []}})
   const {laws, stepLaws} = quotaLaws(x.rule!)
-  expect(proveRule(x.rule!, [...x.invariants!, ...laws])).toMatchObject({proven: true, checked: true})
-  expect(proveSteps(x.rule!, x.invariants!, stepLaws)).toMatchObject({proven: true, checked: true})
+  expect(proveRule(x.rule!, [...x.invariants!, ...laws])).toMatchObject(modelOnly)
+  expect(proveSteps(x.rule!, x.invariants!, stepLaws)).toMatchObject(modelOnly)
 }, 120_000)
 
 test('a rule by hand beside the service: the right one runs as it does, a wrong one is caught by a run', () => {

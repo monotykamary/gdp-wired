@@ -13,6 +13,8 @@ import {assumed, disjoint} from './extract-step.ts'
 const hasPy = (() => { try { execFileSync('python3', ['--version'], {stdio: 'ignore'}); return true } catch { return false } })()
 const t = hasPy ? test : test.skip
 const budget = {runs: 40, depth: 8, states: 80}
+// Python replay still checks extraction; it is not a native source-law journal.
+const modelOnly = {kernelProven: true, proven: false, checked: false, translation: 'unchecked'}
 const EX = new URL('./py/examples/bucket.py', import.meta.url).pathname
 type X = ReturnType<typeof extractPython>
 const ok = (x: X) => {
@@ -27,7 +29,9 @@ const refused = (x: X, why: RegExp) => { expect(x.ok).toBe(false); expect(x.refu
 type A = any
 const step = (x: X, name: string, then: (b: A, a: A) => A, when?: (b: A) => A) => {
   const r = x.rule as A
-  return proveSteps(r, x.invariants ?? [], [r.stepLaw(name, then, when)])
+  const v = proveSteps(r, x.invariants ?? [], [r.stepLaw(name, then, when)])
+  expect(v).toMatchObject({proven: false, checked: false, translation: 'unchecked'})
+  return v
 }
 const py = (code: string, opts: PyOptions): X => {
   const dir = mkdtempSync(`${tmpdir()}/gdp-pycase-`)
@@ -39,28 +43,28 @@ t('a token bucket: the clock an input, the lock atomic, a failure before any wri
   const x = ok(extractPython(EX, {entry: 'TokenBucket', check: budget}))
   expect(x.source).toContain('.pre(({capacity0}) => capacity0.gt(0))')
   expect(x.notes.join('\n')).toMatch(/the lock held .*atomic/)
-  expect(proveRule(x.rule!, [x.rule!.law('never past its capacity', ({tokens, capacity}: A) => tokens.atMost(capacity))]).proven).toBe(true)
+  expect(proveRule(x.rule!, [x.rule!.law('never past its capacity', ({tokens, capacity}: A) => tokens.atMost(capacity))])).toMatchObject(modelOnly)
 })
 
 t('a dict of dataclasses: a missing key, a Literal mode, a result kept', () => {
   const x = ok(extractPython(EX, {entry: 'Ledger', check: budget}))
   expect(x.source).toContain("mode: oneOf('open', 'closed')")
   expect(step(x, 'a charge never takes a budget past its limit', (b, a) => a.budgets.at(b.charge_user.id).spent.atMost(a.budgets.at(b.charge_user.id).limit),
-    b => b.method.is('charge').and(b.budgets.at(b.charge_user.id).spent.atMost(b.budgets.at(b.charge_user.id).limit))).proven).toBe(true)
+    b => b.method.is('charge').and(b.budgets.at(b.charge_user.id).spent.atMost(b.budgets.at(b.charge_user.id).limit)))).toMatchObject(modelOnly)
 })
 
 t('a decision whose failure is kept: the law about when it raises', () => {
   const x = ok(extractPython(EX, {entry: ['check'], failures: 'kept', check: budget}))
-  expect(step(x, 'refused at the budget', (_b, a) => a.failed, b => b.max_budget_none.not().and(b.spend.atLeast(b.max_budget))).proven).toBe(true)
-  expect(step(x, 'refused only past the budget', (_b, a) => a.failed, b => b.max_budget_none.not().and(b.spend.gt(b.max_budget))).proven).toBe(true)
-  expect(step(x, 'admitted below it', (_b, a) => a.failed.not(), b => b.spend.lt(b.max_budget)).proven).toBe(true)
+  expect(step(x, 'refused at the budget', (_b, a) => a.failed, b => b.max_budget_none.not().and(b.spend.atLeast(b.max_budget)))).toMatchObject(modelOnly)
+  expect(step(x, 'refused only past the budget', (_b, a) => a.failed, b => b.max_budget_none.not().and(b.spend.gt(b.max_budget)))).toMatchObject(modelOnly)
+  expect(step(x, 'admitted below it', (_b, a) => a.failed.not(), b => b.spend.lt(b.max_budget))).toMatchObject(modelOnly)
 })
 
 t('a store the caller states: its keys by template, a count kept with the failure after it', () => {
   const x = ok(extractPython(EX, {entry: 'SessionLimit', methods: ['hit'], failures: 'kept', stores: {cache: {get: ['get'], set: ['set'], value: 'int'}}, check: budget}))
   expect(x.notes.join('\n')).toMatch(/"hits:\{\}" keys held as cache_hits/)
-  expect(step(x, 'admitted only below the limit', (b, a) => a.failed.not().implies(b.limit.gt(b.cache_hits.at(b.session.id).value))).proven).toBe(true)
-  expect(step(x, 'every hit counts one', (b, a) => a.cache_hits.at(b.session.id).value.eq(b.cache_hits.at(b.session.id).value.plus(1))).proven).toBe(true)
+  expect(step(x, 'admitted only below the limit', (b, a) => a.failed.not().implies(b.limit.gt(b.cache_hits.at(b.session.id).value)))).toMatchObject(modelOnly)
+  expect(step(x, 'every hit counts one', (b, a) => a.cache_hits.at(b.session.id).value.eq(b.cache_hits.at(b.session.id).value.plus(1)))).toMatchObject(modelOnly)
 })
 
 t('the boundary: an answered call an input, a skipped one kept only where nothing reads it', () => {
@@ -103,10 +107,10 @@ t('the boundary inferred: the entry, own code outside the subset cut, an injecte
   expect(notes).toMatch(/score: the module's own code, outside the subset \(m.py:\d+:\d+: a loop/)
   expect(notes).toMatch(/score .*answered by the request \(inferred: its value is read; assumes score may return any int\)/)
   expect(notes).toMatch(/flags.enabled .*answered by the request \(inferred/)
-  expect(step(x, 'within the cap where it starts so', (_b, a) => a.used.atMost(a.cap), b => b.used.atMost(b.cap)).proven).toBe(true)
+  expect(step(x, 'within the cap where it starts so', (_b, a) => a.used.atMost(a.cap), b => b.used.atMost(b.cap))).toMatchObject(modelOnly)
   // A refutation that depends on an inferred answer says so.
   const v = step(x, 'used never goes down', (b, a) => a.used.atLeast(b.used))
-  expect(v.proven).toBe(false)
+  expect(v.kernelProven).toBe(false)
   expect(assumed(x, (v.witness ?? v.run) as Record<string, unknown>).join('; ')).toMatch(/assumes `score` may return -\d+ \(inferred: any int\)/)
   // Other code given the rule's state may change it: refused, with what accepts it.
   const touch = 'import logging\n\nclass C:\n    def __init__(self):\n        self.n = 0\n\n    def bump(self) -> None:\n        logging.getLogger("c").info(self)\n        self.n += 1\n'
@@ -141,7 +145,7 @@ class RateLimiter:
         await self.cache.set(f"rl:{user}", n + 1)
 `, {entry: 'RateLimiter', failures: 'kept'}))
   expect(x.notes.join('\n')).toMatch(/RateLimiter\(cache\): an injected dependency \(inferred: marked so\)/)
-  expect(step(x, 'admitted only below the limit', (b, a) => a.failed.not().implies(b.limit.gt(b.cache_rl.at(b.user.id).value))).proven).toBe(true)
+  expect(step(x, 'admitted only below the limit', (b, a) => a.failed.not().implies(b.limit.gt(b.cache_rl.at(b.user.id).value)))).toMatchObject(modelOnly)
 })
 
 t('refusals, each where it is with why', () => {
@@ -205,15 +209,15 @@ t('a loop over a list the request carries: a fold, exact for every length', () =
   const x = ok(py(FOLD, {entry: 'Ledger', failures: 'kept'}))
   expect(x.source).toContain('.carriesList("charge_lines", record({amount: int, refund: bool}))')
   expect(x.source).toMatch(/charge_lines\$0\.every\(\(_x, i\$\) => i\$\.lt\(charge_lines_len\)/)
-  expect(step(x, 'a charge admitted keeps the spend within the cap', (b, a) => a.spent.atMost(b.cap).or(a.spent.eq(b.spent)), b => b.method.is('charge')).proven).toBe(true)
+  expect(step(x, 'a charge admitted keeps the spend within the cap', (b, a) => a.spent.atMost(b.cap).or(a.spent.eq(b.spent)), b => b.method.is('charge'))).toMatchObject(modelOnly)
   // (a fact of the passes past the first needs induction over them, which the equations alone don't give: one line)
-  expect(step(x, 'a charge of one negative line fails', (_b, a) => a.failed, b => all(b.method.is('charge'), b.charge_lines_len.eq(1), b.charge_lines.at(0).refund.not(), b.charge_lines.at(0).amount.lt(0))).proven).toBe(true)
-  expect(step(x, 'has_big is false on an empty list', (_b, a) => a.has_big_result.not(), b => all(b.method.is('has_big'), b.has_big_xs_len.eq(0))).proven).toBe(true)
-  expect(step(x, 'has_big of one item past k is true', (_b, a) => a.has_big_result, b => all(b.method.is('has_big'), b.has_big_xs_len.eq(1), b.has_big_xs.at(0).value.gt(b.has_big_k))).proven).toBe(true)
-  expect(step(x, 'matches of one "*" is true', (_b, a) => a.matches_result, b => all(b.method.is('matches'), b.matches_verbs_len.eq(1), b.matches_verbs.at(0).value.eq('*'))).proven).toBe(true)
-  expect(step(x, 'owed of no items is the spend', (b, a) => a.owed_result.eq(b.spent), b => all(b.method.is('owed'), b.owed_xs_len.eq(0))).proven).toBe(true)
-  expect(step(x, 'count of no items is the other list\'s length', (_b, a) => a.count_result.eq(_b.count_ys_len), b => all(b.method.is('count'), b.count_xs_len.eq(0))).proven).toBe(true)
-  expect(step(x, 'has_big is never true', (_b, a) => a.has_big_result.not(), b => b.method.is('has_big')).proven).toBe(false)
+  expect(step(x, 'a charge of one negative line fails', (_b, a) => a.failed, b => all(b.method.is('charge'), b.charge_lines_len.eq(1), b.charge_lines.at(0).refund.not(), b.charge_lines.at(0).amount.lt(0)))).toMatchObject(modelOnly)
+  expect(step(x, 'has_big is false on an empty list', (_b, a) => a.has_big_result.not(), b => all(b.method.is('has_big'), b.has_big_xs_len.eq(0)))).toMatchObject(modelOnly)
+  expect(step(x, 'has_big of one item past k is true', (_b, a) => a.has_big_result, b => all(b.method.is('has_big'), b.has_big_xs_len.eq(1), b.has_big_xs.at(0).value.gt(b.has_big_k)))).toMatchObject(modelOnly)
+  expect(step(x, 'matches of one "*" is true', (_b, a) => a.matches_result, b => all(b.method.is('matches'), b.matches_verbs_len.eq(1), b.matches_verbs.at(0).value.eq('*')))).toMatchObject(modelOnly)
+  expect(step(x, 'owed of no items is the spend', (b, a) => a.owed_result.eq(b.spent), b => all(b.method.is('owed'), b.owed_xs_len.eq(0)))).toMatchObject(modelOnly)
+  expect(step(x, 'count of no items is the other list\'s length', (_b, a) => a.count_result.eq(_b.count_ys_len), b => all(b.method.is('count'), b.count_xs_len.eq(0)))).toMatchObject(modelOnly)
+  expect(step(x, 'has_big is never true', (_b, a) => a.has_big_result.not(), b => b.method.is('has_big')).kernelProven).toBe(false)
 }, 60_000)
 
 // A loop over a list of the state (an ordered collection, a map by place): the same fold, its passes the places up to
@@ -275,11 +279,11 @@ t('a store that may fail inside a try; a finally on a raise\'s way out; a raise\
         return True
 `, {entry: 'Hits', stores: {cache: {get: ['async_get_cache'], set: ['async_set_cache'], value: 'int'}}}))
   expect(x.source).toMatch(/async_get_cache_raises: bool/)
-  expect(step(x, 'a failed read admits and counts a miss', (b, a) => a.misses.eq(b.misses.plus(1)).and(a.hit_result), b => b.async_get_cache_raises).proven).toBe(true)
-  expect(step(x, 'admitted past the limit never', (b, a) => a.hit_result.not(), b => b.limit.atMost(b.cache_h.at(b.user.id).value).and(b.async_get_cache_raises.not())).proven).toBe(true)
+  expect(step(x, 'a failed read admits and counts a miss', (b, a) => a.misses.eq(b.misses.plus(1)).and(a.hit_result), b => b.async_get_cache_raises)).toMatchObject(modelOnly)
+  expect(step(x, 'admitted past the limit never', (b, a) => a.hit_result.not(), b => b.limit.atMost(b.cache_h.at(b.user.id).value).and(b.async_get_cache_raises.not()))).toMatchObject(modelOnly)
   refused(py('class A:\n    def __init__(self):\n        self.x = 0\n\n    def f(self, n: int) -> int:\n        try:\n            try:\n                if n == 7:\n                    raise ValueError()\n            finally:\n                self.x = 1\n        except ValueError:\n            pass\n        return self.x\n', {entry: 'A'}), /finally on a raise's way out of its try/)
   const y = ok(py('class A:\n    def __init__(self):\n        self.x = 0\n        self.d: dict[str, int] = {}\n\n    def f(self, k: str) -> int:\n        try:\n            raise ValueError(self.d[k])\n        except KeyError:\n            self.x = 1\n        except ValueError:\n            self.x = 2\n        return self.x\n', {entry: 'A'}))
-  expect(step(y, 'a key it doesn\'t hold is the KeyError\'s', (_b, a) => a.x.eq(1), b => b.d.at(b.k.id).has.not()).proven).toBe(true)
+  expect(step(y, 'a key it doesn\'t hold is the KeyError\'s', (_b, a) => a.x.eq(1), b => b.d.at(b.k.id).has.not())).toMatchObject(modelOnly)
 })
 
 // A module function whose try returns other code's object field: where the caller reads it and it can't be answered,
@@ -360,10 +364,10 @@ t('try/except: a call that may raise, a KeyError, a raise by its class, else and
   expect(x.source).toContain("notify_raises: oneOf('none', 'ValueError', 'Exception')")
   expect(x.notes.join('\n')).toMatch(/other.notify \(m.py:\d+:\d+\): may raise inside a try that catches it/)
   // (the raise's outcomes: each handler's)
-  expect(step(x, 'a hit counts its errors only where notify raised', (b, a) => a.errors.gt(b.errors).implies(b.notify_raises.is('Exception')), b => b.method.is('hit')).proven).toBe(true)
-  expect(step(x, 'a hit past 3 returns 7', (_b, a) => a.hit_result.eq(7), b => b.method.is('hit').and(b.hit_d.gt(3))).proven).toBe(false)
-  expect(step(x, 'a take never past the cap', (b, a) => b.cap.atLeast(a.used.at(b.take_k.id).value).or(a.used.at(b.take_k.id).value.eq(b.used.at(b.take_k.id).value)), b => b.method.is('take')).proven).toBe(true)
-  expect(step(x, 'strict fails only where ping raised', (_b, a) => a.failed.implies(_b.ping_raises), b => b.method.is('strict')).proven).toBe(true)
+  expect(step(x, 'a hit counts its errors only where notify raised', (b, a) => a.errors.gt(b.errors).implies(b.notify_raises.is('Exception')), b => b.method.is('hit'))).toMatchObject(modelOnly)
+  expect(step(x, 'a hit past 3 returns 7', (_b, a) => a.hit_result.eq(7), b => b.method.is('hit').and(b.hit_d.gt(3))).kernelProven).toBe(false)
+  expect(step(x, 'a take never past the cap', (b, a) => b.cap.atLeast(a.used.at(b.take_k.id).value).or(a.used.at(b.take_k.id).value.eq(b.used.at(b.take_k.id).value)), b => b.method.is('take'))).toMatchObject(modelOnly)
+  expect(step(x, 'strict fails only where ping raised', (_b, a) => a.failed.implies(_b.ping_raises), b => b.method.is('strict'))).toMatchObject(modelOnly)
 })
 
 test('key templates: disjoint where their fixed parts differ', () => {
@@ -447,11 +451,11 @@ t('a store of JSON records over a client of name= and nx: the conditional set, t
   expect(x.notes.join('\n')).toMatch(/its ex \(the key's expiry\) left out/)
   // a claim never takes a key over from a DONE record; it takes one over only by the lock (a second lock refused)
   expect(step(x, 'a DONE record stays DONE through a claim', (_b, a) => a['client_'].at(_b.claim_key.id).status.is('DONE'),
-    b => b.method.is('claim').and(b['client_'].at(b.claim_key.id).has).and(b['client_'].at(b.claim_key.id).status.is('DONE'))).proven).toBe(true)
+    b => b.method.is('claim').and(b['client_'].at(b.claim_key.id).has).and(b['client_'].at(b.claim_key.id).status.is('DONE')))).toMatchObject(modelOnly)
   expect(step(x, 'a claim of a held OPEN record whose lock is held fails', (_b, a) => a.failed,
-    b => b.method.is('claim').and(b['client_'].at(b.claim_key.id).has).and(b['client_'].at(b.claim_key.id).status.is('OPEN')).and(b.client_lock.at(b.claim_key.id).has)).proven).toBe(true)
+    b => b.method.is('claim').and(b['client_'].at(b.claim_key.id).has).and(b['client_'].at(b.claim_key.id).status.is('OPEN')).and(b.client_lock.at(b.claim_key.id).has))).toMatchObject(modelOnly)
   // the nx set read as conditional: a claim of a free key is the one that writes it
-  expect(step(x, 'a claim always writes the record (refuted: a DONE one is kept)', (_b, a) => a['client_'].at(_b.claim_key.id).status.is('OPEN'), b => b.method.is('claim')).proven).toBe(false)
+  expect(step(x, 'a claim always writes the record (refuted: a DONE one is kept)', (_b, a) => a['client_'].at(_b.claim_key.id).status.is('OPEN'), b => b.method.is('claim')).kernelProven).toBe(false)
 })
 t('a store key template that may name another\'s is refused unless stated apart', () => {
   refused(claims({stores: {client: {get: ['get'], set: ['set'], values: {'{}': {json: {status: ['OPEN', 'DONE'], until: 'int'}}, '{}:lock': ['1']}}}}), /the key templates "\{\}" and "\{\}:lock" may name one key/)
@@ -512,17 +516,17 @@ t('a set of the state (add, discard, in), a Literal alias, a Literal result, an 
   expect(x.source).toContain("state: oneOf('queued', 'placed', 'done', 'modal')")
   expect(x.source).toContain("boat_failed_result: oneOf('again', 'modal', 'none')")
   expect(x.source).not.toContain('undefined')
-  expect(proveRule(x.rule!, [...x.invariants ?? [], x.rule!.law('Modal only after boat_tries strikes', ({state, fails, boat_tries}: A) => state.is('modal').implies(boat_tries.atMost(fails)))]).proven).toBe(true)
+  expect(proveRule(x.rule!, [...x.invariants ?? [], x.rule!.law('Modal only after boat_tries strikes', ({state, fails, boat_tries}: A) => state.is('modal').implies(boat_tries.atMost(fails)))])).toMatchObject(modelOnly)
   // a strike only for a VM the item hadn't failed on: the set before the step
-  expect(step(x, 'one strike per VM', (b, a) => a.fails.gt(b.fails).implies(b.avoid.at(b.boat_failed_vm.id).has.not()), b => b.method.is('boat_failed')).proven).toBe(true)
-  expect(step(x, 'a VM failed on is avoided after', (b, a) => a.avoid.at(b.boat_failed_vm.id).has.or(b.state.is('placed').not()).or(b.vm.eq(b.boat_failed_vm).not()), b => b.method.is('boat_failed')).proven).toBe(true)
+  expect(step(x, 'one strike per VM', (b, a) => a.fails.gt(b.fails).implies(b.avoid.at(b.boat_failed_vm.id).has.not()), b => b.method.is('boat_failed'))).toMatchObject(modelOnly)
+  expect(step(x, 'a VM failed on is avoided after', (b, a) => a.avoid.at(b.boat_failed_vm.id).has.or(b.state.is('placed').not()).or(b.vm.eq(b.boat_failed_vm).not()), b => b.method.is('boat_failed'))).toMatchObject(modelOnly)
 })
 
 t('a set removed from: a key it doesn\'t hold is a KeyError, the step\'s failure', () => {
   const x = ok(py(`class Seen:\n    def __init__(self):\n        self.ids: set[str] = set()\n\n    def add(self, i: str) -> None:\n        self.ids.add(i)\n\n    def drop(self, i: str) -> None:\n        self.ids.remove(i)\n`,
     {entry: 'Seen', failures: 'kept', check: budget}))
-  expect(step(x, 'a drop of an id not held fails', (_b, a) => a.failed, b => b.method.is('drop').and(b.ids.at(b.drop_i.id).has.not())).proven).toBe(true)
-  expect(step(x, 'a drop of a held id leaves it out', (b, a) => a.failed.not().and(a.ids.at(b.drop_i.id).has.not()), b => b.method.is('drop').and(b.ids.at(b.drop_i.id).has)).proven).toBe(true)
+  expect(step(x, 'a drop of an id not held fails', (_b, a) => a.failed, b => b.method.is('drop').and(b.ids.at(b.drop_i.id).has.not()))).toMatchObject(modelOnly)
+  expect(step(x, 'a drop of a held id leaves it out', (b, a) => a.failed.not().and(a.ids.at(b.drop_i.id).has.not()), b => b.method.is('drop').and(b.ids.at(b.drop_i.id).has))).toMatchObject(modelOnly)
 })
 
 t('a type alias of 3.12 (type X = ...), and dict() as {}', () => {
@@ -535,7 +539,7 @@ t('a constructor given a dict of no stated types, read nowhere the rule keeps; a
   const x = ok(py(`import threading\n\nclass Gate:\n    def __init__(self, msg: dict, cap: int):\n        self.msg = msg\n        self.cap = cap\n        self.n = 0\n        self.events: dict[str, threading.Event] = {}\n\n    def hit(self) -> bool:\n        if self.n >= self.cap:\n            return False\n        self.n += 1\n        return True\n`,
     {entry: 'Gate', check: budget}))
   expect(x.notes.join('\n')).toMatch(/Gate\(msg\): dict with no key and value types, read nowhere the rule keeps/)
-  expect(proveRule(x.rule!, [x.rule!.law('within the cap', ({n, cap}: A) => cap.atLeast(n).or(n.eq(0)))]).proven).toBe(true)
+  expect(proveRule(x.rule!, [x.rule!.law('within the cap', ({n, cap}: A) => cap.atLeast(n).or(n.eq(0)))])).toMatchObject(modelOnly)
   // (read by the constructor: refused, whether it holds the key is the dict's)
   refused(py(`class Gate:\n    def __init__(self, msg: dict):\n        self.cap = int(msg["cap"])\n        self.n = 0\n\n    def hit(self) -> None:\n        self.n += 1\n`, {entry: 'Gate', check: budget}), /msg\['cap'\]: an item of msg: dict with no key and value types/)
 })
@@ -545,16 +549,16 @@ t('another module\'s constant read as its value; bytes never equal to a str', ()
   writeFileSync(`${dir}/conf.py`, 'LIMIT = 3\n')
   writeFileSync(`${dir}/m.py`, `import conf\n\nclass Box:\n    def __init__(self):\n        self.n = 0\n\n    def put(self, body: bytes, tag: bytes | None) -> bool:\n        if self.n >= conf.LIMIT or body == "x" or (tag is not None and tag == body):\n            return False\n        self.n += 1\n        return True\n`)
   const x = ok(extractPython(`${dir}/m.py`, {entry: 'Box', check: budget}))
-  expect(proveRule(x.rule!, [x.rule!.law('at most conf.LIMIT', ({n}: A) => n.atMost(3))]).proven).toBe(true)
+  expect(proveRule(x.rule!, [x.rule!.law('at most conf.LIMIT', ({n}: A) => n.atMost(3))])).toMatchObject(modelOnly)
   // (body == "x" is never true: bytes and a str differ in Python)
-  expect(step(x, 'a body other than its tag is always put below the limit', (_b, a) => a.put_result, b => b.n.lt(3).and(b.tag_none)).proven).toBe(true)
+  expect(step(x, 'a body other than its tag is always put below the limit', (_b, a) => a.put_result, b => b.n.lt(3).and(b.tag_none))).toMatchObject(modelOnly)
 })
 
 t('a str result that is one of its literals on every path: a choice of them', () => {
   const x = ok(py(`class Life:\n    def __init__(self):\n        self.up = True\n        self.owned = False\n\n    def tick(self, work: bool) -> str:\n        if not self.up or self.owned:\n            return "keep"\n        if work:\n            self.owned = True\n            return "adopt"\n        self.up = False\n        return "stop"\n`,
     {entry: 'Life', check: budget}))
   expect(x.source).toContain("tick_result: oneOf('keep', 'adopt', 'stop')")
-  expect(step(x, 'a VM stopped only with no work', (b, a) => a.tick_result.is('stop').implies(b.work.not()), () => yes).proven).toBe(true)
+  expect(step(x, 'a VM stopped only with no work', (b, a) => a.tick_result.is('stop').implies(b.work.not()), () => yes)).toMatchObject(modelOnly)
 })
 
 t('an argument the code ignores, kept where a law reads it (keep): the law about it broken', () => {
@@ -562,7 +566,7 @@ t('an argument the code ignores, kept where a law reads it (keep): the law about
   const bare = ok(py(code, {entry: 'Fate', check: budget}))
   expect(bare.model!.inputs.map(v => v.name)).not.toContain('start_failed')
   const x = ok(py(code, {entry: 'Fate', keep: ['start_failed'], check: budget}))
-  expect(step(x, 'a wait counts only where a start failed', (b, a) => a.fails.gt(b.fails).implies(b.start_failed), () => yes).proven).toBe(false)
+  expect(step(x, 'a wait counts only where a start failed', (b, a) => a.fails.gt(b.fails).implies(b.start_failed), () => yes).kernelProven).toBe(false)
 })
 
 // The clock pinned only while the code runs, and never in what a module imported then copies: a framework's module
@@ -602,7 +606,7 @@ def record():
     pass
 `)
   const x = ok(extractPython(`${dir}/win.py`, {entry: 'Window', check: budget}))
-  expect(step(x, 'a hit counts at most one', (b, a) => a.count.atMost(b.count.plus(1)), () => yes).proven).toBe(true)
+  expect(step(x, 'a hit counts at most one', (b, a) => a.count.atMost(b.count.plus(1)), () => yes)).toMatchObject(modelOnly)
 })
 
 // A constructor argument typed by a Protocol (or by nothing) is an injected dependency, kept in a field however the
@@ -629,7 +633,7 @@ class Limiter:
   const x = ok(py(code(' -> int'), {entry: 'Limiter', check: budget}))
   expect(x.notes.join('\n')).toMatch(/Limiter\(pricing\): an injected dependency \(inferred: of Pricing/)
   expect(x.notes.join('\n')).toMatch(/pricing\.cost .*answered by the request \(inferred/)
-  expect(step(x, 'a counted hit stays within the limit', (_b, a) => a.used.atMost(a.limit_ ?? a.limit), b => b.used.atMost(b.limit_ ?? b.limit)).proven).toBe(true)
+  expect(step(x, 'a counted hit stays within the limit', (_b, a) => a.used.atMost(a.limit_ ?? a.limit), b => b.used.atMost(b.limit_ ?? b.limit))).toMatchObject(modelOnly)
   // (its result declared nowhere: refused saying what states it, and the answer stated reads it)
   refused(py(code(''), {entry: 'Limiter', check: budget}), /state what it returns \(answers: \{"cost": 'int'\}/)
   ok(py(code(''), {entry: 'Limiter', answers: {cost: 'int'}, check: budget}))

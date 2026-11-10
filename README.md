@@ -13,6 +13,8 @@ For supported TypeScript decisions, put `// gdp: law ...` comments on the plain 
 **no duplicate model and no runtime dependency are needed**. For code outside the reader's subset, keep the model
 in tests and compare it with the implementation. [The CI-only guide](docs/ci-only.md) covers direct source checks,
 exhaustive finite input comparisons, mutation checks, and explicit runtime opt-in. A comparison is a test, not a proof.
+Standalone record arguments must be immutable plain-data snapshots with stable own data properties: accessors
+and Proxies are outside the contract, even if their TypeScript types match (see the guide's record-argument section).
 
 If a model is intentionally used at runtime, `fun(...).run()` interprets supported terms without dynamic code generation.
 `fun(...).compiled()` explicitly opts into generated JavaScript. User-supplied JavaScript helper source requires that opt-in;

@@ -38,6 +38,7 @@
 // across a set, one object (an array, a Map, a Date) in two places, aliasing that depends on the path, mixins of other
 // modules, other modules' code.
 import * as dsl from './dsl.ts'
+import {attachSource} from './source-check.ts'
 import {compileFunction, walk} from './machine.ts'
 import type {Rule} from './dsl.ts'
 import type {Law} from './machine.ts'
@@ -66,6 +67,7 @@ export type ExtractOptions = Omit<ReadOptions, 'entry' | 'functions'> & {
   shape?: 'class' | 'functions',
   // Explicit opt-in: one closed, pure scalar function (not a state reducer).
   // Safe integers only; numeric literal unions restrict its request domain.
+  // Record arguments are immutable plain-data snapshots: own data properties, no accessors or Proxies.
   mode?: 'standalone',
   // Numbers given as naturals or integers (by the rule's variable name, or `map.field` for a map's numbers).
   domains?: Record<string, 'nat' | 'int'>,
@@ -130,7 +132,11 @@ export function namesOf(m: Model): Name[] {
   for (const [method, r] of Object.entries(m.results ?? {})) {
     if (r.k === 'scalar') out.push({code: 'result', rule: r.name, role: 'result', method})
     else if (r.k === 'maybe') out.push({code: 'result', rule: r.name, role: 'result', method, none: r.missing})
-    else for (const [f, n] of r.fields) out.push(f === 'failed' ? {code: 'failed', rule: n, role: 'failed'} : {code: f === 'value' ? 'result' : `result.${f}`, rule: n, role: 'result', method})
+    else for (const [f, n] of r.fields) {
+      out.push({code: `result.${f}`, rule: n, role: 'result', method})
+      // Preserve legacy class/Effect envelope aliases; standalone records expose only source field names.
+      if (!m.standalone && (f === 'value' || f === 'failed')) out.push(f === 'failed' ? {code: 'failed', rule: n, role: 'failed'} : {code: 'result', rule: n, role: 'result', method})
+    }
   }
   if (m.event) out.push({code: 'method', rule: m.event, role: 'method'})
   return out
@@ -201,6 +207,7 @@ export function fromModel(model: Model, file: string, domains: Record<string, 'n
   if (evidence.source) return {ok: false, source, model, sorts, evidence, refusals: [{where: file, what: evidence.source}], notes}
   if (evidence.harness) return {ok: false, source, model, sorts, evidence, refusals: [{where: file, what: `${HARNESS_FAILED}${evidence.harness}`}], notes}
   if (evidence.mismatch) return {ok: false, source, model, sorts, evidence, refusals: [{where: file, what: `the rule and the code differ: ${evidence.mismatch}`}], notes}
+  attachSource(rule, evidence, invariants)
   return {ok: true, rule, ...(invariants.length ? {invariants} : {}), source, model, sorts, evidence, refusals: [], notes}
 }
 // The check's own failure (twice): no verdict on the code, neither a difference nor a pass.

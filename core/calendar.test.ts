@@ -125,7 +125,7 @@ test('business days: a deadline law of one step (each time\'s week a key) and of
   expect(proveRule(r15, [law(r15, 10)], {search: {ms: 20_000}}).run).toBeDefined()
 }, 120_000)
 
-test.skipIf(!hasPython)('the CLI: a deadline in business days over the calendar in gdp.toml, proven and broken', async () => {
+test.skipIf(!hasPython)('the CLI: business-day model verdicts retained without a Python source proof', async () => {
   const dir = mkdtempSync(`${tmpdir()}/gdp-bdays-`)
   const src = DESK.replace('# gdp: law fulfilled only within 30 days: requests[rid].fulfilled implies now - requests[rid].received < 30 days',
     '# gdp: law within 10 business days: requests[rid].fulfilled implies now - requests[rid].received <= 10 business days\n    # gdp: law within 9 business days: requests[rid].fulfilled implies now - requests[rid].received <= 9 business days')
@@ -136,9 +136,13 @@ test.skipIf(!hasPython)('the CLI: a deadline in business days over the calendar 
   writeFileSync(`${dir}/gdp.toml`, `[calendar]\nweekend = ["sat", "sun"]\nholidays = ${JSON.stringify(HOLIDAYS)}\nutc_offset = "-05:00"\n`)
   const r = await check([`${dir}/desk.py`], {ms: 20_000, propose: false})
   const laws = Object.fromEntries(r.rules[0]!.laws.map(l => [l.name, l]))
-  expect(laws['within 10 business days']!.verdict).toBe('proven')
-  expect(laws['within 9 business days']!.verdict).toBe('broken')
-  expect(laws['within 9 business days']!.run!.length).toBeGreaterThan(1)
+  expect(r.exit).toBe(2)
+  expect(laws['within 10 business days']).toMatchObject({kernelProven: true, verdict: 'unknown', translation: 'unchecked'})
+  expect(laws['within 9 business days']).toMatchObject({kernelProven: false, verdict: 'unknown', translation: 'unchecked'})
+  for (const law of Object.values(laws)) {
+    expect(law.run).toBeUndefined()
+    expect(law.cert).toBeUndefined()
+  }
 }, 300_000)
 
 // --- drafting laws from a clause (draft.ts): read over the code's names, marked unreviewed until a person signs ------------
@@ -161,8 +165,15 @@ test.skipIf(!hasPython)('drafting: a drafter\'s laws read over the code\'s names
   // (pasted above fulfill: checked as any law, its citation unreviewed until signed)
   writeFileSync(`${dir}/desk.py`, DESK.split('\n').filter(l => !l.includes('gdp:')).join('\n').replace('    def fulfill(', `    ${lines[0]}\n    ${lines[1]}\n    def fulfill(`))
   const {main} = await import('./cli.ts')
-  expect(await main(['check', `${dir}/desk.py`, '--no-propose', '--json'])).toBe(0)
+  const unreviewed = await check([`${dir}/desk.py`], {ms: 5000, propose: false})
+  expect(unreviewed.rules[0]!.laws[0]!.cites!.map(reviewOf)).toEqual(['unreviewed'])
+  expect(unreviewed.rules[0]!.laws[0]).toMatchObject({kernelProven: true, verdict: 'unknown', translation: 'unchecked'})
+  expect(await main(['check', `${dir}/desk.py`, '--no-propose', '--json'])).toBe(2)
   expect(await main(['check', `${dir}/desk.py`, '--no-propose', '--json', '--require-review'])).toBe(2)
   writeFileSync(`${dir}/desk.py`, readFileSync(`${dir}/desk.py`, 'utf8').replace('[unreviewed: drafted by a model]', '[reviewed-by: A. Person, 2026-11-02]'))
-  expect(await main(['check', `${dir}/desk.py`, '--no-propose', '--json', '--require-review'])).toBe(0)
+  expect(await main(['check', `${dir}/desk.py`, '--no-propose', '--json', '--require-review'])).toBe(2)
+  const reviewed = await check([`${dir}/desk.py`], {ms: 5000, propose: false})
+  expect(reviewed.rules[0]!.laws[0]!.cites!.map(reviewOf)).toEqual(['reviewed'])
+  expect(reviewed.rules[0]!.laws[0]).toMatchObject({kernelProven: true, verdict: 'unknown', translation: 'unchecked'})
+  expect(reviewed.rules[0]!.laws[0]!.cert).toBeUndefined()
 }, 300_000)
