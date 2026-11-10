@@ -1,0 +1,26 @@
+import {strict as assert} from 'node:assert'
+import {coreMeter} from '../../core/meter.ts'
+import {extraWorkKeys, fullWork, withCompleteWorkWeights, type ExtraWorkWeights} from '../../core/work-meter.ts'
+import {BudgetExpired, inBudget, withBudget} from '../../kernel/prove.ts'
+const saved = coreMeter.astNodes
+const observe = (name: string, ast: number, coefficient: number, units: number, add: number) => {
+  coreMeter.astNodes = ast
+  const weights = Object.fromEntries(extraWorkKeys.map(key => [key, key === 'astNodes' ? coefficient : 1])) as ExtraWorkWeights
+  assert(extraWorkKeys.every(key => Number.isFinite(weights[key]) && weights[key] > 0))
+  let started = false, returned = false, error: string | null = null, errorClass: string | null = null
+  return withCompleteWorkWeights(weights, () => {
+    const before = fullWork()
+    try { withBudget(units, () => { started = true; coreMeter.astNodes += add; return true }); returned = true }
+    catch (caught) { if (!(caught instanceof BudgetExpired)) throw caught; error = caught.message; errorClass = caught.name }
+    const after = fullWork()
+    assert.equal(inBudget(), false, 'scope restored')
+    return {name, finitePositiveWeights: true, finiteBudget: Number.isFinite(units), units, before: String(before), after: String(after), started, returned, error, errorClass}
+  })
+}
+try {
+  const initialOverflow = observe('score already infinite at entry', 2, Number.MAX_VALUE, 1, 1)
+  const capOverflow = observe('finite score plus finite allowance overflows end', 1, Number.MAX_VALUE / 2, Number.MAX_VALUE, 2)
+  const control = observe('ordinary finite completion cutoff', 1, 1, 0, 1)
+  assert(control.started && !control.returned && control.errorClass === 'BudgetExpired')
+  console.log('FINITE_BUDGET_PROBE ' + JSON.stringify({source: '94b65671', initialOverflow, capOverflow, control, reproduced: initialOverflow.returned || capOverflow.returned, scope: 'numeric boundary of the untrusted work-budget API; not a checker acceptance or calibration claim'}))
+} finally { coreMeter.astNodes = saved }

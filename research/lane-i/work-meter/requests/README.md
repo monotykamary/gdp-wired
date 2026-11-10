@@ -57,7 +57,15 @@ W remain unqualified; the old `41d39043` CPU census is not a new-source census.
 `pilot.jobs.json` runs the next original-MLDR Node off/on diagnostic, with
 `pilot-source.ts` checking the exact verified patch before execution and the
 same source plus raw/verdict equality after capture. The existing strict
-heartbeat-window audit remains enabled. It is running in
-`runs/lane-i/resume-request-f3`; no outcome or Bun F3 claim is made yet.
+heartbeat-window audit remains enabled. The bounded Node run passed in
+`20261110-215020-uebure` (`runs/lane-i/resume-request-f3`): identical raw vectors
+and `unknown: work budget (completion)` off/on, with two stable captures
+(one GC, one `canon2`) and four moving-heartbeat captures. This is not complete
+F3 or a Bun F3 result. Exact-source reconstruction `20261110-215918-9x05eq`
+maps `canon2` to `kernel/kernel.ts:canon`, called through
+`kernel/reader.ts:form` and `addCopy`. The regenerated bundle SHA-256 is
+`e4b7990151df523044d84b594dd15da5db4318b1878275647b262263ce81769d`.
+This identifies a sampled function, not a specific instruction or native
+operation; the retained observer lacks per-sample timing for stronger attribution.
 Pilot-guard tooling and commitlint pass in `20261110-215020-wempu0`
 (1,692 files, zero warnings/errors). This is not the pilot's runtime result.

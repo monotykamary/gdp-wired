@@ -1,0 +1,1 @@
+fix: fail closed on nonfinite work budgets

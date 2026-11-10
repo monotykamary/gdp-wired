@@ -1,0 +1,41 @@
+import {expect, test} from 'bun:test'
+import {coreMeter} from './meter.ts'
+import {extraWorkKeys, fullWork, withCompleteWorkWeights, type ExtraWorkWeights} from './work-meter.ts'
+import {BudgetExpired, budgetEnd, inBudget, withBudget} from '../kernel/prove.ts'
+function score<T>(ast: number, coefficient: number, run: () => T): T {
+  const before = coreMeter.astNodes
+  const weights = Object.fromEntries(extraWorkKeys.map(key => [key, key === 'astNodes' ? coefficient : 1])) as ExtraWorkWeights
+  try { coreMeter.astNodes = ast; return withCompleteWorkWeights(weights, run) }
+  finally { coreMeter.astNodes = before }
+}
+test('finite positive weights cannot admit an already infinite work score', () => score(2, Number.MAX_VALUE, () => {
+  expect(fullWork()).toBe(Infinity)
+  let entered = false
+  expect(() => withBudget(1, () => { entered = true })).toThrow(BudgetExpired)
+  expect(entered).toBe(false); expect(inBudget()).toBe(false)
+}))
+test('a finite score plus a finite allowance cannot create an infinite budget end', () => score(1, Number.MAX_VALUE / 2, () => {
+  expect(Number.isFinite(fullWork())).toBe(true)
+  let entered = false
+  expect(() => withBudget(Number.MAX_VALUE, () => { entered = true; coreMeter.astNodes += 2 })).toThrow(BudgetExpired)
+  expect(entered).toBe(false); expect(inBudget()).toBe(false)
+}))
+test('nonfinite work at completion fails closed and restores the scope', () => {
+  for (const invalid of [NaN, Infinity]) score(0, 1, () => {
+    expect(() => withBudget(10, () => { coreMeter.astNodes = invalid })).toThrow(BudgetExpired)
+    expect(inBudget()).toBe(false)
+  })
+})
+test('an inherited finite cap still clamps a request whose unbounded sum overflows', () => score(1, Number.MAX_VALUE / 2, () => {
+  const result = withBudget(Number.MAX_VALUE / 4, () => {
+    const end = budgetEnd()
+    expect(Number.isFinite(end)).toBe(true)
+    return withBudget(Number.MAX_VALUE, () => { expect(budgetEnd()).toBe(end); return 'clamped' })
+  })
+  expect(result).toBe('clamped'); expect(inBudget()).toBe(false)
+}))
+test('ordinary finite and zero-work budgets retain their completion behavior', () => score(1, 1, () => {
+  expect(withBudget(0, () => 'no work')).toBe('no work')
+  expect(() => withBudget(0, () => { coreMeter.astNodes++ })).toThrow(BudgetExpired)
+  expect(inBudget()).toBe(false)
+}))

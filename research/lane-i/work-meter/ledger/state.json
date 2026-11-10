@@ -41,10 +41,10 @@
   },
   "activeTasks": [
     {
-      "task": "982f12ea-4aeb-4c25-a460-2b267447f6b5",
-      "pid": 644738,
-      "results": "runs/lane-i/resume-request-f3",
-      "purpose": "source-pinned original-MLDR Node off/on follow-up for 94b65671"
+      "task": "6202da35-6e81-474a-8173-8c4461fee103",
+      "pid": 653520,
+      "results": "runs/lane-i/resume-numeric-budget-validation",
+      "purpose": "source-isolated numeric guard selected checks and unchanged three-mode acceptance matrix"
     }
   ],
   "rerunFirst": [],
@@ -435,9 +435,29 @@
     "deltaSha256": "5c0b609e3b703d01e05f240d2a8dc82147b7950f520cad264dd408966403519a",
     "f3Followup": {
       "sourcePinned": true,
-      "expectedPatchSha256": "2c98e5dc8d92da3b1f6833c1e1a331de24b559349c30cc44f52ec5c2a6c53ac2",
+      "patchSha256": "2c98e5dc8d92da3b1f6833c1e1a331de24b559349c30cc44f52ec5c2a6c53ac2",
+      "batch": "20261110-215020-uebure",
       "results": "runs/lane-i/resume-request-f3",
-      "status": "running; not qualified"
+      "sameRawAndVerdict": true,
+      "strictWindowChecks": true,
+      "stableWindows": 2,
+      "changedWindows": 4,
+      "topFunctions": [
+        "(garbage collector)",
+        "canon2"
+      ],
+      "verdict": "unknown: work budget (completion)",
+      "status": "bounded Node diagnostic passed; F3 remains open",
+      "mapping": {
+        "batch": "20261110-215918-9x05eq",
+        "bundleSha256": "e4b7990151df523044d84b594dd15da5db4318b1878275647b262263ce81769d",
+        "source": "kernel/kernel.ts:canon",
+        "callers": [
+          "kernel/reader.ts:form",
+          "kernel/reader.ts:addCopy"
+        ],
+        "scope": "function-level sample attribution only; no exact instruction or timestamp-window attribution"
+      }
     },
     "pilotTooling": {
       "batch": "20261110-215020-wempu0",
@@ -459,5 +479,32 @@
     "batch": "20261110-213829-djrxck",
     "passed": true,
     "samePatchSha256": "0b81986736b8b20ae97661f4f0ecc377b61d8534a8c935a87aa6b4da9758dfc3"
+  },
+  "numericBudget": {
+    "diagnosis": {
+      "batch": "20261110-215401-xhkj8q",
+      "source": "94b65671",
+      "finiteWeights": true,
+      "finiteBudgets": true,
+      "bothOverflowCallbacksReturned": true,
+      "ordinaryCutoffThrew": true,
+      "sourceFilesUnchanged": 110
+    },
+    "candidate": {
+      "mode": "numeric",
+      "status": "validation running",
+      "sourcePromoted": false,
+      "weightsChanged": false,
+      "regressionCases": 5
+    },
+    "scope": "untrusted budget admission/completion only; no checker acceptance changes, calibrated W or formal IEEE-754 proof",
+    "tooling": {
+      "batch": "20261110-215908-bw8843",
+      "files": 1695,
+      "typeLint": true,
+      "commitlint": true,
+      "warnings": 0,
+      "errors": 0
+    }
   }
 }

@@ -1,0 +1,1 @@
+[{"name":"request-source-stack-map","cmd":"bun recovery-input/materialize.ts && bun recovery-input/compose.ts requests && bun request-input/map-stack.ts","cpu":2,"memory":6144,"timeout":600,"vm_type":"large"}]

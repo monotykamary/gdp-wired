@@ -8,7 +8,7 @@ import {restore, command} from './final-gate-common.ts'
 
 // Research staging only. Never choose a side of a conflict automatically.
 const mode = process.env.METER_COMPOSITION ?? process.argv[2]
-assert(['ledger', 'boundaries', 'bitmap', 'canonical', 'requests'].includes(mode ?? ''), 'ledger, boundaries, bitmap, canonical or requests required')
+assert(['ledger', 'boundaries', 'bitmap', 'canonical', 'requests', 'numeric'].includes(mode ?? ''), 'ledger, boundaries, bitmap, canonical, requests or numeric required')
 const rawConfig = JSON.parse(readFileSync('validation-input/identity.json', 'utf8'))
 const baseConfig = JSON.parse(readFileSync('complete-input/identity.json', 'utf8'))
 const ledgerConfig = JSON.parse(readFileSync('ledger-input/identity.json', 'utf8'))
@@ -45,28 +45,32 @@ try {
     if (hash === baseConfig.expectedCandidateBlobs[path]) continue
     merge(path, existsSync(join(base, path)) ? readFileSync(join(base, path), 'utf8') : undefined, readFileSync(join(ledger, path), 'utf8'), 'ledger')
   }
-  if (mode === 'boundaries' || mode === 'bitmap' || mode === 'canonical' || mode === 'requests') {
+  if (['boundaries', 'bitmap', 'canonical', 'requests', 'numeric'].includes(mode ?? '')) {
     const paths = ['core/counts.ts', 'kernel/prove.ts'], before = Object.fromEntries(paths.map(path => [path, readFileSync(join(ledger, path), 'utf8')]))
     command('git', ['apply', '--check', resolve('ledger-input/boundaries.patch')], ledger)
     command('git', ['apply', resolve('ledger-input/boundaries.patch')], ledger)
     for (const path of paths) merge(path, before[path], readFileSync(join(ledger, path), 'utf8'), 'boundaries')
   }
-  if (mode === 'bitmap' || mode === 'canonical' || mode === 'requests') {
+  if (['bitmap', 'canonical', 'requests', 'numeric'].includes(mode ?? '')) {
     writeFileSync(join(out, 'core/bitsets.ts'), readFileSync('coverage-input/bitsets.source'))
     writeFileSync(join(out, 'core/bitsets-meter.test.ts'), readFileSync('coverage-input/bitsets-meter.test.source'))
     const path = join(out, 'scripts/test-shards.ts'), source = readFileSync(path, 'utf8'), anchor = 'bitsets.test.ts'
     assert.equal(source.split(anchor).length, 2)
     writeFileSync(path, source.replace(anchor, anchor + ' bitsets-meter.test.ts'))
   }
-  if (mode === 'canonical' || mode === 'requests') {
+  if (['canonical', 'requests', 'numeric'].includes(mode ?? '')) {
     const {applyCanonicalization} = await import(resolve('coverage-input/canonicalization.ts'))
     applyCanonicalization(out)
   }
-  if (mode === 'requests') {
+  if (['requests', 'numeric'].includes(mode ?? '')) {
     const {applyRequestAccounting} = await import(resolve('request-input/accounting.ts'))
     const path = 'core/infer.ts', before = command('git', ['hash-object', path], out)
     applyRequestAccounting(out)
     records.push({phase: 'request-materialization', path, before, merged: command('git', ['hash-object', path], out)})
+  }
+  if (mode === 'numeric') {
+    const {applyBudgetFiniteness} = await import(resolve('numeric-input/apply.ts'))
+    applyBudgetFiniteness(out)
   }
   assert.equal(command('git', ['hash-object', 'research/protocols/ic3syn/models.ts'], out), rawConfig.originalModelBlob)
   command('git', ['add', '--', 'core', 'kernel', 'scripts/test-shards.ts'], out)
